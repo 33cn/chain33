@@ -545,7 +545,7 @@ message PrivacyInput {
 //privacy output
 message keyOutput {
     int64 amount = 1;
-    bytes ometimepubkey = 2;
+    bytes onetimepubkey = 2;
 }
 
 message PrivacyOutput {
@@ -563,7 +563,7 @@ message LocalUTXOItem {
     int32 txindex  = 2;
     int32 outindex = 3;
     bytes txhash   = 4;
-    bytes ometimepubkey = 5;
+    bytes onetimepubkey = 5;
 }
 
 message ReqUTXOPubKeys {
@@ -571,8 +571,14 @@ message ReqUTXOPubKeys {
     repeated GroupUTXOGlobalIndex groupUTXOGlobalIndex = 2;
 }
 
+// 一个公钥信息
+message PublicKeyData {
+    repeated bytes data = 1;
+}
+
 message GroupUTXOPubKey {
     int64 amount = 1;
+    // 输出签名的所有公钥
     repeated bytes pubkey = 2;
 }
 

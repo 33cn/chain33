@@ -5,6 +5,10 @@ import (
 	"testing"
 
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
+	"gitlab.33.cn/chain33/chain33/types"
+	"math/rand"
+	"time"
 )
 
 var (
@@ -44,8 +48,8 @@ func init() {
 }
 
 func TestGenerateKeyImage1(t *testing.T) {
-	var pub PublicKey
-	var sec SecreKey
+	var pub PubKeyPrivacy
+	var sec PrivKeyPrivacy
 	var expected, actual KeyImage
 	tmp, err := common.FromHex("1570eb695fa38fa7c395ddcb90e53e9b4d366a920e9c4b3ec988807d6f21914d")
 	if err != nil {
@@ -62,17 +66,36 @@ func TestGenerateKeyImage1(t *testing.T) {
 		t.Error("initialize expected image from hex failed.")
 	}
 	copy(expected[:], tmp)
-	generateKeyImage(&pub, &sec, &actual)
+	err = generateKeyImage(&pub, &sec, &actual)
+	if err != nil {
+		t.Error("generateKeyImage() failed. error ", err)
+	}
 	if bytes.Compare(actual[:], expected[:]) != 0 {
 		t.Fatal("generateKeyImage() failed.")
+	}
+}
+
+func TestGenerateKeyImage2(t *testing.T) {
+	c, err := crypto.New(types.GetSignatureTypeName(types.OnetimeED25519))
+	if err != nil {
+		t.Errorf("create Crypto failed. %v\n", err)
+	}
+	privkey, err := c.GenKey()
+	if err != nil {
+		t.Error("Generate private key failed.")
+	}
+	pubKey := privkey.PubKey().Bytes()
+	_, err = GenerateKeyImage(privkey, pubKey[:])
+	if err != nil {
+		t.Errorf("Generate private key failed. %v\n", err)
 	}
 }
 
 func TestGenerateRingSignature1(t *testing.T) {
 	const maxCount = 1
 	var image KeyImage
-	var pubs [maxCount]*PublicKey
-	var sec SecreKey
+	var pubs [maxCount]*PubKeyPrivacy
+	var sec PrivKeyPrivacy
 	var signs [maxCount]*Sign
 	index := 0
 	prefix_hash, err := common.FromHex("fd1f64844a7d6a9f74fc2141bceba9d9d69b1fd6104f93bfa42a6d708a6ab22c")
@@ -80,7 +103,7 @@ func TestGenerateRingSignature1(t *testing.T) {
 	copy(image[:], tmp)
 	tmp, err = common.FromHex("15e3cc7cdb904d62f7c20d7fa51923fa2839f9e0a92ff0eddf8c12bd09089c15")
 	for i := 0; i < maxCount; i++ {
-		pub := PublicKey{}
+		pub := PubKeyPrivacy{}
 		copy(pub[:], tmp[32*i:32*(i+1)])
 		pubs[i] = &pub
 	}
@@ -99,7 +122,7 @@ func TestGenerateRingSignature1(t *testing.T) {
 func TestCheckRingSignature1(t *testing.T) {
 	const maxCount = 1
 	var image KeyImage
-	var pubs [maxCount]*PublicKey
+	var pubs [maxCount]*PubKeyPrivacy
 	var signs [maxCount]*Sign
 
 	prefix_hash, err := common.FromHex("fd1f64844a7d6a9f74fc2141bceba9d9d69b1fd6104f93bfa42a6d708a6ab22c")
@@ -110,7 +133,7 @@ func TestCheckRingSignature1(t *testing.T) {
 	copy(image[:], tmp)
 	tmp, err = common.FromHex("15e3cc7cdb904d62f7c20d7fa51923fa2839f9e0a92ff0eddf8c12bd09089c15")
 	for i := 0; i < maxCount; i++ {
-		pub := PublicKey{}
+		pub := PubKeyPrivacy{}
 		copy(pub[:], tmp[32*i:32*(i+1)])
 		pubs[i] = &pub
 	}
@@ -126,10 +149,41 @@ func TestCheckRingSignature1(t *testing.T) {
 	}
 }
 
+func TestCheckRingSignatureAPI1(t *testing.T) {
+	const maxCount = 1
+	var signatures types.SignatureData
+	publickeys := make([][]byte, maxCount)
+	prefix_hash, err := common.FromHex("fd1f64844a7d6a9f74fc2141bceba9d9d69b1fd6104f93bfa42a6d708a6ab22c")
+	if err != nil {
+		t.Errorf("common.FromHex.", err)
+	}
+	keyimage, err := common.FromHex("e7d85d6e81512c5650adce0499d6c17a83e2e29a05c1166cd2171b6b9288b3c4")
+	if err != nil {
+		t.Errorf("common.FromHex.", err)
+	}
+
+	tmp, err := common.FromHex("15e3cc7cdb904d62f7c20d7fa51923fa2839f9e0a92ff0eddf8c12bd09089c15")
+	for i := 0; i < maxCount; i++ {
+		publickeys[i] = append(publickeys[i], tmp...)
+	}
+
+	tmp, err = common.FromHex("a142d0180a6047cf883125a83617c7dd56e9d8153ec04a96b3c5d9a5e03cd70cfd6827b200d6c2f4b41fb5b0162117a5447e327c29482c358a0a3c82db88fb0f")
+	data := make([][]byte, maxCount)
+	for i := 0; i < maxCount; i++ {
+		data[i] = make([]byte, 0)
+		data[i] = tmp
+	}
+	signatures.Data = data
+
+	if !CheckRingSignature(prefix_hash, &signatures, publickeys, keyimage) {
+		t.Fatal("checkRingSignature() failed.")
+	}
+}
+
 func TestCheckRingSignature3(t *testing.T) {
 	const maxCount = 3
 	var image KeyImage
-	var pubs [maxCount]*PublicKey
+	var pubs [maxCount]*PubKeyPrivacy
 	var signs [maxCount]*Sign
 
 	prefix_hash, err := common.FromHex("9e7ff8bde0e318543dcedbe34c51c6b25a850578adae2e7930bbda5224c77ef5")
@@ -140,7 +194,7 @@ func TestCheckRingSignature3(t *testing.T) {
 	copy(image[:], tmp)
 	tmp, err = common.FromHex("6bfc9654082a7da3055121aa69ddb46852577be71d6c9a204aae3492f0db7e41194f27c9fe4d81cc8421bf8256374edf660806d78b4ed7914a3b74359c8ac0bd65ff1bca674607f7948ea0ae8e83b6d9c5092942b52d2847b6cf44c9c609264d")
 	for i := 0; i < maxCount; i++ {
-		pub := PublicKey{}
+		pub := PubKeyPrivacy{}
 		copy(pub[:], tmp[32*i:32*(i+1)])
 		pubs[i] = &pub
 	}
@@ -159,7 +213,7 @@ func TestCheckRingSignature3(t *testing.T) {
 func TestCheckRingSignature17(t *testing.T) {
 	const maxCount = 17
 	var image KeyImage
-	var pubs [maxCount]*PublicKey
+	var pubs [maxCount]*PubKeyPrivacy
 	var signs [maxCount]*Sign
 
 	pubstrs := []string{
@@ -190,7 +244,7 @@ func TestCheckRingSignature17(t *testing.T) {
 	copy(image[:], tmp)
 
 	for i := 0; i < maxCount; i++ {
-		pub := PublicKey{}
+		pub := PubKeyPrivacy{}
 		tmp, err = common.FromHex(pubstrs[i])
 		copy(pub[:], tmp)
 		pubs[i] = &pub
@@ -210,15 +264,15 @@ func TestCheckRingSignature17(t *testing.T) {
 func TestRingSignatere1(t *testing.T) {
 	const maxCount = 2
 	var image KeyImage
-	var sec SecreKey
-	var pubs [maxCount]*PublicKey
+	var sec PrivKeyPrivacy
+	var pubs [maxCount]*PubKeyPrivacy
 	var signs [maxCount]*Sign
 	index := 0
 
 	// 初始化测试数据
 	prefix_hash, _ := common.FromHex("fd1f64844a7d6a9f74fc2141bceba9d9d69b1fd6104f93bfa42a6d708a6ab22c")
 	for i := 0; i < maxCount; i++ {
-		pub := PublicKey{}
+		pub := PubKeyPrivacy{}
 		sign := Sign{}
 		pubs[i] = &pub
 		signs[i] = &sign
@@ -231,9 +285,171 @@ func TestRingSignatere1(t *testing.T) {
 		}
 	}
 	// 创建环签名
-	generateRingSignature(prefix_hash, &image, pubs[:], &sec, signs[:], index)
+	err := generateRingSignature(prefix_hash, &image, pubs[:], &sec, signs[:], index)
+	if err != nil {
+		t.Fatal("generateRingSignature() failed. error ", err)
+	}
 	// 消炎环签名
 	if !checkRingSignature(prefix_hash, &image, pubs[:], signs[:]) {
 		t.Fatal("checkRingSignature() failed.")
+	}
+}
+
+func testRingSignatureOncetime(maxCount int, t *testing.T) {
+	var image KeyImage
+	var sec PrivKeyPrivacy
+	index := 0
+	pubs := make([]*PubKeyPrivacy, maxCount)
+	signs := make([]*Sign, maxCount)
+
+	// 初始化测试数据
+	prefix_hash, _ := common.FromHex("fd1f64844a7d6a9f74fc2141bceba9d9d69b1fd6104f93bfa42a6d708a6ab22c")
+
+	c, err := crypto.New(types.GetSignatureTypeName(types.OnetimeED25519))
+	if err != nil {
+		t.Errorf("create Crypto failed. %v\n", err)
+	}
+	for i := 0; i < maxCount; i++ {
+		pub := PubKeyPrivacy{}
+		sign := Sign{}
+
+		privkey, err := c.GenKey()
+		if err != nil {
+			t.Error("Generate private key failed.")
+		}
+		pubKey := privkey.PubKey().Bytes()
+
+		pubs[i] = &pub
+		signs[i] = &sign
+
+		copy(pub[:], pubKey)
+		if i == index {
+			// 创建 KeyImage
+			copy(sec[:], privkey.Bytes())
+			err = generateKeyImage(&pub, &sec, &image)
+			if err != nil {
+				t.Errorf("generateKeyImage() failed. error ", err)
+			}
+		}
+	}
+	// 创建环签名
+	err = generateRingSignature(prefix_hash, &image, pubs[:], &sec, signs[:], index)
+	if err != nil {
+		t.Fatal("generateRingSignature() failed. error ", err)
+	}
+	// 消炎环签名
+	if !checkRingSignature(prefix_hash, &image, pubs[:], signs[:]) {
+		t.Fatal("checkRingSignature() failed.")
+	}
+}
+
+func TestRingSignatere2(t *testing.T) {
+	testRingSignatureOncetime(100, t)
+}
+
+func TestGenerateRingSignatureAPI(t *testing.T) {
+	const maxCount = 10
+	var utxos []*types.UTXO
+	var keyImage []byte
+	var sec [64]byte
+
+	rand.Seed(time.Now().Unix())
+	// step1. init params
+	c, err := crypto.New(types.GetSignatureTypeName(types.OnetimeED25519))
+	if err != nil {
+		t.Errorf("create Crypto failed. %v\n", err)
+	}
+	privkey, err := c.GenKey()
+	if err != nil {
+		t.Error("Generate private key failed.")
+	}
+
+	realUtxoIndex := rand.Int() % maxCount
+	prefix_hash, _ := common.FromHex("fd1f64844a7d6a9f74fc2141bceba9d9d69b1fd6104f93bfa42a6d708a6ab22c")
+	utxos = make([]*types.UTXO, maxCount)
+	for i := 0; i < maxCount; i++ {
+		utxo := types.UTXO{}
+		utxos[i] = &utxo
+
+		utxo.OnetimePubkey = append(utxo.OnetimePubkey[:], pubs_byte[i]...)
+		if i == realUtxoIndex {
+			pubKey := privkey.PubKey().Bytes()
+			// 增加指定的密钥对
+			copy(utxo.OnetimePubkey[:], pubKey)
+			copy(sec[:], privkey.Bytes())
+
+			// 创建 KeyImage
+			image, err := GenerateKeyImage(privkey, pubKey[:])
+			if err != nil {
+				t.Errorf("Generate private key failed. %v\n", err)
+			}
+			keyImage = append(keyImage, image[:]...)
+		}
+	}
+
+	var signaturedata *types.SignatureData
+	// step2. generate ring signature
+	if signaturedata, err = GenerateRingSignature(prefix_hash, utxos, sec[:], realUtxoIndex, keyImage); err != nil {
+		t.Errorf("GenerateRingSignature() failed. ", err)
+	}
+
+	publickeys := make([][]byte, maxCount)
+	for i := 0; i < maxCount; i++ {
+		publickeys[i] = append(publickeys[i], utxos[i].OnetimePubkey...)
+	}
+	// step3. checksignature
+	if !CheckRingSignature(prefix_hash, signaturedata, publickeys, keyImage) {
+		t.Error("CheckRingSignature() failed.")
+	}
+}
+
+func benchRingSignatureOncetime(maxCount int) {
+	var image KeyImage
+	var sec PrivKeyPrivacy
+	index := 0
+	pubs := make([]*PubKeyPrivacy, maxCount)
+	signs := make([]*Sign, maxCount)
+
+	// 初始化测试数据
+	prefix_hash, _ := common.FromHex("fd1f64844a7d6a9f74fc2141bceba9d9d69b1fd6104f93bfa42a6d708a6ab22c")
+
+	c, _ := crypto.New(types.GetSignatureTypeName(types.OnetimeED25519))
+	for i := 0; i < maxCount; i++ {
+		pub := PubKeyPrivacy{}
+		sign := Sign{}
+
+		privkey, _ := c.GenKey()
+		pubKey := privkey.PubKey().Bytes()
+
+		pubs[i] = &pub
+		signs[i] = &sign
+
+		copy(pub[:], pubKey)
+		if i == index {
+			// 创建 KeyImage
+			copy(sec[:], privkey.Bytes())
+			generateKeyImage(&pub, &sec, &image)
+		}
+	}
+	// 创建环签名
+	generateRingSignature(prefix_hash, &image, pubs[:], &sec, signs[:], index)
+	// 效验环签名
+	checkRingSignature(prefix_hash, &image, pubs[:], signs[:])
+}
+
+func Benchmark_RingSignature(b *testing.B) {
+	b.StartTimer()
+	for i := 0; i < b.N; i++ { //use b.N for looping
+		benchRingSignatureOncetime(b.N)
+	}
+	b.StopTimer()
+}
+
+// 最终版本的单元测试测试用例集合
+
+// 最终版本的压力测试测试用例集合
+func Benchmark_RingSignatureAllStep(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+
 	}
 }

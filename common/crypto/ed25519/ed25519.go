@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	"gitlab.33.cn/chain33/chain33/common/ed25519"
 	. "gitlab.33.cn/chain33/chain33/common/crypto"
+	"gitlab.33.cn/chain33/chain33/common/ed25519"
 )
 
 type Ed25519Driver struct{}
@@ -140,4 +140,3 @@ func (sig SignatureEd25519) Equals(other Signature) bool {
 func init() {
 	Register(SignNameED25519, &Ed25519Driver{})
 }
-

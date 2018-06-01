@@ -7,12 +7,12 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/hashicorp/golang-lru/simplelru"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/difficulty"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/util"
 	priexec "gitlab.33.cn/chain33/chain33/executor/drivers/privacy"
-	"github.com/hashicorp/golang-lru/simplelru"
 )
 
 // 处理共识模块过来的blockdetail，peer广播过来的block，以及从peer同步过来的block
@@ -505,7 +505,7 @@ func (b *BlockChain) updatePrivacyCache(privacyKV *types.PrivacyKV, height int64
 					var keyOutput types.KeyOutput
 					types.Decode(kv.Value, &keyOutput)
 					outputKeyInfo := privacyOutputKeyInfo{
-						onetimePubKey:keyOutput.Ometimepubkey,
+						onetimePubKey:keyOutput.Onetimepubkey,
 					}
 					privacyOutputIndexLru, ok := mapPrivacy4token[keyOutput.Amount]
 					if ok {
@@ -533,7 +533,7 @@ func (b *BlockChain) updatePrivacyCache(privacyKV *types.PrivacyKV, height int64
 					var keyOutput types.KeyOutput
 					types.Decode(kv.Value, &keyOutput)
 					outputKeyInfo := &privacyOutputKeyInfo{
-						onetimePubKey:keyOutput.Ometimepubkey,
+						onetimePubKey:keyOutput.Onetimepubkey,
 					}
 
 					privacyOutputIndexLru, ok := mapPrivacy4token[keyOutput.Amount]

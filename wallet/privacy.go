@@ -3,12 +3,13 @@ package wallet
 import (
 	"bytes"
 	"errors"
+	"sort"
+	"unsafe"
+	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/crypto/privacy"
 	"gitlab.33.cn/chain33/chain33/types"
-	"sort"
-	"unsafe"
 )
 
 type realkeyInput struct {
@@ -17,9 +18,10 @@ type realkeyInput struct {
 }
 
 type buildInputInfo struct {
-	tokenname      *string
-	sender         *string
-	amount         int64
+	tokenname *string
+	sender    *string
+	amount    int64
+	mixcount  int32
 }
 
 func (wallet *Wallet) procPublic2PrivacyV2(public2private *types.ReqPub2Pri) (*types.ReplyHash, error) {
@@ -33,6 +35,9 @@ func (wallet *Wallet) procPublic2PrivacyV2(public2private *types.ReqPub2Pri) (*t
 	if public2private == nil {
 		walletlog.Error("public2private input para is nil")
 		return nil, types.ErrInputPara
+	}
+	if public2private.GetAmount() <= 0 || len(public2private.GetTokenname()) <= 0 {
+		return nil, types.ErrInvalidParams
 	}
 
 	priv, err := wallet.getPrivKeyByAddr(public2private.GetSender())
@@ -53,6 +58,10 @@ func (wallet *Wallet) procPrivacy2PrivacyV2(privacy2privacy *types.ReqPri2Pri) (
 	if privacy2privacy == nil {
 		walletlog.Error("privacy2privacy input para is nil")
 		return nil, types.ErrInputPara
+	}
+	if privacy2privacy.GetAmount() <= 0 {
+		walletlog.Error("privacy2privacy Amount must be greate than 0")
+		return nil, types.ErrInvalidParams
 	}
 
 	privacyInfo, err := wallet.getPrivacykeyPair(privacy2privacy.GetSender())
@@ -169,10 +178,12 @@ func (wallet *Wallet) createUTXOsByPub2Priv(priv crypto.PrivKey, reqCreateUTXOs 
 func (wallet *Wallet) transPub2PriV2(priv crypto.PrivKey, reqPub2Pri *types.ReqPub2Pri) (*types.ReplyHash, error) {
 	viewPubSlice, err := common.FromHex(reqPub2Pri.ViewPublic)
 	if err != nil {
+		walletlog.Error("transPub2Pri", "common.FromHex error ", err)
 		return nil, err
 	}
 	spendPubSlice, err := common.FromHex(reqPub2Pri.SpendPublic)
 	if err != nil {
+		walletlog.Error("transPub2Pri", "common.FromHex error ", err)
 		return nil, err
 	}
 
@@ -200,12 +211,13 @@ func (wallet *Wallet) transPub2PriV2(priv crypto.PrivKey, reqPub2Pri *types.ReqP
 		Ty:    types.ActionPublic2Privacy,
 		Value: &types.PrivacyAction_Public2Privacy{value},
 	}
-
 	tx := &types.Transaction{
 		Execer:  []byte("privacy"),
 		Payload: types.Encode(action),
 		Fee:     wallet.FeeAmount,
 		Nonce:   wallet.random.Int63(),
+		// TODO: 采用隐私合约地址来设定目标合约接收的目标地址,让验证通过
+		To: account.ExecAddress(types.PrivacyX).String(),
 	}
 	tx.Sign(int32(SignType), priv)
 
@@ -251,7 +263,7 @@ func genCustomOuts(viewpubTo, spendpubto *[32]byte, transAmount int64, count int
 		}
 		keyOutput := &types.KeyOutput{
 			Amount:        digit,
-			Ometimepubkey: pubkeyOnetime[:],
+			Onetimepubkey: pubkeyOnetime[:],
 		}
 		privacyOutput.Keyoutput[index] = keyOutput
 	}
@@ -267,10 +279,10 @@ func generateOuts(viewpubTo, spendpubto, viewpubChangeto, spendpubChangeto *[32]
 	//计算找零
 	changeAmount := selectedAmount - transAmount - fee
 	var decomChange []int64
-	if 0 != changeAmount {
+	if 0 < changeAmount {
 		decomChange = decomposeAmount2digits(changeAmount, types.BTYDustThreshold)
 	}
-	walletlog.Info("generateOuts", "decompose digit for amount", selectedAmount - fee, "decomDigit", decomDigit)
+	walletlog.Info("generateOuts", "decompose digit for amount", selectedAmount-fee, "decomDigit", decomDigit)
 
 	pk := &privacy.PubKeyPrivacy{}
 	sk := &privacy.PrivKeyPrivacy{}
@@ -291,7 +303,7 @@ func generateOuts(viewpubTo, spendpubto, viewpubChangeto, spendpubChangeto *[32]
 		}
 		keyOutput := &types.KeyOutput{
 			Amount:        digit,
-			Ometimepubkey: pubkeyOnetime[:],
+			Onetimepubkey: pubkeyOnetime[:],
 		}
 		privacyOutput.Keyoutput[index] = keyOutput
 	}
@@ -304,7 +316,7 @@ func generateOuts(viewpubTo, spendpubto, viewpubChangeto, spendpubChangeto *[32]
 		}
 		keyOutput := &types.KeyOutput{
 			Amount:        digit,
-			Ometimepubkey: pubkeyOnetime[:],
+			Onetimepubkey: pubkeyOnetime[:],
 		}
 		privacyOutput.Keyoutput[index+len(decomDigit)] = keyOutput
 	}
@@ -331,10 +343,13 @@ func generateOuts(viewpubTo, spendpubto, viewpubChangeto, spendpubChangeto *[32]
 }
 
 func (wallet *Wallet) transPri2PriV2(privacykeyParirs *privacy.Privacy, reqPri2Pri *types.ReqPri2Pri) (*types.ReplyHash, error) {
+	factorNum := int64(100)
 	buildInfo := &buildInputInfo{
-		tokenname:&reqPri2Pri.Tokenname,
-		sender:&reqPri2Pri.Sender,
-		amount:reqPri2Pri.Amount + wallet.FeeAmount,
+		tokenname: &reqPri2Pri.Tokenname,
+		sender:    &reqPri2Pri.Sender,
+		// TODO: 这里存在手续费不足的情况,需要考虑扣除手续费以后的拆分问题,所以这里先简单的放大,让调试通过
+		amount:    reqPri2Pri.Amount + wallet.FeeAmount*factorNum,
+		mixcount:  reqPri2Pri.Mixin,
 	}
 
 	//step 1,buildInput
@@ -360,7 +375,7 @@ func (wallet *Wallet) transPri2PriV2(privacykeyParirs *privacy.Privacy, reqPri2P
 		selectedAmounTotal += input.Amount
 	}
 	//构造输出UTXO
-	privacyOutput, err := generateOuts(viewPublic, spendPublic, viewPub4chgPtr, spendPub4chgPtr, reqPri2Pri.Amount, selectedAmounTotal, wallet.FeeAmount)
+	privacyOutput, err := generateOuts(viewPublic, spendPublic, viewPub4chgPtr, spendPub4chgPtr, reqPri2Pri.Amount, selectedAmounTotal, wallet.FeeAmount*factorNum)
 	if err != nil {
 		return nil, err
 	}
@@ -380,7 +395,7 @@ func (wallet *Wallet) transPri2PriV2(privacykeyParirs *privacy.Privacy, reqPri2P
 	tx := &types.Transaction{
 		Execer:  []byte(types.PrivacyX),
 		Payload: types.Encode(action),
-		Fee:     wallet.FeeAmount,
+		Fee:     wallet.FeeAmount*factorNum,
 		Nonce:   wallet.random.Int63(),
 	}
 
@@ -388,15 +403,19 @@ func (wallet *Wallet) transPri2PriV2(privacykeyParirs *privacy.Privacy, reqPri2P
 	//这时候就需要进行交易的签名了
 	tx.Signature = nil
 	data := types.Encode(tx)
-	var ringSigns [][]byte
+	ringSigns := make([]*types.SignatureData, len(privacyInput.Keyinput))
 	for i, input := range privacyInput.Keyinput {
 		utxos := utxosInKeyInput[i]
-		ringSignature := privacy.GenerateRingSignature(data,
+		h := common.BytesToHash(data)
+		ringSigns[i], err = privacy.GenerateRingSignature(h.Bytes(),
 			utxos,
-			realkeyInputSlice[i].realInputIndex,
 			realkeyInputSlice[i].onetimePrivKey,
+			realkeyInputSlice[i].realInputIndex,
 			input.KeyImage)
-		ringSigns = append(ringSigns, ringSignature.Bytes())
+
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	signature := &types.Signature{
@@ -425,9 +444,9 @@ func (wallet *Wallet) transPri2PriV2(privacykeyParirs *privacy.Privacy, reqPri2P
 
 func (wallet *Wallet) transPri2PubV2(privacykeyParirs *privacy.Privacy, reqPri2Pub *types.ReqPri2Pub) (*types.ReplyHash, error) {
 	buildInfo := &buildInputInfo{
-		tokenname:&reqPri2Pub.Tokenname,
-		sender:&reqPri2Pub.Sender,
-		amount:reqPri2Pub.Amount + wallet.FeeAmount,
+		tokenname: &reqPri2Pub.Tokenname,
+		sender:    &reqPri2Pub.Sender,
+		amount:    reqPri2Pub.Amount + wallet.FeeAmount,
 	}
 	//step 1,buildInput
 	privacyInput, utxosInKeyInput, realkeyInputSlice, selectedUtxo, err := wallet.buildInput(privacykeyParirs, buildInfo)
@@ -441,6 +460,9 @@ func (wallet *Wallet) transPri2PubV2(privacykeyParirs *privacy.Privacy, reqPri2P
 
 	selectedAmounTotal := int64(0)
 	for _, input := range privacyInput.Keyinput {
+		if input.Amount <= 0 {
+			return nil, errors.New("")
+		}
 		selectedAmounTotal += input.Amount
 	}
 	changeAmount := selectedAmounTotal - reqPri2Pub.Amount
@@ -473,20 +495,24 @@ func (wallet *Wallet) transPri2PubV2(privacykeyParirs *privacy.Privacy, reqPri2P
 	//step 3,generate ring signature
 	tx.Signature = nil
 	data := types.Encode(tx)
-	var ringSigns [][]byte
+	var ringSignatures []*types.SignatureData
+	ringSignatures = make([]*types.SignatureData, len(privacyInput.Keyinput))
 	for i, input := range privacyInput.Keyinput {
 		utxos := utxosInKeyInput[i]
-		ringSignature := privacy.GenerateRingSignature(data,
+		h := common.BytesToHash(data)
+		ringSignatures[i], err = privacy.GenerateRingSignature(h.Bytes(),
 			utxos,
-			realkeyInputSlice[i].realInputIndex,
 			realkeyInputSlice[i].onetimePrivKey,
+			realkeyInputSlice[i].realInputIndex,
 			input.KeyImage)
-		ringSigns = append(ringSigns, ringSignature.Bytes())
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	signature := &types.Signature{
 		Ty:            types.RingBaseonED25519,
-		RingSignature: ringSigns,
+		RingSignature: ringSignatures,
 	}
 	tx.Signature = signature
 
@@ -515,7 +541,7 @@ func (wallet *Wallet) saveFTXOInfo(token, sender, txhash string, selectedUtxos [
 	wallet.walletStore.moveUTXO2FTXO(token, sender, txhash, selectedUtxos)
 }
 
-func (wallet *Wallet) buildInput(privacykeyParirs *privacy.Privacy, buildInfo *buildInputInfo) (*types.PrivacyInput, [][]*types.UTXO, []*realkeyInput, []*txOutputInfo, error) {
+func (wallet *Wallet) buildInput(privacykeyParirs *privacy.Privacy, buildInfo *buildInputInfo) (*types.PrivacyInput, [][]*types.UTXOBasic, []*realkeyInput, []*txOutputInfo, error) {
 	//挑选满足额度的utxo
 	selectedUtxo, err := wallet.selectUTXO(*buildInfo.tokenname, *buildInfo.sender, buildInfo.amount)
 	if err != nil {
@@ -541,6 +567,9 @@ func (wallet *Wallet) buildInput(privacykeyParirs *privacy.Privacy, buildInfo *b
 		Tokenname: *buildInfo.tokenname,
 		MixCount:  20,
 	}
+	if buildInfo.mixcount >= 0 {
+		reqGetGlobalIndex.MixCount = buildInfo.mixcount
+	}
 	for amout, _ := range amountKind {
 		reqGetGlobalIndex.Amount = append(reqGetGlobalIndex.Amount, amout)
 	}
@@ -552,7 +581,7 @@ func (wallet *Wallet) buildInput(privacykeyParirs *privacy.Privacy, buildInfo *b
 	walletlog.Debug("transPri2Pri", "After sort reqGetGlobalIndex.Amount", reqGetGlobalIndex.Amount)
 
 	//向blockchain请求相同额度的不同utxo用于相同额度的混淆作用
-	msg := wallet.client.NewMessage("blockchain", types.EventGetGlobalIndex, reqGetGlobalIndex)
+	msg := wallet.client.NewMessage("blockchain", types.EventGetGlobalIndex, &reqGetGlobalIndex)
 	wallet.client.Send(msg, true)
 	resp, err := wallet.client.Wait(msg)
 	if err != nil {
@@ -572,32 +601,40 @@ func (wallet *Wallet) buildInput(privacykeyParirs *privacy.Privacy, buildInfo *b
 
 	//构造输入PrivacyInput
 	privacyInput := &types.PrivacyInput{}
-	utxosInKeyInput := make([][]*types.UTXO, len(selectedUtxo))
+	utxosInKeyInput := make([][]*types.UTXOBasic, len(selectedUtxo))
 	realkeyInputSlice := make([]*realkeyInput, len(selectedUtxo))
 	for i, utxo2pay := range selectedUtxo {
-		utxoIndex4Amount := mapAmount2utxo[utxo2pay.amount]
-		for j, utxo := range utxoIndex4Amount.Utxos {
-			if bytes.Equal(utxo.OnetimePubkey, utxo2pay.onetimePublicKey.Bytes()) {
-				utxoIndex4Amount.Utxos = append(utxoIndex4Amount.Utxos[:j], utxoIndex4Amount.Utxos[j+1:]...)
-				break
+		utxoIndex4Amount, ok := mapAmount2utxo[utxo2pay.amount]
+		if ok {
+			for j, utxo := range utxoIndex4Amount.Utxos {
+				if bytes.Equal(utxo.OnetimePubkey, utxo2pay.onetimePublicKey) {
+					utxoIndex4Amount.Utxos = append(utxoIndex4Amount.Utxos[:j], utxoIndex4Amount.Utxos[j+1:]...)
+					break
+				}
 			}
 		}
+		if utxoIndex4Amount == nil{
+			utxoIndex4Amount = &types.UTXOIndex4Amount{}
+		}
+		if utxoIndex4Amount.Utxos == nil {
+			utxoIndex4Amount.Utxos = make([]*types.UTXOBasic, 0)
+		}
 
-		utxo := &types.UTXO{
+		utxo := &types.UTXOBasic{
 			UtxoGlobalIndex: utxo2pay.utxoGlobalIndex,
-			OnetimePubkey:   utxo2pay.onetimePublicKey.Bytes(),
+			OnetimePubkey:   utxo2pay.onetimePublicKey,
 		}
 		//将真实的utxo添加到最后一个
 		utxoIndex4Amount.Utxos = append(utxoIndex4Amount.Utxos, utxo)
 		positions := wallet.random.Perm(len(utxoIndex4Amount.Utxos))
-		utxos := make([]*types.UTXO, len(utxoIndex4Amount.Utxos))
+		utxos := make([]*types.UTXOBasic, len(utxoIndex4Amount.Utxos))
 		for k, position := range positions {
 			utxos[position] = utxoIndex4Amount.Utxos[k]
 		}
 		utxosInKeyInput[i] = utxos
 
 		//x = Hs(aR) + b
-		onetimePriv, err := privacy.RecoverOnetimePriKey(utxo2pay.txPublicKeyR.Bytes(), privacykeyParirs.ViewPrivKey, privacykeyParirs.SpendPrivKey, int64(utxo2pay.utxoGlobalIndex.Outindex))
+		onetimePriv, err := privacy.RecoverOnetimePriKey(utxo2pay.txPublicKeyR, privacykeyParirs.ViewPrivKey, privacykeyParirs.SpendPrivKey, int64(utxo2pay.utxoGlobalIndex.Outindex))
 		if err != nil {
 			walletlog.Error("transPri2Pri", "Failed to RecoverOnetimePriKey", err)
 			return nil, nil, nil, nil, err
@@ -609,7 +646,10 @@ func (wallet *Wallet) buildInput(privacykeyParirs *privacy.Privacy, buildInfo *b
 		}
 		realkeyInputSlice[i] = realkeyInput
 
-		keyImage := privacy.GenerateKeyImage(onetimePriv, utxo2pay.onetimePublicKey)
+		keyImage, err := privacy.GenerateKeyImage(onetimePriv, utxo2pay.onetimePublicKey)
+		if err != nil {
+			return nil, nil, nil, nil, err
+		}
 
 		keyInput := &types.KeyInput{
 			Amount:   utxo2pay.amount,
@@ -650,7 +690,7 @@ func (wallet *Wallet) selectUTXO(token, addr string, amount int64) ([]*txOutputI
 				//remove from the origin slice
 				outs = append(outs[:index], outs[index+1:]...)
 			}
-			return outs, nil
+			return selectedOuts, nil
 		} else {
 			return nil, types.ErrInsufficientBalance
 		}
@@ -662,7 +702,7 @@ func (wallet *Wallet) selectUTXO(token, addr string, amount int64) ([]*txOutputI
 //res:[455827, 7000000, 80000000, 300000000, 2000000000, 60000000000]
 func decomposeAmount2digits(amount, dust_threshold int64) []int64 {
 	res := make([]int64, 0)
-	if 0 == amount {
+	if 0 >= amount {
 		return res
 	}
 

@@ -160,6 +160,7 @@ It has these top-level messages:
 	GroupUTXOGlobalIndex
 	LocalUTXOItem
 	ReqUTXOPubKeys
+	PublicKeyData
 	GroupUTXOPubKey
 	ResUTXOPubKeys
 	ReqPrivacyToken
@@ -195,6 +196,7 @@ It has these top-level messages:
 	UnsignTx
 	SignedTx
 	Transaction
+	SignatureData
 	Signature
 	AddrOverview
 	ReqAddr
