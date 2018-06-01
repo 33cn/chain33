@@ -203,4 +203,5 @@ var (
 
 	//authority
 	ErrDeserializedIdentity = errors.New("ErrDeserializedIdentity")
+	ErrSignatureExist       = errors.New("ErrSignatureExist")
 )

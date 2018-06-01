@@ -38,9 +38,6 @@ type MSPCryptoConfig struct {
 	IdentityIdentifierHashFunction string
 }
 
-// From this point on, there are interfaces that are shared within the peer and client API
-// of the membership service provider.
-
 // Identity interface defining operations associated to a "certificate".
 // That is, the public part of the identity could be thought to be a certificate,
 // and offers solely signature verification capabilities. This is to be used

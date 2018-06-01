@@ -27,7 +27,12 @@ type Authority struct {
 
 func New(conf *types.Authority) *Authority {
 	auth := &Authority{}
-	auth.initConfig(conf)
+
+	err := auth.initConfig(conf)
+	if err != nil {
+		panic("Initialize authority module failed")
+	}
+
 	auth.cryptoPath = conf.CryptoPath
 	auth.cfg = conf
 	OrgName = conf.GetOrgName()
@@ -55,7 +60,11 @@ func (auth *Authority) initConfig(conf *types.Authority) error {
 		return errors.WithMessage(err, "Failed to initialize identity manage")
 	}
 	auth.idmgr = idmgr
-	mspmgr.LoadLocalMsp(conf.CryptoPath, config)
+
+	err = mspmgr.LoadLocalMsp(conf.CryptoPath, config)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -90,8 +99,14 @@ func (auth *Authority) SetQueueClient(client queue.Client) {
 func (auth *Authority) procSignTx(msg queue.Message) {
 	data, _ := msg.GetData().(*types.ReqAuthSignTx)
 
+	alog.Debug("Process authority tx signing begin")
 	var tx types.Transaction
 	err := types.Decode(data.Tx, &tx)
+	if err != nil {
+		alog.Error("ReqAuthSignTx decode error, wrong data format")
+		msg.ReplyErr("EventReplyAuthSignTx", types.ErrInvalidParam)
+		return
+	}
 
 	userName := tx.GetCert().Username
 	user, err := auth.idmgr.GetUser(userName)
@@ -102,24 +117,21 @@ func (auth *Authority) procSignTx(msg queue.Message) {
 	}
 
 	if tx.Signature != nil {
-		panic("")
+		alog.Error("Signature already exist")
+		msg.ReplyErr("EventReplyAuthSignTx", types.ErrSignatureExist)
+		return
 	}
 
-	//tx数据当前仅便于调试观察
-	//if tx.Cert != nil {
-	//	panic("")
-	//}
 	tx.Cert.Certbytes = append(tx.Cert.Certbytes, user.EnrollmentCertificate()...)
-
 	signature, err := auth.signer.Sign(types.Encode(&tx), user.PrivateKey())
 	if err != nil {
 		panic(err)
 	}
-
 	tx.Signature = &types.Signature{types.SIG_TYPE_AUTHORITY, nil, signature}
 
-	txHex := types.Encode(&tx)
+	alog.Debug("Process authority tx signing end")
 
+	txHex := types.Encode(&tx)
 	msg.Reply(auth.client.NewMessage("", types.EventReplyAuthSignTx, &types.ReplyAuthSignTx{txHex}))
 }
 
@@ -127,13 +139,15 @@ func (auth *Authority) procCheckTx(msg queue.Message) {
 	data := msg.GetData().(*types.ReqAuthSignCheck)
 	tx := data.GetTx()
 	if tx.GetSignature().Ty != types.SIG_TYPE_AUTHORITY {
+		alog.Error("Error signature type, should be AUTHORITY")
 		msg.ReplyErr("EventReplyAuthCheckTx", types.ErrInvalidParam)
 		return
 	}
+	falseResultMsg := auth.client.NewMessage("", types.EventReplyAuthCheckTx, &types.RespAuthSignCheck{false})
 
-	falseResultMsg := auth.client.NewMessage("mempool", types.EventReplyAuthCheckTx, &types.RespAuthSignCheck{false})
+	alog.Debug(fmt.Sprintf("transaction user name %s", tx.GetCert().GetUsername()))
+
 	localMSP := mspmgr.GetLocalMSP()
-
 	identity, err := localMSP.DeserializeIdentity(tx.GetCert().GetCertbytes())
 	if err != nil {
 		alog.Error("Deserialize identity from cert bytes failed", err.Error())
@@ -141,15 +155,12 @@ func (auth *Authority) procCheckTx(msg queue.Message) {
 		return
 	}
 
-	alog.Debug("transaction user name %s", tx.GetCert().GetUsername())
-
 	err = identity.Validate()
 	if err != nil {
 		alog.Error("Validate certificates failed", err.Error())
 		msg.Reply(falseResultMsg)
 		return
 	}
-
 	alog.Debug("Certificates is valid")
 
 	copytx := *tx
@@ -161,10 +172,9 @@ func (auth *Authority) procCheckTx(msg queue.Message) {
 		msg.Reply(falseResultMsg)
 		return
 	}
-
 	alog.Debug("Verify signature success")
 
-	msg.Reply(auth.client.NewMessage("mempool", types.EventReplyAuthCheckTx, &types.RespAuthSignCheck{true}))
+	msg.Reply(auth.client.NewMessage("", types.EventReplyAuthCheckTx, &types.RespAuthSignCheck{true}))
 }
 
 func (auth *Authority) Close() {
