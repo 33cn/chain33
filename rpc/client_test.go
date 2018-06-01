@@ -21,7 +21,7 @@ func newTestChannelClient() *channelClient {
 
 // TODO
 func TestInit(t *testing.T) {
-	client := newTestChannelClient()
+		client := newTestChannelClient()
 	client.Init(&qmock.Client{})
 }
 
