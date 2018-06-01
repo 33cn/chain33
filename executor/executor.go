@@ -128,7 +128,7 @@ func (exec *Executor) procExecQuery(msg queue.Message) {
 
 func (exec *Executor) procExecCheckTx(msg queue.Message) {
 	datas := msg.GetData().(*types.ExecTxList)
-	execute := newExecutor(datas.StateHash, exec.client, datas.Height, datas.BlockTime, datas.CoinBase, datas.Difficulty)
+	execute := newExecutor(datas.StateHash, exec.client, datas.Height, datas.BlockTime, datas.Difficulty)
 	execute.api = exec.qclient
 	//返回一个列表表示成功还是失败
 	result := &types.ReceiptCheckTxList{}
@@ -148,7 +148,7 @@ var commonPrefix = []byte("mavl-")
 
 func (exec *Executor) procExecTxList(msg queue.Message) {
 	datas := msg.GetData().(*types.ExecTxList)
-	execute := newExecutor(datas.StateHash, exec.client, datas.Height, datas.BlockTime, datas.CoinBase, datas.Difficulty)
+	execute := newExecutor(datas.StateHash, exec.client, datas.Height, datas.BlockTime, datas.Difficulty)
 	execute.api = exec.qclient
 	var receipts []*types.Receipt
 	index := 0
@@ -285,10 +285,7 @@ func findExecer(key []byte) (execer []byte, err error) {
 func (exec *Executor) procExecAddBlock(msg queue.Message) {
 	datas := msg.GetData().(*types.BlockDetail)
 	b := datas.Block
-	execute := newExecutor(b.StateHash, exec.client, b.Height, b.BlockTime, "", uint64(b.Difficulty))
-	if b.GetSignature() != nil {
-		execute.coinBase = account.PubKeyToAddress(b.GetSignature().GetPubkey()).String()
-	}
+	execute := newExecutor(b.StateHash, exec.client, b.Height, b.BlockTime, uint64(b.Difficulty))
 	execute.api = exec.qclient
 	var totalFee types.TotalFee
 	var kvset types.LocalDBSet
@@ -328,10 +325,7 @@ func (exec *Executor) procExecAddBlock(msg queue.Message) {
 func (exec *Executor) procExecDelBlock(msg queue.Message) {
 	datas := msg.GetData().(*types.BlockDetail)
 	b := datas.Block
-	execute := newExecutor(b.StateHash, exec.client, b.Height, b.BlockTime, "", uint64(b.Difficulty))
-	if b.GetSignature() != nil {
-		execute.coinBase = account.PubKeyToAddress(b.GetSignature().GetPubkey()).String()
-	}
+	execute := newExecutor(b.StateHash, exec.client, b.Height, b.BlockTime, uint64(b.Difficulty))
 	execute.api = exec.qclient
 	var kvset types.LocalDBSet
 	for i := len(b.Txs) - 1; i >= 0; i-- {
@@ -382,21 +376,19 @@ type executor struct {
 	height       int64
 	blocktime    int64
 
-	// 增加区块的coinbase和难度值，后面的执行器逻辑需要这些属性
-	coinBase   string
+	// 增加区块的难度值，后面的执行器逻辑需要这些属性
 	difficulty uint64
 
 	api client.QueueProtocolAPI
 }
 
-func newExecutor(stateHash []byte, client queue.Client, height, blocktime int64, coinBase string, difficulty uint64) *executor {
+func newExecutor(stateHash []byte, client queue.Client, height, blocktime int64, difficulty uint64) *executor {
 	e := &executor{
 		stateDB:      NewStateDB(client, stateHash),
 		localDB:      NewLocalDB(client),
 		coinsAccount: account.NewCoinsAccount(),
 		height:       height,
 		blocktime:    blocktime,
-		coinBase:     coinBase,
 		difficulty:   difficulty,
 	}
 	e.coinsAccount.SetDB(e.stateDB)
@@ -435,7 +427,7 @@ func (e *executor) checkTx(tx *types.Transaction, index int) error {
 func (e *executor) setEnv(exec drivers.Driver) {
 	exec.SetStateDB(e.stateDB)
 	exec.SetLocalDB(e.localDB)
-	exec.SetEnv(e.height, e.blocktime, e.coinBase, e.difficulty)
+	exec.SetEnv(e.height, e.blocktime, e.difficulty)
 	exec.SetApi(e.api)
 }
 func (e *executor) checkTxGroup(txgroup *types.Transactions, index int) error {

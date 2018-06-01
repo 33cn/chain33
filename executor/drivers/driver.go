@@ -23,7 +23,7 @@ type Driver interface {
 	SetLocalDB(dbm.KVDB)
 	GetName() string
 	GetActionName(tx *types.Transaction) string
-	SetEnv(height, blocktime int64, coinBase string, difficulty uint64)
+	SetEnv(height, blocktime int64, difficulty uint64)
 	CheckTx(tx *types.Transaction, index int) error
 	Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 	ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error)
@@ -41,7 +41,6 @@ type DriverBase struct {
 	blocktime    int64
 	child        Driver
 	isFree       bool
-	coinBase     string
 	difficulty   uint64
 	api          client.QueueProtocolAPI
 }
@@ -54,10 +53,9 @@ func (d *DriverBase) GetApi() client.QueueProtocolAPI {
 	return d.api
 }
 
-func (d *DriverBase) SetEnv(height, blocktime int64, coinBase string, difficulty uint64) {
+func (d *DriverBase) SetEnv(height, blocktime int64, difficulty uint64) {
 	d.height = height
 	d.blocktime = blocktime
-	d.coinBase = coinBase
 	d.difficulty = difficulty
 }
 
@@ -221,10 +219,6 @@ func (d *DriverBase) GetHeight() int64 {
 
 func (d *DriverBase) GetBlockTime() int64 {
 	return d.blocktime
-}
-
-func (d *DriverBase) GetCoinBase() string {
-	return d.coinBase
 }
 
 func (d *DriverBase) GetDifficulty() uint64 {

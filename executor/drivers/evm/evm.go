@@ -55,20 +55,10 @@ func (evm *EVMExecutor) GetName() string {
 	return model.ExecutorName
 }
 
-func (evm *EVMExecutor) SetEnv(height, blockTime int64, coinBase string, difficulty uint64) {
-	// 需要从这里识别出当前执行的Transaction所在的区块高度
-	// 因为执行器框架在调用每一个Transaction时，都会先设置StateDB，在设置区块环境
-	// 因此，在这里判断当前设置的区块高度和上一次缓存的区块高度是否为同一高度，即可判断是否在同一个区块内执行的Transaction
-	if height != evm.DriverBase.GetHeight() || blockTime != evm.DriverBase.GetBlockTime() || coinBase != evm.DriverBase.GetCoinBase() || difficulty != evm.DriverBase.GetDifficulty() {
-		// 这时说明区块发生了变化，需要集成原来的设置逻辑，并执行自定义操作
-		evm.DriverBase.SetEnv(height, blockTime, coinBase, difficulty)
-
-		// 重新初始化MemoryStateDB
-		// 需要注意的时，在执行器中只执行单个Transaction，但是并没有提交区块的动作
-		// 所以，这个mStateDB只用来缓存一个区块内执行的Transaction引起的状态数据变更（目前因为每次执行都是一个新的执行器，所以只保存当前的状态）
+func (evm *EVMExecutor) CheckInit() {
+	if evm.mStateDB == nil {
 		evm.mStateDB = state.NewMemoryStateDB(evm.DriverBase.GetStateDB(), evm.DriverBase.GetLocalDB(), evm.DriverBase.GetCoinsAccount())
 	}
-	// 两者都和上次的设置相同，不需要任何操作
 }
 
 // 生成一个新的合约对象地址
@@ -81,6 +71,8 @@ func (evm *EVMExecutor) getNewAddr(txHash []byte) common.Address {
 // 本操作返回的ReceiptLog数据，在后面调用ExecLocal时会被传入，同样ExecLocal返回的数据将会被写入blockchain.db；
 // FIXME 目前evm执行器暂时没有ExecLocal，执行默认逻辑，后面根据需要再考虑增加；
 func (evm *EVMExecutor) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
+	evm.CheckInit()
+
 	// 先转换消息
 	msg, err := evm.GetMessage(tx)
 	if err != nil {
@@ -134,7 +126,7 @@ func (evm *EVMExecutor) Exec(tx *types.Transaction, index int) (*types.Receipt, 
 		logMsg = "create contract details:"
 	}
 
-	log.Info(logMsg, "caller address", msg.From().String(), "contract address", contractAddr.String(), "exec name", execName, "alias name", msg.Alias(), "usedGas", usedGas, "return data", common.Bytes2Hex(ret))
+	log.Debug(logMsg, "caller address", msg.From().String(), "contract address", contractAddr.String(), "exec name", execName, "alias name", msg.Alias(), "usedGas", usedGas, "return data", common.Bytes2Hex(ret))
 
 	curVer := evm.mStateDB.GetLastSnapshot()
 
@@ -213,10 +205,8 @@ func (evm *EVMExecutor) ExecDelLocal(tx *types.Transaction, receipt *types.Recei
 // CheckAddrExists: 判断制定的地址是否为有效的EVM合约
 // EstimateGas: 估计某一合约调用消耗的Gas数量
 func (evm *EVMExecutor) Query(funcName string, params []byte) (types.Message, error) {
-	if evm.mStateDB == nil {
-		// 之所以要在这里初始化，是因为基类在clone中没有生成数据库信息，是clone之后，调用query之前设置的
-		evm.mStateDB = state.NewMemoryStateDB(evm.DriverBase.GetStateDB(), evm.DriverBase.GetLocalDB(), evm.DriverBase.GetCoinsAccount())
-	}
+	evm.CheckInit()
+
 	if strings.EqualFold(model.CheckAddrExistsFunc, funcName) {
 		var in types.CheckEVMAddrReq
 		err := types.Decode(params, &in)
@@ -295,7 +285,7 @@ func (evm *EVMExecutor) EstimateGas(req *types.EstimateEVMGasReq) (types.Message
 		return nil, model.ErrAddrNotExists
 	}
 
-	msg := common.NewMessage(caller, to, 0, 0, model.MaxGasLimit, 1, req.Code, "")
+	msg := common.NewMessage(caller, to, 0, 0, model.MaxGasLimit, 1, req.Code, "estimateGas")
 	context := evm.NewEVMContext(msg)
 	// 创建EVM运行时对象
 	evm.mStateDB = state.NewMemoryStateDB(evm.DriverBase.GetStateDB(), evm.DriverBase.GetLocalDB(), evm.DriverBase.GetCoinsAccount())
@@ -306,14 +296,14 @@ func (evm *EVMExecutor) EstimateGas(req *types.EstimateEVMGasReq) (types.Message
 		vmerr        error
 		leftOverGas  = uint64(0)
 		contractAddr common.Address
-		execName     = ""
+		execName     = "estimateGas"
 	)
 
 	if isCreate {
 		txHash := common.BigToHash(big.NewInt(model.MaxGasLimit)).Bytes()
 		contractAddr = evm.getNewAddr(txHash)
 		execName = fmt.Sprintf("%s%s", model.EvmPrefix, common.BytesToHash(txHash).Hex())
-		_, _, leftOverGas, vmerr = env.Create(runtime.AccountRef(msg.From()), contractAddr, msg.Data(), context.GasLimit, execName, "")
+		_, _, leftOverGas, vmerr = env.Create(runtime.AccountRef(msg.From()), contractAddr, msg.Data(), context.GasLimit, execName, "estimateGas")
 	} else {
 		_, _, leftOverGas, vmerr = env.Call(runtime.AccountRef(msg.From()), *msg.To(), msg.Data(), context.GasLimit, msg.Value())
 	}
@@ -382,7 +372,7 @@ func (evm *EVMExecutor) NewEVMContext(msg *common.Message) runtime.Context {
 		Transfer:    Transfer,
 		GetHash:     GetHashFn(evm.GetApi()),
 		Origin:      msg.From(),
-		Coinbase:    common.StringToAddress(evm.GetCoinBase()),
+		Coinbase:    nil,
 		BlockNumber: new(big.Int).SetInt64(evm.GetHeight()),
 		Time:        new(big.Int).SetInt64(evm.GetBlockTime()),
 		Difficulty:  new(big.Int).SetUint64(evm.GetDifficulty()),

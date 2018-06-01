@@ -237,10 +237,10 @@ func buildStateDB(addr string, balance int64) *db.GoMemDB {
 
 func createContract(mdb *db.GoMemDB, tx types.Transaction, maxCodeSize int) (ret []byte, contractAddr common.Address, leftOverGas uint64, err error, statedb *state.MemoryStateDB) {
 	inst := evm.NewEVMExecutor()
-
+	inst.CheckInit()
 	msg, _ := inst.GetMessage(&tx)
 
-	inst.SetEnv(10, 0, "", uint64(10))
+	inst.SetEnv(10, 0, uint64(10))
 	statedb = inst.GetMStateDB()
 
 	statedb.StateDB = mdb
