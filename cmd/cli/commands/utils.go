@@ -6,7 +6,11 @@ import (
 	"strconv"
 	"strings"
 
+	"time"
+
+	"github.com/gogo/protobuf/proto"
 	"gitlab.33.cn/chain33/chain33/account"
+	"gitlab.33.cn/chain33/chain33/common"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -134,6 +138,13 @@ func decodeLog(rlog jsonrpc.ReceiptDataResult) *ReceiptData {
 				Prev:     decodeAccount(constructAccFromLog(l, "prev"), types.TokenPrecision),
 				Current:  decodeAccount(constructAccFromLog(l, "current"), types.TokenPrecision),
 			}
+			// EVM合约日志处理逻辑
+		case types.TyLogCallContract:
+			rl.Log = buildCallContractResult(l)
+		case types.TyLogContractData:
+			rl.Log = buildContractDataResult(l)
+		case types.TyLogContractState:
+			rl.Log = buildContractStateResult(l)
 		default:
 			fmt.Printf("---The log with vlaue:%d is not decoded --------------------\n", l.Ty)
 			return nil
@@ -141,6 +152,40 @@ func decodeLog(rlog jsonrpc.ReceiptDataResult) *ReceiptData {
 		rd.Logs = append(rd.Logs, rl)
 	}
 	return rd
+}
+
+func buildCallContractResult(l *jsonrpc.ReceiptLogResult) interface{} {
+	data, _ := common.FromHex(l.RawLog)
+	receipt := &types.ReceiptEVMContract{}
+	proto.Unmarshal(data, receipt)
+	rlog := &types.ReceiptEVMContractCmd{Caller: receipt.Caller, ContractAddr: receipt.ContractAddr, ContractName: receipt.ContractName, UsedGas: receipt.UsedGas}
+	rlog.Ret = common.ToHex(receipt.Ret)
+	return rlog
+}
+
+func buildContractDataResult(l *jsonrpc.ReceiptLogResult) interface{} {
+	data, _ := common.FromHex(l.RawLog)
+	receipt := &types.EVMContractData{}
+	proto.Unmarshal(data, receipt)
+	rlog := &types.EVMContractDataCmd{Creator: receipt.Creator, Name: receipt.Name, Addr: receipt.Addr, CreateTime: time.Unix(0, receipt.CreateTime).String(), Alias: receipt.Alias}
+	rlog.Code = common.ToHex(receipt.Code)
+	rlog.CodeHash = common.ToHex(receipt.CodeHash)
+	return rlog
+}
+
+func buildContractStateResult(l *jsonrpc.ReceiptLogResult) interface{} {
+	data, _ := common.FromHex(l.RawLog)
+	receipt := &types.EVMContractState{}
+	proto.Unmarshal(data, receipt)
+	rlog := &types.EVMContractStateCmd{Nonce: receipt.Nonce, Suicided: receipt.Suicided}
+	rlog.StorageHash = common.ToHex(receipt.StorageHash)
+	if receipt.Storage != nil {
+		rlog.Storage = make(map[string]string)
+		for k, v := range receipt.Storage {
+			rlog.Storage[k] = common.ToHex(v)
+		}
+	}
+	return rlog
 }
 
 func SendToAddress(rpcAddr string, from string, to string, amount int64, note string, isToken bool, tokenSymbol string, isWithdraw bool) {
