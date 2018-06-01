@@ -11,28 +11,28 @@ import (
 // StateDB除了查询状态数据，还会保留在交易执行时对数据的变更信息，每个交易完成之后会返回变更影响的数据给执行器；
 type StateDB interface {
 	// 创建新的合约对象
-	CreateAccount(common.Address, common.Address, string, string)
+	CreateAccount(string, string, string, string)
 
 	// 从从指定地址扣除金额
-	SubBalance(common.Address, common.Address, uint64)
+	SubBalance(string, string, uint64)
 	// 向指定地址增加金额
-	AddBalance(common.Address, common.Address, uint64)
+	AddBalance(string, string, uint64)
 	// 获取指定地址的余额
-	GetBalance(common.Address) uint64
+	GetBalance(string) uint64
 
 	// 获取nonce值（只有合约对象有，外部对象为0）
-	GetNonce(common.Address) uint64
+	GetNonce(string) uint64
 	// 设置nonce值（只有合约对象有，外部对象为0）
-	SetNonce(common.Address, uint64)
+	SetNonce(string, uint64)
 
 	// 获取指定地址合约的代码哈希
-	GetCodeHash(common.Address) common.Hash
+	GetCodeHash(string) common.Hash
 	// 获取指定地址合约代码
-	GetCode(common.Address) []byte
+	GetCode(string) []byte
 	// 设置指定地址合约代码
-	SetCode(common.Address, []byte)
+	SetCode(string, []byte)
 	// 获取指定地址合约代码大小
-	GetCodeSize(common.Address) int
+	GetCodeSize(string) int
 
 	// 合约Gas奖励回馈
 	AddRefund(uint64)
@@ -40,19 +40,19 @@ type StateDB interface {
 	GetRefund() uint64
 
 	// 获取合约状态数据
-	GetState(common.Address, common.Hash) common.Hash
+	GetState(string, common.Hash) common.Hash
 	// 设置合约状态数据
-	SetState(common.Address, common.Hash, common.Hash)
+	SetState(string, common.Hash, common.Hash)
 
 	// 合约自销毁
-	Suicide(common.Address) bool
+	Suicide(string) bool
 	// 合约是否已经销毁
-	HasSuicided(common.Address) bool
+	HasSuicided(string) bool
 
 	// 判断一个合约地址是否存在（已经销毁的合约地址对象依然存在）
-	Exist(common.Address) bool
+	Exist(string) bool
 	// 判断一个合约地址是否为空（不包含任何代码、也没有余额的合约为空）
-	Empty(common.Address) bool
+	Empty(string) bool
 
 	// 回滚到制定版本（从当前版本到回滚版本之间的数据变更全部撤销）
 	RevertToSnapshot(int)
@@ -65,7 +65,7 @@ type StateDB interface {
 	AddPreimage(common.Hash, []byte)
 
 	// 当前账户余额是否足够转账
-	CanTransfer(sender, recipient common.Address, amount uint64) bool
+	CanTransfer(sender, recipient string, amount uint64) bool
 	// 转账交易
-	Transfer(sender, recipient common.Address, amount uint64) bool
+	Transfer(sender, recipient string, amount uint64) bool
 }

@@ -162,7 +162,7 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 		return nil, -1, gas, err
 	}
 
-	if !evm.StateDB.Exist(addr) {
+	if !evm.StateDB.Exist(addr.String()) {
 		precompiles := PrecompiledContractsByzantium
 		// 合约地址在自定义合约和预编译合约中都不存在时，可能为外部账户
 		if precompiles[addr] == nil {
@@ -183,7 +183,7 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 	}
 
 	// 如果是已经销毁状态的合约是不允许调用的
-	if evm.StateDB.HasSuicided(addr) {
+	if evm.StateDB.HasSuicided(addr.String()) {
 		return nil, -1, gas, model.ErrDestruct
 	}
 
@@ -196,7 +196,7 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 
 	// 创建新的合约对象，包含双方地址以及合约代码，可用Gas信息
 	contract := NewContract(caller, to, value, gas)
-	contract.SetCallCode(&addr, evm.StateDB.GetCodeHash(addr), evm.StateDB.GetCode(addr))
+	contract.SetCallCode(&addr, evm.StateDB.GetCodeHash(addr.String()), evm.StateDB.GetCode(addr.String()))
 
 	start := time.Now()
 
@@ -232,7 +232,7 @@ func (evm *EVM) CallCode(caller ContractRef, addr common.Address, input []byte, 
 	}
 
 	// 如果是已经销毁状态的合约是不允许调用的
-	if evm.StateDB.HasSuicided(addr) {
+	if evm.StateDB.HasSuicided(addr.String()) {
 		return nil, gas, model.ErrDestruct
 	}
 
@@ -244,7 +244,7 @@ func (evm *EVM) CallCode(caller ContractRef, addr common.Address, input []byte, 
 	// 创建合约对象时，讲调用者和被调用者地址均设置为外部账户地址
 	contract := NewContract(caller, to, value, gas)
 	// 正常从合约地址加载合约代码
-	contract.SetCallCode(&addr, evm.StateDB.GetCodeHash(addr), evm.StateDB.GetCode(addr))
+	contract.SetCallCode(&addr, evm.StateDB.GetCodeHash(addr.String()), evm.StateDB.GetCode(addr.String()))
 
 	ret, err = run(evm, contract, input)
 	if err != nil {
@@ -267,7 +267,7 @@ func (evm *EVM) DelegateCall(caller ContractRef, addr common.Address, input []by
 	}
 
 	// 如果是已经销毁状态的合约是不允许调用的
-	if evm.StateDB.HasSuicided(addr) {
+	if evm.StateDB.HasSuicided(addr.String()) {
 		return nil, gas, model.ErrDestruct
 	}
 
@@ -279,7 +279,7 @@ func (evm *EVM) DelegateCall(caller ContractRef, addr common.Address, input []by
 	// 同外部合约的创建和修改逻辑，在每次调用时，需要创建并初始化一个新的合约内存对象
 	// 需要注意，这里不同的是，需要设置合约的委托调用模式（会进行一些属性设置）
 	contract := NewContract(caller, to, 0, gas).AsDelegate()
-	contract.SetCallCode(&addr, evm.StateDB.GetCodeHash(addr), evm.StateDB.GetCode(addr))
+	contract.SetCallCode(&addr, evm.StateDB.GetCodeHash(addr.String()), evm.StateDB.GetCode(addr.String()))
 
 	// 其它逻辑同StaticCall
 	ret, err = run(evm, contract, input)
@@ -303,7 +303,7 @@ func (evm *EVM) StaticCall(caller ContractRef, addr common.Address, input []byte
 	}
 
 	// 如果是已经销毁状态的合约是不允许调用的
-	if evm.StateDB.HasSuicided(addr) {
+	if evm.StateDB.HasSuicided(addr.String()) {
 		return nil, gas, model.ErrDestruct
 	}
 
@@ -321,7 +321,7 @@ func (evm *EVM) StaticCall(caller ContractRef, addr common.Address, input []byte
 
 	// 同外部合约的创建和修改逻辑，在每次调用时，需要创建并初始化一个新的合约内存对象
 	contract := NewContract(caller, to, 0, gas)
-	contract.SetCallCode(&addr, evm.StateDB.GetCodeHash(addr), evm.StateDB.GetCode(addr))
+	contract.SetCallCode(&addr, evm.StateDB.GetCodeHash(addr.String()), evm.StateDB.GetCode(addr.String()))
 
 	// 执行合约指令时如果出错，需要进行回滚，并且扣除剩余的Gas
 	ret, err = run(evm, contract, input)
@@ -355,7 +355,7 @@ func (evm *EVM) Create(caller ContractRef, contractAddr common.Address, code []b
 
 	// 创建一个新的账户对象（合约账户）
 	snapshot = evm.StateDB.Snapshot()
-	evm.StateDB.CreateAccount(contractAddr, contract.CallerAddress, execName, alias)
+	evm.StateDB.CreateAccount(contractAddr.String(), contract.CallerAddress.String(), execName, alias)
 
 	if evm.VmConfig.Debug && evm.depth == 0 {
 		evm.VmConfig.Tracer.CaptureStart(caller.Address(), contractAddr, true, code, gas, 0)
@@ -372,7 +372,7 @@ func (evm *EVM) Create(caller ContractRef, contractAddr common.Address, code []b
 	if err == nil && !maxCodeSizeExceeded {
 		createDataGas := uint64(len(ret)) * params.CreateDataGas
 		if contract.UseGas(createDataGas) {
-			evm.StateDB.SetCode(contractAddr, ret)
+			evm.StateDB.SetCode(contractAddr.String(), ret)
 		} else {
 			// 如果Gas不足，返回这个错误，让外部程序处理
 			err = model.ErrCodeStoreOutOfGas
