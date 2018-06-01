@@ -99,7 +99,6 @@ func initEnv2(size int) (queue.Queue, *Mempool) {
 
 	mem := New(cfg.MemPool)
 	mem.SetQueueClient(q.Client())
-	time.Sleep(time.Second * 2)
 	mem.setSync(true)
 
 	if size > 0 {
