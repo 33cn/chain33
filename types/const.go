@@ -20,9 +20,10 @@ var (
 	ExecerConfig     = []byte("config")
 	ExecerManage     = []byte("manage")
 	ExecerToken      = []byte("token")
+	ExecerEvm        = []byte("evm")
 	AllowDepositExec = [][]byte{ExecerTicket}
 	AllowUserExec    = [][]byte{ExecerCoins, ExecerTicket, []byte("norm"), []byte("hashlock"),
-		[]byte("retrieve"), []byte("none"), ExecerToken, []byte("trade"), ExecerManage}
+		[]byte("retrieve"), []byte("none"), ExecerToken, []byte("trade"), ExecerManage, ExecerEvm}
 	GenesisAddr            = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 	GenesisBlockTime int64 = 1526486816
 	HotkeyAddr             = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
@@ -434,6 +435,14 @@ const (
 
 	// log for config
 	TyLogModifyConfig = 410
+
+	// log for evm
+	// 合约代码变更日志
+	TyLogContractData = 601
+	// 合约状态数据变更日志
+	TyLogContractState = 602
+	// 合约状态数据变更日志
+	TyLogCallContract = 603
 )
 
 //exec type
