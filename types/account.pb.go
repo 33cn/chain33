@@ -235,6 +235,8 @@ It has these top-level messages:
 	AuthCert
 	ReqAuthSignCheck
 	RespAuthSignCheck
+	ReqAuthSignCheckTxs
+	RespAuthSignCheckTxs
 	WalletTxDetail
 	WalletTxDetails
 	WalletAccountStore
