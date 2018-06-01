@@ -175,6 +175,9 @@ func (m *mockWallet) SetQueueClient(q queue.Queue) {
 				} else {
 					msg.ReplyErr("Do not support", types.ErrInvalidParam)
 				}
+			case types.EventFatalFailure:
+				msg.Reply(client.NewMessage(walletKey, types.EventReplyFatalFailure, &types.Int32{}))
+
 			default:
 				msg.ReplyErr("Do not support", types.ErrNotSupport)
 			}
