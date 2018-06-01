@@ -7,20 +7,11 @@ import (
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/cmd/cli/commands"
 	"gitlab.33.cn/chain33/chain33/common/log"
-	"gitlab.33.cn/chain33/chain33/common/version"
 )
 
 var rootCmd = &cobra.Command{
 	Use:   "chain33-cli",
 	Short: "chain33 client tools",
-}
-
-var versionCmd = &cobra.Command{
-	Use:   "version",
-	Short: "Show version info",
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println(version.GetVersion())
-	},
 }
 
 var sendCmd = &cobra.Command{
@@ -47,16 +38,16 @@ func init() {
 		commands.TradeCmd(),
 		commands.TxCmd(),
 		commands.WalletCmd(),
-		versionCmd,
-		sendCmd)
+		commands.VersionCmd(),
+		sendCmd,
+		commands.EvmCmd())
 }
 
 func main() {
 	log.SetLogLevel("error")
 	if len(os.Args) > 1 {
-		argsWithoutProg := os.Args[1:]
-		if argsWithoutProg[0] == "send" {
-			commands.OneStepSend(argsWithoutProg[1:])
+		if os.Args[1] == "send" {
+			commands.OneStepSend(os.Args)
 			return
 		}
 	}

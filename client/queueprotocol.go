@@ -72,7 +72,7 @@ func (q *QueueProtocol) Close() {
 	q.client.Close()
 }
 
-func (q *QueueProtocol) SetOption(option *QueueProtocolOption) {
+func (q *QueueProtocol) setOption(option *QueueProtocolOption) {
 	if option != nil {
 		q.option = *option
 	}
@@ -365,6 +365,11 @@ func (q *QueueProtocol) WalletLock() (*types.Reply, error) {
 }
 
 func (q *QueueProtocol) WalletUnLock(param *types.WalletUnLock) (*types.Reply, error) {
+	if param == nil {
+		err := types.ErrInvalidParam
+		log.Error("WalletUnLock", "Error", err)
+		return nil, err
+	}
 	msg, err := q.query(walletKey, types.EventWalletUnLock, param)
 	if err != nil {
 		log.Error("WalletUnLock", "Error", err.Error())
@@ -625,7 +630,6 @@ func (q *QueueProtocol) LocalGet(param *types.LocalDBGet) (*types.LocalReplyValu
 		log.Error("LocalGet", "Error", err)
 		return nil, err
 	}
-fmt.Println(param)
 
 	msg, err := q.query(blockchainKey, types.EventLocalGet, param)
 	if err != nil {
@@ -705,13 +709,18 @@ func (q *QueueProtocol) GetNetInfo() (*types.NodeNetInfo, error) {
 }
 
 func (q *QueueProtocol) SignRawTx(param *types.ReqSignRawTx) (*types.ReplySignRawTx, error) {
+	if param == nil {
+		err := types.ErrInvalidParam
+		log.Error("Query", "Error", err)
+		return nil, err
+	}
+
 	data := &types.ReqSignRawTx{
 		Addr:    param.GetAddr(),
 		Privkey: param.GetPrivkey(),
 		TxHex:   param.GetTxHex(),
 		Expire:  param.GetExpire(),
 	}
-
 	msg, err := q.query(walletKey, types.EventSignRawTx, data)
 	if err != nil {
 		log.Error("SignRawTx", "Error", err.Error())
@@ -764,3 +773,14 @@ func (q *QueueProtocol) StoreGetTotalCoins(param *types.IterateRangeByStateHash)
 	return nil, err
 }
 
+func (q *QueueProtocol) GetFatalFailure() (*types.Int32, error) {
+	msg, err := q.query(walletKey, types.EventFatalFailure, &types.ReqNil{})
+	if err != nil {
+		log.Error("GetFatalFailure", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.Int32); ok {
+		return reply, nil
+	}
+	return nil, types.ErrTypeAsset
+}

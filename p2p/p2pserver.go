@@ -68,7 +68,10 @@ func (s *P2pServer) Ping(ctx context.Context, in *pb.P2PPing) (*pb.P2PPong, erro
 	peeraddr := fmt.Sprintf("%s:%v", peerip, in.Port)
 	remoteNetwork, err := NewNetAddressString(peeraddr)
 	if err == nil {
-		s.node.nodeInfo.addrBook.AddAddress(remoteNetwork, nil)
+		if !s.node.nodeInfo.blacklist.Has(peeraddr) {
+			s.node.nodeInfo.addrBook.AddAddress(remoteNetwork, nil)
+		}
+
 	}
 
 	log.Debug("Send Pong", "Nonce", in.GetNonce())
@@ -92,7 +95,9 @@ func (s *P2pServer) GetAddr(ctx context.Context, in *pb.P2PGetAddr) (*pb.P2PAddr
 func (s *P2pServer) GetAddrList(ctx context.Context, in *pb.P2PGetAddr) (*pb.P2PAddrList, error) {
 	_, infos := s.node.GetActivePeers()
 	var peerinfos []*pb.P2PPeerInfo
+
 	for _, info := range infos {
+
 		peerinfos = append(peerinfos, &pb.P2PPeerInfo{Addr: info.GetAddr(), Port: info.GetPort(), Name: info.GetName(), Header: info.GetHeader(),
 			MempoolSize: info.GetMempoolSize()})
 	}
@@ -130,9 +135,9 @@ func (s *P2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 
 	remoteNetwork, err := NewNetAddressString(fmt.Sprintf("%v:%v", peerip, port))
 	if err == nil {
-		log.Debug("Version2", "before", "AddAddress")
-		s.node.nodeInfo.addrBook.AddAddress(remoteNetwork, nil)
-		log.Debug("Version2", "after", "AddAddress")
+		if !s.node.nodeInfo.blacklist.Has(remoteNetwork.String()) {
+			s.node.nodeInfo.addrBook.AddAddress(remoteNetwork, nil)
+		}
 	}
 
 	return &pb.P2PVersion{Version: s.node.nodeInfo.cfg.GetVersion(), Service: int64(s.node.nodeInfo.ServiceTy()), Nonce: in.Nonce,
@@ -426,13 +431,13 @@ func (s *P2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 				continue
 			}
 
+			Filter.RegRecvData(blockhash) //注册已经收到的区块
 			log.Info("ServerStreamRead", " Recv block==+=====+=>Height", block.GetBlock().GetHeight(),
 				"block size(KB)", float32(len(pb.Encode(block)))/1024, "block hash", blockhash)
 			if block.GetBlock() != nil {
 				msg := s.node.nodeInfo.client.NewMessage("blockchain", pb.EventBroadcastAddBlock, &pb.BlockPid{peername, block.GetBlock()})
 				s.node.nodeInfo.client.Send(msg, false)
 			}
-			Filter.RegRecvData(blockhash) //注册已经收到的区块
 
 		} else if tx := in.GetTx(); tx != nil {
 			hex.Encode(hash[:], tx.GetTx().Hash())
@@ -493,7 +498,6 @@ func (s *P2pServer) CollectInPeers(ctx context.Context, in *pb.P2PPing) (*pb.Pee
 		}
 		p2pPeers = append(p2pPeers, &pb.Peer{Name: inpeer.name, Addr: addr, Port: int32(port)}) ///仅用name,addr,port字段，用于统计peer num.
 	}
-
 	return &pb.PeerList{Peers: p2pPeers}, nil
 }
 

@@ -14,6 +14,7 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"os/user"
 	"path/filepath"
 	"runtime"
 
@@ -42,6 +43,7 @@ import (
 var (
 	cpuNum     = runtime.NumCPU()
 	configPath = flag.String("f", "chain33.toml", "configfile")
+	datadir    = flag.String("datadir", "", "data dir of chain33, include logs and datas")
 )
 
 func main() {
@@ -58,6 +60,9 @@ func main() {
 	flag.Parse()
 	//set config
 	cfg := config.InitCfg(*configPath)
+	if *datadir != "" {
+		resetDatadir(cfg, *datadir)
+	}
 	//set test net flag
 	types.SetTestNet(cfg.TestNet)
 	types.SetTitle(cfg.Title)
@@ -95,7 +100,7 @@ func main() {
 
 	//开始区块链模块加载
 	//channel, rabitmq 等
-	log.Info("chain33 " + version.GetVersion())
+	log.Info(cfg.Title + " " + version.GetVersion())
 	log.Info("loading queue")
 	q := queue.New("channel")
 
@@ -162,6 +167,21 @@ func main() {
 		walletm.Close()
 	}()
 	q.Start()
+}
+
+func resetDatadir(cfg *types.Config, datadir string) {
+	// Check in case of paths like "/something/~/something/"
+	if datadir[:2] == "~/" {
+		usr, _ := user.Current()
+		dir := usr.HomeDir
+		datadir = filepath.Join(dir, datadir[2:])
+	}
+	log.Info("current user data dir is ", "dir", datadir)
+	cfg.Log.LogFile = filepath.Join(datadir, cfg.Log.LogFile)
+	cfg.BlockChain.DbPath = filepath.Join(datadir, cfg.BlockChain.DbPath)
+	cfg.P2P.DbPath = filepath.Join(datadir, cfg.P2P.DbPath)
+	cfg.Wallet.DbPath = filepath.Join(datadir, cfg.Wallet.DbPath)
+	cfg.Store.DbPath = filepath.Join(datadir, cfg.Store.DbPath)
 }
 
 // 开启trace

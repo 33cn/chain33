@@ -2,11 +2,10 @@ package drivers
 
 //store package store the world - state data
 import (
-	"fmt"
-
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
 	clog "gitlab.33.cn/chain33/chain33/common/log"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var elog = log.New("module", "execs")
@@ -19,65 +18,55 @@ func DisableLog() {
 	elog.SetHandler(log.DiscardHandler())
 }
 
-type ExecDrivers struct {
-	ExecName2Driver map[string]Driver //from name to driver
-	ExecAddr2Name   map[string]string //from address to name
-}
+type DriverCreate func() Driver
 
 type driverWithHeight struct {
-	driver Driver
+	create DriverCreate
 	height int64
 }
 
 var (
-	//execDrivers        = make(map[string]Driver)
-	//execAddress        = make(map[string]string)
+	execDrivers        = make(map[string]*driverWithHeight)
 	execAddressNameMap = make(map[string]string)
 	registedExecDriver = make(map[string]*driverWithHeight)
 )
 
-func Register(name string, driver Driver, height int64) {
-	if driver == nil {
+func Register(name string, create DriverCreate, height int64) {
+	if create == nil {
 		panic("Execute: Register driver is nil")
 	}
 	if _, dup := registedExecDriver[name]; dup {
 		panic("Execute: Register called twice for driver " + name)
 	}
 	driverWithHeight := &driverWithHeight{
-		driver,
-		height,
+		create: create,
+		height: height,
 	}
 	registedExecDriver[name] = driverWithHeight
 	registerAddress(name)
+	execDrivers[ExecAddress(name)] = driverWithHeight
 }
 
-func CreateDrivers4CurrentHeight(height int64) *ExecDrivers {
-	var drivers ExecDrivers
-	drivers.ExecName2Driver = make(map[string]Driver)
-	drivers.ExecAddr2Name = make(map[string]string)
-	if len(registedExecDriver) > 0 {
-		for name, driverInfo := range registedExecDriver {
-			//height -> -1 only for test
-			if height >= driverInfo.height || height < 0 {
-				drivers.ExecName2Driver[name] = driverInfo.driver
-				drivers.ExecAddr2Name[ExecAddress(name)] = name
-			}
-		}
-	}
-	return &drivers
-}
-func (execDrivers *ExecDrivers) LoadDriver(name string) (c Driver, err error) {
-	c, ok := execDrivers.ExecName2Driver[name]
+func LoadDriver(name string, height int64) (driver Driver, err error) {
+	c, ok := registedExecDriver[name]
 	if !ok {
-		err = fmt.Errorf("unknown driver %q", name)
-		return
+		return nil, types.ErrUnknowDriver
 	}
-	return c, nil
+	if height >= c.height || height == -1 {
+		return c.create(), nil
+	}
+	return nil, types.ErrUnknowDriver
 }
 
-func (execDrivers *ExecDrivers) IsDriverAddress(addr string) bool {
-	_, ok := execDrivers.ExecAddr2Name[addr]
-	return ok
+func IsDriverAddress(addr string, height int64) bool {
+	c, ok := execDrivers[addr]
+	if !ok {
+		return false
+	}
+	if height >= c.height || height == -1 {
+		return true
+	}
+	return false
 }
 
 func registerAddress(name string) {
@@ -92,5 +81,5 @@ func ExecAddress(name string) string {
 	if addr, ok := execAddressNameMap[name]; ok {
 		return addr
 	}
-	return account.ExecAddress(name).String()
+	return account.ExecAddress(name)
 }

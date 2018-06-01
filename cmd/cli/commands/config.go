@@ -9,11 +9,8 @@ import (
 
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/account"
-	"gitlab.33.cn/chain33/chain33/common"
-	"gitlab.33.cn/chain33/chain33/common/crypto"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/wallet"
 )
 
 func ConfigCmd() *cobra.Command {
@@ -52,22 +49,14 @@ func addConfigTxFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("value", "v", "", "operating object")
 	cmd.MarkFlagRequired("value")
 
-	cmd.Flags().StringP("priv_key", "p", "", "private key")
-	cmd.MarkFlagRequired("priv_key")
 }
 
 func configTx(cmd *cobra.Command, args []string) {
 	key, _ := cmd.Flags().GetString("key")
 	op, _ := cmd.Flags().GetString("operation")
 	opAddr, _ := cmd.Flags().GetString("value")
-	priv, _ := cmd.Flags().GetString("priv_key")
 
-	c, _ := crypto.New(types.GetSignatureTypeName(wallet.SignType))
-	a, _ := common.FromHex(priv)
-	privKey, _ := c.PrivKeyFromBytes(a)
-	originAddr := account.PubKeyToAddress(privKey.PubKey().Bytes()).String()
-
-	v := &types.ModifyConfig{Key: key, Op: op, Value: opAddr, Addr: originAddr}
+	v := &types.ModifyConfig{Key: key, Op: op, Value: opAddr, Addr: ""}
 	modify := &types.ManageAction{
 		Ty:    types.ManageActionModifyConfig,
 		Value: &types.ManageAction_Modify{Modify: v},
@@ -77,6 +66,8 @@ func configTx(cmd *cobra.Command, args []string) {
 	random := rand.New(rand.NewSource(time.Now().UnixNano()))
 	tx.Nonce = random.Int63()
 
+	tx.To = account.ExecAddress("manage")
+
 	var err error
 	tx.Fee, err = tx.GetRealFee(types.MinFee)
 	if err != nil {
@@ -84,7 +75,6 @@ func configTx(cmd *cobra.Command, args []string) {
 		return
 	}
 	tx.Fee += types.MinFee
-	tx.Sign(int32(wallet.SignType), privKey)
 	txHex := types.Encode(tx)
 	fmt.Println(hex.EncodeToString(txHex))
 }

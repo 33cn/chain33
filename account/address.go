@@ -6,6 +6,7 @@ import (
 	"errors"
 
 	"github.com/decred/base58"
+	lru "github.com/hashicorp/golang-lru"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -13,14 +14,40 @@ import (
 var addrSeed = []byte("address seed bytes for public key")
 var bname [200]byte
 
-func ExecAddress(name string) *Address {
+var addressCache *lru.Cache
+var checkAddressCache *lru.Cache
+
+func init() {
+	addressCache, _ = lru.New(10240)
+	checkAddressCache, _ = lru.New(10240)
+}
+
+//计算量有点大，做一次cache
+func ExecAddress(name string) string {
+	if len(name) > 100 {
+		panic("name too long")
+	}
+	if value, ok := addressCache.Get(name); ok {
+		return value.(string)
+	}
+	buf := append(bname[:0], addrSeed...)
+	buf = append(buf, []byte(name)...)
+	hash := common.Sha2Sum(buf)
+	addr := PubKeyToAddress(hash[:])
+	addrstr := addr.String()
+	addressCache.Add(name, addrstr)
+	return addrstr
+}
+
+func GetExecAddress(name string) *Address {
 	if len(name) > 100 {
 		panic("name too long")
 	}
 	buf := append(bname[:0], addrSeed...)
 	buf = append(buf, []byte(name)...)
 	hash := common.Sha2Sum(buf)
-	return PubKeyToAddress(hash[:])
+	addr := PubKeyToAddress(hash[:])
+	return addr
 }
 
 func PubKeyToAddress(in []byte) *Address {
@@ -37,13 +64,21 @@ func From(tx *types.Transaction) *Address {
 }
 
 func CheckAddress(addr string) (e error) {
+	if value, ok := checkAddressCache.Get(addr); ok {
+		if value == nil {
+			return nil
+		}
+		return value.(error)
+	}
 	dec := base58.Decode(addr)
 	if dec == nil {
 		e = errors.New("Cannot decode b58 string '" + addr + "'")
+		checkAddressCache.Add(addr, e)
 		return
 	}
 	if len(dec) < 25 {
 		e = errors.New("Address too short " + hex.EncodeToString(dec))
+		checkAddressCache.Add(addr, e)
 		return
 	}
 	if len(dec) == 25 {
@@ -52,6 +87,7 @@ func CheckAddress(addr string) (e error) {
 			e = errors.New("Address Checksum error")
 		}
 	}
+	checkAddressCache.Add(addr, e)
 	return
 }
 

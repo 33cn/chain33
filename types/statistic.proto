@@ -14,6 +14,7 @@ message ReqGetTotalCoins {
 	bytes stateHash = 2;
         bytes startKey = 3;
         int64 count = 4;
+	string execer = 5;
 }
 
 //查询symbol代币总额应答
