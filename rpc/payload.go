@@ -79,6 +79,8 @@ func evmPayloadType(funcname string) (proto.Message, error) {
 		req = &types.CheckEVMAddrReq{}
 	case "EstimateGas":
 		req = &types.EstimateEVMGasReq{}
+	case "EvmDebug":
+		req = &types.EvmDebugReq{}
 	default:
 		return nil, types.ErrInputPara
 	}

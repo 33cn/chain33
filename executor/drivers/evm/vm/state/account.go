@@ -135,7 +135,7 @@ func (self *ContractAccount) SetCode(code []byte) {
 		baseChange: baseChange{},
 		account:    self.Addr,
 		prevhash:   self.Data.GetCodeHash(),
-		prevcode:   []byte(prevcode),
+		prevcode:   prevcode,
 	})
 	self.Data.Code = code
 	self.Data.CodeHash = common.ToHash(code).Bytes()

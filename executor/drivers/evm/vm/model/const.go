@@ -11,13 +11,11 @@ const (
 	// 本执行器名称
 	ExecutorName = "user.evm"
 
-	// evm指令DEBUG开关
-	DebugFlag = "vmdebug"
-
 	// 最大Gas消耗上限
 	MaxGasLimit = 10000000
 
 	// EVM本执行器支持的查询方法
 	CheckAddrExistsFunc = "CheckAddrExists"
 	EstimateGasFunc     = "EstimateGas"
+	EvmDebug            = "EvmDebug"
 )

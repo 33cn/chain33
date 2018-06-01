@@ -50,8 +50,7 @@ func genTestCase(basePath string) {
 }
 
 func scanTestData(basePath string) {
-	var testmap map[string]string
-	testmap = make(map[string]string)
+	var testmap = make(map[string]string)
 
 	filepath.Walk(basePath, func(path string, info os.FileInfo, err error) error {
 		if info.IsDir() {

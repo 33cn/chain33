@@ -76,16 +76,16 @@ func (self *MemoryStateDB) Prepare(txHash common.Hash, txIndex int) {
 }
 
 // 创建一个新的合约账户对象
-func (self *MemoryStateDB) CreateAccount(addr common.Address, creator common.Address, execName, alias string) {
+func (self *MemoryStateDB) CreateAccount(addr, creator string, execName, alias string) {
 	acc := self.GetAccount(addr)
 	if acc == nil {
 		// 这种情况下为新增合约账户
-		acc := NewContractAccount(addr.String(), self)
-		acc.SetCreator(creator.String())
+		acc := NewContractAccount(addr, self)
+		acc.SetCreator(creator)
 		acc.SetExecName(execName)
 		acc.SetAliasName(alias)
-		self.accounts[addr.String()] = acc
-		self.addChange(createAccountChange{baseChange: baseChange{}, account: addr.String()})
+		self.accounts[addr] = acc
+		self.addChange(createAccountChange{baseChange: baseChange{}, account: addr})
 	}
 }
 
@@ -96,22 +96,22 @@ func (self *MemoryStateDB) addChange(entry DataChange) {
 }
 
 // 从外部账户地址扣钱（钱其实是打到合约账户中的）
-func (self *MemoryStateDB) SubBalance(addr common.Address, caddr common.Address, value uint64) {
+func (self *MemoryStateDB) SubBalance(addr, caddr string, value uint64) {
 	res := self.Transfer(addr, caddr, value)
 	log15.Debug("transfer result", "from", addr, "to", caddr, "amount", value, "result", res)
 }
 
 // 向外部账户地址打钱（钱其实是外部账户之前打到合约账户中的）
-func (self *MemoryStateDB) AddBalance(addr common.Address, caddr common.Address, value uint64) {
+func (self *MemoryStateDB) AddBalance(addr, caddr string, value uint64) {
 	res := self.Transfer(caddr, addr, value)
 	log15.Debug("transfer result", "from", addr, "to", caddr, "amount", value, "result", res)
 }
 
-func (self *MemoryStateDB) GetBalance(addr common.Address) uint64 {
+func (self *MemoryStateDB) GetBalance(addr string) uint64 {
 	if self.CoinsAccount == nil {
 		return 0
 	}
-	ac := self.CoinsAccount.LoadAccount(addr.String())
+	ac := self.CoinsAccount.LoadAccount(addr)
 	if ac != nil {
 		return uint64(ac.Balance)
 	}
@@ -120,7 +120,7 @@ func (self *MemoryStateDB) GetBalance(addr common.Address) uint64 {
 
 // 目前chain33中没有保留账户的nonce信息，这里临时添加到合约账户中；
 // 所以，目前只有合约对象有nonce值
-func (self *MemoryStateDB) GetNonce(addr common.Address) uint64 {
+func (self *MemoryStateDB) GetNonce(addr string) uint64 {
 	acc := self.GetAccount(addr)
 	if acc != nil {
 		return acc.GetNonce()
@@ -128,14 +128,14 @@ func (self *MemoryStateDB) GetNonce(addr common.Address) uint64 {
 	return 0
 }
 
-func (self *MemoryStateDB) SetNonce(addr common.Address, nonce uint64) {
+func (self *MemoryStateDB) SetNonce(addr string, nonce uint64) {
 	acc := self.GetAccount(addr)
 	if acc != nil {
 		acc.SetNonce(nonce)
 	}
 }
 
-func (self *MemoryStateDB) GetCodeHash(addr common.Address) common.Hash {
+func (self *MemoryStateDB) GetCodeHash(addr string) common.Hash {
 	acc := self.GetAccount(addr)
 	if acc != nil {
 		return common.BytesToHash(acc.Data.GetCodeHash())
@@ -143,7 +143,7 @@ func (self *MemoryStateDB) GetCodeHash(addr common.Address) common.Hash {
 	return common.Hash{}
 }
 
-func (self *MemoryStateDB) GetCode(addr common.Address) []byte {
+func (self *MemoryStateDB) GetCode(addr string) []byte {
 	acc := self.GetAccount(addr)
 	if acc != nil {
 		return acc.Data.GetCode()
@@ -151,7 +151,7 @@ func (self *MemoryStateDB) GetCode(addr common.Address) []byte {
 	return nil
 }
 
-func (self *MemoryStateDB) SetCode(addr common.Address, code []byte) {
+func (self *MemoryStateDB) SetCode(addr string, code []byte) {
 	acc := self.GetAccount(addr)
 	if acc != nil {
 		acc.SetCode(code)
@@ -160,7 +160,7 @@ func (self *MemoryStateDB) SetCode(addr common.Address, code []byte) {
 
 // 获取合约代码自身的大小
 // 对应 EXTCODESIZE 操作码
-func (self *MemoryStateDB) GetCodeSize(addr common.Address) int {
+func (self *MemoryStateDB) GetCodeSize(addr string) int {
 	code := self.GetCode(addr)
 	if code != nil {
 		return len(code)
@@ -179,23 +179,23 @@ func (self *MemoryStateDB) GetRefund() uint64 {
 }
 
 // 从缓存中获取或加载合约账户
-func (self *MemoryStateDB) GetAccount(addr common.Address) *ContractAccount {
-	if acc, ok := self.accounts[addr.String()]; ok {
+func (self *MemoryStateDB) GetAccount(addr string) *ContractAccount {
+	if acc, ok := self.accounts[addr]; ok {
 		return acc
 	} else {
 		// 需要加载合约对象，根据是否存在合约代码来判断是否有合约对象
-		contract := NewContractAccount(addr.String(), self)
+		contract := NewContractAccount(addr, self)
 		contract.LoadContract(self.StateDB)
 		if contract.Empty() {
 			return nil
 		}
-		self.accounts[addr.String()] = contract
+		self.accounts[addr] = contract
 		return contract
 	}
 }
 
 // SLOAD 指令加载合约状态数据
-func (self *MemoryStateDB) GetState(addr common.Address, key common.Hash) common.Hash {
+func (self *MemoryStateDB) GetState(addr string, key common.Hash) common.Hash {
 	// 先从合约缓存中获取
 	acc := self.GetAccount(addr)
 	if acc != nil {
@@ -205,7 +205,7 @@ func (self *MemoryStateDB) GetState(addr common.Address, key common.Hash) common
 }
 
 // SSTORE 指令修改合约状态数据
-func (self *MemoryStateDB) SetState(addr common.Address, key common.Hash, value common.Hash) {
+func (self *MemoryStateDB) SetState(addr string, key common.Hash, value common.Hash) {
 	acc := self.GetAccount(addr)
 	if acc != nil {
 		acc.SetState(key, value)
@@ -214,12 +214,12 @@ func (self *MemoryStateDB) SetState(addr common.Address, key common.Hash, value 
 
 // SELFDESTRUCT 合约对象自杀
 // 合约自杀后，合约对象依然存在，只是无法被调用，也无法恢复
-func (self *MemoryStateDB) Suicide(addr common.Address) bool {
+func (self *MemoryStateDB) Suicide(addr string) bool {
 	acc := self.GetAccount(addr)
 	if acc != nil {
 		self.addChange(suicideChange{
 			baseChange: baseChange{},
-			account:    addr.String(),
+			account:    addr,
 			prev:       acc.State.GetSuicided(),
 		})
 		return acc.Suicide()
@@ -229,7 +229,7 @@ func (self *MemoryStateDB) Suicide(addr common.Address) bool {
 
 // 判断此合约对象是否已经自杀
 // 自杀的合约对象是不允许调用的
-func (self *MemoryStateDB) HasSuicided(addr common.Address) bool {
+func (self *MemoryStateDB) HasSuicided(addr string) bool {
 	acc := self.GetAccount(addr)
 	if acc != nil {
 		return acc.HasSuicided()
@@ -238,12 +238,12 @@ func (self *MemoryStateDB) HasSuicided(addr common.Address) bool {
 }
 
 // 判断合约对象是否存在
-func (self *MemoryStateDB) Exist(addr common.Address) bool {
+func (self *MemoryStateDB) Exist(addr string) bool {
 	return self.GetAccount(addr) != nil
 }
 
 // 判断合约对象是否为空
-func (self *MemoryStateDB) Empty(addr common.Address) bool {
+func (self *MemoryStateDB) Empty(addr string) bool {
 	acc := self.GetAccount(addr)
 
 	// 如果包含合约代码，则不为空
@@ -306,7 +306,7 @@ func (self *MemoryStateDB) GetLastSnapshot() *Snapshot {
 }
 
 // 获取合约对象的变更日志
-func (self *MemoryStateDB) GetReceiptLogs(addr common.Address, created bool) (logs []*types.ReceiptLog) {
+func (self *MemoryStateDB) GetReceiptLogs(addr string, created bool) (logs []*types.ReceiptLog) {
 	acc := self.GetAccount(addr)
 	if acc != nil {
 		stateLog := acc.BuildStateLog()
@@ -334,14 +334,14 @@ func (self *MemoryStateDB) GetChangedData(version int) (kvSet []*types.KeyValue,
 }
 
 // 借助coins执行器进行转账相关操作
-func (self *MemoryStateDB) CanTransfer(sender, recipient common.Address, amount uint64) bool {
+func (self *MemoryStateDB) CanTransfer(sender, recipient string, amount uint64) bool {
 
-	log15.Debug("check CanTransfer", "sender", sender.String(), "recipient", recipient, "amount", amount)
+	log15.Debug("check CanTransfer", "sender", sender, "recipient", recipient, "amount", amount)
 
 	tType, errInfo := self.checkTransfer(sender, recipient, amount)
 
 	if errInfo != nil {
-		log15.Error("check transfer error", "sender", sender.String(), "recipient", recipient, "amount", amount, "err info", errInfo)
+		log15.Error("check transfer error", "sender", sender, "recipient", recipient, "amount", amount, "err info", errInfo)
 		return false
 	}
 
@@ -354,7 +354,7 @@ func (self *MemoryStateDB) CanTransfer(sender, recipient common.Address, amount 
 	case NoNeed:
 		return true
 	case ToExec:
-		accFrom := self.CoinsAccount.LoadExecAccount(sender.String(), recipient.String())
+		accFrom := self.CoinsAccount.LoadExecAccount(sender, recipient)
 		b := accFrom.GetBalance() - value
 		if b < 0 {
 			log15.Error("check transfer error", "error info", types.ErrNoBalance)
@@ -368,7 +368,7 @@ func (self *MemoryStateDB) CanTransfer(sender, recipient common.Address, amount 
 	}
 }
 
-func (self *MemoryStateDB) checkExecAccount(addr common.Address, value int64) bool {
+func (self *MemoryStateDB) checkExecAccount(addr string, value int64) bool {
 	var err error
 	defer func() {
 		if err != nil {
@@ -391,7 +391,7 @@ func (self *MemoryStateDB) checkExecAccount(addr common.Address, value int64) bo
 		return false
 	}
 
-	accFrom := self.CoinsAccount.LoadExecAccount(contract.GetCreator(), addr.String())
+	accFrom := self.CoinsAccount.LoadExecAccount(contract.GetCreator(), addr)
 	b := accFrom.GetBalance() - value
 	if b < 0 {
 		err = types.ErrNoBalance
@@ -410,12 +410,12 @@ const (
 	Error
 )
 
-func (self *MemoryStateDB) checkTransfer(sender, recipient common.Address, amount uint64) (tType TransferType, err error) {
+func (self *MemoryStateDB) checkTransfer(sender, recipient string, amount uint64) (tType TransferType, err error) {
 	if amount == 0 {
 		return NoNeed, nil
 	}
 	if self.CoinsAccount == nil {
-		log15.Error("no coinsaccount exists", "sender", sender.String(), "recipient", recipient, "amount", amount)
+		log15.Error("no coinsaccount exists", "sender", sender, "recipient", recipient, "amount", amount)
 		return Error, model.NoCoinsAccount
 	}
 
@@ -446,13 +446,13 @@ func (self *MemoryStateDB) checkTransfer(sender, recipient common.Address, amoun
 
 // 借助coins执行器进行转账相关操作
 // 只支持 合约账户到合约账户，其它情况不支持
-func (self *MemoryStateDB) Transfer(sender, recipient common.Address, amount uint64) bool {
-	log15.Debug("transfer from contract to external(contract)", "sender", sender.String(), "recipient", recipient.String(), "amount", amount)
+func (self *MemoryStateDB) Transfer(sender, recipient string, amount uint64) bool {
+	log15.Debug("transfer from contract to external(contract)", "sender", sender, "recipient", recipient, "amount", amount)
 
 	tType, errInfo := self.checkTransfer(sender, recipient, amount)
 
 	if errInfo != nil {
-		log15.Error("transfer error", "sender", sender.String(), "recipient", recipient.String(), "amount", amount, "err info", errInfo)
+		log15.Error("transfer error", "sender", sender, "recipient", recipient, "amount", amount, "err info", errInfo)
 		return false
 	}
 
@@ -479,7 +479,7 @@ func (self *MemoryStateDB) Transfer(sender, recipient common.Address, amount uin
 
 	// 这种情况下转账失败并不进行处理，也不会从sender账户扣款，打印日志即可
 	if err != nil {
-		log15.Error("transfer error", "sender", sender.String(), "recipient", recipient.String(), "amount", amount, "err info", err)
+		log15.Error("transfer error", "sender", sender, "recipient", recipient, "amount", amount, "err info", err)
 		return false
 	} else {
 		if ret != nil {
@@ -499,7 +499,7 @@ func (self *MemoryStateDB) Transfer(sender, recipient common.Address, amount uin
 // 其它情况不支持，所以要想实现EVM合约与账户之间的转账需要经过中转处理，比如A要向B创建的X合约转账，则执行以下流程：
 // A -> A:X -> B:X；  (其中第一步需要外部手工执行)
 // 本方法封装第二步转账逻辑;
-func (self *MemoryStateDB) transfer2Contract(sender, recipient common.Address, amount int64) (ret *types.Receipt, err error) {
+func (self *MemoryStateDB) transfer2Contract(sender, recipient string, amount int64) (ret *types.Receipt, err error) {
 	// 首先获取合约的创建者信息
 	contract := self.GetAccount(recipient)
 	if contract == nil {
@@ -520,8 +520,8 @@ func (self *MemoryStateDB) transfer2Contract(sender, recipient common.Address, a
 	// 第二步再从自己的合约账户到创建者的合约账户
 	// 有可能是外部账户调用自己创建的合约，这种情况下这一步可以省略
 
-	if strings.Compare(sender.String(), creator) != 0 {
-		rs, err := self.CoinsAccount.ExecTransfer(sender.String(), creator, recipient.String(), amount)
+	if strings.Compare(sender, creator) != 0 {
+		rs, err := self.CoinsAccount.ExecTransfer(sender, creator, recipient, amount)
 		if err != nil {
 			return nil, err
 		}
@@ -535,7 +535,7 @@ func (self *MemoryStateDB) transfer2Contract(sender, recipient common.Address, a
 
 // chain33转账限制请参考方法 Transfer2Contract ；
 // 本方法封装从合约账户到外部账户的转账逻辑；
-func (self *MemoryStateDB) transfer2External(sender, recipient common.Address, amount int64) (ret *types.Receipt, err error) {
+func (self *MemoryStateDB) transfer2External(sender, recipient string, amount int64) (ret *types.Receipt, err error) {
 	// 首先获取合约的创建者信息
 	contract := self.GetAccount(sender)
 	if contract == nil {
@@ -548,8 +548,8 @@ func (self *MemoryStateDB) transfer2External(sender, recipient common.Address, a
 
 	// 第一步先从创建者的合约账户到接受者的合约账户
 	// 如果是自己调用自己创建的合约，这一步也可以省略
-	if strings.Compare(creator, recipient.String()) != 0 {
-		ret, err = self.CoinsAccount.ExecTransfer(creator, recipient.String(), sender.String(), amount)
+	if strings.Compare(creator, recipient) != 0 {
+		ret, err = self.CoinsAccount.ExecTransfer(creator, recipient, sender, amount)
 		if err != nil {
 			return nil, err
 		}
@@ -602,11 +602,9 @@ func (self *MemoryStateDB) AddPreimage(hash common.Hash, data []byte) {
 // 本合约执行完毕之后打印合约生成的日志（如果有）
 // 这里不保证当前区块可以打包成功，只是在执行区块中的交易时，如果交易执行成功，就会打印合约日志
 func (self *MemoryStateDB) PrintLogs() {
-	items, _ := self.logs[self.txHash]
-	if items != nil {
-		for _, item := range items {
-			item.PrintLog()
-		}
+	items := self.logs[self.txHash]
+	for _, item := range items {
+		item.PrintLog()
 	}
 }
 

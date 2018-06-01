@@ -56,10 +56,8 @@ func (ver *Snapshot) getData() (kvSet []*types.KeyValue, logs []*types.ReceiptLo
 		}
 
 		// 执行去重操作
-		if items != nil {
-			for _, kv := range items {
-				dataMap[string(kv.Key)] = kv
-			}
+		for _, kv := range items {
+			dataMap[string(kv.Key)] = kv
 		}
 	}
 
