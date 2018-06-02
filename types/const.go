@@ -76,6 +76,13 @@ func SetTitle(t string) {
 	}
 }
 
+func IsMatchFork(height int64, fork int64) bool {
+	if height == -1 || height >= fork {
+		return true
+	}
+	return false
+}
+
 func IsBityuan() bool {
 	return title == "bityuan"
 }
