@@ -21,6 +21,7 @@ func BTYCmd() *cobra.Command {
 		CreateRawTransferCmd(),
 		CreateRawWithdrawCmd(),
 		CreateRawSendToExecCmd(),
+		CreateTxGroupCmd(),
 	)
 
 	return cmd
@@ -194,4 +195,24 @@ func withdraw(cmd *cobra.Command, args []string) {
 	}
 	amountInt64 := int64(amount*types.InputPrecision) * types.Multiple1E4 //支持4位小数输入，多余的输入将被截断
 	SendToAddress(rpcLaddr, addr, execAddr, amountInt64, note, false, "", true)
+}
+
+// create tx group
+func CreateTxGroupCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use: "txgroup",
+		Short: "Create a transaction group",
+		Run: createTxGroup,
+	}
+	addCreateTxGroupFlags(cmd)
+	return cmd
+}
+
+func addCreateTxGroupFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("txs", "t", "", "transactions in hex, separated by space")
+	cmd.MarkFlagRequired("txs")
+}
+
+func createTxGroup(cmd *cobra.Command, args []string) {
+
 }
