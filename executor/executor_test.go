@@ -31,13 +31,15 @@ var cfg *types.Config
 var genkey crypto.PrivKey
 
 func init() {
+	types.SetTitle("local")
+	types.SetTestNet(true)
 	err := limits.SetLimits()
 	if err != nil {
 		panic(err)
 	}
 	random = rand.New(rand.NewSource(time.Now().UnixNano()))
 	genkey = getprivkey("CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944")
-	log.SetLogLevel("info")
+	log.SetLogLevel("error")
 }
 
 func getprivkey(key string) crypto.PrivKey {
@@ -60,10 +62,6 @@ func initEnv() (queue.Queue, queue.Module, queue.Module, queue.Module, queue.Mod
 	var q = queue.New("channel")
 	cfg = config.InitCfg("../cmd/chain33/chain33.test.toml")
 	cfg.Consensus.Minerstart = false
-
-	types.SetTitle("local")
-	types.SetTestNet(true)
-
 	chain := blockchain.New(cfg.BlockChain)
 	chain.SetQueueClient(q.Client())
 
@@ -292,7 +290,6 @@ func execAndCheckBlock(t *testing.T, qclient queue.Client,
 			t.Errorf("exec expect all is %d, but now %d, index %d", result, detail.Receipts[i].GetTy(), i)
 		}
 	}
-	jsonPrint(t, detail)
 	return detail.Block
 }
 
