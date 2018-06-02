@@ -1,11 +1,11 @@
 package commands
 
 import (
+	"encoding/hex"
 	"fmt"
-	"os"
+	"math/rand"
 	"strconv"
 	"strings"
-
 	"time"
 
 	"github.com/gogo/protobuf/proto"
@@ -206,24 +206,56 @@ func SendToAddress(rpcAddr string, from string, to string, amount int64, note st
 	ctx.Run()
 }
 
-func CreateRawTx(rpcAddr string, to string, amount float64, note string, isWithdraw bool, isToken bool, tokenSymbol string, execName string) {
+func CreateRawTx(to string, amount float64, note string, isWithdraw bool, isToken bool, tokenSymbol string, execName string) (string, error) {
 	if amount < 0 {
-		fmt.Fprintln(os.Stderr, types.ErrAmount)
-		return
+		return "", types.ErrAmount
 	}
 	amountInt64 := int64(amount*1e4) * 1e4
-	params := &types.CreateTx{
-		To:          to,
-		Amount:      amountInt64,
-		Note:        note,
-		IsWithdraw:  isWithdraw,
-		IsToken:     isToken,
-		TokenSymbol: tokenSymbol,
-		ExecName:    execName,
+	if execName != "" && !types.IsAllowExecName(execName) {
+		return "", types.ErrExecNameNotMatch
+	}
+	var tx *types.Transaction
+	if !isToken {
+		transfer := &types.CoinsAction{}
+		if !isWithdraw {
+			if execName != "" {
+				v := &types.CoinsAction_TransferToExec{TransferToExec: &types.CoinsTransferToExec{Amount: amountInt64, Note: note, ExecName: execName}}
+				transfer.Value = v
+				transfer.Ty = types.CoinsActionTransferToExec
+			} else {
+				v := &types.CoinsAction_Transfer{Transfer: &types.CoinsTransfer{Amount: amountInt64, Note: note}}
+				transfer.Value = v
+				transfer.Ty = types.CoinsActionTransfer
+			}
+		} else {
+			v := &types.CoinsAction_Withdraw{Withdraw: &types.CoinsWithdraw{Amount: amountInt64, Note: note}}
+			transfer.Value = v
+			transfer.Ty = types.CoinsActionWithdraw
+		}
+		tx = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), To: to}
+	} else {
+		transfer := &types.TokenAction{}
+		if !isWithdraw {
+			v := &types.TokenAction_Transfer{Transfer: &types.CoinsTransfer{Cointoken: tokenSymbol, Amount: amountInt64, Note: note}}
+			transfer.Value = v
+			transfer.Ty = types.ActionTransfer
+		} else {
+			v := &types.TokenAction_Withdraw{Withdraw: &types.CoinsWithdraw{Cointoken: tokenSymbol, Amount: amountInt64, Note: note}}
+			transfer.Value = v
+			transfer.Ty = types.ActionWithdraw
+		}
+		tx = &types.Transaction{Execer: []byte("token"), Payload: types.Encode(transfer), To: to}
 	}
 
-	ctx := NewRpcCtx(rpcAddr, "Chain33.CreateRawTransaction", params, nil)
-	ctx.RunWithoutMarshal()
+	var err error
+	tx.Fee, err = tx.GetRealFee(types.MinFee)
+	if err != nil {
+		return "", err
+	}
+	random := rand.New(rand.NewSource(time.Now().UnixNano()))
+	tx.Nonce = random.Int63()
+	txHex := types.Encode(tx)
+	return hex.EncodeToString(txHex), nil
 }
 
 func GetExecAddr(exec string) (string, error) {
