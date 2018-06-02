@@ -502,6 +502,8 @@ func (execute *executor) execTxGroup(txs []*types.Transaction, index int) ([]*ty
 		return nil, err
 	}
 	//开启内存事务处理，假设系统只有一个thread 执行
+	//如果系统执行失败，回滚到这个状态
+	rollbackLog := copyReceipt(feelog)
 	execute.stateDB.Begin()
 	receipts := make([]*types.Receipt, len(txs))
 	for i := 1; i < len(txs); i++ {
@@ -518,6 +520,10 @@ func (execute *executor) execTxGroup(txs []*types.Transaction, index int) ([]*ty
 			//reset other exec , and break!
 			for k := 1; k < i; k++ {
 				receipts[k] = &types.Receipt{Ty: types.ExecPack}
+			}
+			//撤销txs[0]的交易
+			if execute.height >= types.ForkV15ResetTx0 {
+				receipts[0] = rollbackLog
 			}
 			//撤销所有的数据库更新
 			execute.stateDB.Rollback()
@@ -547,6 +553,16 @@ func (execute *executor) execFee(tx *types.Transaction) (*types.Receipt, error) 
 	return feelog, nil
 }
 
+func copyReceipt(feelog *types.Receipt) *types.Receipt {
+	var receipt types.Receipt
+	receipt = *feelog
+	receipt.KV = make([]*types.KeyValue, len(feelog.KV))
+	copy(receipt.KV, feelog.KV)
+	receipt.Logs = make([]*types.ReceiptLog, len(feelog.Logs))
+	copy(receipt.Logs, feelog.Logs)
+	return &receipt
+}
+
 func (execute *executor) execTxOne(feelog *types.Receipt, tx *types.Transaction, index int) (*types.Receipt, error) {
 	//只有到pack级别的，才会增加index
 	receipt, err := execute.Exec(tx, index)
@@ -564,10 +580,10 @@ func (execute *executor) execTxOne(feelog *types.Receipt, tx *types.Transaction,
 			if !isAllowExec(k, tx.GetExecer(), tx.To, execute.height) {
 				elog.Error("err receipt key", "key", string(k), "tx.exec", string(tx.GetExecer()),
 					"tx.action", tx.ActionName())
-				if types.IsTestNet() {
-					//如果是测试网络，直接崩溃
-					panic("err receipt key")
-				}
+				//非法的receipt，交易执行失败
+				errlog := &types.ReceiptLog{types.TyLogErr, []byte(types.ErrNotAllowKey.Error())}
+				feelog.Logs = append(feelog.Logs, errlog)
+				return feelog, types.ErrNotAllowKey
 			}
 		}
 		feelog.KV = append(feelog.KV, receipt.KV...)
