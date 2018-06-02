@@ -201,4 +201,5 @@ var (
 	ErrTxGroupNotSupport          = errors.New("ErrTxGroupNotSupport")
 	ErrNotAllowKey                = errors.New("ErrNotAllowKey")
 	ErrDataBaseDamage             = errors.New("ErrDataBaseDamage")
+	ErrIndex                      = errors.New("ErrIndex")
 )
