@@ -554,7 +554,7 @@ func (execute *executor) execFee(tx *types.Transaction) (*types.Receipt, error) 
 }
 
 func copyReceipt(feelog *types.Receipt) *types.Receipt {
-	var receipt types.Receipt
+	receipt := types.Receipt{}
 	receipt = *feelog
 	receipt.KV = make([]*types.KeyValue, len(feelog.KV))
 	copy(receipt.KV, feelog.KV)
