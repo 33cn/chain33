@@ -112,4 +112,3 @@ type QueueProtocolAPI interface {
 	// +++++++++++++++ other interfaces begin
 	// --------------- other interfaces end
 }
-
