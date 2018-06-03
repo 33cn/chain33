@@ -17,8 +17,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
-	"gitlab.33.cn/chain33/chain33/mempool"
-	"gitlab.33.cn/chain33/chain33/p2p"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/store"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -58,29 +56,18 @@ func getprivkey(key string) crypto.PrivKey {
 	return priv
 }
 
-func initEnv() (queue.Queue, queue.Module, queue.Module, queue.Module, queue.Module) {
+func initEnv() (queue.Queue, queue.Module, queue.Module) {
 	var q = queue.New("channel")
 	cfg = config.InitCfg("../cmd/chain33/chain33.test.toml")
 	cfg.Consensus.Minerstart = false
 	chain := blockchain.New(cfg.BlockChain)
 	chain.SetQueueClient(q.Client())
-
 	exec := New(cfg.Exec)
 	exec.SetQueueClient(q.Client())
 	types.SetMinFee(0)
 	s := store.New(cfg.Store)
 	s.SetQueueClient(q.Client())
-
-	//cs := consensus.New(cfg.Consensus)
-	//cs.SetQueueClient(q.Client())
-
-	p2pnet := p2p.New(cfg.P2P)
-	p2pnet.SetQueueClient(q.Client())
-
-	mem := mempool.New(cfg.MemPool)
-	mem.SetQueueClient(q.Client())
-
-	return q, chain, s, p2pnet, mem
+	return q, chain, s
 }
 
 func createTx(priv crypto.PrivKey, to string, amount int64) *types.Transaction {
@@ -163,12 +150,10 @@ func createGenesisBlock() *types.Block {
 }
 
 func TestExecGenesisBlock(t *testing.T) {
-	q, chain, s, p2pnet, mem := initEnv()
+	q, chain, s := initEnv()
 	defer chain.Close()
 	defer s.Close()
 	defer q.Close()
-	defer p2pnet.Close()
-	defer mem.Close()
 	block := createGenesisBlock()
 	_, _, err := ExecBlock(q.Client(), zeroHash[:], block, false, true)
 	if err != nil {
@@ -177,15 +162,13 @@ func TestExecGenesisBlock(t *testing.T) {
 }
 
 func TestTxGroup(t *testing.T) {
-	q, chain, s, p2pnet, mem := initEnv()
+	q, chain, s := initEnv()
 	prev := types.MinFee
 	types.SetMinFee(100000)
 	defer types.SetMinFee(prev)
 	defer chain.Close()
 	defer s.Close()
 	defer q.Close()
-	defer p2pnet.Close()
-	defer mem.Close()
 	block := createGenesisBlock()
 	_, _, err := ExecBlock(q.Client(), zeroHash[:], block, false, true)
 	if err != nil {
@@ -294,12 +277,11 @@ func execAndCheckBlock(t *testing.T, qclient queue.Client,
 }
 
 func TestExecBlock2(t *testing.T) {
-	q, chain, s, p2pnet, mem := initEnv()
+	q, chain, s := initEnv()
 	defer chain.Close()
 	defer s.Close()
 	defer q.Close()
-	defer p2pnet.Close()
-	defer mem.Close()
+
 	block := createGenesisBlock()
 	detail, _, err := ExecBlock(q.Client(), zeroHash[:], block, false, true)
 	if err != nil {
@@ -346,12 +328,10 @@ func createNewBlock(t *testing.T, parent *types.Block, txs []*types.Transaction)
 }
 
 func TestExecBlock(t *testing.T) {
-	q, chain, s, p2pnet, mem := initEnv()
+	q, chain, s := initEnv()
 	defer chain.Close()
 	defer s.Close()
 	defer q.Close()
-	defer p2pnet.Close()
-	defer mem.Close()
 	block := createBlock(10)
 	ExecBlock(q.Client(), zeroHash[:], block, false, true)
 }
@@ -364,12 +344,10 @@ func BenchmarkGenRandBlock(b *testing.B) {
 }
 
 func BenchmarkExecBlock(b *testing.B) {
-	q, chain, s, p2pnet, mem := initEnv()
+	q, chain, s := initEnv()
 	defer chain.Close()
 	defer s.Close()
 	defer q.Close()
-	defer p2pnet.Close()
-	defer mem.Close()
 	block := createBlock(10000)
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
