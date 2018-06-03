@@ -2,8 +2,8 @@ package commands
 
 import (
 	"encoding/json"
-	"fmt"
 	"errors"
+	"fmt"
 	"os"
 	"strconv"
 	"time"
@@ -145,6 +145,11 @@ func totalCoins(cmd *cobra.Command, args []string) {
 				StateHash: stateHash,
 				StartKey:  startKey,
 				Count:     count,
+			}
+			if symbol == "bty" {
+				params.Execer = "coins"
+			} else {
+				params.Execer = "token"
 			}
 			var res types.ReplyGetTotalCoins
 			err = rpc.Call("Chain33.GetTotalCoins", params, &res)
@@ -351,7 +356,7 @@ func ticketInfoList(cmd *cobra.Command, args []string) {
 	}
 
 	var resp []GetTicketMinerInfoResult
-	for _,v := range res {
+	for _, v := range res {
 		var ticket GetTicketMinerInfoResult
 		ticket.TicketId = v.TicketId
 
@@ -389,4 +394,3 @@ func ticketInfoList(cmd *cobra.Command, args []string) {
 
 	fmt.Println(string(data))
 }
-
