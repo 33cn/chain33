@@ -104,7 +104,7 @@ func totalCoins(cmd *cobra.Command, args []string) {
 		}
 
 		//查询手续费
-		key := append([]byte("Statistics:TotalFeeKey:"), blockHash...)
+		key := append([]byte("TotalFeeKey:"), blockHash...)
 		params2 := types.LocalDBGet{Keys: [][]byte{key}}
 		var res2 types.TotalFee
 		err = rpc.Call("Chain33.QueryTotalFee", params2, &res2)
