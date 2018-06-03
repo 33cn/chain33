@@ -8,13 +8,6 @@ import (
 func countInfo(ex *executor, b *types.BlockDetail) (*types.LocalDBSet, error) {
 	var kvset types.LocalDBSet
 
-	//保存手续费
-	feekv, err := countFee(ex, b)
-	if err != nil {
-		return &kvset, err
-	}
-	kvset.KV = append(kvset.KV, feekv.KV...)
-
 	//保存挖矿统计数据
 	ticketkv, err := countTicket(ex, b)
 	if err != nil {
@@ -28,13 +21,6 @@ func countInfo(ex *executor, b *types.BlockDetail) (*types.LocalDBSet, error) {
 func delCountInfo(ex *executor, b *types.BlockDetail) (*types.LocalDBSet, error) {
 	var kvset types.LocalDBSet
 
-	//删除手续费
-	feekv, err := delFee(ex, b.Block.Hash())
-	if err != nil {
-		return &kvset, err
-	}
-	kvset.KV = append(kvset.KV, feekv)
-
 	//删除挖矿统计数据
 	ticketkv, err := delCountTicket(ex, b)
 	if err != nil {
@@ -43,51 +29,6 @@ func delCountInfo(ex *executor, b *types.BlockDetail) (*types.LocalDBSet, error)
 	kvset.KV = append(kvset.KV, ticketkv.KV...)
 
 	return &kvset, nil
-}
-
-func countFee(ex *executor, b *types.BlockDetail) (*types.LocalDBSet, error) {
-	var kvset types.LocalDBSet
-
-	var totalFee types.TotalFee
-	for i := 0; i < len(b.Block.Txs); i++ {
-		tx := b.Block.Txs[i]
-		totalFee.Fee += tx.Fee
-		totalFee.TxCount++
-	}
-
-	//保存手续费
-	feekv, err := saveFee(ex, &totalFee, b.Block.ParentHash, b.Block.Hash())
-	if err != nil {
-		return &kvset, err
-	}
-	kvset.KV = append(kvset.KV, feekv)
-	return &kvset, nil
-}
-
-func totalFeeKey(hash []byte) []byte {
-	key := []byte("Statistics:TotalFeeKey:")
-	return append(key, hash...)
-}
-
-func saveFee(ex *executor, fee *types.TotalFee, parentHash, hash []byte) (*types.KeyValue, error) {
-	totalFee := &types.TotalFee{}
-	totalFeeBytes, err := ex.localDB.Get(totalFeeKey(parentHash))
-	if err == nil {
-		err = types.Decode(totalFeeBytes, totalFee)
-		if err != nil {
-			return nil, err
-		}
-	} else if err != types.ErrNotFound {
-		return nil, err
-	}
-
-	totalFee.Fee += fee.Fee
-	totalFee.TxCount += fee.TxCount
-	return &types.KeyValue{totalFeeKey(hash), types.Encode(totalFee)}, nil
-}
-
-func delFee(ex *executor, hash []byte) (*types.KeyValue, error) {
-	return &types.KeyValue{totalFeeKey(hash), types.Encode(&types.TotalFee{})}, nil
 }
 
 func countTicket(ex *executor, b *types.BlockDetail) (*types.LocalDBSet, error) {
