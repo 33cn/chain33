@@ -378,8 +378,12 @@ func ticketInfoList(cmd *cobra.Command, args []string) {
 		}
 		ticket.IsGenesis = v.IsGenesis
 		ticket.CreateTime = time.Unix(v.CreateTime, 0).Format("20060102150405")
-		ticket.MinerTime = time.Unix(v.MinerTime, 0).Format("20060102150405")
-		ticket.CloseTime = time.Unix(v.CloseTime, 0).Format("20060102150405")
+		if v.MinerTime != 0 {
+			ticket.MinerTime = time.Unix(v.MinerTime, 0).Format("20060102150405")
+		}
+		if v.CloseTime != 0 {
+			ticket.CloseTime = time.Unix(v.CloseTime, 0).Format("20060102150405")
+		}
 		ticket.MinerValue = v.MinerValue
 		ticket.MinerAddress = v.MinerAddress
 

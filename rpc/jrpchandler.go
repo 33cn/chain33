@@ -1437,13 +1437,12 @@ func (c *Chain33) QueryTicketInfoList(in *types.LocalDBList, result *interface{}
 	var ticketInfo types.TicketMinerInfo
 	var ticketList []types.TicketMinerInfo
 	for _, v := range reply.Values {
-	err = types.Decode(v, &ticketInfo)
-	if err != nil {
-		return err
-	}
-	ticketList = append(ticketList, ticketInfo)
+		err = types.Decode(v, &ticketInfo)
+		if err != nil {
+			return err
+		}
+		ticketList = append(ticketList, ticketInfo)
 	}
 	*result = ticketList
 	return nil
 }
-

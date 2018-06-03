@@ -1123,4 +1123,3 @@ func testSendTxGRPC(t *testing.T, rpc *mockGRPCSystem) {
 		t.Error("Call SendTransaction Failed.", err)
 	}
 }
-

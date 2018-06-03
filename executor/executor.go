@@ -653,4 +653,3 @@ func saveFee(ex *executor, fee *types.TotalFee, parentHash, hash []byte) (*types
 func delFee(ex *executor, hash []byte) (*types.KeyValue, error) {
 	return &types.KeyValue{totalFeeKey(hash), types.Encode(&types.TotalFee{})}, nil
 }
-
