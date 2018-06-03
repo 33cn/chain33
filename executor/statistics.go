@@ -83,10 +83,6 @@ func countTicket(ex *executor, b *types.BlockDetail) (*types.LocalDBSet, error) 
 					ticketInfo.CreateTime = b.Block.BlockTime
 					ticketInfo.MinerAddress = ticketlog.Addr
 
-					err = ex.localDB.Set(StatisticTicketKey(ticketInfo.TicketId), types.Encode(&ticketInfo))
-					if err != nil {
-						return &kvset, err
-					}
 					kvset.KV = append(kvset.KV, &types.KeyValue{StatisticTicketInfoKey(ticketInfo.TicketId), types.Encode(&ticketInfo)})
 					kvset.KV = append(kvset.KV, &types.KeyValue{StatisticTicketInfoOrderKey(ticketInfo.MinerAddress, ticketInfo.CreateTime, ticketInfo.TicketId), types.Encode(&ticketInfo)})
 
@@ -109,10 +105,6 @@ func countTicket(ex *executor, b *types.BlockDetail) (*types.LocalDBSet, error) 
 					ticketInfo.Status = ticketlog.Status
 					ticketInfo.PrevStatus = ticketlog.PrevStatus
 					ticketInfo.MinerTime = b.Block.BlockTime
-					err = ex.localDB.Set(StatisticTicketKey(ticketInfo.TicketId), types.Encode(&ticketInfo))
-					if err != nil {
-						return &kvset, err
-					}
 
 					kvset.KV = append(kvset.KV, &types.KeyValue{StatisticTicketInfoKey(ticketInfo.TicketId), types.Encode(&ticketInfo)})
 					kvset.KV = append(kvset.KV, &types.KeyValue{StatisticTicketInfoOrderKey(ticketInfo.MinerAddress, ticketInfo.CreateTime, ticketInfo.TicketId), types.Encode(&ticketInfo)})
@@ -138,10 +130,7 @@ func countTicket(ex *executor, b *types.BlockDetail) (*types.LocalDBSet, error) 
 					ticketInfo.Status = ticketlog.Status
 					ticketInfo.PrevStatus = ticketlog.PrevStatus
 					ticketInfo.CloseTime = b.Block.BlockTime
-					err = ex.localDB.Set(StatisticTicketKey(ticketInfo.TicketId), types.Encode(&ticketInfo))
-					if err != nil {
-						return &kvset, err
-					}
+
 					kvset.KV = append(kvset.KV, &types.KeyValue{StatisticTicketInfoKey(ticketInfo.TicketId), types.Encode(&ticketInfo)})
 					kvset.KV = append(kvset.KV, &types.KeyValue{StatisticTicketInfoOrderKey(ticketInfo.MinerAddress, ticketInfo.CreateTime, ticketInfo.TicketId), types.Encode(&ticketInfo)})
 				default:
@@ -211,11 +200,6 @@ func delCountTicket(ex *executor, b *types.BlockDetail) (*types.LocalDBSet, erro
 					ticketInfo.CreateTime = b.Block.BlockTime
 					ticketInfo.MinerAddress = ticketlog.Addr
 
-					err = ex.localDB.Set(StatisticTicketKey(ticketInfo.TicketId), types.Encode(&types.TicketMinerInfo{}))
-					if err != nil {
-						return &kvset, err
-					}
-
 					ticketStatistic.CurrentOpenCount -= 1
 
 					kvset.KV = append(kvset.KV, &types.KeyValue{StatisticTicketInfoKey(ticketInfo.TicketId), types.Encode(&types.TicketMinerInfo{})})
@@ -240,10 +224,6 @@ func delCountTicket(ex *executor, b *types.BlockDetail) (*types.LocalDBSet, erro
 					ticketInfo.Status = ticketlog.PrevStatus
 					ticketInfo.PrevStatus = 0
 					ticketInfo.MinerTime = 0
-					err = ex.localDB.Set(StatisticTicketKey(ticketInfo.TicketId), types.Encode(&ticketInfo))
-					if err != nil {
-						return &kvset, err
-					}
 
 					kvset.KV = append(kvset.KV, &types.KeyValue{StatisticTicketInfoKey(ticketInfo.TicketId), types.Encode(&ticketInfo)})
 					kvset.KV = append(kvset.KV, &types.KeyValue{StatisticTicketInfoOrderKey(ticketInfo.MinerAddress, ticketInfo.CreateTime, ticketInfo.TicketId), types.Encode(&ticketInfo)})
@@ -273,10 +253,7 @@ func delCountTicket(ex *executor, b *types.BlockDetail) (*types.LocalDBSet, erro
 						ticketInfo.PrevStatus = 1
 					}
 					ticketInfo.CloseTime = 0
-					err = ex.localDB.Set(StatisticTicketKey(ticketInfo.TicketId), types.Encode(&ticketInfo))
-					if err != nil {
-						return &kvset, err
-					}
+
 					kvset.KV = append(kvset.KV, &types.KeyValue{StatisticTicketInfoKey(ticketInfo.TicketId), types.Encode(&ticketInfo)})
 					kvset.KV = append(kvset.KV, &types.KeyValue{StatisticTicketInfoOrderKey(ticketInfo.MinerAddress, ticketInfo.CreateTime, ticketInfo.TicketId), types.Encode(&ticketInfo)})
 				default:
@@ -304,4 +281,3 @@ func StatisticTicketInfoOrderKey(minerAddr string, createTime int64, ticketId st
 func StatisticTicketKey(minerAddr string) []byte {
 	return []byte("Statistics:TicketStat:Addr:" + minerAddr)
 }
-
