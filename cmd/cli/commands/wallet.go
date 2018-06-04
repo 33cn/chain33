@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"encoding/hex"
 	"fmt"
 	"os"
 	"strconv"
@@ -9,6 +10,9 @@ import (
 	"github.com/spf13/cobra"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/wallet"
+	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
 )
 
 func WalletCmd() *cobra.Command {
@@ -277,6 +281,7 @@ func addSignRawTxFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("data", "d", "", "raw transaction data")
 	cmd.MarkFlagRequired("data")
 
+	cmd.Flags().IntP("index", "i", 0, "transaction index to be signed")
 	cmd.Flags().StringP("key", "k", "", "private key (optional)")
 	cmd.Flags().StringP("addr", "a", "", "account address (optional)")
 	cmd.Flags().StringP("expire", "e", "120s", "transaction expire time")
@@ -291,6 +296,7 @@ func signRawTx(cmd *cobra.Command, args []string) {
 	data, _ := cmd.Flags().GetString("data")
 	key, _ := cmd.Flags().GetString("key")
 	addr, _ := cmd.Flags().GetString("addr")
+	index, _ := cmd.Flags().GetInt("index")
 	expire, _ := cmd.Flags().GetString("expire")
 	expireTime, err := time.ParseDuration(expire)
 	if err != nil {
@@ -301,15 +307,80 @@ func signRawTx(cmd *cobra.Command, args []string) {
 		expire = "120s"
 		fmt.Println("expire time must longer than 2 minutes, changed expire time into 2 minutes")
 	}
-	params := types.ReqSignRawTx{
-		Privkey: key,
-		Addr:    addr,
-		TxHex:   data,
-		Expire:  expire,
+	if key != "" {
+		keyByte, err := common.FromHex(key)
+		if err != nil || len(keyByte) == 0 {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		cr, err := crypto.New(types.GetSignatureTypeName(wallet.SignType))
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		privKey, err := cr.PrivKeyFromBytes(keyByte)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		var tx types.Transaction
+		bytes, err := common.FromHex(data)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		err = types.Decode(bytes, &tx)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		tx.SetExpire(expireTime)
+		group, err := tx.GetTxGroup()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		if group == nil {
+			tx.Sign(int32(wallet.SignType), privKey)
+			txHex := types.Encode(&tx)
+			signedTx := hex.EncodeToString(txHex)
+			fmt.Println(signedTx)
+			return
+		}
+		if index > len(group.GetTxs()) {
+			fmt.Fprintln(os.Stderr, types.ErrIndex)
+			return
+		}
+		if index <= 0 {
+			for i := range group.Txs {
+				group.SignN(i, int32(wallet.SignType), privKey)
+			}
+			grouptx := group.Tx()
+			txHex := types.Encode(grouptx)
+			signedTx := hex.EncodeToString(txHex)
+			fmt.Println(signedTx)
+			return
+		} else {
+			index -= 1
+			group.SignN(index, int32(wallet.SignType), privKey)
+			grouptx := group.Tx()
+			txHex := types.Encode(grouptx)
+			signedTx := hex.EncodeToString(txHex)
+			fmt.Println(signedTx)
+			return
+		}
+	} else if addr != "" {
+		params := types.ReqSignRawTx{
+			Addr:   addr,
+			TxHex:  data,
+			Expire: expire,
+			Index:  index,
+		}
+		ctx := NewRpcCtx(rpcLaddr, "Chain33.SignRawTx", params, nil)
+		ctx.RunWithoutMarshal()
+		return
 	}
-
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.SignRawTx", params, nil)
-	ctx.RunWithoutMarshal()
+	fmt.Fprintln(os.Stderr, types.ErrNoPrivKeyOrAddr)
 }
 
 // set tx fee
