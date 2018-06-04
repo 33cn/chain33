@@ -105,8 +105,6 @@ func SetupBCCSPKeystoreConfig(bccspConfig *factory.FactoryOpts, conf *cryptosuit
 }
 
 func GetLocalMspConfig(dir string, conf *cryptosuite.CryptoConfig) (*MSPConfig, error) {
-	signcertDir := filepath.Join(dir, signcerts)
-
 	bccspConfig := &factory.FactoryOpts{}
 	bccspConfig = SetupBCCSPKeystoreConfig(bccspConfig, conf)
 
@@ -115,21 +113,10 @@ func GetLocalMspConfig(dir string, conf *cryptosuite.CryptoConfig) (*MSPConfig, 
 		return nil, fmt.Errorf("Could not initialize BCCSP Factories [%s]", err)
 	}
 
-	signcert, err := getPemMaterialFromDir(signcertDir)
-	if err != nil || len(signcert) == 0 {
-		return nil, fmt.Errorf("Could not load a valid signer certificate from directory %s, err %s", signcertDir, err)
-	}
-
-	/* FIXME: for now we're making the following assumptions
-	1) there is exactly one signing cert
-	2) BCCSP's KeyStore has the private key that matches SKI of
-	   signing cert
-	*/
-
-	return getMspConfig(dir, signcert[0], conf)
+	return getMspConfig(dir, conf)
 }
 
-func getMspConfig(dir string, signcert []byte, conf *cryptosuite.CryptoConfig) (*MSPConfig, error) {
+func getMspConfig(dir string, conf *cryptosuite.CryptoConfig) (*MSPConfig, error) {
 	cacertDir := filepath.Join(dir, cacerts)
 	admincertDir := filepath.Join(dir, admincerts)
 	intermediatecertsDir := filepath.Join(dir, intermediatecerts)
@@ -181,7 +168,6 @@ func getMspConfig(dir string, signcert []byte, conf *cryptosuite.CryptoConfig) (
 		Admins:            admincert,
 		RootCerts:         cacerts,
 		IntermediateCerts: intermediatecerts,
-		SigningCert:       signcert,
 		RevocationList:    crls,
 		CryptoConfig:      crypto,
 	}
