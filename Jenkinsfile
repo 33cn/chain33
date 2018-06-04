@@ -22,7 +22,7 @@ pipeline {
 
     triggers {
         gitlab(
-            triggerOnPush: true,
+            triggerOnPush: false,
             triggerOnMergeRequest: true, triggerOpenMergeRequestOnPush: "both",
             triggerOnNoteRequest: true,
             noteRegex: "Jenkins please retry a build",
@@ -33,21 +33,19 @@ pipeline {
             addCiMessage: true,
             addVoteOnMergeRequest: true,
             acceptMergeRequestOnSuccess: false,
-            branchFilterType: 'All',
-            includeBranchesSpec: "release/qat",
-            excludeBranchesSpec: "",
-            secretToken: "abcdefghijklmnopqrstuvwxyz0123456789ABCDEF")
+            branchFilterType: 'All')
     }
 
     stages {
         stage('build') {
-            steps { 
+            steps {
                 dir("${PROJ_DIR}"){
-                    sh 'make auto_ci_before'
-                    sh 'make checkgofmt'
-                    sh 'make linter'
-                    // sh 'make build_ci'
-                    gitlabCommitStatus(name: 'build')
+                    gitlabCommitStatus(name: 'build'){
+                        sh 'make auto_ci_before'
+                        sh 'make checkgofmt'
+                        sh 'make linter'
+                        // sh 'make build_ci'
+                    }
                 }
             }
         }
@@ -55,10 +53,11 @@ pipeline {
         stage('test'){
             steps {
                 dir("${PROJ_DIR}"){
-                    sh 'cd build && docker-compose down && cd ..'
-                    sh 'make test'
-                    // sh 'export CC=clang-5.0 && make msan'
-                    gitlabCommitStatus(name: 'test')
+                    gitlabCommitStatus(name: 'test'){
+                        sh 'cd build && docker-compose down && cd ..'
+                        sh 'make test'
+                        // sh 'export CC=clang-5.0 && make msan'
+                    }
                 }
             }
         }
@@ -66,11 +65,12 @@ pipeline {
         stage('deploy') {
             steps {
                 dir("${PROJ_DIR}"){
-                    sh 'make build_ci'
-                    sh 'make docker-compose'
-                    sh 'cd build && docker-compose down && cd ..'
-                    sh "make auto_ci_after branch=${env.gitlabSourceBranch}"
-                    gitlabCommitStatus(name: 'deploy')
+                    gitlabCommitStatus(name: 'deploy'){
+                        sh 'make build_ci'
+                        sh 'make docker-compose'
+                        sh 'cd build && docker-compose down && cd ..'
+                        sh "make auto_ci_after branch=${env.gitlabSourceBranch}"
+                    }
                 }
             }
         }
