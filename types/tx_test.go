@@ -2,7 +2,6 @@ package types
 
 import (
 	"encoding/hex"
-	"fmt"
 	"testing"
 	"time"
 
@@ -93,37 +92,31 @@ func TestSignGroupTx(t *testing.T) {
 	var err error
 	privkey := getprivkey("CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944")
 	unsignTx := "0a05636f696e73120e18010a0a1080c2d72f1a036f746520e0a71230f1cdebc8f7efa5e9283a22313271796f6361794e46374c7636433971573461767873324537553431664b53667640034a8b030a8f010a05636f696e73120e18010a0a1080c2d72f1a036f746520e0a71230f1cdebc8f7efa5e9283a22313271796f6361794e46374c7636433971573461767873324537553431664b53667640034a20a9ef5454033a9ab080360470291e9b1f63881ff9a03c3c09a06e7200688d019852209a56c5dbff8b246e32d3ad0534f42dbbae88cf4b0bed24fe6420e06d59187c690a8b010a05636f696e73120e18010a0a1080c2d72f1a036f746530de92c3828ad194b26d3a22313271796f6361794e46374c7636433971573461767873324537553431664b53667640034a20a9ef5454033a9ab080360470291e9b1f63881ff9a03c3c09a06e7200688d0198522036bb9ca17aeef20b6e9afcd5ba52d89f5109db5b5d2aee200723b2bb0c7e9aa30a690a05636f696e73120e18010a0a1080c2d72f1a036f746530b0d6c895c4d28efe5d3a22313271796f6361794e46374c7636433971573461767873324537553431664b53667640034a20a9ef5454033a9ab080360470291e9b1f63881ff9a03c3c09a06e7200688d019852209a56c5dbff8b246e32d3ad0534f42dbbae88cf4b0bed24fe6420e06d59187c69"
-	unsignTx, err = signN(unsignTx, 0, privkey)
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	unsignTx, err = signN(unsignTx, 1, privkey)
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	signedtx, err := signN(unsignTx, 2, privkey)
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	t.Log(signedtx)
-}
-
-func signN(unsignTx string, n int, privkey crypto.PrivKey) (string, error) {
 	var tx Transaction
 	txhex, _ := hex.DecodeString(unsignTx)
 	Decode(txhex, &tx)
 	group, err := tx.GetTxGroup()
 	if err != nil {
-		return "", err
+		t.Error(err)
+		return
 	}
 	if group == nil {
-		return "", fmt.Errorf("signN sign a not group tx")
+		t.Errorf("signN sign a not group tx")
+		return
 	}
-	group.Txs[n].Sign(SECP256K1, privkey)
+	for i := 0; i < len(group.GetTxs()); i++ {
+		err = group.SignN(i, SECP256K1, privkey)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+	}
+	err = group.Check(MinFee)
+	if err != nil {
+		t.Error(err)
+		return
+	}
 	newtx := group.Tx()
-	grouptxhex := hex.EncodeToString(Encode(newtx))
-	return grouptxhex, nil
+	signedtx := hex.EncodeToString(Encode(newtx))
+	t.Log(signedtx)
 }
