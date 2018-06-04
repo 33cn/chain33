@@ -30,6 +30,7 @@ import (
 
 var elog = log.New("module", "execs")
 var coinsAccount = account.NewCoinsAccount()
+var enableStat bool
 
 func SetLogLevel(level string) {
 	clog.SetLogLevel(level)
@@ -73,6 +74,8 @@ func New(cfg *types.Exec) *Executor {
 	if cfg.MinExecFee > 0 {
 		types.SetMinFee(cfg.MinExecFee)
 	}
+	enableStat = cfg.EnableStat
+
 	exec := &Executor{}
 	return exec
 }
@@ -319,6 +322,16 @@ func (exec *Executor) procExecAddBlock(msg queue.Message) {
 	}
 	kvset.KV = append(kvset.KV, feekv)
 
+	//定制数据统计
+	if enableStat {
+		kvs, err := countInfo(execute, datas)
+		if err != nil {
+			msg.Reply(exec.client.NewMessage("", types.EventAddBlock, err))
+			return
+		}
+		kvset.KV = append(kvset.KV, kvs.KV...)
+	}
+
 	msg.Reply(exec.client.NewMessage("", types.EventAddBlock, &kvset))
 }
 
@@ -356,6 +369,16 @@ func (exec *Executor) procExecDelBlock(msg queue.Message) {
 		return
 	}
 	kvset.KV = append(kvset.KV, feekv)
+
+	//定制数据统计
+	if enableStat {
+		kvs, err := delCountInfo(execute, datas)
+		if err != nil {
+			msg.Reply(exec.client.NewMessage("", types.EventAddBlock, err))
+			return
+		}
+		kvset.KV = append(kvset.KV, kvs.KV...)
+	}
 
 	msg.Reply(exec.client.NewMessage("", types.EventAddBlock, &kvset))
 }
@@ -622,9 +645,8 @@ func (execute *executor) execTx(tx *types.Transaction, index int) (*types.Receip
 }
 
 func totalFeeKey(hash []byte) []byte {
-	s := [][]byte{[]byte("TotalFeeKey:"), hash}
-	sep := []byte("")
-	return bytes.Join(s, sep)
+	key := []byte("TotalFeeKey:")
+	return append(key, hash...)
 }
 
 func saveFee(ex *executor, fee *types.TotalFee, parentHash, hash []byte) (*types.KeyValue, error) {
