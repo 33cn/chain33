@@ -47,8 +47,9 @@ var (
 	ForkV10TradeBuyLimit int64 = 1
 	ForkV11ManageExec    int64 = 100000
 	ForkV12TransferExec  int64 = 100000
-	ForkV13ExecKey       int64 = 100000
-	ForkV14TxGroup       int64 = 100000
+	ForkV13ExecKey       int64 = 200000
+	ForkV14TxGroup       int64 = 200000
+	ForkV15ResetTx0      int64 = 200000
 )
 
 var (
@@ -63,11 +64,31 @@ func SetTitle(t string) {
 	if IsBityuan() {
 		AllowUserExec = [][]byte{ExecerCoins, ExecerTicket, []byte("hashlock"),
 			[]byte("retrieve"), []byte("none"), ExecerToken, []byte("trade"), ExecerManage}
+		return
 	}
+	if IsLocal() {
+		ForkV11ManageExec = 1
+		ForkV12TransferExec = 1
+		ForkV13ExecKey = 1
+		ForkV14TxGroup = 1
+		ForkV15ResetTx0 = 1
+		return
+	}
+}
+
+func IsMatchFork(height int64, fork int64) bool {
+	if height == -1 || height >= fork {
+		return true
+	}
+	return false
 }
 
 func IsBityuan() bool {
 	return title == "bityuan"
+}
+
+func IsLocal() bool {
+	return title == "local"
 }
 
 func IsYcc() bool {
@@ -95,7 +116,10 @@ func SetTestNet(isTestNet bool) {
 		"1GCzJDS6HbgTQ2emade7mEJGGWFfA15pS9",
 		"1JYB8sxi4He5pZWHCd3Zi2nypQ4JMB6AxN",
 	}
-	//TestNet 的 fork
+	if IsLocal() {
+		return
+	}
+	//测试网络的fork
 	ForkV1 = 75260
 	ForkV2AddToken = 100899
 	ForkV3 = 110000
@@ -110,6 +134,7 @@ func SetTestNet(isTestNet bool) {
 	ForkV12TransferExec = 408400
 	ForkV13ExecKey = 408400
 	ForkV14TxGroup = 408400
+	ForkV15ResetTx0 = 450000
 }
 
 func IsTestNet() bool {
@@ -260,7 +285,9 @@ const (
 	EventSyncBlock           = 109
 	EventGetNetInfo          = 110
 	EventReplyNetInfo        = 111
-
+	EventErrToFront          = 112
+	EventFatalFailure        = 113
+	EventReplyFatalFailure   = 114
 	// Token
 	EventBlockChainQuery = 212
 )
@@ -375,6 +402,12 @@ var eventName = map[int]string{
 	107: "EventSignRawTx",
 	108: "EventReplySignRawTx",
 	109: "EventSyncBlock",
+	110: "EventGetNetInfo",
+	111: "EventReplyNetInfo",
+	112: "EventErrToFront",
+	113: "EventFatalFailure",
+	114: "EventReplyFatalFailure",
+
 	// Token
 	EventBlockChainQuery: "EventBlockChainQuery",
 }

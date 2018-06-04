@@ -1387,3 +1387,13 @@ func (c *Chain33) GetNetInfo(in *types.ReqNil, result *interface{}) error {
 	*result = &NodeNetinfo{resp.GetExternaladdr(), resp.GetLocaladdr(), resp.GetService(), resp.GetOutbounds(), resp.GetInbounds()}
 	return nil
 }
+
+func (c *Chain33) GetFatalFailure(in *types.ReqNil, result *interface{}) error {
+	resp, err := c.cli.GetFatalFailure()
+	if err != nil {
+		return err
+	}
+	*result = resp.GetData()
+	return nil
+
+}
