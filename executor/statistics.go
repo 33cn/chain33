@@ -1,8 +1,9 @@
 package executor
 
 import (
-	"gitlab.33.cn/chain33/chain33/types"
 	"time"
+
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 func countInfo(ex *executor, b *types.BlockDetail) (*types.LocalDBSet, error) {
