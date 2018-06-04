@@ -396,6 +396,8 @@ func (wallet *Wallet) transPri2PriV2(privacykeyParirs *privacy.Privacy, reqPri2P
 		Payload: types.Encode(action),
 		Fee:     types.PrivacyTxFee,
 		Nonce:   wallet.random.Int63(),
+		// TODO: 采用隐私合约地址来设定目标合约接收的目标地址,让验证通过
+		To: account.ExecAddress(types.PrivacyX).String(),
 	}
 
 	//完成了input和output的添加之后，即已经完成了交易基本内容的添加，

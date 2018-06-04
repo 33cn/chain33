@@ -1680,6 +1680,7 @@ func (wallet *Wallet) AddDelPrivacyTxsFromBlock(tx *types.Transaction, index int
 
 								//将当前存在隐私余额的所有token写入数据库，方便钱包重启时的初始化操作
 								tokenNames := &types.TokenNamesOfUTXO{}
+								tokenNames.TokensMap = make(map[string]string, 0)
 								for token, _ := range wallet.privacyActive {
 									tokenNames.TokensMap[token] = txhash
 								}
