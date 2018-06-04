@@ -25,7 +25,7 @@ pipeline {
         stage('build') {
             steps { 
                 dir("${PROJ_DIR}"){
-                    sh 'make auto_ci_before > /dev/null 2>&1'
+                    sh 'make auto_ci_before'
                     sh 'make checkgofmt'
                     sh 'make linter'
                     // sh 'make build_ci'
@@ -49,7 +49,7 @@ pipeline {
                     sh 'make build_ci'
                     sh 'make docker-compose'
                     sh 'cd build && docker-compose down && cd ..'
-                    sh 'make auto_ci_after'
+                    sh "make auto_ci_after branch=${env.gitlabSourceBranch}"
                 }
             }
         }
@@ -88,11 +88,11 @@ pipeline {
                  body: "Something is wrong with ${env.BUILD_URL}"
         }
 
-        // changed {
-        //    echo 'Things were different before...'
-        //    mail to: "${gitlabUserEmail}",
-        //         subject: "changed Pipeline: ${currentBuild.fullDisplayName}",
-        //         body: "this is changed with ${env.BUILD_URL}"
-        // }
+        changed {
+            echo 'Things were different before...'
+            mail to: "${gitlabUserEmail}",
+                 subject: "changed Pipeline: ${currentBuild.fullDisplayName}",
+                 body: "this is changed with ${env.BUILD_URL}"
+        }
     }
 }
