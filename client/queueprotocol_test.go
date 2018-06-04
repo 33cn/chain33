@@ -131,14 +131,18 @@ func testLocalGet(t *testing.T, api client.QueueProtocolAPI) {
 	if nil == err {
 		t.Error("LocalGet(nil) need return error.")
 	}
-	_, err := api.LocalGet(&types.LocalDBGet{})
+	_, err = api.LocalGet(&types.LocalDBGet{})
 	if err != nil {
 		t.Error("Call LocalGet Failed.", err)
 	}
 }
 
 func testLocalList(t *testing.T, api client.QueueProtocolAPI) {
-	_, err := api.LocalList(&types.LocalDBList{})
+	_, err := api.LocalList(nil)
+	if nil == err {
+		t.Error("LocalList(nil) need return error.")
+	}
+	_, err = api.LocalList(&types.LocalDBList{})
 	if nil != err {
 		t.Error("Call LocalList Failed.", err)
 	}
