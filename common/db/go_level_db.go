@@ -24,6 +24,7 @@ func init() {
 }
 
 type GoLevelDB struct {
+	TransactionDB
 	db *leveldb.DB
 }
 

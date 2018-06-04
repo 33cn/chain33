@@ -59,10 +59,10 @@ func NewRaftCluster(cfg *types.Consensus) *RaftClient {
 	if len(addPeers) == 1 && addPeers[0] == "" {
 		addPeers = []string{}
 	}
-	commitC, errorC, snapshotterReady, validatorC := NewRaftNode(int(cfg.NodeId), cfg.IsNewJoinNode, peers, readOnlyPeers, addPeers, getSnapshot, proposeC, confChangeC)
+	commitC, errorC, snapshotterReady, validatorC, stopC := NewRaftNode(int(cfg.NodeId), cfg.IsNewJoinNode, peers, readOnlyPeers, addPeers, getSnapshot, proposeC, confChangeC)
 	//启动raft删除节点操作监听
 	go serveHttpRaftAPI(int(cfg.RaftApiPort), confChangeC, errorC)
 	// 监听commit channel,取block
-	b = NewBlockstore(cfg, <-snapshotterReady, proposeC, commitC, errorC, validatorC)
+	b = NewBlockstore(cfg, <-snapshotterReady, proposeC, commitC, errorC, validatorC, stopC)
 	return b
 }

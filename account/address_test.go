@@ -2,7 +2,10 @@ package account
 
 import (
 	"encoding/hex"
+	"fmt"
+	"strconv"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
@@ -51,4 +54,26 @@ func TestCheckAddress(t *testing.T) {
 	addr := PubKeyToAddress(key.PubKey().Bytes())
 	err = CheckAddress(addr.String())
 	require.NoError(t, err)
+}
+
+func BenchmarkExecAddress(b *testing.B) {
+	start := time.Now().UnixNano() / 1000000
+	fmt.Println(start)
+	for i := 0; i < b.N; i++ {
+		ExecAddress("ticket")
+	}
+	end := time.Now().UnixNano() / 1000000
+	fmt.Println(end)
+	duration := end - start
+	fmt.Println("duration with cache:", strconv.FormatInt(duration, 10))
+
+	start = time.Now().UnixNano() / 1000000
+	fmt.Println(start)
+	for i := 0; i < b.N; i++ {
+		GetExecAddress("ticket")
+	}
+	end = time.Now().UnixNano() / 1000000
+	fmt.Println(end)
+	duration = end - start
+	fmt.Println("duration without cache:", strconv.FormatInt(duration, 10))
 }

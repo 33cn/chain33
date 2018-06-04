@@ -36,6 +36,18 @@ func OneStepSend(args []string) {
 			}
 		}
 	}
+	hasAddr := false
+	var rpcAddr string
+	size = len(params)
+	for i, v := range params {
+		if v == "--rpc_laddr" {
+			hasAddr = true
+			if i < size-1 {
+				rpcAddr = params[i+1]
+				params = append(params[:i], params[i+2:]...)
+			}
+		}
+	}
 	var isAddr bool
 	err := account.CheckAddress(key)
 	if err != nil {
@@ -64,12 +76,15 @@ func OneStepSend(args []string) {
 		return
 	}
 	bufCreate := outCreate.Bytes()
-
 	addrOrKey := "-k"
 	if isAddr {
 		addrOrKey = "-a"
 	}
-	cmdSign := exec.Command(name, "wallet", "sign", "-d", string(bufCreate[:len(bufCreate)-1]), addrOrKey, key)
+	cParams := []string{"wallet", "sign", "-d", string(bufCreate[:len(bufCreate)-1]), addrOrKey, key}
+	if hasAddr {
+		cParams = append(cParams, "--rpc_laddr", rpcAddr)
+	}
+	cmdSign := exec.Command(name, cParams...)
 	var outSign bytes.Buffer
 	var errSign bytes.Buffer
 	cmdSign.Stdout = &outSign
@@ -85,7 +100,11 @@ func OneStepSend(args []string) {
 	//fmt.Println("signedTx", outSign.String(), errSign.String())
 
 	bufSign := outSign.Bytes()
-	cmdSend := exec.Command(name, "wallet", "send", "-d", string(bufSign[:len(bufSign)-1]))
+	cParams = []string{"wallet", "send", "-d", string(bufSign[:len(bufSign)-1])}
+	if hasAddr {
+		cParams = append(cParams, "--rpc_laddr", rpcAddr)
+	}
+	cmdSend := exec.Command(name, cParams...)
 	var outSend bytes.Buffer
 	var errSend bytes.Buffer
 	cmdSend.Stdout = &outSend

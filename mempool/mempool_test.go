@@ -17,29 +17,31 @@ import (
 
 //----------------------------- data for testing ---------------------------------
 var (
-	amount   = int64(1e8)
-	v        = &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
-	transfer = &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
-	tx1      = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1000000, Expire: 2}
-	tx2      = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0}
-	tx3      = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 200000000, Expire: 0}
-	tx4      = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 300000000, Expire: 0}
-	tx5      = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 400000000, Expire: 0}
-	tx6      = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 500000000, Expire: 0}
-	tx7      = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 600000000, Expire: 0}
-	tx8      = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 700000000, Expire: 0}
-	tx9      = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 800000000, Expire: 0}
-	tx10     = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 900000000, Expire: 0}
-	tx11     = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 450000000, Expire: 0}
-	tx12     = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 460000000, Expire: 0}
-	tx13     = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100, Expire: 0}
-
 	c, _       = crypto.New(types.GetSignatureTypeName(types.SECP256K1))
 	hex        = "CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944"
 	a, _       = common.FromHex(hex)
 	privKey, _ = c.PrivKeyFromBytes(a)
 	random     *rand.Rand
 	mainPriv   crypto.PrivKey
+	toAddr     = account.PubKeyToAddress(privKey.PubKey().Bytes()).String()
+	amount     = int64(1e8)
+	v          = &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
+	transfer   = &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
+	tx1        = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1000000, Expire: 2, To: toAddr}
+	tx2        = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0, To: toAddr}
+	tx3        = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 200000000, Expire: 0, To: toAddr}
+	tx4        = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 300000000, Expire: 0, To: toAddr}
+	tx5        = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 400000000, Expire: 0, To: toAddr}
+	tx6        = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 500000000, Expire: 0, To: toAddr}
+	tx7        = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 600000000, Expire: 0, To: toAddr}
+	tx8        = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 700000000, Expire: 0, To: toAddr}
+	tx9        = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 800000000, Expire: 0, To: toAddr}
+	tx10       = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 900000000, Expire: 0, To: toAddr}
+	tx11       = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 450000000, Expire: 0, To: toAddr}
+	tx12       = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 460000000, Expire: 0, To: toAddr}
+	tx13       = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100, Expire: 0, To: toAddr}
+	tx14       = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0, To: "notaddress"}
+	tx15       = &types.Transaction{Execer: []byte("user.write"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0, To: toAddr}
 )
 
 //var privTo, _ = c.GenKey()
@@ -136,6 +138,8 @@ func initEnv(size int) (queue.Queue, *Mempool) {
 	tx11.Sign(types.SECP256K1, privKey)
 	tx12.Sign(types.SECP256K1, privKey)
 	tx13.Sign(types.SECP256K1, privKey)
+	tx14.Sign(types.SECP256K1, privKey)
+	tx15.Sign(types.SECP256K1, privKey)
 
 	return q, mem
 }
@@ -610,6 +614,34 @@ func TestCheckExpire2(t *testing.T) {
 	}
 }
 
+func TestWrongToAddr(t *testing.T) {
+	q, mem := initEnv(0)
+	defer q.Close()
+	defer mem.Close()
+
+	msg := mem.client.NewMessage("mempool", types.EventTx, tx14)
+	mem.client.Send(msg, true)
+	resp, _ := mem.client.Wait(msg)
+
+	if string(resp.GetData().(*types.Reply).GetMsg()) != types.ErrInvalidAddress.Error() {
+		t.Error("TestWrongToAddr failed")
+	}
+}
+
+func TestExecToAddrNotMatch(t *testing.T) {
+	q, mem := initEnv(0)
+	defer q.Close()
+	defer mem.Close()
+
+	msg := mem.client.NewMessage("mempool", types.EventTx, tx15)
+	mem.client.Send(msg, true)
+	resp, _ := mem.client.Wait(msg)
+
+	if string(resp.GetData().(*types.Reply).GetMsg()) != types.ErrToAddrNotSameToExecAddr.Error() {
+		t.Error("TestExecToAddrNotMatch failed", string(resp.GetData().(*types.Reply).GetMsg()))
+	}
+}
+
 func TestGetAddrTxs(t *testing.T) {
 	q, mem := initEnv(0)
 	defer q.Close()
@@ -691,13 +723,28 @@ func TestAddMinerTx(t *testing.T) {
 	miner := &types.TicketAction_Miner{Miner: &types.TicketMiner{Reward: 18}}
 	action.Value = miner
 
-	tx := &types.Transaction{Execer: []byte("ticket"), Payload: types.Encode(action), Fee: 100, Expire: 0}
+	tx := &types.Transaction{Execer: []byte("ticket"), Payload: types.Encode(action), Fee: 100000, Expire: 0}
 	msg := mem.client.NewMessage("mempool", types.EventTx, tx)
 	mem.client.Send(msg, true)
 	resp, _ := mem.client.Wait(msg)
 
 	if string(resp.GetData().(*types.Reply).GetMsg()) != types.ErrMinerTx.Error() {
 		t.Error("TestAddMinerTx failed", string(resp.GetData().(*types.Reply).GetMsg()))
+	}
+}
+
+func TestAddTxGroup(t *testing.T) {
+	q, mem := initEnv(0)
+	defer q.Close()
+	defer mem.Close()
+
+	txGroup, _ := types.CreateTxGroup([]*types.Transaction{tx2, tx3, tx4})
+	tx := txGroup.Tx()
+	msg := mem.client.NewMessage("mempool", types.EventTx, tx)
+	mem.client.Send(msg, true)
+	_, err := mem.client.Wait(msg)
+	if err != nil {
+		t.Error("TestAddTxGroup failed", err.Error())
 	}
 }
 

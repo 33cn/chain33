@@ -49,7 +49,7 @@ func (signatory *Signatory) SignApprove(in *TokenFinish, out *interface{}) error
 		Execer:  []byte("token"),
 		Payload: types.Encode(finish),
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      account.ExecAddress("token").String(),
+		To:      account.ExecAddress("token"),
 	}
 
 	var err error
