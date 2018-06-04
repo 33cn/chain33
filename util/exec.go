@@ -14,6 +14,43 @@ import (
 
 var ulog = log.New("module", "util")
 
+//block.Txs empty?
+func checkSignWrapper(block *types.Block, client queue.Client) bool {
+	var signedByAuth bool = false
+	for _, tx := range block.Txs {
+		//only one type of signature will be used in all txs
+		if tx.GetSignature().GetTy() == types.SIG_TYPE_AUTHORITY {
+			signedByAuth = true
+			break
+		}
+	}
+
+	if signedByAuth {
+		if !block.CheckBlockSign() {
+			return false
+		}
+		data := &types.ReqAuthSignCheckTxs{
+			Txs: block.Txs,
+		}
+
+		msg := client.NewMessage("authority", types.EventAuthorityCheckTxs, data)
+		client.Send(msg, true)
+
+		resp, err := client.Wait(msg)
+		if err != nil {
+			panic(err)
+		}
+
+		res, ok := resp.GetData().(*types.RespAuthSignCheckTxs)
+		if !ok || !res.Result {
+			return false
+		}
+		return true
+	} else {
+		return block.CheckSign()
+	}
+}
+
 //block执行函数增加一个批量存储区块是否刷盘的标志位，提高区块的同步性能。
 //只有blockchain在同步阶段会设置不刷盘，其余模块处理时默认都是刷盘的
 func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, errReturn bool, sync bool) (*types.BlockDetail, []*types.Transaction, error) {
@@ -24,7 +61,10 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	defer func() {
 		ulog.Info("ExecBlock", "height", block.Height, "ntx", len(block.Txs), "writebatchsync", sync, "cost", time.Since(beg))
 	}()
-	if errReturn && block.Height > 0 && !block.CheckSign() {
+
+	sigValid := checkSignWrapper(block, client)
+
+	if errReturn && block.Height > 0 && !sigValid {
 		//block的来源不是自己的mempool，而是别人的区块
 		return nil, nil, types.ErrSign
 	}
