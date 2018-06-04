@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	"gitlab.33.cn/chain33/chain33/common/crypto"
+	"gitlab.33.cn/chain33/chain33/common/db"
+	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -15,7 +17,7 @@ var (
 	backupPriv  crypto.PrivKey
 	defaultPriv crypto.PrivKey
 	testNormErr error
-	retrieve    *Retrieve
+	retrieve    drivers.Driver
 )
 
 func TestInit(t *testing.T) {
@@ -23,11 +25,9 @@ func TestInit(t *testing.T) {
 	defaultAddr, defaultPriv = genaddress()
 	testNormErr = errors.New("Err")
 	retrieve = constructRetrieveInstance()
-	//retrieve.GetHeight()
 }
 
 func TestExecBackup(t *testing.T) {
-
 	var targetReceipt types.Receipt
 	var targetErr error
 	var receipt *types.Receipt
@@ -70,7 +70,7 @@ func TestExecPerform(t *testing.T) {
 	}
 }
 
-func constructRetrieveInstance() *Retrieve {
+func constructRetrieveInstance() drivers.Driver {
 	r := newRetrieve()
 	r.SetStateDB(NewTestDB())
 	return r
@@ -129,11 +129,12 @@ func CompareRetrieveExecResult(rec1 *types.Receipt, err1 error, rec2 *types.Rece
 }
 
 type TestDB struct {
+	db.TransactionDB
 	cache map[string][]byte
 }
 
 func NewTestDB() *TestDB {
-	return &TestDB{make(map[string][]byte)}
+	return &TestDB{cache: make(map[string][]byte)}
 }
 
 func (e *TestDB) Get(key []byte) (value []byte, err error) {

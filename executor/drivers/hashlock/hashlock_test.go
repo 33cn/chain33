@@ -27,7 +27,7 @@ var (
 	secret       []byte
 	wrongsecret  []byte
 	anothersec   []byte //used in send case
-	addrexec     *account.Address
+	addrexec     string
 	locktime     = minLockTime + 10 // bigger than minLockTime defined in hashlock.go
 	addr         [accountMax]string
 	privkey      [accountMax]crypto.PrivKey
@@ -132,7 +132,7 @@ func estHashlock(t *testing.T) {
 	defer fmt.Println("TestHashlock end")
 
 	//1. step1 发送余额给合约
-	err := sendtoaddress(c, privkey[accountindexA], addrexec.String(), lockAmount)
+	err := sendtoaddress(c, privkey[accountindexA], addrexec, lockAmount)
 	if err != nil {
 		panic(err)
 	}
@@ -191,7 +191,7 @@ func estHashunlock(t *testing.T) {
 	}
 	time.Sleep(5 * time.Second)
 	//尝试取钱
-	err = sendtoaddress(c, privkey[accountindexA], addrexec.String(), 0-lockAmount)
+	err = sendtoaddress(c, privkey[accountindexA], addrexec, 0-lockAmount)
 	if err != nil {
 		fmt.Println("err")
 	}
@@ -213,7 +213,7 @@ func estHashunlock(t *testing.T) {
 		return
 	}
 	time.Sleep(5 * time.Second)
-	err = sendtoaddress(c, privkey[accountindexA], addrexec.String(), 0-lockAmount)
+	err = sendtoaddress(c, privkey[accountindexA], addrexec, 0-lockAmount)
 	if err != nil {
 		fmt.Println("err")
 	}
@@ -235,7 +235,7 @@ func estHashunlock(t *testing.T) {
 		return
 	}
 	time.Sleep(5 * time.Second)
-	err = sendtoaddress(c, privkey[accountindexA], addrexec.String(), 0-lockAmount)
+	err = sendtoaddress(c, privkey[accountindexA], addrexec, 0-lockAmount)
 	if err != nil {
 		fmt.Println("err")
 	}
@@ -283,7 +283,7 @@ func estHashsend(t *testing.T) {
 	defer fmt.Println("TestHashsend end")
 	//lock it again &send failed as secret is not right
 	//send failed as secret is not right
-	err := sendtoaddress(c, privkey[accountindexA], addrexec.String(), lockAmount)
+	err := sendtoaddress(c, privkey[accountindexA], addrexec, lockAmount)
 	if err != nil {
 		panic(err)
 	}
@@ -309,7 +309,7 @@ func estHashsend(t *testing.T) {
 		return
 	}
 	time.Sleep(5 * time.Second)
-	err = sendtoaddress(c, privkey[accountindexB], addrexec.String(), 0-lockAmount)
+	err = sendtoaddress(c, privkey[accountindexB], addrexec, 0-lockAmount)
 	if err != nil {
 		fmt.Println("err")
 	}
@@ -333,7 +333,7 @@ func estHashsend(t *testing.T) {
 		return
 	}
 	time.Sleep(5 * time.Second)
-	err = sendtoaddress(c, privkey[accountindexB], addrexec.String(), 0-lockAmount)
+	err = sendtoaddress(c, privkey[accountindexB], addrexec, 0-lockAmount)
 	if err != nil {
 		fmt.Println("err")
 	}

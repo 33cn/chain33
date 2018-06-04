@@ -362,3 +362,41 @@ func (bc *BaseClient) ConsensusTicketMiner(iscaughtup *types.IsCaughtUp) {
 		log.Info("ConsensusTicketMiner", "isCaughtUp", bc.isCaughtUp)
 	}
 }
+
+func (bc *BaseClient) AddTxsToBlock(block *types.Block, txs []*types.Transaction) []*types.Transaction {
+	size := block.Size()
+	max := types.MaxBlockSize - 100000 //留下100K空间，添加其他的交易
+	currentcount := int64(len(block.Txs))
+	maxTx := types.GetP(block.Height).MaxTxNumber
+	addedTx := make([]*types.Transaction, 0, len(txs))
+	for i := 0; i < len(txs); i++ {
+		txgroup, err := txs[i].GetTxGroup()
+		if err != nil {
+			continue
+		}
+		if txgroup == nil {
+			if currentcount+1 > maxTx {
+				return addedTx
+			}
+			size += txs[i].Size()
+			if size > max {
+				return addedTx
+			}
+			addedTx = append(addedTx, txs[i])
+			block.Txs = append(block.Txs, txs[i])
+		} else {
+			if currentcount+int64(len(txgroup.Txs)) > maxTx {
+				return addedTx
+			}
+			for i := 0; i < len(txgroup.Txs); i++ {
+				size += txgroup.Txs[i].Size()
+			}
+			if size > max {
+				return addedTx
+			}
+			addedTx = append(addedTx, txgroup.Txs...)
+			block.Txs = append(block.Txs, txgroup.Txs...)
+		}
+	}
+	return addedTx
+}

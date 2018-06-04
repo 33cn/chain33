@@ -245,8 +245,10 @@ func (action *tradeAction) tradeSell(sell *types.TradeForSell) (*types.Receipt, 
 		return nil, types.ErrInputPara
 	}
 
-	tokenAccDB := account.NewTokenAccount(sell.TokenSymbol, action.db)
-
+	tokenAccDB, err := account.NewAccountDB("token", sell.TokenSymbol, action.db)
+	if err != nil {
+		return nil, err
+	}
 	//确认发起此次出售或者众筹的余额是否足够
 	totalAmount := sell.GetTotalBoardlot() * sell.GetAmountPerBoardlot()
 	receipt, err := tokenAccDB.ExecFrozen(action.fromaddr, action.execaddr, totalAmount)
@@ -318,7 +320,10 @@ func (action *tradeAction) tradeBuy(buyOrder *types.TradeForBuy) (*types.Receipt
 	}
 	//然后实现购买token的转移,因为这部分token在之前的卖单生成时已经进行冻结
 	//TODO: 创建一个LRU用来保存token对应的子合约账户的地址
-	tokenAccDB := account.NewTokenAccount(sellOrder.TokenSymbol, action.db)
+	tokenAccDB, err := account.NewAccountDB("token", sellOrder.TokenSymbol, action.db)
+	if err != nil {
+		return nil, err
+	}
 	receiptFromExecAcc, err := tokenAccDB.ExecTransferFrozen(sellOrder.Address, action.fromaddr, action.execaddr, buyOrder.BoardlotCnt*sellOrder.AmountPerBoardlot)
 	if err != nil {
 		tradelog.Error("account.ExecTransfer token ", "error info", err, "addrFrom", sellOrder.Address,
@@ -370,7 +375,10 @@ func (action *tradeAction) tradeRevokeSell(revoke *types.TradeForRevokeSell) (*t
 		return nil, types.ErrTSellOrderRevoke
 	}
 	//然后实现购买token的转移,因为这部分token在之前的卖单生成时已经进行冻结
-	tokenAccDB := account.NewTokenAccount(sellOrder.TokenSymbol, action.db)
+	tokenAccDB, err := account.NewAccountDB("token", sellOrder.TokenSymbol, action.db)
+	if err != nil {
+		return nil, err
+	}
 	tradeRest := (sellOrder.TotalBoardlot - sellOrder.SoldBoardlot) * sellOrder.AmountPerBoardlot
 	receiptFromExecAcc, err := tokenAccDB.ExecActive(sellOrder.Address, action.execaddr, tradeRest)
 	if err != nil {
@@ -456,7 +464,10 @@ func (action *tradeAction) tradeSellMarket(sellOrder *types.TradeForSellMarket) 
 	}
 
 	// 打token
-	tokenAccDB := account.NewTokenAccount(buyOrder.TokenSymbol, action.db)
+	tokenAccDB, err := account.NewAccountDB("token", buyOrder.TokenSymbol, action.db)
+	if err != nil {
+		return nil, err
+	}
 	amountToken := sellOrder.BoardlotCnt * buyOrder.AmountPerBoardlot
 	tradelog.Debug("tradeSellMarket", "step1 cnt", sellOrder.BoardlotCnt, "amountToken", amountToken)
 	receiptFromExecAcc, err := tokenAccDB.ExecTransfer(action.fromaddr, buyOrder.Address, action.execaddr, amountToken)
@@ -520,7 +531,7 @@ func (action *tradeAction) tradeRevokeBuyLimit(revoke *types.TradeForRevokeBuy) 
 
 	//然后实现购买token的转移,因为这部分token在之前的卖单生成时已经进行冻结
 	tradeRest := (buyOrder.TotalBoardlot - buyOrder.BoughtBoardlot) * buyOrder.PricePerBoardlot
-	tradelog.Info("tradeRevokeBuyLimit", "total-b", buyOrder.TotalBoardlot, "price", buyOrder.PricePerBoardlot, "amount", tradeRest)
+	//tradelog.Info("tradeRevokeBuyLimit", "total-b", buyOrder.TotalBoardlot, "price", buyOrder.PricePerBoardlot, "amount", tradeRest)
 	receiptFromExecAcc, err := action.coinsAccount.ExecActive(buyOrder.Address, action.execaddr, tradeRest)
 	if err != nil {
 		tradelog.Error("account.ExecActive bty ", "addrFrom", buyOrder.Address, "execaddr", action.execaddr, "amount", tradeRest)

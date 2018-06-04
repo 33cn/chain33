@@ -32,7 +32,6 @@ type Client interface {
 	Sub(topic string) //订阅消息
 	Close()
 	NewMessage(topic string, ty int64, data interface{}) (msg Message)
-	Clone() Client
 }
 
 /// Module be used for module interface
@@ -57,11 +56,6 @@ func newClient(q *queue) Client {
 	client.done = make(chan struct{}, 1)
 	client.wg = &sync.WaitGroup{}
 	return client
-}
-
-/// Clone clone new client for queue
-func (client *client) Clone() Client {
-	return newClient(client.q)
 }
 
 //1. 系统保证send出去的消息就是成功了，除非系统崩溃

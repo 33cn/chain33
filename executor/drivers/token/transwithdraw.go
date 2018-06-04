@@ -5,6 +5,7 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/account"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
+	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -18,7 +19,7 @@ func (t *token) ExecTransWithdraw(accountDB *account.DB, tx *types.Transaction, 
 		transfer := action.GetTransfer()
 		from := account.From(tx).String()
 		//to 是 execs 合约地址
-		if t.GetExecDriver().IsDriverAddress(tx.To) {
+		if drivers.IsDriverAddress(tx.To, t.GetHeight()) {
 			return accountDB.TransferToExec(from, tx.To, transfer.Amount)
 		}
 		return accountDB.Transfer(from, tx.To, transfer.Amount)
@@ -26,14 +27,14 @@ func (t *token) ExecTransWithdraw(accountDB *account.DB, tx *types.Transaction, 
 		withdraw := action.GetWithdraw()
 		from := account.PubKeyToAddress(tx.Signature.Pubkey).String()
 		//to 是 execs 合约地址
-		if t.GetExecDriver().IsDriverAddress(tx.To) {
+		if drivers.IsDriverAddress(tx.To, t.GetHeight()) {
 			return accountDB.TransferWithdraw(from, tx.To, withdraw.Amount)
 		}
 		return nil, types.ErrActionNotSupport
 	} else if (action.Ty == types.ActionGenesis) && action.GetGenesis() != nil {
 		genesis := action.GetGenesis()
 		if t.GetHeight() == 0 {
-			if t.GetExecDriver().IsDriverAddress(tx.To) {
+			if drivers.IsDriverAddress(tx.To, t.GetHeight()) {
 				return accountDB.GenesisInitExec(genesis.ReturnAddress, genesis.Amount, tx.To)
 			}
 			return accountDB.GenesisInit(tx.To, genesis.Amount)
@@ -47,7 +48,7 @@ func (t *token) ExecTransWithdraw(accountDB *account.DB, tx *types.Transaction, 
 		transfer := action.GetTransferToExec()
 		from := account.From(tx).String()
 		//to 是 execs 合约地址
-		toaddr := account.ExecAddress(transfer.ExecName).String()
+		toaddr := account.ExecAddress(transfer.ExecName)
 		if toaddr != tx.To {
 			return nil, types.ErrToAddrNotSameToExecAddr
 		}
