@@ -30,7 +30,7 @@ import (
 
 var elog = log.New("module", "execs")
 var coinsAccount = account.NewCoinsAccount()
-var isCounted bool
+var enableStat bool
 
 func SetLogLevel(level string) {
 	clog.SetLogLevel(level)
@@ -74,7 +74,7 @@ func New(cfg *types.Exec) *Executor {
 	if cfg.MinExecFee > 0 {
 		types.SetMinFee(cfg.MinExecFee)
 	}
-	isCounted = cfg.IsCounted
+	enableStat = cfg.EnableStat
 
 	exec := &Executor{}
 	return exec
@@ -323,7 +323,7 @@ func (exec *Executor) procExecAddBlock(msg queue.Message) {
 	kvset.KV = append(kvset.KV, feekv)
 
 	//定制数据统计
-	if isCounted {
+	if enableStat {
 		kvs, err := countInfo(execute, datas)
 		if err != nil {
 			msg.Reply(exec.client.NewMessage("", types.EventAddBlock, err))
@@ -371,7 +371,7 @@ func (exec *Executor) procExecDelBlock(msg queue.Message) {
 	kvset.KV = append(kvset.KV, feekv)
 
 	//定制数据统计
-	if isCounted {
+	if enableStat {
 		kvs, err := delCountInfo(execute, datas)
 		if err != nil {
 			msg.Reply(exec.client.NewMessage("", types.EventAddBlock, err))
