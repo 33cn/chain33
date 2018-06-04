@@ -11,7 +11,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"gitlab.33.cn/wallet/bipwallet"
 	"github.com/golang/protobuf/proto"
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
@@ -22,6 +21,7 @@ import (
 	clog "gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/wallet/bipwallet"
 )
 
 var (
@@ -614,7 +614,7 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 		signedTx := hex.EncodeToString(txHex)
 		return signedTx, nil
 	}
-	if index > len(group.GetTxs()) {
+	if int(index) > len(group.GetTxs()) {
 		return "", types.ErrIndex
 	}
 	if index <= 0 {
@@ -627,7 +627,7 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 		return signedTx, nil
 	} else {
 		index -= 1
-		group.SignN(index, int32(SignType), key)
+		group.SignN(int(index), int32(SignType), key)
 		grouptx := group.Tx()
 		txHex := types.Encode(grouptx)
 		signedTx := hex.EncodeToString(txHex)
