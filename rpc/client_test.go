@@ -21,7 +21,7 @@ func newTestChannelClient() *channelClient {
 
 // TODO
 func TestInit(t *testing.T) {
-		client := newTestChannelClient()
+	client := newTestChannelClient()
 	client.Init(&qmock.Client{})
 }
 
@@ -34,7 +34,7 @@ func testCreateRawTransactionNil(t *testing.T) {
 func testCreateRawTransactionExecNameErr(t *testing.T) {
 	tx := types.CreateTx{ExecName: "aaa"}
 
-		client := newTestChannelClient()
+	client := newTestChannelClient()
 	_, err := client.CreateRawTransaction(&tx)
 	assert.Equal(t, types.ErrExecNameNotMatch, err)
 }
@@ -54,7 +54,7 @@ func testCreateRawTransactionCoinTransfer(t *testing.T) {
 		IsToken:    false,
 		IsWithdraw: false,
 		To:         "to",
-			Note:       "note",
+		Note:       "note",
 	}
 
 	//v := &types.CoinsAction_Transfer{
