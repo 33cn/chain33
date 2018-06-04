@@ -349,7 +349,7 @@ func TestRingSignatere2(t *testing.T) {
 
 func TestGenerateRingSignatureAPI(t *testing.T) {
 	const maxCount = 10
-	var utxos []*types.UTXO
+	var utxos []*types.UTXOBasic
 	var keyImage []byte
 	var sec [64]byte
 
@@ -366,11 +366,10 @@ func TestGenerateRingSignatureAPI(t *testing.T) {
 
 	realUtxoIndex := rand.Int() % maxCount
 	prefix_hash, _ := common.FromHex("fd1f64844a7d6a9f74fc2141bceba9d9d69b1fd6104f93bfa42a6d708a6ab22c")
-	utxos = make([]*types.UTXO, maxCount)
+	utxos = make([]*types.UTXOBasic, maxCount)
 	for i := 0; i < maxCount; i++ {
-		utxo := types.UTXO{}
+		utxo := types.UTXOBasic{}
 		utxos[i] = &utxo
-
 		utxo.OnetimePubkey = append(utxo.OnetimePubkey[:], pubs_byte[i]...)
 		if i == realUtxoIndex {
 			pubKey := privkey.PubKey().Bytes()
