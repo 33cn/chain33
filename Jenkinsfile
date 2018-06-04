@@ -49,6 +49,7 @@ pipeline {
                     sh 'make build_ci'
                     sh 'make docker-compose'
                     sh 'cd build && docker-compose down && cd ..'
+                    sh 'make auto_ci_after'
                 }
             }
         }
@@ -69,7 +70,6 @@ pipeline {
             mail to: "${gitlabUserEmail}",
                  subject: "Successed Pipeline: ${currentBuild.fullDisplayName}",
                  body: "this is success with ${env.BUILD_URL}"
-            make auto_ci_after
         }
 
         unstable {
@@ -88,11 +88,11 @@ pipeline {
                  body: "Something is wrong with ${env.BUILD_URL}"
         }
 
-        changed {
-            echo 'Things were different before...'
-            mail to: "${gitlabUserEmail}",
-                 subject: "changed Pipeline: ${currentBuild.fullDisplayName}",
-                 body: "this is changed with ${env.BUILD_URL}"
-        }
+        // changed {
+        //    echo 'Things were different before...'
+        //    mail to: "${gitlabUserEmail}",
+        //         subject: "changed Pipeline: ${currentBuild.fullDisplayName}",
+        //         body: "this is changed with ${env.BUILD_URL}"
+        // }
     }
 }
