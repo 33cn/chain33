@@ -1,5 +1,5 @@
-Title="bityuan"
-TestNet=false
+Title="chain33"
+TestNet=true
 
 [log]
 # 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
@@ -80,3 +80,4 @@ minerdisable=false
 [exec]
 isFree=false
 minExecFee=100000
+enableStat=false

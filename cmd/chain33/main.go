@@ -65,7 +65,7 @@ func main() {
 	}
 	//set test net flag
 	types.SetTestNet(cfg.TestNet)
-	types.SetTitle("bityuan")
+	types.SetTitle(cfg.Title)
 	//compare minFee in wallet, mempool, exec
 	if cfg.Exec.MinExecFee > cfg.MemPool.MinTxFee || cfg.MemPool.MinTxFee > cfg.Wallet.MinFee {
 		panic("config must meet: wallet.minFee >= mempool.minTxFee >= exec.minExecFee")
@@ -100,7 +100,7 @@ func main() {
 
 	//开始区块链模块加载
 	//channel, rabitmq 等
-	log.Info(cfg.Title + version.GetVersion())
+	log.Info(cfg.Title + " " + version.GetVersion())
 	log.Info("loading queue")
 	q := queue.New("channel")
 

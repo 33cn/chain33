@@ -9,15 +9,14 @@ import (
 var clog = log.New("module", "execs.norm")
 
 func Init() {
-	n := newNorm()
-	drivers.Register(n.GetName(), n, 0)
+	drivers.Register(newNorm().GetName(), newNorm, 0)
 }
 
 type Norm struct {
 	drivers.DriverBase
 }
 
-func newNorm() *Norm {
+func newNorm() drivers.Driver {
 	n := &Norm{}
 	n.SetChild(n)
 	n.SetIsFree(true)
@@ -26,14 +25,6 @@ func newNorm() *Norm {
 
 func (n *Norm) GetName() string {
 	return "norm"
-}
-
-func (n *Norm) Clone() drivers.Driver {
-	clone := &Norm{}
-	clone.DriverBase = *(n.DriverBase.Clone().(*drivers.DriverBase))
-	clone.SetChild(clone)
-	clone.SetIsFree(true)
-	return clone
 }
 
 func (n *Norm) GetActionValue(tx *types.Transaction) (*types.NormAction, error) {

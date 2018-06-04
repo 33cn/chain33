@@ -25,12 +25,13 @@ type RaftClient struct {
 	errorC      <-chan error
 	snapshotter *snap.Snapshotter
 	validatorC  <-chan bool
+	stopC       chan<- struct{}
 	once        sync.Once
 }
 
-func NewBlockstore(cfg *types.Consensus, snapshotter *snap.Snapshotter, proposeC chan<- *types.Block, commitC <-chan *types.Block, errorC <-chan error, validatorC <-chan bool) *RaftClient {
+func NewBlockstore(cfg *types.Consensus, snapshotter *snap.Snapshotter, proposeC chan<- *types.Block, commitC <-chan *types.Block, errorC <-chan error, validatorC <-chan bool, stopC chan<- struct{}) *RaftClient {
 	c := drivers.NewBaseClient(cfg)
-	client := &RaftClient{BaseClient: c, proposeC: proposeC, snapshotter: snapshotter, validatorC: validatorC, commitC: commitC, errorC: errorC}
+	client := &RaftClient{BaseClient: c, proposeC: proposeC, snapshotter: snapshotter, validatorC: validatorC, commitC: commitC, errorC: errorC, stopC: stopC}
 	c.SetChild(client)
 	return client
 }
@@ -93,6 +94,7 @@ func (client *RaftClient) SetQueueClient(c queue.Client) {
 }
 
 func (client *RaftClient) Close() {
+	client.stopC <- struct{}{}
 	rlog.Info("consensus raft closed")
 }
 
@@ -194,21 +196,19 @@ func (client *RaftClient) CreateBlock() {
 		count = 0
 		rlog.Debug("==================start create new block!=====================")
 		//check dup
-		//txs = client.CheckTxDup(txs)
+		txs = client.CheckTxDup(txs)
 		rlog.Debug(fmt.Sprintf("the len txs is: %v", len(txs)))
 		var newblock types.Block
 		newblock.ParentHash = lastBlock.Hash()
 		newblock.Height = lastBlock.Height + 1
-		newblock.Txs = txs
+		client.AddTxsToBlock(&newblock, txs)
 		newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
 		newblock.BlockTime = time.Now().Unix()
 		if lastBlock.BlockTime >= newblock.BlockTime {
 			newblock.BlockTime = lastBlock.BlockTime + 1
 		}
-
 		blockEntry := newblock
 		client.propose(&blockEntry)
-
 		err := client.WriteBlock(lastBlock.StateHash, &newblock)
 		if err != nil {
 			issleep = true

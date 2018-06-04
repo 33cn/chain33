@@ -10,7 +10,8 @@ import (
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
-	//"gitlab.33.cn/chain33/chain33/executor/drivers"
+	"gitlab.33.cn/chain33/chain33/common/db"
+	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -20,7 +21,7 @@ var toPriv crypto.PrivKey
 var returnPriv crypto.PrivKey
 
 var testNormErr error
-var hashlock *Hashlock
+var hashlock drivers.Driver
 
 func TestInit(t *testing.T) {
 	toAddr, toPriv = genaddress()
@@ -41,9 +42,9 @@ func TestExecHashlock(t *testing.T) {
 	targetReceipt.Ty = 2
 	tx := ConstructLockTx()
 
-	acc1 := hashlock.GetCoinsAccount().LoadExecAccount(returnAddr, addrexec.String())
+	acc1 := hashlock.GetCoinsAccount().LoadExecAccount(returnAddr, addrexec)
 	acc1.Balance = 100
-	hashlock.GetCoinsAccount().SaveExecAccount(addrexec.String(), acc1)
+	hashlock.GetCoinsAccount().SaveExecAccount(addrexec, acc1)
 
 	receipt, err = hashlock.Exec(tx, 0)
 
@@ -85,7 +86,7 @@ func TestExecHashsend(t *testing.T) {
 	}
 }
 
-func constructHashlockInstance() *Hashlock {
+func constructHashlockInstance() drivers.Driver {
 	h := newHashlock()
 	h.SetStateDB(NewTestDB())
 	return h
@@ -147,10 +148,11 @@ func CompareRetrieveExecResult(rec1 *types.Receipt, err1 error, rec2 *types.Rece
 
 type TestDB struct {
 	cache map[string][]byte
+	db.TransactionDB
 }
 
 func NewTestDB() *TestDB {
-	return &TestDB{make(map[string][]byte)}
+	return &TestDB{cache: make(map[string][]byte)}
 }
 
 func (e *TestDB) Get(key []byte) (value []byte, err error) {

@@ -534,6 +534,8 @@ func (c *Chain33) GetPeerInfo(in types.ReqNil, result *interface{}) error {
 				StateHash:  common.ToHex(peer.GetHeader().GetStateHash()),
 				TxHash:     common.ToHex(peer.GetHeader().GetTxHash()),
 				Version:    peer.GetHeader().GetVersion(),
+				Hash:       common.ToHex(peer.GetHeader().GetHash()),
+				TxCount:    peer.GetHeader().GetTxCount(),
 			}
 			peerlist.Peers = append(peerlist.Peers, &pr)
 		}
@@ -610,6 +612,8 @@ func (c *Chain33) GetBlockOverview(in QueryParm, result *interface{}) error {
 	header.StateHash = common.ToHex(reply.GetHead().GetStateHash())
 	header.TxHash = common.ToHex(reply.GetHead().GetTxHash())
 	header.Version = reply.GetHead().GetVersion()
+	header.Hash = common.ToHex(reply.GetHead().GetHash())
+	header.TxCount = reply.GetHead().GetTxCount()
 	blockOverview.Head = &header
 
 	//获取blocktxhashs信息
@@ -748,7 +752,7 @@ func (c *Chain33) Query(in Query4Jrpc, result *interface{}) error {
 		//log.Info("EventQuery", "Old Query called", in.FuncName)
 		return c.QueryOld(in, result)
 	}
-	decodePayload, err := trans.(types.RpcTypeUtil).Input(in.Payload)
+	decodePayload, err := trans.(types.RpcTypeQuery).Input(in.Payload)
 	if err != nil {
 		log.Error("EventQuery", "err", err.Error())
 		return err
@@ -760,13 +764,12 @@ func (c *Chain33) Query(in Query4Jrpc, result *interface{}) error {
 		return err
 	}
 
-	*result, err = trans.(types.RpcTypeUtil).Output(resp)
+	*result, err = trans.(types.RpcTypeQuery).Output(resp)
 	if err != nil {
 		log.Error("EventQuery", "err", err.Error())
 		return err
 	}
 
-	*result = resp
 	return nil
 }
 
@@ -875,6 +878,13 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		pl = &action
 	} else if "trade" == string(tx.Execer) {
 		var action types.Trade
+		err := types.Decode(tx.GetPayload(), &action)
+		if err != nil {
+			return nil, err
+		}
+		pl = &action
+	} else if "evm" == string(tx.Execer) {
+		var action types.EVMContractAction
 		err := types.Decode(tx.GetPayload(), &action)
 		if err != nil {
 			return nil, err
@@ -1203,6 +1213,30 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
 				return nil, err
 			}
 			logIns = logTmp
+		case types.TyLogCallContract:
+			lTy = "LogCallContract"
+			var logTmp types.ReceiptEVMContract
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogContractData:
+			lTy = "LogContractData"
+			var logTmp types.EVMContractData
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogContractState:
+			lTy = "LogContractState"
+			var logTmp types.EVMContractState
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
 		case types.TyLogModifyConfig:
 			lTy = "LogModifyConfig"
 			var logTmp types.ReceiptConfig
@@ -1231,7 +1265,7 @@ func (c *Chain33) IsNtpClockSync(in *types.ReqNil, result *interface{}) error {
 	return nil
 }
 
-func (c *Chain33) QueryTotalFee(in *types.ReqHash, result *interface{}) error {
+func (c *Chain33) QueryTotalFee(in *types.LocalDBGet, result *interface{}) error {
 	reply, err := c.cli.LocalGet(in)
 	if err != nil {
 		return err
@@ -1351,5 +1385,64 @@ func (c *Chain33) GetNetInfo(in *types.ReqNil, result *interface{}) error {
 	}
 
 	*result = &NodeNetinfo{resp.GetExternaladdr(), resp.GetLocaladdr(), resp.GetService(), resp.GetOutbounds(), resp.GetInbounds()}
+	return nil
+}
+
+func (c *Chain33) GetFatalFailure(in *types.ReqNil, result *interface{}) error {
+	resp, err := c.cli.GetFatalFailure()
+	if err != nil {
+		return err
+	}
+	*result = resp.GetData()
+	return nil
+
+}
+
+func (c *Chain33) QueryTicketStat(in *types.LocalDBGet, result *interface{}) error {
+	reply, err := c.cli.LocalGet(in)
+	if err != nil {
+		return err
+	}
+
+	var ticketStat types.TicketStatistic
+	err = types.Decode(reply.Values[0], &ticketStat)
+	if err != nil {
+		return err
+	}
+	*result = ticketStat
+	return nil
+}
+
+func (c *Chain33) QueryTicketInfo(in *types.LocalDBGet, result *interface{}) error {
+	reply, err := c.cli.LocalGet(in)
+	if err != nil {
+		return err
+	}
+
+	var ticketInfo types.TicketMinerInfo
+	err = types.Decode(reply.Values[0], &ticketInfo)
+	if err != nil {
+		return err
+	}
+	*result = ticketInfo
+	return nil
+}
+
+func (c *Chain33) QueryTicketInfoList(in *types.LocalDBList, result *interface{}) error {
+	reply, err := c.cli.LocalList(in)
+	if err != nil {
+		return err
+	}
+
+	var ticketInfo types.TicketMinerInfo
+	var ticketList []types.TicketMinerInfo
+	for _, v := range reply.Values {
+		err = types.Decode(v, &ticketInfo)
+		if err != nil {
+			return err
+		}
+		ticketList = append(ticketList, ticketInfo)
+	}
+	*result = ticketList
 	return nil
 }

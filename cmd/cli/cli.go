@@ -39,7 +39,8 @@ func init() {
 		commands.TxCmd(),
 		commands.WalletCmd(),
 		commands.VersionCmd(),
-		sendCmd)
+		sendCmd,
+		commands.EvmCmd())
 }
 
 func main() {
