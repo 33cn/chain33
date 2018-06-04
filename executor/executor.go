@@ -153,6 +153,7 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 				//如果是隐私交易,且目的方为隐私地址，则需要将其KV单独挑出来，以供blockchain使用
 				if types.PrivacyX == string(tx.GetExecer()) {
 					var action types.PrivacyAction
+
 					if nil == types.Decode(tx.Payload, &action) {
 						if action.Ty == types.ActionPublic2Privacy || action.Ty == types.ActionPrivacy2Privacy {
 							privacyKVToken := &types.PrivacyKVToken{
@@ -179,6 +180,7 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 		Receipts:  &types.Receipts{receipts},
 		PrivacyKV: &types.PrivacyKV{privacyKV},
 	}
+
 	msg.Reply(exec.client.NewMessage("", types.EventReceipts, receiptsAndPrivacyKV))
 }
 
@@ -396,7 +398,7 @@ func (e *executor) processFee(tx *types.Transaction) (*types.Receipt, error) {
 //通过keyImage确认是否存在双花，有效即不存在双花，返回true，反之则返回false
 func (e *executor) checkUTXOValid(keyImages [][]byte) bool {
 	if values, err := e.stateDB.BatchGet(keyImages); err == nil {
-		if len(values) == len(keyImages) {
+		if len(values) != len(keyImages) {
 			elog.Error("exec module", "checkUTXOValid return different count value with keys")
 			return false
 		}

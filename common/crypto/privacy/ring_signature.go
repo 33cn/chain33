@@ -178,7 +178,6 @@ func GenerateRingSignature(datahash []byte, utxos []*types.UTXOBasic, privKey []
 	data := types.SignatureData{}
 	data.Data = make([][]byte, count)
 	for i, v := range signs {
-		data.Data[i] = make([]byte, 0)
 		data.Data[i] = append(data.Data[i], v[:]...)
 	}
 	return &data, nil
