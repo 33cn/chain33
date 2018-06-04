@@ -29,7 +29,6 @@ type MSPConfig struct {
 	IntermediateCerts [][]byte
 	Admins [][]byte
 	RevocationList [][]byte
-	SigningCert []byte
 	CryptoConfig *MSPCryptoConfig
 }
 
