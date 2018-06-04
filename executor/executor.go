@@ -311,17 +311,13 @@ func newExecutor(stateHash []byte, client queue.Client, height, blocktime int64)
 	return e
 }
 
+//隐私交易费扣除规则：
+//1.公对私交易：直接从coin合约中扣除
+//2.私对私交易或者私对公交易：交易费的扣除从隐私合约账户在coin合约中的账户中扣除
 func (e *executor) processFee(tx *types.Transaction) (*types.Receipt, error) {
 	from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
 	if types.PrivacyX != string(tx.Execer) {
-		accFrom := e.coinsAccount.LoadAccount(from)
-		if accFrom.GetBalance()-tx.Fee >= 0 {
-			copyfrom := *accFrom
-			accFrom.Balance = accFrom.GetBalance() - tx.Fee
-			receiptBalance := &types.ReceiptAccountTransfer{&copyfrom, accFrom}
-			e.coinsAccount.SaveAccount(accFrom)
-			return e.cutFeeReceipt(accFrom, receiptBalance), nil
-		}
+		return e.cutFeeFromAccount(from, tx.Fee)
 	} else {
 		var action types.PrivacyAction
 		err := types.Decode(tx.Payload, &action)
@@ -329,15 +325,7 @@ func (e *executor) processFee(tx *types.Transaction) (*types.Receipt, error) {
 			return nil, err
 		}
 		if action.Ty == types.ActionPublic2Privacy && action.GetPublic2Privacy() != nil {
-			execaddr := drivers.ExecAddress(types.PrivacyX)
-			accFrom := e.coinsAccount.LoadExecAccount(from, execaddr)
-			if accFrom.GetBalance()-tx.Fee >= 0 {
-				copyacc := *accFrom
-				accFrom.Balance -= tx.Fee
-				receiptBalance := &types.ReceiptExecAccountTransfer{execaddr, &copyacc, accFrom}
-				e.coinsAccount.SaveExecAccount(execaddr, accFrom)
-				return e.cutFeeReceipt4Privacy(execaddr, accFrom, receiptBalance), nil
-			}
+			return e.cutFeeFromAccount(from, tx.Fee)
 		} else { //如果是私到私 或者私到公，交易费扣除则需要utxo实现,交易费并不生成真正的UTXO,也是即时燃烧掉而已
 			if action.Ty == types.ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
 				totalInput := int64(0)
@@ -354,13 +342,11 @@ func (e *executor) processFee(tx *types.Transaction) (*types.Receipt, error) {
 				for _, output := range action.GetPrivacy2Privacy().Output.Keyoutput {
 					totalOutput += output.Amount
 				}
-
-				if totalInput-totalOutput >= tx.Fee {
-					receiptBalance := &types.ReceiptExecUTXOTrans4Privacy{
-						Type:   types.PrivacyUTXOFee,
-						Amount: totalInput - totalOutput,
-					}
-					return e.cutFeeReceipt4PrivacyUTXO(receiptBalance), nil
+				feeAmount := totalInput - totalOutput
+				if feeAmount >= tx.Fee {
+					//从隐私合约在coin的账户中扣除，同时也保证了相应的utxo差额被燃烧
+					execaddr := drivers.ExecAddress(types.PrivacyX)
+					return e.cutFeeFromAccount(execaddr, feeAmount)
 				}
 
 			} else if action.Ty == types.ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
@@ -380,12 +366,11 @@ func (e *executor) processFee(tx *types.Transaction) (*types.Receipt, error) {
 					totalOutput += output.Amount
 				}
 
-				if totalInput-action.GetPrivacy2Public().Amount-totalOutput >= tx.Fee {
-					receiptBalance := &types.ReceiptExecUTXOTrans4Privacy{
-						Type:   types.PrivacyUTXOFee,
-						Amount: totalInput - action.GetPrivacy2Public().Amount,
-					}
-					return e.cutFeeReceipt4PrivacyUTXO(receiptBalance), nil
+				feeAmount := totalInput-action.GetPrivacy2Public().Amount-totalOutput
+				if feeAmount >= tx.Fee {
+					//从隐私合约在coin的账户中扣除，同时也保证了相应的utxo差额被燃烧
+					execaddr := drivers.ExecAddress(types.PrivacyX)
+					return e.cutFeeFromAccount(execaddr, feeAmount)
 				}
 			}
 		}
@@ -410,14 +395,17 @@ func (e *executor) checkUTXOValid(keyImages [][]byte) bool {
 	return false
 }
 
-func (e *executor) cutFeeReceipt4PrivacyUTXO(receiptBalance *types.ReceiptExecUTXOTrans4Privacy) *types.Receipt {
-	feelog := &types.ReceiptLog{types.TyLogPrivacyFeeUTXO, types.Encode(receiptBalance)}
-	return &types.Receipt{Ty: types.ExecPack, Logs: []*types.ReceiptLog{feelog}}
-}
+func (e *executor) cutFeeFromAccount(AccAddr string, feeAmount int64)(*types.Receipt, error) {
+	accFrom := e.coinsAccount.LoadAccount(AccAddr)
+	if accFrom.GetBalance()- feeAmount >= 0 {
+		copyfrom := *accFrom
+		accFrom.Balance = accFrom.GetBalance() - feeAmount
+		receiptBalance := &types.ReceiptAccountTransfer{&copyfrom, accFrom}
+		e.coinsAccount.SaveAccount(accFrom)
+		return e.cutFeeReceipt(accFrom, receiptBalance), nil
+	}
 
-func (e *executor) cutFeeReceipt4Privacy(execaddr string, acc *types.Account, receiptBalance *types.ReceiptExecAccountTransfer) *types.Receipt {
-	feelog := &types.ReceiptLog{types.TyLogPrivacyFee, types.Encode(receiptBalance)}
-	return &types.Receipt{types.ExecPack, e.coinsAccount.GetExecKVSet(execaddr, acc), []*types.ReceiptLog{feelog}}
+	return nil, types.ErrNoBalance
 }
 
 func (e *executor) cutFeeReceipt(acc *types.Account, receiptBalance *types.ReceiptAccountTransfer) *types.Receipt {
@@ -436,7 +424,7 @@ func (e *executor) checkTx(tx *types.Transaction, index int) error {
 	return nil
 }
 
-func (e *executor) checkTxFee(tx *types.Transaction) error {
+func (e *executor) checkPrivacyTxFee(tx *types.Transaction) error {
 	var action types.PrivacyAction
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
@@ -452,6 +440,9 @@ func (e *executor) checkTxFee(tx *types.Transaction) error {
 		}
 
 	} else if action.Ty == types.ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
+		if tx.Fee < types.PrivacyUTXOFee {
+			return types.ErrPrivacyTxFeeNotEnough
+		}
 		// 隐私对隐私,需要检查输入和输出值,条件 输入-输入>=手续费
 		var totalInput, totalOutput int64
 		for _, value := range action.GetPrivacy2Privacy().GetInput().GetKeyinput() {
@@ -467,10 +458,14 @@ func (e *executor) checkTxFee(tx *types.Transaction) error {
 			totalOutput += value.GetAmount()
 		}
 		if totalInput-totalOutput < tx.Fee {
-			return types.ErrBalanceLessThanTenTimesFee
+			return types.ErrPrivacyTxFeeNotEnough
 		}
 
 	} else if action.Ty == types.ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
+		if tx.Fee < types.PrivacyUTXOFee {
+			return types.ErrPrivacyTxFeeNotEnough
+		}
+
 		var totalInput, totalOutput int64
 		for _, value := range action.GetPrivacy2Public().GetInput().GetKeyinput() {
 			if value.GetAmount()<=0 {
@@ -485,7 +480,7 @@ func (e *executor) checkTxFee(tx *types.Transaction) error {
 			totalOutput += value.GetAmount()
 		}
 		if totalInput-totalOutput-action.GetPrivacy2Public().GetAmount() < tx.Fee {
-			return types.ErrBalanceLessThanTenTimesFee
+			return types.ErrPrivacyTxFeeNotEnough
 		}
 	}
 
@@ -503,7 +498,7 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 	//手续费检查
 	if !exec.IsFree() && types.MinFee > 0 {
 		if types.PrivacyX == string(tx.Execer) {
-			err = e.checkTxFee(tx)
+			err = e.checkPrivacyTxFee(tx)
 			if err != nil {
 				return err
 			}

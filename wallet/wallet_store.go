@@ -561,13 +561,12 @@ func (ws *WalletStore) unmoveFTXO2STXO(txhash string, newbatch dbm.Batch) error 
 	return nil
 }
 
-func (ws *WalletStore) getWalletPrivacyTokenUTXOs(token string) map[string]*walletOuts {
-
+func (ws *WalletStore) getWalletPrivacyTokenUTXOs(token string) map[string]*walletUTXOs {
 	prefix := calcPrivacyUTXOPrefix(token)
 	list := dbm.NewListHelper(ws.db)
 	values := list.List(prefix, nil, 0, 0)
 	if len(values) != 0 {
-		outs4token := make(map[string]*walletOuts)
+		outs4token := make(map[string]*walletUTXOs)
 		for _, value := range values {
 			var privacyDBStore types.PrivacyDBStore
 			err := types.Decode(value, &privacyDBStore)
@@ -585,15 +584,15 @@ func (ws *WalletStore) getWalletPrivacyTokenUTXOs(token string) map[string]*wall
 					onetimePublicKey: privacyDBStore.OnetimePublicKey,
 				}
 
+				//当前地址为第一次保存信息
 				wos, ok := outs4token[privacyDBStore.Owner]
 				if !ok {
-					wos := &walletOuts{}
+					wos := &walletUTXOs{}
 					wos.outs = append(wos.outs, txOutputInfo)
 					outs4token[privacyDBStore.Owner] = wos
 				} else {
 					wos.outs = append(wos.outs, txOutputInfo)
 				}
-
 			} else {
 				panic("Failed to decode PrivacyDBStore for getWalletPrivacyTokenUTXOs")
 			}

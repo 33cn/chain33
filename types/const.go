@@ -39,6 +39,7 @@ var (
 var (
 	MinFee             int64 = 1e5
 	MinBalanceTransfer int64 = 1e6
+	FeePerKB                 = MinFee
 )
 
 func SetMinFee(fee int64) {
@@ -50,35 +51,6 @@ func SetMinFee(fee int64) {
 }
 
 const (
-	//<<<<<<< HEAD
-	//Coin                     int64 = 1e8
-	//TokenPrecision           int64 = 1e4
-	//InputPrecision           float64 = 1e4
-	//CoinMultiple             int64 = 1e4
-	//MaxCoin                  int64 = 1e17
-	//FutureBlockTime          int64 = 16
-	//CoinReward               int64 = 18 * Coin //用户回报
-	//CoinDevFund              int64 = 12 * Coin //发展基金回报
-	//TicketPrice              int64 = 10000 * Coin
-	//TicketFrozenTime         int64 = 5        //5s only for test
-	//TicketWithdrawTime       int64 = 10       //10s only for test
-	//TicketMinerWaitTime      int64 = 2        // 2s only for test
-	//MaxTxSize                int64 = 100000   //100K
-	//MaxBlockSize             int64 = 10000000 //10M
-	//MaxTxNumber              int64 = 1600     //160
-	//PowLimitBits             uint32 = uint32(0x1f00ffff)
-	//TargetTimespan                   = 144 * 16 * time.Second
-	//TargetTimePerBlock               = 16 * time.Second
-	//RetargetAdjustmentFactor = 4
-	//MaxTxsPerBlock = 100000
-	//TokenNameLenLimit = 128
-	//TokenSymbolLenLimit              = 16
-	//TokenIntroLenLimit = 1024
-	//TokenPrecisionLen = 1e6
-	//TokenCreatePriceStand = 10000 * Coin
-	//InvalidStartTime = 0
-	//InvalidStopTime = 0
-	//====== =
 	Coin                int64   = 1e8
 	MaxCoin             int64   = 1e17
 	MaxTxSize                   = 100000   //100K
@@ -94,9 +66,14 @@ const (
 	InvalidStartTime            = 0
 	InvalidStopTime             = 0
 	BTY                         = "BTY"
-	BTYDustThreshold            = 1e8 * 10
+	BTYDustThreshold            = Coin
 	ConfirmedHeight             = 12
 	UTXOCacheCount              = 256
+	M_1_TIMES                   = 1
+	M_2_TIMES                   = 2
+	M_5_TIMES                   = 5
+	M_10_TIMES                  = 10
+	PrivacyTxFee                = Coin
 )
 
 const (
