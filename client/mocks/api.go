@@ -498,11 +498,11 @@ func (_m *QueueProtocolAPI) IsSync() (*types.Reply, error) {
 }
 
 // LocalGet provides a mock function with given fields: param
-func (_m *QueueProtocolAPI) LocalGet(param *types.ReqHash) (*types.LocalReplyValue, error) {
+func (_m *QueueProtocolAPI) LocalGet(param *types.LocalDBGet) (*types.LocalReplyValue, error) {
 	ret := _m.Called(param)
 
 	var r0 *types.LocalReplyValue
-	if rf, ok := ret.Get(0).(func(*types.ReqHash) *types.LocalReplyValue); ok {
+	if rf, ok := ret.Get(0).(func(*types.LocalDBGet) *types.LocalReplyValue); ok {
 		r0 = rf(param)
 	} else {
 		if ret.Get(0) != nil {
@@ -511,7 +511,30 @@ func (_m *QueueProtocolAPI) LocalGet(param *types.ReqHash) (*types.LocalReplyVal
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(*types.ReqHash) error); ok {
+	if rf, ok := ret.Get(1).(func(*types.LocalDBGet) error); ok {
+		r1 = rf(param)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// LocalList provides a mock function with given fields: param
+func (_m *QueueProtocolAPI) LocalList(param *types.LocalDBList) (*types.LocalReplyValue, error) {
+	ret := _m.Called(param)
+
+	var r0 *types.LocalReplyValue
+	if rf, ok := ret.Get(0).(func(*types.LocalDBList) *types.LocalReplyValue); ok {
+		r0 = rf(param)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.LocalReplyValue)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*types.LocalDBList) error); ok {
 		r1 = rf(param)
 	} else {
 		r1 = ret.Error(1)

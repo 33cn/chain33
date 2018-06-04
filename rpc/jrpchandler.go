@@ -1265,7 +1265,7 @@ func (c *Chain33) IsNtpClockSync(in *types.ReqNil, result *interface{}) error {
 	return nil
 }
 
-func (c *Chain33) QueryTotalFee(in *types.ReqHash, result *interface{}) error {
+func (c *Chain33) QueryTotalFee(in *types.LocalDBGet, result *interface{}) error {
 	reply, err := c.cli.LocalGet(in)
 	if err != nil {
 		return err
@@ -1396,4 +1396,53 @@ func (c *Chain33) GetFatalFailure(in *types.ReqNil, result *interface{}) error {
 	*result = resp.GetData()
 	return nil
 
+}
+
+func (c *Chain33) QueryTicketStat(in *types.LocalDBGet, result *interface{}) error {
+	reply, err := c.cli.LocalGet(in)
+	if err != nil {
+		return err
+	}
+
+	var ticketStat types.TicketStatistic
+	err = types.Decode(reply.Values[0], &ticketStat)
+	if err != nil {
+		return err
+	}
+	*result = ticketStat
+	return nil
+}
+
+func (c *Chain33) QueryTicketInfo(in *types.LocalDBGet, result *interface{}) error {
+	reply, err := c.cli.LocalGet(in)
+	if err != nil {
+		return err
+	}
+
+	var ticketInfo types.TicketMinerInfo
+	err = types.Decode(reply.Values[0], &ticketInfo)
+	if err != nil {
+		return err
+	}
+	*result = ticketInfo
+	return nil
+}
+
+func (c *Chain33) QueryTicketInfoList(in *types.LocalDBList, result *interface{}) error {
+	reply, err := c.cli.LocalList(in)
+	if err != nil {
+		return err
+	}
+
+	var ticketInfo types.TicketMinerInfo
+	var ticketList []types.TicketMinerInfo
+	for _, v := range reply.Values {
+		err = types.Decode(v, &ticketInfo)
+		if err != nil {
+			return err
+		}
+		ticketList = append(ticketList, ticketInfo)
+	}
+	*result = ticketList
+	return nil
 }
