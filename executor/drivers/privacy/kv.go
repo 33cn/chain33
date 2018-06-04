@@ -3,8 +3,8 @@ package privacy
 import (
 	"fmt"
 	"gitlab.33.cn/chain33/chain33/types"
-	"strings"
 	"strconv"
+	"strings"
 )
 
 const (
@@ -21,12 +21,12 @@ func calcprivacyOutputKey(token string, amount int64, txhash string, index int) 
 }
 
 //在本地数据库中设置一条可以找到对应amount的对应的utxo的global index
-func CalcPrivacyUTXOkeyHeight(token string, amount, height int64, txhash string, index int) (key []byte) {
-	return []byte(CalcPrivacyUTXOkeyHeightStr(token, amount, height, txhash, index))
+func CalcPrivacyUTXOkeyHeight(token string, amount, height int64, txhash string, inindex, outindex int) (key []byte) {
+	return []byte(CalcPrivacyUTXOkeyHeightStr(token, amount, height, txhash, inindex, outindex))
 }
 
-func CalcPrivacyUTXOkeyHeightStr(token string, amount, height int64, txhash string, index int) (key string) {
-	return fmt.Sprintf(PrivacyUTXOKEYPrefix+"-%s-%d-%010d-%s-%d", token, amount, height, txhash, index)
+func CalcPrivacyUTXOkeyHeightStr(token string, amount, height int64, txhash string, inindex, outindex int) (key string) {
+	return fmt.Sprintf(PrivacyUTXOKEYPrefix+"-%s-%d-%010d-%s-%d-%d", token, amount, height, txhash, inindex, outindex)
 }
 
 func DecodeAmountFromKey(key []byte, token string) (int64, error) {
@@ -36,7 +36,7 @@ func DecodeAmountFromKey(key []byte, token string) (int64, error) {
 	}
 
 	Amountstr := string(key[len(Prefix):])
-	index := strings.Index(Amountstr,"-")
+	index := strings.Index(Amountstr, "-")
 	Amountstr = string(key[len(Prefix):index])
 	return strconv.ParseInt(Amountstr, 10, 64)
 }
@@ -52,4 +52,35 @@ func CalcprivacyKeyTokenAmountType(token string) (key []byte) {
 
 func CalcprivacyKeyTokenTypes() (key []byte) {
 	return []byte(PrivacyTokenTypesPrefix)
+}
+
+func DecodeToUTXOGlobalIndex(key, token string) (*types.UTXOGlobalIndex, error) {
+	Prefix := fmt.Sprintf(PrivacyUTXOKEYPrefix+"-%s-", token)
+	if len(key) <= len(Prefix) {
+		return nil, types.ErrWrongKey
+	}
+	datastr := key[len(Prefix):]
+	splitstr := strings.Split(datastr, "-")
+	if len(splitstr) != 5 {
+		return nil, types.ErrWrongKey
+	}
+	ret := &types.UTXOGlobalIndex{}
+	//amount, _ := strconv.ParseInt(splitstr[0], 10, 64)
+	tmp, err := strconv.ParseInt(splitstr[1], 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	ret.Height = tmp
+	ret.Txhash = []byte(splitstr[2])
+	tmp, err = strconv.ParseInt(splitstr[3], 10, 32)
+	if err != nil {
+		return nil, err
+	}
+	ret.Txindex = int32(tmp)
+	tmp, err = strconv.ParseInt(splitstr[4], 10, 32)
+	if err != nil {
+		return nil, err
+	}
+	ret.Outindex = int32(tmp)
+	return ret, nil
 }
