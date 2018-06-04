@@ -8,11 +8,11 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/wallet"
-	"gitlab.33.cn/chain33/chain33/common"
-	"gitlab.33.cn/chain33/chain33/common/crypto"
 )
 
 func WalletCmd() *cobra.Command {
@@ -281,7 +281,7 @@ func addSignRawTxFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("data", "d", "", "raw transaction data")
 	cmd.MarkFlagRequired("data")
 
-	cmd.Flags().IntP("index", "i", 0, "transaction index to be signed")
+	cmd.Flags().Int32P("index", "i", 0, "transaction index to be signed")
 	cmd.Flags().StringP("key", "k", "", "private key (optional)")
 	cmd.Flags().StringP("addr", "a", "", "account address (optional)")
 	cmd.Flags().StringP("expire", "e", "120s", "transaction expire time")
@@ -296,7 +296,7 @@ func signRawTx(cmd *cobra.Command, args []string) {
 	data, _ := cmd.Flags().GetString("data")
 	key, _ := cmd.Flags().GetString("key")
 	addr, _ := cmd.Flags().GetString("addr")
-	index, _ := cmd.Flags().GetInt("index")
+	index, _ := cmd.Flags().GetInt32("index")
 	expire, _ := cmd.Flags().GetString("expire")
 	expireTime, err := time.ParseDuration(expire)
 	if err != nil {
@@ -347,7 +347,7 @@ func signRawTx(cmd *cobra.Command, args []string) {
 			fmt.Println(signedTx)
 			return
 		}
-		if index > len(group.GetTxs()) {
+		if int(index) > len(group.GetTxs()) {
 			fmt.Fprintln(os.Stderr, types.ErrIndex)
 			return
 		}
@@ -362,7 +362,7 @@ func signRawTx(cmd *cobra.Command, args []string) {
 			return
 		} else {
 			index -= 1
-			group.SignN(index, int32(wallet.SignType), privKey)
+			group.SignN(int(index), int32(wallet.SignType), privKey)
 			grouptx := group.Tx()
 			txHex := types.Encode(grouptx)
 			signedTx := hex.EncodeToString(txHex)
