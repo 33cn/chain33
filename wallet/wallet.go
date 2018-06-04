@@ -58,17 +58,11 @@ type Wallet struct {
 	walletStore    *WalletStore
 	random         *rand.Rand
 	done           chan struct{}
-	privacyActive  map[string]map[string]*walletOuts //不同token类型对应的公开地址拥有的隐私存款记录，map[token]map[addr]
+	privacyActive  map[string]map[string]*walletUTXOs //不同token类型对应的公开地址拥有的隐私存款记录，map[token]map[addr]
 	privacyFrozen  map[string]struct{} //[交易hash]
 }
 
-type utxoSpendInTx struct {
-	spender string
-	token   string
-	outs    []*txOutputInfo
-}
-
-type walletOuts struct {
+type walletUTXOs struct {
 	outs []*txOutputInfo
 }
 
@@ -114,7 +108,7 @@ func New(cfg *types.Wallet) *Wallet {
 		EncryptFlag:    walletStore.GetEncryptionFlag(),
 		miningTicket:   time.NewTicker(2 * time.Minute),
 		done:           make(chan struct{}),
-		privacyActive:  make(map[string]map[string]*walletOuts),
+		privacyActive:  make(map[string]map[string]*walletUTXOs),
 		privacyFrozen:  make(map[string]struct{}),
 	}
 	value := walletStore.db.Get([]byte("WalletAutoMiner"))
@@ -1668,7 +1662,7 @@ func (wallet *Wallet) AddDelPrivacyTxsFromBlock(tx *types.Transaction, index int
 								} else {
 									var txOutputInfoSlice []*txOutputInfo
 									txOutputInfoSlice = append(txOutputInfoSlice, txOutInfo)
-									walletOuts := &walletOuts{
+									walletOuts := &walletUTXOs{
 										outs: txOutputInfoSlice,
 									}
 									walletOuts4token[*info.Addr] = walletOuts
@@ -1676,11 +1670,11 @@ func (wallet *Wallet) AddDelPrivacyTxsFromBlock(tx *types.Transaction, index int
 							} else {
 								var txOutputInfoSlice []*txOutputInfo
 								txOutputInfoSlice = append(txOutputInfoSlice, txOutInfo)
-								walletOutsIns := &walletOuts{
+								walletOutsIns := &walletUTXOs{
 									outs: txOutputInfoSlice,
 								}
 
-								walletOuts4tokenTemp := make(map[string]*walletOuts)
+								walletOuts4tokenTemp := make(map[string]*walletUTXOs)
 								walletOuts4tokenTemp[*info.Addr] = walletOutsIns
 								wallet.privacyActive[tokenname] = walletOuts4tokenTemp
 
