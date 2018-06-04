@@ -1,10 +1,10 @@
 package commands
 
 import (
+	"encoding/hex"
 	"fmt"
 	"os"
 	"strings"
-	"encoding/hex"
 
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -214,9 +214,9 @@ func withdraw(cmd *cobra.Command, args []string) {
 // create tx group
 func CreateTxGroupCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use: "txgroup",
+		Use:   "txgroup",
 		Short: "Create a transaction group",
-		Run: createTxGroup,
+		Run:   createTxGroup,
 	}
 	addCreateTxGroupFlags(cmd)
 	return cmd
