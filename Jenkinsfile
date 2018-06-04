@@ -33,12 +33,7 @@ pipeline {
           addNoteOnMergeRequest: true,
           addCiMessage: true,
           addVoteOnMergeRequest: true,
-          acceptMergeRequestOnSuccess: false
-          //branchFilterType: "NameBasedFilter",
-          //includeBranchesSpec: "release/qat",
-          //excludeBranchesSpec: "",
-          //secretToken: "abcdefghijklmnopqrstuvwxyz0123456789ABCDEF"
-        )
+          acceptMergeRequestOnSuccess: false)
     }
 
     stages {
