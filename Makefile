@@ -150,9 +150,14 @@ auto_ci_before: clean fmt protobuf mock
 	@docker version
 	@docker-compose version
 	@git version
+	@git status
 
 auto_ci_after: clean fmt protobuf mock
-	@git add *.go
 	@git status
-	@git commit "auto ci [ci skip] [ci-skip]"
-	@git push
+	@git add *.go
+	@files=$$(git status -suno);if [ -n "$$files" ]; then \
+		  git add *.go; \
+		  git status; \
+		  git commit -m "auto ci [ci-skip]"; \
+		  git push origin HEAD:$(branch); \
+		  fi;
