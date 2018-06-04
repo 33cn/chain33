@@ -54,7 +54,7 @@ func testCreateRawTransactionCoinTransfer(t *testing.T) {
 		IsToken:    false,
 		IsWithdraw: false,
 		To:         "to",
-		Note:       "note",
+			Note:       "note",
 	}
 
 	//v := &types.CoinsAction_Transfer{
