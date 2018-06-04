@@ -153,8 +153,8 @@ auto_ci_before: clean fmt protobuf mock
 	@git status
 
 auto_ci_after: clean fmt protobuf mock
-	@git status
 	@git add *.go
+	@git status
 	@files=$$(git status -suno);if [ -n "$$files" ]; then \
 		  git add *.go; \
 		  git status; \

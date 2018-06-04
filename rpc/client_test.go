@@ -34,7 +34,7 @@ func testCreateRawTransactionNil(t *testing.T) {
 func testCreateRawTransactionExecNameErr(t *testing.T) {
 	tx := types.CreateTx{ExecName: "aaa"}
 
-	client := newTestChannelClient()
+		client := newTestChannelClient()
 	_, err := client.CreateRawTransaction(&tx)
 	assert.Equal(t, types.ErrExecNameNotMatch, err)
 }
