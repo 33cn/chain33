@@ -6,7 +6,6 @@
 package client
 
 import (
-	"bytes"
 	"fmt"
 	"time"
 
@@ -625,23 +624,34 @@ func (q *QueueProtocol) IsNtpClockSync() (*types.Reply, error) {
 	return nil, err
 }
 
-func (q *QueueProtocol) LocalGet(param *types.ReqHash) (*types.LocalReplyValue, error) {
+func (q *QueueProtocol) LocalGet(param *types.LocalDBGet) (*types.LocalReplyValue, error) {
 	if param == nil {
 		err := types.ErrInvalidParam
 		log.Error("LocalGet", "Error", err)
 		return nil, err
 	}
 
-	var keys [][]byte
-	keys = append(keys, func(hash []byte) []byte {
-		s := [][]byte{[]byte("TotalFeeKey:"), hash}
-		sep := []byte("")
-		return bytes.Join(s, sep)
-	}(param.Hash))
-
-	msg, err := q.query(blockchainKey, types.EventLocalGet, &types.LocalDBGet{Keys: keys})
+	msg, err := q.query(blockchainKey, types.EventLocalGet, param)
 	if err != nil {
 		log.Error("LocalGet", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.LocalReplyValue); ok {
+		return reply, nil
+	}
+	return nil, types.ErrTypeAsset
+}
+
+func (q *QueueProtocol) LocalList(param *types.LocalDBList) (*types.LocalReplyValue, error) {
+	if param == nil {
+		err := types.ErrInvalidParam
+		log.Error("LocalList", "Error", err)
+		return nil, err
+	}
+
+	msg, err := q.query(blockchainKey, types.EventLocalList, param)
+	if err != nil {
+		log.Error("LocalList", "Error", err.Error())
 		return nil, err
 	}
 	if reply, ok := msg.GetData().(*types.LocalReplyValue); ok {
