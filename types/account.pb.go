@@ -98,6 +98,8 @@ It has these top-level messages:
 	CheckEVMAddrResp
 	EstimateEVMGasReq
 	EstimateEVMGasResp
+	EvmDebugReq
+	EvmDebugResp
 	Genesis
 	CoinsAction
 	CoinsGenesis
@@ -276,6 +278,8 @@ It has these top-level messages:
 	ReqModifyConfig
 	ReqSignRawTx
 	ReplySignRawTx
+	ReportErrEvent
+	Int32
 */
 package types
 

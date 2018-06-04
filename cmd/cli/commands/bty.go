@@ -49,11 +49,15 @@ func addCreateTransferFlags(cmd *cobra.Command) {
 }
 
 func createTransfer(cmd *cobra.Command, args []string) {
-	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	toAddr, _ := cmd.Flags().GetString("to")
 	amount, _ := cmd.Flags().GetFloat64("amount")
 	note, _ := cmd.Flags().GetString("note")
-	CreateRawTx(rpcLaddr, toAddr, amount, note, false, false, "", "")
+	txHex, err := CreateRawTx(toAddr, amount, note, false, false, "", "")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	fmt.Println(txHex)
 }
 
 // create raw withdraw tx
@@ -78,7 +82,6 @@ func addCreateWithdrawFlags(cmd *cobra.Command) {
 }
 
 func createWithdraw(cmd *cobra.Command, args []string) {
-	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	exec, _ := cmd.Flags().GetString("exec")
 	amount, _ := cmd.Flags().GetFloat64("amount")
 	note, _ := cmd.Flags().GetString("note")
@@ -87,7 +90,12 @@ func createWithdraw(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	CreateRawTx(rpcLaddr, execAddr, amount, note, true, false, "", "")
+	txHex, err := CreateRawTx(execAddr, amount, note, true, false, "", "")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	fmt.Println(txHex)
 }
 
 // create send to exec
@@ -112,7 +120,6 @@ func addCreateRawSendToExecFlags(cmd *cobra.Command) {
 }
 
 func sendToExec(cmd *cobra.Command, args []string) {
-	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	exec, _ := cmd.Flags().GetString("exec")
 	amount, _ := cmd.Flags().GetFloat64("amount")
 	note, _ := cmd.Flags().GetString("note")
@@ -121,7 +128,12 @@ func sendToExec(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	CreateRawTx(rpcLaddr, execAddr, amount, note, false, false, "", exec)
+	txHex, err := CreateRawTx(execAddr, amount, note, false, false, "", exec)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	fmt.Println(txHex)
 }
 
 // send to address
