@@ -2,7 +2,6 @@ package commands
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -330,7 +329,7 @@ func ticketInfoList(cmd *cobra.Command, args []string) {
 	ticketId, _ := cmd.Flags().GetString("ticket_id")
 
 	if count <= 0 {
-		fmt.Fprintln(os.Stderr, errors.New(fmt.Sprintf("input err, count:%v", count)))
+		fmt.Fprintln(os.Stderr, fmt.Errorf("input err, count:%v", count))
 		return
 	}
 
