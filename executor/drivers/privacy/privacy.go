@@ -101,7 +101,7 @@ func (p *privacy) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 	} else if action.Ty == types.ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
 		privacy2Privacy := action.GetPrivacy2Privacy()
 		if types.BTY == privacy2Privacy.Tokenname {
-			var receipt *types.Receipt
+			receipt := &types.Receipt{KV:make([]*types.KeyValue, 0)}
 			privacyInput := privacy2Privacy.Input
 			for _, keyInput := range privacyInput.Keyinput {
 				value := []byte{1}
@@ -127,6 +127,12 @@ func (p *privacy) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 			}
 			execlog = &types.ReceiptLog{types.TyLogPrivacyOutput, types.Encode(receiptPrivacyOutput)}
 			receipt.Logs = append(receipt.Logs, execlog)
+
+			receipt.Ty = types.ExecOk
+
+			//////////////////debug code begin///////////////
+			privacylog.Debug("Privacy exec ActionPrivacy2Privacy", "receipt is", receipt)
+			//////////////////debug code end///////////////
 			return receipt, nil
 
 		} else {
@@ -169,6 +175,9 @@ func (p *privacy) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 			execlog = &types.ReceiptLog{types.TyLogPrivacyOutput, types.Encode(receiptPrivacyOutput)}
 			receipt.Logs = append(receipt.Logs, execlog)
 
+			//////////////////debug code begin///////////////
+			privacylog.Debug("Privacy exec ActionPrivacy2Public", "receipt is", receipt)
+			//////////////////debug code end///////////////
 			return receipt, nil
 		} else {
 			//token 转账操作
@@ -189,7 +198,7 @@ func (p *privacy) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, i
 		return set, nil
 	}
 
-	queryDB := p.GetLocalDB()
+	localDB := p.GetLocalDB()
 
 	for i := 0; i < len(receipt.Logs); i++ {
 		item := receipt.Logs[i]
@@ -203,9 +212,9 @@ func (p *privacy) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, i
 			token := receiptPrivacyOutput.Token
 			txhashInByte := tx.Hash()
 			txhash := common.ToHex(txhashInByte)
-			for i, keyOutput := range receiptPrivacyOutput.Keyoutput {
+			for m, keyOutput := range receiptPrivacyOutput.Keyoutput {
 				//kv1，添加一个具体的UTXO，方便我们可以查询相应token下特定额度下，不同高度时，不同txhash的UTXO
-				key := CalcPrivacyUTXOkeyHeight(token, keyOutput.Amount, p.GetHeight(), txhash, i)
+				key := CalcPrivacyUTXOkeyHeight(token, keyOutput.Amount, p.GetHeight(), txhash, i, m)
 				localUTXOItem := &types.LocalUTXOItem{
 					Height:        p.GetHeight(),
 					Txindex:       int32(index),
@@ -220,7 +229,7 @@ func (p *privacy) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, i
 				//kv2，添加各种不同额度的kv记录，能让我们很方便的获知本系统存在的所有不同的额度的UTXO
 				var amountTypes types.AmountsOfUTXO
 				key2 := CalcprivacyKeyTokenAmountType(token)
-				value2, err := queryDB.Get(key2)
+				value2, err := localDB.Get(key2)
 				//如果该种token不是第一次进行隐私操作
 				if err==nil && value2!=nil {
 					err := types.Decode(value2, &amountTypes)
@@ -231,7 +240,7 @@ func (p *privacy) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, i
 							kv := &types.KeyValue{key2, types.Encode(&amountTypes)}
 							set.KV = append(set.KV, kv)
 							//在本地的query数据库进行设置，这样可以防止相同的新增amout不会被重复生成kv,而进行重复的设置
-							queryDB.Set(key2, types.Encode(&amountTypes))
+							localDB.Set(key2, types.Encode(&amountTypes))
 						}
 					} else {
 						panic(err)
@@ -242,13 +251,13 @@ func (p *privacy) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, i
 					amountTypes.AmountMap[keyOutput.Amount] = txhash
 					kv := &types.KeyValue{key2, types.Encode(&amountTypes)}
 					set.KV = append(set.KV, kv)
-					queryDB.Set(key2, types.Encode(&amountTypes))
+					localDB.Set(key2, types.Encode(&amountTypes))
 				}
 
 				//kv3,添加存在隐私交易token的类型
 				var tokenNames types.TokenNamesOfUTXO
 				key3 := CalcprivacyKeyTokenTypes()
-				value3, err := queryDB.Get(key3)
+				value3, err := localDB.Get(key3)
 				if err == nil && value3!=nil{
 					err := types.Decode(value3, &tokenNames)
 					if err == nil {
@@ -256,7 +265,7 @@ func (p *privacy) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, i
 							tokenNames.TokensMap[token] = txhash
 							kv := &types.KeyValue{key3, types.Encode(&tokenNames)}
 							set.KV = append(set.KV, kv)
-							queryDB.Set(key3, types.Encode(&tokenNames))
+							localDB.Set(key3, types.Encode(&tokenNames))
 						}
 					}
 				} else {
@@ -264,7 +273,7 @@ func (p *privacy) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, i
 					tokenNames.TokensMap[token] = txhash
 					kv := &types.KeyValue{key3, types.Encode(&tokenNames)}
 					set.KV = append(set.KV, kv)
-					queryDB.Set(key3, types.Encode(&tokenNames))
+					localDB.Set(key3, types.Encode(&tokenNames))
 				}
 			}
 		}
@@ -282,7 +291,7 @@ func (p *privacy) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData
 	if receipt.GetTy() != types.ExecOk {
 		return set, nil
 	}
-	queryDB := p.GetQueryDB()
+	localDB := p.GetQueryDB()
 
 	for i := 0; i < len(receipt.Logs); i++ {
 		item := receipt.Logs[i]
@@ -296,16 +305,16 @@ func (p *privacy) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData
 			token := receiptPrivacyOutput.Token
 			txhashInByte := tx.Hash()
 			txhash := common.ToHex(txhashInByte)
-			for i, keyOutput := range receiptPrivacyOutput.Keyoutput {
+			for m, keyOutput := range receiptPrivacyOutput.Keyoutput {
 				//kv1，添加一个具体的UTXO，方便我们可以查询相应token下特定额度下，不同高度时，不同txhash的UTXO
-				key := CalcPrivacyUTXOkeyHeight(token, keyOutput.Amount, p.GetHeight(), txhash, i)
+				key := CalcPrivacyUTXOkeyHeight(token, keyOutput.Amount, p.GetHeight(), txhash, i, m)
 				kv := &types.KeyValue{key, nil}
 				set.KV = append(set.KV, kv)
 
 				//kv2，添加各种不同额度的kv记录，能让我们很方便的获知本系统存在的所有不同的额度的UTXO
 				var amountTypes types.AmountsOfUTXO
 				key2 := CalcprivacyKeyTokenAmountType(token)
-				value2 := queryDB.Get(key2)
+				value2 := localDB.Get(key2)
 				//如果该种token不是第一次进行隐私操作
 				if value2 != nil {
 					err := types.Decode(value2, &amountTypes)
@@ -316,7 +325,7 @@ func (p *privacy) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData
 								kv := &types.KeyValue{key2, nil}
 								set.KV = append(set.KV, kv)
 								//在本地的query数据库进行设置，这样可以防止相同的新增amout不会被重复生成kv,而进行重复的设置
-								queryDB.Set(key2, nil)
+								localDB.Set(key2, nil)
 							}
 						}
 					}
@@ -325,7 +334,7 @@ func (p *privacy) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData
 				//kv3,添加存在隐私交易token的类型
 				var tokenNames types.TokenNamesOfUTXO
 				key3 := CalcprivacyKeyTokenTypes()
-				value3 := queryDB.Get(key3)
+				value3 := localDB.Get(key3)
 				if value3 != nil {
 					err := types.Decode(value3, &tokenNames)
 					if err == nil {
@@ -333,7 +342,7 @@ func (p *privacy) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData
 							if settxhash == txhash {
 								kv := &types.KeyValue{key3, nil}
 								set.KV = append(set.KV, kv)
-								queryDB.Set(key3, nil)
+								localDB.Set(key3, nil)
 							}
 						}
 					}
