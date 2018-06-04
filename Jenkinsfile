@@ -17,23 +17,26 @@ pipeline {
         timestamps()
         gitLabConnection('gitlab33')
         gitlabBuilds(builds: ['build', 'test', 'deploy'])
-        // gitlabCommitStatus(name: 'Jenkins')
         checkoutToSubdirectory 'src/gitlab.33.cn/chain33/chain33'
     }
 
     triggers {
         gitlab(
-          triggerOnPush: true,
-          triggerOnMergeRequest: true, triggerOpenMergeRequestOnPush: "both",
-          triggerOnNoteRequest: true,
-          noteRegex: "Jenkins please retry a build",
-          skipWorkInProgressMergeRequest: true,
-          ciSkip: true,
-          setBuildDescription: true,
-          addNoteOnMergeRequest: true,
-          addCiMessage: true,
-          addVoteOnMergeRequest: true,
-          acceptMergeRequestOnSuccess: false)
+            triggerOnPush: true,
+            triggerOnMergeRequest: true, triggerOpenMergeRequestOnPush: "both",
+            triggerOnNoteRequest: true,
+            noteRegex: "Jenkins please retry a build",
+            skipWorkInProgressMergeRequest: true,
+            ciSkip: true,
+            setBuildDescription: true,
+            addNoteOnMergeRequest: true,
+            addCiMessage: true,
+            addVoteOnMergeRequest: true,
+            acceptMergeRequestOnSuccess: false,
+            branchFilterType: 'All',
+            includeBranchesSpec: "release/qat",
+            excludeBranchesSpec: "",
+            secretToken: "abcdefghijklmnopqrstuvwxyz0123456789ABCDEF")
     }
 
     stages {
@@ -44,6 +47,7 @@ pipeline {
                     sh 'make checkgofmt'
                     sh 'make linter'
                     // sh 'make build_ci'
+                    gitlabCommitStatus(name: 'build')
                 }
             }
         }
@@ -54,6 +58,7 @@ pipeline {
                     sh 'cd build && docker-compose down && cd ..'
                     sh 'make test'
                     // sh 'export CC=clang-5.0 && make msan'
+                    gitlabCommitStatus(name: 'test')
                 }
             }
         }
@@ -65,6 +70,7 @@ pipeline {
                     sh 'make docker-compose'
                     sh 'cd build && docker-compose down && cd ..'
                     sh "make auto_ci_after branch=${env.gitlabSourceBranch}"
+                    gitlabCommitStatus(name: 'deploy')
                 }
             }
         }
@@ -79,7 +85,7 @@ pipeline {
 
         success {
             echo 'I succeeeded!'
-            updateGitlabCommitStatus name: 'build', state: 'success'
+            //updateGitlabCommitStatus name: 'build', state: 'success'
             // deleteDir()
             echo "email user: ${gitlabUserEmail}"
             mail to: "${gitlabUserEmail}",
@@ -96,7 +102,7 @@ pipeline {
 
         failure {
             echo 'I failed '
-            updateGitlabCommitStatus name: 'build', state: 'failed'
+            //updateGitlabCommitStatus name: 'build', state: 'failed'
             echo "email user: ${gitlabUserEmail}"
             mail to: "${gitlabUserEmail}",
                  subject: "Failed Pipeline: ${currentBuild.fullDisplayName}",
