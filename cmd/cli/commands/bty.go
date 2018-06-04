@@ -3,6 +3,8 @@ package commands
 import (
 	"fmt"
 	"os"
+	"strings"
+	"encoding/hex"
 
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -226,5 +228,30 @@ func addCreateTxGroupFlags(cmd *cobra.Command) {
 }
 
 func createTxGroup(cmd *cobra.Command, args []string) {
-
+	txs, _ := cmd.Flags().GetString("txs")
+	txsArr := strings.Split(txs, " ")
+	var transactions []*types.Transaction
+	for _, t := range txsArr {
+		txByte, err := hex.DecodeString(t)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		var transaction types.Transaction
+		types.Decode(txByte, &transaction)
+		transactions = append(transactions, &transaction)
+	}
+	group, err := types.CreateTxGroup(transactions)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	err = group.Check(types.MinFee)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	newtx := group.Tx()
+	grouptx := hex.EncodeToString(types.Encode(newtx))
+	fmt.Println(grouptx)
 }

@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"gitlab.33.cn/wallet/bipwallet"
-
 	"github.com/golang/protobuf/proto"
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
@@ -563,36 +562,34 @@ func (wallet *Wallet) ProcRecvMsg() {
 	}
 }
 
+//input:
+//type ReqSignRawTx struct {
+//	Addr    string
+//	Privkey string
+//	TxHex   string
+//	Expire  string
+//}
+//output:
+//string
+//签名交易
 func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error) {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
 
-	var key crypto.PrivKey
-	if unsigned.GetPrivkey() != "" {
-		keyByte, err := common.FromHex(unsigned.GetPrivkey())
-		if err != nil || len(keyByte) == 0 {
-			return "", err
-		}
-		cr, err := crypto.New(types.GetSignatureTypeName(SignType))
-		if err != nil {
-			return "", err
-		}
-		key, err = cr.PrivKeyFromBytes(keyByte)
-		if err != nil {
-			return "", err
-		}
-	} else if unsigned.GetAddr() != "" {
-		ok, err := wallet.CheckWalletStatus()
-		if !ok {
-			return "", err
-		}
-		key, err = wallet.getPrivKeyByAddr(unsigned.GetAddr())
-		if err != nil {
-			return "", err
-		}
-	} else {
+	index := unsigned.Index
+	if unsigned.GetAddr() == "" {
 		return "", types.ErrNoPrivKeyOrAddr
 	}
+
+	ok, err := wallet.CheckWalletStatus()
+	if !ok {
+		return "", err
+	}
+	key, err := wallet.getPrivKeyByAddr(unsigned.GetAddr())
+	if err != nil {
+		return "", err
+	}
+
 	var tx types.Transaction
 	bytes, err := common.FromHex(unsigned.GetTxHex())
 	if err != nil {
@@ -607,10 +604,36 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 		return "", err
 	}
 	tx.SetExpire(expire)
-	tx.Sign(int32(SignType), key)
-	txHex := types.Encode(&tx)
-	signedTx := hex.EncodeToString(txHex)
-	return signedTx, nil
+	group, err := tx.GetTxGroup()
+	if err != nil {
+		return "", err
+	}
+	if group == nil {
+		tx.Sign(int32(SignType), key)
+		txHex := types.Encode(&tx)
+		signedTx := hex.EncodeToString(txHex)
+		return signedTx, nil
+	}
+	if index > len(group.GetTxs()) {
+		return "", types.ErrIndex
+	}
+	if index <= 0 {
+		for i := range group.Txs {
+			group.SignN(i, int32(SignType), key)
+		}
+		grouptx := group.Tx()
+		txHex := types.Encode(grouptx)
+		signedTx := hex.EncodeToString(txHex)
+		return signedTx, nil
+	} else {
+		index -= 1
+		group.SignN(index, int32(SignType), key)
+		grouptx := group.Tx()
+		txHex := types.Encode(grouptx)
+		signedTx := hex.EncodeToString(txHex)
+		return signedTx, nil
+	}
+	return "", nil
 }
 
 //output:
