@@ -15,10 +15,30 @@ pipeline {
         // buildDiscarder(logRotator(numToKeepStr: '1'))
         disableConcurrentBuilds()
         timestamps()
-        gitLabConnection 'gitlab33'
-        // gitlabBuilds(builds: ['build', 'test', 'deploy'])
-        gitlabCommitStatus(name: 'Jenkins')
+        gitLabConnection('gitlab33')
+        gitlabBuilds(builds: ['build', 'test', 'deploy'])
+        // gitlabCommitStatus(name: 'Jenkins')
         checkoutToSubdirectory 'src/gitlab.33.cn/chain33/chain33'
+    }
+
+    triggers {
+        gitlab(
+          triggerOnPush: true,
+          triggerOnMergeRequest: true, triggerOpenMergeRequestOnPush: "both",
+          triggerOnNoteRequest: true,
+          noteRegex: "Jenkins please retry a build",
+          skipWorkInProgressMergeRequest: true,
+          ciSkip: true,
+          setBuildDescription: true,
+          addNoteOnMergeRequest: true,
+          addCiMessage: true,
+          addVoteOnMergeRequest: true,
+          acceptMergeRequestOnSuccess: false
+          //branchFilterType: "NameBasedFilter",
+          //includeBranchesSpec: "release/qat",
+          //excludeBranchesSpec: "",
+          //secretToken: "abcdefghijklmnopqrstuvwxyz0123456789ABCDEF"
+        )
     }
 
     stages {
