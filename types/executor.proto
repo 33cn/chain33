@@ -500,8 +500,6 @@ message PrivacyAction {
 message Public2Privacy {
 	string tokenname    = 1;
 	int64 amount        = 2;
-//    bytes RpubKeytx     = 3; //txpubkey, rG => R
-//    bytes onetimePubKey = 4; //Hs(rA)G + B
 	string note         = 5;
     PrivacyOutput output = 7;
 }
@@ -509,8 +507,6 @@ message Public2Privacy {
 message Privacy2Privacy {
 	string tokenname    = 1;
 	int64 amount        = 2;
-//    bytes RpubKeytx     = 3; //txpubkey, rG
-//    bytes onetimePubKey = 4; //Hs(rA)G + B
 	string note         = 5;
     PrivacyInput input  = 6;
     PrivacyOutput output = 7;
@@ -549,7 +545,7 @@ message keyOutput {
 }
 
 message PrivacyOutput {
-    bytes RpubKeytx     = 1; //txpubkey, rG => R
+    bytes RpubKeytx     = 1;
     repeated keyOutput keyoutput = 2;
 }
 

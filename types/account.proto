@@ -23,12 +23,6 @@ message ReceiptAccountTransfer {
 	Account current = 2; //转移后
 }
 
-//隐私合约内部通过UTXO进行转账的一个交易回报
-message ReceiptExecUTXOTrans4Privacy {
-	int32 type      = 1;
-	int64 amount    = 2;
-}
-
 //查询一个地址列表在某个执行器中余额
 message ReqBalance {
 	repeated string addresses = 1; //地址列表

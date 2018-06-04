@@ -343,12 +343,11 @@ func generateOuts(viewpubTo, spendpubto, viewpubChangeto, spendpubChangeto *[32]
 }
 
 func (wallet *Wallet) transPri2PriV2(privacykeyParirs *privacy.Privacy, reqPri2Pri *types.ReqPri2Pri) (*types.ReplyHash, error) {
-	factorNum := int64(100)
 	buildInfo := &buildInputInfo{
 		tokenname: &reqPri2Pri.Tokenname,
 		sender:    &reqPri2Pri.Sender,
 		// TODO: 这里存在手续费不足的情况,需要考虑扣除手续费以后的拆分问题,所以这里先简单的放大,让调试通过
-		amount:    reqPri2Pri.Amount + wallet.FeeAmount*factorNum,
+		amount:    reqPri2Pri.Amount + types.PrivacyTxFee,
 		mixcount:  reqPri2Pri.Mixin,
 	}
 
@@ -375,7 +374,7 @@ func (wallet *Wallet) transPri2PriV2(privacykeyParirs *privacy.Privacy, reqPri2P
 		selectedAmounTotal += input.Amount
 	}
 	//构造输出UTXO
-	privacyOutput, err := generateOuts(viewPublic, spendPublic, viewPub4chgPtr, spendPub4chgPtr, reqPri2Pri.Amount, selectedAmounTotal, wallet.FeeAmount*factorNum)
+	privacyOutput, err := generateOuts(viewPublic, spendPublic, viewPub4chgPtr, spendPub4chgPtr, reqPri2Pri.Amount, selectedAmounTotal, types.PrivacyTxFee)
 	if err != nil {
 		return nil, err
 	}
@@ -395,7 +394,7 @@ func (wallet *Wallet) transPri2PriV2(privacykeyParirs *privacy.Privacy, reqPri2P
 	tx := &types.Transaction{
 		Execer:  []byte(types.PrivacyX),
 		Payload: types.Encode(action),
-		Fee:     wallet.FeeAmount*factorNum,
+		Fee:     types.PrivacyTxFee,
 		Nonce:   wallet.random.Int63(),
 	}
 
@@ -446,7 +445,7 @@ func (wallet *Wallet) transPri2PubV2(privacykeyParirs *privacy.Privacy, reqPri2P
 	buildInfo := &buildInputInfo{
 		tokenname: &reqPri2Pub.Tokenname,
 		sender:    &reqPri2Pub.Sender,
-		amount:    reqPri2Pub.Amount + wallet.FeeAmount,
+		amount:    reqPri2Pub.Amount + types.PrivacyTxFee,
 	}
 	//step 1,buildInput
 	privacyInput, utxosInKeyInput, realkeyInputSlice, selectedUtxo, err := wallet.buildInput(privacykeyParirs, buildInfo)
@@ -488,7 +487,7 @@ func (wallet *Wallet) transPri2PubV2(privacykeyParirs *privacy.Privacy, reqPri2P
 	tx := &types.Transaction{
 		Execer:  []byte(types.PrivacyX),
 		Payload: types.Encode(action),
-		Fee:     wallet.FeeAmount,
+		Fee:     types.PrivacyTxFee,
 		Nonce:   wallet.random.Int63(),
 		To:      reqPri2Pub.Receiver,
 	}
@@ -719,13 +718,14 @@ func decomposeAmount2digits(amount, dust_threshold int64) []int64 {
 			dust += chunk //累加小数，直到超过dust_threshold为止
 		} else {
 			if !is_dust_handled && 0 != dust {
-				//正常情况下，先把dust保存下来
+				//1st 正常情况下，先把dust保存下来
 				res = append(res, dust)
 				is_dust_handled = true
 			}
 			if 0 != chunk {
-				//然后依次将大的整数额度进行保存
-				res = append(res, chunk)
+				//2nd 然后依次将大的整数额度进行保存
+				goodAmount := decomAmount2Nature(chunk, order/10)
+				res = append(res, goodAmount...)
 			}
 		}
 	}
@@ -735,5 +735,40 @@ func decomposeAmount2digits(amount, dust_threshold int64) []int64 {
 		res = append(res, dust)
 	}
 
+	return res
+}
+
+//将amount切分为1,2,5的组合，这样在进行amount混淆的时候就能够方便获取相同额度的utxo
+func decomAmount2Nature(amount int64, order int64)([]int64) {
+	res := make([]int64, 0)
+	if order == 0 {
+		return nil
+	}
+	mul := amount / order
+	switch mul{
+	case 3:
+		res = append(res, order)
+		res = append(res, 2*order)
+	case 4:
+		res = append(res, 2*order)
+		res = append(res, 2*order)
+	case 6:
+		res = append(res, 5*order)
+		res = append(res, order)
+	case 7:
+		res = append(res, 5*order)
+		res = append(res, 2*order)
+	case 8:
+		res = append(res, 5*order)
+		res = append(res, 2*order)
+		res = append(res, 1*order)
+	case 9:
+		res = append(res, 5*order)
+		res = append(res, 2*order)
+		res = append(res, 2*order)
+	default:
+		res = append(res, mul*order)
+		return res
+	}
 	return res
 }

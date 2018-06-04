@@ -80,6 +80,7 @@ var (
 	ErrTSellNoSuchOrder      = errors.New("ErrTradeSellNoSuchOrder")
 	//err for privacy
 	ErrWrongKey              = errors.New("ErrWrongKey")
+	ErrInvalidOrder          = errors.New("ErrInvalidOrder")
 
 	ErrStartBigThanEnd            = errors.New("ErrStartBigThanEnd")
 	ErrToAddrNotSameToExecAddr    = errors.New("ErrToAddrNotSameToExecAddr")
@@ -163,12 +164,13 @@ var (
 	ErrSeedWordNum          = errors.New("ErrSeedWordNum")
 	ErrPubKeyLen            = errors.New("ErrPublicKeyLen")
 
-	ErrOnlyTicketUnLocked = errors.New("ErrOnlyTicketUnLocked")
-	ErrNewCrypto          = errors.New("ErrNewCrypto")
-	ErrFromHex            = errors.New("ErrFromHex")
-	ErrPrivKeyFromBytes   = errors.New("ErrFromHex")
-	ErrParentHash         = errors.New("ErrParentHash")
-	ErrPrivacyNotExist    = errors.New("ErrPrivacyNotExist")
+	ErrOnlyTicketUnLocked    = errors.New("ErrOnlyTicketUnLocked")
+	ErrNewCrypto             = errors.New("ErrNewCrypto")
+	ErrFromHex               = errors.New("ErrFromHex")
+	ErrPrivKeyFromBytes      = errors.New("ErrFromHex")
+	ErrParentHash            = errors.New("ErrParentHash")
+	ErrPrivacyNotExist       = errors.New("ErrPrivacyNotExist")
+	ErrPrivacyTxFeeNotEnough = errors.New("ErrPrivacyTxFeeNotEnough")
 
 	// manage
 	ErrNoPrivilege    = errors.New("ErrNoPrivilege")

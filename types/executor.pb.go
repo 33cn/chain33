@@ -3682,12 +3682,10 @@ func _PrivacyAction_OneofSizer(msg proto.Message) (n int) {
 }
 
 type Public2Privacy struct {
-	Tokenname string `protobuf:"bytes,1,opt,name=tokenname" json:"tokenname,omitempty"`
-	Amount    int64  `protobuf:"varint,2,opt,name=amount" json:"amount,omitempty"`
-	//    bytes RpubKeytx     = 3; //txpubkey, rG => R
-	//    bytes onetimePubKey = 4; //Hs(rA)G + B
-	Note   string         `protobuf:"bytes,5,opt,name=note" json:"note,omitempty"`
-	Output *PrivacyOutput `protobuf:"bytes,7,opt,name=output" json:"output,omitempty"`
+	Tokenname string         `protobuf:"bytes,1,opt,name=tokenname" json:"tokenname,omitempty"`
+	Amount    int64          `protobuf:"varint,2,opt,name=amount" json:"amount,omitempty"`
+	Note      string         `protobuf:"bytes,5,opt,name=note" json:"note,omitempty"`
+	Output    *PrivacyOutput `protobuf:"bytes,7,opt,name=output" json:"output,omitempty"`
 }
 
 func (m *Public2Privacy) Reset()                    { *m = Public2Privacy{} }
@@ -3724,13 +3722,11 @@ func (m *Public2Privacy) GetOutput() *PrivacyOutput {
 }
 
 type Privacy2Privacy struct {
-	Tokenname string `protobuf:"bytes,1,opt,name=tokenname" json:"tokenname,omitempty"`
-	Amount    int64  `protobuf:"varint,2,opt,name=amount" json:"amount,omitempty"`
-	//    bytes RpubKeytx     = 3; //txpubkey, rG
-	//    bytes onetimePubKey = 4; //Hs(rA)G + B
-	Note   string         `protobuf:"bytes,5,opt,name=note" json:"note,omitempty"`
-	Input  *PrivacyInput  `protobuf:"bytes,6,opt,name=input" json:"input,omitempty"`
-	Output *PrivacyOutput `protobuf:"bytes,7,opt,name=output" json:"output,omitempty"`
+	Tokenname string         `protobuf:"bytes,1,opt,name=tokenname" json:"tokenname,omitempty"`
+	Amount    int64          `protobuf:"varint,2,opt,name=amount" json:"amount,omitempty"`
+	Note      string         `protobuf:"bytes,5,opt,name=note" json:"note,omitempty"`
+	Input     *PrivacyInput  `protobuf:"bytes,6,opt,name=input" json:"input,omitempty"`
+	Output    *PrivacyOutput `protobuf:"bytes,7,opt,name=output" json:"output,omitempty"`
 }
 
 func (m *Privacy2Privacy) Reset()                    { *m = Privacy2Privacy{} }
