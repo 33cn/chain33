@@ -140,3 +140,24 @@ checkgofmt: ## get all go files and run go fmt on them
 .PHONY: mock
 mock:
 	@cd client && mockery -name=QueueProtocolAPI && mv mocks/QueueProtocolAPI.go mocks/api.go && cd -
+
+.PHONY: auto_ci_before auto_ci_after
+auto_ci_before: clean fmt protobuf mock
+	@echo "auto_ci"
+	@go version
+	@protoc --version
+	@mockery -version
+	@docker version
+	@docker-compose version
+	@git version
+	@git status
+
+auto_ci_after: clean fmt protobuf mock
+	@git add *.go
+	@git status
+	@files=$$(git status -suno);if [ -n "$$files" ]; then \
+		  git add *.go; \
+		  git status; \
+		  git commit -m "auto ci [ci-skip]"; \
+		  git push origin HEAD:$(branch); \
+		  fi;
