@@ -54,9 +54,6 @@ type bccspmsp struct {
 	// list of certificate revocation lists
 	CRL []*pkix.CertificateList
 
-	// list of OUs
-	ouIdentifiers map[string][][]byte
-
 	cryptoConfig *MSPCryptoConfig
 }
 

@@ -47,7 +47,7 @@ func (block *Block) CheckSign() bool {
 	}
 	//检查交易的签名
 	cpu := runtime.NumCPU()
-	ok := checkAll(block.Txs, cpu)
+	ok := CheckAll(block.Txs, cpu, nil)
 	return ok
 }
 
@@ -72,21 +72,25 @@ type result struct {
 	isok bool
 }
 
-func check(data *Transaction) bool {
-	return data.CheckSign()
+func check(data *Transaction, f func(tx *Transaction) bool) bool {
+	if data.Signature.Ty == SIG_TYPE_AUTHORITY {
+		return f(data)
+	} else {
+		return data.CheckSign()
+	}
 }
 
-func checksign(done <-chan struct{}, taskes <-chan *Transaction, c chan<- result) {
+func checksign(done <-chan struct{}, taskes <-chan *Transaction, c chan<- result, f func(tx *Transaction) bool) {
 	for task := range taskes {
 		select {
-		case c <- result{check(task)}:
+		case c <- result{check(task, f)}:
 		case <-done:
 			return
 		}
 	}
 }
 
-func checkAll(task []*Transaction, n int) bool {
+func CheckAll(task []*Transaction, n int, f func(tx *Transaction) bool) bool {
 	done := make(chan struct{})
 	defer close(done)
 
@@ -98,7 +102,7 @@ func checkAll(task []*Transaction, n int) bool {
 	wg.Add(n)
 	for i := 0; i < n; i++ {
 		go func() {
-			checksign(done, taskes, c) // HLc
+			checksign(done, taskes, c, f) // HLc
 			wg.Done()
 		}()
 	}

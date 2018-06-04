@@ -11,6 +11,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 	"fmt"
+	"runtime"
 )
 
 var alog = log.New("module", "autority")
@@ -137,31 +138,20 @@ func (auth *Authority) procSignTx(msg queue.Message) {
 	msg.Reply(auth.client.NewMessage("", types.EventReplyAuthSignTx, &types.ReplyAuthSignTx{txHex}))
 }
 
-func (auth *Authority) procCheckTx(msg queue.Message) {
-	data := msg.GetData().(*types.ReqAuthSignCheck)
-	tx := data.GetTx()
-	if tx.GetSignature().Ty != types.SIG_TYPE_AUTHORITY {
-		alog.Error("Error signature type, should be AUTHORITY")
-		msg.ReplyErr("EventReplyAuthCheckTx", types.ErrInvalidParam)
-		return
-	}
-	falseResultMsg := auth.client.NewMessage("", types.EventReplyAuthCheckTx, &types.RespAuthSignCheck{false})
-
+func (auth *Authority) checkTx(tx *types.Transaction) bool {
 	alog.Debug(fmt.Sprintf("transaction user name %s", tx.GetCert().GetUsername()))
 
 	localMSP := mspmgr.GetLocalMSP()
 	identity, err := localMSP.DeserializeIdentity(tx.GetCert().GetCertbytes())
 	if err != nil {
 		alog.Error("Deserialize identity from cert bytes failed", err.Error())
-		msg.Reply(falseResultMsg)
-		return
+		return false
 	}
 
 	err = identity.Validate()
 	if err != nil {
 		alog.Error("Validate certificates failed", err.Error())
-		msg.Reply(falseResultMsg)
-		return
+		return false
 	}
 	alog.Debug("Certificates is valid")
 
@@ -171,12 +161,28 @@ func (auth *Authority) procCheckTx(msg queue.Message) {
 	err = identity.Verify(bytes, tx.GetSignature().GetSignature())
 	if err != nil {
 		alog.Error("Verify signature failed", err.Error())
-		msg.Reply(falseResultMsg)
-		return
+		return false
 	}
 	alog.Debug("Verify signature success")
 
-	msg.Reply(auth.client.NewMessage("", types.EventReplyAuthCheckTx, &types.RespAuthSignCheck{true}))
+	return true
+}
+
+func (auth *Authority) procCheckTx(msg queue.Message) {
+	data := msg.GetData().(*types.ReqAuthSignCheck)
+	tx := data.GetTx()
+	if tx.GetSignature().Ty != types.SIG_TYPE_AUTHORITY {
+		alog.Error("Error signature type, should be AUTHORITY")
+		msg.ReplyErr("EventReplyAuthCheckTx", types.ErrInvalidParam)
+		return
+	}
+
+	result := auth.checkTx(tx)
+	if !result {
+		msg.Reply(auth.client.NewMessage("", types.EventReplyAuthCheckTx, &types.RespAuthSignCheck{false}))
+	}else {
+		msg.Reply(auth.client.NewMessage("", types.EventReplyAuthCheckTx, &types.RespAuthSignCheck{true}))
+	}
 }
 
 func (auth *Authority) procCheckTxs(msg queue.Message) {
@@ -184,12 +190,13 @@ func (auth *Authority) procCheckTxs(msg queue.Message) {
 	txs := data.GetTxs()
 	if len(txs) == 0 {
 		alog.Error("Empty transactions")
-		msg.ReplyErr("EventReplyAuthCheckTx", types.ErrInvalidParam)
+		msg.ReplyErr("EventReplyAuthCheckTxs", types.ErrInvalidParam)
 		return
 	}
 
-	//TODO
-	msg.Reply(auth.client.NewMessage("", types.EventReplyAuthCheckTxs, &types.RespAuthSignCheckTxs{true}))
+	cpu := runtime.NumCPU()
+	ok := types.CheckAll(txs, cpu, auth.checkTx)
+	msg.Reply(auth.client.NewMessage("", types.EventReplyAuthCheckTxs, &types.RespAuthSignCheckTxs{ok}))
 }
 
 func (auth *Authority) Close() {
