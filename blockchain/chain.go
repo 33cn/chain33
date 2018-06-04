@@ -656,8 +656,12 @@ func (chain *BlockChain) ProcGetGlobalIndexMsg(reqUTXOGlobalIndex *types.ReqUTXO
 		//因为key的排列是先旧后新，这里倒序查找满足确认条件的utxo
 		for ; index >= 0; index-- {
 			key := keys[index]
+			globalIndex, err := privacy.DecodeToUTXOGlobalIndex(key.(string), reqUTXOGlobalIndex.GetTokenname())
+			if err != nil {
+				break
+			}
 			//要求是经过了12个块确认的UTXO才能被使用
-			if key.(*types.UTXOGlobalIndex).Height+types.ConfirmedHeight <= currentHeight {
+			if globalIndex.GetHeight()+types.ConfirmedHeight <= currentHeight {
 				break
 			}
 		}
@@ -670,9 +674,13 @@ func (chain *BlockChain) ProcGetGlobalIndexMsg(reqUTXOGlobalIndex *types.ReqUTXO
 			for ; index > stopindex; index-- {
 				key := keys[index]
 				value, _ := utxos.Get(key)
+				globalIndex, err := privacy.DecodeToUTXOGlobalIndex(key.(string), reqUTXOGlobalIndex.GetTokenname())
+				if err != nil {
+					panic(err)
+				}
 				utxo := &types.UTXOBasic{
-					UtxoGlobalIndex: key.(*types.UTXOGlobalIndex),
-					OnetimePubkey:   value.(*privacyOutputKeyInfo).onetimePubKey,
+					UtxoGlobalIndex: globalIndex,
+					OnetimePubkey:   value.(privacyOutputKeyInfo).onetimePubKey,
 				}
 				utxoIndex4Amount.Utxos = append(utxoIndex4Amount.Utxos, utxo)
 
@@ -1018,7 +1026,7 @@ func (chain *BlockChain) InitPrivacyCache() {
 							//所以在此处就需要进行反序添加
 							for ; i > 0; i-- {
 								localUTXOItem := localUTXOItemSlice[i]
-								keyCache := privacy.CalcPrivacyUTXOkeyHeightStr(token, amount, localUTXOItem.Height, common.ToHex(localUTXOItem.Txhash), int(localUTXOItem.Outindex))
+								keyCache := privacy.CalcPrivacyUTXOkeyHeightStr(token, amount, localUTXOItem.Height, common.ToHex(localUTXOItem.Txhash), int(localUTXOItem.Txindex), int(localUTXOItem.Outindex))
 								outputKeyInfo := privacyOutputKeyInfo{
 									onetimePubKey: localUTXOItem.Onetimepubkey,
 

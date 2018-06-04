@@ -508,8 +508,9 @@ func (b *BlockChain) updatePrivacyCache(privacyKV *types.PrivacyKV, height int64
 						onetimePubKey:keyOutput.Onetimepubkey,
 					}
 					privacyOutputIndexLru, ok := mapPrivacy4token[keyOutput.Amount]
+					txIndex := int(privacyKVToken.GetTxIndex())
 					if ok {
-						key := priexec.CalcPrivacyUTXOkeyHeightStr(privacyKVToken.Token, keyOutput.Amount, height, common.ToHex(privacyKVToken.Txhash), outindex)
+						key := priexec.CalcPrivacyUTXOkeyHeightStr(privacyKVToken.Token, keyOutput.Amount, height, common.ToHex(privacyKVToken.Txhash), txIndex, outindex)
 						privacyOutputIndexLru.Add(key, outputKeyInfo)
 					} else {
 						privacyOutputIndexLru, err := simplelru.NewLRU(types.UTXOCacheCount, nil)
@@ -517,7 +518,7 @@ func (b *BlockChain) updatePrivacyCache(privacyKV *types.PrivacyKV, height int64
 							chainlog.Error("connectBlock NewLRU", "Failed to new NewLRU due to error", err)
 							break;
 						}
-						key := priexec.CalcPrivacyUTXOkeyHeightStr(privacyKVToken.Token, keyOutput.Amount, height, common.ToHex(privacyKVToken.Txhash), outindex)
+						key := priexec.CalcPrivacyUTXOkeyHeightStr(privacyKVToken.Token, keyOutput.Amount, height, common.ToHex(privacyKVToken.Txhash), txIndex, outindex)
 						privacyOutputIndexLru.Add(key, outputKeyInfo)
 						mapPrivacy4token[keyOutput.Amount] = privacyOutputIndexLru
 					}
@@ -537,8 +538,9 @@ func (b *BlockChain) updatePrivacyCache(privacyKV *types.PrivacyKV, height int64
 					}
 
 					privacyOutputIndexLru, ok := mapPrivacy4token[keyOutput.Amount]
+					txIndex := int(privacyKVToken.GetTxIndex())
 					if ok {
-						key := priexec.CalcPrivacyUTXOkeyHeightStr(privacyKVToken.Token, keyOutput.Amount, height, common.ToHex(privacyKVToken.Txhash), outindex)
+						key := priexec.CalcPrivacyUTXOkeyHeightStr(privacyKVToken.Token, keyOutput.Amount, height, common.ToHex(privacyKVToken.Txhash), txIndex, outindex)
 						privacyOutputIndexLru.Add(key, outputKeyInfo)
 					} else {
 						privacyOutputIndexLru, err := simplelru.NewLRU(types.UTXOCacheCount, nil)
@@ -546,7 +548,7 @@ func (b *BlockChain) updatePrivacyCache(privacyKV *types.PrivacyKV, height int64
 							chainlog.Error("connectBlock NewLRU", "Failed to new NewLRU due to error", err)
 							break;
 						}
-						key := priexec.CalcPrivacyUTXOkeyHeightStr(privacyKVToken.Token, keyOutput.Amount, height, common.ToHex(privacyKVToken.Txhash), outindex)
+						key := priexec.CalcPrivacyUTXOkeyHeightStr(privacyKVToken.Token, keyOutput.Amount, height, common.ToHex(privacyKVToken.Txhash), txIndex, outindex)
 						privacyOutputIndexLru.Add(key, outputKeyInfo)
 						mapPrivacy4token[keyOutput.Amount] = privacyOutputIndexLru
 					}
