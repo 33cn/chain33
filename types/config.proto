@@ -119,6 +119,7 @@ message Rpc {
 message Exec {
 	int64 minExecFee = 1;
 	bool  isFree = 2;
+	bool  enableStat = 3;
 }
 
 message Authority {
