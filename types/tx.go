@@ -63,6 +63,14 @@ func (txgroup *Transactions) GetTxGroup() *Transactions {
 	return txgroup
 }
 
+func (txgroup *Transactions) SignN(n int, ty int32, priv crypto.PrivKey) error {
+	if n >= len(txgroup.GetTxs()) {
+		return ErrIndex
+	}
+	txgroup.GetTxs()[n].Sign(ty, priv)
+	return nil
+}
+
 func (txgroup *Transactions) CheckSign() bool {
 	txs := txgroup.Txs
 	for i := 0; i < len(txs); i++ {
