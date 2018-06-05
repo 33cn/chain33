@@ -113,6 +113,7 @@ func (wallet *Wallet) procCreateUTXOs(createUTXOs *types.ReqCreateUTXOs) (*types
 
 	return wallet.createUTXOsByPub2Priv(priv, createUTXOs)
 }
+
 //批量创建通过public2Privacy实现
 func (wallet *Wallet) createUTXOsByPub2Priv(priv crypto.PrivKey, reqCreateUTXOs *types.ReqCreateUTXOs) (*types.ReplyHash, error) {
 	viewPubSlice, err := common.FromHex(reqCreateUTXOs.ViewPublic)
@@ -343,6 +344,35 @@ func generateOuts(viewpubTo, spendpubto, viewpubChangeto, spendpubChangeto *[32]
 	return &privacyOutput, nil
 }
 
+func (w *Wallet) signatureTx(tx *types.Transaction, privacyInput *types.PrivacyInput, utxosInKeyInput [][]*types.UTXOBasic, realkeyInputSlice []*realkeyInput) (err error) {
+	tx.Signature = nil
+	data := types.Encode(tx)
+	ringSign := &types.RingSignature{}
+	ringSign.Items = make([]*types.RingSignatureItem, len(privacyInput.Keyinput))
+	for i, input := range privacyInput.Keyinput {
+		utxos := utxosInKeyInput[i]
+		h := common.BytesToHash(data)
+		item, err := privacy.GenerateRingSignature(h.Bytes(),
+			utxos,
+			realkeyInputSlice[i].onetimePrivKey,
+			realkeyInputSlice[i].realInputIndex,
+			input.KeyImage)
+		if err != nil {
+			return err
+		}
+		ringSign.Items[i] = item
+	}
+
+	ringSignData := types.Encode(ringSign)
+	tx.Signature = &types.Signature{
+		Ty:        types.RingBaseonED25519,
+		Signature: ringSignData,
+		// 这里填的是隐私合约的公钥，让框架保持一致
+		Pubkey: account.ExecAddress(types.PrivacyX).Pubkey,
+	}
+	return nil
+}
+
 func (wallet *Wallet) transPri2PriV2(privacykeyParirs *privacy.Privacy, reqPri2Pri *types.ReqPri2Pri) (*types.ReplyHash, error) {
 	buildInfo := &buildInputInfo{
 		tokenname: &reqPri2Pri.Tokenname,
@@ -403,29 +433,10 @@ func (wallet *Wallet) transPri2PriV2(privacykeyParirs *privacy.Privacy, reqPri2P
 
 	//完成了input和output的添加之后，即已经完成了交易基本内容的添加，
 	//这时候就需要进行交易的签名了
-	tx.Signature = nil
-	data := types.Encode(tx)
-	ringSigns := make([]*types.SignatureData, len(privacyInput.Keyinput))
-	for i, input := range privacyInput.Keyinput {
-		utxos := utxosInKeyInput[i]
-		h := common.BytesToHash(data)
-		ringSigns[i], err = privacy.GenerateRingSignature(h.Bytes(),
-			utxos,
-			realkeyInputSlice[i].onetimePrivKey,
-			realkeyInputSlice[i].realInputIndex,
-			input.KeyImage)
-
-		if err != nil {
-			return nil, err
-		}
+	err = wallet.signatureTx(tx, privacyInput, utxosInKeyInput, realkeyInputSlice)
+	if err != nil {
+		return nil, err
 	}
-
-	signature := &types.Signature{
-		Ty:            types.RingBaseonED25519,
-		RingSignature: ringSigns,
-		Pubkey: account.ExecPubKey(types.PrivacyX),
-	}
-	tx.Signature = signature
 
 	msg := wallet.client.NewMessage("mempool", types.EventTx, tx)
 	wallet.client.Send(msg, true)
@@ -471,7 +482,7 @@ func (wallet *Wallet) transPri2PubV2(privacykeyParirs *privacy.Privacy, reqPri2P
 	changeAmount := selectedAmounTotal - reqPri2Pub.Amount
 	//step 2,generateOuts
 	//构造输出UTXO,只生成找零的UTXO
-	privacyOutput, err := generateOuts(nil, nil, viewPub4chgPtr, spendPub4chgPtr, 0, changeAmount, wallet.FeeAmount)
+	privacyOutput, err := generateOuts(nil, nil, viewPub4chgPtr, spendPub4chgPtr, 0, changeAmount, types.PrivacyTxFee)
 	if err != nil {
 		return nil, err
 	}
@@ -496,29 +507,10 @@ func (wallet *Wallet) transPri2PubV2(privacykeyParirs *privacy.Privacy, reqPri2P
 		To:      reqPri2Pub.Receiver,
 	}
 	//step 3,generate ring signature
-	tx.Signature = nil
-	data := types.Encode(tx)
-	var ringSignatures []*types.SignatureData
-	ringSignatures = make([]*types.SignatureData, len(privacyInput.Keyinput))
-	for i, input := range privacyInput.Keyinput {
-		utxos := utxosInKeyInput[i]
-		h := common.BytesToHash(data)
-		ringSignatures[i], err = privacy.GenerateRingSignature(h.Bytes(),
-			utxos,
-			realkeyInputSlice[i].onetimePrivKey,
-			realkeyInputSlice[i].realInputIndex,
-			input.KeyImage)
-		if err != nil {
-			return nil, err
-		}
+	err = wallet.signatureTx(tx, privacyInput, utxosInKeyInput, realkeyInputSlice)
+	if err != nil {
+		return nil, err
 	}
-
-	signature := &types.Signature{
-		Ty:            types.RingBaseonED25519,
-		RingSignature: ringSignatures,
-		Pubkey: account.ExecPubKey(types.PrivacyX),
-	}
-	tx.Signature = signature
 
 	msg := wallet.client.NewMessage("mempool", types.EventTx, tx)
 	wallet.client.Send(msg, true)

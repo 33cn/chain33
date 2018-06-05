@@ -54,11 +54,12 @@ func (mem *Mempool) CheckSignList() {
 				tx := data.GetData().(*types.Transaction)
 				sign := tx.GetSignature()
 				if sign != nil {
-					if sign.Ty != types.RingBaseonED25519 {
-						ok = tx.CheckSign()
-					} else {
-						ok = mem.CheckRingSign(tx)
-					}
+					ok = tx.CheckSign()
+					//if sign.Ty != types.RingBaseonED25519 {
+					//	ok = tx.CheckSign()
+					//} else {
+					//	ok = mem.CheckRingSign(tx)
+					//}
 				}
 
 				if ok {
@@ -78,6 +79,15 @@ func (mem *Mempool) CheckRingSign(tx *types.Transaction) bool {
 	var action types.PrivacyAction
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
+		return false
+	}
+	var ringSign types.RingSignature
+	if err := types.Decode(tx.GetSignature().GetSignature(), &ringSign); err != nil {
+		mlog.Error("CheckRingSign", "error=", err.Error())
+		return false
+	}
+	if len(ringSign.GetItems()) <= 0 {
+		mlog.Error("CheckRingSign", "ring signature is empty.")
 		return false
 	}
 	var privacyInput *types.PrivacyInput
@@ -112,13 +122,12 @@ func (mem *Mempool) CheckRingSign(tx *types.Transaction) bool {
 		return false
 	}
 	resUTXOPubKeys := msg.GetData().(*types.ResUTXOPubKeys)
-	ringSign := tx.Signature.RingSignature
 	copytx := *tx
 	copytx.Signature = nil
 	data := types.Encode(&copytx)
-	for i, ringSignature := range ringSign {
-		h := common.BytesToHash(data)
-		if !privacy.CheckRingSignature(h.Bytes(), ringSignature, resUTXOPubKeys.GroupUTXOPubKeys[i].Pubkey, privacyInput.Keyinput[i].KeyImage) {
+	h := common.BytesToHash(data)
+	for i, ringSignItem := range ringSign.GetItems() {
+		if !privacy.CheckRingSignature(h.Bytes(), ringSignItem, resUTXOPubKeys.GroupUTXOPubKeys[i].Pubkey, privacyInput.Keyinput[i].KeyImage) {
 			mlog.Error("CheckRingSignature", "Failed to CheckRingSignature for index", i)
 			return false
 		}

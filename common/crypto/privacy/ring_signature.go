@@ -156,7 +156,7 @@ func checkRingSignature(prefix_hash []byte, image *KeyImage, pubs []*PubKeyPriva
 	return edwards25519.ScIsNonZero(&h) == 0
 }
 
-func GenerateRingSignature(datahash []byte, utxos []*types.UTXOBasic, privKey []byte, realUtxoIndex int, keyImage []byte) (*types.SignatureData, error) {
+func GenerateRingSignature(datahash []byte, utxos []*types.UTXOBasic, privKey []byte, realUtxoIndex int, keyImage []byte) (*types.RingSignatureItem, error) {
 	count := len(utxos)
 	signs := make([]*Sign, count)
 	pubs := make([]*PubKeyPrivacy, count)
@@ -175,10 +175,14 @@ func GenerateRingSignature(datahash []byte, utxos []*types.UTXOBasic, privKey []
 	if err != nil {
 		return nil, err
 	}
-	data := types.SignatureData{}
-	data.Data = make([][]byte, count)
+	data := types.RingSignatureItem{}
+	data.Signature = make([][]byte, count)
+	data.Pubkey = make([][]byte, count)
 	for i, v := range signs {
-		data.Data[i] = append(data.Data[i], v[:]...)
+		data.Signature[i] = append(data.Signature[i], v[:]...)
+	}
+	for i, v := range pubs {
+		data.Pubkey[i] = append(data.Pubkey[i], v[:]...)
 	}
 	return &data, nil
 }
@@ -196,12 +200,12 @@ func GenerateKeyImage(privkey crypto.PrivKey, pubkey []byte) (*KeyImage, error) 
 	return &image, nil
 }
 
-func CheckRingSignature(datahash []byte, signatures *types.SignatureData, publickeys [][]byte, keyimage []byte) bool {
+func CheckRingSignature(datahash []byte, signatures *types.RingSignatureItem, publickeys [][]byte, keyimage []byte) bool {
 	var image KeyImage
 	var pubs []*PubKeyPrivacy
 	var signs []*Sign
 
-	if signatures == nil || len(signatures.GetData()) != len(publickeys) {
+	if signatures == nil || len(signatures.GetSignature()) != len(publickeys) {
 		return false
 	}
 	// 转换协议
@@ -213,7 +217,7 @@ func CheckRingSignature(datahash []byte, signatures *types.SignatureData, public
 		pub := PubKeyPrivacy{}
 		sign := Sign{}
 		copy(pub[:], publickeys[i])
-		copy(sign[:], signatures.GetData()[i])
+		copy(sign[:], signatures.GetSignature()[i])
 		pubs[i] = &pub
 		signs[i] = &sign
 	}
