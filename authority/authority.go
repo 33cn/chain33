@@ -31,7 +31,8 @@ func New(conf *types.Authority) *Authority {
 
 	err := auth.initConfig(conf)
 	if err != nil {
-		panic("Initialize authority module failed")
+		alog.Error("Initialize authority module failed", "Error", err.Error())
+		panic("")
 	}
 
 	auth.cryptoPath = conf.CryptoPath
@@ -91,7 +92,7 @@ func (auth *Authority) SetQueueClient(client queue.Client) {
 			} else if msg.Ty == types.EventAuthorityCheckTx {
 				go auth.procCheckTx(msg)
 			} else if msg.Ty == types.EventAuthorityCheckTxs {
-
+				go auth.procCheckTxs(msg)
 			}
 		}
 	}()
@@ -144,13 +145,13 @@ func (auth *Authority) checkTx(tx *types.Transaction) bool {
 	localMSP := mspmgr.GetLocalMSP()
 	identity, err := localMSP.DeserializeIdentity(tx.GetCert().GetCertbytes())
 	if err != nil {
-		alog.Error("Deserialize identity from cert bytes failed", err.Error())
+		alog.Error("Deserialize identity from cert bytes failed", "Error", err.Error())
 		return false
 	}
 
 	err = identity.Validate()
 	if err != nil {
-		alog.Error("Validate certificates failed", err.Error())
+		alog.Error("Validate certificates failed", "Error", err.Error())
 		return false
 	}
 	alog.Debug("Certificates is valid")
@@ -160,7 +161,7 @@ func (auth *Authority) checkTx(tx *types.Transaction) bool {
 	bytes := types.Encode(&copytx)
 	err = identity.Verify(bytes, tx.GetSignature().GetSignature())
 	if err != nil {
-		alog.Error("Verify signature failed", err.Error())
+		alog.Error("Verify signature failed", "Error", err.Error())
 		return false
 	}
 	alog.Debug("Verify signature success")

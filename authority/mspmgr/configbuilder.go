@@ -54,7 +54,7 @@ func readPemFile(file string) ([]byte, error) {
 }
 
 func getPemMaterialFromDir(dir string) ([][]byte, error) {
-	mspLogger.Debug("Reading directory %s", dir)
+	mspLogger.Debug(fmt.Sprintf("Reading directory %s", dir))
 
 	_, err := os.Stat(dir)
 	if os.IsNotExist(err) {
@@ -73,11 +73,11 @@ func getPemMaterialFromDir(dir string) ([][]byte, error) {
 		}
 
 		fullName := filepath.Join(dir, string(filepath.Separator), f.Name())
-		mspLogger.Debug("Inspecting file %s", fullName)
+		mspLogger.Debug(fmt.Sprintf("Inspecting file %s", fullName))
 
 		item, err := readPemFile(fullName)
 		if err != nil {
-			mspLogger.Warn("Failed readgin file %s: %s", fullName, err)
+			mspLogger.Warn(fmt.Sprintf("Failed readgin file %s: %s", fullName, err))
 			continue
 		}
 
@@ -134,14 +134,14 @@ func getMspConfig(dir string, conf *cryptosuite.CryptoConfig) (*MSPConfig, error
 
 	intermediatecerts, err := getPemMaterialFromDir(intermediatecertsDir)
 	if os.IsNotExist(err) {
-		mspLogger.Debug("Intermediate certs folder not found at [%s]. Skipping. [%s]", intermediatecertsDir, err)
+		mspLogger.Debug(fmt.Sprintf("Intermediate certs folder not found at [%s]. Skipping. [%s]", intermediatecertsDir, err))
 	} else if err != nil {
 		return nil, fmt.Errorf("Failed loading intermediate ca certs at [%s]: [%s]", intermediatecertsDir, err)
 	}
 
 	crls, err := getPemMaterialFromDir(crlsDir)
 	if os.IsNotExist(err) {
-		mspLogger.Debug("crls folder not found at [%s]. Skipping. [%s]", crlsDir, err)
+		mspLogger.Debug(fmt.Sprintf("crls folder not found at [%s]. Skipping. [%s]", crlsDir, err))
 	} else if err != nil {
 		return nil, fmt.Errorf("Failed loading crls at [%s]: [%s]", crlsDir, err)
 	}

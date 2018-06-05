@@ -62,11 +62,11 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 		ulog.Info("ExecBlock", "height", block.Height, "ntx", len(block.Txs), "writebatchsync", sync, "cost", time.Since(beg))
 	}()
 
-	sigValid := checkSignWrapper(block, client)
-
-	if errReturn && block.Height > 0 && !sigValid {
+	if errReturn && block.Height > 0 {
 		//block的来源不是自己的mempool，而是别人的区块
-		return nil, nil, types.ErrSign
+		if !checkSignWrapper(block, client) {
+			return nil, nil, types.ErrSign
+		}
 	}
 	//tx交易去重处理, 这个地方要查询数据库，需要一个更快的办法
 	cacheTxs := types.TxsToCache(block.Txs)

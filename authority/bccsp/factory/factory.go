@@ -78,7 +78,7 @@ func initBCCSP(f BCCSPFactory, config *FactoryOpts) error {
 		return fmt.Errorf("Could not initialize BCCSP %s [%s]", f.Name(), err)
 	}
 
-	logger.Debug("Initialize BCCSP [%s]", f.Name())
+	logger.Debug("Initialize BCCSP")
 	bccspMap[f.Name()] = csp
 	return nil
 }

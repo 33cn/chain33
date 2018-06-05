@@ -11,10 +11,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/authority/bccsp/factory"
 	"gitlab.33.cn/chain33/chain33/authority/common/core"
 	"github.com/pkg/errors"
-	log "github.com/inconshreveable/log15"
 )
-
-var logger = log.New("auth", "cryptosuite")
 
 //GetSuiteByConfig returns cryptosuite adaptor for bccsp loaded according to given config
 func GetSuiteByConfig(config core.CryptoSuiteConfig) (core.CryptoSuite, error) {
@@ -42,7 +39,6 @@ func getOptsByConfig(c core.CryptoSuiteConfig) *factory.SwOpts {
 		HashFamily: c.SecurityAlgorithm(),
 		SecLevel:   c.SecurityLevel(),
 	}
-	logger.Debug("Initialized cryptosuite")
 
 	return opts
 }
