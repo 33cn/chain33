@@ -54,11 +54,12 @@ func (mem *Mempool) CheckSignList() {
 				tx := data.GetData().(*types.Transaction)
 				sign := tx.GetSignature()
 				if sign != nil {
-					if sign.Ty != types.RingBaseonED25519 {
-						ok = tx.CheckSign()
-					} else {
-						ok = mem.CheckRingSign(tx)
-					}
+					ok = tx.CheckSign()
+					//if sign.Ty != types.RingBaseonED25519 {
+					//	ok = tx.CheckSign()
+					//} else {
+					//	ok = mem.CheckRingSign(tx)
+					//}
 				}
 
 				if ok {
@@ -81,7 +82,7 @@ func (mem *Mempool) CheckRingSign(tx *types.Transaction) bool {
 		return false
 	}
 	var ringSign types.RingSignature
-	if err := types.Decode(tx.GetSignature().GetSignature(), &ringSign); err!=nil {
+	if err := types.Decode(tx.GetSignature().GetSignature(), &ringSign); err != nil {
 		mlog.Error("CheckRingSign", "error=", err.Error())
 		return false
 	}

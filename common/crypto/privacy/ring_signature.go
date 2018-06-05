@@ -180,7 +180,9 @@ func GenerateRingSignature(datahash []byte, utxos []*types.UTXOBasic, privKey []
 	data.Pubkey = make([][]byte, count)
 	for i, v := range signs {
 		data.Signature[i] = append(data.Signature[i], v[:]...)
-		data.Pubkey[i] = append(data.Pubkey[i], privKey...)
+	}
+	for i, v := range pubs {
+		data.Pubkey[i] = append(data.Pubkey[i], v[:]...)
 	}
 	return &data, nil
 }
