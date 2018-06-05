@@ -113,6 +113,7 @@ func (wallet *Wallet) procCreateUTXOs(createUTXOs *types.ReqCreateUTXOs) (*types
 
 	return wallet.createUTXOsByPub2Priv(priv, createUTXOs)
 }
+
 //批量创建通过public2Privacy实现
 func (wallet *Wallet) createUTXOsByPub2Priv(priv crypto.PrivKey, reqCreateUTXOs *types.ReqCreateUTXOs) (*types.ReplyHash, error) {
 	viewPubSlice, err := common.FromHex(reqCreateUTXOs.ViewPublic)
@@ -404,11 +405,12 @@ func (wallet *Wallet) transPri2PriV2(privacykeyParirs *privacy.Privacy, reqPri2P
 	//这时候就需要进行交易的签名了
 	tx.Signature = nil
 	data := types.Encode(tx)
-	ringSigns := make([]*types.SignatureData, len(privacyInput.Keyinput))
+	ringSign := &types.RingSignature{}
+	ringSign.Items = make([]*types.RingSignatureItem, len(privacyInput.Keyinput))
 	for i, input := range privacyInput.Keyinput {
 		utxos := utxosInKeyInput[i]
 		h := common.BytesToHash(data)
-		ringSigns[i], err = privacy.GenerateRingSignature(h.Bytes(),
+		item, err := privacy.GenerateRingSignature(h.Bytes(),
 			utxos,
 			realkeyInputSlice[i].onetimePrivKey,
 			realkeyInputSlice[i].realInputIndex,
@@ -417,11 +419,12 @@ func (wallet *Wallet) transPri2PriV2(privacykeyParirs *privacy.Privacy, reqPri2P
 		if err != nil {
 			return nil, err
 		}
+		ringSign.Items[i] = item
 	}
-
+	ringSignData := types.Encode(ringSign)
 	signature := &types.Signature{
-		Ty:            types.RingBaseonED25519,
-		RingSignature: ringSigns,
+		Ty:        types.RingBaseonED25519,
+		Signature: ringSignData,
 	}
 	tx.Signature = signature
 
@@ -496,12 +499,12 @@ func (wallet *Wallet) transPri2PubV2(privacykeyParirs *privacy.Privacy, reqPri2P
 	//step 3,generate ring signature
 	tx.Signature = nil
 	data := types.Encode(tx)
-	var ringSignatures []*types.SignatureData
-	ringSignatures = make([]*types.SignatureData, len(privacyInput.Keyinput))
+	ringSign := &types.RingSignature{}
+	ringSign.Items = make([]*types.RingSignatureItem, len(privacyInput.Keyinput))
 	for i, input := range privacyInput.Keyinput {
 		utxos := utxosInKeyInput[i]
 		h := common.BytesToHash(data)
-		ringSignatures[i], err = privacy.GenerateRingSignature(h.Bytes(),
+		ringSign.Items[i], err = privacy.GenerateRingSignature(h.Bytes(),
 			utxos,
 			realkeyInputSlice[i].onetimePrivKey,
 			realkeyInputSlice[i].realInputIndex,
@@ -511,9 +514,10 @@ func (wallet *Wallet) transPri2PubV2(privacykeyParirs *privacy.Privacy, reqPri2P
 		}
 	}
 
+	ringSignData := types.Encode(ringSign)
 	signature := &types.Signature{
-		Ty:            types.RingBaseonED25519,
-		RingSignature: ringSignatures,
+		Ty:        types.RingBaseonED25519,
+		Signature: ringSignData,
 	}
 	tx.Signature = signature
 

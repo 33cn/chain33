@@ -195,7 +195,8 @@ It has these top-level messages:
 	UnsignTx
 	SignedTx
 	Transaction
-	SignatureData
+	RingSignature
+	RingSignatureItem
 	Signature
 	AddrOverview
 	ReqAddr
