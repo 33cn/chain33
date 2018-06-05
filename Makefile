@@ -36,6 +36,7 @@ release: ## Build the binary file
 
 cli: ## Build cli binary
 	@go build -v -o $(CLI) cli/cli.go
+	@cp  $(CLI) cli/cli
 
 linter: ## Use gometalinter check code
 	@gometalinter.v2 --disable-all --enable=errcheck --enable=vet --enable=vetshadow --enable=gofmt --enable=gosimple \
