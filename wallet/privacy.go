@@ -154,6 +154,7 @@ func (wallet *Wallet) createUTXOsByPub2Priv(priv crypto.PrivKey, reqCreateUTXOs 
 		Payload: types.Encode(action),
 		Fee:     wallet.FeeAmount,
 		Nonce:   wallet.random.Int63(),
+		To: account.ExecAddress(types.PrivacyX).String(),
 	}
 	tx.Sign(int32(SignType), priv)
 
@@ -540,8 +541,10 @@ func (wallet *Wallet) transPri2PubV2(privacykeyParirs *privacy.Privacy, reqPri2P
 
 func (wallet *Wallet) saveFTXOInfo(token, sender, txhash string, selectedUtxos []*txOutputInfo) {
 	//将已经作为本次交易输入的utxo进行冻结，防止产生双花交易
-	wallet.privacyFrozen[txhash] = struct{}{}
+	wallet.privacyFrozen[txhash] = sender
 	wallet.walletStore.moveUTXO2FTXO(token, sender, txhash, selectedUtxos)
+	//TODO:需要加入超时处理，需要将此处的txhash写入到数据库中，以免钱包瞬间奔溃后没有对该笔隐私交易的记录，
+	//TODO:然后当该交易得到执行之后，没法将FTXO转化为STXO，added by hezhengjun on 2018.6.5
 }
 
 func (wallet *Wallet) buildInput(privacykeyParirs *privacy.Privacy, buildInfo *buildInputInfo) (*types.PrivacyInput, [][]*types.UTXOBasic, []*realkeyInput, []*txOutputInfo, error) {
