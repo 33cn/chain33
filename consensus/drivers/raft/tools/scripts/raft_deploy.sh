@@ -6,8 +6,8 @@
 
 ##############################解析配置文件#######################################################
 pemFile=$1
-cmd=`sed -n '/^[# ]*\[.*\][ ]*/p' servers.toml`
-fileName="servers.toml"
+cmd=`sed -n '/^[# ]*\[.*\][ ]*/p' servers.conf`
+fileName="servers.conf"
 serverStr="servers."
 tempfile=".info"
 
@@ -50,7 +50,7 @@ main()
 ############################从本地copy文件到远程主机上#####################################################################
 scpFileFromLocal(){
 hostIP=$1
-echo "address:"$ipAddress
+echo "hostIp:"$hostIP
 port=$2
 echo "port:"$port
 userName=$3
@@ -60,8 +60,8 @@ echo "pemFile:"$pemFile
 scpFile=$5
 deployDir=$6
 ssh -i $pemFile -p $port $userName@$hostIP "mkdir -p $deployDir"
-echo "scp -i $pemFile -P $port $fileName $userName@$hostIP:$deploydir"
-scp -i $pemFile -P $port $fileName $userName@$hostIP:$deployDir
+echo "scp -i $pemFile -P $port $scpFile $userName@$hostIP:$deploydir"
+scp -i $pemFile -P $port $scpFile $userName@$hostIP:$deployDir
 
 }
 ####################################解压和启动chain33#################################################################
@@ -72,13 +72,7 @@ userName=$3
 pemFile=$4
 deployDir=$5
 nodeId=$6
-ssh -i $pemFile -p $port $userName@hostIP > /dev/null 2>&1 << eeooff
-cd $deploydir
-tar -xvf chain33.tgz
-bash raft_conf.sh $nodeId
-bash run.sh start
-exit
-eeooff
+ssh -i $pemFile -p $port $userName@$hostIP "cd $deployDir;tar -xvf chain33.tgz;bash raft_conf.sh $nodeId;bash run.sh start"
 echo done!
 }
 stopChain33(){
@@ -88,11 +82,7 @@ userName=$3
 pemFile=$4
 deployDir=$5
 nodeId=$6
-ssh -i $pemFile -p $port $userName@hostIP > /dev/null 2>&1 << eeooff
-cd $deploydir
-bash run.sh stop
-exit
-eeooff
+ssh -i $pemFile -p $port $userName@$hostIP "cd $deployDir;bash run.sh stop"
 echo done!
 }
 clearChain33(){
@@ -101,11 +91,7 @@ port=$2
 userName=$3
 pemFile=$4
 deployDir=$5
-ssh -i $pemFile -p $port $userName@hostIP > /dev/null 2>&1 << eeooff
-cd $deploydir
-bash run.sh clear
-exit
-eeooff
+ssh -i $pemFile -p $port $userName@$hostIP "cd $deployDir;bash run.sh clear"
 echo done!
 }
 
@@ -129,7 +115,7 @@ batchScpFileFromLocal()
             getInfoByIndexAndKey $index "localFilePath"
             echo "servers.$index: localFilePath->$info"
             localFilePath=$info
-            getInfoByIndexAndKey $index "port"
+            getInfoByIndexAndKey $index "remoteDir"
             echo "servers.$index: remoteDir->$info"
             remoteDir=$info
             scpFileFromLocal $hostIP $port $userName $pemFile $localFilePath $remoteDir
@@ -185,7 +171,7 @@ batchStopChain33()
             getInfoByIndexAndKey $index "localFilePath"
             echo "servers.$index: localFilePath->$info"
             localFilePath=$info
-            getInfoByIndexAndKey $index "port"
+            getInfoByIndexAndKey $index "remoteDir"
             echo "servers.$index: remoteDir->$info"
             remoteDir=$info
             stopChain33 $hostIP $port $userName $pemFile $remoteDir
@@ -214,7 +200,7 @@ batchClearChain33()
             getInfoByIndexAndKey $index "localFilePath"
             echo "servers.$index: localFilePath->$info"
             localFilePath=$info
-            getInfoByIndexAndKey $index "port"
+            getInfoByIndexAndKey $index "remoteDir"
             echo "servers.$index: remoteDir->$info"
             remoteDir=$info
             clearChain33 $hostIP $port $userName $pemFile $remoteDir
@@ -228,6 +214,9 @@ batchClearChain33()
 if [ $2 == "start" ]
 then
 batchStartChain33
+elif [ $2 == "scp" ]
+then
+batchScpFileFromLocal
 elif [ $2 == "stop" ]
 then
 batchStopChain33
