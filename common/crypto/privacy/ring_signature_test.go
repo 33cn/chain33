@@ -151,7 +151,7 @@ func TestCheckRingSignature1(t *testing.T) {
 
 func TestCheckRingSignatureAPI1(t *testing.T) {
 	const maxCount = 1
-	var signatures types.SignatureData
+	var signatures types.RingSignatureItem
 	publickeys := make([][]byte, maxCount)
 	prefix_hash, err := common.FromHex("fd1f64844a7d6a9f74fc2141bceba9d9d69b1fd6104f93bfa42a6d708a6ab22c")
 	if err != nil {
@@ -386,7 +386,7 @@ func TestGenerateRingSignatureAPI(t *testing.T) {
 		}
 	}
 
-	var signaturedata *types.SignatureData
+	var signaturedata *types.RingSignatureItem
 	// step2. generate ring signature
 	if signaturedata, err = GenerateRingSignature(prefix_hash, utxos, sec[:], realUtxoIndex, keyImage); err != nil {
 		t.Errorf("GenerateRingSignature() failed. ", err)
