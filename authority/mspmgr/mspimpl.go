@@ -274,7 +274,7 @@ func (msp *bccspmsp) DeserializeIdentity(serializedID []byte) (MSPIdentity, erro
 
 // getCertificationChain returns the certification chain of the passed identity within this msp
 func (msp *bccspmsp) getCertificationChain(id MSPIdentity) ([]*x509.Certificate, error) {
-	mspLogger.Debug("MSP %s getting certification chain", msp.name)
+	mspLogger.Debug(fmt.Sprintf("MSP %s getting certification chain", msp.name))
 
 	switch id := id.(type) {
 	// If this identity is of this specific type,

@@ -32,7 +32,7 @@ func LoadLocalMsp(dir string, cryptoConf *cryptosuite.CryptoConfig) error {
 
 	lclMsp, err := NewBccspMsp()
 	if err != nil {
-		mspLogger.Error("Failed to initialize local MSP, received err %s", err)
+		mspLogger.Error("Failed to initialize local MSP", "Error", err)
 		return errors.New("Failed to initialize local MSP")
 	}
 	localMsp = lclMsp
