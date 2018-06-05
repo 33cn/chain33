@@ -173,7 +173,7 @@ func TestCheckRingSignatureAPI1(t *testing.T) {
 		data[i] = make([]byte, 0)
 		data[i] = tmp
 	}
-	signatures.Data = data
+	signatures.Signature = data
 
 	if !CheckRingSignature(prefix_hash, &signatures, publickeys, keyimage) {
 		t.Fatal("checkRingSignature() failed.")
