@@ -2,6 +2,7 @@ package types
 
 // 注释掉系统中没有用到的枚举项
 // 与AllowUserExec中驱动名称的顺序一致
+//TODO 后面会有专门执行器相关的目录
 const (
 	ExecTypeCoins    = 0
 	ExecTypeTicket   = 1
