@@ -35,7 +35,9 @@ type QueueProtocolAPI interface {
 
 	// +++++++++++++++ wallet interfaces begin
 	// types.EventLocalGet
-	LocalGet(param *types.ReqHash) (*types.LocalReplyValue, error)
+	LocalGet(param *types.LocalDBGet) (*types.LocalReplyValue, error)
+	// types.EventLocalList
+	LocalList(param *types.LocalDBList) (*types.LocalReplyValue, error)
 	// types.EventWalletGetAccountList
 	WalletGetAccountList() (*types.WalletAccounts, error)
 	// types.EventNewAccount
@@ -74,6 +76,7 @@ type QueueProtocolAPI interface {
 	CloseTickets() (*types.ReplyHashes, error)
 	// types.EventSignRawTx
 	SignRawTx(param *types.ReqSignRawTx) (*types.ReplySignRawTx, error)
+	GetFatalFailure() (*types.Int32, error)
 	// --------------- wallet interfaces end
 
 	// +++++++++++++++ blockchain interfaces begin

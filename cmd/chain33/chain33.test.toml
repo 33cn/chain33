@@ -80,6 +80,7 @@ minerdisable=false
 [exec]
 isFree=false
 minExecFee=100000
+enableStat=false
 
 [auth]
 cryptoPath="authdir/crypto"

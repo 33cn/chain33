@@ -1,12 +1,16 @@
 package commands
 
 import (
+	"encoding/hex"
 	"fmt"
-	"os"
+	"math/rand"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/gogo/protobuf/proto"
 	"gitlab.33.cn/chain33/chain33/account"
+	"gitlab.33.cn/chain33/chain33/common"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -134,6 +138,13 @@ func decodeLog(rlog jsonrpc.ReceiptDataResult) *ReceiptData {
 				Prev:     decodeAccount(constructAccFromLog(l, "prev"), types.TokenPrecision),
 				Current:  decodeAccount(constructAccFromLog(l, "current"), types.TokenPrecision),
 			}
+			// EVM合约日志处理逻辑
+		case types.TyLogCallContract:
+			rl.Log = buildCallContractResult(l)
+		case types.TyLogContractData:
+			rl.Log = buildContractDataResult(l)
+		case types.TyLogContractState:
+			rl.Log = buildContractStateResult(l)
 		default:
 			fmt.Printf("---The log with vlaue:%d is not decoded --------------------\n", l.Ty)
 			return nil
@@ -141,6 +152,40 @@ func decodeLog(rlog jsonrpc.ReceiptDataResult) *ReceiptData {
 		rd.Logs = append(rd.Logs, rl)
 	}
 	return rd
+}
+
+func buildCallContractResult(l *jsonrpc.ReceiptLogResult) interface{} {
+	data, _ := common.FromHex(l.RawLog)
+	receipt := &types.ReceiptEVMContract{}
+	proto.Unmarshal(data, receipt)
+	rlog := &types.ReceiptEVMContractCmd{Caller: receipt.Caller, ContractAddr: receipt.ContractAddr, ContractName: receipt.ContractName, UsedGas: receipt.UsedGas}
+	rlog.Ret = common.ToHex(receipt.Ret)
+	return rlog
+}
+
+func buildContractDataResult(l *jsonrpc.ReceiptLogResult) interface{} {
+	data, _ := common.FromHex(l.RawLog)
+	receipt := &types.EVMContractData{}
+	proto.Unmarshal(data, receipt)
+	rlog := &types.EVMContractDataCmd{Creator: receipt.Creator, Name: receipt.Name, Addr: receipt.Addr, CreateTime: time.Unix(0, receipt.CreateTime).String(), Alias: receipt.Alias}
+	rlog.Code = common.ToHex(receipt.Code)
+	rlog.CodeHash = common.ToHex(receipt.CodeHash)
+	return rlog
+}
+
+func buildContractStateResult(l *jsonrpc.ReceiptLogResult) interface{} {
+	data, _ := common.FromHex(l.RawLog)
+	receipt := &types.EVMContractState{}
+	proto.Unmarshal(data, receipt)
+	rlog := &types.EVMContractStateCmd{Nonce: receipt.Nonce, Suicided: receipt.Suicided}
+	rlog.StorageHash = common.ToHex(receipt.StorageHash)
+	if receipt.Storage != nil {
+		rlog.Storage = make(map[string]string)
+		for k, v := range receipt.Storage {
+			rlog.Storage[k] = common.ToHex(v)
+		}
+	}
+	return rlog
 }
 
 func SendToAddress(rpcAddr string, from string, to string, amount int64, note string, isToken bool, tokenSymbol string, isWithdraw bool) {
@@ -161,24 +206,56 @@ func SendToAddress(rpcAddr string, from string, to string, amount int64, note st
 	ctx.Run()
 }
 
-func CreateRawTx(rpcAddr string, to string, amount float64, note string, isWithdraw bool, isToken bool, tokenSymbol string, execName string) {
+func CreateRawTx(to string, amount float64, note string, isWithdraw bool, isToken bool, tokenSymbol string, execName string) (string, error) {
 	if amount < 0 {
-		fmt.Fprintln(os.Stderr, types.ErrAmount)
-		return
+		return "", types.ErrAmount
 	}
 	amountInt64 := int64(amount*1e4) * 1e4
-	params := &types.CreateTx{
-		To:          to,
-		Amount:      amountInt64,
-		Note:        note,
-		IsWithdraw:  isWithdraw,
-		IsToken:     isToken,
-		TokenSymbol: tokenSymbol,
-		ExecName:    execName,
+	if execName != "" && !types.IsAllowExecName(execName) {
+		return "", types.ErrExecNameNotMatch
+	}
+	var tx *types.Transaction
+	if !isToken {
+		transfer := &types.CoinsAction{}
+		if !isWithdraw {
+			if execName != "" {
+				v := &types.CoinsAction_TransferToExec{TransferToExec: &types.CoinsTransferToExec{Amount: amountInt64, Note: note, ExecName: execName}}
+				transfer.Value = v
+				transfer.Ty = types.CoinsActionTransferToExec
+			} else {
+				v := &types.CoinsAction_Transfer{Transfer: &types.CoinsTransfer{Amount: amountInt64, Note: note}}
+				transfer.Value = v
+				transfer.Ty = types.CoinsActionTransfer
+			}
+		} else {
+			v := &types.CoinsAction_Withdraw{Withdraw: &types.CoinsWithdraw{Amount: amountInt64, Note: note}}
+			transfer.Value = v
+			transfer.Ty = types.CoinsActionWithdraw
+		}
+		tx = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), To: to}
+	} else {
+		transfer := &types.TokenAction{}
+		if !isWithdraw {
+			v := &types.TokenAction_Transfer{Transfer: &types.CoinsTransfer{Cointoken: tokenSymbol, Amount: amountInt64, Note: note}}
+			transfer.Value = v
+			transfer.Ty = types.ActionTransfer
+		} else {
+			v := &types.TokenAction_Withdraw{Withdraw: &types.CoinsWithdraw{Cointoken: tokenSymbol, Amount: amountInt64, Note: note}}
+			transfer.Value = v
+			transfer.Ty = types.ActionWithdraw
+		}
+		tx = &types.Transaction{Execer: []byte("token"), Payload: types.Encode(transfer), To: to}
 	}
 
-	ctx := NewRpcCtx(rpcAddr, "Chain33.CreateRawTransaction", params, nil)
-	ctx.RunWithoutMarshal()
+	var err error
+	tx.Fee, err = tx.GetRealFee(types.MinFee)
+	if err != nil {
+		return "", err
+	}
+	random := rand.New(rand.NewSource(time.Now().UnixNano()))
+	tx.Nonce = random.Int63()
+	txHex := types.Encode(tx)
+	return hex.EncodeToString(txHex), nil
 }
 
 func GetExecAddr(exec string) (string, error) {
