@@ -11,6 +11,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/common"
 )
 
 var (
@@ -418,7 +419,7 @@ func (ws *WalletStore) getWalletPrivacyTokenMap() *types.TokenNamesOfUTXO {
 }
 
 func (ws *WalletStore) updateWalletPrivacyTokenMap(tokenNames *types.TokenNamesOfUTXO, newbatch dbm.Batch, token, txhash string, addDelType int32) error {
-	if AddPrivacyTx == addDelType {
+	if AddTx == addDelType {
 		privacyTokenNames, err := proto.Marshal(tokenNames)
 		if err != nil {
 			walletlog.Error("updateWalletPrivacyTokenMap proto.Marshal err!", "err", err)
@@ -502,10 +503,7 @@ func (ws *WalletStore) moveUTXO2FTXO(token, sender, txhash string, selectedUtxos
 	FTXOsInOneTx := &types.FTXOsSTXOsInOneTx{}
 	newbatch := ws.NewBatch(true)
 	for _, txOutputInfo := range selectedUtxos {
-		newbatch.Delete(calcUTXOKey4TokenAddr(token, sender, txhash, int(txOutputInfo.utxoGlobalIndex.Outindex)))
-		//key := calcFTXOKey(token, sender, txhash, int(txOutputInfo.utxoGlobalIndex.Outindex))
-		//value := calcUTXOKey(txhash, int(txOutputInfo.utxoGlobalIndex.Outindex))
-		//newbatch.Set(key, value)
+		newbatch.Delete(calcUTXOKey4TokenAddr(token, sender, common.ToHex(txOutputInfo.utxoGlobalIndex.Txhash), int(txOutputInfo.utxoGlobalIndex.Outindex)))
 		FTXOsInOneTx.UtxoGlobalIndex = append(FTXOsInOneTx.UtxoGlobalIndex, txOutputInfo.utxoGlobalIndex)
 	}
     //设置在该交易中花费的UTXO
@@ -519,6 +517,35 @@ func (ws *WalletStore) moveUTXO2FTXO(token, sender, txhash string, selectedUtxos
 	newbatch.Set(key2, value2)
 	newbatch.Write()
 }
+
+//将FTXO重置为UTXO
+func (ws *WalletStore) unmoveUTXO2FTXO(input *types.PrivacyInput, token, sender, txhash string, newbatch dbm.Batch) {
+	//设置ftxo的key，使其能够方便地获取到对应的交易花费的utxo
+	key1 := calcKey4FTXOsInTx(txhash)
+	value1 := ws.db.Get(key1)
+	if nil == value1 {
+		walletlog.Error("unmoveUTXO2FTXO", "Get nil value for key", string(key1))
+		return
+	}
+	key2 := value1
+	value2 := ws.db.Get(key2)
+	if nil == value2 {
+		walletlog.Error("unmoveUTXO2FTXO", "Get nil value for key", string(key2))
+		return
+	}
+	var ftxosInOneTx types.FTXOsSTXOsInOneTx
+	err := types.Decode(value2, &ftxosInOneTx)
+	if nil != err {
+		walletlog.Error("unmoveUTXO2FTXO", "Failed to decode FTXOsSTXOsInOneTx for value", value2)
+		return
+	}
+	if err == nil {
+		for _, ftxo := range ftxosInOneTx.UtxoGlobalIndex {
+			utxohash := common.ToHex(ftxo.Txhash)
+			newbatch.Set(calcUTXOKey4TokenAddr(token, sender, utxohash, int(ftxo.Outindex)), calcUTXOKey(utxohash, int(ftxo.Outindex)))
+		}
+	}
+}
 //calcKey4FTXOsInTx-----x------>calcKey4UTXOsSpentInTx,被删除，
 //calcKey4STXOsInTx------------>calcKey4UTXOsSpentInTx
 //切换types.FTXOsSTXOsInOneTx的状态
@@ -527,7 +554,7 @@ func (ws *WalletStore) moveFTXO2STXO(txhash string, newbatch dbm.Batch) error {
 	key1 := calcKey4FTXOsInTx(txhash)
 	value1 := ws.db.Get(key1)
 	if value1 == nil {
-		walletlog.Debug("moveFTXO2STXO", "Get nil value for txhash", txhash)
+		walletlog.Error("moveFTXO2STXO", "Get nil value for txhash", txhash)
 		return types.ErrNotFound
 	}
 	newbatch.Delete(key1)

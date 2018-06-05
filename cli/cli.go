@@ -509,7 +509,7 @@ func main() {
 			return
 		}
 		ShowUTXOs4SpecifiedAmount(argsWithoutProg[1])
-	case "createutxo":
+	case "createutxos":
 		if len(argsWithoutProg) != 7 {
 			fmt.Print(errors.New("参数错误").Error())
 			return
