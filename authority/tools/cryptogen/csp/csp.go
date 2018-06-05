@@ -23,7 +23,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/authority/bccsp"
 	"gitlab.33.cn/chain33/chain33/authority/bccsp/factory"
 	"gitlab.33.cn/chain33/chain33/authority/bccsp/signer"
-	"gitlab.33.cn/chain33/chain33/authority/common/providers/core"
 	"gitlab.33.cn/chain33/chain33/authority/cryptosuite"
 )
 
@@ -40,20 +39,16 @@ func GeneratePrivateKey(keystorePath string) (bccsp.Key,
 		SwOpts: &factory.SwOpts{
 			HashFamily: "SHA2",
 			SecLevel:   256,
-
-			FileKeystore: &factory.FileKeystoreOpts{
-				KeyStorePath: keystorePath,
-			},
 		},
 	}
 	csp, err := factory.GetBCCSPFromOpts(opts)
 	var suite cryptosuite.CryptoSuite
-	var wrapperkey core.Key
+	var wrapperkey bccsp.Key
 
 	suite.BCCSP = csp
 	if err == nil {
 		// generate a key
-		priv, err = csp.KeyGen(&bccsp.ECDSAP256KeyGenOpts{Temporary: false})
+		priv, err = csp.KeyGen(&bccsp.ECDSAP256KeyGenOpts{})
 		if err == nil {
 			// create a crypto.Signer
 			wrapperkey = cryptosuite.GetKey(priv)

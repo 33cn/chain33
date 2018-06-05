@@ -26,6 +26,13 @@ import (
 	"gitlab.33.cn/chain33/chain33/authority/bccsp"
 )
 
+// KeyGenerator is a BCCSP-like interface that provides key generation algorithms
+type KeyGenerator interface {
+
+	// KeyGen generates a key using opts.
+	KeyGen(opts bccsp.KeyGenOpts) (k bccsp.Key, err error)
+}
+
 // KeyImporter is a BCCSP-like interface that provides key import algorithms
 type KeyImporter interface {
 
