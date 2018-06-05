@@ -40,11 +40,11 @@ func (block *Block) CheckBlockSign() bool {
 	if block.Signature != nil {
 		hash := block.Hash()
 		sign := block.GetSignature()
-		if CheckSign(hash, sign) {
-			return true
+		if !CheckSign(hash, sign) {
+			return false
 		}
 	}
-	return false
+	return true
 }
 
 func (block *Block) CheckSign() bool {
