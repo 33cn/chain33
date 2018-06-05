@@ -11,8 +11,12 @@ import (
 	"gitlab.33.cn/chain33/chain33/authority/bccsp"
 	"gitlab.33.cn/chain33/chain33/authority/cryptosuite"
 	"github.com/pkg/errors"
+	"fmt"
+	"encoding/hex"
+	log "github.com/inconshreveable/log15"
 )
 
+var signLogger = log.New("module", "signingmgr")
 // SigningManager is used for signing objects with private key
 type SigningManager struct {
 	cryptoProvider core.CryptoSuite
@@ -42,6 +46,7 @@ func (mgr *SigningManager) Sign(object []byte, key bccsp.Key) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	signLogger.Debug(fmt.Sprintf("Verify: digest = %s", hex.Dump(digest)))
 	signature, err := mgr.cryptoProvider.Sign(key, digest, mgr.signerOpts)
 	if err != nil {
 		return nil, err
