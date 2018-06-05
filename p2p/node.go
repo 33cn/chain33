@@ -72,7 +72,12 @@ func NewNode(cfg *types.P2P) (*Node, error) {
 		cacheBound: make(map[string]*Peer),
 	}
 	if cfg.GetInnerSeedEnable() {
-		cfg.Seeds = append(cfg.Seeds, InnerSeeds...)
+		if types.IsTestNet() {
+			cfg.Seeds = append(cfg.Seeds, TestNetSeeds...)
+		} else {
+			cfg.Seeds = append(cfg.Seeds, InnerSeeds...)
+		}
+
 	}
 
 	node.nodeInfo = NewNodeInfo(cfg)
