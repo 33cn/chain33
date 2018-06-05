@@ -1,7 +1,9 @@
-package relayd
+package relayd_test
 
 import (
 	"testing"
+
+	. "gitlab.33.cn/chain33/chain33/cmd/relayd/relayd"
 )
 
 func TestNewBtcWeb(t *testing.T) {

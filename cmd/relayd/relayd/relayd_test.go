@@ -1,4 +1,4 @@
-package relayd
+package relayd_test
 
 import (
 	"testing"

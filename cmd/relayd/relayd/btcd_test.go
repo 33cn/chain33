@@ -1,4 +1,4 @@
-package relayd
+package relayd_test
 
 import (
 	"io/ioutil"
@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/btcsuite/btcd/rpcclient"
+	. "gitlab.33.cn/chain33/chain33/cmd/relayd/relayd"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 )
 
