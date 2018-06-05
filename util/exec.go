@@ -180,7 +180,7 @@ func CheckBlock(client queue.Client, block *types.BlockDetail) error {
 }
 
 func ExecTx(client queue.Client, prevStateRoot []byte, block *types.Block) *types.Receipts {
-	list := &types.ExecTxList{prevStateRoot, block.Txs, block.BlockTime, block.Height}
+	list := &types.ExecTxList{prevStateRoot, block.Txs, block.BlockTime, block.Height, uint64(block.Difficulty)}
 	msg := client.NewMessage("execs", types.EventExecTxList, list)
 	client.Send(msg, true)
 	resp, err := client.Wait(msg)
@@ -268,4 +268,22 @@ func CheckTxDup(client queue.Client, txs []*types.TransactionCache, height int64
 		transactions = append(transactions, tx)
 	}
 	return transactions
+}
+
+//上报指定错误信息到指定模块，目前只支持从store，blockchain，wallet写数据库失败时上报错误信息到wallet模块，
+//然后由钱包模块前端定时调用显示给客户
+func ReportErrEventToFront(logger log.Logger, client queue.Client, frommodule string, tomodule string, err error) {
+	if client == nil || len(tomodule) == 0 || len(frommodule) == 0 || err == nil {
+		logger.Error("SendErrEventToFront  input para err .")
+		return
+	}
+
+	logger.Debug("SendErrEventToFront", "frommodule", frommodule, "tomodule", tomodule, "err", err)
+
+	var reportErrEvent types.ReportErrEvent
+	reportErrEvent.Frommodule = frommodule
+	reportErrEvent.Tomodule = tomodule
+	reportErrEvent.Error = err.Error()
+	msg := client.NewMessage(tomodule, types.EventErrToFront, &reportErrEvent)
+	client.Send(msg, false)
 }

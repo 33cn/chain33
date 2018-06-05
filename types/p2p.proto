@@ -29,10 +29,13 @@ service p2pgservice {
 	//版本
 	rpc Version (P2PVersion) returns (P2PVerAck) {
 	}
-	
+	//获取p2p协议的版本号
 	rpc Version2 (P2PVersion) returns (P2PVersion) {
 	}
-	
+	//获取软件的版本号
+	rpc SoftVersion(P2PPing)returns (Reply){
+		
+	}
 	//获取区块，最高200
 	rpc GetBlocks (P2PGetBlocks) returns (P2PInv) {
 	}

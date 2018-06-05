@@ -72,7 +72,7 @@ dbCache=128
 [wallet]
 minFee=100000
 driver="leveldb"
-dbPath="datadir/wallet"
+dbPath="wallet"
 dbCache=16
 signType="secp256k1"
 minerdisable=false
@@ -80,11 +80,10 @@ minerdisable=false
 [exec]
 isFree=false
 minExecFee=100000
+enableStat=false
 
 [auth]
-cryptoPath="authdir/crypto/User"
+cryptoPath="authdir/crypto"
 securityLevel=256
-defaultProvider="SW"
 hashAlgorithm="SHA2"
-keyStorePath="authdir/keystore"
 orgName="chain33"
