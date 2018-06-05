@@ -422,6 +422,7 @@ func (wallet *Wallet) transPri2PriV2(privacykeyParirs *privacy.Privacy, reqPri2P
 	signature := &types.Signature{
 		Ty:            types.RingBaseonED25519,
 		RingSignature: ringSigns,
+		Pubkey: account.ExecPubKey(types.PrivacyX),
 	}
 	tx.Signature = signature
 
@@ -514,6 +515,7 @@ func (wallet *Wallet) transPri2PubV2(privacykeyParirs *privacy.Privacy, reqPri2P
 	signature := &types.Signature{
 		Ty:            types.RingBaseonED25519,
 		RingSignature: ringSignatures,
+		Pubkey: account.ExecPubKey(types.PrivacyX),
 	}
 	tx.Signature = signature
 
