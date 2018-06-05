@@ -192,6 +192,7 @@ message ExecTxList {
 	repeated Transaction txs = 2;
 	int64 blockTime = 3;
 	int64 height = 4;
+	uint64 difficulty = 5;
 }
 
 message Query {

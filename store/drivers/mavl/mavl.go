@@ -87,15 +87,19 @@ func (mavls *Store) MemSet(datas *types.StoreSet, sync bool) []byte {
 	return hash
 }
 
-func (mavls *Store) Commit(req *types.ReqHash) []byte {
+func (mavls *Store) Commit(req *types.ReqHash) ([]byte, error) {
 	tree, ok := mavls.trees[string(req.Hash)]
 	if !ok {
 		mlog.Error("store mavl commit", "err", types.ErrHashNotFound)
-		return nil
+		return nil, types.ErrHashNotFound
 	}
-	tree.Save()
+	hash := tree.Save()
+	if hash == nil {
+		mlog.Error("store mavl commit", "err", types.ErrHashNotFound)
+		return nil, types.ErrDataBaseDamage
+	}
 	delete(mavls.trees, string(req.Hash))
-	return req.Hash
+	return req.Hash, nil
 }
 
 func (mavls *Store) Rollback(req *types.ReqHash) []byte {
