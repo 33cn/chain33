@@ -13,6 +13,16 @@ import (
 var addrSeed = []byte("address seed bytes for public key")
 var bname [200]byte
 
+func ExecPubKey(name string) []byte {
+	if len(name) > 100 {
+		panic("name too long")
+	}
+	buf := append(bname[:0], addrSeed...)
+	buf = append(buf, []byte(name)...)
+	hash := common.Sha2Sum(buf)
+	return hash[:]
+}
+
 func ExecAddress(name string) *Address {
 	if len(name) > 100 {
 		panic("name too long")

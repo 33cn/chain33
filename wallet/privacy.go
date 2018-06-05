@@ -3,13 +3,13 @@ package wallet
 import (
 	"bytes"
 	"errors"
+	"sort"
+	"unsafe"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/crypto/privacy"
 	"gitlab.33.cn/chain33/chain33/types"
-	"sort"
-	"unsafe"
 )
 
 type realkeyInput struct {
@@ -377,8 +377,8 @@ func (wallet *Wallet) transPri2PriV2(privacykeyParirs *privacy.Privacy, reqPri2P
 		tokenname: &reqPri2Pri.Tokenname,
 		sender:    &reqPri2Pri.Sender,
 		// TODO: 这里存在手续费不足的情况,需要考虑扣除手续费以后的拆分问题,所以这里先简单的放大,让调试通过
-		amount:   reqPri2Pri.Amount + types.PrivacyTxFee,
-		mixcount: reqPri2Pri.Mixin,
+		amount:    reqPri2Pri.Amount + types.PrivacyTxFee,
+		mixcount:  reqPri2Pri.Mixin,
 	}
 
 	//step 1,buildInput
@@ -608,7 +608,7 @@ func (wallet *Wallet) buildInput(privacykeyParirs *privacy.Privacy, buildInfo *b
 				}
 			}
 		}
-		if utxoIndex4Amount == nil {
+		if utxoIndex4Amount == nil{
 			utxoIndex4Amount = &types.UTXOIndex4Amount{}
 		}
 		if utxoIndex4Amount.Utxos == nil {
@@ -735,13 +735,13 @@ func decomposeAmount2digits(amount, dust_threshold int64) []int64 {
 }
 
 //将amount切分为1,2,5的组合，这样在进行amount混淆的时候就能够方便获取相同额度的utxo
-func decomAmount2Nature(amount int64, order int64) []int64 {
+func decomAmount2Nature(amount int64, order int64)([]int64) {
 	res := make([]int64, 0)
 	if order == 0 {
 		return nil
 	}
 	mul := amount / order
-	switch mul {
+	switch mul{
 	case 3:
 		res = append(res, order)
 		res = append(res, 2*order)
