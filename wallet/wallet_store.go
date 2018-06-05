@@ -23,10 +23,10 @@ var (
 
 const (
 	Privacy4Addr = "Privacy4Addr-"
-	PrivacyTokenAddrUTXO = "token-addr-UTXO-"
-	PrivacyUTXO = "UTXO-"
-	PrivacyFTXO = "FTXO-"//Frozen TXO
-	PrivacySTXO = "STXO-"
+	//PrivacyTokenAddrUTXO = "token-addr-UTXO-"
+	PrivacyUTXO     = "UTXO-"
+	PrivacyFTXO     = "FTXO-" //Frozen TXO
+	PrivacySTXO     = "STXO-"
 	PrivacyTokenMap = "PrivacyTokenMap"
 )
 
@@ -69,7 +69,7 @@ func calcPrivacyAddrKey(addr string) []byte {
 }
 
 func calcUTXOKey4TokenAddr(token, addr, txhash string, index int) []byte {
-	return []byte(fmt.Sprintf(PrivacyTokenAddrUTXO + "%s-%s-%s-%d", token, addr, txhash, index))
+	return []byte(fmt.Sprintf(PrivacyUTXO+"%s-%s-%s-%d", token, addr, txhash, index))
 }
 
 func calcPrivacyUTXOPrefix(token string) []byte {
@@ -569,7 +569,8 @@ func (ws *WalletStore) getWalletPrivacyTokenUTXOs(token string) map[string]*wall
 		outs4token := make(map[string]*walletUTXOs)
 		for _, value := range values {
 			var privacyDBStore types.PrivacyDBStore
-			err := types.Decode(value, &privacyDBStore)
+			accByte := ws.db.Get(value)
+			err := types.Decode(accByte, &privacyDBStore)
 			if err == nil {
 				utxoGlobalIndex := &types.UTXOGlobalIndex{
 					Height:   privacyDBStore.Height,
@@ -617,8 +618,9 @@ func (ws *WalletStore) listAvailableUTXOs(token, addr string) ([]*types.PrivacyD
 	}
 
 	privacyDBStoreSlice := make([]*types.PrivacyDBStore, len(onetimeAccbytes))
-	for index, accByte := range onetimeAccbytes {
+	for index, acckeyByte := range onetimeAccbytes {
 		var accPrivacy types.PrivacyDBStore
+		accByte := ws.db.Get(acckeyByte)
 		err := proto.Unmarshal(accByte, &accPrivacy)
 		if err != nil {
 			walletlog.Error("listWalletPrivacyAccount", "proto.Unmarshal err:", err)
