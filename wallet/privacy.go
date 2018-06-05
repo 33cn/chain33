@@ -481,7 +481,7 @@ func (wallet *Wallet) transPri2PubV2(privacykeyParirs *privacy.Privacy, reqPri2P
 	changeAmount := selectedAmounTotal - reqPri2Pub.Amount
 	//step 2,generateOuts
 	//构造输出UTXO,只生成找零的UTXO
-	privacyOutput, err := generateOuts(nil, nil, viewPub4chgPtr, spendPub4chgPtr, 0, changeAmount, wallet.FeeAmount)
+	privacyOutput, err := generateOuts(nil, nil, viewPub4chgPtr, spendPub4chgPtr, 0, changeAmount, types.PrivacyTxFee)
 	if err != nil {
 		return nil, err
 	}
