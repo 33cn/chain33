@@ -363,7 +363,7 @@ func (e *executor) processFee(tx *types.Transaction) (*types.Receipt, error) {
 				}
 
 				totalOutput := int64(0)
-				for _, output := range action.GetPrivacy2Privacy().Output.Keyoutput {
+				for _, output := range action.GetPrivacy2Public().Output.Keyoutput {
 					totalOutput += output.Amount
 				}
 
