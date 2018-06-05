@@ -349,7 +349,7 @@ func (wallet *Wallet) ProcRecvMsg() {
 
 		case types.EventNewAccount:
 			NewAccount := msg.Data.(*types.ReqNewAccount)
-			WalletAccount, err := wallet.ProcCreatNewAccount(NewAccount)
+			WalletAccount, err := wallet.ProcCreateNewAccount(NewAccount)
 			if err != nil {
 				walletlog.Error("ProcCreatNewAccount", "err", err.Error())
 				msg.Reply(wallet.client.NewMessage("rpc", types.EventWalletAccount, err))
@@ -704,7 +704,7 @@ func (wallet *Wallet) ProcGetAccountList() (*types.WalletAccounts, error) {
 //	Frozen   int64
 //	Addr     string
 //创建一个新的账户
-func (wallet *Wallet) ProcCreatNewAccount(Label *types.ReqNewAccount) (*types.WalletAccount, error) {
+func (wallet *Wallet) ProcCreateNewAccount(Label *types.ReqNewAccount) (*types.WalletAccount, error) {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
 
