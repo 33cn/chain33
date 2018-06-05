@@ -244,7 +244,7 @@ func testSeed(t *testing.T, wallet *Wallet) {
 }
 
 func testProcCreateNewAccount(t *testing.T, wallet *Wallet) {
-	println("TestProcCreatNewAccount begin")
+	println("TestProcCreateNewAccount begin")
 	total := 10
 	address := make([]string, total)
 	accs := make([]*types.Account, total+1)
@@ -310,7 +310,7 @@ func testProcCreateNewAccount(t *testing.T, wallet *Wallet) {
 			return
 		}
 	}
-	println("TestProcCreatNewAccount end")
+	println("TestProcCreateNewAccount end")
 	println("--------------------------")
 }
 
