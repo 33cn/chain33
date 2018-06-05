@@ -10,7 +10,7 @@ mv chain33 $SHELL_FOLDER
 curDir=$(pwd)
 echo "cur dir:":$curDir
 cd $SHELL_FOLDER
-dos2unix *.sh
+#dos2unix *.sh
 tar cvf chain33.tgz chain33 chain33.toml raft_conf.sh run.sh
 rm -rf chain33
 echo "---- chain33 build success!----- "
