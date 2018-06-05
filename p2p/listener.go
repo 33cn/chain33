@@ -60,7 +60,7 @@ func NewListener(protocol string, node *Node) Listener {
 	keepparm.Time = 5 * time.Minute
 	keepparm.Timeout = 50 * time.Second
 	keepparm.MaxConnectionIdle = 1 * time.Minute
-	maxStreams := grpc.MaxConcurrentStreams(200)
+	maxStreams := grpc.MaxConcurrentStreams(1000)
 	keepOp := grpc.KeepaliveParams(keepparm)
 
 	dl.server = grpc.NewServer(msgRecvOp, msgSendOp, keepOp, maxStreams)
