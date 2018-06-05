@@ -27,6 +27,8 @@ const (
 	// an error will be returned.
 	ECDSA = "ECDSA"
 
+	// ECDSA Elliptic Curve Digital Signature Algorithm over P-256 curve
+	ECDSAP256 = "ECDSAP256"
 	// RSA at the default security level.
 	// Each BCCSP may or may not support default security level. If not supported than
 	// an error will be returned.

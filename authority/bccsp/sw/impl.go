@@ -28,6 +28,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/authority/bccsp"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/sha3"
+	"crypto/elliptic"
 )
 
 
@@ -67,6 +68,11 @@ func New(securityLevel int, hashFamily string) (bccsp.BCCSP, error) {
 		verifiers:  verifiers,
 		hashers:    hashers}
 
+	// Set the key generators
+	keyGenerators := make(map[reflect.Type]KeyGenerator)
+	keyGenerators[reflect.TypeOf(&bccsp.ECDSAP256KeyGenOpts{})] = &ecdsaKeyGenerator{curve: elliptic.P256()}
+	impl.keyGenerators = keyGenerators
+
 	// Set the key importers
 	keyImporters := make(map[reflect.Type]KeyImporter)
 	keyImporters[reflect.TypeOf(&bccsp.AES256ImportKeyOpts{})] = &aes256ImportKeyOptsKeyImporter{}
@@ -86,12 +92,32 @@ func New(securityLevel int, hashFamily string) (bccsp.BCCSP, error) {
 type impl struct {
 	conf *config
 
+	keyGenerators map[reflect.Type]KeyGenerator
 	keyImporters  map[reflect.Type]KeyImporter
 	signers       map[reflect.Type]Signer
 	verifiers     map[reflect.Type]Verifier
 	hashers       map[reflect.Type]Hasher
 }
 
+// KeyGen generates a key using opts.
+func (csp *impl) KeyGen(opts bccsp.KeyGenOpts) (k bccsp.Key, err error) {
+	// Validate arguments
+	if opts == nil {
+		return nil, errors.New("Invalid Opts parameter. It must not be nil.")
+	}
+
+	keyGenerator, found := csp.keyGenerators[reflect.TypeOf(opts)]
+	if !found {
+		return nil, errors.Errorf("Unsupported 'KeyGenOpts' provided [%v]", opts)
+	}
+
+	k, err = keyGenerator.KeyGen(opts)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Failed generating key with opts [%v]", opts)
+	}
+
+	return k, nil
+}
 // KeyImport imports a key from its raw representation using opts.
 // The opts argument should be appropriate for the primitive used.
 func (csp *impl) KeyImport(raw interface{}, opts bccsp.KeyImportOpts) (k bccsp.Key, err error) {
