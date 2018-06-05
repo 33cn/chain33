@@ -347,8 +347,7 @@ func (e *executor) processFee(tx *types.Transaction) (*types.Receipt, error) {
 				feeAmount := totalInput - totalOutput
 				if feeAmount >= tx.Fee {
 					//从隐私合约在coin的账户中扣除，同时也保证了相应的utxo差额被燃烧
-					execaddr := drivers.ExecAddress(types.PrivacyX)
-					return e.cutFeeFromAccount(execaddr, feeAmount)
+					return e.cutFeeFromAccount(from, feeAmount)
 				}
 
 			} else if action.Ty == types.ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
@@ -371,8 +370,7 @@ func (e *executor) processFee(tx *types.Transaction) (*types.Receipt, error) {
 				feeAmount := totalInput-action.GetPrivacy2Public().Amount-totalOutput
 				if feeAmount >= tx.Fee {
 					//从隐私合约在coin的账户中扣除，同时也保证了相应的utxo差额被燃烧
-					execaddr := drivers.ExecAddress(types.PrivacyX)
-					return e.cutFeeFromAccount(execaddr, feeAmount)
+					return e.cutFeeFromAccount(from, feeAmount)
 				}
 			}
 		}
@@ -432,16 +430,7 @@ func (e *executor) checkPrivacyTxFee(tx *types.Transaction) error {
 	if err != nil {
 		return err
 	}
-	if action.Ty == types.ActionPublic2Privacy && action.GetPublic2Privacy() != nil {
-		// 公开对隐私,只需要直接计算隐私合约中的余额即可
-		from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
-		execaddr := drivers.ExecAddress(types.PrivacyX)
-		accFrom := e.coinsAccount.LoadExecAccount(from, execaddr)
-		if accFrom.GetBalance()-tx.Fee < 0 {
-			return types.ErrBalanceLessThanTenTimesFee
-		}
-
-	} else if action.Ty == types.ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
+	if action.Ty == types.ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
 		if tx.Fee < types.PrivacyUTXOFee {
 			return types.ErrPrivacyTxFeeNotEnough
 		}
@@ -499,16 +488,18 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 	exec := e.loadDriverForExec(string(tx.Execer))
 	//手续费检查
 	if !exec.IsFree() && types.MinFee > 0 {
+		from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
+		accFrom := e.coinsAccount.LoadAccount(from)
+		if accFrom.GetBalance() < types.MinBalanceTransfer {
+			return types.ErrBalanceLessThanTenTimesFee
+		}
+
+		//对于隐私交易类型为1.私对私和2.私对公这2种类型，
+		//还需要进一步检查utxo输入输出差值是否足够支付交易费
 		if types.PrivacyX == string(tx.Execer) {
 			err = e.checkPrivacyTxFee(tx)
 			if err != nil {
 				return err
-			}
-		} else {
-			from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
-			accFrom := e.coinsAccount.LoadAccount(from)
-			if accFrom.GetBalance() < types.MinBalanceTransfer {
-				return types.ErrBalanceLessThanTenTimesFee
 			}
 		}
 	}
