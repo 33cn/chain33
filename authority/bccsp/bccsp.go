@@ -78,6 +78,9 @@ type SignerOpts interface {
 // the implementation of cryptographic standards and algorithms.
 type BCCSP interface {
 
+	// KeyGen generates a key using opts.
+	KeyGen(opts KeyGenOpts) (k Key, err error)
+
 	// KeyImport imports a key from its raw representation using opts.
 	// The opts argument should be appropriate for the primitive used.
 	KeyImport(raw interface{}, opts KeyImportOpts) (k Key, err error)
