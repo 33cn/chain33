@@ -1,23 +1,18 @@
 package executor
 
 import (
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
-	"fmt"
-
-	"strconv"
-
+	"github.com/golang/protobuf/proto"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
-
-	"strings"
-
-	"github.com/golang/protobuf/proto"
 )
 
 var (
@@ -150,13 +145,13 @@ func constructionBlockDetail(block *types.Block, height int64, txcount int) *typ
 }
 
 func genExecTxListMsg(client queue.Client, block *types.Block) queue.Message {
-	list := &types.ExecTxList{zeroHash[:], block.Txs, block.BlockTime, block.Height}
+	list := &types.ExecTxList{zeroHash[:], block.Txs, block.BlockTime, block.Height, 0}
 	msg := client.NewMessage("execs", types.EventExecTxList, list)
 	return msg
 }
 
 func genExecCheckTxMsg(client queue.Client, block *types.Block) queue.Message {
-	list := &types.ExecTxList{zeroHash[:], block.Txs, block.BlockTime, block.Height}
+	list := &types.ExecTxList{zeroHash[:], block.Txs, block.BlockTime, block.Height, 0}
 	msg := client.NewMessage("execs", types.EventCheckTx, list)
 	return msg
 }
@@ -188,7 +183,7 @@ func storeProcess(q queue.Queue) {
 			switch msg.Ty {
 			case types.EventStoreGet:
 				datas := msg.GetData().(*types.StoreGet)
-				fmt.Println("EventStoreGet Keys[0] = %s", string(datas.Keys[0]))
+				//fmt.Println("EventStoreGet Keys[0] = %s", string(datas.Keys[0]))
 
 				var value []byte
 				if strings.Contains(string(datas.Keys[0]), "this type ***") { //这种type结构体走该分支
@@ -231,10 +226,10 @@ func blockchainProcess(q queue.Queue) {
 				header := &types.Header{StateHash: []byte("111111111111111111111"), Height: 1}
 				msg.Reply(client.NewMessage("", types.EventHeader, header))
 			case types.EventLocalGet:
-				fmt.Println("EventLocalGet rsp")
+				//fmt.Println("EventLocalGet rsp")
 				msg.Reply(client.NewMessage("", types.EventLocalReplyValue, &types.LocalReplyValue{}))
 			case types.EventLocalList:
-				fmt.Println("EventLocalList rsp")
+				//fmt.Println("EventLocalList rsp")
 				//value := []byte{1,2,3,4,5,6}
 				//values := make([][]byte,2)
 				//values = append(values[:0],value)
