@@ -351,7 +351,7 @@ func (wallet *Wallet) ProcRecvMsg() {
 			NewAccount := msg.Data.(*types.ReqNewAccount)
 			WalletAccount, err := wallet.ProcCreateNewAccount(NewAccount)
 			if err != nil {
-				walletlog.Error("ProcCreatNewAccount", "err", err.Error())
+				walletlog.Error("ProcCreateNewAccount", "err", err.Error())
 				msg.Reply(wallet.client.NewMessage("rpc", types.EventWalletAccount, err))
 			} else {
 				msg.Reply(wallet.client.NewMessage("rpc", types.EventWalletAccount, WalletAccount))
@@ -714,14 +714,14 @@ func (wallet *Wallet) ProcCreateNewAccount(Label *types.ReqNewAccount) (*types.W
 	}
 
 	if Label == nil || len(Label.GetLabel()) == 0 {
-		walletlog.Error("ProcCreatNewAccount Label is nil")
+		walletlog.Error("ProcCreateNewAccount Label is nil")
 		return nil, types.ErrInputPara
 	}
 
 	//首先校验label是否已被使用
 	WalletAccStores, err := wallet.walletStore.GetAccountByLabel(Label.GetLabel())
 	if WalletAccStores != nil {
-		walletlog.Error("ProcCreatNewAccount Label is exist in wallet!")
+		walletlog.Error("ProcCreateNewAccount Label is exist in wallet!")
 		return nil, types.ErrLabelHasUsed
 	}
 
@@ -740,28 +740,28 @@ func (wallet *Wallet) ProcCreateNewAccount(Label *types.ReqNewAccount) (*types.W
 	//通过seed获取私钥, 首先通过钱包密码解锁seed然后通过seed生成私钥
 	seed, err := wallet.getSeed(wallet.Password)
 	if err != nil {
-		walletlog.Error("ProcCreatNewAccount", "getSeed err", err)
+		walletlog.Error("ProcCreateNewAccount", "getSeed err", err)
 		return nil, err
 	}
 	privkeyhex, err := GetPrivkeyBySeed(wallet.walletStore.db, seed)
 	if err != nil {
-		walletlog.Error("ProcCreatNewAccount", "GetPrivkeyBySeed err", err)
+		walletlog.Error("ProcCreateNewAccount", "GetPrivkeyBySeed err", err)
 		return nil, err
 	}
 	privkeybyte, err := common.FromHex(privkeyhex)
 	if err != nil || len(privkeybyte) == 0 {
-		walletlog.Error("ProcCreatNewAccount", "FromHex err", err)
+		walletlog.Error("ProcCreateNewAccount", "FromHex err", err)
 		return nil, err
 	}
 
 	pub, err := bipwallet.PrivkeyToPub(cointype, privkeybyte)
 	if err != nil {
-		seedlog.Error("ProcCreatNewAccount PrivkeyToPub", "err", err)
+		seedlog.Error("ProcCreateNewAccount PrivkeyToPub", "err", err)
 		return nil, types.ErrPrivkeyToPub
 	}
 	addr, err := bipwallet.PubToAddress(cointype, pub)
 	if err != nil {
-		seedlog.Error("ProcCreatNewAccount PubToAddress", "err", err)
+		seedlog.Error("ProcCreateNewAccount PubToAddress", "err", err)
 		return nil, types.ErrPrivkeyToPub
 	}
 
@@ -790,7 +790,7 @@ func (wallet *Wallet) ProcCreateNewAccount(Label *types.ReqNewAccount) (*types.W
 	addrs[0] = addr
 	accounts, err := accountdb.LoadAccounts(wallet.api, addrs)
 	if err != nil {
-		walletlog.Error("ProcCreatNewAccount", "LoadAccounts err", err)
+		walletlog.Error("ProcCreateNewAccount", "LoadAccounts err", err)
 		return nil, err
 	}
 	// 本账户是首次创建
