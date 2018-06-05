@@ -38,7 +38,7 @@ func (c *channelClient) SendRawTransaction(parm *types.SignedTx) queue.Message {
 	err := types.Decode(parm.GetUnsign(), &tx)
 
 	if err == nil {
-		tx.Signature = &types.Signature{parm.GetTy(), parm.GetPubkey(), parm.GetSign(), nil}
+		tx.Signature = &types.Signature{parm.GetTy(), parm.GetPubkey(), parm.GetSign()}
 		msg := c.NewMessage("mempool", types.EventTx, &tx)
 		err := c.Send(msg, true)
 		if err != nil {

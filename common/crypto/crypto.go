@@ -44,6 +44,7 @@ const (
 	SignNameED25519        = "ed25519"
 	SignNameSM2            = "sm2"
 	SignNameOnetimeED25519 = "onetimeed25519"
+	SignNameRing           = "RingSignatue"
 )
 
 func Register(name string, driver Crypto) {
