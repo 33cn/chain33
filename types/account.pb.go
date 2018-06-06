@@ -163,6 +163,7 @@ It has these top-level messages:
 	GroupUTXOPubKey
 	ResUTXOPubKeys
 	ReqPrivacyToken
+	AmountDetail
 	ReplyPrivacyAmounts
 	ReplyUTXOsOfAmount
 	ReceiptPrivacyOutput

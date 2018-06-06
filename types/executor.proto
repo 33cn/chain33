@@ -587,21 +587,26 @@ message ReqPrivacyToken {
     int64 amount = 2;
 }
 
+message AmountDetail {
+	int64 amount = 1;
+	int64 count  = 2;
+}
+
 message ReplyPrivacyAmounts {
-    repeated int64 amount = 1;
+    repeated AmountDetail amountDetail = 1;
 }
 
 message replyUTXOsOfAmount {
-    repeated UTXOGlobalIndex globalIndex = 1;
+    repeated LocalUTXOItem localUTXOItems = 1;
 }
 
 message ReceiptPrivacyOutput {
     string token = 1;
     repeated keyOutput keyoutput = 2;
 }
-
+//各种amount额度的UTXO在链上的数量
 message AmountsOfUTXO {
-    map<int64, string> amountMap = 1;
+    map<int64, int64> amountMap = 1;
 }
 
 message TokenNamesOfUTXO {
