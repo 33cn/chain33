@@ -40,6 +40,7 @@ var (
 	MinFee             int64 = 1e5
 	MinBalanceTransfer int64 = 1e6
 	FeePerKB                 = MinFee
+	SignatureSize            = (4 + 33 + 65)
 )
 
 func SetMinFee(fee int64) {
