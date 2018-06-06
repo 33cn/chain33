@@ -98,17 +98,21 @@ func getOrderPrefixAddr(addr string) []byte {
 	return []byte(fmt.Sprintf(relayOrderACSIH+"%s", addr))
 }
 
-func getAcceptOrderKeyAddr(order *types.RelayOrder, status int32) []byte {
-	return []byte(fmt.Sprintf(relayBuyOrderACSIH+"%s:%s:%d:%s:%d",
-		order.AcceptAddr, order.Coin, status, order.Id, order.Height))
+func getAcceptKeyAddr(order *types.RelayOrder, status int32) []byte {
+	if order.AcceptAddr != "" {
+		return []byte(fmt.Sprintf(relayBuyOrderACSIH+"%s:%s:%d:%s:%d",
+			order.AcceptAddr, order.Coin, status, order.Id, order.Height))
+	}
+	return nil
+
 }
 
 //特定账户下的买单
-func getBuyOrderPrefixAddr(addr string) []byte {
+func getAcceptPrefixAddr(addr string) []byte {
 	return []byte(fmt.Sprintf(relayBuyOrderACSIH+"%s", addr))
 }
 
-func getBuyOrderPrefixAddrCoin(addr, coin string) []byte {
+func getAcceptPrefixAddrCoin(addr, coin string) []byte {
 	return []byte(fmt.Sprintf(relayBuyOrderACSIH+"%s:%s", addr, coin))
 }
 

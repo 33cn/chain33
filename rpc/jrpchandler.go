@@ -1252,7 +1252,7 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
 			logIns = logTmp
 		case types.TyLogRelayCreate:
 			lTy = "LogRelaySell"
-			var logTmp types.ReceiptRelayCreate
+			var logTmp types.ReceiptRelayLog
 			err = types.Decode(lLog, &logTmp)
 			if err != nil {
 				return nil, err
@@ -1260,7 +1260,7 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
 			logIns = logTmp
 		case types.TyLogRelayRevokeCreate:
 			lTy = "LogRelayRevokeSell"
-			var logTmp types.ReceiptRelayRevoke
+			var logTmp types.ReceiptRelayLog
 			err = types.Decode(lLog, &logTmp)
 			if err != nil {
 				return nil, err
@@ -1268,7 +1268,7 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
 			logIns = logTmp
 		case types.TyLogRelayAccept:
 			lTy = "LogRelayBug"
-			var logTmp types.ReceiptRelayAccept
+			var logTmp types.ReceiptRelayLog
 			err = types.Decode(lLog, &logTmp)
 			if err != nil {
 				return nil, err
@@ -1276,7 +1276,7 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
 			logIns = logTmp
 		case types.TyLogRelayRevokeAccept:
 			lTy = "LogRelayRevokeBuy"
-			var logTmp types.ReceiptRelayAccept
+			var logTmp types.ReceiptRelayLog
 			err = types.Decode(lLog, &logTmp)
 			if err != nil {
 				return nil, err
