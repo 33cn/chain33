@@ -76,7 +76,8 @@ message RelayAccept {
 
 message RelayRevoke {
     string orderId      = 1;
-    uint32 action       = 2;
+    uint32 target       = 2;  // 0:create , 1: accept
+    uint32 action       = 3;  // 0: unlock, 1: cancel (only for creator)
 }
 
 

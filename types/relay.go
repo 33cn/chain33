@@ -44,8 +44,8 @@ const (
 )
 
 const (
-	RelayUnlockOrder = iota
-	RelayCancleOrder
+	RelayRevokeUnlockOrder = iota
+	RelayRevokeCancleOrder
 )
 
 /////////////////error.go/////

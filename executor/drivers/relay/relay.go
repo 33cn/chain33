@@ -58,7 +58,7 @@ func (r *relay) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 		return actiondb.accept(action.GetAccept())
 
 	case types.RelayActionRevoke:
-		return actiondb.revokeAccept(action.GetRevoke())
+		return actiondb.relayRevoke(action.GetRevoke())
 
 	//OrderId, txHash
 	case types.RelayActionConfirmTx:
