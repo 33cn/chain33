@@ -1,8 +1,10 @@
 package commands
 
 import (
+	"encoding/hex"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -21,6 +23,7 @@ func BTYCmd() *cobra.Command {
 		CreateRawTransferCmd(),
 		CreateRawWithdrawCmd(),
 		CreateRawSendToExecCmd(),
+		CreateTxGroupCmd(),
 	)
 
 	return cmd
@@ -206,4 +209,49 @@ func withdraw(cmd *cobra.Command, args []string) {
 	}
 	amountInt64 := int64(amount*types.InputPrecision) * types.Multiple1E4 //支持4位小数输入，多余的输入将被截断
 	SendToAddress(rpcLaddr, addr, execAddr, amountInt64, note, false, "", true)
+}
+
+// create tx group
+func CreateTxGroupCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "txgroup",
+		Short: "Create a transaction group",
+		Run:   createTxGroup,
+	}
+	addCreateTxGroupFlags(cmd)
+	return cmd
+}
+
+func addCreateTxGroupFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("txs", "t", "", "transactions in hex, separated by space")
+	cmd.MarkFlagRequired("txs")
+}
+
+func createTxGroup(cmd *cobra.Command, args []string) {
+	txs, _ := cmd.Flags().GetString("txs")
+	txsArr := strings.Split(txs, " ")
+	var transactions []*types.Transaction
+	for _, t := range txsArr {
+		txByte, err := hex.DecodeString(t)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		var transaction types.Transaction
+		types.Decode(txByte, &transaction)
+		transactions = append(transactions, &transaction)
+	}
+	group, err := types.CreateTxGroup(transactions)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	err = group.Check(types.MinFee)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	newtx := group.Tx()
+	grouptx := hex.EncodeToString(types.Encode(newtx))
+	fmt.Println(grouptx)
 }

@@ -117,6 +117,7 @@ func initEnv(size int) (queue.Queue, *Mempool) {
 
 	mem := New(cfg.MemPool)
 	mem.SetQueueClient(q.Client())
+	time.Sleep(time.Millisecond * 200)
 	mem.setSync(true)
 
 	if size > 0 {
@@ -570,22 +571,7 @@ func TestCheckSignature(t *testing.T) {
 	}
 }
 
-func TestCheckExpire1(t *testing.T) {
-	q, mem := initEnv(0)
-	defer q.Close()
-	defer mem.Close()
-
-	mem.setHeader(&types.Header{Height: 50, BlockTime: 1e9 + 1})
-	msg := mem.client.NewMessage("mempool", types.EventTx, tx1)
-	mem.client.Send(msg, true)
-	resp, _ := mem.client.Wait(msg)
-
-	if string(resp.GetData().(*types.Reply).GetMsg()) != types.ErrTxExpire.Error() {
-		t.Error("TestCheckExpire failed", string(resp.GetData().(*types.Reply).GetMsg()))
-	}
-}
-
-func TestCheckExpire2(t *testing.T) {
+func TestCheckExpire(t *testing.T) {
 	q, mem := initEnv(0)
 	defer q.Close()
 	defer mem.Close()
