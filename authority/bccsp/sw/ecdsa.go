@@ -49,11 +49,11 @@ var (
 	}
 )
 
-func MarshalECDSASignature(r, s *big.Int) ([]byte, error) {
+func marshalECDSASignature(r, s *big.Int) ([]byte, error) {
 	return asn1.Marshal(ECDSASignature{r, s})
 }
 
-func UnmarshalECDSASignature(raw []byte) (*big.Int, *big.Int, error) {
+func unmarshalECDSASignature(raw []byte) (*big.Int, *big.Int, error) {
 	// Unmarshal
 	sig := new(ECDSASignature)
 	_, err := asn1.Unmarshal(raw, sig)
@@ -112,25 +112,25 @@ func verifyECDSA(k *ecdsa.PublicKey, signature, digest []byte, opts bccsp.Signer
 }
 
 func SignatureToLowS(k *ecdsa.PublicKey, signature []byte) ([]byte, error) {
-	r, s, err := UnmarshalECDSASignature(signature)
+	r, s, err := unmarshalECDSASignature(signature)
 	if err != nil {
 		return nil, err
 	}
 
-	s, modified, err := ToLowS(k, s)
+	s, modified, err := toLowS(k, s)
 	if err != nil {
 		return nil, err
 	}
 
 	if modified {
-		return MarshalECDSASignature(r, s)
+		return marshalECDSASignature(r, s)
 	}
 
 	return signature, nil
 }
 
 // IsLow checks that s is a low-S
-func IsLowS(k *ecdsa.PublicKey, s *big.Int) (bool, error) {
+func isLowS(k *ecdsa.PublicKey, s *big.Int) (bool, error) {
 	halfOrder, ok := curveHalfOrders[k.Curve]
 	if !ok {
 		return false, fmt.Errorf("Curve not recognized [%s]", k.Curve)
@@ -140,8 +140,8 @@ func IsLowS(k *ecdsa.PublicKey, s *big.Int) (bool, error) {
 
 }
 
-func ToLowS(k *ecdsa.PublicKey, s *big.Int) (*big.Int, bool, error) {
-	lowS, err := IsLowS(k, s)
+func toLowS(k *ecdsa.PublicKey, s *big.Int) (*big.Int, bool, error) {
+	lowS, err := isLowS(k, s)
 	if err != nil {
 		return nil, false, err
 	}

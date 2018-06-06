@@ -33,40 +33,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/authority/bccsp/utils"
 )
 
-type aes256ImportKeyOptsKeyImporter struct{}
-
-func (*aes256ImportKeyOptsKeyImporter) KeyImport(raw interface{}, opts bccsp.KeyImportOpts) (k bccsp.Key, err error) {
-	aesRaw, ok := raw.([]byte)
-	if !ok {
-		return nil, errors.New("Invalid raw material. Expected byte array.")
-	}
-
-	if aesRaw == nil {
-		return nil, errors.New("Invalid raw material. It must not be nil.")
-	}
-
-	if len(aesRaw) != 32 {
-		return nil, fmt.Errorf("Invalid Key Length [%d]. Must be 32 bytes", len(aesRaw))
-	}
-
-	return &aesPrivateKey{utils.Clone(aesRaw), false}, nil
-}
-
-type hmacImportKeyOptsKeyImporter struct{}
-
-func (*hmacImportKeyOptsKeyImporter) KeyImport(raw interface{}, opts bccsp.KeyImportOpts) (k bccsp.Key, err error) {
-	aesRaw, ok := raw.([]byte)
-	if !ok {
-		return nil, errors.New("Invalid raw material. Expected byte array.")
-	}
-
-	if len(aesRaw) == 0 {
-		return nil, errors.New("Invalid raw material. It must not be nil.")
-	}
-
-	return &aesPrivateKey{utils.Clone(aesRaw), false}, nil
-}
-
 type ecdsaPKIXPublicKeyImportOptsKeyImporter struct{}
 
 func (*ecdsaPKIXPublicKeyImportOptsKeyImporter) KeyImport(raw interface{}, opts bccsp.KeyImportOpts) (k bccsp.Key, err error) {

@@ -23,19 +23,19 @@ func GetSuiteByConfig(config core.CryptoSuiteConfig) (core.CryptoSuite, error) {
 	return NewCryptoSuite(bccsp), nil
 }
 
-func getBCCSPFromOpts(config *factory.SwOpts) (bccsp.BCCSP, error) {
+func getBCCSPFromOpts(config *factory.FactoryOpts) (bccsp.BCCSP, error) {
 	f := &factory.SWFactory{}
 
-	csp, err := f.Get(&factory.FactoryOpts{"",config})
+	csp, err := f.Get(config)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Could not initialize BCCSP %s", f.Name())
+		return nil, errors.Wrapf(err, "Could not initialize BCCSP")
 	}
 	return csp, nil
 }
 
 //GetOptsByConfig Returns Factory opts for given SDK config
-func getOptsByConfig(c core.CryptoSuiteConfig) *factory.SwOpts {
-	opts := &factory.SwOpts{
+func getOptsByConfig(c core.CryptoSuiteConfig) *factory.FactoryOpts {
+	opts := &factory.FactoryOpts{
 		HashFamily: c.SecurityAlgorithm(),
 		SecLevel:   c.SecurityLevel(),
 	}

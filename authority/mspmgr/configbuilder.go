@@ -90,16 +90,15 @@ func getPemMaterialFromDir(dir string) ([][]byte, error) {
 const (
 	cacerts              = "cacerts"
 	admincerts           = "admincerts"
-	signcerts            = "signcerts"
 	intermediatecerts    = "intermediatecerts"
 	crlsfolder           = "crls"
 )
 
 func SetupBCCSPKeystoreConfig(bccspConfig *factory.FactoryOpts, conf *cryptosuite.CryptoConfig) *factory.FactoryOpts {
-	swOpts := &factory.SwOpts{}
+	swOpts := &factory.FactoryOpts{}
 	swOpts.HashFamily = conf.SecurityAlgorithm()
 	swOpts.SecLevel = conf.SecurityLevel()
-	bccspConfig.SwOpts = swOpts
+	bccspConfig = swOpts
 
 	return bccspConfig
 }

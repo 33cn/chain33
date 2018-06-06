@@ -34,14 +34,6 @@ const (
 	// an error will be returned.
 	RSA = "RSA"
 
-	// AES Advanced Encryption Standard at the default security level.
-	// Each BCCSP may or may not support default security level. If not supported than
-	// an error will be returned.
-	AES = "AES"
-
-	// HMAC keyed-hash message authentication code
-	HMAC = "HMAC"
-
 	// SHA Secure Hash Algorithm using default family.
 	// Each BCCSP may or may not support default security level. If not supported than
 	// an error will be returned.
@@ -92,25 +84,6 @@ type ECDSAGoPublicKeyImportOpts struct {
 // Algorithm returns the key importation algorithm identifier (to be used).
 func (opts *ECDSAGoPublicKeyImportOpts) Algorithm() string {
 	return ECDSA
-}
-
-// AES256ImportKeyOpts contains options for importing AES 256 keys.
-type AES256ImportKeyOpts struct {
-}
-
-// Algorithm returns the key importation algorithm identifier (to be used).
-func (opts *AES256ImportKeyOpts) Algorithm() string {
-	return AES
-}
-
-// HMACImportKeyOpts contains options for importing HMAC keys.
-type HMACImportKeyOpts struct {
-	Temporary bool
-}
-
-// Algorithm returns the key importation algorithm identifier (to be used).
-func (opts *HMACImportKeyOpts) Algorithm() string {
-	return HMAC
 }
 
 // SHAOpts contains options for computing SHA.
