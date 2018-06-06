@@ -625,12 +625,13 @@ type TokenAccountResult struct {
 }
 
 type PrivacyAccountResult struct {
-	Token     string `json:"Token,omitempty"`
-	Height    int64  `json:"Height,omitempty"`
-	TxIndex   int32  `json:"TxIndex,omitempty"`
-	Txhash    string `json:"Txhash,omitempty"`
-	OutIndex  int32  `json:"OutIndex,omitempty"`
-	Amount    string `json:"Amount,omitempty"`
+	Token         string `json:"Token,omitempty"`
+	Height        int64  `json:"Height,omitempty"`
+	TxIndex       int32  `json:"TxIndex,omitempty"`
+	Txhash        string `json:"Txhash,omitempty"`
+	OutIndex      int32  `json:"OutIndex,omitempty"`
+	Amount        string `json:"Amount,omitempty"`
+	OnetimePubKey string `json:"OnetimePubKey,omitempty"`
 }
 
 type TxListResult struct {
@@ -2771,7 +2772,7 @@ func ShowPrivacyAccount(addr string) {
 	fmt.Printf("------Privacy account Info for address:%s\n", addr)
 	total := float64(0)
 	for _, utxo := range res {
-		total += float64(utxo.Amount)/float64(types.Coin)
+		total += float64(utxo.Amount) / float64(types.Coin)
 	}
 	totalStr := strconv.FormatFloat(total, 'f', 4, 64)
 	fmt.Printf("------Total Privacy available amount is:%s \n", totalStr)
@@ -2779,11 +2780,11 @@ func ShowPrivacyAccount(addr string) {
 	for index, utxo := range res {
 		amount := strconv.FormatFloat(float64(utxo.Amount)/float64(types.Coin), 'f', 4, 64)
 		result := &PrivacyAccountResult{
-			Height:utxo.UtxoBasic.UtxoGlobalIndex.Height,
-			TxIndex:utxo.UtxoBasic.UtxoGlobalIndex.Txindex,
-			Txhash:common.ToHex(utxo.UtxoBasic.UtxoGlobalIndex.Txhash),
-			OutIndex:utxo.UtxoBasic.UtxoGlobalIndex.Outindex,
-			Amount:amount,
+			Height:   utxo.UtxoBasic.UtxoGlobalIndex.Height,
+			TxIndex:  utxo.UtxoBasic.UtxoGlobalIndex.Txindex,
+			Txhash:   common.ToHex(utxo.UtxoBasic.UtxoGlobalIndex.Txhash),
+			OutIndex: utxo.UtxoBasic.UtxoGlobalIndex.Outindex,
+			Amount:   amount,
 		}
 
 		data, err := json.MarshalIndent(result, "", "    ")
@@ -2982,12 +2983,21 @@ func ShowUTXOs4SpecifiedAmount(amount string) {
 		return
 	}
 
-	for i, globalIndex := range res.GlobalIndex {
-		data, err := json.MarshalIndent(globalIndex, "", "    ")
+	for i, localUTXOItem := range res.LocalUTXOItems {
+		result := &PrivacyAccountResult{
+			Height:        localUTXOItem.Height,
+			TxIndex:       localUTXOItem.Txindex,
+			Txhash:        common.ToHex(localUTXOItem.Txhash),
+			OutIndex:      localUTXOItem.Outindex,
+			Amount:        amount,
+			OnetimePubKey: common.Bytes2Hex(localUTXOItem.Onetimepubkey),
+		}
+		data, err := json.MarshalIndent(result, "", "    ")
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			return
 		}
+
 		fmt.Printf("------The %dth privacy global index is as below\n", i)
 		fmt.Println(string(data))
 	}
@@ -3013,9 +3023,10 @@ func ShowAmountsOfUTXO() {
 		return
 	}
 
-	for i, amount := range res.Amount {
-		amountInStr := strconv.FormatFloat(float64(amount)/float64(types.Coin), 'f', 4, 64)
-		fmt.Println("index and amout ", i, amountInStr)
+	fmt.Println("Amounts of UTXO is as below\n")
+	for i, amount := range res.AmountDetail {
+		amountInStr := strconv.FormatFloat(float64(amount.Amount)/float64(types.Coin), 'f', 4, 64)
+		fmt.Printf("   %dth amout is %s and with total count:%d\n", i, amountInStr, amount.Count)
 	}
 }
 
