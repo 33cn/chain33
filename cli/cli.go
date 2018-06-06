@@ -625,12 +625,12 @@ type TokenAccountResult struct {
 }
 
 type PrivacyAccountResult struct {
-	Token     string `json:"Token,omitempty"`
-	Height    int64  `json:"Height,omitempty"`
-	TxIndex   int32  `json:"TxIndex,omitempty"`
-	Txhash    string `json:"Txhash,omitempty"`
-	OutIndex  int32  `json:"OutIndex,omitempty"`
-	Amount    string `json:"Amount,omitempty"`
+	Token    string `json:"Token,omitempty"`
+	Height   int64  `json:"Height,omitempty"`
+	TxIndex  int32  `json:"TxIndex,omitempty"`
+	Txhash   string `json:"Txhash,omitempty"`
+	OutIndex int32  `json:"OutIndex,omitempty"`
+	Amount   string `json:"Amount,omitempty"`
 }
 
 type TxListResult struct {
@@ -2081,7 +2081,6 @@ func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
 				amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
 				value.(map[string]interface{})["amount"] = amtResult
 			}
-			fmt.Println(output, keyoutput)
 		}
 	}
 	if tx.Amount != 0 {
@@ -2771,7 +2770,7 @@ func ShowPrivacyAccount(addr string) {
 	fmt.Printf("------Privacy account Info for address:%s\n", addr)
 	total := float64(0)
 	for _, utxo := range res {
-		total += float64(utxo.Amount)/float64(types.Coin)
+		total += float64(utxo.Amount) / float64(types.Coin)
 	}
 	totalStr := strconv.FormatFloat(total, 'f', 4, 64)
 	fmt.Printf("------Total Privacy available amount is:%s \n", totalStr)
@@ -2779,11 +2778,11 @@ func ShowPrivacyAccount(addr string) {
 	for index, utxo := range res {
 		amount := strconv.FormatFloat(float64(utxo.Amount)/float64(types.Coin), 'f', 4, 64)
 		result := &PrivacyAccountResult{
-			Height:utxo.UtxoBasic.UtxoGlobalIndex.Height,
-			TxIndex:utxo.UtxoBasic.UtxoGlobalIndex.Txindex,
-			Txhash:common.ToHex(utxo.UtxoBasic.UtxoGlobalIndex.Txhash),
-			OutIndex:utxo.UtxoBasic.UtxoGlobalIndex.Outindex,
-			Amount:amount,
+			Height:   utxo.UtxoBasic.UtxoGlobalIndex.Height,
+			TxIndex:  utxo.UtxoBasic.UtxoGlobalIndex.Txindex,
+			Txhash:   common.ToHex(utxo.UtxoBasic.UtxoGlobalIndex.Txhash),
+			OutIndex: utxo.UtxoBasic.UtxoGlobalIndex.Outindex,
+			Amount:   amount,
 		}
 
 		data, err := json.MarshalIndent(result, "", "    ")
