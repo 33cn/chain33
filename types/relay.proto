@@ -154,49 +154,9 @@ message ReceiptRelayRcvBTCHeaders{
 }
 
 
-message ReceiptRelayBase {
-    string orderId				= 1;
-    RelayOrderStatus status		= 2;
-    string createAddr           = 3;
-    uint64 amount			    = 4;
-    string coin                 = 6;
-    uint64 coinAmount           = 7;
-    string coinAddr             = 8;
-    string coinTxHash           = 9;
-    int64  createTime           = 11;
-    string acceptAddr           = 12;
-    int64  acceptTime           = 13;
-    int64  confirmTime          = 14;
-    int64  finishTime           = 15;
-}
 
-message ReceiptRelayCreate {
-    ReceiptRelayBase base = 1;
-}
-
-message ReceiptRelayAccept {
-    string orderId             	= 1;
-    RelayOrderStatus status		= 2;
-    string acceptAddr			= 3;
-    uint64 amount			    = 4;
-    string exchgcoin			= 6;
-    uint64 exchgamount			= 7;
-    string exchgaddr			= 8;
-    string exchgtxhash          = 9;
-    int64  acceptTime           = 10;
-    int64  confirmTime          = 11;
-}
-
-message ReceiptRelayRevoke {
-    ReceiptRelayBase base = 1;
-}
-
-message ReceiptRelayConfirm {
-    ReceiptRelayAccept base = 1;
-}
-
-message ReceiptRelayVerify {
-    ReceiptRelayBase base = 1;
+message ReceiptRelayLog {
+    RelayOrder base = 1;
 }
 
 
