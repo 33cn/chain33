@@ -253,7 +253,7 @@ func createTxGroup(cmd *cobra.Command, args []string) {
 			if err == io.EOF {
 				break
 			}
-			fmt.Printf("tx %d: %s", i, string(line) + "\n")
+			fmt.Printf("tx %d: %s", i, string(line)+"\n")
 			i++
 			txsArr = append(txsArr, string(line))
 		}
