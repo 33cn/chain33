@@ -14,20 +14,19 @@ import (
 
 ////////////types.go//////////
 type RelayOrder2Show struct {
-	Orderid         string `json:"orderid"`
-	Status          int32  `json:"status"`
-	Seller          string `json:"address"`
-	Sellamount      uint64 `json:"sellamount"`
-	Exchgcoin       string `json:"exchangcoin"`
-	Exchgamount     uint64 `json:"exchangamount"`
-	Exchgaddr       string `json:"exchangaddr"`
-	Waitcoinblocks  uint32 `json:"waitcoinblocks"`
-	Createtime      int64  `json:"createtime"`
-	Buyeraddr       string `json:"buyeraddr"`
-	Buyertime       int64  `json:"buyertime"`
-	Buyercoinheight int64  `json:"buyercoinheight"`
-	Finishtime      int64  `json:"finishtime"`
-	Height          int64  `json:"height"`
+	Orderid        string `json:"orderid"`
+	Status         int32  `json:"status"`
+	Seller         string `json:"address"`
+	Sellamount     uint64 `json:"sellamount"`
+	Exchgcoin      string `json:"exchangcoin"`
+	Exchgamount    uint64 `json:"exchangamount"`
+	Exchgaddr      string `json:"exchangaddr"`
+	Waitcoinblocks uint32 `json:"waitcoinblocks"`
+	Createtime     int64  `json:"createtime"`
+	Buyeraddr      string `json:"buyeraddr"`
+	Buyertime      int64  `json:"buyertime"`
+	Finishtime     int64  `json:"finishtime"`
+	Height         int64  `json:"height"`
 }
 
 type RelayBTCHeadHeightListShow struct {
@@ -52,9 +51,8 @@ func RelayCmd() *cobra.Command {
 		ShowOnesBuyRelayOrdersCmd(),
 		ShowOnesStatusOrdersCmd(),
 		ShowBTCHeadHeightListCmd(),
-		ShowBTCHeadMissListCmd(),
 		ShowBTCHeadCurHeightCmd(),
-		CreateRawRelaySellTxCmd(),
+		CreateRawRelayOrderTxCmd(),
 		CreateRawRevokeSellTxCmd(),
 		CreateRawRelayBuyTxCmd(),
 		CreateRawRevokeBuyTxCmd(),
@@ -101,49 +99,6 @@ func showBtcHeadHeightList(cmd *cobra.Command, args []string) {
 	params := jsonrpc.Query4Cli{
 		Execer:   "relay",
 		FuncName: "GetBTCHeaderList",
-		Payload:  reqList,
-	}
-	rpc, err := jsonrpc.NewJSONClient(rpcLaddr)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-
-	var res types.ReplyRelayBtcHeadHeightList
-	err = rpc.Call("Chain33.Query", params, &res)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-
-	parseRelayBtcHeadHeightList(res)
-}
-
-func ShowBTCHeadMissListCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "btc_miss_list",
-		Short: "Show chain stored BTC head's missed height list",
-		Run:   showBtcHeadHeightMissList,
-	}
-	addShowBtcHeadHeightListFlags(cmd)
-	return cmd
-
-}
-
-func showBtcHeadHeightMissList(cmd *cobra.Command, args []string) {
-	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	base, _ := cmd.Flags().GetInt64("height_base")
-	count, _ := cmd.Flags().GetInt32("counts")
-	direct, _ := cmd.Flags().GetInt32("direction")
-
-	var reqList types.ReqRelayBtcHeaderHeightList
-	reqList.ReqHeight = base
-	reqList.Counts = count
-	reqList.Direction = direct
-
-	params := jsonrpc.Query4Cli{
-		Execer:   "relay",
-		FuncName: "GetBTCHeaderMissList",
 		Payload:  reqList,
 	}
 	rpc, err := jsonrpc.NewJSONClient(rpcLaddr)
@@ -364,19 +319,17 @@ func showCoinRelayOrders(cmd *cobra.Command, args []string) {
 func parseRelayOrders(res types.ReplyRelayOrders) {
 	for i, order := range res.Relayorders {
 		var show RelayOrder2Show
-		show.Orderid = order.Orderid
+		show.Orderid = order.Id
 		show.Status = int32(order.Status)
-		show.Seller = order.Selladdr
-		show.Sellamount = order.Sellamount
-		show.Exchgaddr = order.Exchgaddr
-		show.Exchgamount = order.Exchgamount
-		show.Exchgcoin = order.Exchgcoin
-		show.Waitcoinblocks = order.Waitcoinblocks
-		show.Createtime = order.Createtime
-		show.Buyeraddr = order.Buyeraddr
-		show.Buyertime = order.Buytime
-		show.Buyercoinheight = order.Buyercoinheight
-		show.Finishtime = order.Finishtime
+		show.Seller = order.CreaterAddr
+		show.Sellamount = order.Amount
+		show.Exchgaddr = order.CoinAddr
+		show.Exchgamount = order.CoinAmount
+		show.Exchgcoin = order.Coin
+		show.Createtime = order.CreateTime
+		show.Buyeraddr = order.AcceptAddr
+		show.Buyertime = order.AcceptTime
+		show.Finishtime = order.FinishTime
 		show.Height = order.Height
 
 		data, err := json.MarshalIndent(show, "", "    ")
@@ -422,67 +375,61 @@ func parseRelayBtcCurHeight(res types.ReplayRelayQryBTCHeadHeight) {
 }
 
 //// create raw sell token transaction
-func CreateRawRelaySellTxCmd() *cobra.Command {
+func CreateRawRelayOrderTxCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "sell",
-		Short: "Create a exchange coin transaction",
-		Run:   relaysell,
+		Use:   "order",
+		Short: "Create an exchange coin order",
+		Run:   relayOrder,
 	}
 	addExchangeFlags(cmd)
 	return cmd
 }
 
 func addExchangeFlags(cmd *cobra.Command) {
-	cmd.Flags().Float64P("sellamount", "s", 0, "sell amount of BTY")
-	cmd.MarkFlagRequired("sellamount")
+	cmd.Flags().Uint32P("operation", "o", 0, "0:buy, 1:sell")
+	cmd.MarkFlagRequired("operation")
 
-	cmd.Flags().StringP("coin", "c", "", "coin to exchange by BTY, separated by space,Default:BTC")
+	cmd.Flags().StringP("coin", "c", "", "coin to exchange by BTY, like BTC,ETH, default BTC")
+	cmd.MarkFlagRequired("coin")
 
-	cmd.Flags().Float64P("coinamount", "m", 0, "coin amount to exchange")
-	cmd.MarkFlagRequired("coinamount")
+	cmd.Flags().Float64P("coin_amount", "m", 0, "coin amount to exchange")
+	cmd.MarkFlagRequired("coin_amount")
 
-	cmd.Flags().StringP("coinaddr", "a", "", "coin address in coin's block chain")
-	cmd.MarkFlagRequired("coinaddr")
+	cmd.Flags().StringP("coin_addr", "a", "", "coin address in coin's block chain")
+	cmd.MarkFlagRequired("coin_addr")
 
-	cmd.Flags().Uint32P("coinwait", "w", 0, "wait n blocks of coin to verify, min:1")
+	cmd.Flags().Float64P("bty_amount", "b", 0, "sell amount of BTY")
+	cmd.MarkFlagRequired("bty_amount")
 
 	cmd.Flags().Float64P("fee", "f", 0, "coin transaction fee")
 	cmd.MarkFlagRequired("fee")
 
 }
 
-func relaysell(cmd *cobra.Command, args []string) {
+func relayOrder(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	amount, _ := cmd.Flags().GetFloat64("sellamount")
+	oper, _ := cmd.Flags().GetUint32("operation")
 	coin, _ := cmd.Flags().GetString("coin")
 	coinamount, _ := cmd.Flags().GetFloat64("coinamount")
 	coinaddr, _ := cmd.Flags().GetString("coinaddr")
-	coinwait, _ := cmd.Flags().GetUint32("coinwait")
+	btyamount, _ := cmd.Flags().GetFloat64("bty_amount")
 	fee, _ := cmd.Flags().GetFloat64("fee")
 
 	feeInt64 := int64(fee * 1e4)
-	sellamountUInt64 := uint64(amount * 1e4)
-	coinamountUInt64 := uint64(coinamount * 1e4)
+	btyUInt64 := uint64(btyamount * 1e4)
+	coinUInt64 := uint64(coinamount * 1e4)
 
-	if coin == "" {
-		coin = "BTC"
-	}
-
-	if coinwait == 0 {
-		coinwait = 6
-	}
-
-	params := &jsonrpc.RelaySellTx{
-		SellAmount: sellamountUInt64 * 1e4,
-		Coin:       coin,
-		CoinAmount: coinamountUInt64 * 1e4,
-		CoinAddr:   coinaddr,
-		CoinWait:   coinwait,
-		Fee:        feeInt64 * 1e4,
+	params := &jsonrpc.RelayOrderTx{
+		Operation: oper,
+		Amount:    coinUInt64 * 1e4,
+		Coin:      coin,
+		Addr:      coinaddr,
+		BtyAmount: btyUInt64 * 1e4,
+		Fee:       feeInt64 * 1e4,
 	}
 
 	var res string
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawRelaySellTx", params, &res)
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawRelayOrderTx", params, &res)
 	ctx.Run()
 }
 
@@ -611,14 +558,14 @@ func addConfirmFlags(cmd *cobra.Command) {
 
 func relayConfirm(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	orderid, _ := cmd.Flags().GetString("order_id")
-	txhash, _ := cmd.Flags().GetString("tx_hash")
+	orderId, _ := cmd.Flags().GetString("order_id")
+	txHash, _ := cmd.Flags().GetString("tx_hash")
 	fee, _ := cmd.Flags().GetFloat64("fee")
 
 	feeInt64 := int64(fee * 1e4)
 	params := &jsonrpc.RelayVerifyTx{
-		OrderId: orderid,
-		Txhash:  txhash,
+		OrderId: orderId,
+		TxHash:  txHash,
 		Fee:     feeInt64 * 1e4,
 	}
 	var res string

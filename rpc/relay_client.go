@@ -14,13 +14,13 @@ import (
 /////////////types.go///////////////////////////
 
 //Relay Transaction
-type RelaySellTx struct {
-	SellAmount uint64 `json:"amount_of_BTY"`
-	Coin       string `json:"symbol_to_exchange"`
-	CoinAmount uint64 `json:"amount_to_exchange"`
-	CoinAddr   string `json:"addr_of_coin"`
-	CoinWait   uint32 `json:"blocks_to_wait_verify"`
-	Fee        int64  `json:"fee"`
+type RelayOrderTx struct {
+	Operation uint32 `json:"operation"`
+	Coin      string `json:"coin"`
+	Amount    uint64 `json:"coinamount"`
+	Addr      string `json:"coinaddr"`
+	BtyAmount uint64 `json:"btyamount"`
+	Fee       int64  `json:"fee"`
 }
 
 type RelayRevokeSellTx struct {
@@ -40,7 +40,7 @@ type RelayRevokeBuyTx struct {
 
 type RelayVerifyTx struct {
 	OrderId string `json:"order_id"`
-	Txhash  string `json:"tx_hash"`
+	TxHash  string `json:"tx_hash"`
 	Fee     int64  `json:"fee"`
 }
 
@@ -78,20 +78,20 @@ type RelaySaveBTCHeadTx struct {
 
 //////////////client.go////////////////////////////////////
 
-func (c *channelClient) CreateRawRelaySellTx(parm *RelaySellTx) ([]byte, error) {
+func (c *channelClient) CreateRawRelayOrderTx(parm *RelayOrderTx) ([]byte, error) {
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}
-	v := &types.RelaySell{
-		Sellamount:     parm.SellAmount,
-		Exchgcoin:      parm.Coin,
-		Exchgamount:    parm.CoinAmount,
-		Exchgaddr:      parm.CoinAddr,
-		Waitcoinblocks: parm.CoinWait,
+	v := &types.RelayCreate{
+		Operation: parm.Operation,
+		Coin:      parm.Coin,
+		Amount:    parm.Amount,
+		Addr:      parm.Addr,
+		BtyAmount: parm.BtyAmount,
 	}
 	sell := &types.RelayAction{
-		Ty:    types.RelayActionSell,
-		Value: &types.RelayAction_Rsell{v},
+		Ty:    types.RelayActionCreate,
+		Value: &types.RelayAction_Create{v},
 	}
 	tx := &types.Transaction{
 		Execer:  []byte("relay"),
@@ -109,10 +109,10 @@ func (c *channelClient) CreateRawRelayRvkSellTx(parm *RelayRevokeSellTx) ([]byte
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}
-	v := &types.RelayRevokeSell{Orderid: parm.OrderId}
+	v := &types.RelayRevokeCreate{OrderId: parm.OrderId}
 	val := &types.RelayAction{
-		Ty:    types.RelayActionRevokeSell,
-		Value: &types.RelayAction_Rrevokesell{v},
+		Ty:    types.RelayActionRevokeCreate,
+		Value: &types.RelayAction_RevokeCreate{v},
 	}
 	tx := &types.Transaction{
 		Execer:  []byte("relay"),
@@ -130,10 +130,10 @@ func (c *channelClient) CreateRawRelayBuyTx(parm *RelayBuyTx) ([]byte, error) {
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}
-	v := &types.RelayBuy{Orderid: parm.OrderId}
+	v := &types.RelayAccept{OrderId: parm.OrderId}
 	val := &types.RelayAction{
-		Ty:    types.RelayActionBuy,
-		Value: &types.RelayAction_Rbuy{v},
+		Ty:    types.RelayActionAccept,
+		Value: &types.RelayAction_Accept{v},
 	}
 	tx := &types.Transaction{
 		Execer:  []byte("relay"),
@@ -151,10 +151,10 @@ func (c *channelClient) CreateRawRelayRvkBuyTx(parm *RelayRevokeBuyTx) ([]byte, 
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}
-	v := &types.RelayRevokeBuy{Orderid: parm.OrderId}
+	v := &types.RelayRevokeAccept{OrderId: parm.OrderId}
 	val := &types.RelayAction{
-		Ty:    types.RelayActionRevokeBuy,
-		Value: &types.RelayAction_Rrevokebuy{v},
+		Ty:    types.RelayActionRevokeAccept,
+		Value: &types.RelayAction_RevokeAccept{v},
 	}
 	tx := &types.Transaction{
 		Execer:  []byte("relay"),
@@ -172,10 +172,10 @@ func (c *channelClient) CreateRawRelayConfirmTx(parm *RelayVerifyTx) ([]byte, er
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}
-	v := &types.RelayConfirmTx{Orderid: parm.OrderId, Txhash: parm.Txhash}
+	v := &types.RelayConfirmTx{OrderId: parm.OrderId, TxHash: parm.TxHash}
 	val := &types.RelayAction{
 		Ty:    types.RelayActionConfirmTx,
-		Value: &types.RelayAction_Rconfirmtx{v},
+		Value: &types.RelayAction_ConfirmTx{v},
 	}
 	tx := &types.Transaction{
 		Execer:  []byte("relay"),
@@ -194,14 +194,14 @@ func (c *channelClient) CreateRawRelayVerifyBTCTx(parm *RelayVerifyBTCTx) ([]byt
 		return nil, types.ErrInvalidParam
 	}
 	v := &types.RelayVerifyBTC{
-		Orderid:    parm.OrderId,
-		Rawtx:      parm.RawTx,
-		Txindex:    parm.TxIndex,
-		Merkbranch: parm.MerklBranch,
-		Blockhash:  parm.BlockHash}
+		OrderId:    parm.OrderId,
+		RawTx:      parm.RawTx,
+		TxIndex:    parm.TxIndex,
+		MerkBranch: parm.MerklBranch,
+		BlockHash:  parm.BlockHash}
 	val := &types.RelayAction{
 		Ty:    types.RelayActionVerifyBTCTx,
-		Value: &types.RelayAction_Rverifybtc{v},
+		Value: &types.RelayAction_VerifyBtc{v},
 	}
 	tx := &types.Transaction{
 		Execer:  []byte("relay"),
@@ -249,8 +249,8 @@ func (c *channelClient) CreateRawRelaySaveBTCHeadTx(parm *RelaySaveBTCHeadTx) ([
 
 /////////////////////jrpchandler.go/////////////////////////////////
 
-func (c *Chain33) CreateRawRelaySellTx(in *RelaySellTx, result *interface{}) error {
-	reply, err := c.cli.CreateRawRelaySellTx(in)
+func (c *Chain33) CreateRawRelaySellTx(in *RelayOrderTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawRelayOrderTx(in)
 	if err != nil {
 		return err
 	}
