@@ -118,7 +118,7 @@ func (mem *Mempool) CheckTxs(msg queue.Message) queue.Message {
 
 // Mempool.CheckSignList检查交易签名是否合法
 func (mem *Mempool) CheckSignList() {
-	var result bool = false;
+	var result bool = false
 	for i := 0; i < processNum; i++ {
 		go func() {
 			for data := range mem.signChan {
@@ -127,6 +127,7 @@ func (mem *Mempool) CheckSignList() {
 					result = mem.CheckSignFromAuth(tx.Tx())
 					if result {
 						// 签名正确，联盟链跳过余额检查
+						mem.PushTx(tx.Tx())
 						mem.goodChan <- data
 					} else {
 						mlog.Error("wrong tx", "err", types.ErrSign)
