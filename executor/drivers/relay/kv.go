@@ -98,7 +98,7 @@ func getOrderPrefixAddr(addr string) []byte {
 	return []byte(fmt.Sprintf(relayOrderACSIH+"%s", addr))
 }
 
-func getBuyOrderKeyAddr(order *types.RelayOrder, status int32) []byte {
+func getAcceptOrderKeyAddr(order *types.RelayOrder, status int32) []byte {
 	return []byte(fmt.Sprintf(relayBuyOrderACSIH+"%s:%s:%d:%s:%d",
 		order.AcceptAddr, order.Coin, status, order.Id, order.Height))
 }
