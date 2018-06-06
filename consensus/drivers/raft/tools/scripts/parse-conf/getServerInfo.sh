@@ -1,7 +1,7 @@
 #!/bin/bash
 
-cmd=`sed -n '/^[# ]*\[.*\][ ]*/p' servers.toml`
-fileName="servers.toml"
+cmd=`sed -n '/^[# ]*\[.*\][ ]*/p' servers.conf`
+fileName="servers.conf"
 serverStr="servers."
 tempfile=".info"
 
