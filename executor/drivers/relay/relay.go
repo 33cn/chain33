@@ -99,22 +99,30 @@ func (r *relay) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 
 	for i := 0; i < len(receipt.Logs); i++ {
 		item := receipt.Logs[i]
-		if item.Ty == types.TyLogRelayCreate || item.Ty == types.TyLogRelayRevokeCreate {
+		if item.Ty == types.TyLogRelayCreate ||
+			item.Ty == types.TyLogRelayRevokeCreate ||
+			item.Ty == types.TyLogRelayAccept ||
+			item.Ty == types.TyLogRelayRevokeAccept ||
+			item.Ty == types.TyLogRelayConfirmTx ||
+			item.Ty == types.TyLogRelayFinishTx {
 			var receipt types.ReceiptRelayCreate
 			err := types.Decode(item.Log, &receipt)
 			if err != nil {
 				panic(err)
 			}
-			kv := r.saveSell([]byte(receipt.Base.OrderId), item.Ty)
+			kv := r.saveCreate([]byte(receipt.Base.OrderId), item.Ty)
 			set.KV = append(set.KV, kv...)
-		} else if item.Ty == types.TyLogRelayAccept || item.Ty == types.TyLogRelayRevokeAccept {
+		} else if item.Ty == types.TyLogRelayAccept ||
+			item.Ty == types.TyLogRelayRevokeAccept ||
+			item.Ty == types.TyLogRelayConfirmTx ||
+			item.Ty == types.TyLogRelayFinishTx {
 			var receipt types.ReceiptRelayAccept
 			err := types.Decode(item.Log, &receipt)
 			if err != nil {
 				panic(err)
 			}
 
-			kv := r.saveBuy([]byte(receipt.OrderId), item.Ty)
+			kv := r.saveAccept([]byte(receipt.OrderId), item.Ty)
 			set.KV = append(set.KV, kv...)
 		} else if item.Ty == types.TyLogRelayRcvBTCHead {
 
@@ -144,21 +152,30 @@ func (r *relay) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 
 	for i := 0; i < len(receipt.Logs); i++ {
 		item := receipt.Logs[i]
-		if item.Ty == types.TyLogRelayCreate || item.Ty == types.TyLogRelayRevokeCreate {
+		if item.Ty == types.TyLogRelayCreate ||
+			item.Ty == types.TyLogRelayRevokeCreate ||
+			item.Ty == types.TyLogRelayAccept ||
+			item.Ty == types.TyLogRelayRevokeAccept ||
+			item.Ty == types.TyLogRelayConfirmTx ||
+			item.Ty == types.TyLogRelayFinishTx {
 			var receipt types.ReceiptRelayCreate
 			err := types.Decode(item.Log, &receipt)
 			if err != nil {
 				panic(err)
 			}
-			kv := r.deletSell([]byte(receipt.Base.OrderId), item.Ty)
+			kv := r.deleteCreate([]byte(receipt.Base.OrderId), item.Ty)
 			set.KV = append(set.KV, kv...)
-		} else if item.Ty == types.TyLogRelayAccept || item.Ty == types.TyLogRelayRevokeAccept {
+		} else if item.Ty == types.TyLogRelayAccept ||
+			item.Ty == types.TyLogRelayRevokeAccept ||
+			item.Ty == types.TyLogRelayRevokeCreate ||
+			item.Ty == types.TyLogRelayConfirmTx ||
+			item.Ty == types.TyLogRelayFinishTx {
 			var receipt types.ReceiptRelayAccept
 			err := types.Decode(item.Log, &receipt)
 			if err != nil {
 				panic(err)
 			}
-			kv := r.deleteBuy([]byte(receipt.OrderId), item.Ty)
+			kv := r.deleteAccept([]byte(receipt.OrderId), item.Ty)
 			set.KV = append(set.KV, kv...)
 		}
 	}
@@ -342,121 +359,63 @@ func (r *relay) getBTCHeaderFromDb(hash []byte) (*types.BtcHeader, error) {
 	return &header, nil
 }
 
-func getSellOrderKv(order *types.RelayOrder, ty int32) []*types.KeyValue {
+func getCreateOrderKv(order *types.RelayOrder) []*types.KeyValue {
 	status := order.Status
 	var kv []*types.KeyValue
-	kv = getSellOrderKeyValue(kv, order, int32(status))
-	if status == types.RelayOrderStatus_locking {
-		kv = deleteSellOrderKeyValue(kv, order, int32(types.RelayOrderStatus_pending))
-	} else if status == types.RelayOrderStatus_canceled {
-		if order.ConfirmTime != 0 {
-			kv = deleteSellOrderKeyValue(kv, order, int32(types.RelayOrderStatus_confirming))
-		} else if order.AcceptTime != 0 {
-			kv = deleteSellOrderKeyValue(kv, order, int32(types.RelayOrderStatus_locking))
-		} else {
-			kv = deleteSellOrderKeyValue(kv, order, int32(types.RelayOrderStatus_pending))
-		}
-
-	} else if status == types.RelayOrderStatus_pending {
-		if ty == types.TyLogRelayRevokeCreate {
-			if order.ConfirmTime != 0 {
-				kv = deleteSellOrderKeyValue(kv, order, int32(types.RelayOrderStatus_confirming))
-			} else if order.AcceptTime != 0 {
-				kv = deleteSellOrderKeyValue(kv, order, int32(types.RelayOrderStatus_locking))
-			}
-		} else if ty == types.TyLogRelayRevokeAccept {
-			if order.ConfirmTime != 0 {
-				kv = deleteSellOrderKeyValue(kv, order, int32(types.RelayOrderStatus_confirming))
-			} else {
-				kv = deleteSellOrderKeyValue(kv, order, int32(types.RelayOrderStatus_locking))
-			}
-		}
-
-	} else if status == types.RelayOrderStatus_confirming {
-		kv = deleteSellOrderKeyValue(kv, order, int32(types.RelayOrderStatus_locking))
-	} else if status == types.RelayOrderStatus_finished {
-		kv = deleteSellOrderKeyValue(kv, order, int32(types.RelayOrderStatus_confirming))
-	}
+	kv = getCreateOrderKeyValue(kv, order, int32(status))
+	kv = deleteCreateOrderKeyValue(kv, order, int32(order.PreStatus))
 
 	return kv
 }
 
-func getDeleteSellOrderKv(order *types.RelayOrder, ty int32) []*types.KeyValue {
+func getDeleteOrderKv(order *types.RelayOrder) []*types.KeyValue {
 	status := order.Status
 	var kv []*types.KeyValue
-	kv = deleteSellOrderKeyValue(kv, order, int32(status))
-	if status == types.RelayOrderStatus_locking {
-		kv = getSellOrderKeyValue(kv, order, int32(types.RelayOrderStatus_pending))
-	} else if status == types.RelayOrderStatus_canceled {
-		if order.ConfirmTime != 0 {
-			kv = getSellOrderKeyValue(kv, order, int32(types.RelayOrderStatus_confirming))
-		} else if order.AcceptTime != 0 {
-			kv = getSellOrderKeyValue(kv, order, int32(types.RelayOrderStatus_locking))
-		} else {
-			kv = getSellOrderKeyValue(kv, order, int32(types.RelayOrderStatus_pending))
-		}
-	} else if ty == types.TyLogRelayRevokeCreate && status == types.RelayOrderStatus_pending {
-		if order.ConfirmTime != 0 {
-			kv = getSellOrderKeyValue(kv, order, int32(types.RelayOrderStatus_confirming))
-		} else if order.AcceptTime != 0 {
-			kv = getSellOrderKeyValue(kv, order, int32(types.RelayOrderStatus_locking))
-		}
-	} else if status == types.RelayOrderStatus_confirming {
-		kv = getSellOrderKeyValue(kv, order, int32(types.RelayOrderStatus_locking))
-	} else if status == types.RelayOrderStatus_finished {
-		kv = getSellOrderKeyValue(kv, order, int32(types.RelayOrderStatus_confirming))
-	}
+	kv = deleteCreateOrderKeyValue(kv, order, int32(status))
+	kv = getCreateOrderKeyValue(kv, order, int32(order.PreStatus))
 
 	return kv
 }
 
-func getBuyOrderKv(order *types.RelayOrder) []*types.KeyValue {
+func getAcceptOrderKv(order *types.RelayOrder) []*types.KeyValue {
 	status := order.Status
 	var kv []*types.KeyValue
-	kv = getBuyOrderKeyValue(kv, order, int32(status))
-	if status == types.RelayOrderStatus_confirming || status == types.RelayOrderStatus_pending {
-		kv = deleteBuyOrderKeyValue(kv, order, int32(types.RelayOrderStatus_locking))
-	} else if status == types.RelayOrderStatus_finished {
-		kv = deleteBuyOrderKeyValue(kv, order, int32(types.RelayOrderStatus_confirming))
-	}
+	kv = getAcceptOrderKeyValue(kv, order, int32(status))
+	kv = deleteAcceptOrderKeyValue(kv, order, int32(order.PreStatus))
 
 	return kv
 }
 
-func getDeleteBuyOrderKv(order *types.RelayOrder) []*types.KeyValue {
+func getDeleteAcceptOrderKv(order *types.RelayOrder) []*types.KeyValue {
 	status := order.Status
 	var kv []*types.KeyValue
-	kv = deleteBuyOrderKeyValue(kv, order, int32(status))
-	if status == types.RelayOrderStatus_confirming || status == types.RelayOrderStatus_pending {
-		kv = getBuyOrderKeyValue(kv, order, int32(types.RelayOrderStatus_locking))
-	} else if status == types.RelayOrderStatus_finished {
-		kv = getBuyOrderKeyValue(kv, order, int32(types.RelayOrderStatus_confirming))
-	}
+	kv = deleteAcceptOrderKeyValue(kv, order, int32(status))
+	kv = getAcceptOrderKeyValue(kv, order, int32(order.PreStatus))
 
 	return kv
 }
 
-func (r *relay) saveSell(OrderId []byte, ty int32) []*types.KeyValue {
+func (r *relay) saveCreate(OrderId []byte, ty int32) []*types.KeyValue {
 	order, _ := r.getSellOrderFromDb(OrderId)
-	return getSellOrderKv(order, ty)
+	return getCreateOrderKv(order)
 }
 
-func (r *relay) saveBuy(OrderId []byte, ty int32) []*types.KeyValue {
+func (r *relay) saveAccept(OrderId []byte, ty int32) []*types.KeyValue {
 	order, _ := r.getSellOrderFromDb(OrderId)
-	return getBuyOrderKv(order)
+	return getAcceptOrderKv(order)
 }
 
-func (r *relay) deletSell(OrderId []byte, ty int32) []*types.KeyValue {
+func (r *relay) deleteCreate(OrderId []byte, ty int32) []*types.KeyValue {
 	order, _ := r.getSellOrderFromDb(OrderId)
-	return getDeleteSellOrderKv(order, ty)
+	return getDeleteOrderKv(order)
 }
 
-func (r *relay) deleteBuy(OrderId []byte, ty int32) []*types.KeyValue {
+func (r *relay) deleteAccept(OrderId []byte, ty int32) []*types.KeyValue {
 	order, _ := r.getSellOrderFromDb(OrderId)
-	return getDeleteBuyOrderKv(order)
+	return getDeleteAcceptOrderKv(order)
 }
 
-func getSellOrderKeyValue(kv []*types.KeyValue, order *types.RelayOrder, status int32) []*types.KeyValue {
+func getCreateOrderKeyValue(kv []*types.KeyValue, order *types.RelayOrder, status int32) []*types.KeyValue {
 	OrderId := []byte(order.Id)
 
 	key := getOrderKeyStatus(order, status)
@@ -475,7 +434,7 @@ func getSellOrderKeyValue(kv []*types.KeyValue, order *types.RelayOrder, status 
 
 }
 
-func deleteSellOrderKeyValue(kv []*types.KeyValue, order *types.RelayOrder, status int32) []*types.KeyValue {
+func deleteCreateOrderKeyValue(kv []*types.KeyValue, order *types.RelayOrder, status int32) []*types.KeyValue {
 
 	key := getOrderKeyStatus(order, status)
 	kv = append(kv, &types.KeyValue{key, nil})
@@ -492,18 +451,18 @@ func deleteSellOrderKeyValue(kv []*types.KeyValue, order *types.RelayOrder, stat
 	return kv
 }
 
-func getBuyOrderKeyValue(kv []*types.KeyValue, order *types.RelayOrder, status int32) []*types.KeyValue {
+func getAcceptOrderKeyValue(kv []*types.KeyValue, order *types.RelayOrder, status int32) []*types.KeyValue {
 	OrderId := []byte(order.Id)
 
-	key := getBuyOrderKeyAddr(order, status)
+	key := getAcceptOrderKeyAddr(order, status)
 	kv = append(kv, &types.KeyValue{key, OrderId})
 
 	return kv
 }
 
-func deleteBuyOrderKeyValue(kv []*types.KeyValue, order *types.RelayOrder, status int32) []*types.KeyValue {
+func deleteAcceptOrderKeyValue(kv []*types.KeyValue, order *types.RelayOrder, status int32) []*types.KeyValue {
 
-	key := getBuyOrderKeyAddr(order, status)
+	key := getAcceptOrderKeyAddr(order, status)
 	kv = append(kv, &types.KeyValue{key, nil})
 
 	return kv
