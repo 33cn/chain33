@@ -20,22 +20,6 @@ pipeline {
         checkoutToSubdirectory 'src/gitlab.33.cn/chain33/chain33'
     }
 
-    triggers {
-        gitlab(
-            triggerOnPush: false,
-            triggerOnMergeRequest: true, triggerOpenMergeRequestOnPush: "both",
-            triggerOnNoteRequest: true,
-            noteRegex: "Jenkins please retry a build",
-            skipWorkInProgressMergeRequest: true,
-            ciSkip: true,
-            setBuildDescription: true,
-            addNoteOnMergeRequest: true,
-            addCiMessage: true,
-            addVoteOnMergeRequest: true,
-            acceptMergeRequestOnSuccess: false,
-            branchFilterType: 'All')
-    }
-
     stages {
         stage('build') {
             steps {
