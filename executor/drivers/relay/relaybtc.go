@@ -181,19 +181,19 @@ func (b *relayBTCStore) verifyTx(verify *types.RelayVerify, order *types.RelayOr
 
 	if !foundtx {
 		relaylog.Info("verifyTx", "Failed to get order", order.Id, "tx", order.CoinAddr)
-		return types.ErrTRelayVerifyAddrNotFound
+		return types.ErrRelayVerifyAddrNotFound
 	}
 
 	curDbBlockHeight := atomic.LoadInt64(&b.height)
 	if verify.Tx.BlockHeight+WAIT_BLOCK_HEIGHT > uint64(curDbBlockHeight) {
 		relaylog.Info("verifyTx", "Failed to wait 6 blocks, curHeight", curDbBlockHeight, "tx height", verify.Tx.BlockHeight)
-		return types.ErrTRelayWaitBlocksErr
+		return types.ErrRelayWaitBlocksErr
 	}
 
 	rawHash, err := btcHashStrRevers(verify.GetTx().GetHash())
 	if err != nil {
 		relaylog.Error("verifyTx", "fail convers tx hash", verify.GetTx().GetHash())
-		return types.ErrTRelayVerify
+		return types.ErrRelayVerify
 	}
 	sibs := verify.GetSpv().GetBranchProof()
 
@@ -205,13 +205,13 @@ func (b *relayBTCStore) verifyTx(verify *types.RelayVerify, order *types.RelayOr
 	realMerkleRoot, err := btcHashStrRevers(str)
 	if err != nil {
 		relaylog.Error("verifyTx", "fail convers merkle hash", str)
-		return types.ErrTRelayVerify
+		return types.ErrRelayVerify
 	}
 
 	rst := bytes.Equal(realMerkleRoot, verifyMerkleRoot)
 	if !rst {
 		relaylog.Error("relay verifyTx", "db merkle root", realMerkleRoot, "tx merkle root", verifyMerkleRoot)
-		return types.ErrTRelayVerify
+		return types.ErrRelayVerify
 	}
 
 	return nil
@@ -239,7 +239,7 @@ func (b *relayBTCStore) verifyBTCTx(verify *types.RelayVerifyCli) error {
 	rst := bytes.Equal(realmerkleroot, verifymerkleroot)
 	if !rst {
 		relaylog.Error("relay verifyTx", "db merkle root", realmerkleroot, "tx merkle root", verifymerkleroot)
-		return types.ErrTRelayVerify
+		return types.ErrRelayVerify
 	}
 
 	return nil
