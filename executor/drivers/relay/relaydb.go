@@ -9,9 +9,9 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-const LOCKING_PERIOD = 6 * time.Hour
+//const LOCKING_PERIOD = 6 * time.Hour
+const LOCKING_PERIOD = 3 * time.Minute
 const WAIT_BLOCK_HEIGHT = 6
-
 
 type relayLog struct {
 	types.RelayOrder
@@ -175,6 +175,7 @@ func (action *relayDB) revokeCreate(revoke *types.RelayRevoke) (*types.Receipt, 
 	if order.Status == types.RelayOrderStatus_finished {
 		return nil, types.ErrRelayOrderSoldout
 	} else if order.Status == types.RelayOrderStatus_canceled {
+		relaylog.Error("revokeCreate error", "action", revoke.Action)
 		return nil, types.ErrRelayOrderRevoked
 	}
 
@@ -200,7 +201,7 @@ func (action *relayDB) revokeCreate(revoke *types.RelayRevoke) (*types.Receipt, 
 	}
 
 	order.PreStatus = order.Status
-	if revoke.Action == types.RelayUnlockOrder {
+	if revoke.Action == types.RelayRevokeUnlockOrder {
 		order.Status = types.RelayOrderStatus_pending
 	} else {
 		order.Status = types.RelayOrderStatus_canceled
@@ -275,9 +276,9 @@ func (action *relayDB) accept(accept *types.RelayAccept) (*types.Receipt, error)
 }
 
 func (action *relayDB) relayRevoke(revoke *types.RelayRevoke) (*types.Receipt, error) {
-	if revoke.Action == types.RelayOrderCreate {
+	if revoke.Target == types.RelayOrderCreate {
 		return action.revokeCreate(revoke)
-	} else if revoke.Action == types.RelayOrderAccept {
+	} else if revoke.Target == types.RelayOrderAccept {
 		return action.revokeAccept(revoke)
 	}
 
@@ -453,7 +454,13 @@ func (action *relayDB) verifyBtcTx(verify *types.RelayVerifyCli, r *relay) (*typ
 		return nil, err
 	}
 
-	receipt, err = action.coinsAccount.ExecTransferFrozen(order.CreaterAddr, order.AcceptAddr, action.execAddr, int64(order.Amount))
+	if order.CoinOperation == types.RelayCreateBuy {
+		receipt, err = action.coinsAccount.ExecTransferFrozen(order.CreaterAddr, order.AcceptAddr, action.execAddr, int64(order.Amount))
+
+	} else {
+		receipt, err = action.coinsAccount.ExecTransferFrozen(order.AcceptAddr, order.CreaterAddr, action.execAddr, int64(order.Amount))
+	}
+
 	if err != nil {
 		relaylog.Error("relay verify tx transfer fail", "error", err.Error())
 		return nil, err
@@ -473,7 +480,7 @@ func (action *relayDB) verifyBtcTx(verify *types.RelayVerifyCli, r *relay) (*typ
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
 	logs = append(logs, receipt.Logs...)
-	logs = append(logs, relayLog.receiptLog(types.TyLogRelayCreate))
+	logs = append(logs, relayLog.receiptLog(types.TyLogRelayFinishTx))
 	kv = append(kv, receipt.KV...)
 	kv = append(kv, orderKV...)
 	return &types.Receipt{types.ExecOk, kv, logs}, nil

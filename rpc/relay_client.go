@@ -31,11 +31,12 @@ type RelayAcceptTx struct {
 
 type RelayRevokeTx struct {
 	OrderId string `json:"order_id"`
+	Target  uint32 `json:"target"`
 	Action  uint32 `json:"action"`
 	Fee     int64  `json:"fee"`
 }
 
-type RelayVerifyTx struct {
+type RelayConfirmTx struct {
 	OrderId string `json:"order_id"`
 	TxHash  string `json:"tx_hash"`
 	Fee     int64  `json:"fee"`
@@ -102,11 +103,11 @@ func (c *channelClient) CreateRawRelayOrderTx(parm *RelayOrderTx) ([]byte, error
 	return data, nil
 }
 
-func (c *channelClient) CreateRawRelayBuyTx(parm *RelayAcceptTx) ([]byte, error) {
+func (c *channelClient) CreateRawRelayAcceptTx(parm *RelayAcceptTx) ([]byte, error) {
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}
-	v := &types.RelayAccept{OrderId: parm.OrderId}
+	v := &types.RelayAccept{OrderId: parm.OrderId, CoinAddr: parm.CoinAddr}
 	val := &types.RelayAction{
 		Ty:    types.RelayActionAccept,
 		Value: &types.RelayAction_Accept{v},
@@ -127,7 +128,7 @@ func (c *channelClient) CreateRawRelayRevokeTx(parm *RelayRevokeTx) ([]byte, err
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}
-	v := &types.RelayRevoke{OrderId: parm.OrderId, Action: parm.Action}
+	v := &types.RelayRevoke{OrderId: parm.OrderId, Target: parm.Target, Action: parm.Action}
 	val := &types.RelayAction{
 		Ty:    types.RelayActionRevoke,
 		Value: &types.RelayAction_Revoke{v},
@@ -144,7 +145,7 @@ func (c *channelClient) CreateRawRelayRevokeTx(parm *RelayRevokeTx) ([]byte, err
 	return data, nil
 }
 
-func (c *channelClient) CreateRawRelayConfirmTx(parm *RelayVerifyTx) ([]byte, error) {
+func (c *channelClient) CreateRawRelayConfirmTx(parm *RelayConfirmTx) ([]byte, error) {
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}
@@ -225,7 +226,7 @@ func (c *channelClient) CreateRawRelaySaveBTCHeadTx(parm *RelaySaveBTCHeadTx) ([
 
 /////////////////////jrpchandler.go/////////////////////////////////
 
-func (c *Chain33) CreateRawRelaySellTx(in *RelayOrderTx, result *interface{}) error {
+func (c *Chain33) CreateRawRelayOrderTx(in *RelayOrderTx, result *interface{}) error {
 	reply, err := c.cli.CreateRawRelayOrderTx(in)
 	if err != nil {
 		return err
@@ -235,8 +236,8 @@ func (c *Chain33) CreateRawRelaySellTx(in *RelayOrderTx, result *interface{}) er
 	return nil
 }
 
-func (c *Chain33) CreateRawRelayBuyTx(in *RelayAcceptTx, result *interface{}) error {
-	reply, err := c.cli.CreateRawRelayBuyTx(in)
+func (c *Chain33) CreateRawRelayAcceptTx(in *RelayAcceptTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawRelayAcceptTx(in)
 	if err != nil {
 		return err
 	}
@@ -244,7 +245,7 @@ func (c *Chain33) CreateRawRelayBuyTx(in *RelayAcceptTx, result *interface{}) er
 	*result = hex.EncodeToString(reply)
 	return nil
 }
-func (c *Chain33) CreateRawRelayRvkBuyTx(in *RelayRevokeTx, result *interface{}) error {
+func (c *Chain33) CreateRawRelayRevokeTx(in *RelayRevokeTx, result *interface{}) error {
 	reply, err := c.cli.CreateRawRelayRevokeTx(in)
 	if err != nil {
 		return err
@@ -253,7 +254,7 @@ func (c *Chain33) CreateRawRelayRvkBuyTx(in *RelayRevokeTx, result *interface{})
 	*result = hex.EncodeToString(reply)
 	return nil
 }
-func (c *Chain33) CreateRawRelayConfirmTx(in *RelayVerifyTx, result *interface{}) error {
+func (c *Chain33) CreateRawRelayConfirmTx(in *RelayConfirmTx, result *interface{}) error {
 	reply, err := c.cli.CreateRawRelayConfirmTx(in)
 	if err != nil {
 		return err

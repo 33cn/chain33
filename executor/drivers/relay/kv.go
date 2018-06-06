@@ -49,21 +49,18 @@ func getBtcHeightListKey() []byte {
 	return []byte(relayBTCHeaderHeightList)
 }
 
-//特定状态下的定单
 func getOrderKeyStatus(order *types.RelayOrder, status int32) []byte {
 	key := fmt.Sprintf(relayOrderSCAIH+"%d:%s:%s:%s:%d",
 		status, order.Coin, order.CreaterAddr, order.Id, order.Height)
 	return []byte(key)
 }
 
-//特定coin+状态下的卖单
 func getOrderKeyCoin(order *types.RelayOrder, status int32) []byte {
 	key := fmt.Sprintf(relayOrderCSAIH+"%s:%d:%s:%s:%d",
 		order.Coin, status, order.CreaterAddr, order.Id, order.Height)
 	return []byte(key)
 }
 
-//特定账户下特定状态的卖单
 func getOrderKeyAddrStatus(order *types.RelayOrder, status int32) []byte {
 	key := fmt.Sprintf(relayOrderASCIH+"%s:%d:%s:%s:%d",
 		order.CreaterAddr, status, order.Coin, order.Id, order.Height)
@@ -87,7 +84,6 @@ func getOrderPrefixCoinStatus(coin string, status int32) []byte {
 	return []byte(prefix)
 }
 
-//特定账户下指定token的卖单
 func getOrderPrefixAddrCoin(addr string, coin string) []byte {
 	key := fmt.Sprintf(relayOrderACSIH+"%s:%s", addr, coin)
 	return []byte(key)
