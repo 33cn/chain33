@@ -103,24 +103,12 @@ func (r *relay) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 			item.Ty == types.TyLogRelayRevokeAccept ||
 			item.Ty == types.TyLogRelayConfirmTx ||
 			item.Ty == types.TyLogRelayFinishTx {
-			var receipt types.ReceiptRelayCreate
+			var receipt types.ReceiptRelayLog
 			err := types.Decode(item.Log, &receipt)
 			if err != nil {
 				panic(err)
 			}
-			kv := r.saveCreate([]byte(receipt.Base.OrderId), item.Ty)
-			set.KV = append(set.KV, kv...)
-		} else if item.Ty == types.TyLogRelayAccept ||
-			item.Ty == types.TyLogRelayRevokeAccept ||
-			item.Ty == types.TyLogRelayConfirmTx ||
-			item.Ty == types.TyLogRelayFinishTx {
-			var receipt types.ReceiptRelayAccept
-			err := types.Decode(item.Log, &receipt)
-			if err != nil {
-				panic(err)
-			}
-
-			kv := r.saveAccept([]byte(receipt.OrderId), item.Ty)
+			kv := r.getOrderKv([]byte(receipt.Base.Id), item.Ty)
 			set.KV = append(set.KV, kv...)
 		} else if item.Ty == types.TyLogRelayRcvBTCHead {
 
@@ -156,24 +144,12 @@ func (r *relay) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 			item.Ty == types.TyLogRelayRevokeAccept ||
 			item.Ty == types.TyLogRelayConfirmTx ||
 			item.Ty == types.TyLogRelayFinishTx {
-			var receipt types.ReceiptRelayCreate
+			var receipt types.ReceiptRelayLog
 			err := types.Decode(item.Log, &receipt)
 			if err != nil {
 				panic(err)
 			}
-			kv := r.deleteCreate([]byte(receipt.Base.OrderId), item.Ty)
-			set.KV = append(set.KV, kv...)
-		} else if item.Ty == types.TyLogRelayAccept ||
-			item.Ty == types.TyLogRelayRevokeAccept ||
-			item.Ty == types.TyLogRelayRevokeCreate ||
-			item.Ty == types.TyLogRelayConfirmTx ||
-			item.Ty == types.TyLogRelayFinishTx {
-			var receipt types.ReceiptRelayAccept
-			err := types.Decode(item.Log, &receipt)
-			if err != nil {
-				panic(err)
-			}
-			kv := r.deleteAccept([]byte(receipt.OrderId), item.Ty)
+			kv := r.getDeleteOrderKv([]byte(receipt.Base.Id), item.Ty)
 			set.KV = append(set.KV, kv...)
 		}
 	}
@@ -265,11 +241,11 @@ func (r *relay) GetSellRelayOrder(addrCoins *types.ReqRelayAddrCoins) (types.Mes
 func (r *relay) GetBuyRelayOrder(addrCoins *types.ReqRelayAddrCoins) (types.Message, error) {
 	var prefixs [][]byte
 	if 0 == len(addrCoins.Coins) {
-		val := getBuyOrderPrefixAddr(addrCoins.Addr)
+		val := getAcceptPrefixAddr(addrCoins.Addr)
 		prefixs = append(prefixs, val)
 	} else {
 		for _, coin := range addrCoins.Coins {
-			val := getBuyOrderPrefixAddrCoin(addrCoins.Addr, coin)
+			val := getAcceptPrefixAddrCoin(addrCoins.Addr, coin)
 			prefixs = append(prefixs, val)
 		}
 	}
@@ -357,60 +333,23 @@ func (r *relay) getBTCHeaderFromDb(hash []byte) (*types.BtcHeader, error) {
 	return &header, nil
 }
 
-func getCreateOrderKv(order *types.RelayOrder) []*types.KeyValue {
-	status := order.Status
+func (r *relay) getOrderKv(OrderId []byte, ty int32) []*types.KeyValue {
+	order, _ := r.getSellOrderFromDb(OrderId)
+
 	var kv []*types.KeyValue
-	kv = getCreateOrderKeyValue(kv, order, int32(status))
+	kv = getCreateOrderKeyValue(kv, order, int32(order.Status))
 	kv = deleteCreateOrderKeyValue(kv, order, int32(order.PreStatus))
 
 	return kv
 }
 
-func getDeleteOrderKv(order *types.RelayOrder) []*types.KeyValue {
-	status := order.Status
+func (r *relay) getDeleteOrderKv(OrderId []byte, ty int32) []*types.KeyValue {
+	order, _ := r.getSellOrderFromDb(OrderId)
 	var kv []*types.KeyValue
-	kv = deleteCreateOrderKeyValue(kv, order, int32(status))
+	kv = deleteCreateOrderKeyValue(kv, order, int32(order.Status))
 	kv = getCreateOrderKeyValue(kv, order, int32(order.PreStatus))
 
 	return kv
-}
-
-func getAcceptOrderKv(order *types.RelayOrder) []*types.KeyValue {
-	status := order.Status
-	var kv []*types.KeyValue
-	kv = getAcceptOrderKeyValue(kv, order, int32(status))
-	kv = deleteAcceptOrderKeyValue(kv, order, int32(order.PreStatus))
-
-	return kv
-}
-
-func getDeleteAcceptOrderKv(order *types.RelayOrder) []*types.KeyValue {
-	status := order.Status
-	var kv []*types.KeyValue
-	kv = deleteAcceptOrderKeyValue(kv, order, int32(status))
-	kv = getAcceptOrderKeyValue(kv, order, int32(order.PreStatus))
-
-	return kv
-}
-
-func (r *relay) saveCreate(OrderId []byte, ty int32) []*types.KeyValue {
-	order, _ := r.getSellOrderFromDb(OrderId)
-	return getCreateOrderKv(order)
-}
-
-func (r *relay) saveAccept(OrderId []byte, ty int32) []*types.KeyValue {
-	order, _ := r.getSellOrderFromDb(OrderId)
-	return getAcceptOrderKv(order)
-}
-
-func (r *relay) deleteCreate(OrderId []byte, ty int32) []*types.KeyValue {
-	order, _ := r.getSellOrderFromDb(OrderId)
-	return getDeleteOrderKv(order)
-}
-
-func (r *relay) deleteAccept(OrderId []byte, ty int32) []*types.KeyValue {
-	order, _ := r.getSellOrderFromDb(OrderId)
-	return getDeleteAcceptOrderKv(order)
 }
 
 func getCreateOrderKeyValue(kv []*types.KeyValue, order *types.RelayOrder, status int32) []*types.KeyValue {
@@ -427,6 +366,11 @@ func getCreateOrderKeyValue(kv []*types.KeyValue, order *types.RelayOrder, statu
 
 	key = getOrderKeyAddrCoin(order, status)
 	kv = append(kv, &types.KeyValue{key, OrderId})
+
+	key = getAcceptKeyAddr(order, status)
+	if key != nil {
+		kv = append(kv, &types.KeyValue{key, OrderId})
+	}
 
 	return kv
 
@@ -446,22 +390,10 @@ func deleteCreateOrderKeyValue(kv []*types.KeyValue, order *types.RelayOrder, st
 	key = getOrderKeyAddrCoin(order, status)
 	kv = append(kv, &types.KeyValue{key, nil})
 
-	return kv
-}
-
-func getAcceptOrderKeyValue(kv []*types.KeyValue, order *types.RelayOrder, status int32) []*types.KeyValue {
-	OrderId := []byte(order.Id)
-
-	key := getAcceptOrderKeyAddr(order, status)
-	kv = append(kv, &types.KeyValue{key, OrderId})
-
-	return kv
-}
-
-func deleteAcceptOrderKeyValue(kv []*types.KeyValue, order *types.RelayOrder, status int32) []*types.KeyValue {
-
-	key := getAcceptOrderKeyAddr(order, status)
-	kv = append(kv, &types.KeyValue{key, nil})
+	key = getAcceptKeyAddr(order, status)
+	if key != nil {
+		kv = append(kv, &types.KeyValue{key, nil})
+	}
 
 	return kv
 }

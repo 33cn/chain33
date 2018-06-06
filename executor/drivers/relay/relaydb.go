@@ -9,15 +9,9 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-// 当前方案没有考虑验证失败后允许buyer重试机制， 待整体功能实现后，再讨论要不要增加buyer重试机制
-// 如果购买订单和提交交易过后4小时，仍未交易成功，则seller可以收回订单
 const LOCKING_PERIOD = 6 * time.Hour
-const ACCEPT_CANCLED = "ACCEPT_CANCLED"
 const WAIT_BLOCK_HEIGHT = 6
 
-// TODO
-// 1,仔细检查状态切换和 命令接受时的状态允许
-// 2, confirm 的状态检查
 
 type relayLog struct {
 	types.RelayOrder
@@ -43,44 +37,29 @@ func (r *relayLog) getKVSet() (kvSet []*types.KeyValue) {
 	return kvSet
 }
 
-func (r *relayLog) receiptLog(ty int32) *types.ReceiptLog {
-	log := &types.ReceiptLog{}
-	log.Ty = ty
-	accept := &types.ReceiptRelayAccept{
-		OrderId:     r.Id,
-		Status:      r.Status,
-		AcceptAddr:  r.AcceptAddr,
-		Amount:      r.Amount,
-		Exchgcoin:   r.Coin,
-		Exchgamount: r.CoinAmount,
-		Exchgaddr:   r.CoinAddr,
-		Exchgtxhash: r.CoinTxHash,
-		AcceptTime:  r.AcceptTime,
-		ConfirmTime: r.ConfirmTime,
-	}
-	log.Log = types.Encode(accept)
-
-	return log
-}
-
-func (r *relayLog) getCreateLogs(relayLogType int32) *types.ReceiptLog {
+func (r *relayLog) receiptLog(relayLogType int32) *types.ReceiptLog {
 	log := &types.ReceiptLog{}
 	log.Ty = relayLogType
-	base := &types.ReceiptRelayBase{
-		OrderId:     r.Id,
-		Status:      r.Status,
-		CreateAddr:  r.CreaterAddr,
-		Amount:      r.Amount,
-		Coin:        r.Coin,
-		CoinAmount:  r.CoinAmount,
-		CoinAddr:    r.CoinAddr,
-		AcceptAddr:  r.AcceptAddr,
-		AcceptTime:  r.AcceptTime,
-		ConfirmTime: r.ConfirmTime,
-		FinishTime:  r.FinishTime,
+	base := &types.RelayOrder{
+		Id:            r.Id,
+		Status:        r.Status,
+		PreStatus:     r.PreStatus,
+		CreaterAddr:   r.CreaterAddr,
+		Amount:        r.Amount,
+		CoinOperation: r.CoinOperation,
+		Coin:          r.Coin,
+		CoinAmount:    r.CoinAmount,
+		CoinAddr:      r.CoinAddr,
+		CoinTxHash:    r.CoinTxHash,
+		CreateTime:    r.CreateTime,
+		AcceptAddr:    r.AcceptAddr,
+		AcceptTime:    r.AcceptTime,
+		ConfirmTime:   r.ConfirmTime,
+		FinishTime:    r.FinishTime,
+		Height:        r.Height,
 	}
 
-	receipt := &types.ReceiptRelayCreate{base}
+	receipt := &types.ReceiptRelayLog{base}
 	log.Log = types.Encode(receipt)
 
 	return log
@@ -152,7 +131,7 @@ func (action *relayDB) relayCreate(order *types.RelayCreate) (*types.Receipt, er
 	}
 	relayLog := newRelayLog(uOrder)
 	sellOrderKV := relayLog.save(action.db)
-	logs = append(logs, relayLog.getCreateLogs(types.TyLogRelayCreate))
+	logs = append(logs, relayLog.receiptLog(types.TyLogRelayCreate))
 	kv = append(kv, sellOrderKV...)
 
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
@@ -236,11 +215,7 @@ func (action *relayDB) revokeCreate(revoke *types.RelayRevoke) (*types.Receipt, 
 		logs = append(logs, receipt.Logs...)
 		kv = append(kv, receipt.KV...)
 	}
-	logs = append(logs, relayLog.getCreateLogs(types.TyLogRelayRevokeCreate))
-	if order.PreStatus != types.RelayOrderStatus_init {
-		logs = append(logs, relayLog.receiptLog(types.TyLogRelayRevokeCreate))
-	}
-
+	logs = append(logs, relayLog.receiptLog(types.TyLogRelayRevokeCreate))
 	kv = append(kv, orderKV...)
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
 }
@@ -292,7 +267,6 @@ func (action *relayDB) accept(accept *types.RelayAccept) (*types.Receipt, error)
 	relayLog := newRelayLog(order)
 	sellOrderKV := relayLog.save(action.db)
 
-	logs = append(logs, relayLog.getCreateLogs(types.TyLogRelayAccept))
 	logs = append(logs, relayLog.receiptLog(types.TyLogRelayAccept))
 	kv = append(kv, sellOrderKV...)
 
@@ -357,7 +331,6 @@ func (action *relayDB) revokeAccept(revoke *types.RelayRevoke) (*types.Receipt, 
 
 	relayLog := newRelayLog(order)
 	sellOrderKV := relayLog.save(action.db)
-	logs = append(logs, relayLog.getCreateLogs(types.TyLogRelayRevokeAccept))
 	logs = append(logs, relayLog.receiptLog(types.TyLogRelayRevokeAccept))
 	kv = append(kv, sellOrderKV...)
 
@@ -400,7 +373,6 @@ func (action *relayDB) confirmTx(confirm *types.RelayConfirmTx) (*types.Receipt,
 
 	relayLog := newRelayLog(order)
 	sellOrderKV := relayLog.save(action.db)
-	logs = append(logs, relayLog.getCreateLogs(types.TyLogRelayConfirmTx))
 	logs = append(logs, relayLog.receiptLog(types.TyLogRelayConfirmTx))
 	kv = append(kv, sellOrderKV...)
 
@@ -452,7 +424,6 @@ func (action *relayDB) verifyTx(verify *types.RelayVerify, r *relay) (*types.Rec
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
 	logs = append(logs, receipt.Logs...)
-	logs = append(logs, relayLog.getCreateLogs(types.TyLogRelayFinishTx))
 	logs = append(logs, relayLog.receiptLog(types.TyLogRelayFinishTx))
 	kv = append(kv, receipt.KV...)
 	kv = append(kv, orderKV...)
@@ -502,8 +473,7 @@ func (action *relayDB) verifyBtcTx(verify *types.RelayVerifyCli, r *relay) (*typ
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
 	logs = append(logs, receipt.Logs...)
-	logs = append(logs, relayLog.getCreateLogs(types.TyLogRelayCreate))
-	logs = append(logs, relayLog.receiptLog(types.TyLogRelayAccept))
+	logs = append(logs, relayLog.receiptLog(types.TyLogRelayCreate))
 	kv = append(kv, receipt.KV...)
 	kv = append(kv, orderKV...)
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
