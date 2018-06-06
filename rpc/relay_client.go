@@ -29,8 +29,9 @@ type RelayRevokeSellTx struct {
 }
 
 type RelayBuyTx struct {
-	OrderId string `json:"order_id"`
-	Fee     int64  `json:"fee"`
+	OrderId  string `json:"order_id"`
+	CoinAddr string `json:"coinaddr"`
+	Fee      int64  `json:"fee"`
 }
 
 type RelayRevokeBuyTx struct {

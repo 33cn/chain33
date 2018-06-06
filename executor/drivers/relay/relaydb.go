@@ -239,6 +239,10 @@ func (action *relayAction) relayRevokeCreate(revoke *types.RelayRevokeCreate) (*
 		kv = append(kv, receipt.KV...)
 	}
 	logs = append(logs, relayDb.getCreateLogs(types.TyLogRelayRevokeCreate))
+	if order.PreStatus != types.RelayOrderStatus_init {
+		logs = append(logs, relayDb.getAcceptLogs(types.TyLogRelayRevokeCreate))
+	}
+
 	kv = append(kv, orderKV...)
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
 }
@@ -274,6 +278,7 @@ func (action *relayAction) relayAccept(accept *types.RelayAccept) (*types.Receip
 		}
 	}
 
+	order.PreStatus = order.Status
 	order.Status = types.RelayOrderStatus_locking
 	order.AcceptAddr = action.fromAddr
 	order.AcceptTime = action.blockTime
@@ -329,6 +334,7 @@ func (action *relayAction) relayRevokeAccept(revoke *types.RelayRevokeAccept) (*
 		order.CoinAddr = ""
 	}
 
+	order.PreStatus = order.Status
 	order.Status = types.RelayOrderStatus_pending
 	order.AcceptAddr = ""
 	order.AcceptTime = 0
@@ -375,6 +381,7 @@ func (action *relayAction) relayConfirmTx(confirm *types.RelayConfirmTx) (*types
 		return nil, types.ErrTRelayReturnAddr
 	}
 
+	order.PreStatus = order.Status
 	order.Status = types.RelayOrderStatus_confirming
 	order.ConfirmTime = action.blockTime
 	order.CoinTxHash = confirm.TxHash
@@ -426,6 +433,7 @@ func (action *relayAction) relayVerifyTx(verify *types.RelayVerify, r *relay) (*
 		return nil, err
 	}
 
+	order.PreStatus = order.Status
 	order.Status = types.RelayOrderStatus_finished
 	order.FinishTime = action.blockTime
 
@@ -471,6 +479,7 @@ func (action *relayAction) relayVerifyBTCTx(verify *types.RelayVerifyBTC, r *rel
 		return nil, err
 	}
 
+	order.PreStatus = order.Status
 	order.Status = types.RelayOrderStatus_finished
 	order.FinishTime = action.blockTime
 
