@@ -503,7 +503,8 @@ func (ws *WalletStore) moveUTXO2FTXO(token, sender, txhash string, selectedUtxos
 	FTXOsInOneTx := &types.FTXOsSTXOsInOneTx{}
 	newbatch := ws.NewBatch(true)
 	for _, txOutputInfo := range selectedUtxos {
-		newbatch.Delete(calcUTXOKey4TokenAddr(token, sender, common.ToHex(txOutputInfo.utxoGlobalIndex.Txhash), int(txOutputInfo.utxoGlobalIndex.Outindex)))
+		key := calcUTXOKey4TokenAddr(token, sender, common.Bytes2Hex(txOutputInfo.utxoGlobalIndex.Txhash), int(txOutputInfo.utxoGlobalIndex.Outindex))
+		newbatch.Delete(key)
 		FTXOsInOneTx.UtxoGlobalIndex = append(FTXOsInOneTx.UtxoGlobalIndex, txOutputInfo.utxoGlobalIndex)
 	}
     //设置在该交易中花费的UTXO
@@ -541,7 +542,7 @@ func (ws *WalletStore) unmoveUTXO2FTXO(input *types.PrivacyInput, token, sender,
 	}
 	if err == nil {
 		for _, ftxo := range ftxosInOneTx.UtxoGlobalIndex {
-			utxohash := common.ToHex(ftxo.Txhash)
+			utxohash := common.Bytes2Hex(ftxo.Txhash)
 			newbatch.Set(calcUTXOKey4TokenAddr(token, sender, utxohash, int(ftxo.Outindex)), calcUTXOKey(utxohash, int(ftxo.Outindex)))
 		}
 	}
