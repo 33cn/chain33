@@ -49,31 +49,32 @@ func (r *relay) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	}
 	relaylog.Debug("exec relay tx", "tx hash", common.Bytes2Hex(tx.Hash()), "Ty", action.GetTy())
 
-	actiondb := newRelayAction(r, tx)
+	actiondb := newRelayDB(r, tx)
 	switch action.GetTy() {
 	case types.RelayActionCreate:
 		return actiondb.relayCreate(action.GetCreate())
 
 	case types.RelayActionAccept:
-		return actiondb.relayAccept(action.GetAccept())
+		return actiondb.accept(action.GetAccept())
 
 	case types.RelayActionRevoke:
-		return actiondb.relayRevokeAccept(action.GetRevoke())
+		return actiondb.revokeAccept(action.GetRevoke())
 
 	//OrderId, txHash
 	case types.RelayActionConfirmTx:
-		return actiondb.relayConfirmTx(action.GetConfirmTx())
+		return actiondb.confirmTx(action.GetConfirmTx())
 
 	// OrderId, rawTx, index sibling, blockhash
 	case types.RelayActionVerifyTx:
-		return actiondb.relayVerifyTx(action.GetVerify(), r)
+		return actiondb.verifyTx(action.GetVerify(), r)
 
 	// OrderId, rawTx, index sibling, blockhash
 	case types.RelayActionVerifyBTCTx:
-		return actiondb.relayVerifyBTCTx(action.GetVerifyCli(), r)
+		return actiondb.verifyBtcTx(action.GetVerifyCli(), r)
 
 	case types.RelayActionRcvBTCHeaders:
-		return actiondb.relaySaveBTCHeader(action.GetBtcHeaders())
+		return actiondb.saveBtcHeader(action.GetBtcHeaders())
+
 	default:
 		return nil, types.ErrActionNotSupport
 	}
