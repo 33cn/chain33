@@ -2063,6 +2063,24 @@ func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
 					amt := amtValue.(float64) / float64(types.Coin)
 					amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
 					result.Payload.(map[string]interface{})["Value"].(map[string]interface{})[e].(map[string]interface{})["amount"] = amtResult
+
+					if input, ok := result.Payload.(map[string]interface{})["Value"].(map[string]interface{})[e].(map[string]interface{})["input"]; ok {
+						keyinputs := input.(map[string]interface{})["keyinput"].([]interface{})
+						for _, keyinput := range keyinputs {
+							amt := keyinput.(map[string]interface{})["amount"].(float64) / float64(types.Coin)
+						    amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
+						    keyinput.(map[string]interface{})["amount"] = amtResult
+					    }
+					}
+
+					if output, ok := result.Payload.(map[string]interface{})["Value"].(map[string]interface{})[e].(map[string]interface{})["output"]; ok {
+						keyoutputs := output.(map[string]interface{})["keyoutput"].([]interface{})
+						for _, keyoutput := range keyoutputs {
+							amt := keyoutput.(map[string]interface{})["amount"].(float64) / float64(types.Coin)
+							amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
+							keyoutput.(map[string]interface{})["amount"] = amtResult
+						}
+					}
 					break
 				}
 			}
