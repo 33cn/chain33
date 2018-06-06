@@ -479,6 +479,12 @@ func main() {
 			return
 		}
 		ShowPrivacyAccount(argsWithoutProg[1])
+	case "showprivacyaccountdetail":
+		if len(argsWithoutProg) != 2 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		showprivacyaccountDetail(argsWithoutProg[1])
 	case "pub2priv":
 		if len(argsWithoutProg) != 7 {
 			fmt.Print(errors.New("参数错误").Error())
@@ -591,7 +597,8 @@ func LoadHelp() {
 	fmt.Println("isntpclocksync []                                              : 获取网络时间同步状态")
 	//privacy
 	fmt.Println("showprivacykey addr                                            : 显示地址对应的隐私账户的view和spend的公钥")
-	fmt.Println("showprivacyaccount addr                                        : 显示地址对应的隐私账户信息")
+	fmt.Println("showprivacyaccount addr                                        : 显示地址对应的隐私账户可用余额信息")
+	fmt.Println("showprivacyaccountdetail addr                                  : 显示地址对应的隐私账户utxo信息")
 	fmt.Println("pub2priv from toviewpubkey tospendpubkey amout mixin note       : 公开账户向隐私账户转账")
 	fmt.Println("priv2priv from toviewpubkey tospendpubkey amout mixin note      : 隐私账户向隐私账户转账")
 	fmt.Println("priv2pub from to amout mixin note                               : 隐私账户向公开账户转账")
@@ -2746,7 +2753,7 @@ func ManageConfigTransactioin(key, op, opAddr, priv string) {
 }
 
 ////////////////privacy////////////////////////////
-func ShowPrivacyAccount(addr string) {
+func showprivacyaccountDetail(addr string) {
 	params := &types.ReqPrivBal4AddrToken{
 		addr,
 		"BTY",
@@ -2795,6 +2802,37 @@ func ShowPrivacyAccount(addr string) {
 		fmt.Printf("------The %dth privacy UTXO info is as below\n", index)
 		fmt.Println(string(data))
 	}
+}
+func ShowPrivacyAccount(addr string) {
+	params := &types.ReqPrivBal4AddrToken{
+		addr,
+		"BTY",
+	}
+
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res []*types.UTXO
+	err = rpc.Call("Chain33.ShowPrivacyAccount", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	if 0 == len(res) {
+		fmt.Printf("------Currently, no Privacy account for address:%s\n", addr)
+		return
+	}
+
+	fmt.Printf("------Privacy account Info for address:%s\n", addr)
+	total := float64(0)
+	for _, utxo := range res {
+		total += float64(utxo.Amount) / float64(types.Coin)
+	}
+	totalStr := strconv.FormatFloat(total, 'f', 4, 64)
+	fmt.Printf("------Total Privacy available amount is:%s \n", totalStr)
 }
 
 func ShowPrivacykey(addr string) {
