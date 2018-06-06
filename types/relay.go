@@ -8,12 +8,13 @@ import (
 const (
 
 	//log for relay
-	TyLogRelaySell       = 350
-	TyLogRelayRevokeSell = 351
-	TyLogRelayBuy        = 352
-	TyLogRelayRevokeBuy  = 353
-	TyLogRelayRcvBTCHead = 354
-	TyLogRelayConfirmTx  = 355
+	TyLogRelayCreate       = 350
+	TyLogRelayRevokeCreate = 351
+	TyLogRelayAccept       = 352
+	TyLogRelayRevokeAccept = 353
+	TyLogRelayConfirmTx    = 354
+	TyLogRelayFinishTx     = 355
+	TyLogRelayRcvBTCHead   = 356
 )
 
 //hard fork block height
@@ -23,27 +24,39 @@ const (
 
 //relay action ty
 const (
-	RelayActionSell = iota
-	RelayActionRevokeSell
-	RelayActionBuy
-	RelayActionRevokeBuy
+	RelayActionCreate = iota
+	RelayActionRevokeCreate
+	RelayActionAccept
+	RelayActionRevokeAccept
 	RelayActionConfirmTx
 	RelayActionVerifyTx
 	RelayActionVerifyBTCTx
 	RelayActionRcvBTCHeaders
 )
 
+const (
+	RelayCreateBuy = iota
+	RelayCreateSell
+)
+
+const (
+	RelayUnlockOrder = iota
+	RelayCancleOrder
+)
+
 /////////////////error.go/////
 //err for relay
 var (
-	ErrTRelayBalanceNotEnough = errors.New("ErrRelaySellBalanceNotEnough")
-	ErrTRelayOrderNotExist    = errors.New("ErrRelayOrderNotExist")
-	ErrTRelayOrderOnSell      = errors.New("ErrRelayOrderOnSell")
-	ErrTRelayOrderSoldout     = errors.New("ErrRelayOrderSoldout")
-	ErrTRelayOrderRevoked     = errors.New("ErrRelayOrderRevoked")
-	ErrTRelayOrderConfirming  = errors.New("ErrRelayOrderConfirming")
-	ErrTRelayOrderFinished    = errors.New("ErrRelayOrderFinished")
-	ErrTRelayReturnAddr       = errors.New("ErrRelayReturnAddr")
-	ErrTRelayVerify           = errors.New("ErrRelayVerify")
-	ErrTRelayVrfAddrNotFound  = errors.New("ErrRelayVerifyAddrNotFound")
+	ErrTRelayBalanceNotEnough   = errors.New("ErrRelaySellBalanceNotEnough")
+	ErrTRelayOrderNotExist      = errors.New("ErrRelayOrderNotExist")
+	ErrTRelayOrderOnSell        = errors.New("ErrRelayOrderOnSell")
+	ErrTRelayOrderParamErr      = errors.New("ErrRelayOrderParamErr")
+	ErrTRelayOrderSoldout       = errors.New("ErrRelayOrderSoldout")
+	ErrTRelayOrderRevoked       = errors.New("ErrRelayOrderRevoked")
+	ErrTRelayOrderConfirming    = errors.New("ErrRelayOrderConfirming")
+	ErrTRelayOrderFinished      = errors.New("ErrRelayOrderFinished")
+	ErrTRelayReturnAddr         = errors.New("ErrRelayReturnAddr")
+	ErrTRelayVerify             = errors.New("ErrRelayVerify")
+	ErrTRelayVerifyAddrNotFound = errors.New("ErrRelayVerifyAddrNotFound")
+	ErrTRelayWaitBlocksErr      = errors.New("ErrRelayWaitBlocks")
 )
