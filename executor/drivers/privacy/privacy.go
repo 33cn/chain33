@@ -212,13 +212,13 @@ func (p *privacy) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, i
 			token := receiptPrivacyOutput.Token
 			txhashInByte := tx.Hash()
 			txhash := common.ToHex(txhashInByte)
-			for m, keyOutput := range receiptPrivacyOutput.Keyoutput {
+			for outputIndex, keyOutput := range receiptPrivacyOutput.Keyoutput {
 				//kv1，添加一个具体的UTXO，方便我们可以查询相应token下特定额度下，不同高度时，不同txhash的UTXO
-				key := CalcPrivacyUTXOkeyHeight(token, keyOutput.Amount, p.GetHeight(), txhash, i, m)
+				key := CalcPrivacyUTXOkeyHeight(token, keyOutput.Amount, p.GetHeight(), txhash, index, outputIndex)
 				localUTXOItem := &types.LocalUTXOItem{
 					Height:        p.GetHeight(),
 					Txindex:       int32(index),
-					Outindex:      int32(i),
+					Outindex:      int32(outputIndex),
 					Txhash:        txhashInByte,
 					Onetimepubkey: keyOutput.Onetimepubkey,
 				}
@@ -235,20 +235,24 @@ func (p *privacy) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, i
 					err := types.Decode(value2, &amountTypes)
 					if err == nil {
 						//当本地数据库不存在这个额度时，则进行添加
-						if _, ok := amountTypes.AmountMap[keyOutput.Amount]; !ok {
-							amountTypes.AmountMap[keyOutput.Amount] = txhash
-							kv := &types.KeyValue{key2, types.Encode(&amountTypes)}
-							set.KV = append(set.KV, kv)
-							//在本地的query数据库进行设置，这样可以防止相同的新增amout不会被重复生成kv,而进行重复的设置
-							localDB.Set(key2, types.Encode(&amountTypes))
+						amount, ok := amountTypes.AmountMap[keyOutput.Amount]
+						if !ok {
+							amountTypes.AmountMap[keyOutput.Amount] = 1
+						} else {
+							//todo:考虑后续溢出的情况
+							amountTypes.AmountMap[keyOutput.Amount] = amount + 1
 						}
+						kv := &types.KeyValue{key2, types.Encode(&amountTypes)}
+						set.KV = append(set.KV, kv)
+						//在本地的query数据库进行设置，这样可以防止相同的新增amout不会被重复生成kv,而进行重复的设置
+						localDB.Set(key2, types.Encode(&amountTypes))
 					} else {
 						panic(err)
 					}
 				} else {
 					//如果该种token第一次进行隐私操作
-					amountTypes.AmountMap = make(map[int64]string)
-					amountTypes.AmountMap[keyOutput.Amount] = txhash
+					amountTypes.AmountMap = make(map[int64]int64)
+					amountTypes.AmountMap[keyOutput.Amount] = 1
 					kv := &types.KeyValue{key2, types.Encode(&amountTypes)}
 					set.KV = append(set.KV, kv)
 					localDB.Set(key2, types.Encode(&amountTypes))
@@ -320,13 +324,19 @@ func (p *privacy) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData
 					err := types.Decode(value2, &amountTypes)
 					if err == nil {
 						//当本地数据库不存在这个额度时，则进行添加
-						if settxhash, ok := amountTypes.AmountMap[keyOutput.Amount]; ok {
-							if settxhash == txhash {
-								kv := &types.KeyValue{key2, nil}
-								set.KV = append(set.KV, kv)
-								//在本地的query数据库进行设置，这样可以防止相同的新增amout不会被重复生成kv,而进行重复的设置
-								localDB.Set(key2, nil)
+						if count, ok := amountTypes.AmountMap[keyOutput.Amount]; ok {
+							count--
+							if 0 == count {
+								delete(amountTypes.AmountMap, keyOutput.Amount)
+							} else {
+								amountTypes.AmountMap[keyOutput.Amount] = count
 							}
+
+							value2 := types.Encode(&amountTypes)
+							kv := &types.KeyValue{key2, value2}
+							set.KV = append(set.KV, kv)
+							//在本地的query数据库进行设置，这样可以防止相同的新增amout不会被重复生成kv,而进行重复的设置
+							localDB.Set(key2, nil)
 						}
 					}
 				}
@@ -340,7 +350,9 @@ func (p *privacy) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData
 					if err == nil {
 						if settxhash, ok := tokenNames.TokensMap[token]; ok {
 							if settxhash == txhash {
-								kv := &types.KeyValue{key3, nil}
+								delete(tokenNames.TokensMap, token)
+								value3 := types.Encode(&tokenNames)
+								kv := &types.KeyValue{key3, value3}
 								set.KV = append(set.KV, kv)
 								localDB.Set(key3, nil)
 							}
@@ -392,8 +404,12 @@ func (p *privacy) ShowAmountsOfUTXO(reqtoken *types.ReqPrivacyToken) (types.Mess
 		var amountTypes types.AmountsOfUTXO
 		err := types.Decode(value, &amountTypes)
 		if err == nil {
-			for amount, _ := range amountTypes.AmountMap {
-				replyAmounts.Amount = append(replyAmounts.Amount, amount)
+			for amount, count := range amountTypes.AmountMap {
+				amountDetail := &types.AmountDetail{
+					Amount:amount,
+					Count:count,
+				}
+				replyAmounts.AmountDetail = append(replyAmounts.AmountDetail, amountDetail)
 			}
 		}
 
@@ -410,10 +426,10 @@ func (p *privacy) ShowUTXOs4SpecifiedAmount(reqtoken *types.ReqPrivacyToken) (ty
 	values := list.List(CalcPrivacyUTXOkeyHeightPrefix(reqtoken.Token, reqtoken.Amount), nil, 0, 0)
 	if len(values) != 0 {
 		for _, value := range values {
-			var utxoGlobalIndex types.UTXOGlobalIndex
-			err := types.Decode(value, &utxoGlobalIndex)
+			var localUTXOItem types.LocalUTXOItem
+			err := types.Decode(value, &localUTXOItem)
 			if err == nil {
-				replyUTXOsOfAmount.GlobalIndex = append(replyUTXOsOfAmount.GlobalIndex, &utxoGlobalIndex)
+				replyUTXOsOfAmount.LocalUTXOItems = append(replyUTXOsOfAmount.LocalUTXOItems, &localUTXOItem)
 			}
 		}
 	}
