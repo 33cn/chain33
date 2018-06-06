@@ -285,5 +285,4 @@ func createTxGroup(cmd *cobra.Command, args []string) {
 	newtx := group.Tx()
 	grouptx := hex.EncodeToString(types.Encode(newtx))
 	fmt.Println(grouptx)
-	return
 }
