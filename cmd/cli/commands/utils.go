@@ -108,7 +108,7 @@ func decodeLog(rlog jsonrpc.ReceiptDataResult) *ReceiptData {
 			types.TyLogTicketBind, types.TyLogPreCreateToken, types.TyLogFinishCreateToken, types.TyLogRevokeCreateToken,
 			types.TyLogTradeSellLimit, types.TyLogTradeBuyMarket, types.TyLogTradeSellRevoke,
 			types.TyLogTradeBuyLimit, types.TyLogTradeSellMarket, types.TyLogTradeBuyRevoke,
-			types.TyLogRelaySell, types.TyLogRelayRevokeSell, types.TyLogRelayBuy, types.TyLogRelayRevokeBuy,
+			types.TyLogRelayCreate, types.TyLogRelayRevokeCreate, types.TyLogRelayAccept, types.TyLogRelayRevokeAccept,
 			types.TyLogRelayRcvBTCHead, types.TyLogRelayConfirmTx:
 			rl.Log = l.Log
 		//case 2, 3, 5, 11:

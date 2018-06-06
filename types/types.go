@@ -419,15 +419,15 @@ func (r *ReceiptData) DecodeReceiptLog() (*ReceiptDataResult, error) {
 				return nil, err
 			}
 			logIns = logTmp
-		case TyLogRelaySell:
+		case TyLogRelayCreate:
 			lTy = "LogRelaySell"
-			var logTmp ReceiptRelaySell
+			var logTmp ReceiptRelayCreate
 			err = Decode(lLog, &logTmp)
 			if err != nil {
 				return nil, err
 			}
 			logIns = logTmp
-		case TyLogRelayRevokeSell:
+		case TyLogRelayRevokeCreate:
 			lTy = "LogRelayRevokeSell"
 			var logTmp ReceiptRelayRevoke
 			err = Decode(lLog, &logTmp)
@@ -435,17 +435,17 @@ func (r *ReceiptData) DecodeReceiptLog() (*ReceiptDataResult, error) {
 				return nil, err
 			}
 			logIns = logTmp
-		case TyLogRelayBuy:
+		case TyLogRelayAccept:
 			lTy = "LogRelayBuy"
-			var logTmp ReceiptRelayBuy
+			var logTmp ReceiptRelayAccept
 			err = Decode(lLog, &logTmp)
 			if err != nil {
 				return nil, err
 			}
 			logIns = logTmp
-		case TyLogRelayRevokeBuy:
+		case TyLogRelayRevokeAccept:
 			lTy = "LogRelayRevokeBuy"
-			var logTmp ReceiptRelayBuy
+			var logTmp ReceiptRelayAccept
 			err = Decode(lLog, &logTmp)
 			if err != nil {
 				return nil, err

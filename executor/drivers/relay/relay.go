@@ -8,22 +8,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-/*
-relay执行器支持跨链token的创建和交易，
-
-主要提供操作有以下几种：
-1）挂BTY单出售购买BTC 或者已有BTC买别人的BTY(未实现)；
-2）挂TOKEN单出售购买BTC 或者已有BTC买别人的TOKEN（未实现）；
-3）买家购买指定的卖单；
-4）买家交易相应数额的BTC给卖家，并且提取交易信息在chain33上通过relay验证，验证通过获取相应BTY
-5）撤销卖单；
-6）插销买单
-
-*/
-
-///////executor.go////////
-//_ "gitlab.33.cn/chain33/chain33/executor/drivers/relay"
-
 var relaylog = log.New("module", "execs.relay")
 
 func Init() {
@@ -33,13 +17,13 @@ func Init() {
 
 type relay struct {
 	drivers.DriverBase
-	btcstore relayBTCStore
+	btcStore relayBTCStore
 }
 
 func newRelay() *relay {
 	r := &relay{}
 	r.SetChild(r)
-	r.btcstore.new(r)
+	r.btcStore.new(r)
 
 	return r
 }
@@ -52,7 +36,7 @@ func (r *relay) Clone() drivers.Driver {
 	clone := &relay{}
 	clone.DriverBase = *(r.DriverBase.Clone().(*drivers.DriverBase))
 	clone.SetChild(clone)
-	clone.btcstore.r = clone
+	clone.btcStore.r = clone
 
 	return clone
 }
@@ -63,33 +47,33 @@ func (r *relay) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	if err != nil {
 		return nil, err
 	}
-	relaylog.Info("exec relay tx", "tx hash", common.Bytes2Hex(tx.Hash()), "Ty", action.GetTy())
+	relaylog.Debug("exec relay tx", "tx hash", common.Bytes2Hex(tx.Hash()), "Ty", action.GetTy())
 
 	actiondb := newRelayAction(r, tx)
 	switch action.GetTy() {
-	case types.RelayActionSell:
-		return actiondb.relaySell(action.GetRsell())
+	case types.RelayActionCreate:
+		return actiondb.relayCreate(action.GetCreate())
 
-	case types.RelayActionRevokeSell:
-		return actiondb.relayRevokeSell(action.GetRrevokesell())
+	case types.RelayActionRevokeCreate:
+		return actiondb.relayRevokeCreate(action.GetRevokeCreate())
 
-	case types.RelayActionBuy:
-		return actiondb.relayBuy(action.GetRbuy())
+	case types.RelayActionAccept:
+		return actiondb.relayAccept(action.GetAccept())
 
-	case types.RelayActionRevokeBuy:
-		return actiondb.relayRevokeBuy(action.GetRrevokebuy())
+	case types.RelayActionRevokeAccept:
+		return actiondb.relayRevokeAccept(action.GetRevokeAccept())
 
-	//orderid, txhash
+	//OrderId, txHash
 	case types.RelayActionConfirmTx:
-		return actiondb.relayConfirmTx(action.GetRconfirmtx())
+		return actiondb.relayConfirmTx(action.GetConfirmTx())
 
-	// orderid, rawTx, index sibling, blockhash
+	// OrderId, rawTx, index sibling, blockhash
 	case types.RelayActionVerifyTx:
-		return actiondb.relayVerifyTx(action.GetRverify(), r)
+		return actiondb.relayVerifyTx(action.GetVerify(), r)
 
-	// orderid, rawTx, index sibling, blockhash
+	// OrderId, rawTx, index sibling, blockhash
 	case types.RelayActionVerifyBTCTx:
-		return actiondb.relayVerifyBTCTx(action.GetRverifybtc(), r)
+		return actiondb.relayVerifyBTCTx(action.GetVerifyBtc(), r)
 
 	case types.RelayActionRcvBTCHeaders:
 		return actiondb.relaySaveBTCHeader(action.GetBtcHeaders())
@@ -115,22 +99,22 @@ func (r *relay) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 
 	for i := 0; i < len(receipt.Logs); i++ {
 		item := receipt.Logs[i]
-		if item.Ty == types.TyLogRelaySell || item.Ty == types.TyLogRelayRevokeSell {
-			var receipt types.ReceiptRelaySell
+		if item.Ty == types.TyLogRelayCreate || item.Ty == types.TyLogRelayRevokeCreate {
+			var receipt types.ReceiptRelayCreate
 			err := types.Decode(item.Log, &receipt)
 			if err != nil {
 				panic(err)
 			}
-			kv := r.saveSell([]byte(receipt.Base.Orderid), item.Ty)
+			kv := r.saveSell([]byte(receipt.Base.OrderId), item.Ty)
 			set.KV = append(set.KV, kv...)
-		} else if item.Ty == types.TyLogRelayBuy || item.Ty == types.TyLogRelayRevokeBuy {
-			var receipt types.ReceiptRelayBuy
+		} else if item.Ty == types.TyLogRelayAccept || item.Ty == types.TyLogRelayRevokeAccept {
+			var receipt types.ReceiptRelayAccept
 			err := types.Decode(item.Log, &receipt)
 			if err != nil {
 				panic(err)
 			}
 
-			kv := r.saveBuy([]byte(receipt.Orderid), item.Ty)
+			kv := r.saveBuy([]byte(receipt.OrderId), item.Ty)
 			set.KV = append(set.KV, kv...)
 		} else if item.Ty == types.TyLogRelayRcvBTCHead {
 
@@ -140,7 +124,7 @@ func (r *relay) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 				panic(err)
 			}
 
-			kv := r.btcstore.saveBlockHead(receipt.Base)
+			kv := r.btcStore.saveBlockHead(receipt.Base)
 			set.KV = append(set.KV, kv...)
 		}
 	}
@@ -160,21 +144,21 @@ func (r *relay) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 
 	for i := 0; i < len(receipt.Logs); i++ {
 		item := receipt.Logs[i]
-		if item.Ty == types.TyLogRelaySell || item.Ty == types.TyLogRelayRevokeSell {
-			var receipt types.ReceiptRelaySell
+		if item.Ty == types.TyLogRelayCreate || item.Ty == types.TyLogRelayRevokeCreate {
+			var receipt types.ReceiptRelayCreate
 			err := types.Decode(item.Log, &receipt)
 			if err != nil {
 				panic(err)
 			}
-			kv := r.deletSell([]byte(receipt.Base.Orderid), item.Ty)
+			kv := r.deletSell([]byte(receipt.Base.OrderId), item.Ty)
 			set.KV = append(set.KV, kv...)
-		} else if item.Ty == types.TyLogRelayBuy || item.Ty == types.TyLogRelayRevokeBuy {
-			var receipt types.ReceiptRelayBuy
+		} else if item.Ty == types.TyLogRelayAccept || item.Ty == types.TyLogRelayRevokeAccept {
+			var receipt types.ReceiptRelayAccept
 			err := types.Decode(item.Log, &receipt)
 			if err != nil {
 				panic(err)
 			}
-			kv := r.deleteBuy([]byte(receipt.Orderid), item.Ty)
+			kv := r.deleteBuy([]byte(receipt.OrderId), item.Ty)
 			set.KV = append(set.KV, kv...)
 		}
 	}
@@ -209,27 +193,22 @@ func (r *relay) Query(funcName string, params []byte) (types.Message, error) {
 			return nil, err
 		}
 		return r.GetBuyRelayOrder(&addrCoins)
+
 	case "GetBTCHeaderList":
 		var req types.ReqRelayBtcHeaderHeightList
 		err := types.Decode(params, &req)
 		if err != nil {
 			return nil, err
 		}
-		return r.btcstore.getHeadHeigtList(&req)
-	case "GetBTCHeaderMissList":
-		var req types.ReqRelayBtcHeaderHeightList
-		err := types.Decode(params, &req)
-		if err != nil {
-			return nil, err
-		}
-		return r.btcstore.getHeadMissedHeigtList(&req)
+		return r.btcStore.getHeadHeightList(&req)
+
 	case "GetBTCHeaderCurHeight":
 		var req types.ReqRelayQryBTCHeadHeight
 		err := types.Decode(params, &req)
 		if err != nil {
 			return nil, err
 		}
-		return r.btcstore.getBTCHeadDbCurHeight(&req)
+		return r.btcStore.getBTCHeadDbCurHeight(&req)
 	default:
 	}
 	relaylog.Error("relay Query", "Query type not supprt with func name", funcName)
@@ -239,11 +218,11 @@ func (r *relay) Query(funcName string, params []byte) (types.Message, error) {
 func (r *relay) GetSellOrderByStatus(addrCoins *types.ReqRelayAddrCoins) (types.Message, error) {
 	var prefixs [][]byte
 	if 0 == len(addrCoins.Coins) {
-		val := getRelayOrderPrefixStatus((int32)(addrCoins.Status))
+		val := getOrderPrefixStatus((int32)(addrCoins.Status))
 		prefixs = append(prefixs, val)
 	} else {
 		for _, coin := range addrCoins.Coins {
-			val := getRelayOrderPrefixCoinStatus(coin, (int32)(addrCoins.Status))
+			val := getOrderPrefixCoinStatus(coin, (int32)(addrCoins.Status))
 			prefixs = append(prefixs, val)
 		}
 	}
@@ -255,11 +234,11 @@ func (r *relay) GetSellOrderByStatus(addrCoins *types.ReqRelayAddrCoins) (types.
 func (r *relay) GetSellRelayOrder(addrCoins *types.ReqRelayAddrCoins) (types.Message, error) {
 	var prefixs [][]byte
 	if 0 == len(addrCoins.Coins) {
-		val := getRelayOrderPrefixAddr(addrCoins.Addr)
+		val := getOrderPrefixAddr(addrCoins.Addr)
 		prefixs = append(prefixs, val)
 	} else {
 		for _, coin := range addrCoins.Coins {
-			val := getRelayOrderPrefixAddrCoin(addrCoins.Addr, coin)
+			val := getOrderPrefixAddrCoin(addrCoins.Addr, coin)
 			prefixs = append(prefixs, val)
 		}
 	}
@@ -285,7 +264,7 @@ func (r *relay) GetBuyRelayOrder(addrCoins *types.ReqRelayAddrCoins) (types.Mess
 }
 
 func (r *relay) GetSellOrder(prefixs [][]byte) (types.Message, error) {
-	var orderids [][]byte
+	var OrderIds [][]byte
 
 	for _, prefix := range prefixs {
 		values, err := r.GetLocalDB().List(prefix, nil, 0, 0)
@@ -294,27 +273,27 @@ func (r *relay) GetSellOrder(prefixs [][]byte) (types.Message, error) {
 		}
 
 		if 0 != len(values) {
-			relaylog.Debug("relay coin status Query", "get number of orderid", len(values))
-			orderids = append(orderids, values...)
+			relaylog.Debug("relay coin status Query", "get number of OrderId", len(values))
+			OrderIds = append(OrderIds, values...)
 		}
 	}
 
-	return r.getRelayOrderReply(orderids)
+	return r.getRelayOrderReply(OrderIds)
 
 }
 
-func (r *relay) getRelayOrderReply(orderids [][]byte) (types.Message, error) {
-	orderidGot := make(map[string]bool)
+func (r *relay) getRelayOrderReply(OrderIds [][]byte) (types.Message, error) {
+	OrderIdGot := make(map[string]bool)
 
 	var reply types.ReplyRelayOrders
-	for _, orderid := range orderids {
+	for _, OrderId := range OrderIds {
 		//因为通过db list功能获取的sellid由于条件设置宽松会出现重复sellid的情况，在此进行过滤
-		if !orderidGot[string(orderid)] {
-			if order, err := r.getSellOrderFromDb(orderid); err == nil {
-				relaylog.Debug("relay Query", "getSellOrderFromID", string(orderid))
+		if !OrderIdGot[string(OrderId)] {
+			if order, err := r.getSellOrderFromDb(OrderId); err == nil {
+				relaylog.Debug("relay Query", "getSellOrderFromID", string(OrderId))
 				reply.Relayorders = insertOrderDescending(order, reply.Relayorders)
 			}
-			orderidGot[string(orderid)] = true
+			OrderIdGot[string(OrderId)] = true
 		}
 	}
 	return &reply, nil
@@ -326,7 +305,7 @@ func insertOrderDescending(toBeInserted *types.RelayOrder, orders []*types.Relay
 	} else {
 		index := len(orders)
 		for i, element := range orders {
-			if toBeInserted.Sellamount >= element.Sellamount {
+			if toBeInserted.Amount >= element.Amount {
 				index = i
 				break
 			}
@@ -343,8 +322,8 @@ func insertOrderDescending(toBeInserted *types.RelayOrder, orders []*types.Relay
 	return orders
 }
 
-func (r *relay) getSellOrderFromDb(orderid []byte) (*types.RelayOrder, error) {
-	value, err := r.GetStateDB().Get(orderid)
+func (r *relay) getSellOrderFromDb(OrderId []byte) (*types.RelayOrder, error) {
+	value, err := r.GetStateDB().Get(OrderId)
 	if err != nil {
 		return nil, err
 	}
@@ -363,15 +342,36 @@ func (r *relay) getBTCHeaderFromDb(hash []byte) (*types.BtcHeader, error) {
 	return &header, nil
 }
 
-func getSellOrderKv(order *types.RelayOrder) []*types.KeyValue {
+func getSellOrderKv(order *types.RelayOrder, ty int32) []*types.KeyValue {
 	status := order.Status
 	var kv []*types.KeyValue
 	kv = getSellOrderKeyValue(kv, order, int32(status))
-	if status == types.RelayOrderStatus_locking || status == types.RelayOrderStatus_canceled {
+	if status == types.RelayOrderStatus_locking {
 		kv = deleteSellOrderKeyValue(kv, order, int32(types.RelayOrderStatus_pending))
-		//进入pending有两个状态，要么初始，要么locking，如果是初始，删除locking不影响
-	} else if status == types.RelayOrderStatus_pending && BUY_CANCLED == order.Buyeraddr {
-		kv = deleteSellOrderKeyValue(kv, order, int32(types.RelayOrderStatus_locking))
+	} else if status == types.RelayOrderStatus_canceled {
+		if order.ConfirmTime != 0 {
+			kv = deleteSellOrderKeyValue(kv, order, int32(types.RelayOrderStatus_confirming))
+		} else if order.AcceptTime != 0 {
+			kv = deleteSellOrderKeyValue(kv, order, int32(types.RelayOrderStatus_locking))
+		} else {
+			kv = deleteSellOrderKeyValue(kv, order, int32(types.RelayOrderStatus_pending))
+		}
+
+	} else if status == types.RelayOrderStatus_pending {
+		if ty == types.TyLogRelayRevokeCreate {
+			if order.ConfirmTime != 0 {
+				kv = deleteSellOrderKeyValue(kv, order, int32(types.RelayOrderStatus_confirming))
+			} else if order.AcceptTime != 0 {
+				kv = deleteSellOrderKeyValue(kv, order, int32(types.RelayOrderStatus_locking))
+			}
+		} else if ty == types.TyLogRelayRevokeAccept {
+			if order.ConfirmTime != 0 {
+				kv = deleteSellOrderKeyValue(kv, order, int32(types.RelayOrderStatus_confirming))
+			} else {
+				kv = deleteSellOrderKeyValue(kv, order, int32(types.RelayOrderStatus_locking))
+			}
+		}
+
 	} else if status == types.RelayOrderStatus_confirming {
 		kv = deleteSellOrderKeyValue(kv, order, int32(types.RelayOrderStatus_locking))
 	} else if status == types.RelayOrderStatus_finished {
@@ -381,14 +381,26 @@ func getSellOrderKv(order *types.RelayOrder) []*types.KeyValue {
 	return kv
 }
 
-func getDeleteSellOrderKv(order *types.RelayOrder) []*types.KeyValue {
+func getDeleteSellOrderKv(order *types.RelayOrder, ty int32) []*types.KeyValue {
 	status := order.Status
 	var kv []*types.KeyValue
 	kv = deleteSellOrderKeyValue(kv, order, int32(status))
-	if status == types.RelayOrderStatus_locking || status == types.RelayOrderStatus_canceled {
+	if status == types.RelayOrderStatus_locking {
 		kv = getSellOrderKeyValue(kv, order, int32(types.RelayOrderStatus_pending))
-	} else if status == types.RelayOrderStatus_pending && BUY_CANCLED == order.Buyeraddr {
-		kv = getSellOrderKeyValue(kv, order, int32(types.RelayOrderStatus_locking))
+	} else if status == types.RelayOrderStatus_canceled {
+		if order.ConfirmTime != 0 {
+			kv = getSellOrderKeyValue(kv, order, int32(types.RelayOrderStatus_confirming))
+		} else if order.AcceptTime != 0 {
+			kv = getSellOrderKeyValue(kv, order, int32(types.RelayOrderStatus_locking))
+		} else {
+			kv = getSellOrderKeyValue(kv, order, int32(types.RelayOrderStatus_pending))
+		}
+	} else if ty == types.TyLogRelayRevokeCreate && status == types.RelayOrderStatus_pending {
+		if order.ConfirmTime != 0 {
+			kv = getSellOrderKeyValue(kv, order, int32(types.RelayOrderStatus_confirming))
+		} else if order.AcceptTime != 0 {
+			kv = getSellOrderKeyValue(kv, order, int32(types.RelayOrderStatus_locking))
+		}
 	} else if status == types.RelayOrderStatus_confirming {
 		kv = getSellOrderKeyValue(kv, order, int32(types.RelayOrderStatus_locking))
 	} else if status == types.RelayOrderStatus_finished {
@@ -424,40 +436,40 @@ func getDeleteBuyOrderKv(order *types.RelayOrder) []*types.KeyValue {
 	return kv
 }
 
-func (r *relay) saveSell(orderid []byte, ty int32) []*types.KeyValue {
-	order, _ := r.getSellOrderFromDb(orderid)
-	return getSellOrderKv(order)
+func (r *relay) saveSell(OrderId []byte, ty int32) []*types.KeyValue {
+	order, _ := r.getSellOrderFromDb(OrderId)
+	return getSellOrderKv(order, ty)
 }
 
-func (r *relay) saveBuy(orderid []byte, ty int32) []*types.KeyValue {
-	order, _ := r.getSellOrderFromDb(orderid)
+func (r *relay) saveBuy(OrderId []byte, ty int32) []*types.KeyValue {
+	order, _ := r.getSellOrderFromDb(OrderId)
 	return getBuyOrderKv(order)
 }
 
-func (r *relay) deletSell(orderid []byte, ty int32) []*types.KeyValue {
-	order, _ := r.getSellOrderFromDb(orderid)
-	return getDeleteSellOrderKv(order)
+func (r *relay) deletSell(OrderId []byte, ty int32) []*types.KeyValue {
+	order, _ := r.getSellOrderFromDb(OrderId)
+	return getDeleteSellOrderKv(order, ty)
 }
 
-func (r *relay) deleteBuy(orderid []byte, ty int32) []*types.KeyValue {
-	order, _ := r.getSellOrderFromDb(orderid)
+func (r *relay) deleteBuy(OrderId []byte, ty int32) []*types.KeyValue {
+	order, _ := r.getSellOrderFromDb(OrderId)
 	return getDeleteBuyOrderKv(order)
 }
 
 func getSellOrderKeyValue(kv []*types.KeyValue, order *types.RelayOrder, status int32) []*types.KeyValue {
-	orderid := []byte(order.Orderid)
+	OrderId := []byte(order.Id)
 
-	key := getRelayOrderKeyStatus(order, status)
-	kv = append(kv, &types.KeyValue{key, orderid})
+	key := getOrderKeyStatus(order, status)
+	kv = append(kv, &types.KeyValue{key, OrderId})
 
-	key = getRelayOrderKeyCoin(order, status)
-	kv = append(kv, &types.KeyValue{key, orderid})
+	key = getOrderKeyCoin(order, status)
+	kv = append(kv, &types.KeyValue{key, OrderId})
 
-	key = getRelayOrderKeyAddrStatus(order, status)
-	kv = append(kv, &types.KeyValue{key, orderid})
+	key = getOrderKeyAddrStatus(order, status)
+	kv = append(kv, &types.KeyValue{key, OrderId})
 
-	key = getRelayOrderKeyAddrCoin(order, status)
-	kv = append(kv, &types.KeyValue{key, orderid})
+	key = getOrderKeyAddrCoin(order, status)
+	kv = append(kv, &types.KeyValue{key, OrderId})
 
 	return kv
 
@@ -465,26 +477,26 @@ func getSellOrderKeyValue(kv []*types.KeyValue, order *types.RelayOrder, status 
 
 func deleteSellOrderKeyValue(kv []*types.KeyValue, order *types.RelayOrder, status int32) []*types.KeyValue {
 
-	key := getRelayOrderKeyStatus(order, status)
+	key := getOrderKeyStatus(order, status)
 	kv = append(kv, &types.KeyValue{key, nil})
 
-	key = getRelayOrderKeyCoin(order, status)
+	key = getOrderKeyCoin(order, status)
 	kv = append(kv, &types.KeyValue{key, nil})
 
-	key = getRelayOrderKeyAddrStatus(order, status)
+	key = getOrderKeyAddrStatus(order, status)
 	kv = append(kv, &types.KeyValue{key, nil})
 
-	key = getRelayOrderKeyAddrCoin(order, status)
+	key = getOrderKeyAddrCoin(order, status)
 	kv = append(kv, &types.KeyValue{key, nil})
 
 	return kv
 }
 
 func getBuyOrderKeyValue(kv []*types.KeyValue, order *types.RelayOrder, status int32) []*types.KeyValue {
-	orderid := []byte(order.Orderid)
+	OrderId := []byte(order.Id)
 
 	key := getBuyOrderKeyAddr(order, status)
-	kv = append(kv, &types.KeyValue{key, orderid})
+	kv = append(kv, &types.KeyValue{key, OrderId})
 
 	return kv
 }

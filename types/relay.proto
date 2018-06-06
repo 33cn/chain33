@@ -17,7 +17,7 @@ package types;
 
 
 enum RelayOrderStatus {
-    unknown = 0;
+    init = 0;
     pending = 1;
     locking = 2;
     confirming = 3;
@@ -29,88 +29,82 @@ enum RelayOrderStatus {
 
 message RelayAction {
     oneof value {
-        RelaySell 			rsell 		= 1;
-        RelayRevokeSell 	rrevokesell = 2;
-        RelayBuy 			rbuy 		= 3;
-        RelayRevokeBuy 		rrevokebuy 	= 4;
-        RelayConfirmTx 		rconfirmtx 	= 5;
-        RelayVerify 		rverify 	= 6;
-        RelayVerifyBTC		rverifybtc 	= 7;
+        RelayCreate 		create 		= 1;
+        RelayRevokeCreate 	revokeCreate= 2;
+        RelayAccept     	accept  	= 3;
+        RelayRevokeAccept	revokeAccept= 4;
+        RelayConfirmTx 		confirmTx 	= 5;
+        RelayVerify 		verify 	    = 6;
+        RelayVerifyBTC		verifyBtc 	= 7;
         BtcHeaders          btcHeaders  = 8;
     }
     int32 ty = 10;
 }
 
 
-message RelaySell {
-    uint64 sellamount			= 1;
-    //string selladdr          	= 2；   //自身帐号，如果自己是外链账户，需要填
-    //string  selltoken		   	= 3;    //卖的token  当前缺省是BTY
-    string exchgcoin          	= 4;    //兑换币符号 比如BTC
-    uint64 exchgamount          = 5;    //兑换数量
-    string exchgaddr	       	= 6;    //兑换账户
-    uint32  waitcoinblocks      = 7;    //客户愿意等待的确认块数，默认是6个块，可以自己设置
 
+message RelayCreate {
+    uint32 operation                = 1;    //0: buy, 1: sell
+    string coin 		   	        = 2;    //outside coin BTC, ETH...
+    uint64 amount			        = 3;
+    string addr          	        = 4;
+    uint64 btyAmount                = 5;
 }
 
 message RelayOrder {
-    string orderid				= 1;    //此处使用buyer tx的hash来指定
+    string id   				= 1;
     RelayOrderStatus  status    = 2;
-    uint64 sellamount           = 3;
-    //string selltoken          = 4;
-    string selladdr             = 5;
-    string exchgcoin            = 6;
-    uint64 exchgamount          = 7;
-    string exchgaddr          	= 8;
-    string exchgtxhash          = 9;     //buyer 提交coin的交易hash
-    uint32  waitcoinblocks      = 10;
-    int64  createtime           = 11;
-    string buyeraddr          	= 12;
-    //string buytxhash          = 13;
-    int64  buytime              = 14;
-    int64  buyercoinheight    	= 15;    //buy的时候的coin的block 高度
-    int64  confirmtime          = 16;    //buyer 提交exchgtxhash的时间
-    //int32  lockingtime        = 17;    //buyer交易验证不通过时候 订单重新锁定时间
-    //int32  lockingtimes       = 18;    //buyer 提交coin交易hash待验证的次数，如果超过3次未验证通过 则seller随时可以收回（unlock）交易
-    int64  finishtime           = 19;    //订单最终结算时间
-    string finishresult         = 20;
-    int64  height               = 21;
+    RelayOrderStatus  preStatus = 3;
+    uint64 amount               = 4;
+    string createrAddr          = 5;
+    uint32 coinOperation        = 6;
+    string coin                 = 7;
+    uint64 coinAmount           = 8;
+    string coinAddr          	= 9;
+    string coinTxHash           = 10;
+    int64  createTime           = 11;
+    string acceptAddr          	= 12;
+    int64  acceptTime           = 13;
+    int64  confirmTime          = 14;
+    int64  finishTime           = 15;
+    int64  height               = 16;
 }
 
-message RelayBuy {
-    string orderid      = 1;
+message RelayAccept {
+    string orderId      = 1;
+    string coinAddr	    = 2;    //for sell coin case needed
 }
 
-//允许撤销卖单
-message RelayRevokeSell {
-    string orderid      = 1;
+
+message RelayRevokeCreate {
+    string orderId      = 1;
+    uint32 action       = 2;
 }
 
 //允许撤销买单
-message RelayRevokeBuy {
-    string orderid      = 1;
+message RelayRevokeAccept {
+    string orderId      = 1;
 }
 
 //客户只用交易hash提交， 验证需要的其他信息由relayd提供
 message RelayConfirmTx {
-    string orderid		= 1;
-    string txhash		= 2;
+    string orderId		= 1;
+    string txHash		= 2;
 }
 
 //relayd提供验证信息
 message RelayVerify {
-    string orderid		= 1;
+    string orderId		= 1;
     BtcTransaction tx   = 2;
     BtcSpv spv          = 3;
 }
 
-//客户自己提供原始交易信息来验证
 message RelayVerifyBTC {
-    string orderid		= 1;
-    string rawtx		= 2;
-    uint32 txindex		= 3;
-    string merkbranch	= 4;
-    string blockhash	= 5;
+    string orderId		= 1;
+    string rawTx		= 2;
+    uint32 txIndex		= 3;
+    string merkBranch	= 4;
+    string blockHash	= 5;
 }
 
 message BtcHeader {
@@ -167,37 +161,36 @@ message ReceiptRelayRcvBTCHeaders{
 
 
 message ReceiptRelayBase {
-    string orderid				= 1;
+    string orderId				= 1;
     RelayOrderStatus status		= 2;
-    string selladdr             = 3;
-    uint64 sellamount			= 4;
-    //string selltoken			= 5;
-    string exchgcoin            = 6;
-    uint64 exchgamount          = 7;
-    string exchgaddr            = 8;
-    string exchgtxhash          = 9;
-    uint32 waitcoinblocks       = 10;
-    int64  createtime           = 11;
-    string buyeraddr            = 12;
-    int64  buyertime            = 13;
-    int64  finishtime           = 14;
-    string finishresult         = 15;
+    string createAddr           = 3;
+    uint64 amount			    = 4;
+    string coin                 = 6;
+    uint64 coinAmount           = 7;
+    string coinAddr             = 8;
+    string coinTxHash           = 9;
+    int64  createTime           = 11;
+    string acceptAddr           = 12;
+    int64  acceptTime           = 13;
+    int64  confirmTime          = 14;
+    int64  finishTime           = 15;
 }
 
-message ReceiptRelaySell {
+message ReceiptRelayCreate {
     ReceiptRelayBase base = 1;
 }
 
-message ReceiptRelayBuy {
-    string orderid             	= 1;
+message ReceiptRelayAccept {
+    string orderId             	= 1;
     RelayOrderStatus status		= 2;
-    string buyeraddr			= 3;
-    uint64 buyamount			= 4;
-    string buytxhash            = 5;
+    string acceptAddr			= 3;
+    uint64 amount			    = 4;
     string exchgcoin			= 6;
     uint64 exchgamount			= 7;
     string exchgaddr			= 8;
     string exchgtxhash          = 9;
+    int64  acceptTime           = 10;
+    int64  confirmTime          = 11;
 }
 
 message ReceiptRelayRevoke {
@@ -205,7 +198,7 @@ message ReceiptRelayRevoke {
 }
 
 message ReceiptRelayConfirm {
-    ReceiptRelayBuy base = 1;
+    ReceiptRelayAccept base = 1;
 }
 
 message ReceiptRelayVerify {
@@ -227,7 +220,7 @@ message ReplyRelayOrders {
 
 message QueryRelayOrderParam{
     RelayOrderStatus status = 1;
-    string orderid          = 2;
+    string orderId          = 2;
 }
 
 message QueryRelayOrderResult{

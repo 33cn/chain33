@@ -22,85 +22,85 @@ const (
 	relayRcvBTCHighestHead   = "relay-rcv-btcheader-ht"
 )
 
-func getRelayBtcHeaderKeyHash(hash string) []byte {
+func getBtcHeaderKeyHash(hash string) []byte {
 	key := fmt.Sprintf(relayBTCHeaderHash+"%s", hash)
 	return []byte(key)
 }
 
-func getRelayBtcHeaderKeyHeight(height int64) []byte {
+func getBtcHeaderKeyHeight(height int64) []byte {
 	key := fmt.Sprintf(relayBTCHeaderHeight+"%d", height)
 	return []byte(key)
 }
 
-func getRelayBtcHeaderKeyHeightList(height int64) []byte {
+func getBtcHeaderKeyHeightList(height int64) []byte {
 	key := fmt.Sprintf(relayBTCHeaderHeightList+"%d", height)
 	return []byte(key)
 }
 
-func getRelayBtcHeaderKeyLastHeight() []byte {
+func getBtcHeaderKeyLastHeight() []byte {
 	return []byte(relayBTCHeaderLastHeight)
 }
 
-func getRelayBtcHeaderKeyBaseHeight() []byte {
+func getBtcHeaderKeyBaseHeight() []byte {
 	return []byte(relayBTCHeaderBaseHeight)
 }
 
-func getRelayBtcHeightListKey() []byte {
+func getBtcHeightListKey() []byte {
 	return []byte(relayBTCHeaderHeightList)
 }
 
 //特定状态下的定单
-func getRelayOrderKeyStatus(order *types.RelayOrder, status int32) []byte {
+func getOrderKeyStatus(order *types.RelayOrder, status int32) []byte {
 	key := fmt.Sprintf(relayOrderSCAIH+"%d:%s:%s:%s:%d",
-		status, order.Exchgcoin, order.Selladdr, order.Orderid, order.Height)
+		status, order.Coin, order.CreaterAddr, order.Id, order.Height)
 	return []byte(key)
 }
 
 //特定coin+状态下的卖单
-func getRelayOrderKeyCoin(order *types.RelayOrder, status int32) []byte {
+func getOrderKeyCoin(order *types.RelayOrder, status int32) []byte {
 	key := fmt.Sprintf(relayOrderCSAIH+"%s:%d:%s:%s:%d",
-		order.Exchgcoin, status, order.Selladdr, order.Orderid, order.Height)
+		order.Coin, status, order.CreaterAddr, order.Id, order.Height)
 	return []byte(key)
 }
 
 //特定账户下特定状态的卖单
-func getRelayOrderKeyAddrStatus(order *types.RelayOrder, status int32) []byte {
+func getOrderKeyAddrStatus(order *types.RelayOrder, status int32) []byte {
 	key := fmt.Sprintf(relayOrderASCIH+"%s:%d:%s:%s:%d",
-		order.Selladdr, status, order.Exchgcoin, order.Orderid, order.Height)
+		order.CreaterAddr, status, order.Coin, order.Id, order.Height)
 	return []byte(key)
 }
 
 //特定账户下特定coin的卖单
-func getRelayOrderKeyAddrCoin(order *types.RelayOrder, status int32) []byte {
+func getOrderKeyAddrCoin(order *types.RelayOrder, status int32) []byte {
 	key := fmt.Sprintf(relayOrderACSIH+"%s:%s:%d:%s:%d",
-		order.Selladdr, order.Exchgcoin, status, order.Orderid, order.Height)
+		order.CreaterAddr, order.Coin, status, order.Id, order.Height)
 	return []byte(key)
 }
 
-func getRelayOrderPrefixStatus(status int32) []byte {
+func getOrderPrefixStatus(status int32) []byte {
 	prefix := fmt.Sprintf(relayOrderSCAIH+"%d:", status)
 	return []byte(prefix)
 }
 
-func getRelayOrderPrefixCoinStatus(coin string, status int32) []byte {
+func getOrderPrefixCoinStatus(coin string, status int32) []byte {
 	prefix := fmt.Sprintf(relayOrderCSAIH+"%s:%d:", coin, status)
 	return []byte(prefix)
 }
 
 //特定账户下指定token的卖单
-func getRelayOrderPrefixAddrCoin(addr string, coin string) []byte {
+func getOrderPrefixAddrCoin(addr string, coin string) []byte {
 	key := fmt.Sprintf(relayOrderACSIH+"%s:%s", addr, coin)
 	return []byte(key)
 }
 
 //特定账户下的卖单
-func getRelayOrderPrefixAddr(addr string) []byte {
+func getOrderPrefixAddr(addr string) []byte {
 	return []byte(fmt.Sprintf(relayOrderACSIH+"%s", addr))
 }
 
 func getBuyOrderKeyAddr(order *types.RelayOrder, status int32) []byte {
 	return []byte(fmt.Sprintf(relayBuyOrderACSIH+"%s:%s:%d:%s:%d",
-		order.Buyeraddr, order.Exchgcoin, status, order.Orderid, order.Height))
+		order.AcceptAddr, order.Coin, status, order.Id, order.Height))
 }
 
 //特定账户下的买单
