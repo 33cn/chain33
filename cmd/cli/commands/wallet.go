@@ -303,7 +303,7 @@ func signRawTx(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	if expireTime < time.Minute*2 {
+	if expireTime < time.Minute*2 && expireTime != time.Second*0 {
 		expire = "120s"
 		fmt.Println("expire time must longer than 2 minutes, changed expire time into 2 minutes")
 	}
