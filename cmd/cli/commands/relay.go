@@ -53,9 +53,8 @@ func RelayCmd() *cobra.Command {
 		ShowBTCHeadHeightListCmd(),
 		ShowBTCHeadCurHeightCmd(),
 		CreateRawRelayOrderTxCmd(),
-		CreateRawRevokeCreateTxCmd(),
 		CreateRawRelayAcceptTxCmd(),
-		CreateRawRevokeAcceptTxCmd(),
+		CreateRawRevokeTxCmd(),
 		CreateRawRelayConfirmTxCmd(),
 		CreateRawRelayVerifyBTCTxCmd(),
 		CreateRawRelayBtcHeaderCmd(),
@@ -433,39 +432,6 @@ func relayOrder(cmd *cobra.Command, args []string) {
 	ctx.Run()
 }
 
-// create raw sell revoke transaction
-func CreateRawRevokeCreateTxCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "create_revoke",
-		Short: "Create a revoke sell transaction",
-		Run:   relayRevokeSell,
-	}
-	addRevokeSellFlags(cmd)
-	return cmd
-}
-
-func addRevokeSellFlags(cmd *cobra.Command) {
-	cmd.Flags().StringP("order_id", "i", "", "order id")
-	cmd.MarkFlagRequired("order_id")
-
-	cmd.Flags().Float64P("fee", "f", 0, "coin transaction fee")
-	cmd.MarkFlagRequired("fee")
-}
-
-func relayRevokeSell(cmd *cobra.Command, args []string) {
-	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	orderID, _ := cmd.Flags().GetString("order_id")
-	fee, _ := cmd.Flags().GetFloat64("fee")
-	feeInt64 := int64(fee * 1e4)
-	params := &jsonrpc.RelayRevokeSellTx{
-		OrderId: orderID,
-		Fee:     feeInt64 * 1e4,
-	}
-	var res string
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawRevokeSellTx", params, &res)
-	ctx.Run()
-}
-
 // create raw buy token transaction
 func CreateRawRelayAcceptTxCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -495,7 +461,7 @@ func relayAccept(cmd *cobra.Command, args []string) {
 	fee, _ := cmd.Flags().GetFloat64("fee")
 
 	feeInt64 := int64(fee * 1e4)
-	params := &jsonrpc.RelayBuyTx{
+	params := &jsonrpc.RelayAcceptTx{
 		OrderId:  orderID,
 		CoinAddr: coinaddr,
 		Fee:      feeInt64 * 1e4,
@@ -506,36 +472,41 @@ func relayAccept(cmd *cobra.Command, args []string) {
 }
 
 // create raw buy revoke transaction
-func CreateRawRevokeAcceptTxCmd() *cobra.Command {
+func CreateRawRevokeTxCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "buy_revoke",
-		Short: "Create a revoke buy transaction",
-		Run:   relayRevokeBuy,
+		Use:   "revoke",
+		Short: "Create a revoke transaction",
+		Run:   relayRevoke,
 	}
-	addRevokeBuyFlags(cmd)
+	addRevokeFlags(cmd)
 	return cmd
 }
 
-func addRevokeBuyFlags(cmd *cobra.Command) {
+func addRevokeFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("order_id", "i", "", "order id")
 	cmd.MarkFlagRequired("order_id")
+
+	cmd.Flags().Uint32P("action", "a", 0, "0:create, 1:accept")
+	cmd.MarkFlagRequired("action")
 
 	cmd.Flags().Float64P("fee", "f", 0, "coin transaction fee")
 	cmd.MarkFlagRequired("fee")
 }
 
-func relayRevokeBuy(cmd *cobra.Command, args []string) {
+func relayRevoke(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	orderID, _ := cmd.Flags().GetString("order_id")
+	act, _ := cmd.Flags().GetUint32("action")
 	fee, _ := cmd.Flags().GetFloat64("fee")
 
 	feeInt64 := int64(fee * 1e4)
-	params := &jsonrpc.RelayRevokeBuyTx{
+	params := &jsonrpc.RelayRevokeTx{
 		OrderId: orderID,
+		Action:  act,
 		Fee:     feeInt64 * 1e4,
 	}
 	var res string
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawRelayRvkBuyTx", params, &res)
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawRelayRevokeTx", params, &res)
 	ctx.Run()
 }
 

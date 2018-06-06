@@ -183,7 +183,7 @@ func checkRevokeOrder(order *types.RelayOrder, blockTime int64) error {
 
 }
 
-func (action *relayAction) relayRevokeCreate(revoke *types.RelayRevokeCreate) (*types.Receipt, error) {
+func (action *relayAction) relayRevokeCreate(revoke *types.RelayRevoke) (*types.Receipt, error) {
 	orderId := []byte(revoke.OrderId)
 	order, err := getRelayOrderFromID(orderId, action.db)
 	if err != nil {
@@ -302,7 +302,18 @@ func (action *relayAction) relayAccept(accept *types.RelayAccept) (*types.Receip
 
 }
 
-func (action *relayAction) relayRevokeAccept(revoke *types.RelayRevokeAccept) (*types.Receipt, error) {
+func (action *relayAction) relayRevoke(revoke *types.RelayRevoke) (*types.Receipt, error) {
+	if revoke.Action == types.RelayOrderCreate {
+		return action.relayRevokeCreate(revoke)
+	} else if revoke.Action == types.RelayOrderAccept {
+		return action.relayRevokeAccept(revoke)
+	}
+
+	return nil, types.ErrTRelayOrderParamErr
+
+}
+
+func (action *relayAction) relayRevokeAccept(revoke *types.RelayRevoke) (*types.Receipt, error) {
 	orderIdByte := []byte(revoke.OrderId)
 	order, err := getRelayOrderFromID(orderIdByte, action.db)
 	if err != nil {
@@ -451,7 +462,7 @@ func (action *relayAction) relayVerifyTx(verify *types.RelayVerify, r *relay) (*
 
 }
 
-func (action *relayAction) relayVerifyBTCTx(verify *types.RelayVerifyBTC, r *relay) (*types.Receipt, error) {
+func (action *relayAction) relayVerifyBTCTx(verify *types.RelayVerifyCli, r *relay) (*types.Receipt, error) {
 	orderId := []byte(verify.OrderId)
 	order, err := getRelayOrderFromID(orderId, action.db)
 	if err != nil {
