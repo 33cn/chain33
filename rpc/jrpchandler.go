@@ -1251,7 +1251,7 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
 			}
 			logIns = logTmp
 		case types.TyLogRelayCreate:
-			lTy = "LogRelaySell"
+			lTy = "LogRelayCreate"
 			var logTmp types.ReceiptRelayLog
 			err = types.Decode(lLog, &logTmp)
 			if err != nil {
@@ -1259,7 +1259,7 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
 			}
 			logIns = logTmp
 		case types.TyLogRelayRevokeCreate:
-			lTy = "LogRelayRevokeSell"
+			lTy = "LogRelayRevokeCreate"
 			var logTmp types.ReceiptRelayLog
 			err = types.Decode(lLog, &logTmp)
 			if err != nil {
@@ -1267,7 +1267,7 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
 			}
 			logIns = logTmp
 		case types.TyLogRelayAccept:
-			lTy = "LogRelayBug"
+			lTy = "LogRelayAccept"
 			var logTmp types.ReceiptRelayLog
 			err = types.Decode(lLog, &logTmp)
 			if err != nil {
@@ -1275,7 +1275,23 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
 			}
 			logIns = logTmp
 		case types.TyLogRelayRevokeAccept:
-			lTy = "LogRelayRevokeBuy"
+			lTy = "LogRelayRevokeAccept"
+			var logTmp types.ReceiptRelayLog
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogRelayConfirmTx:
+			lTy = "LogRelayConfirmTx"
+			var logTmp types.ReceiptRelayLog
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogRelayFinishTx:
+			lTy = "LogRelayFinishTx"
 			var logTmp types.ReceiptRelayLog
 			err = types.Decode(lLog, &logTmp)
 			if err != nil {

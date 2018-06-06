@@ -113,7 +113,6 @@ func (b *relayBTCStore) saveBlockHead(head *types.BtcHeader) []*types.KeyValue {
 		b.lastHeader = head
 	}
 
-	relaylog.Debug("relayBTCStore saveBlockHead", "height", b.height)
 	return kv
 }
 
@@ -135,14 +134,14 @@ func (b *relayBTCStore) getBTCHeadDbCurHeight(req *types.ReqRelayQryBTCHeadHeigh
 	key := getBtcHeaderKeyLastHeight()
 	height, err := getBTCHeadHeightFromDb(b.r, key)
 	if err != nil {
-		relaylog.Error("relay getBTCHeadDbCurHeight fail", "key", string(key), "err", err.Error())
+		relaylog.Info("relay getBTCHeadDbCurHeight none", "key", string(key), "err", err.Error())
 		height = -1
 	}
 
 	key = getBtcHeaderKeyBaseHeight()
 	baseHeight, err := getBTCHeadHeightFromDb(b.r, key)
 	if err != nil {
-		relaylog.Error("relay getBTCHeadDbCurHeight fail", "key", string(key), "err", err.Error())
+		relaylog.Info("relay getBTCHeadDbCurHeight none", "key", string(key), "err", err.Error())
 		baseHeight = -1
 	}
 	var replay types.ReplayRelayQryBTCHeadHeight
