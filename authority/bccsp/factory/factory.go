@@ -31,9 +31,6 @@ var (
 	// in test cases), use this BCCSP temporarily
 	bootBCCSP bccsp.BCCSP
 
-	// BCCSP Factories
-	bccspMap map[string]bccsp.BCCSP
-
 	// factories' Sync on Initialization
 	factoriesInitOnce sync.Once
 	bootBCCSPInitOnce sync.Once
@@ -47,9 +44,6 @@ var (
 // BCCSPFactory is used to get instances of the BCCSP interface.
 // A Factory has name used to address it.
 type BCCSPFactory interface {
-
-	// Name returns the name of this factory
-	Name() string
 
 	// Get returns an instance of BCCSP using opts.
 	Get(opts *FactoryOpts) (bccsp.BCCSP, error)
@@ -75,11 +69,11 @@ func GetDefault() bccsp.BCCSP {
 func initBCCSP(f BCCSPFactory, config *FactoryOpts) error {
 	csp, err := f.Get(config)
 	if err != nil {
-		return fmt.Errorf("Could not initialize BCCSP %s [%s]", f.Name(), err)
+		return fmt.Errorf("Could not initialize", err)
 	}
 
 	logger.Debug("Initialize BCCSP")
-	bccspMap[f.Name()] = csp
+	defaultBCCSP = csp
 	return nil
 }
 
@@ -101,30 +95,10 @@ func setFactories(config *FactoryOpts) error {
 		config = GetDefaultOpts()
 	}
 
-	if config.ProviderName == "" {
-		config.ProviderName = "SW"
-	}
-
-	if config.SwOpts == nil {
-		config.SwOpts = GetDefaultOpts().SwOpts
-	}
-
-	// Initialize factories map
-	bccspMap = make(map[string]bccsp.BCCSP)
-
-	// Software-Based BCCSP
-	if config.SwOpts != nil {
-		f := &SWFactory{}
-		err := initBCCSP(f, config)
-		if err != nil {
-			factoriesInitError = fmt.Errorf("Failed initializing SW.BCCSP [%s]", err)
-		}
-	}
-
-	var ok bool
-	defaultBCCSP, ok = bccspMap[config.ProviderName]
-	if !ok {
-		factoriesInitError = fmt.Errorf("%s\nCould not find default `%s` BCCSP", factoriesInitError, config.ProviderName)
+	f := &SWFactory{}
+	err := initBCCSP(f, config)
+	if err != nil {
+		factoriesInitError = fmt.Errorf("Failed initializing BCCSP", err)
 	}
 
 	return factoriesInitError
@@ -132,17 +106,10 @@ func setFactories(config *FactoryOpts) error {
 
 // GetBCCSPFromOpts returns a BCCSP created according to the options passed in input.
 func GetBCCSPFromOpts(config *FactoryOpts) (bccsp.BCCSP, error) {
-	var f BCCSPFactory
-	switch config.ProviderName {
-	case "SW":
-		f = &SWFactory{}
-	default:
-		return nil, fmt.Errorf("Could not find BCCSP, no '%s' provider", config.ProviderName)
-	}
-
+	f := &SWFactory{}
 	csp, err := f.Get(config)
 	if err != nil {
-		return nil, fmt.Errorf("Could not initialize BCCSP %s [%s]", f.Name(), err)
+		return nil, fmt.Errorf("Could not initialize BCCSP", err)
 	}
 	return csp, nil
 }

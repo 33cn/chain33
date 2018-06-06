@@ -75,8 +75,6 @@ func New(securityLevel int, hashFamily string) (bccsp.BCCSP, error) {
 
 	// Set the key importers
 	keyImporters := make(map[reflect.Type]KeyImporter)
-	keyImporters[reflect.TypeOf(&bccsp.AES256ImportKeyOpts{})] = &aes256ImportKeyOptsKeyImporter{}
-	keyImporters[reflect.TypeOf(&bccsp.HMACImportKeyOpts{})] = &hmacImportKeyOptsKeyImporter{}
 	keyImporters[reflect.TypeOf(&bccsp.ECDSAPKIXPublicKeyImportOpts{})] = &ecdsaPKIXPublicKeyImportOptsKeyImporter{}
 	keyImporters[reflect.TypeOf(&bccsp.ECDSAPrivateKeyImportOpts{})] = &ecdsaPrivateKeyImportOptsKeyImporter{}
 	keyImporters[reflect.TypeOf(&bccsp.ECDSAGoPublicKeyImportOpts{})] = &ecdsaGoPublicKeyImportOptsKeyImporter{}
