@@ -22,12 +22,16 @@ const (
 	ForkV7AddRelay = 1
 )
 
+const (
+	RelayOrderCreate = iota
+	RelayOrderAccept
+)
+
 //relay action ty
 const (
 	RelayActionCreate = iota
-	RelayActionRevokeCreate
 	RelayActionAccept
-	RelayActionRevokeAccept
+	RelayActionRevoke
 	RelayActionConfirmTx
 	RelayActionVerifyTx
 	RelayActionVerifyBTCTx

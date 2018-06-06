@@ -222,7 +222,7 @@ func (b *relayBTCStore) verifyTx(verify *types.RelayVerify, order *types.RelayOr
 //
 //sibling like "aaaaaa-bbbbbb-cccccc..."
 
-func (b *relayBTCStore) verifyBTCTx(verify *types.RelayVerifyBTC) error {
+func (b *relayBTCStore) verifyBTCTx(verify *types.RelayVerifyCli) error {
 	rawhash := getRawTxHash(verify.RawTx)
 	sibs := getSiblingHash(verify.MerkBranch)
 

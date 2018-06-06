@@ -54,14 +54,11 @@ func (r *relay) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	case types.RelayActionCreate:
 		return actiondb.relayCreate(action.GetCreate())
 
-	case types.RelayActionRevokeCreate:
-		return actiondb.relayRevokeCreate(action.GetRevokeCreate())
-
 	case types.RelayActionAccept:
 		return actiondb.relayAccept(action.GetAccept())
 
-	case types.RelayActionRevokeAccept:
-		return actiondb.relayRevokeAccept(action.GetRevokeAccept())
+	case types.RelayActionRevoke:
+		return actiondb.relayRevokeAccept(action.GetRevoke())
 
 	//OrderId, txHash
 	case types.RelayActionConfirmTx:
@@ -73,7 +70,7 @@ func (r *relay) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 
 	// OrderId, rawTx, index sibling, blockhash
 	case types.RelayActionVerifyBTCTx:
-		return actiondb.relayVerifyBTCTx(action.GetVerifyBtc(), r)
+		return actiondb.relayVerifyBTCTx(action.GetVerifyCli(), r)
 
 	case types.RelayActionRcvBTCHeaders:
 		return actiondb.relaySaveBTCHeader(action.GetBtcHeaders())

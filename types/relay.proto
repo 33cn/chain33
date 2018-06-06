@@ -30,13 +30,12 @@ enum RelayOrderStatus {
 message RelayAction {
     oneof value {
         RelayCreate 		create 		= 1;
-        RelayRevokeCreate 	revokeCreate= 2;
-        RelayAccept     	accept  	= 3;
-        RelayRevokeAccept	revokeAccept= 4;
-        RelayConfirmTx 		confirmTx 	= 5;
-        RelayVerify 		verify 	    = 6;
-        RelayVerifyBTC		verifyBtc 	= 7;
-        BtcHeaders          btcHeaders  = 8;
+        RelayAccept     	accept  	= 2;
+        RelayRevoke     	revoke      = 3;
+        RelayConfirmTx 		confirmTx 	= 4;
+        RelayVerify 		verify 	    = 5;
+        RelayVerifyCli		verifyCli 	= 6;
+        BtcHeaders          btcHeaders  = 7;
     }
     int32 ty = 10;
 }
@@ -75,16 +74,11 @@ message RelayAccept {
     string coinAddr	    = 2;    //for sell coin case needed
 }
 
-
-message RelayRevokeCreate {
+message RelayRevoke {
     string orderId      = 1;
     uint32 action       = 2;
 }
 
-//允许撤销买单
-message RelayRevokeAccept {
-    string orderId      = 1;
-}
 
 //客户只用交易hash提交， 验证需要的其他信息由relayd提供
 message RelayConfirmTx {
@@ -99,7 +93,7 @@ message RelayVerify {
     BtcSpv spv          = 3;
 }
 
-message RelayVerifyBTC {
+message RelayVerifyCli {
     string orderId		= 1;
     string rawTx		= 2;
     uint32 txIndex		= 3;
