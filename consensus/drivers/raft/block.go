@@ -215,7 +215,7 @@ func (client *RaftClient) CreateBlock() {
 			rlog.Error(fmt.Sprintf("********************err:%v", err.Error()))
 			continue
 		}
-		time.Sleep(time.Second)
+		time.Sleep(time.Second * time.Duration(writeBlockSeconds))
 	}
 }
 
