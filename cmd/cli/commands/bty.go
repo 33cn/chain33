@@ -258,7 +258,7 @@ func createTxGroup(cmd *cobra.Command, args []string) {
 			txsArr = append(txsArr, string(line))
 		}
 	} else {
-		fmt.Fprintln(os.Stderr, types.ErrInputPara)
+		fmt.Println("please input -t or -f; else, input -h to see help")
 		return
 	}
 	var transactions []*types.Transaction
