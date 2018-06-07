@@ -76,7 +76,7 @@ func (p *privacy) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 			//executor中的临时数据库中，只需要将kv返回给blockchain就行
 			//即：一个块中产生的UTXO是不能够在同一个高度进行支付的
 			for index, keyOutput := range output {
-				key := calcprivacyOutputKey(public2Privacy.Tokenname, keyOutput.Amount, txhash, index)
+				key := CalcPrivacyOutputKey(public2Privacy.Tokenname, keyOutput.Amount, txhash, index)
 				value := types.Encode(keyOutput)
 				receipt.KV = append(receipt.KV, &types.KeyValue{key, value})
 			}
@@ -101,7 +101,7 @@ func (p *privacy) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 	} else if action.Ty == types.ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
 		privacy2Privacy := action.GetPrivacy2Privacy()
 		if types.BTY == privacy2Privacy.Tokenname {
-			receipt := &types.Receipt{KV:make([]*types.KeyValue, 0)}
+			receipt := &types.Receipt{KV: make([]*types.KeyValue, 0)}
 			privacyInput := privacy2Privacy.Input
 			for _, keyInput := range privacyInput.Keyinput {
 				value := []byte{1}
@@ -116,7 +116,7 @@ func (p *privacy) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 			txhash := common.ToHex(tx.Hash())
 			output := privacy2Privacy.GetOutput().GetKeyoutput()
 			for index, keyOutput := range output {
-				key := calcprivacyOutputKey(privacy2Privacy.Tokenname, keyOutput.Amount, txhash, index)
+				key := CalcPrivacyOutputKey(privacy2Privacy.Tokenname, keyOutput.Amount, txhash, index)
 				value := types.Encode(keyOutput)
 				receipt.KV = append(receipt.KV, &types.KeyValue{key, value})
 			}
@@ -164,7 +164,7 @@ func (p *privacy) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 			txhash := common.ToHex(tx.Hash())
 			output := privacy2public.GetOutput().GetKeyoutput()
 			for index, keyOutput := range output {
-				key := calcprivacyOutputKey(privacy2public.Tokenname, keyOutput.Amount, txhash, index)
+				key := CalcPrivacyOutputKey(privacy2public.Tokenname, keyOutput.Amount, txhash, index)
 				value := types.Encode(keyOutput)
 				receipt.KV = append(receipt.KV, &types.KeyValue{key, value})
 			}
@@ -231,7 +231,7 @@ func (p *privacy) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, i
 				key2 := CalcprivacyKeyTokenAmountType(token)
 				value2, err := localDB.Get(key2)
 				//如果该种token不是第一次进行隐私操作
-				if err==nil && value2!=nil {
+				if err == nil && value2 != nil {
 					err := types.Decode(value2, &amountTypes)
 					if err == nil {
 						//当本地数据库不存在这个额度时，则进行添加
@@ -262,7 +262,7 @@ func (p *privacy) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, i
 				var tokenNames types.TokenNamesOfUTXO
 				key3 := CalcprivacyKeyTokenTypes()
 				value3, err := localDB.Get(key3)
-				if err == nil && value3!=nil{
+				if err == nil && value3 != nil {
 					err := types.Decode(value3, &tokenNames)
 					if err == nil {
 						if _, ok := tokenNames.TokensMap[token]; !ok {
@@ -406,8 +406,8 @@ func (p *privacy) ShowAmountsOfUTXO(reqtoken *types.ReqPrivacyToken) (types.Mess
 		if err == nil {
 			for amount, count := range amountTypes.AmountMap {
 				amountDetail := &types.AmountDetail{
-					Amount:amount,
-					Count:count,
+					Amount: amount,
+					Count:  count,
 				}
 				replyAmounts.AmountDetail = append(replyAmounts.AmountDetail, amountDetail)
 			}

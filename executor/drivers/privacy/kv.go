@@ -16,7 +16,7 @@ const (
 
 //该key对应的是types.KeyOutput
 //该kv会在store中设置
-func calcprivacyOutputKey(token string, amount int64, txhash string, index int) (key []byte) {
+func CalcPrivacyOutputKey(token string, amount int64, txhash string, index int) (key []byte) {
 	return []byte(fmt.Sprintf(PrivacyOutputKeyPrefix+"-%s-%d-%s-%d", token, amount, txhash, index))
 }
 
@@ -54,6 +54,7 @@ func CalcprivacyKeyTokenTypes() (key []byte) {
 	return []byte(PrivacyTokenTypesPrefix)
 }
 
+// DecodeToUTXOGlobalIndex 讲CalcPrivacyUTXOkeyHeightStr编码的字符串解码成types.UTXOGlobalIndex格式
 func DecodeToUTXOGlobalIndex(key, token string) (*types.UTXOGlobalIndex, error) {
 	Prefix := fmt.Sprintf(PrivacyUTXOKEYPrefix+"-%s-", token)
 	if len(key) <= len(Prefix) {

@@ -245,6 +245,10 @@ func (d *DriverBase) GetActionName(tx *types.Transaction) string {
 	return tx.ActionName()
 }
 
+func (d *DriverBase) CheckSignatureData(tx *types.Transaction, index int) bool {
+	return true
+}
+
 // 通过addr前缀查找本地址参与的所有交易
 //查询交易默认放到：coins 中查询
 func (d *DriverBase) GetTxsByAddr(addr *types.ReqAddr) (types.Message, error) {

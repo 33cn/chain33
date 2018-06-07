@@ -844,3 +844,24 @@ func (rd *ReceiptData) OutputReceiptDetails(logger log.Logger) {
 		logger.Error("decodelogerr", "err", err)
 	}
 }
+
+func (action *PrivacyAction) GetInput() *PrivacyInput {
+	if action.GetTy() == ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
+		return action.GetPrivacy2Privacy().GetInput()
+
+	} else if action.GetTy() == ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
+		return action.GetPrivacy2Public().GetInput()
+	}
+	return nil
+}
+
+func (action *PrivacyAction) GetOutput() *PrivacyOutput {
+	if action.GetTy() == ActionPublic2Privacy && action.GetPublic2Privacy() != nil {
+		return action.GetPublic2Privacy().GetOutput()
+	} else if action.GetTy() == ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
+		return action.GetPrivacy2Public().GetOutput()
+	} else if action.GetTy() == ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
+		return action.GetPrivacy2Public().GetOutput()
+	}
+	return nil
+}

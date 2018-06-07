@@ -55,11 +55,6 @@ func (mem *Mempool) CheckSignList() {
 				sign := tx.GetSignature()
 				if sign != nil {
 					ok = tx.CheckSign()
-					//if sign.Ty != types.RingBaseonED25519 {
-					//	ok = tx.CheckSign()
-					//} else {
-					//	ok = mem.CheckRingSign(tx)
-					//}
 				}
 
 				if ok {
