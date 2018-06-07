@@ -184,7 +184,9 @@ func (r *Relayd) persistBlockHeaders() {
 			r.db.Set(makeHeightKey(i), data)
 			r.db.Set(currentBtcBlockheightKey, []byte(fmt.Sprintf("%d", i)))
 			atomic.StoreUint64(&r.knownBtcHeight, i)
-			log.Info("persistBlockHeaders", "current knownBtcHeight: ", i, "current latestBtcHeight: ", atomic.LoadUint64(&r.latestBtcHeight))
+			if i%10 == 0 {
+				log.Info("persistBlockHeaders", "current knownBtcHeight: ", i, "current latestBtcHeight: ", atomic.LoadUint64(&r.latestBtcHeight))
+			}
 		}
 	}
 	atomic.StoreInt32(&r.isPersist, 0)
@@ -221,6 +223,9 @@ func (r *Relayd) syncBlockHeaders() {
 			var initCurrentHeight uint64
 			if ret.CurHeight <= 0 || r.config.FirstBtcHeight != uint64(ret.BaseHeight) {
 				initCurrentHeight = r.config.FirstBtcHeight
+				r.isResetBtcHeight = true
+				atomic.StoreUint64(&r.knownBtcHeight, r.config.FirstBtcHeight)
+				return
 			} else {
 				initCurrentHeight = uint64(ret.CurHeight) + 1
 			}
