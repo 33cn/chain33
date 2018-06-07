@@ -66,7 +66,8 @@ message RelayOrder {
     int64  acceptTime           = 13;
     int64  confirmTime          = 14;
     int64  finishTime           = 15;
-    int64  height               = 16;
+    string finishTxHash         = 16;
+    int64  height               = 17;
 }
 
 message RelayAccept {
