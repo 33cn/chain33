@@ -221,7 +221,8 @@ const (
 	EventReplyGetUTXOPubKey
 	EventCreateUTXOs
 	EventReplyCreateUTXOs
-
+	EventCheckTxPubKeyValid
+	EventReplyCheckTxPubKeyValid
 )
 
 var eventName = map[int]string{
@@ -369,6 +370,8 @@ var eventName = map[int]string{
 //ty = 1 -> secp256k1
 //ty = 2 -> ed25519
 //ty = 3 -> sm2
+//ty = 4 -> onetimeed25519
+//ty = 5 -> RingBaseonED25519
 const (
 	Invalid           = 0
 	SECP256K1         = 1
