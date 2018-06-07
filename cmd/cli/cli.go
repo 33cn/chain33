@@ -28,6 +28,7 @@ func init() {
 		commands.BlockCmd(),
 		commands.BTYCmd(),
 		commands.ConfigCmd(),
+		commands.EvmCmd(),
 		commands.ExecCmd(),
 		commands.MempoolCmd(),
 		commands.NetCmd(),
@@ -39,8 +40,7 @@ func init() {
 		commands.TxCmd(),
 		commands.WalletCmd(),
 		commands.VersionCmd(),
-		sendCmd,
-		commands.EvmCmd())
+		sendCmd)
 }
 
 func main() {

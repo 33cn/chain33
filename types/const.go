@@ -135,7 +135,7 @@ func SetTestNet(isTestNet bool) {
 	ForkV12TransferExec = 408400
 	ForkV13ExecKey = 408400
 	ForkV14TxGroup = 408400
-	ForkV15ResetTx0 = 450000
+	ForkV15ResetTx0 = 453400
 }
 
 func IsTestNet() bool {
