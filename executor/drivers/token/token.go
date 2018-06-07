@@ -42,6 +42,10 @@ func (t *token) GetName() string {
 	return "token"
 }
 
+func (c *token) CheckTx(tx *types.Transaction, index int) error {
+	return nil
+}
+
 func (t *token) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	var tokenAction types.TokenAction
 	err := types.Decode(tx.Payload, &tokenAction)
