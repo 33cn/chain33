@@ -66,7 +66,7 @@ func (conR *ConsensusReactor) OnStart() error {
 	if err := conR.BaseReactor.OnStart(); err != nil {
 		return err
 	}
-	conR.Logger.Info(fmt.Sprintf("Starting ConsensusReactor"))
+	//conR.Logger.Info(fmt.Sprintf("Starting ConsensusReactor"))
 	err := conR.startBroadcastRoutine()
 	if err != nil {
 		return err
@@ -90,7 +90,7 @@ func (conR *ConsensusReactor) OnStop() {
 // SwitchToConsensus switches from fast_sync mode to consensus mode.
 // It resets the state, turns off fast_sync, and starts the consensus state-machine
 func (conR *ConsensusReactor) SwitchToConsensus(state sm.State, blocksSynced int) {
-	conR.Logger.Info("SwitchToConsensus")
+	conR.Logger.Debug("SwitchToConsensus")
 
 	conR.conS.reconstructLastCommit(state)
 	// NOTE: The line below causes broadcastNewRoundStepRoutine() to
@@ -1066,10 +1066,6 @@ func (ps *PeerState) SetHasVote(vote *types.Vote) {
 }
 
 func (ps *PeerState) setHasVote(height int64, round int, type_ byte, index int) {
-	logger := ps.logger
-	logger.Info("setHasVote", "peerH/R", cmn.Fmt("%d/%d", ps.Height, ps.Round), "H/R", cmn.Fmt("%d/%d", height, round))
-	logger.Info("setHasVote", "type", type_, "index", index)
-
 	// NOTE: some may be nil BitArrays -> no side effects.
 	psVotes := ps.getVoteBitArray(height, round, type_)
 	if psVotes != nil {
