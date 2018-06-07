@@ -26,7 +26,7 @@ func TestInit(t *testing.T) {
 }
 
 func testCreateRawTransactionNil(t *testing.T) {
-		client := newTestChannelClient()
+	client := newTestChannelClient()
 	_, err := client.CreateRawTransaction(nil)
 	assert.Equal(t, types.ErrInvalidParam, err)
 }
@@ -88,7 +88,7 @@ func testCreateRawTransactionCoinTransfer(t *testing.T) {
 
 func testCreateRawTransactionCoinTransferExec(t *testing.T) {
 	ctx := types.CreateTx{
-			ExecName:   "ticket",
+		ExecName:   "ticket",
 		Amount:     10,
 		IsToken:    false,
 		IsWithdraw: false,
