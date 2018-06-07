@@ -63,4 +63,5 @@ var (
 	ErrRelayVerify             = errors.New("ErrRelayVerify")
 	ErrRelayVerifyAddrNotFound = errors.New("ErrRelayVerifyAddrNotFound")
 	ErrRelayWaitBlocksErr      = errors.New("ErrRelayWaitBlocks")
+	ErrRelayCoinTxHashUsed     = errors.New("ErrRelayCoinTxHashUsed")
 )
