@@ -389,7 +389,6 @@ func (tx *Transaction) isExpire(height, blocktime int64) bool {
 	if valid == 0 {
 		return false
 	}
-
 	if valid <= expireBound {
 		//Expire小于1e9，为height
 		if valid > height { // 未过期
