@@ -135,7 +135,7 @@ func TestWallet(t *testing.T) {
 
 	testSeed(t, wallet)
 
-	testProcCreatNewAccount(t, wallet)
+	testProcCreateNewAccount(t, wallet)
 
 	testProcImportPrivKey(t, wallet)
 
@@ -243,10 +243,10 @@ func testSeed(t *testing.T, wallet *Wallet) {
 	println("--------------------------")
 }
 
-func testProcCreatNewAccount(t *testing.T, wallet *Wallet) {
-	println("TestProcCreatNewAccount begin")
+func testProcCreateNewAccount(t *testing.T, wallet *Wallet) {
+	println("TestProcCreateNewAccount begin")
 	total := 10
-	addres := make([]string, total)
+	address := make([]string, total)
 	accs := make([]*types.Account, total+1)
 	for i := 0; i < total; i++ {
 		reqNewAccount := &types.ReqNewAccount{Label: fmt.Sprintf("account:%d", i)}
@@ -256,7 +256,7 @@ func testProcCreatNewAccount(t *testing.T, wallet *Wallet) {
 		require.NoError(t, err)
 		time.Sleep(time.Microsecond * 100)
 		walletAcc := resp.GetData().(*types.WalletAccount)
-		addres[i] = walletAcc.Acc.Addr
+		address[i] = walletAcc.Acc.Addr
 		walletAcc.Acc.Balance = int64(i)
 		walletAcc.Acc.Currency = int32(i)
 		walletAcc.Acc.Frozen = int64(i)
@@ -310,7 +310,7 @@ func testProcCreatNewAccount(t *testing.T, wallet *Wallet) {
 			return
 		}
 	}
-	println("TestProcCreatNewAccount end")
+	println("TestProcCreateNewAccount end")
 	println("--------------------------")
 }
 
