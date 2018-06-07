@@ -467,6 +467,7 @@ func (wallet *Wallet) transPri2PubV2(privacykeyParirs *privacy.Privacy, reqPri2P
 		tokenname: &reqPri2Pub.Tokenname,
 		sender:    &reqPri2Pub.Sender,
 		amount:    reqPri2Pub.Amount + types.PrivacyTxFee,
+		mixcount:  reqPri2Pub.Mixin,
 	}
 	//step 1,buildInput
 	privacyInput, utxosInKeyInput, realkeyInputSlice, selectedUtxo, err := wallet.buildInput(privacykeyParirs, buildInfo)
