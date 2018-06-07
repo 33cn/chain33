@@ -299,7 +299,7 @@ func (r *Relayd) dealOrder() {
 
 	for _, value := range result.GetOrders() {
 		// TODO save db ???
-		tx, err := r.btcClient.GetTransaction(value.Exchgtxhash)
+		tx, err := r.btcClient.GetTransaction(value.CoinTxHash)
 		if err != nil {
 			log.Error("dealOrder", "dealOrder GetTransaction error: ", err)
 			continue
@@ -310,11 +310,11 @@ func (r *Relayd) dealOrder() {
 			continue
 		}
 		verify := &types.RelayVerify{
-			Orderid: value.Orderid,
+			OrderId: value.Id,
 			Tx:      tx,
 			Spv:     spv,
 		}
-		rr := &types.RelayAction_Rverify{
+		rr := &types.RelayAction_Verify{
 			verify,
 		}
 		action := &types.RelayAction{
