@@ -236,6 +236,7 @@ func (c *Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 		//hb := common.FromHex(v)
 		hb, err := common.FromHex(v)
 		if err != nil {
+			parm.Hashes = append(parm.Hashes, nil)
 			continue
 		}
 		parm.Hashes = append(parm.Hashes, hb)
