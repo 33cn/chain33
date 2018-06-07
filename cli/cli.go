@@ -2107,7 +2107,6 @@ func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
 				amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
 				value.(map[string]interface{})["amount"] = amtResult
 			}
-			fmt.Println(output, keyoutput)
 		}
 	}
 	if tx.Amount != 0 {

@@ -4,6 +4,7 @@
 package privacy
 
 import (
+	"bytes"
 	"errors"
 	"unsafe"
 
@@ -13,7 +14,7 @@ import (
 )
 
 func init() {
-	crypto.Register(crypto.SignNameRing, &RingSignED25519{})
+	crypto.Register(types.SignNameRing, &RingSignED25519{})
 }
 
 type RingSignature struct {
@@ -33,6 +34,10 @@ func (r *RingSignature) String() string {
 }
 
 func (r *RingSignature) Equals(other crypto.Signature) bool {
+	if _, ok := other.(*RingSignature); ok {
+		this := types.Encode(&r.sign)
+		return bytes.Equal(this, other.Bytes())
+	}
 	return false
 }
 

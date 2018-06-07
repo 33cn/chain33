@@ -24,6 +24,11 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	defer func() {
 		ulog.Info("ExecBlock", "height", block.Height, "ntx", len(block.Txs), "writebatchsync", sync, "cost", time.Now().Sub(beg))
 	}()
+
+	if block.Height > 0 && !checkTxPubKeyValid(client, block) {
+		return nil, nil, nil, errors.New("Invalid transaction signature data.")
+	}
+
 	if errReturn && block.Height > 0 && block.CheckSign() == false {
 		//block的来源不是自己的mempool，而是别人的区块
 		return nil, nil, nil, types.ErrSign
@@ -231,4 +236,23 @@ func CheckTxDup(client queue.Client, txs []*types.TransactionCache, height int64
 		transactions = append(transactions, tx)
 	}
 	return transactions
+}
+
+func checkTxPubKeyValid(client queue.Client, block *types.Block) bool {
+	msg := client.NewMessage("blockchain", types.EventCheckTxPubKeyValid, block)
+	err := client.Send(msg, true)
+	if err != nil {
+		log.Error("checkTxPubKeyValid()", "Send error ", err)
+		return false
+	}
+	msg, err = client.Wait(msg)
+	if err != nil {
+		log.Error("checkTxPubKeyValid()", "Wait error ", err)
+		return false
+	}
+	if reply, ok := msg.GetData().(*types.Reply); ok {
+		return reply.GetIsOk()
+	}
+	log.Error("checkTxPubKeyValid()", "Return type error ")
+	return false
 }

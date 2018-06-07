@@ -14,11 +14,11 @@ import (
 	_ "gitlab.33.cn/chain33/chain33/executor/drivers/manage"
 	_ "gitlab.33.cn/chain33/chain33/executor/drivers/none"
 	_ "gitlab.33.cn/chain33/chain33/executor/drivers/privacy"
+	privExec "gitlab.33.cn/chain33/chain33/executor/drivers/privacy"
 	_ "gitlab.33.cn/chain33/chain33/executor/drivers/retrieve"
 	_ "gitlab.33.cn/chain33/chain33/executor/drivers/ticket"
 	_ "gitlab.33.cn/chain33/chain33/executor/drivers/token"
 	_ "gitlab.33.cn/chain33/chain33/executor/drivers/trade"
-	privExec "gitlab.33.cn/chain33/chain33/executor/drivers/privacy"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -242,20 +242,20 @@ func (exec *Executor) procExecDelBlock(msg queue.Message) {
 		if types.PrivacyX == string(tx.GetExecer()) {
 			var action types.PrivacyAction
 			if nil == types.Decode(tx.Payload, &action) {
-				if action.Ty == types.ActionPublic2Privacy ||  action.Ty == types.ActionPrivacy2Privacy {
+				if action.Ty == types.ActionPublic2Privacy || action.Ty == types.ActionPrivacy2Privacy {
 					privacyKVToken := &types.PrivacyKVToken{
-						TxIndex:int32(i),
-						Txhash:tx.Hash(),
+						TxIndex: int32(i),
+						Txhash:  tx.Hash(),
 					}
 					for _, ele_kv := range kv.KV {
-						if bytes.Contains(ele_kv.Key, []byte(privExec.PrivacyUTXOKEYPrefix)){
+						if bytes.Contains(ele_kv.Key, []byte(privExec.PrivacyUTXOKEYPrefix)) {
 							privacyKVToken.KV = append(privacyKVToken.KV, ele_kv)
 						}
 					}
 
 					if pub2priv := action.GetPublic2Privacy(); pub2priv != nil {
 						privacyKVToken.Token = pub2priv.Tokenname
-					} else if priv2priv := action.GetPrivacy2Privacy(); priv2priv != nil{
+					} else if priv2priv := action.GetPrivacy2Privacy(); priv2priv != nil {
 						privacyKVToken.Token = priv2priv.Tokenname
 					}
 					privacyKV.PrivacyKVToken = append(privacyKV.PrivacyKVToken, privacyKVToken)
@@ -264,9 +264,9 @@ func (exec *Executor) procExecDelBlock(msg queue.Message) {
 		}
 	}
 
-	localDBSetWithPrivacy := &types.LocalDBSetWithPrivacy {
-		LocalDBSet:&kvset,
-		PrivacyLocalDBSet:privacyKV,
+	localDBSetWithPrivacy := &types.LocalDBSetWithPrivacy{
+		LocalDBSet:        &kvset,
+		PrivacyLocalDBSet: privacyKV,
 	}
 	msg.Reply(exec.client.NewMessage("", types.EventDelBlock, localDBSetWithPrivacy))
 }
@@ -321,57 +321,62 @@ func (e *executor) processFee(tx *types.Transaction) (*types.Receipt, error) {
 	if types.PrivacyX != string(tx.Execer) {
 		return e.cutFeeFromAccount(from, tx.Fee)
 	} else {
-		var action types.PrivacyAction
-		err := types.Decode(tx.Payload, &action)
-		if err != nil {
-			return nil, err
-		}
-		if action.Ty == types.ActionPublic2Privacy && action.GetPublic2Privacy() != nil {
-			return e.cutFeeFromAccount(from, tx.Fee)
-		} else { //如果是私到私 或者私到公，交易费扣除则需要utxo实现,交易费并不生成真正的UTXO,也是即时燃烧掉而已
-			if action.Ty == types.ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
-				totalInput := int64(0)
-				keys := make([][]byte, len(action.GetPrivacy2Privacy().Input.Keyinput))
-				for i, input := range action.GetPrivacy2Privacy().Input.Keyinput {
-					totalInput += input.Amount
-					keys[i] = input.KeyImage
-				}
-				if !e.checkUTXOValid(keys) {
-					elog.Error("exec UTXO double spend check failed")
-					return nil, types.ErrDoubeSpendOccur
-				}
-				totalOutput := int64(0)
-				for _, output := range action.GetPrivacy2Privacy().Output.Keyoutput {
-					totalOutput += output.Amount
-				}
-				feeAmount := totalInput - totalOutput
-				if feeAmount >= tx.Fee {
-					//从隐私合约在coin的账户中扣除，同时也保证了相应的utxo差额被燃烧
-					return e.cutFeeFromAccount(from, feeAmount)
-				}
+		return e.cutPrivacyFee(from, tx)
+	}
+	return nil, types.ErrNoBalance
+}
 
-			} else if action.Ty == types.ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
-				totalInput := int64(0)
-				keys := make([][]byte, len(action.GetPrivacy2Public().Input.Keyinput))
-				for i, input := range action.GetPrivacy2Public().Input.Keyinput {
-					totalInput += input.Amount
-					keys[i] = input.KeyImage
-				}
-				if !e.checkUTXOValid(keys) {
-					elog.Error("exec UTXO double spend check failed")
-					return nil, types.ErrDoubeSpendOccur
-				}
+func (e *executor) cutPrivacyFee(from string, tx *types.Transaction) (*types.Receipt, error) {
+	var action types.PrivacyAction
+	err := types.Decode(tx.Payload, &action)
+	if err != nil {
+		return nil, err
+	}
+	if action.Ty == types.ActionPublic2Privacy && action.GetPublic2Privacy() != nil {
+		return e.cutFeeFromAccount(from, tx.Fee)
+	} else { //如果是私到私 或者私到公，交易费扣除则需要utxo实现,交易费并不生成真正的UTXO,也是即时燃烧掉而已
+		if action.Ty == types.ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
+			totalInput := int64(0)
+			keys := make([][]byte, len(action.GetPrivacy2Privacy().Input.Keyinput))
+			for i, input := range action.GetPrivacy2Privacy().Input.Keyinput {
+				totalInput += input.Amount
+				keys[i] = input.KeyImage
+			}
+			if !e.checkUTXOValid(keys) {
+				elog.Error("exec UTXO double spend check failed")
+				return nil, types.ErrDoubeSpendOccur
+			}
+			totalOutput := int64(0)
+			for _, output := range action.GetPrivacy2Privacy().Output.Keyoutput {
+				totalOutput += output.Amount
+			}
+			feeAmount := totalInput - totalOutput
+			if feeAmount >= tx.Fee {
+				//从隐私合约在coin的账户中扣除，同时也保证了相应的utxo差额被燃烧
+				return e.cutFeeFromAccount(from, feeAmount)
+			}
 
-				totalOutput := int64(0)
-				for _, output := range action.GetPrivacy2Public().Output.Keyoutput {
-					totalOutput += output.Amount
-				}
+		} else if action.Ty == types.ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
+			totalInput := int64(0)
+			keys := make([][]byte, len(action.GetPrivacy2Public().Input.Keyinput))
+			for i, input := range action.GetPrivacy2Public().Input.Keyinput {
+				totalInput += input.Amount
+				keys[i] = input.KeyImage
+			}
+			if !e.checkUTXOValid(keys) {
+				elog.Error("exec UTXO double spend check failed")
+				return nil, types.ErrDoubeSpendOccur
+			}
 
-				feeAmount := totalInput-action.GetPrivacy2Public().Amount-totalOutput
-				if feeAmount >= tx.Fee {
-					//从隐私合约在coin的账户中扣除，同时也保证了相应的utxo差额被燃烧
-					return e.cutFeeFromAccount(from, feeAmount)
-				}
+			totalOutput := int64(0)
+			for _, output := range action.GetPrivacy2Public().Output.Keyoutput {
+				totalOutput += output.Amount
+			}
+
+			feeAmount := totalInput - action.GetPrivacy2Public().Amount - totalOutput
+			if feeAmount >= tx.Fee {
+				//从隐私合约在coin的账户中扣除，同时也保证了相应的utxo差额被燃烧
+				return e.cutFeeFromAccount(from, feeAmount)
 			}
 		}
 	}
@@ -395,9 +400,9 @@ func (e *executor) checkUTXOValid(keyImages [][]byte) bool {
 	return false
 }
 
-func (e *executor) cutFeeFromAccount(AccAddr string, feeAmount int64)(*types.Receipt, error) {
+func (e *executor) cutFeeFromAccount(AccAddr string, feeAmount int64) (*types.Receipt, error) {
 	accFrom := e.coinsAccount.LoadAccount(AccAddr)
-	if accFrom.GetBalance()- feeAmount >= 0 {
+	if accFrom.GetBalance()-feeAmount >= 0 {
 		copyfrom := *accFrom
 		accFrom.Balance = accFrom.GetBalance() - feeAmount
 		receiptBalance := &types.ReceiptAccountTransfer{&copyfrom, accFrom}
@@ -501,7 +506,8 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 		return err
 	}
 	//checkInExec
-	exec := e.loadDriverForExec(string(tx.Execer))
+	execer := string(tx.Execer)
+	exec := e.loadDriverForExec(execer)
 	//手续费检查
 	if !exec.IsFree() && types.MinFee > 0 {
 		from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
@@ -512,7 +518,7 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 
 		//对于隐私交易类型为1.私对私和2.私对公这2种类型，
 		//还需要进一步检查utxo输入输出差值是否足够支付交易费
-		if types.PrivacyX == string(tx.Execer) {
+		if types.PrivacyX == execer {
 			err = e.checkPrivacyTxFee(tx)
 			if err != nil {
 				return err
