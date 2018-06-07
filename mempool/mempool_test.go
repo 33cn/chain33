@@ -596,12 +596,12 @@ func TestCheckExpire1(t *testing.T) {
 	q, mem := initEnv(0)
 	defer q.Close()
 	defer mem.Close()
-
+	mem.waitPollLastHeader()
 	mem.setHeader(&types.Header{Height: 50, BlockTime: 1e9 + 1})
-	msg := mem.client.NewMessage("mempool", types.EventTx, tx1)
+	ctx1 := *tx1
+	msg := mem.client.NewMessage("mempool", types.EventTx, &ctx1)
 	mem.client.Send(msg, true)
 	resp, _ := mem.client.Wait(msg)
-
 	if string(resp.GetData().(*types.Reply).GetMsg()) != types.ErrTxExpire.Error() {
 		t.Error("TestCheckExpire failed", string(resp.GetData().(*types.Reply).GetMsg()))
 	}
@@ -762,7 +762,12 @@ func TestAddTxGroup(t *testing.T) {
 	defer q.Close()
 	defer mem.Close()
 
-	txGroup, _ := types.CreateTxGroup([]*types.Transaction{tx2, tx3, tx4})
+	//copytx
+
+	ctx2 := *tx2
+	ctx3 := *tx3
+	ctx4 := *tx4
+	txGroup, _ := types.CreateTxGroup([]*types.Transaction{&ctx2, &ctx3, &ctx4})
 	tx := txGroup.Tx()
 	msg := mem.client.NewMessage("mempool", types.EventTx, tx)
 	mem.client.Send(msg, true)
