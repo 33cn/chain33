@@ -472,12 +472,6 @@ const (
 )
 
 const (
-	PrivacyUTXONormal = iota
-	PrivacyUTXOChange
-	PrivacyUTXOFee
-)
-
-const (
 	InvalidAction = iota
 	CoinsActionTransfer
 	CoinsActionGenesis
