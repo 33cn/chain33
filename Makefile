@@ -101,7 +101,7 @@ docker: ## build docker image for chain33 run
 	@sudo docker build . -f ./build/Dockerfile-run -t chain33:latest
 
 docker-compose: ## build docker-compose for chain33 run
-	@cd build && ./docker-compose.sh && cd ..
+	@cd build && ./docker-compose.sh build && cd ..
 
 clean: ## Remove previous build
 	@rm -rf $(shell find . -name 'datadir' -not -path "./vendor/*")
@@ -140,3 +140,36 @@ checkgofmt: ## get all go files and run go fmt on them
 .PHONY: mock
 mock:
 	@cd client && mockery -name=QueueProtocolAPI && mv mocks/QueueProtocolAPI.go mocks/api.go && cd -
+
+.PHONY: auto_ci_before auto_ci_after auto_ci
+auto_ci_before: clean fmt protobuf mock
+	@echo "auto_ci"
+	@go version
+	@protoc --version
+	@mockery -version
+	@docker version
+	@docker-compose version
+	@git version
+	@git status
+
+auto_ci_after: clean fmt protobuf mock
+	@git add *.go
+	@git status
+	@files=$$(git status -suno);if [ -n "$$files" ]; then \
+		  git add *.go; \
+		  git status; \
+		  git commit -m "auto ci [ci-skip]"; \
+		  git push origin HEAD:$(branch); \
+		  fi;
+
+auto_ci: clean fmt protobuf mock
+	@git add *.go
+	@git status
+	@files=$$(git status -suno);if [ -n "$$files" ]; then \
+		  git add *.go; \
+		  git status; \
+		  git commit -m "auto ci"; \
+		  git push origin HEAD:$(branch); \
+		  exit 1; \
+		  fi;
+

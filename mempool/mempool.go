@@ -560,6 +560,7 @@ func (mem *Mempool) SetQueueClient(client queue.Client) {
 					&types.ReplyTxList{Txs: txList}))
 				mlog.Debug("reply EventGetLastMempool ok", "msg", msg)
 			case types.EventDelBlock:
+				// 回滚区块，把该区块内交易重新加回Mempool
 				block := msg.GetData().(*types.BlockDetail).Block
 				if block.Height != mem.GetHeader().GetHeight() {
 					continue
@@ -573,6 +574,7 @@ func (mem *Mempool) SetQueueClient(client queue.Client) {
 				mem.setHeader(h)
 				mem.DelBlock(block)
 			case types.EventGetAddrTxs:
+				// 获取Mempool中对应账户（组）所有交易
 				addrs := msg.GetData().(*types.ReqAddrs)
 				txlist := mem.GetAccTxs(addrs)
 				msg.Reply(mem.client.NewMessage("", types.EventReplyAddrTxs, txlist))
