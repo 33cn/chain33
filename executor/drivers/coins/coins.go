@@ -37,6 +37,10 @@ func (c *Coins) GetName() string {
 	return "coins"
 }
 
+func (c *Coins) CheckTx(tx *types.Transaction, index int) error {
+	return nil
+}
+
 func (c *Coins) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	_, err := c.DriverBase.Exec(tx, index)
 	if err != nil {
