@@ -172,10 +172,7 @@ func (d *DriverBase) Exec(tx *types.Transaction, index int) (*types.Receipt, err
 		return nil, err
 	}
 	err := d.child.CheckTx(tx, index)
-	if err != nil {
-		return nil, err
-	}
-	return nil, nil
+	return nil, err
 }
 
 //默认情况下，to地址指向合约地址
