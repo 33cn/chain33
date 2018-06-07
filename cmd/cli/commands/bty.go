@@ -253,9 +253,14 @@ func createTxGroup(cmd *cobra.Command, args []string) {
 			if err == io.EOF {
 				break
 			}
-			fmt.Printf("tx %d: %s", i, string(line)+"\n")
+			cSet := " 	" // space and tab
+			lineStr := strings.Trim(string(line), cSet)
+			if lineStr == "" {
+				continue
+			}
+			fmt.Printf("tx %d: %s", i, lineStr+"\n")
+			txsArr = append(txsArr, lineStr)
 			i++
-			txsArr = append(txsArr, string(line))
 		}
 	} else {
 		fmt.Println("please input -t or -f; else, input -h to see help")
