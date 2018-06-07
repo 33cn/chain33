@@ -10,9 +10,9 @@ import (
 	"github.com/hashicorp/golang-lru/simplelru"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/difficulty"
+	priexec "gitlab.33.cn/chain33/chain33/executor/drivers/privacy"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/util"
-	priexec "gitlab.33.cn/chain33/chain33/executor/drivers/privacy"
 )
 
 // 处理共识模块过来的blockdetail，peer广播过来的block，以及从peer同步过来的block
@@ -496,66 +496,149 @@ func (b *BlockChain) updatePrivacyCache(privacyKV *types.PrivacyKV, height int64
 	//遍历每个隐私交易的kv，对应特定的token类型
 	for _, privacyKVToken := range privacyKV.PrivacyKVToken {
 		mapPrivacy4token, ok := b.privacyCache[privacyKVToken.Token]
-		if ok {
-			//遍历一个隐私交易下特定token下的kv，而每个kv则对应一个UTXO
-			outindex := 0
-			for _, kv := range privacyKVToken.KV {
-				keyPrefix := []byte(priexec.PrivacyOutputKeyPrefix)
-				if bytes.Contains(kv.Key, keyPrefix) {
-					var keyOutput types.KeyOutput
-					types.Decode(kv.Value, &keyOutput)
-					outputKeyInfo := privacyOutputKeyInfo{
-						onetimePubKey:keyOutput.Onetimepubkey,
-					}
-					privacyOutputIndexLru, ok := mapPrivacy4token[keyOutput.Amount]
-					txIndex := int(privacyKVToken.GetTxIndex())
-					if ok {
-						key := priexec.CalcPrivacyUTXOkeyHeightStr(privacyKVToken.Token, keyOutput.Amount, height, common.ToHex(privacyKVToken.Txhash), txIndex, outindex)
-						privacyOutputIndexLru.Add(key, outputKeyInfo)
-					} else {
-						privacyOutputIndexLru, err := simplelru.NewLRU(types.UTXOCacheCount, nil)
-						if err != nil {
-							chainlog.Error("connectBlock NewLRU", "Failed to new NewLRU due to error", err)
-							break;
-						}
-						key := priexec.CalcPrivacyUTXOkeyHeightStr(privacyKVToken.Token, keyOutput.Amount, height, common.ToHex(privacyKVToken.Txhash), txIndex, outindex)
-						privacyOutputIndexLru.Add(key, outputKeyInfo)
-						mapPrivacy4token[keyOutput.Amount] = privacyOutputIndexLru
-					}
-					outindex++
-				}
-			}
-		} else {
+		if !ok {
 			mapPrivacy4token := make(map[int64]*simplelru.LRU)
-			outindex := 0
-			for _, kv := range privacyKVToken.KV {
-				keyPrefix := []byte(priexec.PrivacyOutputKeyPrefix)
-				if bytes.Contains(kv.Key, keyPrefix) {
-					var keyOutput types.KeyOutput
-					types.Decode(kv.Value, &keyOutput)
-					outputKeyInfo := &privacyOutputKeyInfo{
-						onetimePubKey:keyOutput.Onetimepubkey,
-					}
-
-					privacyOutputIndexLru, ok := mapPrivacy4token[keyOutput.Amount]
-					txIndex := int(privacyKVToken.GetTxIndex())
-					if ok {
-						key := priexec.CalcPrivacyUTXOkeyHeightStr(privacyKVToken.Token, keyOutput.Amount, height, common.ToHex(privacyKVToken.Txhash), txIndex, outindex)
-						privacyOutputIndexLru.Add(key, outputKeyInfo)
-					} else {
-						privacyOutputIndexLru, err := simplelru.NewLRU(types.UTXOCacheCount, nil)
-						if err != nil {
-							chainlog.Error("connectBlock NewLRU", "Failed to new NewLRU due to error", err)
-							break;
-						}
-						key := priexec.CalcPrivacyUTXOkeyHeightStr(privacyKVToken.Token, keyOutput.Amount, height, common.ToHex(privacyKVToken.Txhash), txIndex, outindex)
-						privacyOutputIndexLru.Add(key, outputKeyInfo)
-						mapPrivacy4token[keyOutput.Amount] = privacyOutputIndexLru
-					}
-					outindex++
-				}
-			}
 			b.privacyCache[privacyKVToken.Token] = mapPrivacy4token
 		}
+		//遍历一个隐私交易下特定token下的kv，而每个kv则对应一个UTXO
+		outindex := 0
+		for _, kv := range privacyKVToken.KV {
+			keyPrefix := []byte(priexec.PrivacyOutputKeyPrefix)
+			if bytes.Contains(kv.Key, keyPrefix) {
+				var keyOutput types.KeyOutput
+				types.Decode(kv.Value, &keyOutput)
+				outputKeyInfo := privacyOutputKeyInfo{
+					onetimePubKey: keyOutput.Onetimepubkey,
+				}
+				privacyOutputIndexLru, ok := mapPrivacy4token[keyOutput.Amount]
+				txIndex := int(privacyKVToken.GetTxIndex())
+				if ok {
+					key := priexec.CalcPrivacyUTXOkeyHeightStr(privacyKVToken.Token, keyOutput.Amount, height, common.ToHex(privacyKVToken.Txhash), txIndex, outindex)
+					privacyOutputIndexLru.Add(key, outputKeyInfo)
+				} else {
+					privacyOutputIndexLru, err := simplelru.NewLRU(types.UTXOCacheCount, nil)
+					if err != nil {
+						chainlog.Error("connectBlock NewLRU", "Failed to new NewLRU due to error", err)
+						break
+					}
+					key := priexec.CalcPrivacyUTXOkeyHeightStr(privacyKVToken.Token, keyOutput.Amount, height, common.ToHex(privacyKVToken.Txhash), txIndex, outindex)
+					privacyOutputIndexLru.Add(key, outputKeyInfo)
+					mapPrivacy4token[keyOutput.Amount] = privacyOutputIndexLru
+				}
+				outindex++
+			}
+		}
 	}
+}
+
+func (chain *BlockChain) findUTXOS(tokename string, amount int64) *simplelru.LRU {
+	privacyCache, ok := chain.privacyCache[tokename]
+	if !ok {
+		return nil
+	}
+	utxos, ok := privacyCache[amount]
+	if !ok {
+		return nil
+	}
+	return utxos
+}
+
+func (chain *BlockChain) checkPrivacyTxPubKeyInCache(utxos *simplelru.LRU, block *types.Block, action *types.PrivacyAction, tokenName string) {
+	privacyInput := action.GetInput()
+	privacyOutput := action.GetOutput()
+	// 将交易中的input与本地缓存utxos进行查找，如果找到则认为是合法的，否则还需要进一步检查
+	for _, keyinput := range privacyInput.Keyinput {
+		for _, globalIndex := range keyinput.UtxoGlobalIndex {
+			key := priexec.CalcPrivacyUTXOkeyHeightStr(tokenName, keyinput.Amount, globalIndex.Height, common.ToHex(globalIndex.Txhash), int(globalIndex.Txindex), int(globalIndex.Outindex))
+			value, ok := utxos.Get(key)
+			existed := false
+			if ok {
+				if outputKeyInfo, ok := value.(privacyOutputKeyInfo); ok {
+					if bytes.Equal(privacyOutput.Keyoutput[globalIndex.Outindex].Onetimepubkey, outputKeyInfo.onetimePubKey) {
+						existed = true
+					}
+				}
+			}
+			if !existed {
+				datakey := priexec.CalcPrivacyOutputKey(tokenName, keyinput.Amount, common.ToHex(globalIndex.Txhash), int(globalIndex.Txindex))
+				chain.checkPrivacyTxPubKeyInBlockChain(block, action, datakey)
+			}
+		}
+	}
+}
+
+func (chain *BlockChain) checkPrivacyTxPubKeyInBlockChain(block *types.Block, action *types.PrivacyAction, key []byte) {
+	get := types.StoreGet{}
+	get.StateHash = block.GetStateHash()
+	get.Keys = append(get.Keys, []byte(key))
+	msg := chain.client.NewMessage("store", types.EventStoreGet, &get)
+	chain.client.Send(msg, true)
+	msg, err := chain.client.Wait(msg)
+	if err != nil {
+		return
+	}
+	values, ok := msg.GetData().(*types.StoreReplyValue)
+	if !ok {
+		return
+	}
+	for _, value := range values.Values {
+		if value == nil {
+			continue
+		}
+
+	}
+}
+
+func (chain *BlockChain) checkPrivacyTxPubKeyInDB(block *types.Block, action *types.PrivacyAction, tokenName string) {
+	//privacyInput := action.GetInput()
+	//privacyOutput := action.GetOutput()
+	//for _, keyinput := range privacyInput.Keyinput {
+	//	for _, globalIndex := range keyinput.UtxoGlobalIndex {
+	//		chain.blockStore.db.Get()
+	//	}
+	//}
+}
+
+// procCheckTxPubKeyValid 针对环签名类型的交易签名数据进行正确性检查
+func (chain *BlockChain) procCheckTxPubKeyValid(block *types.Block) (*types.Reply, error) {
+	chain.privacylock.RLock()
+	defer chain.privacylock.RUnlock()
+
+	txs := block.Txs
+	if len(txs) <= 0 {
+		return nil, types.ErrInvalidParams
+	}
+	for _, tx := range txs {
+		if string(tx.GetExecer()) != types.PrivacyX {
+			// 这里只处理隐私交易相关的逻辑
+			continue
+		}
+		action := types.PrivacyAction{}
+		if err := types.Decode(tx.Payload, &action); err != nil {
+			return nil, types.ErrInvalidParams
+		}
+		var tokenName string
+		var amount int64
+		var utxos *simplelru.LRU
+		if action.GetTy() == types.ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
+			val := action.GetPrivacy2Privacy()
+			tokenName = val.GetTokenname()
+			amount = val.GetAmount()
+
+		} else if action.GetTy() == types.ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
+			val := action.GetPrivacy2Public()
+			tokenName = val.GetTokenname()
+			amount = val.GetAmount()
+		} else {
+			continue
+		}
+
+		utxos = chain.findUTXOS(tokenName, amount)
+		if utxos != nil {
+			chain.checkPrivacyTxPubKeyInCache(utxos, block, &action, tokenName)
+		} else {
+			chain.checkPrivacyTxPubKeyInDB(block, &action, tokenName)
+		}
+	}
+	return &types.Reply{IsOk: true}, nil
 }

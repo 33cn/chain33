@@ -1029,7 +1029,6 @@ func (chain *BlockChain) InitPrivacyCache() {
 								keyCache := privacy.CalcPrivacyUTXOkeyHeightStr(token, amount, localUTXOItem.Height, common.ToHex(localUTXOItem.Txhash), int(localUTXOItem.Txindex), int(localUTXOItem.Outindex))
 								outputKeyInfo := privacyOutputKeyInfo{
 									onetimePubKey: localUTXOItem.Onetimepubkey,
-
 								}
 								privacyOutputIndexLru.Add(keyCache, outputKeyInfo)
 							}
