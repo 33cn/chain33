@@ -337,8 +337,8 @@ func (r *relay) getOrderKv(OrderId []byte, ty int32) []*types.KeyValue {
 	order, _ := r.getSellOrderFromDb(OrderId)
 
 	var kv []*types.KeyValue
-	kv = getCreateOrderKeyValue(kv, order, int32(order.Status))
 	kv = deleteCreateOrderKeyValue(kv, order, int32(order.PreStatus))
+	kv = getCreateOrderKeyValue(kv, order, int32(order.Status))
 
 	return kv
 }

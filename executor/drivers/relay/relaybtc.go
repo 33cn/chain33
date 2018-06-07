@@ -64,8 +64,7 @@ func (b *relayBtcStore) checkBlockHead(head *types.BtcHeader) bool {
 		return true
 	}
 
-	relaylog.Error("checkBlockHead fail", "last height", b.lastHeader.Height, "rcv height", head.Height,
-		"last hash", b.lastHeader.Hash, "rcv pre hash", head.PreviousHash)
+	relaylog.Error("checkBlockHead fail", "last height", b.lastHeader.Height, "rcv height", head.Height)
 	return false
 }
 

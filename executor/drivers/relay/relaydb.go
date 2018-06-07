@@ -33,6 +33,12 @@ func (r *relayLog) getKVSet() (kvSet []*types.KeyValue) {
 	value := types.Encode(&r.RelayOrder)
 	key := []byte(r.Id)
 	kvSet = append(kvSet, &types.KeyValue{key, value})
+
+	if r.CoinTxHash != "" {
+		key = []byte(calcCoinHash(r.CoinTxHash))
+		kvSet = append(kvSet, &types.KeyValue{key, value})
+	}
+
 	return kvSet
 }
 
@@ -83,6 +89,19 @@ func newRelayDB(r *relay, tx *types.Transaction) *relayDB {
 
 func (action *relayDB) getOrderByID(orderId []byte) (*types.RelayOrder, error) {
 	value, err := action.db.Get(orderId)
+	if err != nil {
+		return nil, err
+	}
+
+	var order types.RelayOrder
+	if err = types.Decode(value, &order); err != nil {
+		return nil, err
+	}
+	return &order, nil
+}
+
+func (action *relayDB) getOrderByCoinHash(hash []byte) (*types.RelayOrder, error) {
+	value, err := action.db.Get(hash)
 	if err != nil {
 		return nil, err
 	}
@@ -350,6 +369,15 @@ func (action *relayDB) confirmTx(confirm *types.RelayConfirmTx) (*types.Receipt,
 		return nil, types.ErrRelayOrderSoldout
 	} else if order.Status == types.RelayOrderStatus_canceled {
 		return nil, types.ErrRelayOrderRevoked
+	}
+
+	//report Error if coinTxHash has been used and not same orderId, if same orderId, means to modify the txHash
+	coinTxOrder, err := action.getOrderByCoinHash([]byte(calcCoinHash(confirm.TxHash)))
+	if coinTxOrder != nil {
+		if coinTxOrder.Id != confirm.OrderId {
+			relaylog.Error("confirmTx", "coinTxHash", confirm.TxHash, "has been used in other order", coinTxOrder.Id)
+			return nil, types.ErrRelayCoinTxHashUsed
+		}
 	}
 
 	var confirmAddr string

@@ -13,6 +13,7 @@ const (
 	relayOrderACSIH    = "relay-sellorder-acsih:"
 	relayBuyOrderACSIH = "relay-buyorder-acsih:"
 	orderIDPrefix      = "mavl-relay-orderid-"
+	coinHashPrefix     = "mavl-relay-coinhash-"
 
 	relayBTCHeaderHash       = "relay-btcheader-hash"
 	relayBTCHeaderHeight     = "relay-btcheader-height"
@@ -111,4 +112,8 @@ func calcAcceptPrefixAddrCoin(addr, coin string) []byte {
 
 func calcRelayOrderID(hash string) string {
 	return orderIDPrefix + hash
+}
+
+func calcCoinHash(hash string) string {
+	return coinHashPrefix + hash
 }
