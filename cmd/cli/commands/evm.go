@@ -28,6 +28,8 @@ func EvmCmd() *cobra.Command {
 		EstimateContractCmd(),
 		CheckContractAddrCmd(),
 		EvmDebugCmd(),
+		EvmTransferCmd(),
+		//EvmWithdrawCmd(),
 	)
 
 	return cmd
@@ -68,7 +70,7 @@ func createContract(cmd *cobra.Command, args []string) {
 	}
 	action := types.EVMContractAction{Amount: 0, Code: bCode, GasLimit: 0, GasPrice: 0, Note: note, Alias: alias}
 
-	data, err := createEvmTx(&action, key, "", expire, rpcLaddr, feeInt64)
+	data, err := createEvmTx(&action, key, account.ExecAddress("evm"), expire, rpcLaddr, feeInt64)
 
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "create contract error:", err)
@@ -84,11 +86,12 @@ func createContract(cmd *cobra.Command, args []string) {
 }
 
 func createEvmTx(action proto.Message, key, addr, expire, rpcLaddr string, fee uint64) (string, error) {
-	tx := &types.Transaction{Execer: []byte("user.evm"), Payload: types.Encode(action), Fee: 0, To: addr}
+	tx := &types.Transaction{Execer: []byte("evm"), Payload: types.Encode(action), Fee: 0, To: addr}
 
-	tx.Fee, _ = tx.GetRealFee(types.MinBalanceTransfer)
-	tx.Fee += types.MinBalanceTransfer
-	tx.Fee += int64(fee)
+	tx.Fee, _ = tx.GetRealFee(types.MinFee)
+	if tx.Fee < int64(fee) {
+		tx.Fee += int64(fee)
+	}
 
 	random := rand.New(rand.NewSource(time.Now().UnixNano()))
 	tx.Nonce = random.Int63()
@@ -98,6 +101,48 @@ func createEvmTx(action proto.Message, key, addr, expire, rpcLaddr string, fee u
 
 	unsignedTx := &types.ReqSignRawTx{
 		Addr:    addr,
+		Privkey: key,
+		TxHex:   rawTx,
+		Expire:  expire,
+	}
+
+	var res string
+	client, err := rpc.NewJSONClient(rpcLaddr)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return "", err
+	}
+	err = client.Call("Chain33.SignRawTx", unsignedTx, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return "", err
+	}
+
+	return res, nil
+}
+
+func createEvmTransferTx(key, execName, expire, rpcLaddr string, amountInt64 int64) (string, error) {
+
+	var tx *types.Transaction
+	transfer := &types.CoinsAction{}
+	transfer.Value = &types.CoinsAction_TransferToExec{TransferToExec: &types.CoinsTransferToExec{Amount: amountInt64, ExecName: execName}}
+	transfer.Ty = types.CoinsActionTransferToExec
+	tx = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), To: account.ExecAddress(execName)}
+
+	var err error
+	tx.Fee, err = tx.GetRealFee(types.MinFee)
+	if err != nil {
+		return "", err
+	}
+
+	random := rand.New(rand.NewSource(time.Now().UnixNano()))
+	tx.Nonce = random.Int63()
+
+	txHex := types.Encode(tx)
+	rawTx := hex.EncodeToString(txHex)
+
+	unsignedTx := &types.ReqSignRawTx{
+		Addr:    tx.To,
 		Privkey: key,
 		TxHex:   rawTx,
 		Expire:  expire,
@@ -316,9 +361,57 @@ func evmDebug(cmd *cobra.Command, args []string) {
 	}
 }
 
+// 向EVM合约地址转账
+func EvmTransferCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "transfer",
+		Short: "Transfer to evm contract address",
+		Run:   evmTransfer,
+	}
+	addEvmTransferFlags(cmd)
+	return cmd
+}
+
+func addEvmTransferFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("to", "t", "", "evm contract address (like user.evm.xxx)")
+	cmd.MarkFlagRequired("to")
+
+	cmd.Flags().StringP("key", "k", "", "private key")
+	cmd.MarkFlagRequired("key")
+
+	cmd.Flags().Float64P("amount", "a", 0, "the amount transfer to the contract")
+	cmd.MarkFlagRequired("amount")
+
+	cmd.Flags().StringP("expire", "e", "120s", "transaction expire time (optional)")
+}
+
+func evmTransfer(cmd *cobra.Command, args []string) {
+	key, _ := cmd.Flags().GetString("key")
+	amount, _ := cmd.Flags().GetFloat64("amount")
+	to, _ := cmd.Flags().GetString("to")
+	expire, _ := cmd.Flags().GetString("expire")
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+
+	amountInt64 := int64(amount*1e4) * 1e4
+
+	data, err := createEvmTransferTx(key, to, expire, rpcLaddr, amountInt64)
+
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "create contract transfer error:", err)
+		return
+	}
+
+	params := rpc.RawParm{
+		Data: data,
+	}
+
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.SendTransaction", params, nil)
+	ctx.RunWithoutMarshal()
+}
+
 func sendQuery(rpcAddr, funcName string, request, result interface{}) bool {
 	params := rpc.Query4Cli{
-		Execer:   "user.evm",
+		Execer:   "evm",
 		FuncName: funcName,
 		Payload:  request,
 	}

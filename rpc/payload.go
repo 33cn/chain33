@@ -116,7 +116,7 @@ func payloadType(execer, funcname string) (proto.Message, error) {
 		return ticketPayloadType(funcname)
 	case "trade":
 		return tradePayloadType(funcname)
-	case "user.evm":
+	case "evm":
 		return evmPayloadType(funcname)
 	}
 	return nil, types.ErrInputPara
