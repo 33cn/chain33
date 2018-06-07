@@ -125,7 +125,7 @@ func initEnv3() (queue.Queue, queue.Module, queue.Module, *Mempool) {
 	mem := New(cfg.MemPool)
 	mem.SetQueueClient(q.Client())
 	mem.setSync(true)
-
+	mem.waitPollLastHeader()
 	return q, chain, s, mem
 }
 
@@ -135,34 +135,30 @@ func initEnv2(size int) (queue.Queue, *Mempool) {
 
 	blockchainProcess(q)
 	execProcess(q)
-
 	mem := New(cfg.MemPool)
 	mem.SetQueueClient(q.Client())
 	mem.setSync(true)
-
 	if size > 0 {
 		mem.Resize(size)
 	}
 	mem.SetMinFee(0)
+	mem.waitPollLastHeader()
 	return q, mem
 }
 
 func initEnv(size int) (queue.Queue, *Mempool) {
 	var q = queue.New("channel")
 	cfg := config.InitCfg("../cmd/chain33/chain33.test.toml")
-
 	blockchainProcess(q)
 	execProcess(q)
-
 	mem := New(cfg.MemPool)
 	mem.SetQueueClient(q.Client())
 	mem.setSync(true)
-
 	if size > 0 {
 		mem.Resize(size)
 	}
-
 	mem.SetMinFee(types.MinFee)
+	mem.waitPollLastHeader()
 	return q, mem
 }
 
@@ -596,7 +592,6 @@ func TestCheckExpire1(t *testing.T) {
 	q, mem := initEnv(0)
 	defer q.Close()
 	defer mem.Close()
-	mem.waitPollLastHeader()
 	mem.setHeader(&types.Header{Height: 50, BlockTime: 1e9 + 1})
 	ctx1 := *tx1
 	msg := mem.client.NewMessage("mempool", types.EventTx, &ctx1)
@@ -618,9 +613,8 @@ func TestCheckExpire2(t *testing.T) {
 		t.Error("add tx error", err.Error())
 		return
 	}
-
 	mem.setHeader(&types.Header{Height: 50, BlockTime: 1e9 + 1})
-	msg := mem.client.NewMessage("mempool", types.EventTxList, &types.TxHashList{Count: 100, Hashes: nil})
+	msg := mem.client.NewMessage("mempool", types.EventTxList, &types.TxHashList{Count: 100})
 	mem.client.Send(msg, true)
 	data, err := mem.client.Wait(msg)
 
@@ -660,7 +654,6 @@ func TestExecToAddrNotMatch(t *testing.T) {
 	msg := mem.client.NewMessage("mempool", types.EventTx, tx15)
 	mem.client.Send(msg, true)
 	resp, _ := mem.client.Wait(msg)
-
 	if string(resp.GetData().(*types.Reply).GetMsg()) != types.ErrToAddrNotSameToExecAddr.Error() {
 		t.Error("TestExecToAddrNotMatch failed", string(resp.GetData().(*types.Reply).GetMsg()))
 	}
