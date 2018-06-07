@@ -431,17 +431,25 @@ func (e *executor) checkPrivacyTxFee(tx *types.Transaction) error {
 		return err
 	}
 	if action.Ty == types.ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
-		if tx.Fee < types.PrivacyUTXOFee {
+		if tx.Fee < types.PrivacyTxFee {
 			return types.ErrPrivacyTxFeeNotEnough
 		}
 		// 隐私对隐私,需要检查输入和输出值,条件 输入-输入>=手续费
 		var totalInput, totalOutput int64
-		for _, value := range action.GetPrivacy2Privacy().GetInput().GetKeyinput() {
+		keys := make([][]byte, len(action.GetPrivacy2Privacy().Input.Keyinput))
+		for i, value := range action.GetPrivacy2Privacy().GetInput().GetKeyinput() {
 			if value.GetAmount()<=0 {
 				return types.ErrAmount
 			}
 			totalInput += value.GetAmount()
+			keys[i] = value.KeyImage
 		}
+
+		if !e.checkUTXOValid(keys) {
+			elog.Error("checkPrivacyTxFee exec UTXO double spend check failed")
+			return types.ErrDoubeSpendOccur
+		}
+
 		for _, value := range action.GetPrivacy2Privacy().GetOutput().GetKeyoutput() {
 			if value.GetAmount() <= 0 {
 				return types.ErrAmount
@@ -453,17 +461,25 @@ func (e *executor) checkPrivacyTxFee(tx *types.Transaction) error {
 		}
 
 	} else if action.Ty == types.ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
-		if tx.Fee < types.PrivacyUTXOFee {
+		if tx.Fee < types.PrivacyTxFee {
 			return types.ErrPrivacyTxFeeNotEnough
 		}
 
 		var totalInput, totalOutput int64
-		for _, value := range action.GetPrivacy2Public().GetInput().GetKeyinput() {
+		keys := make([][]byte, len(action.GetPrivacy2Public().Input.Keyinput))
+		for i, value := range action.GetPrivacy2Public().GetInput().GetKeyinput() {
 			if value.GetAmount()<=0 {
 				return types.ErrAmount
 			}
 			totalInput += value.GetAmount()
+			keys[i] = value.KeyImage
 		}
+
+		if !e.checkUTXOValid(keys) {
+			elog.Error("checkPrivacyTxFee exec UTXO double spend check failed")
+			return types.ErrDoubeSpendOccur
+		}
+
 		for _, value := range action.GetPrivacy2Public().GetOutput().GetKeyoutput() {
 			if value.GetAmount() <= 0 {
 				return types.ErrAmount
