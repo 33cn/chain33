@@ -8,6 +8,7 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
+	"strings"
 )
 
 func CreateTxGroup(txs []*Transaction) (*Transactions, error) {
@@ -614,6 +615,14 @@ func (tx *Transaction) ActionName() string {
 			return "sellmarkettoken"
 		} else if trade.Ty == TradeRevokeBuy && trade.GetTokenrevokebuy() != nil {
 			return "revokebuytoken"
+		}
+	} else if bytes.Equal(tx.Execer, ExecerEvm) {
+		// 这个需要通过合约交易目标地址来判断Action
+		// 如果目标地址为空，或为evm的固定合约地址，则为创建合约，否则为调用合约
+		if strings.TrimSpace(tx.To) == "" || strings.EqualFold(tx.To, "19tjS51kjwrCoSQS13U3owe7gYBLfSfoFm") {
+			return "createEvmContract"
+		} else {
+			return "callEvmContract"
 		}
 	}
 

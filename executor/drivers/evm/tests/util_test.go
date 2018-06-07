@@ -191,7 +191,7 @@ func getAddr(privKey crypto.PrivKey) *account.Address {
 func createTx(privKey crypto.PrivKey, code []byte, fee uint64, amount uint64) types.Transaction {
 
 	action := types.EVMContractAction{Amount: amount, Code: code}
-	tx := types.Transaction{Execer: []byte("user.evm"), Payload: types.Encode(&action), Fee: int64(fee)}
+	tx := types.Transaction{Execer: []byte("evm"), Payload: types.Encode(&action), Fee: int64(fee)}
 	tx.Sign(types.SECP256K1, privKey)
 	return tx
 }
