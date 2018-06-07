@@ -470,6 +470,10 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 	if err != nil {
 		return err
 	}
+	//检查地址的有效性
+	if err := account.CheckAddress(tx.To); err != nil {
+		return err
+	}
 	//checkInExec
 	exec := e.loadDriverForExec(string(tx.Execer), e.height)
 	//手续费检查
