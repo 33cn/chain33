@@ -153,11 +153,15 @@ func (wallet *Wallet) createUTXOsByPub2Priv(priv crypto.PrivKey, reqCreateUTXOs 
 	tx := &types.Transaction{
 		Execer:  []byte("privacy"),
 		Payload: types.Encode(action),
-		Fee:     wallet.FeeAmount,
 		Nonce:   wallet.random.Int63(),
 		To: account.ExecAddress(types.PrivacyX).String(),
 	}
+	txSize := types.Size(tx) + types.SignatureSize
+	realFee := int64((txSize+1023)>>types.Size_1K_shiftlen) * types.FeePerKB
+	tx.Fee = realFee
 	tx.Sign(int32(SignType), priv)
+
+
 
 	msg := wallet.client.NewMessage("mempool", types.EventTx, tx)
 	wallet.client.Send(msg, true)
@@ -216,11 +220,13 @@ func (wallet *Wallet) transPub2PriV2(priv crypto.PrivKey, reqPub2Pri *types.ReqP
 	tx := &types.Transaction{
 		Execer:  []byte("privacy"),
 		Payload: types.Encode(action),
-		Fee:     wallet.FeeAmount,
 		Nonce:   wallet.random.Int63(),
 		// TODO: 采用隐私合约地址来设定目标合约接收的目标地址,让验证通过
 		To: account.ExecAddress(types.PrivacyX).String(),
 	}
+	txSize := types.Size(tx) + types.SignatureSize
+	realFee := int64((txSize+1023)>>types.Size_1K_shiftlen) * types.FeePerKB
+	tx.Fee = realFee
 	tx.Sign(int32(SignType), priv)
 
 	msg := wallet.client.NewMessage("mempool", types.EventTx, tx)
