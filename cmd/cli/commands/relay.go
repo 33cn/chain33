@@ -14,19 +14,21 @@ import (
 
 ////////////types.go//////////
 type RelayOrder2Show struct {
-	OrderId     string `json:"orderid"`
-	Status      string `json:"status"`
-	Creator     string `json:"address"`
-	Amount      uint64 `json:"amount"`
-	Coin        string `json:"coin"`
-	CoinAmount  uint64 `json:"coinamount"`
-	CoinAddr    string `json:"coinaddr"`
-	CreateTime  int64  `json:"createtime"`
-	AcceptAddr  string `json:"acceptaddr"`
-	AcceptTime  int64  `json:"accepttime"`
-	ConfirmTime int64  `json:"confirmtime"`
-	FinishTime  int64  `json:"finishtime"`
-	Height      int64  `json:"height"`
+	OrderId       string `json:"orderid"`
+	Status        string `json:"status"`
+	Creator       string `json:"address"`
+	Amount        uint64 `json:"amount"`
+	CoinOperation string `json:"coinoperation"`
+	Coin          string `json:"coin"`
+	CoinAmount    uint64 `json:"coinamount"`
+	CoinAddr      string `json:"coinaddr"`
+	CreateTime    int64  `json:"createtime"`
+	AcceptAddr    string `json:"acceptaddr"`
+	AcceptTime    int64  `json:"accepttime"`
+	ConfirmTime   int64  `json:"confirmtime"`
+	FinishTime    int64  `json:"finishtime"`
+	FinishTxHash  string `json:"finishtxhash"`
+	Height        int64  `json:"height"`
 }
 
 type RelayBTCHeadHeightListShow struct {
@@ -315,12 +317,13 @@ func showCoinRelayOrders(cmd *cobra.Command, args []string) {
 }
 
 func parseRelayOrders(res types.ReplyRelayOrders) {
-
+	var operation = []string{"buy", "sell"}
 	for i, order := range res.Relayorders {
 		var show RelayOrder2Show
 		show.OrderId = order.Id
 		show.Status = order.Status.String()
 		show.Creator = order.CreaterAddr
+		show.CoinOperation = operation[order.CoinOperation]
 		show.Amount = order.Amount
 		show.Coin = order.Coin
 		show.CoinAddr = order.CoinAddr
@@ -330,6 +333,7 @@ func parseRelayOrders(res types.ReplyRelayOrders) {
 		show.AcceptTime = order.AcceptTime
 		show.ConfirmTime = order.ConfirmTime
 		show.FinishTime = order.FinishTime
+		show.FinishTxHash = order.FinishTxHash
 		show.Height = order.Height
 
 		data, err := json.MarshalIndent(show, "", "    ")

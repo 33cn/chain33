@@ -9,9 +9,8 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-//const LOCKING_PERIOD = 6 * time.Hour
-const LOCKING_PERIOD = 3 * time.Minute
-const WAIT_BLOCK_HEIGHT = 6
+const lockingTime = 6 * time.Hour
+const waitBlockHeight = 6
 
 type relayLog struct {
 	types.RelayOrder
@@ -142,16 +141,16 @@ func checkRevokeOrder(order *types.RelayOrder, blockTime int64) error {
 
 	if order.Status == types.RelayOrderStatus_locking {
 		acceptTime := time.Unix(order.AcceptTime, 0)
-		if nowTime.Sub(acceptTime) < LOCKING_PERIOD {
-			relaylog.Error("relay revoke sell ", "action.blockTime-order.Buytime", nowTime.Sub(acceptTime), "less", LOCKING_PERIOD)
+		if nowTime.Sub(acceptTime) < lockingTime {
+			relaylog.Error("relay revoke from locking", "current duration", nowTime.Sub(acceptTime), "less", lockingTime)
 			return types.ErrTime
 		}
 	}
 
 	if order.Status == types.RelayOrderStatus_confirming {
 		confirmTime := time.Unix(order.ConfirmTime, 0)
-		if nowTime.Sub(confirmTime) < 4*LOCKING_PERIOD {
-			relaylog.Error("relay revoke sell ", "action.blockTime-order.Confirmtime", nowTime.Sub(confirmTime), "less", 4*LOCKING_PERIOD)
+		if nowTime.Sub(confirmTime) < 4*lockingTime {
+			relaylog.Error("relay revoke from confirming ", "current duration", nowTime.Sub(confirmTime), "less", 4*lockingTime)
 			return types.ErrTime
 		}
 	}
@@ -187,7 +186,7 @@ func (action *relayDB) revokeCreate(revoke *types.RelayRevoke) (*types.Receipt, 
 	if order.CoinOperation == types.RelayCreateBuy {
 		receipt, err = action.coinsAccount.ExecActive(order.CreaterAddr, action.execAddr, int64(order.Amount))
 		if err != nil {
-			relaylog.Error("account.ExecActive ", "addrFrom", order.CreaterAddr, "execAddr", action.execAddr, "amount", order.Amount)
+			relaylog.Error("revoke create", "addrFrom", order.CreaterAddr, "execAddr", action.execAddr, "amount", order.Amount)
 			return nil, err
 		}
 	}
@@ -195,7 +194,7 @@ func (action *relayDB) revokeCreate(revoke *types.RelayRevoke) (*types.Receipt, 
 	if order.CoinOperation == types.RelayCreateSell && order.Status != types.RelayOrderStatus_pending {
 		receipt, err = action.coinsAccount.ExecActive(order.AcceptAddr, action.execAddr, int64(order.Amount))
 		if err != nil {
-			relaylog.Error("account.ExecActive ", "addrFrom", order.AcceptAddr, "execAddr", action.execAddr, "amount", order.Amount)
+			relaylog.Error("revoke create", "addrFrom", order.AcceptAddr, "execAddr", action.execAddr, "amount", order.Amount)
 			return nil, err
 		}
 	}
@@ -247,7 +246,7 @@ func (action *relayDB) accept(accept *types.RelayAccept) (*types.Receipt, error)
 
 		receipt, err = action.coinsAccount.ExecFrozen(action.fromAddr, action.execAddr, int64(order.Amount))
 		if err != nil {
-			relaylog.Error("account.ExecFrozen relay ", "addrFrom", action.fromAddr, "execAddr", action.execAddr, "amount", order.Amount)
+			relaylog.Error("relay accept frozen fail", "addrFrom", action.fromAddr, "execAddr", action.execAddr, "amount", order.Amount)
 			return nil, err
 		}
 	}
@@ -312,7 +311,7 @@ func (action *relayDB) revokeAccept(revoke *types.RelayRevoke) (*types.Receipt, 
 	if order.CoinOperation == types.RelayCreateSell {
 		receipt, err = action.coinsAccount.ExecActive(order.AcceptAddr, action.execAddr, int64(order.Amount))
 		if err != nil {
-			relaylog.Error("account.ExecActive ", "addrFrom", order.AcceptAddr, "execAddr", action.execAddr, "amount", order.Amount)
+			relaylog.Error("revokeAccept", "addrFrom", order.AcceptAddr, "execAddr", action.execAddr, "amount", order.Amount)
 			return nil, err
 		}
 		order.CoinAddr = ""
@@ -418,6 +417,7 @@ func (action *relayDB) verifyTx(verify *types.RelayVerify, r *relay) (*types.Rec
 	order.PreStatus = order.Status
 	order.Status = types.RelayOrderStatus_finished
 	order.FinishTime = action.blockTime
+	order.FinishTxHash = action.txHash
 
 	relayLog := newRelayLog(order)
 	orderKV := relayLog.save(action.db)
@@ -449,7 +449,7 @@ func (action *relayDB) verifyBtcTx(verify *types.RelayVerifyCli, r *relay) (*typ
 
 	var receipt *types.Receipt
 
-	err = r.btcStore.verifyBTCTx(verify)
+	err = r.btcStore.verifyBtcTx(verify)
 	if err != nil {
 		return nil, err
 	}

@@ -17,7 +17,7 @@ func Init() {
 
 type relay struct {
 	drivers.DriverBase
-	btcStore relayBTCStore
+	btcStore relayBtcStore
 }
 
 func newRelay() *relay {
@@ -199,7 +199,7 @@ func (r *relay) Query(funcName string, params []byte) (types.Message, error) {
 		if err != nil {
 			return nil, err
 		}
-		return r.btcStore.getBTCHeadDbCurHeight(&req)
+		return r.btcStore.getBtcHeadDbCurHeight(&req)
 	default:
 	}
 	relaylog.Error("relay Query", "Query type not supprt with func name", funcName)
@@ -209,11 +209,11 @@ func (r *relay) Query(funcName string, params []byte) (types.Message, error) {
 func (r *relay) GetSellOrderByStatus(addrCoins *types.ReqRelayAddrCoins) (types.Message, error) {
 	var prefixs [][]byte
 	if 0 == len(addrCoins.Coins) {
-		val := getOrderPrefixStatus((int32)(addrCoins.Status))
+		val := calcOrderPrefixStatus((int32)(addrCoins.Status))
 		prefixs = append(prefixs, val)
 	} else {
 		for _, coin := range addrCoins.Coins {
-			val := getOrderPrefixCoinStatus(coin, (int32)(addrCoins.Status))
+			val := calcOrderPrefixCoinStatus(coin, (int32)(addrCoins.Status))
 			prefixs = append(prefixs, val)
 		}
 	}
@@ -225,11 +225,11 @@ func (r *relay) GetSellOrderByStatus(addrCoins *types.ReqRelayAddrCoins) (types.
 func (r *relay) GetSellRelayOrder(addrCoins *types.ReqRelayAddrCoins) (types.Message, error) {
 	var prefixs [][]byte
 	if 0 == len(addrCoins.Coins) {
-		val := getOrderPrefixAddr(addrCoins.Addr)
+		val := calcOrderPrefixAddr(addrCoins.Addr)
 		prefixs = append(prefixs, val)
 	} else {
 		for _, coin := range addrCoins.Coins {
-			val := getOrderPrefixAddrCoin(addrCoins.Addr, coin)
+			val := calcOrderPrefixAddrCoin(addrCoins.Addr, coin)
 			prefixs = append(prefixs, val)
 		}
 	}
@@ -241,11 +241,11 @@ func (r *relay) GetSellRelayOrder(addrCoins *types.ReqRelayAddrCoins) (types.Mes
 func (r *relay) GetBuyRelayOrder(addrCoins *types.ReqRelayAddrCoins) (types.Message, error) {
 	var prefixs [][]byte
 	if 0 == len(addrCoins.Coins) {
-		val := getAcceptPrefixAddr(addrCoins.Addr)
+		val := calcAcceptPrefixAddr(addrCoins.Addr)
 		prefixs = append(prefixs, val)
 	} else {
 		for _, coin := range addrCoins.Coins {
-			val := getAcceptPrefixAddrCoin(addrCoins.Addr, coin)
+			val := calcAcceptPrefixAddrCoin(addrCoins.Addr, coin)
 			prefixs = append(prefixs, val)
 		}
 	}
@@ -355,19 +355,19 @@ func (r *relay) getDeleteOrderKv(OrderId []byte, ty int32) []*types.KeyValue {
 func getCreateOrderKeyValue(kv []*types.KeyValue, order *types.RelayOrder, status int32) []*types.KeyValue {
 	OrderId := []byte(order.Id)
 
-	key := getOrderKeyStatus(order, status)
+	key := calcOrderKeyStatus(order, status)
 	kv = append(kv, &types.KeyValue{key, OrderId})
 
-	key = getOrderKeyCoin(order, status)
+	key = calcOrderKeyCoin(order, status)
 	kv = append(kv, &types.KeyValue{key, OrderId})
 
-	key = getOrderKeyAddrStatus(order, status)
+	key = calcOrderKeyAddrStatus(order, status)
 	kv = append(kv, &types.KeyValue{key, OrderId})
 
-	key = getOrderKeyAddrCoin(order, status)
+	key = calcOrderKeyAddrCoin(order, status)
 	kv = append(kv, &types.KeyValue{key, OrderId})
 
-	key = getAcceptKeyAddr(order, status)
+	key = calcAcceptKeyAddr(order, status)
 	if key != nil {
 		kv = append(kv, &types.KeyValue{key, OrderId})
 	}
@@ -378,19 +378,19 @@ func getCreateOrderKeyValue(kv []*types.KeyValue, order *types.RelayOrder, statu
 
 func deleteCreateOrderKeyValue(kv []*types.KeyValue, order *types.RelayOrder, status int32) []*types.KeyValue {
 
-	key := getOrderKeyStatus(order, status)
+	key := calcOrderKeyStatus(order, status)
 	kv = append(kv, &types.KeyValue{key, nil})
 
-	key = getOrderKeyCoin(order, status)
+	key = calcOrderKeyCoin(order, status)
 	kv = append(kv, &types.KeyValue{key, nil})
 
-	key = getOrderKeyAddrStatus(order, status)
+	key = calcOrderKeyAddrStatus(order, status)
 	kv = append(kv, &types.KeyValue{key, nil})
 
-	key = getOrderKeyAddrCoin(order, status)
+	key = calcOrderKeyAddrCoin(order, status)
 	kv = append(kv, &types.KeyValue{key, nil})
 
-	key = getAcceptKeyAddr(order, status)
+	key = calcAcceptKeyAddr(order, status)
 	if key != nil {
 		kv = append(kv, &types.KeyValue{key, nil})
 	}
