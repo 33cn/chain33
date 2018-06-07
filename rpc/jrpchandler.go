@@ -264,6 +264,7 @@ func (c *Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 			}
 			recpResult, err = DecodeLog(&recp)
 			if err != nil {
+				txdetails.Txs = append(txdetails.Txs, nil)
 				continue
 			}
 			txProofs := tx.GetProofs()
@@ -272,6 +273,7 @@ func (c *Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 			}
 			tran, err := DecodeTx(tx.GetTx())
 			if err != nil {
+				txdetails.Txs = append(txdetails.Txs, nil)
 				continue
 			}
 			txdetails.Txs = append(txdetails.Txs,
