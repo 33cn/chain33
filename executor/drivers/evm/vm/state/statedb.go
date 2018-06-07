@@ -510,16 +510,9 @@ func (self *MemoryStateDB) transfer2Contract(sender, recipient string, amount in
 		return nil, model.ErrNoCreator
 	}
 
-	// 第一步先将外部账户的金额转入自己的合约中
-	// 本操作不允许，需要首先外部操作coins账户
-	//ret, err = self.CoinsAccount.TransferToExec(sender.String(), recipient.String(), amount)
-	//if err != nil {
-	//	return nil, err
-	//}
-
-	// 第二步再从自己的合约账户到创建者的合约账户
+	// 从自己的合约账户到创建者的合约账户
 	// 有可能是外部账户调用自己创建的合约，这种情况下这一步可以省略
-
+	ret = &types.Receipt{}
 	if strings.Compare(sender, creator) != 0 {
 		rs, err := self.CoinsAccount.ExecTransfer(sender, creator, recipient, amount)
 		if err != nil {

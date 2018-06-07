@@ -21,6 +21,9 @@ import (
 
 var (
 	evmDebug = false
+
+	// 本合约地址
+	EvmAddress = account.ExecAddress(model.ExecutorName)
 )
 
 func Init() {
@@ -85,7 +88,8 @@ func (evm *EVMExecutor) Exec(tx *types.Transaction, index int) (*types.Receipt, 
 	// 创建EVM运行时对象
 	env := runtime.NewEVM(context, evm.mStateDB, *evm.vmCfg)
 
-	isCreate := msg.To() == nil
+	// 目标地址为空，或者为Evm合约的固定地址时，认为新增合约
+	isCreate := msg.To() == nil || strings.Compare(msg.To().String(), EvmAddress) == 0
 
 	var (
 		ret          = []byte("")
