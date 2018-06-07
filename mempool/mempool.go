@@ -23,19 +23,20 @@ func DisableLog() {
 // Module Mempool
 
 type Mempool struct {
-	proxyMtx  sync.Mutex
-	cache     *txCache
-	txChan    chan queue.Message
-	signChan  chan queue.Message
-	badChan   chan queue.Message
-	balanChan chan queue.Message
-	goodChan  chan queue.Message
-	client    queue.Client
-	header    *types.Header
-	minFee    int64
-	addedTxs  *lru.Cache
-	sync      bool
-	cfg       *types.MemPool
+	proxyMtx   sync.Mutex
+	cache      *txCache
+	txChan     chan queue.Message
+	signChan   chan queue.Message
+	badChan    chan queue.Message
+	balanChan  chan queue.Message
+	goodChan   chan queue.Message
+	client     queue.Client
+	header     *types.Header
+	minFee     int64
+	addedTxs   *lru.Cache
+	sync       bool
+	cfg        *types.MemPool
+	poolHeader chan struct{}
 }
 
 func New(cfg *types.MemPool) *Mempool {
@@ -50,6 +51,7 @@ func New(cfg *types.MemPool) *Mempool {
 	pool.minFee = cfg.MinTxFee
 	pool.addedTxs, _ = lru.New(mempoolAddedTxSize)
 	pool.cfg = cfg
+	pool.poolHeader = make(chan struct{}, 1)
 	return pool
 }
 
@@ -404,6 +406,7 @@ func (mem *Mempool) pollLastHeader() {
 		}
 		h := lastHeader.(queue.Message).Data.(*types.Header)
 		mem.setHeader(h)
+		mem.poolHeader <- struct{}{}
 		return
 	}
 }
@@ -413,6 +416,10 @@ func (mem *Mempool) setHeader(h *types.Header) {
 	mem.proxyMtx.Lock()
 	mem.header = h
 	mem.proxyMtx.Unlock()
+}
+
+func (mem *Mempool) waitPollLastHeader() {
+	<-mem.poolHeader
 }
 
 // Mempool.setSync设置Mempool同步状态
