@@ -165,19 +165,25 @@ func (d *DriverBase) checkAddress(addr string) error {
 	return account.CheckAddress(addr)
 }
 
+//调用子类的CheckTx, 也可以不调用，实现自己的CheckTx
 func (d *DriverBase) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
+	//to 必须是一个地址
 	if err := d.checkAddress(tx.To); err != nil {
 		return nil, err
 	}
-	//非coins 或token 模块的 ToAddr 指向合约
-	exec := string(tx.Execer)
-	if exec != "coins" && exec != "token" && ExecAddress(exec) != tx.To {
-		return nil, types.ErrToAddrNotSameToExecAddr
+	err := d.child.CheckTx(tx, index)
+	if err != nil {
+		return nil, err
 	}
 	return nil, nil
 }
 
+//默认情况下，to地址指向合约地址
 func (d *DriverBase) CheckTx(tx *types.Transaction, index int) error {
+	exec := string(tx.Execer)
+	if ExecAddress(exec) != tx.To {
+		return types.ErrToAddrNotSameToExecAddr
+	}
 	return nil
 }
 

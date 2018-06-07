@@ -520,7 +520,7 @@ func (execute *executor) execTxGroup(txs []*types.Transaction, index int) ([]*ty
 	if err != nil {
 		return nil, err
 	}
-	feelog, err := execute.execFee(txs[0])
+	feelog, err := execute.execFee(txs[0], index)
 	if err != nil {
 		return nil, err
 	}
@@ -557,7 +557,7 @@ func (execute *executor) execTxGroup(txs []*types.Transaction, index int) ([]*ty
 	return receipts, nil
 }
 
-func (execute *executor) execFee(tx *types.Transaction) (*types.Receipt, error) {
+func (execute *executor) execFee(tx *types.Transaction, index int) (*types.Receipt, error) {
 	feelog := &types.Receipt{Ty: types.ExecPack}
 	e, err := drivers.LoadDriver(string(tx.Execer), execute.height)
 	if err != nil {
@@ -634,7 +634,7 @@ func (execute *executor) execTx(tx *types.Transaction, index int) (*types.Receip
 	//处理交易手续费(先把手续费收了)
 	//如果收了手续费，表示receipt 至少是pack 级别
 	//收不了手续费的交易才是 error 级别
-	feelog, err := execute.execFee(tx)
+	feelog, err := execute.execFee(tx, index)
 	if err != nil {
 		return nil, err
 	}
