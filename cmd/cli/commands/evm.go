@@ -54,7 +54,7 @@ func addCreateContractFlags(cmd *cobra.Command) {
 
 func createContract(cmd *cobra.Command, args []string) {
 	code, _ := cmd.Flags().GetString("input")
-	key, _ := cmd.Flags().GetString("key")
+	caller, _ := cmd.Flags().GetString("caller")
 	expire, _ := cmd.Flags().GetString("expire")
 	note, _ := cmd.Flags().GetString("note")
 	alias, _ := cmd.Flags().GetString("alias")
@@ -70,7 +70,7 @@ func createContract(cmd *cobra.Command, args []string) {
 	}
 	action := types.EVMContractAction{Amount: 0, Code: bCode, GasLimit: 0, GasPrice: 0, Note: note, Alias: alias}
 
-	data, err := createEvmTx(&action, key, account.ExecAddress("evm"), expire, rpcLaddr, feeInt64)
+	data, err := createEvmTx(&action, caller, account.ExecAddress("evm"), expire, rpcLaddr, feeInt64)
 
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "create contract error:", err)
@@ -85,7 +85,7 @@ func createContract(cmd *cobra.Command, args []string) {
 	ctx.RunWithoutMarshal()
 }
 
-func createEvmTx(action proto.Message, key, addr, expire, rpcLaddr string, fee uint64) (string, error) {
+func createEvmTx(action proto.Message, caller, addr, expire, rpcLaddr string, fee uint64) (string, error) {
 	tx := &types.Transaction{Execer: []byte("evm"), Payload: types.Encode(action), Fee: 0, To: addr}
 
 	tx.Fee, _ = tx.GetRealFee(types.MinFee)
@@ -100,10 +100,9 @@ func createEvmTx(action proto.Message, key, addr, expire, rpcLaddr string, fee u
 	rawTx := hex.EncodeToString(txHex)
 
 	unsignedTx := &types.ReqSignRawTx{
-		Addr:    addr,
-		Privkey: key,
-		TxHex:   rawTx,
-		Expire:  expire,
+		Addr:   caller,
+		TxHex:  rawTx,
+		Expire: expire,
 	}
 
 	var res string
@@ -121,7 +120,7 @@ func createEvmTx(action proto.Message, key, addr, expire, rpcLaddr string, fee u
 	return res, nil
 }
 
-func createEvmTransferTx(key, execName, expire, rpcLaddr string, amountInt64 int64) (string, error) {
+func createEvmTransferTx(caller, execName, expire, rpcLaddr string, amountInt64 int64) (string, error) {
 
 	var tx *types.Transaction
 	transfer := &types.CoinsAction{}
@@ -142,10 +141,9 @@ func createEvmTransferTx(key, execName, expire, rpcLaddr string, amountInt64 int
 	rawTx := hex.EncodeToString(txHex)
 
 	unsignedTx := &types.ReqSignRawTx{
-		Addr:    tx.To,
-		Privkey: key,
-		TxHex:   rawTx,
-		Expire:  expire,
+		Addr:   caller,
+		TxHex:  rawTx,
+		Expire: expire,
 	}
 
 	var res string
@@ -176,7 +174,7 @@ func CallContractCmd() *cobra.Command {
 
 func callContract(cmd *cobra.Command, args []string) {
 	code, _ := cmd.Flags().GetString("input")
-	key, _ := cmd.Flags().GetString("key")
+	caller, _ := cmd.Flags().GetString("caller")
 	expire, _ := cmd.Flags().GetString("expire")
 	note, _ := cmd.Flags().GetString("note")
 	amount, _ := cmd.Flags().GetFloat64("amount")
@@ -204,7 +202,7 @@ func callContract(cmd *cobra.Command, args []string) {
 
 	action := types.EVMContractAction{Amount: amountInt64, Code: bCode, GasLimit: 0, GasPrice: 0, Note: note}
 
-	data, err := createEvmTx(&action, key, toAddr, expire, rpcLaddr, feeInt64)
+	data, err := createEvmTx(&action, caller, toAddr, expire, rpcLaddr, feeInt64)
 
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "call contract error", err)
@@ -231,15 +229,14 @@ func addCommonFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("input", "i", "", "input contract binary code")
 	cmd.MarkFlagRequired("input")
 
-	cmd.Flags().StringP("key", "k", "", "private key")
-	cmd.MarkFlagRequired("key")
+	cmd.Flags().StringP("caller", "c", "", "the caller address")
+	cmd.MarkFlagRequired("caller")
 
 	cmd.Flags().StringP("expire", "e", "120s", "transaction expire time (optional)")
 
 	cmd.Flags().StringP("note", "n", "", "transaction note info (optional)")
 
-	cmd.Flags().Float64P("fee", "f", 0, "contract gas fee")
-	cmd.MarkFlagRequired("fee")
+	cmd.Flags().Float64P("fee", "f", 0, "contract gas fee (optional)")
 }
 
 func estimateContract(cmd *cobra.Command, args []string) {
@@ -376,8 +373,8 @@ func addEvmTransferFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("to", "t", "", "evm contract address (like user.evm.xxx)")
 	cmd.MarkFlagRequired("to")
 
-	cmd.Flags().StringP("key", "k", "", "private key")
-	cmd.MarkFlagRequired("key")
+	cmd.Flags().StringP("caller", "c", "", "the caller address")
+	cmd.MarkFlagRequired("caller")
 
 	cmd.Flags().Float64P("amount", "a", 0, "the amount transfer to the contract")
 	cmd.MarkFlagRequired("amount")
@@ -386,7 +383,7 @@ func addEvmTransferFlags(cmd *cobra.Command) {
 }
 
 func evmTransfer(cmd *cobra.Command, args []string) {
-	key, _ := cmd.Flags().GetString("key")
+	caller, _ := cmd.Flags().GetString("caller")
 	amount, _ := cmd.Flags().GetFloat64("amount")
 	to, _ := cmd.Flags().GetString("to")
 	expire, _ := cmd.Flags().GetString("expire")
@@ -394,7 +391,7 @@ func evmTransfer(cmd *cobra.Command, args []string) {
 
 	amountInt64 := int64(amount*1e4) * 1e4
 
-	data, err := createEvmTransferTx(key, to, expire, rpcLaddr, amountInt64)
+	data, err := createEvmTransferTx(caller, to, expire, rpcLaddr, amountInt64)
 
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "create contract transfer error:", err)
