@@ -62,7 +62,7 @@ func (f *Filterdata) ManageRecvFilter() {
 			f.regRData.Remove(key)
 		}
 
-		if !f.isClose() {
+		if f.isClose() {
 			return
 		}
 	}
