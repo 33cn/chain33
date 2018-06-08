@@ -7,10 +7,10 @@ SPDX-License-Identifier: Apache-2.0
 package cryptosuite
 
 import (
+	"github.com/pkg/errors"
 	"gitlab.33.cn/chain33/chain33/authority/bccsp"
 	"gitlab.33.cn/chain33/chain33/authority/bccsp/factory"
 	"gitlab.33.cn/chain33/chain33/authority/common/core"
-	"github.com/pkg/errors"
 )
 
 //GetSuiteByConfig returns cryptosuite adaptor for bccsp loaded according to given config
@@ -23,19 +23,19 @@ func GetSuiteByConfig(config core.CryptoSuiteConfig) (core.CryptoSuite, error) {
 	return NewCryptoSuite(bccsp), nil
 }
 
-func getBCCSPFromOpts(config *factory.FactoryOpts) (bccsp.BCCSP, error) {
+func getBCCSPFromOpts(config *factory.SwOpts) (bccsp.BCCSP, error) {
 	f := &factory.SWFactory{}
 
-	csp, err := f.Get(config)
+	csp, err := f.Get(&factory.FactoryOpts{"", config})
 	if err != nil {
-		return nil, errors.Wrapf(err, "Could not initialize BCCSP")
+		return nil, errors.Wrapf(err, "Could not initialize BCCSP %s", f.Name())
 	}
 	return csp, nil
 }
 
 //GetOptsByConfig Returns Factory opts for given SDK config
-func getOptsByConfig(c core.CryptoSuiteConfig) *factory.FactoryOpts {
-	opts := &factory.FactoryOpts{
+func getOptsByConfig(c core.CryptoSuiteConfig) *factory.SwOpts {
+	opts := &factory.SwOpts{
 		HashFamily: c.SecurityAlgorithm(),
 		SecLevel:   c.SecurityLevel(),
 	}

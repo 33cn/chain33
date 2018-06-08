@@ -22,29 +22,49 @@ import (
 	"gitlab.33.cn/chain33/chain33/authority/bccsp/sw"
 )
 
-type FactoryOpts struct {
-	SecLevel   int    `mapstructure:"security" json:"security" yaml:"Security"`
-	HashFamily string `mapstructure:"hash" json:"hash" yaml:"Hash"`
-}
+const (
+	// SoftwareBasedFactoryName is the name of the factory of the software-based BCCSP implementation
+	SoftwareBasedFactoryName = "SW"
+)
 
 // SWFactory is the factory of the software-based BCCSP.
 type SWFactory struct{}
 
+// Name returns the name of this factory
+func (f *SWFactory) Name() string {
+	return SoftwareBasedFactoryName
+}
+
 // Get returns an instance of BCCSP using Opts.
 func (f *SWFactory) Get(config *FactoryOpts) (bccsp.BCCSP, error) {
 	// Validate arguments
-	if config == nil {
+	if config == nil || config.SwOpts == nil {
 		return nil, errors.New("Invalid config. It must not be nil.")
 	}
 
-	return sw.New(config.SecLevel, config.HashFamily)
+	swOpts := config.SwOpts
+	var ks bccsp.KeyStore
+
+	if swOpts.FileKeystore != nil {
+		fks, err := sw.NewFileBasedKeyStore(nil, swOpts.FileKeystore.KeyStorePath, false)
+		if err != nil {
+			return nil, err
+		}
+		ks = fks
+	}
+
+	return sw.New(swOpts.SecLevel, swOpts.HashFamily, ks)
 }
 
-// GetDefaultOpts offers a default implementation for Opts
-// returns a new instance every time
-func GetDefaultOpts() *FactoryOpts {
-	return &FactoryOpts{
-		HashFamily: "SHA2",
-		SecLevel:   256,
-	}
+// SwOpts contains options for the SWFactory
+type SwOpts struct {
+	// Default algorithms when not specified (Deprecated?)
+	SecLevel     int               `mapstructure:"security" json:"security" yaml:"Security"`
+	HashFamily   string            `mapstructure:"hash" json:"hash" yaml:"Hash"`
+	FileKeystore *FileKeystoreOpts `mapstructure:"filekeystore,omitempty" json:"filekeystore,omitempty" yaml:"FileKeyStore"`
+}
+
+// Pluggable Keystores, could add JKS, P12, etc..
+type FileKeystoreOpts struct {
+	KeyStorePath string `mapstructure:"keystore" yaml:"KeyStore"`
 }
