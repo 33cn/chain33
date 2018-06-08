@@ -20,6 +20,7 @@
     "gas" : "",
     "logs" : "",
     "out" : "{{.Out}}",
+    "err" : "{{.Err}}",
     "post" : {
       "1FwuqJsLH1c4LRBGYPHvKtspEYmS8ag2kf" : {
         "balance" : "0x0de0b6b3a7640000",
