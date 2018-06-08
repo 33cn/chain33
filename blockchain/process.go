@@ -497,7 +497,7 @@ func (b *BlockChain) updatePrivacyCache(privacyKV *types.PrivacyKV, height int64
 	for _, privacyKVToken := range privacyKV.PrivacyKVToken {
 		mapPrivacy4token, ok := b.privacyCache[privacyKVToken.Token]
 		if !ok {
-			mapPrivacy4token := make(map[int64]*simplelru.LRU)
+			mapPrivacy4token = make(map[int64]*simplelru.LRU)
 			b.privacyCache[privacyKVToken.Token] = mapPrivacy4token
 		}
 		//遍历一个隐私交易下特定token下的kv，而每个kv则对应一个UTXO
