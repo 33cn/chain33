@@ -1,5 +1,5 @@
 # Base image: https://hub.docker.com/_/golang/
-FROM golang:1.9
+FROM golang:1.9.4
 
 # Install golint
 ENV GOPATH /go
@@ -7,7 +7,7 @@ ENV PATH ${GOPATH}/bin:$PATH
 
 # Install dep
 RUN go get -u gopkg.in/alecthomas/gometalinter.v2 \
-    && gometalinter.v2 -i
+    && gometalinter.v2 -i \
     && go get -u github.com/mitchellh/gox
 
 # Use speedup source for Chinese Mainland user,if not you can remove it
@@ -27,3 +27,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Set Clang as default CC
 ENV set_clang /etc/profile.d/set-clang-cc.sh
 RUN echo "export CC=clang-5.0" | tee -a ${set_clang} && chmod a+x ${set_clang}
+
+RUN apt autoremove \
+    && apt clean && go clean

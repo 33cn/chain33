@@ -32,6 +32,7 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	_ "google.golang.org/grpc/encoding/gzip"
 	pb "google.golang.org/grpc/examples/route_guide/routeguide"
 	"google.golang.org/grpc/testdata"
 )
@@ -157,6 +158,7 @@ func main() {
 	} else {
 		opts = append(opts, grpc.WithInsecure())
 	}
+	opts = append(opts, grpc.WithDefaultCallOptions(grpc.UseCompressor("gzip")))
 	conn, err := grpc.Dial(*serverAddr, opts...)
 	if err != nil {
 		log.Fatalf("fail to dial: %v", err)
@@ -164,21 +166,33 @@ func main() {
 	defer conn.Close()
 	client := pb.NewRouteGuideClient(conn)
 
-	// Looking for a valid feature
-	printFeature(client, &pb.Point{Latitude: 409146138, Longitude: -746188906})
+	go func() {
+		for {
+			// Looking for a valid feature
+			printFeature(client, &pb.Point{Latitude: 409146138, Longitude: -746188906})
 
-	// Feature missing.
-	printFeature(client, &pb.Point{Latitude: 0, Longitude: 0})
+			// Feature missing.
+			printFeature(client, &pb.Point{Latitude: 0, Longitude: 0})
 
-	// Looking for features between 40, -75 and 42, -73.
-	printFeatures(client, &pb.Rectangle{
-		Lo: &pb.Point{Latitude: 400000000, Longitude: -750000000},
-		Hi: &pb.Point{Latitude: 420000000, Longitude: -730000000},
-	})
-
+			// Looking for features between 40, -75 and 42, -73.
+			printFeatures(client, &pb.Rectangle{
+				Lo: &pb.Point{Latitude: 400000000, Longitude: -750000000},
+				Hi: &pb.Point{Latitude: 420000000, Longitude: -730000000},
+			})
+			time.Sleep(100 * time.Second)
+		}
+	}()
 	// RecordRoute
-	runRecordRoute(client)
+	go func() {
+		for {
+			runRecordRoute(client)
+			time.Sleep(time.Second)
+		}
+	}()
 
 	// RouteChat
-	runRouteChat(client)
+	for {
+		runRouteChat(client)
+		time.Sleep(time.Second)
+	}
 }

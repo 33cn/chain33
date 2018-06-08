@@ -12,53 +12,59 @@ package account
 
 import (
 	"fmt"
+	"strings"
 
+	"github.com/golang/protobuf/proto"
 	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/client"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
-	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var alog = log.New("module", "account")
 
-type AccountDB struct {
-	db                   dbm.KVDB
+// DB for account
+type DB struct {
+	db                   dbm.KV
 	accountKeyPerfix     []byte
 	execAccountKeyPerfix []byte
+	execer               string
+	symbol               string
 }
 
-func NewCoinsAccount() *AccountDB {
+func NewCoinsAccount() *DB {
 	return newAccountDB("mavl-coins-bty-")
 }
 
-func NewTokenAccount(symbol string, db dbm.KVDB) *AccountDB {
-	accDB := newAccountDB(fmt.Sprintf("mavl-token-%s-", symbol))
+func NewAccountDB(execer string, symbol string, db dbm.KV) (*DB, error) {
+	//如果execer 和  symbol 中存在 "-", 那么创建失败
+	if strings.ContainsRune(execer, '-') {
+		return nil, types.ErrExecNameNotAllow
+	}
+	if strings.ContainsRune(symbol, '-') {
+		return nil, types.ErrSymbolNameNotAllow
+	}
+	accDB := newAccountDB(SymbolPrefix(execer, symbol))
+	accDB.execer = execer
+	accDB.symbol = symbol
 	accDB.SetDB(db)
-	return accDB
+	return accDB, nil
 }
 
-func NewTokenAccountWithoutDB(symbol string) *AccountDB {
-	return newAccountDB(fmt.Sprintf("mavl-token-%s-", symbol))
-}
-
-func newAccountDB(prefix string) *AccountDB {
-	acc := &AccountDB{}
+func newAccountDB(prefix string) *DB {
+	acc := &DB{}
 	acc.accountKeyPerfix = []byte(prefix)
 	acc.execAccountKeyPerfix = append([]byte(prefix), []byte("exec-")...)
 	//alog.Warn("NewAccountDB", "prefix", prefix, "key1", string(acc.accountKeyPerfix), "key2", string(acc.execAccountKeyPerfix))
 	return acc
 }
 
-func (acc *AccountDB) SetDB(db dbm.KVDB) *AccountDB {
+func (acc *DB) SetDB(db dbm.KV) *DB {
 	acc.db = db
 	return acc
 }
 
-func (acc *AccountDB) IsTokenAccount() bool {
-	return "token" == string(acc.accountKeyPerfix[len("mavl-"):len("mavl-token")])
-}
-
-func (acc *AccountDB) LoadAccount(addr string) *types.Account {
+func (acc *DB) LoadAccount(addr string) *types.Account {
 	value, err := acc.db.Get(acc.AccountKey(addr))
 	if err != nil {
 		return &types.Account{Addr: addr}
@@ -71,7 +77,7 @@ func (acc *AccountDB) LoadAccount(addr string) *types.Account {
 	return &acc1
 }
 
-func (acc *AccountDB) CheckTransfer(from, to string, amount int64) error {
+func (acc *DB) CheckTransfer(from, to string, amount int64) error {
 	if !types.CheckAmount(amount) {
 		return types.ErrAmount
 	}
@@ -83,7 +89,7 @@ func (acc *AccountDB) CheckTransfer(from, to string, amount int64) error {
 	return nil
 }
 
-func (acc *AccountDB) Transfer(from, to string, amount int64) (*types.Receipt, error) {
+func (acc *DB) Transfer(from, to string, amount int64) (*types.Receipt, error) {
 	if !types.CheckAmount(amount) {
 		return nil, types.ErrAmount
 	}
@@ -99,79 +105,108 @@ func (acc *AccountDB) Transfer(from, to string, amount int64) (*types.Receipt, e
 		accFrom.Balance = accFrom.GetBalance() - amount
 		accTo.Balance = accTo.GetBalance() + amount
 
-		receiptBalanceFrom := &types.ReceiptAccountTransfer{&copyfrom, accFrom}
-		receiptBalanceTo := &types.ReceiptAccountTransfer{&copyto, accTo}
+		receiptBalanceFrom := &types.ReceiptAccountTransfer{
+			Prev:    &copyfrom,
+			Current: accFrom,
+		}
+		receiptBalanceTo := &types.ReceiptAccountTransfer{
+			Prev:    &copyto,
+			Current: accTo,
+		}
 
 		acc.SaveAccount(accFrom)
 		acc.SaveAccount(accTo)
 		return acc.transferReceipt(accFrom, accTo, receiptBalanceFrom, receiptBalanceTo), nil
-	} else {
-		return nil, types.ErrNoBalance
 	}
+
+	return nil, types.ErrNoBalance
 }
 
-func (acc *AccountDB) depositBalance(execaddr string, amount int64) (*types.Receipt, error) {
+func (acc *DB) depositBalance(execaddr string, amount int64) (*types.Receipt, error) {
 	if !types.CheckAmount(amount) {
 		return nil, types.ErrAmount
 	}
 	acc1 := acc.LoadAccount(execaddr)
 	copyacc := *acc1
 	acc1.Balance += amount
-	receiptBalance := &types.ReceiptAccountTransfer{&copyacc, acc1}
+	receiptBalance := &types.ReceiptAccountTransfer{
+		Prev:    &copyacc,
+		Current: acc1,
+	}
 	acc.SaveAccount(acc1)
 	ty := int32(types.TyLogDeposit)
-	if acc.IsTokenAccount() {
+	ty = types.TyLogDeposit
+	//token的log做了特殊处理，其他执行器不必如此
+	if acc.execer == "token" {
 		ty = types.TyLogTokenDeposit
 	}
-	log1 := &types.ReceiptLog{ty, types.Encode(receiptBalance)}
+	log1 := &types.ReceiptLog{
+		Ty:  ty,
+		Log: types.Encode(receiptBalance),
+	}
 	kv := acc.GetKVSet(acc1)
-	return &types.Receipt{types.ExecOk, kv, []*types.ReceiptLog{log1}}, nil
+	return &types.Receipt{
+		Ty:   types.ExecOk,
+		KV:   kv,
+		Logs: []*types.ReceiptLog{log1},
+	}, nil
 }
 
-func (acc *AccountDB) transferReceipt(accFrom, accTo *types.Account, receiptFrom, receiptTo *types.ReceiptAccountTransfer) *types.Receipt {
+func (acc *DB) transferReceipt(accFrom, accTo *types.Account, receiptFrom, receiptTo proto.Message) *types.Receipt {
 	ty := int32(types.TyLogTransfer)
-	if acc.IsTokenAccount() {
+	//token的log做了特殊处理，其他执行器不必如此
+	if acc.execer == "token" {
 		ty = types.TyLogTokenTransfer
 	}
-	log1 := &types.ReceiptLog{ty, types.Encode(receiptFrom)}
-	log2 := &types.ReceiptLog{ty, types.Encode(receiptTo)}
+	log1 := &types.ReceiptLog{
+		Ty:  ty,
+		Log: types.Encode(receiptFrom),
+	}
+	log2 := &types.ReceiptLog{
+		Ty:  ty,
+		Log: types.Encode(receiptTo),
+	}
 	kv := acc.GetKVSet(accFrom)
 	kv = append(kv, acc.GetKVSet(accTo)...)
-	return &types.Receipt{types.ExecOk, kv, []*types.ReceiptLog{log1, log2}}
+	return &types.Receipt{
+		Ty:   types.ExecOk,
+		KV:   kv,
+		Logs: []*types.ReceiptLog{log1, log2},
+	}
 }
 
-func (acc *AccountDB) SaveAccount(acc1 *types.Account) {
+func (acc *DB) SaveAccount(acc1 *types.Account) {
 	set := acc.GetKVSet(acc1)
 	for i := 0; i < len(set); i++ {
 		acc.db.Set(set[i].GetKey(), set[i].Value)
 	}
 }
 
-func (acc *AccountDB) GetKVSet(acc1 *types.Account) (kvset []*types.KeyValue) {
+func (acc *DB) GetKVSet(acc1 *types.Account) (kvset []*types.KeyValue) {
 	value := types.Encode(acc1)
-	kvset = append(kvset, &types.KeyValue{acc.AccountKey(acc1.Addr), value})
+	kvset = append(kvset, &types.KeyValue{
+		Key:   acc.AccountKey(acc1.Addr),
+		Value: value,
+	})
 	return kvset
 }
 
-func (acc *AccountDB) LoadAccounts(client queue.Client, addrs []string) (accs []*types.Account, err error) {
-	msg := client.NewMessage("blockchain", types.EventGetLastHeader, nil)
-	client.Send(msg, true)
-	msg, err = client.Wait(msg)
+// TODO:使用API的方式访问,暂时与LoadAccounts()共存,后续将删除LoadAccounts()
+func (acc *DB) LoadAccounts(api client.QueueProtocolAPI, addrs []string) (accs []*types.Account, err error) {
+	header, err := api.GetLastHeader()
 	if err != nil {
 		return nil, err
 	}
-	get := types.StoreGet{}
-	get.StateHash = msg.GetData().(*types.Header).GetStateHash()
+	get := types.StoreGet{StateHash: header.GetStateHash()}
 	for i := 0; i < len(addrs); i++ {
 		get.Keys = append(get.Keys, acc.AccountKey(addrs[i]))
 	}
-	msg = client.NewMessage("store", types.EventStoreGet, &get)
-	client.Send(msg, true)
-	msg, err = client.Wait(msg)
+
+	values, err := api.StoreGet(&get)
 	if err != nil {
 		return nil, err
 	}
-	values := msg.GetData().(*types.StoreReplyValue)
+
 	for i := 0; i < len(values.Values); i++ {
 		value := values.Values[i]
 		if value == nil {
@@ -188,7 +223,7 @@ func (acc *AccountDB) LoadAccounts(client queue.Client, addrs []string) (accs []
 	return accs, nil
 }
 
-func (acc *AccountDB) LoadAccountsDB(addrs []string) (accs []*types.Account, err error) {
+func (acc *DB) LoadAccountsDB(addrs []string) (accs []*types.Account, err error) {
 	for i := 0; i < len(addrs); i++ {
 		acc1 := acc.LoadAccount(addrs[i])
 		accs = append(accs, acc1)
@@ -196,9 +231,32 @@ func (acc *AccountDB) LoadAccountsDB(addrs []string) (accs []*types.Account, err
 	return accs, nil
 }
 
-//address to save key
-func (acc *AccountDB) AccountKey(address string) (key []byte) {
+// AccountKey return the key of address in DB
+func (acc *DB) AccountKey(address string) (key []byte) {
 	key = append(key, acc.accountKeyPerfix...)
 	key = append(key, []byte(address)...)
 	return key
+}
+
+func SymbolPrefix(execer string, symbol string) string {
+	return fmt.Sprintf("mavl-%s-%s-", execer, symbol)
+}
+
+func SymbolExecPrefix(execer string, symbol string) string {
+	return fmt.Sprintf("mavl-%s-%s-exec", execer, symbol)
+}
+
+func (acc *DB) GetTotalCoins(api client.QueueProtocolAPI, in *types.ReqGetTotalCoins) (reply *types.ReplyGetTotalCoins, err error) {
+	req := types.IterateRangeByStateHash{}
+	req.StateHash = in.StateHash
+	req.Count = in.Count
+	start := SymbolPrefix(in.Execer, in.Symbol)
+	end := SymbolExecPrefix(in.Execer, in.Symbol)
+	if in.StartKey == nil {
+		req.Start = []byte(start)
+	} else {
+		req.Start = in.StartKey
+	}
+	req.End = []byte(end)
+	return api.StoreGetTotalCoins(&req)
 }

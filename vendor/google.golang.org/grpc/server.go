@@ -616,6 +616,7 @@ func (s *Server) newHTTP2Transport(c net.Conn, authInfo credentials.AuthInfo) tr
 		WriteBufferSize:       s.opts.writeBufferSize,
 		ReadBufferSize:        s.opts.readBufferSize,
 	}
+	grpclog.Infoln("grpc new http2 transport", "remote", c.RemoteAddr())
 	st, err := transport.NewServerTransport("http2", c, config)
 	if err != nil {
 		s.mu.Lock()

@@ -7,6 +7,7 @@ import (
 	clog "gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/util"
 )
 
 /*
@@ -34,8 +35,9 @@ type SubStore interface {
 	Set(datas *types.StoreSet, sync bool) []byte
 	Get(datas *types.StoreGet) [][]byte
 	MemSet(datas *types.StoreSet, sync bool) []byte
-	Commit(hash *types.ReqHash) []byte
+	Commit(hash *types.ReqHash) ([]byte, error)
 	Rollback(req *types.ReqHash) []byte
+	IterateRangeByStateHash(statehash []byte, start []byte, end []byte, ascending bool, fn func(key, value []byte) bool)
 	ProcEvent(msg queue.Message)
 }
 
@@ -49,7 +51,7 @@ type BaseStore struct {
 //driver
 //dbpath
 func NewBaseStore(cfg *types.Store) *BaseStore {
-	db := dbm.NewDB("store", cfg.Driver, cfg.DbPath, 256)
+	db := dbm.NewDB("store", cfg.Driver, cfg.DbPath, cfg.DbCache)
 	store := &BaseStore{db: db}
 	store.done = make(chan struct{}, 1)
 	slog.Info("Enter store " + cfg.GetName())
@@ -59,12 +61,12 @@ func NewBaseStore(cfg *types.Store) *BaseStore {
 func (store *BaseStore) SetQueueClient(c queue.Client) {
 	store.qclient = c
 	store.qclient.Sub("store")
-
 	//recv 消息的处理
 	go func() {
 		for msg := range store.qclient.Recv() {
 			slog.Debug("store recv", "msg", msg)
 			store.processMessage(msg)
+			slog.Debug("store process end", "msg.id", msg.Id)
 		}
 		store.done <- struct{}{}
 	}()
@@ -86,9 +88,12 @@ func (store *BaseStore) processMessage(msg queue.Message) {
 		msg.Reply(client.NewMessage("", types.EventStoreSetReply, &types.ReplyHash{hash}))
 	} else if msg.Ty == types.EventStoreCommit { //把内存中set 的交易 commit
 		req := msg.GetData().(*types.ReqHash)
-		hash := store.child.Commit(req)
+		hash, err := store.child.Commit(req)
 		if hash == nil {
 			msg.Reply(client.NewMessage("", types.EventStoreCommit, types.ErrHashNotFound))
+			if err == types.ErrDataBaseDamage { //如果是数据库写失败，需要上报给用户
+				go util.ReportErrEventToFront(slog, client, "store", "wallet", err)
+			}
 		} else {
 			msg.Reply(client.NewMessage("", types.EventStoreCommit, &types.ReplyHash{hash}))
 		}
@@ -100,6 +105,12 @@ func (store *BaseStore) processMessage(msg queue.Message) {
 		} else {
 			msg.Reply(client.NewMessage("", types.EventStoreRollback, &types.ReplyHash{hash}))
 		}
+	} else if msg.Ty == types.EventStoreGetTotalCoins {
+		req := msg.GetData().(*types.IterateRangeByStateHash)
+		resp := &types.ReplyGetTotalCoins{}
+		resp.Count = req.Count
+		store.child.IterateRangeByStateHash(req.StateHash, req.Start, req.End, true, resp.IterateRangeByStateHash)
+		msg.Reply(client.NewMessage("", types.EventGetTotalCoinsReply, resp))
 	} else {
 		store.child.ProcEvent(msg)
 	}
@@ -110,8 +121,10 @@ func (store *BaseStore) SetChild(sub SubStore) {
 }
 
 func (store *BaseStore) Close() {
-	store.qclient.Close()
-	<-store.done
+	if store.qclient != nil {
+		store.qclient.Close()
+		<-store.done
+	}
 	store.db.Close()
 }
 

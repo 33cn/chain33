@@ -159,7 +159,7 @@ message ReqWalletSendToAddress {
 	string to          = 2;
 	int64  amount      = 3;
 	string note        = 4;
-	bool   istoken     = 5;
+	bool   isToken     = 5;
 	string tokenSymbol = 6;
 }
 
@@ -177,7 +177,7 @@ message ReqWalletMergeBalance {
 }
 
 message ReqStr {
-	string reqstr = 1;
+	string reqStr = 1;
 }
 
 message ReplyStr {
@@ -226,6 +226,28 @@ message ReqModifyConfig {
     string op = 2;
     string value = 3;
     string modifier = 4;
+}
+
+message ReqSignRawTx {
+    string addr = 1;
+    string privkey = 2;
+    string txHex = 3;
+    string expire = 4;
+    int32  index = 5;
+}
+
+message ReplySignRawTx {
+    string txHex = 1;
+}
+
+message ReportErrEvent {
+    string frommodule = 1;
+    string tomodule = 2;
+    string error = 3;
+}
+
+message Int32 {
+	int32 data = 1;
 }
 
 message ReqPub2Pri {

@@ -1,11 +1,11 @@
 package account
 
 import (
-	"gitlab.33.cn/chain33/chain33/queue"
+	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-func (acc *AccountDB) LoadExecAccount(addr, execaddr string) *types.Account {
+func (acc *DB) LoadExecAccount(addr, execaddr string) *types.Account {
 	value, err := acc.db.Get(acc.ExecAccountKey(addr, execaddr))
 	if err != nil {
 		return &types.Account{Addr: addr}
@@ -18,50 +18,52 @@ func (acc *AccountDB) LoadExecAccount(addr, execaddr string) *types.Account {
 	return &acc1
 }
 
-func (acc *AccountDB) LoadExecAccountQueue(client queue.Client, addr, execaddr string) (*types.Account, error) {
-	msg := client.NewMessage("blockchain", types.EventGetLastHeader, nil)
-	client.Send(msg, true)
-	msg, err := client.Wait(msg)
+func (acc *DB) LoadExecAccountQueue(api client.QueueProtocolAPI, addr, execaddr string) (*types.Account, error) {
+	header, err := api.GetLastHeader()
 	if err != nil {
 		return nil, err
 	}
-	get := types.StoreGet{}
-	get.StateHash = msg.GetData().(*types.Header).GetStateHash()
+
+	get := types.StoreGet{StateHash: header.GetStateHash()}
 	get.Keys = append(get.Keys, acc.ExecAccountKey(addr, execaddr))
-	msg = client.NewMessage("store", types.EventStoreGet, &get)
-	client.Send(msg, true)
-	msg, err = client.Wait(msg)
+	values, err := api.StoreGet(&get)
 	if err != nil {
 		return nil, err
 	}
-	values := msg.GetData().(*types.StoreReplyValue)
+	if len(values.Values) <= 0 {
+		return nil, types.ErrNotFound
+	}
 	value := values.Values[0]
 	if value == nil {
 		return &types.Account{Addr: addr}, nil
-	} else {
-		var acc1 types.Account
-		err := types.Decode(value, &acc1)
-		if err != nil {
-			return nil, err
-		}
-		return &acc1, nil
 	}
+
+	var acc1 types.Account
+	err = types.Decode(value, &acc1)
+	if err != nil {
+		return nil, err
+	}
+
+	return &acc1, nil
 }
 
-func (acc *AccountDB) SaveExecAccount(execaddr string, acc1 *types.Account) {
+func (acc *DB) SaveExecAccount(execaddr string, acc1 *types.Account) {
 	set := acc.GetExecKVSet(execaddr, acc1)
 	for i := 0; i < len(set); i++ {
 		acc.db.Set(set[i].GetKey(), set[i].Value)
 	}
 }
 
-func (acc *AccountDB) GetExecKVSet(execaddr string, acc1 *types.Account) (kvset []*types.KeyValue) {
+func (acc *DB) GetExecKVSet(execaddr string, acc1 *types.Account) (kvset []*types.KeyValue) {
 	value := types.Encode(acc1)
-	kvset = append(kvset, &types.KeyValue{acc.ExecAccountKey(acc1.Addr, execaddr), value})
+	kvset = append(kvset, &types.KeyValue{
+		Key:   acc.ExecAccountKey(acc1.Addr, execaddr),
+		Value: value,
+	})
 	return kvset
 }
 
-func (acc *AccountDB) ExecAccountKey(address, execaddr string) (key []byte) {
+func (acc *DB) ExecAccountKey(address, execaddr string) (key []byte) {
 	key = append(key, acc.execAccountKeyPerfix...)
 	key = append(key, []byte(execaddr)...)
 	key = append(key, []byte(":")...)
@@ -69,12 +71,12 @@ func (acc *AccountDB) ExecAccountKey(address, execaddr string) (key []byte) {
 	return key
 }
 
-func (acc *AccountDB) TransferToExec(from, to string, amount int64) (*types.Receipt, error) {
+func (acc *DB) TransferToExec(from, to string, amount int64) (*types.Receipt, error) {
 	receipt, err := acc.Transfer(from, to, amount)
 	if err != nil {
 		return nil, err
 	}
-	receipt2, err := acc.ExecDeposit(from, to, amount)
+	receipt2, err := acc.execDeposit(from, to, amount)
 	if err != nil {
 		//存款不应该出任何问题
 		panic(err)
@@ -82,12 +84,12 @@ func (acc *AccountDB) TransferToExec(from, to string, amount int64) (*types.Rece
 	return acc.mergeReceipt(receipt, receipt2), nil
 }
 
-func (acc *AccountDB) TransferWithdraw(from, to string, amount int64) (*types.Receipt, error) {
+func (acc *DB) TransferWithdraw(from, to string, amount int64) (*types.Receipt, error) {
 	//先判断可以取款
 	if err := acc.CheckTransfer(to, from, amount); err != nil {
 		return nil, err
 	}
-	receipt, err := acc.ExecWithdraw(to, from, amount)
+	receipt, err := acc.execWithdraw(to, from, amount)
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +102,7 @@ func (acc *AccountDB) TransferWithdraw(from, to string, amount int64) (*types.Re
 }
 
 //四个操作中 Deposit 自动完成，不需要模块外的函数来调用
-func (acc *AccountDB) ExecFrozen(addr, execaddr string, amount int64) (*types.Receipt, error) {
+func (acc *DB) ExecFrozen(addr, execaddr string, amount int64) (*types.Receipt, error) {
 	if addr == execaddr {
 		return nil, types.ErrSendSameToRecv
 	}
@@ -115,16 +117,20 @@ func (acc *AccountDB) ExecFrozen(addr, execaddr string, amount int64) (*types.Re
 	copyacc := *acc1
 	acc1.Balance -= amount
 	acc1.Frozen += amount
-	receiptBalance := &types.ReceiptExecAccountTransfer{execaddr, &copyacc, acc1}
+	receiptBalance := &types.ReceiptExecAccountTransfer{
+		ExecAddr: execaddr,
+		Prev:     &copyacc,
+		Current:  acc1,
+	}
 	acc.SaveExecAccount(execaddr, acc1)
 	ty := int32(types.TyLogExecFrozen)
-	if acc.IsTokenAccount() {
+	if acc.execer == "token" {
 		ty = int32(types.TyLogTokenExecFrozen)
 	}
 	return acc.execReceipt(ty, acc1, receiptBalance), nil
 }
 
-func (acc *AccountDB) ExecActive(addr, execaddr string, amount int64) (*types.Receipt, error) {
+func (acc *DB) ExecActive(addr, execaddr string, amount int64) (*types.Receipt, error) {
 	if addr == execaddr {
 		return nil, types.ErrSendSameToRecv
 	}
@@ -138,16 +144,20 @@ func (acc *AccountDB) ExecActive(addr, execaddr string, amount int64) (*types.Re
 	copyacc := *acc1
 	acc1.Balance += amount
 	acc1.Frozen -= amount
-	receiptBalance := &types.ReceiptExecAccountTransfer{execaddr, &copyacc, acc1}
+	receiptBalance := &types.ReceiptExecAccountTransfer{
+		ExecAddr: execaddr,
+		Prev:     &copyacc,
+		Current:  acc1,
+	}
 	acc.SaveExecAccount(execaddr, acc1)
 	ty := int32(types.TyLogExecActive)
-	if acc.IsTokenAccount() {
+	if acc.execer == "token" {
 		ty = int32(types.TyLogTokenExecActive)
 	}
 	return acc.execReceipt(ty, acc1, receiptBalance), nil
 }
 
-func (acc *AccountDB) ExecTransfer(from, to, execaddr string, amount int64) (*types.Receipt, error) {
+func (acc *DB) ExecTransfer(from, to, execaddr string, amount int64) (*types.Receipt, error) {
 	if from == to {
 		return nil, types.ErrSendSameToRecv
 	}
@@ -166,8 +176,16 @@ func (acc *AccountDB) ExecTransfer(from, to, execaddr string, amount int64) (*ty
 	accFrom.Balance -= amount
 	accTo.Balance += amount
 
-	receiptBalanceFrom := &types.ReceiptExecAccountTransfer{execaddr, &copyaccFrom, accFrom}
-	receiptBalanceTo := &types.ReceiptExecAccountTransfer{execaddr, &copyaccTo, accTo}
+	receiptBalanceFrom := &types.ReceiptExecAccountTransfer{
+		ExecAddr: execaddr,
+		Prev:     &copyaccFrom,
+		Current:  accFrom,
+	}
+	receiptBalanceTo := &types.ReceiptExecAccountTransfer{
+		ExecAddr: execaddr,
+		Prev:     &copyaccTo,
+		Current:  accTo,
+	}
 
 	acc.SaveExecAccount(execaddr, accFrom)
 	acc.SaveExecAccount(execaddr, accTo)
@@ -175,7 +193,7 @@ func (acc *AccountDB) ExecTransfer(from, to, execaddr string, amount int64) (*ty
 }
 
 //从自己冻结的钱里面扣除，转移到别人的活动钱包里面去
-func (acc *AccountDB) ExecTransferFrozen(from, to, execaddr string, amount int64) (*types.Receipt, error) {
+func (acc *DB) ExecTransferFrozen(from, to, execaddr string, amount int64) (*types.Receipt, error) {
 	if from == to {
 		return nil, types.ErrSendSameToRecv
 	}
@@ -194,19 +212,27 @@ func (acc *AccountDB) ExecTransferFrozen(from, to, execaddr string, amount int64
 	accFrom.Frozen -= amount
 	accTo.Balance += amount
 
-	receiptBalanceFrom := &types.ReceiptExecAccountTransfer{execaddr, &copyaccFrom, accFrom}
-	receiptBalanceTo := &types.ReceiptExecAccountTransfer{execaddr, &copyaccTo, accTo}
+	receiptBalanceFrom := &types.ReceiptExecAccountTransfer{
+		ExecAddr: execaddr,
+		Prev:     &copyaccFrom,
+		Current:  accFrom,
+	}
+	receiptBalanceTo := &types.ReceiptExecAccountTransfer{
+		ExecAddr: execaddr,
+		Prev:     &copyaccTo,
+		Current:  accTo,
+	}
 
 	acc.SaveExecAccount(execaddr, accFrom)
 	acc.SaveExecAccount(execaddr, accTo)
 	return acc.execReceipt2(accFrom, accTo, receiptBalanceFrom, receiptBalanceTo), nil
 }
 
-func (acc *AccountDB) ExecAddress(name string) *Address {
+func (acc *DB) ExecAddress(name string) string {
 	return ExecAddress(name)
 }
 
-func (acc *AccountDB) ExecDepositFrozen(addr, execaddr string, amount int64) (*types.Receipt, error) {
+func (acc *DB) ExecDepositFrozen(addr, execaddr string, amount int64) (*types.Receipt, error) {
 	if addr == execaddr {
 		return nil, types.ErrSendSameToRecv
 	}
@@ -214,7 +240,7 @@ func (acc *AccountDB) ExecDepositFrozen(addr, execaddr string, amount int64) (*t
 	list := types.AllowDepositExec
 	allow := false
 	for _, exec := range list {
-		if acc.ExecAddress(exec).String() == execaddr {
+		if acc.ExecAddress(string(exec)) == execaddr {
 			allow = true
 			break
 		}
@@ -233,7 +259,7 @@ func (acc *AccountDB) ExecDepositFrozen(addr, execaddr string, amount int64) (*t
 	return acc.mergeReceipt(receipt1, receipt2), nil
 }
 
-func (acc *AccountDB) execDepositFrozen(addr, execaddr string, amount int64) (*types.Receipt, error) {
+func (acc *DB) execDepositFrozen(addr, execaddr string, amount int64) (*types.Receipt, error) {
 	if addr == execaddr {
 		return nil, types.ErrSendSameToRecv
 	}
@@ -243,16 +269,20 @@ func (acc *AccountDB) execDepositFrozen(addr, execaddr string, amount int64) (*t
 	acc1 := acc.LoadExecAccount(addr, execaddr)
 	copyacc := *acc1
 	acc1.Frozen += amount
-	receiptBalance := &types.ReceiptExecAccountTransfer{execaddr, &copyacc, acc1}
+	receiptBalance := &types.ReceiptExecAccountTransfer{
+		ExecAddr: execaddr,
+		Prev:     &copyacc,
+		Current:  acc1,
+	}
 	acc.SaveExecAccount(execaddr, acc1)
 	ty := int32(types.TyLogExecDeposit)
-	if acc.IsTokenAccount() {
+	if acc.execer == "token" {
 		ty = int32(types.TyLogTokenExecDeposit)
 	}
 	return acc.execReceipt(ty, acc1, receiptBalance), nil
 }
 
-func (acc *AccountDB) ExecDeposit(addr, execaddr string, amount int64) (*types.Receipt, error) {
+func (acc *DB) execDeposit(addr, execaddr string, amount int64) (*types.Receipt, error) {
 	if addr == execaddr {
 		return nil, types.ErrSendSameToRecv
 	}
@@ -262,17 +292,21 @@ func (acc *AccountDB) ExecDeposit(addr, execaddr string, amount int64) (*types.R
 	acc1 := acc.LoadExecAccount(addr, execaddr)
 	copyacc := *acc1
 	acc1.Balance += amount
-	receiptBalance := &types.ReceiptExecAccountTransfer{execaddr, &copyacc, acc1}
+	receiptBalance := &types.ReceiptExecAccountTransfer{
+		ExecAddr: execaddr,
+		Prev:     &copyacc,
+		Current:  acc1,
+	}
 	//alog.Debug("execDeposit", "addr", addr, "execaddr", execaddr, "account", acc)
 	acc.SaveExecAccount(execaddr, acc1)
 	ty := int32(types.TyLogExecDeposit)
-	if acc.IsTokenAccount() {
+	if acc.execer == "token" {
 		ty = int32(types.TyLogTokenExecDeposit)
 	}
 	return acc.execReceipt(ty, acc1, receiptBalance), nil
 }
 
-func (acc *AccountDB) ExecWithdraw(execaddr, addr string, amount int64) (*types.Receipt, error) {
+func (acc *DB) execWithdraw(execaddr, addr string, amount int64) (*types.Receipt, error) {
 	if addr == execaddr {
 		return nil, types.ErrSendSameToRecv
 	}
@@ -285,34 +319,55 @@ func (acc *AccountDB) ExecWithdraw(execaddr, addr string, amount int64) (*types.
 	}
 	copyacc := *acc1
 	acc1.Balance -= amount
-	receiptBalance := &types.ReceiptExecAccountTransfer{execaddr, &copyacc, acc1}
+	receiptBalance := &types.ReceiptExecAccountTransfer{
+		ExecAddr: execaddr,
+		Prev:     &copyacc,
+		Current:  acc1,
+	}
 	acc.SaveExecAccount(execaddr, acc1)
 	ty := int32(types.TyLogExecWithdraw)
-	if acc.IsTokenAccount() {
+	if acc.execer == "token" {
 		ty = int32(types.TyLogTokenExecWithdraw)
 	}
 	return acc.execReceipt(ty, acc1, receiptBalance), nil
 }
 
-func (acc *AccountDB) execReceipt(ty int32, acc1 *types.Account, r *types.ReceiptExecAccountTransfer) *types.Receipt {
-	log1 := &types.ReceiptLog{ty, types.Encode(r)}
+func (acc *DB) execReceipt(ty int32, acc1 *types.Account, r *types.ReceiptExecAccountTransfer) *types.Receipt {
+	log1 := &types.ReceiptLog{
+		Ty:  ty,
+		Log: types.Encode(r),
+	}
 	kv := acc.GetExecKVSet(r.ExecAddr, acc1)
-	return &types.Receipt{types.ExecOk, kv, []*types.ReceiptLog{log1}}
+	return &types.Receipt{
+		Ty:   types.ExecOk,
+		KV:   kv,
+		Logs: []*types.ReceiptLog{log1},
+	}
 }
 
-func (acc *AccountDB) execReceipt2(acc1, acc2 *types.Account, r1, r2 *types.ReceiptExecAccountTransfer) *types.Receipt {
+func (acc *DB) execReceipt2(acc1, acc2 *types.Account, r1, r2 *types.ReceiptExecAccountTransfer) *types.Receipt {
 	ty := int32(types.TyLogExecTransfer)
-	if acc.IsTokenAccount() {
+	if acc.execer == "token" {
 		ty = int32(types.TyLogTokenExecTransfer)
 	}
-	log1 := &types.ReceiptLog{ty, types.Encode(r1)}
-	log2 := &types.ReceiptLog{ty, types.Encode(r2)}
+	log1 := &types.ReceiptLog{
+		Ty:  ty,
+		Log: types.Encode(r1),
+	}
+	log2 := &types.ReceiptLog{
+		Ty:  ty,
+		Log: types.Encode(r2),
+	}
 	kv := acc.GetExecKVSet(r1.ExecAddr, acc1)
 	kv = append(kv, acc.GetExecKVSet(r2.ExecAddr, acc2)...)
-	return &types.Receipt{types.ExecOk, kv, []*types.ReceiptLog{log1, log2}}
+	return &types.Receipt{
+		Ty:   types.ExecOk,
+		KV:   kv,
+		Logs: []*types.ReceiptLog{log1, log2},
+	}
 }
 
-func (acc *AccountDB) mergeReceipt(receipt, receipt2 *types.Receipt) *types.Receipt {
+func (acc *DB) mergeReceipt(receipt, receipt2 *types.Receipt) *types.Receipt {
 	receipt.Logs = append(receipt.Logs, receipt2.Logs...)
 	receipt.KV = append(receipt.KV, receipt2.KV...)
 	return receipt

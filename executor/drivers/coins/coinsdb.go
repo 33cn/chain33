@@ -23,11 +23,6 @@ func calcAddrKey(addr string) []byte {
 	return []byte(fmt.Sprintf("Addr:%s", addr))
 }
 
-type AddrRecv struct {
-	addr   string
-	amount int64
-}
-
 func geAddrReciverKV(addr string, reciverAmount int64) *types.KeyValue {
 	reciver := &types.Int64{reciverAmount}
 	amountbytes := types.Encode(reciver)

@@ -1,152 +1,86 @@
 package executor
 
 import (
+	"gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
 type StateDB struct {
-	cache map[string][]byte
-	db    *DataBase
-}
-
-func NewStateDB(client queue.Client, stateHash []byte) *StateDB {
-	return &StateDB{make(map[string][]byte), NewDataBase(client, stateHash)}
-}
-
-func (e *StateDB) Get(key []byte) (value []byte, err error) {
-	if value, ok := e.cache[string(key)]; ok {
-		//elog.Error("getkey", "key", string(key), "value", string(value))
-		return value, nil
-	}
-	value, err = e.db.Get(key)
-	if err != nil {
-		//elog.Error("getkey", "key", string(key), "err", err)
-		return nil, err
-	}
-	//elog.Error("getkey", "key", string(key), "value", string(value))
-	e.cache[string(key)] = value
-	return value, nil
-}
-
-func (e *StateDB) BatchGet(keys [][]byte) (values [][]byte, err error) {
-	for _, key := range keys {
-		value, ok := e.cache[string(key)]
-		if !ok {
-			break
-		}
-		values = append(values, value)
-	}
-	if len(values) == len(keys) {
-		return values, nil
-	}
-
-	values, err = e.db.BatchGet(keys)
-	if err != nil {
-		return nil, err
-	}
-
-	for i, value := range values {
-		e.cache[string(keys[i])] = value
-	}
-
-	return values, nil
-}
-
-func (e *StateDB) Set(key []byte, value []byte) error {
-	//elog.Error("setkey", "key", string(key), "value", string(value))
-	e.cache[string(key)] = value
-	return nil
-}
-
-func (e *StateDB) List(prefix, key []byte, count, direction int32) (values [][]byte, err error) {
-	return nil, types.ErrNotSupport
-}
-
-type LocalDB struct {
-	cache map[string][]byte
-	db    *DataBaseLocal
-}
-
-func NewLocalDB(client queue.Client) *LocalDB {
-	return &LocalDB{make(map[string][]byte), NewDataBaseLocal(client)}
-}
-
-func (e *LocalDB) Get(key []byte) (value []byte, err error) {
-	if value, ok := e.cache[string(key)]; ok {
-		//elog.Error("getkey", "key", string(key), "value", string(value))
-		return value, nil
-	}
-	value, err = e.db.Get(key)
-	if err != nil {
-		//elog.Error("getkey", "key", string(key), "err", err)
-		return nil, err
-	}
-	//elog.Error("getkey", "key", string(key), "value", string(value))
-	e.cache[string(key)] = value
-	return value, nil
-}
-
-func (e *LocalDB) BatchGet(keys [][]byte) (values [][]byte, err error) {
-	for i, key := range keys {
-		value, ok := e.cache[string(key)]
-		if !ok {
-			break
-		}
-		values[i] = value
-	}
-	if len(values) == len(keys) {
-		return values, nil
-	}
-
-	values, err = e.db.BatchGet(keys)
-	if err != nil {
-		return nil, err
-	}
-
-	for i, value := range values {
-		e.cache[string(keys[i])] = value
-	}
-
-	return values, nil
-}
-
-func (e *LocalDB) Set(key []byte, value []byte) error {
-	//elog.Error("setkey", "key", string(key), "value", string(value))
-	e.cache[string(key)] = value
-	return nil
-}
-
-func (e *LocalDB) List(prefix, key []byte, count, direction int32) (values [][]byte, err error) {
-	return e.db.List(prefix, key, count, direction)
-}
-
-type DataBase struct {
+	cache     map[string][]byte
+	txcache   map[string][]byte
+	intx      bool
 	client    queue.Client
 	stateHash []byte
 }
 
-func NewDataBase(client queue.Client, stateHash []byte) *DataBase {
-	return &DataBase{client, stateHash}
+func NewStateDB(client queue.Client, stateHash []byte) db.KV {
+	return &StateDB{
+		cache:     make(map[string][]byte),
+		txcache:   make(map[string][]byte),
+		intx:      false,
+		client:    client,
+		stateHash: stateHash,
+	}
 }
 
-func (db *DataBase) Get(key []byte) (value []byte, err error) {
-	query := &types.StoreGet{db.stateHash, [][]byte{key}}
-	msg := db.client.NewMessage("store", types.EventStoreGet, query)
-	db.client.Send(msg, true)
-	resp, err := db.client.Wait(msg)
+func (s *StateDB) Begin() {
+	s.intx = true
+}
+
+func (s *StateDB) Rollback() {
+	s.intx = false
+	s.txcache = make(map[string][]byte)
+}
+
+func (s *StateDB) Commit() {
+	s.intx = false
+	for k, v := range s.txcache {
+		s.cache[k] = v
+	}
+}
+
+func (s *StateDB) Get(key []byte) ([]byte, error) {
+	skey := string(key)
+	if s.intx {
+		if value, ok := s.txcache[skey]; ok {
+			return value, nil
+		}
+	}
+	if value, ok := s.cache[skey]; ok {
+		return value, nil
+	}
+	query := &types.StoreGet{s.stateHash, [][]byte{key}}
+	msg := s.client.NewMessage("store", types.EventStoreGet, query)
+	s.client.Send(msg, true)
+	resp, err := s.client.Wait(msg)
 	if err != nil {
 		panic(err) //no happen for ever
 	}
-	value = resp.GetData().(*types.StoreReplyValue).Values[0]
+	if nil == resp.GetData().(*types.StoreReplyValue).Values {
+		return nil, types.ErrNotFound
+	}
+	value := resp.GetData().(*types.StoreReplyValue).Values[0]
 	if value == nil {
 		//panic(string(key))
 		return nil, types.ErrNotFound
 	}
+	//get 的值可以写入cache，因为没有对系统的值做修改
+	s.cache[skey] = value
 	return value, nil
 }
 
-func (db *DataBase) BatchGet(keys [][]byte) (value [][]byte, err error) {
+func (s *StateDB) Set(key []byte, value []byte) error {
+	skey := string(key)
+	if s.intx {
+		s.txcache[skey] = value
+	} else {
+		s.cache[skey] = value
+	}
+	return nil
+}
+
+func (db *StateDB) BatchGet(keys [][]byte) (value [][]byte, err error) {
 	query := &types.StoreGet{db.stateHash, keys}
 	msg := db.client.NewMessage("store", types.EventStoreGet, query)
 	db.client.Send(msg, true)
@@ -161,31 +95,46 @@ func (db *DataBase) BatchGet(keys [][]byte) (value [][]byte, err error) {
 	return value, nil
 }
 
-type DataBaseLocal struct {
+type LocalDB struct {
+	db.TransactionDB
+	cache  map[string][]byte
 	client queue.Client
 }
 
-func NewDataBaseLocal(client queue.Client) *DataBaseLocal {
-	return &DataBaseLocal{client}
+func NewLocalDB(client queue.Client) db.KVDB {
+	return &LocalDB{cache: make(map[string][]byte), client: client}
 }
 
-func (db *DataBaseLocal) Get(key []byte) (value []byte, err error) {
+func (l *LocalDB) Get(key []byte) ([]byte, error) {
+	if value, ok := l.cache[string(key)]; ok {
+		return value, nil
+	}
 	query := &types.LocalDBGet{[][]byte{key}}
-	msg := db.client.NewMessage("blockchain", types.EventLocalGet, query)
-	db.client.Send(msg, true)
-	resp, err := db.client.Wait(msg)
+	msg := l.client.NewMessage("blockchain", types.EventLocalGet, query)
+	l.client.Send(msg, true)
+	resp, err := l.client.Wait(msg)
+
 	if err != nil {
 		panic(err) //no happen for ever
 	}
-	value = resp.GetData().(*types.LocalReplyValue).Values[0]
+	if nil == resp.GetData().(*types.LocalReplyValue).Values {
+		return nil, types.ErrNotFound
+	}
+	value := resp.GetData().(*types.LocalReplyValue).Values[0]
 	if value == nil {
 		//panic(string(key))
 		return nil, types.ErrNotFound
 	}
+	l.cache[string(key)] = value
 	return value, nil
 }
 
-func (db *DataBaseLocal) BatchGet(keys [][]byte) (values [][]byte, err error) {
+func (l *LocalDB) Set(key []byte, value []byte) error {
+	l.cache[string(key)] = value
+	return nil
+}
+
+func (db *LocalDB) BatchGet(keys [][]byte) (values [][]byte, err error) {
 	query := &types.LocalDBGet{keys}
 	msg := db.client.NewMessage("blockchain", types.EventLocalGet, query)
 	db.client.Send(msg, true)
@@ -202,15 +151,15 @@ func (db *DataBaseLocal) BatchGet(keys [][]byte) (values [][]byte, err error) {
 }
 
 //从数据库中查询数据列表，set 中的cache 更新不会影响这个list
-func (db *DataBaseLocal) List(prefix, key []byte, count, direction int32) (values [][]byte, err error) {
+func (l *LocalDB) List(prefix, key []byte, count, direction int32) ([][]byte, error) {
 	query := &types.LocalDBList{Prefix: prefix, Key: key, Count: count, Direction: direction}
-	msg := db.client.NewMessage("blockchain", types.EventLocalList, query)
-	db.client.Send(msg, true)
-	resp, err := db.client.Wait(msg)
+	msg := l.client.NewMessage("blockchain", types.EventLocalList, query)
+	l.client.Send(msg, true)
+	resp, err := l.client.Wait(msg)
 	if err != nil {
 		panic(err) //no happen for ever
 	}
-	values = resp.GetData().(*types.LocalReplyValue).Values
+	values := resp.GetData().(*types.LocalReplyValue).Values
 	if values == nil {
 		//panic(string(key))
 		return nil, types.ErrNotFound

@@ -6,21 +6,18 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-type ManageAction struct {
-	coinsAccount *account.AccountDB
-	db           dbm.KVDB
-	txhash       []byte
-	fromaddr     string
-	blocktime    int64
-	height       int64
+type Action struct {
+	db       dbm.KV
+	fromaddr string
+	height   int64
 }
 
-func NewManageAction(m *Manage, tx *types.Transaction) *ManageAction {
-	return &ManageAction{db: m.GetDB(), fromaddr: account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()}
+func NewAction(m *Manage, tx *types.Transaction) *Action {
+	return &Action{db: m.GetStateDB(), fromaddr: account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String(), height: m.GetHeight()}
 
 }
 
-func (m *ManageAction) modifyConfig(modify *types.ModifyConfig) (*types.Receipt, error) {
+func (m *Action) modifyConfig(modify *types.ModifyConfig) (*types.Receipt, error) {
 
 	//if modify.Key == "Manager-managers" && !wallet.IsSuperManager(modify.GetAddr()) {
 	//	return nil, types.ErrNoPrivilege
@@ -40,11 +37,16 @@ func (m *ManageAction) modifyConfig(modify *types.ModifyConfig) (*types.Receipt,
 	}
 
 	var item types.ConfigItem
-	value, err := m.db.Get([]byte(types.ConfigKey(modify.Key)))
+	value, err := m.db.Get([]byte(types.ManageKey(modify.Key)))
 	if err != nil {
 		value = nil
 	}
-
+	if value == nil {
+		value, err = m.db.Get([]byte(types.ConfigKey(modify.Key)))
+		if err != nil {
+			value = nil
+		}
+	}
 	if value != nil {
 		err = types.Decode(value, &item)
 		if err != nil {
@@ -96,7 +98,7 @@ func (m *ManageAction) modifyConfig(modify *types.ModifyConfig) (*types.Receipt,
 
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
-	key := types.ConfigKey(modify.Key)
+	key := types.ManaeKeyWithHeigh(modify.Key, m.height)
 	valueSave := types.Encode(&item)
 	m.db.Set([]byte(key), valueSave)
 	kv = append(kv, &types.KeyValue{[]byte(key), valueSave})

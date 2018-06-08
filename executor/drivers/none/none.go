@@ -8,16 +8,15 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 )
 
-func init() {
-	n := newNone()
-	drivers.Register(n.GetName(), n, 0)
+func Init() {
+	drivers.Register(newNone().GetName(), newNone, 0)
 }
 
 type None struct {
 	drivers.DriverBase
 }
 
-func newNone() *None {
+func newNone() drivers.Driver {
 	n := &None{}
 	n.SetChild(n)
 	return n

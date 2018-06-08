@@ -1,0 +1,2 @@
+wget --header="contentType: application/json" http://localhost:8866/ --post-data='{"id" : 1 , "method" : "Signatory.SignApprove", "params" : [ { "ownerAddr" : "1JzEPPB4j9Z2cBHeHR62JkkGDdy3HmMgse", "symbol" : "AAAA"} ] }' --server-response
+wget --header="contentType: application/json" http://localhost:8866/ --post-data='{"id" : 1 , "method" : "Signatory.SignTransfer", "params" : [ "1JzEPPB4j9Z2cBHeHR62JkkGDdy3HmMgse" ] }' --server-response

@@ -10,6 +10,7 @@ import (
 
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
+	"gitlab.33.cn/chain33/chain33/client"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -17,38 +18,45 @@ import (
 var blog = log.New("module", "execs.base")
 
 type Driver interface {
-	SetDB(dbm.KVDB)
-	GetCoinsAccount() *account.AccountDB
+	SetStateDB(dbm.KV)
+	GetCoinsAccount() *account.DB
 	SetLocalDB(dbm.KVDB)
-	SetQueryDB(dbm.DB)
-	SetExecDriver(execDriver *ExecDrivers)
-	GetExecDriver() *ExecDrivers
 	GetName() string
 	GetActionName(tx *types.Transaction) string
-	SetEnv(height, blocktime int64)
+	SetEnv(height, blocktime int64, difficulty uint64)
 	CheckTx(tx *types.Transaction, index int) error
 	Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 	ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error)
 	ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error)
 	Query(funcName string, params []byte) (types.Message, error)
 	IsFree() bool
+	SetApi(client.QueueProtocolAPI)
 }
 
 type DriverBase struct {
-	db           dbm.KVDB
+	statedb      dbm.KV
 	localdb      dbm.KVDB
-	querydb      dbm.DB
+	coinsaccount *account.DB
 	height       int64
 	blocktime    int64
 	child        Driver
-	coinsaccount *account.AccountDB
-	execDriver   *ExecDrivers
 	isFree       bool
+	difficulty   uint64
+	api          client.QueueProtocolAPI
 }
 
-func (d *DriverBase) SetEnv(height, blocktime int64) {
+func (d *DriverBase) SetApi(api client.QueueProtocolAPI) {
+	d.api = api
+}
+
+func (d *DriverBase) GetApi() client.QueueProtocolAPI {
+	return d.api
+}
+
+func (d *DriverBase) SetEnv(height, blocktime int64, difficulty uint64) {
 	d.height = height
 	d.blocktime = blocktime
+	d.difficulty = difficulty
 }
 
 func (d *DriverBase) SetIsFree(isFree bool) {
@@ -63,14 +71,6 @@ func (d *DriverBase) SetChild(e Driver) {
 	d.child = e
 }
 
-func (d *DriverBase) SetExecDriver(execDriver *ExecDrivers) {
-	d.execDriver = execDriver
-}
-
-func (d *DriverBase) GetExecDriver() *ExecDrivers {
-	return d.execDriver
-}
-
 func (d *DriverBase) GetAddr() string {
 	return ExecAddress(d.child.GetName())
 }
@@ -81,7 +81,7 @@ func (d *DriverBase) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData
 	hash, result := d.GetTx(tx, receipt, index)
 	set.KV = append(set.KV, &types.KeyValue{hash, types.Encode(result)})
 	//保存: from/to
-	txindex := d.GetTxIndex(tx, receipt, index)
+	txindex := d.getTxIndex(tx, receipt, index)
 	txinfobyte := types.Encode(txindex.index)
 	if len(txindex.from) != 0 {
 		fromkey1 := CalcTxAddrDirHashKey(txindex.from, TxIndexFrom, txindex.heightstr)
@@ -126,7 +126,7 @@ type txIndex struct {
 }
 
 //交易中 from/to 的索引
-func (d *DriverBase) GetTxIndex(tx *types.Transaction, receipt *types.ReceiptData, index int) *txIndex {
+func (d *DriverBase) getTxIndex(tx *types.Transaction, receipt *types.ReceiptData, index int) *txIndex {
 	var txIndexInfo txIndex
 	var txinf types.ReplyTxInfo
 	txinf.Hash = tx.Hash()
@@ -139,7 +139,6 @@ func (d *DriverBase) GetTxIndex(tx *types.Transaction, receipt *types.ReceiptDat
 
 	txIndexInfo.from = account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
 	txIndexInfo.to = tx.To
-
 	return &txIndexInfo
 }
 
@@ -148,7 +147,7 @@ func (d *DriverBase) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptD
 	//del：tx
 	hash, _ := d.GetTx(tx, receipt, index)
 	//del: addr index
-	txindex := d.GetTxIndex(tx, receipt, index)
+	txindex := d.getTxIndex(tx, receipt, index)
 	if len(txindex.from) != 0 {
 		fromkey1 := CalcTxAddrDirHashKey(txindex.from, TxIndexFrom, txindex.heightstr)
 		fromkey2 := CalcTxAddrHashKey(txindex.from, txindex.heightstr)
@@ -166,14 +165,13 @@ func (d *DriverBase) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptD
 }
 
 func (d *DriverBase) checkAddress(addr string) error {
-	if _, ok := d.execDriver.ExecAddr2Name[addr]; ok {
+	if IsDriverAddress(addr, d.height) {
 		return nil
 	}
 	return account.CheckAddress(addr)
 }
 
 func (d *DriverBase) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
-	//检查ToAddr
 	if err := d.checkAddress(tx.To); err != nil {
 		return nil, err
 	}
@@ -193,24 +191,24 @@ func (d *DriverBase) Query(funcname string, params []byte) (types.Message, error
 	return nil, types.ErrActionNotSupport
 }
 
-func (d *DriverBase) SetDB(db dbm.KVDB) {
+func (d *DriverBase) SetStateDB(db dbm.KV) {
 	if d.coinsaccount == nil {
 		d.coinsaccount = account.NewCoinsAccount()
 	}
-	d.db = db
+	d.statedb = db
 	d.coinsaccount.SetDB(db)
 }
 
-func (d *DriverBase) GetCoinsAccount() *account.AccountDB {
+func (d *DriverBase) GetCoinsAccount() *account.DB {
 	if d.coinsaccount == nil {
 		d.coinsaccount = account.NewCoinsAccount()
-		d.coinsaccount.SetDB(d.db)
+		d.coinsaccount.SetDB(d.statedb)
 	}
 	return d.coinsaccount
 }
 
-func (d *DriverBase) GetDB() dbm.KVDB {
-	return d.db
+func (d *DriverBase) GetStateDB() dbm.KV {
+	return d.statedb
 }
 
 func (d *DriverBase) SetLocalDB(db dbm.KVDB) {
@@ -221,20 +219,16 @@ func (d *DriverBase) GetLocalDB() dbm.KVDB {
 	return d.localdb
 }
 
-func (d *DriverBase) SetQueryDB(db dbm.DB) {
-	d.querydb = db
-}
-
-func (d *DriverBase) GetQueryDB() dbm.DB {
-	return d.querydb
-}
-
 func (d *DriverBase) GetHeight() int64 {
 	return d.height
 }
 
 func (d *DriverBase) GetBlockTime() int64 {
 	return d.blocktime
+}
+
+func (d *DriverBase) GetDifficulty() uint64 {
+	return d.difficulty
 }
 
 func (d *DriverBase) GetName() string {
@@ -249,42 +243,47 @@ func (d *DriverBase) CheckSignatureData(tx *types.Transaction, index int) bool {
 	return true
 }
 
-// 通过addr前缀查找本地址参与的所有交易
+//通过addr前缀查找本地址参与的所有交易
 //查询交易默认放到：coins 中查询
 func (d *DriverBase) GetTxsByAddr(addr *types.ReqAddr) (types.Message, error) {
-	db := d.GetQueryDB()
+	db := d.GetLocalDB()
 	var prefix []byte
 	var key []byte
 	var txinfos [][]byte
+	var err error
 	//取最新的交易hash列表
 	if addr.Flag == 0 { //所有的交易hash列表
 		prefix = CalcTxAddrHashKey(addr.GetAddr(), "")
 	} else if addr.Flag > 0 { //from的交易hash列表
 		prefix = CalcTxAddrDirHashKey(addr.GetAddr(), addr.Flag, "")
 	} else {
-		return nil, errors.New("Flag unknow!")
+		return nil, errors.New("flag unknown")
 	}
 	blog.Error("GetTxsByAddr", "height", addr.GetHeight())
 	if addr.GetHeight() == -1 {
-		list := dbm.NewListHelper(db)
-		txinfos = list.IteratorScanFromLast(prefix, addr.Count)
+		txinfos, err = db.List(prefix, nil, addr.Count, 0)
+		if err != nil {
+			return nil, err
+		}
 		if len(txinfos) == 0 {
-			return nil, errors.New("does not exist tx!")
+			return nil, errors.New("tx does not exist")
 		}
 	} else { //翻页查找指定的txhash列表
-		blockheight := addr.GetHeight()*types.MaxTxsPerBlock + int64(addr.GetIndex())
+		blockheight := addr.GetHeight()*types.MaxTxsPerBlock + addr.GetIndex()
 		heightstr := fmt.Sprintf("%018d", blockheight)
 		if addr.Flag == 0 {
 			key = CalcTxAddrHashKey(addr.GetAddr(), heightstr)
 		} else if addr.Flag > 0 { //from的交易hash列表
 			key = CalcTxAddrDirHashKey(addr.GetAddr(), addr.Flag, heightstr)
 		} else {
-			return nil, errors.New("Flag unknow!")
+			return nil, errors.New("flag unknown")
 		}
-		list := dbm.NewListHelper(db)
-		txinfos = list.IteratorScan(prefix, key, addr.Count, addr.Direction)
+		txinfos, err = db.List(prefix, key, addr.Count, addr.Direction)
+		if err != nil {
+			return nil, err
+		}
 		if len(txinfos) == 0 {
-			return nil, errors.New("does not exist tx!")
+			return nil, errors.New("tx does not exist")
 		}
 	}
 	var replyTxInfos types.ReplyTxInfos
