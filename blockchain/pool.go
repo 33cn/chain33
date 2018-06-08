@@ -41,7 +41,7 @@ func (pool *BlockPool) AddBlock(blockdetail *types.BlockDetail, broadcast bool) 
 	block := blockdetail.Block
 	blockinfo := pool.recvBlocks[block.Height]
 	if blockinfo != nil {
-		poollog.Info("AddBlock existed", "Height", block.Height)
+		poollog.Debug("AddBlock existed", "Height", block.Height)
 		return
 	}
 	pool.broadcast[block.Height] = broadcast

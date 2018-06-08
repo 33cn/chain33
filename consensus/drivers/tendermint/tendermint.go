@@ -331,12 +331,12 @@ func (client *TendermintClient) CreateBlock() {
 				newblock.BlockTime = lastBlock.BlockTime + 1
 			}
 		*/
-		tendermintlog.Info("get mempool txs not empty", "txslen", len(txs), "tx[0]", txs[0])
+		tendermintlog.Debug("get mempool txs not empty", "txslen", len(txs), "tx[0]", txs[0])
 		client.csState.NewTxsAvailable(lastBlock.Height)
-		tendermintlog.Info("waiting NewTxsFinished")
+		tendermintlog.Debug("waiting NewTxsFinished")
 		select {
 		case finish := <-client.csState.NewTxsFinished:
-			tendermintlog.Info("TendermintClientSetQueue", "msg", "new txs finish dealing", "result", finish)
+			tendermintlog.Debug("TendermintClientSetQueue", "msg", "new txs finish dealing", "result", finish)
 			continue
 		}
 	}
