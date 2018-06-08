@@ -110,7 +110,7 @@ func (cache *txCache) SetSize(newSize int) {
 
 // txCache.GetAccTxs用来获取对应账户地址（列表）中的全部交易详细信息
 func (cache *txCache) GetAccTxs(addrs *types.ReqAddrs) *types.TransactionDetails {
-	var res *types.TransactionDetails
+	res := &types.TransactionDetails{}
 	for _, addr := range addrs.Addrs {
 		if value, ok := cache.accMap[addr]; ok {
 			for _, v := range value {
@@ -137,6 +137,9 @@ func (cache *txCache) AccountTxNumDecrease(addr string, hash []byte) {
 		for i, t := range value {
 			if string(t.Hash()) == string(hash) {
 				cache.accMap[addr] = append(cache.accMap[addr][:i], cache.accMap[addr][i+1:]...)
+				if len(cache.accMap[addr]) == 0 {
+					delete(cache.accMap, addr)
+				}
 				return
 			}
 		}

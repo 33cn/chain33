@@ -8,12 +8,12 @@ import (
 	"net/http"
 )
 
-type JsonClient struct {
+type JSONClient struct {
 	url string
 }
 
-func NewJsonClient(url string) (*JsonClient, error) {
-	return &JsonClient{url}, nil
+func NewJSONClient(url string) (*JSONClient, error) {
+	return &JSONClient{url}, nil
 }
 
 type clientRequest struct {
@@ -28,7 +28,7 @@ type clientResponse struct {
 	Error  interface{}      `json:"error"`
 }
 
-func (client *JsonClient) Call(method string, params, resp interface{}) error {
+func (client *JSONClient) Call(method string, params, resp interface{}) error {
 	req := &clientRequest{}
 	req.Method = method
 	req.Params[0] = params

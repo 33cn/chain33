@@ -27,7 +27,7 @@ var (
 	secret       []byte
 	wrongsecret  []byte
 	anothersec   []byte //used in send case
-	addrexec     *account.Address
+	addrexec     string
 	locktime     = minLockTime + 10 // bigger than minLockTime defined in hashlock.go
 	addr         [accountMax]string
 	privkey      [accountMax]crypto.PrivKey
@@ -80,7 +80,7 @@ func init() {
 	addrexec = account.ExecAddress("hashlock")
 }
 
-func TestInitAccount(t *testing.T) {
+func estInitAccount(t *testing.T) {
 	fmt.Println("TestInitAccount start")
 	defer fmt.Println("TestInitAccount end")
 
@@ -126,13 +126,13 @@ func TestInitAccount(t *testing.T) {
 	currBalanceB = defaultAmount
 }
 
-func TestHashlock(t *testing.T) {
+func estHashlock(t *testing.T) {
 
 	fmt.Println("TestHashlock start")
 	defer fmt.Println("TestHashlock end")
 
 	//1. step1 发送余额给合约
-	err := sendtoaddress(c, privkey[accountindexA], addrexec.String(), lockAmount)
+	err := sendtoaddress(c, privkey[accountindexA], addrexec, lockAmount)
 	if err != nil {
 		panic(err)
 	}
@@ -151,7 +151,7 @@ func TestHashlock(t *testing.T) {
 		return
 	}
 	fmt.Println("TestHashlockQuery start")
-	defer fmt.Println("TestHashlockQuery end\n")
+	defer fmt.Println("TestHashlockQuery end")
 	var req types.Query
 	req.Execer = []byte("hashlock")
 	req.FuncName = "GetHashlocKById"
@@ -179,7 +179,7 @@ func TestHashlock(t *testing.T) {
 	fmt.Println("QueryHashlock =", hashlockquery)
 }
 
-func TestHashunlock(t *testing.T) {
+func estHashunlock(t *testing.T) {
 	fmt.Println("TestHashunlock start")
 	defer fmt.Println("TestHashunlock end")
 	//not sucess as time not enough
@@ -191,7 +191,7 @@ func TestHashunlock(t *testing.T) {
 	}
 	time.Sleep(5 * time.Second)
 	//尝试取钱
-	err = sendtoaddress(c, privkey[accountindexA], addrexec.String(), 0-lockAmount)
+	err = sendtoaddress(c, privkey[accountindexA], addrexec, 0-lockAmount)
 	if err != nil {
 		fmt.Println("err")
 	}
@@ -213,7 +213,7 @@ func TestHashunlock(t *testing.T) {
 		return
 	}
 	time.Sleep(5 * time.Second)
-	err = sendtoaddress(c, privkey[accountindexA], addrexec.String(), 0-lockAmount)
+	err = sendtoaddress(c, privkey[accountindexA], addrexec, 0-lockAmount)
 	if err != nil {
 		fmt.Println("err")
 	}
@@ -235,7 +235,7 @@ func TestHashunlock(t *testing.T) {
 		return
 	}
 	time.Sleep(5 * time.Second)
-	err = sendtoaddress(c, privkey[accountindexA], addrexec.String(), 0-lockAmount)
+	err = sendtoaddress(c, privkey[accountindexA], addrexec, 0-lockAmount)
 	if err != nil {
 		fmt.Println("err")
 	}
@@ -250,7 +250,7 @@ func TestHashunlock(t *testing.T) {
 		return
 	}
 	fmt.Println("TestHashunlockQuery start")
-	defer fmt.Println("TestHashlockQuery end\n")
+	defer fmt.Println("TestHashlockQuery end")
 	var req types.Query
 	req.Execer = []byte("hashlock")
 	req.FuncName = "GetHashlocKById"
@@ -278,12 +278,12 @@ func TestHashunlock(t *testing.T) {
 	fmt.Println("QueryHashlock =", hashlockquery)
 }
 
-func TestHashsend(t *testing.T) {
+func estHashsend(t *testing.T) {
 	fmt.Println("TestHashsend start")
 	defer fmt.Println("TestHashsend end")
 	//lock it again &send failed as secret is not right
 	//send failed as secret is not right
-	err := sendtoaddress(c, privkey[accountindexA], addrexec.String(), lockAmount)
+	err := sendtoaddress(c, privkey[accountindexA], addrexec, lockAmount)
 	if err != nil {
 		panic(err)
 	}
@@ -309,7 +309,7 @@ func TestHashsend(t *testing.T) {
 		return
 	}
 	time.Sleep(5 * time.Second)
-	err = sendtoaddress(c, privkey[accountindexB], addrexec.String(), 0-lockAmount)
+	err = sendtoaddress(c, privkey[accountindexB], addrexec, 0-lockAmount)
 	if err != nil {
 		fmt.Println("err")
 	}
@@ -333,7 +333,7 @@ func TestHashsend(t *testing.T) {
 		return
 	}
 	time.Sleep(5 * time.Second)
-	err = sendtoaddress(c, privkey[accountindexB], addrexec.String(), 0-lockAmount)
+	err = sendtoaddress(c, privkey[accountindexB], addrexec, 0-lockAmount)
 	if err != nil {
 		fmt.Println("err")
 	}
@@ -350,7 +350,7 @@ func TestHashsend(t *testing.T) {
 	}
 	//lock it again & failed as overtime
 	fmt.Println("TestHashsendQuery start")
-	defer fmt.Println("TestHashsendQuery end\n")
+	defer fmt.Println("TestHashsendQuery end")
 	var req types.Query
 	req.Execer = []byte("hashlock")
 	req.FuncName = "GetHashlocKById"

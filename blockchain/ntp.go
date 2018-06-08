@@ -9,11 +9,11 @@ import (
 )
 
 const (
-	ntpPool             = "pool.ntp.org"   // ntpPool is the NTP server to query for the current time
-	ntpChecks           = 3                // Number of measurements to do against the NTP server
-	ntpFailureThreshold = 32               // Continuous timeouts after which to check NTP
-	ntpWarningCooldown  = 10 * time.Minute // Minimum amount of time to pass before repeating NTP warning
-	driftThreshold      = 10 * time.Second // Allowed clock drift before warning user
+	ntpPool   = "pool.ntp.org" // ntpPool is the NTP server to query for the current time
+	ntpChecks = 3              // Number of measurements to do against the NTP server
+	//ntpFailureThreshold = 32               // Continuous timeouts after which to check NTP
+	//ntpWarningCooldown  = 10 * time.Minute // Minimum amount of time to pass before repeating NTP warning
+	driftThreshold = 10 * time.Second // Allowed clock drift before warning user
 
 )
 
@@ -79,10 +79,11 @@ func sntpDrift(measurements int) (time.Duration, error) {
 		if err != nil {
 			return 0, err
 		}
-		defer conn.Close()
+		//defer conn.Close()
 
 		sent := time.Now()
 		if _, err = conn.Write(request); err != nil {
+			conn.Close()
 			return 0, err
 		}
 		// Retrieve the reply and calculate the elapsed time
@@ -90,8 +91,10 @@ func sntpDrift(measurements int) (time.Duration, error) {
 
 		reply := make([]byte, 48)
 		if _, err = conn.Read(reply); err != nil {
+			conn.Close()
 			return 0, err
 		}
+		conn.Close()
 		elapsed := time.Since(sent)
 
 		// Reconstruct the time from the reply data

@@ -31,7 +31,7 @@ const (
 	PrivacyTokenMap = "PrivacyTokenMap"
 )
 
-type WalletStore struct {
+type Store struct {
 	db dbm.DB
 }
 
@@ -132,30 +132,30 @@ func calcKey4UTXOsSpentInTx(key string) []byte {
 	return []byte(fmt.Sprintf("UTXOsSpentInTx:%s", key))
 }
 
-func NewWalletStore(db dbm.DB) *WalletStore {
-	return &WalletStore{
+func NewStore(db dbm.DB) *Store {
+	return &Store{
 		db: db,
 	}
 }
 
-func (ws *WalletStore) NewBatch(sync bool) dbm.Batch {
+func (ws *Store) NewBatch(sync bool) dbm.Batch {
 	storeBatch := ws.db.NewBatch(sync)
 	return storeBatch
 }
 
-func (ws *WalletStore) SetWalletPassword(newpass string) {
+func (ws *Store) SetWalletPassword(newpass string) {
 	ws.db.SetSync(WalletPassKey, []byte(newpass))
 }
 
-func (ws *WalletStore) GetWalletPassword() string {
-	Passwordbytes := ws.db.Get(WalletPassKey)
-	if Passwordbytes == nil {
+func (ws *Store) GetWalletPassword() string {
+	Passwordbytes, err := ws.db.Get(WalletPassKey)
+	if Passwordbytes == nil || err != nil {
 		return ""
 	}
 	return string(Passwordbytes)
 }
 
-func (ws *WalletStore) SetFeeAmount(FeeAmount int64) error {
+func (ws *Store) SetFeeAmount(FeeAmount int64) error {
 	FeeAmountbytes, err := json.Marshal(FeeAmount)
 	if err != nil {
 		walletlog.Error("SetFeeAmount marshal FeeAmount", "err", err)
@@ -166,13 +166,13 @@ func (ws *WalletStore) SetFeeAmount(FeeAmount int64) error {
 	return nil
 }
 
-func (ws *WalletStore) GetFeeAmount() int64 {
+func (ws *Store) GetFeeAmount() int64 {
 	var FeeAmount int64
-	FeeAmountbytes := ws.db.Get(WalletFeeAmount)
-	if FeeAmountbytes == nil {
+	FeeAmountbytes, err := ws.db.Get(WalletFeeAmount)
+	if FeeAmountbytes == nil || err != nil {
 		return minFee
 	}
-	err := json.Unmarshal(FeeAmountbytes, &FeeAmount)
+	err = json.Unmarshal(FeeAmountbytes, &FeeAmount)
 	if err != nil {
 		walletlog.Error("GetFeeAmount unmarshal", "err", err)
 		return minFee
@@ -180,7 +180,7 @@ func (ws *WalletStore) GetFeeAmount() int64 {
 	return FeeAmount
 }
 
-func (ws *WalletStore) SetWalletAccount(update bool, addr string, account *types.WalletAccountStore) error {
+func (ws *Store) SetWalletAccount(update bool, addr string, account *types.WalletAccountStore) error {
 	if len(addr) == 0 {
 		walletlog.Error("SetWalletAccount addr is nil")
 		return types.ErrInputPara
@@ -212,18 +212,20 @@ func (ws *WalletStore) SetWalletAccount(update bool, addr string, account *types
 	return nil
 }
 
-func (ws *WalletStore) GetAccountByAddr(addr string) (*types.WalletAccountStore, error) {
+func (ws *Store) GetAccountByAddr(addr string) (*types.WalletAccountStore, error) {
 	var account types.WalletAccountStore
 	if len(addr) == 0 {
 		walletlog.Error("GetAccountByAddr addr is nil")
 		return nil, types.ErrInputPara
 	}
-	data := ws.db.Get(calcAddrKey(addr))
-	if data == nil {
-		walletlog.Debug("GetAccountByAddr addr not exist")
+	data, err := ws.db.Get(calcAddrKey(addr))
+	if data == nil || err != nil {
+		if err != dbm.ErrNotFoundInDb {
+			walletlog.Debug("GetAccountByAddr addr", "err", err)
+		}
 		return nil, types.ErrAddrNotExist
 	}
-	err := proto.Unmarshal(data, &account)
+	err = proto.Unmarshal(data, &account)
 	if err != nil {
 		walletlog.Error("GetAccountByAddr", "proto.Unmarshal err:", err)
 		return nil, types.ErrUnmarshal
@@ -231,18 +233,20 @@ func (ws *WalletStore) GetAccountByAddr(addr string) (*types.WalletAccountStore,
 	return &account, nil
 }
 
-func (ws *WalletStore) GetAccountByLabel(label string) (*types.WalletAccountStore, error) {
+func (ws *Store) GetAccountByLabel(label string) (*types.WalletAccountStore, error) {
 	var account types.WalletAccountStore
 	if len(label) == 0 {
 		walletlog.Error("SetWalletAccount label is nil")
 		return nil, types.ErrInputPara
 	}
-	data := ws.db.Get(calcLabelKey(label))
-	if data == nil {
-		walletlog.Error("GetAccountByLabel label not exist")
+	data, err := ws.db.Get(calcLabelKey(label))
+	if data == nil || err != nil {
+		if err != dbm.ErrNotFoundInDb {
+			walletlog.Error("GetAccountByLabel label", "err", err)
+		}
 		return nil, types.ErrLabelNotExist
 	}
-	err := proto.Unmarshal(data, &account)
+	err = proto.Unmarshal(data, &account)
 	if err != nil {
 		walletlog.Error("GetAccountByAddr", "proto.Unmarshal err:", err)
 		return nil, types.ErrUnmarshal
@@ -250,7 +254,8 @@ func (ws *WalletStore) GetAccountByLabel(label string) (*types.WalletAccountStor
 	return &account, nil
 }
 
-func (ws *WalletStore) GetAccountByPrefix(addr string) ([]*types.WalletAccountStore, error) {
+func (ws *Store) GetAccountByPrefix(addr string) ([]*types.WalletAccountStore, error) {
+
 	if len(addr) == 0 {
 		walletlog.Error("GetAccountByPrefix addr is nil")
 		return nil, types.ErrInputPara
@@ -258,7 +263,7 @@ func (ws *WalletStore) GetAccountByPrefix(addr string) ([]*types.WalletAccountSt
 	list := dbm.NewListHelper(ws.db)
 	accbytes := list.PrefixScan([]byte(addr))
 	if len(accbytes) == 0 {
-		walletlog.Error("GetAccountByPrefix addr  not exist")
+		walletlog.Error("GetAccountByPrefix addr not exist")
 		return nil, types.ErrAccountNotExist
 	}
 	WalletAccountStores := make([]*types.WalletAccountStore, len(accbytes))
@@ -275,7 +280,7 @@ func (ws *WalletStore) GetAccountByPrefix(addr string) ([]*types.WalletAccountSt
 }
 
 //迭代获取从指定key：height*100000+index 开始向前或者向后查找指定count的交易
-func (ws *WalletStore) GetTxDetailByIter(TxList *types.ReqWalletTransactionList) (*types.WalletTxDetails, error) {
+func (ws *Store) GetTxDetailByIter(TxList *types.ReqWalletTransactionList) (*types.WalletTxDetails, error) {
 	var txDetails types.WalletTxDetails
 	if TxList == nil {
 		walletlog.Error("GetTxDetailByIter TxList is nil")
@@ -287,11 +292,10 @@ func (ws *WalletStore) GetTxDetailByIter(TxList *types.ReqWalletTransactionList)
 	if len(TxList.FromTx) == 0 {
 		list := dbm.NewListHelper(ws.db)
 		if !TxList.Isprivacy {
-			txbytes = list.IteratorScanFromLast([]byte(calcTxKey("")), TxList.Count)
+			txbytes = list.IteratorScanFromLast(calcTxKey(""), TxList.Count)
 		} else {
 			txbytes = list.IteratorScanFromLast([]byte(calcRecvPrivacyTxKey("")), TxList.Count)
 		}
-
 		if len(txbytes) == 0 {
 			walletlog.Error("GetTxDetailByIter IteratorScanFromLast does not exist tx!")
 			return nil, types.ErrTxNotExist
@@ -299,11 +303,10 @@ func (ws *WalletStore) GetTxDetailByIter(TxList *types.ReqWalletTransactionList)
 	} else {
 		list := dbm.NewListHelper(ws.db)
 		if !TxList.Isprivacy {
-			txbytes = list.IteratorScan([]byte("Tx:"), []byte(calcTxKey(string(TxList.FromTx))), TxList.Count, TxList.Direction)
+			txbytes = list.IteratorScan([]byte("Tx:"), calcTxKey(string(TxList.FromTx)), TxList.Count, TxList.Direction)
 		} else {
 			txbytes = list.IteratorScan([]byte("Tx:"), []byte(calcRecvPrivacyTxKey(string(TxList.FromTx))), TxList.Count, TxList.Direction)
 		}
-
 		if len(txbytes) == 0 {
 			walletlog.Error("GetTxDetailByIter IteratorScan does not exist tx!")
 			return nil, types.ErrTxNotExist
@@ -318,19 +321,20 @@ func (ws *WalletStore) GetTxDetailByIter(TxList *types.ReqWalletTransactionList)
 			walletlog.Error("GetTxDetailByIter", "proto.Unmarshal err:", err)
 			return nil, types.ErrUnmarshal
 		}
+		txhash := txdetail.GetTx().Hash()
+		txdetail.Txhash = txhash
 		if string(txdetail.Tx.GetExecer()) == "coins" && txdetail.Tx.ActionName() == "withdraw" {
 			//swap from and to
 			txdetail.Fromaddr, txdetail.Tx.To = txdetail.Tx.To, txdetail.Fromaddr
 		}
-		txhash := txdetail.GetTx().Hash()
-		txdetail.Txhash = txhash
+
 		txDetails.TxDetails[index] = &txdetail
 	}
 
 	return &txDetails, nil
 }
 
-func (ws *WalletStore) SetEncryptionFlag() error {
+func (ws *Store) SetEncryptionFlag() error {
 	var flag int64 = 1
 	data, err := json.Marshal(flag)
 	if err != nil {
@@ -342,13 +346,13 @@ func (ws *WalletStore) SetEncryptionFlag() error {
 	return nil
 }
 
-func (ws *WalletStore) GetEncryptionFlag() int64 {
+func (ws *Store) GetEncryptionFlag() int64 {
 	var flag int64
-	data := ws.db.Get(EncryptionFlag)
-	if data == nil {
+	data, err := ws.db.Get(EncryptionFlag)
+	if data == nil || err != nil {
 		return 0
 	}
-	err := json.Unmarshal(data, &flag)
+	err = json.Unmarshal(data, &flag)
 	if err != nil {
 		walletlog.Error("GetEncryptionFlag unmarshal", "err", err)
 		return 0
@@ -356,7 +360,7 @@ func (ws *WalletStore) GetEncryptionFlag() int64 {
 	return flag
 }
 
-func (ws *WalletStore) SetPasswordHash(password string) error {
+func (ws *Store) SetPasswordHash(password string) error {
 	var WalletPwHash types.WalletPwHash
 	//获取一个随机字符串
 	randstr := fmt.Sprintf("fuzamei:$@%s", crypto.CRandHex(16))
@@ -377,13 +381,13 @@ func (ws *WalletStore) SetPasswordHash(password string) error {
 	return nil
 }
 
-func (ws *WalletStore) VerifyPasswordHash(password string) bool {
+func (ws *Store) VerifyPasswordHash(password string) bool {
 	var WalletPwHash types.WalletPwHash
-	pwhashbytes := ws.db.Get(PasswordHash)
-	if pwhashbytes == nil {
+	pwhashbytes, err := ws.db.Get(PasswordHash)
+	if pwhashbytes == nil || err != nil {
 		return false
 	}
-	err := json.Unmarshal(pwhashbytes, &WalletPwHash)
+	err = json.Unmarshal(pwhashbytes, &WalletPwHash)
 	if err != nil {
 		walletlog.Error("GetEncryptionFlag unmarshal", "err", err)
 		return false
@@ -392,18 +396,14 @@ func (ws *WalletStore) VerifyPasswordHash(password string) bool {
 	pwhash := sha256.Sum256([]byte(pwhashstr))
 	Pwhash := pwhash[:]
 	//通过新的密码计算pwhash最对比
-	if bytes.Equal(WalletPwHash.GetPwHash(), Pwhash) {
-		return true
-	}
-	return false
-
+	return bytes.Equal(WalletPwHash.GetPwHash(), Pwhash)
 }
 
-func (ws *WalletStore) DelAccountByLabel(label string) {
+func (ws *Store) DelAccountByLabel(label string) {
 	ws.db.DeleteSync(calcLabelKey(label))
 }
 
-func (ws *WalletStore) getWalletPrivacyTokenMap() *types.TokenNamesOfUTXO {
+func (ws *Store) getWalletPrivacyTokenMap() *types.TokenNamesOfUTXO {
 	var tokenNamesOfUTXO types.TokenNamesOfUTXO
 	value := ws.db.Get(calcPrivacy4TokenMap())
 	if value == nil {
@@ -418,7 +418,7 @@ func (ws *WalletStore) getWalletPrivacyTokenMap() *types.TokenNamesOfUTXO {
 	return &tokenNamesOfUTXO
 }
 
-func (ws *WalletStore) updateWalletPrivacyTokenMap(tokenNames *types.TokenNamesOfUTXO, newbatch dbm.Batch, token, txhash string, addDelType int32) error {
+func (ws *Store) updateWalletPrivacyTokenMap(tokenNames *types.TokenNamesOfUTXO, newbatch dbm.Batch, token, txhash string, addDelType int32) error {
 	if AddTx == addDelType {
 		privacyTokenNames, err := proto.Marshal(tokenNames)
 		if err != nil {
@@ -451,7 +451,7 @@ func (ws *WalletStore) updateWalletPrivacyTokenMap(tokenNames *types.TokenNamesO
 //UTXO---->moveUTXO2FTXO---->FTXO---->moveFTXO2STXO---->STXO
 //1.calcUTXOKey------------>types.PrivacyDBStore 该kv值在db中的存储一旦写入就不再改变，除非产生该UTXO的交易被撤销
 //2.calcUTXOKey4TokenAddr-->calcUTXOKey，创建kv，方便查询现在某个地址下某种token的可用utxo
-func (ws *WalletStore) setUTXO(addr, txhash *string, outindex int, dbStore *types.PrivacyDBStore, newbatch dbm.Batch) error {
+func (ws *Store) setUTXO(addr, txhash *string, outindex int, dbStore *types.PrivacyDBStore, newbatch dbm.Batch) error {
 	if 0 == len(*addr) || 0 == len(*txhash) {
 		walletlog.Error("setWalletPrivacyAccountBalance addr or txhash is nil")
 		return types.ErrInputPara
@@ -475,7 +475,7 @@ func (ws *WalletStore) setUTXO(addr, txhash *string, outindex int, dbStore *type
 	return nil
 }
 
-func (ws *WalletStore) unsetUTXO(addr, txhash *string, outindex int, token string, newbatch dbm.Batch) error {
+func (ws *Store) unsetUTXO(addr, txhash *string, outindex int, token string, newbatch dbm.Batch) error {
 	if 0 == len(*addr) || 0 == len(*txhash) {
 		walletlog.Error("unsetUTXO addr or txhash is nil")
 		return types.ErrInputPara
@@ -499,7 +499,7 @@ func (ws *WalletStore) unsetUTXO(addr, txhash *string, outindex int, token strin
 //calcKey4UTXOsSpentInTx------>types.FTXOsSTXOsInOneTx,将当前交易的所有花费的utxo进行打包，设置为ftxo，同时通过支付交易hash索引
 //calcKey4FTXOsInTx----------->calcKey4UTXOsSpentInTx,创建该交易冻结的所有的utxo的信息
 //状态转移，将utxo转移至ftxo，同时记录该生成tx的花费的utxo，这样在确认执行成功之后就可以快速将相应的FTXO转换成STXO
-func (ws *WalletStore) moveUTXO2FTXO(token, sender, txhash string, selectedUtxos []*txOutputInfo) {
+func (ws *Store) moveUTXO2FTXO(token, sender, txhash string, selectedUtxos []*txOutputInfo) {
 	FTXOsInOneTx := &types.FTXOsSTXOsInOneTx{}
 	newbatch := ws.NewBatch(true)
 	for _, txOutputInfo := range selectedUtxos {
@@ -520,7 +520,7 @@ func (ws *WalletStore) moveUTXO2FTXO(token, sender, txhash string, selectedUtxos
 }
 
 //将FTXO重置为UTXO
-func (ws *WalletStore) unmoveUTXO2FTXO(input *types.PrivacyInput, token, sender, txhash string, newbatch dbm.Batch) {
+func (ws *Store) unmoveUTXO2FTXO(input *types.PrivacyInput, token, sender, txhash string, newbatch dbm.Batch) {
 	//设置ftxo的key，使其能够方便地获取到对应的交易花费的utxo
 	key1 := calcKey4FTXOsInTx(txhash)
 	value1 := ws.db.Get(key1)
@@ -550,7 +550,7 @@ func (ws *WalletStore) unmoveUTXO2FTXO(input *types.PrivacyInput, token, sender,
 //calcKey4FTXOsInTx-----x------>calcKey4UTXOsSpentInTx,被删除，
 //calcKey4STXOsInTx------------>calcKey4UTXOsSpentInTx
 //切换types.FTXOsSTXOsInOneTx的状态
-func (ws *WalletStore) moveFTXO2STXO(txhash string, newbatch dbm.Batch) error {
+func (ws *Store) moveFTXO2STXO(txhash string, newbatch dbm.Batch) error {
 	//设置在该交易中花费的UTXO
 	key1 := calcKey4FTXOsInTx(txhash)
 	value1 := ws.db.Get(key1)
@@ -569,7 +569,7 @@ func (ws *WalletStore) moveFTXO2STXO(txhash string, newbatch dbm.Batch) error {
 	return nil
 }
 
-func (ws *WalletStore) unmoveFTXO2STXO(txhash string, newbatch dbm.Batch) error {
+func (ws *Store) unmoveFTXO2STXO(txhash string, newbatch dbm.Batch) error {
 	//设置ftxo的key，使其能够方便地获取到对应的交易花费的utxo
 	key2 := calcKey4STXOsInTx(txhash)
 	value2 := ws.db.Get(key2)
@@ -589,7 +589,7 @@ func (ws *WalletStore) unmoveFTXO2STXO(txhash string, newbatch dbm.Batch) error 
 	return nil
 }
 
-func (ws *WalletStore) getWalletPrivacyTokenUTXOs(token string) map[string]*walletUTXOs {
+func (ws *Store) getWalletPrivacyTokenUTXOs(token string) map[string]*walletUTXOs {
 	prefix := calcPrivacyUTXOPrefix(token)
 	list := dbm.NewListHelper(ws.db)
 	values := list.List(prefix, nil, 0, 0)
@@ -632,7 +632,7 @@ func (ws *WalletStore) getWalletPrivacyTokenUTXOs(token string) map[string]*wall
 	return nil
 }
 
-func (ws *WalletStore) listAvailableUTXOs(token, addr string) ([]*types.PrivacyDBStore, error) {
+func (ws *Store) listAvailableUTXOs(token, addr string) ([]*types.PrivacyDBStore, error) {
 	if 0 == len(addr) {
 		walletlog.Error("listWalletPrivacyAccount addr is nil")
 		return nil, types.ErrInputPara
@@ -659,7 +659,7 @@ func (ws *WalletStore) listAvailableUTXOs(token, addr string) ([]*types.PrivacyD
 	return privacyDBStoreSlice, nil
 }
 
-func (ws *WalletStore) SetWalletAccountPrivacy(addr string, privacy *types.WalletAccountPrivacy) error {
+func (ws *Store) SetWalletAccountPrivacy(addr string, privacy *types.WalletAccountPrivacy) error {
 	if len(addr) == 0 {
 		walletlog.Error("SetWalletAccountPrivacy addr is nil")
 		return types.ErrInputPara
@@ -682,7 +682,7 @@ func (ws *WalletStore) SetWalletAccountPrivacy(addr string, privacy *types.Walle
 	return nil
 }
 
-func (ws *WalletStore) GetWalletAccountPrivacy(addr string) (*types.WalletAccountPrivacy, error) {
+func (ws *Store) GetWalletAccountPrivacy(addr string) (*types.WalletAccountPrivacy, error) {
 	if len(addr) == 0 {
 		walletlog.Error("GetWalletAccountPrivacy addr is nil")
 		return nil, types.ErrInputPara

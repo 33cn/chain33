@@ -4,11 +4,8 @@ import (
 	"bytes"
 	"crypto/sha256"
 
-	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/types"
 )
-
-var merklelog = log.New("module", "merkle")
 
 /*     WARNING! If you're reading this because you're learning about crypto
 and/or designing a new system that will use merkle trees, keep in mind
@@ -48,7 +45,7 @@ root.
 
 /* This implements a constant-space merkle root/path calculator, limited to 2^32 leaves. */
 //flage =1 只计算roothash  flage =2 只计算branch  flage =3 计算roothash 和 branch
-func MerkleComputation(leaves [][]byte, flage int, branchpos uint32) (roothash []byte, mutated bool, pbranch [][]byte) {
+func Computation(leaves [][]byte, flage int, branchpos uint32) (roothash []byte, mutated bool, pbranch [][]byte) {
 	if len(leaves) == 0 {
 		return nil, false, nil
 	}
@@ -56,7 +53,7 @@ func MerkleComputation(leaves [][]byte, flage int, branchpos uint32) (roothash [
 		return nil, false, nil
 	}
 
-	var count int = 0
+	var count int
 	var branch [][]byte
 	var level uint32
 	var h []byte
@@ -73,10 +70,10 @@ func MerkleComputation(leaves [][]byte, flage int, branchpos uint32) (roothash [
 		}
 		count++
 		// 1左移level位
-		for level = 0; 0 == ((count) & (1 << uint32(level))); level++ {
+		for level = 0; 0 == ((count) & (1 << level)); level++ {
 			//需要计算branch
 			if (flage & 2) != 0 {
-				if matchh == true {
+				if matchh {
 					branch = append(branch, inner[level])
 				} else if matchlevel == level {
 					branch = append(branch, h)
@@ -145,13 +142,13 @@ func GetMerkleRoot(leaves [][]byte) (roothash []byte) {
 	if leaves == nil {
 		return nil
 	}
-	proothash, _, _ := MerkleComputation(leaves, 1, 0)
+	proothash, _, _ := Computation(leaves, 1, 0)
 	return proothash
 }
 
 //获取指定txindex的branch position 从0开始
 func GetMerkleBranch(leaves [][]byte, position uint32) [][]byte {
-	_, _, branchs := MerkleComputation(leaves, 2, position)
+	_, _, branchs := Computation(leaves, 2, position)
 	return branchs
 }
 
@@ -171,7 +168,7 @@ func GetMerkleRootFromBranch(merkleBranch [][]byte, leaf []byte, Index uint32) [
 
 //获取merkle roothash 以及指定tx index的branch，注释：position从0开始
 func GetMerkleRootAndBranch(leaves [][]byte, position uint32) (roothash []byte, branchs [][]byte) {
-	roothash, _, branchs = MerkleComputation(leaves, 3, position)
+	roothash, _, branchs = Computation(leaves, 3, position)
 	return
 }
 

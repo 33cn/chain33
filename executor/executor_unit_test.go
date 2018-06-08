@@ -1,0 +1,407 @@
+package executor
+
+import (
+	"strconv"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/golang/protobuf/proto"
+	"gitlab.33.cn/chain33/chain33/account"
+	"gitlab.33.cn/chain33/chain33/common/config"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
+	"gitlab.33.cn/chain33/chain33/common/merkle"
+	"gitlab.33.cn/chain33/chain33/queue"
+	"gitlab.33.cn/chain33/chain33/types"
+)
+
+var (
+	addr1 string
+)
+
+func initUnitEnv() (queue.Queue, *Executor) {
+	var q = queue.New("channel")
+	cfg := config.InitCfg("../cmd/chain33/chain33.test.toml")
+	exec := New(cfg.Exec)
+	exec.SetQueueClient(q.Client())
+	//types.SetMinFee(0)
+	return q, exec
+}
+
+func createTxEx(priv crypto.PrivKey, to string, amount int64, ty int32, execer string) *types.Transaction {
+
+	var tx *types.Transaction
+	switch execer {
+	case "coins":
+		v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
+		transfer := &types.CoinsAction{Value: v, Ty: ty}
+		tx = &types.Transaction{Execer: []byte(execer), Payload: types.Encode(transfer), Fee: 1e6, To: to}
+	case "manage":
+		v := &types.ModifyConfig{}
+		modify := &types.ManageAction{
+			Ty:    ty,
+			Value: &types.ManageAction_Modify{Modify: v},
+		}
+		tx = &types.Transaction{Execer: []byte("manage"), Payload: types.Encode(modify)}
+	case "none":
+		v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
+		transfer := &types.CoinsAction{Value: v, Ty: ty}
+		tx = &types.Transaction{Execer: []byte(execer), Payload: types.Encode(transfer), Fee: 1e6, To: to}
+	case "ticket":
+		transfer := &types.TicketAction{}
+		if types.TicketActionGenesis == ty {
+			v := &types.TicketAction_Genesis{&types.TicketGenesis{}}
+			transfer.Value = v
+			transfer.Ty = ty
+		} else if types.TicketActionOpen == ty {
+			v := &types.TicketAction_Topen{&types.TicketOpen{}}
+			transfer.Value = v
+			transfer.Ty = ty
+		} else if types.TicketActionClose == ty {
+			v := &types.TicketAction_Tclose{&types.TicketClose{}}
+			transfer.Value = v
+			transfer.Ty = ty
+		} else if types.TicketActionMiner == ty {
+			v := &types.TicketAction_Miner{&types.TicketMiner{}}
+			transfer.Value = v
+			transfer.Ty = ty
+		} else if types.TicketActionBind == ty {
+			v := &types.TicketAction_Tbind{&types.TicketBind{}}
+			transfer.Value = v
+			transfer.Ty = ty
+		} else {
+			return nil
+		}
+		tx = &types.Transaction{Execer: []byte(execer), Payload: types.Encode(transfer), Fee: 1e6, To: to}
+	case "token":
+		transfer := &types.TokenAction{}
+		if types.ActionTransfer == ty {
+			v := &types.TokenAction_Transfer{Transfer: &types.CoinsTransfer{Cointoken: "GOOD", Amount: 1e6}}
+			transfer.Value = v
+			transfer.Ty = ty
+		} else if types.ActionWithdraw == ty {
+			v := &types.TokenAction_Withdraw{Withdraw: &types.CoinsWithdraw{Cointoken: "GOOD", Amount: 1e6}}
+			transfer.Value = v
+			transfer.Ty = ty
+		} else if types.TokenActionPreCreate == ty {
+			v := &types.TokenAction_Tokenprecreate{&types.TokenPreCreate{
+				"Yuan chain coin",
+				"GOOD",
+				"An Easy Way to Build Blockchain",
+				10000 * 10000 * 100,
+				1 * 1e8,
+				"1Lmmwzw6ywVa3UZpA4tHvCB7gR9ZKRwpom"}} // 该处指针不能为空否则会有崩溃
+			transfer.Value = v
+			transfer.Ty = ty
+		} else if types.TokenActionFinishCreate == ty {
+			v := &types.TokenAction_Tokenfinishcreate{&types.TokenFinishCreate{}}
+			transfer.Value = v
+			transfer.Ty = ty
+		} else if types.TokenActionRevokeCreate == ty {
+			v := &types.TokenAction_Tokenrevokecreate{&types.TokenRevokeCreate{}}
+			transfer.Value = v
+			transfer.Ty = ty
+		} else {
+			return nil
+		}
+		tx = &types.Transaction{Execer: []byte(execer), Payload: types.Encode(transfer), Fee: 1e6, To: to}
+	default:
+		return nil
+	}
+	tx.Nonce = random.Int63()
+	//tx.To = account.ExecAddress(execer).String()
+	tx.Sign(types.SECP256K1, priv)
+	return tx
+}
+
+func genTxsEx(n int64, ty int32, execer string) (txs []*types.Transaction) {
+	_, priv := genaddress()
+	to, _ := genaddress()
+	for i := 0; i < int(n); i++ {
+		txs = append(txs, createTxEx(priv, to, types.Coin*(n+1), ty, execer))
+	}
+	return txs
+}
+func createBlockEx(n int64, ty int32, execer string) *types.Block {
+	newblock := &types.Block{}
+	newblock.Height = -1
+	newblock.BlockTime = time.Now().Unix()
+	newblock.ParentHash = zeroHash[:]
+	newblock.Txs = genTxsEx(n, ty, execer)
+	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
+	return newblock
+}
+
+func constructionBlockDetail(block *types.Block, height int64, txcount int) *types.BlockDetail {
+	var blockdetail types.BlockDetail
+
+	blockdetail.Receipts = make([]*types.ReceiptData, txcount)
+	for j := 0; j < txcount; j++ {
+		ReceiptData := types.ReceiptData{Ty: 2}
+		blockdetail.Receipts[j] = &ReceiptData
+	}
+	blockdetail.Block = block
+	return &blockdetail
+}
+
+func genExecTxListMsg(client queue.Client, block *types.Block) queue.Message {
+	list := &types.ExecTxList{zeroHash[:], block.Txs, block.BlockTime, block.Height, 0}
+	msg := client.NewMessage("execs", types.EventExecTxList, list)
+	return msg
+}
+
+func genExecCheckTxMsg(client queue.Client, block *types.Block) queue.Message {
+	list := &types.ExecTxList{zeroHash[:], block.Txs, block.BlockTime, block.Height, 0}
+	msg := client.NewMessage("execs", types.EventCheckTx, list)
+	return msg
+}
+
+func genEventAddBlockMsg(client queue.Client, block *types.Block) queue.Message {
+	blockDetail := constructionBlockDetail(block, 1, 1)
+	msg := client.NewMessage("execs", types.EventAddBlock, blockDetail)
+	return msg
+}
+
+func genEventDelBlockMsg(client queue.Client, block *types.Block) queue.Message {
+	blockDetail := constructionBlockDetail(block, 1, 1)
+	msg := client.NewMessage("execs", types.EventDelBlock, blockDetail)
+	return msg
+}
+
+//"coins", "GetTxsByAddr",
+func genEventBlockChainQueryMsg(client queue.Client, param []byte, strDriver string, strFunName string) queue.Message {
+	blockChainQue := &types.BlockChainQuery{strDriver, strFunName, zeroHash[:], param}
+	msg := client.NewMessage("execs", types.EventBlockChainQuery, blockChainQue)
+	return msg
+}
+
+func storeProcess(q queue.Queue) {
+	go func() {
+		client := q.Client()
+		client.Sub("store")
+		for msg := range client.Recv() {
+			switch msg.Ty {
+			case types.EventStoreGet:
+				datas := msg.GetData().(*types.StoreGet)
+				//fmt.Println("EventStoreGet Keys[0] = %s", string(datas.Keys[0]))
+
+				var value []byte
+				if strings.Contains(string(datas.Keys[0]), "this type ***") { //这种type结构体走该分支
+					item := &types.ConfigItem{
+						Key:  "111111111111111",
+						Addr: "2222222222222",
+						Value: &types.ConfigItem_Arr{
+							Arr: &types.ArrayConfig{}},
+					}
+					value = types.Encode(item)
+				} else {
+					account := &types.Account{
+						Balance: 1000 * 1e8,
+						Addr:    addr1,
+					}
+					value = types.Encode(account)
+				}
+				values := make([][]byte, 2)
+				values = append(values[:0], value)
+				msg.Reply(client.NewMessage("", types.EventStoreGetReply, &types.StoreReplyValue{values}))
+			case types.EventStoreGetTotalCoins:
+				req := msg.GetData().(*types.IterateRangeByStateHash)
+				resp := &types.ReplyGetTotalCoins{}
+				resp.Count = req.Count
+				msg.Reply(client.NewMessage("", types.EventGetTotalCoinsReply, resp))
+			default:
+				msg.ReplyErr("Do not support", types.ErrNotSupport)
+			}
+		}
+	}()
+}
+
+func blockchainProcess(q queue.Queue) {
+	go func() {
+		client := q.Client()
+		client.Sub("blockchain")
+		for msg := range client.Recv() {
+			switch msg.Ty {
+			case types.EventGetLastHeader:
+				header := &types.Header{StateHash: []byte("111111111111111111111"), Height: 1}
+				msg.Reply(client.NewMessage("", types.EventHeader, header))
+			case types.EventLocalGet:
+				//fmt.Println("EventLocalGet rsp")
+				msg.Reply(client.NewMessage("", types.EventLocalReplyValue, &types.LocalReplyValue{}))
+			case types.EventLocalList:
+				//fmt.Println("EventLocalList rsp")
+				//value := []byte{1,2,3,4,5,6}
+				//values := make([][]byte,2)
+				//values = append(values[:0],value)
+				var values [][]byte
+				msg.Reply(client.NewMessage("", types.EventLocalReplyValue, &types.LocalReplyValue{Values: values}))
+			default:
+				msg.ReplyErr("Do not support", types.ErrNotSupport)
+			}
+		}
+	}()
+}
+
+func createBlockChainQueryRq(execer string, funcName string) proto.Message {
+	switch execer {
+	case "coins":
+		{
+			reqAddr := &types.ReqAddr{}
+			reqAddr.Addr, _ = genaddress()
+			reqAddr.Flag = 0
+			reqAddr.Count = 10
+			reqAddr.Direction = 0
+			reqAddr.Height = -1
+			reqAddr.Index = 0
+
+			return reqAddr
+		}
+	case "manage":
+		{
+			if funcName == "GetConfigItem" {
+				in := &types.ReqString{Data: "this type ***"}
+				return in
+			}
+		}
+	case "norm":
+		{
+			in := &types.ReqString{Data: "this type ***"}
+			return in
+		}
+	case "ticket":
+		{
+			if funcName == "TicketInfos" {
+				info := &types.TicketInfos{}
+				return info
+			} else if funcName == "TicketList" {
+				list := &types.TicketList{}
+				return list
+			} else if funcName == "MinerAddress" {
+				reqaddr := &types.ReqString{}
+				return reqaddr
+			} else if funcName == "MinerSourceList" {
+				reqaddr := &types.ReqString{}
+				return reqaddr
+			}
+		}
+	case "token":
+		{
+			switch funcName {
+			//GetTokens,支持所有状态下的单个token，多个token，以及所有token的信息的查询
+			case "GetTokens":
+				reqtokens := &types.ReqTokens{}
+				return reqtokens
+			case "GetTokenInfo":
+				symbol := &types.ReqString{Data: "this type ***"}
+				return symbol
+			case "GetAddrReceiverforTokens":
+				addrTokens := &types.ReqAddrTokens{}
+				return addrTokens
+			case "GetAccountTokenAssets":
+				req := &types.ReqAccountTokenAssets{}
+				return req
+			}
+		}
+	default:
+		return nil
+	}
+
+	return nil
+}
+
+func TestQueueClient(t *testing.T) {
+	q, _ := initUnitEnv()
+	storeProcess(q)
+	blockchainProcess(q)
+
+	var txNum int64 = 1
+	var msgs []queue.Message
+	var msg queue.Message
+	var block *types.Block
+
+	execTy := [][]string{{"coins", strconv.Itoa(types.CoinsActionTransfer)},
+		{"coins", strconv.Itoa(types.CoinsActionWithdraw)},
+		{"coins", strconv.Itoa(types.CoinsActionGenesis)},
+		{"manage", strconv.Itoa(types.ManageActionModifyConfig)},
+		{"none", strconv.Itoa(types.CoinsActionTransfer)},
+		{"ticket", strconv.Itoa(types.TicketActionGenesis)},
+		{"ticket", strconv.Itoa(types.TicketActionOpen)},
+		{"ticket", strconv.Itoa(types.TicketActionBind)},
+		{"ticket", strconv.Itoa(types.TicketActionClose)},
+		{"ticket", strconv.Itoa(types.TicketActionMiner)},
+		{"token", strconv.Itoa(types.TokenActionPreCreate)},
+		{"token", strconv.Itoa(types.TokenActionFinishCreate)},
+		{"token", strconv.Itoa(types.TokenActionRevokeCreate)},
+		{"token", strconv.Itoa(types.ActionTransfer)},
+		{"token", strconv.Itoa(types.ActionWithdraw)},
+	}
+
+	for _, str := range execTy {
+		ty, _ := strconv.Atoi(str[1])
+		block = createBlockEx(txNum, int32(ty), str[0])
+		addr1 = account.PubKeyToAddress(block.Txs[0].GetSignature().GetPubkey()).String() //将获取随机生成交易地址
+
+		// 1、测试 EventExecTxList 消息
+		msg = genExecTxListMsg(q.Client(), block)
+		msgs = append(msgs, msg)
+
+		//2、测试 EventAddBlock 消息
+		msg = genEventAddBlockMsg(q.Client(), block)
+		msgs = append(msgs, msg)
+
+		// 3、测试 EventDelBlock 消息
+		msg = genEventDelBlockMsg(q.Client(), block)
+		msgs = append(msgs, msg)
+
+		// 4、测试 EventCheckTx 消息
+		msg = genExecCheckTxMsg(q.Client(), block)
+		msgs = append(msgs, msg)
+	}
+
+	// 5、测试 EventBlockChainQuery 消息
+	var reqAddr types.ReqAddr
+	reqAddr.Addr, _ = genaddress()
+	reqAddr.Flag = 0
+	reqAddr.Count = 10
+	reqAddr.Direction = 0
+	reqAddr.Height = -1
+	reqAddr.Index = 0
+
+	execFunName := [][]string{{"coins", "GetAddrReciver"},
+		{"coins", "GetTxsByAddr"},
+		{"manage", "GetConfigItem"},
+		{"norm", "NormGet"},
+		{"norm", "NormHas"},
+		{"ticket", "TicketInfos"},
+		{"ticket", "TicketList"},
+		{"ticket", "MinerAddress"},
+		{"ticket", "MinerSourceList"},
+		{"token", "GetTokens"},
+		{"token", "GetTokenInfo"},
+		{"token", "GetAddrReceiverforTokens"},
+		{"token", "GetAccountTokenAssets"},
+	}
+
+	for _, str := range execFunName {
+		t := createBlockChainQueryRq(str[0], str[1])
+		if nil == t {
+			continue
+		}
+		msg = genEventBlockChainQueryMsg(q.Client(), types.Encode(t), str[0], str[1]) //生成消息
+		msgs = append(msgs, msg)
+	}
+
+	go func() {
+		for _, msga := range msgs {
+			q.Client().Send(msga, true)
+			_, err := q.Client().Wait(msga)
+			if err == nil || err == types.ErrNotFound || err == types.ErrEmpty {
+				t.Logf("%v,%v", msga, err)
+			} else {
+				t.Error(err)
+			}
+		}
+		q.Close()
+	}()
+	q.Start()
+}

@@ -12,24 +12,22 @@ EventTransfer -> 转移资产
 //nofee transaction will not pack into block
 
 import (
-	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var clog = log.New("module", "execs.coins")
+//var clog = log.New("module", "execs.coins")
 
-func init() {
-	n := newCoins()
-	drivers.Register(n.GetName(), n, 0)
+func Init() {
+	drivers.Register(newCoins().GetName(), newCoins, 0)
 }
 
 type Coins struct {
 	drivers.DriverBase
 }
 
-func newCoins() *Coins {
+func newCoins() drivers.Driver {
 	c := &Coins{}
 	c.SetChild(c)
 	return c
@@ -54,23 +52,35 @@ func (c *Coins) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 		transfer := action.GetTransfer()
 		from := account.From(tx).String()
 		//to 是 execs 合约地址
-		if c.GetExecDriver().IsDriverAddress(tx.To) {
+		if drivers.IsDriverAddress(tx.To, c.GetHeight()) {
 			return coinsAccount.TransferToExec(from, tx.To, transfer.Amount)
 		}
 
 		return coinsAccount.Transfer(from, tx.To, transfer.Amount)
+	} else if action.Ty == types.CoinsActionTransferToExec && action.GetTransferToExec() != nil {
+		if c.GetHeight() < types.ForkV12TransferExec {
+			return nil, types.ErrActionNotSupport
+		}
+		transfer := action.GetTransferToExec()
+		from := account.From(tx).String()
+		//to 是 execs 合约地址
+		toaddr := account.ExecAddress(transfer.ExecName)
+		if toaddr != tx.To {
+			return nil, types.ErrToAddrNotSameToExecAddr
+		}
+		return coinsAccount.TransferToExec(from, toaddr, transfer.Amount)
 	} else if action.Ty == types.CoinsActionWithdraw && action.GetWithdraw() != nil {
 		withdraw := action.GetWithdraw()
 		from := account.PubKeyToAddress(tx.Signature.Pubkey).String()
 		//to 是 execs 合约地址
-		if c.GetExecDriver().IsDriverAddress(tx.To) {
+		if drivers.IsDriverAddress(tx.To, c.GetHeight()) {
 			return coinsAccount.TransferWithdraw(from, tx.To, withdraw.Amount)
 		}
 		return nil, types.ErrActionNotSupport
 	} else if action.Ty == types.CoinsActionGenesis && action.GetGenesis() != nil {
 		genesis := action.GetGenesis()
 		if c.GetHeight() == 0 {
-			if c.GetExecDriver().IsDriverAddress(tx.To) {
+			if drivers.IsDriverAddress(tx.To, c.GetHeight()) {
 				return coinsAccount.GenesisInitExec(genesis.ReturnAddress, genesis.Amount, tx.To)
 			}
 			return coinsAccount.GenesisInit(tx.To, genesis.Amount)
@@ -103,6 +113,9 @@ func (c *Coins) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 	var kv *types.KeyValue
 	if action.Ty == types.CoinsActionTransfer && action.GetTransfer() != nil {
 		transfer := action.GetTransfer()
+		kv, err = updateAddrReciver(c.GetLocalDB(), tx.To, transfer.Amount, true)
+	} else if action.Ty == types.CoinsActionTransferToExec && action.GetTransferToExec() != nil {
+		transfer := action.GetTransferToExec()
 		kv, err = updateAddrReciver(c.GetLocalDB(), tx.To, transfer.Amount, true)
 	} else if action.Ty == types.CoinsActionWithdraw && action.GetWithdraw() != nil {
 		transfer := action.GetWithdraw()
@@ -139,6 +152,9 @@ func (c *Coins) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 	if action.Ty == types.CoinsActionTransfer && action.GetTransfer() != nil {
 		transfer := action.GetTransfer()
 		kv, err = updateAddrReciver(c.GetLocalDB(), tx.To, transfer.Amount, false)
+	} else if action.Ty == types.CoinsActionTransferToExec && action.GetTransferToExec() != nil {
+		transfer := action.GetTransferToExec()
+		kv, err = updateAddrReciver(c.GetLocalDB(), tx.To, transfer.Amount, false)
 	} else if action.Ty == types.CoinsActionWithdraw && action.GetWithdraw() != nil {
 		transfer := action.GetWithdraw()
 		from := account.PubKeyToAddress(tx.Signature.Pubkey).String()
@@ -155,12 +171,12 @@ func (c *Coins) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 
 func (c *Coins) GetAddrReciver(addr *types.ReqAddr) (types.Message, error) {
 	reciver := types.Int64{}
-	db := c.GetQueryDB()
-	addrReciver := db.Get(calcAddrKey(addr.Addr))
-	if addrReciver == nil {
+	db := c.GetLocalDB()
+	addrReciver, err := db.Get(calcAddrKey(addr.Addr))
+	if addrReciver == nil || err != nil {
 		return &reciver, types.ErrEmpty
 	}
-	err := types.Decode(addrReciver, &reciver)
+	err = types.Decode(addrReciver, &reciver)
 	if err != nil {
 		return &reciver, err
 	}

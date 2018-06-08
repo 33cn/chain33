@@ -14,6 +14,7 @@ message CoinsAction {
 		CoinsTransfer transfer = 1;
 		CoinsWithdraw withdraw = 4;
 		CoinsGenesis genesis = 2;
+		CoinsTransferToExec transferToExec = 5;
 	}
 	int32 ty = 3;
 }
@@ -29,6 +30,13 @@ message CoinsTransfer {
 	string cointoken = 1;
 	int64 amount     = 2;
 	string note      = 3;
+}
+
+message CoinsTransferToExec {
+	string cointoken = 1;
+	int64 amount     = 2;
+	string note      = 3;
+	string execName  = 4;
 }
 
 message CoinsWithdraw {
@@ -90,13 +98,19 @@ message Hashlockquery  {
 
 message Ticket {
 	string ticketId = 1;
-	int32 status = 2; //0 -> 未成熟 1 -> 可挖矿 2 -> 已挖成功 3-> 已关闭
-	bool isGenesis = 3; //genesis 创建的私钥比较特殊
-	int64 createTime = 4; //创建时间
-	int64 minerTime = 5; //挖矿时间
-	int64 minerValue = 8; //挖到的币的数目
+	//0 -> 未成熟 1 -> 可挖矿 2 -> 已挖成功 3-> 已关闭
+	int32 status = 2;
+	//genesis 创建的私钥比较特殊
+	bool isGenesis = 3;
+	 //创建时间
+	int64 createTime = 4;
+	//挖矿时间
+	int64 minerTime = 5;
+	//挖到的币的数目
+	int64 minerValue = 8;
 	string minerAddress = 6;
-	string returnAddress = 7; //return wallet
+	//return wallet
+	string returnAddress = 7;
 }
 
 //message for execs.ticket
@@ -124,9 +138,12 @@ message TicketBind {
 }
 
 message TicketOpen {
-	string minerAddress = 1; //用户挖矿的ticket 地址
-	int32 count = 2; //购买ticket的数目
-	string returnAddress = 3; //币实际存储的地址
+	//用户挖矿的ticket 地址
+	string minerAddress = 1;
+	//购买ticket的数目
+	int32 count = 2;
+	//币实际存储的地址
+	string returnAddress = 3;
 }
 
 message TicketGenesis {
@@ -175,6 +192,7 @@ message ExecTxList {
 	repeated Transaction txs = 2;
 	int64 blockTime = 3;
 	int64 height = 4;
+	uint64 difficulty = 5;
 }
 
 message Query {
@@ -183,6 +201,25 @@ message Query {
 	bytes payload = 3;
 }
 
+message Norm {
+	bytes  normId     = 1;
+	int64  createTime = 2;
+	string key        = 3;
+	bytes value       = 4;
+
+}
+
+message NormAction {
+	oneof value {
+		NormPut nput = 1;
+	}
+	int32 ty = 5;
+}
+
+message NormPut {
+	string key   = 1;
+	bytes value  = 2;
+}
 //message for retrieve start
 message RetrievePara{
 	string defaultAddress = 1;
@@ -193,7 +230,8 @@ message RetrievePara{
 }
 
 message Retrieve{
-	string backupAddress          = 1;//used as key
+	//used as key
+	string backupAddress          = 1;
 	repeated RetrievePara retPara = 2;
 }
 
@@ -255,6 +293,7 @@ message TokenAction {
 		CoinsTransfer     transfer          = 4;
 		CoinsWithdraw     withdraw          = 5;
 		CoinsGenesis      genesis           = 6;
+		CoinsTransferToExec transferToExec  = 8;
 	}
 	int32 Ty = 7;
 }
@@ -291,7 +330,7 @@ message Token {
 }
 
 message ReqTokens {
-	bool queryall          = 1;
+	bool queryAll          = 1;
 	int32 status           = 2;
 	repeated string tokens = 3;
 }
@@ -306,126 +345,13 @@ message ReceiptToken {
 	int32  status       = 3;
 }
 
-//////////////////////////////////////////////////////////////////////////////
-//message for Trade start/////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////
-message Trade {
-	oneof value {
-		TradeForSell              tokensell            = 1;
-		TradeForBuy               tokenbuy             = 2;
-		TradeForRevokeSell        tokenrevokesell      = 3;
-	}
-	int32 ty = 4;
-}
-
-//创建众筹交易,确定一手交易的token的数量，单价以及总共有多少手token可以进行众筹
-message TradeForSell {
-	string tokensymbol          = 1;
-	int64 amountperboardlot     = 2; //每一手出售的token的数量
-	int64 minboardlot           = 3; //起卖手数,必须达到这个门槛才允许进行交易
-	int64 priceperboardlot      = 4; //每一手token的价格
-	int64 totalboardlot         = 5;
-	int64  starttime            = 6; //此次出售的起始时间，如果非众筹则可以忽略此时间
-	int64  stoptime             = 7;
-	bool   crowdfund            = 8;
-}
-
-message SellOrder {
-	string tokensymbol          = 1;
-	string address              = 2;
-	int64 amountperboardlot     = 3; //每一手出售的token的数量
-    int64 minboardlot           = 4;
-	int64 priceperboardlot      = 5; //每一手token的价格
-	int64 totalboardlot         = 6;
-	int64 soldboardlot          = 7;
-	int64  starttime            = 8; //此次出售的起始时间，如果非众筹则可以忽略此时间
-	int64  stoptime             = 9;
-	bool   crowdfund            = 10;
-	string  sellid              = 11; //此处使用tx的hash来指定
-	int32  status               = 12;
-	int64  height               = 13;
-}
-
-message SellOrderReceipt {
-	string sellid = 1;
-}
-
-message ReqAddrTokens{
-	string addr           = 1;
-	int32  status         = 2;
-	repeated string token = 3;
-	int32 pageNumber      = 4;
-	int32 pageSize        = 5;
-}
-
-message ReplySellOrders {
-	repeated SellOrder selloders = 1;
-}
-
 message TokenRecv {
 	string token = 1;
 	int64  recv  = 2;
 }
+
 message ReplyAddrRecvForTokens {
-	repeated TokenRecv tokenrecv = 1;
-}
-
-//购买者发起交易用来购买token持有者之前挂单出售的token
-//其中的hash为token出售者发起出售交易的hash
-message TradeForBuy {
-	string sellid      = 1;
-	int64 boardlotcnt  = 2;
-}
-
-//允许token的持有者撤销之前未成交出售token的挂单
-message TradeForRevokeSell {
-	string sellid      = 1;
-}
-
-message ReceiptTradeBase {
-	string tokensymbol          = 1;
-	string owner                = 2;
-    string amountperboardlot    = 3; //每一手出售的token的数量
-	int64 minboardlot           = 4;
-    string priceperboardlot     = 5; //每一手token的价格
-	int64 totalboardlot         = 6;
-	int64 soldboardlot          = 7;
-	int64  starttime            = 8; //此次出售的起始时间，如果非众筹则可以忽略此时间
-	int64  stoptime             = 9;
-	bool   crowdfund            = 10;
-	string  sellid              = 11;  //此处使用tx的hash来指定
-    string  status              = 12;
-}
-
-message ReceiptTradeSell {
-	ReceiptTradeBase base = 1;
-}
-
-message ReceiptTradeBuy {
-	string buyeraddr             = 1;
-	string sellid                = 2;
-	string token                 = 3;
-	int64 boardlotcnt            = 4;
-	string amountperboardlot     = 5;
-	string priceperboardlot      = 6;
-    string buytxhash             = 7;
-}
-
-message ReceiptTradeRevoke {
-	ReceiptTradeBase base = 1;
-}
-
-message TradeBuyDone {
-	string token                 = 1;
-	int64  boardlotcnt           = 2;
-	string amountperboardlot     = 3;
-    string priceperboardlot      = 4;
-   	string buytxhash             = 5;
-   	int64  height                = 6;
-}
-
-message ReplyTradeBuyOrders {
-	repeated TradeBuyDone tradebuydones = 1;
+	repeated TokenRecv tokenRecvs = 1;
 }
 
 // 配置修改部分
