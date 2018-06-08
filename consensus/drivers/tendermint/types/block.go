@@ -24,15 +24,11 @@ type Block struct {
 	*Data      `json:"data"`
 	Evidence   EvidenceData `json:"evidence"`
 	LastCommit *Commit      `json:"last_commit"`
-	//added hg20180302
-	LastParentHash []byte   `json:"last_parent_hash"`
-	LastBlockTime  int64    `json:"last_block_time"`
-	LastStateHash  []byte   `json:"last_state_hash"`
 }
 
 // MakeBlock returns a new block with an empty header, except what can be computed from itself.
 // It populates the same set of fields validated by ValidateBasic
-func MakeBlock(height int64, txs []Tx, commit *Commit, lastParentHash []byte, lastBlockTime int64, lastStateHash []byte) *Block {
+func MakeBlock(height int64, txs []Tx, commit *Commit) *Block {
 	block := &Block{
 		Header: &Header{
 			Height: height,
@@ -43,9 +39,6 @@ func MakeBlock(height int64, txs []Tx, commit *Commit, lastParentHash []byte, la
 		Data: &Data{
 			Txs: txs,
 		},
-		LastParentHash: lastParentHash,
-		LastBlockTime:  lastBlockTime,
-		LastStateHash:  lastStateHash,
 	}
 	block.FillHeader()
 	return block

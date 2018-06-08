@@ -908,16 +908,9 @@ func (cs *ConsensusState) createProposalBlock() (block *ttypes.Block, blockParts
 
 	var txs []*types.Transaction
 	var newtxs []ttypes.Tx
-	var lastParentHash []byte
-	var blockTime int64
-	var lastStateHash []byte
 	var err error
 
-	lastBlock := cs.client.GetCurrentBlock()
-	lastParentHash = lastBlock.Hash()
-	blockTime = 0
-	lastStateHash = lastBlock.StateHash
-	txs = cs.client.RequestTx(int(types.GetP(lastBlock.Height+1).MaxTxNumber)-1, nil)
+	txs = cs.client.RequestTx(int(types.GetP(cs.Height).MaxTxNumber)-1, nil)
 	if len(txs) > 0 {
 		//check dup
 		txs = cs.client.CheckTxDup(txs)
@@ -937,7 +930,7 @@ func (cs *ConsensusState) createProposalBlock() (block *ttypes.Block, blockParts
 		}
 	*/
 	// Mempool validated transactions
-	block, parts := cs.state.MakeBlock(cs.Height, newtxs, commit, lastParentHash, blockTime, lastStateHash)
+	block, parts := cs.state.MakeBlock(cs.Height, newtxs, commit)
 	evidence := cs.evpool.PendingEvidence()
 	block.AddEvidence(evidence)
 	return block, parts
@@ -1294,7 +1287,14 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 		}
 		var newblock gtypes.Block
 		var err error
-		newblock.ParentHash = block.LastParentHash
+		//
+		lastBlock, err := cs.client.RequestBlock(height - 1)
+		if err != nil {
+			cs.Logger.Error("Request block failed", "height", height - 1, "err", err)
+			cs.NewTxsFinished <- false
+			return
+		}
+		newblock.ParentHash = lastBlock.Hash()
 		newblock.Height = block.Height
 		newblock.Txs, err = cs.Convert2LocalTxs(block.Data.Txs)
 		if err != nil {
@@ -1318,16 +1318,15 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 		//fail.Fail() // XXX
 
 		newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
-		if block.LastBlockTime == 0 {
-			newblock.BlockTime = time.Now().Unix()
-			if block.LastBlockTime >= newblock.BlockTime {
-				newblock.BlockTime = block.LastBlockTime + 1
-			}
-		} else {
-			newblock.BlockTime = block.LastBlockTime
+
+		newblock.BlockTime = time.Now().Unix()
+		if lastBlock.BlockTime >= newblock.BlockTime {
+			cs.Logger.Error("finalizeCommit: last block time >= new block time", "last", lastBlock.BlockTime, "new", newblock.BlockTime)
+			newblock.BlockTime = lastBlock.BlockTime + 1
 		}
 
-		err = cs.client.WriteBlock(block.LastStateHash, &newblock)
+
+		err = cs.client.WriteBlock(lastBlock.StateHash, &newblock)
 		if err != nil {
 			cs.Logger.Error("finalizeCommit:WriteBlock failed, NewTxsFinished set false", "Error", err)
 			cs.NewTxsFinished <- false
