@@ -16,23 +16,21 @@ import (
 	"fmt"
 
 	log "github.com/inconshreveable/log15"
-	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var clog = log.New("module", "execs.ticket")
 
-func init() {
-	t := newTicket()
-	drivers.Register(t.GetName(), t, 0)
+func Init() {
+	drivers.Register(newTicket().GetName(), newTicket, 0)
 }
 
 type Ticket struct {
 	drivers.DriverBase
 }
 
-func newTicket() *Ticket {
+func newTicket() drivers.Driver {
 	t := &Ticket{}
 	t.SetChild(t)
 	return t
@@ -48,8 +46,8 @@ func (t *Ticket) Exec(tx *types.Transaction, index int) (*types.Receipt, error) 
 	if err != nil {
 		return nil, err
 	}
-	clog.Info("exec ticket tx=", "tx=", action)
-	actiondb := NewTicketAction(t, tx)
+	clog.Debug("exec ticket tx=", "tx=", action)
+	actiondb := NewAction(t, tx)
 	if action.Ty == types.TicketActionGenesis && action.GetGenesis() != nil {
 		genesis := action.GetGenesis()
 		if genesis.Count <= 0 {
@@ -214,22 +212,22 @@ func (t *Ticket) Query(funcname string, params []byte) (types.Message, error) {
 		if err != nil {
 			return nil, err
 		}
-		return TicketInfos(t.GetDB(), &info)
+		return Infos(t.GetStateDB(), &info)
 	} else if funcname == "TicketList" {
 		var l types.TicketList
 		err := types.Decode(params, &l)
 		if err != nil {
 			return nil, err
 		}
-		return TicketList(t.GetQueryDB(), t.GetDB(), &l)
+		return List(t.GetLocalDB(), t.GetStateDB(), &l)
 	} else if funcname == "MinerAddress" {
 		var reqaddr types.ReqString
 		err := types.Decode(params, &reqaddr)
 		if err != nil {
 			return nil, err
 		}
-		value := t.GetQueryDB().Get(calcBindReturnKey(reqaddr.Data))
-		if value == nil {
+		value, err := t.GetLocalDB().Get(calcBindReturnKey(reqaddr.Data))
+		if value == nil || err != nil {
 			return nil, types.ErrNotFound
 		}
 		return &types.ReplyString{string(value)}, nil
@@ -240,8 +238,10 @@ func (t *Ticket) Query(funcname string, params []byte) (types.Message, error) {
 			return nil, err
 		}
 		key := calcBindMinerKeyPrefix(reqaddr.Data)
-		list := dbm.NewListHelper(t.GetQueryDB())
-		values := list.List(key, nil, 0, 1)
+		values, err := t.GetLocalDB().List(key, nil, 0, 1)
+		if err != nil {
+			return nil, err
+		}
 		if len(values) == 0 {
 			return nil, types.ErrNotFound
 		}
@@ -254,8 +254,8 @@ func (t *Ticket) Query(funcname string, params []byte) (types.Message, error) {
 	return nil, types.ErrActionNotSupport
 }
 
-func calcTicketKey(addr string, ticketId string, status int32) []byte {
-	key := fmt.Sprintf("ticket-tl:%s:%d:%s", addr, status, ticketId)
+func calcTicketKey(addr string, ticketID string, status int32) []byte {
+	key := fmt.Sprintf("ticket-tl:%s:%d:%s", addr, status, ticketID)
 	return []byte(key)
 }
 
@@ -279,16 +279,16 @@ func calcTicketPrefix(addr string, status int32) []byte {
 	return []byte(key)
 }
 
-func addticket(addr string, ticketId string, status int32) *types.KeyValue {
+func addticket(addr string, ticketID string, status int32) *types.KeyValue {
 	kv := &types.KeyValue{}
-	kv.Key = calcTicketKey(addr, ticketId, status)
-	kv.Value = []byte(ticketId)
+	kv.Key = calcTicketKey(addr, ticketID, status)
+	kv.Value = []byte(ticketID)
 	return kv
 }
 
-func delticket(addr string, ticketId string, status int32) *types.KeyValue {
+func delticket(addr string, ticketID string, status int32) *types.KeyValue {
 	kv := &types.KeyValue{}
-	kv.Key = calcTicketKey(addr, ticketId, status)
+	kv.Key = calcTicketKey(addr, ticketID, status)
 	kv.Value = nil
 	return kv
 }

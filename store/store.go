@@ -18,6 +18,7 @@ func New(cfg *types.Store) queue.Module {
 		return k
 	} else if storeType == "mtp" {
 		// TODO:
+		panic("empty")
 	}
 	panic("Unsupported store type")
 }

@@ -11,7 +11,7 @@
 
 ## leveldb
 选用 [leveldb](https://github.com/syndtr/goleveldb) 做为KV数据存储  
-修改chain33.toml文件中，[blockchain]、[store]、[localstore]、[wallet] 标签中driver的值为leveldb
+修改chain33.toml文件中，[blockchain]、[store]、[wallet] 标签中driver的值为leveldb
 
 ```toml
 {
@@ -21,7 +21,7 @@
 
 ## badger
 选用 [badger](https://github.com/dgraph-io/badger) 做为KV数据存储  
-修改chain33.toml文件中，[blockchain]、[store]、[localstore]、[wallet] 标签中driver的值为gobadgerdb
+修改chain33.toml文件中，[blockchain]、[store]、[wallet] 标签中driver的值为gobadgerdb
 ```toml
 {
     "driver": "gobadgerdb"

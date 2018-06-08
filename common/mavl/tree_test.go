@@ -4,16 +4,19 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"io/ioutil"
 	"math/rand"
 	"runtime"
+	"sort"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 
 	. "gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-const testReadLimit = 1 << 20 // Some reasonable limit for wire.Read*() lmt
 const (
 	strChars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz" // 62 characters
 )
@@ -52,23 +55,22 @@ func RandInt32() uint32 {
 
 func i2b(i int32) []byte {
 
-	b_buf := bytes.NewBuffer([]byte{})
-	binary.Write(b_buf, binary.BigEndian, i)
-	return b_buf.Bytes()
+	bbuf := bytes.NewBuffer([]byte{})
+	binary.Write(bbuf, binary.BigEndian, i)
+	return bbuf.Bytes()
 }
 
 func b2i(bz []byte) int {
 	var x int
-	b_buf := bytes.NewBuffer(bz)
-	binary.Read(b_buf, binary.BigEndian, &x)
+	bbuf := bytes.NewBuffer(bz)
+	binary.Read(bbuf, binary.BigEndian, &x)
 	return x
 }
 
 // 测试set和get功能
 func TestBasic(t *testing.T) {
-	var tree *MAVLTree = NewMAVLTree(nil, true)
-	var up bool
-	up = tree.Set([]byte("1"), []byte("one"))
+	var tree = NewTree(nil, true)
+	up := tree.Set([]byte("1"), []byte("one"))
 	if up {
 		t.Error("Did not expect an update (should have been create)")
 	}
@@ -148,7 +150,11 @@ func TestBasic(t *testing.T) {
 }
 
 func TestTreeHeightAndSize(t *testing.T) {
-	db := db.NewDB("mavltree", "leveldb", "datastore", 100)
+	dir, err := ioutil.TempDir("", "datastore")
+	require.NoError(t, err)
+	t.Log(dir)
+
+	db := db.NewDB("mavltree", "leveldb", dir, 100)
 
 	// Create some random key value pairs
 	records := make(map[string]string)
@@ -159,7 +165,7 @@ func TestTreeHeightAndSize(t *testing.T) {
 	}
 
 	// Construct some tree and save it
-	t1 := NewMAVLTree(db, true)
+	t1 := NewTree(db, true)
 
 	for key, value := range records {
 		t1.Set([]byte(key), []byte(value))
@@ -184,7 +190,11 @@ func TestTreeHeightAndSize(t *testing.T) {
 
 //测试hash，save,load以及节点value值的更新功能
 func TestPersistence(t *testing.T) {
-	db := db.NewDB("mavltree", "leveldb", "datastore", 100)
+	dir, err := ioutil.TempDir("", "datastore")
+	require.NoError(t, err)
+	t.Log(dir)
+
+	db := db.NewDB("mavltree", "leveldb", dir, 100)
 
 	records := make(map[string]string)
 
@@ -194,7 +204,7 @@ func TestPersistence(t *testing.T) {
 		records[randstr(20)] = randstr(20)
 	}
 
-	t1 := NewMAVLTree(db, true)
+	t1 := NewTree(db, true)
 
 	for key, value := range records {
 		t1.Set([]byte(key), []byte(value))
@@ -208,7 +218,7 @@ func TestPersistence(t *testing.T) {
 	t.Log("TestPersistence", "roothash1", hash)
 
 	// Load a tree
-	t2 := NewMAVLTree(db, true)
+	t2 := NewTree(db, true)
 	t2.Load(hash)
 
 	for key, value := range records {
@@ -219,7 +229,7 @@ func TestPersistence(t *testing.T) {
 	}
 
 	// update 5个key的value在hash2 tree中，验证这个5个key在hash和hash2中的值不一样
-	var count int = 0
+	var count int
 	for key, value := range recordbaks {
 		count++
 		if count > 5 {
@@ -235,7 +245,7 @@ func TestPersistence(t *testing.T) {
 
 	// 重新加载hash
 
-	t11 := NewMAVLTree(db, true)
+	t11 := NewTree(db, true)
 	t11.Load(hash)
 
 	t.Log("------tree11------TestPersistence---------")
@@ -246,7 +256,7 @@ func TestPersistence(t *testing.T) {
 		}
 	}
 	//重新加载hash2
-	t22 := NewMAVLTree(db, true)
+	t22 := NewTree(db, true)
 	t22.Load(hash2)
 	t.Log("------tree22------TestPersistence---------")
 
@@ -273,10 +283,13 @@ func TestPersistence(t *testing.T) {
 
 //测试key:value对的proof证明功能
 func TestIAVLProof(t *testing.T) {
+	dir, err := ioutil.TempDir("", "datastore")
+	require.NoError(t, err)
+	t.Log(dir)
 
-	db := db.NewDB("mavltree", "leveldb", "datastore", 100)
+	db := db.NewDB("mavltree", "leveldb", dir, 100)
 
-	var tree *MAVLTree = NewMAVLTree(db, true)
+	var tree = NewTree(db, true)
 
 	for i := 0; i < 10; i++ {
 		key := fmt.Sprintf("TestIAVLProof key:%d!", i)
@@ -323,7 +336,7 @@ func TestIAVLProof(t *testing.T) {
 	}
 
 	t.Log("TestIAVLProof test Persistence data----------------")
-	tree = NewMAVLTree(db, true)
+	tree = NewTree(db, true)
 
 	for i := 0; i < 10; i++ {
 		key := fmt.Sprintf("TestIAVLProof key:%d!", i)
@@ -390,7 +403,11 @@ func TestIAVLProof(t *testing.T) {
 }
 
 func TestSetAndGetKVPair(t *testing.T) {
-	db := db.NewDB("mavltree", "leveldb", "datastore", 100)
+	dir, err := ioutil.TempDir("", "datastore")
+	require.NoError(t, err)
+	t.Log(dir)
+
+	db := db.NewDB("mavltree", "leveldb", dir, 100)
 
 	var storeSet types.StoreSet
 	var storeGet types.StoreGet
@@ -446,7 +463,7 @@ func TestSetAndGetKVPair(t *testing.T) {
 
 	records2 := make(map[string]string)
 
-	for i := 0; i < total; i++ {
+	for j := 0; j < total; j++ {
 		records2[randstr(20)] = randstr(20)
 	}
 	i = 0
@@ -476,7 +493,11 @@ func TestSetAndGetKVPair(t *testing.T) {
 }
 
 func TestGetAndVerifyKVPairProof(t *testing.T) {
-	db := db.NewDB("mavltree", "leveldb", "datastore", 100)
+	dir, err := ioutil.TempDir("", "datastore")
+	require.NoError(t, err)
+	t.Log(dir)
+
+	db := db.NewDB("mavltree", "leveldb", dir, 100)
 
 	var storeSet types.StoreSet
 	var storeGet types.StoreGet
@@ -521,21 +542,114 @@ func TestGetAndVerifyKVPairProof(t *testing.T) {
 	db.Close()
 }
 
-func BenchmarkSetMerkleAvlTree(b *testing.B) {
-	b.StopTimer()
+type traverser struct {
+	Values []string
+}
 
-	db := db.NewDB("test", "leveldb", "./", 100)
-	t := NewMAVLTree(db, true)
+func (t *traverser) view(key, value []byte) bool {
+	t.Values = append(t.Values, string(value))
+	return false
+}
+
+// 迭代测试
+func TestIterateRange(t *testing.T) {
+	dir, err := ioutil.TempDir("", "datastore")
+	require.NoError(t, err)
+	t.Log(dir)
+
+	db := db.NewDB("mavltree", "leveldb", dir, 100)
+	tree := NewTree(db, true)
+
+	type record struct {
+		key   string
+		value string
+	}
+
+	records := []record{
+		{"abc", "abc"},
+		{"low", "low"},
+		{"fan", "fan"},
+		{"foo", "foo"},
+		{"foobaz", "foobaz"},
+		{"good", "good"},
+		{"foobang", "foobang"},
+		{"foobar", "foobar"},
+		{"food", "food"},
+		{"foml", "foml"},
+	}
+	keys := make([]string, len(records))
+	for i, r := range records {
+		keys[i] = r.key
+	}
+	sort.Strings(keys)
+
+	for _, r := range records {
+		updated := tree.Set([]byte(r.key), []byte(r.value))
+		if updated {
+			t.Error("should have not been updated")
+		}
+	}
+
+	// test traversing the whole node works... in order
+	list := []string{}
+	tree.Iterate(func(key []byte, value []byte) bool {
+		list = append(list, string(value))
+		return false
+	})
+	require.Equal(t, list, []string{"abc", "fan", "foml", "foo", "foobang", "foobar", "foobaz", "food", "good", "low"})
+
+	trav := traverser{}
+	tree.IterateRange([]byte("foo"), []byte("goo"), true, trav.view)
+	require.Equal(t, trav.Values, []string{"foo", "foobang", "foobar", "foobaz", "food"})
+
+	trav = traverser{}
+	tree.IterateRangeInclusive([]byte("foo"), []byte("good"), true, trav.view)
+	require.Equal(t, trav.Values, []string{"foo", "foobang", "foobar", "foobaz", "food", "good"})
+
+	trav = traverser{}
+	tree.IterateRange(nil, []byte("flap"), true, trav.view)
+	require.Equal(t, trav.Values, []string{"abc", "fan"})
+
+	trav = traverser{}
+	tree.IterateRange([]byte("foob"), nil, true, trav.view)
+	require.Equal(t, trav.Values, []string{"foobang", "foobar", "foobaz", "food", "good", "low"})
+
+	trav = traverser{}
+	tree.IterateRange([]byte("very"), nil, true, trav.view)
+	require.Equal(t, trav.Values, []string(nil))
+
+	trav = traverser{}
+	tree.IterateRange([]byte("fooba"), []byte("food"), true, trav.view)
+	require.Equal(t, trav.Values, []string{"foobang", "foobar", "foobaz"})
+
+	trav = traverser{}
+	tree.IterateRange([]byte("fooba"), []byte("food"), false, trav.view)
+	require.Equal(t, trav.Values, []string{"foobaz", "foobar", "foobang"})
+
+	trav = traverser{}
+	tree.IterateRange([]byte("g"), nil, false, trav.view)
+	require.Equal(t, trav.Values, []string{"low", "good"})
+}
+
+func BenchmarkSetMerkleAvlTree(b *testing.B) {
+	dir, err := ioutil.TempDir("", "datastore")
+	require.NoError(b, err)
+	b.Log(dir)
+
+	b.StopTimer()
+	db := db.NewDB("test", "leveldb", dir, 100)
+	t := NewTree(db, true)
 
 	for i := 0; i < 10000; i++ {
 		key := i2b(int32(RandInt32()))
 		t.Set(key, nil)
 		if i%1000 == 999 {
 			t.Save()
+			t.ndb.batch = db.NewBatch(true)
 		}
 	}
 	t.Save()
-
+	t.ndb.batch = db.NewBatch(true)
 	fmt.Println("BenchmarkSetMerkleAvlTree, starting")
 
 	runtime.GC()
@@ -546,6 +660,7 @@ func BenchmarkSetMerkleAvlTree(b *testing.B) {
 		t.Set(ri, nil)
 		if i%1000 == 999 {
 			t.Save()
+			t.ndb.batch = db.NewBatch(true)
 		}
 	}
 	t.Save()
@@ -553,16 +668,20 @@ func BenchmarkSetMerkleAvlTree(b *testing.B) {
 }
 
 func BenchmarkGetMerkleAvlTree(b *testing.B) {
-	b.StopTimer()
+	dir, err := ioutil.TempDir("", "datastore")
+	require.NoError(b, err)
+	b.Log(dir)
 
-	db := db.NewDB("test", "leveldb", "./", 100)
-	t := NewMAVLTree(db, true)
+	b.StopTimer()
+	db := db.NewDB("test", "leveldb", dir, 100)
+	t := NewTree(db, true)
 	var key []byte
 	for i := 0; i < 10000; i++ {
 		key = i2b(int32(i))
 		t.Set(key, nil)
 		if i%100 == 99 {
 			t.Save()
+			t.ndb.batch = db.NewBatch(true)
 		}
 	}
 	t.Save()

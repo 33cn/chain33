@@ -9,6 +9,7 @@ manage 负责管理配置
 
 import (
 	"fmt"
+
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -16,16 +17,15 @@ import (
 
 var clog = log.New("module", "execs.manage")
 
-func init() {
-	n := newManage()
-	drivers.Register(n.GetName(), n, types.ForkV4_add_manage)
+func Init() {
+	drivers.Register(newManage().GetName(), newManage, types.ForkV4AddManage)
 }
 
 type Manage struct {
 	drivers.DriverBase
 }
 
-func newManage() *Manage {
+func newManage() drivers.Driver {
 	c := &Manage{}
 	c.SetChild(c)
 	return c
@@ -37,10 +37,12 @@ func (c *Manage) GetName() string {
 
 func (c *Manage) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	clog.Info("manage.Exec", "start index", index)
-	//_, err := c.DriverBase.Exec(tx, index)
-	//if err != nil {
-	//	return nil, err
-	//}
+	if c.GetHeight() > types.ForkV11ManageExec {
+		_, err := c.DriverBase.Exec(tx, index)
+		if err != nil {
+			return nil, err
+		}
+	}
 	//clog.Info("manage.Exec", "start index 2", index)
 	var manageAction types.ManageAction
 	err := types.Decode(tx.Payload, &manageAction)
@@ -52,7 +54,7 @@ func (c *Manage) Exec(tx *types.Transaction, index int) (*types.Receipt, error) 
 		if manageAction.GetModify() == nil {
 			return nil, types.ErrInputPara
 		}
-		action := NewManageAction(c, tx)
+		action := NewAction(c, tx)
 		return action.modifyConfig(manageAction.GetModify())
 	}
 
@@ -131,11 +133,18 @@ func (c *Manage) Query(funcName string, params []byte) (types.Message, error) {
 			return nil, err
 		}
 
-		// Load config from store
-		value, err := c.GetDB().Get([]byte(types.ConfigKey(in.Data)))
+		// Load config from state db
+		value, err := c.GetStateDB().Get([]byte(types.ManageKey(in.Data)))
 		if err != nil {
 			clog.Info("modifyConfig", "get db key", "not found")
 			value = nil
+		}
+		if value == nil {
+			value, err = c.GetStateDB().Get([]byte(types.ConfigKey(in.Data)))
+			if err != nil {
+				clog.Info("modifyConfig", "get db key", "not found")
+				value = nil
+			}
 		}
 
 		var reply types.ReplyConfig

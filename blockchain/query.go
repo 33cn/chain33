@@ -4,7 +4,6 @@ import (
 	"sync"
 
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
-	"gitlab.33.cn/chain33/chain33/executor"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -21,14 +20,14 @@ func NewQuery(db dbm.DB, client queue.Client, stateHash []byte) *Query {
 }
 
 func (q *Query) Query(driver string, funcname string, param []byte) (types.Message, error) {
-	exec, err := executor.LoadDriver(driver)
+	msg := q.client.NewMessage("execs", types.EventBlockChainQuery, &types.BlockChainQuery{driver, funcname, q.getStateHash(), param})
+	q.client.Send(msg, true)
+	msg, err := q.client.Wait(msg)
 	if err != nil {
-		chainlog.Error("load exec err", "name", driver)
 		return nil, err
 	}
-	exec.SetQueryDB(q.db)
-	exec.SetDB(executor.NewStateDB(q.client.Clone(), q.getStateHash()))
-	return exec.Query(funcname, param)
+
+	return msg.GetData().(types.Message), nil
 }
 
 func (q *Query) updateStateHash(stateHash []byte) {

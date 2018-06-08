@@ -33,18 +33,23 @@ import (
 	"log"
 	"math"
 	"net"
+	"net/http"
+	_ "net/http/pprof"
+	"os"
 	"sync"
 	"time"
 
 	"golang.org/x/net/context"
+	"golang.org/x/net/trace"
 	"google.golang.org/grpc"
 
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/testdata"
 
 	"github.com/golang/protobuf/proto"
-
+	_ "google.golang.org/grpc/encoding/gzip"
 	pb "google.golang.org/grpc/examples/route_guide/routeguide"
+	"google.golang.org/grpc/grpclog"
 )
 
 var (
@@ -215,6 +220,15 @@ func newServer() *routeGuideServer {
 }
 
 func main() {
+	//set pprof
+	go func() {
+		http.ListenAndServe("localhost:6060", nil)
+	}()
+	//set trace
+	grpc.EnableTracing = true
+	go startTrace()
+	glogv2 := grpclog.NewLoggerV2(os.Stdout, os.Stdout, os.Stdout)
+	grpclog.SetLoggerV2(glogv2)
 	flag.Parse()
 	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", *port))
 	if err != nil {
@@ -237,4 +251,12 @@ func main() {
 	grpcServer := grpc.NewServer(opts...)
 	pb.RegisterRouteGuideServer(grpcServer, newServer())
 	grpcServer.Serve(lis)
+}
+
+// 开启trace
+func startTrace() {
+	trace.AuthRequest = func(req *http.Request) (any, sensitive bool) {
+		return true, true
+	}
+	go http.ListenAndServe("localhost:50051", nil)
 }

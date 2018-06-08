@@ -1,6 +1,6 @@
 package p2p
 
-const VERSION = 118
+var VERSION int32 = 119
 
 //更新内容：
 // 1.p2p 修改为在nat结束后，在启动peer的stream，ping,version 等功能

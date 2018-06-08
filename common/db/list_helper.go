@@ -43,16 +43,16 @@ func (db *ListHelper) List(prefix, key []byte, count, direction int32) (values [
 }
 
 func (db *ListHelper) IteratorScan(prefix []byte, key []byte, count int32, direction int32) (values [][]byte) {
-	var reserse bool = false
+	var reserse = false
 	if direction == 0 {
 		reserse = true
 	}
 	it := db.db.Iterator(prefix, reserse)
 	defer it.Close()
 
-	var i int32 = 0
+	var i int32
 	it.Seek(key)
-	if it.Valid() != true {
+	if !it.Valid() {
 		listlog.Error("PrefixScan it.Value()", "error", it.Error())
 		values = nil
 		return
@@ -78,7 +78,7 @@ func (db *ListHelper) IteratorScanFromFirst(prefix []byte, count int32) (values 
 	it := db.db.Iterator(prefix, false)
 	defer it.Close()
 
-	var i int32 = 0
+	var i int32
 	for it.Rewind(); it.Valid(); it.Next() {
 		value := it.ValueCopy()
 		if it.Error() != nil {
@@ -100,7 +100,7 @@ func (db *ListHelper) IteratorScanFromLast(prefix []byte, count int32) (values [
 	it := db.db.Iterator(prefix, true)
 	defer it.Close()
 
-	var i int32 = 0
+	var i int32
 	for it.Rewind(); it.Valid(); it.Next() {
 		value := it.ValueCopy()
 		if it.Error() != nil {

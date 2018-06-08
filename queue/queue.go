@@ -23,8 +23,8 @@ import (
 var qlog = log.New("module", "queue")
 
 const (
-	DefaultChanBuffer    = 64
-	DefaultLowChanBuffer = 40960
+	defaultChanBuffer    = 64
+	defaultLowChanBuffer = 40960
 )
 
 func DisableLog() {
@@ -105,7 +105,7 @@ func (q *queue) chanSub(topic string) *chanSub {
 	defer q.mu.Unlock()
 	_, ok := q.chanSubs[topic]
 	if !ok {
-		q.chanSubs[topic] = &chanSub{make(chan Message, DefaultChanBuffer), make(chan Message, DefaultLowChanBuffer), 0}
+		q.chanSubs[topic] = &chanSub{make(chan Message, defaultChanBuffer), make(chan Message, defaultLowChanBuffer), 0}
 	}
 	return q.chanSubs[topic]
 }
@@ -124,7 +124,7 @@ func (q *queue) closeTopic(topic string) {
 	q.chanSubs[topic] = &chanSub{isClose: 1}
 }
 
-func (q *queue) send(msg Message) (err error) {
+func (q *queue) send(msg Message, timeout time.Duration) (err error) {
 	if q.isClosed() {
 		return types.ErrChannelClosed
 	}
@@ -138,11 +138,22 @@ func (q *queue) send(msg Message) (err error) {
 			err = res.(error)
 		}
 	}()
-	timeout := time.NewTimer(time.Second * 60)
-	defer timeout.Stop()
+	if timeout == 0 {
+		select {
+		case sub.high <- msg:
+			qlog.Debug("send ok", "msg", msg, "topic", msg.Topic, "sub", sub)
+			return nil
+		default:
+			qlog.Debug("send chainfull", "msg", msg, "topic", msg.Topic, "sub", sub)
+			return types.ErrChannelFull
+		}
+	}
+	t := time.NewTimer(timeout)
+	defer t.Stop()
 	select {
 	case sub.high <- msg:
-	case <-timeout.C:
+	case <-t.C:
+		qlog.Debug("send timeout", "msg", msg, "topic", msg.Topic, "sub", sub)
 		return types.ErrTimeout
 	}
 	qlog.Debug("send ok", "msg", msg, "topic", msg.Topic, "sub", sub)
@@ -162,10 +173,32 @@ func (q *queue) sendAsyn(msg Message) error {
 		qlog.Debug("send asyn ok", "msg", msg)
 		return nil
 	default:
-		qlog.Error("send asyn ok", "msg", msg)
+		qlog.Error("send asyn err", "msg", msg, "err", types.ErrChannelFull)
 		return types.ErrChannelFull
 	}
+}
 
+func (q *queue) sendLowTimeout(msg Message, timeout time.Duration) error {
+	if q.isClosed() {
+		return types.ErrChannelClosed
+	}
+	sub := q.chanSub(msg.Topic)
+	if sub.isClose == 1 {
+		return types.ErrChannelClosed
+	}
+	if timeout == 0 {
+		return q.sendAsyn(msg)
+	}
+	t := time.NewTimer(timeout)
+	defer t.Stop()
+	select {
+	case sub.low <- msg:
+		qlog.Debug("send asyn ok", "msg", msg)
+		return nil
+	case <-t.C:
+		qlog.Error("send asyn timeout", "msg", msg)
+		return types.ErrTimeout
+	}
 }
 
 func (q *queue) Client() Client {
@@ -227,6 +260,6 @@ func (msg Message) ReplyErr(title string, err error) {
 		qlog.Debug(title, "success", "ok")
 		reply.IsOk = true
 	}
-	id := atomic.AddInt64(&gId, 1)
+	id := atomic.AddInt64(&gid, 1)
 	msg.Reply(NewMessage(id, "", types.EventReply, &reply))
 }

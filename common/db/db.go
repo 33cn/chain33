@@ -1,22 +1,35 @@
 package db
 
 import (
+	"errors"
 	"fmt"
 )
 
-type KVDB interface {
-	Get(key []byte) (value []byte, err error)
+var ErrNotFoundInDb = errors.New("ErrNotFoundInDb")
+
+type Lister interface {
+	List(prefix, key []byte, count, direction int32) ([][]byte, error)
+}
+
+type KV interface {
+	Get(key []byte) ([]byte, error)
 	BatchGet(keys [][]byte) (values [][]byte, err error)
 	Set(key []byte, value []byte) (err error)
-	List(prefix, key []byte, count, direction int32) (values [][]byte, err error)
+	Begin()
+	Rollback()
+	Commit()
+}
+
+type KVDB interface {
+	KV
+	Lister
 }
 
 type DB interface {
-	Get([]byte) []byte
-	Set([]byte, []byte)
-	SetSync([]byte, []byte)
-	Delete([]byte)
-	DeleteSync([]byte)
+	KV
+	SetSync([]byte, []byte) error
+	Delete([]byte) error
+	DeleteSync([]byte) error
 	Close()
 	NewBatch(sync bool) Batch
 	//迭代prefix 范围的所有key value, 支持正反顺序迭代
@@ -29,7 +42,7 @@ type DB interface {
 type Batch interface {
 	Set(key, value []byte)
 	Delete(key []byte)
-	Write()
+	Write() error
 }
 
 type IteratorSeeker interface {
@@ -65,11 +78,10 @@ func bytesPrefix(prefix []byte) []byte {
 //-----------------------------------------------------------------------------
 
 const (
-	LevelDBBackendStr    = "leveldb" // legacy, defaults to goleveldb.
-	CLevelDBBackendStr   = "cleveldb"
-	GoLevelDBBackendStr  = "goleveldb"
-	MemDBBackendStr      = "memdb"
-	GoBadgerDBBackendStr = "gobadgerdb"
+	levelDBBackendStr    = "leveldb" // legacy, defaults to goleveldb.
+	goLevelDBBackendStr  = "goleveldb"
+	memDBBackendStr      = "memdb"
+	goBadgerDBBackendStr = "gobadgerdb"
 )
 
 type dbCreator func(name string, dir string, cache int) (DB, error)
@@ -84,13 +96,13 @@ func registerDBCreator(backend string, creator dbCreator, force bool) {
 	backends[backend] = creator
 }
 
-func NewDB(name string, backend string, dir string, cache int) DB {
+func NewDB(name string, backend string, dir string, cache int32) DB {
 	dbCreator, ok := backends[backend]
 	if !ok {
 		fmt.Printf("Error initializing DB: %v\n", backend)
 		panic("initializing DB error")
 	}
-	db, err := dbCreator(name, dir, cache)
+	db, err := dbCreator(name, dir, int(cache))
 	if err != nil {
 		fmt.Printf("Error initializing DB: %v\n", err)
 		panic("initializing DB error")

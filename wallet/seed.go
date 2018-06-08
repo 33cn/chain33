@@ -1,18 +1,22 @@
 package wallet
 
 import (
+	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
-	"crypto/rand"
+
+	"gitlab.33.cn/wallet/bipwallet"
+	//	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"math/big"
+	//	"math/big"
 	"strings"
 
 	sccrypto "github.com/NebulousLabs/Sia/crypto"
 	"github.com/NebulousLabs/Sia/modules"
 	log "github.com/inconshreveable/log15"
-	"github.com/piotrnar/gocoin/lib/btc"
+	//	"github.com/piotrnar/gocoin/lib/btc"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
@@ -21,50 +25,56 @@ import (
 )
 
 var (
-	SeedLong   int = 15
-	WalletSeed     = []byte("walletseed")
-	seedlog        = log.New("module", "wallet")
+	SeedLong     = 15
+	SaveSeedLong = 12
+
+	WalletSeed = []byte("walletseed")
+	seedlog    = log.New("module", "wallet")
+
+	ChineseSeedCache = make(map[string]string)
+	EnglishSeedCache = make(map[string]string)
 )
 
 const BACKUPKEYINDEX = "backupkeyindex"
 
-//通过指定语言类型生成seed种子，传入原始字典的所在的路径
-//lang = 0 通过英语单词生成种子 ，英文字典文件english.txt
-//lang = 1 通过中文生成种子 ，中文字典文件chinese_simplified.txt
-
+//通过指定语言类型生成seed种子，传入语言类型以及
+//lang = 0 通过英语单词生成种子
+//lang = 1 通过中文生成种子
+//bitsize=128 返回12个单词或者汉子，bitsize+32=160  返回15个单词或者汉子，bitszie=256 返回24个单词或者汉子
 func CreateSeed(folderpath string, lang int32) (string, error) {
-	var strs []string
-	if lang == 0 {
-		strs = strings.Split(English_text, " ")
-	} else if lang == 1 {
-		strs = strings.Split(Chinese_text, " ")
-	} else {
-		return "", types.ErrSeedlang
+	mnem, err := bipwallet.NewMnemonicString(int(lang), 160)
+	if err != nil {
+		seedlog.Error("CreateSeed", "NewMnemonicString err", err)
+		return "", err
+	}
+	return mnem, nil
+}
+
+//初始化seed标准库的单词到map中，方便seed单词的校验
+func InitSeedLibrary() {
+	//首先将标准seed库转换成字符串数组
+	englieshstrs := strings.Split(englishText, " ")
+	chinesestrs := strings.Split(chineseText, " ")
+
+	//中引文标准seed库保存到map中
+	for _, wordstr := range chinesestrs {
+		ChineseSeedCache[wordstr] = wordstr
 	}
 
-	strnum := len(strs)
-	var seed []string
-	for i := 0; i < SeedLong; i++ {
+	for _, wordstr := range englieshstrs {
+		EnglishSeedCache[wordstr] = wordstr
+	}
+}
 
-		bigi, err := rand.Int(rand.Reader, big.NewInt(int64(strnum-1)))
-		if err != nil {
-			fmt.Println(err.Error())
-			return "", err
-		}
-		index := bigi.Int64()
-		word := strings.TrimSpace(strs[int(index)])
-		seed = append(seed, word)
+//校验输入的seed字符串数是否合法，通过助记词能否生成钱包来判断合法性
+func VerifySeed(seed string) (bool, error) {
+
+	_, err := bipwallet.NewWalletFromMnemonic(bipwallet.TypeBty, seed)
+	if err != nil {
+		seedlog.Error("VerifySeed NewWalletFromMnemonic", "err", err)
+		return false, err
 	}
-	var seedS string
-	seedsize := len(seed)
-	for k, v := range seed {
-		if k != (seedsize - 1) {
-			seedS += v + " "
-		} else {
-			seedS += v
-		}
-	}
-	return seedS, nil
+	return true, nil
 }
 
 //使用password加密seed存储到db中
@@ -88,8 +98,8 @@ func GetSeed(db dbm.DB, password string) (string, error) {
 	if len(password) == 0 {
 		return "", types.ErrInputPara
 	}
-	Encryptedseed := db.Get(WalletSeed)
-	if len(Encryptedseed) == 0 {
+	Encryptedseed, err := db.Get(WalletSeed)
+	if len(Encryptedseed) == 0 || err != nil {
 		return "", types.ErrSeedNotExist
 	}
 	seed, err := AesgcmDecrypter([]byte(password), Encryptedseed)
@@ -101,8 +111,8 @@ func GetSeed(db dbm.DB, password string) (string, error) {
 
 //判断钱包是否已经保存seed
 func HasSeed(db dbm.DB) (bool, error) {
-	Encryptedseed := db.Get(WalletSeed)
-	if len(Encryptedseed) == 0 {
+	Encryptedseed, err := db.Get(WalletSeed)
+	if len(Encryptedseed) == 0 || err != nil {
 		return false, types.ErrSeedNotExist
 	}
 	return true, nil
@@ -113,40 +123,50 @@ func GetPrivkeyBySeed(db dbm.DB, seed string) (string, error) {
 	var backupindex uint32
 	var Hexsubprivkey string
 	var err error
-
+	var index uint32
 	//通过主私钥随机生成child私钥十六进制字符串
-	backuppubkeyindex := db.Get([]byte(BACKUPKEYINDEX))
-	if backuppubkeyindex == nil {
-		backupindex = 0
+	backuppubkeyindex, err := db.Get([]byte(BACKUPKEYINDEX))
+	if backuppubkeyindex == nil || err != nil {
+		index = 0
 	} else {
-		if err := json.Unmarshal([]byte(backuppubkeyindex), &backupindex); err != nil {
+		if err = json.Unmarshal(backuppubkeyindex, &backupindex); err != nil {
 			return "", err
 		}
+		index = backupindex + 1
 	}
-	index := backupindex + 1
 
 	//secp256k1
 	if SignType == 1 {
-		pkx := btc.MasterKey([]byte(seed), false)
-		masterprivkey := pkx.String() //主私钥字符串
-		xpubkey := pkx.Pub().String() //主公钥字符串
 
-		//生成子私钥和子公钥字符串，并校验是否相同
-		subprivkey := btc.StringChild(masterprivkey, index)
-		subpubkey := btc.StringChild(xpubkey, index)
-		//seedlog.Info("GetPrivkeyBySeed", "subprivkey", subprivkey, "subpubkey", subpubkey)
+		wallet, err := bipwallet.NewWalletFromMnemonic(bipwallet.TypeBty, seed)
+		if err != nil {
+			seedlog.Error("GetPrivkeyBySeed NewWalletFromMnemonic", "err", err)
+			wallet, err = bipwallet.NewWalletFromSeed(bipwallet.TypeBty, []byte(seed))
+			if err != nil {
+				seedlog.Error("GetPrivkeyBySeed NewWalletFromSeed", "err", err)
+				return "", types.ErrNewWalletFromSeed
+			}
+		}
 
-		//通过子私钥字符串生成对应的hex字符串
-		wallet, _ := btc.StringWallet(subprivkey)
-		rec := btc.NewPrivateAddr(wallet.Key, 0x80, true)
-		Hexsubprivkey = common.ToHex(rec.Key[1:])
+		//通过索引生成Key pair
+		priv, pub, err := wallet.NewKeyPair(index)
+		if err != nil {
+			seedlog.Error("GetPrivkeyBySeed NewKeyPair", "err", err)
+			return "", types.ErrNewKeyPair
+		}
 
-		//对生成的子公钥做校验
-		creatpubkey := wallet.Pub().String()
-		if subpubkey != creatpubkey {
-			seedlog.Error("GetPrivkeyBySeed subpubkey != creatpubkeybypriv")
+		Hexsubprivkey = hex.EncodeToString(priv)
+
+		public, err := bipwallet.PrivkeyToPub(bipwallet.TypeBty, priv)
+		if err != nil {
+			seedlog.Error("GetPrivkeyBySeed PrivkeyToPub", "err", err)
+			return "", types.ErrPrivkeyToPub
+		}
+		if !bytes.Equal(pub, public) {
+			seedlog.Error("GetPrivkeyBySeed NewKeyPair pub  != PrivkeyToPub", "err", err)
 			return "", types.ErrSubPubKeyVerifyFail
 		}
+
 	} else if SignType == 2 { //ed25519
 
 		//通过助记词形式的seed生成私钥和公钥,一个seed根据不同的index可以生成许多组密钥
@@ -226,7 +246,7 @@ func AesgcmEncrypter(password []byte, seed []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	Encrypted := aesgcm.Seal(nil, key[:12], []byte(seed), nil)
+	Encrypted := aesgcm.Seal(nil, key[:12], seed, nil)
 	//seedlog.Info("AesgcmEncrypter Seal", "seed", seed, "key", key, "Encrypted", Encrypted)
 	return Encrypted, nil
 }
