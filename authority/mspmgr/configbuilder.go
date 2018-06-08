@@ -95,10 +95,10 @@ const (
 )
 
 func SetupBCCSPKeystoreConfig(bccspConfig *factory.FactoryOpts, conf *cryptosuite.CryptoConfig) *factory.FactoryOpts {
-	swOpts := &factory.FactoryOpts{}
+	swOpts := &factory.SwOpts{}
 	swOpts.HashFamily = conf.SecurityAlgorithm()
 	swOpts.SecLevel = conf.SecurityLevel()
-	bccspConfig = swOpts
+	bccspConfig.SwOpts = swOpts
 
 	return bccspConfig
 }

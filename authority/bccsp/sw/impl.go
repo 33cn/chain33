@@ -25,22 +25,27 @@ import (
 	"hash"
 	"reflect"
 
-	"gitlab.33.cn/chain33/chain33/authority/bccsp"
-	"github.com/pkg/errors"
-	"golang.org/x/crypto/sha3"
 	"crypto/elliptic"
-)
 
+	"github.com/pkg/errors"
+	"gitlab.33.cn/chain33/chain33/authority/bccsp"
+	"golang.org/x/crypto/sha3"
+)
 
 // New returns a new instance of the software-based BCCSP
 // set at the passed security level, hash family and KeyStore.
-func New(securityLevel int, hashFamily string) (bccsp.BCCSP, error) {
+func New(securityLevel int, hashFamily string, keyStore bccsp.KeyStore) (bccsp.BCCSP, error) {
 	// Init config
 	conf := &config{}
 	err := conf.setSecurityLevel(securityLevel, hashFamily)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed initializing configuration at [%v,%v]", securityLevel, hashFamily)
 	}
+
+	// Check KeyStore
+	//if keyStore == nil {
+	//	return nil, errors.Errorf("Invalid bccsp.KeyStore instance. It must be different from nil.")
+	//}
 
 	// Set the signers
 	signers := make(map[reflect.Type]Signer)
@@ -63,10 +68,11 @@ func New(securityLevel int, hashFamily string) (bccsp.BCCSP, error) {
 	hashers[reflect.TypeOf(&bccsp.SHA3_384Opts{})] = &hasher{hash: sha3.New384}
 
 	impl := &impl{
-		conf:       conf,
-		signers:    signers,
-		verifiers:  verifiers,
-		hashers:    hashers}
+		conf:      conf,
+		ks:        keyStore,
+		signers:   signers,
+		verifiers: verifiers,
+		hashers:   hashers}
 
 	// Set the key generators
 	keyGenerators := make(map[reflect.Type]KeyGenerator)
@@ -89,6 +95,7 @@ func New(securityLevel int, hashFamily string) (bccsp.BCCSP, error) {
 // SoftwareBasedBCCSP is the software-based implementation of the BCCSP.
 type impl struct {
 	conf *config
+	ks   bccsp.KeyStore
 
 	keyGenerators map[reflect.Type]KeyGenerator
 	keyImporters  map[reflect.Type]KeyImporter
@@ -114,8 +121,17 @@ func (csp *impl) KeyGen(opts bccsp.KeyGenOpts) (k bccsp.Key, err error) {
 		return nil, errors.Wrapf(err, "Failed generating key with opts [%v]", opts)
 	}
 
+	//store it.
+	if csp.ks != nil {
+		err = csp.ks.StoreKey(k)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return k, nil
 }
+
 // KeyImport imports a key from its raw representation using opts.
 // The opts argument should be appropriate for the primitive used.
 func (csp *impl) KeyImport(raw interface{}, opts bccsp.KeyImportOpts) (k bccsp.Key, err error) {
