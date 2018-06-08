@@ -227,6 +227,7 @@ message ReqSignRawTx {
     string privkey = 2;
     string txHex = 3;
     string expire = 4;
+    int32  index = 5;
 }
 
 message ReplySignRawTx {

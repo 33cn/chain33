@@ -37,6 +37,10 @@ func (c *Coins) GetName() string {
 	return "coins"
 }
 
+func (c *Coins) CheckTx(tx *types.Transaction, index int) error {
+	return nil
+}
+
 func (c *Coins) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	_, err := c.DriverBase.Exec(tx, index)
 	if err != nil {
@@ -64,16 +68,18 @@ func (c *Coins) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 		transfer := action.GetTransferToExec()
 		from := account.From(tx).String()
 		//to 是 execs 合约地址
-		toaddr := account.ExecAddress(transfer.ExecName)
-		if toaddr != tx.To {
+		if !isExecAddrMatch(transfer.ExecName, tx.To) {
 			return nil, types.ErrToAddrNotSameToExecAddr
 		}
-		return coinsAccount.TransferToExec(from, toaddr, transfer.Amount)
+		return coinsAccount.TransferToExec(from, tx.To, transfer.Amount)
 	} else if action.Ty == types.CoinsActionWithdraw && action.GetWithdraw() != nil {
 		withdraw := action.GetWithdraw()
+		if !types.IsMatchFork(c.GetHeight(), types.ForkV16Withdraw) {
+			withdraw.ExecName = ""
+		}
 		from := account.PubKeyToAddress(tx.Signature.Pubkey).String()
 		//to 是 execs 合约地址
-		if drivers.IsDriverAddress(tx.To, c.GetHeight()) {
+		if drivers.IsDriverAddress(tx.To, c.GetHeight()) || isExecAddrMatch(withdraw.ExecName, tx.To) {
 			return coinsAccount.TransferWithdraw(from, tx.To, withdraw.Amount)
 		}
 		return nil, types.ErrActionNotSupport
@@ -90,6 +96,11 @@ func (c *Coins) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	} else {
 		return nil, types.ErrActionNotSupport
 	}
+}
+
+func isExecAddrMatch(name string, to string) bool {
+	toaddr := account.ExecAddress(name)
+	return toaddr == to
 }
 
 //0: all tx

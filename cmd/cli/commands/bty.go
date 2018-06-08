@@ -1,8 +1,12 @@
 package commands
 
 import (
+	"bufio"
+	"encoding/hex"
 	"fmt"
+	"io"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -21,6 +25,7 @@ func BTYCmd() *cobra.Command {
 		CreateRawTransferCmd(),
 		CreateRawWithdrawCmd(),
 		CreateRawSendToExecCmd(),
+		CreateTxGroupCmd(),
 	)
 
 	return cmd
@@ -206,4 +211,83 @@ func withdraw(cmd *cobra.Command, args []string) {
 	}
 	amountInt64 := int64(amount*types.InputPrecision) * types.Multiple1E4 //支持4位小数输入，多余的输入将被截断
 	SendToAddress(rpcLaddr, addr, execAddr, amountInt64, note, false, "", true)
+}
+
+// create tx group
+func CreateTxGroupCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "txgroup",
+		Short: "Create a transaction group",
+		Run:   createTxGroup,
+	}
+	addCreateTxGroupFlags(cmd)
+	return cmd
+}
+
+func addCreateTxGroupFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("txs", "t", "", "transactions in hex, separated by space")
+	cmd.Flags().StringP("file", "f", "", "name of file which contains hex style transactions, separated by new line")
+}
+
+func createTxGroup(cmd *cobra.Command, args []string) {
+	txs, _ := cmd.Flags().GetString("txs")
+	file, _ := cmd.Flags().GetString("file")
+	var txsArr []string
+	if txs != "" {
+		txsArr = strings.Split(txs, " ")
+	} else if file != "" {
+		f, err := os.Open(file)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		defer f.Close()
+		rd := bufio.NewReader(f)
+		i := 1
+		for {
+			line, _, err := rd.ReadLine()
+			if err != nil && err != io.EOF {
+				fmt.Fprintln(os.Stderr, err)
+				return
+			}
+			if err == io.EOF {
+				break
+			}
+			cSet := " 	" // space and tab
+			lineStr := strings.Trim(string(line), cSet)
+			if lineStr == "" {
+				continue
+			}
+			fmt.Printf("tx %d: %s", i, lineStr+"\n")
+			txsArr = append(txsArr, lineStr)
+			i++
+		}
+	} else {
+		fmt.Println("please input -t or -f; else, input -h to see help")
+		return
+	}
+	var transactions []*types.Transaction
+	for _, t := range txsArr {
+		txByte, err := hex.DecodeString(t)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		var transaction types.Transaction
+		types.Decode(txByte, &transaction)
+		transactions = append(transactions, &transaction)
+	}
+	group, err := types.CreateTxGroup(transactions)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	err = group.Check(types.MinFee)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	newtx := group.Tx()
+	grouptx := hex.EncodeToString(types.Encode(newtx))
+	fmt.Println(grouptx)
 }
