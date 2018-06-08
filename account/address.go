@@ -24,7 +24,7 @@ func init() {
 
 //计算量有点大，做一次cache
 func ExecAddress(name string) string {
-	if len(name) > 100 {
+	if len(name) > types.MaxExecNameLength {
 		panic("name too long")
 	}
 	if value, ok := addressCache.Get(name); ok {
@@ -40,7 +40,7 @@ func ExecAddress(name string) string {
 }
 
 func GetExecAddress(name string) *Address {
-	if len(name) > 100 {
+	if len(name) > types.MaxExecNameLength {
 		panic("name too long")
 	}
 	buf := append(bname[:0], addrSeed...)
