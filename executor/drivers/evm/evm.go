@@ -162,7 +162,7 @@ func (evm *EVMExecutor) Exec(tx *types.Transaction, index int) (*types.Receipt, 
 	contractReceipt := &types.ReceiptEVMContract{msg.From().String(), execName, contractAddr.String(), usedGas, ret}
 
 	logs = append(logs, &types.ReceiptLog{types.TyLogCallContract, types.Encode(contractReceipt)})
-	logs = append(logs, evm.mStateDB.GetReceiptLogs(contractAddr.String(), isCreate)...)
+	logs = append(logs, evm.mStateDB.GetReceiptLogs(contractAddr.String())...)
 
 	receipt := &types.Receipt{Ty: types.ExecOk, KV: data, Logs: logs}
 
