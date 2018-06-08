@@ -89,7 +89,7 @@ func (evm *EVMExecutor) Exec(tx *types.Transaction, index int) (*types.Receipt, 
 	env := runtime.NewEVM(context, evm.mStateDB, *evm.vmCfg)
 
 	// 目标地址为空，或者为Evm合约的固定地址时，认为新增合约
-	isCreate := msg.To() == nil || strings.Compare(msg.To().String(), EvmAddress) == 0
+	isCreate := strings.Compare(msg.To().String(), EvmAddress) == 0
 
 	var (
 		ret          = []byte("")
@@ -349,6 +349,9 @@ func (evm *EVMExecutor) GetMessage(tx *types.Transaction) (msg *common.Message, 
 	// 此处暂时不考虑消息发送签名的处理，chain33在mempool中对签名做了检查
 	from := getCaller(tx)
 	to := getReceiver(tx)
+	if to == nil {
+		return nil, types.ErrInvalidAddress
+	}
 
 	// 注意Transaction中的payload内容同时包含转账金额和合约代码
 	// payload[:8]为转账金额，payload[8:]为合约代码
