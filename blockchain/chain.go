@@ -683,10 +683,11 @@ func (chain *BlockChain) ProcGetGlobalIndexMsg(reqUTXOGlobalIndex *types.ReqUTXO
 		}
 
 		random := rand.New(rand.NewSource(time.Now().UnixNano()))
-		positions := random.Perm(index - stopindex + 1)
+
+		positions := random.Perm(index + 1)
 
 		for ; index > stopindex; index-- {
-			position := positions[index-stopindex] + stopindex
+			position := positions[index]
 			key := keys[position]
 			value, _ := utxos.Get(key)
 			globalIndex, err := privacy.DecodeToUTXOGlobalIndex(key.(string), reqUTXOGlobalIndex.GetTokenname())
