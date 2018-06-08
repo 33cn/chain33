@@ -17,6 +17,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/runtime"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/state"
 	"gitlab.33.cn/chain33/chain33/types"
+	"math/big"
 )
 
 func TestVM(t *testing.T) {
@@ -94,6 +95,8 @@ func runCase(tt *testing.T, c VMCase, file string) {
 	vmcfg := inst.GetVMConfig()
 	msg := buildMsg(c)
 	context := inst.NewEVMContext(msg)
+	context.Coinbase = common.StringToAddress(c.env.currentCoinbase)
+
 
 	// 3 调用执行逻辑 call
 	env := runtime.NewEVM(context, statedb, *vmcfg)
