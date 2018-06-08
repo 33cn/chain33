@@ -110,8 +110,8 @@ message BtcHeader {
     uint32  version       = 4;
     string  merkleRoot    = 5;
     int64   time          = 6;
-    int64   nonce         = 7;
-    int64   bits          = 8;
+    uint64  nonce         = 7;
+    string  bits          = 8;
     int64   difficulty    = 9;
     string  previousHash  = 10;
     string  nextHash      = 11;

@@ -396,12 +396,10 @@ func (b *btcdClient) GetBlockHeader(height uint64) (*types.BtcHeader, error) {
 		Height:        uint64(header.Height),
 		MerkleRoot:    header.MerkleRoot,
 		Time:          header.Time,
-		Nonce:         int64(header.Nonce),
-		// TODO
-		// Bits:header.Bits,
-		// Difficulty:header.Difficulty,
-		PreviousHash: header.PreviousHash,
-		NextHash:     header.NextHash,
+		Nonce:         header.Nonce,
+		Bits:          header.Bits,
+		PreviousHash:  header.PreviousHash,
+		NextHash:      header.NextHash,
 	}
 	return h, nil
 
