@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"encoding/hex"
 	"github.com/spf13/cobra"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -298,7 +297,7 @@ func showAmountOfUTXO(cmd *cobra.Command, args []string) {
 	var params jsonrpc.Query4Cli
 	params.Execer = types.PrivacyX
 	params.FuncName = "ShowAmountsOfUTXO"
-	params.Payload = hex.EncodeToString(types.Encode(&reqPrivacyToken))
+	params.Payload = reqPrivacyToken
 
 	var res types.ReplyPrivacyAmounts
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
@@ -332,7 +331,7 @@ func showUTXOs4SpecifiedAmount(cmd *cobra.Command, args []string) {
 	var params jsonrpc.Query4Cli
 	params.Execer = types.PrivacyX
 	params.FuncName = "ShowUTXOs4SpecifiedAmount"
-	params.Payload = hex.EncodeToString(types.Encode(&reqPrivacyToken))
+	params.Payload = reqPrivacyToken
 
 	var res types.ReplyUTXOsOfAmount
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
