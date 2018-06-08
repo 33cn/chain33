@@ -510,11 +510,13 @@ func (self *MemoryStateDB) transfer2Contract(sender, recipient string, amount in
 		return nil, model.ErrNoCreator
 	}
 
+	execName := contract.GetExecName()
+
 	// 从自己的合约账户到创建者的合约账户
 	// 有可能是外部账户调用自己创建的合约，这种情况下这一步可以省略
 	ret = &types.Receipt{}
 	if strings.Compare(sender, creator) != 0 {
-		rs, err := self.CoinsAccount.ExecTransfer(sender, creator, recipient, amount)
+		rs, err := self.CoinsAccount.ExecTransfer(sender, creator, execName, amount)
 		if err != nil {
 			return nil, err
 		}
@@ -539,10 +541,12 @@ func (self *MemoryStateDB) transfer2External(sender, recipient string, amount in
 		return nil, model.ErrNoCreator
 	}
 
+	execName := contract.GetExecName()
+
 	// 第一步先从创建者的合约账户到接受者的合约账户
 	// 如果是自己调用自己创建的合约，这一步也可以省略
 	if strings.Compare(creator, recipient) != 0 {
-		ret, err = self.CoinsAccount.ExecTransfer(creator, recipient, sender, amount)
+		ret, err = self.CoinsAccount.ExecTransfer(creator, recipient, execName, amount)
 		if err != nil {
 			return nil, err
 		}
