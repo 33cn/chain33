@@ -221,8 +221,6 @@ const (
 	EventReplyGetUTXOPubKey
 	EventCreateUTXOs
 	EventReplyCreateUTXOs
-	EventCheckTxPubKeyValid
-	EventReplyCheckTxPubKeyValid
 )
 
 var eventName = map[int]string{

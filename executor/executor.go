@@ -317,87 +317,16 @@ func newExecutor(stateHash []byte, client queue.Client, height, blocktime int64)
 //1.公对私交易：直接从coin合约中扣除
 //2.私对私交易或者私对公交易：交易费的扣除从隐私合约账户在coin合约中的账户中扣除
 func (e *executor) processFee(tx *types.Transaction) (*types.Receipt, error) {
+	if types.PrivacyX == string(tx.Execer) {
+		exec := e.loadDriverForExec(string(tx.Execer))
+		exec.SetDB(e.stateDB)
+		exec.SetEnv(e.height, e.blocktime)
+		if err := exec.CheckTx(tx, 0); err != nil {
+			return nil, err
+		}
+	}
 	from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
-	if types.PrivacyX != string(tx.Execer) {
-		return e.cutFeeFromAccount(from, tx.Fee)
-	} else {
-		return e.cutPrivacyFee(from, tx)
-	}
-	return nil, types.ErrNoBalance
-}
-
-func (e *executor) cutPrivacyFee(from string, tx *types.Transaction) (*types.Receipt, error) {
-	var action types.PrivacyAction
-	err := types.Decode(tx.Payload, &action)
-	if err != nil {
-		return nil, err
-	}
-	if action.Ty == types.ActionPublic2Privacy && action.GetPublic2Privacy() != nil {
-		return e.cutFeeFromAccount(from, tx.Fee)
-	} else { //如果是私到私 或者私到公，交易费扣除则需要utxo实现,交易费并不生成真正的UTXO,也是即时燃烧掉而已
-		if action.Ty == types.ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
-			totalInput := int64(0)
-			keys := make([][]byte, len(action.GetPrivacy2Privacy().Input.Keyinput))
-			for i, input := range action.GetPrivacy2Privacy().Input.Keyinput {
-				totalInput += input.Amount
-				keys[i] = input.KeyImage
-			}
-			if !e.checkUTXOValid(keys) {
-				elog.Error("exec UTXO double spend check failed")
-				return nil, types.ErrDoubeSpendOccur
-			}
-			totalOutput := int64(0)
-			for _, output := range action.GetPrivacy2Privacy().Output.Keyoutput {
-				totalOutput += output.Amount
-			}
-			feeAmount := totalInput - totalOutput
-			if feeAmount >= tx.Fee {
-				//从隐私合约在coin的账户中扣除，同时也保证了相应的utxo差额被燃烧
-				return e.cutFeeFromAccount(from, feeAmount)
-			}
-
-		} else if action.Ty == types.ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
-			totalInput := int64(0)
-			keys := make([][]byte, len(action.GetPrivacy2Public().Input.Keyinput))
-			for i, input := range action.GetPrivacy2Public().Input.Keyinput {
-				totalInput += input.Amount
-				keys[i] = input.KeyImage
-			}
-			if !e.checkUTXOValid(keys) {
-				elog.Error("exec UTXO double spend check failed")
-				return nil, types.ErrDoubeSpendOccur
-			}
-
-			totalOutput := int64(0)
-			for _, output := range action.GetPrivacy2Public().Output.Keyoutput {
-				totalOutput += output.Amount
-			}
-
-			feeAmount := totalInput - action.GetPrivacy2Public().Amount - totalOutput
-			if feeAmount >= tx.Fee {
-				//从隐私合约在coin的账户中扣除，同时也保证了相应的utxo差额被燃烧
-				return e.cutFeeFromAccount(from, feeAmount)
-			}
-		}
-	}
-	return nil, types.ErrNoBalance
-}
-
-//通过keyImage确认是否存在双花，有效即不存在双花，返回true，反之则返回false
-func (e *executor) checkUTXOValid(keyImages [][]byte) bool {
-	if values, err := e.stateDB.BatchGet(keyImages); err == nil {
-		if len(values) != len(keyImages) {
-			elog.Error("exec module", "checkUTXOValid return different count value with keys")
-			return false
-		}
-		for _, value := range values {
-			if value != nil {
-				return false
-			}
-		}
-		return true
-	}
-	return false
+	return e.cutFeeFromAccount(from, tx.Fee)
 }
 
 func (e *executor) cutFeeFromAccount(AccAddr string, feeAmount int64) (*types.Receipt, error) {
@@ -429,76 +358,6 @@ func (e *executor) checkTx(tx *types.Transaction, index int) error {
 	return nil
 }
 
-func (e *executor) checkPrivacyTxFee(tx *types.Transaction) error {
-	var action types.PrivacyAction
-	err := types.Decode(tx.Payload, &action)
-	if err != nil {
-		return err
-	}
-	if action.Ty == types.ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
-		if tx.Fee < types.PrivacyTxFee {
-			return types.ErrPrivacyTxFeeNotEnough
-		}
-		// 隐私对隐私,需要检查输入和输出值,条件 输入-输入>=手续费
-		var totalInput, totalOutput int64
-		keys := make([][]byte, len(action.GetPrivacy2Privacy().Input.Keyinput))
-		for i, value := range action.GetPrivacy2Privacy().GetInput().GetKeyinput() {
-			if value.GetAmount()<=0 {
-				return types.ErrAmount
-			}
-			totalInput += value.GetAmount()
-			keys[i] = value.KeyImage
-		}
-
-		if !e.checkUTXOValid(keys) {
-			elog.Error("checkPrivacyTxFee exec UTXO double spend check failed")
-			return types.ErrDoubeSpendOccur
-		}
-
-		for _, value := range action.GetPrivacy2Privacy().GetOutput().GetKeyoutput() {
-			if value.GetAmount() <= 0 {
-				return types.ErrAmount
-			}
-			totalOutput += value.GetAmount()
-		}
-		if totalInput-totalOutput < tx.Fee {
-			return types.ErrPrivacyTxFeeNotEnough
-		}
-
-	} else if action.Ty == types.ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
-		if tx.Fee < types.PrivacyTxFee {
-			return types.ErrPrivacyTxFeeNotEnough
-		}
-
-		var totalInput, totalOutput int64
-		keys := make([][]byte, len(action.GetPrivacy2Public().Input.Keyinput))
-		for i, value := range action.GetPrivacy2Public().GetInput().GetKeyinput() {
-			if value.GetAmount()<=0 {
-				return types.ErrAmount
-			}
-			totalInput += value.GetAmount()
-			keys[i] = value.KeyImage
-		}
-
-		if !e.checkUTXOValid(keys) {
-			elog.Error("checkPrivacyTxFee exec UTXO double spend check failed")
-			return types.ErrDoubeSpendOccur
-		}
-
-		for _, value := range action.GetPrivacy2Public().GetOutput().GetKeyoutput() {
-			if value.GetAmount() <= 0 {
-				return types.ErrAmount
-			}
-			totalOutput += value.GetAmount()
-		}
-		if totalInput-totalOutput-action.GetPrivacy2Public().GetAmount() < tx.Fee {
-			return types.ErrPrivacyTxFeeNotEnough
-		}
-	}
-
-	return nil
-}
-
 func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 	//基本检查
 	err := e.checkTx(tx, index)
@@ -514,15 +373,6 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 		accFrom := e.coinsAccount.LoadAccount(from)
 		if accFrom.GetBalance() < types.MinBalanceTransfer {
 			return types.ErrBalanceLessThanTenTimesFee
-		}
-
-		//对于隐私交易类型为1.私对私和2.私对公这2种类型，
-		//还需要进一步检查utxo输入输出差值是否足够支付交易费
-		if types.PrivacyX == execer {
-			err = e.checkPrivacyTxFee(tx)
-			if err != nil {
-				return err
-			}
 		}
 	}
 
