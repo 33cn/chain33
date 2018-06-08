@@ -74,13 +74,11 @@ func New(cfg *types.Wallet) *Wallet {
 	walletStore := NewStore(walletStoreDB)
 	minFee = cfg.MinFee
 	if "secp256k1" == cfg.SignType {
-		SignType = int(types.SIG_TYPE_SECP256K1)
+		SignType = 1
 	} else if "ed25519" == cfg.SignType {
-		SignType = int(types.SIG_TYPE_ED25519)
+		SignType = 2
 	} else if "sm2" == cfg.SignType {
-		SignType = int(types.SIG_TYPE_SM2)
-	} else if "auth" == cfg.SignType {
-		SignType = int(types.SIG_TYPE_AUTHORITY)
+		SignType = 3
 	}
 	wallet := &Wallet{
 		walletStore:      walletStore,
@@ -545,7 +543,7 @@ func (wallet *Wallet) ProcRecvMsg() {
 			//根据config，由wallet或者authority模块签名
 			var txHex string
 			var err error
-			if SignType == int(types.SIG_TYPE_AUTHORITY) {
+			if types.IsAuthEnable {
 				txHex, err = wallet.ProcAuthSignRawTx(unsigned)
 			} else {
 				txHex, err = wallet.ProcSignRawTx(unsigned)

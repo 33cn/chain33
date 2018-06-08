@@ -80,11 +80,10 @@ type result struct {
 }
 
 func check(data *Transaction, f func(tx *Transaction) bool) bool {
-	if data.Signature.Ty == SIG_TYPE_AUTHORITY {
+	if IsAuthEnable {
 		return f(data)
-	} else {
-		return data.CheckSign()
 	}
+	return data.CheckSign()
 }
 
 func checksign(done <-chan struct{}, taskes <-chan *Transaction, c chan<- result, f func(tx *Transaction) bool) {
