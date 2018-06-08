@@ -14,11 +14,13 @@ import (
 )
 
 type btcWeb struct {
+	urlRoot    string
 	httpClient *fasthttp.Client
 }
 
 func NewBtcWeb() (BtcClient, error) {
 	b := &btcWeb{
+		urlRoot:    "https://blockchain.info",
 		httpClient: &fasthttp.Client{TLSConfig: &tls.Config{InsecureSkipVerify: true}},
 	}
 	return b, nil
@@ -37,14 +39,14 @@ func (b *btcWeb) GetBlockHeader(height uint64) (*types.BtcHeader, error) {
 	if err != err {
 		return nil, err
 	}
-	return block.Header.BtcHeader(), nil
+	return block.BtcHeader(), nil
 }
 
 func (b *btcWeb) getBlock(height uint64) (*Block, error) {
 	if height < 0 {
 		return nil, errors.New("height < 0")
 	}
-	url := fmt.Sprintf("https://blockchain.info/block-height/%d?format=json", height)
+	url := fmt.Sprintf("%s/block-height/%d?format=json", b.urlRoot, height)
 	data, err := b.requestUrl(url)
 	if err != nil {
 		return nil, err
@@ -59,7 +61,7 @@ func (b *btcWeb) getBlock(height uint64) (*Block, error) {
 }
 
 func (b *btcWeb) GetLatestBlock() (*chainhash.Hash, uint64, error) {
-	url := "https://blockchain.info/latestblock"
+	url := b.urlRoot + "/latestblock"
 	data, err := b.requestUrl(url)
 	if err != nil {
 		return nil, 0, err
@@ -87,7 +89,7 @@ func (b *btcWeb) Ping() {
 }
 
 func (b *btcWeb) GetTransaction(hash string) (*types.BtcTransaction, error) {
-	url := "https://blockchain.info/rawtx/" + hash
+	url := b.urlRoot + "/rawtx/" + hash
 	data, err := b.requestUrl(url)
 	if err != nil {
 		return nil, err
