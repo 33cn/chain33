@@ -16,16 +16,7 @@ var ulog = log.New("module", "util")
 
 //block.Txs empty?
 func checkSignWrapper(block *types.Block, client queue.Client) bool {
-	var signedByAuth bool = false
-	for _, tx := range block.Txs {
-		//only one type of signature will be used in all txs
-		if tx.GetSignature().GetTy() == types.SIG_TYPE_AUTHORITY {
-			signedByAuth = true
-			break
-		}
-	}
-
-	if signedByAuth {
+	if types.IsAuthEnable {
 		if !block.CheckBlockSign() {
 			return false
 		}
@@ -46,9 +37,9 @@ func checkSignWrapper(block *types.Block, client queue.Client) bool {
 			return false
 		}
 		return true
-	} else {
-		return block.CheckSign()
 	}
+
+	return block.CheckSign()
 }
 
 //block执行函数增加一个批量存储区块是否刷盘的标志位，提高区块的同步性能。

@@ -263,7 +263,6 @@ func (m *Transactions) GetTxs() []*Transaction {
 // ty = 1 -> secp256k1
 // ty = 2 -> ed25519
 // ty = 3 -> sm2
-// ty = 4 -> authority
 type Signature struct {
 	Ty        int32  `protobuf:"varint,1,opt,name=ty" json:"ty,omitempty"`
 	Pubkey    []byte `protobuf:"bytes,2,opt,name=pubkey,proto3" json:"pubkey,omitempty"`
