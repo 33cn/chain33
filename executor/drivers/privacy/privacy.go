@@ -19,7 +19,6 @@ import (
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
-	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -27,16 +26,14 @@ import (
 var privacylog = log.New("module", "execs.privacy")
 
 func init() {
-	t := newPrivacy()
-	//drivers.Register(t.GetName(), t, types.ForkV5_add_privacy)
-	drivers.Register(t.GetName(), t, 0)
+	drivers.Register(newPrivacy().GetName(), newPrivacy, 0)
 }
 
 type privacy struct {
 	drivers.DriverBase
 }
 
-func newPrivacy() *privacy {
+func newPrivacy() drivers.Driver {
 	t := &privacy{}
 	t.SetChild(t)
 	return t
@@ -63,7 +60,7 @@ func (p *privacy) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 		if types.BTY == public2Privacy.Tokenname {
 			coinsAccount := p.GetCoinsAccount()
 			from := account.From(tx).String()
-			receipt, err := coinsAccount.ExecWithdraw(p.GetAddr(), from, public2Privacy.Amount)
+			receipt, err := coinsAccount.TransferWithdraw(from, p.GetAddr(), public2Privacy.Amount)
 			if err != nil {
 				privacylog.Error("Privacy exec ActionPublic2Privacy", "ExecWithdraw failed due to ", err)
 				return nil, err
@@ -105,7 +102,7 @@ func (p *privacy) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 			privacyInput := privacy2Privacy.Input
 			for _, keyInput := range privacyInput.Keyinput {
 				value := []byte{1}
-				stateDB := p.GetDB()
+				stateDB := p.GetStateDB()
 				stateDB.Set(keyInput.KeyImage, value)
 				receipt.KV = append(receipt.KV, &types.KeyValue{keyInput.KeyImage, value})
 			}
@@ -144,7 +141,7 @@ func (p *privacy) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 		privacy2public := action.GetPrivacy2Public()
 		if types.BTY == privacy2public.Tokenname {
 			coinsAccount := p.GetCoinsAccount()
-			receipt, err := coinsAccount.ExecDeposit(tx.To, p.GetAddr(), privacy2public.Amount)
+			receipt, err := coinsAccount.TransferToExec(tx.To, p.GetAddr(), privacy2public.Amount)
 			if err != nil {
 				privacylog.Error("Privacy exec ActionPrivacy2Public", "ExecDeposit failed due to ", err)
 				return nil, err
@@ -153,7 +150,7 @@ func (p *privacy) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 			privacyInput := privacy2public.Input
 			for _, keyInput := range privacyInput.Keyinput {
 				value := []byte{1}
-				stateDB := p.GetDB()
+				stateDB := p.GetStateDB()
 				stateDB.Set(keyInput.KeyImage, value)
 				receipt.KV = append(receipt.KV, &types.KeyValue{keyInput.KeyImage, value})
 			}
@@ -295,7 +292,7 @@ func (p *privacy) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData
 	if receipt.GetTy() != types.ExecOk {
 		return set, nil
 	}
-	localDB := p.GetQueryDB()
+	localDB := p.GetLocalDB()
 
 	for i := 0; i < len(receipt.Logs); i++ {
 		item := receipt.Logs[i]
@@ -318,9 +315,9 @@ func (p *privacy) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData
 				//kv2，添加各种不同额度的kv记录，能让我们很方便的获知本系统存在的所有不同的额度的UTXO
 				var amountTypes types.AmountsOfUTXO
 				key2 := CalcprivacyKeyTokenAmountType(token)
-				value2 := localDB.Get(key2)
+				value2, err := localDB.Get(key2)
 				//如果该种token不是第一次进行隐私操作
-				if value2 != nil {
+				if err == nil && value2 != nil {
 					err := types.Decode(value2, &amountTypes)
 					if err == nil {
 						//当本地数据库不存在这个额度时，则进行添加
@@ -344,8 +341,8 @@ func (p *privacy) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData
 				//kv3,添加存在隐私交易token的类型
 				var tokenNames types.TokenNamesOfUTXO
 				key3 := CalcprivacyKeyTokenTypes()
-				value3 := localDB.Get(key3)
-				if value3 != nil {
+				value3, err := localDB.Get(key3)
+				if err == nil && value3 != nil {
 					err := types.Decode(value3, &tokenNames)
 					if err == nil {
 						if settxhash, ok := tokenNames.TokensMap[token]; ok {
@@ -396,11 +393,15 @@ func (p *privacy) Query(funcName string, params []byte) (types.Message, error) {
 //也可以确认币种的碎片化问题
 //显示存在的各种不同的额度的UTXO,如1,3,5,10,20,30,100...
 func (p *privacy) ShowAmountsOfUTXO(reqtoken *types.ReqPrivacyToken) (types.Message, error) {
-	querydb := p.GetQueryDB()
+	querydb := p.GetLocalDB()
 
 	key := CalcprivacyKeyTokenAmountType(reqtoken.Token)
 	replyAmounts := &types.ReplyPrivacyAmounts{}
-	if value := querydb.Get(key); value != nil {
+	value, err := querydb.Get(key)
+	if err != nil {
+		return replyAmounts, err
+	}
+	if value != nil {
 		var amountTypes types.AmountsOfUTXO
 		err := types.Decode(value, &amountTypes)
 		if err == nil {
@@ -419,11 +420,13 @@ func (p *privacy) ShowAmountsOfUTXO(reqtoken *types.ReqPrivacyToken) (types.Mess
 
 //显示在指定额度下的UTXO的具体信息，如区块高度，交易hash，输出索引等具体信息
 func (p *privacy) ShowUTXOs4SpecifiedAmount(reqtoken *types.ReqPrivacyToken) (types.Message, error) {
-	querydb := p.GetQueryDB()
+	querydb := p.GetLocalDB()
 
 	var replyUTXOsOfAmount types.ReplyUTXOsOfAmount
-	list := dbm.NewListHelper(querydb)
-	values := list.List(CalcPrivacyUTXOkeyHeightPrefix(reqtoken.Token, reqtoken.Amount), nil, 0, 0)
+	values, err := querydb.List(CalcPrivacyUTXOkeyHeightPrefix(reqtoken.Token, reqtoken.Amount), nil, 0, 0)
+	if err != nil {
+		return &replyUTXOsOfAmount, err
+	}
 	if len(values) != 0 {
 		for _, value := range values {
 			var localUTXOItem types.LocalUTXOItem

@@ -18,7 +18,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers/manage"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/none"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/norm"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/privacy"
 	privExec "gitlab.33.cn/chain33/chain33/executor/drivers/privacy"
 	_ "gitlab.33.cn/chain33/chain33/executor/drivers/retrieve"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/ticket"
@@ -26,6 +25,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers/trade"
 
 	"gitlab.33.cn/chain33/chain33/client"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/retrieve"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -198,47 +198,6 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 		}
 		receipts = append(receipts, receiptlist...)
 		index += int(tx.GroupCount)
-
-		// TODO: 增加对组交易的支持以后，以下代码应该重构否则肯定有问题
-		//只有到pack级别的，才会增加index
-		receipt, err := execute.Exec(tx, index)
-		index++
-		if err != nil {
-			elog.Error("exec tx error = ", "err", err, "tx", tx)
-			//add error log
-			errlog := &types.ReceiptLog{types.TyLogErr, []byte(err.Error())}
-			feelog.Logs = append(feelog.Logs, errlog)
-		} else {
-			//合并两个receipt，如果执行不返回错误，那么就认为成功
-			if receipt != nil {
-				feelog.KV = append(feelog.KV, receipt.KV...)
-				feelog.Logs = append(feelog.Logs, receipt.Logs...)
-				feelog.Ty = receipt.Ty
-
-				//如果是隐私交易,且目的方为隐私地址，则需要将其KV单独挑出来，以供blockchain使用
-				if types.PrivacyX == string(tx.GetExecer()) {
-					var action types.PrivacyAction
-
-					if nil == types.Decode(tx.Payload, &action) {
-						if action.Ty == types.ActionPublic2Privacy || action.Ty == types.ActionPrivacy2Privacy {
-							privacyKVToken := &types.PrivacyKVToken{
-								KV:      receipt.KV,
-								TxIndex: int32(index),
-								Txhash:  tx.Hash(),
-							}
-							if pub2priv := action.GetPublic2Privacy(); pub2priv != nil {
-								privacyKVToken.Token = pub2priv.Tokenname
-							} else if priv2priv := action.GetPrivacy2Privacy(); priv2priv != nil {
-								privacyKVToken.Token = priv2priv.Tokenname
-							}
-							privacyKV = append(privacyKV, privacyKVToken)
-						}
-					}
-				}
-			}
-		}
-		receipts = append(receipts, feelog)
-		elog.Debug("exec tx = ", "index", index, "execer", string(tx.Execer))
 	}
 
 	receiptsAndPrivacyKV := &types.ReceiptsAndPrivacyKV{
@@ -694,6 +653,7 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 		return err
 	}
 	//checkInExec
+	execer := string(tx.Execer)
 	exec := e.loadDriverForExec(string(tx.Execer), e.height)
 	//手续费检查
 	if !exec.IsFree() && types.MinFee > 0 {

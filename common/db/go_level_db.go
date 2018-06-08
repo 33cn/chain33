@@ -155,6 +155,11 @@ func (db *GoLevelDB) Iterator(prefix []byte, reserve bool) Iterator {
 	return &goLevelDBIt{it, reserve, prefix}
 }
 
+func (db *GoLevelDB) BatchGet(keys [][]byte) (value [][]byte, err error) {
+	panic(errors.New("Need to implement"))
+	return nil, nil
+}
+
 type goLevelDBIt struct {
 	iterator.Iterator
 	reserve bool

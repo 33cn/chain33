@@ -34,12 +34,10 @@ var (
 	ExecerManage     = []byte("manage")
 	ExecerToken      = []byte("token")
 	ExecerEvm        = []byte("evm")
+	ExecerPrivacy    = []byte("privacy")
 	AllowDepositExec = [][]byte{ExecerTicket}
 	AllowUserExec    = [][]byte{ExecerCoins, ExecerTicket, []byte("norm"), []byte("hashlock"),
-		[]byte("retrieve"), []byte("none"), ExecerToken, []byte("trade"), ExecerManage, ExecerEvm}
-	AllowDepositExec = []string{"ticket"}
-	//TODO:修改这种静态的方式为动态注册
-	AllowUserExec          = []string{"coins", "ticket", "hashlock", "retrieve", "none", "token", "trade", "manage", "privacy"}
+		[]byte("retrieve"), []byte("none"), ExecerToken, []byte("trade"), ExecerManage, ExecerEvm, ExecerPrivacy}
 	GenesisAddr            = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 	GenesisBlockTime int64 = 1526486816
 	HotkeyAddr             = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
@@ -73,14 +71,14 @@ var (
 	ForkV15ResetTx0      int64 = 200000
 )
 
-
 var (
 	MinFee             int64 = 1e5
 	MinBalanceTransfer int64 = 1e6
-	FeePerKB                 = MinFee
-	SignatureSize            = (4 + 33 + 65)
+	testNet            bool
+	title              string
+	FeePerKB           = MinFee
+	SignatureSize      = (4 + 33 + 65)
 )
-
 
 func SetTitle(t string) {
 	title = t
@@ -176,9 +174,9 @@ func SetMinFee(fee int64) {
 const (
 	Coin                int64   = 1e8
 	MaxCoin             int64   = 1e17
-	MaxTxSize                   = 100000   //100K
-	MaxTxGroupSize      int32 = 20
-	MaxBlockSize              = 20000000 //20M
+	MaxTxSize                   = 100000 //100K
+	MaxTxGroupSize      int32   = 20
+	MaxBlockSize                = 20000000 //20M
 	MaxTxsPerBlock              = 100000
 	TokenPrecision      int64   = 1e8
 	MaxTokenBalance     int64   = 900 * 1e8 * TokenPrecision //900亿
@@ -321,7 +319,7 @@ const (
 	EventFatalFailure        = 113
 	EventReplyFatalFailure   = 114
 	// Token
-	EventBlockChainQuery = 212
+	EventBlockChainQuery        = 212
 	EventTokenPreCreate         = 200
 	EventReplyTokenPreCreate    = 201
 	EventTokenFinishCreate      = 202
@@ -745,11 +743,3 @@ var MapSellOrderStatusStr2Int = map[string]int32{
 	"soldout": TradeOrderStatusSoldOut,
 	"revoked": TradeOrderStatusRevoked,
 }
-
-//hard fork block height
-const (
-	ForkV1            = 75260
-	ForkV2_add_token  = 100899
-	ForkV3            = 110000
-	ForkV4_add_manage = 120000
-)

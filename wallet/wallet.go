@@ -1,17 +1,17 @@
 package wallet
 
 import (
-	"unsafe"
-	"fmt"
-	"strings"
-	"sync"
-	"time"
 	"bytes"
-	"math/rand"
-	"sync/atomic"
-	"encoding/hex"
 	"crypto/aes"
 	"crypto/cipher"
+	"encoding/hex"
+	"fmt"
+	"math/rand"
+	"strings"
+	"sync"
+	"sync/atomic"
+	"time"
+	"unsafe"
 
 	"github.com/golang/protobuf/proto"
 	log "github.com/inconshreveable/log15"
@@ -66,8 +66,8 @@ type Wallet struct {
 	random           *rand.Rand
 	cfg              *types.Wallet
 	done             chan struct{}
-	privacyActive  map[string]map[string]*walletUTXOs //不同token类型对应的公开地址拥有的隐私存款记录，map[token]map[addr]
-	privacyFrozen  map[string]string                  //[交易hash]sender
+	privacyActive    map[string]map[string]*walletUTXOs //不同token类型对应的公开地址拥有的隐私存款记录，map[token]map[addr]
+	privacyFrozen    map[string]string                  //[交易hash]sender
 }
 
 type walletUTXOs struct {
@@ -107,19 +107,19 @@ func New(cfg *types.Wallet) *Wallet {
 	SignType = signType
 
 	wallet := &Wallet{
-		walletStore:    walletStore,
+		walletStore:      walletStore,
 		isWalletLocked:   1,
 		isTicketLocked:   1,
 		autoMinerFlag:    0,
 		fatalFailureFlag: 0,
-		wg:             &sync.WaitGroup{},
-		FeeAmount:      walletStore.GetFeeAmount(),
-		EncryptFlag:    walletStore.GetEncryptionFlag(),
-		miningTicket:   time.NewTicker(2 * time.Minute),
-		done:           make(chan struct{}),
+		wg:               &sync.WaitGroup{},
+		FeeAmount:        walletStore.GetFeeAmount(),
+		EncryptFlag:      walletStore.GetEncryptionFlag(),
+		miningTicket:     time.NewTicker(2 * time.Minute),
+		done:             make(chan struct{}),
 		cfg:              cfg,
-		privacyActive:  make(map[string]map[string]*walletUTXOs),
-		privacyFrozen:  make(map[string]string),
+		privacyActive:    make(map[string]map[string]*walletUTXOs),
+		privacyFrozen:    make(map[string]string),
 	}
 	value, _ := walletStore.db.Get([]byte("WalletAutoMiner"))
 	if value != nil && string(value) == "1" {
@@ -1382,20 +1382,20 @@ func (wallet *Wallet) ProcWalletSetPasswd(Passwd *types.ReqWalletSetPasswd) erro
 
 	// 钱包已经加密需要验证oldpass的正确性
 	if len(wallet.Password) == 0 && wallet.EncryptFlag == 1 {
-		isok := wallet.walletStore.VerifyPasswordHash(Passwd.OldPass)
+		isok := wallet.walletStore.VerifyPasswordHash(Passwd.GetOldpass())
 		if !isok {
 			walletlog.Error("ProcWalletSetPasswd Verify Oldpasswd fail!")
 			return types.ErrVerifyOldpasswdFail
 		}
 	}
 
-	if len(wallet.Password) != 0 && Passwd.OldPass != wallet.Password {
+	if len(wallet.Password) != 0 && Passwd.GetOldpass() != wallet.Password {
 		walletlog.Error("ProcWalletSetPasswd Oldpass err!")
 		return types.ErrVerifyOldpasswdFail
 	}
 
 	//使用新的密码生成passwdhash用于下次密码的验证
-	err = wallet.walletStore.SetPasswordHash(Passwd.NewPass)
+	err = wallet.walletStore.SetPasswordHash(Passwd.GetNewpass())
 	if err != nil {
 		walletlog.Error("ProcWalletSetPasswd", "SetPasswordHash err", err)
 		return err
@@ -1407,12 +1407,12 @@ func (wallet *Wallet) ProcWalletSetPasswd(Passwd *types.ReqWalletSetPasswd) erro
 		return err
 	}
 	//使用old密码解密seed然后用新的钱包密码重新加密seed
-	seed, err := wallet.getSeed(Passwd.OldPass)
+	seed, err := wallet.getSeed(Passwd.GetOldpass())
 	if err != nil {
 		walletlog.Error("ProcWalletSetPasswd", "getSeed err", err)
 		return err
 	}
-	ok, err := SaveSeed(wallet.walletStore.db, seed, Passwd.NewPass)
+	ok, err := SaveSeed(wallet.walletStore.db, seed, Passwd.GetNewpass())
 	if !ok {
 		walletlog.Error("ProcWalletSetPasswd", "SaveSeed err", err)
 		return err
@@ -1431,10 +1431,10 @@ func (wallet *Wallet) ProcWalletSetPasswd(Passwd *types.ReqWalletSetPasswd) erro
 			walletlog.Error("ProcWalletSetPasswd", "addr", AccStore.Addr, "FromHex err", err)
 			continue
 		}
-		Decrypter := CBCDecrypterPrivkey([]byte(Passwd.OldPass), storekey)
+		Decrypter := CBCDecrypterPrivkey([]byte(Passwd.GetOldpass()), storekey)
 
 		//使用新的密码重新加密私钥
-		Encrypter := CBCEncrypterPrivkey([]byte(Passwd.NewPass), Decrypter)
+		Encrypter := CBCEncrypterPrivkey([]byte(Passwd.GetNewpass()), Decrypter)
 		AccStore.Privkey = common.ToHex(Encrypter)
 		err = wallet.walletStore.SetWalletAccount(true, AccStore.Addr, AccStore)
 		if err != nil {
@@ -1442,7 +1442,7 @@ func (wallet *Wallet) ProcWalletSetPasswd(Passwd *types.ReqWalletSetPasswd) erro
 		}
 	}
 
-	wallet.Password = Passwd.NewPass
+	wallet.Password = Passwd.GetNewpass()
 	return nil
 }
 
@@ -1589,37 +1589,18 @@ func (wallet *Wallet) buildAndStoreWalletTxDetail(tx *types.Transaction, block *
 			return
 		}
 
-		//from addr
-		fromaddress := addr.String()
-		if len(fromaddress) != 0 && wallet.AddrInWallet(fromaddress) {
-			newbatch.Set(calcTxKey(heightstr), txdetailbyte)
-			walletlog.Debug("ProcWalletAddBlock", "fromaddress", fromaddress, "heightstr", heightstr)
-			continue
-		}
+		newbatch.Set([]byte(calcTxKey(heightstr)), txdetailbyte)
+		//if isprivacy {
+		//	newbatch.Set([]byte(calcRecvPrivacyTxKey(heightstr)), txdetailbyte)
+		//}
+	} else {
+		newbatch.Delete([]byte(calcTxKey(heightstr)))
+		//if isprivacy {
+		//	newbatch.Delete([]byte(calcRecvPrivacyTxKey(heightstr)))
+		//}
+	}
 
-		//toaddr
-		toaddr := block.Block.Txs[index].GetTo()
-		if len(toaddr) != 0 && wallet.AddrInWallet(toaddr) {
-			newbatch.Set(calcTxKey(heightstr), txdetailbyte)
-			walletlog.Debug("ProcWalletAddBlock", "toaddr", toaddr, "heightstr", heightstr)
-		}
-
-		if "ticket" == string(block.Block.Txs[index].Execer) {
-			tx := block.Block.Txs[index]
-			receipt := block.Receipts[index]
-			if wallet.needFlushTicket(tx, receipt) {
-				needflush = true
-			}
-		}
-	}
-	err := newbatch.Write()
-	if err != nil {
-		walletlog.Error("ProcWalletAddBlock newbatch.Write", "err", err)
-		atomic.CompareAndSwapInt32(&wallet.fatalFailureFlag, 0, 1)
-	}
-	if needflush {
-		//wallet.flushTicket()
-	}
+	walletlog.Debug("buildAndStoreWalletTxDetail", "heightstr", heightstr, "addDelType", addDelType)
 }
 
 func (wallet *Wallet) needFlushTicket(tx *types.Transaction, receipt *types.ReceiptData) bool {
@@ -1859,8 +1840,8 @@ func (wallet *Wallet) AddDelPrivacyTxsFromBlock(tx *types.Transaction, index int
 		//TODO: 区块回撤的问题，还需要仔细梳理逻辑处理, added by hezhengjun
 		blockheight := block.Block.Height*maxTxNumPerBlock + int64(index)
 		heightstr := fmt.Sprintf("%018d", blockheight)
-		value := wallet.walletStore.db.Get((calcTxKey(heightstr)))
-		if nil != value {
+		value, err := wallet.walletStore.db.Get((calcTxKey(heightstr)))
+		if err == nil && nil != value {
 			var txdetail types.WalletTxDetail
 			err := types.Decode(value, &txdetail)
 			if err != nil {
@@ -2156,8 +2137,8 @@ func (wallet *Wallet) saveSeed(password string, seed string) (bool, error) {
 	//seed保存成功需要更新钱包密码
 	if ok {
 		var ReqWalletSetPasswd types.ReqWalletSetPasswd
-		ReqWalletSetPasswd.OldPass = password
-		ReqWalletSetPasswd.NewPass = password
+		ReqWalletSetPasswd.Oldpass = password
+		ReqWalletSetPasswd.Newpass = password
 		Err := wallet.ProcWalletSetPasswd(&ReqWalletSetPasswd)
 		if Err != nil {
 			walletlog.Error("saveSeed", "ProcWalletSetPasswd err", err)
@@ -2244,7 +2225,6 @@ func (wallet *Wallet) getFatalFailure() int32 {
 	return atomic.LoadInt32(&wallet.fatalFailureFlag)
 }
 
-
 func (wallet *Wallet) getPrivacykeyPair(addr string) (*privacy.Privacy, error) {
 	if accPrivacy, _ := wallet.walletStore.GetWalletAccountPrivacy(addr); accPrivacy != nil {
 		privacyInfo := &privacy.Privacy{}
@@ -2321,7 +2301,7 @@ func (wallet *Wallet) showPrivacyPkPair(reqAddr *types.ReqStr) (*types.ReplyPriv
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
 
-	privacyInfo, err := wallet.getPrivacykeyPair(reqAddr.GetReqstr())
+	privacyInfo, err := wallet.getPrivacykeyPair(reqAddr.GetReqStr())
 	if err != nil {
 		return nil, err
 	}
