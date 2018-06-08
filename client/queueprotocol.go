@@ -720,6 +720,7 @@ func (q *QueueProtocol) SignRawTx(param *types.ReqSignRawTx) (*types.ReplySignRa
 		Privkey: param.GetPrivkey(),
 		TxHex:   param.GetTxHex(),
 		Expire:  param.GetExpire(),
+		Index:   param.GetIndex(),
 	}
 	msg, err := q.query(walletKey, types.EventSignRawTx, data)
 	if err != nil {

@@ -236,6 +236,7 @@ func (c *Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 		//hb := common.FromHex(v)
 		hb, err := common.FromHex(v)
 		if err != nil {
+			parm.Hashes = append(parm.Hashes, nil)
 			continue
 		}
 		parm.Hashes = append(parm.Hashes, hb)
@@ -264,6 +265,7 @@ func (c *Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 			}
 			recpResult, err = DecodeLog(&recp)
 			if err != nil {
+				txdetails.Txs = append(txdetails.Txs, nil)
 				continue
 			}
 			txProofs := tx.GetProofs()
@@ -272,6 +274,7 @@ func (c *Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 			}
 			tran, err := DecodeTx(tx.GetTx())
 			if err != nil {
+				txdetails.Txs = append(txdetails.Txs, nil)
 				continue
 			}
 			txdetails.Txs = append(txdetails.Txs,
@@ -914,12 +917,14 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 
 func decodeUserWrite(payload []byte) *userWrite {
 	var article userWrite
-	if payload[0] == '#' {
-		data := bytes.SplitN(payload[1:], []byte("#"), 2)
-		if len(data) == 2 {
-			article.Topic = string(data[0])
-			article.Content = string(data[1])
-			return &article
+	if len(payload) != 0 {
+		if payload[0] == '#' {
+			data := bytes.SplitN(payload[1:], []byte("#"), 2)
+			if len(data) == 2 {
+				article.Topic = string(data[0])
+				article.Content = string(data[1])
+				return &article
+			}
 		}
 	}
 	article.Topic = ""

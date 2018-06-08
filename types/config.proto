@@ -59,6 +59,8 @@ message Consensus {
 	string readOnlyPeersURL = 17;
 	string addPeersURL = 18;
 	int64 defaultSnapCount = 19;
+	int64 writeBlockSeconds = 20;
+	int32 heartbeatTick = 21;
 }
 
 message Wallet {
