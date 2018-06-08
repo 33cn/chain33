@@ -102,6 +102,19 @@ func tradePayloadType(funcname string) (proto.Message, error) {
 	return req, nil
 }
 
+func privacyPayloadType(funcname string) (proto.Message, error) {
+	var req proto.Message
+	switch funcname {
+	case "ShowAmountsOfUTXO":
+		req = &types.ReqPrivacyToken{}
+	case "ShowUTXOs4SpecifiedAmount":
+		req = &types.ReqPrivacyToken{}
+	default:
+		return nil, types.ErrInputPara
+	}
+	return req, nil
+}
+
 func payloadType(execer, funcname string) (proto.Message, error) {
 	switch execer {
 	case "token":
@@ -118,6 +131,8 @@ func payloadType(execer, funcname string) (proto.Message, error) {
 		return tradePayloadType(funcname)
 	case "user.evm":
 		return evmPayloadType(funcname)
+	case "privacy":
+		return privacyPayloadType(funcname)
 	}
 	return nil, types.ErrInputPara
 }
