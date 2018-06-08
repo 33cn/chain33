@@ -4,8 +4,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-// const SETUP = 50
-
 var (
 	currentBlockHashKey      = []byte("4062c3e6baa0ef4bc5917572c3b9aeaa5dc24f8ef008f38bcd401af6e80f257c")
 	currentBtcBlockheightKey = []byte("000007bc077cc540821f06280c4c2f04e036931f21ea3b1bf509b972cbbef5ca")
@@ -13,11 +11,6 @@ var (
 	zeroBlockHeader          = []byte("")
 )
 
-// "hash":"000000000000000000223cbf6c473a4dedf6ebe19d17879eafc41f38ad1fdf1d",
-// "time":1525416364,
-// "block_index":1699623,
-// "height":521142,
-// "txIndexes":[346057141]
 type LatestBlock struct {
 	Hash       string   `json:"hash"`
 	Time       int64    `json:"time"`
@@ -44,21 +37,36 @@ type Header struct {
 	RelayedBy    string  `json:"relayed_by"`
 }
 
-func (h Header) BtcHeader() *types.BtcHeader {
+func (b *Block) BtcHeader() *types.BtcHeader {
 	return &types.BtcHeader{
-		Hash:         h.Hash,
-		Height:       h.Height,
-		MerkleRoot:   h.MerkleRoot,
-		Time:         h.Time,
-		Nonce:        h.Nonce,
-		Bits:         h.Bits,
-		PreviousHash: h.PrevBlock,
+		Hash:         b.Hash,
+		Height:       b.Height,
+		MerkleRoot:   b.MerkleRoot,
+		Time:         b.Time,
+		Nonce:        b.Nonce,
+		Bits:         b.Bits,
+		PreviousHash: b.PrevBlock,
 	}
 }
 
 type Block struct {
-	Header
-	Tx []TransactionDetails `json:"tx"`
+	// Header
+	Hash         string               `json:"hash"`
+	Ver          uint64               `json:"ver"`
+	PrevBlock    string               `json:"prev_block"`
+	MerkleRoot   string               `json:"mrkl_root"`
+	Time         int64                `json:"time"`
+	Bits         int64                `json:"bits"`
+	Fee          float64              `json:"fee,omitempty"`
+	Nonce        int64                `json:"nonce"`
+	TxNum        uint64               `json:"n_tx"`
+	Size         uint64               `json:"size"`
+	BlockIndex   uint64               `json:"block_index"`
+	MainChain    bool                 `json:"main_chain"`
+	Height       uint64               `json:"height"`
+	ReceivedTime int64                `json:"received_time"`
+	RelayedBy    string               `json:"relayed_by"`
+	Tx           []TransactionDetails `json:"tx"`
 }
 
 type TransactionDetails struct {
