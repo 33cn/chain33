@@ -516,9 +516,7 @@ func (cs *ConsensusState) newStep() {
 }
 
 func (cs *ConsensusState) NewTxsAvailable(height int64) {
-	cs.Logger.Info("NewTxsAvailable in", "height", height)
 	cs.NewTxsHeight <- height
-	cs.Logger.Info("NewTxsAvailable out")
 }
 
 //-----------------------------------------
@@ -662,12 +660,14 @@ func (cs *ConsensusState) handleTimeout(ti timeoutInfo, rs ttypes.RoundState) {
 }
 
 func (cs *ConsensusState) handleTxsAvailable(height int64) {
-	fmt.Printf("in handleTxsAvailable\n")
 	cs.mtx.Lock()
 	defer cs.mtx.Unlock()
 	// we only need to do this for round 0
+	if cs.Height - height == 1 {
+		height = cs.Height
+		cs.Logger.Info("handleTxsAvailable height not sync ignore, just use cs.height")
+	}
 	cs.enterPropose(height, 0)
-	fmt.Printf("enterPropose over\n")
 }
 
 //-----------------------------------------------------------------------------
@@ -697,9 +697,9 @@ func (cs *ConsensusState) enterNewRound(height int64, round int) {
 	if cs.Round < round {
 		validators = validators.Copy()
 		validators.IncrementAccum(round - cs.Round)
-		cs.Logger.Info("enterNewRound validator changed", "csr", cs.Round, "round", round)
+		cs.Logger.Debug("enterNewRound validator changed", "csr", cs.Round, "round", round)
 	}
-	cs.Logger.Info("enterNewRound proposer ", "proposer", validators.Proposer, "validators", validators)
+	cs.Logger.Debug("enterNewRound proposer ", "proposer", validators.Proposer, "validators", validators)
 	// Setup new round
 	// we don't fire newStep for this step,
 	// but we fire an event, so update the round step first
@@ -739,7 +739,7 @@ func (cs *ConsensusState) needProofBlock(height int64) bool {
 	if height == 1 {
 		return true
 	}
-	cs.Logger.Info("needProofBlock", "height", height)
+
 	/*
 		lastBlockMeta := cs.client.LoadBlockMeta(height - 1)
 		cs.Logger.Info("needProofBlock", "lastBlockMeta", lastBlockMeta, "apphash", cs.state.AppHash, "headerhash", lastBlockMeta.Header.AppHash)
@@ -830,7 +830,6 @@ func (cs *ConsensusState) isProposer() bool {
 }
 
 func (cs *ConsensusState) defaultDecideProposal(height int64, round int) {
-	cs.Logger.Info("defaultDecideProposal")
 
 	var block *ttypes.Block
 	var blockParts *ttypes.PartSet
@@ -865,8 +864,7 @@ func (cs *ConsensusState) defaultDecideProposal(height int64, round int) {
 			part := blockParts.GetPart(i)
 			cs.sendInternalMessage(msgInfo{&ttypes.BlockPartMessage{cs.Height, cs.Round, part}, ""})
 		}
-		cs.Logger.Info("Signed proposal", "height", height, "round", round, "proposal", proposal)
-		cs.Logger.Debug(fmt.Sprintf("Signed proposal block: %v", block))
+		cs.Logger.Debug("Signed proposal", "height", height, "round", round, "proposal", proposal, "block", block)
 	} else {
 		if !cs.replayMode {
 			cs.Logger.Error("enterPropose: Error signing proposal", "height", height, "round", round, "err", err)
@@ -1269,13 +1267,10 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 		panic(fmt.Sprintf("Panicked on a Sanity Check: %v", fmt.Sprintf("+2/3 committed an invalid block: %v", err)))
 	}
 
-	cs.Logger.Info(fmt.Sprintf("Finalizing commit of block with %d txs", block.NumTxs),
+	cs.Logger.Info("Finalizing commit of block ", "tx_numbers", block.NumTxs,
 		"height", block.Height, "hash", block.Hash(), "root", block.AppHash)
-	cs.Logger.Info(fmt.Sprintf("%v", block))
 
 	stateCopy := cs.state.Copy()
-
-	cs.Logger.Info("round state 0", "state", cs.RoundState)
 
 	// NOTE: the block.AppHash wont reflect these txs until the next block
 	var err error
@@ -1316,7 +1311,7 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 		newSeenCommit, newLastCommit := ttypes.SaveCommits(lastCommit, seenCommit)
 		newState := sm.SaveState(stateCopy)
 
-		cs.Logger.Info("blockid info", "seen commit", seenCommit.StringIndented("seen"),"last commit", lastCommit.StringIndented("last"), "state", stateCopy)
+		//cs.Logger.Info("blockid info", "seen commit", seenCommit.StringIndented("seen"),"last commit", lastCommit.StringIndented("last"), "state", stateCopy)
 
 		tx0 := ttypes.CreateBlockInfoTx(cs.blockStore.GetPubkey(), newLastCommit, newSeenCommit, newState)
 		newblock.Txs = append([]*types.Transaction{tx0}, newblock.Txs...)
@@ -1334,7 +1329,7 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 
 		err = cs.client.WriteBlock(block.LastStateHash, &newblock)
 		if err != nil {
-			cs.Logger.Info("finalizeCommit:WriteBlock failed, NewTxsFinished set false", "Error", err)
+			cs.Logger.Error("finalizeCommit:WriteBlock failed, NewTxsFinished set false", "Error", err)
 			cs.NewTxsFinished <- false
 			//windows not support
 			//err := cmn.Kill()
@@ -1348,20 +1343,21 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 				cs.Logger.Info("finalizeCommit:get current height equal or higher", "p2p-height", cs.client.GetCurrentHeight(), "consensus-height", block.Height)
 				break
 			} else {
-				cs.Logger.Info("finalizeCommit:get current height not equal", "cur", cs.client.GetCurrentHeight(), "height", block.Height)
-				time.Sleep(10 * time.Millisecond)
+				cs.Logger.Info("finalizeCommit:get current height not equal", "cur", cs.client.GetCurrentHeight(), "height", block.Height, "times", times)
+				time.Sleep(100 * time.Millisecond)
 				times++
 				//wait 30s
-				if times >= 3000 {
-					cs.scheduleTimeout(cs.Precommit(cs.CommitRound), height, cs.CommitRound, ttypes.RoundStepPrecommitWait)
-					cs.updateRoundStep(cs.CommitRound, ttypes.RoundStepPrecommitWait)
-					cs.newStep()
-					return
+				if times >= 30 {
+					//cs.scheduleTimeout(cs.Precommit(cs.CommitRound), height, cs.CommitRound, ttypes.RoundStepPrecommitWait)
+					//cs.updateRoundStep(cs.CommitRound, ttypes.RoundStepPrecommitWait)
+					//cs.newStep()
+					//return
+					break
 				}
 			}
 		}
 	}
-	cs.Logger.Info("NewTxsFinished set true")
+	cs.Logger.Debug("NewTxsFinished set true")
 	cs.NewTxsFinished <- true
 
 	//fail.Fail() // XXX
@@ -1373,7 +1369,7 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 
 	// cs.StartTime is already set.
 	// Schedule Round0 to start soon.
-	cs.Logger.Info("round state 1", "state", cs.RoundState)
+	cs.Logger.Debug("round state 1", "state", cs.RoundState)
 	cs.scheduleRound0(&cs.RoundState)
 
 	// By here,
@@ -1387,16 +1383,15 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 //-----------------------------------------------------------------------------
 
 func (cs *ConsensusState) defaultSetProposal(proposalTrans *ttypes.ProposalTrans) error {
-	cs.Logger.Info("enter defaultSetProposal")
 	proposal, err := ttypes.ProposalTransToProposal(proposalTrans)
 	if err != nil {
-		cs.Logger.Info("defaultSetProposal:", "msg", "ProposalTransToProposal failed", "err", err)
+		cs.Logger.Error("defaultSetProposal:", "msg", "ProposalTransToProposal failed", "err", err)
 		return nil
 	}
 	// Already have one
 	// TODO: possibly catch double proposals
 	if cs.Proposal != nil {
-		cs.Logger.Info("defaultSetProposal:", "msg", "proposal is nil")
+		cs.Logger.Error("defaultSetProposal:", "msg", "proposal is nil")
 		return nil
 	}
 
@@ -1430,23 +1425,21 @@ func (cs *ConsensusState) defaultSetProposal(proposalTrans *ttypes.ProposalTrans
 
 	cs.Proposal = proposal
 	cs.ProposalBlockParts = ttypes.NewPartSetFromHeader(proposal.BlockPartsHeader)
-	cs.Logger.Info("finish defaultSetProposal")
 	return nil
 }
 
 // NOTE: block is not necessarily valid.
 // Asynchronously triggers either enterPrevote (before we timeout of propose) or tryFinalizeCommit, once we have the full block.
 func (cs *ConsensusState) addProposalBlockPart(height int64, part *ttypes.Part, verify bool) (added bool, err error) {
-	cs.Logger.Info("enter addProposalBlockPart")
 	// Blocks might be reused, so round mismatch is OK
 	if cs.Height != height {
-		cs.Logger.Info("addProposalBlockPart:", "msg", "height not equal")
+		cs.Logger.Error("addProposalBlockPart:", "msg", "height not equal")
 		return false, nil
 	}
 
 	// We're not expecting a block part.
 	if cs.ProposalBlockParts == nil {
-		cs.Logger.Info("addProposalBlockPart:", "msg", "ProposalBlockParts is nil")
+		cs.Logger.Error("addProposalBlockPart:", "msg", "ProposalBlockParts is nil")
 		return false, nil // TODO: bad peer? Return error?
 	}
 
@@ -1470,7 +1463,7 @@ func (cs *ConsensusState) addProposalBlockPart(height int64, part *ttypes.Part, 
 			cs.Logger.Error("addProposalBlockPart read data failed", "n", n, "error", err)
 			return true, err
 		}
-		cs.Logger.Info("databuf","data", string(dataBuf))
+		cs.Logger.Debug("databuf","data", string(dataBuf))
 		var block ttypes.Block
 		err = json.Unmarshal(dataBuf, &block)
 		if err != nil {
@@ -1480,7 +1473,7 @@ func (cs *ConsensusState) addProposalBlockPart(height int64, part *ttypes.Part, 
 		cs.ProposalBlock = &block
 
 		// NOTE: it's possible to receive complete proposal blocks for future rounds without having the proposal
-		cs.Logger.Info("Received complete proposal block", "height", cs.ProposalBlock.Height, "hash", cs.ProposalBlock.Hash())
+		cs.Logger.Debug("Received complete proposal block", "height", cs.ProposalBlock.Height, "hash", cs.ProposalBlock.Hash())
 		if cs.Step == ttypes.RoundStepPropose && cs.isProposalComplete() {
 			// Move onto the next step
 			cs.enterPrevote(height, cs.Round)
@@ -1490,7 +1483,6 @@ func (cs *ConsensusState) addProposalBlockPart(height int64, part *ttypes.Part, 
 		}
 		return true, err
 	}
-	cs.Logger.Info("finish addProposalBlockPart:")
 	return added, nil
 }
 

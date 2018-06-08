@@ -158,7 +158,7 @@ func (chain *BlockChain) addBlockDetail(msg queue.Message) {
 	reply.IsOk = true
 	blockDetail = msg.Data.(*types.BlockDetail)
 
-	chainlog.Info("EventAddBlockDetail", "height", blockDetail.Block.Height, "hash", common.HashHex(blockDetail.Block.Hash()))
+	chainlog.Debug("EventAddBlockDetail", "height", blockDetail.Block.Height, "hash", common.HashHex(blockDetail.Block.Hash()))
 
 	err := chain.ProcAddBlockMsg(true, blockDetail, "self")
 	if err != nil {

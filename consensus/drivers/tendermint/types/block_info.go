@@ -65,7 +65,7 @@ func LoadVotes(des []*Vote, source []*gtypes.Vote) {
 		des[i].ValidatorAddress = item.ValidatorAddress
 		des[i].ValidatorIndex = int(item.ValidatorIndex)
 		des[i].Timestamp = time.Unix(0, item.Timestamp)
-		bilog.Info("load votes", "i", i, "source", item, "des", des[i])
+		//bilog.Info("load votes", "i", i, "source", item, "des", des[i])
 	}
 }
 
@@ -74,7 +74,7 @@ func SaveVotes(des []*gtypes.Vote, source []*Vote) {
 
 		if item == nil {
 			des[i] = &gtypes.Vote{Height:-1, BlockID:&gtypes.BlockID{PartsHeader:&gtypes.PartSetHeader{}}}
-			bilog.Info("SaveVotes-item=nil")
+			bilog.Debug("SaveVotes-item=nil")
 			continue
 		}
 
@@ -93,7 +93,7 @@ func SaveVotes(des []*gtypes.Vote, source []*Vote) {
 		des[i].ValidatorAddress = item.ValidatorAddress
 		des[i].ValidatorIndex = int32(item.ValidatorIndex)
 		des[i].Timestamp = item.Timestamp.UnixNano()
-		bilog.Info("save votes", "i", i, "source", item, "des", des[i])
+		//bilog.Info("save votes", "i", i, "source", item, "des", des[i])
 	}
 
 }
@@ -102,11 +102,11 @@ func SaveCommits(lastCommitVotes *Commit, seenCommitVotes *Commit) (*gtypes.Tend
 	newLastCommitVotes := make([]*gtypes.Vote, len(lastCommitVotes.Precommits))
 	newSeenCommitVotes := make([]*gtypes.Vote, len(seenCommitVotes.Precommits))
 	if len(lastCommitVotes.Precommits) > 0 {
-		bilog.Info("SaveCommits","lastCommitVotes",lastCommitVotes.StringIndented("last"))
+		bilog.Debug("SaveCommits","lastCommitVotes",lastCommitVotes.StringIndented("last"))
 		SaveVotes(newLastCommitVotes, lastCommitVotes.Precommits)
 	}
 	if len(seenCommitVotes.Precommits) > 0 {
-		bilog.Info("SaveCommits","seenCommitVotes",seenCommitVotes.StringIndented("seen"))
+		bilog.Debug("SaveCommits","seenCommitVotes",seenCommitVotes.StringIndented("seen"))
 		SaveVotes(newSeenCommitVotes, seenCommitVotes.Precommits)
 	}
 	lastCommit := &gtypes.TendermintCommit{
@@ -201,7 +201,7 @@ func CreateBlockInfoTx(pubkey string, lastCommit *gtypes.TendermintCommit, seenC
 		LastCommit:lastCommit,
 		State:state,
 	}
-	bilog.Info("CreateBlockInfoTx", "validators", blockInfo.State.Validators.Validators)
+	bilog.Debug("CreateBlockInfoTx", "validators", blockInfo.State.Validators.Validators)
 
 	nput := &gtypes.NormAction_Nput{&gtypes.NormPut{Key: "BlockInfo", Value: gtypes.Encode(blockInfo)}}
 	action := &gtypes.NormAction{Value: nput, Ty: gtypes.NormActionPut}

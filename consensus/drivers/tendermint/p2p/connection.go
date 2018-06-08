@@ -181,7 +181,6 @@ func (c *MConnection) OnStart() error {
 		return err
 	}
 
-	c.Logger.Info(fmt.Sprintf("Starting mconn"))
 	c.quit = make(chan struct{})
 	c.flushTimer = cmn.NewThrottleTimer("flush", c.config.flushThrottle)
 	c.pingTimer = cmn.NewRepeatTimer("ping", pingTimeout)
@@ -194,7 +193,6 @@ func (c *MConnection) OnStart() error {
 // OnStop implements BaseService
 func (c *MConnection) OnStop() {
 	c.BaseService.OnStop()
-	c.Logger.Info("Stopping mconn")
 	c.flushTimer.Stop()
 	c.pingTimer.Stop()
 	c.chStatsTimer.Stop()

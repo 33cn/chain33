@@ -520,7 +520,7 @@ func (sw *Switch) reconnectToPeer(peer Peer) {
 
 		peer, err := sw.DialPeerWithAddress(addr, true)
 		if err != nil {
-			sw.Logger.Info("Error reconnecting to peer. Trying again", "tries", i, "err", err, "peer", peer)
+			sw.Logger.Error("Error reconnecting to peer. Trying again", "tries", i, "err", err, "peer", peer)
 			// sleep a set amount
 			sw.randomSleep(reconnectInterval)
 			continue
@@ -542,7 +542,7 @@ func (sw *Switch) reconnectToPeer(peer Peer) {
 		sw.randomSleep(time.Duration(sleepIntervalSeconds) * time.Second)
 		peer, err := sw.DialPeerWithAddress(addr, true)
 		if err != nil {
-			sw.Logger.Info("Error reconnecting to peer. Trying again", "tries", i, "err", err, "peer", peer)
+			sw.Logger.Error("Error reconnecting to peer. Trying again", "tries", i, "err", err, "peer", peer)
 			continue
 		} else {
 			sw.Logger.Info("Reconnected to peer", "peer", peer)
@@ -577,7 +577,7 @@ func (sw *Switch) listenerRoutine(l Listener) {
 		// ignore connection if we already have enough
 		maxPeers := sw.config.MaxNumPeers
 		if maxPeers <= sw.peers.Size() {
-			sw.Logger.Info("Ignoring inbound connection: already have enough peers", "address", inConn.RemoteAddr().String(), "numPeers", sw.peers.Size(), "max", maxPeers)
+			sw.Logger.Debug("Ignoring inbound connection: already have enough peers", "address", inConn.RemoteAddr().String(), "numPeers", sw.peers.Size(), "max", maxPeers)
 			continue
 		}
 
