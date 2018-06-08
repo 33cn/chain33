@@ -35,13 +35,20 @@ func GeneratePrivateKey(keystorePath string) (bccsp.Key,
 	var s crypto.Signer
 
 	opts := &factory.FactoryOpts{
+		ProviderName: "SW",
+		SwOpts: &factory.SwOpts{
 			HashFamily: "SHA2",
 			SecLevel:   256,
+
+			FileKeystore: &factory.FileKeystoreOpts{
+				KeyStorePath: keystorePath,
+			},
+		},
 	}
+
 	csp, err := factory.GetBCCSPFromOpts(opts)
 	var suite cryptosuite.CryptoSuite
 	var wrapperkey bccsp.Key
-
 	suite.BCCSP = csp
 	if err == nil {
 		// generate a key
