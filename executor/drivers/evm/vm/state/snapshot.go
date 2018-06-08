@@ -195,10 +195,11 @@ func (ch nonceChange) revert(mdb *MemoryStateDB) {
 }
 
 func (ch nonceChange) getData(mdb *MemoryStateDB) []*types.KeyValue {
-	acc := mdb.accounts[ch.account]
-	if acc != nil {
-		return acc.GetStateKV()
-	}
+	// nonce目前没有应用场景，而且每次调用都会变更，暂时先不写到状态数据库中
+	//acc := mdb.accounts[ch.account]
+	//if acc != nil {
+	//	return acc.GetStateKV()
+	//}
 	return nil
 }
 

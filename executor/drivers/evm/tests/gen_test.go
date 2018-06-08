@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"text/template"
 )
 
@@ -62,6 +63,11 @@ func scanTestData(basePath string) {
 			re := regexp.MustCompile("([0-9]+)")
 			match := re.FindStringSubmatch(basename)
 			num := match[1]
+			number, _ := strconv.Atoi(num)
+			if testCaseFilter.filter(number) {
+				return nil
+			}
+
 			key := fmt.Sprintf("tpl_%s.json", num)
 			value := fmt.Sprintf("data_%s.json", num)
 			keyFile := basePath + string(filepath.Separator) + key

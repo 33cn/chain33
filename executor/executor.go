@@ -237,6 +237,16 @@ func isAllowExec(key, txexecer []byte, toaddr string, height int64) bool {
 			}
 		}
 	}
+
+	// user.evm 的交易，使用evm执行器
+	// 这部分判断逻辑不能放到前面几步，因为它修改了txexecer，会影响别的判断逻辑
+	if bytes.HasPrefix(txexecer, []byte("user.evm.")) {
+		txexecer = types.ExecerEvm
+		if bytes.Equal(keyexecer, txexecer) {
+			return true
+		}
+	}
+
 	return false
 }
 
