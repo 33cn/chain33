@@ -74,6 +74,7 @@ func SetTitle(t string) {
 		ForkV13ExecKey = 1
 		ForkV14TxGroup = 1
 		ForkV15ResetTx0 = 1
+		ForkV16Withdraw = 1
 		return
 	}
 }
@@ -169,6 +170,7 @@ const (
 	TokenIntroLenLimit        = 1024
 	InvalidStartTime          = 0
 	InvalidStopTime           = 0
+	MaxExecNameLength         = 100
 )
 
 // event

@@ -17,7 +17,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/runtime"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/state"
 	"gitlab.33.cn/chain33/chain33/types"
-	"math/big"
 )
 
 func TestVM(t *testing.T) {
@@ -34,6 +33,15 @@ func TestVM(t *testing.T) {
 
 	//清空测试用例
 	defer clearTestCase(basePath)
+}
+
+type CaseFilter struct{}
+
+var testCaseFilter = &CaseFilter{}
+
+// 满足过滤条件的用例将不被执行
+func (filter *CaseFilter) filter(num int) bool {
+	return num > 4
 }
 
 func runTestCase(t *testing.T, basePath string) {
@@ -96,7 +104,6 @@ func runCase(tt *testing.T, c VMCase, file string) {
 	msg := buildMsg(c)
 	context := inst.NewEVMContext(msg)
 	context.Coinbase = common.StringToAddress(c.env.currentCoinbase)
-
 
 	// 3 调用执行逻辑 call
 	env := runtime.NewEVM(context, statedb, *vmcfg)
