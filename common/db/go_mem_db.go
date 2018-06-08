@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	log "github.com/inconshreveable/log15"
+	"github.com/pkg/errors"
 )
 
 var mlog = log.New("module", "db.memdb")
@@ -126,6 +127,11 @@ func (db *GoMemDB) Iterator(prefix []byte, reserve bool) Iterator {
 	sort.Strings(keys)
 	var index int
 	return &goMemDBIt{index, keys, db, reserve, prefix}
+}
+
+func (db *GoMemDB) BatchGet(keys [][]byte) (value [][]byte, err error) {
+	panic(errors.New("Need to implement"))
+	return nil, nil
 }
 
 type goMemDBIt struct {

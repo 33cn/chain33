@@ -81,6 +81,12 @@
 			"revisionTime": "2018-01-09T07:02:41Z"
 		},
 		{
+			"checksumSHA1": "pQzUVRi0z/3Z4FpRyExSg1ROLSA=",
+			"path": "github.com/ethereum/go-ethereum/crypto/sha3",
+			"revision": "e7067be94f0edb47b39d4fa1725bce18bdadf122",
+			"revisionTime": "2018-04-23T13:20:39Z"
+		},
+		{
 			"checksumSHA1": "KrIRJ4p3nRze4NcxfgX5+N9+D1M=",
 			"path": "github.com/go-kit/kit/log",
 			"revision": "e2b298466b32c7cd5579a9b9b07e968fc9d9452c",
@@ -483,13 +489,13 @@
 			"revisionTime": "2017-08-14T20:04:35Z"
 		},
 		{
-			"checksumSHA1": "/DB9/UNUMYS4k4MopZLGdkXSRBQ=",
+			"checksumSHA1": "UE0mdFc5vJe4cSHnaIhALD/KuwQ=",
 			"path": "github.com/tendermint/ed25519",
 			"revision": "d8387025d2b9d158cf4efb07e7ebf814bcce2057",
 			"revisionTime": "2017-10-27T05:02:19Z"
 		},
 		{
-			"checksumSHA1": "PX22ovkpLWYpJMxlCCT1t+SXJls=",
+			"checksumSHA1": "sCdbZKulPG4ejRiKd3slKdRp5WA=",
 			"path": "github.com/tendermint/ed25519/edwards25519",
 			"revision": "d8387025d2b9d158cf4efb07e7ebf814bcce2057",
 			"revisionTime": "2017-10-27T05:02:19Z"

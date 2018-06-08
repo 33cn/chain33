@@ -8,10 +8,10 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/proto"
+	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/common"
 )
 
 var (
@@ -62,11 +62,11 @@ func calcLabelKey(label string) []byte {
 // 4.b 当确认其中的输出存在于utxo或ftxo中时，则将其从utxo或ftxo中同时进行删除，同时删除types.PrivacyDBStore在数据库中的值
 // 4.c 当确认其中的输出存在于stxo中时，则发生了异常，正常情况下，花费该笔utxo的交易需要被先回退，进而回退该笔交易，观察此种情况的发生
 func calcUTXOKey(txhash string, index int) []byte {
-	return []byte(fmt.Sprintf(PrivacyUTXO + "%s-%d", txhash, index))
+	return []byte(fmt.Sprintf(PrivacyUTXO+"%s-%d", txhash, index))
 }
 
 func calcPrivacyAddrKey(addr string) []byte {
-	return []byte(fmt.Sprintf(Privacy4Addr + "%s", addr))
+	return []byte(fmt.Sprintf(Privacy4Addr+"%s", addr))
 }
 
 func calcUTXOKey4TokenAddr(token, addr, txhash string, index int) []byte {
@@ -74,11 +74,11 @@ func calcUTXOKey4TokenAddr(token, addr, txhash string, index int) []byte {
 }
 
 func calcPrivacyUTXOPrefix(token string) []byte {
-	return []byte(fmt.Sprintf(PrivacyUTXO + "%s", token))
+	return []byte(fmt.Sprintf(PrivacyUTXO+"%s", token))
 }
 
 func calcPrivacyUTXOPrefix4Addr(token, addr string) []byte {
-	return []byte(fmt.Sprintf(PrivacyUTXO + "%s-%s", token, addr))
+	return []byte(fmt.Sprintf(PrivacyUTXO+"%s-%s", token, addr))
 }
 
 func calcPrivacy4TokenMap() []byte {
@@ -87,27 +87,27 @@ func calcPrivacy4TokenMap() []byte {
 
 //TODO:整理一下，通过类型确定不同类型的key
 func calcSTXOKey(token, addr, txhash string, index int) []byte {
-	return []byte(fmt.Sprintf(PrivacySTXO + "%s-%s-%s-%d", token, addr, txhash, index))
+	return []byte(fmt.Sprintf(PrivacySTXO+"%s-%s-%s-%d", token, addr, txhash, index))
 }
 
 func calcSTXOPrefix(token string) []byte {
-	return []byte(fmt.Sprintf(PrivacySTXO + "%s", token))
+	return []byte(fmt.Sprintf(PrivacySTXO+"%s", token))
 }
 
 func calcSTXOPrefix4Addr(token, addr string) []byte {
-	return []byte(fmt.Sprintf(PrivacySTXO + "%s-%s", token, addr))
+	return []byte(fmt.Sprintf(PrivacySTXO+"%s-%s", token, addr))
 }
 
 func calcFTXOKey(token, addr, txhash string, index int) []byte {
-	return []byte(fmt.Sprintf(PrivacyFTXO + "%s-%s-%s-%d", token, addr, txhash, index))
+	return []byte(fmt.Sprintf(PrivacyFTXO+"%s-%s-%s-%d", token, addr, txhash, index))
 }
 
 func calcFTXOPrefix(token string) []byte {
-	return []byte(fmt.Sprintf(PrivacyFTXO + "%s", token))
+	return []byte(fmt.Sprintf(PrivacyFTXO+"%s", token))
 }
 
 func calcFTXOPrefix4Addr(token, addr string) []byte {
-	return []byte(fmt.Sprintf(PrivacyFTXO + "%s-%s", token, addr))
+	return []byte(fmt.Sprintf(PrivacyFTXO+"%s-%s", token, addr))
 }
 
 //通过height*100000+index 查询Tx交易信息
@@ -405,11 +405,15 @@ func (ws *Store) DelAccountByLabel(label string) {
 
 func (ws *Store) getWalletPrivacyTokenMap() *types.TokenNamesOfUTXO {
 	var tokenNamesOfUTXO types.TokenNamesOfUTXO
-	value := ws.db.Get(calcPrivacy4TokenMap())
+	value, err := ws.db.Get(calcPrivacy4TokenMap())
+	if err != nil {
+		walletlog.Error("getWalletPrivacyTokenMap get from db err!", "err", err)
+		return &tokenNamesOfUTXO
+	}
 	if value == nil {
 		return &tokenNamesOfUTXO
 	}
-	err := proto.Unmarshal(value, &tokenNamesOfUTXO)
+	err = proto.Unmarshal(value, &tokenNamesOfUTXO)
 	if err != nil {
 		walletlog.Error("getWalletPrivacyTokenMap proto.Unmarshal err!", "err", err)
 		return &tokenNamesOfUTXO
@@ -427,7 +431,11 @@ func (ws *Store) updateWalletPrivacyTokenMap(tokenNames *types.TokenNamesOfUTXO,
 		}
 		newbatch.Set(calcPrivacy4TokenMap(), privacyTokenNames)
 	} else {
-		value := ws.db.Get(calcPrivacy4TokenMap())
+		value, err := ws.db.Get(calcPrivacy4TokenMap())
+		if err != nil {
+			walletlog.Error("updateWalletPrivacyTokenMap get from db err!", "err", err)
+			return err
+		}
 		var tokenNamesMap types.TokenNamesOfUTXO
 		if err := proto.Unmarshal(value, &tokenNamesMap); err != nil {
 			walletlog.Error("updateWalletPrivacyTokenMap proto.Unmarshal err!", "err", err)
@@ -448,6 +456,7 @@ func (ws *Store) updateWalletPrivacyTokenMap(tokenNames *types.TokenNamesOfUTXO,
 
 	return nil
 }
+
 //UTXO---->moveUTXO2FTXO---->FTXO---->moveFTXO2STXO---->STXO
 //1.calcUTXOKey------------>types.PrivacyDBStore 该kv值在db中的存储一旦写入就不再改变，除非产生该UTXO的交易被撤销
 //2.calcUTXOKey4TokenAddr-->calcUTXOKey，创建kv，方便查询现在某个地址下某种token的可用utxo
@@ -483,18 +492,19 @@ func (ws *Store) unsetUTXO(addr, txhash *string, outindex int, token string, new
 
 	k1 := calcUTXOKey(*txhash, outindex)
 	k2 := calcUTXOKey4TokenAddr(token, *addr, *txhash, outindex)
-	if nil == ws.db.Get(k1) {
+	if val, err := ws.db.Get(k1); err != nil || val == nil {
 		walletlog.Error("unsetUTXO get value for keys are nil",
 			"calcUTXOKey", string(k1), "calcUTXOKey4TokenAddr", string(k2))
 		return types.ErrNotFound
 	}
 	newbatch.Delete(k1)
-	if nil != ws.db.Get(k2) {
+	if val, err := ws.db.Get(k2); err == nil && val != nil {
 		newbatch.Delete(k2)
 	}
 
 	return nil
 }
+
 //calcUTXOKey4TokenAddr---X--->calcUTXOKey 被删除,该地址下某种token的这个utxo变为不可用
 //calcKey4UTXOsSpentInTx------>types.FTXOsSTXOsInOneTx,将当前交易的所有花费的utxo进行打包，设置为ftxo，同时通过支付交易hash索引
 //calcKey4FTXOsInTx----------->calcKey4UTXOsSpentInTx,创建该交易冻结的所有的utxo的信息
@@ -507,7 +517,7 @@ func (ws *Store) moveUTXO2FTXO(token, sender, txhash string, selectedUtxos []*tx
 		newbatch.Delete(key)
 		FTXOsInOneTx.UtxoGlobalIndex = append(FTXOsInOneTx.UtxoGlobalIndex, txOutputInfo.utxoGlobalIndex)
 	}
-    //设置在该交易中花费的UTXO
+	//设置在该交易中花费的UTXO
 	key1 := calcKey4UTXOsSpentInTx(txhash)
 	value1 := types.Encode(FTXOsInOneTx)
 	newbatch.Set(key1, value1)
@@ -523,19 +533,27 @@ func (ws *Store) moveUTXO2FTXO(token, sender, txhash string, selectedUtxos []*tx
 func (ws *Store) unmoveUTXO2FTXO(input *types.PrivacyInput, token, sender, txhash string, newbatch dbm.Batch) {
 	//设置ftxo的key，使其能够方便地获取到对应的交易花费的utxo
 	key1 := calcKey4FTXOsInTx(txhash)
-	value1 := ws.db.Get(key1)
+	value1, err := ws.db.Get(key1)
+	if err != nil {
+		walletlog.Error("unmoveUTXO2FTXO", "db Get(key1) error ", err)
+		return
+	}
 	if nil == value1 {
 		walletlog.Error("unmoveUTXO2FTXO", "Get nil value for key", string(key1))
 		return
 	}
 	key2 := value1
-	value2 := ws.db.Get(key2)
+	value2, err := ws.db.Get(key2)
+	if err != nil {
+		walletlog.Error("unmoveUTXO2FTXO", "db Get(key2) error ", err)
+		return
+	}
 	if nil == value2 {
 		walletlog.Error("unmoveUTXO2FTXO", "Get nil value for key", string(key2))
 		return
 	}
 	var ftxosInOneTx types.FTXOsSTXOsInOneTx
-	err := types.Decode(value2, &ftxosInOneTx)
+	err = types.Decode(value2, &ftxosInOneTx)
 	if nil != err {
 		walletlog.Error("unmoveUTXO2FTXO", "Failed to decode FTXOsSTXOsInOneTx for value", value2)
 		return
@@ -547,13 +565,18 @@ func (ws *Store) unmoveUTXO2FTXO(input *types.PrivacyInput, token, sender, txhas
 		}
 	}
 }
+
 //calcKey4FTXOsInTx-----x------>calcKey4UTXOsSpentInTx,被删除，
 //calcKey4STXOsInTx------------>calcKey4UTXOsSpentInTx
 //切换types.FTXOsSTXOsInOneTx的状态
 func (ws *Store) moveFTXO2STXO(txhash string, newbatch dbm.Batch) error {
 	//设置在该交易中花费的UTXO
 	key1 := calcKey4FTXOsInTx(txhash)
-	value1 := ws.db.Get(key1)
+	value1, err := ws.db.Get(key1)
+	if err != nil {
+		walletlog.Error("moveFTXO2STXO", "Get(key1) error ", err)
+		return err
+	}
 	if value1 == nil {
 		walletlog.Error("moveFTXO2STXO", "Get nil value for txhash", txhash)
 		return types.ErrNotFound
@@ -572,7 +595,11 @@ func (ws *Store) moveFTXO2STXO(txhash string, newbatch dbm.Batch) error {
 func (ws *Store) unmoveFTXO2STXO(txhash string, newbatch dbm.Batch) error {
 	//设置ftxo的key，使其能够方便地获取到对应的交易花费的utxo
 	key2 := calcKey4STXOsInTx(txhash)
-	value2 := ws.db.Get(key2)
+	value2, err := ws.db.Get(key2)
+	if err != nil {
+		walletlog.Error("unmoveFTXO2STXO", "Get(key2) error ", err)
+		return err
+	}
 	if value2 == nil {
 		walletlog.Debug("unmoveFTXO2STXO", "Get nil value for txhash", txhash)
 		return types.ErrNotFound
@@ -597,8 +624,11 @@ func (ws *Store) getWalletPrivacyTokenUTXOs(token string) map[string]*walletUTXO
 		outs4token := make(map[string]*walletUTXOs)
 		for _, value := range values {
 			var privacyDBStore types.PrivacyDBStore
-			accByte := ws.db.Get(value)
-			err := types.Decode(accByte, &privacyDBStore)
+			accByte, err := ws.db.Get(value)
+			if err != nil {
+				panic(err)
+			}
+			err = types.Decode(accByte, &privacyDBStore)
 			if err == nil {
 				utxoGlobalIndex := &types.UTXOGlobalIndex{
 					Height:   privacyDBStore.Height,
@@ -648,8 +678,12 @@ func (ws *Store) listAvailableUTXOs(token, addr string) ([]*types.PrivacyDBStore
 	privacyDBStoreSlice := make([]*types.PrivacyDBStore, len(onetimeAccbytes))
 	for index, acckeyByte := range onetimeAccbytes {
 		var accPrivacy types.PrivacyDBStore
-		accByte := ws.db.Get(acckeyByte)
-		err := proto.Unmarshal(accByte, &accPrivacy)
+		accByte, err := ws.db.Get(acckeyByte)
+		if err != nil {
+			walletlog.Error("listWalletPrivacyAccount", "db Get err:", err)
+			return nil, err
+		}
+		err = proto.Unmarshal(accByte, &accPrivacy)
 		if err != nil {
 			walletlog.Error("listWalletPrivacyAccount", "proto.Unmarshal err:", err)
 			return nil, types.ErrUnmarshal
@@ -688,12 +722,16 @@ func (ws *Store) GetWalletAccountPrivacy(addr string) (*types.WalletAccountPriva
 		return nil, types.ErrInputPara
 	}
 
-	privacyByte := ws.db.Get(calcPrivacyAddrKey(addr))
+	privacyByte, err := ws.db.Get(calcPrivacyAddrKey(addr))
+	if err != nil {
+		walletlog.Error("GetWalletAccountPrivacy", "db Get error ", err)
+		return nil, err
+	}
 	if nil == privacyByte {
 		return nil, types.ErrPrivacyNotExist
 	}
 	var accPrivacy types.WalletAccountPrivacy
-	err := proto.Unmarshal(privacyByte, &accPrivacy)
+	err = proto.Unmarshal(privacyByte, &accPrivacy)
 	if err != nil {
 		walletlog.Error("GetWalletAccountPrivacy", "proto.Unmarshal err:", err)
 		return nil, types.ErrUnmarshal

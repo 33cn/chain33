@@ -9,13 +9,13 @@ import (
 	"sync/atomic"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/hashicorp/golang-lru/simplelru"
 	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/common/difficulty"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/privacy"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
-	"github.com/hashicorp/golang-lru/simplelru"
 )
 
 var (

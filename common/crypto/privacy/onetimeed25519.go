@@ -2,9 +2,10 @@ package privacy
 
 import (
 	"errors"
+	"unsafe"
+
 	. "gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/ed25519/edwards25519"
-	"unsafe"
 )
 
 type OneTimeEd25519 struct{}

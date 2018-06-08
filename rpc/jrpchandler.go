@@ -110,7 +110,7 @@ func (c *Chain33) QueryTransaction(in QueryParm, result *interface{}) error {
 				&ReceiptLog{Ty: log.GetTy(), Log: common.ToHex(log.GetLog())})
 		}
 
-		transDetail.Receipt, _, err = DecodeLog(receiptTmp)
+		transDetail.Receipt, err = DecodeLog(receiptTmp)
 		if err != nil {
 			return err
 		}
@@ -164,7 +164,7 @@ func (c *Chain33) GetBlocks(in BlockParam, result *interface{}) error {
 					recp.Logs = append(recp.Logs,
 						&ReceiptLog{Ty: log.Ty, Log: common.ToHex(log.GetLog())})
 				}
-				rd, _, err := DecodeLog(&recp)
+				rd, err := DecodeLog(&recp)
 				if err != nil {
 					continue
 				}
@@ -263,9 +263,9 @@ func (c *Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 				recp.Logs = append(recp.Logs,
 					&ReceiptLog{Ty: lg.Ty, Log: common.ToHex(lg.GetLog())})
 			}
-			recpResult, ty, err = DecodeLog(&recp)
+			recpResult, err = DecodeLog(&recp)
 			if err != nil {
-				log.Error("GetTxByHashes", "Failed to DecodeLog for type", ty)
+				log.Error("GetTxByHashes", "Failed to DecodeLog for type", err)
 				continue
 			}
 			txProofs := tx.GetProofs()
@@ -379,7 +379,7 @@ func (c *Chain33) WalletTxList(in ReqWalletTransactionList, result *interface{})
 				recp.Logs = append(recp.Logs,
 					&ReceiptLog{Ty: lg.Ty, Log: common.ToHex(lg.GetLog())})
 			}
-			rd, _, err := DecodeLog(&recp)
+			rd, err := DecodeLog(&recp)
 			if err != nil {
 				continue
 			}
@@ -937,7 +937,7 @@ func decodeUserWrite(payload []byte) *userWrite {
 	return &article
 }
 
-func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, int32, error) {
+func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
 	var rTy string
 	switch rlog.Ty {
 	case 0:
@@ -954,10 +954,12 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, int32, error) {
 	for _, l := range rlog.Logs {
 		var lTy string
 		var logIns interface{}
+
 		lLog, err := hex.DecodeString(l.Log[2:])
 		if err != nil {
-			return nil, types.TyLogReserved, err
+			return nil, err
 		}
+
 		switch l.Ty {
 		case types.TyLogErr:
 			lTy = "LogErr"
@@ -967,7 +969,7 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, int32, error) {
 			var logTmp types.ReceiptAccountTransfer
 			err = types.Decode(lLog, &logTmp)
 			if err != nil {
-				return nil, types.TyLogFee, err
+				return nil, err
 			}
 			logIns = logTmp
 		case types.TyLogTransfer:
@@ -975,7 +977,7 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, int32, error) {
 			var logTmp types.ReceiptAccountTransfer
 			err = types.Decode(lLog, &logTmp)
 			if err != nil {
-				return nil, types.TyLogTransfer, err
+				return nil, err
 			}
 			logIns = logTmp
 		case types.TyLogGenesis:
@@ -986,7 +988,7 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, int32, error) {
 			var logTmp types.ReceiptAccountTransfer
 			err = types.Decode(lLog, &logTmp)
 			if err != nil {
-				return nil, types.TyLogDeposit, err
+				return nil, err
 			}
 			logIns = logTmp
 		case types.TyLogExecTransfer:
@@ -994,7 +996,7 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, int32, error) {
 			var logTmp types.ReceiptExecAccountTransfer
 			err = types.Decode(lLog, &logTmp)
 			if err != nil {
-				return nil, types.TyLogExecTransfer, err
+				return nil, err
 			}
 			logIns = logTmp
 		case types.TyLogExecWithdraw:
@@ -1002,7 +1004,7 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, int32, error) {
 			var logTmp types.ReceiptExecAccountTransfer
 			err = types.Decode(lLog, &logTmp)
 			if err != nil {
-				return nil, types.TyLogExecWithdraw, err
+				return nil, err
 			}
 			logIns = logTmp
 		case types.TyLogExecDeposit:
@@ -1010,7 +1012,7 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, int32, error) {
 			var logTmp types.ReceiptExecAccountTransfer
 			err = types.Decode(lLog, &logTmp)
 			if err != nil {
-				return nil, types.TyLogExecDeposit, err
+				return nil, err
 			}
 			logIns = logTmp
 		case types.TyLogExecFrozen:
@@ -1018,7 +1020,7 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, int32, error) {
 			var logTmp types.ReceiptExecAccountTransfer
 			err = types.Decode(lLog, &logTmp)
 			if err != nil {
-				return nil, types.TyLogExecFrozen, err
+				return nil, err
 			}
 			logIns = logTmp
 		case types.TyLogExecActive:
@@ -1026,7 +1028,7 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, int32, error) {
 			var logTmp types.ReceiptExecAccountTransfer
 			err = types.Decode(lLog, &logTmp)
 			if err != nil {
-				return nil, types.TyLogExecActive, err
+				return nil, err
 			}
 			logIns = logTmp
 		case types.TyLogGenesisTransfer:
@@ -1034,7 +1036,7 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, int32, error) {
 			var logTmp types.ReceiptAccountTransfer
 			err = types.Decode(lLog, &logTmp)
 			if err != nil {
-				return nil, types.TyLogGenesisTransfer, err
+				return nil, err
 			}
 			logIns = logTmp
 		case types.TyLogGenesisDeposit:
@@ -1042,7 +1044,7 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, int32, error) {
 			var logTmp types.ReceiptExecAccountTransfer
 			err = types.Decode(lLog, &logTmp)
 			if err != nil {
-				return nil, types.TyLogGenesisDeposit, err
+				return nil, err
 			}
 			logIns = logTmp
 		case types.TyLogNewTicket:
@@ -1050,7 +1052,7 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, int32, error) {
 			var logTmp types.ReceiptTicket
 			err = types.Decode(lLog, &logTmp)
 			if err != nil {
-				return nil, types.TyLogNewTicket, err
+				return nil, err
 			}
 			logIns = logTmp
 		case types.TyLogCloseTicket:
@@ -1058,7 +1060,7 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, int32, error) {
 			var logTmp types.ReceiptTicket
 			err = types.Decode(lLog, &logTmp)
 			if err != nil {
-				return nil, types.TyLogCloseTicket, err
+				return nil, err
 			}
 			logIns = logTmp
 		case types.TyLogMinerTicket:
@@ -1066,7 +1068,7 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, int32, error) {
 			var logTmp types.ReceiptTicket
 			err = types.Decode(lLog, &logTmp)
 			if err != nil {
-				return nil, types.TyLogMinerTicket, err
+				return nil, err
 			}
 			logIns = logTmp
 		case types.TyLogTicketBind:
@@ -1074,7 +1076,7 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, int32, error) {
 			var logTmp types.ReceiptTicketBind
 			err = types.Decode(lLog, &logTmp)
 			if err != nil {
-				return nil, types.TyLogTicketBind, err
+				return nil, err
 			}
 			logIns = logTmp
 		case types.TyLogPreCreateToken:
@@ -1082,7 +1084,7 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, int32, error) {
 			var logTmp types.ReceiptToken
 			err = types.Decode(lLog, &logTmp)
 			if err != nil {
-				return nil, types.TyLogPreCreateToken, err
+				return nil, err
 			}
 			logIns = logTmp
 		case types.TyLogFinishCreateToken:
@@ -1090,7 +1092,7 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, int32, error) {
 			var logTmp types.ReceiptToken
 			err = types.Decode(lLog, &logTmp)
 			if err != nil {
-				return nil, types.TyLogFinishCreateToken, err
+				return nil, err
 			}
 			logIns = logTmp
 		case types.TyLogRevokeCreateToken:
@@ -1098,7 +1100,7 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, int32, error) {
 			var logTmp types.ReceiptToken
 			err = types.Decode(lLog, &logTmp)
 			if err != nil {
-				return nil, types.TyLogRevokeCreateToken, err
+				return nil, err
 			}
 			logIns = logTmp
 		case types.TyLogTradeSellLimit:
@@ -1106,7 +1108,7 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, int32, error) {
 			var logTmp types.ReceiptTradeSell
 			err = types.Decode(lLog, &logTmp)
 			if err != nil {
-				return nil, types.TyLogTradeSell, err
+				return nil, err
 			}
 			logIns = logTmp
 		case types.TyLogTradeBuyMarket:
@@ -1114,7 +1116,7 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, int32, error) {
 			var logTmp types.ReceiptTradeBuyMarket
 			err = types.Decode(lLog, &logTmp)
 			if err != nil {
-				return nil, types.TyLogTradeBuy, err
+				return nil, err
 			}
 			logIns = logTmp
 		case types.TyLogTradeSellRevoke:
@@ -1122,7 +1124,7 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, int32, error) {
 			var logTmp types.ReceiptTradeRevoke
 			err = types.Decode(lLog, &logTmp)
 			if err != nil {
-				return nil, types.TyLogTradeRevoke, err
+				return nil, err
 			}
 			logIns = logTmp
 		case types.TyLogTradeBuyLimit:
@@ -1154,7 +1156,7 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, int32, error) {
 			var logTmp types.ReceiptAccountTransfer
 			err = types.Decode(lLog, &logTmp)
 			if err != nil {
-				return nil, types.TyLogTokenTransfer, err
+				return nil, err
 			}
 			logIns = logTmp
 		case types.TyLogTokenDeposit:
@@ -1162,7 +1164,7 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, int32, error) {
 			var logTmp types.ReceiptAccountTransfer
 			err = types.Decode(lLog, &logTmp)
 			if err != nil {
-				return nil, types.TyLogTokenDeposit, err
+				return nil, err
 			}
 			logIns = logTmp
 		case types.TyLogTokenExecTransfer:
@@ -1170,7 +1172,7 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, int32, error) {
 			var logTmp types.ReceiptExecAccountTransfer
 			err = types.Decode(lLog, &logTmp)
 			if err != nil {
-				return nil, types.TyLogTokenExecTransfer, err
+				return nil, err
 			}
 			logIns = logTmp
 		case types.TyLogTokenExecWithdraw:
@@ -1178,7 +1180,7 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, int32, error) {
 			var logTmp types.ReceiptExecAccountTransfer
 			err = types.Decode(lLog, &logTmp)
 			if err != nil {
-				return nil, types.TyLogTokenExecWithdraw, err
+				return nil, err
 			}
 			logIns = logTmp
 		case types.TyLogTokenExecDeposit:
@@ -1186,7 +1188,7 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, int32, error) {
 			var logTmp types.ReceiptExecAccountTransfer
 			err = types.Decode(lLog, &logTmp)
 			if err != nil {
-				return nil, types.TyLogTokenExecDeposit, err
+				return nil, err
 			}
 			logIns = logTmp
 		case types.TyLogTokenExecFrozen:
@@ -1194,7 +1196,7 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, int32, error) {
 			var logTmp types.ReceiptExecAccountTransfer
 			err = types.Decode(lLog, &logTmp)
 			if err != nil {
-				return nil, types.TyLogTokenExecFrozen, err
+				return nil, err
 			}
 			logIns = logTmp
 		case types.TyLogTokenExecActive:
@@ -1202,7 +1204,7 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, int32, error) {
 			var logTmp types.ReceiptExecAccountTransfer
 			err = types.Decode(lLog, &logTmp)
 			if err != nil {
-				return nil, types.TyLogTokenExecActive, err
+				return nil, err
 			}
 			logIns = logTmp
 		case types.TyLogTokenGenesisTransfer:
@@ -1210,7 +1212,7 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, int32, error) {
 			var logTmp types.ReceiptAccountTransfer
 			err = types.Decode(lLog, &logTmp)
 			if err != nil {
-				return nil, types.TyLogTokenGenesisTransfer, err
+				return nil, err
 			}
 			logIns = logTmp
 		case types.TyLogTokenGenesisDeposit:
@@ -1218,7 +1220,7 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, int32, error) {
 			var logTmp types.ReceiptExecAccountTransfer
 			err = types.Decode(lLog, &logTmp)
 			if err != nil {
-				return nil, types.TyLogTokenGenesisDeposit, err
+				return nil, err
 			}
 			logIns = logTmp
 		case types.TyLogPrivacyFee:
@@ -1226,7 +1228,7 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, int32, error) {
 			var logTmp types.ReceiptExecAccountTransfer
 			err = types.Decode(lLog, &logTmp)
 			if err != nil {
-				return nil, types.TyLogPrivacyFee, err
+				return nil, err
 			}
 			logIns = logTmp
 		case types.TyLogPrivacyOutput:
@@ -1234,7 +1236,7 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, int32, error) {
 			var logTmp types.ReceiptPrivacyOutput
 			err = types.Decode(lLog, &logTmp)
 			if err != nil {
-				return nil, types.TyLogPrivacyFee, err
+				return nil, err
 			}
 			logIns = logTmp
 		case types.TyLogCallContract:
@@ -1276,7 +1278,7 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, int32, error) {
 		}
 		rd.Logs = append(rd.Logs, &ReceiptLogResult{Ty: l.Ty, TyName: lTy, Log: logIns, RawLog: l.Log})
 	}
-	return rd, types.TyLogReserved, nil
+	return rd, nil
 }
 
 func (c *Chain33) IsNtpClockSync(in *types.ReqNil, result *interface{}) error {
@@ -1483,7 +1485,7 @@ func (c *Chain33) ShowPrivacyAccount(in types.ReqPrivBal4AddrToken, result *inte
 }
 
 func (c *Chain33) ShowPrivacykey(in types.ReqStr, result *interface{}) error {
-	reply, err := c.cli.ShowPrivacykey(&in)
+	reply, err := c.cli.ShowPrivacyKey(&in)
 	if err != nil {
 		return err
 	}
@@ -1492,8 +1494,7 @@ func (c *Chain33) ShowPrivacykey(in types.ReqStr, result *interface{}) error {
 }
 
 func (c *Chain33) MakeTxPublic2privacy(in types.ReqPub2Pri, result *interface{}) error {
-
-	reply, err := c.cli.MakeTxPublic2privacy(&in)
+	reply, err := c.cli.Publick2Privacy(&in)
 	if err != nil {
 		return err
 	}
@@ -1504,8 +1505,7 @@ func (c *Chain33) MakeTxPublic2privacy(in types.ReqPub2Pri, result *interface{})
 }
 
 func (c *Chain33) MakeTxPrivacy2privacy(in types.ReqPri2Pri, result *interface{}) error {
-
-	reply, err := c.cli.MakeTxPrivacy2privacy(&in)
+	reply, err := c.cli.Privacy2Privacy(&in)
 	if err != nil {
 		return err
 	}
@@ -1516,8 +1516,7 @@ func (c *Chain33) MakeTxPrivacy2privacy(in types.ReqPri2Pri, result *interface{}
 }
 
 func (c *Chain33) MakeTxPrivacy2public(in types.ReqPri2Pub, result *interface{}) error {
-
-	reply, err := c.cli.MakeTxPrivacy2public(&in)
+	reply, err := c.cli.Privacy2Public(&in)
 	if err != nil {
 		return err
 	}
@@ -1536,5 +1535,3 @@ func (c *Chain33) CreateUTXOs(in types.ReqCreateUTXOs, result *interface{}) erro
 
 	return nil
 }
-
-

@@ -2,9 +2,10 @@ package privacy
 
 import (
 	"fmt"
-	"gitlab.33.cn/chain33/chain33/types"
 	"strconv"
 	"strings"
+
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 const (

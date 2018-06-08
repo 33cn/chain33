@@ -785,3 +785,75 @@ func (q *QueueProtocol) GetFatalFailure() (*types.Int32, error) {
 	}
 	return nil, types.ErrTypeAsset
 }
+
+func (q *QueueProtocol) ShowPrivacyAccount(param *types.ReqPrivBal4AddrToken) ([]*types.UTXO, error) {
+	msg, err := q.query(walletKey, types.EventShowPrivacyAccount, param)
+	if err != nil {
+		log.Error("ShowPrivacyAccount", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().([]*types.UTXO); ok {
+		return reply, nil
+	}
+	return nil, types.ErrTypeAsset
+}
+
+func (q *QueueProtocol) ShowPrivacyKey(param *types.ReqStr) (*types.ReplyPrivacyPkPair, error) {
+	msg, err := q.query(walletKey, types.EventShowPrivacyPK, param)
+	if err != nil {
+		log.Error("ShowPrivacyKey", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.ReplyPrivacyPkPair); ok {
+		return reply, nil
+	}
+	return nil, types.ErrTypeAsset
+}
+
+func (q *QueueProtocol) Publick2Privacy(param *types.ReqPub2Pri) (*types.Reply, error) {
+	msg, err := q.query(walletKey, types.EventPublic2privacy, param)
+	if err != nil {
+		log.Error("Publick2Privacy", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.Reply); ok {
+		return reply, nil
+	}
+	return nil, types.ErrTypeAsset
+}
+
+func (q *QueueProtocol) Privacy2Privacy(param *types.ReqPri2Pri) (*types.Reply, error) {
+	msg, err := q.query(walletKey, types.EventPrivacy2privacy, param)
+	if err != nil {
+		log.Error("Privacy2Privacy", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.Reply); ok {
+		return reply, nil
+	}
+	return nil, types.ErrTypeAsset
+}
+
+func (q *QueueProtocol) Privacy2Public(param *types.ReqPri2Pub) (*types.Reply, error) {
+	msg, err := q.query(walletKey, types.EventPrivacy2public, param)
+	if err != nil {
+		log.Error("Privacy2Public", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.Reply); ok {
+		return reply, nil
+	}
+	return nil, types.ErrTypeAsset
+}
+
+func (q *QueueProtocol) CreateUTXOs(param *types.ReqCreateUTXOs) (*types.Reply, error) {
+	msg, err := q.query(walletKey, types.EventCreateUTXOs, param)
+	if err != nil {
+		log.Error("CreateUTXOs", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.Reply); ok {
+		return reply, nil
+	}
+	return nil, types.ErrTypeAsset
+}

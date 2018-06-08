@@ -91,8 +91,8 @@ var (
 	ErrTBuyOrderRevoke         = errors.New("ErrTradeBuyOrderRevokeNotAllowed")
 	ErrTCntLessThanMinBoardlot = errors.New("ErrTradeCountLessThanMinBoardlot")
 	//err for privacy
-	ErrWrongKey              = errors.New("ErrWrongKey")
-	ErrInvalidOrder          = errors.New("ErrInvalidOrder")
+	ErrWrongKey     = errors.New("ErrWrongKey")
+	ErrInvalidOrder = errors.New("ErrInvalidOrder")
 
 	ErrStartBigThanEnd            = errors.New("ErrStartBigThanEnd")
 	ErrToAddrNotSameToExecAddr    = errors.New("ErrToAddrNotSameToExecAddr")
