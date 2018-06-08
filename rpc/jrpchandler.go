@@ -917,12 +917,14 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 
 func decodeUserWrite(payload []byte) *userWrite {
 	var article userWrite
-	if payload[0] == '#' {
-		data := bytes.SplitN(payload[1:], []byte("#"), 2)
-		if len(data) == 2 {
-			article.Topic = string(data[0])
-			article.Content = string(data[1])
-			return &article
+	if len(payload) != 0 {
+		if payload[0] == '#' {
+			data := bytes.SplitN(payload[1:], []byte("#"), 2)
+			if len(data) == 2 {
+				article.Topic = string(data[0])
+				article.Content = string(data[1])
+				return &article
+			}
 		}
 	}
 	article.Topic = ""
