@@ -218,6 +218,7 @@ func NormPut(privkey string, key string, value string) {
 	nput := &types.NormAction_Nput{&types.NormPut{Key: key, Value: []byte(value)}}
 	action := &types.NormAction{Value: nput, Ty: types.NormActionPut}
 	tx := &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(action), Fee: fee}
+	tx.To = account.ExecAddress("norm")
 	tx.Nonce = r.Int63()
 	tx.Sign(types.SECP256K1, getprivkey(privkey))
 
