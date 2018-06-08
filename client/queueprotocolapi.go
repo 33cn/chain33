@@ -77,6 +77,20 @@ type QueueProtocolAPI interface {
 	// types.EventSignRawTx
 	SignRawTx(param *types.ReqSignRawTx) (*types.ReplySignRawTx, error)
 	GetFatalFailure() (*types.Int32, error)
+	// Privacy Begin
+	// types.EventShowPrivacyAccount
+	ShowPrivacyAccount(param *types.ReqPrivBal4AddrToken) ([]*types.UTXO, error)
+	// types.EventShowPrivacyPK
+	ShowPrivacyKey(param *types.ReqStr) (*types.ReplyPrivacyPkPair, error)
+	// types.EventPublic2privacy
+	Publick2Privacy(param *types.ReqPub2Pri) (*types.Reply, error)
+	// types.EventPrivacy2privacy
+	Privacy2Privacy(param *types.ReqPri2Pri) (*types.Reply, error)
+	// types.EventPrivacy2public
+	Privacy2Public(param *types.ReqPri2Pub) (*types.Reply, error)
+	// types.EventCreateUTXOs
+	CreateUTXOs(param *types.ReqCreateUTXOs) (*types.Reply, error)
+	// Privacy End
 	// --------------- wallet interfaces end
 
 	// +++++++++++++++ blockchain interfaces begin

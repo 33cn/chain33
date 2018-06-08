@@ -301,14 +301,16 @@ func (d *DriverBase) GetTxsByAddr(addr *types.ReqAddr) (types.Message, error) {
 }
 
 func (d *DriverBase) GetPrivacyTxs(privacy *types.ReqPrivacy) (types.Message, error) {
-	db := d.GetQueryDB()
+	db := d.GetLocalDB()
 	var prefix []byte
 	var txinfos [][]byte
 
 	prefix = CalcPrivacyTxHashKeyPrefix(TxIndexPrivacy)
 	if privacy.GetHeight() == -1 {
-		list := dbm.NewListHelper(db)
-		txinfos = list.IteratorScanFromLast(prefix, privacy.Count)
+		txinfos, err := db.List(prefix, nil, privacy.Count, 0)
+		if err != nil {
+			return nil, err
+		}
 		if len(txinfos) == 0 {
 			return nil, errors.New("does not exist tx!")
 		}

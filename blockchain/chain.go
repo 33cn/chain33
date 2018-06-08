@@ -8,8 +8,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/hashicorp/golang-lru/simplelru"
 	lru "github.com/hashicorp/golang-lru"
+	"github.com/hashicorp/golang-lru/simplelru"
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
@@ -111,7 +111,7 @@ func New(cfg *types.BlockChain) *BlockChain {
 		synBlockHeight:      -1,
 		peerList:            nil,
 		cfg:                 cfg,
-		privacyCache:       make(map[string]map[int64]*simplelru.LRU),
+		privacyCache:        make(map[string]map[int64]*simplelru.LRU),
 		recvwg:              &sync.WaitGroup{},
 		task:                newTask(160 * time.Second),
 		quit:                make(chan struct{}),
