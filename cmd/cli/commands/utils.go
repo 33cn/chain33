@@ -280,7 +280,7 @@ func isAllowExecName(exec string) (bool, error) {
 	if strings.HasPrefix(exec, "user.") {
 		return true, nil
 	}
-	for _, e := range []string{"none", "coins", "hashlock", "retrieve", "ticket", "token", "trade"} {
+	for _, e := range []string{"none", "coins", "hashlock", "retrieve", "ticket", "token", "trade", "privacy"} {
 		if exec == e {
 			return true, nil
 		}
