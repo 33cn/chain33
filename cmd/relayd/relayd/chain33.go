@@ -44,7 +44,7 @@ out:
 		case <-ctx.Done():
 			break out
 
-		case <-time.After(time.Second * 3):
+		case <-time.After(time.Second * 60):
 			err := c.ping(ctx)
 			if err != nil {
 				log.Error("heartbeat", "heartbeat chain33 error: ", err.Error())

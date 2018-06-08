@@ -3,13 +3,13 @@ title = "relayd"
 watch = true
 pprof = true
 trace = false
-Tick33 =10
-TickBTC = 20
+Tick33 =60
+TickBTC = 30
 firstBtcHeight = 99900
 # 0：btcd ; 1:btcdweb
 btcdOrWeb = 1
-# fee
-fee = 100000000
+# The unit fee price
+fee = 100000
 syncSetup = 100
 syncSetupCount = 10
 

@@ -33,7 +33,6 @@ func confirms(txHeight, curHeight int32) int32 {
 
 type Relayd struct {
 	config           *Config
-	httpServer       fasthttp.Server
 	db               *relaydDB
 	mu               sync.Mutex
 	latestBlockHash  *chainhash.Hash
@@ -50,6 +49,7 @@ type Relayd struct {
 	isPersist        int32
 	isSnyc           int32
 	isResetBtcHeight bool
+	quitPersist      chan struct{}
 }
 
 func NewRelayd(config *Config) *Relayd {
@@ -111,12 +111,14 @@ func NewRelayd(config *Config) *Relayd {
 		isPersist:        0,
 		isSnyc:           0,
 		isResetBtcHeight: isResetBtcHeight,
+		quitPersist:      make(chan struct{}),
 	}
 }
 
 func (r *Relayd) Close() {
-	r.cancel()
+	close(r.quitPersist)
 	r.client33.Close()
+	r.cancel()
 }
 
 func (r *Relayd) Start() {
@@ -172,24 +174,30 @@ out:
 
 func (r *Relayd) persistBlockHeaders() {
 	atomic.StoreInt32(&r.isPersist, 1)
+	defer atomic.StoreInt32(&r.isPersist, 0)
+
 	if atomic.LoadUint64(&r.knownBtcHeight) < atomic.LoadUint64(&r.latestBtcHeight) {
 	out:
 		for i := atomic.LoadUint64(&r.knownBtcHeight); i < atomic.LoadUint64(&r.latestBtcHeight); i++ {
-			header, err := r.btcClient.GetBlockHeader(i)
-			if err != nil {
-				log.Error("syncBlockHeaders", "GetBlockHeader error", err)
+			select {
+			case <-r.quitPersist:
 				break out
-			}
-			data := types.Encode(header)
-			r.db.Set(makeHeightKey(i), data)
-			r.db.Set(currentBtcBlockheightKey, []byte(fmt.Sprintf("%d", i)))
-			atomic.StoreUint64(&r.knownBtcHeight, i)
-			if i%10 == 0 {
-				log.Info("persistBlockHeaders", "current knownBtcHeight: ", i, "current latestBtcHeight: ", atomic.LoadUint64(&r.latestBtcHeight))
+			default:
+				header, err := r.btcClient.GetBlockHeader(i)
+				if err != nil {
+					log.Error("syncBlockHeaders", "GetBlockHeader error", err)
+					break out
+				}
+				data := types.Encode(header)
+				r.db.Set(makeHeightKey(i), data)
+				r.db.Set(currentBtcBlockheightKey, []byte(fmt.Sprintf("%d", i)))
+				atomic.StoreUint64(&r.knownBtcHeight, i)
+				if i%10 == 0 {
+					log.Info("persistBlockHeaders", "current knownBtcHeight: ", i, "current latestBtcHeight: ", atomic.LoadUint64(&r.latestBtcHeight))
+				}
 			}
 		}
 	}
-	atomic.StoreInt32(&r.isPersist, 0)
 }
 
 func (r *Relayd) queryChain33WithBtcHeight() (*types.ReplayRelayQryBTCHeadHeight, error) {
@@ -213,76 +221,86 @@ func (r *Relayd) queryChain33WithBtcHeight() (*types.ReplayRelayQryBTCHeadHeight
 
 func (r *Relayd) syncBlockHeaders() {
 	atomic.StoreInt32(&r.isSnyc, 1)
+	defer atomic.StoreInt32(&r.isSnyc, 0)
+
 	knownBtcHeight := atomic.LoadUint64(&r.knownBtcHeight)
 	if knownBtcHeight > r.config.FirstBtcHeight {
 		ret, err := r.queryChain33WithBtcHeight()
 		if err != nil {
 			log.Error("syncBlockHeaders", "queryChain33WithBtcHeight error: ", err)
+			return
+		}
+
+		log.Info("syncBlockHeaders", "queryChain33WithBtcHeight result: ", ret)
+		var initIterHeight uint64
+		if (ret.CurHeight <= 0 || r.config.FirstBtcHeight != uint64(ret.BaseHeight)) && !r.isResetBtcHeight {
+			r.isResetBtcHeight = true
+			r.quitPersist <- struct{}{}
+			atomic.StoreUint64(&r.knownBtcHeight, r.config.FirstBtcHeight)
+			return
+		}
+
+		if r.isResetBtcHeight {
+			initIterHeight = r.config.FirstBtcHeight
 		} else {
-			log.Info("syncBlockHeaders", "queryChain33WithBtcHeight result: ", ret)
-			var initCurrentHeight uint64
-			if ret.CurHeight <= 0 || r.config.FirstBtcHeight != uint64(ret.BaseHeight) {
-				initCurrentHeight = r.config.FirstBtcHeight
-				r.isResetBtcHeight = true
-				atomic.StoreUint64(&r.knownBtcHeight, r.config.FirstBtcHeight)
+			initIterHeight = uint64(ret.CurHeight) + 1
+			if initIterHeight > r.knownBtcHeight {
 				return
-			} else {
-				initCurrentHeight = uint64(ret.CurHeight) + 1
-			}
-
-			lastHeight := knownBtcHeight
-			totalSetup := lastHeight - initCurrentHeight
-			totalConfig := r.config.SyncSetupCount * r.config.SyncSetup
-
-			if totalSetup > totalConfig {
-				totalSetup = totalConfig
-				lastHeight = totalSetup + initCurrentHeight
-			}
-
-			stage := totalSetup / r.config.SyncSetup
-			little := totalSetup % r.config.SyncSetup
-			var i uint64
-		out:
-			for i = 0; i <= stage; i++ {
-				var add uint64
-				if i == stage {
-					add = little
-				} else {
-					add = r.config.SyncSetup
-				}
-				headers := make([]*types.BtcHeader, 0, add)
-				breakHeight := add + initCurrentHeight
-				for j := initCurrentHeight; j < breakHeight; j++ {
-					// TODO betach request headers
-					header, err := r.db.BlockHeader(j)
-					if err != nil {
-						log.Error("syncBlockHeaders", "GetBlockHeader error", err)
-						break out
-					}
-
-					header.IsReset = r.isResetBtcHeight
-					r.isResetBtcHeight = false
-					headers = append(headers, header)
-				}
-				initCurrentHeight = breakHeight
-				log.Info("syncBlockHeaders", "len: ", len(headers))
-				btcHeaders := &types.BtcHeaders{BtcHeader: headers}
-				relayHeaders := &types.RelayAction_BtcHeaders{btcHeaders}
-				action := &types.RelayAction{
-					Value: relayHeaders,
-					Ty:    types.RelayActionRcvBTCHeaders,
-				}
-				tx := r.transaction(types.Encode(action))
-				ret, err := r.client33.SendTransaction(r.ctx, tx)
-				if err != nil {
-					log.Error("syncBlockHeaders", "SendTransaction error", err)
-					break out
-				}
-				log.Info("syncBlockHeaders end SendTransaction", "IsOk: ", ret.GetIsOk(), "msg: ", string(ret.GetMsg()))
 			}
 		}
+
+		total := knownBtcHeight - initIterHeight
+		totalConfig := r.config.SyncSetupCount * r.config.SyncSetup
+
+		if total > totalConfig {
+			total = totalConfig
+		}
+
+		stage := total / r.config.SyncSetup
+		little := total % r.config.SyncSetup
+		var i uint64
+	out:
+		for i = 0; i <= stage; i++ {
+			var add uint64
+			if i == stage {
+				if little <= 0 {
+					break out
+				}
+				add = little
+			} else {
+				add = r.config.SyncSetup
+			}
+			headers := make([]*types.BtcHeader, 0, add)
+			breakHeight := add + initIterHeight
+			for j := initIterHeight; j < breakHeight; j++ {
+				// TODO betach request headers
+				header, err := r.db.BlockHeader(j)
+				if err != nil {
+					log.Error("syncBlockHeaders", "GetBlockHeader error", err)
+					break out
+				}
+
+				header.IsReset = r.isResetBtcHeight
+				r.isResetBtcHeight = false
+				headers = append(headers, header)
+			}
+			initIterHeight = breakHeight
+			log.Info("syncBlockHeaders", "len: ", len(headers))
+			btcHeaders := &types.BtcHeaders{BtcHeader: headers}
+			relayHeaders := &types.RelayAction_BtcHeaders{btcHeaders}
+			action := &types.RelayAction{
+				Value: relayHeaders,
+				Ty:    types.RelayActionRcvBTCHeaders,
+			}
+			tx := r.transaction(types.Encode(action))
+			ret, err := r.client33.SendTransaction(r.ctx, tx)
+			if err != nil {
+				log.Error("syncBlockHeaders", "SendTransaction error", err)
+				break out
+			}
+			log.Info("syncBlockHeaders end SendTransaction", "IsOk: ", ret.GetIsOk(), "msg: ", string(ret.GetMsg()))
+		}
 	}
-	atomic.StoreInt32(&r.isSnyc, 0)
 }
 
 func (r *Relayd) transaction(payload []byte) *types.Transaction {
@@ -290,9 +308,12 @@ func (r *Relayd) transaction(payload []byte) *types.Transaction {
 		Execer:  executor,
 		Payload: payload,
 		Nonce:   rand.Int63(),
-		Fee:     r.config.Fee,
 	}
+
+	fee, _ := tx.GetRealFee(types.MinFee)
+	tx.Fee = fee
 	tx.Sign(types.SECP256K1, r.privateKey)
+	log.Info("transaction", "fee : ", fee)
 	return tx
 }
 
