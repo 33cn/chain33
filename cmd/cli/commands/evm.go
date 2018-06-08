@@ -28,9 +28,36 @@ func EvmCmd() *cobra.Command {
 		EstimateContractCmd(),
 		CheckContractAddrCmd(),
 		EvmDebugCmd(),
+		EvmTransferCmd(),
+		EvmWithdrawCmd(),
+		GetEvmBalanceCmd(),
 	)
 
 	return cmd
+}
+
+// get balance of an execer
+func GetEvmBalanceCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "balance",
+		Short: "Get balance of a evm contract address",
+		Run:   evmBalance,
+	}
+	addEvmBalanceFlags(cmd)
+	return cmd
+}
+
+func addEvmBalanceFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("addr", "a", "", "account addr")
+	cmd.MarkFlagRequired("addr")
+
+	cmd.Flags().StringP("exec", "e", "", "evm contract name (like user.evm.xxx)")
+	cmd.MarkFlagRequired("exec")
+}
+
+func evmBalance(cmd *cobra.Command, args []string) {
+	// 直接复用coins的查询余额命令
+	balance(cmd, args)
 }
 
 // 创建EVM合约
@@ -52,7 +79,7 @@ func addCreateContractFlags(cmd *cobra.Command) {
 
 func createContract(cmd *cobra.Command, args []string) {
 	code, _ := cmd.Flags().GetString("input")
-	key, _ := cmd.Flags().GetString("key")
+	caller, _ := cmd.Flags().GetString("caller")
 	expire, _ := cmd.Flags().GetString("expire")
 	note, _ := cmd.Flags().GetString("note")
 	alias, _ := cmd.Flags().GetString("alias")
@@ -68,7 +95,7 @@ func createContract(cmd *cobra.Command, args []string) {
 	}
 	action := types.EVMContractAction{Amount: 0, Code: bCode, GasLimit: 0, GasPrice: 0, Note: note, Alias: alias}
 
-	data, err := createEvmTx(&action, key, "", expire, rpcLaddr, feeInt64)
+	data, err := createEvmTx(&action, "evm", caller, account.ExecAddress("evm"), expire, rpcLaddr, feeInt64)
 
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "create contract error:", err)
@@ -83,12 +110,13 @@ func createContract(cmd *cobra.Command, args []string) {
 	ctx.RunWithoutMarshal()
 }
 
-func createEvmTx(action proto.Message, key, addr, expire, rpcLaddr string, fee uint64) (string, error) {
-	tx := &types.Transaction{Execer: []byte("user.evm"), Payload: types.Encode(action), Fee: 0, To: addr}
+func createEvmTx(action proto.Message, execer, caller, addr, expire, rpcLaddr string, fee uint64) (string, error) {
+	tx := &types.Transaction{Execer: []byte(execer), Payload: types.Encode(action), Fee: 0, To: addr}
 
-	tx.Fee, _ = tx.GetRealFee(types.MinBalanceTransfer)
-	tx.Fee += types.MinBalanceTransfer
-	tx.Fee += int64(fee)
+	tx.Fee, _ = tx.GetRealFee(types.MinFee)
+	if tx.Fee < int64(fee) {
+		tx.Fee += int64(fee)
+	}
 
 	random := rand.New(rand.NewSource(time.Now().UnixNano()))
 	tx.Nonce = random.Int63()
@@ -97,10 +125,57 @@ func createEvmTx(action proto.Message, key, addr, expire, rpcLaddr string, fee u
 	rawTx := hex.EncodeToString(txHex)
 
 	unsignedTx := &types.ReqSignRawTx{
-		Addr:    addr,
-		Privkey: key,
-		TxHex:   rawTx,
-		Expire:  expire,
+		Addr:   caller,
+		TxHex:  rawTx,
+		Expire: expire,
+	}
+
+	var res string
+	client, err := rpc.NewJSONClient(rpcLaddr)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return "", err
+	}
+	err = client.Call("Chain33.SignRawTx", unsignedTx, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return "", err
+	}
+
+	return res, nil
+}
+
+func createEvmTransferTx(caller, execName, expire, rpcLaddr string, amountInt64 int64, isWithdraw bool) (string, error) {
+
+	var tx *types.Transaction
+	transfer := &types.CoinsAction{}
+
+	if isWithdraw {
+		transfer.Value = &types.CoinsAction_Withdraw{Withdraw: &types.CoinsWithdraw{Amount: amountInt64, ExecName: execName}}
+		transfer.Ty = types.CoinsActionWithdraw
+	} else {
+		transfer.Value = &types.CoinsAction_TransferToExec{TransferToExec: &types.CoinsTransferToExec{Amount: amountInt64, ExecName: execName}}
+		transfer.Ty = types.CoinsActionTransferToExec
+	}
+
+	tx = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), To: account.ExecAddress(execName)}
+
+	var err error
+	tx.Fee, err = tx.GetRealFee(types.MinFee)
+	if err != nil {
+		return "", err
+	}
+
+	random := rand.New(rand.NewSource(time.Now().UnixNano()))
+	tx.Nonce = random.Int63()
+
+	txHex := types.Encode(tx)
+	rawTx := hex.EncodeToString(txHex)
+
+	unsignedTx := &types.ReqSignRawTx{
+		Addr:   caller,
+		TxHex:  rawTx,
+		Expire: expire,
 	}
 
 	var res string
@@ -131,25 +206,17 @@ func CallContractCmd() *cobra.Command {
 
 func callContract(cmd *cobra.Command, args []string) {
 	code, _ := cmd.Flags().GetString("input")
-	key, _ := cmd.Flags().GetString("key")
+	caller, _ := cmd.Flags().GetString("caller")
 	expire, _ := cmd.Flags().GetString("expire")
 	note, _ := cmd.Flags().GetString("note")
 	amount, _ := cmd.Flags().GetFloat64("amount")
 	fee, _ := cmd.Flags().GetFloat64("fee")
-	to, _ := cmd.Flags().GetString("to")
-	name, _ := cmd.Flags().GetString("name")
+	name, _ := cmd.Flags().GetString("exec")
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 
 	amountInt64 := uint64(amount*1e4) * 1e4
 	feeInt64 := uint64(fee*1e4) * 1e4
-	toAddr := to
-	if len(toAddr) == 0 && len(name) > 0 {
-		toAddr = account.ExecAddress(name)
-	}
-	if len(toAddr) == 0 {
-		fmt.Fprintln(os.Stderr, "one of the 'to (contract address)' and 'name (contract name)' must be set")
-		return
-	}
+	toAddr := account.ExecAddress(name)
 
 	bCode, err := common.FromHex(code)
 	if err != nil {
@@ -159,7 +226,7 @@ func callContract(cmd *cobra.Command, args []string) {
 
 	action := types.EVMContractAction{Amount: amountInt64, Code: bCode, GasLimit: 0, GasPrice: 0, Note: note}
 
-	data, err := createEvmTx(&action, key, toAddr, expire, rpcLaddr, feeInt64)
+	data, err := createEvmTx(&action, name, caller, toAddr, expire, rpcLaddr, feeInt64)
 
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "call contract error", err)
@@ -176,8 +243,8 @@ func callContract(cmd *cobra.Command, args []string) {
 
 func addCallContractFlags(cmd *cobra.Command) {
 	addCommonFlags(cmd)
-	cmd.Flags().StringP("to", "t", "", "contract address (optional)")
-	cmd.Flags().StringP("name", "m", "", "contract name, like user.evm.xxxxx (optional)")
+	cmd.Flags().StringP("exec", "e", "", "evm contract name, like user.evm.xxxxx")
+	cmd.MarkFlagRequired("exec")
 
 	cmd.Flags().Float64P("amount", "a", 0, "the amount transfer to the contract (optional)")
 }
@@ -186,26 +253,21 @@ func addCommonFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("input", "i", "", "input contract binary code")
 	cmd.MarkFlagRequired("input")
 
-	cmd.Flags().StringP("key", "k", "", "private key")
-	cmd.MarkFlagRequired("key")
+	cmd.Flags().StringP("caller", "c", "", "the caller address")
+	cmd.MarkFlagRequired("caller")
 
-	cmd.Flags().StringP("expire", "e", "120s", "transaction expire time (optional)")
+	cmd.Flags().StringP("expire", "p", "120s", "transaction expire time (optional)")
 
 	cmd.Flags().StringP("note", "n", "", "transaction note info (optional)")
 
-	cmd.Flags().Float64P("fee", "f", 0, "contract gas fee")
-	cmd.MarkFlagRequired("fee")
+	cmd.Flags().Float64P("fee", "f", 0, "contract gas fee (optional)")
 }
 
 func estimateContract(cmd *cobra.Command, args []string) {
 	code, _ := cmd.Flags().GetString("input")
-	to, _ := cmd.Flags().GetString("to")
-	name, _ := cmd.Flags().GetString("name")
+	name, _ := cmd.Flags().GetString("exec")
 
-	toAddr := to
-	if len(toAddr) == 0 && len(name) > 0 {
-		toAddr = account.ExecAddress(name)
-	}
+	toAddr := account.ExecAddress(name)
 
 	bCode, err := common.FromHex(code)
 	if err != nil {
@@ -229,8 +291,8 @@ func addEstimateFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("input", "i", "", "input contract binary code")
 	cmd.MarkFlagRequired("input")
 
-	cmd.Flags().StringP("to", "t", "", "contract address (optional)")
-	cmd.Flags().StringP("name", "m", "", "contract name, like user.evm.xxxxx (optional)")
+	cmd.Flags().StringP("exec", "e", "", "evm contract name (like user.evm.xxxxx)")
+	cmd.MarkFlagRequired("exec")
 
 }
 
@@ -249,7 +311,7 @@ func EstimateContractCmd() *cobra.Command {
 func CheckContractAddrCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "check",
-		Short: "Check if the address (or name) is a valid EVM contract",
+		Short: "Check if the address is a valid EVM contract",
 		Run:   checkContractAddr,
 	}
 	addCheckContractAddrFlags(cmd)
@@ -257,8 +319,8 @@ func CheckContractAddrCmd() *cobra.Command {
 }
 
 func addCheckContractAddrFlags(cmd *cobra.Command) {
-	cmd.Flags().StringP("to", "t", "", "contract address (optional)")
-	cmd.Flags().StringP("name", "m", "", "contract name, like user.evm.xxxxx (optional)")
+	cmd.Flags().StringP("to", "t", "", "evm contract address (optional)")
+	cmd.Flags().StringP("exec", "e", "", "evm contract name, like user.evm.xxxxx (optional)")
 }
 
 func checkContractAddr(cmd *cobra.Command, args []string) {
@@ -316,9 +378,105 @@ func evmDebug(cmd *cobra.Command, args []string) {
 	}
 }
 
+// 向EVM合约地址转账
+func EvmTransferCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "transfer",
+		Short: "Transfer to evm contract address",
+		Run:   evmTransfer,
+	}
+	addEvmTransferFlags(cmd)
+	return cmd
+}
+
+func addEvmTransferFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("to", "t", "", "evm contract address (like user.evm.xxx)")
+	cmd.MarkFlagRequired("to")
+
+	cmd.Flags().StringP("caller", "c", "", "the caller address")
+	cmd.MarkFlagRequired("caller")
+
+	cmd.Flags().Float64P("amount", "a", 0, "the amount transfer to the contract")
+	cmd.MarkFlagRequired("amount")
+
+	cmd.Flags().StringP("expire", "p", "120s", "transaction expire time (optional)")
+}
+
+func evmTransfer(cmd *cobra.Command, args []string) {
+	caller, _ := cmd.Flags().GetString("caller")
+	amount, _ := cmd.Flags().GetFloat64("amount")
+	to, _ := cmd.Flags().GetString("to")
+	expire, _ := cmd.Flags().GetString("expire")
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+
+	amountInt64 := int64(amount*1e4) * 1e4
+
+	data, err := createEvmTransferTx(caller, to, expire, rpcLaddr, amountInt64, false)
+
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "create contract transfer error:", err)
+		return
+	}
+
+	params := rpc.RawParm{
+		Data: data,
+	}
+
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.SendTransaction", params, nil)
+	ctx.RunWithoutMarshal()
+}
+
+// 向EVM合约地址转账
+func EvmWithdrawCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "withdraw",
+		Short: "Withdraw from evm contract address to caller's balance",
+		Run:   evmWithdraw,
+	}
+	addEvmWithdrawFlags(cmd)
+	return cmd
+}
+
+func addEvmWithdrawFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("exec", "e", "", "evm contract address (like user.evm.xxx)")
+	cmd.MarkFlagRequired("exec")
+
+	cmd.Flags().StringP("caller", "c", "", "the caller address")
+	cmd.MarkFlagRequired("caller")
+
+	cmd.Flags().Float64P("amount", "a", 0, "the amount transfer to the contract")
+	cmd.MarkFlagRequired("amount")
+
+	cmd.Flags().StringP("expire", "p", "120s", "transaction expire time (optional)")
+}
+
+func evmWithdraw(cmd *cobra.Command, args []string) {
+	caller, _ := cmd.Flags().GetString("caller")
+	amount, _ := cmd.Flags().GetFloat64("amount")
+	from, _ := cmd.Flags().GetString("exec")
+	expire, _ := cmd.Flags().GetString("expire")
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+
+	amountInt64 := int64(amount*1e4) * 1e4
+
+	data, err := createEvmTransferTx(caller, from, expire, rpcLaddr, amountInt64, true)
+
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "create contract transfer error:", err)
+		return
+	}
+
+	params := rpc.RawParm{
+		Data: data,
+	}
+
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.SendTransaction", params, nil)
+	ctx.RunWithoutMarshal()
+}
+
 func sendQuery(rpcAddr, funcName string, request, result interface{}) bool {
 	params := rpc.Query4Cli{
-		Execer:   "user.evm",
+		Execer:   "evm",
 		FuncName: funcName,
 		Payload:  request,
 	}

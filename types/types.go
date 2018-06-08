@@ -34,8 +34,8 @@ func IsAllowExecName(name string) bool {
 }
 
 func isAllowExecName(name []byte) bool {
-	// name长度不能超过50
-	if len(name) > 50 {
+	// name长度不能超过系统限制
+	if len(name) > MaxExecNameLength {
 		return false
 	}
 	// name中不允许有 "-"
