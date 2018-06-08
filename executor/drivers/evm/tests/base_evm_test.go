@@ -8,6 +8,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/model"
 )
 
+
 // 正常创建合约逻辑
 func TestCreateContract1(t *testing.T) {
 	deployCode, _ := hex.DecodeString("608060405260358060116000396000f3006080604052600080fd00a165627a7a723058203f5c7a16b3fd4fb82c8b466dd5a3f43773e41cc9c0acb98f83640880a39a68080029")
