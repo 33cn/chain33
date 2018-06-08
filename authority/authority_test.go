@@ -45,7 +45,7 @@ func sign(auth *Authority, tx *types.Transaction) {
 	if err != nil {
 		panic(err)
 	}
-	tx.Signature = &types.Signature{types.SIG_TYPE_AUTHORITY, nil, signature}
+	tx.Signature = &types.Signature{1, nil, signature}
 }
 
 func initEnv() (queue.Queue,  *Authority) {

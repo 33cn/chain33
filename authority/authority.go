@@ -24,6 +24,7 @@ type Authority struct {
 	cryptoSuite core.CryptoSuite
 	signer      *signingmgr.SigningManager
 	idmgr       *identitymgr.IdentityManager
+	signType    int32
 }
 
 func New(conf *types.Authority) *Authority {
@@ -35,6 +36,7 @@ func New(conf *types.Authority) *Authority {
 		panic("")
 	}
 
+	auth.signType = conf.SignType
 	auth.cryptoPath = conf.CryptoPath
 	auth.cfg = conf
 	OrgName = conf.GetOrgName()
@@ -44,6 +46,10 @@ func New(conf *types.Authority) *Authority {
 
 func (auth *Authority) initConfig(conf *types.Authority) error {
 	config := &cryptosuite.CryptoConfig{conf}
+
+	if conf.Enable == true {
+		types.IsAuthEnable = true
+	}
 
 	cryptoSuite, err := cryptosuite.GetSuiteByConfig(config)
 	if err != nil {
@@ -131,7 +137,7 @@ func (auth *Authority) procSignTx(msg queue.Message) {
 	if err != nil {
 		panic(err)
 	}
-	tx.Signature = &types.Signature{types.SIG_TYPE_AUTHORITY, nil, signature}
+	tx.Signature = &types.Signature{auth.signType, nil, signature}
 
 	alog.Debug("Process authority tx signing end")
 
@@ -172,8 +178,8 @@ func (auth *Authority) checkTx(tx *types.Transaction) bool {
 func (auth *Authority) procCheckTx(msg queue.Message) {
 	data := msg.GetData().(*types.ReqAuthSignCheck)
 	tx := data.GetTx()
-	if tx.GetSignature().Ty != types.SIG_TYPE_AUTHORITY {
-		alog.Error("Error signature type, should be AUTHORITY")
+	if tx.GetSignature().Ty != auth.signType {
+		alog.Error("Signature type in transaction is %d, but in authority is %d", tx.GetSignature().Ty, auth.signType)
 		msg.ReplyErr("EventReplyAuthCheckTx", types.ErrInvalidParam)
 		return
 	}

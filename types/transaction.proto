@@ -55,7 +55,6 @@ message Transactions {
 //ty = 1 -> secp256k1
 //ty = 2 -> ed25519
 //ty = 3 -> sm2
-//ty = 4 -> authority
 message Signature {
 	int32 ty = 1;
 	bytes pubkey = 2;

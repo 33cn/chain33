@@ -117,7 +117,7 @@ func (mem *Mempool) CheckSignList() {
 		go func() {
 			for data := range mem.signChan {
 				tx, ok := data.GetData().(types.TxGroup)
-				if tx.Tx().GetSignature().Ty == types.SIG_TYPE_AUTHORITY {
+				if types.IsAuthEnable {
 					result = mem.CheckSignFromAuth(tx.Tx())
 					if result {
 						// 签名正确，联盟链跳过余额检查

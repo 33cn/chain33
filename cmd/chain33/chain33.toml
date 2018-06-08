@@ -83,7 +83,15 @@ minExecFee=100000
 enableStat=false
 
 [auth]
+# 是否启用auth模块签名验签
+enable=false
+# 加密文件路径
 cryptoPath="authdir/crypto"
+# hash加密级别，支持256,384两种
 securityLevel=256
+# hash算法，支持SHA2，SHA3
 hashAlgorithm="SHA2"
+# 签名类型，支持1:secp256r1 2:sm2
+signType=1
+# 组织名，默认使用chain33
 orgName="chain33"
