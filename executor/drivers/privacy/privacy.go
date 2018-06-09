@@ -449,19 +449,23 @@ func (p *privacy) CheckTx(tx *types.Transaction, index int) error {
 	var keyOutput []*types.KeyOutput
 	var token string
 	var amount int64
-
 	if action.Ty == types.ActionPublic2Privacy {
 		return nil
 	} else if action.Ty == types.ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
 		keyinput = action.GetPrivacy2Privacy().Input.Keyinput
 		keyOutput = action.GetPrivacy2Privacy().Output.Keyoutput
 		token = action.GetPrivacy2Privacy().Tokenname
-		amount = action.GetPrivacy2Privacy().Amount
 	} else if action.Ty == types.ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
 		keyinput = action.GetPrivacy2Public().Input.Keyinput
 		keyOutput = action.GetPrivacy2Public().Output.Keyoutput
 		token = action.GetPrivacy2Public().Tokenname
 		amount = action.GetPrivacy2Public().Amount
+	}
+
+	if tx.Fee < types.PrivacyTxFee {
+		privacylog.Error("Privacy CheckTx failed due to ErrPrivacyTxFeeNotEnough", "fee set:", tx.Fee,
+			"required:", types.PrivacyTxFee)
+		return types.ErrPrivacyTxFeeNotEnough
 	}
 
 	var ringSignature types.RingSignature
@@ -498,10 +502,17 @@ func (p *privacy) CheckTx(tx *types.Transaction, index int) error {
 		totalOutput += output.Amount
 	}
 
-	feeAmount := totalInput - amount - totalOutput
-	if feeAmount < tx.Fee {
-		//从隐私合约在coin的账户中扣除，同时也保证了相应的utxo差额被燃烧
-		return types.ErrNoBalance
+	feeAmount := int64(0)
+	if action.Ty == types.ActionPrivacy2Privacy {
+		feeAmount = totalInput - totalOutput
+	} else {
+		feeAmount = totalInput - totalOutput - amount
+	}
+
+	if feeAmount < types.PrivacyTxFee {
+		privacylog.Error("Privacy CheckTx failed due to ErrPrivacyTxFeeNotEnough", "fee available:", feeAmount,
+			"required:", types.PrivacyTxFee)
+		return types.ErrPrivacyTxFeeNotEnough
 	}
 
 	return nil
