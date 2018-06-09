@@ -793,6 +793,20 @@ func (c *channelClient) IsNtpClockSync() bool {
 }
 
 //////////privacy tx//////////////////////////////
+func (c *channelClient) ShowPrivacyBalance(parm *types.ReqPrivBal4AddrToken) (*types.Account, error) {
+	msg := c.NewMessage("wallet", types.EventShowPrivacyBalance, parm)
+	err := c.Send(msg, true)
+	if err != nil {
+		log.Error("ShowPrivacyBalance", "Error", err.Error())
+		return nil, err
+	}
+	resp, err := c.Wait(msg)
+	if err != nil {
+		log.Error("ShowPrivacyBalance", "Error", err.Error())
+		return nil, err
+	}
+	return resp.Data.(*types.Account), nil
+}
 
 func (c *channelClient) ShowPrivacyAccount(parm *types.ReqPrivBal4AddrToken) ([]*types.UTXO, error) {
 	msg := c.NewMessage("wallet", types.EventShowPrivacyAccount, parm)

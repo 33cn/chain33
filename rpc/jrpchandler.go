@@ -1226,6 +1226,15 @@ func (c *Chain33) IsNtpClockSync(in *types.ReqNil, result *interface{}) error {
 }
 
 /////////////////privacy///////////////
+func (c *Chain33) ShowPrivacyBalance(in types.ReqPrivBal4AddrToken, result *interface{}) error {
+	account, err := c.cli.ShowPrivacyBalance(&in)
+	if err != nil {
+		log.Info("ShowPrivacyBalance", "return err info", err)
+		return err
+	}
+	*result = account
+	return nil
+}
 func (c *Chain33) ShowPrivacyAccount(in types.ReqPrivBal4AddrToken, result *interface{}) error {
 	account, err := c.cli.ShowPrivacyAccount(&in)
 	if err != nil {
