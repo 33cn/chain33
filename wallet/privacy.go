@@ -555,53 +555,69 @@ func (wallet *Wallet) buildInput(privacykeyParirs *privacy.Privacy, buildInfo *b
 		return nil, nil, nil, nil, err
 	}
 
+
 	walletlog.Debug("transPri2Pri", "Before sort selectedUtxo", selectedUtxo)
 	sort.Slice(selectedUtxo, func(i, j int) bool {
 		return selectedUtxo[i].amount <= selectedUtxo[j].amount
 	})
 	walletlog.Debug("transPri2Pri", "After sort selectedUtxo", selectedUtxo)
 
+    /*
 	//在选择作为支付的UTXO中，可能存在相同额度utxo，这时需要进行去重请求处理，避免向blockchain请求多个相同amount的utxo
 	var amountKind map[int64]bool = make(map[int64]bool)
 	for _, out := range selectedUtxo {
 		amountKind[out.amount] = true
 	}
 	walletlog.Info("transPri2Pri", "Count of Same amount for UTXO is", len(selectedUtxo)-len(amountKind))
+	*/
 
 	reqGetGlobalIndex := types.ReqUTXOGlobalIndex{
 		Tokenname: *buildInfo.tokenname,
-		MixCount:  20,
+		MixCount:  0,
 	}
+
 	if buildInfo.mixcount >= 0 {
 		reqGetGlobalIndex.MixCount = buildInfo.mixcount
 	}
-	for amout, _ := range amountKind {
-		reqGetGlobalIndex.Amount = append(reqGetGlobalIndex.Amount, amout)
+
+	//for amout, _ := range amountKind {
+	//	reqGetGlobalIndex.Amount = append(reqGetGlobalIndex.Amount, amout)
+	//}
+
+	for _, out := range selectedUtxo {
+		reqGetGlobalIndex.Amount = append(reqGetGlobalIndex.Amount, out.amount)
 	}
 
+	/*
 	walletlog.Debug("transPri2Pri", "Before sort reqGetGlobalIndex.Amount", reqGetGlobalIndex.Amount)
 	sort.Slice(reqGetGlobalIndex.Amount, func(i, j int) bool {
 		return reqGetGlobalIndex.Amount[i] < reqGetGlobalIndex.Amount[j]
 	})
 	walletlog.Debug("transPri2Pri", "After sort reqGetGlobalIndex.Amount", reqGetGlobalIndex.Amount)
+	*/
 
-	//向blockchain请求相同额度的不同utxo用于相同额度的混淆作用
-	msg := wallet.client.NewMessage("blockchain", types.EventGetGlobalIndex, &reqGetGlobalIndex)
-	wallet.client.Send(msg, true)
-	resp, err := wallet.client.Wait(msg)
-	if err != nil {
-		walletlog.Error("transPri2Pri EventGetGlobalIndex", "err", err)
-		return nil, nil, nil, nil, err
-	}
-	resUTXOGlobalIndex := resp.GetData().(*types.ResUTXOGlobalIndex)
-	if resUTXOGlobalIndex == nil {
-		walletlog.Info("transPri2Pri EventGetGlobalIndex is nil")
-		return nil, nil, nil, nil, err
-	}
 
 	mapAmount2utxo := make(map[int64]*types.UTXOIndex4Amount)
-	for _, utxoIndex4Amount := range resUTXOGlobalIndex.UtxoIndex4Amount {
-		mapAmount2utxo[utxoIndex4Amount.Amount] = utxoIndex4Amount
+
+	// 混淆数大于0时候才向blockchain请求
+	if buildInfo.mixcount > 0 {
+		//向blockchain请求相同额度的不同utxo用于相同额度的混淆作用
+		msg := wallet.client.NewMessage("blockchain", types.EventGetGlobalIndex, &reqGetGlobalIndex)
+		wallet.client.Send(msg, true)
+		resp, err := wallet.client.Wait(msg)
+		if err != nil {
+			walletlog.Error("transPri2Pri EventGetGlobalIndex", "err", err)
+			return nil, nil, nil, nil, err
+		}
+		resUTXOGlobalIndex := resp.GetData().(*types.ResUTXOGlobalIndex)
+		if resUTXOGlobalIndex == nil {
+			walletlog.Info("transPri2Pri EventGetGlobalIndex is nil")
+			return nil, nil, nil, nil, err
+		}
+
+		for _, utxoIndex4Amount := range resUTXOGlobalIndex.UtxoIndex4Amount {
+			mapAmount2utxo[utxoIndex4Amount.Amount] = utxoIndex4Amount
+		}
 	}
 
 	//构造输入PrivacyInput
