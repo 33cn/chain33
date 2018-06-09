@@ -211,6 +211,8 @@ const (
 	EventReplyPrivacy2public
 	EventShowPrivacyPK
 	EventReplyShowPrivacyPK
+	EventShowPrivacyBalance
+	EventReplyShowPrivacyBalance
 	EventShowPrivacyAccount
 	EventReplyShowPrivacyAccount
 	EventGetPrivacyTransaction

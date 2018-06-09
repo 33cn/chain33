@@ -479,6 +479,12 @@ func main() {
 			return
 		}
 		ShowPrivacyAccount(argsWithoutProg[1])
+	case "showprivacybalance":
+		if len(argsWithoutProg) != 2 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		ShowPrivacyBalance(argsWithoutProg[1])
 	case "showprivacyaccountdetail":
 		if len(argsWithoutProg) != 2 {
 			fmt.Print(errors.New("参数错误").Error())
@@ -597,6 +603,7 @@ func LoadHelp() {
 	fmt.Println("isntpclocksync []                                              : 获取网络时间同步状态")
 	//privacy
 	fmt.Println("showprivacykey addr                                            : 显示地址对应的隐私账户的view和spend的公钥")
+	fmt.Println("showprivacybalance addr                                        : 显示地址对应的隐私账户的余额")
 	fmt.Println("showprivacyaccount addr                                        : 显示地址对应的隐私账户可用余额信息")
 	fmt.Println("showprivacyaccountdetail addr                                  : 显示地址对应的隐私账户utxo信息")
 	fmt.Println("pub2priv from toviewpubkey tospendpubkey amout mixin note       : 公开账户向隐私账户转账")
@@ -2820,6 +2827,29 @@ func showprivacyaccountDetail(addr string) {
 		fmt.Println(string(data))
 	}
 }
+func ShowPrivacyBalance(addr string) {
+	params := &types.ReqPrivBal4AddrToken{
+		addr,
+		"BTY",
+	}
+
+	rpc, err := jsonrpc.NewJsonClient("http://localhost:8801")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	var res *types.Account
+	err = rpc.Call("Chain33.ShowPrivacyBalance", params, &res)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	balance := float64(res.Balance) / float64(types.Coin)
+	totalStr := strconv.FormatFloat(balance, 'f', 4, 64)
+	fmt.Printf("------Privacy Balance:%s \n", totalStr)
+}
+
 func ShowPrivacyAccount(addr string) {
 	params := &types.ReqPrivBal4AddrToken{
 		addr,

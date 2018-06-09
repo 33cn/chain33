@@ -621,6 +621,16 @@ func (wallet *Wallet) ProcRecvMsg() {
 				}()
 			}
 
+		case types.EventShowPrivacyBalance:
+			reqPrivBal4AddrToken := msg.Data.(*types.ReqPrivBal4AddrToken)
+			accout, err := wallet.showPrivacyBalance(reqPrivBal4AddrToken)
+			if err != nil {
+				walletlog.Error("showPrivacyAccount", "err", err.Error())
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyShowPrivacyBalance, err))
+			} else {
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyShowPrivacyBalance, accout))
+			}
+
 		case types.EventShowPrivacyAccount:
 			reqPrivBal4AddrToken := msg.Data.(*types.ReqPrivBal4AddrToken)
 			UTXOs, err := wallet.showPrivacyAccounts(reqPrivBal4AddrToken)
@@ -2530,6 +2540,57 @@ func (wallet *Wallet) getPrivacykeyPair(addr string) (*privacy.Privacy, error) {
 	//save the privacy created to wallet db
 	wallet.walletStore.SetWalletAccountPrivacy(addr, walletPrivacy)
 	return newPrivacy, nil
+}
+
+func (wallet *Wallet) showPrivacyBalance(req *types.ReqPrivBal4AddrToken) (*types.Account, error) {
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+
+	accRes := &types.Account{
+		Balance:0,
+	}
+	addr := req.GetAddr()
+	token := req.GetToken()
+	privacyDBStore, err := wallet.walletStore.listAvailableUTXOs(token, addr)
+	if err != nil {
+		return accRes, err
+	}
+
+	if 0 == len(privacyDBStore) {
+		return accRes, nil
+	}
+
+	balance := int64(0)
+
+	for _, ele := range privacyDBStore {
+		balance += ele.Amount
+	}
+
+	for txhash, sender := range wallet.privacyFrozen {
+		if sender == addr {
+			value := wallet.walletStore.db.Get(calcKey4FTXOsInTx(txhash))
+			if nil != value {
+				value2 := wallet.walletStore.db.Get(value)
+				if value2 != nil {
+					var ftxosSTXOsInOneTx types.FTXOsSTXOsInOneTx
+					if nil == types.Decode(value2, &ftxosSTXOsInOneTx) {
+						for _, utxo := range ftxosSTXOsInOneTx.UtxoGlobalIndex {
+							key := calcUTXOKey(common.Bytes2Hex(utxo.Txhash), int(utxo.Outindex))
+							if value3 := wallet.walletStore.db.Get(key); value3 != nil {
+								var privacyDBStore types.PrivacyDBStore
+								if nil == types.Decode(value3, &privacyDBStore) {
+									balance += privacyDBStore.Amount
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	accRes.Balance = balance
+	return accRes, nil
 }
 
 func (wallet *Wallet) showPrivacyAccounts(req *types.ReqPrivBal4AddrToken) ([]*types.UTXO, error) {

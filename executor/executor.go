@@ -317,14 +317,6 @@ func newExecutor(stateHash []byte, client queue.Client, height, blocktime int64)
 //1.公对私交易：直接从coin合约中扣除
 //2.私对私交易或者私对公交易：交易费的扣除从隐私合约账户在coin合约中的账户中扣除
 func (e *executor) processFee(tx *types.Transaction) (*types.Receipt, error) {
-	if types.PrivacyX == string(tx.Execer) {
-		exec := e.loadDriverForExec(string(tx.Execer))
-		exec.SetDB(e.stateDB)
-		exec.SetEnv(e.height, e.blocktime)
-		if err := exec.CheckTx(tx, 0); err != nil {
-			return nil, err
-		}
-	}
 	from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
 	return e.cutFeeFromAccount(from, tx.Fee)
 }
@@ -355,6 +347,15 @@ func (e *executor) checkTx(tx *types.Transaction, index int) error {
 	if err := tx.Check(types.MinFee); err != nil {
 		return err
 	}
+
+	//该处的交易检查对于隐私交易必不可少，不可轻易删除
+	exec := e.loadDriverForExec(string(tx.Execer))
+	exec.SetDB(e.stateDB)
+	exec.SetEnv(e.height, e.blocktime)
+	if err := exec.CheckTx(tx, index); err != nil {
+		return err
+	}
+
 	return nil
 }
 
