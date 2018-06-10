@@ -429,6 +429,10 @@ func (mem *Mempool) setSync(status bool) {
 	mem.proxyMtx.Unlock()
 }
 
+func (mem *Mempool) SetSync(status bool) {
+	mem.setSync(status)
+}
+
 // Mempool.isSync检查Mempool是否同步完成
 func (mem *Mempool) isSync() bool {
 	mem.proxyMtx.Lock()
