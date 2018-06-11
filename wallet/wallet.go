@@ -2297,6 +2297,12 @@ func (wallet *Wallet) showPrivacyAccounts(req *types.ReqPrivBal4AddrToken) ([]*t
 	return accRes, nil
 }
 
+func makeViewSpendPubKeyPairToString(viewPubKey, spendPubKey []byte) string  {
+	pair := viewPubKey
+	pair = append(pair, spendPubKey...)
+	return common.Bytes2Hex(pair)
+}
+
 func (wallet *Wallet) showPrivacyPkPair(reqAddr *types.ReqStr) (*types.ReplyPrivacyPkPair, error) {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
@@ -2306,10 +2312,12 @@ func (wallet *Wallet) showPrivacyPkPair(reqAddr *types.ReqStr) (*types.ReplyPriv
 		return nil, err
 	}
 
+	pair := privacyInfo.ViewPubkey[:]
+	pair = append(pair, privacyInfo.SpendPubkey[:]...)
+
 	replyPrivacyPkPair := &types.ReplyPrivacyPkPair{
-		true,
-		common.ToHex(privacyInfo.ViewPubkey[:]),
-		common.ToHex(privacyInfo.SpendPubkey[:]),
+		ShowSuccessful: true,
+		Pubkeypair:makeViewSpendPubKeyPairToString(privacyInfo.ViewPubkey[:], privacyInfo.SpendPubkey[:]),
 	}
 
 	return replyPrivacyPkPair, nil

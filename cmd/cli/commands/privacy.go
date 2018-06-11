@@ -62,7 +62,7 @@ func showPrivacyKey(cmd *cobra.Command, args []string) {
 func Public2PrivacyCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "pub2priv",
-		Short: "Public to privacy from toviewpubkey tospendpubkey amout note",
+		Short: "Public to privacy from pubkeypair amout note",
 		Run:   public2Privacy,
 	}
 	public2PrivacyFlag(cmd)
@@ -73,11 +73,8 @@ func public2PrivacyFlag(cmd *cobra.Command) {
 	cmd.Flags().StringP("from", "f", "", "from account address")
 	cmd.MarkFlagRequired("from")
 
-	cmd.Flags().StringP("toviewpubkey", "v", "", "to view public key")
-	cmd.MarkFlagRequired("toviewpubkey")
-
-	cmd.Flags().StringP("tospendpubkey", "s", "", "to spend public key")
-	cmd.MarkFlagRequired("tospendpubkey")
+	cmd.Flags().StringP("pubkeypair", "p", "", "to view spend public key pair")
+	cmd.MarkFlagRequired("pubkeypair")
 
 	cmd.Flags().Float64P("amount", "a", 0, "transfer amount")
 	cmd.MarkFlagRequired("amount")
@@ -90,19 +87,17 @@ func public2PrivacyFlag(cmd *cobra.Command) {
 func public2Privacy(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	from, _ := cmd.Flags().GetString("from")
-	toviewpubkey, _ := cmd.Flags().GetString("toviewpubkey")
-	tospendpubkey, _ := cmd.Flags().GetString("tospendpubkey")
+	pubkeypair, _ := cmd.Flags().GetString("pubkeypair")
 	amount, _ := cmd.Flags().GetFloat64("amount")
 	note, _ := cmd.Flags().GetString("note")
 
 	amountInt64 := int64(amount*types.InputPrecision) * types.Multiple1E4 //支持4位小数输入，多余的输入将被截断
 	params := types.ReqPub2Pri{
-		Sender:      from,
-		ViewPublic:  toviewpubkey,
-		SpendPublic: tospendpubkey,
-		Amount:      amountInt64,
-		Note:        note,
-		Tokenname:   types.BTY,
+		Sender:     from,
+		Pubkeypair: pubkeypair,
+		Amount:     amountInt64,
+		Note:       note,
+		Tokenname:  types.BTY,
 	}
 
 	var res jsonrpc.ReplyHash
@@ -125,11 +120,8 @@ func privacy2PrivacyFlag(cmd *cobra.Command) {
 	cmd.Flags().StringP("from", "f", "", "from account address")
 	cmd.MarkFlagRequired("from")
 
-	cmd.Flags().StringP("toviewpubkey", "v", "", "to view public key")
-	cmd.MarkFlagRequired("toviewpubkey")
-
-	cmd.Flags().StringP("tospendpubkey", "s", "", "to spend public key")
-	cmd.MarkFlagRequired("tospendpubkey")
+	cmd.Flags().StringP("pubkeypair", "p", "", "to view spend public key pair")
+	cmd.MarkFlagRequired("pubkeypair")
 
 	cmd.Flags().Float64P("amount", "a", 0.0, "transfer amount")
 	cmd.MarkFlagRequired("amount")
@@ -145,21 +137,19 @@ func privacy2PrivacyFlag(cmd *cobra.Command) {
 func privacy2Privacy(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	from, _ := cmd.Flags().GetString("from")
-	toviewpubkey, _ := cmd.Flags().GetString("toviewpubkey")
-	tospendpubkey, _ := cmd.Flags().GetString("tospendpubkey")
+	pubkeypair, _ := cmd.Flags().GetString("pubkeypair")
 	amount, _ := cmd.Flags().GetFloat64("amount")
 	mixcount, _ := cmd.Flags().GetInt32("txhash")
 	note, _ := cmd.Flags().GetString("note")
 
 	amountInt64 := int64(amount*types.InputPrecision) * types.Multiple1E4 //支持4位小数输入，多余的输入将被截断
 	params := types.ReqPri2Pri{
-		Sender:      from,
-		ViewPublic:  toviewpubkey,
-		SpendPublic: tospendpubkey,
-		Amount:      amountInt64,
-		Mixin:       mixcount,
-		Note:        note,
-		Tokenname:   types.BTY,
+		Sender:     from,
+		Pubkeypair: pubkeypair,
+		Amount:     amountInt64,
+		Mixin:      mixcount,
+		Note:       note,
+		Tokenname:  types.BTY,
 	}
 
 	var res jsonrpc.ReplyHash

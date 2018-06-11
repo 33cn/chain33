@@ -253,22 +253,23 @@ message Int32 {
 
 message ReqPub2Pri {
 	//接收人可见公钥A
-	string viewPublic  = 1;
+	//string viewPublic  = 1;
 	//接收人花费公钥B
-	string spendPublic = 2;
+	//string spendPublic = 2;
 	string tokenname   = 3;
 	int64 amount       = 4;
 	string note        = 5;
 	//发送人地址
 	string sender      = 6;
 	int32  mixin       = 7;
+	string	pubkeypair	= 8;
 }
 
 message ReqPri2Pri {
 	//接收人可见公钥A
-	string viewPublic  = 1; //A
+	//string viewPublic  = 1; //A
 	//接收人花费公钥B
-	string spendPublic = 2; //B
+	//string spendPublic = 2; //B
 	string tokenname   = 3;
 	int64 amount       = 4;
 	string note        = 5;
@@ -276,6 +277,7 @@ message ReqPri2Pri {
     string sender      = 6;
 	int32  mixin       = 7;
 //	string txhash      = 7;
+	string	pubkeypair	= 8;
 }
 
 message ReqPri2Pub {
@@ -301,8 +303,9 @@ message ReqCreateUTXOs {
 
 message ReplyPrivacyPkPair {
 	bool showSuccessful  = 1;
-	string viewPub       = 2;
-	string spendPub      = 3;
+	//string viewPub       = 2;
+	//string spendPub      = 3;
+	string pubkeypair	= 4;
 }
 
 message ReqPrivBal4AddrToken {
