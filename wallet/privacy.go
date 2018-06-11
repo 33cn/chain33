@@ -179,8 +179,18 @@ func (wallet *Wallet) createUTXOsByPub2Priv(priv crypto.PrivKey, reqCreateUTXOs 
 	return &hash, nil
 }
 
+func parseViewSpendPubKeyPair(in string) (viewPubKey, spendPubKey []byte, err error)  {
+	return
+}
+
 //公开向隐私账户转账
 func (wallet *Wallet) transPub2PriV2(priv crypto.PrivKey, reqPub2Pri *types.ReqPub2Pri) (*types.ReplyHash, error) {
+	viewPubSlice, spendPubSlice, err := parseViewSpendPubKeyPair(reqPub2Pri.Pubkeypair)
+	if err != nil {
+		walletlog.Error("transPub2Pri", "parseViewSpendPubKeyPair  ", err)
+		return nil, err
+	}
+
 	viewPubSlice, err := common.FromHex(reqPub2Pri.ViewPublic)
 	if err != nil {
 		walletlog.Error("transPub2Pri", "common.FromHex error ", err)
@@ -393,6 +403,11 @@ func (wallet *Wallet) transPri2PriV2(privacykeyParirs *privacy.Privacy, reqPri2P
 		return nil, err
 	}
 
+	viewPubSlice, spendPubSlice, err := parseViewSpendPubKeyPair(reqPub2Pri.Pubkeypair)
+	if err != nil {
+		walletlog.Error("transPub2Pri", "parseViewSpendPubKeyPair  ", err)
+		return nil, err
+	}
 	//step 2,generateOuts
 	viewPublicSlice, spendPublicSlice, err := convertPubPairstr2bytes(&reqPri2Pri.ViewPublic, &reqPri2Pri.SpendPublic)
 	if err != nil {
