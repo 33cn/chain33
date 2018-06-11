@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/version"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -309,7 +308,7 @@ func (c *Chain33) GetMempool(in *types.ReqNil, result *interface{}) error {
 			if err != nil {
 				amount = 0
 			}
-			from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
+			from := tx.From()
 			tran, err := DecodeTx(tx)
 			if err != nil {
 				continue

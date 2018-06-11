@@ -3,7 +3,7 @@ package mempool
 import (
 	"errors"
 
-	"gitlab.33.cn/chain33/chain33/account"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -25,7 +25,7 @@ func (mem *Mempool) checkTx(msg queue.Message) queue.Message {
 		}
 	}
 	// 检查接收地址是否合法
-	if err := account.CheckAddress(tx.To); err != nil {
+	if err := address.CheckAddress(tx.To); err != nil {
 		msg.Data = types.ErrInvalidAddress
 		return msg
 	}
@@ -37,7 +37,7 @@ func (mem *Mempool) checkTx(msg queue.Message) queue.Message {
 	mem.addedTxs.Add(string(tx.Hash()), nil)
 
 	// 检查交易账户在Mempool中是否存在过多交易
-	from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
+	from := tx.From()
 	if mem.TxNumOfAccount(from) >= maxTxNumPerAccount {
 		msg.Data = types.ErrManyTx
 		return msg

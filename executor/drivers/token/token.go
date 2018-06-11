@@ -12,6 +12,7 @@ token执行器支持token的创建，
 import (
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -247,7 +248,7 @@ func (t *token) GetAccountTokenAssets(req *types.ReqAccountTokenAssets) (types.M
 		}
 		var acc1 *types.Account
 		if req.Execer == "trade" {
-			execaddress := account.ExecAddress(req.Execer)
+			execaddress := address.ExecAddress(req.Execer)
 			acc1 = acc.LoadExecAccount(req.Address, execaddress)
 		} else if req.Execer == "token" {
 			acc1 = acc.LoadAccount(req.Address)
