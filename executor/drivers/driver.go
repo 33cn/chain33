@@ -177,8 +177,8 @@ func (d *DriverBase) Exec(tx *types.Transaction, index int) (*types.Receipt, err
 
 //默认情况下，to地址指向合约地址
 func (d *DriverBase) CheckTx(tx *types.Transaction, index int) error {
-	exec := string(tx.Execer)
-	if ExecAddress(exec) != tx.To {
+	execer := string(tx.Execer)
+	if ExecAddress(execer) != tx.To {
 		return types.ErrToAddrNotSameToExecAddr
 	}
 	return nil
