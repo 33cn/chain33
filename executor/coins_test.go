@@ -3,7 +3,7 @@ package executor
 import (
 	"testing"
 
-	"gitlab.33.cn/chain33/chain33/account"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -22,7 +22,7 @@ func createTransfer(priv crypto.PrivKey, to string, amount int64) *types.Transac
 func createTransferToExec(priv crypto.PrivKey, execname string, amount int64) *types.Transaction {
 	v := &types.CoinsAction_TransferToExec{&types.CoinsTransferToExec{ExecName: execname, Amount: amount}}
 	transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransferToExec}
-	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1e6, To: account.ExecAddress(execname)}
+	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1e6, To: address.ExecAddress(execname)}
 	tx.Nonce = random.Int63()
 	tx.Sign(types.SECP256K1, priv)
 	return tx
@@ -31,7 +31,7 @@ func createTransferToExec(priv crypto.PrivKey, execname string, amount int64) *t
 func createWithdrawFromExec(priv crypto.PrivKey, execname string, amount int64) *types.Transaction {
 	v := &types.CoinsAction_Withdraw{&types.CoinsWithdraw{ExecName: execname, Amount: amount}}
 	transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionWithdraw}
-	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1e6, To: account.ExecAddress(execname)}
+	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1e6, To: address.ExecAddress(execname)}
 	tx.Nonce = random.Int63()
 	tx.Sign(types.SECP256K1, priv)
 	return tx
