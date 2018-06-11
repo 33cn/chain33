@@ -21,6 +21,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/types"
+	"bytes"
 )
 
 var privacylog = log.New("module", "execs.privacy")
@@ -438,4 +439,118 @@ func (p *privacy) ShowUTXOs4SpecifiedAmount(reqtoken *types.ReqPrivacyToken) (ty
 	}
 
 	return &replyUTXOsOfAmount, nil
+}
+
+func (p *privacy) CheckTx(tx *types.Transaction, index int) error {
+	var action types.PrivacyAction
+	err := types.Decode(tx.Payload, &action)
+	if err != nil {
+		return err
+	}
+	//如果是私到私 或者私到公，交易费扣除则需要utxo实现,交易费并不生成真正的UTXO,也是即时燃烧掉而已
+	var keyinput []*types.KeyInput
+	var keyOutput []*types.KeyOutput
+	var token string
+	var amount int64
+	if action.Ty == types.ActionPublic2Privacy {
+		return nil
+	} else if action.Ty == types.ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
+		keyinput = action.GetPrivacy2Privacy().Input.Keyinput
+		keyOutput = action.GetPrivacy2Privacy().Output.Keyoutput
+		token = action.GetPrivacy2Privacy().Tokenname
+	} else if action.Ty == types.ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
+		keyinput = action.GetPrivacy2Public().Input.Keyinput
+		keyOutput = action.GetPrivacy2Public().Output.Keyoutput
+		token = action.GetPrivacy2Public().Tokenname
+		amount = action.GetPrivacy2Public().Amount
+	}
+
+	if tx.Fee < types.PrivacyTxFee {
+		privacylog.Error("Privacy CheckTx failed due to ErrPrivacyTxFeeNotEnough", "fee set:", tx.Fee,
+			"required:", types.PrivacyTxFee)
+		return types.ErrPrivacyTxFeeNotEnough
+	}
+
+	var ringSignature types.RingSignature
+	if err := types.Decode(tx.Signature.Signature, &ringSignature); err != nil {
+		privacylog.Error("Privacy exec failed to decode ring signature")
+		return err
+	}
+
+	totalInput := int64(0)
+	totalOutput := int64(0)
+	inputCnt := len(keyinput)
+	keyImages := make([][]byte, inputCnt)
+	keys := make([][]byte, 0)
+	pubkeys := make([][]byte, 0)
+	for i, input := range keyinput {
+		totalInput += input.Amount
+		keyImages[i] = input.KeyImage
+		for j, globalIndex := range input.UtxoGlobalIndex {
+			keys = append(keys, CalcPrivacyOutputKey(token, input.Amount, common.ToHex(globalIndex.Txhash), int(globalIndex.Outindex)))
+			pubkeys = append(pubkeys, ringSignature.Items[i].Pubkey[j])
+		}
+	}
+	if !p.checkUTXOValid(keyImages) {
+		privacylog.Error("exec UTXO double spend check failed")
+		return types.ErrDoubeSpendOccur
+	}
+
+	if !p.checkPubKeyValid(keys, pubkeys) {
+		privacylog.Error("exec UTXO double spend check failed")
+		return types.ErrPubkeysOfUTXO
+	}
+
+	for _, output := range keyOutput {
+		totalOutput += output.Amount
+	}
+
+	feeAmount := int64(0)
+	if action.Ty == types.ActionPrivacy2Privacy {
+		feeAmount = totalInput - totalOutput
+	} else {
+		feeAmount = totalInput - totalOutput - amount
+	}
+
+	if feeAmount < types.PrivacyTxFee {
+		privacylog.Error("Privacy CheckTx failed due to ErrPrivacyTxFeeNotEnough", "fee available:", feeAmount,
+			"required:", types.PrivacyTxFee)
+		return types.ErrPrivacyTxFeeNotEnough
+	}
+
+	return nil
+}
+
+//通过keyImage确认是否存在双花，有效即不存在双花，返回true，反之则返回false
+func (p *privacy) checkUTXOValid(keyImages [][]byte) bool {
+	stateDB := p.GetDB()
+	if values, err := stateDB.BatchGet(keyImages); err == nil {
+		if len(values) != len(keyImages) {
+			privacylog.Error("exec module", "checkUTXOValid return different count value with keys")
+			return false
+		}
+		for _, value := range values {
+			if value != nil {
+				return false
+			}
+		}
+		return true
+	}
+	return false
+}
+
+func (p *privacy) checkPubKeyValid(keys [][]byte, pubkeys [][]byte) bool {
+	if values, err := p.GetDB().BatchGet(keys); err == nil {
+		if len(values) != len(pubkeys) {
+			privacylog.Error("exec module", "checkPubKeyValid return different count value with keys")
+			return false
+		}
+		for i, value := range values {
+			if bytes.Equal(value, pubkeys[i]) {
+				return false
+			}
+		}
+		return true
+	}
+	return false
 }
