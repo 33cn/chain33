@@ -96,7 +96,7 @@ func (c *channelClient) CreateRawRelayOrderTx(parm *RelayOrderTx) ([]byte, error
 		Payload: types.Encode(sell),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      account.ExecAddress("relay").String(),
+		To:      account.ExecAddress("relay"),
 	}
 
 	data := types.Encode(tx)
@@ -117,7 +117,7 @@ func (c *channelClient) CreateRawRelayAcceptTx(parm *RelayAcceptTx) ([]byte, err
 		Payload: types.Encode(val),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      account.ExecAddress("relay").String(),
+		To:      account.ExecAddress("relay"),
 	}
 
 	data := types.Encode(tx)
@@ -138,7 +138,7 @@ func (c *channelClient) CreateRawRelayRevokeTx(parm *RelayRevokeTx) ([]byte, err
 		Payload: types.Encode(val),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      account.ExecAddress("relay").String(),
+		To:      account.ExecAddress("relay"),
 	}
 
 	data := types.Encode(tx)
@@ -159,7 +159,7 @@ func (c *channelClient) CreateRawRelayConfirmTx(parm *RelayConfirmTx) ([]byte, e
 		Payload: types.Encode(val),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      account.ExecAddress("relay").String(),
+		To:      account.ExecAddress("relay"),
 	}
 
 	data := types.Encode(tx)
@@ -185,7 +185,7 @@ func (c *channelClient) CreateRawRelayVerifyBTCTx(parm *RelayVerifyBTCTx) ([]byt
 		Payload: types.Encode(val),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      account.ExecAddress("relay").String(),
+		To:      account.ExecAddress("relay"),
 	}
 
 	data := types.Encode(tx)
@@ -217,7 +217,7 @@ func (c *channelClient) CreateRawRelaySaveBTCHeadTx(parm *RelaySaveBTCHeadTx) ([
 		Payload: types.Encode(val),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      account.ExecAddress("relay").String(),
+		To:      account.ExecAddress("relay"),
 	}
 
 	data := types.Encode(tx)

@@ -11,8 +11,7 @@ import (
 var relaylog = log.New("module", "execs.relay")
 
 func Init() {
-	r := newRelay()
-	drivers.Register(r.GetName(), r, types.ForkV7AddRelay) //TODO: ForkV7AddRelay
+	drivers.Register(newRelay().GetName(), newRelay, types.ForkV7AddRelay) //TODO: ForkV7AddRelay
 }
 
 type relay struct {
@@ -20,7 +19,7 @@ type relay struct {
 	btcStore relayBtcStore
 }
 
-func newRelay() *relay {
+func newRelay() drivers.Driver {
 	r := &relay{}
 	r.SetChild(r)
 	r.btcStore.new(r)
@@ -32,23 +31,14 @@ func (r *relay) GetName() string {
 	return "relay"
 }
 
-func (r *relay) Clone() drivers.Driver {
-	clone := &relay{}
-	clone.DriverBase = *(r.DriverBase.Clone().(*drivers.DriverBase))
-	clone.SetChild(clone)
-	clone.btcStore.r = clone
-
-	return clone
-}
-
 func (r *relay) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	var action types.RelayAction
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
 		return nil, err
 	}
-	relaylog.Debug("exec relay tx", "tx hash", common.Bytes2Hex(tx.Hash()), "Ty", action.GetTy())
 
+	relaylog.Debug("exec relay tx", "tx hash", common.Bytes2Hex(tx.Hash()), "Ty", action.GetTy())
 	actiondb := newRelayDB(r, tx)
 	switch action.GetTy() {
 	case types.RelayActionCreate:
