@@ -345,6 +345,8 @@ const (
 	EventReplyPrivacy2public
 	EventShowPrivacyPK
 	EventReplyShowPrivacyPK
+	EventShowPrivacyBalance
+	EventReplyShowPrivacyBalance
 	EventShowPrivacyAccount
 	EventReplyShowPrivacyAccount
 	EventGetPrivacyTransaction
@@ -355,8 +357,6 @@ const (
 	EventReplyGetUTXOPubKey
 	EventCreateUTXOs
 	EventReplyCreateUTXOs
-	EventCheckTxPubKeyValid
-	EventReplyCheckTxPubKeyValid
 )
 
 var eventName = map[int]string{
@@ -615,12 +615,6 @@ const (
 	ExecErr  = 0
 	ExecPack = 1
 	ExecOk   = 2
-)
-
-const (
-	PrivacyUTXONormal = iota
-	PrivacyUTXOChange
-	PrivacyUTXOFee
 )
 
 const (

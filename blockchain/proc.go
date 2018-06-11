@@ -67,8 +67,6 @@ func (chain *BlockChain) ProcRecvMsg() {
 			go chain.processMsg(msg, reqnum, chain.getGlobalIndex)
 		case types.EventGetUTXOPubKey:
 			go chain.processMsg(msg, reqnum, chain.getUTXOPubkey)
-		case types.EventCheckTxPubKeyValid:
-			go chain.processMsg(msg, reqnum, chain.checkTxPubKeyValid)
 		default:
 			<-reqnum
 			chainlog.Warn("ProcRecvMsg unknow msg", "msgtype", msgtype)
@@ -351,19 +349,6 @@ func (chain *BlockChain) getUTXOPubkey(msg queue.Message) {
 		chainlog.Debug("ProcGetGlobalIndexMsg", "success", "ok")
 		msg.Reply(chain.client.NewMessage("wallet", types.EventReplyGetUTXOPubKey, response))
 	}
-}
-
-func (chain *BlockChain) checkTxPubKeyValid(msg queue.Message) {
-	block := msg.Data.(*types.Block)
-	response, err := chain.procCheckTxPubKeyValid(block)
-	if err != nil {
-		chainlog.Error("procCheckTxsSignData", "err", err.Error())
-		msg.Reply(chain.client.NewMessage("wallet", types.EventReplyCheckTxPubKeyValid, err))
-	} else {
-		chainlog.Debug("procCheckTxsSignData", "success", "ok")
-		msg.Reply(chain.client.NewMessage("wallet", types.EventReplyCheckTxPubKeyValid, response))
-	}
-
 }
 
 type funcProcess func(msg queue.Message)
