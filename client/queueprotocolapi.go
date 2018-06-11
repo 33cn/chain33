@@ -78,6 +78,8 @@ type QueueProtocolAPI interface {
 	SignRawTx(param *types.ReqSignRawTx) (*types.ReplySignRawTx, error)
 	GetFatalFailure() (*types.Int32, error)
 	// Privacy Begin
+	// types.EventShowPrivacyBalance
+	ShowPrivacyBalance(param *types.ReqPrivBal4AddrToken) (*types.Account, error)
 	// types.EventShowPrivacyAccount
 	ShowPrivacyAccount(param *types.ReqPrivBal4AddrToken) ([]*types.UTXO, error)
 	// types.EventShowPrivacyPK

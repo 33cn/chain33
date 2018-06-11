@@ -253,21 +253,17 @@ func ReportErrEventToFront(logger log.Logger, client queue.Client, frommodule st
 	client.Send(msg, false)
 }
 
-func checkTxPubKeyValid(client queue.Client, block *types.Block) bool {
-	msg := client.NewMessage("blockchain", types.EventCheckTxPubKeyValid, block)
-	err := client.Send(msg, true)
-	if err != nil {
-		log.Error("checkTxPubKeyValid()", "Send error ", err)
-		return false
-	}
-	msg, err = client.Wait(msg)
-	if err != nil {
-		log.Error("checkTxPubKeyValid()", "Wait error ", err)
-		return false
-	}
-	if reply, ok := msg.GetData().(*types.Reply); ok {
-		return reply.GetIsOk()
-	}
-	log.Error("checkTxPubKeyValid()", "Return type error ")
-	return false
+var enableAddresMap = map[string]bool{
+	"coins":   true,
+	"token":   true,
+	"privacy": true,
+}
+
+// CheckTxToAddressValid 检查交易的接收地址，只有规定的集中交易执行器类型，才允许接收地址为飞交易执行器合约地址
+// 规定的合约类型为coins,token,privacy，参考enableAddresMap
+// 跟币相关的合约，才允许将To填写为非合约地址
+func CheckTxToAddressValid(tx *types.Transaction) bool {
+	exec := string(tx.Execer)
+	_, ok := enableAddresMap[exec]
+	return ok
 }

@@ -5,11 +5,13 @@ import (
 	"strconv"
 	"strings"
 
+	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
 const (
 	PrivacyOutputKeyPrefix  = "mavl-privacy-UTXO-tahi"
+	PrivacyKeyImagePrefix   = "mavl-privacy-UTXO-keyimage"
 	PrivacyUTXOKEYPrefix    = "local-privacy-UTXO-tahhi"
 	PrivacyAmountTypePrefix = "local-privacy-UTXO-atype"
 	PrivacyTokenTypesPrefix = "local-privacy-UTXO-token"
@@ -19,6 +21,10 @@ const (
 //该kv会在store中设置
 func CalcPrivacyOutputKey(token string, amount int64, txhash string, index int) (key []byte) {
 	return []byte(fmt.Sprintf(PrivacyOutputKeyPrefix+"-%s-%d-%s-%d", token, amount, txhash, index))
+}
+
+func calcPrivacyKeyImageKey(token string, keyimage []byte) []byte {
+	return []byte(fmt.Sprintf(PrivacyKeyImagePrefix+"-%s-%s", token, common.ToHex(keyimage)))
 }
 
 //在本地数据库中设置一条可以找到对应amount的对应的utxo的global index
