@@ -11,6 +11,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/blockchain"
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/limits"
@@ -75,7 +76,7 @@ func createTx(priv crypto.PrivKey, to string, amount int64) *types.Transaction {
 	transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
 	tx := &types.Transaction{Execer: []byte("none"), Payload: types.Encode(transfer), Fee: 1e6, To: to}
 	tx.Nonce = random.Int63()
-	tx.To = account.ExecAddress("none")
+	tx.To = address.ExecAddress("none")
 	tx.Sign(types.SECP256K1, priv)
 	return tx
 }
@@ -99,7 +100,7 @@ func genaddress() (string, crypto.PrivKey) {
 	if err != nil {
 		panic(err)
 	}
-	addrto := account.PubKeyToAddress(privto.PubKey().Bytes())
+	addrto := address.PubKeyToAddress(privto.PubKey().Bytes())
 	return addrto.String(), privto
 }
 
@@ -369,7 +370,7 @@ func TestLoadDriver(t *testing.T) {
 func TestKeyAllow(t *testing.T) {
 	key := []byte("mavl-coins-bty-exec-1wvmD6RNHzwhY4eN75WnM6JcaAvNQ4nHx:19xXg1WHzti5hzBRTUphkM8YmuX6jJkoAA")
 	exec := []byte("retrieve")
-	if !isAllowExec(key, exec, account.ExecAddress("retrieve"), int64(1)) {
+	if !isAllowExec(key, exec, address.ExecAddress("retrieve"), int64(1)) {
 		t.Error("retrieve can modify exec")
 	}
 }

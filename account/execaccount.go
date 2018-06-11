@@ -2,6 +2,7 @@ package account
 
 import (
 	"gitlab.33.cn/chain33/chain33/client"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -229,7 +230,7 @@ func (acc *DB) ExecTransferFrozen(from, to, execaddr string, amount int64) (*typ
 }
 
 func (acc *DB) ExecAddress(name string) string {
-	return ExecAddress(name)
+	return address.ExecAddress(name)
 }
 
 func (acc *DB) ExecDepositFrozen(addr, execaddr string, amount int64) (*types.Receipt, error) {

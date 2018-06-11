@@ -17,8 +17,8 @@ import (
 	"github.com/NebulousLabs/Sia/modules"
 	log "github.com/inconshreveable/log15"
 	//	"github.com/piotrnar/gocoin/lib/btc"
-	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -222,7 +222,7 @@ func GetAddrByPrivkey(HexPrivkey string) (string, error) {
 		seedlog.Error("GetAddrByPrivkey", "PrivKeyFromBytes err", err)
 		return "", err
 	}
-	addr := account.PubKeyToAddress(priv.PubKey().Bytes())
+	addr := address.PubKeyToAddress(priv.PubKey().Bytes())
 	return addr.String(), nil
 }
 

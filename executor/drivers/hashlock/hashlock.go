@@ -4,8 +4,8 @@ import (
 	"time"
 
 	log "github.com/inconshreveable/log15"
-	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -48,15 +48,15 @@ func (h *Hashlock) Exec(tx *types.Transaction, index int) (*types.Receipt, error
 			clog.Warn("hashlock amount <=0")
 			return nil, types.ErrHashlockAmount
 		}
-		if err := account.CheckAddress(hlock.ToAddress); err != nil {
+		if err := address.CheckAddress(hlock.ToAddress); err != nil {
 			clog.Warn("hashlock checkaddress")
 			return nil, err
 		}
-		if err := account.CheckAddress(hlock.ReturnAddress); err != nil {
+		if err := address.CheckAddress(hlock.ReturnAddress); err != nil {
 			clog.Warn("hashlock checkaddress")
 			return nil, err
 		}
-		if hlock.ReturnAddress != account.From(tx).String() {
+		if hlock.ReturnAddress != tx.From() {
 			clog.Warn("hashlock return address")
 			return nil, types.ErrHashlockReturnAddrss
 		}

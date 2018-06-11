@@ -4,7 +4,6 @@ import (
 	"container/list"
 	"time"
 
-	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -64,7 +63,7 @@ func (cache *txCache) Push(tx *types.Transaction) error {
 	cache.txMap[string(hash)] = txElement
 
 	// 账户交易数量
-	accountAddr := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
+	accountAddr := tx.From()
 	cache.accMap[accountAddr] = append(cache.accMap[accountAddr], tx)
 
 	if len(cache.txFrontTen) >= 10 {
@@ -89,7 +88,7 @@ func (cache *txCache) Remove(hash []byte) {
 		return
 	}
 	tx := value.(*Item).value
-	addr := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
+	addr := tx.From()
 	if cache.TxNumOfAccount(addr) > 0 {
 		cache.AccountTxNumDecrease(addr, hash)
 	}
