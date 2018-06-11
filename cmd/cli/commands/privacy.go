@@ -16,6 +16,7 @@ func PrivacyCmd() *cobra.Command {
 	cmd.AddCommand(
 		ShowPrivacyKeyCmd(),
 		ShowPrivacyAccountCmd(),
+		ShowPrivacyBalanceCmd(),
 		ShowPrivacyAccountDetailCmd(),
 		Public2PrivacyCmd(),
 		Privacy2PrivacyCmd(),
@@ -341,10 +342,8 @@ func CreateUTXOsCmd() *cobra.Command {
 func createUTXOsFlag(cmd *cobra.Command) {
 	cmd.Flags().StringP("from", "f", "", "from account address")
 	cmd.MarkFlagRequired("from")
-	cmd.Flags().StringP("toviewpubkey", "v", "", "to view public key")
-	cmd.MarkFlagRequired("toviewpubkey")
-	cmd.Flags().StringP("tospendpubkey", "s", "", "to spend public key")
-	cmd.MarkFlagRequired("tospendpubkey")
+	cmd.Flags().StringP("pubkeypair", "p", "", "to view spend public key pair")
+	cmd.MarkFlagRequired("pubkeypair")
 	cmd.Flags().Float64P("amount", "a", 0, "amount")
 	cmd.MarkFlagRequired("amount")
 	cmd.Flags().Int32P("count", "c", 0, "mix count")
@@ -356,23 +355,50 @@ func createUTXOsFlag(cmd *cobra.Command) {
 func createUTXOs(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	from, _ := cmd.Flags().GetString("from")
-	toviewpubkey, _ := cmd.Flags().GetString("toviewpubkey")
-	tospendpubkey, _ := cmd.Flags().GetString("tospendpubkey")
+	pubkeypair, _ := cmd.Flags().GetString("pubkeypair")
 	note, _ := cmd.Flags().GetString("note")
 	count, _ := cmd.Flags().GetInt32("count")
 	amount, _ := cmd.Flags().GetFloat64("amount")
 	amountInt64 := int64(amount*types.InputPrecision) * types.Multiple1E4
 
 	params := &types.ReqCreateUTXOs{
-		Sender:      from,
-		ViewPublic:  toviewpubkey,
-		SpendPublic: tospendpubkey,
-		Amount:      amountInt64,
-		Count:       count,
-		Note:        note,
+		Sender:     from,
+		Pubkeypair: pubkeypair,
+		Amount:     amountInt64,
+		Count:      count,
+		Note:       note,
 	}
 
 	var res jsonrpc.ReplyHash
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateUTXOs", params, &res)
+	ctx.Run()
+}
+
+func ShowPrivacyBalanceCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "showpb",
+		Short: "Show privacy balance",
+		Run:   showPrivacyBalance,
+	}
+	showPrivacyBalanceFlag(cmd)
+	return cmd
+}
+
+func showPrivacyBalanceFlag(cmd *cobra.Command) {
+	cmd.Flags().StringP("addr", "a", "", "account address")
+	cmd.MarkFlagRequired("addr")
+}
+
+func showPrivacyBalance(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	addr, _ := cmd.Flags().GetString("addr")
+
+	params := types.ReqPrivBal4AddrToken{
+		Token: types.BTY,
+		Addr:  addr,
+	}
+
+	var res types.Account
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.ShowPrivacyBalance", params, &res)
 	ctx.Run()
 }

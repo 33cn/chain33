@@ -117,19 +117,9 @@ func (wallet *Wallet) procCreateUTXOs(createUTXOs *types.ReqCreateUTXOs) (*types
 
 //批量创建通过public2Privacy实现
 func (wallet *Wallet) createUTXOsByPub2Priv(priv crypto.PrivKey, reqCreateUTXOs *types.ReqCreateUTXOs) (*types.ReplyHash, error) {
-	viewPubSlice, err := common.FromHex(reqCreateUTXOs.ViewPublic)
+	viewPubSlice, spendPubSlice, err := parseViewSpendPubKeyPair(reqCreateUTXOs.GetPubkeypair())
 	if err != nil {
 		return nil, err
-	}
-	spendPubSlice, err := common.FromHex(reqCreateUTXOs.SpendPublic)
-	if err != nil {
-		return nil, err
-	}
-
-	if 32 != len(viewPubSlice) || 32 != len(spendPubSlice) {
-		walletlog.Error("transPub2Pri", "viewPubSlice with len", len(viewPubSlice), "viewPubSlice", viewPubSlice)
-		walletlog.Error("transPub2Pri", "spendPubSlice with len", len(spendPubSlice), "spendPubSlice", spendPubSlice)
-		return nil, types.ErrPubKeyLen
 	}
 
 	viewPublic := (*[32]byte)(unsafe.Pointer(&viewPubSlice[0]))
@@ -179,12 +169,12 @@ func (wallet *Wallet) createUTXOsByPub2Priv(priv crypto.PrivKey, reqCreateUTXOs 
 	return &hash, nil
 }
 
-func parseViewSpendPubKeyPair(in string) (viewPubKey, spendPubKey []byte, err error)  {
+func parseViewSpendPubKeyPair(in string) (viewPubKey, spendPubKey []byte, err error) {
 	src, err := common.FromHex(in)
 	if err != nil {
 		return nil, nil, err
 	}
-	if 64!= len(src) {
+	if 64 != len(src) {
 		walletlog.Error("parseViewSpendPubKeyPair", "pair with len", len(src))
 		return nil, nil, types.ErrPubKeyLen
 	}
@@ -558,20 +548,19 @@ func (wallet *Wallet) buildInput(privacykeyParirs *privacy.Privacy, buildInfo *b
 		return nil, nil, nil, nil, err
 	}
 
-
 	walletlog.Debug("transPri2Pri", "Before sort selectedUtxo", selectedUtxo)
 	sort.Slice(selectedUtxo, func(i, j int) bool {
 		return selectedUtxo[i].amount <= selectedUtxo[j].amount
 	})
 	walletlog.Debug("transPri2Pri", "After sort selectedUtxo", selectedUtxo)
 
-    /*
-	//在选择作为支付的UTXO中，可能存在相同额度utxo，这时需要进行去重请求处理，避免向blockchain请求多个相同amount的utxo
-	var amountKind map[int64]bool = make(map[int64]bool)
-	for _, out := range selectedUtxo {
-		amountKind[out.amount] = true
-	}
-	walletlog.Info("transPri2Pri", "Count of Same amount for UTXO is", len(selectedUtxo)-len(amountKind))
+	/*
+		//在选择作为支付的UTXO中，可能存在相同额度utxo，这时需要进行去重请求处理，避免向blockchain请求多个相同amount的utxo
+		var amountKind map[int64]bool = make(map[int64]bool)
+		for _, out := range selectedUtxo {
+			amountKind[out.amount] = true
+		}
+		walletlog.Info("transPri2Pri", "Count of Same amount for UTXO is", len(selectedUtxo)-len(amountKind))
 	*/
 
 	reqGetGlobalIndex := types.ReqUTXOGlobalIndex{
@@ -592,13 +581,12 @@ func (wallet *Wallet) buildInput(privacykeyParirs *privacy.Privacy, buildInfo *b
 	}
 
 	/*
-	walletlog.Debug("transPri2Pri", "Before sort reqGetGlobalIndex.Amount", reqGetGlobalIndex.Amount)
-	sort.Slice(reqGetGlobalIndex.Amount, func(i, j int) bool {
-		return reqGetGlobalIndex.Amount[i] < reqGetGlobalIndex.Amount[j]
-	})
-	walletlog.Debug("transPri2Pri", "After sort reqGetGlobalIndex.Amount", reqGetGlobalIndex.Amount)
+		walletlog.Debug("transPri2Pri", "Before sort reqGetGlobalIndex.Amount", reqGetGlobalIndex.Amount)
+		sort.Slice(reqGetGlobalIndex.Amount, func(i, j int) bool {
+			return reqGetGlobalIndex.Amount[i] < reqGetGlobalIndex.Amount[j]
+		})
+		walletlog.Debug("transPri2Pri", "After sort reqGetGlobalIndex.Amount", reqGetGlobalIndex.Amount)
 	*/
-
 
 	mapAmount2utxo := make(map[int64]*types.UTXOIndex4Amount)
 
