@@ -8,6 +8,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	clog "gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
@@ -219,7 +220,7 @@ func isAllowExec(key, txexecer []byte, toaddr string, height int64) bool {
 	//每个合约中，都会开辟一个区域，这个区域是另外一个合约可以修改的区域
 	//我们把数据限制在这个位置，防止合约的其他位置被另外一个合约修改
 	execaddr, ok := getExecKey(key)
-	if ok && execaddr == account.ExecAddress(string(txexecer)) {
+	if ok && execaddr == address.ExecAddress(string(txexecer)) {
 		return true
 	}
 
@@ -429,7 +430,7 @@ func newExecutor(stateHash []byte, client queue.Client, height, blocktime int64,
 }
 
 func (e *executor) processFee(tx *types.Transaction) (*types.Receipt, error) {
-	from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
+	from := tx.From()
 	accFrom := e.coinsAccount.LoadAccount(from)
 	if accFrom.GetBalance()-tx.Fee >= 0 {
 		copyfrom := *accFrom
@@ -481,14 +482,14 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 		return err
 	}
 	//检查地址的有效性
-	if err := account.CheckAddress(tx.To); err != nil {
+	if err := address.CheckAddress(tx.To); err != nil {
 		return err
 	}
 	//checkInExec
 	exec := e.loadDriverForExec(string(tx.Execer), e.height)
 	//手续费检查
 	if !exec.IsFree() && types.MinFee > 0 {
-		from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
+		from := tx.From()
 		accFrom := e.coinsAccount.LoadAccount(from)
 		if accFrom.GetBalance() < types.MinBalanceTransfer {
 			return types.ErrBalanceLessThanTenTimesFee
@@ -581,7 +582,14 @@ func (execute *executor) execFee(tx *types.Transaction, index int) (*types.Recei
 			panic(err)
 		}
 	}
-	if bytes.Equal(ExecPubkey(execer), tx.GetSignature().GetPubkey())
+	//执行器名称 和  pubkey 相同，费用从内置的执行器中扣除,但是checkTx 中要过
+	//默认checkTx 中对这样的交易会返回
+	if bytes.Equal(address.ExecPubkey(execer), tx.GetSignature().GetPubkey()) {
+		err := e.CheckTx(tx, index)
+		if err != nil {
+			return nil, err
+		}
+	}
 	//公链不允许手续费为0
 	if types.MinFee > 0 && (!e.IsFree() || types.IsPublicChain()) {
 		feelog, err = execute.processFee(tx)

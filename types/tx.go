@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 )
 
@@ -382,6 +383,10 @@ var expireBound int64 = 1000000000 // 交易过期分界线，小于expireBound�
 
 func (tx *Transaction) IsExpire(height, blocktime int64) bool {
 	return tx.isExpire(height, blocktime)
+}
+
+func (tx *Transaction) From() string {
+	return address.PubKeyToAddress(tx.Signature.Pubkey).String()
 }
 
 //检查交易是否过期，过期返回true，未过期返回false

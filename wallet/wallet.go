@@ -16,6 +16,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	clog "gitlab.33.cn/chain33/chain33/common/log"
@@ -1434,7 +1435,7 @@ func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 
 		//获取from地址
 		pubkey := block.Block.Txs[index].Signature.GetPubkey()
-		addr := account.PubKeyToAddress(pubkey)
+		addr := address.PubKeyToAddress(pubkey)
 		txdetail.Fromaddr = addr.String()
 
 		txdetailbyte, err := proto.Marshal(&txdetail)
@@ -1481,7 +1482,7 @@ func (wallet *Wallet) needFlushTicket(tx *types.Transaction, receipt *types.Rece
 		return false
 	}
 	pubkey := tx.Signature.GetPubkey()
-	addr := account.PubKeyToAddress(pubkey)
+	addr := address.PubKeyToAddress(pubkey)
 	return wallet.AddrInWallet(addr.String())
 }
 
@@ -1507,9 +1508,8 @@ func (wallet *Wallet) ProcWalletDelBlock(block *types.BlockDetail) {
 			}
 		}
 		//获取from地址
-		pubkey := block.Block.Txs[index].Signature.GetPubkey()
-		addr := account.PubKeyToAddress(pubkey)
-		fromaddress := addr.String()
+		addr := block.Block.Txs[index].From()
+		fromaddress := addr
 		if len(fromaddress) != 0 && wallet.AddrInWallet(fromaddress) {
 			newbatch.Delete(calcTxKey(heightstr))
 			//walletlog.Error("ProcWalletAddBlock", "fromaddress", fromaddress, "heightstr", heightstr)
@@ -1813,7 +1813,7 @@ func (wallet *Wallet) IsTransfer(addr string) (bool, error) {
 	}
 	//钱包已经锁定，挖矿锁已经解锁,需要判断addr是否是挖矿合约地址
 	if !wallet.IsTicketLocked() {
-		if addr == account.ExecAddress("ticket") {
+		if addr == address.ExecAddress("ticket") {
 			return true, nil
 		}
 	}
