@@ -4,7 +4,7 @@ import (
 	//"bytes"
 
 	"gitlab.33.cn/chain33/chain33/account"
-	//"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
 	//log "github.com/inconshreveable/log15"
@@ -86,7 +86,7 @@ type Action struct {
 
 func NewRetrieveAcction(r *Retrieve, tx *types.Transaction) *Action {
 	hash := tx.Hash()
-	fromaddr := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
+	fromaddr := tx.From()
 	return &Action{r.GetCoinsAccount(), r.GetStateDB(), hash, fromaddr, r.GetBlockTime(), r.GetHeight(), r.GetAddr()}
 }
 
@@ -98,11 +98,11 @@ func (action *Action) RetrieveBackup(backupRet *types.BackupRetrieve) (*types.Re
 	var r *DB
 	var newRetrieve = false
 	if action.height >= types.ForkV5Retrive {
-		if err := account.CheckAddress(backupRet.BackupAddress); err != nil {
+		if err := address.CheckAddress(backupRet.BackupAddress); err != nil {
 			rlog.Debug("retrieve checkaddress")
 			return nil, err
 		}
-		if err := account.CheckAddress(backupRet.DefaultAddress); err != nil {
+		if err := address.CheckAddress(backupRet.DefaultAddress); err != nil {
 			rlog.Debug("retrieve checkaddress")
 			return nil, err
 		}

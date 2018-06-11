@@ -12,7 +12,7 @@ EventTransfer -> 转移资产
 //nofee transaction will not pack into block
 
 import (
-	"gitlab.33.cn/chain33/chain33/account"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -54,7 +54,7 @@ func (c *Coins) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	coinsAccount := c.GetCoinsAccount()
 	if action.Ty == types.CoinsActionTransfer && action.GetTransfer() != nil {
 		transfer := action.GetTransfer()
-		from := account.From(tx).String()
+		from := tx.From()
 		//to 是 execs 合约地址
 		if drivers.IsDriverAddress(tx.To, c.GetHeight()) {
 			return coinsAccount.TransferToExec(from, tx.To, transfer.Amount)
@@ -66,7 +66,7 @@ func (c *Coins) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 			return nil, types.ErrActionNotSupport
 		}
 		transfer := action.GetTransferToExec()
-		from := account.From(tx).String()
+		from := tx.From()
 		//to 是 execs 合约地址
 		if !isExecAddrMatch(transfer.ExecName, tx.To) {
 			return nil, types.ErrToAddrNotSameToExecAddr
@@ -77,7 +77,7 @@ func (c *Coins) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 		if !types.IsMatchFork(c.GetHeight(), types.ForkV16Withdraw) {
 			withdraw.ExecName = ""
 		}
-		from := account.PubKeyToAddress(tx.Signature.Pubkey).String()
+		from := tx.From()
 		//to 是 execs 合约地址
 		if drivers.IsDriverAddress(tx.To, c.GetHeight()) || isExecAddrMatch(withdraw.ExecName, tx.To) {
 			return coinsAccount.TransferWithdraw(from, tx.To, withdraw.Amount)
@@ -99,7 +99,7 @@ func (c *Coins) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 }
 
 func isExecAddrMatch(name string, to string) bool {
-	toaddr := account.ExecAddress(name)
+	toaddr := address.ExecAddress(name)
 	return toaddr == to
 }
 
@@ -130,7 +130,7 @@ func (c *Coins) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 		kv, err = updateAddrReciver(c.GetLocalDB(), tx.To, transfer.Amount, true)
 	} else if action.Ty == types.CoinsActionWithdraw && action.GetWithdraw() != nil {
 		transfer := action.GetWithdraw()
-		from := account.PubKeyToAddress(tx.Signature.Pubkey).String()
+		from := tx.From()
 		kv, err = updateAddrReciver(c.GetLocalDB(), from, transfer.Amount, true)
 	} else if action.Ty == types.CoinsActionGenesis && action.GetGenesis() != nil {
 		gen := action.GetGenesis()
@@ -168,7 +168,7 @@ func (c *Coins) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 		kv, err = updateAddrReciver(c.GetLocalDB(), tx.To, transfer.Amount, false)
 	} else if action.Ty == types.CoinsActionWithdraw && action.GetWithdraw() != nil {
 		transfer := action.GetWithdraw()
-		from := account.PubKeyToAddress(tx.Signature.Pubkey).String()
+		from := tx.From()
 		kv, err = updateAddrReciver(c.GetLocalDB(), from, transfer.Amount, false)
 	}
 	if err != nil {

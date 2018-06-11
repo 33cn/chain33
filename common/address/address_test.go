@@ -1,4 +1,4 @@
-package account
+package address
 
 import (
 	"encoding/hex"
@@ -9,11 +9,12 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
-	"gitlab.33.cn/chain33/chain33/types"
+	_ "gitlab.33.cn/chain33/chain33/common/crypto/ed25519"
+	_ "gitlab.33.cn/chain33/chain33/common/crypto/secp256k1"
 )
 
 func TestAddress(t *testing.T) {
-	c, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	c, err := crypto.New("secp256k1")
 	if err != nil {
 		t.Error(err)
 		return
@@ -41,7 +42,7 @@ func TestPubkeyToAddress(t *testing.T) {
 }
 
 func TestCheckAddress(t *testing.T) {
-	c, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	c, err := crypto.New("secp256k1")
 	if err != nil {
 		t.Error(err)
 		return

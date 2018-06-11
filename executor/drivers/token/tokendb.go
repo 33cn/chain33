@@ -83,7 +83,7 @@ type tokenAction struct {
 
 func newTokenAction(t *token, toaddr string, tx *types.Transaction) *tokenAction {
 	hash := tx.Hash()
-	fromaddr := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
+	fromaddr := tx.From()
 	return &tokenAction{t.GetCoinsAccount(), t.GetStateDB(), hash, fromaddr, toaddr,
 		t.GetBlockTime(), t.GetHeight(), t.GetAddr()}
 }
