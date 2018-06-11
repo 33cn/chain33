@@ -573,13 +573,15 @@ func (execute *executor) execTxGroup(txs []*types.Transaction, index int) ([]*ty
 
 func (execute *executor) execFee(tx *types.Transaction, index int) (*types.Receipt, error) {
 	feelog := &types.Receipt{Ty: types.ExecPack}
-	e, err := drivers.LoadDriver(string(tx.Execer), execute.height)
+	execer := string(tx.Execer)
+	e, err := drivers.LoadDriver(execer, execute.height)
 	if err != nil {
 		e, err = drivers.LoadDriver("none", execute.height)
 		if err != nil {
 			panic(err)
 		}
 	}
+	if bytes.Equal(ExecPubkey(execer), tx.GetSignature().GetPubkey())
 	//公链不允许手续费为0
 	if types.MinFee > 0 && (!e.IsFree() || types.IsPublicChain()) {
 		feelog, err = execute.processFee(tx)
