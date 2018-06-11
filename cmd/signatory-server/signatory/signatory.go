@@ -6,8 +6,8 @@ import (
 	"time"
 
 	l "github.com/inconshreveable/log15"
-	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -49,7 +49,7 @@ func (signatory *Signatory) SignApprove(in *TokenFinish, out *interface{}) error
 		Execer:  []byte("token"),
 		Payload: types.Encode(finish),
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      account.ExecAddress("token"),
+		To:      address.ExecAddress("token"),
 	}
 
 	var err error

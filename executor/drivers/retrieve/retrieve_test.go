@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/types"
 	"google.golang.org/grpc"
@@ -65,7 +65,7 @@ func init() {
 	r = rand.New(rand.NewSource(time.Now().UnixNano()))
 	c = types.NewGrpcserviceClient(conn)
 
-	addrexec = account.ExecAddress("retrieve")
+	addrexec = address.ExecAddress("retrieve")
 }
 
 func estInitAccount(t *testing.T) {
@@ -586,7 +586,7 @@ func genaddress() (string, crypto.PrivKey) {
 	if err != nil {
 		panic(err)
 	}
-	addrto := account.PubKeyToAddress(privto.PubKey().Bytes())
+	addrto := address.PubKeyToAddress(privto.PubKey().Bytes())
 	return addrto.String(), privto
 }
 
