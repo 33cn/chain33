@@ -5,6 +5,8 @@ import (
 	"sync"
 	"time"
 
+	"strconv"
+
 	"github.com/btcsuite/btcd/btcjson"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
@@ -390,6 +392,11 @@ func (b *btcdClient) GetBlockHeader(height uint64) (*types.BtcHeader, error) {
 		return nil, err
 	}
 
+	bits, err := strconv.Atoi(header.Bits)
+	if err != nil {
+		return nil, err
+	}
+
 	h := &types.BtcHeader{
 		Hash:          header.Hash,
 		Confirmations: header.Confirmations,
@@ -397,7 +404,7 @@ func (b *btcdClient) GetBlockHeader(height uint64) (*types.BtcHeader, error) {
 		MerkleRoot:    header.MerkleRoot,
 		Time:          header.Time,
 		Nonce:         header.Nonce,
-		Bits:          header.Bits,
+		Bits:          int64(bits),
 		PreviousHash:  header.PreviousHash,
 		NextHash:      header.NextHash,
 	}
