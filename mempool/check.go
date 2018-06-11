@@ -2,6 +2,7 @@ package mempool
 
 import (
 	"errors"
+	"time"
 
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/queue"
@@ -31,10 +32,15 @@ func (mem *Mempool) checkTx(msg queue.Message) queue.Message {
 	}
 	// 检查交易是否为重复交易
 	if mem.addedTxs.Contains(string(tx.Hash())) {
-		msg.Data = types.ErrDupTx
-		return msg
+		addedTime, _ := mem.addedTxs.Get(string(tx.Hash()))
+		if time.Now().Unix()-addedTime.(int64) < mempoolDupResendInterval {
+			msg.Data = types.ErrDupTx
+			return msg
+		} else {
+			mem.addedTxs.Remove(string(tx.Hash()))
+		}
 	}
-	mem.addedTxs.Add(string(tx.Hash()), nil)
+	mem.addedTxs.Add(string(tx.Hash()), time.Now().Unix())
 
 	// 检查交易账户在Mempool中是否存在过多交易
 	from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
