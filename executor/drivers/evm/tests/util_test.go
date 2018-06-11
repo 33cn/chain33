@@ -196,16 +196,23 @@ func createTx(privKey crypto.PrivKey, code []byte, fee uint64, amount uint64) ty
 	return tx
 }
 
-func addAccount(mdb *db.GoMemDB, acc1 *types.Account) {
+func addAccount(mdb *db.GoMemDB, execAddr string, acc1 *types.Account) {
 	acc := account.NewCoinsAccount()
-	set := acc.GetKVSet(acc1)
+	var set []*types.KeyValue
+	if len(execAddr) > 0 {
+		set = acc.GetExecKVSet(execAddr, acc1)
+	} else {
+		set = acc.GetKVSet(acc1)
+	}
+
 	for i := 0; i < len(set); i++ {
 		mdb.Set(set[i].GetKey(), set[i].Value)
 	}
 }
 
-func addContractAccount(db *state.MemoryStateDB, mdb *db.GoMemDB, addr string, a AccountJson) {
+func addContractAccount(db *state.MemoryStateDB, mdb *db.GoMemDB, addr string, a AccountJson, creator string) {
 	acc := state.NewContractAccount(addr, db)
+	acc.SetCreator(creator)
 	code, err := hex.DecodeString(a.code)
 	if err != nil {
 		fmt.Println(err)
@@ -230,7 +237,7 @@ func buildStateDB(addr string, balance int64) *db.GoMemDB {
 
 	// 将调用者账户设置进去，并给予金额，方便发起合约调用
 	ac := &types.Account{Addr: addr, Balance: balance}
-	addAccount(mdb, ac)
+	addAccount(mdb, "", ac)
 
 	return mdb
 }
