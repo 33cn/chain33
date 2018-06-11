@@ -7,6 +7,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+	"math/rand"
 
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/hashicorp/golang-lru/simplelru"
@@ -677,12 +678,18 @@ func (chain *BlockChain) ProcGetGlobalIndexMsg(reqUTXOGlobalIndex *types.ReqUTXO
 		}
 
 		keys := utxos.Keys()
-		if int32(len(keys)) < reqUTXOGlobalIndex.MixCount {
+		if 0 == int32(len(keys)) {
 			chainlog.Error("ProcGetGlobalIndexMsg", "Currently, No enough UTXO existed for token's amount", amount,
 				"Token is", reqUTXOGlobalIndex.Tokenname, "minin count", reqUTXOGlobalIndex.MixCount,
 				"actually total keys", len(keys))
 			return nil, types.ErrNotEnoughUTXOs
 		}
+		//if int32(len(keys)) < reqUTXOGlobalIndex.MixCount {
+		//	chainlog.Error("ProcGetGlobalIndexMsg", "Currently, No enough UTXO existed for token's amount", amount,
+		//		"Token is", reqUTXOGlobalIndex.Tokenname, "minin count", reqUTXOGlobalIndex.MixCount,
+		//		"actually total keys", len(keys))
+		//	return nil, types.ErrNotEnoughUTXOs
+		//}
 
 		index := len(keys) - 1
 		currentHeight := chain.GetBlockHeight()
@@ -698,33 +705,37 @@ func (chain *BlockChain) ProcGetGlobalIndexMsg(reqUTXOGlobalIndex *types.ReqUTXO
 				break
 			}
 		}
-		if int32(index+1) >= reqUTXOGlobalIndex.MixCount {
-			utxoIndex4Amount := &types.UTXOIndex4Amount{
-				Amount: amount,
-			}
 
-			stopindex := int(index - int(reqUTXOGlobalIndex.MixCount))
-			for ; index > stopindex; index-- {
-				key := keys[index]
-				value, _ := utxos.Get(key)
-				globalIndex, err := privacy.DecodeToUTXOGlobalIndex(key.(string), reqUTXOGlobalIndex.GetTokenname())
-				if err != nil {
-					panic(err)
-				}
-				utxo := &types.UTXOBasic{
-					UtxoGlobalIndex: globalIndex,
-					OnetimePubkey:   value.(privacyOutputKeyInfo).onetimePubKey,
-				}
-				utxoIndex4Amount.Utxos = append(utxoIndex4Amount.Utxos, utxo)
-
-			}
-			resUTXOGlobalIndex.UtxoIndex4Amount = append(resUTXOGlobalIndex.UtxoIndex4Amount, utxoIndex4Amount)
-			mixcount -= 1
-		} else {
-			chainlog.Error("ProcGetGlobalIndexMsg", "No enough same amout UTXO available for amout", amount,
-				"required mix count", reqUTXOGlobalIndex.MixCount, "Actually count within confirmed height is", index+1)
-			return nil, types.ErrNotEnoughUTXOs
+		utxoIndex4Amount := &types.UTXOIndex4Amount{
+			Amount: amount,
 		}
+
+		stopindex := 0
+		if int32(index+1) >= reqUTXOGlobalIndex.MixCount {
+			stopindex = int(index - int(reqUTXOGlobalIndex.MixCount))
+		}
+
+		random := rand.New(rand.NewSource(time.Now().UnixNano()))
+
+		positions := random.Perm(index + 1)
+
+		for ; index > stopindex; index-- {
+			position := positions[index]
+			key := keys[position]
+			value, _ := utxos.Get(key)
+			globalIndex, err := privacy.DecodeToUTXOGlobalIndex(key.(string), reqUTXOGlobalIndex.GetTokenname())
+			if err != nil {
+				panic(err)
+			}
+			utxo := &types.UTXOBasic{
+				UtxoGlobalIndex: globalIndex,
+				OnetimePubkey:   value.(privacyOutputKeyInfo).onetimePubKey,
+			}
+			utxoIndex4Amount.Utxos = append(utxoIndex4Amount.Utxos, utxo)
+		}
+		resUTXOGlobalIndex.UtxoIndex4Amount = append(resUTXOGlobalIndex.UtxoIndex4Amount, utxoIndex4Amount)
+		mixcount -= 1
+
 	}
 
 	return resUTXOGlobalIndex, nil
@@ -755,12 +766,19 @@ func (chain *BlockChain) ProcGetUTXOPubkey(reqUTXOPubKeys *types.ReqUTXOPubKeys)
 		}
 
 		keys := utxos.Keys()
-		if len(keys) < len(groupUTXOGlobalIndex.UtxoGlobalIndex) {
+		if 0 == len(keys) {
 			chainlog.Error("ProcGetUTXOPubkey", "Currently, No enough UTXO existed for token's amount", groupUTXOGlobalIndex.Amount,
 				"Token is", reqUTXOPubKeys.TokenName, "required count of utxo public keys is", len(groupUTXOGlobalIndex.UtxoGlobalIndex),
 				"actually total keys", len(keys))
 			return nil, types.ErrNotEnoughUTXOs
 		}
+
+		//if len(keys) < len(groupUTXOGlobalIndex.UtxoGlobalIndex) {
+		//	chainlog.Error("ProcGetUTXOPubkey", "Currently, No enough UTXO existed for token's amount", groupUTXOGlobalIndex.Amount,
+		//		"Token is", reqUTXOPubKeys.TokenName, "required count of utxo public keys is", len(groupUTXOGlobalIndex.UtxoGlobalIndex),
+		//		"actually total keys", len(keys))
+		//	return nil, types.ErrNotEnoughUTXOs
+		//}
 
 		groupUTXOPubKey := &types.GroupUTXOPubKey{
 			Amount: groupUTXOGlobalIndex.Amount,

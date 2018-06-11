@@ -153,6 +153,7 @@ var (
 	ErrNoSuchPrivacyTX        = errors.New("ErrNoSuchPrivacyTX")
 	ErrDoubeSpendOccur        = errors.New("ErrDoubeSpendOccur")
 	ErrOutputIndex            = errors.New("ErrOutputIndex")
+	ErrPubkeysOfUTXO          = errors.New("ErrPubkeysOfUTXO")
 
 	//wallet
 	ErrInputPara            = errors.New("ErrInputPara")
