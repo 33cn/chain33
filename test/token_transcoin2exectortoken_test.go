@@ -10,8 +10,8 @@ import (
 
 	"time"
 
-	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -45,8 +45,8 @@ func TestTransfer2ExecAddrToken(t *testing.T) {
 		return
 	}
 
-	addrfrom := account.PubKeyToAddress(priv.PubKey().Bytes())
-	addrto := account.ExecAddress("token")
+	addrfrom := address.PubKeyToAddress(priv.PubKey().Bytes())
+	addrto := address.ExecAddress("token")
 	amount := int64(100 * 1e8)
 	t.Log("addrfrom", addrfrom)
 	t.Log("addrto", addrto)
