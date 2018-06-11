@@ -35,6 +35,15 @@ func TestVM(t *testing.T) {
 	defer clearTestCase(basePath)
 }
 
+type CaseFilter struct{}
+
+var testCaseFilter = &CaseFilter{}
+
+// 满足过滤条件的用例将不被执行
+func (filter *CaseFilter) filter(num int) bool {
+	return num > 4
+}
+
 func runTestCase(t *testing.T, basePath string) {
 	filepath.Walk(basePath, func(path string, info os.FileInfo, err error) error {
 		if path == basePath || !info.IsDir() {
@@ -94,6 +103,7 @@ func runCase(tt *testing.T, c VMCase, file string) {
 	vmcfg := inst.GetVMConfig()
 	msg := buildMsg(c)
 	context := inst.NewEVMContext(msg)
+	context.Coinbase = common.StringToAddress(c.env.currentCoinbase)
 
 	// 3 调用执行逻辑 call
 	env := runtime.NewEVM(context, statedb, *vmcfg)
