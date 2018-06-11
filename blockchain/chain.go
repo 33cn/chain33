@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"container/list"
 	"fmt"
+	"math/rand"
 	"sync"
 	"sync/atomic"
 	"time"
-	"math/rand"
 
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/hashicorp/golang-lru/simplelru"

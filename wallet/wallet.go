@@ -2275,7 +2275,7 @@ func (wallet *Wallet) showPrivacyBalance(req *types.ReqPrivBal4AddrToken) (*type
 	defer wallet.mtx.Unlock()
 
 	accRes := &types.Account{
-		Balance:0,
+		Balance: 0,
 	}
 	addr := req.GetAddr()
 	token := req.GetToken()
@@ -2289,30 +2289,35 @@ func (wallet *Wallet) showPrivacyBalance(req *types.ReqPrivBal4AddrToken) (*type
 	}
 
 	balance := int64(0)
-
 	for _, ele := range privacyDBStore {
 		balance += ele.Amount
 	}
 
 	for txhash, sender := range wallet.privacyFrozen {
-		if sender == addr {
-			value := wallet.walletStore.db.Get(calcKey4FTXOsInTx(txhash))
-			if nil != value {
-				value2 := wallet.walletStore.db.Get(value)
-				if value2 != nil {
-					var ftxosSTXOsInOneTx types.FTXOsSTXOsInOneTx
-					if nil == types.Decode(value2, &ftxosSTXOsInOneTx) {
-						for _, utxo := range ftxosSTXOsInOneTx.UtxoGlobalIndex {
-							key := calcUTXOKey(common.Bytes2Hex(utxo.Txhash), int(utxo.Outindex))
-							if value3 := wallet.walletStore.db.Get(key); value3 != nil {
-								var privacyDBStore types.PrivacyDBStore
-								if nil == types.Decode(value3, &privacyDBStore) {
-									balance += privacyDBStore.Amount
-								}
-							}
-						}
-					}
-				}
+		if sender != addr {
+			continue
+		}
+		value, err := wallet.walletStore.db.Get(calcKey4FTXOsInTx(txhash))
+		if err != nil || value == nil {
+			continue
+		}
+		value2, err := wallet.walletStore.db.Get(value)
+		if err != nil || value2 == nil {
+			continue
+		}
+		var ftxosSTXOsInOneTx types.FTXOsSTXOsInOneTx
+		if nil != types.Decode(value2, &ftxosSTXOsInOneTx) {
+			continue
+		}
+		for _, utxo := range ftxosSTXOsInOneTx.UtxoGlobalIndex {
+			key := calcUTXOKey(common.Bytes2Hex(utxo.Txhash), int(utxo.Outindex))
+			value3, err := wallet.walletStore.db.Get(key)
+			if err != nil || value3 == nil {
+				continue
+			}
+			var privacyDBStore types.PrivacyDBStore
+			if nil == types.Decode(value3, &privacyDBStore) {
+				balance += privacyDBStore.Amount
 			}
 		}
 	}
@@ -2358,7 +2363,7 @@ func (wallet *Wallet) showPrivacyAccounts(req *types.ReqPrivBal4AddrToken) ([]*t
 	return accRes, nil
 }
 
-func makeViewSpendPubKeyPairToString(viewPubKey, spendPubKey []byte) string  {
+func makeViewSpendPubKeyPairToString(viewPubKey, spendPubKey []byte) string {
 	pair := viewPubKey
 	pair = append(pair, spendPubKey...)
 	return common.Bytes2Hex(pair)
@@ -2378,7 +2383,7 @@ func (wallet *Wallet) showPrivacyPkPair(reqAddr *types.ReqStr) (*types.ReplyPriv
 
 	replyPrivacyPkPair := &types.ReplyPrivacyPkPair{
 		ShowSuccessful: true,
-		Pubkeypair:makeViewSpendPubKeyPairToString(privacyInfo.ViewPubkey[:], privacyInfo.SpendPubkey[:]),
+		Pubkeypair:     makeViewSpendPubKeyPairToString(privacyInfo.ViewPubkey[:], privacyInfo.SpendPubkey[:]),
 	}
 
 	return replyPrivacyPkPair, nil

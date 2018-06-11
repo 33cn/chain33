@@ -16,12 +16,13 @@ privacy执行器支持隐私交易的执行，
 */
 
 import (
+	"bytes"
+
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/types"
-	"bytes"
 )
 
 var privacylog = log.New("module", "execs.privacy")
@@ -103,9 +104,12 @@ func (p *privacy) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 			privacyInput := privacy2Privacy.Input
 			for _, keyInput := range privacyInput.Keyinput {
 				value := []byte{1}
+				// TODO: 隐私交易，需要按照规则写key
+				key := calcPrivacyKeyImageKey(privacy2Privacy.Tokenname, keyInput.KeyImage)
 				stateDB := p.GetStateDB()
-				stateDB.Set(keyInput.KeyImage, value)
-				receipt.KV = append(receipt.KV, &types.KeyValue{keyInput.KeyImage, value})
+				//stateDB.Set(keyInput.KeyImage, value)
+				stateDB.Set(key, value)
+				receipt.KV = append(receipt.KV, &types.KeyValue{key, value})
 			}
 
 			execlog := &types.ReceiptLog{types.TyLogPrivacyInput, types.Encode(privacy2Privacy.GetInput())}
@@ -151,9 +155,12 @@ func (p *privacy) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 			privacyInput := privacy2public.Input
 			for _, keyInput := range privacyInput.Keyinput {
 				value := []byte{1}
+				// TODO: 隐私交易，需要按照规则写key
+				key := calcPrivacyKeyImageKey(privacy2public.Tokenname, keyInput.KeyImage)
 				stateDB := p.GetStateDB()
-				stateDB.Set(keyInput.KeyImage, value)
-				receipt.KV = append(receipt.KV, &types.KeyValue{keyInput.KeyImage, value})
+				//stateDB.Set(keyInput.KeyImage, value)
+				stateDB.Set(key, value)
+				receipt.KV = append(receipt.KV, &types.KeyValue{key, value})
 			}
 
 			execlog := &types.ReceiptLog{types.TyLogPrivacyInput, types.Encode(privacy2public.GetInput())}
@@ -523,7 +530,7 @@ func (p *privacy) CheckTx(tx *types.Transaction, index int) error {
 
 //通过keyImage确认是否存在双花，有效即不存在双花，返回true，反之则返回false
 func (p *privacy) checkUTXOValid(keyImages [][]byte) bool {
-	stateDB := p.GetDB()
+	stateDB := p.GetStateDB()
 	if values, err := stateDB.BatchGet(keyImages); err == nil {
 		if len(values) != len(keyImages) {
 			privacylog.Error("exec module", "checkUTXOValid return different count value with keys")
@@ -540,7 +547,7 @@ func (p *privacy) checkUTXOValid(keyImages [][]byte) bool {
 }
 
 func (p *privacy) checkPubKeyValid(keys [][]byte, pubkeys [][]byte) bool {
-	if values, err := p.GetDB().BatchGet(keys); err == nil {
+	if values, err := p.GetStateDB().BatchGet(keys); err == nil {
 		if len(values) != len(pubkeys) {
 			privacylog.Error("exec module", "checkPubKeyValid return different count value with keys")
 			return false

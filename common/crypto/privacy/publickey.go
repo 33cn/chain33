@@ -26,6 +26,9 @@ func (pubKey PubKeyPrivacy) VerifyBytes(msg []byte, sig_ Signature) bool {
 	if err := types.Decode(msg, &tx); err != nil {
 		return false
 	}
+	if types.PrivacyX != string(tx.Execer) {
+		return false
+	}
 	var action types.PrivacyAction
 	if err := types.Decode(tx.Payload, &action); err != nil {
 		return false

@@ -13,6 +13,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/client"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/util"
 )
 
 var blog = log.New("module", "execs.base")
@@ -176,8 +177,7 @@ func (d *DriverBase) Exec(tx *types.Transaction, index int) (*types.Receipt, err
 		return nil, err
 	}
 	//非coins 或token 模块的 ToAddr 指向合约
-	exec := string(tx.Execer)
-	if exec != "coins" && exec != "token" && exec != types.PrivacyX && ExecAddress(exec) != tx.To {
+	if !util.CheckTxToAddressValid(tx) {
 		return nil, types.ErrToAddrNotSameToExecAddr
 	}
 	return nil, nil

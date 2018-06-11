@@ -8,6 +8,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/crypto/privacy"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/util"
 )
 
 // Mempool.CheckTxList初步检查并筛选交易消息
@@ -32,8 +33,7 @@ func (mem *Mempool) checkTx(msg queue.Message) queue.Message {
 		return msg
 	}
 	// 非coins或token模块的ToAddr指向合约
-	exec := string(tx.Execer)
-	if exec != "coins" && exec != "token" && account.ExecAddress(exec) != tx.To {
+	if !util.CheckTxToAddressValid(tx) {
 		msg.Data = types.ErrToAddrNotSameToExecAddr
 		return msg
 	}

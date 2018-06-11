@@ -857,3 +857,15 @@ func (q *QueueProtocol) CreateUTXOs(param *types.ReqCreateUTXOs) (*types.Reply, 
 	}
 	return nil, types.ErrTypeAsset
 }
+
+func (q *QueueProtocol) ShowPrivacyBalance(param *types.ReqPrivBal4AddrToken) (*types.Account, error) {
+	msg, err := q.query(walletKey, types.EventShowPrivacyBalance, param)
+	if err != nil {
+		log.Error("ShowPrivacyBalance", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.Account); ok {
+		return reply, nil
+	}
+	return nil, types.ErrTypeAsset
+}
