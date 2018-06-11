@@ -16,7 +16,7 @@ func Init() {
 
 type relay struct {
 	drivers.DriverBase
-	btcStore relayBtcStore
+	btcStore btcStore
 }
 
 func newRelay() drivers.Driver {

@@ -56,7 +56,7 @@ type Block struct {
 	PrevBlock    string               `json:"prev_block"`
 	MerkleRoot   string               `json:"mrkl_root"`
 	Time         int64                `json:"time"`
-	Bits         string               `json:"bits"`
+	Bits         int64                `json:"bits"`
 	Nonce        uint64               `json:"nonce"`
 	Fee          float64              `json:"fee,omitempty"`
 	TxNum        uint64               `json:"n_tx"`

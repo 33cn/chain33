@@ -36,7 +36,7 @@ func (b *btcWeb) Stop() error {
 
 func (b *btcWeb) GetBlockHeader(height uint64) (*types.BtcHeader, error) {
 	block, err := b.getBlock(height)
-	if err != err {
+	if err != nil {
 		return nil, err
 	}
 	return block.BtcHeader(), nil
