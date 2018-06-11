@@ -170,7 +170,6 @@ const (
 	TokenIntroLenLimit        = 1024
 	InvalidStartTime          = 0
 	InvalidStopTime           = 0
-	MaxExecNameLength         = 100
 )
 
 // event

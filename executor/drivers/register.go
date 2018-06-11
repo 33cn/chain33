@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	log "github.com/inconshreveable/log15"
-	"gitlab.33.cn/chain33/chain33/account"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	clog "gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -87,5 +87,5 @@ func ExecAddress(name string) string {
 	if addr, ok := execAddressNameMap[name]; ok {
 		return addr
 	}
-	return account.ExecAddress(name)
+	return address.ExecAddress(name)
 }

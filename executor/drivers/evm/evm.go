@@ -9,8 +9,8 @@ import (
 	"strings"
 
 	log "github.com/inconshreveable/log15"
-	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/client"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/model"
@@ -23,7 +23,7 @@ var (
 	evmDebug = false
 
 	// 本合约地址
-	EvmAddress = account.ExecAddress(model.ExecutorName)
+	EvmAddress = address.ExecAddress(model.ExecutorName)
 )
 
 func Init() {
@@ -390,7 +390,7 @@ func (evm *EVMExecutor) NewEVMContext(msg *common.Message) runtime.Context {
 
 // 从交易信息中获取交易发起人地址
 func getCaller(tx *types.Transaction) common.Address {
-	return *common.StringToAddress(account.From(tx).String())
+	return *common.StringToAddress(tx.From())
 }
 
 // 从交易信息中获取交易目标地址，在创建合约交易中，此地址为空
