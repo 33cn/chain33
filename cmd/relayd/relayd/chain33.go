@@ -1,6 +1,7 @@
 package relayd
 
 import (
+	"fmt"
 	"io"
 	"time"
 
