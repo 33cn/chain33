@@ -10,7 +10,6 @@ import (
 
 	"bytes"
 	"encoding/json"
-	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -20,47 +19,36 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/difficulty"
 )
 
-type btcBlock struct {
-	wire.BlockHeader
-}
-
-func (h *btcBlock) new(head *types.BtcHeader) error {
+func btcWireHeader(head *types.BtcHeader) (error, *wire.BlockHeader) {
 	preHash, err := chainhash.NewHashFromStr(head.PreviousHash)
 	if err != nil {
-		return err
+		return err, nil
 	}
 	merkleRoot, err := chainhash.NewHashFromStr(head.MerkleRoot)
 	if err != nil {
-		return err
+		return err, nil
 	}
 
-	bits, err := strconv.Atoi(head.Bits)
-	if err != nil {
-		return err
-	}
-
+	h := &wire.BlockHeader{}
 	h.Version = int32(head.Version)
 	h.PrevBlock = *preHash
 	h.MerkleRoot = *merkleRoot
-	h.Bits = uint32(bits)
+	h.Bits = uint32(head.Bits)
 	h.Nonce = uint32(head.Nonce)
 	h.Timestamp = time.Unix(head.Time, 0)
 
-	relaylog.Info("btchead", "h prehash", h.PrevBlock, "h", preHash, "h root", h.MerkleRoot, "root", merkleRoot,
-		"h bits", h.Bits, "bits", bits)
-
-	return nil
+	return nil, h
 }
 
-type relayBtcStore struct {
+type btcStore struct {
 	r *relay
-	//db         	dbm.KVDB
+	// db         	dbm.KVDB
 	height         int64
 	lastHeader     *types.BtcHeader
 	lastHeaderLock sync.Mutex
 }
 
-func (b *relayBtcStore) new(r *relay) {
+func (b *btcStore) new(r *relay) {
 	b.r = r
 	b.height = -1
 	b.lastHeader = nil
@@ -69,19 +57,17 @@ func (b *relayBtcStore) new(r *relay) {
 func getBTCHeadHeightFromDb(r *relay, key []byte) (int64, error) {
 	val, err := r.GetLocalDB().Get(key)
 	if val == nil || err != nil {
-		relaylog.Info("relayBtcStore get BTC store", "error", err)
 		return -1, err
 	}
 	height, err := decodeHeight(val)
 	if err != nil {
-		relaylog.Error("relayBtcStore decode height fail", "error", err)
 		return -1, err
 	}
 
 	return height, nil
 }
 
-func (b *relayBtcStore) verifyBlockHeader(head *types.BtcHeader) bool {
+func (b *btcStore) verifyBlockHeader(head *types.BtcHeader) bool {
 	b.lastHeaderLock.Lock()
 	defer b.lastHeaderLock.Unlock()
 
@@ -90,20 +76,18 @@ func (b *relayBtcStore) verifyBlockHeader(head *types.BtcHeader) bool {
 		return false
 	}
 
-	btc := &btcBlock{}
-	err := btc.new(head)
+	err, btcHeader := btcWireHeader(head)
 	if err != nil {
 		return false
 	}
-	hash := btc.BlockHash()
+	hash := btcHeader.BlockHash()
 
 	if hash.String() != head.Hash {
 		relaylog.Warn("verifyBlockHeader fail", "calc hash", hash.String(), "!= rcv hash", head.Hash)
 		return false
 	}
 
-	bits, _ := strconv.Atoi(head.Bits)
-	target := difficulty.CompactToBig(uint32(bits))
+	target := difficulty.CompactToBig(uint32(head.Bits))
 
 	// The block hash must be less than the claimed target.
 	hashNum := difficulty.HashToBig(hash[:])
@@ -115,10 +99,8 @@ func (b *relayBtcStore) verifyBlockHeader(head *types.BtcHeader) bool {
 	return true
 }
 
-func (b *relayBtcStore) checkBlockHead(head *types.BtcHeader) bool {
-
+func (b *btcStore) checkBlockHead(head *types.BtcHeader) bool {
 	if head.IsReset {
-		relaylog.Info("relayBtcStore checkBlockHead head flag=reset", "reset height", head.Height)
 		return true
 	}
 
@@ -126,16 +108,16 @@ func (b *relayBtcStore) checkBlockHead(head *types.BtcHeader) bool {
 
 	b.lastHeaderLock.Lock()
 	defer b.lastHeaderLock.Unlock()
-	// generis height or restart (if node restart, the height init to -1, new sync tx with block will be save directly)
+	// generis height or restart (if node restart, the height init to -1, btcWireHeader sync tx with block will be save directly)
 	if height <= 0 || b.lastHeader == nil {
-		relaylog.Info("relayBtcStore checkBlockHead", "height", height)
+		relaylog.Info("btcStore checkBlockHead", "height", height)
 		return true
 	}
 
 	return b.verifyBlockHeader(head)
 }
 
-func (b *relayBtcStore) saveBlockHead(head *types.BtcHeader) []*types.KeyValue {
+func (b *btcStore) saveBlockHead(head *types.BtcHeader) []*types.KeyValue {
 	var kv []*types.KeyValue
 	var key []byte
 
@@ -145,26 +127,26 @@ func (b *relayBtcStore) saveBlockHead(head *types.BtcHeader) []*types.KeyValue {
 
 	val, err := proto.Marshal(head)
 	if err != nil {
-		relaylog.Error("relayBtcStore Marshal header", "height", head.Height, "hash", head.Hash, "error", err)
+		relaylog.Error("btcStore Marshal header", "height", head.Height, "hash", head.Hash, "error", err)
 
 	} else {
-		//hash:header
+		// hash:header
 		key = calcBtcHeaderKeyHash(head.Hash)
 		kv = append(kv, &types.KeyValue{key, val})
-		//height:header
+		// height:header
 		key = calcBtcHeaderKeyHeight(int64(head.Height))
 		kv = append(kv, &types.KeyValue{key, val})
 	}
 
-	//prefix-height:height
+	// prefix-height:height
 	key = calcBtcHeaderKeyHeightList(int64(head.Height))
 	heightBytes := types.Encode(&types.Int64{int64(head.Height)})
 	kv = append(kv, &types.KeyValue{key, heightBytes})
-	//last height
+	// last height
 	key = calcBtcHeaderKeyLastHeight()
 	kv = append(kv, &types.KeyValue{key, heightBytes})
 
-	//for start with height =-1 case, the base not be set, just return -1
+	// for start with height =-1 case, the base not be set, just return -1
 	if head.IsReset {
 		key = calcBtcHeaderKeyBaseHeight()
 		kv = append(kv, &types.KeyValue{key, heightBytes})
@@ -183,7 +165,7 @@ func decodeHeight(heightBytes []byte) (int64, error) {
 	var height types.Int64
 	err := types.Decode(heightBytes, &height)
 	if err != nil {
-		//may be old database format json...
+		// may be old database format json...
 		err = json.Unmarshal(heightBytes, &height.Data)
 		if err != nil {
 			relaylog.Error("decodeHeight Could not unmarshal height bytes", "error", err.Error())
@@ -193,7 +175,7 @@ func decodeHeight(heightBytes []byte) (int64, error) {
 	return height.Data, nil
 }
 
-func (b *relayBtcStore) getBtcHeadDbCurHeight(req *types.ReqRelayQryBTCHeadHeight) (types.Message, error) {
+func (b *btcStore) getBtcHeadDbCurHeight(req *types.ReqRelayQryBTCHeadHeight) (types.Message, error) {
 	key := calcBtcHeaderKeyLastHeight()
 	height, err := getBTCHeadHeightFromDb(b.r, key)
 	if err != nil {
@@ -216,7 +198,7 @@ func (b *relayBtcStore) getBtcHeadDbCurHeight(req *types.ReqRelayQryBTCHeadHeigh
 	return &replay, nil
 }
 
-func (b *relayBtcStore) getMerkleRootFromHeader(blockhash string) (string, error) {
+func (b *btcStore) getMerkleRootFromHeader(blockhash string) (string, error) {
 	value, err := b.r.GetLocalDB().Get(calcBtcHeaderKeyHash(blockhash))
 	if err != nil {
 		relaylog.Error("getMerkleRootFromHeader", "Failed to get value from db with blockhash", blockhash)
@@ -233,7 +215,7 @@ func (b *relayBtcStore) getMerkleRootFromHeader(blockhash string) (string, error
 
 }
 
-func (b *relayBtcStore) verifyTx(verify *types.RelayVerify, order *types.RelayOrder) error {
+func (b *btcStore) verifyTx(verify *types.RelayVerify, order *types.RelayOrder) error {
 	var foundtx bool
 	for _, outtx := range verify.GetTx().GetVout() {
 		if outtx.Address == order.CoinAddr && outtx.Value == order.CoinAmount {
@@ -289,11 +271,11 @@ func (b *relayBtcStore) verifyTx(verify *types.RelayVerify, order *types.RelayOr
 
 }
 
-//rawtx, txindex, sibling, blockhash
+// rawtx, txindex, sibling, blockhash
 //
-//sibling like "aaaaaa-bbbbbb-cccccc..."
+// sibling like "aaaaaa-bbbbbb-cccccc..."
 
-func (b *relayBtcStore) verifyBtcTx(verify *types.RelayVerifyCli) error {
+func (b *btcStore) verifyBtcTx(verify *types.RelayVerifyCli) error {
 	rawhash := getRawTxHash(verify.RawTx)
 	sibs := getSiblingHash(verify.MerkBranch)
 
@@ -335,14 +317,13 @@ func getSiblingHash(sibling string) [][]byte {
 func btcHashStrRevers(str string) ([]byte, error) {
 	data, err := common.FromHex(str)
 	if err != nil {
-		relaylog.Error("merkleStrRevers2Bytes", "str", str, "error", err.Error())
 		return nil, err
 	}
 	merkle := common.BytesToHash(data).Revers().Bytes()
 	return merkle, nil
 }
 
-func (b *relayBtcStore) getHeadHeightList(req *types.ReqRelayBtcHeaderHeightList) (types.Message, error) {
+func (b *btcStore) getHeadHeightList(req *types.ReqRelayBtcHeaderHeightList) (types.Message, error) {
 	prefix := calcBtcHeightListKey()
 	key := calcBtcHeaderKeyHeightList(req.ReqHeight)
 

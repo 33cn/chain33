@@ -19,7 +19,7 @@ func TestVerifyBlockHeader(t *testing.T) {
 		Height:       2,
 	}
 
-	var store = &relayBtcStore{
+	var store = &btcStore{
 		lastHeader: &types.BtcHeader{},
 	}
 	store.lastHeader.Hash = "000000002a22cfee1f2c846adbd12b3e183d4f97683f85dad08a79780a84bd55"
