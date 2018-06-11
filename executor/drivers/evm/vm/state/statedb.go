@@ -113,11 +113,27 @@ func (self *MemoryStateDB) AddBalance(addr, caddr string, value uint64) {
 	log15.Debug("transfer result", "from", addr, "to", caddr, "amount", value, "result", res)
 }
 
+// 这里需要区分对待，如果是合约账户，则查看合约账户所有者地址在此合约下的余额；
+// 如果是外部账户，则直接返回外部账户的余额
 func (self *MemoryStateDB) GetBalance(addr string) uint64 {
 	if self.CoinsAccount == nil {
 		return 0
 	}
-	ac := self.CoinsAccount.LoadAccount(addr)
+	isExec := self.Exist(addr)
+	var ac *types.Account
+	if isExec {
+		contract := self.GetAccount(addr)
+		if contract == nil {
+			return 0
+		}
+		creator := contract.GetCreator()
+		if len(creator) == 0 {
+			return 0
+		}
+		ac = self.CoinsAccount.LoadExecAccount(creator, addr)
+	} else {
+		ac = self.CoinsAccount.LoadAccount(addr)
+	}
 	if ac != nil {
 		return uint64(ac.Balance)
 	}
@@ -334,15 +350,25 @@ func (self *MemoryStateDB) GetReceiptLogs(addr string) (logs []*types.ReceiptLog
 }
 
 // 获取本次操作所引起的状态数据变更
+// 因为目前执行器每次执行都是一个新的MemoryStateDB，所以，所有的快照都是从0开始的，
+// 这里获取的应该是从0到目前快照的所有变更；
+// 另外，因为合约内部会调用其它合约，也会产生数据变更，所以这里返回的数据，不止是一个合约的数据。
 func (self *MemoryStateDB) GetChangedData(version int) (kvSet []*types.KeyValue, logs []*types.ReceiptLog) {
-	snapshot := self.snapshots[version]
-
-	// 如果版本号不对，回滚失败
-	if snapshot == nil || snapshot.id != version {
-		log15.Crit(fmt.Errorf("Snapshot id %v cannot be reverted", version).Error())
+	if version < 0 {
 		return
 	}
-	return snapshot.getData()
+
+	for _, snapshot := range self.snapshots {
+		kv, log := snapshot.getData()
+		if kv != nil {
+			kvSet = append(kvSet, kv...)
+		}
+
+		if log != nil {
+			logs = append(logs, log...)
+		}
+	}
+	return
 }
 
 // 借助coins执行器进行转账相关操作
