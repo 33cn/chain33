@@ -24,19 +24,23 @@ func init() {
 
 //计算量有点大，做一次cache
 func ExecAddress(name string) string {
-	if len(name) > types.MaxExecNameLength {
-		panic("name too long")
-	}
 	if value, ok := addressCache.Get(name); ok {
 		return value.(string)
+	}
+	addr := PubKeyToAddress(ExecPubkey(name))
+	addrstr := addr.String()
+	addressCache.Add(name, addrstr)
+	return addrstr
+}
+
+func ExecPubkey(name string) []byte {
+	if len(name) > types.MaxExecNameLength {
+		panic("name too long")
 	}
 	buf := append(bname[:0], addrSeed...)
 	buf = append(buf, []byte(name)...)
 	hash := common.Sha2Sum(buf)
-	addr := PubKeyToAddress(hash[:])
-	addrstr := addr.String()
-	addressCache.Add(name, addrstr)
-	return addrstr
+	return hash[:]
 }
 
 func GetExecAddress(name string) *Address {
