@@ -180,6 +180,16 @@ func (wallet *Wallet) createUTXOsByPub2Priv(priv crypto.PrivKey, reqCreateUTXOs 
 }
 
 func parseViewSpendPubKeyPair(in string) (viewPubKey, spendPubKey []byte, err error)  {
+	src, err := common.FromHex(in)
+	if err != nil {
+		return nil, nil, err
+	}
+	if 64!= len(src) {
+		walletlog.Error("parseViewSpendPubKeyPair", "pair with len", len(src))
+		return nil, nil, types.ErrPubKeyLen
+	}
+	viewPubKey = src[:32]
+	spendPubKey = src[32:]
 	return
 }
 
@@ -189,23 +199,6 @@ func (wallet *Wallet) transPub2PriV2(priv crypto.PrivKey, reqPub2Pri *types.ReqP
 	if err != nil {
 		walletlog.Error("transPub2Pri", "parseViewSpendPubKeyPair  ", err)
 		return nil, err
-	}
-
-	viewPubSlice, err := common.FromHex(reqPub2Pri.ViewPublic)
-	if err != nil {
-		walletlog.Error("transPub2Pri", "common.FromHex error ", err)
-		return nil, err
-	}
-	spendPubSlice, err := common.FromHex(reqPub2Pri.SpendPublic)
-	if err != nil {
-		walletlog.Error("transPub2Pri", "common.FromHex error ", err)
-		return nil, err
-	}
-
-	if 32 != len(viewPubSlice) || 32 != len(spendPubSlice) {
-		walletlog.Error("transPub2Pri", "viewPubSlice with len", len(viewPubSlice), "viewPubSlice", viewPubSlice)
-		walletlog.Error("transPub2Pri", "spendPubSlice with len", len(spendPubSlice), "spendPubSlice", spendPubSlice)
-		return nil, types.ErrPubKeyLen
 	}
 
 	viewPublic := (*[32]byte)(unsafe.Pointer(&viewPubSlice[0]))
@@ -403,14 +396,10 @@ func (wallet *Wallet) transPri2PriV2(privacykeyParirs *privacy.Privacy, reqPri2P
 		return nil, err
 	}
 
-	viewPubSlice, spendPubSlice, err := parseViewSpendPubKeyPair(reqPub2Pri.Pubkeypair)
+	//step 2,generateOuts
+	viewPublicSlice, spendPublicSlice, err := parseViewSpendPubKeyPair(reqPri2Pri.Pubkeypair)
 	if err != nil {
 		walletlog.Error("transPub2Pri", "parseViewSpendPubKeyPair  ", err)
-		return nil, err
-	}
-	//step 2,generateOuts
-	viewPublicSlice, spendPublicSlice, err := convertPubPairstr2bytes(&reqPri2Pri.ViewPublic, &reqPri2Pri.SpendPublic)
-	if err != nil {
 		return nil, err
 	}
 
