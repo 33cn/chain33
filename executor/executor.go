@@ -581,7 +581,14 @@ func (execute *executor) execFee(tx *types.Transaction, index int) (*types.Recei
 			panic(err)
 		}
 	}
-	if bytes.Equal(ExecPubkey(execer), tx.GetSignature().GetPubkey())
+	//执行器名称 和  pubkey 相同，费用从内置的执行器中扣除,但是checkTx 中要过
+	//默认checkTx 中对这样的交易会返回
+	if bytes.Equal(account.ExecPubkey(execer), tx.GetSignature().GetPubkey()) {
+		err := e.CheckTx(tx, index)
+		if err != nil {
+			return nil, err
+		}
+	}
 	//公链不允许手续费为0
 	if types.MinFee > 0 && (!e.IsFree() || types.IsPublicChain()) {
 		feelog, err = execute.processFee(tx)
