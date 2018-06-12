@@ -95,14 +95,15 @@ func (ws *Store) GetFeeAmount() int64 {
 	return FeeAmount
 }
 
-func (ws *Store) SetWalletAccount(update bool, addr string, account *types.WalletAccountStore) error {
+
+func (ws *Store) GetAccountByte(update bool, addr string, account *types.WalletAccountStore) ([]byte, error) {
 	if len(addr) == 0 {
 		walletlog.Error("SetWalletAccount addr is nil")
-		return types.ErrInputPara
+		return nil, types.ErrInputPara
 	}
 	if account == nil {
 		walletlog.Error("SetWalletAccount account is nil")
-		return types.ErrInputPara
+		return nil, types.ErrInputPara
 	}
 
 	timestamp := fmt.Sprintf("%018d", time.Now().Unix())
@@ -115,15 +116,34 @@ func (ws *Store) SetWalletAccount(update bool, addr string, account *types.Walle
 	accountbyte, err := proto.Marshal(account)
 	if err != nil {
 		walletlog.Error("SetWalletAccount proto.Marshal err!", "err", err)
-		return types.ErrMarshal
+		return nil, types.ErrMarshal
 	}
+	return accountbyte, nil
+}
 
+func (ws *Store) SetWalletAccount(update bool, addr string, account *types.WalletAccountStore) error {
+	accountbyte, err := ws.GetAccountByte(update, addr, account)
+	if err != nil {
+		return err
+	}
 	//需要同时修改三个表，Account，Addr，Label，批量处理
 	newbatch := ws.db.NewBatch(true)
-	ws.db.Set(calcAccountKey(timestamp, addr), accountbyte)
+	ws.db.Set(calcAccountKey(account.TimeStamp, addr), accountbyte)
 	ws.db.Set(calcAddrKey(addr), accountbyte)
 	ws.db.Set(calcLabelKey(account.GetLabel()), accountbyte)
 	newbatch.Write()
+	return nil
+}
+
+func (ws *Store) SetWalletAccountNoWrite(update bool, addr string, account *types.WalletAccountStore, newbatch *dbm.Batch) error {
+	accountbyte, err := ws.GetAccountByte(update, addr, account)
+	if err != nil {
+		return err
+	}
+	//需要同时修改三个表，Account，Addr，Label，批量处理
+	ws.db.Set(calcAccountKey(account.TimeStamp, addr), accountbyte)
+	ws.db.Set(calcAddrKey(addr), accountbyte)
+	ws.db.Set(calcLabelKey(account.GetLabel()), accountbyte)
 	return nil
 }
 
