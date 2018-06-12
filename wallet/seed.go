@@ -93,7 +93,7 @@ func SaveSeed(db dbm.DB, seed string, password string) (bool, error) {
 	return true, nil
 }
 
-func SaveSeedNoWrite(db dbm.DB, seed string, password string, batch dbm.Batch) (bool, error) {
+func SaveSeedInBatch(db dbm.DB, seed string, password string, batch dbm.Batch) (bool, error) {
 	if len(seed) == 0 || len(password) == 0 {
 		return false, types.ErrInputPara
 	}
