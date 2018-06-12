@@ -4,19 +4,16 @@ import (
 	"bytes"
 	"container/list"
 	"fmt"
-	"math/rand"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	lru "github.com/hashicorp/golang-lru"
-	"github.com/hashicorp/golang-lru/simplelru"
+	"github.com/hashicorp/golang-lru"
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/privacy"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -53,8 +50,6 @@ type BlockChain struct {
 	cfg          *types.BlockChain
 	task         *Task
 	query        *Query
-	privacyCache map[string]map[int64]*simplelru.LRU //map[token]map[amount]*privacyOutputIndex
-	privacylock  sync.RWMutex
 
 	//记录收到的最新广播的block高度,用于节点追赶active链
 	rcvLastBlockHeight int64
@@ -112,7 +107,6 @@ func New(cfg *types.BlockChain) *BlockChain {
 		synBlockHeight:      -1,
 		peerList:            nil,
 		cfg:                 cfg,
-		privacyCache:        make(map[string]map[int64]*simplelru.LRU),
 		recvwg:              &sync.WaitGroup{},
 		task:                newTask(160 * time.Second),
 		quit:                make(chan struct{}),
@@ -175,9 +169,6 @@ func (chain *BlockChain) SetQueueClient(client queue.Client) {
 
 	//获取lastblock从数据库,创建bestviewtip节点
 	chain.InitIndexAndBestView()
-
-	//获取用于隐私交易进行utxo混淆的数据
-	chain.InitPrivacyCache()
 
 	//startTime
 	chain.startTime = time.Now()
@@ -646,183 +637,51 @@ func (chain *BlockChain) procgetPrivacyTransaction(reqPrivacy *types.ReqPrivacy)
 	return txinfos.(*types.ReplyTxInfos), nil
 }
 
+// ProcGetGlobalIndexMsg 从区块链上获取已经被确认，并且满足条件的交易UTXO信息
+// 条件：
+// 1.同一种TokenName
+// 2.混淆度需要大于0
+// 3.确认区块高度大于等于types.ConfirmedHeight
 func (chain *BlockChain) ProcGetGlobalIndexMsg(reqUTXOGlobalIndex *types.ReqUTXOGlobalIndex) (*types.ResUTXOGlobalIndex, error) {
-	chain.privacylock.RLock()
-	defer chain.privacylock.RUnlock()
+	debugBeginTime :=time.Now()
 
-	if reqUTXOGlobalIndex.MixCount < 0 || 0 == len(reqUTXOGlobalIndex.Amount) {
-		chainlog.Error("ProcGetGlobalIndexMsg count err", "MixCount", reqUTXOGlobalIndex.MixCount,
-			"len(reqUTXOGlobalIndex.Amount)", len(reqUTXOGlobalIndex.Amount))
-		return nil, types.ErrInputPara
-	}
-
-	// TODO: 需要将privacyCache功能移动到leveldb中
-	privacyCache, ok := chain.privacyCache[reqUTXOGlobalIndex.Tokenname]
-	if !ok {
-		chainlog.Error("ProcGetGlobalIndexMsg", "Currently, No UTXO existed for token", reqUTXOGlobalIndex.Tokenname)
-		return nil, types.ErrNoUTXORec4Token
-	}
-
+	mixCount := reqUTXOGlobalIndex.MixCount
+	tokenName := reqUTXOGlobalIndex.Tokenname
+	currentHeight := chain.GetBlockHeight()
 	resUTXOGlobalIndex := &types.ResUTXOGlobalIndex{}
-	resUTXOGlobalIndex.Tokenname = reqUTXOGlobalIndex.Tokenname
-	resUTXOGlobalIndex.MixCount = reqUTXOGlobalIndex.MixCount
-	mixcount := reqUTXOGlobalIndex.MixCount
+	resUTXOGlobalIndex.Tokenname = tokenName
+	resUTXOGlobalIndex.MixCount = mixCount
 	for _, amount := range reqUTXOGlobalIndex.Amount {
-		if mixcount <= 0 {
+		if mixCount <= 0{
 			break
 		}
-		utxos, ok := privacyCache[amount]
-		if !ok {
-			chainlog.Error("ProcGetGlobalIndexMsg", "Currently, No UTXO existed for token's amount", amount,
-				"Token is", reqUTXOGlobalIndex.Tokenname)
-			return nil, types.ErrNoUTXORec4Amount
-		}
-
-		keys := utxos.Keys()
-		if 0 == int32(len(keys)) {
-			chainlog.Error("ProcGetGlobalIndexMsg", "Currently, No enough UTXO existed for token's amount", amount,
-				"Token is", reqUTXOGlobalIndex.Tokenname, "minin count", reqUTXOGlobalIndex.MixCount,
-				"actually total keys", len(keys))
-			return nil, types.ErrNotEnoughUTXOs
-		}
-		//if int32(len(keys)) < reqUTXOGlobalIndex.MixCount {
-		//	chainlog.Error("ProcGetGlobalIndexMsg", "Currently, No enough UTXO existed for token's amount", amount,
-		//		"Token is", reqUTXOGlobalIndex.Tokenname, "minin count", reqUTXOGlobalIndex.MixCount,
-		//		"actually total keys", len(keys))
-		//	return nil, types.ErrNotEnoughUTXOs
-		//}
-
-		index := len(keys) - 1
-		currentHeight := chain.GetBlockHeight()
-		//因为key的排列是先旧后新，这里倒序查找满足确认条件的utxo
-		for ; index >= 0; index-- {
-			key := keys[index]
-			globalIndex, err := privacy.DecodeToUTXOGlobalIndex(key.(string), reqUTXOGlobalIndex.GetTokenname())
-			if err != nil {
-				break
-			}
-			//要求是经过了12个块确认的UTXO才能被使用
-			if globalIndex.GetHeight()+types.ConfirmedHeight <= currentHeight {
-				break
-			}
-		}
-
 		utxoIndex4Amount := &types.UTXOIndex4Amount{
 			Amount: amount,
 		}
-
-		stopindex := 0
-		if int32(index+1) >= reqUTXOGlobalIndex.MixCount {
-			stopindex = int(index - int(reqUTXOGlobalIndex.MixCount))
-		}
-
-		random := rand.New(rand.NewSource(time.Now().UnixNano()))
-
-		positions := random.Perm(index + 1)
-
-		for ; index > stopindex; index-- {
-			position := positions[index]
-			key := keys[position]
-			value, _ := utxos.Get(key)
-			globalIndex, err := privacy.DecodeToUTXOGlobalIndex(key.(string), reqUTXOGlobalIndex.GetTokenname())
-			if err != nil {
-				panic(err)
+		utxoItems := chain.blockStore.getUTXOsByTokenAndAmount(tokenName, amount, types.UTXOCacheCount)
+		for _, item := range utxoItems {
+			//要求是经过了12个块确认的UTXO才能被使用
+			if item.GetHeight()+types.ConfirmedHeight <= currentHeight {
+				chainlog.Debug("ProcGetGlobalIndexMsg UTXOItem.Height=", item.GetHeight(), "currentHeight=", currentHeight)
+				continue
+			}
+			utxoGlobalIndex := &types.UTXOGlobalIndex{
+				Height:item.GetHeight(),
+				Txindex:item.GetTxindex(),
+				Outindex:item.GetOutindex(),
+				Txhash:item.GetTxhash(),
 			}
 			utxo := &types.UTXOBasic{
-				UtxoGlobalIndex: globalIndex,
-				OnetimePubkey:   value.(privacyOutputKeyInfo).onetimePubKey,
+				UtxoGlobalIndex: utxoGlobalIndex,
+				OnetimePubkey:   item.GetOnetimepubkey(),
 			}
 			utxoIndex4Amount.Utxos = append(utxoIndex4Amount.Utxos, utxo)
 		}
 		resUTXOGlobalIndex.UtxoIndex4Amount = append(resUTXOGlobalIndex.UtxoIndex4Amount, utxoIndex4Amount)
-		mixcount -= 1
-
+		mixCount -= 1
 	}
-
-	return resUTXOGlobalIndex, nil
-}
-
-func (chain *BlockChain) ProcGetUTXOPubkey(reqUTXOPubKeys *types.ReqUTXOPubKeys) (*types.ResUTXOPubKeys, error) {
-	chain.privacylock.RLock()
-	defer chain.privacylock.RUnlock()
-
-	if 0 == len(reqUTXOPubKeys.GroupUTXOGlobalIndex) {
-		chainlog.Error("ProcGetUTXOPubkey count err", "count of GroupUTXOGlobalIndex", len(reqUTXOPubKeys.GroupUTXOGlobalIndex))
-		return nil, types.ErrInputPara
-	}
-
-	privacyCache, ok := chain.privacyCache[reqUTXOPubKeys.TokenName]
-	if !ok {
-		chainlog.Error("ProcGetUTXOPubkey", "Currently, No UTXO existed for token", reqUTXOPubKeys.TokenName)
-		return nil, types.ErrNoUTXORec4Token
-	}
-
-	resUTXOGlobalIndex := &types.ResUTXOPubKeys{}
-	for _, groupUTXOGlobalIndex := range reqUTXOPubKeys.GroupUTXOGlobalIndex {
-		utxos, ok := privacyCache[groupUTXOGlobalIndex.Amount]
-		if !ok {
-			chainlog.Error("ProcGetUTXOPubkey", "Currently, No UTXO existed for token's amount", groupUTXOGlobalIndex.Amount,
-				"Token is", reqUTXOPubKeys.TokenName)
-			return nil, types.ErrNoUTXORec4Amount
-		}
-
-		keys := utxos.Keys()
-		if 0 == len(keys) {
-			chainlog.Error("ProcGetUTXOPubkey", "Currently, No enough UTXO existed for token's amount", groupUTXOGlobalIndex.Amount,
-				"Token is", reqUTXOPubKeys.TokenName, "required count of utxo public keys is", len(groupUTXOGlobalIndex.UtxoGlobalIndex),
-				"actually total keys", len(keys))
-			return nil, types.ErrNotEnoughUTXOs
-		}
-
-		//if len(keys) < len(groupUTXOGlobalIndex.UtxoGlobalIndex) {
-		//	chainlog.Error("ProcGetUTXOPubkey", "Currently, No enough UTXO existed for token's amount", groupUTXOGlobalIndex.Amount,
-		//		"Token is", reqUTXOPubKeys.TokenName, "required count of utxo public keys is", len(groupUTXOGlobalIndex.UtxoGlobalIndex),
-		//		"actually total keys", len(keys))
-		//	return nil, types.ErrNotEnoughUTXOs
-		//}
-
-		groupUTXOPubKey := &types.GroupUTXOPubKey{
-			Amount: groupUTXOGlobalIndex.Amount,
-		}
-		for _, utxoGlobalIndex := range groupUTXOGlobalIndex.UtxoGlobalIndex {
-			value, ok := utxos.Get(utxoGlobalIndex)
-			if ok {
-				groupUTXOPubKey.Pubkey = append(groupUTXOPubKey.Pubkey, value.(privacyOutputKeyInfo).onetimePubKey)
-			} else {
-				txRes, err := chain.GetTxResultFromDb(utxoGlobalIndex.Txhash)
-				if err != nil {
-					chainlog.Error("ProcGetUTXOPubkey", "Can't get tx by hash", common.ToHex(utxoGlobalIndex.Txhash))
-					return nil, types.ErrNoSuchPrivacyTX
-				}
-				tx := txRes.Tx
-				var action types.PrivacyAction
-				if err = types.Decode(tx.Payload, &action); err != nil {
-					chainlog.Error("ProcGetUTXOPubkey failed to decode payload", "txhash", common.ToHex(utxoGlobalIndex.Txhash))
-					return nil, types.ErrNoSuchPrivacyTX
-				}
-				var output *types.PrivacyOutput
-				if action.Ty == types.ActionPublic2Privacy && action.GetPublic2Privacy() != nil {
-					output = action.GetPublic2Privacy().Output
-				} else if action.Ty == types.ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
-					output = action.GetPrivacy2Privacy().Output
-				} else {
-					output = action.GetPrivacy2Public().Output
-				}
-
-				if int(utxoGlobalIndex.Outindex) >= len(output.Keyoutput) {
-					chainlog.Error("ProcGetUTXOPubkey error output index", "utxoGlobalIndex.Outindex", utxoGlobalIndex.Outindex,
-						"len(output.Keyoutput)", len(output.Keyoutput))
-					return nil, types.ErrOutputIndex
-				}
-
-				groupUTXOPubKey.Pubkey = append(groupUTXOPubKey.Pubkey, output.Keyoutput[utxoGlobalIndex.Outindex].Onetimepubkey)
-				chainlog.Info("ProcGetUTXOPubkey", "Can't find utxo in privacy cache but fetched from block's tx for utxoGlobalIndex",
-					utxoGlobalIndex, "Current block height", chain.GetBlockHeight())
-			}
-		}
-		resUTXOGlobalIndex.GroupUTXOPubKeys = append(resUTXOGlobalIndex.GroupUTXOPubKeys, groupUTXOPubKey)
-	}
-
+	debugDurtime:= time.Since(debugBeginTime)
+	fmt.Println("ProcGetGlobalIndexMsg cost：",debugDurtime)
 	return resUTXOGlobalIndex, nil
 }
 
@@ -1078,64 +937,6 @@ func (chain *BlockChain) ProcFutureBlocks() {
 					chainlog.Debug("ProcFutureBlocks Remove", "height", blockdetail.Block.Height, "hash", common.ToHex(blockdetail.Block.Hash()), "blocktime", blockdetail.Block.BlockTime, "curtime", time.Now().Unix())
 				}
 			}
-		}
-	}
-}
-
-func (chain *BlockChain) InitPrivacyCache() {
-	key1 := privacy.CalcprivacyKeyTokenTypes()
-	var keys types.LocalDBGet
-	keys.Keys = append(keys.Keys, key1)
-	reply := chain.blockStore.Get(&keys)
-	privacyCache := chain.privacyCache
-	if 1 == len(reply.Values) {
-		value := reply.Values[0]
-		var tokenNames types.TokenNamesOfUTXO
-		err := types.Decode(value, &tokenNames)
-		if err == nil {
-			for token, _ := range tokenNames.TokensMap {
-				key := privacy.CalcprivacyKeyTokenAmountType(token)
-				var keys types.LocalDBGet
-				keys.Keys = append(keys.Keys, key)
-				value := chain.blockStore.Get(&keys).Values[0]
-				var amounts types.AmountsOfUTXO
-				if err := types.Decode(value, &amounts); err == nil {
-					mapAmount2Utxos := make(map[int64]*simplelru.LRU)
-
-					for amount, _ := range amounts.AmountMap {
-						privacyOutputIndexLru, err := simplelru.NewLRU(types.UTXOCacheCount, nil)
-						if err != nil {
-							chainlog.Error("InitPrivacyCache", "Failed to new NewLRU due to error", err)
-							return
-						}
-
-						localUTXOItemSlice := chain.blockStore.getUTXOsByTokenAndAmount(token, amount, types.UTXOCacheCount)
-						if 0 != len(localUTXOItemSlice) {
-							chainlog.Info("InitPrivacyCache", "get localUTXOItemSlice for token", token, "amount", amount,
-								"actual get count", len(localUTXOItemSlice))
-							i := len(localUTXOItemSlice) - 1
-							//因为获取到的信息是根据高度降序获取到的，同时为了能保证最新高度的utxo保留在privacycache中，
-							//所以在此处就需要进行反序添加
-							for ; i > 0; i-- {
-								localUTXOItem := localUTXOItemSlice[i]
-								keyCache := privacy.CalcPrivacyUTXOkeyHeightStr(token, amount, localUTXOItem.Height, common.ToHex(localUTXOItem.Txhash), int(localUTXOItem.Txindex), int(localUTXOItem.Outindex))
-								outputKeyInfo := privacyOutputKeyInfo{
-									onetimePubKey: localUTXOItem.Onetimepubkey,
-								}
-								privacyOutputIndexLru.Add(keyCache, outputKeyInfo)
-							}
-						}
-
-						mapAmount2Utxos[amount] = privacyOutputIndexLru
-					}
-					privacyCache[token] = mapAmount2Utxos
-				} else {
-					panic("Failed to decode amounts value read from db during InitPrivacyCache")
-				}
-			}
-
-		} else {
-			panic("Failed to decode tokenNames value read from db during InitPrivacyCache")
 		}
 	}
 }

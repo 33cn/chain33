@@ -144,7 +144,7 @@ func privacy2Privacy(cmd *cobra.Command, args []string) {
 	from, _ := cmd.Flags().GetString("from")
 	pubkeypair, _ := cmd.Flags().GetString("pubkeypair")
 	amount, _ := cmd.Flags().GetFloat64("amount")
-	mixcount, _ := cmd.Flags().GetInt32("txhash")
+	mixcount, _ := cmd.Flags().GetInt32("mixcount")
 	note, _ := cmd.Flags().GetString("note")
 
 	amountInt64 := int64(amount*types.InputPrecision) * types.Multiple1E4 //支持4位小数输入，多余的输入将被截断
@@ -196,7 +196,7 @@ func privacy2Public(cmd *cobra.Command, args []string) {
 	from, _ := cmd.Flags().GetString("from")
 	to, _ := cmd.Flags().GetString("to")
 	amount, _ := cmd.Flags().GetFloat64("amount")
-	mixcount, _ := cmd.Flags().GetInt32("txhash")
+	mixcount, _ := cmd.Flags().GetInt32("mixcount")
 	note, _ := cmd.Flags().GetString("note")
 
 	amountInt64 := int64(amount*types.InputPrecision) * types.Multiple1E4 //支持4位小数输入，多余的输入将被截断

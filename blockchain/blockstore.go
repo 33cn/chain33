@@ -9,7 +9,6 @@ import (
 	"sync/atomic"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/hashicorp/golang-lru/simplelru"
 	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/common/difficulty"
@@ -350,7 +349,7 @@ func (bs *BlockStore) AddTxs(storeBatch dbm.Batch, blockDetail *types.BlockDetai
 }
 
 //通过批量删除tx信息从db中
-func (bs *BlockStore) DelTxs(storeBatch dbm.Batch, blockDetail *types.BlockDetail, privacyCache map[string]map[int64]*simplelru.LRU, lock sync.RWMutex) error {
+func (bs *BlockStore) DelTxs(storeBatch dbm.Batch, blockDetail *types.BlockDetail) error {
 	//存储key:addr:flag:height ,value:txhash
 	//flag :0-->from,1--> to
 	//height=height*10000+index 存储账户地址相关的交易
@@ -367,23 +366,6 @@ func (bs *BlockStore) DelTxs(storeBatch dbm.Batch, blockDetail *types.BlockDetai
 			storeBatch.Set(kv.KV[i].Key, kv.KV[i].Value)
 		}
 	}
-
-	lock.Lock()
-	privacykv := localDBSetWithPrivacy.PrivacyLocalDBSet.PrivacyKVToken
-	for _, kv4Token := range privacykv {
-		if tokenLru, ok := privacyCache[kv4Token.Token]; ok {
-			for _, kv := range kv4Token.KV {
-				amount, err := privacy.DecodeAmountFromKey(kv.Key, kv4Token.Token)
-				if err != nil {
-					panic("DecodeAmountFromKey")
-				}
-				if lru4Amount, ok := tokenLru[amount]; ok {
-					lru4Amount.Remove(kv.Key)
-				}
-			}
-		}
-	}
-	lock.Unlock()
 
 	return nil
 }

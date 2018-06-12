@@ -91,6 +91,7 @@ func (p *privacy) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 			privacylog.Debug("Privacy exec ActionPublic2Privacy", "receipt is", receipt)
 			//////////////////debug code end///////////////
 
+
 			return receipt, nil
 		} else {
 			//token 转账操作
