@@ -14,7 +14,7 @@ export PATH="$PWD:$PATH"
 CLI="sudo docker exec ${1}_chain33_1 /root/chain33-cli"
 
 sedfix=""
-if [ "$(uname)"=="Darwin" ]; then
+if [ "$(uname)" == "Darwin" ]; then
 	sedfix=".bak"
 fi
 
