@@ -128,9 +128,9 @@ func (ws *Store) SetWalletAccount(update bool, addr string, account *types.Walle
 	}
 	//需要同时修改三个表，Account，Addr，Label，批量处理
 	newbatch := ws.db.NewBatch(true)
-	ws.db.Set(calcAccountKey(account.TimeStamp, addr), accountbyte)
-	ws.db.Set(calcAddrKey(addr), accountbyte)
-	ws.db.Set(calcLabelKey(account.GetLabel()), accountbyte)
+	newbatch.Set(calcAccountKey(account.TimeStamp, addr), accountbyte)
+	newbatch.Set(calcAddrKey(addr), accountbyte)
+	newbatch.Set(calcLabelKey(account.GetLabel()), accountbyte)
 	newbatch.Write()
 	return nil
 }
@@ -141,9 +141,9 @@ func (ws *Store) SetWalletAccountNoWrite(update bool, addr string, account *type
 		return err
 	}
 	//需要同时修改三个表，Account，Addr，Label，批量处理
-	ws.db.Set(calcAccountKey(account.TimeStamp, addr), accountbyte)
-	ws.db.Set(calcAddrKey(addr), accountbyte)
-	ws.db.Set(calcLabelKey(account.GetLabel()), accountbyte)
+	newbatch.Set(calcAccountKey(account.TimeStamp, addr), accountbyte)
+	newbatch.Set(calcAddrKey(addr), accountbyte)
+	newbatch.Set(calcLabelKey(account.GetLabel()), accountbyte)
 	return nil
 }
 
