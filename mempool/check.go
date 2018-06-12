@@ -4,8 +4,6 @@ import (
 	"errors"
 
 	"gitlab.33.cn/chain33/chain33/account"
-	"gitlab.33.cn/chain33/chain33/common"
-	"gitlab.33.cn/chain33/chain33/common/crypto/privacy"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/util"
@@ -112,66 +110,6 @@ func (mem *Mempool) CheckSignList() {
 			}
 		}()
 	}
-}
-
-func (mem *Mempool) CheckRingSign(tx *types.Transaction) bool {
-	var action types.PrivacyAction
-	err := types.Decode(tx.Payload, &action)
-	if err != nil {
-		return false
-	}
-	var ringSign types.RingSignature
-	if err := types.Decode(tx.GetSignature().GetSignature(), &ringSign); err != nil {
-		mlog.Error("CheckRingSign", "error=", err.Error())
-		return false
-	}
-	if len(ringSign.GetItems()) <= 0 {
-		mlog.Error("CheckRingSign", "ring signature is empty.")
-		return false
-	}
-	var privacyInput *types.PrivacyInput
-	var token string
-	if action.Ty == types.ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
-		privacyInput = action.GetPrivacy2Privacy().Input
-		token = action.GetPrivacy2Privacy().Tokenname
-	} else if action.Ty == types.ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
-		privacyInput = action.GetPrivacy2Public().Input
-		token = action.GetPrivacy2Public().Tokenname
-	}
-
-	ReqUTXOPubKeys := &types.ReqUTXOPubKeys{
-		TokenName: token,
-	}
-	for _, keyInput := range privacyInput.Keyinput {
-		groupUTXOGlobalIndex := &types.GroupUTXOGlobalIndex{
-			Amount:          keyInput.Amount,
-			UtxoGlobalIndex: keyInput.UtxoGlobalIndex,
-		}
-		ReqUTXOPubKeys.GroupUTXOGlobalIndex = append(ReqUTXOPubKeys.GroupUTXOGlobalIndex, groupUTXOGlobalIndex)
-	}
-
-	msg := mem.client.NewMessage("blockchain", types.EventGetUTXOPubKey, ReqUTXOPubKeys)
-	err = mem.client.Send(msg, true)
-	if err != nil {
-		mlog.Error("CheckRingSign", "err", err.Error())
-		return false
-	}
-	msg, err = mem.client.Wait(msg)
-	if err != nil {
-		return false
-	}
-	resUTXOPubKeys := msg.GetData().(*types.ResUTXOPubKeys)
-	copytx := *tx
-	copytx.Signature = nil
-	data := types.Encode(&copytx)
-	h := common.BytesToHash(data)
-	for i, ringSignItem := range ringSign.GetItems() {
-		if !privacy.CheckRingSignature(h.Bytes(), ringSignItem, resUTXOPubKeys.GroupUTXOPubKeys[i].Pubkey, privacyInput.Keyinput[i].KeyImage) {
-			mlog.Error("CheckRingSignature", "Failed to CheckRingSignature for index", i)
-			return false
-		}
-	}
-	return true
 }
 
 // Mempool.CheckTxList读取balanChan数据存入msgs，待检查交易账户余额

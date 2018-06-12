@@ -7,10 +7,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/hashicorp/golang-lru/simplelru"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/difficulty"
-	priexec "gitlab.33.cn/chain33/chain33/executor/drivers/privacy"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/util"
 )
@@ -275,10 +273,8 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 	block := blockdetail.Block
 	prevStateHash := b.bestChain.Tip().statehash
 	//广播或者同步过来的blcok需要调用执行模块
-
-	var privacyKV *types.PrivacyKV
 	if !isStrongConsistency || blockdetail.Receipts == nil {
-		blockdetail, _, privacyKV, err = util.ExecBlock(b.client, prevStateHash, block, true, sync)
+		blockdetail, _, err = util.ExecBlock(b.client, prevStateHash, block, true, sync)
 		if err != nil {
 			//记录执行出错的block信息
 			b.RecordFaultPeer(node.pid, block.Height, block.Hash(), err)
@@ -336,10 +332,6 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 	}
 	chainlog.Debug("connectBlock write db", "height", block.Height, "batchsync", sync, "cost", time.Since(beg))
 
-	//update privacy kv
-	//遍历每个隐私交易的kv，对应特定的token类型
-	b.updatePrivacyCache(privacyKV, block.Height)
-
 	// 更新最新的高度和header
 	b.blockStore.UpdateHeight()
 	b.blockStore.UpdateLastBlock(blockdetail.Block.Hash())
@@ -379,7 +371,7 @@ func (b *BlockChain) disconnectBlock(node *blockNode, blockdetail *types.BlockDe
 	newbatch := b.blockStore.NewBatch(true)
 
 	//从db中删除tx相关的信息
-	err := b.blockStore.DelTxs(newbatch, blockdetail, b.privacyCache, b.privacylock)
+	err := b.blockStore.DelTxs(newbatch, blockdetail)
 	if err != nil {
 		chainlog.Error("disconnectBlock DelTxs:", "height", blockdetail.Block.Height, "err", err)
 		return err
@@ -516,46 +508,4 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 		chainlog.Debug("REORGANIZE: New best chain head is hash", "hash", common.ToHex(lastAttachNode.hash), "height", lastAttachNode.parent.height)
 	}
 	return nil
-}
-
-func (b *BlockChain) updatePrivacyCache(privacyKV *types.PrivacyKV, height int64) {
-	b.privacylock.Lock()
-	defer b.privacylock.Unlock()
-	//update privacy kv
-	//遍历每个隐私交易的kv，对应特定的token类型
-	for _, privacyKVToken := range privacyKV.PrivacyKVToken {
-		mapPrivacy4token, ok := b.privacyCache[privacyKVToken.Token]
-		if !ok {
-			mapPrivacy4token = make(map[int64]*simplelru.LRU)
-			b.privacyCache[privacyKVToken.Token] = mapPrivacy4token
-		}
-		//遍历一个隐私交易下特定token下的kv，而每个kv则对应一个UTXO
-		outindex := 0
-		for _, kv := range privacyKVToken.KV {
-			keyPrefix := []byte(priexec.PrivacyOutputKeyPrefix)
-			if bytes.Contains(kv.Key, keyPrefix) {
-				var keyOutput types.KeyOutput
-				types.Decode(kv.Value, &keyOutput)
-				outputKeyInfo := privacyOutputKeyInfo{
-					onetimePubKey: keyOutput.Onetimepubkey,
-				}
-				privacyOutputIndexLru, ok := mapPrivacy4token[keyOutput.Amount]
-				txIndex := int(privacyKVToken.GetTxIndex())
-				if ok {
-					key := priexec.CalcPrivacyUTXOkeyHeightStr(privacyKVToken.Token, keyOutput.Amount, height, common.ToHex(privacyKVToken.Txhash), txIndex, outindex)
-					privacyOutputIndexLru.Add(key, outputKeyInfo)
-				} else {
-					privacyOutputIndexLru, err := simplelru.NewLRU(types.UTXOCacheCount, nil)
-					if err != nil {
-						chainlog.Error("connectBlock NewLRU", "Failed to new NewLRU due to error", err)
-						break
-					}
-					key := priexec.CalcPrivacyUTXOkeyHeightStr(privacyKVToken.Token, keyOutput.Amount, height, common.ToHex(privacyKVToken.Txhash), txIndex, outindex)
-					privacyOutputIndexLru.Add(key, outputKeyInfo)
-					mapPrivacy4token[keyOutput.Amount] = privacyOutputIndexLru
-				}
-				outindex++
-			}
-		}
-	}
 }

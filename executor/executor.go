@@ -159,7 +159,6 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 	execute.api = exec.qclient
 	var receipts []*types.Receipt
 	index := 0
-	var privacyKV []*types.PrivacyKVToken
 	for i := 0; i < len(datas.Txs); i++ {
 		tx := datas.Txs[i]
 		//检查groupcount
@@ -201,13 +200,8 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 		receipts = append(receipts, receiptlist...)
 		index += int(tx.GroupCount)
 	}
-
-	receiptsAndPrivacyKV := &types.ReceiptsAndPrivacyKV{
-		Receipts:  &types.Receipts{receipts},
-		PrivacyKV: &types.PrivacyKV{privacyKV},
-	}
-
-	msg.Reply(exec.client.NewMessage("", types.EventReceipts, receiptsAndPrivacyKV))
+	msg.Reply(exec.client.NewMessage("", types.EventReceipts,
+		&types.Receipts{receipts}))
 }
 
 func isAllowExec(key, txexecer []byte, toaddr string, height int64) bool {

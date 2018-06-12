@@ -355,8 +355,6 @@ const (
 	EventReplyGetPrivacyTransaction
 	EventGetGlobalIndex
 	EventReplyGetGlobalIndex
-	EventGetUTXOPubKey
-	EventReplyGetUTXOPubKey
 	EventCreateUTXOs
 	EventReplyCreateUTXOs
 )
@@ -495,8 +493,6 @@ var eventName = map[int]string{
 	EventReplyGetPrivacyTransaction: "EventReplyGetPrivacyTransaction",
 	EventGetGlobalIndex:             "EventGetGlobalIndex",
 	EventReplyGetGlobalIndex:        "EventReplyGetGlobalIndex",
-	EventGetUTXOPubKey:              "EventGetUTXOPubKey",
-	EventReplyGetUTXOPubKey:         "EventReplyGetUTXOPubKey",
 	EventCreateUTXOs:                "EventCreateUTXOs",
 	EventReplyCreateUTXOs:           "EventReplyCreateUTXOs",
 }

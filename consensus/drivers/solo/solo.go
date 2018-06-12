@@ -56,7 +56,7 @@ func (client *Client) ExecBlock(prevHash []byte, block *types.Block) (*types.Blo
 	if block.Height == 0 {
 		block.Difficulty = types.GetP(0).PowLimitBits
 	}
-	blockdetail, deltx, _, err := util.ExecBlock(client.GetQueueClient(), prevHash, block, false, true)
+	blockdetail, deltx, err := util.ExecBlock(client.GetQueueClient(), prevHash, block, false, true)
 	if err != nil { //never happen
 		return nil, deltx, err
 	}

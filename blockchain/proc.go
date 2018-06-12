@@ -65,8 +65,6 @@ func (chain *BlockChain) ProcRecvMsg() {
 			go chain.processMsg(msg, reqnum, chain.getPrivacyTransaction)
 		case types.EventGetGlobalIndex:
 			go chain.processMsg(msg, reqnum, chain.getGlobalIndex)
-		case types.EventGetUTXOPubKey:
-			go chain.processMsg(msg, reqnum, chain.getUTXOPubkey)
 		default:
 			<-reqnum
 			chainlog.Warn("ProcRecvMsg unknow msg", "msgtype", msgtype)
@@ -336,18 +334,6 @@ func (chain *BlockChain) getGlobalIndex(msg queue.Message) {
 	} else {
 		chainlog.Debug("ProcGetGlobalIndexMsg", "success", "ok")
 		msg.Reply(chain.client.NewMessage("wallet", types.EventReplyGetGlobalIndex, response))
-	}
-}
-
-func (chain *BlockChain) getUTXOPubkey(msg queue.Message) {
-	reqUTXOPubKeys := msg.Data.(*types.ReqUTXOPubKeys)
-	response, err := chain.ProcGetUTXOPubkey(reqUTXOPubKeys)
-	if err != nil {
-		chainlog.Error("ProcGetGlobalIndexMsg", "err", err.Error())
-		msg.Reply(chain.client.NewMessage("wallet", types.EventReplyGetUTXOPubKey, err))
-	} else {
-		chainlog.Debug("ProcGetGlobalIndexMsg", "success", "ok")
-		msg.Reply(chain.client.NewMessage("wallet", types.EventReplyGetUTXOPubKey, response))
 	}
 }
 
