@@ -135,7 +135,7 @@ func (ws *Store) SetWalletAccount(update bool, addr string, account *types.Walle
 	return nil
 }
 
-func (ws *Store) SetWalletAccountNoWrite(update bool, addr string, account *types.WalletAccountStore, newbatch *dbm.Batch) error {
+func (ws *Store) SetWalletAccountNoWrite(update bool, addr string, account *types.WalletAccountStore, newbatch dbm.Batch) error {
 	accountbyte, err := ws.GetAccountByte(update, addr, account)
 	if err != nil {
 		return err
@@ -262,7 +262,7 @@ func (ws *Store) GetTxDetailByIter(TxList *types.ReqWalletTransactionList) (*typ
 	return &txDetails, nil
 }
 
-func (ws *Store) SetEncryptionFlag() error {
+func (ws *Store) SetEncryptionFlag(batch dbm.Batch) error {
 	var flag int64 = 1
 	data, err := json.Marshal(flag)
 	if err != nil {
@@ -270,7 +270,7 @@ func (ws *Store) SetEncryptionFlag() error {
 		return types.ErrMarshal
 	}
 
-	ws.db.SetSync(EncryptionFlag, data)
+	batch.Set(EncryptionFlag, data)
 	return nil
 }
 
@@ -288,7 +288,7 @@ func (ws *Store) GetEncryptionFlag() int64 {
 	return flag
 }
 
-func (ws *Store) SetPasswordHash(password string) error {
+func (ws *Store) SetPasswordHash(password string, batch dbm.Batch) error {
 	var WalletPwHash types.WalletPwHash
 	//获取一个随机字符串
 	randstr := fmt.Sprintf("fuzamei:$@%s", crypto.CRandHex(16))
@@ -304,8 +304,7 @@ func (ws *Store) SetPasswordHash(password string) error {
 		walletlog.Error("SetEncryptionFlag marshal flag", "err", err)
 		return types.ErrMarshal
 	}
-
-	ws.db.SetSync(PasswordHash, pwhashbytes)
+	batch.Set(PasswordHash, pwhashbytes)
 	return nil
 }
 
