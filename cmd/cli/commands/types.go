@@ -165,3 +165,13 @@ type GetTicketMinerInfoResult struct {
 	MinerValue   int64  `json:"minerValue,omitempty"`
 	MinerAddress string `json:"minerAddress,omitempty"`
 }
+
+type PrivacyAccountResult struct {
+	Token         string `json:"Token,omitempty"`
+	Height        int64  `json:"Height,omitempty"`
+	TxIndex       int32  `json:"TxIndex,omitempty"`
+	Txhash        string `json:"Txhash,omitempty"`
+	OutIndex      int32  `json:"OutIndex,omitempty"`
+	Amount        string `json:"Amount,omitempty"`
+	OnetimePubKey string `json:"OnetimePubKey,omitempty"`
+}
