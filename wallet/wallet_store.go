@@ -95,7 +95,6 @@ func (ws *Store) GetFeeAmount() int64 {
 	return FeeAmount
 }
 
-
 func (ws *Store) GetAccountByte(update bool, addr string, account *types.WalletAccountStore) ([]byte, error) {
 	if len(addr) == 0 {
 		walletlog.Error("SetWalletAccount addr is nil")
