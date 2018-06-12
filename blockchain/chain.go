@@ -656,6 +656,7 @@ func (chain *BlockChain) ProcGetGlobalIndexMsg(reqUTXOGlobalIndex *types.ReqUTXO
 		return nil, types.ErrInputPara
 	}
 
+	// TODO: 需要将privacyCache功能移动到leveldb中
 	privacyCache, ok := chain.privacyCache[reqUTXOGlobalIndex.Tokenname]
 	if !ok {
 		chainlog.Error("ProcGetGlobalIndexMsg", "Currently, No UTXO existed for token", reqUTXOGlobalIndex.Tokenname)

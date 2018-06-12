@@ -282,6 +282,10 @@ func (acc *DB) execDepositFrozen(addr, execaddr string, amount int64) (*types.Re
 	return acc.execReceipt(ty, acc1, receiptBalance), nil
 }
 
+func (acc *DB) ExecDeposit(addr, execaddr string, amount int64) (*types.Receipt, error) {
+	return acc.execDeposit(addr, execaddr, amount)
+}
+
 func (acc *DB) execDeposit(addr, execaddr string, amount int64) (*types.Receipt, error) {
 	if addr == execaddr {
 		return nil, types.ErrSendSameToRecv
