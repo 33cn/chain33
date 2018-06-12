@@ -78,6 +78,8 @@ var (
 	title              string
 	FeePerKB           = MinFee
 	SignatureSize      = (4 + 33 + 65)
+	// 隐私交易中最大的混淆度
+	PrivacyMaxCount = 16
 )
 
 func SetTitle(t string) {

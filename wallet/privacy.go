@@ -568,8 +568,8 @@ func (wallet *Wallet) buildInput(privacykeyParirs *privacy.Privacy, buildInfo *b
 		MixCount:  0,
 	}
 
-	if buildInfo.mixcount >= 0 {
-		reqGetGlobalIndex.MixCount = buildInfo.mixcount
+	if buildInfo.mixcount > 0 {
+		reqGetGlobalIndex.MixCount = common.MinInt32(int32(types.PrivacyMaxCount), common.MaxInt32(buildInfo.mixcount, 0))
 	}
 
 	//for amout, _ := range amountKind {
@@ -680,13 +680,16 @@ func (wallet *Wallet) buildInput(privacykeyParirs *privacy.Privacy, buildInfo *b
 	return privacyInput, utxosInKeyInput, realkeyInputSlice, selectedUtxo, nil
 }
 
-//todo:在此处选在utxo时，考虑修改为1.尽量找一笔额度等于交易费的utxo，2尽量寻找确认高度大的utxo
 func (wallet *Wallet) selectUTXO(token, addr string, amount int64) ([]*txOutputInfo, error) {
 	if privacyActive, ok := wallet.privacyActive[token]; ok {
 		if walletOuts4Addr, ok := privacyActive[addr]; ok {
 			balanceLeft := int64(0)
 			for _, txOutputInfo := range walletOuts4Addr.outs {
 				balanceLeft += txOutputInfo.amount
+				if balanceLeft > amount {
+					// 余额足够支付，可以直接跳出循环
+					break
+				}
 			}
 			//在挑选具体的输出前，先确认余额是否满足转账额度
 			if balanceLeft < amount {

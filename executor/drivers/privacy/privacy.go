@@ -144,7 +144,7 @@ func (p *privacy) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 		privacy2public := action.GetPrivacy2Public()
 		if types.BTY == privacy2public.Tokenname {
 			coinsAccount := p.GetCoinsAccount()
-			receipt, err := coinsAccount.TransferToExec(tx.To, p.GetAddr(), privacy2public.Amount)
+			receipt, err := coinsAccount.ExecDeposit(tx.To, p.GetAddr(), privacy2public.Amount)
 			if err != nil {
 				privacylog.Error("Privacy exec ActionPrivacy2Public", "ExecDeposit failed due to ", err)
 				return nil, err
