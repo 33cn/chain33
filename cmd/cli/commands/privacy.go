@@ -1,7 +1,11 @@
 package commands
 
 import (
+	"fmt"
+	"strconv"
+
 	"github.com/spf13/cobra"
+	"gitlab.33.cn/chain33/chain33/common"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -236,7 +240,17 @@ func showPrivacyAccount(cmd *cobra.Command, args []string) {
 
 	var res []*types.UTXO
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.ShowPrivacyAccount", params, &res)
+	ctx.SetResultCb(parseShowPrivacyAccountRes)
 	ctx.Run()
+}
+
+func parseShowPrivacyAccountRes(arg interface{}) (interface{}, error) {
+	total := float64(0)
+	res := arg.(*[]*types.UTXO)
+	for _, utxo := range *res {
+		total += float64(utxo.Amount) / float64(types.Coin)
+	}
+	return fmt.Sprintf("Privacy Account : %s", strconv.FormatFloat(total, 'f', 4, 64)), nil
 }
 
 func ShowPrivacyAccountDetailCmd() *cobra.Command {
@@ -265,7 +279,29 @@ func showPrivacyAccountDetail(cmd *cobra.Command, args []string) {
 
 	var res []*types.UTXO
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.ShowPrivacyAccount", params, &res)
+	ctx.SetResultCb(parseShowPrivacyAccountDetailRes)
 	ctx.Run()
+}
+
+func parseShowPrivacyAccountDetailRes(arg interface{}) (interface{}, error) {
+	total := float64(0)
+	res := arg.(*[]*types.UTXO)
+	ret := make([]*PrivacyAccountResult, 0)
+	for _, utxo := range *res {
+		amount := float64(utxo.Amount) / float64(types.Coin)
+		total += amount
+
+		result := &PrivacyAccountResult{
+			Height:   utxo.UtxoBasic.UtxoGlobalIndex.Height,
+			TxIndex:  utxo.UtxoBasic.UtxoGlobalIndex.Txindex,
+			Txhash:   common.ToHex(utxo.UtxoBasic.UtxoGlobalIndex.Txhash),
+			OutIndex: utxo.UtxoBasic.UtxoGlobalIndex.Outindex,
+			Amount:   strconv.FormatFloat(amount, 'f', 4, 64),
+		}
+		ret = append(ret, result)
+	}
+	fmt.Println(fmt.Sprintf("Total Privacy available amount is %s", strconv.FormatFloat(total, 'f', 4, 64)))
+	return ret, nil
 }
 
 func ShowAmountsOfUTXOCmd() *cobra.Command {
@@ -292,7 +328,16 @@ func showAmountOfUTXO(cmd *cobra.Command, args []string) {
 
 	var res types.ReplyPrivacyAmounts
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
+	ctx.SetResultCb(parseShowAmountOfUTXORes)
 	ctx.Run()
+}
+
+func parseShowAmountOfUTXORes(arg interface{}) (interface{}, error) {
+	res := arg.(*types.ReplyPrivacyAmounts)
+	for _, amount := range res.AmountDetail {
+		amount.Amount = amount.Amount / types.Coin
+	}
+	return res, nil
 }
 
 func ShowUTXOs4SpecifiedAmountCmd() *cobra.Command {
@@ -326,7 +371,25 @@ func showUTXOs4SpecifiedAmount(cmd *cobra.Command, args []string) {
 
 	var res types.ReplyUTXOsOfAmount
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
+	ctx.SetResultCb(parseShowUTXOs4SpecifiedAmountRes)
 	ctx.Run()
+}
+
+func parseShowUTXOs4SpecifiedAmountRes(arg interface{}) (interface{}, error) {
+	res := arg.(*types.ReplyUTXOsOfAmount)
+	ret := make([]*PrivacyAccountResult, 0)
+	for _, item := range res.LocalUTXOItems {
+		result := &PrivacyAccountResult{
+			Height:        item.Height,
+			TxIndex:       item.Txindex,
+			Txhash:        common.ToHex(item.Txhash),
+			OutIndex:      item.Outindex,
+			OnetimePubKey: common.Bytes2Hex(item.Onetimepubkey),
+		}
+		ret = append(ret, result)
+	}
+
+	return ret, nil
 }
 
 func CreateUTXOsCmd() *cobra.Command {
@@ -400,5 +463,11 @@ func showPrivacyBalance(cmd *cobra.Command, args []string) {
 
 	var res types.Account
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.ShowPrivacyBalance", params, &res)
+	ctx.SetResultCb(parseShowPrivacyBalanceRes)
 	ctx.Run()
+}
+func parseShowPrivacyBalanceRes(arg interface{}) (interface{}, error) {
+	res := arg.(*types.Account)
+	balance := float64(res.Balance) / float64(types.Coin)
+	return fmt.Sprintf("Privacy Balance : %s", strconv.FormatFloat(balance, 'f', 4, 64)), nil
 }

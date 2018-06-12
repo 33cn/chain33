@@ -1483,6 +1483,7 @@ func (c *Chain33) ShowPrivacyBalance(in types.ReqPrivBal4AddrToken, result *inte
 	*result = account
 	return nil
 }
+
 func (c *Chain33) ShowPrivacyAccount(in types.ReqPrivBal4AddrToken, result *interface{}) error {
 	account, err := c.cli.ShowPrivacyAccount(&in)
 	if err != nil {

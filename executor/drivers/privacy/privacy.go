@@ -104,10 +104,8 @@ func (p *privacy) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 			privacyInput := privacy2Privacy.Input
 			for _, keyInput := range privacyInput.Keyinput {
 				value := []byte{1}
-				// TODO: 隐私交易，需要按照规则写key
 				key := calcPrivacyKeyImageKey(privacy2Privacy.Tokenname, keyInput.KeyImage)
 				stateDB := p.GetStateDB()
-				//stateDB.Set(keyInput.KeyImage, value)
 				stateDB.Set(key, value)
 				receipt.KV = append(receipt.KV, &types.KeyValue{key, value})
 			}
