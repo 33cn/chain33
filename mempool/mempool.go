@@ -530,6 +530,7 @@ func (mem *Mempool) SetQueueClient(client queue.Client) {
 				}
 			case types.EventAddBlock:
 				// 消息类型EventAddBlock：将添加到区块内的交易从Mempool中删除
+
 				block := msg.GetData().(*types.BlockDetail).Block
 				if block.Height > mem.Height() {
 					header := &types.Header{}
@@ -538,6 +539,7 @@ func (mem *Mempool) SetQueueClient(client queue.Client) {
 					header.StateHash = block.StateHash
 					mem.setHeader(header)
 				}
+				mlog.Debug("performance: handle EventAddBlock will remove tx of mempool", "block-height", block.Height)
 				mem.RemoveTxsOfBlock(block)
 				mlog.Debug("handle EventAddBlock ok", "msg", msg, "msgid", msg.Id)
 			case types.EventGetMempoolSize:

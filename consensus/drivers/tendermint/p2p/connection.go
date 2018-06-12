@@ -264,7 +264,7 @@ func (c *MConnection) Send(chID byte, msg interface{}) bool {
 		return false
 	}
 
-	c.Logger.Debug("Send", "channel", chID, "conn", c, "msg", msg) //, "bytes", wire.BinaryBytes(msg))
+	//c.Logger.Debug("Send", "channel", chID, "conn", c, "msg", msg) //, "bytes", wire.BinaryBytes(msg))
 
 	// Send message to channel.
 	channel, ok := c.channelsIdx[chID]
@@ -303,7 +303,7 @@ func (c *MConnection) TrySend(chID byte, msg interface{}) bool {
 		return false
 	}
 
-	c.Logger.Debug("TrySend", "channel", chID, "conn", c, "msg", msg)
+	//c.Logger.Debug("TrySend", "channel", chID, "conn", c, "msg", msg)
 
 	// Send message to channel.
 	channel, ok := c.channelsIdx[chID]
@@ -554,7 +554,7 @@ FOR_LOOP:
 				break FOR_LOOP
 			}
 			if msgBytes != nil {
-				c.Logger.Debug("Received bytes", "chID", pkt.ChannelID, "msgBytes", msgBytes)
+				//c.Logger.Debug("Received bytes", "chID", pkt.ChannelID, "msgBytes", msgBytes)
 				// NOTE: This means the reactor.Receive runs in the same thread as the p2p recv routine
 				c.onReceive(pkt.ChannelID, msgBytes)
 			}
@@ -737,7 +737,7 @@ func (ch *Channel) nextMsgPacket() msgPacket {
 // Not goroutine-safe
 func (ch *Channel) writeMsgPacketTo(w io.Writer) (n int, err error) {
 	packet := ch.nextMsgPacket()
-	ch.Logger.Debug("Write Msg Packet", "conn", ch.conn, "packet", packet)
+	//ch.Logger.Debug("Write Msg Packet", "conn", ch.conn, "packet", packet)
 	writeMsgPacketTo(packet, w, &n, &err)
 	if err == nil {
 		ch.recentlySent += int64(n)
@@ -765,7 +765,7 @@ func writeMsgPacketTo(packet msgPacket, w io.Writer, n *int, err *error) {
 // Handles incoming msgPackets. Returns a msg bytes if msg is complete.
 // Not goroutine-safe
 func (ch *Channel) recvMsgPacket(packet msgPacket) ([]byte, error) {
-	ch.Logger.Debug("Read Msg Packet", "conn", ch.conn, "packet", packet)
+	//ch.Logger.Debug("Read Msg Packet", "conn", ch.conn, "packet", packet)
 	if ch.desc.RecvMessageCapacity < len(ch.recving)+len(packet.Bytes) {
 		return nil, errors.New("Error: binary read overflow")
 	}

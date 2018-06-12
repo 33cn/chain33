@@ -667,6 +667,7 @@ func (cs *ConsensusState) handleTxsAvailable(height int64) {
 		height = cs.Height
 		cs.Logger.Info("handleTxsAvailable height not sync ignore, just use cs.height")
 	}
+	cs.Logger.Debug("performance: handleTxsAvailable will propose")
 	cs.enterPropose(height, 0)
 }
 
@@ -864,7 +865,7 @@ func (cs *ConsensusState) defaultDecideProposal(height int64, round int) {
 			part := blockParts.GetPart(i)
 			cs.sendInternalMessage(msgInfo{&ttypes.BlockPartMessage{cs.Height, cs.Round, part}, ""})
 		}
-		cs.Logger.Debug("Signed proposal", "height", height, "round", round, "proposal", proposal, "block", block)
+		cs.Logger.Debug("Signed proposal", "height", height, "round", round, "proposal", proposal)
 	} else {
 		if !cs.replayMode {
 			cs.Logger.Error("enterPropose: Error signing proposal", "height", height, "round", round, "err", err)
@@ -910,10 +911,13 @@ func (cs *ConsensusState) createProposalBlock() (block *ttypes.Block, blockParts
 	var newtxs []ttypes.Tx
 	var err error
 
+	cs.Logger.Debug("performance: enterPropose: will get txs from mempool", "height", cs.Height)
 	txs = cs.client.RequestTx(int(types.GetP(cs.Height).MaxTxNumber)-1, nil)
+	cs.Logger.Debug("performance: enterPropose: get txs from mempool", "height", cs.Height, "size", len(txs))
 	if len(txs) > 0 {
 		//check dup
 		txs = cs.client.CheckTxDup(txs)
+		cs.Logger.Debug("performance: enterPropose: checkdup txs ", "size", len(txs))
 		newtxs, err = cs.Convert2ByteTxs(txs)
 		if err != nil {
 			cs.Logger.Error("enterPropose: Convert2ByteTxs failed.", "error", err)
@@ -1260,7 +1264,7 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 		panic(fmt.Sprintf("Panicked on a Sanity Check: %v", fmt.Sprintf("+2/3 committed an invalid block: %v", err)))
 	}
 
-	cs.Logger.Info("Finalizing commit of block ", "tx_numbers", block.NumTxs,
+	cs.Logger.Debug("performance: Finalizing commit of block ", "tx_numbers", block.NumTxs,
 		"height", block.Height, "hash", block.Hash(), "root", block.AppHash)
 
 	stateCopy := cs.state.Copy()
@@ -1281,7 +1285,7 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 
 	//hg 20180302
 	if cs.isProposer() {
-		cs.Logger.Info("i am proposer to commit block")
+		cs.Logger.Info("performance: i am proposer to commit block")
 		if len(block.Data.Txs) == 0 {
 			cs.Logger.Error("txs of block is empty")
 		}
@@ -1325,7 +1329,7 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 			newblock.BlockTime = lastBlock.BlockTime + 1
 		}
 
-
+		cs.Logger.Debug("performance: finalizeCommit realy will writeblock")
 		err = cs.client.WriteBlock(lastBlock.StateHash, &newblock)
 		if err != nil {
 			cs.Logger.Error("finalizeCommit:WriteBlock failed, NewTxsFinished set false", "Error", err)
@@ -1342,11 +1346,11 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 				cs.Logger.Info("finalizeCommit:get current height equal or higher", "p2p-height", cs.client.GetCurrentHeight(), "consensus-height", block.Height)
 				break
 			} else {
-				cs.Logger.Info("finalizeCommit:get current height not equal", "cur", cs.client.GetCurrentHeight(), "height", block.Height, "times", times)
+				//cs.Logger.Info("finalizeCommit:get current height not equal", "cur", cs.client.GetCurrentHeight(), "height", block.Height, "times", times)
 				time.Sleep(100 * time.Millisecond)
 				times++
 				//wait 30s
-				if times >= 30 {
+				if times >= 300 {
 					//cs.scheduleTimeout(cs.Precommit(cs.CommitRound), height, cs.CommitRound, ttypes.RoundStepPrecommitWait)
 					//cs.updateRoundStep(cs.CommitRound, ttypes.RoundStepPrecommitWait)
 					//cs.newStep()
@@ -1355,6 +1359,7 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 				}
 			}
 		}
+		cs.Logger.Info("performance: finalizeCommit wait times", "times", times, "height", block.Height)
 	}
 	cs.Logger.Debug("NewTxsFinished set true")
 	cs.NewTxsFinished <- true

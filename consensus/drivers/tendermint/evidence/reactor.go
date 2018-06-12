@@ -89,7 +89,7 @@ func (evR *EvidenceReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		evR.Logger.Error("Error decoding message", "err", err)
 		return
 	}
-	evR.Logger.Debug("Receive", "src", src, "chId", chID)
+	//evR.Logger.Debug("Receive", "src", src, "chId", chID)
 
 	if v, ok := types.MsgMap[envelope.Kind]; ok {
 		msg := v.(types.ReactorMsg).Copy()

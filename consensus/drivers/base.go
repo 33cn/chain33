@@ -173,6 +173,7 @@ func (bc *BaseClient) EventLoop() {
 			tlog.Debug("consensus recv", "msg", msg)
 			if msg.Ty == types.EventAddBlock {
 				block := msg.GetData().(*types.BlockDetail).Block
+				tlog.Debug("performance: handle EventAddBlock begin consensus", "height", block.Height)
 				bc.SetCurrentBlock(block)
 			} else if msg.Ty == types.EventCheckBlock {
 				block := msg.GetData().(*types.BlockDetail)
