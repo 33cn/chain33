@@ -1272,13 +1272,14 @@ func (wallet *Wallet) ProcWalletSetPasswd(Passwd *types.ReqWalletSetPasswd) erro
 	}
 
 	//使用新的密码生成passwdhash用于下次密码的验证
-	err = wallet.walletStore.SetPasswordHash(Passwd.NewPass)
+	newBatch := wallet.walletStore.db.NewBatch(true)
+	err = wallet.walletStore.SetPasswordHash(Passwd.NewPass, newBatch)
 	if err != nil {
 		walletlog.Error("ProcWalletSetPasswd", "SetPasswordHash err", err)
 		return err
 	}
 	//设置钱包加密标志位
-	err = wallet.walletStore.SetEncryptionFlag()
+	err = wallet.walletStore.SetEncryptionFlag(newBatch)
 	if err != nil {
 		walletlog.Error("ProcWalletSetPasswd", "SetEncryptionFlag err", err)
 		return err
@@ -1289,7 +1290,7 @@ func (wallet *Wallet) ProcWalletSetPasswd(Passwd *types.ReqWalletSetPasswd) erro
 		walletlog.Error("ProcWalletSetPasswd", "getSeed err", err)
 		return err
 	}
-	ok, err := SaveSeed(wallet.walletStore.db, seed, Passwd.NewPass)
+	ok, err := SaveSeedNoWrite(wallet.walletStore.db, seed, Passwd.NewPass, newBatch)
 	if !ok {
 		walletlog.Error("ProcWalletSetPasswd", "SaveSeed err", err)
 		return err
@@ -1313,12 +1314,13 @@ func (wallet *Wallet) ProcWalletSetPasswd(Passwd *types.ReqWalletSetPasswd) erro
 		//使用新的密码重新加密私钥
 		Encrypter := CBCEncrypterPrivkey([]byte(Passwd.NewPass), Decrypter)
 		AccStore.Privkey = common.ToHex(Encrypter)
-		err = wallet.walletStore.SetWalletAccount(true, AccStore.Addr, AccStore)
+		err = wallet.walletStore.SetWalletAccountNoWrite(true, AccStore.Addr, AccStore, newBatch)
 		if err != nil {
 			walletlog.Info("ProcWalletSetPasswd", "addr", AccStore.Addr, "SetWalletAccount err", err)
 		}
 	}
 
+	newBatch.Write()
 	wallet.Password = Passwd.NewPass
 	return nil
 }
