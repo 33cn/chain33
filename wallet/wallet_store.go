@@ -135,7 +135,7 @@ func (ws *Store) SetWalletAccount(update bool, addr string, account *types.Walle
 	return nil
 }
 
-func (ws *Store) SetWalletAccountNoWrite(update bool, addr string, account *types.WalletAccountStore, newbatch dbm.Batch) error {
+func (ws *Store) SetWalletAccountInBatch(update bool, addr string, account *types.WalletAccountStore, newbatch dbm.Batch) error {
 	accountbyte, err := ws.GetAccountByte(update, addr, account)
 	if err != nil {
 		return err
