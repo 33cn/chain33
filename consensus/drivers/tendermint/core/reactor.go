@@ -197,7 +197,7 @@ func (conR *ConsensusReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) 
 		return
 	}
 
-	conR.Logger.Debug("Receive", "src", src, "chId", chID, "msg", envelope.Kind)
+	//conR.Logger.Debug("Receive", "src", src, "chId", chID, "msg", envelope.Kind)
 
 	if v, ok := types.MsgMap[envelope.Kind]; ok {
 		msg := v.(types.ReactorMsg).Copy()
