@@ -17,12 +17,6 @@ var _ = proto.Marshal
 var _ = fmt.Errorf
 var _ = math.Inf
 
-// This is a compile-time assertion to ensure that this generated file
-// is compatible with the proto package it is being compiled against.
-// A compilation error at this line likely means your copy of the
-// proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
-
 // Reference imports to suppress errors if they are not otherwise used.
 var _ context.Context
 var _ grpc.ClientConn
@@ -31,9 +25,8 @@ var _ grpc.ClientConn
 // is compatible with the grpc package it is being compiled against.
 const _ = grpc.SupportPackageIsVersion4
 
-// GrpcserviceClient is the client API for Grpcservice service.
-//
-// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
+// Client API for Grpcservice service
+
 type GrpcserviceClient interface {
 	// chain33 对外提供服务的接口
 	// 区块链接口
@@ -130,7 +123,7 @@ func NewGrpcserviceClient(cc *grpc.ClientConn) GrpcserviceClient {
 
 func (c *grpcserviceClient) GetBlocks(ctx context.Context, in *ReqBlocks, opts ...grpc.CallOption) (*Reply, error) {
 	out := new(Reply)
-	err := c.cc.Invoke(ctx, "/types.grpcservice/GetBlocks", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.grpcservice/GetBlocks", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +132,7 @@ func (c *grpcserviceClient) GetBlocks(ctx context.Context, in *ReqBlocks, opts .
 
 func (c *grpcserviceClient) GetLastHeader(ctx context.Context, in *ReqNil, opts ...grpc.CallOption) (*Header, error) {
 	out := new(Header)
-	err := c.cc.Invoke(ctx, "/types.grpcservice/GetLastHeader", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.grpcservice/GetLastHeader", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -148,7 +141,7 @@ func (c *grpcserviceClient) GetLastHeader(ctx context.Context, in *ReqNil, opts 
 
 func (c *grpcserviceClient) CreateRawTransaction(ctx context.Context, in *CreateTx, opts ...grpc.CallOption) (*UnsignTx, error) {
 	out := new(UnsignTx)
-	err := c.cc.Invoke(ctx, "/types.grpcservice/CreateRawTransaction", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.grpcservice/CreateRawTransaction", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -157,7 +150,7 @@ func (c *grpcserviceClient) CreateRawTransaction(ctx context.Context, in *Create
 
 func (c *grpcserviceClient) SendRawTransaction(ctx context.Context, in *SignedTx, opts ...grpc.CallOption) (*Reply, error) {
 	out := new(Reply)
-	err := c.cc.Invoke(ctx, "/types.grpcservice/SendRawTransaction", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.grpcservice/SendRawTransaction", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -166,7 +159,7 @@ func (c *grpcserviceClient) SendRawTransaction(ctx context.Context, in *SignedTx
 
 func (c *grpcserviceClient) QueryTransaction(ctx context.Context, in *ReqHash, opts ...grpc.CallOption) (*TransactionDetail, error) {
 	out := new(TransactionDetail)
-	err := c.cc.Invoke(ctx, "/types.grpcservice/QueryTransaction", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.grpcservice/QueryTransaction", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -175,7 +168,7 @@ func (c *grpcserviceClient) QueryTransaction(ctx context.Context, in *ReqHash, o
 
 func (c *grpcserviceClient) SendTransaction(ctx context.Context, in *Transaction, opts ...grpc.CallOption) (*Reply, error) {
 	out := new(Reply)
-	err := c.cc.Invoke(ctx, "/types.grpcservice/SendTransaction", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.grpcservice/SendTransaction", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -184,7 +177,7 @@ func (c *grpcserviceClient) SendTransaction(ctx context.Context, in *Transaction
 
 func (c *grpcserviceClient) GetTransactionByAddr(ctx context.Context, in *ReqAddr, opts ...grpc.CallOption) (*ReplyTxInfos, error) {
 	out := new(ReplyTxInfos)
-	err := c.cc.Invoke(ctx, "/types.grpcservice/GetTransactionByAddr", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.grpcservice/GetTransactionByAddr", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -193,7 +186,7 @@ func (c *grpcserviceClient) GetTransactionByAddr(ctx context.Context, in *ReqAdd
 
 func (c *grpcserviceClient) GetTransactionByHashes(ctx context.Context, in *ReqHashes, opts ...grpc.CallOption) (*TransactionDetails, error) {
 	out := new(TransactionDetails)
-	err := c.cc.Invoke(ctx, "/types.grpcservice/GetTransactionByHashes", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.grpcservice/GetTransactionByHashes", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -202,7 +195,7 @@ func (c *grpcserviceClient) GetTransactionByHashes(ctx context.Context, in *ReqH
 
 func (c *grpcserviceClient) GetMemPool(ctx context.Context, in *ReqNil, opts ...grpc.CallOption) (*ReplyTxList, error) {
 	out := new(ReplyTxList)
-	err := c.cc.Invoke(ctx, "/types.grpcservice/GetMemPool", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.grpcservice/GetMemPool", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -211,7 +204,7 @@ func (c *grpcserviceClient) GetMemPool(ctx context.Context, in *ReqNil, opts ...
 
 func (c *grpcserviceClient) GetAccounts(ctx context.Context, in *ReqNil, opts ...grpc.CallOption) (*WalletAccounts, error) {
 	out := new(WalletAccounts)
-	err := c.cc.Invoke(ctx, "/types.grpcservice/GetAccounts", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.grpcservice/GetAccounts", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -220,7 +213,7 @@ func (c *grpcserviceClient) GetAccounts(ctx context.Context, in *ReqNil, opts ..
 
 func (c *grpcserviceClient) NewAccount(ctx context.Context, in *ReqNewAccount, opts ...grpc.CallOption) (*WalletAccount, error) {
 	out := new(WalletAccount)
-	err := c.cc.Invoke(ctx, "/types.grpcservice/NewAccount", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.grpcservice/NewAccount", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -229,7 +222,7 @@ func (c *grpcserviceClient) NewAccount(ctx context.Context, in *ReqNewAccount, o
 
 func (c *grpcserviceClient) WalletTransactionList(ctx context.Context, in *ReqWalletTransactionList, opts ...grpc.CallOption) (*WalletTxDetails, error) {
 	out := new(WalletTxDetails)
-	err := c.cc.Invoke(ctx, "/types.grpcservice/WalletTransactionList", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.grpcservice/WalletTransactionList", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -238,7 +231,7 @@ func (c *grpcserviceClient) WalletTransactionList(ctx context.Context, in *ReqWa
 
 func (c *grpcserviceClient) ImportPrivKey(ctx context.Context, in *ReqWalletImportPrivKey, opts ...grpc.CallOption) (*WalletAccount, error) {
 	out := new(WalletAccount)
-	err := c.cc.Invoke(ctx, "/types.grpcservice/ImportPrivKey", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.grpcservice/ImportPrivKey", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -247,7 +240,7 @@ func (c *grpcserviceClient) ImportPrivKey(ctx context.Context, in *ReqWalletImpo
 
 func (c *grpcserviceClient) SendToAddress(ctx context.Context, in *ReqWalletSendToAddress, opts ...grpc.CallOption) (*ReplyHash, error) {
 	out := new(ReplyHash)
-	err := c.cc.Invoke(ctx, "/types.grpcservice/SendToAddress", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.grpcservice/SendToAddress", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -256,7 +249,7 @@ func (c *grpcserviceClient) SendToAddress(ctx context.Context, in *ReqWalletSend
 
 func (c *grpcserviceClient) SetTxFee(ctx context.Context, in *ReqWalletSetFee, opts ...grpc.CallOption) (*Reply, error) {
 	out := new(Reply)
-	err := c.cc.Invoke(ctx, "/types.grpcservice/SetTxFee", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.grpcservice/SetTxFee", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -265,7 +258,7 @@ func (c *grpcserviceClient) SetTxFee(ctx context.Context, in *ReqWalletSetFee, o
 
 func (c *grpcserviceClient) SetLabl(ctx context.Context, in *ReqWalletSetLabel, opts ...grpc.CallOption) (*WalletAccount, error) {
 	out := new(WalletAccount)
-	err := c.cc.Invoke(ctx, "/types.grpcservice/SetLabl", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.grpcservice/SetLabl", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -274,7 +267,7 @@ func (c *grpcserviceClient) SetLabl(ctx context.Context, in *ReqWalletSetLabel, 
 
 func (c *grpcserviceClient) MergeBalance(ctx context.Context, in *ReqWalletMergeBalance, opts ...grpc.CallOption) (*ReplyHashes, error) {
 	out := new(ReplyHashes)
-	err := c.cc.Invoke(ctx, "/types.grpcservice/MergeBalance", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.grpcservice/MergeBalance", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -283,7 +276,7 @@ func (c *grpcserviceClient) MergeBalance(ctx context.Context, in *ReqWalletMerge
 
 func (c *grpcserviceClient) SetPasswd(ctx context.Context, in *ReqWalletSetPasswd, opts ...grpc.CallOption) (*Reply, error) {
 	out := new(Reply)
-	err := c.cc.Invoke(ctx, "/types.grpcservice/SetPasswd", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.grpcservice/SetPasswd", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -292,7 +285,7 @@ func (c *grpcserviceClient) SetPasswd(ctx context.Context, in *ReqWalletSetPassw
 
 func (c *grpcserviceClient) Lock(ctx context.Context, in *ReqNil, opts ...grpc.CallOption) (*Reply, error) {
 	out := new(Reply)
-	err := c.cc.Invoke(ctx, "/types.grpcservice/Lock", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.grpcservice/Lock", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -301,7 +294,7 @@ func (c *grpcserviceClient) Lock(ctx context.Context, in *ReqNil, opts ...grpc.C
 
 func (c *grpcserviceClient) UnLock(ctx context.Context, in *WalletUnLock, opts ...grpc.CallOption) (*Reply, error) {
 	out := new(Reply)
-	err := c.cc.Invoke(ctx, "/types.grpcservice/UnLock", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.grpcservice/UnLock", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -310,7 +303,7 @@ func (c *grpcserviceClient) UnLock(ctx context.Context, in *WalletUnLock, opts .
 
 func (c *grpcserviceClient) GetPeerInfo(ctx context.Context, in *ReqNil, opts ...grpc.CallOption) (*PeerList, error) {
 	out := new(PeerList)
-	err := c.cc.Invoke(ctx, "/types.grpcservice/GetPeerInfo", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.grpcservice/GetPeerInfo", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -319,7 +312,7 @@ func (c *grpcserviceClient) GetPeerInfo(ctx context.Context, in *ReqNil, opts ..
 
 func (c *grpcserviceClient) GetLastMemPool(ctx context.Context, in *ReqNil, opts ...grpc.CallOption) (*ReplyTxList, error) {
 	out := new(ReplyTxList)
-	err := c.cc.Invoke(ctx, "/types.grpcservice/GetLastMemPool", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.grpcservice/GetLastMemPool", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -328,7 +321,7 @@ func (c *grpcserviceClient) GetLastMemPool(ctx context.Context, in *ReqNil, opts
 
 func (c *grpcserviceClient) GetWalletStatus(ctx context.Context, in *ReqNil, opts ...grpc.CallOption) (*WalletStatus, error) {
 	out := new(WalletStatus)
-	err := c.cc.Invoke(ctx, "/types.grpcservice/GetWalletStatus", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.grpcservice/GetWalletStatus", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -337,7 +330,7 @@ func (c *grpcserviceClient) GetWalletStatus(ctx context.Context, in *ReqNil, opt
 
 func (c *grpcserviceClient) GetBlockOverview(ctx context.Context, in *ReqHash, opts ...grpc.CallOption) (*BlockOverview, error) {
 	out := new(BlockOverview)
-	err := c.cc.Invoke(ctx, "/types.grpcservice/GetBlockOverview", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.grpcservice/GetBlockOverview", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -346,7 +339,7 @@ func (c *grpcserviceClient) GetBlockOverview(ctx context.Context, in *ReqHash, o
 
 func (c *grpcserviceClient) GetAddrOverview(ctx context.Context, in *ReqAddr, opts ...grpc.CallOption) (*AddrOverview, error) {
 	out := new(AddrOverview)
-	err := c.cc.Invoke(ctx, "/types.grpcservice/GetAddrOverview", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.grpcservice/GetAddrOverview", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -355,7 +348,7 @@ func (c *grpcserviceClient) GetAddrOverview(ctx context.Context, in *ReqAddr, op
 
 func (c *grpcserviceClient) GetBlockHash(ctx context.Context, in *ReqInt, opts ...grpc.CallOption) (*ReplyHash, error) {
 	out := new(ReplyHash)
-	err := c.cc.Invoke(ctx, "/types.grpcservice/GetBlockHash", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.grpcservice/GetBlockHash", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -364,7 +357,7 @@ func (c *grpcserviceClient) GetBlockHash(ctx context.Context, in *ReqInt, opts .
 
 func (c *grpcserviceClient) GenSeed(ctx context.Context, in *GenSeedLang, opts ...grpc.CallOption) (*ReplySeed, error) {
 	out := new(ReplySeed)
-	err := c.cc.Invoke(ctx, "/types.grpcservice/GenSeed", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.grpcservice/GenSeed", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -373,7 +366,7 @@ func (c *grpcserviceClient) GenSeed(ctx context.Context, in *GenSeedLang, opts .
 
 func (c *grpcserviceClient) GetSeed(ctx context.Context, in *GetSeedByPw, opts ...grpc.CallOption) (*ReplySeed, error) {
 	out := new(ReplySeed)
-	err := c.cc.Invoke(ctx, "/types.grpcservice/GetSeed", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.grpcservice/GetSeed", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -382,7 +375,7 @@ func (c *grpcserviceClient) GetSeed(ctx context.Context, in *GetSeedByPw, opts .
 
 func (c *grpcserviceClient) SaveSeed(ctx context.Context, in *SaveSeedByPw, opts ...grpc.CallOption) (*Reply, error) {
 	out := new(Reply)
-	err := c.cc.Invoke(ctx, "/types.grpcservice/SaveSeed", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.grpcservice/SaveSeed", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -391,7 +384,7 @@ func (c *grpcserviceClient) SaveSeed(ctx context.Context, in *SaveSeedByPw, opts
 
 func (c *grpcserviceClient) GetBalance(ctx context.Context, in *ReqBalance, opts ...grpc.CallOption) (*Accounts, error) {
 	out := new(Accounts)
-	err := c.cc.Invoke(ctx, "/types.grpcservice/GetBalance", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.grpcservice/GetBalance", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -400,7 +393,7 @@ func (c *grpcserviceClient) GetBalance(ctx context.Context, in *ReqBalance, opts
 
 func (c *grpcserviceClient) QueryChain(ctx context.Context, in *Query, opts ...grpc.CallOption) (*Reply, error) {
 	out := new(Reply)
-	err := c.cc.Invoke(ctx, "/types.grpcservice/QueryChain", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.grpcservice/QueryChain", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -409,7 +402,7 @@ func (c *grpcserviceClient) QueryChain(ctx context.Context, in *Query, opts ...g
 
 func (c *grpcserviceClient) SetAutoMining(ctx context.Context, in *MinerFlag, opts ...grpc.CallOption) (*Reply, error) {
 	out := new(Reply)
-	err := c.cc.Invoke(ctx, "/types.grpcservice/SetAutoMining", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.grpcservice/SetAutoMining", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -418,7 +411,7 @@ func (c *grpcserviceClient) SetAutoMining(ctx context.Context, in *MinerFlag, op
 
 func (c *grpcserviceClient) GetHexTxByHash(ctx context.Context, in *ReqHash, opts ...grpc.CallOption) (*HexTx, error) {
 	out := new(HexTx)
-	err := c.cc.Invoke(ctx, "/types.grpcservice/GetHexTxByHash", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.grpcservice/GetHexTxByHash", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -427,7 +420,7 @@ func (c *grpcserviceClient) GetHexTxByHash(ctx context.Context, in *ReqHash, opt
 
 func (c *grpcserviceClient) GetTicketCount(ctx context.Context, in *ReqNil, opts ...grpc.CallOption) (*Int64, error) {
 	out := new(Int64)
-	err := c.cc.Invoke(ctx, "/types.grpcservice/GetTicketCount", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.grpcservice/GetTicketCount", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -436,7 +429,7 @@ func (c *grpcserviceClient) GetTicketCount(ctx context.Context, in *ReqNil, opts
 
 func (c *grpcserviceClient) DumpPrivkey(ctx context.Context, in *ReqStr, opts ...grpc.CallOption) (*ReplyStr, error) {
 	out := new(ReplyStr)
-	err := c.cc.Invoke(ctx, "/types.grpcservice/DumpPrivkey", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.grpcservice/DumpPrivkey", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -445,7 +438,7 @@ func (c *grpcserviceClient) DumpPrivkey(ctx context.Context, in *ReqStr, opts ..
 
 func (c *grpcserviceClient) Version(ctx context.Context, in *ReqNil, opts ...grpc.CallOption) (*Reply, error) {
 	out := new(Reply)
-	err := c.cc.Invoke(ctx, "/types.grpcservice/Version", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.grpcservice/Version", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -454,7 +447,7 @@ func (c *grpcserviceClient) Version(ctx context.Context, in *ReqNil, opts ...grp
 
 func (c *grpcserviceClient) IsSync(ctx context.Context, in *ReqNil, opts ...grpc.CallOption) (*Reply, error) {
 	out := new(Reply)
-	err := c.cc.Invoke(ctx, "/types.grpcservice/IsSync", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.grpcservice/IsSync", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -463,7 +456,7 @@ func (c *grpcserviceClient) IsSync(ctx context.Context, in *ReqNil, opts ...grpc
 
 func (c *grpcserviceClient) IsNtpClockSync(ctx context.Context, in *ReqNil, opts ...grpc.CallOption) (*Reply, error) {
 	out := new(Reply)
-	err := c.cc.Invoke(ctx, "/types.grpcservice/IsNtpClockSync", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.grpcservice/IsNtpClockSync", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -472,7 +465,7 @@ func (c *grpcserviceClient) IsNtpClockSync(ctx context.Context, in *ReqNil, opts
 
 func (c *grpcserviceClient) NetInfo(ctx context.Context, in *ReqNil, opts ...grpc.CallOption) (*NodeNetInfo, error) {
 	out := new(NodeNetInfo)
-	err := c.cc.Invoke(ctx, "/types.grpcservice/NetInfo", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.grpcservice/NetInfo", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -481,14 +474,15 @@ func (c *grpcserviceClient) NetInfo(ctx context.Context, in *ReqNil, opts ...grp
 
 func (c *grpcserviceClient) GetFatalFailure(ctx context.Context, in *ReqNil, opts ...grpc.CallOption) (*Int32, error) {
 	out := new(Int32)
-	err := c.cc.Invoke(ctx, "/types.grpcservice/GetFatalFailure", in, out, opts...)
+	err := grpc.Invoke(ctx, "/types.grpcservice/GetFatalFailure", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// GrpcserviceServer is the server API for Grpcservice service.
+// Server API for Grpcservice service
+
 type GrpcserviceServer interface {
 	// chain33 对外提供服务的接口
 	// 区块链接口
@@ -1468,9 +1462,9 @@ var _Grpcservice_serviceDesc = grpc.ServiceDesc{
 	Metadata: "rpc.proto",
 }
 
-func init() { proto.RegisterFile("rpc.proto", fileDescriptor_rpc_fb73c3e963e642fd) }
+func init() { proto.RegisterFile("rpc.proto", fileDescriptor10) }
 
-var fileDescriptor_rpc_fb73c3e963e642fd = []byte{
+var fileDescriptor10 = []byte{
 	// 854 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x56, 0xdf, 0x6f, 0xe3, 0x44,
 	0x10, 0xf6, 0x03, 0xb4, 0xd7, 0xbd, 0xa4, 0x4d, 0xf7, 0x7a, 0xd5, 0x9d, 0x05, 0x42, 0xb2, 0x84,

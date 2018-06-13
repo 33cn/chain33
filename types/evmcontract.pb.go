@@ -12,45 +12,17 @@ var _ = proto.Marshal
 var _ = fmt.Errorf
 var _ = math.Inf
 
-// This is a compile-time assertion to ensure that this generated file
-// is compatible with the proto package it is being compiled against.
-// A compilation error at this line likely means your copy of the
-// proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
-
 // 合约对象信息
 type EVMContractObject struct {
-	Addr                 string            `protobuf:"bytes,1,opt,name=addr" json:"addr,omitempty"`
-	Data                 *EVMContractData  `protobuf:"bytes,2,opt,name=data" json:"data,omitempty"`
-	State                *EVMContractState `protobuf:"bytes,3,opt,name=state" json:"state,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
-	XXX_unrecognized     []byte            `json:"-"`
-	XXX_sizecache        int32             `json:"-"`
+	Addr  string            `protobuf:"bytes,1,opt,name=addr" json:"addr,omitempty"`
+	Data  *EVMContractData  `protobuf:"bytes,2,opt,name=data" json:"data,omitempty"`
+	State *EVMContractState `protobuf:"bytes,3,opt,name=state" json:"state,omitempty"`
 }
 
-func (m *EVMContractObject) Reset()         { *m = EVMContractObject{} }
-func (m *EVMContractObject) String() string { return proto.CompactTextString(m) }
-func (*EVMContractObject) ProtoMessage()    {}
-func (*EVMContractObject) Descriptor() ([]byte, []int) {
-	return fileDescriptor_evmcontract_9a26d2e9878c9009, []int{0}
-}
-func (m *EVMContractObject) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_EVMContractObject.Unmarshal(m, b)
-}
-func (m *EVMContractObject) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_EVMContractObject.Marshal(b, m, deterministic)
-}
-func (dst *EVMContractObject) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_EVMContractObject.Merge(dst, src)
-}
-func (m *EVMContractObject) XXX_Size() int {
-	return xxx_messageInfo_EVMContractObject.Size(m)
-}
-func (m *EVMContractObject) XXX_DiscardUnknown() {
-	xxx_messageInfo_EVMContractObject.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_EVMContractObject proto.InternalMessageInfo
+func (m *EVMContractObject) Reset()                    { *m = EVMContractObject{} }
+func (m *EVMContractObject) String() string            { return proto.CompactTextString(m) }
+func (*EVMContractObject) ProtoMessage()               {}
+func (*EVMContractObject) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{0} }
 
 func (m *EVMContractObject) GetAddr() string {
 	if m != nil {
@@ -75,41 +47,19 @@ func (m *EVMContractObject) GetState() *EVMContractState {
 
 // 存放合约固定数据
 type EVMContractData struct {
-	Creator              string   `protobuf:"bytes,1,opt,name=creator" json:"creator,omitempty"`
-	CreateTime           int64    `protobuf:"varint,2,opt,name=createTime" json:"createTime,omitempty"`
-	Name                 string   `protobuf:"bytes,3,opt,name=name" json:"name,omitempty"`
-	Alias                string   `protobuf:"bytes,4,opt,name=alias" json:"alias,omitempty"`
-	Addr                 string   `protobuf:"bytes,5,opt,name=addr" json:"addr,omitempty"`
-	Code                 []byte   `protobuf:"bytes,6,opt,name=code,proto3" json:"code,omitempty"`
-	CodeHash             []byte   `protobuf:"bytes,7,opt,name=codeHash,proto3" json:"codeHash,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Creator    string `protobuf:"bytes,1,opt,name=creator" json:"creator,omitempty"`
+	CreateTime int64  `protobuf:"varint,2,opt,name=createTime" json:"createTime,omitempty"`
+	Name       string `protobuf:"bytes,3,opt,name=name" json:"name,omitempty"`
+	Alias      string `protobuf:"bytes,4,opt,name=alias" json:"alias,omitempty"`
+	Addr       string `protobuf:"bytes,5,opt,name=addr" json:"addr,omitempty"`
+	Code       []byte `protobuf:"bytes,6,opt,name=code,proto3" json:"code,omitempty"`
+	CodeHash   []byte `protobuf:"bytes,7,opt,name=codeHash,proto3" json:"codeHash,omitempty"`
 }
 
-func (m *EVMContractData) Reset()         { *m = EVMContractData{} }
-func (m *EVMContractData) String() string { return proto.CompactTextString(m) }
-func (*EVMContractData) ProtoMessage()    {}
-func (*EVMContractData) Descriptor() ([]byte, []int) {
-	return fileDescriptor_evmcontract_9a26d2e9878c9009, []int{1}
-}
-func (m *EVMContractData) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_EVMContractData.Unmarshal(m, b)
-}
-func (m *EVMContractData) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_EVMContractData.Marshal(b, m, deterministic)
-}
-func (dst *EVMContractData) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_EVMContractData.Merge(dst, src)
-}
-func (m *EVMContractData) XXX_Size() int {
-	return xxx_messageInfo_EVMContractData.Size(m)
-}
-func (m *EVMContractData) XXX_DiscardUnknown() {
-	xxx_messageInfo_EVMContractData.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_EVMContractData proto.InternalMessageInfo
+func (m *EVMContractData) Reset()                    { *m = EVMContractData{} }
+func (m *EVMContractData) String() string            { return proto.CompactTextString(m) }
+func (*EVMContractData) ProtoMessage()               {}
+func (*EVMContractData) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{1} }
 
 func (m *EVMContractData) GetCreator() string {
 	if m != nil {
@@ -162,38 +112,16 @@ func (m *EVMContractData) GetCodeHash() []byte {
 
 // 存放合约变化数据
 type EVMContractState struct {
-	Nonce                uint64            `protobuf:"varint,1,opt,name=nonce" json:"nonce,omitempty"`
-	Suicided             bool              `protobuf:"varint,2,opt,name=suicided" json:"suicided,omitempty"`
-	StorageHash          []byte            `protobuf:"bytes,3,opt,name=storageHash,proto3" json:"storageHash,omitempty"`
-	Storage              map[string][]byte `protobuf:"bytes,4,rep,name=storage" json:"storage,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value,proto3"`
-	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
-	XXX_unrecognized     []byte            `json:"-"`
-	XXX_sizecache        int32             `json:"-"`
+	Nonce       uint64            `protobuf:"varint,1,opt,name=nonce" json:"nonce,omitempty"`
+	Suicided    bool              `protobuf:"varint,2,opt,name=suicided" json:"suicided,omitempty"`
+	StorageHash []byte            `protobuf:"bytes,3,opt,name=storageHash,proto3" json:"storageHash,omitempty"`
+	Storage     map[string][]byte `protobuf:"bytes,4,rep,name=storage" json:"storage,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value,proto3"`
 }
 
-func (m *EVMContractState) Reset()         { *m = EVMContractState{} }
-func (m *EVMContractState) String() string { return proto.CompactTextString(m) }
-func (*EVMContractState) ProtoMessage()    {}
-func (*EVMContractState) Descriptor() ([]byte, []int) {
-	return fileDescriptor_evmcontract_9a26d2e9878c9009, []int{2}
-}
-func (m *EVMContractState) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_EVMContractState.Unmarshal(m, b)
-}
-func (m *EVMContractState) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_EVMContractState.Marshal(b, m, deterministic)
-}
-func (dst *EVMContractState) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_EVMContractState.Merge(dst, src)
-}
-func (m *EVMContractState) XXX_Size() int {
-	return xxx_messageInfo_EVMContractState.Size(m)
-}
-func (m *EVMContractState) XXX_DiscardUnknown() {
-	xxx_messageInfo_EVMContractState.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_EVMContractState proto.InternalMessageInfo
+func (m *EVMContractState) Reset()                    { *m = EVMContractState{} }
+func (m *EVMContractState) String() string            { return proto.CompactTextString(m) }
+func (*EVMContractState) ProtoMessage()               {}
+func (*EVMContractState) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{2} }
 
 func (m *EVMContractState) GetNonce() uint64 {
 	if m != nil {
@@ -236,35 +164,13 @@ type EVMContractAction struct {
 	// 合约别名，方便识别
 	Alias string `protobuf:"bytes,5,opt,name=alias" json:"alias,omitempty"`
 	// 交易备注
-	Note                 string   `protobuf:"bytes,6,opt,name=note" json:"note,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Note string `protobuf:"bytes,6,opt,name=note" json:"note,omitempty"`
 }
 
-func (m *EVMContractAction) Reset()         { *m = EVMContractAction{} }
-func (m *EVMContractAction) String() string { return proto.CompactTextString(m) }
-func (*EVMContractAction) ProtoMessage()    {}
-func (*EVMContractAction) Descriptor() ([]byte, []int) {
-	return fileDescriptor_evmcontract_9a26d2e9878c9009, []int{3}
-}
-func (m *EVMContractAction) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_EVMContractAction.Unmarshal(m, b)
-}
-func (m *EVMContractAction) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_EVMContractAction.Marshal(b, m, deterministic)
-}
-func (dst *EVMContractAction) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_EVMContractAction.Merge(dst, src)
-}
-func (m *EVMContractAction) XXX_Size() int {
-	return xxx_messageInfo_EVMContractAction.Size(m)
-}
-func (m *EVMContractAction) XXX_DiscardUnknown() {
-	xxx_messageInfo_EVMContractAction.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_EVMContractAction proto.InternalMessageInfo
+func (m *EVMContractAction) Reset()                    { *m = EVMContractAction{} }
+func (m *EVMContractAction) String() string            { return proto.CompactTextString(m) }
+func (*EVMContractAction) ProtoMessage()               {}
+func (*EVMContractAction) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{3} }
 
 func (m *EVMContractAction) GetAmount() uint64 {
 	if m != nil {
@@ -315,35 +221,13 @@ type ReceiptEVMContract struct {
 	ContractAddr string `protobuf:"bytes,3,opt,name=contractAddr" json:"contractAddr,omitempty"`
 	UsedGas      uint64 `protobuf:"varint,4,opt,name=usedGas" json:"usedGas,omitempty"`
 	// 创建合约返回的代码
-	Ret                  []byte   `protobuf:"bytes,5,opt,name=ret,proto3" json:"ret,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Ret []byte `protobuf:"bytes,5,opt,name=ret,proto3" json:"ret,omitempty"`
 }
 
-func (m *ReceiptEVMContract) Reset()         { *m = ReceiptEVMContract{} }
-func (m *ReceiptEVMContract) String() string { return proto.CompactTextString(m) }
-func (*ReceiptEVMContract) ProtoMessage()    {}
-func (*ReceiptEVMContract) Descriptor() ([]byte, []int) {
-	return fileDescriptor_evmcontract_9a26d2e9878c9009, []int{4}
-}
-func (m *ReceiptEVMContract) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ReceiptEVMContract.Unmarshal(m, b)
-}
-func (m *ReceiptEVMContract) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ReceiptEVMContract.Marshal(b, m, deterministic)
-}
-func (dst *ReceiptEVMContract) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ReceiptEVMContract.Merge(dst, src)
-}
-func (m *ReceiptEVMContract) XXX_Size() int {
-	return xxx_messageInfo_ReceiptEVMContract.Size(m)
-}
-func (m *ReceiptEVMContract) XXX_DiscardUnknown() {
-	xxx_messageInfo_ReceiptEVMContract.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ReceiptEVMContract proto.InternalMessageInfo
+func (m *ReceiptEVMContract) Reset()                    { *m = ReceiptEVMContract{} }
+func (m *ReceiptEVMContract) String() string            { return proto.CompactTextString(m) }
+func (*ReceiptEVMContract) ProtoMessage()               {}
+func (*ReceiptEVMContract) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{4} }
 
 func (m *ReceiptEVMContract) GetCaller() string {
 	if m != nil {
@@ -382,41 +266,19 @@ func (m *ReceiptEVMContract) GetRet() []byte {
 
 // 存放合约固定数据
 type EVMContractDataCmd struct {
-	Creator              string   `protobuf:"bytes,1,opt,name=creator" json:"creator,omitempty"`
-	CreateTime           string   `protobuf:"bytes,2,opt,name=createTime" json:"createTime,omitempty"`
-	Name                 string   `protobuf:"bytes,3,opt,name=name" json:"name,omitempty"`
-	Alias                string   `protobuf:"bytes,4,opt,name=alias" json:"alias,omitempty"`
-	Addr                 string   `protobuf:"bytes,5,opt,name=addr" json:"addr,omitempty"`
-	Code                 string   `protobuf:"bytes,6,opt,name=code" json:"code,omitempty"`
-	CodeHash             string   `protobuf:"bytes,7,opt,name=codeHash" json:"codeHash,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Creator    string `protobuf:"bytes,1,opt,name=creator" json:"creator,omitempty"`
+	CreateTime string `protobuf:"bytes,2,opt,name=createTime" json:"createTime,omitempty"`
+	Name       string `protobuf:"bytes,3,opt,name=name" json:"name,omitempty"`
+	Alias      string `protobuf:"bytes,4,opt,name=alias" json:"alias,omitempty"`
+	Addr       string `protobuf:"bytes,5,opt,name=addr" json:"addr,omitempty"`
+	Code       string `protobuf:"bytes,6,opt,name=code" json:"code,omitempty"`
+	CodeHash   string `protobuf:"bytes,7,opt,name=codeHash" json:"codeHash,omitempty"`
 }
 
-func (m *EVMContractDataCmd) Reset()         { *m = EVMContractDataCmd{} }
-func (m *EVMContractDataCmd) String() string { return proto.CompactTextString(m) }
-func (*EVMContractDataCmd) ProtoMessage()    {}
-func (*EVMContractDataCmd) Descriptor() ([]byte, []int) {
-	return fileDescriptor_evmcontract_9a26d2e9878c9009, []int{5}
-}
-func (m *EVMContractDataCmd) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_EVMContractDataCmd.Unmarshal(m, b)
-}
-func (m *EVMContractDataCmd) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_EVMContractDataCmd.Marshal(b, m, deterministic)
-}
-func (dst *EVMContractDataCmd) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_EVMContractDataCmd.Merge(dst, src)
-}
-func (m *EVMContractDataCmd) XXX_Size() int {
-	return xxx_messageInfo_EVMContractDataCmd.Size(m)
-}
-func (m *EVMContractDataCmd) XXX_DiscardUnknown() {
-	xxx_messageInfo_EVMContractDataCmd.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_EVMContractDataCmd proto.InternalMessageInfo
+func (m *EVMContractDataCmd) Reset()                    { *m = EVMContractDataCmd{} }
+func (m *EVMContractDataCmd) String() string            { return proto.CompactTextString(m) }
+func (*EVMContractDataCmd) ProtoMessage()               {}
+func (*EVMContractDataCmd) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{5} }
 
 func (m *EVMContractDataCmd) GetCreator() string {
 	if m != nil {
@@ -469,38 +331,16 @@ func (m *EVMContractDataCmd) GetCodeHash() string {
 
 // 存放合约变化数据
 type EVMContractStateCmd struct {
-	Nonce                uint64            `protobuf:"varint,1,opt,name=nonce" json:"nonce,omitempty"`
-	Suicided             bool              `protobuf:"varint,2,opt,name=suicided" json:"suicided,omitempty"`
-	StorageHash          string            `protobuf:"bytes,3,opt,name=storageHash" json:"storageHash,omitempty"`
-	Storage              map[string]string `protobuf:"bytes,4,rep,name=storage" json:"storage,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
-	XXX_unrecognized     []byte            `json:"-"`
-	XXX_sizecache        int32             `json:"-"`
+	Nonce       uint64            `protobuf:"varint,1,opt,name=nonce" json:"nonce,omitempty"`
+	Suicided    bool              `protobuf:"varint,2,opt,name=suicided" json:"suicided,omitempty"`
+	StorageHash string            `protobuf:"bytes,3,opt,name=storageHash" json:"storageHash,omitempty"`
+	Storage     map[string]string `protobuf:"bytes,4,rep,name=storage" json:"storage,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 }
 
-func (m *EVMContractStateCmd) Reset()         { *m = EVMContractStateCmd{} }
-func (m *EVMContractStateCmd) String() string { return proto.CompactTextString(m) }
-func (*EVMContractStateCmd) ProtoMessage()    {}
-func (*EVMContractStateCmd) Descriptor() ([]byte, []int) {
-	return fileDescriptor_evmcontract_9a26d2e9878c9009, []int{6}
-}
-func (m *EVMContractStateCmd) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_EVMContractStateCmd.Unmarshal(m, b)
-}
-func (m *EVMContractStateCmd) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_EVMContractStateCmd.Marshal(b, m, deterministic)
-}
-func (dst *EVMContractStateCmd) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_EVMContractStateCmd.Merge(dst, src)
-}
-func (m *EVMContractStateCmd) XXX_Size() int {
-	return xxx_messageInfo_EVMContractStateCmd.Size(m)
-}
-func (m *EVMContractStateCmd) XXX_DiscardUnknown() {
-	xxx_messageInfo_EVMContractStateCmd.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_EVMContractStateCmd proto.InternalMessageInfo
+func (m *EVMContractStateCmd) Reset()                    { *m = EVMContractStateCmd{} }
+func (m *EVMContractStateCmd) String() string            { return proto.CompactTextString(m) }
+func (*EVMContractStateCmd) ProtoMessage()               {}
+func (*EVMContractStateCmd) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{6} }
 
 func (m *EVMContractStateCmd) GetNonce() uint64 {
 	if m != nil {
@@ -538,35 +378,13 @@ type ReceiptEVMContractCmd struct {
 	ContractAddr string `protobuf:"bytes,3,opt,name=contractAddr" json:"contractAddr,omitempty"`
 	UsedGas      uint64 `protobuf:"varint,4,opt,name=usedGas" json:"usedGas,omitempty"`
 	// 创建合约返回的代码
-	Ret                  string   `protobuf:"bytes,5,opt,name=ret" json:"ret,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Ret string `protobuf:"bytes,5,opt,name=ret" json:"ret,omitempty"`
 }
 
-func (m *ReceiptEVMContractCmd) Reset()         { *m = ReceiptEVMContractCmd{} }
-func (m *ReceiptEVMContractCmd) String() string { return proto.CompactTextString(m) }
-func (*ReceiptEVMContractCmd) ProtoMessage()    {}
-func (*ReceiptEVMContractCmd) Descriptor() ([]byte, []int) {
-	return fileDescriptor_evmcontract_9a26d2e9878c9009, []int{7}
-}
-func (m *ReceiptEVMContractCmd) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ReceiptEVMContractCmd.Unmarshal(m, b)
-}
-func (m *ReceiptEVMContractCmd) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ReceiptEVMContractCmd.Marshal(b, m, deterministic)
-}
-func (dst *ReceiptEVMContractCmd) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ReceiptEVMContractCmd.Merge(dst, src)
-}
-func (m *ReceiptEVMContractCmd) XXX_Size() int {
-	return xxx_messageInfo_ReceiptEVMContractCmd.Size(m)
-}
-func (m *ReceiptEVMContractCmd) XXX_DiscardUnknown() {
-	xxx_messageInfo_ReceiptEVMContractCmd.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ReceiptEVMContractCmd proto.InternalMessageInfo
+func (m *ReceiptEVMContractCmd) Reset()                    { *m = ReceiptEVMContractCmd{} }
+func (m *ReceiptEVMContractCmd) String() string            { return proto.CompactTextString(m) }
+func (*ReceiptEVMContractCmd) ProtoMessage()               {}
+func (*ReceiptEVMContractCmd) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{7} }
 
 func (m *ReceiptEVMContractCmd) GetCaller() string {
 	if m != nil {
@@ -604,35 +422,13 @@ func (m *ReceiptEVMContractCmd) GetRet() string {
 }
 
 type CheckEVMAddrReq struct {
-	Addr                 string   `protobuf:"bytes,1,opt,name=addr" json:"addr,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Addr string `protobuf:"bytes,1,opt,name=addr" json:"addr,omitempty"`
 }
 
-func (m *CheckEVMAddrReq) Reset()         { *m = CheckEVMAddrReq{} }
-func (m *CheckEVMAddrReq) String() string { return proto.CompactTextString(m) }
-func (*CheckEVMAddrReq) ProtoMessage()    {}
-func (*CheckEVMAddrReq) Descriptor() ([]byte, []int) {
-	return fileDescriptor_evmcontract_9a26d2e9878c9009, []int{8}
-}
-func (m *CheckEVMAddrReq) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_CheckEVMAddrReq.Unmarshal(m, b)
-}
-func (m *CheckEVMAddrReq) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_CheckEVMAddrReq.Marshal(b, m, deterministic)
-}
-func (dst *CheckEVMAddrReq) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CheckEVMAddrReq.Merge(dst, src)
-}
-func (m *CheckEVMAddrReq) XXX_Size() int {
-	return xxx_messageInfo_CheckEVMAddrReq.Size(m)
-}
-func (m *CheckEVMAddrReq) XXX_DiscardUnknown() {
-	xxx_messageInfo_CheckEVMAddrReq.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_CheckEVMAddrReq proto.InternalMessageInfo
+func (m *CheckEVMAddrReq) Reset()                    { *m = CheckEVMAddrReq{} }
+func (m *CheckEVMAddrReq) String() string            { return proto.CompactTextString(m) }
+func (*CheckEVMAddrReq) ProtoMessage()               {}
+func (*CheckEVMAddrReq) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{8} }
 
 func (m *CheckEVMAddrReq) GetAddr() string {
 	if m != nil {
@@ -642,39 +438,17 @@ func (m *CheckEVMAddrReq) GetAddr() string {
 }
 
 type CheckEVMAddrResp struct {
-	Contract             bool     `protobuf:"varint,1,opt,name=contract" json:"contract,omitempty"`
-	CreateTime           string   `protobuf:"bytes,2,opt,name=createTime" json:"createTime,omitempty"`
-	ContractAddr         string   `protobuf:"bytes,3,opt,name=contractAddr" json:"contractAddr,omitempty"`
-	ContractName         string   `protobuf:"bytes,4,opt,name=contractName" json:"contractName,omitempty"`
-	AliasName            string   `protobuf:"bytes,5,opt,name=aliasName" json:"aliasName,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Contract     bool   `protobuf:"varint,1,opt,name=contract" json:"contract,omitempty"`
+	CreateTime   string `protobuf:"bytes,2,opt,name=createTime" json:"createTime,omitempty"`
+	ContractAddr string `protobuf:"bytes,3,opt,name=contractAddr" json:"contractAddr,omitempty"`
+	ContractName string `protobuf:"bytes,4,opt,name=contractName" json:"contractName,omitempty"`
+	AliasName    string `protobuf:"bytes,5,opt,name=aliasName" json:"aliasName,omitempty"`
 }
 
-func (m *CheckEVMAddrResp) Reset()         { *m = CheckEVMAddrResp{} }
-func (m *CheckEVMAddrResp) String() string { return proto.CompactTextString(m) }
-func (*CheckEVMAddrResp) ProtoMessage()    {}
-func (*CheckEVMAddrResp) Descriptor() ([]byte, []int) {
-	return fileDescriptor_evmcontract_9a26d2e9878c9009, []int{9}
-}
-func (m *CheckEVMAddrResp) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_CheckEVMAddrResp.Unmarshal(m, b)
-}
-func (m *CheckEVMAddrResp) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_CheckEVMAddrResp.Marshal(b, m, deterministic)
-}
-func (dst *CheckEVMAddrResp) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_CheckEVMAddrResp.Merge(dst, src)
-}
-func (m *CheckEVMAddrResp) XXX_Size() int {
-	return xxx_messageInfo_CheckEVMAddrResp.Size(m)
-}
-func (m *CheckEVMAddrResp) XXX_DiscardUnknown() {
-	xxx_messageInfo_CheckEVMAddrResp.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_CheckEVMAddrResp proto.InternalMessageInfo
+func (m *CheckEVMAddrResp) Reset()                    { *m = CheckEVMAddrResp{} }
+func (m *CheckEVMAddrResp) String() string            { return proto.CompactTextString(m) }
+func (*CheckEVMAddrResp) ProtoMessage()               {}
+func (*CheckEVMAddrResp) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{9} }
 
 func (m *CheckEVMAddrResp) GetContract() bool {
 	if m != nil {
@@ -712,36 +486,14 @@ func (m *CheckEVMAddrResp) GetAliasName() string {
 }
 
 type EstimateEVMGasReq struct {
-	To                   string   `protobuf:"bytes,1,opt,name=to" json:"to,omitempty"`
-	Code                 []byte   `protobuf:"bytes,2,opt,name=code,proto3" json:"code,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	To   string `protobuf:"bytes,1,opt,name=to" json:"to,omitempty"`
+	Code []byte `protobuf:"bytes,2,opt,name=code,proto3" json:"code,omitempty"`
 }
 
-func (m *EstimateEVMGasReq) Reset()         { *m = EstimateEVMGasReq{} }
-func (m *EstimateEVMGasReq) String() string { return proto.CompactTextString(m) }
-func (*EstimateEVMGasReq) ProtoMessage()    {}
-func (*EstimateEVMGasReq) Descriptor() ([]byte, []int) {
-	return fileDescriptor_evmcontract_9a26d2e9878c9009, []int{10}
-}
-func (m *EstimateEVMGasReq) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_EstimateEVMGasReq.Unmarshal(m, b)
-}
-func (m *EstimateEVMGasReq) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_EstimateEVMGasReq.Marshal(b, m, deterministic)
-}
-func (dst *EstimateEVMGasReq) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_EstimateEVMGasReq.Merge(dst, src)
-}
-func (m *EstimateEVMGasReq) XXX_Size() int {
-	return xxx_messageInfo_EstimateEVMGasReq.Size(m)
-}
-func (m *EstimateEVMGasReq) XXX_DiscardUnknown() {
-	xxx_messageInfo_EstimateEVMGasReq.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_EstimateEVMGasReq proto.InternalMessageInfo
+func (m *EstimateEVMGasReq) Reset()                    { *m = EstimateEVMGasReq{} }
+func (m *EstimateEVMGasReq) String() string            { return proto.CompactTextString(m) }
+func (*EstimateEVMGasReq) ProtoMessage()               {}
+func (*EstimateEVMGasReq) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{10} }
 
 func (m *EstimateEVMGasReq) GetTo() string {
 	if m != nil {
@@ -758,35 +510,13 @@ func (m *EstimateEVMGasReq) GetCode() []byte {
 }
 
 type EstimateEVMGasResp struct {
-	Gas                  uint64   `protobuf:"varint,1,opt,name=gas" json:"gas,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Gas uint64 `protobuf:"varint,1,opt,name=gas" json:"gas,omitempty"`
 }
 
-func (m *EstimateEVMGasResp) Reset()         { *m = EstimateEVMGasResp{} }
-func (m *EstimateEVMGasResp) String() string { return proto.CompactTextString(m) }
-func (*EstimateEVMGasResp) ProtoMessage()    {}
-func (*EstimateEVMGasResp) Descriptor() ([]byte, []int) {
-	return fileDescriptor_evmcontract_9a26d2e9878c9009, []int{11}
-}
-func (m *EstimateEVMGasResp) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_EstimateEVMGasResp.Unmarshal(m, b)
-}
-func (m *EstimateEVMGasResp) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_EstimateEVMGasResp.Marshal(b, m, deterministic)
-}
-func (dst *EstimateEVMGasResp) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_EstimateEVMGasResp.Merge(dst, src)
-}
-func (m *EstimateEVMGasResp) XXX_Size() int {
-	return xxx_messageInfo_EstimateEVMGasResp.Size(m)
-}
-func (m *EstimateEVMGasResp) XXX_DiscardUnknown() {
-	xxx_messageInfo_EstimateEVMGasResp.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_EstimateEVMGasResp proto.InternalMessageInfo
+func (m *EstimateEVMGasResp) Reset()                    { *m = EstimateEVMGasResp{} }
+func (m *EstimateEVMGasResp) String() string            { return proto.CompactTextString(m) }
+func (*EstimateEVMGasResp) ProtoMessage()               {}
+func (*EstimateEVMGasResp) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{11} }
 
 func (m *EstimateEVMGasResp) GetGas() uint64 {
 	if m != nil {
@@ -797,35 +527,13 @@ func (m *EstimateEVMGasResp) GetGas() uint64 {
 
 type EvmDebugReq struct {
 	// 0 query, 1 set, -1 clear
-	Optype               int32    `protobuf:"varint,1,opt,name=optype" json:"optype,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Optype int32 `protobuf:"varint,1,opt,name=optype" json:"optype,omitempty"`
 }
 
-func (m *EvmDebugReq) Reset()         { *m = EvmDebugReq{} }
-func (m *EvmDebugReq) String() string { return proto.CompactTextString(m) }
-func (*EvmDebugReq) ProtoMessage()    {}
-func (*EvmDebugReq) Descriptor() ([]byte, []int) {
-	return fileDescriptor_evmcontract_9a26d2e9878c9009, []int{12}
-}
-func (m *EvmDebugReq) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_EvmDebugReq.Unmarshal(m, b)
-}
-func (m *EvmDebugReq) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_EvmDebugReq.Marshal(b, m, deterministic)
-}
-func (dst *EvmDebugReq) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_EvmDebugReq.Merge(dst, src)
-}
-func (m *EvmDebugReq) XXX_Size() int {
-	return xxx_messageInfo_EvmDebugReq.Size(m)
-}
-func (m *EvmDebugReq) XXX_DiscardUnknown() {
-	xxx_messageInfo_EvmDebugReq.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_EvmDebugReq proto.InternalMessageInfo
+func (m *EvmDebugReq) Reset()                    { *m = EvmDebugReq{} }
+func (m *EvmDebugReq) String() string            { return proto.CompactTextString(m) }
+func (*EvmDebugReq) ProtoMessage()               {}
+func (*EvmDebugReq) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{12} }
 
 func (m *EvmDebugReq) GetOptype() int32 {
 	if m != nil {
@@ -835,35 +543,13 @@ func (m *EvmDebugReq) GetOptype() int32 {
 }
 
 type EvmDebugResp struct {
-	DebugStatus          string   `protobuf:"bytes,1,opt,name=debugStatus" json:"debugStatus,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	DebugStatus string `protobuf:"bytes,1,opt,name=debugStatus" json:"debugStatus,omitempty"`
 }
 
-func (m *EvmDebugResp) Reset()         { *m = EvmDebugResp{} }
-func (m *EvmDebugResp) String() string { return proto.CompactTextString(m) }
-func (*EvmDebugResp) ProtoMessage()    {}
-func (*EvmDebugResp) Descriptor() ([]byte, []int) {
-	return fileDescriptor_evmcontract_9a26d2e9878c9009, []int{13}
-}
-func (m *EvmDebugResp) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_EvmDebugResp.Unmarshal(m, b)
-}
-func (m *EvmDebugResp) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_EvmDebugResp.Marshal(b, m, deterministic)
-}
-func (dst *EvmDebugResp) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_EvmDebugResp.Merge(dst, src)
-}
-func (m *EvmDebugResp) XXX_Size() int {
-	return xxx_messageInfo_EvmDebugResp.Size(m)
-}
-func (m *EvmDebugResp) XXX_DiscardUnknown() {
-	xxx_messageInfo_EvmDebugResp.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_EvmDebugResp proto.InternalMessageInfo
+func (m *EvmDebugResp) Reset()                    { *m = EvmDebugResp{} }
+func (m *EvmDebugResp) String() string            { return proto.CompactTextString(m) }
+func (*EvmDebugResp) ProtoMessage()               {}
+func (*EvmDebugResp) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{13} }
 
 func (m *EvmDebugResp) GetDebugStatus() string {
 	if m != nil {
@@ -876,12 +562,10 @@ func init() {
 	proto.RegisterType((*EVMContractObject)(nil), "types.EVMContractObject")
 	proto.RegisterType((*EVMContractData)(nil), "types.EVMContractData")
 	proto.RegisterType((*EVMContractState)(nil), "types.EVMContractState")
-	proto.RegisterMapType((map[string][]byte)(nil), "types.EVMContractState.StorageEntry")
 	proto.RegisterType((*EVMContractAction)(nil), "types.EVMContractAction")
 	proto.RegisterType((*ReceiptEVMContract)(nil), "types.ReceiptEVMContract")
 	proto.RegisterType((*EVMContractDataCmd)(nil), "types.EVMContractDataCmd")
 	proto.RegisterType((*EVMContractStateCmd)(nil), "types.EVMContractStateCmd")
-	proto.RegisterMapType((map[string]string)(nil), "types.EVMContractStateCmd.StorageEntry")
 	proto.RegisterType((*ReceiptEVMContractCmd)(nil), "types.ReceiptEVMContractCmd")
 	proto.RegisterType((*CheckEVMAddrReq)(nil), "types.CheckEVMAddrReq")
 	proto.RegisterType((*CheckEVMAddrResp)(nil), "types.CheckEVMAddrResp")
@@ -891,9 +575,9 @@ func init() {
 	proto.RegisterType((*EvmDebugResp)(nil), "types.EvmDebugResp")
 }
 
-func init() { proto.RegisterFile("evmcontract.proto", fileDescriptor_evmcontract_9a26d2e9878c9009) }
+func init() { proto.RegisterFile("evmcontract.proto", fileDescriptor5) }
 
-var fileDescriptor_evmcontract_9a26d2e9878c9009 = []byte{
+var fileDescriptor5 = []byte{
 	// 683 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xcc, 0x95, 0xd1, 0x6e, 0xd3, 0x3c,
 	0x14, 0xc7, 0xe5, 0x36, 0xed, 0x96, 0xd3, 0x7e, 0xdf, 0x36, 0x03, 0x23, 0x9a, 0x10, 0xaa, 0x22,
