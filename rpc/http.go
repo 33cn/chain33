@@ -1,18 +1,19 @@
 package rpc
 
 import (
+	"bytes"
 	"compress/gzip"
+	"encoding/json"
+	"github.com/rs/cors"
+	pb "gitlab.33.cn/chain33/chain33/types"
+	"google.golang.org/grpc"
 	"io"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"net/rpc"
 	"net/rpc/jsonrpc"
 	"strings"
-
-	"google.golang.org/grpc"
-
-	"github.com/rs/cors"
-	pb "gitlab.33.cn/chain33/chain33/types"
 )
 
 // adapt HTTP connection to ReadWriteCloser
@@ -49,20 +50,35 @@ func (j *JSONRPCServer) Listen() {
 
 	// Insert the middleware
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
-		if !checkWhitlist(strings.Split(r.RemoteAddr, ":")[0]) {
+		if !checkIpWhitelist(strings.Split(r.RemoteAddr, ":")[0]) {
 			w.Write([]byte(`{"errcode":"-1","result":null,"msg":"reject"}`))
 			return
 		}
-
 		if r.URL.Path == "/" {
-			serverCodec := jsonrpc.NewServerCodec(&HTTPConn{in: r.Body, out: w, r: r})
+			data, err := ioutil.ReadAll(r.Body)
+			if err != nil {
+				w.Write([]byte(`{"errcode":"-1","result":null,"msg":"wrong params"}`))
+				return
+			}
+			//Release local request
+			if strings.Split(r.RemoteAddr, ":")[0] != "127.0.0.1" {
+				client, err := parseJsonRpcParams(data)
+				if err != nil {
+					w.Write([]byte(`{"errcode":"-1","result":null,"msg":"wrong params"}`))
+					return
+				}
+				if !checkJrpcFuncWritelist(client.Method) {
+					w.Write([]byte(`{"errcode":"-1","result":null,"msg":"reject"}`))
+					return
+				}
+			}
+			serverCodec := jsonrpc.NewServerCodec(&HTTPConn{in: ioutil.NopCloser(bytes.NewReader(data)), out: w, r: r})
 			w.Header().Set("Content-type", "application/json")
 			if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
 				w.Header().Set("Content-Encoding", "gzip")
 			}
 			w.WriteHeader(200)
-			err := server.ServeRequest(serverCodec)
+			err = server.ServeRequest(serverCodec)
 			if err != nil {
 				log.Debug("Error while serving JSON request: %v", err)
 				return
@@ -84,4 +100,13 @@ func (g *Grpcserver) Listen() {
 	pb.RegisterGrpcserviceServer(s, &g.grpc)
 	s.Serve(listener)
 
+}
+func parseJsonRpcParams(data []byte) (clientRequest, error) {
+	var req clientRequest
+	err := json.Unmarshal(data, &req)
+	if err != nil {
+		return req, err
+	}
+	log.Debug("request method: %v", req.Method)
+	return req, nil
 }

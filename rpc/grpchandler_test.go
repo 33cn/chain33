@@ -56,7 +56,7 @@ func (_m *Addr) String() string {
 
 func init() {
 	addr := "192.168.1.1"
-	whitlist[addr] = true
+	ipWhitelist[addr] = true
 
 	qapi = new(mocks.QueueProtocolAPI)
 	g.cli.QueueProtocolAPI = qapi
