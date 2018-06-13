@@ -249,6 +249,7 @@ It has these top-level messages:
 	TransactionDetail
 	TransactionDetails
 	ReqAddrs
+	ReqDecodeRawTransaction
 	WalletTxDetail
 	WalletTxDetails
 	WalletAccountStore
@@ -283,6 +284,8 @@ It has these top-level messages:
 	ReplySignRawTx
 	ReportErrEvent
 	Int32
+	ReqBindMiner
+	ReplyBindMiner
 */
 package types
 
