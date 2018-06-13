@@ -17,10 +17,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/version"
 	"gitlab.33.cn/chain33/chain33/queue"
-	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
-	"os"
-	"encoding/json"
 )
 
 const (
@@ -816,7 +813,7 @@ func (q *QueueProtocol) BindMiner(param *types.ReqBindMiner) (*types.ReplyBindMi
 	return &types.ReplyBindMiner{TxHex: hex.EncodeToString(txHex)}, nil
 }
 
-func (q *QueueProtocol) DecodeRawTransaction(param *types.ReqDecodeRawTransaction) (*jsonrpc.Transaction, error) {
+func (q *QueueProtocol) DecodeRawTransaction(param *types.ReqDecodeRawTransaction) (*types.Transaction, error) {
 	var tx types.Transaction
 	bytes, err := common.FromHex(param.TxHex)
 	if err != nil {
@@ -826,9 +823,5 @@ func (q *QueueProtocol) DecodeRawTransaction(param *types.ReqDecodeRawTransactio
 	if err != nil {
 		return nil, err
 	}
-	res, err := jsonrpc.DecodeTx(&tx)
-	if err != nil {
-		return nil, err
-	}
-	return res, nil
+	return &tx, nil
 }

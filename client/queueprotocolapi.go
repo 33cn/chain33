@@ -2,7 +2,6 @@ package client
 
 import (
 	"gitlab.33.cn/chain33/chain33/types"
-	"net/rpc/jsonrpc"
 )
 
 // 消息通道交互API接口定义
@@ -113,6 +112,6 @@ type QueueProtocolAPI interface {
 	// --------------- store interfaces end
 
 	// +++++++++++++++ other interfaces begin
-	DecodeRawTransaction(param *types.ReqDecodeRawTransaction) (*jsonrpc.Transaction, error)
+	DecodeRawTransaction(param *types.ReqDecodeRawTransaction) (*types.Transaction, error)
 	// --------------- other interfaces end
 }

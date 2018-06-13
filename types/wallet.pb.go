@@ -12,12 +12,6 @@ var _ = proto.Marshal
 var _ = fmt.Errorf
 var _ = math.Inf
 
-// This is a compile-time assertion to ensure that this generated file
-// is compatible with the proto package it is being compiled against.
-// A compilation error at this line likely means your copy of the
-// proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
-
 // 钱包模块存贮的tx交易详细信息
 // 	 tx : tx交易信息
 // 	 receipt :交易收据信息
@@ -29,43 +23,21 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 // 	 txhash : 交易对应的哈希值
 // 	 actionName  :交易对应的函数调用
 type WalletTxDetail struct {
-	Tx                   *Transaction `protobuf:"bytes,1,opt,name=tx" json:"tx,omitempty"`
-	Receipt              *ReceiptData `protobuf:"bytes,2,opt,name=receipt" json:"receipt,omitempty"`
-	Height               int64        `protobuf:"varint,3,opt,name=height" json:"height,omitempty"`
-	Index                int64        `protobuf:"varint,4,opt,name=index" json:"index,omitempty"`
-	Blocktime            int64        `protobuf:"varint,5,opt,name=blocktime" json:"blocktime,omitempty"`
-	Amount               int64        `protobuf:"varint,6,opt,name=amount" json:"amount,omitempty"`
-	Fromaddr             string       `protobuf:"bytes,7,opt,name=fromaddr" json:"fromaddr,omitempty"`
-	Txhash               []byte       `protobuf:"bytes,8,opt,name=txhash,proto3" json:"txhash,omitempty"`
-	ActionName           string       `protobuf:"bytes,9,opt,name=actionName" json:"actionName,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}     `json:"-"`
-	XXX_unrecognized     []byte       `json:"-"`
-	XXX_sizecache        int32        `json:"-"`
+	Tx         *Transaction `protobuf:"bytes,1,opt,name=tx" json:"tx,omitempty"`
+	Receipt    *ReceiptData `protobuf:"bytes,2,opt,name=receipt" json:"receipt,omitempty"`
+	Height     int64        `protobuf:"varint,3,opt,name=height" json:"height,omitempty"`
+	Index      int64        `protobuf:"varint,4,opt,name=index" json:"index,omitempty"`
+	Blocktime  int64        `protobuf:"varint,5,opt,name=blocktime" json:"blocktime,omitempty"`
+	Amount     int64        `protobuf:"varint,6,opt,name=amount" json:"amount,omitempty"`
+	Fromaddr   string       `protobuf:"bytes,7,opt,name=fromaddr" json:"fromaddr,omitempty"`
+	Txhash     []byte       `protobuf:"bytes,8,opt,name=txhash,proto3" json:"txhash,omitempty"`
+	ActionName string       `protobuf:"bytes,9,opt,name=actionName" json:"actionName,omitempty"`
 }
 
-func (m *WalletTxDetail) Reset()         { *m = WalletTxDetail{} }
-func (m *WalletTxDetail) String() string { return proto.CompactTextString(m) }
-func (*WalletTxDetail) ProtoMessage()    {}
-func (*WalletTxDetail) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_63b4ff3a20688bb5, []int{0}
-}
-func (m *WalletTxDetail) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_WalletTxDetail.Unmarshal(m, b)
-}
-func (m *WalletTxDetail) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_WalletTxDetail.Marshal(b, m, deterministic)
-}
-func (dst *WalletTxDetail) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_WalletTxDetail.Merge(dst, src)
-}
-func (m *WalletTxDetail) XXX_Size() int {
-	return xxx_messageInfo_WalletTxDetail.Size(m)
-}
-func (m *WalletTxDetail) XXX_DiscardUnknown() {
-	xxx_messageInfo_WalletTxDetail.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_WalletTxDetail proto.InternalMessageInfo
+func (m *WalletTxDetail) Reset()                    { *m = WalletTxDetail{} }
+func (m *WalletTxDetail) String() string            { return proto.CompactTextString(m) }
+func (*WalletTxDetail) ProtoMessage()               {}
+func (*WalletTxDetail) Descriptor() ([]byte, []int) { return fileDescriptor13, []int{0} }
 
 func (m *WalletTxDetail) GetTx() *Transaction {
 	if m != nil {
@@ -131,35 +103,13 @@ func (m *WalletTxDetail) GetActionName() string {
 }
 
 type WalletTxDetails struct {
-	TxDetails            []*WalletTxDetail `protobuf:"bytes,1,rep,name=txDetails" json:"txDetails,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
-	XXX_unrecognized     []byte            `json:"-"`
-	XXX_sizecache        int32             `json:"-"`
+	TxDetails []*WalletTxDetail `protobuf:"bytes,1,rep,name=txDetails" json:"txDetails,omitempty"`
 }
 
-func (m *WalletTxDetails) Reset()         { *m = WalletTxDetails{} }
-func (m *WalletTxDetails) String() string { return proto.CompactTextString(m) }
-func (*WalletTxDetails) ProtoMessage()    {}
-func (*WalletTxDetails) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_63b4ff3a20688bb5, []int{1}
-}
-func (m *WalletTxDetails) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_WalletTxDetails.Unmarshal(m, b)
-}
-func (m *WalletTxDetails) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_WalletTxDetails.Marshal(b, m, deterministic)
-}
-func (dst *WalletTxDetails) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_WalletTxDetails.Merge(dst, src)
-}
-func (m *WalletTxDetails) XXX_Size() int {
-	return xxx_messageInfo_WalletTxDetails.Size(m)
-}
-func (m *WalletTxDetails) XXX_DiscardUnknown() {
-	xxx_messageInfo_WalletTxDetails.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_WalletTxDetails proto.InternalMessageInfo
+func (m *WalletTxDetails) Reset()                    { *m = WalletTxDetails{} }
+func (m *WalletTxDetails) String() string            { return proto.CompactTextString(m) }
+func (*WalletTxDetails) ProtoMessage()               {}
+func (*WalletTxDetails) Descriptor() ([]byte, []int) { return fileDescriptor13, []int{1} }
 
 func (m *WalletTxDetails) GetTxDetails() []*WalletTxDetail {
 	if m != nil {
@@ -174,38 +124,16 @@ func (m *WalletTxDetails) GetTxDetails() []*WalletTxDetail {
 // 	 addr :账户地址
 // 	 timeStamp :创建账户时的时标
 type WalletAccountStore struct {
-	Privkey              string   `protobuf:"bytes,1,opt,name=privkey" json:"privkey,omitempty"`
-	Label                string   `protobuf:"bytes,2,opt,name=label" json:"label,omitempty"`
-	Addr                 string   `protobuf:"bytes,3,opt,name=addr" json:"addr,omitempty"`
-	TimeStamp            string   `protobuf:"bytes,4,opt,name=timeStamp" json:"timeStamp,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Privkey   string `protobuf:"bytes,1,opt,name=privkey" json:"privkey,omitempty"`
+	Label     string `protobuf:"bytes,2,opt,name=label" json:"label,omitempty"`
+	Addr      string `protobuf:"bytes,3,opt,name=addr" json:"addr,omitempty"`
+	TimeStamp string `protobuf:"bytes,4,opt,name=timeStamp" json:"timeStamp,omitempty"`
 }
 
-func (m *WalletAccountStore) Reset()         { *m = WalletAccountStore{} }
-func (m *WalletAccountStore) String() string { return proto.CompactTextString(m) }
-func (*WalletAccountStore) ProtoMessage()    {}
-func (*WalletAccountStore) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_63b4ff3a20688bb5, []int{2}
-}
-func (m *WalletAccountStore) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_WalletAccountStore.Unmarshal(m, b)
-}
-func (m *WalletAccountStore) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_WalletAccountStore.Marshal(b, m, deterministic)
-}
-func (dst *WalletAccountStore) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_WalletAccountStore.Merge(dst, src)
-}
-func (m *WalletAccountStore) XXX_Size() int {
-	return xxx_messageInfo_WalletAccountStore.Size(m)
-}
-func (m *WalletAccountStore) XXX_DiscardUnknown() {
-	xxx_messageInfo_WalletAccountStore.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_WalletAccountStore proto.InternalMessageInfo
+func (m *WalletAccountStore) Reset()                    { *m = WalletAccountStore{} }
+func (m *WalletAccountStore) String() string            { return proto.CompactTextString(m) }
+func (*WalletAccountStore) ProtoMessage()               {}
+func (*WalletAccountStore) Descriptor() ([]byte, []int) { return fileDescriptor13, []int{2} }
 
 func (m *WalletAccountStore) GetPrivkey() string {
 	if m != nil {
@@ -239,36 +167,14 @@ func (m *WalletAccountStore) GetTimeStamp() string {
 // 	 pwHash : 对钱包密码和一个随机值组合进行哈希计算
 // 	 randstr :对钱包密码加密的一个随机值
 type WalletPwHash struct {
-	PwHash               []byte   `protobuf:"bytes,1,opt,name=pwHash,proto3" json:"pwHash,omitempty"`
-	Randstr              string   `protobuf:"bytes,2,opt,name=randstr" json:"randstr,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	PwHash  []byte `protobuf:"bytes,1,opt,name=pwHash,proto3" json:"pwHash,omitempty"`
+	Randstr string `protobuf:"bytes,2,opt,name=randstr" json:"randstr,omitempty"`
 }
 
-func (m *WalletPwHash) Reset()         { *m = WalletPwHash{} }
-func (m *WalletPwHash) String() string { return proto.CompactTextString(m) }
-func (*WalletPwHash) ProtoMessage()    {}
-func (*WalletPwHash) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_63b4ff3a20688bb5, []int{3}
-}
-func (m *WalletPwHash) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_WalletPwHash.Unmarshal(m, b)
-}
-func (m *WalletPwHash) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_WalletPwHash.Marshal(b, m, deterministic)
-}
-func (dst *WalletPwHash) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_WalletPwHash.Merge(dst, src)
-}
-func (m *WalletPwHash) XXX_Size() int {
-	return xxx_messageInfo_WalletPwHash.Size(m)
-}
-func (m *WalletPwHash) XXX_DiscardUnknown() {
-	xxx_messageInfo_WalletPwHash.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_WalletPwHash proto.InternalMessageInfo
+func (m *WalletPwHash) Reset()                    { *m = WalletPwHash{} }
+func (m *WalletPwHash) String() string            { return proto.CompactTextString(m) }
+func (*WalletPwHash) ProtoMessage()               {}
+func (*WalletPwHash) Descriptor() ([]byte, []int) { return fileDescriptor13, []int{3} }
 
 func (m *WalletPwHash) GetPwHash() []byte {
 	if m != nil {
@@ -290,38 +196,16 @@ func (m *WalletPwHash) GetRandstr() string {
 // 	 isHasSeed : 钱包是否有种子，true已有，false没有
 // 	 isTicketLock :钱包挖矿买票锁状态，true锁定，false解锁，只能用于挖矿转账
 type WalletStatus struct {
-	IsWalletLock         bool     `protobuf:"varint,1,opt,name=isWalletLock" json:"isWalletLock,omitempty"`
-	IsAutoMining         bool     `protobuf:"varint,2,opt,name=isAutoMining" json:"isAutoMining,omitempty"`
-	IsHasSeed            bool     `protobuf:"varint,3,opt,name=isHasSeed" json:"isHasSeed,omitempty"`
-	IsTicketLock         bool     `protobuf:"varint,4,opt,name=isTicketLock" json:"isTicketLock,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	IsWalletLock bool `protobuf:"varint,1,opt,name=isWalletLock" json:"isWalletLock,omitempty"`
+	IsAutoMining bool `protobuf:"varint,2,opt,name=isAutoMining" json:"isAutoMining,omitempty"`
+	IsHasSeed    bool `protobuf:"varint,3,opt,name=isHasSeed" json:"isHasSeed,omitempty"`
+	IsTicketLock bool `protobuf:"varint,4,opt,name=isTicketLock" json:"isTicketLock,omitempty"`
 }
 
-func (m *WalletStatus) Reset()         { *m = WalletStatus{} }
-func (m *WalletStatus) String() string { return proto.CompactTextString(m) }
-func (*WalletStatus) ProtoMessage()    {}
-func (*WalletStatus) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_63b4ff3a20688bb5, []int{4}
-}
-func (m *WalletStatus) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_WalletStatus.Unmarshal(m, b)
-}
-func (m *WalletStatus) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_WalletStatus.Marshal(b, m, deterministic)
-}
-func (dst *WalletStatus) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_WalletStatus.Merge(dst, src)
-}
-func (m *WalletStatus) XXX_Size() int {
-	return xxx_messageInfo_WalletStatus.Size(m)
-}
-func (m *WalletStatus) XXX_DiscardUnknown() {
-	xxx_messageInfo_WalletStatus.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_WalletStatus proto.InternalMessageInfo
+func (m *WalletStatus) Reset()                    { *m = WalletStatus{} }
+func (m *WalletStatus) String() string            { return proto.CompactTextString(m) }
+func (*WalletStatus) ProtoMessage()               {}
+func (*WalletStatus) Descriptor() ([]byte, []int) { return fileDescriptor13, []int{4} }
 
 func (m *WalletStatus) GetIsWalletLock() bool {
 	if m != nil {
@@ -352,35 +236,13 @@ func (m *WalletStatus) GetIsTicketLock() bool {
 }
 
 type WalletAccounts struct {
-	Wallets              []*WalletAccount `protobuf:"bytes,1,rep,name=wallets" json:"wallets,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}         `json:"-"`
-	XXX_unrecognized     []byte           `json:"-"`
-	XXX_sizecache        int32            `json:"-"`
+	Wallets []*WalletAccount `protobuf:"bytes,1,rep,name=wallets" json:"wallets,omitempty"`
 }
 
-func (m *WalletAccounts) Reset()         { *m = WalletAccounts{} }
-func (m *WalletAccounts) String() string { return proto.CompactTextString(m) }
-func (*WalletAccounts) ProtoMessage()    {}
-func (*WalletAccounts) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_63b4ff3a20688bb5, []int{5}
-}
-func (m *WalletAccounts) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_WalletAccounts.Unmarshal(m, b)
-}
-func (m *WalletAccounts) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_WalletAccounts.Marshal(b, m, deterministic)
-}
-func (dst *WalletAccounts) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_WalletAccounts.Merge(dst, src)
-}
-func (m *WalletAccounts) XXX_Size() int {
-	return xxx_messageInfo_WalletAccounts.Size(m)
-}
-func (m *WalletAccounts) XXX_DiscardUnknown() {
-	xxx_messageInfo_WalletAccounts.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_WalletAccounts proto.InternalMessageInfo
+func (m *WalletAccounts) Reset()                    { *m = WalletAccounts{} }
+func (m *WalletAccounts) String() string            { return proto.CompactTextString(m) }
+func (*WalletAccounts) ProtoMessage()               {}
+func (*WalletAccounts) Descriptor() ([]byte, []int) { return fileDescriptor13, []int{5} }
 
 func (m *WalletAccounts) GetWallets() []*WalletAccount {
 	if m != nil {
@@ -390,36 +252,14 @@ func (m *WalletAccounts) GetWallets() []*WalletAccount {
 }
 
 type WalletAccount struct {
-	Acc                  *Account `protobuf:"bytes,1,opt,name=acc" json:"acc,omitempty"`
-	Label                string   `protobuf:"bytes,2,opt,name=label" json:"label,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Acc   *Account `protobuf:"bytes,1,opt,name=acc" json:"acc,omitempty"`
+	Label string   `protobuf:"bytes,2,opt,name=label" json:"label,omitempty"`
 }
 
-func (m *WalletAccount) Reset()         { *m = WalletAccount{} }
-func (m *WalletAccount) String() string { return proto.CompactTextString(m) }
-func (*WalletAccount) ProtoMessage()    {}
-func (*WalletAccount) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_63b4ff3a20688bb5, []int{6}
-}
-func (m *WalletAccount) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_WalletAccount.Unmarshal(m, b)
-}
-func (m *WalletAccount) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_WalletAccount.Marshal(b, m, deterministic)
-}
-func (dst *WalletAccount) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_WalletAccount.Merge(dst, src)
-}
-func (m *WalletAccount) XXX_Size() int {
-	return xxx_messageInfo_WalletAccount.Size(m)
-}
-func (m *WalletAccount) XXX_DiscardUnknown() {
-	xxx_messageInfo_WalletAccount.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_WalletAccount proto.InternalMessageInfo
+func (m *WalletAccount) Reset()                    { *m = WalletAccount{} }
+func (m *WalletAccount) String() string            { return proto.CompactTextString(m) }
+func (*WalletAccount) ProtoMessage()               {}
+func (*WalletAccount) Descriptor() ([]byte, []int) { return fileDescriptor13, []int{6} }
 
 func (m *WalletAccount) GetAcc() *Account {
 	if m != nil {
@@ -440,37 +280,15 @@ func (m *WalletAccount) GetLabel() string {
 // 	 timeout :钱包解锁时间，0，一直解锁，非0值，超时之后继续锁定
 // 	 walletOrTicket :解锁整个钱包还是只解锁挖矿买票功能，1只解锁挖矿买票，0解锁整个钱包
 type WalletUnLock struct {
-	Passwd               string   `protobuf:"bytes,1,opt,name=passwd" json:"passwd,omitempty"`
-	Timeout              int64    `protobuf:"varint,2,opt,name=timeout" json:"timeout,omitempty"`
-	WalletOrTicket       bool     `protobuf:"varint,3,opt,name=walletOrTicket" json:"walletOrTicket,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Passwd         string `protobuf:"bytes,1,opt,name=passwd" json:"passwd,omitempty"`
+	Timeout        int64  `protobuf:"varint,2,opt,name=timeout" json:"timeout,omitempty"`
+	WalletOrTicket bool   `protobuf:"varint,3,opt,name=walletOrTicket" json:"walletOrTicket,omitempty"`
 }
 
-func (m *WalletUnLock) Reset()         { *m = WalletUnLock{} }
-func (m *WalletUnLock) String() string { return proto.CompactTextString(m) }
-func (*WalletUnLock) ProtoMessage()    {}
-func (*WalletUnLock) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_63b4ff3a20688bb5, []int{7}
-}
-func (m *WalletUnLock) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_WalletUnLock.Unmarshal(m, b)
-}
-func (m *WalletUnLock) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_WalletUnLock.Marshal(b, m, deterministic)
-}
-func (dst *WalletUnLock) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_WalletUnLock.Merge(dst, src)
-}
-func (m *WalletUnLock) XXX_Size() int {
-	return xxx_messageInfo_WalletUnLock.Size(m)
-}
-func (m *WalletUnLock) XXX_DiscardUnknown() {
-	xxx_messageInfo_WalletUnLock.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_WalletUnLock proto.InternalMessageInfo
+func (m *WalletUnLock) Reset()                    { *m = WalletUnLock{} }
+func (m *WalletUnLock) String() string            { return proto.CompactTextString(m) }
+func (*WalletUnLock) ProtoMessage()               {}
+func (*WalletUnLock) Descriptor() ([]byte, []int) { return fileDescriptor13, []int{7} }
 
 func (m *WalletUnLock) GetPasswd() string {
 	if m != nil {
@@ -494,35 +312,13 @@ func (m *WalletUnLock) GetWalletOrTicket() bool {
 }
 
 type GenSeedLang struct {
-	Lang                 int32    `protobuf:"varint,1,opt,name=lang" json:"lang,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Lang int32 `protobuf:"varint,1,opt,name=lang" json:"lang,omitempty"`
 }
 
-func (m *GenSeedLang) Reset()         { *m = GenSeedLang{} }
-func (m *GenSeedLang) String() string { return proto.CompactTextString(m) }
-func (*GenSeedLang) ProtoMessage()    {}
-func (*GenSeedLang) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_63b4ff3a20688bb5, []int{8}
-}
-func (m *GenSeedLang) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_GenSeedLang.Unmarshal(m, b)
-}
-func (m *GenSeedLang) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_GenSeedLang.Marshal(b, m, deterministic)
-}
-func (dst *GenSeedLang) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_GenSeedLang.Merge(dst, src)
-}
-func (m *GenSeedLang) XXX_Size() int {
-	return xxx_messageInfo_GenSeedLang.Size(m)
-}
-func (m *GenSeedLang) XXX_DiscardUnknown() {
-	xxx_messageInfo_GenSeedLang.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_GenSeedLang proto.InternalMessageInfo
+func (m *GenSeedLang) Reset()                    { *m = GenSeedLang{} }
+func (m *GenSeedLang) String() string            { return proto.CompactTextString(m) }
+func (*GenSeedLang) ProtoMessage()               {}
+func (*GenSeedLang) Descriptor() ([]byte, []int) { return fileDescriptor13, []int{8} }
 
 func (m *GenSeedLang) GetLang() int32 {
 	if m != nil {
@@ -532,35 +328,13 @@ func (m *GenSeedLang) GetLang() int32 {
 }
 
 type GetSeedByPw struct {
-	Passwd               string   `protobuf:"bytes,1,opt,name=passwd" json:"passwd,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Passwd string `protobuf:"bytes,1,opt,name=passwd" json:"passwd,omitempty"`
 }
 
-func (m *GetSeedByPw) Reset()         { *m = GetSeedByPw{} }
-func (m *GetSeedByPw) String() string { return proto.CompactTextString(m) }
-func (*GetSeedByPw) ProtoMessage()    {}
-func (*GetSeedByPw) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_63b4ff3a20688bb5, []int{9}
-}
-func (m *GetSeedByPw) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_GetSeedByPw.Unmarshal(m, b)
-}
-func (m *GetSeedByPw) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_GetSeedByPw.Marshal(b, m, deterministic)
-}
-func (dst *GetSeedByPw) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_GetSeedByPw.Merge(dst, src)
-}
-func (m *GetSeedByPw) XXX_Size() int {
-	return xxx_messageInfo_GetSeedByPw.Size(m)
-}
-func (m *GetSeedByPw) XXX_DiscardUnknown() {
-	xxx_messageInfo_GetSeedByPw.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_GetSeedByPw proto.InternalMessageInfo
+func (m *GetSeedByPw) Reset()                    { *m = GetSeedByPw{} }
+func (m *GetSeedByPw) String() string            { return proto.CompactTextString(m) }
+func (*GetSeedByPw) ProtoMessage()               {}
+func (*GetSeedByPw) Descriptor() ([]byte, []int) { return fileDescriptor13, []int{9} }
 
 func (m *GetSeedByPw) GetPasswd() string {
 	if m != nil {
@@ -573,36 +347,14 @@ func (m *GetSeedByPw) GetPasswd() string {
 // 	 seed : 钱包种子
 // 	 passwd :钱包密码
 type SaveSeedByPw struct {
-	Seed                 string   `protobuf:"bytes,1,opt,name=seed" json:"seed,omitempty"`
-	Passwd               string   `protobuf:"bytes,2,opt,name=passwd" json:"passwd,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Seed   string `protobuf:"bytes,1,opt,name=seed" json:"seed,omitempty"`
+	Passwd string `protobuf:"bytes,2,opt,name=passwd" json:"passwd,omitempty"`
 }
 
-func (m *SaveSeedByPw) Reset()         { *m = SaveSeedByPw{} }
-func (m *SaveSeedByPw) String() string { return proto.CompactTextString(m) }
-func (*SaveSeedByPw) ProtoMessage()    {}
-func (*SaveSeedByPw) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_63b4ff3a20688bb5, []int{10}
-}
-func (m *SaveSeedByPw) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_SaveSeedByPw.Unmarshal(m, b)
-}
-func (m *SaveSeedByPw) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_SaveSeedByPw.Marshal(b, m, deterministic)
-}
-func (dst *SaveSeedByPw) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SaveSeedByPw.Merge(dst, src)
-}
-func (m *SaveSeedByPw) XXX_Size() int {
-	return xxx_messageInfo_SaveSeedByPw.Size(m)
-}
-func (m *SaveSeedByPw) XXX_DiscardUnknown() {
-	xxx_messageInfo_SaveSeedByPw.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_SaveSeedByPw proto.InternalMessageInfo
+func (m *SaveSeedByPw) Reset()                    { *m = SaveSeedByPw{} }
+func (m *SaveSeedByPw) String() string            { return proto.CompactTextString(m) }
+func (*SaveSeedByPw) ProtoMessage()               {}
+func (*SaveSeedByPw) Descriptor() ([]byte, []int) { return fileDescriptor13, []int{10} }
 
 func (m *SaveSeedByPw) GetSeed() string {
 	if m != nil {
@@ -619,35 +371,13 @@ func (m *SaveSeedByPw) GetPasswd() string {
 }
 
 type ReplySeed struct {
-	Seed                 string   `protobuf:"bytes,1,opt,name=seed" json:"seed,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Seed string `protobuf:"bytes,1,opt,name=seed" json:"seed,omitempty"`
 }
 
-func (m *ReplySeed) Reset()         { *m = ReplySeed{} }
-func (m *ReplySeed) String() string { return proto.CompactTextString(m) }
-func (*ReplySeed) ProtoMessage()    {}
-func (*ReplySeed) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_63b4ff3a20688bb5, []int{11}
-}
-func (m *ReplySeed) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ReplySeed.Unmarshal(m, b)
-}
-func (m *ReplySeed) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ReplySeed.Marshal(b, m, deterministic)
-}
-func (dst *ReplySeed) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ReplySeed.Merge(dst, src)
-}
-func (m *ReplySeed) XXX_Size() int {
-	return xxx_messageInfo_ReplySeed.Size(m)
-}
-func (m *ReplySeed) XXX_DiscardUnknown() {
-	xxx_messageInfo_ReplySeed.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ReplySeed proto.InternalMessageInfo
+func (m *ReplySeed) Reset()                    { *m = ReplySeed{} }
+func (m *ReplySeed) String() string            { return proto.CompactTextString(m) }
+func (*ReplySeed) ProtoMessage()               {}
+func (*ReplySeed) Descriptor() ([]byte, []int) { return fileDescriptor13, []int{11} }
 
 func (m *ReplySeed) GetSeed() string {
 	if m != nil {
@@ -657,36 +387,14 @@ func (m *ReplySeed) GetSeed() string {
 }
 
 type ReqWalletSetPasswd struct {
-	OldPass              string   `protobuf:"bytes,1,opt,name=oldPass" json:"oldPass,omitempty"`
-	NewPass              string   `protobuf:"bytes,2,opt,name=newPass" json:"newPass,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	OldPass string `protobuf:"bytes,1,opt,name=oldPass" json:"oldPass,omitempty"`
+	NewPass string `protobuf:"bytes,2,opt,name=newPass" json:"newPass,omitempty"`
 }
 
-func (m *ReqWalletSetPasswd) Reset()         { *m = ReqWalletSetPasswd{} }
-func (m *ReqWalletSetPasswd) String() string { return proto.CompactTextString(m) }
-func (*ReqWalletSetPasswd) ProtoMessage()    {}
-func (*ReqWalletSetPasswd) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_63b4ff3a20688bb5, []int{12}
-}
-func (m *ReqWalletSetPasswd) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ReqWalletSetPasswd.Unmarshal(m, b)
-}
-func (m *ReqWalletSetPasswd) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ReqWalletSetPasswd.Marshal(b, m, deterministic)
-}
-func (dst *ReqWalletSetPasswd) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ReqWalletSetPasswd.Merge(dst, src)
-}
-func (m *ReqWalletSetPasswd) XXX_Size() int {
-	return xxx_messageInfo_ReqWalletSetPasswd.Size(m)
-}
-func (m *ReqWalletSetPasswd) XXX_DiscardUnknown() {
-	xxx_messageInfo_ReqWalletSetPasswd.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ReqWalletSetPasswd proto.InternalMessageInfo
+func (m *ReqWalletSetPasswd) Reset()                    { *m = ReqWalletSetPasswd{} }
+func (m *ReqWalletSetPasswd) String() string            { return proto.CompactTextString(m) }
+func (*ReqWalletSetPasswd) ProtoMessage()               {}
+func (*ReqWalletSetPasswd) Descriptor() ([]byte, []int) { return fileDescriptor13, []int{12} }
 
 func (m *ReqWalletSetPasswd) GetOldPass() string {
 	if m != nil {
@@ -703,35 +411,13 @@ func (m *ReqWalletSetPasswd) GetNewPass() string {
 }
 
 type ReqNewAccount struct {
-	Label                string   `protobuf:"bytes,1,opt,name=label" json:"label,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Label string `protobuf:"bytes,1,opt,name=label" json:"label,omitempty"`
 }
 
-func (m *ReqNewAccount) Reset()         { *m = ReqNewAccount{} }
-func (m *ReqNewAccount) String() string { return proto.CompactTextString(m) }
-func (*ReqNewAccount) ProtoMessage()    {}
-func (*ReqNewAccount) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_63b4ff3a20688bb5, []int{13}
-}
-func (m *ReqNewAccount) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ReqNewAccount.Unmarshal(m, b)
-}
-func (m *ReqNewAccount) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ReqNewAccount.Marshal(b, m, deterministic)
-}
-func (dst *ReqNewAccount) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ReqNewAccount.Merge(dst, src)
-}
-func (m *ReqNewAccount) XXX_Size() int {
-	return xxx_messageInfo_ReqNewAccount.Size(m)
-}
-func (m *ReqNewAccount) XXX_DiscardUnknown() {
-	xxx_messageInfo_ReqNewAccount.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ReqNewAccount proto.InternalMessageInfo
+func (m *ReqNewAccount) Reset()                    { *m = ReqNewAccount{} }
+func (m *ReqNewAccount) String() string            { return proto.CompactTextString(m) }
+func (*ReqNewAccount) ProtoMessage()               {}
+func (*ReqNewAccount) Descriptor() ([]byte, []int) { return fileDescriptor13, []int{13} }
 
 func (m *ReqNewAccount) GetLabel() string {
 	if m != nil {
@@ -741,36 +427,14 @@ func (m *ReqNewAccount) GetLabel() string {
 }
 
 type MinerFlag struct {
-	Flag                 int32    `protobuf:"varint,1,opt,name=flag" json:"flag,omitempty"`
-	Reserve              int64    `protobuf:"varint,2,opt,name=reserve" json:"reserve,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Flag    int32 `protobuf:"varint,1,opt,name=flag" json:"flag,omitempty"`
+	Reserve int64 `protobuf:"varint,2,opt,name=reserve" json:"reserve,omitempty"`
 }
 
-func (m *MinerFlag) Reset()         { *m = MinerFlag{} }
-func (m *MinerFlag) String() string { return proto.CompactTextString(m) }
-func (*MinerFlag) ProtoMessage()    {}
-func (*MinerFlag) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_63b4ff3a20688bb5, []int{14}
-}
-func (m *MinerFlag) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_MinerFlag.Unmarshal(m, b)
-}
-func (m *MinerFlag) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_MinerFlag.Marshal(b, m, deterministic)
-}
-func (dst *MinerFlag) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_MinerFlag.Merge(dst, src)
-}
-func (m *MinerFlag) XXX_Size() int {
-	return xxx_messageInfo_MinerFlag.Size(m)
-}
-func (m *MinerFlag) XXX_DiscardUnknown() {
-	xxx_messageInfo_MinerFlag.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_MinerFlag proto.InternalMessageInfo
+func (m *MinerFlag) Reset()                    { *m = MinerFlag{} }
+func (m *MinerFlag) String() string            { return proto.CompactTextString(m) }
+func (*MinerFlag) ProtoMessage()               {}
+func (*MinerFlag) Descriptor() ([]byte, []int) { return fileDescriptor13, []int{14} }
 
 func (m *MinerFlag) GetFlag() int32 {
 	if m != nil {
@@ -793,37 +457,15 @@ func (m *MinerFlag) GetReserve() int64 {
 // 	 count :获取交易列表的个数。
 // 	 direction :查找方式；0，上一页；1，下一页。
 type ReqWalletTransactionList struct {
-	FromTx               []byte   `protobuf:"bytes,1,opt,name=fromTx,proto3" json:"fromTx,omitempty"`
-	Count                int32    `protobuf:"varint,2,opt,name=count" json:"count,omitempty"`
-	Direction            int32    `protobuf:"varint,3,opt,name=direction" json:"direction,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	FromTx    []byte `protobuf:"bytes,1,opt,name=fromTx,proto3" json:"fromTx,omitempty"`
+	Count     int32  `protobuf:"varint,2,opt,name=count" json:"count,omitempty"`
+	Direction int32  `protobuf:"varint,3,opt,name=direction" json:"direction,omitempty"`
 }
 
-func (m *ReqWalletTransactionList) Reset()         { *m = ReqWalletTransactionList{} }
-func (m *ReqWalletTransactionList) String() string { return proto.CompactTextString(m) }
-func (*ReqWalletTransactionList) ProtoMessage()    {}
-func (*ReqWalletTransactionList) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_63b4ff3a20688bb5, []int{15}
-}
-func (m *ReqWalletTransactionList) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ReqWalletTransactionList.Unmarshal(m, b)
-}
-func (m *ReqWalletTransactionList) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ReqWalletTransactionList.Marshal(b, m, deterministic)
-}
-func (dst *ReqWalletTransactionList) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ReqWalletTransactionList.Merge(dst, src)
-}
-func (m *ReqWalletTransactionList) XXX_Size() int {
-	return xxx_messageInfo_ReqWalletTransactionList.Size(m)
-}
-func (m *ReqWalletTransactionList) XXX_DiscardUnknown() {
-	xxx_messageInfo_ReqWalletTransactionList.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ReqWalletTransactionList proto.InternalMessageInfo
+func (m *ReqWalletTransactionList) Reset()                    { *m = ReqWalletTransactionList{} }
+func (m *ReqWalletTransactionList) String() string            { return proto.CompactTextString(m) }
+func (*ReqWalletTransactionList) ProtoMessage()               {}
+func (*ReqWalletTransactionList) Descriptor() ([]byte, []int) { return fileDescriptor13, []int{15} }
 
 func (m *ReqWalletTransactionList) GetFromTx() []byte {
 	if m != nil {
@@ -848,36 +490,14 @@ func (m *ReqWalletTransactionList) GetDirection() int32 {
 
 type ReqWalletImportPrivKey struct {
 	// bitcoin 的私钥格式
-	Privkey              string   `protobuf:"bytes,1,opt,name=privkey" json:"privkey,omitempty"`
-	Label                string   `protobuf:"bytes,2,opt,name=label" json:"label,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Privkey string `protobuf:"bytes,1,opt,name=privkey" json:"privkey,omitempty"`
+	Label   string `protobuf:"bytes,2,opt,name=label" json:"label,omitempty"`
 }
 
-func (m *ReqWalletImportPrivKey) Reset()         { *m = ReqWalletImportPrivKey{} }
-func (m *ReqWalletImportPrivKey) String() string { return proto.CompactTextString(m) }
-func (*ReqWalletImportPrivKey) ProtoMessage()    {}
-func (*ReqWalletImportPrivKey) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_63b4ff3a20688bb5, []int{16}
-}
-func (m *ReqWalletImportPrivKey) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ReqWalletImportPrivKey.Unmarshal(m, b)
-}
-func (m *ReqWalletImportPrivKey) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ReqWalletImportPrivKey.Marshal(b, m, deterministic)
-}
-func (dst *ReqWalletImportPrivKey) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ReqWalletImportPrivKey.Merge(dst, src)
-}
-func (m *ReqWalletImportPrivKey) XXX_Size() int {
-	return xxx_messageInfo_ReqWalletImportPrivKey.Size(m)
-}
-func (m *ReqWalletImportPrivKey) XXX_DiscardUnknown() {
-	xxx_messageInfo_ReqWalletImportPrivKey.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ReqWalletImportPrivKey proto.InternalMessageInfo
+func (m *ReqWalletImportPrivKey) Reset()                    { *m = ReqWalletImportPrivKey{} }
+func (m *ReqWalletImportPrivKey) String() string            { return proto.CompactTextString(m) }
+func (*ReqWalletImportPrivKey) ProtoMessage()               {}
+func (*ReqWalletImportPrivKey) Descriptor() ([]byte, []int) { return fileDescriptor13, []int{16} }
 
 func (m *ReqWalletImportPrivKey) GetPrivkey() string {
 	if m != nil {
@@ -899,40 +519,18 @@ func (m *ReqWalletImportPrivKey) GetLabel() string {
 // 	 amount : 转账额度
 // 	 note :转账备注
 type ReqWalletSendToAddress struct {
-	From                 string   `protobuf:"bytes,1,opt,name=from" json:"from,omitempty"`
-	To                   string   `protobuf:"bytes,2,opt,name=to" json:"to,omitempty"`
-	Amount               int64    `protobuf:"varint,3,opt,name=amount" json:"amount,omitempty"`
-	Note                 string   `protobuf:"bytes,4,opt,name=note" json:"note,omitempty"`
-	IsToken              bool     `protobuf:"varint,5,opt,name=isToken" json:"isToken,omitempty"`
-	TokenSymbol          string   `protobuf:"bytes,6,opt,name=tokenSymbol" json:"tokenSymbol,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	From        string `protobuf:"bytes,1,opt,name=from" json:"from,omitempty"`
+	To          string `protobuf:"bytes,2,opt,name=to" json:"to,omitempty"`
+	Amount      int64  `protobuf:"varint,3,opt,name=amount" json:"amount,omitempty"`
+	Note        string `protobuf:"bytes,4,opt,name=note" json:"note,omitempty"`
+	IsToken     bool   `protobuf:"varint,5,opt,name=isToken" json:"isToken,omitempty"`
+	TokenSymbol string `protobuf:"bytes,6,opt,name=tokenSymbol" json:"tokenSymbol,omitempty"`
 }
 
-func (m *ReqWalletSendToAddress) Reset()         { *m = ReqWalletSendToAddress{} }
-func (m *ReqWalletSendToAddress) String() string { return proto.CompactTextString(m) }
-func (*ReqWalletSendToAddress) ProtoMessage()    {}
-func (*ReqWalletSendToAddress) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_63b4ff3a20688bb5, []int{17}
-}
-func (m *ReqWalletSendToAddress) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ReqWalletSendToAddress.Unmarshal(m, b)
-}
-func (m *ReqWalletSendToAddress) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ReqWalletSendToAddress.Marshal(b, m, deterministic)
-}
-func (dst *ReqWalletSendToAddress) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ReqWalletSendToAddress.Merge(dst, src)
-}
-func (m *ReqWalletSendToAddress) XXX_Size() int {
-	return xxx_messageInfo_ReqWalletSendToAddress.Size(m)
-}
-func (m *ReqWalletSendToAddress) XXX_DiscardUnknown() {
-	xxx_messageInfo_ReqWalletSendToAddress.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ReqWalletSendToAddress proto.InternalMessageInfo
+func (m *ReqWalletSendToAddress) Reset()                    { *m = ReqWalletSendToAddress{} }
+func (m *ReqWalletSendToAddress) String() string            { return proto.CompactTextString(m) }
+func (*ReqWalletSendToAddress) ProtoMessage()               {}
+func (*ReqWalletSendToAddress) Descriptor() ([]byte, []int) { return fileDescriptor13, []int{17} }
 
 func (m *ReqWalletSendToAddress) GetFrom() string {
 	if m != nil {
@@ -977,35 +575,13 @@ func (m *ReqWalletSendToAddress) GetTokenSymbol() string {
 }
 
 type ReqWalletSetFee struct {
-	Amount               int64    `protobuf:"varint,1,opt,name=amount" json:"amount,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Amount int64 `protobuf:"varint,1,opt,name=amount" json:"amount,omitempty"`
 }
 
-func (m *ReqWalletSetFee) Reset()         { *m = ReqWalletSetFee{} }
-func (m *ReqWalletSetFee) String() string { return proto.CompactTextString(m) }
-func (*ReqWalletSetFee) ProtoMessage()    {}
-func (*ReqWalletSetFee) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_63b4ff3a20688bb5, []int{18}
-}
-func (m *ReqWalletSetFee) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ReqWalletSetFee.Unmarshal(m, b)
-}
-func (m *ReqWalletSetFee) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ReqWalletSetFee.Marshal(b, m, deterministic)
-}
-func (dst *ReqWalletSetFee) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ReqWalletSetFee.Merge(dst, src)
-}
-func (m *ReqWalletSetFee) XXX_Size() int {
-	return xxx_messageInfo_ReqWalletSetFee.Size(m)
-}
-func (m *ReqWalletSetFee) XXX_DiscardUnknown() {
-	xxx_messageInfo_ReqWalletSetFee.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ReqWalletSetFee proto.InternalMessageInfo
+func (m *ReqWalletSetFee) Reset()                    { *m = ReqWalletSetFee{} }
+func (m *ReqWalletSetFee) String() string            { return proto.CompactTextString(m) }
+func (*ReqWalletSetFee) ProtoMessage()               {}
+func (*ReqWalletSetFee) Descriptor() ([]byte, []int) { return fileDescriptor13, []int{18} }
 
 func (m *ReqWalletSetFee) GetAmount() int64 {
 	if m != nil {
@@ -1015,36 +591,14 @@ func (m *ReqWalletSetFee) GetAmount() int64 {
 }
 
 type ReqWalletSetLabel struct {
-	Addr                 string   `protobuf:"bytes,1,opt,name=addr" json:"addr,omitempty"`
-	Label                string   `protobuf:"bytes,2,opt,name=label" json:"label,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Addr  string `protobuf:"bytes,1,opt,name=addr" json:"addr,omitempty"`
+	Label string `protobuf:"bytes,2,opt,name=label" json:"label,omitempty"`
 }
 
-func (m *ReqWalletSetLabel) Reset()         { *m = ReqWalletSetLabel{} }
-func (m *ReqWalletSetLabel) String() string { return proto.CompactTextString(m) }
-func (*ReqWalletSetLabel) ProtoMessage()    {}
-func (*ReqWalletSetLabel) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_63b4ff3a20688bb5, []int{19}
-}
-func (m *ReqWalletSetLabel) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ReqWalletSetLabel.Unmarshal(m, b)
-}
-func (m *ReqWalletSetLabel) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ReqWalletSetLabel.Marshal(b, m, deterministic)
-}
-func (dst *ReqWalletSetLabel) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ReqWalletSetLabel.Merge(dst, src)
-}
-func (m *ReqWalletSetLabel) XXX_Size() int {
-	return xxx_messageInfo_ReqWalletSetLabel.Size(m)
-}
-func (m *ReqWalletSetLabel) XXX_DiscardUnknown() {
-	xxx_messageInfo_ReqWalletSetLabel.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ReqWalletSetLabel proto.InternalMessageInfo
+func (m *ReqWalletSetLabel) Reset()                    { *m = ReqWalletSetLabel{} }
+func (m *ReqWalletSetLabel) String() string            { return proto.CompactTextString(m) }
+func (*ReqWalletSetLabel) ProtoMessage()               {}
+func (*ReqWalletSetLabel) Descriptor() ([]byte, []int) { return fileDescriptor13, []int{19} }
 
 func (m *ReqWalletSetLabel) GetAddr() string {
 	if m != nil {
@@ -1061,35 +615,13 @@ func (m *ReqWalletSetLabel) GetLabel() string {
 }
 
 type ReqWalletMergeBalance struct {
-	To                   string   `protobuf:"bytes,1,opt,name=to" json:"to,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	To string `protobuf:"bytes,1,opt,name=to" json:"to,omitempty"`
 }
 
-func (m *ReqWalletMergeBalance) Reset()         { *m = ReqWalletMergeBalance{} }
-func (m *ReqWalletMergeBalance) String() string { return proto.CompactTextString(m) }
-func (*ReqWalletMergeBalance) ProtoMessage()    {}
-func (*ReqWalletMergeBalance) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_63b4ff3a20688bb5, []int{20}
-}
-func (m *ReqWalletMergeBalance) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ReqWalletMergeBalance.Unmarshal(m, b)
-}
-func (m *ReqWalletMergeBalance) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ReqWalletMergeBalance.Marshal(b, m, deterministic)
-}
-func (dst *ReqWalletMergeBalance) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ReqWalletMergeBalance.Merge(dst, src)
-}
-func (m *ReqWalletMergeBalance) XXX_Size() int {
-	return xxx_messageInfo_ReqWalletMergeBalance.Size(m)
-}
-func (m *ReqWalletMergeBalance) XXX_DiscardUnknown() {
-	xxx_messageInfo_ReqWalletMergeBalance.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ReqWalletMergeBalance proto.InternalMessageInfo
+func (m *ReqWalletMergeBalance) Reset()                    { *m = ReqWalletMergeBalance{} }
+func (m *ReqWalletMergeBalance) String() string            { return proto.CompactTextString(m) }
+func (*ReqWalletMergeBalance) ProtoMessage()               {}
+func (*ReqWalletMergeBalance) Descriptor() ([]byte, []int) { return fileDescriptor13, []int{20} }
 
 func (m *ReqWalletMergeBalance) GetTo() string {
 	if m != nil {
@@ -1099,35 +631,13 @@ func (m *ReqWalletMergeBalance) GetTo() string {
 }
 
 type ReqStr struct {
-	ReqStr               string   `protobuf:"bytes,1,opt,name=reqStr" json:"reqStr,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	ReqStr string `protobuf:"bytes,1,opt,name=reqStr" json:"reqStr,omitempty"`
 }
 
-func (m *ReqStr) Reset()         { *m = ReqStr{} }
-func (m *ReqStr) String() string { return proto.CompactTextString(m) }
-func (*ReqStr) ProtoMessage()    {}
-func (*ReqStr) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_63b4ff3a20688bb5, []int{21}
-}
-func (m *ReqStr) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ReqStr.Unmarshal(m, b)
-}
-func (m *ReqStr) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ReqStr.Marshal(b, m, deterministic)
-}
-func (dst *ReqStr) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ReqStr.Merge(dst, src)
-}
-func (m *ReqStr) XXX_Size() int {
-	return xxx_messageInfo_ReqStr.Size(m)
-}
-func (m *ReqStr) XXX_DiscardUnknown() {
-	xxx_messageInfo_ReqStr.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ReqStr proto.InternalMessageInfo
+func (m *ReqStr) Reset()                    { *m = ReqStr{} }
+func (m *ReqStr) String() string            { return proto.CompactTextString(m) }
+func (*ReqStr) ProtoMessage()               {}
+func (*ReqStr) Descriptor() ([]byte, []int) { return fileDescriptor13, []int{21} }
 
 func (m *ReqStr) GetReqStr() string {
 	if m != nil {
@@ -1137,35 +647,13 @@ func (m *ReqStr) GetReqStr() string {
 }
 
 type ReplyStr struct {
-	Replystr             string   `protobuf:"bytes,1,opt,name=replystr" json:"replystr,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Replystr string `protobuf:"bytes,1,opt,name=replystr" json:"replystr,omitempty"`
 }
 
-func (m *ReplyStr) Reset()         { *m = ReplyStr{} }
-func (m *ReplyStr) String() string { return proto.CompactTextString(m) }
-func (*ReplyStr) ProtoMessage()    {}
-func (*ReplyStr) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_63b4ff3a20688bb5, []int{22}
-}
-func (m *ReplyStr) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ReplyStr.Unmarshal(m, b)
-}
-func (m *ReplyStr) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ReplyStr.Marshal(b, m, deterministic)
-}
-func (dst *ReplyStr) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ReplyStr.Merge(dst, src)
-}
-func (m *ReplyStr) XXX_Size() int {
-	return xxx_messageInfo_ReplyStr.Size(m)
-}
-func (m *ReplyStr) XXX_DiscardUnknown() {
-	xxx_messageInfo_ReplyStr.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ReplyStr proto.InternalMessageInfo
+func (m *ReplyStr) Reset()                    { *m = ReplyStr{} }
+func (m *ReplyStr) String() string            { return proto.CompactTextString(m) }
+func (*ReplyStr) ProtoMessage()               {}
+func (*ReplyStr) Descriptor() ([]byte, []int) { return fileDescriptor13, []int{22} }
 
 func (m *ReplyStr) GetReplystr() string {
 	if m != nil {
@@ -1175,41 +663,19 @@ func (m *ReplyStr) GetReplystr() string {
 }
 
 type ReqTokenPreCreate struct {
-	CreatorAddr          string   `protobuf:"bytes,1,opt,name=creator_addr,json=creatorAddr" json:"creator_addr,omitempty"`
-	Name                 string   `protobuf:"bytes,2,opt,name=name" json:"name,omitempty"`
-	Symbol               string   `protobuf:"bytes,3,opt,name=symbol" json:"symbol,omitempty"`
-	Introduction         string   `protobuf:"bytes,4,opt,name=introduction" json:"introduction,omitempty"`
-	OwnerAddr            string   `protobuf:"bytes,5,opt,name=owner_addr,json=ownerAddr" json:"owner_addr,omitempty"`
-	Total                int64    `protobuf:"varint,6,opt,name=total" json:"total,omitempty"`
-	Price                int64    `protobuf:"varint,7,opt,name=price" json:"price,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	CreatorAddr  string `protobuf:"bytes,1,opt,name=creator_addr,json=creatorAddr" json:"creator_addr,omitempty"`
+	Name         string `protobuf:"bytes,2,opt,name=name" json:"name,omitempty"`
+	Symbol       string `protobuf:"bytes,3,opt,name=symbol" json:"symbol,omitempty"`
+	Introduction string `protobuf:"bytes,4,opt,name=introduction" json:"introduction,omitempty"`
+	OwnerAddr    string `protobuf:"bytes,5,opt,name=owner_addr,json=ownerAddr" json:"owner_addr,omitempty"`
+	Total        int64  `protobuf:"varint,6,opt,name=total" json:"total,omitempty"`
+	Price        int64  `protobuf:"varint,7,opt,name=price" json:"price,omitempty"`
 }
 
-func (m *ReqTokenPreCreate) Reset()         { *m = ReqTokenPreCreate{} }
-func (m *ReqTokenPreCreate) String() string { return proto.CompactTextString(m) }
-func (*ReqTokenPreCreate) ProtoMessage()    {}
-func (*ReqTokenPreCreate) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_63b4ff3a20688bb5, []int{23}
-}
-func (m *ReqTokenPreCreate) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ReqTokenPreCreate.Unmarshal(m, b)
-}
-func (m *ReqTokenPreCreate) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ReqTokenPreCreate.Marshal(b, m, deterministic)
-}
-func (dst *ReqTokenPreCreate) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ReqTokenPreCreate.Merge(dst, src)
-}
-func (m *ReqTokenPreCreate) XXX_Size() int {
-	return xxx_messageInfo_ReqTokenPreCreate.Size(m)
-}
-func (m *ReqTokenPreCreate) XXX_DiscardUnknown() {
-	xxx_messageInfo_ReqTokenPreCreate.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ReqTokenPreCreate proto.InternalMessageInfo
+func (m *ReqTokenPreCreate) Reset()                    { *m = ReqTokenPreCreate{} }
+func (m *ReqTokenPreCreate) String() string            { return proto.CompactTextString(m) }
+func (*ReqTokenPreCreate) ProtoMessage()               {}
+func (*ReqTokenPreCreate) Descriptor() ([]byte, []int) { return fileDescriptor13, []int{23} }
 
 func (m *ReqTokenPreCreate) GetCreatorAddr() string {
 	if m != nil {
@@ -1261,37 +727,15 @@ func (m *ReqTokenPreCreate) GetPrice() int64 {
 }
 
 type ReqTokenFinishCreate struct {
-	FinisherAddr         string   `protobuf:"bytes,1,opt,name=finisher_addr,json=finisherAddr" json:"finisher_addr,omitempty"`
-	Symbol               string   `protobuf:"bytes,2,opt,name=symbol" json:"symbol,omitempty"`
-	OwnerAddr            string   `protobuf:"bytes,3,opt,name=owner_addr,json=ownerAddr" json:"owner_addr,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	FinisherAddr string `protobuf:"bytes,1,opt,name=finisher_addr,json=finisherAddr" json:"finisher_addr,omitempty"`
+	Symbol       string `protobuf:"bytes,2,opt,name=symbol" json:"symbol,omitempty"`
+	OwnerAddr    string `protobuf:"bytes,3,opt,name=owner_addr,json=ownerAddr" json:"owner_addr,omitempty"`
 }
 
-func (m *ReqTokenFinishCreate) Reset()         { *m = ReqTokenFinishCreate{} }
-func (m *ReqTokenFinishCreate) String() string { return proto.CompactTextString(m) }
-func (*ReqTokenFinishCreate) ProtoMessage()    {}
-func (*ReqTokenFinishCreate) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_63b4ff3a20688bb5, []int{24}
-}
-func (m *ReqTokenFinishCreate) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ReqTokenFinishCreate.Unmarshal(m, b)
-}
-func (m *ReqTokenFinishCreate) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ReqTokenFinishCreate.Marshal(b, m, deterministic)
-}
-func (dst *ReqTokenFinishCreate) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ReqTokenFinishCreate.Merge(dst, src)
-}
-func (m *ReqTokenFinishCreate) XXX_Size() int {
-	return xxx_messageInfo_ReqTokenFinishCreate.Size(m)
-}
-func (m *ReqTokenFinishCreate) XXX_DiscardUnknown() {
-	xxx_messageInfo_ReqTokenFinishCreate.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ReqTokenFinishCreate proto.InternalMessageInfo
+func (m *ReqTokenFinishCreate) Reset()                    { *m = ReqTokenFinishCreate{} }
+func (m *ReqTokenFinishCreate) String() string            { return proto.CompactTextString(m) }
+func (*ReqTokenFinishCreate) ProtoMessage()               {}
+func (*ReqTokenFinishCreate) Descriptor() ([]byte, []int) { return fileDescriptor13, []int{24} }
 
 func (m *ReqTokenFinishCreate) GetFinisherAddr() string {
 	if m != nil {
@@ -1315,37 +759,15 @@ func (m *ReqTokenFinishCreate) GetOwnerAddr() string {
 }
 
 type ReqTokenRevokeCreate struct {
-	RevokerAddr          string   `protobuf:"bytes,1,opt,name=revoker_addr,json=revokerAddr" json:"revoker_addr,omitempty"`
-	Symbol               string   `protobuf:"bytes,2,opt,name=symbol" json:"symbol,omitempty"`
-	OwnerAddr            string   `protobuf:"bytes,3,opt,name=owner_addr,json=ownerAddr" json:"owner_addr,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	RevokerAddr string `protobuf:"bytes,1,opt,name=revoker_addr,json=revokerAddr" json:"revoker_addr,omitempty"`
+	Symbol      string `protobuf:"bytes,2,opt,name=symbol" json:"symbol,omitempty"`
+	OwnerAddr   string `protobuf:"bytes,3,opt,name=owner_addr,json=ownerAddr" json:"owner_addr,omitempty"`
 }
 
-func (m *ReqTokenRevokeCreate) Reset()         { *m = ReqTokenRevokeCreate{} }
-func (m *ReqTokenRevokeCreate) String() string { return proto.CompactTextString(m) }
-func (*ReqTokenRevokeCreate) ProtoMessage()    {}
-func (*ReqTokenRevokeCreate) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_63b4ff3a20688bb5, []int{25}
-}
-func (m *ReqTokenRevokeCreate) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ReqTokenRevokeCreate.Unmarshal(m, b)
-}
-func (m *ReqTokenRevokeCreate) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ReqTokenRevokeCreate.Marshal(b, m, deterministic)
-}
-func (dst *ReqTokenRevokeCreate) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ReqTokenRevokeCreate.Merge(dst, src)
-}
-func (m *ReqTokenRevokeCreate) XXX_Size() int {
-	return xxx_messageInfo_ReqTokenRevokeCreate.Size(m)
-}
-func (m *ReqTokenRevokeCreate) XXX_DiscardUnknown() {
-	xxx_messageInfo_ReqTokenRevokeCreate.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ReqTokenRevokeCreate proto.InternalMessageInfo
+func (m *ReqTokenRevokeCreate) Reset()                    { *m = ReqTokenRevokeCreate{} }
+func (m *ReqTokenRevokeCreate) String() string            { return proto.CompactTextString(m) }
+func (*ReqTokenRevokeCreate) ProtoMessage()               {}
+func (*ReqTokenRevokeCreate) Descriptor() ([]byte, []int) { return fileDescriptor13, []int{25} }
 
 func (m *ReqTokenRevokeCreate) GetRevokerAddr() string {
 	if m != nil {
@@ -1369,36 +791,14 @@ func (m *ReqTokenRevokeCreate) GetOwnerAddr() string {
 }
 
 type ReqSellToken struct {
-	Sell                 *TradeForSell `protobuf:"bytes,1,opt,name=sell" json:"sell,omitempty"`
-	Owner                string        `protobuf:"bytes,2,opt,name=owner" json:"owner,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}      `json:"-"`
-	XXX_unrecognized     []byte        `json:"-"`
-	XXX_sizecache        int32         `json:"-"`
+	Sell  *TradeForSell `protobuf:"bytes,1,opt,name=sell" json:"sell,omitempty"`
+	Owner string        `protobuf:"bytes,2,opt,name=owner" json:"owner,omitempty"`
 }
 
-func (m *ReqSellToken) Reset()         { *m = ReqSellToken{} }
-func (m *ReqSellToken) String() string { return proto.CompactTextString(m) }
-func (*ReqSellToken) ProtoMessage()    {}
-func (*ReqSellToken) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_63b4ff3a20688bb5, []int{26}
-}
-func (m *ReqSellToken) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ReqSellToken.Unmarshal(m, b)
-}
-func (m *ReqSellToken) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ReqSellToken.Marshal(b, m, deterministic)
-}
-func (dst *ReqSellToken) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ReqSellToken.Merge(dst, src)
-}
-func (m *ReqSellToken) XXX_Size() int {
-	return xxx_messageInfo_ReqSellToken.Size(m)
-}
-func (m *ReqSellToken) XXX_DiscardUnknown() {
-	xxx_messageInfo_ReqSellToken.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ReqSellToken proto.InternalMessageInfo
+func (m *ReqSellToken) Reset()                    { *m = ReqSellToken{} }
+func (m *ReqSellToken) String() string            { return proto.CompactTextString(m) }
+func (*ReqSellToken) ProtoMessage()               {}
+func (*ReqSellToken) Descriptor() ([]byte, []int) { return fileDescriptor13, []int{26} }
 
 func (m *ReqSellToken) GetSell() *TradeForSell {
 	if m != nil {
@@ -1415,36 +815,14 @@ func (m *ReqSellToken) GetOwner() string {
 }
 
 type ReqBuyToken struct {
-	Buy                  *TradeForBuy `protobuf:"bytes,1,opt,name=buy" json:"buy,omitempty"`
-	Buyer                string       `protobuf:"bytes,2,opt,name=buyer" json:"buyer,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}     `json:"-"`
-	XXX_unrecognized     []byte       `json:"-"`
-	XXX_sizecache        int32        `json:"-"`
+	Buy   *TradeForBuy `protobuf:"bytes,1,opt,name=buy" json:"buy,omitempty"`
+	Buyer string       `protobuf:"bytes,2,opt,name=buyer" json:"buyer,omitempty"`
 }
 
-func (m *ReqBuyToken) Reset()         { *m = ReqBuyToken{} }
-func (m *ReqBuyToken) String() string { return proto.CompactTextString(m) }
-func (*ReqBuyToken) ProtoMessage()    {}
-func (*ReqBuyToken) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_63b4ff3a20688bb5, []int{27}
-}
-func (m *ReqBuyToken) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ReqBuyToken.Unmarshal(m, b)
-}
-func (m *ReqBuyToken) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ReqBuyToken.Marshal(b, m, deterministic)
-}
-func (dst *ReqBuyToken) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ReqBuyToken.Merge(dst, src)
-}
-func (m *ReqBuyToken) XXX_Size() int {
-	return xxx_messageInfo_ReqBuyToken.Size(m)
-}
-func (m *ReqBuyToken) XXX_DiscardUnknown() {
-	xxx_messageInfo_ReqBuyToken.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ReqBuyToken proto.InternalMessageInfo
+func (m *ReqBuyToken) Reset()                    { *m = ReqBuyToken{} }
+func (m *ReqBuyToken) String() string            { return proto.CompactTextString(m) }
+func (*ReqBuyToken) ProtoMessage()               {}
+func (*ReqBuyToken) Descriptor() ([]byte, []int) { return fileDescriptor13, []int{27} }
 
 func (m *ReqBuyToken) GetBuy() *TradeForBuy {
 	if m != nil {
@@ -1461,36 +839,14 @@ func (m *ReqBuyToken) GetBuyer() string {
 }
 
 type ReqRevokeSell struct {
-	Revoke               *TradeForRevokeSell `protobuf:"bytes,1,opt,name=revoke" json:"revoke,omitempty"`
-	Owner                string              `protobuf:"bytes,2,opt,name=owner" json:"owner,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}            `json:"-"`
-	XXX_unrecognized     []byte              `json:"-"`
-	XXX_sizecache        int32               `json:"-"`
+	Revoke *TradeForRevokeSell `protobuf:"bytes,1,opt,name=revoke" json:"revoke,omitempty"`
+	Owner  string              `protobuf:"bytes,2,opt,name=owner" json:"owner,omitempty"`
 }
 
-func (m *ReqRevokeSell) Reset()         { *m = ReqRevokeSell{} }
-func (m *ReqRevokeSell) String() string { return proto.CompactTextString(m) }
-func (*ReqRevokeSell) ProtoMessage()    {}
-func (*ReqRevokeSell) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_63b4ff3a20688bb5, []int{28}
-}
-func (m *ReqRevokeSell) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ReqRevokeSell.Unmarshal(m, b)
-}
-func (m *ReqRevokeSell) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ReqRevokeSell.Marshal(b, m, deterministic)
-}
-func (dst *ReqRevokeSell) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ReqRevokeSell.Merge(dst, src)
-}
-func (m *ReqRevokeSell) XXX_Size() int {
-	return xxx_messageInfo_ReqRevokeSell.Size(m)
-}
-func (m *ReqRevokeSell) XXX_DiscardUnknown() {
-	xxx_messageInfo_ReqRevokeSell.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ReqRevokeSell proto.InternalMessageInfo
+func (m *ReqRevokeSell) Reset()                    { *m = ReqRevokeSell{} }
+func (m *ReqRevokeSell) String() string            { return proto.CompactTextString(m) }
+func (*ReqRevokeSell) ProtoMessage()               {}
+func (*ReqRevokeSell) Descriptor() ([]byte, []int) { return fileDescriptor13, []int{28} }
 
 func (m *ReqRevokeSell) GetRevoke() *TradeForRevokeSell {
 	if m != nil {
@@ -1507,38 +863,16 @@ func (m *ReqRevokeSell) GetOwner() string {
 }
 
 type ReqModifyConfig struct {
-	Key                  string   `protobuf:"bytes,1,opt,name=key" json:"key,omitempty"`
-	Op                   string   `protobuf:"bytes,2,opt,name=op" json:"op,omitempty"`
-	Value                string   `protobuf:"bytes,3,opt,name=value" json:"value,omitempty"`
-	Modifier             string   `protobuf:"bytes,4,opt,name=modifier" json:"modifier,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Key      string `protobuf:"bytes,1,opt,name=key" json:"key,omitempty"`
+	Op       string `protobuf:"bytes,2,opt,name=op" json:"op,omitempty"`
+	Value    string `protobuf:"bytes,3,opt,name=value" json:"value,omitempty"`
+	Modifier string `protobuf:"bytes,4,opt,name=modifier" json:"modifier,omitempty"`
 }
 
-func (m *ReqModifyConfig) Reset()         { *m = ReqModifyConfig{} }
-func (m *ReqModifyConfig) String() string { return proto.CompactTextString(m) }
-func (*ReqModifyConfig) ProtoMessage()    {}
-func (*ReqModifyConfig) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_63b4ff3a20688bb5, []int{29}
-}
-func (m *ReqModifyConfig) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ReqModifyConfig.Unmarshal(m, b)
-}
-func (m *ReqModifyConfig) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ReqModifyConfig.Marshal(b, m, deterministic)
-}
-func (dst *ReqModifyConfig) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ReqModifyConfig.Merge(dst, src)
-}
-func (m *ReqModifyConfig) XXX_Size() int {
-	return xxx_messageInfo_ReqModifyConfig.Size(m)
-}
-func (m *ReqModifyConfig) XXX_DiscardUnknown() {
-	xxx_messageInfo_ReqModifyConfig.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ReqModifyConfig proto.InternalMessageInfo
+func (m *ReqModifyConfig) Reset()                    { *m = ReqModifyConfig{} }
+func (m *ReqModifyConfig) String() string            { return proto.CompactTextString(m) }
+func (*ReqModifyConfig) ProtoMessage()               {}
+func (*ReqModifyConfig) Descriptor() ([]byte, []int) { return fileDescriptor13, []int{29} }
 
 func (m *ReqModifyConfig) GetKey() string {
 	if m != nil {
@@ -1569,39 +903,17 @@ func (m *ReqModifyConfig) GetModifier() string {
 }
 
 type ReqSignRawTx struct {
-	Addr                 string   `protobuf:"bytes,1,opt,name=addr" json:"addr,omitempty"`
-	Privkey              string   `protobuf:"bytes,2,opt,name=privkey" json:"privkey,omitempty"`
-	TxHex                string   `protobuf:"bytes,3,opt,name=txHex" json:"txHex,omitempty"`
-	Expire               string   `protobuf:"bytes,4,opt,name=expire" json:"expire,omitempty"`
-	Index                int32    `protobuf:"varint,5,opt,name=index" json:"index,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Addr    string `protobuf:"bytes,1,opt,name=addr" json:"addr,omitempty"`
+	Privkey string `protobuf:"bytes,2,opt,name=privkey" json:"privkey,omitempty"`
+	TxHex   string `protobuf:"bytes,3,opt,name=txHex" json:"txHex,omitempty"`
+	Expire  string `protobuf:"bytes,4,opt,name=expire" json:"expire,omitempty"`
+	Index   int32  `protobuf:"varint,5,opt,name=index" json:"index,omitempty"`
 }
 
-func (m *ReqSignRawTx) Reset()         { *m = ReqSignRawTx{} }
-func (m *ReqSignRawTx) String() string { return proto.CompactTextString(m) }
-func (*ReqSignRawTx) ProtoMessage()    {}
-func (*ReqSignRawTx) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_63b4ff3a20688bb5, []int{30}
-}
-func (m *ReqSignRawTx) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ReqSignRawTx.Unmarshal(m, b)
-}
-func (m *ReqSignRawTx) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ReqSignRawTx.Marshal(b, m, deterministic)
-}
-func (dst *ReqSignRawTx) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ReqSignRawTx.Merge(dst, src)
-}
-func (m *ReqSignRawTx) XXX_Size() int {
-	return xxx_messageInfo_ReqSignRawTx.Size(m)
-}
-func (m *ReqSignRawTx) XXX_DiscardUnknown() {
-	xxx_messageInfo_ReqSignRawTx.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ReqSignRawTx proto.InternalMessageInfo
+func (m *ReqSignRawTx) Reset()                    { *m = ReqSignRawTx{} }
+func (m *ReqSignRawTx) String() string            { return proto.CompactTextString(m) }
+func (*ReqSignRawTx) ProtoMessage()               {}
+func (*ReqSignRawTx) Descriptor() ([]byte, []int) { return fileDescriptor13, []int{30} }
 
 func (m *ReqSignRawTx) GetAddr() string {
 	if m != nil {
@@ -1639,35 +951,13 @@ func (m *ReqSignRawTx) GetIndex() int32 {
 }
 
 type ReplySignRawTx struct {
-	TxHex                string   `protobuf:"bytes,1,opt,name=txHex" json:"txHex,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	TxHex string `protobuf:"bytes,1,opt,name=txHex" json:"txHex,omitempty"`
 }
 
-func (m *ReplySignRawTx) Reset()         { *m = ReplySignRawTx{} }
-func (m *ReplySignRawTx) String() string { return proto.CompactTextString(m) }
-func (*ReplySignRawTx) ProtoMessage()    {}
-func (*ReplySignRawTx) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_63b4ff3a20688bb5, []int{31}
-}
-func (m *ReplySignRawTx) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ReplySignRawTx.Unmarshal(m, b)
-}
-func (m *ReplySignRawTx) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ReplySignRawTx.Marshal(b, m, deterministic)
-}
-func (dst *ReplySignRawTx) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ReplySignRawTx.Merge(dst, src)
-}
-func (m *ReplySignRawTx) XXX_Size() int {
-	return xxx_messageInfo_ReplySignRawTx.Size(m)
-}
-func (m *ReplySignRawTx) XXX_DiscardUnknown() {
-	xxx_messageInfo_ReplySignRawTx.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ReplySignRawTx proto.InternalMessageInfo
+func (m *ReplySignRawTx) Reset()                    { *m = ReplySignRawTx{} }
+func (m *ReplySignRawTx) String() string            { return proto.CompactTextString(m) }
+func (*ReplySignRawTx) ProtoMessage()               {}
+func (*ReplySignRawTx) Descriptor() ([]byte, []int) { return fileDescriptor13, []int{31} }
 
 func (m *ReplySignRawTx) GetTxHex() string {
 	if m != nil {
@@ -1677,37 +967,15 @@ func (m *ReplySignRawTx) GetTxHex() string {
 }
 
 type ReportErrEvent struct {
-	Frommodule           string   `protobuf:"bytes,1,opt,name=frommodule" json:"frommodule,omitempty"`
-	Tomodule             string   `protobuf:"bytes,2,opt,name=tomodule" json:"tomodule,omitempty"`
-	Error                string   `protobuf:"bytes,3,opt,name=error" json:"error,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Frommodule string `protobuf:"bytes,1,opt,name=frommodule" json:"frommodule,omitempty"`
+	Tomodule   string `protobuf:"bytes,2,opt,name=tomodule" json:"tomodule,omitempty"`
+	Error      string `protobuf:"bytes,3,opt,name=error" json:"error,omitempty"`
 }
 
-func (m *ReportErrEvent) Reset()         { *m = ReportErrEvent{} }
-func (m *ReportErrEvent) String() string { return proto.CompactTextString(m) }
-func (*ReportErrEvent) ProtoMessage()    {}
-func (*ReportErrEvent) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_63b4ff3a20688bb5, []int{32}
-}
-func (m *ReportErrEvent) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ReportErrEvent.Unmarshal(m, b)
-}
-func (m *ReportErrEvent) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ReportErrEvent.Marshal(b, m, deterministic)
-}
-func (dst *ReportErrEvent) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ReportErrEvent.Merge(dst, src)
-}
-func (m *ReportErrEvent) XXX_Size() int {
-	return xxx_messageInfo_ReportErrEvent.Size(m)
-}
-func (m *ReportErrEvent) XXX_DiscardUnknown() {
-	xxx_messageInfo_ReportErrEvent.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ReportErrEvent proto.InternalMessageInfo
+func (m *ReportErrEvent) Reset()                    { *m = ReportErrEvent{} }
+func (m *ReportErrEvent) String() string            { return proto.CompactTextString(m) }
+func (*ReportErrEvent) ProtoMessage()               {}
+func (*ReportErrEvent) Descriptor() ([]byte, []int) { return fileDescriptor13, []int{32} }
 
 func (m *ReportErrEvent) GetFrommodule() string {
 	if m != nil {
@@ -1731,35 +999,13 @@ func (m *ReportErrEvent) GetError() string {
 }
 
 type Int32 struct {
-	Data                 int32    `protobuf:"varint,1,opt,name=data" json:"data,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Data int32 `protobuf:"varint,1,opt,name=data" json:"data,omitempty"`
 }
 
-func (m *Int32) Reset()         { *m = Int32{} }
-func (m *Int32) String() string { return proto.CompactTextString(m) }
-func (*Int32) ProtoMessage()    {}
-func (*Int32) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_63b4ff3a20688bb5, []int{33}
-}
-func (m *Int32) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_Int32.Unmarshal(m, b)
-}
-func (m *Int32) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_Int32.Marshal(b, m, deterministic)
-}
-func (dst *Int32) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Int32.Merge(dst, src)
-}
-func (m *Int32) XXX_Size() int {
-	return xxx_messageInfo_Int32.Size(m)
-}
-func (m *Int32) XXX_DiscardUnknown() {
-	xxx_messageInfo_Int32.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_Int32 proto.InternalMessageInfo
+func (m *Int32) Reset()                    { *m = Int32{} }
+func (m *Int32) String() string            { return proto.CompactTextString(m) }
+func (*Int32) ProtoMessage()               {}
+func (*Int32) Descriptor() ([]byte, []int) { return fileDescriptor13, []int{33} }
 
 func (m *Int32) GetData() int32 {
 	if m != nil {
@@ -1769,36 +1015,14 @@ func (m *Int32) GetData() int32 {
 }
 
 type ReqBindMiner struct {
-	BindAddr             string   `protobuf:"bytes,1,opt,name=bindAddr" json:"bindAddr,omitempty"`
-	OriginAddr           string   `protobuf:"bytes,2,opt,name=originAddr" json:"originAddr,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	BindAddr   string `protobuf:"bytes,1,opt,name=bindAddr" json:"bindAddr,omitempty"`
+	OriginAddr string `protobuf:"bytes,2,opt,name=originAddr" json:"originAddr,omitempty"`
 }
 
-func (m *ReqBindMiner) Reset()         { *m = ReqBindMiner{} }
-func (m *ReqBindMiner) String() string { return proto.CompactTextString(m) }
-func (*ReqBindMiner) ProtoMessage()    {}
-func (*ReqBindMiner) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_63b4ff3a20688bb5, []int{34}
-}
-func (m *ReqBindMiner) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ReqBindMiner.Unmarshal(m, b)
-}
-func (m *ReqBindMiner) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ReqBindMiner.Marshal(b, m, deterministic)
-}
-func (dst *ReqBindMiner) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ReqBindMiner.Merge(dst, src)
-}
-func (m *ReqBindMiner) XXX_Size() int {
-	return xxx_messageInfo_ReqBindMiner.Size(m)
-}
-func (m *ReqBindMiner) XXX_DiscardUnknown() {
-	xxx_messageInfo_ReqBindMiner.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ReqBindMiner proto.InternalMessageInfo
+func (m *ReqBindMiner) Reset()                    { *m = ReqBindMiner{} }
+func (m *ReqBindMiner) String() string            { return proto.CompactTextString(m) }
+func (*ReqBindMiner) ProtoMessage()               {}
+func (*ReqBindMiner) Descriptor() ([]byte, []int) { return fileDescriptor13, []int{34} }
 
 func (m *ReqBindMiner) GetBindAddr() string {
 	if m != nil {
@@ -1815,35 +1039,13 @@ func (m *ReqBindMiner) GetOriginAddr() string {
 }
 
 type ReplyBindMiner struct {
-	TxHex                string   `protobuf:"bytes,1,opt,name=txHex" json:"txHex,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	TxHex string `protobuf:"bytes,1,opt,name=txHex" json:"txHex,omitempty"`
 }
 
-func (m *ReplyBindMiner) Reset()         { *m = ReplyBindMiner{} }
-func (m *ReplyBindMiner) String() string { return proto.CompactTextString(m) }
-func (*ReplyBindMiner) ProtoMessage()    {}
-func (*ReplyBindMiner) Descriptor() ([]byte, []int) {
-	return fileDescriptor_wallet_63b4ff3a20688bb5, []int{35}
-}
-func (m *ReplyBindMiner) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ReplyBindMiner.Unmarshal(m, b)
-}
-func (m *ReplyBindMiner) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ReplyBindMiner.Marshal(b, m, deterministic)
-}
-func (dst *ReplyBindMiner) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ReplyBindMiner.Merge(dst, src)
-}
-func (m *ReplyBindMiner) XXX_Size() int {
-	return xxx_messageInfo_ReplyBindMiner.Size(m)
-}
-func (m *ReplyBindMiner) XXX_DiscardUnknown() {
-	xxx_messageInfo_ReplyBindMiner.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ReplyBindMiner proto.InternalMessageInfo
+func (m *ReplyBindMiner) Reset()                    { *m = ReplyBindMiner{} }
+func (m *ReplyBindMiner) String() string            { return proto.CompactTextString(m) }
+func (*ReplyBindMiner) ProtoMessage()               {}
+func (*ReplyBindMiner) Descriptor() ([]byte, []int) { return fileDescriptor13, []int{35} }
 
 func (m *ReplyBindMiner) GetTxHex() string {
 	if m != nil {
@@ -1891,9 +1093,9 @@ func init() {
 	proto.RegisterType((*ReplyBindMiner)(nil), "types.ReplyBindMiner")
 }
 
-func init() { proto.RegisterFile("wallet.proto", fileDescriptor_wallet_63b4ff3a20688bb5) }
+func init() { proto.RegisterFile("wallet.proto", fileDescriptor13) }
 
-var fileDescriptor_wallet_63b4ff3a20688bb5 = []byte{
+var fileDescriptor13 = []byte{
 	// 1317 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xa4, 0x56, 0xdb, 0x6e, 0x1b, 0x37,
 	0x13, 0xc6, 0x4a, 0x96, 0x6d, 0xd1, 0xb2, 0x93, 0x6c, 0x0e, 0xd0, 0xef, 0xff, 0xa4, 0xb0, 0x4d,
