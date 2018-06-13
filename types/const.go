@@ -51,6 +51,7 @@ var (
 	ForkV13ExecKey       int64 = 200000
 	ForkV14TxGroup       int64 = 200000
 	ForkV15ResetTx0      int64 = 200000
+	ForkV16Withdraw      int64 = 200000
 )
 
 var (
@@ -73,6 +74,7 @@ func SetTitle(t string) {
 		ForkV13ExecKey = 1
 		ForkV14TxGroup = 1
 		ForkV15ResetTx0 = 1
+		ForkV16Withdraw = 1
 		return
 	}
 }
@@ -135,7 +137,8 @@ func SetTestNet(isTestNet bool) {
 	ForkV12TransferExec = 408400
 	ForkV13ExecKey = 408400
 	ForkV14TxGroup = 408400
-	ForkV15ResetTx0 = 450000
+	ForkV15ResetTx0 = 453400
+	ForkV16Withdraw = 480000
 }
 
 func IsTestNet() bool {

@@ -10,6 +10,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/address"
 
 	_ "gitlab.33.cn/chain33/chain33/common/crypto/ed25519"
 	_ "gitlab.33.cn/chain33/chain33/common/crypto/secp256k1"
@@ -34,8 +35,8 @@ func IsAllowExecName(name string) bool {
 }
 
 func isAllowExecName(name []byte) bool {
-	// name长度不能超过50
-	if len(name) > 50 {
+	// name长度不能超过系统限制
+	if len(name) > address.MaxExecNameLength {
 		return false
 	}
 	// name中不允许有 "-"

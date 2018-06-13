@@ -11,6 +11,7 @@ import (
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/client"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -131,7 +132,7 @@ func (d *DriverBase) getTxIndex(tx *types.Transaction, receipt *types.ReceiptDat
 	heightstr := fmt.Sprintf("%018d", d.GetHeight()*types.MaxTxsPerBlock+int64(index))
 	txIndexInfo.heightstr = heightstr
 
-	txIndexInfo.from = account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
+	txIndexInfo.from = address.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
 	txIndexInfo.to = tx.To
 	return &txIndexInfo
 }
@@ -162,22 +163,25 @@ func (d *DriverBase) checkAddress(addr string) error {
 	if IsDriverAddress(addr, d.height) {
 		return nil
 	}
-	return account.CheckAddress(addr)
+	return address.CheckAddress(addr)
 }
 
+//调用子类的CheckTx, 也可以不调用，实现自己的CheckTx
 func (d *DriverBase) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
+	//to 必须是一个地址
 	if err := d.checkAddress(tx.To); err != nil {
 		return nil, err
 	}
-	//非coins 或token 模块的 ToAddr 指向合约
-	exec := string(tx.Execer)
-	if exec != "coins" && exec != "token" && ExecAddress(exec) != tx.To {
-		return nil, types.ErrToAddrNotSameToExecAddr
-	}
-	return nil, nil
+	err := d.child.CheckTx(tx, index)
+	return nil, err
 }
 
+//默认情况下，to地址指向合约地址
 func (d *DriverBase) CheckTx(tx *types.Transaction, index int) error {
+	execer := string(tx.Execer)
+	if ExecAddress(execer) != tx.To {
+		return types.ErrToAddrNotSameToExecAddr
+	}
 	return nil
 }
 

@@ -12,6 +12,7 @@ token执行器支持token的创建，
 import (
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -40,6 +41,10 @@ func newToken() drivers.Driver {
 
 func (t *token) GetName() string {
 	return "token"
+}
+
+func (c *token) CheckTx(tx *types.Transaction, index int) error {
+	return nil
 }
 
 func (t *token) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
@@ -243,7 +248,7 @@ func (t *token) GetAccountTokenAssets(req *types.ReqAccountTokenAssets) (types.M
 		}
 		var acc1 *types.Account
 		if req.Execer == "trade" {
-			execaddress := account.ExecAddress(req.Execer)
+			execaddress := address.ExecAddress(req.Execer)
 			acc1 = acc.LoadExecAccount(req.Address, execaddress)
 		} else if req.Execer == "token" {
 			acc1 = acc.LoadAccount(req.Address)
@@ -301,14 +306,17 @@ func (t *token) GetTokens(reqTokens *types.ReqTokens) (types.Message, error) {
 	if reqTokens.QueryAll {
 		//list := dbm.NewListHelper(querydb)
 		keys, err := querydb.List(calcTokenStatusKeyNewPrefix(reqTokens.Status), nil, 0, 0)
-		if err != nil {
+		if err != nil && err != types.ErrNotFound {
 			return nil, err
 		}
 		keys2, err := querydb.List(calcTokenStatusKeyPrefix(reqTokens.Status), nil, 0, 0)
-		if err != nil {
+		if err != nil && err != types.ErrNotFound {
 			return nil, err
 		}
 		keys = append(keys, keys2...)
+		if len(keys) == 0 {
+			return nil, types.ErrNotFound
+		}
 		tokenlog.Debug("token Query GetTokens", "get count", len(keys))
 		if len(keys) != 0 {
 			for _, key := range keys {
@@ -327,14 +335,17 @@ func (t *token) GetTokens(reqTokens *types.ReqTokens) (types.Message, error) {
 		for _, token := range reqTokens.Tokens {
 			//list := dbm.NewListHelper(querydb)
 			keys, err := querydb.List(calcTokenStatusSymbolNewPrefix(reqTokens.Status, token), nil, 0, 0)
-			if err != nil {
+			if err != nil && err != types.ErrNotFound {
 				return nil, err
 			}
 			keys2, err := querydb.List(calcTokenStatusSymbolPrefix(reqTokens.Status, token), nil, 0, 0)
-			if err != nil {
+			if err != nil && err != types.ErrNotFound {
 				return nil, err
 			}
 			keys = append(keys, keys2...)
+			if len(keys) == 0 {
+				return nil, types.ErrNotFound
+			}
 			tokenlog.Debug("token Query GetTokens", "get count", len(keys))
 			if len(keys) != 0 {
 				for _, key := range keys {

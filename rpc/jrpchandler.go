@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/version"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -236,6 +235,7 @@ func (c *Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 		//hb := common.FromHex(v)
 		hb, err := common.FromHex(v)
 		if err != nil {
+			parm.Hashes = append(parm.Hashes, nil)
 			continue
 		}
 		parm.Hashes = append(parm.Hashes, hb)
@@ -264,6 +264,7 @@ func (c *Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 			}
 			recpResult, err = DecodeLog(&recp)
 			if err != nil {
+				txdetails.Txs = append(txdetails.Txs, nil)
 				continue
 			}
 			txProofs := tx.GetProofs()
@@ -272,6 +273,7 @@ func (c *Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 			}
 			tran, err := DecodeTx(tx.GetTx())
 			if err != nil {
+				txdetails.Txs = append(txdetails.Txs, nil)
 				continue
 			}
 			txdetails.Txs = append(txdetails.Txs,
@@ -306,7 +308,7 @@ func (c *Chain33) GetMempool(in *types.ReqNil, result *interface{}) error {
 			if err != nil {
 				amount = 0
 			}
-			from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
+			from := tx.From()
 			tran, err := DecodeTx(tx)
 			if err != nil {
 				continue
@@ -914,12 +916,14 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 
 func decodeUserWrite(payload []byte) *userWrite {
 	var article userWrite
-	if payload[0] == '#' {
-		data := bytes.SplitN(payload[1:], []byte("#"), 2)
-		if len(data) == 2 {
-			article.Topic = string(data[0])
-			article.Content = string(data[1])
-			return &article
+	if len(payload) != 0 {
+		if payload[0] == '#' {
+			data := bytes.SplitN(payload[1:], []byte("#"), 2)
+			if len(data) == 2 {
+				article.Topic = string(data[0])
+				article.Content = string(data[1])
+				return &article
+			}
 		}
 	}
 	article.Topic = ""

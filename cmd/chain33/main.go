@@ -11,6 +11,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -44,9 +45,16 @@ var (
 	cpuNum     = runtime.NumCPU()
 	configPath = flag.String("f", "chain33.toml", "configfile")
 	datadir    = flag.String("datadir", "", "data dir of chain33, include logs and datas")
+	versionCmd = flag.Bool("v", false, "version")
 )
 
 func main() {
+	flag.Parse()
+	if *versionCmd {
+		fmt.Println(version.GetVersion())
+		return
+	}
+
 	d, _ := os.Getwd()
 	log.Info("current dir:", "dir", d)
 	os.Chdir(pwd())
@@ -57,7 +65,6 @@ func main() {
 		panic(err)
 	}
 
-	flag.Parse()
 	//set config
 	cfg := config.InitCfg(*configPath)
 	if *datadir != "" {

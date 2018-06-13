@@ -2,8 +2,9 @@ package mempool
 
 import (
 	"errors"
+	"time"
 
-	"gitlab.33.cn/chain33/chain33/account"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -25,25 +26,24 @@ func (mem *Mempool) checkTx(msg queue.Message) queue.Message {
 		}
 	}
 	// 检查接收地址是否合法
-	if err := account.CheckAddress(tx.To); err != nil {
+	if err := address.CheckAddress(tx.To); err != nil {
 		msg.Data = types.ErrInvalidAddress
-		return msg
-	}
-	// 非coins或token模块的ToAddr指向合约
-	exec := string(tx.Execer)
-	if exec != "coins" && exec != "token" && account.ExecAddress(exec) != tx.To {
-		msg.Data = types.ErrToAddrNotSameToExecAddr
 		return msg
 	}
 	// 检查交易是否为重复交易
 	if mem.addedTxs.Contains(string(tx.Hash())) {
-		msg.Data = types.ErrDupTx
-		return msg
+		addedTime, _ := mem.addedTxs.Get(string(tx.Hash()))
+		if time.Now().Unix()-addedTime.(int64) < mempoolDupResendInterval {
+			msg.Data = types.ErrDupTx
+			return msg
+		} else {
+			mem.addedTxs.Remove(string(tx.Hash()))
+		}
 	}
-	mem.addedTxs.Add(string(tx.Hash()), nil)
+	mem.addedTxs.Add(string(tx.Hash()), time.Now().Unix())
 
 	// 检查交易账户在Mempool中是否存在过多交易
-	from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
+	from := tx.From()
 	if mem.TxNumOfAccount(from) >= maxTxNumPerAccount {
 		msg.Data = types.ErrManyTx
 		return msg
