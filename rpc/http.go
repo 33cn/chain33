@@ -5,11 +5,6 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
-	"github.com/rs/cors"
-	pb "gitlab.33.cn/chain33/chain33/types"
-	"golang.org/x/net/context"
-	"google.golang.org/grpc"
-	pr "google.golang.org/grpc/peer"
 	"io"
 	"io/ioutil"
 	"net"
@@ -17,6 +12,12 @@ import (
 	"net/rpc"
 	"net/rpc/jsonrpc"
 	"strings"
+
+	"github.com/rs/cors"
+	pb "gitlab.33.cn/chain33/chain33/types"
+	"golang.org/x/net/context"
+	"google.golang.org/grpc"
+	pr "google.golang.org/grpc/peer"
 )
 
 // adapt HTTP connection to ReadWriteCloser
