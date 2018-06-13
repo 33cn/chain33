@@ -5,6 +5,8 @@ import (
 	"io"
 	"time"
 
+	"errors"
+
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/types"
 	"golang.org/x/net/context"
@@ -108,8 +110,9 @@ func (c *Client33) AutoReconnect(ctx context.Context) {
 
 func (c *Client33) SendTransaction(ctx context.Context, in *types.Transaction) (*types.Reply, error) {
 	if c.isSyncing {
-
+		return nil, errors.New("node is syncing")
 	}
+	return c.GrpcserviceClient.SendTransaction(ctx, in)
 }
 
 func (c *Client33) Close() error {
