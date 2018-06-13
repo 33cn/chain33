@@ -294,6 +294,10 @@ const (
 	EventErrToFront          = 112
 	EventFatalFailure        = 113
 	EventReplyFatalFailure   = 114
+	EventBindMiner           = 115
+	EventReplyBindMiner      = 116
+	EventDecodeRawTx         = 117
+	EventReplyDecodeRawTx    = 118
 	// Token
 	EventBlockChainQuery = 212
 )
@@ -413,6 +417,10 @@ var eventName = map[int]string{
 	112: "EventErrToFront",
 	113: "EventFatalFailure",
 	114: "EventReplyFatalFailure",
+	115: "EventBindMiner",
+	116: "EventReplyBindMiner",
+	117: "EventDecodeRawTx",
+	118: "EventReplyDecodeRawTx",
 
 	// Token
 	EventBlockChainQuery: "EventBlockChainQuery",
