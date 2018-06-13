@@ -2,20 +2,16 @@ package mempool
 
 import (
 	"errors"
+	"time"
 
-	"gitlab.33.cn/chain33/chain33/account"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
 // Mempool.CheckTxList初步检查并筛选交易消息
-func (mem *Mempool) CheckTx(msg queue.Message) queue.Message {
-	// 判断消息是否含有nil交易
-	if msg.GetData() == nil {
-		msg.Data = types.ErrEmptyTx
-		return msg
-	}
-	tx := msg.GetData().(*types.Transaction)
+func (mem *Mempool) checkTx(msg queue.Message) queue.Message {
+	tx := msg.GetData().(types.TxGroup).Tx()
 	// 过滤掉挖矿交易
 	if "ticket" == string(tx.Execer) {
 		var action types.TicketAction
@@ -29,20 +25,25 @@ func (mem *Mempool) CheckTx(msg queue.Message) queue.Message {
 			return msg
 		}
 	}
+	// 检查接收地址是否合法
+	if err := address.CheckAddress(tx.To); err != nil {
+		msg.Data = types.ErrInvalidAddress
+		return msg
+	}
 	// 检查交易是否为重复交易
 	if mem.addedTxs.Contains(string(tx.Hash())) {
-		msg.Data = types.ErrDupTx
-		return msg
+		addedTime, _ := mem.addedTxs.Get(string(tx.Hash()))
+		if time.Now().Unix()-addedTime.(int64) < mempoolDupResendInterval {
+			msg.Data = types.ErrDupTx
+			return msg
+		} else {
+			mem.addedTxs.Remove(string(tx.Hash()))
+		}
 	}
-	mem.addedTxs.Add(string(tx.Hash()), nil)
-	// 检查交易费是否小于最低值
-	err := tx.Check(mem.minFee)
-	if err != nil {
-		msg.Data = err
-		return msg
-	}
+	mem.addedTxs.Add(string(tx.Hash()), time.Now().Unix())
+
 	// 检查交易账户在Mempool中是否存在过多交易
-	from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
+	from := tx.From()
 	if mem.TxNumOfAccount(from) >= maxTxNumPerAccount {
 		msg.Data = types.ErrManyTx
 		return msg
@@ -56,14 +57,50 @@ func (mem *Mempool) CheckTx(msg queue.Message) queue.Message {
 	return msg
 }
 
+// Mempool.CheckTxList初步检查并筛选交易消息
+func (mem *Mempool) CheckTxs(msg queue.Message) queue.Message {
+	// 判断消息是否含有nil交易
+	if msg.GetData() == nil {
+		msg.Data = types.ErrEmptyTx
+		return msg
+	}
+	txmsg := msg.GetData().(*types.Transaction)
+	//普通的交易
+	tx := types.NewTransactionCache(txmsg)
+	err := tx.Check(mem.minFee)
+	if err != nil {
+		msg.Data = err
+		return msg
+	}
+	//检查txgroup 中的每个交易
+	txs, err := tx.GetTxGroup()
+	if err != nil {
+		msg.Data = err
+		return msg
+	}
+	msg.Data = tx
+	//普通交易
+	if txs == nil {
+		return mem.checkTx(msg)
+	}
+	//txgroup 的交易
+	for i := 0; i < len(txs.Txs); i++ {
+		msgitem := mem.checkTx(queue.Message{Data: txs.Txs[i]})
+		if msgitem.Err() != nil {
+			msg.Data = msgitem.Err()
+			return msg
+		}
+	}
+	return msg
+}
+
 // Mempool.CheckSignList检查交易签名是否合法
 func (mem *Mempool) CheckSignList() {
 	for i := 0; i < processNum; i++ {
 		go func() {
 			for data := range mem.signChan {
-				ok := data.GetData().(*types.Transaction).CheckSign()
-				if ok {
-					// 签名正确，传入balanChan，待检查余额
+				tx, ok := data.GetData().(types.TxGroup)
+				if ok && tx.CheckSign() {
 					mem.balanChan <- data
 				} else {
 					mlog.Error("wrong tx", "err", types.ErrSign)
@@ -119,13 +156,15 @@ func readToChan(ch chan queue.Message, buf []queue.Message, max int) (n int, err
 func (mem *Mempool) checkTxList(msgs []queue.Message) {
 	txlist := &types.ExecTxList{}
 	for i := range msgs {
-		tx := msgs[i].GetData().(*types.Transaction)
-		txlist.Txs = append(txlist.Txs, tx)
+		tx := msgs[i].GetData().(types.TxGroup)
+		txlist.Txs = append(txlist.Txs, tx.Tx())
 	}
 	lastheader := mem.GetHeader()
 	txlist.BlockTime = lastheader.BlockTime
 	txlist.Height = lastheader.Height
 	txlist.StateHash = lastheader.StateHash
+	// 增加这个属性，在执行器中会使用到
+	txlist.Difficulty = uint64(lastheader.Difficulty)
 
 	result, err := mem.checkTxListRemote(txlist)
 	if err != nil {
@@ -139,7 +178,7 @@ func (mem *Mempool) checkTxList(msgs []queue.Message) {
 	for i := 0; i < len(result.Errs); i++ {
 		err := result.Errs[i]
 		if err == "" {
-			err1 := mem.PushTx(msgs[i].GetData().(*types.Transaction))
+			err1 := mem.PushTx(txlist.Txs[i])
 			if err1 == nil {
 				// 推入Mempool成功，传入goodChan，待回复消息
 				mem.goodChan <- msgs[i]

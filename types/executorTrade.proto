@@ -233,3 +233,25 @@ message ReplySellOrders {
 message ReplyBuyOrders {
 	repeated ReplyBuyOrder buyOrders = 1;
 }
+
+message ReplyTradeOrder {
+	string tokenSymbol          = 1;
+    string owner                = 2;
+    int64 amountPerBoardlot    = 3;
+    int64 minBoardlot           = 4;
+    int64 pricePerBoardlot     = 5;
+    int64 totalBoardlot         = 6;
+    int64 tradedBoardlot        = 7;
+    string  buyID               = 8;
+    int32  status              = 9;
+    string  sellID              = 10;
+    string  txHash              = 11;
+    int64 height                = 12;
+    string key                  = 13;
+    int64 blockTime             = 14;
+    bool isSellOrder            = 15;
+}
+
+message ReplyTradeOrders {
+	repeated ReplyTradeOrder orders = 1;
+}

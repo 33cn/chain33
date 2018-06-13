@@ -3,9 +3,11 @@ package token
 import "fmt"
 
 const (
-	tokenCreated       = "mavl-token-"
-	tokenPreCreatedOT  = "mavl-create-token-ot-"
-	tokenPreCreatedSTO = "mavl-create-token-sto-"
+	tokenCreated          = "mavl-token-"
+	tokenPreCreatedOT     = "mavl-create-token-ot-"
+	tokenPreCreatedSTO    = "mavl-create-token-sto-"
+	tokenPreCreatedOTNew  = "mavl-token-create-ot-"
+	tokenPreCreatedSTONew = "mavl-token-create-sto-"
 )
 
 func calcTokenKey(token string) (key []byte) {
@@ -26,4 +28,20 @@ func calcTokenStatusKeyPrefix(status int32) []byte {
 
 func calcTokenStatusSymbolPrefix(status int32, token string) []byte {
 	return []byte(fmt.Sprintf(tokenPreCreatedSTO+"%d-%s-", status, token))
+}
+
+func calcTokenAddrNewKey(token string, owner string) (key []byte) {
+	return []byte(fmt.Sprintf(tokenPreCreatedOTNew+"%s-%s", owner, token))
+}
+
+func calcTokenStatusNewKey(token string, owner string, status int32) []byte {
+	return []byte(fmt.Sprintf(tokenPreCreatedSTONew+"%d-%s-%s", status, token, owner))
+}
+
+func calcTokenStatusKeyNewPrefix(status int32) []byte {
+	return []byte(fmt.Sprintf(tokenPreCreatedSTONew+"%d", status))
+}
+
+func calcTokenStatusSymbolNewPrefix(status int32, token string) []byte {
+	return []byte(fmt.Sprintf(tokenPreCreatedSTONew+"%d-%s-", status, token))
 }

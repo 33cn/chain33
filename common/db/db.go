@@ -14,6 +14,9 @@ type Lister interface {
 type KV interface {
 	Get(key []byte) ([]byte, error)
 	Set(key []byte, value []byte) (err error)
+	Begin()
+	Rollback()
+	Commit()
 }
 
 type KVDB interface {
