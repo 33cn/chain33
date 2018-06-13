@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/rand"
+	"strconv"
 	"time"
 
 	"github.com/inconshreveable/log15"
@@ -800,17 +801,36 @@ func (q *QueueProtocol) BindMiner(param *types.ReqBindMiner) (*types.ReplyBindMi
 	ta.Ty = types.TicketActionBind
 	execer := []byte("ticket")
 	to := address.ExecAddress(string(execer))
-	tx := &types.Transaction{Execer: execer, Payload: types.Encode(ta), To: to}
+	txBind := &types.Transaction{Execer: execer, Payload: types.Encode(ta), To: to}
 	random := rand.New(rand.NewSource(time.Now().UnixNano()))
-	tx.Nonce = random.Int63()
+	txBind.Nonce = random.Int63()
 	var err error
-	tx.Fee, err = tx.GetRealFee(types.MinFee)
+	txBind.Fee, err = txBind.GetRealFee(types.MinFee)
 	if err != nil {
 		return nil, err
 	}
-	tx.Fee += types.MinFee
-	txHex := types.Encode(tx)
-	return &types.ReplyBindMiner{TxHex: hex.EncodeToString(txHex)}, nil
+	txBind.Fee += types.MinFee
+	txBindHex := types.Encode(txBind)
+	cmdBind := "wallet sign -d " + hex.EncodeToString(txBindHex) + " -e 1h -a " + param.OriginAddr
+
+	if param.Amount < 0 {
+		return nil, types.ErrAmount
+	}
+	var txTrans *types.Transaction
+	transfer := &types.CoinsAction{}
+	v := &types.CoinsAction_Transfer{Transfer: &types.CoinsTransfer{Amount: param.Amount, Note: "coins->ticket"}}
+	transfer.Value = v
+	transfer.Ty = types.CoinsActionTransfer
+	txTrans = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), To: to}
+	txTrans.Fee, err = txTrans.GetRealFee(types.MinFee)
+	if err != nil {
+		return nil, err
+	}
+	random = rand.New(rand.NewSource(time.Now().UnixNano()))
+	txTrans.Nonce = random.Int63()
+	txTransHex := types.Encode(txTrans)
+	cmdTrans := "wallet sign -d " + hex.EncodeToString(txTransHex) + " -e 1h -a " + param.OriginAddr
+	return &types.ReplyBindMiner{CmdBind: cmdBind, CmdTrans: cmdTrans}, nil
 }
 
 func (q *QueueProtocol) DecodeRawTransaction(param *types.ReqDecodeRawTransaction) (*types.Transaction, error) {
