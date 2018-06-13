@@ -1470,6 +1470,9 @@ func (c *Chain33) CreateBindMiner(in *types.ReqBindMiner, result *interface{}) e
 	if err != nil {
 		return err
 	}
+	if len(balances) == 0 {
+		return types.ErrInputPara
+	}
 	if balances[0].Balance < (in.Amount+2)*types.Coin {
 		return types.ErrNoBalance
 	}
