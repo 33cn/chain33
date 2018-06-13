@@ -100,6 +100,7 @@ func (r *relay) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 			}
 			kv := r.getOrderKv([]byte(receipt.Base.Id), item.Ty)
 			set.KV = append(set.KV, kv...)
+
 		} else if item.Ty == types.TyLogRelayRcvBTCHead {
 
 			var receipt types.ReceiptRelayRcvBTCHeaders
