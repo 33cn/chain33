@@ -1458,6 +1458,14 @@ func (c *Chain33) CreateBindMiner(in *types.ReqBindMiner, result *interface{}) e
 	if in.Amount%10000 != 0 || in.Amount < 0 {
 		return types.ErrAmount
 	}
+	err := address.CheckAddress(in.BindAddr)
+	if err != nil {
+		return err
+	}
+	err = address.CheckAddress(in.OriginAddr)
+	if err != nil {
+		return err
+	}
 
 	getBalance := &types.ReqBalance{Addresses: []string{in.OriginAddr}, Execer: "coins"}
 	balances, err := c.cli.GetBalance(getBalance)
@@ -1468,58 +1476,24 @@ func (c *Chain33) CreateBindMiner(in *types.ReqBindMiner, result *interface{}) e
 		return types.ErrNoBalance
 	}
 
-	ta := &types.TicketAction{}
-	tBind := &types.TicketBind{
-		MinerAddress:  in.BindAddr,
-		ReturnAddress: in.OriginAddr,
-	}
-	ta.Value = &types.TicketAction_Tbind{Tbind: tBind}
-	ta.Ty = types.TicketActionBind
-	execer := []byte("ticket")
-	to := address.ExecAddress(string(execer))
-	txBind := &types.Transaction{Execer: execer, Payload: types.Encode(ta), To: to}
-	random := rand.New(rand.NewSource(time.Now().UnixNano()))
-	txBind.Nonce = random.Int63()
-	txBind.Fee, err = txBind.GetRealFee(types.MinFee)
+	reply, err := c.cli.BindMiner(in)
 	if err != nil {
 		return err
 	}
-	txBind.Fee += types.MinFee
-	txBindHex := types.Encode(txBind)
-	cmdBind := "wallet sign -d " + hex.EncodeToString(txBindHex) + " -e 1h -a " + in.OriginAddr
 
-	var txTrans *types.Transaction
-	transfer := &types.CoinsAction{}
-	v := &types.CoinsAction_Transfer{Transfer: &types.CoinsTransfer{Amount: in.Amount * types.Coin, Note: "coins->ticket"}}
-	transfer.Value = v
-	transfer.Ty = types.CoinsActionTransfer
-	txTrans = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), To: to}
-	txTrans.Fee, err = txTrans.GetRealFee(types.MinFee)
-	if err != nil {
-		return err
-	}
-	random = rand.New(rand.NewSource(time.Now().UnixNano()))
-	txTrans.Nonce = random.Int63()
-	txTransHex := types.Encode(txTrans)
-	cmdTrans := "wallet sign -d " + hex.EncodeToString(txTransHex) + " -e 1h -a " + in.OriginAddr
-	*result = &types.ReplyBindMiner{CmdBind: cmdBind, CmdTrans: cmdTrans}
+	*result = reply
 	return nil
 }
 
 func (c *Chain33) DecodeRawTransaction(in *types.ReqDecodeRawTransaction, result *interface{}) error {
-	var tx types.Transaction
-	bytes, err := common.FromHex(in.TxHex)
+	reply, err := c.cli.DecodeRawTransaction(in)
 	if err != nil {
 		return err
 	}
-	err = types.Decode(bytes, &tx)
+	res, err := DecodeTx(reply)
 	if err != nil {
 		return err
 	}
-	res, err := DecodeTx(&tx)
-	if err != nil {
-		return err
-	}
-	*result = &res
+	*result = res
 	return nil
 }
