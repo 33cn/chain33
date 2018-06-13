@@ -1465,16 +1465,18 @@ func (c *Chain33) CreateBindMiner(in *types.ReqBindMiner, result *interface{}) e
 		return err
 	}
 
-	getBalance := &types.ReqBalance{Addresses: []string{in.OriginAddr}, Execer: "coins"}
-	balances, err := c.cli.GetBalance(getBalance)
-	if err != nil {
-		return err
-	}
-	if len(balances) == 0 {
-		return types.ErrInputPara
-	}
-	if balances[0].Balance < (in.Amount+2)*types.Coin {
-		return types.ErrNoBalance
+	if in.CheckBalance {
+		getBalance := &types.ReqBalance{Addresses: []string{in.OriginAddr}, Execer: "coins"}
+		balances, err := c.cli.GetBalance(getBalance)
+		if err != nil {
+			return err
+		}
+		if len(balances) == 0 {
+			return types.ErrInputPara
+		}
+		if balances[0].Balance < (in.Amount+2)*types.Coin {
+			return types.ErrNoBalance
+		}
 	}
 
 	reply, err := c.cli.BindMiner(in)
