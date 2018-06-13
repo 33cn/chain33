@@ -4,8 +4,11 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"math/rand"
+	"time"
 
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/version"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -1452,21 +1455,71 @@ func (c *Chain33) QueryTicketInfoList(in *types.LocalDBList, result *interface{}
 }
 
 func (c *Chain33) CreateBindMiner(in *types.ReqBindMiner, result *interface{}) error {
-	reply, err := c.cli.BindMiner(in)
+	if in.Amount%10000 != 0 || in.Amount < 0 {
+		return types.ErrAmount
+	}
+
+	getBalance := &types.ReqBalance{Addresses: []string{in.OriginAddr}, Execer: "coins"}
+	balances, err := c.cli.GetBalance(getBalance)
 	if err != nil {
 		return err
 	}
+	if balances[0].Balance < (in.Amount+2)*types.Coin {
+		return types.ErrNoBalance
+	}
 
-	*result = reply
+	ta := &types.TicketAction{}
+	tBind := &types.TicketBind{
+		MinerAddress:  in.BindAddr,
+		ReturnAddress: in.OriginAddr,
+	}
+	ta.Value = &types.TicketAction_Tbind{Tbind: tBind}
+	ta.Ty = types.TicketActionBind
+	execer := []byte("ticket")
+	to := address.ExecAddress(string(execer))
+	txBind := &types.Transaction{Execer: execer, Payload: types.Encode(ta), To: to}
+	random := rand.New(rand.NewSource(time.Now().UnixNano()))
+	txBind.Nonce = random.Int63()
+	txBind.Fee, err = txBind.GetRealFee(types.MinFee)
+	if err != nil {
+		return err
+	}
+	txBind.Fee += types.MinFee
+	txBindHex := types.Encode(txBind)
+	cmdBind := "wallet sign -d " + hex.EncodeToString(txBindHex) + " -e 1h -a " + in.OriginAddr
+
+	var txTrans *types.Transaction
+	transfer := &types.CoinsAction{}
+	v := &types.CoinsAction_Transfer{Transfer: &types.CoinsTransfer{Amount: in.Amount * types.Coin, Note: "coins->ticket"}}
+	transfer.Value = v
+	transfer.Ty = types.CoinsActionTransfer
+	txTrans = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), To: to}
+	txTrans.Fee, err = txTrans.GetRealFee(types.MinFee)
+	if err != nil {
+		return err
+	}
+	random = rand.New(rand.NewSource(time.Now().UnixNano()))
+	txTrans.Nonce = random.Int63()
+	txTransHex := types.Encode(txTrans)
+	cmdTrans := "wallet sign -d " + hex.EncodeToString(txTransHex) + " -e 1h -a " + in.OriginAddr
+	*result = &types.ReplyBindMiner{CmdBind: cmdBind, CmdTrans: cmdTrans}
 	return nil
 }
 
 func (c *Chain33) DecodeRawTransaction(in *types.ReqDecodeRawTransaction, result *interface{}) error {
-	reply, err := c.cli.DecodeRawTransaction(in)
+	var tx types.Transaction
+	bytes, err := common.FromHex(in.TxHex)
 	if err != nil {
 		return err
 	}
-
-	*result = reply
+	err = types.Decode(bytes, &tx)
+	if err != nil {
+		return err
+	}
+	res, err := DecodeTx(&tx)
+	if err != nil {
+		return err
+	}
+	*result = &res
 	return nil
 }
