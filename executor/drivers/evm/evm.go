@@ -266,7 +266,6 @@ func (evm *EVMExecutor) CheckAddrExists(req *types.CheckEVMAddrReq) (types.Messa
 			ret.ContractAddr = account.Addr
 			ret.ContractName = account.GetExecName()
 			ret.AliasName = account.GetAliasName()
-			ret.CreateTime = account.GetCreateTime()
 		}
 	}
 	return ret, nil
@@ -275,21 +274,23 @@ func (evm *EVMExecutor) CheckAddrExists(req *types.CheckEVMAddrReq) (types.Messa
 // 此方法用来估算合约消耗的Gas，不能修改原有执行器的状态数据
 func (evm *EVMExecutor) EstimateGas(req *types.EstimateEVMGasReq) (types.Message, error) {
 	var (
-		caller   common.Address
-		to       *common.Address
-		isCreate bool
+		caller common.Address
+		to     *common.Address
 	)
 
-	// 估算Gas时直接使用一个虚拟的地址发起调用
-	caller = common.ExecAddress(model.ExecutorName)
-
-	isCreate = true
-	if len(req.To) > 0 {
-		to = common.StringToAddress(req.To)
-		return nil, model.ErrAddrNotExists
+	// 如果未指定调用地址，则直接使用一个虚拟的地址发起调用
+	if len(req.Caller) > 0 {
+		callAddr := common.StringToAddress(req.Caller)
+		if callAddr != nil {
+			caller = *callAddr
+		}
+	} else {
+		caller = common.ExecAddress(model.ExecutorName)
 	}
 
-	msg := common.NewMessage(caller, to, 0, 0, model.MaxGasLimit, 1, req.Code, "estimateGas")
+	isCreate := strings.EqualFold(req.To, EvmAddress)
+
+	msg := common.NewMessage(caller, nil, 0, req.Amount, model.MaxGasLimit, 1, req.Code, "estimateGas")
 	context := evm.NewEVMContext(msg)
 	// 创建EVM运行时对象
 	evm.mStateDB = state.NewMemoryStateDB(evm.DriverBase.GetStateDB(), evm.DriverBase.GetLocalDB(), evm.DriverBase.GetCoinsAccount())
@@ -309,7 +310,8 @@ func (evm *EVMExecutor) EstimateGas(req *types.EstimateEVMGasReq) (types.Message
 		execName = fmt.Sprintf("%s%s", model.EvmPrefix, common.BytesToHash(txHash).Hex())
 		_, _, leftOverGas, vmerr = env.Create(runtime.AccountRef(msg.From()), contractAddr, msg.Data(), context.GasLimit, execName, "estimateGas")
 	} else {
-		_, _, leftOverGas, vmerr = env.Call(runtime.AccountRef(msg.From()), *msg.To(), msg.Data(), context.GasLimit, msg.Value())
+		to = common.StringToAddress(req.To)
+		_, _, leftOverGas, vmerr = env.Call(runtime.AccountRef(msg.From()), *to, msg.Data(), context.GasLimit, msg.Value())
 	}
 
 	result := &types.EstimateEVMGasResp{}
