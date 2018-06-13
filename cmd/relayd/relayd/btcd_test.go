@@ -62,7 +62,7 @@ func TestNewBtcd(t *testing.T) {
 	}
 }
 
-func Test_oneTxMerkle(t *testing.T) {
+func TestOneTxMerkle(t *testing.T) {
 	tx0string := "b86f5ef1da8ddbdb29ec269b535810ee61289eeac7bf2b2523b494551f03897c"
 	tx0hash, err := merkle.NewHashFromStr(tx0string)
 	if err != nil {

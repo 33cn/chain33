@@ -6,12 +6,17 @@ set -e -o pipefail
 # first, you must install jq tool of json
 # sudo apt-get install jq
 # sudo apt-get install shellcheck, in order to static check shell script
-
+# sudo apt-get install parallel
 # ./docker-compose.sh build
 
 PWD=$(cd "$(dirname "$0")" && pwd)
 export PATH="$PWD:$PATH"
 CLI=" docker exec ${1}_chain33_1 /root/chain33-cli"
+NODE3="${1}_chain33_1"
+CLI="docker exec ${NODE3} /root/chain33-cli"
+
+NODE2="${1}_chain32_1"
+CLI2="docker exec ${NODE2} /root/chain33-cli"
 
 sedfix=""
 if [ "$(uname)" == "Darwin" ]; then
@@ -47,8 +52,10 @@ function init() {
     # create and run docker-compose container
     docker-compose up --build -d
 
-    echo "=========== sleep 60s ============="
-    sleep 60
+
+    local SLEEP=60
+    echo "=========== sleep ${SLEEP}s ============="
+    sleep ${SLEEP}
 
     # docker-compose ps
     docker-compose ps
@@ -89,8 +96,8 @@ function init() {
 
     sleep 2
 
-    echo "=========== # import private key transfer ============="
-    result=$(${CLI} account import_key -k CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944 -l transfer | jq ".label")
+    echo "=========== # import private key returnAddr ============="
+    result=$(${CLI} account import_key -k CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944 -l returnAddr | jq ".label")
     echo "${result}"
     if [ -z "${result}" ]; then
         exit 1
@@ -99,21 +106,21 @@ function init() {
     sleep 2
 
     echo "=========== # import private key mining ============="
-    result=$(${CLI} account import_key -k 4257D8692EF7FE13C68B65D6A52F03933DB2FA5CE8FAF210B5B8B80C721CED01 -l mining | jq ".label")
+    result=$(${CLI} account import_key -k 4257D8692EF7FE13C68B65D6A52F03933DB2FA5CE8FAF210B5B8B80C721CED01 -l minerAddr | jq ".label")
     echo "${result}"
     if [ -z "${result}" ]; then
         exit 1
     fi
 
     sleep 2
-    echo "=========== # set auto mining ============="
-    result=$(${CLI} wallet auto_mine -f 1 | jq ".isok")
+    echo "=========== # close auto mining ============="
+    result=$(${CLI} wallet auto_mine -f 0 | jq ".isok")
     if [ "${result}" = "false" ]; then
         exit 1
     fi
 
-    echo "=========== sleep 60s ============="
-    sleep 60
+    echo "=========== sleep ${SLEEP}s ============="
+    sleep ${SLEEP}
 
     echo "=========== check genesis hash ========== "
     ${CLI} block hash -t 0
@@ -130,6 +137,8 @@ function init() {
     if [ "${result}" -lt 1 ]; then
         exit 1
     fi
+
+    sync_status "${CLI}"
 
     ${CLI} wallet status
     ${CLI} account list
@@ -156,7 +165,41 @@ function block_wait() {
     echo "wait new block $count s"
 }
 
-function transfer() {
+
+function sync_status(){
+    echo "=========== query sync status========== "
+    local sync_status
+    sync_status=$(${1} net is_sync)
+    if [ "${sync_status}" = "false" ]; then
+        ${1} block last_header
+        exit 1
+    fi
+
+    echo "=========== query clock sync status========== "
+    sync_status=$(${1} net is_clock_sync)
+    if [ "${sync_status}" = "false" ]; then
+        exit 1
+    fi
+}
+
+function sync(){
+    echo "=========== stop  ${NODE2} node========== "
+    docker stop "${NODE2}"
+    sleep 20
+
+    echo "=========== start ${NODE2} node========== "
+    docker start "${NODE2}"
+
+    for i in $(seq 20);do
+        sleep 1
+        ${CLI2} net is_sync
+        ${CLI2} block last_header
+    done
+
+    sync_status "${CLI2}"
+}
+
+function transfer(){
     echo "=========== # transfer ============="
     hashes=()
     for ((i = 0; i < 10; i++)); do
@@ -201,6 +244,7 @@ function transfer() {
 function main() {
     echo "==========================================main begin========================================================"
     init
+    sync
     transfer
     # TODO other work!!!
     echo "==========================================main end========================================================="

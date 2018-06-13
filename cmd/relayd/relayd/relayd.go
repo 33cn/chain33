@@ -14,6 +14,7 @@ import (
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	log "github.com/inconshreveable/log15"
 	"github.com/valyala/fasthttp"
+	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -98,6 +99,11 @@ func NewRelayd(config *Config) *Relayd {
 		panic(err)
 	}
 
+	pubkey := priKey.PubKey()
+	fmt.Println(pubkey.KeyString())
+	address := account.PubKeyToAddress(pubkey.Bytes())
+	fmt.Println(address.String())
+
 	return &Relayd{
 		config:           config,
 		db:               db,
@@ -107,7 +113,7 @@ func NewRelayd(config *Config) *Relayd {
 		knownBtcHeight:   uint64(height),
 		btcClient:        btc,
 		privateKey:       priKey,
-		publicKey:        priKey.PubKey(),
+		publicKey:        pubkey,
 		isPersist:        0,
 		isSnyc:           0,
 		isResetBtcHeight: isResetBtcHeight,
@@ -308,6 +314,7 @@ func (r *Relayd) transaction(payload []byte) *types.Transaction {
 		Execer:  executor,
 		Payload: payload,
 		Nonce:   rand.Int63(),
+		To:      account.ExecAddress(string(executor)),
 	}
 
 	fee, _ := tx.GetRealFee(types.MinFee)

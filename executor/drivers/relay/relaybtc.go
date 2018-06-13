@@ -10,7 +10,6 @@ import (
 
 	"bytes"
 	"encoding/json"
-	"sync"
 	"sync/atomic"
 	"time"
 
@@ -43,9 +42,8 @@ func btcWireHeader(head *types.BtcHeader) (error, *wire.BlockHeader) {
 type btcStore struct {
 	r *relay
 	// db         	dbm.KVDB
-	height         int64
-	lastHeader     *types.BtcHeader
-	lastHeaderLock sync.Mutex
+	height     int64
+	lastHeader *types.BtcHeader
 }
 
 func (b *btcStore) new(r *relay) {
@@ -68,9 +66,6 @@ func getBTCHeadHeightFromDb(r *relay, key []byte) (int64, error) {
 }
 
 func (b *btcStore) verifyBlockHeader(head *types.BtcHeader) bool {
-	b.lastHeaderLock.Lock()
-	defer b.lastHeaderLock.Unlock()
-
 	if b.lastHeader.Hash != head.PreviousHash || b.lastHeader.Height+1 != head.Height {
 		relaylog.Warn("verifyBlockHeader fail", "last height", b.lastHeader.Height, "rcv height", head.Height)
 		return false
@@ -106,8 +101,6 @@ func (b *btcStore) checkBlockHead(head *types.BtcHeader) bool {
 
 	height := atomic.LoadInt64(&b.height)
 
-	b.lastHeaderLock.Lock()
-	defer b.lastHeaderLock.Unlock()
 	// generis height or restart (if node restart, the height init to -1, btcWireHeader sync tx with block will be save directly)
 	if height <= 0 || b.lastHeader == nil {
 		relaylog.Info("btcStore checkBlockHead", "height", height)
@@ -152,8 +145,6 @@ func (b *btcStore) saveBlockHead(head *types.BtcHeader) []*types.KeyValue {
 		kv = append(kv, &types.KeyValue{key, heightBytes})
 	}
 	atomic.StoreInt64(&b.height, int64(head.Height))
-	b.lastHeaderLock.Lock()
-	defer b.lastHeaderLock.Unlock()
 	if head != nil {
 		b.lastHeader = head
 	}
