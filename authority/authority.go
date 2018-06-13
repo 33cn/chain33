@@ -1,6 +1,9 @@
 package authority
 
 import (
+	"fmt"
+	"runtime"
+
 	log "github.com/inconshreveable/log15"
 	"github.com/pkg/errors"
 	"gitlab.33.cn/chain33/chain33/authority/common/core"
@@ -10,8 +13,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/authority/signingmgr"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
-	"fmt"
-	"runtime"
 )
 
 var alog = log.New("module", "autority")
@@ -29,17 +30,19 @@ type Authority struct {
 
 func New(conf *types.Authority) *Authority {
 	auth := &Authority{}
+	if conf.Enable {
+		err := auth.initConfig(conf)
+		if err != nil {
+			alog.Error("Initialize authority module failed", "Error", err.Error())
+			panic("")
+		}
 
-	err := auth.initConfig(conf)
-	if err != nil {
-		alog.Error("Initialize authority module failed", "Error", err.Error())
-		panic("")
+		auth.signType = conf.SignType
+		auth.cryptoPath = conf.CryptoPath
+		auth.cfg = conf
+		OrgName = conf.GetOrgName()
+
 	}
-
-	auth.signType = conf.SignType
-	auth.cryptoPath = conf.CryptoPath
-	auth.cfg = conf
-	OrgName = conf.GetOrgName()
 
 	return auth
 }
@@ -47,9 +50,7 @@ func New(conf *types.Authority) *Authority {
 func (auth *Authority) initConfig(conf *types.Authority) error {
 	config := &cryptosuite.CryptoConfig{conf}
 
-	if conf.Enable == true {
-		types.IsAuthEnable = true
-	}
+	types.IsAuthEnable = true
 
 	cryptoSuite, err := cryptosuite.GetSuiteByConfig(config)
 	if err != nil {
@@ -86,22 +87,24 @@ func (auth *Authority) GetIdentityMgr() *identitymgr.IdentityManager {
 }
 
 func (auth *Authority) SetQueueClient(client queue.Client) {
-	auth.client = client
-	auth.client.Sub("authority")
+	if types.IsAuthEnable {
+		auth.client = client
+		auth.client.Sub("authority")
 
-	//recv 消息的处理
-	go func() {
-		for msg := range client.Recv() {
-			alog.Debug("authority recv", "msg", msg)
-			if msg.Ty == types.EventAuthoritySignTx {
-				go auth.procSignTx(msg)
-			} else if msg.Ty == types.EventAuthorityCheckTx {
-				go auth.procCheckTx(msg)
-			} else if msg.Ty == types.EventAuthorityCheckTxs {
-				go auth.procCheckTxs(msg)
+		//recv 消息的处理
+		go func() {
+			for msg := range client.Recv() {
+				alog.Debug("authority recv", "msg", msg)
+				if msg.Ty == types.EventAuthoritySignTx {
+					go auth.procSignTx(msg)
+				} else if msg.Ty == types.EventAuthorityCheckTx {
+					go auth.procCheckTx(msg)
+				} else if msg.Ty == types.EventAuthorityCheckTxs {
+					go auth.procCheckTxs(msg)
+				}
 			}
-		}
-	}()
+		}()
+	}
 }
 
 //签名与CERT独立发送，验证签名时，如有异常，可以先把这两个数据拷贝置空再验证
@@ -187,7 +190,7 @@ func (auth *Authority) procCheckTx(msg queue.Message) {
 	result := auth.checkTx(tx)
 	if !result {
 		msg.Reply(auth.client.NewMessage("", types.EventReplyAuthCheckTx, &types.RespAuthSignCheck{false}))
-	}else {
+	} else {
 		msg.Reply(auth.client.NewMessage("", types.EventReplyAuthCheckTx, &types.RespAuthSignCheck{true}))
 	}
 }
