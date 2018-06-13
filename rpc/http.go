@@ -103,8 +103,8 @@ func (g *Grpcserver) Listen() {
 	}
 	var opts []grpc.ServerOption
 	//register interceptor
-	var interceptor grpc.UnaryServerInterceptor
-	interceptor = func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
+	//var interceptor grpc.UnaryServerInterceptor
+	interceptor := func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
 		if err := auth(ctx, info); err != nil {
 			return nil, err
 		}
