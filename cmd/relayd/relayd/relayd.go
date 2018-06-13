@@ -19,38 +19,25 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-func confirmed(minconf, txHeight, curHeight int32) bool {
-	return confirms(txHeight, curHeight) >= minconf
-}
-
-func confirms(txHeight, curHeight int32) int32 {
-	switch {
-	case txHeight == -1, txHeight > curHeight:
-		return 0
-	default:
-		return curHeight - txHeight + 1
-	}
-}
-
 type Relayd struct {
-	config           *Config
-	db               *relaydDB
-	mu               sync.Mutex
-	latestBlockHash  *chainhash.Hash
-	latestBtcHeight  uint64
-	knownBlockHash   *chainhash.Hash
-	knownBtcHeight   uint64
-	btcClient        BtcClient
-	btcClientLock    sync.Mutex
-	client33         *Client33
-	ctx              context.Context
-	cancel           context.CancelFunc
-	privateKey       crypto.PrivKey
-	publicKey        crypto.PubKey
-	isPersist        int32
-	isSnyc           int32
-	isResetBtcHeight bool
-	quitPersist      chan struct{}
+	config            *Config
+	db                *relaydDB
+	mu                sync.Mutex
+	latestBlockHash   *chainhash.Hash
+	latestBtcHeight   uint64
+	knownBlockHash    *chainhash.Hash
+	knownBtcHeight    uint64
+	firstHeaderHeight uint64
+	btcClient         BtcClient
+	btcClientLock     sync.Mutex
+	client33          *Client33
+	ctx               context.Context
+	cancel            context.CancelFunc
+	privateKey        crypto.PrivKey
+	publicKey         crypto.PubKey
+	isPersist         int32
+	isSnyc            int32
+	isResetBtcHeight  bool
 }
 
 func NewRelayd(config *Config) *Relayd {
@@ -60,17 +47,36 @@ func NewRelayd(config *Config) *Relayd {
 		panic(err)
 	}
 	db := NewRelayDB("relayd", dir, 256)
+
+	var firstHeight int
+	var isResetBtcHeight bool
+	data, err := db.Get(firstHeaderKey[:])
+	if err != nil || data == nil {
+		firstHeight = int(config.FirstBtcHeight)
+		isResetBtcHeight = true
+		db.Set(firstHeaderKey, []byte(fmt.Sprintf("%d", firstHeight)))
+	}
+
+	firstHeight, err = strconv.Atoi(string(data))
+	if err != nil {
+		log.Warn("NewRelayd", "atoi firstHeight error: ", err)
+	}
+
+	if firstHeight != int(config.FirstBtcHeight) {
+		firstHeight = int(config.FirstBtcHeight)
+		isResetBtcHeight = true
+	}
+
 	currentHeight, err := db.Get(currentBtcBlockheightKey[:])
-	h, err := strconv.Atoi(string(currentHeight))
+	height, err := strconv.Atoi(string(currentHeight))
 	if err != nil {
 		log.Warn("NewRelayd", "atoi height error: ", err)
 	}
-	var isResetBtcHeight bool
-	height := uint64(h)
-	if height < config.FirstBtcHeight {
-		height = config.FirstBtcHeight
-		isResetBtcHeight = true
+
+	if height < firstHeight || isResetBtcHeight {
+		height = firstHeight
 	}
+
 	log.Info("NewRelayd", "current btc hegiht: ", height)
 
 	client33 := NewClient33(&config.Chain33)
@@ -105,24 +111,23 @@ func NewRelayd(config *Config) *Relayd {
 	fmt.Println(address.String())
 
 	return &Relayd{
-		config:           config,
-		db:               db,
-		ctx:              ctx,
-		cancel:           cancel,
-		client33:         client33,
-		knownBtcHeight:   uint64(height),
-		btcClient:        btc,
-		privateKey:       priKey,
-		publicKey:        pubkey,
-		isPersist:        0,
-		isSnyc:           0,
-		isResetBtcHeight: isResetBtcHeight,
-		quitPersist:      make(chan struct{}),
+		config:            config,
+		db:                db,
+		ctx:               ctx,
+		cancel:            cancel,
+		client33:          client33,
+		knownBtcHeight:    uint64(height),
+		firstHeaderHeight: uint64(firstHeight),
+		btcClient:         btc,
+		privateKey:        priKey,
+		publicKey:         pubkey,
+		isPersist:         0,
+		isSnyc:            0,
+		isResetBtcHeight:  isResetBtcHeight,
 	}
 }
 
 func (r *Relayd) Close() {
-	close(r.quitPersist)
 	r.client33.Close()
 	r.cancel()
 }
@@ -185,22 +190,17 @@ func (r *Relayd) persistBlockHeaders() {
 	if atomic.LoadUint64(&r.knownBtcHeight) < atomic.LoadUint64(&r.latestBtcHeight) {
 	out:
 		for i := atomic.LoadUint64(&r.knownBtcHeight); i < atomic.LoadUint64(&r.latestBtcHeight); i++ {
-			select {
-			case <-r.quitPersist:
+			header, err := r.btcClient.GetBlockHeader(i)
+			if err != nil {
+				log.Error("syncBlockHeaders", "GetBlockHeader error", err)
 				break out
-			default:
-				header, err := r.btcClient.GetBlockHeader(i)
-				if err != nil {
-					log.Error("syncBlockHeaders", "GetBlockHeader error", err)
-					break out
-				}
-				data := types.Encode(header)
-				r.db.Set(makeHeightKey(i), data)
-				r.db.Set(currentBtcBlockheightKey, []byte(fmt.Sprintf("%d", i)))
-				atomic.StoreUint64(&r.knownBtcHeight, i)
-				if i%10 == 0 {
-					log.Info("persistBlockHeaders", "current knownBtcHeight: ", i, "current latestBtcHeight: ", atomic.LoadUint64(&r.latestBtcHeight))
-				}
+			}
+			data := types.Encode(header)
+			r.db.Set(makeHeightKey(i), data)
+			r.db.Set(currentBtcBlockheightKey, []byte(fmt.Sprintf("%d", i)))
+			atomic.StoreUint64(&r.knownBtcHeight, i)
+			if i%10 == 0 {
+				log.Info("persistBlockHeaders", "current knownBtcHeight: ", i, "current latestBtcHeight: ", atomic.LoadUint64(&r.latestBtcHeight))
 			}
 		}
 	}
@@ -230,7 +230,7 @@ func (r *Relayd) syncBlockHeaders() {
 	defer atomic.StoreInt32(&r.isSnyc, 0)
 
 	knownBtcHeight := atomic.LoadUint64(&r.knownBtcHeight)
-	if knownBtcHeight > r.config.FirstBtcHeight {
+	if knownBtcHeight > r.firstHeaderHeight {
 		ret, err := r.queryChain33WithBtcHeight()
 		if err != nil {
 			log.Error("syncBlockHeaders", "queryChain33WithBtcHeight error: ", err)
@@ -239,15 +239,12 @@ func (r *Relayd) syncBlockHeaders() {
 
 		log.Info("syncBlockHeaders", "queryChain33WithBtcHeight result: ", ret)
 		var initIterHeight uint64
-		if (ret.CurHeight <= 0 || r.config.FirstBtcHeight != uint64(ret.BaseHeight)) && !r.isResetBtcHeight {
+		if r.firstHeaderHeight != uint64(ret.BaseHeight) && !r.isResetBtcHeight {
 			r.isResetBtcHeight = true
-			r.quitPersist <- struct{}{}
-			atomic.StoreUint64(&r.knownBtcHeight, r.config.FirstBtcHeight)
-			return
 		}
 
 		if r.isResetBtcHeight {
-			initIterHeight = r.config.FirstBtcHeight
+			initIterHeight = r.firstHeaderHeight
 		} else {
 			initIterHeight = uint64(ret.CurHeight) + 1
 			if initIterHeight > r.knownBtcHeight {

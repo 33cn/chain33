@@ -407,6 +407,7 @@ func (b *btcdClient) GetBlockHeader(height uint64) (*types.BtcHeader, error) {
 		Bits:          int64(bits),
 		PreviousHash:  header.PreviousHash,
 		NextHash:      header.NextHash,
+		Version:       uint32(header.Version),
 	}
 	return h, nil
 

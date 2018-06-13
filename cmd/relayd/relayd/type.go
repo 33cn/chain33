@@ -8,7 +8,7 @@ var (
 	currentBlockHashKey      = []byte("4062c3e6baa0ef4bc5917572c3b9aeaa5dc24f8ef008f38bcd401af6e80f257c")
 	currentBtcBlockheightKey = []byte("000007bc077cc540821f06280c4c2f04e036931f21ea3b1bf509b972cbbef5ca")
 	executor                 = []byte("relay")
-	zeroBlockHeader          = []byte("")
+	firstHeaderKey           = []byte("1e1ffda1446d62a96b7ba9347a35ecdb1fad2379f35041d32e82a7b97646b9ff")
 )
 
 type LatestBlock struct {
@@ -46,6 +46,7 @@ func (b *Block) BtcHeader() *types.BtcHeader {
 		Nonce:        b.Nonce,
 		Bits:         b.Bits,
 		PreviousHash: b.PrevBlock,
+		Version:      uint32(b.Ver),
 	}
 }
 
