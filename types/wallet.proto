@@ -247,8 +247,10 @@ message Int32 {
 message ReqBindMiner {
     string bindAddr = 1;
     string originAddr = 2;
+    int64  amount = 3;
 }
 
 message ReplyBindMiner {
-    string txHex = 1;
+    string cmdBind = 1;
+    string cmdTrans = 2;
 }
