@@ -106,6 +106,12 @@ func (c *Client33) AutoReconnect(ctx context.Context) {
 	}
 }
 
+func (c *Client33) SendTransaction(ctx context.Context, in *types.Transaction) (*types.Reply, error) {
+	if c.isSyncing {
+
+	}
+}
+
 func (c *Client33) Close() error {
 	return c.closer.Close()
 }
