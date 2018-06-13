@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/tendermint/ed25519"
+	"gitlab.33.cn/chain33/chain33/common/ed25519"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 )
 
