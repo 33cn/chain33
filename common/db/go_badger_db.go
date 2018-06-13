@@ -9,6 +9,7 @@ import (
 var blog = log.New("module", "db.gobadgerdb")
 
 type GoBadgerDB struct {
+	TransactionDB
 	db *badger.DB
 }
 
@@ -266,4 +267,18 @@ func (mBatch *GoBadgerDBBatch) Write() error {
 		return err
 	}
 	return nil
+}
+
+type TransactionDB struct{}
+
+func (db *TransactionDB) Begin() {
+
+}
+
+func (db *TransactionDB) Rollback() {
+
+}
+
+func (db *TransactionDB) Commit() {
+
 }

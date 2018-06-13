@@ -62,7 +62,7 @@ type raftNode struct {
 }
 
 func NewRaftNode(id int, join bool, peers []string, readOnlyPeers []string, addPeers []string, getSnapshot func() ([]byte, error), proposeC <-chan *types.Block,
-	confChangeC <-chan raftpb.ConfChange) (<-chan *types.Block, <-chan error, <-chan *snap.Snapshotter, <-chan bool) {
+	confChangeC <-chan raftpb.ConfChange) (<-chan *types.Block, <-chan error, <-chan *snap.Snapshotter, <-chan bool, chan<- struct{}) {
 
 	rlog.Info("Enter consensus raft")
 	// commit channel
@@ -91,7 +91,7 @@ func NewRaftNode(id int, join bool, peers []string, readOnlyPeers []string, addP
 	}
 	go rc.startRaft()
 
-	return commitC, errorC, rc.snapshotterReady, rc.validatorC
+	return commitC, errorC, rc.snapshotterReady, rc.validatorC, rc.stopc
 }
 
 //  启动raft节点
@@ -116,8 +116,8 @@ func (rc *raftNode) startRaft() {
 	}
 	c := &raft.Config{
 		ID:              uint64(rc.id),
-		ElectionTick:    10,
-		HeartbeatTick:   1,
+		ElectionTick:    10 * heartbeatTick,
+		HeartbeatTick:   heartbeatTick,
 		Storage:         rc.raftStorage,
 		MaxSizePerMsg:   1024 * 1024,
 		MaxInflightMsgs: 256,
@@ -185,7 +185,6 @@ func (rc *raftNode) serveRaft() {
 	err = (&http.Server{Handler: rc.transport.Handler()}).Serve(ln)
 	if err != nil {
 		rlog.Error(fmt.Sprintf("raft: Failed to serve rafthttp (%v)", err.Error()))
-		panic(err)
 	}
 	select {
 	case <-rc.httpstopc:
@@ -437,9 +436,11 @@ func (rc *raftNode) openWAL(snapshot *raftpb.Snapshot) *wal.WAL {
 
 // 关闭http连接和channel
 func (rc *raftNode) stop() {
+	rc.wal.Close()
 	rc.stopHTTP()
 	close(rc.commitC)
 	close(rc.errorC)
+	close(rc.stopc)
 	rc.node.Stop()
 }
 
@@ -452,6 +453,7 @@ func (rc *raftNode) stopHTTP() {
 func (rc *raftNode) writeError(err error) {
 	rc.stopHTTP()
 	close(rc.commitC)
+	close(rc.stopc)
 	rc.errorC <- err
 	close(rc.errorC)
 	rc.node.Stop()

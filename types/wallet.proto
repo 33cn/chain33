@@ -227,8 +227,31 @@ message ReqSignRawTx {
     string privkey = 2;
     string txHex = 3;
     string expire = 4;
+    int32  index = 5;
 }
 
 message ReplySignRawTx {
     string txHex = 1;
+}
+
+message ReportErrEvent {
+    string frommodule = 1;
+    string tomodule = 2;
+    string error = 3;
+}
+
+message Int32 {
+	int32 data = 1;
+}
+
+message ReqBindMiner {
+    string bindAddr = 1;
+    string originAddr = 2;
+    int64  amount = 3;
+    bool   checkBalance = 4;
+}
+
+message ReplyBindMiner {
+    string cmdBind = 1;
+    string cmdTrans = 2;
 }

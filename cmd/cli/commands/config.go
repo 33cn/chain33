@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	"gitlab.33.cn/chain33/chain33/account"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -66,7 +66,7 @@ func configTx(cmd *cobra.Command, args []string) {
 	random := rand.New(rand.NewSource(time.Now().UnixNano()))
 	tx.Nonce = random.Int63()
 
-	tx.To = account.ExecAddress("manage").String()
+	tx.To = address.ExecAddress("manage")
 
 	var err error
 	tx.Fee, err = tx.GetRealFee(types.MinFee)

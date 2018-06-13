@@ -4,8 +4,8 @@ import (
 	"time"
 
 	log "github.com/inconshreveable/log15"
-	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -15,15 +15,14 @@ var clog = log.New("module", "execs.hashlock")
 const minLockTime = 60
 
 func Init() {
-	h := newHashlock()
-	drivers.Register(h.GetName(), h, 0)
+	drivers.Register(newHashlock().GetName(), newHashlock, 0)
 }
 
 type Hashlock struct {
 	drivers.DriverBase
 }
 
-func newHashlock() *Hashlock {
+func newHashlock() drivers.Driver {
 	h := &Hashlock{}
 	h.SetChild(h)
 	return h
@@ -31,13 +30,6 @@ func newHashlock() *Hashlock {
 
 func (h *Hashlock) GetName() string {
 	return "hashlock"
-}
-
-func (h *Hashlock) Clone() drivers.Driver {
-	clone := &Hashlock{}
-	clone.DriverBase = *(h.DriverBase.Clone().(*drivers.DriverBase))
-	clone.SetChild(clone)
-	return clone
 }
 
 func (h *Hashlock) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
@@ -56,15 +48,15 @@ func (h *Hashlock) Exec(tx *types.Transaction, index int) (*types.Receipt, error
 			clog.Warn("hashlock amount <=0")
 			return nil, types.ErrHashlockAmount
 		}
-		if err := account.CheckAddress(hlock.ToAddress); err != nil {
+		if err := address.CheckAddress(hlock.ToAddress); err != nil {
 			clog.Warn("hashlock checkaddress")
 			return nil, err
 		}
-		if err := account.CheckAddress(hlock.ReturnAddress); err != nil {
+		if err := address.CheckAddress(hlock.ReturnAddress); err != nil {
 			clog.Warn("hashlock checkaddress")
 			return nil, err
 		}
-		if hlock.ReturnAddress != account.From(tx).String() {
+		if hlock.ReturnAddress != tx.From() {
 			clog.Warn("hashlock return address")
 			return nil, types.ErrHashlockReturnAddrss
 		}

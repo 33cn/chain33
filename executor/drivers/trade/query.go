@@ -24,7 +24,7 @@ func (t *trade) GetOnesSellOrder(addrTokens *types.ReqAddrTokens) (types.Message
 		for _, token := range addrTokens.Token {
 			values, err := t.GetLocalDB().List(calcOnesSellOrderPrefixToken(token, addrTokens.Addr), nil, 0, 0)
 			tradelog.Debug("trade Query", "Begin to list addr with token", token, "got values", len(values))
-			if err != nil {
+			if err != nil && err != types.ErrNotFound {
 				return nil, err
 			}
 			if len(values) != 0 {
@@ -33,21 +33,19 @@ func (t *trade) GetOnesSellOrder(addrTokens *types.ReqAddrTokens) (types.Message
 		}
 	}
 
-	var replys types.ReplySellOrders
+	var replys types.ReplyTradeOrders
 	for _, key := range keys {
-		reply := t.replyReplySellOrderfromID(key)
+		reply := t.loadOrderFromKey(key)
 		if reply == nil {
 			continue
 		}
 		tradelog.Debug("trade Query", "getSellOrderFromID", string(key))
-		replys.SellOrders = insertSellOrderDescending(reply, replys.SellOrders)
+		replys.Orders = append(replys.Orders, reply)
 	}
 	return &replys, nil
 }
 
 func (t *trade) GetOnesBuyOrder(addrTokens *types.ReqAddrTokens) (types.Message, error) {
-	var replys types.ReplyBuyOrders
-
 	var keys [][]byte
 	if 0 == len(addrTokens.Token) {
 		values, err := t.GetLocalDB().List(calcOnesBuyOrderPrefixAddr(addrTokens.Addr), nil, 0, 0)
@@ -62,7 +60,7 @@ func (t *trade) GetOnesBuyOrder(addrTokens *types.ReqAddrTokens) (types.Message,
 		for _, token := range addrTokens.Token {
 			values, err := t.GetLocalDB().List(calcOnesBuyOrderPrefixToken(token, addrTokens.Addr), nil, 0, 0)
 			tradelog.Debug("trade Query", "Begin to list addr with token", token, "got values", len(values))
-			if err != nil {
+			if err != nil && err != types.ErrNotFound {
 				return nil, err
 			}
 			if len(values) != 0 {
@@ -71,17 +69,14 @@ func (t *trade) GetOnesBuyOrder(addrTokens *types.ReqAddrTokens) (types.Message,
 		}
 	}
 
-	if len(keys) != 0 {
-		tradelog.Debug("GetOnesBuyOrder", "get number of buy order", len(keys))
-		for _, key := range keys {
-			//因为通过db list功能获取的sellid由于条件设置宽松会出现重复sellid的情况，在此进行过滤
-			reply := t.replyReplyBuyOrderfromID(key)
-			if reply == nil {
-				continue
-			}
-
-			replys.BuyOrders = append(replys.BuyOrders, reply)
+	var replys types.ReplyTradeOrders
+	for _, key := range keys {
+		reply := t.loadOrderFromKey(key)
+		if reply == nil {
+			continue
 		}
+		tradelog.Debug("trade Query", "getSellOrderFromID", string(key))
+		replys.Orders = append(replys.Orders, reply)
 	}
 
 	return &replys, nil
@@ -98,15 +93,16 @@ func (t *trade) GetOnesSellOrdersWithStatus(req *types.ReqAddrTokens) (types.Mes
 		sellIDs = append(sellIDs, values...)
 	}
 
-	var replys types.ReplySellOrders
-	for _, sellID := range sellIDs {
-		reply := t.replyReplySellOrderfromID(sellID)
-		if reply != nil {
-			replys.SellOrders = insertSellOrderDescending(reply, replys.SellOrders)
-			tradelog.Debug("trade Query", "height of sellID", reply.Height,
-				"len of reply.Selloders", len(replys.SellOrders))
+	var replys types.ReplyTradeOrders
+	for _, key := range sellIDs {
+		reply := t.loadOrderFromKey(key)
+		if reply == nil {
+			continue
 		}
+		tradelog.Debug("trade Query", "getSellOrderFromID", string(key))
+		replys.Orders = append(replys.Orders, reply)
 	}
+
 	return &replys, nil
 }
 
@@ -120,42 +116,17 @@ func (t *trade) GetOnesBuyOrdersWithStatus(req *types.ReqAddrTokens) (types.Mess
 		tradelog.Debug("trade Query", "get number of buy keys", len(values))
 		sellIDs = append(sellIDs, values...)
 	}
-
-	var replys types.ReplyBuyOrders
-	for _, sellID := range sellIDs {
-		reply := t.replyReplyBuyOrderfromID(sellID)
-		if reply != nil {
-			//replys.Selloders = insertBuyOrderDescending(reply, replys.Selloders)
-			replys.BuyOrders = append(replys.BuyOrders, reply)
-			tradelog.Debug("trade Query", "height of key", reply.Height,
-				"len of reply.Selloders", len(replys.BuyOrders))
+	var replys types.ReplyTradeOrders
+	for _, key := range sellIDs {
+		reply := t.loadOrderFromKey(key)
+		if reply == nil {
+			continue
 		}
+		tradelog.Debug("trade Query", "getSellOrderFromID", string(key))
+		replys.Orders = append(replys.Orders, reply)
 	}
+
 	return &replys, nil
-}
-
-//根据height进行降序插入,TODO:使用标准的第三方库进行替换
-func insertSellOrderDescending(toBeInserted *types.ReplySellOrder, selloders []*types.ReplySellOrder) []*types.ReplySellOrder {
-	if 0 == len(selloders) {
-		selloders = append(selloders, toBeInserted)
-	} else {
-		index := len(selloders)
-		for i, element := range selloders {
-			if toBeInserted.Height >= element.Height {
-				index = i
-				break
-			}
-		}
-
-		if len(selloders) == index {
-			selloders = append(selloders, toBeInserted)
-		} else {
-			rear := append([]*types.ReplySellOrder{}, selloders[index:]...)
-			selloders = append(selloders[0:index], toBeInserted)
-			selloders = append(selloders, rear...)
-		}
-	}
-	return selloders
 }
 
 func (t *trade) GetTokenSellOrderByStatus(req *types.ReqTokenSellOrder, status int32) (types.Message, error) {
@@ -177,15 +148,15 @@ func (t *trade) GetTokenSellOrderByStatus(req *types.ReqTokenSellOrder, status i
 	if err != nil {
 		return nil, err
 	}
-	var reply types.ReplySellOrders
+	var replys types.ReplyTradeOrders
 	for _, key := range values {
-		sell := t.replyReplySellOrderfromID(key)
-		if sell != nil {
-			tradelog.Debug("trade Query", "GetTokenSellOrderByStatus", string(key))
-			reply.SellOrders = append(reply.SellOrders, sell)
+		reply := t.loadOrderFromKey(key)
+		if reply == nil {
+			continue
 		}
+		replys.Orders = append(replys.Orders, reply)
 	}
-	return &reply, nil
+	return &replys, nil
 }
 
 func (t *trade) GetTokenBuyOrderByStatus(req *types.ReqTokenBuyOrder, status int32) (types.Message, error) {
@@ -203,7 +174,7 @@ func (t *trade) GetTokenBuyOrderByStatus(req *types.ReqTokenBuyOrder, status int
 		fromKey = calcTokensBuyOrderKeyStatus(buy.TokenSymbol, buy.Status,
 			calcPriceOfToken(buy.PricePerBoardlot, buy.AmountPerBoardlot), buy.Owner, buy.Key)
 	}
-	tradelog.Info("GetTokenBuyOrderByStatus", "fromKey ", fromKey)
+	tradelog.Debug("GetTokenBuyOrderByStatus", "fromKey ", fromKey)
 
 	// List Direction 是升序， 买单是要降序， 把高价买的放前面， 在下一页操作时， 显示买价低的。
 	direction := 1 - req.Direction
@@ -211,20 +182,21 @@ func (t *trade) GetTokenBuyOrderByStatus(req *types.ReqTokenBuyOrder, status int
 	if err != nil {
 		return nil, err
 	}
-	var reply types.ReplyBuyOrders
+	var replys types.ReplyTradeOrders
 	for _, key := range values {
-		buy := t.replyReplyBuyOrderfromID(key)
-		if buy != nil {
-			tradelog.Debug("trade Query", "GetTokenBuyOrderByStatus", string(key))
-			reply.BuyOrders = append(reply.BuyOrders, buy)
+		reply := t.loadOrderFromKey(key)
+		if reply == nil {
+			continue
 		}
+		tradelog.Debug("trade Query", "getSellOrderFromID", string(key))
+		replys.Orders = append(replys.Orders, reply)
 	}
-	return &reply, nil
+	return &replys, nil
 }
 
 // query reply utils
 func (t *trade) replyReplySellOrderfromID(key []byte) *types.ReplySellOrder {
-	tradelog.Info("trade Query", "id", string(key), "check-prefix", sellIDPrefix)
+	tradelog.Debug("trade Query", "id", string(key), "check-prefix", sellIDPrefix)
 	if strings.HasPrefix(string(key), sellIDPrefix) {
 		if sellorder, err := getSellOrderFromID(key, t.GetStateDB()); err == nil {
 			tradelog.Debug("trade Query", "getSellOrderFromID", string(key))
@@ -232,7 +204,7 @@ func (t *trade) replyReplySellOrderfromID(key []byte) *types.ReplySellOrder {
 		}
 	} else { // txhash as key
 		txResult, err := getTx(key, t.GetLocalDB())
-		tradelog.Info("GetOnesSellOrder ", "load txhash", string(key))
+		tradelog.Debug("GetOnesSellOrder ", "load txhash", string(key))
 		if err != nil {
 			return nil
 		}
@@ -242,7 +214,7 @@ func (t *trade) replyReplySellOrderfromID(key []byte) *types.ReplySellOrder {
 }
 
 func (t *trade) replyReplyBuyOrderfromID(key []byte) *types.ReplyBuyOrder {
-	tradelog.Info("trade Query", "id", string(key), "check-prefix", buyIDPrefix)
+	tradelog.Debug("trade Query", "id", string(key), "check-prefix", buyIDPrefix)
 	if strings.HasPrefix(string(key), buyIDPrefix) {
 		if buyOrder, err := getBuyOrderFromID(key, t.GetStateDB()); err == nil {
 			tradelog.Debug("trade Query", "getSellOrderFromID", string(key))
@@ -250,7 +222,7 @@ func (t *trade) replyReplyBuyOrderfromID(key []byte) *types.ReplyBuyOrder {
 		}
 	} else { // txhash as key
 		txResult, err := getTx(key, t.GetLocalDB())
-		tradelog.Info("replyReplyBuyOrderfromID ", "load txhash", string(key))
+		tradelog.Debug("replyReplyBuyOrderfromID ", "load txhash", string(key))
 		if err != nil {
 			return nil
 		}
@@ -280,7 +252,7 @@ func sellOrder2reply(sellOrder *types.SellOrder) *types.ReplySellOrder {
 
 func txResult2sellOrderReply(txResult *types.TxResult) *types.ReplySellOrder {
 	logs := txResult.Receiptdate.Logs
-	tradelog.Info("txResult2sellOrderReply", "show logs", logs)
+	tradelog.Debug("txResult2sellOrderReply", "show logs", logs)
 	for _, log := range logs {
 		if log.Ty == types.TyLogTradeSellMarket {
 			var receipt types.ReceiptSellMarket
@@ -289,7 +261,7 @@ func txResult2sellOrderReply(txResult *types.TxResult) *types.ReplySellOrder {
 				tradelog.Error("txResult2sellOrderReply", "decode receipt", err)
 				return nil
 			}
-			tradelog.Info("txResult2sellOrderReply", "show logs 1 ", receipt)
+			tradelog.Debug("txResult2sellOrderReply", "show logs 1 ", receipt)
 			amount, err := strconv.ParseFloat(receipt.Base.AmountPerBoardlot, 64)
 			if err != nil {
 				tradelog.Error("txResult2sellOrderReply", "decode receipt", err)
@@ -317,7 +289,7 @@ func txResult2sellOrderReply(txResult *types.TxResult) *types.ReplySellOrder {
 				receipt.Base.Height,
 				txhash,
 			}
-			tradelog.Info("txResult2sellOrderReply", "show reply", reply)
+			tradelog.Debug("txResult2sellOrderReply", "show reply", reply)
 			return reply
 		}
 	}
@@ -345,7 +317,7 @@ func buyOrder2reply(buyOrder *types.BuyLimitOrder) *types.ReplyBuyOrder {
 
 func txResult2buyOrderReply(txResult *types.TxResult) *types.ReplyBuyOrder {
 	logs := txResult.Receiptdate.Logs
-	tradelog.Info("txResult2sellOrderReply", "show logs", logs)
+	tradelog.Debug("txResult2sellOrderReply", "show logs", logs)
 	for _, log := range logs {
 		if log.Ty == types.TyLogTradeBuyMarket {
 			var receipt types.ReceiptTradeBuyMarket
@@ -354,7 +326,7 @@ func txResult2buyOrderReply(txResult *types.TxResult) *types.ReplyBuyOrder {
 				tradelog.Error("txResult2sellOrderReply", "decode receipt", err)
 				return nil
 			}
-			tradelog.Info("txResult2sellOrderReply", "show logs 1 ", receipt)
+			tradelog.Debug("txResult2sellOrderReply", "show logs 1 ", receipt)
 			amount, err := strconv.ParseFloat(receipt.Base.AmountPerBoardlot, 64)
 			if err != nil {
 				tradelog.Error("txResult2sellOrderReply", "decode receipt", err)
@@ -381,9 +353,249 @@ func txResult2buyOrderReply(txResult *types.TxResult) *types.ReplyBuyOrder {
 				receipt.Base.Height,
 				txhash,
 			}
-			tradelog.Info("txResult2sellOrderReply", "show reply", reply)
+			tradelog.Debug("txResult2sellOrderReply", "show reply", reply)
 			return reply
 		}
 	}
 	return nil
+}
+
+const (
+	orderStatusInvalid = iota
+	orderStatusOn
+	orderStatusDone
+	orderStatusRevoke
+)
+
+const (
+	orderTypeInvalid = iota
+	orderTypeSell
+	orderTypeBuy
+)
+
+func fromStatus(status int32) (st, ty int32) {
+	switch status {
+	case types.TradeOrderStatusOnSale:
+		return orderStatusOn, orderTypeSell
+	case types.TradeOrderStatusSoldOut:
+		return orderStatusDone, orderTypeSell
+	case types.TradeOrderStatusRevoked:
+		return orderStatusRevoke, orderTypeSell
+	case types.TradeOrderStatusOnBuy:
+		return orderStatusOn, orderTypeBuy
+	case types.TradeOrderStatusBoughtOut:
+		return orderStatusDone, orderTypeBuy
+	case types.TradeOrderStatusBuyRevoked:
+		return orderStatusRevoke, orderTypeBuy
+	}
+	return orderStatusInvalid, orderTypeInvalid
+}
+
+// SellMarkMarket BuyMarket 没有tradeOrder 需要调用这个函数进行转化
+// BuyRevoke, SellRevoke 也需要
+// SellLimit/BuyLimit 有order 但order 里面没有 bolcktime， 直接访问 order 还需要再次访问 block， 还不如直接访问交易
+func buyBase2Order(base *types.ReceiptBuyBase, txHash string, blockTime int64) *types.ReplyTradeOrder {
+	amount, err := strconv.ParseFloat(base.AmountPerBoardlot, 64)
+	if err != nil {
+		tradelog.Error("txResult2sellOrderReply", "decode receipt", err)
+		return nil
+	}
+	price, err := strconv.ParseFloat(base.PricePerBoardlot, 64)
+	if err != nil {
+		tradelog.Error("txResult2sellOrderReply", "decode receipt", err)
+		return nil
+	}
+	//txhash := common.ToHex(txResult.GetTx().Hash())
+	reply := &types.ReplyTradeOrder{
+		base.TokenSymbol,
+		base.Owner,
+		int64(amount * float64(types.TokenPrecision)),
+		base.MinBoardlot,
+		int64(price * float64(types.Coin)),
+		base.TotalBoardlot,
+		base.BoughtBoardlot,
+		base.BuyID,
+		types.SellOrderStatus2Int[base.Status],
+		base.SellID,
+		txHash,
+		base.Height,
+		txHash,
+		blockTime,
+		false,
+	}
+	tradelog.Debug("txResult2sellOrderReply", "show reply", reply)
+	return reply
+}
+
+func sellBase2Order(base *types.ReceiptSellBase, txHash string, blockTime int64) *types.ReplyTradeOrder {
+	amount, err := strconv.ParseFloat(base.AmountPerBoardlot, 64)
+	if err != nil {
+		tradelog.Error("txResult2sellOrderReply", "decode receipt", err)
+		return nil
+	}
+	price, err := strconv.ParseFloat(base.PricePerBoardlot, 64)
+	if err != nil {
+		tradelog.Error("txResult2sellOrderReply", "decode receipt", err)
+		return nil
+	}
+	//txhash := common.ToHex(txResult.GetTx().Hash())
+	reply := &types.ReplyTradeOrder{
+		base.TokenSymbol,
+		base.Owner,
+		int64(amount * float64(types.TokenPrecision)),
+		base.MinBoardlot,
+		int64(price * float64(types.Coin)),
+		base.TotalBoardlot,
+		base.SoldBoardlot,
+		base.BuyID,
+		types.SellOrderStatus2Int[base.Status],
+		base.SellID,
+		txHash,
+		base.Height,
+		txHash,
+		blockTime,
+		true,
+	}
+	tradelog.Debug("txResult2sellOrderReply", "show reply", reply)
+	return reply
+}
+
+func txResult2OrderReply(txResult *types.TxResult) *types.ReplyTradeOrder {
+	logs := txResult.Receiptdate.Logs
+	tradelog.Debug("txResult2sellOrderReply", "show logs", logs)
+	for _, log := range logs {
+		if log.Ty == types.TyLogTradeBuyMarket {
+			var receipt types.ReceiptTradeBuyMarket
+			err := types.Decode(log.Log, &receipt)
+			if err != nil {
+				tradelog.Error("txResult2sellOrderReply", "decode receipt", err)
+				return nil
+			}
+			tradelog.Debug("txResult2sellOrderReply", "show logs 1 ", receipt)
+			return buyBase2Order(receipt.Base, common.ToHex(txResult.GetTx().Hash()), txResult.Blocktime)
+		} else if log.Ty == types.TyLogTradeBuyRevoke {
+			var receipt types.ReceiptTradeBuyRevoke
+			err := types.Decode(log.Log, &receipt)
+			if err != nil {
+				tradelog.Error("txResult2sellOrderReply", "decode receipt", err)
+				return nil
+			}
+			tradelog.Debug("txResult2sellOrderReply", "show logs 1 ", receipt)
+			return buyBase2Order(receipt.Base, common.ToHex(txResult.GetTx().Hash()), txResult.Blocktime)
+		} else if log.Ty == types.TyLogTradeSellRevoke {
+			var receipt types.ReceiptTradeRevoke
+			err := types.Decode(log.Log, &receipt)
+			if err != nil {
+				tradelog.Error("txResult2sellOrderReply", "decode receipt", err)
+				return nil
+			}
+			tradelog.Debug("txResult2sellOrderReply", "show revoke 1 ", receipt)
+			return sellBase2Order(receipt.Base, common.ToHex(txResult.GetTx().Hash()), txResult.Blocktime)
+		} else if log.Ty == types.TyLogTradeSellMarket {
+			var receipt types.ReceiptSellMarket
+			err := types.Decode(log.Log, &receipt)
+			if err != nil {
+				tradelog.Error("txResult2sellOrderReply", "decode receipt", err)
+				return nil
+			}
+			tradelog.Debug("txResult2sellOrderReply", "show logs 1 ", receipt)
+			return sellBase2Order(receipt.Base, common.ToHex(txResult.GetTx().Hash()), txResult.Blocktime)
+		}
+	}
+	return nil
+}
+
+func limitOrderTxResult2Order(txResult *types.TxResult) *types.ReplyTradeOrder {
+	logs := txResult.Receiptdate.Logs
+	tradelog.Debug("txResult2sellOrderReply", "show logs", logs)
+	for _, log := range logs {
+		if log.Ty == types.TyLogTradeSellLimit {
+			var receipt types.ReceiptTradeSell
+			err := types.Decode(log.Log, &receipt)
+			if err != nil {
+				tradelog.Error("txResult2sellOrderReply", "decode receipt", err)
+				return nil
+			}
+			tradelog.Debug("txResult2sellOrderReply", "show logs 1 ", receipt)
+			return sellBase2Order(receipt.Base, common.ToHex(txResult.GetTx().Hash()), txResult.Blocktime)
+		} else if log.Ty == types.TyLogTradeBuyLimit {
+			var receipt types.ReceiptTradeBuyLimit
+			err := types.Decode(log.Log, &receipt)
+			if err != nil {
+				tradelog.Error("txResult2sellOrderReply", "decode receipt", err)
+				return nil
+			}
+			tradelog.Debug("txResult2sellOrderReply", "show logs 1 ", receipt)
+			return buyBase2Order(receipt.Base, common.ToHex(txResult.GetTx().Hash()), txResult.Blocktime)
+		}
+	}
+	return nil
+}
+
+func (t *trade) loadOrderFromKey(key []byte) *types.ReplyTradeOrder {
+	tradelog.Debug("trade Query", "id", string(key), "check-prefix", sellIDPrefix)
+	if strings.HasPrefix(string(key), sellIDPrefix) {
+		txHash := strings.Replace(string(key), sellIDPrefix, "0x", 1)
+		txResult, err := getTx([]byte(txHash), t.GetLocalDB())
+		tradelog.Debug("loadOrderFromKey ", "load txhash", txResult)
+		if err != nil {
+			return nil
+		}
+		return limitOrderTxResult2Order(txResult)
+		// sellOrder 中没有 blocktime， 需要查询两次， 不如直接查询
+		//if sellorder, err := getSellOrderFromID(key, t.GetStateDB()); err == nil {
+		//	tradelog.Debug("trade Query", "getSellOrderFromID", string(key))
+		//	return sellOrder2Order(sellorder)
+		//}
+	} else if strings.HasPrefix(string(key), buyIDPrefix) {
+		txHash := strings.Replace(string(key), buyIDPrefix, "0x", 1)
+		txResult, err := getTx([]byte(txHash), t.GetLocalDB())
+		tradelog.Debug("loadOrderFromKey ", "load txhash", txResult)
+		if err != nil {
+			return nil
+		}
+		return limitOrderTxResult2Order(txResult)
+	} else { // txhash as key
+		txResult, err := getTx(key, t.GetLocalDB())
+		tradelog.Debug("loadOrderFromKey ", "load txhash", string(key))
+		if err != nil {
+			return nil
+		}
+		return txResult2OrderReply(txResult)
+	}
+	return nil
+}
+
+func (t *trade) GetOnesOrderWithStatus(req *types.ReqAddrTokens) (types.Message, error) {
+	fromKey := []byte("")
+	if len(req.FromKey) != 0 {
+		order := t.loadOrderFromKey(fromKey)
+		if order == nil {
+			tradelog.Error("GetOnesOrderWithStatus", "key not exist", req.FromKey)
+			return nil, types.ErrInputPara
+		}
+		st, ty := fromStatus(order.Status)
+		fromKey = calcOnesOrderKey(order.Owner, st, ty, order.Height, order.Key)
+	}
+
+	orderStatus, orderType := fromStatus(req.Status)
+	if orderStatus == orderStatusInvalid || orderType == orderTypeInvalid {
+		return nil, types.ErrInputPara
+	}
+
+	keys, err := t.GetLocalDB().List(calcOnesOrderPrefixStatus(req.Addr, orderStatus), fromKey, req.Count, req.Direction)
+	if err != nil {
+		return nil, err
+	}
+
+	var replys types.ReplyTradeOrders
+	for _, key := range keys {
+		reply := t.loadOrderFromKey(key)
+		if reply != nil {
+			replys.Orders = append(replys.Orders, reply)
+			tradelog.Debug("trade Query", "height of key", reply.Height,
+				"len of reply.Selloders", len(replys.Orders))
+		}
+	}
+	return &replys, nil
 }
