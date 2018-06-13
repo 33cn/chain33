@@ -9,8 +9,10 @@ message CreateTx {
 	int64 amount = 2;
 	int64 fee = 3;
 	string note = 4;
-	bool   isToken     = 5;
-	string tokenSymbol = 6;
+	bool isWithdraw = 5;
+	bool isToken = 6;
+	string tokenSymbol = 7;
+	string execName = 8;
 }
 
 message UnsignTx {
@@ -34,8 +36,14 @@ message Transaction {
 	int64 nonce = 6; 
 	//对方地址，如果没有对方地址，可以为空
 	string to = 7; 
+	int32 groupCount = 8;
+	bytes header = 9;
+	bytes next = 10;
 }
 
+message Transactions {
+	repeated Transaction txs = 1;
+}
 
 //对于一个交易组中的交易，要么全部成功，要么全部失败
 //这个要好好设计一下
@@ -144,3 +152,6 @@ message ReqAddrs  {
    repeated string addrs = 1;
 }
 
+message ReqDecodeRawTransaction {
+    string txHex = 1;
+}

@@ -12,6 +12,7 @@ package account
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/golang/protobuf/proto"
 	log "github.com/inconshreveable/log15"
@@ -27,20 +28,27 @@ type DB struct {
 	db                   dbm.KV
 	accountKeyPerfix     []byte
 	execAccountKeyPerfix []byte
+	execer               string
+	symbol               string
 }
 
 func NewCoinsAccount() *DB {
 	return newAccountDB("mavl-coins-bty-")
 }
 
-func NewTokenAccount(symbol string, db dbm.KV) *DB {
-	accDB := newAccountDB(fmt.Sprintf("mavl-token-%s-", symbol))
+func NewAccountDB(execer string, symbol string, db dbm.KV) (*DB, error) {
+	//如果execer 和  symbol 中存在 "-", 那么创建失败
+	if strings.ContainsRune(execer, '-') {
+		return nil, types.ErrExecNameNotAllow
+	}
+	if strings.ContainsRune(symbol, '-') {
+		return nil, types.ErrSymbolNameNotAllow
+	}
+	accDB := newAccountDB(SymbolPrefix(execer, symbol))
+	accDB.execer = execer
+	accDB.symbol = symbol
 	accDB.SetDB(db)
-	return accDB
-}
-
-func NewTokenAccountWithoutDB(symbol string) *DB {
-	return newAccountDB(fmt.Sprintf("mavl-token-%s-", symbol))
+	return accDB, nil
 }
 
 func newAccountDB(prefix string) *DB {
@@ -54,10 +62,6 @@ func newAccountDB(prefix string) *DB {
 func (acc *DB) SetDB(db dbm.KV) *DB {
 	acc.db = db
 	return acc
-}
-
-func (acc *DB) IsTokenAccount() bool {
-	return "token" == string(acc.accountKeyPerfix[len("mavl-"):len("mavl-token")])
 }
 
 func (acc *DB) LoadAccount(addr string) *types.Account {
@@ -131,7 +135,9 @@ func (acc *DB) depositBalance(execaddr string, amount int64) (*types.Receipt, er
 	}
 	acc.SaveAccount(acc1)
 	ty := int32(types.TyLogDeposit)
-	if acc.IsTokenAccount() {
+	ty = types.TyLogDeposit
+	//token的log做了特殊处理，其他执行器不必如此
+	if acc.execer == "token" {
 		ty = types.TyLogTokenDeposit
 	}
 	log1 := &types.ReceiptLog{
@@ -148,7 +154,8 @@ func (acc *DB) depositBalance(execaddr string, amount int64) (*types.Receipt, er
 
 func (acc *DB) transferReceipt(accFrom, accTo *types.Account, receiptFrom, receiptTo proto.Message) *types.Receipt {
 	ty := int32(types.TyLogTransfer)
-	if acc.IsTokenAccount() {
+	//token的log做了特殊处理，其他执行器不必如此
+	if acc.execer == "token" {
 		ty = types.TyLogTokenTransfer
 	}
 	log1 := &types.ReceiptLog{
@@ -231,24 +238,25 @@ func (acc *DB) AccountKey(address string) (key []byte) {
 	return key
 }
 
+func SymbolPrefix(execer string, symbol string) string {
+	return fmt.Sprintf("mavl-%s-%s-", execer, symbol)
+}
+
+func SymbolExecPrefix(execer string, symbol string) string {
+	return fmt.Sprintf("mavl-%s-%s-exec", execer, symbol)
+}
+
 func (acc *DB) GetTotalCoins(api client.QueueProtocolAPI, in *types.ReqGetTotalCoins) (reply *types.ReplyGetTotalCoins, err error) {
 	req := types.IterateRangeByStateHash{}
 	req.StateHash = in.StateHash
 	req.Count = in.Count
-	if in.Symbol == "bty" {
-		if in.StartKey == nil {
-			req.Start = []byte("mavl-coins-bty-")
-		} else {
-			req.Start = in.StartKey
-		}
-		req.End = []byte("mavl-coins-bty-exec")
+	start := SymbolPrefix(in.Execer, in.Symbol)
+	end := SymbolExecPrefix(in.Execer, in.Symbol)
+	if in.StartKey == nil {
+		req.Start = []byte(start)
 	} else {
-		if in.StartKey == nil {
-			req.Start = []byte(fmt.Sprintf("mavl-token-%s-", in.Symbol))
-		} else {
-			req.Start = in.StartKey
-		}
-		req.End = []byte(fmt.Sprintf("mavl-token-%s-exec", in.Symbol))
+		req.Start = in.StartKey
 	}
+	req.End = []byte(end)
 	return api.StoreGetTotalCoins(&req)
 }

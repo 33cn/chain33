@@ -21,6 +21,7 @@ func init() {
 }
 
 type GoMemDB struct {
+	TransactionDB
 	db   map[string][]byte
 	lock sync.RWMutex
 }

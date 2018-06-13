@@ -1,42 +1,22 @@
 package executor
 
 import (
-	"math/rand"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
-	"fmt"
-
-	"strconv"
-
-	"gitlab.33.cn/chain33/chain33/account"
+	"github.com/golang/protobuf/proto"
 	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
-	"gitlab.33.cn/chain33/chain33/common/limits"
-	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
-
-	"strings"
-
-	"github.com/golang/protobuf/proto"
 )
-
-var randomU *rand.Rand
 
 var (
 	addr1 string
 )
-
-func init() {
-	err := limits.SetLimits()
-	if err != nil {
-		panic(err)
-	}
-	randomU = rand.New(rand.NewSource(time.Now().UnixNano()))
-	log.SetLogLevel("error")
-}
 
 func initUnitEnv() (queue.Queue, *Executor) {
 	var q = queue.New("channel")
@@ -52,93 +32,83 @@ func createTxEx(priv crypto.PrivKey, to string, amount int64, ty int32, execer s
 	var tx *types.Transaction
 	switch execer {
 	case "coins":
-		{
-			v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
-			transfer := &types.CoinsAction{Value: v, Ty: ty}
-			tx = &types.Transaction{Execer: []byte(execer), Payload: types.Encode(transfer), Fee: 1e6, To: to}
-		}
+		v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
+		transfer := &types.CoinsAction{Value: v, Ty: ty}
+		tx = &types.Transaction{Execer: []byte(execer), Payload: types.Encode(transfer), Fee: 1e6, To: to}
 	case "manage":
-		{
-			v := &types.ModifyConfig{}
-			modify := &types.ManageAction{
-				Ty:    ty,
-				Value: &types.ManageAction_Modify{Modify: v},
-			}
-			tx = &types.Transaction{Execer: []byte("manage"), Payload: types.Encode(modify)}
+		v := &types.ModifyConfig{}
+		modify := &types.ManageAction{
+			Ty:    ty,
+			Value: &types.ManageAction_Modify{Modify: v},
 		}
+		tx = &types.Transaction{Execer: []byte("manage"), Payload: types.Encode(modify)}
 	case "none":
-		{
-			v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
-			transfer := &types.CoinsAction{Value: v, Ty: ty}
-			tx = &types.Transaction{Execer: []byte(execer), Payload: types.Encode(transfer), Fee: 1e6, To: to}
-		}
+		v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
+		transfer := &types.CoinsAction{Value: v, Ty: ty}
+		tx = &types.Transaction{Execer: []byte(execer), Payload: types.Encode(transfer), Fee: 1e6, To: to}
 	case "ticket":
-		{
-			transfer := &types.TicketAction{}
-			if types.TicketActionGenesis == ty {
-				v := &types.TicketAction_Genesis{&types.TicketGenesis{}}
-				transfer.Value = v
-				transfer.Ty = ty
-			} else if types.TicketActionOpen == ty {
-				v := &types.TicketAction_Topen{&types.TicketOpen{}}
-				transfer.Value = v
-				transfer.Ty = ty
-			} else if types.TicketActionClose == ty {
-				v := &types.TicketAction_Tclose{&types.TicketClose{}}
-				transfer.Value = v
-				transfer.Ty = ty
-			} else if types.TicketActionMiner == ty {
-				v := &types.TicketAction_Miner{&types.TicketMiner{}}
-				transfer.Value = v
-				transfer.Ty = ty
-			} else if types.TicketActionBind == ty {
-				v := &types.TicketAction_Tbind{&types.TicketBind{}}
-				transfer.Value = v
-				transfer.Ty = ty
-			} else {
-				return nil
-			}
-			tx = &types.Transaction{Execer: []byte(execer), Payload: types.Encode(transfer), Fee: 1e6, To: to}
+		transfer := &types.TicketAction{}
+		if types.TicketActionGenesis == ty {
+			v := &types.TicketAction_Genesis{&types.TicketGenesis{}}
+			transfer.Value = v
+			transfer.Ty = ty
+		} else if types.TicketActionOpen == ty {
+			v := &types.TicketAction_Topen{&types.TicketOpen{}}
+			transfer.Value = v
+			transfer.Ty = ty
+		} else if types.TicketActionClose == ty {
+			v := &types.TicketAction_Tclose{&types.TicketClose{}}
+			transfer.Value = v
+			transfer.Ty = ty
+		} else if types.TicketActionMiner == ty {
+			v := &types.TicketAction_Miner{&types.TicketMiner{}}
+			transfer.Value = v
+			transfer.Ty = ty
+		} else if types.TicketActionBind == ty {
+			v := &types.TicketAction_Tbind{&types.TicketBind{}}
+			transfer.Value = v
+			transfer.Ty = ty
+		} else {
+			return nil
 		}
+		tx = &types.Transaction{Execer: []byte(execer), Payload: types.Encode(transfer), Fee: 1e6, To: to}
 	case "token":
-		{
-			transfer := &types.TokenAction{}
-			if types.ActionTransfer == ty {
-				v := &types.TokenAction_Transfer{Transfer: &types.CoinsTransfer{Cointoken: "GOOD", Amount: 1e6}}
-				transfer.Value = v
-				transfer.Ty = ty
-			} else if types.ActionWithdraw == ty {
-				v := &types.TokenAction_Withdraw{Withdraw: &types.CoinsWithdraw{Cointoken: "GOOD", Amount: 1e6}}
-				transfer.Value = v
-				transfer.Ty = ty
-			} else if types.TokenActionPreCreate == ty {
-				v := &types.TokenAction_Tokenprecreate{&types.TokenPreCreate{
-					"Yuan chain coin",
-					"GOOD",
-					"An Easy Way to Build Blockchain",
-					10000 * 10000 * 100,
-					1 * 1e8,
-					"1Lmmwzw6ywVa3UZpA4tHvCB7gR9ZKRwpom"}} //该处指针不能为空否则会有崩溃
-				transfer.Value = v
-				transfer.Ty = ty
-			} else if types.TokenActionFinishCreate == ty {
-				v := &types.TokenAction_Tokenfinishcreate{&types.TokenFinishCreate{}}
-				transfer.Value = v
-				transfer.Ty = ty
-			} else if types.TokenActionRevokeCreate == ty {
-				v := &types.TokenAction_Tokenrevokecreate{&types.TokenRevokeCreate{}}
-				transfer.Value = v
-				transfer.Ty = ty
-			} else {
-				return nil
-			}
-			tx = &types.Transaction{Execer: []byte(execer), Payload: types.Encode(transfer), Fee: 1e6, To: to}
+		transfer := &types.TokenAction{}
+		if types.ActionTransfer == ty {
+			v := &types.TokenAction_Transfer{Transfer: &types.CoinsTransfer{Cointoken: "GOOD", Amount: 1e6}}
+			transfer.Value = v
+			transfer.Ty = ty
+		} else if types.ActionWithdraw == ty {
+			v := &types.TokenAction_Withdraw{Withdraw: &types.CoinsWithdraw{Cointoken: "GOOD", Amount: 1e6}}
+			transfer.Value = v
+			transfer.Ty = ty
+		} else if types.TokenActionPreCreate == ty {
+			v := &types.TokenAction_Tokenprecreate{&types.TokenPreCreate{
+				"Yuan chain coin",
+				"GOOD",
+				"An Easy Way to Build Blockchain",
+				10000 * 10000 * 100,
+				1 * 1e8,
+				"1Lmmwzw6ywVa3UZpA4tHvCB7gR9ZKRwpom"}} // 该处指针不能为空否则会有崩溃
+			transfer.Value = v
+			transfer.Ty = ty
+		} else if types.TokenActionFinishCreate == ty {
+			v := &types.TokenAction_Tokenfinishcreate{&types.TokenFinishCreate{}}
+			transfer.Value = v
+			transfer.Ty = ty
+		} else if types.TokenActionRevokeCreate == ty {
+			v := &types.TokenAction_Tokenrevokecreate{&types.TokenRevokeCreate{}}
+			transfer.Value = v
+			transfer.Ty = ty
+		} else {
+			return nil
 		}
+		tx = &types.Transaction{Execer: []byte(execer), Payload: types.Encode(transfer), Fee: 1e6, To: to}
 	default:
 		return nil
 	}
 	tx.Nonce = random.Int63()
-	//tx.To = account.ExecAddress(execer).String()
+	//tx.To = address.ExecAddress(execer).String()
 	tx.Sign(types.SECP256K1, priv)
 	return tx
 }
@@ -174,13 +144,13 @@ func constructionBlockDetail(block *types.Block, height int64, txcount int) *typ
 }
 
 func genExecTxListMsg(client queue.Client, block *types.Block) queue.Message {
-	list := &types.ExecTxList{zeroHash[:], block.Txs, block.BlockTime, block.Height}
+	list := &types.ExecTxList{zeroHash[:], block.Txs, block.BlockTime, block.Height, 0}
 	msg := client.NewMessage("execs", types.EventExecTxList, list)
 	return msg
 }
 
 func genExecCheckTxMsg(client queue.Client, block *types.Block) queue.Message {
-	list := &types.ExecTxList{zeroHash[:], block.Txs, block.BlockTime, block.Height}
+	list := &types.ExecTxList{zeroHash[:], block.Txs, block.BlockTime, block.Height, 0}
 	msg := client.NewMessage("execs", types.EventCheckTx, list)
 	return msg
 }
@@ -212,7 +182,7 @@ func storeProcess(q queue.Queue) {
 			switch msg.Ty {
 			case types.EventStoreGet:
 				datas := msg.GetData().(*types.StoreGet)
-				fmt.Println("EventStoreGet Keys[0] = %s", string(datas.Keys[0]))
+				//fmt.Println("EventStoreGet Keys[0] = %s", string(datas.Keys[0]))
 
 				var value []byte
 				if strings.Contains(string(datas.Keys[0]), "this type ***") { //这种type结构体走该分支
@@ -255,10 +225,10 @@ func blockchainProcess(q queue.Queue) {
 				header := &types.Header{StateHash: []byte("111111111111111111111"), Height: 1}
 				msg.Reply(client.NewMessage("", types.EventHeader, header))
 			case types.EventLocalGet:
-				fmt.Println("EventLocalGet rsp")
+				//fmt.Println("EventLocalGet rsp")
 				msg.Reply(client.NewMessage("", types.EventLocalReplyValue, &types.LocalReplyValue{}))
 			case types.EventLocalList:
-				fmt.Println("EventLocalList rsp")
+				//fmt.Println("EventLocalList rsp")
 				//value := []byte{1,2,3,4,5,6}
 				//values := make([][]byte,2)
 				//values = append(values[:0],value)
@@ -368,7 +338,7 @@ func TestQueueClient(t *testing.T) {
 	for _, str := range execTy {
 		ty, _ := strconv.Atoi(str[1])
 		block = createBlockEx(txNum, int32(ty), str[0])
-		addr1 = account.PubKeyToAddress(block.Txs[0].GetSignature().GetPubkey()).String() //将获取随机生成交易地址
+		addr1 = block.Txs[0].From() //将获取随机生成交易地址
 
 		// 1、测试 EventExecTxList 消息
 		msg = genExecTxListMsg(q.Client(), block)

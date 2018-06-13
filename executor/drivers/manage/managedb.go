@@ -1,7 +1,6 @@
 package manage
 
 import (
-	"gitlab.33.cn/chain33/chain33/account"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -9,10 +8,11 @@ import (
 type Action struct {
 	db       dbm.KV
 	fromaddr string
+	height   int64
 }
 
 func NewAction(m *Manage, tx *types.Transaction) *Action {
-	return &Action{db: m.GetStateDB(), fromaddr: account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()}
+	return &Action{db: m.GetStateDB(), fromaddr: tx.From(), height: m.GetHeight()}
 
 }
 
@@ -36,11 +36,16 @@ func (m *Action) modifyConfig(modify *types.ModifyConfig) (*types.Receipt, error
 	}
 
 	var item types.ConfigItem
-	value, err := m.db.Get([]byte(types.ConfigKey(modify.Key)))
+	value, err := m.db.Get([]byte(types.ManageKey(modify.Key)))
 	if err != nil {
 		value = nil
 	}
-
+	if value == nil {
+		value, err = m.db.Get([]byte(types.ConfigKey(modify.Key)))
+		if err != nil {
+			value = nil
+		}
+	}
 	if value != nil {
 		err = types.Decode(value, &item)
 		if err != nil {
@@ -92,7 +97,7 @@ func (m *Action) modifyConfig(modify *types.ModifyConfig) (*types.Receipt, error
 
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
-	key := types.ConfigKey(modify.Key)
+	key := types.ManaeKeyWithHeigh(modify.Key, m.height)
 	valueSave := types.Encode(&item)
 	m.db.Set([]byte(key), valueSave)
 	kv = append(kv, &types.KeyValue{[]byte(key), valueSave})

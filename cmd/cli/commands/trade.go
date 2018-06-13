@@ -74,7 +74,7 @@ func showOnesSellOrders(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	var res types.ReplySellOrders
+	var res types.RpcReplyTradeOrders
 	err = rpc.Call("Chain33.Query", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -133,7 +133,7 @@ func showTokenSellOrders(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	var res types.ReplySellOrders
+	var res types.RpcReplyTradeOrders
 	err = rpc.Call("Chain33.Query", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -180,7 +180,7 @@ func showSellOrderWithStatus(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	var res types.ReplySellOrders
+	var res types.RpcReplyTradeOrders
 	err = rpc.Call("Chain33.Query", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -190,8 +190,8 @@ func showSellOrderWithStatus(cmd *cobra.Command, args []string) {
 	parseSellOrders(res)
 }
 
-func parseSellOrders(res types.ReplySellOrders) {
-	for i, sellorder := range res.SellOrders {
+func parseSellOrders(res types.RpcReplyTradeOrders) {
+	for i, sellorder := range res.Orders {
 		var sellOrders2show SellOrder2Show
 		sellOrders2show.Tokensymbol = sellorder.TokenSymbol
 		sellOrders2show.Seller = sellorder.Owner
@@ -199,7 +199,7 @@ func parseSellOrders(res types.ReplySellOrders) {
 		sellOrders2show.Minboardlot = sellorder.MinBoardlot
 		sellOrders2show.Priceperboardlot = strconv.FormatFloat(float64(sellorder.PricePerBoardlot)/float64(types.Coin), 'f', 8, 64)
 		sellOrders2show.Totalboardlot = sellorder.TotalBoardlot
-		sellOrders2show.Soldboardlot = sellorder.SoldBoardlot
+		sellOrders2show.Soldboardlot = sellorder.TradedBoardlot
 		sellOrders2show.SellID = sellorder.SellID
 		sellOrders2show.Status = types.SellOrderStatus[sellorder.Status]
 		sellOrders2show.Height = sellorder.Height
@@ -266,14 +266,14 @@ func showOnesBuyOrders(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	var res types.ReplyBuyOrders
+	var res types.RpcReplyTradeOrders
 	err = rpc.Call("Chain33.Query", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 
-	for i, buy := range res.BuyOrders {
+	for i, buy := range res.Orders {
 		data, err := json.MarshalIndent(buy, "", "    ")
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)

@@ -6,12 +6,15 @@
 package client
 
 import (
-	"bytes"
+	"encoding/hex"
 	"fmt"
+	"math/rand"
 	"time"
 
 	"github.com/inconshreveable/log15"
 
+	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/version"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -73,7 +76,7 @@ func (q *QueueProtocol) Close() {
 	q.client.Close()
 }
 
-func (q *QueueProtocol) SetOption(option *QueueProtocolOption) {
+func (q *QueueProtocol) setOption(option *QueueProtocolOption) {
 	if option != nil {
 		q.option = *option
 	}
@@ -366,6 +369,11 @@ func (q *QueueProtocol) WalletLock() (*types.Reply, error) {
 }
 
 func (q *QueueProtocol) WalletUnLock(param *types.WalletUnLock) (*types.Reply, error) {
+	if param == nil {
+		err := types.ErrInvalidParam
+		log.Error("WalletUnLock", "Error", err)
+		return nil, err
+	}
 	msg, err := q.query(walletKey, types.EventWalletUnLock, param)
 	if err != nil {
 		log.Error("WalletUnLock", "Error", err.Error())
@@ -620,23 +628,34 @@ func (q *QueueProtocol) IsNtpClockSync() (*types.Reply, error) {
 	return nil, err
 }
 
-func (q *QueueProtocol) LocalGet(param *types.ReqHash) (*types.LocalReplyValue, error) {
+func (q *QueueProtocol) LocalGet(param *types.LocalDBGet) (*types.LocalReplyValue, error) {
 	if param == nil {
 		err := types.ErrInvalidParam
 		log.Error("LocalGet", "Error", err)
 		return nil, err
 	}
 
-	var keys [][]byte
-	keys = append(keys, func(hash []byte) []byte {
-		s := [][]byte{[]byte("TotalFeeKey:"), hash}
-		sep := []byte("")
-		return bytes.Join(s, sep)
-	}(param.Hash))
-
-	msg, err := q.query(blockchainKey, types.EventLocalGet, &types.LocalDBGet{Keys: keys})
+	msg, err := q.query(blockchainKey, types.EventLocalGet, param)
 	if err != nil {
 		log.Error("LocalGet", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.LocalReplyValue); ok {
+		return reply, nil
+	}
+	return nil, types.ErrTypeAsset
+}
+
+func (q *QueueProtocol) LocalList(param *types.LocalDBList) (*types.LocalReplyValue, error) {
+	if param == nil {
+		err := types.ErrInvalidParam
+		log.Error("LocalList", "Error", err)
+		return nil, err
+	}
+
+	msg, err := q.query(blockchainKey, types.EventLocalList, param)
+	if err != nil {
+		log.Error("LocalList", "Error", err.Error())
 		return nil, err
 	}
 	if reply, ok := msg.GetData().(*types.LocalReplyValue); ok {
@@ -694,13 +713,19 @@ func (q *QueueProtocol) GetNetInfo() (*types.NodeNetInfo, error) {
 }
 
 func (q *QueueProtocol) SignRawTx(param *types.ReqSignRawTx) (*types.ReplySignRawTx, error) {
+	if param == nil {
+		err := types.ErrInvalidParam
+		log.Error("Query", "Error", err)
+		return nil, err
+	}
+
 	data := &types.ReqSignRawTx{
 		Addr:    param.GetAddr(),
 		Privkey: param.GetPrivkey(),
 		TxHex:   param.GetTxHex(),
 		Expire:  param.GetExpire(),
+		Index:   param.GetIndex(),
 	}
-
 	msg, err := q.query(walletKey, types.EventSignRawTx, data)
 	if err != nil {
 		log.Error("SignRawTx", "Error", err.Error())
@@ -751,4 +776,71 @@ func (q *QueueProtocol) StoreGetTotalCoins(param *types.IterateRangeByStateHash)
 	err = types.ErrTypeAsset
 	log.Error("StoreGetTotalCoins", "Error", err.Error())
 	return nil, err
+}
+
+func (q *QueueProtocol) GetFatalFailure() (*types.Int32, error) {
+	msg, err := q.query(walletKey, types.EventFatalFailure, &types.ReqNil{})
+	if err != nil {
+		log.Error("GetFatalFailure", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.Int32); ok {
+		return reply, nil
+	}
+	return nil, types.ErrTypeAsset
+}
+
+func (q *QueueProtocol) BindMiner(param *types.ReqBindMiner) (*types.ReplyBindMiner, error) {
+	ta := &types.TicketAction{}
+	tBind := &types.TicketBind{
+		MinerAddress:  param.BindAddr,
+		ReturnAddress: param.OriginAddr,
+	}
+	ta.Value = &types.TicketAction_Tbind{Tbind: tBind}
+	ta.Ty = types.TicketActionBind
+	execer := []byte("ticket")
+	to := address.ExecAddress(string(execer))
+	txBind := &types.Transaction{Execer: execer, Payload: types.Encode(ta), To: to}
+	random := rand.New(rand.NewSource(time.Now().UnixNano()))
+	txBind.Nonce = random.Int63()
+	var err error
+	txBind.Fee, err = txBind.GetRealFee(types.MinFee)
+	if err != nil {
+		return nil, err
+	}
+	txBind.Fee += types.MinFee
+	txBindHex := types.Encode(txBind)
+	cmdBind := "wallet sign -d " + hex.EncodeToString(txBindHex) + " -e 1h -a " + param.OriginAddr
+
+	if param.Amount < 0 {
+		return nil, types.ErrAmount
+	}
+	var txTrans *types.Transaction
+	transfer := &types.CoinsAction{}
+	v := &types.CoinsAction_Transfer{Transfer: &types.CoinsTransfer{Amount: param.Amount, Note: "coins->ticket"}}
+	transfer.Value = v
+	transfer.Ty = types.CoinsActionTransfer
+	txTrans = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), To: to}
+	txTrans.Fee, err = txTrans.GetRealFee(types.MinFee)
+	if err != nil {
+		return nil, err
+	}
+	random = rand.New(rand.NewSource(time.Now().UnixNano()))
+	txTrans.Nonce = random.Int63()
+	txTransHex := types.Encode(txTrans)
+	cmdTrans := "wallet sign -d " + hex.EncodeToString(txTransHex) + " -e 1h -a " + param.OriginAddr
+	return &types.ReplyBindMiner{CmdBind: cmdBind, CmdTrans: cmdTrans}, nil
+}
+
+func (q *QueueProtocol) DecodeRawTransaction(param *types.ReqDecodeRawTransaction) (*types.Transaction, error) {
+	var tx types.Transaction
+	bytes, err := common.FromHex(param.TxHex)
+	if err != nil {
+		return nil, err
+	}
+	err = types.Decode(bytes, &tx)
+	if err != nil {
+		return nil, err
+	}
+	return &tx, nil
 }

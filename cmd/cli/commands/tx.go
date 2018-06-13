@@ -158,6 +158,10 @@ func getTxsByHashes(cmd *cobra.Command, args []string) {
 func parseQueryTxsByHashesRes(arg interface{}) (interface{}, error) {
 	var result TxDetailsResult
 	for _, v := range arg.(*jsonrpc.TransactionDetails).Txs {
+		if v == nil {
+			result.Txs = append(result.Txs, nil)
+			continue
+		}
 		amountResult := strconv.FormatFloat(float64(v.Amount)/float64(types.Coin), 'f', 4, 64)
 		td := TxDetailResult{
 			Tx:         decodeTransaction(v.Tx),
@@ -239,7 +243,9 @@ func decodeTx(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	result, err := json.MarshalIndent(res, "", "    ")
+	txResult := decodeTransaction(res)
+
+	result, err := json.MarshalIndent(txResult, "", "    ")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
