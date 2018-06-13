@@ -62,7 +62,7 @@ func (p *privacy) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 		if types.BTY == public2Privacy.Tokenname {
 			coinsAccount := p.GetCoinsAccount()
 			from := account.From(tx).String()
-			receipt, err := coinsAccount.TransferWithdraw(from, p.GetAddr(), public2Privacy.Amount)
+			receipt, err := coinsAccount.ExecWithdraw(p.GetAddr(), from, public2Privacy.Amount)
 			if err != nil {
 				privacylog.Error("Privacy exec ActionPublic2Privacy", "ExecWithdraw failed due to ", err)
 				return nil, err
@@ -104,7 +104,7 @@ func (p *privacy) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 			receipt := &types.Receipt{KV: make([]*types.KeyValue, 0)}
 			privacyInput := privacy2Privacy.Input
 			for _, keyInput := range privacyInput.Keyinput {
-				value := []byte{1}
+				value := []byte{KeyImageSpentAlready}
 				key := calcPrivacyKeyImageKey(privacy2Privacy.Tokenname, keyInput.KeyImage)
 				stateDB := p.GetStateDB()
 				stateDB.Set(key, value)
@@ -153,7 +153,7 @@ func (p *privacy) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 
 			privacyInput := privacy2public.Input
 			for _, keyInput := range privacyInput.Keyinput {
-				value := []byte{1}
+				value := []byte{KeyImageSpentAlready}
 				// TODO: 隐私交易，需要按照规则写key
 				key := calcPrivacyKeyImageKey(privacy2public.Tokenname, keyInput.KeyImage)
 				stateDB := p.GetStateDB()
@@ -497,12 +497,23 @@ func (p *privacy) CheckTx(tx *types.Transaction, index int) error {
 			pubkeys = append(pubkeys, ringSignature.Items[i].Pubkey[j])
 		}
 	}
-	if !p.checkUTXOValid(keyImages) {
+	res, errIndex := p.checkUTXOValid(keyImages)
+	if !res {
+		if errIndex >= 0 && errIndex < int32(len(keyinput)) {
+			input := keyinput[errIndex]
+			privacylog.Error("UTXO spent already", "privacy tx hash", common.ToHex(tx.Hash()),
+				"errindex", errIndex, "utxo amout", input.Amount, "utxo keyimage", common.ToHex(input.KeyImage))
+		}
+
 		privacylog.Error("exec UTXO double spend check failed")
 		return types.ErrDoubeSpendOccur
 	}
 
-	if !p.checkPubKeyValid(keys, pubkeys) {
+	res, errIndex = p.checkPubKeyValid(keys, pubkeys)
+	if !res {
+		if errIndex >= 0 && errIndex < int32(len(pubkeys)) {
+			privacylog.Error("Wrong pubkey", "errIndex", errIndex)
+		}
 		privacylog.Error("exec UTXO double spend check failed")
 		return types.ErrPubkeysOfUTXO
 	}
@@ -528,35 +539,46 @@ func (p *privacy) CheckTx(tx *types.Transaction, index int) error {
 }
 
 //通过keyImage确认是否存在双花，有效即不存在双花，返回true，反之则返回false
-func (p *privacy) checkUTXOValid(keyImages [][]byte) bool {
+func (p *privacy) checkUTXOValid(keyImages [][]byte) (bool, int32) {
 	stateDB := p.GetStateDB()
-	if values, err := stateDB.BatchGet(keyImages); err == nil {
-		if len(values) != len(keyImages) {
-			privacylog.Error("exec module", "checkUTXOValid return different count value with keys")
-			return false
-		}
-		for _, value := range values {
-			if value != nil {
-				return false
-			}
-		}
-		return true
+	values, err := stateDB.BatchGet(keyImages)
+	if err != nil {
+		privacylog.Error("exec module", "checkUTXOValid failed to get value from statDB")
+		return false, Invalid_index
 	}
-	return false
+	if len(values) != len(keyImages) {
+		privacylog.Error("exec module", "checkUTXOValid return different count value with keys")
+		return false, Invalid_index
+	}
+	for i, value := range values {
+		if value != nil {
+			return false, int32(i)
+		}
+	}
+
+	return true, Invalid_index
 }
 
-func (p *privacy) checkPubKeyValid(keys [][]byte, pubkeys [][]byte) bool {
-	if values, err := p.GetStateDB().BatchGet(keys); err == nil {
-		if len(values) != len(pubkeys) {
-			privacylog.Error("exec module", "checkPubKeyValid return different count value with keys")
-			return false
-		}
-		for i, value := range values {
-			if bytes.Equal(value, pubkeys[i]) {
-				return false
-			}
-		}
-		return true
+func (p *privacy) checkPubKeyValid(keys [][]byte, pubkeys [][]byte) (bool, int32) {
+	values, err := p.GetStateDB().BatchGet(keys)
+	if err != nil {
+		privacylog.Error("exec module", "checkPubKeyValid failed to get value from statDB with err", err)
+		return false, Invalid_index
 	}
-	return false
+
+	if len(values) != len(pubkeys) {
+		privacylog.Error("exec module", "checkPubKeyValid return different count value with keys")
+		return false, Invalid_index
+	}
+
+	for i, value := range values {
+		var keyoutput types.KeyOutput
+		types.Decode(value, &keyoutput)
+		if !bytes.Equal(keyoutput.Onetimepubkey, pubkeys[i]) {
+			privacylog.Error("exec module", "checkPubKeyValid failed", keyoutput.Onetimepubkey, pubkeys[i])
+			return false, int32(i)
+		}
+	}
+
+	return true, Invalid_index
 }
