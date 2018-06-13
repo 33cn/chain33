@@ -3,12 +3,17 @@ version: '3'
 services:
   chain33:
     build:
-      context: "./"
+      context: .
 
   chain32:
     build:
-      context: "./"
+      context: .
 
   chain31:
     build:
-      context: "./"
+      context: .
+
+  relayd:
+    build:
+      context: .
+      dockerfile: Dockerfile-relayd

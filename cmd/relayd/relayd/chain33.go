@@ -82,8 +82,8 @@ func (c *Client33) ping(ctx context.Context) error {
 		return err
 	}
 
-	if isSync.IsOk {
-		c.isSyncing = isSync.IsOk
+	if !isSync.IsOk {
+		c.isSyncing = !isSync.IsOk
 		log.Warn(fmt.Sprintf("node is syncing： %s", isSync.String()))
 	}
 	c.isSyncing = false
