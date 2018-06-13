@@ -12,12 +12,11 @@ message EVMContractObject {
 // 存放合约固定数据
 message EVMContractData {
     string creator = 1;
-    int64 createTime = 2;
-    string name = 3;
-    string alias = 4;
-    string addr = 5;
-    bytes code = 6;
-    bytes codeHash = 7;
+    string name = 2;
+    string alias = 3;
+    string addr = 4;
+    bytes code = 5;
+    bytes codeHash = 6;
 }
 
 // 存放合约变化数据
@@ -58,12 +57,11 @@ message ReceiptEVMContract {
 // 存放合约固定数据
 message EVMContractDataCmd {
     string creator = 1;
-    string createTime = 2;
-    string name = 3;
-    string alias = 4;
-    string addr = 5;
-    string code = 6;
-    string codeHash = 7;
+    string name = 2;
+    string alias = 3;
+    string addr = 4;
+    string code = 5;
+    string codeHash = 6;
 }
 
 // 存放合约变化数据
@@ -90,15 +88,16 @@ message CheckEVMAddrReq {
 }
 message CheckEVMAddrResp {
     bool contract = 1;
-    string createTime = 2;
-    string contractAddr = 3;
-    string contractName = 4;
-    string aliasName = 5;
+    string contractAddr = 2;
+    string contractName = 3;
+    string aliasName = 4;
 }
 
 message EstimateEVMGasReq {
     string to = 1;
     bytes code = 2;
+    string caller = 3;
+    uint64 amount = 4;
 }
 message EstimateEVMGasResp {
     uint64 gas = 1;
