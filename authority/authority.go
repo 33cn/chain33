@@ -30,7 +30,7 @@ type Authority struct {
 
 func New(conf *types.Authority) *Authority {
 	auth := &Authority{}
-	if conf.Enable {
+	if conf != nil && conf.Enable {
 		err := auth.initConfig(conf)
 		if err != nil {
 			alog.Error("Initialize authority module failed", "Error", err.Error())
