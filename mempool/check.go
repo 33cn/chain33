@@ -118,11 +118,18 @@ func (mem *Mempool) CheckSignList() {
 			for data := range mem.signChan {
 				tx, ok := data.GetData().(types.TxGroup)
 				if types.IsAuthEnable {
-					result = mem.CheckSignFromAuth(tx.Tx())
+					if ok {
+						result = mem.CheckSignFromAuth(tx.Tx())
+					}
 					if result {
 						// 签名正确，联盟链跳过余额检查
-						mem.PushTx(tx.Tx())
-						mem.goodChan <- data
+						err := mem.PushTx(tx.Tx())
+						if err == nil {
+							mem.goodChan <- data
+						} else {
+							mlog.Error("wrong tx", "err", err)
+							mem.badChan <- data
+						}
 					} else {
 						mlog.Error("wrong tx", "err", types.ErrSign)
 						data.Data = types.ErrSign
