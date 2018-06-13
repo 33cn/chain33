@@ -6,14 +6,21 @@
 package client
 
 import (
+	"encoding/hex"
 	"fmt"
+	"math/rand"
 	"time"
 
 	"github.com/inconshreveable/log15"
 
+	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/version"
 	"gitlab.33.cn/chain33/chain33/queue"
+	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
+	"os"
+	"encoding/json"
 )
 
 const (
@@ -784,4 +791,44 @@ func (q *QueueProtocol) GetFatalFailure() (*types.Int32, error) {
 		return reply, nil
 	}
 	return nil, types.ErrTypeAsset
+}
+
+func (q *QueueProtocol) BindMiner(param *types.ReqBindMiner) (*types.ReplyBindMiner, error) {
+	ta := &types.TicketAction{}
+	tBind := &types.TicketBind{
+		MinerAddress:  param.BindAddr,
+		ReturnAddress: param.OriginAddr,
+	}
+	ta.Value = &types.TicketAction_Tbind{Tbind: tBind}
+	ta.Ty = types.TicketActionBind
+	execer := []byte("ticket")
+	to := address.ExecAddress(string(execer))
+	tx := &types.Transaction{Execer: execer, Payload: types.Encode(ta), To: to}
+	random := rand.New(rand.NewSource(time.Now().UnixNano()))
+	tx.Nonce = random.Int63()
+	var err error
+	tx.Fee, err = tx.GetRealFee(types.MinFee)
+	if err != nil {
+		return nil, err
+	}
+	tx.Fee += types.MinFee
+	txHex := types.Encode(tx)
+	return &types.ReplyBindMiner{TxHex: hex.EncodeToString(txHex)}, nil
+}
+
+func (q *QueueProtocol) DecodeRawTransaction(param *types.ReqDecodeRawTransaction) (*jsonrpc.Transaction, error) {
+	var tx types.Transaction
+	bytes, err := common.FromHex(param.TxHex)
+	if err != nil {
+		return nil, err
+	}
+	err = types.Decode(bytes, &tx)
+	if err != nil {
+		return nil, err
+	}
+	res, err := jsonrpc.DecodeTx(&tx)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
 }
