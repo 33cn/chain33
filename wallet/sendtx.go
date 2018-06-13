@@ -6,7 +6,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"gitlab.33.cn/chain33/chain33/account"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -183,13 +183,13 @@ func (wallet *Wallet) forceCloseAllTicket(height int64) (*types.ReplyHashes, err
 }
 
 func (wallet *Wallet) withdrawFromTicketOne(priv crypto.PrivKey) ([]byte, error) {
-	addr := account.PubKeyToAddress(priv.PubKey().Bytes()).String()
+	addr := address.PubKeyToAddress(priv.PubKey().Bytes()).String()
 	acc, err := wallet.getBalance(addr, "ticket")
 	if err != nil {
 		return nil, err
 	}
 	if acc.Balance > 0 {
-		hash, err := wallet.sendToAddress(priv, account.ExecAddress("ticket"), -acc.Balance, "autominer->withdraw", false, "")
+		hash, err := wallet.sendToAddress(priv, address.ExecAddress("ticket"), -acc.Balance, "autominer->withdraw", false, "")
 		if err != nil {
 			return nil, err
 		}
@@ -200,7 +200,7 @@ func (wallet *Wallet) withdrawFromTicketOne(priv crypto.PrivKey) ([]byte, error)
 
 func (wallet *Wallet) buyTicketOne(height int64, priv crypto.PrivKey) ([]byte, int, error) {
 	//ticket balance and coins balance
-	addr := account.PubKeyToAddress(priv.PubKey().Bytes()).String()
+	addr := address.PubKeyToAddress(priv.PubKey().Bytes()).String()
 	acc1, err := wallet.getBalance(addr, "coins")
 	if err != nil {
 		return nil, 0, err
@@ -214,7 +214,7 @@ func (wallet *Wallet) buyTicketOne(height int64, priv crypto.PrivKey) ([]byte, i
 	fee := types.Coin
 	if acc1.Balance+acc2.Balance-2*fee >= types.GetP(height).TicketPrice {
 		//第一步。转移币到 ticket
-		toaddr := account.ExecAddress("ticket")
+		toaddr := address.ExecAddress("ticket")
 		amount := acc1.Balance - 2*fee
 		//必须大于0，才需要转移币
 		var hash *types.ReplyHash
@@ -241,7 +241,7 @@ func (wallet *Wallet) buyTicketOne(height int64, priv crypto.PrivKey) ([]byte, i
 }
 
 func (wallet *Wallet) buyMinerAddrTicketOne(height int64, priv crypto.PrivKey) ([][]byte, int, error) {
-	addr := account.PubKeyToAddress(priv.PubKey().Bytes()).String()
+	addr := address.PubKeyToAddress(priv.PubKey().Bytes()).String()
 	//判断是否绑定了coldaddr
 	addrs, err := wallet.getMinerColdAddr(addr)
 	if err != nil {
@@ -271,7 +271,7 @@ func (wallet *Wallet) buyMinerAddrTicketOne(height int64, priv crypto.PrivKey) (
 }
 
 func (wallet *Wallet) processFee(priv crypto.PrivKey) error {
-	addr := account.PubKeyToAddress(priv.PubKey().Bytes()).String()
+	addr := address.PubKeyToAddress(priv.PubKey().Bytes()).String()
 	acc1, err := wallet.getBalance(addr, "coins")
 	if err != nil {
 		return err
@@ -280,7 +280,7 @@ func (wallet *Wallet) processFee(priv crypto.PrivKey) error {
 	if err != nil {
 		return err
 	}
-	toaddr := account.ExecAddress("ticket")
+	toaddr := address.ExecAddress("ticket")
 	//如果acc2 的余额足够，那题withdraw 部分钱做手续费
 	if (acc1.Balance < (types.Coin / 2)) && (acc2.Balance > types.Coin) {
 		_, err := wallet.sendToAddress(priv, toaddr, -types.Coin, "ticket->coins", false, "")
@@ -292,7 +292,7 @@ func (wallet *Wallet) processFee(priv crypto.PrivKey) error {
 }
 
 func (wallet *Wallet) closeTicketsByAddr(height int64, priv crypto.PrivKey) ([]byte, error) {
-	addr := account.PubKeyToAddress(priv.PubKey().Bytes()).String()
+	addr := address.PubKeyToAddress(priv.PubKey().Bytes()).String()
 	tlist, err := wallet.getTickets(addr, 2)
 	if err != nil && err != types.ErrNotFound {
 		return nil, err
@@ -321,7 +321,7 @@ func (wallet *Wallet) closeTicketsByAddr(height int64, priv crypto.PrivKey) ([]b
 }
 
 func (wallet *Wallet) forceCloseTicketsByAddr(height int64, priv crypto.PrivKey) ([]byte, error) {
-	addr := account.PubKeyToAddress(priv.PubKey().Bytes()).String()
+	addr := address.PubKeyToAddress(priv.PubKey().Bytes()).String()
 	tlist1, err1 := wallet.getTickets(addr, 1)
 	if err1 != nil && err1 != types.ErrNotFound {
 		return nil, err1
@@ -387,7 +387,7 @@ func (wallet *Wallet) sendTransactionWait(payload types.Message, execer []byte, 
 
 func (wallet *Wallet) sendTransaction(payload types.Message, execer []byte, priv crypto.PrivKey, to string) (hash []byte, err error) {
 	if to == "" {
-		to = account.ExecAddress(string(execer))
+		to = address.ExecAddress(string(execer))
 	}
 	tx := &types.Transaction{Execer: execer, Payload: types.Encode(payload), Fee: minFee, To: to}
 	tx.Nonce = wallet.random.Int63()
@@ -527,8 +527,8 @@ func (wallet *Wallet) queryBalance(in *types.ReqBalance) ([]*types.Account, erro
 		addrs := in.GetAddresses()
 		var exaddrs []string
 		for _, addr := range addrs {
-			if err := account.CheckAddress(addr); err != nil {
-				addr = account.ExecAddress(addr)
+			if err := address.CheckAddress(addr); err != nil {
+				addr = address.ExecAddress(addr)
 			}
 			exaddrs = append(exaddrs, addr)
 		}
@@ -539,7 +539,7 @@ func (wallet *Wallet) queryBalance(in *types.ReqBalance) ([]*types.Account, erro
 		}
 		return accounts, nil
 	default:
-		execaddress := account.ExecAddress(in.GetExecer())
+		execaddress := address.ExecAddress(in.GetExecer())
 		addrs := in.GetAddresses()
 		var accounts []*types.Account
 		for _, addr := range addrs {

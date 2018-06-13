@@ -43,6 +43,7 @@ message CoinsWithdraw {
 	string cointoken = 1;
 	int64 amount = 2;
 	string note = 3;
+	string execName  = 4;
 }
 
 message Hashlock {

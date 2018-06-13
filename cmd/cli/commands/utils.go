@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/gogo/protobuf/proto"
-	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -263,14 +263,14 @@ func GetExecAddr(exec string) (string, error) {
 		return "", err
 	}
 
-	addrResult := account.ExecAddress(exec)
+	addrResult := address.ExecAddress(exec)
 	result := addrResult
 	return result, nil
 }
 
 func isAllowExecName(exec string) (bool, error) {
-	// exec name长度不能超过50
-	if len(exec) > 50 {
+	// exec name长度不能超过系统限制
+	if len(exec) > address.MaxExecNameLength {
 		return false, types.ErrExecNameNotAllow
 	}
 	// exec name中不允许有 "-"

@@ -9,8 +9,8 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/inconshreveable/log15"
-	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/difficulty"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers"
@@ -232,7 +232,7 @@ func (client *Client) flushTicketMsg(msg queue.Message) {
 func getPrivMap(privs []crypto.PrivKey) map[string]crypto.PrivKey {
 	list := make(map[string]crypto.PrivKey)
 	for _, priv := range privs {
-		addr := account.PubKeyToAddress(priv.PubKey().Bytes()).String()
+		addr := address.PubKeyToAddress(priv.PubKey().Bytes()).String()
 		list[addr] = priv
 	}
 	return list
@@ -583,7 +583,7 @@ func (client *Client) createMinerTx(ticketAction proto.Message, priv crypto.Priv
 	tx.Execer = []byte("ticket")
 	tx.Fee = types.MinFee
 	tx.Nonce = client.RandInt64()
-	tx.To = account.ExecAddress("ticket")
+	tx.To = address.ExecAddress("ticket")
 	tx.Payload = types.Encode(ticketAction)
 	tx.Sign(types.SECP256K1, priv)
 	return tx

@@ -49,6 +49,10 @@ type MemoryStateDB struct {
 	// 当前临时交易哈希和交易序号
 	txHash  common.Hash
 	txIndex int
+
+	// 用户保存合约账户的状态数据或合约代码数据有没有发生变更
+	stateDirty map[string]interface{}
+	dataDirty  map[string]interface{}
 }
 
 // 基于执行器框架的三个DB构建内存状态机对象
@@ -62,6 +66,8 @@ func NewMemoryStateDB(StateDB db.KV, LocalDB db.KVDB, CoinsAccount *account.DB) 
 		accounts:     make(map[string]*ContractAccount),
 		logs:         make(map[common.Hash][]*model.ContractLog),
 		preimages:    make(map[common.Hash][]byte),
+		stateDirty:   make(map[string]interface{}),
+		dataDirty:    make(map[string]interface{}),
 		refund:       0,
 		txIndex:      0,
 	}
@@ -107,11 +113,27 @@ func (self *MemoryStateDB) AddBalance(addr, caddr string, value uint64) {
 	log15.Debug("transfer result", "from", addr, "to", caddr, "amount", value, "result", res)
 }
 
+// 这里需要区分对待，如果是合约账户，则查看合约账户所有者地址在此合约下的余额；
+// 如果是外部账户，则直接返回外部账户的余额
 func (self *MemoryStateDB) GetBalance(addr string) uint64 {
 	if self.CoinsAccount == nil {
 		return 0
 	}
-	ac := self.CoinsAccount.LoadAccount(addr)
+	isExec := self.Exist(addr)
+	var ac *types.Account
+	if isExec {
+		contract := self.GetAccount(addr)
+		if contract == nil {
+			return 0
+		}
+		creator := contract.GetCreator()
+		if len(creator) == 0 {
+			return 0
+		}
+		ac = self.CoinsAccount.LoadExecAccount(creator, addr)
+	} else {
+		ac = self.CoinsAccount.LoadAccount(addr)
+	}
 	if ac != nil {
 		return uint64(ac.Balance)
 	}
@@ -154,6 +176,7 @@ func (self *MemoryStateDB) GetCode(addr string) []byte {
 func (self *MemoryStateDB) SetCode(addr string, code []byte) {
 	acc := self.GetAccount(addr)
 	if acc != nil {
+		self.dataDirty[addr] = true
 		acc.SetCode(code)
 	}
 }
@@ -209,6 +232,7 @@ func (self *MemoryStateDB) SetState(addr string, key common.Hash, value common.H
 	acc := self.GetAccount(addr)
 	if acc != nil {
 		acc.SetState(key, value)
+		self.stateDirty[addr] = true
 	}
 }
 
@@ -222,6 +246,7 @@ func (self *MemoryStateDB) Suicide(addr string) bool {
 			account:    addr,
 			prev:       acc.State.GetSuicided(),
 		})
+		self.stateDirty[addr] = true
 		return acc.Suicide()
 	}
 	return false
@@ -306,14 +331,17 @@ func (self *MemoryStateDB) GetLastSnapshot() *Snapshot {
 }
 
 // 获取合约对象的变更日志
-func (self *MemoryStateDB) GetReceiptLogs(addr string, created bool) (logs []*types.ReceiptLog) {
+func (self *MemoryStateDB) GetReceiptLogs(addr string) (logs []*types.ReceiptLog) {
 	acc := self.GetAccount(addr)
 	if acc != nil {
-		stateLog := acc.BuildStateLog()
-		if stateLog != nil {
-			logs = append(logs, acc.BuildStateLog())
+		if self.stateDirty[addr] != nil {
+			stateLog := acc.BuildStateLog()
+			if stateLog != nil {
+				logs = append(logs, acc.BuildStateLog())
+			}
 		}
-		if created {
+
+		if self.dataDirty[addr] != nil {
 			logs = append(logs, acc.BuildDataLog())
 		}
 		return
@@ -322,15 +350,25 @@ func (self *MemoryStateDB) GetReceiptLogs(addr string, created bool) (logs []*ty
 }
 
 // 获取本次操作所引起的状态数据变更
+// 因为目前执行器每次执行都是一个新的MemoryStateDB，所以，所有的快照都是从0开始的，
+// 这里获取的应该是从0到目前快照的所有变更；
+// 另外，因为合约内部会调用其它合约，也会产生数据变更，所以这里返回的数据，不止是一个合约的数据。
 func (self *MemoryStateDB) GetChangedData(version int) (kvSet []*types.KeyValue, logs []*types.ReceiptLog) {
-	snapshot := self.snapshots[version]
-
-	// 如果版本号不对，回滚失败
-	if snapshot == nil || snapshot.id != version {
-		log15.Crit(fmt.Errorf("Snapshot id %v cannot be reverted", version).Error())
+	if version < 0 {
 		return
 	}
-	return snapshot.getData()
+
+	for _, snapshot := range self.snapshots {
+		kv, log := snapshot.getData()
+		if kv != nil {
+			kvSet = append(kvSet, kv...)
+		}
+
+		if log != nil {
+			logs = append(logs, log...)
+		}
+	}
+	return
 }
 
 // 借助coins执行器进行转账相关操作
@@ -509,19 +547,13 @@ func (self *MemoryStateDB) transfer2Contract(sender, recipient string, amount in
 	if len(creator) == 0 {
 		return nil, model.ErrNoCreator
 	}
+	execAddr := recipient
 
-	// 第一步先将外部账户的金额转入自己的合约中
-	// 本操作不允许，需要首先外部操作coins账户
-	//ret, err = self.CoinsAccount.TransferToExec(sender.String(), recipient.String(), amount)
-	//if err != nil {
-	//	return nil, err
-	//}
-
-	// 第二步再从自己的合约账户到创建者的合约账户
+	// 从自己的合约账户到创建者的合约账户
 	// 有可能是外部账户调用自己创建的合约，这种情况下这一步可以省略
-
+	ret = &types.Receipt{}
 	if strings.Compare(sender, creator) != 0 {
-		rs, err := self.CoinsAccount.ExecTransfer(sender, creator, recipient, amount)
+		rs, err := self.CoinsAccount.ExecTransfer(sender, creator, execAddr, amount)
 		if err != nil {
 			return nil, err
 		}
@@ -546,10 +578,12 @@ func (self *MemoryStateDB) transfer2External(sender, recipient string, amount in
 		return nil, model.ErrNoCreator
 	}
 
+	execAddr := sender
+
 	// 第一步先从创建者的合约账户到接受者的合约账户
 	// 如果是自己调用自己创建的合约，这一步也可以省略
 	if strings.Compare(creator, recipient) != 0 {
-		ret, err = self.CoinsAccount.ExecTransfer(creator, recipient, sender, amount)
+		ret, err = self.CoinsAccount.ExecTransfer(creator, recipient, execAddr, amount)
 		if err != nil {
 			return nil, err
 		}

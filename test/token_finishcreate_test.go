@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"testing"
 
-	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -43,7 +43,7 @@ func TestFinishCreateToken(t *testing.T) {
 		return
 	}
 
-	addrfrom := account.PubKeyToAddress(priv.PubKey().Bytes())
+	addrfrom := address.PubKeyToAddress(priv.PubKey().Bytes())
 	t.Log(addrfrom)
 
 	v := &types.TokenAction_Tokenfinishcreate{&types.TokenFinishCreate{
