@@ -9,7 +9,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/rand"
-	"strconv"
 	"time"
 
 	"github.com/inconshreveable/log15"
