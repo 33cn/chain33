@@ -114,7 +114,7 @@ message P2P {
 message Rpc {
 	string jrpcBindAddr=1;
 	string grpcBindAddr=2;
-	repeated string ipWhitelist=3;
+	repeated string remoteIpWhitelist=3;
 	repeated string jrpcFuncWhitelist=4;
 	repeated string grpcFuncWhitelist=5;
 }

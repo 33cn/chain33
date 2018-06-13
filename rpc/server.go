@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	ipWhitelist       = make(map[string]bool)
+	remoteIpWhitelist = make(map[string]bool)
 	rpcCfg            *types.Rpc
 	jrpcFuncWhitelist = make(map[string]bool)
 	grpcFuncWhitelist = make(map[string]bool)
@@ -40,11 +40,11 @@ func (s *JSONRPCServer) Close() {
 
 func checkIpWhitelist(addr string) bool {
 
-	if _, ok := ipWhitelist["0.0.0.0"]; ok {
+	if _, ok := remoteIpWhitelist["0.0.0.0"]; ok {
 		return true
 	}
 
-	if _, ok := ipWhitelist[addr]; ok {
+	if _, ok := remoteIpWhitelist[addr]; ok {
 		return true
 	}
 	return false
@@ -95,13 +95,13 @@ func Init(cfg *types.Rpc) {
 }
 func InitIpWhitelist(cfg *types.Rpc) {
 	rpcCfg = cfg
-	if len(cfg.GetIpWhitelist()) == 1 && cfg.GetIpWhitelist()[0] == "*" {
-		ipWhitelist["0.0.0.0"] = true
+	if len(cfg.GetRemoteIpWhitelist()) == 1 && cfg.GetRemoteIpWhitelist()[0] == "*" {
+		remoteIpWhitelist["0.0.0.0"] = true
 		return
 	}
 
-	for _, addr := range cfg.GetIpWhitelist() {
-		ipWhitelist[addr] = true
+	for _, addr := range cfg.GetRemoteIpWhitelist() {
+		remoteIpWhitelist[addr] = true
 	}
 }
 func InitJrpcFuncWhitelist(cfg *types.Rpc) {
