@@ -1706,6 +1706,7 @@ func (wallet *Wallet) AddDelPrivacyTxsFromBlock(tx *types.Transaction, index int
 	totalUtxosLeft := len(privacyOutput.Keyoutput)
 	if privacyInfo, err := wallet.getPrivacyKeyPairsOfWallet(); err == nil {
 		matchedCount := 0
+		utxoProcessed := make([]bool, len(privacyOutput.Keyoutput))
 		for _, info := range privacyInfo {
 			walletlog.Debug("AddDelPrivacyTxsFromBlock", "individual privacyInfo's addr", *info.Addr)
 			privacykeyParirs := info.PrivacyKeyPair
@@ -1713,6 +1714,9 @@ func (wallet *Wallet) AddDelPrivacyTxsFromBlock(tx *types.Transaction, index int
 				"individual SpendPubkey", common.Bytes2Hex(privacykeyParirs.SpendPubkey.Bytes()))
 			matched4addr := false
 			for indexoutput, output := range privacyOutput.Keyoutput {
+				if utxoProcessed[indexoutput] {
+					continue
+				}
 				priv, err := privacy.RecoverOnetimePriKey(RpubKey, privacykeyParirs.ViewPrivKey, privacykeyParirs.SpendPrivKey, int64(indexoutput))
 				if err == nil {
 					recoverPub := priv.PubKey().Bytes()[:]
@@ -1723,6 +1727,7 @@ func (wallet *Wallet) AddDelPrivacyTxsFromBlock(tx *types.Transaction, index int
 						//2.但是如果是往本钱包的其他地址转账，因为可能存在的change，会匹配2次
 						matched4addr = true
 						totalUtxosLeft--
+						utxoProcessed[indexoutput] = true
 						walletlog.Debug("AddDelPrivacyTxsFromBlock got privacy tx belong to current wallet",
 							"Address", *info.Addr, "tx with hash", txhash, "Amount", amount)
 						//只有当该交易执行成功才进行相应的UTXO的处理
