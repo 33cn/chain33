@@ -9,8 +9,10 @@ import (
 )
 
 var (
-	whitlist = make(map[string]bool)
-	rpcCfg   *types.Rpc
+	ipWhitelist       = make(map[string]bool)
+	rpcCfg            *types.Rpc
+	jrpcFuncWhitelist = make(map[string]bool)
+	grpcFuncWhitelist = make(map[string]bool)
 )
 
 type Chain33 struct {
@@ -36,18 +38,39 @@ func (s *JSONRPCServer) Close() {
 
 }
 
-func checkWhitlist(addr string) bool {
+func checkIpWhitelist(addr string) bool {
 
-	if _, ok := whitlist["0.0.0.0"]; ok {
+	if _, ok := ipWhitelist["0.0.0.0"]; ok {
 		return true
 	}
 
-	if _, ok := whitlist[addr]; ok {
+	if _, ok := ipWhitelist[addr]; ok {
 		return true
 	}
 	return false
 }
+func checkJrpcFuncWritelist(funcName string) bool {
 
+	if _, ok := jrpcFuncWhitelist["*"]; ok {
+		return true
+	}
+
+	if _, ok := jrpcFuncWhitelist[funcName]; ok {
+		return true
+	}
+	return false
+}
+func checkGrpcFuncWritelist(funcName string) bool {
+
+	if _, ok := grpcFuncWhitelist["*"]; ok {
+		return true
+	}
+
+	if _, ok := grpcFuncWhitelist[funcName]; ok {
+		return true
+	}
+	return false
+}
 func (j *Grpcserver) Close() {
 	j.grpc.cli.Close()
 
@@ -66,14 +89,38 @@ func NewJSONRPCServer(c queue.Client) *JSONRPCServer {
 }
 
 func Init(cfg *types.Rpc) {
+	InitIpWhitelist(cfg)
+	InitJrpcFuncWhitelist(cfg)
+	InitGrpcFuncWhitelist(cfg)
+}
+func InitIpWhitelist(cfg *types.Rpc) {
 	rpcCfg = cfg
-	if len(cfg.Whitlist) == 1 && cfg.Whitlist[0] == "*" {
-		whitlist["0.0.0.0"] = true
+	if len(cfg.GetIpWhitelist()) == 1 && cfg.GetIpWhitelist()[0] == "*" {
+		ipWhitelist["0.0.0.0"] = true
 		return
 	}
 
-	for _, addr := range cfg.Whitlist {
-		whitlist[addr] = true
+	for _, addr := range cfg.GetIpWhitelist() {
+		ipWhitelist[addr] = true
 	}
-
+}
+func InitJrpcFuncWhitelist(cfg *types.Rpc) {
+	rpcCfg = cfg
+	if len(cfg.GetJrpcFuncWhitelist()) == 1 && cfg.GetJrpcFuncWhitelist()[0] == "*" {
+		jrpcFuncWhitelist["*"] = true
+		return
+	}
+	for _, funcName := range cfg.GetJrpcFuncWhitelist() {
+		jrpcFuncWhitelist[funcName] = true
+	}
+}
+func InitGrpcFuncWhitelist(cfg *types.Rpc) {
+	rpcCfg = cfg
+	if len(cfg.GetGrpcFuncWhitelist()) == 1 && cfg.GetGrpcFuncWhitelist()[0] == "*" {
+		grpcFuncWhitelist["*"] = true
+		return
+	}
+	for _, funcName := range cfg.GetGrpcFuncWhitelist() {
+		grpcFuncWhitelist[funcName] = true
+	}
 }
