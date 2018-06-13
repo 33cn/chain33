@@ -12,52 +12,24 @@ var _ = proto.Marshal
 var _ = fmt.Errorf
 var _ = math.Inf
 
-// This is a compile-time assertion to ensure that this generated file
-// is compatible with the proto package it is being compiled against.
-// A compilation error at this line likely means your copy of the
-// proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
-
 type Config struct {
-	Title                string      `protobuf:"bytes,1,opt,name=title" json:"title,omitempty"`
-	Log                  *Log        `protobuf:"bytes,2,opt,name=log" json:"log,omitempty"`
-	Store                *Store      `protobuf:"bytes,3,opt,name=store" json:"store,omitempty"`
-	Consensus            *Consensus  `protobuf:"bytes,5,opt,name=consensus" json:"consensus,omitempty"`
-	MemPool              *MemPool    `protobuf:"bytes,6,opt,name=memPool" json:"memPool,omitempty"`
-	BlockChain           *BlockChain `protobuf:"bytes,7,opt,name=blockChain" json:"blockChain,omitempty"`
-	Wallet               *Wallet     `protobuf:"bytes,8,opt,name=wallet" json:"wallet,omitempty"`
-	P2P                  *P2P        `protobuf:"bytes,9,opt,name=p2p" json:"p2p,omitempty"`
-	Rpc                  *Rpc        `protobuf:"bytes,10,opt,name=rpc" json:"rpc,omitempty"`
-	Exec                 *Exec       `protobuf:"bytes,11,opt,name=exec" json:"exec,omitempty"`
-	TestNet              bool        `protobuf:"varint,12,opt,name=testNet" json:"testNet,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}    `json:"-"`
-	XXX_unrecognized     []byte      `json:"-"`
-	XXX_sizecache        int32       `json:"-"`
+	Title      string      `protobuf:"bytes,1,opt,name=title" json:"title,omitempty"`
+	Log        *Log        `protobuf:"bytes,2,opt,name=log" json:"log,omitempty"`
+	Store      *Store      `protobuf:"bytes,3,opt,name=store" json:"store,omitempty"`
+	Consensus  *Consensus  `protobuf:"bytes,5,opt,name=consensus" json:"consensus,omitempty"`
+	MemPool    *MemPool    `protobuf:"bytes,6,opt,name=memPool" json:"memPool,omitempty"`
+	BlockChain *BlockChain `protobuf:"bytes,7,opt,name=blockChain" json:"blockChain,omitempty"`
+	Wallet     *Wallet     `protobuf:"bytes,8,opt,name=wallet" json:"wallet,omitempty"`
+	P2P        *P2P        `protobuf:"bytes,9,opt,name=p2p" json:"p2p,omitempty"`
+	Rpc        *Rpc        `protobuf:"bytes,10,opt,name=rpc" json:"rpc,omitempty"`
+	Exec       *Exec       `protobuf:"bytes,11,opt,name=exec" json:"exec,omitempty"`
+	TestNet    bool        `protobuf:"varint,12,opt,name=testNet" json:"testNet,omitempty"`
 }
 
-func (m *Config) Reset()         { *m = Config{} }
-func (m *Config) String() string { return proto.CompactTextString(m) }
-func (*Config) ProtoMessage()    {}
-func (*Config) Descriptor() ([]byte, []int) {
-	return fileDescriptor_config_4cc9d80f9e8b7ef9, []int{0}
-}
-func (m *Config) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_Config.Unmarshal(m, b)
-}
-func (m *Config) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_Config.Marshal(b, m, deterministic)
-}
-func (dst *Config) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Config.Merge(dst, src)
-}
-func (m *Config) XXX_Size() int {
-	return xxx_messageInfo_Config.Size(m)
-}
-func (m *Config) XXX_DiscardUnknown() {
-	xxx_messageInfo_Config.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_Config proto.InternalMessageInfo
+func (m *Config) Reset()                    { *m = Config{} }
+func (m *Config) String() string            { return proto.CompactTextString(m) }
+func (*Config) ProtoMessage()               {}
+func (*Config) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{0} }
 
 func (m *Config) GetTitle() string {
 	if m != nil {
@@ -155,35 +127,13 @@ type Log struct {
 	// 是否打印调用源文件和行号
 	CallerFile bool `protobuf:"varint,9,opt,name=callerFile" json:"callerFile,omitempty"`
 	// 是否打印调用方法
-	CallerFunction       bool     `protobuf:"varint,10,opt,name=callerFunction" json:"callerFunction,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	CallerFunction bool `protobuf:"varint,10,opt,name=callerFunction" json:"callerFunction,omitempty"`
 }
 
-func (m *Log) Reset()         { *m = Log{} }
-func (m *Log) String() string { return proto.CompactTextString(m) }
-func (*Log) ProtoMessage()    {}
-func (*Log) Descriptor() ([]byte, []int) {
-	return fileDescriptor_config_4cc9d80f9e8b7ef9, []int{1}
-}
-func (m *Log) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_Log.Unmarshal(m, b)
-}
-func (m *Log) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_Log.Marshal(b, m, deterministic)
-}
-func (dst *Log) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Log.Merge(dst, src)
-}
-func (m *Log) XXX_Size() int {
-	return xxx_messageInfo_Log.Size(m)
-}
-func (m *Log) XXX_DiscardUnknown() {
-	xxx_messageInfo_Log.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_Log proto.InternalMessageInfo
+func (m *Log) Reset()                    { *m = Log{} }
+func (m *Log) String() string            { return proto.CompactTextString(m) }
+func (*Log) ProtoMessage()               {}
+func (*Log) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{1} }
 
 func (m *Log) GetLoglevel() string {
 	if m != nil {
@@ -256,37 +206,15 @@ func (m *Log) GetCallerFunction() bool {
 }
 
 type MemPool struct {
-	PoolCacheSize        int64    `protobuf:"varint,1,opt,name=poolCacheSize" json:"poolCacheSize,omitempty"`
-	MinTxFee             int64    `protobuf:"varint,2,opt,name=minTxFee" json:"minTxFee,omitempty"`
-	ForceAccept          bool     `protobuf:"varint,3,opt,name=forceAccept" json:"forceAccept,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	PoolCacheSize int64 `protobuf:"varint,1,opt,name=poolCacheSize" json:"poolCacheSize,omitempty"`
+	MinTxFee      int64 `protobuf:"varint,2,opt,name=minTxFee" json:"minTxFee,omitempty"`
+	ForceAccept   bool  `protobuf:"varint,3,opt,name=forceAccept" json:"forceAccept,omitempty"`
 }
 
-func (m *MemPool) Reset()         { *m = MemPool{} }
-func (m *MemPool) String() string { return proto.CompactTextString(m) }
-func (*MemPool) ProtoMessage()    {}
-func (*MemPool) Descriptor() ([]byte, []int) {
-	return fileDescriptor_config_4cc9d80f9e8b7ef9, []int{2}
-}
-func (m *MemPool) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_MemPool.Unmarshal(m, b)
-}
-func (m *MemPool) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_MemPool.Marshal(b, m, deterministic)
-}
-func (dst *MemPool) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_MemPool.Merge(dst, src)
-}
-func (m *MemPool) XXX_Size() int {
-	return xxx_messageInfo_MemPool.Size(m)
-}
-func (m *MemPool) XXX_DiscardUnknown() {
-	xxx_messageInfo_MemPool.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_MemPool proto.InternalMessageInfo
+func (m *MemPool) Reset()                    { *m = MemPool{} }
+func (m *MemPool) String() string            { return proto.CompactTextString(m) }
+func (*MemPool) ProtoMessage()               {}
+func (*MemPool) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{2} }
 
 func (m *MemPool) GetPoolCacheSize() int64 {
 	if m != nil {
@@ -310,50 +238,28 @@ func (m *MemPool) GetForceAccept() bool {
 }
 
 type Consensus struct {
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
-	Genesis              string   `protobuf:"bytes,2,opt,name=genesis" json:"genesis,omitempty"`
-	Minerstart           bool     `protobuf:"varint,3,opt,name=minerstart" json:"minerstart,omitempty"`
-	GenesisBlockTime     int64    `protobuf:"varint,4,opt,name=genesisBlockTime" json:"genesisBlockTime,omitempty"`
-	HotkeyAddr           string   `protobuf:"bytes,5,opt,name=hotkeyAddr" json:"hotkeyAddr,omitempty"`
-	ForceMining          bool     `protobuf:"varint,6,opt,name=forceMining" json:"forceMining,omitempty"`
-	NodeId               int64    `protobuf:"varint,7,opt,name=NodeId" json:"NodeId,omitempty"`
-	PeersURL             string   `protobuf:"bytes,8,opt,name=PeersURL" json:"PeersURL,omitempty"`
-	ClientAddr           string   `protobuf:"bytes,9,opt,name=ClientAddr" json:"ClientAddr,omitempty"`
-	RaftApiPort          int64    `protobuf:"varint,15,opt,name=raftApiPort" json:"raftApiPort,omitempty"`
-	IsNewJoinNode        bool     `protobuf:"varint,16,opt,name=isNewJoinNode" json:"isNewJoinNode,omitempty"`
-	ReadOnlyPeersURL     string   `protobuf:"bytes,17,opt,name=readOnlyPeersURL" json:"readOnlyPeersURL,omitempty"`
-	AddPeersURL          string   `protobuf:"bytes,18,opt,name=addPeersURL" json:"addPeersURL,omitempty"`
-	DefaultSnapCount     int64    `protobuf:"varint,19,opt,name=defaultSnapCount" json:"defaultSnapCount,omitempty"`
-	WriteBlockSeconds    int64    `protobuf:"varint,20,opt,name=writeBlockSeconds" json:"writeBlockSeconds,omitempty"`
-	HeartbeatTick        int32    `protobuf:"varint,21,opt,name=heartbeatTick" json:"heartbeatTick,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Name              string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Genesis           string `protobuf:"bytes,2,opt,name=genesis" json:"genesis,omitempty"`
+	Minerstart        bool   `protobuf:"varint,3,opt,name=minerstart" json:"minerstart,omitempty"`
+	GenesisBlockTime  int64  `protobuf:"varint,4,opt,name=genesisBlockTime" json:"genesisBlockTime,omitempty"`
+	HotkeyAddr        string `protobuf:"bytes,5,opt,name=hotkeyAddr" json:"hotkeyAddr,omitempty"`
+	ForceMining       bool   `protobuf:"varint,6,opt,name=forceMining" json:"forceMining,omitempty"`
+	NodeId            int64  `protobuf:"varint,7,opt,name=NodeId" json:"NodeId,omitempty"`
+	PeersURL          string `protobuf:"bytes,8,opt,name=PeersURL" json:"PeersURL,omitempty"`
+	ClientAddr        string `protobuf:"bytes,9,opt,name=ClientAddr" json:"ClientAddr,omitempty"`
+	RaftApiPort       int64  `protobuf:"varint,15,opt,name=raftApiPort" json:"raftApiPort,omitempty"`
+	IsNewJoinNode     bool   `protobuf:"varint,16,opt,name=isNewJoinNode" json:"isNewJoinNode,omitempty"`
+	ReadOnlyPeersURL  string `protobuf:"bytes,17,opt,name=readOnlyPeersURL" json:"readOnlyPeersURL,omitempty"`
+	AddPeersURL       string `protobuf:"bytes,18,opt,name=addPeersURL" json:"addPeersURL,omitempty"`
+	DefaultSnapCount  int64  `protobuf:"varint,19,opt,name=defaultSnapCount" json:"defaultSnapCount,omitempty"`
+	WriteBlockSeconds int64  `protobuf:"varint,20,opt,name=writeBlockSeconds" json:"writeBlockSeconds,omitempty"`
+	HeartbeatTick     int32  `protobuf:"varint,21,opt,name=heartbeatTick" json:"heartbeatTick,omitempty"`
 }
 
-func (m *Consensus) Reset()         { *m = Consensus{} }
-func (m *Consensus) String() string { return proto.CompactTextString(m) }
-func (*Consensus) ProtoMessage()    {}
-func (*Consensus) Descriptor() ([]byte, []int) {
-	return fileDescriptor_config_4cc9d80f9e8b7ef9, []int{3}
-}
-func (m *Consensus) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_Consensus.Unmarshal(m, b)
-}
-func (m *Consensus) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_Consensus.Marshal(b, m, deterministic)
-}
-func (dst *Consensus) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Consensus.Merge(dst, src)
-}
-func (m *Consensus) XXX_Size() int {
-	return xxx_messageInfo_Consensus.Size(m)
-}
-func (m *Consensus) XXX_DiscardUnknown() {
-	xxx_messageInfo_Consensus.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_Consensus proto.InternalMessageInfo
+func (m *Consensus) Reset()                    { *m = Consensus{} }
+func (m *Consensus) String() string            { return proto.CompactTextString(m) }
+func (*Consensus) ProtoMessage()               {}
+func (*Consensus) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{3} }
 
 func (m *Consensus) GetName() string {
 	if m != nil {
@@ -468,41 +374,19 @@ func (m *Consensus) GetHeartbeatTick() int32 {
 }
 
 type Wallet struct {
-	MinFee               int64    `protobuf:"varint,1,opt,name=minFee" json:"minFee,omitempty"`
-	Driver               string   `protobuf:"bytes,2,opt,name=driver" json:"driver,omitempty"`
-	DbPath               string   `protobuf:"bytes,3,opt,name=dbPath" json:"dbPath,omitempty"`
-	DbCache              int32    `protobuf:"varint,4,opt,name=dbCache" json:"dbCache,omitempty"`
-	SignType             string   `protobuf:"bytes,5,opt,name=signType" json:"signType,omitempty"`
-	ForceMining          bool     `protobuf:"varint,6,opt,name=forceMining" json:"forceMining,omitempty"`
-	Minerdisable         bool     `protobuf:"varint,7,opt,name=minerdisable" json:"minerdisable,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	MinFee       int64  `protobuf:"varint,1,opt,name=minFee" json:"minFee,omitempty"`
+	Driver       string `protobuf:"bytes,2,opt,name=driver" json:"driver,omitempty"`
+	DbPath       string `protobuf:"bytes,3,opt,name=dbPath" json:"dbPath,omitempty"`
+	DbCache      int32  `protobuf:"varint,4,opt,name=dbCache" json:"dbCache,omitempty"`
+	SignType     string `protobuf:"bytes,5,opt,name=signType" json:"signType,omitempty"`
+	ForceMining  bool   `protobuf:"varint,6,opt,name=forceMining" json:"forceMining,omitempty"`
+	Minerdisable bool   `protobuf:"varint,7,opt,name=minerdisable" json:"minerdisable,omitempty"`
 }
 
-func (m *Wallet) Reset()         { *m = Wallet{} }
-func (m *Wallet) String() string { return proto.CompactTextString(m) }
-func (*Wallet) ProtoMessage()    {}
-func (*Wallet) Descriptor() ([]byte, []int) {
-	return fileDescriptor_config_4cc9d80f9e8b7ef9, []int{4}
-}
-func (m *Wallet) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_Wallet.Unmarshal(m, b)
-}
-func (m *Wallet) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_Wallet.Marshal(b, m, deterministic)
-}
-func (dst *Wallet) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Wallet.Merge(dst, src)
-}
-func (m *Wallet) XXX_Size() int {
-	return xxx_messageInfo_Wallet.Size(m)
-}
-func (m *Wallet) XXX_DiscardUnknown() {
-	xxx_messageInfo_Wallet.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_Wallet proto.InternalMessageInfo
+func (m *Wallet) Reset()                    { *m = Wallet{} }
+func (m *Wallet) String() string            { return proto.CompactTextString(m) }
+func (*Wallet) ProtoMessage()               {}
+func (*Wallet) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{4} }
 
 func (m *Wallet) GetMinFee() int64 {
 	if m != nil {
@@ -554,38 +438,16 @@ func (m *Wallet) GetMinerdisable() bool {
 }
 
 type Store struct {
-	Name                 string   `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
-	Driver               string   `protobuf:"bytes,2,opt,name=driver" json:"driver,omitempty"`
-	DbPath               string   `protobuf:"bytes,3,opt,name=dbPath" json:"dbPath,omitempty"`
-	DbCache              int32    `protobuf:"varint,4,opt,name=dbCache" json:"dbCache,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Name    string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Driver  string `protobuf:"bytes,2,opt,name=driver" json:"driver,omitempty"`
+	DbPath  string `protobuf:"bytes,3,opt,name=dbPath" json:"dbPath,omitempty"`
+	DbCache int32  `protobuf:"varint,4,opt,name=dbCache" json:"dbCache,omitempty"`
 }
 
-func (m *Store) Reset()         { *m = Store{} }
-func (m *Store) String() string { return proto.CompactTextString(m) }
-func (*Store) ProtoMessage()    {}
-func (*Store) Descriptor() ([]byte, []int) {
-	return fileDescriptor_config_4cc9d80f9e8b7ef9, []int{5}
-}
-func (m *Store) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_Store.Unmarshal(m, b)
-}
-func (m *Store) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_Store.Marshal(b, m, deterministic)
-}
-func (dst *Store) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Store.Merge(dst, src)
-}
-func (m *Store) XXX_Size() int {
-	return xxx_messageInfo_Store.Size(m)
-}
-func (m *Store) XXX_DiscardUnknown() {
-	xxx_messageInfo_Store.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_Store proto.InternalMessageInfo
+func (m *Store) Reset()                    { *m = Store{} }
+func (m *Store) String() string            { return proto.CompactTextString(m) }
+func (*Store) ProtoMessage()               {}
+func (*Store) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{5} }
 
 func (m *Store) GetName() string {
 	if m != nil {
@@ -616,44 +478,22 @@ func (m *Store) GetDbCache() int32 {
 }
 
 type BlockChain struct {
-	DefCacheSize         int64    `protobuf:"varint,1,opt,name=defCacheSize" json:"defCacheSize,omitempty"`
-	MaxFetchBlockNum     int64    `protobuf:"varint,2,opt,name=maxFetchBlockNum" json:"maxFetchBlockNum,omitempty"`
-	TimeoutSeconds       int64    `protobuf:"varint,3,opt,name=timeoutSeconds" json:"timeoutSeconds,omitempty"`
-	BatchBlockNum        int64    `protobuf:"varint,4,opt,name=batchBlockNum" json:"batchBlockNum,omitempty"`
-	Driver               string   `protobuf:"bytes,5,opt,name=driver" json:"driver,omitempty"`
-	DbPath               string   `protobuf:"bytes,6,opt,name=dbPath" json:"dbPath,omitempty"`
-	DbCache              int32    `protobuf:"varint,7,opt,name=dbCache" json:"dbCache,omitempty"`
-	IsStrongConsistency  bool     `protobuf:"varint,8,opt,name=isStrongConsistency" json:"isStrongConsistency,omitempty"`
-	SingleMode           bool     `protobuf:"varint,9,opt,name=singleMode" json:"singleMode,omitempty"`
-	Batchsync            bool     `protobuf:"varint,10,opt,name=batchsync" json:"batchsync,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	DefCacheSize        int64  `protobuf:"varint,1,opt,name=defCacheSize" json:"defCacheSize,omitempty"`
+	MaxFetchBlockNum    int64  `protobuf:"varint,2,opt,name=maxFetchBlockNum" json:"maxFetchBlockNum,omitempty"`
+	TimeoutSeconds      int64  `protobuf:"varint,3,opt,name=timeoutSeconds" json:"timeoutSeconds,omitempty"`
+	BatchBlockNum       int64  `protobuf:"varint,4,opt,name=batchBlockNum" json:"batchBlockNum,omitempty"`
+	Driver              string `protobuf:"bytes,5,opt,name=driver" json:"driver,omitempty"`
+	DbPath              string `protobuf:"bytes,6,opt,name=dbPath" json:"dbPath,omitempty"`
+	DbCache             int32  `protobuf:"varint,7,opt,name=dbCache" json:"dbCache,omitempty"`
+	IsStrongConsistency bool   `protobuf:"varint,8,opt,name=isStrongConsistency" json:"isStrongConsistency,omitempty"`
+	SingleMode          bool   `protobuf:"varint,9,opt,name=singleMode" json:"singleMode,omitempty"`
+	Batchsync           bool   `protobuf:"varint,10,opt,name=batchsync" json:"batchsync,omitempty"`
 }
 
-func (m *BlockChain) Reset()         { *m = BlockChain{} }
-func (m *BlockChain) String() string { return proto.CompactTextString(m) }
-func (*BlockChain) ProtoMessage()    {}
-func (*BlockChain) Descriptor() ([]byte, []int) {
-	return fileDescriptor_config_4cc9d80f9e8b7ef9, []int{6}
-}
-func (m *BlockChain) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_BlockChain.Unmarshal(m, b)
-}
-func (m *BlockChain) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_BlockChain.Marshal(b, m, deterministic)
-}
-func (dst *BlockChain) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_BlockChain.Merge(dst, src)
-}
-func (m *BlockChain) XXX_Size() int {
-	return xxx_messageInfo_BlockChain.Size(m)
-}
-func (m *BlockChain) XXX_DiscardUnknown() {
-	xxx_messageInfo_BlockChain.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_BlockChain proto.InternalMessageInfo
+func (m *BlockChain) Reset()                    { *m = BlockChain{} }
+func (m *BlockChain) String() string            { return proto.CompactTextString(m) }
+func (*BlockChain) ProtoMessage()               {}
+func (*BlockChain) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{6} }
 
 func (m *BlockChain) GetDefCacheSize() int64 {
 	if m != nil {
@@ -726,50 +566,28 @@ func (m *BlockChain) GetBatchsync() bool {
 }
 
 type P2P struct {
-	SeedPort             int32    `protobuf:"varint,1,opt,name=seedPort" json:"seedPort,omitempty"`
-	Driver               string   `protobuf:"bytes,2,opt,name=driver" json:"driver,omitempty"`
-	DbPath               string   `protobuf:"bytes,3,opt,name=dbPath" json:"dbPath,omitempty"`
-	DbCache              int32    `protobuf:"varint,4,opt,name=dbCache" json:"dbCache,omitempty"`
-	GrpcLogFile          string   `protobuf:"bytes,5,opt,name=grpcLogFile" json:"grpcLogFile,omitempty"`
-	IsSeed               bool     `protobuf:"varint,6,opt,name=isSeed" json:"isSeed,omitempty"`
-	ServerStart          bool     `protobuf:"varint,7,opt,name=serverStart" json:"serverStart,omitempty"`
-	Seeds                []string `protobuf:"bytes,8,rep,name=seeds" json:"seeds,omitempty"`
-	Enable               bool     `protobuf:"varint,9,opt,name=enable" json:"enable,omitempty"`
-	MsgCacheSize         int32    `protobuf:"varint,10,opt,name=msgCacheSize" json:"msgCacheSize,omitempty"`
-	Version              int32    `protobuf:"varint,11,opt,name=version" json:"version,omitempty"`
-	VerMix               int32    `protobuf:"varint,12,opt,name=verMix" json:"verMix,omitempty"`
-	VerMax               int32    `protobuf:"varint,13,opt,name=verMax" json:"verMax,omitempty"`
-	InnerSeedEnable      bool     `protobuf:"varint,14,opt,name=innerSeedEnable" json:"innerSeedEnable,omitempty"`
-	InnerBounds          int32    `protobuf:"varint,15,opt,name=innerBounds" json:"innerBounds,omitempty"`
-	UseGithub            bool     `protobuf:"varint,16,opt,name=useGithub" json:"useGithub,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	SeedPort        int32    `protobuf:"varint,1,opt,name=seedPort" json:"seedPort,omitempty"`
+	Driver          string   `protobuf:"bytes,2,opt,name=driver" json:"driver,omitempty"`
+	DbPath          string   `protobuf:"bytes,3,opt,name=dbPath" json:"dbPath,omitempty"`
+	DbCache         int32    `protobuf:"varint,4,opt,name=dbCache" json:"dbCache,omitempty"`
+	GrpcLogFile     string   `protobuf:"bytes,5,opt,name=grpcLogFile" json:"grpcLogFile,omitempty"`
+	IsSeed          bool     `protobuf:"varint,6,opt,name=isSeed" json:"isSeed,omitempty"`
+	ServerStart     bool     `protobuf:"varint,7,opt,name=serverStart" json:"serverStart,omitempty"`
+	Seeds           []string `protobuf:"bytes,8,rep,name=seeds" json:"seeds,omitempty"`
+	Enable          bool     `protobuf:"varint,9,opt,name=enable" json:"enable,omitempty"`
+	MsgCacheSize    int32    `protobuf:"varint,10,opt,name=msgCacheSize" json:"msgCacheSize,omitempty"`
+	Version         int32    `protobuf:"varint,11,opt,name=version" json:"version,omitempty"`
+	VerMix          int32    `protobuf:"varint,12,opt,name=verMix" json:"verMix,omitempty"`
+	VerMax          int32    `protobuf:"varint,13,opt,name=verMax" json:"verMax,omitempty"`
+	InnerSeedEnable bool     `protobuf:"varint,14,opt,name=innerSeedEnable" json:"innerSeedEnable,omitempty"`
+	InnerBounds     int32    `protobuf:"varint,15,opt,name=innerBounds" json:"innerBounds,omitempty"`
+	UseGithub       bool     `protobuf:"varint,16,opt,name=useGithub" json:"useGithub,omitempty"`
 }
 
-func (m *P2P) Reset()         { *m = P2P{} }
-func (m *P2P) String() string { return proto.CompactTextString(m) }
-func (*P2P) ProtoMessage()    {}
-func (*P2P) Descriptor() ([]byte, []int) {
-	return fileDescriptor_config_4cc9d80f9e8b7ef9, []int{7}
-}
-func (m *P2P) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_P2P.Unmarshal(m, b)
-}
-func (m *P2P) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_P2P.Marshal(b, m, deterministic)
-}
-func (dst *P2P) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_P2P.Merge(dst, src)
-}
-func (m *P2P) XXX_Size() int {
-	return xxx_messageInfo_P2P.Size(m)
-}
-func (m *P2P) XXX_DiscardUnknown() {
-	xxx_messageInfo_P2P.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_P2P proto.InternalMessageInfo
+func (m *P2P) Reset()                    { *m = P2P{} }
+func (m *P2P) String() string            { return proto.CompactTextString(m) }
+func (*P2P) ProtoMessage()               {}
+func (*P2P) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{7} }
 
 func (m *P2P) GetSeedPort() int32 {
 	if m != nil {
@@ -884,37 +702,15 @@ func (m *P2P) GetUseGithub() bool {
 }
 
 type Rpc struct {
-	JrpcBindAddr         string   `protobuf:"bytes,1,opt,name=jrpcBindAddr" json:"jrpcBindAddr,omitempty"`
-	GrpcBindAddr         string   `protobuf:"bytes,2,opt,name=grpcBindAddr" json:"grpcBindAddr,omitempty"`
-	Whitlist             []string `protobuf:"bytes,3,rep,name=whitlist" json:"whitlist,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	JrpcBindAddr string   `protobuf:"bytes,1,opt,name=jrpcBindAddr" json:"jrpcBindAddr,omitempty"`
+	GrpcBindAddr string   `protobuf:"bytes,2,opt,name=grpcBindAddr" json:"grpcBindAddr,omitempty"`
+	Whitlist     []string `protobuf:"bytes,3,rep,name=whitlist" json:"whitlist,omitempty"`
 }
 
-func (m *Rpc) Reset()         { *m = Rpc{} }
-func (m *Rpc) String() string { return proto.CompactTextString(m) }
-func (*Rpc) ProtoMessage()    {}
-func (*Rpc) Descriptor() ([]byte, []int) {
-	return fileDescriptor_config_4cc9d80f9e8b7ef9, []int{8}
-}
-func (m *Rpc) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_Rpc.Unmarshal(m, b)
-}
-func (m *Rpc) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_Rpc.Marshal(b, m, deterministic)
-}
-func (dst *Rpc) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Rpc.Merge(dst, src)
-}
-func (m *Rpc) XXX_Size() int {
-	return xxx_messageInfo_Rpc.Size(m)
-}
-func (m *Rpc) XXX_DiscardUnknown() {
-	xxx_messageInfo_Rpc.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_Rpc proto.InternalMessageInfo
+func (m *Rpc) Reset()                    { *m = Rpc{} }
+func (m *Rpc) String() string            { return proto.CompactTextString(m) }
+func (*Rpc) ProtoMessage()               {}
+func (*Rpc) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{8} }
 
 func (m *Rpc) GetJrpcBindAddr() string {
 	if m != nil {
@@ -938,37 +734,15 @@ func (m *Rpc) GetWhitlist() []string {
 }
 
 type Exec struct {
-	MinExecFee           int64    `protobuf:"varint,1,opt,name=minExecFee" json:"minExecFee,omitempty"`
-	IsFree               bool     `protobuf:"varint,2,opt,name=isFree" json:"isFree,omitempty"`
-	EnableStat           bool     `protobuf:"varint,3,opt,name=enableStat" json:"enableStat,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	MinExecFee int64 `protobuf:"varint,1,opt,name=minExecFee" json:"minExecFee,omitempty"`
+	IsFree     bool  `protobuf:"varint,2,opt,name=isFree" json:"isFree,omitempty"`
+	EnableStat bool  `protobuf:"varint,3,opt,name=enableStat" json:"enableStat,omitempty"`
 }
 
-func (m *Exec) Reset()         { *m = Exec{} }
-func (m *Exec) String() string { return proto.CompactTextString(m) }
-func (*Exec) ProtoMessage()    {}
-func (*Exec) Descriptor() ([]byte, []int) {
-	return fileDescriptor_config_4cc9d80f9e8b7ef9, []int{9}
-}
-func (m *Exec) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_Exec.Unmarshal(m, b)
-}
-func (m *Exec) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_Exec.Marshal(b, m, deterministic)
-}
-func (dst *Exec) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Exec.Merge(dst, src)
-}
-func (m *Exec) XXX_Size() int {
-	return xxx_messageInfo_Exec.Size(m)
-}
-func (m *Exec) XXX_DiscardUnknown() {
-	xxx_messageInfo_Exec.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_Exec proto.InternalMessageInfo
+func (m *Exec) Reset()                    { *m = Exec{} }
+func (m *Exec) String() string            { return proto.CompactTextString(m) }
+func (*Exec) ProtoMessage()               {}
+func (*Exec) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{9} }
 
 func (m *Exec) GetMinExecFee() int64 {
 	if m != nil {
@@ -1004,9 +778,9 @@ func init() {
 	proto.RegisterType((*Exec)(nil), "types.Exec")
 }
 
-func init() { proto.RegisterFile("config.proto", fileDescriptor_config_4cc9d80f9e8b7ef9) }
+func init() { proto.RegisterFile("config.proto", fileDescriptor3) }
 
-var fileDescriptor_config_4cc9d80f9e8b7ef9 = []byte{
+var fileDescriptor3 = []byte{
 	// 1139 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x96, 0xdd, 0x6e, 0xe3, 0x44,
 	0x14, 0xc7, 0x95, 0xba, 0x49, 0x93, 0x69, 0xb3, 0x1f, 0xde, 0x05, 0x59, 0x68, 0x05, 0x91, 0x05,

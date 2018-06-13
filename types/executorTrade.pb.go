@@ -12,12 +12,6 @@ var _ = proto.Marshal
 var _ = fmt.Errorf
 var _ = math.Inf
 
-// This is a compile-time assertion to ensure that this generated file
-// is compatible with the proto package it is being compiled against.
-// A compilation error at this line likely means your copy of the
-// proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
-
 // trade 交易部分
 //
 type Trade struct {
@@ -28,36 +22,14 @@ type Trade struct {
 	//	*Trade_Tokenbuylimit
 	//	*Trade_Tokensellmarket
 	//	*Trade_Tokenrevokebuy
-	Value                isTrade_Value `protobuf_oneof:"value"`
-	Ty                   int32         `protobuf:"varint,4,opt,name=ty" json:"ty,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}      `json:"-"`
-	XXX_unrecognized     []byte        `json:"-"`
-	XXX_sizecache        int32         `json:"-"`
+	Value isTrade_Value `protobuf_oneof:"value"`
+	Ty    int32         `protobuf:"varint,4,opt,name=ty" json:"ty,omitempty"`
 }
 
-func (m *Trade) Reset()         { *m = Trade{} }
-func (m *Trade) String() string { return proto.CompactTextString(m) }
-func (*Trade) ProtoMessage()    {}
-func (*Trade) Descriptor() ([]byte, []int) {
-	return fileDescriptor_executorTrade_6b4bd7aac5d33e67, []int{0}
-}
-func (m *Trade) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_Trade.Unmarshal(m, b)
-}
-func (m *Trade) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_Trade.Marshal(b, m, deterministic)
-}
-func (dst *Trade) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Trade.Merge(dst, src)
-}
-func (m *Trade) XXX_Size() int {
-	return xxx_messageInfo_Trade.Size(m)
-}
-func (m *Trade) XXX_DiscardUnknown() {
-	xxx_messageInfo_Trade.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_Trade proto.InternalMessageInfo
+func (m *Trade) Reset()                    { *m = Trade{} }
+func (m *Trade) String() string            { return proto.CompactTextString(m) }
+func (*Trade) ProtoMessage()               {}
+func (*Trade) Descriptor() ([]byte, []int) { return fileDescriptor7, []int{0} }
 
 type isTrade_Value interface {
 	isTrade_Value()
@@ -260,32 +232,32 @@ func _Trade_OneofSizer(msg proto.Message) (n int) {
 	switch x := m.Value.(type) {
 	case *Trade_Tokensell:
 		s := proto.Size(x.Tokensell)
-		n += 1 // tag and wire
+		n += proto.SizeVarint(1<<3 | proto.WireBytes)
 		n += proto.SizeVarint(uint64(s))
 		n += s
 	case *Trade_Tokenbuy:
 		s := proto.Size(x.Tokenbuy)
-		n += 1 // tag and wire
+		n += proto.SizeVarint(2<<3 | proto.WireBytes)
 		n += proto.SizeVarint(uint64(s))
 		n += s
 	case *Trade_Tokenrevokesell:
 		s := proto.Size(x.Tokenrevokesell)
-		n += 1 // tag and wire
+		n += proto.SizeVarint(3<<3 | proto.WireBytes)
 		n += proto.SizeVarint(uint64(s))
 		n += s
 	case *Trade_Tokenbuylimit:
 		s := proto.Size(x.Tokenbuylimit)
-		n += 1 // tag and wire
+		n += proto.SizeVarint(5<<3 | proto.WireBytes)
 		n += proto.SizeVarint(uint64(s))
 		n += s
 	case *Trade_Tokensellmarket:
 		s := proto.Size(x.Tokensellmarket)
-		n += 1 // tag and wire
+		n += proto.SizeVarint(6<<3 | proto.WireBytes)
 		n += proto.SizeVarint(uint64(s))
 		n += s
 	case *Trade_Tokenrevokebuy:
 		s := proto.Size(x.Tokenrevokebuy)
-		n += 1 // tag and wire
+		n += proto.SizeVarint(7<<3 | proto.WireBytes)
 		n += proto.SizeVarint(uint64(s))
 		n += s
 	case nil:
@@ -306,37 +278,15 @@ type TradeForSell struct {
 	PricePerBoardlot int64 `protobuf:"varint,4,opt,name=pricePerBoardlot" json:"pricePerBoardlot,omitempty"`
 	TotalBoardlot    int64 `protobuf:"varint,5,opt,name=totalBoardlot" json:"totalBoardlot,omitempty"`
 	// 此次出售的起始时间，如果非众筹则可以忽略此时间
-	Starttime            int64    `protobuf:"varint,6,opt,name=starttime" json:"starttime,omitempty"`
-	Stoptime             int64    `protobuf:"varint,7,opt,name=stoptime" json:"stoptime,omitempty"`
-	Crowdfund            bool     `protobuf:"varint,8,opt,name=crowdfund" json:"crowdfund,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Starttime int64 `protobuf:"varint,6,opt,name=starttime" json:"starttime,omitempty"`
+	Stoptime  int64 `protobuf:"varint,7,opt,name=stoptime" json:"stoptime,omitempty"`
+	Crowdfund bool  `protobuf:"varint,8,opt,name=crowdfund" json:"crowdfund,omitempty"`
 }
 
-func (m *TradeForSell) Reset()         { *m = TradeForSell{} }
-func (m *TradeForSell) String() string { return proto.CompactTextString(m) }
-func (*TradeForSell) ProtoMessage()    {}
-func (*TradeForSell) Descriptor() ([]byte, []int) {
-	return fileDescriptor_executorTrade_6b4bd7aac5d33e67, []int{1}
-}
-func (m *TradeForSell) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_TradeForSell.Unmarshal(m, b)
-}
-func (m *TradeForSell) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_TradeForSell.Marshal(b, m, deterministic)
-}
-func (dst *TradeForSell) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_TradeForSell.Merge(dst, src)
-}
-func (m *TradeForSell) XXX_Size() int {
-	return xxx_messageInfo_TradeForSell.Size(m)
-}
-func (m *TradeForSell) XXX_DiscardUnknown() {
-	xxx_messageInfo_TradeForSell.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_TradeForSell proto.InternalMessageInfo
+func (m *TradeForSell) Reset()                    { *m = TradeForSell{} }
+func (m *TradeForSell) String() string            { return proto.CompactTextString(m) }
+func (*TradeForSell) ProtoMessage()               {}
+func (*TradeForSell) Descriptor() ([]byte, []int) { return fileDescriptor7, []int{1} }
 
 func (m *TradeForSell) GetTokenSymbol() string {
 	if m != nil {
@@ -397,36 +347,14 @@ func (m *TradeForSell) GetCrowdfund() bool {
 // 购买者发起交易用来购买token持有者之前挂单出售的token
 // 其中的hash为token出售者发起出售交易的hash
 type TradeForBuy struct {
-	SellID               string   `protobuf:"bytes,1,opt,name=sellID" json:"sellID,omitempty"`
-	BoardlotCnt          int64    `protobuf:"varint,2,opt,name=boardlotCnt" json:"boardlotCnt,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	SellID      string `protobuf:"bytes,1,opt,name=sellID" json:"sellID,omitempty"`
+	BoardlotCnt int64  `protobuf:"varint,2,opt,name=boardlotCnt" json:"boardlotCnt,omitempty"`
 }
 
-func (m *TradeForBuy) Reset()         { *m = TradeForBuy{} }
-func (m *TradeForBuy) String() string { return proto.CompactTextString(m) }
-func (*TradeForBuy) ProtoMessage()    {}
-func (*TradeForBuy) Descriptor() ([]byte, []int) {
-	return fileDescriptor_executorTrade_6b4bd7aac5d33e67, []int{2}
-}
-func (m *TradeForBuy) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_TradeForBuy.Unmarshal(m, b)
-}
-func (m *TradeForBuy) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_TradeForBuy.Marshal(b, m, deterministic)
-}
-func (dst *TradeForBuy) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_TradeForBuy.Merge(dst, src)
-}
-func (m *TradeForBuy) XXX_Size() int {
-	return xxx_messageInfo_TradeForBuy.Size(m)
-}
-func (m *TradeForBuy) XXX_DiscardUnknown() {
-	xxx_messageInfo_TradeForBuy.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_TradeForBuy proto.InternalMessageInfo
+func (m *TradeForBuy) Reset()                    { *m = TradeForBuy{} }
+func (m *TradeForBuy) String() string            { return proto.CompactTextString(m) }
+func (*TradeForBuy) ProtoMessage()               {}
+func (*TradeForBuy) Descriptor() ([]byte, []int) { return fileDescriptor7, []int{2} }
 
 func (m *TradeForBuy) GetSellID() string {
 	if m != nil {
@@ -444,35 +372,13 @@ func (m *TradeForBuy) GetBoardlotCnt() int64 {
 
 // 允许token的持有者撤销之前未成交出售token的挂单
 type TradeForRevokeSell struct {
-	SellID               string   `protobuf:"bytes,1,opt,name=sellID" json:"sellID,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	SellID string `protobuf:"bytes,1,opt,name=sellID" json:"sellID,omitempty"`
 }
 
-func (m *TradeForRevokeSell) Reset()         { *m = TradeForRevokeSell{} }
-func (m *TradeForRevokeSell) String() string { return proto.CompactTextString(m) }
-func (*TradeForRevokeSell) ProtoMessage()    {}
-func (*TradeForRevokeSell) Descriptor() ([]byte, []int) {
-	return fileDescriptor_executorTrade_6b4bd7aac5d33e67, []int{3}
-}
-func (m *TradeForRevokeSell) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_TradeForRevokeSell.Unmarshal(m, b)
-}
-func (m *TradeForRevokeSell) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_TradeForRevokeSell.Marshal(b, m, deterministic)
-}
-func (dst *TradeForRevokeSell) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_TradeForRevokeSell.Merge(dst, src)
-}
-func (m *TradeForRevokeSell) XXX_Size() int {
-	return xxx_messageInfo_TradeForRevokeSell.Size(m)
-}
-func (m *TradeForRevokeSell) XXX_DiscardUnknown() {
-	xxx_messageInfo_TradeForRevokeSell.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_TradeForRevokeSell proto.InternalMessageInfo
+func (m *TradeForRevokeSell) Reset()                    { *m = TradeForRevokeSell{} }
+func (m *TradeForRevokeSell) String() string            { return proto.CompactTextString(m) }
+func (*TradeForRevokeSell) ProtoMessage()               {}
+func (*TradeForRevokeSell) Descriptor() ([]byte, []int) { return fileDescriptor7, []int{3} }
 
 func (m *TradeForRevokeSell) GetSellID() string {
 	if m != nil {
@@ -483,39 +389,17 @@ func (m *TradeForRevokeSell) GetSellID() string {
 
 // 限价买单构造请求
 type TradeForBuyLimit struct {
-	TokenSymbol          string   `protobuf:"bytes,1,opt,name=tokenSymbol" json:"tokenSymbol,omitempty"`
-	AmountPerBoardlot    int64    `protobuf:"varint,2,opt,name=amountPerBoardlot" json:"amountPerBoardlot,omitempty"`
-	MinBoardlot          int64    `protobuf:"varint,3,opt,name=minBoardlot" json:"minBoardlot,omitempty"`
-	PricePerBoardlot     int64    `protobuf:"varint,4,opt,name=pricePerBoardlot" json:"pricePerBoardlot,omitempty"`
-	TotalBoardlot        int64    `protobuf:"varint,5,opt,name=totalBoardlot" json:"totalBoardlot,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	TokenSymbol       string `protobuf:"bytes,1,opt,name=tokenSymbol" json:"tokenSymbol,omitempty"`
+	AmountPerBoardlot int64  `protobuf:"varint,2,opt,name=amountPerBoardlot" json:"amountPerBoardlot,omitempty"`
+	MinBoardlot       int64  `protobuf:"varint,3,opt,name=minBoardlot" json:"minBoardlot,omitempty"`
+	PricePerBoardlot  int64  `protobuf:"varint,4,opt,name=pricePerBoardlot" json:"pricePerBoardlot,omitempty"`
+	TotalBoardlot     int64  `protobuf:"varint,5,opt,name=totalBoardlot" json:"totalBoardlot,omitempty"`
 }
 
-func (m *TradeForBuyLimit) Reset()         { *m = TradeForBuyLimit{} }
-func (m *TradeForBuyLimit) String() string { return proto.CompactTextString(m) }
-func (*TradeForBuyLimit) ProtoMessage()    {}
-func (*TradeForBuyLimit) Descriptor() ([]byte, []int) {
-	return fileDescriptor_executorTrade_6b4bd7aac5d33e67, []int{4}
-}
-func (m *TradeForBuyLimit) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_TradeForBuyLimit.Unmarshal(m, b)
-}
-func (m *TradeForBuyLimit) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_TradeForBuyLimit.Marshal(b, m, deterministic)
-}
-func (dst *TradeForBuyLimit) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_TradeForBuyLimit.Merge(dst, src)
-}
-func (m *TradeForBuyLimit) XXX_Size() int {
-	return xxx_messageInfo_TradeForBuyLimit.Size(m)
-}
-func (m *TradeForBuyLimit) XXX_DiscardUnknown() {
-	xxx_messageInfo_TradeForBuyLimit.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_TradeForBuyLimit proto.InternalMessageInfo
+func (m *TradeForBuyLimit) Reset()                    { *m = TradeForBuyLimit{} }
+func (m *TradeForBuyLimit) String() string            { return proto.CompactTextString(m) }
+func (*TradeForBuyLimit) ProtoMessage()               {}
+func (*TradeForBuyLimit) Descriptor() ([]byte, []int) { return fileDescriptor7, []int{4} }
 
 func (m *TradeForBuyLimit) GetTokenSymbol() string {
 	if m != nil {
@@ -554,36 +438,14 @@ func (m *TradeForBuyLimit) GetTotalBoardlot() int64 {
 
 // 现价卖单
 type TradeForSellMarket struct {
-	BuyID                string   `protobuf:"bytes,1,opt,name=buyID" json:"buyID,omitempty"`
-	BoardlotCnt          int64    `protobuf:"varint,2,opt,name=boardlotCnt" json:"boardlotCnt,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	BuyID       string `protobuf:"bytes,1,opt,name=buyID" json:"buyID,omitempty"`
+	BoardlotCnt int64  `protobuf:"varint,2,opt,name=boardlotCnt" json:"boardlotCnt,omitempty"`
 }
 
-func (m *TradeForSellMarket) Reset()         { *m = TradeForSellMarket{} }
-func (m *TradeForSellMarket) String() string { return proto.CompactTextString(m) }
-func (*TradeForSellMarket) ProtoMessage()    {}
-func (*TradeForSellMarket) Descriptor() ([]byte, []int) {
-	return fileDescriptor_executorTrade_6b4bd7aac5d33e67, []int{5}
-}
-func (m *TradeForSellMarket) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_TradeForSellMarket.Unmarshal(m, b)
-}
-func (m *TradeForSellMarket) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_TradeForSellMarket.Marshal(b, m, deterministic)
-}
-func (dst *TradeForSellMarket) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_TradeForSellMarket.Merge(dst, src)
-}
-func (m *TradeForSellMarket) XXX_Size() int {
-	return xxx_messageInfo_TradeForSellMarket.Size(m)
-}
-func (m *TradeForSellMarket) XXX_DiscardUnknown() {
-	xxx_messageInfo_TradeForSellMarket.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_TradeForSellMarket proto.InternalMessageInfo
+func (m *TradeForSellMarket) Reset()                    { *m = TradeForSellMarket{} }
+func (m *TradeForSellMarket) String() string            { return proto.CompactTextString(m) }
+func (*TradeForSellMarket) ProtoMessage()               {}
+func (*TradeForSellMarket) Descriptor() ([]byte, []int) { return fileDescriptor7, []int{5} }
 
 func (m *TradeForSellMarket) GetBuyID() string {
 	if m != nil {
@@ -601,35 +463,13 @@ func (m *TradeForSellMarket) GetBoardlotCnt() int64 {
 
 // 撤销买单
 type TradeForRevokeBuy struct {
-	BuyID                string   `protobuf:"bytes,1,opt,name=buyID" json:"buyID,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	BuyID string `protobuf:"bytes,1,opt,name=buyID" json:"buyID,omitempty"`
 }
 
-func (m *TradeForRevokeBuy) Reset()         { *m = TradeForRevokeBuy{} }
-func (m *TradeForRevokeBuy) String() string { return proto.CompactTextString(m) }
-func (*TradeForRevokeBuy) ProtoMessage()    {}
-func (*TradeForRevokeBuy) Descriptor() ([]byte, []int) {
-	return fileDescriptor_executorTrade_6b4bd7aac5d33e67, []int{6}
-}
-func (m *TradeForRevokeBuy) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_TradeForRevokeBuy.Unmarshal(m, b)
-}
-func (m *TradeForRevokeBuy) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_TradeForRevokeBuy.Marshal(b, m, deterministic)
-}
-func (dst *TradeForRevokeBuy) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_TradeForRevokeBuy.Merge(dst, src)
-}
-func (m *TradeForRevokeBuy) XXX_Size() int {
-	return xxx_messageInfo_TradeForRevokeBuy.Size(m)
-}
-func (m *TradeForRevokeBuy) XXX_DiscardUnknown() {
-	xxx_messageInfo_TradeForRevokeBuy.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_TradeForRevokeBuy proto.InternalMessageInfo
+func (m *TradeForRevokeBuy) Reset()                    { *m = TradeForRevokeBuy{} }
+func (m *TradeForRevokeBuy) String() string            { return proto.CompactTextString(m) }
+func (*TradeForRevokeBuy) ProtoMessage()               {}
+func (*TradeForRevokeBuy) Descriptor() ([]byte, []int) { return fileDescriptor7, []int{6} }
 
 func (m *TradeForRevokeBuy) GetBuyID() string {
 	if m != nil {
@@ -654,37 +494,15 @@ type SellOrder struct {
 	Stoptime  int64 `protobuf:"varint,9,opt,name=stoptime" json:"stoptime,omitempty"`
 	Crowdfund bool  `protobuf:"varint,10,opt,name=crowdfund" json:"crowdfund,omitempty"`
 	// 此处使用tx的hash来指定
-	SellID               string   `protobuf:"bytes,11,opt,name=sellID" json:"sellID,omitempty"`
-	Status               int32    `protobuf:"varint,12,opt,name=status" json:"status,omitempty"`
-	Height               int64    `protobuf:"varint,13,opt,name=height" json:"height,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	SellID string `protobuf:"bytes,11,opt,name=sellID" json:"sellID,omitempty"`
+	Status int32  `protobuf:"varint,12,opt,name=status" json:"status,omitempty"`
+	Height int64  `protobuf:"varint,13,opt,name=height" json:"height,omitempty"`
 }
 
-func (m *SellOrder) Reset()         { *m = SellOrder{} }
-func (m *SellOrder) String() string { return proto.CompactTextString(m) }
-func (*SellOrder) ProtoMessage()    {}
-func (*SellOrder) Descriptor() ([]byte, []int) {
-	return fileDescriptor_executorTrade_6b4bd7aac5d33e67, []int{7}
-}
-func (m *SellOrder) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_SellOrder.Unmarshal(m, b)
-}
-func (m *SellOrder) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_SellOrder.Marshal(b, m, deterministic)
-}
-func (dst *SellOrder) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SellOrder.Merge(dst, src)
-}
-func (m *SellOrder) XXX_Size() int {
-	return xxx_messageInfo_SellOrder.Size(m)
-}
-func (m *SellOrder) XXX_DiscardUnknown() {
-	xxx_messageInfo_SellOrder.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_SellOrder proto.InternalMessageInfo
+func (m *SellOrder) Reset()                    { *m = SellOrder{} }
+func (m *SellOrder) String() string            { return proto.CompactTextString(m) }
+func (*SellOrder) ProtoMessage()               {}
+func (*SellOrder) Descriptor() ([]byte, []int) { return fileDescriptor7, []int{7} }
 
 func (m *SellOrder) GetTokenSymbol() string {
 	if m != nil {
@@ -779,44 +597,22 @@ func (m *SellOrder) GetHeight() int64 {
 
 // 限价买单数据库记录
 type BuyLimitOrder struct {
-	TokenSymbol          string   `protobuf:"bytes,1,opt,name=tokenSymbol" json:"tokenSymbol,omitempty"`
-	Address              string   `protobuf:"bytes,2,opt,name=address" json:"address,omitempty"`
-	AmountPerBoardlot    int64    `protobuf:"varint,3,opt,name=amountPerBoardlot" json:"amountPerBoardlot,omitempty"`
-	MinBoardlot          int64    `protobuf:"varint,4,opt,name=minBoardlot" json:"minBoardlot,omitempty"`
-	PricePerBoardlot     int64    `protobuf:"varint,5,opt,name=pricePerBoardlot" json:"pricePerBoardlot,omitempty"`
-	TotalBoardlot        int64    `protobuf:"varint,6,opt,name=totalBoardlot" json:"totalBoardlot,omitempty"`
-	BoughtBoardlot       int64    `protobuf:"varint,7,opt,name=boughtBoardlot" json:"boughtBoardlot,omitempty"`
-	BuyID                string   `protobuf:"bytes,8,opt,name=buyID" json:"buyID,omitempty"`
-	Status               int32    `protobuf:"varint,9,opt,name=status" json:"status,omitempty"`
-	Height               int64    `protobuf:"varint,10,opt,name=height" json:"height,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	TokenSymbol       string `protobuf:"bytes,1,opt,name=tokenSymbol" json:"tokenSymbol,omitempty"`
+	Address           string `protobuf:"bytes,2,opt,name=address" json:"address,omitempty"`
+	AmountPerBoardlot int64  `protobuf:"varint,3,opt,name=amountPerBoardlot" json:"amountPerBoardlot,omitempty"`
+	MinBoardlot       int64  `protobuf:"varint,4,opt,name=minBoardlot" json:"minBoardlot,omitempty"`
+	PricePerBoardlot  int64  `protobuf:"varint,5,opt,name=pricePerBoardlot" json:"pricePerBoardlot,omitempty"`
+	TotalBoardlot     int64  `protobuf:"varint,6,opt,name=totalBoardlot" json:"totalBoardlot,omitempty"`
+	BoughtBoardlot    int64  `protobuf:"varint,7,opt,name=boughtBoardlot" json:"boughtBoardlot,omitempty"`
+	BuyID             string `protobuf:"bytes,8,opt,name=buyID" json:"buyID,omitempty"`
+	Status            int32  `protobuf:"varint,9,opt,name=status" json:"status,omitempty"`
+	Height            int64  `protobuf:"varint,10,opt,name=height" json:"height,omitempty"`
 }
 
-func (m *BuyLimitOrder) Reset()         { *m = BuyLimitOrder{} }
-func (m *BuyLimitOrder) String() string { return proto.CompactTextString(m) }
-func (*BuyLimitOrder) ProtoMessage()    {}
-func (*BuyLimitOrder) Descriptor() ([]byte, []int) {
-	return fileDescriptor_executorTrade_6b4bd7aac5d33e67, []int{8}
-}
-func (m *BuyLimitOrder) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_BuyLimitOrder.Unmarshal(m, b)
-}
-func (m *BuyLimitOrder) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_BuyLimitOrder.Marshal(b, m, deterministic)
-}
-func (dst *BuyLimitOrder) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_BuyLimitOrder.Merge(dst, src)
-}
-func (m *BuyLimitOrder) XXX_Size() int {
-	return xxx_messageInfo_BuyLimitOrder.Size(m)
-}
-func (m *BuyLimitOrder) XXX_DiscardUnknown() {
-	xxx_messageInfo_BuyLimitOrder.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_BuyLimitOrder proto.InternalMessageInfo
+func (m *BuyLimitOrder) Reset()                    { *m = BuyLimitOrder{} }
+func (m *BuyLimitOrder) String() string            { return proto.CompactTextString(m) }
+func (*BuyLimitOrder) ProtoMessage()               {}
+func (*BuyLimitOrder) Descriptor() ([]byte, []int) { return fileDescriptor7, []int{8} }
 
 func (m *BuyLimitOrder) GetTokenSymbol() string {
 	if m != nil {
@@ -890,46 +686,24 @@ func (m *BuyLimitOrder) GetHeight() int64 {
 
 // 执行器日志部分
 type ReceiptBuyBase struct {
-	TokenSymbol          string   `protobuf:"bytes,1,opt,name=tokenSymbol" json:"tokenSymbol,omitempty"`
-	Owner                string   `protobuf:"bytes,2,opt,name=owner" json:"owner,omitempty"`
-	AmountPerBoardlot    string   `protobuf:"bytes,3,opt,name=amountPerBoardlot" json:"amountPerBoardlot,omitempty"`
-	MinBoardlot          int64    `protobuf:"varint,4,opt,name=minBoardlot" json:"minBoardlot,omitempty"`
-	PricePerBoardlot     string   `protobuf:"bytes,5,opt,name=pricePerBoardlot" json:"pricePerBoardlot,omitempty"`
-	TotalBoardlot        int64    `protobuf:"varint,6,opt,name=totalBoardlot" json:"totalBoardlot,omitempty"`
-	BoughtBoardlot       int64    `protobuf:"varint,7,opt,name=boughtBoardlot" json:"boughtBoardlot,omitempty"`
-	BuyID                string   `protobuf:"bytes,8,opt,name=buyID" json:"buyID,omitempty"`
-	Status               string   `protobuf:"bytes,9,opt,name=status" json:"status,omitempty"`
-	SellID               string   `protobuf:"bytes,10,opt,name=sellID" json:"sellID,omitempty"`
-	TxHash               string   `protobuf:"bytes,11,opt,name=txHash" json:"txHash,omitempty"`
-	Height               int64    `protobuf:"varint,12,opt,name=height" json:"height,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	TokenSymbol       string `protobuf:"bytes,1,opt,name=tokenSymbol" json:"tokenSymbol,omitempty"`
+	Owner             string `protobuf:"bytes,2,opt,name=owner" json:"owner,omitempty"`
+	AmountPerBoardlot string `protobuf:"bytes,3,opt,name=amountPerBoardlot" json:"amountPerBoardlot,omitempty"`
+	MinBoardlot       int64  `protobuf:"varint,4,opt,name=minBoardlot" json:"minBoardlot,omitempty"`
+	PricePerBoardlot  string `protobuf:"bytes,5,opt,name=pricePerBoardlot" json:"pricePerBoardlot,omitempty"`
+	TotalBoardlot     int64  `protobuf:"varint,6,opt,name=totalBoardlot" json:"totalBoardlot,omitempty"`
+	BoughtBoardlot    int64  `protobuf:"varint,7,opt,name=boughtBoardlot" json:"boughtBoardlot,omitempty"`
+	BuyID             string `protobuf:"bytes,8,opt,name=buyID" json:"buyID,omitempty"`
+	Status            string `protobuf:"bytes,9,opt,name=status" json:"status,omitempty"`
+	SellID            string `protobuf:"bytes,10,opt,name=sellID" json:"sellID,omitempty"`
+	TxHash            string `protobuf:"bytes,11,opt,name=txHash" json:"txHash,omitempty"`
+	Height            int64  `protobuf:"varint,12,opt,name=height" json:"height,omitempty"`
 }
 
-func (m *ReceiptBuyBase) Reset()         { *m = ReceiptBuyBase{} }
-func (m *ReceiptBuyBase) String() string { return proto.CompactTextString(m) }
-func (*ReceiptBuyBase) ProtoMessage()    {}
-func (*ReceiptBuyBase) Descriptor() ([]byte, []int) {
-	return fileDescriptor_executorTrade_6b4bd7aac5d33e67, []int{9}
-}
-func (m *ReceiptBuyBase) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ReceiptBuyBase.Unmarshal(m, b)
-}
-func (m *ReceiptBuyBase) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ReceiptBuyBase.Marshal(b, m, deterministic)
-}
-func (dst *ReceiptBuyBase) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ReceiptBuyBase.Merge(dst, src)
-}
-func (m *ReceiptBuyBase) XXX_Size() int {
-	return xxx_messageInfo_ReceiptBuyBase.Size(m)
-}
-func (m *ReceiptBuyBase) XXX_DiscardUnknown() {
-	xxx_messageInfo_ReceiptBuyBase.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ReceiptBuyBase proto.InternalMessageInfo
+func (m *ReceiptBuyBase) Reset()                    { *m = ReceiptBuyBase{} }
+func (m *ReceiptBuyBase) String() string            { return proto.CompactTextString(m) }
+func (*ReceiptBuyBase) ProtoMessage()               {}
+func (*ReceiptBuyBase) Descriptor() ([]byte, []int) { return fileDescriptor7, []int{9} }
 
 func (m *ReceiptBuyBase) GetTokenSymbol() string {
 	if m != nil {
@@ -1033,37 +807,15 @@ type ReceiptSellBase struct {
 	SellID string `protobuf:"bytes,11,opt,name=sellID" json:"sellID,omitempty"`
 	Status string `protobuf:"bytes,12,opt,name=status" json:"status,omitempty"`
 	// buyid
-	BuyID                string   `protobuf:"bytes,13,opt,name=buyID" json:"buyID,omitempty"`
-	TxHash               string   `protobuf:"bytes,14,opt,name=txHash" json:"txHash,omitempty"`
-	Height               int64    `protobuf:"varint,15,opt,name=height" json:"height,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	BuyID  string `protobuf:"bytes,13,opt,name=buyID" json:"buyID,omitempty"`
+	TxHash string `protobuf:"bytes,14,opt,name=txHash" json:"txHash,omitempty"`
+	Height int64  `protobuf:"varint,15,opt,name=height" json:"height,omitempty"`
 }
 
-func (m *ReceiptSellBase) Reset()         { *m = ReceiptSellBase{} }
-func (m *ReceiptSellBase) String() string { return proto.CompactTextString(m) }
-func (*ReceiptSellBase) ProtoMessage()    {}
-func (*ReceiptSellBase) Descriptor() ([]byte, []int) {
-	return fileDescriptor_executorTrade_6b4bd7aac5d33e67, []int{10}
-}
-func (m *ReceiptSellBase) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ReceiptSellBase.Unmarshal(m, b)
-}
-func (m *ReceiptSellBase) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ReceiptSellBase.Marshal(b, m, deterministic)
-}
-func (dst *ReceiptSellBase) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ReceiptSellBase.Merge(dst, src)
-}
-func (m *ReceiptSellBase) XXX_Size() int {
-	return xxx_messageInfo_ReceiptSellBase.Size(m)
-}
-func (m *ReceiptSellBase) XXX_DiscardUnknown() {
-	xxx_messageInfo_ReceiptSellBase.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ReceiptSellBase proto.InternalMessageInfo
+func (m *ReceiptSellBase) Reset()                    { *m = ReceiptSellBase{} }
+func (m *ReceiptSellBase) String() string            { return proto.CompactTextString(m) }
+func (*ReceiptSellBase) ProtoMessage()               {}
+func (*ReceiptSellBase) Descriptor() ([]byte, []int) { return fileDescriptor7, []int{10} }
 
 func (m *ReceiptSellBase) GetTokenSymbol() string {
 	if m != nil {
@@ -1171,35 +923,13 @@ func (m *ReceiptSellBase) GetHeight() int64 {
 }
 
 type ReceiptTradeBuyMarket struct {
-	Base                 *ReceiptBuyBase `protobuf:"bytes,1,opt,name=base" json:"base,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
-	XXX_unrecognized     []byte          `json:"-"`
-	XXX_sizecache        int32           `json:"-"`
+	Base *ReceiptBuyBase `protobuf:"bytes,1,opt,name=base" json:"base,omitempty"`
 }
 
-func (m *ReceiptTradeBuyMarket) Reset()         { *m = ReceiptTradeBuyMarket{} }
-func (m *ReceiptTradeBuyMarket) String() string { return proto.CompactTextString(m) }
-func (*ReceiptTradeBuyMarket) ProtoMessage()    {}
-func (*ReceiptTradeBuyMarket) Descriptor() ([]byte, []int) {
-	return fileDescriptor_executorTrade_6b4bd7aac5d33e67, []int{11}
-}
-func (m *ReceiptTradeBuyMarket) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ReceiptTradeBuyMarket.Unmarshal(m, b)
-}
-func (m *ReceiptTradeBuyMarket) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ReceiptTradeBuyMarket.Marshal(b, m, deterministic)
-}
-func (dst *ReceiptTradeBuyMarket) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ReceiptTradeBuyMarket.Merge(dst, src)
-}
-func (m *ReceiptTradeBuyMarket) XXX_Size() int {
-	return xxx_messageInfo_ReceiptTradeBuyMarket.Size(m)
-}
-func (m *ReceiptTradeBuyMarket) XXX_DiscardUnknown() {
-	xxx_messageInfo_ReceiptTradeBuyMarket.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ReceiptTradeBuyMarket proto.InternalMessageInfo
+func (m *ReceiptTradeBuyMarket) Reset()                    { *m = ReceiptTradeBuyMarket{} }
+func (m *ReceiptTradeBuyMarket) String() string            { return proto.CompactTextString(m) }
+func (*ReceiptTradeBuyMarket) ProtoMessage()               {}
+func (*ReceiptTradeBuyMarket) Descriptor() ([]byte, []int) { return fileDescriptor7, []int{11} }
 
 func (m *ReceiptTradeBuyMarket) GetBase() *ReceiptBuyBase {
 	if m != nil {
@@ -1209,35 +939,13 @@ func (m *ReceiptTradeBuyMarket) GetBase() *ReceiptBuyBase {
 }
 
 type ReceiptTradeBuyLimit struct {
-	Base                 *ReceiptBuyBase `protobuf:"bytes,1,opt,name=base" json:"base,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
-	XXX_unrecognized     []byte          `json:"-"`
-	XXX_sizecache        int32           `json:"-"`
+	Base *ReceiptBuyBase `protobuf:"bytes,1,opt,name=base" json:"base,omitempty"`
 }
 
-func (m *ReceiptTradeBuyLimit) Reset()         { *m = ReceiptTradeBuyLimit{} }
-func (m *ReceiptTradeBuyLimit) String() string { return proto.CompactTextString(m) }
-func (*ReceiptTradeBuyLimit) ProtoMessage()    {}
-func (*ReceiptTradeBuyLimit) Descriptor() ([]byte, []int) {
-	return fileDescriptor_executorTrade_6b4bd7aac5d33e67, []int{12}
-}
-func (m *ReceiptTradeBuyLimit) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ReceiptTradeBuyLimit.Unmarshal(m, b)
-}
-func (m *ReceiptTradeBuyLimit) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ReceiptTradeBuyLimit.Marshal(b, m, deterministic)
-}
-func (dst *ReceiptTradeBuyLimit) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ReceiptTradeBuyLimit.Merge(dst, src)
-}
-func (m *ReceiptTradeBuyLimit) XXX_Size() int {
-	return xxx_messageInfo_ReceiptTradeBuyLimit.Size(m)
-}
-func (m *ReceiptTradeBuyLimit) XXX_DiscardUnknown() {
-	xxx_messageInfo_ReceiptTradeBuyLimit.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ReceiptTradeBuyLimit proto.InternalMessageInfo
+func (m *ReceiptTradeBuyLimit) Reset()                    { *m = ReceiptTradeBuyLimit{} }
+func (m *ReceiptTradeBuyLimit) String() string            { return proto.CompactTextString(m) }
+func (*ReceiptTradeBuyLimit) ProtoMessage()               {}
+func (*ReceiptTradeBuyLimit) Descriptor() ([]byte, []int) { return fileDescriptor7, []int{12} }
 
 func (m *ReceiptTradeBuyLimit) GetBase() *ReceiptBuyBase {
 	if m != nil {
@@ -1247,35 +955,13 @@ func (m *ReceiptTradeBuyLimit) GetBase() *ReceiptBuyBase {
 }
 
 type ReceiptTradeBuyRevoke struct {
-	Base                 *ReceiptBuyBase `protobuf:"bytes,1,opt,name=base" json:"base,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
-	XXX_unrecognized     []byte          `json:"-"`
-	XXX_sizecache        int32           `json:"-"`
+	Base *ReceiptBuyBase `protobuf:"bytes,1,opt,name=base" json:"base,omitempty"`
 }
 
-func (m *ReceiptTradeBuyRevoke) Reset()         { *m = ReceiptTradeBuyRevoke{} }
-func (m *ReceiptTradeBuyRevoke) String() string { return proto.CompactTextString(m) }
-func (*ReceiptTradeBuyRevoke) ProtoMessage()    {}
-func (*ReceiptTradeBuyRevoke) Descriptor() ([]byte, []int) {
-	return fileDescriptor_executorTrade_6b4bd7aac5d33e67, []int{13}
-}
-func (m *ReceiptTradeBuyRevoke) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ReceiptTradeBuyRevoke.Unmarshal(m, b)
-}
-func (m *ReceiptTradeBuyRevoke) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ReceiptTradeBuyRevoke.Marshal(b, m, deterministic)
-}
-func (dst *ReceiptTradeBuyRevoke) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ReceiptTradeBuyRevoke.Merge(dst, src)
-}
-func (m *ReceiptTradeBuyRevoke) XXX_Size() int {
-	return xxx_messageInfo_ReceiptTradeBuyRevoke.Size(m)
-}
-func (m *ReceiptTradeBuyRevoke) XXX_DiscardUnknown() {
-	xxx_messageInfo_ReceiptTradeBuyRevoke.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ReceiptTradeBuyRevoke proto.InternalMessageInfo
+func (m *ReceiptTradeBuyRevoke) Reset()                    { *m = ReceiptTradeBuyRevoke{} }
+func (m *ReceiptTradeBuyRevoke) String() string            { return proto.CompactTextString(m) }
+func (*ReceiptTradeBuyRevoke) ProtoMessage()               {}
+func (*ReceiptTradeBuyRevoke) Descriptor() ([]byte, []int) { return fileDescriptor7, []int{13} }
 
 func (m *ReceiptTradeBuyRevoke) GetBase() *ReceiptBuyBase {
 	if m != nil {
@@ -1285,35 +971,13 @@ func (m *ReceiptTradeBuyRevoke) GetBase() *ReceiptBuyBase {
 }
 
 type ReceiptTradeSell struct {
-	Base                 *ReceiptSellBase `protobuf:"bytes,1,opt,name=base" json:"base,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}         `json:"-"`
-	XXX_unrecognized     []byte           `json:"-"`
-	XXX_sizecache        int32            `json:"-"`
+	Base *ReceiptSellBase `protobuf:"bytes,1,opt,name=base" json:"base,omitempty"`
 }
 
-func (m *ReceiptTradeSell) Reset()         { *m = ReceiptTradeSell{} }
-func (m *ReceiptTradeSell) String() string { return proto.CompactTextString(m) }
-func (*ReceiptTradeSell) ProtoMessage()    {}
-func (*ReceiptTradeSell) Descriptor() ([]byte, []int) {
-	return fileDescriptor_executorTrade_6b4bd7aac5d33e67, []int{14}
-}
-func (m *ReceiptTradeSell) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ReceiptTradeSell.Unmarshal(m, b)
-}
-func (m *ReceiptTradeSell) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ReceiptTradeSell.Marshal(b, m, deterministic)
-}
-func (dst *ReceiptTradeSell) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ReceiptTradeSell.Merge(dst, src)
-}
-func (m *ReceiptTradeSell) XXX_Size() int {
-	return xxx_messageInfo_ReceiptTradeSell.Size(m)
-}
-func (m *ReceiptTradeSell) XXX_DiscardUnknown() {
-	xxx_messageInfo_ReceiptTradeSell.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ReceiptTradeSell proto.InternalMessageInfo
+func (m *ReceiptTradeSell) Reset()                    { *m = ReceiptTradeSell{} }
+func (m *ReceiptTradeSell) String() string            { return proto.CompactTextString(m) }
+func (*ReceiptTradeSell) ProtoMessage()               {}
+func (*ReceiptTradeSell) Descriptor() ([]byte, []int) { return fileDescriptor7, []int{14} }
 
 func (m *ReceiptTradeSell) GetBase() *ReceiptSellBase {
 	if m != nil {
@@ -1323,35 +987,13 @@ func (m *ReceiptTradeSell) GetBase() *ReceiptSellBase {
 }
 
 type ReceiptSellMarket struct {
-	Base                 *ReceiptSellBase `protobuf:"bytes,1,opt,name=base" json:"base,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}         `json:"-"`
-	XXX_unrecognized     []byte           `json:"-"`
-	XXX_sizecache        int32            `json:"-"`
+	Base *ReceiptSellBase `protobuf:"bytes,1,opt,name=base" json:"base,omitempty"`
 }
 
-func (m *ReceiptSellMarket) Reset()         { *m = ReceiptSellMarket{} }
-func (m *ReceiptSellMarket) String() string { return proto.CompactTextString(m) }
-func (*ReceiptSellMarket) ProtoMessage()    {}
-func (*ReceiptSellMarket) Descriptor() ([]byte, []int) {
-	return fileDescriptor_executorTrade_6b4bd7aac5d33e67, []int{15}
-}
-func (m *ReceiptSellMarket) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ReceiptSellMarket.Unmarshal(m, b)
-}
-func (m *ReceiptSellMarket) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ReceiptSellMarket.Marshal(b, m, deterministic)
-}
-func (dst *ReceiptSellMarket) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ReceiptSellMarket.Merge(dst, src)
-}
-func (m *ReceiptSellMarket) XXX_Size() int {
-	return xxx_messageInfo_ReceiptSellMarket.Size(m)
-}
-func (m *ReceiptSellMarket) XXX_DiscardUnknown() {
-	xxx_messageInfo_ReceiptSellMarket.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ReceiptSellMarket proto.InternalMessageInfo
+func (m *ReceiptSellMarket) Reset()                    { *m = ReceiptSellMarket{} }
+func (m *ReceiptSellMarket) String() string            { return proto.CompactTextString(m) }
+func (*ReceiptSellMarket) ProtoMessage()               {}
+func (*ReceiptSellMarket) Descriptor() ([]byte, []int) { return fileDescriptor7, []int{15} }
 
 func (m *ReceiptSellMarket) GetBase() *ReceiptSellBase {
 	if m != nil {
@@ -1361,35 +1003,13 @@ func (m *ReceiptSellMarket) GetBase() *ReceiptSellBase {
 }
 
 type ReceiptTradeRevoke struct {
-	Base                 *ReceiptSellBase `protobuf:"bytes,1,opt,name=base" json:"base,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}         `json:"-"`
-	XXX_unrecognized     []byte           `json:"-"`
-	XXX_sizecache        int32            `json:"-"`
+	Base *ReceiptSellBase `protobuf:"bytes,1,opt,name=base" json:"base,omitempty"`
 }
 
-func (m *ReceiptTradeRevoke) Reset()         { *m = ReceiptTradeRevoke{} }
-func (m *ReceiptTradeRevoke) String() string { return proto.CompactTextString(m) }
-func (*ReceiptTradeRevoke) ProtoMessage()    {}
-func (*ReceiptTradeRevoke) Descriptor() ([]byte, []int) {
-	return fileDescriptor_executorTrade_6b4bd7aac5d33e67, []int{16}
-}
-func (m *ReceiptTradeRevoke) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ReceiptTradeRevoke.Unmarshal(m, b)
-}
-func (m *ReceiptTradeRevoke) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ReceiptTradeRevoke.Marshal(b, m, deterministic)
-}
-func (dst *ReceiptTradeRevoke) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ReceiptTradeRevoke.Merge(dst, src)
-}
-func (m *ReceiptTradeRevoke) XXX_Size() int {
-	return xxx_messageInfo_ReceiptTradeRevoke.Size(m)
-}
-func (m *ReceiptTradeRevoke) XXX_DiscardUnknown() {
-	xxx_messageInfo_ReceiptTradeRevoke.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ReceiptTradeRevoke proto.InternalMessageInfo
+func (m *ReceiptTradeRevoke) Reset()                    { *m = ReceiptTradeRevoke{} }
+func (m *ReceiptTradeRevoke) String() string            { return proto.CompactTextString(m) }
+func (*ReceiptTradeRevoke) ProtoMessage()               {}
+func (*ReceiptTradeRevoke) Descriptor() ([]byte, []int) { return fileDescriptor7, []int{16} }
 
 func (m *ReceiptTradeRevoke) GetBase() *ReceiptSellBase {
 	if m != nil {
@@ -1399,40 +1019,18 @@ func (m *ReceiptTradeRevoke) GetBase() *ReceiptSellBase {
 }
 
 type ReqAddrTokens struct {
-	Addr                 string   `protobuf:"bytes,1,opt,name=addr" json:"addr,omitempty"`
-	Status               int32    `protobuf:"varint,2,opt,name=status" json:"status,omitempty"`
-	Token                []string `protobuf:"bytes,3,rep,name=token" json:"token,omitempty"`
-	Direction            int32    `protobuf:"varint,4,opt,name=direction" json:"direction,omitempty"`
-	Count                int32    `protobuf:"varint,5,opt,name=count" json:"count,omitempty"`
-	FromKey              string   `protobuf:"bytes,6,opt,name=fromKey" json:"fromKey,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	Addr      string   `protobuf:"bytes,1,opt,name=addr" json:"addr,omitempty"`
+	Status    int32    `protobuf:"varint,2,opt,name=status" json:"status,omitempty"`
+	Token     []string `protobuf:"bytes,3,rep,name=token" json:"token,omitempty"`
+	Direction int32    `protobuf:"varint,4,opt,name=direction" json:"direction,omitempty"`
+	Count     int32    `protobuf:"varint,5,opt,name=count" json:"count,omitempty"`
+	FromKey   string   `protobuf:"bytes,6,opt,name=fromKey" json:"fromKey,omitempty"`
 }
 
-func (m *ReqAddrTokens) Reset()         { *m = ReqAddrTokens{} }
-func (m *ReqAddrTokens) String() string { return proto.CompactTextString(m) }
-func (*ReqAddrTokens) ProtoMessage()    {}
-func (*ReqAddrTokens) Descriptor() ([]byte, []int) {
-	return fileDescriptor_executorTrade_6b4bd7aac5d33e67, []int{17}
-}
-func (m *ReqAddrTokens) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ReqAddrTokens.Unmarshal(m, b)
-}
-func (m *ReqAddrTokens) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ReqAddrTokens.Marshal(b, m, deterministic)
-}
-func (dst *ReqAddrTokens) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ReqAddrTokens.Merge(dst, src)
-}
-func (m *ReqAddrTokens) XXX_Size() int {
-	return xxx_messageInfo_ReqAddrTokens.Size(m)
-}
-func (m *ReqAddrTokens) XXX_DiscardUnknown() {
-	xxx_messageInfo_ReqAddrTokens.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ReqAddrTokens proto.InternalMessageInfo
+func (m *ReqAddrTokens) Reset()                    { *m = ReqAddrTokens{} }
+func (m *ReqAddrTokens) String() string            { return proto.CompactTextString(m) }
+func (*ReqAddrTokens) ProtoMessage()               {}
+func (*ReqAddrTokens) Descriptor() ([]byte, []int) { return fileDescriptor7, []int{17} }
 
 func (m *ReqAddrTokens) GetAddr() string {
 	if m != nil {
@@ -1481,39 +1079,17 @@ func (m *ReqAddrTokens) GetFromKey() string {
 // 	 count :获取交易列表的个数。
 // 	 direction :查找方式；0，上一页；1，下一页。  越靠后的也单价越贵
 type ReqTokenSellOrder struct {
-	TokenSymbol          string   `protobuf:"bytes,1,opt,name=tokenSymbol" json:"tokenSymbol,omitempty"`
-	FromKey              string   `protobuf:"bytes,2,opt,name=fromKey" json:"fromKey,omitempty"`
-	Count                int32    `protobuf:"varint,3,opt,name=count" json:"count,omitempty"`
-	Direction            int32    `protobuf:"varint,4,opt,name=direction" json:"direction,omitempty"`
-	Status               int32    `protobuf:"varint,5,opt,name=status" json:"status,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	TokenSymbol string `protobuf:"bytes,1,opt,name=tokenSymbol" json:"tokenSymbol,omitempty"`
+	FromKey     string `protobuf:"bytes,2,opt,name=fromKey" json:"fromKey,omitempty"`
+	Count       int32  `protobuf:"varint,3,opt,name=count" json:"count,omitempty"`
+	Direction   int32  `protobuf:"varint,4,opt,name=direction" json:"direction,omitempty"`
+	Status      int32  `protobuf:"varint,5,opt,name=status" json:"status,omitempty"`
 }
 
-func (m *ReqTokenSellOrder) Reset()         { *m = ReqTokenSellOrder{} }
-func (m *ReqTokenSellOrder) String() string { return proto.CompactTextString(m) }
-func (*ReqTokenSellOrder) ProtoMessage()    {}
-func (*ReqTokenSellOrder) Descriptor() ([]byte, []int) {
-	return fileDescriptor_executorTrade_6b4bd7aac5d33e67, []int{18}
-}
-func (m *ReqTokenSellOrder) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ReqTokenSellOrder.Unmarshal(m, b)
-}
-func (m *ReqTokenSellOrder) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ReqTokenSellOrder.Marshal(b, m, deterministic)
-}
-func (dst *ReqTokenSellOrder) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ReqTokenSellOrder.Merge(dst, src)
-}
-func (m *ReqTokenSellOrder) XXX_Size() int {
-	return xxx_messageInfo_ReqTokenSellOrder.Size(m)
-}
-func (m *ReqTokenSellOrder) XXX_DiscardUnknown() {
-	xxx_messageInfo_ReqTokenSellOrder.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ReqTokenSellOrder proto.InternalMessageInfo
+func (m *ReqTokenSellOrder) Reset()                    { *m = ReqTokenSellOrder{} }
+func (m *ReqTokenSellOrder) String() string            { return proto.CompactTextString(m) }
+func (*ReqTokenSellOrder) ProtoMessage()               {}
+func (*ReqTokenSellOrder) Descriptor() ([]byte, []int) { return fileDescriptor7, []int{18} }
 
 func (m *ReqTokenSellOrder) GetTokenSymbol() string {
 	if m != nil {
@@ -1551,39 +1127,17 @@ func (m *ReqTokenSellOrder) GetStatus() int32 {
 }
 
 type ReqTokenBuyOrder struct {
-	TokenSymbol          string   `protobuf:"bytes,1,opt,name=tokenSymbol" json:"tokenSymbol,omitempty"`
-	FromKey              string   `protobuf:"bytes,2,opt,name=fromKey" json:"fromKey,omitempty"`
-	Count                int32    `protobuf:"varint,3,opt,name=count" json:"count,omitempty"`
-	Direction            int32    `protobuf:"varint,4,opt,name=direction" json:"direction,omitempty"`
-	Status               int32    `protobuf:"varint,5,opt,name=status" json:"status,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	TokenSymbol string `protobuf:"bytes,1,opt,name=tokenSymbol" json:"tokenSymbol,omitempty"`
+	FromKey     string `protobuf:"bytes,2,opt,name=fromKey" json:"fromKey,omitempty"`
+	Count       int32  `protobuf:"varint,3,opt,name=count" json:"count,omitempty"`
+	Direction   int32  `protobuf:"varint,4,opt,name=direction" json:"direction,omitempty"`
+	Status      int32  `protobuf:"varint,5,opt,name=status" json:"status,omitempty"`
 }
 
-func (m *ReqTokenBuyOrder) Reset()         { *m = ReqTokenBuyOrder{} }
-func (m *ReqTokenBuyOrder) String() string { return proto.CompactTextString(m) }
-func (*ReqTokenBuyOrder) ProtoMessage()    {}
-func (*ReqTokenBuyOrder) Descriptor() ([]byte, []int) {
-	return fileDescriptor_executorTrade_6b4bd7aac5d33e67, []int{19}
-}
-func (m *ReqTokenBuyOrder) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ReqTokenBuyOrder.Unmarshal(m, b)
-}
-func (m *ReqTokenBuyOrder) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ReqTokenBuyOrder.Marshal(b, m, deterministic)
-}
-func (dst *ReqTokenBuyOrder) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ReqTokenBuyOrder.Merge(dst, src)
-}
-func (m *ReqTokenBuyOrder) XXX_Size() int {
-	return xxx_messageInfo_ReqTokenBuyOrder.Size(m)
-}
-func (m *ReqTokenBuyOrder) XXX_DiscardUnknown() {
-	xxx_messageInfo_ReqTokenBuyOrder.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ReqTokenBuyOrder proto.InternalMessageInfo
+func (m *ReqTokenBuyOrder) Reset()                    { *m = ReqTokenBuyOrder{} }
+func (m *ReqTokenBuyOrder) String() string            { return proto.CompactTextString(m) }
+func (*ReqTokenBuyOrder) ProtoMessage()               {}
+func (*ReqTokenBuyOrder) Descriptor() ([]byte, []int) { return fileDescriptor7, []int{19} }
 
 func (m *ReqTokenBuyOrder) GetTokenSymbol() string {
 	if m != nil {
@@ -1621,47 +1175,25 @@ func (m *ReqTokenBuyOrder) GetStatus() int32 {
 }
 
 type ReplyBuyOrder struct {
-	TokenSymbol          string   `protobuf:"bytes,1,opt,name=tokenSymbol" json:"tokenSymbol,omitempty"`
-	Owner                string   `protobuf:"bytes,2,opt,name=owner" json:"owner,omitempty"`
-	AmountPerBoardlot    int64    `protobuf:"varint,3,opt,name=amountPerBoardlot" json:"amountPerBoardlot,omitempty"`
-	MinBoardlot          int64    `protobuf:"varint,4,opt,name=minBoardlot" json:"minBoardlot,omitempty"`
-	PricePerBoardlot     int64    `protobuf:"varint,5,opt,name=pricePerBoardlot" json:"pricePerBoardlot,omitempty"`
-	TotalBoardlot        int64    `protobuf:"varint,6,opt,name=totalBoardlot" json:"totalBoardlot,omitempty"`
-	BoughtBoardlot       int64    `protobuf:"varint,7,opt,name=boughtBoardlot" json:"boughtBoardlot,omitempty"`
-	BuyID                string   `protobuf:"bytes,8,opt,name=buyID" json:"buyID,omitempty"`
-	Status               int32    `protobuf:"varint,9,opt,name=status" json:"status,omitempty"`
-	SellID               string   `protobuf:"bytes,10,opt,name=sellID" json:"sellID,omitempty"`
-	TxHash               string   `protobuf:"bytes,11,opt,name=txHash" json:"txHash,omitempty"`
-	Height               int64    `protobuf:"varint,12,opt,name=height" json:"height,omitempty"`
-	Key                  string   `protobuf:"bytes,13,opt,name=key" json:"key,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	TokenSymbol       string `protobuf:"bytes,1,opt,name=tokenSymbol" json:"tokenSymbol,omitempty"`
+	Owner             string `protobuf:"bytes,2,opt,name=owner" json:"owner,omitempty"`
+	AmountPerBoardlot int64  `protobuf:"varint,3,opt,name=amountPerBoardlot" json:"amountPerBoardlot,omitempty"`
+	MinBoardlot       int64  `protobuf:"varint,4,opt,name=minBoardlot" json:"minBoardlot,omitempty"`
+	PricePerBoardlot  int64  `protobuf:"varint,5,opt,name=pricePerBoardlot" json:"pricePerBoardlot,omitempty"`
+	TotalBoardlot     int64  `protobuf:"varint,6,opt,name=totalBoardlot" json:"totalBoardlot,omitempty"`
+	BoughtBoardlot    int64  `protobuf:"varint,7,opt,name=boughtBoardlot" json:"boughtBoardlot,omitempty"`
+	BuyID             string `protobuf:"bytes,8,opt,name=buyID" json:"buyID,omitempty"`
+	Status            int32  `protobuf:"varint,9,opt,name=status" json:"status,omitempty"`
+	SellID            string `protobuf:"bytes,10,opt,name=sellID" json:"sellID,omitempty"`
+	TxHash            string `protobuf:"bytes,11,opt,name=txHash" json:"txHash,omitempty"`
+	Height            int64  `protobuf:"varint,12,opt,name=height" json:"height,omitempty"`
+	Key               string `protobuf:"bytes,13,opt,name=key" json:"key,omitempty"`
 }
 
-func (m *ReplyBuyOrder) Reset()         { *m = ReplyBuyOrder{} }
-func (m *ReplyBuyOrder) String() string { return proto.CompactTextString(m) }
-func (*ReplyBuyOrder) ProtoMessage()    {}
-func (*ReplyBuyOrder) Descriptor() ([]byte, []int) {
-	return fileDescriptor_executorTrade_6b4bd7aac5d33e67, []int{20}
-}
-func (m *ReplyBuyOrder) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ReplyBuyOrder.Unmarshal(m, b)
-}
-func (m *ReplyBuyOrder) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ReplyBuyOrder.Marshal(b, m, deterministic)
-}
-func (dst *ReplyBuyOrder) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ReplyBuyOrder.Merge(dst, src)
-}
-func (m *ReplyBuyOrder) XXX_Size() int {
-	return xxx_messageInfo_ReplyBuyOrder.Size(m)
-}
-func (m *ReplyBuyOrder) XXX_DiscardUnknown() {
-	xxx_messageInfo_ReplyBuyOrder.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ReplyBuyOrder proto.InternalMessageInfo
+func (m *ReplyBuyOrder) Reset()                    { *m = ReplyBuyOrder{} }
+func (m *ReplyBuyOrder) String() string            { return proto.CompactTextString(m) }
+func (*ReplyBuyOrder) ProtoMessage()               {}
+func (*ReplyBuyOrder) Descriptor() ([]byte, []int) { return fileDescriptor7, []int{20} }
 
 func (m *ReplyBuyOrder) GetTokenSymbol() string {
 	if m != nil {
@@ -1755,47 +1287,25 @@ func (m *ReplyBuyOrder) GetKey() string {
 }
 
 type ReplySellOrder struct {
-	TokenSymbol          string   `protobuf:"bytes,1,opt,name=tokenSymbol" json:"tokenSymbol,omitempty"`
-	Owner                string   `protobuf:"bytes,2,opt,name=owner" json:"owner,omitempty"`
-	AmountPerBoardlot    int64    `protobuf:"varint,3,opt,name=amountPerBoardlot" json:"amountPerBoardlot,omitempty"`
-	MinBoardlot          int64    `protobuf:"varint,4,opt,name=minBoardlot" json:"minBoardlot,omitempty"`
-	PricePerBoardlot     int64    `protobuf:"varint,5,opt,name=pricePerBoardlot" json:"pricePerBoardlot,omitempty"`
-	TotalBoardlot        int64    `protobuf:"varint,6,opt,name=totalBoardlot" json:"totalBoardlot,omitempty"`
-	SoldBoardlot         int64    `protobuf:"varint,7,opt,name=soldBoardlot" json:"soldBoardlot,omitempty"`
-	BuyID                string   `protobuf:"bytes,8,opt,name=buyID" json:"buyID,omitempty"`
-	Status               int32    `protobuf:"varint,9,opt,name=status" json:"status,omitempty"`
-	SellID               string   `protobuf:"bytes,10,opt,name=sellID" json:"sellID,omitempty"`
-	TxHash               string   `protobuf:"bytes,11,opt,name=txHash" json:"txHash,omitempty"`
-	Height               int64    `protobuf:"varint,12,opt,name=height" json:"height,omitempty"`
-	Key                  string   `protobuf:"bytes,13,opt,name=key" json:"key,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	TokenSymbol       string `protobuf:"bytes,1,opt,name=tokenSymbol" json:"tokenSymbol,omitempty"`
+	Owner             string `protobuf:"bytes,2,opt,name=owner" json:"owner,omitempty"`
+	AmountPerBoardlot int64  `protobuf:"varint,3,opt,name=amountPerBoardlot" json:"amountPerBoardlot,omitempty"`
+	MinBoardlot       int64  `protobuf:"varint,4,opt,name=minBoardlot" json:"minBoardlot,omitempty"`
+	PricePerBoardlot  int64  `protobuf:"varint,5,opt,name=pricePerBoardlot" json:"pricePerBoardlot,omitempty"`
+	TotalBoardlot     int64  `protobuf:"varint,6,opt,name=totalBoardlot" json:"totalBoardlot,omitempty"`
+	SoldBoardlot      int64  `protobuf:"varint,7,opt,name=soldBoardlot" json:"soldBoardlot,omitempty"`
+	BuyID             string `protobuf:"bytes,8,opt,name=buyID" json:"buyID,omitempty"`
+	Status            int32  `protobuf:"varint,9,opt,name=status" json:"status,omitempty"`
+	SellID            string `protobuf:"bytes,10,opt,name=sellID" json:"sellID,omitempty"`
+	TxHash            string `protobuf:"bytes,11,opt,name=txHash" json:"txHash,omitempty"`
+	Height            int64  `protobuf:"varint,12,opt,name=height" json:"height,omitempty"`
+	Key               string `protobuf:"bytes,13,opt,name=key" json:"key,omitempty"`
 }
 
-func (m *ReplySellOrder) Reset()         { *m = ReplySellOrder{} }
-func (m *ReplySellOrder) String() string { return proto.CompactTextString(m) }
-func (*ReplySellOrder) ProtoMessage()    {}
-func (*ReplySellOrder) Descriptor() ([]byte, []int) {
-	return fileDescriptor_executorTrade_6b4bd7aac5d33e67, []int{21}
-}
-func (m *ReplySellOrder) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ReplySellOrder.Unmarshal(m, b)
-}
-func (m *ReplySellOrder) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ReplySellOrder.Marshal(b, m, deterministic)
-}
-func (dst *ReplySellOrder) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ReplySellOrder.Merge(dst, src)
-}
-func (m *ReplySellOrder) XXX_Size() int {
-	return xxx_messageInfo_ReplySellOrder.Size(m)
-}
-func (m *ReplySellOrder) XXX_DiscardUnknown() {
-	xxx_messageInfo_ReplySellOrder.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ReplySellOrder proto.InternalMessageInfo
+func (m *ReplySellOrder) Reset()                    { *m = ReplySellOrder{} }
+func (m *ReplySellOrder) String() string            { return proto.CompactTextString(m) }
+func (*ReplySellOrder) ProtoMessage()               {}
+func (*ReplySellOrder) Descriptor() ([]byte, []int) { return fileDescriptor7, []int{21} }
 
 func (m *ReplySellOrder) GetTokenSymbol() string {
 	if m != nil {
@@ -1889,35 +1399,13 @@ func (m *ReplySellOrder) GetKey() string {
 }
 
 type ReplySellOrders struct {
-	SellOrders           []*ReplySellOrder `protobuf:"bytes,1,rep,name=sellOrders" json:"sellOrders,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
-	XXX_unrecognized     []byte            `json:"-"`
-	XXX_sizecache        int32             `json:"-"`
+	SellOrders []*ReplySellOrder `protobuf:"bytes,1,rep,name=sellOrders" json:"sellOrders,omitempty"`
 }
 
-func (m *ReplySellOrders) Reset()         { *m = ReplySellOrders{} }
-func (m *ReplySellOrders) String() string { return proto.CompactTextString(m) }
-func (*ReplySellOrders) ProtoMessage()    {}
-func (*ReplySellOrders) Descriptor() ([]byte, []int) {
-	return fileDescriptor_executorTrade_6b4bd7aac5d33e67, []int{22}
-}
-func (m *ReplySellOrders) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ReplySellOrders.Unmarshal(m, b)
-}
-func (m *ReplySellOrders) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ReplySellOrders.Marshal(b, m, deterministic)
-}
-func (dst *ReplySellOrders) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ReplySellOrders.Merge(dst, src)
-}
-func (m *ReplySellOrders) XXX_Size() int {
-	return xxx_messageInfo_ReplySellOrders.Size(m)
-}
-func (m *ReplySellOrders) XXX_DiscardUnknown() {
-	xxx_messageInfo_ReplySellOrders.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ReplySellOrders proto.InternalMessageInfo
+func (m *ReplySellOrders) Reset()                    { *m = ReplySellOrders{} }
+func (m *ReplySellOrders) String() string            { return proto.CompactTextString(m) }
+func (*ReplySellOrders) ProtoMessage()               {}
+func (*ReplySellOrders) Descriptor() ([]byte, []int) { return fileDescriptor7, []int{22} }
 
 func (m *ReplySellOrders) GetSellOrders() []*ReplySellOrder {
 	if m != nil {
@@ -1927,35 +1415,13 @@ func (m *ReplySellOrders) GetSellOrders() []*ReplySellOrder {
 }
 
 type ReplyBuyOrders struct {
-	BuyOrders            []*ReplyBuyOrder `protobuf:"bytes,1,rep,name=buyOrders" json:"buyOrders,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}         `json:"-"`
-	XXX_unrecognized     []byte           `json:"-"`
-	XXX_sizecache        int32            `json:"-"`
+	BuyOrders []*ReplyBuyOrder `protobuf:"bytes,1,rep,name=buyOrders" json:"buyOrders,omitempty"`
 }
 
-func (m *ReplyBuyOrders) Reset()         { *m = ReplyBuyOrders{} }
-func (m *ReplyBuyOrders) String() string { return proto.CompactTextString(m) }
-func (*ReplyBuyOrders) ProtoMessage()    {}
-func (*ReplyBuyOrders) Descriptor() ([]byte, []int) {
-	return fileDescriptor_executorTrade_6b4bd7aac5d33e67, []int{23}
-}
-func (m *ReplyBuyOrders) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ReplyBuyOrders.Unmarshal(m, b)
-}
-func (m *ReplyBuyOrders) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ReplyBuyOrders.Marshal(b, m, deterministic)
-}
-func (dst *ReplyBuyOrders) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ReplyBuyOrders.Merge(dst, src)
-}
-func (m *ReplyBuyOrders) XXX_Size() int {
-	return xxx_messageInfo_ReplyBuyOrders.Size(m)
-}
-func (m *ReplyBuyOrders) XXX_DiscardUnknown() {
-	xxx_messageInfo_ReplyBuyOrders.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ReplyBuyOrders proto.InternalMessageInfo
+func (m *ReplyBuyOrders) Reset()                    { *m = ReplyBuyOrders{} }
+func (m *ReplyBuyOrders) String() string            { return proto.CompactTextString(m) }
+func (*ReplyBuyOrders) ProtoMessage()               {}
+func (*ReplyBuyOrders) Descriptor() ([]byte, []int) { return fileDescriptor7, []int{23} }
 
 func (m *ReplyBuyOrders) GetBuyOrders() []*ReplyBuyOrder {
 	if m != nil {
@@ -1965,49 +1431,27 @@ func (m *ReplyBuyOrders) GetBuyOrders() []*ReplyBuyOrder {
 }
 
 type ReplyTradeOrder struct {
-	TokenSymbol          string   `protobuf:"bytes,1,opt,name=tokenSymbol" json:"tokenSymbol,omitempty"`
-	Owner                string   `protobuf:"bytes,2,opt,name=owner" json:"owner,omitempty"`
-	AmountPerBoardlot    int64    `protobuf:"varint,3,opt,name=amountPerBoardlot" json:"amountPerBoardlot,omitempty"`
-	MinBoardlot          int64    `protobuf:"varint,4,opt,name=minBoardlot" json:"minBoardlot,omitempty"`
-	PricePerBoardlot     int64    `protobuf:"varint,5,opt,name=pricePerBoardlot" json:"pricePerBoardlot,omitempty"`
-	TotalBoardlot        int64    `protobuf:"varint,6,opt,name=totalBoardlot" json:"totalBoardlot,omitempty"`
-	TradedBoardlot       int64    `protobuf:"varint,7,opt,name=tradedBoardlot" json:"tradedBoardlot,omitempty"`
-	BuyID                string   `protobuf:"bytes,8,opt,name=buyID" json:"buyID,omitempty"`
-	Status               int32    `protobuf:"varint,9,opt,name=status" json:"status,omitempty"`
-	SellID               string   `protobuf:"bytes,10,opt,name=sellID" json:"sellID,omitempty"`
-	TxHash               string   `protobuf:"bytes,11,opt,name=txHash" json:"txHash,omitempty"`
-	Height               int64    `protobuf:"varint,12,opt,name=height" json:"height,omitempty"`
-	Key                  string   `protobuf:"bytes,13,opt,name=key" json:"key,omitempty"`
-	BlockTime            int64    `protobuf:"varint,14,opt,name=blockTime" json:"blockTime,omitempty"`
-	IsSellOrder          bool     `protobuf:"varint,15,opt,name=isSellOrder" json:"isSellOrder,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	TokenSymbol       string `protobuf:"bytes,1,opt,name=tokenSymbol" json:"tokenSymbol,omitempty"`
+	Owner             string `protobuf:"bytes,2,opt,name=owner" json:"owner,omitempty"`
+	AmountPerBoardlot int64  `protobuf:"varint,3,opt,name=amountPerBoardlot" json:"amountPerBoardlot,omitempty"`
+	MinBoardlot       int64  `protobuf:"varint,4,opt,name=minBoardlot" json:"minBoardlot,omitempty"`
+	PricePerBoardlot  int64  `protobuf:"varint,5,opt,name=pricePerBoardlot" json:"pricePerBoardlot,omitempty"`
+	TotalBoardlot     int64  `protobuf:"varint,6,opt,name=totalBoardlot" json:"totalBoardlot,omitempty"`
+	TradedBoardlot    int64  `protobuf:"varint,7,opt,name=tradedBoardlot" json:"tradedBoardlot,omitempty"`
+	BuyID             string `protobuf:"bytes,8,opt,name=buyID" json:"buyID,omitempty"`
+	Status            int32  `protobuf:"varint,9,opt,name=status" json:"status,omitempty"`
+	SellID            string `protobuf:"bytes,10,opt,name=sellID" json:"sellID,omitempty"`
+	TxHash            string `protobuf:"bytes,11,opt,name=txHash" json:"txHash,omitempty"`
+	Height            int64  `protobuf:"varint,12,opt,name=height" json:"height,omitempty"`
+	Key               string `protobuf:"bytes,13,opt,name=key" json:"key,omitempty"`
+	BlockTime         int64  `protobuf:"varint,14,opt,name=blockTime" json:"blockTime,omitempty"`
+	IsSellOrder       bool   `protobuf:"varint,15,opt,name=isSellOrder" json:"isSellOrder,omitempty"`
 }
 
-func (m *ReplyTradeOrder) Reset()         { *m = ReplyTradeOrder{} }
-func (m *ReplyTradeOrder) String() string { return proto.CompactTextString(m) }
-func (*ReplyTradeOrder) ProtoMessage()    {}
-func (*ReplyTradeOrder) Descriptor() ([]byte, []int) {
-	return fileDescriptor_executorTrade_6b4bd7aac5d33e67, []int{24}
-}
-func (m *ReplyTradeOrder) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ReplyTradeOrder.Unmarshal(m, b)
-}
-func (m *ReplyTradeOrder) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ReplyTradeOrder.Marshal(b, m, deterministic)
-}
-func (dst *ReplyTradeOrder) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ReplyTradeOrder.Merge(dst, src)
-}
-func (m *ReplyTradeOrder) XXX_Size() int {
-	return xxx_messageInfo_ReplyTradeOrder.Size(m)
-}
-func (m *ReplyTradeOrder) XXX_DiscardUnknown() {
-	xxx_messageInfo_ReplyTradeOrder.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ReplyTradeOrder proto.InternalMessageInfo
+func (m *ReplyTradeOrder) Reset()                    { *m = ReplyTradeOrder{} }
+func (m *ReplyTradeOrder) String() string            { return proto.CompactTextString(m) }
+func (*ReplyTradeOrder) ProtoMessage()               {}
+func (*ReplyTradeOrder) Descriptor() ([]byte, []int) { return fileDescriptor7, []int{24} }
 
 func (m *ReplyTradeOrder) GetTokenSymbol() string {
 	if m != nil {
@@ -2115,35 +1559,13 @@ func (m *ReplyTradeOrder) GetIsSellOrder() bool {
 }
 
 type ReplyTradeOrders struct {
-	Orders               []*ReplyTradeOrder `protobuf:"bytes,1,rep,name=orders" json:"orders,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}           `json:"-"`
-	XXX_unrecognized     []byte             `json:"-"`
-	XXX_sizecache        int32              `json:"-"`
+	Orders []*ReplyTradeOrder `protobuf:"bytes,1,rep,name=orders" json:"orders,omitempty"`
 }
 
-func (m *ReplyTradeOrders) Reset()         { *m = ReplyTradeOrders{} }
-func (m *ReplyTradeOrders) String() string { return proto.CompactTextString(m) }
-func (*ReplyTradeOrders) ProtoMessage()    {}
-func (*ReplyTradeOrders) Descriptor() ([]byte, []int) {
-	return fileDescriptor_executorTrade_6b4bd7aac5d33e67, []int{25}
-}
-func (m *ReplyTradeOrders) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ReplyTradeOrders.Unmarshal(m, b)
-}
-func (m *ReplyTradeOrders) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ReplyTradeOrders.Marshal(b, m, deterministic)
-}
-func (dst *ReplyTradeOrders) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ReplyTradeOrders.Merge(dst, src)
-}
-func (m *ReplyTradeOrders) XXX_Size() int {
-	return xxx_messageInfo_ReplyTradeOrders.Size(m)
-}
-func (m *ReplyTradeOrders) XXX_DiscardUnknown() {
-	xxx_messageInfo_ReplyTradeOrders.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ReplyTradeOrders proto.InternalMessageInfo
+func (m *ReplyTradeOrders) Reset()                    { *m = ReplyTradeOrders{} }
+func (m *ReplyTradeOrders) String() string            { return proto.CompactTextString(m) }
+func (*ReplyTradeOrders) ProtoMessage()               {}
+func (*ReplyTradeOrders) Descriptor() ([]byte, []int) { return fileDescriptor7, []int{25} }
 
 func (m *ReplyTradeOrders) GetOrders() []*ReplyTradeOrder {
 	if m != nil {
@@ -2181,9 +1603,9 @@ func init() {
 	proto.RegisterType((*ReplyTradeOrders)(nil), "types.ReplyTradeOrders")
 }
 
-func init() { proto.RegisterFile("executorTrade.proto", fileDescriptor_executorTrade_6b4bd7aac5d33e67) }
+func init() { proto.RegisterFile("executorTrade.proto", fileDescriptor7) }
 
-var fileDescriptor_executorTrade_6b4bd7aac5d33e67 = []byte{
+var fileDescriptor7 = []byte{
 	// 1032 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe4, 0x58, 0xc1, 0x6e, 0xdb, 0x46,
 	0x10, 0xb5, 0x44, 0x51, 0x16, 0xc7, 0x96, 0x6c, 0x6f, 0x14, 0x97, 0x2d, 0x7a, 0x10, 0x88, 0xa2,
