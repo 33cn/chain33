@@ -6,15 +6,11 @@
 package client
 
 import (
-	"encoding/hex"
 	"fmt"
-	"math/rand"
 	"time"
 
 	"github.com/inconshreveable/log15"
-
-	"gitlab.33.cn/chain33/chain33/common"
-	"gitlab.33.cn/chain33/chain33/common/address"
+	
 	"gitlab.33.cn/chain33/chain33/common/version"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
