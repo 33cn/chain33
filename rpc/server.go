@@ -89,23 +89,39 @@ func NewJSONRPCServer(c queue.Client) *JSONRPCServer {
 }
 
 func Init(cfg *types.Rpc) {
+	rpcCfg = cfg
 	InitIpWhitelist(cfg)
 	InitJrpcFuncWhitelist(cfg)
 	InitGrpcFuncWhitelist(cfg)
 }
 func InitIpWhitelist(cfg *types.Rpc) {
-	rpcCfg = cfg
-	if len(cfg.GetRemoteIpWhitelist()) == 1 && cfg.GetRemoteIpWhitelist()[0] == "*" {
+	if len(cfg.GetWhitelist()) == 0 && len(cfg.GetWhitlist()) == 0 {
+		remoteIpWhitelist["127.0.0.1"] = true
+		return
+	}
+	if len(cfg.GetWhitelist()) == 1 && cfg.GetWhitelist()[0] == "*" {
 		remoteIpWhitelist["0.0.0.0"] = true
 		return
 	}
-
-	for _, addr := range cfg.GetRemoteIpWhitelist() {
-		remoteIpWhitelist[addr] = true
+	if len(cfg.GetWhitelist()) != 0 {
+		for _, addr := range cfg.GetWhitelist() {
+			remoteIpWhitelist[addr] = true
+		}
+		return
 	}
+	if len(cfg.GetWhitlist()) != 0 {
+		for _, addr := range cfg.GetWhitlist() {
+			remoteIpWhitelist[addr] = true
+		}
+		return
+	}
+
 }
 func InitJrpcFuncWhitelist(cfg *types.Rpc) {
-	rpcCfg = cfg
+	if len(cfg.GetJrpcFuncWhitelist()) == 0 {
+		jrpcFuncWhitelist["*"] = true
+		return
+	}
 	if len(cfg.GetJrpcFuncWhitelist()) == 1 && cfg.GetJrpcFuncWhitelist()[0] == "*" {
 		jrpcFuncWhitelist["*"] = true
 		return
@@ -115,7 +131,10 @@ func InitJrpcFuncWhitelist(cfg *types.Rpc) {
 	}
 }
 func InitGrpcFuncWhitelist(cfg *types.Rpc) {
-	rpcCfg = cfg
+	if len(cfg.GetGrpcFuncWhitelist()) == 0 {
+		grpcFuncWhitelist["*"] = true
+		return
+	}
 	if len(cfg.GetGrpcFuncWhitelist()) == 1 && cfg.GetGrpcFuncWhitelist()[0] == "*" {
 		grpcFuncWhitelist["*"] = true
 		return
