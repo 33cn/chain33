@@ -17,17 +17,45 @@ var _ = proto.Marshal
 var _ = fmt.Errorf
 var _ = math.Inf
 
+// This is a compile-time assertion to ensure that this generated file
+// is compatible with the proto package it is being compiled against.
+// A compilation error at this line likely means your copy of the
+// proto package needs to be updated.
+const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+
 // *
 // 请求获取远程节点的节点信息
 type P2PGetPeerInfo struct {
 	// /p2p版本
-	Version int32 `protobuf:"varint,1,opt,name=version" json:"version,omitempty"`
+	Version              int32    `protobuf:"varint,1,opt,name=version" json:"version,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *P2PGetPeerInfo) Reset()                    { *m = P2PGetPeerInfo{} }
-func (m *P2PGetPeerInfo) String() string            { return proto.CompactTextString(m) }
-func (*P2PGetPeerInfo) ProtoMessage()               {}
-func (*P2PGetPeerInfo) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{0} }
+func (m *P2PGetPeerInfo) Reset()         { *m = P2PGetPeerInfo{} }
+func (m *P2PGetPeerInfo) String() string { return proto.CompactTextString(m) }
+func (*P2PGetPeerInfo) ProtoMessage()    {}
+func (*P2PGetPeerInfo) Descriptor() ([]byte, []int) {
+	return fileDescriptor_p2p_b68c64aa2066aa1b, []int{0}
+}
+func (m *P2PGetPeerInfo) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_P2PGetPeerInfo.Unmarshal(m, b)
+}
+func (m *P2PGetPeerInfo) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_P2PGetPeerInfo.Marshal(b, m, deterministic)
+}
+func (dst *P2PGetPeerInfo) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_P2PGetPeerInfo.Merge(dst, src)
+}
+func (m *P2PGetPeerInfo) XXX_Size() int {
+	return xxx_messageInfo_P2PGetPeerInfo.Size(m)
+}
+func (m *P2PGetPeerInfo) XXX_DiscardUnknown() {
+	xxx_messageInfo_P2PGetPeerInfo.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_P2PGetPeerInfo proto.InternalMessageInfo
 
 func (m *P2PGetPeerInfo) GetVersion() int32 {
 	if m != nil {
@@ -48,13 +76,35 @@ type P2PPeerInfo struct {
 	// /mempool 的大小
 	MempoolSize int32 `protobuf:"varint,4,opt,name=mempoolSize" json:"mempoolSize,omitempty"`
 	// /节点当前高度头部数据
-	Header *Header `protobuf:"bytes,5,opt,name=header" json:"header,omitempty"`
+	Header               *Header  `protobuf:"bytes,5,opt,name=header" json:"header,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *P2PPeerInfo) Reset()                    { *m = P2PPeerInfo{} }
-func (m *P2PPeerInfo) String() string            { return proto.CompactTextString(m) }
-func (*P2PPeerInfo) ProtoMessage()               {}
-func (*P2PPeerInfo) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{1} }
+func (m *P2PPeerInfo) Reset()         { *m = P2PPeerInfo{} }
+func (m *P2PPeerInfo) String() string { return proto.CompactTextString(m) }
+func (*P2PPeerInfo) ProtoMessage()    {}
+func (*P2PPeerInfo) Descriptor() ([]byte, []int) {
+	return fileDescriptor_p2p_b68c64aa2066aa1b, []int{1}
+}
+func (m *P2PPeerInfo) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_P2PPeerInfo.Unmarshal(m, b)
+}
+func (m *P2PPeerInfo) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_P2PPeerInfo.Marshal(b, m, deterministic)
+}
+func (dst *P2PPeerInfo) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_P2PPeerInfo.Merge(dst, src)
+}
+func (m *P2PPeerInfo) XXX_Size() int {
+	return xxx_messageInfo_P2PPeerInfo.Size(m)
+}
+func (m *P2PPeerInfo) XXX_DiscardUnknown() {
+	xxx_messageInfo_P2PPeerInfo.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_P2PPeerInfo proto.InternalMessageInfo
 
 func (m *P2PPeerInfo) GetAddr() string {
 	if m != nil {
@@ -109,13 +159,35 @@ type P2PVersion struct {
 	// /用户代理
 	UserAgent string `protobuf:"bytes,7,opt,name=userAgent" json:"userAgent,omitempty"`
 	// /当前节点的高度
-	StartHeight int64 `protobuf:"varint,8,opt,name=startHeight" json:"startHeight,omitempty"`
+	StartHeight          int64    `protobuf:"varint,8,opt,name=startHeight" json:"startHeight,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *P2PVersion) Reset()                    { *m = P2PVersion{} }
-func (m *P2PVersion) String() string            { return proto.CompactTextString(m) }
-func (*P2PVersion) ProtoMessage()               {}
-func (*P2PVersion) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{2} }
+func (m *P2PVersion) Reset()         { *m = P2PVersion{} }
+func (m *P2PVersion) String() string { return proto.CompactTextString(m) }
+func (*P2PVersion) ProtoMessage()    {}
+func (*P2PVersion) Descriptor() ([]byte, []int) {
+	return fileDescriptor_p2p_b68c64aa2066aa1b, []int{2}
+}
+func (m *P2PVersion) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_P2PVersion.Unmarshal(m, b)
+}
+func (m *P2PVersion) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_P2PVersion.Marshal(b, m, deterministic)
+}
+func (dst *P2PVersion) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_P2PVersion.Merge(dst, src)
+}
+func (m *P2PVersion) XXX_Size() int {
+	return xxx_messageInfo_P2PVersion.Size(m)
+}
+func (m *P2PVersion) XXX_DiscardUnknown() {
+	xxx_messageInfo_P2PVersion.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_P2PVersion proto.InternalMessageInfo
 
 func (m *P2PVersion) GetVersion() int32 {
 	if m != nil {
@@ -176,15 +248,37 @@ func (m *P2PVersion) GetStartHeight() int64 {
 // *
 // P2P 版本返回
 type P2PVerAck struct {
-	Version int32 `protobuf:"varint,1,opt,name=version" json:"version,omitempty"`
-	Service int64 `protobuf:"varint,2,opt,name=service" json:"service,omitempty"`
-	Nonce   int64 `protobuf:"varint,3,opt,name=nonce" json:"nonce,omitempty"`
+	Version              int32    `protobuf:"varint,1,opt,name=version" json:"version,omitempty"`
+	Service              int64    `protobuf:"varint,2,opt,name=service" json:"service,omitempty"`
+	Nonce                int64    `protobuf:"varint,3,opt,name=nonce" json:"nonce,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *P2PVerAck) Reset()                    { *m = P2PVerAck{} }
-func (m *P2PVerAck) String() string            { return proto.CompactTextString(m) }
-func (*P2PVerAck) ProtoMessage()               {}
-func (*P2PVerAck) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{3} }
+func (m *P2PVerAck) Reset()         { *m = P2PVerAck{} }
+func (m *P2PVerAck) String() string { return proto.CompactTextString(m) }
+func (*P2PVerAck) ProtoMessage()    {}
+func (*P2PVerAck) Descriptor() ([]byte, []int) {
+	return fileDescriptor_p2p_b68c64aa2066aa1b, []int{3}
+}
+func (m *P2PVerAck) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_P2PVerAck.Unmarshal(m, b)
+}
+func (m *P2PVerAck) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_P2PVerAck.Marshal(b, m, deterministic)
+}
+func (dst *P2PVerAck) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_P2PVerAck.Merge(dst, src)
+}
+func (m *P2PVerAck) XXX_Size() int {
+	return xxx_messageInfo_P2PVerAck.Size(m)
+}
+func (m *P2PVerAck) XXX_DiscardUnknown() {
+	xxx_messageInfo_P2PVerAck.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_P2PVerAck proto.InternalMessageInfo
 
 func (m *P2PVerAck) GetVersion() int32 {
 	if m != nil {
@@ -217,13 +311,35 @@ type P2PPing struct {
 	// /节点的外网端口
 	Port int32 `protobuf:"varint,3,opt,name=port" json:"port,omitempty"`
 	// 签名
-	Sign *Signature `protobuf:"bytes,4,opt,name=sign" json:"sign,omitempty"`
+	Sign                 *Signature `protobuf:"bytes,4,opt,name=sign" json:"sign,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}   `json:"-"`
+	XXX_unrecognized     []byte     `json:"-"`
+	XXX_sizecache        int32      `json:"-"`
 }
 
-func (m *P2PPing) Reset()                    { *m = P2PPing{} }
-func (m *P2PPing) String() string            { return proto.CompactTextString(m) }
-func (*P2PPing) ProtoMessage()               {}
-func (*P2PPing) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{4} }
+func (m *P2PPing) Reset()         { *m = P2PPing{} }
+func (m *P2PPing) String() string { return proto.CompactTextString(m) }
+func (*P2PPing) ProtoMessage()    {}
+func (*P2PPing) Descriptor() ([]byte, []int) {
+	return fileDescriptor_p2p_b68c64aa2066aa1b, []int{4}
+}
+func (m *P2PPing) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_P2PPing.Unmarshal(m, b)
+}
+func (m *P2PPing) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_P2PPing.Marshal(b, m, deterministic)
+}
+func (dst *P2PPing) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_P2PPing.Merge(dst, src)
+}
+func (m *P2PPing) XXX_Size() int {
+	return xxx_messageInfo_P2PPing.Size(m)
+}
+func (m *P2PPing) XXX_DiscardUnknown() {
+	xxx_messageInfo_P2PPing.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_P2PPing proto.InternalMessageInfo
 
 func (m *P2PPing) GetNonce() int64 {
 	if m != nil {
@@ -256,13 +372,35 @@ func (m *P2PPing) GetSign() *Signature {
 // *
 // 心跳返回包
 type P2PPong struct {
-	Nonce int64 `protobuf:"varint,1,opt,name=nonce" json:"nonce,omitempty"`
+	Nonce                int64    `protobuf:"varint,1,opt,name=nonce" json:"nonce,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *P2PPong) Reset()                    { *m = P2PPong{} }
-func (m *P2PPong) String() string            { return proto.CompactTextString(m) }
-func (*P2PPong) ProtoMessage()               {}
-func (*P2PPong) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{5} }
+func (m *P2PPong) Reset()         { *m = P2PPong{} }
+func (m *P2PPong) String() string { return proto.CompactTextString(m) }
+func (*P2PPong) ProtoMessage()    {}
+func (*P2PPong) Descriptor() ([]byte, []int) {
+	return fileDescriptor_p2p_b68c64aa2066aa1b, []int{5}
+}
+func (m *P2PPong) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_P2PPong.Unmarshal(m, b)
+}
+func (m *P2PPong) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_P2PPong.Marshal(b, m, deterministic)
+}
+func (dst *P2PPong) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_P2PPong.Merge(dst, src)
+}
+func (m *P2PPong) XXX_Size() int {
+	return xxx_messageInfo_P2PPong.Size(m)
+}
+func (m *P2PPong) XXX_DiscardUnknown() {
+	xxx_messageInfo_P2PPong.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_P2PPong proto.InternalMessageInfo
 
 func (m *P2PPong) GetNonce() int64 {
 	if m != nil {
@@ -274,13 +412,35 @@ func (m *P2PPong) GetNonce() int64 {
 // *
 // 获取对方节点所连接的其他节点地址的请求包
 type P2PGetAddr struct {
-	Nonce int64 `protobuf:"varint,1,opt,name=nonce" json:"nonce,omitempty"`
+	Nonce                int64    `protobuf:"varint,1,opt,name=nonce" json:"nonce,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *P2PGetAddr) Reset()                    { *m = P2PGetAddr{} }
-func (m *P2PGetAddr) String() string            { return proto.CompactTextString(m) }
-func (*P2PGetAddr) ProtoMessage()               {}
-func (*P2PGetAddr) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{6} }
+func (m *P2PGetAddr) Reset()         { *m = P2PGetAddr{} }
+func (m *P2PGetAddr) String() string { return proto.CompactTextString(m) }
+func (*P2PGetAddr) ProtoMessage()    {}
+func (*P2PGetAddr) Descriptor() ([]byte, []int) {
+	return fileDescriptor_p2p_b68c64aa2066aa1b, []int{6}
+}
+func (m *P2PGetAddr) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_P2PGetAddr.Unmarshal(m, b)
+}
+func (m *P2PGetAddr) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_P2PGetAddr.Marshal(b, m, deterministic)
+}
+func (dst *P2PGetAddr) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_P2PGetAddr.Merge(dst, src)
+}
+func (m *P2PGetAddr) XXX_Size() int {
+	return xxx_messageInfo_P2PGetAddr.Size(m)
+}
+func (m *P2PGetAddr) XXX_DiscardUnknown() {
+	xxx_messageInfo_P2PGetAddr.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_P2PGetAddr proto.InternalMessageInfo
 
 func (m *P2PGetAddr) GetNonce() int64 {
 	if m != nil {
@@ -294,13 +454,35 @@ func (m *P2PGetAddr) GetNonce() int64 {
 type P2PAddr struct {
 	Nonce int64 `protobuf:"varint,1,opt,name=nonce" json:"nonce,omitempty"`
 	// /对方节点返回的其他节点信息
-	Addrlist []string `protobuf:"bytes,2,rep,name=addrlist" json:"addrlist,omitempty"`
+	Addrlist             []string `protobuf:"bytes,2,rep,name=addrlist" json:"addrlist,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *P2PAddr) Reset()                    { *m = P2PAddr{} }
-func (m *P2PAddr) String() string            { return proto.CompactTextString(m) }
-func (*P2PAddr) ProtoMessage()               {}
-func (*P2PAddr) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{7} }
+func (m *P2PAddr) Reset()         { *m = P2PAddr{} }
+func (m *P2PAddr) String() string { return proto.CompactTextString(m) }
+func (*P2PAddr) ProtoMessage()    {}
+func (*P2PAddr) Descriptor() ([]byte, []int) {
+	return fileDescriptor_p2p_b68c64aa2066aa1b, []int{7}
+}
+func (m *P2PAddr) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_P2PAddr.Unmarshal(m, b)
+}
+func (m *P2PAddr) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_P2PAddr.Marshal(b, m, deterministic)
+}
+func (dst *P2PAddr) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_P2PAddr.Merge(dst, src)
+}
+func (m *P2PAddr) XXX_Size() int {
+	return xxx_messageInfo_P2PAddr.Size(m)
+}
+func (m *P2PAddr) XXX_DiscardUnknown() {
+	xxx_messageInfo_P2PAddr.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_P2PAddr proto.InternalMessageInfo
 
 func (m *P2PAddr) GetNonce() int64 {
 	if m != nil {
@@ -317,14 +499,36 @@ func (m *P2PAddr) GetAddrlist() []string {
 }
 
 type P2PAddrList struct {
-	Nonce    int64          `protobuf:"varint,1,opt,name=nonce" json:"nonce,omitempty"`
-	Peerinfo []*P2PPeerInfo `protobuf:"bytes,2,rep,name=peerinfo" json:"peerinfo,omitempty"`
+	Nonce                int64          `protobuf:"varint,1,opt,name=nonce" json:"nonce,omitempty"`
+	Peerinfo             []*P2PPeerInfo `protobuf:"bytes,2,rep,name=peerinfo" json:"peerinfo,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}       `json:"-"`
+	XXX_unrecognized     []byte         `json:"-"`
+	XXX_sizecache        int32          `json:"-"`
 }
 
-func (m *P2PAddrList) Reset()                    { *m = P2PAddrList{} }
-func (m *P2PAddrList) String() string            { return proto.CompactTextString(m) }
-func (*P2PAddrList) ProtoMessage()               {}
-func (*P2PAddrList) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{8} }
+func (m *P2PAddrList) Reset()         { *m = P2PAddrList{} }
+func (m *P2PAddrList) String() string { return proto.CompactTextString(m) }
+func (*P2PAddrList) ProtoMessage()    {}
+func (*P2PAddrList) Descriptor() ([]byte, []int) {
+	return fileDescriptor_p2p_b68c64aa2066aa1b, []int{8}
+}
+func (m *P2PAddrList) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_P2PAddrList.Unmarshal(m, b)
+}
+func (m *P2PAddrList) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_P2PAddrList.Marshal(b, m, deterministic)
+}
+func (dst *P2PAddrList) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_P2PAddrList.Merge(dst, src)
+}
+func (m *P2PAddrList) XXX_Size() int {
+	return xxx_messageInfo_P2PAddrList.Size(m)
+}
+func (m *P2PAddrList) XXX_DiscardUnknown() {
+	xxx_messageInfo_P2PAddrList.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_P2PAddrList proto.InternalMessageInfo
 
 func (m *P2PAddrList) GetNonce() int64 {
 	if m != nil {
@@ -346,13 +550,35 @@ type P2PExternalInfo struct {
 	// /节点的外网地址
 	Addr string `protobuf:"bytes,1,opt,name=addr" json:"addr,omitempty"`
 	// 节点是否在外网
-	Isoutside bool `protobuf:"varint,2,opt,name=isoutside" json:"isoutside,omitempty"`
+	Isoutside            bool     `protobuf:"varint,2,opt,name=isoutside" json:"isoutside,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *P2PExternalInfo) Reset()                    { *m = P2PExternalInfo{} }
-func (m *P2PExternalInfo) String() string            { return proto.CompactTextString(m) }
-func (*P2PExternalInfo) ProtoMessage()               {}
-func (*P2PExternalInfo) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{9} }
+func (m *P2PExternalInfo) Reset()         { *m = P2PExternalInfo{} }
+func (m *P2PExternalInfo) String() string { return proto.CompactTextString(m) }
+func (*P2PExternalInfo) ProtoMessage()    {}
+func (*P2PExternalInfo) Descriptor() ([]byte, []int) {
+	return fileDescriptor_p2p_b68c64aa2066aa1b, []int{9}
+}
+func (m *P2PExternalInfo) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_P2PExternalInfo.Unmarshal(m, b)
+}
+func (m *P2PExternalInfo) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_P2PExternalInfo.Marshal(b, m, deterministic)
+}
+func (dst *P2PExternalInfo) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_P2PExternalInfo.Merge(dst, src)
+}
+func (m *P2PExternalInfo) XXX_Size() int {
+	return xxx_messageInfo_P2PExternalInfo.Size(m)
+}
+func (m *P2PExternalInfo) XXX_DiscardUnknown() {
+	xxx_messageInfo_P2PExternalInfo.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_P2PExternalInfo proto.InternalMessageInfo
 
 func (m *P2PExternalInfo) GetAddr() string {
 	if m != nil {
@@ -371,15 +597,37 @@ func (m *P2PExternalInfo) GetIsoutside() bool {
 // *
 // 获取区间区块
 type P2PGetBlocks struct {
-	Version     int32 `protobuf:"varint,1,opt,name=version" json:"version,omitempty"`
-	StartHeight int64 `protobuf:"varint,2,opt,name=startHeight" json:"startHeight,omitempty"`
-	EndHeight   int64 `protobuf:"varint,3,opt,name=endHeight" json:"endHeight,omitempty"`
+	Version              int32    `protobuf:"varint,1,opt,name=version" json:"version,omitempty"`
+	StartHeight          int64    `protobuf:"varint,2,opt,name=startHeight" json:"startHeight,omitempty"`
+	EndHeight            int64    `protobuf:"varint,3,opt,name=endHeight" json:"endHeight,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *P2PGetBlocks) Reset()                    { *m = P2PGetBlocks{} }
-func (m *P2PGetBlocks) String() string            { return proto.CompactTextString(m) }
-func (*P2PGetBlocks) ProtoMessage()               {}
-func (*P2PGetBlocks) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{10} }
+func (m *P2PGetBlocks) Reset()         { *m = P2PGetBlocks{} }
+func (m *P2PGetBlocks) String() string { return proto.CompactTextString(m) }
+func (*P2PGetBlocks) ProtoMessage()    {}
+func (*P2PGetBlocks) Descriptor() ([]byte, []int) {
+	return fileDescriptor_p2p_b68c64aa2066aa1b, []int{10}
+}
+func (m *P2PGetBlocks) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_P2PGetBlocks.Unmarshal(m, b)
+}
+func (m *P2PGetBlocks) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_P2PGetBlocks.Marshal(b, m, deterministic)
+}
+func (dst *P2PGetBlocks) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_P2PGetBlocks.Merge(dst, src)
+}
+func (m *P2PGetBlocks) XXX_Size() int {
+	return xxx_messageInfo_P2PGetBlocks.Size(m)
+}
+func (m *P2PGetBlocks) XXX_DiscardUnknown() {
+	xxx_messageInfo_P2PGetBlocks.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_P2PGetBlocks proto.InternalMessageInfo
 
 func (m *P2PGetBlocks) GetVersion() int32 {
 	if m != nil {
@@ -405,13 +653,35 @@ func (m *P2PGetBlocks) GetEndHeight() int64 {
 // *
 // 获取mempool
 type P2PGetMempool struct {
-	Version int32 `protobuf:"varint,1,opt,name=version" json:"version,omitempty"`
+	Version              int32    `protobuf:"varint,1,opt,name=version" json:"version,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *P2PGetMempool) Reset()                    { *m = P2PGetMempool{} }
-func (m *P2PGetMempool) String() string            { return proto.CompactTextString(m) }
-func (*P2PGetMempool) ProtoMessage()               {}
-func (*P2PGetMempool) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{11} }
+func (m *P2PGetMempool) Reset()         { *m = P2PGetMempool{} }
+func (m *P2PGetMempool) String() string { return proto.CompactTextString(m) }
+func (*P2PGetMempool) ProtoMessage()    {}
+func (*P2PGetMempool) Descriptor() ([]byte, []int) {
+	return fileDescriptor_p2p_b68c64aa2066aa1b, []int{11}
+}
+func (m *P2PGetMempool) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_P2PGetMempool.Unmarshal(m, b)
+}
+func (m *P2PGetMempool) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_P2PGetMempool.Marshal(b, m, deterministic)
+}
+func (dst *P2PGetMempool) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_P2PGetMempool.Merge(dst, src)
+}
+func (m *P2PGetMempool) XXX_Size() int {
+	return xxx_messageInfo_P2PGetMempool.Size(m)
+}
+func (m *P2PGetMempool) XXX_DiscardUnknown() {
+	xxx_messageInfo_P2PGetMempool.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_P2PGetMempool proto.InternalMessageInfo
 
 func (m *P2PGetMempool) GetVersion() int32 {
 	if m != nil {
@@ -421,13 +691,35 @@ func (m *P2PGetMempool) GetVersion() int32 {
 }
 
 type P2PInv struct {
-	Invs []*Inventory `protobuf:"bytes,1,rep,name=invs" json:"invs,omitempty"`
+	Invs                 []*Inventory `protobuf:"bytes,1,rep,name=invs" json:"invs,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}     `json:"-"`
+	XXX_unrecognized     []byte       `json:"-"`
+	XXX_sizecache        int32        `json:"-"`
 }
 
-func (m *P2PInv) Reset()                    { *m = P2PInv{} }
-func (m *P2PInv) String() string            { return proto.CompactTextString(m) }
-func (*P2PInv) ProtoMessage()               {}
-func (*P2PInv) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{12} }
+func (m *P2PInv) Reset()         { *m = P2PInv{} }
+func (m *P2PInv) String() string { return proto.CompactTextString(m) }
+func (*P2PInv) ProtoMessage()    {}
+func (*P2PInv) Descriptor() ([]byte, []int) {
+	return fileDescriptor_p2p_b68c64aa2066aa1b, []int{12}
+}
+func (m *P2PInv) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_P2PInv.Unmarshal(m, b)
+}
+func (m *P2PInv) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_P2PInv.Marshal(b, m, deterministic)
+}
+func (dst *P2PInv) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_P2PInv.Merge(dst, src)
+}
+func (m *P2PInv) XXX_Size() int {
+	return xxx_messageInfo_P2PInv.Size(m)
+}
+func (m *P2PInv) XXX_DiscardUnknown() {
+	xxx_messageInfo_P2PInv.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_P2PInv proto.InternalMessageInfo
 
 func (m *P2PInv) GetInvs() []*Inventory {
 	if m != nil {
@@ -443,13 +735,35 @@ type Inventory struct {
 	// /哈希
 	Hash []byte `protobuf:"bytes,2,opt,name=hash,proto3" json:"hash,omitempty"`
 	// 高度
-	Height int64 `protobuf:"varint,3,opt,name=height" json:"height,omitempty"`
+	Height               int64    `protobuf:"varint,3,opt,name=height" json:"height,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *Inventory) Reset()                    { *m = Inventory{} }
-func (m *Inventory) String() string            { return proto.CompactTextString(m) }
-func (*Inventory) ProtoMessage()               {}
-func (*Inventory) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{13} }
+func (m *Inventory) Reset()         { *m = Inventory{} }
+func (m *Inventory) String() string { return proto.CompactTextString(m) }
+func (*Inventory) ProtoMessage()    {}
+func (*Inventory) Descriptor() ([]byte, []int) {
+	return fileDescriptor_p2p_b68c64aa2066aa1b, []int{13}
+}
+func (m *Inventory) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Inventory.Unmarshal(m, b)
+}
+func (m *Inventory) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Inventory.Marshal(b, m, deterministic)
+}
+func (dst *Inventory) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Inventory.Merge(dst, src)
+}
+func (m *Inventory) XXX_Size() int {
+	return xxx_messageInfo_Inventory.Size(m)
+}
+func (m *Inventory) XXX_DiscardUnknown() {
+	xxx_messageInfo_Inventory.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Inventory proto.InternalMessageInfo
 
 func (m *Inventory) GetTy() int32 {
 	if m != nil {
@@ -478,13 +792,35 @@ type P2PGetData struct {
 	// /p2p版本
 	Version int32 `protobuf:"varint,1,opt,name=version" json:"version,omitempty"`
 	// / invs 数组
-	Invs []*Inventory `protobuf:"bytes,2,rep,name=invs" json:"invs,omitempty"`
+	Invs                 []*Inventory `protobuf:"bytes,2,rep,name=invs" json:"invs,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}     `json:"-"`
+	XXX_unrecognized     []byte       `json:"-"`
+	XXX_sizecache        int32        `json:"-"`
 }
 
-func (m *P2PGetData) Reset()                    { *m = P2PGetData{} }
-func (m *P2PGetData) String() string            { return proto.CompactTextString(m) }
-func (*P2PGetData) ProtoMessage()               {}
-func (*P2PGetData) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{14} }
+func (m *P2PGetData) Reset()         { *m = P2PGetData{} }
+func (m *P2PGetData) String() string { return proto.CompactTextString(m) }
+func (*P2PGetData) ProtoMessage()    {}
+func (*P2PGetData) Descriptor() ([]byte, []int) {
+	return fileDescriptor_p2p_b68c64aa2066aa1b, []int{14}
+}
+func (m *P2PGetData) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_P2PGetData.Unmarshal(m, b)
+}
+func (m *P2PGetData) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_P2PGetData.Marshal(b, m, deterministic)
+}
+func (dst *P2PGetData) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_P2PGetData.Merge(dst, src)
+}
+func (m *P2PGetData) XXX_Size() int {
+	return xxx_messageInfo_P2PGetData.Size(m)
+}
+func (m *P2PGetData) XXX_DiscardUnknown() {
+	xxx_messageInfo_P2PGetData.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_P2PGetData proto.InternalMessageInfo
 
 func (m *P2PGetData) GetVersion() int32 {
 	if m != nil {
@@ -503,13 +839,35 @@ func (m *P2PGetData) GetInvs() []*Inventory {
 // *
 // p2p 发送交易协议
 type P2PTx struct {
-	Tx *Transaction `protobuf:"bytes,1,opt,name=tx" json:"tx,omitempty"`
+	Tx                   *Transaction `protobuf:"bytes,1,opt,name=tx" json:"tx,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}     `json:"-"`
+	XXX_unrecognized     []byte       `json:"-"`
+	XXX_sizecache        int32        `json:"-"`
 }
 
-func (m *P2PTx) Reset()                    { *m = P2PTx{} }
-func (m *P2PTx) String() string            { return proto.CompactTextString(m) }
-func (*P2PTx) ProtoMessage()               {}
-func (*P2PTx) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{15} }
+func (m *P2PTx) Reset()         { *m = P2PTx{} }
+func (m *P2PTx) String() string { return proto.CompactTextString(m) }
+func (*P2PTx) ProtoMessage()    {}
+func (*P2PTx) Descriptor() ([]byte, []int) {
+	return fileDescriptor_p2p_b68c64aa2066aa1b, []int{15}
+}
+func (m *P2PTx) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_P2PTx.Unmarshal(m, b)
+}
+func (m *P2PTx) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_P2PTx.Marshal(b, m, deterministic)
+}
+func (dst *P2PTx) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_P2PTx.Merge(dst, src)
+}
+func (m *P2PTx) XXX_Size() int {
+	return xxx_messageInfo_P2PTx.Size(m)
+}
+func (m *P2PTx) XXX_DiscardUnknown() {
+	xxx_messageInfo_P2PTx.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_P2PTx proto.InternalMessageInfo
 
 func (m *P2PTx) GetTx() *Transaction {
 	if m != nil {
@@ -521,13 +879,35 @@ func (m *P2PTx) GetTx() *Transaction {
 // *
 // p2p 发送区块协议
 type P2PBlock struct {
-	Block *Block `protobuf:"bytes,1,opt,name=block" json:"block,omitempty"`
+	Block                *Block   `protobuf:"bytes,1,opt,name=block" json:"block,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *P2PBlock) Reset()                    { *m = P2PBlock{} }
-func (m *P2PBlock) String() string            { return proto.CompactTextString(m) }
-func (*P2PBlock) ProtoMessage()               {}
-func (*P2PBlock) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{16} }
+func (m *P2PBlock) Reset()         { *m = P2PBlock{} }
+func (m *P2PBlock) String() string { return proto.CompactTextString(m) }
+func (*P2PBlock) ProtoMessage()    {}
+func (*P2PBlock) Descriptor() ([]byte, []int) {
+	return fileDescriptor_p2p_b68c64aa2066aa1b, []int{16}
+}
+func (m *P2PBlock) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_P2PBlock.Unmarshal(m, b)
+}
+func (m *P2PBlock) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_P2PBlock.Marshal(b, m, deterministic)
+}
+func (dst *P2PBlock) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_P2PBlock.Merge(dst, src)
+}
+func (m *P2PBlock) XXX_Size() int {
+	return xxx_messageInfo_P2PBlock.Size(m)
+}
+func (m *P2PBlock) XXX_DiscardUnknown() {
+	xxx_messageInfo_P2PBlock.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_P2PBlock proto.InternalMessageInfo
 
 func (m *P2PBlock) GetBlock() *Block {
 	if m != nil {
@@ -543,13 +923,35 @@ type BroadCastData struct {
 	//	*BroadCastData_Tx
 	//	*BroadCastData_Block
 	//	*BroadCastData_Ping
-	Value isBroadCastData_Value `protobuf_oneof:"value"`
+	Value                isBroadCastData_Value `protobuf_oneof:"value"`
+	XXX_NoUnkeyedLiteral struct{}              `json:"-"`
+	XXX_unrecognized     []byte                `json:"-"`
+	XXX_sizecache        int32                 `json:"-"`
 }
 
-func (m *BroadCastData) Reset()                    { *m = BroadCastData{} }
-func (m *BroadCastData) String() string            { return proto.CompactTextString(m) }
-func (*BroadCastData) ProtoMessage()               {}
-func (*BroadCastData) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{17} }
+func (m *BroadCastData) Reset()         { *m = BroadCastData{} }
+func (m *BroadCastData) String() string { return proto.CompactTextString(m) }
+func (*BroadCastData) ProtoMessage()    {}
+func (*BroadCastData) Descriptor() ([]byte, []int) {
+	return fileDescriptor_p2p_b68c64aa2066aa1b, []int{17}
+}
+func (m *BroadCastData) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_BroadCastData.Unmarshal(m, b)
+}
+func (m *BroadCastData) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_BroadCastData.Marshal(b, m, deterministic)
+}
+func (dst *BroadCastData) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_BroadCastData.Merge(dst, src)
+}
+func (m *BroadCastData) XXX_Size() int {
+	return xxx_messageInfo_BroadCastData.Size(m)
+}
+func (m *BroadCastData) XXX_DiscardUnknown() {
+	xxx_messageInfo_BroadCastData.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_BroadCastData proto.InternalMessageInfo
 
 type isBroadCastData_Value interface {
 	isBroadCastData_Value()
@@ -670,17 +1072,17 @@ func _BroadCastData_OneofSizer(msg proto.Message) (n int) {
 	switch x := m.Value.(type) {
 	case *BroadCastData_Tx:
 		s := proto.Size(x.Tx)
-		n += proto.SizeVarint(1<<3 | proto.WireBytes)
+		n += 1 // tag and wire
 		n += proto.SizeVarint(uint64(s))
 		n += s
 	case *BroadCastData_Block:
 		s := proto.Size(x.Block)
-		n += proto.SizeVarint(2<<3 | proto.WireBytes)
+		n += 1 // tag and wire
 		n += proto.SizeVarint(uint64(s))
 		n += s
 	case *BroadCastData_Ping:
 		s := proto.Size(x.Ping)
-		n += proto.SizeVarint(3<<3 | proto.WireBytes)
+		n += 1 // tag and wire
 		n += proto.SizeVarint(uint64(s))
 		n += s
 	case nil:
@@ -693,15 +1095,37 @@ func _BroadCastData_OneofSizer(msg proto.Message) (n int) {
 // *
 // p2p 获取区块区间头部信息协议
 type P2PGetHeaders struct {
-	Version     int32 `protobuf:"varint,1,opt,name=version" json:"version,omitempty"`
-	StartHeight int64 `protobuf:"varint,2,opt,name=startHeight" json:"startHeight,omitempty"`
-	EndHeight   int64 `protobuf:"varint,3,opt,name=endHeight" json:"endHeight,omitempty"`
+	Version              int32    `protobuf:"varint,1,opt,name=version" json:"version,omitempty"`
+	StartHeight          int64    `protobuf:"varint,2,opt,name=startHeight" json:"startHeight,omitempty"`
+	EndHeight            int64    `protobuf:"varint,3,opt,name=endHeight" json:"endHeight,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *P2PGetHeaders) Reset()                    { *m = P2PGetHeaders{} }
-func (m *P2PGetHeaders) String() string            { return proto.CompactTextString(m) }
-func (*P2PGetHeaders) ProtoMessage()               {}
-func (*P2PGetHeaders) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{18} }
+func (m *P2PGetHeaders) Reset()         { *m = P2PGetHeaders{} }
+func (m *P2PGetHeaders) String() string { return proto.CompactTextString(m) }
+func (*P2PGetHeaders) ProtoMessage()    {}
+func (*P2PGetHeaders) Descriptor() ([]byte, []int) {
+	return fileDescriptor_p2p_b68c64aa2066aa1b, []int{18}
+}
+func (m *P2PGetHeaders) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_P2PGetHeaders.Unmarshal(m, b)
+}
+func (m *P2PGetHeaders) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_P2PGetHeaders.Marshal(b, m, deterministic)
+}
+func (dst *P2PGetHeaders) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_P2PGetHeaders.Merge(dst, src)
+}
+func (m *P2PGetHeaders) XXX_Size() int {
+	return xxx_messageInfo_P2PGetHeaders.Size(m)
+}
+func (m *P2PGetHeaders) XXX_DiscardUnknown() {
+	xxx_messageInfo_P2PGetHeaders.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_P2PGetHeaders proto.InternalMessageInfo
 
 func (m *P2PGetHeaders) GetVersion() int32 {
 	if m != nil {
@@ -727,13 +1151,35 @@ func (m *P2PGetHeaders) GetEndHeight() int64 {
 // *
 // p2p 区块头传输协议
 type P2PHeaders struct {
-	Headers []*Header `protobuf:"bytes,1,rep,name=headers" json:"headers,omitempty"`
+	Headers              []*Header `protobuf:"bytes,1,rep,name=headers" json:"headers,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
+	XXX_unrecognized     []byte    `json:"-"`
+	XXX_sizecache        int32     `json:"-"`
 }
 
-func (m *P2PHeaders) Reset()                    { *m = P2PHeaders{} }
-func (m *P2PHeaders) String() string            { return proto.CompactTextString(m) }
-func (*P2PHeaders) ProtoMessage()               {}
-func (*P2PHeaders) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{19} }
+func (m *P2PHeaders) Reset()         { *m = P2PHeaders{} }
+func (m *P2PHeaders) String() string { return proto.CompactTextString(m) }
+func (*P2PHeaders) ProtoMessage()    {}
+func (*P2PHeaders) Descriptor() ([]byte, []int) {
+	return fileDescriptor_p2p_b68c64aa2066aa1b, []int{19}
+}
+func (m *P2PHeaders) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_P2PHeaders.Unmarshal(m, b)
+}
+func (m *P2PHeaders) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_P2PHeaders.Marshal(b, m, deterministic)
+}
+func (dst *P2PHeaders) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_P2PHeaders.Merge(dst, src)
+}
+func (m *P2PHeaders) XXX_Size() int {
+	return xxx_messageInfo_P2PHeaders.Size(m)
+}
+func (m *P2PHeaders) XXX_DiscardUnknown() {
+	xxx_messageInfo_P2PHeaders.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_P2PHeaders proto.InternalMessageInfo
 
 func (m *P2PHeaders) GetHeaders() []*Header {
 	if m != nil {
@@ -748,14 +1194,36 @@ type InvData struct {
 	// Types that are valid to be assigned to Value:
 	//	*InvData_Tx
 	//	*InvData_Block
-	Value isInvData_Value `protobuf_oneof:"value"`
-	Ty    int32           `protobuf:"varint,3,opt,name=ty" json:"ty,omitempty"`
+	Value                isInvData_Value `protobuf_oneof:"value"`
+	Ty                   int32           `protobuf:"varint,3,opt,name=ty" json:"ty,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
+	XXX_unrecognized     []byte          `json:"-"`
+	XXX_sizecache        int32           `json:"-"`
 }
 
-func (m *InvData) Reset()                    { *m = InvData{} }
-func (m *InvData) String() string            { return proto.CompactTextString(m) }
-func (*InvData) ProtoMessage()               {}
-func (*InvData) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{20} }
+func (m *InvData) Reset()         { *m = InvData{} }
+func (m *InvData) String() string { return proto.CompactTextString(m) }
+func (*InvData) ProtoMessage()    {}
+func (*InvData) Descriptor() ([]byte, []int) {
+	return fileDescriptor_p2p_b68c64aa2066aa1b, []int{20}
+}
+func (m *InvData) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_InvData.Unmarshal(m, b)
+}
+func (m *InvData) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_InvData.Marshal(b, m, deterministic)
+}
+func (dst *InvData) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_InvData.Merge(dst, src)
+}
+func (m *InvData) XXX_Size() int {
+	return xxx_messageInfo_InvData.Size(m)
+}
+func (m *InvData) XXX_DiscardUnknown() {
+	xxx_messageInfo_InvData.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_InvData proto.InternalMessageInfo
 
 type isInvData_Value interface {
 	isInvData_Value()
@@ -858,12 +1326,12 @@ func _InvData_OneofSizer(msg proto.Message) (n int) {
 	switch x := m.Value.(type) {
 	case *InvData_Tx:
 		s := proto.Size(x.Tx)
-		n += proto.SizeVarint(1<<3 | proto.WireBytes)
+		n += 1 // tag and wire
 		n += proto.SizeVarint(uint64(s))
 		n += s
 	case *InvData_Block:
 		s := proto.Size(x.Block)
-		n += proto.SizeVarint(2<<3 | proto.WireBytes)
+		n += 1 // tag and wire
 		n += proto.SizeVarint(uint64(s))
 		n += s
 	case nil:
@@ -876,13 +1344,35 @@ func _InvData_OneofSizer(msg proto.Message) (n int) {
 // *
 // inv 返回数据
 type InvDatas struct {
-	Items []*InvData `protobuf:"bytes,1,rep,name=items" json:"items,omitempty"`
+	Items                []*InvData `protobuf:"bytes,1,rep,name=items" json:"items,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}   `json:"-"`
+	XXX_unrecognized     []byte     `json:"-"`
+	XXX_sizecache        int32      `json:"-"`
 }
 
-func (m *InvDatas) Reset()                    { *m = InvDatas{} }
-func (m *InvDatas) String() string            { return proto.CompactTextString(m) }
-func (*InvDatas) ProtoMessage()               {}
-func (*InvDatas) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{21} }
+func (m *InvDatas) Reset()         { *m = InvDatas{} }
+func (m *InvDatas) String() string { return proto.CompactTextString(m) }
+func (*InvDatas) ProtoMessage()    {}
+func (*InvDatas) Descriptor() ([]byte, []int) {
+	return fileDescriptor_p2p_b68c64aa2066aa1b, []int{21}
+}
+func (m *InvDatas) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_InvDatas.Unmarshal(m, b)
+}
+func (m *InvDatas) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_InvDatas.Marshal(b, m, deterministic)
+}
+func (dst *InvDatas) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_InvDatas.Merge(dst, src)
+}
+func (m *InvDatas) XXX_Size() int {
+	return xxx_messageInfo_InvDatas.Size(m)
+}
+func (m *InvDatas) XXX_DiscardUnknown() {
+	xxx_messageInfo_InvDatas.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_InvDatas proto.InternalMessageInfo
 
 func (m *InvDatas) GetItems() []*InvData {
 	if m != nil {
@@ -894,18 +1384,40 @@ func (m *InvDatas) GetItems() []*InvData {
 // *
 // peer 信息
 type Peer struct {
-	Addr        string  `protobuf:"bytes,1,opt,name=addr" json:"addr,omitempty"`
-	Port        int32   `protobuf:"varint,2,opt,name=port" json:"port,omitempty"`
-	Name        string  `protobuf:"bytes,3,opt,name=name" json:"name,omitempty"`
-	Self        bool    `protobuf:"varint,4,opt,name=self" json:"self,omitempty"`
-	MempoolSize int32   `protobuf:"varint,5,opt,name=mempoolSize" json:"mempoolSize,omitempty"`
-	Header      *Header `protobuf:"bytes,6,opt,name=header" json:"header,omitempty"`
+	Addr                 string   `protobuf:"bytes,1,opt,name=addr" json:"addr,omitempty"`
+	Port                 int32    `protobuf:"varint,2,opt,name=port" json:"port,omitempty"`
+	Name                 string   `protobuf:"bytes,3,opt,name=name" json:"name,omitempty"`
+	Self                 bool     `protobuf:"varint,4,opt,name=self" json:"self,omitempty"`
+	MempoolSize          int32    `protobuf:"varint,5,opt,name=mempoolSize" json:"mempoolSize,omitempty"`
+	Header               *Header  `protobuf:"bytes,6,opt,name=header" json:"header,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *Peer) Reset()                    { *m = Peer{} }
-func (m *Peer) String() string            { return proto.CompactTextString(m) }
-func (*Peer) ProtoMessage()               {}
-func (*Peer) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{22} }
+func (m *Peer) Reset()         { *m = Peer{} }
+func (m *Peer) String() string { return proto.CompactTextString(m) }
+func (*Peer) ProtoMessage()    {}
+func (*Peer) Descriptor() ([]byte, []int) {
+	return fileDescriptor_p2p_b68c64aa2066aa1b, []int{22}
+}
+func (m *Peer) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Peer.Unmarshal(m, b)
+}
+func (m *Peer) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Peer.Marshal(b, m, deterministic)
+}
+func (dst *Peer) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Peer.Merge(dst, src)
+}
+func (m *Peer) XXX_Size() int {
+	return xxx_messageInfo_Peer.Size(m)
+}
+func (m *Peer) XXX_DiscardUnknown() {
+	xxx_messageInfo_Peer.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Peer proto.InternalMessageInfo
 
 func (m *Peer) GetAddr() string {
 	if m != nil {
@@ -952,13 +1464,35 @@ func (m *Peer) GetHeader() *Header {
 // *
 // peer 列表
 type PeerList struct {
-	Peers []*Peer `protobuf:"bytes,1,rep,name=peers" json:"peers,omitempty"`
+	Peers                []*Peer  `protobuf:"bytes,1,rep,name=peers" json:"peers,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *PeerList) Reset()                    { *m = PeerList{} }
-func (m *PeerList) String() string            { return proto.CompactTextString(m) }
-func (*PeerList) ProtoMessage()               {}
-func (*PeerList) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{23} }
+func (m *PeerList) Reset()         { *m = PeerList{} }
+func (m *PeerList) String() string { return proto.CompactTextString(m) }
+func (*PeerList) ProtoMessage()    {}
+func (*PeerList) Descriptor() ([]byte, []int) {
+	return fileDescriptor_p2p_b68c64aa2066aa1b, []int{23}
+}
+func (m *PeerList) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_PeerList.Unmarshal(m, b)
+}
+func (m *PeerList) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_PeerList.Marshal(b, m, deterministic)
+}
+func (dst *PeerList) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_PeerList.Merge(dst, src)
+}
+func (m *PeerList) XXX_Size() int {
+	return xxx_messageInfo_PeerList.Size(m)
+}
+func (m *PeerList) XXX_DiscardUnknown() {
+	xxx_messageInfo_PeerList.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_PeerList proto.InternalMessageInfo
 
 func (m *PeerList) GetPeers() []*Peer {
 	if m != nil {
@@ -970,17 +1504,39 @@ func (m *PeerList) GetPeers() []*Peer {
 // *
 // 当前节点的网络信息
 type NodeNetInfo struct {
-	Externaladdr string `protobuf:"bytes,1,opt,name=externaladdr" json:"externaladdr,omitempty"`
-	Localaddr    string `protobuf:"bytes,2,opt,name=localaddr" json:"localaddr,omitempty"`
-	Service      bool   `protobuf:"varint,3,opt,name=service" json:"service,omitempty"`
-	Outbounds    int32  `protobuf:"varint,4,opt,name=outbounds" json:"outbounds,omitempty"`
-	Inbounds     int32  `protobuf:"varint,5,opt,name=inbounds" json:"inbounds,omitempty"`
+	Externaladdr         string   `protobuf:"bytes,1,opt,name=externaladdr" json:"externaladdr,omitempty"`
+	Localaddr            string   `protobuf:"bytes,2,opt,name=localaddr" json:"localaddr,omitempty"`
+	Service              bool     `protobuf:"varint,3,opt,name=service" json:"service,omitempty"`
+	Outbounds            int32    `protobuf:"varint,4,opt,name=outbounds" json:"outbounds,omitempty"`
+	Inbounds             int32    `protobuf:"varint,5,opt,name=inbounds" json:"inbounds,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *NodeNetInfo) Reset()                    { *m = NodeNetInfo{} }
-func (m *NodeNetInfo) String() string            { return proto.CompactTextString(m) }
-func (*NodeNetInfo) ProtoMessage()               {}
-func (*NodeNetInfo) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{24} }
+func (m *NodeNetInfo) Reset()         { *m = NodeNetInfo{} }
+func (m *NodeNetInfo) String() string { return proto.CompactTextString(m) }
+func (*NodeNetInfo) ProtoMessage()    {}
+func (*NodeNetInfo) Descriptor() ([]byte, []int) {
+	return fileDescriptor_p2p_b68c64aa2066aa1b, []int{24}
+}
+func (m *NodeNetInfo) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_NodeNetInfo.Unmarshal(m, b)
+}
+func (m *NodeNetInfo) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_NodeNetInfo.Marshal(b, m, deterministic)
+}
+func (dst *NodeNetInfo) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_NodeNetInfo.Merge(dst, src)
+}
+func (m *NodeNetInfo) XXX_Size() int {
+	return xxx_messageInfo_NodeNetInfo.Size(m)
+}
+func (m *NodeNetInfo) XXX_DiscardUnknown() {
+	xxx_messageInfo_NodeNetInfo.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_NodeNetInfo proto.InternalMessageInfo
 
 func (m *NodeNetInfo) GetExternaladdr() string {
 	if m != nil {
@@ -1053,8 +1609,9 @@ var _ grpc.ClientConn
 // is compatible with the grpc package it is being compiled against.
 const _ = grpc.SupportPackageIsVersion4
 
-// Client API for P2Pgservice service
-
+// P2PgserviceClient is the client API for P2Pgservice service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type P2PgserviceClient interface {
 	// 广播交易
 	BroadCastTx(ctx context.Context, in *P2PTx, opts ...grpc.CallOption) (*Reply, error)
@@ -1099,7 +1656,7 @@ func NewP2PgserviceClient(cc *grpc.ClientConn) P2PgserviceClient {
 
 func (c *p2PgserviceClient) BroadCastTx(ctx context.Context, in *P2PTx, opts ...grpc.CallOption) (*Reply, error) {
 	out := new(Reply)
-	err := grpc.Invoke(ctx, "/types.p2pgservice/BroadCastTx", in, out, c.cc, opts...)
+	err := c.cc.Invoke(ctx, "/types.p2pgservice/BroadCastTx", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1108,7 +1665,7 @@ func (c *p2PgserviceClient) BroadCastTx(ctx context.Context, in *P2PTx, opts ...
 
 func (c *p2PgserviceClient) BroadCastBlock(ctx context.Context, in *P2PBlock, opts ...grpc.CallOption) (*Reply, error) {
 	out := new(Reply)
-	err := grpc.Invoke(ctx, "/types.p2pgservice/BroadCastBlock", in, out, c.cc, opts...)
+	err := c.cc.Invoke(ctx, "/types.p2pgservice/BroadCastBlock", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1117,7 +1674,7 @@ func (c *p2PgserviceClient) BroadCastBlock(ctx context.Context, in *P2PBlock, op
 
 func (c *p2PgserviceClient) Ping(ctx context.Context, in *P2PPing, opts ...grpc.CallOption) (*P2PPong, error) {
 	out := new(P2PPong)
-	err := grpc.Invoke(ctx, "/types.p2pgservice/Ping", in, out, c.cc, opts...)
+	err := c.cc.Invoke(ctx, "/types.p2pgservice/Ping", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1126,7 +1683,7 @@ func (c *p2PgserviceClient) Ping(ctx context.Context, in *P2PPing, opts ...grpc.
 
 func (c *p2PgserviceClient) GetAddr(ctx context.Context, in *P2PGetAddr, opts ...grpc.CallOption) (*P2PAddr, error) {
 	out := new(P2PAddr)
-	err := grpc.Invoke(ctx, "/types.p2pgservice/GetAddr", in, out, c.cc, opts...)
+	err := c.cc.Invoke(ctx, "/types.p2pgservice/GetAddr", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1135,7 +1692,7 @@ func (c *p2PgserviceClient) GetAddr(ctx context.Context, in *P2PGetAddr, opts ..
 
 func (c *p2PgserviceClient) GetAddrList(ctx context.Context, in *P2PGetAddr, opts ...grpc.CallOption) (*P2PAddrList, error) {
 	out := new(P2PAddrList)
-	err := grpc.Invoke(ctx, "/types.p2pgservice/GetAddrList", in, out, c.cc, opts...)
+	err := c.cc.Invoke(ctx, "/types.p2pgservice/GetAddrList", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1144,7 +1701,7 @@ func (c *p2PgserviceClient) GetAddrList(ctx context.Context, in *P2PGetAddr, opt
 
 func (c *p2PgserviceClient) Version(ctx context.Context, in *P2PVersion, opts ...grpc.CallOption) (*P2PVerAck, error) {
 	out := new(P2PVerAck)
-	err := grpc.Invoke(ctx, "/types.p2pgservice/Version", in, out, c.cc, opts...)
+	err := c.cc.Invoke(ctx, "/types.p2pgservice/Version", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1153,7 +1710,7 @@ func (c *p2PgserviceClient) Version(ctx context.Context, in *P2PVersion, opts ..
 
 func (c *p2PgserviceClient) Version2(ctx context.Context, in *P2PVersion, opts ...grpc.CallOption) (*P2PVersion, error) {
 	out := new(P2PVersion)
-	err := grpc.Invoke(ctx, "/types.p2pgservice/Version2", in, out, c.cc, opts...)
+	err := c.cc.Invoke(ctx, "/types.p2pgservice/Version2", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1162,7 +1719,7 @@ func (c *p2PgserviceClient) Version2(ctx context.Context, in *P2PVersion, opts .
 
 func (c *p2PgserviceClient) SoftVersion(ctx context.Context, in *P2PPing, opts ...grpc.CallOption) (*Reply, error) {
 	out := new(Reply)
-	err := grpc.Invoke(ctx, "/types.p2pgservice/SoftVersion", in, out, c.cc, opts...)
+	err := c.cc.Invoke(ctx, "/types.p2pgservice/SoftVersion", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1171,7 +1728,7 @@ func (c *p2PgserviceClient) SoftVersion(ctx context.Context, in *P2PPing, opts .
 
 func (c *p2PgserviceClient) GetBlocks(ctx context.Context, in *P2PGetBlocks, opts ...grpc.CallOption) (*P2PInv, error) {
 	out := new(P2PInv)
-	err := grpc.Invoke(ctx, "/types.p2pgservice/GetBlocks", in, out, c.cc, opts...)
+	err := c.cc.Invoke(ctx, "/types.p2pgservice/GetBlocks", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1180,7 +1737,7 @@ func (c *p2PgserviceClient) GetBlocks(ctx context.Context, in *P2PGetBlocks, opt
 
 func (c *p2PgserviceClient) GetMemPool(ctx context.Context, in *P2PGetMempool, opts ...grpc.CallOption) (*P2PInv, error) {
 	out := new(P2PInv)
-	err := grpc.Invoke(ctx, "/types.p2pgservice/GetMemPool", in, out, c.cc, opts...)
+	err := c.cc.Invoke(ctx, "/types.p2pgservice/GetMemPool", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1188,7 +1745,7 @@ func (c *p2PgserviceClient) GetMemPool(ctx context.Context, in *P2PGetMempool, o
 }
 
 func (c *p2PgserviceClient) GetData(ctx context.Context, in *P2PGetData, opts ...grpc.CallOption) (P2Pgservice_GetDataClient, error) {
-	stream, err := grpc.NewClientStream(ctx, &_P2Pgservice_serviceDesc.Streams[0], c.cc, "/types.p2pgservice/GetData", opts...)
+	stream, err := c.cc.NewStream(ctx, &_P2Pgservice_serviceDesc.Streams[0], "/types.p2pgservice/GetData", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1221,7 +1778,7 @@ func (x *p2PgserviceGetDataClient) Recv() (*InvDatas, error) {
 
 func (c *p2PgserviceClient) GetHeaders(ctx context.Context, in *P2PGetHeaders, opts ...grpc.CallOption) (*P2PHeaders, error) {
 	out := new(P2PHeaders)
-	err := grpc.Invoke(ctx, "/types.p2pgservice/GetHeaders", in, out, c.cc, opts...)
+	err := c.cc.Invoke(ctx, "/types.p2pgservice/GetHeaders", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1230,7 +1787,7 @@ func (c *p2PgserviceClient) GetHeaders(ctx context.Context, in *P2PGetHeaders, o
 
 func (c *p2PgserviceClient) GetPeerInfo(ctx context.Context, in *P2PGetPeerInfo, opts ...grpc.CallOption) (*P2PPeerInfo, error) {
 	out := new(P2PPeerInfo)
-	err := grpc.Invoke(ctx, "/types.p2pgservice/GetPeerInfo", in, out, c.cc, opts...)
+	err := c.cc.Invoke(ctx, "/types.p2pgservice/GetPeerInfo", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1238,7 +1795,7 @@ func (c *p2PgserviceClient) GetPeerInfo(ctx context.Context, in *P2PGetPeerInfo,
 }
 
 func (c *p2PgserviceClient) ServerStreamRead(ctx context.Context, opts ...grpc.CallOption) (P2Pgservice_ServerStreamReadClient, error) {
-	stream, err := grpc.NewClientStream(ctx, &_P2Pgservice_serviceDesc.Streams[1], c.cc, "/types.p2pgservice/ServerStreamRead", opts...)
+	stream, err := c.cc.NewStream(ctx, &_P2Pgservice_serviceDesc.Streams[1], "/types.p2pgservice/ServerStreamRead", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1272,7 +1829,7 @@ func (x *p2PgserviceServerStreamReadClient) CloseAndRecv() (*ReqNil, error) {
 }
 
 func (c *p2PgserviceClient) ServerStreamSend(ctx context.Context, in *P2PPing, opts ...grpc.CallOption) (P2Pgservice_ServerStreamSendClient, error) {
-	stream, err := grpc.NewClientStream(ctx, &_P2Pgservice_serviceDesc.Streams[2], c.cc, "/types.p2pgservice/ServerStreamSend", opts...)
+	stream, err := c.cc.NewStream(ctx, &_P2Pgservice_serviceDesc.Streams[2], "/types.p2pgservice/ServerStreamSend", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1305,15 +1862,14 @@ func (x *p2PgserviceServerStreamSendClient) Recv() (*BroadCastData, error) {
 
 func (c *p2PgserviceClient) CollectInPeers(ctx context.Context, in *P2PPing, opts ...grpc.CallOption) (*PeerList, error) {
 	out := new(PeerList)
-	err := grpc.Invoke(ctx, "/types.p2pgservice/CollectInPeers", in, out, c.cc, opts...)
+	err := c.cc.Invoke(ctx, "/types.p2pgservice/CollectInPeers", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// Server API for P2Pgservice service
-
+// P2PgserviceServer is the server API for P2Pgservice service.
 type P2PgserviceServer interface {
 	// 广播交易
 	BroadCastTx(context.Context, *P2PTx) (*Reply, error)
@@ -1731,9 +2287,9 @@ var _P2Pgservice_serviceDesc = grpc.ServiceDesc{
 	Metadata: "p2p.proto",
 }
 
-func init() { proto.RegisterFile("p2p.proto", fileDescriptor8) }
+func init() { proto.RegisterFile("p2p.proto", fileDescriptor_p2p_b68c64aa2066aa1b) }
 
-var fileDescriptor8 = []byte{
+var fileDescriptor_p2p_b68c64aa2066aa1b = []byte{
 	// 1146 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x56, 0xdb, 0x6e, 0xe3, 0x44,
 	0x18, 0xb6, 0x73, 0xce, 0xef, 0x34, 0xed, 0x0e, 0x0b, 0x8a, 0xa2, 0x15, 0x2c, 0xa3, 0xa2, 0x2d,

@@ -1450,3 +1450,23 @@ func (c *Chain33) QueryTicketInfoList(in *types.LocalDBList, result *interface{}
 	*result = ticketList
 	return nil
 }
+
+func (c *Chain33) CreateBindMiner(in *types.ReqBindMiner, result *interface{}) error {
+	reply, err := c.cli.BindMiner(in)
+	if err != nil {
+		return err
+	}
+
+	*result = reply
+	return nil
+}
+
+func (c *Chain33) DecodeRawTransaction(in *types.ReqDecodeRawTransaction, result *interface{}) error {
+	reply, err := c.cli.DecodeRawTransaction(in)
+	if err != nil {
+		return err
+	}
+
+	*result = reply
+	return nil
+}

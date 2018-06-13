@@ -12,16 +12,44 @@ var _ = proto.Marshal
 var _ = fmt.Errorf
 var _ = math.Inf
 
+// This is a compile-time assertion to ensure that this generated file
+// is compatible with the proto package it is being compiled against.
+// A compilation error at this line likely means your copy of the
+// proto package needs to be updated.
+const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+
 // 手续费
 type TotalFee struct {
-	Fee     int64 `protobuf:"varint,1,opt,name=fee" json:"fee,omitempty"`
-	TxCount int64 `protobuf:"varint,2,opt,name=txCount" json:"txCount,omitempty"`
+	Fee                  int64    `protobuf:"varint,1,opt,name=fee" json:"fee,omitempty"`
+	TxCount              int64    `protobuf:"varint,2,opt,name=txCount" json:"txCount,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *TotalFee) Reset()                    { *m = TotalFee{} }
-func (m *TotalFee) String() string            { return proto.CompactTextString(m) }
-func (*TotalFee) ProtoMessage()               {}
-func (*TotalFee) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{0} }
+func (m *TotalFee) Reset()         { *m = TotalFee{} }
+func (m *TotalFee) String() string { return proto.CompactTextString(m) }
+func (*TotalFee) ProtoMessage()    {}
+func (*TotalFee) Descriptor() ([]byte, []int) {
+	return fileDescriptor_statistic_fa67aaefd4751a78, []int{0}
+}
+func (m *TotalFee) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_TotalFee.Unmarshal(m, b)
+}
+func (m *TotalFee) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_TotalFee.Marshal(b, m, deterministic)
+}
+func (dst *TotalFee) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_TotalFee.Merge(dst, src)
+}
+func (m *TotalFee) XXX_Size() int {
+	return xxx_messageInfo_TotalFee.Size(m)
+}
+func (m *TotalFee) XXX_DiscardUnknown() {
+	xxx_messageInfo_TotalFee.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_TotalFee proto.InternalMessageInfo
 
 func (m *TotalFee) GetFee() int64 {
 	if m != nil {
@@ -39,17 +67,39 @@ func (m *TotalFee) GetTxCount() int64 {
 
 // 查询symbol代币总额
 type ReqGetTotalCoins struct {
-	Symbol    string `protobuf:"bytes,1,opt,name=symbol" json:"symbol,omitempty"`
-	StateHash []byte `protobuf:"bytes,2,opt,name=stateHash,proto3" json:"stateHash,omitempty"`
-	StartKey  []byte `protobuf:"bytes,3,opt,name=startKey,proto3" json:"startKey,omitempty"`
-	Count     int64  `protobuf:"varint,4,opt,name=count" json:"count,omitempty"`
-	Execer    string `protobuf:"bytes,5,opt,name=execer" json:"execer,omitempty"`
+	Symbol               string   `protobuf:"bytes,1,opt,name=symbol" json:"symbol,omitempty"`
+	StateHash            []byte   `protobuf:"bytes,2,opt,name=stateHash,proto3" json:"stateHash,omitempty"`
+	StartKey             []byte   `protobuf:"bytes,3,opt,name=startKey,proto3" json:"startKey,omitempty"`
+	Count                int64    `protobuf:"varint,4,opt,name=count" json:"count,omitempty"`
+	Execer               string   `protobuf:"bytes,5,opt,name=execer" json:"execer,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *ReqGetTotalCoins) Reset()                    { *m = ReqGetTotalCoins{} }
-func (m *ReqGetTotalCoins) String() string            { return proto.CompactTextString(m) }
-func (*ReqGetTotalCoins) ProtoMessage()               {}
-func (*ReqGetTotalCoins) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{1} }
+func (m *ReqGetTotalCoins) Reset()         { *m = ReqGetTotalCoins{} }
+func (m *ReqGetTotalCoins) String() string { return proto.CompactTextString(m) }
+func (*ReqGetTotalCoins) ProtoMessage()    {}
+func (*ReqGetTotalCoins) Descriptor() ([]byte, []int) {
+	return fileDescriptor_statistic_fa67aaefd4751a78, []int{1}
+}
+func (m *ReqGetTotalCoins) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ReqGetTotalCoins.Unmarshal(m, b)
+}
+func (m *ReqGetTotalCoins) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ReqGetTotalCoins.Marshal(b, m, deterministic)
+}
+func (dst *ReqGetTotalCoins) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ReqGetTotalCoins.Merge(dst, src)
+}
+func (m *ReqGetTotalCoins) XXX_Size() int {
+	return xxx_messageInfo_ReqGetTotalCoins.Size(m)
+}
+func (m *ReqGetTotalCoins) XXX_DiscardUnknown() {
+	xxx_messageInfo_ReqGetTotalCoins.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ReqGetTotalCoins proto.InternalMessageInfo
 
 func (m *ReqGetTotalCoins) GetSymbol() string {
 	if m != nil {
@@ -88,16 +138,38 @@ func (m *ReqGetTotalCoins) GetExecer() string {
 
 // 查询symbol代币总额应答
 type ReplyGetTotalCoins struct {
-	Count   int64  `protobuf:"varint,1,opt,name=count" json:"count,omitempty"`
-	Num     int64  `protobuf:"varint,2,opt,name=num" json:"num,omitempty"`
-	Amount  int64  `protobuf:"varint,3,opt,name=amount" json:"amount,omitempty"`
-	NextKey []byte `protobuf:"bytes,4,opt,name=nextKey,proto3" json:"nextKey,omitempty"`
+	Count                int64    `protobuf:"varint,1,opt,name=count" json:"count,omitempty"`
+	Num                  int64    `protobuf:"varint,2,opt,name=num" json:"num,omitempty"`
+	Amount               int64    `protobuf:"varint,3,opt,name=amount" json:"amount,omitempty"`
+	NextKey              []byte   `protobuf:"bytes,4,opt,name=nextKey,proto3" json:"nextKey,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *ReplyGetTotalCoins) Reset()                    { *m = ReplyGetTotalCoins{} }
-func (m *ReplyGetTotalCoins) String() string            { return proto.CompactTextString(m) }
-func (*ReplyGetTotalCoins) ProtoMessage()               {}
-func (*ReplyGetTotalCoins) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{2} }
+func (m *ReplyGetTotalCoins) Reset()         { *m = ReplyGetTotalCoins{} }
+func (m *ReplyGetTotalCoins) String() string { return proto.CompactTextString(m) }
+func (*ReplyGetTotalCoins) ProtoMessage()    {}
+func (*ReplyGetTotalCoins) Descriptor() ([]byte, []int) {
+	return fileDescriptor_statistic_fa67aaefd4751a78, []int{2}
+}
+func (m *ReplyGetTotalCoins) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ReplyGetTotalCoins.Unmarshal(m, b)
+}
+func (m *ReplyGetTotalCoins) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ReplyGetTotalCoins.Marshal(b, m, deterministic)
+}
+func (dst *ReplyGetTotalCoins) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ReplyGetTotalCoins.Merge(dst, src)
+}
+func (m *ReplyGetTotalCoins) XXX_Size() int {
+	return xxx_messageInfo_ReplyGetTotalCoins.Size(m)
+}
+func (m *ReplyGetTotalCoins) XXX_DiscardUnknown() {
+	xxx_messageInfo_ReplyGetTotalCoins.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ReplyGetTotalCoins proto.InternalMessageInfo
 
 func (m *ReplyGetTotalCoins) GetCount() int64 {
 	if m != nil {
@@ -129,16 +201,38 @@ func (m *ReplyGetTotalCoins) GetNextKey() []byte {
 
 // 迭代查询symbol代币总额
 type IterateRangeByStateHash struct {
-	StateHash []byte `protobuf:"bytes,1,opt,name=stateHash,proto3" json:"stateHash,omitempty"`
-	Start     []byte `protobuf:"bytes,2,opt,name=start,proto3" json:"start,omitempty"`
-	End       []byte `protobuf:"bytes,3,opt,name=end,proto3" json:"end,omitempty"`
-	Count     int64  `protobuf:"varint,4,opt,name=count" json:"count,omitempty"`
+	StateHash            []byte   `protobuf:"bytes,1,opt,name=stateHash,proto3" json:"stateHash,omitempty"`
+	Start                []byte   `protobuf:"bytes,2,opt,name=start,proto3" json:"start,omitempty"`
+	End                  []byte   `protobuf:"bytes,3,opt,name=end,proto3" json:"end,omitempty"`
+	Count                int64    `protobuf:"varint,4,opt,name=count" json:"count,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *IterateRangeByStateHash) Reset()                    { *m = IterateRangeByStateHash{} }
-func (m *IterateRangeByStateHash) String() string            { return proto.CompactTextString(m) }
-func (*IterateRangeByStateHash) ProtoMessage()               {}
-func (*IterateRangeByStateHash) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{3} }
+func (m *IterateRangeByStateHash) Reset()         { *m = IterateRangeByStateHash{} }
+func (m *IterateRangeByStateHash) String() string { return proto.CompactTextString(m) }
+func (*IterateRangeByStateHash) ProtoMessage()    {}
+func (*IterateRangeByStateHash) Descriptor() ([]byte, []int) {
+	return fileDescriptor_statistic_fa67aaefd4751a78, []int{3}
+}
+func (m *IterateRangeByStateHash) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_IterateRangeByStateHash.Unmarshal(m, b)
+}
+func (m *IterateRangeByStateHash) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_IterateRangeByStateHash.Marshal(b, m, deterministic)
+}
+func (dst *IterateRangeByStateHash) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_IterateRangeByStateHash.Merge(dst, src)
+}
+func (m *IterateRangeByStateHash) XXX_Size() int {
+	return xxx_messageInfo_IterateRangeByStateHash.Size(m)
+}
+func (m *IterateRangeByStateHash) XXX_DiscardUnknown() {
+	xxx_messageInfo_IterateRangeByStateHash.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_IterateRangeByStateHash proto.InternalMessageInfo
 
 func (m *IterateRangeByStateHash) GetStateHash() []byte {
 	if m != nil {
@@ -174,13 +268,35 @@ type TicketStatistic struct {
 	// 一共挖到的ticket
 	TotalMinerCount int64 `protobuf:"varint,2,opt,name=totalMinerCount" json:"totalMinerCount,omitempty"`
 	// 一共取消的ticket
-	TotalCancleCount int64 `protobuf:"varint,3,opt,name=totalCancleCount" json:"totalCancleCount,omitempty"`
+	TotalCancleCount     int64    `protobuf:"varint,3,opt,name=totalCancleCount" json:"totalCancleCount,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *TicketStatistic) Reset()                    { *m = TicketStatistic{} }
-func (m *TicketStatistic) String() string            { return proto.CompactTextString(m) }
-func (*TicketStatistic) ProtoMessage()               {}
-func (*TicketStatistic) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{4} }
+func (m *TicketStatistic) Reset()         { *m = TicketStatistic{} }
+func (m *TicketStatistic) String() string { return proto.CompactTextString(m) }
+func (*TicketStatistic) ProtoMessage()    {}
+func (*TicketStatistic) Descriptor() ([]byte, []int) {
+	return fileDescriptor_statistic_fa67aaefd4751a78, []int{4}
+}
+func (m *TicketStatistic) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_TicketStatistic.Unmarshal(m, b)
+}
+func (m *TicketStatistic) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_TicketStatistic.Marshal(b, m, deterministic)
+}
+func (dst *TicketStatistic) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_TicketStatistic.Merge(dst, src)
+}
+func (m *TicketStatistic) XXX_Size() int {
+	return xxx_messageInfo_TicketStatistic.Size(m)
+}
+func (m *TicketStatistic) XXX_DiscardUnknown() {
+	xxx_messageInfo_TicketStatistic.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_TicketStatistic proto.InternalMessageInfo
 
 func (m *TicketStatistic) GetCurrentOpenCount() int64 {
 	if m != nil {
@@ -217,14 +333,36 @@ type TicketMinerInfo struct {
 	// 关闭ticket时间
 	CloseTime int64 `protobuf:"varint,7,opt,name=closeTime" json:"closeTime,omitempty"`
 	// 挖到的币的数目
-	MinerValue   int64  `protobuf:"varint,8,opt,name=minerValue" json:"minerValue,omitempty"`
-	MinerAddress string `protobuf:"bytes,9,opt,name=minerAddress" json:"minerAddress,omitempty"`
+	MinerValue           int64    `protobuf:"varint,8,opt,name=minerValue" json:"minerValue,omitempty"`
+	MinerAddress         string   `protobuf:"bytes,9,opt,name=minerAddress" json:"minerAddress,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *TicketMinerInfo) Reset()                    { *m = TicketMinerInfo{} }
-func (m *TicketMinerInfo) String() string            { return proto.CompactTextString(m) }
-func (*TicketMinerInfo) ProtoMessage()               {}
-func (*TicketMinerInfo) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{5} }
+func (m *TicketMinerInfo) Reset()         { *m = TicketMinerInfo{} }
+func (m *TicketMinerInfo) String() string { return proto.CompactTextString(m) }
+func (*TicketMinerInfo) ProtoMessage()    {}
+func (*TicketMinerInfo) Descriptor() ([]byte, []int) {
+	return fileDescriptor_statistic_fa67aaefd4751a78, []int{5}
+}
+func (m *TicketMinerInfo) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_TicketMinerInfo.Unmarshal(m, b)
+}
+func (m *TicketMinerInfo) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_TicketMinerInfo.Marshal(b, m, deterministic)
+}
+func (dst *TicketMinerInfo) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_TicketMinerInfo.Merge(dst, src)
+}
+func (m *TicketMinerInfo) XXX_Size() int {
+	return xxx_messageInfo_TicketMinerInfo.Size(m)
+}
+func (m *TicketMinerInfo) XXX_DiscardUnknown() {
+	xxx_messageInfo_TicketMinerInfo.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_TicketMinerInfo proto.InternalMessageInfo
 
 func (m *TicketMinerInfo) GetTicketId() string {
 	if m != nil {
@@ -298,9 +436,9 @@ func init() {
 	proto.RegisterType((*TicketMinerInfo)(nil), "types.TicketMinerInfo")
 }
 
-func init() { proto.RegisterFile("statistic.proto", fileDescriptor11) }
+func init() { proto.RegisterFile("statistic.proto", fileDescriptor_statistic_fa67aaefd4751a78) }
 
-var fileDescriptor11 = []byte{
+var fileDescriptor_statistic_fa67aaefd4751a78 = []byte{
 	// 449 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x6c, 0x93, 0xdf, 0x8b, 0xd3, 0x40,
 	0x10, 0xc7, 0xc9, 0xe5, 0xd2, 0x6b, 0x87, 0x83, 0x96, 0xe5, 0xd0, 0x20, 0x22, 0x92, 0xa7, 0xc3,

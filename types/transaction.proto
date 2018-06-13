@@ -152,3 +152,6 @@ message ReqAddrs  {
    repeated string addrs = 1;
 }
 
+message ReqDecodeRawTransaction {
+    string txHex = 1;
+}
