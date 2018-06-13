@@ -167,7 +167,7 @@ func buildContractDataResult(l *jsonrpc.ReceiptLogResult) interface{} {
 	data, _ := common.FromHex(l.RawLog)
 	receipt := &types.EVMContractData{}
 	proto.Unmarshal(data, receipt)
-	rlog := &types.EVMContractDataCmd{Creator: receipt.Creator, Name: receipt.Name, Addr: receipt.Addr, CreateTime: time.Unix(0, receipt.CreateTime).String(), Alias: receipt.Alias}
+	rlog := &types.EVMContractDataCmd{Creator: receipt.Creator, Name: receipt.Name, Addr: receipt.Addr, Alias: receipt.Alias}
 	rlog.Code = common.ToHex(receipt.Code)
 	rlog.CodeHash = common.ToHex(receipt.CodeHash)
 	return rlog
