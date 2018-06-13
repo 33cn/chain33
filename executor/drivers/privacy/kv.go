@@ -15,6 +15,8 @@ const (
 	PrivacyUTXOKEYPrefix    = "local-privacy-UTXO-tahhi"
 	PrivacyAmountTypePrefix = "local-privacy-UTXO-atype"
 	PrivacyTokenTypesPrefix = "local-privacy-UTXO-token"
+	KeyImageSpentAlready    = 0x01
+	Invalid_index           = -1
 )
 
 //该key对应的是types.KeyOutput
@@ -59,36 +61,4 @@ func CalcprivacyKeyTokenAmountType(token string) (key []byte) {
 
 func CalcprivacyKeyTokenTypes() (key []byte) {
 	return []byte(PrivacyTokenTypesPrefix)
-}
-
-// DecodeToUTXOGlobalIndex 讲CalcPrivacyUTXOkeyHeightStr编码的字符串解码成types.UTXOGlobalIndex格式
-func DecodeToUTXOGlobalIndex(key, token string) (*types.UTXOGlobalIndex, error) {
-	Prefix := fmt.Sprintf(PrivacyUTXOKEYPrefix+"-%s-", token)
-	if len(key) <= len(Prefix) {
-		return nil, types.ErrWrongKey
-	}
-	datastr := key[len(Prefix):]
-	splitstr := strings.Split(datastr, "-")
-	if len(splitstr) != 5 {
-		return nil, types.ErrWrongKey
-	}
-	ret := &types.UTXOGlobalIndex{}
-	//amount, _ := strconv.ParseInt(splitstr[0], 10, 64)
-	tmp, err := strconv.ParseInt(splitstr[1], 10, 64)
-	if err != nil {
-		return nil, err
-	}
-	ret.Height = tmp
-	ret.Txhash = []byte(splitstr[2])
-	tmp, err = strconv.ParseInt(splitstr[3], 10, 32)
-	if err != nil {
-		return nil, err
-	}
-	ret.Txindex = int32(tmp)
-	tmp, err = strconv.ParseInt(splitstr[4], 10, 32)
-	if err != nil {
-		return nil, err
-	}
-	ret.Outindex = int32(tmp)
-	return ret, nil
 }
