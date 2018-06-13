@@ -9,8 +9,8 @@ import (
 	"strings"
 
 	log "github.com/inconshreveable/log15"
-	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/client"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/model"
@@ -21,6 +21,9 @@ import (
 
 var (
 	evmDebug = false
+
+	// 本合约地址
+	EvmAddress = address.ExecAddress(model.ExecutorName)
 )
 
 func Init() {
@@ -85,7 +88,8 @@ func (evm *EVMExecutor) Exec(tx *types.Transaction, index int) (*types.Receipt, 
 	// 创建EVM运行时对象
 	env := runtime.NewEVM(context, evm.mStateDB, *evm.vmCfg)
 
-	isCreate := msg.To() == nil
+	// 目标地址为空，或者为Evm合约的固定地址时，认为新增合约
+	isCreate := strings.Compare(msg.To().String(), EvmAddress) == 0
 
 	var (
 		ret          = []byte("")
@@ -158,7 +162,7 @@ func (evm *EVMExecutor) Exec(tx *types.Transaction, index int) (*types.Receipt, 
 	contractReceipt := &types.ReceiptEVMContract{msg.From().String(), execName, contractAddr.String(), usedGas, ret}
 
 	logs = append(logs, &types.ReceiptLog{types.TyLogCallContract, types.Encode(contractReceipt)})
-	logs = append(logs, evm.mStateDB.GetReceiptLogs(contractAddr.String(), isCreate)...)
+	logs = append(logs, evm.mStateDB.GetReceiptLogs(contractAddr.String())...)
 
 	receipt := &types.Receipt{Ty: types.ExecOk, KV: data, Logs: logs}
 
@@ -345,6 +349,9 @@ func (evm *EVMExecutor) GetMessage(tx *types.Transaction) (msg *common.Message, 
 	// 此处暂时不考虑消息发送签名的处理，chain33在mempool中对签名做了检查
 	from := getCaller(tx)
 	to := getReceiver(tx)
+	if to == nil {
+		return nil, types.ErrInvalidAddress
+	}
 
 	// 注意Transaction中的payload内容同时包含转账金额和合约代码
 	// payload[:8]为转账金额，payload[8:]为合约代码
@@ -383,7 +390,7 @@ func (evm *EVMExecutor) NewEVMContext(msg *common.Message) runtime.Context {
 
 // 从交易信息中获取交易发起人地址
 func getCaller(tx *types.Transaction) common.Address {
-	return *common.StringToAddress(account.From(tx).String())
+	return *common.StringToAddress(tx.From())
 }
 
 // 从交易信息中获取交易目标地址，在创建合约交易中，此地址为空

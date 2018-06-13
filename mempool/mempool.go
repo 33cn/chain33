@@ -23,19 +23,20 @@ func DisableLog() {
 // Module Mempool
 
 type Mempool struct {
-	proxyMtx  sync.Mutex
-	cache     *txCache
-	txChan    chan queue.Message
-	signChan  chan queue.Message
-	badChan   chan queue.Message
-	balanChan chan queue.Message
-	goodChan  chan queue.Message
-	client    queue.Client
-	header    *types.Header
-	minFee    int64
-	addedTxs  *lru.Cache
-	sync      bool
-	cfg       *types.MemPool
+	proxyMtx   sync.Mutex
+	cache      *txCache
+	txChan     chan queue.Message
+	signChan   chan queue.Message
+	badChan    chan queue.Message
+	balanChan  chan queue.Message
+	goodChan   chan queue.Message
+	client     queue.Client
+	header     *types.Header
+	minFee     int64
+	addedTxs   *lru.Cache
+	sync       bool
+	cfg        *types.MemPool
+	poolHeader chan struct{}
 }
 
 func New(cfg *types.MemPool) *Mempool {
@@ -50,6 +51,7 @@ func New(cfg *types.MemPool) *Mempool {
 	pool.minFee = cfg.MinTxFee
 	pool.addedTxs, _ = lru.New(mempoolAddedTxSize)
 	pool.cfg = cfg
+	pool.poolHeader = make(chan struct{}, 1)
 	return pool
 }
 
@@ -153,7 +155,7 @@ func (mem *Mempool) RemoveExpiredAndDuplicateMempoolTxs() []*types.Transaction {
 	for _, v := range mem.cache.txMap {
 		item := v.Value.(*Item)
 		hash := item.value.Hash()
-		if time.Now().UnixNano()/1000000-item.enterTime >= mempoolExpiredInterval {
+		if time.Now().Unix()-item.enterTime >= mempoolExpiredInterval {
 			// 清理滞留Mempool中超过10分钟的交易
 			mem.cache.Remove(hash)
 		} else if item.value.IsExpire(mem.header.GetHeight(), mem.header.GetBlockTime()) {
@@ -172,7 +174,7 @@ func (mem *Mempool) RemoveTxsOfBlock(block *types.Block) bool {
 	defer mem.proxyMtx.Unlock()
 	for _, tx := range block.Txs {
 		hash := tx.Hash()
-		mem.addedTxs.Add(string(hash), nil)
+		mem.addedTxs.Add(string(hash), time.Now().Unix())
 		exist := mem.cache.Exists(hash)
 		if exist {
 			mem.cache.Remove(hash)
@@ -186,7 +188,7 @@ func (mem *Mempool) RemoveTxs(hashList *types.TxHashList) error {
 	mem.proxyMtx.Lock()
 	defer mem.proxyMtx.Unlock()
 	for _, hash := range hashList.Hashes {
-		mem.addedTxs.Add(string(hash), nil)
+		mem.addedTxs.Add(string(hash), time.Now().Unix())
 		exist := mem.cache.Exists(hash)
 		if exist {
 			mem.cache.Remove(hash)
@@ -251,7 +253,7 @@ func (mem *Mempool) ReTry() {
 	var result []*types.Transaction
 	mem.proxyMtx.Lock()
 	for _, v := range mem.cache.txMap {
-		if time.Now().UnixNano()/1000000-v.Value.(*Item).enterTime >= mempoolReSendInterval {
+		if time.Now().Unix()-v.Value.(*Item).enterTime >= mempoolReSendInterval {
 			result = append(result, v.Value.(*Item).value)
 		}
 	}
@@ -404,6 +406,7 @@ func (mem *Mempool) pollLastHeader() {
 		}
 		h := lastHeader.(queue.Message).Data.(*types.Header)
 		mem.setHeader(h)
+		mem.poolHeader <- struct{}{}
 		return
 	}
 }
@@ -415,11 +418,19 @@ func (mem *Mempool) setHeader(h *types.Header) {
 	mem.proxyMtx.Unlock()
 }
 
+func (mem *Mempool) waitPollLastHeader() {
+	<-mem.poolHeader
+}
+
 // Mempool.setSync设置Mempool同步状态
 func (mem *Mempool) setSync(status bool) {
 	mem.proxyMtx.Lock()
 	mem.sync = status
 	mem.proxyMtx.Unlock()
+}
+
+func (mem *Mempool) SetSync(status bool) {
+	mem.setSync(status)
 }
 
 // Mempool.isSync检查Mempool是否同步完成
@@ -553,6 +564,7 @@ func (mem *Mempool) SetQueueClient(client queue.Client) {
 					&types.ReplyTxList{Txs: txList}))
 				mlog.Debug("reply EventGetLastMempool ok", "msg", msg)
 			case types.EventDelBlock:
+				// 回滚区块，把该区块内交易重新加回Mempool
 				block := msg.GetData().(*types.BlockDetail).Block
 				if block.Height != mem.GetHeader().GetHeight() {
 					continue
@@ -566,6 +578,7 @@ func (mem *Mempool) SetQueueClient(client queue.Client) {
 				mem.setHeader(h)
 				mem.DelBlock(block)
 			case types.EventGetAddrTxs:
+				// 获取Mempool中对应账户（组）所有交易
 				addrs := msg.GetData().(*types.ReqAddrs)
 				txlist := mem.GetAccTxs(addrs)
 				msg.Reply(mem.client.NewMessage("", types.EventReplyAddrTxs, txlist))
