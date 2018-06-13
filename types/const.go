@@ -52,6 +52,7 @@ var (
 	ForkV14TxGroup       int64 = 200000
 	ForkV15ResetTx0      int64 = 200000
 	ForkV16Withdraw      int64 = 200000
+	ForkV17EVM           int64 = 500000
 )
 
 var (
