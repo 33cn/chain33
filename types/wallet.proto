@@ -243,3 +243,8 @@ message ReportErrEvent {
 message Int32 {
 	int32 data = 1;
 }
+
+message ReqBindMiner {
+    string bindAddr = 1;
+    string originAddr = 2;
+}
