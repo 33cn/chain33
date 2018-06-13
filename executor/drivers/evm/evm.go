@@ -27,8 +27,7 @@ var (
 )
 
 func Init() {
-	// TODO 注册的驱动高度需要更新为上线时的正确高度
-	drivers.Register(model.ExecutorName, newEVMDriver, 0)
+	drivers.Register(model.ExecutorName, newEVMDriver, types.ForkV17EVM)
 }
 
 func newEVMDriver() drivers.Driver {
