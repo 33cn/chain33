@@ -46,104 +46,104 @@ function init() {
     # docker-compose ps
     docker-compose ps
 
-    # remove exsit container
-    docker-compose down
+	# remove exsit container
+	docker-compose down
 
-    # create and run docker-compose container
-    docker-compose up --build -d
+	# create and run docker-compose container
+	docker-compose up --build -d
 
 
     local SLEEP=60
     echo "=========== sleep ${SLEEP}s ============="
     sleep ${SLEEP}
 
-    # docker-compose ps
-    docker-compose ps
+	# docker-compose ps
+	docker-compose ps
 
-    # query node run status
-    ${CLI} block last_header
-    ${CLI} net info
+	# query node run status
+	${CLI} block last_header
+	${CLI} net info
 
-    ${CLI} net peer_info
-    peersCount=$(${CLI} net peer_info | jq '.[] | length')
-    echo "${peersCount}"
-    if [ "${peersCount}" -lt 2 ]; then
-        echo "peers error"
-        exit 1
-    fi
+	${CLI} net peer_info
+	peersCount=$(${CLI} net peer_info | jq '.[] | length')
+	echo "${peersCount}"
+	if [ "${peersCount}" -lt 2 ]; then
+		echo "peers error"
+		exit 1
+	fi
 
-    #echo "=========== # create seed for wallet ============="
-    #seed=$(${CLI} seed generate -l 0 | jq ".seed")
-    #if [ -z "${seed}" ]; then
-    #    echo "create seed error"
-    #    exit 1
-    #fi
+	#echo "=========== # create seed for wallet ============="
+	#seed=$(${CLI} seed generate -l 0 | jq ".seed")
+	#if [ -z "${seed}" ]; then
+	#    echo "create seed error"
+	#    exit 1
+	#fi
 
-    echo "=========== # save seed to wallet ============="
-    result=$(${CLI} seed save -p 1314 -s "tortoise main civil member grace happy century convince father cage beach hip maid merry rib" | jq ".isok")
-    if [ "${result}" = "false" ]; then
-        echo "save seed to wallet error seed, result: ${result}"
-        exit 1
-    fi
+	echo "=========== # save seed to wallet ============="
+	result=$(${CLI} seed save -p 1314 -s "tortoise main civil member grace happy century convince father cage beach hip maid merry rib" | jq ".isok")
+	if [ "${result}" = "false" ]; then
+		echo "save seed to wallet error seed, result: ${result}"
+		exit 1
+	fi
 
-    sleep 2
+	sleep 2
 
-    echo "=========== # unlock wallet ============="
-    result=$(${CLI} wallet unlock -p 1314 -t 0 | jq ".isok")
-    if [ "${result}" = "false" ]; then
-        exit 1
-    fi
+	echo "=========== # unlock wallet ============="
+	result=$(${CLI} wallet unlock -p 1314 -t 0 | jq ".isok")
+	if [ "${result}" = "false" ]; then
+		exit 1
+	fi
 
-    sleep 2
+	sleep 2
 
-    echo "=========== # import private key returnAddr ============="
-    result=$(${CLI} account import_key -k CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944 -l returnAddr | jq ".label")
-    echo "${result}"
-    if [ -z "${result}" ]; then
-        exit 1
-    fi
+	echo "=========== # import private key returnAddr ============="
+	result=$(${CLI} account import_key -k CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944 -l returnAddr | jq ".label")
+	echo "${result}"
+	if [ -z "${result}" ]; then
+		exit 1
+	fi
 
-    sleep 2
+	sleep 2
 
-    echo "=========== # import private key mining ============="
-    result=$(${CLI} account import_key -k 4257D8692EF7FE13C68B65D6A52F03933DB2FA5CE8FAF210B5B8B80C721CED01 -l minerAddr | jq ".label")
-    echo "${result}"
-    if [ -z "${result}" ]; then
-        exit 1
-    fi
+	echo "=========== # import private key mining ============="
+	result=$(${CLI} account import_key -k 4257D8692EF7FE13C68B65D6A52F03933DB2FA5CE8FAF210B5B8B80C721CED01 -l minerAddr | jq ".label")
+	echo "${result}"
+	if [ -z "${result}" ]; then
+		exit 1
+	fi
 
-    sleep 2
-    echo "=========== # close auto mining ============="
-    result=$(${CLI} wallet auto_mine -f 0 | jq ".isok")
-    if [ "${result}" = "false" ]; then
-        exit 1
-    fi
+	sleep 2
+	echo "=========== # close auto mining ============="
+	result=$(${CLI} wallet auto_mine -f 0 | jq ".isok")
+	if [ "${result}" = "false" ]; then
+		exit 1
+	fi
 
-    echo "=========== sleep ${SLEEP}s ============="
-    sleep ${SLEEP}
+	echo "=========== sleep ${SLEEP}s ============="
+	sleep ${SLEEP}
 
-    echo "=========== check genesis hash ========== "
-    ${CLI} block hash -t 0
-    res=$(${CLI} block hash -t 0 | jq ".hash")
-    count=$(echo "$res" | grep -c "0x67c58d6ba9175313f0468ae4e0ddec946549af7748037c2fdd5d54298afd20b6")
-    if [ "${count}" != 1 ]; then
-        echo "genesis hash error!"
-        exit 1
-    fi
+	echo "=========== check genesis hash ========== "
+	${CLI} block hash -t 0
+	res=$(${CLI} block hash -t 0 | jq ".hash")
+	count=$(echo "$res" | grep -c "0x67c58d6ba9175313f0468ae4e0ddec946549af7748037c2fdd5d54298afd20b6")
+	if [ "${count}" != 1 ]; then
+		echo "genesis hash error!"
+		exit 1
+	fi
 
-    echo "=========== query height ========== "
-    ${CLI} block last_header
-    result=$(${CLI} block last_header | jq ".height")
-    if [ "${result}" -lt 1 ]; then
-        exit 1
-    fi
+	echo "=========== query height ========== "
+	${CLI} block last_header
+	result=$(${CLI} block last_header | jq ".height")
+	if [ "${result}" -lt 1 ]; then
+		exit 1
+	fi
 
-    sync_status "${CLI}"
+	sync_status "${CLI}"
 
-    ${CLI} wallet status
-    ${CLI} account list
-    ${CLI} mempool list
-    # ${CLI} mempool last_txs
+	${CLI} wallet status
+	${CLI} account list
+	${CLI} mempool list
+	# ${CLI} mempool last_txs
 }
 
 function block_wait() {
@@ -175,28 +175,28 @@ function sync_status(){
         exit 1
     fi
 
-    echo "=========== query clock sync status========== "
-    sync_status=$(${1} net is_clock_sync)
-    if [ "${sync_status}" = "false" ]; then
-        exit 1
-    fi
+	echo "=========== query clock sync status========== "
+	sync_status=$(${1} net is_clock_sync)
+	if [ "${sync_status}" = "false" ]; then
+		exit 1
+	fi
 }
 
-function sync(){
-    echo "=========== stop  ${NODE2} node========== "
-    docker stop "${NODE2}"
-    sleep 20
+function sync() {
+	echo "=========== stop  ${NODE2} node========== "
+	docker stop "${NODE2}"
+	sleep 20
 
-    echo "=========== start ${NODE2} node========== "
-    docker start "${NODE2}"
+	echo "=========== start ${NODE2} node========== "
+	docker start "${NODE2}"
 
-    for i in $(seq 20);do
-        sleep 1
-        ${CLI2} net is_sync
-        ${CLI2} block last_header
-    done
+	for i in $(seq 20); do
+		sleep 1
+		${CLI2} net is_sync
+		${CLI2} block last_header
+	done
 
-    sync_status "${CLI2}"
+	sync_status "${CLI2}"
 }
 
 function transfer(){
@@ -241,13 +241,38 @@ function transfer(){
     fi
 }
 
+
+function relay_before() {
+	sed -i 's/ForkV7AddRelay.*/ForkV7AddRelay = 2/g' ../types/relay.go
+}
+
+function relay_after() {
+	git checkout ../types/relay.go
+}
+
+function relay() {
+	echo "================relayd========================"
+	while true; do
+		${1} block last_header
+		result=$(${1} block last_header | jq ".height")
+		if [ "${result}" -gt 10 ]; then
+			break
+		fi
+		sleep 1
+	done
+
+	${1} relay btc_cur_height
+}
+
 function main() {
-    echo "==========================================main begin========================================================"
-    init
-    sync
-    transfer
-    # TODO other work!!!
-    echo "==========================================main end========================================================="
+	echo "==========================================main begin========================================================"
+	init
+	sync
+	transfer
+	relay "${CLI}"
+
+	# TODO other work!!!
+	echo "==========================================main end========================================================="
 }
 
 # run script
