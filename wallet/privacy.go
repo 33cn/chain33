@@ -31,7 +31,7 @@ func checkAmountValid(amount int64) bool {
 	}
 	// 隐私交易中，交易金额必须是types.Coin的整数倍
 	// 后续调整了隐私交易中手续费计算以后需要修改
-	if (int64(float64(amount)/float64(types.Coin))*types.Coin) != amount {
+	if (int64(float64(amount)/float64(types.Coin)) * types.Coin) != amount {
 		return false
 	}
 	return true

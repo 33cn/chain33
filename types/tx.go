@@ -627,12 +627,12 @@ func (tx *Transaction) ActionName() string {
 	return "unknow"
 }
 
-func (action *PrivacyAction) GetActionName() string{
-	if action.Ty==ActionPrivacy2Privacy && action.GetPrivacy2Privacy()!=nil {
+func (action *PrivacyAction) GetActionName() string {
+	if action.Ty == ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
 		return "Privacy2Privacy"
-	} else if action.Ty==ActionPublic2Privacy && action.GetPublic2Privacy()!=nil  {
+	} else if action.Ty == ActionPublic2Privacy && action.GetPublic2Privacy() != nil {
 		return "Public2Privacy"
-	}else if action.Ty==ActionPrivacy2Public && action.GetPrivacy2Public()!=nil  {
+	} else if action.Ty == ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
 		return "Privacy2Public"
 	}
 	return "unknow-privacy"
