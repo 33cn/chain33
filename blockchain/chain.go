@@ -44,12 +44,12 @@ type BlockChain struct {
 	// 永久存储数据到db中
 	blockStore *BlockStore
 	//cache  缓存block方便快速查询
-	cache      map[int64]*list.Element
-	cacheSize  int64
-	cacheQueue *list.List
-	cfg        *types.BlockChain
-	task       *Task
-	query      *Query
+	cache        map[int64]*list.Element
+	cacheSize    int64
+	cacheQueue   *list.List
+	cfg          *types.BlockChain
+	task         *Task
+	query        *Query
 
 	//记录收到的最新广播的block高度,用于节点追赶active链
 	rcvLastBlockHeight int64
@@ -645,31 +645,43 @@ func (chain *BlockChain) procgetPrivacyTransaction(reqPrivacy *types.ReqPrivacy)
 func (chain *BlockChain) ProcGetGlobalIndexMsg(reqUTXOGlobalIndex *types.ReqUTXOGlobalIndex) (*types.ResUTXOGlobalIndex, error) {
 	debugBeginTime := time.Now()
 
-	mixCount := reqUTXOGlobalIndex.MixCount
+
 	tokenName := reqUTXOGlobalIndex.Tokenname
 	currentHeight := chain.GetBlockHeight()
 	resUTXOGlobalIndex := &types.ResUTXOGlobalIndex{}
 	resUTXOGlobalIndex.Tokenname = tokenName
-	resUTXOGlobalIndex.MixCount = mixCount
+	resUTXOGlobalIndex.MixCount = reqUTXOGlobalIndex.MixCount
 	for _, amount := range reqUTXOGlobalIndex.Amount {
-		if mixCount <= 0 {
-			break
+		utxoItems := chain.blockStore.getUTXOsByTokenAndAmount(tokenName, amount, types.UTXOCacheCount)
+		index := len(utxoItems) - 1
+		for ;index >= 0; index-- {
+			//要求是经过了12个块确认的UTXO才能被使用
+			if utxoItems[index].GetHeight()+types.ConfirmedHeight <= currentHeight {
+				break
+			}
 		}
+
 		utxoIndex4Amount := &types.UTXOIndex4Amount{
 			Amount: amount,
 		}
-		utxoItems := chain.blockStore.getUTXOsByTokenAndAmount(tokenName, amount, types.UTXOCacheCount)
-		for _, item := range utxoItems {
-			//要求是经过了12个块确认的UTXO才能被使用
-			if item.GetHeight()+types.ConfirmedHeight <= currentHeight {
-				chainlog.Debug("ProcGetGlobalIndexMsg UTXOItem.Height=", item.GetHeight(), "currentHeight=", currentHeight)
-				continue
-			}
+
+		mixCount := reqUTXOGlobalIndex.MixCount
+		totalCnt := int32(index + 1)
+		if mixCount > totalCnt {
+			mixCount = totalCnt
+		}
+
+		//随机化每个item的位置，随机选择N个存在的
+		random := rand.New(rand.NewSource(time.Now().UnixNano()))
+		positions := random.Perm(int(totalCnt))
+		for i := int(mixCount - 1); i >= 0; i-- {
+			position := positions[i]
+			item := utxoItems[position]
 			utxoGlobalIndex := &types.UTXOGlobalIndex{
-				Height:   item.GetHeight(),
-				Txindex:  item.GetTxindex(),
-				Outindex: item.GetOutindex(),
-				Txhash:   item.GetTxhash(),
+				Height:item.GetHeight(),
+				Txindex:item.GetTxindex(),
+				Outindex:item.GetOutindex(),
+				Txhash:item.GetTxhash(),
 			}
 			utxo := &types.UTXOBasic{
 				UtxoGlobalIndex: utxoGlobalIndex,
@@ -678,10 +690,9 @@ func (chain *BlockChain) ProcGetGlobalIndexMsg(reqUTXOGlobalIndex *types.ReqUTXO
 			utxoIndex4Amount.Utxos = append(utxoIndex4Amount.Utxos, utxo)
 		}
 		resUTXOGlobalIndex.UtxoIndex4Amount = append(resUTXOGlobalIndex.UtxoIndex4Amount, utxoIndex4Amount)
-		mixCount -= 1
 	}
-	debugDurtime := time.Since(debugBeginTime)
-	fmt.Println("ProcGetGlobalIndexMsg cost：", debugDurtime)
+	debugDurtime:= time.Since(debugBeginTime)
+	fmt.Println("ProcGetGlobalIndexMsg cost：",debugDurtime)
 	return resUTXOGlobalIndex, nil
 }
 
