@@ -50,7 +50,9 @@ verMax=217
 [rpc]
 jrpcBindAddr="localhost:8801"
 grpcBindAddr="localhost:8802"
-whitlist=["127.0.0.1"]
+whitelist=["127.0.0.1"]
+jrpcFuncWhitelist=["*"]
+grpcFuncWhitelist=["*"]
 
 [mempool]
 poolCacheSize=10240
