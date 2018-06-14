@@ -1,7 +1,6 @@
 package accounts
 
 import (
-
 	"time"
 
 	l "github.com/inconshreveable/log15"
@@ -10,10 +9,10 @@ import (
 
 	//"encoding/json"
 	//"io/ioutil"
-	"strconv"
 	"fmt"
+	"strconv"
+
 	"gitlab.33.cn/chain33/chain33/rpc"
-	"os"
 )
 
 const secondsPerBlock = 15
@@ -23,7 +22,7 @@ var log = l.New("module", "accounts")
 
 type ShowMinerAccount struct {
 	DataDir string
-	Addrs []string
+	Addrs   []string
 }
 
 func (*ShowMinerAccount) Echo(in *string, out *interface{}) error {
@@ -58,35 +57,34 @@ func (show *ShowMinerAccount) Get(in *TimeAt, out *interface{}) error {
 	addrs := show.Addrs
 	log.Info("show", "miners", addrs)
 	//for i := int64(0); i < 200; i++ {
-		header, curAcc, err := cache.getBalance(addrs, "ticket", seconds)
-		if err != nil {
-			return nil
-		}
-		lastHourHeader, lastAcc, err := cache.getBalance(addrs, "ticket", header.BlockTime-3600)
-		if err != nil {
-			return nil
-		}
-		fmt.Print(curAcc, lastAcc)
+	header, curAcc, err := cache.getBalance(addrs, "ticket", seconds)
+	if err != nil {
+		return nil
+	}
+	lastHourHeader, lastAcc, err := cache.getBalance(addrs, "ticket", header.BlockTime-3600)
+	if err != nil {
+		return nil
+	}
+	fmt.Print(curAcc, lastAcc)
 
-		miner := &MinerAccounts{}
-		miner.Seconds = header.BlockTime - lastHourHeader.BlockTime
-		miner.Blocks = header.Height - lastHourHeader.Height
-		miner.ExpectBlocks = miner.Seconds / secondsPerBlock
+	miner := &MinerAccounts{}
+	miner.Seconds = header.BlockTime - lastHourHeader.BlockTime
+	miner.Blocks = header.Height - lastHourHeader.Height
+	miner.ExpectBlocks = miner.Seconds / secondsPerBlock
 
-		miner = calcResult(miner, curAcc, lastAcc)
-		*out = &miner
+	miner = calcResult(miner, curAcc, lastAcc)
+	*out = &miner
 
-		seconds = seconds - 3600
+	seconds = seconds - 3600
 	//}
-
 
 	return nil
 }
 
 func calcResult(miner *MinerAccounts, acc1, acc2 []*rpc.Account) *MinerAccounts {
 	type minerAt struct {
-		addr string
-		curAcc *rpc.Account
+		addr    string
+		curAcc  *rpc.Account
 		lastAcc *rpc.Account
 	}
 	miners := map[string]*minerAt{}
@@ -103,20 +101,20 @@ func calcResult(miner *MinerAccounts, acc1, acc2 []*rpc.Account) *MinerAccounts 
 	totalFrozen := float64(0)
 	for _, v := range miners {
 		if v.lastAcc != nil && v.curAcc != nil {
-			totalFrozen += float64(v.curAcc.Frozen)/float64(types.Coin)
+			totalFrozen += float64(v.curAcc.Frozen) / float64(types.Coin)
 		}
 	}
 	for k, v := range miners {
 		if v.lastAcc != nil && v.curAcc != nil {
 			total := v.curAcc.Balance + v.curAcc.Frozen
 			increase := total - v.lastAcc.Balance - v.lastAcc.Frozen
-			expectIncrease := float64(miner.Blocks) * float64(btyPreBlock) * (float64(v.curAcc.Frozen)/float64(types.Coin)) / totalFrozen
+			expectIncrease := float64(miner.Blocks) * float64(btyPreBlock) * (float64(v.curAcc.Frozen) / float64(types.Coin)) / totalFrozen
 
-			m :=  &MinerAccount{
-				Addr: k,
-				Total: strconv.FormatFloat(float64(total)/float64(types.Coin), 'f', 4, 64),
-				Increase: strconv.FormatFloat(float64(increase)/float64(types.Coin), 'f', 4, 64),
-				Frozen: strconv.FormatFloat(float64(v.curAcc.Frozen)/float64(types.Coin), 'f', 4, 64),
+			m := &MinerAccount{
+				Addr:           k,
+				Total:          strconv.FormatFloat(float64(total)/float64(types.Coin), 'f', 4, 64),
+				Increase:       strconv.FormatFloat(float64(increase)/float64(types.Coin), 'f', 4, 64),
+				Frozen:         strconv.FormatFloat(float64(v.curAcc.Frozen)/float64(types.Coin), 'f', 4, 64),
 				ExpectIncrease: strconv.FormatFloat(expectIncrease, 'f', 4, 64),
 			}
 
@@ -126,7 +124,7 @@ func calcResult(miner *MinerAccounts, acc1, acc2 []*rpc.Account) *MinerAccounts 
 			//}
 
 			miner.MinerAccounts = append(miner.MinerAccounts, m)
-			totalIncrease += float64(increase)/float64(types.Coin)
+			totalIncrease += float64(increase) / float64(types.Coin)
 		}
 	}
 	miner.TotalIncrease = strconv.FormatFloat(totalIncrease, 'f', 4, 64)
@@ -174,4 +172,3 @@ func getAccountDetail(jsonFile string) (*map[string]float64, error) {
 }
 
 */
-
