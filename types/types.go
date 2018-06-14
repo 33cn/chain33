@@ -172,12 +172,16 @@ func (r *ReceiptData) DecodeReceiptLog() (*ReceiptDataResult, error) {
 		if err != nil {
 			return nil, err
 		}
+		decode, err := LoadLogDecode(l.Ty)
+		decode.Decode(lLog)
+		decode.Name()
 		switch l.Ty {
 		case TyLogErr:
 			lTy = "LogErr"
 			logIns = string(lLog)
 		case TyLogFee:
 			lTy = "LogFee"
+
 			var logTmp ReceiptAccountTransfer
 			err = Decode(lLog, &logTmp)
 			if err != nil {
