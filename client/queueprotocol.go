@@ -810,26 +810,9 @@ func (q *QueueProtocol) BindMiner(param *types.ReqBindMiner) (*types.ReplyBindMi
 	}
 	txBind.Fee += types.MinFee
 	txBindHex := types.Encode(txBind)
-	cmdBind := hex.EncodeToString(txBindHex)
+	txHexStr := hex.EncodeToString(txBindHex)
 
-	if param.Amount < 0 {
-		return nil, types.ErrAmount
-	}
-	var txTrans *types.Transaction
-	transfer := &types.CoinsAction{}
-	v := &types.CoinsAction_Transfer{Transfer: &types.CoinsTransfer{Amount: param.Amount, Note: "coins->ticket"}}
-	transfer.Value = v
-	transfer.Ty = types.CoinsActionTransfer
-	txTrans = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), To: to}
-	txTrans.Fee, err = txTrans.GetRealFee(types.MinFee)
-	if err != nil {
-		return nil, err
-	}
-	random = rand.New(rand.NewSource(time.Now().UnixNano()))
-	txTrans.Nonce = random.Int63()
-	txTransHex := types.Encode(txTrans)
-	cmdTrans := hex.EncodeToString(txTransHex)
-	return &types.ReplyBindMiner{CmdBind: cmdBind, CmdTrans: cmdTrans}, nil
+	return &types.ReplyBindMiner{TxHex: txHexStr}, nil
 }
 
 func (q *QueueProtocol) DecodeRawTransaction(param *types.ReqDecodeRawTransaction) (*types.Transaction, error) {
