@@ -16,13 +16,12 @@ func Init() {
 
 type relay struct {
 	drivers.DriverBase
-	btcStore btcStore
+	btcStore *btcStore
 }
 
 func newRelay() drivers.Driver {
 	r := &relay{}
 	r.SetChild(r)
-	r.btcStore.new(r)
 
 	return r
 }
@@ -96,17 +95,24 @@ func (r *relay) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 			var receipt types.ReceiptRelayLog
 			err := types.Decode(item.Log, &receipt)
 			if err != nil {
-				panic(err)
+				return nil, err
 			}
 			kv := r.getOrderKv([]byte(receipt.Base.Id), item.Ty)
 			set.KV = append(set.KV, kv...)
 
 		} else if item.Ty == types.TyLogRelayRcvBTCHead {
+			if r.btcStore == nil {
+				val, err := newBtcStore(r)
+				if err != nil {
+					return nil, err
+				}
+				r.btcStore = val
+			}
 
 			var receipt types.ReceiptRelayRcvBTCHeaders
 			err := types.Decode(item.Log, &receipt)
 			if err != nil {
-				panic(err)
+				return nil, err
 			}
 
 			kv := r.btcStore.saveBlockHead(receipt.Base)
@@ -182,7 +188,7 @@ func (r *relay) Query(funcName string, params []byte) (types.Message, error) {
 		if err != nil {
 			return nil, err
 		}
-		return r.btcStore.getHeadHeightList(&req)
+		return getHeadHeightList(r, &req)
 
 	case "GetBTCHeaderCurHeight":
 		var req types.ReqRelayQryBTCHeadHeight
@@ -190,7 +196,7 @@ func (r *relay) Query(funcName string, params []byte) (types.Message, error) {
 		if err != nil {
 			return nil, err
 		}
-		return r.btcStore.getBtcHeadDbCurHeight(&req)
+		return getBtcHeadDbCurHeight(r, &req)
 	default:
 	}
 	relaylog.Error("relay Query", "Query type not supprt with func name", funcName)

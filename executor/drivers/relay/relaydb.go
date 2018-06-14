@@ -424,7 +424,7 @@ func (action *relayDB) verifyTx(verify *types.RelayVerify, r *relay) (*types.Rec
 		return nil, types.ErrRelayOrderOnSell
 	}
 
-	err = r.btcStore.verifyTx(verify, order)
+	err = verifyBtcTx(r, verify, order)
 	if err != nil {
 		return nil, err
 	}
@@ -477,7 +477,7 @@ func (action *relayDB) verifyBtcTx(verify *types.RelayVerifyCli, r *relay) (*typ
 
 	var receipt *types.Receipt
 
-	err = r.btcStore.verifyBtcTx(verify)
+	err = verifyCmdBtcTx(r, verify)
 	if err != nil {
 		return nil, err
 	}
@@ -518,9 +518,17 @@ func (action *relayDB) verifyBtcTx(verify *types.RelayVerifyCli, r *relay) (*typ
 func (action *relayDB) saveBtcHeader(headers *types.BtcHeaders) (*types.Receipt, error) {
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
+	var preHead *types.BtcHeader
 
-	// TODO make some simple check
 	for _, head := range headers.BtcHeader {
+		if preHead != nil {
+			err := verifyBlockHeader(head, preHead)
+			if err != nil {
+				return nil, err
+			}
+		}
+		preHead = head
+
 		log := &types.ReceiptLog{}
 		log.Ty = types.TyLogRelayRcvBTCHead
 		receipt := &types.ReceiptRelayRcvBTCHeaders{head}

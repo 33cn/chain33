@@ -65,4 +65,7 @@ var (
 	ErrRelayWaitBlocksErr      = errors.New("ErrRelayWaitBlocks")
 	ErrRelayCoinTxHashUsed     = errors.New("ErrRelayCoinTxHashUsed")
 	ErrRelayBtcTxTimeErr       = errors.New("ErrRelayBtcTxTimeErr")
+	ErrRelayBtcHeadSequenceErr = errors.New("ErrRelayBtcHeadSequenceErr")
+	ErrRelayBtcHeadHashErr     = errors.New("ErrRelayBtcHeadHashErr")
+	ErrRelayBtcHeadBitsErr     = errors.New("ErrRelayBtcHeadBitsErr")
 )

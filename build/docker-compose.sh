@@ -265,6 +265,34 @@ function relay() {
 	done
 
 	${1} relay btc_cur_height
+	result=$(${1} relay btc_cur_height | jq ".BaseHeight")
+	if [ "${result}" != 99900 ]; then
+	    echo "height not correct"
+	    #exit 1
+	fi
+
+	echo "=========== # transfer to relay ============="
+	hash=$(${1} send bty transfer -a 1000 -t 1rhRgzbz264eyJu7Ac63wepsm9TsEpwXM -n "send to relay" -k 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv)
+	echo "${hash}"
+	sleep 10
+	before=$(${CLI} account balance -a 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv -e relay | jq ".balance")
+	before=$(echo "$before" | bc)
+	if [ "${before}" == 0.0000 ]; then
+		echo "wrong relay balance, should not be zero"
+		exit 1
+	fi
+
+	echo "=========== # create order ============="
+	hash=$(${1} send relay create -o 0 -c BTC -a 1Am9UTGfdnxabvcywYG2hvzr6qK8T3oUZT -m 2.99 -f 0.02 -b 200 -k 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv)
+	echo "${hash}"
+	sleep 10
+	coinaddr=$(${CLI} tx query -s ${hash} | jq ".coinAddr")
+	coinaddr=$(echo "coinaddr" | bc)
+	if [ "${coinaddr}" != "1Am9UTGfdnxabvcywYG2hvzr6qK8T3oUZT" ]; then
+		echo "wrong create order to coinaddr"
+		exit 1
+	fi
+
 }
 
 function main() {
