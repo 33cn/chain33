@@ -19,6 +19,7 @@ var log = l.New("module", "accounts")
 
 type ShowMinerAccount struct {
 	DataDir string
+	Addrs []string
 }
 
 func (*ShowMinerAccount) Echo(in *string, out *interface{}) error {
@@ -39,19 +40,19 @@ func (show *ShowMinerAccount) Get(in *TimeAt, out *interface{}) error {
 		log.Error("show", "in", "nil")
 		return types.ErrInputPara
 	}
-	if len(in.TimeAt) == 0 {
-		log.Error("show", "in.TimeAt", "empty")
-		return types.ErrInputPara
+	seconds := time.Now().Unix()
+	if len(in.TimeAt) != 0 {
+		tm, err := time.Parse("2006-01-02-15", in.TimeAt)
+		if err != nil {
+			log.Error("show", "in.TimeAt Parse", err)
+			return types.ErrInputPara
+		}
+		seconds = tm.Unix()
 	}
-	tm, err := time.Parse("2006-01-02-15", in.TimeAt)
-	if err != nil {
-		log.Error("show", "in.TimeAt Parse", err)
-		return types.ErrInputPara
-	}
-	seconds := tm.Unix()
 	log.Info("show", "utc", seconds)
 
-	addrs := []string{"1FB8L3DykVF7Y78bRfUrRcMZwesKue7CyR"} // TODO config or request
+	addrs := show.Addrs
+	log.Info("show", "miners", addrs)
 	realTs, curAcc, err := cache.getBalance(addrs, "ticket", seconds)
 	if err != nil {
 		return nil
@@ -84,6 +85,7 @@ func calcResult(acc1, acc2 []*rpc.Account) *MinerAccounts {
 		}
 	}
 	miner := MinerAccounts{}
+	totalIncrease := float64(0)
 	for k, v := range miners {
 		if v.lastAcc != nil && v.curAcc != nil {
 			total := v.curAcc.Balance + v.curAcc.Frozen
@@ -94,8 +96,11 @@ func calcResult(acc1, acc2 []*rpc.Account) *MinerAccounts {
 				Increase: strconv.FormatFloat(float64(increase)/float64(types.Coin), 'f', 4, 64),
 			}
 			miner.MinerAccounts = append(miner.MinerAccounts, m)
+			totalIncrease += float64(increase)/float64(types.Coin)
 		}
 	}
+	miner.TotalIncrease = strconv.FormatFloat(totalIncrease, 'f', 4, 64)
+
 	return &miner
 
 }
