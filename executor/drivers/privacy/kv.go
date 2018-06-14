@@ -2,11 +2,7 @@ package privacy
 
 import (
 	"fmt"
-	"strconv"
-	"strings"
-
 	"gitlab.33.cn/chain33/chain33/common"
-	"gitlab.33.cn/chain33/chain33/types"
 )
 
 const (
@@ -36,18 +32,6 @@ func CalcPrivacyUTXOkeyHeight(token string, amount, height int64, txhash string,
 
 func CalcPrivacyUTXOkeyHeightStr(token string, amount, height int64, txhash string, txindex, outindex int) (key string) {
 	return fmt.Sprintf(PrivacyUTXOKEYPrefix+"-%s-%d-%010d-%s-%d-%d", token, amount, height, txhash, txindex, outindex)
-}
-
-func DecodeAmountFromKey(key []byte, token string) (int64, error) {
-	Prefix := fmt.Sprintf(PrivacyUTXOKEYPrefix+"-%s-", token)
-	if len(key) <= len(Prefix) {
-		return 0, types.ErrWrongKey
-	}
-
-	Amountstr := string(key[len(Prefix):])
-	index := strings.Index(Amountstr, "-")
-	Amountstr = string(key[len(Prefix):index])
-	return strconv.ParseInt(Amountstr, 10, 64)
 }
 
 func CalcPrivacyUTXOkeyHeightPrefix(token string, amount int64) (key []byte) {
