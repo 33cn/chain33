@@ -318,7 +318,7 @@ func showCoinRelayOrders(cmd *cobra.Command, args []string) {
 
 func parseRelayOrders(res types.ReplyRelayOrders) {
 	var operation = []string{"buy", "sell"}
-	for i, order := range res.Relayorders {
+	for _, order := range res.Relayorders {
 		var show RelayOrder2Show
 		show.OrderId = order.Id
 		show.Status = order.Status.String()
@@ -341,13 +341,12 @@ func parseRelayOrders(res types.ReplyRelayOrders) {
 			fmt.Fprintln(os.Stderr, err)
 			return
 		}
-		fmt.Printf("---The %dth relay order is below--------------------\n", i)
 		fmt.Println(string(data))
 	}
 }
 
 func parseRelayBtcHeadHeightList(res types.ReplyRelayBtcHeadHeightList) {
-	for i, height := range res.Heights {
+	for _, height := range res.Heights {
 		var show RelayBTCHeadHeightListShow
 		show.Height = height
 
@@ -357,7 +356,6 @@ func parseRelayBtcHeadHeightList(res types.ReplyRelayBtcHeadHeightList) {
 			return
 		}
 
-		fmt.Printf("---The %dth BTC height is below------\n", i)
 		fmt.Println(string(data))
 	}
 
@@ -374,7 +372,6 @@ func parseRelayBtcCurHeight(res types.ReplayRelayQryBTCHeadHeight) {
 		return
 	}
 
-	fmt.Println("---The BTC height info is below------")
 	fmt.Println(string(data))
 }
 
@@ -434,7 +431,7 @@ func relayOrder(cmd *cobra.Command, args []string) {
 
 	var res string
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawRelayOrderTx", params, &res)
-	ctx.Run()
+	ctx.RunWithoutMarshal()
 }
 
 // create raw accept coin transaction
@@ -473,7 +470,7 @@ func relayAccept(cmd *cobra.Command, args []string) {
 	}
 	var res string
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawRelayAcceptTx", params, &res)
-	ctx.Run()
+	ctx.RunWithoutMarshal()
 }
 
 // create raw  revoke transaction
@@ -517,7 +514,7 @@ func relayRevoke(cmd *cobra.Command, args []string) {
 	}
 	var res string
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawRelayRevokeTx", params, &res)
-	ctx.Run()
+	ctx.RunWithoutMarshal()
 }
 
 // create raw verify transaction
@@ -556,7 +553,7 @@ func relayConfirm(cmd *cobra.Command, args []string) {
 	}
 	var res string
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawRelayConfirmTx", params, &res)
-	ctx.Run()
+	ctx.RunWithoutMarshal()
 }
 
 func CreateRawRelayBtcHeaderCmd() *cobra.Command {
@@ -611,7 +608,7 @@ func relaySaveBtcHead(cmd *cobra.Command, args []string) {
 
 	var res string
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawRelaySaveBTCHeadTx", params, &res)
-	ctx.Run()
+	ctx.RunWithoutMarshal()
 }
 
 // create raw verify transaction
@@ -666,5 +663,5 @@ func relayVerifyBTC(cmd *cobra.Command, args []string) {
 
 	var res string
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawRelayVerifyBTCTx", params, &res)
-	ctx.Run()
+	ctx.RunWithoutMarshal()
 }

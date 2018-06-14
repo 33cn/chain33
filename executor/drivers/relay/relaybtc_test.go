@@ -19,12 +19,12 @@ func TestVerifyBlockHeader(t *testing.T) {
 		Height:       2,
 	}
 
-	var store = &btcStore{
-		lastHeader: &types.BtcHeader{},
+	var preHead = &types.BtcHeader{
+		Version: 1,
+		Hash:    "000000002a22cfee1f2c846adbd12b3e183d4f97683f85dad08a79780a84bd55",
+		Height:  1,
 	}
-	store.lastHeader.Hash = "000000002a22cfee1f2c846adbd12b3e183d4f97683f85dad08a79780a84bd55"
-	store.lastHeader.Height = 1
 
-	re := store.verifyBlockHeader(head)
-	assert.Equal(t, true, re)
+	re := verifyBlockHeader(head, preHead)
+	assert.Equal(t, nil, re)
 }
