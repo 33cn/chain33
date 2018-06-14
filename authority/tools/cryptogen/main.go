@@ -49,16 +49,11 @@ type Config struct {
 
 //command line flags
 var (
-	app = kingpin.New("cryptogen", "Utility for generating Hyperledger Fabric key material")
+	app = kingpin.New("cryptogen", "Utility for generating key material")
 
 	gen        = app.Command("generate", "Generate key material")
 	outputDir  = gen.Flag("output", "The output directory in which to place artifacts").Default("../../../cmd/chain33/authdir/crypto").String()
-	configFile = gen.Flag("config", "The configuration template to use").File()
-	userName   = gen.Flag("user", "The username for crypto").Default("user").String()
-
-	showtemplate = app.Command("showtemplate", "Show the default configuration template")
-
-	version = app.Command("version", "Show version information")
+	configFile = gen.Flag("config", "The configuration file to use").Default("./new.json").File()
 )
 
 func main() {
@@ -68,10 +63,6 @@ func main() {
 	// "generate" command
 	case gen.FullCommand():
 		generate()
-
-	// "version" command
-	case version.FullCommand():
-		printVersion()
 	}
 
 }
@@ -90,11 +81,12 @@ func getConfig() (Config, error) {
 			fmt.Println(err)
 			return configData, err
 		}
-
-		return configData, nil
 	} else {
-		panic("")
+		str := []string{"User"}
+		configData.Name = append(configData.Name, str...)
+		configData.OrgName = "Chain33"
 	}
+	return configData, nil
 }
 
 func generateUsers(baseDir string, users []string, orgName string) {
@@ -123,12 +115,14 @@ func generateUsers(baseDir string, users []string, orgName string) {
 
 func generate() {
 	conf, err := getConfig()
+	if err != nil {
+		fmt.Println("Configuation error")
+		return
+	}
+
 	fmt.Println(conf.Name)
 	fmt.Println(conf.OrgName)
-	fmt.Println(err)
-	if err == nil {
-		generateUsers(*outputDir, conf.Name, conf.OrgName)
-	}
+	generateUsers(*outputDir, conf.Name, conf.OrgName)
 }
 
 func parseTemplate(input string, data interface{}) (string, error) {
