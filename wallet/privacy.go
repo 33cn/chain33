@@ -25,6 +25,18 @@ type buildInputInfo struct {
 	mixcount  int32
 }
 
+func checkAmountValid(amount int64) bool {
+	if amount <= 0 {
+		return false
+	}
+	// 隐私交易中，交易金额必须是types.Coin的整数倍
+	// 后续调整了隐私交易中手续费计算以后需要修改
+	if (int64(float64(amount)/float64(types.Coin))*types.Coin) != amount {
+		return false
+	}
+	return true
+}
+
 func (wallet *Wallet) procPublic2PrivacyV2(public2private *types.ReqPub2Pri) (*types.ReplyHash, error) {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
@@ -37,8 +49,11 @@ func (wallet *Wallet) procPublic2PrivacyV2(public2private *types.ReqPub2Pri) (*t
 		walletlog.Error("public2private input para is nil")
 		return nil, types.ErrInputPara
 	}
-	if public2private.GetAmount() <= 0 || len(public2private.GetTokenname()) <= 0 {
+	if len(public2private.GetTokenname()) <= 0 {
 		return nil, types.ErrInvalidParams
+	}
+	if !checkAmountValid(public2private.GetAmount()) {
+		return nil, types.ErrAmount
 	}
 
 	priv, err := wallet.getPrivKeyByAddr(public2private.GetSender())
@@ -60,9 +75,8 @@ func (wallet *Wallet) procPrivacy2PrivacyV2(privacy2privacy *types.ReqPri2Pri) (
 		walletlog.Error("privacy2privacy input para is nil")
 		return nil, types.ErrInputPara
 	}
-	if privacy2privacy.GetAmount() <= 0 {
-		walletlog.Error("privacy2privacy Amount must be greate than 0")
-		return nil, types.ErrInvalidParams
+	if !checkAmountValid(privacy2privacy.GetAmount()) {
+		return nil, types.ErrAmount
 	}
 
 	privacyInfo, err := wallet.getPrivacykeyPair(privacy2privacy.GetSender())
@@ -85,6 +99,9 @@ func (wallet *Wallet) procPrivacy2PublicV2(privacy2Pub *types.ReqPri2Pub) (*type
 	if privacy2Pub == nil {
 		walletlog.Error("privacy2privacy input para is nil")
 		return nil, types.ErrInputPara
+	}
+	if !checkAmountValid(privacy2Pub.GetAmount()) {
+		return nil, types.ErrAmount
 	}
 	//get 'a'
 	privacyInfo, err := wallet.getPrivacykeyPair(privacy2Pub.GetSender())
