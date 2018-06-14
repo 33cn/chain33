@@ -6,7 +6,14 @@ import (
 	"os"
 	"strings"
 
+	"math/rand"
+	"time"
+	"unsafe"
+
 	"github.com/spf13/cobra"
+	"gitlab.33.cn/chain33/chain33/account"
+	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/crypto/privacy"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -24,6 +31,9 @@ func BTYCmd() *cobra.Command {
 		CreateRawWithdrawCmd(),
 		CreateRawSendToExecCmd(),
 		CreateTxGroupCmd(),
+		CreatePub2PrivTxCmd(),
+		CreatePriv2PrivTxCmd(),
+		CreatePriv2PubTxCmd(),
 	)
 
 	return cmd
@@ -254,4 +264,241 @@ func createTxGroup(cmd *cobra.Command, args []string) {
 	newtx := group.Tx()
 	grouptx := hex.EncodeToString(types.Encode(newtx))
 	fmt.Println(grouptx)
+}
+
+// privacy transaction
+// decomAmount2Nature 将amount切分为1,2,5的组合，这样在进行amount混淆的时候就能够方便获取相同额度的utxo
+func decomAmount2Nature(amount int64, order int64) []int64 {
+	res := make([]int64, 0)
+	if order == 0 {
+		return nil
+	}
+	mul := amount / order
+	switch mul {
+	case 3:
+		res = append(res, order)
+		res = append(res, 2*order)
+	case 4:
+		res = append(res, 2*order)
+		res = append(res, 2*order)
+	case 6:
+		res = append(res, 5*order)
+		res = append(res, order)
+	case 7:
+		res = append(res, 5*order)
+		res = append(res, 2*order)
+	case 8:
+		res = append(res, 5*order)
+		res = append(res, 2*order)
+		res = append(res, 1*order)
+	case 9:
+		res = append(res, 5*order)
+		res = append(res, 2*order)
+		res = append(res, 2*order)
+	default:
+		res = append(res, mul*order)
+		return res
+	}
+	return res
+}
+
+// 62387455827 -> 455827 + 7000000 + 80000000 + 300000000 + 2000000000 + 60000000000, where 455827 <= dust_threshold
+//res:[455827, 7000000, 80000000, 300000000, 2000000000, 60000000000]
+func decomposeAmount2digits(amount, dust_threshold int64) []int64 {
+	res := make([]int64, 0)
+	if 0 >= amount {
+		return res
+	}
+
+	is_dust_handled := false
+	var dust int64 = 0
+	var order int64 = 1
+	var chunk int64 = 0
+
+	for 0 != amount {
+		chunk = (amount % 10) * order
+		amount /= 10
+		order *= 10
+		if dust+chunk < dust_threshold {
+			dust += chunk //累加小数，直到超过dust_threshold为止
+		} else {
+			if !is_dust_handled && 0 != dust {
+				//1st 正常情况下，先把dust保存下来
+				res = append(res, dust)
+				is_dust_handled = true
+			}
+			if 0 != chunk {
+				//2nd 然后依次将大的整数额度进行保存
+				goodAmount := decomAmount2Nature(chunk, order/10)
+				res = append(res, goodAmount...)
+			}
+		}
+	}
+
+	//如果需要被拆分的额度 < dust_threshold，则直接将其进行保存
+	if !is_dust_handled && 0 != dust {
+		res = append(res, dust)
+	}
+
+	return res
+}
+
+//最后构造完成的utxo依次是2种类型，不构造交易费utxo，使其直接燃烧消失
+//1.进行实际转账utxo
+//2.进行找零转账utxo
+func generateOuts(viewpubTo, spendpubto, viewpubChangeto, spendpubChangeto *[32]byte, transAmount, selectedAmount, fee int64) (*types.PrivacyOutput, error) {
+	decomDigit := decomposeAmount2digits(transAmount, types.BTYDustThreshold)
+	//计算找零
+	changeAmount := selectedAmount - transAmount - fee
+	var decomChange []int64
+	if 0 < changeAmount {
+		decomChange = decomposeAmount2digits(changeAmount, types.BTYDustThreshold)
+	}
+
+	pk := &privacy.PubKeyPrivacy{}
+	sk := &privacy.PrivKeyPrivacy{}
+	privacy.GenerateKeyPair(sk, pk)
+	RtxPublicKey := pk.Bytes()
+
+	sktx := (*[32]byte)(unsafe.Pointer(&sk[0]))
+	var privacyOutput types.PrivacyOutput
+	privacyOutput.RpubKeytx = RtxPublicKey
+	privacyOutput.Keyoutput = make([]*types.KeyOutput, len(decomDigit)+len(decomChange))
+
+	//添加本次转账的目的接收信息（UTXO），包括一次性公钥和额度
+	for index, digit := range decomDigit {
+		pubkeyOnetime, err := privacy.GenerateOneTimeAddr(viewpubTo, spendpubto, sktx, int64(index))
+		if err != nil {
+			return nil, err
+		}
+		keyOutput := &types.KeyOutput{
+			Amount:        digit,
+			Onetimepubkey: pubkeyOnetime[:],
+		}
+		privacyOutput.Keyoutput[index] = keyOutput
+	}
+	//添加本次转账选择的UTXO后的找零后的UTXO
+	for index, digit := range decomChange {
+		pubkeyOnetime, err := privacy.GenerateOneTimeAddr(viewpubChangeto, spendpubChangeto, sktx, int64(index+len(decomDigit)))
+		if err != nil {
+			return nil, err
+		}
+		keyOutput := &types.KeyOutput{
+			Amount:        digit,
+			Onetimepubkey: pubkeyOnetime[:],
+		}
+		privacyOutput.Keyoutput[index+len(decomDigit)] = keyOutput
+	}
+	//交易费不产生额外的utxo，方便执行器执行的时候直接燃烧殆尽
+	if 0 != fee {
+	}
+
+	return &privacyOutput, nil
+}
+
+func parseViewSpendPubKeyPair(in string) (viewPubKey, spendPubKey []byte, err error) {
+	src, err := common.FromHex(in)
+	if err != nil {
+		return nil, nil, err
+	}
+	if 64 != len(src) {
+		return nil, nil, types.ErrPubKeyLen
+	}
+	viewPubKey = src[:32]
+	spendPubKey = src[32:]
+	return
+}
+
+func CreatePub2PrivTxCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "pub2priv",
+		Short: "Create a public to privacy transaction",
+		Run:   createPub2PrivTx,
+	}
+	createPub2PrivTxFlags(cmd)
+	return cmd
+}
+
+func createPub2PrivTxFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("pubkeypair", "p", "", "public key pair")
+	cmd.MarkFlagRequired("pubkeypair")
+	cmd.Flags().StringP("note", "n", "", "note for transaction")
+	cmd.MarkFlagRequired("note")
+	cmd.Flags().Float64P("amount", "a", 0.0, "transfer amount, at most 4 decimal places")
+	cmd.MarkFlagRequired("amount")
+}
+
+func createPub2PrivTx(cmd *cobra.Command, args []string) {
+	pubkeypair, _ := cmd.Flags().GetString("pubkeypair")
+	amount, _ := cmd.Flags().GetFloat64("amount")
+	note, _ := cmd.Flags().GetString("note")
+	amountInt64 := int64(amount*types.InputPrecision) * types.Multiple1E4 //支持4位小数输入，多余的输入将被截断
+
+	viewPubSlice, spendPubSlice, err := parseViewSpendPubKeyPair(pubkeypair)
+	if err != nil {
+		return
+	}
+	viewPublic := (*[32]byte)(unsafe.Pointer(&viewPubSlice[0]))
+	spendPublic := (*[32]byte)(unsafe.Pointer(&spendPubSlice[0]))
+	privacyOutput, err := generateOuts(viewPublic, spendPublic, nil, nil, amountInt64, amountInt64, 0)
+	if err != nil {
+		return
+	}
+
+	value := &types.Public2Privacy{
+		Tokenname: types.BTY,
+		Amount:    amountInt64,
+		Note:      note,
+		Output:    privacyOutput,
+	}
+
+	action := &types.PrivacyAction{
+		Ty:    types.ActionPublic2Privacy,
+		Value: &types.PrivacyAction_Public2Privacy{value},
+	}
+
+	random := rand.New(rand.NewSource(time.Now().UnixNano()))
+	tx := &types.Transaction{
+		Execer:  []byte(types.PrivacyX),
+		Payload: types.Encode(action),
+		Fee:     types.PrivacyTxFee,
+		Nonce:   random.Int63(),
+		// TODO: 采用隐私合约地址来设定目标合约接收的目标地址,让验证通过
+		To: account.ExecAddress(types.PrivacyX),
+	}
+
+	txHex := hex.EncodeToString(types.Encode(tx))
+	fmt.Println(txHex)
+}
+
+func CreatePriv2PrivTxCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "priv2priv",
+		Short: "Create a privacy to privacy transaction",
+		Run:   createPriv2PrivTx,
+	}
+	createPriv2PrivTxFlags(cmd)
+	return cmd
+}
+
+func createPriv2PrivTxFlags(cmd *cobra.Command) {
+}
+
+func createPriv2PrivTx(cmd *cobra.Command, args []string) {
+}
+
+func CreatePriv2PubTxCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "priv2pub",
+		Short: "Create a privacy to public transaction",
+		Run:   createPriv2PubTx,
+	}
+	createPriv2PubTxFlags(cmd)
+	return cmd
+}
+
+func createPriv2PubTxFlags(cmd *cobra.Command) {
+}
+
+func createPriv2PubTx(cmd *cobra.Command, args []string) {
 }
