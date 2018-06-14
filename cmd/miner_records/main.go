@@ -8,10 +8,11 @@ import (
 	"strconv"
 	"strings"
 
+	"time"
+
 	"gitlab.33.cn/chain33/chain33/common/log"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
-	"time"
 )
 
 const miner1 string = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
@@ -90,7 +91,7 @@ func checkMiner(miner, fname string) {
 			continue
 		}
 		fmt.Println(miner.(map[string]interface{})["ticketId"])
-		f, _ := os.OpenFile(fname, os.O_WRONLY | os.O_APPEND, 0666)
+		f, _ := os.OpenFile(fname, os.O_WRONLY|os.O_APPEND, 0666)
 		height := strconv.FormatInt(currentHeight, 10)
 		index := strconv.FormatInt(currentIndex, 10)
 		f.WriteString(height + " " + index + "\n")
@@ -106,7 +107,7 @@ func ioHeightAndIndex(fname string) error {
 		f.WriteString(height + " " + index + "\n")
 		f.Close()
 	}
-	f, err := os.OpenFile(fname, os.O_WRONLY | os.O_APPEND, 0666)
+	f, err := os.OpenFile(fname, os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return err

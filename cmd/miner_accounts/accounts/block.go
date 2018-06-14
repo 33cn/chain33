@@ -7,14 +7,13 @@ import (
 
 	chain33rpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
-
 )
 
 // ts/height -> blockHeader
 type chain33 struct {
-	lastHeader * chain33rpc.Header
+	lastHeader *chain33rpc.Header
 	// height -> ts -> header
-	Headers map[int64]* chain33rpc.Header
+	Headers   map[int64]*chain33rpc.Header
 	Height2Ts map[int64]int64
 	// new only cache ticket for miner
 	accountCache map[int64]*types.Accounts
@@ -28,11 +27,11 @@ func (b chain33) findBlock(ts int64) (int64, *chain33rpc.Header) {
 	}
 	// 到底怎么样才能快速根据时间找到block
 	//  1. 一般情况下， 几秒内会有块， 所以直接根据 ts ， 进行前后搜索
-	for delta := int64(1); delta < int64(100); delta ++ {
+	for delta := int64(1); delta < int64(100); delta++ {
 
 		if _, ok := b.Headers[ts-delta]; ok {
 			log.Info("show", "utc", ts, "find", b.Headers[ts-delta])
-			return ts-delta, b.Headers[ts-delta]
+			return ts - delta, b.Headers[ts-delta]
 		}
 	}
 
@@ -64,11 +63,11 @@ func (b chain33) addBlock(h *chain33rpc.Header) error {
 	return nil
 }
 
-var cache = chain33 {
-	lastHeader:&chain33rpc.Header{Height:0},
-	Headers: map[int64]* chain33rpc.Header{},
-	Height2Ts: map[int64]int64{},
-	accountCache : map[int64]*types.Accounts{},
+var cache = chain33{
+	lastHeader:   &chain33rpc.Header{Height: 0},
+	Headers:      map[int64]*chain33rpc.Header{},
+	Height2Ts:    map[int64]int64{},
+	accountCache: map[int64]*types.Accounts{},
 }
 
 func getLastHeader(cli *chain33rpc.JSONClient) (*chain33rpc.Header, error) {
@@ -86,7 +85,7 @@ func getHeaders(cli *chain33rpc.JSONClient, start, end int64) (*chain33rpc.Heade
 	return &res, err
 }
 
-func getBalanceAt(cli *chain33rpc.JSONClient, addrs []string, exec , stateHash string) ([]*chain33rpc.Account, error) {
+func getBalanceAt(cli *chain33rpc.JSONClient, addrs []string, exec, stateHash string) ([]*chain33rpc.Account, error) {
 	method := "Chain33.GetBalance"
 	params := &types.ReqBalance{Addresses: addrs, Execer: exec, StateHash: stateHash}
 	var res []*chain33rpc.Account
@@ -109,12 +108,12 @@ func syncHeaders() {
 	lastHeight := last.Height
 
 	// 节省监控的内存， 15000的区块头大约10M
-	if lastHeight - 15000 > curHeight { //} && false {
+	if lastHeight-15000 > curHeight { //} && false {
 		curHeight = lastHeight - 15000
 	}
 
 	for curHeight < lastHeight {
-		hs, err := getHeaders(rpcCli, curHeight, curHeight + 100)
+		hs, err := getHeaders(rpcCli, curHeight, curHeight+100)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			return

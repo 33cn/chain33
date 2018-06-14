@@ -17,8 +17,6 @@ import (
 	"github.com/rs/cors"
 
 	"gitlab.33.cn/chain33/chain33/cmd/miner_accounts/accounts"
-
-
 )
 
 var (
@@ -30,7 +28,6 @@ type HTTPConn struct {
 	in  io.Reader
 	out io.Writer
 }
-
 
 func (c *HTTPConn) Read(p []byte) (n int, err error)  { return c.in.Read(p) }
 func (c *HTTPConn) Write(d []byte) (n int, err error) { return c.out.Write(d) }
@@ -54,7 +51,7 @@ func main() {
 
 	go accounts.SyncBlock()
 
-	shower := accounts.ShowMinerAccount{ DataDir:cfg.DataDir, Addrs:cfg.MinerAddr}
+	shower := accounts.ShowMinerAccount{DataDir: cfg.DataDir, Addrs: cfg.MinerAddr}
 	server := rpc.NewServer()
 	server.Register(&shower)
 
