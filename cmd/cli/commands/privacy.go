@@ -425,6 +425,7 @@ func createUTXOs(cmd *cobra.Command, args []string) {
 	amountInt64 := int64(amount*types.InputPrecision) * types.Multiple1E4
 
 	params := &types.ReqCreateUTXOs{
+		Tokenname:  types.BTY,
 		Sender:     from,
 		Pubkeypair: pubkeypair,
 		Amount:     amountInt64,
