@@ -593,8 +593,6 @@ func (wallet *Wallet) buildInput(privacykeyParirs *privacy.Privacy, buildInfo *b
 		}
 	}
 
-
-
 	//构造输入PrivacyInput
 	privacyInput := &types.PrivacyInput{}
 	utxosInKeyInput := make([][]*types.UTXOBasic, len(selectedUtxo))
