@@ -175,3 +175,32 @@ type PrivacyAccountResult struct {
 	Amount        string `json:"Amount,omitempty"`
 	OnetimePubKey string `json:"OnetimePubKey,omitempty"`
 }
+
+
+type UTXOGlobalIndex struct {
+	Height   int64  `json:"height,omitempty"`
+	Txindex  int32  `json:"txindex,omitempty"`
+	Outindex int32  `json:"outindex,omitempty"`
+	Txhash   []byte `json:"txhash,omitempty"`
+}
+
+type KeyInput struct {
+	Amount          string              `json:"amount,omitempty"`
+	UtxoGlobalIndex []*UTXOGlobalIndex `json:"utxoGlobalIndex,omitempty"`
+	KeyImage        []byte             `json:"keyImage,omitempty"`
+}
+
+type PrivacyInput struct {
+	Keyinput []*KeyInput `json:"keyinput,omitempty"`
+}
+
+// privacy output
+type KeyOutput struct {
+	Amount        string  `json:"amount,omitempty"`
+	Onetimepubkey []byte `json:"onetimepubkey,omitempty"`
+}
+
+type ReceiptPrivacyOutput struct {
+	Token     string       `json:"token,omitempty"`
+	Keyoutput []*KeyOutput `json:"keyoutput,omitempty"`
+}
