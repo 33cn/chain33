@@ -156,7 +156,7 @@ func (db *GoLevelDB) Iterator(prefix []byte, reserve bool) Iterator {
 }
 
 func (db *GoLevelDB) BatchGet(keys [][]byte) (value [][]byte, err error) {
-	panic(errors.New("Need to implement"))
+	llog.Error("BatchGet", "Need to implement")
 	return nil, nil
 }
 

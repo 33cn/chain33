@@ -615,7 +615,25 @@ func (tx *Transaction) ActionName() string {
 		} else if trade.Ty == TradeRevokeBuy && trade.GetTokenrevokebuy() != nil {
 			return "revokebuytoken"
 		}
+	} else if bytes.Equal(tx.Execer, ExecerPrivacy) {
+		var action PrivacyAction
+		err := Decode(tx.Payload, &action)
+		if err != nil {
+			return "unknow-privacy-err"
+		}
+		return action.GetActionName()
 	}
 
 	return "unknow"
+}
+
+func (action *PrivacyAction) GetActionName() string {
+	if action.Ty == ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
+		return "Privacy2Privacy"
+	} else if action.Ty == ActionPublic2Privacy && action.GetPublic2Privacy() != nil {
+		return "Public2Privacy"
+	} else if action.Ty == ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
+		return "Privacy2Public"
+	}
+	return "unknow-privacy"
 }

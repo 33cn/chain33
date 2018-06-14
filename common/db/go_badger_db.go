@@ -180,7 +180,7 @@ func (db *GoBadgerDB) Iterator(prefix []byte, reserse bool) Iterator {
 }
 
 func (db *GoBadgerDB) BatchGet(keys [][]byte) (value [][]byte, err error) {
-	panic("Need to implement")
+	blog.Error("BatchGet", "Need to implement")
 	return nil, nil
 }
 
