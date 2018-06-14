@@ -40,7 +40,7 @@ func GetExecAddrCmd() *cobra.Command {
 }
 
 func addGetAddrFlags(cmd *cobra.Command) {
-	cmd.Flags().StringP("exec", "e", "", `executor name ("none", "coins", "hashlock", "retrieve", "ticket", "token", "trade" and "privacy" supported)`)
+	cmd.Flags().StringP("exec", "e", "", getExecuterNameString())
 	cmd.MarkFlagRequired("exec")
 }
 
