@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 
-set -e -o pipefail
+set -e
+set -o pipefail
+set -o verbose
+set -o xtrace
 
 # os: ubuntu16.04 x64
 # first, you must install jq tool of json
