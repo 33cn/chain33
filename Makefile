@@ -7,9 +7,11 @@
 SRC := gitlab.33.cn/chain33/chain33/cmd/chain33
 SRC_CLI := gitlab.33.cn/chain33/chain33/cmd/cli
 SRC_SIGNATORY := gitlab.33.cn/chain33/chain33/cmd/signatory-server
+SRC_MINER := gitlab.33.cn/chain33/chain33/cmd/miner_accounts
 APP := build/chain33
 CLI := build/chain33-cli
 SIGNATORY := build/signatory-server
+MINER := build/miner_accounts
 LDFLAGS := -ldflags "-w -s"
 PKG_LIST := `go list ./... | grep -v "vendor" | grep -v "chain33/test" | grep -v "mocks"`
 BUILD_FLAGS = -ldflags "-X gitlab.33.cn/chain33/chain33/common/version.GitCommit=`git rev-parse --short=8 HEAD`"
@@ -42,6 +44,11 @@ signatory:
 	@cd cmd/signatory-server/signatory && bash ./create_protobuf.sh && cd ../.../..
 	@go build -v -o $(SIGNATORY) $(SRC_SIGNATORY)
 	@cp cmd/signatory-server/signatory.toml build/
+
+miner:
+	@cd cmd/miner_accounts/accounts && bash ./create_protobuf.sh && cd ../.../..
+	@go build -v -o $(MINER) $(SRC_MINER)
+	@cp cmd/miner_accounts/miner_accounts.toml build/
 
 build_ci: ## Build the binary file for CI
 	@go build -race -v -o $(CLI) $(SRC_CLI)
