@@ -141,7 +141,7 @@ func CheckBlock(client queue.Client, block *types.BlockDetail) error {
 	return errors.New(string(reply.GetMsg()))
 }
 
-func ExecTx(client queue.Client, prevStateRoot []byte, block *types.Block) (*types.Receipts) {
+func ExecTx(client queue.Client, prevStateRoot []byte, block *types.Block) *types.Receipts {
 	list := &types.ExecTxList{prevStateRoot, block.Txs, block.BlockTime, block.Height, uint64(block.Difficulty)}
 	msg := client.NewMessage("execs", types.EventExecTxList, list)
 	client.Send(msg, true)

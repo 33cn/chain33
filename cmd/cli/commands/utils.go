@@ -56,8 +56,53 @@ func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
 			result.Payload.(map[string]interface{})["Value"].(map[string]interface{})["Miner"].(map[string]interface{})["reward"] = rwdResult
 		}
 	}
-
+	// 隐私交易
+	if pub2priv, ok := payloadValue["Public2Privacy"]; ok {
+		decodePrivacyPayload(pub2priv)
+	} else if priv2priv, ok := payloadValue["Privacy2Privacy"]; ok {
+		decodePrivacyPayload(priv2priv)
+	} else if priv2priv, ok := payloadValue["Privacy2Public"]; ok {
+		decodePrivacyPayload(priv2priv)
+	}
 	return result
+}
+
+func decodePrivacyPayload(pub2priv interface{}) {
+	if amountVal, ok := getStrMapValue(pub2priv, "amount"); ok {
+		amount := amountVal.(float64) / float64(types.Coin)
+		getStrMapPair(pub2priv)["amount"] = strconv.FormatFloat(amount, 'f', 4, 64)
+	}
+
+	if outputVal, ok := getStrMapValue(pub2priv, "input"); ok {
+		if keyoutputVals, ok := getStrMapValue(outputVal, "keyinput"); ok {
+			for _, value := range keyoutputVals.([]interface{}) {
+				if amountVal, ok := getStrMapValue(value, "amount"); ok {
+					amount := amountVal.(float64) / float64(types.Coin)
+					getStrMapPair(value)["amount"] = strconv.FormatFloat(amount, 'f', 4, 64)
+				}
+			}
+		}
+	}
+
+	if outputVal, ok := getStrMapValue(pub2priv, "output"); ok {
+		if keyoutputVals, ok := getStrMapValue(outputVal, "keyoutput"); ok {
+			for _, value := range keyoutputVals.([]interface{}) {
+				if amountVal, ok := getStrMapValue(value, "amount"); ok {
+					amount := amountVal.(float64) / float64(types.Coin)
+					getStrMapPair(value)["amount"] = strconv.FormatFloat(amount, 'f', 4, 64)
+				}
+			}
+		}
+	}
+}
+
+func getStrMapPair(m interface{}) map[string]interface{} {
+	return m.(map[string]interface{})
+}
+
+func getStrMapValue(m interface{}, key string) (interface{}, bool) {
+	ret, ok := m.(map[string]interface{})[key]
+	return ret, ok
 }
 
 func decodeAccount(acc *types.Account, precision int64) *AccountResult {
@@ -145,6 +190,12 @@ func decodeLog(rlog jsonrpc.ReceiptDataResult) *ReceiptData {
 			rl.Log = buildContractDataResult(l)
 		case types.TyLogContractState:
 			rl.Log = buildContractStateResult(l)
+			// 隐私交易
+		case types.TyLogPrivacyInput:
+			rl.Log = buildPrivacyInputResult(l)
+		case types.TyLogPrivacyOutput:
+			rl.Log = buildPrivacyOutputResult(l)
+
 		default:
 			fmt.Printf("---The log with vlaue:%d is not decoded --------------------\n", l.Ty)
 			return nil
@@ -186,6 +237,51 @@ func buildContractStateResult(l *jsonrpc.ReceiptLogResult) interface{} {
 		}
 	}
 	return rlog
+}
+
+func buildPrivacyInputResult(l *jsonrpc.ReceiptLogResult) interface{} {
+	data, _ := common.FromHex(l.RawLog)
+	srcInput := &types.PrivacyInput{}
+	dstInput := &PrivacyInput{}
+	if proto.Unmarshal(data, srcInput) != nil {
+		return dstInput
+	}
+	for _, srcKeyInput := range srcInput.Keyinput {
+		var dstUtxoGlobalIndex []*UTXOGlobalIndex
+		for _, srcUTXOGlobalIndex := range srcKeyInput.UtxoGlobalIndex {
+			dstUtxoGlobalIndex = append(dstUtxoGlobalIndex, &UTXOGlobalIndex{
+				Height:   srcUTXOGlobalIndex.GetHeight(),
+				Txindex:  srcUTXOGlobalIndex.GetTxindex(),
+				Outindex: srcUTXOGlobalIndex.GetOutindex(),
+				Txhash:   srcUTXOGlobalIndex.GetTxhash(),
+			})
+		}
+		dstKeyInput := &KeyInput{
+			Amount:          strconv.FormatFloat(float64(srcKeyInput.GetAmount())/float64(types.Coin), 'f', 4, 64),
+			UtxoGlobalIndex: dstUtxoGlobalIndex,
+			KeyImage:        srcKeyInput.GetKeyImage(),
+		}
+		dstInput.Keyinput = append(dstInput.Keyinput, dstKeyInput)
+	}
+	return dstInput
+}
+
+func buildPrivacyOutputResult(l *jsonrpc.ReceiptLogResult) interface{} {
+	data, _ := common.FromHex(l.RawLog)
+	srcOutput := &types.ReceiptPrivacyOutput{}
+	dstOutput := &ReceiptPrivacyOutput{}
+	if proto.Unmarshal(data, srcOutput) != nil {
+		return dstOutput
+	}
+	dstOutput.Token = srcOutput.Token
+	for _, srcKeyoutput := range srcOutput.Keyoutput {
+		dstKeyoutput := &KeyOutput{
+			Amount:        strconv.FormatFloat(float64(srcKeyoutput.GetAmount())/float64(types.Coin), 'f', 4, 64),
+			Onetimepubkey: srcKeyoutput.Onetimepubkey,
+		}
+		dstOutput.Keyoutput = append(dstOutput.Keyoutput, dstKeyoutput)
+	}
+	return dstOutput
 }
 
 func SendToAddress(rpcAddr string, from string, to string, amount int64, note string, isToken bool, tokenSymbol string, isWithdraw bool) {
@@ -268,6 +364,8 @@ func GetExecAddr(exec string) (string, error) {
 	return result, nil
 }
 
+var allowExeName = []string{"none", "coins", "hashlock", "retrieve", "ticket", "token", "trade", "privacy"}
+
 func isAllowExecName(exec string) (bool, error) {
 	// exec name长度不能超过50
 	if len(exec) > 50 {
@@ -280,10 +378,27 @@ func isAllowExecName(exec string) (bool, error) {
 	if strings.HasPrefix(exec, "user.") {
 		return true, nil
 	}
-	for _, e := range []string{"none", "coins", "hashlock", "retrieve", "ticket", "token", "trade", "privacy"} {
+	for _, e := range allowExeName {
 		if exec == e {
 			return true, nil
 		}
 	}
 	return false, types.ErrExecNameNotAllow
+}
+
+func getExecuterNameString() string {
+	str := "executer name ("
+	nameLen := len(allowExeName)
+	if nameLen > 1 {
+		for i := 0; i < nameLen-1; i++ {
+			if i > 0 {
+				str += ", "
+			}
+			str += fmt.Sprintf("\"%s\"", allowExeName[i])
+		}
+		str += fmt.Sprintf(" and \"%s\" supported", allowExeName[nameLen-1])
+	} else {
+		str += fmt.Sprintf("\"%s\" supported", allowExeName[nameLen-1])
+	}
+	return str
 }
