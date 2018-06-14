@@ -12,6 +12,8 @@ message MinerAccount {
     string addr = 1;
     string total = 2;
     string increase = 3;
+    string frozen = 4;
+    string expectIncrease = 5;
 }
 message Accounts {
 	repeated Account accounts = 1;
@@ -22,6 +24,8 @@ message MinerAccounts {
     repeated MinerAccount minerAccounts = 1;
     int64 seconds = 2;
     string totalIncrease = 3;
+    int64 blocks = 4;
+    int64 expectBlocks = 5;
 }
 
 

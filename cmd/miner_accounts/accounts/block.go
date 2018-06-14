@@ -38,20 +38,20 @@ func (b chain33) findBlock(ts int64) (int64, *chain33rpc.Header) {
 
 	return 0, nil
 }
-func (b chain33) getBalance(addrs []string, exec string, timeNear int64) (int64, []*chain33rpc.Account, error) {
+func (b chain33) getBalance(addrs []string, exec string, timeNear int64) (*chain33rpc.Header, []*chain33rpc.Account, error) {
 	rpcCli, err := chain33rpc.NewJSONClient("http://127.0.0.1:8801")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
-		return timeNear, nil, err
+		return nil, nil, err
 	}
 	realTs, header := b.findBlock(timeNear)
 	log.Info("show", "utc", realTs)
 	if realTs == 0 || header == nil {
-		return timeNear, nil, types.ErrNotFound
+		return nil, nil, types.ErrNotFound
 	}
 
 	acc, err := getBalanceAt(rpcCli, addrs, exec, header.StateHash)
-	return realTs, acc, err
+	return header, acc, err
 }
 
 func (b chain33) addBlock(h *chain33rpc.Header) error {
@@ -109,7 +109,7 @@ func syncHeaders() {
 	lastHeight := last.Height
 
 	// 节省监控的内存， 15000的区块头大约10M
-	if lastHeight - 15000 > curHeight {
+	if lastHeight - 15000 > curHeight { //} && false {
 		curHeight = lastHeight - 15000
 	}
 

@@ -13,7 +13,11 @@ import (
 	"strconv"
 	"fmt"
 	"gitlab.33.cn/chain33/chain33/rpc"
+	"os"
 )
+
+const secondsPerBlock = 15
+const btyPreBlock = 18
 
 var log = l.New("module", "accounts")
 
@@ -53,23 +57,33 @@ func (show *ShowMinerAccount) Get(in *TimeAt, out *interface{}) error {
 
 	addrs := show.Addrs
 	log.Info("show", "miners", addrs)
-	realTs, curAcc, err := cache.getBalance(addrs, "ticket", seconds)
-	if err != nil {
-		return nil
-	}
-	lastReadTs, lastAcc, err := cache.getBalance(addrs, "ticket", realTs-3600)
-	if err != nil {
-		return nil
-	}
-	fmt.Print(curAcc, lastAcc)
-	miner := calcResult(curAcc, lastAcc)
-	miner.Seconds = realTs - lastReadTs
-	*out = &miner
+	//for i := int64(0); i < 200; i++ {
+		header, curAcc, err := cache.getBalance(addrs, "ticket", seconds)
+		if err != nil {
+			return nil
+		}
+		lastHourHeader, lastAcc, err := cache.getBalance(addrs, "ticket", header.BlockTime-3600)
+		if err != nil {
+			return nil
+		}
+		fmt.Print(curAcc, lastAcc)
+
+		miner := &MinerAccounts{}
+		miner.Seconds = header.BlockTime - lastHourHeader.BlockTime
+		miner.Blocks = header.Height - lastHourHeader.Height
+		miner.ExpectBlocks = miner.Seconds / secondsPerBlock
+
+		miner = calcResult(miner, curAcc, lastAcc)
+		*out = &miner
+
+		seconds = seconds - 3600
+	//}
+
 
 	return nil
 }
 
-func calcResult(acc1, acc2 []*rpc.Account) *MinerAccounts {
+func calcResult(miner *MinerAccounts, acc1, acc2 []*rpc.Account) *MinerAccounts {
 	type minerAt struct {
 		addr string
 		curAcc *rpc.Account
@@ -84,24 +98,40 @@ func calcResult(acc1, acc2 []*rpc.Account) *MinerAccounts {
 			miners[a.Addr].lastAcc = a
 		}
 	}
-	miner := MinerAccounts{}
+
 	totalIncrease := float64(0)
+	totalFrozen := float64(0)
+	for _, v := range miners {
+		if v.lastAcc != nil && v.curAcc != nil {
+			totalFrozen += float64(v.curAcc.Frozen)/float64(types.Coin)
+		}
+	}
 	for k, v := range miners {
 		if v.lastAcc != nil && v.curAcc != nil {
 			total := v.curAcc.Balance + v.curAcc.Frozen
 			increase := total - v.lastAcc.Balance - v.lastAcc.Frozen
+			expectIncrease := float64(miner.ExpectBlocks) * float64(btyPreBlock) * (float64(v.curAcc.Frozen)/float64(types.Coin)) / totalFrozen
+
 			m :=  &MinerAccount{
 				Addr: k,
 				Total: strconv.FormatFloat(float64(total)/float64(types.Coin), 'f', 4, 64),
 				Increase: strconv.FormatFloat(float64(increase)/float64(types.Coin), 'f', 4, 64),
+				Frozen: strconv.FormatFloat(float64(v.curAcc.Frozen)/float64(types.Coin), 'f', 4, 64),
+				ExpectIncrease: strconv.FormatFloat(expectIncrease, 'f', 4, 64),
 			}
+
+			//if m.Addr == "1Lw6QLShKVbKM6QvMaCQwTh5Uhmy4644CG" {
+			//	log.Info("acount", "Increase", m.Increase, "expectIncrease", m.ExpectIncrease)
+			//	fmt.Println(os.Stderr, "Increase", m.Increase, "expectIncrease", m.ExpectIncrease)
+			//}
+
 			miner.MinerAccounts = append(miner.MinerAccounts, m)
 			totalIncrease += float64(increase)/float64(types.Coin)
 		}
 	}
 	miner.TotalIncrease = strconv.FormatFloat(totalIncrease, 'f', 4, 64)
 
-	return &miner
+	return miner
 
 }
 
