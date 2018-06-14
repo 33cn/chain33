@@ -15,6 +15,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers/privacy"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
+	"sort"
 )
 
 var (
@@ -615,6 +616,10 @@ func (bs *BlockStore) getUTXOsByTokenAndAmount(token string, amount int64, count
 			}
 		}
 	}
+
+	sort.Slice(localUTXOItemSlice, func(i, j int) bool {
+		return localUTXOItemSlice[i].Height <= localUTXOItemSlice[j].Height
+	})
 
 	return localUTXOItemSlice
 }
