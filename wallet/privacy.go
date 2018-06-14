@@ -702,15 +702,14 @@ func (wallet *Wallet) selectUTXO(token, addr string, amount int64) ([]*txOutputI
 				return nil, types.ErrInsufficientBalance
 			}
 			balanceFound := int64(0)
-			outs := walletOuts4Addr.outs
 			var selectedOuts []*txOutputInfo
 			for balanceFound < amount {
 				//随机选择其中一个utxo
-				index := wallet.random.Intn(len(outs))
-				selectedOuts = append(selectedOuts, outs[index])
-				balanceFound += outs[index].amount
+				index := wallet.random.Intn(len(walletOuts4Addr.outs))
+				selectedOuts = append(selectedOuts, walletOuts4Addr.outs[index])
+				balanceFound += walletOuts4Addr.outs[index].amount
 				//remove from the origin slice
-				outs = append(outs[:index], outs[index+1:]...)
+				walletOuts4Addr.outs = append(walletOuts4Addr.outs[:index], walletOuts4Addr.outs[index+1:]...)
 			}
 			return selectedOuts, nil
 		} else {
