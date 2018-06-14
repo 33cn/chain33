@@ -810,7 +810,7 @@ func (q *QueueProtocol) BindMiner(param *types.ReqBindMiner) (*types.ReplyBindMi
 	}
 	txBind.Fee += types.MinFee
 	txBindHex := types.Encode(txBind)
-	cmdBind := "wallet sign -d " + hex.EncodeToString(txBindHex) + " -e 1h -a " + param.OriginAddr
+	cmdBind := hex.EncodeToString(txBindHex)
 
 	if param.Amount < 0 {
 		return nil, types.ErrAmount
@@ -828,7 +828,7 @@ func (q *QueueProtocol) BindMiner(param *types.ReqBindMiner) (*types.ReplyBindMi
 	random = rand.New(rand.NewSource(time.Now().UnixNano()))
 	txTrans.Nonce = random.Int63()
 	txTransHex := types.Encode(txTrans)
-	cmdTrans := "wallet sign -d " + hex.EncodeToString(txTransHex) + " -e 1h -a " + param.OriginAddr
+	cmdTrans := hex.EncodeToString(txTransHex)
 	return &types.ReplyBindMiner{CmdBind: cmdBind, CmdTrans: cmdTrans}, nil
 }
 
