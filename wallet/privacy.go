@@ -554,15 +554,6 @@ func (wallet *Wallet) buildInput(privacykeyParirs *privacy.Privacy, buildInfo *b
 	})
 	walletlog.Debug("transPri2Pri", "After sort selectedUtxo", selectedUtxo)
 
-	/*
-		//在选择作为支付的UTXO中，可能存在相同额度utxo，这时需要进行去重请求处理，避免向blockchain请求多个相同amount的utxo
-		var amountKind map[int64]bool = make(map[int64]bool)
-		for _, out := range selectedUtxo {
-			amountKind[out.amount] = true
-		}
-		walletlog.Info("transPri2Pri", "Count of Same amount for UTXO is", len(selectedUtxo)-len(amountKind))
-	*/
-
 	reqGetGlobalIndex := types.ReqUTXOGlobalIndex{
 		Tokenname: *buildInfo.tokenname,
 		MixCount:  0,
@@ -571,26 +562,11 @@ func (wallet *Wallet) buildInput(privacykeyParirs *privacy.Privacy, buildInfo *b
 	if buildInfo.mixcount > 0 {
 		reqGetGlobalIndex.MixCount = common.MinInt32(int32(types.PrivacyMaxCount), common.MaxInt32(buildInfo.mixcount, 0))
 	}
-
-	//for amout, _ := range amountKind {
-	//	reqGetGlobalIndex.Amount = append(reqGetGlobalIndex.Amount, amout)
-	//}
-
 	for _, out := range selectedUtxo {
 		reqGetGlobalIndex.Amount = append(reqGetGlobalIndex.Amount, out.amount)
 	}
-
-	/*
-		walletlog.Debug("transPri2Pri", "Before sort reqGetGlobalIndex.Amount", reqGetGlobalIndex.Amount)
-		sort.Slice(reqGetGlobalIndex.Amount, func(i, j int) bool {
-			return reqGetGlobalIndex.Amount[i] < reqGetGlobalIndex.Amount[j]
-		})
-		walletlog.Debug("transPri2Pri", "After sort reqGetGlobalIndex.Amount", reqGetGlobalIndex.Amount)
-	*/
-
-	mapAmount2utxo := make(map[int64]*types.UTXOIndex4Amount)
-
 	// 混淆数大于0时候才向blockchain请求
+	var resUTXOGlobalIndex *types.ResUTXOGlobalIndex
 	if buildInfo.mixcount > 0 {
 		//向blockchain请求相同额度的不同utxo用于相同额度的混淆作用
 		msg := wallet.client.NewMessage("blockchain", types.EventGetGlobalIndex, &reqGetGlobalIndex)
@@ -600,36 +576,51 @@ func (wallet *Wallet) buildInput(privacykeyParirs *privacy.Privacy, buildInfo *b
 			walletlog.Error("transPri2Pri EventGetGlobalIndex", "err", err)
 			return nil, nil, nil, nil, err
 		}
-		resUTXOGlobalIndex := resp.GetData().(*types.ResUTXOGlobalIndex)
+		resUTXOGlobalIndex = resp.GetData().(*types.ResUTXOGlobalIndex)
 		if resUTXOGlobalIndex == nil {
 			walletlog.Info("transPri2Pri EventGetGlobalIndex is nil")
 			return nil, nil, nil, nil, err
 		}
 
-		for _, utxoIndex4Amount := range resUTXOGlobalIndex.UtxoIndex4Amount {
-			mapAmount2utxo[utxoIndex4Amount.Amount] = utxoIndex4Amount
+		sort.Slice(resUTXOGlobalIndex.UtxoIndex4Amount, func(i, j int) bool {
+			return resUTXOGlobalIndex.UtxoIndex4Amount[i].Amount <= resUTXOGlobalIndex.UtxoIndex4Amount[j].Amount
+		})
+
+		if len(selectedUtxo) != len(resUTXOGlobalIndex.UtxoIndex4Amount) {
+			walletlog.Error("transPri2Pri EventGetGlobalIndex get not the same count for mix",
+				"len(selectedUtxo)", len(selectedUtxo),
+					"len(resUTXOGlobalIndex.UtxoIndex4Amount)", len(resUTXOGlobalIndex.UtxoIndex4Amount))
 		}
 	}
+
+
 
 	//构造输入PrivacyInput
 	privacyInput := &types.PrivacyInput{}
 	utxosInKeyInput := make([][]*types.UTXOBasic, len(selectedUtxo))
 	realkeyInputSlice := make([]*realkeyInput, len(selectedUtxo))
 	for i, utxo2pay := range selectedUtxo {
-		utxoIndex4Amount, ok := mapAmount2utxo[utxo2pay.amount]
-		if ok {
+		var utxoIndex4Amount *types.UTXOIndex4Amount
+		if i < len(resUTXOGlobalIndex.UtxoIndex4Amount) && utxo2pay.amount == resUTXOGlobalIndex.UtxoIndex4Amount[i].Amount{
+			utxoIndex4Amount = resUTXOGlobalIndex.UtxoIndex4Amount[i]
 			for j, utxo := range utxoIndex4Amount.Utxos {
+				//查找自身这条UTXO是否存在，如果存在则将其从其中删除
 				if bytes.Equal(utxo.OnetimePubkey, utxo2pay.onetimePublicKey) {
 					utxoIndex4Amount.Utxos = append(utxoIndex4Amount.Utxos[:j], utxoIndex4Amount.Utxos[j+1:]...)
 					break
 				}
 			}
 		}
+
 		if utxoIndex4Amount == nil {
 			utxoIndex4Amount = &types.UTXOIndex4Amount{}
 		}
 		if utxoIndex4Amount.Utxos == nil {
 			utxoIndex4Amount.Utxos = make([]*types.UTXOBasic, 0)
+		}
+		//如果请求返回的用于混淆的utxo不包含自身且达到mix的上限，则将最后一条utxo删除，保证最后的混淆度不大于设置
+		if len(utxoIndex4Amount.Utxos) >= int(buildInfo.mixcount) {
+			utxoIndex4Amount.Utxos = utxoIndex4Amount.Utxos[:len(utxoIndex4Amount.Utxos) - 1]
 		}
 
 		utxo := &types.UTXOBasic{
