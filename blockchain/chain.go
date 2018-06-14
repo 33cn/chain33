@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"container/list"
 	"fmt"
+	"math/rand"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -44,12 +45,12 @@ type BlockChain struct {
 	// 永久存储数据到db中
 	blockStore *BlockStore
 	//cache  缓存block方便快速查询
-	cache        map[int64]*list.Element
-	cacheSize    int64
-	cacheQueue   *list.List
-	cfg          *types.BlockChain
-	task         *Task
-	query        *Query
+	cache      map[int64]*list.Element
+	cacheSize  int64
+	cacheQueue *list.List
+	cfg        *types.BlockChain
+	task       *Task
+	query      *Query
 
 	//记录收到的最新广播的block高度,用于节点追赶active链
 	rcvLastBlockHeight int64
@@ -645,7 +646,6 @@ func (chain *BlockChain) procgetPrivacyTransaction(reqPrivacy *types.ReqPrivacy)
 func (chain *BlockChain) ProcGetGlobalIndexMsg(reqUTXOGlobalIndex *types.ReqUTXOGlobalIndex) (*types.ResUTXOGlobalIndex, error) {
 	debugBeginTime := time.Now()
 
-
 	tokenName := reqUTXOGlobalIndex.Tokenname
 	currentHeight := chain.GetBlockHeight()
 	resUTXOGlobalIndex := &types.ResUTXOGlobalIndex{}
@@ -654,7 +654,7 @@ func (chain *BlockChain) ProcGetGlobalIndexMsg(reqUTXOGlobalIndex *types.ReqUTXO
 	for _, amount := range reqUTXOGlobalIndex.Amount {
 		utxoItems := chain.blockStore.getUTXOsByTokenAndAmount(tokenName, amount, types.UTXOCacheCount)
 		index := len(utxoItems) - 1
-		for ;index >= 0; index-- {
+		for ; index >= 0; index-- {
 			//要求是经过了12个块确认的UTXO才能被使用
 			if utxoItems[index].GetHeight()+types.ConfirmedHeight <= currentHeight {
 				break
@@ -678,10 +678,10 @@ func (chain *BlockChain) ProcGetGlobalIndexMsg(reqUTXOGlobalIndex *types.ReqUTXO
 			position := positions[i]
 			item := utxoItems[position]
 			utxoGlobalIndex := &types.UTXOGlobalIndex{
-				Height:item.GetHeight(),
-				Txindex:item.GetTxindex(),
-				Outindex:item.GetOutindex(),
-				Txhash:item.GetTxhash(),
+				Height:   item.GetHeight(),
+				Txindex:  item.GetTxindex(),
+				Outindex: item.GetOutindex(),
+				Txhash:   item.GetTxhash(),
 			}
 			utxo := &types.UTXOBasic{
 				UtxoGlobalIndex: utxoGlobalIndex,
@@ -691,8 +691,8 @@ func (chain *BlockChain) ProcGetGlobalIndexMsg(reqUTXOGlobalIndex *types.ReqUTXO
 		}
 		resUTXOGlobalIndex.UtxoIndex4Amount = append(resUTXOGlobalIndex.UtxoIndex4Amount, utxoIndex4Amount)
 	}
-	debugDurtime:= time.Since(debugBeginTime)
-	fmt.Println("ProcGetGlobalIndexMsg cost：",debugDurtime)
+	debugDurtime := time.Since(debugBeginTime)
+	fmt.Println("ProcGetGlobalIndexMsg cost：", debugDurtime)
 	return resUTXOGlobalIndex, nil
 }
 

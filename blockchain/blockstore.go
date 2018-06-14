@@ -8,6 +8,8 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"sort"
+
 	"github.com/golang/protobuf/proto"
 	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
@@ -15,7 +17,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers/privacy"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
-	"sort"
 )
 
 var (
