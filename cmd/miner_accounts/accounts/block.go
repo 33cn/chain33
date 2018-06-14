@@ -21,6 +21,7 @@ type chain33 struct {
 }
 
 func (b chain33) findBlock(ts int64) (int64, *chain33rpc.Header) {
+	log.Info("show", "utc", ts, "lastBlockTime", b.lastHeader.BlockTime)
 	if ts > b.lastHeader.BlockTime {
 		ts = b.lastHeader.BlockTime
 		return ts, b.lastHeader
@@ -28,7 +29,9 @@ func (b chain33) findBlock(ts int64) (int64, *chain33rpc.Header) {
 	// 到底怎么样才能快速根据时间找到block
 	//  1. 一般情况下， 几秒内会有块， 所以直接根据 ts ， 进行前后搜索
 	for delta := int64(1); delta < int64(100); delta ++ {
+
 		if _, ok := b.Headers[ts-delta]; ok {
+			log.Info("show", "utc", ts, "find", b.Headers[ts-delta])
 			return ts-delta, b.Headers[ts-delta]
 		}
 	}
@@ -42,11 +45,11 @@ func (b chain33) getBalance(addrs []string, exec string, timeNear int64) (int64,
 		return timeNear, nil, err
 	}
 	realTs, header := b.findBlock(timeNear)
+	log.Info("show", "utc", realTs)
 	if realTs == 0 || header == nil {
 		return timeNear, nil, types.ErrNotFound
 	}
 
-	// TODO cache result
 	acc, err := getBalanceAt(rpcCli, addrs, exec, header.StateHash)
 	return realTs, acc, err
 }
@@ -61,7 +64,7 @@ func (b chain33) addBlock(h *chain33rpc.Header) error {
 	return nil
 }
 
-var cache = chain33{
+var cache = chain33 {
 	lastHeader:&chain33rpc.Header{Height:0},
 	Headers: map[int64]* chain33rpc.Header{},
 	Height2Ts: map[int64]int64{},
@@ -104,6 +107,11 @@ func syncHeaders() {
 	}
 	curHeight := cache.lastHeader.Height
 	lastHeight := last.Height
+
+	// 节省监控的内存， 15000的区块头大约10M
+	if lastHeight - 15000 > curHeight {
+		curHeight = lastHeight - 15000
+	}
 
 	for curHeight < lastHeight {
 		hs, err := getHeaders(rpcCli, curHeight, curHeight + 100)

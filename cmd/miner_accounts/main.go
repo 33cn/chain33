@@ -44,7 +44,7 @@ func main() {
 	log.Debug("current dir:", "dir", d)
 	flag.Parse()
 	cfg := InitCfg(*configPath)
-	log.Debug("load config", "cfgPath", *configPath, "wl", cfg.Whitelist, "addr", cfg.JrpcBindAddr)
+	log.Debug("load config", "cfgPath", *configPath, "wl", cfg.Whitelist, "addr", cfg.JrpcBindAddr, "miners", cfg.MinerAddr)
 	whitelist := InitWhiteList(cfg)
 
 	listen, err := net.Listen("tcp", cfg.JrpcBindAddr)
@@ -54,7 +54,7 @@ func main() {
 
 	go accounts.SyncBlock()
 
-	shower := accounts.ShowMinerAccount{ DataDir:cfg.DataDir}
+	shower := accounts.ShowMinerAccount{ DataDir:cfg.DataDir, Addrs:cfg.MinerAddr}
 	server := rpc.NewServer()
 	server.Register(&shower)
 

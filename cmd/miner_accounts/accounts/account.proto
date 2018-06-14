@@ -15,11 +15,13 @@ message MinerAccount {
 }
 message Accounts {
 	repeated Account accounts = 1;
+
 }
 
 message MinerAccounts {
     repeated MinerAccount minerAccounts = 1;
     int64 seconds = 2;
+    string totalIncrease = 3;
 }
 
 
@@ -27,5 +29,6 @@ message Config {
 	repeated string whitelist = 1;
 	string jrpcBindAddr = 2;
 	string dataDir = 3;
+	repeated string minerAddr = 4;
 }
 
