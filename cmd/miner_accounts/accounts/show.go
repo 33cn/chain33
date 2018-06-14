@@ -110,7 +110,7 @@ func calcResult(miner *MinerAccounts, acc1, acc2 []*rpc.Account) *MinerAccounts 
 		if v.lastAcc != nil && v.curAcc != nil {
 			total := v.curAcc.Balance + v.curAcc.Frozen
 			increase := total - v.lastAcc.Balance - v.lastAcc.Frozen
-			expectIncrease := float64(miner.ExpectBlocks) * float64(btyPreBlock) * (float64(v.curAcc.Frozen)/float64(types.Coin)) / totalFrozen
+			expectIncrease := float64(miner.Blocks) * float64(btyPreBlock) * (float64(v.curAcc.Frozen)/float64(types.Coin)) / totalFrozen
 
 			m :=  &MinerAccount{
 				Addr: k,
