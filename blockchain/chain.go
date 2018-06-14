@@ -44,12 +44,12 @@ type BlockChain struct {
 	// 永久存储数据到db中
 	blockStore *BlockStore
 	//cache  缓存block方便快速查询
-	cache        map[int64]*list.Element
-	cacheSize    int64
-	cacheQueue   *list.List
-	cfg          *types.BlockChain
-	task         *Task
-	query        *Query
+	cache      map[int64]*list.Element
+	cacheSize  int64
+	cacheQueue *list.List
+	cfg        *types.BlockChain
+	task       *Task
+	query      *Query
 
 	//记录收到的最新广播的block高度,用于节点追赶active链
 	rcvLastBlockHeight int64
@@ -643,7 +643,7 @@ func (chain *BlockChain) procgetPrivacyTransaction(reqPrivacy *types.ReqPrivacy)
 // 2.混淆度需要大于0
 // 3.确认区块高度大于等于types.ConfirmedHeight
 func (chain *BlockChain) ProcGetGlobalIndexMsg(reqUTXOGlobalIndex *types.ReqUTXOGlobalIndex) (*types.ResUTXOGlobalIndex, error) {
-	debugBeginTime :=time.Now()
+	debugBeginTime := time.Now()
 
 	mixCount := reqUTXOGlobalIndex.MixCount
 	tokenName := reqUTXOGlobalIndex.Tokenname
@@ -652,7 +652,7 @@ func (chain *BlockChain) ProcGetGlobalIndexMsg(reqUTXOGlobalIndex *types.ReqUTXO
 	resUTXOGlobalIndex.Tokenname = tokenName
 	resUTXOGlobalIndex.MixCount = mixCount
 	for _, amount := range reqUTXOGlobalIndex.Amount {
-		if mixCount <= 0{
+		if mixCount <= 0 {
 			break
 		}
 		utxoIndex4Amount := &types.UTXOIndex4Amount{
@@ -666,10 +666,10 @@ func (chain *BlockChain) ProcGetGlobalIndexMsg(reqUTXOGlobalIndex *types.ReqUTXO
 				continue
 			}
 			utxoGlobalIndex := &types.UTXOGlobalIndex{
-				Height:item.GetHeight(),
-				Txindex:item.GetTxindex(),
-				Outindex:item.GetOutindex(),
-				Txhash:item.GetTxhash(),
+				Height:   item.GetHeight(),
+				Txindex:  item.GetTxindex(),
+				Outindex: item.GetOutindex(),
+				Txhash:   item.GetTxhash(),
 			}
 			utxo := &types.UTXOBasic{
 				UtxoGlobalIndex: utxoGlobalIndex,
@@ -680,8 +680,8 @@ func (chain *BlockChain) ProcGetGlobalIndexMsg(reqUTXOGlobalIndex *types.ReqUTXO
 		resUTXOGlobalIndex.UtxoIndex4Amount = append(resUTXOGlobalIndex.UtxoIndex4Amount, utxoIndex4Amount)
 		mixCount -= 1
 	}
-	debugDurtime:= time.Since(debugBeginTime)
-	fmt.Println("ProcGetGlobalIndexMsg cost：",debugDurtime)
+	debugDurtime := time.Since(debugBeginTime)
+	fmt.Println("ProcGetGlobalIndexMsg cost：", debugDurtime)
 	return resUTXOGlobalIndex, nil
 }
 

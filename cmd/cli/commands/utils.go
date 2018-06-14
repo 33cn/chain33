@@ -61,7 +61,7 @@ func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
 		decodePrivacyPayload(pub2priv)
 	} else if priv2priv, ok := payloadValue["Privacy2Privacy"]; ok {
 		decodePrivacyPayload(priv2priv)
-	}else if priv2priv, ok := payloadValue["Privacy2Public"]; ok {
+	} else if priv2priv, ok := payloadValue["Privacy2Public"]; ok {
 		decodePrivacyPayload(priv2priv)
 	}
 	return result
@@ -70,7 +70,7 @@ func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
 func decodePrivacyPayload(pub2priv interface{}) {
 	if amountVal, ok := getStrMapValue(pub2priv, "amount"); ok {
 		amount := amountVal.(float64) / float64(types.Coin)
-		getStrMapPair(pub2priv)["amount"]= strconv.FormatFloat(amount, 'f', 4, 64)
+		getStrMapPair(pub2priv)["amount"] = strconv.FormatFloat(amount, 'f', 4, 64)
 	}
 
 	if outputVal, ok := getStrMapValue(pub2priv, "input"); ok {
@@ -78,7 +78,7 @@ func decodePrivacyPayload(pub2priv interface{}) {
 			for _, value := range keyoutputVals.([]interface{}) {
 				if amountVal, ok := getStrMapValue(value, "amount"); ok {
 					amount := amountVal.(float64) / float64(types.Coin)
-					getStrMapPair(value)["amount"]  = strconv.FormatFloat(amount, 'f', 4, 64)
+					getStrMapPair(value)["amount"] = strconv.FormatFloat(amount, 'f', 4, 64)
 				}
 			}
 		}
@@ -89,14 +89,14 @@ func decodePrivacyPayload(pub2priv interface{}) {
 			for _, value := range keyoutputVals.([]interface{}) {
 				if amountVal, ok := getStrMapValue(value, "amount"); ok {
 					amount := amountVal.(float64) / float64(types.Coin)
-					getStrMapPair(value)["amount"]  = strconv.FormatFloat(amount, 'f', 4, 64)
+					getStrMapPair(value)["amount"] = strconv.FormatFloat(amount, 'f', 4, 64)
 				}
 			}
 		}
 	}
 }
 
-func getStrMapPair(m interface{}) (map[string]interface{}) {
+func getStrMapPair(m interface{}) map[string]interface{} {
 	return m.(map[string]interface{})
 }
 
@@ -250,16 +250,16 @@ func buildPrivacyInputResult(l *jsonrpc.ReceiptLogResult) interface{} {
 		var dstUtxoGlobalIndex []*UTXOGlobalIndex
 		for _, srcUTXOGlobalIndex := range srcKeyInput.UtxoGlobalIndex {
 			dstUtxoGlobalIndex = append(dstUtxoGlobalIndex, &UTXOGlobalIndex{
-				Height:srcUTXOGlobalIndex.GetHeight(),
-				Txindex:srcUTXOGlobalIndex.GetTxindex(),
-				Outindex:srcUTXOGlobalIndex.GetOutindex(),
-				Txhash:srcUTXOGlobalIndex.GetTxhash(),
+				Height:   srcUTXOGlobalIndex.GetHeight(),
+				Txindex:  srcUTXOGlobalIndex.GetTxindex(),
+				Outindex: srcUTXOGlobalIndex.GetOutindex(),
+				Txhash:   srcUTXOGlobalIndex.GetTxhash(),
 			})
 		}
 		dstKeyInput := &KeyInput{
-			Amount:strconv.FormatFloat(float64(srcKeyInput.GetAmount())/float64(types.Coin), 'f', 4, 64),
-			UtxoGlobalIndex:dstUtxoGlobalIndex,
-			KeyImage:srcKeyInput.GetKeyImage(),
+			Amount:          strconv.FormatFloat(float64(srcKeyInput.GetAmount())/float64(types.Coin), 'f', 4, 64),
+			UtxoGlobalIndex: dstUtxoGlobalIndex,
+			KeyImage:        srcKeyInput.GetKeyImage(),
 		}
 		dstInput.Keyinput = append(dstInput.Keyinput, dstKeyInput)
 	}
@@ -276,8 +276,8 @@ func buildPrivacyOutputResult(l *jsonrpc.ReceiptLogResult) interface{} {
 	dstOutput.Token = srcOutput.Token
 	for _, srcKeyoutput := range srcOutput.Keyoutput {
 		dstKeyoutput := &KeyOutput{
-			Amount:strconv.FormatFloat(float64(srcKeyoutput.GetAmount())/float64(types.Coin), 'f', 4, 64),
-			Onetimepubkey:srcKeyoutput.Onetimepubkey,
+			Amount:        strconv.FormatFloat(float64(srcKeyoutput.GetAmount())/float64(types.Coin), 'f', 4, 64),
+			Onetimepubkey: srcKeyoutput.Onetimepubkey,
 		}
 		dstOutput.Keyoutput = append(dstOutput.Keyoutput, dstKeyoutput)
 	}
