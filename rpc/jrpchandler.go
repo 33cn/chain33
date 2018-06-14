@@ -1478,7 +1478,7 @@ func (c *Chain33) CreateBindMiner(in *types.ReqBindMiner, result *interface{}) e
 			return types.ErrNoBalance
 		}
 	}
-
+	in.Amount = in.Amount * types.Coin
 	reply, err := c.cli.BindMiner(in)
 	if err != nil {
 		return err
