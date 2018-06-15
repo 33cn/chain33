@@ -48,11 +48,11 @@ var (
 	ForkV10TradeBuyLimit int64 = 1
 	ForkV11ManageExec    int64 = 100000
 	ForkV12TransferExec  int64 = 100000
-	ForkV13ExecKey       int64 = 200000
-	ForkV14TxGroup       int64 = 200000
-	ForkV15ResetTx0      int64 = 200000
-	ForkV16Withdraw      int64 = 200000
-	ForkV17EVM           int64 = 250000
+	ForkV13ExecKey       int64 = 300000
+	ForkV14TxGroup       int64 = 300000
+	ForkV15ResetTx0      int64 = 300000
+	ForkV16Withdraw      int64 = 300000
+	ForkV17EVM           int64 = 350000
 )
 
 var (
