@@ -40,6 +40,17 @@ func (Comm) AddrRouteble(addrs []string) []string {
 	return enableAddrs
 
 }
+func (c Comm) RandStr(n int) string {
+	var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letters[rand.Intn(len(letters))]
+	}
+
+	return string(b)
+}
+
 func (c Comm) GetLocalAddr() string {
 
 	conn, err := net.Dial("udp", "114.114.114.114:80")
