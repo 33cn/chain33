@@ -77,8 +77,10 @@ func (key *Key) NewChildKey(childIdx uint32) (*Key, error) {
 	var data []byte
 	if hardenedChild {
 		data = append([]byte{0x0}, key.Key...)
-	} else {
+	} else if key.IsPrivate {
 		data = publicKeyForPrivateKey(key.Key)
+	} else {
+		data = key.Key
 	}
 	data = append(data, childIndexBytes...)
 
@@ -108,7 +110,6 @@ func (key *Key) NewChildKey(childIdx uint32) (*Key, error) {
 		// Bip32 CKDpub
 	} else {
 		keyBytes := publicKeyForPrivateKey(intermediary[:32])
-
 		// Validate key
 		err := validateChildPublicKey(keyBytes)
 		if err != nil {

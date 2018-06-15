@@ -52,6 +52,7 @@ var (
 	ForkV14TxGroup       int64 = 200000
 	ForkV15ResetTx0      int64 = 200000
 	ForkV16Withdraw      int64 = 200000
+	ForkV17EVM           int64 = 250000
 )
 
 var (
@@ -140,6 +141,7 @@ func SetTestNet(isTestNet bool) {
 	ForkV14TxGroup = 408400
 	ForkV15ResetTx0 = 453400
 	ForkV16Withdraw = 480000
+	ForkV17EVM = 500000
 }
 
 func IsTestNet() bool {
@@ -171,7 +173,6 @@ const (
 	TokenIntroLenLimit        = 1024
 	InvalidStartTime          = 0
 	InvalidStopTime           = 0
-	MaxExecNameLength         = 100
 )
 
 // event
@@ -294,6 +295,10 @@ const (
 	EventErrToFront          = 112
 	EventFatalFailure        = 113
 	EventReplyFatalFailure   = 114
+	EventBindMiner           = 115
+	EventReplyBindMiner      = 116
+	EventDecodeRawTx         = 117
+	EventReplyDecodeRawTx    = 118
 
 	//Auth
 	EventAuthoritySignTx  = 180
@@ -422,6 +427,10 @@ var eventName = map[int]string{
 	112: "EventErrToFront",
 	113: "EventFatalFailure",
 	114: "EventReplyFatalFailure",
+	115: "EventBindMiner",
+	116: "EventReplyBindMiner",
+	117: "EventDecodeRawTx",
+	118: "EventReplyDecodeRawTx",
 
 	// Token
 	EventBlockChainQuery: "EventBlockChainQuery",

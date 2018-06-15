@@ -116,6 +116,9 @@ message Rpc {
 	string jrpcBindAddr=1;
 	string grpcBindAddr=2;
 	repeated string whitlist=3;
+	repeated string whitelist=4;
+	repeated string jrpcFuncWhitelist=5;
+	repeated string grpcFuncWhitelist=6;
 }
 
 message Exec {

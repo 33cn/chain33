@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/types"
 	"google.golang.org/grpc"
@@ -36,7 +36,7 @@ func init() {
 }
 
 func TestSendToAddress(t *testing.T) {
-	returnaddr := account.PubKeyToAddress(privCold.PubKey().Bytes()).String()
+	returnaddr := address.PubKeyToAddress(privCold.PubKey().Bytes()).String()
 	err := sendtoaddressWait(privMiner, returnaddr, 1e9)
 	if err != nil {
 		t.Error(err)
@@ -68,7 +68,7 @@ func TestMinerBind(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	returnaddr := account.PubKeyToAddress(privCold.PubKey().Bytes()).String()
+	returnaddr := address.PubKeyToAddress(privCold.PubKey().Bytes()).String()
 	err = openticket(addr, returnaddr, priv)
 	if err == nil {
 		t.Error("no permit")
@@ -110,7 +110,7 @@ func TestMinerBind(t *testing.T) {
 /*
 func TestAutoClose(t *testing.T) {
 	//取出已经miner的列表
-	addr := account.PubKeyToAddress(privMiner.PubKey().Bytes()).String()
+	addr := address.PubKeyToAddress(privMiner.PubKey().Bytes()).String()
 	t.Log(addr)
 	tlist, err := getMineredTicketList(addr, 2)
 	if err != nil {
@@ -226,7 +226,7 @@ func genaddress() (string, crypto.PrivKey) {
 	if err != nil {
 		panic(err)
 	}
-	addrto := account.PubKeyToAddress(privto.PubKey().Bytes())
+	addrto := address.PubKeyToAddress(privto.PubKey().Bytes())
 	return addrto.String(), privto
 }
 
@@ -305,7 +305,7 @@ func getMinerSourceList(addr string) ([]string, error) {
 
 func sendTransaction(payload types.Message, execer []byte, priv crypto.PrivKey, to string) (hash []byte, err error) {
 	if to == "" {
-		to = account.ExecAddress(string(execer))
+		to = address.ExecAddress(string(execer))
 	}
 	tx := &types.Transaction{Execer: execer, Payload: types.Encode(payload), Fee: 1e6, To: to}
 	tx.Nonce = random.Int63()

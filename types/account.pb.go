@@ -250,6 +250,7 @@ It has these top-level messages:
 	TransactionDetail
 	TransactionDetails
 	ReqAddrs
+	ReqDecodeRawTransaction
 	AuthCert
 	ReqAuthSignCheck
 	RespAuthSignCheck
@@ -291,6 +292,8 @@ It has these top-level messages:
 	ReplyAuthSignTx
 	ReportErrEvent
 	Int32
+	ReqBindMiner
+	ReplyBindMiner
 */
 package types
 
