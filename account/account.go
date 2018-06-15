@@ -197,30 +197,7 @@ func (acc *DB) LoadAccounts(api client.QueueProtocolAPI, addrs []string) (accs [
 	if err != nil {
 		return nil, err
 	}
-	get := types.StoreGet{StateHash: header.GetStateHash()}
-	for i := 0; i < len(addrs); i++ {
-		get.Keys = append(get.Keys, acc.AccountKey(addrs[i]))
-	}
-
-	values, err := api.StoreGet(&get)
-	if err != nil {
-		return nil, err
-	}
-
-	for i := 0; i < len(values.Values); i++ {
-		value := values.Values[i]
-		if value == nil {
-			accs = append(accs, &types.Account{Addr: addrs[i]})
-		} else {
-			var acc types.Account
-			err := types.Decode(value, &acc)
-			if err != nil {
-				return nil, err
-			}
-			accs = append(accs, &acc)
-		}
-	}
-	return accs, nil
+	return acc.LoadAccountsHistory(api, addrs, header.GetStateHash())
 }
 
 func (acc *DB) LoadAccountsDB(addrs []string) (accs []*types.Account, err error) {
@@ -259,4 +236,31 @@ func (acc *DB) GetTotalCoins(api client.QueueProtocolAPI, in *types.ReqGetTotalC
 	}
 	req.End = []byte(end)
 	return api.StoreGetTotalCoins(&req)
+}
+
+func (acc *DB) LoadAccountsHistory(api client.QueueProtocolAPI, addrs []string, stateHash []byte) (accs []*types.Account, err error) {
+	get := types.StoreGet{StateHash: stateHash}
+	for i := 0; i < len(addrs); i++ {
+		get.Keys = append(get.Keys, acc.AccountKey(addrs[i]))
+	}
+
+	values, err := api.StoreGet(&get)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := 0; i < len(values.Values); i++ {
+		value := values.Values[i]
+		if value == nil {
+			accs = append(accs, &types.Account{Addr: addrs[i]})
+		} else {
+			var acc types.Account
+			err := types.Decode(value, &acc)
+			if err != nil {
+				return nil, err
+			}
+			accs = append(accs, &acc)
+		}
+	}
+	return accs, nil
 }
