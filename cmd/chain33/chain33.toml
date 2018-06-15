@@ -53,7 +53,9 @@ grpcLogFile="grpc33.log"
 [rpc]
 jrpcBindAddr="localhost:8801"
 grpcBindAddr="localhost:8802"
-whitlist=["127.0.0.1"]
+whitelist=["127.0.0.1"]
+jrpcFuncWhitelist=["*"]
+grpcFuncWhitelist=["*"]
 
 [mempool]
 poolCacheSize=10240
@@ -72,7 +74,7 @@ dbCache=128
 [wallet]
 minFee=100000
 driver="leveldb"
-dbPath="datadir/wallet"
+dbPath="wallet"
 dbCache=16
 signType="secp256k1"
 minerdisable=false
@@ -80,3 +82,4 @@ minerdisable=false
 [exec]
 isFree=false
 minExecFee=100000
+enableStat=false

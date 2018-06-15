@@ -2,19 +2,15 @@ package mempool
 
 import (
 	"errors"
+	"time"
 
-	"gitlab.33.cn/chain33/chain33/account"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
 // Mempool.CheckTxList初步检查并筛选交易消息
 func (mem *Mempool) checkTx(msg queue.Message) queue.Message {
-	// 判断消息是否含有nil交易
-	if msg.GetData() == nil {
-		msg.Data = types.ErrEmptyTx
-		return msg
-	}
 	tx := msg.GetData().(types.TxGroup).Tx()
 	// 过滤掉挖矿交易
 	if "ticket" == string(tx.Execer) {
@@ -29,15 +25,25 @@ func (mem *Mempool) checkTx(msg queue.Message) queue.Message {
 			return msg
 		}
 	}
-	// 检查交易是否为重复交易
-	if mem.addedTxs.Contains(string(tx.Hash())) {
-		msg.Data = types.ErrDupTx
+	// 检查接收地址是否合法
+	if err := address.CheckAddress(tx.To); err != nil {
+		msg.Data = types.ErrInvalidAddress
 		return msg
 	}
-	mem.addedTxs.Add(string(tx.Hash()), nil)
+	// 检查交易是否为重复交易
+	if mem.addedTxs.Contains(string(tx.Hash())) {
+		addedTime, _ := mem.addedTxs.Get(string(tx.Hash()))
+		if time.Now().Unix()-addedTime.(int64) < mempoolDupResendInterval {
+			msg.Data = types.ErrDupTx
+			return msg
+		} else {
+			mem.addedTxs.Remove(string(tx.Hash()))
+		}
+	}
+	mem.addedTxs.Add(string(tx.Hash()), time.Now().Unix())
 
 	// 检查交易账户在Mempool中是否存在过多交易
-	from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
+	from := tx.From()
 	if mem.TxNumOfAccount(from) >= maxTxNumPerAccount {
 		msg.Data = types.ErrManyTx
 		return msg
@@ -157,6 +163,8 @@ func (mem *Mempool) checkTxList(msgs []queue.Message) {
 	txlist.BlockTime = lastheader.BlockTime
 	txlist.Height = lastheader.Height
 	txlist.StateHash = lastheader.StateHash
+	// 增加这个属性，在执行器中会使用到
+	txlist.Difficulty = uint64(lastheader.Difficulty)
 
 	result, err := mem.checkTxListRemote(txlist)
 	if err != nil {

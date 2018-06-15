@@ -72,6 +72,21 @@ func ticketPayloadType(funcname string) (proto.Message, error) {
 	return req, nil
 }
 
+func evmPayloadType(funcname string) (proto.Message, error) {
+	var req proto.Message
+	switch funcname {
+	case "CheckAddrExists":
+		req = &types.CheckEVMAddrReq{}
+	case "EstimateGas":
+		req = &types.EstimateEVMGasReq{}
+	case "EvmDebug":
+		req = &types.EvmDebugReq{}
+	default:
+		return nil, types.ErrInputPara
+	}
+	return req, nil
+}
+
 func tradePayloadType(funcname string) (proto.Message, error) {
 	var req proto.Message
 	switch funcname {
@@ -101,6 +116,8 @@ func payloadType(execer, funcname string) (proto.Message, error) {
 		return ticketPayloadType(funcname)
 	case "trade":
 		return tradePayloadType(funcname)
+	case "evm":
+		return evmPayloadType(funcname)
 	}
 	return nil, types.ErrInputPara
 }

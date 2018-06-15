@@ -7,6 +7,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -101,7 +102,7 @@ func (c *channelClient) SendRawTransaction(param *types.SignedTx) (*types.Reply,
 }
 
 func (c *channelClient) GetAddrOverview(parm *types.ReqAddr) (*types.AddrOverview, error) {
-	err := account.CheckAddress(parm.Addr)
+	err := address.CheckAddress(parm.Addr)
 	if err != nil {
 		return nil, types.ErrInvalidAddress
 	}
@@ -131,8 +132,8 @@ func (c *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account, erro
 		addrs := in.GetAddresses()
 		var exaddrs []string
 		for _, addr := range addrs {
-			if err := account.CheckAddress(addr); err != nil {
-				addr = account.ExecAddress(addr)
+			if err := address.CheckAddress(addr); err != nil {
+				addr = address.ExecAddress(addr)
 
 			}
 			exaddrs = append(exaddrs, addr)
@@ -154,7 +155,7 @@ func (c *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account, erro
 		}
 		return accounts, nil
 	default:
-		execaddress := account.ExecAddress(in.GetExecer())
+		execaddress := address.ExecAddress(in.GetExecer())
 		addrs := in.GetAddresses()
 		var accounts []*types.Account
 		for _, addr := range addrs {
@@ -192,7 +193,7 @@ func (c *channelClient) GetTokenBalance(in *types.ReqTokenBalance) ([]*types.Acc
 		addrs := in.GetAddresses()
 		var queryAddrs []string
 		for _, addr := range addrs {
-			if err := account.CheckAddress(addr); err != nil {
+			if err := address.CheckAddress(addr); err != nil {
 				addr = string(accountTokendb.AccountKey(addr))
 			}
 			queryAddrs = append(queryAddrs, addr)
@@ -206,7 +207,7 @@ func (c *channelClient) GetTokenBalance(in *types.ReqTokenBalance) ([]*types.Acc
 		return accounts, nil
 
 	default: //trade
-		execaddress := account.ExecAddress(in.GetExecer())
+		execaddress := address.ExecAddress(in.GetExecer())
 		addrs := in.GetAddresses()
 		var accounts []*types.Account
 		for _, addr := range addrs {
@@ -253,7 +254,7 @@ func (c *channelClient) CreateRawTokenPreCreateTx(parm *TokenPreCreateTx) ([]byt
 		Payload: types.Encode(precreate),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      account.ExecAddress("token"),
+		To:      address.ExecAddress("token"),
 	}
 
 	data := types.Encode(tx)
@@ -275,7 +276,7 @@ func (c *channelClient) CreateRawTokenFinishTx(parm *TokenFinishTx) ([]byte, err
 		Payload: types.Encode(finish),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      account.ExecAddress("token"),
+		To:      address.ExecAddress("token"),
 	}
 
 	data := types.Encode(tx)
@@ -296,7 +297,7 @@ func (c *channelClient) CreateRawTokenRevokeTx(parm *TokenRevokeTx) ([]byte, err
 		Payload: types.Encode(revoke),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      account.ExecAddress("token"),
+		To:      address.ExecAddress("token"),
 	}
 
 	data := types.Encode(tx)
@@ -326,7 +327,7 @@ func (c *channelClient) CreateRawTradeSellTx(parm *TradeSellTx) ([]byte, error) 
 		Payload: types.Encode(sell),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      account.ExecAddress("trade"),
+		To:      address.ExecAddress("trade"),
 	}
 
 	data := types.Encode(tx)
@@ -347,7 +348,7 @@ func (c *channelClient) CreateRawTradeBuyTx(parm *TradeBuyTx) ([]byte, error) {
 		Payload: types.Encode(buy),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      account.ExecAddress("trade"),
+		To:      address.ExecAddress("trade"),
 	}
 
 	data := types.Encode(tx)
@@ -369,7 +370,7 @@ func (c *channelClient) CreateRawTradeRevokeTx(parm *TradeRevokeTx) ([]byte, err
 		Payload: types.Encode(buy),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      account.ExecAddress("trade"),
+		To:      address.ExecAddress("trade"),
 	}
 
 	data := types.Encode(tx)
@@ -396,7 +397,7 @@ func (c *channelClient) CreateRawTradeBuyLimitTx(parm *TradeBuyLimitTx) ([]byte,
 		Payload: types.Encode(buyLimit),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      account.ExecAddress("trade"),
+		To:      address.ExecAddress("trade"),
 	}
 
 	data := types.Encode(tx)
@@ -417,7 +418,7 @@ func (c *channelClient) CreateRawTradeSellMarketTx(parm *TradeSellMarketTx) ([]b
 		Payload: types.Encode(sellMarket),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      account.ExecAddress("trade"),
+		To:      address.ExecAddress("trade"),
 	}
 
 	data := types.Encode(tx)
@@ -439,7 +440,7 @@ func (c *channelClient) CreateRawTradeRevokeBuyTx(parm *TradeRevokeBuyTx) ([]byt
 		Payload: types.Encode(buy),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      account.ExecAddress("trade"),
+		To:      address.ExecAddress("trade"),
 	}
 
 	data := types.Encode(tx)
