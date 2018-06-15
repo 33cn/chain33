@@ -297,15 +297,15 @@ func parseShowPrivacyAccountSpendRes(arg interface{}) (interface{}, error) {
 		for _, ret := range rets {
 			if utxo.TxHash == ret.Txhash {
 				result := &PrivacyAccountResult{
-						Height:   utxo.UtxoBasic.UtxoGlobalIndex.Height,
-						TxIndex:  utxo.UtxoBasic.UtxoGlobalIndex.Txindex,
-						Txhash:   common.ToHex(utxo.UtxoBasic.UtxoGlobalIndex.Txhash),
-						OutIndex: utxo.UtxoBasic.UtxoGlobalIndex.Outindex,
-						Amount:   strconv.FormatFloat(amount, 'f', 4, 64),
-					}
+					Height:   utxo.UtxoBasic.UtxoGlobalIndex.Height,
+					TxIndex:  utxo.UtxoBasic.UtxoGlobalIndex.Txindex,
+					Txhash:   common.ToHex(utxo.UtxoBasic.UtxoGlobalIndex.Txhash),
+					OutIndex: utxo.UtxoBasic.UtxoGlobalIndex.Outindex,
+					Amount:   strconv.FormatFloat(amount, 'f', 4, 64),
+				}
 				ret.Res = append(ret.Res, result)
 				isSave = true
-				break;
+				break
 			}
 		}
 

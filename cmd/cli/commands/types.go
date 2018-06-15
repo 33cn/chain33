@@ -204,6 +204,6 @@ type ReceiptPrivacyOutput struct {
 	Keyoutput []*KeyOutput `json:"keyoutput,omitempty"`
 }
 type PrivacyAccountSpendResult struct {
-	Txhash        string `json:"Txhash,omitempty"`
-	Res           []*PrivacyAccountResult  `json:"Spend,omitempty"`
+	Txhash string                  `json:"Txhash,omitempty"`
+	Res    []*PrivacyAccountResult `json:"Spend,omitempty"`
 }
