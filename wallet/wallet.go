@@ -172,10 +172,60 @@ func (wallet *Wallet) SetQueueClient(cli queue.Client) {
 	wallet.client = cli
 	wallet.client.Sub("wallet")
 	wallet.api, _ = client.New(cli, nil)
-	wallet.wg.Add(2)
+	wallet.wg.Add(3)
 	wallet.InitPrivacyCache()
 	go wallet.ProcRecvMsg()
 	go wallet.autoMining()
+	
+	//开启检查FTXO的协程
+	go wallet.CheckFtxo()
+}
+
+func (wallet *Wallet)CheckFtxo() {
+	defer wallet.wg.Done()
+
+	//默认10s对Ftxo进行检查
+	timecount := 10
+	checkFtxoTicker := time.NewTicker(time.Duration(timecount) * time.Second)
+	newbatch := wallet.walletStore.NewBatch(true)
+
+	var lastHeight int64
+
+    for {
+        select {
+        case <-checkFtxoTicker.C:
+            curFTXOTxs, curKeys,err:= wallet.walletStore.GetWalletFTXO()
+            if nil != err {
+                return
+            }
+
+			height := wallet.GetHeight()
+			if lastHeight >= height{
+				break
+			}
+			lastHeight = height
+
+            for i, curFTXOTx := range curFTXOTxs {
+				curKey := curKeys[i]
+				// 说明该交易还处于FTXO，交易超时，将FTXO转化为UTXO
+				str := strings.Split(curKey,":")
+				if len(str) < 2{
+					return
+				}
+				txhash := str[1]
+            	if curFTXOTx.TimeoutSec <= 0 {
+					wallet.walletStore.unmoveUTXO2FTXO("", "", txhash, newbatch)
+				} else {
+					wallet.walletStore.updateFTXOTimeoutCount(timecount, txhash, newbatch)
+				}
+				newbatch.Write()
+			}
+
+
+        case <-wallet.done:
+            return
+        }
+    }
 }
 
 //检查周期 --> 10分
@@ -618,6 +668,15 @@ func (wallet *Wallet) ProcRecvMsg() {
 				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyShowPrivacyAccount, err))
 			} else {
 				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyShowPrivacyAccount, UTXOs))
+			}
+		case types.EventShowPrivacyAccountSpend:
+			reqPrivBal4AddrToken := msg.Data.(*types.ReqPrivBal4AddrToken)
+			UTXOs, err := wallet.showPrivacyAccountsSpend(reqPrivBal4AddrToken)
+			if err != nil {
+				walletlog.Error("showPrivacyAccountSpend", "err", err.Error())
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyShowPrivacyAccountSpend, err))
+			} else {
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyShowPrivacyAccountSpend, UTXOs))
 			}
 		case types.EventShowPrivacyPK:
 			reqAddr := msg.Data.(*types.ReqStr)
@@ -1685,7 +1744,7 @@ func (wallet *Wallet) AddDelPrivacyTxsFromBlock(tx *types.Transaction, index int
 	}
 	var RpubKey []byte
 	var privacyOutput *types.PrivacyOutput
-	var privacyInput *types.PrivacyInput
+	//var privacyInput *types.PrivacyInput
 	var tokenname string
 	if types.ActionPublic2Privacy == privateAction.Ty {
 		RpubKey = privateAction.GetPublic2Privacy().GetOutput().GetRpubKeytx()
@@ -1695,12 +1754,12 @@ func (wallet *Wallet) AddDelPrivacyTxsFromBlock(tx *types.Transaction, index int
 		RpubKey = privateAction.GetPrivacy2Privacy().GetOutput().GetRpubKeytx()
 		privacyOutput = privateAction.GetPrivacy2Privacy().GetOutput()
 		tokenname = privateAction.GetPrivacy2Privacy().GetTokenname()
-		privacyInput = privateAction.GetPrivacy2Privacy().GetInput()
+		//privacyInput = privateAction.GetPrivacy2Privacy().GetInput()
 	} else if types.ActionPrivacy2Public == privateAction.Ty {
 		RpubKey = privateAction.GetPrivacy2Public().GetOutput().GetRpubKeytx()
 		privacyOutput = privateAction.GetPrivacy2Public().GetOutput()
 		tokenname = privateAction.GetPrivacy2Public().GetTokenname()
-		privacyInput = privateAction.GetPrivacy2Public().GetInput()
+		//privacyInput = privateAction.GetPrivacy2Public().GetInput()
 	}
 
 	totalUtxosLeft := len(privacyOutput.Keyoutput)
@@ -1844,7 +1903,7 @@ func (wallet *Wallet) AddDelPrivacyTxsFromBlock(tx *types.Transaction, index int
 				wallet.walletStore.moveFTXO2STXO(txhash, newbatch)
 			} else if types.ExecOk != txExecRes && types.ActionPublic2Privacy != privateAction.Ty {
 				//如果执行失败
-				wallet.walletStore.unmoveUTXO2FTXO(privacyInput, tokenname, sender, txhash, newbatch)
+				wallet.walletStore.unmoveUTXO2FTXO(tokenname, sender, txhash, newbatch)
 			}
 
 			//该交易正常执行完毕，删除对其的关注
@@ -2366,6 +2425,26 @@ func (wallet *Wallet) showPrivacyAccounts(req *types.ReqPrivBal4AddrToken) ([]*t
 	}
 
 	return accRes, nil
+}
+
+
+func (wallet *Wallet) showPrivacyAccountsSpend(req *types.ReqPrivBal4AddrToken) ([]*types.UTXOHaveTxHash, error) {
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+
+
+	addr := req.GetAddr()
+	token := req.GetToken()
+	utxoHaveTxHash, err := wallet.walletStore.listSpendUTXOs(token, addr)
+	if err != nil {
+		return nil, err
+	}
+
+	if 0 == len(utxoHaveTxHash) {
+		return nil, nil
+	}
+
+	return utxoHaveTxHash, nil
 }
 
 func makeViewSpendPubKeyPairToString(viewPubKey, spendPubKey []byte) string {
