@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/log"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -143,7 +143,7 @@ func scanWrite() {
 				Execer:  noteTx.Execer,
 				Payload: noteTx.Payload,
 			}
-			userTx.To = account.ExecAddress(string(noteTx.Execer))
+			userTx.To = address.ExecAddress(string(noteTx.Execer))
 			userTx.Fee, err = userTx.GetRealFee(types.MinFee)
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err)

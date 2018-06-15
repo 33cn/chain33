@@ -11,6 +11,7 @@ import (
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/client"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -131,7 +132,7 @@ func (d *DriverBase) getTxIndex(tx *types.Transaction, receipt *types.ReceiptDat
 	heightstr := fmt.Sprintf("%018d", d.GetHeight()*types.MaxTxsPerBlock+int64(index))
 	txIndexInfo.heightstr = heightstr
 
-	txIndexInfo.from = account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
+	txIndexInfo.from = address.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
 	txIndexInfo.to = tx.To
 	return &txIndexInfo
 }
@@ -162,7 +163,7 @@ func (d *DriverBase) checkAddress(addr string) error {
 	if IsDriverAddress(addr, d.height) {
 		return nil
 	}
-	return account.CheckAddress(addr)
+	return address.CheckAddress(addr)
 }
 
 //调用子类的CheckTx, 也可以不调用，实现自己的CheckTx
@@ -177,8 +178,8 @@ func (d *DriverBase) Exec(tx *types.Transaction, index int) (*types.Receipt, err
 
 //默认情况下，to地址指向合约地址
 func (d *DriverBase) CheckTx(tx *types.Transaction, index int) error {
-	exec := string(tx.Execer)
-	if ExecAddress(exec) != tx.To {
+	execer := string(tx.Execer)
+	if ExecAddress(execer) != tx.To {
 		return types.ErrToAddrNotSameToExecAddr
 	}
 	return nil

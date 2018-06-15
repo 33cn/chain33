@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"testing"
 
-	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -37,8 +37,8 @@ func TestSendTransaction(t *testing.T) {
 		return
 	}
 
-	addrfrom := account.PubKeyToAddress(priv.PubKey().Bytes())
-	addrto := account.PubKeyToAddress(privto.PubKey().Bytes())
+	addrfrom := address.PubKeyToAddress(priv.PubKey().Bytes())
+	addrto := address.PubKeyToAddress(privto.PubKey().Bytes())
 	amount := int64(1e8)
 	t.Log(addrfrom)
 	t.Log(addrto)

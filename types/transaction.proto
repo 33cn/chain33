@@ -154,6 +154,10 @@ message ReqAddrs  {
    repeated string addrs = 1;
 }
 
+message ReqDecodeRawTransaction {
+    string txHex = 1;
+}
+
 message AuthCert {
 	bytes certbytes = 1;
 	string username = 2;
