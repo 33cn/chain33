@@ -55,25 +55,25 @@ func (j *JSONRPCServer) Listen() {
 	// Insert the middleware
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !checkIpWhitelist(strings.Split(r.RemoteAddr, ":")[0]) {
-			w.Write([]byte(fmt.Sprintf(`{"errcode":"-1","result":null,"msg":"The %s Address is not authorized!"}`, strings.Split(r.RemoteAddr, ":")[0])))
+			writeError(w, r, 0, fmt.Sprintf(`The %s Address is not authorized!`, strings.Split(r.RemoteAddr, ":")[0]))
 			return
 		}
 		if r.URL.Path == "/" {
 			data, err := ioutil.ReadAll(r.Body)
 			if err != nil {
-				w.Write([]byte(`{"errcode":"-1","result":null,"msg":"Can't get request body!"}`))
+				writeError(w, r, 0, "Can't get request body!")
 				return
 			}
 			//Release local request
 			if strings.Split(r.RemoteAddr, ":")[0] != "127.0.0.1" {
 				client, err := parseJsonRpcParams(data)
 				if err != nil {
-					w.Write([]byte(fmt.Sprintf(`{"errcode":"-1","result":null,"msg":"The request content cannot be identified!"}`)))
+					writeError(w, r, 0, fmt.Sprintf(`parse request err %s`, err.Error()))
 					return
 				}
 				funcName := strings.Split(client.Method, ".")[len(strings.Split(client.Method, "."))-1]
 				if !checkJrpcFuncWritelist(funcName) {
-					w.Write([]byte(fmt.Sprintf(`{"errcode":"-1","result":null,"msg":"The %s method is not authorized!"}`, funcName)))
+					writeError(w, r, client.Id, fmt.Sprintf(`The %s method is not authorized!`, funcName))
 					return
 				}
 			}
@@ -93,6 +93,27 @@ func (j *JSONRPCServer) Listen() {
 
 	handler = co.Handler(handler)
 	http.Serve(listener, handler)
+}
+
+type serverResponse struct {
+	Id     uint64      `json:"id"`
+	Result interface{} `json:"result"`
+	Error  interface{} `json:"error"`
+}
+
+func writeError(w http.ResponseWriter, r *http.Request, id uint64, errstr string) {
+	w.Header().Set("Content-type", "application/json")
+	if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+		w.Header().Set("Content-Encoding", "gzip")
+	}
+	//错误的请求也返回 200
+	w.WriteHeader(200)
+	resp, err := json.Marshal(&serverResponse{id, nil, errstr})
+	if err != nil {
+		log.Debug("json marshal error, nerver happen")
+		return
+	}
+	w.Write(resp)
 }
 
 func (g *Grpcserver) Listen() {
