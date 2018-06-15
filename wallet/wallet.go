@@ -176,12 +176,12 @@ func (wallet *Wallet) SetQueueClient(cli queue.Client) {
 	wallet.InitPrivacyCache()
 	go wallet.ProcRecvMsg()
 	go wallet.autoMining()
-	
+
 	//开启检查FTXO的协程
 	go wallet.CheckFtxo()
 }
 
-func (wallet *Wallet)CheckFtxo() {
+func (wallet *Wallet) CheckFtxo() {
 	defer wallet.wg.Done()
 
 	//默认10s对Ftxo进行检查
@@ -191,29 +191,29 @@ func (wallet *Wallet)CheckFtxo() {
 
 	var lastHeight int64
 
-    for {
-        select {
-        case <-checkFtxoTicker.C:
-            curFTXOTxs, curKeys,err:= wallet.walletStore.GetWalletFTXO()
-            if nil != err {
-                return
-            }
+	for {
+		select {
+		case <-checkFtxoTicker.C:
+			curFTXOTxs, curKeys, err := wallet.walletStore.GetWalletFTXO()
+			if nil != err {
+				return
+			}
 
 			height := wallet.GetHeight()
-			if lastHeight >= height{
+			if lastHeight >= height {
 				break
 			}
 			lastHeight = height
 
-            for i, curFTXOTx := range curFTXOTxs {
+			for i, curFTXOTx := range curFTXOTxs {
 				curKey := curKeys[i]
 				// 说明该交易还处于FTXO，交易超时，将FTXO转化为UTXO
-				str := strings.Split(curKey,":")
-				if len(str) < 2{
+				str := strings.Split(curKey, ":")
+				if len(str) < 2 {
 					return
 				}
 				txhash := str[1]
-            	if curFTXOTx.TimeoutSec <= 0 {
+				if curFTXOTx.TimeoutSec <= 0 {
 					wallet.walletStore.unmoveUTXO2FTXO("", "", txhash, newbatch)
 				} else {
 					wallet.walletStore.updateFTXOTimeoutCount(timecount, txhash, newbatch)
@@ -221,11 +221,10 @@ func (wallet *Wallet)CheckFtxo() {
 				newbatch.Write()
 			}
 
-
-        case <-wallet.done:
-            return
-        }
-    }
+		case <-wallet.done:
+			return
+		}
+	}
 }
 
 //检查周期 --> 10分
@@ -1658,12 +1657,12 @@ func (wallet *Wallet) buildAndStoreWalletTxDetail(tx *types.Transaction, block *
 			return
 		}
 
-		newbatch.Set([]byte(calcTxKey(heightstr)), txdetailbyte)
+		newbatch.Set(calcTxKey(heightstr), txdetailbyte)
 		//if isprivacy {
 		//	newbatch.Set([]byte(calcRecvPrivacyTxKey(heightstr)), txdetailbyte)
 		//}
 	} else {
-		newbatch.Delete([]byte(calcTxKey(heightstr)))
+		newbatch.Delete(calcTxKey(heightstr))
 		//if isprivacy {
 		//	newbatch.Delete([]byte(calcRecvPrivacyTxKey(heightstr)))
 		//}
@@ -1801,13 +1800,13 @@ func (wallet *Wallet) AddDelPrivacyTxsFromBlock(tx *types.Transaction, index int
 									OnetimePublicKey: output.Onetimepubkey,
 									Owner:            *info.Addr,
 									Height:           block.Block.Height,
-									Txindex:          int32(index),
+									Txindex:          index,
 									Blockhash:        block.Block.Hash(),
 								}
 
 								utxoGlobalIndex := &types.UTXOGlobalIndex{
 									Height:   block.Block.Height,
-									Txindex:  int32(index),
+									Txindex:  index,
 									Outindex: int32(indexoutput),
 									Txhash:   txhashInbytes,
 								}
@@ -2427,11 +2426,9 @@ func (wallet *Wallet) showPrivacyAccounts(req *types.ReqPrivBal4AddrToken) (*typ
 	return &types.UTXOs{Utxos: nilaccRes}, nil
 }
 
-
 func (wallet *Wallet) showPrivacyAccountsSpend(req *types.ReqPrivBal4AddrToken) ([]*types.UTXOHaveTxHash, error) {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
-
 
 	addr := req.GetAddr()
 	token := req.GetToken()

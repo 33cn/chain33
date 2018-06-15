@@ -541,8 +541,8 @@ func testProcMergeBalance(t *testing.T, wallet *Wallet) {
 func testProcWalletSetPasswd(t *testing.T, wallet *Wallet) {
 	println("TestProcWalletSetPasswd begin")
 	passwd := &types.ReqWalletSetPasswd{
-		OldPass: "wrongpassword",
-		NewPass: "Newpass",
+		Oldpass: "wrongpassword",
+		Newpass: "Newpass",
 	}
 	msg := wallet.client.NewMessage("wallet", types.EventWalletSetPasswd, passwd)
 	wallet.client.Send(msg, true)
@@ -551,7 +551,7 @@ func testProcWalletSetPasswd(t *testing.T, wallet *Wallet) {
 		t.Error("testProcWalletSetPasswd failed")
 	}
 
-	passwd.OldPass = "password"
+	passwd.Oldpass = "password"
 	msg = wallet.client.NewMessage("wallet", types.EventWalletSetPasswd, passwd)
 	wallet.client.Send(msg, true)
 	_, err := wallet.client.Wait(msg)
