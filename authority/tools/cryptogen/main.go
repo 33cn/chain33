@@ -82,8 +82,8 @@ func getConfig() (Config, error) {
 			return configData, err
 		}
 	} else {
-		str := []string{"User"}
-		configData.Name = append(configData.Name, str...)
+		//str := []string{"User"}
+		configData.Name = append(configData.Name, "User")
 		configData.OrgName = "Chain33"
 	}
 	return configData, nil

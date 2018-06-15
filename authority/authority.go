@@ -101,6 +101,8 @@ func (auth *Authority) SetQueueClient(client queue.Client) {
 					go auth.procCheckTx(msg)
 				} else if msg.Ty == types.EventAuthorityCheckTxs {
 					go auth.procCheckTxs(msg)
+				} else if msg.Ty == types.EventAuthoritySignTxs {
+					go auth.procSignTxs(msg)
 				}
 			}
 		}()
@@ -146,6 +148,47 @@ func (auth *Authority) procSignTx(msg queue.Message) {
 
 	txHex := types.Encode(&tx)
 	msg.Reply(auth.client.NewMessage("", types.EventReplyAuthSignTx, &types.ReplyAuthSignTx{txHex}))
+}
+
+//to be merged with Tx
+func (auth *Authority) procSignTxs(msg queue.Message) {
+	data, ok := msg.GetData().(*types.ReqAuthSignTxs)
+	if !ok {
+		alog.Error("Get Auth data err")
+		panic("")
+	}
+
+	var reply types.ReplyAuthSignTxs
+
+	alog.Debug("Process authority tx signing begin")
+	var tx types.Transaction
+	for i := range data.Txs {
+		tx = *data.Txs[i]
+
+		userName := tx.GetCert().Username
+		user, err := auth.idmgr.GetUser(userName)
+		if err != nil {
+			alog.Error(fmt.Sprintf("Wrong username:%s", userName))
+			msg.ReplyErr("EventReplyAuthSignTx", types.ErrInvalidParam)
+			return
+		}
+
+		if tx.Signature != nil {
+			alog.Error("Signature already exist")
+			msg.ReplyErr("EventReplyAuthSignTx", types.ErrSignatureExist)
+			return
+		}
+
+		tx.Cert.Certbytes = append(tx.Cert.Certbytes, user.EnrollmentCertificate()...)
+		signature, err := auth.signer.Sign(types.Encode(&tx), user.PrivateKey())
+		if err != nil {
+			panic(err)
+		}
+		tx.Signature = &types.Signature{auth.signType, nil, signature}
+		reply.Txs = append(reply.Txs, &tx)
+	}
+	alog.Debug("Process authority tx signing end")
+	msg.Reply(auth.client.NewMessage("", types.EventReplyAuthSignTxs, &reply))
 }
 
 func (auth *Authority) checkTx(tx *types.Transaction) bool {
