@@ -47,7 +47,7 @@ func TestQueueProtocolAPI(t *testing.T) {
 
 }
 
-func TestCoordinator(t *testing.T) {
+func TestQueueProtocol(t *testing.T) {
 	testSendTx(t, api)
 	testGetTxList(t, api)
 	testGetBlocks(t, api)
@@ -363,7 +363,7 @@ func testWalletSetPasswd(t *testing.T, api client.QueueProtocolAPI) {
 	if err == nil {
 		t.Error("WalletSetPasswd(nil) need return error.")
 	}
-	_, err = api.WalletSetPasswd(&types.ReqWalletSetPasswd{OldPass: "case1"})
+	_, err = api.WalletSetPasswd(&types.ReqWalletSetPasswd{Oldpass: "case1"})
 	if err == nil {
 		t.Error("WalletSetPasswd(&types.ReqWalletSetPasswd{OldPass:\"case1\"}) need return error.")
 	}
@@ -765,7 +765,6 @@ func testGetBlockHashJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
 }
 
 func TestGRPC(t *testing.T) {
-
 	testSendTxGRPC(t, &grpcMock)
 	testGetBlocksGRPC(t, &grpcMock)
 	testGetLastHeaderGRPC(t, &grpcMock)
@@ -806,6 +805,69 @@ func TestGRPC(t *testing.T) {
 	testIsSyncGRPC(t, &grpcMock)
 	testIsNtpClockSyncGRPC(t, &grpcMock)
 	testNetInfoGRPC(t, &grpcMock)
+	testShowPrivacyAccount(t, &grpcMock)
+	testShowPrivacyKey(t, &grpcMock)
+	testShowPrivacyBalance(t, &grpcMock)
+	testCreateUTXOs(t, &grpcMock)
+	testMakeTxPublic2Privacy(t, &grpcMock)
+	testMakeTxPrivacy2Privacy(t, &grpcMock)
+	testMakeTxPrivacy2Public(t, &grpcMock)
+}
+
+func testMakeTxPrivacy2Public(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.Reply
+	err := rpc.newRpcCtx("MakeTxPrivacy2Public", &types.ReqPri2Pub{}, &res)
+	if err != nil {
+		t.Error("Call MakeTxPrivacy2Public Failed.", err)
+	}
+}
+
+func testMakeTxPrivacy2Privacy(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.Reply
+	err := rpc.newRpcCtx("MakeTxPrivacy2Privacy", &types.ReqPri2Pri{}, &res)
+	if err != nil {
+		t.Error("Call MakeTxPrivacy2Privacy Failed.", err)
+	}
+}
+
+func testMakeTxPublic2Privacy(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.Reply
+	err := rpc.newRpcCtx("MakeTxPublic2Privacy", &types.ReqPub2Pri{}, &res)
+	if err != nil {
+		t.Error("Call MakeTxPublic2Privacy Failed.", err)
+	}
+}
+
+func testCreateUTXOs(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.Reply
+	err := rpc.newRpcCtx("CreateUTXOs", &types.ReqCreateUTXOs{}, &res)
+	if err != nil {
+		t.Error("Call CreateUTXOs Failed.", err)
+	}
+}
+
+func testShowPrivacyBalance(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.Account
+	err := rpc.newRpcCtx("ShowPrivacyBalance", &types.ReqPrivBal4AddrToken{}, &res)
+	if err != nil {
+		t.Error("Call ShowPrivacyBalance Failed.", err)
+	}
+}
+
+func testShowPrivacyKey(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.ReplyPrivacyPkPair
+	err := rpc.newRpcCtx("ShowPrivacyKey", &types.ReqStr{}, &res)
+	if err != nil {
+		t.Error("Call ShowPrivacyKey Failed.", err)
+	}
+}
+
+func testShowPrivacyAccount(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.UTXOs
+	err := rpc.newRpcCtx("ShowPrivacyAccount", &types.ReqPrivBal4AddrToken{}, &res)
+	if err != nil {
+		t.Error("Call ShowPrivacyAccount Failed.", err)
+	}
 }
 
 func testNetInfoGRPC(t *testing.T, rpc *mockGRPCSystem) {
@@ -922,7 +984,7 @@ func testGetBlockHashGRPC(t *testing.T, rpc *mockGRPCSystem) {
 
 func testGetAddrOverviewGRPC(t *testing.T, rpc *mockGRPCSystem) {
 	var res types.AddrOverview
-	err := rpc.newRpcCtx("GetAddrOverview", &types.ReqAddr{}, &res)
+	err := rpc.newRpcCtx("GetAddrOverview", &types.ReqAddr{Addr: "13cS5G1BDN2YfGudsxRxr7X25yu6ZdgxMU"}, &res)
 	if err != nil {
 		t.Error("Call GetAddrOverview Failed.", err)
 	}

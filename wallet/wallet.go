@@ -2331,7 +2331,7 @@ func (wallet *Wallet) showPrivacyBalance(req *types.ReqPrivBal4AddrToken) (*type
 	return accRes, nil
 }
 
-func (wallet *Wallet) showPrivacyAccounts(req *types.ReqPrivBal4AddrToken) ([]*types.UTXO, error) {
+func (wallet *Wallet) showPrivacyAccounts(req *types.ReqPrivBal4AddrToken) (*types.UTXOs, error) {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
 
@@ -2340,11 +2340,11 @@ func (wallet *Wallet) showPrivacyAccounts(req *types.ReqPrivBal4AddrToken) ([]*t
 	token := req.GetToken()
 	privacyDBStore, err := wallet.walletStore.listAvailableUTXOs(token, addr)
 	if err != nil {
-		return nilaccRes, err
+		return &types.UTXOs{Utxos: nilaccRes}, err
 	}
 
 	if 0 == len(privacyDBStore) {
-		return nilaccRes, nil
+		return &types.UTXOs{Utxos: nilaccRes}, nil
 	}
 
 	accRes := make([]*types.UTXO, len(privacyDBStore))
@@ -2365,7 +2365,7 @@ func (wallet *Wallet) showPrivacyAccounts(req *types.ReqPrivBal4AddrToken) ([]*t
 		accRes[index] = utxo
 	}
 
-	return accRes, nil
+	return &types.UTXOs{Utxos: nilaccRes}, nil
 }
 
 func makeViewSpendPubKeyPairToString(viewPubKey, spendPubKey []byte) string {

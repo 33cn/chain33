@@ -159,4 +159,27 @@ service grpcservice {
     //获取系统致命故障信息
     rpc GetFatalFailure (types.ReqNil) returns (Int32) {
     }
+
+    // Privacy Trading
+    // 显示一个指定地址上隐私合约的总余额信息
+    rpc ShowPrivacyBalance(ReqPrivBal4AddrToken) returns (Account) {        
+    }
+    // 显示一个指定地址上隐私交易总额
+    rpc ShowPrivacyAccount(ReqPrivBal4AddrToken) returns (UTXOs) {        
+    }
+    // 显示指定地址的公钥对信息，可以作为后续交易参数
+    rpc ShowPrivacyKey(ReqStr) returns (ReplyPrivacyPkPair) {        
+    }
+    // 创建一系列UTXO
+    rpc CreateUTXOs(ReqCreateUTXOs) returns (Reply) {        
+    }
+    // 将资金从公开到隐私转移
+    rpc MakeTxPublic2Privacy(ReqPub2Pri) returns (Reply) {        
+    }
+    // 将资产从隐私到隐私进行转移
+    rpc MakeTxPrivacy2Privacy(ReqPri2Pri) returns (Reply) {
+    }
+    // 将资产从隐私到公开进行转移
+    rpc MakeTxPrivacy2Public(ReqPri2Pub) returns (Reply) {        
+    }
 }
