@@ -34,16 +34,6 @@ func (r *relaydDB) Set(key, value []byte) error {
 	return r.db.Set(key, value)
 }
 
-func (r *relaydDB) storeOrder() {
-	panic("unimplemented")
-	// TODO 分两两种存储，一中是prefix + hash，另一种是prefix + status
-}
-
-func (r *relaydDB) storeHeader() {
-	panic("unimplemented")
-	// TODO 分两两种存储，一中是prefix + hash，另一种是prefix + height
-}
-
 func (r *relaydDB) queryOrderByHash(hash []byte) ([]byte, error) {
 	return r.db.Get(append(orderPrefix, hash...))
 }
