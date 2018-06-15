@@ -17,6 +17,7 @@ import (
 
 const secondsPerBlock = 15
 const btyPreBlock = 18
+const statInterval = 3600
 
 var log = l.New("module", "accounts")
 
@@ -65,7 +66,7 @@ func (show *ShowMinerAccount) Get(in *TimeAt, out *interface{}) error {
 	if err != nil {
 		return nil
 	}
-	lastHourHeader, lastAcc, err := cache.getBalance(addrs, "ticket", header.BlockTime-3600)
+	lastHourHeader, lastAcc, err := cache.getBalance(addrs, "ticket", header.BlockTime-statInterval)
 	if err != nil {
 		return nil
 	}
@@ -79,7 +80,7 @@ func (show *ShowMinerAccount) Get(in *TimeAt, out *interface{}) error {
 	miner = calcIncrease(miner, curAcc, lastAcc, header)
 	*out = &miner
 
-	seconds = seconds - 3600
+	seconds = seconds - statInterval
 	//}
 
 	return nil
@@ -135,7 +136,7 @@ func calcIncrease(miner *MinerAccounts, acc1, acc2 []*rpc.Account, header *rpc.H
 			// 由于取不到挖矿的交易， 通过预期挖矿数， 推断间隔多少个区块能挖到。
 			// 由于挖矿分布的波动， 用双倍的预期能挖到区块的时间间隔来预警
 			expectBlocks := (expectIncrease / btyPreBlock) // 一个小时预期挖多少个块
-			expectMinerInterval := 3600 / expectBlocks     // 预期多少秒可以挖一个块
+			expectMinerInterval := statInterval / expectBlocks     // 预期多少秒可以挖一个块
 			moniterInterval := int64(2*expectMinerInterval) + 1
 
 			m.ExpectMinerBlocks = strconv.FormatFloat(expectBlocks, 'f', 4, 64)
