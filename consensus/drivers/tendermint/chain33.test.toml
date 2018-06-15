@@ -35,11 +35,7 @@ singleMode=false
 batchsync=false
 
 [p2p]
-<<<<<<< HEAD
-seeds=["192.168.3.13:13802","192.168.3.48:13802","192.168.3.29:13802","192.168.3.30:13802"]
-=======
-seeds=[]
->>>>>>> develop
+seeds=["192.168.3.102:13802","192.168.3.13:13802"]
 enable=true
 isSeed=true
 serverStart=true
@@ -51,13 +47,10 @@ driver="leveldb"
 dbPath="datadir/addrbook"
 dbCache=4
 grpcLogFile="grpc33.log"
-<<<<<<< HEAD
 version=199
 verMix=199
 verMax=199
-=======
 
->>>>>>> develop
 
 [rpc]
 jrpcBindAddr="localhost:8801"
@@ -83,7 +76,7 @@ timeoutCommit=1000
 skipTimeoutCommit=false
 createEmptyBlocks=false
 createEmptyBlocksInterval=0
-seeds=["192.168.3.48:46656","192.168.3.13:46656","192.168.3.29:46656","192.168.3.30:46656"]
+seeds=["192.168.3.102:46656","192.168.3.13:46656"]
 
 [store]
 name="mavl"

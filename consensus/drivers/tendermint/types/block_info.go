@@ -54,9 +54,6 @@ func LoadVotes(des []*Vote, source []*gtypes.Vote) {
 		des[i] = &Vote{}
 		des[i].BlockID = BlockID{
 			Hash: item.BlockID.Hash,
-			PartsHeader: PartSetHeader{
-				Total: int(item.BlockID.PartsHeader.Total),
-				Hash:  item.BlockID.PartsHeader.Hash},
 		}
 		des[i].Height = item.Height
 		des[i].Round = int(item.Round)
@@ -73,18 +70,14 @@ func SaveVotes(des []*gtypes.Vote, source []*Vote) {
 	for i, item := range source {
 
 		if item == nil {
-			des[i] = &gtypes.Vote{Height:-1, BlockID:&gtypes.BlockID{PartsHeader:&gtypes.PartSetHeader{}}}
+			des[i] = &gtypes.Vote{Height:-1, BlockID:&gtypes.BlockID{}}
 			bilog.Debug("SaveVotes-item=nil")
 			continue
 		}
 
 		des[i] = &gtypes.Vote{}
-		partSetHeader := &gtypes.PartSetHeader{}
-		partSetHeader.Hash = item.BlockID.PartsHeader.Hash
-		partSetHeader.Total = int32(item.BlockID.PartsHeader.Total)
 		blockID := &gtypes.BlockID{}
 		blockID.Hash = item.BlockID.Hash
-		blockID.PartsHeader = partSetHeader
 		des[i].BlockID = blockID
 		des[i].Height = item.Height
 		des[i].Round = int32(item.Round)
@@ -112,20 +105,12 @@ func SaveCommits(lastCommitVotes *Commit, seenCommitVotes *Commit) (*gtypes.Tend
 	lastCommit := &gtypes.TendermintCommit{
 		BlockID: &gtypes.BlockID{
 			Hash: lastCommitVotes.BlockID.Hash,
-			PartsHeader: &gtypes.PartSetHeader{
-				Total: int32(lastCommitVotes.BlockID.PartsHeader.Total),
-				Hash:  lastCommitVotes.BlockID.PartsHeader.Hash,
-			},
 		},
 		Precommits: newLastCommitVotes,
 	}
 	seenCommit := &gtypes.TendermintCommit{
 		BlockID: &gtypes.BlockID{
 			Hash: seenCommitVotes.BlockID.Hash,
-			PartsHeader: &gtypes.PartSetHeader{
-				Total: int32(seenCommitVotes.BlockID.PartsHeader.Total),
-				Hash:  seenCommitVotes.BlockID.PartsHeader.Hash,
-			},
 		},
 		Precommits: newSeenCommitVotes,
 	}

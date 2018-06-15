@@ -266,9 +266,6 @@ func (conR *ConsensusReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) 
 				conR.conS.peerMsgQueue <- msgInfo{msg, src.Key()}
 			case *types.ProposalPOLMessage:
 				ps.ApplyProposalPOLMessage(msg)
-			case *types.BlockPartMessage:
-				ps.SetHasProposalBlockPart(msg.Height, msg.Round, msg.Part.Index)
-				conR.conS.peerMsgQueue <- msgInfo{msg, src.Key()}
 			default:
 				conR.Logger.Error(cmn.Fmt("Unknown message type %v", reflect.TypeOf(msg)))
 			}
@@ -461,8 +458,6 @@ func makeRoundStepMessages(rs *types.RoundState) (nrsMsg *types.NewRoundStepMess
 	if rs.Step == types.RoundStepCommit {
 		csMsg = &types.CommitStepMessage{
 			Height:           rs.Height,
-			BlockPartsHeader: rs.ProposalBlockParts.Header(),
-			BlockParts:       rs.ProposalBlockParts.BitArray(),
 		}
 	}
 	return
@@ -493,7 +488,7 @@ OUTER_LOOP:
 
 		rs := conR.conS.GetRoundState()
 		prs := ps.GetRoundState()
-
+/* no need send part just send whole block
 		// Send proposal Block parts?
 		if rs.ProposalBlockParts.HasHeader(prs.ProposalBlockPartsHeader) {
 			if index, ok := rs.ProposalBlockParts.BitArray().Sub(prs.ProposalBlockParts.Copy()).PickRandom(); ok {
@@ -510,7 +505,8 @@ OUTER_LOOP:
 				continue OUTER_LOOP
 			}
 		}
-		
+*/
+
 		// If height and round don't match, sleep.
 		if (rs.Height != prs.Height) || (rs.Round != prs.Round) {
 			//logger.Info("Peer Height|Round mismatch, sleeping", "peerHeight", prs.Height, "peerRound", prs.Round, "peer", peer)
@@ -885,35 +881,9 @@ func (ps *PeerState) SetHasProposal(proposal *types.ProposalTrans) {
 	}
 
 	ps.Proposal = true
-	ps.ProposalBlockPartsHeader = proposal.BlockPartsHeader
-	ps.ProposalBlockParts = cmn.NewBitArray(proposal.BlockPartsHeader.Total)
+
 	ps.ProposalPOLRound = proposal.POLRound
 	ps.ProposalPOL = nil // Nil until types.ProposalPOLMessage received.
-}
-
-// InitProposalBlockParts initializes the peer's proposal block parts header and bit array.
-func (ps *PeerState) InitProposalBlockParts(partsHeader types.PartSetHeader) {
-	ps.mtx.Lock()
-	defer ps.mtx.Unlock()
-
-	if ps.ProposalBlockParts != nil {
-		return
-	}
-
-	ps.ProposalBlockPartsHeader = partsHeader
-	ps.ProposalBlockParts = cmn.NewBitArray(partsHeader.Total)
-}
-
-// SetHasProposalBlockPart sets the given block part index as known for the peer.
-func (ps *PeerState) SetHasProposalBlockPart(height int64, round int, index int) {
-	ps.mtx.Lock()
-	defer ps.mtx.Unlock()
-
-	if ps.Height != height || ps.Round != round {
-		return
-	}
-
-	ps.ProposalBlockParts.SetIndex(index, true)
 }
 
 // PickSendVote picks a vote and sends it to the peer.
@@ -1097,8 +1067,6 @@ func (ps *PeerState) ApplyNewRoundStepMessage(msg *types.NewRoundStepMessage) {
 	ps.StartTime = startTime
 	if psHeight != msg.Height || psRound != msg.Round {
 		ps.Proposal = false
-		ps.ProposalBlockPartsHeader = types.PartSetHeader{}
-		ps.ProposalBlockParts = nil
 		ps.ProposalPOLRound = -1
 		ps.ProposalPOL = nil
 		// We'll update the BitArray capacity later.
@@ -1136,8 +1104,6 @@ func (ps *PeerState) ApplyCommitStepMessage(msg *types.CommitStepMessage) {
 		return
 	}
 
-	ps.ProposalBlockPartsHeader = msg.BlockPartsHeader
-	ps.ProposalBlockParts = msg.BlockParts
 }
 
 // ApplyProposalPOLMessage updates the peer state for the new proposal POL.

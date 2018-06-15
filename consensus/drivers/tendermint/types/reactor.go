@@ -17,8 +17,6 @@ type PeerRoundState struct {
 	Step                     RoundStepType // Step peer is at
 	StartTime                time.Time     // Estimated start of round 0 at this height
 	Proposal                 bool          // True if peer has proposal for this round
-	ProposalBlockPartsHeader PartSetHeader //
-	ProposalBlockParts       *cmn.BitArray //
 	ProposalPOLRound         int           // Proposal's POL round. -1 if none.
 	ProposalPOL              *cmn.BitArray // nil until ProposalPOLMessage received.
 	Prevotes                 *cmn.BitArray // All votes peer has for this round
@@ -38,7 +36,7 @@ func (prs PeerRoundState) String() string {
 func (prs PeerRoundState) StringIndented(indent string) string {
 	return fmt.Sprintf(`PeerRoundState{
 %s  %v/%v/%v @%v
-%s  Proposal %v -> %v
+%s  Proposal %v
 %s  POL      %v (round %v)
 %s  Prevotes   %v
 %s  Precommits %v
@@ -46,7 +44,7 @@ func (prs PeerRoundState) StringIndented(indent string) string {
 %s  Catchup    %v (round %v)
 %s}`,
 		indent, prs.Height, prs.Round, prs.Step, prs.StartTime,
-		indent, prs.ProposalBlockPartsHeader, prs.ProposalBlockParts,
+		indent, prs.Proposal,
 		indent, prs.ProposalPOL, prs.ProposalPOLRound,
 		indent, prs.Prevotes,
 		indent, prs.Precommits,
