@@ -18,11 +18,9 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"text/template"
-	//"gopkg.in/yaml.v2"
 
 	"gopkg.in/alecthomas/kingpin.v2"
 
@@ -30,15 +28,10 @@ import (
 	"io/ioutil"
 
 	"gitlab.33.cn/chain33/chain33/authority/tools/cryptogen/ca"
-	"gitlab.33.cn/chain33/chain33/authority/tools/cryptogen/metadata"
 	"gitlab.33.cn/chain33/chain33/authority/tools/cryptogen/msp"
 )
 
 const (
-	userBaseName            = "User"
-	adminBaseName           = "Admin"
-	defaultHostnameTemplate = "{{.Prefix}}{{.Index}}"
-	defaultCNTemplate       = "{{.Hostname}}.{{.Domain}}"
 	commonName              = "ca"
 )
 
@@ -141,16 +134,6 @@ func parseTemplate(input string, data interface{}) (string, error) {
 	return output.String(), nil
 }
 
-func parseTemplateWithDefault(input, defaultInput string, data interface{}) (string, error) {
-
-	// Use the default if the input is an empty string
-	if len(input) == 0 {
-		input = defaultInput
-	}
-
-	return parseTemplate(input, data)
-}
-
 func generateNodes(baseDir string, names []string, signCA *ca.CA, orgName string) {
 
 	for _, name := range names {
@@ -163,27 +146,4 @@ func generateNodes(baseDir string, names []string, signCA *ca.CA, orgName string
 			os.Exit(1)
 		}
 	}
-}
-
-func copyFile(src, dst string) error {
-	in, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer in.Close()
-	out, err := os.Create(dst)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-	_, err = io.Copy(out, in)
-	cerr := out.Close()
-	if err != nil {
-		return err
-	}
-	return cerr
-}
-
-func printVersion() {
-	fmt.Println(metadata.GetVersionInfo())
 }

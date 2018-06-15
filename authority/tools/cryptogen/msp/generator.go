@@ -21,10 +21,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"encoding/hex"
-
-	"gitlab.33.cn/chain33/chain33/authority/bccsp"
-	"gitlab.33.cn/chain33/chain33/authority/bccsp/factory"
 	"gitlab.33.cn/chain33/chain33/authority/tools/cryptogen/ca"
 	"gitlab.33.cn/chain33/chain33/authority/tools/cryptogen/csp"
 )
@@ -73,39 +69,6 @@ func GenerateLocalMSP(baseDir, name string, signCA *ca.CA) error {
 	return nil
 }
 
-func GenerateVerifyingMSP(baseDir string, signCA *ca.CA) error {
-
-	// create folder structure and write artifacts to proper locations
-	err := createFolderStructure(baseDir, false)
-	if err == nil {
-		// the signing CA certificate goes into cacerts
-		err = x509Export(filepath.Join(baseDir, "cacerts", x509Filename(signCA.Name)), signCA.SignCert)
-		if err != nil {
-			return err
-		}
-	}
-
-	// create a throwaway cert to act as an admin cert
-	// NOTE: the admincerts folder is going to be
-	// cleared up anyway by copyAdminCert, but
-	// we leave a valid admin for now for the sake
-	// of unit tests
-	factory.InitFactories(nil)
-	bcsp := factory.GetDefault()
-	priv, err := bcsp.KeyGen(&bccsp.ECDSAP256KeyGenOpts{})
-	ecPubKey, err := csp.GetECPublicKey(priv)
-	if err != nil {
-		return err
-	}
-	_, err = signCA.SignCertificate(filepath.Join(baseDir, "admincerts"), signCA.Name,
-		[]string{""}, ecPubKey, x509.KeyUsageDigitalSignature, []x509.ExtKeyUsage{})
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func createFolderStructure(rootDir string, local bool) error {
 
 	var folders []string
@@ -134,12 +97,6 @@ func x509Filename(name string) string {
 
 func x509Export(path string, cert *x509.Certificate) error {
 	return pemExport(path, "CERTIFICATE", cert.Raw)
-}
-
-func keyExport(keystore, output string, key bccsp.Key) error {
-	id := hex.EncodeToString(key.SKI())
-
-	return os.Rename(filepath.Join(keystore, id+"_sk"), output)
 }
 
 func pemExport(path, pemType string, bytes []byte) error {
