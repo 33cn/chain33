@@ -369,5 +369,5 @@ message FTXOsSTXOsInOneTx {
 	string sender = 2;
 	int32  timeoutSec = 3;
 	string txhash = 4;
-	repeated UTXOGlobalIndex utxoGlobalIndex = 5;
+	repeated UTXO utxos = 5;
 }
