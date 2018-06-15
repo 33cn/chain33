@@ -18,8 +18,8 @@ const (
 
 //该key对应的是types.KeyOutput
 //该kv会在store中设置
-func CalcPrivacyOutputKey(token string, amount int64, txhash string, index int) (key []byte) {
-	return []byte(fmt.Sprintf(PrivacyOutputKeyPrefix+"-%s-%d-%s-%d", token, amount, txhash, index))
+func CalcPrivacyOutputKey(token string, amount, height int64, txhash string, index int) (key []byte) {
+	return []byte(fmt.Sprintf(PrivacyOutputKeyPrefix+"-%s-%d-%d-%s-%d", token, amount, height, txhash, index))
 }
 
 func calcPrivacyKeyImageKey(token string, keyimage []byte) []byte {
