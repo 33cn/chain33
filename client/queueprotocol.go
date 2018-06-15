@@ -786,13 +786,13 @@ func (q *QueueProtocol) GetFatalFailure() (*types.Int32, error) {
 	return nil, types.ErrTypeAsset
 }
 
-func (q *QueueProtocol) ShowPrivacyAccount(param *types.ReqPrivBal4AddrToken) ([]*types.UTXO, error) {
+func (q *QueueProtocol) ShowPrivacyAccount(param *types.ReqPrivBal4AddrToken) (*types.UTXOs, error) {
 	msg, err := q.query(walletKey, types.EventShowPrivacyAccount, param)
 	if err != nil {
 		log.Error("ShowPrivacyAccount", "Error", err.Error())
 		return nil, err
 	}
-	if reply, ok := msg.GetData().([]*types.UTXO); ok {
+	if reply, ok := msg.GetData().(*types.UTXOs); ok {
 		return reply, nil
 	}
 	return nil, types.ErrTypeAsset

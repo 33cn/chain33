@@ -323,6 +323,7 @@ It has these top-level messages:
 	PrivacyDBStore
 	UTXO
 	UTXOHaveTxHash
+	UTXOs
 	ReqUTXOGlobalIndex
 	UTXOBasic
 	UTXOIndex4Amount
