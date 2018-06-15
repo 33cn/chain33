@@ -30,64 +30,61 @@ pipeline {
             }
         }
 
-        stage('parallel'){
-            parallel {
-                stage('build') {
-                    agent {
-                        docker{
-                            image 'suyanlong/chain33-run:latest'
-                        }
-                    }
-                    environment {
-                        GOPATH = "${WORKSPACE}"
-                        PROJ_DIR = "${WORKSPACE}/src/gitlab.33.cn/chain33/chain33"
-                    }
-                    steps {
-                        dir("${env.PROJ_DIR}"){
-                            gitlabCommitStatus(name: 'build'){
-                                sh 'pwd'
-                                sh "ls -l"
-                                sh "echo ${env.WORKSPACE}"
-                                sh "echo ${env.PROJ_DIR}"
-                                sh "echo ${env.GOPATH}"
-
-                                sh 'make checkgofmt'
-                                sh 'make linter'
-                                sh 'make build_ci'
-                            }
-                        }
-                    }
+        stage('build') {
+            agent {
+                docker{
+                    image 'suyanlong/chain33-run:latest'
                 }
+            }
+            environment {
+                GOPATH = "${WORKSPACE}"
+                PROJ_DIR = "${WORKSPACE}/src/gitlab.33.cn/chain33/chain33"
+            }
+            steps {
+                dir("${env.PROJ_DIR}"){
+                    gitlabCommitStatus(name: 'build'){
+                        sh 'pwd'
+                        sh "ls -l"
+                        sh "echo ${env.WORKSPACE}"
+                        sh "echo ${env.PROJ_DIR}"
+                        sh "echo ${env.GOPATH}"
 
-                stage('test'){
-                    agent {
-                        docker{
-                            image 'suyanlong/chain33-run:latest'
-                        }
-                    }
-
-                    environment {
-                        GOPATH = "${WORKSPACE}"
-                        PROJ_DIR = "${WORKSPACE}/src/gitlab.33.cn/chain33/chain33"
-                    }
-
-                    steps {
-                        dir("${env.PROJ_DIR}"){
-                            gitlabCommitStatus(name: 'test'){
-                                sh 'pwd'
-                                sh "ls -l"
-                                sh "echo ${env.WORKSPACE}"
-                                sh "echo ${env.PROJ_DIR}"
-                                sh "echo ${env.GOPATH}"
-
-                                sh 'make test'
-                                //sh 'export CC=clang-5.0 && make msan'
-                            }
-                        }
+                        sh 'make checkgofmt'
+                        sh 'make linter'
+                        sh 'make build_ci'
                     }
                 }
             }
         }
+
+        stage('test'){
+            agent {
+                docker{
+                    image 'suyanlong/chain33-run:latest'
+                }
+            }
+
+            environment {
+                GOPATH = "${WORKSPACE}"
+                PROJ_DIR = "${WORKSPACE}/src/gitlab.33.cn/chain33/chain33"
+            }
+
+            steps {
+                dir("${env.PROJ_DIR}"){
+                    gitlabCommitStatus(name: 'test'){
+                        sh 'pwd'
+                        sh "ls -l"
+                        sh "echo ${env.WORKSPACE}"
+                        sh "echo ${env.PROJ_DIR}"
+                        sh "echo ${env.GOPATH}"
+
+                        sh 'make test'
+                        //sh 'export CC=clang-5.0 && make msan'
+                    }
+                }
+            }
+        }
+
 
         stage('deploy') {
             steps {
@@ -125,26 +122,12 @@ pipeline {
                  body: "this is success with ${env.BUILD_URL}"
         }
 
-        unstable {
-            echo 'I am unstable'
-            mail to: "${gitlabUserEmail}",
-                 subject: "unstable Pipeline: ${currentBuild.fullDisplayName}",
-                 body: "this is unstable with ${env.BUILD_URL}"
-        }
-
         failure {
             echo 'I failed '
             echo "email user: ${gitlabUserEmail}"
             mail to: "${gitlabUserEmail}",
                  subject: "Failed Pipeline: ${currentBuild.fullDisplayName}",
                  body: "Something is wrong with ${env.BUILD_URL}"
-        }
-
-        changed {
-            echo 'Things were different before...'
-            mail to: "${gitlabUserEmail}",
-                 subject: "changed Pipeline: ${currentBuild.fullDisplayName}",
-                 body: "this is changed with ${env.BUILD_URL}"
         }
     }
 }
