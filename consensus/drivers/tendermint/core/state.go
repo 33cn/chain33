@@ -113,6 +113,8 @@ type ConsensusState struct {
 	NewTxsHeight   chan int64
 	NewTxsFinished chan bool
 	blockStore     *ttypes.BlockStore
+	needSetFinish  bool
+	syncMutex      sync.Mutex
 }
 
 // NewConsensusState returns a new ConsensusState.
@@ -131,6 +133,7 @@ func NewConsensusState(client *drivers.BaseClient, blockStore *ttypes.BlockStore
 		NewTxsHeight:   make(chan int64, 1),
 		NewTxsFinished: make(chan bool),
 		blockStore:     blockStore,
+		needSetFinish:  false,
 	}
 	// set function defaults (may be overwritten before calling Start)
 	cs.decideProposal = cs.defaultDecideProposal
@@ -484,6 +487,9 @@ func (cs *ConsensusState) newStep() {
 }
 
 func (cs *ConsensusState) NewTxsAvailable(height int64) {
+	cs.syncMutex.Lock()
+	defer cs.syncMutex.Unlock()
+	cs.needSetFinish = true
 	cs.NewTxsHeight <- height
 }
 
@@ -1145,11 +1151,20 @@ func (cs *ConsensusState) tryFinalizeCommit(height int64) {
 	cs.finalizeCommit(height)
 }
 
+func (cs *ConsensusState) commitReturn(result bool) {
+	cs.syncMutex.Lock()
+	if cs.needSetFinish {
+		cs.NewTxsFinished <- result
+		cs.needSetFinish = false
+	}
+	cs.syncMutex.Unlock()
+	cs.Logger.Debug(fmt.Sprintf("performance: NewTxsFinished set %v", result))
+}
 // Increment height and goto ttypes.RoundStepNewHeight
 func (cs *ConsensusState) finalizeCommit(height int64) {
 	if cs.Height != height || cs.Step != ttypes.RoundStepCommit {
 		cs.Logger.Debug(fmt.Sprintf("finalizeCommit(%v): Invalid args. Current step: %v/%v/%v", height, cs.Height, cs.Round, cs.Step))
-		cs.NewTxsFinished <- false
+		cs.commitReturn(false)
 		return
 	}
 
@@ -1178,11 +1193,11 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 	if err != nil {
 		cs.Logger.Error("Error on ApplyBlock. Did the application crash? Please restart tendermint", "err", err)
 		//windows not support
-		//err := cmn.Kill()
+		err := cmn.Kill()
 		if err != nil {
 			cs.Logger.Error("Failed to kill this process - please do so manually", "err", err)
 		}
-		cs.NewTxsFinished <- false
+		cs.commitReturn(false)
 		return
 	}
 
@@ -1194,14 +1209,14 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 		err := proto.Unmarshal(block.BlockBytes, &newblock)
 		if err != nil {
 			cs.Logger.Error("finalizeCommit block unmarshal failed", "error", err)
-			cs.NewTxsFinished <- false
+			cs.commitReturn(false)
 			return
 		}
 
 		lastBlock, err := cs.client.RequestBlock(height - 1)
 		if err != nil {
 			cs.Logger.Error("Request block failed", "height", height - 1, "err", err)
-			cs.NewTxsFinished <- false
+			cs.commitReturn(false)
 			return
 		}
 		newblock.ParentHash = lastBlock.Hash()
@@ -1231,7 +1246,7 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 		err = cs.client.WriteBlock(lastBlock.StateHash, &newblock)
 		if err != nil {
 			cs.Logger.Error("finalizeCommit:WriteBlock failed, NewTxsFinished set false", "Error", err)
-			cs.NewTxsFinished <- false
+			cs.commitReturn(false)
 			//windows not support
 			//err := cmn.Kill()
 			return
@@ -1259,8 +1274,7 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 		}
 		cs.Logger.Info("performance: finalizeCommit wait times", "times", times, "height", block.Height)
 	}
-	cs.Logger.Debug("NewTxsFinished set true")
-	cs.NewTxsFinished <- true
+	cs.commitReturn(true)
 
 	//fail.Fail() // XXX
 
@@ -1569,7 +1583,7 @@ func (cs *ConsensusState) EmptyBlocksInterval() time.Duration {
 
 // PeerGossipSleep returns the amount of time to sleep if there is nothing to send from the ConsensusReactor
 func (cs *ConsensusState) PeerGossipSleep() time.Duration {
-	return time.Duration( /*cs.client.Cfg.PeerGossipSleepDuration*/ 100) * time.Millisecond
+	return time.Duration( /*cs.client.Cfg.PeerGossipSleepDuration*/ 10) * time.Millisecond
 }
 
 // PeerQueryMaj23Sleep returns the amount of time to sleep after each VoteSetMaj23Message is sent in the ConsensusReactor
