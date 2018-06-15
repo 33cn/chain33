@@ -554,7 +554,6 @@ func (wallet *Wallet) transPri2PubV2(privacykeyParirs *privacy.Privacy, reqPri2P
 
 func (wallet *Wallet) saveFTXOInfo(token, sender, txhash string, selectedUtxos []*txOutputInfo) {
 	//将已经作为本次交易输入的utxo进行冻结，防止产生双花交易
-	wallet.privacyFrozen[txhash] = sender
 	wallet.walletStore.moveUTXO2FTXO(token, sender, txhash, selectedUtxos)
 	//TODO:需要加入超时处理，需要将此处的txhash写入到数据库中，以免钱包瞬间奔溃后没有对该笔隐私交易的记录，
 	//TODO:然后当该交易得到执行之后，没法将FTXO转化为STXO，added by hezhengjun on 2018.6.5
@@ -691,34 +690,33 @@ func (wallet *Wallet) buildInput(privacykeyParirs *privacy.Privacy, buildInfo *b
 }
 
 func (wallet *Wallet) selectUTXO(token, addr string, amount int64) ([]*txOutputInfo, error) {
-	if privacyActive, ok := wallet.privacyActive[token]; ok {
-		if walletOuts4Addr, ok := privacyActive[addr]; ok {
-			balanceLeft := int64(0)
-			for _, txOutputInfo := range walletOuts4Addr.outs {
-				balanceLeft += txOutputInfo.amount
-				if balanceLeft > amount {
-					// 余额足够支付，可以直接跳出循环
-					break
-				}
+	walletOuts4Addr := wallet.walletStore.getPrivacyTokenUTXOs(token, addr)
+	if walletOuts4Addr != nil {
+		balanceLeft := int64(0)
+		for _, txOutputInfo := range walletOuts4Addr.outs {
+			balanceLeft += txOutputInfo.amount
+			if balanceLeft > amount {
+				// 余额足够支付，可以直接跳出循环
+				break
 			}
-			//在挑选具体的输出前，先确认余额是否满足转账额度
-			if balanceLeft < amount {
-				return nil, types.ErrInsufficientBalance
-			}
-			balanceFound := int64(0)
-			var selectedOuts []*txOutputInfo
-			for balanceFound < amount {
-				//随机选择其中一个utxo
-				index := wallet.random.Intn(len(walletOuts4Addr.outs))
-				selectedOuts = append(selectedOuts, walletOuts4Addr.outs[index])
-				balanceFound += walletOuts4Addr.outs[index].amount
-				//remove from the origin slice
-				walletOuts4Addr.outs = append(walletOuts4Addr.outs[:index], walletOuts4Addr.outs[index+1:]...)
-			}
-			return selectedOuts, nil
-		} else {
+		}
+		//在挑选具体的输出前，先确认余额是否满足转账额度
+		if balanceLeft < amount {
 			return nil, types.ErrInsufficientBalance
 		}
+		balanceFound := int64(0)
+		var selectedOuts []*txOutputInfo
+		for balanceFound < amount {
+			//随机选择其中一个utxo
+			index := wallet.random.Intn(len(walletOuts4Addr.outs))
+			selectedOuts = append(selectedOuts, walletOuts4Addr.outs[index])
+			balanceFound += walletOuts4Addr.outs[index].amount
+			//remove from the origin slice
+			walletOuts4Addr.outs = append(walletOuts4Addr.outs[:index], walletOuts4Addr.outs[index+1:]...)
+		}
+		return selectedOuts, nil
+	} else {
+		return nil, types.ErrInsufficientBalance
 	}
 	return nil, types.ErrInsufficientBalance
 }
