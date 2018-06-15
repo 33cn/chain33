@@ -55,7 +55,7 @@ func (p *privacy) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 	if err != nil {
 		return nil, err
 	}
-
+    height := p.GetHeight()
 	privacylog.Info("Privacy exec", "action type", action.Ty)
 	if action.Ty == types.ActionPublic2Privacy && action.GetPublic2Privacy() != nil {
 		public2Privacy := action.GetPublic2Privacy()
@@ -75,7 +75,7 @@ func (p *privacy) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 			//executor中的临时数据库中，只需要将kv返回给blockchain就行
 			//即：一个块中产生的UTXO是不能够在同一个高度进行支付的
 			for index, keyOutput := range output {
-				key := CalcPrivacyOutputKey(public2Privacy.Tokenname, keyOutput.Amount, txhash, index)
+				key := CalcPrivacyOutputKey(public2Privacy.Tokenname, keyOutput.Amount, height, txhash, index)
 				value := types.Encode(keyOutput)
 				receipt.KV = append(receipt.KV, &types.KeyValue{key, value})
 			}
@@ -116,7 +116,7 @@ func (p *privacy) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 			txhash := common.ToHex(tx.Hash())
 			output := privacy2Privacy.GetOutput().GetKeyoutput()
 			for index, keyOutput := range output {
-				key := CalcPrivacyOutputKey(privacy2Privacy.Tokenname, keyOutput.Amount, txhash, index)
+				key := CalcPrivacyOutputKey(privacy2Privacy.Tokenname, keyOutput.Amount, height, txhash, index)
 				value := types.Encode(keyOutput)
 				receipt.KV = append(receipt.KV, &types.KeyValue{key, value})
 			}
@@ -167,7 +167,7 @@ func (p *privacy) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 			txhash := common.ToHex(tx.Hash())
 			output := privacy2public.GetOutput().GetKeyoutput()
 			for index, keyOutput := range output {
-				key := CalcPrivacyOutputKey(privacy2public.Tokenname, keyOutput.Amount, txhash, index)
+				key := CalcPrivacyOutputKey(privacy2public.Tokenname, keyOutput.Amount, height, txhash, index)
 				value := types.Encode(keyOutput)
 				receipt.KV = append(receipt.KV, &types.KeyValue{key, value})
 			}
@@ -492,7 +492,7 @@ func (p *privacy) CheckTx(tx *types.Transaction, index int) error {
 		totalInput += input.Amount
 		keyImages[i] = calcPrivacyKeyImageKey(token, input.KeyImage)
 		for j, globalIndex := range input.UtxoGlobalIndex {
-			keys = append(keys, CalcPrivacyOutputKey(token, input.Amount, common.ToHex(globalIndex.Txhash), int(globalIndex.Outindex)))
+			keys = append(keys, CalcPrivacyOutputKey(token, input.Amount, globalIndex.Height, common.ToHex(globalIndex.Txhash), int(globalIndex.Outindex)))
 			pubkeys = append(pubkeys, ringSignature.Items[i].Pubkey[j])
 		}
 	}
