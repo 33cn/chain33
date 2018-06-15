@@ -42,10 +42,11 @@ func (Comm) AddrRouteble(addrs []string) []string {
 }
 func (c Comm) RandStr(n int) string {
 	var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-
+	r := rand.New(rand.NewSource(time.Now().Unix()))
 	b := make([]rune, n)
 	for i := range b {
-		b[i] = letters[rand.Intn(len(letters))]
+
+		b[i] = letters[r.Intn(len(letters))]
 	}
 
 	return string(b)
