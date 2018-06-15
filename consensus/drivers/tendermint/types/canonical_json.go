@@ -23,7 +23,7 @@ type CanonicalJSONPartSetHeader struct {
 }
 
 type CanonicalJSONProposal struct {
-	BlockPartsHeader CanonicalJSONPartSetHeader `json:"block_parts_header"`
+	BlockBytes       []byte                     `json:"block_parts_header"`
 	Height           int64                      `json:"height"`
 	POLBlockID       CanonicalJSONBlockID       `json:"pol_block_id"`
 	POLRound         int                        `json:"pol_round"`
@@ -71,20 +71,13 @@ type CanonicalJSONOnceHeartbeat struct {
 func CanonicalBlockID(blockID BlockID) CanonicalJSONBlockID {
 	return CanonicalJSONBlockID{
 		Hash:        blockID.Hash,
-		PartsHeader: CanonicalPartSetHeader(blockID.PartsHeader),
 	}
 }
 
-func CanonicalPartSetHeader(psh PartSetHeader) CanonicalJSONPartSetHeader {
-	return CanonicalJSONPartSetHeader{
-		psh.Hash,
-		psh.Total,
-	}
-}
 
 func CanonicalProposal(proposal *Proposal) CanonicalJSONProposal {
 	return CanonicalJSONProposal{
-		BlockPartsHeader: CanonicalPartSetHeader(proposal.BlockPartsHeader),
+		BlockBytes:        proposal.BlockBytes,
 		Height:           proposal.Height,
 		Timestamp:        CanonicalTime(proposal.Timestamp),
 		POLBlockID:       CanonicalBlockID(proposal.POLBlockID),

@@ -14,7 +14,8 @@ import (
 
 func validateBlock(stateDB *CSStateDB, s State, b *types.Block) error {
 	// validate internal consistency
-	if err := b.ValidateBasic(); err != nil {
+	newTxs, err := b.ValidateBasic()
+	if err != nil {
 		return err
 	}
 
@@ -37,7 +38,7 @@ func validateBlock(stateDB *CSStateDB, s State, b *types.Block) error {
 	if !b.LastBlockID.Equals(s.LastBlockID) {
 		return fmt.Errorf("Wrong Block.Header.LastBlockID.  Expected %v, got %v", s.LastBlockID, b.LastBlockID)
 	}
-	newTxs := int64(len(b.Data.Txs))
+
 	if b.TotalTxs != s.LastBlockTotalTx+newTxs {
 		return fmt.Errorf("Wrong Block.Header.TotalTxs. Expected %v, got %v", s.LastBlockTotalTx+newTxs, b.TotalTxs)
 	}

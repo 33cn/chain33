@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
-	"time"
 
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
 	"encoding/json"
+	gtypes "gitlab.33.cn/chain33/chain33/types"
 )
 
 // database keys
@@ -32,7 +32,7 @@ type State struct {
 	LastBlockHeight  int64
 	LastBlockTotalTx int64
 	LastBlockID      types.BlockID
-	LastBlockTime    time.Time
+	LastBlockTime    int64
 
 	// LastValidators is used to validate block.LastCommit.
 	// Validators are persisted to the database separately every time they change,
@@ -107,7 +107,7 @@ func (s State) GetValidators() (last *types.ValidatorSet, current *types.Validat
 // Create a block from the latest state
 
 // MakeBlock builds a block with the given txs and commit from the current state.
-func (s State) MakeBlock(height int64, txs []types.Tx, commit *types.Commit) (*types.Block, *types.PartSet) {
+func (s State) MakeBlock(height int64, txs []*gtypes.Transaction, commit *types.Commit) (*types.Block) {
 	// build base block
 	block := types.MakeBlock(height, txs, commit)
 
@@ -120,7 +120,7 @@ func (s State) MakeBlock(height int64, txs []types.Tx, commit *types.Commit) (*t
 	block.ConsensusHash = s.ConsensusParams.Hash()
 	block.LastResultsHash = s.LastResultsHash
 
-	return block, block.MakePartSet(s.ConsensusParams.BlockGossip.BlockPartSizeBytes)
+	return block
 }
 
 //------------------------------------------------------------------------
@@ -180,7 +180,7 @@ func MakeGenesisState(genDoc *types.GenesisDoc) (State, error) {
 
 		LastBlockHeight: 0,
 		LastBlockID:     types.BlockID{},
-		LastBlockTime:   genDoc.GenesisTime,
+		LastBlockTime:   genDoc.GenesisTime.UnixNano(),
 
 		Validators:                  types.NewValidatorSet(validators),
 		LastValidators:              types.NewValidatorSet(nil),

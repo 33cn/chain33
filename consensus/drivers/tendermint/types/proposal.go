@@ -8,11 +8,14 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"encoding/json"
+	log "github.com/inconshreveable/log15"
 )
 
 var (
 	ErrInvalidBlockPartSignature = errors.New("Error invalid block part signature")
 	ErrInvalidBlockPartHash      = errors.New("Error invalid block part hash")
+
+	proposallog = log.New("submodule", "proposal")
 )
 
 // Proposal defines a block proposal for the consensus.
@@ -24,20 +27,20 @@ type Proposal struct {
 	Height           int64            `json:"height"`
 	Round            int              `json:"round"`
 	Timestamp        time.Time        `json:"timestamp"`
-	BlockPartsHeader PartSetHeader    `json:"block_parts_header"`
 	POLRound         int              `json:"pol_round"`    // -1 if null.
 	POLBlockID       BlockID          `json:"pol_block_id"` // zero if null.
 	Signature        crypto.Signature `json:"signature"`
+	BlockBytes       []byte           `json:"block_bytes"`
 }
 
 type ProposalTrans struct {
 	Height           int64            `json:"height"`
 	Round            int              `json:"round"`
 	Timestamp        time.Time        `json:"timestamp"`
-	BlockPartsHeader PartSetHeader    `json:"block_parts_header"`
 	POLRound         int              `json:"pol_round"`    // -1 if null.
 	POLBlockID       BlockID          `json:"pol_block_id"` // zero if null.
 	Signature        string           `json:"signature"`
+	BlockBytes       []byte           `json:"block_bytes"`
 }
 
 func ProposalToProposalTrans(proposal *Proposal) *ProposalTrans {
@@ -48,8 +51,8 @@ func ProposalToProposalTrans(proposal *Proposal) *ProposalTrans {
 		Round:            proposal.Round,
 		Timestamp:        proposal.Timestamp,
 		POLBlockID:       proposal.POLBlockID,
-		BlockPartsHeader: proposal.BlockPartsHeader,
 		Signature:        sig,
+		BlockBytes:       proposal.BlockBytes,
 
 	}
 	return proposalTrans
@@ -66,29 +69,34 @@ func ProposalTransToProposal(proposalTrans *ProposalTrans) (*Proposal,error) {
 		Round:            proposalTrans.Round,
 		Timestamp:        proposalTrans.Timestamp,
 		POLBlockID:       proposalTrans.POLBlockID,
-		BlockPartsHeader: proposalTrans.BlockPartsHeader,
 		Signature:        sig,
+		BlockBytes:       proposalTrans.BlockBytes,
 	}
 	return proposal, nil
 }
 
 // NewProposal returns a new Proposal.
 // If there is no POLRound, polRound should be -1.
-func NewProposal(height int64, round int, blockPartsHeader PartSetHeader, polRound int, polBlockID BlockID) *Proposal {
+func NewProposal(height int64, round int, block *Block, polRound int, polBlockID BlockID) *Proposal {
+	blockByte, err := json.Marshal(block)
+	if err != nil {
+		proposallog.Error("NewProposal unmarshal failed", "error", err)
+		return nil
+	}
 	return &Proposal{
 		Height:           height,
 		Round:            round,
 		Timestamp:        time.Now().UTC(),
-		BlockPartsHeader: blockPartsHeader,
 		POLRound:         polRound,
 		POLBlockID:       polBlockID,
+		BlockBytes:       blockByte,
 	}
 }
 
 // String returns a string representation of the Proposal.
 func (p *Proposal) String() string {
-	return fmt.Sprintf("Proposal{%v/%v %v (%v,%v) %v @ %s}",
-		p.Height, p.Round, p.BlockPartsHeader, p.POLRound,
+	return fmt.Sprintf("Proposal{%v/%v (%v,%v) %v @ %s}",
+		p.Height, p.Round,  p.POLRound,
 		p.POLBlockID, p.Signature, CanonicalTime(p.Timestamp))
 }
 

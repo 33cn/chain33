@@ -22,6 +22,7 @@ callerFile = false
 # 是否打印调用方法
 callerFunction = false
 
+
 [blockchain]
 defCacheSize=512
 maxFetchBlockNum=128
@@ -30,14 +31,14 @@ batchBlockNum=128
 driver="leveldb"
 dbPath="datadir"
 dbCache=64
-isStrongConsistency=true
+isStrongConsistency=false
 singleMode=false
 batchsync=false
 
 [p2p]
 seeds=[]
 enable=true
-isSeed=true
+isSeed=false
 serverStart=true
 innerSeedEnable=true
 useGithub=true
@@ -52,28 +53,17 @@ grpcLogFile="grpc33.log"
 [rpc]
 jrpcBindAddr="localhost:8801"
 grpcBindAddr="localhost:8802"
-whitlist=["127.0.0.1"]
+whitelist=["127.0.0.1"]
+jrpcFuncWhitelist=["*"]
+grpcFuncWhitelist=["*"]
+
 [mempool]
 poolCacheSize=10240
 minTxFee=100000
 
 [consensus]
-name="tendermint"
-minerstart=false
-genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
-genesisBlockTime=1514533394
-hotkeyAddr="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
-timeoutPropose=3000
-timeoutProposeDelta=500
-timeoutPrevote=1000
-timeoutPrevoteDelta=500
-timeoutPrecommit=1000
-timeoutPrecommitDelta=500
-timeoutCommit=1000
-skipTimeoutCommit=false
-createEmptyBlocks=false
-createEmptyBlocksInterval=0
-seeds=["192.168.3.48:46656","192.168.3.13:46656","192.168.3.29:46656","192.168.3.30:46656"]
+name="ticket"
+minerstart=true
 
 [store]
 name="mavl"
@@ -84,7 +74,7 @@ dbCache=128
 [wallet]
 minFee=100000
 driver="leveldb"
-dbPath="datadir/wallet"
+dbPath="wallet"
 dbCache=16
 signType="secp256k1"
 minerdisable=false
@@ -92,3 +82,4 @@ minerdisable=false
 [exec]
 isFree=false
 minExecFee=100000
+enableStat=false
