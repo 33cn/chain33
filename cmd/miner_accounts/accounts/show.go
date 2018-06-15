@@ -35,7 +35,8 @@ func (*ShowMinerAccount) Echo(in *string, out *interface{}) error {
 
 type TimeAt struct {
 	// YYYY-mm-dd-HH
-	TimeAt string `json:"timeAt"`
+	TimeAt string   `json:"timeAt,omitempty"`
+	Addrs  []string `json:"addrs,omitempty"`
 }
 
 func (show *ShowMinerAccount) Get(in *TimeAt, out *interface{}) error {
@@ -55,6 +56,9 @@ func (show *ShowMinerAccount) Get(in *TimeAt, out *interface{}) error {
 	log.Info("show", "utc", seconds)
 
 	addrs := show.Addrs
+	if in.Addrs != nil && len(in.Addrs) > 0 {
+		addrs = in.Addrs
+	}
 	log.Info("show", "miners", addrs)
 	//for i := int64(0); i < 200; i++ {
 	header, curAcc, err := cache.getBalance(addrs, "ticket", seconds)
@@ -72,7 +76,7 @@ func (show *ShowMinerAccount) Get(in *TimeAt, out *interface{}) error {
 	miner.Blocks = header.Height - lastHourHeader.Height
 	miner.ExpectBlocks = miner.Seconds / secondsPerBlock
 
-	miner = calcResult(miner, curAcc, lastAcc)
+	miner = calcIncrease(miner, curAcc, lastAcc, header)
 	*out = &miner
 
 	seconds = seconds - 3600
@@ -81,7 +85,7 @@ func (show *ShowMinerAccount) Get(in *TimeAt, out *interface{}) error {
 	return nil
 }
 
-func calcResult(miner *MinerAccounts, acc1, acc2 []*rpc.Account) *MinerAccounts {
+func calcIncrease(miner *MinerAccounts, acc1, acc2 []*rpc.Account, header *rpc.Header) *MinerAccounts {
 	type minerAt struct {
 		addr    string
 		curAcc  *rpc.Account
@@ -104,11 +108,16 @@ func calcResult(miner *MinerAccounts, acc1, acc2 []*rpc.Account) *MinerAccounts 
 			totalFrozen += float64(v.curAcc.Frozen) / float64(types.Coin)
 		}
 	}
+	ticketTotal := float64(30000 * 10000)
+	_, ticketAcc, err := cache.getBalance([]string{"16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"}, "coins", header.BlockTime)
+	if err == nil && len(ticketAcc) == 1 {
+		ticketTotal = float64(ticketAcc[0].Balance+ticketAcc[0].Frozen) / float64(types.Coin)
+	}
 	for k, v := range miners {
 		if v.lastAcc != nil && v.curAcc != nil {
 			total := v.curAcc.Balance + v.curAcc.Frozen
 			increase := total - v.lastAcc.Balance - v.lastAcc.Frozen
-			expectIncrease := float64(miner.Blocks) * float64(btyPreBlock) * (float64(v.curAcc.Frozen) / float64(types.Coin)) / totalFrozen
+			expectIncrease := float64(miner.Blocks) * float64(btyPreBlock) * (float64(v.curAcc.Frozen) / float64(types.Coin)) / ticketTotal
 
 			m := &MinerAccount{
 				Addr:           k,
@@ -122,6 +131,21 @@ func calcResult(miner *MinerAccounts, acc1, acc2 []*rpc.Account) *MinerAccounts 
 			//	log.Info("acount", "Increase", m.Increase, "expectIncrease", m.ExpectIncrease)
 			//	fmt.Println(os.Stderr, "Increase", m.Increase, "expectIncrease", m.ExpectIncrease)
 			//}
+
+			// 由于取不到挖矿的交易， 通过预期挖矿数， 推断间隔多少个区块能挖到。
+			// 由于挖矿分布的波动， 用双倍的预期能挖到区块的时间间隔来预警
+			expectBlocks := (expectIncrease / btyPreBlock) // 一个小时预期挖多少个块
+			expectMinerInterval := 3600 / expectBlocks     // 预期多少秒可以挖一个块
+			moniterInterval := int64(2*expectMinerInterval) + 1
+
+			m.ExpectMinerBlocks = strconv.FormatFloat(expectBlocks, 'f', 4, 64)
+			_, acc, err := cache.getBalance([]string{m.Addr}, "ticket", header.BlockTime-moniterInterval)
+			if err != nil || len(acc) == 0 {
+				m.MinerBtyDuring = "0.0000"
+			} else {
+				minerDelta := total - acc[0].Balance - acc[0].Frozen
+				m.MinerBtyDuring = strconv.FormatFloat(float64(minerDelta)/float64(types.Coin), 'f', 4, 64)
+			}
 
 			miner.MinerAccounts = append(miner.MinerAccounts, m)
 			totalIncrease += float64(increase) / float64(types.Coin)

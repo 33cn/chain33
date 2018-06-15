@@ -14,6 +14,8 @@ message MinerAccount {
     string increase = 3;
     string frozen = 4;
     string expectIncrease = 5;
+    string minerBtyDuring = 6;
+    string expectMinerBlocks = 7;
 }
 message Accounts {
 	repeated Account accounts = 1;
