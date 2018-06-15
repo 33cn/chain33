@@ -5,8 +5,8 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/version"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -309,7 +309,7 @@ func (c *Chain33) GetMempool(in *types.ReqNil, result *interface{}) error {
 			if err != nil {
 				amount = 0
 			}
-			from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
+			from := tx.From()
 			tran, err := DecodeTx(tx)
 			if err != nil {
 				continue
@@ -1449,5 +1449,54 @@ func (c *Chain33) QueryTicketInfoList(in *types.LocalDBList, result *interface{}
 		ticketList = append(ticketList, ticketInfo)
 	}
 	*result = ticketList
+	return nil
+}
+
+func (c *Chain33) CreateBindMiner(in *types.ReqBindMiner, result *interface{}) error {
+	if in.Amount%(10000*types.Coin) != 0 || in.Amount < 0 {
+		return types.ErrAmount
+	}
+	err := address.CheckAddress(in.BindAddr)
+	if err != nil {
+		return err
+	}
+	err = address.CheckAddress(in.OriginAddr)
+	if err != nil {
+		return err
+	}
+
+	if in.CheckBalance {
+		getBalance := &types.ReqBalance{Addresses: []string{in.OriginAddr}, Execer: "coins"}
+		balances, err := c.cli.GetBalance(getBalance)
+		if err != nil {
+			return err
+		}
+		if len(balances) == 0 {
+			return types.ErrInputPara
+		}
+		if balances[0].Balance < in.Amount+2*types.Coin {
+			return types.ErrNoBalance
+		}
+	}
+
+	reply, err := c.cli.BindMiner(in)
+	if err != nil {
+		return err
+	}
+
+	*result = reply
+	return nil
+}
+
+func (c *Chain33) DecodeRawTransaction(in *types.ReqDecodeRawTransaction, result *interface{}) error {
+	reply, err := c.cli.DecodeRawTransaction(in)
+	if err != nil {
+		return err
+	}
+	res, err := DecodeTx(reply)
+	if err != nil {
+		return err
+	}
+	*result = res
 	return nil
 }

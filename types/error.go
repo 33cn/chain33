@@ -203,8 +203,10 @@ var (
 	ErrNotAllowKey                = errors.New("ErrNotAllowKey")
 	ErrDataBaseDamage             = errors.New("ErrDataBaseDamage")
 	ErrIndex                      = errors.New("ErrIndex")
+	ErrNotAllowPubkey             = errors.New("ErrNotAllowPubkey")
 
 	//authority
 	ErrDeserializedIdentity = errors.New("ErrDeserializedIdentity")
 	ErrSignatureExist       = errors.New("ErrSignatureExist")
+
 )
