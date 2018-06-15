@@ -551,6 +551,7 @@ func (p *privacy) checkUTXOValid(keyImages [][]byte) (bool, int32) {
 	}
 	for i, value := range values {
 		if value != nil {
+			privacylog.Error("exec module", "checkUTXOValid i=", i, " value=", value)
 			return false, int32(i)
 		}
 	}
