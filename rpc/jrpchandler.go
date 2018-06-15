@@ -1231,6 +1231,14 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
 				return nil, err
 			}
 			logIns = logTmp
+		case types.TyLogPrivacyInput:
+			lTy = "TyLogPrivacyInput"
+			var logTmp types.PrivacyInput
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
 		case types.TyLogPrivacyOutput:
 			lTy = "LogPrivacyOutput"
 			var logTmp types.ReceiptPrivacyOutput
