@@ -337,6 +337,10 @@ message UTXO {
     UTXOBasic utxoBasic   = 2;
 }
 
+message UTXOs {
+	repeated UTXO utxos = 1;
+}
+
 message ReqUTXOGlobalIndex {
 	string tokenname = 1;
     int32 mixCount  = 2;

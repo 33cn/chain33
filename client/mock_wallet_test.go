@@ -89,7 +89,7 @@ func (m *mockWallet) SetQueueClient(q queue.Queue) {
 				}
 			case types.EventWalletSetPasswd:
 				if req, ok := msg.GetData().(*types.ReqWalletSetPasswd); ok {
-					if req.OldPass == "case1" {
+					if req.GetOldpass() == "case1" {
 						msg.Reply(client.NewMessage(walletKey, types.EventReply, &types.Transaction{}))
 					} else {
 						msg.Reply(client.NewMessage(walletKey, types.EventReply, &types.Reply{}))
@@ -179,6 +179,20 @@ func (m *mockWallet) SetQueueClient(q queue.Queue) {
 				}
 			case types.EventFatalFailure:
 				msg.Reply(client.NewMessage(walletKey, types.EventReplyFatalFailure, &types.Int32{}))
+			case types.EventShowPrivacyAccount:
+				msg.Reply(client.NewMessage(walletKey, types.EventReplyShowPrivacyAccount, &types.UTXOs{}))
+			case types.EventShowPrivacyPK:
+				msg.Reply(client.NewMessage(walletKey, types.EventReplyShowPrivacyPK, &types.ReplyPrivacyPkPair{}))
+			case types.EventShowPrivacyBalance:
+				msg.Reply(client.NewMessage(walletKey, types.EventReplyShowPrivacyBalance, &types.Account{}))
+			case types.EventCreateUTXOs:
+				msg.Reply(client.NewMessage(walletKey, types.EventReplyCreateUTXOs, &types.Reply{}))
+			case types.EventPublic2privacy:
+				msg.Reply(client.NewMessage(walletKey, types.EventReplyPublic2privacy, &types.Reply{}))
+			case types.EventPrivacy2privacy:
+				msg.Reply(client.NewMessage(walletKey, types.EventReplyPrivacy2privacy, &types.Reply{}))
+			case types.EventPrivacy2public:
+				msg.Reply(client.NewMessage(walletKey, types.EventReplyPrivacy2public, &types.Reply{}))
 
 			default:
 				msg.ReplyErr("Do not support", types.ErrNotSupport)
