@@ -619,7 +619,7 @@ func (wallet *Wallet) buildInput(privacykeyParirs *privacy.Privacy, buildInfo *b
 	realkeyInputSlice := make([]*realkeyInput, len(selectedUtxo))
 	for i, utxo2pay := range selectedUtxo {
 		var utxoIndex4Amount *types.UTXOIndex4Amount
-		if i < len(resUTXOGlobalIndex.UtxoIndex4Amount) && utxo2pay.amount == resUTXOGlobalIndex.UtxoIndex4Amount[i].Amount {
+		if nil != resUTXOGlobalIndex && i < len(resUTXOGlobalIndex.UtxoIndex4Amount) && utxo2pay.amount == resUTXOGlobalIndex.UtxoIndex4Amount[i].Amount {
 			utxoIndex4Amount = resUTXOGlobalIndex.UtxoIndex4Amount[i]
 			for j, utxo := range utxoIndex4Amount.Utxos {
 				//查找自身这条UTXO是否存在，如果存在则将其从其中删除
@@ -637,7 +637,7 @@ func (wallet *Wallet) buildInput(privacykeyParirs *privacy.Privacy, buildInfo *b
 			utxoIndex4Amount.Utxos = make([]*types.UTXOBasic, 0)
 		}
 		//如果请求返回的用于混淆的utxo不包含自身且达到mix的上限，则将最后一条utxo删除，保证最后的混淆度不大于设置
-		if len(utxoIndex4Amount.Utxos) >= int(buildInfo.mixcount) {
+		if len(utxoIndex4Amount.Utxos) > int(buildInfo.mixcount) {
 			utxoIndex4Amount.Utxos = utxoIndex4Amount.Utxos[:len(utxoIndex4Amount.Utxos)-1]
 		}
 

@@ -81,7 +81,7 @@ type QueueProtocolAPI interface {
 	// types.EventShowPrivacyBalance
 	ShowPrivacyBalance(param *types.ReqPrivBal4AddrToken) (*types.Account, error)
 	// types.EventShowPrivacyAccount
-	ShowPrivacyAccount(param *types.ReqPrivBal4AddrToken) ([]*types.UTXO, error)
+	ShowPrivacyAccount(param *types.ReqPrivBal4AddrToken) (*types.UTXOs, error)
 	// types.EventShowPrivacyAccountSpend
 	ShowPrivacyAccountSpend(param *types.ReqPrivBal4AddrToken) ([]*types.UTXOHaveTxHash, error)
 	// types.EventShowPrivacyPK
