@@ -165,6 +165,8 @@ func (m *mockWallet) SetQueueClient(q queue.Queue) {
 				msg.Reply(client.NewMessage(walletKey, types.EventReplyHashes, &types.ReplyHashes{}))
 			case types.EventLocalGet:
 				msg.Reply(client.NewMessage(walletKey, types.EventLocalReplyValue, &types.LocalReplyValue{}))
+			case types.EventLocalList:
+				msg.Reply(client.NewMessage(walletKey, types.EventLocalReplyValue, &types.LocalReplyValue{}))
 			case types.EventSignRawTx:
 				if req, ok := msg.GetData().(*types.ReqSignRawTx); ok {
 					if req.Addr == "case1" {
@@ -175,6 +177,9 @@ func (m *mockWallet) SetQueueClient(q queue.Queue) {
 				} else {
 					msg.ReplyErr("Do not support", types.ErrInvalidParam)
 				}
+			case types.EventFatalFailure:
+				msg.Reply(client.NewMessage(walletKey, types.EventReplyFatalFailure, &types.Int32{}))
+
 			default:
 				msg.ReplyErr("Do not support", types.ErrNotSupport)
 			}

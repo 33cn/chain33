@@ -58,6 +58,8 @@ message Consensus {
 	string readOnlyPeersURL = 17;
 	string addPeersURL = 18;
 	int64 defaultSnapCount = 19;
+	int64 writeBlockSeconds = 20;
+	int32 heartbeatTick = 21;
 }
 
 message Wallet {
@@ -113,9 +115,13 @@ message Rpc {
 	string jrpcBindAddr=1;
 	string grpcBindAddr=2;
 	repeated string whitlist=3;
+	repeated string whitelist=4;
+	repeated string jrpcFuncWhitelist=5;
+	repeated string grpcFuncWhitelist=6;
 }
 
 message Exec {
 	int64 minExecFee = 1;
 	bool  isFree = 2;
+	bool  enableStat = 3;
 }

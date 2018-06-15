@@ -51,14 +51,18 @@ func (f *Filterdata) ManageRecvFilter() {
 		<-ticker.C
 		now := time.Now().Unix()
 		for _, key := range f.regRData.Keys() {
-			regtime, _ := f.regRData.Get(key)
+			regtime, exist := f.regRData.Get(key)
+			if !exist {
+				log.Warn("Not found in regRData", "Key", key)
+				continue
+			}
 			if now-int64(regtime.(time.Duration)) < timeout {
 				break
 			}
 			f.regRData.Remove(key)
 		}
 
-		if !f.isClose() {
+		if f.isClose() {
 			return
 		}
 	}

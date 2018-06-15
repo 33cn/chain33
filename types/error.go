@@ -199,4 +199,8 @@ var (
 	ErrUnknowDriver               = errors.New("ErrUnknowDriver")
 	ErrSymbolNameNotAllow         = errors.New("ErrSymbolNameNotAllow")
 	ErrTxGroupNotSupport          = errors.New("ErrTxGroupNotSupport")
+	ErrNotAllowKey                = errors.New("ErrNotAllowKey")
+	ErrDataBaseDamage             = errors.New("ErrDataBaseDamage")
+	ErrIndex                      = errors.New("ErrIndex")
+	ErrNotAllowPubkey             = errors.New("ErrNotAllowPubkey")
 )
