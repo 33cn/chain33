@@ -15,13 +15,17 @@ const (
 	ExecTypeManage   = 8
 )
 
+const (
+	ExecerEvmString = "evm"
+)
+
 var (
 	ExecerCoins      = []byte("coins")
 	ExecerTicket     = []byte("ticket")
 	ExecerConfig     = []byte("config")
 	ExecerManage     = []byte("manage")
 	ExecerToken      = []byte("token")
-	ExecerEvm        = []byte("evm")
+	ExecerEvm        = []byte(ExecerEvmString)
 	AllowDepositExec = [][]byte{ExecerTicket}
 	AllowUserExec    = [][]byte{ExecerCoins, ExecerTicket, []byte("norm"), []byte("hashlock"),
 		[]byte("retrieve"), []byte("none"), ExecerToken, []byte("trade"), ExecerManage, ExecerEvm}
