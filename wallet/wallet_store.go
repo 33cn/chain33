@@ -30,6 +30,7 @@ const (
 	PrivacySTXO     = "STXO-"
 	PrivacyTokenMap = "PrivacyTokenMap"
 	FTXOTimeout     = types.ConfirmedHeight * 16     //Ftxo超时时间
+	FTXOs4Tx        = "FTXOs4Tx"
 )
 
 type Store struct {
@@ -410,7 +411,7 @@ func (ws *Store) DelAccountByLabel(label string) {
 }
 
 func (ws *Store) GetWalletFTXO() ([]*types.FTXOsSTXOsInOneTx, []string, error){
-	prefix := "FTXOs4Tx"
+	prefix := FTXOs4Tx
 	list := dbm.NewListHelper(ws.db)
 	values := list.List([]byte(prefix), nil, 0, 0)
 	var Ftxoes []*types.FTXOsSTXOsInOneTx
@@ -600,7 +601,6 @@ func (ws *Store) unmoveUTXO2FTXO(token, sender, txhash string, newbatch dbm.Batc
 	// 需要将FTXO的所有相关信息删除掉
 	newbatch.Delete(key1)
 	newbatch.Delete(key2)
-	walletlog.Error("************************************unmoveUTXO2FTXO", "lyh test", string(key2))
 }
 
 func (ws *Store) updateFTXOTimeoutCount(timecount int, txhash string, newbatch dbm.Batch) {
