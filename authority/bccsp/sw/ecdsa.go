@@ -22,14 +22,15 @@ package sw
 import (
 	"crypto/ecdsa"
 	"crypto/rand"
-	"fmt"
 	"errors"
+	"fmt"
+
+	"crypto/elliptic"
+	"encoding/asn1"
+	"math/big"
 
 	"gitlab.33.cn/chain33/chain33/authority/bccsp"
 	"gitlab.33.cn/chain33/chain33/authority/bccsp/utils"
-	"math/big"
-	"encoding/asn1"
-	"crypto/elliptic"
 )
 
 type ECDSASignature struct {

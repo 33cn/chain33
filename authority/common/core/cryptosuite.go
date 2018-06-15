@@ -25,6 +25,7 @@ package core
 
 import (
 	"hash"
+
 	"gitlab.33.cn/chain33/chain33/authority/bccsp"
 )
 

@@ -19,8 +19,8 @@ import (
 	"fmt"
 	"sync"
 
-	"gitlab.33.cn/chain33/chain33/authority/bccsp"
 	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/authority/bccsp"
 )
 
 var (

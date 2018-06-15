@@ -15,6 +15,6 @@ type UserData struct {
 
 // PrivKeyKey is a composite key for accessing a private key in the key store
 type PrivKeyKey struct {
-	ID    string
-	SKI   []byte
+	ID  string
+	SKI []byte
 }

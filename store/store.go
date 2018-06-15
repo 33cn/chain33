@@ -2,11 +2,12 @@ package store
 
 //store package store the world - state data
 import (
+	"fmt"
+
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/store/drivers/kvdb"
 	"gitlab.33.cn/chain33/chain33/store/drivers/mavl"
 	"gitlab.33.cn/chain33/chain33/types"
-	"fmt"
 )
 
 func New(cfg *types.Store) queue.Module {
