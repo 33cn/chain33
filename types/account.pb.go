@@ -322,6 +322,7 @@ It has these top-level messages:
 	ReplyPrivacyBalance
 	PrivacyDBStore
 	UTXO
+	UTXOHaveTxHash
 	ReqUTXOGlobalIndex
 	UTXOBasic
 	UTXOIndex4Amount

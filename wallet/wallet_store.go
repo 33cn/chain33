@@ -75,11 +75,11 @@ func calcUTXOKey4TokenAddr(token, addr, txhash string, index int) []byte {
 }
 
 func calcPrivacyUTXOPrefix(token string) []byte {
-	return []byte(fmt.Sprintf(PrivacyUTXO+"%s", token))
+	return []byte(fmt.Sprintf(PrivacyUTXO+"%s-", token))
 }
 
 func calcPrivacyUTXOPrefix4Addr(token, addr string) []byte {
-	return []byte(fmt.Sprintf(PrivacyUTXO+"%s-%s", token, addr))
+	return []byte(fmt.Sprintf(PrivacyUTXO+"%s-%s-", token, addr))
 }
 
 func calcPrivacy4TokenMap() []byte {
@@ -427,7 +427,7 @@ func (ws *Store) GetWalletFTXO() ([]*types.FTXOsSTXOsInOneTx, []string, error){
 			return nil, nil, err
 		}
 		Ftxoes = append(Ftxoes,FTXOsInOneTx)
-		key = append(key,string(value))
+		key = append(key, string(value))
 	}
 	return  Ftxoes, key, nil
 }
@@ -451,40 +451,40 @@ func (ws *Store) getWalletPrivacyTokenMap() *types.TokenNamesOfUTXO {
 	return &tokenNamesOfUTXO
 }
 
-func (ws *Store) updateWalletPrivacyTokenMap(tokenNames *types.TokenNamesOfUTXO, newbatch dbm.Batch, token, txhash string, addDelType int32) error {
-	if AddTx == addDelType {
-		privacyTokenNames, err := proto.Marshal(tokenNames)
-		if err != nil {
-			walletlog.Error("updateWalletPrivacyTokenMap proto.Marshal err!", "err", err)
-			return types.ErrMarshal
-		}
-		newbatch.Set(calcPrivacy4TokenMap(), privacyTokenNames)
-	} else {
-		value, err := ws.db.Get(calcPrivacy4TokenMap())
-		if err != nil {
-			walletlog.Error("updateWalletPrivacyTokenMap get from db err!", "err", err)
-			return err
-		}
-		var tokenNamesMap types.TokenNamesOfUTXO
-		if err := proto.Unmarshal(value, &tokenNamesMap); err != nil {
-			walletlog.Error("updateWalletPrivacyTokenMap proto.Unmarshal err!", "err", err)
-			return types.ErrUnmarshal
-		}
-
-		if txhashSaved, _ := tokenNamesMap.TokensMap[token]; txhashSaved == txhash {
-			delete(tokenNamesMap.TokensMap, token)
-		}
-
-		privacyTokenNames, err := proto.Marshal(&tokenNamesMap)
-		if err != nil {
-			walletlog.Error("updateWalletPrivacyTokenMap proto.Marshal err!", "err", err)
-			return types.ErrMarshal
-		}
-		newbatch.Set(calcPrivacy4TokenMap(), privacyTokenNames)
-	}
-
-	return nil
-}
+//func (ws *Store) updateWalletPrivacyTokenMap(tokenNames *types.TokenNamesOfUTXO, newbatch dbm.Batch, token, txhash string, addDelType int32) error {
+//	if AddTx == addDelType {
+//		privacyTokenNames, err := proto.Marshal(tokenNames)
+//		if err != nil {
+//			walletlog.Error("updateWalletPrivacyTokenMap proto.Marshal err!", "err", err)
+//			return types.ErrMarshal
+//		}
+//		newbatch.Set(calcPrivacy4TokenMap(), privacyTokenNames)
+//	} else {
+//		value, err := ws.db.Get(calcPrivacy4TokenMap())
+//		if err != nil {
+//			walletlog.Error("updateWalletPrivacyTokenMap get from db err!", "err", err)
+//			return err
+//		}
+//		var tokenNamesMap types.TokenNamesOfUTXO
+//		if err := proto.Unmarshal(value, &tokenNamesMap); err != nil {
+//			walletlog.Error("updateWalletPrivacyTokenMap proto.Unmarshal err!", "err", err)
+//			return types.ErrUnmarshal
+//		}
+//
+//		if txhashSaved, _ := tokenNamesMap.TokensMap[token]; txhashSaved == txhash {
+//			delete(tokenNamesMap.TokensMap, token)
+//		}
+//
+//		privacyTokenNames, err := proto.Marshal(&tokenNamesMap)
+//		if err != nil {
+//			walletlog.Error("updateWalletPrivacyTokenMap proto.Marshal err!", "err", err)
+//			return types.ErrMarshal
+//		}
+//		newbatch.Set(calcPrivacy4TokenMap(), privacyTokenNames)
+//	}
+//
+//	return nil
+//}
 
 //UTXO---->moveUTXO2FTXO---->FTXO---->moveFTXO2STXO---->STXO
 //1.calcUTXOKey------------>types.PrivacyDBStore 该kv值在db中的存储一旦写入就不再改变，除非产生该UTXO的交易被撤销
@@ -544,7 +544,14 @@ func (ws *Store) moveUTXO2FTXO(token, sender, txhash string, selectedUtxos []*tx
 	for _, txOutputInfo := range selectedUtxos {
 		key := calcUTXOKey4TokenAddr(token, sender, common.Bytes2Hex(txOutputInfo.utxoGlobalIndex.Txhash), int(txOutputInfo.utxoGlobalIndex.Outindex))
 		newbatch.Delete(key)
-		FTXOsInOneTx.UtxoGlobalIndex = append(FTXOsInOneTx.UtxoGlobalIndex, txOutputInfo.utxoGlobalIndex)
+		utxo := &types.UTXO{
+			Amount:txOutputInfo.amount,
+			UtxoBasic: &types.UTXOBasic{
+				UtxoGlobalIndex:txOutputInfo.utxoGlobalIndex,
+				OnetimePubkey:txOutputInfo.onetimePublicKey,
+			},
+		}
+		FTXOsInOneTx.Utxos = append(FTXOsInOneTx.Utxos, utxo)
 	}
 	FTXOsInOneTx.Tokenname = token
 	FTXOsInOneTx.Sender = sender
@@ -592,9 +599,9 @@ func (ws *Store) unmoveUTXO2FTXO(token, sender, txhash string, newbatch dbm.Batc
 		return
 	}
 	if err == nil {
-		for _, ftxo := range ftxosInOneTx.UtxoGlobalIndex {
-			utxohash := common.Bytes2Hex(ftxo.Txhash)
-			newbatch.Set(calcUTXOKey4TokenAddr(ftxosInOneTx.Tokenname, ftxosInOneTx.Sender, utxohash, int(ftxo.Outindex)), calcUTXOKey(utxohash, int(ftxo.Outindex)))
+		for _, ftxo := range ftxosInOneTx.Utxos {
+			utxohash := common.Bytes2Hex(ftxo.UtxoBasic.UtxoGlobalIndex.Txhash)
+			newbatch.Set(calcUTXOKey4TokenAddr(ftxosInOneTx.Tokenname, ftxosInOneTx.Sender, utxohash, int(ftxo.UtxoBasic.UtxoGlobalIndex.Outindex)), calcUTXOKey(utxohash, int(ftxo.UtxoBasic.UtxoGlobalIndex.Outindex)))
 		}
 	}
 	// 需要将FTXO的所有相关信息删除掉
@@ -715,12 +722,12 @@ func (ws *Store) unmoveFTXO2STXO(txhash string, newbatch dbm.Batch) error {
 	return nil
 }
 
-func (ws *Store) getWalletPrivacyTokenUTXOs(token string) map[string]*walletUTXOs {
-	prefix := calcPrivacyUTXOPrefix(token)
+func (ws *Store) getPrivacyTokenUTXOs(token, addr string) *walletUTXOs {
+	prefix := calcPrivacyUTXOPrefix4Addr(token, addr)
 	list := dbm.NewListHelper(ws.db)
 	values := list.List(prefix, nil, 0, 0)
 	if len(values) != 0 {
-		outs4token := make(map[string]*walletUTXOs)
+		outs4token := &walletUTXOs{}
 		for _, value := range values {
 			var privacyDBStore types.PrivacyDBStore
 			accByte, err := ws.db.Get(value)
@@ -742,17 +749,9 @@ func (ws *Store) getWalletPrivacyTokenUTXOs(token string) map[string]*walletUTXO
 					onetimePublicKey: privacyDBStore.OnetimePublicKey,
 				}
 
-				//当前地址为第一次保存信息
-				wos, ok := outs4token[privacyDBStore.Owner]
-				if !ok {
-					wos := &walletUTXOs{}
-					wos.outs = append(wos.outs, txOutputInfo)
-					outs4token[privacyDBStore.Owner] = wos
-				} else {
-					wos.outs = append(wos.outs, txOutputInfo)
-				}
+				outs4token.outs = append(outs4token.outs, txOutputInfo)
 			} else {
-				panic("Failed to decode PrivacyDBStore for getWalletPrivacyTokenUTXOs")
+				walletlog.Error("Failed to decode PrivacyDBStore for getWalletPrivacyTokenUTXOs")
 			}
 		}
 		return outs4token
@@ -820,9 +819,9 @@ func (ws *Store) listSpendUTXOs(token, addr string) ([]*types.UTXOHaveTxHash, er
 			return nil, types.ErrInputPara
 		}
 
-		for _, ftxo := range ftxosInOneTx.UtxoGlobalIndex {
-			utxohash := common.Bytes2Hex(ftxo.Txhash)
-			value1, err := ws.db.Get(calcUTXOKey(utxohash, int(ftxo.Outindex)))
+		for _, ftxo := range ftxosInOneTx.Utxos {
+			utxohash := common.Bytes2Hex(ftxo.UtxoBasic.UtxoGlobalIndex.Txhash)
+			value1, err := ws.db.Get(calcUTXOKey(utxohash, int(ftxo.UtxoBasic.UtxoGlobalIndex.Outindex)))
 			if err != nil {
 				continue
 			}
