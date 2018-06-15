@@ -88,13 +88,13 @@ func calcPrivacy4TokenMap() []byte {
 }
 
 //TODO:整理一下，通过类型确定不同类型的key
-func calcSTXOKey(token, addr, txhash string, index int) []byte {
-	return []byte(fmt.Sprintf(PrivacySTXO+"%s-%s-%s-%d", token, addr, txhash, index))
-}
-
-func calcSTXOPrefix(token string) []byte {
-	return []byte(fmt.Sprintf(PrivacySTXO+"%s", token))
-}
+//func calcSTXOKey(token, addr, txhash string, index int) []byte {
+//	return []byte(fmt.Sprintf(PrivacySTXO+"%s-%s-%s-%d", token, addr, txhash, index))
+//}
+//
+//func calcSTXOPrefix(token string) []byte {
+//	return []byte(fmt.Sprintf(PrivacySTXO+"%s", token))
+//}
 
 func calcSTXOPrefix4Addr(token, addr string) []byte {
 	return []byte(fmt.Sprintf(PrivacySTXO+"%s-%s", token, addr))
@@ -104,17 +104,17 @@ func calcSTXOTokenAddrTxKey(token, addr, txhash string) []byte {
 	return []byte(fmt.Sprintf(PrivacySTXO+"%s-%s-%s", token, addr, txhash))
 }
 
-func calcFTXOKey(token, addr, txhash string, index int) []byte {
-	return []byte(fmt.Sprintf(PrivacyFTXO+"%s-%s-%s-%d", token, addr, txhash, index))
-}
-
-func calcFTXOPrefix(token string) []byte {
-	return []byte(fmt.Sprintf(PrivacyFTXO+"%s", token))
-}
-
-func calcFTXOPrefix4Addr(token, addr string) []byte {
-	return []byte(fmt.Sprintf(PrivacyFTXO+"%s-%s", token, addr))
-}
+//func calcFTXOKey(token, addr, txhash string, index int) []byte {
+//	return []byte(fmt.Sprintf(PrivacyFTXO+"%s-%s-%s-%d", token, addr, txhash, index))
+//}
+//
+//func calcFTXOPrefix(token string) []byte {
+//	return []byte(fmt.Sprintf(PrivacyFTXO+"%s", token))
+//}
+//
+//func calcFTXOPrefix4Addr(token, addr string) []byte {
+//	return []byte(fmt.Sprintf(PrivacyFTXO+"%s-%s", token, addr))
+//}
 
 //通过height*100000+index 查询Tx交易信息
 //key:Tx:height*100000+index
