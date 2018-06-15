@@ -2,17 +2,15 @@ package relayd
 
 import (
 	"errors"
+	"strconv"
 	"sync"
 	"time"
-
-	"strconv"
 
 	"github.com/btcsuite/btcd/btcjson"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/rpcclient"
 	log "github.com/inconshreveable/log15"
-	"github.com/valyala/fasthttp"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -67,7 +65,6 @@ type btcdClient struct {
 	wg                  sync.WaitGroup
 	started             bool
 	quitMtx             sync.Mutex
-	httpClient          *fasthttp.Client
 }
 
 func NewBtcd(config *rpcclient.ConnConfig, reconnectAttempts int) (BtcClient, error) {
@@ -392,7 +389,7 @@ func (b *btcdClient) GetBlockHeader(height uint64) (*types.BtcHeader, error) {
 		return nil, err
 	}
 
-	bits, err := strconv.Atoi(header.Bits)
+	bits, err := strconv.ParseInt(header.Bits, 16, 32)
 	if err != nil {
 		return nil, err
 	}

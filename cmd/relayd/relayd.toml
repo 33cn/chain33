@@ -5,9 +5,9 @@ pprof = true
 trace = false
 Tick33 =60
 TickBTC = 30
-firstBtcHeight = 99900
+firstBtcHeight = 10
 # 0：btcd ; 1:btcdweb
-btcdOrWeb = 1
+btcdOrWeb = 0
 # The unit fee price
 fee = 100000
 syncSetup = 100
@@ -21,8 +21,7 @@ address = ""
 
 [chain33]
 id = "chain33"
-host = "127.0.0.1"
-endpoint = "8802"
+host = "chain33:8802"
 user = ""
 pass = ""
 disableAutoReconnect = true
@@ -30,12 +29,12 @@ reconnectAttempts = 10
 
 [btcd]
 id = "bitcoin"
-host = "192.168.3.36:18556"
+host = "chain33:18556"
 endpoint = "ws"
-user = "suyanlong"
-pass = "1314"
+user = "youruser"
+pass = "SomeDecentp4ssw0rd"
 disableTLS = false
-certPath = "/home/suyanlong/.gvm/pkgsets/go1.9.4/global/src/gitlab.33.cn/chain33/chain33"
+certPath = "/home/suyanlong/.btcd"
 proxy = ""
 proxyUser = ""
 proxyPass = ""
