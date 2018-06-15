@@ -103,9 +103,6 @@ type serverResponse struct {
 
 func writeError(w http.ResponseWriter, r *http.Request, id uint64, errstr string) {
 	w.Header().Set("Content-type", "application/json")
-	if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
-		w.Header().Set("Content-Encoding", "gzip")
-	}
 	//错误的请求也返回 200
 	w.WriteHeader(200)
 	resp, err := json.Marshal(&serverResponse{id, nil, errstr})
