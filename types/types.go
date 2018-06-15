@@ -22,7 +22,10 @@ type Message proto.Message
 
 var userKey = []byte("user.")
 var slash = []byte("-")
-var userEvm = []byte("user.evm.")
+
+const UserEvmString = "user.evm."
+
+var UserEvm = []byte(UserEvmString)
 
 //交易组的接口，Transactions 和 Transaction 都符合这个接口
 type TxGroup interface {
@@ -45,7 +48,7 @@ func isAllowExecName(name []byte) bool {
 		return false
 	}
 	//vm:
-	if bytes.HasPrefix(name, userEvm) {
+	if bytes.HasPrefix(name, UserEvm) {
 		name = ExecerEvm
 	}
 	if bytes.HasPrefix(name, userKey) {
