@@ -228,7 +228,7 @@ func CreateRawTx(to string, amount float64, note string, isWithdraw bool, isToke
 				transfer.Ty = types.CoinsActionTransfer
 			}
 		} else {
-			v := &types.CoinsAction_Withdraw{Withdraw: &types.CoinsWithdraw{Amount: amountInt64, Note: note}}
+			v := &types.CoinsAction_Withdraw{Withdraw: &types.CoinsWithdraw{Amount: amountInt64, Note: note, ExecName: execName}}
 			transfer.Value = v
 			transfer.Ty = types.CoinsActionWithdraw
 		}
