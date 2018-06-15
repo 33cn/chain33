@@ -20,7 +20,6 @@ const (
 	relayBTCHeaderHeightList = "relay-btcheader-height-list"
 	relayBTCHeaderLastHeight = "relay-btcheader-last-height"
 	relayBTCHeaderBaseHeight = "relay-btcheader-base-height"
-	relayRcvBTCHighestHead   = "relay-rcv-btcheader-ht"
 )
 
 func calcBtcHeaderKeyHash(hash string) []byte {

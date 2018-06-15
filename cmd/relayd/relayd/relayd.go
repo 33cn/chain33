@@ -7,7 +7,6 @@ import (
 	"math/rand"
 	"os"
 	"strconv"
-	"sync"
 	"sync/atomic"
 	"time"
 
@@ -22,14 +21,11 @@ import (
 type Relayd struct {
 	config            *Config
 	db                *relaydDB
-	mu                sync.Mutex
 	latestBlockHash   *chainhash.Hash
 	latestBtcHeight   uint64
-	knownBlockHash    *chainhash.Hash
 	knownBtcHeight    uint64
 	firstHeaderHeight uint64
 	btcClient         BtcClient
-	btcClientLock     sync.Mutex
 	client33          *Client33
 	ctx               context.Context
 	cancel            context.CancelFunc
@@ -82,7 +78,7 @@ func NewRelayd(config *Config) *Relayd {
 	client33 := NewClient33(&config.Chain33)
 	var btc BtcClient
 	if config.BtcdOrWeb == 0 {
-		btc, err = NewBtcd(config.Btcd.BitConnConfig(), int(config.Btcd.ReconnectAttempts))
+		btc, err = NewBtcd(config.Btcd.BitConnConfig(), config.Btcd.ReconnectAttempts)
 	} else {
 		btc, err = NewBtcWeb()
 	}
@@ -164,7 +160,7 @@ out:
 				log.Error("tick GetBestBlock", "error ", err)
 			} else {
 				r.latestBlockHash = hash
-				atomic.StoreUint64(&r.latestBtcHeight, uint64(height))
+				atomic.StoreUint64(&r.latestBtcHeight, height)
 			}
 			log.Info("tick", "latestBtcHeight: ", height, "knownBtcHeight: ", r.knownBtcHeight)
 
