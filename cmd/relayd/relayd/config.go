@@ -76,7 +76,6 @@ func (b *Btcd) BitConnConfig() *rpcclient.ConnConfig {
 type Chain33 struct {
 	Id                   string
 	Host                 string
-	Endpoint             string
 	User                 string
 	Pass                 string
 	DisableAutoReconnect bool

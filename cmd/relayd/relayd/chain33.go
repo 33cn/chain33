@@ -23,8 +23,7 @@ type Client33 struct {
 }
 
 func NewClient33(cfg *Chain33) *Client33 {
-	address := cfg.Host + ":" + cfg.Endpoint
-	conn, err := grpc.Dial(address, grpc.WithInsecure())
+	conn, err := grpc.Dial(cfg.Host, grpc.WithInsecure())
 	if err != nil {
 		panic(err)
 	}
@@ -95,7 +94,7 @@ func (c *Client33) ping(ctx context.Context) error {
 func (c *Client33) AutoReconnect(ctx context.Context) {
 	if c.isClosed && !c.config.DisableAutoReconnect {
 		c.closer.Close()
-		conn, err := grpc.Dial(c.config.Host+c.config.Endpoint, grpc.WithInsecure())
+		conn, err := grpc.Dial(c.config.Host, grpc.WithInsecure())
 		if err != nil {
 			panic(err)
 		}

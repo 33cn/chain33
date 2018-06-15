@@ -35,8 +35,8 @@ type Relayd struct {
 	cancel            context.CancelFunc
 	privateKey        crypto.PrivKey
 	publicKey         crypto.PubKey
-	isPersist         int32
-	isSnyc            int32
+	isPersisting      int32
+	isSnycing         int32
 	isResetBtcHeight  bool
 }
 
@@ -121,8 +121,8 @@ func NewRelayd(config *Config) *Relayd {
 		btcClient:         btc,
 		privateKey:        priKey,
 		publicKey:         pubkey,
-		isPersist:         0,
-		isSnyc:            0,
+		isPersisting:      0,
+		isSnycing:         0,
 		isResetBtcHeight:  isResetBtcHeight,
 	}
 }
@@ -166,15 +166,14 @@ out:
 				r.latestBlockHash = hash
 				atomic.StoreUint64(&r.latestBtcHeight, uint64(height))
 			}
+			log.Info("tick", "latestBtcHeight: ", height, "knownBtcHeight: ", r.knownBtcHeight)
 
-			if atomic.LoadUint64(&r.latestBtcHeight) > atomic.LoadUint64(&r.knownBtcHeight) {
-				if atomic.LoadInt32(&r.isPersist) == 0 {
-					go r.persistBlockHeaders()
-				}
+			if atomic.LoadInt32(&r.isPersisting) == 0 {
+				go r.persistBlockHeaders()
+			}
 
-				if atomic.LoadInt32(&r.isSnyc) == 0 {
-					go r.syncBlockHeaders()
-				}
+			if atomic.LoadInt32(&r.isSnycing) == 0 {
+				go r.syncBlockHeaders()
 			}
 
 		case <-ping:
@@ -184,24 +183,21 @@ out:
 }
 
 func (r *Relayd) persistBlockHeaders() {
-	atomic.StoreInt32(&r.isPersist, 1)
-	defer atomic.StoreInt32(&r.isPersist, 0)
-
-	if atomic.LoadUint64(&r.knownBtcHeight) < atomic.LoadUint64(&r.latestBtcHeight) {
-	out:
-		for i := atomic.LoadUint64(&r.knownBtcHeight); i < atomic.LoadUint64(&r.latestBtcHeight); i++ {
-			header, err := r.btcClient.GetBlockHeader(i)
-			if err != nil {
-				log.Error("syncBlockHeaders", "GetBlockHeader error", err)
-				break out
-			}
-			data := types.Encode(header)
-			r.db.Set(makeHeightKey(i), data)
-			r.db.Set(currentBtcBlockheightKey, []byte(fmt.Sprintf("%d", i)))
-			atomic.StoreUint64(&r.knownBtcHeight, i)
-			if i%10 == 0 {
-				log.Info("persistBlockHeaders", "current knownBtcHeight: ", i, "current latestBtcHeight: ", atomic.LoadUint64(&r.latestBtcHeight))
-			}
+	atomic.StoreInt32(&r.isPersisting, 1)
+	defer atomic.StoreInt32(&r.isPersisting, 0)
+out:
+	for i := atomic.LoadUint64(&r.knownBtcHeight); i <= atomic.LoadUint64(&r.latestBtcHeight); i++ {
+		header, err := r.btcClient.GetBlockHeader(i)
+		if err != nil {
+			log.Error("syncBlockHeaders", "GetBlockHeader error", err)
+			break out
+		}
+		data := types.Encode(header)
+		r.db.Set(makeHeightKey(i), data)
+		r.db.Set(currentBtcBlockheightKey, []byte(fmt.Sprintf("%d", i)))
+		atomic.StoreUint64(&r.knownBtcHeight, i)
+		if i%10 == 0 || (atomic.LoadUint64(&r.latestBtcHeight)-i) < 10 {
+			log.Info("persistBlockHeaders", "current knownBtcHeight: ", i, "current latestBtcHeight: ", atomic.LoadUint64(&r.latestBtcHeight))
 		}
 	}
 }
@@ -226,8 +222,8 @@ func (r *Relayd) queryChain33WithBtcHeight() (*types.ReplayRelayQryBTCHeadHeight
 }
 
 func (r *Relayd) syncBlockHeaders() {
-	atomic.StoreInt32(&r.isSnyc, 1)
-	defer atomic.StoreInt32(&r.isSnyc, 0)
+	atomic.StoreInt32(&r.isSnycing, 1)
+	defer atomic.StoreInt32(&r.isSnycing, 0)
 
 	knownBtcHeight := atomic.LoadUint64(&r.knownBtcHeight)
 	if knownBtcHeight > r.firstHeaderHeight {
@@ -243,18 +239,19 @@ func (r *Relayd) syncBlockHeaders() {
 			r.isResetBtcHeight = true
 		}
 
+		var total uint64
 		if r.isResetBtcHeight {
 			initIterHeight = r.firstHeaderHeight
+			total = knownBtcHeight - initIterHeight
 		} else {
 			initIterHeight = uint64(ret.CurHeight) + 1
-			if initIterHeight > r.knownBtcHeight {
+			if initIterHeight >= r.knownBtcHeight {
 				return
 			}
+			total = knownBtcHeight - initIterHeight + 1
 		}
 
-		total := knownBtcHeight - initIterHeight
 		totalConfig := r.config.SyncSetupCount * r.config.SyncSetup
-
 		if total > totalConfig {
 			total = totalConfig
 		}
