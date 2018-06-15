@@ -692,7 +692,7 @@ func (chain *BlockChain) ProcGetGlobalIndexMsg(reqUTXOGlobalIndex *types.ReqUTXO
 		resUTXOGlobalIndex.UtxoIndex4Amount = append(resUTXOGlobalIndex.UtxoIndex4Amount, utxoIndex4Amount)
 	}
 	debugDurtime := time.Since(debugBeginTime)
-	fmt.Println("ProcGetGlobalIndexMsg cost：", debugDurtime)
+	chainlog.Debug(fmt.Sprintf("ProcGetGlobalIndexMsg cost： %d", debugDurtime))
 	return resUTXOGlobalIndex, nil
 }
 

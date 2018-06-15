@@ -124,6 +124,10 @@ func (wallet *Wallet) procCreateUTXOs(createUTXOs *types.ReqCreateUTXOs) (*types
 		walletlog.Error("privacy2privacy input para is nil")
 		return nil, types.ErrInputPara
 	}
+	if !checkAmountValid(createUTXOs.GetAmount()) {
+		walletlog.Error("not allow amount number")
+		return nil, types.ErrAmount
+	}
 	priv, err := wallet.getPrivKeyByAddr(createUTXOs.GetSender())
 	if err != nil {
 		return nil, err
@@ -560,16 +564,16 @@ func (wallet *Wallet) buildInput(privacykeyParirs *privacy.Privacy, buildInfo *b
 	//挑选满足额度的utxo
 	selectedUtxo, err := wallet.selectUTXO(*buildInfo.tokenname, *buildInfo.sender, buildInfo.amount)
 	if err != nil {
-		walletlog.Error("transPri2Pri", "Failed to selectOutput for amount", buildInfo.amount,
+		walletlog.Error("buildInput", "Failed to selectOutput for amount", buildInfo.amount,
 			"Due to cause", err)
 		return nil, nil, nil, nil, err
 	}
 
-	walletlog.Debug("transPri2Pri", "Before sort selectedUtxo", selectedUtxo)
+	walletlog.Debug("buildInput", "Before sort selectedUtxo", selectedUtxo)
 	sort.Slice(selectedUtxo, func(i, j int) bool {
 		return selectedUtxo[i].amount <= selectedUtxo[j].amount
 	})
-	walletlog.Debug("transPri2Pri", "After sort selectedUtxo", selectedUtxo)
+	walletlog.Debug("buildInput", "After sort selectedUtxo", selectedUtxo)
 
 	reqGetGlobalIndex := types.ReqUTXOGlobalIndex{
 		Tokenname: *buildInfo.tokenname,
@@ -590,12 +594,12 @@ func (wallet *Wallet) buildInput(privacykeyParirs *privacy.Privacy, buildInfo *b
 		wallet.client.Send(msg, true)
 		resp, err := wallet.client.Wait(msg)
 		if err != nil {
-			walletlog.Error("transPri2Pri EventGetGlobalIndex", "err", err)
+			walletlog.Error("buildInput EventGetGlobalIndex", "err", err)
 			return nil, nil, nil, nil, err
 		}
 		resUTXOGlobalIndex = resp.GetData().(*types.ResUTXOGlobalIndex)
 		if resUTXOGlobalIndex == nil {
-			walletlog.Info("transPri2Pri EventGetGlobalIndex is nil")
+			walletlog.Info("buildInput EventGetGlobalIndex is nil")
 			return nil, nil, nil, nil, err
 		}
 
@@ -604,7 +608,7 @@ func (wallet *Wallet) buildInput(privacykeyParirs *privacy.Privacy, buildInfo *b
 		})
 
 		if len(selectedUtxo) != len(resUTXOGlobalIndex.UtxoIndex4Amount) {
-			walletlog.Error("transPri2Pri EventGetGlobalIndex get not the same count for mix",
+			walletlog.Error("buildInput EventGetGlobalIndex get not the same count for mix",
 				"len(selectedUtxo)", len(selectedUtxo),
 				"len(resUTXOGlobalIndex.UtxoIndex4Amount)", len(resUTXOGlobalIndex.UtxoIndex4Amount))
 		}

@@ -336,6 +336,11 @@ message UTXO {
     int64 amount     = 1;
     UTXOBasic utxoBasic   = 2;
 }
+message UTXOHaveTxHash {
+    int64 amount     = 1;
+    string txHash    = 2;
+    UTXOBasic utxoBasic   = 3;
+}
 
 message ReqUTXOGlobalIndex {
 	string tokenname = 1;
@@ -360,5 +365,9 @@ message ResUTXOGlobalIndex {
 }
 
 message FTXOsSTXOsInOneTx {
-    repeated UTXOGlobalIndex utxoGlobalIndex = 1;
+	string tokenname = 1;
+	string sender = 2;
+	int32  timeoutSec = 3;
+	string txhash = 4;
+	repeated UTXOGlobalIndex utxoGlobalIndex = 5;
 }
