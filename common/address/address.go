@@ -1,4 +1,4 @@
-package account
+package address
 
 import (
 	"bytes"
@@ -7,8 +7,7 @@ import (
 
 	"github.com/decred/base58"
 	lru "github.com/hashicorp/golang-lru"
-	"gitlab.33.cn/chain33/chain33/common"
-	"gitlab.33.cn/chain33/chain33/types"
+	. "gitlab.33.cn/chain33/chain33/common"
 )
 
 var addrSeed = []byte("address seed bytes for public key")
@@ -17,6 +16,8 @@ var bname [200]byte
 var addressCache *lru.Cache
 var checkAddressCache *lru.Cache
 
+const MaxExecNameLength = 100
+
 func init() {
 	addressCache, _ = lru.New(10240)
 	checkAddressCache, _ = lru.New(10240)
@@ -24,28 +25,32 @@ func init() {
 
 //计算量有点大，做一次cache
 func ExecAddress(name string) string {
-	if len(name) > 100 {
-		panic("name too long")
-	}
 	if value, ok := addressCache.Get(name); ok {
 		return value.(string)
 	}
-	buf := append(bname[:0], addrSeed...)
-	buf = append(buf, []byte(name)...)
-	hash := common.Sha2Sum(buf)
-	addr := PubKeyToAddress(hash[:])
+	addr := PubKeyToAddress(ExecPubkey(name))
 	addrstr := addr.String()
 	addressCache.Add(name, addrstr)
 	return addrstr
 }
 
-func GetExecAddress(name string) *Address {
-	if len(name) > 100 {
+func ExecPubkey(name string) []byte {
+	if len(name) > MaxExecNameLength {
 		panic("name too long")
 	}
 	buf := append(bname[:0], addrSeed...)
 	buf = append(buf, []byte(name)...)
-	hash := common.Sha2Sum(buf)
+	hash := Sha2Sum(buf)
+	return hash[:]
+}
+
+func GetExecAddress(name string) *Address {
+	if len(name) > MaxExecNameLength {
+		panic("name too long")
+	}
+	buf := append(bname[:0], addrSeed...)
+	buf = append(buf, []byte(name)...)
+	hash := Sha2Sum(buf)
 	addr := PubKeyToAddress(hash[:])
 	return addr
 }
@@ -55,12 +60,8 @@ func PubKeyToAddress(in []byte) *Address {
 	a.Pubkey = make([]byte, len(in))
 	copy(a.Pubkey[:], in[:])
 	a.Version = 0
-	a.Hash160 = common.Rimp160AfterSha256(in)
+	a.Hash160 = Rimp160AfterSha256(in)
 	return a
-}
-
-func From(tx *types.Transaction) *Address {
-	return PubKeyToAddress(tx.Signature.Pubkey)
 }
 
 func CheckAddress(addr string) (e error) {
@@ -82,7 +83,7 @@ func CheckAddress(addr string) (e error) {
 		return
 	}
 	if len(dec) == 25 {
-		sh := common.Sha2Sum(dec[0:21])
+		sh := Sha2Sum(dec[0:21])
 		if !bytes.Equal(sh[:4], dec[21:25]) {
 			e = errors.New("Address Checksum error")
 		}
@@ -102,7 +103,7 @@ func NewAddrFromString(hs string) (a *Address, e error) {
 		return
 	}
 	if len(dec) == 25 {
-		sh := common.Sha2Sum(dec[0:21])
+		sh := Sha2Sum(dec[0:21])
 		if !bytes.Equal(sh[:4], dec[21:25]) {
 			e = errors.New("Address Checksum error")
 		} else {
@@ -131,7 +132,7 @@ func (a *Address) String() string {
 		ad[0] = a.Version
 		copy(ad[1:21], a.Hash160[:])
 		if a.Checksum == nil {
-			sh := common.Sha2Sum(ad[0:21])
+			sh := Sha2Sum(ad[0:21])
 			a.Checksum = make([]byte, 4)
 			copy(a.Checksum, sh[:4])
 		}

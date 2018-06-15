@@ -6,7 +6,10 @@ import (
 	"encoding/json"
 	"time"
 
+	"strings"
+
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 )
 
@@ -61,6 +64,14 @@ func (txgroup *Transactions) Tx() *Transaction {
 
 func (txgroup *Transactions) GetTxGroup() *Transactions {
 	return txgroup
+}
+
+func (txgroup *Transactions) SignN(n int, ty int32, priv crypto.PrivKey) error {
+	if n >= len(txgroup.GetTxs()) {
+		return ErrIndex
+	}
+	txgroup.GetTxs()[n].Sign(ty, priv)
+	return nil
 }
 
 func (txgroup *Transactions) CheckSign() bool {
@@ -374,6 +385,10 @@ func (tx *Transaction) IsExpire(height, blocktime int64) bool {
 	return tx.isExpire(height, blocktime)
 }
 
+func (tx *Transaction) From() string {
+	return address.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
+}
+
 //检查交易是否过期，过期返回true，未过期返回false
 func (tx *Transaction) isExpire(height, blocktime int64) bool {
 	valid := tx.Expire
@@ -381,7 +396,6 @@ func (tx *Transaction) isExpire(height, blocktime int64) bool {
 	if valid == 0 {
 		return false
 	}
-
 	if valid <= expireBound {
 		//Expire小于1e9，为height
 		if valid > height { // 未过期
@@ -606,6 +620,14 @@ func (tx *Transaction) ActionName() string {
 			return "sellmarkettoken"
 		} else if trade.Ty == TradeRevokeBuy && trade.GetTokenrevokebuy() != nil {
 			return "revokebuytoken"
+		}
+	} else if bytes.Equal(tx.Execer, ExecerEvm) || bytes.HasPrefix(tx.Execer, []byte("user.evm.")) {
+		// 这个需要通过合约交易目标地址来判断Action
+		// 如果目标地址为空，或为evm的固定合约地址，则为创建合约，否则为调用合约
+		if strings.EqualFold(tx.To, "19tjS51kjwrCoSQS13U3owe7gYBLfSfoFm") {
+			return "createEvmContract"
+		} else {
+			return "callEvmContract"
 		}
 	}
 

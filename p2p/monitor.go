@@ -198,11 +198,6 @@ func (n *Node) getAddrFromAddrBook() {
 	ticker := time.NewTicker(GetAddrFromAddrBookInterval)
 	defer ticker.Stop()
 	var tickerTimes int64
-	seedsMap := make(map[string]bool) //每次循环seed的排序不同
-	seedArr := n.nodeInfo.cfg.GetSeeds()
-	for _, seed := range seedArr {
-		seedsMap[seed] = true
-	}
 
 	for {
 		<-ticker.C
@@ -225,10 +220,8 @@ func (n *Node) getAddrFromAddrBook() {
 			if !n.Has(addr.String()) && !n.nodeInfo.blacklist.Has(addr.String()) {
 				log.Debug("GetAddrFromOffline", "Add addr", addr.String())
 
-				if _, ok := seedsMap[addr.String()]; !ok {
-					if n.needMore() || n.CacheBoundsSize() < maxOutBoundNum {
-						pub.FIFOPub(addr.String(), "addr")
-					}
+				if n.needMore() || n.CacheBoundsSize() < maxOutBoundNum {
+					pub.FIFOPub(addr.String(), "addr")
 
 				}
 			}

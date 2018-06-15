@@ -6,12 +6,15 @@
 package client
 
 import (
-	"bytes"
+	"encoding/hex"
 	"fmt"
+	"math/rand"
 	"time"
 
 	"github.com/inconshreveable/log15"
 
+	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/version"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -625,23 +628,34 @@ func (q *QueueProtocol) IsNtpClockSync() (*types.Reply, error) {
 	return nil, err
 }
 
-func (q *QueueProtocol) LocalGet(param *types.ReqHash) (*types.LocalReplyValue, error) {
+func (q *QueueProtocol) LocalGet(param *types.LocalDBGet) (*types.LocalReplyValue, error) {
 	if param == nil {
 		err := types.ErrInvalidParam
 		log.Error("LocalGet", "Error", err)
 		return nil, err
 	}
 
-	var keys [][]byte
-	keys = append(keys, func(hash []byte) []byte {
-		s := [][]byte{[]byte("TotalFeeKey:"), hash}
-		sep := []byte("")
-		return bytes.Join(s, sep)
-	}(param.Hash))
-
-	msg, err := q.query(blockchainKey, types.EventLocalGet, &types.LocalDBGet{Keys: keys})
+	msg, err := q.query(blockchainKey, types.EventLocalGet, param)
 	if err != nil {
 		log.Error("LocalGet", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.LocalReplyValue); ok {
+		return reply, nil
+	}
+	return nil, types.ErrTypeAsset
+}
+
+func (q *QueueProtocol) LocalList(param *types.LocalDBList) (*types.LocalReplyValue, error) {
+	if param == nil {
+		err := types.ErrInvalidParam
+		log.Error("LocalList", "Error", err)
+		return nil, err
+	}
+
+	msg, err := q.query(blockchainKey, types.EventLocalList, param)
+	if err != nil {
+		log.Error("LocalList", "Error", err.Error())
 		return nil, err
 	}
 	if reply, ok := msg.GetData().(*types.LocalReplyValue); ok {
@@ -710,6 +724,7 @@ func (q *QueueProtocol) SignRawTx(param *types.ReqSignRawTx) (*types.ReplySignRa
 		Privkey: param.GetPrivkey(),
 		TxHex:   param.GetTxHex(),
 		Expire:  param.GetExpire(),
+		Index:   param.GetIndex(),
 	}
 	msg, err := q.query(walletKey, types.EventSignRawTx, data)
 	if err != nil {
@@ -761,4 +776,54 @@ func (q *QueueProtocol) StoreGetTotalCoins(param *types.IterateRangeByStateHash)
 	err = types.ErrTypeAsset
 	log.Error("StoreGetTotalCoins", "Error", err.Error())
 	return nil, err
+}
+
+func (q *QueueProtocol) GetFatalFailure() (*types.Int32, error) {
+	msg, err := q.query(walletKey, types.EventFatalFailure, &types.ReqNil{})
+	if err != nil {
+		log.Error("GetFatalFailure", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.Int32); ok {
+		return reply, nil
+	}
+	return nil, types.ErrTypeAsset
+}
+
+func (q *QueueProtocol) BindMiner(param *types.ReqBindMiner) (*types.ReplyBindMiner, error) {
+	ta := &types.TicketAction{}
+	tBind := &types.TicketBind{
+		MinerAddress:  param.BindAddr,
+		ReturnAddress: param.OriginAddr,
+	}
+	ta.Value = &types.TicketAction_Tbind{Tbind: tBind}
+	ta.Ty = types.TicketActionBind
+	execer := []byte("ticket")
+	to := address.ExecAddress(string(execer))
+	txBind := &types.Transaction{Execer: execer, Payload: types.Encode(ta), To: to}
+	random := rand.New(rand.NewSource(time.Now().UnixNano()))
+	txBind.Nonce = random.Int63()
+	var err error
+	txBind.Fee, err = txBind.GetRealFee(types.MinFee)
+	if err != nil {
+		return nil, err
+	}
+	txBind.Fee += types.MinFee
+	txBindHex := types.Encode(txBind)
+	txHexStr := hex.EncodeToString(txBindHex)
+
+	return &types.ReplyBindMiner{TxHex: txHexStr}, nil
+}
+
+func (q *QueueProtocol) DecodeRawTransaction(param *types.ReqDecodeRawTransaction) (*types.Transaction, error) {
+	var tx types.Transaction
+	bytes, err := common.FromHex(param.TxHex)
+	if err != nil {
+		return nil, err
+	}
+	err = types.Decode(bytes, &tx)
+	if err != nil {
+		return nil, err
+	}
+	return &tx, nil
 }

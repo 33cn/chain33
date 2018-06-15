@@ -83,6 +83,7 @@ func TestCoordinator(t *testing.T) {
 	testIsSync(t, api)
 	testIsNtpClockSync(t, api)
 	testLocalGet(t, api)
+	testLocalList(t, api)
 	testGetLastHeader(t, api)
 	testSignRawTx(t, api)
 	testStoreGetTotalCoins(t, api)
@@ -126,17 +127,24 @@ func testGetLastHeader(t *testing.T, api client.QueueProtocolAPI) {
 }
 
 func testLocalGet(t *testing.T, api client.QueueProtocolAPI) {
-	_, err := api.LocalGet(&types.ReqHash{})
+	_, err := api.LocalGet(nil)
+	if nil == err {
+		t.Error("LocalGet(nil) need return error.")
+	}
+	_, err = api.LocalGet(&types.LocalDBGet{})
 	if err != nil {
 		t.Error("Call LocalGet Failed.", err)
 	}
-	_, err = api.LocalGet(nil)
-	if err == nil {
-		t.Error("LocalGet(nil) need return error.")
+}
+
+func testLocalList(t *testing.T, api client.QueueProtocolAPI) {
+	_, err := api.LocalList(nil)
+	if nil == err {
+		t.Error("LocalList(nil) need return error.")
 	}
-	_, err = api.LocalGet(&types.ReqHash{Hash: []byte("case1")})
-	if err == nil {
-		t.Error("LocalGet(&types.ReqHash{Hash:[]byte(\"case1\")}) need return error.")
+	_, err = api.LocalList(&types.LocalDBList{})
+	if nil != err {
+		t.Error("Call LocalList Failed.", err)
 	}
 }
 

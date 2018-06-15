@@ -9,8 +9,10 @@ import (
 )
 
 var (
-	whitlist = make(map[string]bool)
-	rpcCfg   *types.Rpc
+	remoteIpWhitelist = make(map[string]bool)
+	rpcCfg            *types.Rpc
+	jrpcFuncWhitelist = make(map[string]bool)
+	grpcFuncWhitelist = make(map[string]bool)
 )
 
 type Chain33 struct {
@@ -36,18 +38,39 @@ func (s *JSONRPCServer) Close() {
 
 }
 
-func checkWhitlist(addr string) bool {
+func checkIpWhitelist(addr string) bool {
 
-	if _, ok := whitlist["0.0.0.0"]; ok {
+	if _, ok := remoteIpWhitelist["0.0.0.0"]; ok {
 		return true
 	}
 
-	if _, ok := whitlist[addr]; ok {
+	if _, ok := remoteIpWhitelist[addr]; ok {
 		return true
 	}
 	return false
 }
+func checkJrpcFuncWritelist(funcName string) bool {
 
+	if _, ok := jrpcFuncWhitelist["*"]; ok {
+		return true
+	}
+
+	if _, ok := jrpcFuncWhitelist[funcName]; ok {
+		return true
+	}
+	return false
+}
+func checkGrpcFuncWritelist(funcName string) bool {
+
+	if _, ok := grpcFuncWhitelist["*"]; ok {
+		return true
+	}
+
+	if _, ok := grpcFuncWhitelist[funcName]; ok {
+		return true
+	}
+	return false
+}
 func (j *Grpcserver) Close() {
 	j.grpc.cli.Close()
 
@@ -67,13 +90,60 @@ func NewJSONRPCServer(c queue.Client) *JSONRPCServer {
 
 func Init(cfg *types.Rpc) {
 	rpcCfg = cfg
-	if len(cfg.Whitlist) == 1 && cfg.Whitlist[0] == "*" {
-		whitlist["0.0.0.0"] = true
+	InitIpWhitelist(cfg)
+	InitJrpcFuncWhitelist(cfg)
+	InitGrpcFuncWhitelist(cfg)
+}
+func InitIpWhitelist(cfg *types.Rpc) {
+	if len(cfg.GetWhitelist()) == 0 && len(cfg.GetWhitlist()) == 0 {
+		remoteIpWhitelist["127.0.0.1"] = true
+		return
+	}
+	if len(cfg.GetWhitelist()) == 1 && cfg.GetWhitelist()[0] == "*" {
+		remoteIpWhitelist["0.0.0.0"] = true
+		return
+	}
+	if len(cfg.GetWhitlist()) == 1 && cfg.GetWhitlist()[0] == "*" {
+		remoteIpWhitelist["0.0.0.0"] = true
+		return
+	}
+	if len(cfg.GetWhitelist()) != 0 {
+		for _, addr := range cfg.GetWhitelist() {
+			remoteIpWhitelist[addr] = true
+		}
+		return
+	}
+	if len(cfg.GetWhitlist()) != 0 {
+		for _, addr := range cfg.GetWhitlist() {
+			remoteIpWhitelist[addr] = true
+		}
 		return
 	}
 
-	for _, addr := range cfg.Whitlist {
-		whitlist[addr] = true
+}
+func InitJrpcFuncWhitelist(cfg *types.Rpc) {
+	if len(cfg.GetJrpcFuncWhitelist()) == 0 {
+		jrpcFuncWhitelist["*"] = true
+		return
 	}
-
+	if len(cfg.GetJrpcFuncWhitelist()) == 1 && cfg.GetJrpcFuncWhitelist()[0] == "*" {
+		jrpcFuncWhitelist["*"] = true
+		return
+	}
+	for _, funcName := range cfg.GetJrpcFuncWhitelist() {
+		jrpcFuncWhitelist[funcName] = true
+	}
+}
+func InitGrpcFuncWhitelist(cfg *types.Rpc) {
+	if len(cfg.GetGrpcFuncWhitelist()) == 0 {
+		grpcFuncWhitelist["*"] = true
+		return
+	}
+	if len(cfg.GetGrpcFuncWhitelist()) == 1 && cfg.GetGrpcFuncWhitelist()[0] == "*" {
+		grpcFuncWhitelist["*"] = true
+		return
+	}
+	for _, funcName := range cfg.GetGrpcFuncWhitelist() {
+		grpcFuncWhitelist[funcName] = true
+	}
 }
