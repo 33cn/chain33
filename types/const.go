@@ -351,6 +351,8 @@ const (
 	EventReplyShowPrivacyBalance
 	EventShowPrivacyAccount
 	EventReplyShowPrivacyAccount
+	EventShowPrivacyAccountSpend
+	EventReplyShowPrivacyAccountSpend
 	EventGetPrivacyTransaction
 	EventReplyGetPrivacyTransaction
 	EventGetGlobalIndex
@@ -489,6 +491,8 @@ var eventName = map[int]string{
 	EventReplyShowPrivacyPK:         "EventReplyShowPrivacyPK",
 	EventShowPrivacyAccount:         "EventShowPrivacyAccount",
 	EventReplyShowPrivacyAccount:    "EventReplyShowPrivacyAccount",
+	EventShowPrivacyAccountSpend:         "EventShowPrivacyAccountSpend",
+	EventReplyShowPrivacyAccountSpend:    "EventReplyShowPrivacyAccountSpend",
 	EventGetPrivacyTransaction:      "EventGetPrivacyTransaction",
 	EventReplyGetPrivacyTransaction: "EventReplyGetPrivacyTransaction",
 	EventGetGlobalIndex:             "EventGetGlobalIndex",
