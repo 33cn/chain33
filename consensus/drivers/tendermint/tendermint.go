@@ -184,10 +184,6 @@ func (client *TendermintClient) StartConsensus() {
 		if seenCommit := blockInfo.SeenCommit; seenCommit != nil {
 			state.LastBlockID = ttypes.BlockID{
 				Hash: seenCommit.BlockID.GetHash(),
-				PartsHeader: ttypes.PartSetHeader{
-					Total: int(seenCommit.BlockID.GetPartsHeader().Total),
-					Hash:  seenCommit.BlockID.GetPartsHeader().Hash,
-				},
 			}
 		}
 	}

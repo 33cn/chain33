@@ -2,14 +2,8 @@ syntax = "proto3";
 
 package types;
 
-message PartSetHeader {
-    int32 Total = 1;
-    bytes Hash = 2;
-}
-
 message BlockID {
     bytes Hash = 1;
-    PartSetHeader PartsHeader = 2;
 }
 
 message TendermintBitArray {

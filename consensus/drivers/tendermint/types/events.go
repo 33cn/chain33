@@ -70,11 +70,6 @@ type EventDataNewBlockHeader struct {
 	Header *Header `json:"header"`
 }
 
-// All txs fire EventDataTx
-type EventDataTx struct {
-	TxResult
-}
-
 type EventDataProposalHeartbeat struct {
 	Heartbeat *Heartbeat
 }
@@ -112,9 +107,7 @@ const (
 type BlockEventPublisher interface {
 	PublishEventNewBlock(block EventDataNewBlock) error
 	PublishEventNewBlockHeader(header EventDataNewBlockHeader) error
-	PublishEventTx(EventDataTx) error
 }
 
 type TxEventPublisher interface {
-	PublishEventTx(EventDataTx) error
 }

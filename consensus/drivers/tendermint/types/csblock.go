@@ -53,14 +53,10 @@ func (bs *BlockStore) LoadSeenCommit(height int64) *Commit {
 	if seenCommit != nil {
 		votesCopy := make([]*Vote, len(seenCommit.GetPrecommits()))
 		LoadVotes(votesCopy, seenCommit.GetPrecommits())
-		if seenCommit.GetBlockID() != nil && seenCommit.GetBlockID().GetPartsHeader() != nil {
+		if seenCommit.GetBlockID() != nil {
 			return &Commit{
 				BlockID: BlockID{
 					Hash: seenCommit.BlockID.Hash,
-					PartsHeader: PartSetHeader{
-						Total: int(seenCommit.BlockID.PartsHeader.Total),
-						Hash:  seenCommit.BlockID.PartsHeader.Hash,
-					},
 				},
 				Precommits: votesCopy,
 			}
@@ -88,14 +84,10 @@ func (bs *BlockStore) LoadBlockCommit(height int64) *Commit {
 	if lastCommit != nil {
 		votesCopy := make([]*Vote, len(lastCommit.GetPrecommits()))
 		LoadVotes(votesCopy, lastCommit.GetPrecommits())
-		if lastCommit.GetBlockID() != nil && lastCommit.GetBlockID().GetPartsHeader() != nil {
+		if lastCommit.GetBlockID() != nil {
 			return &Commit{
 				BlockID: BlockID{
 					Hash: lastCommit.BlockID.Hash,
-					PartsHeader: PartSetHeader{
-						Total: int(lastCommit.BlockID.PartsHeader.Total),
-						Hash:  lastCommit.BlockID.PartsHeader.Hash,
-					},
 				},
 				Precommits: votesCopy,
 			}

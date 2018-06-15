@@ -17,7 +17,6 @@ const (
 	CommitStepMsg        = "CommitStep"
 	ProposalMsg          = "Proposal"
 	ProposalPOLMsg       = "ProposalPOL"
-	BlockPartMsg         = "BlockPart"
 	VoteMsg              = "Vote"
 	HasVoteMsg      	 = "HasVote"
 	VoteSetMaj23Msg 	 = "VoteSetMaj23"
@@ -43,7 +42,6 @@ func InitMessageMap() {
 		CommitStepMsg:        &CommitStepMessage{},
 		ProposalMsg:          &ProposalMessage{},
 		ProposalPOLMsg:       &ProposalPOLMessage{},
-		BlockPartMsg:         &BlockPartMessage{},
 		VoteMsg:              &VoteMessage{},
 		HasVoteMsg:           &HasVoteMessage{},
 		VoteSetMaj23Msg:      &VoteSetMaj23Message{},
@@ -96,13 +94,11 @@ func (m *NewRoundStepMessage) Copy() ReactorMsg {
 // CommitStepMessage is sent when a block is committed.
 type CommitStepMessage struct {
 	Height           int64
-	BlockPartsHeader PartSetHeader
-	BlockParts       *cmn.BitArray
 }
 
 // String returns a string representation.
 func (m *CommitStepMessage) String() string {
-	return fmt.Sprintf("[CommitStep H:%v BP:%v BA:%v]", m.Height, m.BlockPartsHeader, m.BlockParts)
+	return fmt.Sprintf("[CommitStep H:%v]", m.Height)
 }
 
 func (m *CommitStepMessage) TypeName() string {
@@ -152,27 +148,6 @@ func (m *ProposalPOLMessage) TypeName() string {
 
 func (m *ProposalPOLMessage) Copy() ReactorMsg {
 	return &ProposalPOLMessage{}
-}
-//-------------------------------------
-
-// BlockPartMessage is sent when gossipping a piece of the proposed block.
-type BlockPartMessage struct {
-	Height int64
-	Round  int
-	Part   *Part
-}
-
-// String returns a string representation.
-func (m *BlockPartMessage) String() string {
-	return fmt.Sprintf("[BlockPart H:%v R:%v P:%v]", m.Height, m.Round, m.Part)
-}
-
-func (m *BlockPartMessage) TypeName() string {
-	return BlockPartMsg
-}
-
-func (m *BlockPartMessage) Copy() ReactorMsg{
-	return &BlockPartMessage{}
 }
 //-------------------------------------
 

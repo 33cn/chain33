@@ -32,10 +32,6 @@ func (NopEventBus) PublishEventVote(vote EventDataVote) error {
 	return nil
 }
 
-func (NopEventBus) PublishEventTx(tx EventDataTx) error {
-	return nil
-}
-
 //--- EventDataRoundState events
 
 func (NopEventBus) PublishEventNewRoundStep(rs EventDataRoundState) error {

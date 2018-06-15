@@ -4,7 +4,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/consensus/drivers"
 	"fmt"
 	gtypes "gitlab.33.cn/chain33/chain33/types"
-	"time"
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
 	"sync"
@@ -31,7 +30,7 @@ func LoadState(state *gtypes.State) State {
 		ChainID: state.GetChainID(),
 		LastBlockHeight: state.GetLastBlockHeight(),
 		LastBlockTotalTx: state.GetLastBlockTotalTx(),
-		LastBlockTime: time.Unix(0, state.LastBlockTime),
+		LastBlockTime: state.LastBlockTime,
 		Validators: nil,
 		LastValidators:nil,
 		LastHeightValidatorsChanged: state.LastHeightValidatorsChanged,
@@ -181,7 +180,7 @@ func SaveState(state State) *gtypes.State {
 		ChainID: state.ChainID,
 		LastBlockHeight: state.LastBlockHeight,
 		LastBlockTotalTx: state.LastBlockTotalTx,
-		LastBlockTime: state.LastBlockTime.UnixNano(),
+		LastBlockTime: state.LastBlockTime,
 		Validators: &gtypes.ValidatorSet{Validators:make([]*gtypes.Validator,0), Proposer:&gtypes.Validator{}},
 		LastValidators:&gtypes.ValidatorSet{Validators:make([]*gtypes.Validator,0), Proposer:&gtypes.Validator{}},
 		LastHeightValidatorsChanged: state.LastHeightValidatorsChanged,
