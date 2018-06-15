@@ -7,11 +7,12 @@ SPDX-License-Identifier: Apache-2.0
 package identitymgr
 
 import (
+	"fmt"
+
 	"github.com/pkg/errors"
+	"gitlab.33.cn/chain33/chain33/authority/bccsp"
 	"gitlab.33.cn/chain33/chain33/authority/common/core"
 	"gitlab.33.cn/chain33/chain33/authority/identitymgr/filestore"
-	"gitlab.33.cn/chain33/chain33/authority/bccsp"
-	"fmt"
 )
 
 var (
@@ -50,16 +51,16 @@ func NewIdentityManager(orgName string, cryptoSuite core.CryptoSuite, CryptoPath
 		cryptoSuite:     cryptoSuite,
 		mspPrivKeyStore: mspPrivKeyStore,
 		mspCertStore:    mspCertStore,
-		userStore:		 userStore,
+		userStore:       userStore,
 	}
 	return mgr, nil
 }
 
-func (mgr *IdentityManager) loadUserFromStore(username string) (*User) {
-	user,ok := mgr.userStore[username]
-	if(ok) {
+func (mgr *IdentityManager) loadUserFromStore(username string) *User {
+	user, ok := mgr.userStore[username]
+	if ok {
 		return &user
-	}else{
+	} else {
 		return nil
 	}
 }
@@ -100,7 +101,7 @@ func (mgr *IdentityManager) GetUser(username string) (*User, error) { //nolint
 			return nil, fmt.Errorf("unable to find private key for user [%s]", username)
 		}
 		u = &User{
-			id:    username,
+			id: username,
 			enrollmentCertificate: certBytes,
 			privateKey:            privateKey,
 		}
@@ -115,8 +116,8 @@ func (mgr *IdentityManager) getPrivateKeyPemFromKeyStore(username string, ski []
 	}
 	key, err := mgr.mspPrivKeyStore.Load(
 		&core.PrivKeyKey{
-			ID:    username,
-			SKI:   ski,
+			ID:  username,
+			SKI: ski,
 		})
 	if err != nil {
 		return nil, err

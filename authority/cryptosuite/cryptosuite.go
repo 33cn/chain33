@@ -7,8 +7,9 @@ SPDX-License-Identifier: Apache-2.0
 package cryptosuite
 
 import (
-	"gitlab.33.cn/chain33/chain33/authority/bccsp"
 	"hash"
+
+	"gitlab.33.cn/chain33/chain33/authority/bccsp"
 )
 
 // CryptoSuite provides a wrapper of BCCSP

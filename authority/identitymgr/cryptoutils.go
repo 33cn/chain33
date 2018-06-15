@@ -12,12 +12,13 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 
-	"gitlab.33.cn/chain33/chain33/authority/common/core"
-	"gitlab.33.cn/chain33/chain33/authority/bccsp/utils"
 	"gitlab.33.cn/chain33/chain33/authority/bccsp"
+	"gitlab.33.cn/chain33/chain33/authority/bccsp/utils"
+	"gitlab.33.cn/chain33/chain33/authority/common/core"
+
+	"fmt"
 
 	"github.com/pkg/errors"
-	"fmt"
 )
 
 // GetPublicKeyFromCert will return public key the from cert

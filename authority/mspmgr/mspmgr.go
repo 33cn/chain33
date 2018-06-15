@@ -17,8 +17,9 @@ limitations under the License.
 package mspmgr
 
 import (
-	"gitlab.33.cn/chain33/chain33/authority/cryptosuite"
 	"errors"
+
+	"gitlab.33.cn/chain33/chain33/authority/cryptosuite"
 )
 
 var localMsp MSP

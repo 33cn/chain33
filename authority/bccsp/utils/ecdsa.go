@@ -70,7 +70,6 @@ func UnmarshalECDSASignature(raw []byte) (*big.Int, *big.Int, error) {
 	return sig.R, sig.S, nil
 }
 
-
 // IsLow checks that s is a low-S
 func IsLowS(k *ecdsa.PublicKey, s *big.Int) (bool, error) {
 	halfOrder, ok := curveHalfOrders[k.Curve]

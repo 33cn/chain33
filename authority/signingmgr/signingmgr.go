@@ -7,16 +7,18 @@ SPDX-License-Identifier: Apache-2.0
 package signingmgr
 
 import (
-	"gitlab.33.cn/chain33/chain33/authority/common/core"
-	"gitlab.33.cn/chain33/chain33/authority/bccsp"
-	"gitlab.33.cn/chain33/chain33/authority/cryptosuite"
-	"github.com/pkg/errors"
-	"fmt"
 	"encoding/hex"
+	"fmt"
+
 	log "github.com/inconshreveable/log15"
+	"github.com/pkg/errors"
+	"gitlab.33.cn/chain33/chain33/authority/bccsp"
+	"gitlab.33.cn/chain33/chain33/authority/common/core"
+	"gitlab.33.cn/chain33/chain33/authority/cryptosuite"
 )
 
 var signLogger = log.New("module", "signingmgr")
+
 // SigningManager is used for signing objects with private key
 type SigningManager struct {
 	cryptoProvider core.CryptoSuite

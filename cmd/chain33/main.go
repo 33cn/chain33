@@ -22,6 +22,7 @@ import (
 	"time"
 
 	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/authority"
 	"gitlab.33.cn/chain33/chain33/blockchain"
 	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/limits"
@@ -39,7 +40,6 @@ import (
 	"golang.org/x/net/trace"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/grpclog"
-	"gitlab.33.cn/chain33/chain33/authority"
 )
 
 var (
