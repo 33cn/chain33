@@ -103,6 +103,10 @@ func InitIpWhitelist(cfg *types.Rpc) {
 		remoteIpWhitelist["0.0.0.0"] = true
 		return
 	}
+	if len(cfg.GetWhitlist()) == 1 && cfg.GetWhitlist()[0] == "*" {
+		remoteIpWhitelist["0.0.0.0"] = true
+		return
+	}
 	if len(cfg.GetWhitelist()) != 0 {
 		for _, addr := range cfg.GetWhitelist() {
 			remoteIpWhitelist[addr] = true
