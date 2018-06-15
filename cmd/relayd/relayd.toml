@@ -7,7 +7,7 @@ Tick33 =60
 TickBTC = 30
 firstBtcHeight = 10
 # 0：btcd ; 1:btcdweb
-btcdOrWeb = 0
+btcdOrWeb = 1
 # The unit fee price
 fee = 100000
 syncSetup = 100
