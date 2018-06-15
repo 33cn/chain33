@@ -13,24 +13,29 @@ PWD=$(cd "$(dirname "$0")" && pwd)
 export PATH="$PWD:$PATH"
 CLI="sudo docker exec ${1}_chain33_1 /root/chain33-cli"
 
+sedfix=""
+if [ "$(uname)" == "Darwin" ]; then
+	sedfix=".bak"
+fi
+
 function init(){
     # update test environment
-    sed -i 's/^TestNet=.*/TestNet=true/g' chain33.toml
+    sed -i $sedfix 's/^TestNet=.*/TestNet=true/g' chain33.toml
 
     # p2p
-    sed -i 's/^seeds=.*/seeds=["chain33:13802","chain32:13802","chain31:13802"]/g' chain33.toml
-    sed -i 's/^enable=.*/enable=true/g' chain33.toml
-    sed -i 's/^isSeed=.*/isSeed=true/g' chain33.toml
-    sed -i 's/^innerSeedEnable=.*/innerSeedEnable=false/g' chain33.toml
-    sed -i 's/^useGithub=.*/useGithub=false/g' chain33.toml
+    sed -i $sedfix 's/^seeds=.*/seeds=["chain33:13802","chain32:13802","chain31:13802"]/g' chain33.toml
+    sed -i $sedfix 's/^enable=.*/enable=true/g' chain33.toml
+    sed -i $sedfix 's/^isSeed=.*/isSeed=true/g' chain33.toml
+    sed -i $sedfix 's/^innerSeedEnable=.*/innerSeedEnable=false/g' chain33.toml
+    sed -i $sedfix 's/^useGithub=.*/useGithub=false/g' chain33.toml
 
     # rpc
-    sed -i 's/^jrpcBindAddr=.*/jrpcBindAddr="0.0.0.0:8801"/g' chain33.toml
-    sed -i 's/^grpcBindAddr=.*/grpcBindAddr="0.0.0.0:8802"/g' chain33.toml
-    sed -i 's/^whitlist=.*/whitlist=["localhost","127.0.0.1","0.0.0.0"]/g' chain33.toml
+    sed -i $sedfix 's/^jrpcBindAddr=.*/jrpcBindAddr="0.0.0.0:8801"/g' chain33.toml
+    sed -i $sedfix 's/^grpcBindAddr=.*/grpcBindAddr="0.0.0.0:8802"/g' chain33.toml
+    sed -i $sedfix 's/^whitlist=.*/whitlist=["localhost","127.0.0.1","0.0.0.0"]/g' chain33.toml
 
     # wallet
-    sed -i 's/^minerdisable=.*/minerdisable=false/g' chain33.toml
+    sed -i $sedfix 's/^minerdisable=.*/minerdisable=false/g' chain33.toml
 
     # docker-compose ps
     sudo docker-compose ps

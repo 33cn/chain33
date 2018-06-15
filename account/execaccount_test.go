@@ -4,7 +4,7 @@ import (
 	"testing"
 	//"fmt"
 
-	//"gitlab.33.cn/chain33/chain33/common/db"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	//"gitlab.33.cn/chain33/chain33/queue"
 	"github.com/stretchr/testify/require"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -34,7 +34,7 @@ func TestLoadExecAccountQueue(t *testing.T) {
 	blockchainProcess(q)
 	storeProcess(q)
 
-	execaddress := ExecAddress("ticket")
+	execaddress := address.ExecAddress("ticket")
 	accCoin, _ := GenerAccDb()
 	acc, err := accCoin.LoadExecAccountQueue(qAPI, addr1, execaddress)
 	require.NoError(t, err)
@@ -63,7 +63,7 @@ func TestTransferWithdraw(t *testing.T) {
 	storeProcess(q)
 
 	accCoin, _ := GenerAccDb()
-	execaddr := ExecAddress("coins")
+	execaddr := address.ExecAddress("coins")
 
 	account := &types.Account{
 		Balance: 1000 * 1e8,
@@ -89,7 +89,7 @@ func TestExecFrozen(t *testing.T) {
 	blockchainProcess(q)
 	storeProcess(q)
 
-	execaddress := ExecAddress("coins")
+	execaddress := address.ExecAddress("coins")
 	accCoin, _ := GenerAccDb()
 	accCoin.GenerExecAccData(execaddress)
 	_, err := accCoin.ExecFrozen(addr1, execaddress, 10*1e8)
@@ -108,7 +108,7 @@ func TestExecActive(t *testing.T) {
 	blockchainProcess(q)
 	storeProcess(q)
 
-	execaddress := ExecAddress("coins")
+	execaddress := address.ExecAddress("coins")
 	accCoin, _ := GenerAccDb()
 	accCoin.GenerExecAccData(execaddress)
 	_, err := accCoin.ExecActive(addr1, execaddress, 10*1e8)
@@ -127,7 +127,7 @@ func TestExecTransfer(t *testing.T) {
 	blockchainProcess(q)
 	storeProcess(q)
 
-	execaddress := ExecAddress("coins")
+	execaddress := address.ExecAddress("coins")
 	accCoin, _ := GenerAccDb()
 	accCoin.GenerExecAccData(execaddress)
 	_, err := accCoin.ExecTransfer(addr1, addr2, execaddress, 10*1e8)
@@ -144,7 +144,7 @@ func TestExecTransferFrozen(t *testing.T) {
 	blockchainProcess(q)
 	storeProcess(q)
 
-	execaddress := ExecAddress("coins")
+	execaddress := address.ExecAddress("coins")
 	accCoin, _ := GenerAccDb()
 	accCoin.GenerExecAccData(execaddress)
 	_, err := accCoin.ExecTransferFrozen(addr1, addr2, execaddress, 10*1e8)
@@ -161,7 +161,7 @@ func TestExecDepositFrozen(t *testing.T) {
 	blockchainProcess(q)
 	storeProcess(q)
 
-	execaddress := ExecAddress("ticket")
+	execaddress := address.ExecAddress("ticket")
 	accCoin, _ := GenerAccDb()
 	accCoin.GenerExecAccData(execaddress)
 	_, err := accCoin.ExecDepositFrozen(addr1, execaddress, 25*1e8)

@@ -155,7 +155,7 @@ func (mem *Mempool) RemoveExpiredAndDuplicateMempoolTxs() []*types.Transaction {
 	for _, v := range mem.cache.txMap {
 		item := v.Value.(*Item)
 		hash := item.value.Hash()
-		if time.Now().UnixNano()/1000000-item.enterTime >= mempoolExpiredInterval {
+		if time.Now().Unix()-item.enterTime >= mempoolExpiredInterval {
 			// 清理滞留Mempool中超过10分钟的交易
 			mem.cache.Remove(hash)
 		} else if item.value.IsExpire(mem.header.GetHeight(), mem.header.GetBlockTime()) {
@@ -174,7 +174,7 @@ func (mem *Mempool) RemoveTxsOfBlock(block *types.Block) bool {
 	defer mem.proxyMtx.Unlock()
 	for _, tx := range block.Txs {
 		hash := tx.Hash()
-		mem.addedTxs.Add(string(hash), nil)
+		mem.addedTxs.Add(string(hash), time.Now().Unix())
 		exist := mem.cache.Exists(hash)
 		if exist {
 			mem.cache.Remove(hash)
@@ -188,7 +188,7 @@ func (mem *Mempool) RemoveTxs(hashList *types.TxHashList) error {
 	mem.proxyMtx.Lock()
 	defer mem.proxyMtx.Unlock()
 	for _, hash := range hashList.Hashes {
-		mem.addedTxs.Add(string(hash), nil)
+		mem.addedTxs.Add(string(hash), time.Now().Unix())
 		exist := mem.cache.Exists(hash)
 		if exist {
 			mem.cache.Remove(hash)
@@ -253,7 +253,7 @@ func (mem *Mempool) ReTry() {
 	var result []*types.Transaction
 	mem.proxyMtx.Lock()
 	for _, v := range mem.cache.txMap {
-		if time.Now().UnixNano()/1000000-v.Value.(*Item).enterTime >= mempoolReSendInterval {
+		if time.Now().Unix()-v.Value.(*Item).enterTime >= mempoolReSendInterval {
 			result = append(result, v.Value.(*Item).value)
 		}
 	}

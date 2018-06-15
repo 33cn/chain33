@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/blockchain"
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/limits"
@@ -26,7 +26,7 @@ var (
 	privKey, _ = c.PrivKeyFromBytes(a)
 	random     *rand.Rand
 	mainPriv   crypto.PrivKey
-	toAddr     = account.PubKeyToAddress(privKey.PubKey().Bytes()).String()
+	toAddr     = address.PubKeyToAddress(privKey.PubKey().Bytes()).String()
 	amount     = int64(1e8)
 	v          = &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
 	transfer   = &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
@@ -48,7 +48,7 @@ var (
 )
 
 //var privTo, _ = c.GenKey()
-//var ad = account.PubKeyToAddress(privKey.PubKey().Bytes()).String()
+//var ad = address.PubKeyToAddress(privKey.PubKey().Bytes()).String()
 
 var blk = &types.Block{
 	Version:    1,
@@ -180,7 +180,7 @@ func genaddress() (string, crypto.PrivKey) {
 	if err != nil {
 		panic(err)
 	}
-	addrto := account.PubKeyToAddress(privto.PubKey().Bytes())
+	addrto := address.PubKeyToAddress(privto.PubKey().Bytes())
 	return addrto.String(), privto
 }
 
@@ -671,7 +671,7 @@ func TestGetAddrTxs(t *testing.T) {
 		return
 	}
 
-	ad := account.PubKeyToAddress(privKey.PubKey().Bytes()).String()
+	ad := address.PubKeyToAddress(privKey.PubKey().Bytes()).String()
 	addrs := []string{ad}
 	msg := mem.client.NewMessage("mempool", types.EventGetAddrTxs, &types.ReqAddrs{Addrs: addrs})
 	mem.client.Send(msg, true)

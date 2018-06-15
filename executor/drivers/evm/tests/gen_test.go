@@ -64,7 +64,7 @@ func scanTestData(basePath string) {
 			match := re.FindStringSubmatch(basename)
 			num := match[1]
 			number, _ := strconv.Atoi(num)
-			if testCaseFilter.filter(number) {
+			if !testCaseFilter.filter(number) {
 				return nil
 			}
 
@@ -112,6 +112,9 @@ func genTestFile(basePath string, datas map[string]string) {
 		json.Unmarshal(testdata, &datas)
 
 		for _, v := range datas {
+			if !testCaseFilter.filterCaseName(v.Name) {
+				continue
+			}
 			fp, err := os.Create(basePath + string(filepath.Separator) + "generated_" + v.Name + ".json")
 			if err != nil {
 				fmt.Println(err)
