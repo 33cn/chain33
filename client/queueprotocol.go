@@ -798,6 +798,18 @@ func (q *QueueProtocol) ShowPrivacyAccount(param *types.ReqPrivBal4AddrToken) (*
 	return nil, types.ErrTypeAsset
 }
 
+func (q *QueueProtocol) ShowPrivacyAccountSpend(param *types.ReqPrivBal4AddrToken) ([]*types.UTXOHaveTxHash, error) {
+	msg, err := q.query(walletKey, types.EventShowPrivacyAccountSpend, param)
+	if err != nil {
+		log.Error("EventShowPrivacyAccountSpend", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().([]*types.UTXOHaveTxHash); ok {
+		return reply, nil
+	}
+	return nil, types.ErrTypeAsset
+}
+
 func (q *QueueProtocol) ShowPrivacyKey(param *types.ReqStr) (*types.ReplyPrivacyPkPair, error) {
 	msg, err := q.query(walletKey, types.EventShowPrivacyPK, param)
 	if err != nil {
