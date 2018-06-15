@@ -11,8 +11,6 @@ import (
 )
 
 var (
-	// certHomeDir = btcutil.AppDataDir("btcd", false)
-	// certHomeDir = "/home/suyanlong/.gvm/pkgsets/go1.9.4/global/src/gitlab.33.cn/chain33/chain33"
 	certHomeDir = "/home/suyanlong/.btcd"
 	certs, _    = ioutil.ReadFile(filepath.Join(certHomeDir, "rpc.cert"))
 	connCfg     = &rpcclient.ConnConfig{

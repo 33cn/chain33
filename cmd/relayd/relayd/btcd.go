@@ -6,7 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/btcsuite/btcd/btcjson"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/rpcclient"
@@ -151,24 +150,6 @@ func (b *btcdClient) BlockStamp() (*BlockStamp, error) {
 	case <-b.quit:
 		return nil, errors.New("disconnected")
 	}
-}
-
-func parseBlock(block *btcjson.BlockDetails) (*BlockMeta, error) {
-	if block == nil {
-		return nil, nil
-	}
-	blkHash, err := chainhash.NewHashFromStr(block.Hash)
-	if err != nil {
-		return nil, err
-	}
-	blk := &BlockMeta{
-		BlockStamp: BlockStamp{
-			Height: block.Height,
-			Hash:   *blkHash,
-		},
-		Time: time.Unix(block.Time, 0),
-	}
-	return blk, nil
 }
 
 func (b *btcdClient) onClientConnect() {
@@ -401,7 +382,7 @@ func (b *btcdClient) GetBlockHeader(height uint64) (*types.BtcHeader, error) {
 		MerkleRoot:    header.MerkleRoot,
 		Time:          header.Time,
 		Nonce:         header.Nonce,
-		Bits:          int64(bits),
+		Bits:          bits,
 		PreviousHash:  header.PreviousHash,
 		NextHash:      header.NextHash,
 		Version:       uint32(header.Version),
