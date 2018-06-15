@@ -242,6 +242,14 @@ message ReplyAuthSignTx{
 	bytes tx = 1;
 }
 
+message ReqAuthSignTxs{
+	repeated Transaction txs = 1;
+}
+
+message ReplyAuthSignTxs{
+	repeated Transaction txs = 1;
+}
+
 message ReportErrEvent {
     string frommodule = 1;
     string tomodule = 2;

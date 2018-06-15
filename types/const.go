@@ -59,7 +59,7 @@ var (
 	MinBalanceTransfer int64 = 1e6
 	testNet            bool
 	title              string
-	IsAuthEnable             = false
+	IsAuthEnable       = false
 )
 
 func SetTitle(t string) {
@@ -296,12 +296,14 @@ const (
 	EventReplyFatalFailure   = 114
 
 	//Auth
-	EventAuthoritySignTx  = 180
-	EventAuthorityCheckTx = 181
-	EventReplyAuthSignTx  = 182
-	EventReplyAuthCheckTx = 183
+	EventAuthoritySignTx   = 180
+	EventAuthorityCheckTx  = 181
+	EventReplyAuthSignTx   = 182
+	EventReplyAuthCheckTx  = 183
 	EventAuthorityCheckTxs = 184
 	EventReplyAuthCheckTxs = 185
+	EventAuthoritySignTxs  = 186
+	EventReplyAuthSignTxs  = 187
 
 	// Token
 	EventBlockChainQuery = 212
