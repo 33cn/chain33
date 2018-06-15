@@ -594,10 +594,9 @@ const (
 	TyLogModifyConfig = 410
 
 	// log for privacy
-	TyLogPrivacyFee = iota + 500
-	TyLogPrivacyFeeUTXO
-	TyLogPrivacyInput
-	TyLogPrivacyOutput
+	TyLogPrivacyFee    = 500
+	TyLogPrivacyInput  = 501
+	TyLogPrivacyOutput = 502
 
 	// log for evm
 	// 合约代码变更日志

@@ -446,7 +446,7 @@ func (tx *Transaction) Json() string {
 //解析tx的payload获取amount值
 func (tx *Transaction) Amount() (int64, error) {
 
-	if "coins" == string(tx.Execer) {
+	if CoinsX == string(tx.Execer) {
 		var action CoinsAction
 		err := Decode(tx.GetPayload(), &action)
 		if err != nil {
@@ -465,7 +465,7 @@ func (tx *Transaction) Amount() (int64, error) {
 			transfer := action.GetTransferToExec()
 			return transfer.Amount, nil
 		}
-	} else if "ticket" == string(tx.Execer) {
+	} else if TicketX == string(tx.Execer) {
 		var action TicketAction
 		err := Decode(tx.GetPayload(), &action)
 		if err != nil {
@@ -475,7 +475,7 @@ func (tx *Transaction) Amount() (int64, error) {
 			ticketMiner := action.GetMiner()
 			return ticketMiner.Reward, nil
 		}
-	} else if "token" == string(tx.Execer) { //TODO: 补充和完善token和trade分支的amount的计算, added by hzj
+	} else if TokenX == string(tx.Execer) { //TODO: 补充和完善token和trade分支的amount的计算, added by hzj
 		var action TokenAction
 		err := Decode(tx.GetPayload(), &action)
 		if err != nil {
@@ -495,7 +495,7 @@ func (tx *Transaction) Amount() (int64, error) {
 			return 0, nil
 		}
 
-	} else if "trade" == string(tx.Execer) {
+	} else if TradeX == string(tx.Execer) {
 		var trade Trade
 		err := Decode(tx.GetPayload(), &trade)
 		if err != nil {
@@ -508,6 +508,20 @@ func (tx *Transaction) Amount() (int64, error) {
 			return 0, nil
 		} else if TradeRevokeSell == trade.Ty && trade.GetTokenrevokesell() != nil {
 			return 0, nil
+		}
+	} else if PrivacyX == string(tx.Execer) {
+		var action PrivacyAction
+		err := Decode(tx.Payload, &action)
+		if err != nil {
+			return 0, ErrDecode
+		}
+
+		if action.Ty == ActionPublic2Privacy && action.GetPublic2Privacy() != nil {
+			return action.GetPublic2Privacy().GetAmount(), nil
+		} else if action.Ty == ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
+			return action.GetPrivacy2Privacy().GetAmount(), nil
+		} else if action.Ty == ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
+			return action.GetPrivacy2Public().GetAmount(), nil
 		}
 	}
 	return 0, nil
