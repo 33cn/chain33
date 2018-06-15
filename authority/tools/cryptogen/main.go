@@ -20,11 +20,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"text/template"
 
 	"gopkg.in/alecthomas/kingpin.v2"
 
-	"bytes"
 	"io/ioutil"
 
 	"gitlab.33.cn/chain33/chain33/authority/tools/cryptogen/ca"
@@ -32,7 +30,7 @@ import (
 )
 
 const (
-	commonName              = "ca"
+	commonName = "ca"
 )
 
 type Config struct {
@@ -116,22 +114,6 @@ func generate() {
 	fmt.Println(conf.Name)
 	fmt.Println(conf.OrgName)
 	generateUsers(*outputDir, conf.Name, conf.OrgName)
-}
-
-func parseTemplate(input string, data interface{}) (string, error) {
-
-	t, err := template.New("parse").Parse(input)
-	if err != nil {
-		return "", fmt.Errorf("Error parsing template: %s", err)
-	}
-
-	output := new(bytes.Buffer)
-	err = t.Execute(output, data)
-	if err != nil {
-		return "", fmt.Errorf("Error executing template: %s", err)
-	}
-
-	return output.String(), nil
 }
 
 func generateNodes(baseDir string, names []string, signCA *ca.CA, orgName string) {
