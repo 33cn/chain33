@@ -24,8 +24,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers/token"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/trade"
 
-	"fmt"
-
 	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/retrieve"
 	"gitlab.33.cn/chain33/chain33/queue"
@@ -637,9 +635,6 @@ func copyReceipt(feelog *types.Receipt) *types.Receipt {
 }
 
 func (execute *executor) execTxOne(feelog *types.Receipt, tx *types.Transaction, index int) (*types.Receipt, error) {
-	if types.PrivacyX == string(tx.Execer) {
-		fmt.Println("Hello, Debug here.")
-	}
 	//只有到pack级别的，才会增加index
 	receipt, err := execute.Exec(tx, index)
 	if err != nil {

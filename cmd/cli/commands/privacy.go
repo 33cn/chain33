@@ -20,6 +20,7 @@ func PrivacyCmd() *cobra.Command {
 	cmd.AddCommand(
 		ShowPrivacyKeyCmd(),
 		ShowPrivacyAccountCmd(),
+		ShowPrivacyAccountSpendCmd(),
 		ShowPrivacyBalanceCmd(),
 		ShowPrivacyAccountDetailCmd(),
 		Public2PrivacyCmd(),
@@ -251,6 +252,79 @@ func parseShowPrivacyAccountRes(arg interface{}) (interface{}, error) {
 		total += float64(utxo.Amount) / float64(types.Coin)
 	}
 	return fmt.Sprintf("Privacy Account : %s", strconv.FormatFloat(total, 'f', 4, 64)), nil
+}
+
+func ShowPrivacyAccountSpendCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "showpas",
+		Short: "Show privacy account spend command",
+		Run:   showPrivacyAccountSpend,
+	}
+	showPrivacyAccountSpendFlag(cmd)
+	return cmd
+}
+
+func showPrivacyAccountSpendFlag(cmd *cobra.Command) {
+	cmd.Flags().StringP("addr", "a", "", "account address")
+	cmd.MarkFlagRequired("addr")
+}
+
+func showPrivacyAccountSpend(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	addr, _ := cmd.Flags().GetString("addr")
+
+	params := types.ReqPrivBal4AddrToken{
+		Addr:  addr,
+		Token: types.BTY,
+	}
+
+	var res []*types.UTXOHaveTxHash
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.ShowPrivacyAccountSpend", params, &res)
+	ctx.SetResultCb(parseShowPrivacyAccountSpendRes)
+	ctx.Run()
+}
+
+func parseShowPrivacyAccountSpendRes(arg interface{}) (interface{}, error) {
+	total := float64(0)
+	res := arg.(*[]*types.UTXOHaveTxHash)
+	//rets := make([]*PrivacyAccountSpendResult, 0)
+	var rets []*PrivacyAccountSpendResult
+	for _, utxo := range *res {
+		amount := float64(utxo.Amount) / float64(types.Coin)
+		total += amount
+
+		var isSave bool
+		for _, ret := range rets {
+			if utxo.TxHash == ret.Txhash {
+				result := &PrivacyAccountResult{
+						Height:   utxo.UtxoBasic.UtxoGlobalIndex.Height,
+						TxIndex:  utxo.UtxoBasic.UtxoGlobalIndex.Txindex,
+						Txhash:   common.ToHex(utxo.UtxoBasic.UtxoGlobalIndex.Txhash),
+						OutIndex: utxo.UtxoBasic.UtxoGlobalIndex.Outindex,
+						Amount:   strconv.FormatFloat(amount, 'f', 4, 64),
+					}
+				ret.Res = append(ret.Res, result)
+				isSave = true
+				break;
+			}
+		}
+
+		if false == isSave {
+			result := &PrivacyAccountResult{
+				Height:   utxo.UtxoBasic.UtxoGlobalIndex.Height,
+				TxIndex:  utxo.UtxoBasic.UtxoGlobalIndex.Txindex,
+				Txhash:   common.ToHex(utxo.UtxoBasic.UtxoGlobalIndex.Txhash),
+				OutIndex: utxo.UtxoBasic.UtxoGlobalIndex.Outindex,
+				Amount:   strconv.FormatFloat(amount, 'f', 4, 64),
+			}
+			var SpendResult PrivacyAccountSpendResult
+			SpendResult.Txhash = utxo.TxHash
+			SpendResult.Res = append(SpendResult.Res, result)
+			rets = append(rets, &SpendResult)
+		}
+	}
+	fmt.Println(fmt.Sprintf("Total Privacy spend amount is %s", strconv.FormatFloat(total, 'f', 4, 64)))
+	return rets, nil
 }
 
 func ShowPrivacyAccountDetailCmd() *cobra.Command {
