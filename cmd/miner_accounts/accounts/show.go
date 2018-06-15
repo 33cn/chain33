@@ -135,8 +135,8 @@ func calcIncrease(miner *MinerAccounts, acc1, acc2 []*rpc.Account, header *rpc.H
 
 			// 由于取不到挖矿的交易， 通过预期挖矿数， 推断间隔多少个区块能挖到。
 			// 由于挖矿分布的波动， 用双倍的预期能挖到区块的时间间隔来预警
-			expectBlocks := (expectIncrease / btyPreBlock) // 一个小时预期挖多少个块
-			expectMinerInterval := statInterval / expectBlocks     // 预期多少秒可以挖一个块
+			expectBlocks := (expectIncrease / btyPreBlock)     // 一个小时预期挖多少个块
+			expectMinerInterval := statInterval / expectBlocks // 预期多少秒可以挖一个块
 			moniterInterval := int64(2*expectMinerInterval) + 1
 
 			m.ExpectMinerBlocks = strconv.FormatFloat(expectBlocks, 'f', 4, 64)
