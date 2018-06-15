@@ -34,7 +34,7 @@ var (
 	TokenApprs             = []string{}
 )
 
-//hard fork block height
+//default hard fork block height
 var (
 	ForkV1               int64 = 1
 	ForkV2AddToken       int64 = 1
@@ -55,6 +55,36 @@ var (
 	ForkV17EVM           int64 = 250000
 )
 
+func SetTestNetFork() {
+	ForkV1 = 75260
+	ForkV2AddToken = 100899
+	ForkV3 = 110000
+	ForkV4AddManage = 120000
+	ForkV5Retrive = 180000
+	ForkV6TokenBlackList = 190000
+	ForkV7BadTokenSymbol = 184000
+	ForkBlockHash = 208986 + 200
+	ForkV9 = 350000
+	ForkV10TradeBuyLimit = 301000
+	ForkV11ManageExec = 400000
+	ForkV12TransferExec = 408400
+	ForkV13ExecKey = 408400
+	ForkV14TxGroup = 408400
+	ForkV15ResetTx0 = 453400
+	ForkV16Withdraw = 480000
+	ForkV17EVM = 500000
+}
+
+func SetForkToOne() {
+	ForkV11ManageExec = 1
+	ForkV12TransferExec = 1
+	ForkV13ExecKey = 1
+	ForkV14TxGroup = 1
+	ForkV15ResetTx0 = 1
+	ForkV16Withdraw = 1
+	ForkV17EVM = 1
+}
+
 var (
 	MinFee             int64 = 1e5
 	MinBalanceTransfer int64 = 1e6
@@ -70,12 +100,7 @@ func SetTitle(t string) {
 		return
 	}
 	if IsLocal() {
-		ForkV11ManageExec = 1
-		ForkV12TransferExec = 1
-		ForkV13ExecKey = 1
-		ForkV14TxGroup = 1
-		ForkV15ResetTx0 = 1
-		ForkV16Withdraw = 1
+		SetForkToOne()
 		return
 	}
 }
@@ -123,24 +148,8 @@ func SetTestNet(isTestNet bool) {
 	if IsLocal() {
 		return
 	}
-	//测试网络的fork
-	ForkV1 = 75260
-	ForkV2AddToken = 100899
-	ForkV3 = 110000
-	ForkV4AddManage = 120000
-	ForkV5Retrive = 180000
-	ForkV6TokenBlackList = 190000
-	ForkV7BadTokenSymbol = 184000
-	ForkBlockHash = 208986 + 200
-	ForkV9 = 350000
-	ForkV10TradeBuyLimit = 301000
-	ForkV11ManageExec = 400000
-	ForkV12TransferExec = 408400
-	ForkV13ExecKey = 408400
-	ForkV14TxGroup = 408400
-	ForkV15ResetTx0 = 453400
-	ForkV16Withdraw = 480000
-	ForkV17EVM = 500000
+	//测试网络的Fork
+	SetTestNetFork()
 }
 
 func IsTestNet() bool {
