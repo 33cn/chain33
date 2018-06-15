@@ -24,7 +24,7 @@ func (t *trade) GetOnesSellOrder(addrTokens *types.ReqAddrTokens) (types.Message
 		for _, token := range addrTokens.Token {
 			values, err := t.GetLocalDB().List(calcOnesSellOrderPrefixToken(token, addrTokens.Addr), nil, 0, 0)
 			tradelog.Debug("trade Query", "Begin to list addr with token", token, "got values", len(values))
-			if err != nil {
+			if err != nil && err != types.ErrNotFound {
 				return nil, err
 			}
 			if len(values) != 0 {
@@ -60,7 +60,7 @@ func (t *trade) GetOnesBuyOrder(addrTokens *types.ReqAddrTokens) (types.Message,
 		for _, token := range addrTokens.Token {
 			values, err := t.GetLocalDB().List(calcOnesBuyOrderPrefixToken(token, addrTokens.Addr), nil, 0, 0)
 			tradelog.Debug("trade Query", "Begin to list addr with token", token, "got values", len(values))
-			if err != nil {
+			if err != nil && err != types.ErrNotFound {
 				return nil, err
 			}
 			if len(values) != 0 {

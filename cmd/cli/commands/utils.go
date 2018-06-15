@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/gogo/protobuf/proto"
-	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -167,7 +167,7 @@ func buildContractDataResult(l *jsonrpc.ReceiptLogResult) interface{} {
 	data, _ := common.FromHex(l.RawLog)
 	receipt := &types.EVMContractData{}
 	proto.Unmarshal(data, receipt)
-	rlog := &types.EVMContractDataCmd{Creator: receipt.Creator, Name: receipt.Name, Addr: receipt.Addr, CreateTime: time.Unix(0, receipt.CreateTime).String(), Alias: receipt.Alias}
+	rlog := &types.EVMContractDataCmd{Creator: receipt.Creator, Name: receipt.Name, Addr: receipt.Addr, Alias: receipt.Alias}
 	rlog.Code = common.ToHex(receipt.Code)
 	rlog.CodeHash = common.ToHex(receipt.CodeHash)
 	return rlog
@@ -263,14 +263,14 @@ func GetExecAddr(exec string) (string, error) {
 		return "", err
 	}
 
-	addrResult := account.ExecAddress(exec)
+	addrResult := address.ExecAddress(exec)
 	result := addrResult
 	return result, nil
 }
 
 func isAllowExecName(exec string) (bool, error) {
 	// exec name长度不能超过系统限制
-	if len(exec) > types.MaxExecNameLength {
+	if len(exec) > address.MaxExecNameLength {
 		return false, types.ErrExecNameNotAllow
 	}
 	// exec name中不允许有 "-"

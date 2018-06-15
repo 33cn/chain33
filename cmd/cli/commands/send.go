@@ -6,7 +6,7 @@ import (
 	"os"
 	"os/exec"
 
-	"gitlab.33.cn/chain33/chain33/account"
+	"gitlab.33.cn/chain33/chain33/common/address"
 )
 
 func OneStepSend(args []string) {
@@ -49,7 +49,7 @@ func OneStepSend(args []string) {
 		}
 	}
 	var isAddr bool
-	err := account.CheckAddress(key)
+	err := address.CheckAddress(key)
 	if err != nil {
 		isAddr = false
 	} else {

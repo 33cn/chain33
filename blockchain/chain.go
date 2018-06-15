@@ -10,7 +10,6 @@ import (
 
 	lru "github.com/hashicorp/golang-lru"
 	log "github.com/inconshreveable/log15"
-	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
@@ -233,9 +232,8 @@ func (chain *BlockChain) ProcQueryTxMsg(txhash []byte) (proof *types.Transaction
 	TransactionDetail.ActionName = txresult.GetTx().ActionName()
 
 	//获取from地址
-	pubkey := txresult.GetTx().Signature.GetPubkey()
-	addr := account.PubKeyToAddress(pubkey)
-	TransactionDetail.Fromaddr = addr.String()
+	addr := txresult.GetTx().From()
+	TransactionDetail.Fromaddr = addr
 	if isWithdraw(TransactionDetail.Tx.GetExecer(), TransactionDetail.ActionName) {
 		//swap from and to
 		TransactionDetail.Fromaddr, TransactionDetail.Tx.To = TransactionDetail.Tx.To, TransactionDetail.Fromaddr
@@ -640,9 +638,7 @@ func (chain *BlockChain) ProcGetTransactionByHashes(hashs [][]byte) (TxDetails *
 			txDetail.ActionName = txresult.GetTx().ActionName()
 
 			//获取from地址
-			pubkey := txresult.GetTx().Signature.GetPubkey()
-			addr := account.PubKeyToAddress(pubkey)
-			txDetail.Fromaddr = addr.String()
+			txDetail.Fromaddr = txresult.GetTx().From()
 			if isWithdraw(txDetail.Tx.GetExecer(), txDetail.ActionName) {
 				//swap from and to
 				txDetail.Fromaddr, txDetail.Tx.To = txDetail.Tx.To, txDetail.Fromaddr

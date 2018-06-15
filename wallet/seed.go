@@ -17,8 +17,8 @@ import (
 	"github.com/NebulousLabs/Sia/modules"
 	log "github.com/inconshreveable/log15"
 	//	"github.com/piotrnar/gocoin/lib/btc"
-	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -89,6 +89,21 @@ func SaveSeed(db dbm.DB, seed string, password string) (bool, error) {
 		return false, err
 	}
 	db.SetSync(WalletSeed, Encrypted)
+	//seedlog.Info("SaveSeed ok", "Encryptedseed", Encryptedseed)
+	return true, nil
+}
+
+func SaveSeedInBatch(db dbm.DB, seed string, password string, batch dbm.Batch) (bool, error) {
+	if len(seed) == 0 || len(password) == 0 {
+		return false, types.ErrInputPara
+	}
+
+	Encrypted, err := AesgcmEncrypter([]byte(password), []byte(seed))
+	if err != nil {
+		seedlog.Error("SaveSeed", "AesgcmEncrypter err", err)
+		return false, err
+	}
+	batch.Set(WalletSeed, Encrypted)
 	//seedlog.Info("SaveSeed ok", "Encryptedseed", Encryptedseed)
 	return true, nil
 }
@@ -222,7 +237,7 @@ func GetAddrByPrivkey(HexPrivkey string) (string, error) {
 		seedlog.Error("GetAddrByPrivkey", "PrivKeyFromBytes err", err)
 		return "", err
 	}
-	addr := account.PubKeyToAddress(priv.PubKey().Bytes())
+	addr := address.PubKeyToAddress(priv.PubKey().Bytes())
 	return addr.String(), nil
 }
 
