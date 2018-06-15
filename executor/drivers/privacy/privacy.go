@@ -575,7 +575,7 @@ func (p *privacy) checkPubKeyValid(keys [][]byte, pubkeys [][]byte) (bool, int32
 		var keyoutput types.KeyOutput
 		types.Decode(value, &keyoutput)
 		if !bytes.Equal(keyoutput.Onetimepubkey, pubkeys[i]) {
-			privacylog.Error("exec module", "checkPubKeyValid failed", keyoutput.Onetimepubkey, pubkeys[i])
+			privacylog.Error("exec module", "Invalid pubkey for tx with hash", string(keys[i]))
 			return false, int32(i)
 		}
 	}
