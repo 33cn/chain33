@@ -316,23 +316,13 @@ func (client *TendermintClient) CreateBlock() {
 			continue
 		}
 		issleep = false
-		/*
-			var newblock types.Block
-			newblock.ParentHash = lastBlock.Hash()
-			newblock.Height = lastBlock.Height + 1
-			newblock.Txs = txs
-			newblock.StateHash = lastBlock.StateHash
-			newblock.BlockTime = time.Now().Unix()
-			if lastBlock.BlockTime >= newblock.BlockTime {
-				newblock.BlockTime = lastBlock.BlockTime + 1
-			}
-		*/
-		tendermintlog.Debug("get mempool txs not empty", "txslen", len(txs), "tx[0]", txs[0])
+
+		tendermintlog.Debug("performance: get mempool txs not empty")
 		client.csState.NewTxsAvailable(lastBlock.Height)
-		tendermintlog.Debug("waiting NewTxsFinished")
+		tendermintlog.Debug("performance: waiting NewTxsFinished")
 		select {
 		case finish := <-client.csState.NewTxsFinished:
-			tendermintlog.Debug("TendermintClientSetQueue", "msg", "new txs finish dealing", "result", finish)
+			tendermintlog.Debug("performance: TendermintClientSetQueue", "msg", "new txs finish dealing", "result", finish)
 			continue
 		}
 	}
