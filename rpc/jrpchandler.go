@@ -1453,7 +1453,7 @@ func (c *Chain33) QueryTicketInfoList(in *types.LocalDBList, result *interface{}
 }
 
 func (c *Chain33) CreateBindMiner(in *types.ReqBindMiner, result *interface{}) error {
-	if in.Amount%10000 != 0 || in.Amount < 0 {
+	if in.Amount%(10000*types.Coin) != 0 || in.Amount < 0 {
 		return types.ErrAmount
 	}
 	err := address.CheckAddress(in.BindAddr)
@@ -1474,7 +1474,7 @@ func (c *Chain33) CreateBindMiner(in *types.ReqBindMiner, result *interface{}) e
 		if len(balances) == 0 {
 			return types.ErrInputPara
 		}
-		if balances[0].Balance < (in.Amount+2)*types.Coin {
+		if balances[0].Balance < in.Amount+2*types.Coin {
 			return types.ErrNoBalance
 		}
 	}
