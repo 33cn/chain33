@@ -25,15 +25,15 @@ type IdentityDeserializer interface {
 }
 
 type MSPConfig struct {
-	RootCerts [][]byte
+	RootCerts         [][]byte
 	IntermediateCerts [][]byte
-	Admins [][]byte
-	RevocationList [][]byte
-	CryptoConfig *MSPCryptoConfig
+	Admins            [][]byte
+	RevocationList    [][]byte
+	CryptoConfig      *MSPCryptoConfig
 }
 
 type MSPCryptoConfig struct {
-	SignatureHashFamily string
+	SignatureHashFamily            string
 	IdentityIdentifierHashFunction string
 }
 

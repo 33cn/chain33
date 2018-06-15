@@ -25,9 +25,9 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/authority/common/core"
 
-	"gitlab.33.cn/chain33/chain33/authority/bccsp/utils"
 	"github.com/pkg/errors"
 	"gitlab.33.cn/chain33/chain33/authority/bccsp"
+	"gitlab.33.cn/chain33/chain33/authority/bccsp/utils"
 )
 
 // bccspCryptoSigner is the BCCSP-based implementation of a crypto.Signer

@@ -11,8 +11,8 @@ import (
 	"os"
 	"path"
 
-	"gitlab.33.cn/chain33/chain33/authority/common/core"
 	"github.com/pkg/errors"
+	"gitlab.33.cn/chain33/chain33/authority/common/core"
 )
 
 const (

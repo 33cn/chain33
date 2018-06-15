@@ -18,12 +18,13 @@ import (
 	"reflect"
 	"time"
 
-	"gitlab.33.cn/chain33/chain33/authority/bccsp/factory"
-	"gitlab.33.cn/chain33/chain33/authority/bccsp"
 	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/authority/bccsp"
+	"gitlab.33.cn/chain33/chain33/authority/bccsp/factory"
 )
 
 var mspLogger = log.New("module", "autority")
+
 // This is an instantiation of an MSP that
 // uses BCCSP for its cryptographic primitives.
 type bccspmsp struct {
@@ -452,7 +453,7 @@ func (msp *bccspmsp) setupCAs(conf *MSPConfig) error {
 		msp.intermediateCerts[i] = id
 	}
 
-		// root CA and intermediate CA certificates are sanitized, they can be reimported
+	// root CA and intermediate CA certificates are sanitized, they can be reimported
 	msp.opts = &x509.VerifyOptions{Roots: x509.NewCertPool(), Intermediates: x509.NewCertPool()}
 	for _, id := range msp.rootCerts {
 		msp.opts.Roots.AddCert(id.(*identity).cert)

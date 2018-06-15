@@ -10,7 +10,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-
 // Config represents the crypto suite configuration for the client
 type CryptoConfig struct {
 	Config *types.Authority

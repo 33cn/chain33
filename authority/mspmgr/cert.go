@@ -15,6 +15,7 @@ import (
 	"errors"
 	"math/big"
 	"time"
+
 	"gitlab.33.cn/chain33/chain33/authority/bccsp/sw"
 )
 
