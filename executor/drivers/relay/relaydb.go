@@ -220,9 +220,9 @@ func (action *relayDB) revokeCreate(revoke *types.RelayRevoke) (*types.Receipt, 
 
 	order.PreStatus = order.Status
 	if revoke.Action == types.RelayRevokeUnlockOrder {
-		order.Status = types.RelayOrderStatus_pending
-	} else {
 		order.Status = types.RelayOrderStatus_canceled
+	} else {
+		order.Status = types.RelayOrderStatus_init
 	}
 
 	relayLog := newRelayLog(order)

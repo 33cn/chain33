@@ -274,8 +274,19 @@ function relay() {
 	echo "=========== # transfer to relay ============="
 	hash=$(${1} send bty transfer -a 1000 -t 1rhRgzbz264eyJu7Ac63wepsm9TsEpwXM -n "send to relay" -k 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv)
 	echo "${hash}"
-	sleep 10
+	sleep 20
 	before=$(${CLI} account balance -a 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv -e relay | jq ".balance")
+	before=$(echo "$before" | bc)
+	if [ "${before}" == 0.0000 ]; then
+		echo "wrong relay balance, should not be zero"
+		exit 1
+	fi
+
+	echo "=========== # transfer to accept addr ============="
+	hash=$(${1} send bty transfer -a 1000 -t 14KEKbYtKKQm4wMthSK9J4La4nAiidGozt -n "send to relay" -k 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv)
+	echo "${hash}"
+	sleep 20
+	before=$(${CLI} account balance -a 14KEKbYtKKQm4wMthSK9J4La4nAiidGozt -e coins | jq ".balance")
 	before=$(echo "$before" | bc)
 	if [ "${before}" == 0.0000 ]; then
 		echo "wrong relay balance, should not be zero"
@@ -285,21 +296,178 @@ function relay() {
 	echo "=========== # create order ============="
 	hash=$(${1} send relay create -o 0 -c BTC -a 1Am9UTGfdnxabvcywYG2hvzr6qK8T3oUZT -m 2.99 -f 0.02 -b 200 -k 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv)
 	echo "${hash}"
-	sleep 10
+	sleep 20
+	${CLI} tx query -s ${hash}
 	coinaddr=$(${CLI} tx query -s ${hash} | jq ".coinAddr")
 	coinaddr=$(echo "coinaddr" | bc)
-	if [ "${coinaddr}" != "1Am9UTGfdnxabvcywYG2hvzr6qK8T3oUZT" ]; then
+	if [ "${coinaddr}x" != "1Am9UTGfdnxabvcywYG2hvzr6qK8T3oUZTx" ]; then
 		echo "wrong create order to coinaddr"
+		#exit 1
+	fi
+	${CLI} relay status -s 1
+	orderid=$(${CLI} relay status -s 1 | jq -r ".orderid")
+	status=$(${CLI} relay status -s 1 | jq -r ".status")
+	if [ "${status}x" != "pendingx" ]; then
+	    echo "wrong relay order pending status"
+	    exit 1
+	fi
+    coinoperation=$(${CLI} relay status -s 1 | jq -r ".coinoperation")
+    if [ "${coinoperation}x" != "buyx" ]; then
+        echo "wrong relay order sell operation"
+        exit 1
+    fi
+
+	echo "=========== # accept order ============="
+	hash=$(${1} send relay accept -f 0.001 -o ${orderid} -a 1Am9UTGfdnxabvcywYG2hvzr6qK8T3oUZT -k 14KEKbYtKKQm4wMthSK9J4La4nAiidGozt)
+	echo "${hash}"
+	sleep 20
+	${CLI} tx query -s ${hash}
+
+    ${CLI} relay status -s 2
+	status=$(${CLI} relay status -s 2 | jq -r ".status")
+	if [ "${status}x" != "lockingx" ]; then
+	    echo "wrong relay order locking status"
+	    exit 1
+	fi
+
+	echo "=========== # confirm order ============="
+	hash=$(${1} send relay confirm -f 0.001 -t 6359f0868171b1d194cbee1af2f16ea598ae8fad666d9b012c8ed2b79a236ec4 -o ${orderid} -k 14KEKbYtKKQm4wMthSK9J4La4nAiidGozt)
+	echo "${hash}"
+	sleep 20
+	${CLI} tx query -s ${hash}
+
+    ${CLI} relay status -s 3
+	status=$(${CLI} relay status -s 3 | jq -r ".status")
+	if [ "${status}x" != "confirmingx" -a "${status}x" != "finishedx" ]; then
+	    echo "wrong relay order confirming or finished status"
+	    exit 1
+	fi
+
+    echo "=========== # test cancel create order ==="
+	echo "=========== # create order ============="
+	hash=$(${1} send relay create -o 0 -c BTC -a 1Am9UTGfdnxabvcywYG2hvzr6qK8T3oUZT -m 2.99 -f 0.02 -b 200 -k 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv)
+	echo "${hash}"
+	sleep 20
+	${CLI} tx query -s ${hash}
+
+	${CLI} relay status -s 1
+	orderid=$(${CLI} relay status -s 1 | jq -r ".orderid")
+	status=$(${CLI} relay status -s 1 | jq -r ".status")
+	if [ "${status}x" != "pendingx" ]; then
+	    echo "wrong relay order pending status"
+	    exit 1
+	fi
+
+	echo "=========== # cancel order ============="
+	hash=$(${1} send relay revoke -a 1 -t 0 -f 0.01 -i ${orderid} -k 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv)
+	echo "${hash}"
+	sleep 20
+	${CLI} tx query -s ${hash}
+
+	${CLI} relay status -s 0
+	status=$(${CLI} relay status -s 0 | jq -r ".status")
+	if [ "${status}x" != "initx" ]; then
+	    echo "wrong relay order pending status"
+	    exit 1
+	fi
+
+    echo "=========== # test create unlock order ==="
+	echo "=========== # create order ============="
+	hash=$(${1} send relay create -o 0 -c BTC -a 1Am9UTGfdnxabvcywYG2hvzr6qK8T3oUZT -m 2.99 -f 0.02 -b 200 -k 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv)
+	echo "${hash}"
+	sleep 20
+	${CLI} tx query -s ${hash}
+
+	${CLI} relay status -s 1
+	orderid=$(${CLI} relay status -s 1 | jq -r ".orderid")
+	status=$(${CLI} relay status -s 1 | jq -r ".status")
+	if [ "${status}x" != "pendingx" ]; then
+	    echo "wrong relay order pending status"
+	    exit 1
+	fi
+
+	echo "=========== # unlock order ============="
+	hash=$(${1} send relay revoke -a 0 -t 0 -f 0.01 -i ${orderid} -k 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv)
+	echo "${hash}"
+	sleep 20
+	${CLI} tx query -s ${hash}
+
+	${CLI} relay status -s 5
+	status=$(${CLI} relay status -s 5 | jq -r ".status")
+	if [ "${status}x" != "canceledx" ]; then
+	    echo "wrong relay order canceled status"
+	    exit 1
+	fi
+
+    echo "=========== # test create sell order ==="
+    echo "=========== # create order ============="
+    hash=$(${1} send relay create -o 1 -c BTC -a 1Am9UTGfdnxabvcywYG2hvzr6qK8T3oUZT -m 2.99 -f 0.02 -b 200 -k 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv)
+    echo "${hash}"
+    sleep 20
+    ${CLI} tx query -s ${hash}
+
+    ${CLI} relay status -s 1
+    orderid=$(${CLI} relay status -s 1 | jq -r ".orderid")
+    status=$(${CLI} relay status -s 1 | jq -r ".status")
+    if [ "${status}x" != "pendingx" ]; then
+        echo "wrong relay order pending status"
+        exit 1
+    fi
+
+    coinoperation=$(${CLI} relay status -s 1 | jq -r ".coinoperation")
+    if [ "${coinoperation}x" != "sellx" ]; then
+        echo "wrong relay order sell operation"
+        exit 1
+    fi
+
+	echo "=========== # transfer to relay ============="
+	hash=$(${1} send bty transfer -a 300 -t 1rhRgzbz264eyJu7Ac63wepsm9TsEpwXM -n "send to relay" -k 14KEKbYtKKQm4wMthSK9J4La4nAiidGozt)
+	echo "${hash}"
+	sleep 20
+	before=$(${CLI} account balance -a 14KEKbYtKKQm4wMthSK9J4La4nAiidGozt -e relay | jq ".balance")
+	before=$(echo "$before" | bc)
+	if [ "${before}" == 0.0000 ]; then
+		echo "wrong relay balance, should not be zero"
 		exit 1
 	fi
 
+    echo "=========== # accept order ============="
+    hash=$(${1} send relay accept -f 0.001 -o ${orderid} -a 1Am9UTGfdnxabvcywYG2hvzr6qK8T3oUZT -k 14KEKbYtKKQm4wMthSK9J4La4nAiidGozt)
+    echo "${hash}"
+    sleep 20
+    ${CLI} tx query -s ${hash}
+
+    ${CLI} relay status -s 2
+    status=$(${CLI} relay status -s 2 | jq -r ".status")
+    if [ "${status}x" != "lockingx" ]; then
+        echo "wrong relay order locking status"
+        exit 1
+    fi
+
+    echo "=========== # confirm order ============="
+    hash=$(${1} send relay confirm -f 0.001 -t 6359f0868171b1d194cbee1af2f16ea598ae8fad666d9b012c8ed2b79a236ec4 -o ${orderid} -k 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv)
+    echo "${hash}"
+    sleep 20
+    ${CLI} tx query -s ${hash}
+    rst=$(${CLI} tx query -s ${hash} | jq -r ".receipt.logs[1].log")
+    if [ "${rst}x" != "ErrRelayCoinTxHashUsed" ]; then
+        echo "wrong relay order result"
+        exit 1
+    fi
+
+    ## time limited, the following cases could not be added to CI currently, except add test macro to lock time
+    #echo "=========== # test finish order ==="
+    #echo "=========== # test creator unlock accepted order ==="
+    #echo "=========== # test acceptor unlock accepted order ==="
+    #echo "=========== # test creator unlock confirmed order ==="
+    #echo "=========== # test acceptor unlock confirmed order ==="
 }
 
 function main() {
 	echo "==========================================main begin========================================================"
 	init
 	sync
-	transfer
+	#transfer
 	relay "${CLI}"
 
 	# TODO other work!!!
