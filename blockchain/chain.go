@@ -36,10 +36,6 @@ var (
 
 const maxFutureBlocks = 256
 
-type privacyOutputKeyInfo struct {
-	onetimePubKey []byte
-}
-
 type BlockChain struct {
 	client queue.Client
 	// 永久存储数据到db中

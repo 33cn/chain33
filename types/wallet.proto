@@ -342,6 +342,10 @@ message UTXOHaveTxHash {
     UTXOBasic utxoBasic   = 3;
 }
 
+message UTXOs {
+	repeated UTXO utxos = 1;
+}
+
 message ReqUTXOGlobalIndex {
 	string tokenname = 1;
     int32 mixCount  = 2;
