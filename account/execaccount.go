@@ -353,7 +353,7 @@ func (acc *DB) mergeReceipt(receipt, receipt2 *types.Receipt) *types.Receipt {
 }
 
 func (acc *DB) LoadExecAccountHistoryQueue(api client.QueueProtocolAPI, addr, execaddr string, stateHash []byte) (*types.Account, error) {
-	get := types.StoreGet{StateHash: []byte(stateHash)}
+	get := types.StoreGet{StateHash: stateHash}
 	get.Keys = append(get.Keys, acc.ExecAccountKey(addr, execaddr))
 	values, err := api.StoreGet(&get)
 	if err != nil {

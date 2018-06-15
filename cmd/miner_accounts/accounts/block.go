@@ -59,7 +59,7 @@ func (b chain33) addBlock(h *chain33rpc.Header) error {
 	if h.Height > b.lastHeader.Height {
 		cache.lastHeader = h
 	}
-	// TODO check fork
+
 	return nil
 }
 
@@ -133,11 +133,10 @@ func syncHeaders() {
 func SyncBlock() {
 	syncHeaders()
 
-	for true {
-		timeout := time.NewTicker(time.Minute)
-		select {
-		case <-timeout.C:
-			syncHeaders()
-		}
+	timeout := time.NewTicker(time.Minute)
+	for {
+		<-timeout.C
+		syncHeaders()
+
 	}
 }
