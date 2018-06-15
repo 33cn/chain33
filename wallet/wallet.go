@@ -587,36 +587,99 @@ func (wallet *Wallet) ProcAuthSignRawTx(unsigned *types.ReqSignRawTx) (string, e
 		return "", err
 	}
 
+	index := unsigned.Index
+
 	tx.SetExpire(expire)
+
+	group, err := tx.GetTxGroup()
+	if err != nil {
+		return "", err
+	}
+	if group != nil && int(index) > len(group.GetTxs()) {
+		return "", types.ErrIndex
+	}
 
 	var cert types.AuthCert
 	cert.Username = "User"
-	tx.Cert = &cert
-	txHex := types.Encode(&tx)
+
 	//发送给mgr签名
 
-	data := &types.ReqAuthSignTx{
-		Tx: txHex,
+	if group == nil || index > 0 {
+		var txtemp types.Transaction
+		if group == nil {
+			txtemp = tx
+		} else {
+			//从group中找出tx,把这个tx移除，签名后再加回group
+			index -= 1
+			txtemp = *(group.GetTxs()[index])
+			group.Txs = append(group.Txs[:index], group.Txs[index+1:]...)
+		}
+		txtemp.Cert = &cert
+		txHex := types.Encode(&txtemp)
+		data := &types.ReqAuthSignTx{
+			Tx: txHex,
+		}
+
+		client := wallet.client
+
+		walletlog.Debug("try to get signature from authority")
+
+		msg := client.NewMessage("authority", types.EventAuthoritySignTx, data)
+		client.Send(msg, true)
+
+		resp, err := client.Wait(msg)
+		if err != nil {
+			panic(err)
+		}
+		signTxHex, ok := resp.GetData().(*types.ReplyAuthSignTx)
+		if ok {
+			walletlog.Debug("get signature success")
+			//ty and pubkey may be not used in this case
+			if group == nil {
+				signedTx := hex.EncodeToString(signTxHex.Tx)
+				return signedTx, nil
+			} else {
+				var sigTran types.Transaction
+				err = types.Decode(signTxHex.Tx, &sigTran)
+				if err != nil {
+					return "", err
+				}
+
+				temp := append([]*types.Transaction{}, group.Txs[index:]...)
+				group.Txs = append(group.Txs[0:index], &sigTran)
+				group.Txs = append(group.Txs, temp...)
+				grouptx := group.Tx()
+				txHex := types.Encode(grouptx)
+				signedTx := hex.EncodeToString(txHex)
+				return signedTx, nil
+			}
+		}
+	} else {
+		data := &types.ReqAuthSignTxs{
+			Txs: group.Txs,
+		}
+
+		client := wallet.client
+
+		walletlog.Debug("try to get signature from authority")
+
+		msg := client.NewMessage("authority", types.EventAuthoritySignTxs, data)
+		client.Send(msg, true)
+
+		resp, err := client.Wait(msg)
+		if err != nil {
+			panic(err)
+		}
+		signTxs, ok := resp.GetData().(*types.ReplyAuthSignTxs)
+		if ok {
+			newgroup := &types.Transactions{Txs: signTxs.Txs}
+			grouptx := newgroup.Tx()
+			txHex := types.Encode(grouptx)
+			signedTx := hex.EncodeToString(txHex)
+			return signedTx, nil
+		}
 	}
-	client := wallet.client
 
-	walletlog.Debug("try to get signature from authority")
-
-	msg := client.NewMessage("authority", types.EventAuthoritySignTx, data)
-	client.Send(msg, true)
-
-	resp, err := client.Wait(msg)
-	if err != nil {
-		panic(err)
-	}
-	signTxHex, ok := resp.GetData().(*types.ReplyAuthSignTx)
-	if ok {
-		walletlog.Debug("get signature success")
-		//ty and pubkey may be not used in this case
-
-		signedTx := hex.EncodeToString(signTxHex.Tx)
-		return signedTx, nil
-	}
 	return "", types.ErrGetSignFromAuth
 }
 
