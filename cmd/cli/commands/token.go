@@ -109,7 +109,7 @@ func createTokenWithdraw(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	txHex, err := CreateRawTx(execAddr, amount, note, true, true, symbol, "")
+	txHex, err := CreateRawTx(execAddr, amount, note, true, true, symbol, exec)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
