@@ -102,7 +102,7 @@ func (chain *BlockChain) SynRoutine() {
 	checkBlockHashTicker := time.NewTicker(time.Duration(checkBlockHashSeconds) * time.Second)
 
 	//5分钟检测一次系统时间，不同步提示告警
-	checkClockDriftTicker := time.NewTicker(1 * time.Second)
+	checkClockDriftTicker := time.NewTicker(300 * time.Second)
 
 	//2分钟尝试检测一次故障peer是否已经恢复
 	recoveryFaultPeerTicker := time.NewTicker(120 * time.Second)
