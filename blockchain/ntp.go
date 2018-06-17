@@ -1,16 +1,19 @@
 package blockchain
 
 import (
+	"encoding/binary"
+	"errors"
 	"fmt"
+	"math"
 	"net"
-	"sort"
 	"strings"
+	"sync/atomic"
 	"time"
 )
 
 const (
-	ntpPool   = "pool.ntp.org" // ntpPool is the NTP server to query for the current time
-	ntpChecks = 3              // Number of measurements to do against the NTP server
+	ntpPool   = "time.windows.com:123" // ntpPool is the NTP server to query for the current time
+	ntpChecks = 6                      //6 times all error
 	//ntpFailureThreshold = 32               // Continuous timeouts after which to check NTP
 	//ntpWarningCooldown  = 10 * time.Minute // Minimum amount of time to pass before repeating NTP warning
 	driftThreshold = 10 * time.Second // Allowed clock drift before warning user
@@ -19,101 +22,166 @@ const (
 
 var (
 	ntpLog = chainlog.New("submodule", "ntp")
+	failed int32
 )
-
-// durationSlice attaches the methods of sort.Interface to []time.Duration,
-// sorting in increasing order.
-type durationSlice []time.Duration
-
-func (s durationSlice) Len() int           { return len(s) }
-func (s durationSlice) Less(i, j int) bool { return s[i] < s[j] }
-func (s durationSlice) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 
 // checkClockDrift queries an NTP server for clock drifts and warns the user if
 // one large enough is detected.
 func checkClockDrift() {
-	drift, err := sntpDrift(ntpChecks)
+	realnow, err := getTime(ntpPool)
 	if err != nil {
-		ntpLog.Debug("checkClockDrift", "sntpDrift err", err)
+		ntpLog.Info("checkClockDrift", "sntpDrift err", err)
 		return
 	}
+	drift := time.Now().Sub(realnow)
 	if drift < -driftThreshold || drift > driftThreshold {
 		warning := fmt.Sprintf("System clock seems off by %v, which can prevent network connectivity", drift)
 		howtofix := fmt.Sprintf("Please enable network time synchronisation in system settings")
 		separator := strings.Repeat("-", len(warning))
-
 		ntpLog.Warn(fmt.Sprint(separator))
 		ntpLog.Warn(fmt.Sprint(warning))
 		ntpLog.Warn(fmt.Sprint(howtofix))
 		ntpLog.Warn(fmt.Sprint(separator))
-		UpdateNtpClockSyncStatus(false)
+		atomic.AddInt32(&failed, 1)
+		if atomic.LoadInt32(&failed) == ntpChecks {
+			ntpLog.Error("System clock seems ERROR")
+			UpdateNtpClockSyncStatus(false)
+		}
 	} else {
+		atomic.StoreInt32(&failed, 0)
 		UpdateNtpClockSyncStatus(true)
-		ntpLog.Debug(fmt.Sprintf("Sanity NTP check reported %v drift, all ok", drift))
+		ntpLog.Info(fmt.Sprintf("Sanity NTP check reported %v drift, all ok", drift))
 	}
 }
 
-// sntpDrift does a naive time resolution against an NTP server and returns the
-// measured drift. This method uses the simple version of NTP. It's not precise
-// but should be fine for these purposes.
+const ntpEpochOffset = 2208988800
+
+var ErrNetWorkDealy = errors.New("ErrNetWorkDealy")
+
+// NTP packet format (v3 with optional v4 fields removed)
 //
-// Note, it executes two extra measurements compared to the number of requested
-// ones to be able to discard the two extremes as outliers.
-func sntpDrift(measurements int) (time.Duration, error) {
-	// Resolve the address of the NTP server
-	addr, err := net.ResolveUDPAddr("udp", ntpPool+":123")
+// 0                   1                   2                   3
+// 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+// |LI | VN  |Mode |    Stratum     |     Poll      |  Precision   |
+// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+// |                         Root Delay                            |
+// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+// |                         Root Dispersion                       |
+// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+// |                          Reference ID                         |
+// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+// |                                                               |
+// +                     Reference Timestamp (64)                  +
+// |                                                               |
+// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+// |                                                               |
+// +                      Origin Timestamp (64)                    +
+// |                                                               |
+// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+// |                                                               |
+// +                      Receive Timestamp (64)                   +
+// |                                                               |
+// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+// |                                                               |
+// +                      Transmit Timestamp (64)                  +
+// |                                                               |
+// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//
+type packet struct {
+	Settings       uint8  // leap yr indicator, ver number, and mode
+	Stratum        uint8  // stratum of local clock
+	Poll           int8   // poll exponent
+	Precision      int8   // precision exponent
+	RootDelay      uint32 // root delay
+	RootDispersion uint32 // root dispersion
+	ReferenceID    uint32 // reference id
+	RefTimeSec     uint32 // reference timestamp sec
+	RefTimeFrac    uint32 // reference timestamp fractional
+	OrigTimeSec    uint32 // origin time secs
+	OrigTimeFrac   uint32 // origin time fractional
+	RxTimeSec      uint32 // receive time secs
+	RxTimeFrac     uint32 // receive time frac
+	TxTimeSec      uint32 // transmit time secs
+	TxTimeFrac     uint32 // transmit time frac
+}
+
+/*
+       t2      t3                 t6          t7
+   ---------------------------------------------------------
+            /\         \                 /\            \
+            /           \                /              \
+           /             \              /                \
+          /               \/           /                 \/
+   ---------------------------------------------------------
+        t1                t4         t5                  t8
+*/
+//利用服务器返回的 t2, t3, 和本地的 t1, t4 校准时间
+//delt = ((t2-t1)+(t3-t4))/2
+//current = t4 + delt
+func getTime(host string) (time.Time, error) {
+
+	// Setup a UDP connection
+	conn, err := net.Dial("udp", host)
 	if err != nil {
-		return 0, err
+		return time.Time{}, err
 	}
-	// Construct the time request (empty package with only 2 fields set):
-	//   Bits 3-5: Protocol version, 3
-	//   Bits 6-8: Mode of operation, client, 3
-	request := make([]byte, 48)
-	request[0] = 3<<3 | 3
-
-	// Execute each of the measurements
-	drifts := []time.Duration{}
-	for i := 0; i < measurements+2; i++ {
-		// Dial the NTP server and send the time retrieval request
-		conn, err := net.DialUDP("udp", nil, addr)
-		if err != nil {
-			return 0, err
-		}
-		//defer conn.Close()
-
-		sent := time.Now()
-		if _, err = conn.Write(request); err != nil {
-			conn.Close()
-			return 0, err
-		}
-		// Retrieve the reply and calculate the elapsed time
-		conn.SetDeadline(time.Now().Add(5 * time.Second))
-
-		reply := make([]byte, 48)
-		if _, err = conn.Read(reply); err != nil {
-			conn.Close()
-			return 0, err
-		}
-		conn.Close()
-		elapsed := time.Since(sent)
-
-		// Reconstruct the time from the reply data
-		sec := uint64(reply[43]) | uint64(reply[42])<<8 | uint64(reply[41])<<16 | uint64(reply[40])<<24
-		frac := uint64(reply[47]) | uint64(reply[46])<<8 | uint64(reply[45])<<16 | uint64(reply[44])<<24
-
-		nanosec := sec*1e9 + (frac*1e9)>>32
-
-		t := time.Date(1900, 1, 1, 0, 0, 0, 0, time.UTC).Add(time.Duration(nanosec)).Local()
-
-		// Calculate the drift based on an assumed answer time of RRT/2
-		drifts = append(drifts, sent.Sub(t)+elapsed/2)
+	defer conn.Close()
+	if err := conn.SetDeadline(time.Now().Add(3 * time.Second)); err != nil {
+		return time.Time{}, err
 	}
-	// Calculate average drif (drop two extremities to avoid outliers)
-	sort.Sort(durationSlice(drifts))
-
-	drift := time.Duration(0)
-	for i := 1; i < len(drifts)-1; i++ {
-		drift += drifts[i]
+	// configure request settings by specifying the first byte as
+	// 00 011 011 (or 0x1B)
+	// |  |   +-- client mode (3)
+	// |  + ----- version (3)
+	// + -------- leap year indicator, 0 no warning
+	req := &packet{Settings: 0x1B}
+	t1 := time.Now()
+	// send time request
+	if err := binary.Write(conn, binary.BigEndian, req); err != nil {
+		return time.Time{}, err
 	}
-	return drift / time.Duration(measurements), nil
+
+	// block to receive server response
+	rsp := &packet{}
+	if err := binary.Read(conn, binary.BigEndian, rsp); err != nil {
+		return time.Time{}, err
+	}
+	t2 := intToTime(rsp.RxTimeSec, rsp.RxTimeFrac)
+	t3 := intToTime(rsp.TxTimeSec, rsp.TxTimeFrac)
+	t4 := time.Now()
+	// On POSIX-compliant OS, time is expressed
+	// using the Unix time epoch (or secs since year 1970).
+	// NTP seconds are counted since 1900 and therefore must
+	// be corrected with an epoch offset to convert NTP seconds
+	// to Unix time by removing 70 yrs of seconds (1970-1900)
+	// or 2208988800 seconds.
+	/*
+		js, _ := json.MarshalIndent(rsp, "", "\t")
+		fmt.Println(string(js))
+		fmt.Println("========")
+		fmt.Println("t1", t1)
+		fmt.Println("t2", t2, t2.Sub(t1))
+		fmt.Println("t3", t3, t3.Sub(t2))
+		fmt.Println("t4", t4, t4.Sub(t3))
+		fmt.Println("========")
+	*/
+	//t2 - t1 -> deltaNet + deltaTime
+	//t3 - t4 -> -deltaNet + deltaTime
+	//如果deltaNet相同
+	//判断t2 - t1 和  t3 - t4 绝对值的 倍数，如果超过2倍，认为无效(请求和回复延时严重不对称)
+	d1 := t2.Sub(t1)
+	d2 := t3.Sub(t4)
+	rate := math.Abs(float64(d1)) / math.Abs(float64(d2))
+	if rate >= 2 || rate <= 0.5 {
+		return time.Time{}, ErrNetWorkDealy
+	}
+	delt := d1 + d2
+	return t4.Add(delt / 2), nil
+}
+
+func intToTime(sec, frac uint32) time.Time {
+	secs := int64(sec) - int64(ntpEpochOffset)
+	nanos := (int64(frac) * 1e9) >> 32
+	return time.Unix(secs, nanos)
 }
