@@ -33,7 +33,7 @@ func checkClockDrift() {
 		ntpLog.Info("checkClockDrift", "sntpDrift err", err)
 		return
 	}
-	drift := time.Now().Sub(realnow)
+	drift := time.Since(realnow)
 	if drift < -driftThreshold || drift > driftThreshold {
 		warning := fmt.Sprintf("System clock seems off by %v, which can prevent network connectivity", drift)
 		howtofix := fmt.Sprintf("Please enable network time synchronisation in system settings")
