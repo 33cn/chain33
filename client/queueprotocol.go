@@ -827,3 +827,39 @@ func (q *QueueProtocol) DecodeRawTransaction(param *types.ReqDecodeRawTransactio
 	}
 	return &tx, nil
 }
+
+func (q *QueueProtocol) GetTimeStatus() (*types.TimeStatus, error) {
+	var diffTmp []int64
+	var ntpTime time.Time
+	var local time.Time
+	var diff int64
+	for i := 0; i < 3; i++ {
+		time.Sleep(time.Millisecond * 100)
+		errTimes := 0
+		for {
+			time.Sleep(time.Millisecond * 100)
+			var err error
+			ntpTime, err = common.GetNtpTime("time.windows.com:123")
+			if err != nil {
+				errTimes++
+			} else {
+				break
+			}
+			if errTimes == 10 {
+				return &types.TimeStatus{NtpTime: "", LocalTime: time.Now().Format("2006-01-02 15:04:05"), Diff: 0}, nil
+			}
+		}
+
+		local = time.Now()
+		diff = local.Unix() - ntpTime.Unix()
+		diffTmp = append(diffTmp, diff)
+	}
+	for j := 0; j < 2; j++ {
+		for k := j + 1; k < 3; j++ {
+			if diffTmp[j] != diffTmp[k] {
+				return &types.TimeStatus{NtpTime: "", LocalTime: time.Now().Format("2006-01-02 15:04:05"), Diff: 0}, nil
+			}
+		}
+	}
+	return &types.TimeStatus{NtpTime: ntpTime.Format("2006-01-02 15:04:05"), LocalTime: local.Format("2006-01-02 15:04:05"), Diff: diff}, nil
+}
