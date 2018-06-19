@@ -6,15 +6,11 @@
 package client
 
 import (
-	"encoding/hex"
 	"fmt"
-	"math/rand"
 	"time"
 
 	"github.com/inconshreveable/log15"
 
-	"gitlab.33.cn/chain33/chain33/common"
-	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/version"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -788,42 +784,4 @@ func (q *QueueProtocol) GetFatalFailure() (*types.Int32, error) {
 		return reply, nil
 	}
 	return nil, types.ErrTypeAsset
-}
-
-func (q *QueueProtocol) BindMiner(param *types.ReqBindMiner) (*types.ReplyBindMiner, error) {
-	ta := &types.TicketAction{}
-	tBind := &types.TicketBind{
-		MinerAddress:  param.BindAddr,
-		ReturnAddress: param.OriginAddr,
-	}
-	ta.Value = &types.TicketAction_Tbind{Tbind: tBind}
-	ta.Ty = types.TicketActionBind
-	execer := []byte("ticket")
-	to := address.ExecAddress(string(execer))
-	txBind := &types.Transaction{Execer: execer, Payload: types.Encode(ta), To: to}
-	random := rand.New(rand.NewSource(time.Now().UnixNano()))
-	txBind.Nonce = random.Int63()
-	var err error
-	txBind.Fee, err = txBind.GetRealFee(types.MinFee)
-	if err != nil {
-		return nil, err
-	}
-	txBind.Fee += types.MinFee
-	txBindHex := types.Encode(txBind)
-	txHexStr := hex.EncodeToString(txBindHex)
-
-	return &types.ReplyBindMiner{TxHex: txHexStr}, nil
-}
-
-func (q *QueueProtocol) DecodeRawTransaction(param *types.ReqDecodeRawTransaction) (*types.Transaction, error) {
-	var tx types.Transaction
-	bytes, err := common.FromHex(param.TxHex)
-	if err != nil {
-		return nil, err
-	}
-	err = types.Decode(bytes, &tx)
-	if err != nil {
-		return nil, err
-	}
-	return &tx, nil
 }
