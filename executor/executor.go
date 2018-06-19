@@ -22,6 +22,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers/ticket"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/token"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/trade"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/valnode"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -52,6 +53,7 @@ func execInit() {
 	ticket.Init()
 	token.Init()
 	trade.Init()
+	valnode.Init()
 }
 
 var runonce sync.Once

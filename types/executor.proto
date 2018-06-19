@@ -400,3 +400,15 @@ message ReplyConfig {
     string key = 1;
     string value = 2;
 }
+
+message ValNode {
+    bytes pubkey = 1;
+    int64 power = 2;
+}
+
+message ValNodeAction {
+    oneof value {
+        ValNode node = 1;
+    }
+    int32 Ty = 2;
+}

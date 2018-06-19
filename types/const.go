@@ -22,7 +22,7 @@ var (
 	ExecerToken      = []byte("token")
 	AllowDepositExec = [][]byte{ExecerTicket}
 	AllowUserExec    = [][]byte{ExecerCoins, ExecerTicket, []byte("norm"), []byte("hashlock"),
-		[]byte("retrieve"), []byte("none"), ExecerToken, []byte("trade"), ExecerManage}
+		[]byte("retrieve"), []byte("none"), ExecerToken, []byte("trade"), ExecerManage, []byte("valnode")}
 	GenesisAddr            = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 	GenesisBlockTime int64 = 1526486816
 	HotkeyAddr             = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
@@ -556,3 +556,7 @@ var MapSellOrderStatusStr2Int = map[string]int32{
 	"soldout": TradeOrderStatusSoldOut,
 	"revoked": TradeOrderStatusRevoked,
 }
+
+const (
+	ValNodeActionUpdate = 1
+)
