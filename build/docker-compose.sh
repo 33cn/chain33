@@ -273,24 +273,21 @@ function relay() {
 	fi
 
 	echo "=========== # transfer to relay ============="
-	hash=$(${1} send bty transfer -a 1000 -t 1rhRgzbz264eyJu7Ac63wepsm9TsEpwXM -n "send to relay" -k 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv)
+	hash=$(${1} send bty transfer -a 1000 -t 1rhRgzbz264eyJu7Ac63wepsm9TsEpwXM -n "transfer to relay" -k 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv)
+	echo "${hash}"
+	hash=$(${1} send bty transfer -a 1000 -t 14KEKbYtKKQm4wMthSK9J4La4nAiidGozt -n "transfer to accept addr" -k 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv)
 	echo "${hash}"
 	sleep 20
 	before=$(${CLI} account balance -a 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv -e relay | jq ".balance")
 	before=$(echo "$before" | bc)
 	if [ "${before}" == 0.0000 ]; then
-		echo "wrong relay balance, should not be zero"
+		echo "wrong relay addr balance, should not be zero"
 		exit 1
 	fi
-
-	echo "=========== # transfer to accept addr ============="
-	hash=$(${1} send bty transfer -a 1000 -t 14KEKbYtKKQm4wMthSK9J4La4nAiidGozt -n "send to relay" -k 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv)
-	echo "${hash}"
-	sleep 20
 	before=$(${CLI} account balance -a 14KEKbYtKKQm4wMthSK9J4La4nAiidGozt -e coins | jq ".balance")
 	before=$(echo "$before" | bc)
 	if [ "${before}" == 0.0000 ]; then
-		echo "wrong relay balance, should not be zero"
+		echo "wrong accept addr balance, should not be zero"
 		exit 1
 	fi
 
@@ -299,7 +296,7 @@ function relay() {
 	echo "${hash}"
 	sleep 20
 	${CLI} tx query -s "${hash}"
-	coinaddr=$(${CLI} tx query -s "${hash}" | jq ".coinAddr")
+	coinaddr=$(${CLI} tx query -s "${hash}" | jq -r ".receipt.logs[2].log.base.coinAddr")
 	if [ "${coinaddr}" != "1Am9UTGfdnxabvcywYG2hvzr6qK8T3oUZT" ]; then
 		echo "wrong create order to coinaddr"
 		exit 1
@@ -366,7 +363,7 @@ function relay() {
 
 	${CLI} relay status -s 0
 	status=$(${CLI} relay status -s 0 | jq -r ".status")
-	if [ "${status}x" != "initx" ]; then
+	if [ "${status}" != "init" ]; then
 	    echo "wrong relay order pending status"
 	    exit 1
 	fi
@@ -381,7 +378,7 @@ function relay() {
 	${CLI} relay status -s 1
 	orderid=$(${CLI} relay status -s 1 | jq -r ".orderid")
 	status=$(${CLI} relay status -s 1 | jq -r ".status")
-	if [ "${status}x" != "pendingx" ]; then
+	if [ "${status}" != "pending" ]; then
 	    echo "wrong relay order pending status"
 	    exit 1
 	fi
@@ -394,7 +391,7 @@ function relay() {
 
 	${CLI} relay status -s 5
 	status=$(${CLI} relay status -s 5 | jq -r ".status")
-	if [ "${status}x" != "canceledx" ]; then
+	if [ "${status}" != "canceled" ]; then
 	    echo "wrong relay order canceled status"
 	    exit 1
 	fi
@@ -409,13 +406,13 @@ function relay() {
     ${CLI} relay status -s 1
     orderid=$(${CLI} relay status -s 1 | jq -r ".orderid")
     status=$(${CLI} relay status -s 1 | jq -r ".status")
-    if [ "${status}x" != "pendingx" ]; then
+    if [ "${status}" != "pending" ]; then
         echo "wrong relay order pending status"
         exit 1
     fi
 
     coinoperation=$(${CLI} relay status -s 1 | jq -r ".coinoperation")
-    if [ "${coinoperation}x" != "sellx" ]; then
+    if [ "${coinoperation}" != "sell" ]; then
         echo "wrong relay order sell operation"
         exit 1
     fi
@@ -439,7 +436,7 @@ function relay() {
 
     ${CLI} relay status -s 2
     status=$(${CLI} relay status -s 2 | jq -r ".status")
-    if [ "${status}x" != "lockingx" ]; then
+    if [ "${status}" != "locking" ]; then
         echo "wrong relay order locking status"
         exit 1
     fi
