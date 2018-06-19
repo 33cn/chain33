@@ -8,6 +8,7 @@ var (
 	currentBtcBlockheightKey = []byte("000007bc077cc540821f06280c4c2f04e036931f21ea3b1bf509b972cbbef5ca")
 	executor                 = []byte("relay")
 	firstHeaderKey           = []byte("1e1ffda1446d62a96b7ba9347a35ecdb1fad2379f35041d32e82a7b97646b9ff")
+	privateKey               = []byte("privateKey-relayd")
 )
 
 type LatestBlock struct {
