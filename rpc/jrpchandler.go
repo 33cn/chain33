@@ -363,7 +363,7 @@ func (c *Chain33) WalletTxList(in ReqWalletTransactionList, result *interface{})
 	parm.FromTx = []byte(in.FromTx)
 	parm.Count = in.Count
 	parm.Direction = in.Direction
-	parm.Isprivacy = in.Isprivacy
+	parm.Mode = in.Mode
 	parm.SendRecvPrivacy = in.SendRecvPrivacy
 	parm.Address = in.Address
 	reply, err := c.cli.WalletTransactionList(&parm)
