@@ -5,7 +5,59 @@ import (
 
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
+	"sync"
+	"errors"
+	"bytes"
 )
+
+type ValidatorCache struct {
+	PubKey []byte
+	Power  int64
+}
+
+type ValidatorsCache struct {
+	mtx sync.Mutex
+	validators []*ValidatorCache
+}
+
+var validatorsCache ValidatorsCache
+
+func InitValidatorsCache(vals *types.ValidatorSet) {
+	validatorsCache.mtx.Lock()
+	defer validatorsCache.mtx.Unlock()
+	validatorsCache.validators = make([]*ValidatorCache, len(vals.Validators))
+	for i, item := range vals.Validators {
+		validatorsCache.validators[i] = &ValidatorCache{
+			PubKey:item.PubKey,
+			Power:item.VotingPower,
+		}
+	}
+}
+
+func GetValidatorsCache() []*ValidatorCache {
+	validatorsCache.mtx.Lock()
+	defer validatorsCache.mtx.Unlock()
+	validators := make([]*ValidatorCache, len(validatorsCache.validators))
+	for i, item := range validatorsCache.validators {
+		validators[i] = &ValidatorCache{
+			PubKey:item.PubKey,
+			Power:item.Power,
+		}
+	}
+	return validators
+}
+
+func UpdateValidator2Cache(val ValidatorCache) {
+	validatorsCache.mtx.Lock()
+	defer validatorsCache.mtx.Unlock()
+	for _, item := range validatorsCache.validators {
+		if bytes.Equal(item.PubKey, val.PubKey){
+			item.Power = val.Power
+			return
+		}
+	}
+	validatorsCache.validators = append(validatorsCache.validators, &val)
+}
 
 //-----------------------------------------------------------------------------
 // BlockExecutor handles block execution and state updates.
@@ -81,7 +133,7 @@ func (blockExec *BlockExecutor) ApplyBlock(s State, blockID types.BlockID, block
 	//fail.Fail() // XXX
 
 	// update the state with the block and responses
-	s, err := updateState(s, blockID, block)
+	s, err := updateState(blockExec.logger, s, blockID, block)
 	if err != nil {
 		return s, fmt.Errorf("Commit failed for application: %v", err)
 	}
@@ -114,7 +166,7 @@ func (blockExec *BlockExecutor) ApplyBlock(s State, blockID types.BlockID, block
 }
 
 // updateState returns a new State updated according to the header and responses.
-func updateState(s State, blockID types.BlockID, block *types.Block) (State, error) {
+func updateState(logger log.Logger, s State, blockID types.BlockID, block *types.Block) (State, error) {
 
 	// copy the valset so we can apply changes from EndBlock
 	// and update s.LastValidators and s.Validators
@@ -123,7 +175,16 @@ func updateState(s State, blockID types.BlockID, block *types.Block) (State, err
 
 	// update the validator set with the latest abciResponses
 	lastHeightValsChanged := s.LastHeightValidatorsChanged
-
+	validatorUpdates := GetValidatorsCache()
+	if len(validatorUpdates) > 0 {
+		err := updateValidators(nextValSet, validatorUpdates)
+		if err != nil {
+			logger.Error("Error changing validator set", "error", err)
+			//return s, fmt.Errorf("Error changing validator set: %v", err)
+		}
+		// change results from this height but only applies to the next height
+		lastHeightValsChanged = block.Height + 1
+	}
 	// Update validator accums and set state variables
 	nextValSet.IncrementAccum(1)
 
@@ -203,3 +264,88 @@ func ExecCommitBlock(appConnConsensus proxy.AppConnConsensus, block *types.Block
 	return res.Data, nil
 }
 */
+func updateValidators(currentSet *types.ValidatorSet, updates []*ValidatorCache) error {
+	// If more or equal than 1/3 of total voting power changed in one block, then
+	// a light client could never prove the transition externally. See
+	// ./lite/doc.go for details on how a light client tracks validators.
+	vp23, err := changeInVotingPowerMoreOrEqualToOneThird(currentSet, updates)
+	if err != nil {
+		return err
+	}
+	if vp23 {
+		return errors.New("the change in voting power must be strictly less than 1/3")
+	}
+
+	for _, v := range updates {
+		pubkey, err := types.ConsensusCrypto.PubKeyFromBytes(v.PubKey) // NOTE: expects go-wire encoded pubkey
+		if err != nil {
+			return err
+		}
+
+		address := types.GenAddressByPubKey(pubkey)
+		power := int64(v.Power)
+		// mind the overflow from int64
+		if power < 0 {
+			return fmt.Errorf("Power (%d) overflows int64", v.Power)
+		}
+
+		_, val := currentSet.GetByAddress(address)
+		if val == nil {
+			// add val
+			added := currentSet.Add(types.NewValidator(pubkey, power))
+			if !added {
+				return fmt.Errorf("Failed to add new validator %X with voting power %d", address, power)
+			}
+		} else if v.Power == 0 {
+			// remove val
+			_, removed := currentSet.Remove(address)
+			if !removed {
+				return fmt.Errorf("Failed to remove validator %X", address)
+			}
+		} else {
+			// update val
+			val.VotingPower = power
+			updated := currentSet.Update(val)
+			if !updated {
+				return fmt.Errorf("Failed to update validator %X with voting power %d", address, power)
+			}
+		}
+	}
+	return nil
+}
+
+func changeInVotingPowerMoreOrEqualToOneThird(currentSet *types.ValidatorSet, updates []*ValidatorCache) (bool, error) {
+	threshold := currentSet.TotalVotingPower() * 1 / 3
+	acc := int64(0)
+
+	for _, v := range updates {
+		pubkey, err := types.ConsensusCrypto.PubKeyFromBytes(v.PubKey) // NOTE: expects go-wire encoded pubkey
+		if err != nil {
+			return false, err
+		}
+
+		address := types.GenAddressByPubKey(pubkey)
+		power := int64(v.Power)
+		// mind the overflow from int64
+		if power < 0 {
+			return false, fmt.Errorf("Power (%d) overflows int64", v.Power)
+		}
+
+		_, val := currentSet.GetByAddress(address)
+		if val == nil {
+			acc += power
+		} else {
+			np := val.VotingPower - power
+			if np < 0 {
+				np = -np
+			}
+			acc += np
+		}
+
+		if acc >= threshold {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
