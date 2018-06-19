@@ -1,11 +1,10 @@
 package relayd
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"time"
-
-	"errors"
 
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -49,23 +48,22 @@ out:
 		case <-time.After(time.Second * 60):
 			err := c.ping(ctx)
 			if err != nil {
-				log.Error("heartbeat", "heartbeat chain33 error: ", err.Error())
+				log.Error("heartbeat", "heartbeat chain33 error: ", err.Error(), "reconnectAttempts: ", reconnectAttempts)
 				c.AutoReconnect(ctx)
 				reconnectAttempts--
 			} else {
 				reconnectAttempts = c.config.ReconnectAttempts
 			}
 			// TODO
-			if reconnectAttempts < 0 {
-				break out
+			if reconnectAttempts <= 0 {
+				panic(fmt.Errorf("reconnectAttempts <= %d", reconnectAttempts))
 			}
 		}
 	}
 }
 
-func (c *Client33) Start(ctx context.Context) error {
+func (c *Client33) Start(ctx context.Context) {
 	go c.heartbeat(ctx)
-	return nil
 }
 
 func (c *Client33) ping(ctx context.Context) error {
