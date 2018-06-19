@@ -113,5 +113,6 @@ type QueueProtocolAPI interface {
 
 	// +++++++++++++++ other interfaces begin
 	DecodeRawTransaction(param *types.ReqDecodeRawTransaction) (*types.Transaction, error)
+	GetTimeStatus() (*types.TimeStatus, error)
 	// --------------- other interfaces end
 }

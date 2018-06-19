@@ -50,3 +50,9 @@ message KeyValue {
 	bytes key = 1;
 	bytes value = 2;
 }
+
+message TimeStatus {
+	string ntpTime = 1;
+	string localTime = 2;
+	int64  diff = 3;
+}
