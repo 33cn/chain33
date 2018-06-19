@@ -311,3 +311,9 @@ type NodeNetinfo struct {
 	Outbounds    int32  `json:"outbounds"`
 	Inbounds     int32  `json:"inbounds"`
 }
+
+type TimeStatus struct {
+	NtpTime   string `json:"ntpTime"`
+	LocalTime string `json:"localTime"`
+	Diff      int64  `json:"diff"`
+}
