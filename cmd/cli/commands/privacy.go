@@ -10,6 +10,10 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
+var (
+	defMixCount int32 = 16
+)
+
 func PrivacyCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "privacy",
@@ -132,9 +136,6 @@ func privacy2PrivacyFlag(cmd *cobra.Command) {
 	cmd.Flags().Float64P("amount", "a", 0.0, "transfer amount")
 	cmd.MarkFlagRequired("amount")
 
-	cmd.Flags().Int32P("mixcount", "m", 0, "mix count")
-	cmd.MarkFlagRequired("mixcount")
-
 	cmd.Flags().StringP("note", "n", "", "transfer note")
 	cmd.MarkFlagRequired("note")
 
@@ -145,7 +146,7 @@ func privacy2Privacy(cmd *cobra.Command, args []string) {
 	from, _ := cmd.Flags().GetString("from")
 	pubkeypair, _ := cmd.Flags().GetString("pubkeypair")
 	amount, _ := cmd.Flags().GetFloat64("amount")
-	mixcount, _ := cmd.Flags().GetInt32("mixcount")
+	mixcount := defMixCount
 	note, _ := cmd.Flags().GetString("note")
 
 	amountInt64 := int64(amount*types.InputPrecision) * types.Multiple1E4 //支持4位小数输入，多余的输入将被截断
@@ -184,9 +185,6 @@ func privacy2Publiclag(cmd *cobra.Command) {
 	cmd.Flags().Float64P("amount", "a", 0.0, "transfer amount")
 	cmd.MarkFlagRequired("amount")
 
-	cmd.Flags().Int32P("mixcount", "m", 0, "mix count")
-	cmd.MarkFlagRequired("mixcount")
-
 	cmd.Flags().StringP("note", "n", "", "transfer note")
 	cmd.MarkFlagRequired("note")
 
@@ -197,7 +195,7 @@ func privacy2Public(cmd *cobra.Command, args []string) {
 	from, _ := cmd.Flags().GetString("from")
 	to, _ := cmd.Flags().GetString("to")
 	amount, _ := cmd.Flags().GetFloat64("amount")
-	mixcount, _ := cmd.Flags().GetInt32("mixcount")
+	mixcount := defMixCount
 	note, _ := cmd.Flags().GetString("note")
 
 	amountInt64 := int64(amount*types.InputPrecision) * types.Multiple1E4 //支持4位小数输入，多余的输入将被截断
