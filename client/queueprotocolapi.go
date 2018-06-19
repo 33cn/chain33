@@ -77,8 +77,6 @@ type QueueProtocolAPI interface {
 	// types.EventSignRawTx
 	SignRawTx(param *types.ReqSignRawTx) (*types.ReplySignRawTx, error)
 	GetFatalFailure() (*types.Int32, error)
-	// types.EventBindMiner
-	BindMiner(param *types.ReqBindMiner) (*types.ReplyBindMiner, error)
 	// --------------- wallet interfaces end
 
 	// +++++++++++++++ blockchain interfaces begin
@@ -112,7 +110,5 @@ type QueueProtocolAPI interface {
 	// --------------- store interfaces end
 
 	// +++++++++++++++ other interfaces begin
-	DecodeRawTransaction(param *types.ReqDecodeRawTransaction) (*types.Transaction, error)
-	GetTimeStatus() (*types.TimeStatus, error)
 	// --------------- other interfaces end
 }

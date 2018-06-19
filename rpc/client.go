@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"encoding/hex"
 	"math/rand"
 	"time"
 
@@ -445,4 +446,78 @@ func (c *channelClient) CreateRawTradeRevokeBuyTx(parm *TradeRevokeBuyTx) ([]byt
 
 	data := types.Encode(tx)
 	return data, nil
+}
+
+func (c *channelClient) BindMiner(param *types.ReqBindMiner) (*types.ReplyBindMiner, error) {
+	ta := &types.TicketAction{}
+	tBind := &types.TicketBind{
+		MinerAddress:  param.BindAddr,
+		ReturnAddress: param.OriginAddr,
+	}
+	ta.Value = &types.TicketAction_Tbind{Tbind: tBind}
+	ta.Ty = types.TicketActionBind
+	execer := []byte("ticket")
+	to := address.ExecAddress(string(execer))
+	txBind := &types.Transaction{Execer: execer, Payload: types.Encode(ta), To: to}
+	random := rand.New(rand.NewSource(time.Now().UnixNano()))
+	txBind.Nonce = random.Int63()
+	var err error
+	txBind.Fee, err = txBind.GetRealFee(types.MinFee)
+	if err != nil {
+		return nil, err
+	}
+	txBind.Fee += types.MinFee
+	txBindHex := types.Encode(txBind)
+	txHexStr := hex.EncodeToString(txBindHex)
+
+	return &types.ReplyBindMiner{TxHex: txHexStr}, nil
+}
+
+func (c *channelClient) DecodeRawTransaction(param *types.ReqDecodeRawTransaction) (*types.Transaction, error) {
+	var tx types.Transaction
+	bytes, err := common.FromHex(param.TxHex)
+	if err != nil {
+		return nil, err
+	}
+	err = types.Decode(bytes, &tx)
+	if err != nil {
+		return nil, err
+	}
+	return &tx, nil
+}
+
+func (c *channelClient) GetTimeStatus() (*types.TimeStatus, error) {
+	var diffTmp []int64
+	var ntpTime time.Time
+	var local time.Time
+	var diff int64
+	for i := 0; i < 3; i++ {
+		time.Sleep(time.Millisecond * 100)
+		errTimes := 0
+		for {
+			time.Sleep(time.Millisecond * 100)
+			var err error
+			ntpTime, err = common.GetNtpTime("time.windows.com:123")
+			if err != nil {
+				errTimes++
+			} else {
+				break
+			}
+			if errTimes == 10 {
+				return &types.TimeStatus{NtpTime: "", LocalTime: time.Now().Format("2006-01-02 15:04:05"), Diff: 0}, nil
+			}
+		}
+
+		local = time.Now()
+		diff = local.Unix() - ntpTime.Unix()
+		diffTmp = append(diffTmp, diff)
+	}
+	for j := 0; j < 2; j++ {
+		for k := j + 1; k < 3; k++ {
+			if diffTmp[j] != diffTmp[k] {
+				return &types.TimeStatus{NtpTime: "", LocalTime: time.Now().Format("2006-01-02 15:04:05"), Diff: 0}, nil
+			}
+		}
+	}
+	return &types.TimeStatus{NtpTime: ntpTime.Format("2006-01-02 15:04:05"), LocalTime: local.Format("2006-01-02 15:04:05"), Diff: diff}, nil
 }
