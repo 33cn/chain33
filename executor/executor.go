@@ -577,7 +577,7 @@ func (execute *executor) execFee(tx *types.Transaction, index int) (*types.Recei
 	feelog := &types.Receipt{Ty: types.ExecPack}
 	execer := string(tx.Execer)
 	e := execute.loadDriverForExec(execer, execute.height)
-	execute.setEnv(exec)
+	execute.setEnv(e)
 	//执行器名称 和  pubkey 相同，费用从内置的执行器中扣除,但是checkTx 中要过
 	//默认checkTx 中对这样的交易会返回
 	if bytes.Equal(address.ExecPubkey(execer), tx.GetSignature().GetPubkey()) {
@@ -586,6 +586,7 @@ func (execute *executor) execFee(tx *types.Transaction, index int) (*types.Recei
 			return nil, err
 		}
 	}
+	var err error
 	//公链不允许手续费为0
 	if types.MinFee > 0 && (!e.IsFree() || types.IsPublicChain()) {
 		feelog, err = execute.processFee(tx)
