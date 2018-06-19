@@ -89,15 +89,6 @@ func calcPrivacy4TokenMap() []byte {
 	return []byte(PrivacyTokenMap)
 }
 
-//TODO:整理一下，通过类型确定不同类型的key
-//func calcSTXOKey(token, addr, txhash string, index int) []byte {
-//	return []byte(fmt.Sprintf(PrivacySTXO+"%s-%s-%s-%d", token, addr, txhash, index))
-//}
-//
-//func calcSTXOPrefix(token string) []byte {
-//	return []byte(fmt.Sprintf(PrivacySTXO+"%s", token))
-//}
-
 func calcSTXOPrefix4Addr(token, addr string) []byte {
 	return []byte(fmt.Sprintf(PrivacySTXO+"%s-%s", token, addr))
 }
@@ -106,30 +97,24 @@ func calcSTXOTokenAddrTxKey(token, addr, txhash string) []byte {
 	return []byte(fmt.Sprintf(PrivacySTXO+"%s-%s-%s", token, addr, txhash))
 }
 
-//func calcFTXOKey(token, addr, txhash string, index int) []byte {
-//	return []byte(fmt.Sprintf(PrivacyFTXO+"%s-%s-%s-%d", token, addr, txhash, index))
-//}
-//
-//func calcFTXOPrefix(token string) []byte {
-//	return []byte(fmt.Sprintf(PrivacyFTXO+"%s", token))
-//}
-//
-//func calcFTXOPrefix4Addr(token, addr string) []byte {
-//	return []byte(fmt.Sprintf(PrivacyFTXO+"%s-%s", token, addr))
-//}
-
 //通过height*100000+index 查询Tx交易信息
 //key:Tx:height*100000+index
 func calcTxKey(key string) []byte {
 	return []byte(fmt.Sprintf("Tx:%s", key))
 }
 
+// calcRecvPrivacyTxKey 计算以指定地址作为接收地址的交易信息索引
+// addr为接收地址
+// key为通过calcTxKey(heightstr)计算出来的值
 func calcRecvPrivacyTxKey(addr, key string) []byte {
-	return []byte(fmt.Sprintf(RecvPrivacyTx + ":%s-%s", addr, key))
+	return []byte(fmt.Sprintf(RecvPrivacyTx+":%s-%s", addr, key))
 }
 
+// calcSendPrivacyTxKey 计算以指定地址作为发送地址的交易信息索引
+// addr为发送地址
+// key为通过calcTxKey(heightstr)计算出来的值
 func calcSendPrivacyTxKey(addr, key string) []byte {
-	return []byte(fmt.Sprintf(SendPrivacyTx + ":%s-%s", addr, key))
+	return []byte(fmt.Sprintf(SendPrivacyTx+":%s-%s", addr, key))
 }
 
 func calcKey4FTXOsInTx(key string) []byte {
@@ -307,14 +292,14 @@ func (ws *Store) GetTxDetailByIter(TxList *types.ReqWalletTransactionList) (*typ
 	//FromTx是空字符串时。默认从最新的交易开始取count个
 	if len(TxList.FromTx) == 0 {
 		list := dbm.NewListHelper(ws.db)
-		if !TxList.Isprivacy {
+		if TxList.GetMode() == walletQueryModeNormal {
 			txbytes = list.IteratorScanFromLast([]byte(calcTxKey("")), TxList.Count)
-		} else {
+		} else if TxList.GetMode() == walletQueryModePrivacy {
 			var keyPrefix []byte
 			if sendTx == TxList.SendRecvPrivacy {
 				keyPrefix = calcSendPrivacyTxKey(TxList.Address, "")
 			} else {
-				keyPrefix = calcRecvPrivacyTxKey(TxList.Address,"")
+				keyPrefix = calcRecvPrivacyTxKey(TxList.Address, "")
 			}
 
 			txkeybytes := list.IteratorScanFromLast(keyPrefix, TxList.Count)
@@ -336,9 +321,9 @@ func (ws *Store) GetTxDetailByIter(TxList *types.ReqWalletTransactionList) (*typ
 		}
 	} else {
 		list := dbm.NewListHelper(ws.db)
-		if !TxList.Isprivacy {
+		if TxList.GetMode() == walletQueryModeNormal {
 			txbytes = list.IteratorScan([]byte("Tx:"), []byte(calcTxKey(string(TxList.FromTx))), TxList.Count, TxList.Direction)
-		} else {
+		} else if TxList.GetMode() == walletQueryModePrivacy {
 			var txkeybytes [][]byte
 			if sendTx == TxList.SendRecvPrivacy {
 				txkeybytes = list.IteratorScan([]byte(SendPrivacyTx), []byte(calcSendPrivacyTxKey(TxList.Address, string(TxList.FromTx))), TxList.Count, TxList.Direction)
@@ -591,10 +576,10 @@ func (ws *Store) moveUTXO2FTXO(token, sender, txhash string, selectedUtxos []*tx
 		key := calcUTXOKey4TokenAddr(token, sender, common.Bytes2Hex(txOutputInfo.utxoGlobalIndex.Txhash), int(txOutputInfo.utxoGlobalIndex.Outindex))
 		newbatch.Delete(key)
 		utxo := &types.UTXO{
-			Amount:txOutputInfo.amount,
+			Amount: txOutputInfo.amount,
 			UtxoBasic: &types.UTXOBasic{
-				UtxoGlobalIndex:txOutputInfo.utxoGlobalIndex,
-				OnetimePubkey:txOutputInfo.onetimePublicKey,
+				UtxoGlobalIndex: txOutputInfo.utxoGlobalIndex,
+				OnetimePubkey:   txOutputInfo.onetimePublicKey,
 			},
 		}
 		FTXOsInOneTx.Utxos = append(FTXOsInOneTx.Utxos, utxo)

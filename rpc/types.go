@@ -196,10 +196,10 @@ type ReqHashes struct {
 }
 
 type ReqWalletTransactionList struct {
-	Isprivacy bool   `json:"Isprivacy"`
-	FromTx    string `json:"fromTx"`
-	Count     int32  `json:"count"`
-	Direction int32  `json:"direction"`
+	FromTx          string `json:"fromTx"`
+	Count           int32  `json:"count"`
+	Direction       int32  `json:"direction"`
+	Mode            int32  `json:"mode,omitempty"`
 	SendRecvPrivacy int32  `json:"sendRecvPrivacy,omitempty"`
 	Address         string `json:"address,omitempty"`
 }

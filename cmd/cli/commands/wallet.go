@@ -163,13 +163,11 @@ func WalletListTxsCmd() *cobra.Command {
 func addWalletListTxsFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("addr", "a", "", "account address")
 	cmd.MarkFlagRequired("addr")
-	cmd.Flags().Int32P("count", "c", 0, "number of transactions")
-	cmd.MarkFlagRequired("count")
-	cmd.Flags().Int32P("sendrecv", "s", 1, "send or recv flag (1: send, 2: recv)")
-	cmd.MarkFlagRequired("sendrecv")
 
+	cmd.Flags().Int32P("sendrecv", "s", 1, "send or recv flag (1: send, 2: recv)")
+	cmd.Flags().Int32P("count", "c", 10, "number of transactions")
 	cmd.Flags().StringP("starttxhash", "t", "", "from which transaction begin")
-	cmd.Flags().BoolP("isprivacy", "p", false, "privacy transaction flag. (true: query privacy transaction)")
+	cmd.Flags().Int32P("mode", "m", 0, "query mode. (0: normal, 1:privacy)")
 	cmd.Flags().Int32P("direction", "d", 1, "query direction (0: pre page, 1: next page)")
 }
 
@@ -178,16 +176,16 @@ func walletListTxs(cmd *cobra.Command, args []string) {
 	txHash, _ := cmd.Flags().GetString("starttxhash")
 	count, _ := cmd.Flags().GetInt32("count")
 	direction, _ := cmd.Flags().GetInt32("dir")
-	isprivacy, _ := cmd.Flags().GetBool("isprivacy")
+	mode, _ := cmd.Flags().GetInt32("mode")
 	addr, _ := cmd.Flags().GetString("addr")
 	sendRecvPrivacy, _ := cmd.Flags().GetInt32("sendrecv")
 	params := jsonrpc.ReqWalletTransactionList{
-		FromTx:    txHash,
-		Count:     count,
-		Direction: direction,
-		Isprivacy: isprivacy,
-		Address: addr,
-		SendRecvPrivacy:sendRecvPrivacy,
+		FromTx:          txHash,
+		Count:           count,
+		Direction:       direction,
+		Mode:            mode,
+		Address:         addr,
+		SendRecvPrivacy: sendRecvPrivacy,
 	}
 	var res jsonrpc.WalletTxDetails
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.WalletTxList", params, &res)
