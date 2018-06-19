@@ -180,13 +180,13 @@ type UTXOGlobalIndex struct {
 	Height   int64  `json:"height,omitempty"`
 	Txindex  int32  `json:"txindex,omitempty"`
 	Outindex int32  `json:"outindex,omitempty"`
-	Txhash   []byte `json:"txhash,omitempty"`
+	Txhash   string `json:"txhash,omitempty"`
 }
 
 type KeyInput struct {
 	Amount          string             `json:"amount,omitempty"`
 	UtxoGlobalIndex []*UTXOGlobalIndex `json:"utxoGlobalIndex,omitempty"`
-	KeyImage        []byte             `json:"keyImage,omitempty"`
+	KeyImage        string             `json:"keyImage,omitempty"`
 }
 
 type PrivacyInput struct {
@@ -196,7 +196,7 @@ type PrivacyInput struct {
 // privacy output
 type KeyOutput struct {
 	Amount        string `json:"amount,omitempty"`
-	Onetimepubkey []byte `json:"onetimepubkey,omitempty"`
+	Onetimepubkey string `json:"onetimepubkey,omitempty"`
 }
 
 type ReceiptPrivacyOutput struct {
