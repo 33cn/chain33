@@ -200,7 +200,10 @@ type ReqWalletTransactionList struct {
 	FromTx    string `json:"fromTx"`
 	Count     int32  `json:"count"`
 	Direction int32  `json:"direction"`
+	SendRecvPrivacy int32  `json:"sendRecvPrivacy,omitempty"`
+	Address         string `json:"address,omitempty"`
 }
+
 type WalletTxDetails struct {
 	TxDetails []*WalletTxDetail `protobuf:"bytes,1,rep,name=txDetails" json:"txDetails"`
 }
