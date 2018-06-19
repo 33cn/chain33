@@ -36,6 +36,10 @@ func (c *channelClient) CreateRawTransaction(param *types.CreateTx) ([]byte, err
 		log.Error("CreateRawTransaction", "Error", types.ErrExecNameNotMatch)
 		return nil, types.ErrExecNameNotMatch
 	}
+	//to地址要么是普通用户地址，要么就是执行器地址，不能为空
+	if param.To == "" {
+		return nil, types.ErrAddrNotExist
+	}
 
 	var tx *types.Transaction
 	if param.Amount < 0 {
