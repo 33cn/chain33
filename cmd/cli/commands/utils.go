@@ -253,13 +253,13 @@ func buildPrivacyInputResult(l *jsonrpc.ReceiptLogResult) interface{} {
 				Height:   srcUTXOGlobalIndex.GetHeight(),
 				Txindex:  srcUTXOGlobalIndex.GetTxindex(),
 				Outindex: srcUTXOGlobalIndex.GetOutindex(),
-				Txhash:   srcUTXOGlobalIndex.GetTxhash(),
+				Txhash:   common.ToHex(srcUTXOGlobalIndex.GetTxhash()),
 			})
 		}
 		dstKeyInput := &KeyInput{
 			Amount:          strconv.FormatFloat(float64(srcKeyInput.GetAmount())/float64(types.Coin), 'f', 4, 64),
 			UtxoGlobalIndex: dstUtxoGlobalIndex,
-			KeyImage:        srcKeyInput.GetKeyImage(),
+			KeyImage:        common.ToHex(srcKeyInput.GetKeyImage()),
 		}
 		dstInput.Keyinput = append(dstInput.Keyinput, dstKeyInput)
 	}
@@ -277,7 +277,7 @@ func buildPrivacyOutputResult(l *jsonrpc.ReceiptLogResult) interface{} {
 	for _, srcKeyoutput := range srcOutput.Keyoutput {
 		dstKeyoutput := &KeyOutput{
 			Amount:        strconv.FormatFloat(float64(srcKeyoutput.GetAmount())/float64(types.Coin), 'f', 4, 64),
-			Onetimepubkey: srcKeyoutput.Onetimepubkey,
+			Onetimepubkey: common.ToHex(srcKeyoutput.Onetimepubkey),
 		}
 		dstOutput.Keyoutput = append(dstOutput.Keyoutput, dstKeyoutput)
 	}
