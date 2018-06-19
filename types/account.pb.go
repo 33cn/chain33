@@ -290,6 +290,8 @@ It has these top-level messages:
 	ReplySignRawTx
 	ReqAuthSignTx
 	ReplyAuthSignTx
+	ReqAuthSignTxs
+	ReplyAuthSignTxs
 	ReportErrEvent
 	Int32
 	ReqBindMiner
