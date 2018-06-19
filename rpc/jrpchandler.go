@@ -364,6 +364,8 @@ func (c *Chain33) WalletTxList(in ReqWalletTransactionList, result *interface{})
 	parm.Count = in.Count
 	parm.Direction = in.Direction
 	parm.Isprivacy = in.Isprivacy
+	parm.SendRecvPrivacy = in.SendRecvPrivacy
+	parm.Address = in.Address
 	reply, err := c.cli.WalletTransactionList(&parm)
 	if err != nil {
 		return err
@@ -394,7 +396,7 @@ func (c *Chain33) WalletTxList(in ReqWalletTransactionList, result *interface{})
 				Index:      tx.GetIndex(),
 				BlockTime:  tx.GetBlocktime(),
 				Amount:     tx.GetAmount(),
-				FromAddr:   tx.GetFromaddr(),
+				FromAddr:   tx.GetSenderRecver(),
 				TxHash:     common.ToHex(tx.GetTxhash()),
 				ActionName: tx.GetActionName(),
 			})
