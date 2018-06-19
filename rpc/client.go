@@ -55,9 +55,16 @@ func (c *channelClient) CreateRawTransaction(param *types.CreateTx) ([]byte, err
 				transfer.Ty = types.CoinsActionTransfer
 			}
 		} else {
-			v := &types.CoinsAction_Withdraw{Withdraw: &types.CoinsWithdraw{Amount: amount, Note: param.GetNote()}}
+			v := &types.CoinsAction_Withdraw{Withdraw: &types.CoinsWithdraw{Amount: amount, Note: param.GetNote(), ExecName: param.GetExecName()}}
 			transfer.Value = v
 			transfer.Ty = types.CoinsActionWithdraw
+		}
+		if param.To == "" {
+			if param.ExecName == "" {
+				return nil, types.ErrExecNameNotAllow
+			} else {
+				param.To = address.ExecAddress(param.ExecName)
+			}
 		}
 		tx = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), To: param.GetTo()}
 	} else {
@@ -67,9 +74,16 @@ func (c *channelClient) CreateRawTransaction(param *types.CreateTx) ([]byte, err
 			transfer.Value = v
 			transfer.Ty = types.ActionTransfer
 		} else {
-			v := &types.TokenAction_Withdraw{Withdraw: &types.CoinsWithdraw{Cointoken: param.GetTokenSymbol(), Amount: amount, Note: param.GetNote()}}
+			v := &types.TokenAction_Withdraw{Withdraw: &types.CoinsWithdraw{Cointoken: param.GetTokenSymbol(), Amount: amount, Note: param.GetNote(), ExecName: param.GetExecName()}}
 			transfer.Value = v
 			transfer.Ty = types.ActionWithdraw
+		}
+		if param.To == "" {
+			if param.ExecName == "" {
+				return nil, types.ErrExecNameNotAllow
+			} else {
+				param.To = address.ExecAddress(param.ExecName)
+			}
 		}
 		tx = &types.Transaction{Execer: []byte("token"), Payload: types.Encode(transfer), To: param.GetTo()}
 	}
