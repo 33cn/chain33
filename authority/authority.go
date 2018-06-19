@@ -71,11 +71,7 @@ func (auth *Authority) initConfig(conf *types.Authority) error {
 	auth.idmgr = idmgr
 
 	err = mspmgr.LoadLocalMsp(conf.CryptoPath, config)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func (auth *Authority) GetSigningMgr() *signingmgr.SigningManager {
