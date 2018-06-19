@@ -139,14 +139,15 @@ message MinerFlag {
 //			    第一次传参为空，获取最新的交易。)
 //	 count :获取交易列表的个数。
 //	 direction :查找方式；0，上一页；1，下一页。
-//  isprivacy: 是否仅查询隐私交易
-//  sendRecvPrivacy: 查询隐私交易的发送还是接收：0，接收；1发送
+//  mode: 查询模式，0：普通查询，1：隐私合约查询
+//  sendRecvPrivacy: 查询隐私交易的发送还是接收：0：发送； 1：接收
 message ReqWalletTransactionList {
 	bytes fromTx = 1; 
 	int32 count = 2;
 	int32 direction = 3;
-	bool isprivacy  = 4;
+	int32 mode  = 4;
     int32 sendRecvPrivacy = 5;
+    // 需要查询的账号地址
     string address        = 6;
 }
 

@@ -37,16 +37,15 @@ var (
 	SignType    = 1
 	accountdb   = account.NewCoinsAccount()
 	accTokenMap = make(map[string]*account.DB)
-)
 
-const (
-	AddTx = iota
-	DelTx
-)
+	AddTx int32 = 1
+	DelTx int32 = 2
 
-const (
-	sendTx = iota + 10
-	recvTx
+	sendTx int32 = 1
+	recvTx int32 = 2
+
+	walletQueryModeNormal  int32 = 1
+	walletQueryModePrivacy int32 = 2
 )
 
 type Wallet struct {
@@ -983,16 +982,16 @@ func (wallet *Wallet) ProcCreateNewAccount(Label *types.ReqNewAccount) (*types.W
 	return &walletAccount, nil
 }
 
-
 func convertSendRecvPrivacy(in int32) (int32, error) {
 	switch in {
-	case 1, sendTx:
+	case 1:
 		return sendTx, nil
-	case 2, recvTx:
+	case 2:
 		return recvTx, nil
 	}
 	return 0, errors.New("SendRecvPrivacy only support 1 or 2")
 }
+
 //input:
 //type ReqWalletTransactionList struct {
 //	FromTx []byte
@@ -1670,6 +1669,7 @@ func (wallet *Wallet) buildAndStoreWalletTxDetail(param *buildStoreWalletTxDetai
 	walletlog.Debug("buildAndStoreWalletTxDetail", "heightstr", heightstr, "addDelType", param.addDelType)
 	if AddTx == param.addDelType {
 		var txdetail types.WalletTxDetail
+		key := calcTxKey(heightstr)
 		txdetail.Tx = param.tx
 		txdetail.Height = param.block.Block.Height
 		txdetail.Index = int64(param.index)
@@ -1687,9 +1687,8 @@ func (wallet *Wallet) buildAndStoreWalletTxDetail(param *buildStoreWalletTxDetai
 			return
 		}
 
-		param.newbatch.Set(calcTxKey(heightstr), txdetailbyte)
+		param.newbatch.Set(key, txdetailbyte)
 		if param.isprivacy {
-			key := calcTxKey(heightstr)
 			//额外存储可以快速定位到接收隐私的交易
 			if sendTx == param.sendRecvFlag {
 				param.newbatch.Set(calcSendPrivacyTxKey(param.senderRecver, heightstr), key)
