@@ -86,10 +86,21 @@ func NewRelayd(config *Config) *Relayd {
 		panic(err)
 	}
 
-	pk, err := hex.DecodeString(config.Auth.PrivateKey)
-	if err != nil {
+	var pk []byte
+	private, err := db.Get(privateKey[:])
+	if err != nil && private == nil && config.Auth.PrivateKey == "" {
 		panic(err)
 	}
+
+	if private != nil && config.Auth.PrivateKey == "" {
+		pk = private
+	} else {
+		pk, err = hex.DecodeString(config.Auth.PrivateKey)
+		if err != nil && pk == nil && private == nil {
+			panic(err)
+		}
+	}
+	db.Set(privateKey[:], pk)
 
 	secp, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
 	if err != nil {
