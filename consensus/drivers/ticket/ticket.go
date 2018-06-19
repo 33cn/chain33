@@ -477,7 +477,6 @@ func (client *Client) searchTargetTicket(parent, block *types.Block) (*types.Tic
 	if err != nil {
 		return nil, nil, nil, nil, 0, err
 	}
-	tlog.Debug("target", "hex", printBInt(diff))
 	client.ticketmu.Lock()
 	defer client.ticketmu.Unlock()
 	for i := 0; i < len(client.tlist.Tickets); i++ {
@@ -605,7 +604,10 @@ func (client *Client) createBlock() (*types.Block, *types.Block) {
 
 func (client *Client) updateBlock(newblock *types.Block, txHashList [][]byte) (*types.Block, [][]byte) {
 	lastBlock := client.GetCurrentBlock()
-	//需要去重复
+	//需要去重复tx
+	if lastBlock.Height != newblock.Height-1 {
+		newblock.Txs = client.CheckTxDup(newblock.Txs)
+	}
 	newblock.ParentHash = lastBlock.Hash()
 	newblock.Height = lastBlock.Height + 1
 	newblock.BlockTime = time.Now().Unix()
@@ -622,10 +624,6 @@ func (client *Client) updateBlock(newblock *types.Block, txHashList [][]byte) (*
 			txHashList = append(txHashList, getTxHashes(txs)...)
 		}
 	}
-	if lastBlock.Height != newblock.Height-1 {
-		newblock.Txs = client.CheckTxDup(newblock.Txs)
-	}
-
 	if lastBlock.BlockTime >= newblock.BlockTime {
 		newblock.BlockTime = lastBlock.BlockTime + 1
 	}
