@@ -18,6 +18,7 @@ package types;
 //	 fromaddr :交易打出地址
 //	 txhash : 交易对应的哈希值
 //	 actionName  :交易对应的函数调用
+//   spendrecv 交易对应的输入UTXO
 message WalletTxDetail {
 	Transaction tx = 1;
 	ReceiptData receipt = 2;
@@ -25,9 +26,10 @@ message WalletTxDetail {
 	int64 index = 4;
 	int64 blocktime = 5;
 	int64 amount = 6;
-	string fromaddr = 7;
+    string senderRecver = 7;
 	bytes txhash = 8;
 	string actionName  =9;
+	repeated UTXO spendrecv = 10;
 }
 
 message WalletTxDetails {
@@ -137,11 +139,15 @@ message MinerFlag {
 //			    第一次传参为空，获取最新的交易。)
 //	 count :获取交易列表的个数。
 //	 direction :查找方式；0，上一页；1，下一页。
+//  isprivacy: 是否仅查询隐私交易
+//  sendRecvPrivacy: 查询隐私交易的发送还是接收：0，接收；1发送
 message ReqWalletTransactionList {
 	bytes fromTx = 1; 
 	int32 count = 2;
 	int32 direction = 3;
 	bool isprivacy  = 4;
+    int32 sendRecvPrivacy = 5;
+    string address        = 6;
 }
 
 message ReqWalletImportPrivKey {

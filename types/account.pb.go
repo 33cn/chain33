@@ -324,6 +324,7 @@ It has these top-level messages:
 	UTXO
 	UTXOHaveTxHash
 	UTXOs
+	UTXOHaveTxHashs
 	ReqUTXOGlobalIndex
 	UTXOBasic
 	UTXOIndex4Amount

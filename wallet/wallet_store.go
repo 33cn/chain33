@@ -31,6 +31,8 @@ const (
 	PrivacyTokenMap = "PrivacyTokenMap"
 	FTXOTimeout     = types.ConfirmedHeight * 16 //Ftxo超时时间
 	FTXOs4Tx        = "FTXOs4Tx"
+	RecvPrivacyTx   = "RecvPrivacyTx"
+	SendPrivacyTx   = "SendPrivacyTx"
 )
 
 type Store struct {
@@ -122,8 +124,12 @@ func calcTxKey(key string) []byte {
 	return []byte(fmt.Sprintf("Tx:%s", key))
 }
 
-func calcRecvPrivacyTxKey(key string) []byte {
-	return []byte(fmt.Sprintf("RecvPrivacyTx:%s", key))
+func calcRecvPrivacyTxKey(addr, key string) []byte {
+	return []byte(fmt.Sprintf(RecvPrivacyTx + ":%s-%s", addr, key))
+}
+
+func calcSendPrivacyTxKey(addr, key string) []byte {
+	return []byte(fmt.Sprintf(SendPrivacyTx + ":%s-%s", addr, key))
 }
 
 func calcKey4FTXOsInTx(key string) []byte {
@@ -292,16 +298,38 @@ func (ws *Store) GetTxDetailByIter(TxList *types.ReqWalletTransactionList) (*typ
 		walletlog.Error("GetTxDetailByIter TxList is nil")
 		return nil, types.ErrInputPara
 	}
+	if TxList.SendRecvPrivacy != sendTx && TxList.SendRecvPrivacy != recvTx {
+		walletlog.Error("GetTxDetailByIter only suport type is sendTx and recvTx")
+		return nil, types.ErrInputPara
+	}
 
 	var txbytes [][]byte
 	//FromTx是空字符串时。默认从最新的交易开始取count个
 	if len(TxList.FromTx) == 0 {
 		list := dbm.NewListHelper(ws.db)
 		if !TxList.Isprivacy {
-			txbytes = list.IteratorScanFromLast(calcTxKey(""), TxList.Count)
+			txbytes = list.IteratorScanFromLast([]byte(calcTxKey("")), TxList.Count)
 		} else {
-			txbytes = list.IteratorScanFromLast(calcRecvPrivacyTxKey(""), TxList.Count)
+			var keyPrefix []byte
+			if sendTx == TxList.SendRecvPrivacy {
+				keyPrefix = calcSendPrivacyTxKey(TxList.Address, "")
+			} else {
+				keyPrefix = calcRecvPrivacyTxKey(TxList.Address,"")
+			}
+
+			txkeybytes := list.IteratorScanFromLast(keyPrefix, TxList.Count)
+			for _, keybyte := range txkeybytes {
+				value, err := ws.db.Get(keybyte)
+				if err != nil {
+					continue
+				}
+				if nil == value {
+					continue
+				}
+				txbytes = append(txbytes, value)
+			}
 		}
+
 		if len(txbytes) == 0 {
 			walletlog.Error("GetTxDetailByIter IteratorScanFromLast does not exist tx!")
 			return nil, types.ErrTxNotExist
@@ -309,10 +337,27 @@ func (ws *Store) GetTxDetailByIter(TxList *types.ReqWalletTransactionList) (*typ
 	} else {
 		list := dbm.NewListHelper(ws.db)
 		if !TxList.Isprivacy {
-			txbytes = list.IteratorScan([]byte("Tx:"), calcTxKey(string(TxList.FromTx)), TxList.Count, TxList.Direction)
+			txbytes = list.IteratorScan([]byte("Tx:"), []byte(calcTxKey(string(TxList.FromTx))), TxList.Count, TxList.Direction)
 		} else {
-			txbytes = list.IteratorScan([]byte("Tx:"), calcRecvPrivacyTxKey(string(TxList.FromTx)), TxList.Count, TxList.Direction)
+			var txkeybytes [][]byte
+			if sendTx == TxList.SendRecvPrivacy {
+				txkeybytes = list.IteratorScan([]byte(SendPrivacyTx), []byte(calcSendPrivacyTxKey(TxList.Address, string(TxList.FromTx))), TxList.Count, TxList.Direction)
+			} else {
+				txkeybytes = list.IteratorScan([]byte(RecvPrivacyTx), []byte(calcRecvPrivacyTxKey(TxList.Address, string(TxList.FromTx))), TxList.Count, TxList.Direction)
+			}
+
+			for _, keybyte := range txkeybytes {
+				value, err := ws.db.Get(keybyte)
+				if err != nil {
+					continue
+				}
+				if nil == value {
+					continue
+				}
+				txbytes = append(txbytes, value)
+			}
 		}
+
 		if len(txbytes) == 0 {
 			walletlog.Error("GetTxDetailByIter IteratorScan does not exist tx!")
 			return nil, types.ErrTxNotExist
@@ -331,7 +376,7 @@ func (ws *Store) GetTxDetailByIter(TxList *types.ReqWalletTransactionList) (*typ
 		txdetail.Txhash = txhash
 		if string(txdetail.Tx.GetExecer()) == "coins" && txdetail.Tx.ActionName() == "withdraw" {
 			//swap from and to
-			txdetail.Fromaddr, txdetail.Tx.To = txdetail.Tx.To, txdetail.Fromaddr
+			txdetail.SenderRecver, txdetail.Tx.To = txdetail.Tx.To, txdetail.SenderRecver
 		}
 
 		txDetails.TxDetails[index] = &txdetail
@@ -492,22 +537,22 @@ func (ws *Store) getWalletPrivacyTokenMap() *types.TokenNamesOfUTXO {
 //2.calcUTXOKey4TokenAddr-->calcUTXOKey，创建kv，方便查询现在某个地址下某种token的可用utxo
 func (ws *Store) setUTXO(addr, txhash *string, outindex int, dbStore *types.PrivacyDBStore, newbatch dbm.Batch) error {
 	if 0 == len(*addr) || 0 == len(*txhash) {
-		walletlog.Error("setWalletPrivacyAccountBalance addr or txhash is nil")
+		walletlog.Error("setUTXO addr or txhash is nil")
 		return types.ErrInputPara
 	}
 	if dbStore == nil {
-		walletlog.Error("setWalletPrivacyAccountBalance privacy is nil")
+		walletlog.Error("setUTXO privacy is nil")
 		return types.ErrInputPara
 	}
 
 	privacyStorebyte, err := proto.Marshal(dbStore)
 	if err != nil {
-		walletlog.Error("setWalletPrivacyAccountBalance proto.Marshal err!", "err", err)
+		walletlog.Error("setUTXO proto.Marshal err!", "err", err)
 		return types.ErrMarshal
 	}
 
 	utxoKey := calcUTXOKey(*txhash, outindex)
-	walletlog.Debug("setWalletPrivacyAccountBalance", "addr", *addr, "tx with hash", *txhash,
+	walletlog.Debug("setUTXO", "addr", *addr, "tx with hash", *txhash,
 		"PrivacyDBStore", *dbStore)
 	newbatch.Set(calcUTXOKey4TokenAddr(dbStore.Tokenname, *addr, *txhash, outindex), utxoKey)
 	newbatch.Set(utxoKey, privacyStorebyte)
