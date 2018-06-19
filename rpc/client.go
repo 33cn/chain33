@@ -36,56 +36,19 @@ func (c *channelClient) CreateRawTransaction(param *types.CreateTx) ([]byte, err
 		log.Error("CreateRawTransaction", "Error", types.ErrExecNameNotMatch)
 		return nil, types.ErrExecNameNotMatch
 	}
+	//to地址要么是普通用户地址，要么就是执行器地址，不能为空
+	if param.To == "" {
+		return nil, types.ErrAddrNotExist
+	}
 
 	var tx *types.Transaction
-	amount := param.Amount
-	if amount < 0 {
+	if param.Amount < 0 {
 		return nil, types.ErrAmount
 	}
-	if !param.IsToken {
-		transfer := &types.CoinsAction{}
-		if !param.IsWithdraw {
-			if param.ExecName != "" {
-				v := &types.CoinsAction_TransferToExec{TransferToExec: &types.CoinsTransferToExec{Amount: amount, Note: param.GetNote(), ExecName: param.GetExecName()}}
-				transfer.Value = v
-				transfer.Ty = types.CoinsActionTransferToExec
-			} else {
-				v := &types.CoinsAction_Transfer{Transfer: &types.CoinsTransfer{Amount: amount, Note: param.GetNote()}}
-				transfer.Value = v
-				transfer.Ty = types.CoinsActionTransfer
-			}
-		} else {
-			v := &types.CoinsAction_Withdraw{Withdraw: &types.CoinsWithdraw{Amount: amount, Note: param.GetNote(), ExecName: param.GetExecName()}}
-			transfer.Value = v
-			transfer.Ty = types.CoinsActionWithdraw
-		}
-		if param.To == "" {
-			if param.ExecName == "" {
-				return nil, types.ErrExecNameNotAllow
-			} else {
-				param.To = address.ExecAddress(param.ExecName)
-			}
-		}
-		tx = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), To: param.GetTo()}
+	if param.IsToken {
+		tx = createTokenTransfer(param)
 	} else {
-		transfer := &types.TokenAction{}
-		if !param.IsWithdraw {
-			v := &types.TokenAction_Transfer{Transfer: &types.CoinsTransfer{Cointoken: param.GetTokenSymbol(), Amount: amount, Note: param.GetNote()}}
-			transfer.Value = v
-			transfer.Ty = types.ActionTransfer
-		} else {
-			v := &types.TokenAction_Withdraw{Withdraw: &types.CoinsWithdraw{Cointoken: param.GetTokenSymbol(), Amount: amount, Note: param.GetNote(), ExecName: param.GetExecName()}}
-			transfer.Value = v
-			transfer.Ty = types.ActionWithdraw
-		}
-		if param.To == "" {
-			if param.ExecName == "" {
-				return nil, types.ErrExecNameNotAllow
-			} else {
-				param.To = address.ExecAddress(param.ExecName)
-			}
-		}
-		tx = &types.Transaction{Execer: []byte("token"), Payload: types.Encode(transfer), To: param.GetTo()}
+		tx = createCoinsTransfer(param)
 	}
 
 	var err error
@@ -99,6 +62,45 @@ func (c *channelClient) CreateRawTransaction(param *types.CreateTx) ([]byte, err
 	txHex := types.Encode(tx)
 
 	return txHex, nil
+}
+
+func createCoinsTransfer(param *types.CreateTx) *types.Transaction {
+	transfer := &types.CoinsAction{}
+	if !param.IsWithdraw {
+		if param.ExecName != "" {
+			v := &types.CoinsAction_TransferToExec{TransferToExec: &types.CoinsTransferToExec{
+				Amount: param.Amount, Note: param.GetNote(), ExecName: param.GetExecName()}}
+			transfer.Value = v
+			transfer.Ty = types.CoinsActionTransferToExec
+		} else {
+			v := &types.CoinsAction_Transfer{Transfer: &types.CoinsTransfer{
+				Amount: param.Amount, Note: param.GetNote()}}
+			transfer.Value = v
+			transfer.Ty = types.CoinsActionTransfer
+		}
+	} else {
+		v := &types.CoinsAction_Withdraw{Withdraw: &types.CoinsWithdraw{
+			Amount: param.Amount, Note: param.GetNote()}}
+		transfer.Value = v
+		transfer.Ty = types.CoinsActionWithdraw
+	}
+	return &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), To: param.GetTo()}
+}
+
+func createTokenTransfer(param *types.CreateTx) *types.Transaction {
+	transfer := &types.TokenAction{}
+	if !param.IsWithdraw {
+		v := &types.TokenAction_Transfer{Transfer: &types.CoinsTransfer{
+			Cointoken: param.GetTokenSymbol(), Amount: param.Amount, Note: param.GetNote()}}
+		transfer.Value = v
+		transfer.Ty = types.ActionTransfer
+	} else {
+		v := &types.TokenAction_Withdraw{Withdraw: &types.CoinsWithdraw{
+			Cointoken: param.GetTokenSymbol(), Amount: param.Amount, Note: param.GetNote()}}
+		transfer.Value = v
+		transfer.Ty = types.ActionWithdraw
+	}
+	return &types.Transaction{Execer: []byte("token"), Payload: types.Encode(transfer), To: param.GetTo()}
 }
 
 func (c *channelClient) SendRawTransaction(param *types.SignedTx) (*types.Reply, error) {
