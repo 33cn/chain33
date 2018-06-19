@@ -1,5 +1,5 @@
 Title="chain33"
-TestNet=false
+TestNet=true
 
 [log]
 # 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
@@ -32,13 +32,13 @@ driver="leveldb"
 dbPath="datadir"
 dbCache=64
 isStrongConsistency=false
-singleMode=true
+singleMode=false
 batchsync=false
 
 [p2p]
 seeds=[]
 enable=true
-isSeed=true
+isSeed=false
 serverStart=true
 innerSeedEnable=true
 useGithub=true
@@ -62,7 +62,7 @@ poolCacheSize=10240
 minTxFee=100000
 
 [consensus]
-name="solo"
+name="ticket"
 minerstart=true
 
 [store]
