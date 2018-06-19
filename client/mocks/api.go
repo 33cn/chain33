@@ -9,29 +9,6 @@ type QueueProtocolAPI struct {
 	mock.Mock
 }
 
-// BindMiner provides a mock function with given fields: param
-func (_m *QueueProtocolAPI) BindMiner(param *types.ReqBindMiner) (*types.ReplyBindMiner, error) {
-	ret := _m.Called(param)
-
-	var r0 *types.ReplyBindMiner
-	if rf, ok := ret.Get(0).(func(*types.ReqBindMiner) *types.ReplyBindMiner); ok {
-		r0 = rf(param)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.ReplyBindMiner)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(*types.ReqBindMiner) error); ok {
-		r1 = rf(param)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // Close provides a mock function with given fields:
 func (_m *QueueProtocolAPI) Close() {
 	_m.Called()
@@ -53,29 +30,6 @@ func (_m *QueueProtocolAPI) CloseTickets() (*types.ReplyHashes, error) {
 	var r1 error
 	if rf, ok := ret.Get(1).(func() error); ok {
 		r1 = rf()
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// DecodeRawTransaction provides a mock function with given fields: param
-func (_m *QueueProtocolAPI) DecodeRawTransaction(param *types.ReqDecodeRawTransaction) (*types.Transaction, error) {
-	ret := _m.Called(param)
-
-	var r0 *types.Transaction
-	if rf, ok := ret.Get(0).(func(*types.ReqDecodeRawTransaction) *types.Transaction); ok {
-		r0 = rf(param)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.Transaction)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(*types.ReqDecodeRawTransaction) error); ok {
-		r1 = rf(param)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -392,29 +346,6 @@ func (_m *QueueProtocolAPI) GetTicketCount() (*types.Int64, error) {
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*types.Int64)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func() error); ok {
-		r1 = rf()
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// GetTimeStatus provides a mock function with given fields:
-func (_m *QueueProtocolAPI) GetTimeStatus() (*types.TimeStatus, error) {
-	ret := _m.Called()
-
-	var r0 *types.TimeStatus
-	if rf, ok := ret.Get(0).(func() *types.TimeStatus); ok {
-		r0 = rf()
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.TimeStatus)
 		}
 	}
 
