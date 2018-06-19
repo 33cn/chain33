@@ -790,7 +790,7 @@ func (ws *Store) listAvailableUTXOs(token, addr string) ([]*types.PrivacyDBStore
 	return privacyDBStoreSlice, nil
 }
 
-func (ws *Store) listSpendUTXOs(token, addr string) ([]*types.UTXOHaveTxHash, error) {
+func (ws *Store) listSpendUTXOs(token, addr string) (*types.UTXOHaveTxHashs, error) {
 	if 0 == len(addr) {
 		walletlog.Error("listWalletPrivacyAccount addr is nil")
 		return nil, types.ErrInputPara
@@ -803,7 +803,7 @@ func (ws *Store) listSpendUTXOs(token, addr string) ([]*types.UTXOHaveTxHash, er
 		return nil, nil
 	}
 
-	var utxoHaveTxHashs []*types.UTXOHaveTxHash
+	var utxoHaveTxHashs types.UTXOHaveTxHashs
 	for _, Key4FTXOsInTx := range Key4FTXOsInTxs {
 		value, err := ws.db.Get(Key4FTXOsInTx)
 		if err != nil {
@@ -844,10 +844,10 @@ func (ws *Store) listSpendUTXOs(token, addr string) ([]*types.UTXOHaveTxHash, er
 			utxoHaveTxHash.TxHash = ftxosInOneTx.Txhash
 			utxoHaveTxHash.UtxoBasic = utxoBasic
 
-			utxoHaveTxHashs = append(utxoHaveTxHashs, &utxoHaveTxHash)
+			utxoHaveTxHashs.UtxoHaveTxHashs = append(utxoHaveTxHashs.UtxoHaveTxHashs, &utxoHaveTxHash)
 		}
 	}
-	return utxoHaveTxHashs, nil
+	return &utxoHaveTxHashs, nil
 }
 func (ws *Store) SetWalletAccountPrivacy(addr string, privacy *types.WalletAccountPrivacy) error {
 	if len(addr) == 0 {

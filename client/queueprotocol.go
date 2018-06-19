@@ -798,13 +798,13 @@ func (q *QueueProtocol) ShowPrivacyAccount(param *types.ReqPrivBal4AddrToken) (*
 	return nil, types.ErrTypeAsset
 }
 
-func (q *QueueProtocol) ShowPrivacyAccountSpend(param *types.ReqPrivBal4AddrToken) ([]*types.UTXOHaveTxHash, error) {
+func (q *QueueProtocol) ShowPrivacyAccountSpend(param *types.ReqPrivBal4AddrToken) (*types.UTXOHaveTxHashs, error) {
 	msg, err := q.query(walletKey, types.EventShowPrivacyAccountSpend, param)
 	if err != nil {
 		log.Error("EventShowPrivacyAccountSpend", "Error", err.Error())
 		return nil, err
 	}
-	if reply, ok := msg.GetData().([]*types.UTXOHaveTxHash); ok {
+	if reply, ok := msg.GetData().(*types.UTXOHaveTxHashs); ok {
 		return reply, nil
 	}
 	return nil, types.ErrTypeAsset
