@@ -1507,6 +1507,12 @@ func (c *Chain33) GetTimeStatus(in *types.ReqNil, result *interface{}) error {
 		return err
 	}
 
-	*result = reply
+	timeStatus := &TimeStatus{
+		NtpTime:   reply.NtpTime,
+		LocalTime: reply.LocalTime,
+		Diff:      reply.Diff,
+	}
+
+	*result = timeStatus
 	return nil
 }
