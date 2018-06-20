@@ -90,6 +90,7 @@ message BlockChain {
 	bool isStrongConsistency = 8;
 	bool singleMode = 9;
 	bool batchsync = 10;
+	bool isRecordBlockSequence = 11;
 }
 
 message P2P {

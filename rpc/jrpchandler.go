@@ -1510,3 +1510,49 @@ func (c *Chain33) GetTimeStatus(in *types.ReqNil, result *interface{}) error {
 	*result = reply
 	return nil
 }
+func (c *Chain33) GetLastBlockSequence(in *types.ReqNil, result *interface{}) error {
+	resp, err := c.cli.GetLastBlockSequence()
+	if err != nil {
+		return err
+	}
+	*result = resp.GetData()
+	return nil
+}
+
+// 获取指定区间的block加载序列号信息。输入信息只使用：start，end
+func (c *Chain33) GetBlockSequences(in BlockParam, result *interface{}) error {
+	resp, err := c.cli.GetBlockSequences(&types.ReqBlocks{Start: in.Start, End: in.End, IsDetail: in.Isdetail, Pid: []string{""}})
+	if err != nil {
+		return err
+	}
+	var BlkSeqs ReplyBlkSeqs
+	items := resp.GetItems()
+	for _, item := range items {
+		BlkSeqs.BlkSeqInfos = append(BlkSeqs.BlkSeqInfos, &ReplyBlkSeq{Hash: common.ToHex(item.GetHash()),
+			Type: item.GetType()})
+	}
+	*result = &BlkSeqs
+	return nil
+}
+
+// 通过block hash 获取对应的block信息
+func (c *Chain33) GetBlockByHashes(in ReqHashes, result *interface{}) error {
+	log.Warn("GetBlockByHashes", "hashes", in)
+	var parm types.ReqHashes
+	parm.Hashes = make([][]byte, 0)
+	for _, v := range in.Hashes {
+		hb, err := common.FromHex(v)
+		if err != nil {
+			parm.Hashes = append(parm.Hashes, nil)
+			continue
+		}
+		parm.Hashes = append(parm.Hashes, hb)
+
+	}
+	reply, err := c.cli.GetBlockByHashes(&parm)
+	if err != nil {
+		return err
+	}
+	*result = reply
+	return nil
+}

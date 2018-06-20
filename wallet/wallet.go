@@ -58,6 +58,7 @@ type Wallet struct {
 	random           *rand.Rand
 	cfg              *types.Wallet
 	done             chan struct{}
+	rescanwg         *sync.WaitGroup
 }
 
 func SetLogLevel(level string) {
@@ -91,6 +92,7 @@ func New(cfg *types.Wallet) *Wallet {
 		miningTicket:     time.NewTicker(2 * time.Minute),
 		done:             make(chan struct{}),
 		cfg:              cfg,
+		rescanwg:         &sync.WaitGroup{},
 	}
 	value, _ := walletStore.db.Get([]byte("WalletAutoMiner"))
 	if value != nil && string(value) == "1" {
@@ -143,8 +145,20 @@ func (wallet *Wallet) SetQueueClient(cli queue.Client) {
 	wallet.client = cli
 	wallet.client.Sub("wallet")
 	wallet.api, _ = client.New(cli, nil)
-	wallet.wg.Add(2)
+
+	wallet.wg.Add(1)
 	go wallet.ProcRecvMsg()
+
+	//获取wallet db version ,自动升级数据库首先，然后再启动钱包.
+	//和blockchain模块有消息来往所以需要先启动ProcRecvMsg任务
+	versin := wallet.walletStore.GetWalletVersion()
+	walletlog.Info("wallet db", "versin:", versin)
+	if versin == 0 {
+		wallet.RescanAllTxByAddr()
+		wallet.walletStore.SetWalletVersion(1)
+	}
+
+	wallet.wg.Add(1)
 	go wallet.autoMining()
 	//InitSeedLibrary()
 }
@@ -1575,13 +1589,20 @@ func (wallet *Wallet) GetTxDetailByHashs(ReqHashes *types.ReqHashes) {
 		txdetail.Fromaddr = txdetal.GetFromaddr()
 		txdetail.ActionName = txdetal.GetTx().ActionName()
 
+		//由于Withdraw的交易在blockchain模块已经做了from和to地址的swap的操作。
+		//所以在此需要swap恢复回去。通过钱包的GetTxDetailByIter接口上送给前端时再做from和to地址的swap
+		//确保保存在数据库中是的最原始的数据，提供给上层显示时可以做swap方便客户理解
+		if txdetail.GetTx().IsWithdraw() {
+			txdetail.Fromaddr, txdetail.Tx.To = txdetail.Tx.To, txdetail.Fromaddr
+		}
+
 		txdetailbyte, err := proto.Marshal(&txdetail)
 		if err != nil {
 			storelog.Error("GetTxDetailByHashs Marshal txdetail err", "Height", height, "index", txindex)
 			return
 		}
 		newbatch.Set(calcTxKey(heightstr), txdetailbyte)
-		walletlog.Debug("GetTxDetailByHashs", "heightstr", heightstr, "txdetail", txdetail.String())
+		//walletlog.Debug("GetTxDetailByHashs", "heightstr", heightstr, "txdetail", txdetail.String())
 	}
 	newbatch.Write()
 }
@@ -1589,6 +1610,17 @@ func (wallet *Wallet) GetTxDetailByHashs(ReqHashes *types.ReqHashes) {
 //从blockchain模块同步addr参与的所有交易详细信息
 func (wallet *Wallet) ReqTxDetailByAddr(addr string) {
 	defer wallet.wg.Done()
+	wallet.reqTxDetailByAddr(addr)
+}
+
+//从blockchain模块同步addr参与的所有交易详细信息
+func (wallet *Wallet) RescanReqTxDetailByAddr(addr string) {
+	defer wallet.rescanwg.Done()
+	wallet.reqTxDetailByAddr(addr)
+}
+
+//从blockchain模块同步addr参与的所有交易详细信息
+func (wallet *Wallet) reqTxDetailByAddr(addr string) {
 	if len(addr) == 0 {
 		walletlog.Error("ReqTxInfosByAddr input addr is nil!")
 		return
@@ -1833,4 +1865,21 @@ func (wallet *Wallet) setFatalFailure(reportErrEvent *types.ReportErrEvent) {
 
 func (wallet *Wallet) getFatalFailure() int32 {
 	return atomic.LoadInt32(&wallet.fatalFailureFlag)
+}
+
+//重新扫描钱包所有地址对应的交易从blockchain模块
+func (wallet *Wallet) RescanAllTxByAddr() {
+	accounts, err := wallet.ProcGetAccountList()
+	if err != nil {
+		return
+	}
+	walletlog.Debug("RescanAllTxByAddr begin!")
+	for _, acc := range accounts.Wallets {
+		//从blockchain模块同步Account.Addr对应的所有交易详细信息
+		wallet.rescanwg.Add(1)
+		go wallet.RescanReqTxDetailByAddr(acc.Acc.Addr)
+	}
+	wallet.rescanwg.Wait()
+
+	walletlog.Debug("RescanAllTxByAddr sucess!")
 }
