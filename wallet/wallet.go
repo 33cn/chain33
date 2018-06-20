@@ -2332,22 +2332,22 @@ func (wallet *Wallet) showPrivacyAccounts(req *types.ReqPrivBal4AddrToken) (*typ
 	return &types.UTXOs{Utxos: nilaccRes}, nil
 }
 
-func (wallet *Wallet) showPrivacyAccountsSpend(req *types.ReqPrivBal4AddrToken) ([]*types.UTXOHaveTxHash, error) {
+func (wallet *Wallet) showPrivacyAccountsSpend(req *types.ReqPrivBal4AddrToken) (*types.UTXOHaveTxHashs, error) {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
 
 	addr := req.GetAddr()
 	token := req.GetToken()
-	utxoHaveTxHash, err := wallet.walletStore.listSpendUTXOs(token, addr)
+	utxoHaveTxHashs, err := wallet.walletStore.listSpendUTXOs(token, addr)
 	if err != nil {
 		return nil, err
 	}
 
-	if 0 == len(utxoHaveTxHash) {
+	if 0 == len(utxoHaveTxHashs.UtxoHaveTxHashs) {
 		return nil, nil
 	}
 
-	return utxoHaveTxHash, nil
+	return utxoHaveTxHashs, nil
 }
 
 func makeViewSpendPubKeyPairToString(viewPubKey, spendPubKey []byte) string {
