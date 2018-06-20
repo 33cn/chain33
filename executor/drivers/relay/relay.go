@@ -16,7 +16,6 @@ func Init() {
 
 type relay struct {
 	drivers.DriverBase
-	btcStore *btcStore
 }
 
 func newRelay() drivers.Driver {
@@ -39,27 +38,31 @@ func (r *relay) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 
 	relaylog.Debug("exec relay tx", "tx hash", common.Bytes2Hex(tx.Hash()), "Ty", action.GetTy())
 	actiondb := newRelayDB(r, tx)
+	btc, err := newBtcStore(r)
+	if err != nil {
+		return nil, err
+	}
 	switch action.GetTy() {
 	case types.RelayActionCreate:
 		return actiondb.relayCreate(action.GetCreate())
 
 	case types.RelayActionAccept:
-		return actiondb.accept(action.GetAccept())
+		return actiondb.accept(btc, action.GetAccept())
 
 	case types.RelayActionRevoke:
-		return actiondb.relayRevoke(action.GetRevoke())
+		return actiondb.relayRevoke(btc, action.GetRevoke())
 
 	//OrderId, txHash
 	case types.RelayActionConfirmTx:
-		return actiondb.confirmTx(action.GetConfirmTx())
+		return actiondb.confirmTx(btc, action.GetConfirmTx())
 
 	// OrderId, rawTx, index sibling, blockhash
 	case types.RelayActionVerifyTx:
-		return actiondb.verifyTx(action.GetVerify(), r)
+		return actiondb.verifyTx(btc, action.GetVerify())
 
 	// OrderId, rawTx, index sibling, blockhash
 	case types.RelayActionVerifyBTCTx:
-		return actiondb.verifyBtcTx(action.GetVerifyCli(), r)
+		return actiondb.verifyBtcTx(btc, action.GetVerifyCli())
 
 	case types.RelayActionRcvBTCHeaders:
 		return actiondb.saveBtcHeader(action.GetBtcHeaders())
@@ -84,6 +87,7 @@ func (r *relay) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 		return set, nil
 	}
 
+	var btc *btcStore
 	for i := 0; i < len(receipt.Logs); i++ {
 		item := receipt.Logs[i]
 		if item.Ty == types.TyLogRelayCreate ||
@@ -97,16 +101,19 @@ func (r *relay) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 			if err != nil {
 				return nil, err
 			}
-			kv := r.getOrderKv([]byte(receipt.Base.Id), item.Ty)
+			kv := r.getOrderKv([]byte(receipt.OrderId), item.Ty)
 			set.KV = append(set.KV, kv...)
 
 		} else if item.Ty == types.TyLogRelayRcvBTCHead {
-			if r.btcStore == nil {
+			//btc header not be stored by head by head, but headers together in one block
+			//thus, before save to db, it is needed to remember last header for continuous check.
+			//although verifyBlockHeader() has checked the continuous header,but not check the head in db
+			if btc == nil {
 				val, err := newBtcStore(r)
 				if err != nil {
 					return nil, err
 				}
-				r.btcStore = val
+				btc = val
 			}
 
 			var receipt types.ReceiptRelayRcvBTCHeaders
@@ -115,7 +122,7 @@ func (r *relay) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 				return nil, err
 			}
 
-			kv := r.btcStore.saveBlockHead(receipt.Base)
+			kv := btc.saveBlockHead(receipt.Base)
 			set.KV = append(set.KV, kv...)
 		}
 	}
@@ -146,7 +153,7 @@ func (r *relay) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 			if err != nil {
 				panic(err)
 			}
-			kv := r.getDeleteOrderKv([]byte(receipt.Base.Id), item.Ty)
+			kv := r.getDeleteOrderKv([]byte(receipt.OrderId), item.Ty)
 			set.KV = append(set.KV, kv...)
 		}
 	}
@@ -188,7 +195,11 @@ func (r *relay) Query(funcName string, params []byte) (types.Message, error) {
 		if err != nil {
 			return nil, err
 		}
-		return getHeadHeightList(r, &req)
+		db, err := newBtcStore(r)
+		if err != nil {
+			return nil, err
+		}
+		return db.getHeadHeightList(&req)
 
 	case "GetBTCHeaderCurHeight":
 		var req types.ReqRelayQryBTCHeadHeight
@@ -196,7 +207,11 @@ func (r *relay) Query(funcName string, params []byte) (types.Message, error) {
 		if err != nil {
 			return nil, err
 		}
-		return getBtcHeadDbCurHeight(r, &req)
+		db, err := newBtcStore(r)
+		if err != nil {
+			return nil, err
+		}
+		return db.getBtcHeadDbCurHeight(&req)
 	default:
 	}
 	relaylog.Error("relay Query", "Query type not supprt with func name", funcName)

@@ -64,8 +64,8 @@
 中间状态有两种：locking、confirming
 最终状态有三种：finished、cancel、timeout.
 
-挂单方有unlock和撤单两种操作，取消是在其他状态基础上取消到pending，撤单是撤销到canceled状态
-接单方只有unlock操作
+挂单方有unlock和撤单两种操作，unlock是在其他状态基础上取消到pending，撤单是撤销到canceled状态
+接单方只有unlock操作, 是在其他状态基础上取消到pending
 
 locking状态unlock需要等待6个小时
 confirming 状态，撤销需要等待4*6小时
