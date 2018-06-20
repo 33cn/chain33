@@ -290,27 +290,33 @@ const (
 	EventIsSync              = 96
 	EventReplyIsSync         = 97
 
-	EventCloseTickets        = 98
-	EventGetAddrTxs          = 99
-	EventReplyAddrTxs        = 100
-	EventIsNtpClockSync      = 101
-	EventReplyIsNtpClockSync = 102
-	EventDelTxList           = 103
-	EventStoreGetTotalCoins  = 104
-	EventGetTotalCoinsReply  = 105
-	EventQueryTotalFee       = 106
-	EventSignRawTx           = 107
-	EventReplySignRawTx      = 108
-	EventSyncBlock           = 109
-	EventGetNetInfo          = 110
-	EventReplyNetInfo        = 111
-	EventErrToFront          = 112
-	EventFatalFailure        = 113
-	EventReplyFatalFailure   = 114
-	EventBindMiner           = 115
-	EventReplyBindMiner      = 116
-	EventDecodeRawTx         = 117
-	EventReplyDecodeRawTx    = 118
+	EventCloseTickets            = 98
+	EventGetAddrTxs              = 99
+	EventReplyAddrTxs            = 100
+	EventIsNtpClockSync          = 101
+	EventReplyIsNtpClockSync     = 102
+	EventDelTxList               = 103
+	EventStoreGetTotalCoins      = 104
+	EventGetTotalCoinsReply      = 105
+	EventQueryTotalFee           = 106
+	EventSignRawTx               = 107
+	EventReplySignRawTx          = 108
+	EventSyncBlock               = 109
+	EventGetNetInfo              = 110
+	EventReplyNetInfo            = 111
+	EventErrToFront              = 112
+	EventFatalFailure            = 113
+	EventReplyFatalFailure       = 114
+	EventBindMiner               = 115
+	EventReplyBindMiner          = 116
+	EventDecodeRawTx             = 117
+	EventReplyDecodeRawTx        = 118
+	EventGetLastBlockSequence    = 119
+	EventReplyLastBlockSequence  = 120
+	EventGetBlockSequences       = 121
+	EventReplyBlockSequences     = 122
+	EventGetBlockByHashes        = 123
+	EventReplyBlockDetailsBySeqs = 124
 	// Token
 	EventBlockChainQuery = 212
 )
@@ -434,7 +440,12 @@ var eventName = map[int]string{
 	116: "EventReplyBindMiner",
 	117: "EventDecodeRawTx",
 	118: "EventReplyDecodeRawTx",
-
+	119: "EventGetLastBlockSequence",
+	120: "EventReplyLastBlockSequence",
+	121: "EventGetBlockSequences",
+	122: "EventReplyBlockSequences",
+	123: "EventGetBlockByHashes",
+	124: "EventReplyBlockDetailsBySeqs",
 	// Token
 	EventBlockChainQuery: "EventBlockChainQuery",
 }
