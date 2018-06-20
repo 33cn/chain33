@@ -2,7 +2,9 @@ package commands
 
 import (
 	"github.com/spf13/cobra"
+
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 func NetCmd() *cobra.Command {
@@ -18,6 +20,7 @@ func NetCmd() *cobra.Command {
 		IsSyncCmd(),
 		GetNetInfoCmd(),
 		GetFatalFailureCmd(),
+		GetTimeStausCmd(),
 	)
 
 	return cmd
@@ -106,4 +109,32 @@ func fatalFailure(cmd *cobra.Command, args []string) {
 	var res int64
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetFatalFailure", nil, &res)
 	ctx.Run()
+}
+
+// get time status
+func GetTimeStausCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "time",
+		Short: "Get time status",
+		Run:   timestatus,
+	}
+	return cmd
+}
+
+func timestatus(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	var res types.TimeStatus
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetTimeStatus", nil, &res)
+	ctx.SetResultCb(parseTimeStatus)
+	ctx.Run()
+}
+
+func parseTimeStatus(arg interface{}) (interface{}, error) {
+	res := arg.(*types.TimeStatus)
+	timeStatus := &jsonrpc.TimeStatus{
+		NtpTime:   res.NtpTime,
+		LocalTime: res.LocalTime,
+		Diff:      res.Diff,
+	}
+	return timeStatus, nil
 }
