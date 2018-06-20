@@ -412,8 +412,6 @@ func (exec *Executor) procExecDelBlock(msg queue.Message) {
 		kvset.KV = append(kvset.KV, kvs.KV...)
 	}
 
-	msg.Reply(exec.client.NewMessage("", types.EventDelBlock, &kvset))
-
 	localDBSetWithPrivacy := &types.LocalDBSetWithPrivacy{
 		LocalDBSet:        &kvset,
 		PrivacyLocalDBSet: privacyKV,
