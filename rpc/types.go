@@ -317,3 +317,11 @@ type TimeStatus struct {
 	LocalTime string `json:"localTime"`
 	Diff      int64  `json:"diff"`
 }
+type ReplyBlkSeqs struct {
+	BlkSeqInfos []*ReplyBlkSeq `json:"blkseqInfos"`
+}
+
+type ReplyBlkSeq struct {
+	Hash string `json:"hash"`
+	Type int64  `json:"type"`
+}

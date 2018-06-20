@@ -49,6 +49,8 @@ It has these top-level messages:
 	IsCaughtUp
 	IsNtpClockSync
 	BlockChainQuery
+	BlockSequence
+	BlockSequences
 	Reply
 	ReqString
 	ReplyString
