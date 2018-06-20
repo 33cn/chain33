@@ -5,6 +5,7 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"gitlab.33.cn/chain33/chain33/common"
+	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 	"gitlab.33.cn/chain33/chain33/types"
 
@@ -18,32 +19,36 @@ import (
 )
 
 type btcStore struct {
+	db         dbm.KVDB
 	lastHeader *types.BtcHeader
 }
 
 func newBtcStore(r *relay) (*btcStore, error) {
-	height, err := getLastBtcHeadHeight(r)
-	if err == types.ErrNotFound {
-		return &btcStore{lastHeader: nil}, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	head, err := getBtcHeadByHeight(r, height)
-	if err != nil {
-		return nil, err
-	}
 	store := &btcStore{
-		lastHeader: head,
+		db:         r.GetLocalDB(),
+		lastHeader: nil,
 	}
 
+	height, err := store.getLastBtcHeadHeight()
+	if err == types.ErrNotFound {
+		return store, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	head, err := store.getBtcHeadByHeight(height)
+	if err != nil {
+		return nil, err
+	}
+
+	store.lastHeader = head
 	return store, nil
 
 }
 
-func getBtcHeadHeightFromDb(r *relay, key []byte) (int64, error) {
-	val, err := r.GetLocalDB().Get(key)
+func (b *btcStore) getBtcHeadHeightFromDb(key []byte) (int64, error) {
+	val, err := b.db.Get(key)
 	if val == nil || err != nil {
 		return -1, err
 	}
@@ -55,15 +60,15 @@ func getBtcHeadHeightFromDb(r *relay, key []byte) (int64, error) {
 	return height, nil
 }
 
-func getLastBtcHeadHeight(r *relay) (int64, error) {
+func (b *btcStore) getLastBtcHeadHeight() (int64, error) {
 	key := calcBtcHeaderKeyLastHeight()
-	return getBtcHeadHeightFromDb(r, key)
+	return b.getBtcHeadHeightFromDb(key)
 }
 
-func getBtcHeadByHeight(r *relay, height int64) (*types.BtcHeader, error) {
+func (b *btcStore) getBtcHeadByHeight(height int64) (*types.BtcHeader, error) {
 	var head types.BtcHeader
 	key := calcBtcHeaderKeyHeight(height)
-	val, err := r.GetLocalDB().Get(key)
+	val, err := b.db.Get(key)
 	if err != nil {
 		return nil, err
 	}
@@ -73,58 +78,6 @@ func getBtcHeadByHeight(r *relay, height int64) (*types.BtcHeader, error) {
 	}
 
 	return &head, nil
-}
-
-func btcWireHeader(head *types.BtcHeader) (error, *wire.BlockHeader) {
-	preHash, err := chainhash.NewHashFromStr(head.PreviousHash)
-	if err != nil {
-		return err, nil
-	}
-	merkleRoot, err := chainhash.NewHashFromStr(head.MerkleRoot)
-	if err != nil {
-		return err, nil
-	}
-
-	h := &wire.BlockHeader{}
-	h.Version = int32(head.Version)
-	h.PrevBlock = *preHash
-	h.MerkleRoot = *merkleRoot
-	h.Bits = uint32(head.Bits)
-	h.Nonce = uint32(head.Nonce)
-	h.Timestamp = time.Unix(head.Time, 0)
-
-	return nil, h
-}
-
-func verifyBlockHeader(head *types.BtcHeader, preHead *types.BtcHeader) error {
-	if head == nil {
-		return types.ErrInputPara
-	}
-	if preHead != nil {
-		if preHead.Hash != head.PreviousHash || preHead.Height+1 != head.Height {
-			return types.ErrRelayBtcHeadSequenceErr
-		}
-	}
-
-	err, btcHeader := btcWireHeader(head)
-	if err != nil {
-		return err
-	}
-	hash := btcHeader.BlockHash()
-
-	if hash.String() != head.Hash {
-		return types.ErrRelayBtcHeadHashErr
-	}
-
-	target := difficulty.CompactToBig(uint32(head.Bits))
-
-	// The block hash must be less than the claimed target.
-	hashNum := difficulty.HashToBig(hash[:])
-	if hashNum.Cmp(target) > 0 {
-		return types.ErrRelayBtcHeadBitsErr
-	}
-
-	return nil
 }
 
 func (b *btcStore) checkBlockHead(head *types.BtcHeader) bool {
@@ -200,16 +153,17 @@ func decodeHeight(heightBytes []byte) (int64, error) {
 	return height.Data, nil
 }
 
-func getBtcHeadDbCurHeight(r *relay, req *types.ReqRelayQryBTCHeadHeight) (types.Message, error) {
-	height, err := getLastBtcHeadHeight(r)
-	if err == types.ErrNotFound {
+func (b *btcStore) getBtcHeadDbCurHeight(req *types.ReqRelayQryBTCHeadHeight) (types.Message, error) {
+	var height int64
+
+	if b.lastHeader != nil {
+		height = int64(b.lastHeader.Height)
+	} else {
 		height = -1
-	} else if err != nil {
-		return nil, err
 	}
 
 	key := calcBtcHeaderKeyBaseHeight()
-	baseHeight, err := getBtcHeadHeightFromDb(r, key)
+	baseHeight, err := b.getBtcHeadHeightFromDb(key)
 	if err == types.ErrNotFound {
 		baseHeight = -1
 	} else if err != nil {
@@ -222,8 +176,8 @@ func getBtcHeadDbCurHeight(r *relay, req *types.ReqRelayQryBTCHeadHeight) (types
 	return &replay, nil
 }
 
-func getMerkleRootFromHeader(r *relay, blockhash string) (string, error) {
-	value, err := r.GetLocalDB().Get(calcBtcHeaderKeyHash(blockhash))
+func (b *btcStore) getMerkleRootFromHeader(blockhash string) (string, error) {
+	value, err := b.db.Get(calcBtcHeaderKeyHash(blockhash))
 	if err != nil {
 		return "", err
 	}
@@ -237,7 +191,7 @@ func getMerkleRootFromHeader(r *relay, blockhash string) (string, error) {
 
 }
 
-func verifyBtcTx(r *relay, verify *types.RelayVerify, order *types.RelayOrder) error {
+func (b *btcStore) verifyBtcTx(verify *types.RelayVerify, order *types.RelayOrder) error {
 	var foundtx bool
 	for _, outtx := range verify.GetTx().GetVout() {
 		if outtx.Address == order.CoinAddr && outtx.Value == order.CoinAmount {
@@ -258,7 +212,7 @@ func verifyBtcTx(r *relay, verify *types.RelayVerify, order *types.RelayOrder) e
 		return types.ErrRelayBtcTxTimeErr
 	}
 
-	height, err := getLastBtcHeadHeight(r)
+	height, err := b.getLastBtcHeadHeight()
 	if err != nil {
 		return err
 	}
@@ -273,7 +227,7 @@ func verifyBtcTx(r *relay, verify *types.RelayVerify, order *types.RelayOrder) e
 	sibs := verify.GetSpv().GetBranchProof()
 
 	verifyRoot := merkle.GetMerkleRootFromBranch(sibs, rawHash, verify.GetSpv().GetTxIndex())
-	str, err := getMerkleRootFromHeader(r, verify.GetSpv().GetBlockHash())
+	str, err := b.getMerkleRootFromHeader(verify.GetSpv().GetBlockHash())
 	if err != nil {
 		return err
 	}
@@ -295,12 +249,12 @@ func verifyBtcTx(r *relay, verify *types.RelayVerify, order *types.RelayOrder) e
 //
 // sibling like "aaaaaa-bbbbbb-cccccc..."
 
-func verifyCmdBtcTx(r *relay, verify *types.RelayVerifyCli) error {
+func (b *btcStore) verifyCmdBtcTx(verify *types.RelayVerifyCli) error {
 	rawhash := getRawTxHash(verify.RawTx)
 	sibs := getSiblingHash(verify.MerkBranch)
 
 	verifymerkleroot := merkle.GetMerkleRootFromBranch(sibs, rawhash, verify.TxIndex)
-	str, err := getMerkleRootFromHeader(r, verify.BlockHash)
+	str, err := b.getMerkleRootFromHeader(verify.BlockHash)
 	if err != nil {
 		return err
 	}
@@ -342,13 +296,13 @@ func btcHashStrRevers(str string) ([]byte, error) {
 	return merkle, nil
 }
 
-func getHeadHeightList(r *relay, req *types.ReqRelayBtcHeaderHeightList) (types.Message, error) {
+func (b *btcStore) getHeadHeightList(req *types.ReqRelayBtcHeaderHeightList) (types.Message, error) {
 	prefix := calcBtcHeightListKey()
 	key := calcBtcHeaderKeyHeightList(req.ReqHeight)
 
-	values, err := r.GetLocalDB().List(prefix, key, req.Counts, req.Direction)
+	values, err := b.db.List(prefix, key, req.Counts, req.Direction)
 	if err != nil {
-		values, err = r.GetLocalDB().List(prefix, nil, req.Counts, req.Direction)
+		values, err = b.db.List(prefix, nil, req.Counts, req.Direction)
 		if err != nil {
 			return nil, err
 		}
@@ -366,4 +320,56 @@ func getHeadHeightList(r *relay, req *types.ReqRelayBtcHeaderHeightList) (types.
 
 	return &replay, nil
 
+}
+
+func btcWireHeader(head *types.BtcHeader) (error, *wire.BlockHeader) {
+	preHash, err := chainhash.NewHashFromStr(head.PreviousHash)
+	if err != nil {
+		return err, nil
+	}
+	merkleRoot, err := chainhash.NewHashFromStr(head.MerkleRoot)
+	if err != nil {
+		return err, nil
+	}
+
+	h := &wire.BlockHeader{}
+	h.Version = int32(head.Version)
+	h.PrevBlock = *preHash
+	h.MerkleRoot = *merkleRoot
+	h.Bits = uint32(head.Bits)
+	h.Nonce = uint32(head.Nonce)
+	h.Timestamp = time.Unix(head.Time, 0)
+
+	return nil, h
+}
+
+func verifyBlockHeader(head *types.BtcHeader, preHead *types.BtcHeader) error {
+	if head == nil {
+		return types.ErrInputPara
+	}
+	if preHead != nil {
+		if preHead.Hash != head.PreviousHash || preHead.Height+1 != head.Height {
+			return types.ErrRelayBtcHeadSequenceErr
+		}
+	}
+
+	err, btcHeader := btcWireHeader(head)
+	if err != nil {
+		return err
+	}
+	hash := btcHeader.BlockHash()
+
+	if hash.String() != head.Hash {
+		return types.ErrRelayBtcHeadHashErr
+	}
+
+	target := difficulty.CompactToBig(uint32(head.Bits))
+
+	// The block hash must be less than the claimed target.
+	hashNum := difficulty.HashToBig(hash[:])
+	if hashNum.Cmp(target) > 0 {
+		return types.ErrRelayBtcHeadBitsErr
+	}
+
+	return nil
 }

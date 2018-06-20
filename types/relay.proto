@@ -68,6 +68,7 @@ message RelayOrder {
     int64  finishTime           = 15;
     string finishTxHash         = 16;
     int64  height               = 17;
+    uint64 coinHeight           = 18;
 }
 
 message RelayAccept {
@@ -158,7 +159,24 @@ message ReceiptRelayRcvBTCHeaders{
 
 
 message ReceiptRelayLog {
-    RelayOrder base = 1;
+    string orderId   		    = 1;
+    string curStatus            = 2;
+    string preStatus            = 3;
+    string txAmount             = 4;
+    string createrAddr          = 5;
+    string coinOperation        = 6;
+    string coin                 = 7;
+    string coinAmount           = 8;
+    string coinAddr          	= 9;
+    string coinTxHash           = 10;
+    int64  createTime           = 11;
+    string acceptAddr          	= 12;
+    int64  acceptTime           = 13;
+    int64  confirmTime          = 14;
+    int64  finishTime           = 15;
+    string finishTxHash         = 16;
+    uint64 coinHeight           = 17;
+
 }
 
 
