@@ -55,7 +55,7 @@ func (p *privacy) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 	if err != nil {
 		return nil, err
 	}
-    height := p.GetHeight()
+	height := p.GetHeight()
 	privacylog.Info("Privacy exec", "action type", action.Ty)
 	if action.Ty == types.ActionPublic2Privacy && action.GetPublic2Privacy() != nil {
 		public2Privacy := action.GetPublic2Privacy()
@@ -269,6 +269,9 @@ func (p *privacy) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, i
 					err := types.Decode(value3, &tokenNames)
 					if err == nil {
 						if _, ok := tokenNames.TokensMap[token]; !ok {
+							if nil == tokenNames.TokensMap {
+								tokenNames.TokensMap = make(map[string]string)
+							}
 							tokenNames.TokensMap[token] = txhash
 							kv := &types.KeyValue{key3, types.Encode(&tokenNames)}
 							set.KV = append(set.KV, kv)
