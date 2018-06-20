@@ -2,6 +2,6 @@ FROM ubuntu:16.04
 
 WORKDIR /root
 COPY relayd.toml relayd.toml
-COPY relaydd relaydd
+COPY relayd relayd
 
-CMD ["/root/relaydd", "-f","/root/relayd.toml"]
+CMD ["/root/relayd", "-f","/root/relayd.toml"]
