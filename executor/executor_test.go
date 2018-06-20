@@ -75,6 +75,7 @@ func createTx(priv crypto.PrivKey, to string, amount int64) *types.Transaction {
 	v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
 	transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
 	tx := &types.Transaction{Execer: []byte("none"), Payload: types.Encode(transfer), Fee: 1e6, To: to}
+	random := rand.New(rand.NewSource(time.Now().UnixNano()))
 	tx.Nonce = random.Int63()
 	tx.To = address.ExecAddress("none")
 	tx.Sign(types.SECP256K1, priv)
@@ -85,6 +86,7 @@ func createTx2(priv crypto.PrivKey, to string, amount int64) *types.Transaction 
 	v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
 	transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
 	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1e6, To: to}
+	random := rand.New(rand.NewSource(time.Now().UnixNano()))
 	tx.Nonce = random.Int63()
 	tx.To = to
 	tx.Sign(types.SECP256K1, priv)
@@ -299,6 +301,26 @@ func TestExecBlock2(t *testing.T) {
 	}
 	if detail.Receipts[0].GetTy() != 2 || detail.Receipts[1].GetTy() != 2 {
 		t.Errorf("exec expect true, but now false")
+	}
+	N := 5000
+	done := make(chan struct{}, N)
+	for i := 0; i < N; i++ {
+		go func() {
+			txs := genTxs2(genkey, 2)
+			block3 := createNewBlock(t, block2, txs)
+			detail, _, err := ExecBlock(q.Client(), block2.StateHash, block3, false, true)
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			if detail.Receipts[0].GetTy() != 2 || detail.Receipts[1].GetTy() != 2 {
+				t.Errorf("exec expect true, but now false")
+			}
+			done <- struct{}{}
+		}()
+	}
+	for n := 0; n < N; n++ {
+		<-done
 	}
 }
 
