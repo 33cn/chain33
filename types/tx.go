@@ -534,6 +534,8 @@ func (tx *Transaction) Amount() (int64, error) {
 			return 0, nil
 		} else if RelayActionAccept == relay.Ty && relay.GetAccept() != nil {
 			return 0, nil
+		} else if RelayActionConfirmTx == relay.Ty && relay.GetConfirmTx() != nil {
+			return 0, nil
 		}
 
 	}
@@ -657,15 +659,15 @@ func (tx *Transaction) ActionName() string {
 			return "unkown-relay-action-err"
 		}
 		if relay.Ty == RelayActionCreate && relay.GetCreate() != nil {
-			return "relay-create-tx"
+			return "relayCreateTx"
 		} else if relay.Ty == RelayActionRevoke && relay.GetRevoke() != nil {
-			return "relay-revoke-tx"
+			return "relayRevokeTx"
 		} else if relay.Ty == RelayActionAccept && relay.GetAccept() != nil {
-			return "relay-accept-tx"
+			return "relayAcceptTx"
 		} else if relay.Ty == RelayActionConfirmTx && relay.GetConfirmTx() != nil {
-			return "relay-confirm-tx"
+			return "relayConfirmTx"
 		} else if relay.Ty == RelayActionVerifyTx && relay.GetVerify() != nil {
-			return "relay-verify-tx"
+			return "relayVerifyTx"
 		} else if relay.Ty == RelayActionRcvBTCHeaders && relay.GetBtcHeaders() != nil {
 			return "relay-receive-btc-heads"
 		}
