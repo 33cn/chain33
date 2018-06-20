@@ -1500,3 +1500,13 @@ func (c *Chain33) DecodeRawTransaction(in *types.ReqDecodeRawTransaction, result
 	*result = res
 	return nil
 }
+
+func (c *Chain33) GetTimeStatus(in *types.ReqNil, result *interface{}) error {
+	reply, err := c.cli.GetTimeStatus()
+	if err != nil {
+		return err
+	}
+
+	*result = reply
+	return nil
+}
