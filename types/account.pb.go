@@ -61,6 +61,7 @@ It has these top-level messages:
 	ReqHashes
 	ReplyHashes
 	KeyValue
+	TimeStatus
 	Config
 	Log
 	MemPool

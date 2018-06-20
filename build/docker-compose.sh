@@ -46,8 +46,8 @@ function init(){
     # create and run docker-compose container
     sudo docker-compose up --build -d
 
-    echo "=========== sleep 40s ============="
-    sleep 40
+    echo "=========== sleep 60s ============="
+    sleep 60
 
     # docker-compose ps
     sudo docker-compose ps
