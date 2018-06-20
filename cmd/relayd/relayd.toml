@@ -7,7 +7,7 @@ Tick33 =60
 TickBTC = 30
 firstBtcHeight = 10
 # 0：btcd ; 1:btcdweb
-btcdOrWeb = 1
+btcdOrWeb = 0
 # The unit fee price
 fee = 100000
 syncSetup = 100
@@ -29,12 +29,12 @@ reconnectAttempts = 3
 
 [btcd]
 id = "bitcoin"
-host = "chain33:18556"
+host = "btcd:18556"
 endpoint = "ws"
-user = "youruser"
-pass = "SomeDecentp4ssw0rd"
+user = "root"
+pass = "1314"
 disableTLS = false
-certPath = "/home/suyanlong/.btcd"
+certPath = "/root"
 proxy = ""
 proxyUser = ""
 proxyPass = ""

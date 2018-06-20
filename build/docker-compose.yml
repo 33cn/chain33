@@ -17,3 +17,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile-relayd
+
+  btcd:
+    image: suyanlong/btcd-run:latest
