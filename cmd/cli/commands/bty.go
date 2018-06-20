@@ -94,7 +94,7 @@ func createWithdraw(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	txHex, err := CreateRawTx(execAddr, amount, note, true, false, "", "")
+	txHex, err := CreateRawTx(execAddr, amount, note, true, false, "", exec)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
