@@ -482,41 +482,6 @@ func (ws *Store) getWalletPrivacyTokenMap() *types.TokenNamesOfUTXO {
 	return &tokenNamesOfUTXO
 }
 
-//func (ws *Store) updateWalletPrivacyTokenMap(tokenNames *types.TokenNamesOfUTXO, newbatch dbm.Batch, token, txhash string, addDelType int32) error {
-//	if AddTx == addDelType {
-//		privacyTokenNames, err := proto.Marshal(tokenNames)
-//		if err != nil {
-//			walletlog.Error("updateWalletPrivacyTokenMap proto.Marshal err!", "err", err)
-//			return types.ErrMarshal
-//		}
-//		newbatch.Set(calcPrivacy4TokenMap(), privacyTokenNames)
-//	} else {
-//		value, err := ws.db.Get(calcPrivacy4TokenMap())
-//		if err != nil {
-//			walletlog.Error("updateWalletPrivacyTokenMap get from db err!", "err", err)
-//			return err
-//		}
-//		var tokenNamesMap types.TokenNamesOfUTXO
-//		if err := proto.Unmarshal(value, &tokenNamesMap); err != nil {
-//			walletlog.Error("updateWalletPrivacyTokenMap proto.Unmarshal err!", "err", err)
-//			return types.ErrUnmarshal
-//		}
-//
-//		if txhashSaved, _ := tokenNamesMap.TokensMap[token]; txhashSaved == txhash {
-//			delete(tokenNamesMap.TokensMap, token)
-//		}
-//
-//		privacyTokenNames, err := proto.Marshal(&tokenNamesMap)
-//		if err != nil {
-//			walletlog.Error("updateWalletPrivacyTokenMap proto.Marshal err!", "err", err)
-//			return types.ErrMarshal
-//		}
-//		newbatch.Set(calcPrivacy4TokenMap(), privacyTokenNames)
-//	}
-//
-//	return nil
-//}
-
 //UTXO---->moveUTXO2FTXO---->FTXO---->moveFTXO2STXO---->STXO
 //1.calcUTXOKey------------>types.PrivacyDBStore 该kv值在db中的存储一旦写入就不再改变，除非产生该UTXO的交易被撤销
 //2.calcUTXOKey4TokenAddr-->calcUTXOKey，创建kv，方便查询现在某个地址下某种token的可用utxo
