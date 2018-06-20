@@ -1,11 +1,13 @@
 package rpc
 
 import (
+	"encoding/hex"
 	"math/rand"
 	"time"
 
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/client"
+	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -34,42 +36,19 @@ func (c *channelClient) CreateRawTransaction(param *types.CreateTx) ([]byte, err
 		log.Error("CreateRawTransaction", "Error", types.ErrExecNameNotMatch)
 		return nil, types.ErrExecNameNotMatch
 	}
+	//to地址要么是普通用户地址，要么就是执行器地址，不能为空
+	if param.To == "" {
+		return nil, types.ErrAddrNotExist
+	}
 
 	var tx *types.Transaction
-	amount := param.Amount
-	if amount < 0 {
+	if param.Amount < 0 {
 		return nil, types.ErrAmount
 	}
-	if !param.IsToken {
-		transfer := &types.CoinsAction{}
-		if !param.IsWithdraw {
-			if param.ExecName != "" {
-				v := &types.CoinsAction_TransferToExec{TransferToExec: &types.CoinsTransferToExec{Amount: amount, Note: param.GetNote(), ExecName: param.GetExecName()}}
-				transfer.Value = v
-				transfer.Ty = types.CoinsActionTransferToExec
-			} else {
-				v := &types.CoinsAction_Transfer{Transfer: &types.CoinsTransfer{Amount: amount, Note: param.GetNote()}}
-				transfer.Value = v
-				transfer.Ty = types.CoinsActionTransfer
-			}
-		} else {
-			v := &types.CoinsAction_Withdraw{Withdraw: &types.CoinsWithdraw{Amount: amount, Note: param.GetNote()}}
-			transfer.Value = v
-			transfer.Ty = types.CoinsActionWithdraw
-		}
-		tx = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), To: param.GetTo()}
+	if param.IsToken {
+		tx = createTokenTransfer(param)
 	} else {
-		transfer := &types.TokenAction{}
-		if !param.IsWithdraw {
-			v := &types.TokenAction_Transfer{Transfer: &types.CoinsTransfer{Cointoken: param.GetTokenSymbol(), Amount: amount, Note: param.GetNote()}}
-			transfer.Value = v
-			transfer.Ty = types.ActionTransfer
-		} else {
-			v := &types.TokenAction_Withdraw{Withdraw: &types.CoinsWithdraw{Cointoken: param.GetTokenSymbol(), Amount: amount, Note: param.GetNote()}}
-			transfer.Value = v
-			transfer.Ty = types.ActionWithdraw
-		}
-		tx = &types.Transaction{Execer: []byte("token"), Payload: types.Encode(transfer), To: param.GetTo()}
+		tx = createCoinsTransfer(param)
 	}
 
 	var err error
@@ -83,6 +62,45 @@ func (c *channelClient) CreateRawTransaction(param *types.CreateTx) ([]byte, err
 	txHex := types.Encode(tx)
 
 	return txHex, nil
+}
+
+func createCoinsTransfer(param *types.CreateTx) *types.Transaction {
+	transfer := &types.CoinsAction{}
+	if !param.IsWithdraw {
+		if param.ExecName != "" {
+			v := &types.CoinsAction_TransferToExec{TransferToExec: &types.CoinsTransferToExec{
+				Amount: param.Amount, Note: param.GetNote(), ExecName: param.GetExecName()}}
+			transfer.Value = v
+			transfer.Ty = types.CoinsActionTransferToExec
+		} else {
+			v := &types.CoinsAction_Transfer{Transfer: &types.CoinsTransfer{
+				Amount: param.Amount, Note: param.GetNote()}}
+			transfer.Value = v
+			transfer.Ty = types.CoinsActionTransfer
+		}
+	} else {
+		v := &types.CoinsAction_Withdraw{Withdraw: &types.CoinsWithdraw{
+			Amount: param.Amount, Note: param.GetNote()}}
+		transfer.Value = v
+		transfer.Ty = types.CoinsActionWithdraw
+	}
+	return &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), To: param.GetTo()}
+}
+
+func createTokenTransfer(param *types.CreateTx) *types.Transaction {
+	transfer := &types.TokenAction{}
+	if !param.IsWithdraw {
+		v := &types.TokenAction_Transfer{Transfer: &types.CoinsTransfer{
+			Cointoken: param.GetTokenSymbol(), Amount: param.Amount, Note: param.GetNote()}}
+		transfer.Value = v
+		transfer.Ty = types.ActionTransfer
+	} else {
+		v := &types.TokenAction_Withdraw{Withdraw: &types.CoinsWithdraw{
+			Cointoken: param.GetTokenSymbol(), Amount: param.Amount, Note: param.GetNote()}}
+		transfer.Value = v
+		transfer.Ty = types.ActionWithdraw
+	}
+	return &types.Transaction{Execer: []byte("token"), Payload: types.Encode(transfer), To: param.GetTo()}
 }
 
 func (c *channelClient) SendRawTransaction(param *types.SignedTx) (*types.Reply, error) {
@@ -137,8 +155,17 @@ func (c *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account, erro
 			}
 			exaddrs = append(exaddrs, addr)
 		}
-
-		accounts, err := c.accountdb.LoadAccounts(c.QueueProtocolAPI, exaddrs)
+		var accounts []*types.Account
+		var err error
+		if len(in.StateHash) == 0 {
+			accounts, err = c.accountdb.LoadAccounts(c.QueueProtocolAPI, exaddrs)
+		} else {
+			hash, err := common.FromHex(in.StateHash)
+			if err != nil {
+				return nil, err
+			}
+			accounts, err = c.accountdb.LoadAccountsHistory(c.QueueProtocolAPI, exaddrs, hash)
+		}
 		if err != nil {
 			log.Error("GetBalance", "err", err.Error())
 			return nil, err
@@ -150,7 +177,17 @@ func (c *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account, erro
 		var accounts []*types.Account
 		for _, addr := range addrs {
 
-			acc, err := c.accountdb.LoadExecAccountQueue(c.QueueProtocolAPI, addr, execaddress)
+			var acc *types.Account
+			var err error
+			if len(in.StateHash) == 0 {
+				acc, err = c.accountdb.LoadExecAccountQueue(c.QueueProtocolAPI, addr, execaddress)
+			} else {
+				hash, err := common.FromHex(in.StateHash)
+				if err != nil {
+					return nil, err
+				}
+				acc, err = c.accountdb.LoadExecAccountHistoryQueue(c.QueueProtocolAPI, addr, execaddress, hash)
+			}
 			if err != nil {
 				log.Error("GetBalance", "err", err.Error())
 				continue
@@ -425,4 +462,78 @@ func (c *channelClient) CreateRawTradeRevokeBuyTx(parm *TradeRevokeBuyTx) ([]byt
 
 	data := types.Encode(tx)
 	return data, nil
+}
+
+func (c *channelClient) BindMiner(param *types.ReqBindMiner) (*types.ReplyBindMiner, error) {
+	ta := &types.TicketAction{}
+	tBind := &types.TicketBind{
+		MinerAddress:  param.BindAddr,
+		ReturnAddress: param.OriginAddr,
+	}
+	ta.Value = &types.TicketAction_Tbind{Tbind: tBind}
+	ta.Ty = types.TicketActionBind
+	execer := []byte("ticket")
+	to := address.ExecAddress(string(execer))
+	txBind := &types.Transaction{Execer: execer, Payload: types.Encode(ta), To: to}
+	random := rand.New(rand.NewSource(time.Now().UnixNano()))
+	txBind.Nonce = random.Int63()
+	var err error
+	txBind.Fee, err = txBind.GetRealFee(types.MinFee)
+	if err != nil {
+		return nil, err
+	}
+	txBind.Fee += types.MinFee
+	txBindHex := types.Encode(txBind)
+	txHexStr := hex.EncodeToString(txBindHex)
+
+	return &types.ReplyBindMiner{TxHex: txHexStr}, nil
+}
+
+func (c *channelClient) DecodeRawTransaction(param *types.ReqDecodeRawTransaction) (*types.Transaction, error) {
+	var tx types.Transaction
+	bytes, err := common.FromHex(param.TxHex)
+	if err != nil {
+		return nil, err
+	}
+	err = types.Decode(bytes, &tx)
+	if err != nil {
+		return nil, err
+	}
+	return &tx, nil
+}
+
+func (c *channelClient) GetTimeStatus() (*types.TimeStatus, error) {
+	var diffTmp []int64
+	var ntpTime time.Time
+	var local time.Time
+	var diff int64
+	for i := 0; i < 3; i++ {
+		time.Sleep(time.Millisecond * 100)
+		errTimes := 0
+		for {
+			time.Sleep(time.Millisecond * 100)
+			var err error
+			ntpTime, err = common.GetNtpTime("time.windows.com:123")
+			if err != nil {
+				errTimes++
+			} else {
+				break
+			}
+			if errTimes == 10 {
+				return &types.TimeStatus{NtpTime: "", LocalTime: time.Now().Format("2006-01-02 15:04:05"), Diff: 0}, nil
+			}
+		}
+
+		local = time.Now()
+		diff = local.Unix() - ntpTime.Unix()
+		diffTmp = append(diffTmp, diff)
+	}
+	for j := 0; j < 2; j++ {
+		for k := j + 1; k < 3; k++ {
+			if diffTmp[j] != diffTmp[k] {
+				return &types.TimeStatus{NtpTime: "", LocalTime: time.Now().Format("2006-01-02 15:04:05"), Diff: 0}, nil
+			}
+		}
+	}
+	return &types.TimeStatus{NtpTime: ntpTime.Format("2006-01-02 15:04:05"), LocalTime: local.Format("2006-01-02 15:04:05"), Diff: diff}, nil
 }

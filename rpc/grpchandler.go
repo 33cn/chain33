@@ -223,3 +223,13 @@ func (g *Grpc) NetInfo(ctx context.Context, in *pb.ReqNil) (*pb.NodeNetInfo, err
 func (g *Grpc) GetFatalFailure(ctx context.Context, in *pb.ReqNil) (*pb.Int32, error) {
 	return g.cli.GetFatalFailure()
 }
+
+func (g *Grpc) GetLastBlockSequence(ctx context.Context, in *pb.ReqNil) (*pb.Int64, error) {
+	return g.cli.GetLastBlockSequence()
+}
+func (g *Grpc) GetBlockSequences(ctx context.Context, in *pb.ReqBlocks) (*pb.BlockSequences, error) {
+	return g.cli.GetBlockSequences(in)
+}
+func (g *Grpc) GetBlockByHashes(ctx context.Context, in *pb.ReqHashes) (*pb.BlockDetails, error) {
+	return g.cli.GetBlockByHashes(in)
+}
