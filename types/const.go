@@ -298,6 +298,12 @@ const (
 	EventReplyBindMiner      = 116
 	EventDecodeRawTx         = 117
 	EventReplyDecodeRawTx    = 118
+	EventGetLastBlockSequence    = 119
+	EventReplyLastBlockSequence  = 120
+	EventGetBlockSequences       = 121
+	EventReplyBlockSequences     = 122
+	EventGetBlockByHashes        = 123
+	EventReplyBlockDetailsBySeqs = 124
 	// Token
 	EventBlockChainQuery = 212
 )
@@ -421,7 +427,12 @@ var eventName = map[int]string{
 	116: "EventReplyBindMiner",
 	117: "EventDecodeRawTx",
 	118: "EventReplyDecodeRawTx",
-
+	119: "EventGetLastBlockSequence",
+	120: "EventReplyLastBlockSequence",
+	121: "EventGetBlockSequences",
+	122: "EventReplyBlockSequences",
+	123: "EventGetBlockByHashes",
+	124: "EventReplyBlockDetailsBySeqs",
 	// Token
 	EventBlockChainQuery: "EventBlockChainQuery",
 }
