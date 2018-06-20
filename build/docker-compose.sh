@@ -21,6 +21,11 @@ CLI="docker exec ${NODE3} /root/chain33-cli"
 NODE2="${1}_chain32_1"
 CLI2="docker exec ${NODE2} /root/chain33-cli"
 
+BTCD="${1}_btcd_1"
+BTC_CTL="docker exec ${BTCD} btcctl"
+
+RELAYD="${1}_relayd_1"
+
 sedfix=""
 if [ "$(uname)" == "Darwin" ]; then
     sedfix=".bak"
@@ -46,8 +51,11 @@ function init() {
     # wallet
     sed -i $sedfix 's/^minerdisable=.*/minerdisable=false/g' chain33.toml
 
-    # docker-compose ps
-    docker-compose ps
+	# relayd
+    sed -i $sedfix 's/^btcdOrWeb.*/btcdOrWeb = 0/g' /root/relayd.toml
+
+	# docker-compose ps
+	docker-compose ps
 
 	# remove exsit container
 	docker-compose down
@@ -55,10 +63,9 @@ function init() {
 	# create and run docker-compose container
 	docker-compose up --build -d
 
-
-    local SLEEP=60
-    echo "=========== sleep ${SLEEP}s ============="
-    sleep ${SLEEP}
+	local SLEEP=60
+	echo "=========== sleep ${SLEEP}s ============="
+	sleep ${SLEEP}
 
 	# docker-compose ps
 	docker-compose ps
@@ -168,15 +175,37 @@ function block_wait() {
     echo "wait new block $count s"
 }
 
+function run_relayd_with_btcd(){
+    echo "============== run_relayd_with_btcd ==============================="
 
-function sync_status(){
-    echo "=========== query sync status========== "
-    local sync_status
-    sync_status=$(${1} net is_sync)
-    if [ "${sync_status}" = "false" ]; then
-        ${1} block last_header
-        exit 1
-    fi
+    docker cp "${BTCD}:/root/rpc.cert" ./
+    docker cp ./rpc.cert "${RELAYD}:/root/"
+
+    docker restart "${RELAYD}"
+}
+
+function ping_btcd(){
+    echo "============== ping_btcd ==============================="
+    ${BTC_CTL} --rpcuser=root --rpcpass=1314 --simnet --wallet listaccounts
+    ${BTC_CTL} --rpcuser=root --rpcpass=1314 --simnet generate 100
+    ${BTC_CTL} --rpcuser=root --rpcpass=1314 --simnet generate 1
+    ${BTC_CTL} --rpcuser=root --rpcpass=1314 --simnet --wallet getaddressesbyaccount default
+    ${BTC_CTL} --rpcuser=root --rpcpass=1314 --simnet --wallet listaccounts
+}
+
+# TODO
+#function check_docker_container(){
+#
+#}
+
+function sync_status() {
+	echo "=========== query sync status========== "
+	local sync_status
+	sync_status=$(${1} net is_sync)
+	if [ "${sync_status}" = "false" ]; then
+		${1} block last_header
+		exit 1
+	fi
 
 	echo "=========== query clock sync status========== "
 	sync_status=$(${1} net is_clock_sync)
@@ -462,8 +491,10 @@ function relay() {
 function main() {
 	echo "==========================================main begin========================================================"
 	init
+	run_relayd_with_btcd
 	sync
 	transfer
+	ping_btcd
 	relay "${CLI}"
 
 	# TODO other work!!!
