@@ -278,7 +278,7 @@ func showPrivacyAccountSpend(cmd *cobra.Command, args []string) {
 		Token: types.BTY,
 	}
 
-	var res []*types.UTXOHaveTxHash
+	var res types.UTXOHaveTxHashs
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.ShowPrivacyAccountSpend", params, &res)
 	ctx.SetResultCb(parseShowPrivacyAccountSpendRes)
 	ctx.Run()
@@ -286,10 +286,9 @@ func showPrivacyAccountSpend(cmd *cobra.Command, args []string) {
 
 func parseShowPrivacyAccountSpendRes(arg interface{}) (interface{}, error) {
 	total := float64(0)
-	res := arg.(*[]*types.UTXOHaveTxHash)
-	//rets := make([]*PrivacyAccountSpendResult, 0)
+	res := arg.(*types.UTXOHaveTxHashs)
 	var rets []*PrivacyAccountSpendResult
-	for _, utxo := range *res {
+	for _, utxo := range res.UtxoHaveTxHashs {
 		amount := float64(utxo.Amount) / float64(types.Coin)
 		total += amount
 
@@ -351,7 +350,7 @@ func showPrivacyAccountDetail(cmd *cobra.Command, args []string) {
 		Token: types.BTY,
 	}
 
-	var res []*types.UTXO
+	var res types.UTXOs
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.ShowPrivacyAccount", params, &res)
 	ctx.SetResultCb(parseShowPrivacyAccountDetailRes)
 	ctx.Run()
@@ -359,9 +358,9 @@ func showPrivacyAccountDetail(cmd *cobra.Command, args []string) {
 
 func parseShowPrivacyAccountDetailRes(arg interface{}) (interface{}, error) {
 	total := float64(0)
-	res := arg.(*[]*types.UTXO)
+	res := arg.(*types.UTXOs)
 	ret := make([]*PrivacyAccountResult, 0)
-	for _, utxo := range *res {
+	for _, utxo := range res.Utxos {
 		amount := float64(utxo.Amount) / float64(types.Coin)
 		total += amount
 
