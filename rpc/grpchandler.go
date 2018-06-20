@@ -224,7 +224,6 @@ func (g *Grpc) GetFatalFailure(ctx context.Context, in *pb.ReqNil) (*pb.Int32, e
 	return g.cli.GetFatalFailure()
 }
 
-
 func (g *Grpc) GetLastBlockSequence(ctx context.Context, in *pb.ReqNil) (*pb.Int64, error) {
 	return g.cli.GetLastBlockSequence()
 }
@@ -234,4 +233,3 @@ func (g *Grpc) GetBlockSequences(ctx context.Context, in *pb.ReqBlocks) (*pb.Blo
 func (g *Grpc) GetBlockByHashes(ctx context.Context, in *pb.ReqHashes) (*pb.BlockDetails, error) {
 	return g.cli.GetBlockByHashes(in)
 }
-
