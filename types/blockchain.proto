@@ -142,3 +142,15 @@ message BlockChainQuery{
 	bytes stateHash = 3;
 	bytes param = 4;
 }
+
+//  通过block hash记录block的操作类型及add/del：1/2
+message BlockSequence{
+	bytes Hash = 1;
+	int64 Type = 2;
+}
+
+//resp
+message BlockSequences {
+	repeated BlockSequence items = 1;
+}
+
