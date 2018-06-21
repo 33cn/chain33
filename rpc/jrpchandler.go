@@ -1516,3 +1516,10 @@ func (c *Chain33) GetTimeStatus(in *types.ReqNil, result *interface{}) error {
 	*result = timeStatus
 	return nil
 }
+
+func (c *Chain33) CloseChain33(in *types.ReqNil, result *interface{}) error {
+	c.q.Close()
+
+	*result = nil
+	return nil
+}
