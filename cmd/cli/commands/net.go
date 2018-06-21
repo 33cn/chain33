@@ -4,7 +4,6 @@ import (
 	"github.com/spf13/cobra"
 
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
-	"gitlab.33.cn/chain33/chain33/types"
 )
 
 func NetCmd() *cobra.Command {
@@ -123,18 +122,7 @@ func GetTimeStausCmd() *cobra.Command {
 
 func timestatus(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	var res types.TimeStatus
+	var res jsonrpc.TimeStatus
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetTimeStatus", nil, &res)
-	ctx.SetResultCb(parseTimeStatus)
 	ctx.Run()
-}
-
-func parseTimeStatus(arg interface{}) (interface{}, error) {
-	res := arg.(*types.TimeStatus)
-	timeStatus := &jsonrpc.TimeStatus{
-		NtpTime:   res.NtpTime,
-		LocalTime: res.LocalTime,
-		Diff:      res.Diff,
-	}
-	return timeStatus, nil
 }
