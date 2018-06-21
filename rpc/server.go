@@ -22,6 +22,7 @@ type Chain33 struct {
 
 type Grpc struct {
 	cli channelClient
+	q   queue.Queue
 }
 
 type Grpcserver struct {
@@ -81,6 +82,7 @@ func NewGRpcServer(q queue.Queue) *Grpcserver {
 	c := q.Client()
 	s := &Grpcserver{}
 	s.grpc.cli.Init(c)
+	s.grpc.q = q
 	return s
 }
 
