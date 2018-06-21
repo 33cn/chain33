@@ -274,6 +274,9 @@ func (p *privacy) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, i
 					err := types.Decode(value3, &tokenNames)
 					if err == nil {
 						if _, ok := tokenNames.TokensMap[token]; !ok {
+							if nil == tokenNames.TokensMap {
+								tokenNames.TokensMap = make(map[string]string)
+							}
 							tokenNames.TokensMap[token] = txhash
 							kv := &types.KeyValue{key3, types.Encode(&tokenNames)}
 							set.KV = append(set.KV, kv)
