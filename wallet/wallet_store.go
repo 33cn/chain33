@@ -306,6 +306,7 @@ func (ws *Store) GetTxDetailByIter(TxList *types.ReqWalletTransactionList) (*typ
 			for _, keybyte := range txkeybytes {
 				value, err := ws.db.Get(keybyte)
 				if err != nil {
+					walletlog.Error(fmt.Sprintf("GetTxDetailByIter() db.Get() error. ", err))
 					continue
 				}
 				if nil == value {
@@ -334,6 +335,7 @@ func (ws *Store) GetTxDetailByIter(TxList *types.ReqWalletTransactionList) (*typ
 			for _, keybyte := range txkeybytes {
 				value, err := ws.db.Get(keybyte)
 				if err != nil {
+					walletlog.Error(fmt.Sprintf("GetTxDetailByIter() db.Get() error. ", err))
 					continue
 				}
 				if nil == value {
@@ -888,4 +890,38 @@ func (ws *Store) GetWalletAccountPrivacy(addr string) (*types.WalletAccountPriva
 		return nil, types.ErrUnmarshal
 	}
 	return &accPrivacy, nil
+}
+
+func (ws *Store) SetCreateTransactionCache(key []byte, cache *types.CreateTransactionCache) error {
+	if len(key) <= 0 || cache == nil {
+		return types.ErrInvalidParam
+	}
+
+	return ws.db.Set(key, types.Encode(cache))
+}
+
+func (ws *Store) GetCreateTransactionCache(key []byte) (*types.CreateTransactionCache, error) {
+	if len(key) <= 0 {
+		return nil, types.ErrInvalidParam
+	}
+
+	data, err := ws.db.Get(key)
+	if err != nil {
+		walletlog.Error("GetCreateTransactionCache", "db.Get err:", err)
+		return nil, err
+	}
+	cache := types.CreateTransactionCache{}
+	err = proto.Unmarshal(data, &cache)
+	if err != nil {
+		walletlog.Error("GetCreateTransactionCache", "proto.Unmarshal err:", err)
+		return nil, err
+	}
+	return &cache, nil
+}
+
+func (ws *Store) DeleteCreateTransactionCache(key []byte) {
+	if len(key) <= 0 {
+		return
+	}
+	ws.db.Delete(key)
 }

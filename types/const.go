@@ -359,6 +359,10 @@ const (
 	EventReplyGetGlobalIndex
 	EventCreateUTXOs
 	EventReplyCreateUTXOs
+	EventCreateTransaction
+	EventReplyCreateTransaction
+	EventSendTxHashToWallet
+	EventReplySendTxHashToWallet
 )
 
 var eventName = map[int]string{

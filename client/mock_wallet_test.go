@@ -193,7 +193,8 @@ func (m *mockWallet) SetQueueClient(q queue.Queue) {
 				msg.Reply(client.NewMessage(walletKey, types.EventReplyPrivacy2privacy, &types.Reply{}))
 			case types.EventPrivacy2public:
 				msg.Reply(client.NewMessage(walletKey, types.EventReplyPrivacy2public, &types.Reply{}))
-
+			case types.EventCreateTransaction:
+				msg.Reply(client.NewMessage(walletKey, types.EventReplyCreateTransaction, &types.Reply{}))
 			default:
 				msg.ReplyErr("Do not support", types.ErrNotSupport)
 			}

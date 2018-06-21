@@ -714,14 +714,7 @@ func (q *QueueProtocol) SignRawTx(param *types.ReqSignRawTx) (*types.ReplySignRa
 		log.Error("Query", "Error", err)
 		return nil, err
 	}
-
-	data := &types.ReqSignRawTx{
-		Addr:    param.GetAddr(),
-		Privkey: param.GetPrivkey(),
-		TxHex:   param.GetTxHex(),
-		Expire:  param.GetExpire(),
-		Index:   param.GetIndex(),
-	}
+	data := param
 	msg, err := q.query(walletKey, types.EventSignRawTx, data)
 	if err != nil {
 		log.Error("SignRawTx", "Error", err.Error())
@@ -877,6 +870,30 @@ func (q *QueueProtocol) ShowPrivacyBalance(param *types.ReqPrivBal4AddrToken) (*
 		return nil, err
 	}
 	if reply, ok := msg.GetData().(*types.Account); ok {
+		return reply, nil
+	}
+	return nil, types.ErrTypeAsset
+}
+
+func (q *QueueProtocol) CreateTrasaction(param *types.ReqCreateTransaction) (*types.Reply, error) {
+	msg, err := q.query(walletKey, types.EventCreateTransaction, param)
+	if err != nil {
+		log.Error("CreateTrasaction", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.Reply); ok {
+		return reply, nil
+	}
+	return nil, types.ErrTypeAsset
+}
+
+func (q *QueueProtocol) SendTxHashToWallet(param *types.ReqHash) (*types.Reply, error) {
+	msg, err := q.query(walletKey, types.EventSendTxHashToWallet, param)
+	if err != nil {
+		log.Error("SendTxHashToWallet", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.Reply); ok {
 		return reply, nil
 	}
 	return nil, types.ErrTypeAsset
