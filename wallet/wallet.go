@@ -233,12 +233,13 @@ func (wallet *Wallet) checkWalletStoreData() {
 				break
 			}
 			interval := int64(types.GetTxTimeInterval())
-			now := time.Now().Unix()
+			now := time.Now().UnixNano()
 			for _, cache := range caches {
 				exprie := cache.GetCreatetime() + interval
 				if exprie <= interval || exprie <= now {
 					// 直接删除已经过期的交易
-					wallet.walletStore.DeleteCreateTransactionCache(cache.Key)
+					dbkey := calcCreateTxKey(common.ToHex(cache.GetKey()))
+					wallet.walletStore.DeleteCreateTransactionCache(dbkey)
 				}
 			}
 
