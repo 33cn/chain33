@@ -52,7 +52,24 @@ func (c *Chain33) SendRawTransaction(in SignedTx, result *interface{}) error {
 	}
 }
 
+func (c *Chain33) sendTxToWallet(in RawParm, result *interface{}) error {
+	var hash types.ReqHash
+	bytes, err := common.FromHex(in.Data)
+	if err != nil {
+		return err
+	}
+	hash.Hash = bytes
+	reply, err := c.cli.SendTxHashToWallet(&hash)
+	if err == nil {
+		*result = common.ToHex(reply.GetMsg())
+	}
+	return err
+}
+
 func (c *Chain33) SendTransaction(in RawParm, result *interface{}) error {
+	if in.Mode == 1 {
+		return c.sendTxToWallet(in, result)
+	}
 	var parm types.Transaction
 	data, err := common.FromHex(in.Data)
 	if err != nil {
@@ -1563,5 +1580,14 @@ func (c *Chain33) CreateUTXOs(in types.ReqCreateUTXOs, result *interface{}) erro
 	}
 	*result = ReplyHash{Hash: common.ToHex(reply.GetMsg())}
 
+	return nil
+}
+
+func (c *Chain33) CreateTrasaction(in types.ReqCreateTransaction, result *interface{}) error {
+	reply, err := c.cli.CreateTrasaction(&in)
+	if err != nil {
+		return err
+	}
+	*result = ReplyHash{Hash: common.ToHex(reply.GetMsg())}
 	return nil
 }

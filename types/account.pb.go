@@ -330,6 +330,10 @@ It has these top-level messages:
 	UTXOIndex4Amount
 	ResUTXOGlobalIndex
 	FTXOsSTXOsInOneTx
+	ReqCreateTransaction
+	RealKeyInput
+	UTXOBasics
+	CreateTransactionCache
 */
 package types
 

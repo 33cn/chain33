@@ -242,6 +242,10 @@ message ReqSignRawTx {
     string txHex = 3;
     string expire = 4;
     int32  index = 5;
+	// 签名的模式类型
+	// 0：普通交易
+	// 1：隐私交易
+	int32	mode = 6;
 }
 
 message ReplySignRawTx {
@@ -385,4 +389,51 @@ message FTXOsSTXOsInOneTx {
 	int32  timeoutSec = 3;
 	string txhash = 4;
 	repeated UTXO utxos = 5;
+}
+
+// 某些交易需要存在一些复杂的算法，所以需要请求服务器协助构建交易，返回对应交易哈希值，后续签名可以根据此哈希值进行处理
+message ReqCreateTransaction {
+	string		tokenname	= 1;
+	// 构建交易类型
+	// 0：普通的交易（暂不支持）
+	// 1：隐私交易 公开->隐私
+	// 2：隐私交易 隐私->隐私
+	// 3：隐私交易 隐私->公开
+	int32		type		= 2;
+	int64		amount		= 3;
+	string		note		= 4;
+	// 普通交易的发送方
+	string		from		= 5;
+	// 普通交易的接收方
+	string		to			= 6;
+	// 隐私交易，接收方的公钥对
+	string		pubkeypair	= 10;
+	int32		mixcount	= 11;
+}
+
+
+message RealKeyInput {
+    int32   realinputkey    = 1;
+    bytes   onetimeprivkey  = 2;
+}
+
+message UTXOBasics {
+    repeated UTXOBasic utxos = 1;
+}
+
+message CreateTransactionCache {
+	// 记录创建时间，用以处理过期的交易
+	int64		createtime	= 1;
+	// 记录签名成功的时间，用以处理过期交易
+	int64		signtime	= 2;
+	// 缓存状态
+	// 0 - 创建状态
+	// 1 - 已经签名状态
+	int32		status		= 3;
+	//
+	Transaction	transaction	= 4;
+
+    string  sender  = 5;
+    repeated RealKeyInput   realkeyinput = 6;
+    repeated UTXOBasics     utxos = 7;
 }

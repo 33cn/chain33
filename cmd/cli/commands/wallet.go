@@ -292,6 +292,7 @@ func addSignRawTxFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("key", "k", "", "private key (optional)")
 	cmd.Flags().StringP("addr", "a", "", "account address (optional)")
 	cmd.Flags().StringP("expire", "e", "120s", "transaction expire time")
+	cmd.Flags().Int32P("mode", "m", 0, "transaction sign mode")
 	// A duration string is a possibly signed sequence of
 	// decimal numbers, each with optional fraction and a unit suffix,
 	// such as "300ms", "-1.5h" or "2h45m".
@@ -306,6 +307,7 @@ func signRawTx(cmd *cobra.Command, args []string) {
 	index, _ := cmd.Flags().GetInt32("index")
 	expire, _ := cmd.Flags().GetString("expire")
 	expireTime, err := time.ParseDuration(expire)
+	mode, _ := cmd.Flags().GetInt32("mode")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -382,6 +384,7 @@ func signRawTx(cmd *cobra.Command, args []string) {
 			TxHex:  data,
 			Expire: expire,
 			Index:  index,
+			Mode:   mode,
 		}
 		ctx := NewRpcCtx(rpcLaddr, "Chain33.SignRawTx", params, nil)
 		ctx.RunWithoutMarshal()
@@ -432,12 +435,15 @@ func SendTxCmd() *cobra.Command {
 func addSendTxFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("data", "d", "", "transaction content")
 	cmd.MarkFlagRequired("data")
+	cmd.Flags().Int32P("mode", "m", 0, "transaction send mode")
 }
 
 func sendTx(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	data, _ := cmd.Flags().GetString("data")
+	mode, _ := cmd.Flags().GetInt32("mode")
 	params := jsonrpc.RawParm{
+		Mode: mode,
 		Data: data,
 	}
 
