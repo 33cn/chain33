@@ -25,7 +25,7 @@ host = "chain33:8802"
 user = ""
 pass = ""
 disableAutoReconnect = true
-reconnectAttempts = 3
+reconnectAttempts = 10
 
 [btcd]
 id = "bitcoin"
@@ -43,7 +43,7 @@ disableConnectOnNew = false
 # exchange protocol wss and https
 HTTPPostMode = false
 enableBCInfoHacks = false
-reconnectAttempts = 3
+reconnectAttempts = 10
 
 [log]
 # 日志级别，支持debug(dbug)/info/warn/error(eror)/crit

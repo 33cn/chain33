@@ -21,10 +21,15 @@ CLI="docker exec ${NODE3} /root/chain33-cli"
 NODE2="${1}_chain32_1"
 CLI2="docker exec ${NODE2} /root/chain33-cli"
 
+NODE1="${1}_chain31_1"
+CLI1="docker exec ${NODE1} /root/chain33-cli"
+
 BTCD="${1}_btcd_1"
 BTC_CTL="docker exec ${BTCD} btcctl"
 
 RELAYD="${1}_relayd_1"
+
+containers=("${NODE1}" "${NODE2}" "${NODE3}" "${BTCD}" "${RELAYD}")
 
 sedfix=""
 if [ "$(uname)" == "Darwin" ]; then
@@ -193,10 +198,17 @@ function ping_btcd(){
     ${BTC_CTL} --rpcuser=root --rpcpass=1314 --simnet --wallet listaccounts
 }
 
-# TODO
-#function check_docker_container(){
-#
-#}
+function check_docker_container(){
+    echo "============== check_docker_container ==============================="
+    for con in ${containers};do
+		runing=$(docker inspect "${con}" | jq '.[0].State.Running')
+        if [ ! "${runing}" ]; then
+            docker inspect "${con}"
+            echo "check ${con} not actived!"
+            exit 1
+        fi
+    done;
+}
 
 function sync_status() {
 	echo "=========== query sync status========== "
@@ -272,7 +284,6 @@ function transfer(){
         exit 1
     fi
 }
-
 
 function relay_before() {
 	sed -i 's/ForkV7AddRelay.*/ForkV7AddRelay = 2/g' ../types/relay.go
@@ -496,8 +507,9 @@ function main() {
 	transfer
 	ping_btcd
 	relay "${CLI}"
-
 	# TODO other work!!!
+
+	check_docker_container
 	echo "==========================================main end========================================================="
 }
 
