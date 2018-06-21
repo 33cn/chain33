@@ -518,7 +518,7 @@ type ExecutorType interface {
 	// name 是 executor name 构造时用
 	//func Name()
 	ActionName(transaction *Transaction) string
-
+	NewTx(action string, message json.RawMessage) (*Transaction, error)
 }
 
 type LogType interface {
