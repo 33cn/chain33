@@ -2345,7 +2345,7 @@ func (wallet *Wallet) showPrivacyAccountsSpend(req *types.ReqPrivBal4AddrToken) 
 		return nil, err
 	}
 
-	if 0 == len(utxoHaveTxHashs.UtxoHaveTxHashs) {
+	if nil == utxoHaveTxHashs || 0 == len(utxoHaveTxHashs.UtxoHaveTxHashs)  {
 		return nil, nil
 	}
 
