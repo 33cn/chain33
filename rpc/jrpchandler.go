@@ -1588,6 +1588,6 @@ func (c *Chain33) CreateTrasaction(in types.ReqCreateTransaction, result *interf
 	if err != nil {
 		return err
 	}
-	*result = ReplyHash{Hash: common.ToHex(reply.GetMsg())}
+	*result = common.ToHex(reply.GetMsg())
 	return nil
 }
