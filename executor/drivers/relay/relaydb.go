@@ -531,20 +531,53 @@ func (action *relayDB) verifyBtcTx(btc *btcStore, verify *types.RelayVerifyCli) 
 
 }
 
+func saveBtcLastHead(db dbm.KV, head *types.BtcHeader) (set []*types.KeyValue) {
+	if head == nil {
+		return nil
+	}
+
+	value := types.Encode(head)
+	key := []byte(btcLastHeadPrefix)
+	set = append(set, &types.KeyValue{key, value})
+
+	for i := 0; i < len(set); i++ {
+		db.Set(set[i].GetKey(), set[i].Value)
+	}
+	return set
+}
+
+func getBtcLastHead(db dbm.KV) (*types.BtcHeader, error) {
+
+	value, err := db.Get([]byte(btcLastHeadPrefix))
+	if err != nil {
+		return nil, err
+	}
+
+	var head types.BtcHeader
+	if err = types.Decode(value, &head); err != nil {
+		return nil, err
+	}
+	return &head, nil
+}
+
 func (action *relayDB) saveBtcHeader(headers *types.BtcHeaders) (*types.Receipt, error) {
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
 	var preHead *types.BtcHeader
+	var head *types.BtcHeader
 
-	for _, head := range headers.BtcHeader {
-		if preHead != nil {
-			err := verifyBlockHeader(head, preHead)
-			if err != nil {
-				return nil, err
-			}
+	preHead, err := getBtcLastHead(action.db)
+	if err != nil && err != types.ErrNotFound {
+		return nil, err
+	}
+
+	for _, head = range headers.BtcHeader {
+		err := verifyBlockHeader(head, preHead)
+		if err != nil {
+			return nil, err
 		}
-		preHead = head
 
+		preHead = head
 		log := &types.ReceiptLog{}
 		log.Ty = types.TyLogRelayRcvBTCHead
 		receipt := &types.ReceiptRelayRcvBTCHeaders{head}
@@ -552,5 +585,6 @@ func (action *relayDB) saveBtcHeader(headers *types.BtcHeaders) (*types.Receipt,
 		logs = append(logs, log)
 	}
 
+	kv = saveBtcLastHead(action.db, head)
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
 }

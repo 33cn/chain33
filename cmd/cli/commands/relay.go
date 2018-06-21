@@ -7,6 +7,8 @@ import (
 
 	"encoding/json"
 
+	"strconv"
+
 	"github.com/spf13/cobra"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -17,10 +19,10 @@ type RelayOrder2Show struct {
 	OrderId       string `json:"orderid"`
 	Status        string `json:"status"`
 	Creator       string `json:"address"`
-	Amount        uint64 `json:"amount"`
+	Amount        string `json:"amount"`
 	CoinOperation string `json:"coinoperation"`
 	Coin          string `json:"coin"`
-	CoinAmount    uint64 `json:"coinamount"`
+	CoinAmount    string `json:"coinamount"`
 	CoinAddr      string `json:"coinaddr"`
 	CreateTime    int64  `json:"createtime"`
 	AcceptAddr    string `json:"acceptaddr"`
@@ -324,10 +326,10 @@ func parseRelayOrders(res types.ReplyRelayOrders) {
 		show.Status = order.Status.String()
 		show.Creator = order.CreaterAddr
 		show.CoinOperation = operation[order.CoinOperation]
-		show.Amount = order.Amount
+		show.Amount = strconv.FormatFloat(float64(order.Amount)/float64(types.Coin), 'f', 4, 64)
 		show.Coin = order.Coin
 		show.CoinAddr = order.CoinAddr
-		show.CoinAmount = order.CoinAmount
+		show.CoinAmount = strconv.FormatFloat(float64(order.CoinAmount)/float64(types.Coin), 'f', 4, 64)
 		show.CreateTime = order.CreateTime
 		show.AcceptAddr = order.AcceptAddr
 		show.AcceptTime = order.AcceptTime
