@@ -20,6 +20,9 @@ var (
 	blockLastHeight = []byte("blockLastHeight")
 	storeLog        = chainlog.New("submodule", "store")
 	lastheaderlock  sync.Mutex
+	LastSequence          = []byte("LastSequence")
+	addBlock        int64 = 1
+	delBlock        int64 = 2
 )
 
 //存储block hash对应的blockbody信息
@@ -52,6 +55,11 @@ func calcHashToTdKey(hash []byte) []byte {
 //存储block height 对应的block  hash
 func calcHeightToHashKey(height int64) []byte {
 	return []byte(fmt.Sprintf("Height:%v", height))
+}
+
+//存储block操作序列号对应的block hash,KEY=Seq:sequence
+func calcSequenceToHashKey(sequence int64) []byte {
+	return []byte(fmt.Sprintf("Seq:%v", sequence))
 }
 
 type BlockStore struct {
@@ -272,6 +280,14 @@ func (bs *BlockStore) SaveBlock(storeBatch dbm.Batch, blockdetail *types.BlockDe
 	//存储block height和block hash的对应关系，便于通过height查询block
 	storeBatch.Set(calcHeightToHashKey(height), hash)
 
+	if isRecordBlockSequence {
+		//存储记录block序列执行的type add
+		err = bs.SaveBlockSequence(storeBatch, hash, height, addBlock)
+		if err != nil {
+			storeLog.Error("SaveBlock SaveBlockSequence", "height", height, "hash", common.ToHex(hash), "error", err)
+			return err
+		}
+	}
 	storeLog.Debug("SaveBlock success", "blockheight", height, "hash", common.ToHex(hash))
 	return nil
 }
@@ -281,12 +297,6 @@ func (bs *BlockStore) DelBlock(storeBatch dbm.Batch, blockdetail *types.BlockDet
 
 	height := blockdetail.Block.Height
 	hash := blockdetail.Block.Hash()
-
-	// del blockbody
-	//storeBatch.Delete(calcHashToBlockBodyKey(hash))
-
-	// del blockheader
-	//storeBatch.Delete(calcHashToBlockHeaderKey(hash))
 
 	//更新最新的block高度为前一个高度
 	bytes := types.Encode(&types.Int64{height - 1})
@@ -298,8 +308,14 @@ func (bs *BlockStore) DelBlock(storeBatch dbm.Batch, blockdetail *types.BlockDet
 	//删除block height和block hash的对应关系，便于通过height查询block
 	storeBatch.Delete(calcHeightToHashKey(height))
 
-	//删除block hash和block td的对应关系
-	//storeBatch.Delete(calcHashToTdKey(hash))
+	if isRecordBlockSequence {
+		//存储记录block序列执行的type del
+		err := bs.SaveBlockSequence(storeBatch, hash, height, delBlock)
+		if err != nil {
+			storeLog.Error("DelBlock SaveBlockSequence", "height", height, "hash", common.ToHex(hash), "error", err)
+			return err
+		}
+	}
 
 	storeLog.Debug("DelBlock success", "blockheight", height, "hash", common.ToHex(hash))
 	return nil
@@ -587,6 +603,91 @@ func (bs *BlockStore) dbMaybeStoreBlock(blockdetail *types.BlockDetail, sync boo
 		return err
 	}
 
-	storeBatch.Write()
+	err = storeBatch.Write()
+	if err != nil {
+		chainlog.Error("dbMaybeStoreBlock storeBatch.Write:", "err", err)
+		return types.ErrDataBaseDamage
+	}
 	return nil
+}
+
+//获取当前最新的block操作序列号
+func (bs *BlockStore) LoadBlockLastSequence() (int64, error) {
+	bytes, err := bs.db.Get(LastSequence)
+	if bytes == nil || err != nil {
+		if err != dbm.ErrNotFoundInDb {
+			storeLog.Error("LoadBlockLastSequence", "error", err)
+		}
+		return -1, types.ErrHeightNotExist
+	}
+	return decodeHeight(bytes)
+}
+
+//存储block 序列执行的类型用于blockchain的恢复
+//获取当前的序列号，将此序列号加1存储本block的hash
+func (bs *BlockStore) SaveBlockSequence(storeBatch dbm.Batch, hash []byte, height int64, Type int64) error {
+
+	var blockSequence types.BlockSequence
+
+	Sequence, err := bs.LoadBlockLastSequence()
+	if err != nil {
+		storeLog.Error("SaveBlockSequence", "LoadBlockLastSequence err", err)
+		if err != types.ErrHeightNotExist {
+			panic(err)
+		}
+	}
+
+	newSequence := Sequence + 1
+	//开启isRecordBlockSequence功能必须从0开始同步数据，不允许从非0高度开启此功能
+	if newSequence == 0 && height != 0 {
+		storeLog.Error("isRecordBlockSequence is true must Synchronizing data from zero block", "height", height)
+		panic(errors.New("isRecordBlockSequence is true must Synchronizing data from zero block"))
+	}
+	blockSequence.Hash = hash
+	blockSequence.Type = Type //add
+
+	BlockSequenceByte, err := proto.Marshal(&blockSequence)
+	if err != nil {
+		storeLog.Error("SaveBlockSequence Marshal BlockSequence", "hash", common.ToHex(hash), "error", err)
+		return err
+	}
+	storeBatch.Set(calcSequenceToHashKey(newSequence), BlockSequenceByte)
+
+	Sequencebytes := types.Encode(&types.Int64{newSequence})
+	storeBatch.Set(LastSequence, Sequencebytes)
+	//print
+	if Type == 2 {
+		storeLog.Error("SaveBlockSequence", "height", height, "hash", common.ToHex(hash), "Type", Type)
+	}
+	return nil
+}
+
+//通过seq高度获取BlockDetail信息
+func (bs *BlockStore) LoadBlockBySequence(Sequence int64) (*types.BlockDetail, error) {
+	//首先通过Sequence序列号获取对应的blockhash和操作类型从db中
+	BlockSequence, err := bs.GetBlockSequence(Sequence)
+	if err != nil {
+		return nil, err
+	}
+	return bs.LoadBlockByHash(BlockSequence.Hash)
+}
+
+//从db数据库中获取指定Sequence对应的block序列操作信息
+func (bs *BlockStore) GetBlockSequence(Sequence int64) (*types.BlockSequence, error) {
+
+	var blockSeq types.BlockSequence
+	blockSeqByte, err := bs.db.Get(calcSequenceToHashKey(Sequence))
+	if blockSeqByte == nil || err != nil {
+		if err != dbm.ErrNotFoundInDb {
+			storeLog.Error("GetBlockSequence", "error", err)
+		}
+		return nil, types.ErrHeightNotExist
+	}
+
+	err = proto.Unmarshal(blockSeqByte, &blockSeq)
+	if err != nil {
+		storeLog.Error("GetBlockSequence", "err", err)
+		return nil, err
+	}
+	return &blockSeq, nil
 }

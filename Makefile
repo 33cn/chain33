@@ -7,11 +7,13 @@
 SRC := gitlab.33.cn/chain33/chain33/cmd/chain33
 SRC_CLI := gitlab.33.cn/chain33/chain33/cmd/cli
 SRC_SIGNATORY := gitlab.33.cn/chain33/chain33/cmd/signatory-server
+SRC_MINER := gitlab.33.cn/chain33/chain33/cmd/miner_accounts
 APP := build/chain33
 CLI := build/chain33-cli
 SIGNATORY := build/signatory-server
+MINER := build/miner_accounts
 LDFLAGS := -ldflags "-w -s"
-PKG_LIST := `go list ./... | grep -v "vendor" | grep -v "chain33/test"`
+PKG_LIST := `go list ./... | grep -v "vendor" | grep -v "chain33/test" | grep -v "mocks"` | grep -v "pbft"
 BUILD_FLAGS = -ldflags "-X gitlab.33.cn/chain33/chain33/common/version.GitCommit=`git rev-parse --short=8 HEAD`"
 .PHONY: default dep all build release cli linter race test fmt vet bench msan coverage coverhtml docker docker-compose protobuf clean help
 
@@ -42,6 +44,11 @@ signatory:
 	@cd cmd/signatory-server/signatory && bash ./create_protobuf.sh && cd ../.../..
 	@go build -v -o $(SIGNATORY) $(SRC_SIGNATORY)
 	@cp cmd/signatory-server/signatory.toml build/
+
+miner:
+	@cd cmd/miner_accounts/accounts && bash ./create_protobuf.sh && cd ../.../..
+	@go build -v -o $(MINER) $(SRC_MINER)
+	@cp cmd/miner_accounts/miner_accounts.toml build/
 
 build_ci: ## Build the binary file for CI
 	@go build -race -v -o $(CLI) $(SRC_CLI)
@@ -101,7 +108,7 @@ docker: ## build docker image for chain33 run
 	@sudo docker build . -f ./build/Dockerfile-run -t chain33:latest
 
 docker-compose: ## build docker-compose for chain33 run
-	@cd build && ./docker-compose.sh && cd ..
+	@cd build && ./docker-compose.sh build && cd ..
 
 clean: ## Remove previous build
 	@rm -rf $(shell find . -name 'datadir' -not -path "./vendor/*")
@@ -136,3 +143,40 @@ checkgofmt: ## get all go files and run go fmt on them
 		  echo "$${files}"; \
 		  exit 1; \
 		  fi;
+
+.PHONY: mock
+mock:
+	@cd client && mockery -name=QueueProtocolAPI && mv mocks/QueueProtocolAPI.go mocks/api.go && cd -
+
+.PHONY: auto_ci_before auto_ci_after auto_ci
+auto_ci_before: clean fmt protobuf mock
+	@echo "auto_ci"
+	@go version
+	@protoc --version
+	@mockery -version
+	@docker version
+	@docker-compose version
+	@git version
+	@git status
+
+auto_ci_after: clean fmt protobuf mock
+	@git add *.go
+	@git status
+	@files=$$(git status -suno);if [ -n "$$files" ]; then \
+		  git add *.go; \
+		  git status; \
+		  git commit -m "auto ci [ci-skip]"; \
+		  git push origin HEAD:$(branch); \
+		  fi;
+
+auto_ci: clean fmt protobuf mock
+	@git add *.go
+	@git status
+	@files=$$(git status -suno);if [ -n "$$files" ]; then \
+		  git add *.go; \
+		  git status; \
+		  git commit -m "auto ci"; \
+		  git push origin HEAD:$(branch); \
+		  exit 1; \
+		  fi;
+

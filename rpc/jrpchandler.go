@@ -5,8 +5,8 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/version"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -236,6 +236,7 @@ func (c *Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 		//hb := common.FromHex(v)
 		hb, err := common.FromHex(v)
 		if err != nil {
+			parm.Hashes = append(parm.Hashes, nil)
 			continue
 		}
 		parm.Hashes = append(parm.Hashes, hb)
@@ -264,6 +265,7 @@ func (c *Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 			}
 			recpResult, err = DecodeLog(&recp)
 			if err != nil {
+				txdetails.Txs = append(txdetails.Txs, nil)
 				continue
 			}
 			txProofs := tx.GetProofs()
@@ -272,6 +274,7 @@ func (c *Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 			}
 			tran, err := DecodeTx(tx.GetTx())
 			if err != nil {
+				txdetails.Txs = append(txdetails.Txs, nil)
 				continue
 			}
 			txdetails.Txs = append(txdetails.Txs,
@@ -306,7 +309,7 @@ func (c *Chain33) GetMempool(in *types.ReqNil, result *interface{}) error {
 			if err != nil {
 				amount = 0
 			}
-			from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
+			from := tx.From()
 			tran, err := DecodeTx(tx)
 			if err != nil {
 				continue
@@ -534,6 +537,8 @@ func (c *Chain33) GetPeerInfo(in types.ReqNil, result *interface{}) error {
 				StateHash:  common.ToHex(peer.GetHeader().GetStateHash()),
 				TxHash:     common.ToHex(peer.GetHeader().GetTxHash()),
 				Version:    peer.GetHeader().GetVersion(),
+				Hash:       common.ToHex(peer.GetHeader().GetHash()),
+				TxCount:    peer.GetHeader().GetTxCount(),
 			}
 			peerlist.Peers = append(peerlist.Peers, &pr)
 		}
@@ -610,6 +615,8 @@ func (c *Chain33) GetBlockOverview(in QueryParm, result *interface{}) error {
 	header.StateHash = common.ToHex(reply.GetHead().GetStateHash())
 	header.TxHash = common.ToHex(reply.GetHead().GetTxHash())
 	header.Version = reply.GetHead().GetVersion()
+	header.Hash = common.ToHex(reply.GetHead().GetHash())
+	header.TxCount = reply.GetHead().GetTxCount()
 	blockOverview.Head = &header
 
 	//获取blocktxhashs信息
@@ -879,6 +886,13 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 			return nil, err
 		}
 		pl = &action
+	} else if "evm" == string(tx.Execer) {
+		var action types.EVMContractAction
+		err := types.Decode(tx.GetPayload(), &action)
+		if err != nil {
+			return nil, err
+		}
+		pl = &action
 	} else if "user.write" == string(tx.Execer) {
 		pl = decodeUserWrite(tx.GetPayload())
 	} else {
@@ -903,12 +917,14 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 
 func decodeUserWrite(payload []byte) *userWrite {
 	var article userWrite
-	if payload[0] == '#' {
-		data := bytes.SplitN(payload[1:], []byte("#"), 2)
-		if len(data) == 2 {
-			article.Topic = string(data[0])
-			article.Content = string(data[1])
-			return &article
+	if len(payload) != 0 {
+		if payload[0] == '#' {
+			data := bytes.SplitN(payload[1:], []byte("#"), 2)
+			if len(data) == 2 {
+				article.Topic = string(data[0])
+				article.Content = string(data[1])
+				return &article
+			}
 		}
 	}
 	article.Topic = ""
@@ -1202,6 +1218,30 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
 				return nil, err
 			}
 			logIns = logTmp
+		case types.TyLogCallContract:
+			lTy = "LogCallContract"
+			var logTmp types.ReceiptEVMContract
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogContractData:
+			lTy = "LogContractData"
+			var logTmp types.EVMContractData
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogContractState:
+			lTy = "LogContractState"
+			var logTmp types.EVMContractState
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
 		case types.TyLogModifyConfig:
 			lTy = "LogModifyConfig"
 			var logTmp types.ReceiptConfig
@@ -1230,7 +1270,7 @@ func (c *Chain33) IsNtpClockSync(in *types.ReqNil, result *interface{}) error {
 	return nil
 }
 
-func (c *Chain33) QueryTotalFee(in *types.ReqHash, result *interface{}) error {
+func (c *Chain33) QueryTotalFee(in *types.LocalDBGet, result *interface{}) error {
 	reply, err := c.cli.LocalGet(in)
 	if err != nil {
 		return err
@@ -1350,5 +1390,175 @@ func (c *Chain33) GetNetInfo(in *types.ReqNil, result *interface{}) error {
 	}
 
 	*result = &NodeNetinfo{resp.GetExternaladdr(), resp.GetLocaladdr(), resp.GetService(), resp.GetOutbounds(), resp.GetInbounds()}
+	return nil
+}
+
+func (c *Chain33) GetFatalFailure(in *types.ReqNil, result *interface{}) error {
+	resp, err := c.cli.GetFatalFailure()
+	if err != nil {
+		return err
+	}
+	*result = resp.GetData()
+	return nil
+
+}
+
+func (c *Chain33) QueryTicketStat(in *types.LocalDBGet, result *interface{}) error {
+	reply, err := c.cli.LocalGet(in)
+	if err != nil {
+		return err
+	}
+
+	var ticketStat types.TicketStatistic
+	err = types.Decode(reply.Values[0], &ticketStat)
+	if err != nil {
+		return err
+	}
+	*result = ticketStat
+	return nil
+}
+
+func (c *Chain33) QueryTicketInfo(in *types.LocalDBGet, result *interface{}) error {
+	reply, err := c.cli.LocalGet(in)
+	if err != nil {
+		return err
+	}
+
+	var ticketInfo types.TicketMinerInfo
+	err = types.Decode(reply.Values[0], &ticketInfo)
+	if err != nil {
+		return err
+	}
+	*result = ticketInfo
+	return nil
+}
+
+func (c *Chain33) QueryTicketInfoList(in *types.LocalDBList, result *interface{}) error {
+	reply, err := c.cli.LocalList(in)
+	if err != nil {
+		return err
+	}
+
+	var ticketInfo types.TicketMinerInfo
+	var ticketList []types.TicketMinerInfo
+	for _, v := range reply.Values {
+		err = types.Decode(v, &ticketInfo)
+		if err != nil {
+			return err
+		}
+		ticketList = append(ticketList, ticketInfo)
+	}
+	*result = ticketList
+	return nil
+}
+
+func (c *Chain33) CreateBindMiner(in *types.ReqBindMiner, result *interface{}) error {
+	if in.Amount%(10000*types.Coin) != 0 || in.Amount < 0 {
+		return types.ErrAmount
+	}
+	err := address.CheckAddress(in.BindAddr)
+	if err != nil {
+		return err
+	}
+	err = address.CheckAddress(in.OriginAddr)
+	if err != nil {
+		return err
+	}
+
+	if in.CheckBalance {
+		getBalance := &types.ReqBalance{Addresses: []string{in.OriginAddr}, Execer: "coins"}
+		balances, err := c.cli.GetBalance(getBalance)
+		if err != nil {
+			return err
+		}
+		if len(balances) == 0 {
+			return types.ErrInputPara
+		}
+		if balances[0].Balance < in.Amount+2*types.Coin {
+			return types.ErrNoBalance
+		}
+	}
+
+	reply, err := c.cli.BindMiner(in)
+	if err != nil {
+		return err
+	}
+
+	*result = reply
+	return nil
+}
+
+func (c *Chain33) DecodeRawTransaction(in *types.ReqDecodeRawTransaction, result *interface{}) error {
+	reply, err := c.cli.DecodeRawTransaction(in)
+	if err != nil {
+		return err
+	}
+	res, err := DecodeTx(reply)
+	if err != nil {
+		return err
+	}
+	*result = res
+	return nil
+}
+
+func (c *Chain33) GetTimeStatus(in *types.ReqNil, result *interface{}) error {
+	reply, err := c.cli.GetTimeStatus()
+	if err != nil {
+		return err
+	}
+
+	timeStatus := &TimeStatus{
+		NtpTime:   reply.NtpTime,
+		LocalTime: reply.LocalTime,
+		Diff:      reply.Diff,
+	}
+
+	*result = timeStatus
+	return nil
+}
+func (c *Chain33) GetLastBlockSequence(in *types.ReqNil, result *interface{}) error {
+	resp, err := c.cli.GetLastBlockSequence()
+	if err != nil {
+		return err
+	}
+	*result = resp.GetData()
+	return nil
+}
+
+// 获取指定区间的block加载序列号信息。输入信息只使用：start，end
+func (c *Chain33) GetBlockSequences(in BlockParam, result *interface{}) error {
+	resp, err := c.cli.GetBlockSequences(&types.ReqBlocks{Start: in.Start, End: in.End, IsDetail: in.Isdetail, Pid: []string{""}})
+	if err != nil {
+		return err
+	}
+	var BlkSeqs ReplyBlkSeqs
+	items := resp.GetItems()
+	for _, item := range items {
+		BlkSeqs.BlkSeqInfos = append(BlkSeqs.BlkSeqInfos, &ReplyBlkSeq{Hash: common.ToHex(item.GetHash()),
+			Type: item.GetType()})
+	}
+	*result = &BlkSeqs
+	return nil
+}
+
+// 通过block hash 获取对应的block信息
+func (c *Chain33) GetBlockByHashes(in ReqHashes, result *interface{}) error {
+	log.Warn("GetBlockByHashes", "hashes", in)
+	var parm types.ReqHashes
+	parm.Hashes = make([][]byte, 0)
+	for _, v := range in.Hashes {
+		hb, err := common.FromHex(v)
+		if err != nil {
+			parm.Hashes = append(parm.Hashes, nil)
+			continue
+		}
+		parm.Hashes = append(parm.Hashes, hb)
+
+	}
+	reply, err := c.cli.GetBlockByHashes(&parm)
+	if err != nil {
+		return err
+	}
+	*result = reply
 	return nil
 }

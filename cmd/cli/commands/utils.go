@@ -2,14 +2,15 @@ package commands
 
 import (
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"math/rand"
-	"os"
 	"strconv"
+	"strings"
 	"time"
 
-	"gitlab.33.cn/chain33/chain33/account"
+	"github.com/gogo/protobuf/proto"
+	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -137,6 +138,13 @@ func decodeLog(rlog jsonrpc.ReceiptDataResult) *ReceiptData {
 				Prev:     decodeAccount(constructAccFromLog(l, "prev"), types.TokenPrecision),
 				Current:  decodeAccount(constructAccFromLog(l, "current"), types.TokenPrecision),
 			}
+			// EVM合约日志处理逻辑
+		case types.TyLogCallContract:
+			rl.Log = buildCallContractResult(l)
+		case types.TyLogContractData:
+			rl.Log = buildContractDataResult(l)
+		case types.TyLogContractState:
+			rl.Log = buildContractStateResult(l)
 		default:
 			fmt.Printf("---The log with vlaue:%d is not decoded --------------------\n", l.Ty)
 			return nil
@@ -144,6 +152,40 @@ func decodeLog(rlog jsonrpc.ReceiptDataResult) *ReceiptData {
 		rd.Logs = append(rd.Logs, rl)
 	}
 	return rd
+}
+
+func buildCallContractResult(l *jsonrpc.ReceiptLogResult) interface{} {
+	data, _ := common.FromHex(l.RawLog)
+	receipt := &types.ReceiptEVMContract{}
+	proto.Unmarshal(data, receipt)
+	rlog := &types.ReceiptEVMContractCmd{Caller: receipt.Caller, ContractAddr: receipt.ContractAddr, ContractName: receipt.ContractName, UsedGas: receipt.UsedGas}
+	rlog.Ret = common.ToHex(receipt.Ret)
+	return rlog
+}
+
+func buildContractDataResult(l *jsonrpc.ReceiptLogResult) interface{} {
+	data, _ := common.FromHex(l.RawLog)
+	receipt := &types.EVMContractData{}
+	proto.Unmarshal(data, receipt)
+	rlog := &types.EVMContractDataCmd{Creator: receipt.Creator, Name: receipt.Name, Addr: receipt.Addr, Alias: receipt.Alias}
+	rlog.Code = common.ToHex(receipt.Code)
+	rlog.CodeHash = common.ToHex(receipt.CodeHash)
+	return rlog
+}
+
+func buildContractStateResult(l *jsonrpc.ReceiptLogResult) interface{} {
+	data, _ := common.FromHex(l.RawLog)
+	receipt := &types.EVMContractState{}
+	proto.Unmarshal(data, receipt)
+	rlog := &types.EVMContractStateCmd{Nonce: receipt.Nonce, Suicided: receipt.Suicided}
+	rlog.StorageHash = common.ToHex(receipt.StorageHash)
+	if receipt.Storage != nil {
+		rlog.Storage = make(map[string]string)
+		for k, v := range receipt.Storage {
+			rlog.Storage[k] = common.ToHex(v)
+		}
+	}
+	return rlog
 }
 
 func SendToAddress(rpcAddr string, from string, to string, amount int64, note string, isToken bool, tokenSymbol string, isWithdraw bool) {
@@ -164,40 +206,36 @@ func SendToAddress(rpcAddr string, from string, to string, amount int64, note st
 	ctx.Run()
 }
 
-func CreateRawTx(to string, amount float64, note string, withdraw bool, isToken bool, tokenSymbol string) (string, error) {
+func CreateRawTx(to string, amount float64, note string, isWithdraw bool, isToken bool, tokenSymbol string, execName string) (string, error) {
+	if amount < 0 {
+		return "", types.ErrAmount
+	}
 	amountInt64 := int64(amount*1e4) * 1e4
-	//c, err := crypto.New(types.GetSignatureTypeName(wallet.SignType))
-	//if err != nil {
-	//	fmt.Fprintln(os.Stderr, err)
-	//	return "", err
-	//}
-	//a, err := common.FromHex(priv)
-	//if err != nil {
-	//	fmt.Fprintln(os.Stderr, err)
-	//	return "", err
-	//}
-	//privKey, err := c.PrivKeyFromBytes(a)
-	//if err != nil {
-	//	fmt.Fprintln(os.Stderr, err)
-	//	return "", err
-	//}
-	// addrFrom := account.PubKeyToAddress(privKey.PubKey().Bytes()).String()
+	if execName != "" && !types.IsAllowExecName(execName) {
+		return "", types.ErrExecNameNotMatch
+	}
 	var tx *types.Transaction
 	if !isToken {
 		transfer := &types.CoinsAction{}
-		if !withdraw {
-			v := &types.CoinsAction_Transfer{Transfer: &types.CoinsTransfer{Amount: amountInt64, Note: note}}
-			transfer.Value = v
-			transfer.Ty = types.CoinsActionTransfer
+		if !isWithdraw {
+			if execName != "" {
+				v := &types.CoinsAction_TransferToExec{TransferToExec: &types.CoinsTransferToExec{Amount: amountInt64, Note: note, ExecName: execName}}
+				transfer.Value = v
+				transfer.Ty = types.CoinsActionTransferToExec
+			} else {
+				v := &types.CoinsAction_Transfer{Transfer: &types.CoinsTransfer{Amount: amountInt64, Note: note}}
+				transfer.Value = v
+				transfer.Ty = types.CoinsActionTransfer
+			}
 		} else {
-			v := &types.CoinsAction_Withdraw{Withdraw: &types.CoinsWithdraw{Amount: amountInt64, Note: note}}
+			v := &types.CoinsAction_Withdraw{Withdraw: &types.CoinsWithdraw{Amount: amountInt64, Note: note, ExecName: execName}}
 			transfer.Value = v
 			transfer.Ty = types.CoinsActionWithdraw
 		}
 		tx = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), To: to}
 	} else {
 		transfer := &types.TokenAction{}
-		if !withdraw {
+		if !isWithdraw {
 			v := &types.TokenAction_Transfer{Transfer: &types.CoinsTransfer{Cointoken: tokenSymbol, Amount: amountInt64, Note: note}}
 			transfer.Value = v
 			transfer.Ty = types.ActionTransfer
@@ -212,23 +250,40 @@ func CreateRawTx(to string, amount float64, note string, withdraw bool, isToken 
 	var err error
 	tx.Fee, err = tx.GetRealFee(types.MinFee)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
 		return "", err
 	}
 	random := rand.New(rand.NewSource(time.Now().UnixNano()))
 	tx.Nonce = random.Int63()
-	//tx.Sign(int32(wallet.SignType), privKey)
 	txHex := types.Encode(tx)
 	return hex.EncodeToString(txHex), nil
 }
 
 func GetExecAddr(exec string) (string, error) {
-	switch exec {
-	case "none", "coins", "hashlock", "retrieve", "ticket", "token", "trade":
-		addrResult := account.ExecAddress(exec)
-		result := addrResult.String()
-		return result, nil
-	default:
-		return "", errors.New("only none, coins, hashlock, retrieve, ticket, token, trade supported")
+	if ok, err := isAllowExecName(exec); !ok {
+		return "", err
 	}
+
+	addrResult := address.ExecAddress(exec)
+	result := addrResult
+	return result, nil
+}
+
+func isAllowExecName(exec string) (bool, error) {
+	// exec name长度不能超过系统限制
+	if len(exec) > address.MaxExecNameLength {
+		return false, types.ErrExecNameNotAllow
+	}
+	// exec name中不允许有 "-"
+	if strings.Contains(exec, "-") {
+		return false, types.ErrExecNameNotAllow
+	}
+	if strings.HasPrefix(exec, "user.") {
+		return true, nil
+	}
+	for _, e := range []string{"none", "coins", "hashlock", "retrieve", "ticket", "token", "trade"} {
+		if exec == e {
+			return true, nil
+		}
+	}
+	return false, types.ErrExecNameNotAllow
 }

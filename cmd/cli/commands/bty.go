@@ -1,8 +1,12 @@
 package commands
 
 import (
+	"bufio"
+	"encoding/hex"
 	"fmt"
+	"io"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -20,6 +24,8 @@ func BTYCmd() *cobra.Command {
 		//WithdrawFromExecCmd(),
 		CreateRawTransferCmd(),
 		CreateRawWithdrawCmd(),
+		CreateRawSendToExecCmd(),
+		CreateTxGroupCmd(),
 	)
 
 	return cmd
@@ -37,9 +43,6 @@ func CreateRawTransferCmd() *cobra.Command {
 }
 
 func addCreateTransferFlags(cmd *cobra.Command) {
-	//cmd.Flags().StringP("key", "k", "", "private key of sender")
-	//cmd.MarkFlagRequired("key")
-
 	cmd.Flags().StringP("to", "t", "", "receiver account address")
 	cmd.MarkFlagRequired("to")
 
@@ -47,15 +50,13 @@ func addCreateTransferFlags(cmd *cobra.Command) {
 	cmd.MarkFlagRequired("amount")
 
 	cmd.Flags().StringP("note", "n", "", "transaction note info")
-	cmd.MarkFlagRequired("note")
 }
 
 func createTransfer(cmd *cobra.Command, args []string) {
-	//key, _ := cmd.Flags().GetString("key")
 	toAddr, _ := cmd.Flags().GetString("to")
 	amount, _ := cmd.Flags().GetFloat64("amount")
 	note, _ := cmd.Flags().GetString("note")
-	txHex, err := CreateRawTx(toAddr, amount, note, false, false, "")
+	txHex, err := CreateRawTx(toAddr, amount, note, false, false, "", "")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -75,9 +76,6 @@ func CreateRawWithdrawCmd() *cobra.Command {
 }
 
 func addCreateWithdrawFlags(cmd *cobra.Command) {
-	//cmd.Flags().StringP("key", "k", "", "private key of user")
-	//cmd.MarkFlagRequired("key")
-
 	cmd.Flags().StringP("exec", "e", "", "execer withdrawn from")
 	cmd.MarkFlagRequired("exec")
 
@@ -85,11 +83,9 @@ func addCreateWithdrawFlags(cmd *cobra.Command) {
 	cmd.MarkFlagRequired("amount")
 
 	cmd.Flags().StringP("note", "n", "", "transaction note info")
-	cmd.MarkFlagRequired("note")
 }
 
 func createWithdraw(cmd *cobra.Command, args []string) {
-	//key, _ := cmd.Flags().GetString("key")
 	exec, _ := cmd.Flags().GetString("exec")
 	amount, _ := cmd.Flags().GetFloat64("amount")
 	note, _ := cmd.Flags().GetString("note")
@@ -98,7 +94,45 @@ func createWithdraw(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	txHex, err := CreateRawTx(execAddr, amount, note, true, false, "")
+	txHex, err := CreateRawTx(execAddr, amount, note, true, false, "", exec)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	fmt.Println(txHex)
+}
+
+// create send to exec
+func CreateRawSendToExecCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "send_exec",
+		Short: "Create a send to executor transaction",
+		Run:   sendToExec,
+	}
+	addCreateRawSendToExecFlags(cmd)
+	return cmd
+}
+
+func addCreateRawSendToExecFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("exec", "e", "", "executor to be sent to")
+	cmd.MarkFlagRequired("exec")
+
+	cmd.Flags().Float64P("amount", "a", 0, "send amount")
+	cmd.MarkFlagRequired("amount")
+
+	cmd.Flags().StringP("note", "n", "", "transaction note info")
+}
+
+func sendToExec(cmd *cobra.Command, args []string) {
+	exec, _ := cmd.Flags().GetString("exec")
+	amount, _ := cmd.Flags().GetFloat64("amount")
+	note, _ := cmd.Flags().GetString("note")
+	execAddr, err := GetExecAddr(exec)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	txHex, err := CreateRawTx(execAddr, amount, note, false, false, "", exec)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -177,4 +211,83 @@ func withdraw(cmd *cobra.Command, args []string) {
 	}
 	amountInt64 := int64(amount*types.InputPrecision) * types.Multiple1E4 //支持4位小数输入，多余的输入将被截断
 	SendToAddress(rpcLaddr, addr, execAddr, amountInt64, note, false, "", true)
+}
+
+// create tx group
+func CreateTxGroupCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "txgroup",
+		Short: "Create a transaction group",
+		Run:   createTxGroup,
+	}
+	addCreateTxGroupFlags(cmd)
+	return cmd
+}
+
+func addCreateTxGroupFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("txs", "t", "", "transactions in hex, separated by space")
+	cmd.Flags().StringP("file", "f", "", "name of file which contains hex style transactions, separated by new line")
+}
+
+func createTxGroup(cmd *cobra.Command, args []string) {
+	txs, _ := cmd.Flags().GetString("txs")
+	file, _ := cmd.Flags().GetString("file")
+	var txsArr []string
+	if txs != "" {
+		txsArr = strings.Split(txs, " ")
+	} else if file != "" {
+		f, err := os.Open(file)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		defer f.Close()
+		rd := bufio.NewReader(f)
+		i := 1
+		for {
+			line, _, err := rd.ReadLine()
+			if err != nil && err != io.EOF {
+				fmt.Fprintln(os.Stderr, err)
+				return
+			}
+			if err == io.EOF {
+				break
+			}
+			cSet := " 	" // space and tab
+			lineStr := strings.Trim(string(line), cSet)
+			if lineStr == "" {
+				continue
+			}
+			fmt.Printf("tx %d: %s", i, lineStr+"\n")
+			txsArr = append(txsArr, lineStr)
+			i++
+		}
+	} else {
+		fmt.Println("please input -t or -f; else, input -h to see help")
+		return
+	}
+	var transactions []*types.Transaction
+	for _, t := range txsArr {
+		txByte, err := hex.DecodeString(t)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		var transaction types.Transaction
+		types.Decode(txByte, &transaction)
+		transactions = append(transactions, &transaction)
+	}
+	group, err := types.CreateTxGroup(transactions)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	err = group.Check(types.MinFee)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	newtx := group.Tx()
+	grouptx := hex.EncodeToString(types.Encode(newtx))
+	fmt.Println(grouptx)
 }

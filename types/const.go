@@ -2,6 +2,7 @@ package types
 
 // 注释掉系统中没有用到的枚举项
 // 与AllowUserExec中驱动名称的顺序一致
+//TODO 后面会有专门执行器相关的目录
 const (
 	ExecTypeCoins    = 0
 	ExecTypeTicket   = 1
@@ -20,9 +21,11 @@ var (
 	ExecerConfig     = []byte("config")
 	ExecerManage     = []byte("manage")
 	ExecerToken      = []byte("token")
+	ExecerEvm        = []byte("evm")
 	AllowDepositExec = [][]byte{ExecerTicket}
 	AllowUserExec    = [][]byte{ExecerCoins, ExecerTicket, []byte("norm"), []byte("hashlock"),
 		[]byte("retrieve"), []byte("none"), ExecerToken, []byte("trade"), ExecerManage, []byte("valnode")}
+
 	GenesisAddr            = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 	GenesisBlockTime int64 = 1526486816
 	HotkeyAddr             = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
@@ -46,6 +49,11 @@ var (
 	ForkV10TradeBuyLimit int64 = 1
 	ForkV11ManageExec    int64 = 100000
 	ForkV12TransferExec  int64 = 100000
+	ForkV13ExecKey       int64 = 200000
+	ForkV14TxGroup       int64 = 200000
+	ForkV15ResetTx0      int64 = 200000
+	ForkV16Withdraw      int64 = 200000
+	ForkV17EVM           int64 = 250000
 )
 
 var (
@@ -60,11 +68,32 @@ func SetTitle(t string) {
 	if IsBityuan() {
 		AllowUserExec = [][]byte{ExecerCoins, ExecerTicket, []byte("hashlock"),
 			[]byte("retrieve"), []byte("none"), ExecerToken, []byte("trade"), ExecerManage}
+		return
 	}
+	if IsLocal() {
+		ForkV11ManageExec = 1
+		ForkV12TransferExec = 1
+		ForkV13ExecKey = 1
+		ForkV14TxGroup = 1
+		ForkV15ResetTx0 = 1
+		ForkV16Withdraw = 1
+		return
+	}
+}
+
+func IsMatchFork(height int64, fork int64) bool {
+	if height == -1 || height >= fork {
+		return true
+	}
+	return false
 }
 
 func IsBityuan() bool {
 	return title == "bityuan"
+}
+
+func IsLocal() bool {
+	return title == "local"
 }
 
 func IsYcc() bool {
@@ -92,7 +121,10 @@ func SetTestNet(isTestNet bool) {
 		"1GCzJDS6HbgTQ2emade7mEJGGWFfA15pS9",
 		"1JYB8sxi4He5pZWHCd3Zi2nypQ4JMB6AxN",
 	}
-	//TestNet 的 fork
+	if IsLocal() {
+		return
+	}
+	//测试网络的fork
 	ForkV1 = 75260
 	ForkV2AddToken = 100899
 	ForkV3 = 110000
@@ -104,7 +136,12 @@ func SetTestNet(isTestNet bool) {
 	ForkV9 = 350000
 	ForkV10TradeBuyLimit = 301000
 	ForkV11ManageExec = 400000
-	ForkV12TransferExec = 400000
+	ForkV12TransferExec = 408400
+	ForkV13ExecKey = 408400
+	ForkV14TxGroup = 408400
+	ForkV15ResetTx0 = 453400
+	ForkV16Withdraw = 480000
+	ForkV17EVM = 500000
 }
 
 func IsTestNet() bool {
@@ -241,21 +278,33 @@ const (
 	EventIsSync              = 96
 	EventReplyIsSync         = 97
 
-	EventCloseTickets        = 98
-	EventGetAddrTxs          = 99
-	EventReplyAddrTxs        = 100
-	EventIsNtpClockSync      = 101
-	EventReplyIsNtpClockSync = 102
-	EventDelTxList           = 103
-	EventStoreGetTotalCoins  = 104
-	EventGetTotalCoinsReply  = 105
-	EventQueryTotalFee       = 106
-	EventSignRawTx           = 107
-	EventReplySignRawTx      = 108
-	EventSyncBlock           = 109
-	EventGetNetInfo          = 110
-	EventReplyNetInfo        = 111
-
+	EventCloseTickets            = 98
+	EventGetAddrTxs              = 99
+	EventReplyAddrTxs            = 100
+	EventIsNtpClockSync          = 101
+	EventReplyIsNtpClockSync     = 102
+	EventDelTxList               = 103
+	EventStoreGetTotalCoins      = 104
+	EventGetTotalCoinsReply      = 105
+	EventQueryTotalFee           = 106
+	EventSignRawTx               = 107
+	EventReplySignRawTx          = 108
+	EventSyncBlock               = 109
+	EventGetNetInfo              = 110
+	EventReplyNetInfo            = 111
+	EventErrToFront              = 112
+	EventFatalFailure            = 113
+	EventReplyFatalFailure       = 114
+	EventBindMiner               = 115
+	EventReplyBindMiner          = 116
+	EventDecodeRawTx             = 117
+	EventReplyDecodeRawTx        = 118
+	EventGetLastBlockSequence    = 119
+	EventReplyLastBlockSequence  = 120
+	EventGetBlockSequences       = 121
+	EventReplyBlockSequences     = 122
+	EventGetBlockByHashes        = 123
+	EventReplyBlockDetailsBySeqs = 124
 	// Token
 	EventBlockChainQuery = 212
 )
@@ -370,6 +419,21 @@ var eventName = map[int]string{
 	107: "EventSignRawTx",
 	108: "EventReplySignRawTx",
 	109: "EventSyncBlock",
+	110: "EventGetNetInfo",
+	111: "EventReplyNetInfo",
+	112: "EventErrToFront",
+	113: "EventFatalFailure",
+	114: "EventReplyFatalFailure",
+	115: "EventBindMiner",
+	116: "EventReplyBindMiner",
+	117: "EventDecodeRawTx",
+	118: "EventReplyDecodeRawTx",
+	119: "EventGetLastBlockSequence",
+	120: "EventReplyLastBlockSequence",
+	121: "EventGetBlockSequences",
+	122: "EventReplyBlockSequences",
+	123: "EventGetBlockByHashes",
+	124: "EventReplyBlockDetailsBySeqs",
 	// Token
 	EventBlockChainQuery: "EventBlockChainQuery",
 }
@@ -430,6 +494,14 @@ const (
 
 	// log for config
 	TyLogModifyConfig = 410
+
+	// log for evm
+	// 合约代码变更日志
+	TyLogContractData = 601
+	// 合约状态数据变更日志
+	TyLogContractState = 602
+	// 合约状态数据变更日志
+	TyLogCallContract = 603
 )
 
 //exec type

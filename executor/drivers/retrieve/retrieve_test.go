@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/types"
 	"google.golang.org/grpc"
@@ -22,7 +22,7 @@ var (
 	r           *rand.Rand
 	c           types.GrpcserviceClient
 	ErrTest     = errors.New("ErrTest")
-	addrexec    *account.Address
+	addrexec    string
 	delayLevel1 = minPeriod + 10
 	delayLevel2 = 5*minPeriod + 10
 )
@@ -65,7 +65,7 @@ func init() {
 	r = rand.New(rand.NewSource(time.Now().UnixNano()))
 	c = types.NewGrpcserviceClient(conn)
 
-	addrexec = account.ExecAddress("retrieve")
+	addrexec = address.ExecAddress("retrieve")
 }
 
 func estInitAccount(t *testing.T) {
@@ -149,13 +149,13 @@ func estRetrieveBackup(t *testing.T) {
 	var hashes [][]byte
 
 	//1. step1 account A/B发送余额给合约
-	txHash, err := sendtoaddress(c, privkey[accountindexA], addrexec.String(), 2*retrieveAmount)
+	txHash, err := sendtoaddress(c, privkey[accountindexA], addrexec, 2*retrieveAmount)
 	if err != nil {
 		panic(err)
 	}
 	hashes = append(hashes, txHash)
 
-	txHash, err = sendtoaddress(c, privkey[accountindexB], addrexec.String(), retrieveAmount)
+	txHash, err = sendtoaddress(c, privkey[accountindexB], addrexec, retrieveAmount)
 	if err != nil {
 		panic(err)
 	}
@@ -306,13 +306,13 @@ func estRetrievePerform(t *testing.T) {
 	}
 	time.Sleep(5 * time.Second)
 	//取钱
-	txhash, err = sendtoaddress(c, privkey[accountindexa], addrexec.String(), -2*retrieveAmount)
+	txhash, err = sendtoaddress(c, privkey[accountindexa], addrexec, -2*retrieveAmount)
 	if err != nil {
 		panic(err)
 	}
 	hashes = append(hashes, txhash)
 
-	txhash, err = sendtoaddress(c, privkey[accountindexb], addrexec.String(), -retrieveAmount)
+	txhash, err = sendtoaddress(c, privkey[accountindexb], addrexec, -retrieveAmount)
 	if err != nil {
 		panic(err)
 	}
@@ -371,13 +371,13 @@ func estRetrieveCancel(t *testing.T) {
 	}
 	time.Sleep(5 * time.Second)
 
-	txhash, err = sendtoaddress(c, privkey[accountindexA], addrexec.String(), -retrieveAmount)
+	txhash, err = sendtoaddress(c, privkey[accountindexA], addrexec, -retrieveAmount)
 	if err != nil {
 		panic(err)
 	}
 	hashes = append(hashes, txhash)
 
-	txhash, err = sendtoaddress(c, privkey[accountindexB], addrexec.String(), -retrieveAmount)
+	txhash, err = sendtoaddress(c, privkey[accountindexB], addrexec, -retrieveAmount)
 	if err != nil {
 		panic(err)
 	}
@@ -422,7 +422,7 @@ func estRetrievePerformB(t *testing.T) {
 		return
 	}
 
-	txhash, err = sendtoaddress(c, privkey[accountindexb], addrexec.String(), retrieveAmount)
+	txhash, err = sendtoaddress(c, privkey[accountindexb], addrexec, retrieveAmount)
 	if err != nil {
 		panic(err)
 	}
@@ -586,7 +586,7 @@ func genaddress() (string, crypto.PrivKey) {
 	if err != nil {
 		panic(err)
 	}
-	addrto := account.PubKeyToAddress(privto.PubKey().Bytes())
+	addrto := address.PubKeyToAddress(privto.PubKey().Bytes())
 	return addrto.String(), privto
 }
 

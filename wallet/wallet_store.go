@@ -18,6 +18,7 @@ var (
 	WalletFeeAmount = []byte("WalletFeeAmount")
 	EncryptionFlag  = []byte("Encryption")
 	PasswordHash    = []byte("PasswordHash")
+	WalletVerKey    = []byte("WalletVerKey")
 	storelog        = walletlog.New("submodule", "store")
 )
 
@@ -95,14 +96,14 @@ func (ws *Store) GetFeeAmount() int64 {
 	return FeeAmount
 }
 
-func (ws *Store) SetWalletAccount(update bool, addr string, account *types.WalletAccountStore) error {
+func (ws *Store) GetAccountByte(update bool, addr string, account *types.WalletAccountStore) ([]byte, error) {
 	if len(addr) == 0 {
 		walletlog.Error("SetWalletAccount addr is nil")
-		return types.ErrInputPara
+		return nil, types.ErrInputPara
 	}
 	if account == nil {
 		walletlog.Error("SetWalletAccount account is nil")
-		return types.ErrInputPara
+		return nil, types.ErrInputPara
 	}
 
 	timestamp := fmt.Sprintf("%018d", time.Now().Unix())
@@ -115,15 +116,34 @@ func (ws *Store) SetWalletAccount(update bool, addr string, account *types.Walle
 	accountbyte, err := proto.Marshal(account)
 	if err != nil {
 		walletlog.Error("SetWalletAccount proto.Marshal err!", "err", err)
-		return types.ErrMarshal
+		return nil, types.ErrMarshal
 	}
+	return accountbyte, nil
+}
 
+func (ws *Store) SetWalletAccount(update bool, addr string, account *types.WalletAccountStore) error {
+	accountbyte, err := ws.GetAccountByte(update, addr, account)
+	if err != nil {
+		return err
+	}
 	//需要同时修改三个表，Account，Addr，Label，批量处理
 	newbatch := ws.db.NewBatch(true)
-	ws.db.Set(calcAccountKey(timestamp, addr), accountbyte)
-	ws.db.Set(calcAddrKey(addr), accountbyte)
-	ws.db.Set(calcLabelKey(account.GetLabel()), accountbyte)
+	newbatch.Set(calcAccountKey(account.TimeStamp, addr), accountbyte)
+	newbatch.Set(calcAddrKey(addr), accountbyte)
+	newbatch.Set(calcLabelKey(account.GetLabel()), accountbyte)
 	newbatch.Write()
+	return nil
+}
+
+func (ws *Store) SetWalletAccountInBatch(update bool, addr string, account *types.WalletAccountStore, newbatch dbm.Batch) error {
+	accountbyte, err := ws.GetAccountByte(update, addr, account)
+	if err != nil {
+		return err
+	}
+	//需要同时修改三个表，Account，Addr，Label，批量处理
+	newbatch.Set(calcAccountKey(account.TimeStamp, addr), accountbyte)
+	newbatch.Set(calcAddrKey(addr), accountbyte)
+	newbatch.Set(calcLabelKey(account.GetLabel()), accountbyte)
 	return nil
 }
 
@@ -178,7 +198,7 @@ func (ws *Store) GetAccountByPrefix(addr string) ([]*types.WalletAccountStore, e
 	list := dbm.NewListHelper(ws.db)
 	accbytes := list.PrefixScan([]byte(addr))
 	if len(accbytes) == 0 {
-		walletlog.Error("GetAccountByPrefix addr  not exist")
+		walletlog.Error("GetAccountByPrefix addr not exist")
 		return nil, types.ErrAccountNotExist
 	}
 	WalletAccountStores := make([]*types.WalletAccountStore, len(accbytes))
@@ -228,12 +248,13 @@ func (ws *Store) GetTxDetailByIter(TxList *types.ReqWalletTransactionList) (*typ
 			walletlog.Error("GetTxDetailByIter", "proto.Unmarshal err:", err)
 			return nil, types.ErrUnmarshal
 		}
-		if string(txdetail.Tx.GetExecer()) == "coins" && txdetail.Tx.ActionName() == "withdraw" {
+		txhash := txdetail.GetTx().Hash()
+		txdetail.Txhash = txhash
+		if txdetail.GetTx().IsWithdraw() {
 			//swap from and to
 			txdetail.Fromaddr, txdetail.Tx.To = txdetail.Tx.To, txdetail.Fromaddr
 		}
-		txhash := txdetail.GetTx().Hash()
-		txdetail.Txhash = txhash
+
 		txDetails.TxDetails[index] = &txdetail
 		//print
 		//walletlog.Debug("GetTxDetailByIter", "txdetail:", txdetail.String())
@@ -241,7 +262,7 @@ func (ws *Store) GetTxDetailByIter(TxList *types.ReqWalletTransactionList) (*typ
 	return &txDetails, nil
 }
 
-func (ws *Store) SetEncryptionFlag() error {
+func (ws *Store) SetEncryptionFlag(batch dbm.Batch) error {
 	var flag int64 = 1
 	data, err := json.Marshal(flag)
 	if err != nil {
@@ -249,7 +270,7 @@ func (ws *Store) SetEncryptionFlag() error {
 		return types.ErrMarshal
 	}
 
-	ws.db.SetSync(EncryptionFlag, data)
+	batch.Set(EncryptionFlag, data)
 	return nil
 }
 
@@ -267,7 +288,7 @@ func (ws *Store) GetEncryptionFlag() int64 {
 	return flag
 }
 
-func (ws *Store) SetPasswordHash(password string) error {
+func (ws *Store) SetPasswordHash(password string, batch dbm.Batch) error {
 	var WalletPwHash types.WalletPwHash
 	//获取一个随机字符串
 	randstr := fmt.Sprintf("fuzamei:$@%s", crypto.CRandHex(16))
@@ -283,8 +304,7 @@ func (ws *Store) SetPasswordHash(password string) error {
 		walletlog.Error("SetEncryptionFlag marshal flag", "err", err)
 		return types.ErrMarshal
 	}
-
-	ws.db.SetSync(PasswordHash, pwhashbytes)
+	batch.Set(PasswordHash, pwhashbytes)
 	return nil
 }
 
@@ -308,4 +328,31 @@ func (ws *Store) VerifyPasswordHash(password string) bool {
 
 func (ws *Store) DelAccountByLabel(label string) {
 	ws.db.DeleteSync(calcLabelKey(label))
+}
+
+//升级数据库的版本号
+func (ws *Store) SetWalletVersion(version int64) error {
+	data, err := json.Marshal(version)
+	if err != nil {
+		walletlog.Error("SetWalletVerKey marshal version", "err", err)
+		return types.ErrMarshal
+	}
+
+	ws.db.SetSync(WalletVerKey, data)
+	return nil
+}
+
+// 获取wallet数据库的版本号
+func (ws *Store) GetWalletVersion() int64 {
+	var version int64
+	data, err := ws.db.Get(WalletVerKey)
+	if data == nil || err != nil {
+		return 0
+	}
+	err = json.Unmarshal(data, &version)
+	if err != nil {
+		walletlog.Error("GetWalletVersion unmarshal", "err", err)
+		return 0
+	}
+	return version
 }

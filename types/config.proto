@@ -58,17 +58,19 @@ message Consensus {
 	string readOnlyPeersURL = 17;
 	string addPeersURL = 18;
 	int64 defaultSnapCount = 19;
-	int32 timeoutPropose = 20;
-  int32 timeoutProposeDelta = 21;
-  int32 timeoutPrevote = 22;
-  int32 timeoutPrevoteDelta = 23;
-  int32 timeoutPrecommit = 24;
-  int32 timeoutPrecommitDelta = 25;
-  int32 timeoutCommit = 26;
-  bool skipTimeoutCommit = 27;
-  bool createEmptyBlocks = 28;
-  int32 createEmptyBlocksInterval = 29;
-  repeated string seeds=30;
+	int64 writeBlockSeconds = 20;
+	int32 heartbeatTick = 21;
+    int32 timeoutPropose = 22;
+    int32 timeoutProposeDelta = 23;
+    int32 timeoutPrevote = 24;
+    int32 timeoutPrevoteDelta = 25;
+    int32 timeoutPrecommit = 26;
+    int32 timeoutPrecommitDelta = 27;
+    int32 timeoutCommit = 28;
+    bool skipTimeoutCommit = 29;
+    bool createEmptyBlocks = 30;
+    int32 createEmptyBlocksInterval = 31;
+    repeated string seeds=32;
 }
 
 message Wallet {
@@ -99,6 +101,7 @@ message BlockChain {
 	bool isStrongConsistency = 8;
 	bool singleMode = 9;
 	bool batchsync = 10;
+	bool isRecordBlockSequence = 11;
 }
 
 message P2P {
@@ -124,9 +127,13 @@ message Rpc {
 	string jrpcBindAddr=1;
 	string grpcBindAddr=2;
 	repeated string whitlist=3;
+	repeated string whitelist=4;
+	repeated string jrpcFuncWhitelist=5;
+	repeated string grpcFuncWhitelist=6;
 }
 
 message Exec {
 	int64 minExecFee = 1;
 	bool  isFree = 2;
+	bool  enableStat = 3;
 }

@@ -13,4 +13,5 @@ common/.DS_Store
 common/config/.DS_Store
 executor/executor.test
 logs/
-
+build/wallet
+consensus/drivers/raft/chain33_raft*

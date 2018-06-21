@@ -1,0 +1,43 @@
+{
+  "{{.Name}}" : {
+    "env" : {
+      "currentCoinbase" : "19i4kLkSrAr4ssvk1pLwjkFAnoXeJgvGvj",
+      "currentDifficulty" : "0x0100",
+      "currentGasLimit" : "0x0f4240",
+      "currentNumber" : "0x00",
+      "currentTimestamp" : "0x01"
+    },
+    "exec" : {
+      "address" : "1FwuqJsLH1c4LRBGYPHvKtspEYmS8ag2kf",
+      "caller" : "1H5v9TEEvYUyMt2HsG7vgkF2LWdnfu8mvd",
+      "code" : "{{.Code}}",
+      "data" : "0x",
+      "gas" : "0x0186a0",
+      "gasPrice" : "0x5af3107a4000",
+      "origin" : "1H5v9TEEvYUyMt2HsG7vgkF2LWdnfu8mvd",
+      "value" : "0x0"
+    },
+    "gas" : "",
+    "logs" : "",
+    "out" : "{{.Out}}",
+    "err" : "{{.Err}}",
+    "post" : {
+      "1FwuqJsLH1c4LRBGYPHvKtspEYmS8ag2kf" : {
+        "balance" : "0x2540BE400",
+        "code" : "0x6080604052600436106049576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff1680630589a27c14604e57806312065fe01460a2575b600080fd5b348015605957600080fd5b50606060ca565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b34801560ad57600080fd5b5060b460d2565b6040518082815260200191505060405180910390f35b600030905090565b60003073ffffffffffffffffffffffffffffffffffffffff16319050905600a165627a7a72305820c3a6b3a9c24cd8bb8d10622c61909561937d99f9ceaaec09055ed12b5f02dacc0029",
+        "nonce" : "0x00",
+        "storage" : {
+        }
+      }
+    },
+    "pre" : {
+      "1FwuqJsLH1c4LRBGYPHvKtspEYmS8ag2kf" : {
+        "balance" : "0x2540BE400",
+        "code" : "0x6080604052600436106049576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff1680630589a27c14604e57806312065fe01460a2575b600080fd5b348015605957600080fd5b50606060ca565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b34801560ad57600080fd5b5060b460d2565b6040518082815260200191505060405180910390f35b600030905090565b60003073ffffffffffffffffffffffffffffffffffffffff16319050905600a165627a7a72305820c3a6b3a9c24cd8bb8d10622c61909561937d99f9ceaaec09055ed12b5f02dacc0029",
+        "nonce" : "0x00",
+        "storage" : {
+        }
+      }
+    }
+  }
+}
