@@ -31,6 +31,7 @@ type Client interface {
 	Recv() chan Message
 	Sub(topic string) //订阅消息
 	Close()
+	CloseQueue()
 	NewMessage(topic string, ty int64, data interface{}) (msg Message)
 }
 
@@ -145,6 +146,10 @@ func (client *client) Close() {
 	client.wg.Wait()
 	atomic.StoreInt32(&client.isClosed, 1)
 	close(client.Recv())
+}
+
+func (client *client) CloseQueue() {
+	client.q.Close()
 }
 
 func (client *client) isEnd(data Message, ok bool) bool {
