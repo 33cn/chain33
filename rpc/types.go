@@ -311,3 +311,9 @@ type NodeNetinfo struct {
 	Outbounds    int32  `json:"outbounds"`
 	Inbounds     int32  `json:"inbounds"`
 }
+
+type TransactionCreate struct {
+	Execer     string          `protobuf:"bytes,1,opt,name=execer,proto3" json:"execer"`
+	ActionName string          `protobuf:"bytes,2,opt,name=actionName" json:"actionName"`
+	Payload    json.RawMessage `protobuf:"bytes,3,opt,name=payload" json:"payload"`
+}

@@ -1500,3 +1500,18 @@ func (c *Chain33) DecodeRawTransaction(in *types.ReqDecodeRawTransaction, result
 	*result = res
 	return nil
 }
+
+
+func (c *Chain33) CreateTransaction(in TransactionCreate, result *interface{}) error {
+	exec := types.LoadExecutor(in.Execer)
+	if exec == nil {
+		return types.ErrExecNameNotAllow
+	}
+	tx, err := exec.NewTx(in.ActionName, in.Payload)
+	if err != nil {
+		log.Error("CreateTransaction", "err", err.Error())
+		return err
+	}
+	*result = tx
+	return nil
+}
