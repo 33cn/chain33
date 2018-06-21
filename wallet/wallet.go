@@ -1699,6 +1699,7 @@ func (wallet *Wallet) ProcWalletDelBlock(block *types.BlockDetail) {
 				newbatch.Delete(calcTxKey(heightstr))
 			}
 		} else {
+			walletlog.Info("ProcWalletDelBlock going to call AddDelPrivacyTxsFromBlock")
 			wallet.AddDelPrivacyTxsFromBlock(tx, int32(index), block, newbatch, DelTx)
 		}
 	}
@@ -1787,6 +1788,7 @@ func (wallet *Wallet) AddDelPrivacyTxsFromBlock(tx *types.Transaction, index int
 								}
 								wallet.walletStore.setUTXO(info.Addr, &txhash, indexoutput, info2store, newbatch)
 							} else {
+								walletlog.Debug("AddDelPrivacyTxsFromBlock going to unsetUTXO", "txhash", txhash)
 								wallet.walletStore.unsetUTXO(info.Addr, &txhash, indexoutput, tokenname, newbatch)
 							}
 						} else {
