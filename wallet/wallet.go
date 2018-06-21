@@ -179,15 +179,17 @@ func (wallet *Wallet) SetQueueClient(cli queue.Client) {
 	go wallet.autoMining()
 
 	//开启检查FTXO的协程
-	go wallet.CheckFtxo()
+	go wallet.checkWalletStoreData()
 }
 
-func (wallet *Wallet) CheckFtxo() {
+func (wallet *Wallet) checkWalletStoreData() {
 	defer wallet.wg.Done()
 
 	//默认10s对Ftxo进行检查
 	timecount := 10
 	checkFtxoTicker := time.NewTicker(time.Duration(timecount) * time.Second)
+	// 定时检查创建的交易是否过期
+	checkCreateTxTicker := time.NewTicker(time.Duration(timecount) * time.Second)
 	newbatch := wallet.walletStore.NewBatch(true)
 
 	var lastHeight int64
@@ -220,6 +222,24 @@ func (wallet *Wallet) CheckFtxo() {
 					wallet.walletStore.updateFTXOTimeoutCount(timecount, txhash, newbatch)
 				}
 				newbatch.Write()
+			}
+		case <-checkCreateTxTicker.C:
+			caches, err := wallet.walletStore.listCreateTransactionCache()
+			if err != nil {
+				walletlog.Error("checkWalletStoreData", "listCreateTransactionCache cause error. ", err)
+				return
+			}
+			if len(caches) == 0 {
+				break
+			}
+			interval := int64(types.GetTxTimeInterval())
+			now := time.Now().Unix()
+			for _, cache := range caches {
+				exprie := cache.GetCreatetime() + interval
+				if exprie <= interval || exprie <= now {
+					// 直接删除已经过期的交易
+					wallet.walletStore.DeleteCreateTransactionCache(cache.Key)
+				}
 			}
 
 		case <-wallet.done:
@@ -2479,7 +2499,7 @@ func (wallet *Wallet) showPrivacyAccountsSpend(req *types.ReqPrivBal4AddrToken) 
 		return nil, err
 	}
 
-	if nil == utxoHaveTxHashs || 0 == len(utxoHaveTxHashs.UtxoHaveTxHashs)  {
+	if nil == utxoHaveTxHashs || 0 == len(utxoHaveTxHashs.UtxoHaveTxHashs) {
 		return nil, nil
 	}
 

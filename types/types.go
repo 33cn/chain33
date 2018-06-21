@@ -1,15 +1,16 @@
 package types
 
 import (
+	"fmt"
+	"time"
 	"bytes"
 	"encoding/hex"
-	"fmt"
-
 	"encoding/json"
 
 	"github.com/golang/protobuf/proto"
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common"
+
 
 	_ "gitlab.33.cn/chain33/chain33/common/crypto/ed25519"
 	_ "gitlab.33.cn/chain33/chain33/common/crypto/secp256k1"
@@ -519,4 +520,9 @@ func (action *PrivacyAction) GetActionName() string {
 		return "Privacy2Public"
 	}
 	return "unknow-privacy"
+}
+
+// GetTxTimeInterval 获取交易有效期
+func GetTxTimeInterval() time.Duration {
+	return time.Second * 120
 }
