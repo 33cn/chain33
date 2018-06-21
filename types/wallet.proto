@@ -422,18 +422,19 @@ message UTXOBasics {
 }
 
 message CreateTransactionCache {
+	bytes		key			= 1;
 	// 记录创建时间，用以处理过期的交易
-	int64		createtime	= 1;
+	int64		createtime	= 2;
 	// 记录签名成功的时间，用以处理过期交易
-	int64		signtime	= 2;
+	int64		signtime	= 3;
 	// 缓存状态
 	// 0 - 创建状态
 	// 1 - 已经签名状态
-	int32		status		= 3;
+	int32		status		= 4;
 	//
-	Transaction	transaction	= 4;
+	Transaction	transaction	= 5;
 
-    string  sender  = 5;
-    repeated RealKeyInput   realkeyinput = 6;
-    repeated UTXOBasics     utxos = 7;
+    string  sender  = 6;
+    repeated RealKeyInput   realkeyinput = 7;
+    repeated UTXOBasics     utxos = 8;
 }

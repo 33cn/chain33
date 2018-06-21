@@ -848,18 +848,19 @@ func (wallet *Wallet) createPublic2PrivacyTx(req *types.ReqCreateTransaction) (*
 	txSize := types.Size(tx) + types.SignatureSize
 	realFee := int64((txSize+1023)>>types.Size_1K_shiftlen) * types.FeePerKB
 	tx.Fee = realFee
-	// 设定120秒超时
-	tx.SetExpire(time.Second * 120)
+	tx.SetExpire(types.GetTxTimeInterval())
 
 	cache := &types.CreateTransactionCache{
+		Key:         tx.Hash(),
 		Createtime:  time.Now().UnixNano(),
 		Transaction: tx,
 	}
-	key := tx.Hash()
-	if err = wallet.walletStore.SetCreateTransactionCache(key, cache); err != nil {
+
+	dbkey := calcCreateTxKey(common.ToHex(cache.GetKey()))
+	if err = wallet.walletStore.SetCreateTransactionCache(dbkey, cache); err != nil {
 		return nil, err
 	}
-	return &types.ReplyHash{Hash: key}, nil
+	return &types.ReplyHash{Hash: cache.GetKey()}, nil
 }
 
 func (wallet *Wallet) createPrivacy2PrivacyTx(req *types.ReqCreateTransaction) (*types.ReplyHash, error) {
@@ -924,10 +925,10 @@ func (wallet *Wallet) createPrivacy2PrivacyTx(req *types.ReqCreateTransaction) (
 		Nonce:   wallet.random.Int63(),
 		To:      account.ExecAddress(types.PrivacyX),
 	}
+	tx.SetExpire(types.GetTxTimeInterval())
 
-	// 设定120秒超时
-	tx.SetExpire(time.Second * 120)
 	cache := &types.CreateTransactionCache{
+		Key:          tx.Hash(),
 		Createtime:   time.Now().UnixNano(),
 		Transaction:  tx,
 		Status:       0,
@@ -935,13 +936,13 @@ func (wallet *Wallet) createPrivacy2PrivacyTx(req *types.ReqCreateTransaction) (
 		Realkeyinput: realkeyInputSlice,
 		Utxos:        utxosInKeyInput,
 	}
-	key := tx.Hash()
-	if err = wallet.walletStore.SetCreateTransactionCache(key, cache); err != nil {
+	dbkey := calcCreateTxKey(common.ToHex(cache.GetKey()))
+	if err = wallet.walletStore.SetCreateTransactionCache(dbkey, cache); err != nil {
 		return nil, err
 	}
 	// 创建交易成功，将已经使用掉的UTXO冻结
-	wallet.saveFTXOInfo(req.GetTokenname(), req.GetFrom(), common.Bytes2Hex(key), selectedUtxo)
-	return &types.ReplyHash{Hash: key}, nil
+	wallet.saveFTXOInfo(req.GetTokenname(), req.GetFrom(), common.Bytes2Hex(cache.GetKey()), selectedUtxo)
+	return &types.ReplyHash{Hash: cache.GetKey()}, nil
 }
 
 func (wallet *Wallet) createPrivacy2PublicTx(req *types.ReqCreateTransaction) (*types.ReplyHash, error) {
@@ -1001,9 +1002,9 @@ func (wallet *Wallet) createPrivacy2PublicTx(req *types.ReqCreateTransaction) (*
 		Nonce:   wallet.random.Int63(),
 		To:      req.GetTo(),
 	}
-	// 设定120秒超时
-	tx.SetExpire(time.Second * 120)
+	tx.SetExpire(types.GetTxTimeInterval())
 	cache := &types.CreateTransactionCache{
+		Key:          tx.Hash(),
 		Createtime:   time.Now().UnixNano(),
 		Transaction:  tx,
 		Status:       0,
@@ -1011,12 +1012,12 @@ func (wallet *Wallet) createPrivacy2PublicTx(req *types.ReqCreateTransaction) (*
 		Realkeyinput: realkeyInputSlice,
 		Utxos:        utxosInKeyInput,
 	}
-	key := tx.Hash()
-	if err = wallet.walletStore.SetCreateTransactionCache(key, cache); err != nil {
+	dbkey := calcCreateTxKey(common.ToHex(cache.GetKey()))
+	if err = wallet.walletStore.SetCreateTransactionCache(dbkey, cache); err != nil {
 		return nil, err
 	}
-	wallet.saveFTXOInfo(req.GetTokenname(), req.GetFrom(), common.Bytes2Hex(key), selectedUtxo)
-	return &types.ReplyHash{Hash: key}, nil
+	wallet.saveFTXOInfo(req.GetTokenname(), req.GetFrom(), common.Bytes2Hex(cache.GetKey()), selectedUtxo)
+	return &types.ReplyHash{Hash: cache.GetKey()}, nil
 }
 
 func (wallet *Wallet) signTxWithPrivacy(key crypto.PrivKey, req *types.ReqSignRawTx) (string, error) {
@@ -1024,7 +1025,8 @@ func (wallet *Wallet) signTxWithPrivacy(key crypto.PrivKey, req *types.ReqSignRa
 	if err != nil {
 		return "", err
 	}
-	cache, err := wallet.walletStore.GetCreateTransactionCache(txhash)
+	dbkey := calcCreateTxKey(req.GetTxHex())
+	cache, err := wallet.walletStore.GetCreateTransactionCache(dbkey)
 	if err != nil {
 		return "", err
 	}
@@ -1062,14 +1064,15 @@ func (wallet *Wallet) signTxWithPrivacy(key crypto.PrivKey, req *types.ReqSignRa
 	}
 	cache.Signtime = time.Now().UnixNano()
 	cache.Status = 2
-	if err = wallet.walletStore.SetCreateTransactionCache(txhash, cache); err != nil {
+	if err = wallet.walletStore.SetCreateTransactionCache(dbkey, cache); err != nil {
 		return "", err
 	}
 	return common.ToHex(txhash), nil
 }
 
 func (wallet *Wallet) procSendTxHashToWallet(req *types.ReqHash) (*types.ReplyHash, error) {
-	cache, err := wallet.walletStore.GetCreateTransactionCache(req.Hash)
+	dbkey := calcCreateTxKey(common.ToHex(req.GetHash()))
+	cache, err := wallet.walletStore.GetCreateTransactionCache(dbkey)
 	if err != nil {
 		return nil, err
 	}
@@ -1085,6 +1088,6 @@ func (wallet *Wallet) procSendTxHashToWallet(req *types.ReqHash) (*types.ReplyHa
 		walletlog.Error("procSendTxHashToWallet", "Return err", err)
 		return nil, errors.New(string(reply.GetMsg()))
 	}
-	wallet.walletStore.DeleteCreateTransactionCache(req.Hash)
+	wallet.walletStore.DeleteCreateTransactionCache(dbkey)
 	return &types.ReplyHash{Hash: cache.Transaction.Hash()}, nil
 }

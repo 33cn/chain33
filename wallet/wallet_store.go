@@ -33,6 +33,7 @@ const (
 	FTXOs4Tx        = "FTXOs4Tx"
 	RecvPrivacyTx   = "RecvPrivacyTx"
 	SendPrivacyTx   = "SendPrivacyTx"
+	createTxPrefix  = "CreateTx:hashkey-"
 )
 
 type Store struct {
@@ -127,6 +128,16 @@ func calcKey4STXOsInTx(key string) []byte {
 
 func calcKey4UTXOsSpentInTx(key string) []byte {
 	return []byte(fmt.Sprintf("UTXOsSpentInTx:%s", key))
+}
+
+// 保存协助前端创建交易的Key
+// txhash：为common.ToHex()后的字符串
+func calcCreateTxKey(txhash string) []byte {
+	return []byte(fmt.Sprintf("%s%s", createTxPrefix, txhash))
+}
+
+func calcCreateTxKeyPrefix() []byte {
+	return []byte(createTxPrefix)
 }
 
 func NewStore(db dbm.DB) *Store {
@@ -846,6 +857,7 @@ func (ws *Store) listSpendUTXOs(token, addr string) (*types.UTXOHaveTxHashs, err
 	}
 	return &utxoHaveTxHashs, nil
 }
+
 func (ws *Store) SetWalletAccountPrivacy(addr string, privacy *types.WalletAccountPrivacy) error {
 	if len(addr) == 0 {
 		walletlog.Error("SetWalletAccountPrivacy addr is nil")
@@ -924,4 +936,23 @@ func (ws *Store) DeleteCreateTransactionCache(key []byte) {
 		return
 	}
 	ws.db.Delete(key)
+}
+
+func (ws *Store) listCreateTransactionCache() ([]*types.CreateTransactionCache, error) {
+	prefix := calcCreateTxKeyPrefix()
+	list := dbm.NewListHelper(ws.db)
+	values := list.PrefixScan(prefix)
+	caches := make([]*types.CreateTransactionCache, 0)
+	if len(values) == 0 {
+		return caches, nil
+	}
+	for _, value := range values {
+		cache := types.CreateTransactionCache{}
+		err := types.Decode(value, &cache)
+		if err != nil {
+			return caches, err
+		}
+		caches = append(caches, &cache)
+	}
+	return caches, nil
 }
