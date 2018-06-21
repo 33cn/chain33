@@ -46,7 +46,7 @@ type BlockID struct {
 func (m *BlockID) Reset()                    { *m = BlockID{} }
 func (m *BlockID) String() string            { return proto.CompactTextString(m) }
 func (*BlockID) ProtoMessage()               {}
-func (*BlockID) Descriptor() ([]byte, []int) { return fileDescriptor12, []int{0} }
+func (*BlockID) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{0} }
 
 func (m *BlockID) GetHash() []byte {
 	if m != nil {
@@ -63,7 +63,7 @@ type TendermintBitArray struct {
 func (m *TendermintBitArray) Reset()                    { *m = TendermintBitArray{} }
 func (m *TendermintBitArray) String() string            { return proto.CompactTextString(m) }
 func (*TendermintBitArray) ProtoMessage()               {}
-func (*TendermintBitArray) Descriptor() ([]byte, []int) { return fileDescriptor12, []int{1} }
+func (*TendermintBitArray) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{1} }
 
 func (m *TendermintBitArray) GetBits() int32 {
 	if m != nil {
@@ -93,7 +93,7 @@ type Vote struct {
 func (m *Vote) Reset()                    { *m = Vote{} }
 func (m *Vote) String() string            { return proto.CompactTextString(m) }
 func (*Vote) ProtoMessage()               {}
-func (*Vote) Descriptor() ([]byte, []int) { return fileDescriptor12, []int{2} }
+func (*Vote) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{2} }
 
 func (m *Vote) GetValidatorAddress() []byte {
 	if m != nil {
@@ -159,7 +159,7 @@ type TendermintCommit struct {
 func (m *TendermintCommit) Reset()                    { *m = TendermintCommit{} }
 func (m *TendermintCommit) String() string            { return proto.CompactTextString(m) }
 func (*TendermintCommit) ProtoMessage()               {}
-func (*TendermintCommit) Descriptor() ([]byte, []int) { return fileDescriptor12, []int{3} }
+func (*TendermintCommit) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{3} }
 
 func (m *TendermintCommit) GetBlockID() *BlockID {
 	if m != nil {
@@ -184,7 +184,7 @@ type TendermintBlockInfo struct {
 func (m *TendermintBlockInfo) Reset()                    { *m = TendermintBlockInfo{} }
 func (m *TendermintBlockInfo) String() string            { return proto.CompactTextString(m) }
 func (*TendermintBlockInfo) ProtoMessage()               {}
-func (*TendermintBlockInfo) Descriptor() ([]byte, []int) { return fileDescriptor12, []int{4} }
+func (*TendermintBlockInfo) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{4} }
 
 func (m *TendermintBlockInfo) GetSeenCommit() *TendermintCommit {
 	if m != nil {
@@ -216,7 +216,7 @@ type BlockSize struct {
 func (m *BlockSize) Reset()                    { *m = BlockSize{} }
 func (m *BlockSize) String() string            { return proto.CompactTextString(m) }
 func (*BlockSize) ProtoMessage()               {}
-func (*BlockSize) Descriptor() ([]byte, []int) { return fileDescriptor12, []int{5} }
+func (*BlockSize) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{5} }
 
 func (m *BlockSize) GetMaxBytes() int32 {
 	if m != nil {
@@ -247,7 +247,7 @@ type TxSize struct {
 func (m *TxSize) Reset()                    { *m = TxSize{} }
 func (m *TxSize) String() string            { return proto.CompactTextString(m) }
 func (*TxSize) ProtoMessage()               {}
-func (*TxSize) Descriptor() ([]byte, []int) { return fileDescriptor12, []int{6} }
+func (*TxSize) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{6} }
 
 func (m *TxSize) GetMaxBytes() int32 {
 	if m != nil {
@@ -270,7 +270,7 @@ type BlockGossip struct {
 func (m *BlockGossip) Reset()                    { *m = BlockGossip{} }
 func (m *BlockGossip) String() string            { return proto.CompactTextString(m) }
 func (*BlockGossip) ProtoMessage()               {}
-func (*BlockGossip) Descriptor() ([]byte, []int) { return fileDescriptor12, []int{7} }
+func (*BlockGossip) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{7} }
 
 func (m *BlockGossip) GetBlockPartSizeBytes() int32 {
 	if m != nil {
@@ -286,7 +286,7 @@ type EvidenceParams struct {
 func (m *EvidenceParams) Reset()                    { *m = EvidenceParams{} }
 func (m *EvidenceParams) String() string            { return proto.CompactTextString(m) }
 func (*EvidenceParams) ProtoMessage()               {}
-func (*EvidenceParams) Descriptor() ([]byte, []int) { return fileDescriptor12, []int{8} }
+func (*EvidenceParams) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{8} }
 
 func (m *EvidenceParams) GetMaxAge() int64 {
 	if m != nil {
@@ -305,7 +305,7 @@ type ConsensusParams struct {
 func (m *ConsensusParams) Reset()                    { *m = ConsensusParams{} }
 func (m *ConsensusParams) String() string            { return proto.CompactTextString(m) }
 func (*ConsensusParams) ProtoMessage()               {}
-func (*ConsensusParams) Descriptor() ([]byte, []int) { return fileDescriptor12, []int{9} }
+func (*ConsensusParams) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{9} }
 
 func (m *ConsensusParams) GetBlockSize() *BlockSize {
 	if m != nil {
@@ -345,7 +345,7 @@ type Validator struct {
 func (m *Validator) Reset()                    { *m = Validator{} }
 func (m *Validator) String() string            { return proto.CompactTextString(m) }
 func (*Validator) ProtoMessage()               {}
-func (*Validator) Descriptor() ([]byte, []int) { return fileDescriptor12, []int{10} }
+func (*Validator) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{10} }
 
 func (m *Validator) GetAddress() []byte {
 	if m != nil {
@@ -383,7 +383,7 @@ type ValidatorSet struct {
 func (m *ValidatorSet) Reset()                    { *m = ValidatorSet{} }
 func (m *ValidatorSet) String() string            { return proto.CompactTextString(m) }
 func (*ValidatorSet) ProtoMessage()               {}
-func (*ValidatorSet) Descriptor() ([]byte, []int) { return fileDescriptor12, []int{11} }
+func (*ValidatorSet) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{11} }
 
 func (m *ValidatorSet) GetValidators() []*Validator {
 	if m != nil {
@@ -416,7 +416,7 @@ type State struct {
 func (m *State) Reset()                    { *m = State{} }
 func (m *State) String() string            { return proto.CompactTextString(m) }
 func (*State) ProtoMessage()               {}
-func (*State) Descriptor() ([]byte, []int) { return fileDescriptor12, []int{12} }
+func (*State) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{12} }
 
 func (m *State) GetChainID() string {
 	if m != nil {
@@ -511,9 +511,9 @@ func init() {
 	proto.RegisterType((*State)(nil), "types.State")
 }
 
-func init() { proto.RegisterFile("tendermint.proto", fileDescriptor12) }
+func init() { proto.RegisterFile("tendermint.proto", fileDescriptor14) }
 
-var fileDescriptor12 = []byte{
+var fileDescriptor14 = []byte{
 	// 777 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x55, 0xdd, 0x6e, 0xd3, 0x48,
 	0x14, 0x96, 0xf3, 0xd7, 0xe6, 0x38, 0x4d, 0xa3, 0xe9, 0x6e, 0xd7, 0xda, 0xed, 0x4a, 0x91, 0xb5,

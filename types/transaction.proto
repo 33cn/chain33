@@ -9,8 +9,10 @@ message CreateTx {
 	int64 amount = 2;
 	int64 fee = 3;
 	string note = 4;
-	bool   isToken     = 5;
-	string tokenSymbol = 6;
+	bool isWithdraw = 5;
+	bool isToken = 6;
+	string tokenSymbol = 7;
+	string execName = 8;
 }
 
 message UnsignTx {
@@ -150,3 +152,6 @@ message ReqAddrs  {
    repeated string addrs = 1;
 }
 
+message ReqDecodeRawTransaction {
+    string txHex = 1;
+}

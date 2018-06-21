@@ -2,6 +2,7 @@ package commands
 
 import (
 	"github.com/spf13/cobra"
+
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 )
 
@@ -17,6 +18,8 @@ func NetCmd() *cobra.Command {
 		IsClockSyncCmd(),
 		IsSyncCmd(),
 		GetNetInfoCmd(),
+		GetFatalFailureCmd(),
+		GetTimeStausCmd(),
 	)
 
 	return cmd
@@ -87,5 +90,39 @@ func netInfo(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	var res jsonrpc.NodeNetinfo
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetNetInfo", nil, &res)
+	ctx.Run()
+}
+
+// get FatalFailure
+func GetFatalFailureCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "fault",
+		Short: "Get system fault",
+		Run:   fatalFailure,
+	}
+	return cmd
+}
+
+func fatalFailure(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	var res int64
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetFatalFailure", nil, &res)
+	ctx.Run()
+}
+
+// get time status
+func GetTimeStausCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "time",
+		Short: "Get time status",
+		Run:   timestatus,
+	}
+	return cmd
+}
+
+func timestatus(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	var res jsonrpc.TimeStatus
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetTimeStatus", nil, &res)
 	ctx.Run()
 }

@@ -9,8 +9,8 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/inconshreveable/log15"
-	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/difficulty"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers"
@@ -232,7 +232,7 @@ func (client *Client) flushTicketMsg(msg queue.Message) {
 func getPrivMap(privs []crypto.PrivKey) map[string]crypto.PrivKey {
 	list := make(map[string]crypto.PrivKey)
 	for _, priv := range privs {
-		addr := account.PubKeyToAddress(priv.PubKey().Bytes()).String()
+		addr := address.PubKeyToAddress(priv.PubKey().Bytes()).String()
 		list[addr] = priv
 	}
 	return list
@@ -477,7 +477,6 @@ func (client *Client) searchTargetTicket(parent, block *types.Block) (*types.Tic
 	if err != nil {
 		return nil, nil, nil, nil, 0, err
 	}
-	tlog.Debug("target", "hex", printBInt(diff))
 	client.ticketmu.Lock()
 	defer client.ticketmu.Unlock()
 	for i := 0; i < len(client.tlist.Tickets); i++ {
@@ -583,7 +582,7 @@ func (client *Client) createMinerTx(ticketAction proto.Message, priv crypto.Priv
 	tx.Execer = []byte("ticket")
 	tx.Fee = types.MinFee
 	tx.Nonce = client.RandInt64()
-	tx.To = account.ExecAddress("ticket").String()
+	tx.To = address.ExecAddress("ticket")
 	tx.Payload = types.Encode(ticketAction)
 	tx.Sign(types.SECP256K1, priv)
 	return tx
@@ -605,7 +604,10 @@ func (client *Client) createBlock() (*types.Block, *types.Block) {
 
 func (client *Client) updateBlock(newblock *types.Block, txHashList [][]byte) (*types.Block, [][]byte) {
 	lastBlock := client.GetCurrentBlock()
-	//需要去重复
+	//需要去重复tx
+	if lastBlock.Height != newblock.Height-1 {
+		newblock.Txs = client.CheckTxDup(newblock.Txs)
+	}
 	newblock.ParentHash = lastBlock.Hash()
 	newblock.Height = lastBlock.Height + 1
 	newblock.BlockTime = time.Now().Unix()
@@ -622,10 +624,6 @@ func (client *Client) updateBlock(newblock *types.Block, txHashList [][]byte) (*
 			txHashList = append(txHashList, getTxHashes(txs)...)
 		}
 	}
-	if lastBlock.Height != newblock.Height-1 {
-		newblock.Txs = client.CheckTxDup(newblock.Txs)
-	}
-
 	if lastBlock.BlockTime >= newblock.BlockTime {
 		newblock.BlockTime = lastBlock.BlockTime + 1
 	}

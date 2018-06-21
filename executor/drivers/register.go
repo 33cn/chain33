@@ -2,8 +2,10 @@ package drivers
 
 //store package store the world - state data
 import (
+	"strings"
+
 	log "github.com/inconshreveable/log15"
-	"gitlab.33.cn/chain33/chain33/account"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	clog "gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -48,6 +50,10 @@ func Register(name string, create DriverCreate, height int64) {
 }
 
 func LoadDriver(name string, height int64) (driver Driver, err error) {
+	//user.evm 的交易，使用evm执行器
+	if strings.HasPrefix(name, "user.evm.") {
+		name = "evm"
+	}
 	c, ok := registedExecDriver[name]
 	if !ok {
 		return nil, types.ErrUnknowDriver
@@ -81,5 +87,5 @@ func ExecAddress(name string) string {
 	if addr, ok := execAddressNameMap[name]; ok {
 		return addr
 	}
-	return account.ExecAddress(name).String()
+	return address.ExecAddress(name)
 }

@@ -1,7 +1,6 @@
 package blockchain
 
 import (
-	"bytes"
 	"container/list"
 	"fmt"
 	"sync"
@@ -10,7 +9,6 @@ import (
 
 	lru "github.com/hashicorp/golang-lru"
 	log "github.com/inconshreveable/log15"
-	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
@@ -26,11 +24,9 @@ var (
 	InitBlockNum        int64 = 128 //节点刚启动时从db向index和bestchain缓存中添加的blocknode数
 	isStrongConsistency       = false
 
-	chainlog                   = log.New("module", "blockchain")
-	bCoins                     = []byte("coins")
-	bToken                     = []byte("token")
-	withdraw                   = "withdraw"
-	FutureBlockDelayTime int64 = 1
+	chainlog                    = log.New("module", "blockchain")
+	FutureBlockDelayTime  int64 = 1
+	isRecordBlockSequence       = false //是否记录add或者del block的序列，方便blcokchain的恢复通过记录的序列表
 )
 
 const maxFutureBlocks = 256
@@ -133,6 +129,7 @@ func initConfig(cfg *types.BlockChain) {
 		TimeoutSeconds = cfg.TimeoutSeconds
 	}
 	isStrongConsistency = cfg.IsStrongConsistency
+	isRecordBlockSequence = cfg.IsRecordBlockSequence
 }
 
 func (chain *BlockChain) Close() {
@@ -233,25 +230,15 @@ func (chain *BlockChain) ProcQueryTxMsg(txhash []byte) (proof *types.Transaction
 	TransactionDetail.ActionName = txresult.GetTx().ActionName()
 
 	//获取from地址
-	pubkey := txresult.GetTx().Signature.GetPubkey()
-	addr := account.PubKeyToAddress(pubkey)
-	TransactionDetail.Fromaddr = addr.String()
-	if isWithdraw(TransactionDetail.Tx.GetExecer(), TransactionDetail.ActionName) {
+	addr := txresult.GetTx().From()
+	TransactionDetail.Fromaddr = addr
+	if TransactionDetail.GetTx().IsWithdraw() {
 		//swap from and to
 		TransactionDetail.Fromaddr, TransactionDetail.Tx.To = TransactionDetail.Tx.To, TransactionDetail.Fromaddr
 	}
 	chainlog.Debug("ProcQueryTxMsg", "TransactionDetail", TransactionDetail.String())
 
 	return &TransactionDetail, nil
-}
-
-func isWithdraw(execer []byte, actionName string) bool {
-	if bytes.Equal(execer, bCoins) || bytes.Equal(execer, bToken) {
-		if actionName == withdraw {
-			return true
-		}
-	}
-	return false
 }
 
 func (chain *BlockChain) GetDuplicateTxHashList(txhashlist *types.TxHashList) (duptxhashlist *types.TxHashList) {
@@ -619,7 +606,6 @@ func (chain *BlockChain) ProcGetTransactionByHashes(hashs [][]byte) (TxDetails *
 
 	//chainlog.Info("ProcGetTransactionByHashes", "txhash len:", len(hashs))
 	var txDetails types.TransactionDetails
-
 	for _, txhash := range hashs {
 		txresult, err := chain.GetTxResultFromDb(txhash)
 		if err == nil && txresult != nil {
@@ -633,21 +619,24 @@ func (chain *BlockChain) ProcGetTransactionByHashes(hashs [][]byte) (TxDetails *
 			//获取Amount
 			amount, err := txresult.GetTx().Amount()
 			if err != nil {
-				continue
+				txDetail.Amount = 0
+			} else {
+				txDetail.Amount = amount
 			}
-			txDetail.Amount = amount
+
 			txDetail.ActionName = txresult.GetTx().ActionName()
 
 			//获取from地址
-			pubkey := txresult.GetTx().Signature.GetPubkey()
-			addr := account.PubKeyToAddress(pubkey)
-			txDetail.Fromaddr = addr.String()
-			if isWithdraw(txDetail.Tx.GetExecer(), txDetail.ActionName) {
+			txDetail.Fromaddr = txresult.GetTx().From()
+			if txDetail.GetTx().IsWithdraw() {
 				//swap from and to
 				txDetail.Fromaddr, txDetail.Tx.To = txDetail.Tx.To, txDetail.Fromaddr
 			}
-			chainlog.Debug("ProcGetTransactionByHashes", "txDetail", txDetail.String())
+			//chainlog.Debug("ProcGetTransactionByHashes", "txDetail", txDetail.String())
 			txDetails.Txs = append(txDetails.Txs, &txDetail)
+		} else {
+			txDetails.Txs = append(txDetails.Txs, nil)
+			chainlog.Debug("ProcGetTransactionByHashes hash no exit", "txhash", common.ToHex(txhash))
 		}
 	}
 	return &txDetails, nil
@@ -686,6 +675,9 @@ func (chain *BlockChain) ProcGetBlockOverview(ReqHash *types.ReqHash) (*types.Bl
 	header.StateHash = block.Block.StateHash
 	header.BlockTime = block.Block.BlockTime
 	header.Height = block.Block.Height
+	header.Hash = block.Block.Hash()
+	header.TxCount = int64(len(block.Block.GetTxs()))
+
 	blockOverview.Head = &header
 
 	blockOverview.TxCount = int64(len(block.Block.GetTxs()))
@@ -862,4 +854,52 @@ func (chain *BlockChain) ProcFutureBlocks() {
 			}
 		}
 	}
+}
+
+//通过blockhash 获取对应的block信息
+func (chain *BlockChain) GetBlockByHashes(hashes [][]byte) (respblocks *types.BlockDetails, err error) {
+	var blocks types.BlockDetails
+	for _, hash := range hashes {
+		block, err := chain.blockStore.LoadBlockByHash(hash)
+		if err == nil && block != nil {
+			blocks.Items = append(blocks.Items, block)
+		} else {
+			blocks.Items = append(blocks.Items, nil)
+		}
+	}
+	return &blocks, nil
+}
+
+//通过记录的block序列号获取blockd序列存储的信息
+func (chain *BlockChain) GetBlockSequences(requestblock *types.ReqBlocks) (*types.BlockSequences, error) {
+	blockLastSeq, _ := chain.blockStore.LoadBlockLastSequence()
+	if requestblock.Start > blockLastSeq {
+		chainlog.Error("GetBlockSequences StartSeq err", "startSeq", requestblock.Start, "lastSeq", blockLastSeq)
+		return nil, types.ErrStartHeight
+	}
+	if requestblock.GetStart() > requestblock.GetEnd() {
+		chainlog.Error("GetBlockSequences input must Start <= End:", "startSeq", requestblock.Start, "endSeq", requestblock.End)
+		return nil, types.ErrEndLessThanStartHeight
+	}
+
+	end := requestblock.End
+	if requestblock.End > blockLastSeq {
+		end = blockLastSeq
+	}
+	start := requestblock.Start
+	count := end - start + 1
+
+	chainlog.Debug("GetBlockSequences", "Start", requestblock.Start, "End", requestblock.End, "lastSeq", blockLastSeq, "counts", count)
+
+	var blockSequences types.BlockSequences
+
+	for i := start; i <= end; i++ {
+		blockSequence, err := chain.blockStore.GetBlockSequence(i)
+		if err == nil && blockSequence != nil {
+			blockSequences.Items = append(blockSequences.Items, blockSequence)
+		} else {
+			blockSequences.Items = append(blockSequences.Items, nil)
+		}
+	}
+	return &blockSequences, nil
 }

@@ -2,55 +2,63 @@ package types
 
 import (
 	"bytes"
+	"encoding/hex"
+	"encoding/json"
 	"time"
 
+	"strings"
+
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 )
 
-func CreateTxs(txs []*Transaction) (*Transactions, error) {
+var (
+	bCoins   = []byte("coins")
+	bToken   = []byte("token")
+	withdraw = "withdraw"
+)
+
+func CreateTxGroup(txs []*Transaction) (*Transactions, error) {
 	if len(txs) < 2 {
 		return nil, ErrTxGroupCountLessThanTwo
 	}
 	txgroup := &Transactions{}
 	txgroup.Txs = txs
 	var header []byte
-	for i := len(txs) - 1; i >= 0; i-- {
-		hash := txs[i].Hash()
-		if i == 0 {
-			header = hash
-		} else {
-			txs[i-1].Next = hash
-		}
-	}
-	for i := 0; i < len(txs); i++ {
-		txs[i].Header = header
-		txs[i].GroupCount = int32(len(txs))
-	}
-	//修改txs[0] 的手续费
 	totalfee := int64(0)
 	minfee := int64(0)
-	for i := 0; i < len(txs); i++ {
+	for i := len(txs) - 1; i >= 0; i-- {
+		txs[i].GroupCount = int32(len(txs))
 		totalfee += txs[i].GetFee()
 		realfee, err := txs[i].GetRealFee(MinFee)
 		if err != nil {
 			return nil, err
 		}
 		minfee += realfee
-		txs[i].Fee = 0
+		if i == 0 {
+			if totalfee < minfee {
+				totalfee = minfee
+			}
+			txs[0].Fee = totalfee
+			header = txs[i].Hash()
+		} else {
+			txs[i].Fee = 0
+			txs[i-1].Next = txs[i].Hash()
+		}
 	}
-	if totalfee < minfee {
-		totalfee = minfee
+	for i := 0; i < len(txs); i++ {
+		txs[i].Header = header
 	}
-	//总的手续费 = 所有交易的手续费之和
-	//除了txs[0], 其他交易手续费设置为0
-	txs[0].Fee = totalfee
 	return txgroup, nil
 }
 
 //这比用于检查的交易，包含了所有的交易。
 //主要是为了兼容原来的设计
 func (txgroup *Transactions) Tx() *Transaction {
+	if len(txgroup.GetTxs()) < 2 {
+		return nil
+	}
 	headtx := txgroup.GetTxs()[0]
 	//不会影响原来的tx
 	copytx := *headtx
@@ -62,6 +70,14 @@ func (txgroup *Transactions) Tx() *Transaction {
 
 func (txgroup *Transactions) GetTxGroup() *Transactions {
 	return txgroup
+}
+
+func (txgroup *Transactions) SignN(n int, ty int32, priv crypto.PrivKey) error {
+	if n >= len(txgroup.GetTxs()) {
+		return ErrIndex
+	}
+	txgroup.GetTxs()[n].Sign(ty, priv)
+	return nil
 }
 
 func (txgroup *Transactions) CheckSign() bool {
@@ -299,14 +315,7 @@ func (tx *Transaction) Sign(ty int32, priv crypto.PrivKey) {
 
 //tx 有些时候是一个交易组
 func (tx *Transaction) CheckSign() bool {
-	group, err := tx.GetTxGroup()
-	if err != nil {
-		return false
-	}
-	if group == nil {
-		return tx.checkSign()
-	}
-	return group.CheckSign()
+	return tx.checkSign()
 }
 
 //txgroup 的情况
@@ -379,14 +388,11 @@ func (tx *Transaction) GetRealFee(minFee int64) (int64, error) {
 var expireBound int64 = 1000000000 // 交易过期分界线，小于expireBound比较height，大于expireBound比较blockTime
 
 func (tx *Transaction) IsExpire(height, blocktime int64) bool {
-	group, err := tx.GetTxGroup()
-	if err != nil {
-		return true
-	}
-	if group == nil {
-		return tx.isExpire(height, blocktime)
-	}
-	return group.IsExpire(height, blocktime)
+	return tx.isExpire(height, blocktime)
+}
+
+func (tx *Transaction) From() string {
+	return address.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
 }
 
 //检查交易是否过期，过期返回true，未过期返回false
@@ -396,7 +402,6 @@ func (tx *Transaction) isExpire(height, blocktime int64) bool {
 	if valid == 0 {
 		return false
 	}
-
 	if valid <= expireBound {
 		//Expire小于1e9，为height
 		if valid > height { // 未过期
@@ -412,6 +417,42 @@ func (tx *Transaction) isExpire(height, blocktime int64) bool {
 			return true
 		}
 	}
+}
+
+func (tx *Transaction) Json() string {
+	type transaction struct {
+		Hash      string     `json:"hash,omitempty"`
+		Execer    string     `json:"execer,omitempty"`
+		Payload   string     `json:"payload,omitempty"`
+		Signature *Signature `json:"signature,omitempty"`
+		Fee       int64      `json:"fee,omitempty"`
+		Expire    int64      `json:"expire,omitempty"`
+		// 随机ID，可以防止payload 相同的时候，交易重复
+		Nonce int64 `json:"nonce,omitempty"`
+		// 对方地址，如果没有对方地址，可以为空
+		To         string `json:"to,omitempty"`
+		GroupCount int32  `json:"groupCount,omitempty"`
+		Header     string `json:"header,omitempty"`
+		Next       string `json:"next,omitempty"`
+	}
+
+	newtx := &transaction{}
+	newtx.Hash = hex.EncodeToString(tx.Hash())
+	newtx.Execer = string(tx.Execer)
+	newtx.Payload = hex.EncodeToString(tx.Payload)
+	newtx.Signature = tx.Signature
+	newtx.Fee = tx.Fee
+	newtx.Expire = tx.Expire
+	newtx.Nonce = tx.Nonce
+	newtx.To = tx.To
+	newtx.GroupCount = tx.GroupCount
+	newtx.Header = hex.EncodeToString(tx.Header)
+	newtx.Next = hex.EncodeToString(tx.Next)
+	data, err := json.MarshalIndent(newtx, "", "\t")
+	if err != nil {
+		return err.Error()
+	}
+	return string(data)
 }
 
 //解析tx的payload获取amount值
@@ -431,6 +472,9 @@ func (tx *Transaction) Amount() (int64, error) {
 			return gen.Amount, nil
 		} else if action.Ty == CoinsActionWithdraw && action.GetWithdraw() != nil {
 			transfer := action.GetWithdraw()
+			return transfer.Amount, nil
+		} else if action.Ty == CoinsActionTransferToExec && action.GetTransferToExec() != nil {
+			transfer := action.GetTransferToExec()
 			return transfer.Amount, nil
 		}
 	} else if "ticket" == string(tx.Execer) {
@@ -495,6 +539,8 @@ func (tx *Transaction) ActionName() string {
 			return "withdraw"
 		} else if action.Ty == CoinsActionGenesis && action.GetGenesis() != nil {
 			return "genesis"
+		} else if action.Ty == CoinsActionTransferToExec && action.GetTransferToExec() != nil {
+			return "sendToExec"
 		}
 	} else if bytes.Equal(tx.Execer, []byte("ticket")) {
 		var action TicketAction
@@ -581,7 +627,25 @@ func (tx *Transaction) ActionName() string {
 		} else if trade.Ty == TradeRevokeBuy && trade.GetTokenrevokebuy() != nil {
 			return "revokebuytoken"
 		}
+	} else if bytes.Equal(tx.Execer, ExecerEvm) || bytes.HasPrefix(tx.Execer, []byte("user.evm.")) {
+		// 这个需要通过合约交易目标地址来判断Action
+		// 如果目标地址为空，或为evm的固定合约地址，则为创建合约，否则为调用合约
+		if strings.EqualFold(tx.To, "19tjS51kjwrCoSQS13U3owe7gYBLfSfoFm") {
+			return "createEvmContract"
+		} else {
+			return "callEvmContract"
+		}
 	}
 
 	return "unknow"
+}
+
+//判断交易是withdraw交易，需要做from和to地址的swap，方便上层客户理解
+func (tx *Transaction) IsWithdraw() bool {
+	if bytes.Equal(tx.GetExecer(), bCoins) || bytes.Equal(tx.GetExecer(), bToken) {
+		if tx.ActionName() == withdraw {
+			return true
+		}
+	}
+	return false
 }

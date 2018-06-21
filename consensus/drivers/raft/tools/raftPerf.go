@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	rlog "gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -48,31 +49,31 @@ func main() {
 	switch argsWithoutProg[0] {
 	case "-h": //使用帮助
 		LoadHelp()
-	case "transferperf": //performance in transfer
+	case "transferperf":
 		if len(argsWithoutProg) != 6 {
 			fmt.Print(errors.New("参数错误").Error())
 			return
 		}
 		TransferPerf(argsWithoutProg[1], argsWithoutProg[2], argsWithoutProg[3], argsWithoutProg[4], argsWithoutProg[5])
-	case "sendtoaddress": //发送到地址
+	case "sendtoaddress":
 		if len(argsWithoutProg) != 5 {
 			fmt.Print(errors.New("参数错误").Error())
 			return
 		}
 		SendToAddress(argsWithoutProg[1], argsWithoutProg[2], argsWithoutProg[3], argsWithoutProg[4])
-	case "normperf": //发送到地址
+	case "normperf":
 		if len(argsWithoutProg) != 5 {
 			fmt.Print(errors.New("参数错误").Error())
 			return
 		}
 		NormPerf(argsWithoutProg[1], argsWithoutProg[2], argsWithoutProg[3], argsWithoutProg[4])
-	case "normput": //发送到地址
+	case "normput":
 		if len(argsWithoutProg) != 4 {
 			fmt.Print(errors.New("参数错误").Error())
 			return
 		}
 		NormPut(argsWithoutProg[1], argsWithoutProg[2], argsWithoutProg[3])
-	case "normget": //发送到地址
+	case "normget":
 		if len(argsWithoutProg) != 2 {
 			fmt.Print(errors.New("参数错误").Error())
 			return
@@ -85,7 +86,7 @@ func LoadHelp() {
 	fmt.Println("Available Commands:")
 	fmt.Println("[ip] transferperf [from, to, amount, txNum, duration]            : 转账性能测试")
 	fmt.Println("[ip] sendtoaddress [from, to, amount, note]                      : 发送交易到地址")
-	fmt.Println("[ip] normperf [privkey, size, num, duration]                     : 常规写数据性能测试")
+	fmt.Println("[ip] normperf [size, num, interval, duration]                    : 常规写数据性能测试")
 	fmt.Println("[ip] normput [privkey, key, value]                               : 常规写数据")
 	fmt.Println("[ip] normget [key]                                               : 常规读数据")
 }
@@ -144,7 +145,7 @@ func SendToAddress(from string, to string, amount string, note string) {
 	fmt.Println(string(data))
 }
 
-func NormPerf(privkey string, size string, num string, duration string) {
+func NormPerf(size string, num string, interval string, duration string) {
 	var key string
 	var value string
 	var numThread int
@@ -154,6 +155,11 @@ func NormPerf(privkey string, size string, num string, duration string) {
 		return
 	}
 	numInt, err := strconv.Atoi(num)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	intervalInt, err := strconv.Atoi(interval)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -170,16 +176,25 @@ func NormPerf(privkey string, size string, num string, duration string) {
 	} else {
 		numThread = numInt / 10
 	}
+	maxTxPerAcc := 50
 	ch := make(chan struct{}, numThread)
 	for i := 0; i < numThread; i++ {
 		go func() {
-			for sec := 0; durInt == 0 || sec < durInt; sec++ {
+			txCount := 0
+			_, priv := genaddress()
+			for sec := 0; durInt == 0 || sec < durInt; {
 				for txs := 0; txs < numInt/numThread; txs++ {
+					if txCount >= maxTxPerAcc {
+						_, priv = genaddress()
+						txCount = 0
+					}
 					key = RandStringBytes(20)
 					value = RandStringBytes(sizeInt)
-					NormPut(privkey, key, value)
+					NormPut(common.ToHex(priv.Bytes()), key, value)
+					txCount++
 				}
-				time.Sleep(time.Second)
+				time.Sleep(time.Second * time.Duration(intervalInt))
+				sec += intervalInt
 			}
 			ch <- struct{}{}
 		}()
@@ -191,8 +206,9 @@ func NormPerf(privkey string, size string, num string, duration string) {
 
 func RandStringBytes(n int) string {
 	b := make([]byte, n)
+	rand.Seed(time.Now().UnixNano())
 	for i := range b {
-		b[i] = letterBytes[r.Intn(len(letterBytes))]
+		b[i] = letterBytes[rand.Intn(len(letterBytes))]
 	}
 	return string(b)
 }
@@ -202,6 +218,7 @@ func NormPut(privkey string, key string, value string) {
 	nput := &types.NormAction_Nput{&types.NormPut{Key: key, Value: []byte(value)}}
 	action := &types.NormAction{Value: nput, Ty: types.NormActionPut}
 	tx := &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(action), Fee: fee}
+	tx.To = address.ExecAddress("norm")
 	tx.Nonce = r.Int63()
 	tx.Sign(types.SECP256K1, getprivkey(privkey))
 
@@ -251,4 +268,18 @@ func getprivkey(key string) crypto.PrivKey {
 		panic(err)
 	}
 	return priv
+}
+
+func genaddress() (string, crypto.PrivKey) {
+	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	if err != nil {
+		panic(err)
+	}
+	privto, err := cr.GenKey()
+	if err != nil {
+		panic(err)
+	}
+	addrto := address.PubKeyToAddress(privto.PubKey().Bytes())
+	fmt.Println("addr:", addrto.String())
+	return addrto.String(), privto
 }

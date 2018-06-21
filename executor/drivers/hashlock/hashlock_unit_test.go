@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	//. "github.com/smartystreets/goconvey/convey"
-	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
@@ -30,7 +30,7 @@ func TestInit(t *testing.T) {
 	hashlock = constructHashlockInstance()
 	secret = make([]byte, secretLen)
 	crand.Read(secret)
-	addrexec = account.ExecAddress("hashlock")
+	addrexec = address.ExecAddress("hashlock")
 }
 
 func TestExecHashlock(t *testing.T) {
@@ -42,9 +42,9 @@ func TestExecHashlock(t *testing.T) {
 	targetReceipt.Ty = 2
 	tx := ConstructLockTx()
 
-	acc1 := hashlock.GetCoinsAccount().LoadExecAccount(returnAddr, addrexec.String())
+	acc1 := hashlock.GetCoinsAccount().LoadExecAccount(returnAddr, addrexec)
 	acc1.Balance = 100
-	hashlock.GetCoinsAccount().SaveExecAccount(addrexec.String(), acc1)
+	hashlock.GetCoinsAccount().SaveExecAccount(addrexec, acc1)
 
 	receipt, err = hashlock.Exec(tx, 0)
 
