@@ -11,7 +11,6 @@ import (
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto/privacy"
-	"gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -441,9 +440,8 @@ func createPub2PrivTx(cmd *cobra.Command, args []string) {
 		Note:       note,
 		Pubkeypair: pubkeypair,
 	}
-	var res rpc.ReplyHash
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateTrasaction", params, &res)
-	ctx.Run()
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateTrasaction", params, nil)
+	ctx.RunWithoutMarshal()
 }
 
 func CreatePriv2PrivTxCmd() *cobra.Command {
@@ -485,9 +483,8 @@ func createPriv2PrivTx(cmd *cobra.Command, args []string) {
 		From:       sender,
 		Mixcount:   16,
 	}
-	var res rpc.ReplyHash
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateTrasaction", params, &res)
-	ctx.Run()
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateTrasaction", params, nil)
+	ctx.RunWithoutMarshal()
 }
 
 func CreatePriv2PubTxCmd() *cobra.Command {
@@ -529,7 +526,6 @@ func createPriv2PubTx(cmd *cobra.Command, args []string) {
 		To:        to,
 		Mixcount:  16,
 	}
-	var res rpc.ReplyHash
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateTrasaction", params, &res)
-	ctx.Run()
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateTrasaction", params, nil)
+	ctx.RunWithoutMarshal()
 }
