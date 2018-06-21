@@ -40,6 +40,11 @@ func (coins CoinsType) ActionName(tx *types.Transaction) string {
 	return "unknow"
 }
 
+func (coins CoinsType) NewTx(action string, message json.RawMessage) (*types.Transaction, error) {
+	// TODO
+	return nil, types.ErrActionNotSupport
+}
+
 type CoinsDepositLog struct {
 }
 
