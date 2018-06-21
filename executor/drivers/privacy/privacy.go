@@ -18,8 +18,6 @@ privacy执行器支持隐私交易的执行，
 import (
 	"bytes"
 
-	"fmt"
-
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
@@ -93,7 +91,6 @@ func (p *privacy) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 			privacylog.Debug("Privacy exec ActionPublic2Privacy", "receipt is", receipt)
 			//////////////////debug code end///////////////
 
-			privacylog.Info(fmt.Sprintf("Finish Exec Privacy Pub->Priv Tx. HASH %s", txhash))
 			return receipt, nil
 		} else {
 			//token 转账操作
@@ -136,7 +133,6 @@ func (p *privacy) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 			//////////////////debug code begin///////////////
 			privacylog.Debug("Privacy exec ActionPrivacy2Privacy", "receipt is", receipt)
 			//////////////////debug code end///////////////
-			privacylog.Info(fmt.Sprintf("Finish Exec Privacy Priv->Priv Tx. HASH %s", txhash))
 			return receipt, nil
 
 		} else {
@@ -185,7 +181,6 @@ func (p *privacy) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 			//////////////////debug code begin///////////////
 			privacylog.Debug("Privacy exec ActionPrivacy2Public", "receipt is", receipt)
 			//////////////////debug code end///////////////
-			privacylog.Info(fmt.Sprintf("Finish Exec Privacy Priv->Pub Tx. HASH %s", txhash))
 			return receipt, nil
 		} else {
 			//token 转账操作
