@@ -6,14 +6,12 @@ import (
 	"os"
 	"strings"
 
-	"math/rand"
-	"time"
 	"unsafe"
 
 	"github.com/spf13/cobra"
-	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto/privacy"
+	"gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -422,53 +420,30 @@ func CreatePub2PrivTxCmd() *cobra.Command {
 func createPub2PrivTxFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("pubkeypair", "p", "", "public key pair")
 	cmd.MarkFlagRequired("pubkeypair")
-	cmd.Flags().StringP("note", "n", "", "note for transaction")
-	cmd.MarkFlagRequired("note")
 	cmd.Flags().Float64P("amount", "a", 0.0, "transfer amount, at most 4 decimal places")
 	cmd.MarkFlagRequired("amount")
+
+	cmd.Flags().StringP("tokenname", "t", "BTY", "token name")
+	cmd.Flags().StringP("note", "n", "", "note for transaction")
 }
 
 func createPub2PrivTx(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	pubkeypair, _ := cmd.Flags().GetString("pubkeypair")
-	amount, _ := cmd.Flags().GetFloat64("amount")
+	amount := GetAmountValue(cmd, "amount")
+	tokenname, _ := cmd.Flags().GetString("tokenname")
 	note, _ := cmd.Flags().GetString("note")
-	amountInt64 := int64(amount*types.InputPrecision) * types.Multiple1E4 //支持4位小数输入，多余的输入将被截断
 
-	viewPubSlice, spendPubSlice, err := parseViewSpendPubKeyPair(pubkeypair)
-	if err != nil {
-		return
+	params := types.ReqCreateTransaction{
+		Tokenname:  tokenname,
+		Type:       1,
+		Amount:     amount,
+		Note:       note,
+		Pubkeypair: pubkeypair,
 	}
-	viewPublic := (*[32]byte)(unsafe.Pointer(&viewPubSlice[0]))
-	spendPublic := (*[32]byte)(unsafe.Pointer(&spendPubSlice[0]))
-	privacyOutput, err := generateOuts(viewPublic, spendPublic, nil, nil, amountInt64, amountInt64, 0)
-	if err != nil {
-		return
-	}
-
-	value := &types.Public2Privacy{
-		Tokenname: types.BTY,
-		Amount:    amountInt64,
-		Note:      note,
-		Output:    privacyOutput,
-	}
-
-	action := &types.PrivacyAction{
-		Ty:    types.ActionPublic2Privacy,
-		Value: &types.PrivacyAction_Public2Privacy{value},
-	}
-
-	random := rand.New(rand.NewSource(time.Now().UnixNano()))
-	tx := &types.Transaction{
-		Execer:  []byte(types.PrivacyX),
-		Payload: types.Encode(action),
-		Fee:     types.PrivacyTxFee,
-		Nonce:   random.Int63(),
-		// TODO: 采用隐私合约地址来设定目标合约接收的目标地址,让验证通过
-		To: account.ExecAddress(types.PrivacyX),
-	}
-
-	txHex := hex.EncodeToString(types.Encode(tx))
-	fmt.Println(txHex)
+	var res rpc.ReplyHash
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateTrasaction", params, &res)
+	ctx.Run()
 }
 
 func CreatePriv2PrivTxCmd() *cobra.Command {
@@ -482,9 +457,37 @@ func CreatePriv2PrivTxCmd() *cobra.Command {
 }
 
 func createPriv2PrivTxFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("pubkeypair", "p", "", "public key pair")
+	cmd.MarkFlagRequired("pubkeypair")
+	cmd.Flags().Float64P("amount", "a", 0.0, "transfer amount, at most 4 decimal places")
+	cmd.MarkFlagRequired("amount")
+	cmd.Flags().StringP("sender", "s", "", "account address")
+	cmd.MarkFlagRequired("sender")
+
+	cmd.Flags().StringP("tokenname", "t", "BTY", "token name")
+	cmd.Flags().StringP("note", "n", "", "note for transaction")
 }
 
 func createPriv2PrivTx(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	pubkeypair, _ := cmd.Flags().GetString("pubkeypair")
+	amount := GetAmountValue(cmd, "amount")
+	tokenname, _ := cmd.Flags().GetString("tokenname")
+	note, _ := cmd.Flags().GetString("note")
+	sender, _ := cmd.Flags().GetString("sender")
+
+	params := types.ReqCreateTransaction{
+		Tokenname:  tokenname,
+		Type:       2,
+		Amount:     amount,
+		Note:       note,
+		Pubkeypair: pubkeypair,
+		From:       sender,
+		Mixcount:   16,
+	}
+	var res rpc.ReplyHash
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateTrasaction", params, &res)
+	ctx.Run()
 }
 
 func CreatePriv2PubTxCmd() *cobra.Command {
@@ -498,7 +501,35 @@ func CreatePriv2PubTxCmd() *cobra.Command {
 }
 
 func createPriv2PubTxFlags(cmd *cobra.Command) {
+	cmd.Flags().Float64P("amount", "a", 0.0, "transfer amount, at most 4 decimal places")
+	cmd.MarkFlagRequired("amount")
+	cmd.Flags().StringP("from", "f", "", "from account address")
+	cmd.MarkFlagRequired("from")
+	cmd.Flags().StringP("to", "o", "", "to account address")
+	cmd.MarkFlagRequired("to")
+
+	cmd.Flags().StringP("tokenname", "t", "BTY", "token name")
+	cmd.Flags().StringP("note", "n", "", "note for transaction")
 }
 
 func createPriv2PubTx(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	amount := GetAmountValue(cmd, "amount")
+	tokenname, _ := cmd.Flags().GetString("tokenname")
+	from, _ := cmd.Flags().GetString("from")
+	to, _ := cmd.Flags().GetString("to")
+	note, _ := cmd.Flags().GetString("note")
+
+	params := types.ReqCreateTransaction{
+		Tokenname: tokenname,
+		Type:      3,
+		Amount:    amount,
+		Note:      note,
+		From:      from,
+		To:        to,
+		Mixcount:  16,
+	}
+	var res rpc.ReplyHash
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateTrasaction", params, &res)
+	ctx.Run()
 }

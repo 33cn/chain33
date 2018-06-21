@@ -729,6 +729,34 @@ func (wallet *Wallet) ProcRecvMsg() {
 				walletlog.Info("procCreateUTXOs", "tx hash", common.Bytes2Hex(replyHash.Hash), "result", "success")
 				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyCreateUTXOs, &reply))
 			}
+		case types.EventCreateTransaction:
+			req := msg.Data.(*types.ReqCreateTransaction)
+			replyHash, err := wallet.procCreateTransaction(req)
+			var reply types.Reply
+			if err != nil {
+				reply.IsOk = false
+				walletlog.Error("procCreateTransaction", "err", err.Error())
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyCreateTransaction, err))
+			} else {
+				reply.IsOk = true
+				reply.Msg = replyHash.Hash
+				walletlog.Info("procCreateTransaction", "tx hash", common.Bytes2Hex(replyHash.Hash), "result", "success")
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyCreateTransaction, &reply))
+			}
+		case types.EventSendTxHashToWallet:
+			req := msg.Data.(*types.ReqHash)
+			replyHash, err := wallet.procSendTxHashToWallet(req)
+			var reply types.Reply
+			if err != nil {
+				reply.IsOk = false
+				walletlog.Error("procSendTxHashToWallet", "err", err.Error())
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplySendTxHashToWallet, err))
+			} else {
+				reply.IsOk = true
+				reply.Msg = replyHash.Hash
+				walletlog.Info("procSendTxHashToWallet", "tx hash", common.Bytes2Hex(replyHash.Hash), "result", "success")
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplySendTxHashToWallet, &reply))
+			}
 		default:
 			walletlog.Info("ProcRecvMsg unknow msg", "msgtype", msgtype)
 		}
@@ -762,6 +790,9 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 	key, err := wallet.getPrivKeyByAddr(unsigned.GetAddr())
 	if err != nil {
 		return "", err
+	}
+	if unsigned.Mode == 1 {
+		return wallet.signTxWithPrivacy(key, unsigned)
 	}
 
 	var tx types.Transaction

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/gogo/protobuf/proto"
+	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
@@ -401,4 +402,19 @@ func getExecuterNameString() string {
 		str += fmt.Sprintf("\"%s\" supported", allowExeName[nameLen-1])
 	}
 	return str
+}
+
+// FormatAmountValue2Display 将传输、计算的amount值格式化成显示值
+func FormatAmountValue2Display(amount int64) string {
+	return strconv.FormatFloat(float64(amount)/float64(types.Coin), 'f', 4, 64)
+}
+
+// FormatAmountDisplay2Value 将显示、输入的amount值格式话成传输、计算值
+func FormatAmountDisplay2Value(amount float64) int64 {
+	return int64(amount*types.InputPrecision) * types.Multiple1E4
+}
+
+func GetAmountValue(cmd *cobra.Command, field string) int64 {
+	amount, _ := cmd.Flags().GetFloat64(field)
+	return FormatAmountDisplay2Value(amount)
 }
