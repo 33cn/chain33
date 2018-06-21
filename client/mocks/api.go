@@ -14,6 +14,11 @@ func (_m *QueueProtocolAPI) Close() {
 	_m.Called()
 }
 
+// CloseQueue provides a mock function with given fields:
+func (_m *QueueProtocolAPI) CloseQueue() {
+	_m.Called()
+}
+
 // CloseTickets provides a mock function with given fields:
 func (_m *QueueProtocolAPI) CloseTickets() (*types.ReplyHashes, error) {
 	ret := _m.Called()
