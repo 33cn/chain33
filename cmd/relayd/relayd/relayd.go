@@ -173,7 +173,7 @@ out:
 				r.latestBlockHash = hash
 				atomic.StoreUint64(&r.latestBtcHeight, height)
 			}
-			log.Info("tick", "latestBtcHeight: ", height, "knownBtcHeight: ", r.knownBtcHeight)
+			log.Info("tick", "latestBtcHeight: ", height, "knownBtcHeight: ", atomic.LoadUint64(&r.knownBtcHeight))
 
 			if atomic.LoadInt32(&r.isPersisting) == 0 {
 				go r.persistBlockHeaders()
@@ -252,7 +252,7 @@ func (r *Relayd) syncBlockHeaders() {
 			total = knownBtcHeight - initIterHeight
 		} else {
 			initIterHeight = uint64(ret.CurHeight) + 1
-			if initIterHeight >= r.knownBtcHeight {
+			if initIterHeight >= knownBtcHeight {
 				return
 			}
 			total = knownBtcHeight - initIterHeight + 1
