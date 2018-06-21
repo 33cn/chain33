@@ -2,6 +2,8 @@ package db
 
 import (
 	"bytes"
+	"encoding/hex"
+
 	log "github.com/inconshreveable/log15"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/errors"
@@ -9,7 +11,6 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/opt"
 	"github.com/syndtr/goleveldb/leveldb/util"
 	"gopkg.in/couchbase/gocb.v1"
-	"encoding/hex"
 )
 
 var clog = log.New("module", "db.gocouchbase")
