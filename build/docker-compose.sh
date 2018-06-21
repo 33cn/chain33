@@ -14,7 +14,7 @@ set -o pipefail
 
 PWD=$(cd "$(dirname "$0")" && pwd)
 export PATH="$PWD:$PATH"
-CLI=" docker exec ${1}_chain33_1 /root/chain33-cli"
+
 NODE3="${1}_chain33_1"
 CLI="docker exec ${NODE3} /root/chain33-cli"
 
@@ -74,6 +74,9 @@ function init() {
 
 	# docker-compose ps
 	docker-compose ps
+
+    run_relayd_with_btcd
+    ping_btcd
 
 	# query node run status
 	${CLI} block last_header
@@ -298,7 +301,7 @@ function relay() {
 	while true; do
 		${1} block last_header
 		result=$(${1} block last_header | jq ".height")
-		if [ "${result}" -gt 10 ]; then
+		if [ "${result}" -gt 15 ]; then
 			break
 		fi
 		sleep 1
@@ -502,10 +505,8 @@ function relay() {
 function main() {
 	echo "==========================================main begin========================================================"
 	init
-	run_relayd_with_btcd
 	sync
 	transfer
-	ping_btcd
 	relay "${CLI}"
 	# TODO other work!!!
 
