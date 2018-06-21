@@ -353,8 +353,10 @@ func (b *btcdClient) GetTransaction(hash string) (*types.BtcTransaction, error) 
 	btxTx.Vin = vin
 	vout := make([]*types.Vout, len(tx.Vout))
 	for index, in := range tx.Vout {
-		vout[index].Value = uint64(in.Value)
-		vout[index].Address = in.ScriptPubKey.Addresses[0]
+		var out types.Vout
+		out.Value = uint64(in.Value)
+		out.Address = in.ScriptPubKey.Addresses[0]
+		vout[index] = &out
 	}
 	btxTx.Vout = vout
 	return btxTx, nil
