@@ -10,13 +10,12 @@ pipeline {
     }
 
     options {
-        //buildDiscarder(logRotator(numToKeepStr: '8'))
-        timeout(time: 1,unit: 'HOURS')
-        retry(3)
+        timeout(time: 2,unit: 'HOURS')
+        retry(1)
         timestamps()
         gitLabConnection('gitlab33')
         gitlabBuilds(builds: ['check', 'build', 'test', 'deploy'])
-        checkoutToSubdirectory 'src/gitlab.33.cn/chain33/chain33'
+        checkoutToSubdirectory "src/gitlab.33.cn/chain33/chain33"
     }
 
     stages {
@@ -31,27 +30,11 @@ pipeline {
         }
 
         stage('build') {
-            agent {
-                docker{
-                    image 'suyanlong/chain33-run:latest'
-                }
-            }
-            environment {
-                GOPATH = "${WORKSPACE}"
-                PROJ_DIR = "${WORKSPACE}/src/gitlab.33.cn/chain33/chain33"
-            }
             steps {
                 dir("${env.PROJ_DIR}"){
                     gitlabCommitStatus(name: 'build'){
-                        sh 'pwd'
-                        sh "ls -l"
-                        sh "echo ${env.WORKSPACE}"
-                        sh "echo ${env.PROJ_DIR}"
-                        sh "echo ${env.GOPATH}"
-
                         sh 'make checkgofmt'
                         sh 'make linter'
-                        sh 'make build_ci'
                     }
                 }
             }
@@ -72,19 +55,12 @@ pipeline {
             steps {
                 dir("${env.PROJ_DIR}"){
                     gitlabCommitStatus(name: 'test'){
-                        sh 'pwd'
-                        sh "ls -l"
-                        sh "echo ${env.WORKSPACE}"
-                        sh "echo ${env.PROJ_DIR}"
-                        sh "echo ${env.GOPATH}"
-
                         sh 'make test'
                         //sh 'export CC=clang-5.0 && make msan'
                     }
                 }
             }
         }
-
 
         stage('deploy') {
             steps {
@@ -111,7 +87,7 @@ pipeline {
         always {
             echo 'One way or another, I have finished'
             // clean up our workspace
-            // deleteDir()
+            deleteDir()
         }
 
         success {
