@@ -17,12 +17,10 @@ var (
 
 type Chain33 struct {
 	cli channelClient
-	q   queue.Queue
 }
 
 type Grpc struct {
 	cli channelClient
-	q   queue.Queue
 }
 
 type Grpcserver struct {
@@ -78,19 +76,15 @@ func (j *Grpcserver) Close() {
 
 }
 
-func NewGRpcServer(q queue.Queue) *Grpcserver {
-	c := q.Client()
+func NewGRpcServer(c queue.Client) *Grpcserver {
 	s := &Grpcserver{}
 	s.grpc.cli.Init(c)
-	s.grpc.q = q
 	return s
 }
 
-func NewJSONRPCServer(q queue.Queue) *JSONRPCServer {
-	c := q.Client()
+func NewJSONRPCServer(c queue.Client) *JSONRPCServer {
 	j := &JSONRPCServer{}
 	j.jrpc.cli.Init(c)
-	j.jrpc.q = q
 	return j
 }
 

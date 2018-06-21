@@ -139,9 +139,9 @@ func main() {
 	}
 	//jsonrpc, grpc, channel 三种模式
 	rpc.Init(cfg.Rpc)
-	gapi := rpc.NewGRpcServer(q)
+	gapi := rpc.NewGRpcServer(q.Client())
 	go gapi.Listen()
-	japi := rpc.NewJSONRPCServer(q)
+	japi := rpc.NewJSONRPCServer(q.Client())
 	go japi.Listen()
 
 	log.Info("loading wallet module")
