@@ -11,7 +11,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
-	"gitlab.33.cn/chain33/chain33/types/executor"
+	//"gitlab.33.cn/chain33/chain33/types/executor"
 )
 
 func CreateTxGroup(txs []*Transaction) (*Transactions, error) {
@@ -452,11 +452,12 @@ func (tx *Transaction) Json() string {
 
 //解析tx的payload获取amount值
 func (tx *Transaction) Amount() (int64, error) {
-	etype, err := executor.LoadType(string(tx.Execer))
-	if err != nil {
-		return 0, nil
-	}
-	return etype.Amount(tx)
+	// TODO
+	//etype, err := executor.LoadType(string(tx.Execer))
+	//if err != nil {
+	//	return 0, nil
+	//}
+	//return etype.Amount(tx)
 	if "coins" == string(tx.Execer) {
 		var action CoinsAction
 		err := Decode(tx.GetPayload(), &action)
@@ -526,11 +527,13 @@ func (tx *Transaction) Amount() (int64, error) {
 
 //获取tx交易的Actionname
 func (tx *Transaction) ActionName() string {
-	etype, err := executor.LoadType(string(tx.Execer))
-	if err != nil {
-		return 0, nil
+	// etype, err := executor.LoadType(string(tx.Execer))
+	exec := LoadExecutor(string(tx.Execer))
+	if exec == nil {
+		return "unknow"
 	}
-	return etype.Name(tx)
+	return exec.ActionName(tx)
+
 	if bytes.Equal(tx.Execer, []byte("coins")) {
 		var action CoinsAction
 		err := Decode(tx.Payload, &action)

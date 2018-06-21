@@ -12,6 +12,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 
+
 	_ "gitlab.33.cn/chain33/chain33/common/crypto/ed25519"
 	_ "gitlab.33.cn/chain33/chain33/common/crypto/secp256k1"
 )
@@ -172,9 +173,16 @@ func (r *ReceiptData) DecodeReceiptLog() (*ReceiptDataResult, error) {
 		if err != nil {
 			return nil, err
 		}
-		decode, err := LoadLogDecode(l.Ty)
-		decode.Decode(lLog)
-		decode.Name()
+		// TODO
+		logType := LoadLog(int64(l.Ty))
+		if logType == nil {
+			return nil, ErrLogType
+		}
+		logIns, err = logType.Decode(lLog)
+		lTy = logType.Name()
+		//decode, err := LoadLogDecode(l.Ty)
+		//decode.Decode(lLog)
+		//decode.Name()
 		switch l.Ty {
 		case TyLogErr:
 			lTy = "LogErr"
@@ -492,8 +500,63 @@ func registorRpcType(funcName string, util RpcTypeQuery) {
 	}
 }
 
+func RegistorRpcType(funcName string, util RpcTypeQuery) {
+	registorRpcType(funcName, util)
+}
+
 func init() {
 	//tlog.Info("rpc", "init", "types.go", "input", RpcTypeUtilMap)
 }
 
 var RpcTypeUtilMap = map[string]interface{}{}
+
+
+
+
+
+type ExecutorType interface {
+	// name 是 executor name 构造时用
+	//func Name()
+	ActionName(transaction *Transaction) string
+
+}
+
+type LogType interface {
+	Name()string
+	Decode([]byte) (interface{}, error)
+}
+
+var executorMap = map[string]ExecutorType{}
+var receiptLogMap = map[int64]LogType{}
+
+func RegistorExecutor(funcName string, util ExecutorType) {
+	//tlog.Debug("rpc", "t", funcName, "t", util)
+	if _, exist := executorMap[funcName]; exist {
+		panic("DupExecutorType")
+	} else {
+		executorMap[funcName] = util
+	}
+}
+
+func LoadExecutor(exec string) ExecutorType {
+	if exec, exist := executorMap[exec]; exist {
+		return exec
+	}
+	return nil
+}
+
+func RegistorLog(funcName int64, util LogType) {
+	//tlog.Debug("rpc", "t", funcName, "t", util)
+	if _, exist := receiptLogMap[funcName]; exist {
+		panic("DupLogType")
+	} else {
+		receiptLogMap[funcName] = util
+	}
+}
+
+func LoadLog(ty int64) LogType {
+	if log, exist := receiptLogMap[ty]; exist {
+		return log
+	}
+	return nil
+}
