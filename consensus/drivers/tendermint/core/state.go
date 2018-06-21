@@ -1312,7 +1312,7 @@ func (cs *ConsensusState) defaultSetProposal(proposalTrans *ttypes.ProposalTrans
 
 	// Does not apply
 	if proposal.Height != cs.Height || proposal.Round != cs.Round {
-		cs.Logger.Info("defaultSetProposal:", "msg", "height is not equal or round is not equal")
+		//cs.Logger.Info("defaultSetProposal:", "msg", "height is not equal or round is not equal", "proposal-height", proposal.Height, "cs-height", cs.Height, "proposal-round", proposal.Round, "cs-round", cs.Round)
 		return nil
 	}
 
@@ -1491,7 +1491,7 @@ func (cs *ConsensusState) addVote(vote *ttypes.Vote, peerKey string) (added bool
 	}
 
 	// Height mismatch, bad peer?
-	cs.Logger.Info("Vote ignored and not added", "voteHeight", vote.Height, "csHeight", cs.Height, "err", err)
+	cs.Logger.Info("Vote ignored and not added", "voteType", vote.Type, "voteHeight", vote.Height, "csHeight", cs.Height, "err", err)
 	return
 }
 
