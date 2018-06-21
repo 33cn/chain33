@@ -15,6 +15,8 @@ var rlog = log.New("module", "raft")
 var (
 	defaultSnapCount        uint64 = 1000
 	snapshotCatchUpEntriesN uint64 = 1000
+	writeBlockSeconds       int64  = 1
+	heartbeatTick           int    = 1
 	isLeader                bool   = false
 	confChangeC             chan raftpb.ConfChange
 )
@@ -31,14 +33,18 @@ func NewRaftCluster(cfg *types.Consensus) *RaftClient {
 		return nil
 	}
 	// 默认1000个Entry打一个snapshot
-	if cfg.DefaultSnapCount <= 0 {
-		defaultSnapCount = 1000
-		snapshotCatchUpEntriesN = 1000
-	} else {
+	if cfg.DefaultSnapCount > 0 {
 		defaultSnapCount = uint64(cfg.DefaultSnapCount)
 		snapshotCatchUpEntriesN = uint64(cfg.DefaultSnapCount)
 	}
-
+	// write block interval in second
+	if cfg.WriteBlockSeconds > 0 {
+		writeBlockSeconds = cfg.WriteBlockSeconds
+	}
+	// raft leader sends heartbeat messages every HeartbeatTick ticks
+	if cfg.HeartbeatTick > 0 {
+		heartbeatTick = int(cfg.HeartbeatTick)
+	}
 	// propose channel
 	proposeC := make(chan *types.Block)
 	confChangeC = make(chan raftpb.ConfChange)
@@ -59,10 +65,10 @@ func NewRaftCluster(cfg *types.Consensus) *RaftClient {
 	if len(addPeers) == 1 && addPeers[0] == "" {
 		addPeers = []string{}
 	}
-	commitC, errorC, snapshotterReady, validatorC := NewRaftNode(int(cfg.NodeId), cfg.IsNewJoinNode, peers, readOnlyPeers, addPeers, getSnapshot, proposeC, confChangeC)
+	commitC, errorC, snapshotterReady, validatorC, stopC := NewRaftNode(int(cfg.NodeId), cfg.IsNewJoinNode, peers, readOnlyPeers, addPeers, getSnapshot, proposeC, confChangeC)
 	//启动raft删除节点操作监听
 	go serveHttpRaftAPI(int(cfg.RaftApiPort), confChangeC, errorC)
 	// 监听commit channel,取block
-	b = NewBlockstore(cfg, <-snapshotterReady, proposeC, commitC, errorC, validatorC)
+	b = NewBlockstore(cfg, <-snapshotterReady, proposeC, commitC, errorC, validatorC, stopC)
 	return b
 }

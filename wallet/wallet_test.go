@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	// "gitlab.33.cn/chain33/chain33/common/log"
@@ -135,7 +135,7 @@ func TestWallet(t *testing.T) {
 
 	testSeed(t, wallet)
 
-	testProcCreatNewAccount(t, wallet)
+	testProcCreateNewAccount(t, wallet)
 
 	testProcImportPrivKey(t, wallet)
 
@@ -162,6 +162,8 @@ func TestWallet(t *testing.T) {
 	testSignRawTx(t, wallet)
 
 	testCloseTickets(t, wallet)
+	testsetFatalFailure(t, wallet)
+	testgetFatalFailure(t, wallet)
 }
 
 //ProcWalletLock
@@ -241,10 +243,10 @@ func testSeed(t *testing.T, wallet *Wallet) {
 	println("--------------------------")
 }
 
-func testProcCreatNewAccount(t *testing.T, wallet *Wallet) {
-	println("TestProcCreatNewAccount begin")
+func testProcCreateNewAccount(t *testing.T, wallet *Wallet) {
+	println("TestProcCreateNewAccount begin")
 	total := 10
-	addres := make([]string, total)
+	addrlist := make([]string, total)
 	accs := make([]*types.Account, total+1)
 	for i := 0; i < total; i++ {
 		reqNewAccount := &types.ReqNewAccount{Label: fmt.Sprintf("account:%d", i)}
@@ -254,7 +256,7 @@ func testProcCreatNewAccount(t *testing.T, wallet *Wallet) {
 		require.NoError(t, err)
 		time.Sleep(time.Microsecond * 100)
 		walletAcc := resp.GetData().(*types.WalletAccount)
-		addres[i] = walletAcc.Acc.Addr
+		addrlist[i] = walletAcc.Acc.Addr
 		walletAcc.Acc.Balance = int64(i)
 		walletAcc.Acc.Currency = int32(i)
 		walletAcc.Acc.Frozen = int64(i)
@@ -277,7 +279,7 @@ func testProcCreatNewAccount(t *testing.T, wallet *Wallet) {
 	priv, err := cr.PrivKeyFromBytes(privkeybyte)
 	require.NoError(t, err)
 
-	addr := account.PubKeyToAddress(priv.PubKey().Bytes())
+	addr := address.PubKeyToAddress(priv.PubKey().Bytes())
 	FromAddr = addr.String()
 	var acc types.Account
 	acc.Addr = addr.String()
@@ -308,7 +310,7 @@ func testProcCreatNewAccount(t *testing.T, wallet *Wallet) {
 			return
 		}
 	}
-	println("TestProcCreatNewAccount end")
+	println("TestProcCreateNewAccount end")
 	println("--------------------------")
 }
 
@@ -341,7 +343,7 @@ func testProcImportPrivKey(t *testing.T, wallet *Wallet) {
 	wallet.client.Send(msgImport, true)
 	resp, _ = wallet.client.Wait(msgImport)
 	importedAcc := resp.GetData().(*types.WalletAccount)
-	if importedAcc.Label != "ImportPrivKey-Label" || importedAcc.Acc.Addr != account.PubKeyToAddress(priv.PubKey().Bytes()).String() {
+	if importedAcc.Label != "ImportPrivKey-Label" || importedAcc.Acc.Addr != address.PubKeyToAddress(priv.PubKey().Bytes()).String() {
 		t.Error("testProcImportPrivKey failed")
 		return
 	}
@@ -355,7 +357,7 @@ func testProcImportPrivKey(t *testing.T, wallet *Wallet) {
 	wallet.client.Send(msgImport, true)
 	wallet.client.Wait(msgImport)
 
-	addr := &types.ReqStr{ReqStr: account.PubKeyToAddress(priv.PubKey().Bytes()).String()}
+	addr := &types.ReqStr{ReqStr: address.PubKeyToAddress(priv.PubKey().Bytes()).String()}
 	msgDump := wallet.client.NewMessage("wallet", types.EventDumpPrivkey, &types.ReqStr{ReqStr: "wrongaddr"})
 	wallet.client.Send(msgDump, true)
 	resp, _ = wallet.client.Wait(msgDump)
@@ -723,5 +725,30 @@ func testSignRawTx(t *testing.T, wallet *Wallet) {
 	_, err = wallet.client.Wait(msg)
 	require.NoError(t, err)
 	println("TestSignRawTx end")
+	println("--------------------------")
+}
+
+// setFatalFailure
+func testsetFatalFailure(t *testing.T, wallet *Wallet) {
+	println("testsetFatalFailure begin")
+	var reportErrEvent types.ReportErrEvent
+	reportErrEvent.Frommodule = "wallet"
+	reportErrEvent.Tomodule = "wallet"
+	reportErrEvent.Error = "ErrDataBaseDamage"
+
+	msg := wallet.client.NewMessage("wallet", types.EventErrToFront, &reportErrEvent)
+	wallet.client.Send(msg, false)
+	println("testsetFatalFailure end")
+	println("--------------------------")
+}
+
+// getFatalFailure
+func testgetFatalFailure(t *testing.T, wallet *Wallet) {
+	println("testgetFatalFailure begin")
+	msg := wallet.client.NewMessage("wallet", types.EventFatalFailure, nil)
+	wallet.client.Send(msg, true)
+	_, err := wallet.client.Wait(msg)
+	require.NoError(t, err)
+	println("testgetFatalFailure end")
 	println("--------------------------")
 }

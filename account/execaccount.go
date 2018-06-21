@@ -2,6 +2,7 @@ package account
 
 import (
 	"gitlab.33.cn/chain33/chain33/client"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -23,28 +24,7 @@ func (acc *DB) LoadExecAccountQueue(api client.QueueProtocolAPI, addr, execaddr 
 	if err != nil {
 		return nil, err
 	}
-
-	get := types.StoreGet{StateHash: header.GetStateHash()}
-	get.Keys = append(get.Keys, acc.ExecAccountKey(addr, execaddr))
-	values, err := api.StoreGet(&get)
-	if err != nil {
-		return nil, err
-	}
-	if len(values.Values) <= 0 {
-		return nil, types.ErrNotFound
-	}
-	value := values.Values[0]
-	if value == nil {
-		return &types.Account{Addr: addr}, nil
-	}
-
-	var acc1 types.Account
-	err = types.Decode(value, &acc1)
-	if err != nil {
-		return nil, err
-	}
-
-	return &acc1, nil
+	return acc.LoadExecAccountHistoryQueue(api, addr, execaddr, header.GetStateHash())
 }
 
 func (acc *DB) SaveExecAccount(execaddr string, acc1 *types.Account) {
@@ -228,8 +208,8 @@ func (acc *DB) ExecTransferFrozen(from, to, execaddr string, amount int64) (*typ
 	return acc.execReceipt2(accFrom, accTo, receiptBalanceFrom, receiptBalanceTo), nil
 }
 
-func (acc *DB) ExecAddress(name string) *Address {
-	return ExecAddress(name)
+func (acc *DB) ExecAddress(name string) string {
+	return address.ExecAddress(name)
 }
 
 func (acc *DB) ExecDepositFrozen(addr, execaddr string, amount int64) (*types.Receipt, error) {
@@ -240,7 +220,7 @@ func (acc *DB) ExecDepositFrozen(addr, execaddr string, amount int64) (*types.Re
 	list := types.AllowDepositExec
 	allow := false
 	for _, exec := range list {
-		if acc.ExecAddress(string(exec)).String() == execaddr {
+		if acc.ExecAddress(string(exec)) == execaddr {
 			allow = true
 			break
 		}
@@ -371,4 +351,28 @@ func (acc *DB) mergeReceipt(receipt, receipt2 *types.Receipt) *types.Receipt {
 	receipt.Logs = append(receipt.Logs, receipt2.Logs...)
 	receipt.KV = append(receipt.KV, receipt2.KV...)
 	return receipt
+}
+
+func (acc *DB) LoadExecAccountHistoryQueue(api client.QueueProtocolAPI, addr, execaddr string, stateHash []byte) (*types.Account, error) {
+	get := types.StoreGet{StateHash: stateHash}
+	get.Keys = append(get.Keys, acc.ExecAccountKey(addr, execaddr))
+	values, err := api.StoreGet(&get)
+	if err != nil {
+		return nil, err
+	}
+	if len(values.Values) <= 0 {
+		return nil, types.ErrNotFound
+	}
+	value := values.Values[0]
+	if value == nil {
+		return &types.Account{Addr: addr}, nil
+	}
+
+	var acc1 types.Account
+	err = types.Decode(value, &acc1)
+	if err != nil {
+		return nil, err
+	}
+
+	return &acc1, nil
 }

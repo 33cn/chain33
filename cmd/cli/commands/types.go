@@ -143,7 +143,25 @@ type SellOrder2Show struct {
 type GetTotalCoinsResult struct {
 	TxCount          int64  `json:"txCount"`
 	AccountCount     int64  `json:"accountCount"`
-	ExpectedAmount   string `json:"expectedAmount"`
-	ActualAmount     string `json:"actualAmount"`
-	DifferenceAmount string `json:"differenceAmount"`
+	TotalAmount      string `json:"totalAmount"`
+	ActualAmount     string `json:"actualAmount,omitempty"`
+	DifferenceAmount string `json:"differenceAmount,omitempty"`
+}
+
+type GetTicketStatisticResult struct {
+	CurrentOpenCount int64 `json:"currentOpenCount"`
+	TotalMinerCount  int64 `json:"totalMinerCount"`
+	TotalCancleCount int64 `json:"totalCancleCount"`
+}
+
+type GetTicketMinerInfoResult struct {
+	TicketId     string `json:"ticketId"`
+	Status       string `json:"status"`
+	PrevStatus   string `json:"prevStatus"`
+	IsGenesis    bool   `json:"isGenesis"`
+	CreateTime   string `json:"createTime"`
+	MinerTime    string `json:"minerTime"`
+	CloseTime    string `json:"closeTime"`
+	MinerValue   int64  `json:"minerValue,omitempty"`
+	MinerAddress string `json:"minerAddress,omitempty"`
 }

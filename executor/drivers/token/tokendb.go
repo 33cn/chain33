@@ -54,7 +54,12 @@ func getTokenFromDB(db dbm.KV, symbol string, owner string) (*types.Token, error
 	key := calcTokenAddrKey(symbol, owner)
 	value, err := db.Get(key)
 	if err != nil {
-		return nil, err
+		// not found old key
+		key = calcTokenAddrNewKey(symbol, owner)
+		value, err = db.Get(key)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	var token types.Token
@@ -78,7 +83,7 @@ type tokenAction struct {
 
 func newTokenAction(t *token, toaddr string, tx *types.Transaction) *tokenAction {
 	hash := tx.Hash()
-	fromaddr := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
+	fromaddr := tx.From()
 	return &tokenAction{t.GetCoinsAccount(), t.GetStateDB(), hash, fromaddr, toaddr,
 		t.GetBlockTime(), t.GetHeight(), t.GetAddr()}
 }
@@ -126,9 +131,16 @@ func (action *tokenAction) preCreate(token *types.TokenPreCreate) (*types.Receip
 	var kv []*types.KeyValue
 
 	tokendb := newTokenDB(token, action.fromaddr)
-	statuskey := calcTokenStatusKey(tokendb.token.Symbol, tokendb.token.Owner, types.TokenStatusPreCreated)
+	var statuskey []byte
+	var key []byte
+	if action.height >= types.ForkV13ExecKey {
+		statuskey = calcTokenStatusNewKey(tokendb.token.Symbol, tokendb.token.Owner, types.TokenStatusPreCreated)
+		key = calcTokenAddrNewKey(tokendb.token.Symbol, tokendb.token.Owner)
+	} else {
+		statuskey = calcTokenStatusKey(tokendb.token.Symbol, tokendb.token.Owner, types.TokenStatusPreCreated)
+		key = calcTokenAddrKey(tokendb.token.Symbol, tokendb.token.Owner)
+	}
 	tokendb.save(action.db, statuskey)
-	key := calcTokenAddrKey(tokendb.token.Symbol, tokendb.token.Owner)
 	tokendb.save(action.db, key)
 
 	logs = append(logs, receipt.Logs...)
@@ -181,7 +193,12 @@ func (action *tokenAction) finishCreate(tokenFinish *types.TokenFinishCreate) (*
 	//更新token的状态为已经创建
 	token.Status = types.TokenStatusCreated
 	tokendb := &tokenDB{*token}
-	key := calcTokenAddrKey(tokendb.token.Symbol, tokendb.token.Owner)
+	var key []byte
+	if action.height >= types.ForkV13ExecKey {
+		key = calcTokenAddrNewKey(tokendb.token.Symbol, tokendb.token.Owner)
+	} else {
+		key = calcTokenAddrKey(tokendb.token.Symbol, tokendb.token.Owner)
+	}
 	tokendb.save(action.db, key)
 
 	var logs []*types.ReceiptLog
@@ -230,7 +247,12 @@ func (action *tokenAction) revokeCreate(tokenRevoke *types.TokenRevokeCreate) (*
 
 	token.Status = types.TokenStatusCreateRevoked
 	tokendb := &tokenDB{*token}
-	key := calcTokenAddrKey(tokendb.token.Symbol, tokendb.token.Owner)
+	var key []byte
+	if action.height >= types.ForkV13ExecKey {
+		key = calcTokenAddrNewKey(tokendb.token.Symbol, tokendb.token.Owner)
+	} else {
+		key = calcTokenAddrKey(tokendb.token.Symbol, tokendb.token.Owner)
+	}
 	tokendb.save(action.db, key)
 
 	var logs []*types.ReceiptLog
@@ -251,15 +273,39 @@ func CheckTokenExist(token string, db dbm.KV) bool {
 
 func checkTokenHasPrecreate(token, owner string, status int32, db dbm.KV) bool {
 	_, err := db.Get(calcTokenAddrKey(token, owner))
+	if err == nil {
+		return true
+	}
+	_, err = db.Get(calcTokenAddrNewKey(token, owner))
 	return err == nil
 }
 
 func validFinisher(addr string, db dbm.KV) (bool, error) {
-	return validOperator(addr, types.ConfigKey(finisherKey), db)
+	return validOperator(addr, finisherKey, db)
+}
+
+func getManageKey(key string, db dbm.KV) ([]byte, error) {
+	manageKey := types.ManageKey(key)
+	value, err := db.Get([]byte(manageKey))
+	if err != nil {
+		tokenlog.Info("tokendb", "get db key", "not found")
+		return getConfigKey(key, db)
+	}
+	return value, nil
+}
+
+func getConfigKey(key string, db dbm.KV) ([]byte, error) {
+	configKey := types.ConfigKey(key)
+	value, err := db.Get([]byte(configKey))
+	if err != nil {
+		tokenlog.Info("tokendb", "get db key", "not found")
+		return nil, err
+	}
+	return value, nil
 }
 
 func validOperator(addr, key string, db dbm.KV) (bool, error) {
-	value, err := db.Get([]byte(key))
+	value, err := getManageKey(key, db)
 	if err != nil {
 		tokenlog.Info("tokendb", "get db key", "not found")
 		return false, err
@@ -333,7 +379,7 @@ func AddTokenToAssets(addr string, db dbm.KVDB, symbol string) []*types.KeyValue
 }
 
 func inBlacklist(symbol, key string, db dbm.KV) (bool, error) {
-	found, err := validOperator(symbol, types.ConfigKey(key), db)
+	found, err := validOperator(symbol, key, db)
 	return found, err
 }
 

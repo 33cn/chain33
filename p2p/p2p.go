@@ -1,6 +1,7 @@
 package p2p
 
 import (
+	"fmt"
 	"sync/atomic"
 	"time"
 
@@ -46,7 +47,7 @@ func New(cfg *types.P2P) *P2p {
 	log.Info("p2p", "Version", VERSION)
 
 	if cfg.InnerBounds == 0 {
-		cfg.InnerBounds = 300
+		cfg.InnerBounds = 500
 	}
 	log.Info("p2p", "InnerBounds", cfg.InnerBounds)
 
@@ -140,6 +141,7 @@ func (network *P2p) loadP2PPrivKeyToWallet() error {
 	var parm types.ReqWalletImportPrivKey
 	parm.Privkey, _ = network.node.nodeInfo.addrBook.GetPrivPubKey()
 	parm.Label = "node award"
+ReTry:
 	msg := network.client.NewMessage("wallet", types.EventWalletImportprivkey, &parm)
 	err := network.client.SendTimeout(msg, true, time.Minute)
 	if err != nil {
@@ -148,8 +150,15 @@ func (network *P2p) loadP2PPrivKeyToWallet() error {
 	}
 	resp, err := network.client.WaitTimeout(msg, time.Minute)
 	if err != nil {
-		if err == types.ErrPrivkeyExist || err == types.ErrLabelHasUsed {
+		if err == types.ErrPrivkeyExist {
 			return nil
+
+		}
+		if err == types.ErrLabelHasUsed {
+			//切换随机lable
+			parm.Label = fmt.Sprintf("node award %v", P2pComm.RandStr(3))
+			time.Sleep(time.Second)
+			goto ReTry
 		}
 		log.Error("loadP2PPrivKeyToWallet", "err", err.Error())
 		return err

@@ -1,18 +1,23 @@
 package rpc
 
 import (
+	"bytes"
 	"compress/gzip"
+	"encoding/json"
+	"fmt"
 	"io"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"net/rpc"
 	"net/rpc/jsonrpc"
 	"strings"
 
-	"google.golang.org/grpc"
-
 	"github.com/rs/cors"
 	pb "gitlab.33.cn/chain33/chain33/types"
+	"golang.org/x/net/context"
+	"google.golang.org/grpc"
+	pr "google.golang.org/grpc/peer"
 )
 
 // adapt HTTP connection to ReadWriteCloser
@@ -49,20 +54,36 @@ func (j *JSONRPCServer) Listen() {
 
 	// Insert the middleware
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
-		if !checkWhitlist(strings.Split(r.RemoteAddr, ":")[0]) {
-			w.Write([]byte(`{"errcode":"-1","result":null,"msg":"reject"}`))
+		if !checkIpWhitelist(strings.Split(r.RemoteAddr, ":")[0]) {
+			writeError(w, r, 0, fmt.Sprintf(`The %s Address is not authorized!`, strings.Split(r.RemoteAddr, ":")[0]))
 			return
 		}
-
 		if r.URL.Path == "/" {
-			serverCodec := jsonrpc.NewServerCodec(&HTTPConn{in: r.Body, out: w, r: r})
+			data, err := ioutil.ReadAll(r.Body)
+			if err != nil {
+				writeError(w, r, 0, "Can't get request body!")
+				return
+			}
+			//Release local request
+			if strings.Split(r.RemoteAddr, ":")[0] != "127.0.0.1" {
+				client, err := parseJsonRpcParams(data)
+				if err != nil {
+					writeError(w, r, 0, fmt.Sprintf(`parse request err %s`, err.Error()))
+					return
+				}
+				funcName := strings.Split(client.Method, ".")[len(strings.Split(client.Method, "."))-1]
+				if !checkJrpcFuncWritelist(funcName) {
+					writeError(w, r, client.Id, fmt.Sprintf(`The %s method is not authorized!`, funcName))
+					return
+				}
+			}
+			serverCodec := jsonrpc.NewServerCodec(&HTTPConn{in: ioutil.NopCloser(bytes.NewReader(data)), out: w, r: r})
 			w.Header().Set("Content-type", "application/json")
 			if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
 				w.Header().Set("Content-Encoding", "gzip")
 			}
 			w.WriteHeader(200)
-			err := server.ServeRequest(serverCodec)
+			err = server.ServeRequest(serverCodec)
 			if err != nil {
 				log.Debug("Error while serving JSON request: %v", err)
 				return
@@ -74,14 +95,70 @@ func (j *JSONRPCServer) Listen() {
 	http.Serve(listener, handler)
 }
 
+type serverResponse struct {
+	Id     uint64      `json:"id"`
+	Result interface{} `json:"result"`
+	Error  interface{} `json:"error"`
+}
+
+func writeError(w http.ResponseWriter, r *http.Request, id uint64, errstr string) {
+	w.Header().Set("Content-type", "application/json")
+	//错误的请求也返回 200
+	w.WriteHeader(200)
+	resp, err := json.Marshal(&serverResponse{id, nil, errstr})
+	if err != nil {
+		log.Debug("json marshal error, nerver happen")
+		return
+	}
+	w.Write(resp)
+}
+
 func (g *Grpcserver) Listen() {
 	listener, err := net.Listen("tcp", rpcCfg.GetGrpcBindAddr())
 	if err != nil {
 		log.Crit("failed to listen:", "err", err)
 		panic(err)
 	}
-	s := grpc.NewServer()
+	var opts []grpc.ServerOption
+	//register interceptor
+	//var interceptor grpc.UnaryServerInterceptor
+	interceptor := func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
+		if err := auth(ctx, info); err != nil {
+			return nil, err
+		}
+		// Continue processing the request
+		return handler(ctx, req)
+	}
+	opts = append(opts, grpc.UnaryInterceptor(interceptor))
+	s := grpc.NewServer(opts...)
 	pb.RegisterGrpcserviceServer(s, &g.grpc)
 	s.Serve(listener)
 
+}
+func auth(ctx context.Context, info *grpc.UnaryServerInfo) error {
+	getctx, ok := pr.FromContext(ctx)
+	if ok {
+		remoteaddr := strings.Split(getctx.Addr.String(), ":")[0]
+		if remoteaddr == "127.0.0.1" {
+			return nil
+		}
+		if !checkIpWhitelist(remoteaddr) {
+			return fmt.Errorf("The %s Address is not authorized!", remoteaddr)
+		}
+		funcName := strings.Split(info.FullMethod, "/")[len(strings.Split(info.FullMethod, "/"))-1]
+		if !checkGrpcFuncWritelist(funcName) {
+			return fmt.Errorf("The %s method is not authorized!", funcName)
+		}
+		return nil
+	}
+	return fmt.Errorf("Can't get remote ip!")
+}
+func parseJsonRpcParams(data []byte) (clientRequest, error) {
+	var req clientRequest
+	err := json.Unmarshal(data, &req)
+	if err != nil {
+		return req, err
+	}
+	log.Debug("request method: %v", req.Method)
+	return req, nil
 }

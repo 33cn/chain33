@@ -113,15 +113,8 @@ func balance(cmd *cobra.Command, args []string) {
 	addr, _ := cmd.Flags().GetString("addr")
 	execer, _ := cmd.Flags().GetString("exec")
 
-	isExecer := false
-	for _, e := range [7]string{"none", "coins", "hashlock", "retrieve", "ticket", "token", "trade"} {
-		if e == execer {
-			isExecer = true
-			break
-		}
-	}
-	if !isExecer {
-		fmt.Println("only none, coins, hashlock, retrieve, ticket, token, trade supported")
+	if ok, err := isAllowExecName(execer); !ok {
+		fmt.Println(err.Error())
 		return
 	}
 

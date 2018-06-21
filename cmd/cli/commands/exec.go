@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	"gitlab.33.cn/chain33/chain33/account"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -46,15 +46,13 @@ func addGetAddrFlags(cmd *cobra.Command) {
 
 func getAddrByExec(cmd *cobra.Command, args []string) {
 	execer, _ := cmd.Flags().GetString("exec")
-	switch execer {
-	case "none", "coins", "hashlock", "retrieve", "ticket", "token", "trade":
-		addrResult := account.ExecAddress(execer)
-		result := addrResult.String()
-		fmt.Println(result)
-
-	default:
-		fmt.Println("only none, coins, hashlock, retrieve, ticket, token, trade supported")
+	if ok, err := isAllowExecName(execer); !ok {
+		fmt.Println(err.Error())
+		return
 	}
+	addrResult := address.ExecAddress(execer)
+	result := addrResult
+	fmt.Println(result)
 }
 
 // create user data
@@ -82,10 +80,14 @@ func addUserData(cmd *cobra.Command, args []string) {
 		return
 	}
 	if !strings.HasPrefix(execer, "user.") {
-		fmt.Println("only none, coins, hashlock, retrieve, ticket, token, trade supported")
+		fmt.Println(`user defined executor should start with "user."`)
 		return
 	}
-	addrResult := account.ExecAddress(execer)
+	if len(execer) > 50 {
+		fmt.Println("executor name too long")
+		return
+	}
+	addrResult := address.ExecAddress(execer)
 	topic, _ := cmd.Flags().GetString("topic")
 	data, _ := cmd.Flags().GetString("data")
 	if topic != "" {
@@ -98,7 +100,7 @@ func addUserData(cmd *cobra.Command, args []string) {
 	tx := &types.Transaction{
 		Execer:  []byte(execer),
 		Payload: []byte(data),
-		To:      addrResult.String(),
+		To:      addrResult,
 	}
 	tx.Fee, err = tx.GetRealFee(types.MinFee)
 	if err != nil {

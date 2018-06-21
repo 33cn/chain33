@@ -68,7 +68,7 @@ type Action struct {
 
 func NewAction(h *Hashlock, tx *types.Transaction, execaddr string) *Action {
 	hash := tx.Hash()
-	fromaddr := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
+	fromaddr := tx.From()
 	return &Action{h.GetCoinsAccount(), h.GetStateDB(), hash, fromaddr, h.GetBlockTime(), h.GetHeight(), execaddr}
 }
 

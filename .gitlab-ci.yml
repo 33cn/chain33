@@ -40,16 +40,16 @@ go_lint:
         - develop
         - bty_develop
 
-go_build:
-    stage: build
-    tags:
-        - 33cn
-    script:
-        - make build_ci
-    only:
-        - master
-        - develop
-        - bty_develop
+#go_build:
+#    stage: build
+#    tags:
+#        - 33cn
+#    script:
+#        - make build_ci
+#    only:
+#        - master
+#        - develop
+#        - bty_develop
 
 go_test:
     stage: test
@@ -63,14 +63,14 @@ go_test:
         - develop
         - bty_develop
 
-memory_sanitizer:
-    stage: test
-    script:
-        - export CC=clang-5.0 && make msan
-    only:
-        - master
-        - develop
-        - bty_develop
+#memory_sanitizer:
+#    stage: test
+#    script:
+#        - export CC=clang-5.0 && make msan
+#    only:
+#        - master
+#        - develop
+#        - bty_develop
 
 code_coverage:
     stage: test
@@ -81,14 +81,14 @@ code_coverage:
         - develop
         - bty_develop
 
-code_coverage_report:
-    stage: test
-    script:
-        - make coverhtml
-    only:
-        - master
-        - develop
-        - bty_develop
+#code_coverage_report:
+#    stage: test
+#    script:
+#        - make coverhtml
+#    only:
+#        - master
+#        - develop
+#        - bty_develop
 
 deploy:
     stage: deploy

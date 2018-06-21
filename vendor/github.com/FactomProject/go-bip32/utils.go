@@ -6,11 +6,12 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"io"
+	"math/big"
+
 	"github.com/FactomProject/basen"
 	"github.com/FactomProject/btcutilecc"
 	"golang.org/x/crypto/ripemd160"
-	"io"
-	"math/big"
 )
 
 var (
@@ -104,30 +105,23 @@ func compressPublicKey(x *big.Int, y *big.Int) []byte {
 	return key.Bytes()
 }
 
-// As described at https://bitcointa.lk/threads/compressed-keys-y-from-x.95735/
 func expandPublicKey(key []byte) (*big.Int, *big.Int) {
-	Y := big.NewInt(0)
-	X := big.NewInt(0)
-	qPlus1Div4 := big.NewInt(0)
-	X.SetBytes(key[1:])
-
-	// y^2 = x^3 + ax^2 + b
-	// a = 0
-	// => y^2 = x^3 + b
-	ySquared := X.Exp(X, big.NewInt(3), nil)
-	ySquared.Add(ySquared, curveParams.B)
-
-	qPlus1Div4.Add(curveParams.P, big.NewInt(1))
-	qPlus1Div4.Div(qPlus1Div4, big.NewInt(4))
-
-	// sqrt(n) = n^((q+1)/4) if q = 3 mod 4
-	Y.Exp(ySquared, qPlus1Div4, curveParams.P)
-
-	if uint32(key[0])%2 == 0 {
-		Y.Sub(curveParams.P, Y)
+	params := curveParams
+	exp := big.NewInt(1)
+	exp.Add(params.P, exp)
+	exp.Div(exp, big.NewInt(4))
+	x := big.NewInt(0).SetBytes(key[1:33])
+	y := big.NewInt(0).SetBytes(key[:1])
+	beta := big.NewInt(0)
+	beta.Exp(x, big.NewInt(3), nil)
+	beta.Add(beta, big.NewInt(7))
+	beta.Exp(beta, exp, params.P)
+	if y.Add(beta, y).Mod(y, big.NewInt(2)).Int64() == 0 {
+		y = beta
+	} else {
+		y = beta.Sub(params.P, beta)
 	}
-
-	return X, Y
+	return x, y
 }
 
 func validatePrivateKey(key []byte) error {
