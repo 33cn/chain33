@@ -14,12 +14,16 @@ const (
 	relayBuyOrderACSIH = "relay-buyorder-acsih:"
 	orderIDPrefix      = "mavl-relay-orderid-"
 	coinHashPrefix     = "mavl-relay-coinhash-"
+	btcLastHeadPrefix  = "mavl-relay-btclasthead"
 
 	relayBTCHeaderHash       = "relay-btcheader-hash"
 	relayBTCHeaderHeight     = "relay-btcheader-height"
 	relayBTCHeaderHeightList = "relay-btcheader-height-list"
-	relayBTCHeaderLastHeight = "relay-btcheader-last-height"
-	relayBTCHeaderBaseHeight = "relay-btcheader-base-height"
+)
+
+var (
+	relayBTCHeaderLastHeight = []byte("relay-btcheader-last-height")
+	relayBTCHeaderBaseHeight = []byte("relay-btcheader-base-height")
 )
 
 func calcBtcHeaderKeyHash(hash string) []byte {
@@ -35,18 +39,6 @@ func calcBtcHeaderKeyHeight(height int64) []byte {
 func calcBtcHeaderKeyHeightList(height int64) []byte {
 	key := fmt.Sprintf(relayBTCHeaderHeightList+"%d", height)
 	return []byte(key)
-}
-
-func calcBtcHeaderKeyLastHeight() []byte {
-	return []byte(relayBTCHeaderLastHeight)
-}
-
-func calcBtcHeaderKeyBaseHeight() []byte {
-	return []byte(relayBTCHeaderBaseHeight)
-}
-
-func calcBtcHeightListKey() []byte {
-	return []byte(relayBTCHeaderHeightList)
 }
 
 func calcOrderKeyStatus(order *types.RelayOrder, status int32) []byte {
