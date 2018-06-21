@@ -223,3 +223,7 @@ func (g *Grpc) NetInfo(ctx context.Context, in *pb.ReqNil) (*pb.NodeNetInfo, err
 func (g *Grpc) GetFatalFailure(ctx context.Context, in *pb.ReqNil) (*pb.Int32, error) {
 	return g.cli.GetFatalFailure()
 }
+
+func (g *Grpc) CloseChain33(ctx context.Context, in *pb.ReqNil) {
+	g.q.Close()
+}
