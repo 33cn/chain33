@@ -15,6 +15,11 @@ type LogType interface {
 	Decode([]byte) (interface{}, error)
 }
 
+type RpcTypeQuery interface {
+	Input(message json.RawMessage) ([]byte, error)
+	Output(interface{}) (interface{}, error)
+}
+
 var executorMap = map[string]ExecutorType{}
 var receiptLogMap = map[int64]LogType{}
 
@@ -49,3 +54,25 @@ func LoadLog(ty int64) LogType {
 	}
 	return nil
 }
+
+func registorRpcType(funcName string, util RpcTypeQuery) {
+	//tlog.Debug("rpc", "t", funcName, "t", util)
+	if _, exist := RpcTypeUtilMap[funcName]; exist {
+		panic("DupRpcTypeUtil")
+	} else {
+		RpcTypeUtilMap[funcName] = util
+	}
+}
+
+func RegistorRpcType(funcName string, util RpcTypeQuery) {
+	registorRpcType(funcName, util)
+}
+
+func LoadQueryType(funcName string) RpcTypeQuery {
+	if trans, ok := RpcTypeUtilMap[funcName]; ok {
+		return trans
+	}
+	return nil
+}
+
+var RpcTypeUtilMap = map[string]RpcTypeQuery{}

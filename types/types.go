@@ -5,8 +5,6 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"encoding/json"
-
 	"github.com/golang/protobuf/proto"
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common"
@@ -486,29 +484,8 @@ func (t *ReplyGetTotalCoins) IterateRangeByStateHash(key, value []byte) bool {
 	return false
 }
 
-type RpcTypeQuery interface {
-	Input(message json.RawMessage) ([]byte, error)
-	Output(interface{}) (interface{}, error)
-}
 
-func registorRpcType(funcName string, util RpcTypeQuery) {
-	//tlog.Debug("rpc", "t", funcName, "t", util)
-	if _, exist := RpcTypeUtilMap[funcName]; exist {
-		panic("DupRpcTypeUtil")
-	} else {
-		RpcTypeUtilMap[funcName] = util
-	}
-}
 
-func RegistorRpcType(funcName string, util RpcTypeQuery) {
-	registorRpcType(funcName, util)
-}
-
-func init() {
-	//tlog.Info("rpc", "init", "types.go", "input", RpcTypeUtilMap)
-}
-
-var RpcTypeUtilMap = map[string]interface{}{}
 
 
 
