@@ -541,31 +541,6 @@ func (tx *Transaction) ActionName() string {
 		return "unknow"
 	}
 	return exec.ActionName(tx)
-
-	if bytes.Equal(tx.Execer, []byte("coins")) {
-		return "done"
-	} else if bytes.Equal(tx.Execer, []byte("ticket")) {
-		return "done"
-	} else if bytes.Equal(tx.Execer, []byte("none")) {
-		return "done"
-	} else if bytes.Equal(tx.Execer, []byte("hashlock")) {
-		return "done"
-	} else if bytes.Equal(tx.Execer, []byte("retrieve")) {
-		return "done"
-	} else if bytes.Equal(tx.Execer, []byte("token")) {
-
-			return "done"
-
-	} else if bytes.Equal(tx.Execer, []byte("trade")) {
-
-			return "done"
-
-	} else if bytes.Equal(tx.Execer, ExecerEvm) || bytes.HasPrefix(tx.Execer, []byte("user.evm.")) {
-
-		return "done"
-	}
-
-	return "unknow"
 }
 
 //判断交易是withdraw交易，需要做from和to地址的swap，方便上层客户理解
