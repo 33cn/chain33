@@ -466,15 +466,7 @@ func (tx *Transaction) Amount() (int64, error) {
 	if "coins" == string(tx.Execer) {
 		return 0, nil // done
 	} else if "ticket" == string(tx.Execer) {
-		var action TicketAction
-		err := Decode(tx.GetPayload(), &action)
-		if err != nil {
-			return 0, ErrDecode
-		}
-		if action.Ty == TicketActionMiner && action.GetMiner() != nil {
-			ticketMiner := action.GetMiner()
-			return ticketMiner.Reward, nil
-		}
+		return 0, nil // done
 	} else if "token" == string(tx.Execer) { //TODO: 补充和完善token和trade分支的amount的计算, added by hzj
 		var action TokenAction
 		err := Decode(tx.GetPayload(), &action)

@@ -49,6 +49,19 @@ func (ticket TicketType) ActionName(tx *types.Transaction) string {
 	return "unknow"
 }
 
+func (ticket TicketType) Amount(tx *types.Transaction) (int64, error) {
+	var action types.TicketAction
+	err := types.Decode(tx.GetPayload(), &action)
+	if err != nil {
+		return 0, types.ErrDecode
+	}
+	if action.Ty == types.TicketActionMiner && action.GetMiner() != nil {
+		ticketMiner := action.GetMiner()
+		return ticketMiner.Reward, nil
+	}
+	return 0, nil
+}
+
 // TODO 暂时不修改实现， 先完成结构的重构
 func (ticket TicketType) NewTx(action string, message json.RawMessage) (*types.Transaction, error) {
 	var tx *types.Transaction
