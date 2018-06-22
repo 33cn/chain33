@@ -10,7 +10,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
-	//"gitlab.33.cn/chain33/chain33/types/executor"
 )
 
 var (
@@ -533,7 +532,11 @@ func (tx *Transaction) Amount() (int64, error) {
 //获取tx交易的Actionname
 func (tx *Transaction) ActionName() string {
 	// etype, err := executor.LoadType(string(tx.Execer))
-	exec := LoadExecutor(string(tx.Execer))
+	execName := string(tx.Execer)
+	if bytes.HasPrefix(tx.Execer, []byte("user.evm.")) {
+		execName = "evm"
+	}
+	exec := LoadExecutor(execName)
 	if exec == nil {
 		return "unknow"
 	}
@@ -558,9 +561,8 @@ func (tx *Transaction) ActionName() string {
 			return "done"
 
 	} else if bytes.Equal(tx.Execer, ExecerEvm) || bytes.HasPrefix(tx.Execer, []byte("user.evm.")) {
-		// 这个需要通过合约交易目标地址来判断Action
-		// 如果目标地址为空，或为evm的固定合约地址，则为创建合约，否则为调用合约
-		return "harf-done"
+
+		return "done"
 	}
 
 	return "unknow"
