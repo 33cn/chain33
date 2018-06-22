@@ -207,3 +207,4 @@ auto_ci: clean fmt_proto fmt_shell protobuf mock
 		  exit 1; \
 		  fi;
 
+
