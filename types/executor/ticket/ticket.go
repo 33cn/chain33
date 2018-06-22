@@ -1,10 +1,10 @@
 package ticket
 
-
 import (
-	"gitlab.33.cn/chain33/chain33/types"
 	"encoding/json"
+
 	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 const name = "ticket"
@@ -24,8 +24,6 @@ func init() {
 	// init query rpc
 	//types.RegistorRpcType("q2", &CoinsGetTxsByAddr{})
 }
-
-
 
 type TicketType struct {
 }
@@ -76,7 +74,7 @@ func (l TicketNewLog) Name() string {
 	return "LogNewTicket"
 }
 
-func (l TicketNewLog) Decode(msg []byte) (interface{}, error){
+func (l TicketNewLog) Decode(msg []byte) (interface{}, error) {
 	var logTmp types.ReceiptTicket
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
@@ -92,7 +90,7 @@ func (l TicketCloseLog) Name() string {
 	return "LogCloseTicket"
 }
 
-func (l TicketCloseLog) Decode(msg []byte) (interface{}, error){
+func (l TicketCloseLog) Decode(msg []byte) (interface{}, error) {
 	var logTmp types.ReceiptTicket
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
@@ -108,7 +106,7 @@ func (l TicketMinerLog) Name() string {
 	return "LogMinerTicket"
 }
 
-func (l TicketMinerLog) Decode(msg []byte) (interface{}, error){
+func (l TicketMinerLog) Decode(msg []byte) (interface{}, error) {
 	var logTmp types.ReceiptTicket
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
@@ -124,7 +122,7 @@ func (l TicketBindLog) Name() string {
 	return "LogTicketBind"
 }
 
-func (l TicketBindLog) Decode(msg []byte) (interface{}, error){
+func (l TicketBindLog) Decode(msg []byte) (interface{}, error) {
 	var logTmp types.ReceiptTicketBind
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
@@ -148,5 +146,3 @@ func (t *CoinsGetTxsByAddr) Input(message json.RawMessage) ([]byte, error) {
 func (t *CoinsGetTxsByAddr) Output(reply interface{}) (interface{}, error) {
 	return reply, nil
 }
-
-

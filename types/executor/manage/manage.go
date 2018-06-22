@@ -1,10 +1,10 @@
 package manage
 
 import (
-	"gitlab.33.cn/chain33/chain33/types"
 	"encoding/json"
-	log "github.com/inconshreveable/log15"
 
+	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 const name = "manage"
@@ -21,7 +21,6 @@ func init() {
 	// init query rpc
 	//types.RegistorRpcType("q2", &CoinsGetTxsByAddr{})
 }
-
 
 type ManageType struct {
 }
@@ -47,7 +46,7 @@ func (l ModifyConfigLog) Name() string {
 	return "LogModifyConfig"
 }
 
-func (l ModifyConfigLog) Decode(msg []byte) (interface{}, error){
+func (l ModifyConfigLog) Decode(msg []byte) (interface{}, error) {
 	var logTmp types.ReceiptConfig
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
@@ -71,7 +70,3 @@ func (t *CoinsGetTxsByAddr) Input(message json.RawMessage) ([]byte, error) {
 func (t *CoinsGetTxsByAddr) Output(reply interface{}) (interface{}, error) {
 	return reply, nil
 }
-
-
-
-

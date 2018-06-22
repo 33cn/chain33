@@ -1,12 +1,10 @@
 package hashlock
 
-
-
 import (
-	"gitlab.33.cn/chain33/chain33/types"
 	"encoding/json"
-	log "github.com/inconshreveable/log15"
 
+	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 const name = "hashlock"
@@ -23,8 +21,6 @@ func init() {
 	// init query rpc
 	//types.RegistorRpcType("q2", &CoinsGetTxsByAddr{})
 }
-
-
 
 type HashlockType struct {
 }
@@ -62,7 +58,7 @@ func (l CoinsDepositLog) Name() string {
 	return "LogDeposit"
 }
 
-func (l CoinsDepositLog) Decode(msg []byte) (interface{}, error){
+func (l CoinsDepositLog) Decode(msg []byte) (interface{}, error) {
 	var logTmp types.ReceiptAccountTransfer
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
@@ -86,6 +82,3 @@ func (t *CoinsGetTxsByAddr) Input(message json.RawMessage) ([]byte, error) {
 func (t *CoinsGetTxsByAddr) Output(reply interface{}) (interface{}, error) {
 	return reply, nil
 }
-
-
-

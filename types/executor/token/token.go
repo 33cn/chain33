@@ -1,20 +1,19 @@
 package token
 
 import (
-
-	"gitlab.33.cn/chain33/chain33/types"
 	"encoding/json"
-	"time"
-	log "github.com/inconshreveable/log15"
 	"math/rand"
+	"time"
+
+	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	rpctype "gitlab.33.cn/chain33/chain33/rpc"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 const name = "token"
 
 var tlog = log.New("module", name)
-
 
 func init() {
 	// init executor type
@@ -42,7 +41,6 @@ func init() {
 	types.RegistorRpcType("GetAddrReceiverforTokens", &TokenGetAddrReceiverforTokens{})
 	types.RegistorRpcType("GetAccountTokenAssets", &TokenGetAccountTokenAssets{})
 }
-
 
 // exec
 type TokenType struct {
@@ -113,7 +111,6 @@ func (coins TokenType) NewTx(action string, message json.RawMessage) (*types.Tra
 		if param.To == "" {
 			return nil, types.ErrAddrNotExist
 		}
-
 
 		if param.Amount < 0 {
 			return nil, types.ErrAmount
@@ -260,7 +257,7 @@ func (l TokenTransferLog) Name() string {
 	return "LogTokenTransfer"
 }
 
-func (l TokenTransferLog) Decode(msg []byte) (interface{}, error){
+func (l TokenTransferLog) Decode(msg []byte) (interface{}, error) {
 	var logTmp types.ReceiptAccountTransfer
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
@@ -276,7 +273,7 @@ func (l TokenDepositLog) Name() string {
 	return "LogTokenDeposit"
 }
 
-func (l TokenDepositLog) Decode(msg []byte) (interface{}, error){
+func (l TokenDepositLog) Decode(msg []byte) (interface{}, error) {
 	var logTmp types.ReceiptAccountTransfer
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
@@ -292,7 +289,7 @@ func (l TokenExecTransferLog) Name() string {
 	return "LogTokenExecTransfer"
 }
 
-func (l TokenExecTransferLog) Decode(msg []byte) (interface{}, error){
+func (l TokenExecTransferLog) Decode(msg []byte) (interface{}, error) {
 	var logTmp types.ReceiptExecAccountTransfer
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
@@ -308,7 +305,7 @@ func (l TokenExecWithdrawLog) Name() string {
 	return "LogTokenExecWithdraw"
 }
 
-func (l TokenExecWithdrawLog) Decode(msg []byte) (interface{}, error){
+func (l TokenExecWithdrawLog) Decode(msg []byte) (interface{}, error) {
 	var logTmp types.ReceiptExecAccountTransfer
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
@@ -324,7 +321,7 @@ func (l TokenExecDepositLog) Name() string {
 	return "LogTokenExecDeposit"
 }
 
-func (l TokenExecDepositLog) Decode(msg []byte) (interface{}, error){
+func (l TokenExecDepositLog) Decode(msg []byte) (interface{}, error) {
 	var logTmp types.ReceiptExecAccountTransfer
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
@@ -340,7 +337,7 @@ func (l TokenExecFrozenLog) Name() string {
 	return "LogTokenExecFrozen"
 }
 
-func (l TokenExecFrozenLog) Decode(msg []byte) (interface{}, error){
+func (l TokenExecFrozenLog) Decode(msg []byte) (interface{}, error) {
 	var logTmp types.ReceiptExecAccountTransfer
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
@@ -356,7 +353,7 @@ func (l TokenExecActiveLog) Name() string {
 	return "LogTokenGenesisTransfer"
 }
 
-func (l TokenExecActiveLog) Decode(msg []byte) (interface{}, error){
+func (l TokenExecActiveLog) Decode(msg []byte) (interface{}, error) {
 	var logTmp types.ReceiptExecAccountTransfer
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
@@ -372,7 +369,7 @@ func (l TokenGenesisTransferLog) Name() string {
 	return "LogTokenGenesisTransfer"
 }
 
-func (l TokenGenesisTransferLog) Decode(msg []byte) (interface{}, error){
+func (l TokenGenesisTransferLog) Decode(msg []byte) (interface{}, error) {
 	var logTmp types.ReceiptAccountTransfer
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
@@ -388,7 +385,7 @@ func (l TokenGenesisDepositLog) Name() string {
 	return "LogTokenGenesisDeposit"
 }
 
-func (l TokenGenesisDepositLog) Decode(msg []byte) (interface{}, error){
+func (l TokenGenesisDepositLog) Decode(msg []byte) (interface{}, error) {
 	var logTmp types.ReceiptExecAccountTransfer
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
@@ -404,7 +401,7 @@ func (l TokenPreCreateLog) Name() string {
 	return "LogPreCreateToken"
 }
 
-func (l TokenPreCreateLog) Decode(msg []byte) (interface{}, error){
+func (l TokenPreCreateLog) Decode(msg []byte) (interface{}, error) {
 	var logTmp types.ReceiptToken
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
@@ -420,7 +417,7 @@ func (l TokenFinishCreateLog) Name() string {
 	return "LogFinishCreateToken"
 }
 
-func (l TokenFinishCreateLog) Decode(msg []byte) (interface{}, error){
+func (l TokenFinishCreateLog) Decode(msg []byte) (interface{}, error) {
 	var logTmp types.ReceiptToken
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
@@ -436,7 +433,7 @@ func (l TokenRevokeCreateLog) Name() string {
 	return "LogRevokeCreateToken"
 }
 
-func (l TokenRevokeCreateLog) Decode(msg []byte) (interface{}, error){
+func (l TokenRevokeCreateLog) Decode(msg []byte) (interface{}, error) {
 	var logTmp types.ReceiptToken
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
@@ -444,6 +441,7 @@ func (l TokenRevokeCreateLog) Decode(msg []byte) (interface{}, error){
 	}
 	return logTmp, err
 }
+
 // query
 type TokenGetTokens struct {
 }
@@ -508,8 +506,3 @@ func (t *TokenGetAccountTokenAssets) Input(message json.RawMessage) ([]byte, err
 func (t *TokenGetAccountTokenAssets) Output(reply interface{}) (interface{}, error) {
 	return reply, nil
 }
-
-
-
-
-

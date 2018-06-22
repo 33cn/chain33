@@ -5,13 +5,14 @@ import (
 	"math/rand"
 	"time"
 
+	"encoding/json"
+
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
-	"encoding/json"
 )
 
 //提供系统rpc接口

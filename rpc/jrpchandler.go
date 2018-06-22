@@ -954,7 +954,7 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
 		if err != nil {
 			return nil, err
 		}
-		
+
 		logType := types.LoadLog(int64(l.Ty))
 		if logType == nil {
 			log.Error("Fail to DecodeLog", "type", l.Ty)
@@ -1211,7 +1211,6 @@ func (c *Chain33) DecodeRawTransaction(in *types.ReqDecodeRawTransaction, result
 	return nil
 }
 
-
 func (c *Chain33) GetTimeStatus(in *types.ReqNil, result *interface{}) error {
 	reply, err := c.cli.GetTimeStatus()
 	if err != nil {
@@ -1287,4 +1286,3 @@ func (c *Chain33) CreateTransaction(in TransactionCreate, result *interface{}) e
 	*result = tx
 	return nil
 }
-
