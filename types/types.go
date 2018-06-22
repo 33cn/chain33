@@ -178,9 +178,7 @@ func (r *ReceiptData) DecodeReceiptLog() (*ReceiptDataResult, error) {
 		}
 		logIns, err = logType.Decode(lLog)
 		lTy = logType.Name()
-		//decode, err := LoadLogDecode(l.Ty)
-		//decode.Decode(lLog)
-		//decode.Name()
+
 		switch l.Ty {
 		case TyLogExecTransfer:
 			lTy = "LogExecTransfer"
