@@ -270,30 +270,6 @@ func (r *ReceiptData) DecodeReceiptLog() (*ReceiptDataResult, error) {
 				return nil, err
 			}
 			logIns = logTmp
-		case TyLogPreCreateToken:
-			lTy = "LogPreCreateToken"
-			var logTmp ReceiptToken
-			err = Decode(lLog, &logTmp)
-			if err != nil {
-				return nil, err
-			}
-			logIns = logTmp
-		case TyLogFinishCreateToken:
-			lTy = "LogFinishCreateToken"
-			var logTmp ReceiptToken
-			err = Decode(lLog, &logTmp)
-			if err != nil {
-				return nil, err
-			}
-			logIns = logTmp
-		case TyLogRevokeCreateToken:
-			lTy = "LogRevokeCreateToken"
-			var logTmp ReceiptToken
-			err = Decode(lLog, &logTmp)
-			if err != nil {
-				return nil, err
-			}
-			logIns = logTmp
 		case TyLogTradeSellLimit:
 			lTy = "LogTradeSell"
 			var logTmp ReceiptTradeSell
