@@ -53,6 +53,7 @@ var (
 	ForkV15ResetTx0      int64 = 200000
 	ForkV16Withdraw      int64 = 200000
 	ForkV17EVM           int64 = 250000
+	ForkV18TicketBind    int64 = 300000
 )
 
 var (
@@ -141,6 +142,7 @@ func SetTestNet(isTestNet bool) {
 	ForkV15ResetTx0 = 453400
 	ForkV16Withdraw = 480000
 	ForkV17EVM = 500000
+	ForkV18TicketBind = 600000
 }
 
 func IsTestNet() bool {
