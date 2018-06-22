@@ -8,11 +8,13 @@ import (
 	"math/rand"
 )
 
-var tlog = log.New("module", "coinsTypes")
+const name = "coins"
+
+var tlog = log.New("module", name)
 
 func init() {
 	// init executor type
-	types.RegistorExecutor("coins", &CoinsType{})
+	types.RegistorExecutor(name, &CoinsType{})
 
 	// init log
 	types.RegistorLog(types.TyLogDeposit, &CoinsDepositLog{})
@@ -107,7 +109,7 @@ func CreateCoinsTransfer(param *types.CreateTx) *types.Transaction {
 		transfer.Value = v
 		transfer.Ty = types.CoinsActionWithdraw
 	}
-	return &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), To: param.GetTo()}
+	return &types.Transaction{Execer: []byte(name), Payload: types.Encode(transfer), To: param.GetTo()}
 }
 
 type CoinsDepositLog struct {
