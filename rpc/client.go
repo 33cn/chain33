@@ -209,74 +209,15 @@ func (c *channelClient) GetTotalCoins(in *types.ReqGetTotalCoins) (*types.ReplyG
 }
 
 func (c *channelClient) CreateRawTokenPreCreateTx(parm *TokenPreCreateTx) ([]byte, error) {
-	if parm == nil {
-		return nil, types.ErrInvalidParam
-	}
-	v := &types.TokenPreCreate{
-		Name:         parm.Name,
-		Symbol:       parm.Symbol,
-		Introduction: parm.Introduction,
-		Total:        parm.Total,
-		Price:        parm.Price,
-		Owner:        parm.OwnerAddr,
-	}
-	precreate := &types.TokenAction{
-		Ty:    types.TokenActionPreCreate,
-		Value: &types.TokenAction_Tokenprecreate{v},
-	}
-	tx := &types.Transaction{
-		Execer:  []byte("token"),
-		Payload: types.Encode(precreate),
-		Fee:     parm.Fee,
-		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress("token"),
-	}
-
-	data := types.Encode(tx)
-	return data, nil
+	return callExecNewTx("token", "TokenPreCreate", parm)
 }
 
 func (c *channelClient) CreateRawTokenFinishTx(parm *TokenFinishTx) ([]byte, error) {
-	if parm == nil {
-		return nil, types.ErrInvalidParam
-	}
-
-	v := &types.TokenFinishCreate{Symbol: parm.Symbol, Owner: parm.OwnerAddr}
-	finish := &types.TokenAction{
-		Ty:    types.TokenActionFinishCreate,
-		Value: &types.TokenAction_Tokenfinishcreate{v},
-	}
-	tx := &types.Transaction{
-		Execer:  []byte("token"),
-		Payload: types.Encode(finish),
-		Fee:     parm.Fee,
-		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress("token"),
-	}
-
-	data := types.Encode(tx)
-	return data, nil
+	return callExecNewTx("token", "TokenFinish", parm)
 }
 
 func (c *channelClient) CreateRawTokenRevokeTx(parm *TokenRevokeTx) ([]byte, error) {
-	if parm == nil {
-		return nil, types.ErrInvalidParam
-	}
-	v := &types.TokenRevokeCreate{Symbol: parm.Symbol, Owner: parm.OwnerAddr}
-	revoke := &types.TokenAction{
-		Ty:    types.TokenActionRevokeCreate,
-		Value: &types.TokenAction_Tokenrevokecreate{v},
-	}
-	tx := &types.Transaction{
-		Execer:  []byte("token"),
-		Payload: types.Encode(revoke),
-		Fee:     parm.Fee,
-		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress("token"),
-	}
-
-	data := types.Encode(tx)
-	return data, nil
+	return callExecNewTx("token", "TokenRevoke", parm)
 }
 
 func (c *channelClient) CreateRawTradeSellTx(parm *TradeSellTx) ([]byte, error) {
