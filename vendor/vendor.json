@@ -497,8 +497,8 @@
 		{
 			"checksumSHA1": "nj123dGxKPIF17B6y3VEK2pihRk=",
 			"path": "github.com/stretchr/testify",
-			"revision": "c679ae2cc0cb27ec3293fea7e254e47386f05d69",
-			"revisionTime": "2018-03-14T08:05:35Z"
+			"revision": "f35b8ab0b5a2cef36673838d662e249dd9c94686",
+			"revisionTime": "2018-05-06T18:05:49Z"
 		},
 		{
 			"checksumSHA1": "mGbTYZ8dHVTiPTTJu3ktp+84pPI=",
@@ -523,6 +523,12 @@
 			"path": "github.com/stretchr/testify/require",
 			"revision": "2aa2c176b9dab406a6970f6a55f513e8a8c8b18f",
 			"revisionTime": "2017-08-14T20:04:35Z"
+		},
+		{
+			"checksumSHA1": "uefllr2OtKBGo/kQSAPbW3w6p0A=",
+			"path": "github.com/stretchr/testify/suite",
+			"revision": "f35b8ab0b5a2cef36673838d662e249dd9c94686",
+			"revisionTime": "2018-05-06T18:05:49Z"
 		},
 		{
 			"checksumSHA1": "/DB9/UNUMYS4k4MopZLGdkXSRBQ=",
