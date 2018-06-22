@@ -62,6 +62,24 @@ func (trade tradeType) ActionName(tx *types.Transaction) string {
 	return "unknow"
 }
 
+func (t tradeType) Amount(tx *types.Transaction) (int64, error) {
+	//TODO: 补充和完善token和trade分支的amount的计算, added by hzj
+	var trade types.Trade
+	err := types.Decode(tx.GetPayload(), &trade)
+	if err != nil {
+		return 0, types.ErrDecode
+	}
+
+	if types.TradeSellLimit == trade.Ty && trade.GetTokensell() != nil {
+		return 0, nil
+	} else if types.TradeBuyMarket == trade.Ty && trade.GetTokenbuy() != nil {
+		return 0, nil
+	} else if types.TradeRevokeSell == trade.Ty && trade.GetTokenrevokesell() != nil {
+		return 0, nil
+	}
+	return 0, nil
+}
+
 func (trade tradeType) NewTx(action string, message json.RawMessage) (*types.Transaction, error) {
 	var tx *types.Transaction
 	if action == "TradeSellLimit" {
