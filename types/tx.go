@@ -590,23 +590,9 @@ func (tx *Transaction) ActionName() string {
 			return "cancel"
 		}
 	} else if bytes.Equal(tx.Execer, []byte("token")) {
-		var action TokenAction
-		err := Decode(tx.Payload, &action)
-		if err != nil {
-			return "unknow-err"
-		}
 
-		if action.Ty == TokenActionPreCreate && action.GetTokenprecreate() != nil {
-			return "preCreate"
-		} else if action.Ty == TokenActionFinishCreate && action.GetTokenfinishcreate() != nil {
-			return "finishCreate"
-		} else if action.Ty == TokenActionRevokeCreate && action.GetTokenrevokecreate() != nil {
-			return "revokeCreate"
-		} else if action.Ty == ActionTransfer && action.GetTransfer() != nil {
-			return "transferToken"
-		} else if action.Ty == ActionWithdraw && action.GetWithdraw() != nil {
-			return "withdrawToken"
-		}
+			return "done"
+
 	} else if bytes.Equal(tx.Execer, []byte("trade")) {
 		var trade Trade
 		err := Decode(tx.Payload, &trade)
