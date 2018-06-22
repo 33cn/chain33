@@ -45,7 +45,7 @@ func (l ErrLog) Name() string {
 	return "LogErr"
 }
 
-func (l ErrLog) Decode(msg []byte) (interface{}, error){
+func (l ErrLog) Decode(msg []byte) (interface{}, error) {
 	return string(msg), nil
 }
 
@@ -56,7 +56,7 @@ func (l FeeLog) Name() string {
 	return "LogFee"
 }
 
-func (l FeeLog) Decode(msg []byte) (interface{}, error){
+func (l FeeLog) Decode(msg []byte) (interface{}, error) {
 	var logTmp types.ReceiptAccountTransfer
 	err := types.Decode(msg, &logTmp)
 	if err != nil {

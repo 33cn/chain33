@@ -1,11 +1,12 @@
 package coins
 
 import (
-	"gitlab.33.cn/chain33/chain33/types"
 	"encoding/json"
-	"time"
-	log "github.com/inconshreveable/log15"
 	"math/rand"
+	"time"
+
+	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 const name = "coins"
@@ -34,8 +35,6 @@ func init() {
 	types.RegistorRpcType("GetAddrReciver", &CoinsGetAddrReciver{})
 	types.RegistorRpcType("GetTxsByAddr", &CoinsGetTxsByAddr{})
 }
-
-
 
 type CoinsType struct {
 }
@@ -150,7 +149,7 @@ func (l CoinsDepositLog) Name() string {
 	return "LogDeposit"
 }
 
-func (l CoinsDepositLog) Decode(msg []byte) (interface{}, error){
+func (l CoinsDepositLog) Decode(msg []byte) (interface{}, error) {
 	var logTmp types.ReceiptAccountTransfer
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
@@ -166,7 +165,7 @@ func (l CoinsGenesisLog) Name() string {
 	return "LogGenesis"
 }
 
-func (l CoinsGenesisLog) Decode(msg []byte) (interface{}, error){
+func (l CoinsGenesisLog) Decode(msg []byte) (interface{}, error) {
 	return nil, nil
 }
 
@@ -177,7 +176,7 @@ func (l CoinsTransferLog) Name() string {
 	return "LogGenesis"
 }
 
-func (l CoinsTransferLog) Decode(msg []byte) (interface{}, error){
+func (l CoinsTransferLog) Decode(msg []byte) (interface{}, error) {
 	var logTmp types.ReceiptAccountTransfer
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
@@ -193,7 +192,7 @@ func (l CoinsExecTransferLog) Name() string {
 	return "LogExecTransfer"
 }
 
-func (l CoinsExecTransferLog) Decode(msg []byte) (interface{}, error){
+func (l CoinsExecTransferLog) Decode(msg []byte) (interface{}, error) {
 	var logTmp types.ReceiptExecAccountTransfer
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
@@ -202,7 +201,6 @@ func (l CoinsExecTransferLog) Decode(msg []byte) (interface{}, error){
 	return logTmp, nil
 }
 
-
 type CoinsExecWithdrawLog struct {
 }
 
@@ -210,7 +208,7 @@ func (l CoinsExecWithdrawLog) Name() string {
 	return "LogExecWithdraw"
 }
 
-func (l CoinsExecWithdrawLog) Decode(msg []byte) (interface{}, error){
+func (l CoinsExecWithdrawLog) Decode(msg []byte) (interface{}, error) {
 	var logTmp types.ReceiptExecAccountTransfer
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
@@ -226,7 +224,7 @@ func (l CoinsExecDepositLog) Name() string {
 	return "LogExecDeposit"
 }
 
-func (l CoinsExecDepositLog) Decode(msg []byte) (interface{}, error){
+func (l CoinsExecDepositLog) Decode(msg []byte) (interface{}, error) {
 	var logTmp types.ReceiptExecAccountTransfer
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
@@ -242,7 +240,7 @@ func (l CoinsExecFrozenLog) Name() string {
 	return "LogExecFrozen"
 }
 
-func (l CoinsExecFrozenLog) Decode(msg []byte) (interface{}, error){
+func (l CoinsExecFrozenLog) Decode(msg []byte) (interface{}, error) {
 	var logTmp types.ReceiptExecAccountTransfer
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
@@ -258,7 +256,7 @@ func (l CoinsExecActiveLog) Name() string {
 	return "LogExecActive"
 }
 
-func (l CoinsExecActiveLog) Decode(msg []byte) (interface{}, error){
+func (l CoinsExecActiveLog) Decode(msg []byte) (interface{}, error) {
 	var logTmp types.ReceiptExecAccountTransfer
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
@@ -274,7 +272,7 @@ func (l CoinsGenesisTransferLog) Name() string {
 	return "LogGenesisTransfer"
 }
 
-func (l CoinsGenesisTransferLog) Decode(msg []byte) (interface{}, error){
+func (l CoinsGenesisTransferLog) Decode(msg []byte) (interface{}, error) {
 	var logTmp types.ReceiptAccountTransfer
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
@@ -290,7 +288,7 @@ func (l CoinsGenesisDepositLog) Name() string {
 	return "LogGenesisDeposit"
 }
 
-func (l CoinsGenesisDepositLog) Decode(msg []byte) (interface{}, error){
+func (l CoinsGenesisDepositLog) Decode(msg []byte) (interface{}, error) {
 	var logTmp types.ReceiptExecAccountTransfer
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
@@ -331,5 +329,3 @@ func (t *CoinsGetTxsByAddr) Input(message json.RawMessage) ([]byte, error) {
 func (t *CoinsGetTxsByAddr) Output(reply interface{}) (interface{}, error) {
 	return reply, nil
 }
-
-

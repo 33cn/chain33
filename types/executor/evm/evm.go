@@ -1,12 +1,11 @@
 package evm
 
-
-
 import (
-	"gitlab.33.cn/chain33/chain33/types"
 	"encoding/json"
 	"strings"
+
 	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 const name = "evm"
@@ -25,8 +24,6 @@ func init() {
 	// init query rpc
 	//types.RegistorRpcType("q2", &CoinsGetTxsByAddr{})
 }
-
-
 
 type EvmType struct {
 }
@@ -52,7 +49,6 @@ func (evm EvmType) NewTx(action string, message json.RawMessage) (*types.Transac
 	return tx, nil
 }
 
-
 type EvmCallContractLog struct {
 }
 
@@ -60,7 +56,7 @@ func (l EvmCallContractLog) Name() string {
 	return "LogCallContract"
 }
 
-func (l EvmCallContractLog) Decode(msg []byte) (interface{}, error){
+func (l EvmCallContractLog) Decode(msg []byte) (interface{}, error) {
 	var logTmp types.ReceiptEVMContract
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
@@ -76,7 +72,7 @@ func (l EvmContractDataLog) Name() string {
 	return "LogContractData"
 }
 
-func (l EvmContractDataLog) Decode(msg []byte) (interface{}, error){
+func (l EvmContractDataLog) Decode(msg []byte) (interface{}, error) {
 	var logTmp types.EVMContractData
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
@@ -92,7 +88,7 @@ func (l EvmContractStateLog) Name() string {
 	return "LogContractState"
 }
 
-func (l EvmContractStateLog) Decode(msg []byte) (interface{}, error){
+func (l EvmContractStateLog) Decode(msg []byte) (interface{}, error) {
 	var logTmp types.EVMContractState
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
@@ -116,6 +112,3 @@ func (t *CoinsGetTxsByAddr) Input(message json.RawMessage) ([]byte, error) {
 func (t *CoinsGetTxsByAddr) Output(reply interface{}) (interface{}, error) {
 	return reply, nil
 }
-
-
-

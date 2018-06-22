@@ -1,17 +1,17 @@
 package trade
 
-
 import (
-	"gitlab.33.cn/chain33/chain33/types"
 	"encoding/json"
-	"time"
-	log "github.com/inconshreveable/log15"
 	"math/rand"
+	"time"
+
+	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	rpctype "gitlab.33.cn/chain33/chain33/rpc"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
-const name  = "trade"
+const name = "trade"
 
 var tlog = log.New("module", name)
 
@@ -282,7 +282,7 @@ func (l TradeSellLimitLog) Name() string {
 	return "LogTradeSell"
 }
 
-func (l TradeSellLimitLog) Decode(msg []byte) (interface{}, error){
+func (l TradeSellLimitLog) Decode(msg []byte) (interface{}, error) {
 	var logTmp types.ReceiptTradeSell
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
@@ -298,7 +298,7 @@ func (l TradeSellMarketLog) Name() string {
 	return "LogTradeSellMarket"
 }
 
-func (l TradeSellMarketLog) Decode(msg []byte) (interface{}, error){
+func (l TradeSellMarketLog) Decode(msg []byte) (interface{}, error) {
 	var logTmp types.ReceiptSellMarket
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
@@ -314,7 +314,7 @@ func (l TradeBuyMarketLog) Name() string {
 	return "LogTradeBuyMarket"
 }
 
-func (l TradeBuyMarketLog) Decode(msg []byte) (interface{}, error){
+func (l TradeBuyMarketLog) Decode(msg []byte) (interface{}, error) {
 	var logTmp types.ReceiptTradeBuyMarket
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
@@ -330,7 +330,7 @@ func (l TradeBuyLimitLog) Name() string {
 	return "LogTradeBuyLimit"
 }
 
-func (l TradeBuyLimitLog) Decode(msg []byte) (interface{}, error){
+func (l TradeBuyLimitLog) Decode(msg []byte) (interface{}, error) {
 	var logTmp types.ReceiptTradeBuyLimit
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
@@ -346,7 +346,7 @@ func (l TradeBuyRevokeLog) Name() string {
 	return "LogTradeBuyRevoke"
 }
 
-func (l TradeBuyRevokeLog) Decode(msg []byte) (interface{}, error){
+func (l TradeBuyRevokeLog) Decode(msg []byte) (interface{}, error) {
 	var logTmp types.ReceiptTradeBuyRevoke
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
@@ -362,7 +362,7 @@ func (l TradeSellRevokeLog) Name() string {
 	return "LogTradeSellRevoke"
 }
 
-func (l TradeSellRevokeLog) Decode(msg []byte) (interface{}, error){
+func (l TradeSellRevokeLog) Decode(msg []byte) (interface{}, error) {
 	var logTmp types.ReceiptTradeRevoke
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
