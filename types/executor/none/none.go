@@ -1,7 +1,5 @@
 package none
 
-
-
 import (
 	"gitlab.33.cn/chain33/chain33/types"
 	"encoding/json"
@@ -18,10 +16,10 @@ func init() {
 	types.RegistorExecutor(name, &NoneType{})
 
 	// init log
-	types.RegistorLog(types.TyLogDeposit, &CoinsDepositLog{})
+	//types.RegistorLog(types.TyLogDeposit, &CoinsDepositLog{})
 
 	// init query rpc
-	types.RegistorRpcType("q2", &CoinsGetTxsByAddr{})
+	//types.RegistorRpcType("q2", &CoinsGetTxsByAddr{})
 }
 
 
