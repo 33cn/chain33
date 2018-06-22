@@ -16,7 +16,10 @@ func init() {
 	types.RegistorExecutor(name, &TicketType{})
 
 	// init log
-	//types.RegistorLog(types.TyLogDeposit, &CoinsDepositLog{})
+	types.RegistorLog(types.TyLogNewTicket, &TicketNewLog{})
+	types.RegistorLog(types.TyLogCloseTicket, &TicketCloseLog{})
+	types.RegistorLog(types.TyLogMinerTicket, &TicketMinerLog{})
+	types.RegistorLog(types.TyLogTicketBind, &TicketBindLog{})
 
 	// init query rpc
 	//types.RegistorRpcType("q2", &CoinsGetTxsByAddr{})
@@ -66,15 +69,63 @@ func (ticket TicketType) NewTx(action string, message json.RawMessage) (*types.T
 	return tx, nil
 }
 
-type CoinsDepositLog struct {
+type TicketNewLog struct {
 }
 
-func (l CoinsDepositLog) Name() string {
-	return "LogDeposit"
+func (l TicketNewLog) Name() string {
+	return "LogNewTicket"
 }
 
-func (l CoinsDepositLog) Decode(msg []byte) (interface{}, error){
-	var logTmp types.ReceiptAccountTransfer
+func (l TicketNewLog) Decode(msg []byte) (interface{}, error){
+	var logTmp types.ReceiptTicket
+	err := types.Decode(msg, &logTmp)
+	if err != nil {
+		return nil, err
+	}
+	return logTmp, err
+}
+
+type TicketCloseLog struct {
+}
+
+func (l TicketCloseLog) Name() string {
+	return "LogCloseTicket"
+}
+
+func (l TicketCloseLog) Decode(msg []byte) (interface{}, error){
+	var logTmp types.ReceiptTicket
+	err := types.Decode(msg, &logTmp)
+	if err != nil {
+		return nil, err
+	}
+	return logTmp, err
+}
+
+type TicketMinerLog struct {
+}
+
+func (l TicketMinerLog) Name() string {
+	return "LogMinerTicket"
+}
+
+func (l TicketMinerLog) Decode(msg []byte) (interface{}, error){
+	var logTmp types.ReceiptTicket
+	err := types.Decode(msg, &logTmp)
+	if err != nil {
+		return nil, err
+	}
+	return logTmp, err
+}
+
+type TicketBindLog struct {
+}
+
+func (l TicketBindLog) Name() string {
+	return "LogTicketBind"
+}
+
+func (l TicketBindLog) Decode(msg []byte) (interface{}, error){
+	var logTmp types.ReceiptTicketBind
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
 		return nil, err
