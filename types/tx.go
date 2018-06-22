@@ -543,22 +543,7 @@ func (tx *Transaction) ActionName() string {
 	if bytes.Equal(tx.Execer, []byte("coins")) {
 		return "done"
 	} else if bytes.Equal(tx.Execer, []byte("ticket")) {
-		var action TicketAction
-		err := Decode(tx.Payload, &action)
-		if err != nil {
-			return "unknow-err"
-		}
-		if action.Ty == TicketActionGenesis && action.GetGenesis() != nil {
-			return "genesis"
-		} else if action.Ty == TicketActionOpen && action.GetTopen() != nil {
-			return "open"
-		} else if action.Ty == TicketActionClose && action.GetTclose() != nil {
-			return "close"
-		} else if action.Ty == TicketActionMiner && action.GetMiner() != nil {
-			return "miner"
-		} else if action.Ty == TicketActionBind && action.GetTbind() != nil {
-			return "bindminer"
-		}
+		return "done"
 	} else if bytes.Equal(tx.Execer, []byte("none")) {
 		return "none"
 	} else if bytes.Equal(tx.Execer, []byte("hashlock")) {
