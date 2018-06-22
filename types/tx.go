@@ -549,20 +549,7 @@ func (tx *Transaction) ActionName() string {
 	} else if bytes.Equal(tx.Execer, []byte("hashlock")) {
 		return "done"
 	} else if bytes.Equal(tx.Execer, []byte("retrieve")) {
-		var action RetrieveAction
-		err := Decode(tx.Payload, &action)
-		if err != nil {
-			return "unknow-err"
-		}
-		if action.Ty == RetrievePre && action.GetPreRet() != nil {
-			return "prepare"
-		} else if action.Ty == RetrievePerf && action.GetPerfRet() != nil {
-			return "perform"
-		} else if action.Ty == RetrieveBackup && action.GetBackup() != nil {
-			return "backup"
-		} else if action.Ty == RetrieveCancel && action.GetCancel() != nil {
-			return "cancel"
-		}
+		return "done"
 	} else if bytes.Equal(tx.Execer, []byte("token")) {
 
 			return "done"
