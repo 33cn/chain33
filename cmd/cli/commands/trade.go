@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
+	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
 )
 
 func TradeCmd() *cobra.Command {
@@ -74,7 +75,7 @@ func showOnesSellOrders(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	var res types.RpcReplyTradeOrders
+	var res tradetype.RpcReplyTradeOrders
 	err = rpc.Call("Chain33.Query", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -133,7 +134,7 @@ func showTokenSellOrders(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	var res types.RpcReplyTradeOrders
+	var res tradetype.RpcReplyTradeOrders
 	err = rpc.Call("Chain33.Query", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -180,7 +181,7 @@ func showSellOrderWithStatus(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	var res types.RpcReplyTradeOrders
+	var res tradetype.RpcReplyTradeOrders
 	err = rpc.Call("Chain33.Query", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -190,7 +191,7 @@ func showSellOrderWithStatus(cmd *cobra.Command, args []string) {
 	parseSellOrders(res)
 }
 
-func parseSellOrders(res types.RpcReplyTradeOrders) {
+func parseSellOrders(res tradetype.RpcReplyTradeOrders) {
 	for i, sellorder := range res.Orders {
 		var sellOrders2show SellOrder2Show
 		sellOrders2show.Tokensymbol = sellorder.TokenSymbol
@@ -266,7 +267,7 @@ func showOnesBuyOrders(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	var res types.RpcReplyTradeOrders
+	var res tradetype.RpcReplyTradeOrders
 	err = rpc.Call("Chain33.Query", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
