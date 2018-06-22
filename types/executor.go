@@ -6,8 +6,9 @@ import "encoding/json"
 type ExecutorType interface {
 	// name 是 executor name 构造时用
 	//func Name()
-	ActionName(transaction *Transaction) string
+	ActionName(tx *Transaction) string
 	NewTx(action string, message json.RawMessage) (*Transaction, error)
+	Amount(tx *Transaction) (int64, error)
 }
 
 type LogType interface {
@@ -24,12 +25,12 @@ var executorMap = map[string]ExecutorType{}
 var receiptLogMap = map[int64]LogType{}
 var rpcTypeUtilMap = map[string]RpcQueryType{}
 
-func RegistorExecutor(funcName string, util ExecutorType) {
+func RegistorExecutor(exec string, util ExecutorType) {
 	//tlog.Debug("rpc", "t", funcName, "t", util)
-	if _, exist := executorMap[funcName]; exist {
+	if _, exist := executorMap[exec]; exist {
 		panic("DupExecutorType")
 	} else {
-		executorMap[funcName] = util
+		executorMap[exec] = util
 	}
 }
 
@@ -40,12 +41,12 @@ func LoadExecutor(exec string) ExecutorType {
 	return nil
 }
 
-func RegistorLog(funcName int64, util LogType) {
+func RegistorLog(logTy int64, util LogType) {
 	//tlog.Debug("rpc", "t", funcName, "t", util)
-	if _, exist := receiptLogMap[funcName]; exist {
+	if _, exist := receiptLogMap[logTy]; exist {
 		panic("DupLogType")
 	} else {
-		receiptLogMap[funcName] = util
+		receiptLogMap[logTy] = util
 	}
 }
 
