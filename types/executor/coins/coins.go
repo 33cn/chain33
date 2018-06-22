@@ -49,6 +49,28 @@ func (coins CoinsType) ActionName(tx *types.Transaction) string {
 	return "unknow"
 }
 
+func (t CoinsType) Amount(tx *types.Transaction) (int64, error) {
+	var action types.CoinsAction
+	err := types.Decode(tx.GetPayload(), &action)
+	if err != nil {
+		return 0, types.ErrDecode
+	}
+	if action.Ty == types.CoinsActionTransfer && action.GetTransfer() != nil {
+		transfer := action.GetTransfer()
+		return transfer.Amount, nil
+	} else if action.Ty == types.CoinsActionGenesis && action.GetGenesis() != nil {
+		gen := action.GetGenesis()
+		return gen.Amount, nil
+	} else if action.Ty == types.CoinsActionWithdraw && action.GetWithdraw() != nil {
+		transfer := action.GetWithdraw()
+		return transfer.Amount, nil
+	} else if action.Ty == types.CoinsActionTransferToExec && action.GetTransferToExec() != nil {
+		transfer := action.GetTransferToExec()
+		return transfer.Amount, nil
+	}
+	return 0, nil
+}
+
 // TODO 暂时不修改实现， 先完成结构的重构
 func (coins CoinsType) NewTx(action string, message json.RawMessage) (*types.Transaction, error) {
 	var param types.CreateTx
