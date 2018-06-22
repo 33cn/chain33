@@ -3,6 +3,11 @@ package executor
 import (
 	"gitlab.33.cn/chain33/chain33/types"
 	_ "gitlab.33.cn/chain33/chain33/types/executor/coins"
+	_ "gitlab.33.cn/chain33/chain33/types/executor/evm"
+	_ "gitlab.33.cn/chain33/chain33/types/executor/hashlock"
+	_ "gitlab.33.cn/chain33/chain33/types/executor/none"
+	_ "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
+	_ "gitlab.33.cn/chain33/chain33/types/executor/ticket"
 	_ "gitlab.33.cn/chain33/chain33/types/executor/token"
 	_ "gitlab.33.cn/chain33/chain33/types/executor/trade"
 )

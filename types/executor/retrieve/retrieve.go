@@ -5,9 +5,8 @@ package retrieve
 import (
 	"gitlab.33.cn/chain33/chain33/types"
 	"encoding/json"
-	"time"
 	log "github.com/inconshreveable/log15"
-	"math/rand"
+
 )
 
 const name = "retrieve"
@@ -30,7 +29,7 @@ func init() {
 type RetrieveType struct {
 }
 
-func (ticket RetrieveType) ActionName(tx *types.Transaction) string {
+func (r RetrieveType) ActionName(tx *types.Transaction) string {
 	var action types.RetrieveAction
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
@@ -46,6 +45,10 @@ func (ticket RetrieveType) ActionName(tx *types.Transaction) string {
 		return "cancel"
 	}
 	return "unknow"
+}
+
+func (r RetrieveType) Amount(tx *types.Transaction) (int64, error) {
+	return 0, nil
 }
 
 // TODO 暂时不修改实现， 先完成结构的重构

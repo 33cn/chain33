@@ -5,9 +5,8 @@ package hashlock
 import (
 	"gitlab.33.cn/chain33/chain33/types"
 	"encoding/json"
-	"time"
 	log "github.com/inconshreveable/log15"
-	"math/rand"
+
 )
 
 const name = "hashlock"
@@ -44,6 +43,10 @@ func (hashlock HashlockType) ActionName(tx *types.Transaction) string {
 		return "send"
 	}
 	return "unknow"
+}
+
+func (t HashlockType) Amount(tx *types.Transaction) (int64, error) {
+	return 0, nil
 }
 
 // TODO 暂时不修改实现， 先完成结构的重构

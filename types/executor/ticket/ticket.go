@@ -4,9 +4,7 @@ package ticket
 import (
 	"gitlab.33.cn/chain33/chain33/types"
 	"encoding/json"
-	"time"
 	log "github.com/inconshreveable/log15"
-	"math/rand"
 )
 
 const name = "ticket"
