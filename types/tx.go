@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"time"
 
-
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
@@ -457,7 +456,7 @@ func (tx *Transaction) Json() string {
 //解析tx的payload获取amount值
 func (tx *Transaction) Amount() (int64, error) {
 	// TODO 原来有很多执行器 在这里没有代码， 用默认 0, nil 先
-	exec:= LoadExecutor(string(tx.Execer))
+	exec := LoadExecutor(string(tx.Execer))
 	if exec == nil {
 		return 0, nil
 	}

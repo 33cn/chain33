@@ -2,7 +2,6 @@ package types
 
 import "encoding/json"
 
-
 type ExecutorType interface {
 	// name 是 executor name 构造时用
 	//func Name()
@@ -12,7 +11,7 @@ type ExecutorType interface {
 }
 
 type LogType interface {
-	Name()string
+	Name() string
 	Decode([]byte) (interface{}, error)
 }
 
@@ -76,5 +75,3 @@ func LoadQueryType(funcName string) RpcQueryType {
 	}
 	return nil
 }
-
-
