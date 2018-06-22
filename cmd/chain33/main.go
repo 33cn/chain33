@@ -43,7 +43,7 @@ import (
 
 var (
 	cpuNum     = runtime.NumCPU()
-	configPath = flag.String("f", "chain33.para.toml", "configfile")
+	configPath = flag.String("f", "chain33.toml", "configfile")
 	datadir    = flag.String("datadir", "", "data dir of chain33, include logs and datas")
 	versionCmd = flag.Bool("v", false, "version")
 )

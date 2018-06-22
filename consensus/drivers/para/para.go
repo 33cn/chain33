@@ -7,6 +7,7 @@ import (
 	"time"
 
 	log "github.com/inconshreveable/log15"
+	//"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers"
 	"gitlab.33.cn/chain33/chain33/queue"
@@ -22,7 +23,7 @@ var (
 	lastSeq    int64 = 0
 	seqStep    int64 = 10 //experience needed
 	txOps      []txOperation
-	filterExec       = "filter" //execName not decided
+	filterExec       = "ticket" //execName not decided
 	AddAct     int64 = 1
 	DelAct     int64 = 2 //reference blockstore.go
 )
@@ -42,7 +43,7 @@ type Client struct {
 func New(cfg *types.Consensus) *Client {
 	c := drivers.NewBaseClient(cfg)
 	grpcSite = cfg.ParaRemoteGrpcClient
-
+	plog.Debug("New Para consensus client")
 	conn, err := grpc.Dial(grpcSite, grpc.WithInsecure())
 	if err != nil {
 		panic(err)
@@ -88,29 +89,38 @@ func (client *Client) FilterTxsForPara(Txs []*types.Transaction) []*types.Transa
 	return txs
 }
 
+//sequence start from 0 in blockchain
 func (client *Client) GetCurrentSeq() int64 {
 	//database or from txhash
 	return 0
 }
 
 func (client *Client) SetTxs() {
+	plog.Debug("Para consensus SetTxs")
 	client.Txsmu.Lock()
 	defer client.Txsmu.Unlock()
 
-	lastSeq = client.GetLastSeqOnMainChain()
+	lastSeq, err := client.GetLastSeqOnMainChain()
+	if err != nil {
+		return
+	}
+	plog.Error("SetTxs", "LastSeq", lastSeq, "currSeq", currSeq)
 	if lastSeq > currSeq {
-		blockSeq := client.GetBlockHashFromMainChain(currSeq, currSeq+1)
+		blockSeq, _ := client.GetBlockHashFromMainChain(currSeq, currSeq+1)
 		if blockSeq == nil {
+			plog.Debug("Not found block hash on seq", "start", currSeq, "end", currSeq+1)
 			return
 		}
 		currSeq += 1
 		var hashes [][]byte
 		for _, item := range blockSeq.Items {
 			hashes = append(hashes, item.Hash)
+			//break
 		}
 
-		blockDetails := client.GetBlocksByHashesFromMainChain(hashes)
+		blockDetails, _ := client.GetBlocksByHashesFromMainChain(hashes)
 		if blockDetails == nil {
+			plog.Error("GetBlockDetailerr")
 			return
 		}
 
@@ -147,42 +157,50 @@ func (client *Client) SetOpTxs(txs []*types.Transaction, ty int64) {
 	}
 }
 
+func (client *Client) MonitorTxs() {
+	plog.Debug("MonitorTxs", "len for txs", len(txOps))
+}
+
 func (client *Client) ManageTxs() {
 	//during start
 	currSeq = client.GetCurrentSeq()
-
+	plog.Debug("Para consensus ManageTxs")
 	for {
 		time.Sleep(time.Second)
 		client.SetTxs()
+		client.MonitorTxs()
 	}
 
 }
 
-func (client *Client) GetLastSeqOnMainChain() int64 {
-	seq, err := client.grpcClient.GetLastBlockSequence(context.Background(), nil)
+func (client *Client) GetLastSeqOnMainChain() (int64, error) {
+	seq, err := client.grpcClient.GetLastBlockSequence(context.Background(), &types.ReqNil{})
 	if err != nil {
-		return -1
+		plog.Error("GetLastSeqOnMainChain", "Error", err.Error())
+		return -1, err
 	}
 	//the reflect checked in grpcHandle
-	return seq.Data
+	return seq.Data, nil
 }
 
-func (client *Client) GetBlocksByHashesFromMainChain(hashes [][]byte) *types.BlockDetails {
+func (client *Client) GetBlocksByHashesFromMainChain(hashes [][]byte) (*types.BlockDetails, error) {
 	req := &types.ReqHashes{hashes}
 	blocks, err := client.grpcClient.GetBlockByHashes(context.Background(), req)
 	if err != nil {
-		return nil
+		plog.Error("GetBlocksByHashesFromMainChain", "Error", err.Error())
+		return nil, err
 	}
-	return blocks
+	return blocks, nil
 }
 
-func (client *Client) GetBlockHashFromMainChain(start int64, end int64) *types.BlockSequences {
+func (client *Client) GetBlockHashFromMainChain(start int64, end int64) (*types.BlockSequences, error) {
 	req := &types.ReqBlocks{start, end, true, []string{}}
 	blockSeq, err := client.grpcClient.GetBlockSequences(context.Background(), req)
 	if err != nil {
-		return nil
+		plog.Error("GetBlockHashFromMainChain", "Error", err.Error())
+		return nil, err
 	}
-	return blockSeq
+	return blockSeq, nil
 }
 
 func (client *Client) Close() {
