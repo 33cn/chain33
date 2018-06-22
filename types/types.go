@@ -236,39 +236,7 @@ func (r *ReceiptData) DecodeReceiptLog() (*ReceiptDataResult, error) {
 				return nil, err
 			}
 			logIns = logTmp
-		case TyLogNewTicket:
-			lTy = "LogNewTicket"
-			var logTmp ReceiptTicket
-			err = Decode(lLog, &logTmp)
-			if err != nil {
-				return nil, err
-			}
-			logIns = logTmp
-		case TyLogCloseTicket:
-			lTy = "LogCloseTicket"
-			var logTmp ReceiptTicket
-			err = Decode(lLog, &logTmp)
-			if err != nil {
-				return nil, err
-			}
-			logIns = logTmp
-		case TyLogMinerTicket:
-			lTy = "LogMinerTicket"
-			var logTmp ReceiptTicket
-			err = Decode(lLog, &logTmp)
-			if err != nil {
-				return nil, err
-			}
-			logIns = logTmp
-		case TyLogTicketBind:
-			lTy = "LogTicketBind"
-			var logTmp ReceiptTicketBind
-			err = Decode(lLog, &logTmp)
-			if err != nil {
-				return nil, err
-			}
-			logIns = logTmp
-			
+
 		default:
 			//log.Error("DecodeLog", "Faile to decodeLog with type value:%d", l.Ty)
 			return nil, ErrLogType
