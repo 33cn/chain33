@@ -531,7 +531,6 @@ func (tx *Transaction) Amount() (int64, error) {
 
 //获取tx交易的Actionname
 func (tx *Transaction) ActionName() string {
-	// etype, err := executor.LoadType(string(tx.Execer))
 	execName := string(tx.Execer)
 	if bytes.HasPrefix(tx.Execer, []byte("user.evm.")) {
 		execName = "evm"
