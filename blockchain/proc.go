@@ -186,10 +186,19 @@ func (chain *BlockChain) addBlockDetail(msg queue.Message) {
 }
 
 func (chain *BlockChain) broadcastAddBlock(msg queue.Message) {
-	//var block *types.Block
 	var reply types.Reply
 	reply.IsOk = true
 	blockwithpid := msg.Data.(*types.BlockPid)
+
+	castheight := blockwithpid.Block.Height
+	curheight := chain.GetBlockHeight()
+	//当本节点在同步阶段并且远远落后主网最新高度时不处理广播block,暂定落后128个区块
+	//以免广播区块占用go goroutine资源
+	if blockwithpid.Block.Height > curheight+BackBlockNum {
+		chainlog.Debug("EventBroadcastAddBlock", "curheight", curheight, "castheight", castheight, "hash", common.ToHex(blockwithpid.Block.Hash()), "pid", blockwithpid.Pid, "result", "Do not handle broad cast Block in sync")
+		msg.Reply(chain.client.NewMessage("p2p", types.EventReply, &reply))
+		return
+	}
 	err := chain.ProcAddBlockMsg(true, &types.BlockDetail{Block: blockwithpid.Block}, blockwithpid.Pid)
 	if err != nil {
 		chainlog.Error("ProcAddBlockMsg", "err", err.Error())
