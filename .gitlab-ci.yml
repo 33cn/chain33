@@ -52,11 +52,6 @@ go_lint:
 #        - develop
 #        - bty_develop
 
-go_build_relayd:
-    stage: build
-    script:
-        - make relayd
-
 go_test:
     stage: test
     tags:
