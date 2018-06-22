@@ -28,8 +28,10 @@ func init() {
 	types.RegistorLog(types.TyLogTokenExecDeposit, &TokenExecDepositLog{})
 	types.RegistorLog(types.TyLogTokenExecFrozen, &TokenExecFrozenLog{})
 	types.RegistorLog(types.TyLogTokenExecActive, &TokenExecActiveLog{})
+
 	types.RegistorLog(types.TyLogTokenGenesisTransfer, &TokenGenesisTransferLog{})
 	types.RegistorLog(types.TyLogTokenGenesisDeposit, &TokenGenesisDepositLog{})
+
 	types.RegistorLog(types.TyLogPreCreateToken, &TokenPreCreateLog{})
 	types.RegistorLog(types.TyLogFinishCreateToken, &TokenFinishCreateLog{})
 	types.RegistorLog(types.TyLogRevokeCreateToken, &TokenRevokeCreateLog{})
