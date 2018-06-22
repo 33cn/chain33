@@ -312,6 +312,20 @@ type NodeNetinfo struct {
 	Inbounds     int32  `json:"inbounds"`
 }
 
+type TimeStatus struct {
+	NtpTime   string `json:"ntpTime"`
+	LocalTime string `json:"localTime"`
+	Diff      int64  `json:"diff"`
+}
+type ReplyBlkSeqs struct {
+	BlkSeqInfos []*ReplyBlkSeq `json:"blkseqInfos"`
+}
+
+type ReplyBlkSeq struct {
+	Hash string `json:"hash"`
+	Type int64  `json:"type"`
+}
+
 type TransactionCreate struct {
 	Execer     string          `protobuf:"bytes,1,opt,name=execer,proto3" json:"execer"`
 	ActionName string          `protobuf:"bytes,2,opt,name=actionName" json:"actionName"`
