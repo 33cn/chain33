@@ -25,9 +25,10 @@ var (
 	ExecerManage     = []byte("manage")
 	ExecerToken      = []byte("token")
 	ExecerEvm        = []byte(ExecerEvmString)
+	ExecerRelay      = []byte("relay")
 	AllowDepositExec = [][]byte{ExecerTicket}
 	AllowUserExec    = [][]byte{ExecerCoins, ExecerTicket, []byte("norm"), []byte("hashlock"),
-		[]byte("retrieve"), []byte("none"), ExecerToken, []byte("trade"), []byte("relay"), ExecerManage, ExecerEvm}
+		[]byte("retrieve"), []byte("none"), ExecerToken, []byte("trade"), ExecerManage, ExecerEvm, ExecerRelay}
 	GenesisAddr            = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 	GenesisBlockTime int64 = 1526486816
 	HotkeyAddr             = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
@@ -99,7 +100,7 @@ func SetTitle(t string) {
 	title = t
 	if IsBityuan() {
 		AllowUserExec = [][]byte{ExecerCoins, ExecerTicket, []byte("hashlock"),
-			[]byte("retrieve"), []byte("none"), ExecerToken, []byte("trade"), []byte("relay"), ExecerManage}
+			[]byte("retrieve"), []byte("none"), ExecerToken, []byte("trade"),  ExecerManage, ExecerRelay}
 		return
 	}
 	if IsLocal() {

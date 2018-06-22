@@ -7,7 +7,7 @@ import (
 	"encoding/hex"
 
 	"github.com/golang/protobuf/proto"
-	"gitlab.33.cn/chain33/chain33/account"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -92,11 +92,11 @@ func (c *channelClient) CreateRawRelayOrderTx(parm *RelayOrderTx) ([]byte, error
 		Value: &types.RelayAction_Create{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte("relay"),
+		Execer:  types.ExecerRelay,
 		Payload: types.Encode(sell),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      account.ExecAddress("relay"),
+		To:      address.ExecAddress(string(types.ExecerRelay)),
 	}
 
 	data := types.Encode(tx)
@@ -113,11 +113,11 @@ func (c *channelClient) CreateRawRelayAcceptTx(parm *RelayAcceptTx) ([]byte, err
 		Value: &types.RelayAction_Accept{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte("relay"),
+		Execer:  types.ExecerRelay,
 		Payload: types.Encode(val),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      account.ExecAddress("relay"),
+		To:      address.ExecAddress(string(types.ExecerRelay)),
 	}
 
 	data := types.Encode(tx)
@@ -134,11 +134,11 @@ func (c *channelClient) CreateRawRelayRevokeTx(parm *RelayRevokeTx) ([]byte, err
 		Value: &types.RelayAction_Revoke{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte("relay"),
+		Execer:  types.ExecerRelay,
 		Payload: types.Encode(val),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      account.ExecAddress("relay"),
+		To:      address.ExecAddress(string(types.ExecerRelay)),
 	}
 
 	data := types.Encode(tx)
@@ -155,11 +155,11 @@ func (c *channelClient) CreateRawRelayConfirmTx(parm *RelayConfirmTx) ([]byte, e
 		Value: &types.RelayAction_ConfirmTx{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte("relay"),
+		Execer:  types.ExecerRelay,
 		Payload: types.Encode(val),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      account.ExecAddress("relay"),
+		To:      address.ExecAddress(string(types.ExecerRelay)),
 	}
 
 	data := types.Encode(tx)
@@ -181,11 +181,11 @@ func (c *channelClient) CreateRawRelayVerifyBTCTx(parm *RelayVerifyBTCTx) ([]byt
 		Value: &types.RelayAction_VerifyCli{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte("relay"),
+		Execer:  types.ExecerRelay,
 		Payload: types.Encode(val),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      account.ExecAddress("relay"),
+		To:      address.ExecAddress(string(types.ExecerRelay)),
 	}
 
 	data := types.Encode(tx)
@@ -213,11 +213,11 @@ func (c *channelClient) CreateRawRelaySaveBTCHeadTx(parm *RelaySaveBTCHeadTx) ([
 		Value: &types.RelayAction_BtcHeaders{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte("relay"),
+		Execer:  types.ExecerRelay,
 		Payload: types.Encode(val),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      account.ExecAddress("relay"),
+		To:      address.ExecAddress(string(types.ExecerRelay)),
 	}
 
 	data := types.Encode(tx)

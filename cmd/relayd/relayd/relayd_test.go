@@ -3,8 +3,8 @@ package relayd_test
 import (
 	"testing"
 
-	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -22,5 +22,5 @@ func TestGeneratePrivateKey(t *testing.T) {
 
 	t.Log("private key: ", common.ToHex(key.Bytes()))
 	t.Log("publick key: ", common.ToHex(key.PubKey().Bytes()))
-	t.Log("    address: ", account.PubKeyToAddress(key.PubKey().Bytes()))
+	t.Log("    address: ", address.PubKeyToAddress(key.PubKey().Bytes()))
 }
