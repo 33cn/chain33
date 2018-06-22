@@ -786,6 +786,6 @@ func (q *QueueProtocol) GetFatalFailure() (*types.Int32, error) {
 	return nil, types.ErrTypeAsset
 }
 
-func (q *QueueProtocol) CloseQueue() {
-	q.client.CloseQueue()
+func (q *QueueProtocol) CloseQueue() (*types.ReqNil, error) {
+	return q.client.CloseQueue()
 }

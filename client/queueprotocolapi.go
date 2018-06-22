@@ -111,6 +111,6 @@ type QueueProtocolAPI interface {
 
 	// +++++++++++++++ other interfaces begin
 	// close chain33
-	CloseQueue()
+	CloseQueue() (*types.ReqNil, error)
 	// --------------- other interfaces end
 }
