@@ -1518,8 +1518,8 @@ func (c *Chain33) GetTimeStatus(in *types.ReqNil, result *interface{}) error {
 }
 
 func (c *Chain33) CloseChain33(in *types.ReqNil, result *interface{}) error {
-	c.cli.CloseQueue()
+	_, err := c.cli.CloseQueue()
 
 	*result = nil
-	return nil
+	return err
 }

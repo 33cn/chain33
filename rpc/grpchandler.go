@@ -224,6 +224,6 @@ func (g *Grpc) GetFatalFailure(ctx context.Context, in *pb.ReqNil) (*pb.Int32, e
 	return g.cli.GetFatalFailure()
 }
 
-func (g *Grpc) CloseQueue() {
-	g.cli.CloseQueue()
+func (g *Grpc) CloseQueue(ctx context.Context, in *pb.ReqNil) (*pb.ReqNil, error) {
+	return g.cli.CloseQueue()
 }
