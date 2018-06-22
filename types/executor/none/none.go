@@ -5,9 +5,8 @@ package none
 import (
 	"gitlab.33.cn/chain33/chain33/types"
 	"encoding/json"
-	"time"
 	log "github.com/inconshreveable/log15"
-	"math/rand"
+
 )
 
 const name = "none"
@@ -32,6 +31,10 @@ type NoneType struct {
 
 func (none NoneType) ActionName(tx *types.Transaction) string {
 	return "none"
+}
+
+func (none NoneType) Amount(tx *types.Transaction) (int64, error) {
+	return 0, nil
 }
 
 // TODO 暂时不修改实现， 先完成结构的重构

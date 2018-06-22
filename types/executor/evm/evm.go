@@ -40,6 +40,10 @@ func (evm EvmType) ActionName(tx *types.Transaction) string {
 	return "unknow"
 }
 
+func (evm EvmType) Amount(tx *types.Transaction) (int64, error) {
+	return 0, nil
+}
+
 // TODO 暂时不修改实现， 先完成结构的重构
 func (evm EvmType) NewTx(action string, message json.RawMessage) (*types.Transaction, error) {
 	var tx *types.Transaction
