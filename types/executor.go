@@ -22,6 +22,7 @@ type RpcTypeQuery interface {
 
 var executorMap = map[string]ExecutorType{}
 var receiptLogMap = map[int64]LogType{}
+var rpcTypeUtilMap = map[string]RpcTypeQuery{}
 
 func RegistorExecutor(funcName string, util ExecutorType) {
 	//tlog.Debug("rpc", "t", funcName, "t", util)
@@ -57,10 +58,10 @@ func LoadLog(ty int64) LogType {
 
 func registorRpcType(funcName string, util RpcTypeQuery) {
 	//tlog.Debug("rpc", "t", funcName, "t", util)
-	if _, exist := RpcTypeUtilMap[funcName]; exist {
+	if _, exist := rpcTypeUtilMap[funcName]; exist {
 		panic("DupRpcTypeUtil")
 	} else {
-		RpcTypeUtilMap[funcName] = util
+		rpcTypeUtilMap[funcName] = util
 	}
 }
 
@@ -69,10 +70,10 @@ func RegistorRpcType(funcName string, util RpcTypeQuery) {
 }
 
 func LoadQueryType(funcName string) RpcTypeQuery {
-	if trans, ok := RpcTypeUtilMap[funcName]; ok {
+	if trans, ok := rpcTypeUtilMap[funcName]; ok {
 		return trans
 	}
 	return nil
 }
 
-var RpcTypeUtilMap = map[string]RpcTypeQuery{}
+

@@ -13,7 +13,7 @@ func init() {
 	registorRpcType("GetOnesBuyOrder", &TradeQueryOnesBuyOrder{})
 	registorRpcType("GetOnesOrderWithStatus", &TradeQueryOnesOrder{})
 
-	//tlog.Info("rpc", "typeUtil", RpcTypeUtilMap)
+	//tlog.Info("rpc", "typeUtil", rpcTypeUtilMap)
 }
 
 // rpc query trade sell order part
