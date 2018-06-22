@@ -495,6 +495,32 @@ func (ws *Store) getWalletPrivacyTokenMap() *types.TokenNamesOfUTXO {
 	return &tokenNamesOfUTXO
 }
 
+func (ws *Store) updateFTXOFreezeTime(freezetime int64, txhash string, newbatch dbm.Batch) error {
+	//设置ftxo的key，使其能够方便地获取到对应的交易花费的utxo
+	key1 := calcKey4FTXOsInTx(txhash)
+	value1, err := ws.db.Get(key1)
+	if nil != err {
+		walletlog.Error("unmoveUTXO2FTXO", "Get nil value for key", string(key1))
+		return err
+	}
+	key2 := value1
+	value2, err := ws.db.Get(key2)
+	if nil != err {
+		walletlog.Error("unmoveUTXO2FTXO", "Get nil value for key", string(key2))
+		return nil
+	}
+	var ftxosInOneTx types.FTXOsSTXOsInOneTx
+	err = types.Decode(value2, &ftxosInOneTx)
+	if nil != err {
+		walletlog.Error("unmoveUTXO2FTXO", "Failed to decode FTXOsSTXOsInOneTx for value", value2)
+		return err
+	}
+	ftxosInOneTx.Freezetime = freezetime
+	newValue := types.Encode(&ftxosInOneTx)
+	newbatch.Set(key2, newValue)
+	return nil
+}
+
 //UTXO---->moveUTXO2FTXO---->FTXO---->moveFTXO2STXO---->STXO
 //1.calcUTXOKey------------>types.PrivacyDBStore 该kv值在db中的存储一旦写入就不再改变，除非产生该UTXO的交易被撤销
 //2.calcUTXOKey4TokenAddr-->calcUTXOKey，创建kv，方便查询现在某个地址下某种token的可用utxo
@@ -564,7 +590,7 @@ func (ws *Store) moveUTXO2FTXO(token, sender, txhash string, selectedUtxos []*tx
 	}
 	FTXOsInOneTx.Tokenname = token
 	FTXOsInOneTx.Sender = sender
-	FTXOsInOneTx.TimeoutSec = FTXOTimeout
+	FTXOsInOneTx.Freezetime = time.Now().UnixNano()
 	FTXOsInOneTx.Txhash = txhash
 	//设置在该交易中花费的UTXO
 	key1 := calcKey4UTXOsSpentInTx(txhash)
@@ -579,33 +605,33 @@ func (ws *Store) moveUTXO2FTXO(token, sender, txhash string, selectedUtxos []*tx
 }
 
 //将FTXO重置为UTXO
-func (ws *Store) unmoveUTXO2FTXO(token, sender, txhash string, newbatch dbm.Batch) {
+func (ws *Store) unmoveUTXO2FTXO(token, sender, txhash string, newbatch dbm.Batch) error {
 	//设置ftxo的key，使其能够方便地获取到对应的交易花费的utxo
 	key1 := calcKey4FTXOsInTx(txhash)
 	value1, err := ws.db.Get(key1)
 	if err != nil {
 		walletlog.Error("unmoveUTXO2FTXO", "db Get(key1) error ", err)
-		return
+		return err
 	}
 	if nil == value1 {
 		walletlog.Error("unmoveUTXO2FTXO", "Get nil value for key", string(key1))
-		return
+		return nil
 	}
 	key2 := value1
 	value2, err := ws.db.Get(key2)
 	if err != nil {
 		walletlog.Error("unmoveUTXO2FTXO", "db Get(key2) error ", err)
-		return
+		return err
 	}
 	if nil == value2 {
 		walletlog.Error("unmoveUTXO2FTXO", "Get nil value for key", string(key2))
-		return
+		return nil
 	}
 	var ftxosInOneTx types.FTXOsSTXOsInOneTx
 	err = types.Decode(value2, &ftxosInOneTx)
 	if nil != err {
 		walletlog.Error("unmoveUTXO2FTXO", "Failed to decode FTXOsSTXOsInOneTx for value", value2)
-		return
+		return err
 	}
 	if err == nil {
 		for _, ftxo := range ftxosInOneTx.Utxos {
@@ -616,36 +642,7 @@ func (ws *Store) unmoveUTXO2FTXO(token, sender, txhash string, newbatch dbm.Batc
 	// 需要将FTXO的所有相关信息删除掉
 	newbatch.Delete(key1)
 	newbatch.Delete(key2)
-}
-
-func (ws *Store) updateFTXOTimeoutCount(timecount int, txhash string, newbatch dbm.Batch) {
-	//设置ftxo的key，使其能够方便地获取到对应的交易花费的utxo
-	key1 := calcKey4FTXOsInTx(txhash)
-	value1, err := ws.db.Get(key1)
-	if nil != err {
-		walletlog.Error("unmoveUTXO2FTXO", "Get nil value for key", string(key1))
-		return
-	}
-	key2 := value1
-	value2, err := ws.db.Get(key2)
-	if nil != err {
-		walletlog.Error("unmoveUTXO2FTXO", "Get nil value for key", string(key2))
-		return
-	}
-	var ftxosInOneTx types.FTXOsSTXOsInOneTx
-	err = types.Decode(value2, &ftxosInOneTx)
-	if nil != err {
-		walletlog.Error("unmoveUTXO2FTXO", "Failed to decode FTXOsSTXOsInOneTx for value", value2)
-		return
-	}
-	ftxosInOneTx.TimeoutSec -= int32(timecount)
-	if ftxosInOneTx.TimeoutSec < 0 {
-		ftxosInOneTx.TimeoutSec = 0
-	}
-	newValue := types.Encode(&ftxosInOneTx)
-	newbatch.Set(key2, newValue)
-
-	//newbatch.Write()
+	return nil
 }
 
 //calcKey4FTXOsInTx-----x------>calcKey4UTXOsSpentInTx,被删除，

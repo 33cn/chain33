@@ -386,8 +386,9 @@ message ResUTXOGlobalIndex {
 message FTXOsSTXOsInOneTx {
 	string tokenname = 1;
 	string sender = 2;
-	int32  timeoutSec = 3;
-	string txhash = 4;
+	// 交易倍成功发送以后，计入冻结的开始时间
+	int64	freezetime = 3;
+	string 	txhash = 4;
 	repeated UTXO utxos = 5;
 }
 
