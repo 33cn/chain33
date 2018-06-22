@@ -8,30 +8,72 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/pkg/errors"
-	"github.com/ssdb/gossdb/ssdb"
+	"github.com/seefan/gossdb"
+	"github.com/seefan/gossdb/ssdb"
 	"gitlab.33.cn/chain33/chain33/types"
 	"strconv"
 	"strings"
+	"time"
 )
 
 var dlog = log.New("module", "db.ssdb")
-var SsdbClientError = errors.New("client_error")
+var SsdbPoolError = errors.New("get client from pool error")
+var benchmark = &SsdbBench{}
 
 func init() {
 	dbCreator := func(name string, dir string, cache int) (DB, error) {
 		return NewGoSSDB(name, dir, cache)
 	}
 	registerDBCreator(ssDBBackendStr, dbCreator, false)
+
+	go printSsdbBenchmark()
 }
 
+type SsdbBench struct {
+	// 写次数
+	writeCount int
+	// 写条数
+	writeNum int
+	// 写耗费时间
+	writeTime time.Duration
+	readCount int
+	readNum   int
+	readTime  time.Duration
+}
 type SsdbNode struct {
 	ip   string
 	port int
 }
 type GoSSDB struct {
 	TransactionDB
-	db    *ssdb.Client
+	//pool  *gossdb.Connectors
+	pool  *gossdb.Client
 	nodes []*SsdbNode
+}
+
+func (bench *SsdbBench) write(num int, cost time.Duration) {
+	bench.writeCount++
+	bench.writeNum += num
+	bench.writeTime += cost
+}
+
+func (bench *SsdbBench) read(num int, cost time.Duration) {
+	bench.readCount++
+	bench.readNum += num
+	bench.readTime += cost
+}
+
+func (bench *SsdbBench) String() string {
+	return fmt.Sprintf("SSDBBenchmark[(ReadTimes=%v, ReadRecordNum=%v, ReadCostTime=%v;) (WriteTimes=%v, WriteRecordNum=%v, WriteCostTime=%v)",
+		bench.readCount, bench.readNum, bench.readTime, bench.writeCount, bench.writeNum, bench.writeTime)
+}
+
+func printSsdbBenchmark() {
+	for {
+		time.Sleep(time.Minute)
+		dlog.Info(benchmark.String())
+	}
+
 }
 
 // url pattern: ip:port,ip:port
@@ -59,78 +101,93 @@ func parseSsdbNode(url string) (nodes []*SsdbNode) {
 }
 
 func NewGoSSDB(name string, dir string, cache int) (*GoSSDB, error) {
-
 	database := &GoSSDB{}
 	database.nodes = parseSsdbNode(dir)
-
 	if database.nodes == nil {
 		dlog.Error("no valid ssdb instance exists, exit!")
 		return nil, types.ErrDataBaseDamage
 	}
+
 	var err error
-	database.db, err = ssdb.Connect(database.nodes[0].ip, database.nodes[0].port)
+	//node := database.nodes[0]
+	//pool, err := gossdb.NewPool(&conf.Config{
+	//	Host:         node.ip,
+	//	Port:         node.port,
+	//	RetryEnabled: true,
+	//})
+	//if err != nil {
+	//	dlog.Error("create ssdb pool error, exit!", "error", err)
+	//	return nil, types.ErrDataBaseDamage
+	//}
+	if err = ssdb.Start(); err != nil {
+		dlog.Error("start ssdb error, exit!", "error", err)
+		return nil, types.ErrDataBaseDamage
+	}
+
+	database.pool, err = ssdb.Client()
 	if err != nil {
-		dlog.Error("connect to ssdb error!", "ssdb", database.nodes[0])
+		dlog.Error("get ssdb client error, exit!", "error", err)
 		return nil, types.ErrDataBaseDamage
 	}
 	return database, nil
 }
 
-func (db *GoSSDB) Get(key []byte) ([]byte, error) {
-	dlog.Info("Get", "key", key, "keyhex", hex.EncodeToString(key), "keystr", string(key))
-	res, err := ssdbGet(string(key), db.db)
+func (db *GoSSDB) newClient() *gossdb.Client {
+	//client, err := db.pool.NewClient()
+	//if err != nil {
+	//	dlog.Error("can not get connection from pool", "error", err)
+	//	return nil
+	//}
+	//return client
 
-	// SSDB在压力大的情况下会返回错误的client_error，这种情况下可以尝试3次
-	for i := 0; i < 3; i++ {
-		if err == SsdbClientError {
-			res, err = ssdbGet(string(key), db.db)
-		} else {
-			break
-		}
-	}
-
-	if err == SsdbClientError {
-		dlog.Error("Get", "error", err, "key", key)
-	}
-	if err != nil {
-		dlog.Error("Get", "error", err, "key", key)
-		return nil, err
-	}
-	if res == nil {
-		return nil, ErrNotFoundInDb
-	}
-
-	if v, ok := res.(string); ok {
-		return []byte(v), nil
-	} else {
-		return nil, ErrNotFoundInDb
-	}
+	return db.pool
 }
 
-func ssdbGet(key string, db *ssdb.Client) (interface{}, error) {
-	resp, err := db.Do("get", key)
+func (db *GoSSDB) Get(key []byte) ([]byte, error) {
+	start := time.Now()
+	client := db.newClient()
+	if client == nil {
+		return nil, SsdbPoolError
+	}
+	defer client.Close()
+
+	value, err := client.Get(string(key))
 	if err != nil {
+		dlog.Error("Get value error", "error", err, "key", key, "keyhex", hex.EncodeToString(key), "keystr", string(key))
 		return nil, err
 	}
-	if len(resp) == 2 && resp[0] == "ok" {
-		return resp[1], nil
-	}
-	if resp[0] == "not_found" {
-		return nil, nil
-	}
-	if resp[0] == "client_error" {
-		return nil, SsdbClientError
+	if value == "" {
+		return nil, ErrNotFoundInDb
 	}
 
-	return nil, fmt.Errorf("bad response: %v", resp[0])
+	// 空值特殊处理
+	binVal := value.Bytes()
+	if bytes.Equal(binVal, types.EmptyValue) {
+		return []byte{}, nil
+	}
+
+	benchmark.read(1, time.Since(start))
+	return binVal, nil
 }
 
 func (db *GoSSDB) Set(key []byte, value []byte) error {
-	_, err := db.db.Set(string(key), string(value))
+	start := time.Now()
+	if len(value) == 0 {
+		value = types.EmptyValue
+	}
+
+	client := db.newClient()
+	if client == nil {
+		return SsdbPoolError
+	}
+	defer client.Close()
+
+	err := client.Set(string(key), value)
 	if err != nil {
 		llog.Error("Set", "error", err)
 		return err
 	}
+	benchmark.write(1, time.Since(start))
 	return nil
 }
 
@@ -139,11 +196,18 @@ func (db *GoSSDB) SetSync(key []byte, value []byte) error {
 }
 
 func (db *GoSSDB) Delete(key []byte) error {
-	_, err := db.db.Del(string(key))
+	start := time.Now()
+	client := db.newClient()
+	if client == nil {
+		return SsdbPoolError
+	}
+	defer client.Close()
+	err := client.Del(string(key))
 	if err != nil {
 		llog.Error("Delete", "error", err)
 		return err
 	}
+	benchmark.write(1, time.Since(start))
 	return nil
 }
 
@@ -152,49 +216,46 @@ func (db *GoSSDB) DeleteSync(key []byte) error {
 }
 
 func (db *GoSSDB) Close() {
-	db.db.Close()
+	db.pool.Close()
 }
 
 func (db *GoSSDB) Print() {
-	dlog.Info("db info")
+	//dlog.Info(db.pool.Info())
 }
 
 func (db *GoSSDB) Stats() map[string]string {
-	stats := make(map[string]string)
-	return stats
+	return make(map[string]string)
 }
 
 func (db *GoSSDB) Iterator(prefix []byte, reverse bool) Iterator {
-	limit := util.BytesPrefix(prefix)
+	start := time.Now()
+	client := db.newClient()
+	if client == nil {
+		return newSSDBIt(prefix, []string{}, reverse, db)
+	}
+	defer client.Close()
+
 	var (
-		cmd   string
-		start []byte
-		end   []byte
+		keys []string
+		err  error
 	)
 
+	limit := util.BytesPrefix(prefix)
 	if reverse {
-		cmd = "rkeys"
-		start = prefix
-		end = limit.Limit
+		keys, err = client.Rkeys(string(limit.Limit), string(prefix), -1)
 	} else {
-		cmd = "keys"
-		start = limit.Limit
-		end = prefix
+		keys, err = client.Rkeys(string(prefix), string(limit.Limit), -1)
 	}
 
 	it := newSSDBIt(prefix, []string{}, reverse, db)
-	resp, err := db.db.Do(cmd, string(start), string(end), -1)
-	if err != nil || len(resp) == 0 {
-		dlog.Error("get iterator error", "error", err)
+	if err != nil || len(keys) == 0 {
+		dlog.Error("get iterator error", "error", err, "keys", keys)
 		return it
 	}
+	it.keys = keys
 
-	if len(resp) > 0 && resp[0] == "ok" {
-		return newSSDBIt(prefix, resp[1:], reverse, db)
-	} else {
-		dlog.Warn("get iterator empty!", "resp", resp)
-		return it
-	}
+	benchmark.read(len(keys), time.Since(start))
+	return it
 }
 
 type ssDBIt struct {
@@ -262,6 +323,7 @@ func (dbit *ssDBIt) Key() []byte {
 func (dbit *ssDBIt) Value() []byte {
 	key := dbit.keys[dbit.index]
 	value, err := dbit.db.Get([]byte(key))
+
 	if err != nil {
 		dlog.Error("get iterator value error", "key", key)
 		return nil
@@ -281,29 +343,34 @@ func (dbit *ssDBIt) ValueCopy() []byte {
 }
 
 func (dbit *ssDBIt) Valid() bool {
+	start := time.Now()
 	if len(dbit.keys) <= dbit.index {
 		return false
 	}
 	key := dbit.keys[dbit.index]
+	benchmark.read(1, time.Since(start))
 	return bytes.HasPrefix([]byte(key), dbit.prefix)
 }
 
 type ssDBBatch struct {
-	db       *ssdb.Client
-	batchset map[string]string
+	db       *GoSSDB
+	batchset map[string]interface{}
 	batchdel []string
 }
 
 func (db *GoSSDB) NewBatch(sync bool) Batch {
-	return &ssDBBatch{db: db.db, batchset: make(map[string]string)}
+	return &ssDBBatch{db: db, batchset: make(map[string]interface{})}
 }
 
 func (db *ssDBBatch) Set(key, value []byte) {
-	db.batchset[string(key)] = string(value)
+	if len(value) == 0 {
+		value = types.EmptyValue
+	}
+	db.batchset[string(key)] = value
 }
 
 func (db *ssDBBatch) Delete(key []byte) {
-	db.batchset[string(key)] = ""
+	db.batchset[string(key)] = []byte{}
 	db.batchdel = append(db.batchdel, string(key))
 }
 
@@ -312,26 +379,29 @@ func (db *ssDBBatch) Delete(key []byte) {
 // 然后再执行删除操作；
 // 这样即使中间执行出错，也不会导致删除结果未写入的情况（值已经被置空）；
 func (db *ssDBBatch) Write() error {
-	args := []interface{}{"multi_set"}
+	start := time.Now()
+	client := db.db.newClient()
+	if client == nil {
+		return SsdbPoolError
+	}
+	defer client.Close()
 
-	for k, v := range db.batchset {
-		args = append(args, k)
-		args = append(args, v)
-	}
-	_, err := db.db.Do(args...)
-	if err != nil {
-		dlog.Error("Write (multi_set)", "error", err)
-		return err
+	if len(db.batchset) > 0 {
+		err := client.MultiSet(db.batchset)
+		if err != nil {
+			dlog.Error("Write (multi_set)", "error", err)
+			return err
+		}
 	}
 
-	args = []interface{}{"multi_del"}
-	for _, v := range db.batchdel {
-		args = append(args, v)
+	if len(db.batchdel) > 0 {
+		err := client.MultiDel(db.batchdel...)
+		if err != nil {
+			dlog.Error("Write (multi_del)", "error", err)
+			return err
+		}
 	}
-	_, err = db.db.Do(args...)
-	if err != nil {
-		dlog.Error("Write (multi_del)", "error", err)
-		return err
-	}
+
+	benchmark.read(len(db.batchset)+len(db.batchdel), time.Since(start))
 	return nil
 }
