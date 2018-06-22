@@ -14,6 +14,12 @@ import (
 	//"gitlab.33.cn/chain33/chain33/types/executor"
 )
 
+var (
+	bCoins   = []byte("coins")
+	bToken   = []byte("token")
+	withdraw = "withdraw"
+)
+
 func CreateTxGroup(txs []*Transaction) (*Transactions, error) {
 	if len(txs) < 2 {
 		return nil, ErrTxGroupCountLessThanTwo
@@ -645,4 +651,14 @@ func (tx *Transaction) ActionName() string {
 	}
 
 	return "unknow"
+}
+
+//判断交易是withdraw交易，需要做from和to地址的swap，方便上层客户理解
+func (tx *Transaction) IsWithdraw() bool {
+	if bytes.Equal(tx.GetExecer(), bCoins) || bytes.Equal(tx.GetExecer(), bToken) {
+		if tx.ActionName() == withdraw {
+			return true
+		}
+	}
+	return false
 }

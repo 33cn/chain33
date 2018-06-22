@@ -1453,7 +1453,7 @@ func (c *Chain33) QueryTicketInfoList(in *types.LocalDBList, result *interface{}
 }
 
 func (c *Chain33) CreateBindMiner(in *types.ReqBindMiner, result *interface{}) error {
-	if in.Amount%10000 != 0 || in.Amount < 0 {
+	if in.Amount%(10000*types.Coin) != 0 || in.Amount < 0 {
 		return types.ErrAmount
 	}
 	err := address.CheckAddress(in.BindAddr)
@@ -1474,7 +1474,7 @@ func (c *Chain33) CreateBindMiner(in *types.ReqBindMiner, result *interface{}) e
 		if len(balances) == 0 {
 			return types.ErrInputPara
 		}
-		if balances[0].Balance < (in.Amount+2)*types.Coin {
+		if balances[0].Balance < in.Amount+2*types.Coin {
 			return types.ErrNoBalance
 		}
 	}
@@ -1502,6 +1502,68 @@ func (c *Chain33) DecodeRawTransaction(in *types.ReqDecodeRawTransaction, result
 }
 
 
+func (c *Chain33) GetTimeStatus(in *types.ReqNil, result *interface{}) error {
+	reply, err := c.cli.GetTimeStatus()
+	if err != nil {
+		return err
+	}
+
+	timeStatus := &TimeStatus{
+		NtpTime:   reply.NtpTime,
+		LocalTime: reply.LocalTime,
+		Diff:      reply.Diff,
+	}
+
+	*result = timeStatus
+	return nil
+}
+func (c *Chain33) GetLastBlockSequence(in *types.ReqNil, result *interface{}) error {
+	resp, err := c.cli.GetLastBlockSequence()
+	if err != nil {
+		return err
+	}
+	*result = resp.GetData()
+	return nil
+}
+
+// 获取指定区间的block加载序列号信息。输入信息只使用：start，end
+func (c *Chain33) GetBlockSequences(in BlockParam, result *interface{}) error {
+	resp, err := c.cli.GetBlockSequences(&types.ReqBlocks{Start: in.Start, End: in.End, IsDetail: in.Isdetail, Pid: []string{""}})
+	if err != nil {
+		return err
+	}
+	var BlkSeqs ReplyBlkSeqs
+	items := resp.GetItems()
+	for _, item := range items {
+		BlkSeqs.BlkSeqInfos = append(BlkSeqs.BlkSeqInfos, &ReplyBlkSeq{Hash: common.ToHex(item.GetHash()),
+			Type: item.GetType()})
+	}
+	*result = &BlkSeqs
+	return nil
+}
+
+// 通过block hash 获取对应的block信息
+func (c *Chain33) GetBlockByHashes(in ReqHashes, result *interface{}) error {
+	log.Warn("GetBlockByHashes", "hashes", in)
+	var parm types.ReqHashes
+	parm.Hashes = make([][]byte, 0)
+	for _, v := range in.Hashes {
+		hb, err := common.FromHex(v)
+		if err != nil {
+			parm.Hashes = append(parm.Hashes, nil)
+			continue
+		}
+		parm.Hashes = append(parm.Hashes, hb)
+
+	}
+	reply, err := c.cli.GetBlockByHashes(&parm)
+	if err != nil {
+		return err
+	}
+	*result = reply
+	return nil
+}
+
 func (c *Chain33) CreateTransaction(in TransactionCreate, result *interface{}) error {
 	exec := types.LoadExecutor(in.Execer)
 	if exec == nil {
@@ -1515,3 +1577,4 @@ func (c *Chain33) CreateTransaction(in TransactionCreate, result *interface{}) e
 	*result = tx
 	return nil
 }
+

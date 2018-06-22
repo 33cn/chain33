@@ -3,15 +3,14 @@
 echo "-----start build chain33-----"
 SHELL_FOLDER=$(cd "$(dirname "$0")";pwd)
 echo "cur dir:"$SHELL_FOLDER
-cd $SHELL_FOLDER/../../../../../
+cd $SHELL_FOLDER/../../../../../cmd/chain33/
+echo "---go build -o chain33---"
 go build -o chain33
 mv chain33 $SHELL_FOLDER
-cp chain33.toml $SHELL_FOLDER
 curDir=$(pwd)
 echo "cur dir:":$curDir
 cd $SHELL_FOLDER
-dos2unix *.sh
+#dos2unix *.sh
 tar cvf chain33.tgz chain33 chain33.toml raft_conf.sh run.sh
 rm -rf chain33
-rm -rf chain33.toml
 echo "---- chain33 build success!----- "
