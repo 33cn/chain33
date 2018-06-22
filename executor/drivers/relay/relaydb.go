@@ -76,7 +76,7 @@ func (r *relayLog) receiptLog(relayLogType int32) *types.ReceiptLog {
 type relayDB struct {
 	coinsAccount *account.DB
 	db           dbm.KV
-	txHash       string
+	txHash       []byte
 	fromAddr     string
 	blockTime    int64
 	height       int64
@@ -84,8 +84,8 @@ type relayDB struct {
 }
 
 func newRelayDB(r *relay, tx *types.Transaction) *relayDB {
-	hash := common.Bytes2Hex(tx.Hash())
-	fromAddr := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
+	hash := tx.Hash()
+	fromAddr := tx.From()
 	return &relayDB{r.GetCoinsAccount(), r.GetStateDB(), hash,
 		fromAddr, r.GetBlockTime(), r.GetHeight(), r.GetAddr()}
 }
@@ -133,7 +133,7 @@ func (action *relayDB) relayCreate(order *types.RelayCreate) (*types.Receipt, er
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
 	uOrder := &types.RelayOrder{
-		Id:            calcRelayOrderID(action.txHash),
+		Id:            calcRelayOrderID(common.ToHex(action.txHash)),
 		Status:        types.RelayOrderStatus_pending,
 		PreStatus:     types.RelayOrderStatus_init,
 		Amount:        order.BtyAmount,
@@ -461,7 +461,7 @@ func (action *relayDB) verifyTx(btc *btcStore, verify *types.RelayVerify) (*type
 	order.PreStatus = order.Status
 	order.Status = types.RelayOrderStatus_finished
 	order.FinishTime = action.blockTime
-	order.FinishTxHash = action.txHash
+	order.FinishTxHash = common.ToHex(action.txHash)
 
 	relayLog := newRelayLog(order)
 	orderKV := relayLog.save(action.db)

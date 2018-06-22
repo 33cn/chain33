@@ -13,7 +13,7 @@ import (
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	log "github.com/inconshreveable/log15"
 	"github.com/valyala/fasthttp"
-	"gitlab.33.cn/chain33/chain33/account"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -114,7 +114,7 @@ func NewRelayd(config *Config) *Relayd {
 
 	pubkey := priKey.PubKey()
 	fmt.Println(pubkey.KeyString())
-	address := account.PubKeyToAddress(pubkey.Bytes())
+	address := address.PubKeyToAddress(pubkey.Bytes())
 	fmt.Println(address.String())
 
 	return &Relayd{
@@ -212,7 +212,7 @@ out:
 func (r *Relayd) queryChain33WithBtcHeight() (*types.ReplayRelayQryBTCHeadHeight, error) {
 	payLoad := types.Encode(&types.ReqRelayQryBTCHeadHeight{})
 	query := types.Query{
-		Execer:   executor,
+		Execer:   types.ExecerRelay,
 		FuncName: "GetBTCHeaderCurHeight",
 		Payload:  payLoad,
 	}
@@ -312,10 +312,10 @@ func (r *Relayd) syncBlockHeaders() {
 
 func (r *Relayd) transaction(payload []byte) *types.Transaction {
 	tx := &types.Transaction{
-		Execer:  executor,
+		Execer:  types.ExecerRelay,
 		Payload: payload,
 		Nonce:   rand.Int63(),
-		To:      account.ExecAddress(string(executor)),
+		To:      address.ExecAddress(string(types.ExecerRelay)),
 	}
 
 	fee, _ := tx.GetRealFee(types.MinFee)
@@ -370,7 +370,7 @@ func (r *Relayd) requestRelayOrders(status types.RelayOrderStatus) (*types.Query
 		Status: status,
 	})
 	query := types.Query{
-		Execer:   executor,
+		Execer:   types.ExecerRelay,
 		FuncName: "GetRelayOrderByStatus",
 		Payload:  payLoad,
 	}
