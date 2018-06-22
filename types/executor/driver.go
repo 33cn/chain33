@@ -7,6 +7,18 @@ import (
 	_ "gitlab.33.cn/chain33/chain33/types/executor/trade"
 )
 
+// 进度：
+// coins: 		actionName	NewTx	log		query
+// evm: 		actionName
+// game:
+// hashlock: 	actionName
+// manage:
+// none: 		actionName
+// retrieve: 	actionName
+// ticket:		actionName
+// token:		actionName	NewTx	log		query
+// trade:		actionName	NewTx	log		query
+
 func init() {
 	// not need to init executor
 
