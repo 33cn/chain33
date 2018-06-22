@@ -182,37 +182,6 @@ func (r *ReceiptData) DecodeReceiptLog() (*ReceiptDataResult, error) {
 		//decode.Decode(lLog)
 		//decode.Name()
 		switch l.Ty {
-		case TyLogErr:
-			lTy = "LogErr"
-			logIns = string(lLog)
-		case TyLogFee:
-			lTy = "LogFee"
-
-			var logTmp ReceiptAccountTransfer
-			err = Decode(lLog, &logTmp)
-			if err != nil {
-				return nil, err
-			}
-			logIns = logTmp
-		case TyLogTransfer:
-			lTy = "LogTransfer"
-			var logTmp ReceiptAccountTransfer
-			err = Decode(lLog, &logTmp)
-			if err != nil {
-				return nil, err
-			}
-			logIns = logTmp
-		case TyLogGenesis:
-			lTy = "LogGenesis"
-			logIns = nil
-		case TyLogDeposit:
-			lTy = "LogDeposit"
-			var logTmp ReceiptAccountTransfer
-			err = Decode(lLog, &logTmp)
-			if err != nil {
-				return nil, err
-			}
-			logIns = logTmp
 		case TyLogExecTransfer:
 			lTy = "LogExecTransfer"
 			var logTmp ReceiptExecAccountTransfer
@@ -349,78 +318,7 @@ func (r *ReceiptData) DecodeReceiptLog() (*ReceiptDataResult, error) {
 				return nil, err
 			}
 			logIns = logTmp
-		case TyLogTokenTransfer:
-			lTy = "LogTokenTransfer"
-			var logTmp ReceiptAccountTransfer
-			err = Decode(lLog, &logTmp)
-			if err != nil {
-				return nil, err
-			}
-			logIns = logTmp
-		case TyLogTokenDeposit:
-			lTy = "LogTokenDeposit"
-			var logTmp ReceiptAccountTransfer
-			err = Decode(lLog, &logTmp)
-			if err != nil {
-				return nil, err
-			}
-			logIns = logTmp
-		case TyLogTokenExecTransfer:
-			lTy = "LogTokenExecTransfer"
-			var logTmp ReceiptExecAccountTransfer
-			err = Decode(lLog, &logTmp)
-			if err != nil {
-				return nil, err
-			}
-			logIns = logTmp
-		case TyLogTokenExecWithdraw:
-			lTy = "LogTokenExecWithdraw"
-			var logTmp ReceiptExecAccountTransfer
-			err = Decode(lLog, &logTmp)
-			if err != nil {
-				return nil, err
-			}
-			logIns = logTmp
-		case TyLogTokenExecDeposit:
-			lTy = "LogTokenExecDeposit"
-			var logTmp ReceiptExecAccountTransfer
-			err = Decode(lLog, &logTmp)
-			if err != nil {
-				return nil, err
-			}
-			logIns = logTmp
-		case TyLogTokenExecFrozen:
-			lTy = "LogTokenExecFrozen"
-			var logTmp ReceiptExecAccountTransfer
-			err = Decode(lLog, &logTmp)
-			if err != nil {
-				return nil, err
-			}
-			logIns = logTmp
-		case TyLogTokenExecActive:
-			lTy = "LogTokenExecActive"
-			var logTmp ReceiptExecAccountTransfer
-			err = Decode(lLog, &logTmp)
-			if err != nil {
-				return nil, err
-			}
-			logIns = logTmp
-		case TyLogTokenGenesisTransfer:
-			lTy = "LogTokenGenesisTransfer"
-			var logTmp ReceiptAccountTransfer
-			err = Decode(lLog, &logTmp)
-			if err != nil {
-				return nil, err
-			}
-			logIns = logTmp
-		case TyLogTokenGenesisDeposit:
-			lTy = "LogTokenGenesisDeposit"
-			var logTmp ReceiptExecAccountTransfer
-			err = Decode(lLog, &logTmp)
-			if err != nil {
-				return nil, err
-			}
-			logIns = logTmp
+
 		case TyLogCallContract:
 			lTy = "LogCallContract"
 			var logTmp ReceiptEVMContract
