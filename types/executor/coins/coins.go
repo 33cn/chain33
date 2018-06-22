@@ -21,6 +21,15 @@ func init() {
 	types.RegistorLog(types.TyLogTransfer, &CoinsTransferLog{})
 	types.RegistorLog(types.TyLogGenesis, &CoinsGenesisLog{})
 
+	types.RegistorLog(types.TyLogExecTransfer, &CoinsExecTransferLog{})
+	types.RegistorLog(types.TyLogExecWithdraw, &CoinsExecWithdrawLog{})
+	types.RegistorLog(types.TyLogExecDeposit, &CoinsExecDepositLog{})
+	types.RegistorLog(types.TyLogExecFrozen, &CoinsExecFrozenLog{})
+	types.RegistorLog(types.TyLogExecActive, &CoinsExecActiveLog{})
+
+	types.RegistorLog(types.TyLogGenesisTransfer, &CoinsGenesisTransferLog{})
+	types.RegistorLog(types.TyLogGenesisDeposit, &CoinsGenesisDepositLog{})
+
 	// init query rpc
 	types.RegistorRpcType("GetAddrReciver", &CoinsGetAddrReciver{})
 	types.RegistorRpcType("GetTxsByAddr", &CoinsGetTxsByAddr{})
@@ -177,7 +186,120 @@ func (l CoinsTransferLog) Decode(msg []byte) (interface{}, error){
 	return logTmp, nil
 }
 
+type CoinsExecTransferLog struct {
+}
 
+func (l CoinsExecTransferLog) Name() string {
+	return "LogExecTransfer"
+}
+
+func (l CoinsExecTransferLog) Decode(msg []byte) (interface{}, error){
+	var logTmp types.ReceiptExecAccountTransfer
+	err := types.Decode(msg, &logTmp)
+	if err != nil {
+		return nil, err
+	}
+	return logTmp, nil
+}
+
+
+type CoinsExecWithdrawLog struct {
+}
+
+func (l CoinsExecWithdrawLog) Name() string {
+	return "LogExecWithdraw"
+}
+
+func (l CoinsExecWithdrawLog) Decode(msg []byte) (interface{}, error){
+	var logTmp types.ReceiptExecAccountTransfer
+	err := types.Decode(msg, &logTmp)
+	if err != nil {
+		return nil, err
+	}
+	return logTmp, nil
+}
+
+type CoinsExecDepositLog struct {
+}
+
+func (l CoinsExecDepositLog) Name() string {
+	return "LogExecDeposit"
+}
+
+func (l CoinsExecDepositLog) Decode(msg []byte) (interface{}, error){
+	var logTmp types.ReceiptExecAccountTransfer
+	err := types.Decode(msg, &logTmp)
+	if err != nil {
+		return nil, err
+	}
+	return logTmp, nil
+}
+
+type CoinsExecFrozenLog struct {
+}
+
+func (l CoinsExecFrozenLog) Name() string {
+	return "LogExecFrozen"
+}
+
+func (l CoinsExecFrozenLog) Decode(msg []byte) (interface{}, error){
+	var logTmp types.ReceiptExecAccountTransfer
+	err := types.Decode(msg, &logTmp)
+	if err != nil {
+		return nil, err
+	}
+	return logTmp, nil
+}
+
+type CoinsExecActiveLog struct {
+}
+
+func (l CoinsExecActiveLog) Name() string {
+	return "LogExecActive"
+}
+
+func (l CoinsExecActiveLog) Decode(msg []byte) (interface{}, error){
+	var logTmp types.ReceiptExecAccountTransfer
+	err := types.Decode(msg, &logTmp)
+	if err != nil {
+		return nil, err
+	}
+	return logTmp, nil
+}
+
+type CoinsGenesisTransferLog struct {
+}
+
+func (l CoinsGenesisTransferLog) Name() string {
+	return "LogGenesisTransfer"
+}
+
+func (l CoinsGenesisTransferLog) Decode(msg []byte) (interface{}, error){
+	var logTmp types.ReceiptAccountTransfer
+	err := types.Decode(msg, &logTmp)
+	if err != nil {
+		return nil, err
+	}
+	return logTmp, nil
+}
+
+type CoinsGenesisDepositLog struct {
+}
+
+func (l CoinsGenesisDepositLog) Name() string {
+	return "LogGenesisDeposit"
+}
+
+func (l CoinsGenesisDepositLog) Decode(msg []byte) (interface{}, error){
+	var logTmp types.ReceiptExecAccountTransfer
+	err := types.Decode(msg, &logTmp)
+	if err != nil {
+		return nil, err
+	}
+	return logTmp, nil
+}
+
+// query
 type CoinsGetAddrReciver struct {
 }
 
