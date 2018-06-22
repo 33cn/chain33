@@ -457,30 +457,14 @@ func (tx *Transaction) Json() string {
 //解析tx的payload获取amount值
 func (tx *Transaction) Amount() (int64, error) {
 	// TODO
-	//etype, err := executor.LoadType(string(tx.Execer))
-	//if err != nil {
-	//	return 0, nil
-	//}
-	//return etype.Amount(tx)
+	exec:= LoadExecutor(string(tx.Execer))
+	if exec == nil {
+		return 0, nil
+	}
+	return exec.Amount(tx)
+
 	if "coins" == string(tx.Execer) {
-		var action CoinsAction
-		err := Decode(tx.GetPayload(), &action)
-		if err != nil {
-			return 0, ErrDecode
-		}
-		if action.Ty == CoinsActionTransfer && action.GetTransfer() != nil {
-			transfer := action.GetTransfer()
-			return transfer.Amount, nil
-		} else if action.Ty == CoinsActionGenesis && action.GetGenesis() != nil {
-			gen := action.GetGenesis()
-			return gen.Amount, nil
-		} else if action.Ty == CoinsActionWithdraw && action.GetWithdraw() != nil {
-			transfer := action.GetWithdraw()
-			return transfer.Amount, nil
-		} else if action.Ty == CoinsActionTransferToExec && action.GetTransferToExec() != nil {
-			transfer := action.GetTransferToExec()
-			return transfer.Amount, nil
-		}
+		return 0, nil // done
 	} else if "ticket" == string(tx.Execer) {
 		var action TicketAction
 		err := Decode(tx.GetPayload(), &action)
