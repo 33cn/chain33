@@ -471,19 +471,7 @@ func (tx *Transaction) Amount() (int64, error) {
 		return 0, nil // done
 
 	} else if "trade" == string(tx.Execer) {
-		var trade Trade
-		err := Decode(tx.GetPayload(), &trade)
-		if err != nil {
-			return 0, ErrDecode
-		}
-
-		if TradeSellLimit == trade.Ty && trade.GetTokensell() != nil {
-			return 0, nil
-		} else if TradeBuyMarket == trade.Ty && trade.GetTokenbuy() != nil {
-			return 0, nil
-		} else if TradeRevokeSell == trade.Ty && trade.GetTokenrevokesell() != nil {
-			return 0, nil
-		}
+		return 0, nil // done
 	}
 	return 0, nil
 }
