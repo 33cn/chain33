@@ -16,22 +16,20 @@ import (
 )
 
 var (
-	plog = log.New("module", "para")
-	//Need to update
-	grpcSite       = "localhost:8802" //readConfig
-	currSeq  int64 = 0
-	lastSeq  int64 = 0
-	seqStep  int64 = 10 //experience needed
-	//blockMap   map[*types.BlockSequence]*types.Block
+	plog             = log.New("module", "para")
+	grpcSite         = "localhost:8802"
+	currSeq    int64 = 0
+	lastSeq    int64 = 0
+	seqStep    int64 = 10 //experience needed
 	txOps      []txOperation
-	filterExec       = "filter"
+	filterExec       = "filter" //execName not decided
 	AddAct     int64 = 1
 	DelAct     int64 = 2 //reference blockstore.go
 )
 
 type txOperation struct {
 	tx *types.Transaction
-	ty int64 //add or del
+	ty int64 //AddAct or DelAct
 }
 
 type Client struct {
@@ -43,6 +41,7 @@ type Client struct {
 
 func New(cfg *types.Consensus) *Client {
 	c := drivers.NewBaseClient(cfg)
+	grpcSite = cfg.ParaRemoteGrpcClient
 
 	conn, err := grpc.Dial(grpcSite, grpc.WithInsecure())
 	if err != nil {
@@ -59,7 +58,7 @@ func New(cfg *types.Consensus) *Client {
 	return para
 }
 
-//solo 不检查任何的交易
+//para 不检查任何的交易
 func (client *Client) CheckBlock(parent *types.Block, current *types.BlockDetail) error {
 	return nil
 }
@@ -98,8 +97,6 @@ func (client *Client) SetTxs() {
 	client.Txsmu.Lock()
 	defer client.Txsmu.Unlock()
 
-	//map need init
-
 	lastSeq = client.GetLastSeqOnMainChain()
 	if lastSeq > currSeq {
 		blockSeq := client.GetBlockHashFromMainChain(currSeq, currSeq+1)
@@ -118,7 +115,7 @@ func (client *Client) SetTxs() {
 		}
 
 		for i, _ := range blockSeq.Items {
-			//blockMap[blockSeq.Items[i]] = blockDetails.Items[i].Block
+
 			opTy := blockSeq.Items[i].Type
 			txs := blockDetails.Items[i].Block.Txs
 			//对每一个block进行操作，保留相关TX

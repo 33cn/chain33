@@ -43,7 +43,7 @@ import (
 
 var (
 	cpuNum     = runtime.NumCPU()
-	configPath = flag.String("f", "chain33.toml", "configfile")
+	configPath = flag.String("f", "chain33.para.toml", "configfile")
 	datadir    = flag.String("datadir", "", "data dir of chain33, include logs and datas")
 	versionCmd = flag.Bool("v", false, "version")
 )
@@ -97,7 +97,12 @@ func main() {
 	}()
 	//set pprof
 	go func() {
-		http.ListenAndServe("localhost:6060", nil)
+		if cfg.Pprof != nil {
+			http.ListenAndServe(cfg.Pprof.ListenAddr, nil)
+		} else {
+			http.ListenAndServe("localhost:6060", nil)
+		}
+
 	}()
 	//set trace
 	grpc.EnableTracing = true
