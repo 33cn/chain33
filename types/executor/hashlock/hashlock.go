@@ -3,13 +3,13 @@ package hashlock
 import (
 	"encoding/json"
 
-	log "github.com/inconshreveable/log15"
+	//log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
 const name = "hashlock"
 
-var tlog = log.New("module", name)
+//var tlog = log.New("module", name)
 
 func init() {
 	// init executor type
