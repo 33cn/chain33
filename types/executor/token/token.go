@@ -30,6 +30,9 @@ func init() {
 	types.RegistorLog(types.TyLogTokenExecActive, &TokenExecActiveLog{})
 	types.RegistorLog(types.TyLogTokenGenesisTransfer, &TokenGenesisTransferLog{})
 	types.RegistorLog(types.TyLogTokenGenesisDeposit, &TokenGenesisDepositLog{})
+	types.RegistorLog(types.TyLogPreCreateToken, &TokenPreCreateLog{})
+	types.RegistorLog(types.TyLogFinishCreateToken, &TokenFinishCreateLog{})
+	types.RegistorLog(types.TyLogRevokeCreateToken, &TokenRevokeCreateLog{})
 
 	// init query rpc
 	types.RegistorRpcType("GetTokens", &TokenGetTokens{})
@@ -369,7 +372,53 @@ func (l TokenGenesisDepositLog) Decode(msg []byte) (interface{}, error){
 	return logTmp, err
 }
 
+type TokenPreCreateLog struct {
+}
 
+func (l TokenPreCreateLog) Name() string {
+	return "LogPreCreateToken"
+}
+
+func (l TokenPreCreateLog) Decode(msg []byte) (interface{}, error){
+	var logTmp types.ReceiptToken
+	err := types.Decode(msg, &logTmp)
+	if err != nil {
+		return nil, err
+	}
+	return logTmp, err
+}
+
+type TokenFinishCreateLog struct {
+}
+
+func (l TokenFinishCreateLog) Name() string {
+	return "LogFinishCreateToken"
+}
+
+func (l TokenFinishCreateLog) Decode(msg []byte) (interface{}, error){
+	var logTmp types.ReceiptToken
+	err := types.Decode(msg, &logTmp)
+	if err != nil {
+		return nil, err
+	}
+	return logTmp, err
+}
+
+type TokenRevokeCreateLog struct {
+}
+
+func (l TokenRevokeCreateLog) Name() string {
+	return "LogRevokeCreateToken"
+}
+
+func (l TokenRevokeCreateLog) Decode(msg []byte) (interface{}, error){
+	var logTmp types.ReceiptToken
+	err := types.Decode(msg, &logTmp)
+	if err != nil {
+		return nil, err
+	}
+	return logTmp, err
+}
 // query
 type TokenGetTokens struct {
 }
