@@ -163,6 +163,7 @@ func (r *ReceiptData) DecodeReceiptLog() (*ReceiptDataResult, error) {
 	default:
 		return nil, ErrLogType
 	}
+
 	logs := r.GetLogs()
 	for _, l := range logs {
 		var lTy string
@@ -171,19 +172,15 @@ func (r *ReceiptData) DecodeReceiptLog() (*ReceiptDataResult, error) {
 		if err != nil {
 			return nil, err
 		}
-		// TODO
+
 		logType := LoadLog(int64(l.Ty))
 		if logType == nil {
+			//tlog.Error("DecodeReceiptLog:", "Faile to decodeLog with type value logtype", l.Ty)
 			return nil, ErrLogType
 		}
 		logIns, err = logType.Decode(lLog)
 		lTy = logType.Name()
 
-		switch l.Ty {
-		default:
-			//log.Error("DecodeLog", "Faile to decodeLog with type value:%d", l.Ty)
-			return nil, ErrLogType
-		}
 		result.Logs = append(result.Logs, &ReceiptLogResult{Ty: l.Ty, TyName: lTy, Log: logIns, RawLog: common.ToHex(l.GetLog())})
 	}
 	return result, nil
