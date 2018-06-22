@@ -11,6 +11,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
+	"encoding/json"
 )
 
 //提供系统rpc接口
@@ -25,6 +26,27 @@ func (c *channelClient) Init(q queue.Client) {
 	c.accountdb = account.NewCoinsAccount()
 }
 
+// support old rpc create transaction interface. call new imlp
+func callExecNewTx(execName, action string, param interface{}) ([]byte, error) {
+	exec := types.LoadExecutor(execName)
+	if exec == nil {
+		log.Error("callExecNewTx", "Error", "exec not found")
+		return nil, types.ErrNotSupport
+	}
+	jsonStr, err := json.Marshal(param)
+	if err != nil {
+		log.Error("callExecNewTx", "Error", err)
+		return nil, err
+	}
+	tx, err := exec.NewTx(action, json.RawMessage(jsonStr))
+	if err != nil {
+		log.Error("callExecNewTx", "Error", err)
+		return nil, err
+	}
+	txHex := types.Encode(tx)
+	return txHex, nil
+}
+
 func (c *channelClient) CreateRawTransaction(param *types.CreateTx) ([]byte, error) {
 	if param == nil {
 		err := types.ErrInvalidParam
@@ -32,75 +54,11 @@ func (c *channelClient) CreateRawTransaction(param *types.CreateTx) ([]byte, err
 		return nil, err
 	}
 
-	if param.ExecName != "" && !types.IsAllowExecName(param.ExecName) {
-		log.Error("CreateRawTransaction", "Error", types.ErrExecNameNotMatch)
-		return nil, types.ErrExecNameNotMatch
-	}
-	//to地址要么是普通用户地址，要么就是执行器地址，不能为空
-	if param.To == "" {
-		return nil, types.ErrAddrNotExist
-	}
-
-	var tx *types.Transaction
-	if param.Amount < 0 {
-		return nil, types.ErrAmount
-	}
 	if param.IsToken {
-		tx = createTokenTransfer(param)
+		return callExecNewTx("token", "", param)
 	} else {
-		tx = createCoinsTransfer(param)
+		return callExecNewTx("coins", "", param)
 	}
-
-	var err error
-	tx.Fee, err = tx.GetRealFee(types.MinFee)
-	if err != nil {
-		return nil, err
-	}
-
-	random := rand.New(rand.NewSource(time.Now().UnixNano()))
-	tx.Nonce = random.Int63()
-	txHex := types.Encode(tx)
-
-	return txHex, nil
-}
-
-func createCoinsTransfer(param *types.CreateTx) *types.Transaction {
-	transfer := &types.CoinsAction{}
-	if !param.IsWithdraw {
-		if param.ExecName != "" {
-			v := &types.CoinsAction_TransferToExec{TransferToExec: &types.CoinsTransferToExec{
-				Amount: param.Amount, Note: param.GetNote(), ExecName: param.GetExecName()}}
-			transfer.Value = v
-			transfer.Ty = types.CoinsActionTransferToExec
-		} else {
-			v := &types.CoinsAction_Transfer{Transfer: &types.CoinsTransfer{
-				Amount: param.Amount, Note: param.GetNote()}}
-			transfer.Value = v
-			transfer.Ty = types.CoinsActionTransfer
-		}
-	} else {
-		v := &types.CoinsAction_Withdraw{Withdraw: &types.CoinsWithdraw{
-			Amount: param.Amount, Note: param.GetNote()}}
-		transfer.Value = v
-		transfer.Ty = types.CoinsActionWithdraw
-	}
-	return &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), To: param.GetTo()}
-}
-
-func createTokenTransfer(param *types.CreateTx) *types.Transaction {
-	transfer := &types.TokenAction{}
-	if !param.IsWithdraw {
-		v := &types.TokenAction_Transfer{Transfer: &types.CoinsTransfer{
-			Cointoken: param.GetTokenSymbol(), Amount: param.Amount, Note: param.GetNote()}}
-		transfer.Value = v
-		transfer.Ty = types.ActionTransfer
-	} else {
-		v := &types.TokenAction_Withdraw{Withdraw: &types.CoinsWithdraw{
-			Cointoken: param.GetTokenSymbol(), Amount: param.Amount, Note: param.GetNote()}}
-		transfer.Value = v
-		transfer.Ty = types.ActionWithdraw
-	}
-	return &types.Transaction{Execer: []byte("token"), Payload: types.Encode(transfer), To: param.GetTo()}
 }
 
 func (c *channelClient) SendRawTransaction(param *types.SignedTx) (*types.Reply, error) {
