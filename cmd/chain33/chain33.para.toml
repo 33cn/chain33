@@ -29,7 +29,7 @@ maxFetchBlockNum=128
 timeoutSeconds=5
 batchBlockNum=128
 driver="leveldb"
-dbPath="datadir"
+dbPath="paradatadir"
 dbCache=64
 isStrongConsistency=false
 singleMode=true
@@ -46,7 +46,7 @@ useGithub=true
 innerBounds=300
 msgCacheSize=10240
 driver="leveldb"
-dbPath="datadir/addrbook"
+dbPath="paradatadir/addrbook"
 dbCache=4
 grpcLogFile="grpc33.log"
 
@@ -71,13 +71,13 @@ ParaRemoteGrpcClient = "localhost:8802"
 [store]
 name="mavl"
 driver="leveldb"
-dbPath="datadir/mavltree"
+dbPath="paradatadir/mavltree"
 dbCache=128
 
 [wallet]
 minFee=100000
 driver="leveldb"
-dbPath="wallet"
+dbPath="parawallet"
 dbCache=16
 signType="secp256k1"
 minerdisable=false
