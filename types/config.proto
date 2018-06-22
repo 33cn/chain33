@@ -14,6 +14,7 @@ message Config {
 	Rpc rpc = 10;
 	Exec exec = 11;
 	bool testNet=12;
+	Pprof pprof = 13;
 }
 
 message Log {
@@ -60,6 +61,7 @@ message Consensus {
 	int64 defaultSnapCount = 19;
 	int64 writeBlockSeconds = 20;
 	int32 heartbeatTick = 21;
+	string paraRemoteGrpcClient = 22;
 }
 
 message Wallet {
@@ -125,4 +127,8 @@ message Exec {
 	int64 minExecFee = 1;
 	bool  isFree = 2;
 	bool  enableStat = 3;
+}
+
+message Pprof{
+	string listenAddr=1;
 }
