@@ -195,7 +195,7 @@ func (b *btcStore) verifyBtcTx(verify *types.RelayVerify, order *types.RelayOrde
 		return err
 	}
 
-	relaylog.Error("verifyTx","tx blockheight", verify.Tx.BlockHeight, "+6",verify.Tx.BlockHeight,"last Height",height)
+	relaylog.Error("verifyTx", "tx blockheight", verify.Tx.BlockHeight, "+6", verify.Tx.BlockHeight, "last Height", height)
 	if verify.Tx.BlockHeight+waitBlockHeight > uint64(height) {
 		return types.ErrRelayWaitBlocksErr
 	}

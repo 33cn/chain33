@@ -1,43 +1,48 @@
-package relayd_test
+package relayd
 
 import (
 	"testing"
 
-	. "gitlab.33.cn/chain33/chain33/cmd/relayd/relayd"
+	"github.com/stretchr/testify/suite"
 )
 
-func TestNewBtcWeb(t *testing.T) {
-	btc, _ := NewBtcWeb()
-	blockZero, err := btc.GetBlockHeader(0)
-	if err != nil {
-		t.Errorf("getBlock error: %v", err)
-	}
-	t.Log(blockZero)
+type suiteWeb struct {
+	// Include our basic suite logic.
+	suite.Suite
+	btc BtcClient
+}
 
-	blockZeroHeader, err := btc.GetBlockHeader(0)
-	if err != nil {
-		t.Errorf("GetBlockHeader error: %v", err)
-	}
-	t.Log(blockZeroHeader)
+func TestRunSuiteWeb(t *testing.T) {
+	web := new(suiteWeb)
+	suite.Run(t, web)
+}
 
-	latestBLock, height, err := btc.GetLatestBlock()
-	if err != nil {
-		t.Errorf("GetLatestBlock error: %v", err)
-	}
+func (s *suiteWeb) SetupSuite() {
+	s.btc, _ = NewBtcWeb()
+}
 
-	t.Log(latestBLock)
-	t.Log(height)
+func (s *suiteWeb) TestGetBlockHeader() {
+	blockZeroHeader, err := s.btc.GetBlockHeader(0)
+	s.Nil(err)
+	s.T().Log(blockZeroHeader)
+}
 
-	// 6359f0868171b1d194cbee1af2f16ea598ae8fad666d9b012c8ed2b79a236ec4
-	tx, err := btc.GetTransaction("6359f0868171b1d194cbee1af2f16ea598ae8fad666d9b012c8ed2b79a236ec4")
-	if err != nil {
-		t.Errorf("GetTransaction error: %v", err)
-	}
-	t.Log(tx)
+func (s *suiteWeb) TestGetLatestBlock() {
+	latestBLock, height, err := s.btc.GetLatestBlock()
+	s.Nil(err)
+	s.NotNil(latestBLock)
+	s.T().Log(latestBLock)
+	s.T().Log(height)
+}
 
-	spv, err := btc.GetSPV(100000, "8c14f0db3df150123e6f3dbbf30f8b955a8249b62ac1d1ff16284aefa3d06d87")
-	if err != nil {
-		t.Errorf("GetLatestBlock error: %v", err)
-	}
-	t.Log(spv)
+func (s *suiteWeb) TestGetTransaction() {
+	tx, err := s.btc.GetTransaction("6359f0868171b1d194cbee1af2f16ea598ae8fad666d9b012c8ed2b79a236ec4")
+	s.Nil(err)
+	s.NotNil(tx)
+}
+
+func (s *suiteWeb) TestGetSPV() {
+	spv, err := s.btc.GetSPV(22448, "aad85f52da28f808822aadfee72b8df23e2591a22ea5ef3cbc6592681a4baa2e")
+	s.Nil(err)
+	s.NotNil(spv)
 }
