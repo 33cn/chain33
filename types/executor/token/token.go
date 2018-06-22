@@ -11,7 +11,7 @@ import (
 
 const name = "token"
 
-var tlog = log.New("module", "tokenTypes")
+var tlog = log.New("module", name)
 
 
 func init() {
