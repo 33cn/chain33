@@ -20,9 +20,12 @@ func init() {
 	types.RegistorExecutor(name, &tradeType{})
 
 	// init log
-	types.RegistorLog(types.TyLogDeposit, &CoinsDepositLog{})
-	types.RegistorLog(types.TyLogTransfer, &CoinsTransferLog{})
-	types.RegistorLog(types.TyLogGenesis, &CoinsGenesisLog{})
+	types.RegistorLog(types.TyLogTradeSellLimit, &TradeSellLimitLog{})
+	types.RegistorLog(types.TyLogTradeBuyMarket, &TradeBuyMarketLog{})
+	types.RegistorLog(types.TyLogTradeSellRevoke, &TradeSellRevokeLog{})
+	types.RegistorLog(types.TyLogTradeBuyLimit, &TradeBuyLimitLog{})
+	types.RegistorLog(types.TyLogTradeSellMarket, &TradeSellMarketLog{})
+	types.RegistorLog(types.TyLogTradeBuyRevoke, &TradeBuyRevokeLog{})
 
 	// init query rpc
 	types.RegistorRpcType("GetAddrReciver", &CoinsGetAddrReciver{})
@@ -249,5 +252,133 @@ func CreateRawTradeRevokeBuyTx(parm *rpctype.TradeRevokeBuyTx) (*types.Transacti
 }
 
 // log
+type TradeSellLimitLog struct {
+}
+
+func (l TradeSellLimitLog) Name() string {
+	return "LogTradeSell"
+}
+
+func (l TradeSellLimitLog) Decode(msg []byte) (interface{}, error){
+	var logTmp types.ReceiptTradeSell
+	err := types.Decode(msg, &logTmp)
+	if err != nil {
+		return nil, err
+	}
+	return logTmp, err
+}
+
+type TradeSellMarketLog struct {
+}
+
+func (l TradeSellMarketLog) Name() string {
+	return "LogTradeSellMarket"
+}
+
+func (l TradeSellMarketLog) Decode(msg []byte) (interface{}, error){
+	var logTmp types.ReceiptSellMarket
+	err := types.Decode(msg, &logTmp)
+	if err != nil {
+		return nil, err
+	}
+	return logTmp, err
+}
+
+type TradeBuyMarketLog struct {
+}
+
+func (l TradeBuyMarketLog) Name() string {
+	return "LogTradeBuyMarket"
+}
+
+func (l TradeBuyMarketLog) Decode(msg []byte) (interface{}, error){
+	var logTmp types.ReceiptTradeBuyMarket
+	err := types.Decode(msg, &logTmp)
+	if err != nil {
+		return nil, err
+	}
+	return logTmp, err
+}
+
+type TradeBuyLimitLog struct {
+}
+
+func (l TradeBuyLimitLog) Name() string {
+	return "LogTradeBuyLimit"
+}
+
+func (l TradeBuyLimitLog) Decode(msg []byte) (interface{}, error){
+	var logTmp types.ReceiptTradeBuyLimit
+	err := types.Decode(msg, &logTmp)
+	if err != nil {
+		return nil, err
+	}
+	return logTmp, err
+}
+
+type TradeBuyRevokeLog struct {
+}
+
+func (l TradeBuyRevokeLog) Name() string {
+	return "LogTradeBuyRevoke"
+}
+
+func (l TradeBuyRevokeLog) Decode(msg []byte) (interface{}, error){
+	var logTmp types.ReceiptTradeBuyRevoke
+	err := types.Decode(msg, &logTmp)
+	if err != nil {
+		return nil, err
+	}
+	return logTmp, err
+}
+
+type TradeSellRevokeLog struct {
+}
+
+func (l TradeSellRevokeLog) Name() string {
+	return "LogTradeSellRevoke"
+}
+
+func (l TradeSellRevokeLog) Decode(msg []byte) (interface{}, error){
+	var logTmp types.ReceiptTradeRevoke
+	err := types.Decode(msg, &logTmp)
+	if err != nil {
+		return nil, err
+	}
+	return logTmp, err
+}
 
 // query
+
+type CoinsGetAddrReciver struct {
+}
+
+func (t *CoinsGetAddrReciver) Input(message json.RawMessage) ([]byte, error) {
+	var req types.ReqAddr
+	err := json.Unmarshal(message, &req)
+	if err != nil {
+		return nil, err
+	}
+	return types.Encode(&req), nil
+}
+
+func (t *CoinsGetAddrReciver) Output(reply interface{}) (interface{}, error) {
+	return reply, nil
+}
+
+type CoinsGetTxsByAddr struct {
+}
+
+func (t *CoinsGetTxsByAddr) Input(message json.RawMessage) ([]byte, error) {
+	var req types.ReqAddr
+	err := json.Unmarshal(message, &req)
+	if err != nil {
+		return nil, err
+	}
+	return types.Encode(&req), nil
+}
+
+func (t *CoinsGetTxsByAddr) Output(reply interface{}) (interface{}, error) {
+	return reply, nil
+}
+
