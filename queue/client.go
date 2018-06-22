@@ -149,10 +149,7 @@ func (client *client) Close() {
 }
 
 func (client *client) CloseQueue() (*types.ReqNil, error) {
-	go func() {
-		time.Sleep(time.Millisecond * 100)
-		client.q.Close()
-	}()
+	client.q.Close()
 	return &types.ReqNil{}, nil
 }
 

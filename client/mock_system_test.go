@@ -83,10 +83,7 @@ func (mock *mockClient) Close() {
 }
 
 func (mock *mockClient) CloseQueue() (*types.ReqNil, error) {
-	go func() {
-		time.Sleep(time.Millisecond * 100)
-		mock.c.CloseQueue()
-	}()
+	mock.c.CloseQueue()
 	return &types.ReqNil{}, nil
 }
 
