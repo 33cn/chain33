@@ -154,12 +154,12 @@ cleandata:
 checkgofmt: ## get all go files and run go fmt on them
 	@files=$$(find . -name '*.go' -not -path "./vendor/*" | xargs gofmt -l -s); if [ -n "$$files" ]; then \
 		  echo "Error: 'make fmt' needs to be run on:"; \
-		  echo "$${files}"; \
+		  echo "${files}"; \
 		  exit 1; \
 		  fi;
 	@files=$$(find . -name '*.go' -not -path "./vendor/*" | xargs goimports -l -w); if [ -n "$$files" ]; then \
 		  echo "Error: 'make fmt' needs to be run on:"; \
-		  echo "$${files}"; \
+		  echo "${files}"; \
 		  exit 1; \
 		  fi;
 
