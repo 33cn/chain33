@@ -178,11 +178,11 @@ func (action *Action) TicketBind(tbind *types.TicketBind) (*types.Receipt, error
 	}
 	var logs []*types.ReceiptLog
 	var kvs []*types.KeyValue
-	saveBind(action.db, tbind)
-	kv := getBindKV(tbind)
 	oldbind := action.getBind(tbind.ReturnAddress)
 	log := getBindLog(tbind, oldbind)
 	logs = append(logs, log)
+	saveBind(action.db, tbind)
+	kv := getBindKV(tbind)
 	kvs = append(kvs, kv...)
 	receipt := &types.Receipt{types.ExecOk, kvs, logs}
 	return receipt, nil
