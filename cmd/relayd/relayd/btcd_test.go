@@ -1,4 +1,4 @@
-package relayd_test
+package relayd
 
 import (
 	"io/ioutil"
@@ -6,73 +6,68 @@ import (
 	"testing"
 
 	"github.com/btcsuite/btcd/rpcclient"
-	. "gitlab.33.cn/chain33/chain33/cmd/relayd/relayd"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 )
 
-var (
-	certHomeDir = "/home/suyanlong/.btcd"
-	certs, _    = ioutil.ReadFile(filepath.Join(certHomeDir, "rpc.cert"))
-	connCfg     = &rpcclient.ConnConfig{
+type suiteBctd struct {
+	// Include our basic suite logic.
+	suite.Suite
+	btc BtcClient
+}
+
+func TestRunSuiteBtcd(t *testing.T) {
+	btcd := new(suiteBctd)
+	suite.Run(t, btcd)
+}
+
+func (s *suiteBctd) SetupSuite() {
+	reconnectAttempts := 3
+	certs, _ := ioutil.ReadFile(filepath.Join("./", "rpc.cert"))
+	connCfg := &rpcclient.ConnConfig{
 		Host:         "127.0.0.1:18556",
-		User:         "youruser",
-		Endpoint:     "ws",
-		Pass:         "SomeDecentp4ssw0rd",
-		HTTPPostMode: true, // Bitcoin core only supports HTTP POST mode
-		// DisableTLS:   true, // Bitcoin core does not provide TLS by default
+		User:         "root",
+		Pass:         "1314",
+		HTTPPostMode: true,
 		Certificates: certs,
 	}
-	reconnectAttempts = 3
-)
+	s.btc, _ = NewBtcd(connCfg, reconnectAttempts)
+}
 
-func TestNewBtcd(t *testing.T) {
-	btc, err := NewBtcd(connCfg, reconnectAttempts)
-	if err != nil {
-		t.Error(err)
-	}
+func (s *suiteBctd) TestGetBlockHeader() {
+	blockZeroHeader, err := s.btc.GetBlockHeader(0)
+	s.NotNil(err)
+	s.T().Log(blockZeroHeader)
+}
 
-	blockZeroHeader, err := btc.GetBlockHeader(0)
-	if err != nil {
-		t.Errorf("GetBlockHeader error: %v", err)
-	}
-	t.Log(blockZeroHeader)
+func (s *suiteBctd) TestGetLatestBlock() {
+	latestBLock, height, err := s.btc.GetLatestBlock()
+	s.NotNil(err)
+	s.Nil(latestBLock)
+	s.T().Log(latestBLock)
+	s.T().Log(height)
+}
 
-	latestBLock, height, err := btc.GetLatestBlock()
-	if err != nil {
-		t.Errorf("GetLatestBlock error: %v", err)
-	}
+func (s *suiteBctd) TestGetTransaction() {
+	tx, err := s.btc.GetTransaction("6359f0868171b1d194cbee1af2f16ea598ae8fad666d9b012c8ed2b79a236ec4")
+	s.NotNil(err)
+	s.Nil(tx)
+}
 
-	t.Log(latestBLock)
-	t.Log(height)
-
-	// 6359f0868171b1d194cbee1af2f16ea598ae8fad666d9b012c8ed2b79a236ec4
-	_, err = btc.GetTransaction("6359f0868171b1d194cbee1af2f16ea598ae8fad666d9b012c8ed2b79a236ec4")
-	if err == nil {
-		t.Errorf("GetTransaction error: %v", err)
-	}
-	t.Log(err)
-
-	spv, err := btc.GetSPV(22448, "aad85f52da28f808822aadfee72b8df23e2591a22ea5ef3cbc6592681a4baa2e")
-	if err == nil {
-		t.Errorf("GetSPV error: %v", err)
-	}
-	t.Logf("%+v", err)
-	if spv != nil {
-		t.Logf("%+v", spv)
-	}
+func (s *suiteBctd) TestGetSPV() {
+	spv, err := s.btc.GetSPV(22448, "aad85f52da28f808822aadfee72b8df23e2591a22ea5ef3cbc6592681a4baa2e")
+	s.NotNil(err)
+	s.Nil(spv)
 }
 
 func TestOneTxMerkle(t *testing.T) {
 	tx0string := "b86f5ef1da8ddbdb29ec269b535810ee61289eeac7bf2b2523b494551f03897c"
 	tx0hash, err := merkle.NewHashFromStr(tx0string)
-	if err != nil {
-		t.Errorf("NewHashFromStr tx0string err:%s", err.Error())
-	}
-
+	assert.Nil(t, err)
 	tx0byte := tx0hash.CloneBytes()
 	leaves := make([][]byte, 1)
 	leaves[0] = tx0byte
-	// leaves[1] = tx0byte
 	t.Log(leaves)
 	bitHash := merkle.GetMerkleRoot(leaves)
 	t.Log(bitHash)
