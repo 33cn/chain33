@@ -1,9 +1,9 @@
 package para
 
 import (
-	"bytes"
 	"context"
-	"sync"
+	"errors"
+	"fmt"
 	"time"
 
 	log "github.com/inconshreveable/log15"
@@ -17,27 +17,23 @@ import (
 )
 
 var (
-	plog             = log.New("module", "para")
-	grpcSite         = "localhost:8802"
-	currSeq    int64 = 0
-	lastSeq    int64 = 0
-	seqStep    int64 = 10 //experience needed
-	txOps      []txOperation
-	filterExec       = "ticket" //execName not decided
-	AddAct     int64 = 1
-	DelAct     int64 = 2 //reference blockstore.go
+	plog                = log.New("module", "para")
+	grpcSite            = "localhost:8802"
+	currSeq       int64 = 0
+	lastSeq       int64 = 0
+	seqStep       int64 = 10       //experience needed
+	filterExec          = "filter" //execName not decided
+	txCacheSize   int64 = 10240
+	blockSec      int64 = 10 //write block interval, second
+	emptyBlockMin int64 = 2  //write empty block interval, minute
+	zeroHash      [32]byte
 )
-
-type txOperation struct {
-	tx *types.Transaction
-	ty int64 //AddAct or DelAct
-}
 
 type Client struct {
 	*drivers.BaseClient
 	conn       *grpc.ClientConn
 	grpcClient types.GrpcserviceClient
-	Txsmu      sync.Mutex
+	cache      *txCache
 }
 
 func New(cfg *types.Consensus) *Client {
@@ -49,8 +45,9 @@ func New(cfg *types.Consensus) *Client {
 		panic(err)
 	}
 	grpcClient := types.NewGrpcserviceClient(conn)
+	cache := newTxCache(txCacheSize)
 
-	para := &Client{c, conn, grpcClient, sync.Mutex{}}
+	para := &Client{c, conn, grpcClient, cache}
 
 	c.SetChild(para)
 
@@ -73,9 +70,9 @@ func (client *Client) ExecBlock(prevHash []byte, block *types.Block) (*types.Blo
 	if err != nil { //never happen
 		return nil, deltx, err
 	}
-	if len(blockdetail.Block.Txs) == 0 {
-		return nil, deltx, types.ErrNoTx
-	}
+	//if len(blockdetail.Block.Txs) == 0 {
+	//	return nil, deltx, types.ErrNoTx
+	//}
 	return blockdetail, deltx, nil
 }
 
@@ -97,8 +94,6 @@ func (client *Client) GetCurrentSeq() int64 {
 
 func (client *Client) SetTxs() {
 	plog.Debug("Para consensus SetTxs")
-	client.Txsmu.Lock()
-	defer client.Txsmu.Unlock()
 
 	lastSeq, err := client.GetLastSeqOnMainChain()
 	if err != nil {
@@ -138,27 +133,16 @@ func (client *Client) SetTxs() {
 }
 
 func (client *Client) SetOpTxs(txs []*types.Transaction, ty int64) {
-
-	if len(txOps) != 0 {
-		for i, _ := range txOps {
-			for j, _ := range txs {
-				if bytes.Equal(txOps[i].tx.Hash(), txs[j].Hash()) {
-					txOps[i].ty = ty
-					//modify:生成两个新切片，记录下来，后续再处理
-					txs = append(txs[:j], txs[j+1:]...)
-				}
-			}
-		}
-	}
-
 	for i, _ := range txs {
-		temp := txOperation{txs[i], ty}
-		txOps = append(txOps, temp)
+		hash := txs[i].Hash()
+		if ty == DelAct && client.cache.Exists(hash) && client.cache.Get(hash).ty == AddAct {
+			client.cache.Remove(hash)
+		}
 	}
 }
 
 func (client *Client) MonitorTxs() {
-	plog.Debug("MonitorTxs", "len for txs", len(txOps))
+	plog.Debug("MonitorTxs", "len for txs", client.cache.Size())
 }
 
 func (client *Client) ManageTxs() {
@@ -230,8 +214,8 @@ func (client *Client) ProcEvent(msg queue.Message) bool {
 //如果有del标识，先删除原来区块，重新打包
 //需要更新txOps
 func (client *Client) CreateBlock() {
-
 	issleep := true
+	count := 0
 	for {
 		//don't check condition for block coughtup
 		if !client.IsMining() {
@@ -239,8 +223,29 @@ func (client *Client) CreateBlock() {
 			continue
 		}
 		if issleep {
-			time.Sleep(time.Second)
+			time.Sleep(time.Second * time.Duration(blockSec))
+			count++
 		}
+		if count >= int(emptyBlockMin*60/blockSec) {
+			plog.Info("Create an empty block")
+			block := client.GetCurrentBlock()
+			emptyBlock := &types.Block{}
+			emptyBlock.StateHash = block.StateHash
+			emptyBlock.ParentHash = block.Hash()
+			emptyBlock.Height = block.Height + 1
+			emptyBlock.Txs = nil
+			emptyBlock.TxHash = zeroHash[:]
+			emptyBlock.BlockTime = time.Now().Unix()
+
+			er := client.WriteBlock(block.StateHash, emptyBlock)
+			if er != nil {
+				plog.Error(fmt.Sprintf("********************err:%v", er.Error()))
+				continue
+			}
+			client.SetCurrentBlock(emptyBlock)
+			count = 0
+		}
+
 		lastBlock := client.GetCurrentBlock()
 		txs := client.RequestTx(int(types.GetP(lastBlock.Height+1).MaxTxNumber), nil)
 		if len(txs) == 0 {
@@ -250,6 +255,7 @@ func (client *Client) CreateBlock() {
 		issleep = false
 		//check dup
 		//txs = client.CheckTxDup(txs)
+		plog.Debug(fmt.Sprintf("the len txs is: %v", len(txs)))
 		var newblock types.Block
 		newblock.ParentHash = lastBlock.Hash()
 		newblock.Height = lastBlock.Height + 1
@@ -265,7 +271,52 @@ func (client *Client) CreateBlock() {
 		//判断有没有交易是被删除的，这类交易要从mempool 中删除
 		if err != nil {
 			issleep = true
+			plog.Error(fmt.Sprintf("********************err:%v", err.Error()))
 			continue
 		}
+		time.Sleep(time.Second * time.Duration(blockSec))
 	}
+}
+
+// 向cache获取交易
+func (client *Client) RequestTx(size int, txHashList [][]byte) []*types.Transaction {
+	plog.Debug("Get Txs from txOps")
+	return client.cache.Pull(size, txHashList)
+}
+
+// 向blockchain写区块
+func (client *Client) WriteBlock(prev []byte, block *types.Block) error {
+	plog.Debug("write block in parachain")
+	blockdetail, deltx, err := client.ExecBlock(prev, block)
+	if len(deltx) > 0 {
+		client.DelTxs(deltx)
+	}
+	if err != nil {
+		return err
+	}
+	msg := client.GetQueueClient().NewMessage("blockchain", types.EventAddBlockDetail, blockdetail)
+	client.GetQueueClient().Send(msg, true)
+	resp, err := client.GetQueueClient().Wait(msg)
+	if err != nil {
+		return err
+	}
+
+	if resp.GetData().(*types.Reply).IsOk {
+		client.SetCurrentBlock(block)
+	} else {
+		reply := resp.GetData().(*types.Reply)
+		return errors.New(string(reply.GetMsg()))
+	}
+	return nil
+}
+
+// 向cache删除交易
+func (client *Client) DelTxs(deltx []*types.Transaction) error {
+	for i := 0; i < len(deltx); i++ {
+		exist := client.cache.Exists(deltx[i].Hash())
+		if exist {
+			client.cache.Remove(deltx[i].Hash())
+		}
+	}
+	return nil
 }
