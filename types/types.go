@@ -268,31 +268,7 @@ func (r *ReceiptData) DecodeReceiptLog() (*ReceiptDataResult, error) {
 				return nil, err
 			}
 			logIns = logTmp
-
-		case TyLogCallContract:
-			lTy = "LogCallContract"
-			var logTmp ReceiptEVMContract
-			err = Decode(lLog, &logTmp)
-			if err != nil {
-				return nil, err
-			}
-			logIns = logTmp
-		case TyLogContractData:
-			lTy = "LogContractData"
-			var logTmp EVMContractData
-			err = Decode(lLog, &logTmp)
-			if err != nil {
-				return nil, err
-			}
-			logIns = logTmp
-		case TyLogContractState:
-			lTy = "LogContractState"
-			var logTmp EVMContractState
-			err = Decode(lLog, &logTmp)
-			if err != nil {
-				return nil, err
-			}
-			logIns = logTmp
+			
 		default:
 			//log.Error("DecodeLog", "Faile to decodeLog with type value:%d", l.Ty)
 			return nil, ErrLogType

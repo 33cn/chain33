@@ -18,10 +18,12 @@ func init() {
 	types.RegistorExecutor(name, &EvmType{})
 
 	// init log
-	types.RegistorLog(types.TyLogDeposit, &CoinsDepositLog{})
+	types.RegistorLog(types.TyLogCallContract, &EvmCallContractLog{})
+	types.RegistorLog(types.TyLogContractData, &EvmContractDataLog{})
+	types.RegistorLog(types.TyLogContractState, &EvmContractStateLog{})
 
 	// init query rpc
-	types.RegistorRpcType("q2", &CoinsGetTxsByAddr{})
+	//types.RegistorRpcType("q2", &CoinsGetTxsByAddr{})
 }
 
 
@@ -50,15 +52,48 @@ func (evm EvmType) NewTx(action string, message json.RawMessage) (*types.Transac
 	return tx, nil
 }
 
-type CoinsDepositLog struct {
+
+type EvmCallContractLog struct {
 }
 
-func (l CoinsDepositLog) Name() string {
-	return "LogDeposit"
+func (l EvmCallContractLog) Name() string {
+	return "LogCallContract"
 }
 
-func (l CoinsDepositLog) Decode(msg []byte) (interface{}, error){
-	var logTmp types.ReceiptAccountTransfer
+func (l EvmCallContractLog) Decode(msg []byte) (interface{}, error){
+	var logTmp types.ReceiptEVMContract
+	err := types.Decode(msg, &logTmp)
+	if err != nil {
+		return nil, err
+	}
+	return logTmp, err
+}
+
+type EvmContractDataLog struct {
+}
+
+func (l EvmContractDataLog) Name() string {
+	return "LogContractData"
+}
+
+func (l EvmContractDataLog) Decode(msg []byte) (interface{}, error){
+	var logTmp types.EVMContractData
+	err := types.Decode(msg, &logTmp)
+	if err != nil {
+		return nil, err
+	}
+	return logTmp, err
+}
+
+type EvmContractStateLog struct {
+}
+
+func (l EvmContractStateLog) Name() string {
+	return "LogContractState"
+}
+
+func (l EvmContractStateLog) Decode(msg []byte) (interface{}, error){
+	var logTmp types.EVMContractState
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
 		return nil, err
