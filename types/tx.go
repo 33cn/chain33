@@ -594,25 +594,9 @@ func (tx *Transaction) ActionName() string {
 			return "done"
 
 	} else if bytes.Equal(tx.Execer, []byte("trade")) {
-		var trade Trade
-		err := Decode(tx.Payload, &trade)
-		if err != nil {
-			return "unknow-err"
-		}
 
-		if trade.Ty == TradeSellLimit && trade.GetTokensell() != nil {
-			return "selltoken"
-		} else if trade.Ty == TradeBuyMarket && trade.GetTokenbuy() != nil {
-			return "buytoken"
-		} else if trade.Ty == TradeRevokeSell && trade.GetTokenrevokesell() != nil {
-			return "revokeselltoken"
-		} else if trade.Ty == TradeBuyLimit && trade.GetTokenbuylimit() != nil {
-			return "buylimittoken"
-		} else if trade.Ty == TradeSellMarket && trade.GetTokensellmarket() != nil {
-			return "sellmarkettoken"
-		} else if trade.Ty == TradeRevokeBuy && trade.GetTokenrevokebuy() != nil {
-			return "revokebuytoken"
-		}
+			return "done"
+
 	} else if bytes.Equal(tx.Execer, ExecerEvm) || bytes.HasPrefix(tx.Execer, []byte("user.evm.")) {
 		// 这个需要通过合约交易目标地址来判断Action
 		// 如果目标地址为空，或为evm的固定合约地址，则为创建合约，否则为调用合约
