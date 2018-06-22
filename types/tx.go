@@ -467,25 +467,8 @@ func (tx *Transaction) Amount() (int64, error) {
 		return 0, nil // done
 	} else if "ticket" == string(tx.Execer) {
 		return 0, nil // done
-	} else if "token" == string(tx.Execer) { //TODO: 补充和完善token和trade分支的amount的计算, added by hzj
-		var action TokenAction
-		err := Decode(tx.GetPayload(), &action)
-		if err != nil {
-			return 0, ErrDecode
-		}
-
-		if TokenActionPreCreate == action.Ty && action.GetTokenprecreate() != nil {
-			precreate := action.GetTokenprecreate()
-			return precreate.Price, nil
-		} else if TokenActionFinishCreate == action.Ty && action.GetTokenfinishcreate() != nil {
-			return 0, nil
-		} else if TokenActionRevokeCreate == action.Ty && action.GetTokenrevokecreate() != nil {
-			return 0, nil
-		} else if ActionTransfer == action.Ty && action.GetTransfer() != nil {
-			return 0, nil
-		} else if ActionWithdraw == action.Ty && action.GetWithdraw() != nil {
-			return 0, nil
-		}
+	} else if "token" == string(tx.Execer) {
+		return 0, nil // done
 
 	} else if "trade" == string(tx.Execer) {
 		var trade Trade
