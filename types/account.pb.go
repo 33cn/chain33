@@ -13,6 +13,7 @@ It is generated from these files:
 	evmcontract.proto
 	executor.proto
 	executorTrade.proto
+	game.proto
 	p2p.proto
 	pbft.proto
 	rpc.proto
@@ -184,6 +185,16 @@ It has these top-level messages:
 	ReplyBuyOrders
 	ReplyTradeOrder
 	ReplyTradeOrders
+	Game
+	GameAction
+	GameMatch
+	GameCancel
+	GameClose
+	GameOpen
+	GameList
+	GameInfos
+	ReplyGameList
+	ReceiptGame
 	P2PGetPeerInfo
 	P2PPeerInfo
 	P2PVersion

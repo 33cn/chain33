@@ -1,5 +1,7 @@
 package model
 
+import "gitlab.33.cn/chain33/chain33/types"
+
 const (
 	// 内存中存储的字，占用多少位
 	WordBitSize = 256
@@ -7,9 +9,9 @@ const (
 	WordByteSize = WordBitSize / 8
 
 	// 本执行器前缀
-	EvmPrefix = "user.evm."
+	EvmPrefix = types.UserEvmString
 	// 本执行器名称
-	ExecutorName = "evm"
+	ExecutorName = types.ExecerEvmString
 
 	// 最大Gas消耗上限
 	MaxGasLimit = 10000000
