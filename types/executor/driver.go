@@ -5,6 +5,7 @@ import (
 	_ "gitlab.33.cn/chain33/chain33/types/executor/coins"
 	_ "gitlab.33.cn/chain33/chain33/types/executor/evm"
 	_ "gitlab.33.cn/chain33/chain33/types/executor/hashlock"
+	_ "gitlab.33.cn/chain33/chain33/types/executor/manage"
 	_ "gitlab.33.cn/chain33/chain33/types/executor/none"
 	_ "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
 	_ "gitlab.33.cn/chain33/chain33/types/executor/ticket"
@@ -13,16 +14,19 @@ import (
 )
 
 // 进度：
-// coins: 		actionName	NewTx	log		query
-// evm: 		actionName
+// 	ActionName  done
+//	Amount 		done
+//	Log			done
+// coins: 		actionName	NewTx	log		query	Amount
+// evm: 		actionName			Log
 // game:
 // hashlock: 	actionName
-// manage:
+// manage:		actionName 			log				Amount
 // none: 		actionName
 // retrieve: 	actionName
-// ticket:		actionName
-// token:		actionName	NewTx	log		query
-// trade:		actionName	NewTx	log		query
+// ticket:		actionName			log				Amount
+// token:		actionName	NewTx	log		query	Amount
+// trade:		actionName	NewTx	log		query	Amount
 
 func init() {
 	// not need to init executor
