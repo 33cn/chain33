@@ -547,18 +547,7 @@ func (tx *Transaction) ActionName() string {
 	} else if bytes.Equal(tx.Execer, []byte("none")) {
 		return "none"
 	} else if bytes.Equal(tx.Execer, []byte("hashlock")) {
-		var action HashlockAction
-		err := Decode(tx.Payload, &action)
-		if err != nil {
-			return "unknow-err"
-		}
-		if action.Ty == HashlockActionLock && action.GetHlock() != nil {
-			return "lock"
-		} else if action.Ty == HashlockActionUnlock && action.GetHunlock() != nil {
-			return "unlock"
-		} else if action.Ty == HashlockActionSend && action.GetHsend() != nil {
-			return "send"
-		}
+		return "done"
 	} else if bytes.Equal(tx.Execer, []byte("retrieve")) {
 		var action RetrieveAction
 		err := Decode(tx.Payload, &action)
