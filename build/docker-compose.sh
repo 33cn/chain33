@@ -22,7 +22,7 @@ NODE2="${1}_chain32_1"
 CLI2="docker exec ${NODE2} /root/chain33-cli"
 
 NODE1="${1}_chain31_1"
-CLI1="docker exec ${NODE1} /root/chain33-cli"
+#CLI1="docker exec ${NODE1} /root/chain33-cli"
 
 BTCD="${1}_btcd_1"
 BTC_CTL="docker exec ${BTCD} btcctl"
@@ -30,6 +30,7 @@ BTC_CTL="docker exec ${BTCD} btcctl"
 RELAYD="${1}_relayd_1"
 
 containers=("${NODE1}" "${NODE2}" "${NODE3}" "${BTCD}" "${RELAYD}")
+
 
 sedfix=""
 if [ "$(uname)" == "Darwin" ]; then
@@ -51,13 +52,13 @@ function init() {
     # rpc
     sed -i $sedfix 's/^jrpcBindAddr=.*/jrpcBindAddr="0.0.0.0:8801"/g' chain33.toml
     sed -i $sedfix 's/^grpcBindAddr=.*/grpcBindAddr="0.0.0.0:8802"/g' chain33.toml
-    sed -i $sedfix 's/^whitlist=.*/whitlist=["localhost","127.0.0.1","0.0.0.0"]/g' chain33.toml
+    sed -i $sedfix 's/^whitelist=.*/whitelist=["localhost","127.0.0.1","0.0.0.0"]/g' chain33.toml
 
     # wallet
     sed -i $sedfix 's/^minerdisable=.*/minerdisable=false/g' chain33.toml
 
 	# relayd
-    sed -i $sedfix 's/^btcdOrWeb.*/btcdOrWeb = 0/g' /root/relayd.toml
+    sed -i $sedfix 's/^btcdOrWeb.*/btcdOrWeb = 0/g' relayd.toml
 
 	# docker-compose ps
 	docker-compose ps
@@ -72,7 +73,6 @@ function init() {
 	echo "=========== sleep ${SLEEP}s ============="
 	sleep ${SLEEP}
 
-	# docker-compose ps
 	docker-compose ps
 
     run_relayd_with_btcd
@@ -104,7 +104,7 @@ function init() {
 		exit 1
 	fi
 
-	sleep 2
+	sleep 1
 
 	echo "=========== # unlock wallet ============="
 	result=$(${CLI} wallet unlock -p 1314 -t 0 | jq ".isok")
@@ -112,7 +112,7 @@ function init() {
 		exit 1
 	fi
 
-	sleep 2
+	sleep 1
 
 	echo "=========== # import private key returnAddr ============="
 	result=$(${CLI} account import_key -k CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944 -l returnAddr | jq ".label")
@@ -121,7 +121,7 @@ function init() {
 		exit 1
 	fi
 
-	sleep 2
+	sleep 1
 
 	echo "=========== # import private key mining ============="
 	result=$(${CLI} account import_key -k 4257D8692EF7FE13C68B65D6A52F03933DB2FA5CE8FAF210B5B8B80C721CED01 -l minerAddr | jq ".label")
@@ -130,7 +130,7 @@ function init() {
 		exit 1
 	fi
 
-	sleep 2
+	sleep 1
 	echo "=========== # close auto mining ============="
 	result=$(${CLI} wallet auto_mine -f 0 | jq ".isok")
 	if [ "${result}" = "false" ]; then
@@ -203,7 +203,7 @@ function ping_btcd(){
 
 function check_docker_container(){
     echo "============== check_docker_container ==============================="
-    for con in ${containers};do
+    for con in "${containers[@]}";do
 		runing=$(docker inspect "${con}" | jq '.[0].State.Running')
         if [ ! "${runing}" ]; then
             docker inspect "${con}"
@@ -289,7 +289,7 @@ function transfer(){
 }
 
 function relay_before() {
-	sed -i 's/ForkV7AddRelay.*/ForkV7AddRelay = 2/g' ../types/relay.go
+	sed -i $sedfix 's/ForkV7AddRelay.*/ForkV7AddRelay = 2/g' ../types/relay.go
 }
 
 function relay_after() {
@@ -321,6 +321,10 @@ function relay() {
     ${BTC_CTL} --rpcuser=root --rpcpass=1314 --simnet --wallet createnewaccount "${newacct}"
     btcrcv_addr=$(${BTC_CTL} --rpcuser=root --rpcpass=1314 --simnet --wallet getaccountaddress "${newacct}" )
     echo "btcrcvaddr=${btcrcv_addr}"
+
+    echo "=========== # get real btc account ============="
+    real_buy_addr=$(${CLI} account list | jq -r ".wallets[0].acc.addr")
+    echo "real_buy_addr=${real_buy_addr}"
 
 
 	echo "=========== # transfer to relay ============="
@@ -444,15 +448,37 @@ function relay() {
 	    exit 1
 	fi
 
+    before_blocknum=$(${BTC_CTL} --rpcuser=root --rpcpass=1314 --simnet getblockcount)
+    echo "=========== # btc generate 40 blocks ============="
+    ${BTC_CTL} --rpcuser=root --rpcpass=1314 --simnet generate 40
+    blocknum=$(${BTC_CTL} --rpcuser=root --rpcpass=1314 --simnet getblockcount)
+
+    before_blocknum=$(( before_blocknum+40 ))
+    count=20
+	while [ $count -gt 0 ]; do
+		blocknum=$(${BTC_CTL} --rpcuser=root --rpcpass=1314 --simnet getblockcount)
+		if [ "${blocknum}" -ge "${before_blocknum}" ]; then
+			break
+		fi
+        (( count-- ))
+        sleep 1
+	done
+
 
     echo "=========== # btc tx to real order ============="
-    ${BTC_CTL} --rpcuser=root --rpcpass=1314 --simnet generate 40
     btc_tx_hash=$(${BTC_CTL} --rpcuser=root --rpcpass=1314 --simnet --wallet sendfrom default "${btcrcv_addr}" 10)
     echo "${btc_tx_hash}"
+    #sleep 1
     ${BTC_CTL} --rpcuser=root --rpcpass=1314 --simnet generate 4
     ${BTC_CTL} --rpcuser=root --rpcpass=1314 --simnet --wallet gettransaction "${btc_tx_hash}"
+    blockhash=$(${BTC_CTL} --rpcuser=root --rpcpass=1314 --simnet --wallet gettransaction "${btc_tx_hash}" | jq -r ".blockhash")
+    ${BTC_CTL} --rpcuser=root --rpcpass=1314 --simnet --wallet getblockheader "${blockhash}"
+    blockheight=$(${BTC_CTL} --rpcuser=root --rpcpass=1314 --simnet --wallet getblockheader "${blockhash}" | jq -r ".height")
+    echo "blcockheight=${blockheight}"
+    blocknum=$(${BTC_CTL} --rpcuser=root --rpcpass=1314 --simnet getblockcount)
+    echo "blocknum=${blocknum}"
     ${BTC_CTL} --rpcuser=root --rpcpass=1314 --simnet --wallet getreceivedbyaddress "${btcrcv_addr}"
-    sleep 5
+    sleep 2
 
     echo "=========== # unlock buy order ==========="
 	acceptHeight=$(${CLI} tx query -s "${buy_hash}" | jq -r ".receipt.logs[1].log.coinHeight")
@@ -469,7 +495,7 @@ function relay() {
 		if [ "${current_height}" -gt "${expectHeight}" ]; then
 			break
 		fi
-        let count--
+        (( count-- ))
         sleep 1
 	done
     echo "current_height=${current_height}"
@@ -486,23 +512,22 @@ function relay() {
 
 	id=$(${CLI} relay status -s 1 | jq -sr '.[] | select(.coinoperation=="buy")|.orderid')
 	if [ "${id}" != "${buy_id}" ]; then
-	    echo "wrong relay status unlock buy order id"
+	    echo "wrong relay pending status unlock buy order id"
 	    exit 1
 	fi
 
-    ${CLI} relay status -s 3
 	id=$(${CLI} relay status -s 3 | jq -sr '.[] | select(.coinoperation=="buy")|.orderid')
 	if [ "${id}" != "${realbuy_id}" ]; then
-	    echo "wrong relay status unlock real buy order id"
+	    echo "wrong relay status confirming real buy order id"
 	    exit 1
 	fi
 	id=$(${CLI} relay status -s 3 | jq -sr '.[] | select(.coinoperation=="sell")|.orderid')
 	if [ "${id}" != "${sell_id}" ]; then
-	    echo "wrong relay status unlock buy order id"
+	    echo "wrong relay status confirming sell order id"
 	    exit 1
 	fi
 
-    echo "=========== # btc generate  6 blocks  ==="
+    echo "=========== # btc generate 200 blocks  ==="
     ${BTC_CTL} --rpcuser=root --rpcpass=1314 --simnet generate 200
     sleep 10
 
@@ -523,7 +548,7 @@ function relay() {
 			break
 		fi
 
-        let count--
+        (( count-- ))
         sleep 1
 	done
 	echo "currentHeight=${current_height}"
@@ -546,12 +571,17 @@ function relay() {
 	fi
 
     echo "=========== # check finish order ============="
-    ${CLI} relay status -s 4
 	id=$(${CLI} relay status -s 4 | jq -sr '.[] | select(.coinoperation=="buy")|.orderid')
 	if [ "${id}" != "${realbuy_id}" ]; then
 	    echo "wrong relay status real buy order id"
 	    exit 1
 	fi
+	#before=$(${CLI} account balance -a 14KEKbYtKKQm4wMthSK9J4La4nAiidGozt -e relay | jq ".balance")
+	#before=$(echo "$before" | bc)
+	#if [ "${before}" == 0.0000 ]; then
+	#	echo "wrong relay balance, should not be zero"
+	#	exit 1
+	#fi
 
 	echo "=========== # cancel order ============="
 	hash=$(${1} send relay revoke -a 1 -t 0 -f 0.01 -i "${cancel_id}" -k 14KEKbYtKKQm4wMthSK9J4La4nAiidGozt)

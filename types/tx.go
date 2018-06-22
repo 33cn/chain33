@@ -652,7 +652,7 @@ func (tx *Transaction) ActionName() string {
 		} else {
 			return "callEvmContract"
 		}
-	} else if bytes.Equal(tx.Execer, []byte("relay")) {
+	} else if bytes.Equal(tx.Execer, ExecerRelay) {
 		var relay RelayAction
 		err := Decode(tx.Payload, &relay)
 		if err != nil {
