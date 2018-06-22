@@ -7,6 +7,8 @@ import (
 	"time"
 	log "github.com/inconshreveable/log15"
 	"math/rand"
+	"gitlab.33.cn/chain33/chain33/common/address"
+	rpctype "gitlab.33.cn/chain33/chain33/rpc"
 )
 
 const name = "token"
@@ -65,40 +67,73 @@ func (token TokenType) ActionName(tx *types.Transaction) string {
 // TODO 暂时不修改实现， 先完成结构的重构
 // TODO token 还有其他的交易
 func (coins TokenType) NewTx(action string, message json.RawMessage) (*types.Transaction, error) {
-	var param types.CreateTx
-	err := json.Unmarshal(message, &param)
-	if err != nil {
-		tlog.Error("NewTx", "Error", err)
-		return nil, types.ErrInputPara
-	}
-
-	if param.ExecName != "" && !types.IsAllowExecName(param.ExecName) {
-		tlog.Error("NewTx", "Error", types.ErrExecNameNotMatch)
-		return nil, types.ErrExecNameNotMatch
-	}
-
-	//to地址要么是普通用户地址，要么就是执行器地址，不能为空
-	if param.To == "" {
-		return nil, types.ErrAddrNotExist
-	}
-
 	var tx *types.Transaction
-	if param.Amount < 0 {
-		return nil, types.ErrAmount
-	}
-	if param.IsToken {
-		tx = CreateTokenTransfer(&param)
+	// transfer/withdraw 原来实现混在一起， 简单的从原来的代码移进来
+	if action == "" {
+		var param types.CreateTx
+		err := json.Unmarshal(message, &param)
+		if err != nil {
+			tlog.Error("NewTx", "Error", err)
+			return nil, types.ErrInputPara
+		}
+
+		if param.ExecName != "" && !types.IsAllowExecName(param.ExecName) {
+			tlog.Error("NewTx", "Error", types.ErrExecNameNotMatch)
+			return nil, types.ErrExecNameNotMatch
+		}
+
+		//to地址要么是普通用户地址，要么就是执行器地址，不能为空
+		if param.To == "" {
+			return nil, types.ErrAddrNotExist
+		}
+
+
+		if param.Amount < 0 {
+			return nil, types.ErrAmount
+		}
+		if param.IsToken {
+			tx = CreateTokenTransfer(&param)
+		} else {
+			return nil, types.ErrNotSupport
+		}
+
+		tx.Fee, err = tx.GetRealFee(types.MinFee)
+		if err != nil {
+			return nil, err
+		}
+
+		random := rand.New(rand.NewSource(time.Now().UnixNano()))
+		tx.Nonce = random.Int63()
+	} else if action == "TokenPreCreate" {
+		var param rpctype.TokenPreCreateTx
+		err := json.Unmarshal(message, &param)
+		if err != nil {
+			tlog.Error("NewTx", "Error", err)
+			return nil, types.ErrInputPara
+		}
+
+		CreateRawTokenPreCreateTx(&param)
+	} else if action == "TokenFinish" {
+		var param rpctype.TokenFinishTx
+		err := json.Unmarshal(message, &param)
+		if err != nil {
+			tlog.Error("NewTx", "Error", err)
+			return nil, types.ErrInputPara
+		}
+
+		CreateRawTokenFinishTx(&param)
+	} else if action == "TokenRevoke" {
+		var param rpctype.TokenRevokeTx
+		err := json.Unmarshal(message, &param)
+		if err != nil {
+			tlog.Error("NewTx", "Error", err)
+			return nil, types.ErrInputPara
+		}
+
+		CreateRawTokenRevokeTx(&param)
 	} else {
 		return nil, types.ErrNotSupport
 	}
-
-	tx.Fee, err = tx.GetRealFee(types.MinFee)
-	if err != nil {
-		return nil, err
-	}
-
-	random := rand.New(rand.NewSource(time.Now().UnixNano()))
-	tx.Nonce = random.Int63()
 
 	return tx, nil
 }
@@ -117,6 +152,77 @@ func CreateTokenTransfer(param *types.CreateTx) *types.Transaction {
 		transfer.Ty = types.ActionWithdraw
 	}
 	return &types.Transaction{Execer: []byte(name), Payload: types.Encode(transfer), To: param.GetTo()}
+}
+
+func CreateRawTokenPreCreateTx(parm *rpctype.TokenPreCreateTx) ([]byte, error) {
+	if parm == nil {
+		return nil, types.ErrInvalidParam
+	}
+	v := &types.TokenPreCreate{
+		Name:         parm.Name,
+		Symbol:       parm.Symbol,
+		Introduction: parm.Introduction,
+		Total:        parm.Total,
+		Price:        parm.Price,
+		Owner:        parm.OwnerAddr,
+	}
+	precreate := &types.TokenAction{
+		Ty:    types.TokenActionPreCreate,
+		Value: &types.TokenAction_Tokenprecreate{v},
+	}
+	tx := &types.Transaction{
+		Execer:  []byte("token"),
+		Payload: types.Encode(precreate),
+		Fee:     parm.Fee,
+		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
+		To:      address.ExecAddress("token"),
+	}
+
+	data := types.Encode(tx)
+	return data, nil
+}
+
+func CreateRawTokenFinishTx(parm *rpctype.TokenFinishTx) ([]byte, error) {
+	if parm == nil {
+		return nil, types.ErrInvalidParam
+	}
+
+	v := &types.TokenFinishCreate{Symbol: parm.Symbol, Owner: parm.OwnerAddr}
+	finish := &types.TokenAction{
+		Ty:    types.TokenActionFinishCreate,
+		Value: &types.TokenAction_Tokenfinishcreate{v},
+	}
+	tx := &types.Transaction{
+		Execer:  []byte("token"),
+		Payload: types.Encode(finish),
+		Fee:     parm.Fee,
+		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
+		To:      address.ExecAddress("token"),
+	}
+
+	data := types.Encode(tx)
+	return data, nil
+}
+
+func CreateRawTokenRevokeTx(parm *rpctype.TokenRevokeTx) ([]byte, error) {
+	if parm == nil {
+		return nil, types.ErrInvalidParam
+	}
+	v := &types.TokenRevokeCreate{Symbol: parm.Symbol, Owner: parm.OwnerAddr}
+	revoke := &types.TokenAction{
+		Ty:    types.TokenActionRevokeCreate,
+		Value: &types.TokenAction_Tokenrevokecreate{v},
+	}
+	tx := &types.Transaction{
+		Execer:  []byte("token"),
+		Payload: types.Encode(revoke),
+		Fee:     parm.Fee,
+		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
+		To:      address.ExecAddress("token"),
+	}
+
+	data := types.Encode(tx)
+	return data, nil
 }
 
 // log
