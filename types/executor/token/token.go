@@ -65,7 +65,6 @@ func (token TokenType) ActionName(tx *types.Transaction) string {
 }
 
 // TODO 暂时不修改实现， 先完成结构的重构
-// TODO token 还有其他的交易
 func (coins TokenType) NewTx(action string, message json.RawMessage) (*types.Transaction, error) {
 	var tx *types.Transaction
 	// transfer/withdraw 原来实现混在一起， 简单的从原来的代码移进来
