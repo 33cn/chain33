@@ -2,6 +2,7 @@ package rpc
 
 import (
 	"encoding/hex"
+	"time"
 
 	pb "gitlab.33.cn/chain33/chain33/types"
 	"golang.org/x/net/context"
@@ -222,4 +223,13 @@ func (g *Grpc) NetInfo(ctx context.Context, in *pb.ReqNil) (*pb.NodeNetInfo, err
 
 func (g *Grpc) GetFatalFailure(ctx context.Context, in *pb.ReqNil) (*pb.Int32, error) {
 	return g.cli.GetFatalFailure()
+}
+
+func (g *Grpc) CloseQueue(ctx context.Context, in *pb.ReqNil) (*pb.ReqNil, error) {
+	go func() {
+		time.Sleep(time.Millisecond * 100)
+		g.cli.CloseQueue()
+	}()
+
+	return &pb.ReqNil{}, nil
 }
