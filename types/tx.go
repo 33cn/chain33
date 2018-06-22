@@ -541,20 +541,7 @@ func (tx *Transaction) ActionName() string {
 	return exec.ActionName(tx)
 
 	if bytes.Equal(tx.Execer, []byte("coins")) {
-		var action CoinsAction
-		err := Decode(tx.Payload, &action)
-		if err != nil {
-			return "unknow-err"
-		}
-		if action.Ty == CoinsActionTransfer && action.GetTransfer() != nil {
-			return "transfer"
-		} else if action.Ty == CoinsActionWithdraw && action.GetWithdraw() != nil {
-			return "withdraw"
-		} else if action.Ty == CoinsActionGenesis && action.GetGenesis() != nil {
-			return "genesis"
-		} else if action.Ty == CoinsActionTransferToExec && action.GetTransferToExec() != nil {
-			return "sendToExec"
-		}
+		return "done"
 	} else if bytes.Equal(tx.Execer, []byte("ticket")) {
 		var action TicketAction
 		err := Decode(tx.Payload, &action)

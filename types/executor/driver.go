@@ -3,6 +3,7 @@ package executor
 import (
 	"gitlab.33.cn/chain33/chain33/types"
 	_ "gitlab.33.cn/chain33/chain33/types/executor/coins"
+	_ "gitlab.33.cn/chain33/chain33/types/executor/token"
 )
 
 func init() {

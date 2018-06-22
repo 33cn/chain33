@@ -8,7 +8,7 @@ import (
 	"math/rand"
 )
 
-var tlog = log.New("module", "types")
+var tlog = log.New("module", "coinsTypes")
 
 func init() {
 	// init executor type
