@@ -48,6 +48,13 @@ var (
 	walletQueryModePrivacy int32 = 2
 )
 
+const (
+	// 分成3步操作中
+	cacheTxStatus_Created int32 = 0
+	cacheTxStatus_Signed  int32 = 1
+	cacheTxStatus_Sent    int32 = 2
+)
+
 type Wallet struct {
 	client queue.Client
 	// 模块间通信的操作接口,建议用api代替client调用
@@ -184,6 +191,28 @@ func (wallet *Wallet) SetQueueClient(cli queue.Client) {
 
 func (wallet *Wallet) checkWalletStoreData() {
 	defer wallet.wg.Done()
+	timecount := 10
+	checkTicker := time.NewTicker(time.Duration(timecount) * time.Second)
+	for {
+		select {
+		case <-checkTicker.C:
+			newbatch := wallet.walletStore.NewBatch(true)
+			err := wallet.procInvalidTxOnTimer(newbatch)
+			if err != nil && err!=dbm.ErrNotFoundInDb {
+				walletlog.Error("checkWalletStoreData", "procInvalidTxOnTimer error ", err)
+				return
+			}
+			newbatch.Write()
+		case <-wallet.done:
+			return
+		}
+	}
+
+}
+
+/*
+func (wallet *Wallet) checkWalletStoreData() {
+	defer wallet.wg.Done()
 
 	//默认10s对Ftxo进行检查
 	timecount := 10
@@ -194,6 +223,7 @@ func (wallet *Wallet) checkWalletStoreData() {
 
 	var lastHeight int64
 
+	// TODO: 定时器需要修改，改为先监控交易，然后再监控FTXO是否超期
 	for {
 		select {
 		case <-checkFtxoTicker.C:
@@ -248,6 +278,7 @@ func (wallet *Wallet) checkWalletStoreData() {
 		}
 	}
 }
+*/
 
 //检查周期 --> 10分
 //开启挖矿：
