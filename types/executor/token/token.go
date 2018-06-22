@@ -67,6 +67,29 @@ func (token TokenType) ActionName(tx *types.Transaction) string {
 	return "unknow"
 }
 
+func (token TokenType) Amount(tx *types.Transaction) (int64, error) {
+	//TODO: 补充和完善token和trade分支的amount的计算, added by hzj
+	var action types.TokenAction
+	err := types.Decode(tx.GetPayload(), &action)
+	if err != nil {
+		return 0, types.ErrDecode
+	}
+
+	if types.TokenActionPreCreate == action.Ty && action.GetTokenprecreate() != nil {
+		precreate := action.GetTokenprecreate()
+		return precreate.Price, nil
+	} else if types.TokenActionFinishCreate == action.Ty && action.GetTokenfinishcreate() != nil {
+		return 0, nil
+	} else if types.TokenActionRevokeCreate == action.Ty && action.GetTokenrevokecreate() != nil {
+		return 0, nil
+	} else if types.ActionTransfer == action.Ty && action.GetTransfer() != nil {
+		return 0, nil
+	} else if types.ActionWithdraw == action.Ty && action.GetWithdraw() != nil {
+		return 0, nil
+	}
+	return 0, nil
+}
+
 // TODO 暂时不修改实现， 先完成结构的重构
 func (coins TokenType) NewTx(action string, message json.RawMessage) (*types.Transaction, error) {
 	var tx *types.Transaction
