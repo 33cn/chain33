@@ -456,24 +456,12 @@ func (tx *Transaction) Json() string {
 
 //解析tx的payload获取amount值
 func (tx *Transaction) Amount() (int64, error) {
-	// TODO
+	// TODO 原来有很多执行器 在这里没有代码， 用默认 0, nil 先
 	exec:= LoadExecutor(string(tx.Execer))
 	if exec == nil {
 		return 0, nil
 	}
 	return exec.Amount(tx)
-
-	if "coins" == string(tx.Execer) {
-		return 0, nil // done
-	} else if "ticket" == string(tx.Execer) {
-		return 0, nil // done
-	} else if "token" == string(tx.Execer) {
-		return 0, nil // done
-
-	} else if "trade" == string(tx.Execer) {
-		return 0, nil // done
-	}
-	return 0, nil
 }
 
 //获取tx交易的Actionname
