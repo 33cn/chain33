@@ -59,6 +59,8 @@ function init() {
 
 	# relayd
     sed -i $sedfix 's/^btcdOrWeb.*/btcdOrWeb = 0/g' relayd.toml
+    sed -i $sedfix 's/^Tick33.*/Tick33 = 20/g' relayd.toml
+    sed -i $sedfix 's/^TickBTC.*/TickBTC = 20/g' relayd.toml
 
 	# docker-compose ps
 	docker-compose ps
@@ -323,8 +325,8 @@ function relay() {
     echo "btcrcvaddr=${btcrcv_addr}"
 
     echo "=========== # get real btc account ============="
-    real_buy_addr=$(${CLI} account list | jq -r ".wallets[0].acc.addr")
-    echo "real_buy_addr=${real_buy_addr}"
+    real_buy_addr=$(${CLI} account list | jq -r '.wallets[] | select(.label=="node award") | .acc.addr')
+    echo "realbuyaddr=${real_buy_addr}"
 
 
 	echo "=========== # transfer to relay ============="
@@ -332,6 +334,9 @@ function relay() {
 	echo "${hash}"
 	hash=$(${1} send bty transfer -a 1000 -t 14KEKbYtKKQm4wMthSK9J4La4nAiidGozt -n "transfer to accept addr" -k 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv)
 	echo "${hash}"
+	hash=$(${1} send bty transfer -a 100 -t "${real_buy_addr}" -n "transfer to accept addr" -k 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv)
+	echo "${hash}"
+
 	sleep 25
 	before=$(${CLI} account balance -a 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv -e relay | jq ".balance")
 	before=$(echo "$before" | bc)
@@ -343,6 +348,12 @@ function relay() {
 	before=$(echo "$before" | bc)
 	if [ "${before}" == 0.0000 ]; then
 		echo "wrong accept addr balance, should not be zero"
+		exit 1
+	fi
+	before=$(${CLI} account balance -a "${real_buy_addr}" -e coins | jq ".balance")
+	before=$(echo "$before" | bc)
+	if [ "${before}" == 0.0000 ]; then
+		echo "wrong real accept addr balance, should not be zero"
 		exit 1
 	fi
 
@@ -424,7 +435,7 @@ function relay() {
 	buy_hash=$(${1} send relay accept -f 0.001 -o "${buy_id}" -a 1Am9UTGfdnxabvcywYG2hvzr6qK8T3oUZT -k 14KEKbYtKKQm4wMthSK9J4La4nAiidGozt)
 	echo "${buy_hash}"
 	echo "=========== # accept real buy order ============="
-	realbuy_hash=$(${1} send relay accept -f 0.001 -o "${realbuy_id}" -a 1Am9UTGfdnxabvcywYG2hvzr6qK8T3oUZT -k 14KEKbYtKKQm4wMthSK9J4La4nAiidGozt)
+	realbuy_hash=$(${1} send relay accept -f 0.001 -o "${realbuy_id}" -a 1Am9UTGfdnxabvcywYG2hvzr6qK8T3oUZT -k "${real_buy_addr}")
 	echo "${realbuy_hash}"
     echo "=========== # accept sell order ============="
     sell_hash=$(${1} send relay accept -f 0.001 -o "${sell_id}" -a 1Am9UTGfdnxabvcywYG2hvzr6qK8T3oUZT -k 14KEKbYtKKQm4wMthSK9J4La4nAiidGozt)
@@ -470,13 +481,9 @@ function relay() {
     echo "${btc_tx_hash}"
     #sleep 1
     ${BTC_CTL} --rpcuser=root --rpcpass=1314 --simnet generate 4
-    ${BTC_CTL} --rpcuser=root --rpcpass=1314 --simnet --wallet gettransaction "${btc_tx_hash}"
     blockhash=$(${BTC_CTL} --rpcuser=root --rpcpass=1314 --simnet --wallet gettransaction "${btc_tx_hash}" | jq -r ".blockhash")
-    ${BTC_CTL} --rpcuser=root --rpcpass=1314 --simnet --wallet getblockheader "${blockhash}"
     blockheight=$(${BTC_CTL} --rpcuser=root --rpcpass=1314 --simnet --wallet getblockheader "${blockhash}" | jq -r ".height")
     echo "blcockheight=${blockheight}"
-    blocknum=$(${BTC_CTL} --rpcuser=root --rpcpass=1314 --simnet getblockcount)
-    echo "blocknum=${blocknum}"
     ${BTC_CTL} --rpcuser=root --rpcpass=1314 --simnet --wallet getreceivedbyaddress "${btcrcv_addr}"
     sleep 2
 
@@ -503,7 +510,7 @@ function relay() {
 	revoke_hash=$(${1} send relay revoke -a 0 -t 1 -f 0.01 -i "${buy_id}" -k 14KEKbYtKKQm4wMthSK9J4La4nAiidGozt)
 	echo "${revoke_hash}"
     echo "=========== # confirm real buy order ============="
-    confirm_hash=$(${1} send relay confirm -f 0.001 -t "${btc_tx_hash}" -o "${realbuy_id}" -k 14KEKbYtKKQm4wMthSK9J4La4nAiidGozt)
+    confirm_hash=$(${1} send relay confirm -f 0.001 -t "${btc_tx_hash}" -o "${realbuy_id}" -k "${real_buy_addr}")
     echo "${confirm_hash}"
     echo "=========== # confirm sell order ============="
     confirm_hash=$(${1} send relay confirm -f 0.001 -t 6359f0868171b1d194cbee1af2f16ea598ae8fad666d9b012c8ed2b79a236ec4 -o "${sell_id}" -k 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv)
@@ -573,15 +580,14 @@ function relay() {
     echo "=========== # check finish order ============="
 	id=$(${CLI} relay status -s 4 | jq -sr '.[] | select(.coinoperation=="buy")|.orderid')
 	if [ "${id}" != "${realbuy_id}" ]; then
-	    echo "wrong relay status real buy order id"
+	    echo "wrong relay status finish real buy order id"
 	    exit 1
 	fi
-	#before=$(${CLI} account balance -a 14KEKbYtKKQm4wMthSK9J4La4nAiidGozt -e relay | jq ".balance")
-	#before=$(echo "$before" | bc)
-	#if [ "${before}" == 0.0000 ]; then
-	#	echo "wrong relay balance, should not be zero"
-	#	exit 1
-	#fi
+	before=$(${CLI} account balance -a "${real_buy_addr}" -e relay | jq -r ".balance")
+	if [ "${before}" != "200.0000" ]; then
+		echo "wrong relay real buy addr balance, should be 200"
+		exit 1
+	fi
 
 	echo "=========== # cancel order ============="
 	hash=$(${1} send relay revoke -a 1 -t 0 -f 0.01 -i "${cancel_id}" -k 14KEKbYtKKQm4wMthSK9J4La4nAiidGozt)
