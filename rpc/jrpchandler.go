@@ -954,31 +954,17 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
 		if err != nil {
 			return nil, err
 		}
-
-		// Begin Check
+		
 		logType := types.LoadLog(int64(l.Ty))
 		if logType == nil {
-			//tlog.Error("DecodeLog:", "Faile to decodeLog with type value logtype", l.Ty)
-			return nil, types.ErrLogType
-		}
-		logIns, err = logType.Decode(lLog)
-		lTy = logType.Name()
-
-		switch l.Ty {
-
-		case types.TyLogModifyConfig:
-			lTy = "LogModifyConfig"
-			var logTmp types.ReceiptConfig
-			err = types.Decode(lLog, &logTmp)
-			if err != nil {
-				return nil, err
-			}
-			logIns = logTmp
-		default:
 			log.Error("Fail to DecodeLog", "type", l.Ty)
 			lTy = "unkownType"
 			logIns = nil
+		} else {
+			logIns, err = logType.Decode(lLog)
+			lTy = logType.Name()
 		}
+
 		rd.Logs = append(rd.Logs, &ReceiptLogResult{Ty: l.Ty, TyName: lTy, Log: logIns, RawLog: l.Log})
 	}
 	return rd, nil
