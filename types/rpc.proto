@@ -159,4 +159,8 @@ service grpcservice {
     //获取系统致命故障信息
     rpc GetFatalFailure (types.ReqNil) returns (Int32) {
     }
+	
+    //关闭chain33
+    rpc CloseQueue (types.ReqNil) returns (types.ReqNil) {
+    }
 }
