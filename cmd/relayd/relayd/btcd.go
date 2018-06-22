@@ -254,14 +254,12 @@ out:
 			select {
 			case resp := <-sessionResponse:
 				if resp.err != nil {
-					// log.Errorf("Failed to receive session "+"result: %v", resp.err)
 					b.Stop()
 					break out
 				}
 				pingChan = time.After(time.Minute)
 
 			case <-time.After(time.Minute):
-				// log.Errorf("Timeout waiting for session RPC")
 				b.Stop()
 				break out
 			}
@@ -338,11 +336,21 @@ func (b *btcdClient) GetTransaction(hash string) (*types.BtcTransaction, error) 
 	if err != nil {
 		return nil, err
 	}
+
+	blockHash, err := chainhash.NewHashFromStr(tx.BlockHash)
+	if err != nil {
+		return nil, err
+	}
+
+	header, err := b.rpcClient.GetBlockHeaderVerbose(blockHash)
+	if err != nil {
+		return nil, err
+	}
+
 	btxTx := &types.BtcTransaction{}
 	btxTx.Hash = hash
 	btxTx.Time = tx.Time
-	// TODO not exist blockheight
-	// btxTx.BlockHeight = tx.BlockHash
+	btxTx.BlockHeight = uint64(header.Height)
 	vin := make([]*types.Vin, len(tx.Vin))
 	for index, in := range tx.Vin {
 		var v types.Vin
