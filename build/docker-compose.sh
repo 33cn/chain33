@@ -59,8 +59,10 @@ function init() {
 
 	# relayd
     sed -i $sedfix 's/^btcdOrWeb.*/btcdOrWeb = 0/g' relayd.toml
-    sed -i $sedfix 's/^Tick33.*/Tick33 = 20/g' relayd.toml
-    sed -i $sedfix 's/^TickBTC.*/TickBTC = 20/g' relayd.toml
+    sed -i $sedfix 's/^Tick33.*/Tick33 = 30/g' relayd.toml
+    sed -i $sedfix 's/^TickBTC.*/TickBTC = 30/g' relayd.toml
+    sed -i $sedfix 's/^pprof.*/pprof = false/g' relayd.toml
+    sed -i $sedfix 's/^watch.*/watch = false/g' relayd.toml
 
 	# docker-compose ps
 	docker-compose ps
