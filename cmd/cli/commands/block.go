@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/spf13/cobra"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
@@ -23,6 +24,10 @@ func BlockCmd() *cobra.Command {
 		GetBlockOverviewCmd(),
 		GetHeadersCmd(),
 		GetLastHeaderCmd(),
+
+		GetBlockByHashsCmd(),
+		GetBlockSequencesCmd(),
+		GetLastBlockSequenceCmd(),
 	)
 
 	return cmd
@@ -205,5 +210,88 @@ func lastHeader(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	var res jsonrpc.Header
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetLastHeader", nil, &res)
+	ctx.Run()
+}
+
+//
+// get latest Sequence
+func GetLastBlockSequenceCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "last_sequence",
+		Short: "View last block sequence",
+		Run:   lastSequence,
+	}
+	return cmd
+}
+
+func lastSequence(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	var res int64
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetLastBlockSequence", nil, &res)
+	ctx.Run()
+}
+
+// get block Sequences
+func GetBlockSequencesCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "sequences",
+		Short: "Get block sequences between [start, end]",
+		Run:   getsequences,
+	}
+	blockSequencesCmdFlags(cmd)
+	return cmd
+}
+
+func getsequences(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	startH, _ := cmd.Flags().GetInt64("start")
+	endH, _ := cmd.Flags().GetInt64("end")
+
+	params := jsonrpc.BlockParam{
+		Start:    startH,
+		End:      endH,
+		Isdetail: false,
+	}
+	var res jsonrpc.ReplyBlkSeqs
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetBlockSequences", params, &res)
+	//ctx.SetResultCb(parseBlockDetail)
+	ctx.Run()
+}
+
+func blockSequencesCmdFlags(cmd *cobra.Command) {
+	cmd.Flags().Int64P("start", "s", 0, "block start sequence")
+	cmd.MarkFlagRequired("start")
+
+	cmd.Flags().Int64P("end", "e", 0, "block end sequence")
+	cmd.MarkFlagRequired("end")
+}
+
+// get Block Details By block Hashs
+func GetBlockByHashsCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "query_hashs",
+		Short: "Query block by hashs",
+		Run:   getblockbyhashs,
+	}
+	addBlockByHashsFlags(cmd)
+	return cmd
+}
+
+func addBlockByHashsFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("hashes", "s", "", "block hash(es), separated by space")
+	cmd.MarkFlagRequired("hashes")
+}
+
+func getblockbyhashs(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	hashes, _ := cmd.Flags().GetString("hashes")
+	hashesArr := strings.Split(hashes, " ")
+	params := jsonrpc.ReqHashes{
+		Hashes: hashesArr,
+	}
+
+	var res types.BlockDetails
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetBlockByHashes", params, &res)
+	//ctx.SetResultCb(parseQueryTxsByHashesRes)
 	ctx.Run()
 }

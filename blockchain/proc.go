@@ -61,6 +61,16 @@ func (chain *BlockChain) ProcRecvMsg() {
 			go chain.processMsg(msg, reqnum, chain.isSync)
 		case types.EventIsNtpClockSync:
 			go chain.processMsg(msg, reqnum, chain.isNtpClockSync)
+
+		case types.EventGetLastBlockSequence:
+			go chain.processMsg(msg, reqnum, chain.getLastBlockSequence)
+
+		case types.EventGetBlockSequences:
+			go chain.processMsg(msg, reqnum, chain.getBlockSequences)
+
+		case types.EventGetBlockByHashes:
+			go chain.processMsg(msg, reqnum, chain.getBlockByHashes)
+
 		default:
 			<-reqnum
 			chainlog.Warn("ProcRecvMsg unknow msg", "msgtype", msgtype)
@@ -318,4 +328,34 @@ func (chain *BlockChain) processMsg(msg queue.Message, reqnum chan struct{}, cb 
 		chainlog.Debug("process", "cost", time.Since(beg), "msg", types.GetEventName(int(msg.Ty)))
 	}()
 	cb(msg)
+}
+
+//获取最新的block执行序列号
+func (chain *BlockChain) getLastBlockSequence(msg queue.Message) {
+	var lastSequence types.Int64
+	lastSequence.Data, _ = chain.blockStore.LoadBlockLastSequence()
+	msg.Reply(chain.client.NewMessage("rpc", types.EventReplyLastBlockSequence, &lastSequence))
+}
+
+//获取指定区间的block执行序列信息，包含blockhash和操作类型：add/del
+func (chain *BlockChain) getBlockSequences(msg queue.Message) {
+	requestSequences := (msg.Data).(*types.ReqBlocks)
+	BlockSequences, err := chain.GetBlockSequences(requestSequences)
+	if err != nil {
+		chainlog.Error("GetBlockSequences", "err", err.Error())
+		msg.Reply(chain.client.NewMessage("rpc", types.EventReplyBlockSequences, err))
+	} else {
+		msg.Reply(chain.client.NewMessage("rpc", types.EventReplyBlockSequences, BlockSequences))
+	}
+}
+
+func (chain *BlockChain) getBlockByHashes(msg queue.Message) {
+	blockhashes := (msg.Data).(*types.ReqHashes)
+	BlockDetails, err := chain.GetBlockByHashes(blockhashes.Hashes)
+	if err != nil {
+		chainlog.Error("GetBlockByHashes", "err", err.Error())
+		msg.Reply(chain.client.NewMessage("rpc", types.EventBlocks, err))
+	} else {
+		msg.Reply(chain.client.NewMessage("rpc", types.EventBlocks, BlockDetails))
+	}
 }

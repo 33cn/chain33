@@ -252,6 +252,5 @@ message ReqBindMiner {
 }
 
 message ReplyBindMiner {
-    string cmdBind = 1;
-    string cmdTrans = 2;
+    string txHex = 1;
 }
