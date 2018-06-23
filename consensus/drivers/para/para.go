@@ -44,7 +44,8 @@ func New(cfg *types.Consensus) *Client {
 	c := drivers.NewBaseClient(cfg)
 	grpcSite = cfg.ParaRemoteGrpcClient
 	plog.Debug("New Para consensus client")
-	conn, err := grpc.Dial(grpcSite, grpc.WithInsecure())
+	msgRecvOp := grpc.WithMaxMsgSize(11 * 1024 * 1024)
+	conn, err := grpc.Dial(grpcSite, grpc.WithInsecure(), msgRecvOp)
 	if err != nil {
 		panic(err)
 	}
