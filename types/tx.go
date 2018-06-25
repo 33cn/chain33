@@ -654,15 +654,20 @@ func (tx *Transaction) ActionName() string {
 		}
 		if relay.Ty == RelayActionCreate && relay.GetCreate() != nil {
 			return "relayCreateTx"
-		} else if relay.Ty == RelayActionRevoke && relay.GetRevoke() != nil {
+		}
+		if relay.Ty == RelayActionRevoke && relay.GetRevoke() != nil {
 			return "relayRevokeTx"
-		} else if relay.Ty == RelayActionAccept && relay.GetAccept() != nil {
+		}
+		if relay.Ty == RelayActionAccept && relay.GetAccept() != nil {
 			return "relayAcceptTx"
-		} else if relay.Ty == RelayActionConfirmTx && relay.GetConfirmTx() != nil {
+		}
+		if relay.Ty == RelayActionConfirmTx && relay.GetConfirmTx() != nil {
 			return "relayConfirmTx"
-		} else if relay.Ty == RelayActionVerifyTx && relay.GetVerify() != nil {
+		}
+		if relay.Ty == RelayActionVerifyTx && relay.GetVerify() != nil {
 			return "relayVerifyTx"
-		} else if relay.Ty == RelayActionRcvBTCHeaders && relay.GetBtcHeaders() != nil {
+		}
+		if relay.Ty == RelayActionRcvBTCHeaders && relay.GetBtcHeaders() != nil {
 			return "relay-receive-btc-heads"
 		}
 
