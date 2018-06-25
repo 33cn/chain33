@@ -27,7 +27,7 @@ wget 127.0.0.1:8866 --no-proxy --post-data='{"id" : 1 , "method" : "ShowMinerAcc
  1. 挖矿帐号异常
     1. 是否有某个挖矿帐号， 一个小时挖矿所得为0, 可能是挖矿机器出故障了
     1. 增涨不到预期的50%
-    1. 在预期能挖到币的两倍时间间隔内， 挖到的币为0。 挖矿有波动， 在进行预警的几天里， 这个有很多误报， 不再监控这个点。 
+    1. 在预期能挖到币的两倍时间间隔内， 挖到的币为0。 挖矿有波动， 在进行预警的几天里， 这个有很多误报， 不再监控这个点。
 ```
 {
    "id" : 1,
@@ -35,6 +35,7 @@ wget 127.0.0.1:8866 --no-proxy --post-data='{"id" : 1 , "method" : "ShowMinerAcc
    "result" : {
       "blocks" : 234,
       "totalIncrease" : "4140.0000",
+      "expectTotalIncrease" : "3687.5982",
       "expectBlocks" : 241,
       "minerAccounts" : [
          {
