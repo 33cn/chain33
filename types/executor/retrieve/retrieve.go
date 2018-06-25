@@ -48,7 +48,7 @@ func (r RetrieveType) Amount(tx *types.Transaction) (int64, error) {
 }
 
 // TODO 暂时不修改实现， 先完成结构的重构
-func (ticket RetrieveType) NewTx(action string, message json.RawMessage) (*types.Transaction, error) {
+func (ticket RetrieveType) CreateTx(action string, message json.RawMessage) (*types.Transaction, error) {
 	var tx *types.Transaction
 	return tx, nil
 }

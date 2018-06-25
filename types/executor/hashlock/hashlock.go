@@ -46,7 +46,7 @@ func (t HashlockType) Amount(tx *types.Transaction) (int64, error) {
 }
 
 // TODO 暂时不修改实现， 先完成结构的重构
-func (hashlock HashlockType) NewTx(action string, message json.RawMessage) (*types.Transaction, error) {
+func (hashlock HashlockType) CreateTx(action string, message json.RawMessage) (*types.Transaction, error) {
 	var tx *types.Transaction
 	return tx, nil
 }

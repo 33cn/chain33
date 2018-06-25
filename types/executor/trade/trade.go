@@ -80,13 +80,13 @@ func (t tradeType) Amount(tx *types.Transaction) (int64, error) {
 	return 0, nil
 }
 
-func (trade tradeType) NewTx(action string, message json.RawMessage) (*types.Transaction, error) {
+func (trade tradeType) CreateTx(action string, message json.RawMessage) (*types.Transaction, error) {
 	var tx *types.Transaction
 	if action == "TradeSellLimit" {
 		var param rpctype.TradeSellTx
 		err := json.Unmarshal(message, &param)
 		if err != nil {
-			tlog.Error("NewTx", "Error", err)
+			tlog.Error("CreateTx", "Error", err)
 			return nil, types.ErrInputPara
 		}
 		return CreateRawTradeSellTx(&param)
@@ -94,7 +94,7 @@ func (trade tradeType) NewTx(action string, message json.RawMessage) (*types.Tra
 		var param rpctype.TradeBuyTx
 		err := json.Unmarshal(message, &param)
 		if err != nil {
-			tlog.Error("NewTx", "Error", err)
+			tlog.Error("CreateTx", "Error", err)
 			return nil, types.ErrInputPara
 		}
 		return CreateRawTradeBuyTx(&param)
@@ -102,7 +102,7 @@ func (trade tradeType) NewTx(action string, message json.RawMessage) (*types.Tra
 		var param rpctype.TradeRevokeTx
 		err := json.Unmarshal(message, &param)
 		if err != nil {
-			tlog.Error("NewTx", "Error", err)
+			tlog.Error("CreateTx", "Error", err)
 			return nil, types.ErrInputPara
 		}
 		return CreateRawTradeRevokeTx(&param)
@@ -110,7 +110,7 @@ func (trade tradeType) NewTx(action string, message json.RawMessage) (*types.Tra
 		var param rpctype.TradeBuyLimitTx
 		err := json.Unmarshal(message, &param)
 		if err != nil {
-			tlog.Error("NewTx", "Error", err)
+			tlog.Error("CreateTx", "Error", err)
 			return nil, types.ErrInputPara
 		}
 		return CreateRawTradeBuyLimitTx(&param)
@@ -118,7 +118,7 @@ func (trade tradeType) NewTx(action string, message json.RawMessage) (*types.Tra
 		var param rpctype.TradeSellMarketTx
 		err := json.Unmarshal(message, &param)
 		if err != nil {
-			tlog.Error("NewTx", "Error", err)
+			tlog.Error("CreateTx", "Error", err)
 			return nil, types.ErrInputPara
 		}
 		return CreateRawTradeSellMarketTx(&param)
@@ -126,7 +126,7 @@ func (trade tradeType) NewTx(action string, message json.RawMessage) (*types.Tra
 		var param rpctype.TradeRevokeBuyTx
 		err := json.Unmarshal(message, &param)
 		if err != nil {
-			tlog.Error("NewTx", "Error", err)
+			tlog.Error("CreateTx", "Error", err)
 			return nil, types.ErrInputPara
 		}
 		return CreateRawTradeRevokeBuyTx(&param)

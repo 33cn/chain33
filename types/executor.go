@@ -6,7 +6,7 @@ type ExecutorType interface {
 	// name 是 executor name 构造时用
 	//func Name()
 	ActionName(tx *Transaction) string
-	NewTx(action string, message json.RawMessage) (*Transaction, error)
+	CreateTx(action string, message json.RawMessage) (*Transaction, error)
 	Amount(tx *Transaction) (int64, error)
 }
 
