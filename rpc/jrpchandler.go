@@ -1278,7 +1278,7 @@ func (c *Chain33) CreateTransaction(in TransactionCreate, result *interface{}) e
 	if exec == nil {
 		return types.ErrExecNameNotAllow
 	}
-	tx, err := exec.NewTx(in.ActionName, in.Payload)
+	tx, err := exec.CreateTx(in.ActionName, in.Payload)
 	if err != nil {
 		log.Error("CreateTransaction", "err", err.Error())
 		return err

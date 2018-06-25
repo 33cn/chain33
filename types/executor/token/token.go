@@ -91,19 +91,19 @@ func (token TokenType) Amount(tx *types.Transaction) (int64, error) {
 }
 
 // TODO 暂时不修改实现， 先完成结构的重构
-func (coins TokenType) NewTx(action string, message json.RawMessage) (*types.Transaction, error) {
+func (coins TokenType) CreateTx(action string, message json.RawMessage) (*types.Transaction, error) {
 	var tx *types.Transaction
 	// transfer/withdraw 原来实现混在一起， 简单的从原来的代码移进来
 	if action == "" {
 		var param types.CreateTx
 		err := json.Unmarshal(message, &param)
 		if err != nil {
-			tlog.Error("NewTx", "Error", err)
+			tlog.Error("CreateTx", "Error", err)
 			return nil, types.ErrInputPara
 		}
 
 		if param.ExecName != "" && !types.IsAllowExecName(param.ExecName) {
-			tlog.Error("NewTx", "Error", types.ErrExecNameNotMatch)
+			tlog.Error("CreateTx", "Error", types.ErrExecNameNotMatch)
 			return nil, types.ErrExecNameNotMatch
 		}
 
@@ -132,7 +132,7 @@ func (coins TokenType) NewTx(action string, message json.RawMessage) (*types.Tra
 		var param rpctype.TokenPreCreateTx
 		err := json.Unmarshal(message, &param)
 		if err != nil {
-			tlog.Error("NewTx", "Error", err)
+			tlog.Error("CreateTx", "Error", err)
 			return nil, types.ErrInputPara
 		}
 
@@ -141,7 +141,7 @@ func (coins TokenType) NewTx(action string, message json.RawMessage) (*types.Tra
 		var param rpctype.TokenFinishTx
 		err := json.Unmarshal(message, &param)
 		if err != nil {
-			tlog.Error("NewTx", "Error", err)
+			tlog.Error("CreateTx", "Error", err)
 			return nil, types.ErrInputPara
 		}
 
@@ -150,7 +150,7 @@ func (coins TokenType) NewTx(action string, message json.RawMessage) (*types.Tra
 		var param rpctype.TokenRevokeTx
 		err := json.Unmarshal(message, &param)
 		if err != nil {
-			tlog.Error("NewTx", "Error", err)
+			tlog.Error("CreateTx", "Error", err)
 			return nil, types.ErrInputPara
 		}
 

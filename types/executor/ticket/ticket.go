@@ -62,7 +62,7 @@ func (ticket TicketType) Amount(tx *types.Transaction) (int64, error) {
 }
 
 // TODO 暂时不修改实现， 先完成结构的重构
-func (ticket TicketType) NewTx(action string, message json.RawMessage) (*types.Transaction, error) {
+func (ticket TicketType) CreateTx(action string, message json.RawMessage) (*types.Transaction, error) {
 	var tx *types.Transaction
 	return tx, nil
 }

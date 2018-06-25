@@ -34,7 +34,7 @@ func (m ManageType) Amount(tx *types.Transaction) (int64, error) {
 }
 
 // TODO 暂时不修改实现， 先完成结构的重构
-func (m ManageType) NewTx(action string, message json.RawMessage) (*types.Transaction, error) {
+func (m ManageType) CreateTx(action string, message json.RawMessage) (*types.Transaction, error) {
 	var tx *types.Transaction
 	return tx, nil
 }
