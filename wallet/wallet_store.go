@@ -458,7 +458,7 @@ func (ws *Store) DelAccountByLabel(label string) {
 	ws.db.DeleteSync(calcLabelKey(label))
 }
 
-func (ws *Store) GetWalletFTXO(prefix string) ([]*types.FTXOsSTXOsInOneTx, []string, error) {
+func (ws *Store) GetWalletFtxoStxo(prefix string) ([]*types.FTXOsSTXOsInOneTx, []string, error) {
 	//prefix := FTXOs4Tx
 	list := dbm.NewListHelper(ws.db)
 	values := list.List([]byte(prefix), nil, 0, 0)
@@ -541,7 +541,7 @@ func (ws *Store) setUTXO(addr, txhash *string, outindex int, dbStore *types.Priv
 	}
 
 	//如果该交易产生的UTXO是包含在之前被回退对外支付的交易，则不重新添加相应的UTXO
-	if revertFtos, _, _ := ws.GetWalletFTXO(RevertSendtx); nil != revertFtos{
+	if revertFtos, _, _ := ws.GetWalletFtxoStxo(RevertSendtx); nil != revertFtos{
 		for _, ftxos4tx := range revertFtos {
 			for _, ftxo := range ftxos4tx.Utxos {
 				if common.Bytes2Hex(ftxo.UtxoBasic.UtxoGlobalIndex.Txhash) == *txhash {
@@ -578,7 +578,7 @@ func (ws *Store) unsetUTXO(addr, txhash *string, outindex int, token string, new
 	}
 
 	found := false
-	ftxos4Txs, _, _ := ws.GetWalletFTXO(RevertSendtx)
+	ftxos4Txs, _, _ := ws.GetWalletFtxoStxo(RevertSendtx)
 	for _, ftxos4Singletx := range ftxos4Txs {
 		for _, utxo := range ftxos4Singletx.Utxos {
 			if common.Bytes2Hex(utxo.UtxoBasic.UtxoGlobalIndex.Txhash) == *txhash {
