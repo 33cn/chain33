@@ -102,6 +102,27 @@ func tradePayloadType(funcname string) (proto.Message, error) {
 	return req, nil
 }
 
+func relayPayloadType(funcname string) (proto.Message, error) {
+	var req proto.Message
+	switch funcname {
+	case "GetRelayOrderByStatus":
+		req = &types.ReqRelayAddrCoins{}
+	case "GetSellRelayOrder":
+		req = &types.ReqRelayAddrCoins{}
+	case "GetBuyRelayOrder":
+		req = &types.ReqRelayAddrCoins{}
+	case "GetBTCHeaderList":
+		req = &types.ReqRelayBtcHeaderHeightList{}
+	case "GetBTCHeaderMissList":
+		req = &types.ReqRelayBtcHeaderHeightList{}
+	case "GetBTCHeaderCurHeight":
+		req = &types.ReqRelayQryBTCHeadHeight{}
+	default:
+		return nil, types.ErrInputPara
+	}
+	return req, nil
+}
+
 func payloadType(execer, funcname string) (proto.Message, error) {
 	switch execer {
 	case "token":

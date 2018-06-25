@@ -521,7 +521,7 @@ func (tx *Transaction) Amount() (int64, error) {
 		} else if TradeRevokeSell == trade.Ty && trade.GetTokenrevokesell() != nil {
 			return 0, nil
 		}
-	} else if "relay" == string(tx.Execer) {
+	} else if string(ExecerRelay) == string(tx.Execer) {
 		var relay RelayAction
 		err := Decode(tx.GetPayload(), &relay)
 		if err != nil {
@@ -530,14 +530,8 @@ func (tx *Transaction) Amount() (int64, error) {
 
 		if RelayActionCreate == relay.Ty && relay.GetCreate() != nil {
 			return int64(relay.GetCreate().BtyAmount), nil
-		} else if RelayActionRevoke == relay.Ty && relay.GetRevoke() != nil {
-			return 0, nil
-		} else if RelayActionAccept == relay.Ty && relay.GetAccept() != nil {
-			return 0, nil
-		} else if RelayActionConfirmTx == relay.Ty && relay.GetConfirmTx() != nil {
-			return 0, nil
 		}
-
+		return 0, nil
 	}
 	return 0, nil
 }

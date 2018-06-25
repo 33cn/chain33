@@ -11,7 +11,7 @@ import (
 var relaylog = log.New("module", "execs.relay")
 
 func Init() {
-	drivers.Register(newRelay().GetName(), newRelay, types.ForkV7AddRelay) //TODO: ForkV7AddRelay
+	drivers.Register(newRelay().GetName(), newRelay, types.ForkV18Relay) //TODO: ForkV18Relay
 }
 
 type relay struct {
@@ -52,17 +52,15 @@ func (r *relay) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	case types.RelayActionRevoke:
 		return actiondb.relayRevoke(btc, action.GetRevoke())
 
-	//OrderId, txHash
 	case types.RelayActionConfirmTx:
 		return actiondb.confirmTx(btc, action.GetConfirmTx())
 
-	// OrderId, rawTx, index sibling, blockhash
 	case types.RelayActionVerifyTx:
 		return actiondb.verifyTx(btc, action.GetVerify())
 
 	// OrderId, rawTx, index sibling, blockhash
-	case types.RelayActionVerifyBTCTx:
-		return actiondb.verifyBtcTx(btc, action.GetVerifyCli())
+	case types.RelayActionVerifyCmdTx:
+		return actiondb.verifyCmdTx(btc, action.GetVerifyCli())
 
 	case types.RelayActionRcvBTCHeaders:
 		return actiondb.saveBtcHeader(action.GetBtcHeaders())
@@ -72,7 +70,6 @@ func (r *relay) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	}
 }
 
-//获取运行状态名
 func (r *relay) GetActionName(tx *types.Transaction) string {
 	return tx.ActionName()
 }
@@ -90,12 +87,13 @@ func (r *relay) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 	var btc *btcStore
 	for i := 0; i < len(receipt.Logs); i++ {
 		item := receipt.Logs[i]
-		if item.Ty == types.TyLogRelayCreate ||
-			item.Ty == types.TyLogRelayRevokeCreate ||
-			item.Ty == types.TyLogRelayAccept ||
-			item.Ty == types.TyLogRelayRevokeAccept ||
-			item.Ty == types.TyLogRelayConfirmTx ||
-			item.Ty == types.TyLogRelayFinishTx {
+		switch item.Ty {
+		case types.TyLogRelayCreate,
+			types.TyLogRelayRevokeCreate,
+			types.TyLogRelayAccept,
+			types.TyLogRelayRevokeAccept,
+			types.TyLogRelayConfirmTx,
+			types.TyLogRelayFinishTx:
 			var receipt types.ReceiptRelayLog
 			err := types.Decode(item.Log, &receipt)
 			if err != nil {
@@ -103,8 +101,7 @@ func (r *relay) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 			}
 			kv := r.getOrderKv([]byte(receipt.OrderId), item.Ty)
 			set.KV = append(set.KV, kv...)
-
-		} else if item.Ty == types.TyLogRelayRcvBTCHead {
+		case types.TyLogRelayRcvBTCHead:
 			//btc header not be stored by head by head, but headers together in one block
 			//thus, before save to db, it is needed to remember last header for continuous check.
 			//although verifyBlockHeader() has checked the continuous header,but not check the head in db
@@ -122,8 +119,13 @@ func (r *relay) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 				return nil, err
 			}
 
-			kv := btc.saveBlockHead(receipt.Base)
+			kv, err := btc.saveBlockHead(receipt.Base)
+			if err != nil {
+				return nil, err
+			}
 			set.KV = append(set.KV, kv...)
+		default:
+
 		}
 	}
 
@@ -142,19 +144,23 @@ func (r *relay) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 
 	for i := 0; i < len(receipt.Logs); i++ {
 		item := receipt.Logs[i]
-		if item.Ty == types.TyLogRelayCreate ||
-			item.Ty == types.TyLogRelayRevokeCreate ||
-			item.Ty == types.TyLogRelayAccept ||
-			item.Ty == types.TyLogRelayRevokeAccept ||
-			item.Ty == types.TyLogRelayConfirmTx ||
-			item.Ty == types.TyLogRelayFinishTx {
+		switch item.Ty {
+		case types.TyLogRelayCreate,
+			types.TyLogRelayRevokeCreate,
+			types.TyLogRelayAccept,
+			types.TyLogRelayRevokeAccept,
+			types.TyLogRelayConfirmTx,
+			types.TyLogRelayFinishTx:
 			var receipt types.ReceiptRelayLog
 			err := types.Decode(item.Log, &receipt)
 			if err != nil {
-				panic(err)
+				return nil, err
 			}
 			kv := r.getDeleteOrderKv([]byte(receipt.OrderId), item.Ty)
 			set.KV = append(set.KV, kv...)
+
+		default:
+
 		}
 	}
 
@@ -164,7 +170,6 @@ func (r *relay) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 
 func (r *relay) Query(funcName string, params []byte) (types.Message, error) {
 	switch funcName {
-	//按状态查询卖单
 	case "GetRelayOrderByStatus":
 		var addrCoins types.ReqRelayAddrCoins
 
@@ -173,7 +178,6 @@ func (r *relay) Query(funcName string, params []byte) (types.Message, error) {
 			return nil, err
 		}
 		return r.GetSellOrderByStatus(&addrCoins)
-	//查询某个特定用户的一个或者多个coin兑换的卖单,包括所有状态的卖单
 	case "GetSellRelayOrder":
 		var addrCoins types.ReqRelayAddrCoins
 		err := types.Decode(params, &addrCoins)
@@ -290,7 +294,6 @@ func (r *relay) getRelayOrderReply(OrderIds [][]byte) (types.Message, error) {
 
 	var reply types.ReplyRelayOrders
 	for _, OrderId := range OrderIds {
-		//因为通过db list功能获取的sellid由于条件设置宽松会出现重复sellid的情况，在此进行过滤
 		if !OrderIdGot[string(OrderId)] {
 			if order, err := r.getSellOrderFromDb(OrderId); err == nil {
 				relaylog.Debug("relay Query", "getSellOrderFromID", string(OrderId))

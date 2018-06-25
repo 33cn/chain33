@@ -1,48 +1,17 @@
 package commands
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
-	"strings"
-
-	"encoding/json"
-
 	"strconv"
+	"strings"
 
 	"github.com/spf13/cobra"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-////////////types.go//////////
-type RelayOrder2Show struct {
-	OrderId       string `json:"orderid"`
-	Status        string `json:"status"`
-	Creator       string `json:"address"`
-	Amount        string `json:"amount"`
-	CoinOperation string `json:"coinoperation"`
-	Coin          string `json:"coin"`
-	CoinAmount    string `json:"coinamount"`
-	CoinAddr      string `json:"coinaddr"`
-	CreateTime    int64  `json:"createtime"`
-	AcceptAddr    string `json:"acceptaddr"`
-	AcceptTime    int64  `json:"accepttime"`
-	ConfirmTime   int64  `json:"confirmtime"`
-	FinishTime    int64  `json:"finishtime"`
-	FinishTxHash  string `json:"finishtxhash"`
-	Height        int64  `json:"height"`
-}
-
-type RelayBTCHeadHeightListShow struct {
-	Height int64 `json:Height`
-}
-
-type RelayBTCHeadCurHeightShow struct {
-	CurHeight  int64 `json:curHeight`
-	BaseHeight int64 `json:baseHeight`
-}
-
-///////////////
 func RelayCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "relay",
@@ -213,7 +182,6 @@ func showOnesRelayOrders(cmd *cobra.Command, args []string) {
 	parseRelayOrders(res)
 }
 
-////
 func ShowOnesAcceptRelayOrdersCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "acceptor_orders",
@@ -263,7 +231,6 @@ func showRelayAcceptOrders(cmd *cobra.Command, args []string) {
 	parseRelayOrders(res)
 }
 
-////
 func ShowOnesStatusOrdersCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "status",
@@ -319,13 +286,12 @@ func showCoinRelayOrders(cmd *cobra.Command, args []string) {
 }
 
 func parseRelayOrders(res types.ReplyRelayOrders) {
-	var operation = []string{"buy", "sell"}
 	for _, order := range res.Relayorders {
 		var show RelayOrder2Show
 		show.OrderId = order.Id
 		show.Status = order.Status.String()
 		show.Creator = order.CreaterAddr
-		show.CoinOperation = operation[order.CoinOperation]
+		show.CoinOperation = types.RelayOrderOperation[order.CoinOperation]
 		show.Amount = strconv.FormatFloat(float64(order.Amount)/float64(types.Coin), 'f', 4, 64)
 		show.Coin = order.Coin
 		show.CoinAddr = order.CoinAddr
@@ -364,11 +330,7 @@ func parseRelayBtcHeadHeightList(res types.ReplyRelayBtcHeadHeightList) {
 }
 
 func parseRelayBtcCurHeight(res types.ReplayRelayQryBTCHeadHeight) {
-	var show RelayBTCHeadCurHeightShow
-	show.CurHeight = res.CurHeight
-	show.BaseHeight = res.BaseHeight
-
-	data, err := json.MarshalIndent(show, "", "    ")
+	data, err := json.MarshalIndent(res, "", "    ")
 	if err != nil {
 		fmt.Println(os.Stderr, err)
 		return
@@ -377,7 +339,6 @@ func parseRelayBtcCurHeight(res types.ReplayRelayQryBTCHeadHeight) {
 	fmt.Println(string(data))
 }
 
-//// create raw create coin transaction
 func CreateRawRelayOrderTxCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create",
@@ -436,7 +397,6 @@ func relayOrder(cmd *cobra.Command, args []string) {
 	ctx.RunWithoutMarshal()
 }
 
-// create raw accept coin transaction
 func CreateRawRelayAcceptTxCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "accept",
@@ -475,7 +435,6 @@ func relayAccept(cmd *cobra.Command, args []string) {
 	ctx.RunWithoutMarshal()
 }
 
-// create raw  revoke transaction
 func CreateRawRevokeTxCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "revoke",
@@ -519,7 +478,6 @@ func relayRevoke(cmd *cobra.Command, args []string) {
 	ctx.RunWithoutMarshal()
 }
 
-// create raw verify transaction
 func CreateRawRelayConfirmTxCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "confirm",
@@ -613,7 +571,6 @@ func relaySaveBtcHead(cmd *cobra.Command, args []string) {
 	ctx.RunWithoutMarshal()
 }
 
-// create raw verify transaction
 func CreateRawRelayVerifyBTCTxCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "verify",

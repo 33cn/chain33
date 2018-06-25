@@ -1,21 +1,19 @@
 package relay
 
 import (
-	"strings"
-
-	"github.com/golang/protobuf/proto"
-	"gitlab.33.cn/chain33/chain33/common"
-	dbm "gitlab.33.cn/chain33/chain33/common/db"
-	"gitlab.33.cn/chain33/chain33/common/merkle"
-	"gitlab.33.cn/chain33/chain33/types"
-
 	"bytes"
-	"encoding/json"
+	"strings"
 	"time"
 
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/wire"
+	"github.com/golang/protobuf/proto"
+
+	"gitlab.33.cn/chain33/chain33/common"
+	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/common/difficulty"
+	"gitlab.33.cn/chain33/chain33/common/merkle"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 type btcStore struct {
@@ -49,7 +47,7 @@ func newBtcStore(r *relay) (*btcStore, error) {
 
 func (b *btcStore) getBtcHeadHeightFromDb(key []byte) (int64, error) {
 	val, err := b.db.Get(key)
-	if val == nil || err != nil {
+	if err != nil {
 		return -1, err
 	}
 	height, err := decodeHeight(val)
@@ -80,13 +78,14 @@ func (b *btcStore) getBtcHeadByHeight(height int64) (*types.BtcHeader, error) {
 	return &head, nil
 }
 
-func (b *btcStore) saveBlockHead(head *types.BtcHeader) []*types.KeyValue {
+func (b *btcStore) saveBlockHead(head *types.BtcHeader) ([]*types.KeyValue, error) {
 	var kv []*types.KeyValue
 	var key []byte
 
 	val, err := proto.Marshal(head)
 	if err != nil {
-		relaylog.Error("btcStore Marshal header", "height", head.Height, "hash", head.Hash, "error", err)
+		relaylog.Error("saveBlockHead", "height", head.Height, "hash", head.Hash)
+		return nil, err
 
 	} else {
 		// hash:header
@@ -114,19 +113,14 @@ func (b *btcStore) saveBlockHead(head *types.BtcHeader) []*types.KeyValue {
 		b.lastHeader = head
 	}
 
-	return kv
+	return kv, nil
 }
 
 func decodeHeight(heightBytes []byte) (int64, error) {
 	var height types.Int64
 	err := types.Decode(heightBytes, &height)
 	if err != nil {
-		// may be old database format json...
-		err = json.Unmarshal(heightBytes, &height.Data)
-		if err != nil {
-			relaylog.Error("decodeHeight Could not unmarshal height bytes", "error", err.Error())
-			return -1, types.ErrUnmarshal
-		}
+		return -1, err
 	}
 	return height.Data, nil
 }
@@ -224,13 +218,15 @@ func (b *btcStore) verifyBtcTx(verify *types.RelayVerify, order *types.RelayOrde
 
 }
 
-// rawtx, txindex, sibling, blockhash
-//
-// sibling like "aaaaaa-bbbbbb-cccccc..."
-
 func (b *btcStore) verifyCmdBtcTx(verify *types.RelayVerifyCli) error {
-	rawhash := getRawTxHash(verify.RawTx)
-	sibs := getSiblingHash(verify.MerkBranch)
+	rawhash, err := getRawTxHash(verify.RawTx)
+	if err != nil {
+		return err
+	}
+	sibs, err := getSiblingHash(verify.MerkBranch)
+	if err != nil {
+		return err
+	}
 
 	verifymerkleroot := merkle.GetMerkleRootFromBranch(sibs, rawhash, verify.TxIndex)
 	str, err := b.getMerkleRootFromHeader(verify.BlockHash)
@@ -250,20 +246,28 @@ func (b *btcStore) verifyCmdBtcTx(verify *types.RelayVerifyCli) error {
 	return nil
 }
 
-func getRawTxHash(rawtx string) []byte {
-	data, _ := common.FromHex(rawtx)
+func getRawTxHash(rawtx string) ([]byte, error) {
+	data, err := common.FromHex(rawtx)
+	if err != nil {
+		return nil, err
+	}
 	h := common.DoubleHashH(data)
-	return h.Bytes()
+	return h.Bytes(), nil
 }
 
-func getSiblingHash(sibling string) [][]byte {
+func getSiblingHash(sibling string) ([][]byte, error) {
+	var err error
 	sibsarr := strings.Split(sibling, "-")
 
 	sibs := make([][]byte, len(sibsarr))
 	for i, val := range sibsarr {
-		sibs[i], _ = btcHashStrRevers(val)
+		sibs[i], err = btcHashStrRevers(val)
+		if err != nil {
+			return nil, err
+		}
+
 	}
-	return sibs[:][:]
+	return sibs[:][:], nil
 }
 
 func btcHashStrRevers(str string) ([]byte, error) {
