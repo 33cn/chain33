@@ -674,8 +674,6 @@ func (chain *BlockChain) ProcGetGlobalIndexMsg(reqUTXOGlobalIndex *types.ReqUTXO
 			position := positions[i]
 			item := utxoItems[position]
 			utxoGlobalIndex := &types.UTXOGlobalIndex{
-				Height:   item.GetHeight(),
-				Txindex:  item.GetTxindex(),
 				Outindex: item.GetOutindex(),
 				Txhash:   item.GetTxhash(),
 			}
