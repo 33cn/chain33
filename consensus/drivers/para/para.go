@@ -22,11 +22,12 @@ var (
 	currSeq       int64 = 0
 	lastSeq       int64 = 0
 	seqStep       int64 = 10       //experience needed
-	filterExec          = "filter" //execName not decided
+	filterExec          = "ticket" //execName not decided
 	txCacheSize   int64 = 10240
 	blockSec      int64 = 10 //write block interval, second
 	emptyBlockMin int64 = 2  //write empty block interval, minute
 	zeroHash      [32]byte
+	grpcRecSize   int = 11 * 1024 * 1024 //the size should be limited in server
 )
 
 type Client struct {
@@ -39,9 +40,12 @@ type Client struct {
 func New(cfg *types.Consensus) *Client {
 	c := drivers.NewBaseClient(cfg)
 	grpcSite = cfg.ParaRemoteGrpcClient
+
 	plog.Debug("New Para consensus client")
-	msgRecvOp := grpc.WithMaxMsgSize(11 * 1024 * 1024)
+
+	msgRecvOp := grpc.WithMaxMsgSize(grpcRecSize)
 	conn, err := grpc.Dial(grpcSite, grpc.WithInsecure(), msgRecvOp)
+
 	if err != nil {
 		panic(err)
 	}
@@ -102,12 +106,17 @@ func (client *Client) SetTxs() {
 	}
 	plog.Error("SetTxs", "LastSeq", lastSeq, "currSeq", currSeq)
 	if lastSeq > currSeq {
-		blockSeq, _ := client.GetBlockHashFromMainChain(currSeq, currSeq+1)
-		if blockSeq == nil {
-			plog.Debug("Not found block hash on seq", "start", currSeq, "end", currSeq+1)
+		//debug phase
+		if currSeq > 10 {
 			return
 		}
-		currSeq += 1
+
+		blockSeq, _ := client.GetBlockHashFromMainChain(currSeq, currSeq+1)
+		if blockSeq == nil {
+			plog.Error("Not found block hash on seq", "start", currSeq, "end", currSeq+1)
+			return
+		}
+
 		var hashes [][]byte
 		for _, item := range blockSeq.Items {
 			hashes = append(hashes, item.Hash)
@@ -120,6 +129,13 @@ func (client *Client) SetTxs() {
 			return
 		}
 
+		//protect the boundary
+		if len(blockSeq.Items) != len(blockDetails.Items) {
+			panic("")
+			//plog.Error("GetBlockDetailerr")
+			//return
+		}
+
 		for i, _ := range blockSeq.Items {
 
 			opTy := blockSeq.Items[i].Type
@@ -127,10 +143,12 @@ func (client *Client) SetTxs() {
 			//对每一个block进行操作，保留相关TX
 			//为TX置标志位
 			txs = client.FilterTxsForPara(txs)
+			plog.Error("GetCurrentSeq", "Len of txs", len(txs), "ty", opTy)
 			client.SetOpTxs(txs, opTy)
 		}
-	}
 
+		currSeq += 1
+	}
 }
 
 func (client *Client) SetOpTxs(txs []*types.Transaction, ty int64) {
@@ -138,18 +156,20 @@ func (client *Client) SetOpTxs(txs []*types.Transaction, ty int64) {
 		hash := txs[i].Hash()
 		if ty == DelAct && client.cache.Exists(hash) && client.cache.Get(hash).ty == AddAct {
 			client.cache.Remove(hash)
+		} else {
+			client.cache.Push(txs[i], ty)
 		}
 	}
 }
 
 func (client *Client) MonitorTxs() {
-	plog.Debug("MonitorTxs", "len for txs", client.cache.Size())
+	plog.Error("MonitorTxs", "len for txs", client.cache.Size())
 }
 
 func (client *Client) ManageTxs() {
 	//during start
 	currSeq = client.GetCurrentSeq()
-	plog.Debug("Para consensus ManageTxs")
+	plog.Error("Para consensus ManageTxs")
 	for {
 		time.Sleep(time.Second)
 		client.SetTxs()
@@ -256,7 +276,7 @@ func (client *Client) CreateBlock() {
 		issleep = false
 		//check dup
 		//txs = client.CheckTxDup(txs)
-		plog.Debug(fmt.Sprintf("the len txs is: %v", len(txs)))
+		plog.Error(fmt.Sprintf("the len txs is: %v", len(txs)))
 		var newblock types.Block
 		newblock.ParentHash = lastBlock.Hash()
 		newblock.Height = lastBlock.Height + 1
@@ -281,13 +301,13 @@ func (client *Client) CreateBlock() {
 
 // 向cache获取交易
 func (client *Client) RequestTx(size int, txHashList [][]byte) []*types.Transaction {
-	plog.Debug("Get Txs from txOps")
+	plog.Error("Get Txs from txOps")
 	return client.cache.Pull(size, txHashList)
 }
 
 // 向blockchain写区块
 func (client *Client) WriteBlock(prev []byte, block *types.Block) error {
-	plog.Debug("write block in parachain")
+	plog.Error("write block in parachain")
 	blockdetail, deltx, err := client.ExecBlock(prev, block)
 	if len(deltx) > 0 {
 		client.DelTxs(deltx)
