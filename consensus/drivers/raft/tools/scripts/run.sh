@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 #Program:
 # This is a chain33 deploy scripts!
-if [ $1 == "start" ]; then
+if [ "$1" == "start" ]; then
     nohup ./chain33 >console.log 2>&1 &
     echo $! >chain33.pid
-elif [ $1 == "stop" ]; then
+elif [ "$1" == "stop" ]; then
     PID=$(cat chain33.pid)
-    kill -9 $PID
+    kill -9 "$PID"
     rm -rf chain33.pid
-elif [ $1 == "clear" ]; then
+elif [ "$1" == "clear" ]; then
     rm -rf console.log
     rm -rf logs/
     rm -rf grpc33.log
