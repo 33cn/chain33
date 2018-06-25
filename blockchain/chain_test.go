@@ -141,6 +141,15 @@ func PrintBlockInfo(block *types.BlockDetail) {
 	}
 }
 
+// 打印block的信息
+func PrintSequenceInfo(Sequence *types.BlockSequence) {
+	if Sequence == nil {
+		return
+	}
+	fmt.Println("PrintSequenceInfo!")
+	fmt.Println("Sequence.Hash:", Sequence.Hash)
+	fmt.Println("Sequence.Type:", Sequence.Type)
+}
 func addTx() (string, error) {
 	txs, _, _ := genTxs(1)
 	hash := common.Bytes2Hex(txs[0].Hash())
@@ -183,6 +192,11 @@ func TestBlockChain(t *testing.T) {
 
 	testGetBlockByHash(t, blockchain)
 
+	testProcGetLastSequence(t, blockchain)
+
+	testGetBlockSequences(t, blockchain)
+
+	testGetBlockByHashes(t, blockchain)
 	//testProcGetTransactionByHashes(t, blockchain)
 
 	//testProcGetTransactionByAddr(t, blockchain)
@@ -394,4 +408,60 @@ func testGetBlockByHash(t *testing.T, blockchain *BlockChain) {
 
 	PrintBlockInfo(block)
 	chainlog.Info("TestGetBlockByHash end --------------------")
+}
+
+func testProcGetLastSequence(t *testing.T, blockchain *BlockChain) {
+	chainlog.Info("testProcGetLastSequence begin --------------------")
+
+	lastSequence, err := blockchain.blockStore.LoadBlockLastSequence()
+
+	if err == nil {
+		fmt.Println("testProcGetLastSequence info:.")
+		fmt.Println("lastSequence:", lastSequence)
+	}
+	chainlog.Info("testProcGetLastSequence end --------------------")
+}
+
+func testGetBlockSequences(t *testing.T, blockchain *BlockChain) {
+	chainlog.Info("testGetBlockSequences begin --------------------")
+	lastSequence, _ := blockchain.blockStore.LoadBlockLastSequence()
+	var reqBlock types.ReqBlocks
+	if lastSequence >= 5 {
+		reqBlock.Start = lastSequence - 5
+	}
+	reqBlock.End = lastSequence
+	reqBlock.IsDetail = true
+	Sequences, err := blockchain.GetBlockSequences(&reqBlock)
+	if err == nil && Sequences != nil {
+		for _, sequence := range Sequences.Items {
+			PrintSequenceInfo(sequence)
+		}
+	}
+	chainlog.Info("testGetBlockSequences end --------------------")
+}
+
+func testGetBlockByHashes(t *testing.T, blockchain *BlockChain) {
+	chainlog.Info("testGetBlockByHashes begin --------------------")
+	lastSequence, _ := blockchain.blockStore.LoadBlockLastSequence()
+	var reqBlock types.ReqBlocks
+	if lastSequence >= 5 {
+		reqBlock.Start = lastSequence - 5
+	}
+	reqBlock.End = lastSequence
+	reqBlock.IsDetail = true
+	hashes := make([][]byte, 6)
+	Sequences, err := blockchain.GetBlockSequences(&reqBlock)
+	if err == nil && Sequences != nil {
+		for index, sequence := range Sequences.Items {
+			hashes[index] = sequence.Hash
+		}
+	}
+
+	blocks, err := blockchain.GetBlockByHashes(hashes)
+	if err == nil && blocks != nil {
+		for _, block := range blocks.Items {
+			PrintBlockInfo(block)
+		}
+	}
+	chainlog.Info("testGetBlockByHashes end --------------------")
 }

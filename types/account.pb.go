@@ -13,6 +13,7 @@ It is generated from these files:
 	evmcontract.proto
 	executor.proto
 	executorTrade.proto
+	game.proto
 	p2p.proto
 	pbft.proto
 	rpc.proto
@@ -49,6 +50,8 @@ It has these top-level messages:
 	IsCaughtUp
 	IsNtpClockSync
 	BlockChainQuery
+	BlockSequence
+	BlockSequences
 	Reply
 	ReqString
 	ReplyString
@@ -61,6 +64,7 @@ It has these top-level messages:
 	ReqHashes
 	ReplyHashes
 	KeyValue
+	TimeStatus
 	Config
 	Log
 	MemPool
@@ -181,6 +185,16 @@ It has these top-level messages:
 	ReplyBuyOrders
 	ReplyTradeOrder
 	ReplyTradeOrders
+	Game
+	GameAction
+	GameMatch
+	GameCancel
+	GameClose
+	GameOpen
+	GameList
+	GameInfos
+	ReplyGameList
+	ReceiptGame
 	P2PGetPeerInfo
 	P2PPeerInfo
 	P2PVersion

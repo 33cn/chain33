@@ -18,6 +18,7 @@ var (
 	WalletFeeAmount = []byte("WalletFeeAmount")
 	EncryptionFlag  = []byte("Encryption")
 	PasswordHash    = []byte("PasswordHash")
+	WalletVerKey    = []byte("WalletVerKey")
 	storelog        = walletlog.New("submodule", "store")
 )
 
@@ -249,7 +250,7 @@ func (ws *Store) GetTxDetailByIter(TxList *types.ReqWalletTransactionList) (*typ
 		}
 		txhash := txdetail.GetTx().Hash()
 		txdetail.Txhash = txhash
-		if string(txdetail.Tx.GetExecer()) == "coins" && txdetail.Tx.ActionName() == "withdraw" {
+		if txdetail.GetTx().IsWithdraw() {
 			//swap from and to
 			txdetail.Fromaddr, txdetail.Tx.To = txdetail.Tx.To, txdetail.Fromaddr
 		}
@@ -327,4 +328,31 @@ func (ws *Store) VerifyPasswordHash(password string) bool {
 
 func (ws *Store) DelAccountByLabel(label string) {
 	ws.db.DeleteSync(calcLabelKey(label))
+}
+
+//升级数据库的版本号
+func (ws *Store) SetWalletVersion(version int64) error {
+	data, err := json.Marshal(version)
+	if err != nil {
+		walletlog.Error("SetWalletVerKey marshal version", "err", err)
+		return types.ErrMarshal
+	}
+
+	ws.db.SetSync(WalletVerKey, data)
+	return nil
+}
+
+// 获取wallet数据库的版本号
+func (ws *Store) GetWalletVersion() int64 {
+	var version int64
+	data, err := ws.db.Get(WalletVerKey)
+	if data == nil || err != nil {
+		return 0
+	}
+	err = json.Unmarshal(data, &version)
+	if err != nil {
+		walletlog.Error("GetWalletVersion unmarshal", "err", err)
+		return 0
+	}
+	return version
 }
