@@ -1,7 +1,6 @@
 syntax = "proto3";
 import "transaction.proto";
 import "common.proto";
-import "db.proto";
 
 package types;
 
@@ -95,11 +94,6 @@ message PrivacyKVToken {
     int32 txIndex = 2;
 	bytes txhash  = 3;
 	repeated KeyValue KV = 4;
-}
-
-message LocalDBSetWithPrivacy{
-	LocalDBSet localDBSet        = 1;
-    PrivacyKV  privacyLocalDBSet = 2;
 }
 
 message ReceiptsAndPrivacyKV {

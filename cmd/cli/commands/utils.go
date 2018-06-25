@@ -251,8 +251,6 @@ func buildPrivacyInputResult(l *jsonrpc.ReceiptLogResult) interface{} {
 		var dstUtxoGlobalIndex []*UTXOGlobalIndex
 		for _, srcUTXOGlobalIndex := range srcKeyInput.UtxoGlobalIndex {
 			dstUtxoGlobalIndex = append(dstUtxoGlobalIndex, &UTXOGlobalIndex{
-				Height:   srcUTXOGlobalIndex.GetHeight(),
-				Txindex:  srcUTXOGlobalIndex.GetTxindex(),
 				Outindex: srcUTXOGlobalIndex.GetOutindex(),
 				Txhash:   common.ToHex(srcUTXOGlobalIndex.GetTxhash()),
 			})

@@ -18,8 +18,8 @@ const (
 
 //该key对应的是types.KeyOutput
 //该kv会在store中设置
-func CalcPrivacyOutputKey(token string, amount, height int64, txhash string, index int) (key []byte) {
-	return []byte(fmt.Sprintf(PrivacyOutputKeyPrefix+"-%s-%d-%d-%s-%d", token, amount, height, txhash, index))
+func CalcPrivacyOutputKey(token string, amount int64, txhash string, outindex int) (key []byte) {
+	return []byte(fmt.Sprintf(PrivacyOutputKeyPrefix+"-%s-%d-%d-%s-%d", token, amount, txhash, outindex))
 }
 
 func calcPrivacyKeyImageKey(token string, keyimage []byte) []byte {
@@ -28,11 +28,7 @@ func calcPrivacyKeyImageKey(token string, keyimage []byte) []byte {
 
 //在本地数据库中设置一条可以找到对应amount的对应的utxo的global index
 func CalcPrivacyUTXOkeyHeight(token string, amount, height int64, txhash string, txindex, outindex int) (key []byte) {
-	return []byte(CalcPrivacyUTXOkeyHeightStr(token, amount, height, txhash, txindex, outindex))
-}
-
-func CalcPrivacyUTXOkeyHeightStr(token string, amount, height int64, txhash string, txindex, outindex int) (key string) {
-	return fmt.Sprintf(PrivacyUTXOKEYPrefix+"-%s-%d-%010d-%s-%d-%d", token, amount, height, txhash, txindex, outindex)
+	return []byte(fmt.Sprintf(PrivacyUTXOKEYPrefix+"-%s-%d-%d-%s-%d-%d", token, amount, height, txhash, txindex, outindex))
 }
 
 func CalcPrivacyUTXOkeyHeightPrefix(token string, amount int64) (key []byte) {

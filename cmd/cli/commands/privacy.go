@@ -294,8 +294,8 @@ func parseShowPrivacyAccountSpendRes(arg interface{}) (interface{}, error) {
 		for _, ret := range rets {
 			if utxo.TxHash == ret.Txhash {
 				result := &PrivacyAccountResult{
-					Height:   utxo.UtxoBasic.UtxoGlobalIndex.Height,
-					TxIndex:  utxo.UtxoBasic.UtxoGlobalIndex.Txindex,
+					//Height:   utxo.UtxoBasic.UtxoGlobalIndex.Height,
+					//TxIndex:  utxo.UtxoBasic.UtxoGlobalIndex.Txindex,
 					Txhash:   common.ToHex(utxo.UtxoBasic.UtxoGlobalIndex.Txhash),
 					OutIndex: utxo.UtxoBasic.UtxoGlobalIndex.Outindex,
 					Amount:   strconv.FormatFloat(amount, 'f', 4, 64),
@@ -308,8 +308,8 @@ func parseShowPrivacyAccountSpendRes(arg interface{}) (interface{}, error) {
 
 		if false == isSave {
 			result := &PrivacyAccountResult{
-				Height:   utxo.UtxoBasic.UtxoGlobalIndex.Height,
-				TxIndex:  utxo.UtxoBasic.UtxoGlobalIndex.Txindex,
+				//Height:   utxo.UtxoBasic.UtxoGlobalIndex.Height,
+				//TxIndex:  utxo.UtxoBasic.UtxoGlobalIndex.Txindex,
 				Txhash:   common.ToHex(utxo.UtxoBasic.UtxoGlobalIndex.Txhash),
 				OutIndex: utxo.UtxoBasic.UtxoGlobalIndex.Outindex,
 				Amount:   strconv.FormatFloat(amount, 'f', 4, 64),
@@ -363,8 +363,8 @@ func parseShowPrivacyAccountDetailRes(arg interface{}) (interface{}, error) {
 		total += amount
 
 		result := &PrivacyAccountResult{
-			Height:   utxo.UtxoBasic.UtxoGlobalIndex.Height,
-			TxIndex:  utxo.UtxoBasic.UtxoGlobalIndex.Txindex,
+			//Height:   utxo.UtxoBasic.UtxoGlobalIndex.Height,
+			//TxIndex:  utxo.UtxoBasic.UtxoGlobalIndex.Txindex,
 			Txhash:   common.ToHex(utxo.UtxoBasic.UtxoGlobalIndex.Txhash),
 			OutIndex: utxo.UtxoBasic.UtxoGlobalIndex.Outindex,
 			Amount:   strconv.FormatFloat(amount, 'f', 4, 64),
@@ -451,8 +451,8 @@ func parseShowUTXOs4SpecifiedAmountRes(arg interface{}) (interface{}, error) {
 	ret := make([]*PrivacyAccountResult, 0)
 	for _, item := range res.LocalUTXOItems {
 		result := &PrivacyAccountResult{
-			Height:        item.Height,
-			TxIndex:       item.Txindex,
+			//Height:        item.Height,
+			//TxIndex:       item.Txindex,
 			Txhash:        common.ToHex(item.Txhash),
 			OutIndex:      item.Outindex,
 			OnetimePubKey: common.Bytes2Hex(item.Onetimepubkey),

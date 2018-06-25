@@ -21,8 +21,8 @@ func init() {
 	chainBaseParam.TicketWithdrawTime = 10 //10s only for test
 	chainBaseParam.TicketMinerWaitTime = 2 // 2s only for test
 	chainBaseParam.MaxTxNumber = 1600      //160
-	chainBaseParam.TargetTimespan = 144 * 16 * time.Second
-	chainBaseParam.TargetTimePerBlock = 16 * time.Second
+	chainBaseParam.TargetTimespan = 144 * BlockDurPerSecCnt * time.Second
+	chainBaseParam.TargetTimePerBlock = BlockDurPerSecCnt * time.Second
 
 	chainV3Param = &ChainParam{}
 	tmp := *chainBaseParam
