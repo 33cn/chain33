@@ -13,6 +13,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
+	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
 	tokentype "gitlab.33.cn/chain33/chain33/types/executor/token"
 )
 
@@ -222,27 +223,27 @@ func (c *channelClient) CreateRawTokenRevokeTx(parm *tokentype.TokenRevokeTx) ([
 	return callExecNewTx("token", "TokenRevoke", parm)
 }
 
-func (c *channelClient) CreateRawTradeSellTx(parm *TradeSellTx) ([]byte, error) {
+func (c *channelClient) CreateRawTradeSellTx(parm *tradetype.TradeSellTx) ([]byte, error) {
 	return callExecNewTx("trade", "TradeSellLimit", parm)
 }
 
-func (c *channelClient) CreateRawTradeBuyTx(parm *TradeBuyTx) ([]byte, error) {
+func (c *channelClient) CreateRawTradeBuyTx(parm *tradetype.TradeBuyTx) ([]byte, error) {
 	return callExecNewTx("trade", "TradeBuyMarket", parm)
 }
 
-func (c *channelClient) CreateRawTradeRevokeTx(parm *TradeRevokeTx) ([]byte, error) {
+func (c *channelClient) CreateRawTradeRevokeTx(parm *tradetype.TradeRevokeTx) ([]byte, error) {
 	return callExecNewTx("trade", "TradeSellRevoke", parm)
 }
 
-func (c *channelClient) CreateRawTradeBuyLimitTx(parm *TradeBuyLimitTx) ([]byte, error) {
+func (c *channelClient) CreateRawTradeBuyLimitTx(parm *tradetype.TradeBuyLimitTx) ([]byte, error) {
 	return callExecNewTx("trade", "TradeBuyLimit", parm)
 }
 
-func (c *channelClient) CreateRawTradeSellMarketTx(parm *TradeSellMarketTx) ([]byte, error) {
+func (c *channelClient) CreateRawTradeSellMarketTx(parm *tradetype.TradeSellMarketTx) ([]byte, error) {
 	return callExecNewTx("trade", "TradeSellMarket", parm)
 }
 
-func (c *channelClient) CreateRawTradeRevokeBuyTx(parm *TradeRevokeBuyTx) ([]byte, error) {
+func (c *channelClient) CreateRawTradeRevokeBuyTx(parm *tradetype.TradeRevokeBuyTx) ([]byte, error) {
 	return callExecNewTx("trade", "TradeRevokeBuy", parm)
 }
 
