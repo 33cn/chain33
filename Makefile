@@ -12,17 +12,23 @@ APP := build/chain33
 CLI := build/chain33-cli
 SIGNATORY := build/signatory-server
 MINER := build/miner_accounts
+RELAYD := build/relayd
+SRC_RELAYD := gitlab.33.cn/chain33/chain33/cmd/relayd
 LDFLAGS := -ldflags "-w -s"
-PKG_LIST := `go list ./... | grep -v "vendor" | grep -v "chain33/test" | grep -v "mocks"` | grep -v "pbft"
+PKG_LIST := `go list ./... | grep -v "vendor" | grep -v "chain33/test" | grep -v "mocks" | grep -v "pbft"`
 BUILD_FLAGS = -ldflags "-X gitlab.33.cn/chain33/chain33/common/version.GitCommit=`git rev-parse --short=8 HEAD`"
 .PHONY: default dep all build release cli linter race test fmt vet bench msan coverage coverhtml docker docker-compose protobuf clean help
 
-default: build cli
+default: build cli relayd
 
 dep: ## Get the dependencies
 	@go get -u gopkg.in/alecthomas/gometalinter.v2
 	@gometalinter.v2 -i
 	@go get -u github.com/mitchellh/gox
+	@go get -u mvdan.cc/sh/cmd/shfmt
+	@go get -u mvdan.cc/sh/cmd/gosh
+	@apt install clang-format
+	@apt install shellcheck
 
 all: ## Builds for multiple platforms
 	@gox  $(LDFLAGS) $(SRC)
@@ -78,6 +84,7 @@ linter: ## Use gometalinter check code, ignore some unserious warning
 		echo "$${res}"; \
 		exit 1; \
 		fi;
+	@find . -name '*.sh' -not -path "./vendor/*" | xargs shellcheck
 
 race: ## Run data race detector
 	@go test -race -short $(PKG_LIST)
@@ -85,9 +92,16 @@ race: ## Run data race detector
 test: ## Run unittests
 	@go test -parallel 1 -race $(PKG_LIST)
 
-fmt: ## go fmt
+fmt: fmt_proto fmt_shell ## go fmt
 	@go fmt ./...
-	@$$(find . -name '*.go' -not -path "./vendor/*" | xargs goimports -l -w)
+	@find . -name '*.go' -not -path "./vendor/*" | xargs goimports -l -w
+
+.PHONY: fmt_proto fmt_shell
+fmt_proto: ## go fmt protobuf file
+	@find . -name '*.proto' -not -path "./vendor/*" | xargs clang-format -i
+
+fmt_shell: ## check shell file
+	@find . -name '*.sh' -not -path "./vendor/*" | xargs shfmt -w -s -i 4 -ci -bn
 
 vet: ## go vet
 	@go vet ./...
@@ -147,6 +161,7 @@ checkgofmt: ## get all go files and run go fmt on them
 .PHONY: mock
 mock:
 	@cd client && mockery -name=QueueProtocolAPI && mv mocks/QueueProtocolAPI.go mocks/api.go && cd -
+	@cd queue && mockery -name=Client && mv mocks/Client.go mocks/client.go && cd -
 
 .PHONY: auto_ci_before auto_ci_after auto_ci
 auto_ci_before: clean fmt protobuf mock
@@ -159,21 +174,28 @@ auto_ci_before: clean fmt protobuf mock
 	@git version
 	@git status
 
+.PHONY: auto_ci_after
 auto_ci_after: clean fmt protobuf mock
-	@git add *.go
+	@git add *.go *.sh *.proto
 	@git status
 	@files=$$(git status -suno);if [ -n "$$files" ]; then \
-		  git add *.go; \
+		  git add *.go *.sh *.proto; \
 		  git status; \
 		  git commit -m "auto ci [ci-skip]"; \
 		  git push origin HEAD:$(branch); \
 		  fi;
 
-auto_ci: clean fmt protobuf mock
-	@git add *.go
+.PHONY: auto_ci
+auto_fmt := find . -name '*.go' -not -path './vendor/*' | xargs goimports -l -w
+auto_ci: clean fmt_proto fmt_shell protobuf mock
+	@-go fmt ./...
+	@-${auto_fmt}
+	@go fmt ./...
+	@${auto_fmt}
+	@git add *.go *.sh *.proto
 	@git status
 	@files=$$(git status -suno);if [ -n "$$files" ]; then \
-		  git add *.go; \
+		  git add *.go *.sh *.proto; \
 		  git status; \
 		  git commit -m "auto ci"; \
 		  git push origin HEAD:$(branch); \

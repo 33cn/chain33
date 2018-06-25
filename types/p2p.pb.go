@@ -20,7 +20,7 @@ var _ = math.Inf
 // *
 // 请求获取远程节点的节点信息
 type P2PGetPeerInfo struct {
-	// /p2p版本
+	// / p2p版本
 	Version int32 `protobuf:"varint,1,opt,name=version" json:"version,omitempty"`
 }
 
@@ -45,7 +45,7 @@ type P2PPeerInfo struct {
 	Port int32 `protobuf:"varint,2,opt,name=port" json:"port,omitempty"`
 	// /节点的名称
 	Name string `protobuf:"bytes,3,opt,name=name" json:"name,omitempty"`
-	// /mempool 的大小
+	// / mempool 的大小
 	MempoolSize int32 `protobuf:"varint,4,opt,name=mempoolSize" json:"mempoolSize,omitempty"`
 	// /节点当前高度头部数据
 	Header *Header `protobuf:"bytes,5,opt,name=header" json:"header,omitempty"`
@@ -475,7 +475,7 @@ func (m *Inventory) GetHeight() int64 {
 // *
 // 通过invs 下载数据
 type P2PGetData struct {
-	// /p2p版本
+	// / p2p版本
 	Version int32 `protobuf:"varint,1,opt,name=version" json:"version,omitempty"`
 	// / invs 数组
 	Invs []*Inventory `protobuf:"bytes,2,rep,name=invs" json:"invs,omitempty"`
