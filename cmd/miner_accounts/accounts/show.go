@@ -155,7 +155,7 @@ func calcIncrease(miner *MinerAccounts, acc1, acc2 []*rpc.Account, header *rpc.H
 		}
 	}
 	miner.TotalIncrease = strconv.FormatFloat(totalIncrease, 'f', 4, 64)
-	miner.TotalIncrease = strconv.FormatFloat(expectTotalIncrease, 'f', 4, 64)
+	miner.ExpectTotalIncrease = strconv.FormatFloat(expectTotalIncrease, 'f', 4, 64)
 
 	return miner
 
