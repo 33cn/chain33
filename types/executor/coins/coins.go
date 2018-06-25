@@ -80,16 +80,16 @@ func (t CoinsType) Amount(tx *types.Transaction) (int64, error) {
 }
 
 // TODO 暂时不修改实现， 先完成结构的重构
-func (coins CoinsType) NewTx(action string, message json.RawMessage) (*types.Transaction, error) {
+func (coins CoinsType) CreateTx(action string, message json.RawMessage) (*types.Transaction, error) {
 	var param types.CreateTx
 	err := json.Unmarshal(message, &param)
 	if err != nil {
-		tlog.Error("NewTx", "Error", err)
+		tlog.Error("CreateTx", "Error", err)
 		return nil, types.ErrInputPara
 	}
 
 	if param.ExecName != "" && !types.IsAllowExecName(param.ExecName) {
-		tlog.Error("NewTx", "Error", types.ErrExecNameNotMatch)
+		tlog.Error("CreateTx", "Error", types.ErrExecNameNotMatch)
 		return nil, types.ErrExecNameNotMatch
 	}
 

@@ -17,7 +17,7 @@ import (
 // 	ActionName  done
 //	Amount 		done
 //	Log			done
-// coins: 		actionName	NewTx	log		query	Amount
+// coins: 		actionName	CreateTx	log		query	Amount
 // evm: 		actionName			Log
 // game:
 // hashlock: 	actionName
@@ -25,8 +25,8 @@ import (
 // none: 		actionName
 // retrieve: 	actionName
 // ticket:		actionName			log				Amount
-// token:		actionName	NewTx	log		query	Amount
-// trade:		actionName	NewTx	log		query	Amount
+// token:		actionName	CreateTx	log		query	Amount
+// trade:		actionName	CreateTx	log		query	Amount
 
 func init() {
 	// not need to init executor

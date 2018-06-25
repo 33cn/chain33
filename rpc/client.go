@@ -39,7 +39,7 @@ func callExecNewTx(execName, action string, param interface{}) ([]byte, error) {
 		log.Error("callExecNewTx", "Error", err)
 		return nil, err
 	}
-	tx, err := exec.NewTx(action, json.RawMessage(jsonStr))
+	tx, err := exec.CreateTx(action, json.RawMessage(jsonStr))
 	if err != nil {
 		log.Error("callExecNewTx", "Error", err)
 		return nil, err
