@@ -217,6 +217,27 @@ function check_docker_container(){
     done;
 }
 
+function wait_btc_height() {
+    echo "=========== wait btc height========== "
+    if [ "$#" -lt 2 ]; then
+        echo "wrong wait_btc_height params"
+        exit 1
+    fi
+    count=100
+    wait_sec=0
+	while [ $count -gt 0 ]; do
+		cur=$(${1} relay btc_cur_height | jq ".CurHeight")
+		if [ "${cur}" -ge "${2}" ]; then
+			break
+		fi
+        (( count-- ))
+        wait_sec=$(( wait_sec+1 ))
+        sleep 1
+	done
+    echo "wait ${wait_sec} s"
+
+}
+
 function sync_status() {
 	echo "=========== query sync status========== "
 	local sync_status
@@ -302,19 +323,13 @@ function relay_after() {
 
 function relay() {
 	echo "================relayd========================"
-	while true; do
-		${1} block last_header
-		result=$(${1} block last_header | jq ".height")
-		if [ "${result}" -gt 15 ]; then
-			break
-		fi
-		sleep 1
-	done
+
+	block_wait "${1}" 15
 
 	${1} relay btc_cur_height
 	base_height=$(${1} relay btc_cur_height | jq ".BaseHeight")
-	current_height=$(${1} relay btc_cur_height | jq ".CurHeight")
-	if [ "${current_height}" == "${base_height}" ]; then
+	btc_cur_height=$(${1} relay btc_cur_height | jq ".CurHeight")
+	if [ "${btc_cur_height}" == "${base_height}" ]; then
 	    echo "height not correct"
 	    exit 1
 	fi
@@ -327,7 +342,7 @@ function relay() {
     echo "btcrcvaddr=${btcrcv_addr}"
 
     echo "=========== # get real btc account ============="
-    real_buy_addr=$(${CLI} account list | jq -r '.wallets[] | select(.label=="node award") | .acc.addr')
+    real_buy_addr=$(${1} account list | jq -r '.wallets[] | select(.label=="node award") | .acc.addr')
     echo "realbuyaddr=${real_buy_addr}"
 
 
@@ -339,7 +354,7 @@ function relay() {
 	hash=$(${1} send bty transfer -a 100 -t "${real_buy_addr}" -n "transfer to accept addr" -k 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv)
 	echo "${hash}"
 
-	sleep 25
+	block_wait "${1}" 1
 	before=$(${CLI} account balance -a 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv -e relay | jq ".balance")
 	before=$(echo "$before" | bc)
 	if [ "${before}" == 0.0000 ]; then
@@ -372,7 +387,8 @@ function relay() {
 	hash=$(${1} send bty transfer -a 300 -t 1rhRgzbz264eyJu7Ac63wepsm9TsEpwXM -n "send to relay" -k 14KEKbYtKKQm4wMthSK9J4La4nAiidGozt)
 	echo "${hash}"
 
-	sleep 25
+	block_wait "${1}" 1
+
 	coinaddr=$(${CLI} tx query -s "${buy_hash}" | jq -r ".receipt.logs[2].log.coinAddr")
 	if [ "${coinaddr}" != "1Am9UTGfdnxabvcywYG2hvzr6qK8T3oUZT" ]; then
 		echo "wrong create order to coinaddr"
@@ -442,7 +458,7 @@ function relay() {
     echo "=========== # accept sell order ============="
     sell_hash=$(${1} send relay accept -f 0.001 -o "${sell_id}" -a 1Am9UTGfdnxabvcywYG2hvzr6qK8T3oUZT -k 14KEKbYtKKQm4wMthSK9J4La4nAiidGozt)
     echo "${sell_hash}"
-	sleep 25
+	block_wait "${1}" 1
 
 	id=$(${CLI} relay status -s 2 | jq -sr '.[] | select(.coinoperation=="buy") | select(.coinaddr=="1Am9UTGfdnxabvcywYG2hvzr6qK8T3oUZT") |.orderid')
 	if [ "${id}" != "${buy_id}" ]; then
@@ -461,53 +477,34 @@ function relay() {
 	    exit 1
 	fi
 
-    before_blocknum=$(${BTC_CTL} --rpcuser=root --rpcpass=1314 --simnet getblockcount)
     echo "=========== # btc generate 40 blocks ============="
+    ## for unlock order's 36 blocks waiting
+    current=$(${1} relay btc_cur_height | jq ".CurHeight")
     ${BTC_CTL} --rpcuser=root --rpcpass=1314 --simnet generate 40
-    blocknum=$(${BTC_CTL} --rpcuser=root --rpcpass=1314 --simnet getblockcount)
-
-    before_blocknum=$(( before_blocknum+40 ))
-    count=20
-	while [ $count -gt 0 ]; do
-		blocknum=$(${BTC_CTL} --rpcuser=root --rpcpass=1314 --simnet getblockcount)
-		if [ "${blocknum}" -ge "${before_blocknum}" ]; then
-			break
-		fi
-        (( count-- ))
-        sleep 1
-	done
+    wait_btc_height "${1}" $(( current+40 ))
 
 
     echo "=========== # btc tx to real order ============="
     btc_tx_hash=$(${BTC_CTL} --rpcuser=root --rpcpass=1314 --simnet --wallet sendfrom default "${btcrcv_addr}" 10)
     echo "${btc_tx_hash}"
-    #sleep 1
     ${BTC_CTL} --rpcuser=root --rpcpass=1314 --simnet generate 4
     blockhash=$(${BTC_CTL} --rpcuser=root --rpcpass=1314 --simnet --wallet gettransaction "${btc_tx_hash}" | jq -r ".blockhash")
     blockheight=$(${BTC_CTL} --rpcuser=root --rpcpass=1314 --simnet --wallet getblockheader "${blockhash}" | jq -r ".height")
     echo "blcockheight=${blockheight}"
     ${BTC_CTL} --rpcuser=root --rpcpass=1314 --simnet --wallet getreceivedbyaddress "${btcrcv_addr}"
-    sleep 2
+
+    wait_btc_height "${1}" $(( current+40+4 ))
 
     echo "=========== # unlock buy order ==========="
 	acceptHeight=$(${CLI} tx query -s "${buy_hash}" | jq -r ".receipt.logs[1].log.coinHeight")
 
-	if [ "${acceptHeight}" -lt "${current_height}" ]; then
+	if [ "${acceptHeight}" -lt "${btc_cur_height}" ]; then
 		echo "accept height less previous height"
 		exit 1
 	fi
-	expectHeight=$(echo "${acceptHeight}+36" | bc)
-    echo "expectHeight=${expectHeight}"
-    count=100
-	while [ $count -gt 0 ]; do
-		current_height=$(${1} relay btc_cur_height | jq ".CurHeight")
-		if [ "${current_height}" -gt "${expectHeight}" ]; then
-			break
-		fi
-        (( count-- ))
-        sleep 1
-	done
-    echo "current_height=${current_height}"
+
+    expect=$(( acceptHeight+36 ))
+    wait_btc_height "${1}" $(( acceptHeight+36 ))
 
 	revoke_hash=$(${1} send relay revoke -a 0 -t 1 -f 0.01 -i "${buy_id}" -k 14KEKbYtKKQm4wMthSK9J4La4nAiidGozt)
 	echo "${revoke_hash}"
@@ -517,7 +514,8 @@ function relay() {
     echo "=========== # confirm sell order ============="
     confirm_hash=$(${1} send relay confirm -f 0.001 -t 6359f0868171b1d194cbee1af2f16ea598ae8fad666d9b012c8ed2b79a236ec4 -o "${sell_id}" -k 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv)
     echo "${confirm_hash}"
-	sleep 25
+
+	block_wait "${1}" 1
 
 	id=$(${CLI} relay status -s 1 | jq -sr '.[] | select(.coinoperation=="buy")|.orderid')
 	if [ "${id}" != "${buy_id}" ]; then
@@ -537,36 +535,28 @@ function relay() {
 	fi
 
     echo "=========== # btc generate 200 blocks  ==="
+    current=$(${1} relay btc_cur_height | jq ".CurHeight")
     ${BTC_CTL} --rpcuser=root --rpcpass=1314 --simnet generate 200
-    sleep 10
+    wait_btc_height "${1}" $(( current+200 ))
 
 
     echo "=========== # unlock sell order ==="
     confirmHeight=$(${CLI} tx query -s "${confirm_hash}" | jq -r ".receipt.logs[1].log.coinHeight")
-    if [ "${confirmHeight}" -lt "${current_height}" ]; then
+    if [ "${confirmHeight}" -lt "${btc_cur_height}" ]; then
         echo "wrong confirm height"
         exit 1
     fi
 
-	expectHeight=$(echo "${confirmHeight}+144" | bc)
-	echo "expectConfirmHeight=${expectHeight}"
-	count=100
-	while [ $count -gt 0 ]; do
-		current_height=$(${1} relay btc_cur_height | jq ".CurHeight")
-		if [ "${current_height}" -gt "${expectHeight}" ]; then
-			break
-		fi
 
-        (( count-- ))
-        sleep 1
-	done
-	echo "currentHeight=${current_height}"
+	wait_btc_height "${1}" $(( confirmHeight+144 ))
+
 	revoke_hash=$(${1} send relay revoke -a 0 -t 0 -f 0.01 -i "${sell_id}" -k 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv)
 	echo "${revoke_hash}"
     echo "=========== # test cancel create order ==="
 	cancel_hash=$(${1} send relay create -o 0 -c BTC -a 1Am9UTGfdnxabvcywYG2hvzr6qK8T3oUZT -m 2.99 -f 0.02 -b 200 -k 14KEKbYtKKQm4wMthSK9J4La4nAiidGozt)
 	echo "${cancel_hash}"
-	sleep 25
+
+	block_wait "${1}" 1
 
     cancel_id=$(${CLI} tx query -s "${cancel_hash}" | jq -r ".receipt.logs[2].log.orderId")
     if [ -z "${cancel_id}" ]; then
@@ -579,12 +569,25 @@ function relay() {
 	    exit 1
 	fi
 
+    echo "=========== # wait relayd verify order ======="
+	## for relayd verify tick 30s
+    block_wait "${1}" 5
+
     echo "=========== # check finish order ============="
-	id=$(${CLI} relay status -s 4 | jq -sr '.[] | select(.coinoperation=="buy")|.orderid')
-	if [ "${id}" != "${realbuy_id}" ]; then
-	    echo "wrong relay status finish real buy order id"
-	    exit 1
-	fi
+    count=30
+    while true; do
+        id=$(${CLI} relay status -s 4 | jq -sr '.[] | select(.coinoperation=="buy")|.orderid')
+        if [ "${id}" == "${realbuy_id}" ]; then
+            break
+        fi
+        block_wait "${1}" 1
+        count=$(( count-1 ))
+        if [ $count -le 0 ]; then
+             echo "wrong relay status finish real buy order id"
+             exit 1
+        fi
+	done
+
 	before=$(${CLI} account balance -a "${real_buy_addr}" -e relay | jq -r ".balance")
 	if [ "${before}" != "200.0000" ]; then
 		echo "wrong relay real buy addr balance, should be 200"
@@ -594,7 +597,7 @@ function relay() {
 	echo "=========== # cancel order ============="
 	hash=$(${1} send relay revoke -a 1 -t 0 -f 0.01 -i "${cancel_id}" -k 14KEKbYtKKQm4wMthSK9J4La4nAiidGozt)
 	echo "${hash}"
-	sleep 25
+	block_wait "${1}" 1
 
 	status=$(${CLI} relay status -s 5 | jq -r ".status")
 	if [ "${status}" != "canceled" ]; then
@@ -606,8 +609,6 @@ function relay() {
 	    echo "wrong relay status cancel order id"
 	    exit 1
 	fi
-
-
 
 }
 
