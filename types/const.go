@@ -57,6 +57,7 @@ var (
 	ForkV15ResetTx0      int64 = 200000
 	ForkV16Withdraw      int64 = 200000
 	ForkV17EVM           int64 = 250000
+	ForkV18Relay         int64 = 500000
 )
 
 func SetTestNetFork() {
@@ -77,6 +78,7 @@ func SetTestNetFork() {
 	ForkV15ResetTx0 = 453400
 	ForkV16Withdraw = 480000
 	ForkV17EVM = 500000
+	ForkV18Relay = 501000
 }
 
 func SetForkToOne() {
@@ -87,6 +89,7 @@ func SetForkToOne() {
 	ForkV15ResetTx0 = 1
 	ForkV16Withdraw = 1
 	ForkV17EVM = 1
+	ForkV18Relay = 1
 }
 
 var (
@@ -100,7 +103,7 @@ func SetTitle(t string) {
 	title = t
 	if IsBityuan() {
 		AllowUserExec = [][]byte{ExecerCoins, ExecerTicket, []byte("hashlock"),
-			[]byte("retrieve"), []byte("none"), ExecerToken, []byte("trade"), ExecerManage, ExecerRelay}
+			[]byte("retrieve"), []byte("none"), ExecerToken, []byte("trade"), ExecerManage}
 		return
 	}
 	if IsLocal() {
@@ -504,6 +507,15 @@ const (
 	TyLogTradeBuyLimit        = 331
 	TyLogTradeBuyRevoke       = 332
 
+	//log for relay
+	TyLogRelayCreate       = 350
+	TyLogRelayRevokeCreate = 351
+	TyLogRelayAccept       = 352
+	TyLogRelayRevokeAccept = 353
+	TyLogRelayConfirmTx    = 354
+	TyLogRelayFinishTx     = 355
+	TyLogRelayRcvBTCHead   = 356
+
 	// log for config
 	TyLogModifyConfig = 410
 
@@ -640,3 +652,34 @@ var MapSellOrderStatusStr2Int = map[string]int32{
 	"soldout": TradeOrderStatusSoldOut,
 	"revoked": TradeOrderStatusRevoked,
 }
+
+// relay
+const (
+	RelayRevokeCreate = iota
+	RelayRevokeAccept
+)
+const (
+	RelayOrderBuy = iota
+	RelayOrderSell
+)
+
+var RelayOrderOperation = map[uint32]string{
+	RelayOrderBuy:  "buy",
+	RelayOrderSell: "sell",
+}
+
+const (
+	RelayUnlock = iota
+	RelayCancel
+)
+
+//relay action ty
+const (
+	RelayActionCreate = iota
+	RelayActionAccept
+	RelayActionRevoke
+	RelayActionConfirmTx
+	RelayActionVerifyTx
+	RelayActionVerifyCmdTx
+	RelayActionRcvBTCHeaders
+)
