@@ -1126,11 +1126,23 @@ func (wallet *Wallet) procInvalidTxOnTimer(dbbatch db.Batch) error {
 	}
 
 	// 再处理已经发送的交易
-	curFTXOTxs, _, err := wallet.walletStore.GetWalletFTXO()
-	if nil != err || nil == curFTXOTxs {
+	curFTXOTxs, _, err := wallet.walletStore.GetWalletFTXO(FTXOs4Tx)
+	if nil != err {
 		return err
 	}
+
+	revertFTXOTxs, _, _ := wallet.walletStore.GetWalletFTXO(RevertSendtx)
+	var keys [][]byte
 	for _, ftxo := range curFTXOTxs {
+		keys = append(keys, calcKey4FTXOsInTx(ftxo.Txhash))
+	}
+	for _, ftxo := range revertFTXOTxs {
+		keys = append(keys, calcRevertSendTxKey(ftxo.Txhash))
+	}
+
+	normalFtxoCnt := len(curFTXOTxs)
+	curFTXOTxs = append(curFTXOTxs, revertFTXOTxs...)
+	for i, ftxo := range curFTXOTxs {
 		txhash := ftxo.Txhash
 		dbkey := calcCreateTxKey(txhash)
 		cache, err := wallet.walletStore.GetCreateTransactionCache(dbkey)
@@ -1139,9 +1151,13 @@ func (wallet *Wallet) procInvalidTxOnTimer(dbbatch db.Batch) error {
 		}
 
 		if cache == nil {
-			if (ftxo.GetFreezetime() + int64(FTXOTimeout*time.Second)) <= now {
+			timeout := FTXOTimeout
+			if i >= normalFtxoCnt {
+				timeout = FTXOTimeout4Revert
+			}
+			if (ftxo.GetFreezetime() + int64(time.Duration(timeout) * time.Second)) <= now {
 				// 交易送入打包后，长时间未确认，需要将FTXO回退到UTXO
-				wallet.walletStore.unmoveUTXO2FTXO("", "", txhash, dbbatch)
+				wallet.walletStore.moveFTXO2UTXO(keys[i], dbbatch)
 			}
 		} else {
 			if cache.GetStatus() == cacheTxStatus_Sent {
@@ -1189,8 +1205,7 @@ func (wallet *Wallet) procDeleteCacheTransaction(req *types.ReqHash) (*types.Rep
 	wallet.walletStore.DeleteCreateTransactionCache(cache.Key)
 
 	dbbatch := wallet.walletStore.NewBatch(true)
-	txhash = common.Bytes2Hex(req.Hash)
-	wallet.walletStore.unmoveUTXO2FTXO("", "", txhash, dbbatch)
+	wallet.walletStore.moveFTXO2UTXO(calcKey4FTXOsInTx(txhash), dbbatch)
 	dbbatch.Write()
 
 	return &types.ReplyHash{Hash: req.Hash}, nil
