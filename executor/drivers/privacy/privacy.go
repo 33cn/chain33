@@ -264,7 +264,7 @@ func (p *privacy) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, i
 				var tokenNames types.TokenNamesOfUTXO
 				key3 := CalcprivacyKeyTokenTypes()
 				value3, err := localDB.Get(key3)
-				if err == nil && value3 != nil {
+				if err == nil && len(value3) != 0 {
 					err := types.Decode(value3, &tokenNames)
 					if err == nil {
 						if _, ok := tokenNames.TokensMap[token]; !ok {
