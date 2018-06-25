@@ -28,6 +28,7 @@ message MinerAccounts {
     string totalIncrease = 3;
     int64 blocks = 4;
     int64 expectBlocks = 5;
+    string expectTotalIncrease = 6;
 }
 
 
