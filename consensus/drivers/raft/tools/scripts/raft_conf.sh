@@ -2,7 +2,7 @@
 #这是一个修改配置文件的脚本
 nodeId=$1
 function echo_green() {
-    echo -e "\033[32m$1\033[0m"
+    echo -e "\\033[32m$1\\033[0m"
 }
 function main() {
     sed -i "s/singleMode=true/singleMode=true/g" chain33.toml

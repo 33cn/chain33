@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 ./chain33-cli ticket bind_miner -b 184wj4nsgVxKyz2NhM3Yb5RK5Ap6AFRFq2 -o 1FB8L3DykVF7Y78bRfUrRcMZwesKue7CyR
 ./chain33-cli ticket bind_miner -b 1M4ns1eGHdHak3SNc2UTQB75vnXyJQd91s -o 1Lw6QLShKVbKM6QvMaCQwTh5Uhmy4644CG
 ./chain33-cli ticket bind_miner -b 19ozyoUGPAQ9spsFiz9CJfnUCFeszpaFuF -o 1PSYYfCbtSeT1vJTvSKmQvhz8y6VhtddWi
