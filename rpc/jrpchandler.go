@@ -1524,6 +1524,6 @@ func (c *Chain33) CloseQueue(in *types.ReqNil, result *interface{}) error {
 		c.cli.CloseQueue()
 	}()
 
-	*result = nil
+	*result = &types.Reply{IsOk: true, Msg: []byte("Ok")}
 	return nil
 }
