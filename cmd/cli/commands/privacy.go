@@ -33,12 +33,13 @@ func PrivacyCmd() *cobra.Command {
 		ShowAmountsOfUTXOCmd(),
 		ShowUTXOs4SpecifiedAmountCmd(),
 		CreateUTXOsCmd(),
+		ShowPrivacyAccountInfoCmd(),
 	)
 
 	return cmd
 }
 
-// show privacy key by address
+// ShowPrivacyKeyCmd show privacy key by address
 func ShowPrivacyKeyCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "key",
@@ -68,7 +69,7 @@ func showPrivacyKey(cmd *cobra.Command, args []string) {
 	ctx.Run()
 }
 
-// public address to privacy address
+// Public2PrivacyCmd public address to privacy address
 func Public2PrivacyCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "pub2priv",
@@ -139,6 +140,7 @@ func privacy2PrivacyFlag(cmd *cobra.Command) {
 	cmd.Flags().StringP("note", "n", "", "transfer note")
 	cmd.MarkFlagRequired("note")
 
+	cmd.Flags().Int32P("mixcount", "m", defMixCount, "transfer note")
 }
 
 func privacy2Privacy(cmd *cobra.Command, args []string) {
@@ -146,7 +148,7 @@ func privacy2Privacy(cmd *cobra.Command, args []string) {
 	from, _ := cmd.Flags().GetString("from")
 	pubkeypair, _ := cmd.Flags().GetString("pubkeypair")
 	amount, _ := cmd.Flags().GetFloat64("amount")
-	mixcount := defMixCount
+	mixcount, _ := cmd.Flags().GetInt32("mixcount")
 	note, _ := cmd.Flags().GetString("note")
 
 	amountInt64 := int64(amount*types.InputPrecision) * types.Multiple1E4 //支持4位小数输入，多余的输入将被截断
@@ -188,6 +190,8 @@ func privacy2Publiclag(cmd *cobra.Command) {
 	cmd.Flags().StringP("note", "n", "", "transfer note")
 	cmd.MarkFlagRequired("note")
 
+	cmd.Flags().Int32P("mixcount", "m", defMixCount, "transfer note")
+
 }
 
 func privacy2Public(cmd *cobra.Command, args []string) {
@@ -195,7 +199,7 @@ func privacy2Public(cmd *cobra.Command, args []string) {
 	from, _ := cmd.Flags().GetString("from")
 	to, _ := cmd.Flags().GetString("to")
 	amount, _ := cmd.Flags().GetFloat64("amount")
-	mixcount := defMixCount
+	mixcount, _ := cmd.Flags().GetInt32("mixcount")
 	note, _ := cmd.Flags().GetString("note")
 
 	amountInt64 := int64(amount*types.InputPrecision) * types.Multiple1E4 //支持4位小数输入，多余的输入将被截断
@@ -538,8 +542,79 @@ func showPrivacyBalance(cmd *cobra.Command, args []string) {
 	ctx.SetResultCb(parseShowPrivacyBalanceRes)
 	ctx.Run()
 }
+
 func parseShowPrivacyBalanceRes(arg interface{}) (interface{}, error) {
 	res := arg.(*types.Account)
 	balance := float64(res.Balance) / float64(types.Coin)
 	return fmt.Sprintf("Privacy Balance : %s", strconv.FormatFloat(balance, 'f', 4, 64)), nil
+}
+
+// ShowPrivacyAccountInfoCmd
+func ShowPrivacyAccountInfoCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "showpai",
+		Short: "Show privacy account information",
+		Run:   showPrivacyAccountInfo,
+	}
+	showPrivacyAccountInfoFlag(cmd)
+	return cmd
+}
+
+func showPrivacyAccountInfoFlag(cmd *cobra.Command) {
+	cmd.Flags().StringP("addr", "a", "", "account address")
+	cmd.MarkFlagRequired("addr")
+	cmd.Flags().StringP("token", "t", types.BTY, "coins token, BTY supported.")
+}
+
+func showPrivacyAccountInfo(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	addr, _ := cmd.Flags().GetString("addr")
+	token, _ := cmd.Flags().GetString("token")
+
+	params := types.ReqPrivBal4AddrToken{
+		Addr:  addr,
+		Token: token,
+	}
+
+	var res types.ReplyPrivacyAccount
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.ShowPrivacyAccountInfo", params, &res)
+	ctx.SetResultCb(parseshowPrivacyAccountInfo)
+	ctx.Run()
+}
+
+func parseshowPrivacyAccountInfo(arg interface{}) (interface{}, error) {
+	total := float64(0)
+	totalFrozen := float64(0)
+	res := arg.(*types.ReplyPrivacyAccount)
+	utxos := make([]*PrivacyAccountResult, 0)
+	for _, utxo := range res.Utxos.Utxos {
+		amount := float64(utxo.Amount) / float64(types.Coin)
+		total += amount
+
+		result := &PrivacyAccountResult{
+			Txhash:   common.ToHex(utxo.UtxoBasic.UtxoGlobalIndex.Txhash),
+			OutIndex: utxo.UtxoBasic.UtxoGlobalIndex.Outindex,
+			Amount:   strconv.FormatFloat(amount, 'f', 4, 64),
+		}
+		utxos = append(utxos, result)
+	}
+	ftxos := make([]*PrivacyAccountResult, 0)
+	for _, utxo := range res.Ftxos.Utxos {
+		amount := float64(utxo.Amount) / float64(types.Coin)
+		totalFrozen += amount
+
+		result := &PrivacyAccountResult{
+			Txhash:   common.ToHex(utxo.UtxoBasic.UtxoGlobalIndex.Txhash),
+			OutIndex: utxo.UtxoBasic.UtxoGlobalIndex.Outindex,
+			Amount:   strconv.FormatFloat(amount, 'f', 4, 64),
+		}
+		ftxos = append(ftxos, result)
+	}
+	ret := &PrivacyAccountInfoResult{
+		Utxos:       utxos,
+		Ftxos:       ftxos,
+		UtxosAmount: strconv.FormatFloat(total, 'f', 4, 64),
+		FtxosAmount: strconv.FormatFloat(totalFrozen, 'f', 4, 64),
+	}
+	return ret, nil
 }

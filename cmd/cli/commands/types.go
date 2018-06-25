@@ -167,13 +167,20 @@ type GetTicketMinerInfoResult struct {
 }
 
 type PrivacyAccountResult struct {
-	Token         string `json:"Token,omitempty"`
+	Token string `json:"Token,omitempty"`
 	//Height        int64  `json:"Height,omitempty"`
 	//TxIndex       int32  `json:"TxIndex,omitempty"`
 	Txhash        string `json:"Txhash,omitempty"`
 	OutIndex      int32  `json:"OutIndex,omitempty"`
 	Amount        string `json:"Amount,omitempty"`
 	OnetimePubKey string `json:"OnetimePubKey,omitempty"`
+}
+
+type PrivacyAccountInfoResult struct {
+	Utxos       []*PrivacyAccountResult `json:"Utxos,omitempty"`
+	Ftxos       []*PrivacyAccountResult `json:"Ftxos,omitempty"`
+	UtxosAmount string                  `json:"UtxosAmount,omitempty"`
+	FtxosAmount string                  `json:"FtxosAmount,omitempty"`
 }
 
 type UTXOGlobalIndex struct {

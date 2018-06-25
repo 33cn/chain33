@@ -149,6 +149,7 @@ message ReqWalletTransactionList {
     int32 sendRecvPrivacy = 5;
     // 需要查询的账号地址
     string address        = 6;
+	string tokenname	  = 7;
 }
 
 message ReqWalletImportPrivKey {
@@ -438,6 +439,7 @@ message CreateTransactionCache {
     string  sender  = 6;
     repeated RealKeyInput   realkeyinput = 7;
     repeated UTXOBasics     utxos = 8;
+    string      tokenname   = 9;
 }
 
 message ReqCacheTxList {
@@ -446,4 +448,12 @@ message ReqCacheTxList {
 
 message ReplyCacheTxList {
 	repeated Transaction    txs = 1;
+}
+
+// 请求隐私账户信息的应答
+message ReplyPrivacyAccount {
+    // 未花费的UTXO
+    UTXOs   utxos   = 1;
+    // 冻结的UTXO
+    UTXOs   ftxos   = 2;
 }

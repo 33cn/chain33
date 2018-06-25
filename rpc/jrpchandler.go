@@ -383,6 +383,7 @@ func (c *Chain33) WalletTxList(in ReqWalletTransactionList, result *interface{})
 	parm.Mode = in.Mode
 	parm.SendRecvPrivacy = in.SendRecvPrivacy
 	parm.Address = in.Address
+	parm.Tokenname = in.TokenName
 	reply, err := c.cli.WalletTransactionList(&parm)
 	if err != nil {
 		return err
@@ -1617,5 +1618,14 @@ func (c *Chain33) DeleteCacheTransaction(in types.ReqHash, result *interface{}) 
 		return err
 	}
 	*result = common.ToHex(reply.GetMsg())
+	return nil
+}
+
+func (c *Chain33) ShowPrivacyAccountInfo(in types.ReqPrivBal4AddrToken, result *interface{}) error {
+	reply, err := c.cli.ShowPrivacyAccountInfo(&in)
+	if err != nil {
+		return err
+	}
+	*result = reply
 	return nil
 }

@@ -78,6 +78,7 @@ type Wallet struct {
 	cfg              *types.Wallet
 	done             chan struct{}
 	privacyActive    map[string]map[string]*walletUTXOs //不同token类型对应的公开地址拥有的隐私存款记录，map[token]map[addr]
+	funcMap          map[int64]func(wallet *Wallet, msg queue.Message)
 	//privacyFrozen    map[string]string                  //[交易hash]sender
 }
 
@@ -135,6 +136,7 @@ func New(cfg *types.Wallet) *Wallet {
 		wallet.autoMinerFlag = 1
 	}
 	wallet.random = rand.New(rand.NewSource(time.Now().UnixNano()))
+	wallet.registerProcFunc()
 	return wallet
 }
 
@@ -370,11 +372,25 @@ func (wallet *Wallet) flushTicket() {
 	wallet.client.Send(hashList, false)
 }
 
+func (wallet *Wallet) registerProcFunc() {
+	funcMap := make(map[int64]func(wallet *Wallet, msg queue.Message), 0)
+
+	funcMap[types.EventPrivacyAccountInfo] = procPrivacyAccountInfo
+
+	wallet.funcMap = funcMap
+}
+
 func (wallet *Wallet) ProcRecvMsg() {
 	defer wallet.wg.Done()
 	for msg := range wallet.client.Recv() {
 		walletlog.Debug("wallet recv", "msg", msg.Id)
 		msgtype := msg.Ty
+
+		fn, ok := wallet.funcMap[msgtype]
+		if ok {
+			fn(wallet, msg)
+		}
+
 		switch msgtype {
 
 		case types.EventWalletGetAccountList:
@@ -1060,7 +1076,7 @@ func (wallet *Wallet) ProcWalletTxList(TxList *types.ReqWalletTransactionList) (
 		return nil, err
 	}
 	TxList.SendRecvPrivacy = sendRecvPrivacy
-	WalletTxDetails, err := wallet.walletStore.GetTxDetailByIter(TxList)
+	WalletTxDetails, err := wallet.walletStore.getTxDetailByIter(TxList)
 	if err != nil {
 		walletlog.Error("ProcWalletTxList", "GetTxDetailByIter err", err)
 		return nil, err
@@ -1689,6 +1705,7 @@ func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 
 //
 type buildStoreWalletTxDetailParam struct {
+	tokenname    string
 	block        *types.BlockDetail
 	tx           *types.Transaction
 	index        int
@@ -1728,18 +1745,18 @@ func (wallet *Wallet) buildAndStoreWalletTxDetail(param *buildStoreWalletTxDetai
 		if param.isprivacy {
 			//额外存储可以快速定位到接收隐私的交易
 			if sendTx == param.sendRecvFlag {
-				param.newbatch.Set(calcSendPrivacyTxKey(param.senderRecver, heightstr), key)
+				param.newbatch.Set(calcSendPrivacyTxKey(param.tokenname, param.senderRecver, heightstr), key)
 			} else if recvTx == param.sendRecvFlag {
-				param.newbatch.Set(calcRecvPrivacyTxKey(param.senderRecver, heightstr), key)
+				param.newbatch.Set(calcRecvPrivacyTxKey(param.tokenname, param.senderRecver, heightstr), key)
 			}
 		}
 	} else {
 		param.newbatch.Delete(calcTxKey(heightstr))
 		if param.isprivacy {
 			if sendTx == param.sendRecvFlag {
-				param.newbatch.Delete(calcSendPrivacyTxKey(param.senderRecver, heightstr))
+				param.newbatch.Delete(calcSendPrivacyTxKey(param.tokenname, param.senderRecver, heightstr))
 			} else if recvTx == param.sendRecvFlag {
-				param.newbatch.Delete(calcRecvPrivacyTxKey(param.senderRecver, heightstr))
+				param.newbatch.Delete(calcRecvPrivacyTxKey(param.tokenname, param.senderRecver, heightstr))
 			}
 		}
 	}
@@ -1914,6 +1931,7 @@ func (wallet *Wallet) AddDelPrivacyTxsFromBlock(tx *types.Transaction, index int
 				walletlog.Debug("AddDelPrivacyTxsFromBlock", "Get matched privacy transfer for address", *info.Addr,
 					"totalUtxosLeft", totalUtxosLeft)
 				param := &buildStoreWalletTxDetailParam{
+					tokenname:    tokenname,
 					block:        block,
 					tx:           tx,
 					index:        int(index),
@@ -1943,7 +1961,7 @@ func (wallet *Wallet) AddDelPrivacyTxsFromBlock(tx *types.Transaction, index int
 		if len > 0 {
 			var keys [][]byte
 			for _, ftxo := range ftxosInOneTx {
-				keys = append(keys, calcKey4FTXOsInTx(ftxo.Txhash))
+				keys = append(keys, calcKey4FTXOsInTx(ftxo.Tokenname, ftxo.Sender, ftxo.Txhash))
 			}
 			for _, ftxo := range ftxosInRevTx {
 				keys = append(keys, calcRevertSendTxKey(ftxo.Txhash))
@@ -1961,6 +1979,7 @@ func (wallet *Wallet) AddDelPrivacyTxsFromBlock(tx *types.Transaction, index int
 					}
 					//该交易正常执行完毕，删除对其的关注
 					param := &buildStoreWalletTxDetailParam{
+						tokenname:    tokenname,
 						block:        block,
 						tx:           tx,
 						index:        int(index),
@@ -1981,7 +2000,7 @@ func (wallet *Wallet) AddDelPrivacyTxsFromBlock(tx *types.Transaction, index int
 		for _, ftxo := range stxosInOneTx {
 			if ftxo.Txhash == txhash {
 				param := &buildStoreWalletTxDetailParam{
-					block:        block,
+					tokenname: tokenname, block: block,
 					tx:           tx,
 					index:        int(index),
 					newbatch:     newbatch,
@@ -1989,8 +2008,7 @@ func (wallet *Wallet) AddDelPrivacyTxsFromBlock(tx *types.Transaction, index int
 					isprivacy:    true,
 					addDelType:   addDelType,
 					sendRecvFlag: sendTx,
-					utxos:        nil,
-				}
+					utxos:        nil}
 
 				if types.ExecOk == txExecRes && types.ActionPublic2Privacy != privateAction.Ty {
 					wallet.walletStore.moveSTXO2FTXO(txhash, newbatch)
@@ -2567,4 +2585,45 @@ func (w *Wallet) getActionMainInfo(action *types.PrivacyAction) (rpubkey []byte,
 		err = errors.New("Do not support action type.")
 	}
 	return
+}
+
+func procPrivacyAccountInfo(w *Wallet, msg queue.Message) {
+	w.mtx.Lock()
+	defer w.mtx.Unlock()
+	reply := &types.ReplyPrivacyAccount{}
+	req := msg.Data.(*types.ReqPrivBal4AddrToken)
+	addr := req.GetAddr()
+	token := req.GetToken()
+	// 搜索可用余额
+	privacyDBStore, err := w.walletStore.listAvailableUTXOs(token, addr)
+	utxos := make([]*types.UTXO, 0)
+	for _, ele := range privacyDBStore {
+		utxoBasic := &types.UTXOBasic{
+			UtxoGlobalIndex: &types.UTXOGlobalIndex{
+				Outindex: ele.OutIndex,
+				Txhash:   ele.Txhash,
+			},
+			OnetimePubkey: ele.OnetimePublicKey,
+		}
+		utxo := &types.UTXO{
+			Amount:    ele.Amount,
+			UtxoBasic: utxoBasic,
+		}
+		utxos = append(utxos, utxo)
+	}
+	reply.Utxos = &types.UTXOs{Utxos: utxos}
+	// 搜索冻结余额
+	utxos = make([]*types.UTXO, 0)
+	ftxoslice, err := w.walletStore.listFrozenUTXOs(token, addr)
+	for _, ele := range ftxoslice {
+		utxos = append(utxos, ele.Utxos...)
+	}
+	reply.Ftxos = &types.UTXOs{Utxos: utxos}
+
+	if err != nil {
+		walletlog.Error("procPrivacyAccountInfo", "err", err.Error())
+		msg.Reply(w.client.NewMessage("rpc", types.EventReplyPrivacyAccountInfo, err))
+	} else {
+		msg.Reply(w.client.NewMessage("rpc", types.EventReplyPrivacyAccountInfo, reply))
+	}
 }

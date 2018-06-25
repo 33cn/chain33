@@ -368,6 +368,8 @@ const (
 	EventReplyQueryCacheTransaction
 	EventDeleteCacheTransaction
 	EventReplyDeleteCacheTransaction
+	EventPrivacyAccountInfo
+	EventReplyPrivacyAccountInfo
 )
 
 var eventName = map[int]string{
@@ -510,6 +512,7 @@ var eventName = map[int]string{
 	EventReplyCreateUTXOs:             "EventReplyCreateUTXOs",
 	EventQueryCacheTransaction:        "EventQueryCacheTransaction",
 	EventDeleteCacheTransaction:       "EventDeleteCacheTransaction",
+	EventPrivacyAccountInfo:           "EventPrivacyAccountInfo",
 }
 
 //ty = 1 -> secp256k1
