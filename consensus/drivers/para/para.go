@@ -157,10 +157,13 @@ func (client *Client) SetOpTxs(txs []*types.Transaction, ty int64) {
 		if ty == DelAct && client.cache.Exists(hash) && client.cache.Get(hash).ty == AddAct {
 			client.cache.Remove(hash)
 		} else {
-			err := client.cache.Push(txs[i], ty)
-			if err != nil {
-				plog.Error("SetOpTxs", "err", err)
+			if !client.cache.Exists(hash) {
+				err := client.cache.Push(txs[i], ty)
+				if err != nil {
+					plog.Error("SetOpTxs", "err", err)
+				}
 			}
+
 		}
 	}
 }
