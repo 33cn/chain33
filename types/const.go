@@ -78,7 +78,7 @@ func SetTestNetFork() {
 	ForkV15ResetTx0 = 453400
 	ForkV16Withdraw = 480000
 	ForkV17EVM = 500000
-	ForkV18Relay = 501000
+	ForkV18Relay = 570000
 }
 
 func SetForkToOne() {
