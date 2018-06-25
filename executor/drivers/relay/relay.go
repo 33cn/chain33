@@ -3,7 +3,6 @@ package relay
 import (
 	log "github.com/inconshreveable/log15"
 
-	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -36,7 +35,6 @@ func (r *relay) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 		return nil, err
 	}
 
-	relaylog.Debug("exec relay tx", "tx hash", common.Bytes2Hex(tx.Hash()), "Ty", action.GetTy())
 	actiondb := newRelayDB(r, tx)
 	btc, err := newBtcStore(r)
 	if err != nil {

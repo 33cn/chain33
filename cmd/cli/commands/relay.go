@@ -314,19 +314,8 @@ func parseRelayOrders(res types.ReplyRelayOrders) {
 }
 
 func parseRelayBtcHeadHeightList(res types.ReplyRelayBtcHeadHeightList) {
-	for _, height := range res.Heights {
-		var show RelayBTCHeadHeightListShow
-		show.Height = height
-
-		data, err := json.MarshalIndent(show, "", "    ")
-		if err != nil {
-			fmt.Println(os.Stderr, err)
-			return
-		}
-
-		fmt.Println(string(data))
-	}
-
+	data, _ := json.MarshalIndent(res, "", "    ")
+	fmt.Println(string(data))
 }
 
 func parseRelayBtcCurHeight(res types.ReplayRelayQryBTCHeadHeight) {
