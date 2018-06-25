@@ -7,15 +7,14 @@ import (
 )
 
 const (
-	relayOrderSCAIH    = "relay-sellorder-scaih:"
-	relayOrderCSAIH    = "relay-sellorder-csaih:"
-	relayOrderASCIH    = "relay-sellorder-ascih:"
-	relayOrderACSIH    = "relay-sellorder-acsih:"
-	relayBuyOrderACSIH = "relay-buyorder-acsih:"
-	orderIDPrefix      = "mavl-relay-orderid-"
-	coinHashPrefix     = "mavl-relay-coinhash-"
-	btcLastHeadPrefix  = "mavl-relay-btclasthead"
-
+	relayOrderSCAIH          = "relay-sellorder-scaih:"
+	relayOrderCSAIH          = "relay-sellorder-csaih:"
+	relayOrderASCIH          = "relay-sellorder-ascih:"
+	relayOrderACSIH          = "relay-sellorder-acsih:"
+	relayBuyOrderACSIH       = "relay-buyorder-acsih:"
+	orderIDPrefix            = "mavl-relay-orderid-"
+	coinHashPrefix           = "mavl-relay-coinhash-"
+	btcLastHeadPrefix        = "mavl-relay-btclasthead"
 	relayBTCHeaderHash       = "relay-btcheader-hash"
 	relayBTCHeaderHeight     = "relay-btcheader-height"
 	relayBTCHeaderHeightList = "relay-btcheader-height-list"

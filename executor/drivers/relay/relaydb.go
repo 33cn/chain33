@@ -11,9 +11,11 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-const lockingTime = 6 * time.Hour
-const lockBtcHeight = 6 * 6
-const waitBlockHeight = 6
+const (
+	lockingTime     = 6 * time.Hour
+	lockBtcHeight   = 6 * 6
+	waitBlockHeight = 6
+)
 
 type relayLog struct {
 	types.RelayOrder
@@ -46,7 +48,6 @@ func (r *relayLog) getKVSet() (kvSet []*types.KeyValue) {
 }
 
 func (r *relayLog) receiptLog(relayLogType int32) *types.ReceiptLog {
-	var operation = []string{"buy", "sell"}
 	log := &types.ReceiptLog{}
 	log.Ty = relayLogType
 	receipt := &types.ReceiptRelayLog{
@@ -55,7 +56,7 @@ func (r *relayLog) receiptLog(relayLogType int32) *types.ReceiptLog {
 		PreStatus:     r.PreStatus.String(),
 		CreaterAddr:   r.CreaterAddr,
 		TxAmount:      strconv.FormatFloat(float64(r.Amount)/float64(types.Coin), 'f', 4, 64),
-		CoinOperation: operation[r.CoinOperation],
+		CoinOperation: types.RelayOrderOperation[r.CoinOperation],
 		Coin:          r.Coin,
 		CoinAmount:    strconv.FormatFloat(float64(r.CoinAmount)/float64(types.Coin), 'f', 4, 64),
 		CoinAddr:      r.CoinAddr,
@@ -120,7 +121,7 @@ func (action *relayDB) relayCreate(order *types.RelayCreate) (*types.Receipt, er
 	var receipt *types.Receipt
 	var err error
 	var coinAddr string
-	if order.Operation == types.RelayCreateBuy {
+	if order.Operation == types.RelayOrderBuy {
 		receipt, err = action.coinsAccount.ExecFrozen(action.fromAddr, action.execAddr, int64(order.BtyAmount))
 		if err != nil {
 			relaylog.Error("account.ExecFrozen relay ", "addrFrom", action.fromAddr, "execAddr", action.execAddr, "amount", order.BtyAmount)
@@ -204,7 +205,8 @@ func (action *relayDB) revokeCreate(btc *btcStore, revoke *types.RelayRevoke) (*
 
 	if order.Status == types.RelayOrderStatus_finished {
 		return nil, types.ErrRelayOrderSoldout
-	} else if order.Status == types.RelayOrderStatus_canceled {
+	}
+	if order.Status == types.RelayOrderStatus_canceled {
 		return nil, types.ErrRelayOrderRevoked
 	}
 
@@ -213,7 +215,7 @@ func (action *relayDB) revokeCreate(btc *btcStore, revoke *types.RelayRevoke) (*
 	}
 
 	var receipt *types.Receipt
-	if order.CoinOperation == types.RelayCreateBuy {
+	if order.CoinOperation == types.RelayOrderBuy {
 		receipt, err = action.coinsAccount.ExecActive(order.CreaterAddr, action.execAddr, int64(order.Amount))
 		if err != nil {
 			relaylog.Error("revoke create", "addrFrom", order.CreaterAddr, "execAddr", action.execAddr, "amount", order.Amount)
@@ -221,7 +223,7 @@ func (action *relayDB) revokeCreate(btc *btcStore, revoke *types.RelayRevoke) (*
 		}
 	}
 
-	if order.CoinOperation == types.RelayCreateSell && order.Status != types.RelayOrderStatus_pending {
+	if order.CoinOperation == types.RelayOrderSell && order.Status != types.RelayOrderStatus_pending {
 		receipt, err = action.coinsAccount.ExecActive(order.AcceptAddr, action.execAddr, int64(order.Amount))
 		if err != nil {
 			relaylog.Error("revoke create", "addrFrom", order.AcceptAddr, "execAddr", action.execAddr, "amount", order.Amount)
@@ -230,7 +232,7 @@ func (action *relayDB) revokeCreate(btc *btcStore, revoke *types.RelayRevoke) (*
 	}
 
 	order.PreStatus = order.Status
-	if revoke.Action == types.RelayRevokeUnlockOrder {
+	if revoke.Action == types.RelayUnlock {
 		order.Status = types.RelayOrderStatus_pending
 	} else {
 		order.Status = types.RelayOrderStatus_canceled
@@ -260,13 +262,12 @@ func (action *relayDB) accept(btc *btcStore, accept *types.RelayAccept) (*types.
 	if order.Status == types.RelayOrderStatus_canceled {
 		return nil, types.ErrRelayOrderRevoked
 	}
-
 	if order.Status != types.RelayOrderStatus_pending {
 		return nil, types.ErrRelayOrderSoldout
 	}
 
 	var receipt *types.Receipt
-	if order.CoinOperation == types.RelayCreateSell {
+	if order.CoinOperation == types.RelayOrderSell {
 		if accept.CoinAddr == "" {
 			relaylog.Error("accept, for sell operation, coinAddr needed")
 			return nil, types.ErrRelayOrderParamErr
@@ -308,14 +309,11 @@ func (action *relayDB) accept(btc *btcStore, accept *types.RelayAccept) (*types.
 }
 
 func (action *relayDB) relayRevoke(btc *btcStore, revoke *types.RelayRevoke) (*types.Receipt, error) {
-	if revoke.Target == types.RelayOrderCreate {
+	if revoke.Target == types.RelayRevokeCreate {
 		return action.revokeCreate(btc, revoke)
-	} else if revoke.Target == types.RelayOrderAccept {
-		return action.revokeAccept(btc, revoke)
 	}
 
-	return nil, types.ErrRelayOrderParamErr
-
+	return action.revokeAccept(btc, revoke)
 }
 
 func (action *relayDB) revokeAccept(btc *btcStore, revoke *types.RelayRevoke) (*types.Receipt, error) {
@@ -327,7 +325,8 @@ func (action *relayDB) revokeAccept(btc *btcStore, revoke *types.RelayRevoke) (*
 
 	if order.Status == types.RelayOrderStatus_pending || order.Status == types.RelayOrderStatus_canceled {
 		return nil, types.ErrRelayOrderRevoked
-	} else if order.Status == types.RelayOrderStatus_finished {
+	}
+	if order.Status == types.RelayOrderStatus_finished {
 		return nil, types.ErrRelayOrderFinished
 	}
 
@@ -341,7 +340,7 @@ func (action *relayDB) revokeAccept(btc *btcStore, revoke *types.RelayRevoke) (*
 	}
 
 	var receipt *types.Receipt
-	if order.CoinOperation == types.RelayCreateSell {
+	if order.CoinOperation == types.RelayOrderSell {
 		receipt, err = action.coinsAccount.ExecActive(order.AcceptAddr, action.execAddr, int64(order.Amount))
 		if err != nil {
 			relaylog.Error("revokeAccept", "addrFrom", order.AcceptAddr, "execAddr", action.execAddr, "amount", order.Amount)
@@ -379,9 +378,11 @@ func (action *relayDB) confirmTx(btc *btcStore, confirm *types.RelayConfirmTx) (
 
 	if order.Status == types.RelayOrderStatus_pending {
 		return nil, types.ErrRelayOrderOnSell
-	} else if order.Status == types.RelayOrderStatus_finished {
+	}
+	if order.Status == types.RelayOrderStatus_finished {
 		return nil, types.ErrRelayOrderSoldout
-	} else if order.Status == types.RelayOrderStatus_canceled {
+	}
+	if order.Status == types.RelayOrderStatus_canceled {
 		return nil, types.ErrRelayOrderRevoked
 	}
 
@@ -395,7 +396,7 @@ func (action *relayDB) confirmTx(btc *btcStore, confirm *types.RelayConfirmTx) (
 	}
 
 	var confirmAddr string
-	if order.CoinOperation == types.RelayCreateBuy {
+	if order.CoinOperation == types.RelayOrderBuy {
 		confirmAddr = order.AcceptAddr
 	} else {
 		confirmAddr = order.CreaterAddr
@@ -434,9 +435,11 @@ func (action *relayDB) verifyTx(btc *btcStore, verify *types.RelayVerify) (*type
 
 	if order.Status == types.RelayOrderStatus_finished {
 		return nil, types.ErrRelayOrderSoldout
-	} else if order.Status == types.RelayOrderStatus_canceled {
+	}
+	if order.Status == types.RelayOrderStatus_canceled {
 		return nil, types.ErrRelayOrderRevoked
-	} else if order.Status == types.RelayOrderStatus_pending || order.Status == types.RelayOrderStatus_locking {
+	}
+	if order.Status == types.RelayOrderStatus_pending || order.Status == types.RelayOrderStatus_locking {
 		return nil, types.ErrRelayOrderOnSell
 	}
 
@@ -446,7 +449,7 @@ func (action *relayDB) verifyTx(btc *btcStore, verify *types.RelayVerify) (*type
 	}
 
 	var receipt *types.Receipt
-	if order.CoinOperation == types.RelayCreateBuy {
+	if order.CoinOperation == types.RelayOrderBuy {
 		receipt, err = action.coinsAccount.ExecTransferFrozen(order.CreaterAddr, order.AcceptAddr, action.execAddr, int64(order.Amount))
 
 	} else {
@@ -476,7 +479,7 @@ func (action *relayDB) verifyTx(btc *btcStore, verify *types.RelayVerify) (*type
 
 }
 
-func (action *relayDB) verifyBtcTx(btc *btcStore, verify *types.RelayVerifyCli) (*types.Receipt, error) {
+func (action *relayDB) verifyCmdTx(btc *btcStore, verify *types.RelayVerifyCli) (*types.Receipt, error) {
 	orderId := []byte(verify.OrderId)
 	order, err := action.getOrderByID(orderId)
 	if err != nil {
@@ -485,9 +488,11 @@ func (action *relayDB) verifyBtcTx(btc *btcStore, verify *types.RelayVerifyCli) 
 
 	if order.Status == types.RelayOrderStatus_finished {
 		return nil, types.ErrRelayOrderSoldout
-	} else if order.Status == types.RelayOrderStatus_canceled {
+	}
+	if order.Status == types.RelayOrderStatus_canceled {
 		return nil, types.ErrRelayOrderRevoked
-	} else if order.Status == types.RelayOrderStatus_pending || order.Status == types.RelayOrderStatus_locking {
+	}
+	if order.Status == types.RelayOrderStatus_pending || order.Status == types.RelayOrderStatus_locking {
 		return nil, types.ErrRelayOrderOnSell
 	}
 
@@ -498,7 +503,7 @@ func (action *relayDB) verifyBtcTx(btc *btcStore, verify *types.RelayVerifyCli) 
 		return nil, err
 	}
 
-	if order.CoinOperation == types.RelayCreateBuy {
+	if order.CoinOperation == types.RelayOrderBuy {
 		receipt, err = action.coinsAccount.ExecTransferFrozen(order.CreaterAddr, order.AcceptAddr, action.execAddr, int64(order.Amount))
 
 	} else {

@@ -222,7 +222,7 @@ function wait_btc_height() {
     count=100
     wait_sec=0
 	while [ $count -gt 0 ]; do
-		cur=$(${1} relay btc_cur_height | jq ".CurHeight")
+		cur=$(${1} relay btc_cur_height | jq ".curHeight")
 		if [ "${cur}" -ge "${2}" ]; then
 			break
 		fi
@@ -323,8 +323,8 @@ function relay() {
 	block_wait "${1}" 2
 
 	${1} relay btc_cur_height
-	base_height=$(${1} relay btc_cur_height | jq ".BaseHeight")
-	btc_cur_height=$(${1} relay btc_cur_height | jq ".CurHeight")
+	base_height=$(${1} relay btc_cur_height | jq ".baseHeight")
+	btc_cur_height=$(${1} relay btc_cur_height | jq ".curHeight")
 	if [ "${btc_cur_height}" == "${base_height}" ]; then
 	    echo "height not correct"
 	    exit 1
@@ -471,7 +471,7 @@ function relay() {
 
     echo "=========== # btc generate 40 blocks ============="
     ## for unlock order's 36 blocks waiting
-    current=$(${1} relay btc_cur_height | jq ".CurHeight")
+    current=$(${1} relay btc_cur_height | jq ".curHeight")
     ${BTC_CTL} --rpcuser=root --rpcpass=1314 --simnet generate 40
     wait_btc_height "${1}" $(( current+40 ))
 
@@ -527,7 +527,7 @@ function relay() {
 	fi
 
     echo "=========== # btc generate 200 blocks  ==="
-    current=$(${1} relay btc_cur_height | jq ".CurHeight")
+    current=$(${1} relay btc_cur_height | jq ".curHeight")
     ${BTC_CTL} --rpcuser=root --rpcpass=1314 --simnet generate 200
     wait_btc_height "${1}" $(( current+200 ))
 
@@ -562,8 +562,8 @@ function relay() {
 	fi
 
     echo "=========== # wait relayd verify order ======="
-	## for relayd verify tick 30s
-    block_wait "${1}" 5
+	## for relayd verify tick 5s
+    block_wait "${1}" 3
 
     echo "=========== # check finish order ============="
     count=30

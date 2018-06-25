@@ -1618,3 +1618,60 @@ func (c *Chain33) GetBlockByHashes(in ReqHashes, result *interface{}) error {
 	*result = reply
 	return nil
 }
+
+func (c *Chain33) CreateRawRelayOrderTx(in *RelayOrderTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawRelayOrderTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Chain33) CreateRawRelayAcceptTx(in *RelayAcceptTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawRelayAcceptTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+func (c *Chain33) CreateRawRelayRevokeTx(in *RelayRevokeTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawRelayRevokeTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+func (c *Chain33) CreateRawRelayConfirmTx(in *RelayConfirmTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawRelayConfirmTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+func (c *Chain33) CreateRawRelayVerifyBTCTx(in *RelayVerifyBTCTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawRelayVerifyBTCTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Chain33) CreateRawRelaySaveBTCHeadTx(in *RelaySaveBTCHeadTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawRelaySaveBTCHeadTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}

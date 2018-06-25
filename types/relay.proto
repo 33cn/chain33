@@ -1,29 +1,14 @@
 syntax = "proto3";
 package types;
-//////////////////////////////////////////////////////////////////////////////
-//message for Relay exchange start/////////////////////////////////////////////////////
-//  Sell      Exchange
-//  BTY       BTC
-//  TOKEN     BTC
-//  ------挂卖单---------
-//  BTC       BTY
-//  BTC       TOKEN
-//  ------BTY 内部----------
-//  BTY       TOKEN
-//  TOKEN     BTY
-//
-//Note:	第一步先实现BTY <--> BTC
-//////////////////////////////////////////////////////////////////////////////
-
 
 enum RelayOrderStatus {
-    init = 0;
-    pending = 1;
-    locking = 2;
-    confirming = 3;
-    finished = 4;
-    canceled = 5;
-    timeout = 6;  //TODO: may not needed?
+    init        = 0;
+    pending     = 1;
+    locking     = 2;
+    confirming  = 3;
+    finished    = 4;
+    canceled    = 5;
+    timeout     = 6;  //TODO: may not needed?
 }
 
 
@@ -43,11 +28,11 @@ message RelayAction {
 
 
 message RelayCreate {
-    uint32 operation                = 1;    //0: buy, 1: sell
-    string coin 		   	        = 2;    //outside coin BTC, ETH...
-    uint64 amount			        = 3;
-    string addr          	        = 4;
-    uint64 btyAmount                = 5;
+    uint32 operation    = 1;    //0: buy, 1: sell
+    string coin         = 2;    //outside coin BTC, ETH...
+    uint64 amount       = 3;
+    string addr         = 4;
+    uint64 btyAmount    = 5;
 }
 
 message RelayOrder {
