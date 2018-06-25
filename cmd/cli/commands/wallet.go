@@ -171,6 +171,7 @@ func addWalletListTxsFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("starttxhash", "t", "", "from which transaction begin")
 	cmd.Flags().Int32P("mode", "m", 0, "query mode. (0: normal, 1:privacy)")
 	cmd.Flags().Int32P("direction", "d", 1, "query direction (0: pre page, 1: next page)")
+	cmd.Flags().StringP("token", "n", "", "token name.(BTY supported)")
 }
 
 func walletListTxs(cmd *cobra.Command, args []string) {
@@ -181,6 +182,7 @@ func walletListTxs(cmd *cobra.Command, args []string) {
 	mode, _ := cmd.Flags().GetInt32("mode")
 	addr, _ := cmd.Flags().GetString("addr")
 	sendRecvPrivacy, _ := cmd.Flags().GetInt32("sendrecv")
+	tokenname, _ := cmd.Flags().GetString("token")
 	params := jsonrpc.ReqWalletTransactionList{
 		FromTx:          txHash,
 		Count:           count,
@@ -188,6 +190,7 @@ func walletListTxs(cmd *cobra.Command, args []string) {
 		Mode:            mode,
 		Address:         addr,
 		SendRecvPrivacy: sendRecvPrivacy,
+		TokenName:       tokenname,
 	}
 	var res jsonrpc.WalletTxDetails
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.WalletTxList", params, &res)
@@ -478,7 +481,17 @@ func queryCacheTx(cmd *cobra.Command, args []string) {
 
 	var res jsonrpc.ReplyCacheTxList
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.QueryCacheTransaction", params, &res)
+	ctx.SetResultCb(parseQueryCacheTxRes)
 	ctx.Run()
+}
+
+func parseQueryCacheTxRes(arg interface{}) (interface{}, error) {
+	res := arg.(*jsonrpc.ReplyCacheTxList)
+	var result TxListResult
+	for _, v := range res.Txs {
+		result.Txs = append(result.Txs, decodeTransaction(v))
+	}
+	return result, nil
 }
 
 // DeleteCacheTxCmd 删除位与缓存中未发送的隐私交易
@@ -505,10 +518,9 @@ func deleteCacheTx(cmd *cobra.Command, args []string) {
 		return
 	}
 	params := types.ReqHash{
-		Hash:hash,
+		Hash: hash,
 	}
 
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.DeleteCacheTransaction", params, nil)
 	ctx.RunWithoutMarshal()
 }
-

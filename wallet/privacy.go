@@ -687,6 +687,10 @@ func (wallet *Wallet) buildInput(privacykeyParirs *privacy.Privacy, buildInfo *b
 	return privacyInput, utxosInKeyInput, realkeyInputSlice, selectedUtxo, nil
 }
 
+// TODO: 修改选择UTXO的算法
+// 优先选择UTXO高度与当前高度建个12个区块以上的UTXO
+// 如果选择还不够则再从老到新选择12个区块内的UTXO
+// 当该地址上的可用UTXO比较多时，可以考虑改进算法，优先选择币值小的，花掉小票，然后再选择币值接近的，减少找零，最后才选择大面值的找零
 func (wallet *Wallet) selectUTXO(token, addr string, amount int64) ([]*txOutputInfo, error) {
 	walletOuts4Addr := wallet.walletStore.getPrivacyTokenUTXOs(token, addr)
 	if walletOuts4Addr != nil {
@@ -937,6 +941,7 @@ func (wallet *Wallet) createPrivacy2PrivacyTx(req *types.ReqCreateTransaction) (
 	byteshash := tx.Hash()
 	dbkey := calcCreateTxKey(common.Bytes2Hex(byteshash))
 	cache := &types.CreateTransactionCache{
+		Tokenname:    req.GetTokenname(),
 		Key:          dbkey,
 		Createtime:   time.Now().UnixNano(),
 		Transaction:  tx,
@@ -1015,6 +1020,7 @@ func (wallet *Wallet) createPrivacy2PublicTx(req *types.ReqCreateTransaction) (*
 	byteshash := tx.Hash()
 	dbkey := calcCreateTxKey(common.Bytes2Hex(byteshash))
 	cache := &types.CreateTransactionCache{
+		Tokenname:    req.GetTokenname(),
 		Key:          dbkey,
 		Createtime:   time.Now().UnixNano(),
 		Transaction:  tx,
@@ -1084,7 +1090,8 @@ func (wallet *Wallet) procSendTxHashToWallet(req *types.ReqHash) (*types.ReplyHa
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
 
-	dbkey := calcCreateTxKey(common.Bytes2Hex(req.GetHash()))
+	hexhash := common.Bytes2Hex(req.GetHash())
+	dbkey := calcCreateTxKey(hexhash)
 	cache, err := wallet.walletStore.GetCreateTransactionCache(dbkey)
 	if err != nil {
 		return nil, err
@@ -1105,6 +1112,10 @@ func (wallet *Wallet) procSendTxHashToWallet(req *types.ReqHash) (*types.ReplyHa
 		walletlog.Error("procSendTxHashToWallet", "Return err", err)
 		return nil, errors.New(string(reply.GetMsg()))
 	}
+	// 发送成功以后，以发送时间作为FTXO起始计时时间
+	dbbatch := wallet.walletStore.NewBatch(true)
+	wallet.walletStore.updateFTXOFreezeTime(time.Now().UnixNano(), cache.GetTokenname(), cache.GetSender(), hexhash, dbbatch)
+	dbbatch.Write()
 	return &types.ReplyHash{Hash: cache.Transaction.Hash()}, nil
 }
 
@@ -1134,7 +1145,7 @@ func (wallet *Wallet) procInvalidTxOnTimer(dbbatch db.Batch) error {
 	revertFTXOTxs, _, _ := wallet.walletStore.GetWalletFtxoStxo(RevertSendtx)
 	var keys [][]byte
 	for _, ftxo := range curFTXOTxs {
-		keys = append(keys, calcKey4FTXOsInTx(ftxo.Txhash))
+		keys = append(keys, calcKey4FTXOsInTx(ftxo.Tokenname, ftxo.Sender, ftxo.Txhash))
 	}
 	for _, ftxo := range revertFTXOTxs {
 		keys = append(keys, calcRevertSendTxKey(ftxo.Txhash))
@@ -1155,7 +1166,7 @@ func (wallet *Wallet) procInvalidTxOnTimer(dbbatch db.Batch) error {
 			if i >= normalFtxoCnt {
 				timeout = FTXOTimeout4Revert
 			}
-			if (ftxo.GetFreezetime() + int64(time.Duration(timeout) * time.Second)) <= now {
+			if (ftxo.GetFreezetime() + int64(time.Duration(timeout)*time.Second)) <= now {
 				// 交易送入打包后，长时间未确认，需要将FTXO回退到UTXO
 				wallet.walletStore.moveFTXO2UTXO(keys[i], dbbatch)
 			}
@@ -1163,8 +1174,6 @@ func (wallet *Wallet) procInvalidTxOnTimer(dbbatch db.Batch) error {
 			if cache.GetStatus() == cacheTxStatus_Sent {
 				// 交易已经发送，需要移除交易
 				wallet.walletStore.DeleteCreateTransactionCache(cache.Key)
-				// 计算ftxo的时间
-				wallet.walletStore.updateFTXOFreezeTime(now, txhash, dbbatch)
 			}
 		}
 	}
@@ -1205,7 +1214,7 @@ func (wallet *Wallet) procDeleteCacheTransaction(req *types.ReqHash) (*types.Rep
 	wallet.walletStore.DeleteCreateTransactionCache(cache.Key)
 
 	dbbatch := wallet.walletStore.NewBatch(true)
-	wallet.walletStore.moveFTXO2UTXO(calcKey4FTXOsInTx(txhash), dbbatch)
+	wallet.walletStore.moveFTXO2UTXO(calcKey4FTXOsInTx(cache.Tokenname, cache.Sender, txhash), dbbatch)
 	dbbatch.Write()
 
 	return &types.ReplyHash{Hash: req.Hash}, nil

@@ -922,3 +922,15 @@ func (q *QueueProtocol) DeleteCacheTransaction(param *types.ReqHash) (*types.Rep
 	}
 	return nil, types.ErrTypeAsset
 }
+
+func (q *QueueProtocol) ShowPrivacyAccountInfo(param *types.ReqPrivBal4AddrToken) (*types.ReplyPrivacyAccount, error) {
+	msg, err := q.query(walletKey, types.EventPrivacyAccountInfo, param)
+	if err != nil {
+		log.Error("ShowPrivacyAccountInfo", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.ReplyPrivacyAccount); ok {
+		return reply, nil
+	}
+	return nil, types.ErrTypeAsset
+}

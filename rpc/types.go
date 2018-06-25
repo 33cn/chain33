@@ -203,6 +203,7 @@ type ReqWalletTransactionList struct {
 	Mode            int32  `json:"mode,omitempty"`
 	SendRecvPrivacy int32  `json:"sendRecvPrivacy,omitempty"`
 	Address         string `json:"address,omitempty"`
+	TokenName       string `json:"tokenname,omitempty"`
 }
 
 type WalletTxDetails struct {
