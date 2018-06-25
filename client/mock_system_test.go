@@ -84,7 +84,7 @@ func (mock *mockClient) Close() {
 
 func (mock *mockClient) CloseQueue() (*types.Reply, error) {
 	mock.c.CloseQueue()
-	return &types.Reply{IsOk: true, Msg: []byte{"Ok"}}, nil
+	return &types.Reply{IsOk: true, Msg: []byte("Ok")}, nil
 }
 
 func (mock *mockClient) NewMessage(topic string, ty int64, data interface{}) queue.Message {
