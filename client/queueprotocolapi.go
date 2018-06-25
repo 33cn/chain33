@@ -98,8 +98,12 @@ type QueueProtocolAPI interface {
 	CreateTrasaction(param *types.ReqCreateTransaction) (*types.Reply, error)
 	// types.EventSendTxHashToWallet
 	SendTxHashToWallet(param *types.ReqHash) (*types.Reply, error)
+	// types.EventQueryCacheTransaction 查询当前未发送的隐私交易列表
 	QueryCacheTransaction(param *types.ReqCacheTxList) (*types.ReplyCacheTxList, error)
+	// types.EventDeleteCacheTransaction 根据指定的哈希值删除未发送的隐私交易
 	DeleteCacheTransaction(param *types.ReqHash) (*types.Reply, error)
+	// types.EventPrivacyAccountInfo
+	ShowPrivacyAccountInfo(param *types.ReqPrivBal4AddrToken) (*types.ReplyPrivacyAccount, error)
 	// Privacy End
 	// --------------- wallet interfaces end
 
