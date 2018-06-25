@@ -103,6 +103,7 @@ func calcIncrease(miner *MinerAccounts, acc1, acc2 []*rpc.Account, header *rpc.H
 	}
 
 	totalIncrease := float64(0)
+	expectTotalIncrease := float64(0)
 	totalFrozen := float64(0)
 	for _, v := range miners {
 		if v.lastAcc != nil && v.curAcc != nil {
@@ -150,9 +151,11 @@ func calcIncrease(miner *MinerAccounts, acc1, acc2 []*rpc.Account, header *rpc.H
 
 			miner.MinerAccounts = append(miner.MinerAccounts, m)
 			totalIncrease += float64(increase) / float64(types.Coin)
+			expectTotalIncrease += expectIncrease
 		}
 	}
 	miner.TotalIncrease = strconv.FormatFloat(totalIncrease, 'f', 4, 64)
+	miner.TotalIncrease = strconv.FormatFloat(expectTotalIncrease, 'f', 4, 64)
 
 	return miner
 
