@@ -74,9 +74,9 @@ func decodePrivacyPayload(pub2priv interface{}) {
 		getStrMapPair(pub2priv)["amount"] = strconv.FormatFloat(amount, 'f', 4, 64)
 	}
 
-	if outputVal, ok := getStrMapValue(pub2priv, "input"); ok {
-		if keyoutputVals, ok := getStrMapValue(outputVal, "keyinput"); ok {
-			for _, value := range keyoutputVals.([]interface{}) {
+	if inputVal, ok := getStrMapValue(pub2priv, "input"); ok {
+		if keyinputVals, ok := getStrMapValue(inputVal, "keyinput"); ok {
+			for _, value := range keyinputVals.([]interface{}) {
 				if amountVal, ok := getStrMapValue(value, "amount"); ok {
 					amount := amountVal.(float64) / float64(types.Coin)
 					getStrMapPair(value)["amount"] = strconv.FormatFloat(amount, 'f', 4, 64)
