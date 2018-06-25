@@ -183,7 +183,3 @@ type RelayOrder2Show struct {
 	FinishTxHash  string `json:"finishtxhash"`
 	Height        int64  `json:"height"`
 }
-
-type RelayBTCHeadHeightListShow struct {
-	Height int64 `json:"height""`
-}
