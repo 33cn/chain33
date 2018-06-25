@@ -7,7 +7,6 @@ import (
 
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common/address"
-	rpctype "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -83,7 +82,7 @@ func (t tradeType) Amount(tx *types.Transaction) (int64, error) {
 func (trade tradeType) CreateTx(action string, message json.RawMessage) (*types.Transaction, error) {
 	var tx *types.Transaction
 	if action == "TradeSellLimit" {
-		var param rpctype.TradeSellTx
+		var param TradeSellTx
 		err := json.Unmarshal(message, &param)
 		if err != nil {
 			tlog.Error("CreateTx", "Error", err)
@@ -91,7 +90,7 @@ func (trade tradeType) CreateTx(action string, message json.RawMessage) (*types.
 		}
 		return CreateRawTradeSellTx(&param)
 	} else if action == "TradeBuyMarket" {
-		var param rpctype.TradeBuyTx
+		var param TradeBuyTx
 		err := json.Unmarshal(message, &param)
 		if err != nil {
 			tlog.Error("CreateTx", "Error", err)
@@ -99,7 +98,7 @@ func (trade tradeType) CreateTx(action string, message json.RawMessage) (*types.
 		}
 		return CreateRawTradeBuyTx(&param)
 	} else if action == "TradeSellRevoke" {
-		var param rpctype.TradeRevokeTx
+		var param TradeRevokeTx
 		err := json.Unmarshal(message, &param)
 		if err != nil {
 			tlog.Error("CreateTx", "Error", err)
@@ -107,7 +106,7 @@ func (trade tradeType) CreateTx(action string, message json.RawMessage) (*types.
 		}
 		return CreateRawTradeRevokeTx(&param)
 	} else if action == "TradeBuyLimit" {
-		var param rpctype.TradeBuyLimitTx
+		var param TradeBuyLimitTx
 		err := json.Unmarshal(message, &param)
 		if err != nil {
 			tlog.Error("CreateTx", "Error", err)
@@ -115,7 +114,7 @@ func (trade tradeType) CreateTx(action string, message json.RawMessage) (*types.
 		}
 		return CreateRawTradeBuyLimitTx(&param)
 	} else if action == "TradeSellMarket" {
-		var param rpctype.TradeSellMarketTx
+		var param TradeSellMarketTx
 		err := json.Unmarshal(message, &param)
 		if err != nil {
 			tlog.Error("CreateTx", "Error", err)
@@ -123,7 +122,7 @@ func (trade tradeType) CreateTx(action string, message json.RawMessage) (*types.
 		}
 		return CreateRawTradeSellMarketTx(&param)
 	} else if action == "TradeRevokeBuy" {
-		var param rpctype.TradeRevokeBuyTx
+		var param TradeRevokeBuyTx
 		err := json.Unmarshal(message, &param)
 		if err != nil {
 			tlog.Error("CreateTx", "Error", err)
@@ -137,7 +136,7 @@ func (trade tradeType) CreateTx(action string, message json.RawMessage) (*types.
 	return tx, nil
 }
 
-func CreateRawTradeSellTx(parm *rpctype.TradeSellTx) (*types.Transaction, error) {
+func CreateRawTradeSellTx(parm *TradeSellTx) (*types.Transaction, error) {
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}
@@ -166,7 +165,7 @@ func CreateRawTradeSellTx(parm *rpctype.TradeSellTx) (*types.Transaction, error)
 	return tx, nil
 }
 
-func CreateRawTradeBuyTx(parm *rpctype.TradeBuyTx) (*types.Transaction, error) {
+func CreateRawTradeBuyTx(parm *TradeBuyTx) (*types.Transaction, error) {
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}
@@ -186,7 +185,7 @@ func CreateRawTradeBuyTx(parm *rpctype.TradeBuyTx) (*types.Transaction, error) {
 	return tx, nil
 }
 
-func CreateRawTradeRevokeTx(parm *rpctype.TradeRevokeTx) (*types.Transaction, error) {
+func CreateRawTradeRevokeTx(parm *TradeRevokeTx) (*types.Transaction, error) {
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}
@@ -207,7 +206,7 @@ func CreateRawTradeRevokeTx(parm *rpctype.TradeRevokeTx) (*types.Transaction, er
 	return tx, nil
 }
 
-func CreateRawTradeBuyLimitTx(parm *rpctype.TradeBuyLimitTx) (*types.Transaction, error) {
+func CreateRawTradeBuyLimitTx(parm *TradeBuyLimitTx) (*types.Transaction, error) {
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}
@@ -233,7 +232,7 @@ func CreateRawTradeBuyLimitTx(parm *rpctype.TradeBuyLimitTx) (*types.Transaction
 	return tx, nil
 }
 
-func CreateRawTradeSellMarketTx(parm *rpctype.TradeSellMarketTx) (*types.Transaction, error) {
+func CreateRawTradeSellMarketTx(parm *TradeSellMarketTx) (*types.Transaction, error) {
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}
@@ -253,7 +252,7 @@ func CreateRawTradeSellMarketTx(parm *rpctype.TradeSellMarketTx) (*types.Transac
 	return tx, nil
 }
 
-func CreateRawTradeRevokeBuyTx(parm *rpctype.TradeRevokeBuyTx) (*types.Transaction, error) {
+func CreateRawTradeRevokeBuyTx(parm *TradeRevokeBuyTx) (*types.Transaction, error) {
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}

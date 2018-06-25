@@ -9,6 +9,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/version"
 	"gitlab.33.cn/chain33/chain33/types"
+	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
 	tokentype "gitlab.33.cn/chain33/chain33/types/executor/token"
 )
 
@@ -1025,7 +1026,7 @@ func (c *Chain33) CreateRawTokenRevokeTx(in *tokentype.TokenRevokeTx, result *in
 	return nil
 }
 
-func (c *Chain33) CreateRawTradeSellTx(in *TradeSellTx, result *interface{}) error {
+func (c *Chain33) CreateRawTradeSellTx(in *tradetype.TradeSellTx, result *interface{}) error {
 	reply, err := c.cli.CreateRawTradeSellTx(in)
 	if err != nil {
 		return err
@@ -1035,7 +1036,7 @@ func (c *Chain33) CreateRawTradeSellTx(in *TradeSellTx, result *interface{}) err
 	return nil
 }
 
-func (c *Chain33) CreateRawTradeBuyTx(in *TradeBuyTx, result *interface{}) error {
+func (c *Chain33) CreateRawTradeBuyTx(in *tradetype.TradeBuyTx, result *interface{}) error {
 	reply, err := c.cli.CreateRawTradeBuyTx(in)
 	if err != nil {
 		return err
@@ -1045,7 +1046,7 @@ func (c *Chain33) CreateRawTradeBuyTx(in *TradeBuyTx, result *interface{}) error
 	return nil
 }
 
-func (c *Chain33) CreateRawTradeRevokeTx(in *TradeRevokeTx, result *interface{}) error {
+func (c *Chain33) CreateRawTradeRevokeTx(in *tradetype.TradeRevokeTx, result *interface{}) error {
 	reply, err := c.cli.CreateRawTradeRevokeTx(in)
 	if err != nil {
 		return err
@@ -1055,7 +1056,7 @@ func (c *Chain33) CreateRawTradeRevokeTx(in *TradeRevokeTx, result *interface{})
 	return nil
 }
 
-func (c *Chain33) CreateRawTradeBuyLimitTx(in *TradeBuyLimitTx, result *interface{}) error {
+func (c *Chain33) CreateRawTradeBuyLimitTx(in *tradetype.TradeBuyLimitTx, result *interface{}) error {
 	reply, err := c.cli.CreateRawTradeBuyLimitTx(in)
 	if err != nil {
 		return err
@@ -1065,7 +1066,7 @@ func (c *Chain33) CreateRawTradeBuyLimitTx(in *TradeBuyLimitTx, result *interfac
 	return nil
 }
 
-func (c *Chain33) CreateRawTradeSellMarketTx(in *TradeSellMarketTx, result *interface{}) error {
+func (c *Chain33) CreateRawTradeSellMarketTx(in *tradetype.TradeSellMarketTx, result *interface{}) error {
 	reply, err := c.cli.CreateRawTradeSellMarketTx(in)
 	if err != nil {
 		return err
@@ -1075,7 +1076,7 @@ func (c *Chain33) CreateRawTradeSellMarketTx(in *TradeSellMarketTx, result *inte
 	return nil
 }
 
-func (c *Chain33) CreateRawTradeRevokeBuyTx(in *TradeRevokeBuyTx, result *interface{}) error {
+func (c *Chain33) CreateRawTradeRevokeBuyTx(in *tradetype.TradeRevokeBuyTx, result *interface{}) error {
 	reply, err := c.cli.CreateRawTradeRevokeBuyTx(in)
 	if err != nil {
 		return err
