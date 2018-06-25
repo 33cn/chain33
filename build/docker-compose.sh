@@ -218,7 +218,6 @@ function check_docker_container(){
 }
 
 function wait_btc_height() {
-    echo "=========== wait btc height========== "
     if [ "$#" -lt 2 ]; then
         echo "wrong wait_btc_height params"
         exit 1
@@ -234,7 +233,7 @@ function wait_btc_height() {
         wait_sec=$(( wait_sec+1 ))
         sleep 1
 	done
-    echo "wait ${wait_sec} s"
+    echo "wait btc blocks ${wait_sec} s"
 
 }
 
@@ -355,21 +354,18 @@ function relay() {
 	echo "${hash}"
 
 	block_wait "${1}" 1
-	before=$(${CLI} account balance -a 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv -e relay | jq ".balance")
-	before=$(echo "$before" | bc)
-	if [ "${before}" == 0.0000 ]; then
+	before=$(${CLI} account balance -a 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv -e relay | jq -r ".balance")
+	if [ "${before}" == "0.0000" ]; then
 		echo "wrong relay addr balance, should not be zero"
 		exit 1
 	fi
-	before=$(${CLI} account balance -a 14KEKbYtKKQm4wMthSK9J4La4nAiidGozt -e coins | jq ".balance")
-	before=$(echo "$before" | bc)
-	if [ "${before}" == 0.0000 ]; then
+	before=$(${CLI} account balance -a 14KEKbYtKKQm4wMthSK9J4La4nAiidGozt -e coins | jq -r ".balance")
+	if [ "${before}" == "0.0000" ]; then
 		echo "wrong accept addr balance, should not be zero"
 		exit 1
 	fi
-	before=$(${CLI} account balance -a "${real_buy_addr}" -e coins | jq ".balance")
-	before=$(echo "$before" | bc)
-	if [ "${before}" == 0.0000 ]; then
+	before=$(${CLI} account balance -a "${real_buy_addr}" -e coins | jq -r ".balance")
+	if [ "${before}" == "0.0000" ]; then
 		echo "wrong real accept addr balance, should not be zero"
 		exit 1
 	fi
@@ -425,9 +421,8 @@ function relay() {
         echo "wrong realbuy_id "
         exit 1
     fi
-	before=$(${CLI} account balance -a 14KEKbYtKKQm4wMthSK9J4La4nAiidGozt -e relay | jq ".balance")
-	before=$(echo "$before" | bc)
-	if [ "${before}" == 0.0000 ]; then
+	before=$(${CLI} account balance -a 14KEKbYtKKQm4wMthSK9J4La4nAiidGozt -e relay | jq -r ".balance")
+	if [ "${before}" == "0.0000" ]; then
 		echo "wrong relay balance, should not be zero"
 		exit 1
 	fi
