@@ -77,8 +77,6 @@ type QueueProtocolAPI interface {
 	// types.EventSignRawTx
 	SignRawTx(param *types.ReqSignRawTx) (*types.ReplySignRawTx, error)
 	GetFatalFailure() (*types.Int32, error)
-	// types.EventBindMiner
-	BindMiner(param *types.ReqBindMiner) (*types.ReplyBindMiner, error)
 	// --------------- wallet interfaces end
 
 	// +++++++++++++++ blockchain interfaces begin
@@ -104,6 +102,14 @@ type QueueProtocolAPI interface {
 	IsNtpClockSync() (*types.Reply, error)
 	// types.EventGetLastHeader
 	GetLastHeader() (*types.Header, error)
+
+	//types.EventGetLastBlockSequence:
+	GetLastBlockSequence() (*types.Int64, error)
+	//types.EventGetBlockSequences:
+	GetBlockSequences(param *types.ReqBlocks) (*types.BlockSequences, error)
+	//types.EventGetBlockByHashes:
+	GetBlockByHashes(param *types.ReqHashes) (*types.BlockDetails, error)
+
 	// --------------- blockchain interfaces end
 
 	// +++++++++++++++ store interfaces begin
@@ -112,6 +118,5 @@ type QueueProtocolAPI interface {
 	// --------------- store interfaces end
 
 	// +++++++++++++++ other interfaces begin
-	DecodeRawTransaction(param *types.ReqDecodeRawTransaction) (*types.Transaction, error)
 	// --------------- other interfaces end
 }
