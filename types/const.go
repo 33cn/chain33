@@ -363,6 +363,10 @@ const (
 	EventReplyCreateTransaction
 	EventSendTxHashToWallet
 	EventReplySendTxHashToWallet
+	EventQueryCacheTransaction
+	EventReplyQueryCacheTransaction
+	EventDeleteCacheTransaction
+	EventReplyDeleteCacheTransaction
 )
 
 var eventName = map[int]string{
@@ -503,6 +507,8 @@ var eventName = map[int]string{
 	EventReplyGetGlobalIndex:          "EventReplyGetGlobalIndex",
 	EventCreateUTXOs:                  "EventCreateUTXOs",
 	EventReplyCreateUTXOs:             "EventReplyCreateUTXOs",
+	EventQueryCacheTransaction:        "EventQueryCacheTransaction",
+	EventDeleteCacheTransaction:       "EventDeleteCacheTransaction",
 }
 
 //ty = 1 -> secp256k1

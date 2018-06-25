@@ -421,6 +421,8 @@ func createPub2PrivTxFlags(cmd *cobra.Command) {
 	cmd.MarkFlagRequired("pubkeypair")
 	cmd.Flags().Float64P("amount", "a", 0.0, "transfer amount, at most 4 decimal places")
 	cmd.MarkFlagRequired("amount")
+	cmd.Flags().StringP("sender", "s", "", "account address")
+	cmd.MarkFlagRequired("sender")
 
 	cmd.Flags().StringP("tokenname", "t", "BTY", "token name")
 	cmd.Flags().StringP("note", "n", "", "note for transaction")
@@ -432,6 +434,7 @@ func createPub2PrivTx(cmd *cobra.Command, args []string) {
 	amount := GetAmountValue(cmd, "amount")
 	tokenname, _ := cmd.Flags().GetString("tokenname")
 	note, _ := cmd.Flags().GetString("note")
+	sender, _ := cmd.Flags().GetString("sender")
 
 	params := types.ReqCreateTransaction{
 		Tokenname:  tokenname,
@@ -439,6 +442,7 @@ func createPub2PrivTx(cmd *cobra.Command, args []string) {
 		Amount:     amount,
 		Note:       note,
 		Pubkeypair: pubkeypair,
+		From:       sender,
 	}
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateTrasaction", params, nil)
 	ctx.RunWithoutMarshal()

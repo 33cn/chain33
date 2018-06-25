@@ -33,6 +33,8 @@ func WalletCmd() *cobra.Command {
 		SignRawTxCmd(),
 		SetFeeCmd(),
 		SendTxCmd(),
+		QueryCacheTxByAddrCmd(),
+		DeleteCacheTxCmd(),
 	)
 
 	return cmd
@@ -450,3 +452,63 @@ func sendTx(cmd *cobra.Command, args []string) {
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.SendTransaction", params, nil)
 	ctx.RunWithoutMarshal()
 }
+
+// QueryCacheTxByAddrCmd 查询还未发送的隐私交易
+func QueryCacheTxByAddrCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "queryctx",
+		Short: "Query transaction in cache by address",
+		Run:   queryCacheTx,
+	}
+	queryCacheTxFlags(cmd)
+	return cmd
+}
+
+func queryCacheTxFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("addr", "a", "", "account address")
+	cmd.MarkFlagRequired("addr")
+}
+
+func queryCacheTx(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	addr, _ := cmd.Flags().GetString("addr")
+	params := types.ReqCacheTxList{
+		Addr: addr,
+	}
+
+	var res jsonrpc.ReplyCacheTxList
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.QueryCacheTransaction", params, &res)
+	ctx.Run()
+}
+
+// DeleteCacheTxCmd 删除位与缓存中未发送的隐私交易
+func DeleteCacheTxCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "deletectx",
+		Short: "Delete transaction in cache by hash",
+		Run:   deleteCacheTx,
+	}
+	deleteCacheTxFlags(cmd)
+	return cmd
+}
+
+func deleteCacheTxFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("txhash", "t", "", "transaction hash")
+	cmd.MarkFlagRequired("txhash")
+}
+
+func deleteCacheTx(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	txhash, _ := cmd.Flags().GetString("txhash")
+	hash, err := common.FromHex(txhash)
+	if err != nil {
+		return
+	}
+	params := types.ReqHash{
+		Hash:hash,
+	}
+
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.DeleteCacheTransaction", params, nil)
+	ctx.RunWithoutMarshal()
+}
+
