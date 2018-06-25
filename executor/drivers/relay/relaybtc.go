@@ -330,10 +330,9 @@ func verifyBlockHeader(head *types.BtcHeader, preHead *types.BtcHeader) error {
 	if head == nil {
 		return types.ErrInputPara
 	}
-	if preHead != nil {
-		if (preHead.Hash != head.PreviousHash || preHead.Height+1 != head.Height) && !head.IsReset {
-			return types.ErrRelayBtcHeadSequenceErr
-		}
+
+	if preHead != nil && (preHead.Hash != head.PreviousHash || preHead.Height+1 != head.Height) && !head.IsReset {
+		return types.ErrRelayBtcHeadSequenceErr
 	}
 
 	err, btcHeader := btcWireHeader(head)
