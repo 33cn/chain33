@@ -60,10 +60,6 @@ func (cache *txCache) Push(tx *types.Transaction, ty int64) error {
 	cache.lock.Lock()
 	defer cache.lock.Unlock()
 	hash := tx.Hash()
-	if cache.Exists(hash) {
-		return types.ErrTxExist
-	}
-
 	if cache.txList.Len() >= cache.size {
 		return types.ErrMemFull
 	}
