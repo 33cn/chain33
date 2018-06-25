@@ -26,8 +26,11 @@ var closeCmd = &cobra.Command{
 	Short: "Close chain33",
 	Run: func(cmd *cobra.Command, args []string) {
 		rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-		rpc, _ := jsonrpc.NewJSONClient(rpcLaddr)
-		rpc.Call("Chain33.CloseQueue", nil, nil)
+		//		rpc, _ := jsonrpc.NewJSONClient(rpcLaddr)
+		//		rpc.Call("Chain33.CloseQueue", nil, nil)
+		var res jsonrpc.Reply
+		ctx := commands.NewRpcCtx(rpcLaddr, "Chain33.CloseQueue", nil, &res)
+		ctx.Run()
 	},
 }
 
