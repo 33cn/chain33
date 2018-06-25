@@ -941,6 +941,7 @@ func (wallet *Wallet) createPrivacy2PrivacyTx(req *types.ReqCreateTransaction) (
 	byteshash := tx.Hash()
 	dbkey := calcCreateTxKey(common.Bytes2Hex(byteshash))
 	cache := &types.CreateTransactionCache{
+		Tokenname:    req.GetTokenname(),
 		Key:          dbkey,
 		Createtime:   time.Now().UnixNano(),
 		Transaction:  tx,
@@ -1019,6 +1020,7 @@ func (wallet *Wallet) createPrivacy2PublicTx(req *types.ReqCreateTransaction) (*
 	byteshash := tx.Hash()
 	dbkey := calcCreateTxKey(common.Bytes2Hex(byteshash))
 	cache := &types.CreateTransactionCache{
+		Tokenname:    req.GetTokenname(),
 		Key:          dbkey,
 		Createtime:   time.Now().UnixNano(),
 		Transaction:  tx,
