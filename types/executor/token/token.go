@@ -7,7 +7,6 @@ import (
 
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common/address"
-	rpctype "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -129,7 +128,7 @@ func (coins TokenType) CreateTx(action string, message json.RawMessage) (*types.
 		random := rand.New(rand.NewSource(time.Now().UnixNano()))
 		tx.Nonce = random.Int63()
 	} else if action == "TokenPreCreate" {
-		var param rpctype.TokenPreCreateTx
+		var param TokenPreCreateTx
 		err := json.Unmarshal(message, &param)
 		if err != nil {
 			tlog.Error("CreateTx", "Error", err)
@@ -138,7 +137,7 @@ func (coins TokenType) CreateTx(action string, message json.RawMessage) (*types.
 
 		CreateRawTokenPreCreateTx(&param)
 	} else if action == "TokenFinish" {
-		var param rpctype.TokenFinishTx
+		var param TokenFinishTx
 		err := json.Unmarshal(message, &param)
 		if err != nil {
 			tlog.Error("CreateTx", "Error", err)
@@ -147,7 +146,7 @@ func (coins TokenType) CreateTx(action string, message json.RawMessage) (*types.
 
 		CreateRawTokenFinishTx(&param)
 	} else if action == "TokenRevoke" {
-		var param rpctype.TokenRevokeTx
+		var param TokenRevokeTx
 		err := json.Unmarshal(message, &param)
 		if err != nil {
 			tlog.Error("CreateTx", "Error", err)
@@ -178,7 +177,7 @@ func CreateTokenTransfer(param *types.CreateTx) *types.Transaction {
 	return &types.Transaction{Execer: []byte(name), Payload: types.Encode(transfer), To: param.GetTo()}
 }
 
-func CreateRawTokenPreCreateTx(parm *rpctype.TokenPreCreateTx) ([]byte, error) {
+func CreateRawTokenPreCreateTx(parm *TokenPreCreateTx) ([]byte, error) {
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}
@@ -206,7 +205,7 @@ func CreateRawTokenPreCreateTx(parm *rpctype.TokenPreCreateTx) ([]byte, error) {
 	return data, nil
 }
 
-func CreateRawTokenFinishTx(parm *rpctype.TokenFinishTx) ([]byte, error) {
+func CreateRawTokenFinishTx(parm *TokenFinishTx) ([]byte, error) {
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}
@@ -228,7 +227,7 @@ func CreateRawTokenFinishTx(parm *rpctype.TokenFinishTx) ([]byte, error) {
 	return data, nil
 }
 
-func CreateRawTokenRevokeTx(parm *rpctype.TokenRevokeTx) ([]byte, error) {
+func CreateRawTokenRevokeTx(parm *TokenRevokeTx) ([]byte, error) {
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}
