@@ -100,7 +100,7 @@ func SetTitle(t string) {
 	title = t
 	if IsBityuan() {
 		AllowUserExec = [][]byte{ExecerCoins, ExecerTicket, []byte("hashlock"),
-			[]byte("retrieve"), []byte("none"), ExecerToken, []byte("trade"),  ExecerManage, ExecerRelay}
+			[]byte("retrieve"), []byte("none"), ExecerToken, []byte("trade"), ExecerManage, ExecerRelay}
 		return
 	}
 	if IsLocal() {
