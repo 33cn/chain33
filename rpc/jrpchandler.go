@@ -9,6 +9,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/version"
 	"gitlab.33.cn/chain33/chain33/types"
+	tokentype "gitlab.33.cn/chain33/chain33/types/executor/token"
 )
 
 func (c *Chain33) CreateRawTransaction(in *types.CreateTx, result *interface{}) error {
@@ -995,7 +996,7 @@ func (c *Chain33) QueryTotalFee(in *types.LocalDBGet, result *interface{}) error
 	return nil
 }
 
-func (c *Chain33) CreateRawTokenPreCreateTx(in *TokenPreCreateTx, result *interface{}) error {
+func (c *Chain33) CreateRawTokenPreCreateTx(in *tokentype.TokenPreCreateTx, result *interface{}) error {
 	reply, err := c.cli.CreateRawTokenPreCreateTx(in)
 	if err != nil {
 		return err
@@ -1005,7 +1006,7 @@ func (c *Chain33) CreateRawTokenPreCreateTx(in *TokenPreCreateTx, result *interf
 	return nil
 }
 
-func (c *Chain33) CreateRawTokenFinishTx(in *TokenFinishTx, result *interface{}) error {
+func (c *Chain33) CreateRawTokenFinishTx(in *tokentype.TokenFinishTx, result *interface{}) error {
 	reply, err := c.cli.CreateRawTokenFinishTx(in)
 	if err != nil {
 		return err
@@ -1014,7 +1015,7 @@ func (c *Chain33) CreateRawTokenFinishTx(in *TokenFinishTx, result *interface{})
 	return nil
 }
 
-func (c *Chain33) CreateRawTokenRevokeTx(in *TokenRevokeTx, result *interface{}) error {
+func (c *Chain33) CreateRawTokenRevokeTx(in *tokentype.TokenRevokeTx, result *interface{}) error {
 	reply, err := c.cli.CreateRawTokenRevokeTx(in)
 	if err != nil {
 		return err
