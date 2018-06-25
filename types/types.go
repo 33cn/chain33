@@ -1,16 +1,15 @@
 package types
 
 import (
-	"fmt"
-	"time"
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
+	"time"
 
 	"github.com/golang/protobuf/proto"
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common"
-
 
 	_ "gitlab.33.cn/chain33/chain33/common/crypto/ed25519"
 	_ "gitlab.33.cn/chain33/chain33/common/crypto/secp256k1"

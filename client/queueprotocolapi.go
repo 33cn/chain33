@@ -77,7 +77,6 @@ type QueueProtocolAPI interface {
 	// types.EventSignRawTx
 	SignRawTx(param *types.ReqSignRawTx) (*types.ReplySignRawTx, error)
 	GetFatalFailure() (*types.Int32, error)
-	SendTxHashToWallet(param *types.ReqHash) (*types.Reply, error)
 	// Privacy Begin
 	// types.EventShowPrivacyBalance
 	ShowPrivacyBalance(param *types.ReqPrivBal4AddrToken) (*types.Account, error)
@@ -95,7 +94,12 @@ type QueueProtocolAPI interface {
 	Privacy2Public(param *types.ReqPri2Pub) (*types.Reply, error)
 	// types.EventCreateUTXOs
 	CreateUTXOs(param *types.ReqCreateUTXOs) (*types.Reply, error)
+	// types.EventCreateTransaction 由服务器协助创建一个交易
 	CreateTrasaction(param *types.ReqCreateTransaction) (*types.Reply, error)
+	// types.EventSendTxHashToWallet
+	SendTxHashToWallet(param *types.ReqHash) (*types.Reply, error)
+	QueryCacheTransaction(param *types.ReqCacheTxList) (*types.ReplyCacheTxList, error)
+	DeleteCacheTransaction(param *types.ReqHash) (*types.Reply, error)
 	// Privacy End
 	// --------------- wallet interfaces end
 

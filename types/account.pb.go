@@ -334,6 +334,8 @@ It has these top-level messages:
 	RealKeyInput
 	UTXOBasics
 	CreateTransactionCache
+	ReqCacheTxList
+	ReplyCacheTxList
 */
 package types
 
