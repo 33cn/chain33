@@ -11,15 +11,16 @@ set -e -o pipefail
 
 PWD=$(cd "$(dirname "$0")" && pwd)
 export PATH="$PWD:$PATH"
-CLI="sudo docker exec ${1}_chain33_1 /root/chain33-cli"
+CLI=" docker exec ${1}_chain33_1 /root/chain33-cli"
 
 sedfix=""
 if [ "$(uname)" == "Darwin" ]; then
-	sedfix=".bak"
+    sedfix=".bak"
 fi
 
-function init(){
+function init() {
     # update test environment
+    sed -i $sedfix 's/^Title.*/Title="local"/g' chain33.toml
     sed -i $sedfix 's/^TestNet=.*/TestNet=true/g' chain33.toml
 
     # p2p
@@ -38,19 +39,19 @@ function init(){
     sed -i $sedfix 's/^minerdisable=.*/minerdisable=false/g' chain33.toml
 
     # docker-compose ps
-    sudo docker-compose ps
+    docker-compose ps
 
     # remove exsit container
-    sudo docker-compose down
+    docker-compose down
 
     # create and run docker-compose container
-    sudo docker-compose up --build -d
+    docker-compose up --build -d
 
     echo "=========== sleep 60s ============="
     sleep 60
 
     # docker-compose ps
-    sudo docker-compose ps
+    docker-compose ps
 
     # query node run status
     ${CLI} block last_header
@@ -130,30 +131,46 @@ function init(){
         exit 1
     fi
 
-
     ${CLI} wallet status
     ${CLI} account list
     ${CLI} mempool list
     # ${CLI} mempool last_txs
 }
 
-function transfer(){
-    echo "=========== # transfer ============="
-    hashes=()
-    for((i=0;i<10;i++));do
-        hash=$(${CLI} send bty transfer -a 1 -n test -t 14KEKbYtKKQm4wMthSK9J4La4nAiidGozt -k 4257D8692EF7FE13C68B65D6A52F03933DB2FA5CE8FAF210B5B8B80C721CED01)
-        hashes=(${hashes[*]} $hash)
+function block_wait() {
+    if [ "$#" -lt 2 ]; then
+        echo "wrong block_wait params"
+        exit 1
+    fi
+    cur_height=$(${1} block last_header | jq ".height")
+    expect=$((cur_height + ${2}))
+    count=0
+    while true; do
+        new_height=$(${1} block last_header | jq ".height")
+        if [ "${new_height}" -ge "${expect}" ]; then
+            break
+        fi
+        count=$((count + 1))
         sleep 1
     done
+    echo "wait new block $count s"
+}
+
+function transfer() {
+    echo "=========== # transfer ============="
+    hashes=()
+    for ((i = 0; i < 10; i++)); do
+        hash=$(${CLI} send bty transfer -a 1 -n test -t 14KEKbYtKKQm4wMthSK9J4La4nAiidGozt -k 4257D8692EF7FE13C68B65D6A52F03933DB2FA5CE8FAF210B5B8B80C721CED01)
+        hashes=("${hashes[@]}" "$hash")
+    done
+    block_wait "${CLI}" 1
     echo "len: ${#hashes[@]}"
-    if [ ${#hashes[*]} != 10 ]; then
-        echo tx number wrong
+    if [ "${#hashes[@]}" != 10 ]; then
+        echo "tx number wrong"
         exit 1
     fi
 
-    sleep 20
-    for((i=0;i<${#hashes[*]};i++))
-    do
+    for ((i = 0; i < ${#hashes[*]}; i++)); do
         txs=$(${CLI} tx query_hash -s "${hashes[$i]}" | jq ".txs")
         if [ -z "${txs}" ]; then
             echo "cannot find tx"
@@ -161,21 +178,19 @@ function transfer(){
         fi
     done
 
-    sleep 2
     echo "=========== # withdraw ============="
-    hash=$(${CLI} send bty send_exec -a 2 -n deposit -e ticket -k CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944)
+    hash=$(${CLI} send bty transfer -a 2 -n deposit -t 1wvmD6RNHzwhY4eN75WnM6JcaAvNQ4nHx -k CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944)
     echo "${hash}"
-    sleep 20
-    before=$(${CLI} account balance -a 14KEKbYtKKQm4wMthSK9J4La4nAiidGozt -e ticket | jq ".balance")
-    before=$(echo "$before" | bc)
-    if [ "${before}" == 0.0000 ]; then
+    block_wait "${CLI}" 1
+    before=$(${CLI} account balance -a 14KEKbYtKKQm4wMthSK9J4La4nAiidGozt -e retrieve | jq -r ".balance")
+    if [ "${before}" == "0.0000" ]; then
         echo "wrong ticket balance, should not be zero"
         exit 1
     fi
 
-    hash=$(${CLI} send bty withdraw -a 1 -n withdraw -e ticket -k CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944)
+    hash=$(${CLI} send bty withdraw -a 1 -n withdraw -e retrieve -k CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944)
     echo "${hash}"
-    sleep 25
+    block_wait "${CLI}" 1
     txs=$(${CLI} tx query_hash -s "${hash}" | jq ".txs")
     if [ "${txs}" == "null" ]; then
         echo "withdraw cannot find tx"
@@ -183,7 +198,7 @@ function transfer(){
     fi
 }
 
-function main(){
+function main() {
     echo "==========================================main begin========================================================"
     init
     transfer
@@ -193,7 +208,3 @@ function main(){
 
 # run script
 main
-
-
-
-
