@@ -42,7 +42,6 @@ It has these top-level messages:
 	Receipts
 	PrivacyKV
 	PrivacyKVToken
-	LocalDBSetWithPrivacy
 	ReceiptsAndPrivacyKV
 	ReceiptCheckTxList
 	ChainStatus
@@ -65,6 +64,7 @@ It has these top-level messages:
 	ReqHashes
 	ReplyHashes
 	KeyValue
+	TxHash
 	Config
 	Log
 	MemPool

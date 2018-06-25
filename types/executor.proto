@@ -435,10 +435,10 @@ message Privacy2Public {
 }
 
 message UTXOGlobalIndex {
-	int64 height   = 1;
-	int32 txindex  = 2;
-	int32 outindex = 3;
-    bytes txhash   = 4;
+//	int64 height   = 1;
+//	int32 txindex  = 2;
+    bytes txhash   = 3;
+	int32 outindex = 4;
 }
 
 //privacy input

@@ -197,11 +197,16 @@ func (mem *Mempool) RemoveTxs(hashList *types.TxHashList) error {
 
 // Mempool.DelBlock将回退的区块内的交易重新加入mempool中
 func (mem *Mempool) DelBlock(block *types.Block) {
-	if len(block.Txs) <= 0 {
+	txCounts := len(block.Txs)
+	if txCounts <= 0 {
 		return
 	}
 	blkTxs := block.Txs
-	for _, tx := range blkTxs {
+	//删除block时，需要保证交易的添加顺序，按照原有交易在区块的先后顺序插入到交易池中
+	//这样就可以保证被回退块的交易在新生成的块中的先后执行顺序与原有次序保持一致，
+	//最大程度保证了交易能够被成功执行，而不会出现次序相反，关联交易执行失败的情况
+	for i := txCounts - 1; i >= 0; i-- {
+		tx := blkTxs[i]
 		if "ticket" == string(tx.Execer) {
 			var action types.TicketAction
 			err := types.Decode(tx.Payload, &action)
@@ -219,15 +224,15 @@ func (mem *Mempool) DelBlock(block *types.Block) {
 		if tx.IsExpire(mem.header.GetHeight(), mem.header.GetBlockTime()) {
 			continue
 		}
-		mem.PushTx(tx)
+		mem.PushTx(tx, pushfront)
 	}
 }
 
 // Mempool.PushTx将交易推入Mempool，并返回结果（error）
-func (mem *Mempool) PushTx(tx *types.Transaction) error {
+func (mem *Mempool) PushTx(tx *types.Transaction, direction PushDirection) error {
 	mem.proxyMtx.Lock()
 	defer mem.proxyMtx.Unlock()
-	err := mem.cache.Push(tx)
+	err := mem.cache.Push(tx, direction)
 	return err
 }
 
