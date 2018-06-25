@@ -279,7 +279,7 @@ func (n *Node) nodeReBalance() {
 
 			//选出负载最大
 			if int32(inbounds) > MaxCacheInbounds {
-				MixCacheInBounds = int32(inbounds)
+				MaxCacheInBoundPeer = int32(inbounds)
 				MaxCacheInBoundPeer = peer
 			}
 		}
