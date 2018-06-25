@@ -1126,12 +1126,12 @@ func (wallet *Wallet) procInvalidTxOnTimer(dbbatch db.Batch) error {
 	}
 
 	// 再处理已经发送的交易
-	curFTXOTxs, _, err := wallet.walletStore.GetWalletFTXO(FTXOs4Tx)
+	curFTXOTxs, _, err := wallet.walletStore.GetWalletFtxoStxo(FTXOs4Tx)
 	if nil != err {
 		return err
 	}
 
-	revertFTXOTxs, _, _ := wallet.walletStore.GetWalletFTXO(RevertSendtx)
+	revertFTXOTxs, _, _ := wallet.walletStore.GetWalletFtxoStxo(RevertSendtx)
 	var keys [][]byte
 	for _, ftxo := range curFTXOTxs {
 		keys = append(keys, calcKey4FTXOsInTx(ftxo.Txhash))

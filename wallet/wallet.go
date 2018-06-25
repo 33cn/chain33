@@ -1937,8 +1937,8 @@ func (wallet *Wallet) AddDelPrivacyTxsFromBlock(tx *types.Transaction, index int
 	//处理input
 	//如果该隐私交易是本钱包中的地址发送出去的，则需要对相应的utxo进行处理
 	if AddTx == addDelType {
-		ftxosInOneTx, _, _ := wallet.walletStore.GetWalletFTXO(FTXOs4Tx)
-		ftxosInRevTx, _, _ := wallet.walletStore.GetWalletFTXO(RevertSendtx)
+		ftxosInOneTx, _, _ := wallet.walletStore.GetWalletFtxoStxo(FTXOs4Tx)
+		ftxosInRevTx, _, _ := wallet.walletStore.GetWalletFtxoStxo(RevertSendtx)
 		len := len(ftxosInOneTx) + len(ftxosInRevTx)
 		if len > 0 {
 			var keys [][]byte
@@ -1977,7 +1977,7 @@ func (wallet *Wallet) AddDelPrivacyTxsFromBlock(tx *types.Transaction, index int
 		}
 	} else {
 		//当发生交易回撤时，从记录的STXO中查找相关的交易，并将其重置为FTXO，因为该交易大概率会在其他区块中再次执行
-		stxosInOneTx, _, _ := wallet.walletStore.GetWalletFTXO(STXOs4Tx)
+		stxosInOneTx, _, _ := wallet.walletStore.GetWalletFtxoStxo(STXOs4Tx)
 		for _, ftxo := range stxosInOneTx {
 			if ftxo.Txhash == txhash {
 				param := &buildStoreWalletTxDetailParam{
@@ -2427,7 +2427,7 @@ func (wallet *Wallet) showPrivacyBalance(req *types.ReqPrivBal4AddrToken) (*type
 		balance += ele.Amount
 	}
 
-	FTXOsInOneTx, _, err := wallet.walletStore.GetWalletFTXO(FTXOs4Tx)
+	FTXOsInOneTx, _, err := wallet.walletStore.GetWalletFtxoStxo(FTXOs4Tx)
 	if err != nil {
 		accRes.Balance = balance
 		return accRes, nil
