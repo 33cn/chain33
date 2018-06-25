@@ -21,7 +21,7 @@ type TotalFee struct {
 func (m *TotalFee) Reset()                    { *m = TotalFee{} }
 func (m *TotalFee) String() string            { return proto.CompactTextString(m) }
 func (*TotalFee) ProtoMessage()               {}
-func (*TotalFee) Descriptor() ([]byte, []int) { return fileDescriptor12, []int{0} }
+func (*TotalFee) Descriptor() ([]byte, []int) { return fileDescriptor13, []int{0} }
 
 func (m *TotalFee) GetFee() int64 {
 	if m != nil {
@@ -49,7 +49,7 @@ type ReqGetTotalCoins struct {
 func (m *ReqGetTotalCoins) Reset()                    { *m = ReqGetTotalCoins{} }
 func (m *ReqGetTotalCoins) String() string            { return proto.CompactTextString(m) }
 func (*ReqGetTotalCoins) ProtoMessage()               {}
-func (*ReqGetTotalCoins) Descriptor() ([]byte, []int) { return fileDescriptor12, []int{1} }
+func (*ReqGetTotalCoins) Descriptor() ([]byte, []int) { return fileDescriptor13, []int{1} }
 
 func (m *ReqGetTotalCoins) GetSymbol() string {
 	if m != nil {
@@ -97,7 +97,7 @@ type ReplyGetTotalCoins struct {
 func (m *ReplyGetTotalCoins) Reset()                    { *m = ReplyGetTotalCoins{} }
 func (m *ReplyGetTotalCoins) String() string            { return proto.CompactTextString(m) }
 func (*ReplyGetTotalCoins) ProtoMessage()               {}
-func (*ReplyGetTotalCoins) Descriptor() ([]byte, []int) { return fileDescriptor12, []int{2} }
+func (*ReplyGetTotalCoins) Descriptor() ([]byte, []int) { return fileDescriptor13, []int{2} }
 
 func (m *ReplyGetTotalCoins) GetCount() int64 {
 	if m != nil {
@@ -138,7 +138,7 @@ type IterateRangeByStateHash struct {
 func (m *IterateRangeByStateHash) Reset()                    { *m = IterateRangeByStateHash{} }
 func (m *IterateRangeByStateHash) String() string            { return proto.CompactTextString(m) }
 func (*IterateRangeByStateHash) ProtoMessage()               {}
-func (*IterateRangeByStateHash) Descriptor() ([]byte, []int) { return fileDescriptor12, []int{3} }
+func (*IterateRangeByStateHash) Descriptor() ([]byte, []int) { return fileDescriptor13, []int{3} }
 
 func (m *IterateRangeByStateHash) GetStateHash() []byte {
 	if m != nil {
@@ -180,7 +180,7 @@ type TicketStatistic struct {
 func (m *TicketStatistic) Reset()                    { *m = TicketStatistic{} }
 func (m *TicketStatistic) String() string            { return proto.CompactTextString(m) }
 func (*TicketStatistic) ProtoMessage()               {}
-func (*TicketStatistic) Descriptor() ([]byte, []int) { return fileDescriptor12, []int{4} }
+func (*TicketStatistic) Descriptor() ([]byte, []int) { return fileDescriptor13, []int{4} }
 
 func (m *TicketStatistic) GetCurrentOpenCount() int64 {
 	if m != nil {
@@ -224,7 +224,7 @@ type TicketMinerInfo struct {
 func (m *TicketMinerInfo) Reset()                    { *m = TicketMinerInfo{} }
 func (m *TicketMinerInfo) String() string            { return proto.CompactTextString(m) }
 func (*TicketMinerInfo) ProtoMessage()               {}
-func (*TicketMinerInfo) Descriptor() ([]byte, []int) { return fileDescriptor12, []int{5} }
+func (*TicketMinerInfo) Descriptor() ([]byte, []int) { return fileDescriptor13, []int{5} }
 
 func (m *TicketMinerInfo) GetTicketId() string {
 	if m != nil {
@@ -298,9 +298,9 @@ func init() {
 	proto.RegisterType((*TicketMinerInfo)(nil), "types.TicketMinerInfo")
 }
 
-func init() { proto.RegisterFile("statistic.proto", fileDescriptor12) }
+func init() { proto.RegisterFile("statistic.proto", fileDescriptor13) }
 
-var fileDescriptor12 = []byte{
+var fileDescriptor13 = []byte{
 	// 449 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x6c, 0x93, 0xdf, 0x8b, 0xd3, 0x40,
 	0x10, 0xc7, 0xc9, 0xe5, 0xd2, 0x6b, 0x87, 0x83, 0x96, 0xe5, 0xd0, 0x20, 0x22, 0x92, 0xa7, 0xc3,
