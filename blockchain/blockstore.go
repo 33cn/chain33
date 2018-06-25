@@ -355,12 +355,11 @@ func (bs *BlockStore) DelTxs(storeBatch dbm.Batch, blockDetail *types.BlockDetai
 	//存储key:addr:flag:height ,value:txhash
 	//flag :0-->from,1--> to
 	//height=height*10000+index 存储账户地址相关的交易
-	localDBSetWithPrivacy, err := bs.getDelLocalKV(blockDetail)
+	kv, err := bs.getDelLocalKV(blockDetail)
 	if err != nil {
 		storeLog.Error("indexTxs getLocalKV err", "Height", blockDetail.Block.Height, "err", err)
 		return err
 	}
-	kv := localDBSetWithPrivacy.LocalDBSet
 	for i := 0; i < len(kv.KV); i++ {
 		if kv.KV[i].Value == nil {
 			storeBatch.Delete(kv.KV[i].Key)
@@ -469,7 +468,7 @@ func (bs *BlockStore) getLocalKV(detail *types.BlockDetail) (*types.LocalDBSet, 
 	return kv, nil
 }
 
-func (bs *BlockStore) getDelLocalKV(detail *types.BlockDetail) (*types.LocalDBSetWithPrivacy, error) {
+func (bs *BlockStore) getDelLocalKV(detail *types.BlockDetail) (*types.LocalDBSet, error) {
 	if bs.client == nil {
 		panic("client not bind message queue.")
 	}
@@ -479,8 +478,8 @@ func (bs *BlockStore) getDelLocalKV(detail *types.BlockDetail) (*types.LocalDBSe
 	if err != nil {
 		return nil, err
 	}
-	localDBSetWithPrivacy := resp.GetData().(*types.LocalDBSetWithPrivacy)
-	return localDBSetWithPrivacy, nil
+	localDBSet := resp.GetData().(*types.LocalDBSet)
+	return localDBSet, nil
 }
 
 //从db数据库中获取指定blockhash对应的block总难度td

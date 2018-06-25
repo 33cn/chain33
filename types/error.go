@@ -154,6 +154,7 @@ var (
 	ErrDoubeSpendOccur        = errors.New("ErrDoubeSpendOccur")
 	ErrOutputIndex            = errors.New("ErrOutputIndex")
 	ErrPubkeysOfUTXO          = errors.New("ErrPubkeysOfUTXO")
+	ErrRecoverUTXO            = errors.New("ErrRecoverUTXO")
 
 	//wallet
 	ErrInputPara            = errors.New("ErrInputPara")

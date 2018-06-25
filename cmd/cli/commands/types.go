@@ -168,8 +168,8 @@ type GetTicketMinerInfoResult struct {
 
 type PrivacyAccountResult struct {
 	Token         string `json:"Token,omitempty"`
-	Height        int64  `json:"Height,omitempty"`
-	TxIndex       int32  `json:"TxIndex,omitempty"`
+	//Height        int64  `json:"Height,omitempty"`
+	//TxIndex       int32  `json:"TxIndex,omitempty"`
 	Txhash        string `json:"Txhash,omitempty"`
 	OutIndex      int32  `json:"OutIndex,omitempty"`
 	Amount        string `json:"Amount,omitempty"`

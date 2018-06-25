@@ -174,6 +174,7 @@ func SetMinFee(fee int64) {
 
 // coin conversation
 const (
+	BlockDurPerSecCnt           = 16
 	Coin                int64   = 1e8
 	MaxCoin             int64   = 1e17
 	MaxTxSize                   = 100000 //100K

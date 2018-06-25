@@ -24,13 +24,15 @@ var (
 
 const (
 	Privacy4Addr = "Privacy4Addr-"
-	//PrivacyTokenAddrUTXO = "token-addr-UTXO-"
 	PrivacyUTXO     = "UTXO-"
 	PrivacyFTXO     = "FTXO-" //Frozen TXO
 	PrivacySTXO     = "STXO-"
 	PrivacyTokenMap = "PrivacyTokenMap"
-	FTXOTimeout     = types.ConfirmedHeight * 16 //Ftxo超时时间
+	FTXOTimeout     = types.ConfirmedHeight * types.BlockDurPerSecCnt //Ftxo超时时间
+	FTXOTimeout4Revert = 256 * types.BlockDurPerSecCnt                   //revert Ftxo超时时间
 	FTXOs4Tx        = "FTXOs4Tx"
+    STXOs4Tx        = "STXOs4Tx"
+    RevertSendtx    = "RevertSendtx"
 	RecvPrivacyTx   = "RecvPrivacyTx"
 	SendPrivacyTx   = "SendPrivacyTx"
 	createTxPrefix  = "CreateTx:hashkey-"
@@ -118,12 +120,16 @@ func calcSendPrivacyTxKey(addr, key string) []byte {
 	return []byte(fmt.Sprintf(SendPrivacyTx+":%s-%s", addr, key))
 }
 
-func calcKey4FTXOsInTx(key string) []byte {
-	return []byte(fmt.Sprintf("FTXOs4Tx:%s", key))
+func calcKey4FTXOsInTx(txhash string) []byte {
+	return []byte(fmt.Sprintf(FTXOs4Tx+":%s", txhash))
 }
 
-func calcKey4STXOsInTx(key string) []byte {
-	return []byte(fmt.Sprintf("STXOs4Tx:%s", key))
+func calcRevertSendTxKey(txhash string) []byte {
+	return []byte(fmt.Sprintf(RevertSendtx + ":%s", txhash))
+}
+
+func calcKey4STXOsInTx(txhash string) []byte {
+	return []byte(fmt.Sprintf(STXOs4Tx + ":%s", txhash))
 }
 
 func calcKey4UTXOsSpentInTx(key string) []byte {
@@ -452,8 +458,8 @@ func (ws *Store) DelAccountByLabel(label string) {
 	ws.db.DeleteSync(calcLabelKey(label))
 }
 
-func (ws *Store) GetWalletFTXO() ([]*types.FTXOsSTXOsInOneTx, []string, error) {
-	prefix := FTXOs4Tx
+func (ws *Store) GetWalletFTXO(prefix string) ([]*types.FTXOsSTXOsInOneTx, []string, error) {
+	//prefix := FTXOs4Tx
 	list := dbm.NewListHelper(ws.db)
 	values := list.List([]byte(prefix), nil, 0, 0)
 	var Ftxoes []*types.FTXOsSTXOsInOneTx
@@ -534,6 +540,18 @@ func (ws *Store) setUTXO(addr, txhash *string, outindex int, dbStore *types.Priv
 		return types.ErrInputPara
 	}
 
+	//如果该交易产生的UTXO是包含在之前被回退对外支付的交易，则不重新添加相应的UTXO
+	if revertFtos, _, _ := ws.GetWalletFTXO(RevertSendtx); nil != revertFtos{
+		for _, ftxos4tx := range revertFtos {
+			for _, ftxo := range ftxos4tx.Utxos {
+				if common.Bytes2Hex(ftxo.UtxoBasic.UtxoGlobalIndex.Txhash) == *txhash {
+					walletlog.Info("setUTXO for reverted tx", "txHash", *txhash, "outindex", outindex)
+					return nil
+				}
+			}
+		}
+	}
+
 	privacyStorebyte, err := proto.Marshal(dbStore)
 	if err != nil {
 		walletlog.Error("setUTXO proto.Marshal err!", "err", err)
@@ -548,23 +566,48 @@ func (ws *Store) setUTXO(addr, txhash *string, outindex int, dbStore *types.Priv
 	return nil
 }
 
+//当发生交易退回时回退产生的UTXO
+//1.如果该utxo未被冻结，即未转移至FTXO，则直接删除就可以
+//2.如果该utxo已经被转移至FTXO，则需要先将其所在交易的所有FTXO都回退至UTXO，然后再进行删除
+//第2种情况下，因为只是交易被回退，但是交易还是会被重新打包执行，这时需要将该交易进行记录，
+//等到回退的交易再次执行时，需要能够从FTXO转换至STXO
 func (ws *Store) unsetUTXO(addr, txhash *string, outindex int, token string, newbatch dbm.Batch) error {
 	if 0 == len(*addr) || 0 == len(*txhash) {
 		walletlog.Error("unsetUTXO addr or txhash is nil")
 		return types.ErrInputPara
 	}
 
+	found := false
+	ftxos4Txs, _, _ := ws.GetWalletFTXO(RevertSendtx)
+	for _, ftxos4Singletx := range ftxos4Txs {
+		for _, utxo := range ftxos4Singletx.Utxos {
+			if common.Bytes2Hex(utxo.UtxoBasic.UtxoGlobalIndex.Txhash) == *txhash {
+				found = true
+				break
+			}
+		}
+		if found {
+			return nil
+		}
+	}
+
 	k1 := calcUTXOKey(*txhash, outindex)
-	k2 := calcUTXOKey4TokenAddr(token, *addr, *txhash, outindex)
 	if val, err := ws.db.Get(k1); err != nil || val == nil {
-		walletlog.Error("unsetUTXO get value for keys are nil",
-			"calcUTXOKey", string(k1), "calcUTXOKey4TokenAddr", string(k2))
+		walletlog.Error("unsetUTXO get value for keys are nil", "calcUTXOKey", string(k1))
 		return types.ErrNotFound
 	}
 	newbatch.Delete(k1)
-	if val, err := ws.db.Get(k2); err == nil && val != nil {
-		newbatch.Delete(k2)
+
+	k2 := calcUTXOKey4TokenAddr(token, *addr, *txhash, outindex)
+	val, err := ws.db.Get(k2)
+	if err != nil || val == nil {
+		//当发生需要回退的UTXO不能从当前特定地址可用的UTXO找到时，
+		//需要从当前的FTXO从查找并回退
+		walletlog.Error("unsetUTXO get nil value", "calcUTXOKey4TokenAddr", string(k2))
+		return types.ErrRecoverUTXO
+
 	}
+	newbatch.Delete(k2)
 
 	return nil
 }
@@ -605,33 +648,35 @@ func (ws *Store) moveUTXO2FTXO(token, sender, txhash string, selectedUtxos []*tx
 }
 
 //将FTXO重置为UTXO
-func (ws *Store) unmoveUTXO2FTXO(token, sender, txhash string, newbatch dbm.Batch) error {
+func (ws *Store) moveFTXO2UTXO(key1 []byte, newbatch dbm.Batch) {
 	//设置ftxo的key，使其能够方便地获取到对应的交易花费的utxo
-	key1 := calcKey4FTXOsInTx(txhash)
 	value1, err := ws.db.Get(key1)
 	if err != nil {
-		walletlog.Error("unmoveUTXO2FTXO", "db Get(key1) error ", err)
-		return err
+		walletlog.Error("moveFTXO2UTXO", "db Get(key1) error ", err)
+		return
 	}
 	if nil == value1 {
-		walletlog.Error("unmoveUTXO2FTXO", "Get nil value for key", string(key1))
-		return nil
+		walletlog.Error("moveFTXO2UTXO", "Get nil value for key", string(key1))
+		return
+
 	}
 	key2 := value1
 	value2, err := ws.db.Get(key2)
 	if err != nil {
-		walletlog.Error("unmoveUTXO2FTXO", "db Get(key2) error ", err)
-		return err
+
+		walletlog.Error("moveFTXO2UTXO", "db Get(key2) error ", err)
+		return
 	}
 	if nil == value2 {
-		walletlog.Error("unmoveUTXO2FTXO", "Get nil value for key", string(key2))
-		return nil
+		walletlog.Error("moveFTXO2UTXO", "Get nil value for key", string(key2))
+		return
 	}
 	var ftxosInOneTx types.FTXOsSTXOsInOneTx
 	err = types.Decode(value2, &ftxosInOneTx)
 	if nil != err {
-		walletlog.Error("unmoveUTXO2FTXO", "Failed to decode FTXOsSTXOsInOneTx for value", value2)
-		return err
+
+		walletlog.Error("moveFTXO2UTXO", "Failed to decode FTXOsSTXOsInOneTx for value", value2)
+		return
 	}
 	if err == nil {
 		for _, ftxo := range ftxosInOneTx.Utxos {
@@ -642,15 +687,13 @@ func (ws *Store) unmoveUTXO2FTXO(token, sender, txhash string, newbatch dbm.Batc
 	// 需要将FTXO的所有相关信息删除掉
 	newbatch.Delete(key1)
 	newbatch.Delete(key2)
-	return nil
 }
 
 //calcKey4FTXOsInTx-----x------>calcKey4UTXOsSpentInTx,被删除，
 //calcKey4STXOsInTx------------>calcKey4UTXOsSpentInTx
 //切换types.FTXOsSTXOsInOneTx的状态
-func (ws *Store) moveFTXO2STXO(txhash string, newbatch dbm.Batch) error {
+func (ws *Store) moveFTXO2STXO(key1 []byte, txhash string, newbatch dbm.Batch) error {
 	//设置在该交易中花费的UTXO
-	key1 := calcKey4FTXOsInTx(txhash)
 	value1, err := ws.db.Get(key1)
 	if err != nil {
 		walletlog.Error("moveFTXO2STXO", "Get(key1) error ", err)
@@ -686,40 +729,47 @@ func (ws *Store) moveFTXO2STXO(txhash string, newbatch dbm.Batch) error {
 	return nil
 }
 
-func (ws *Store) unmoveFTXO2STXO(txhash string, newbatch dbm.Batch) error {
+//由于块的回退的原因，导致其中的交易需要被回退，即将stxo回退到ftxo，
+//正常情况下，被回退的交易会被重新加入到新的区块中并得到执行
+func (ws *Store) moveSTXO2FTXO(txhash string, newbatch dbm.Batch) error {
 	//设置ftxo的key，使其能够方便地获取到对应的交易花费的utxo
 	key2 := calcKey4STXOsInTx(txhash)
 	value2, err := ws.db.Get(key2)
 	if err != nil {
-		walletlog.Error("unmoveFTXO2STXO", "Get(key2) error ", err)
+		walletlog.Error("moveSTXO2FTXO", "Get(key2) error ", err)
 		return err
 	}
 	if value2 == nil {
-		walletlog.Debug("unmoveFTXO2STXO", "Get nil value for txhash", txhash)
+		walletlog.Debug("moveSTXO2FTXO", "Get nil value for txhash", txhash)
 		return types.ErrNotFound
 	}
 	newbatch.Delete(key2)
 
-	//删除stxo-token-addr-txhash key
 	key := value2
 	value, err := ws.db.Get(key)
 	if err != nil {
-		walletlog.Error("unmoveFTXO2STXO", "db Get(key) error ", err)
+		walletlog.Error("moveSTXO2FTXO", "db Get(key) error ", err)
 	}
 
 	var ftxosInOneTx types.FTXOsSTXOsInOneTx
 	err = types.Decode(value, &ftxosInOneTx)
 	if nil != err {
-		walletlog.Error("unmoveFTXO2STXO", "Failed to decode FTXOsSTXOsInOneTx for value", value)
+		walletlog.Error("moveSTXO2FTXO", "Failed to decode FTXOsSTXOsInOneTx for value", value)
 	}
 
+	//删除stxo-token-addr-txhash key
 	key3 := calcSTXOTokenAddrTxKey(ftxosInOneTx.Tokenname, ftxosInOneTx.Sender, ftxosInOneTx.Txhash)
 	newbatch.Delete(key3)
 
 	//设置在该交易中花费的UTXO
-	key1 := calcKey4FTXOsInTx(txhash)
+	key1 := calcRevertSendTxKey(txhash)
 	value1 := value2
 	newbatch.Set(key1, value1)
+
+	//更新数据库中的超时时间设置，回退处理的超时处理时间设置为256区块时间
+	ftxosInOneTx.Freezetime = time.Now().UnixNano()
+	value = types.Encode(&ftxosInOneTx)
+	newbatch.Set(key, value)
 
 	newbatch.Write()
 
@@ -741,8 +791,6 @@ func (ws *Store) getPrivacyTokenUTXOs(token, addr string) *walletUTXOs {
 			err = types.Decode(accByte, &privacyDBStore)
 			if err == nil {
 				utxoGlobalIndex := &types.UTXOGlobalIndex{
-					Height:   privacyDBStore.Height,
-					Txindex:  privacyDBStore.Txindex,
 					Outindex: privacyDBStore.OutIndex,
 					Txhash:   privacyDBStore.Txhash,
 				}
@@ -836,8 +884,6 @@ func (ws *Store) listSpendUTXOs(token, addr string) (*types.UTXOHaveTxHashs, err
 
 			utxoBasic := &types.UTXOBasic{
 				UtxoGlobalIndex: &types.UTXOGlobalIndex{
-					Height:   accPrivacy.Height,
-					Txindex:  accPrivacy.Txindex,
 					Outindex: accPrivacy.OutIndex,
 					Txhash:   accPrivacy.Txhash,
 				},

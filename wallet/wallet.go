@@ -1818,7 +1818,6 @@ func (wallet *Wallet) AddDelPrivacyTxsFromBlock(tx *types.Transaction, index int
 	}
 	var RpubKey []byte
 	var privacyOutput *types.PrivacyOutput
-	//var privacyInput *types.PrivacyInput
 	var tokenname string
 	if types.ActionPublic2Privacy == privateAction.Ty {
 		RpubKey = privateAction.GetPublic2Privacy().GetOutput().GetRpubKeytx()
@@ -1837,6 +1836,7 @@ func (wallet *Wallet) AddDelPrivacyTxsFromBlock(tx *types.Transaction, index int
 	}
 
 	totalUtxosLeft := len(privacyOutput.Keyoutput)
+	//处理output
 	if privacyInfo, err := wallet.getPrivacyKeyPairsOfWallet(); err == nil {
 		matchedCount := 0
 		utxoProcessed := make([]bool, len(privacyOutput.Keyoutput))
@@ -1882,8 +1882,6 @@ func (wallet *Wallet) AddDelPrivacyTxsFromBlock(tx *types.Transaction, index int
 								}
 
 								utxoGlobalIndex := &types.UTXOGlobalIndex{
-									Height:   block.Block.Height,
-									Txindex:  int32(index),
 									Outindex: int32(indexoutput),
 									Txhash:   txhashInbytes,
 								}
@@ -1936,17 +1934,30 @@ func (wallet *Wallet) AddDelPrivacyTxsFromBlock(tx *types.Transaction, index int
 		}
 	}
 
+	//处理input
 	//如果该隐私交易是本钱包中的地址发送出去的，则需要对相应的utxo进行处理
 	if AddTx == addDelType {
-		ftxosInOneTx, _, err := wallet.walletStore.GetWalletFTXO()
-		if err == nil {
+		ftxosInOneTx, _, _ := wallet.walletStore.GetWalletFTXO(FTXOs4Tx)
+		ftxosInRevTx, _, _ := wallet.walletStore.GetWalletFTXO(RevertSendtx)
+		len := len(ftxosInOneTx) + len(ftxosInRevTx)
+		if len > 0 {
+			var keys [][]byte
 			for _, ftxo := range ftxosInOneTx {
+				keys = append(keys, calcKey4FTXOsInTx(ftxo.Txhash))
+			}
+			for _, ftxo := range ftxosInRevTx {
+				keys = append(keys, calcRevertSendTxKey(ftxo.Txhash))
+			}
+
+			ftxos := append(ftxosInOneTx, ftxosInRevTx...)
+			for i, ftxo := range ftxos {
+				//查询确认该交易是否为记录的支付交易
 				if ftxo.Txhash == txhash {
 					if types.ExecOk == txExecRes && types.ActionPublic2Privacy != privateAction.Ty {
-						wallet.walletStore.moveFTXO2STXO(txhash, newbatch)
+						wallet.walletStore.moveFTXO2STXO(keys[i], txhash, newbatch)
 					} else if types.ExecOk != txExecRes && types.ActionPublic2Privacy != privateAction.Ty {
 						//如果执行失败
-						wallet.walletStore.unmoveUTXO2FTXO(tokenname, ftxo.Sender, txhash, newbatch)
+						wallet.walletStore.moveFTXO2UTXO(keys[i], newbatch)
 					}
 					//该交易正常执行完毕，删除对其的关注
 					param := &buildStoreWalletTxDetailParam{
@@ -1965,32 +1976,28 @@ func (wallet *Wallet) AddDelPrivacyTxsFromBlock(tx *types.Transaction, index int
 			}
 		}
 	} else {
-		//TODO: 区块回撤的问题，还需要仔细梳理逻辑处理, added by hezhengjun
-		blockheight := block.Block.Height*maxTxNumPerBlock + int64(index)
-		heightstr := fmt.Sprintf("%018d", blockheight)
-		value, err := wallet.walletStore.db.Get((calcTxKey(heightstr)))
-		if err == nil && nil != value {
-			var txdetail types.WalletTxDetail
-			err := types.Decode(value, &txdetail)
-			if err != nil {
-				walletlog.Debug("AddDelPrivacyTxsFromBlock failed to decode value for WalletTxDetail")
-			}
-			param := &buildStoreWalletTxDetailParam{
-				block:        block,
-				tx:           tx,
-				index:        int(index),
-				newbatch:     newbatch,
-				senderRecver: "",
-				isprivacy:    true,
-				addDelType:   addDelType,
-				sendRecvFlag: sendTx,
-				utxos:        nil,
-			}
-			if types.ExecOk == txExecRes && types.ActionPublic2Privacy != privateAction.Ty {
-				wallet.walletStore.unmoveFTXO2STXO(txhash, newbatch)
-				wallet.buildAndStoreWalletTxDetail(param)
-			} else if types.ExecOk != txExecRes && types.ActionPublic2Privacy != privateAction.Ty {
-				wallet.buildAndStoreWalletTxDetail(param)
+		//当发生交易回撤时，从记录的STXO中查找相关的交易，并将其重置为FTXO，因为该交易大概率会在其他区块中再次执行
+		stxosInOneTx, _, _ := wallet.walletStore.GetWalletFTXO(STXOs4Tx)
+		for _, ftxo := range stxosInOneTx {
+			if ftxo.Txhash == txhash {
+				param := &buildStoreWalletTxDetailParam{
+					block:        block,
+					tx:           tx,
+					index:        int(index),
+					newbatch:     newbatch,
+					senderRecver: "",
+					isprivacy:    true,
+					addDelType:   addDelType,
+					sendRecvFlag: sendTx,
+					utxos:        nil,
+				}
+
+				if types.ExecOk == txExecRes && types.ActionPublic2Privacy != privateAction.Ty {
+					wallet.walletStore.moveSTXO2FTXO(txhash, newbatch)
+					wallet.buildAndStoreWalletTxDetail(param)
+				} else if types.ExecOk != txExecRes && types.ActionPublic2Privacy != privateAction.Ty {
+					wallet.buildAndStoreWalletTxDetail(param)
+				}
 			}
 		}
 	}
@@ -2420,7 +2427,7 @@ func (wallet *Wallet) showPrivacyBalance(req *types.ReqPrivBal4AddrToken) (*type
 		balance += ele.Amount
 	}
 
-	FTXOsInOneTx, _, err := wallet.walletStore.GetWalletFTXO()
+	FTXOsInOneTx, _, err := wallet.walletStore.GetWalletFTXO(FTXOs4Tx)
 	if err != nil {
 		accRes.Balance = balance
 		return accRes, nil
@@ -2459,8 +2466,6 @@ func (wallet *Wallet) showPrivacyAccounts(req *types.ReqPrivBal4AddrToken) (*typ
 	for index, ele := range privacyDBStore {
 		utxoBasic := &types.UTXOBasic{
 			UtxoGlobalIndex: &types.UTXOGlobalIndex{
-				Height:   ele.Height,
-				Txindex:  ele.Txindex,
 				Outindex: ele.OutIndex,
 				Txhash:   ele.Txhash,
 			},
