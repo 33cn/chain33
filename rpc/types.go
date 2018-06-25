@@ -322,3 +322,7 @@ type ReplyPrivacyPkPair struct {
 	ViewPub        string `json:"viewPub,omitempty"`
 	SpendPub       string `json:"spendPub,omitempty"`
 }
+
+type ReplyCacheTxList struct {
+	Txs []*Transaction `json:"txs,omitempty"`
+}

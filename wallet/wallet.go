@@ -198,7 +198,7 @@ func (wallet *Wallet) checkWalletStoreData() {
 		case <-checkTicker.C:
 			newbatch := wallet.walletStore.NewBatch(true)
 			err := wallet.procInvalidTxOnTimer(newbatch)
-			if err != nil && err!=dbm.ErrNotFoundInDb {
+			if err != nil && err != dbm.ErrNotFoundInDb {
 				walletlog.Error("checkWalletStoreData", "procInvalidTxOnTimer error ", err)
 				return
 			}
@@ -209,76 +209,6 @@ func (wallet *Wallet) checkWalletStoreData() {
 	}
 
 }
-
-/*
-func (wallet *Wallet) checkWalletStoreData() {
-	defer wallet.wg.Done()
-
-	//默认10s对Ftxo进行检查
-	timecount := 10
-	checkFtxoTicker := time.NewTicker(time.Duration(timecount) * time.Second)
-	// 定时检查创建的交易是否过期
-	checkCreateTxTicker := time.NewTicker(time.Duration(timecount) * time.Second)
-	newbatch := wallet.walletStore.NewBatch(true)
-
-	var lastHeight int64
-
-	// TODO: 定时器需要修改，改为先监控交易，然后再监控FTXO是否超期
-	for {
-		select {
-		case <-checkFtxoTicker.C:
-			curFTXOTxs, curKeys, err := wallet.walletStore.GetWalletFTXO()
-			if nil != err {
-				return
-			}
-
-			height := wallet.GetHeight()
-			if lastHeight >= height {
-				break
-			}
-			lastHeight = height
-
-			for i, curFTXOTx := range curFTXOTxs {
-				curKey := curKeys[i]
-				// 说明该交易还处于FTXO，交易超时，将FTXO转化为UTXO
-				str := strings.Split(curKey, ":")
-				if len(str) < 2 {
-					return
-				}
-				txhash := str[1]
-				if curFTXOTx.TimeoutSec <= 0 {
-					wallet.walletStore.unmoveUTXO2FTXO("", "", txhash, newbatch)
-				} else {
-					wallet.walletStore.updateFTXOTimeoutCount(timecount, txhash, newbatch)
-				}
-				newbatch.Write()
-			}
-		case <-checkCreateTxTicker.C:
-			caches, err := wallet.walletStore.listCreateTransactionCache()
-			if err != nil {
-				walletlog.Error("checkWalletStoreData", "listCreateTransactionCache cause error. ", err)
-				return
-			}
-			if len(caches) == 0 {
-				break
-			}
-			interval := int64(types.GetTxTimeInterval())
-			now := time.Now().UnixNano()
-			for _, cache := range caches {
-				exprie := cache.GetCreatetime() + interval
-				if exprie <= interval || exprie <= now {
-					// 直接删除已经过期的交易
-					dbkey := calcCreateTxKey(common.ToHex(cache.GetKey()))
-					wallet.walletStore.DeleteCreateTransactionCache(dbkey)
-				}
-			}
-
-		case <-wallet.done:
-			return
-		}
-	}
-}
-*/
 
 //检查周期 --> 10分
 //开启挖矿：
@@ -809,6 +739,30 @@ func (wallet *Wallet) ProcRecvMsg() {
 				walletlog.Info("procSendTxHashToWallet", "tx hash", common.Bytes2Hex(replyHash.Hash), "result", "success")
 				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplySendTxHashToWallet, &reply))
 			}
+		case types.EventQueryCacheTransaction:
+			req := msg.Data.(*types.ReqCacheTxList)
+			reply, err := wallet.procReqCacheTxList(req)
+			if err != nil {
+				walletlog.Error("procReqCacheTxList", "err", err.Error())
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyQueryCacheTransaction, err))
+			} else {
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyQueryCacheTransaction, reply))
+			}
+		case types.EventDeleteCacheTransaction:
+			req := msg.Data.(*types.ReqHash)
+			replyHash, err := wallet.procDeleteCacheTransaction(req)
+			var reply types.Reply
+			if err != nil {
+				reply.IsOk = false
+				walletlog.Error("procDeleteCacheTransaction", "err", err.Error())
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyDeleteCacheTransaction, err))
+			} else {
+				reply.IsOk = true
+				reply.Msg = replyHash.Hash
+				walletlog.Info("procDeleteCacheTransaction", "tx hash", common.Bytes2Hex(replyHash.Hash), "result", "success")
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyDeleteCacheTransaction, &reply))
+			}
+
 		default:
 			walletlog.Info("ProcRecvMsg unknow msg", "msgtype", msgtype)
 		}
@@ -2519,7 +2473,7 @@ func (wallet *Wallet) showPrivacyAccounts(req *types.ReqPrivBal4AddrToken) (*typ
 		accRes[index] = utxo
 	}
 
-	return &types.UTXOs{Utxos: nilaccRes}, nil
+	return &types.UTXOs{Utxos: accRes}, nil
 }
 
 func (wallet *Wallet) showPrivacyAccountsSpend(req *types.ReqPrivBal4AddrToken) (*types.UTXOHaveTxHashs, error) {

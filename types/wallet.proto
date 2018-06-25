@@ -439,3 +439,11 @@ message CreateTransactionCache {
     repeated RealKeyInput   realkeyinput = 7;
     repeated UTXOBasics     utxos = 8;
 }
+
+message ReqCacheTxList {
+	string	addr	= 1;
+}
+
+message ReplyCacheTxList {
+	repeated Transaction    txs = 1;
+}
