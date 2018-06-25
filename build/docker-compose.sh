@@ -59,8 +59,8 @@ function init() {
 
 	# relayd
     sed -i $sedfix 's/^btcdOrWeb.*/btcdOrWeb = 0/g' relayd.toml
-    sed -i $sedfix 's/^Tick33.*/Tick33 = 30/g' relayd.toml
-    sed -i $sedfix 's/^TickBTC.*/TickBTC = 30/g' relayd.toml
+    sed -i $sedfix 's/^Tick33.*/Tick33 = 5/g' relayd.toml
+    sed -i $sedfix 's/^TickBTC.*/TickBTC = 5/g' relayd.toml
     sed -i $sedfix 's/^pprof.*/pprof = false/g' relayd.toml
     sed -i $sedfix 's/^watch.*/watch = false/g' relayd.toml
 
@@ -165,7 +165,6 @@ function init() {
 	${CLI} wallet status
 	${CLI} account list
 	${CLI} mempool list
-	# ${CLI} mempool last_txs
 }
 
 function block_wait() {
@@ -189,10 +188,8 @@ function block_wait() {
 
 function run_relayd_with_btcd(){
     echo "============== run_relayd_with_btcd ==============================="
-
     docker cp "${BTCD}:/root/rpc.cert" ./
     docker cp ./rpc.cert "${RELAYD}:/root/"
-
     docker restart "${RELAYD}"
 }
 
@@ -323,7 +320,7 @@ function relay_after() {
 function relay() {
 	echo "================relayd========================"
 
-	block_wait "${1}" 15
+	block_wait "${1}" 2
 
 	${1} relay btc_cur_height
 	base_height=$(${1} relay btc_cur_height | jq ".BaseHeight")
