@@ -5,14 +5,13 @@ import (
 	"encoding/hex"
 
 	log "github.com/inconshreveable/log15"
-	// "github.com/syndtr/goleveldb/leveldb"
-	"github.com/syndtr/goleveldb/leveldb/errors"
+
 	// "github.com/syndtr/goleveldb/leveldb/opt"
-	// gcb "github.com/go-couchbase"
 	"fmt"
 
 	"github.com/couchbase/gocb"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
+	"strings"
 )
 
 var (
@@ -65,6 +64,11 @@ func NewGoCouchBase(name string, dir string, cache int) (*GoCouchBase, error) {
 		return nil, err
 	}
 
+	cluster.Authenticate(gocb.PasswordAuthenticator{
+		Username: "Administrator",
+		Password: "test123",
+	})
+
 	bucket, err := cluster.OpenBucket("default", "")
 	if err != nil {
 		fmt.Println("Get Pool err", "error", err)
@@ -76,7 +80,7 @@ func NewGoCouchBase(name string, dir string, cache int) (*GoCouchBase, error) {
 func (db *GoCouchBase) Get(key []byte) (val []byte, err error) {
 	_, err = db.bucket.Get(hex.EncodeToString(key), &val)
 	if err != nil {
-		if err == errors.ErrNotFound {
+		if strings.Contains(err.Error(), "not found") {
 			return nil, ErrNotFoundInDb
 		} else {
 			clog.Error("Get", "error", err)
@@ -225,6 +229,9 @@ func (mBatch *GoCouchBaseBatch) Delete(key []byte) {
 }
 
 func (mBatch *GoCouchBaseBatch) Write() error {
-	mBatch.bucket.Do(mBatch.batchMap)
+	err := mBatch.bucket.Do(mBatch.batchMap)
+	if err != nil {
+		clog.Error("Write err", "error", err)
+	}
 	return nil
 }
