@@ -324,7 +324,7 @@ func tokenSell(cmd *cobra.Command, args []string) {
 	priceInt64 := int64(price * 1e4)
 	feeInt64 := int64(fee * 1e4)
 	totalInt64 := int64(total * 1e8 / 1e6)
-	params := &jsonrpc.TradeSellTx{
+	params := &tradetype.TradeSellTx{
 		TokenSymbol:       symbol,
 		AmountPerBoardlot: 1e6,
 		MinBoardlot:       min,
@@ -366,7 +366,7 @@ func tokenBuy(cmd *cobra.Command, args []string) {
 	count, _ := cmd.Flags().GetInt64("count")
 
 	feeInt64 := int64(fee * 1e4)
-	params := &jsonrpc.TradeBuyTx{
+	params := &tradetype.TradeBuyTx{
 		SellID:      sellID,
 		BoardlotCnt: count,
 		Fee:         feeInt64 * 1e4,
@@ -401,7 +401,7 @@ func tokenSellRevoke(cmd *cobra.Command, args []string) {
 	fee, _ := cmd.Flags().GetFloat64("fee")
 
 	feeInt64 := int64(fee * 1e4)
-	params := &jsonrpc.TradeRevokeTx{
+	params := &tradetype.TradeRevokeTx{
 		SellID: sellID,
 		Fee:    feeInt64 * 1e4,
 	}
