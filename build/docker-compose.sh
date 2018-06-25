@@ -11,14 +11,14 @@ set -e -o pipefail
 
 PWD=$(cd "$(dirname "$0")" && pwd)
 export PATH="$PWD:$PATH"
-CLI="sudo docker exec ${1}_chain33_1 /root/chain33-cli"
+CLI=" docker exec ${1}_chain33_1 /root/chain33-cli"
 
 sedfix=""
 if [ "$(uname)" == "Darwin" ]; then
-	sedfix=".bak"
+    sedfix=".bak"
 fi
 
-function init(){
+function init() {
     # update test environment
     sed -i $sedfix 's/^TestNet=.*/TestNet=true/g' chain33.toml
 
@@ -38,19 +38,19 @@ function init(){
     sed -i $sedfix 's/^minerdisable=.*/minerdisable=false/g' chain33.toml
 
     # docker-compose ps
-    sudo docker-compose ps
+    docker-compose ps
 
     # remove exsit container
-    sudo docker-compose down
+    docker-compose down
 
     # create and run docker-compose container
-    sudo docker-compose up --build -d
+    docker-compose up --build -d
 
     echo "=========== sleep 60s ============="
     sleep 60
 
     # docker-compose ps
-    sudo docker-compose ps
+    docker-compose ps
 
     # query node run status
     ${CLI} block last_header
@@ -130,17 +130,16 @@ function init(){
         exit 1
     fi
 
-
     ${CLI} wallet status
     ${CLI} account list
     ${CLI} mempool list
     # ${CLI} mempool last_txs
 }
 
-function transfer(){
+function transfer() {
     echo "=========== # transfer ============="
     hashes=()
-    for((i=0;i<10;i++));do
+    for ((i = 0; i < 10; i++)); do
         hash=$(${CLI} send bty transfer -a 1 -n test -t 14KEKbYtKKQm4wMthSK9J4La4nAiidGozt -k 4257D8692EF7FE13C68B65D6A52F03933DB2FA5CE8FAF210B5B8B80C721CED01)
         hashes=(${hashes[*]} $hash)
         sleep 1
@@ -152,8 +151,7 @@ function transfer(){
     fi
 
     sleep 20
-    for((i=0;i<${#hashes[*]};i++))
-    do
+    for ((i = 0; i < ${#hashes[*]}; i++)); do
         txs=$(${CLI} tx query_hash -s "${hashes[$i]}" | jq ".txs")
         if [ -z "${txs}" ]; then
             echo "cannot find tx"
@@ -183,7 +181,7 @@ function transfer(){
     fi
 }
 
-function main(){
+function main() {
     echo "==========================================main begin========================================================"
     init
     transfer
@@ -193,7 +191,3 @@ function main(){
 
 # run script
 main
-
-
-
-

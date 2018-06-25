@@ -4,37 +4,32 @@
 ########################################################################################################################
 ##############################解析配置文件#######################################################
 pemFile=$1
-cmd=`sed -n '/^[# ]*\[.*\][ ]*/p' servers.conf`
+cmd=$(sed -n '/^[# ]*\[.*\][ ]*/p' servers.conf)
 fileName="servers.conf"
 serverStr="servers."
 tempfile=".info"
 
-getSections()
-{
-   sections=$cmd
+getSections() {
+    sections=$cmd
 }
 
-getInfoByIndex()
-{
+getInfoByIndex() {
     index=$1
-    nextIndex=$[$index + 1]
-    info=`cat $fileName | sed -n "/^[# ]*\[servers.${index}/,/^[# ]*\[servers.${nextIndex}/p"`
+    nextIndex=$((index + 1))
+    info=$(cat $fileName | sed -n "/^[# ]*\[servers.${index}/,/^[# ]*\[servers.${nextIndex}/p")
 }
 
-getInfoByIndexAndKey()
-{
+getInfoByIndexAndKey() {
     index=$1
     key=$2
-    info=`cat $fileName | sed -n "/^[# ]*\[servers.${index}/,/^[# ]*\[servers.${nextIndex}/p" | grep -i $key | awk -F '=' '{print $2}'`
+    info=$(cat $fileName | sed -n "/^[# ]*\[servers.${index}/,/^[# ]*\[servers.${nextIndex}/p" | grep -i $key | awk -F '=' '{print $2}')
 }
 
-main()
-{
+main() {
     getSections
-    for line in $sections
-    do
-        if [[ "$line" =~ "$serverStr" ]]; then
-            index=`echo $line | awk -F '.' '{print $2}' | awk -F ']' '{print$1}'`
+    for line in $sections; do
+        if [[ $line =~ $serverStr ]]; then
+            index=$(echo $line | awk -F '.' '{print $2}' | awk -F ']' '{print$1}')
             getInfoByIndexAndKey $index "userName"
             echo "servers.$index: userName->$info"
             getInfoByIndexAndKey $index "hostIp"
@@ -46,61 +41,59 @@ main()
 }
 
 ############################从本地copy文件到远程主机上#####################################################################
-scpFileFromLocal(){
-hostIP=$1
-echo "hostIp:"$hostIP
-port=$2
-echo "port:"$port
-userName=$3
-echo "userName:"$userName
-pemFile=$4
-echo "pemFile:"$pemFile
-scpFile=$5
-deployDir=$6
-ssh -i $pemFile -p $port $userName@$hostIP "mkdir -p $deployDir"
-echo "scp -i $pemFile -P $port $scpFile $userName@$hostIP:$deploydir"
-scp -i $pemFile -P $port $scpFile $userName@$hostIP:$deployDir
+scpFileFromLocal() {
+    hostIP=$1
+    echo "hostIp:"$hostIP
+    port=$2
+    echo "port:"$port
+    userName=$3
+    echo "userName:"$userName
+    pemFile=$4
+    echo "pemFile:"$pemFile
+    scpFile=$5
+    deployDir=$6
+    ssh -i $pemFile -p $port $userName@$hostIP "mkdir -p $deployDir"
+    echo "scp -i $pemFile -P $port $scpFile $userName@$hostIP:$deploydir"
+    scp -i $pemFile -P $port $scpFile $userName@$hostIP:$deployDir
 
 }
 ####################################解压和启动chain33#################################################################
-startChain33(){
-hostIP=$1
-port=$2
-userName=$3
-pemFile=$4
-deployDir=$5
-nodeId=$6
-ssh -i $pemFile -p $port $userName@$hostIP "cd $deployDir;tar -xvf chain33.tgz;bash raft_conf.sh $nodeId;bash run.sh start"
-echo done!
+startChain33() {
+    hostIP=$1
+    port=$2
+    userName=$3
+    pemFile=$4
+    deployDir=$5
+    nodeId=$6
+    ssh -i $pemFile -p $port $userName@$hostIP "cd $deployDir;tar -xvf chain33.tgz;bash raft_conf.sh $nodeId;bash run.sh start"
+    echo done!
 }
-stopChain33(){
-hostIP=$1
-port=$2
-userName=$3
-pemFile=$4
-deployDir=$5
-nodeId=$6
-ssh -i $pemFile -p $port $userName@$hostIP "cd $deployDir;bash run.sh stop"
-echo done!
+stopChain33() {
+    hostIP=$1
+    port=$2
+    userName=$3
+    pemFile=$4
+    deployDir=$5
+    nodeId=$6
+    ssh -i $pemFile -p $port $userName@$hostIP "cd $deployDir;bash run.sh stop"
+    echo done!
 }
-clearChain33(){
-hostIP=$1
-port=$2
-userName=$3
-pemFile=$4
-deployDir=$5
-ssh -i $pemFile -p $port $userName@$hostIP "cd $deployDir;bash run.sh clear"
-echo done!
+clearChain33() {
+    hostIP=$1
+    port=$2
+    userName=$3
+    pemFile=$4
+    deployDir=$5
+    ssh -i $pemFile -p $port $userName@$hostIP "cd $deployDir;bash run.sh clear"
+    echo done!
 }
 
 ##########################################批量copy本地文件到多个远程主机上面####################################################################
-batchScpFileFromLocal()
-{
+batchScpFileFromLocal() {
     getSections
-    for line in $sections
-    do
-        if [[ "$line" =~ "$serverStr" ]]; then
-            index=`echo $line | awk -F '.' '{print $2}' | awk -F ']' '{print$1}'`
+    for line in $sections; do
+        if [[ $line =~ $serverStr ]]; then
+            index=$(echo $line | awk -F '.' '{print $2}' | awk -F ']' '{print$1}')
             getInfoByIndexAndKey $index "userName"
             echo "servers.$index: userName->$info"
             userName=$info
@@ -122,13 +115,11 @@ batchScpFileFromLocal()
     done
 }
 ######################################批量执行解压和启动chain33#################################################################################
-batchStartChain33()
-{
+batchStartChain33() {
     getSections
-    for line in $sections
-    do
-        if [[ "$line" =~ "$serverStr" ]]; then
-            index=`echo $line | awk -F '.' '{print $2}' | awk -F ']' '{print$1}'`
+    for line in $sections; do
+        if [[ $line =~ $serverStr ]]; then
+            index=$(echo $line | awk -F '.' '{print $2}' | awk -F ']' '{print$1}')
             getInfoByIndexAndKey $index "userName"
             echo "servers.$index: userName->$info"
             userName=$info
@@ -150,13 +141,11 @@ batchStartChain33()
     done
 }
 ######################################批量停止chain33服务######################################################################################
-batchStopChain33()
-{
+batchStopChain33() {
     getSections
-    for line in $sections
-    do
-        if [[ "$line" =~ "$serverStr" ]]; then
-            index=`echo $line | awk -F '.' '{print $2}' | awk -F ']' '{print$1}'`
+    for line in $sections; do
+        if [[ $line =~ $serverStr ]]; then
+            index=$(echo $line | awk -F '.' '{print $2}' | awk -F ']' '{print$1}')
             getInfoByIndexAndKey $index "userName"
             echo "servers.$index: userName->$info"
             userName=$info
@@ -179,13 +168,11 @@ batchStopChain33()
 }
 
 ######################################批量清理chain33拥有数据##################################################################################
-batchClearChain33()
-{
+batchClearChain33() {
     getSections
-    for line in $sections
-    do
-        if [[ "$line" =~ "$serverStr" ]]; then
-            index=`echo $line | awk -F '.' '{print $2}' | awk -F ']' '{print$1}'`
+    for line in $sections; do
+        if [[ $line =~ $serverStr ]]; then
+            index=$(echo $line | awk -F '.' '{print $2}' | awk -F ']' '{print$1}')
             getInfoByIndexAndKey $index "userName"
             echo "servers.$index: userName->$info"
             userName=$info
@@ -209,18 +196,14 @@ batchClearChain33()
 ######################################本脚本使用指导##################################################################################
 #Program:
 # This is a chain33 deploy scripts!
-if [ $2 == "start" ]
-then
-batchStartChain33
-elif [ $2 == "scp" ]
-then
-batchScpFileFromLocal
-elif [ $2 == "stop" ]
-then
-batchStopChain33
-elif [ $2 == "clear" ]
-then
-batchClearChain33
+if [ $2 == "start" ]; then
+    batchStartChain33
+elif [ $2 == "scp" ]; then
+    batchScpFileFromLocal
+elif [ $2 == "stop" ]; then
+    batchStopChain33
+elif [ $2 == "clear" ]; then
+    batchClearChain33
 else
-  echo "Usage: ./raft_deploy.sh [pemFile:认证文件] [scp,start,stop,clear]"
+    echo "Usage: ./raft_deploy.sh [pemFile:认证文件] [scp,start,stop,clear]"
 fi
