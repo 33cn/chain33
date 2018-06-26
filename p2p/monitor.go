@@ -466,7 +466,7 @@ func (n *Node) monitorDialPeers() {
 				if peer != nil {
 					peer.Close()
 				}
-				n.nodeInfo.blacklist.Add(netAddr.String(), int64(60*10))
+				n.nodeInfo.blacklist.Add(netAddr.String(), int64(60))
 				return
 			}
 			//查询远程节点的负载
