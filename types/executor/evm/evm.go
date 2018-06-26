@@ -22,7 +22,9 @@ func init() {
 	types.RegistorLog(types.TyLogContractState, &EvmContractStateLog{})
 
 	// init query rpc
-	//types.RegistorRpcType("q2", &CoinsGetTxsByAddr{})
+	types.RegistorRpcType("CheckAddrExists", &EvmCheckAddrExists{})
+	types.RegistorRpcType("EstimateGas", &EvmEstimateGas{})
+	types.RegistorRpcType("EvmDebug", &EvmDebug{})
 }
 
 type EvmType struct {
@@ -97,11 +99,11 @@ func (l EvmContractStateLog) Decode(msg []byte) (interface{}, error) {
 	return logTmp, err
 }
 
-type CoinsGetTxsByAddr struct {
+type EvmCheckAddrExists struct {
 }
 
-func (t *CoinsGetTxsByAddr) Input(message json.RawMessage) ([]byte, error) {
-	var req types.ReqAddr
+func (t *EvmCheckAddrExists) Input(message json.RawMessage) ([]byte, error) {
+	var req types.CheckEVMAddrReq
 	err := json.Unmarshal(message, &req)
 	if err != nil {
 		return nil, err
@@ -109,6 +111,38 @@ func (t *CoinsGetTxsByAddr) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *CoinsGetTxsByAddr) Output(reply interface{}) (interface{}, error) {
+func (t *EvmCheckAddrExists) Output(reply interface{}) (interface{}, error) {
+	return reply, nil
+}
+
+type EvmEstimateGas struct {
+}
+
+func (t *EvmEstimateGas) Input(message json.RawMessage) ([]byte, error) {
+	var req types.EstimateEVMGasReq
+	err := json.Unmarshal(message, &req)
+	if err != nil {
+		return nil, err
+	}
+	return types.Encode(&req), nil
+}
+
+func (t *EvmEstimateGas) Output(reply interface{}) (interface{}, error) {
+	return reply, nil
+}
+
+type EvmDebug struct {
+}
+
+func (t *EvmDebug) Input(message json.RawMessage) ([]byte, error) {
+	var req types.EvmDebugReq
+	err := json.Unmarshal(message, &req)
+	if err != nil {
+		return nil, err
+	}
+	return types.Encode(&req), nil
+}
+
+func (t *EvmDebug) Output(reply interface{}) (interface{}, error) {
 	return reply, nil
 }
