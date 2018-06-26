@@ -68,11 +68,11 @@ func main() {
 		}
 		NormPerf(argsWithoutProg[1], argsWithoutProg[2], argsWithoutProg[3], argsWithoutProg[4])
 	case "normput":
-		if len(argsWithoutProg) != 4 {
+		if len(argsWithoutProg) != 3 {
 			fmt.Print(errors.New("参数错误").Error())
 			return
 		}
-		NormPut(argsWithoutProg[1], argsWithoutProg[2], argsWithoutProg[3])
+		NormPut(argsWithoutProg[1], argsWithoutProg[2], "", "")
 	case "normget":
 		if len(argsWithoutProg) != 2 {
 			fmt.Print(errors.New("参数错误").Error())
@@ -87,7 +87,7 @@ func LoadHelp() {
 	fmt.Println("[ip] transferperf [from, to, amount, txNum, duration]            : 转账性能测试")
 	fmt.Println("[ip] sendtoaddress [from, to, amount, note]                      : 发送交易到地址")
 	fmt.Println("[ip] normperf [size, num, interval, duration]                    : 常规写数据性能测试")
-	fmt.Println("[ip] normput [privkey, key, value]                               : 常规写数据")
+	fmt.Println("[ip] normput [key, value]                                        : 常规写数据")
 	fmt.Println("[ip] normget [key]                                               : 常规读数据")
 }
 
@@ -181,16 +181,16 @@ func NormPerf(size string, num string, interval string, duration string) {
 	for i := 0; i < numThread; i++ {
 		go func() {
 			txCount := 0
-			_, priv := genaddress()
+			addr, priv := genaddress()
 			for sec := 0; durInt == 0 || sec < durInt; {
 				for txs := 0; txs < numInt/numThread; txs++ {
 					if txCount >= maxTxPerAcc {
-						_, priv = genaddress()
+						addr, priv = genaddress()
 						txCount = 0
 					}
 					key = RandStringBytes(20)
 					value = RandStringBytes(sizeInt)
-					NormPut(common.ToHex(priv.Bytes()), key, value)
+					NormPut(key, value, addr, common.ToHex(priv.Bytes()))
 					txCount++
 				}
 				time.Sleep(time.Second * time.Duration(intervalInt))
@@ -213,12 +213,17 @@ func RandStringBytes(n int) string {
 	return string(b)
 }
 
-func NormPut(privkey string, key string, value string) {
+func NormPut(key string, value string, addr string, privkey string) {
+	if addr == "" || privkey == "" {
+		addrto, priv := genaddress()
+		addr = addrto
+		privkey = common.ToHex(priv.Bytes())
+	}
 	fmt.Println(key, "=", value)
 	nput := &types.NormAction_Nput{&types.NormPut{Key: key, Value: []byte(value)}}
 	action := &types.NormAction{Value: nput, Ty: types.NormActionPut}
 	tx := &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(action), Fee: fee}
-	tx.To = address.ExecAddress("norm")
+	tx.To = addr
 	tx.Nonce = r.Int63()
 	tx.Sign(types.SECP256K1, getprivkey(privkey))
 
