@@ -32,7 +32,8 @@ func init() {
 	types.RegistorLog(types.TyLogGenesisDeposit, &CoinsGenesisDepositLog{})
 
 	// init query rpc
-	types.RegistorRpcType("GetAddrReciver", &CoinsGetAddrReciver{})
+	types.RegistorRpcType("GetAddrReciver", &CoinsGetAddrReceiver{})
+	types.RegistorRpcType("GetAddrReceiver", &CoinsGetAddrReceiver{})
 	types.RegistorRpcType("GetTxsByAddr", &CoinsGetTxsByAddr{})
 }
 
@@ -298,10 +299,10 @@ func (l CoinsGenesisDepositLog) Decode(msg []byte) (interface{}, error) {
 }
 
 // query
-type CoinsGetAddrReciver struct {
+type CoinsGetAddrReceiver struct {
 }
 
-func (t *CoinsGetAddrReciver) Input(message json.RawMessage) ([]byte, error) {
+func (t *CoinsGetAddrReceiver) Input(message json.RawMessage) ([]byte, error) {
 	var req types.ReqAddr
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -310,7 +311,7 @@ func (t *CoinsGetAddrReciver) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *CoinsGetAddrReciver) Output(reply interface{}) (interface{}, error) {
+func (t *CoinsGetAddrReceiver) Output(reply interface{}) (interface{}, error) {
 	return reply, nil
 }
 
