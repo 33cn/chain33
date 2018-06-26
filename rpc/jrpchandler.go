@@ -53,13 +53,14 @@ func (c *Chain33) SendRawTransaction(in SignedTx, result *interface{}) error {
 }
 
 func (c *Chain33) sendTxToWallet(in RawParm, result *interface{}) error {
-	var hash types.ReqHash
+	var ccTxKey types.ReqCreateCacheTxKey
 	bytes, err := common.FromHex(in.Data)
 	if err != nil {
 		return err
 	}
-	hash.Hash = bytes
-	reply, err := c.cli.SendTxHashToWallet(&hash)
+	ccTxKey.Hashkey = bytes
+	ccTxKey.Tokenname = in.Token
+	reply, err := c.cli.SendTxHashToWallet(&ccTxKey)
 	if err == nil {
 		*result = common.ToHex(reply.GetMsg())
 	}
@@ -1612,7 +1613,7 @@ func (c *Chain33) QueryCacheTransaction(in types.ReqCacheTxList, result *interfa
 }
 
 // DeleteCacheTransaction 删除由服务器创建未发送的交易列表
-func (c *Chain33) DeleteCacheTransaction(in types.ReqHash, result *interface{}) error {
+func (c *Chain33) DeleteCacheTransaction(in types.ReqCreateCacheTxKey, result *interface{}) error {
 	reply, err := c.cli.DeleteCacheTransaction(&in)
 	if err != nil {
 		return err
@@ -1621,7 +1622,7 @@ func (c *Chain33) DeleteCacheTransaction(in types.ReqHash, result *interface{}) 
 	return nil
 }
 
-func (c *Chain33) ShowPrivacyAccountInfo(in types.ReqPrivBal4AddrToken, result *interface{}) error {
+func (c *Chain33) ShowPrivacyAccountInfo(in types.ReqPPrivacyAccount, result *interface{}) error {
 	reply, err := c.cli.ShowPrivacyAccountInfo(&in)
 	if err != nil {
 		return err
