@@ -301,14 +301,10 @@ const (
 	EventReplyDecodeRawTx    = 118
 
 	//Auth
-	EventAuthoritySignTx   = 180
-	EventAuthorityCheckTx  = 181
-	EventReplyAuthSignTx   = 182
-	EventReplyAuthCheckTx  = 183
-	EventAuthorityCheckTxs = 184
-	EventReplyAuthCheckTxs = 185
-	EventAuthoritySignTxs  = 186
-	EventReplyAuthSignTxs  = 187
+	EventAuthorityCheckCert  = 180
+	EventReplyAuthCheckCert  = 181
+	EventAuthorityGetUser  = 182
+	EventReplyAuthGetUser  = 183
 
 	// Token
 	EventBlockChainQuery = 212
@@ -445,6 +441,8 @@ const (
 	SECP256K1 = 1
 	ED25519   = 2
 	SM2       = 3
+	AUTH_ECDSA = 1 << 8
+	AUTH_SM2  = 2 << 8
 )
 
 //log type
