@@ -9,6 +9,7 @@ import (
 	clog "gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
+	"sort"
 )
 
 func SetLogLevel(level string) {
@@ -141,6 +142,9 @@ func (mem *Mempool) GetTxList(hashList *types.TxHashList) []*types.Transaction {
 			}
 		}
 	}
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].Expire <= result[j].Expire
+	})
 	return result
 }
 
