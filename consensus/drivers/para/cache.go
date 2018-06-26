@@ -26,6 +26,7 @@ type txCache struct {
 type Item struct {
 	value *types.Transaction
 	ty    int64 //AddAct or DelAct
+	seq   int64
 }
 
 // NewTxCache初始化txCache
@@ -56,7 +57,7 @@ func (cache *txCache) Get(hash []byte) *Item {
 }
 
 // txCache.Push把给定tx添加到txCache；如果tx已经存在txCache中或Mempool已满则返回对应error
-func (cache *txCache) Push(tx *types.Transaction, ty int64) error {
+func (cache *txCache) Push(tx *types.Transaction, ty int64, seq int64) error {
 	cache.lock.Lock()
 	defer cache.lock.Unlock()
 	hash := tx.Hash()
@@ -64,7 +65,7 @@ func (cache *txCache) Push(tx *types.Transaction, ty int64) error {
 		return types.ErrMemFull
 	}
 
-	it := &Item{value: tx, ty: ty}
+	it := &Item{value: tx, ty: ty, seq: seq}
 	txElement := cache.txList.PushBack(it)
 	cache.txMap[string(hash)] = txElement
 	return nil
@@ -112,7 +113,7 @@ func (cache *txCache) Size() int {
 	return cache.txList.Len()
 }
 
-// txCache.SetSize用来设置Mempool容量
+// txCache.SetSize用来设置容量
 func (cache *txCache) SetSize(newSize int) {
 	cache.lock.Lock()
 	defer cache.lock.Unlock()
