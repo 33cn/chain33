@@ -37,22 +37,22 @@ var (
 	SignType    = 1
 	accountdb   = account.NewCoinsAccount()
 	accTokenMap = make(map[string]*account.DB)
-
-	AddTx int32 = 1
-	DelTx int32 = 2
-
-	sendTx int32 = 1
-	recvTx int32 = 2
-
-	walletQueryModeNormal  int32 = 1
-	walletQueryModePrivacy int32 = 2
 )
 
 const (
 	// 分成3步操作中
-	cacheTxStatus_Created int32 = 0
-	cacheTxStatus_Signed  int32 = 1
-	cacheTxStatus_Sent    int32 = 2
+	cacheTxStatus_Created int32 = 10000
+	cacheTxStatus_Signed  int32 = 10001
+	cacheTxStatus_Sent    int32 = 10002
+	// 交易操作的方向
+	AddTx int32 = 20001
+	DelTx int32 = 20002
+	// 交易收发方向
+	sendTx int32 = 30001
+	recvTx int32 = 30002
+	// 查询类型定义
+	walletQueryModeNormal  int32 = 0
+	walletQueryModePrivacy int32 = 1
 )
 
 type Wallet struct {
@@ -136,7 +136,7 @@ func New(cfg *types.Wallet) *Wallet {
 		wallet.autoMinerFlag = 1
 	}
 	wallet.random = rand.New(rand.NewSource(time.Now().UnixNano()))
-	wallet.registerProcFunc()
+	wallet.initProcFuncMap()
 	return wallet
 }
 
@@ -372,12 +372,10 @@ func (wallet *Wallet) flushTicket() {
 	wallet.client.Send(hashList, false)
 }
 
-func (wallet *Wallet) registerProcFunc() {
-	funcMap := make(map[int64]func(wallet *Wallet, msg queue.Message), 0)
+func (wallet *Wallet) initProcFuncMap() {
+	wallet.funcMap = make(map[int64]func(wallet *Wallet, msg queue.Message), 0)
 
-	funcMap[types.EventPrivacyAccountInfo] = procPrivacyAccountInfo
-
-	wallet.funcMap = funcMap
+	wallet.funcMap[types.EventPrivacyAccountInfo] = procPrivacyAccountInfo
 }
 
 func (wallet *Wallet) ProcRecvMsg() {
@@ -742,7 +740,7 @@ func (wallet *Wallet) ProcRecvMsg() {
 				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyCreateTransaction, &reply))
 			}
 		case types.EventSendTxHashToWallet:
-			req := msg.Data.(*types.ReqHash)
+			req := msg.Data.(*types.ReqCreateCacheTxKey)
 			replyHash, err := wallet.procSendTxHashToWallet(req)
 			var reply types.Reply
 			if err != nil {
@@ -765,7 +763,7 @@ func (wallet *Wallet) ProcRecvMsg() {
 				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyQueryCacheTransaction, reply))
 			}
 		case types.EventDeleteCacheTransaction:
-			req := msg.Data.(*types.ReqHash)
+			req := msg.Data.(*types.ReqCreateCacheTxKey)
 			replyHash, err := wallet.procDeleteCacheTransaction(req)
 			var reply types.Reply
 			if err != nil {
@@ -1964,7 +1962,7 @@ func (wallet *Wallet) AddDelPrivacyTxsFromBlock(tx *types.Transaction, index int
 				keys = append(keys, calcKey4FTXOsInTx(ftxo.Tokenname, ftxo.Sender, ftxo.Txhash))
 			}
 			for _, ftxo := range ftxosInRevTx {
-				keys = append(keys, calcRevertSendTxKey(ftxo.Txhash))
+				keys = append(keys, calcRevertSendTxKey(ftxo.Tokenname, ftxo.Sender, ftxo.Txhash))
 			}
 
 			ftxos := append(ftxosInOneTx, ftxosInRevTx...)
@@ -2591,10 +2589,14 @@ func (w *Wallet) getActionMainInfo(action *types.PrivacyAction) (rpubkey []byte,
 func procPrivacyAccountInfo(w *Wallet, msg queue.Message) {
 	w.mtx.Lock()
 	defer w.mtx.Unlock()
-	reply := &types.ReplyPrivacyAccount{}
-	req := msg.Data.(*types.ReqPrivBal4AddrToken)
+	req, ok := msg.Data.(*types.ReqPPrivacyAccount)
+	if !ok {
+		msg.Reply(w.client.NewMessage("rpc", types.EventReplyPrivacyAccountInfo, types.ErrInvalidParam))
+	}
 	addr := req.GetAddr()
 	token := req.GetToken()
+	reply := &types.ReplyPrivacyAccount{}
+	reply.Displaymode = req.Displaymode
 	// 搜索可用余额
 	privacyDBStore, err := w.walletStore.listAvailableUTXOs(token, addr)
 	utxos := make([]*types.UTXO, 0)
@@ -2613,11 +2615,14 @@ func procPrivacyAccountInfo(w *Wallet, msg queue.Message) {
 		utxos = append(utxos, utxo)
 	}
 	reply.Utxos = &types.UTXOs{Utxos: utxos}
+
 	// 搜索冻结余额
 	utxos = make([]*types.UTXO, 0)
 	ftxoslice, err := w.walletStore.listFrozenUTXOs(token, addr)
-	for _, ele := range ftxoslice {
-		utxos = append(utxos, ele.Utxos...)
+	if err == nil && ftxoslice != nil {
+		for _, ele := range ftxoslice {
+			utxos = append(utxos, ele.Utxos...)
+		}
 	}
 	reply.Ftxos = &types.UTXOs{Utxos: utxos}
 

@@ -28,8 +28,9 @@ type SignedTx struct {
 }
 
 type RawParm struct {
-	Mode int32  `json:"mode"`
-	Data string `json:"data"`
+	Mode  int32  `json:"mode"`
+	Token string `json:"token"`
+	Data  string `json:"data"`
 }
 
 type QueryParm struct {
