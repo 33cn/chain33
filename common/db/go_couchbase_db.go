@@ -11,6 +11,7 @@ import (
 
 	"github.com/couchbase/gocb"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
+	"github.com/syndtr/goleveldb/leveldb/util"
 	"strings"
 )
 
@@ -36,28 +37,6 @@ type GoCouchBase struct {
 }
 
 func NewGoCouchBase(name string, dir string, cache int) (*GoCouchBase, error) {
-	//cl, err := gcb.Connect("http://Administrator:test123@127.0.0.1:8091")
-	//if err != nil {
-	//	clog.Error("Connect err", "error", err)
-	//}
-	//
-	//if err != nil {
-	//	clog.Error("Auth err", "error", err)
-	//}
-	//pool, err := cl.GetPool("default")
-	//if err != nil {
-	//	clog.Error("Get Pool err", "error", err)
-	//}
-	//
-	//bucket, err := pool.GetBucket("default")
-	//if err != nil {
-	//	clog.Error("Get bucket err", "error", err)
-	//}
-	//
-	//batch := make(map[string][]byte, BATCH_MAP_SIZE)
-	//
-	//database := &GoCouchBase{bucket: bucket, batch: batch}
-
 	cluster, err := gocb.Connect("couchbase://localhost")
 	if err != nil {
 		clog.Error("Connect err", "error", err)
@@ -74,7 +53,7 @@ func NewGoCouchBase(name string, dir string, cache int) (*GoCouchBase, error) {
 		fmt.Println("Get Pool err", "error", err)
 	}
 
-	return &GoCouchBase{bucket: bucket, items: nil}, nil
+	return &GoCouchBase{bucket: bucket}, nil
 }
 
 func (db *GoCouchBase) Get(key []byte) (val []byte, err error) {
@@ -137,16 +116,29 @@ func (db *GoCouchBase) Stats() map[string]string {
 }
 
 func (db *GoCouchBase) Iterator(prefix []byte, reserve bool) Iterator {
-	//r := &util.Range{prefix, bytesPrefix(prefix)}
-	//var ks []string
-	//ks = append(ks, hex.EncodeToString(r.Start))
-	//ks = append(ks, hex.EncodeToString(r.Limit))
-	//val, _ := db.bucket.(ks)
-	//var keys []string
-	//for k, _ := range val {
-	//	keys = append(keys, k)
-	//}
-	return &GoCouchBaseIt{}
+	r := &util.Range{prefix, bytesPrefix(prefix)}
+
+	view := gocb.NewViewQuery("dev_view", "all_keys")
+	view.IdRange(hex.EncodeToString(r.Start), hex.EncodeToString(r.Limit))
+	res, err := db.bucket.ExecuteViewQuery(view)
+	if err != nil {
+		clog.Error("View err", "error", err)
+		return &GoCouchBaseIt{}
+	}
+	var keys []string
+	var val []byte
+	for res.Next(&val) {
+		keys = append(keys, hex.EncodeToString(val))
+	}
+
+	var v []byte
+	var mVal map[string][]byte
+	for _, k := range keys {
+
+		db.bucket.Get(k, &v)
+		mVal[k] = v
+	}
+	return &GoCouchBaseIt{keys: keys, mVal: mVal, prefix: prefix, reserve: reserve}
 }
 
 type GoCouchBaseIt struct {
