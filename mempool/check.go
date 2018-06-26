@@ -57,57 +57,6 @@ func (mem *Mempool) checkTx(msg queue.Message) queue.Message {
 	return msg
 }
 
-func (mem *Mempool) CheckSignFromAuth(tx *types.Transaction) bool {
-	if mem.client == nil {
-		panic("client not bind message queue.")
-	}
-
-	req := &types.ReqAuthSignCheck{}
-	req.Tx = tx
-	msg := mem.client.NewMessage("authority", types.EventAuthorityCheckTx, req)
-	err := mem.client.Send(msg, true)
-	if err != nil {
-		mlog.Error("check signature from authority failed", "err", err.Error())
-		return false
-	}
-	msg, err = mem.client.Wait(msg)
-	if err != nil {
-		mlog.Error("check signature from authority failed", "err", err.Error())
-		return false
-	}
-
-	return msg.GetData().(*types.RespAuthSignCheck).Result
-}
-
-func (mem *Mempool) CheckTgSignFromAuth(txs []*types.Transaction) bool {
-	if mem.client == nil {
-		panic("client not bind message queue.")
-	}
-
-	req := &types.ReqAuthSignCheckTxs{
-		Txs: txs,
-	}
-
-	msg := mem.client.NewMessage("authority", types.EventAuthorityCheckTxs, req)
-	err := mem.client.Send(msg, true)
-	if err != nil {
-		mlog.Error("check signature from authority failed", "err", err.Error())
-		return false
-	}
-	resp, err := mem.client.Wait(msg)
-	if err != nil {
-		mlog.Error("check signature from authority failed", "err", err.Error())
-		return false
-	}
-
-	res, ok := resp.GetData().(*types.RespAuthSignCheckTxs)
-	if !ok || !res.Result {
-		return false
-	}
-
-	return true
-}
-
 // Mempool.CheckTxList初步检查并筛选交易消息
 func (mem *Mempool) CheckTxs(msg queue.Message) queue.Message {
 	// 判断消息是否含有nil交易
@@ -147,46 +96,16 @@ func (mem *Mempool) CheckTxs(msg queue.Message) queue.Message {
 
 // Mempool.CheckSignList检查交易签名是否合法
 func (mem *Mempool) CheckSignList() {
-	var result bool = false
 	for i := 0; i < processNum; i++ {
 		go func() {
 			for data := range mem.signChan {
 				tx, ok := data.GetData().(types.TxGroup)
-				if types.IsAuthEnable {
-					if ok {
-						group, err := tx.GetTxGroup()
-						if err != nil {
-							mem.badChan <- data
-						} else {
-							if group == nil {
-								result = mem.CheckSignFromAuth(tx.Tx())
-							} else {
-								result = mem.CheckTgSignFromAuth(group.Txs)
-							}
-						}
-					}
-					if result {
-						// 签名正确，联盟链跳过余额检查
-						err := mem.PushTx(tx.Tx())
-						if err == nil {
-							mem.goodChan <- data
-						} else {
-							mlog.Error("wrong tx", "err", err)
-							mem.badChan <- data
-						}
-					} else {
-						mlog.Error("wrong tx", "err", types.ErrSign)
-						data.Data = types.ErrSign
-						mem.badChan <- data
-					}
+				if ok && tx.CheckSign() {
+					mem.balanChan <- data
 				} else {
-					if ok && tx.CheckSign() {
-						mem.balanChan <- data
-					} else {
-						mlog.Error("wrong tx", "err", types.ErrSign)
-						data.Data = types.ErrSign
-						mem.badChan <- data
-					}
+					mlog.Error("wrong tx", "err", types.ErrSign)
+					data.Data = types.ErrSign
+					mem.badChan <- data
 				}
 			}
 		}()

@@ -1,18 +1,3 @@
-/*
-Copyright IBM Corp. 2017 All Rights Reserved.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-		 http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
 package ca
 
 import (
@@ -33,60 +18,58 @@ import (
 
 type CA struct {
 	Name string
-	//SignKey  *ecdsa.PrivateKey
 	Signer   crypto.Signer
 	SignCert *x509.Certificate
 }
 
-// NewCA creates an instance of CA and saves the signing key pair in
-// baseDir/name
 func NewCA(baseDir, name string) (*CA, error) {
-
-	var response error
 	var ca *CA
 
 	err := os.MkdirAll(baseDir, 0755)
-	if err == nil {
-		priv, signer, err := csp.GeneratePrivateKey(baseDir)
-		response = err
-		if err == nil {
-			// get public signing certificate
-			ecPubKey, err := csp.GetECPublicKey(priv)
-			response = err
-			if err == nil {
-				template := x509Template()
-				//this is a CA
-				template.IsCA = true
-				template.KeyUsage |= x509.KeyUsageDigitalSignature |
-					x509.KeyUsageKeyEncipherment | x509.KeyUsageCertSign |
-					x509.KeyUsageCRLSign
-				template.ExtKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageAny}
-
-				//set the organization for the subject
-				subject := subjectTemplate()
-				subject.CommonName = name
-
-				template.Subject = subject
-				template.SubjectKeyId = priv.SKI()
-
-				x509Cert, err := genCertificateECDSA(baseDir, name, &template, &template,
-					ecPubKey, signer)
-				response = err
-				if err == nil {
-					ca = &CA{
-						Name:     name,
-						Signer:   signer,
-						SignCert: x509Cert,
-					}
-				}
-			}
-		}
+	if err != nil {
+		return nil, err
 	}
-	return ca, response
+
+	priv, signer, err := csp.GeneratePrivateKey(baseDir)
+	if err != nil {
+		return nil, err
+	}
+
+	// get public signing certificate
+	ecPubKey, err := csp.GetECPublicKey(priv)
+	if err != nil {
+		return nil, err
+	}
+
+	template := x509Template()
+	//this is a CA
+	template.IsCA = true
+	template.KeyUsage |= x509.KeyUsageDigitalSignature |
+		x509.KeyUsageKeyEncipherment | x509.KeyUsageCertSign |
+		x509.KeyUsageCRLSign
+	template.ExtKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageAny}
+
+	//set the organization for the subject
+	subject := subjectTemplate()
+	subject.CommonName = name
+
+	template.Subject = subject
+	template.SubjectKeyId = priv.SKI()
+
+	x509Cert, err := genCertificateECDSA(baseDir, name, &template, &template,
+		ecPubKey, signer)
+	if err != nil {
+		return nil, err
+	}
+	ca = &CA{
+		Name:     name,
+		Signer:   signer,
+		SignCert: x509Cert,
+	}
+
+	return ca, nil
 }
 
-// SignCertificate creates a signed certificate based on a built-in template
-// and saves it in baseDir/name
 func (ca *CA) SignCertificate(baseDir, name string, sans []string, pub *ecdsa.PublicKey,
 	ku x509.KeyUsage, eku []x509.ExtKeyUsage) (*x509.Certificate, error) {
 

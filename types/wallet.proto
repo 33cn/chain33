@@ -234,20 +234,21 @@ message ReplySignRawTx {
     string txHex = 1;
 }
 
-message ReqAuthSignTx{
-	bytes tx = 1;
+message ReqAuthGetUser{
+	string name = 1;
 }
 
-message ReplyAuthSignTx{
-	bytes tx = 1;
+message ReplyAuthGetUser{
+	bytes cert = 1;
+	bytes key = 2;
 }
 
-message ReqAuthSignTxs{
-	repeated Transaction txs = 1;
+message ReqAuthCheckCert {
+    bytes cert = 1;
 }
 
-message ReplyAuthSignTxs{
-	repeated Transaction txs = 1;
+message ReplyAuthCheckCert {
+    bool result = 1;
 }
 
 message ReportErrEvent {

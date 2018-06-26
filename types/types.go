@@ -14,6 +14,7 @@ import (
 
 	_ "gitlab.33.cn/chain33/chain33/common/crypto/ed25519"
 	_ "gitlab.33.cn/chain33/chain33/common/crypto/secp256k1"
+	_ "gitlab.33.cn/chain33/chain33/common/crypto/ecdsa"
 )
 
 var tlog = log.New("module", "types")
@@ -114,6 +115,10 @@ func GetSignatureTypeName(signType int) string {
 		return "ed25519"
 	} else if signType == 3 {
 		return "sm2"
+	} else if signType == AUTH_ECDSA {
+		return "auth_ecdsa"
+	} else if signType == AUTH_SM2 {
+		return "auth_sm2"
 	} else {
 		return "unknow"
 	}
