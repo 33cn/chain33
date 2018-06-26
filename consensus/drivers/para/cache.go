@@ -72,28 +72,50 @@ func (cache *txCache) Push(tx *types.Transaction, ty int64, seq int64) error {
 }
 
 // txCache.Pull获取交易
-func (cache *txCache) Pull(size int, txHashList [][]byte) []*types.Transaction {
+// 固定取得seqRange个数的seq中的交易，如果没有足够的seq，返回空切片
+// 如果因为个数超过范围，则少取一个seq的数据
+func (cache *txCache) Pull(size int, seqRange int64, txHashList [][]byte) []*types.Transaction {
 	cache.lock.RLock()
 	defer cache.lock.RUnlock()
 
+	var seqTotal int64 = 0
+	seqRecord := make(map[int64]int)
 	dupMap := make(map[string]bool)
 	for i := 0; i < len(txHashList); i++ {
 		dupMap[string(txHashList[i])] = true
 	}
 
 	var result []*types.Transaction
+	var tempRes []*types.Transaction
+
 	index := 0
 	txlist := cache.txList
 	for v := txlist.Front(); v != nil; v = v.Next() {
 		tx := v.Value.(*Item).value
+		seq := v.Value.(*Item).seq
+		if _, exist := seqRecord[seq]; !exist {
+			seqTotal += 1
+		} else {
+			seqRecord[seq] += 1
+		}
+
+		if seqTotal > seqRange {
+			break
+		}
+
 		if _, ok := dupMap[string(tx.Hash())]; ok {
 			continue
 		}
 		result = append(result, tx)
 		index++
 		if index == int(size) {
+			result = result[0 : len(result)-seqRecord[seq]]
 			break
 		}
+	}
+
+	if seqTotal < seqRange {
+		return tempRes
 	}
 	return result
 }

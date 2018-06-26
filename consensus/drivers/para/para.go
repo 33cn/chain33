@@ -28,7 +28,9 @@ var (
 	blockSec      int64 = 10 //write block interval, second
 	emptyBlockMin int64 = 2  //write empty block interval, minute
 	zeroHash      [32]byte
-	grpcRecSize   int = 11 * 1024 * 1024 //the size should be limited in server
+	grpcRecSize   int   = 11 * 1024 * 1024 //the size should be limited in server
+	seqRange      int64 = 5                // block txs in 5 seq
+	emptyBlockSeq int64 = 100              //write empty block limit
 )
 
 type Client struct {
@@ -106,15 +108,15 @@ func (client *Client) SetTxs() {
 		return
 	}
 	plog.Error("SetTxs", "LastSeq", lastSeq, "currSeq", currSeq, "blockedSeq", blockedSeq)
-	if lastSeq > currSeq {
+	if lastSeq >= currSeq {
 		//debug phase
 		if currSeq > 10 {
 			return
 		}
 
-		blockSeq, _ := client.GetBlockHashFromMainChain(currSeq, currSeq+1)
+		blockSeq, _ := client.GetBlockHashFromMainChain(currSeq, currSeq)
 		if blockSeq == nil {
-			plog.Error("Not found block hash on seq", "start", currSeq, "end", currSeq+1)
+			plog.Error("Not found block hash on seq", "start", currSeq, "end", currSeq)
 			return
 		}
 
@@ -140,6 +142,7 @@ func (client *Client) SetTxs() {
 		for i, _ := range blockSeq.Items {
 
 			opTy := blockSeq.Items[i].Type
+			//blockHeight := blockDetails.Items[i].Block.Height
 			txs := blockDetails.Items[i].Block.Txs
 			//对每一个block进行操作，保留相关TX
 			//为TX置标志位
@@ -254,7 +257,7 @@ func (client *Client) CreateBlock() {
 			time.Sleep(time.Second * time.Duration(blockSec))
 			count++
 		}
-		if count >= int(emptyBlockMin*60/blockSec) {
+		if count >= int(emptyBlockMin*60/blockSec) && currSeq-blockedSeq > emptyBlockSeq {
 			plog.Info("Create an empty block")
 			block := client.GetCurrentBlock()
 			emptyBlock := &types.Block{}
@@ -275,7 +278,7 @@ func (client *Client) CreateBlock() {
 		}
 
 		lastBlock := client.GetCurrentBlock()
-		txs := client.RequestTx(int(types.GetP(lastBlock.Height+1).MaxTxNumber), nil)
+		txs := client.RequestTx(int(types.GetP(lastBlock.Height+1).MaxTxNumber), seqRange, nil)
 		if len(txs) == 0 {
 			issleep = true
 			continue
@@ -306,9 +309,9 @@ func (client *Client) CreateBlock() {
 }
 
 // 向cache获取交易
-func (client *Client) RequestTx(size int, txHashList [][]byte) []*types.Transaction {
+func (client *Client) RequestTx(size int, seqRange int64, txHashList [][]byte) []*types.Transaction {
 	plog.Error("Get Txs from txOps")
-	return client.cache.Pull(size, txHashList)
+	return client.cache.Pull(size, seqRange, txHashList)
 }
 
 // 向blockchain写区块
