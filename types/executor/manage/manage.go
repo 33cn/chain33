@@ -19,7 +19,7 @@ func init() {
 	types.RegistorLog(types.TyLogModifyConfig, &ModifyConfigLog{})
 
 	// init query rpc
-	//types.RegistorRpcType("q2", &CoinsGetTxsByAddr{})
+	types.RegistorRpcType("GetConfigItem", &MagageGetConfigItem{})
 }
 
 type ManageType struct {
@@ -55,11 +55,11 @@ func (l ModifyConfigLog) Decode(msg []byte) (interface{}, error) {
 	return logTmp, err
 }
 
-type CoinsGetTxsByAddr struct {
+type MagageGetConfigItem struct {
 }
 
-func (t *CoinsGetTxsByAddr) Input(message json.RawMessage) ([]byte, error) {
-	var req types.ReqAddr
+func (t *MagageGetConfigItem) Input(message json.RawMessage) ([]byte, error) {
+	var req types.ReqString
 	err := json.Unmarshal(message, &req)
 	if err != nil {
 		return nil, err
@@ -67,6 +67,6 @@ func (t *CoinsGetTxsByAddr) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *CoinsGetTxsByAddr) Output(reply interface{}) (interface{}, error) {
+func (t *MagageGetConfigItem) Output(reply interface{}) (interface{}, error) {
 	return reply, nil
 }
