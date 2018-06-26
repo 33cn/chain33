@@ -31,10 +31,11 @@ batchBlockNum=128
 driver="leveldb"
 dbPath="paradatadir"
 dbCache=64
-isStrongConsistency=false
+isStrongConsistency=true
 singleMode=true
 batchsync=false
 isRecordBlockSequence=false
+isParaChain = true
 
 [p2p]
 seeds=[]
@@ -61,7 +62,7 @@ grpcFuncWhitelist=["*"]
 
 [mempool]
 poolCacheSize=10240
-minTxFee=100000
+minTxFee=0
 
 [consensus]
 name="para"
@@ -75,7 +76,7 @@ dbPath="paradatadir/mavltree"
 dbCache=128
 
 [wallet]
-minFee=100000
+minFee=0
 driver="leveldb"
 dbPath="parawallet"
 dbCache=16
@@ -83,8 +84,8 @@ signType="secp256k1"
 minerdisable=false
 
 [exec]
-isFree=false
-minExecFee=100000
+isFree=true
+minExecFee=0
 enableStat=false
 
 [pprof]
