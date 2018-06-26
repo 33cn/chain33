@@ -170,7 +170,6 @@ var (
 	ErrNewWalletFromSeed    = errors.New("ErrNewWalletFromSeed")
 	ErrNewKeyPair           = errors.New("ErrNewKeyPair")
 	ErrPrivkeyToPub         = errors.New("ErrPrivkeyToPub")
-	ErrGetSignFromAuth      = errors.New("ErrGetSignFromAuth")
 
 	ErrOnlyTicketUnLocked = errors.New("ErrOnlyTicketUnLocked")
 	ErrNewCrypto          = errors.New("ErrNewCrypto")
@@ -208,4 +207,6 @@ var (
 	//authority
 	ErrDeserializedIdentity = errors.New("ErrDeserializedIdentity")
 	ErrSignatureExist       = errors.New("ErrSignatureExist")
+	ErrNoUserName     = errors.New("ErrNoUserName")
+	ErrGetCertFromAuth      = errors.New("ErrGetCertFromAuth")
 )

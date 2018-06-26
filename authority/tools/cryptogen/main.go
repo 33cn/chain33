@@ -73,7 +73,6 @@ func getConfig() (Config, error) {
 			return configData, err
 		}
 	} else {
-		//str := []string{"User"}
 		configData.Name = append(configData.Name, "User")
 		configData.OrgName = "Chain33"
 	}
@@ -81,27 +80,19 @@ func getConfig() (Config, error) {
 }
 
 func generateUsers(baseDir string, users []string, orgName string) {
-
 	fmt.Printf("generateUsers\n")
 	fmt.Println(baseDir)
 
 	os.RemoveAll(baseDir)
 	caDir := filepath.Join(baseDir, "cacerts")
-	//userDir := filepath.Join(baseDir, "users")
 
 	signCA, err := ca.NewCA(caDir, commonName)
 	if err != nil {
-		fmt.Printf("Error generating signCA")
+		fmt.Printf("Error generating signCA", err.Error())
 		os.Exit(1)
 	}
 
 	generateNodes(baseDir, users, signCA, orgName)
-	//err = msp.GenerateVerifyingMSP(mspDir, signCA, tlsCA)
-	//if err != nil {
-	//	fmt.Printf("Error generating MSP for org %s:\n%v\n", orgName, err)
-	//	os.Exit(1)
-	//}
-
 }
 
 func generate() {
@@ -117,10 +108,8 @@ func generate() {
 }
 
 func generateNodes(baseDir string, names []string, signCA *ca.CA, orgName string) {
-
 	for _, name := range names {
 		userDir := filepath.Join(baseDir, name)
-		//add org here, reference:NewFileCertStore
 		fileName := fmt.Sprintf("%s@%s", name, orgName)
 		err := msp.GenerateLocalMSP(userDir, fileName, signCA)
 		if err != nil {

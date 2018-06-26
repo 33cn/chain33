@@ -23,6 +23,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/wallet/bipwallet"
+	"github.com/pkg/errors"
 )
 
 var (
@@ -80,6 +81,10 @@ func New(cfg *types.Wallet) *Wallet {
 		SignType = 2
 	} else if "sm2" == cfg.SignType {
 		SignType = 3
+	} else if "auth_ecdsa" == cfg.SignType {
+		SignType = types.AUTH_ECDSA
+	} else if "auth_sm2" == cfg.SignType {
+		SignType = types.AUTH_SM2
 	}
 	wallet := &Wallet{
 		walletStore:      walletStore,
@@ -541,7 +546,6 @@ func (wallet *Wallet) ProcRecvMsg() {
 
 		case types.EventSignRawTx:
 			unsigned := msg.GetData().(*types.ReqSignRawTx)
-			//根据config，由wallet或者authority模块签名
 			var txHex string
 			var err error
 			if types.IsAuthEnable {
@@ -549,7 +553,6 @@ func (wallet *Wallet) ProcRecvMsg() {
 			} else {
 				txHex, err = wallet.ProcSignRawTx(unsigned)
 			}
-
 			if err != nil {
 				walletlog.Error("EventSignRawTx", "err", err)
 				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplySignRawTx, err))
@@ -574,6 +577,23 @@ func (wallet *Wallet) ProcRecvMsg() {
 }
 
 func (wallet *Wallet) ProcAuthSignRawTx(unsigned *types.ReqSignRawTx) (string, error) {
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+
+	//index := unsigned.Index
+	if unsigned.GetAddr() == "" {
+		return "", types.ErrNoUserName
+	}
+
+	ok, err := wallet.CheckWalletStatus()
+	if !ok {
+		return "", err
+	}
+	key, cert, err := wallet.getPrivKeyFromAuth(unsigned.GetAddr())
+	if err != nil {
+		return "", err
+	}
+
 	var tx types.Transaction
 	bytes, err := common.FromHex(unsigned.GetTxHex())
 	if err != nil {
@@ -587,101 +607,75 @@ func (wallet *Wallet) ProcAuthSignRawTx(unsigned *types.ReqSignRawTx) (string, e
 	if err != nil {
 		return "", err
 	}
-
-	index := unsigned.Index
-
 	tx.SetExpire(expire)
-
 	group, err := tx.GetTxGroup()
 	if err != nil {
 		return "", err
 	}
-	if group != nil && int(index) > len(group.GetTxs()) {
+	if group == nil {
+		tx.Sign(int32(SignType), key)
+		tx.Signature.Cert = append(tx.Signature.Cert, cert...)
+		txHex := types.Encode(&tx)
+		signedTx := hex.EncodeToString(txHex)
+		return signedTx, nil
+	}else {
+		return "", errors.New("Tx group not support for authority")
+	}
+/*	if int(index) > len(group.GetTxs()) {
 		return "", types.ErrIndex
 	}
-
-	var cert types.AuthCert
-	cert.Username = "User"
-
-	//发送给mgr签名
-
-	if group == nil || index > 0 {
-		var txtemp types.Transaction
-		if group == nil {
-			txtemp = tx
-		} else {
-			//从group中找出tx,把这个tx移除，签名后再加回group
-			index -= 1
-			txtemp = *(group.GetTxs()[index])
-			group.Txs = append(group.Txs[:index], group.Txs[index+1:]...)
+	if index <= 0 {
+		for i := range group.Txs {
+			group.SignN(i, int32(SignType), key)
 		}
-		txtemp.Cert = &cert
-		txHex := types.Encode(&txtemp)
-		data := &types.ReqAuthSignTx{
-			Tx: txHex,
-		}
-
-		client := wallet.client
-
-		walletlog.Debug("try to get signature from authority")
-
-		msg := client.NewMessage("authority", types.EventAuthoritySignTx, data)
-		client.Send(msg, true)
-
-		resp, err := client.Wait(msg)
-		if err != nil {
-			panic(err)
-		}
-		signTxHex, ok := resp.GetData().(*types.ReplyAuthSignTx)
-		if ok {
-			walletlog.Debug("get signature success")
-			//ty and pubkey may be not used in this case
-			if group == nil {
-				signedTx := hex.EncodeToString(signTxHex.Tx)
-				return signedTx, nil
-			} else {
-				var sigTran types.Transaction
-				err = types.Decode(signTxHex.Tx, &sigTran)
-				if err != nil {
-					return "", err
-				}
-
-				temp := append([]*types.Transaction{}, group.Txs[index:]...)
-				group.Txs = append(group.Txs[0:index], &sigTran)
-				group.Txs = append(group.Txs, temp...)
-				grouptx := group.Tx()
-				txHex := types.Encode(grouptx)
-				signedTx := hex.EncodeToString(txHex)
-				return signedTx, nil
-			}
-		}
+		grouptx := group.Tx()
+		txHex := types.Encode(grouptx)
+		signedTx := hex.EncodeToString(txHex)
+		return signedTx, nil
 	} else {
-		data := &types.ReqAuthSignTxs{
-			Txs: group.Txs,
-		}
+		index -= 1
+		group.SignN(int(index), int32(SignType), key)
+		grouptx := group.Tx()
+		txHex := types.Encode(grouptx)
+		signedTx := hex.EncodeToString(txHex)
+		return signedTx, nil
+	}*/
+	return "", nil
+}
 
-		client := wallet.client
+func (wallet *Wallet) getPrivKeyFromAuth(addr string) (crypto.PrivKey, []byte, error) {
+	walletlog.Debug("try to get certificate and private key from authority")
 
-		walletlog.Debug("try to get signature from authority")
-
-		msg := client.NewMessage("authority", types.EventAuthoritySignTxs, data)
-		client.Send(msg, true)
-
-		resp, err := client.Wait(msg)
-		if err != nil {
-			panic(err)
-		}
-		signTxs, ok := resp.GetData().(*types.ReplyAuthSignTxs)
-		if ok {
-			newgroup := &types.Transactions{Txs: signTxs.Txs}
-			grouptx := newgroup.Tx()
-			txHex := types.Encode(grouptx)
-			signedTx := hex.EncodeToString(txHex)
-			return signedTx, nil
-		}
+	data := &types.ReqAuthGetUser{
+		Name: addr,
 	}
 
-	return "", types.ErrGetSignFromAuth
+	client := wallet.client
+	msg := client.NewMessage("authority", types.EventAuthorityGetUser, data)
+	client.Send(msg, true)
+
+	resp, err := client.Wait(msg)
+	if err != nil {
+		panic(err)
+	}
+
+	user, ok := resp.GetData().(*types.ReplyAuthGetUser)
+	if !ok {
+		return nil, nil, types.ErrGetCertFromAuth
+	}
+
+	cr, err := crypto.New(types.GetSignatureTypeName(SignType))
+	if err != nil {
+		walletlog.Error("ProcSendToAddress", "err", err)
+		return nil, nil, err
+	}
+	priv, err := cr.PrivKeyFromBytes(user.Key)
+	if err != nil {
+		walletlog.Error("ProcSendToAddress", "PrivKeyFromBytes err", err)
+		return nil, nil, err
+	}
+
+	return priv, user.Cert, nil
 }
 
 //input:

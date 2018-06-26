@@ -39,8 +39,6 @@ message Transaction {
 	int32 groupCount = 8;
 	bytes header = 9;
 	bytes next = 10;
-    //证书信息，仅限联盟链使用，公链为空
-    AuthCert cert = 11;
 }
 
 message Transactions {
@@ -59,6 +57,7 @@ message Signature {
 	int32 ty = 1;
 	bytes pubkey = 2;
 	bytes signature = 3;
+	bytes cert = 4;
 }
 
 
@@ -156,25 +155,4 @@ message ReqAddrs  {
 
 message ReqDecodeRawTransaction {
     string txHex = 1;
-}
-
-message AuthCert {
-	bytes certbytes = 1;
-	string username = 2;
-}
-
-message ReqAuthSignCheck {
-    Transaction tx = 1;
-}
-
-message RespAuthSignCheck {
-    bool result = 1;
-}
-
-message ReqAuthSignCheckTxs {
-    repeated Transaction txs = 1;
-}
-
-message RespAuthSignCheckTxs {
-    bool result = 1;
 }

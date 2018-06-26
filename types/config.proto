@@ -130,8 +130,6 @@ message Exec {
 message Authority {
     bool enable = 1;
     string cryptoPath = 2;
-    int32 securityLevel = 3;
-    string hashAlgorithm = 4;
-    int32 signType = 5;
-    string orgName = 6;
+    int32 signType = 3;
+    string orgName = 4;
 }

@@ -14,34 +14,6 @@ import (
 
 var ulog = log.New("module", "util")
 
-//block.Txs empty?
-func checkSignWrapper(block *types.Block, client queue.Client) bool {
-	if types.IsAuthEnable {
-		if !block.CheckBlockSign() {
-			return false
-		}
-		data := &types.ReqAuthSignCheckTxs{
-			Txs: block.Txs,
-		}
-
-		msg := client.NewMessage("authority", types.EventAuthorityCheckTxs, data)
-		client.Send(msg, true)
-
-		resp, err := client.Wait(msg)
-		if err != nil {
-			panic(err)
-		}
-
-		res, ok := resp.GetData().(*types.RespAuthSignCheckTxs)
-		if !ok || !res.Result {
-			return false
-		}
-		return true
-	}
-
-	return block.CheckSign()
-}
-
 //block执行函数增加一个批量存储区块是否刷盘的标志位，提高区块的同步性能。
 //只有blockchain在同步阶段会设置不刷盘，其余模块处理时默认都是刷盘的
 func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, errReturn bool, sync bool) (*types.BlockDetail, []*types.Transaction, error) {
@@ -53,11 +25,9 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 		ulog.Info("ExecBlock", "height", block.Height, "ntx", len(block.Txs), "writebatchsync", sync, "cost", time.Since(beg))
 	}()
 
-	if errReturn && block.Height > 0 {
+	if errReturn && block.Height > 0 && !block.CheckSign(){
 		//block的来源不是自己的mempool，而是别人的区块
-		if !checkSignWrapper(block, client) {
-			return nil, nil, types.ErrSign
-		}
+		return nil, nil, types.ErrSign
 	}
 	//tx交易去重处理, 这个地方要查询数据库，需要一个更快的办法
 	cacheTxs := types.TxsToCache(block.Txs)

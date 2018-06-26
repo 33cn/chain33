@@ -2,30 +2,33 @@ package authority
 
 import (
 	"fmt"
-	"runtime"
+	"path"
 
 	log "github.com/inconshreveable/log15"
 	"github.com/pkg/errors"
-	"gitlab.33.cn/chain33/chain33/authority/common/core"
-	"gitlab.33.cn/chain33/chain33/authority/cryptosuite"
-	"gitlab.33.cn/chain33/chain33/authority/identitymgr"
-	"gitlab.33.cn/chain33/chain33/authority/mspmgr"
-	"gitlab.33.cn/chain33/chain33/authority/signingmgr"
+	"gitlab.33.cn/chain33/chain33/authority/core"
+	"gitlab.33.cn/chain33/chain33/authority/utils"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
+	"io/ioutil"
 )
 
 var alog = log.New("module", "autority")
 var OrgName = "chain33"
 
 type Authority struct {
-	cryptoPath  string
-	client      queue.Client
-	cfg         *types.Authority
-	cryptoSuite core.CryptoSuite
-	signer      *signingmgr.SigningManager
-	idmgr       *identitymgr.IdentityManager
-	signType    int32
+	cryptoPath string
+	client     queue.Client
+	cfg        *types.Authority
+	signType   int32
+	userMap    map[string]*User
+	validator   core.Validator
+}
+
+type User struct {
+	id                    string
+	enrollmentCertificate []byte
+	privateKey            []byte
 }
 
 func New(conf *types.Authority) *Authority {
@@ -41,49 +44,64 @@ func New(conf *types.Authority) *Authority {
 		auth.cryptoPath = conf.CryptoPath
 		auth.cfg = conf
 		OrgName = conf.GetOrgName()
-
 	}
 
 	return auth
 }
 
-func (auth *Authority) initConfig(conf *types.Authority) error {
-	config := &cryptosuite.CryptoConfig{conf}
+func (auth *Authority) loadUsers(configPath string) error {
+	auth.userMap = make(map[string]*User)
 
-	types.IsAuthEnable = true
-
-	cryptoSuite, err := cryptosuite.GetSuiteByConfig(config)
-	if err != nil {
-		return errors.WithMessage(err, "Failed to initialize crypto suite")
-	}
-	auth.cryptoSuite = cryptoSuite
-
-	signer, err := signingmgr.New(cryptoSuite)
-	if err != nil {
-		return errors.WithMessage(err, "Failed to initialize signing manage")
-	}
-	auth.signer = signer
-
-	idmgr, err := identitymgr.NewIdentityManager(OrgName, cryptoSuite, conf.CryptoPath)
-	if err != nil {
-		return errors.WithMessage(err, "Failed to initialize identity manage")
-	}
-	auth.idmgr = idmgr
-
-	err = mspmgr.LoadLocalMsp(conf.CryptoPath, config)
+	certDir := path.Join(configPath, "signcerts")
+	dir,err := ioutil.ReadDir(certDir)
 	if err != nil {
 		return err
+	}
+
+	keyDir := path.Join(configPath, "keystore")
+	for _,file := range dir {
+		filePath := path.Join(certDir,file.Name())
+		certBytes, err := utils.ReadFile(filePath)
+		if err != nil {
+			continue
+		}
+
+		ski,err := utils.GetPublicKeySKIFromCert(certBytes)
+		if err != nil {
+			alog.Error(fmt.Sprintf("Value in certificate file:%s not found", filePath))
+			continue
+		}
+		filePath = path.Join(keyDir, ski+"_sk")
+		KeyBytes, err := utils.ReadFile(filePath)
+		if err != nil {
+			continue
+		}
+
+		auth.userMap[file.Name()] = &User{file.Name(), certBytes, KeyBytes}
 	}
 
 	return nil
 }
 
-func (auth *Authority) GetSigningMgr() *signingmgr.SigningManager {
-	return auth.signer
-}
+func (auth *Authority) initConfig(conf *types.Authority) error {
+	types.IsAuthEnable = true
 
-func (auth *Authority) GetIdentityMgr() *identitymgr.IdentityManager {
-	return auth.idmgr
+	if len(conf.CryptoPath) == 0 {
+		return errors.New("Config path cannot be null")
+	}
+
+	err := auth.loadUsers(conf.CryptoPath)
+	if err != nil {
+		return errors.WithMessage(err, "Failed to load users' file")
+	}
+
+	vldt, err := core.GetLocalValidator(conf.CryptoPath)
+	if err != nil {
+		return err
+	}
+	auth.validator = vldt
+
+	return nil
 }
 
 func (auth *Authority) SetQueueClient(client queue.Client) {
@@ -95,161 +113,51 @@ func (auth *Authority) SetQueueClient(client queue.Client) {
 		go func() {
 			for msg := range client.Recv() {
 				alog.Debug("authority recv", "msg", msg)
-				if msg.Ty == types.EventAuthoritySignTx {
-					go auth.procSignTx(msg)
-				} else if msg.Ty == types.EventAuthorityCheckTx {
-					go auth.procCheckTx(msg)
-				} else if msg.Ty == types.EventAuthorityCheckTxs {
-					go auth.procCheckTxs(msg)
-				} else if msg.Ty == types.EventAuthoritySignTxs {
-					go auth.procSignTxs(msg)
+				if msg.Ty == types.EventAuthorityGetUser {
+					go auth.procGetUser(msg)
+				} else if msg.Ty == types.EventAuthorityCheckCert {
+					go auth.progCheckCert(msg)
 				}
 			}
 		}()
 	}
 }
 
-//签名与CERT独立发送，验证签名时，如有异常，可以先把这两个数据拷贝置空再验证
-//或者在此处重新构造TX数据
-func (auth *Authority) procSignTx(msg queue.Message) {
-	data, _ := msg.GetData().(*types.ReqAuthSignTx)
+func (auth *Authority) progCheckCert(msg queue.Message) {
+	data,_ := msg.GetData().(*types.ReqAuthCheckCert)
 
-	alog.Debug("Process authority tx signing begin")
-	var tx types.Transaction
-	err := types.Decode(data.Tx, &tx)
-	if err != nil {
-		alog.Error("ReqAuthSignTx decode error, wrong data format")
-		msg.ReplyErr("EventReplyAuthSignTx", types.ErrInvalidParam)
+	certByte := data.GetCert()
+	if len(certByte) == 0 {
+		alog.Error("cert can not be null")
+		msg.ReplyErr("EventReplyAuthGetUser", types.ErrInvalidParam)
 		return
 	}
 
-	userName := tx.GetCert().Username
-	user, err := auth.idmgr.GetUser(userName)
+	err := auth.validator.Validate(certByte)
 	if err != nil {
-		alog.Error(fmt.Sprintf("Wrong username:%s", userName))
-		msg.ReplyErr("EventReplyAuthSignTx", types.ErrInvalidParam)
+		alog.Error(fmt.Sprintf("validate cert failed. %s", err.Error()))
+		msg.Reply(auth.client.NewMessage("", types.EventReplyAuthCheckCert, &types.ReplyAuthCheckCert{false}))
 		return
 	}
 
-	if tx.Signature != nil {
-		alog.Error("Signature already exist")
-		msg.ReplyErr("EventReplyAuthSignTx", types.ErrSignatureExist)
-		return
-	}
-
-	tx.Cert.Certbytes = append(tx.Cert.Certbytes, user.EnrollmentCertificate()...)
-	signature, err := auth.signer.Sign(types.Encode(&tx), user.PrivateKey())
-	if err != nil {
-		panic(err)
-	}
-	tx.Signature = &types.Signature{auth.signType, nil, signature}
-
-	alog.Debug("Process authority tx signing end")
-
-	txHex := types.Encode(&tx)
-	msg.Reply(auth.client.NewMessage("", types.EventReplyAuthSignTx, &types.ReplyAuthSignTx{txHex}))
+	msg.Reply(auth.client.NewMessage("", types.EventReplyAuthCheckCert, &types.ReplyAuthCheckCert{true}))
 }
 
-//to be merged with Tx
-func (auth *Authority) procSignTxs(msg queue.Message) {
-	data, ok := msg.GetData().(*types.ReqAuthSignTxs)
+func (auth *Authority) procGetUser(msg queue.Message) {
+	data, _ := msg.GetData().(*types.ReqAuthGetUser)
+
+	userName := data.GetName()
+	user,ok := auth.userMap[fmt.Sprintf("%s@%s-cert.pem", userName, OrgName)]
 	if !ok {
-		alog.Error("Get Auth data err")
-		panic("")
-	}
-
-	var reply types.ReplyAuthSignTxs
-
-	alog.Debug("Process authority tx signing begin")
-	var tx types.Transaction
-	for i := range data.Txs {
-		tx = *data.Txs[i]
-
-		userName := tx.GetCert().Username
-		user, err := auth.idmgr.GetUser(userName)
-		if err != nil {
-			alog.Error(fmt.Sprintf("Wrong username:%s", userName))
-			msg.ReplyErr("EventReplyAuthSignTx", types.ErrInvalidParam)
-			return
-		}
-
-		if tx.Signature != nil {
-			alog.Error("Signature already exist")
-			msg.ReplyErr("EventReplyAuthSignTx", types.ErrSignatureExist)
-			return
-		}
-
-		tx.Cert.Certbytes = append(tx.Cert.Certbytes, user.EnrollmentCertificate()...)
-		signature, err := auth.signer.Sign(types.Encode(&tx), user.PrivateKey())
-		if err != nil {
-			panic(err)
-		}
-		tx.Signature = &types.Signature{auth.signType, nil, signature}
-		reply.Txs = append(reply.Txs, &tx)
-	}
-	alog.Debug("Process authority tx signing end")
-	msg.Reply(auth.client.NewMessage("", types.EventReplyAuthSignTxs, &reply))
-}
-
-func (auth *Authority) checkTx(tx *types.Transaction) bool {
-	alog.Debug(fmt.Sprintf("transaction user name %s", tx.GetCert().GetUsername()))
-
-	localMSP := mspmgr.GetLocalMSP()
-	identity, err := localMSP.DeserializeIdentity(tx.GetCert().GetCertbytes())
-	if err != nil {
-		alog.Error("Deserialize identity from cert bytes failed", "Error", err.Error())
-		return false
-	}
-
-	err = identity.Validate()
-	if err != nil {
-		alog.Error("Validate certificates failed", "Error", err.Error())
-		return false
-	}
-	alog.Debug("Certificates is valid")
-
-	copytx := *tx
-	copytx.Signature = nil
-	bytes := types.Encode(&copytx)
-	err = identity.Verify(bytes, tx.GetSignature().GetSignature())
-	if err != nil {
-		alog.Error("Verify signature failed", "Error", err.Error())
-		return false
-	}
-	alog.Debug("Verify signature success")
-
-	return true
-}
-
-func (auth *Authority) procCheckTx(msg queue.Message) {
-	data := msg.GetData().(*types.ReqAuthSignCheck)
-	tx := data.GetTx()
-	if tx.GetSignature().Ty != auth.signType {
-		alog.Error("Signature type in transaction is %d, but in authority is %d", tx.GetSignature().Ty, auth.signType)
-		msg.ReplyErr("EventReplyAuthCheckTx", types.ErrInvalidParam)
+		msg.ReplyErr("EventReplyAuthGetUser", types.ErrInvalidParam)
 		return
 	}
 
-	result := auth.checkTx(tx)
-	if !result {
-		msg.Reply(auth.client.NewMessage("", types.EventReplyAuthCheckTx, &types.RespAuthSignCheck{false}))
-	} else {
-		msg.Reply(auth.client.NewMessage("", types.EventReplyAuthCheckTx, &types.RespAuthSignCheck{true}))
-	}
-}
+	resp := &types.ReplyAuthGetUser{}
+	resp.Cert = append(resp.Cert, user.enrollmentCertificate...)
+	resp.Key = append(resp.Key, user.privateKey...)
 
-func (auth *Authority) procCheckTxs(msg queue.Message) {
-	data := msg.GetData().(*types.ReqAuthSignCheckTxs)
-	txs := data.GetTxs()
-	if len(txs) == 0 {
-		alog.Error("Empty transactions")
-		msg.ReplyErr("EventReplyAuthCheckTxs", types.ErrInvalidParam)
-		return
-	}
-
-	cpu := runtime.NumCPU()
-	ok := types.CheckAll(txs, cpu, auth.checkTx)
-	msg.Reply(auth.client.NewMessage("", types.EventReplyAuthCheckTxs, &types.RespAuthSignCheckTxs{ok}))
+	msg.Reply(auth.client.NewMessage("", types.EventReplyAuthGetUser,resp))
 }
 
 func (auth *Authority) Close() {
