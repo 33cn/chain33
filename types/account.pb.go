@@ -16,6 +16,7 @@ It is generated from these files:
 	game.proto
 	p2p.proto
 	pbft.proto
+	relay.proto
 	rpc.proto
 	statistic.proto
 	transaction.proto
@@ -236,6 +237,30 @@ It has these top-level messages:
 	RequestAck
 	RequestNewView
 	ClientReply
+	RelayAction
+	RelayCreate
+	RelayOrder
+	RelayAccept
+	RelayRevoke
+	RelayConfirmTx
+	RelayVerify
+	RelayVerifyCli
+	BtcHeader
+	BtcHeaders
+	BtcTransaction
+	Vin
+	Vout
+	BtcSpv
+	ReceiptRelayRcvBTCHeaders
+	ReceiptRelayLog
+	ReqRelayAddrCoins
+	ReplyRelayOrders
+	QueryRelayOrderParam
+	QueryRelayOrderResult
+	ReqRelayBtcHeaderHeightList
+	ReplyRelayBtcHeadHeightList
+	ReqRelayQryBTCHeadHeight
+	ReplayRelayQryBTCHeadHeight
 	TotalFee
 	ReqGetTotalCoins
 	ReplyGetTotalCoins

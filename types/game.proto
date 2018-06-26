@@ -3,74 +3,73 @@ syntax = "proto3";
 package types;
 
 message Game {
-	string gameId = 1;
-	//0 -> 未成熟 1 -> 可挖矿 2 -> 已挖成功 3-> 已关闭
-	int32 status = 2; 
-	//创建时间
-	int64 createTime = 3;
-	//挖矿时间(匹配时间)
-	int64 matchTime = 4; 
-	//状态close的时间（包括cancel）
-	int64 closetime = 5;
-	//赌注
-	int64 value = 6;
-	string matchAddress = 7;
-	bytes hash = 8;
-	bytes hashValue = 9;
-	bytes secret = 10;
-	int32 result = 11;
-	int32 guess = 12;
+    string gameId = 1;
+    // 0 -> 未成熟 1 -> 可挖矿 2 -> 已挖成功 3-> 已关闭
+    int32 status = 2;
+    //创建时间
+    int64 createTime = 3;
+    //挖矿时间(匹配时间)
+    int64 matchTime = 4;
+    //状态close的时间（包括cancel）
+    int64 closetime = 5;
+    //赌注
+    int64  value        = 6;
+    string matchAddress = 7;
+    bytes  hash         = 8;
+    bytes  hashValue    = 9;
+    bytes  secret       = 10;
+    int32  result       = 11;
+    int32  guess        = 12;
 }
 
-//message for execs.ticket
+// message for execs.ticket
 message GameAction {
-	oneof value {
-		GameOpen open = 1;
-		GameCancel cancel = 2;
-		GameClose close = 3;
-		GameMatch match = 4;
-	}
-	int32 ty = 10;
+    oneof value {
+        GameOpen   open   = 1;
+        GameCancel cancel = 2;
+        GameClose  close  = 3;
+        GameMatch  match  = 4;
+    }
+    int32 ty = 10;
 }
 
 message GameMatch {
-	string gameId = 1;
-	int32 guess = 2;
+    string gameId = 1;
+    int32  guess  = 2;
 }
 
 message GameCancel {
-	string gameId = 1;
+    string gameId = 1;
 }
 
 message GameClose {
-	string gameId = 1;
-	bytes  secret = 2;
-	int32  result = 3;
+    string gameId = 1;
+    bytes  secret = 2;
+    int32  result = 3;
 }
 
 message GameOpen {
-	int64 value = 1;
-	bytes hash = 2;
-	bytes hashValue = 3;
+    int64 value     = 1;
+    bytes hash      = 2;
+    bytes hashValue = 3;
 }
 
-
 message GameList {
-	string addr = 1;
-	int32 status = 3;
+    string addr   = 1;
+    int32  status = 3;
 }
 
 message GameInfos {
-	repeated string gameIds = 1;
+    repeated string gameIds = 1;
 }
 
 message ReplyGameList {
-	repeated Game games = 1;
+    repeated Game games = 1;
 }
 
 message ReceiptGame {
-	string gameId = 1;
-	int32 status = 2;
-	int32 prevStatus = 3;
-	string addr = 4;
+    string gameId     = 1;
+    int32  status     = 2;
+    int32  prevStatus = 3;
+    string addr       = 4;
 }

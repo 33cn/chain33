@@ -419,6 +419,54 @@ func (r *ReceiptData) DecodeReceiptLog() (*ReceiptDataResult, error) {
 				return nil, err
 			}
 			logIns = logTmp
+		case TyLogRelayCreate:
+			lTy = "LogRelaySell"
+			var logTmp ReceiptRelayLog
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogRelayRevokeCreate:
+			lTy = "LogRelayRevokeSell"
+			var logTmp ReceiptRelayLog
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogRelayAccept:
+			lTy = "LogRelayBuy"
+			var logTmp ReceiptRelayLog
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogRelayRevokeAccept:
+			lTy = "LogRelayRevokeBuy"
+			var logTmp ReceiptRelayLog
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogRelayConfirmTx:
+			lTy = "LogRelayConfirmTx"
+			var logTmp ReceiptRelayLog
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogRelayRcvBTCHead:
+			lTy = "LogRelayRcvBTCHead"
+			var logTmp ReceiptRelayRcvBTCHeaders
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
 		case TyLogCallContract:
 			lTy = "LogCallContract"
 			var logTmp ReceiptEVMContract
