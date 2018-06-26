@@ -24,7 +24,7 @@ var (
 	DefCacheSize        int64 = 512
 	cachelock           sync.Mutex
 	zeroHash            [32]byte
-	InitBlockNum        int64 = 128 //节点刚启动时从db向index和bestchain缓存中添加的blocknode数
+	InitBlockNum        int64 = 1024 //节点刚启动时从db向index和bestchain缓存中添加的blocknode数
 	isStrongConsistency       = false
 
 	chainlog                   = log.New("module", "blockchain")

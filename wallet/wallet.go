@@ -1831,6 +1831,7 @@ func (wallet *Wallet) AddDelPrivacyTxsFromBlock(tx *types.Transaction, index int
 	if err := types.Decode(tx.GetPayload(), &privateAction); err != nil {
 		walletlog.Error("AddDelPrivacyTxsFromBlock failed to decode payload")
 	}
+	walletlog.Info("AddDelPrivacyTxsFromBlock","addDelType",addDelType,"tx hash",txhash)
 	var RpubKey []byte
 	var privacyOutput *types.PrivacyOutput
 	var tokenname string
@@ -1963,6 +1964,7 @@ func (wallet *Wallet) AddDelPrivacyTxsFromBlock(tx *types.Transaction, index int
 			}
 			for _, ftxo := range ftxosInRevTx {
 				keys = append(keys, calcRevertSendTxKey(ftxo.Tokenname, ftxo.Sender, ftxo.Txhash))
+				walletlog.Info("================AddTx ftxosInRevTx=============", "tx hash", ftxo.Txhash)
 			}
 
 			ftxos := append(ftxosInOneTx, ftxosInRevTx...)

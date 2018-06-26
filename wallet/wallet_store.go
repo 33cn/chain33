@@ -563,6 +563,18 @@ func (ws *Store) setUTXO(addr, txhash *string, outindex int, dbStore *types.Priv
 		}
 	}
 
+	if Ftos, _, _ := ws.GetWalletFtxoStxo(FTXOs4Tx); nil != Ftos {
+		for _, ftxos4tx := range Ftos {
+			for _, ftxo := range ftxos4tx.Utxos {
+				if common.Bytes2Hex(ftxo.UtxoBasic.UtxoGlobalIndex.Txhash) == *txhash {
+					walletlog.Info("setUTXO for FTXOs4Tx tx", "txHash", *txhash, "outindex", outindex)
+					return nil
+				}
+			}
+		}
+	}
+
+
 	privacyStorebyte, err := proto.Marshal(dbStore)
 	if err != nil {
 		walletlog.Error("setUTXO proto.Marshal err!", "err", err)
@@ -736,6 +748,8 @@ func (ws *Store) moveFTXO2STXO(key1 []byte, txhash string, newbatch dbm.Batch) e
 	newbatch.Set(key3, value2)
 
 	newbatch.Write()
+
+	walletlog.Info("moveFTXO2STXO", "tx hash", txhash)
 
 	return nil
 }
