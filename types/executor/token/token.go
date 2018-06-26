@@ -91,6 +91,7 @@ func (token TokenType) Amount(tx *types.Transaction) (int64, error) {
 
 // TODO 暂时不修改实现， 先完成结构的重构
 func (coins TokenType) CreateTx(action string, message json.RawMessage) (*types.Transaction, error) {
+	tlog.Debug("token.CreateTx", "action", action)
 	var tx *types.Transaction
 	// transfer/withdraw 原来实现混在一起， 简单的从原来的代码移进来
 	if action == "" {
@@ -135,7 +136,7 @@ func (coins TokenType) CreateTx(action string, message json.RawMessage) (*types.
 			return nil, types.ErrInputPara
 		}
 
-		CreateRawTokenPreCreateTx(&param)
+		return CreateRawTokenPreCreateTx(&param)
 	} else if action == "TokenFinish" {
 		var param TokenFinishTx
 		err := json.Unmarshal(message, &param)
@@ -144,7 +145,7 @@ func (coins TokenType) CreateTx(action string, message json.RawMessage) (*types.
 			return nil, types.ErrInputPara
 		}
 
-		CreateRawTokenFinishTx(&param)
+		return CreateRawTokenFinishTx(&param)
 	} else if action == "TokenRevoke" {
 		var param TokenRevokeTx
 		err := json.Unmarshal(message, &param)
@@ -153,7 +154,7 @@ func (coins TokenType) CreateTx(action string, message json.RawMessage) (*types.
 			return nil, types.ErrInputPara
 		}
 
-		CreateRawTokenRevokeTx(&param)
+		return CreateRawTokenRevokeTx(&param)
 	} else {
 		return nil, types.ErrNotSupport
 	}
@@ -177,8 +178,9 @@ func CreateTokenTransfer(param *types.CreateTx) *types.Transaction {
 	return &types.Transaction{Execer: []byte(name), Payload: types.Encode(transfer), To: param.GetTo()}
 }
 
-func CreateRawTokenPreCreateTx(parm *TokenPreCreateTx) ([]byte, error) {
+func CreateRawTokenPreCreateTx(parm *TokenPreCreateTx) (*types.Transaction, error) {
 	if parm == nil {
+		tlog.Error("CreateRawTokenPreCreateTx", "parm", parm)
 		return nil, types.ErrInvalidParam
 	}
 	v := &types.TokenPreCreate{
@@ -201,11 +203,10 @@ func CreateRawTokenPreCreateTx(parm *TokenPreCreateTx) ([]byte, error) {
 		To:      address.ExecAddress("token"),
 	}
 
-	data := types.Encode(tx)
-	return data, nil
+	return tx, nil
 }
 
-func CreateRawTokenFinishTx(parm *TokenFinishTx) ([]byte, error) {
+func CreateRawTokenFinishTx(parm *TokenFinishTx) (*types.Transaction, error) {
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}
@@ -223,11 +224,10 @@ func CreateRawTokenFinishTx(parm *TokenFinishTx) ([]byte, error) {
 		To:      address.ExecAddress("token"),
 	}
 
-	data := types.Encode(tx)
-	return data, nil
+	return tx, nil
 }
 
-func CreateRawTokenRevokeTx(parm *TokenRevokeTx) ([]byte, error) {
+func CreateRawTokenRevokeTx(parm *TokenRevokeTx) (*types.Transaction, error) {
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}
@@ -244,8 +244,7 @@ func CreateRawTokenRevokeTx(parm *TokenRevokeTx) ([]byte, error) {
 		To:      address.ExecAddress("token"),
 	}
 
-	data := types.Encode(tx)
-	return data, nil
+	return tx, nil
 }
 
 // log
