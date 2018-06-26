@@ -15,6 +15,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
 	tokentype "gitlab.33.cn/chain33/chain33/types/executor/token"
+	"reflect"
 )
 
 //提供系统rpc接口
@@ -37,7 +38,8 @@ func callExecNewTx(execName, action string, param interface{}) ([]byte, error) {
 		return nil, types.ErrNotSupport
 	}
 
-	if param == nil {
+	// param is interface{type, var-nil}, check with nil always fail
+	if reflect.ValueOf(param).IsNil() {
 		log.Error("callExecNewTx", "Error", "param in nil")
 		return nil, types.ErrInvalidParam
 	}
@@ -47,7 +49,7 @@ func callExecNewTx(execName, action string, param interface{}) ([]byte, error) {
 		log.Error("callExecNewTx", "Error", err)
 		return nil, err
 	}
-	// check jsonStr whether is null, because param is interface{type, var-nil}, check with nil always fail
+
 	if string(jsonStr) == "null" {
 		log.Error("callExecNewTx", "Error", "param in nil")
 		return nil, types.ErrInvalidParam
