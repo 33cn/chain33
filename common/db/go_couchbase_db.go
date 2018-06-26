@@ -20,6 +20,10 @@ var (
 	BATCH_MAP_SIZE = 10240
 )
 
+type cbDocument struct {
+	Key string `json:id`
+}
+
 func init() {
 	dbCreator := func(name string, dir string, cache int) (DB, error) {
 		return NewGoCouchBase(name, dir, cache)
@@ -117,24 +121,25 @@ func (db *GoCouchBase) Stats() map[string]string {
 
 func (db *GoCouchBase) Iterator(prefix []byte, reserve bool) Iterator {
 	r := &util.Range{prefix, bytesPrefix(prefix)}
-
 	view := gocb.NewViewQuery("dev_view", "all_keys")
-	view.IdRange(hex.EncodeToString(r.Start), hex.EncodeToString(r.Limit))
+	view.Range(hex.EncodeToString(r.Start), hex.EncodeToString(r.Limit), false)
 	res, err := db.bucket.ExecuteViewQuery(view)
 	if err != nil {
 		clog.Error("View err", "error", err)
 		return &GoCouchBaseIt{}
 	}
 	var keys []string
-	var val []byte
+	val := &cbDocument{}
 	for res.Next(&val) {
-		keys = append(keys, hex.EncodeToString(val))
+		if err == nil {
+			keys = append(keys, val.Key)
+		}
 	}
 
 	var v []byte
 	var mVal map[string][]byte
+	mVal = make(map[string][]byte, 102400)
 	for _, k := range keys {
-
 		db.bucket.Get(k, &v)
 		mVal[k] = v
 	}
@@ -154,7 +159,7 @@ func (dbit *GoCouchBaseIt) Close() {
 	dbit.mVal = nil
 	dbit.prefix = nil
 	dbit.reserve = false
-	dbit.index = 0
+	dbit.index = 1
 }
 
 func (dbit *GoCouchBaseIt) Next() bool {
@@ -172,7 +177,7 @@ func (dbit *GoCouchBaseIt) Next() bool {
 
 func (dbit *GoCouchBaseIt) Rewind() bool {
 	if dbit.reserve {
-		dbit.index = int64(len(dbit.keys))
+		dbit.index = int64(len(dbit.keys)) - 1
 	} else {
 		dbit.index = 0
 	}
@@ -194,6 +199,10 @@ func (dbit *GoCouchBaseIt) ValueCopy() []byte {
 func (dbit *GoCouchBaseIt) Valid() bool {
 	val, _ := hex.DecodeString(dbit.keys[dbit.index])
 	return dbit.mVal[dbit.keys[dbit.index]] != nil && bytes.Contains(val, dbit.prefix)
+}
+
+func (it *GoCouchBaseIt) Error() error {
+	return nil
 }
 
 type GoCouchBaseBatch struct {
