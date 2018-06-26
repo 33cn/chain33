@@ -21,7 +21,8 @@ var (
 	grpcSite            = "localhost:8802"
 	currSeq       int64 = 0
 	lastSeq       int64 = 0
-	seqStep       int64 = 10       //experience needed
+	seqStep       int64 = 10 //experience needed
+	blockedSeq    int64 = 0
 	filterExec          = "ticket" //execName not decided
 	txCacheSize   int64 = 10240
 	blockSec      int64 = 10 //write block interval, second
@@ -104,7 +105,7 @@ func (client *Client) SetTxs() {
 	if err != nil {
 		return
 	}
-	plog.Error("SetTxs", "LastSeq", lastSeq, "currSeq", currSeq)
+	plog.Error("SetTxs", "LastSeq", lastSeq, "currSeq", currSeq, "blockedSeq", blockedSeq)
 	if lastSeq > currSeq {
 		//debug phase
 		if currSeq > 10 {
@@ -144,21 +145,21 @@ func (client *Client) SetTxs() {
 			//为TX置标志位
 			txs = client.FilterTxsForPara(txs)
 			plog.Error("GetCurrentSeq", "Len of txs", len(txs), "ty", opTy)
-			client.SetOpTxs(txs, opTy)
+			client.SetOpTxs(txs, opTy, currSeq)
 		}
 
 		currSeq += 1
 	}
 }
 
-func (client *Client) SetOpTxs(txs []*types.Transaction, ty int64) {
+func (client *Client) SetOpTxs(txs []*types.Transaction, ty int64, currSeq int64) {
 	for i, _ := range txs {
 		hash := txs[i].Hash()
 		if ty == DelAct && client.cache.Exists(hash) && client.cache.Get(hash).ty == AddAct {
 			client.cache.Remove(hash)
 		} else {
 			if !client.cache.Exists(hash) {
-				err := client.cache.Push(txs[i], ty)
+				err := client.cache.Push(txs[i], ty, currSeq)
 				if err != nil {
 					plog.Error("SetOpTxs", "err", err)
 				}
@@ -295,7 +296,6 @@ func (client *Client) CreateBlock() {
 			newblock.BlockTime = lastBlock.BlockTime + 1
 		}
 		err := client.WriteBlock(lastBlock.StateHash, &newblock)
-		//判断有没有交易是被删除的，这类交易要从mempool 中删除
 		if err != nil {
 			issleep = true
 			plog.Error(fmt.Sprintf("********************err:%v", err.Error()))
@@ -314,9 +314,10 @@ func (client *Client) RequestTx(size int, txHashList [][]byte) []*types.Transact
 // 向blockchain写区块
 func (client *Client) WriteBlock(prev []byte, block *types.Block) error {
 	plog.Error("write block in parachain")
+	var deltxSeq int64
 	blockdetail, deltx, err := client.ExecBlock(prev, block)
 	if len(deltx) > 0 {
-		client.DelTxs(deltx)
+		deltxSeq = client.DelTxs(deltx)
 	}
 	if err != nil {
 		return err
@@ -330,6 +331,13 @@ func (client *Client) WriteBlock(prev []byte, block *types.Block) error {
 
 	if resp.GetData().(*types.Reply).IsOk {
 		client.SetCurrentBlock(block)
+		txSeq := client.DelTxs(block.Txs)
+		// 成功打包区块才更新blockedSeq
+		if txSeq > deltxSeq {
+			client.SetBlockedSeq(txSeq)
+		} else {
+			client.SetBlockedSeq(deltxSeq)
+		}
 	} else {
 		reply := resp.GetData().(*types.Reply)
 		return errors.New(string(reply.GetMsg()))
@@ -338,12 +346,24 @@ func (client *Client) WriteBlock(prev []byte, block *types.Block) error {
 }
 
 // 向cache删除交易
-func (client *Client) DelTxs(deltx []*types.Transaction) error {
+func (client *Client) DelTxs(deltx []*types.Transaction) (seq int64) {
 	for i := 0; i < len(deltx); i++ {
 		exist := client.cache.Exists(deltx[i].Hash())
 		if exist {
+			if i == len(deltx)-1 {
+				seq = client.cache.Get(deltx[i].Hash()).seq
+			}
 			client.cache.Remove(deltx[i].Hash())
 		}
+	}
+	return
+}
+
+// 保存blockedSeq
+func (client *Client) SetBlockedSeq(seq int64) error {
+	if seq > blockedSeq {
+		blockedSeq = seq
+		// 持久化存储用于恢复
 	}
 	return nil
 }
