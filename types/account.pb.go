@@ -336,7 +336,10 @@ It has these top-level messages:
 	CreateTransactionCache
 	ReqCacheTxList
 	ReplyCacheTxList
+	ReqPrivacyAccount
+	ReqPPrivacyAccount
 	ReplyPrivacyAccount
+	ReqCreateCacheTxKey
 */
 package types
 

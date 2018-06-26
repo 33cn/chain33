@@ -25,7 +25,6 @@ var (
 const (
 	Privacy4Addr       = "Privacy4Addr-"
 	PrivacyUTXO        = "UTXO-"
-	PrivacyFTXO        = "FTXO-" //Frozen TXO
 	PrivacySTXO        = "STXO-"
 	PrivacyTokenMap    = "PrivacyTokenMap"
 	FTXOTimeout        = types.ConfirmedHeight * types.BlockDurPerSecCnt //Ftxo超时时间
@@ -35,7 +34,7 @@ const (
 	RevertSendtx       = "RevertSendtx"
 	RecvPrivacyTx      = "RecvPrivacyTx"
 	SendPrivacyTx      = "SendPrivacyTx"
-	createTxPrefix     = "CreateTx:hashkey-"
+	createTxPrefix     = "CreateTx"
 )
 
 type Store struct {
@@ -80,10 +79,6 @@ func calcUTXOKey4TokenAddr(token, addr, txhash string, index int) []byte {
 	return []byte(fmt.Sprintf(PrivacyUTXO+"%s-%s-%s-%d", token, addr, txhash, index))
 }
 
-func calcPrivacyUTXOPrefix(token string) []byte {
-	return []byte(fmt.Sprintf(PrivacyUTXO+"%s-", token))
-}
-
 func calcPrivacyUTXOPrefix4Addr(token, addr string) []byte {
 	return []byte(fmt.Sprintf(PrivacyUTXO+"%s-%s-", token, addr))
 }
@@ -117,15 +112,15 @@ func calcRecvPrivacyTxKey(tokenname, addr, key string) []byte {
 // addr为发送地址
 // key为通过calcTxKey(heightstr)计算出来的值
 func calcSendPrivacyTxKey(tokenname, addr, key string) []byte {
-	return []byte(fmt.Sprintf(SendPrivacyTx+":%s-%s-%s", tokenname, addr, key))
+	return []byte(fmt.Sprintf("%s:%s-%s-%s", SendPrivacyTx, tokenname, addr, key))
 }
 
 func calcKey4FTXOsInTx(token, addr, txhash string) []byte {
 	return []byte(fmt.Sprintf("%s:%s-%s-%s", FTXOs4Tx, token, addr, txhash))
 }
 
-func calcRevertSendTxKey(txhash string) []byte {
-	return []byte(fmt.Sprintf(RevertSendtx+":%s", txhash))
+func calcRevertSendTxKey(tokenname, addr, txhash string) []byte {
+	return []byte(fmt.Sprintf("%s:%s-%s-%s", RevertSendtx, tokenname, addr, txhash))
 }
 
 func calcFTXOsKeyPrefix(token, addr string) []byte {
@@ -150,12 +145,15 @@ func calcKey4UTXOsSpentInTx(key string) []byte {
 
 // 保存协助前端创建交易的Key
 // txhash：为common.ToHex()后的字符串
-func calcCreateTxKey(txhash string) []byte {
-	return []byte(fmt.Sprintf("%s%s", createTxPrefix, txhash))
+func calcCreateTxKey(token, txhash string) []byte {
+	return []byte(fmt.Sprintf("%s:%s-%s", createTxPrefix, token, txhash))
 }
 
-func calcCreateTxKeyPrefix() []byte {
-	return []byte(createTxPrefix)
+func calcCreateTxKeyPrefix(token string) []byte {
+	if len(token) > 0 {
+		return []byte(fmt.Sprintf("%s:%s-", createTxPrefix, token))
+	}
+	return []byte(fmt.Sprintf("%s:", createTxPrefix))
 }
 
 func NewStore(db dbm.DB) *Store {
@@ -775,7 +773,7 @@ func (ws *Store) moveSTXO2FTXO(txhash string, newbatch dbm.Batch) error {
 	newbatch.Delete(key3)
 
 	//设置在该交易中花费的UTXO
-	key1 := calcRevertSendTxKey(txhash)
+	key1 := calcRevertSendTxKey(ftxosInOneTx.Tokenname, ftxosInOneTx.Sender, txhash)
 	value1 := value2
 	newbatch.Set(key1, value1)
 
@@ -1026,8 +1024,8 @@ func (ws *Store) DeleteCreateTransactionCache(key []byte) {
 	ws.db.Delete(key)
 }
 
-func (ws *Store) listCreateTransactionCache() ([]*types.CreateTransactionCache, error) {
-	prefix := calcCreateTxKeyPrefix()
+func (ws *Store) listCreateTransactionCache(token string) ([]*types.CreateTransactionCache, error) {
+	prefix := calcCreateTxKeyPrefix(token)
 	list := dbm.NewListHelper(ws.db)
 	values := list.PrefixScan(prefix)
 	caches := make([]*types.CreateTransactionCache, 0)

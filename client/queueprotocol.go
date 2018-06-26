@@ -887,7 +887,7 @@ func (q *QueueProtocol) CreateTrasaction(param *types.ReqCreateTransaction) (*ty
 	return nil, types.ErrTypeAsset
 }
 
-func (q *QueueProtocol) SendTxHashToWallet(param *types.ReqHash) (*types.Reply, error) {
+func (q *QueueProtocol) SendTxHashToWallet(param *types.ReqCreateCacheTxKey) (*types.Reply, error) {
 	msg, err := q.query(walletKey, types.EventSendTxHashToWallet, param)
 	if err != nil {
 		log.Error("SendTxHashToWallet", "Error", err.Error())
@@ -911,7 +911,7 @@ func (q *QueueProtocol) QueryCacheTransaction(param *types.ReqCacheTxList) (*typ
 	return nil, types.ErrTypeAsset
 }
 
-func (q *QueueProtocol) DeleteCacheTransaction(param *types.ReqHash) (*types.Reply, error) {
+func (q *QueueProtocol) DeleteCacheTransaction(param *types.ReqCreateCacheTxKey) (*types.Reply, error) {
 	msg, err := q.query(walletKey, types.EventDeleteCacheTransaction, param)
 	if err != nil {
 		log.Error("DeleteCacheTransaction", "Error", err.Error())
@@ -923,7 +923,7 @@ func (q *QueueProtocol) DeleteCacheTransaction(param *types.ReqHash) (*types.Rep
 	return nil, types.ErrTypeAsset
 }
 
-func (q *QueueProtocol) ShowPrivacyAccountInfo(param *types.ReqPrivBal4AddrToken) (*types.ReplyPrivacyAccount, error) {
+func (q *QueueProtocol) ShowPrivacyAccountInfo(param *types.ReqPPrivacyAccount) (*types.ReplyPrivacyAccount, error) {
 	msg, err := q.query(walletKey, types.EventPrivacyAccountInfo, param)
 	if err != nil {
 		log.Error("ShowPrivacyAccountInfo", "Error", err.Error())
