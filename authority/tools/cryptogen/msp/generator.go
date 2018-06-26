@@ -62,18 +62,13 @@ func GenerateLocalMSP(baseDir, name string, signCA *ca.CA) error {
 
 	// the signing CA certificate goes into cacerts
 	err = x509Export(filepath.Join(baseDir, "cacerts", x509Filename(signCA.Name)), signCA.SignCert)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func createFolderStructure(rootDir string, local bool) error {
 
-	var folders []string
 	// create admincerts, cacerts, keystore and signcerts folders
-	folders = []string{
+	var folders = []string{
 		filepath.Join(rootDir, "cacerts"),
 	}
 	if local {

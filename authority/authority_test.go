@@ -92,7 +92,7 @@ func TestCheckTxs(t *testing.T) {
 	}
 
 	respData := resp.GetData().(*types.RespAuthSignCheckTxs).GetResult()
-	if respData != true {
+	if !respData {
 		t.Error("error process txs signature validate")
 	}
 }
