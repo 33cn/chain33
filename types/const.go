@@ -2,7 +2,6 @@ package types
 
 // 注释掉系统中没有用到的枚举项
 // 与AllowUserExec中驱动名称的顺序一致
-//TODO 后面会有专门执行器相关的目录
 const (
 	ExecTypeCoins    = 0
 	ExecTypeTicket   = 1
@@ -26,9 +25,10 @@ var (
 	ExecerManage     = []byte("manage")
 	ExecerToken      = []byte("token")
 	ExecerEvm        = []byte(ExecerEvmString)
+	ExecerRelay      = []byte("relay")
 	AllowDepositExec = [][]byte{ExecerTicket}
 	AllowUserExec    = [][]byte{ExecerCoins, ExecerTicket, []byte("norm"), []byte("hashlock"),
-		[]byte("retrieve"), []byte("none"), ExecerToken, []byte("trade"), ExecerManage, ExecerEvm}
+		[]byte("retrieve"), []byte("none"), ExecerToken, []byte("trade"), ExecerManage, ExecerEvm, ExecerRelay}
 	GenesisAddr            = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 	GenesisBlockTime int64 = 1526486816
 	HotkeyAddr             = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
@@ -57,6 +57,7 @@ var (
 	ForkV15ResetTx0      int64 = 200000
 	ForkV16Withdraw      int64 = 200000
 	ForkV17EVM           int64 = 250000
+	ForkV18Relay         int64 = 500000
 )
 
 func SetTestNetFork() {
@@ -77,6 +78,7 @@ func SetTestNetFork() {
 	ForkV15ResetTx0 = 453400
 	ForkV16Withdraw = 480000
 	ForkV17EVM = 500000
+	ForkV18Relay = 570000
 }
 
 func SetForkToOne() {
@@ -87,6 +89,7 @@ func SetForkToOne() {
 	ForkV15ResetTx0 = 1
 	ForkV16Withdraw = 1
 	ForkV17EVM = 1
+	ForkV18Relay = 1
 }
 
 var (
@@ -504,6 +507,15 @@ const (
 	TyLogTradeBuyLimit        = 331
 	TyLogTradeBuyRevoke       = 332
 
+	//log for relay
+	TyLogRelayCreate       = 350
+	TyLogRelayRevokeCreate = 351
+	TyLogRelayAccept       = 352
+	TyLogRelayRevokeAccept = 353
+	TyLogRelayConfirmTx    = 354
+	TyLogRelayFinishTx     = 355
+	TyLogRelayRcvBTCHead   = 356
+
 	// log for config
 	TyLogModifyConfig = 410
 
@@ -640,3 +652,34 @@ var MapSellOrderStatusStr2Int = map[string]int32{
 	"soldout": TradeOrderStatusSoldOut,
 	"revoked": TradeOrderStatusRevoked,
 }
+
+// relay
+const (
+	RelayRevokeCreate = iota
+	RelayRevokeAccept
+)
+const (
+	RelayOrderBuy = iota
+	RelayOrderSell
+)
+
+var RelayOrderOperation = map[uint32]string{
+	RelayOrderBuy:  "buy",
+	RelayOrderSell: "sell",
+}
+
+const (
+	RelayUnlock = iota
+	RelayCancel
+)
+
+//relay action ty
+const (
+	RelayActionCreate = iota
+	RelayActionAccept
+	RelayActionRevoke
+	RelayActionConfirmTx
+	RelayActionVerifyTx
+	RelayActionVerifyCmdTx
+	RelayActionRcvBTCHeaders
+)
