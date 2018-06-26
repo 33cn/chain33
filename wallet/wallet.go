@@ -1952,7 +1952,7 @@ func (wallet *Wallet) AddDelPrivacyTxsFromBlock(tx *types.Transaction, index int
 		}
 	}
 
-	//处理input
+	//处理input,对于公对私的交易类型，只会出现在output类型处理中
 	//如果该隐私交易是本钱包中的地址发送出去的，则需要对相应的utxo进行处理
 	if AddTx == addDelType {
 		ftxosInOneTx, _, _ := wallet.walletStore.GetWalletFtxoStxo(FTXOs4Tx)
@@ -2008,7 +2008,8 @@ func (wallet *Wallet) AddDelPrivacyTxsFromBlock(tx *types.Transaction, index int
 					isprivacy:    true,
 					addDelType:   addDelType,
 					sendRecvFlag: sendTx,
-					utxos:        nil}
+					utxos:        nil,
+				}
 
 				if types.ExecOk == txExecRes && types.ActionPublic2Privacy != privateAction.Ty {
 					wallet.walletStore.moveSTXO2FTXO(txhash, newbatch)
