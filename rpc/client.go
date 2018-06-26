@@ -36,15 +36,23 @@ func callExecNewTx(execName, action string, param interface{}) ([]byte, error) {
 		log.Error("callExecNewTx", "Error", "exec not found")
 		return nil, types.ErrNotSupport
 	}
+
 	if param == nil {
 		log.Error("callExecNewTx", "Error", "param in nil")
 		return nil, types.ErrInvalidParam
 	}
+
 	jsonStr, err := json.Marshal(param)
 	if err != nil {
 		log.Error("callExecNewTx", "Error", err)
 		return nil, err
 	}
+	// check jsonStr whether is null, because param is interface{type, var-nil}, check with nil always fail
+	if string(jsonStr) == "null" {
+		log.Error("callExecNewTx", "Error", "param in nil")
+		return nil, types.ErrInvalidParam
+	}
+
 	tx, err := exec.CreateTx(action, json.RawMessage(jsonStr))
 	if err != nil {
 		log.Error("callExecNewTx", "Error", err)
