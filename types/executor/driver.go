@@ -18,10 +18,10 @@ import (
 //	Amount 		done
 //	Log			done
 // coins: 		actionName	CreateTx	log		query	Amount
-// evm: 		actionName			Log
+// evm: 		actionName			Log		query
 // game:
 // hashlock: 	actionName
-// manage:		actionName 			log				Amount
+// manage:		actionName 			log		query		Amount
 // none: 		actionName
 // retrieve: 	actionName
 // ticket:		actionName			log				Amount
