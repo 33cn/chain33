@@ -348,7 +348,7 @@ type TokenExecActiveLog struct {
 }
 
 func (l TokenExecActiveLog) Name() string {
-	return "LogTokenGenesisTransfer"
+	return "LogTokenExecActive"
 }
 
 func (l TokenExecActiveLog) Decode(msg []byte) (interface{}, error) {

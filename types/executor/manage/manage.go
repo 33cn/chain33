@@ -16,7 +16,7 @@ func init() {
 	types.RegistorExecutor(name, &ManageType{})
 
 	// init log
-	types.RegistorLog(types.ManageActionModifyConfig, &ModifyConfigLog{})
+	types.RegistorLog(types.TyLogModifyConfig, &ModifyConfigLog{})
 
 	// init query rpc
 	//types.RegistorRpcType("q2", &CoinsGetTxsByAddr{})
