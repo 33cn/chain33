@@ -594,7 +594,7 @@ func TestDecodeLogTradeBuyMarket(t *testing.T) {
 	result, err := DecodeLog(data)
 	assert.Nil(t, err)
 	assert.NotNil(t, result)
-	assert.Equal(t, "LogTradeBuy", result.Logs[0].TyName)
+	assert.Equal(t, "LogTradeBuyMarket", result.Logs[0].TyName)
 }
 
 func TestDecodeLogTradeSellRevoke(t *testing.T) {
@@ -616,7 +616,7 @@ func TestDecodeLogTradeSellRevoke(t *testing.T) {
 	result, err := DecodeLog(data)
 	assert.Nil(t, err)
 	assert.NotNil(t, result)
-	assert.Equal(t, "LogTradeRevoke", result.Logs[0].TyName)
+	assert.Equal(t, "LogTradeSellRevoke", result.Logs[0].TyName)
 }
 
 func TestDecodeLogTradeBuyLimit(t *testing.T) {
