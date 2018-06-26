@@ -196,7 +196,7 @@ func (client *RaftClient) CreateBlock() {
 		count = 0
 		rlog.Debug("==================start create new block!=====================")
 		//check dup
-		txs = client.CheckTxDup(txs)
+		//txs = client.CheckTxDup(txs)
 		rlog.Debug(fmt.Sprintf("the len txs is: %v", len(txs)))
 		var newblock types.Block
 		newblock.ParentHash = lastBlock.Hash()
@@ -250,7 +250,7 @@ func (client *RaftClient) readCommits(commitC <-chan *types.Block, errorC <-chan
 
 //轮询任务，去检测本机器是否为validator节点，如果是，则执行打包任务
 func (client *RaftClient) pollingTask(c queue.Client) {
-	ticker := time.NewTicker(100 * time.Millisecond)
+	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
 	for {
 		select {
