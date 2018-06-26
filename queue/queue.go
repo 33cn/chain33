@@ -51,12 +51,13 @@ type queue struct {
 	chanSubs map[string]*chanSub
 	mu       sync.Mutex
 	done     chan struct{}
+	interupt chan struct{}
 	isClose  int32
 	name     string
 }
 
 func New(name string) Queue {
-	q := &queue{chanSubs: make(map[string]*chanSub), name: name, done: make(chan struct{}, 1)}
+	q := &queue{chanSubs: make(map[string]*chanSub), name: name, done: make(chan struct{}, 1), interupt: make(chan struct{}, 1)}
 	return q
 }
 
@@ -70,6 +71,9 @@ func (q *queue) Start() {
 	// Block until a signal is received.
 	select {
 	case <-q.done:
+		break
+	case <-q.interupt:
+		fmt.Println("closing chain33")
 		break
 	case s := <-c:
 		fmt.Println("Got signal:", s)

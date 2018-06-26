@@ -15,15 +15,15 @@ func (_m *QueueProtocolAPI) Close() {
 }
 
 // CloseQueue provides a mock function with given fields:
-func (_m *QueueProtocolAPI) CloseQueue() (*types.ReqNil, error) {
+func (_m *QueueProtocolAPI) CloseQueue() (*types.Reply, error) {
 	ret := _m.Called()
 
-	var r0 *types.ReqNil
-	if rf, ok := ret.Get(0).(func() *types.ReqNil); ok {
+	var r0 *types.Reply
+	if rf, ok := ret.Get(0).(func() *types.Reply); ok {
 		r0 = rf()
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.ReqNil)
+			r0 = ret.Get(0).(*types.Reply)
 		}
 	}
 
