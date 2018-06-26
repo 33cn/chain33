@@ -173,7 +173,7 @@ type CoinsTransferLog struct {
 }
 
 func (l CoinsTransferLog) Name() string {
-	return "LogGenesis"
+	return "LogTransfer"
 }
 
 func (l CoinsTransferLog) Decode(msg []byte) (interface{}, error) {
