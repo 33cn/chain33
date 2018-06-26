@@ -1176,6 +1176,7 @@ func (wallet *Wallet) procInvalidTxOnTimer(dbbatch db.Batch) error {
 			}
 			if (ftxo.GetFreezetime() + int64(time.Duration(timeout)*time.Second)) <= now {
 				// 交易送入打包后，长时间未确认，需要将FTXO回退到UTXO
+				walletlog.Info("==============moveFTXO2UTXO==============", "tx hash ",ftxo.Txhash)
 				wallet.walletStore.moveFTXO2UTXO(keys[i], dbbatch)
 			}
 		} else {
