@@ -247,6 +247,7 @@ message ReqSignRawTx {
 	// 0：普通交易
 	// 1：隐私交易
 	int32	mode = 6;
+	string	token = 7;
 }
 
 message ReplySignRawTx {
@@ -444,10 +445,28 @@ message CreateTransactionCache {
 
 message ReqCacheTxList {
 	string	addr	= 1;
+	string	tokenname	= 2;
 }
 
 message ReplyCacheTxList {
 	repeated Transaction    txs = 1;
+}
+
+message ReqPrivacyAccount {
+    string  tokenname   = 1;
+    string  addr        = 2;
+
+}
+
+message ReqPPrivacyAccount {
+    string addr   = 1;
+    string token  = 2;
+    // 设定显示的数据类型信息
+    // 0： 只显示账户的数值信息
+    // 1： 显示UTXO明细
+    // 2： 显示FTXO明细
+    // 3： 全部显示
+    int32  displaymode = 3;
 }
 
 // 请求隐私账户信息的应答
@@ -456,4 +475,10 @@ message ReplyPrivacyAccount {
     UTXOs   utxos   = 1;
     // 冻结的UTXO
     UTXOs   ftxos   = 2;
+	int32	displaymode = 3;
+}
+
+message ReqCreateCacheTxKey {
+	string		tokenname	= 1;
+	bytes		hashkey		= 2;
 }

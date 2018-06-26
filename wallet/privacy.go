@@ -707,6 +707,11 @@ func (wallet *Wallet) selectUTXO(token, addr string, amount int64) ([]*txOutputI
 			return nil, types.ErrInsufficientBalance
 		}
 		balanceFound := int64(0)
+
+		// 1.组织需要请求的交易哈希列表
+		// 2.向区块链发送查询请求
+		// 3.根据获取到的区块链上的信息进行进一步处理
+
 		var selectedOuts []*txOutputInfo
 		for balanceFound < amount {
 			//随机选择其中一个utxo
@@ -836,7 +841,7 @@ func (wallet *Wallet) createPublic2PrivacyTx(req *types.ReqCreateTransaction) (*
 	}
 
 	value := &types.Public2Privacy{
-		Tokenname: types.BTY,
+		Tokenname: req.Tokenname,
 		Amount:    amount,
 		Note:      req.GetNote(),
 		Output:    privacyOutput,
@@ -859,7 +864,7 @@ func (wallet *Wallet) createPublic2PrivacyTx(req *types.ReqCreateTransaction) (*
 	tx.SetExpire(types.GetTxTimeInterval())
 
 	byteshash := tx.Hash()
-	dbkey := calcCreateTxKey(common.Bytes2Hex(byteshash))
+	dbkey := calcCreateTxKey(req.Tokenname, common.Bytes2Hex(byteshash))
 	cache := &types.CreateTransactionCache{
 		Key:         dbkey,
 		Createtime:  time.Now().UnixNano(),
@@ -930,7 +935,7 @@ func (wallet *Wallet) createPrivacy2PrivacyTx(req *types.ReqCreateTransaction) (
 	}
 
 	tx := &types.Transaction{
-		Execer:  []byte(types.PrivacyX),
+		Execer:  types.ExecerPrivacy,
 		Payload: types.Encode(action),
 		Fee:     types.PrivacyTxFee,
 		Nonce:   wallet.random.Int63(),
@@ -939,7 +944,7 @@ func (wallet *Wallet) createPrivacy2PrivacyTx(req *types.ReqCreateTransaction) (
 	tx.SetExpire(types.GetTxTimeInterval())
 
 	byteshash := tx.Hash()
-	dbkey := calcCreateTxKey(common.Bytes2Hex(byteshash))
+	dbkey := calcCreateTxKey(req.Tokenname, common.Bytes2Hex(byteshash))
 	cache := &types.CreateTransactionCache{
 		Tokenname:    req.GetTokenname(),
 		Key:          dbkey,
@@ -1018,7 +1023,7 @@ func (wallet *Wallet) createPrivacy2PublicTx(req *types.ReqCreateTransaction) (*
 	tx.SetExpire(types.GetTxTimeInterval())
 
 	byteshash := tx.Hash()
-	dbkey := calcCreateTxKey(common.Bytes2Hex(byteshash))
+	dbkey := calcCreateTxKey(req.Tokenname, common.Bytes2Hex(byteshash))
 	cache := &types.CreateTransactionCache{
 		Tokenname:    req.GetTokenname(),
 		Key:          dbkey,
@@ -1041,7 +1046,7 @@ func (wallet *Wallet) signTxWithPrivacy(key crypto.PrivKey, req *types.ReqSignRa
 	if err != nil {
 		return "", err
 	}
-	dbkey := calcCreateTxKey(common.Bytes2Hex(txhash))
+	dbkey := calcCreateTxKey(req.Token, common.Bytes2Hex(txhash))
 	cache, err := wallet.walletStore.GetCreateTransactionCache(dbkey)
 	if err != nil {
 		return "", err
@@ -1086,12 +1091,12 @@ func (wallet *Wallet) signTxWithPrivacy(key crypto.PrivKey, req *types.ReqSignRa
 	return common.ToHex(txhash), nil
 }
 
-func (wallet *Wallet) procSendTxHashToWallet(req *types.ReqHash) (*types.ReplyHash, error) {
+func (wallet *Wallet) procSendTxHashToWallet(req *types.ReqCreateCacheTxKey) (*types.ReplyHash, error) {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
 
-	hexhash := common.Bytes2Hex(req.GetHash())
-	dbkey := calcCreateTxKey(hexhash)
+	hexhash := common.Bytes2Hex(req.GetHashkey())
+	dbkey := calcCreateTxKey(req.Tokenname, hexhash)
 	cache, err := wallet.walletStore.GetCreateTransactionCache(dbkey)
 	if err != nil {
 		return nil, err
@@ -1125,7 +1130,7 @@ func (wallet *Wallet) procInvalidTxOnTimer(dbbatch db.Batch) error {
 	// TODO: 这里是逐条进行删除，可以考虑修改为批量删除
 	now := time.Now().UnixNano()
 	// 先清理未成功发送的交易
-	caches, err := wallet.walletStore.listCreateTransactionCache()
+	caches, err := wallet.walletStore.listCreateTransactionCache("")
 	if err == nil && caches != nil {
 		for _, cache := range caches {
 			if cache.GetStatus() != cacheTxStatus_Sent &&
@@ -1148,14 +1153,14 @@ func (wallet *Wallet) procInvalidTxOnTimer(dbbatch db.Batch) error {
 		keys = append(keys, calcKey4FTXOsInTx(ftxo.Tokenname, ftxo.Sender, ftxo.Txhash))
 	}
 	for _, ftxo := range revertFTXOTxs {
-		keys = append(keys, calcRevertSendTxKey(ftxo.Txhash))
+		keys = append(keys, calcRevertSendTxKey(ftxo.Tokenname, ftxo.Sender, ftxo.Txhash))
 	}
 
 	normalFtxoCnt := len(curFTXOTxs)
 	curFTXOTxs = append(curFTXOTxs, revertFTXOTxs...)
 	for i, ftxo := range curFTXOTxs {
 		txhash := ftxo.Txhash
-		dbkey := calcCreateTxKey(txhash)
+		dbkey := calcCreateTxKey(ftxo.Tokenname, txhash)
 		cache, err := wallet.walletStore.GetCreateTransactionCache(dbkey)
 		if err != nil && err != db.ErrNotFoundInDb {
 			return err
@@ -1184,7 +1189,7 @@ func (wallet *Wallet) procReqCacheTxList(req *types.ReqCacheTxList) (*types.Repl
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
 
-	caches, err := wallet.walletStore.listCreateTransactionCache()
+	caches, err := wallet.walletStore.listCreateTransactionCache(req.GetTokenname())
 	if err != nil {
 		return nil, err
 	}
@@ -1201,12 +1206,12 @@ func (wallet *Wallet) procReqCacheTxList(req *types.ReqCacheTxList) (*types.Repl
 	return &replyTxLis, nil
 }
 
-func (wallet *Wallet) procDeleteCacheTransaction(req *types.ReqHash) (*types.ReplyHash, error) {
+func (wallet *Wallet) procDeleteCacheTransaction(req *types.ReqCreateCacheTxKey) (*types.ReplyHash, error) {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
 
-	txhash := common.Bytes2Hex(req.Hash)
-	dbkey := calcCreateTxKey(txhash)
+	txhash := common.Bytes2Hex(req.GetHashkey())
+	dbkey := calcCreateTxKey(req.Tokenname, txhash)
 	cache, err := wallet.walletStore.GetCreateTransactionCache(dbkey)
 	if err != nil {
 		return nil, err
@@ -1217,5 +1222,5 @@ func (wallet *Wallet) procDeleteCacheTransaction(req *types.ReqHash) (*types.Rep
 	wallet.walletStore.moveFTXO2UTXO(calcKey4FTXOsInTx(cache.Tokenname, cache.Sender, txhash), dbbatch)
 	dbbatch.Write()
 
-	return &types.ReplyHash{Hash: req.Hash}, nil
+	return &types.ReplyHash{Hash: req.GetHashkey()}, nil
 }

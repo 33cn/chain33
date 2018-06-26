@@ -23,10 +23,7 @@ func PrivacyCmd() *cobra.Command {
 
 	cmd.AddCommand(
 		ShowPrivacyKeyCmd(),
-		ShowPrivacyAccountCmd(),
 		ShowPrivacyAccountSpendCmd(),
-		ShowPrivacyBalanceCmd(),
-		ShowPrivacyAccountDetailCmd(),
 		Public2PrivacyCmd(),
 		Privacy2PrivacyCmd(),
 		Privacy2PublicCmd(),
@@ -42,7 +39,7 @@ func PrivacyCmd() *cobra.Command {
 // ShowPrivacyKeyCmd show privacy key by address
 func ShowPrivacyKeyCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "key",
+		Use:   "showpk",
 		Short: "Show privacy key by address",
 		Run:   showPrivacyKey,
 	}
@@ -217,45 +214,6 @@ func privacy2Public(cmd *cobra.Command, args []string) {
 	ctx.Run()
 }
 
-func ShowPrivacyAccountCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "showpa",
-		Short: "Show privacy account command",
-		Run:   showPrivacyAccount,
-	}
-	showPrivacyAccountFlag(cmd)
-	return cmd
-}
-
-func showPrivacyAccountFlag(cmd *cobra.Command) {
-	cmd.Flags().StringP("addr", "a", "", "account address")
-	cmd.MarkFlagRequired("addr")
-}
-
-func showPrivacyAccount(cmd *cobra.Command, args []string) {
-	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	addr, _ := cmd.Flags().GetString("addr")
-
-	params := types.ReqPrivBal4AddrToken{
-		Addr:  addr,
-		Token: types.BTY,
-	}
-
-	var res types.UTXOs
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.ShowPrivacyAccount", params, &res)
-	ctx.SetResultCb(parseShowPrivacyAccountRes)
-	ctx.Run()
-}
-
-func parseShowPrivacyAccountRes(arg interface{}) (interface{}, error) {
-	total := float64(0)
-	res := arg.(*types.UTXOs)
-	for _, utxo := range res.Utxos {
-		total += float64(utxo.Amount) / float64(types.Coin)
-	}
-	return fmt.Sprintf("Privacy Account : %s", strconv.FormatFloat(total, 'f', 4, 64)), nil
-}
-
 func ShowPrivacyAccountSpendCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "showpas",
@@ -298,8 +256,6 @@ func parseShowPrivacyAccountSpendRes(arg interface{}) (interface{}, error) {
 		for _, ret := range rets {
 			if utxo.TxHash == ret.Txhash {
 				result := &PrivacyAccountResult{
-					//Height:   utxo.UtxoBasic.UtxoGlobalIndex.Height,
-					//TxIndex:  utxo.UtxoBasic.UtxoGlobalIndex.Txindex,
 					Txhash:   common.ToHex(utxo.UtxoBasic.UtxoGlobalIndex.Txhash),
 					OutIndex: utxo.UtxoBasic.UtxoGlobalIndex.Outindex,
 					Amount:   strconv.FormatFloat(amount, 'f', 4, 64),
@@ -326,57 +282,6 @@ func parseShowPrivacyAccountSpendRes(arg interface{}) (interface{}, error) {
 	}
 	fmt.Println(fmt.Sprintf("Total Privacy spend amount is %s", strconv.FormatFloat(total, 'f', 4, 64)))
 	return rets, nil
-}
-
-func ShowPrivacyAccountDetailCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "showpad",
-		Short: "Show privacy account detail command",
-		Run:   showPrivacyAccountDetail,
-	}
-	showPrivacyAccountDetailFlag(cmd)
-	return cmd
-}
-
-func showPrivacyAccountDetailFlag(cmd *cobra.Command) {
-	cmd.Flags().StringP("addr", "a", "", "account address")
-	cmd.MarkFlagRequired("addr")
-}
-
-func showPrivacyAccountDetail(cmd *cobra.Command, args []string) {
-	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	addr, _ := cmd.Flags().GetString("addr")
-
-	params := types.ReqPrivBal4AddrToken{
-		Addr:  addr,
-		Token: types.BTY,
-	}
-
-	var res types.UTXOs
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.ShowPrivacyAccount", params, &res)
-	ctx.SetResultCb(parseShowPrivacyAccountDetailRes)
-	ctx.Run()
-}
-
-func parseShowPrivacyAccountDetailRes(arg interface{}) (interface{}, error) {
-	total := float64(0)
-	res := arg.(*types.UTXOs)
-	ret := make([]*PrivacyAccountResult, 0)
-	for _, utxo := range res.Utxos {
-		amount := float64(utxo.Amount) / float64(types.Coin)
-		total += amount
-
-		result := &PrivacyAccountResult{
-			//Height:   utxo.UtxoBasic.UtxoGlobalIndex.Height,
-			//TxIndex:  utxo.UtxoBasic.UtxoGlobalIndex.Txindex,
-			Txhash:   common.ToHex(utxo.UtxoBasic.UtxoGlobalIndex.Txhash),
-			OutIndex: utxo.UtxoBasic.UtxoGlobalIndex.Outindex,
-			Amount:   strconv.FormatFloat(amount, 'f', 4, 64),
-		}
-		ret = append(ret, result)
-	}
-	fmt.Println(fmt.Sprintf("Total Privacy available amount is %s", strconv.FormatFloat(total, 'f', 4, 64)))
-	return ret, nil
 }
 
 func ShowAmountsOfUTXOCmd() *cobra.Command {
@@ -455,8 +360,6 @@ func parseShowUTXOs4SpecifiedAmountRes(arg interface{}) (interface{}, error) {
 	ret := make([]*PrivacyAccountResult, 0)
 	for _, item := range res.LocalUTXOItems {
 		result := &PrivacyAccountResult{
-			//Height:        item.Height,
-			//TxIndex:       item.Txindex,
 			Txhash:        common.ToHex(item.Txhash),
 			OutIndex:      item.Outindex,
 			OnetimePubKey: common.Bytes2Hex(item.Onetimepubkey),
@@ -513,42 +416,6 @@ func createUTXOs(cmd *cobra.Command, args []string) {
 	ctx.Run()
 }
 
-func ShowPrivacyBalanceCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "showpb",
-		Short: "Show privacy balance",
-		Run:   showPrivacyBalance,
-	}
-	showPrivacyBalanceFlag(cmd)
-	return cmd
-}
-
-func showPrivacyBalanceFlag(cmd *cobra.Command) {
-	cmd.Flags().StringP("addr", "a", "", "account address")
-	cmd.MarkFlagRequired("addr")
-}
-
-func showPrivacyBalance(cmd *cobra.Command, args []string) {
-	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	addr, _ := cmd.Flags().GetString("addr")
-
-	params := types.ReqPrivBal4AddrToken{
-		Token: types.BTY,
-		Addr:  addr,
-	}
-
-	var res types.Account
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.ShowPrivacyBalance", params, &res)
-	ctx.SetResultCb(parseShowPrivacyBalanceRes)
-	ctx.Run()
-}
-
-func parseShowPrivacyBalanceRes(arg interface{}) (interface{}, error) {
-	res := arg.(*types.Account)
-	balance := float64(res.Balance) / float64(types.Coin)
-	return fmt.Sprintf("Privacy Balance : %s", strconv.FormatFloat(balance, 'f', 4, 64)), nil
-}
-
 // ShowPrivacyAccountInfoCmd
 func ShowPrivacyAccountInfoCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -563,17 +430,25 @@ func ShowPrivacyAccountInfoCmd() *cobra.Command {
 func showPrivacyAccountInfoFlag(cmd *cobra.Command) {
 	cmd.Flags().StringP("addr", "a", "", "account address")
 	cmd.MarkFlagRequired("addr")
+
 	cmd.Flags().StringP("token", "t", types.BTY, "coins token, BTY supported.")
+	cmd.Flags().Int32P("displaymode", "d", 0, "display mode.(0: display collect. 1:display avaliable detail. 2:display frozen detail. 3:display all")
 }
 
 func showPrivacyAccountInfo(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	addr, _ := cmd.Flags().GetString("addr")
 	token, _ := cmd.Flags().GetString("token")
+	mode, _ := cmd.Flags().GetInt32("displaymode")
+	if mode < 0 || mode > 3 {
+		fmt.Println("display mode only support 0-3")
+		return
+	}
 
-	params := types.ReqPrivBal4AddrToken{
-		Addr:  addr,
-		Token: token,
+	params := types.ReqPPrivacyAccount{
+		Addr:        addr,
+		Token:       token,
+		Displaymode: mode,
 	}
 
 	var res types.ReplyPrivacyAccount
@@ -586,35 +461,48 @@ func parseshowPrivacyAccountInfo(arg interface{}) (interface{}, error) {
 	total := float64(0)
 	totalFrozen := float64(0)
 	res := arg.(*types.ReplyPrivacyAccount)
+
+	var availableAmount, frozenAmount, totalAmount string
+
 	utxos := make([]*PrivacyAccountResult, 0)
 	for _, utxo := range res.Utxos.Utxos {
 		amount := float64(utxo.Amount) / float64(types.Coin)
 		total += amount
 
-		result := &PrivacyAccountResult{
-			Txhash:   common.ToHex(utxo.UtxoBasic.UtxoGlobalIndex.Txhash),
-			OutIndex: utxo.UtxoBasic.UtxoGlobalIndex.Outindex,
-			Amount:   strconv.FormatFloat(amount, 'f', 4, 64),
+		if res.Displaymode == 1 || res.Displaymode == 3 {
+			result := &PrivacyAccountResult{
+				Txhash:   common.ToHex(utxo.UtxoBasic.UtxoGlobalIndex.Txhash),
+				OutIndex: utxo.UtxoBasic.UtxoGlobalIndex.Outindex,
+				Amount:   strconv.FormatFloat(amount, 'f', 4, 64),
+			}
+			utxos = append(utxos, result)
 		}
-		utxos = append(utxos, result)
 	}
+	availableAmount = strconv.FormatFloat(total, 'f', 4, 64)
+
 	ftxos := make([]*PrivacyAccountResult, 0)
 	for _, utxo := range res.Ftxos.Utxos {
 		amount := float64(utxo.Amount) / float64(types.Coin)
 		totalFrozen += amount
 
-		result := &PrivacyAccountResult{
-			Txhash:   common.ToHex(utxo.UtxoBasic.UtxoGlobalIndex.Txhash),
-			OutIndex: utxo.UtxoBasic.UtxoGlobalIndex.Outindex,
-			Amount:   strconv.FormatFloat(amount, 'f', 4, 64),
+		if res.Displaymode == 2 || res.Displaymode == 3 {
+			result := &PrivacyAccountResult{
+				Txhash:   common.ToHex(utxo.UtxoBasic.UtxoGlobalIndex.Txhash),
+				OutIndex: utxo.UtxoBasic.UtxoGlobalIndex.Outindex,
+				Amount:   strconv.FormatFloat(amount, 'f', 4, 64),
+			}
+			ftxos = append(ftxos, result)
 		}
-		ftxos = append(ftxos, result)
 	}
+	frozenAmount = strconv.FormatFloat(totalFrozen, 'f', 4, 64)
+	totalAmount = strconv.FormatFloat(total+totalFrozen, 'f', 4, 64)
+
 	ret := &PrivacyAccountInfoResult{
-		Utxos:       utxos,
-		Ftxos:       ftxos,
-		UtxosAmount: strconv.FormatFloat(total, 'f', 4, 64),
-		FtxosAmount: strconv.FormatFloat(totalFrozen, 'f', 4, 64),
+		AvailableDetail: utxos,
+		FrozenDetail:    ftxos,
+		AvailableAmount: availableAmount,
+		FrozenAmount:    frozenAmount,
+		TotalAmount:     totalAmount,
 	}
 	return ret, nil
 }
