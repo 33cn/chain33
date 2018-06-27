@@ -161,14 +161,15 @@ func (action *relayDB) relayCreate(order *types.RelayCreate) (*types.Receipt, er
 
 func checkRevokeOrder(order *types.RelayOrder, btc *btcStore) error {
 	nowTime := time.Now()
-	var nowBtcHeight, subHeight uint64
+	var nowBtcHeight, subHeight int64
 
-	if btc.lastHeader != nil {
-		nowBtcHeight = btc.lastHeader.Height
+	nowBtcHeight, err := btc.getLastBtcHeadHeight()
+	if err != nil {
+		return err
 	}
 
-	if nowBtcHeight > 0 && order.CoinHeight > 0 && nowBtcHeight > order.CoinHeight {
-		subHeight = nowBtcHeight - order.CoinHeight
+	if nowBtcHeight > 0 && order.CoinHeight > 0 && nowBtcHeight > int64(order.CoinHeight) {
+		subHeight = nowBtcHeight - int64(order.CoinHeight)
 	}
 
 	if order.Status == types.RelayOrderStatus_locking {
@@ -286,9 +287,12 @@ func (action *relayDB) accept(btc *btcStore, accept *types.RelayAccept) (*types.
 	order.Status = types.RelayOrderStatus_locking
 	order.AcceptAddr = action.fromAddr
 	order.AcceptTime = action.blockTime
-	if btc.lastHeader != nil {
-		order.CoinHeight = btc.lastHeader.Height
+
+	height, err := btc.getLastBtcHeadHeight()
+	if err != nil {
+		return nil, err
 	}
+	order.CoinHeight = uint64(height)
 
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
@@ -409,9 +413,12 @@ func (action *relayDB) confirmTx(btc *btcStore, confirm *types.RelayConfirmTx) (
 	order.Status = types.RelayOrderStatus_confirming
 	order.ConfirmTime = action.blockTime
 	order.CoinTxHash = confirm.TxHash
-	if btc.lastHeader != nil {
-		order.CoinHeight = btc.lastHeader.Height
+	height, err := btc.getLastBtcHeadHeight()
+	if err != nil {
+		relaylog.Error("confirmTx Get Last BTC", "orderid", confirm.OrderId)
+		return nil, err
 	}
+	order.CoinHeight = uint64(height)
 
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
@@ -536,13 +543,17 @@ func (action *relayDB) verifyCmdTx(btc *btcStore, verify *types.RelayVerifyCli) 
 
 }
 
-func saveBtcLastHead(db dbm.KV, head *types.BtcHeader) (set []*types.KeyValue) {
-	if head == nil {
+func saveBtcLastHead(db dbm.KV, head *types.RelayLastRcvBtcHeader) (set []*types.KeyValue) {
+	if head == nil || head.Header == nil {
 		return nil
 	}
 
-	value := types.Encode(head)
-	key := []byte(btcLastHeadPrefix)
+	value := types.Encode(head.Header)
+	key := []byte(btcLastHead)
+	set = append(set, &types.KeyValue{key, value})
+
+	value = types.Encode(&types.Int64{int64(head.BaseHeight)})
+	key = []byte(btcLastBaseHeight)
 	set = append(set, &types.KeyValue{key, value})
 
 	for i := 0; i < len(set); i++ {
@@ -551,45 +562,72 @@ func saveBtcLastHead(db dbm.KV, head *types.BtcHeader) (set []*types.KeyValue) {
 	return set
 }
 
-func getBtcLastHead(db dbm.KV) (*types.BtcHeader, error) {
+func getBtcLastHead(db dbm.KV) (*types.RelayLastRcvBtcHeader, error) {
+	var lastHead types.RelayLastRcvBtcHeader
 
-	value, err := db.Get([]byte(btcLastHeadPrefix))
+	value, err := db.Get([]byte(btcLastHead))
 	if err != nil {
 		return nil, err
 	}
-
 	var head types.BtcHeader
 	if err = types.Decode(value, &head); err != nil {
 		return nil, err
 	}
-	return &head, nil
+	lastHead.Header = &head
+
+	value, err = db.Get([]byte(btcLastBaseHeight))
+	if err != nil {
+		return nil, err
+	}
+	height, err := decodeHeight(value)
+	if err != nil {
+		return nil, err
+	}
+	lastHead.BaseHeight = uint64(height)
+
+	return &lastHead, nil
 }
 
 func (action *relayDB) saveBtcHeader(headers *types.BtcHeaders) (*types.Receipt, error) {
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
-	var preHead *types.BtcHeader
-	var head *types.BtcHeader
+	var preHead = &types.RelayLastRcvBtcHeader{}
+	var receipt = &types.ReceiptRelayRcvBTCHeaders{}
 
-	preHead, err := getBtcLastHead(action.db)
+	lastHead, err := getBtcLastHead(action.db)
 	if err != nil && err != types.ErrNotFound {
 		return nil, err
 	}
 
-	for _, head = range headers.BtcHeader {
+	if lastHead != nil {
+		preHead.Header = lastHead.Header
+		preHead.BaseHeight = lastHead.BaseHeight
+
+		receipt.LastHeight = lastHead.Header.Height
+		receipt.LastBaseHeight = lastHead.BaseHeight
+	}
+
+	log := &types.ReceiptLog{}
+	log.Ty = types.TyLogRelayRcvBTCHead
+
+	for _, head := range headers.BtcHeader {
 		err := verifyBlockHeader(head, preHead)
 		if err != nil {
 			return nil, err
 		}
 
-		preHead = head
-		log := &types.ReceiptLog{}
-		log.Ty = types.TyLogRelayRcvBTCHead
-		receipt := &types.ReceiptRelayRcvBTCHeaders{head}
-		log.Log = types.Encode(receipt)
-		logs = append(logs, log)
+		preHead.Header = head
+		if head.IsReset {
+			preHead.BaseHeight = head.Height
+		}
+		receipt.Headers = append(receipt.Headers, head)
 	}
 
-	kv = saveBtcLastHead(action.db, head)
+	receipt.NewHeight = preHead.Header.Height
+	receipt.NewBaseHeight = preHead.BaseHeight
+
+	log.Log = types.Encode(receipt)
+	logs = append(logs, log)
+	kv = saveBtcLastHead(action.db, preHead)
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
 }

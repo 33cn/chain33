@@ -133,8 +133,17 @@ message BtcSpv {
     repeated bytes branchProof = 6;
 }
 
+message RelayLastRcvBtcHeader {
+    BtcHeader Header     = 1;
+    uint64    baseHeight = 2;
+}
+
 message ReceiptRelayRcvBTCHeaders {
-    BtcHeader base = 1;
+    repeated BtcHeader headers        = 1;
+    uint64             lastHeight     = 2; // last height is the last btc Tx's last height
+    uint64             newHeight      = 3;
+    uint64             lastBaseHeight = 4; // last base height means ever base height
+    uint64             newBaseHeight  = 5;
 }
 
 message ReceiptRelayLog {
