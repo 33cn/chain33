@@ -167,7 +167,7 @@ func (wallet *Wallet) createUTXOsByPub2Priv(priv crypto.PrivKey, reqCreateUTXOs 
 		Nonce:   wallet.random.Int63(),
 		To:      account.ExecAddress(types.PrivacyX),
 	}
-	tx.SetExpire(types.GetTxTimeInterval())
+	tx.SetExpire(time.Hour)
 	txSize := types.Size(tx) + types.SignatureSize
 	realFee := int64((txSize+1023)>>types.Size_1K_shiftlen) * types.FeePerKB
 	tx.Fee = realFee
@@ -237,7 +237,7 @@ func (wallet *Wallet) transPub2PriV2(priv crypto.PrivKey, reqPub2Pri *types.ReqP
 		// TODO: 采用隐私合约地址来设定目标合约接收的目标地址,让验证通过
 		To: account.ExecAddress(types.PrivacyX),
 	}
-	tx.SetExpire(types.GetTxTimeInterval())
+	tx.SetExpire(time.Hour)
 	txSize := types.Size(tx) + types.SignatureSize
 	realFee := int64((txSize+1023)>>types.Size_1K_shiftlen) * types.FeePerKB
 	tx.Fee = realFee
@@ -450,7 +450,7 @@ func (wallet *Wallet) transPri2PriV2(privacykeyParirs *privacy.Privacy, reqPri2P
 		// TODO: 采用隐私合约地址来设定目标合约接收的目标地址,让验证通过
 		To: account.ExecAddress(types.PrivacyX),
 	}
-	tx.SetExpire(types.GetTxTimeInterval())
+	tx.SetExpire(time.Hour)
 	//完成了input和output的添加之后，即已经完成了交易基本内容的添加，
 	//这时候就需要进行交易的签名了
 	err = wallet.signatureTx(tx, privacyInput, utxosInKeyInput, realkeyInputSlice)
@@ -527,7 +527,7 @@ func (wallet *Wallet) transPri2PubV2(privacykeyParirs *privacy.Privacy, reqPri2P
 		Nonce:   wallet.random.Int63(),
 		To:      reqPri2Pub.Receiver,
 	}
-	tx.SetExpire(types.GetTxTimeInterval())
+	tx.SetExpire(time.Hour)
 	//step 3,generate ring signature
 	err = wallet.signatureTx(tx, privacyInput, utxosInKeyInput, realkeyInputSlice)
 	if err != nil {
@@ -1156,6 +1156,7 @@ func (wallet *Wallet) procInvalidTxOnTimer(dbbatch db.Batch) error {
 		keys = append(keys, calcKey4FTXOsInTx(ftxo.Tokenname, ftxo.Sender, ftxo.Txhash))
 	}
 	for _, ftxo := range revertFTXOTxs {
+		walletlog.Info("procInvalidTxOnTimer", "tx hash ",ftxo.Txhash, "Sender", ftxo.Sender)
 		keys = append(keys, calcRevertSendTxKey(ftxo.Tokenname, ftxo.Sender, ftxo.Txhash))
 	}
 
@@ -1164,11 +1165,7 @@ func (wallet *Wallet) procInvalidTxOnTimer(dbbatch db.Batch) error {
 	for i, ftxo := range curFTXOTxs {
 		txhash := ftxo.Txhash
 		dbkey := calcCreateTxKey(ftxo.Tokenname, txhash)
-		cache, err := wallet.walletStore.GetCreateTransactionCache(dbkey)
-		if err != nil && err != db.ErrNotFoundInDb {
-			return err
-		}
-
+		cache, _ := wallet.walletStore.GetCreateTransactionCache(dbkey)
 		if cache == nil {
 			timeout := FTXOTimeout
 			if i >= normalFtxoCnt {
