@@ -10,11 +10,6 @@ import (
 //--------------------------------------------------------------------------------
 // ParaChain txCache
 
-const (
-	AddAct int64 = 1
-	DelAct int64 = 2 //reference blockstore.go
-)
-
 type txCache struct {
 	size   int
 	txMap  map[string]*list.Element
@@ -25,7 +20,6 @@ type txCache struct {
 // Item为Mempool中包装交易的数据结构
 type Item struct {
 	value *types.Transaction
-	ty    int64 //AddAct or DelAct
 	seq   int64
 }
 
@@ -57,7 +51,7 @@ func (cache *txCache) Get(hash []byte) *Item {
 }
 
 // txCache.Push把给定tx添加到txCache；如果tx已经存在txCache中或Mempool已满则返回对应error
-func (cache *txCache) Push(tx *types.Transaction, ty int64, seq int64) error {
+func (cache *txCache) Push(tx *types.Transaction, seq int64) error {
 	cache.lock.Lock()
 	defer cache.lock.Unlock()
 	hash := tx.Hash()
@@ -65,7 +59,7 @@ func (cache *txCache) Push(tx *types.Transaction, ty int64, seq int64) error {
 		return types.ErrMemFull
 	}
 
-	it := &Item{value: tx, ty: ty, seq: seq}
+	it := &Item{value: tx, seq: seq}
 	txElement := cache.txList.PushBack(it)
 	cache.txMap[string(hash)] = txElement
 	return nil
