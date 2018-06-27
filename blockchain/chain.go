@@ -224,7 +224,8 @@ func (chain *BlockChain) ProcQueryTxMsg(txhash []byte) (proof *types.Transaction
 	//获取Amount
 	amount, err := txresult.GetTx().Amount()
 	if err != nil {
-		return nil, err
+		// return nil, err
+		amount = 0
 	}
 	TransactionDetail.Amount = amount
 	TransactionDetail.ActionName = txresult.GetTx().ActionName()
