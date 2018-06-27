@@ -57,6 +57,24 @@
 			"revisionTime": "2015-01-19T17:41:27Z"
 		},
 		{
+			"checksumSHA1": "biLaWxU0TtK1NIlVyEnPLFuZdzo=",
+			"path": "github.com/couchbase/gocb",
+			"revision": "5da01ae295171206d1b43152755272d623771cca",
+			"revisionTime": "2018-06-07T12:01:38Z"
+		},
+		{
+			"checksumSHA1": "vUM+6zMSg05Rl9OyA4S7xYicXu4=",
+			"path": "github.com/couchbase/goutils/logging",
+			"revision": "e865a1461c8ac0032bd37e2d4dab3289faea3873",
+			"revisionTime": "2018-05-30T15:21:47Z"
+		},
+		{
+			"checksumSHA1": "2aLYG7AtkzCZWiNhPl5kDyiTE+I=",
+			"path": "github.com/couchbase/goutils/scramsha",
+			"revision": "e865a1461c8ac0032bd37e2d4dab3289faea3873",
+			"revisionTime": "2018-05-30T15:21:47Z"
+		},
+		{
 			"checksumSHA1": "mrz/kicZiUaHxkyfvC/DyQcr8Do=",
 			"path": "github.com/davecgh/go-spew/spew",
 			"revision": "ecdeabc65495df2dec95d7c4a4c3e021903035e5",
@@ -187,6 +205,12 @@
 			"path": "github.com/golang/protobuf/proto",
 			"revision": "18c9bb3261723cd5401db4d0c9fbc5c3b6c70fe8",
 			"revisionTime": "2017-04-27T21:32:20Z"
+		},
+		{
+			"checksumSHA1": "uFNLkTxk8BkHTk0Jcub2lj2BX4M=",
+			"path": "github.com/google/uuid",
+			"revision": "dec09d789f3dba190787f8b4454c7d3c936fed9e",
+			"revisionTime": "2017-11-29T19:10:14Z"
 		},
 		{
 			"checksumSHA1": "uX6VcogbZBGBqjvuUQJvlDZQk1I=",
@@ -487,6 +511,18 @@
 			"revisionTime": "2017-10-12T02:11:43Z"
 		},
 		{
+			"checksumSHA1": "wIcN7tZiF441h08RHAm4NV8cYO4=",
+			"path": "github.com/opentracing/opentracing-go",
+			"revision": "bd9c3193394760d98b2fa6ebb2291f0cd1d06a7d",
+			"revisionTime": "2018-06-06T20:41:48Z"
+		},
+		{
+			"checksumSHA1": "tnkdNJbJxNKuPZMWapP1xhKIIGw=",
+			"path": "github.com/opentracing/opentracing-go/log",
+			"revision": "bd9c3193394760d98b2fa6ebb2291f0cd1d06a7d",
+			"revisionTime": "2018-06-06T20:41:48Z"
+		},
+		{
 			"checksumSHA1": "rJab1YdNhQooDiBWNnt7TLWPyBU=",
 			"path": "github.com/pkg/errors",
 			"revision": "f15c970de5b76fac0b59abb32d62c17cc7bed265",
@@ -767,6 +803,24 @@
 			"path": "gopkg.in/check.v1",
 			"revision": "20d25e2804050c1cd24a7eea1e7a6447dd0e74ec",
 			"revisionTime": "2016-12-08T18:13:25Z"
+		},
+		{
+			"checksumSHA1": "wNFq4mUTkUozCg4YCSaQDZpucag=",
+			"path": "gopkg.in/couchbase/gocbcore.v7",
+			"revision": "b83e7ae1df3e664ec54638717803154f12223de2",
+			"revisionTime": "2018-05-16T08:17:29Z"
+		},
+		{
+			"checksumSHA1": "iN5KS+2AYwlTvHeQlERJlk3QNsg=",
+			"path": "gopkg.in/couchbaselabs/gocbconnstr.v1",
+			"revision": "710456e087a6d497e87f41d0a9d98d6a75672186",
+			"revisionTime": "2017-08-24T23:00:22Z"
+		},
+		{
+			"checksumSHA1": "F4pFTVdjF0XZVWbdFHIPJKdVPFM=",
+			"path": "gopkg.in/couchbaselabs/jsonx.v1",
+			"revision": "5b7baa20429a46a5543ee259664cc86502738cad",
+			"revisionTime": "2016-12-13T19:40:16Z"
 		},
 		{
 			"checksumSHA1": "t86TO2diBlVDC3crMpBkn5JF4tU=",
