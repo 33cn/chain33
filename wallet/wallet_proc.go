@@ -849,7 +849,8 @@ func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 		//获取Amount
 		amount, err := txdetail.Tx.Amount()
 		if err != nil {
-			continue
+			// continue
+			amount = 0
 		}
 		txdetail.ActionName = txdetail.Tx.ActionName()
 		txdetail.Amount = amount
