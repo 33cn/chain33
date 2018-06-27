@@ -89,6 +89,7 @@ func (cache *txCache) Pull(size int, seqRange int64, txHashList [][]byte) []*typ
 		seq := v.Value.(*Item).seq
 		if _, exist := seqRecord[seq]; !exist {
 			seqTotal += 1
+			seqRecord[seq] = 1
 		} else {
 			seqRecord[seq] += 1
 		}
