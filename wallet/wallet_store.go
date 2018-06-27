@@ -790,6 +790,7 @@ func (ws *Store) moveSTXO2FTXO(txhash string, newbatch dbm.Batch) error {
 	key1 := calcRevertSendTxKey(ftxosInOneTx.Tokenname, ftxosInOneTx.Sender, txhash)
 	value1 := value2
 	newbatch.Set(key1, value1)
+	walletlog.Info("moveSTXO2FTXO", "txhash ", txhash)
 
 	//更新数据库中的超时时间设置，回退处理的超时处理时间设置为256区块时间
 	ftxosInOneTx.Freezetime = time.Now().UnixNano()
