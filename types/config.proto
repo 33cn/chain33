@@ -70,6 +70,7 @@ message Wallet {
     string signType     = 5;
     bool   forceMining  = 6;
     bool   minerdisable = 7;
+    repeated string minerwhitelist=8;
 }
 
 message Store {
