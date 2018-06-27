@@ -7,6 +7,10 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
+var (
+	minerAddrWhiteList = make(map[string]bool)
+)
+
 func (wallet *Wallet) setAutoMining(flag int32) {
 	atomic.StoreInt32(&wallet.autoMinerFlag, flag)
 }
@@ -182,4 +186,30 @@ func (wallet *Wallet) needFlushTicket(tx *types.Transaction, receipt *types.Rece
 	pubkey := tx.Signature.GetPubkey()
 	addr := address.PubKeyToAddress(pubkey)
 	return wallet.AddrInWallet(addr.String())
+}
+
+func InitMinerWhiteList(cfg *types.Wallet) {
+	if len(cfg.GetMinerwhitelist()) == 0 {
+		minerAddrWhiteList["*"] = true
+		return
+	}
+	if len(cfg.GetMinerwhitelist()) == 1 && cfg.GetMinerwhitelist()[0] == "*" {
+		minerAddrWhiteList["*"] = true
+		return
+	}
+	for _, addr := range cfg.GetMinerwhitelist() {
+		minerAddrWhiteList[addr] = true
+	}
+}
+
+func checkMinerWhiteList(addr string) bool {
+
+	if _, ok := minerAddrWhiteList["*"]; ok {
+		return true
+	}
+
+	if _, ok := minerAddrWhiteList[addr]; ok {
+		return true
+	}
+	return false
 }
