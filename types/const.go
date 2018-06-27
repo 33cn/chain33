@@ -627,3 +627,8 @@ var MapSellOrderStatusStr2Int = map[string]int32{
 	"soldout": TradeOrderStatusSoldOut,
 	"revoked": TradeOrderStatusRevoked,
 }
+
+//para
+const (
+	ParaActionPut = 1
+)
