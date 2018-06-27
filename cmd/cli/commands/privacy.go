@@ -248,6 +248,7 @@ func parseShowPrivacyAccountSpendRes(arg interface{}) (interface{}, error) {
 	total := float64(0)
 	res := arg.(*types.UTXOHaveTxHashs)
 	var rets []*PrivacyAccountSpendResult
+	rets = make([]*PrivacyAccountSpendResult,0)
 	for _, utxo := range res.UtxoHaveTxHashs {
 		amount := float64(utxo.Amount) / float64(types.Coin)
 		total += amount
@@ -280,7 +281,9 @@ func parseShowPrivacyAccountSpendRes(arg interface{}) (interface{}, error) {
 			rets = append(rets, &SpendResult)
 		}
 	}
+
 	fmt.Println(fmt.Sprintf("Total Privacy spend amount is %s", strconv.FormatFloat(total, 'f', 4, 64)))
+
 	return rets, nil
 }
 
