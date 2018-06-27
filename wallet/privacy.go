@@ -864,7 +864,7 @@ func (wallet *Wallet) createPublic2PrivacyTx(req *types.ReqCreateTransaction) (*
 	txSize := types.Size(tx) + types.SignatureSize
 	realFee := int64((txSize+1023)>>types.Size_1K_shiftlen) * types.FeePerKB
 	tx.Fee = realFee
-	tx.SetExpire(types.GetTxTimeInterval())
+	tx.SetExpire(time.Hour)
 
 	byteshash := tx.Hash()
 	dbkey := calcCreateTxKey(req.Tokenname, common.Bytes2Hex(byteshash))
@@ -944,7 +944,7 @@ func (wallet *Wallet) createPrivacy2PrivacyTx(req *types.ReqCreateTransaction) (
 		Nonce:   wallet.random.Int63(),
 		To:      account.ExecAddress(types.PrivacyX),
 	}
-	tx.SetExpire(types.GetTxTimeInterval())
+	tx.SetExpire(time.Hour)
 
 	byteshash := tx.Hash()
 	dbkey := calcCreateTxKey(req.Tokenname, common.Bytes2Hex(byteshash))
@@ -1023,7 +1023,7 @@ func (wallet *Wallet) createPrivacy2PublicTx(req *types.ReqCreateTransaction) (*
 		Nonce:   wallet.random.Int63(),
 		To:      req.GetTo(),
 	}
-	tx.SetExpire(types.GetTxTimeInterval())
+	tx.SetExpire(time.Hour)
 
 	byteshash := tx.Hash()
 	dbkey := calcCreateTxKey(req.Tokenname, common.Bytes2Hex(byteshash))
