@@ -77,10 +77,11 @@ func bytesPrefix(prefix []byte) []byte {
 //-----------------------------------------------------------------------------
 
 const (
-	levelDBBackendStr    = "leveldb" // legacy, defaults to goleveldb.
-	goLevelDBBackendStr  = "goleveldb"
-	memDBBackendStr      = "memdb"
-	goBadgerDBBackendStr = "gobadgerdb"
+	levelDBBackendStr     = "leveldb" // legacy, defaults to goleveldb.
+	goLevelDBBackendStr   = "goleveldb"
+	memDBBackendStr       = "memdb"
+	goBadgerDBBackendStr  = "gobadgerdb"
+	goCouchBaseBackendStr = "couchbase"
 )
 
 type dbCreator func(name string, dir string, cache int) (DB, error)
