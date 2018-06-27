@@ -36,10 +36,7 @@ func (r *relay) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	}
 
 	actiondb := newRelayDB(r, tx)
-	btc, err := newBtcStore(r)
-	if err != nil {
-		return nil, err
-	}
+	btc := newBtcStore(r)
 	switch action.GetTy() {
 	case types.RelayActionCreate:
 		return actiondb.relayCreate(action.GetCreate())
@@ -82,7 +79,6 @@ func (r *relay) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 		return set, nil
 	}
 
-	var btc *btcStore
 	for i := 0; i < len(receipt.Logs); i++ {
 		item := receipt.Logs[i]
 		switch item.Ty {
@@ -100,28 +96,27 @@ func (r *relay) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 			kv := r.getOrderKv([]byte(receipt.OrderId), item.Ty)
 			set.KV = append(set.KV, kv...)
 		case types.TyLogRelayRcvBTCHead:
-			//btc header not be stored by head by head, but headers together in one block
-			//thus, before save to db, it is needed to remember last header for continuous check.
-			//although verifyBlockHeader() has checked the continuous header,but not check the head in db
-			if btc == nil {
-				val, err := newBtcStore(r)
-				if err != nil {
-					return nil, err
-				}
-				btc = val
-			}
-
-			var receipt types.ReceiptRelayRcvBTCHeaders
-			err := types.Decode(item.Log, &receipt)
+			var receipt = &types.ReceiptRelayRcvBTCHeaders{}
+			err := types.Decode(item.Log, receipt)
 			if err != nil {
 				return nil, err
 			}
 
-			kv, err := btc.saveBlockHead(receipt.Base)
+			btc := newBtcStore(r)
+			for _, head := range receipt.Headers {
+				kv, err := btc.saveBlockHead(head)
+				if err != nil {
+					return nil, err
+				}
+				set.KV = append(set.KV, kv...)
+			}
+
+			kv, err := btc.saveBlockLastHead(receipt)
 			if err != nil {
 				return nil, err
 			}
 			set.KV = append(set.KV, kv...)
+
 		default:
 
 		}
@@ -156,7 +151,27 @@ func (r *relay) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 			}
 			kv := r.getDeleteOrderKv([]byte(receipt.OrderId), item.Ty)
 			set.KV = append(set.KV, kv...)
+		case types.TyLogRelayRcvBTCHead:
+			var receipt = &types.ReceiptRelayRcvBTCHeaders{}
+			err := types.Decode(item.Log, receipt)
+			if err != nil {
+				return nil, err
+			}
 
+			btc := newBtcStore(r)
+			for _, head := range receipt.Headers {
+				kv, err := btc.delBlockHead(head)
+				if err != nil {
+					return nil, err
+				}
+				set.KV = append(set.KV, kv...)
+			}
+
+			kv, err := btc.delBlockLastHead(receipt)
+			if err != nil {
+				return nil, err
+			}
+			set.KV = append(set.KV, kv...)
 		default:
 
 		}
@@ -197,10 +212,7 @@ func (r *relay) Query(funcName string, params []byte) (types.Message, error) {
 		if err != nil {
 			return nil, err
 		}
-		db, err := newBtcStore(r)
-		if err != nil {
-			return nil, err
-		}
+		db := newBtcStore(r)
 		return db.getHeadHeightList(&req)
 
 	case "GetBTCHeaderCurHeight":
@@ -209,11 +221,8 @@ func (r *relay) Query(funcName string, params []byte) (types.Message, error) {
 		if err != nil {
 			return nil, err
 		}
-		db, err := newBtcStore(r)
-		if err != nil {
-			return nil, err
-		}
-		return db.getBtcHeadDbCurHeight(&req)
+		db := newBtcStore(r)
+		return db.getBtcCurHeight(&req)
 	default:
 	}
 	relaylog.Error("relay Query", "Query type not supprt with func name", funcName)

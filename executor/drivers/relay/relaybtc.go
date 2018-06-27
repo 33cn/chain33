@@ -17,32 +17,11 @@ import (
 )
 
 type btcStore struct {
-	db         dbm.KVDB
-	lastHeader *types.BtcHeader
+	db dbm.KVDB
 }
 
-func newBtcStore(r *relay) (*btcStore, error) {
-	store := &btcStore{
-		db:         r.GetLocalDB(),
-		lastHeader: nil,
-	}
-
-	height, err := store.getLastBtcHeadHeight()
-	if err == types.ErrNotFound {
-		return store, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	head, err := store.getBtcHeadByHeight(height)
-	if err != nil {
-		return nil, err
-	}
-
-	store.lastHeader = head
-	return store, nil
-
+func newBtcStore(r *relay) *btcStore {
+	return &btcStore{db: r.GetLocalDB()}
 }
 
 func (b *btcStore) getBtcHeadHeightFromDb(key []byte) (int64, error) {
@@ -50,6 +29,7 @@ func (b *btcStore) getBtcHeadHeightFromDb(key []byte) (int64, error) {
 	if err != nil {
 		return -1, err
 	}
+
 	height, err := decodeHeight(val)
 	if err != nil {
 		return -1, err
@@ -78,6 +58,20 @@ func (b *btcStore) getBtcHeadByHeight(height int64) (*types.BtcHeader, error) {
 	return &head, nil
 }
 
+func (b *btcStore) getLastBtcHead() (*types.BtcHeader, error) {
+	height, err := b.getLastBtcHeadHeight()
+	if err != nil {
+		return nil, err
+	}
+
+	head, err := b.getBtcHeadByHeight(height)
+	if err != nil {
+		return nil, err
+	}
+
+	return head, nil
+}
+
 func (b *btcStore) saveBlockHead(head *types.BtcHeader) ([]*types.KeyValue, error) {
 	var kv []*types.KeyValue
 	var key []byte
@@ -100,18 +94,51 @@ func (b *btcStore) saveBlockHead(head *types.BtcHeader) ([]*types.KeyValue, erro
 	key = calcBtcHeaderKeyHeightList(int64(head.Height))
 	heightBytes := types.Encode(&types.Int64{int64(head.Height)})
 	kv = append(kv, &types.KeyValue{key, heightBytes})
-	// last height
+
+	return kv, nil
+}
+
+func (b *btcStore) saveBlockLastHead(head *types.ReceiptRelayRcvBTCHeaders) ([]*types.KeyValue, error) {
+	var kv []*types.KeyValue
+
+	heightBytes := types.Encode(&types.Int64{int64(head.NewHeight)})
+	key := relayBTCHeaderLastHeight
+	kv = append(kv, &types.KeyValue{key, heightBytes})
+
+	heightBytes = types.Encode(&types.Int64{int64(head.NewBaseHeight)})
+	key = relayBTCHeaderBaseHeight
+	kv = append(kv, &types.KeyValue{key, heightBytes})
+
+	return kv, nil
+}
+
+func (b *btcStore) delBlockHead(head *types.BtcHeader) ([]*types.KeyValue, error) {
+	var kv []*types.KeyValue
+
+	key := calcBtcHeaderKeyHash(head.Hash)
+	kv = append(kv, &types.KeyValue{key, nil})
+	// height:header
+	key = calcBtcHeaderKeyHeight(int64(head.Height))
+	kv = append(kv, &types.KeyValue{key, nil})
+
+	// prefix-height:height
+	key = calcBtcHeaderKeyHeightList(int64(head.Height))
+	kv = append(kv, &types.KeyValue{key, nil})
+
+	return kv, nil
+}
+
+func (b *btcStore) delBlockLastHead(head *types.ReceiptRelayRcvBTCHeaders) ([]*types.KeyValue, error) {
+	var kv []*types.KeyValue
+	var key []byte
+
+	heightBytes := types.Encode(&types.Int64{int64(head.LastHeight)})
 	key = relayBTCHeaderLastHeight
 	kv = append(kv, &types.KeyValue{key, heightBytes})
 
-	// for start with height =-1 case, the base not be set, just return -1
-	if head.IsReset {
-		key = relayBTCHeaderBaseHeight
-		kv = append(kv, &types.KeyValue{key, heightBytes})
-	}
-	if head != nil {
-		b.lastHeader = head
-	}
+	heightBytes = types.Encode(&types.Int64{int64(head.LastBaseHeight)})
+	key = relayBTCHeaderBaseHeight
+	kv = append(kv, &types.KeyValue{key, heightBytes})
 
 	return kv, nil
 }
@@ -125,13 +152,13 @@ func decodeHeight(heightBytes []byte) (int64, error) {
 	return height.Data, nil
 }
 
-func (b *btcStore) getBtcHeadDbCurHeight(req *types.ReqRelayQryBTCHeadHeight) (types.Message, error) {
-	var height int64
+func (b *btcStore) getBtcCurHeight(req *types.ReqRelayQryBTCHeadHeight) (types.Message, error) {
 
-	if b.lastHeader != nil {
-		height = int64(b.lastHeader.Height)
-	} else {
+	height, err := b.getLastBtcHeadHeight()
+	if err == types.ErrNotFound {
 		height = -1
+	} else if err != nil {
+		return nil, err
 	}
 
 	key := relayBTCHeaderBaseHeight
@@ -326,12 +353,12 @@ func btcWireHeader(head *types.BtcHeader) (error, *wire.BlockHeader) {
 	return nil, h
 }
 
-func verifyBlockHeader(head *types.BtcHeader, preHead *types.BtcHeader) error {
+func verifyBlockHeader(head *types.BtcHeader, preHead *types.RelayLastRcvBtcHeader) error {
 	if head == nil {
 		return types.ErrInputPara
 	}
 
-	if preHead != nil && (preHead.Hash != head.PreviousHash || preHead.Height+1 != head.Height) && !head.IsReset {
+	if preHead != nil && preHead.Header != nil && (preHead.Header.Hash != head.PreviousHash || preHead.Header.Height+1 != head.Height) && !head.IsReset {
 		return types.ErrRelayBtcHeadSequenceErr
 	}
 
