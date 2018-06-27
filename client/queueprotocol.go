@@ -53,8 +53,8 @@ func New(client queue.Client, option *QueueProtocolOption) (QueueProtocolAPI, er
 	if option != nil {
 		q.option = *option
 	} else {
-		q.option.SendTimeout = 120 * time.Second
-		q.option.WaitTimeout = 60 * time.Second
+		q.option.SendTimeout = 600 * time.Second
+		q.option.WaitTimeout = 600 * time.Second
 	}
 	return q, nil
 }

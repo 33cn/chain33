@@ -255,6 +255,11 @@ func (wallet *Wallet) buyMinerAddrTicketOne(height int64, priv crypto.PrivKey) (
 	var hashes [][]byte
 	for i := 0; i < len(addrs); i++ {
 		walletlog.Info("sourceaddr", "addr", addrs[i])
+		ok := checkMinerWhiteList(addrs[i])
+		if !ok {
+			walletlog.Info("buyMinerAddrTicketOne Cold Addr not in MinerWhiteList", "addr", addrs[i])
+			continue
+		}
 		acc, err := wallet.getBalance(addrs[i], "ticket")
 		if err != nil {
 			return nil, 0, err
