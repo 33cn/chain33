@@ -5,7 +5,8 @@ import (
 	"encoding/asn1"
 	"crypto/ecdsa"
 	"crypto/rand"
-	"gitlab.33.cn/chain33/chain33/authority/utils"
+	"gitlab.33.cn/chain33/chain33/authority/tools/cryptogen/factory/utils"
+	auth "gitlab.33.cn/chain33/chain33/authority/utils"
 	"crypto/elliptic"
 	"fmt"
 	"errors"
@@ -23,7 +24,7 @@ func signECDSA(k *ecdsa.PrivateKey, digest []byte, opts SignerOpts) (signature [
 		return nil, err
 	}
 
-	s, _, err = utils.ToLowS(&k.PublicKey, s)
+	s, _, err = auth.ToLowS(&k.PublicKey, s)
 	if err != nil {
 		return nil, err
 	}
