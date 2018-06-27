@@ -911,10 +911,11 @@ func (ws *Store) listSpendUTXOs(token, addr string) (*types.UTXOHaveTxHashs, err
 	Key4FTXOsInTxs := list.PrefixScan(prefix)
 	if len(Key4FTXOsInTxs) == 0 {
 		walletlog.Error("listWalletSpendUTXOsPrivacyAccount ", "addr not exist", addr)
-		return nil, nil
+		return nil, types.ErrNotFound
 	}
 
 	var utxoHaveTxHashs types.UTXOHaveTxHashs
+	utxoHaveTxHashs.UtxoHaveTxHashs = make([]*types.UTXOHaveTxHash, 0)
 	for _, Key4FTXOsInTx := range Key4FTXOsInTxs {
 		value, err := ws.db.Get(Key4FTXOsInTx)
 		if err != nil {
