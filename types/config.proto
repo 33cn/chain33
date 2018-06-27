@@ -63,13 +63,14 @@ message Consensus {
 }
 
 message Wallet {
-    int64  minFee       = 1;
-    string driver       = 2;
-    string dbPath       = 3;
-    int32  dbCache      = 4;
-    string signType     = 5;
-    bool   forceMining  = 6;
-    bool   minerdisable = 7;
+    int64    minFee                = 1;
+    string   driver                = 2;
+    string   dbPath                = 3;
+    int32    dbCache               = 4;
+    string   signType              = 5;
+    bool     forceMining           = 6;
+    bool     minerdisable          = 7;
+    repeated string minerwhitelist = 8;
 }
 
 message Store {
