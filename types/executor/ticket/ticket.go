@@ -131,11 +131,12 @@ func (l TicketBindLog) Decode(msg []byte) (interface{}, error) {
 	return logTmp, err
 }
 
-type CoinsGetTxsByAddr struct {
+// query
+type TicketInfos struct {
 }
 
-func (t *CoinsGetTxsByAddr) Input(message json.RawMessage) ([]byte, error) {
-	var req types.ReqAddr
+func (t *TicketInfos) Input(message json.RawMessage) ([]byte, error) {
+	var req types.TicketInfos
 	err := json.Unmarshal(message, &req)
 	if err != nil {
 		return nil, err
@@ -143,6 +144,54 @@ func (t *CoinsGetTxsByAddr) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *CoinsGetTxsByAddr) Output(reply interface{}) (interface{}, error) {
+func (t *TicketInfos) Output(reply interface{}) (interface{}, error) {
+	return reply, nil
+}
+
+type TicketList struct {
+}
+
+func (t *TicketList) Input(message json.RawMessage) ([]byte, error) {
+	var req types.TicketList
+	err := json.Unmarshal(message, &req)
+	if err != nil {
+		return nil, err
+	}
+	return types.Encode(&req), nil
+}
+
+func (t *TicketList) Output(reply interface{}) (interface{}, error) {
+	return reply, nil
+}
+
+type TicketMinerAddress struct {
+}
+
+func (t *TicketMinerAddress) Input(message json.RawMessage) ([]byte, error) {
+	var req types.ReqString
+	err := json.Unmarshal(message, &req)
+	if err != nil {
+		return nil, err
+	}
+	return types.Encode(&req), nil
+}
+
+func (t *TicketMinerAddress) Output(reply interface{}) (interface{}, error) {
+	return reply, nil
+}
+
+type TicketMinerSourceList struct {
+}
+
+func (t *TicketMinerSourceList) Input(message json.RawMessage) ([]byte, error) {
+	var req types.ReqString
+	err := json.Unmarshal(message, &req)
+	if err != nil {
+		return nil, err
+	}
+	return types.Encode(&req), nil
+}
+
+func (t *TicketMinerSourceList) Output(reply interface{}) (interface{}, error) {
 	return reply, nil
 }
