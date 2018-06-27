@@ -3,6 +3,7 @@ package commands
 import (
 	"encoding/hex"
 	"fmt"
+	"math"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -210,7 +211,7 @@ func CreateRawTx(to string, amount float64, note string, isWithdraw bool, isToke
 	if amount < 0 {
 		return "", types.ErrAmount
 	}
-	amountInt64 := int64(amount*1e4) * 1e4
+	amountInt64 := int64(math.Trunc((amount+0.5/1e4)*1e4)) * 1e4
 	if execName != "" && !types.IsAllowExecName(execName) {
 		return "", types.ErrExecNameNotMatch
 	}
