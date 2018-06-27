@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	log "github.com/inconshreveable/log15"
@@ -14,6 +15,11 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/util"
 	"google.golang.org/grpc"
+)
+
+const (
+	AddAct int64 = 1
+	DelAct int64 = 2 //reference blockstore.go
 )
 
 var (
@@ -38,6 +44,7 @@ type Client struct {
 	conn       *grpc.ClientConn
 	grpcClient types.GrpcserviceClient
 	cache      *txCache
+	lock       sync.RWMutex
 }
 
 func New(cfg *types.Consensus) *Client {
@@ -55,7 +62,7 @@ func New(cfg *types.Consensus) *Client {
 	grpcClient := types.NewGrpcserviceClient(conn)
 	cache := newTxCache(txCacheSize)
 
-	para := &Client{c, conn, grpcClient, cache}
+	para := &Client{c, conn, grpcClient, cache, sync.RWMutex{}}
 
 	c.SetChild(para)
 
@@ -156,20 +163,72 @@ func (client *Client) SetTxs() {
 }
 
 func (client *Client) SetOpTxs(txs []*types.Transaction, ty int64, currSeq int64) {
-	for i, _ := range txs {
-		hash := txs[i].Hash()
-		if ty == DelAct && client.cache.Exists(hash) && client.cache.Get(hash).ty == AddAct {
-			client.cache.Remove(hash)
-		} else {
-			if !client.cache.Exists(hash) {
-				err := client.cache.Push(txs[i], ty, currSeq)
-				if err != nil {
-					plog.Error("SetOpTxs", "err", err)
-				}
+	if ty == AddAct {
+		for i, _ := range txs {
+			hash := txs[i].Hash()
+			if client.cache.Exists(hash) {
+				plog.Error("SetOpTxs", "err", "DupTx")
+				continue
 			}
-
+			err := client.cache.Push(txs[i], currSeq)
+			if err != nil {
+				plog.Error("SetOpTxs AddAct", "err", err)
+			}
 		}
+	} else if ty == DelAct {
+		var height int64 = 1
+		txMap := make(map[string]bool, 100)
+		for i, _ := range txs {
+			hash := txs[i].Hash()
+			txinfo, err := client.queryTx(hash)
+			if err != nil {
+				plog.Error("SetOpTxs DelAct", "err", err)
+				continue
+			}
+			if txinfo.Height > height {
+				height = txinfo.Height
+			}
+			txMap[string(hash)] = true
+		}
+		// 不回退的交易需要重新打包
+		block, _ := client.RequestBlock(height)
+		newTxs := make([]*types.Transaction, 0, len(block.Txs))
+		for i, _ := range block.Txs {
+			tx := block.Txs[i]
+			if _, ok := txMap[string(tx.Hash())]; !ok {
+				newTxs = append(newTxs, tx)
+			}
+		}
+
+		// wait for remaining txs in cache to be blocked
+		for client.cache.Size() != 0 {
+			plog.Info(fmt.Sprintf("%d txs remain to be blocked", client.cache.Size()))
+			time.Sleep(time.Second)
+		}
+
+		// create fork point
+		lastBlock, _ := client.RequestBlock(height - 1)
+		if len(newTxs) != 0 {
+			client.createBlock(lastBlock, newTxs)
+		} else {
+			client.SetCurrentBlock(lastBlock)
+		}
+	} else {
+		plog.Error("SetOpTxs", "err", "Incorrect block type")
 	}
+}
+
+func (client *Client) queryTx(hash []byte) (*types.TransactionDetail, error) {
+	msg := client.GetQueueClient().NewMessage("blockchain", types.EventQueryTx, &types.ReqHash{hash})
+	err := client.GetQueueClient().Send(msg, true)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := client.GetQueueClient().Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+	return resp.Data.(*types.TransactionDetail), nil
 }
 
 func (client *Client) MonitorTxs() {
@@ -248,7 +307,7 @@ func (client *Client) CreateBlock() {
 	issleep := true
 	count := 0
 	for {
-		//don't check condition for block coughtup
+		//don't check condition for block caughtup
 		if !client.IsMining() {
 			time.Sleep(time.Second)
 			continue
@@ -264,6 +323,7 @@ func (client *Client) CreateBlock() {
 			emptyBlock.StateHash = block.StateHash
 			emptyBlock.ParentHash = block.Hash()
 			emptyBlock.Height = block.Height + 1
+			emptyBlock.Difficulty = types.GetP(0).PowLimitBits
 			emptyBlock.Txs = nil
 			emptyBlock.TxHash = zeroHash[:]
 			emptyBlock.BlockTime = time.Now().Unix()
@@ -286,26 +346,34 @@ func (client *Client) CreateBlock() {
 		issleep = false
 		//check dup
 		//txs = client.CheckTxDup(txs)
-		plog.Error(fmt.Sprintf("the len txs is: %v", len(txs)))
-		var newblock types.Block
-		newblock.ParentHash = lastBlock.Hash()
-		newblock.Height = lastBlock.Height + 1
-		client.AddTxsToBlock(&newblock, txs)
-		//solo 挖矿固定难度
-		newblock.Difficulty = types.GetP(0).PowLimitBits
-		newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
-		newblock.BlockTime = time.Now().Unix()
-		if lastBlock.BlockTime >= newblock.BlockTime {
-			newblock.BlockTime = lastBlock.BlockTime + 1
-		}
-		err := client.WriteBlock(lastBlock.StateHash, &newblock)
+		err := client.createBlock(lastBlock, txs)
 		if err != nil {
 			issleep = true
-			plog.Error(fmt.Sprintf("********************err:%v", err.Error()))
 			continue
 		}
 		time.Sleep(time.Second * time.Duration(blockSec))
 	}
+}
+
+func (client *Client) createBlock(lastBlock *types.Block, txs []*types.Transaction) error {
+	var newblock types.Block
+	plog.Error(fmt.Sprintf("the len txs is: %v", len(txs)))
+	newblock.ParentHash = lastBlock.Hash()
+	newblock.Height = lastBlock.Height + 1
+	client.AddTxsToBlock(&newblock, txs)
+	//挖矿固定难度
+	newblock.Difficulty = types.GetP(0).PowLimitBits
+	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
+	newblock.BlockTime = time.Now().Unix()
+	if lastBlock.BlockTime >= newblock.BlockTime {
+		newblock.BlockTime = lastBlock.BlockTime + 1
+	}
+	err := client.WriteBlock(lastBlock.StateHash, &newblock)
+	if err != nil {
+		plog.Error(fmt.Sprintf("********************err:%v", err.Error()))
+		return err
+	}
+	return nil
 }
 
 // 向cache获取交易
@@ -317,7 +385,7 @@ func (client *Client) RequestTx(size int, seqRange int64, txHashList [][]byte) [
 // 向blockchain写区块
 func (client *Client) WriteBlock(prev []byte, block *types.Block) error {
 	plog.Error("write block in parachain")
-	var deltxSeq int64
+	var deltxSeq int64 = 0
 	blockdetail, deltx, err := client.ExecBlock(prev, block)
 	if len(deltx) > 0 {
 		deltxSeq = client.DelTxs(deltx)
@@ -364,6 +432,8 @@ func (client *Client) DelTxs(deltx []*types.Transaction) (seq int64) {
 
 // 保存blockedSeq
 func (client *Client) SetBlockedSeq(seq int64) error {
+	client.lock.Lock()
+	defer client.lock.Unlock()
 	if seq > blockedSeq {
 		blockedSeq = seq
 		// 持久化存储用于恢复
