@@ -62,7 +62,6 @@ func (k *ecdsaPublicKey) SKI() (ski []byte) {
 
 	raw := elliptic.Marshal(k.pubKey.Curve, k.pubKey.X, k.pubKey.Y)
 
-	// Hash it
 	hash := sha256.New()
 	hash.Write(raw)
 	return hash.Sum(nil)

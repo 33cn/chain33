@@ -1,9 +1,3 @@
-/*
-Copyright IBM Corp. All Rights Reserved.
-
-SPDX-License-Identifier: Apache-2.0
-*/
-
 package metadata
 
 import (
@@ -11,14 +5,8 @@ import (
 	"runtime"
 )
 
-// package-scoped variables
-
-// Package version
 var Version string
 
-// package-scoped constants
-
-// Program name
 const ProgramName = "cryptogen"
 
 func GetVersionInfo() string {

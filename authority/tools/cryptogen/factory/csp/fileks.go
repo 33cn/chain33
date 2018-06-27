@@ -19,24 +19,13 @@ import (
 	auth "gitlab.33.cn/chain33/chain33/authority/utils"
 )
 
-var logger = log.New("auth", "bccsp_sw")
+var logger = log.New("tools", "cryptogen")
 
-// NewFileBasedKeyStore instantiated a file-based key store at a given position.
-// The key store can be encrypted if a non-empty password is specifiec.
-// It can be also be set as read only. In this case, any store operation
-// will be forbidden
 func NewFileBasedKeyStore(pwd []byte, path string, readOnly bool) (KeyStore, error) {
 	ks := &fileBasedKeyStore{}
 	return ks, ks.Init(pwd, path, readOnly)
 }
 
-// fileBasedKeyStore is a folder-based KeyStore.
-// Each key is stored in a separated file whose name contains the key's SKI
-// and flags to identity the key's type. All the keys are stored in
-// a folder whose path is provided at initialization time.
-// The KeyStore can be initialized with a password, this password
-// is used to encrypt and decrypt the files storing the keys.
-// A KeyStore can be read only to avoid the overwriting of keys.
 type fileBasedKeyStore struct {
 	path string
 
@@ -45,24 +34,10 @@ type fileBasedKeyStore struct {
 
 	pwd []byte
 
-	// Sync
 	m sync.Mutex
 }
 
-// Init initializes this KeyStore with a password, a path to a folder
-// where the keys are stored and a read only flag.
-// Each key is stored in a separated file whose name contains the key's SKI
-// and flags to identity the key's type.
-// If the KeyStore is initialized with a password, this password
-// is used to encrypt and decrypt the files storing the keys.
-// The pwd can be nil for non-encrypted KeyStores. If an encrypted
-// key-store is initialized without a password, then retrieving keys from the
-// KeyStore will fail.
-// A KeyStore can be read only to avoid the overwriting of keys.
 func (ks *fileBasedKeyStore) Init(pwd []byte, path string, readOnly bool) error {
-	// Validate inputs
-	// pwd can be nil
-
 	if len(path) == 0 {
 		return errors.New("An invalid KeyStore path provided. Path cannot be an empty string.")
 	}
@@ -92,15 +67,11 @@ func (ks *fileBasedKeyStore) Init(pwd []byte, path string, readOnly bool) error 
 	return nil
 }
 
-// ReadOnly returns true if this KeyStore is read only, false otherwise.
-// If ReadOnly is true then StoreKey will fail.
 func (ks *fileBasedKeyStore) ReadOnly() bool {
 	return ks.readOnly
 }
 
-// GetKey returns a key object whose SKI is the one passed.
 func (ks *fileBasedKeyStore) GetKey(ski []byte) (k Key, err error) {
-	// Validate arguments
 	if len(ski) == 0 {
 		return nil, errors.New("Invalid SKI. Cannot be of zero length.")
 	}
@@ -109,7 +80,6 @@ func (ks *fileBasedKeyStore) GetKey(ski []byte) (k Key, err error) {
 
 	switch suffix {
 	case "sk":
-		// Load the private key
 		key, err := ks.loadPrivateKey(hex.EncodeToString(ski))
 		if err != nil {
 			return nil, fmt.Errorf("Failed loading secret key [%x] [%s]", ski, err)
@@ -122,7 +92,6 @@ func (ks *fileBasedKeyStore) GetKey(ski []byte) (k Key, err error) {
 			return nil, errors.New("Secret key type not recognized")
 		}
 	case "pk":
-		// Load the public key
 		key, err := ks.loadPublicKey(hex.EncodeToString(ski))
 		if err != nil {
 			return nil, fmt.Errorf("Failed loading public key [%x] [%s]", ski, err)
@@ -139,8 +108,6 @@ func (ks *fileBasedKeyStore) GetKey(ski []byte) (k Key, err error) {
 	}
 }
 
-// StoreKey stores the key k in this KeyStore.
-// If this KeyStore is read only then the method will fail.
 func (ks *fileBasedKeyStore) StoreKey(k Key) (err error) {
 	if ks.readOnly {
 		return errors.New("Read only KeyStore.")
@@ -174,14 +141,13 @@ func (ks *fileBasedKeyStore) StoreKey(k Key) (err error) {
 }
 
 func (ks *fileBasedKeyStore) searchKeystoreForSKI(ski []byte) (k Key, err error) {
-
 	files, _ := ioutil.ReadDir(ks.path)
 	for _, f := range files {
 		if f.IsDir() {
 			continue
 		}
 
-		if f.Size() > (1 << 16) { //64k, somewhat arbitrary limit, considering even large RSA keys
+		if f.Size() > (1 << 16) {
 			continue
 		}
 
@@ -220,9 +186,6 @@ func (ks *fileBasedKeyStore) getSuffix(alias string) string {
 			}
 			if strings.HasSuffix(f.Name(), "pk") {
 				return "pk"
-			}
-			if strings.HasSuffix(f.Name(), "key") {
-				return "key"
 			}
 			break
 		}
@@ -304,35 +267,11 @@ func (ks *fileBasedKeyStore) loadPublicKey(alias string) (interface{}, error) {
 	return privateKey, nil
 }
 
-func (ks *fileBasedKeyStore) loadKey(alias string) ([]byte, error) {
-	path := ks.getPathForAlias(alias, "key")
-	logger.Debug("Loading key [%s] at [%s]...", alias, path)
-
-	pem, err := ioutil.ReadFile(path)
-	if err != nil {
-		logger.Error("Failed loading key [%s]: [%s].", alias, err.Error())
-
-		return nil, err
-	}
-
-	key, err := utils.PEMtoAES(pem, ks.pwd)
-	if err != nil {
-		logger.Error("Failed parsing key [%s]: [%s]", alias, err)
-
-		return nil, err
-	}
-
-	return key, nil
-}
-
 func (ks *fileBasedKeyStore) createKeyStoreIfNotExists() error {
-	// Check keystore directory
 	ksPath := ks.path
 	missing, _ := auth.DirMissingOrEmpty(ksPath)
 
 	if missing {
-		//logger.Debug("KeyStore path [%s] missing [%t]: [%s]", ksPath, missing, utils.ErrToString(err))
-
 		err := ks.createKeyStore()
 		if err != nil {
 			logger.Error("Failed creating KeyStore At [%s]: [%s]", ksPath, err.Error())
@@ -344,13 +283,10 @@ func (ks *fileBasedKeyStore) createKeyStoreIfNotExists() error {
 }
 
 func (ks *fileBasedKeyStore) createKeyStore() error {
-	// Create keystore directory root if it doesn't exist yet
 	ksPath := ks.path
-	//logger.Debug("Creating KeyStore at [%s]...", ksPath)
 
 	os.MkdirAll(ksPath, 0755)
 
-	//logger.Debug("KeyStore created at [%s].", ksPath)
 	return nil
 }
 
@@ -358,8 +294,6 @@ func (ks *fileBasedKeyStore) openKeyStore() error {
 	if ks.isOpen {
 		return nil
 	}
-
-	//logger.Debug("KeyStore opened at [%s]...done", ks.path)
 
 	return nil
 }

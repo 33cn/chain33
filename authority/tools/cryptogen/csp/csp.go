@@ -9,7 +9,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/authority/tools/cryptogen/factory/signer"
 )
 
-// GeneratePrivateKey creates a private key and stores it in keystorePath
 func GeneratePrivateKey(keystorePath string) (csp.Key,
 	crypto.Signer, error) {
 

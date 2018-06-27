@@ -35,21 +35,18 @@ func NewCA(baseDir, name string) (*CA, error) {
 		return nil, err
 	}
 
-	// get public signing certificate
 	ecPubKey, err := csp.GetECPublicKey(priv)
 	if err != nil {
 		return nil, err
 	}
 
 	template := x509Template()
-	//this is a CA
 	template.IsCA = true
 	template.KeyUsage |= x509.KeyUsageDigitalSignature |
 		x509.KeyUsageKeyEncipherment | x509.KeyUsageCertSign |
 		x509.KeyUsageCRLSign
 	template.ExtKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageAny}
 
-	//set the organization for the subject
 	subject := subjectTemplate()
 	subject.CommonName = name
 
@@ -77,7 +74,6 @@ func (ca *CA) SignCertificate(baseDir, name string, sans []string, pub *ecdsa.Pu
 	template.KeyUsage = ku
 	template.ExtKeyUsage = eku
 
-	//set the organization for the subject
 	subject := subjectTemplate()
 	subject.CommonName = name
 
@@ -94,7 +90,6 @@ func (ca *CA) SignCertificate(baseDir, name string, sans []string, pub *ecdsa.Pu
 	return cert, nil
 }
 
-// default template for X509 subject
 func subjectTemplate() pkix.Name {
 	return pkix.Name{
 		Country:  []string{"US"},
@@ -103,19 +98,13 @@ func subjectTemplate() pkix.Name {
 	}
 }
 
-// default template for X509 certificates
 func x509Template() x509.Certificate {
-
-	// generate a serial number
 	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
 	serialNumber, _ := rand.Int(rand.Reader, serialNumberLimit)
 
-	// set expiry to around 10 years
 	expiry := 3650 * 24 * time.Hour
-	// backdate 5 min
 	notBefore := time.Now().Add(-5 * time.Minute).UTC()
 
-	//basic template to use
 	x509 := x509.Certificate{
 		SerialNumber:          serialNumber,
 		NotBefore:             notBefore,
@@ -126,23 +115,20 @@ func x509Template() x509.Certificate {
 
 }
 
-// generate a signed X509 certficate using ECDSA
 func genCertificateECDSA(baseDir, name string, template, parent *x509.Certificate, pub *ecdsa.PublicKey,
 	priv interface{}) (*x509.Certificate, error) {
 
-	//create the x509 public cert
 	certBytes, err := x509.CreateCertificate(rand.Reader, template, parent, pub, priv)
 	if err != nil {
 		return nil, err
 	}
 
-	//write cert out to file
 	fileName := filepath.Join(baseDir, name+"-cert.pem")
 	certFile, err := os.Create(fileName)
 	if err != nil {
 		return nil, err
 	}
-	//pem encode the cert
+
 	err = pem.Encode(certFile, &pem.Block{Type: "CERTIFICATE", Bytes: certBytes})
 	certFile.Close()
 	if err != nil {

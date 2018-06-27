@@ -14,7 +14,7 @@ import (
 )
 
 var alog = log.New("module", "autority")
-var OrgName = "chain33"
+var OrgName = "Chain33"
 
 type Authority struct {
 	cryptoPath string
@@ -147,7 +147,8 @@ func (auth *Authority) procGetUser(msg queue.Message) {
 	data, _ := msg.GetData().(*types.ReqAuthGetUser)
 
 	userName := data.GetName()
-	user,ok := auth.userMap[fmt.Sprintf("%s@%s-cert.pem", userName, OrgName)]
+	keyvalue := fmt.Sprintf("%s@%s-cert.pem", userName, OrgName)
+	user,ok := auth.userMap[keyvalue]
 	if !ok {
 		msg.ReplyErr("EventReplyAuthGetUser", types.ErrInvalidParam)
 		return
