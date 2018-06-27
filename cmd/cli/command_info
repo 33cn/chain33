@@ -1,0 +1,32 @@
+./cli genseed 0
+{
+"seed": "spirit morning fiscal castle damp rebuild dry start mercy habit inquiry pledge text simple menu response"
+}
+
+./cli saveseed "track fancy loop east tube alcohol filter neither gold rhythm enable insect spawn slam hedgehog" fzm
+{
+"isok": true,
+"msg": ""
+}
+
+./cli importprivkey CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944 test1
+{
+"acc": {
+"balance": "100000000.0000",
+"frozen": "0.0000",
+"addr": "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
+},
+"label": "test1"
+}
+
+./cli newaccount test001
+{
+"acc": {
+"balance": "0.0000",
+"frozen": "0.0000",
+"addr": "139tm57V9ACt32Xy8FBEY57TVTpwBrPS6R"
+},
+"label": "test001"
+}
+
+cli sendtoaddress 14KEKbYtKKQm4wMthSK9J4La4nAiidGozt 16j6wnaa97422kUf4sWWtdf5pEygXskRdx 1 ceshi
