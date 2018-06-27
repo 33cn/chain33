@@ -9,10 +9,11 @@ import (
 	// "github.com/syndtr/goleveldb/leveldb/opt"
 	"fmt"
 
+	"strings"
+
 	"github.com/couchbase/gocb"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
 	"github.com/syndtr/goleveldb/leveldb/util"
-	"strings"
 )
 
 var (
@@ -152,22 +153,25 @@ type GoCouchBaseIt struct {
 	prefix  []byte
 	reserve bool
 	keys    []string
-	index   int64
+	index   int
 }
 
 func (dbit *GoCouchBaseIt) Close() {
 	dbit.mVal = nil
 	dbit.prefix = nil
 	dbit.reserve = false
-	dbit.index = 1
+	dbit.index = 0
 }
 
 func (dbit *GoCouchBaseIt) Next() bool {
 	if dbit.reserve {
 		dbit.index--
+
 	} else {
 		dbit.index++
+
 	}
+
 	if dbit.mVal[dbit.keys[dbit.index]] != nil {
 		return true
 	} else {
@@ -177,7 +181,7 @@ func (dbit *GoCouchBaseIt) Next() bool {
 
 func (dbit *GoCouchBaseIt) Rewind() bool {
 	if dbit.reserve {
-		dbit.index = int64(len(dbit.keys)) - 1
+		dbit.index = (len(dbit.keys)) - 1
 	} else {
 		dbit.index = 0
 	}
@@ -197,12 +201,40 @@ func (dbit *GoCouchBaseIt) ValueCopy() []byte {
 }
 
 func (dbit *GoCouchBaseIt) Valid() bool {
+	if dbit.index <= 0 || int(dbit.index) >= len(dbit.keys) {
+		return false
+	}
 	val, _ := hex.DecodeString(dbit.keys[dbit.index])
 	return dbit.mVal[dbit.keys[dbit.index]] != nil && bytes.Contains(val, dbit.prefix)
 }
 
-func (it *GoCouchBaseIt) Error() error {
+func (dbit *GoCouchBaseIt) Error() error {
 	return nil
+}
+
+func (dbit *GoCouchBaseIt) Seek(key []byte) bool {
+	keyStr := string(key)
+	pos := 0
+	for i, v := range dbit.keys {
+		if i < dbit.index {
+			continue
+		}
+		if strings.Compare(keyStr, v) < 0 {
+			continue
+		} else {
+			pos = i
+			break
+		}
+	}
+
+	tmp := dbit.index
+	dbit.index = pos
+	if dbit.Valid() {
+		return true
+	} else {
+		dbit.index = tmp
+		return false
+	}
 }
 
 type GoCouchBaseBatch struct {
