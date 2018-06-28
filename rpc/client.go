@@ -57,7 +57,7 @@ func (c *channelClient) CreateRawTransaction(param *types.CreateTx) ([]byte, err
 		return nil, err
 	}
 
-	random := rand.New(rand.NewSource(time.Now().UnixNano()))
+	random := rand.New(rand.NewSource(types.Now().UnixNano()))
 	tx.Nonce = random.Int63()
 	txHex := types.Encode(tx)
 
@@ -270,7 +270,7 @@ func (c *channelClient) CreateRawTokenPreCreateTx(parm *TokenPreCreateTx) ([]byt
 		Execer:  []byte("token"),
 		Payload: types.Encode(precreate),
 		Fee:     parm.Fee,
-		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
+		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
 		To:      address.ExecAddress("token"),
 	}
 
@@ -292,7 +292,7 @@ func (c *channelClient) CreateRawTokenFinishTx(parm *TokenFinishTx) ([]byte, err
 		Execer:  []byte("token"),
 		Payload: types.Encode(finish),
 		Fee:     parm.Fee,
-		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
+		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
 		To:      address.ExecAddress("token"),
 	}
 
@@ -313,7 +313,7 @@ func (c *channelClient) CreateRawTokenRevokeTx(parm *TokenRevokeTx) ([]byte, err
 		Execer:  []byte("token"),
 		Payload: types.Encode(revoke),
 		Fee:     parm.Fee,
-		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
+		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
 		To:      address.ExecAddress("token"),
 	}
 
@@ -343,7 +343,7 @@ func (c *channelClient) CreateRawTradeSellTx(parm *TradeSellTx) ([]byte, error) 
 		Execer:  []byte("trade"),
 		Payload: types.Encode(sell),
 		Fee:     parm.Fee,
-		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
+		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
 		To:      address.ExecAddress("trade"),
 	}
 
@@ -364,7 +364,7 @@ func (c *channelClient) CreateRawTradeBuyTx(parm *TradeBuyTx) ([]byte, error) {
 		Execer:  []byte("trade"),
 		Payload: types.Encode(buy),
 		Fee:     parm.Fee,
-		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
+		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
 		To:      address.ExecAddress("trade"),
 	}
 
@@ -386,7 +386,7 @@ func (c *channelClient) CreateRawTradeRevokeTx(parm *TradeRevokeTx) ([]byte, err
 		Execer:  []byte("trade"),
 		Payload: types.Encode(buy),
 		Fee:     parm.Fee,
-		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
+		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
 		To:      address.ExecAddress("trade"),
 	}
 
@@ -413,7 +413,7 @@ func (c *channelClient) CreateRawTradeBuyLimitTx(parm *TradeBuyLimitTx) ([]byte,
 		Execer:  []byte("trade"),
 		Payload: types.Encode(buyLimit),
 		Fee:     parm.Fee,
-		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
+		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
 		To:      address.ExecAddress("trade"),
 	}
 
@@ -434,7 +434,7 @@ func (c *channelClient) CreateRawTradeSellMarketTx(parm *TradeSellMarketTx) ([]b
 		Execer:  []byte("trade"),
 		Payload: types.Encode(sellMarket),
 		Fee:     parm.Fee,
-		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
+		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
 		To:      address.ExecAddress("trade"),
 	}
 
@@ -456,7 +456,7 @@ func (c *channelClient) CreateRawTradeRevokeBuyTx(parm *TradeRevokeBuyTx) ([]byt
 		Execer:  []byte("trade"),
 		Payload: types.Encode(buy),
 		Fee:     parm.Fee,
-		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
+		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
 		To:      address.ExecAddress("trade"),
 	}
 
@@ -475,7 +475,7 @@ func (c *channelClient) BindMiner(param *types.ReqBindMiner) (*types.ReplyBindMi
 	execer := []byte("ticket")
 	to := address.ExecAddress(string(execer))
 	txBind := &types.Transaction{Execer: execer, Payload: types.Encode(ta), To: to}
-	random := rand.New(rand.NewSource(time.Now().UnixNano()))
+	random := rand.New(rand.NewSource(types.Now().UnixNano()))
 	txBind.Nonce = random.Int63()
 	var err error
 	txBind.Fee, err = txBind.GetRealFee(types.MinFee)
@@ -520,18 +520,18 @@ func (c *channelClient) GetTimeStatus() (*types.TimeStatus, error) {
 				break
 			}
 			if errTimes == 10 {
-				return &types.TimeStatus{NtpTime: "", LocalTime: time.Now().Format("2006-01-02 15:04:05"), Diff: 0}, nil
+				return &types.TimeStatus{NtpTime: "", LocalTime: types.Now().Format("2006-01-02 15:04:05"), Diff: 0}, nil
 			}
 		}
 
-		local = time.Now()
+		local = types.Now()
 		diff = local.Unix() - ntpTime.Unix()
 		diffTmp = append(diffTmp, diff)
 	}
 	for j := 0; j < 2; j++ {
 		for k := j + 1; k < 3; k++ {
 			if diffTmp[j] != diffTmp[k] {
-				return &types.TimeStatus{NtpTime: "", LocalTime: time.Now().Format("2006-01-02 15:04:05"), Diff: 0}, nil
+				return &types.TimeStatus{NtpTime: "", LocalTime: types.Now().Format("2006-01-02 15:04:05"), Diff: 0}, nil
 			}
 		}
 	}
@@ -557,7 +557,7 @@ func (c *channelClient) CreateRawRelayOrderTx(parm *RelayOrderTx) ([]byte, error
 		Execer:  types.ExecerRelay,
 		Payload: types.Encode(sell),
 		Fee:     parm.Fee,
-		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
+		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
 		To:      address.ExecAddress(string(types.ExecerRelay)),
 	}
 
@@ -578,7 +578,7 @@ func (c *channelClient) CreateRawRelayAcceptTx(parm *RelayAcceptTx) ([]byte, err
 		Execer:  types.ExecerRelay,
 		Payload: types.Encode(val),
 		Fee:     parm.Fee,
-		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
+		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
 		To:      address.ExecAddress(string(types.ExecerRelay)),
 	}
 
@@ -599,7 +599,7 @@ func (c *channelClient) CreateRawRelayRevokeTx(parm *RelayRevokeTx) ([]byte, err
 		Execer:  types.ExecerRelay,
 		Payload: types.Encode(val),
 		Fee:     parm.Fee,
-		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
+		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
 		To:      address.ExecAddress(string(types.ExecerRelay)),
 	}
 
@@ -620,7 +620,7 @@ func (c *channelClient) CreateRawRelayConfirmTx(parm *RelayConfirmTx) ([]byte, e
 		Execer:  types.ExecerRelay,
 		Payload: types.Encode(val),
 		Fee:     parm.Fee,
-		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
+		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
 		To:      address.ExecAddress(string(types.ExecerRelay)),
 	}
 
@@ -646,7 +646,7 @@ func (c *channelClient) CreateRawRelayVerifyBTCTx(parm *RelayVerifyBTCTx) ([]byt
 		Execer:  types.ExecerRelay,
 		Payload: types.Encode(val),
 		Fee:     parm.Fee,
-		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
+		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
 		To:      address.ExecAddress(string(types.ExecerRelay)),
 	}
 
@@ -678,7 +678,7 @@ func (c *channelClient) CreateRawRelaySaveBTCHeadTx(parm *RelaySaveBTCHeadTx) ([
 		Execer:  types.ExecerRelay,
 		Payload: types.Encode(val),
 		Fee:     parm.Fee,
-		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
+		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
 		To:      address.ExecAddress(string(types.ExecerRelay)),
 	}
 

@@ -93,7 +93,7 @@ func New(cfg *types.Wallet) *Wallet {
 	if value != nil && string(value) == "1" {
 		wallet.autoMinerFlag = 1
 	}
-	wallet.random = rand.New(rand.NewSource(time.Now().UnixNano()))
+	wallet.random = rand.New(rand.NewSource(types.Now().UnixNano()))
 	InitMinerWhiteList(cfg)
 	return wallet
 }

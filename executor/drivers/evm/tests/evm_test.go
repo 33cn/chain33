@@ -40,7 +40,7 @@ func TestVM(t *testing.T) {
 func TestTmp(t *testing.T) {
 	//addr := common.StringToAddress("19i4kLkSrAr4ssvk1pLwjkFAnoXeJgvGvj")
 	//fmt.Println(hex.EncodeToString(addr.Bytes()))
-	tt := time.Now().Unix()
+	tt := types.Now().Unix()
 	fmt.Println(time.Unix(tt, 0).String())
 }
 

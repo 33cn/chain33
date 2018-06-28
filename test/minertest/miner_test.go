@@ -32,7 +32,7 @@ func init() {
 	privCold = getprivkey("CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944")
 	privMiner = getprivkey("4257D8692EF7FE13C68B65D6A52F03933DB2FA5CE8FAF210B5B8B80C721CED01")
 	privAutoMiner = getprivkey("3257D8692EF7FE13C68B65D6A52F03933DB2FA5CE8FAF210B5B8B80C721CED01")
-	random = rand.New(rand.NewSource(time.Now().UnixNano()))
+	random = rand.New(rand.NewSource(types.Now().UnixNano()))
 }
 
 func TestSendToAddress(t *testing.T) {
@@ -117,7 +117,7 @@ func TestAutoClose(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	now := time.Now().Unix()
+	now := types.Now().Unix()
 	var ids []string
 	for i := 0; i < len(tlist); i++ {
 		if now-tlist[i].CreateTime > types.TicketWithdrawTime {
