@@ -1958,6 +1958,26 @@ func TestChain33_CreateRawTradeRevokeBuyTx(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestChain33_GetBlockSequences(t *testing.T) {
+	api := new(mocks.QueueProtocolAPI)
+	client := newTestChain33(api)
+	var result interface{}
+	api.On("GetBlockSequences", mock.Anything).Return(nil, types.ErrInputPara)
+	err := client.GetBlockSequences(BlockParam{}, &result)
+	assert.NotNil(t, err)
+
+	api = new(mocks.QueueProtocolAPI)
+	client = newTestChain33(api)
+	var result2 interface{}
+	blocks := types.BlockSequences{}
+	blocks.Items = make([]*types.BlockSequence, 0)
+	blocks.Items = append(blocks.Items, &types.BlockSequence{[]byte("h1"), 1})
+	api.On("GetBlockSequences", mock.Anything).Return(&blocks, nil)
+	err = client.GetBlockSequences(BlockParam{}, &result2)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(result2.(*ReplyBlkSeqs).BlkSeqInfos))
+}
+
 func TestChain33_GetBlockByHashes(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 	client := newTestChain33(api)
