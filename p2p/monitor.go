@@ -212,7 +212,7 @@ func (n *Node) getAddrFromAddrBook() {
 			tickerTimes = 0
 		}
 
-		log.Debug("OUTBOUND NUM", "NUM", n.Size(), "start getaddr from peer", n.nodeInfo.addrBook.GetPeers())
+		log.Debug("OUTBOUND NUM", "NUM", n.Size(), "start getaddr from peer,peernum", len(n.nodeInfo.addrBook.GetPeers()))
 
 		addrNetArr := n.nodeInfo.addrBook.GetPeers()
 

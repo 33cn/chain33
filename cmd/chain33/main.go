@@ -23,6 +23,7 @@ import (
 
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/blockchain"
+	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/limits"
 	clog "gitlab.33.cn/chain33/chain33/common/log"
@@ -46,6 +47,7 @@ var (
 	configPath = flag.String("f", "chain33.toml", "configfile")
 	datadir    = flag.String("datadir", "", "data dir of chain33, include logs and datas")
 	versionCmd = flag.Bool("v", false, "version")
+	fixtime    = flag.Bool("fixtime", false, "fix time")
 )
 
 func main() {
@@ -55,6 +57,9 @@ func main() {
 		return
 	}
 
+	if *fixtime {
+		fixtimeRoutine()
+	}
 	d, _ := os.Getwd()
 	log.Info("current dir:", "dir", d)
 	os.Chdir(pwd())
@@ -222,4 +227,37 @@ func pwd() string {
 		panic(err)
 	}
 	return dir
+}
+
+func fixtimeRoutine() {
+	hosts := []string{
+		"time.windows.com:123",
+		"ntp.ubuntu.com:123",
+		"pool.ntp.org:123",
+		"cn.pool.ntp.org:123",
+		"time.asia.apple.com:123",
+	}
+	for i := 0; i < len(hosts); i++ {
+		t, err := common.GetNtpTime(hosts[i])
+		if err == nil {
+			log.Info("time", "host", hosts[i], "now", t)
+		} else {
+			log.Error("time", "err", err)
+		}
+	}
+	t := common.GetRealTimeRetry(hosts, 10)
+	if !t.IsZero() {
+		//update
+		types.SetTimeDelta(int64(time.Until(t)))
+		log.Info("change time", "delta", time.Until(t), "real.now", types.GetRealTime())
+	}
+	ticket := time.NewTicker(time.Minute * 10)
+	for range ticket.C {
+		t = common.GetRealTimeRetry(hosts, 10)
+		if !t.IsZero() {
+			//update
+			log.Info("change time", "delta", time.Until(t))
+			types.SetTimeDelta(int64(time.Until(t)))
+		}
+	}
 }
