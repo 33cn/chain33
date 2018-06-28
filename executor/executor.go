@@ -19,6 +19,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers/manage"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/none"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/norm"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/relay"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/retrieve"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/ticket"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/token"
@@ -58,6 +59,7 @@ func execInit() {
 	token.Init()
 	trade.Init()
 	evm.Init()
+	relay.Init()
 }
 
 var runonce sync.Once
@@ -468,6 +470,7 @@ func (e *executor) setEnv(exec drivers.Driver) {
 	exec.SetEnv(e.height, e.blocktime, e.difficulty)
 	exec.SetApi(e.api)
 }
+
 func (e *executor) checkTxGroup(txgroup *types.Transactions, index int) error {
 	if e.height > 0 && e.blocktime > 0 && txgroup.IsExpire(e.height, e.blocktime) {
 		//如果已经过期
@@ -604,13 +607,8 @@ func (execute *executor) execTxGroup(txs []*types.Transaction, index int) ([]*ty
 func (execute *executor) execFee(tx *types.Transaction, index int) (*types.Receipt, error) {
 	feelog := &types.Receipt{Ty: types.ExecPack}
 	execer := string(tx.Execer)
-	e, err := drivers.LoadDriver(execer, execute.height)
-	if err != nil {
-		e, err = drivers.LoadDriver("none", execute.height)
-		if err != nil {
-			panic(err)
-		}
-	}
+	e := execute.loadDriverForExec(execer, execute.height)
+	execute.setEnv(e)
 	//执行器名称 和  pubkey 相同，费用从内置的执行器中扣除,但是checkTx 中要过
 	//默认checkTx 中对这样的交易会返回
 	if bytes.Equal(address.ExecPubkey(execer), tx.GetSignature().GetPubkey()) {
@@ -619,6 +617,7 @@ func (execute *executor) execFee(tx *types.Transaction, index int) (*types.Recei
 			return nil, err
 		}
 	}
+	var err error
 	//公链不允许手续费为0
 	if types.MinFee > 0 && (!e.IsFree() || types.IsPublicChain()) {
 		feelog, err = execute.processFee(tx)
