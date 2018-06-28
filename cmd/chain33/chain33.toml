@@ -79,6 +79,7 @@ dbPath="wallet"
 dbCache=16
 signType="secp256k1"
 minerdisable=false
+minerwhitelist=["*"]
 
 [exec]
 isFree=false

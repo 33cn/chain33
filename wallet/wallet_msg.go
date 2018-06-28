@@ -7,7 +7,7 @@ import (
 func (wallet *Wallet) ProcRecvMsg() {
 	defer wallet.wg.Done()
 	for msg := range wallet.client.Recv() {
-		walletlog.Debug("wallet recv", "msg", msg.Id)
+		walletlog.Debug("wallet recv", "msg", types.GetEventName(int(msg.Ty)), "Id", msg.Id)
 		msgtype := msg.Ty
 		switch msgtype {
 
