@@ -14,6 +14,7 @@ message Config {
     Rpc        rpc        = 10;
     Exec       exec       = 11;
     bool       testNet    = 12;
+    bool       fixTime    = 13;
 }
 
 message Log {

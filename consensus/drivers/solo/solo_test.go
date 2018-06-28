@@ -31,7 +31,7 @@ func init() {
 		panic(err)
 	}
 	log.SetLogLevel("info")
-	random = rand.New(rand.NewSource(time.Now().UnixNano()))
+	random = rand.New(rand.NewSource(types.Now().UnixNano()))
 }
 
 // 执行： go test -cover

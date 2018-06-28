@@ -2,7 +2,6 @@ package mempool
 
 import (
 	"container/list"
-	"time"
 
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -58,7 +57,7 @@ func (cache *txCache) Push(tx *types.Transaction) error {
 		return types.ErrMemFull
 	}
 
-	it := &Item{value: tx, priority: tx.Fee, enterTime: time.Now().Unix()}
+	it := &Item{value: tx, priority: tx.Fee, enterTime: types.Now().Unix()}
 	txElement := cache.txList.PushBack(it)
 	cache.txMap[string(hash)] = txElement
 
