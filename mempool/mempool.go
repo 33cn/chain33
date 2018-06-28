@@ -585,7 +585,7 @@ func (mem *Mempool) SetQueueClient(client queue.Client) {
 				mlog.Debug("reply EventGetAddrTxs ok", "msg", msg)
 			default:
 			}
-			mlog.Debug("mempool", "cost", time.Since(beg), "msg", types.GetEventName(int(msg.Ty)))
+			mlog.Debug("mempool", "cost", types.Since(beg), "msg", types.GetEventName(int(msg.Ty)))
 		}
 	}()
 }
