@@ -1958,6 +1958,14 @@ func TestChain33_CreateRawTradeRevokeBuyTx(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestChain33_GetTimeStatus(t *testing.T) {
+	api := new(mocks.QueueProtocolAPI)
+	client := newTestChain33(api)
+	var result interface{}
+	err := client.GetTimeStatus(&types.ReqNil{}, &result)
+	assert.Nil(t, err)
+}
+
 func TestChain33_GetLastBlockSequence(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 	client := newTestChain33(api)
