@@ -233,3 +233,13 @@ func (g *Grpc) CloseQueue(ctx context.Context, in *pb.ReqNil) (*pb.Reply, error)
 
 	return &pb.Reply{IsOk: true, Msg: []byte("Ok")}, nil
 }
+
+func (g *Grpc) GetLastBlockSequence(ctx context.Context, in *pb.ReqNil) (*pb.Int64, error) {
+	return g.cli.GetLastBlockSequence()
+}
+func (g *Grpc) GetBlockSequences(ctx context.Context, in *pb.ReqBlocks) (*pb.BlockSequences, error) {
+	return g.cli.GetBlockSequences(in)
+}
+func (g *Grpc) GetBlockByHashes(ctx context.Context, in *pb.ReqHashes) (*pb.BlockDetails, error) {
+	return g.cli.GetBlockByHashes(in)
+}

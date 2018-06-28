@@ -102,6 +102,14 @@ type QueueProtocolAPI interface {
 	IsNtpClockSync() (*types.Reply, error)
 	// types.EventGetLastHeader
 	GetLastHeader() (*types.Header, error)
+
+	//types.EventGetLastBlockSequence:
+	GetLastBlockSequence() (*types.Int64, error)
+	//types.EventGetBlockSequences:
+	GetBlockSequences(param *types.ReqBlocks) (*types.BlockSequences, error)
+	//types.EventGetBlockByHashes:
+	GetBlockByHashes(param *types.ReqHashes) (*types.BlockDetails, error)
+
 	// --------------- blockchain interfaces end
 
 	// +++++++++++++++ store interfaces begin

@@ -56,10 +56,6 @@ func main() {
 		fmt.Println(version.GetVersion())
 		return
 	}
-
-	if *fixtime {
-		fixtimeRoutine()
-	}
 	d, _ := os.Getwd()
 	log.Info("current dir:", "dir", d)
 	os.Chdir(pwd())
@@ -75,9 +71,16 @@ func main() {
 	if *datadir != "" {
 		resetDatadir(cfg, *datadir)
 	}
+	if *fixtime {
+		cfg.FixTime = *fixtime
+	}
 	//set test net flag
 	types.SetTestNet(cfg.TestNet)
 	types.SetTitle(cfg.Title)
+	types.SetFixTime(cfg.FixTime)
+	if cfg.FixTime {
+		go fixtimeRoutine()
+	}
 	//compare minFee in wallet, mempool, exec
 	if cfg.Exec.MinExecFee > cfg.MemPool.MinTxFee || cfg.MemPool.MinTxFee > cfg.Wallet.MinFee {
 		panic("config must meet: wallet.minFee >= mempool.minTxFee >= exec.minExecFee")
@@ -230,13 +233,7 @@ func pwd() string {
 }
 
 func fixtimeRoutine() {
-	hosts := []string{
-		"time.windows.com:123",
-		"ntp.ubuntu.com:123",
-		"pool.ntp.org:123",
-		"cn.pool.ntp.org:123",
-		"time.asia.apple.com:123",
-	}
+	hosts := types.NtpHosts
 	for i := 0; i < len(hosts); i++ {
 		t, err := common.GetNtpTime(hosts[i])
 		if err == nil {
