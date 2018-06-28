@@ -6,7 +6,6 @@ Package types is a generated protocol buffer package.
 
 It is generated from these files:
 	account.proto
-	authority.proto
 	blockchain.proto
 	common.proto
 	config.proto
@@ -33,12 +32,6 @@ It has these top-level messages:
 	ReqAccountTokenAssets
 	TokenAsset
 	ReplyAccountTokenAssets
-	ReqAuthGetUser
-	ReplyAuthGetUser
-	ReqAuthCheckCert
-	ReplyAuthCheckCert
-	ReqAuthCheckCerts
-	ReplyAuthCheckCerts
 	Header
 	Block
 	Blocks
@@ -297,6 +290,12 @@ It has these top-level messages:
 	TransactionDetails
 	ReqAddrs
 	ReqDecodeRawTransaction
+	ReqAuthGetUser
+	ReplyAuthGetUser
+	ReqAuthCheckCert
+	ReplyAuthCheckCert
+	ReqAuthCheckCerts
+	ReplyAuthCheckCerts
 	WalletTxDetail
 	WalletTxDetails
 	WalletAccountStore
