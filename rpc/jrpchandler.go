@@ -9,8 +9,8 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/version"
 	"gitlab.33.cn/chain33/chain33/types"
-	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
 	tokentype "gitlab.33.cn/chain33/chain33/types/executor/token"
+	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
 )
 
 func (c *Chain33) CreateRawTransaction(in *types.CreateTx, result *interface{}) error {

@@ -12,8 +12,8 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/types"
 	_ "gitlab.33.cn/chain33/chain33/types/executor"
-	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
 	tokentype "gitlab.33.cn/chain33/chain33/types/executor/token"
+	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
 )
 
 func TestDecodeUserWrite(t *testing.T) {
@@ -2029,18 +2029,18 @@ func TestChain33_CreateTransaction(t *testing.T) {
 	err := client.CreateTransaction(nil, &result)
 	assert.NotNil(t, err)
 
-	in := &TransactionCreate{ Execer: "notExist", ActionName: "x", Payload: []byte("x") }
+	in := &TransactionCreate{Execer: "notExist", ActionName: "x", Payload: []byte("x")}
 	err = client.CreateTransaction(in, &result)
 	assert.Equal(t, types.ErrExecNameNotAllow, err)
 
-	in = &TransactionCreate{ Execer: "token", ActionName: "notExist", Payload: []byte("x") }
+	in = &TransactionCreate{Execer: "token", ActionName: "notExist", Payload: []byte("x")}
 	err = client.CreateTransaction(in, &result)
 	assert.Equal(t, types.ErrNotSupport, err)
 
 	in = &TransactionCreate{
-		Execer: "token",
+		Execer:     "token",
 		ActionName: "TokenFinish",
-		Payload: []byte("{\"fee\" : 10000, \"symbol\": \"TOKEN\", \"ownerAddr\":\"string\"}"),
+		Payload:    []byte("{\"fee\" : 10000, \"symbol\": \"TOKEN\", \"ownerAddr\":\"string\"}"),
 	}
 	err = client.CreateTransaction(in, &result)
 	assert.Nil(t, err)

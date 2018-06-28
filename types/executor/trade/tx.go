@@ -39,4 +39,3 @@ type TradeRevokeBuyTx struct {
 	BuyID string `json:"buyID,"`
 	Fee   int64  `json:"fee"`
 }
-
