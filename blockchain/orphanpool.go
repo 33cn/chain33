@@ -121,7 +121,7 @@ func (op *OrphanPool) addOrphanBlock(broadcast bool, block *types.Block, pid str
 
 	// 删除过期的孤儿节点从孤儿池中
 	for _, oBlock := range op.orphans {
-		if time.Now().After(oBlock.expiration) {
+		if types.Now().After(oBlock.expiration) {
 			chainlog.Debug("addOrphanBlock:removeOrphanBlock expiration", "block.height", oBlock.block.Height, "block.hash", common.ToHex(oBlock.block.Hash()))
 
 			op.removeOrphanBlock(oBlock)
@@ -142,7 +142,7 @@ func (op *OrphanPool) addOrphanBlock(broadcast bool, block *types.Block, pid str
 	}
 
 	// 将本孤儿节点插入孤儿池中，并启动90秒的过期定时器
-	expiration := time.Now().Add(orphanExpirationTime)
+	expiration := types.Now().Add(orphanExpirationTime)
 	oBlock := &orphanBlock{
 		block:      block,
 		expiration: expiration,

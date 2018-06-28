@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/golang/protobuf/proto"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
@@ -27,7 +26,7 @@ type Store struct {
 
 //用于所有Account账户的输出list，需要安装时间排序
 func calcAccountKey(timestamp string, addr string) []byte {
-	//timestamp := fmt.Sprintf("%018d", time.Now().Unix())
+	//timestamp := fmt.Sprintf("%018d", types.Now().Unix())
 	return []byte(fmt.Sprintf("Account:%s:%s", timestamp, addr))
 }
 
@@ -105,7 +104,7 @@ func (ws *Store) GetAccountByte(update bool, addr string, account *types.WalletA
 		return nil, types.ErrInputPara
 	}
 
-	timestamp := fmt.Sprintf("%018d", time.Now().Unix())
+	timestamp := fmt.Sprintf("%018d", types.Now().Unix())
 	//更新时需要使用原来的Accountkey
 	if update {
 		timestamp = account.TimeStamp

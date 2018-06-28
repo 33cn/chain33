@@ -5,6 +5,7 @@ import (
 	"time"
 
 	lru "github.com/hashicorp/golang-lru"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var Filter = NewFilter()
@@ -21,7 +22,7 @@ type Filterdata struct {
 }
 
 func (f *Filterdata) RegRecvData(key string) bool {
-	f.regRData.Add(key, time.Duration(time.Now().Unix()))
+	f.regRData.Add(key, time.Duration(types.Now().Unix()))
 	return true
 }
 
@@ -49,7 +50,7 @@ func (f *Filterdata) ManageRecvFilter() {
 	defer ticker.Stop()
 	for {
 		<-ticker.C
-		now := time.Now().Unix()
+		now := types.Now().Unix()
 		for _, key := range f.regRData.Keys() {
 			regtime, exist := f.regRData.Get(key)
 			if !exist {
