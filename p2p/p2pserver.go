@@ -489,11 +489,9 @@ func (s *P2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 			}
 			peername = hex.EncodeToString(ping.GetSign().GetPubkey())
 			peeraddr = fmt.Sprintf("%s:%v", in.GetPing().GetAddr(), in.GetPing().GetPort())
-			s.addInBoundPeerInfo(peername, innerpeer{addr: peeraddr, name: peername, timestamp: time.Now().Unix()})
-
+			s.addInBoundPeerInfo(peername, innerpeer{addr: peeraddr, name: peername, timestamp: pb.Now().Unix()})
 		}
 	}
-
 }
 
 /**

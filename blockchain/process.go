@@ -284,7 +284,7 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 		}
 	}
 
-	beg := time.Now()
+	beg := types.Now()
 	// 写入磁盘
 	//批量将block信息写入磁盘
 
@@ -349,10 +349,10 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 
 	//广播此block到全网络
 	if node.broadcast {
-		if blockdetail.Block.BlockTime-time.Now().Unix() > FutureBlockDelayTime {
+		if blockdetail.Block.BlockTime-types.Now().Unix() > FutureBlockDelayTime {
 			//将此block添加到futureblocks中延时广播
 			b.futureBlocks.Add(string(blockdetail.Block.Hash()), blockdetail)
-			chainlog.Debug("connectBlock futureBlocks.Add", "height", block.Height, "hash", common.ToHex(blockdetail.Block.Hash()), "blocktime", blockdetail.Block.BlockTime, "curtime", time.Now().Unix())
+			chainlog.Debug("connectBlock futureBlocks.Add", "height", block.Height, "hash", common.ToHex(blockdetail.Block.Hash()), "blocktime", blockdetail.Block.BlockTime, "curtime", types.Now().Unix())
 		} else {
 			b.SendBlockBroadcast(blockdetail)
 		}
