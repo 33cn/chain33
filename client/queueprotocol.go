@@ -6,15 +6,11 @@
 package client
 
 import (
-	"encoding/hex"
 	"fmt"
-	"math/rand"
 	"time"
 
 	"github.com/inconshreveable/log15"
 
-	"gitlab.33.cn/chain33/chain33/common"
-	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/version"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -57,8 +53,8 @@ func New(client queue.Client, option *QueueProtocolOption) (QueueProtocolAPI, er
 	if option != nil {
 		q.option = *option
 	} else {
-		q.option.SendTimeout = 120 * time.Second
-		q.option.WaitTimeout = 60 * time.Second
+		q.option.SendTimeout = 600 * time.Second
+		q.option.WaitTimeout = 600 * time.Second
 	}
 	return q, nil
 }
@@ -789,41 +785,52 @@ func (q *QueueProtocol) GetFatalFailure() (*types.Int32, error) {
 	}
 	return nil, types.ErrTypeAsset
 }
-
-func (q *QueueProtocol) BindMiner(param *types.ReqBindMiner) (*types.ReplyBindMiner, error) {
-	ta := &types.TicketAction{}
-	tBind := &types.TicketBind{
-		MinerAddress:  param.BindAddr,
-		ReturnAddress: param.OriginAddr,
-	}
-	ta.Value = &types.TicketAction_Tbind{Tbind: tBind}
-	ta.Ty = types.TicketActionBind
-	execer := []byte("ticket")
-	to := address.ExecAddress(string(execer))
-	txBind := &types.Transaction{Execer: execer, Payload: types.Encode(ta), To: to}
-	random := rand.New(rand.NewSource(time.Now().UnixNano()))
-	txBind.Nonce = random.Int63()
-	var err error
-	txBind.Fee, err = txBind.GetRealFee(types.MinFee)
+func (q *QueueProtocol) GetLastBlockSequence() (*types.Int64, error) {
+	msg, err := q.query(blockchainKey, types.EventGetLastBlockSequence, &types.ReqNil{})
 	if err != nil {
+		log.Error("GetLastBlockSequence", "Error", err.Error())
 		return nil, err
 	}
-	txBind.Fee += types.MinFee
-	txBindHex := types.Encode(txBind)
-	txHexStr := hex.EncodeToString(txBindHex)
-
-	return &types.ReplyBindMiner{TxHex: txHexStr}, nil
+	if reply, ok := msg.GetData().(*types.Int64); ok {
+		return reply, nil
+	}
+	return nil, types.ErrTypeAsset
 }
 
-func (q *QueueProtocol) DecodeRawTransaction(param *types.ReqDecodeRawTransaction) (*types.Transaction, error) {
-	var tx types.Transaction
-	bytes, err := common.FromHex(param.TxHex)
-	if err != nil {
+func (q *QueueProtocol) GetBlockByHashes(param *types.ReqHashes) (*types.BlockDetails, error) {
+	if param == nil {
+		err := types.ErrInvalidParam
+		log.Error("GetBlockByHashes", "Error", err)
 		return nil, err
 	}
-	err = types.Decode(bytes, &tx)
+	msg, err := q.query(blockchainKey, types.EventGetBlockByHashes, param)
 	if err != nil {
+		log.Error("GetBlockByHashes", "Error", err.Error())
 		return nil, err
 	}
-	return &tx, nil
+	if reply, ok := msg.GetData().(*types.BlockDetails); ok {
+		return reply, nil
+	}
+	err = types.ErrTypeAsset
+	log.Error("GetBlockByHashes", "Error", err.Error())
+	return nil, err
+}
+
+func (q *QueueProtocol) GetBlockSequences(param *types.ReqBlocks) (*types.BlockSequences, error) {
+	if param == nil {
+		err := types.ErrInvalidParam
+		log.Error("GetBlockSequences", "Error", err)
+		return nil, err
+	}
+	msg, err := q.query(blockchainKey, types.EventGetBlockSequences, param)
+	if err != nil {
+		log.Error("GetBlockSequences", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.BlockSequences); ok {
+		return reply, nil
+	}
+	err = types.ErrTypeAsset
+	log.Error("GetBlockSequences", "Error", err.Error())
+	return nil, err
 }
