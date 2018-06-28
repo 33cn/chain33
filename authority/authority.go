@@ -3,6 +3,7 @@ package authority
 import (
 	"fmt"
 	"path"
+	"runtime"
 
 	log "github.com/inconshreveable/log15"
 	"github.com/pkg/errors"
@@ -11,10 +12,12 @@ import (
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 	"io/ioutil"
+	"sync"
 )
 
 var alog = log.New("module", "autority")
 var OrgName = "Chain33"
+var cpuNum  = runtime.NumCPU()
 
 type Authority struct {
 	cryptoPath string
@@ -116,26 +119,98 @@ func (auth *Authority) SetQueueClient(client queue.Client) {
 				if msg.Ty == types.EventAuthorityGetUser {
 					go auth.procGetUser(msg)
 				} else if msg.Ty == types.EventAuthorityCheckCert {
-					go auth.progCheckCert(msg)
+					go auth.procCheckCert(msg)
+				} else if msg.Ty == types.EventAuthorityCheckCerts {
+					go auth.procCheckCerts(msg)
 				}
 			}
 		}()
 	}
 }
 
-func (auth *Authority) progCheckCert(msg queue.Message) {
-	data,_ := msg.GetData().(*types.ReqAuthCheckCert)
+func (auth *Authority) procCheckCerts(msg queue.Message) {
+	data,_ := msg.GetData().(*types.ReqAuthCheckCerts)
 
-	certByte := data.GetCert()
-	if len(certByte) == 0 {
-		alog.Error("cert can not be null")
-		msg.ReplyErr("EventReplyAuthGetUser", types.ErrInvalidParam)
-		return
+	done := make(chan struct{})
+	defer close(done)
+
+	taskes := gen(done, data.GetSig())
+
+	c := make(chan result)
+	var wg sync.WaitGroup
+	wg.Add(cpuNum)
+	for i := 0; i < cpuNum; i++ {
+		go func() {
+			auth.checksign(done, taskes, c)
+			wg.Done()
+		}()
+	}
+	go func() {
+		wg.Wait()
+		close(c)
+	}()
+
+	for r := range c {
+		if r.err != nil {
+			msg.Reply(auth.client.NewMessage("", types.EventReplyAuthCheckCerts, &types.ReplyAuthCheckCerts{false}))
+			return
+		}
 	}
 
-	err := auth.validator.Validate(certByte)
+	msg.Reply(auth.client.NewMessage("", types.EventReplyAuthCheckCerts, &types.ReplyAuthCheckCerts{true}))
+}
+
+func gen(done <-chan struct{}, task []*types.Signature) <-chan *types.Signature {
+	ch := make(chan *types.Signature)
+	go func() {
+		defer func() {
+			close(ch)
+		}()
+		for i := 0; i < len(task); i++ {
+			select {
+			case ch <- task[i]:
+			case <-done:
+				return
+			}
+		}
+	}()
+	return ch
+}
+
+type result struct {
+	err error
+}
+
+func (auth *Authority) checksign(done <-chan struct{}, taskes <-chan *types.Signature, c chan<- result) {
+	for task := range taskes {
+		select {
+		case c <- result{auth.checkCert(task)}:
+		case <-done:
+			return
+		}
+	}
+}
+
+func (auth *Authority) checkCert(signature *types.Signature) error {
+	if len(signature.GetCert()) == 0 {
+		alog.Error("cert can not be null")
+		return types.ErrInvalidParam
+	}
+
+	err := auth.validator.Validate(signature.GetCert(), signature.GetPubkey())
 	if err != nil {
 		alog.Error(fmt.Sprintf("validate cert failed. %s", err.Error()))
+		return fmt.Errorf("validate cert failed. error:%s", err.Error())
+	}
+
+	return nil
+}
+
+func (auth *Authority) procCheckCert(msg queue.Message) {
+	data,_ := msg.GetData().(*types.ReqAuthCheckCert)
+
+	err := auth.checkCert(data.GetSig())
+	if err != nil {
 		msg.Reply(auth.client.NewMessage("", types.EventReplyAuthCheckCert, &types.ReplyAuthCheckCert{false}))
 		return
 	}
