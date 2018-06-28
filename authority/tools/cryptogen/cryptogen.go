@@ -24,7 +24,7 @@ type Config struct {
 
 var (
 	cmd = &cobra.Command{
-		Use:   "cryptogen [-f configfile] [-o output diraction]",
+		Use:   "cryptogen [-f configfile] [-o output directory]",
 		Short: "chain33 crypto tool for generating key and certificate",
 		Run:  generate,
 	}
