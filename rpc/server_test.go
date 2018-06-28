@@ -15,8 +15,11 @@ import (
 )
 
 func TestCheckIpWhitelist(t *testing.T) {
-	address := "0.0.0.0"
-	assert.False(t, checkIpWhitelist(address))
+	address := "127.0.0.1"
+	assert.True(t, checkIpWhitelist(address))
+
+	address = "::1"
+	assert.True(t, checkIpWhitelist(address))
 
 	address = "192.168.3.1"
 	remoteIpWhitelist[address] = true

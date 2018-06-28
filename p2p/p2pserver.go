@@ -2,13 +2,12 @@ package p2p
 
 import (
 	"encoding/hex"
-	"io"
-	"strconv"
-	"sync/atomic"
-
 	"fmt"
-	"strings"
+	"io"
+	"net"
+	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"gitlab.33.cn/chain33/chain33/common/version"
@@ -59,11 +58,14 @@ func (s *P2pServer) Ping(ctx context.Context, in *pb.P2PPing) (*pb.P2PPong, erro
 		log.Error("Ping", "p2p server", "check sig err")
 		return nil, pb.ErrPing
 	}
-
-	getctx, ok := pr.FromContext(ctx)
 	var peerip string
+	var err error
+	getctx, ok := pr.FromContext(ctx)
 	if ok {
-		peerip = strings.Split(getctx.Addr.String(), ":")[0]
+		peerip, _, err = net.SplitHostPort(getctx.Addr.String())
+		if err != nil {
+			return nil, fmt.Errorf("ctx.Addr format err")
+		}
 	}
 
 	peeraddr := fmt.Sprintf("%s:%v", peerip, in.Port)
@@ -114,11 +116,14 @@ func (s *P2pServer) Version(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVerA
 
 func (s *P2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVersion, error) {
 	log.Debug("Version2")
-	getctx, ok := pr.FromContext(ctx)
 	var peerip string
+	var err error
+	getctx, ok := pr.FromContext(ctx)
 	if ok {
-		peerip = strings.Split(getctx.Addr.String(), ":")[0]
-		log.Debug("Version2", "ip", peerip)
+		peerip, _, err = net.SplitHostPort(getctx.Addr.String())
+		if err != nil {
+			return nil, fmt.Errorf("ctx.Addr format err")
+		}
 	}
 
 	if !s.checkVersion(in.GetVersion()) {
@@ -129,11 +134,10 @@ func (s *P2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 	_, pub := s.node.nodeInfo.addrBook.GetPrivPubKey()
 	log.Debug("Version2", "after", "GetPrivPubKey")
 	//addrFrom:表示自己的外网地址，addrRecv:表示对方的外网地址
-	var port string
-	if len(strings.Split(in.AddrFrom, ":")) == 2 {
-		port = strings.Split(in.AddrFrom, ":")[1]
+	_, port, err := net.SplitHostPort(in.AddrFrom)
+	if err != nil {
+		return nil, fmt.Errorf("AddrFrom format err")
 	}
-
 	remoteNetwork, err := NewNetAddressString(fmt.Sprintf("%v:%v", peerip, port))
 	if err == nil {
 		if !s.node.nodeInfo.blacklist.Has(remoteNetwork.String()) {
@@ -474,7 +478,11 @@ func (s *P2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 
 			getctx, ok := pr.FromContext(stream.Context())
 			if ok && s.node.Size() > 0 {
-				peerIp := strings.Split(getctx.Addr.String(), ":")[0]
+				//peerIp := strings.Split(getctx.Addr.String(), ":")[0]
+				peerIp, _, err := net.SplitHostPort(getctx.Addr.String())
+				if err != nil {
+					return fmt.Errorf("ctx.Addr format err")
+				}
 				if peerIp != LocalAddr && peerIp != s.node.nodeInfo.GetExternalAddr().IP.String() {
 					s.node.nodeInfo.SetServiceTy(Service)
 				}
@@ -501,14 +509,23 @@ func (s *P2pServer) CollectInPeers(ctx context.Context, in *pb.P2PPing) (*pb.Pee
 	inPeers := s.getInBoundPeers()
 	var p2pPeers []*pb.Peer
 	for _, inpeer := range inPeers {
-		addrport := strings.Split(inpeer.addr, ":")
-		var addr string
-		var port int
-		if len(addrport) == 2 {
-			addr = addrport[0]
-			port, _ = strconv.Atoi(addrport[1])
+		ip, portstr, err := net.SplitHostPort(inpeer.addr)
+		if err != nil {
+			continue
 		}
-		p2pPeers = append(p2pPeers, &pb.Peer{Name: inpeer.name, Addr: addr, Port: int32(port)}) ///仅用name,addr,port字段，用于统计peer num.
+		port, err := strconv.Atoi(portstr)
+		if err != nil {
+			continue
+		}
+
+		//		addrport := strings.Split(inpeer.addr, ":")
+		//		var addr string
+		//		var port int
+		//		if len(addrport) == 2 {
+		//			addr = addrport[0]
+		//			port, _ = strconv.Atoi(addrport[1])
+		//		}
+		p2pPeers = append(p2pPeers, &pb.Peer{Name: inpeer.name, Addr: ip, Port: int32(port)}) ///仅用name,addr,port字段，用于统计peer num.
 	}
 	return &pb.PeerList{Peers: p2pPeers}, nil
 }
