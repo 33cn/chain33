@@ -1,5 +1,5 @@
-Title="bityuan"
-TestNet=false
+Title="chain33"
+TestNet=true
 FixTime= false
 
 [log]
