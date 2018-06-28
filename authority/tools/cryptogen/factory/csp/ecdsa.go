@@ -6,7 +6,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/rand"
 	"gitlab.33.cn/chain33/chain33/authority/tools/cryptogen/factory/utils"
-	auth "gitlab.33.cn/chain33/chain33/authority/utils"
+	auth "gitlab.33.cn/chain33/chain33/common/crypto/ecdsa"
 	"crypto/elliptic"
 	"fmt"
 	"errors"
