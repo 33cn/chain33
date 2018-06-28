@@ -81,8 +81,8 @@ signType="secp256k1"
 minerwhitelist=["*"]
 
 [exec]
-isFree=true
-minExecFee=0
+isFree=false
+minExecFee=100000
 enableStat=false
 
 [auth]
