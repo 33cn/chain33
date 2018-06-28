@@ -78,6 +78,7 @@ driver="memdb"
 dbPath="datadir/wallet"
 dbCache=16
 signType="secp256k1"
+minerwhitelist=["*"]
 
 [exec]
 isFree=false
