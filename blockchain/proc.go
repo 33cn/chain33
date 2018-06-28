@@ -334,7 +334,7 @@ func (chain *BlockChain) processMsg(msg queue.Message, reqnum chan struct{}, cb 
 	defer func() {
 		<-reqnum
 		chain.recvwg.Done()
-		chainlog.Debug("process", "cost", time.Since(beg), "msg", types.GetEventName(int(msg.Ty)))
+		chainlog.Debug("process", "cost", types.Since(beg), "msg", types.GetEventName(int(msg.Ty)))
 	}()
 	cb(msg)
 }

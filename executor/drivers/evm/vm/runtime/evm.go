@@ -206,7 +206,7 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 		evm.VmConfig.Tracer.CaptureStart(caller.Address(), addr, false, input, gas, value)
 
 		defer func() {
-			evm.VmConfig.Tracer.CaptureEnd(ret, gas-contract.Gas, time.Since(start), err)
+			evm.VmConfig.Tracer.CaptureEnd(ret, gas-contract.Gas, types.Since(start), err)
 		}()
 	}
 
@@ -397,7 +397,7 @@ func (evm *EVM) Create(caller ContractRef, contractAddr common.Address, code []b
 	}
 
 	if evm.VmConfig.Debug && evm.depth == 0 {
-		evm.VmConfig.Tracer.CaptureEnd(ret, gas-contract.Gas, time.Since(start), err)
+		evm.VmConfig.Tracer.CaptureEnd(ret, gas-contract.Gas, types.Since(start), err)
 	}
 
 	return ret, snapshot, contract.Gas, err

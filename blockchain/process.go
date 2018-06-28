@@ -331,7 +331,7 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 		go util.ReportErrEventToFront(chainlog, b.client, "blockchain", "wallet", types.ErrDataBaseDamage)
 		return err
 	}
-	chainlog.Debug("connectBlock write db", "height", block.Height, "batchsync", sync, "cost", time.Since(beg))
+	chainlog.Debug("connectBlock write db", "height", block.Height, "batchsync", sync, "cost", types.Since(beg))
 
 	// 更新最新的高度和header
 	b.blockStore.UpdateHeight()
