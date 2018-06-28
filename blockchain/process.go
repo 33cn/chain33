@@ -5,7 +5,6 @@ import (
 	"container/list"
 	"math/big"
 	"sync/atomic"
-	"time"
 
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/difficulty"

@@ -3,7 +3,6 @@ package runtime
 import (
 	"math/big"
 	"sync/atomic"
-	"time"
 
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/gas"
