@@ -36,7 +36,8 @@ func (block *Block) GetHeader() *Header {
 	return head
 }
 
-func (block *Block) CheckBlockSign() bool {
+func (block *Block) CheckSign() bool {
+	//检查区块的签名
 	if block.Signature != nil {
 		hash := block.Hash()
 		sign := block.GetSignature()
@@ -44,17 +45,9 @@ func (block *Block) CheckBlockSign() bool {
 			return false
 		}
 	}
-	return true
-}
-
-func (block *Block) CheckSign() bool {
-	//检查区块的签名
-	if !block.CheckBlockSign() {
-		return false
-	}
 	//检查交易的签名
 	cpu := runtime.NumCPU()
-	ok := CheckAll(block.Txs, cpu)
+	ok := checkAll(block.Txs, cpu)
 	return ok
 }
 
@@ -93,7 +86,7 @@ func checksign(done <-chan struct{}, taskes <-chan *Transaction, c chan<- result
 	}
 }
 
-func CheckAll(task []*Transaction, n int) bool {
+func checkAll(task []*Transaction, n int) bool {
 	done := make(chan struct{})
 	defer close(done)
 
