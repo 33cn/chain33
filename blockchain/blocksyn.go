@@ -859,7 +859,7 @@ func (chain *BlockChain) IsCaughtUp() bool {
 		peersNo++
 	}
 
-	isCaughtUp := (height > 0 || time.Since(chain.startTime) > 60*time.Second) && (maxPeerHeight == 0 || height >= maxPeerHeight)
+	isCaughtUp := (height > 0 || types.Since(chain.startTime) > 60*time.Second) && (maxPeerHeight == 0 || height >= maxPeerHeight)
 
 	synlog.Debug("IsCaughtUp", "IsCaughtUp ", isCaughtUp, "height", height, "maxPeerHeight", maxPeerHeight, "peersNo", peersNo)
 	return isCaughtUp
