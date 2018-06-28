@@ -6,7 +6,6 @@ import (
 	"errors"
 	"math/rand"
 	"testing"
-	"time"
 
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/blockchain"

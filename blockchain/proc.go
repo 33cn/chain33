@@ -2,8 +2,6 @@ package blockchain
 
 //message callback
 import (
-	"time"
-
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/queue"

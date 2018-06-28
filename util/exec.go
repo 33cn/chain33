@@ -3,7 +3,6 @@ package util
 import (
 	"bytes"
 	"errors"
-	"time"
 
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common"
