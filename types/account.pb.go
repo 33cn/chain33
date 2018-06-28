@@ -251,6 +251,10 @@ It has these top-level messages:
 	TransactionDetails
 	ReqAddrs
 	ReqDecodeRawTransaction
+	ReqAuthCheckCert
+	ReplyAuthCheckCert
+	ReqAuthCheckCerts
+	ReplyAuthCheckCerts
 	WalletTxDetail
 	WalletTxDetails
 	WalletAccountStore
@@ -285,8 +289,6 @@ It has these top-level messages:
 	ReplySignRawTx
 	ReqAuthGetUser
 	ReplyAuthGetUser
-	ReqAuthCheckCert
-	ReplyAuthCheckCert
 	ReportErrEvent
 	Int32
 	ReqBindMiner

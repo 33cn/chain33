@@ -79,8 +79,8 @@ dbCache=16
 signType="secp256k1"
 
 [exec]
-isFree=false
-minExecFee=100000
+isFree=true
+minExecFee=0
 enableStat=false
 
 [auth]
@@ -88,11 +88,7 @@ enableStat=false
 enable=true
 # 加密文件路径
 cryptoPath="authdir/crypto"
-# hash加密级别，支持256,384两种
-securityLevel=256
-# hash算法，支持SHA2，SHA3
-hashAlgorithm="SHA2"
 # 签名类型，支持1:secp256r1 2:sm2
 signType=1
 # 组织名，默认使用chain33
-orgName="chain33"
+orgName="Chain33"

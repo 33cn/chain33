@@ -27,6 +27,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
+	"errors"
 )
 
 var elog = log.New("module", "execs")
@@ -414,6 +415,8 @@ type executor struct {
 	difficulty uint64
 
 	api client.QueueProtocolAPI
+
+	client queue.Client
 }
 
 func newExecutor(stateHash []byte, client queue.Client, height, blocktime int64, difficulty uint64) *executor {
@@ -424,6 +427,7 @@ func newExecutor(stateHash []byte, client queue.Client, height, blocktime int64,
 		height:       height,
 		blocktime:    blocktime,
 		difficulty:   difficulty,
+		client:		 client,
 	}
 	e.coinsAccount.SetDB(e.stateDB)
 	return e
@@ -496,8 +500,33 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 		}
 	}
 
+	if tx.Signature.Cert != nil {
+		err = e.checkCert(tx.Signature)
+		if err != nil {
+			elog.Error("Check certificate failed. error:%s", err)
+			return err
+		}
+	}
+
 	e.setEnv(exec)
 	return exec.CheckTx(tx, index)
+}
+
+func (e *executor) checkCert(signature *types.Signature) error {
+	txReq := &types.ReqAuthCheckCert{signature}
+	msg := e.client.NewMessage("authority", types.EventAuthorityCheckCert, txReq)
+	e.client.Send(msg, true)
+	resp, err := e.client.Wait(msg)
+	if err != nil {
+		return err
+	}
+
+	respData := resp.GetData().(*types.ReplyAuthCheckCert).GetResult()
+	if !respData {
+		return errors.New("Check certificate failed.")
+	}
+
+	return nil
 }
 
 func (e *executor) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
