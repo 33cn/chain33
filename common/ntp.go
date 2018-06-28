@@ -3,8 +3,10 @@ package common
 import (
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"math"
 	"net"
+	"sort"
 	"time"
 )
 
@@ -113,25 +115,116 @@ func GetNtpTime(host string) (time.Time, error) {
 	/*
 		js, _ := json.MarshalIndent(rsp, "", "\t")
 		fmt.Println(string(js))
-		fmt.Println("========")
-		fmt.Println("t1", t1)
-		fmt.Println("t2", t2, t2.Sub(t1))
-		fmt.Println("t3", t3, t3.Sub(t2))
-		fmt.Println("t4", t4, t4.Sub(t3))
-		fmt.Println("========")
 	*/
-	//t2 - t1 -> deltaNet + deltaTime
-	//t3 - t4 -> -deltaNet + deltaTime
+	//t2 - t1 -> deltaNet + deltaTime = d1
+	//t3 - t4 -> -deltaNet + deltaTime = d2
 	//如果deltaNet相同
 	//判断t2 - t1 和  t3 - t4 绝对值的 倍数，如果超过2倍，认为无效(请求和回复延时严重不对称)
 	d1 := t2.Sub(t1)
 	d2 := t3.Sub(t4)
-	rate := math.Abs(float64(d1)) / math.Abs(float64(d2))
-	if rate >= 2 || rate <= 0.5 {
-		return time.Time{}, ErrNetWorkDealy
+	delt := (d1 + d2) / 2
+	return t4.Add(delt), nil
+}
+
+//n timeserver
+//n/2+1 is ok and the same
+type durationSlice []time.Duration
+
+func (s durationSlice) Len() int           { return len(s) }
+func (s durationSlice) Less(i, j int) bool { return s[i] < s[j] }
+func (s durationSlice) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
+
+func GetRealTime(hosts []string) time.Time {
+	q := len(hosts)/2 + 1
+	ch := make(chan time.Duration, len(hosts))
+	for i := 0; i < len(hosts); i++ {
+		go func(host string) {
+			ntptime, _ := getTimeRetry(host, 10)
+			if ntptime.IsZero() {
+				ch <- time.Duration(math.MaxInt64)
+			} else {
+				ch <- time.Until(ntptime)
+			}
+		}(hosts[i])
 	}
-	delt := d1 + d2
-	return t4.Add(delt / 2), nil
+	dtlist := make([]time.Duration, 0)
+	for i := 0; i < len(hosts); i++ {
+		t := <-ch
+		if t == time.Duration(math.MaxInt64) {
+			continue
+		}
+		dtlist = append(dtlist, t)
+	}
+	fmt.Println(dtlist)
+	sort.Sort(durationSlice(dtlist))
+	dtlist = maxSubList(dtlist)
+	if len(dtlist) < q {
+		return time.Time{}
+	}
+	drift := time.Duration(0)
+	for i := 0; i < len(dtlist); i++ {
+		drift += dtlist[i]
+	}
+	return time.Now().Add(drift / time.Duration(len(dtlist)))
+}
+
+func maxSubList(list []time.Duration) (sub []time.Duration) {
+	start := 0
+	end := 0
+	if len(list) == 0 {
+		return list
+	}
+	for i := 0; i < len(list); i++ {
+		var nextheight time.Duration
+		if i+1 == len(list) {
+			nextheight = math.MaxInt64
+		} else {
+			nextheight = list[i+1]
+		}
+		if nextheight-list[i] > time.Millisecond*100 {
+			end = i + 1
+			if len(sub) < (end - start) {
+				sub = list[start:end]
+			}
+			start = i + 1
+			end = i + 1
+		} else {
+			end = i + 1
+		}
+	}
+	//只有一个节点，那么取差最小的节点
+	if len(sub) <= 1 {
+		return list[0:1]
+	}
+	return sub
+}
+
+func GetRealTimeRetry(hosts []string, retry int) time.Time {
+	for i := 0; i < retry; i++ {
+		t := GetRealTime(hosts)
+		if !t.IsZero() {
+			return t
+		}
+	}
+	return time.Time{}
+}
+
+func getTimeRetry(host string, retry int) (time.Time, error) {
+	var lasterr error
+	for i := 0; i < retry; i++ {
+		t, err := GetNtpTime(host)
+		if err != nil {
+			lasterr = err
+			if i < retry-1 {
+				//have a rest
+				time.Sleep(time.Millisecond * 10)
+				continue
+			}
+			return time.Time{}, err
+		}
+		return t, nil
+	}
+	return time.Time{}, lasterr
 }
 
 func intToTime(sec, frac uint32) time.Time {
