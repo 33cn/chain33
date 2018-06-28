@@ -278,7 +278,7 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 		blockdetail, _, err = util.ExecBlock(b.client, prevStateHash, block, true, sync)
 		if err != nil {
 			//记录执行出错的block信息
-			b.RecordFaultPeer(node.pid, block.Height, block.Hash(), err)
+			b.RecordFaultPeer(node.pid, block.Height, node.hash, err)
 			chainlog.Error("connectBlock ExecBlock is err!", "height", block.Height, "err", err)
 			return err
 		}

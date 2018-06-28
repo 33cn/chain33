@@ -51,6 +51,7 @@ func init() {
 		commands.TicketCmd(),
 		commands.TokenCmd(),
 		commands.TradeCmd(),
+		commands.RelayCmd(),
 		commands.TxCmd(),
 		commands.WalletCmd(),
 		commands.VersionCmd(),
