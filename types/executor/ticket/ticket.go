@@ -22,7 +22,10 @@ func init() {
 	types.RegistorLog(types.TyLogTicketBind, &TicketBindLog{})
 
 	// init query rpc
-	//types.RegistorRpcType("q2", &CoinsGetTxsByAddr{})
+	types.RegistorRpcType("TicketInfos", &TicketInfos{})
+	types.RegistorRpcType("TicketList", &TicketList{})
+	types.RegistorRpcType("MinerAddress", &TicketMinerAddress{})
+	types.RegistorRpcType("MinerSourceList", &TicketMinerSourceList{})
 }
 
 type TicketType struct {
