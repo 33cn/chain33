@@ -23,8 +23,8 @@ import (
 // hashlock: 	actionName
 // manage:		actionName 			log		query		Amount
 // none: 		actionName
-// retrieve: 	actionName
-// ticket:		actionName			log				Amount
+// retrieve: 	actionName					query
+// ticket:		actionName			log		query		Amount
 // token:		actionName	CreateTx	log		query	Amount
 // trade:		actionName	CreateTx	log		query	Amount
 
