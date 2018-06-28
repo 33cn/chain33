@@ -106,7 +106,7 @@ func addBalanceFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("addr", "a", "", "account addr")
 	cmd.MarkFlagRequired("addr")
 
-	cmd.Flags().StringP("exec", "e", "", `executer name ("none", "coins", "hashlock", "retrieve", "ticket", "token" and "trade" supported)`)
+	cmd.Flags().StringP("exec", "e", "", `executer name ("none", "coins", "hashlock", "retrieve", "ticket", "token", "trade" and "relay" supported)`)
 }
 
 func balance(cmd *cobra.Command, args []string) {

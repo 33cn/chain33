@@ -13,8 +13,10 @@ It is generated from these files:
 	evmcontract.proto
 	executor.proto
 	executorTrade.proto
+	game.proto
 	p2p.proto
 	pbft.proto
+	relay.proto
 	rpc.proto
 	statistic.proto
 	transaction.proto
@@ -49,6 +51,8 @@ It has these top-level messages:
 	IsCaughtUp
 	IsNtpClockSync
 	BlockChainQuery
+	BlockSequence
+	BlockSequences
 	Reply
 	ReqString
 	ReplyString
@@ -182,6 +186,16 @@ It has these top-level messages:
 	ReplyBuyOrders
 	ReplyTradeOrder
 	ReplyTradeOrders
+	Game
+	GameAction
+	GameMatch
+	GameCancel
+	GameClose
+	GameOpen
+	GameList
+	GameInfos
+	ReplyGameList
+	ReceiptGame
 	P2PGetPeerInfo
 	P2PPeerInfo
 	P2PVersion
@@ -223,6 +237,30 @@ It has these top-level messages:
 	RequestAck
 	RequestNewView
 	ClientReply
+	RelayAction
+	RelayCreate
+	RelayOrder
+	RelayAccept
+	RelayRevoke
+	RelayConfirmTx
+	RelayVerify
+	RelayVerifyCli
+	BtcHeader
+	BtcHeaders
+	BtcTransaction
+	Vin
+	Vout
+	BtcSpv
+	ReceiptRelayRcvBTCHeaders
+	ReceiptRelayLog
+	ReqRelayAddrCoins
+	ReplyRelayOrders
+	QueryRelayOrderParam
+	QueryRelayOrderResult
+	ReqRelayBtcHeaderHeightList
+	ReplyRelayBtcHeadHeightList
+	ReqRelayQryBTCHeadHeight
+	ReplayRelayQryBTCHeadHeight
 	TotalFee
 	ReqGetTotalCoins
 	ReplyGetTotalCoins

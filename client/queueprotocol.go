@@ -53,8 +53,8 @@ func New(client queue.Client, option *QueueProtocolOption) (QueueProtocolAPI, er
 	if option != nil {
 		q.option = *option
 	} else {
-		q.option.SendTimeout = 120 * time.Second
-		q.option.WaitTimeout = 60 * time.Second
+		q.option.SendTimeout = 600 * time.Second
+		q.option.WaitTimeout = 600 * time.Second
 	}
 	return q, nil
 }
@@ -788,4 +788,53 @@ func (q *QueueProtocol) GetFatalFailure() (*types.Int32, error) {
 
 func (q *QueueProtocol) CloseQueue() (*types.Reply, error) {
 	return q.client.CloseQueue()
+}
+func (q *QueueProtocol) GetLastBlockSequence() (*types.Int64, error) {
+	msg, err := q.query(blockchainKey, types.EventGetLastBlockSequence, &types.ReqNil{})
+	if err != nil {
+		log.Error("GetLastBlockSequence", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.Int64); ok {
+		return reply, nil
+	}
+	return nil, types.ErrTypeAsset
+}
+
+func (q *QueueProtocol) GetBlockByHashes(param *types.ReqHashes) (*types.BlockDetails, error) {
+	if param == nil {
+		err := types.ErrInvalidParam
+		log.Error("GetBlockByHashes", "Error", err)
+		return nil, err
+	}
+	msg, err := q.query(blockchainKey, types.EventGetBlockByHashes, param)
+	if err != nil {
+		log.Error("GetBlockByHashes", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.BlockDetails); ok {
+		return reply, nil
+	}
+	err = types.ErrTypeAsset
+	log.Error("GetBlockByHashes", "Error", err.Error())
+	return nil, err
+}
+
+func (q *QueueProtocol) GetBlockSequences(param *types.ReqBlocks) (*types.BlockSequences, error) {
+	if param == nil {
+		err := types.ErrInvalidParam
+		log.Error("GetBlockSequences", "Error", err)
+		return nil, err
+	}
+	msg, err := q.query(blockchainKey, types.EventGetBlockSequences, param)
+	if err != nil {
+		log.Error("GetBlockSequences", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.BlockSequences); ok {
+		return reply, nil
+	}
+	err = types.ErrTypeAsset
+	log.Error("GetBlockSequences", "Error", err.Error())
+	return nil, err
 }
