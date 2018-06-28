@@ -167,7 +167,7 @@ func (chain *BlockChain) SetQueueClient(client queue.Client) {
 	chain.InitIndexAndBestView()
 
 	//startTime
-	chain.startTime = time.Now()
+	chain.startTime = types.Now()
 
 	//recv 消息的处理
 	go chain.ProcRecvMsg()
@@ -857,10 +857,10 @@ func (chain *BlockChain) ProcFutureBlocks() {
 			if block != nil {
 				blockdetail := block.(*types.BlockDetail)
 				//block产生的时间小于当前时间，广播此block，然后将此block从futureblocks中移除
-				if time.Now().Unix() > blockdetail.Block.BlockTime {
+				if types.Now().Unix() > blockdetail.Block.BlockTime {
 					chain.SendBlockBroadcast(blockdetail)
 					chain.futureBlocks.Remove(hash)
-					chainlog.Debug("ProcFutureBlocks Remove", "height", blockdetail.Block.Height, "hash", common.ToHex(blockdetail.Block.Hash()), "blocktime", blockdetail.Block.BlockTime, "curtime", time.Now().Unix())
+					chainlog.Debug("ProcFutureBlocks Remove", "height", blockdetail.Block.Height, "hash", common.ToHex(blockdetail.Block.Hash()), "blocktime", blockdetail.Block.BlockTime, "curtime", types.Now().Unix())
 				}
 			}
 		}

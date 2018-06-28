@@ -4,7 +4,6 @@ import (
 	"errors"
 	"math/rand"
 	"testing"
-	"time"
 
 	"gitlab.33.cn/chain33/chain33/blockchain"
 	"gitlab.33.cn/chain33/chain33/common"
@@ -64,7 +63,7 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	random = rand.New(rand.NewSource(time.Now().UnixNano()))
+	random = rand.New(rand.NewSource(types.Now().UnixNano()))
 	queue.DisableLog()
 	DisableLog() // 不输出任何log
 	//	SetLogLevel("debug") // 输出DBUG(含)以下log

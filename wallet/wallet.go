@@ -96,7 +96,7 @@ func New(cfg *types.Wallet) *Wallet {
 	if value != nil && string(value) == "1" {
 		wallet.autoMinerFlag = 1
 	}
-	wallet.random = rand.New(rand.NewSource(time.Now().UnixNano()))
+	wallet.random = rand.New(rand.NewSource(types.Now().UnixNano()))
 	return wallet
 }
 
@@ -1210,7 +1210,7 @@ func (wallet *Wallet) ProcMergeBalance(MergeBalance *types.ReqWalletMergeBalance
 		v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount, Note: note}}
 		transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
 		//初始化随机数
-		//r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		//r := rand.New(rand.NewSource(types.Now().UnixNano()))
 		tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: wallet.FeeAmount, To: addrto, Nonce: wallet.random.Int63()}
 		tx.SetExpire(time.Second * 120)
 		tx.Sign(int32(SignType), priv)

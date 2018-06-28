@@ -359,7 +359,7 @@ func (tx *Transaction) SetExpire(expire time.Duration) {
 			expire = time.Second * 120
 		}
 		//用秒数来表示的时间
-		tx.Expire = time.Now().Unix() + int64(expire/time.Second)
+		tx.Expire = Now().Unix() + int64(expire/time.Second)
 	} else {
 		tx.Expire = int64(expire)
 	}
