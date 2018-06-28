@@ -121,6 +121,8 @@ message Rpc {
     repeated string whitelist         = 4;
     repeated string jrpcFuncWhitelist = 5;
     repeated string grpcFuncWhitelist = 6;
+    repeated string jrpcFuncBlacklist = 7;
+    repeated string grpcFuncBlacklist = 8;
 }
 
 message Exec {
