@@ -20,7 +20,7 @@ type Reply struct {
 func (m *Reply) Reset()                    { *m = Reply{} }
 func (m *Reply) String() string            { return proto.CompactTextString(m) }
 func (*Reply) ProtoMessage()               {}
-func (*Reply) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{0} }
+func (*Reply) Descriptor() ([]byte, []int) { return fileDescriptor2, []int{0} }
 
 func (m *Reply) GetIsOk() bool {
 	if m != nil {
@@ -43,7 +43,7 @@ type ReqString struct {
 func (m *ReqString) Reset()                    { *m = ReqString{} }
 func (m *ReqString) String() string            { return proto.CompactTextString(m) }
 func (*ReqString) ProtoMessage()               {}
-func (*ReqString) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{1} }
+func (*ReqString) Descriptor() ([]byte, []int) { return fileDescriptor2, []int{1} }
 
 func (m *ReqString) GetData() string {
 	if m != nil {
@@ -59,7 +59,7 @@ type ReplyString struct {
 func (m *ReplyString) Reset()                    { *m = ReplyString{} }
 func (m *ReplyString) String() string            { return proto.CompactTextString(m) }
 func (*ReplyString) ProtoMessage()               {}
-func (*ReplyString) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{2} }
+func (*ReplyString) Descriptor() ([]byte, []int) { return fileDescriptor2, []int{2} }
 
 func (m *ReplyString) GetData() string {
 	if m != nil {
@@ -75,7 +75,7 @@ type ReplyStrings struct {
 func (m *ReplyStrings) Reset()                    { *m = ReplyStrings{} }
 func (m *ReplyStrings) String() string            { return proto.CompactTextString(m) }
 func (*ReplyStrings) ProtoMessage()               {}
-func (*ReplyStrings) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{3} }
+func (*ReplyStrings) Descriptor() ([]byte, []int) { return fileDescriptor2, []int{3} }
 
 func (m *ReplyStrings) GetDatas() []string {
 	if m != nil {
@@ -91,7 +91,7 @@ type ReqInt struct {
 func (m *ReqInt) Reset()                    { *m = ReqInt{} }
 func (m *ReqInt) String() string            { return proto.CompactTextString(m) }
 func (*ReqInt) ProtoMessage()               {}
-func (*ReqInt) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{4} }
+func (*ReqInt) Descriptor() ([]byte, []int) { return fileDescriptor2, []int{4} }
 
 func (m *ReqInt) GetHeight() int64 {
 	if m != nil {
@@ -107,7 +107,7 @@ type Int64 struct {
 func (m *Int64) Reset()                    { *m = Int64{} }
 func (m *Int64) String() string            { return proto.CompactTextString(m) }
 func (*Int64) ProtoMessage()               {}
-func (*Int64) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{5} }
+func (*Int64) Descriptor() ([]byte, []int) { return fileDescriptor2, []int{5} }
 
 func (m *Int64) GetData() int64 {
 	if m != nil {
@@ -123,7 +123,7 @@ type ReqHash struct {
 func (m *ReqHash) Reset()                    { *m = ReqHash{} }
 func (m *ReqHash) String() string            { return proto.CompactTextString(m) }
 func (*ReqHash) ProtoMessage()               {}
-func (*ReqHash) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{6} }
+func (*ReqHash) Descriptor() ([]byte, []int) { return fileDescriptor2, []int{6} }
 
 func (m *ReqHash) GetHash() []byte {
 	if m != nil {
@@ -139,7 +139,7 @@ type ReplyHash struct {
 func (m *ReplyHash) Reset()                    { *m = ReplyHash{} }
 func (m *ReplyHash) String() string            { return proto.CompactTextString(m) }
 func (*ReplyHash) ProtoMessage()               {}
-func (*ReplyHash) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{7} }
+func (*ReplyHash) Descriptor() ([]byte, []int) { return fileDescriptor2, []int{7} }
 
 func (m *ReplyHash) GetHash() []byte {
 	if m != nil {
@@ -154,7 +154,7 @@ type ReqNil struct {
 func (m *ReqNil) Reset()                    { *m = ReqNil{} }
 func (m *ReqNil) String() string            { return proto.CompactTextString(m) }
 func (*ReqNil) ProtoMessage()               {}
-func (*ReqNil) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{8} }
+func (*ReqNil) Descriptor() ([]byte, []int) { return fileDescriptor2, []int{8} }
 
 type ReqHashes struct {
 	Hashes [][]byte `protobuf:"bytes,1,rep,name=hashes,proto3" json:"hashes,omitempty"`
@@ -163,7 +163,7 @@ type ReqHashes struct {
 func (m *ReqHashes) Reset()                    { *m = ReqHashes{} }
 func (m *ReqHashes) String() string            { return proto.CompactTextString(m) }
 func (*ReqHashes) ProtoMessage()               {}
-func (*ReqHashes) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{9} }
+func (*ReqHashes) Descriptor() ([]byte, []int) { return fileDescriptor2, []int{9} }
 
 func (m *ReqHashes) GetHashes() [][]byte {
 	if m != nil {
@@ -179,7 +179,7 @@ type ReplyHashes struct {
 func (m *ReplyHashes) Reset()                    { *m = ReplyHashes{} }
 func (m *ReplyHashes) String() string            { return proto.CompactTextString(m) }
 func (*ReplyHashes) ProtoMessage()               {}
-func (*ReplyHashes) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{10} }
+func (*ReplyHashes) Descriptor() ([]byte, []int) { return fileDescriptor2, []int{10} }
 
 func (m *ReplyHashes) GetHashes() [][]byte {
 	if m != nil {
@@ -196,7 +196,7 @@ type KeyValue struct {
 func (m *KeyValue) Reset()                    { *m = KeyValue{} }
 func (m *KeyValue) String() string            { return proto.CompactTextString(m) }
 func (*KeyValue) ProtoMessage()               {}
-func (*KeyValue) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{11} }
+func (*KeyValue) Descriptor() ([]byte, []int) { return fileDescriptor2, []int{11} }
 
 func (m *KeyValue) GetKey() []byte {
 	if m != nil {
@@ -221,7 +221,7 @@ type TimeStatus struct {
 func (m *TimeStatus) Reset()                    { *m = TimeStatus{} }
 func (m *TimeStatus) String() string            { return proto.CompactTextString(m) }
 func (*TimeStatus) ProtoMessage()               {}
-func (*TimeStatus) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{12} }
+func (*TimeStatus) Descriptor() ([]byte, []int) { return fileDescriptor2, []int{12} }
 
 func (m *TimeStatus) GetNtpTime() string {
 	if m != nil {
@@ -260,9 +260,9 @@ func init() {
 	proto.RegisterType((*TimeStatus)(nil), "types.TimeStatus")
 }
 
-func init() { proto.RegisterFile("common.proto", fileDescriptor3) }
+func init() { proto.RegisterFile("common.proto", fileDescriptor2) }
 
-var fileDescriptor3 = []byte{
+var fileDescriptor2 = []byte{
 	// 309 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x84, 0x52, 0x4f, 0x4b, 0xfc, 0x30,
 	0x14, 0xa4, 0xdb, 0x5f, 0x77, 0xb7, 0xef, 0xd7, 0x83, 0x04, 0x91, 0x82, 0x8a, 0x35, 0x2a, 0xf4,
