@@ -74,8 +74,6 @@ func New(cfg *types.Wallet) *Wallet {
 		SignType = 1
 	} else if "ed25519" == cfg.SignType {
 		SignType = 2
-	} else if "sm2" == cfg.SignType {
-		SignType = 3
 	}
 	wallet := &Wallet{
 		walletStore:      walletStore,
