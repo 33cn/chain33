@@ -2,8 +2,6 @@ package blockchain
 
 //message callback
 import (
-	"time"
-
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/queue"
@@ -334,7 +332,7 @@ func (chain *BlockChain) processMsg(msg queue.Message, reqnum chan struct{}, cb 
 	defer func() {
 		<-reqnum
 		chain.recvwg.Done()
-		chainlog.Debug("process", "cost", time.Since(beg), "msg", types.GetEventName(int(msg.Ty)))
+		chainlog.Debug("process", "cost", types.Since(beg), "msg", types.GetEventName(int(msg.Ty)))
 	}()
 	cb(msg)
 }
