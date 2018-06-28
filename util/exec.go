@@ -20,7 +20,7 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	//发送执行交易给execs模块
 	//通过consensus module 再次检查
 	ulog.Debug("ExecBlock", "height------->", block.Height, "ntx", len(block.Txs))
-	beg := types.Now()
+	beg := time.Now()
 	defer func() {
 		ulog.Info("ExecBlock", "height", block.Height, "ntx", len(block.Txs), "writebatchsync", sync, "cost", time.Since(beg))
 	}()
