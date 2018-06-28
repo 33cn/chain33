@@ -13,6 +13,12 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 )
 
+var (
+	bCoins   = []byte("coins")
+	bToken   = []byte("token")
+	withdraw = "withdraw"
+)
+
 func CreateTxGroup(txs []*Transaction) (*Transactions, error) {
 	if len(txs) < 2 {
 		return nil, ErrTxGroupCountLessThanTwo
@@ -515,6 +521,17 @@ func (tx *Transaction) Amount() (int64, error) {
 		} else if TradeRevokeSell == trade.Ty && trade.GetTokenrevokesell() != nil {
 			return 0, nil
 		}
+	} else if string(ExecerRelay) == string(tx.Execer) {
+		var relay RelayAction
+		err := Decode(tx.GetPayload(), &relay)
+		if err != nil {
+			return 0, ErrDecode
+		}
+
+		if RelayActionCreate == relay.Ty && relay.GetCreate() != nil {
+			return int64(relay.GetCreate().BtyAmount), nil
+		}
+		return 0, nil
 	}
 	return 0, nil
 }
@@ -629,7 +646,41 @@ func (tx *Transaction) ActionName() string {
 		} else {
 			return "callEvmContract"
 		}
-	}
+	} else if bytes.Equal(tx.Execer, ExecerRelay) {
+		var relay RelayAction
+		err := Decode(tx.Payload, &relay)
+		if err != nil {
+			return "unkown-relay-action-err"
+		}
+		if relay.Ty == RelayActionCreate && relay.GetCreate() != nil {
+			return "relayCreateTx"
+		}
+		if relay.Ty == RelayActionRevoke && relay.GetRevoke() != nil {
+			return "relayRevokeTx"
+		}
+		if relay.Ty == RelayActionAccept && relay.GetAccept() != nil {
+			return "relayAcceptTx"
+		}
+		if relay.Ty == RelayActionConfirmTx && relay.GetConfirmTx() != nil {
+			return "relayConfirmTx"
+		}
+		if relay.Ty == RelayActionVerifyTx && relay.GetVerify() != nil {
+			return "relayVerifyTx"
+		}
+		if relay.Ty == RelayActionRcvBTCHeaders && relay.GetBtcHeaders() != nil {
+			return "relay-receive-btc-heads"
+		}
 
+	}
 	return "unknow"
+}
+
+//判断交易是withdraw交易，需要做from和to地址的swap，方便上层客户理解
+func (tx *Transaction) IsWithdraw() bool {
+	if bytes.Equal(tx.GetExecer(), bCoins) || bytes.Equal(tx.GetExecer(), bToken) {
+		if tx.ActionName() == withdraw {
+			return true
+		}
+	}
+	return false
 }

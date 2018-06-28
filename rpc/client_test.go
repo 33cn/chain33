@@ -32,7 +32,7 @@ func testCreateRawTransactionNil(t *testing.T) {
 }
 
 func testCreateRawTransactionExecNameErr(t *testing.T) {
-	tx := types.CreateTx{ExecName: "aaa"}
+	tx := types.CreateTx{ExecName: "aaa", To: "1MY4pMgjpS2vWiaSDZasRhN47pcwEire32"}
 
 	client := newTestChannelClient()
 	_, err := client.CreateRawTransaction(&tx)
@@ -40,7 +40,7 @@ func testCreateRawTransactionExecNameErr(t *testing.T) {
 }
 
 func testCreateRawTransactionAmoutErr(t *testing.T) {
-	tx := types.CreateTx{ExecName: "coins", Amount: -1}
+	tx := types.CreateTx{ExecName: "coins", Amount: -1, To: "1MY4pMgjpS2vWiaSDZasRhN47pcwEire32"}
 
 	client := newTestChannelClient()
 	_, err := client.CreateRawTransaction(&tx)
