@@ -104,8 +104,8 @@ func (chain *BlockChain) SynRoutine() {
 	//5分钟检测一次系统时间，不同步提示告警
 	checkClockDriftTicker := time.NewTicker(300 * time.Second)
 
-	//2分钟尝试检测一次故障peer是否已经恢复
-	recoveryFaultPeerTicker := time.NewTicker(120 * time.Second)
+	//3分钟尝试检测一次故障peer是否已经恢复
+	recoveryFaultPeerTicker := time.NewTicker(180 * time.Second)
 
 	//2分钟尝试检测一次最优链，确保本节点在最优链
 	checkBestChainTicker := time.NewTicker(120 * time.Second)
