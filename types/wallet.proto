@@ -232,15 +232,6 @@ message ReplySignRawTx {
     string txHex = 1;
 }
 
-message ReqAuthGetUser{
-	string name = 1;
-}
-
-message ReplyAuthGetUser{
-	bytes cert = 1;
-	bytes key = 2;
-}
-
 message ReportErrEvent {
     string frommodule = 1;
     string tomodule   = 2;

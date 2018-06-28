@@ -22,7 +22,7 @@ type EVMContractObject struct {
 func (m *EVMContractObject) Reset()                    { *m = EVMContractObject{} }
 func (m *EVMContractObject) String() string            { return proto.CompactTextString(m) }
 func (*EVMContractObject) ProtoMessage()               {}
-func (*EVMContractObject) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{0} }
+func (*EVMContractObject) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{0} }
 
 func (m *EVMContractObject) GetAddr() string {
 	if m != nil {
@@ -58,7 +58,7 @@ type EVMContractData struct {
 func (m *EVMContractData) Reset()                    { *m = EVMContractData{} }
 func (m *EVMContractData) String() string            { return proto.CompactTextString(m) }
 func (*EVMContractData) ProtoMessage()               {}
-func (*EVMContractData) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{1} }
+func (*EVMContractData) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{1} }
 
 func (m *EVMContractData) GetCreator() string {
 	if m != nil {
@@ -113,7 +113,7 @@ type EVMContractState struct {
 func (m *EVMContractState) Reset()                    { *m = EVMContractState{} }
 func (m *EVMContractState) String() string            { return proto.CompactTextString(m) }
 func (*EVMContractState) ProtoMessage()               {}
-func (*EVMContractState) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{2} }
+func (*EVMContractState) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{2} }
 
 func (m *EVMContractState) GetNonce() uint64 {
 	if m != nil {
@@ -162,7 +162,7 @@ type EVMContractAction struct {
 func (m *EVMContractAction) Reset()                    { *m = EVMContractAction{} }
 func (m *EVMContractAction) String() string            { return proto.CompactTextString(m) }
 func (*EVMContractAction) ProtoMessage()               {}
-func (*EVMContractAction) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{3} }
+func (*EVMContractAction) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{3} }
 
 func (m *EVMContractAction) GetAmount() uint64 {
 	if m != nil {
@@ -219,7 +219,7 @@ type ReceiptEVMContract struct {
 func (m *ReceiptEVMContract) Reset()                    { *m = ReceiptEVMContract{} }
 func (m *ReceiptEVMContract) String() string            { return proto.CompactTextString(m) }
 func (*ReceiptEVMContract) ProtoMessage()               {}
-func (*ReceiptEVMContract) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{4} }
+func (*ReceiptEVMContract) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{4} }
 
 func (m *ReceiptEVMContract) GetCaller() string {
 	if m != nil {
@@ -269,7 +269,7 @@ type EVMContractDataCmd struct {
 func (m *EVMContractDataCmd) Reset()                    { *m = EVMContractDataCmd{} }
 func (m *EVMContractDataCmd) String() string            { return proto.CompactTextString(m) }
 func (*EVMContractDataCmd) ProtoMessage()               {}
-func (*EVMContractDataCmd) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{5} }
+func (*EVMContractDataCmd) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{5} }
 
 func (m *EVMContractDataCmd) GetCreator() string {
 	if m != nil {
@@ -324,7 +324,7 @@ type EVMContractStateCmd struct {
 func (m *EVMContractStateCmd) Reset()                    { *m = EVMContractStateCmd{} }
 func (m *EVMContractStateCmd) String() string            { return proto.CompactTextString(m) }
 func (*EVMContractStateCmd) ProtoMessage()               {}
-func (*EVMContractStateCmd) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{6} }
+func (*EVMContractStateCmd) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{6} }
 
 func (m *EVMContractStateCmd) GetNonce() uint64 {
 	if m != nil {
@@ -368,7 +368,7 @@ type ReceiptEVMContractCmd struct {
 func (m *ReceiptEVMContractCmd) Reset()                    { *m = ReceiptEVMContractCmd{} }
 func (m *ReceiptEVMContractCmd) String() string            { return proto.CompactTextString(m) }
 func (*ReceiptEVMContractCmd) ProtoMessage()               {}
-func (*ReceiptEVMContractCmd) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{7} }
+func (*ReceiptEVMContractCmd) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{7} }
 
 func (m *ReceiptEVMContractCmd) GetCaller() string {
 	if m != nil {
@@ -412,7 +412,7 @@ type CheckEVMAddrReq struct {
 func (m *CheckEVMAddrReq) Reset()                    { *m = CheckEVMAddrReq{} }
 func (m *CheckEVMAddrReq) String() string            { return proto.CompactTextString(m) }
 func (*CheckEVMAddrReq) ProtoMessage()               {}
-func (*CheckEVMAddrReq) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{8} }
+func (*CheckEVMAddrReq) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{8} }
 
 func (m *CheckEVMAddrReq) GetAddr() string {
 	if m != nil {
@@ -431,7 +431,7 @@ type CheckEVMAddrResp struct {
 func (m *CheckEVMAddrResp) Reset()                    { *m = CheckEVMAddrResp{} }
 func (m *CheckEVMAddrResp) String() string            { return proto.CompactTextString(m) }
 func (*CheckEVMAddrResp) ProtoMessage()               {}
-func (*CheckEVMAddrResp) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{9} }
+func (*CheckEVMAddrResp) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{9} }
 
 func (m *CheckEVMAddrResp) GetContract() bool {
 	if m != nil {
@@ -471,7 +471,7 @@ type EstimateEVMGasReq struct {
 func (m *EstimateEVMGasReq) Reset()                    { *m = EstimateEVMGasReq{} }
 func (m *EstimateEVMGasReq) String() string            { return proto.CompactTextString(m) }
 func (*EstimateEVMGasReq) ProtoMessage()               {}
-func (*EstimateEVMGasReq) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{10} }
+func (*EstimateEVMGasReq) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{10} }
 
 func (m *EstimateEVMGasReq) GetTo() string {
 	if m != nil {
@@ -508,7 +508,7 @@ type EstimateEVMGasResp struct {
 func (m *EstimateEVMGasResp) Reset()                    { *m = EstimateEVMGasResp{} }
 func (m *EstimateEVMGasResp) String() string            { return proto.CompactTextString(m) }
 func (*EstimateEVMGasResp) ProtoMessage()               {}
-func (*EstimateEVMGasResp) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{11} }
+func (*EstimateEVMGasResp) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{11} }
 
 func (m *EstimateEVMGasResp) GetGas() uint64 {
 	if m != nil {
@@ -525,7 +525,7 @@ type EvmDebugReq struct {
 func (m *EvmDebugReq) Reset()                    { *m = EvmDebugReq{} }
 func (m *EvmDebugReq) String() string            { return proto.CompactTextString(m) }
 func (*EvmDebugReq) ProtoMessage()               {}
-func (*EvmDebugReq) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{12} }
+func (*EvmDebugReq) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{12} }
 
 func (m *EvmDebugReq) GetOptype() int32 {
 	if m != nil {
@@ -541,7 +541,7 @@ type EvmDebugResp struct {
 func (m *EvmDebugResp) Reset()                    { *m = EvmDebugResp{} }
 func (m *EvmDebugResp) String() string            { return proto.CompactTextString(m) }
 func (*EvmDebugResp) ProtoMessage()               {}
-func (*EvmDebugResp) Descriptor() ([]byte, []int) { return fileDescriptor5, []int{13} }
+func (*EvmDebugResp) Descriptor() ([]byte, []int) { return fileDescriptor6, []int{13} }
 
 func (m *EvmDebugResp) GetDebugStatus() string {
 	if m != nil {
@@ -567,9 +567,9 @@ func init() {
 	proto.RegisterType((*EvmDebugResp)(nil), "types.EvmDebugResp")
 }
 
-func init() { proto.RegisterFile("evmcontract.proto", fileDescriptor5) }
+func init() { proto.RegisterFile("evmcontract.proto", fileDescriptor6) }
 
-var fileDescriptor5 = []byte{
+var fileDescriptor6 = []byte{
 	// 673 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xcc, 0x95, 0xc1, 0x6f, 0xd3, 0x3e,
 	0x14, 0xc7, 0xe5, 0x26, 0xed, 0x96, 0xd7, 0xfe, 0x7e, 0xdb, 0x0c, 0x8c, 0x68, 0xe2, 0x50, 0x45,
