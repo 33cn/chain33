@@ -76,10 +76,6 @@ func New(cfg *types.Wallet) *Wallet {
 		SignType = 2
 	} else if "sm2" == cfg.SignType {
 		SignType = 3
-	} else if "auth_ecdsa" == cfg.SignType {
-		SignType = types.AUTH_ECDSA
-	} else if "auth_sm2" == cfg.SignType {
-		SignType = types.AUTH_SM2
 	}
 	wallet := &Wallet{
 		walletStore:      walletStore,
