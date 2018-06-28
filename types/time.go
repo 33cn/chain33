@@ -37,3 +37,7 @@ func Now() time.Time {
 	dt := time.Duration(atomic.LoadInt64(&deltaTime))
 	return time.Now().Add(dt)
 }
+
+func Since(t time.Time) time.Duration {
+	return Now().Sub(t)
+}
