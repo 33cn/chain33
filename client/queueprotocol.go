@@ -785,6 +785,10 @@ func (q *QueueProtocol) GetFatalFailure() (*types.Int32, error) {
 	}
 	return nil, types.ErrTypeAsset
 }
+
+func (q *QueueProtocol) CloseQueue() (*types.Reply, error) {
+	return q.client.CloseQueue()
+}
 func (q *QueueProtocol) GetLastBlockSequence() (*types.Int64, error) {
 	msg, err := q.query(blockchainKey, types.EventGetLastBlockSequence, &types.ReqNil{})
 	if err != nil {
