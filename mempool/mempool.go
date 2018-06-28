@@ -155,7 +155,7 @@ func (mem *Mempool) RemoveExpiredAndDuplicateMempoolTxs() []*types.Transaction {
 	for _, v := range mem.cache.txMap {
 		item := v.Value.(*Item)
 		hash := item.value.Hash()
-		if time.Now().Unix()-item.enterTime >= mempoolExpiredInterval {
+		if types.Now().Unix()-item.enterTime >= mempoolExpiredInterval {
 			// 清理滞留Mempool中超过10分钟的交易
 			mem.cache.Remove(hash)
 		} else if item.value.IsExpire(mem.header.GetHeight(), mem.header.GetBlockTime()) {
@@ -174,7 +174,7 @@ func (mem *Mempool) RemoveTxsOfBlock(block *types.Block) bool {
 	defer mem.proxyMtx.Unlock()
 	for _, tx := range block.Txs {
 		hash := tx.Hash()
-		mem.addedTxs.Add(string(hash), time.Now().Unix())
+		mem.addedTxs.Add(string(hash), types.Now().Unix())
 		exist := mem.cache.Exists(hash)
 		if exist {
 			mem.cache.Remove(hash)
@@ -188,7 +188,7 @@ func (mem *Mempool) RemoveTxs(hashList *types.TxHashList) error {
 	mem.proxyMtx.Lock()
 	defer mem.proxyMtx.Unlock()
 	for _, hash := range hashList.Hashes {
-		mem.addedTxs.Add(string(hash), time.Now().Unix())
+		mem.addedTxs.Add(string(hash), types.Now().Unix())
 		exist := mem.cache.Exists(hash)
 		if exist {
 			mem.cache.Remove(hash)
@@ -253,7 +253,7 @@ func (mem *Mempool) ReTry() {
 	var result []*types.Transaction
 	mem.proxyMtx.Lock()
 	for _, v := range mem.cache.txMap {
-		if time.Now().Unix()-v.Value.(*Item).enterTime >= mempoolReSendInterval {
+		if types.Now().Unix()-v.Value.(*Item).enterTime >= mempoolReSendInterval {
 			result = append(result, v.Value.(*Item).value)
 		}
 	}
@@ -366,7 +366,7 @@ func (mem *Mempool) CheckExpireValid(msg queue.Message) bool {
 	if tx.IsExpire(mem.header.GetHeight(), mem.header.GetBlockTime()) {
 		return false
 	}
-	if tx.Expire > 1000000000 && tx.Expire < time.Now().Unix()+int64(time.Minute/time.Second) {
+	if tx.Expire > 1000000000 && tx.Expire < types.Now().Unix()+int64(time.Minute/time.Second) {
 		return false
 	}
 	return true
@@ -499,7 +499,7 @@ func (mem *Mempool) SetQueueClient(client queue.Client) {
 	go func() {
 		for msg := range mem.client.Recv() {
 			mlog.Debug("mempool recv", "msgid", msg.Id, "msg", types.GetEventName(int(msg.Ty)))
-			beg := time.Now()
+			beg := types.Now()
 			switch msg.Ty {
 			case types.EventTx:
 				if !mem.isSync() {

@@ -510,7 +510,7 @@ func (n *Node) monitorBlackList() {
 
 		<-ticker.C
 		badPeers := n.nodeInfo.blacklist.GetBadPeers()
-		now := time.Now().Unix()
+		now := types.Now().Unix()
 		for badPeer, intime := range badPeers {
 			if n.nodeInfo.addrBook.IsOurStringAddress(badPeer) {
 				continue

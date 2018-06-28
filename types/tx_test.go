@@ -3,10 +3,10 @@ package types
 import (
 	"encoding/hex"
 	"testing"
-	"time"
 
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 func TestCreateGroupTx(t *testing.T) {
@@ -60,14 +60,14 @@ func TestDecodeTx(t *testing.T) {
 	}
 	for i := 0; i < len(group.Txs); i++ {
 		//t.Log(group.Txs[i].Json())
-		if group.Txs[i].IsExpire(10, time.Now().Unix()) {
+		if group.Txs[i].IsExpire(10, types.Now().Unix()) {
 			t.Error("group txs[i]: Expire not set so, no exprie forever")
 		}
 		if !group.Txs[i].CheckSign() {
 			t.Error("group txs[i]: sign should be no err")
 		}
 	}
-	if group.IsExpire(10, time.Now().Unix()) {
+	if group.IsExpire(10, types.Now().Unix()) {
 		t.Error("group: Expire not set so, no exprie forever")
 	}
 }

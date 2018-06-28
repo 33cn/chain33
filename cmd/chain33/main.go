@@ -249,7 +249,7 @@ func fixtimeRoutine() {
 	if !t.IsZero() {
 		//update
 		types.SetTimeDelta(int64(time.Until(t)))
-		log.Info("change time", "delta", time.Until(t), "real.now", types.GetRealTime())
+		log.Info("change time", "delta", time.Until(t), "real.now", types.Now())
 	}
 	ticket := time.NewTicker(time.Minute * 10)
 	for range ticket.C {
