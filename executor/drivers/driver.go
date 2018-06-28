@@ -191,6 +191,7 @@ func (d *DriverBase) Query(funcname string, params []byte) (types.Message, error
 
 func (d *DriverBase) SetStateDB(db dbm.KV) {
 	if d.coinsaccount == nil {
+		//log.Error("new CoinsAccount")
 		d.coinsaccount = account.NewCoinsAccount()
 	}
 	d.statedb = db
@@ -199,6 +200,7 @@ func (d *DriverBase) SetStateDB(db dbm.KV) {
 
 func (d *DriverBase) GetCoinsAccount() *account.DB {
 	if d.coinsaccount == nil {
+		//log.Error("new CoinsAccount")
 		d.coinsaccount = account.NewCoinsAccount()
 		d.coinsaccount.SetDB(d.statedb)
 	}
