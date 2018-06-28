@@ -19,7 +19,7 @@ func init() {
 	//types.RegistorLog(types.TyLogDeposit, &CoinsDepositLog{})
 
 	// init query rpc
-	//types.RegistorRpcType("q2", &CoinsGetTxsByAddr{})
+	types.RegistorRpcType("GetRetrieveInfo", &RetrieveGetInfo{})
 }
 
 type RetrieveType struct {
@@ -69,11 +69,11 @@ func (l CoinsDepositLog) Decode(msg []byte) (interface{}, error) {
 	return logTmp, err
 }
 
-type CoinsGetTxsByAddr struct {
+type RetrieveGetInfo struct {
 }
 
-func (t *CoinsGetTxsByAddr) Input(message json.RawMessage) ([]byte, error) {
-	var req types.ReqAddr
+func (t *RetrieveGetInfo) Input(message json.RawMessage) ([]byte, error) {
+	var req types.ReqRetrieveInfo
 	err := json.Unmarshal(message, &req)
 	if err != nil {
 		return nil, err
@@ -81,6 +81,6 @@ func (t *CoinsGetTxsByAddr) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *CoinsGetTxsByAddr) Output(reply interface{}) (interface{}, error) {
+func (t *RetrieveGetInfo) Output(reply interface{}) (interface{}, error) {
 	return reply, nil
 }
