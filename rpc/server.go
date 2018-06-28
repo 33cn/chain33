@@ -1,6 +1,8 @@
 package rpc
 
 import (
+	"net"
+
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 
@@ -39,11 +41,18 @@ func (s *JSONRPCServer) Close() {
 }
 
 func checkIpWhitelist(addr string) bool {
-
+	//回环网络直接允许
+	ip := net.ParseIP(addr)
+	if ip.IsLoopback() {
+		return true
+	}
+	ipv4 := ip.To4()
+	if ipv4 != nil {
+		addr = ipv4.String()
+	}
 	if _, ok := remoteIpWhitelist["0.0.0.0"]; ok {
 		return true
 	}
-
 	if _, ok := remoteIpWhitelist[addr]; ok {
 		return true
 	}
