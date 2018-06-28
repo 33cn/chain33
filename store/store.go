@@ -2,8 +2,6 @@ package store
 
 //store package store the world - state data
 import (
-	"fmt"
-
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/store/drivers/kvdb"
 	"gitlab.33.cn/chain33/chain33/store/drivers/mavl"
@@ -22,5 +20,5 @@ func New(cfg *types.Store) queue.Module {
 		// TODO:
 		panic("empty")
 	}
-	panic(fmt.Sprintf("Unsupported store type:%s", storeType))
+	panic("Unsupported store type")
 }
