@@ -50,11 +50,6 @@ func callExecNewTx(execName, action string, param interface{}) ([]byte, error) {
 		return nil, err
 	}
 
-	if string(jsonStr) == "null" {
-		log.Error("callExecNewTx", "Error", "param in nil")
-		return nil, types.ErrInvalidParam
-	}
-
 	tx, err := exec.CreateTx(action, json.RawMessage(jsonStr))
 	if err != nil {
 		log.Error("callExecNewTx", "Error", err)
