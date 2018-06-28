@@ -22,7 +22,7 @@ func SetTimeDelta(dt int64) {
 	atomic.StoreInt64(&deltaTime, dt)
 }
 
-func GetRealTime() time.Time {
+func Now() time.Time {
 	dt := time.Duration(atomic.LoadInt64(&deltaTime))
 	return time.Now().Add(dt)
 }

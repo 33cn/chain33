@@ -10,6 +10,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/model"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/params"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/state"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 type (
@@ -198,7 +199,7 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 	contract := NewContract(caller, to, value, gas)
 	contract.SetCallCode(&addr, evm.StateDB.GetCodeHash(addr.String()), evm.StateDB.GetCode(addr.String()))
 
-	start := time.Now()
+	start := types.Now()
 
 	// 调试模式下启用跟踪
 	if evm.VmConfig.Debug && evm.depth == 0 {
@@ -360,7 +361,7 @@ func (evm *EVM) Create(caller ContractRef, contractAddr common.Address, code []b
 	if evm.VmConfig.Debug && evm.depth == 0 {
 		evm.VmConfig.Tracer.CaptureStart(caller.Address(), contractAddr, true, code, gas, 0)
 	}
-	start := time.Now()
+	start := types.Now()
 
 	// 通过预编译指令和解释器执行合约
 	ret, err = run(evm, contract, nil)
