@@ -57,12 +57,12 @@ miner:
 	@cp cmd/miner_accounts/miner_accounts.toml build/
 
 build_ci: relayd ## Build the binary file for CI
-	@go build -race -v -o $(CLI) $(SRC_CLI)
+	@go build -race -v -i -o $(CLI) $(SRC_CLI)
 	@go build  $(BUILD_FLAGS)-race -v -o $(APP) $(SRC)
 	@cp cmd/chain33/chain33.toml build/
 
 relayd: ## Build relay deamon binary
-	@go build -race -v -o $(RELAYD) $(SRC_RELAYD)
+	@go build -race -i -v -o $(RELAYD) $(SRC_RELAYD)
 	@cp cmd/relayd/relayd.toml build/
 
 linter: ## Use gometalinter check code, ignore some unserious warning
