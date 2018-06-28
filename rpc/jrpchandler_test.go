@@ -1958,6 +1958,24 @@ func TestChain33_CreateRawTradeRevokeBuyTx(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestChain33_GetLastBlockSequence(t *testing.T) {
+	api := new(mocks.QueueProtocolAPI)
+	client := newTestChain33(api)
+	var result interface{}
+	api.On("GetLastBlockSequence", mock.Anything).Return(nil, types.ErrInputPara)
+	err := client.GetLastBlockSequence(&types.ReqNil{}, &result)
+	assert.NotNil(t, err)
+
+	api = new(mocks.QueueProtocolAPI)
+	client = newTestChain33(api)
+	var result2 interface{}
+	lastSeq := types.Int64{1}
+	api.On("GetLastBlockSequence", mock.Anything).Return(&lastSeq, nil)
+	err = client.GetLastBlockSequence(&types.ReqNil{}, &result2)
+	assert.Nil(t, err)
+	assert.Equal(t, int64(1), result2)
+}
+
 func TestChain33_GetBlockSequences(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 	client := newTestChain33(api)
