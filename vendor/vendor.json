@@ -661,11 +661,6 @@
 			"revisionTime": "2018-04-06T09:01:59Z"
 		},
 		{
-			"checksumSHA1": "kQB2wRB3twjUp615F6zEwGHjNe0=",
-			"path": "golang.org/x/sys/windows",
-			"revision": ""
-		},
-		{
 			"checksumSHA1": "AnXFEvmaJ7w2Q7hWPcLUmCbPgq0=",
 			"path": "golang.org/x/tools/go/buildutil",
 			"revision": "77106db15f689a60e7d4e085d967ac557b918fb2",

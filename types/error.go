@@ -221,10 +221,4 @@ var (
 	ErrRelayBtcHeadSequenceErr = errors.New("ErrRelayBtcHeadSequenceErr")
 	ErrRelayBtcHeadHashErr     = errors.New("ErrRelayBtcHeadHashErr")
 	ErrRelayBtcHeadBitsErr     = errors.New("ErrRelayBtcHeadBitsErr")
-
-	//authority
-	ErrDeserializedIdentity = errors.New("ErrDeserializedIdentity")
-	ErrSignatureExist       = errors.New("ErrSignatureExist")
-	ErrNoUserName     = errors.New("ErrNoUserName")
-	ErrGetCertFromAuth      = errors.New("ErrGetCertFromAuth")
 )
