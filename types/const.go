@@ -466,12 +466,14 @@ var eventName = map[int]string{
 //ty = 1 -> secp256k1
 //ty = 2 -> ed25519
 //ty = 3 -> sm2
+//ty = 1+offset(1<<8) ->auth_ecdsa
+//ty = 2+offset(1<<8) -> auth_sm2
 const (
 	SECP256K1 = 1
 	ED25519   = 2
 	SM2       = 3
-	AUTH_ECDSA = 1 << 8
-	AUTH_SM2  = 2 << 8
+	AUTH_ECDSA = 257
+	AUTH_SM2  = 258
 )
 
 //log type
