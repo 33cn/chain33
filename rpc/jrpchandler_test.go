@@ -1957,3 +1957,27 @@ func TestChain33_CreateRawTradeRevokeBuyTx(t *testing.T) {
 	assert.NotNil(t, testResult)
 	assert.Nil(t, err)
 }
+
+func TestChain33_CreateTransaction(t *testing.T) {
+	client := newTestChain33(nil)
+
+	var result interface{}
+	err := client.CreateTransaction(nil, &result)
+	assert.NotNil(t, err)
+
+	in := &TransactionCreate{ Execer: "notExist", ActionName: "x", Payload: []byte("x") }
+	err = client.CreateTransaction(in, &result)
+	assert.Equal(t, types.ErrExecNameNotAllow, err)
+
+	in = &TransactionCreate{ Execer: "token", ActionName: "notExist", Payload: []byte("x") }
+	err = client.CreateTransaction(in, &result)
+	assert.Equal(t, types.ErrNotSupport, err)
+
+	in = &TransactionCreate{
+		Execer: "token",
+		ActionName: "TokenFinish",
+		Payload: []byte("{\"fee\" : 10000, \"symbol\": \"TOKEN\", \"ownerAddr\":\"string\"}"),
+	}
+	err = client.CreateTransaction(in, &result)
+	assert.Nil(t, err)
+}

@@ -1275,7 +1275,10 @@ func (c *Chain33) GetBlockByHashes(in ReqHashes, result *interface{}) error {
 	return nil
 }
 
-func (c *Chain33) CreateTransaction(in TransactionCreate, result *interface{}) error {
+func (c *Chain33) CreateTransaction(in *TransactionCreate, result *interface{}) error {
+	if in == nil {
+		return types.ErrInputPara
+	}
 	exec := types.LoadExecutor(in.Execer)
 	if exec == nil {
 		return types.ErrExecNameNotAllow
