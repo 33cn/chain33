@@ -71,19 +71,19 @@ func (privKey PrivKeyECDSA) Sign(msg []byte) crypto.Signature {
 		return nil
 	}
 
-	s, _, err = toLowS(pub, s)
+	s, _, err = ToLowS(pub, s)
 	if err != nil {
 		return nil
 	}
 
-	ecdsaSigByte, _ := marshalECDSASignature(r, s)
+	ecdsaSigByte, _ := MarshalECDSASignature(r, s)
 	return SignatureECDSA(ecdsaSigByte)
 }
 
 func (privKey PrivKeyECDSA) PubKey() crypto.PubKey {
 	_, pub := privKeyFromBytes(elliptic.P256(), privKey[:])
 	var pubECDSA PubKeyECDSA
-	copy(pubECDSA[:], serializePublicKey(pub))
+	copy(pubECDSA[:], SerializePublicKey(pub))
 	return pubECDSA
 }
 
@@ -125,12 +125,12 @@ func (pubKey PubKeyECDSA) VerifyBytes(msg []byte, sig crypto.Signature) bool {
 		return false
 	}
 
-	r, s, err := unmarshalECDSASignature(sigECDSA)
+	r, s, err := UnmarshalECDSASignature(sigECDSA)
 	if err != nil {
 		return false
 	}
 
-	lowS := isLowS(pub, s)
+	lowS := IsLowS(s)
 	if !lowS {
 		return false
 	}

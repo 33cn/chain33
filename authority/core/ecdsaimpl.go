@@ -13,6 +13,8 @@ import (
 	"time"
 
 	log "github.com/inconshreveable/log15"
+	"crypto/ecdsa"
+	ecdsa_util "gitlab.33.cn/chain33/chain33/common/crypto/ecdsa"
 )
 
 var authLogger = log.New("module", "autority")
@@ -125,19 +127,32 @@ func (validator *ecdsaValidator) Setup(conf *AuthConfig) error {
 	return nil
 }
 
-func (validator *ecdsaValidator) Validate(certByte []byte) error {
+func (validator *ecdsaValidator) Validate(certByte []byte, pubKey []byte) error {
 	authLogger.Debug("validating certificate")
 
+	// byte to cert
 	cert, err := validator.getCertFromPem(certByte)
 	if err != nil {
 		return fmt.Errorf("ParseCertificate failed %s", err)
 	}
 
+	// cmp public in tx and public from cert
+	certPubKey, ok := cert.PublicKey.(*ecdsa.PublicKey)
+	if !ok {
+		return fmt.Errorf("Error publick key type in transaction. expect ECDSA")
+	}
+
+	if !bytes.Equal(pubKey, ecdsa_util.SerializePublicKey(certPubKey)) {
+		return fmt.Errorf("Invalid public key.")
+	}
+
+	// low-s check
 	cert,err = validator.sanitizeCert(cert)
 	if err != nil {
 		return fmt.Errorf("Sanitize certification failed. err %s", err)
 	}
 
+	// validation chain check
 	validationChain, err := validator.getCertificationChain(cert)
 	if err != nil {
 		return fmt.Errorf("Could not obtain certification chain, err %s", err)

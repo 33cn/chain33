@@ -104,7 +104,7 @@ func initEnv() (queue.Queue, *Authority, error) {
 	return q, auth, nil
 }
 
-func TestCheckTxs(t *testing.T) {
+func TestCheckTx(t *testing.T) {
 	q, auth, err := initEnv()
 	if err != nil {
 		t.Errorf("init env failed, error:%s", err)
@@ -112,9 +112,8 @@ func TestCheckTxs(t *testing.T) {
 	defer q.Close()
 	defer auth.Close()
 
-	//txs := []*types.Transaction{tx1, tx2, tx3, tx4, tx5, tx6, tx7, tx8, tx9, tx10, tx11, tx12, tx13}
-	txsReq := &types.ReqAuthCheckCert{tx1.Signature.Cert}
-	msg := auth.client.NewMessage("authority", types.EventAuthorityCheckCert, txsReq)
+	txReq := &types.ReqAuthCheckCert{tx1.Signature}
+	msg := auth.client.NewMessage("authority", types.EventAuthorityCheckCert, txReq)
 	auth.client.Send(msg, true)
 	resp, err := auth.client.Wait(msg)
 	if err != nil {
@@ -127,3 +126,30 @@ func TestCheckTxs(t *testing.T) {
 		t.Error("error process txs signature validate")
 	}
 }
+
+func TestCheckTxs(t *testing.T) {
+	q, auth, err := initEnv()
+	if err != nil {
+		t.Errorf("init env failed, error:%s", err)
+	}
+	defer q.Close()
+	defer auth.Close()
+
+	signatures := []*types.Signature{tx1.Signature, tx2.Signature, tx3.Signature, tx4.Signature, tx5.Signature,
+					tx6.Signature, tx7.Signature, tx8.Signature, tx9.Signature, tx10.Signature, tx11.Signature,
+					tx12.Signature, tx13.Signature}
+	txsReq := &types.ReqAuthCheckCerts{signatures}
+	msg := auth.client.NewMessage("authority", types.EventAuthorityCheckCerts, txsReq)
+	auth.client.Send(msg, true)
+	resp, err := auth.client.Wait(msg)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	respData := resp.GetData().(*types.ReplyAuthCheckCerts).GetResult()
+	if !respData {
+		t.Error("error process txs signature validate")
+	}
+}
+

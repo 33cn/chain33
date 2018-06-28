@@ -9,7 +9,7 @@ import (
 	"errors"
 	"math/big"
 	"time"
-	"gitlab.33.cn/chain33/chain33/authority/utils"
+	ecdsa_util "gitlab.33.cn/chain33/chain33/common/crypto/ecdsa"
 )
 
 type validity struct {
@@ -58,7 +58,7 @@ func sanitizeECDSASignedCert(cert *x509.Certificate, parentCert *x509.Certificat
 		return nil, errors.New("Parent certificate must be different from nil.")
 	}
 
-	expectedSig, err := utils.SignatureToLowS(parentCert.PublicKey.(*ecdsa.PublicKey), cert.Signature)
+	expectedSig, err := signatureToLowS(parentCert.PublicKey.(*ecdsa.PublicKey), cert.Signature)
 	if err != nil {
 		return nil, err
 	}
@@ -82,6 +82,24 @@ func sanitizeECDSASignedCert(cert *x509.Certificate, parentCert *x509.Certificat
 	}
 
 	return x509.ParseCertificate(newRaw)
+}
+
+func signatureToLowS(k *ecdsa.PublicKey, signature []byte) ([]byte, error) {
+	r, s, err := ecdsa_util.UnmarshalECDSASignature(signature)
+	if err != nil {
+		return nil, err
+	}
+
+	s, modified, err := ecdsa_util.ToLowS(k, s)
+	if err != nil {
+		return nil, err
+	}
+
+	if modified {
+		return ecdsa_util.MarshalECDSASignature(r, s)
+	}
+
+	return signature, nil
 }
 
 func certFromX509Cert(cert *x509.Certificate) (certificate, error) {

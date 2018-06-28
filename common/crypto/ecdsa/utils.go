@@ -9,19 +9,17 @@ import (
 	"errors"
 )
 
-func marshalECDSASignature(r, s *big.Int) ([]byte, error) {
+func MarshalECDSASignature(r, s *big.Int) ([]byte, error) {
 	return asn1.Marshal(ECDSASignature{r, s})
 }
 
-func unmarshalECDSASignature(raw []byte) (*big.Int, *big.Int, error) {
-	// Unmarshal
+func UnmarshalECDSASignature(raw []byte) (*big.Int, *big.Int, error) {
 	sig := new(ECDSASignature)
 	_, err := asn1.Unmarshal(raw, sig)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed unmashalling signature [%s]", err)
 	}
 
-	// Validate sig
 	if sig.R == nil {
 		return nil, nil, errors.New("invalid signature, R must be different from nil")
 	}
@@ -39,11 +37,9 @@ func unmarshalECDSASignature(raw []byte) (*big.Int, *big.Int, error) {
 	return sig.R, sig.S, nil
 }
 
-func toLowS(k *ecdsa.PublicKey, s *big.Int) (*big.Int, bool, error) {
-	lowS := isLowS(k, s)
+func ToLowS(k *ecdsa.PublicKey, s *big.Int) (*big.Int, bool, error) {
+	lowS := IsLowS(s)
 	if !lowS {
-		// Set s to N - s that will be then in the lower part of signature space
-		// less or equal to half order
 		s.Sub(k.Params().N, s)
 
 		return s, true, nil
@@ -52,13 +48,8 @@ func toLowS(k *ecdsa.PublicKey, s *big.Int) (*big.Int, bool, error) {
 	return s, false, nil
 }
 
-// IsLow checks that s is a low-S
-func isLowS(k *ecdsa.PublicKey, s *big.Int) (bool) {
+func IsLowS(s *big.Int) (bool) {
 	return s.Cmp(new(big.Int).Rsh(elliptic.P256().Params().N, 1)) != 1
-}
-
-func isOdd(a *big.Int) bool {
-	return a.Bit(0) == 1
 }
 
 func parsePubKey(pubKeyStr []byte, curve elliptic.Curve) (key *ecdsa.PublicKey, err error) {
@@ -83,7 +74,7 @@ func parsePubKey(pubKeyStr []byte, curve elliptic.Curve) (key *ecdsa.PublicKey, 
 	return &pubkey, nil
 }
 
-func serializePublicKey(p *ecdsa.PublicKey) []byte {
+func SerializePublicKey(p *ecdsa.PublicKey) []byte {
 	b := make([]byte, 0, ECDSA_PUBLICKEY_LENGTH)
 	b = append(b, 0x4)
 	b = paddedAppend(32, b, p.X.Bytes())

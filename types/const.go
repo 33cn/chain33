@@ -305,6 +305,8 @@ const (
 	EventReplyAuthCheckCert  = 181
 	EventAuthorityGetUser  = 182
 	EventReplyAuthGetUser  = 183
+	EventAuthorityCheckCerts  = 184
+	EventReplyAuthCheckCerts  = 185
 
 	// Token
 	EventBlockChainQuery = 212
