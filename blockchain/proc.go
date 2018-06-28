@@ -330,7 +330,7 @@ func (chain *BlockChain) isNtpClockSync(msg queue.Message) {
 type funcProcess func(msg queue.Message)
 
 func (chain *BlockChain) processMsg(msg queue.Message, reqnum chan struct{}, cb funcProcess) {
-	beg := time.Now()
+	beg := types.Now()
 	defer func() {
 		<-reqnum
 		chain.recvwg.Done()
