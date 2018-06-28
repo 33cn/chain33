@@ -1,7 +1,6 @@
 package blockchain
 
 import (
-	"bytes"
 	"container/list"
 	"fmt"
 	"sync"
@@ -25,11 +24,9 @@ var (
 	InitBlockNum        int64 = 128 //节点刚启动时从db向index和bestchain缓存中添加的blocknode数
 	isStrongConsistency       = false
 
-	chainlog                   = log.New("module", "blockchain")
-	bCoins                     = []byte("coins")
-	bToken                     = []byte("token")
-	withdraw                   = "withdraw"
-	FutureBlockDelayTime int64 = 1
+	chainlog                    = log.New("module", "blockchain")
+	FutureBlockDelayTime  int64 = 1
+	isRecordBlockSequence       = false //是否记录add或者del block的序列，方便blcokchain的恢复通过记录的序列表
 )
 
 const maxFutureBlocks = 256
@@ -132,6 +129,7 @@ func initConfig(cfg *types.BlockChain) {
 		TimeoutSeconds = cfg.TimeoutSeconds
 	}
 	isStrongConsistency = cfg.IsStrongConsistency
+	isRecordBlockSequence = cfg.IsRecordBlockSequence
 }
 
 func (chain *BlockChain) Close() {
@@ -234,22 +232,13 @@ func (chain *BlockChain) ProcQueryTxMsg(txhash []byte) (proof *types.Transaction
 	//获取from地址
 	addr := txresult.GetTx().From()
 	TransactionDetail.Fromaddr = addr
-	if isWithdraw(TransactionDetail.Tx.GetExecer(), TransactionDetail.ActionName) {
+	if TransactionDetail.GetTx().IsWithdraw() {
 		//swap from and to
 		TransactionDetail.Fromaddr, TransactionDetail.Tx.To = TransactionDetail.Tx.To, TransactionDetail.Fromaddr
 	}
 	chainlog.Debug("ProcQueryTxMsg", "TransactionDetail", TransactionDetail.String())
 
 	return &TransactionDetail, nil
-}
-
-func isWithdraw(execer []byte, actionName string) bool {
-	if bytes.Equal(execer, bCoins) || bytes.Equal(execer, bToken) {
-		if actionName == withdraw {
-			return true
-		}
-	}
-	return false
 }
 
 func (chain *BlockChain) GetDuplicateTxHashList(txhashlist *types.TxHashList) (duptxhashlist *types.TxHashList) {
@@ -639,11 +628,11 @@ func (chain *BlockChain) ProcGetTransactionByHashes(hashs [][]byte) (TxDetails *
 
 			//获取from地址
 			txDetail.Fromaddr = txresult.GetTx().From()
-			if isWithdraw(txDetail.Tx.GetExecer(), txDetail.ActionName) {
+			if txDetail.GetTx().IsWithdraw() {
 				//swap from and to
 				txDetail.Fromaddr, txDetail.Tx.To = txDetail.Tx.To, txDetail.Fromaddr
 			}
-			chainlog.Debug("ProcGetTransactionByHashes", "txDetail", txDetail.String())
+			//chainlog.Debug("ProcGetTransactionByHashes", "txDetail", txDetail.String())
 			txDetails.Txs = append(txDetails.Txs, &txDetail)
 		} else {
 			txDetails.Txs = append(txDetails.Txs, nil)
@@ -865,4 +854,52 @@ func (chain *BlockChain) ProcFutureBlocks() {
 			}
 		}
 	}
+}
+
+//通过blockhash 获取对应的block信息
+func (chain *BlockChain) GetBlockByHashes(hashes [][]byte) (respblocks *types.BlockDetails, err error) {
+	var blocks types.BlockDetails
+	for _, hash := range hashes {
+		block, err := chain.blockStore.LoadBlockByHash(hash)
+		if err == nil && block != nil {
+			blocks.Items = append(blocks.Items, block)
+		} else {
+			blocks.Items = append(blocks.Items, nil)
+		}
+	}
+	return &blocks, nil
+}
+
+//通过记录的block序列号获取blockd序列存储的信息
+func (chain *BlockChain) GetBlockSequences(requestblock *types.ReqBlocks) (*types.BlockSequences, error) {
+	blockLastSeq, _ := chain.blockStore.LoadBlockLastSequence()
+	if requestblock.Start > blockLastSeq {
+		chainlog.Error("GetBlockSequences StartSeq err", "startSeq", requestblock.Start, "lastSeq", blockLastSeq)
+		return nil, types.ErrStartHeight
+	}
+	if requestblock.GetStart() > requestblock.GetEnd() {
+		chainlog.Error("GetBlockSequences input must Start <= End:", "startSeq", requestblock.Start, "endSeq", requestblock.End)
+		return nil, types.ErrEndLessThanStartHeight
+	}
+
+	end := requestblock.End
+	if requestblock.End > blockLastSeq {
+		end = blockLastSeq
+	}
+	start := requestblock.Start
+	count := end - start + 1
+
+	chainlog.Debug("GetBlockSequences", "Start", requestblock.Start, "End", requestblock.End, "lastSeq", blockLastSeq, "counts", count)
+
+	var blockSequences types.BlockSequences
+
+	for i := start; i <= end; i++ {
+		blockSequence, err := chain.blockStore.GetBlockSequence(i)
+		if err == nil && blockSequence != nil {
+			blockSequences.Items = append(blockSequences.Items, blockSequence)
+		} else {
+			blockSequences.Items = append(blockSequences.Items, nil)
+		}
+	}
+	return &blockSequences, nil
 }

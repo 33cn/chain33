@@ -1251,6 +1251,62 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
 				return nil, err
 			}
 			logIns = logTmp
+		case types.TyLogRelayCreate:
+			lTy = "LogRelayCreate"
+			var logTmp types.ReceiptRelayLog
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogRelayRevokeCreate:
+			lTy = "LogRelayRevokeCreate"
+			var logTmp types.ReceiptRelayLog
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogRelayAccept:
+			lTy = "LogRelayAccept"
+			var logTmp types.ReceiptRelayLog
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogRelayRevokeAccept:
+			lTy = "LogRelayRevokeAccept"
+			var logTmp types.ReceiptRelayLog
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogRelayConfirmTx:
+			lTy = "LogRelayConfirmTx"
+			var logTmp types.ReceiptRelayLog
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogRelayFinishTx:
+			lTy = "LogRelayFinishTx"
+			var logTmp types.ReceiptRelayLog
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogRelayRcvBTCHead:
+			lTy = "LogRelayRcvBTCHead"
+			var logTmp types.ReceiptRelayRcvBTCHeaders
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
 		default:
 			log.Error("Fail to DecodeLog", "type", l.Ty)
 			lTy = "unkownType"
@@ -1525,5 +1581,109 @@ func (c *Chain33) CloseQueue(in *types.ReqNil, result *interface{}) error {
 	}()
 
 	*result = &types.Reply{IsOk: true, Msg: []byte("Ok")}
+	return nil
+}
+
+func (c *Chain33) GetLastBlockSequence(in *types.ReqNil, result *interface{}) error {
+	resp, err := c.cli.GetLastBlockSequence()
+	if err != nil {
+		return err
+	}
+	*result = resp.GetData()
+	return nil
+}
+
+// 获取指定区间的block加载序列号信息。输入信息只使用：start，end
+func (c *Chain33) GetBlockSequences(in BlockParam, result *interface{}) error {
+	resp, err := c.cli.GetBlockSequences(&types.ReqBlocks{Start: in.Start, End: in.End, IsDetail: in.Isdetail, Pid: []string{""}})
+	if err != nil {
+		return err
+	}
+	var BlkSeqs ReplyBlkSeqs
+	items := resp.GetItems()
+	for _, item := range items {
+		BlkSeqs.BlkSeqInfos = append(BlkSeqs.BlkSeqInfos, &ReplyBlkSeq{Hash: common.ToHex(item.GetHash()),
+			Type: item.GetType()})
+	}
+	*result = &BlkSeqs
+	return nil
+}
+
+// 通过block hash 获取对应的block信息
+func (c *Chain33) GetBlockByHashes(in ReqHashes, result *interface{}) error {
+	log.Warn("GetBlockByHashes", "hashes", in)
+	var parm types.ReqHashes
+	parm.Hashes = make([][]byte, 0)
+	for _, v := range in.Hashes {
+		hb, err := common.FromHex(v)
+		if err != nil {
+			parm.Hashes = append(parm.Hashes, nil)
+			continue
+		}
+		parm.Hashes = append(parm.Hashes, hb)
+
+	}
+	reply, err := c.cli.GetBlockByHashes(&parm)
+	if err != nil {
+		return err
+	}
+	*result = reply
+	return nil
+}
+
+func (c *Chain33) CreateRawRelayOrderTx(in *RelayOrderTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawRelayOrderTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Chain33) CreateRawRelayAcceptTx(in *RelayAcceptTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawRelayAcceptTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+func (c *Chain33) CreateRawRelayRevokeTx(in *RelayRevokeTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawRelayRevokeTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+func (c *Chain33) CreateRawRelayConfirmTx(in *RelayConfirmTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawRelayConfirmTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+func (c *Chain33) CreateRawRelayVerifyBTCTx(in *RelayVerifyBTCTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawRelayVerifyBTCTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Chain33) CreateRawRelaySaveBTCHeadTx(in *RelaySaveBTCHeadTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawRelaySaveBTCHeadTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
 	return nil
 }
