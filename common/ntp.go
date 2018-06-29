@@ -168,6 +168,13 @@ func GetRealTime(hosts []string) time.Time {
 	return time.Now().Add(drift / time.Duration(len(dtlist)))
 }
 
+func abs(t time.Duration) time.Duration {
+	if t < 0 {
+		return -t
+	}
+	return t
+}
+
 func maxSubList(list []time.Duration) (sub []time.Duration) {
 	start := 0
 	end := 0
@@ -181,7 +188,7 @@ func maxSubList(list []time.Duration) (sub []time.Duration) {
 		} else {
 			nextheight = list[i+1]
 		}
-		if nextheight-list[i] > time.Millisecond*100 {
+		if abs(nextheight-list[i]) > time.Millisecond*100 {
 			end = i + 1
 			if len(sub) < (end - start) {
 				sub = list[start:end]
