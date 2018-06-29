@@ -9,7 +9,11 @@ ENV PATH ${GOPATH}/bin:$PATH
 RUN go get -u gopkg.in/alecthomas/gometalinter.v2 \
     && gometalinter.v2 -i \
     && go get -u github.com/mitchellh/gox \
-    && go get -u github.com/vektra/mockery/.../
+    && go get -u github.com/vektra/mockery/.../ \
+    && go get -u mvdan.cc/sh/cmd/shfmt \
+    && go get -u mvdan.cc/sh/cmd/gosh \
+    && apt install clang-format \
+    && apt install shellcheck
 
 # Use speedup source for Chinese Mainland user,if not you can remove it
 RUN cp /etc/apt/sources.list  /etc/apt/sources.list.old \
