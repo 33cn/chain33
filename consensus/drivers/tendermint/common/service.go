@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sync/atomic"
 
-	log "github.com/inconshreveable/log15"
+	"github.com/inconshreveable/log15"
 )
 
 var (
@@ -13,6 +13,7 @@ var (
 	ErrAlreadyStopped = errors.New("already stopped")
 
 	Fmt = fmt.Sprintf
+	baseservicelog = log15.New("module", "tendermint-base-service")
 )
 
 type StackError struct {
@@ -64,8 +65,6 @@ type Service interface {
 
 	// String representation of the service
 	String() string
-
-	SetLogger(log.Logger)
 }
 
 /*
@@ -111,7 +110,6 @@ Typical usage:
 	}
 */
 type BaseService struct {
-	Logger  log.Logger
 	name    string
 	started uint32 // atomic
 	stopped uint32 // atomic
@@ -121,31 +119,22 @@ type BaseService struct {
 	impl Service
 }
 
-func NewBaseService(logger log.Logger, name string, impl Service) *BaseService {
-	if logger == nil {
-		logger = log.New("module-consensus-BaseService", name)
-	}
-
+func NewBaseService(name string, impl Service) *BaseService {
 	return &BaseService{
-		Logger: logger,
 		name:   name,
 		Quit:   make(chan struct{}),
 		impl:   impl,
 	}
 }
 
-func (bs *BaseService) SetLogger(l log.Logger) {
-	bs.Logger = l
-}
-
 // Implements Servce
 func (bs *BaseService) Start() error {
 	if atomic.CompareAndSwapUint32(&bs.started, 0, 1) {
 		if atomic.LoadUint32(&bs.stopped) == 1 {
-			bs.Logger.Error(Fmt("Not starting %v -- already stopped", bs.name), "impl", bs.impl)
+			baseservicelog.Error(Fmt("Not starting %v -- already stopped", bs.name), "impl", bs.impl)
 			return ErrAlreadyStopped
 		} else {
-			bs.Logger.Info(Fmt("Starting %v", bs.name), "impl", bs.impl)
+			baseservicelog.Info(Fmt("Starting %v", bs.name), "impl", bs.impl)
 		}
 		err := bs.impl.OnStart()
 		if err != nil {
@@ -155,7 +144,7 @@ func (bs *BaseService) Start() error {
 		}
 		return nil
 	} else {
-		bs.Logger.Debug(Fmt("Not starting %v -- already started", bs.name), "impl", bs.impl)
+		baseservicelog.Debug(Fmt("Not starting %v -- already started", bs.name), "impl", bs.impl)
 		return ErrAlreadyStarted
 	}
 }
@@ -168,12 +157,12 @@ func (bs *BaseService) OnStart() error { return nil }
 // Implements Service
 func (bs *BaseService) Stop() error {
 	if atomic.CompareAndSwapUint32(&bs.stopped, 0, 1) {
-		bs.Logger.Info(Fmt("Stopping %v", bs.name), "impl", bs.impl)
+		baseservicelog.Info(Fmt("Stopping %v", bs.name), "impl", bs.impl)
 		bs.impl.OnStop()
 		close(bs.Quit)
 		return nil
 	} else {
-		bs.Logger.Debug(Fmt("Stopping %v (ignoring: already stopped)", bs.name), "impl", bs.impl)
+		baseservicelog.Debug(Fmt("Stopping %v (ignoring: already stopped)", bs.name), "impl", bs.impl)
 		return ErrAlreadyStopped
 	}
 }
@@ -186,7 +175,7 @@ func (bs *BaseService) OnStop() {}
 // Implements Service
 func (bs *BaseService) Reset() error {
 	if !atomic.CompareAndSwapUint32(&bs.stopped, 1, 0) {
-		bs.Logger.Debug(Fmt("Can't reset %v. Not stopped", bs.name), "impl", bs.impl)
+		baseservicelog.Debug(Fmt("Can't reset %v. Not stopped", bs.name), "impl", bs.impl)
 		return fmt.Errorf("can't reset running %s", bs.name)
 	}
 
@@ -223,11 +212,3 @@ type QuitService struct {
 	BaseService
 }
 
-func NewQuitService(logger log.Logger, name string, impl Service) *QuitService {
-	if logger != nil {
-		logger.Info("QuitService is deprecated, use BaseService instead")
-	}
-	return &QuitService{
-		BaseService: *NewBaseService(logger, name, impl),
-	}
-}

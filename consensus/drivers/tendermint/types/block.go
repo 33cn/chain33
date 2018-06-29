@@ -11,13 +11,13 @@ import (
 	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"encoding/json"
-	log "github.com/inconshreveable/log15"
+	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 	"github.com/golang/protobuf/proto"
 )
 
-var blocklog = log.New("module", "tendermint-block")
+var blocklog = log15.New("module", "tendermint-block")
 
 // Block defines the atomic unit of a Tendermint blockchain.
 // TODO: add Version byte

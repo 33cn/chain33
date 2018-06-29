@@ -1,7 +1,7 @@
 package tendermint
 
 import (
-	log "github.com/inconshreveable/log15"
+	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers"
 	sm "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/state"
 	ttypes "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
@@ -23,7 +23,7 @@ import (
 )
 
 var (
-	tendermintlog = log.New("module", "tendermint")
+	tendermintlog = log15.New("module", "tendermint")
 	genesisDocKey = []byte("genesisDoc")
 )
 
@@ -88,9 +88,7 @@ func New(cfg *types.Consensus) *TendermintClient {
 
 	pubkey := privValidator.GetPubKey().KeyString()
 
-	p2pLogger := log.New("module", "tendermint-p2p")
 	sw := p2p.NewSwitch(p2p.DefaultP2PConfig())
-	sw.SetLogger(p2pLogger)
 
 	eventBus := ttypes.NewEventBus()
 
@@ -199,22 +197,21 @@ func (client *TendermintClient) StartConsensus() {
 	stateDB := sm.NewStateDB(client.BaseClient, state)
 
 	//make evidenceReactor
-	evidenceLogger := log.New("module", "tendermint-evidence")
 	evidenceStore := evidence.NewEvidenceStore(client.evidenceDB)
 	evidencePool := evidence.NewEvidencePool(stateDB, state, evidenceStore)
 	evidenceReactor := evidence.NewEvidenceReactor(evidencePool)
-	evidenceReactor.SetLogger(evidenceLogger)
 
-	blockExecLogger := log.New("module", "tendermint-state")
 	// make block executor for consensus and blockchain reactors to execute blocks
-	blockExec := sm.NewBlockExecutor(stateDB, blockExecLogger, evidencePool)
+	blockExec := sm.NewBlockExecutor(stateDB, evidencePool)
 
 	// Make ConsensusReactor
 	csState := core.NewConsensusState(client.BaseClient, client.blockStore, state, blockExec, evidencePool)
+	if client.privValidator.GetLastHeight() < state.LastBlockHeight {
+		client.privValidator.ResetLastHeight(state.LastBlockHeight)
+	}
 	csState.SetPrivValidator(client.privValidator)
 
 	consensusReactor := core.NewConsensusReactor(csState, false)
-	consensusReactor.SetLogger(tendermintlog)
 	// services which will be publishing and/or subscribing for messages (events)
 	// consensusReactor will set it on consensusState and blockExecutor
 	consensusReactor.SetEventBus(client.eventBus)
@@ -233,7 +230,7 @@ func (client *TendermintClient) StartConsensus() {
 	}
 	// Create & add listener
 	protocol, address := "tcp", "0.0.0.0:46656"
-	l := p2p.NewDefaultListener(protocol, address, false, log.New("module", "tendermint-p2p"))
+	l := p2p.NewDefaultListener(protocol, address, false)
 	client.sw.AddListener(l)
 
 	// Start the switch

@@ -7,7 +7,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	log "github.com/inconshreveable/log15"
+	"github.com/inconshreveable/log15"
 	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
 )
 
@@ -16,24 +16,28 @@ type UPNPCapabilities struct {
 	Hairpin     bool
 }
 
-func makeUPNPListener(intPort int, extPort int, logger log.Logger) (NAT, net.Listener, net.IP, error) {
+var (
+	probelog = log15.New("module", "tendermint-probe")
+)
+
+func makeUPNPListener(intPort int, extPort int) (NAT, net.Listener, net.IP, error) {
 	nat, err := Discover()
 	if err != nil {
 		return nil, nil, nil, errors.Errorf("NAT upnp could not be discovered: %v", err)
 	}
-	logger.Info(cmn.Fmt("ourIP: %v", nat.(*upnpNAT).ourIP))
+	probelog.Info(cmn.Fmt("ourIP: %v", nat.(*upnpNAT).ourIP))
 
 	ext, err := nat.GetExternalAddress()
 	if err != nil {
 		return nat, nil, nil, errors.Errorf("External address error: %v", err)
 	}
-	logger.Info(cmn.Fmt("External address: %v", ext))
+	probelog.Info(cmn.Fmt("External address: %v", ext))
 
 	port, err := nat.AddPortMapping("tcp", extPort, intPort, "Tendermint UPnP Probe", 0)
 	if err != nil {
 		return nat, nil, ext, errors.Errorf("Port mapping error: %v", err)
 	}
-	logger.Info(cmn.Fmt("Port mapping mapped: %v", port))
+	probelog.Info(cmn.Fmt("Port mapping mapped: %v", port))
 
 	// also run the listener, open for all remote addresses.
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%v", intPort))
@@ -43,22 +47,22 @@ func makeUPNPListener(intPort int, extPort int, logger log.Logger) (NAT, net.Lis
 	return nat, listener, ext, nil
 }
 
-func testHairpin(listener net.Listener, extAddr string, logger log.Logger) (supportsHairpin bool) {
+func testHairpin(listener net.Listener, extAddr string) (supportsHairpin bool) {
 	// Listener
 	go func() {
 		inConn, err := listener.Accept()
 		if err != nil {
-			logger.Info(cmn.Fmt("Listener.Accept() error: %v", err))
+			probelog.Info(cmn.Fmt("Listener.Accept() error: %v", err))
 			return
 		}
-		logger.Info(cmn.Fmt("Accepted incoming connection: %v -> %v", inConn.LocalAddr(), inConn.RemoteAddr()))
+		probelog.Info(cmn.Fmt("Accepted incoming connection: %v -> %v", inConn.LocalAddr(), inConn.RemoteAddr()))
 		buf := make([]byte, 1024)
 		n, err := inConn.Read(buf)
 		if err != nil {
-			logger.Info(cmn.Fmt("Incoming connection read error: %v", err))
+			probelog.Info(cmn.Fmt("Incoming connection read error: %v", err))
 			return
 		}
-		logger.Info(cmn.Fmt("Incoming connection read %v bytes: %X", n, buf))
+		probelog.Info(cmn.Fmt("Incoming connection read %v bytes: %X", n, buf))
 		if string(buf) == "test data" {
 			supportsHairpin = true
 			return
@@ -68,28 +72,28 @@ func testHairpin(listener net.Listener, extAddr string, logger log.Logger) (supp
 	// Establish outgoing
 	outConn, err := net.Dial("tcp", extAddr)
 	if err != nil {
-		logger.Info(cmn.Fmt("Outgoing connection dial error: %v", err))
+		probelog.Info(cmn.Fmt("Outgoing connection dial error: %v", err))
 		return
 	}
 
 	n, err := outConn.Write([]byte("test data"))
 	if err != nil {
-		logger.Info(cmn.Fmt("Outgoing connection write error: %v", err))
+		probelog.Info(cmn.Fmt("Outgoing connection write error: %v", err))
 		return
 	}
-	logger.Info(cmn.Fmt("Outgoing connection wrote %v bytes", n))
+	probelog.Info(cmn.Fmt("Outgoing connection wrote %v bytes", n))
 
 	// Wait for data receipt
 	time.Sleep(1 * time.Second)
 	return
 }
 
-func Probe(logger log.Logger) (caps UPNPCapabilities, err error) {
-	logger.Info("Probing for UPnP!")
+func Probe() (caps UPNPCapabilities, err error) {
+	probelog.Info("Probing for UPnP!")
 
 	intPort, extPort := 8001, 8001
 
-	nat, listener, ext, err := makeUPNPListener(intPort, extPort, logger)
+	nat, listener, ext, err := makeUPNPListener(intPort, extPort)
 	if err != nil {
 		return
 	}
@@ -98,14 +102,14 @@ func Probe(logger log.Logger) (caps UPNPCapabilities, err error) {
 	// Deferred cleanup
 	defer func() {
 		if err := nat.DeletePortMapping("tcp", intPort, extPort); err != nil {
-			logger.Error(cmn.Fmt("Port mapping delete error: %v", err))
+			probelog.Error(cmn.Fmt("Port mapping delete error: %v", err))
 		}
 		if err := listener.Close(); err != nil {
-			logger.Error(cmn.Fmt("Listener closing error: %v", err))
+			probelog.Error(cmn.Fmt("Listener closing error: %v", err))
 		}
 	}()
 
-	supportsHairpin := testHairpin(listener, fmt.Sprintf("%v:%v", ext, extPort), logger)
+	supportsHairpin := testHairpin(listener, fmt.Sprintf("%v:%v", ext, extPort))
 	if supportsHairpin {
 		caps.Hairpin = true
 	}
