@@ -58,6 +58,7 @@ var (
 	ForkV16Withdraw      int64 = 200000
 	ForkV17EVM           int64 = 250000
 	ForkV18Relay         int64 = 500000
+	ForkV19TokenPrice    int64 = 300000
 )
 
 func SetTestNetFork() {
@@ -79,6 +80,7 @@ func SetTestNetFork() {
 	ForkV16Withdraw = 480000
 	ForkV17EVM = 500000
 	ForkV18Relay = 570000
+	ForkV19TokenPrice = 580000
 }
 
 func SetForkToOne() {
