@@ -203,9 +203,8 @@ func (client *TendermintClient) StartConsensus() {
 
 	// Make ConsensusReactor
 	csState := NewConsensusState(client.BaseClient, client.blockStore, state, blockExec, evidencePool)
-	if client.privValidator.GetLastHeight() < state.LastBlockHeight {
-		client.privValidator.ResetLastHeight(state.LastBlockHeight)
-	}
+	// reset height, round, state begin at newheigt,0,0
+	client.privValidator.ResetLastHeight(state.LastBlockHeight)
 	csState.SetPrivValidator(client.privValidator)
 
 	consensusReactor := NewConsensusReactor(csState, false)

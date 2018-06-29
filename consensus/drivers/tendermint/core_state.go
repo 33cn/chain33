@@ -110,7 +110,7 @@ type ConsensusState struct {
 
 	NewTxsHeight   chan int64
 	NewTxsFinished chan bool
-	blockStore     *BlockStore
+	blockStore     *ttypes.BlockStore
 	needSetFinish  bool
 	syncMutex      sync.Mutex
 
@@ -121,7 +121,7 @@ type ConsensusState struct {
 }
 
 // NewConsensusState returns a new ConsensusState.
-func NewConsensusState(client *drivers.BaseClient, blockStore *BlockStore, state State, blockExec *BlockExecutor, evpool ttypes.EvidencePool) *ConsensusState {
+func NewConsensusState(client *drivers.BaseClient, blockStore *ttypes.BlockStore, state State, blockExec *BlockExecutor, evpool ttypes.EvidencePool) *ConsensusState {
 	cs := &ConsensusState{
 		client:           client,
 		blockExec:        blockExec,
@@ -1255,12 +1255,12 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 		precommits := cs.Votes.Precommits(cs.CommitRound)
 		seenCommit := precommits.MakeCommit()
 
-		newSeenCommit, newLastCommit := SaveCommits(lastCommit, seenCommit)
+		newSeenCommit, newLastCommit := ttypes.SaveCommits(lastCommit, seenCommit)
 		newState := SaveState(stateCopy)
 
 		//tendermintlog.Info("blockid info", "seen commit", seenCommit.StringIndented("seen"),"last commit", lastCommit.StringIndented("last"), "state", stateCopy)
 
-		tx0 := CreateBlockInfoTx(cs.blockStore.GetPubkey(), newLastCommit, newSeenCommit, newState)
+		tx0 := ttypes.CreateBlockInfoTx(cs.blockStore.GetPubkey(), newLastCommit, newSeenCommit, newState)
 		newblock.Txs = append([]*types.Transaction{tx0}, newblock.Txs...)
 		//fail.Fail() // XXX
 
@@ -1309,6 +1309,9 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 		}
 		tendermintlog.Info("performance: finalizeCommit wait times", "times", times, "height", block.Height)
 	}
+
+	tendermintlog.Error("finalizeCommit block", "height", block.Height)
+
 	cs.commitReturn(true)
 
 	//fail.Fail() // XXX
@@ -1337,23 +1340,23 @@ func (cs *ConsensusState) defaultSetProposal(proposalTrans *ttypes.ProposalTrans
 	proposal, err := ttypes.ProposalTransToProposal(proposalTrans)
 	if err != nil {
 		tendermintlog.Error("defaultSetProposal:", "msg", "ProposalTransToProposal failed", "err", err)
-		return nil
+		return err
 	}
 	// Already have one
 	// TODO: possibly catch double proposals
-	if cs.Proposal != nil {
-		if cs.Proposal.Height == proposal.Height && cs.Proposal.Round < proposal.Round {
-			tendermintlog.Debug("defaultSetProposal: a new round begin, change round")
-			cs.enterNewRound(proposal.Height, proposal.Round)
-			return nil
-		}
-		tendermintlog.Error("defaultSetProposal: proposal is not nil")
+	if (cs.Proposal != nil && cs.Proposal.Height == proposal.Height && cs.Proposal.Round < proposal.Round) ||
+		(cs.Proposal == nil && proposal.Height == cs.Height && proposal.Round > cs.Round) {
+		tendermintlog.Error("defaultSetProposal: a new round begin, change round", "height", proposal.Height, "other-round", proposal.Round)
+		cs.enterNewRound(proposal.Height, proposal.Round)
+		return nil
+	} else if cs.Proposal != nil {
+		tendermintlog.Debug("defaultSetProposal: proposal is not nil")
 		return nil
 	}
 
 	// Does not apply
 	if proposal.Height != cs.Height || proposal.Round != cs.Round {
-		tendermintlog.Error("defaultSetProposal:", "msg", "height is not equal or round is not equal", "proposal-height", proposal.Height, "cs-height", cs.Height, "proposal-round", proposal.Round, "cs-round", cs.Round)
+		tendermintlog.Error("defaultSetProposal:height is not equal or round is not equal", "proposal-height", proposal.Height, "cs-height", cs.Height, "proposal-round", proposal.Round, "cs-round", cs.Round)
 		return nil
 	}
 
@@ -1370,7 +1373,7 @@ func (cs *ConsensusState) defaultSetProposal(proposalTrans *ttypes.ProposalTrans
 	}
 
 	// Verify signature
-	pubkey, err := ConsensusCrypto.PubKeyFromBytes(cs.Validators.GetProposer().PubKey)
+	pubkey, err := ttypes.ConsensusCrypto.PubKeyFromBytes(cs.Validators.GetProposer().PubKey)
 	if err != nil {
 		return errors.New(fmt.Sprintf("Error pubkey from bytes:%v", err))
 	}
@@ -1393,7 +1396,7 @@ func (cs *ConsensusState) defaultSetProposal(proposalTrans *ttypes.ProposalTrans
 	cs.roundstateRWLock.Unlock()
 
 	// NOTE: it's possible to receive complete proposal blocks for future rounds without having the proposal
-	tendermintlog.Debug("Received complete proposal block", "height", cs.ProposalBlock.Height, "hash", fmt.Sprintf("%X",cs.ProposalBlock.Hash()))
+	tendermintlog.Debug("Received complete proposal block", "height", cs.ProposalBlock.Height, "round", cs.Round, "hash", fmt.Sprintf("%X",cs.ProposalBlock.Hash()))
 	if cs.Step == ttypes.RoundStepPropose && cs.isProposalComplete() {
 		// Move onto the next step
 		cs.enterPrevote(block.Height, cs.Round)
@@ -1455,7 +1458,6 @@ func (cs *ConsensusState) addVote(vote *ttypes.Vote, peerKey string) (added bool
 		}
 		added, err = cs.LastCommit.AddVote(vote)
 		if added {
-			tendermintlog.Info(fmt.Sprintf("Added to lastPrecommits: %v", cs.LastCommit.StringShort()))
 			cs.eventBus.PublishEventVote(ttypes.EventDataVote{vote})
 
 			// if we can skip timeoutCommit and have all the votes now,
