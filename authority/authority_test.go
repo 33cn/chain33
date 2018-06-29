@@ -8,25 +8,31 @@ import (
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
+	"gitlab.33.cn/chain33/chain33/common/merkle"
+	"time"
+	"gitlab.33.cn/chain33/chain33/executor"
+	"gitlab.33.cn/chain33/chain33/executor/drivers"
 )
 
 var (
 	amount   = int64(1e8)
 	v        = &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
 	transfer = &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
-	tx1      = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1000000, Expire: 2}
-	tx2      = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0}
-	tx3      = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 200000000, Expire: 0}
-	tx4      = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 300000000, Expire: 0}
-	tx5      = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 400000000, Expire: 0}
-	tx6      = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 500000000, Expire: 0}
-	tx7      = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 600000000, Expire: 0}
-	tx8      = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 700000000, Expire: 0}
-	tx9      = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 800000000, Expire: 0}
-	tx10     = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 900000000, Expire: 0}
-	tx11     = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 450000000, Expire: 0}
-	tx12     = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 460000000, Expire: 0}
-	tx13     = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100, Expire: 0}
+	to 		 = drivers.ExecAddress("norm")
+	tx1      = &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: 1000000, Expire: 2, To:to}
+	tx2      = &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0, To:to}
+	tx3      = &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: 200000000, Expire: 0, To:to}
+	tx4      = &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: 300000000, Expire: 0, To:to}
+	tx5      = &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: 400000000, Expire: 0, To:to}
+	tx6      = &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: 500000000, Expire: 0, To:to}
+	tx7      = &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: 600000000, Expire: 0, To:to}
+	tx8      = &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: 700000000, Expire: 0, To:to}
+	tx9      = &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: 800000000, Expire: 0, To:to}
+	tx10     = &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: 900000000, Expire: 0, To:to}
+	tx11     = &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: 450000000, Expire: 0, To:to}
+	tx12     = &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: 460000000, Expire: 0, To:to}
+	tx13     = &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: 100, Expire: 0, To:to}
+	txs 	 = []*types.Transaction{tx1, tx2, tx3, tx4, tx5, tx6, tx7, tx8, tx9, tx10, tx11, tx12, tx13}
 )
 
 var USERNAME = "User"
@@ -74,12 +80,15 @@ func sign(priv crypto.PrivKey, cert []byte) {
 
 func initEnv() (queue.Queue, *Authority, error) {
 	var q = queue.New("channel")
-	cfg := config.InitCfg("../cmd/chain33/chain33.test.toml")
+	cfg := config.InitCfg("./chain33.auth.test.toml")
 
 	types.SetMinFee(0)
 
 	auth := New(cfg.Auth)
 	auth.SetQueueClient(q.Client())
+
+	exec := executor.New(cfg.Exec)
+	exec.SetQueueClient(q.Client())
 
 	msg := auth.client.NewMessage("authority", types.EventAuthorityGetUser, &types.ReqAuthGetUser{USERNAME})
 	auth.client.Send(msg, true)
@@ -104,7 +113,37 @@ func initEnv() (queue.Queue, *Authority, error) {
 	return q, auth, nil
 }
 
-func TestCheckTx(t *testing.T) {
+func TestChckSign(t *testing.T) {
+	q, auth, err := initEnv()
+	if err != nil {
+		t.Errorf("init env failed, error:%s", err)
+	}
+	defer q.Close()
+	defer auth.Close()
+
+	if !tx1.CheckSign() {
+		t.Error("check signature failed")
+		return
+	}
+}
+
+func TestChckSigns(t *testing.T) {
+	q, auth, err := initEnv()
+	if err != nil {
+		t.Errorf("init env failed, error:%s", err)
+	}
+	defer q.Close()
+	defer auth.Close()
+
+	block := types.Block{}
+	block.Txs = txs
+	if !block.CheckSign() {
+		t.Error("error check txs")
+		return
+	}
+}
+
+func TestValidateCert(t *testing.T) {
 	q, auth, err := initEnv()
 	if err != nil {
 		t.Errorf("init env failed, error:%s", err)
@@ -127,7 +166,7 @@ func TestCheckTx(t *testing.T) {
 	}
 }
 
-func TestCheckTxs(t *testing.T) {
+func TestValidateCerts(t *testing.T) {
 	q, auth, err := initEnv()
 	if err != nil {
 		t.Errorf("init env failed, error:%s", err)
@@ -153,3 +192,53 @@ func TestCheckTxs(t *testing.T) {
 	}
 }
 
+func createBlock(n int64) *types.Block {
+	var zeroHash [32]byte
+	newblock := &types.Block{}
+	newblock.Height = -1
+	newblock.BlockTime = time.Now().Unix()
+	newblock.ParentHash = zeroHash[:]
+	newblock.Txs = txs
+	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
+	return newblock
+}
+
+func TestCheckTx(t *testing.T) {
+	q, auth, err := initEnv()
+	if err != nil {
+		t.Errorf("init env failed, error:%s", err)
+	}
+
+	defer q.Close()
+	defer auth.Close()
+
+	block := createBlock(10)
+
+	txlist := &types.ExecTxList{}
+	txlist.Txs = txs
+	txlist.BlockTime = block.BlockTime
+	txlist.Height = block.Height
+	txlist.StateHash = block.StateHash
+	// 增加这个属性，在执行器中会使用到
+	txlist.Difficulty = uint64(block.Difficulty)
+
+	msg := auth.client.NewMessage("execs", types.EventCheckTx, txlist)
+	err = auth.client.Send(msg, true)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	msg, err = auth.client.Wait(msg)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	result := msg.GetData().(*types.ReceiptCheckTxList)
+	for i := 0; i < len(result.Errs); i++ {
+		if result.Errs[i] != "" {
+			t.Error(result.Errs[i])
+			return
+		}
+	}
+}

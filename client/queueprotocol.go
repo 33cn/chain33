@@ -26,6 +26,7 @@ const (
 	walletKey     = "wallet"     // 钱包
 	blockchainKey = "blockchain" // 区块
 	storeKey      = "store"
+	authKey       = "authority" // 证书验证
 )
 
 var log = log15.New("module", "client")
@@ -832,5 +833,24 @@ func (q *QueueProtocol) GetBlockSequences(param *types.ReqBlocks) (*types.BlockS
 	}
 	err = types.ErrTypeAsset
 	log.Error("GetBlockSequences", "Error", err.Error())
+	return nil, err
+}
+
+func (q *QueueProtocol) ValidateCert(cert *types.ReqAuthCheckCert) (*types.ReplyAuthCheckCert, error) {
+	if cert == nil {
+		err := types.ErrInvalidParam
+		log.Error("ValidateCert", "Error", err)
+		return nil, err
+	}
+	msg, err := q.query(authKey, types.EventAuthorityCheckCert, cert)
+	if err != nil {
+		log.Error("ValidateCert", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.ReplyAuthCheckCert); ok {
+		return reply, nil
+	}
+	err = types.ErrTypeAsset
+	log.Error("ValidateCert", "Error", err.Error())
 	return nil, err
 }
