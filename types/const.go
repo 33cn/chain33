@@ -56,6 +56,13 @@ var (
 )
 
 var (
+	//used in Getname for exec driver
+	ExecNamePrefix string
+	//remove fork for manage for paraChain
+	CheckForkInExec bool = true // is it a good way to set ForkV6TokenBlackList = -1?
+)
+
+var (
 	MinFee             int64 = 1e5
 	MinBalanceTransfer int64 = 1e6
 	testNet            bool
@@ -78,6 +85,11 @@ func SetTitle(t string) {
 		ForkV16Withdraw = 1
 		return
 	}
+	if IsPara() {
+		ExecNamePrefix = "user.company."
+		CheckForkInExec = false
+		ForkV12TransferExec = 1
+	}
 }
 
 func IsMatchFork(height int64, fork int64) bool {
@@ -97,6 +109,10 @@ func IsLocal() bool {
 
 func IsYcc() bool {
 	return title == "yuanchain"
+}
+
+func IsPara() bool {
+	return title == "parachain"
 }
 
 func IsPublicChain() bool {
