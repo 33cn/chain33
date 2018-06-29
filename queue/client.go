@@ -31,6 +31,7 @@ type Client interface {
 	Recv() chan Message
 	Sub(topic string) //订阅消息
 	Close()
+	CloseQueue() (*types.Reply, error)
 	NewMessage(topic string, ty int64, data interface{}) (msg Message)
 }
 
@@ -145,6 +146,14 @@ func (client *client) Close() {
 	client.wg.Wait()
 	atomic.StoreInt32(&client.isClosed, 1)
 	close(client.Recv())
+}
+
+func (client *client) CloseQueue() (*types.Reply, error) {
+	//	client.q.Close()
+	qlog.Debug("queue", "msg", "closing chain33")
+	client.q.interupt <- struct{}{}
+	close(client.q.interupt)
+	return &types.Reply{IsOk: true, Msg: []byte("Ok")}, nil
 }
 
 func (client *client) isEnd(data Message, ok bool) bool {

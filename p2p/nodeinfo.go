@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"sync"
 	"sync/atomic"
-	"time"
 
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -218,7 +217,7 @@ func (nf *NodeInfo) OutSide() bool {
 func (bl *BlackList) Add(addr string, deadline int64) {
 	bl.mtx.Lock()
 	defer bl.mtx.Unlock()
-	bl.badPeers[addr] = time.Now().Unix() + deadline
+	bl.badPeers[addr] = types.Now().Unix() + deadline
 
 }
 

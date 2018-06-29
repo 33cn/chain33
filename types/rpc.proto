@@ -128,4 +128,6 @@ service grpcservice {
 
     //通过block hash 获取对应的blocks信息
     rpc GetBlockByHashes(ReqHashes) returns (BlockDetails) {}
+    //关闭chain33
+    rpc CloseQueue(ReqNil) returns (Reply) {}
 }
