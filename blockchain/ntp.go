@@ -7,12 +7,12 @@ import (
 	"time"
 
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 const (
-	ntpPool        = "time.windows.com:123" // ntpPool is the NTP server to query for the current time
-	ntpChecks      = 6                      //6 times all error
-	driftThreshold = 10 * time.Second       // Allowed clock drift before warning user
+	ntpChecks      = 6
+	driftThreshold = 10 * time.Second // Allowed clock drift before warning user
 )
 
 var (
@@ -23,12 +23,13 @@ var (
 // checkClockDrift queries an NTP server for clock drifts and warns the user if
 // one large enough is detected.
 func checkClockDrift() {
-	realnow, err := common.GetNtpTime(ntpPool)
-	if err != nil {
-		ntpLog.Info("checkClockDrift", "sntpDrift err", err)
+	realnow := common.GetRealTimeRetry(types.NtpHosts, 10)
+	if realnow.IsZero() {
+		ntpLog.Info("checkClockDrift", "sntpDrift err", "get ntptime error")
 		return
 	}
-	drift := time.Since(realnow)
+	now := types.Now()
+	drift := now.Sub(realnow)
 	if drift < -driftThreshold || drift > driftThreshold {
 		warning := fmt.Sprintf("System clock seems off by %v, which can prevent network connectivity", drift)
 		howtofix := fmt.Sprintf("Please enable network time synchronisation in system settings")

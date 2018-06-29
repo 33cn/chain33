@@ -3,56 +3,55 @@ syntax = "proto3";
 package types;
 
 message Reply {
-	bool isOk = 1;
-	bytes msg = 2;
+    bool  isOk = 1;
+    bytes msg  = 2;
 }
 
 message ReqString {
-	string data = 1;
+    string data = 1;
 }
 
 message ReplyString {
-	string data = 1;
+    string data = 1;
 }
 
 message ReplyStrings {
-	repeated string datas = 1;
+    repeated string datas = 1;
 }
 
 message ReqInt {
-	int64 height = 1;
+    int64 height = 1;
 }
 
 message Int64 {
-	int64 data = 1;
+    int64 data = 1;
 }
 
 message ReqHash {
-	bytes hash = 1;
+    bytes hash = 1;
 }
 
 message ReplyHash {
-	bytes hash = 1;
+    bytes hash = 1;
 }
 
-message ReqNil {
-}
+message ReqNil {}
 
 message ReqHashes {
-	repeated bytes hashes = 1;
+    repeated bytes hashes = 1;
 }
 
 message ReplyHashes {
-	repeated bytes hashes = 1;
+    repeated bytes hashes = 1;
 }
 
 message KeyValue {
-	bytes key = 1;
-	bytes value = 2;
+    bytes key   = 1;
+    bytes value = 2;
 }
 
 message TimeStatus {
-	string ntpTime = 1;
-	string localTime = 2;
-	int64  diff = 3;
+    string ntpTime   = 1;
+    string localTime = 2;
+    int64  diff      = 3;
 }
