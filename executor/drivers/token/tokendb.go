@@ -89,6 +89,7 @@ func newTokenAction(t *token, toaddr string, tx *types.Transaction) *tokenAction
 }
 
 func (action *tokenAction) preCreate(token *types.TokenPreCreate) (*types.Receipt, error) {
+	tokenlog.Debug("preCreate")
 	if len(token.GetName()) > types.TokenNameLenLimit {
 		return nil, types.ErrTokenNameLen
 	} else if len(token.GetIntroduction()) > types.TokenIntroLenLimit {
@@ -107,11 +108,12 @@ func (action *tokenAction) preCreate(token *types.TokenPreCreate) (*types.Receip
 	if CheckTokenExist(token.GetSymbol(), action.db) {
 		return nil, types.ErrTokenExist
 	}
+
 	if checkTokenHasPrecreate(token.GetSymbol(), token.GetOwner(), types.TokenStatusPreCreated, action.db) {
 		return nil, types.ErrTokenHavePrecreated
 	}
 
-	if action.height >= types.ForkV6TokenBlackList {
+	if types.CheckForkInExec && action.height >= types.ForkV6TokenBlackList {
 		found, err := inBlacklist(token.GetSymbol(), blacklist, action.db)
 		if err != nil {
 			return nil, err
@@ -140,6 +142,7 @@ func (action *tokenAction) preCreate(token *types.TokenPreCreate) (*types.Receip
 		statuskey = calcTokenStatusKey(tokendb.token.Symbol, tokendb.token.Owner, types.TokenStatusPreCreated)
 		key = calcTokenAddrKey(tokendb.token.Symbol, tokendb.token.Owner)
 	}
+
 	tokendb.save(action.db, statuskey)
 	tokendb.save(action.db, key)
 
@@ -156,22 +159,25 @@ func (action *tokenAction) preCreate(token *types.TokenPreCreate) (*types.Receip
 }
 
 func (action *tokenAction) finishCreate(tokenFinish *types.TokenFinishCreate) (*types.Receipt, error) {
+	tokenlog.Debug("finishCreate")
 	token, err := getTokenFromDB(action.db, tokenFinish.GetSymbol(), tokenFinish.GetOwner())
 	if err != nil || token.Status != types.TokenStatusPreCreated {
 		return nil, types.ErrTokenNotPrecreated
 	}
 
-	approverValid := false
-	for _, approver := range types.TokenApprs {
-		if approver == action.fromaddr {
-			approverValid = true
-			break
+	if CheckForkInExec {
+		approverValid := false
+		for _, approver := range types.TokenApprs {
+			if approver == action.fromaddr {
+				approverValid = true
+				break
+			}
 		}
-	}
 
-	hasPriv, ok := validFinisher(action.fromaddr, action.db)
-	if (ok != nil || !hasPriv) && !approverValid {
-		return nil, types.ErrTokenCreatedApprover
+		hasPriv, ok := validFinisher(action.fromaddr, action.db)
+		if (ok != nil || !hasPriv) && !approverValid {
+			return nil, types.ErrTokenCreatedApprover
+		}
 	}
 
 	//将之前冻结的资金转账到fund合约账户中
@@ -182,10 +188,12 @@ func (action *tokenAction) finishCreate(tokenFinish *types.TokenFinishCreate) (*
 	}
 
 	//创建token类型的账户，同时需要创建的额度存入
-	tokenAccount, err := account.NewAccountDB("token", tokenFinish.GetSymbol(), action.db)
+
+	tokenAccount, err := account.NewAccountDB(types.ExecNamePrefix+"token", tokenFinish.GetSymbol(), action.db)
 	if err != nil {
 		return nil, err
 	}
+	tokenlog.Debug("finishCreate", "token.Owner", token.Owner, "token.GetTotal()", token.GetTotal())
 	receiptForToken, err := tokenAccount.GenesisInit(token.Owner, token.GetTotal())
 	if err != nil {
 		return nil, err
