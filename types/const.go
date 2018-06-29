@@ -320,6 +320,8 @@ const (
 	EventReplyBlockSequences     = 122
 	EventGetBlockByHashes        = 123
 	EventReplyBlockDetailsBySeqs = 124
+	EventDelParaChainBlockDetail = 125
+	EventAddParaChainBlockDetail = 126
 	// Token
 	EventBlockChainQuery = 212
 )
@@ -449,6 +451,8 @@ var eventName = map[int]string{
 	122: "EventReplyBlockSequences",
 	123: "EventGetBlockByHashes",
 	124: "EventReplyBlockDetailsBySeqs",
+	125: "EventDelParaChainBlockDetail",
+	126: "EventAddParaChainBlockDetail",
 	// Token
 	EventBlockChainQuery: "EventBlockChainQuery",
 }
