@@ -213,20 +213,24 @@ func (wallet *Wallet) buyTicketOne(height int64, priv crypto.PrivKey) ([]byte, i
 	//判断手续费是否足够，如果不足要及时补充。
 	fee := types.Coin
 	if acc1.Balance+acc2.Balance-2*fee >= types.GetP(height).TicketPrice {
-		//第一步。转移币到 ticket
-		toaddr := address.ExecAddress("ticket")
-		amount := acc1.Balance - 2*fee
-		//必须大于0，才需要转移币
-		var hash *types.ReplyHash
-		if amount > 0 {
-			walletlog.Info("buyTicketOne.send", "toaddr", toaddr, "amount", amount)
-			hash, err = wallet.sendToAddress(priv, toaddr, amount, "coins->ticket", false, "")
+		// 如果可用余额+冻结余额，可以凑成新票，则转币到冻结余额
+		if (acc1.Balance+acc2.Balance-2*fee)/types.GetP(height).TicketPrice > acc2.Balance/types.GetP(height).TicketPrice {
+			//第一步。转移币到 ticket
+			toaddr := address.ExecAddress("ticket")
+			amount := acc1.Balance - 2*fee
+			//必须大于0，才需要转移币
+			var hash *types.ReplyHash
+			if amount > 0 {
+				walletlog.Info("buyTicketOne.send", "toaddr", toaddr, "amount", amount)
+				hash, err = wallet.sendToAddress(priv, toaddr, amount, "coins->ticket", false, "")
 
-			if err != nil {
-				return nil, 0, err
+				if err != nil {
+					return nil, 0, err
+				}
+				wallet.waitTx(hash.Hash)
 			}
-			wallet.waitTx(hash.Hash)
 		}
+
 		acc, err := wallet.getBalance(addr, "ticket")
 		if err != nil {
 			return nil, 0, err
@@ -251,6 +255,11 @@ func (wallet *Wallet) buyMinerAddrTicketOne(height int64, priv crypto.PrivKey) (
 	var hashes [][]byte
 	for i := 0; i < len(addrs); i++ {
 		walletlog.Info("sourceaddr", "addr", addrs[i])
+		ok := checkMinerWhiteList(addrs[i])
+		if !ok {
+			walletlog.Info("buyMinerAddrTicketOne Cold Addr not in MinerWhiteList", "addr", addrs[i])
+			continue
+		}
 		acc, err := wallet.getBalance(addrs[i], "ticket")
 		if err != nil {
 			return nil, 0, err
@@ -299,7 +308,7 @@ func (wallet *Wallet) closeTicketsByAddr(height int64, priv crypto.PrivKey) ([]b
 	}
 	var ids []string
 	var tl []*types.Ticket
-	now := time.Now().Unix()
+	now := types.Now().Unix()
 	for _, t := range tlist {
 		if !t.IsGenesis {
 			if now-t.GetCreateTime() < types.GetP(height).TicketWithdrawTime {
@@ -333,7 +342,7 @@ func (wallet *Wallet) forceCloseTicketsByAddr(height int64, priv crypto.PrivKey)
 	tlist := append(tlist1, tlist2...)
 	var ids []string
 	var tl []*types.Ticket
-	now := time.Now().Unix()
+	now := types.Now().Unix()
 	for _, t := range tlist {
 		if !t.IsGenesis {
 			if t.Status == 1 && now-t.GetCreateTime() < types.GetP(height).TicketWithdrawTime {

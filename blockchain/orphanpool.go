@@ -21,6 +21,7 @@ type orphanBlock struct {
 	expiration time.Time
 	broadcast  bool
 	pid        string
+	sequence   int64
 }
 
 //孤儿节点的存储以blockhash作为map的索引。hash转换成string
@@ -112,7 +113,7 @@ func (op *OrphanPool) removeOrphanBlock(orphan *orphanBlock) {
 // It also imposes a maximum limit on the number of outstanding orphan
 // blocks and will remove the oldest received orphan block if the limit is
 // exceeded.
-func (op *OrphanPool) addOrphanBlock(broadcast bool, block *types.Block, pid string) {
+func (op *OrphanPool) addOrphanBlock(broadcast bool, block *types.Block, pid string, sequence int64) {
 
 	chainlog.Debug("addOrphanBlock:", "block.height", block.Height, "block.hash", common.ToHex(block.Hash()))
 
@@ -121,7 +122,7 @@ func (op *OrphanPool) addOrphanBlock(broadcast bool, block *types.Block, pid str
 
 	// 删除过期的孤儿节点从孤儿池中
 	for _, oBlock := range op.orphans {
-		if time.Now().After(oBlock.expiration) {
+		if types.Now().After(oBlock.expiration) {
 			chainlog.Debug("addOrphanBlock:removeOrphanBlock expiration", "block.height", oBlock.block.Height, "block.hash", common.ToHex(oBlock.block.Hash()))
 
 			op.removeOrphanBlock(oBlock)
@@ -142,12 +143,13 @@ func (op *OrphanPool) addOrphanBlock(broadcast bool, block *types.Block, pid str
 	}
 
 	// 将本孤儿节点插入孤儿池中，并启动90秒的过期定时器
-	expiration := time.Now().Add(orphanExpirationTime)
+	expiration := types.Now().Add(orphanExpirationTime)
 	oBlock := &orphanBlock{
 		block:      block,
 		expiration: expiration,
 		broadcast:  broadcast,
 		pid:        pid,
+		sequence:   sequence,
 	}
 	op.orphans[string(block.Hash())] = oBlock
 

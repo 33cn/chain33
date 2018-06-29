@@ -27,6 +27,8 @@ var (
 	chainlog                    = log.New("module", "blockchain")
 	FutureBlockDelayTime  int64 = 1
 	isRecordBlockSequence       = false //是否记录add或者del block的序列，方便blcokchain的恢复通过记录的序列表
+	isParaChain                 = false //是否是平行链。平行链需要记录Sequence信息
+
 )
 
 const maxFutureBlocks = 256
@@ -130,6 +132,7 @@ func initConfig(cfg *types.BlockChain) {
 	}
 	isStrongConsistency = cfg.IsStrongConsistency
 	isRecordBlockSequence = cfg.IsRecordBlockSequence
+	isParaChain = cfg.IsParaChain
 }
 
 func (chain *BlockChain) Close() {
@@ -165,7 +168,7 @@ func (chain *BlockChain) SetQueueClient(client queue.Client) {
 	chain.InitIndexAndBestView()
 
 	//startTime
-	chain.startTime = time.Now()
+	chain.startTime = types.Now()
 
 	//recv 消息的处理
 	go chain.ProcRecvMsg()
@@ -320,7 +323,7 @@ func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, blockdetail *types.Bloc
 		chainlog.Error("ProcAddBlockMsg input block is null")
 		return types.ErrInputPara
 	}
-	ismain, isorphan, err := chain.ProcessBlock(broadcast, blockdetail, pid)
+	ismain, isorphan, err := chain.ProcessBlock(broadcast, blockdetail, pid, true, -1)
 	//非孤儿block或者已经存在的block
 	if (!isorphan && err == nil) || (err == types.ErrBlockExist) {
 		chain.task.Done(blockdetail.Block.GetHeight())
@@ -807,7 +810,7 @@ func (chain *BlockChain) InitIndexAndBestView() {
 			if block == nil {
 				return
 			}
-			newNode := newBlockNode(false, block.Block, "self")
+			newNode := newBlockNode(false, block.Block, "self", -1)
 			newNode.parent = prevNode
 			prevNode = newNode
 
@@ -848,10 +851,10 @@ func (chain *BlockChain) ProcFutureBlocks() {
 			if block != nil {
 				blockdetail := block.(*types.BlockDetail)
 				//block产生的时间小于当前时间，广播此block，然后将此block从futureblocks中移除
-				if time.Now().Unix() > blockdetail.Block.BlockTime {
+				if types.Now().Unix() > blockdetail.Block.BlockTime {
 					chain.SendBlockBroadcast(blockdetail)
 					chain.futureBlocks.Remove(hash)
-					chainlog.Debug("ProcFutureBlocks Remove", "height", blockdetail.Block.Height, "hash", common.ToHex(blockdetail.Block.Hash()), "blocktime", blockdetail.Block.BlockTime, "curtime", time.Now().Unix())
+					chainlog.Debug("ProcFutureBlocks Remove", "height", blockdetail.Block.Height, "hash", common.ToHex(blockdetail.Block.Hash()), "blocktime", blockdetail.Block.BlockTime, "curtime", types.Now().Unix())
 				}
 			}
 		}
@@ -904,4 +907,36 @@ func (chain *BlockChain) GetBlockSequences(requestblock *types.ReqBlocks) (*type
 		}
 	}
 	return &blockSequences, nil
+}
+
+//处理共识过来的删除block的消息，目前只提供给平行链使用
+func (chain *BlockChain) ProcDelParaChainBlockMsg(broadcast bool, ParaChainblockdetail *types.ParaChainBlockDetail, pid string) (err error) {
+	if ParaChainblockdetail == nil || ParaChainblockdetail.GetBlockdetail() == nil || ParaChainblockdetail.GetBlockdetail().GetBlock() == nil {
+		chainlog.Error("ProcDelParaChainBlockMsg input block is null")
+		return types.ErrInputPara
+	}
+	blockdetail := ParaChainblockdetail.GetBlockdetail()
+	block := ParaChainblockdetail.GetBlockdetail().GetBlock()
+	sequence := ParaChainblockdetail.GetSequence()
+
+	ismain, isorphan, err := chain.ProcessBlock(broadcast, blockdetail, pid, false, sequence)
+	chainlog.Debug("ProcDelParaChainBlockMsg result:", "height", block.Height, "sequence", sequence, "ismain", ismain, "isorphan", isorphan, "hash", common.ToHex(block.Hash()), "err", err)
+
+	return err
+}
+
+//处理共识过来的add block的消息，目前只提供给平行链使用
+func (chain *BlockChain) ProcAddParaChainBlockMsg(broadcast bool, ParaChainblockdetail *types.ParaChainBlockDetail, pid string) (err error) {
+	if ParaChainblockdetail == nil || ParaChainblockdetail.GetBlockdetail() == nil || ParaChainblockdetail.GetBlockdetail().GetBlock() == nil {
+		chainlog.Error("ProcAddParaChainBlockMsg input block is null")
+		return types.ErrInputPara
+	}
+	blockdetail := ParaChainblockdetail.GetBlockdetail()
+	block := ParaChainblockdetail.GetBlockdetail().GetBlock()
+	sequence := ParaChainblockdetail.GetSequence()
+
+	ismain, isorphan, err := chain.ProcessBlock(broadcast, blockdetail, pid, true, sequence)
+	chainlog.Debug("ProcAddParaChainBlockMsg result:", "height", block.Height, "sequence", sequence, "ismain", ismain, "isorphan", isorphan, "hash", common.ToHex(block.Hash()), "err", err)
+
+	return err
 }

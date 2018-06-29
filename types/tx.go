@@ -365,7 +365,7 @@ func (tx *Transaction) SetExpire(expire time.Duration) {
 			expire = time.Second * 120
 		}
 		//用秒数来表示的时间
-		tx.Expire = time.Now().Unix() + int64(expire/time.Second)
+		tx.Expire = Now().Unix() + int64(expire/time.Second)
 	} else {
 		tx.Expire = int64(expire)
 	}
@@ -521,6 +521,17 @@ func (tx *Transaction) Amount() (int64, error) {
 		} else if TradeRevokeSell == trade.Ty && trade.GetTokenrevokesell() != nil {
 			return 0, nil
 		}
+	} else if string(ExecerRelay) == string(tx.Execer) {
+		var relay RelayAction
+		err := Decode(tx.GetPayload(), &relay)
+		if err != nil {
+			return 0, ErrDecode
+		}
+
+		if RelayActionCreate == relay.Ty && relay.GetCreate() != nil {
+			return int64(relay.GetCreate().BtyAmount), nil
+		}
+		return 0, nil
 	}
 	return 0, nil
 }
@@ -635,8 +646,32 @@ func (tx *Transaction) ActionName() string {
 		} else {
 			return "callEvmContract"
 		}
-	}
+	} else if bytes.Equal(tx.Execer, ExecerRelay) {
+		var relay RelayAction
+		err := Decode(tx.Payload, &relay)
+		if err != nil {
+			return "unkown-relay-action-err"
+		}
+		if relay.Ty == RelayActionCreate && relay.GetCreate() != nil {
+			return "relayCreateTx"
+		}
+		if relay.Ty == RelayActionRevoke && relay.GetRevoke() != nil {
+			return "relayRevokeTx"
+		}
+		if relay.Ty == RelayActionAccept && relay.GetAccept() != nil {
+			return "relayAcceptTx"
+		}
+		if relay.Ty == RelayActionConfirmTx && relay.GetConfirmTx() != nil {
+			return "relayConfirmTx"
+		}
+		if relay.Ty == RelayActionVerifyTx && relay.GetVerify() != nil {
+			return "relayVerifyTx"
+		}
+		if relay.Ty == RelayActionRcvBTCHeaders && relay.GetBtcHeaders() != nil {
+			return "relay-receive-btc-heads"
+		}
 
+	}
 	return "unknow"
 }
 
