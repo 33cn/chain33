@@ -152,3 +152,11 @@ message BlockSequence {
 message BlockSequences {
     repeated BlockSequence items = 1;
 }
+
+//平行链区块详细信息
+// 	 blockdetail : 区块详细信息
+//	 sequence :区块序列号
+message ParaChainBlockDetail {
+    BlockDetail blockdetail = 1;
+    int64       sequence    = 2;
+}
