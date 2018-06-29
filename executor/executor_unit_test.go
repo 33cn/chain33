@@ -4,7 +4,6 @@ import (
 	"strconv"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/golang/protobuf/proto"
 	"gitlab.33.cn/chain33/chain33/common/config"
@@ -23,12 +22,10 @@ func initUnitEnv() (queue.Queue, *Executor) {
 	cfg := config.InitCfg("../cmd/chain33/chain33.test.toml")
 	exec := New(cfg.Exec)
 	exec.SetQueueClient(q.Client())
-	//types.SetMinFee(0)
 	return q, exec
 }
 
 func createTxEx(priv crypto.PrivKey, to string, amount int64, ty int32, execer string) *types.Transaction {
-
 	var tx *types.Transaction
 	switch execer {
 	case "coins":
@@ -121,10 +118,11 @@ func genTxsEx(n int64, ty int32, execer string) (txs []*types.Transaction) {
 	}
 	return txs
 }
+
 func createBlockEx(n int64, ty int32, execer string) *types.Block {
 	newblock := &types.Block{}
 	newblock.Height = -1
-	newblock.BlockTime = time.Now().Unix()
+	newblock.BlockTime = types.Now().Unix()
 	newblock.ParentHash = zeroHash[:]
 	newblock.Txs = genTxsEx(n, ty, execer)
 	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)

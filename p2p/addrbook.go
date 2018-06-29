@@ -87,14 +87,14 @@ func newKnownAddress(addr *NetAddress) *knownAddress {
 		kmtx:        sync.Mutex{},
 		Addr:        addr,
 		Attempts:    0,
-		LastAttempt: time.Now(),
+		LastAttempt: types.Now(),
 	}
 }
 
 func (ka *knownAddress) markGood() {
 	ka.kmtx.Lock()
 	defer ka.kmtx.Unlock()
-	now := time.Now()
+	now := types.Now()
 	ka.LastAttempt = now
 	ka.Attempts = 0
 	ka.LastSuccess = now
@@ -117,7 +117,7 @@ func (ka *knownAddress) markAttempt() {
 	ka.kmtx.Lock()
 	defer ka.kmtx.Unlock()
 
-	now := time.Now()
+	now := types.Now()
 	ka.LastAttempt = now
 	ka.Attempts++
 

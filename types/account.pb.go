@@ -53,6 +53,7 @@ It has these top-level messages:
 	BlockChainQuery
 	BlockSequence
 	BlockSequences
+	ParaChainBlockDetail
 	Reply
 	ReqString
 	ReplyString
