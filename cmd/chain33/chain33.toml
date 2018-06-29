@@ -36,6 +36,7 @@ isStrongConsistency=false
 singleMode=false
 batchsync=false
 isRecordBlockSequence=false
+isParaChain=false
 
 [p2p]
 seeds=[]
