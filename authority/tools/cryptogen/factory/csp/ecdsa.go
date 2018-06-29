@@ -1,15 +1,16 @@
 package csp
 
 import (
-	"math/big"
-	"encoding/asn1"
 	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/rand"
+	"encoding/asn1"
+	"errors"
+	"fmt"
+	"math/big"
+
 	"gitlab.33.cn/chain33/chain33/authority/tools/cryptogen/factory/utils"
 	auth "gitlab.33.cn/chain33/chain33/common/crypto/ecdsa"
-	"crypto/elliptic"
-	"fmt"
-	"errors"
 )
 
 type ecdsaSigner struct{}

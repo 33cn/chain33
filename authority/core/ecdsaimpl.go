@@ -12,8 +12,9 @@ import (
 	"reflect"
 	"time"
 
-	log "github.com/inconshreveable/log15"
 	"crypto/ecdsa"
+
+	log "github.com/inconshreveable/log15"
 	ecdsa_util "gitlab.33.cn/chain33/chain33/common/crypto/ecdsa"
 )
 
@@ -147,7 +148,7 @@ func (validator *ecdsaValidator) Validate(certByte []byte, pubKey []byte) error 
 	}
 
 	// low-s check
-	cert,err = validator.sanitizeCert(cert)
+	cert, err = validator.sanitizeCert(cert)
 	if err != nil {
 		return fmt.Errorf("Sanitize certification failed. err %s", err)
 	}

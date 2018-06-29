@@ -329,10 +329,10 @@ const (
 	//Auth
 	EventAuthorityCheckCert  = 180
 	EventReplyAuthCheckCert  = 181
-	EventAuthorityGetUser  = 182
-	EventReplyAuthGetUser  = 183
-	EventAuthorityCheckCerts  = 184
-	EventReplyAuthCheckCerts  = 185
+	EventAuthorityGetUser    = 182
+	EventReplyAuthGetUser    = 183
+	EventAuthorityCheckCerts = 184
+	EventReplyAuthCheckCerts = 185
 
 	// Token
 	EventBlockChainQuery = 212
@@ -475,11 +475,11 @@ var eventName = map[int]string{
 //ty = 1+offset(1<<8) ->auth_ecdsa
 //ty = 2+offset(1<<8) -> auth_sm2
 const (
-	SECP256K1 = 1
-	ED25519   = 2
-	SM2       = 3
+	SECP256K1  = 1
+	ED25519    = 2
+	SM2        = 3
 	AUTH_ECDSA = 257
-	AUTH_SM2  = 258
+	AUTH_SM2   = 258
 )
 
 //log type

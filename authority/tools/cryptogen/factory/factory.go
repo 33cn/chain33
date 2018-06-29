@@ -1,8 +1,9 @@
 package factory
 
 import (
-	"fmt"
 	"errors"
+	"fmt"
+
 	"gitlab.33.cn/chain33/chain33/authority/tools/cryptogen/factory/csp"
 )
 

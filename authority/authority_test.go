@@ -4,35 +4,36 @@ import (
 	"fmt"
 	"testing"
 
+	"time"
+
 	"gitlab.33.cn/chain33/chain33/common/config"
-	"gitlab.33.cn/chain33/chain33/queue"
-	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
-	"time"
 	"gitlab.33.cn/chain33/chain33/executor"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
+	"gitlab.33.cn/chain33/chain33/queue"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var (
 	amount   = int64(1e8)
 	v        = &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
 	transfer = &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
-	to 		 = drivers.ExecAddress("norm")
-	tx1      = &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: 1000000, Expire: 2, To:to}
-	tx2      = &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0, To:to}
-	tx3      = &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: 200000000, Expire: 0, To:to}
-	tx4      = &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: 300000000, Expire: 0, To:to}
-	tx5      = &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: 400000000, Expire: 0, To:to}
-	tx6      = &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: 500000000, Expire: 0, To:to}
-	tx7      = &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: 600000000, Expire: 0, To:to}
-	tx8      = &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: 700000000, Expire: 0, To:to}
-	tx9      = &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: 800000000, Expire: 0, To:to}
-	tx10     = &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: 900000000, Expire: 0, To:to}
-	tx11     = &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: 450000000, Expire: 0, To:to}
-	tx12     = &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: 460000000, Expire: 0, To:to}
-	tx13     = &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: 100, Expire: 0, To:to}
-	txs 	 = []*types.Transaction{tx1, tx2, tx3, tx4, tx5, tx6, tx7, tx8, tx9, tx10, tx11, tx12, tx13}
+	to       = drivers.ExecAddress("norm")
+	tx1      = &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: 1000000, Expire: 2, To: to}
+	tx2      = &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0, To: to}
+	tx3      = &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: 200000000, Expire: 0, To: to}
+	tx4      = &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: 300000000, Expire: 0, To: to}
+	tx5      = &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: 400000000, Expire: 0, To: to}
+	tx6      = &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: 500000000, Expire: 0, To: to}
+	tx7      = &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: 600000000, Expire: 0, To: to}
+	tx8      = &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: 700000000, Expire: 0, To: to}
+	tx9      = &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: 800000000, Expire: 0, To: to}
+	tx10     = &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: 900000000, Expire: 0, To: to}
+	tx11     = &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: 450000000, Expire: 0, To: to}
+	tx12     = &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: 460000000, Expire: 0, To: to}
+	tx13     = &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: 100, Expire: 0, To: to}
+	txs      = []*types.Transaction{tx1, tx2, tx3, tx4, tx5, tx6, tx7, tx8, tx9, tx10, tx11, tx12, tx13}
 )
 
 var USERNAME = "User"
@@ -175,8 +176,8 @@ func TestValidateCerts(t *testing.T) {
 	defer auth.Close()
 
 	signatures := []*types.Signature{tx1.Signature, tx2.Signature, tx3.Signature, tx4.Signature, tx5.Signature,
-					tx6.Signature, tx7.Signature, tx8.Signature, tx9.Signature, tx10.Signature, tx11.Signature,
-					tx12.Signature, tx13.Signature}
+		tx6.Signature, tx7.Signature, tx8.Signature, tx9.Signature, tx10.Signature, tx11.Signature,
+		tx12.Signature, tx13.Signature}
 	txsReq := &types.ReqAuthCheckCerts{signatures}
 	msg := auth.client.NewMessage("authority", types.EventAuthorityCheckCerts, txsReq)
 	auth.client.Send(msg, true)
