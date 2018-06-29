@@ -124,7 +124,7 @@ func (action *tokenAction) preCreate(token *types.TokenPreCreate) (*types.Receip
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
 
-	if action.height > types.ForkV19TokenPrice && token.GetPrice() == 0 {
+	if types.IsMatchFork(action.height, types.ForkV19TokenPrice) && token.GetPrice() == 0 {
 		// pay for create token offline
 	} else {
 		receipt, err := action.coinsAccount.ExecFrozen(action.fromaddr, action.execaddr, token.GetPrice())
@@ -181,7 +181,7 @@ func (action *tokenAction) finishCreate(tokenFinish *types.TokenFinishCreate) (*
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
 
-	if action.height > types.ForkV19TokenPrice && token.GetPrice() == 0 {
+	if types.IsMatchFork(action.height, types.ForkV19TokenPrice) && token.GetPrice() == 0 {
 		// pay for create token offline
 	} else {
 		//将之前冻结的资金转账到fund合约账户中
@@ -249,7 +249,7 @@ func (action *tokenAction) revokeCreate(tokenRevoke *types.TokenRevokeCreate) (*
 
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
-	if action.height > types.ForkV19TokenPrice && token.GetPrice() == 0 {
+	if types.IsMatchFork(action.height, types.ForkV19TokenPrice) && token.GetPrice() == 0 {
 		// pay for create token offline
 	} else {
 		//解锁之前冻结的资金
