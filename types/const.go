@@ -2,7 +2,6 @@ package types
 
 // 注释掉系统中没有用到的枚举项
 // 与AllowUserExec中驱动名称的顺序一致
-//TODO 后面会有专门执行器相关的目录
 const (
 	ExecTypeCoins    = 0
 	ExecTypeTicket   = 1
@@ -15,16 +14,21 @@ const (
 	ExecTypeManage   = 8
 )
 
+const (
+	ExecerEvmString = "evm"
+)
+
 var (
 	ExecerCoins      = []byte("coins")
 	ExecerTicket     = []byte("ticket")
 	ExecerConfig     = []byte("config")
 	ExecerManage     = []byte("manage")
 	ExecerToken      = []byte("token")
-	ExecerEvm        = []byte("evm")
+	ExecerEvm        = []byte(ExecerEvmString)
+	ExecerRelay      = []byte("relay")
 	AllowDepositExec = [][]byte{ExecerTicket}
 	AllowUserExec    = [][]byte{ExecerCoins, ExecerTicket, []byte("norm"), []byte("hashlock"),
-		[]byte("retrieve"), []byte("none"), ExecerToken, []byte("trade"), ExecerManage, ExecerEvm}
+		[]byte("retrieve"), []byte("none"), ExecerToken, []byte("trade"), ExecerManage, ExecerEvm, ExecerRelay}
 	GenesisAddr            = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 	GenesisBlockTime int64 = 1526486816
 	HotkeyAddr             = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
@@ -34,7 +38,7 @@ var (
 	TokenApprs             = []string{}
 )
 
-//hard fork block height
+//default hard fork block height
 var (
 	ForkV1               int64 = 1
 	ForkV2AddToken       int64 = 1
@@ -53,7 +57,40 @@ var (
 	ForkV15ResetTx0      int64 = 200000
 	ForkV16Withdraw      int64 = 200000
 	ForkV17EVM           int64 = 250000
+	ForkV18Relay         int64 = 500000
 )
+
+func SetTestNetFork() {
+	ForkV1 = 75260
+	ForkV2AddToken = 100899
+	ForkV3 = 110000
+	ForkV4AddManage = 120000
+	ForkV5Retrive = 180000
+	ForkV6TokenBlackList = 190000
+	ForkV7BadTokenSymbol = 184000
+	ForkBlockHash = 208986 + 200
+	ForkV9 = 350000
+	ForkV10TradeBuyLimit = 301000
+	ForkV11ManageExec = 400000
+	ForkV12TransferExec = 408400
+	ForkV13ExecKey = 408400
+	ForkV14TxGroup = 408400
+	ForkV15ResetTx0 = 453400
+	ForkV16Withdraw = 480000
+	ForkV17EVM = 500000
+	ForkV18Relay = 570000
+}
+
+func SetForkToOne() {
+	ForkV11ManageExec = 1
+	ForkV12TransferExec = 1
+	ForkV13ExecKey = 1
+	ForkV14TxGroup = 1
+	ForkV15ResetTx0 = 1
+	ForkV16Withdraw = 1
+	ForkV17EVM = 1
+	ForkV18Relay = 1
+}
 
 var (
 	//used in Getname for exec driver
@@ -77,12 +114,7 @@ func SetTitle(t string) {
 		return
 	}
 	if IsLocal() {
-		ForkV11ManageExec = 1
-		ForkV12TransferExec = 1
-		ForkV13ExecKey = 1
-		ForkV14TxGroup = 1
-		ForkV15ResetTx0 = 1
-		ForkV16Withdraw = 1
+		SetForkToOne()
 		return
 	}
 	if IsPara() {
@@ -139,24 +171,8 @@ func SetTestNet(isTestNet bool) {
 	if IsLocal() {
 		return
 	}
-	//测试网络的fork
-	ForkV1 = 75260
-	ForkV2AddToken = 100899
-	ForkV3 = 110000
-	ForkV4AddManage = 120000
-	ForkV5Retrive = 180000
-	ForkV6TokenBlackList = 190000
-	ForkV7BadTokenSymbol = 184000
-	ForkBlockHash = 208986 + 200
-	ForkV9 = 350000
-	ForkV10TradeBuyLimit = 301000
-	ForkV11ManageExec = 400000
-	ForkV12TransferExec = 408400
-	ForkV13ExecKey = 408400
-	ForkV14TxGroup = 408400
-	ForkV15ResetTx0 = 453400
-	ForkV16Withdraw = 480000
-	ForkV17EVM = 500000
+	//测试网络的Fork
+	SetTestNetFork()
 }
 
 func IsTestNet() bool {
@@ -320,6 +336,8 @@ const (
 	EventReplyBlockSequences     = 122
 	EventGetBlockByHashes        = 123
 	EventReplyBlockDetailsBySeqs = 124
+	EventDelParaChainBlockDetail = 125
+	EventAddParaChainBlockDetail = 126
 	// Token
 	EventBlockChainQuery = 212
 )
@@ -449,6 +467,8 @@ var eventName = map[int]string{
 	122: "EventReplyBlockSequences",
 	123: "EventGetBlockByHashes",
 	124: "EventReplyBlockDetailsBySeqs",
+	125: "EventDelParaChainBlockDetail",
+	126: "EventAddParaChainBlockDetail",
 	// Token
 	EventBlockChainQuery: "EventBlockChainQuery",
 }
@@ -506,6 +526,15 @@ const (
 	TyLogTradeSellMarket      = 330
 	TyLogTradeBuyLimit        = 331
 	TyLogTradeBuyRevoke       = 332
+
+	//log for relay
+	TyLogRelayCreate       = 350
+	TyLogRelayRevokeCreate = 351
+	TyLogRelayAccept       = 352
+	TyLogRelayRevokeAccept = 353
+	TyLogRelayConfirmTx    = 354
+	TyLogRelayFinishTx     = 355
+	TyLogRelayRcvBTCHead   = 356
 
 	// log for config
 	TyLogModifyConfig = 410
@@ -647,4 +676,35 @@ var MapSellOrderStatusStr2Int = map[string]int32{
 //para
 const (
 	ParaActionPut = 1
+)
+
+// relay
+const (
+	RelayRevokeCreate = iota
+	RelayRevokeAccept
+)
+const (
+	RelayOrderBuy = iota
+	RelayOrderSell
+)
+
+var RelayOrderOperation = map[uint32]string{
+	RelayOrderBuy:  "buy",
+	RelayOrderSell: "sell",
+}
+
+const (
+	RelayUnlock = iota
+	RelayCancel
+)
+
+//relay action ty
+const (
+	RelayActionCreate = iota
+	RelayActionAccept
+	RelayActionRevoke
+	RelayActionConfirmTx
+	RelayActionVerifyTx
+	RelayActionVerifyCmdTx
+	RelayActionRcvBTCHeaders
 )

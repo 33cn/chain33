@@ -1,12 +1,11 @@
 package executor
 
 import (
-	"encoding/json"
-	//"errors"
 	"bytes"
+	"encoding/json"
+	"errors"
 	"math/rand"
 	"testing"
-	"time"
 
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/blockchain"
@@ -31,12 +30,13 @@ var genkey crypto.PrivKey
 
 func init() {
 	types.SetTitle("local")
+	types.SetForkToOne()
 	types.SetTestNet(true)
 	err := limits.SetLimits()
 	if err != nil {
 		panic(err)
 	}
-	random = rand.New(rand.NewSource(time.Now().UnixNano()))
+	random = rand.New(rand.NewSource(types.Now().UnixNano()))
 	genkey = getprivkey("CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944")
 	log.SetLogLevel("error")
 }
@@ -75,7 +75,7 @@ func createTx(priv crypto.PrivKey, to string, amount int64) *types.Transaction {
 	v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
 	transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
 	tx := &types.Transaction{Execer: []byte("none"), Payload: types.Encode(transfer), Fee: 1e6, To: to}
-	random := rand.New(rand.NewSource(time.Now().UnixNano()))
+	random := rand.New(rand.NewSource(types.Now().UnixNano()))
 	tx.Nonce = random.Int63()
 	tx.To = address.ExecAddress("none")
 	tx.Sign(types.SECP256K1, priv)
@@ -86,9 +86,21 @@ func createTx2(priv crypto.PrivKey, to string, amount int64) *types.Transaction 
 	v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
 	transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
 	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1e6, To: to}
-	random := rand.New(rand.NewSource(time.Now().UnixNano()))
+	random := rand.New(rand.NewSource(types.Now().UnixNano()))
 	tx.Nonce = random.Int63()
 	tx.To = to
+	tx.Sign(types.SECP256K1, priv)
+	return tx
+}
+
+func createTxWithExecer(priv crypto.PrivKey, execer string) *types.Transaction {
+	to, _ := genaddress()
+	if execer == "coins" {
+		return createTx2(priv, to, types.Coin)
+	}
+	tx := &types.Transaction{Execer: []byte(execer), Payload: []byte("xxxx"), Fee: 1e6, To: address.ExecAddress(execer)}
+	tx.Nonce = random.Int63()
+	tx.To = address.ExecAddress(execer)
 	tx.Sign(types.SECP256K1, priv)
 	return tx
 }
@@ -126,7 +138,7 @@ func genTxs2(priv crypto.PrivKey, n int64) (txs []*types.Transaction) {
 func createBlock(n int64) *types.Block {
 	newblock := &types.Block{}
 	newblock.Height = -1
-	newblock.BlockTime = time.Now().Unix()
+	newblock.BlockTime = types.Now().Unix()
 	newblock.ParentHash = zeroHash[:]
 	newblock.Txs = genTxs(n)
 	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
@@ -145,7 +157,7 @@ func createGenesisBlock() *types.Block {
 
 	newblock := &types.Block{}
 	newblock.Height = 0
-	newblock.BlockTime = time.Now().Unix()
+	newblock.BlockTime = types.Now().Unix()
 	newblock.ParentHash = zeroHash[:]
 	newblock.Txs = append(newblock.Txs, &tx)
 	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
@@ -163,7 +175,6 @@ func TestExecGenesisBlock(t *testing.T) {
 		t.Error(err)
 	}
 }
-
 func TestTxGroup(t *testing.T) {
 	q, chain, s := initEnv()
 	prev := types.MinFee
@@ -255,6 +266,46 @@ func TestTxGroup(t *testing.T) {
 	block = execAndCheckBlock(t, q.Client(), block, txgroup.GetTxs(), types.ExecPack)
 }
 
+func TestExecAllow(t *testing.T) {
+	q, chain, s := initEnv()
+	prev := types.MinFee
+	types.SetMinFee(100000)
+	defer types.SetMinFee(prev)
+
+	defer chain.Close()
+	defer s.Close()
+	defer q.Close()
+	block := createGenesisBlock()
+	_, _, err := ExecBlock(q.Client(), zeroHash[:], block, false, true)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	types.SetTitle("bityuan")
+	defer types.SetTitle("local")
+	tx1 := createTxWithExecer(genkey, "user.evm")     //allow
+	tx2 := createTxWithExecer(genkey, "coins")        //allow
+	tx3 := createTxWithExecer(genkey, "evm")          //not allow
+	tx4 := createTxWithExecer(genkey, "user.evm.xxx") //not allow
+	printAccount(t, q.Client(), block.StateHash, cfg.Consensus.Genesis)
+	txs := []*types.Transaction{tx1, tx2, tx3, tx4}
+	block = execAndCheckBlockCB(t, q.Client(), block, txs, func(index int, receipt *types.ReceiptData) error {
+		if index == 0 && receipt.GetTy() != 1 {
+			return errors.New("user.evm is allow")
+		}
+		if index == 1 && receipt.GetTy() != 2 {
+			return errors.New("coins exec ok")
+		}
+		if index == 2 && receipt != nil {
+			return errors.New("evm is not allow in bityuan")
+		}
+		if index == 3 && receipt != nil {
+			return errors.New("user.evm.xxx is not allow in bityuan")
+		}
+		return nil
+	})
+}
+
 func execAndCheckBlock(t *testing.T, qclient queue.Client,
 	block *types.Block, txs []*types.Transaction, result int) *types.Block {
 	block2 := createNewBlock(t, block, txs)
@@ -274,6 +325,41 @@ func execAndCheckBlock(t *testing.T, qclient queue.Client,
 	for i := 0; i < len(detail.Block.Txs); i++ {
 		if detail.Receipts[i].GetTy() != int32(result) {
 			t.Errorf("exec expect all is %d, but now %d, index %d", result, detail.Receipts[i].GetTy(), i)
+		}
+	}
+	return detail.Block
+}
+
+func execAndCheckBlockCB(t *testing.T, qclient queue.Client,
+	block *types.Block, txs []*types.Transaction, cb func(int, *types.ReceiptData) error) *types.Block {
+	block2 := createNewBlock(t, block, txs)
+	detail, deltx, err := ExecBlock(qclient, block.StateHash, block2, false, true)
+	if err != nil {
+		t.Error(err)
+		return nil
+	}
+
+	var getIndex = func(hash []byte, txlist []*types.Transaction) int {
+		for i := 0; i < len(txlist); i++ {
+			if bytes.Equal(hash, txlist[i].Hash()) {
+				return i
+			}
+		}
+		return -1
+	}
+	for i := 0; i < len(txs); i++ {
+		if getIndex(txs[i].Hash(), deltx) >= 0 {
+			if err := cb(i, nil); err != nil {
+				t.Error(err, "index", i)
+				return nil
+			}
+		} else if getIndex(txs[i].Hash(), detail.Block.Txs) >= 0 {
+			if err := cb(i, detail.Receipts[i]); err != nil {
+				t.Error(err, "index", i)
+				return nil
+			}
+		} else {
+			panic("never happen")
 		}
 	}
 	return detail.Block
@@ -402,9 +488,9 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	//通过consensus module 再次检查
 	ulog := elog
 	ulog.Debug("ExecBlock", "height------->", block.Height, "ntx", len(block.Txs))
-	beg := time.Now()
+	beg := types.Now()
 	defer func() {
-		ulog.Info("ExecBlock", "height", block.Height, "ntx", len(block.Txs), "writebatchsync", sync, "cost", time.Since(beg))
+		ulog.Info("ExecBlock", "height", block.Height, "ntx", len(block.Txs), "writebatchsync", sync, "cost", types.Since(beg))
 	}()
 	if errReturn && block.Height > 0 && !block.CheckSign() {
 		//block的来源不是自己的mempool，而是别人的区块
