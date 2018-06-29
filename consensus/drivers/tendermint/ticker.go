@@ -1,15 +1,13 @@
-package core
+package tendermint
 
 import (
 	"time"
 
-	"github.com/inconshreveable/log15"
 	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
 )
 
 var (
 	tickTockBufferSize = 10
-	tickerlog = log15.New("module", "tendermint-ticker")
 )
 
 // TimeoutTicker is a timer that schedules timeouts
@@ -82,7 +80,7 @@ func (t *timeoutTicker) stopTimer() {
 		select {
 		case <-t.timer.C:
 		default:
-			tickerlog.Debug("Timer already stopped")
+			tendermintlog.Debug("Timer already stopped")
 		}
 	}
 }
@@ -91,12 +89,12 @@ func (t *timeoutTicker) stopTimer() {
 // timers are interupted and replaced by new ticks from later steps
 // timeouts of 0 on the tickChan will be immediately relayed to the tockChan
 func (t *timeoutTicker) timeoutRoutine() {
-	tickerlog.Debug("Starting timeout routine")
+	tendermintlog.Debug("Starting timeout routine")
 	var ti timeoutInfo
 	for {
 		select {
 		case newti := <-t.tickChan:
-			tickerlog.Debug("Received tick", "old_ti", ti, "new_ti", newti)
+			tendermintlog.Debug("Received tick", "old_ti", ti, "new_ti", newti)
 
 			// ignore tickers for old height/round/step
 			if newti.Height < ti.Height {
@@ -118,9 +116,9 @@ func (t *timeoutTicker) timeoutRoutine() {
 			// NOTE time.Timer allows duration to be non-positive
 			ti = newti
 			t.timer.Reset(ti.Duration)
-			tickerlog.Info("Scheduled timeout", "dur", ti.Duration, "height", ti.Height, "round", ti.Round, "step", ti.Step)
+			tendermintlog.Debug("Scheduled timeout", "dur", ti.Duration, "height", ti.Height, "round", ti.Round, "step", ti.Step)
 		case <-t.timer.C:
-			tickerlog.Info("Timed out", "dur", ti.Duration, "height", ti.Height, "round", ti.Round, "step", ti.Step)
+			tendermintlog.Info("Timed out", "dur", ti.Duration, "height", ti.Height, "round", ti.Round, "step", ti.Step)
 			// go routine here guarantees timeoutRoutine doesn't block.
 			// Determinism comes from playback in the receiveRoutine.
 			// We can eliminate it by merging the timeoutRoutine into receiveRoutine

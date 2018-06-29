@@ -1,4 +1,4 @@
-package state
+package tendermint
 
 import (
 	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"

@@ -1,4 +1,4 @@
-package evidence
+package tendermint
 
 import (
 	"fmt"

@@ -1,10 +1,8 @@
-package evidence
+package tendermint
 
 import (
 	"fmt"
 	"time"
-
-	"github.com/inconshreveable/log15"
 
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/p2p"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
@@ -14,12 +12,7 @@ import (
 const (
 	EvidenceChannel = byte(0x38)
 
-	maxEvidenceMessageSize     = 1048576 // 1MB TODO make it configurable
 	broadcastEvidenceIntervalS = 60      // broadcast uncommitted evidence this often
-)
-
-var (
-	erlog = log15.New("module", "tendermint-evidence-reactor")
 )
 
 // EvidenceReactor handles evpool evidence broadcasting amongst peers.
@@ -83,16 +76,16 @@ func (evR *EvidenceReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 	envelope := types.MsgEnvelope{}
 	err := json.Unmarshal(msgBytes, &envelope)
 	if err != nil {
-		erlog.Error("Error decoding message", "err", err)
+		tendermintlog.Error("Error decoding message", "err", err)
 		return
 	}
-	//erlog.Debug("Receive", "src", src, "chId", chID)
+	//tendermintlog.Debug("Receive", "src", src, "chId", chID)
 
 	if v, ok := types.MsgMap[envelope.Kind]; ok {
 		msg := v.(types.ReactorMsg).Copy()
 		err = json.Unmarshal(*envelope.Data, &msg)
 		if err != nil {
-			erlog.Error("EvidenceReactor Receive Unmarshal data failed:%v\n", err)
+			tendermintlog.Error("EvidenceReactor Receive Unmarshal data failed:%v\n", err)
 			return
 		}
 		switch msg := msg.(type) {
@@ -100,15 +93,15 @@ func (evR *EvidenceReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 			for _, ev := range msg.Evidence {
 				err := evR.evpool.AddEvidence(ev)
 				if err != nil {
-					erlog.Error("Evidence is not valid", "evidence", msg.Evidence, "err", err)
+					tendermintlog.Error("Evidence is not valid", "evidence", msg.Evidence, "err", err)
 					// TODO: punish peer
 				}
 			}
 		default:
-			erlog.Error(fmt.Sprintf("Unknown message type %v", msg.TypeName()))
+			tendermintlog.Error(fmt.Sprintf("Unknown message type %v", msg.TypeName()))
 		}
 	} else {
-		erlog.Error("not find ReactorMsg kind", "kind", envelope.Kind)
+		tendermintlog.Error("not find ReactorMsg kind", "kind", envelope.Kind)
 	}
 }
 

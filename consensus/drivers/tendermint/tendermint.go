@@ -3,7 +3,6 @@ package tendermint
 import (
 	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers"
-	sm "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/state"
 	ttypes "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
 	"gitlab.33.cn/chain33/chain33/types"
 
@@ -15,8 +14,6 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
-	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/core"
-	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/evidence"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/p2p"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/util"
@@ -35,8 +32,8 @@ type TendermintClient struct {
 	eventBus     *ttypes.EventBus
 	privKey      crypto.PrivKey // local node's p2p key
 	sw           *p2p.Switch
-	state        sm.State
-	csState      *core.ConsensusState
+	state        State
+	csState      *ConsensusState
 	blockStore   *ttypes.BlockStore
 	evidenceDB   dbm.DB
 	crypto       crypto.Crypto
@@ -159,13 +156,13 @@ func (client *TendermintClient) StartConsensus() {
 		panic(fmt.Sprintf("StartConsensus GetBlockInfo failed:%v",err))
 	}
 
-	var state sm.State
+	var state State
 	if blockInfo == nil {
 		if block.Height != 0 {
 			tendermintlog.Error("StartConsensus", "msg", "block height is not 0 but blockinfo is nil")
 			panic(fmt.Sprintf("StartConsensus block height is %v but block info is nil", block.Height))
 		}
-		statetmp, err := sm.MakeGenesisState(client.genesisDoc)
+		statetmp, err := MakeGenesisState(client.genesisDoc)
 		if err != nil {
 			tendermintlog.Error("StartConsensus", "msg", "MakeGenesisState failded", "error", err)
 			return
@@ -178,7 +175,7 @@ func (client *TendermintClient) StartConsensus() {
 			tendermintlog.Error("StartConsensus", "msg", "blockInfo.GetState is nil")
 			return
 		}
-		state = sm.LoadState(csState)
+		state = LoadState(csState)
 		if seenCommit := blockInfo.SeenCommit; seenCommit != nil {
 			state.LastBlockID = ttypes.BlockID{
 				Hash: seenCommit.BlockID.GetHash(),
@@ -194,24 +191,24 @@ func (client *TendermintClient) StartConsensus() {
 		tendermintlog.Info("This node is not a validator")
 	}
 
-	stateDB := sm.NewStateDB(client.BaseClient, state)
+	stateDB := NewStateDB(client.BaseClient, state)
 
 	//make evidenceReactor
-	evidenceStore := evidence.NewEvidenceStore(client.evidenceDB)
-	evidencePool := evidence.NewEvidencePool(stateDB, state, evidenceStore)
-	evidenceReactor := evidence.NewEvidenceReactor(evidencePool)
+	evidenceStore := NewEvidenceStore(client.evidenceDB)
+	evidencePool := NewEvidencePool(stateDB, state, evidenceStore)
+	evidenceReactor := NewEvidenceReactor(evidencePool)
 
 	// make block executor for consensus and blockchain reactors to execute blocks
-	blockExec := sm.NewBlockExecutor(stateDB, evidencePool)
+	blockExec := NewBlockExecutor(stateDB, evidencePool)
 
 	// Make ConsensusReactor
-	csState := core.NewConsensusState(client.BaseClient, client.blockStore, state, blockExec, evidencePool)
+	csState := NewConsensusState(client.BaseClient, client.blockStore, state, blockExec, evidencePool)
 	if client.privValidator.GetLastHeight() < state.LastBlockHeight {
 		client.privValidator.ResetLastHeight(state.LastBlockHeight)
 	}
 	csState.SetPrivValidator(client.privValidator)
 
-	consensusReactor := core.NewConsensusReactor(csState, false)
+	consensusReactor := NewConsensusReactor(csState, false)
 	// services which will be publishing and/or subscribing for messages (events)
 	// consensusReactor will set it on consensusState and blockExecutor
 	consensusReactor.SetEventBus(client.eventBus)
@@ -293,7 +290,7 @@ func (client *TendermintClient) CreateBlock() {
 	for {
 
 		if !client.csState.IsRunning() {
-			tendermintlog.Info("consensus not running now")
+			tendermintlog.Error("consensus not running now")
 			time.Sleep(time.Second)
 			continue
 		}
@@ -314,12 +311,12 @@ func (client *TendermintClient) CreateBlock() {
 		}
 		issleep = false
 
-		tendermintlog.Debug("performance: get mempool txs not empty")
+		//tendermintlog.Debug("performance: get mempool txs not empty")
 		client.csState.NewTxsAvailable(lastBlock.Height)
-		tendermintlog.Debug("performance: waiting NewTxsFinished")
+		//tendermintlog.Debug("performance: waiting NewTxsFinished")
 		select {
 		case finish := <-client.csState.NewTxsFinished:
-			tendermintlog.Debug("performance: TendermintClientSetQueue", "msg", "new txs finish dealing", "result", finish)
+			tendermintlog.Info("performance: TendermintClientSetQueue", "msg", "new txs finish dealing", "result", finish)
 			continue
 		}
 	}
