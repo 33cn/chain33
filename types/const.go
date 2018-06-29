@@ -123,6 +123,7 @@ func SetTitle(t string) {
 		ExecNamePrefix = "user.company."
 		CheckForkInExec = false
 		ForkV12TransferExec = 1
+		ForkV19TokenPrice = 1
 	}
 }
 
