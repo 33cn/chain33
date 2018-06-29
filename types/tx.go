@@ -281,6 +281,9 @@ func (tx *Transaction) GetTxGroup() (*Transactions, error) {
 		var txs Transactions
 		err := Decode(tx.Header, &txs)
 		if err != nil {
+			if len(tx.Header) == 32 {
+				return nil, nil
+			}
 			return nil, err
 		}
 		return &txs, nil
