@@ -30,7 +30,7 @@ var (
 	blockSec           int64 = 2 //write block interval, second
 	emptyBlockInterval int64 = 5 //write empty block every interval blocks in main chain
 	zeroHash           [32]byte
-	grpcRecSize        int = 11 * 1024 * 1024 //the size should be limited in server
+	grpcRecSize        int = 30 * 1024 * 1024 //the size should be limited in server
 )
 
 type Client struct {
