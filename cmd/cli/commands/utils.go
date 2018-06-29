@@ -35,7 +35,7 @@ func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
 		result.From = tx.From
 	}
 
-	payloadValue, ok := tx.Payload.(map[string]interface{})["Value"] /*.(map[string]interface{})*/
+	payloadValue, ok := tx.Payload.(map[string]interface{})["Value"].(map[string]interface{})
 	if !ok {
 		return result
 	}
