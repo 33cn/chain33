@@ -42,14 +42,16 @@ type BlockParam struct {
 }
 
 type Header struct {
-	Version    int64  `json:"version"`
-	ParentHash string `json:"parentHash"`
-	TxHash     string `json:"txHash"`
-	StateHash  string `json:"stateHash"`
-	Height     int64  `json:"height"`
-	BlockTime  int64  `json:"blockTime"`
-	TxCount    int64  `json:"txCount"`
-	Hash       string `json:"hash"`
+	Version    int64      `json:"version"`
+	ParentHash string     `json:"parentHash"`
+	TxHash     string     `json:"txHash"`
+	StateHash  string     `json:"stateHash"`
+	Height     int64      `json:"height"`
+	BlockTime  int64      `json:"blockTime"`
+	TxCount    int64      `json:"txCount"`
+	Hash       string     `json:"hash"`
+	Difficulty uint32     `json:"difficulty"`
+	Signature  *Signature `json:"signature,omitempty"`
 }
 
 type Signature struct {

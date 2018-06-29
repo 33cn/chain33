@@ -25,6 +25,7 @@ func StatCmd() *cobra.Command {
 		GetTicketStatCmd(),
 		GetTicketInfoCmd(),
 		GetTicketInfoListCmd(),
+		GetMinerStatCmd(),
 	)
 
 	return cmd
@@ -220,7 +221,7 @@ func ticketStat(cmd *cobra.Command, args []string) {
 	var resp GetTicketStatisticResult
 	resp.CurrentOpenCount = res.CurrentOpenCount
 	resp.TotalMinerCount = res.TotalMinerCount
-	resp.TotalCancleCount = res.TotalCancleCount
+	resp.TotalCloseCount = res.TotalCancleCount
 
 	data, err := json.MarshalIndent(resp, "", "    ")
 	if err != nil {
@@ -396,4 +397,30 @@ func ticketInfoList(cmd *cobra.Command, args []string) {
 	}
 
 	fmt.Println(string(data))
+}
+
+func GetMinerStatCmd() *cobra.Command {
+        cmd := &cobra.Command{
+                Use:   "miner",
+                Short: "Get miner statistic",
+                Run:   minerStat,
+        }
+        addMinerStatCmdFlags(cmd)
+        return cmd
+}
+
+func addMinerStatCmdFlags(cmd *cobra.Command) {
+        cmd.Flags().StringP("addr", "a", "", "addr")
+        cmd.MarkFlagRequired("addr")
+
+        cmd.Flags().Int64P("time", "t", 10, "stat time, default 10day")
+}
+
+func minerStat(cmd *cobra.Command, args []string) {
+        //rpcAddr, _ := cmd.Flags().GetString("rpc_laddr")
+        //addr, _ := cmd.Flags().GetString("addr")
+        //t, _ := cmd.Flags().GetInt64("time")
+	
+
+	
 }
