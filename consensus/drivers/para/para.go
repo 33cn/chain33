@@ -1,6 +1,7 @@
 package para
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -105,7 +106,7 @@ func (client *Client) ProcEvent(msg queue.Message) bool {
 func (client *Client) FilterTxsForPara(Txs []*types.Transaction) []*types.Transaction {
 	var txs []*types.Transaction
 	for _, tx := range Txs {
-		if string(tx.Execer) == filterExec {
+		if bytes.Contains(tx.Execer, []byte(types.ExecNamePrefix)) {
 			txs = append(txs, tx)
 		}
 	}
