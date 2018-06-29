@@ -147,7 +147,7 @@ func DefaultP2PConfig() *P2PConfig {
 		AddrBookStrict:          true,
 		MaxNumPeers:             50,
 		FlushThrottleTimeout:    100,
-		MaxMsgPacketPayloadSize: 51200,//50k  1024,   // 1 kB
+		MaxMsgPacketPayloadSize: 10*1024*1024,//10M  1024,   // 1 kB
 		SendRate:                512000, // 500 kB/s
 		RecvRate:                512000, // 500 kB/s
 		PexReactor:              true,
