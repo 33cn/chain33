@@ -628,7 +628,6 @@ func (wallet *Wallet) ProcMergeBalance(MergeBalance *types.ReqWalletMergeBalance
 		v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount, Note: note}}
 		transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
 		//初始化随机数
-		//r := rand.New(rand.NewSource(time.Now().UnixNano()))
 		tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: wallet.FeeAmount, To: addrto, Nonce: wallet.random.Int63()}
 		tx.SetExpire(time.Second * 120)
 		tx.Sign(int32(SignType), priv)

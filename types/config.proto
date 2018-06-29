@@ -14,7 +14,8 @@ message Config {
     Rpc        rpc        = 10;
     Exec       exec       = 11;
     bool       testNet    = 12;
-    Authority auth = 13;
+    bool       fixTime    = 13;
+    Authority  auth       = 14;
 }
 
 message Log {
@@ -93,6 +94,7 @@ message BlockChain {
     bool   singleMode            = 9;
     bool   batchsync             = 10;
     bool   isRecordBlockSequence = 11;
+    bool   isParaChain           = 12;
 }
 
 message P2P {
@@ -121,6 +123,8 @@ message Rpc {
     repeated string whitelist         = 4;
     repeated string jrpcFuncWhitelist = 5;
     repeated string grpcFuncWhitelist = 6;
+    repeated string jrpcFuncBlacklist = 7;
+    repeated string grpcFuncBlacklist = 8;
 }
 
 message Exec {

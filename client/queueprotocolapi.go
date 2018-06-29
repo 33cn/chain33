@@ -122,5 +122,7 @@ type QueueProtocolAPI interface {
 	// ++++++++++++++++ authority interfaces end
 
 	// +++++++++++++++ other interfaces begin
+	// close chain33
+	CloseQueue() (*types.Reply, error)
 	// --------------- other interfaces end
 }

@@ -58,6 +58,7 @@ var (
 	ForkV16Withdraw      int64 = 200000
 	ForkV17EVM           int64 = 250000
 	ForkV18Relay         int64 = 500000
+	ForkV19TokenPrice    int64 = 300000
 )
 
 func SetTestNetFork() {
@@ -79,6 +80,7 @@ func SetTestNetFork() {
 	ForkV16Withdraw = 480000
 	ForkV17EVM = 500000
 	ForkV18Relay = 570000
+	ForkV19TokenPrice = 560000
 }
 
 func SetForkToOne() {
@@ -321,6 +323,8 @@ const (
 	EventReplyBlockSequences     = 122
 	EventGetBlockByHashes        = 123
 	EventReplyBlockDetailsBySeqs = 124
+	EventDelParaChainBlockDetail = 125
+	EventAddParaChainBlockDetail = 126
 
 	//Auth
 	EventAuthorityCheckCert  = 180
@@ -459,6 +463,8 @@ var eventName = map[int]string{
 	122: "EventReplyBlockSequences",
 	123: "EventGetBlockByHashes",
 	124: "EventReplyBlockDetailsBySeqs",
+	125: "EventDelParaChainBlockDetail",
+	126: "EventAddParaChainBlockDetail",
 	// Token
 	EventBlockChainQuery: "EventBlockChainQuery",
 }
