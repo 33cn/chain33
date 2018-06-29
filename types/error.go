@@ -221,4 +221,7 @@ var (
 	ErrRelayBtcHeadSequenceErr = errors.New("ErrRelayBtcHeadSequenceErr")
 	ErrRelayBtcHeadHashErr     = errors.New("ErrRelayBtcHeadHashErr")
 	ErrRelayBtcHeadBitsErr     = errors.New("ErrRelayBtcHeadBitsErr")
+
+	//authority
+	ErrValidateCertFailed      = errors.New("validate cert failed")
 )

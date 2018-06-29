@@ -14,12 +14,15 @@ func Init() {
 
 type Norm struct {
 	drivers.DriverBase
+	certValidateCache map[string]error
 }
 
 func newNorm() drivers.Driver {
 	n := &Norm{}
 	n.SetChild(n)
 	n.SetIsFree(true)
+
+	n.certValidateCache = make(map[string]error)
 	return n
 }
 
@@ -110,4 +113,44 @@ func (n *Norm) Query(funcname string, params []byte) (types.Message, error) {
 		return &types.ReplyString{"true"}, nil
 	}
 	return nil, types.ErrActionNotSupport
+}
+
+func (n *Norm)  CheckTx(tx *types.Transaction, index int) error {
+	// 基类检查
+	err := n.DriverBase.CheckTx(tx,index)
+	if err != nil {
+		return err
+	}
+
+	// auth模块关闭则返回
+	if !types.IsAuthEnable {
+		return nil
+	}
+
+	certByte := tx.Signature.Cert
+	if certByte == nil {
+		return types.ErrInvalidParam
+	}
+
+	// 本地缓存是否存在
+	str := string(certByte)
+	result, ok := n.certValidateCache[str]
+	if ok {
+		return result
+	}
+
+	// 调用auth模块api校验
+	param := types.ReqAuthCheckCert{tx.GetSignature()}
+	reply, err := n.GetApi().ValidateCert(&param)
+	if err != nil {
+		return err
+	}
+
+	if reply.Result {
+		n.certValidateCache[str] = nil
+		return nil
+	}
+
+	n.certValidateCache[str] = types.ErrValidateCertFailed
+	return types.ErrValidateCertFailed
 }

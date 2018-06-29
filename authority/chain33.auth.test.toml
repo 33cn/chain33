@@ -81,15 +81,15 @@ signType="secp256k1"
 minerwhitelist=["*"]
 
 [exec]
-isFree=false
-minExecFee=100000
+isFree=true
+minExecFee=0
 enableStat=false
 
 [auth]
 # 是否启用auth模块签名验签
-enable=false
+enable=true
 # 加密文件路径
-cryptoPath="authdir/crypto"
+cryptoPath="./test/authdir/crypto"
 # 签名类型，支持1:secp256r1 2:sm2
 signType=1
 # 组织名，默认使用chain33
