@@ -88,7 +88,7 @@ func (client *Client) Close() {
 
 func (client *Client) CreateGenesisTx() (ret []*types.Transaction) {
 	var tx types.Transaction
-	tx.Execer = []byte("coins")
+	tx.Execer = []byte("user.company.coins")
 	tx.To = client.Cfg.Genesis
 	//gen payload
 	g := &types.CoinsAction_Genesis{}
@@ -114,18 +114,28 @@ func (client *Client) FilterTxsForPara(Txs []*types.Transaction) []*types.Transa
 }
 
 //get the last sequence in parachain
-func (client *Client) GetBlockedSeq() int64 {
-	lastBlock := client.GetCurrentBlock()
-	if lastBlock.Height == 0 {
-		return -1
+func (client *Client) GetLastSeq() (int64, error) {
+	msg := client.GetQueueClient().NewMessage("blockchain", types.EventGetLastBlockSequence, "")
+	client.GetQueueClient().Send(msg, true)
+	resp, err := client.GetQueueClient().Wait(msg)
+	if err != nil {
+		return -2, err
 	}
-	return client.GetSeqByBlockhash(lastBlock.Hash())
+	if lastSeq, ok := resp.GetData().(*types.Int64); ok {
+		return lastSeq.Data, nil
+	}
+	return -2, errors.New("Not an int64 data")
 }
 
-func (client *Client) GetSeqByBlockhash(hash []byte) int64 {
+func (client *Client) GetBlockedSeq(hash []byte) (int64, error) {
 	//from blockchain db
-	blockedSeq := seqMap[string(hash)]
-	return blockedSeq
+	msg := client.GetQueueClient().NewMessage("blockchain", types.EventGetSeqByHash, &types.ReqHash{hash})
+	client.GetQueueClient().Send(msg, true)
+	resp, _ := client.GetQueueClient().Wait(msg)
+	if blockedSeq, ok := resp.GetData().(*types.Int64); ok {
+		return blockedSeq.Data, nil
+	}
+	return -2, errors.New("Not an int64 data")
 }
 
 func (client *Client) GetLastSeqOnMainChain() (int64, error) {
@@ -212,20 +222,29 @@ func (client *Client) RequestTx(currSeq int64) ([]*types.Transaction, int64, int
 	return nil, -1, -1, errors.New("Waiting new sequence")
 }
 
-var seqMap map[string]int64
-
 //正常情况下，打包交易
 func (client *Client) CreateBlock() {
 	incSeqFlag := true
-	currSeq := client.GetBlockedSeq()
-	seqMap = make(map[string]int64)
+	currSeq, err := client.GetLastSeq()
+	if err != nil {
+		plog.Error("Parachain GetLastSeq fail", "err", err)
+		return
+	}
 	for {
 		//don't check condition for block caughtup
 		if !client.IsMining() {
 			time.Sleep(time.Second)
 			continue
 		}
-		if incSeqFlag || client.GetBlockedSeq() == currSeq {
+
+		lastSeq, err := client.GetLastSeq()
+		if err != nil {
+			plog.Error("Parachain GetLastSeq fail", "err", err)
+			time.Sleep(time.Second)
+			continue
+		}
+
+		if incSeqFlag || currSeq == lastSeq {
 			currSeq++
 		}
 
@@ -233,10 +252,20 @@ func (client *Client) CreateBlock() {
 		if err != nil {
 			incSeqFlag = false
 			time.Sleep(time.Second)
-			continue
 		}
-		lastBlock := client.GetCurrentBlock()
-		blockedSeq := client.GetBlockedSeq()
+
+		lastBlock, err := client.RequestLastBlock()
+		if err != nil {
+			plog.Error("Parachain RequestLastBlock fail", "err", err)
+			incSeqFlag = false
+			time.Sleep(time.Second)
+		}
+		blockedSeq, err := client.GetBlockedSeq(lastBlock.Hash())
+		if err != nil {
+			plog.Error("Parachain GetBlockedSeq fail", "err", err)
+			incSeqFlag = false
+			time.Sleep(time.Second)
+		}
 		//sequence in main chain start from 0
 		if blockedSeq == -1 {
 			blockedSeq = 0
@@ -245,7 +274,6 @@ func (client *Client) CreateBlock() {
 		if err != nil {
 			incSeqFlag = false
 			time.Sleep(time.Second)
-			continue
 		}
 		plog.Info("Parachain CreateBlock", "blockedSeq", blockedSeq, "heightOnMain", heightOnMain, "blockOnMain.Height", blockOnMain.Height)
 
@@ -259,11 +287,11 @@ func (client *Client) CreateBlock() {
 				plog.Info("Delete empty block")
 			}
 			err := client.DelBlock(lastBlock, currSeq)
+			incSeqFlag = false
 			if err != nil {
-				incSeqFlag = false
+				plog.Error(fmt.Sprintf("********************err:%v", err.Error()))
 				continue
 			}
-			incSeqFlag = true
 			time.Sleep(time.Second * time.Duration(blockSec))
 		} else if seqTy == AddAct {
 			if len(txs) == 0 {
@@ -280,12 +308,13 @@ func (client *Client) CreateBlock() {
 			err := client.createBlock(lastBlock, txs, currSeq)
 			incSeqFlag = false
 			if err != nil {
+				plog.Error(fmt.Sprintf("********************err:%v", err.Error()))
 				continue
 			}
 			time.Sleep(time.Second * time.Duration(blockSec))
 		} else {
-			incSeqFlag = false
 			plog.Error("Incorrect sequence type")
+			incSeqFlag = false
 			time.Sleep(time.Second)
 		}
 	}
@@ -304,17 +333,12 @@ func (client *Client) createBlock(lastBlock *types.Block, txs []*types.Transacti
 	if lastBlock.BlockTime >= newblock.BlockTime {
 		newblock.BlockTime = lastBlock.BlockTime + 1
 	}
-	err := client.WriteBlock(lastBlock.StateHash, &newblock)
-	if err != nil {
-		plog.Error(fmt.Sprintf("********************err:%v", err.Error()))
-		return err
-	}
-	seqMap[string(newblock.Hash())] = seq
-	return nil
+	err := client.WriteBlock(lastBlock.StateHash, &newblock, seq)
+	return err
 }
 
 // 向blockchain写区块
-func (client *Client) WriteBlock(prev []byte, block *types.Block) error {
+func (client *Client) WriteBlock(prev []byte, block *types.Block, seq int64) error {
 	plog.Debug("write block in parachain")
 	blockdetail, deltx, err := client.ExecBlock(prev, block)
 	if len(deltx) > 0 {
@@ -323,7 +347,8 @@ func (client *Client) WriteBlock(prev []byte, block *types.Block) error {
 	if err != nil {
 		return err
 	}
-	msg := client.GetQueueClient().NewMessage("blockchain", types.EventAddBlockDetail, blockdetail)
+	parablockDetail := &types.ParaChainBlockDetail{blockdetail, seq}
+	msg := client.GetQueueClient().NewMessage("blockchain", types.EventAddParaChainBlockDetail, parablockDetail)
 	client.GetQueueClient().Send(msg, true)
 	resp, err := client.GetQueueClient().Wait(msg)
 	if err != nil {
@@ -341,6 +366,27 @@ func (client *Client) WriteBlock(prev []byte, block *types.Block) error {
 
 // 向blockchain删区块
 func (client *Client) DelBlock(block *types.Block, seq int64) error {
-	delete(seqMap, string(block.Hash()))
+	plog.Debug("delete block in parachain")
+	start := block.Height
+	msg := client.GetQueueClient().NewMessage("blockchain", types.EventGetBlocks, &types.ReqBlocks{start, start, false, []string{""}})
+	client.GetQueueClient().Send(msg, true)
+	resp, err := client.GetQueueClient().Wait(msg)
+	if err != nil {
+		return err
+	}
+	blocks := resp.GetData().(*types.BlockDetails)
+
+	parablockDetail := &types.ParaChainBlockDetail{blocks.Items[0], seq}
+	msg = client.GetQueueClient().NewMessage("blockchain", types.EventDelParaChainBlockDetail, parablockDetail)
+	client.GetQueueClient().Send(msg, true)
+	resp, err = client.GetQueueClient().Wait(msg)
+	if err != nil {
+		return err
+	}
+
+	if !resp.GetData().(*types.Reply).IsOk {
+		reply := resp.GetData().(*types.Reply)
+		return errors.New(string(reply.GetMsg()))
+	}
 	return nil
 }
