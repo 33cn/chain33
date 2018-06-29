@@ -308,7 +308,7 @@ func (wallet *Wallet) closeTicketsByAddr(height int64, priv crypto.PrivKey) ([]b
 	}
 	var ids []string
 	var tl []*types.Ticket
-	now := time.Now().Unix()
+	now := types.Now().Unix()
 	for _, t := range tlist {
 		if !t.IsGenesis {
 			if now-t.GetCreateTime() < types.GetP(height).TicketWithdrawTime {
@@ -342,7 +342,7 @@ func (wallet *Wallet) forceCloseTicketsByAddr(height int64, priv crypto.PrivKey)
 	tlist := append(tlist1, tlist2...)
 	var ids []string
 	var tl []*types.Ticket
-	now := time.Now().Unix()
+	now := types.Now().Unix()
 	for _, t := range tlist {
 		if !t.IsGenesis {
 			if t.Status == 1 && now-t.GetCreateTime() < types.GetP(height).TicketWithdrawTime {

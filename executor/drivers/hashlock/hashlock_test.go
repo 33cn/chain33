@@ -69,7 +69,7 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	r = rand.New(rand.NewSource(time.Now().UnixNano()))
+	r = rand.New(rand.NewSource(types.Now().UnixNano()))
 	c = types.NewGrpcserviceClient(conn)
 	secret = make([]byte, secretLen)
 	wrongsecret = make([]byte, secretLen)
@@ -91,7 +91,7 @@ func estInitAccount(t *testing.T) {
 	for index := 0; index < accountMax; index++ {
 		addr[index], privkey[index] = genaddress()
 		//fmt.Println("privkey: ", common.ToHex(privkey[index].Bytes()))
-		label[index] = strconv.Itoa(int(time.Now().UnixNano()))
+		label[index] = strconv.Itoa(int(types.Now().UnixNano()))
 		params = types.ReqWalletImportPrivKey{Privkey: common.ToHex(privkey[index].Bytes()), Label: label[index]}
 		_, err := c.ImportPrivKey(context.Background(), &params)
 		if err != nil {
