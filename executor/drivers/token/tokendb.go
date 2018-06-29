@@ -165,7 +165,7 @@ func (action *tokenAction) finishCreate(tokenFinish *types.TokenFinishCreate) (*
 		return nil, types.ErrTokenNotPrecreated
 	}
 
-	if CheckForkInExec {
+	if types.CheckForkInExec {
 		approverValid := false
 		for _, approver := range types.TokenApprs {
 			if approver == action.fromaddr {
