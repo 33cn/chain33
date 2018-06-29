@@ -127,6 +127,8 @@ func payloadType(execer, funcname string) (proto.Message, error) {
 	switch execer {
 	case "token":
 		return tokenPayloadType(funcname)
+	case "user.company.token":
+		return tokenPayloadType(funcname)
 	case "coins":
 		return coinsPayloadType(funcname)
 	case "manage":

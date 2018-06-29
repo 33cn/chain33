@@ -266,11 +266,11 @@ func (c *channelClient) CreateRawTokenPreCreateTx(parm *TokenPreCreateTx) ([]byt
 		Value: &types.TokenAction_Tokenprecreate{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte("token"),
+		Execer:  []byte(parm.ParaName + "token"),
 		Payload: types.Encode(precreate),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress("token"),
+		To:      address.ExecAddress(parm.ParaName + "token"),
 	}
 
 	data := types.Encode(tx)
@@ -288,11 +288,11 @@ func (c *channelClient) CreateRawTokenFinishTx(parm *TokenFinishTx) ([]byte, err
 		Value: &types.TokenAction_Tokenfinishcreate{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte("token"),
+		Execer:  []byte(parm.ParaName + "token"),
 		Payload: types.Encode(finish),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress("token"),
+		To:      address.ExecAddress(parm.ParaName + "token"),
 	}
 
 	data := types.Encode(tx)
@@ -309,11 +309,11 @@ func (c *channelClient) CreateRawTokenRevokeTx(parm *TokenRevokeTx) ([]byte, err
 		Value: &types.TokenAction_Tokenrevokecreate{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte("token"),
+		Execer:  []byte(parm.ParaName + "token"),
 		Payload: types.Encode(revoke),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress("token"),
+		To:      address.ExecAddress(parm.ParaName + "token"),
 	}
 
 	data := types.Encode(tx)
