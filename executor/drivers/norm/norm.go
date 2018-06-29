@@ -115,9 +115,9 @@ func (n *Norm) Query(funcname string, params []byte) (types.Message, error) {
 	return nil, types.ErrActionNotSupport
 }
 
-func (n *Norm)  CheckTx(tx *types.Transaction, index int) error {
+func (n *Norm) CheckTx(tx *types.Transaction, index int) error {
 	// 基类检查
-	err := n.DriverBase.CheckTx(tx,index)
+	err := n.DriverBase.CheckTx(tx, index)
 	if err != nil {
 		return err
 	}

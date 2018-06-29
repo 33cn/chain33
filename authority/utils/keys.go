@@ -3,11 +3,12 @@ package utils
 import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
+	"crypto/sha256"
 	"crypto/x509"
+	"encoding/hex"
 	"encoding/pem"
 	"math/big"
-	"crypto/sha256"
-	"encoding/hex"
+
 	"github.com/pkg/errors"
 )
 

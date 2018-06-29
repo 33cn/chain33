@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"os"
+
 	"gitlab.33.cn/chain33/chain33/authority/utils"
 )
 

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+
 	lccsp "gitlab.33.cn/chain33/chain33/authority/tools/cryptogen/factory/csp"
 	"gitlab.33.cn/chain33/chain33/authority/tools/cryptogen/factory/utils"
 )
