@@ -1,7 +1,6 @@
 package mempool
 
 import (
-	"bytes"
 	"sync"
 	"time"
 
