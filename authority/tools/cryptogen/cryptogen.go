@@ -5,16 +5,16 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/BurntSushi/toml"
+	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/authority/tools/cryptogen/ca"
 	"gitlab.33.cn/chain33/chain33/authority/tools/cryptogen/msp"
-	"github.com/spf13/cobra"
-	"github.com/BurntSushi/toml"
 )
 
 const (
-	commonName = "ca"
+	commonName     = "ca"
 	CONFIGFILENAME = "chain33.cryptogen.toml"
-	OUTPUTDIR = "./authdir/crypto"
+	OUTPUTDIR      = "./authdir/crypto"
 )
 
 type Config struct {
@@ -26,7 +26,7 @@ var (
 	cmd = &cobra.Command{
 		Use:   "cryptogen [-f configfile] [-o output directory]",
 		Short: "chain33 crypto tool for generating key and certificate",
-		Run:  generate,
+		Run:   generate,
 	}
 )
 

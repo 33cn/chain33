@@ -4,6 +4,7 @@ import (
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/x509"
+
 	"gitlab.33.cn/chain33/chain33/authority/tools/cryptogen/factory"
 	"gitlab.33.cn/chain33/chain33/authority/tools/cryptogen/factory/csp"
 	"gitlab.33.cn/chain33/chain33/authority/tools/cryptogen/factory/signer"

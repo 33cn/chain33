@@ -17,7 +17,7 @@ import (
 )
 
 type CA struct {
-	Name string
+	Name     string
 	Signer   crypto.Signer
 	SignCert *x509.Certificate
 }

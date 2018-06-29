@@ -1,8 +1,9 @@
 package csp
 
 import (
-	"reflect"
 	"crypto/elliptic"
+	"reflect"
+
 	"github.com/pkg/errors"
 )
 
@@ -11,8 +12,8 @@ func New(keyStore KeyStore) (CSP, error) {
 	signers[reflect.TypeOf(&ecdsaPrivateKey{})] = &ecdsaSigner{}
 
 	impl := &cspimpl{
-		ks:        keyStore,
-		signers:   signers}
+		ks:      keyStore,
+		signers: signers}
 
 	keyGenerators := make(map[int]KeyGenerator)
 	keyGenerators[ECDSAP256KeyGen] = &ecdsaKeyGenerator{curve: elliptic.P256()}
@@ -29,7 +30,7 @@ func New(keyStore KeyStore) (CSP, error) {
 }
 
 type cspimpl struct {
-	ks   KeyStore
+	ks KeyStore
 
 	keyGenerators map[int]KeyGenerator
 	keyImporters  map[int]KeyImporter
