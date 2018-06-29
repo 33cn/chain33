@@ -6,7 +6,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 	"github.com/pkg/errors"
 	"fmt"
-	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/state"
+	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint"
 )
 
 var clog = log.New("module", "execs.valnode")
@@ -52,11 +52,11 @@ func (n *ValNode) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 		if len(action.GetNode().Pubkey) == 0 {
 			return nil, errors.New("validator pubkey is empty")
 		}
-		updateVal := state.ValidatorCache{
+		updateVal := tendermint.ValidatorCache{
 			PubKey:action.GetNode().Pubkey,
 			Power: action.GetNode().Power,
 		}
-		state.UpdateValidator2Cache(updateVal)
+		tendermint.UpdateValidator2Cache(updateVal)
 		receipt.Ty = types.ExecOk
 	} else {
 		return nil, errors.New(fmt.Sprintf("validator node action type %v not support", action.Ty))

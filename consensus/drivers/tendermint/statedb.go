@@ -1,16 +1,14 @@
-package state
+package tendermint
 
 import (
 	"gitlab.33.cn/chain33/chain33/consensus/drivers"
 	"fmt"
 	gtypes "gitlab.33.cn/chain33/chain33/types"
-	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
 	"sync"
 	"errors"
 )
 
-var csStateLog = log15.New("module", "tendermint-stateDB")
 
 type CSStateDB struct {
 	client *drivers.BaseClient
@@ -48,7 +46,7 @@ func LoadState(state *gtypes.State) State {
 		}
 		if proposer := validators.GetProposer(); proposer != nil {
 			if stateTmp.Validators == nil {
-				csStateLog.Error("LoadState validator is nil but proposer")
+				tendermintlog.Error("LoadState validator is nil but proposer")
 			} else {
 				if val, err := types.LoadProposer(proposer); err == nil {
 					stateTmp.Validators.Proposer = val
@@ -64,7 +62,7 @@ func LoadState(state *gtypes.State) State {
 		}
 		if proposer := lastValidators.GetProposer(); proposer != nil {
 			if stateTmp.LastValidators == nil {
-				csStateLog.Error("LoadState last validator is nil but proposer")
+				tendermintlog.Error("LoadState last validator is nil but proposer")
 			} else {
 				if val, err := types.LoadProposer(proposer); err == nil {
 					stateTmp.LastValidators.Proposer = val
@@ -115,23 +113,23 @@ func (csdb *CSStateDB) LoadValidators(height int64) (*types.ValidatorSet, error)
 	curHeight := csdb.client.GetCurrentHeight()
 	block, err := csdb.client.RequestBlock(height)
 	if err != nil {
-		csStateLog.Error(fmt.Sprintf("LoadValidators : Couldn't find block at height %d as current height %d",height, curHeight))
+		tendermintlog.Error(fmt.Sprintf("LoadValidators : Couldn't find block at height %d as current height %d",height, curHeight))
 		return nil, nil
 	}
 	blockInfo, err := types.GetBlockInfo(block)
 	if err != nil {
-		csStateLog.Error("LoadValidators GetBlockInfo failed", "error", err)
+		tendermintlog.Error("LoadValidators GetBlockInfo failed", "error", err)
 		panic(fmt.Sprintf("LoadValidators GetBlockInfo failed:%v",err))
 	}
 
 	var state State
 	if blockInfo == nil {
-		csStateLog.Error("LoadValidators", "msg", "block height is not 0 but blockinfo is nil")
+		tendermintlog.Error("LoadValidators", "msg", "block height is not 0 but blockinfo is nil")
 		panic(fmt.Sprintf("LoadValidators block height is %v but block info is nil", block.Height))
 	} else {
 		csState := blockInfo.GetState()
 		if csState == nil {
-			csStateLog.Error("LoadValidators", "msg", "blockInfo.GetState is nil")
+			tendermintlog.Error("LoadValidators", "msg", "blockInfo.GetState is nil")
 			return nil, errors.New(fmt.Sprintf("LoadValidators get state from block info is nil"))
 		}
 		state = LoadState(csState)

@@ -1,36 +1,30 @@
-package evidence
+package tendermint
 
 import (
 	"fmt"
 	"sync"
 
-	"github.com/inconshreveable/log15"
-
-	sm "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/state"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
 	"encoding/json"
 )
 
-var (
-	eplog = log15.New("module", "tendermint-evidence-pool")
-)
 // EvidencePool maintains a pool of valid evidence
 // in an EvidenceStore.
 type EvidencePool struct {
 	evidenceStore *EvidenceStore
 
 	// needed to load validators to verify evidence
-	stateDB *sm.CSStateDB
+	stateDB *CSStateDB
 
 	// latest state
 	mtx   sync.Mutex
-	state sm.State
+	state State
 
 	// never close
 	evidenceChan chan types.Evidence
 }
 
-func NewEvidencePool(stateDB *sm.CSStateDB, state sm.State, evidenceStore *EvidenceStore) *EvidencePool {
+func NewEvidencePool(stateDB *CSStateDB, state State, evidenceStore *EvidenceStore) *EvidencePool {
 	evpool := &EvidencePool{
 		stateDB:       stateDB,
 		state:         state,
@@ -56,7 +50,7 @@ func (evpool *EvidencePool) PendingEvidence() []types.Evidence {
 }
 
 // State returns the current state of the evpool.
-func (evpool *EvidencePool) State() sm.State {
+func (evpool *EvidencePool) State() State {
 	evpool.mtx.Lock()
 	defer evpool.mtx.Unlock()
 	return evpool.state
@@ -84,7 +78,7 @@ func (evpool *EvidencePool) AddEvidence(evidence types.Evidence) (err error) {
 	// TODO: check if we already have evidence for this
 	// validator at this height so we dont get spammed
 
-	if err := sm.VerifyEvidence(evpool.stateDB, evpool.State(), evidence); err != nil {
+	if err := VerifyEvidence(evpool.stateDB, evpool.State(), evidence); err != nil {
 		return err
 	}
 
@@ -100,7 +94,7 @@ func (evpool *EvidencePool) AddEvidence(evidence types.Evidence) (err error) {
 		return
 	}
 
-	eplog.Info("Verified new evidence of byzantine behaviour", "evidence", evidence)
+	tendermintlog.Info("Verified new evidence of byzantine behaviour", "evidence", evidence)
 
 	// never closes. always safe to send on
 	evpool.evidenceChan <- evidence
@@ -114,7 +108,7 @@ func (evpool *EvidencePool) MarkEvidenceAsCommitted(evidence types.EvidenceEnvel
 			tmp := v.(types.Evidence).Copy()
 			err := json.Unmarshal(*ev.Data, &tmp)
 			if err != nil {
-				eplog.Error("MarkEvidenceAsCommitted envelop unmarshal failed", "error", err)
+				tendermintlog.Error("MarkEvidenceAsCommitted envelop unmarshal failed", "error", err)
 				return
 			}
 			evpool.evidenceStore.MarkEvidenceAsCommitted(tmp)
