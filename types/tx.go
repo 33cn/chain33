@@ -281,9 +281,6 @@ func (tx *Transaction) GetTxGroup() (*Transactions, error) {
 		var txs Transactions
 		err := Decode(tx.Header, &txs)
 		if err != nil {
-			if len(tx.Header) == 32 {
-				return nil, nil
-			}
 			return nil, err
 		}
 		return &txs, nil
@@ -391,10 +388,7 @@ func (tx *Transaction) GetRealFee(minFee int64) (int64, error) {
 var expireBound int64 = 1000000000 // 交易过期分界线，小于expireBound比较height，大于expireBound比较blockTime
 
 func (tx *Transaction) IsExpire(height, blocktime int64) bool {
-	group, err := tx.GetTxGroup()
-	if err != nil {
-		return true
-	}
+	group, _ := tx.GetTxGroup()
 	if group == nil {
 		return tx.isExpire(height, blocktime)
 	}
