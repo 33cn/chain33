@@ -1,6 +1,6 @@
-Title="chain33"
-TestNet=true
-FixTime=false
+Title="bityuan"
+TestNet=false
+FixTime= false
 
 [log]
 # 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
@@ -36,7 +36,6 @@ isStrongConsistency=false
 singleMode=false
 batchsync=false
 isRecordBlockSequence=false
-isParaChain=false
 
 [p2p]
 seeds=[]

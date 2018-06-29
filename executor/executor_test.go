@@ -6,7 +6,6 @@ import (
 	"errors"
 	"math/rand"
 	"testing"
-	"time"
 
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/blockchain"
@@ -37,7 +36,7 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	random = rand.New(rand.NewSource(time.Now().UnixNano()))
+	random = rand.New(rand.NewSource(types.Now().UnixNano()))
 	genkey = getprivkey("CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944")
 	log.SetLogLevel("error")
 }
@@ -76,7 +75,7 @@ func createTx(priv crypto.PrivKey, to string, amount int64) *types.Transaction {
 	v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
 	transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
 	tx := &types.Transaction{Execer: []byte("none"), Payload: types.Encode(transfer), Fee: 1e6, To: to}
-	random := rand.New(rand.NewSource(time.Now().UnixNano()))
+	random := rand.New(rand.NewSource(types.Now().UnixNano()))
 	tx.Nonce = random.Int63()
 	tx.To = address.ExecAddress("none")
 	tx.Sign(types.SECP256K1, priv)
@@ -87,7 +86,7 @@ func createTx2(priv crypto.PrivKey, to string, amount int64) *types.Transaction 
 	v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
 	transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
 	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1e6, To: to}
-	random := rand.New(rand.NewSource(time.Now().UnixNano()))
+	random := rand.New(rand.NewSource(types.Now().UnixNano()))
 	tx.Nonce = random.Int63()
 	tx.To = to
 	tx.Sign(types.SECP256K1, priv)
@@ -139,7 +138,7 @@ func genTxs2(priv crypto.PrivKey, n int64) (txs []*types.Transaction) {
 func createBlock(n int64) *types.Block {
 	newblock := &types.Block{}
 	newblock.Height = -1
-	newblock.BlockTime = time.Now().Unix()
+	newblock.BlockTime = types.Now().Unix()
 	newblock.ParentHash = zeroHash[:]
 	newblock.Txs = genTxs(n)
 	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
@@ -158,7 +157,7 @@ func createGenesisBlock() *types.Block {
 
 	newblock := &types.Block{}
 	newblock.Height = 0
-	newblock.BlockTime = time.Now().Unix()
+	newblock.BlockTime = types.Now().Unix()
 	newblock.ParentHash = zeroHash[:]
 	newblock.Txs = append(newblock.Txs, &tx)
 	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
@@ -489,9 +488,9 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	//通过consensus module 再次检查
 	ulog := elog
 	ulog.Debug("ExecBlock", "height------->", block.Height, "ntx", len(block.Txs))
-	beg := time.Now()
+	beg := types.Now()
 	defer func() {
-		ulog.Info("ExecBlock", "height", block.Height, "ntx", len(block.Txs), "writebatchsync", sync, "cost", time.Since(beg))
+		ulog.Info("ExecBlock", "height", block.Height, "ntx", len(block.Txs), "writebatchsync", sync, "cost", types.Since(beg))
 	}()
 	if errReturn && block.Height > 0 && !block.CheckSign() {
 		//block的来源不是自己的mempool，而是别人的区块
