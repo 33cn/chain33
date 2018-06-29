@@ -1,7 +1,6 @@
 package mempool
 
 import (
-	"bytes"
 	"sync"
 	"time"
 
@@ -217,10 +216,9 @@ func (mem *Mempool) DelBlock(block *types.Block) {
 				continue
 			}
 		}
-		groupCount := tx.GetGroupCount()
+		groupCount := int(tx.GetGroupCount())
 		if groupCount > 1 && i+groupCount <= len(blkTxs) {
-			txs := txs[i : i+groupCount]
-			group := types.Transactions{Txs: txs}
+			group := types.Transactions{Txs: blkTxs[i : i+groupCount]}
 			tx = group.Tx()
 			i = i + groupCount - 1
 		}
