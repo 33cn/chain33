@@ -3,6 +3,7 @@ package commands
 import (
 	"encoding/hex"
 	"fmt"
+	"math"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -107,7 +108,9 @@ func decodeLog(rlog jsonrpc.ReceiptDataResult) *ReceiptData {
 		case types.TyLogErr, types.TyLogGenesis, types.TyLogNewTicket, types.TyLogCloseTicket, types.TyLogMinerTicket,
 			types.TyLogTicketBind, types.TyLogPreCreateToken, types.TyLogFinishCreateToken, types.TyLogRevokeCreateToken,
 			types.TyLogTradeSellLimit, types.TyLogTradeBuyMarket, types.TyLogTradeSellRevoke,
-			types.TyLogTradeBuyLimit, types.TyLogTradeSellMarket, types.TyLogTradeBuyRevoke:
+			types.TyLogTradeBuyLimit, types.TyLogTradeSellMarket, types.TyLogTradeBuyRevoke,
+			types.TyLogRelayCreate, types.TyLogRelayRevokeCreate, types.TyLogRelayAccept, types.TyLogRelayRevokeAccept,
+			types.TyLogRelayRcvBTCHead, types.TyLogRelayConfirmTx, types.TyLogRelayFinishTx:
 			rl.Log = l.Log
 		//case 2, 3, 5, 11:
 		case types.TyLogFee, types.TyLogTransfer, types.TyLogDeposit, types.TyLogGenesisTransfer,
@@ -210,7 +213,7 @@ func CreateRawTx(to string, amount float64, note string, isWithdraw bool, isToke
 	if amount < 0 {
 		return "", types.ErrAmount
 	}
-	amountInt64 := int64(amount*1e4) * 1e4
+	amountInt64 := int64(math.Trunc((amount+0.0000001)*1e4)) * 1e4
 	if execName != "" && !types.IsAllowExecName(execName) {
 		return "", types.ErrExecNameNotMatch
 	}
@@ -280,7 +283,7 @@ func isAllowExecName(exec string) (bool, error) {
 	if strings.HasPrefix(exec, "user.") {
 		return true, nil
 	}
-	for _, e := range []string{"none", "coins", "hashlock", "retrieve", "ticket", "token", "trade"} {
+	for _, e := range []string{"none", "coins", "hashlock", "retrieve", "ticket", "token", "trade", "relay"} {
 		if exec == e {
 			return true, nil
 		}

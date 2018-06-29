@@ -2,8 +2,6 @@ package blockchain
 
 //message callback
 import (
-	"time"
-
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/queue"
@@ -70,6 +68,12 @@ func (chain *BlockChain) ProcRecvMsg() {
 
 		case types.EventGetBlockByHashes:
 			go chain.processMsg(msg, reqnum, chain.getBlockByHashes)
+
+		case types.EventDelParaChainBlockDetail:
+			go chain.processMsg(msg, reqnum, chain.delParaChainBlockDetail)
+
+		case types.EventAddParaChainBlockDetail:
+			go chain.processMsg(msg, reqnum, chain.addParaChainBlockDetail)
 
 		default:
 			<-reqnum
@@ -186,10 +190,19 @@ func (chain *BlockChain) addBlockDetail(msg queue.Message) {
 }
 
 func (chain *BlockChain) broadcastAddBlock(msg queue.Message) {
-	//var block *types.Block
 	var reply types.Reply
 	reply.IsOk = true
 	blockwithpid := msg.Data.(*types.BlockPid)
+
+	castheight := blockwithpid.Block.Height
+	curheight := chain.GetBlockHeight()
+	//当本节点在同步阶段并且远远落后主网最新高度时不处理广播block,暂定落后128个区块
+	//以免广播区块占用go goroutine资源
+	if blockwithpid.Block.Height > curheight+BackBlockNum {
+		chainlog.Debug("EventBroadcastAddBlock", "curheight", curheight, "castheight", castheight, "hash", common.ToHex(blockwithpid.Block.Hash()), "pid", blockwithpid.Pid, "result", "Do not handle broad cast Block in sync")
+		msg.Reply(chain.client.NewMessage("p2p", types.EventReply, &reply))
+		return
+	}
 	err := chain.ProcAddBlockMsg(true, &types.BlockDetail{Block: blockwithpid.Block}, blockwithpid.Pid)
 	if err != nil {
 		chainlog.Error("ProcAddBlockMsg", "err", err.Error())
@@ -321,11 +334,11 @@ func (chain *BlockChain) isNtpClockSync(msg queue.Message) {
 type funcProcess func(msg queue.Message)
 
 func (chain *BlockChain) processMsg(msg queue.Message, reqnum chan struct{}, cb funcProcess) {
-	beg := time.Now()
+	beg := types.Now()
 	defer func() {
 		<-reqnum
 		chain.recvwg.Done()
-		chainlog.Debug("process", "cost", time.Since(beg), "msg", types.GetEventName(int(msg.Ty)))
+		chainlog.Debug("process", "cost", types.Since(beg), "msg", types.GetEventName(int(msg.Ty)))
 	}()
 	cb(msg)
 }
@@ -358,4 +371,42 @@ func (chain *BlockChain) getBlockByHashes(msg queue.Message) {
 	} else {
 		msg.Reply(chain.client.NewMessage("rpc", types.EventBlocks, BlockDetails))
 	}
+}
+
+//平行链del block的处理
+func (chain *BlockChain) delParaChainBlockDetail(msg queue.Message) {
+	var parablockDetail *types.ParaChainBlockDetail
+	var reply types.Reply
+	reply.IsOk = true
+	parablockDetail = msg.Data.(*types.ParaChainBlockDetail)
+
+	chainlog.Debug("delParaChainBlockDetail", "height", parablockDetail.Blockdetail.Block.Height, "hash", common.HashHex(parablockDetail.Blockdetail.Block.Hash()))
+
+	err := chain.ProcDelParaChainBlockMsg(true, parablockDetail, "self")
+	if err != nil {
+		chainlog.Error("ProcDelParaChainBlockMsg", "err", err.Error())
+		reply.IsOk = false
+		reply.Msg = []byte(err.Error())
+	}
+	chainlog.Debug("delParaChainBlockDetail", "success", "ok")
+	msg.Reply(chain.client.NewMessage("p2p", types.EventReply, &reply))
+}
+
+//平行链add block的处理
+func (chain *BlockChain) addParaChainBlockDetail(msg queue.Message) {
+	var parablockDetail *types.ParaChainBlockDetail
+	var reply types.Reply
+	reply.IsOk = true
+	parablockDetail = msg.Data.(*types.ParaChainBlockDetail)
+
+	chainlog.Debug("EventAddParaChainBlockDetail", "height", parablockDetail.Blockdetail.Block.Height, "hash", common.HashHex(parablockDetail.Blockdetail.Block.Hash()))
+
+	err := chain.ProcAddParaChainBlockMsg(true, parablockDetail, "self")
+	if err != nil {
+		chainlog.Error("ProcAddParaChainBlockMsg", "err", err.Error())
+		reply.IsOk = false
+		reply.Msg = []byte(err.Error())
+	}
+	chainlog.Debug("EventAddParaChainBlockDetail", "success", "ok")
+	msg.Reply(chain.client.NewMessage("p2p", types.EventReply, &reply))
 }
