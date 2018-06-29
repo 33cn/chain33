@@ -782,7 +782,7 @@ func (ch *Channel) updateStats() {
 //-----------------------------------------------------------------------------
 
 const (
-	defaultMaxMsgPacketPayloadSize = 51200//1024
+	defaultMaxMsgPacketPayloadSize = 10*1024*1024//1024
 
 	maxMsgPacketOverheadSize = 10 // It's actually lower but good enough
 	packetTypePing           = byte(0x01)
