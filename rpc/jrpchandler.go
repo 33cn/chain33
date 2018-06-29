@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"time"
 
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
@@ -1572,6 +1573,17 @@ func (c *Chain33) GetTimeStatus(in *types.ReqNil, result *interface{}) error {
 	*result = timeStatus
 	return nil
 }
+
+func (c *Chain33) CloseQueue(in *types.ReqNil, result *interface{}) error {
+	go func() {
+		time.Sleep(time.Millisecond * 100)
+		c.cli.CloseQueue()
+	}()
+
+	*result = &types.Reply{IsOk: true, Msg: []byte("Ok")}
+	return nil
+}
+
 func (c *Chain33) GetLastBlockSequence(in *types.ReqNil, result *interface{}) error {
 	resp, err := c.cli.GetLastBlockSequence()
 	if err != nil {
