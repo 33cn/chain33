@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/spf13/cobra"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -105,7 +106,7 @@ func addBalanceFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("addr", "a", "", "account addr")
 	cmd.MarkFlagRequired("addr")
 
-	cmd.Flags().StringP("exec", "e", "", `executer name ("none", "coins", "hashlock", "retrieve", "ticket", "token" and "trade" supported)`)
+	cmd.Flags().StringP("exec", "e", "", `executer name ("none", "coins", "hashlock", "retrieve", "ticket", "token", "trade" and "relay" supported)`)
 }
 
 func balance(cmd *cobra.Command, args []string) {
@@ -113,6 +114,11 @@ func balance(cmd *cobra.Command, args []string) {
 	addr, _ := cmd.Flags().GetString("addr")
 	execer, _ := cmd.Flags().GetString("exec")
 
+	err := address.CheckAddress(addr)
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
 	if ok, err := isAllowExecName(execer); !ok {
 		fmt.Println(err.Error())
 		return
