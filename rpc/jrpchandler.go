@@ -851,13 +851,14 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		return nil, types.ErrEmpty
 	}
 	var pl interface{}
-	type unkownPl struct{ payload []byte }
+	unkownPl := make(map[string]interface{})
 	if "coins" == string(tx.Execer) {
 		var action types.CoinsAction
 		err := types.Decode(tx.GetPayload(), &action)
 		if err != nil {
-			pl = unkownPl{tx.GetPayload()}
-			// return nil, err
+			unkownPl["unkownpayload"] = string(tx.GetPayload())
+			pl = unkownPl
+			fmt.Println(pl)
 		} else {
 			pl = &action
 		}
@@ -865,8 +866,8 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		var action types.TicketAction
 		err := types.Decode(tx.GetPayload(), &action)
 		if err != nil {
-			pl = unkownPl{tx.GetPayload()}
-			// return nil, err
+			unkownPl["unkownpayload"] = string(tx.GetPayload())
+			pl = unkownPl
 		} else {
 			pl = &action
 		}
@@ -874,8 +875,8 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		var action types.HashlockAction
 		err := types.Decode(tx.GetPayload(), &action)
 		if err != nil {
-			pl = unkownPl{tx.GetPayload()}
-			// return nil, err
+			unkownPl["unkownpayload"] = string(tx.GetPayload())
+			pl = unkownPl
 		} else {
 			pl = &action
 		}
@@ -883,8 +884,8 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		var action types.TokenAction
 		err := types.Decode(tx.GetPayload(), &action)
 		if err != nil {
-			pl = unkownPl{tx.GetPayload()}
-			// return nil, err
+			unkownPl["unkownpayload"] = string(tx.GetPayload())
+			pl = unkownPl
 		} else {
 			pl = &action
 		}
@@ -892,8 +893,8 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		var action types.Trade
 		err := types.Decode(tx.GetPayload(), &action)
 		if err != nil {
-			pl = unkownPl{tx.GetPayload()}
-			// return nil, err
+			unkownPl["unkownpayload"] = string(tx.GetPayload())
+			pl = unkownPl
 		} else {
 			pl = &action
 		}
@@ -901,8 +902,8 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		var action types.EVMContractAction
 		err := types.Decode(tx.GetPayload(), &action)
 		if err != nil {
-			pl = unkownPl{tx.GetPayload()}
-			// return nil, err
+			unkownPl["unkownpayload"] = string(tx.GetPayload())
+			pl = unkownPl
 		} else {
 			pl = &action
 		}
