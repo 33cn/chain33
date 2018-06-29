@@ -117,6 +117,10 @@ type QueueProtocolAPI interface {
 	StoreGetTotalCoins(*types.IterateRangeByStateHash) (*types.ReplyGetTotalCoins, error)
 	// --------------- store interfaces end
 
+	// ++++++++++++++++ authority interfaces begin
+	ValidateCert(cert *types.ReqAuthCheckCert) (*types.ReplyAuthCheckCert, error)
+	// ++++++++++++++++ authority interfaces end
+
 	// +++++++++++++++ other interfaces begin
 	// --------------- other interfaces end
 }
