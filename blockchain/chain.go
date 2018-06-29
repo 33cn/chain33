@@ -940,3 +940,15 @@ func (chain *BlockChain) ProcAddParaChainBlockMsg(broadcast bool, ParaChainblock
 
 	return err
 }
+
+//处理共识过来的通过blockhash获取seq的消息，只提供add block时的seq，用于平行链block回退
+func (chain *BlockChain) ProcGetSeqByHash(hash []byte) (int64, error) {
+	if len(hash) == 0 {
+		chainlog.Error("ProcGetSeqByHash input hash is null")
+		return -1, types.ErrInputPara
+	}
+	seq, err := chain.blockStore.GetSequenceByHash(hash)
+	chainlog.Debug("ProcGetSeqByHash", "blockhash", common.ToHex(hash), "seq", seq, "err", err)
+
+	return seq, err
+}

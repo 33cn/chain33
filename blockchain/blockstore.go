@@ -62,6 +62,12 @@ func calcSequenceToHashKey(sequence int64) []byte {
 	return []byte(fmt.Sprintf("Seq:%v", sequence))
 }
 
+//存储block hash对应的seq序列号，KEY=Seq:sequence，只用于平行链addblock操作，方便delblock回退是查找对应seq的hash
+func calcHashToSequenceKey(hash []byte) []byte {
+	HashToSeqPerfix := []byte("HashToSeq:")
+	return append(HashToSeqPerfix, hash...)
+}
+
 type BlockStore struct {
 	db        dbm.DB
 	client    queue.Client
@@ -650,21 +656,25 @@ func (bs *BlockStore) SaveBlockSequence(storeBatch dbm.Batch, hash []byte, heigh
 		newSequence = sequence
 	}
 	blockSequence.Hash = hash
-	blockSequence.Type = Type //add
+	blockSequence.Type = Type
 
 	BlockSequenceByte, err := proto.Marshal(&blockSequence)
 	if err != nil {
 		storeLog.Error("SaveBlockSequence Marshal BlockSequence", "hash", common.ToHex(hash), "error", err)
 		return err
 	}
+
+	// seq->hash
 	storeBatch.Set(calcSequenceToHashKey(newSequence), BlockSequenceByte)
 
+	//parachain  hash->seq 只记录add block时的hash和seq对应关系
+	if Type == addBlock && isParaChain {
+		Sequencebytes := types.Encode(&types.Int64{newSequence})
+		storeBatch.Set(calcHashToSequenceKey(hash), Sequencebytes)
+	}
 	Sequencebytes := types.Encode(&types.Int64{newSequence})
 	storeBatch.Set(LastSequence, Sequencebytes)
-	//print
-	if Type == 2 {
-		storeLog.Error("SaveBlockSequence", "height", height, "hash", common.ToHex(hash), "Type", Type)
-	}
+
 	return nil
 }
 
@@ -696,4 +706,23 @@ func (bs *BlockStore) GetBlockSequence(Sequence int64) (*types.BlockSequence, er
 		return nil, err
 	}
 	return &blockSeq, nil
+}
+
+//通过block还是获取对应的seq，只提供给parachain使用
+func (bs *BlockStore) GetSequenceByHash(hash []byte) (int64, error) {
+	var seq types.Int64
+	seqbytes, err := bs.db.Get(calcHashToSequenceKey(hash))
+	if seqbytes == nil || err != nil {
+		if err != dbm.ErrNotFoundInDb {
+			storeLog.Error("GetSequenceByHash", "error", err)
+		}
+		return -1, types.ErrHeightNotExist
+	}
+
+	err = types.Decode(seqbytes, &seq)
+	if err != nil {
+		storeLog.Error("GetSequenceByHash  types.Decode", "error", err)
+		return -1, types.ErrUnmarshal
+	}
+	return seq.Data, nil
 }
