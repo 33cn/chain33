@@ -33,6 +33,7 @@ dbCache=64
 isStrongConsistency=true
 singleMode=false
 batchsync=false
+isRecordBlockSequence=false
 
 [p2p]
 seeds=["192.168.3.102:13802","192.168.3.13:13802"]
@@ -55,7 +56,10 @@ verMax=199
 [rpc]
 jrpcBindAddr="localhost:8801"
 grpcBindAddr="localhost:8802"
-whitlist=["127.0.0.1"]
+whitelist=["127.0.0.1"]
+jrpcFuncWhitelist=["*"]
+grpcFuncWhitelist=["*"]
+
 [mempool]
 poolCacheSize=10240
 minTxFee=100000
@@ -87,7 +91,7 @@ dbCache=128
 [wallet]
 minFee=100000
 driver="leveldb"
-dbPath="datadir/wallet"
+dbPath="wallet"
 dbCache=16
 signType="secp256k1"
 minerdisable=false
@@ -95,3 +99,4 @@ minerdisable=false
 [exec]
 isFree=false
 minExecFee=100000
+enableStat=false

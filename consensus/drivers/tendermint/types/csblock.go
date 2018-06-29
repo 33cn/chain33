@@ -4,13 +4,13 @@ import (
 	"math/rand"
 	"time"
 
-	log "github.com/inconshreveable/log15"
+	"github.com/inconshreveable/log15"
 
 	"gitlab.33.cn/chain33/chain33/consensus/drivers"
 	"fmt"
 )
 
-var bslog = log.New("module", "tendermint-blockstore")
+var bslog = log15.New("module", "tendermint-blockstore")
 
 const fee = 1e6
 

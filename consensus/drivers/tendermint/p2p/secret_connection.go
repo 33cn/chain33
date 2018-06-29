@@ -22,7 +22,7 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
-	log "github.com/inconshreveable/log15"
+	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
 )
 
@@ -33,7 +33,7 @@ const totalFrameSize = dataMaxSize + dataLenSize
 const sealedFrameSize = totalFrameSize + secretbox.Overhead
 const authSigMsgSize = (32 ) + (64 ) // fixed size (length prefixed) byte arrays
 
-var secret = log.New("module", "secret_connection")
+var secret = log15.New("module", "tendermint-secret_connection")
 
 // Implements net.Conn
 type SecretConnection struct {

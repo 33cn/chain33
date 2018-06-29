@@ -4,18 +4,19 @@ import (
 	"fmt"
 	"sync"
 
-	log "github.com/inconshreveable/log15"
+	"github.com/inconshreveable/log15"
 
 	sm "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/state"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
 	"encoding/json"
 )
 
+var (
+	eplog = log15.New("module", "tendermint-evidence-pool")
+)
 // EvidencePool maintains a pool of valid evidence
 // in an EvidenceStore.
 type EvidencePool struct {
-	logger log.Logger
-
 	evidenceStore *EvidenceStore
 
 	// needed to load validators to verify evidence
@@ -33,16 +34,10 @@ func NewEvidencePool(stateDB *sm.CSStateDB, state sm.State, evidenceStore *Evide
 	evpool := &EvidencePool{
 		stateDB:       stateDB,
 		state:         state,
-		logger:        nil,
 		evidenceStore: evidenceStore,
 		evidenceChan:  make(chan types.Evidence),
 	}
 	return evpool
-}
-
-// SetLogger sets the Logger.
-func (evpool *EvidencePool) SetLogger(l log.Logger) {
-	evpool.logger = l
 }
 
 // EvidenceChan returns an unbuffered channel on which new evidence can be received.
@@ -105,7 +100,7 @@ func (evpool *EvidencePool) AddEvidence(evidence types.Evidence) (err error) {
 		return
 	}
 
-	evpool.logger.Info("Verified new evidence of byzantine behaviour", "evidence", evidence)
+	eplog.Info("Verified new evidence of byzantine behaviour", "evidence", evidence)
 
 	// never closes. always safe to send on
 	evpool.evidenceChan <- evidence
@@ -119,7 +114,7 @@ func (evpool *EvidencePool) MarkEvidenceAsCommitted(evidence types.EvidenceEnvel
 			tmp := v.(types.Evidence).Copy()
 			err := json.Unmarshal(*ev.Data, &tmp)
 			if err != nil {
-				evpool.logger.Error("MarkEvidenceAsCommitted envelop unmarshal failed", "error", err)
+				eplog.Error("MarkEvidenceAsCommitted envelop unmarshal failed", "error", err)
 				return
 			}
 			evpool.evidenceStore.MarkEvidenceAsCommitted(tmp)

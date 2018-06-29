@@ -45,7 +45,7 @@ func NewTrustMetricStore(db dbm.DB, tmc TrustMetricConfig) *TrustMetricStore {
 		config:      tmc,
 	}
 
-	tms.BaseService = *cmn.NewBaseService(nil, "TrustMetricStore", tms)
+	tms.BaseService = *cmn.NewBaseService("TrustMetricStore", tms)
 	return tms
 }
 

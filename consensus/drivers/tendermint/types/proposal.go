@@ -8,14 +8,14 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"encoding/json"
-	log "github.com/inconshreveable/log15"
+	"github.com/inconshreveable/log15"
 )
 
 var (
 	ErrInvalidBlockPartSignature = errors.New("Error invalid block part signature")
 	ErrInvalidBlockPartHash      = errors.New("Error invalid block part hash")
 
-	proposallog = log.New("submodule", "proposal")
+	proposallog = log15.New("module", "tendermint-proposal")
 )
 
 // Proposal defines a block proposal for the consensus.

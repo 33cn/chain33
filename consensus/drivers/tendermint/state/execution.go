@@ -3,7 +3,7 @@ package state
 import (
 	"fmt"
 
-	log "github.com/inconshreveable/log15"
+	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
 	"sync"
 	"errors"
@@ -20,7 +20,10 @@ type ValidatorsCache struct {
 	validators []*ValidatorCache
 }
 
-var validatorsCache ValidatorsCache
+var (
+	validatorsCache ValidatorsCache
+	executionlog = log15.New("module", "tendermint-execution")
+)
 
 func InitValidatorsCache(vals *types.ValidatorSet) {
 	validatorsCache.mtx.Lock()
@@ -79,19 +82,17 @@ type BlockExecutor struct {
 	//mempool types.Mempool
 	evpool types.EvidencePool
 
-	logger log.Logger
 }
 
 // NewBlockExecutor returns a new BlockExecutor with a NopEventBus.
 // Call SetEventBus to provide one.
-func NewBlockExecutor(db *CSStateDB, logger log.Logger, evpool types.EvidencePool) *BlockExecutor {
+func NewBlockExecutor(db *CSStateDB, evpool types.EvidencePool) *BlockExecutor {
 	return &BlockExecutor{
 		db: db,
 		//proxyApp: proxyApp,
 		eventBus: types.NopEventBus{},
 		//mempool:  mempool,
 		evpool: evpool,
-		logger: logger,
 	}
 }
 
@@ -133,7 +134,7 @@ func (blockExec *BlockExecutor) ApplyBlock(s State, blockID types.BlockID, block
 	//fail.Fail() // XXX
 
 	// update the state with the block and responses
-	s, err := updateState(blockExec.logger, s, blockID, block)
+	s, err := updateState(s, blockID, block)
 	if err != nil {
 		return s, fmt.Errorf("Commit failed for application: %v", err)
 	}
@@ -160,13 +161,13 @@ func (blockExec *BlockExecutor) ApplyBlock(s State, blockID types.BlockID, block
 
 	// events are fired after everything else
 	// NOTE: if we crash between Commit and Save, events wont be fired during replay
-	fireEvents(blockExec.logger, blockExec.eventBus, block /*, abciResponses*/)
+	fireEvents(blockExec.eventBus, block)
 
 	return s, nil
 }
 
 // updateState returns a new State updated according to the header and responses.
-func updateState(logger log.Logger, s State, blockID types.BlockID, block *types.Block) (State, error) {
+func updateState( s State, blockID types.BlockID, block *types.Block) (State, error) {
 
 	// copy the valset so we can apply changes from EndBlock
 	// and update s.LastValidators and s.Validators
@@ -179,7 +180,7 @@ func updateState(logger log.Logger, s State, blockID types.BlockID, block *types
 	if len(validatorUpdates) > 0 {
 		err := updateValidators(nextValSet, validatorUpdates)
 		if err != nil {
-			logger.Error("Error changing validator set", "error", err)
+			executionlog.Error("Error changing validator set", "error", err)
 			//return s, fmt.Errorf("Error changing validator set: %v", err)
 		}
 		// change results from this height but only applies to the next height
@@ -213,7 +214,7 @@ func updateState(logger log.Logger, s State, blockID types.BlockID, block *types
 // Fire NewBlock, NewBlockHeader.
 // Fire TxEvent for every tx.
 // NOTE: if Tendermint crashes before commit, some or all of these events may be published again.
-func fireEvents(logger log.Logger, eventBus types.BlockEventPublisher, block *types.Block /*, abciResponses *ABCIResponses*/) {
+func fireEvents(eventBus types.BlockEventPublisher, block *types.Block /*, abciResponses *ABCIResponses*/) {
 	/*
 		// NOTE: do we still need this buffer ?
 		txEventBuffer := types.NewTxEventBuffer(eventBus, int(block.NumTxs))

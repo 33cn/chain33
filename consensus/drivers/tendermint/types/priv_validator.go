@@ -53,6 +53,9 @@ type PrivValidator interface {
 	GetLastHeight() int64
 	GetLastRound() int
 	GetLastStep() int8
+
+	//reset height,round,step used by start to catch up
+	ResetLastHeight(height int64)
 }
 
 // PrivValidatorFS implements PrivValidator using data persisted to disk
@@ -440,6 +443,12 @@ func (privVal *PrivValidatorImp) GetLastRound() int {
 
 func (privVal *PrivValidatorImp) GetLastStep() int8 {
 	return privVal.LastStep
+}
+
+func (privVal *PrivValidatorImp) ResetLastHeight(height int64) {
+	privVal.LastHeight = height
+	privVal.LastRound = 0
+	privVal.LastStep = 0
 }
 //-------------------------------------
 

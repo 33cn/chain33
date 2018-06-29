@@ -3,7 +3,7 @@ package types
 import (
 	"time"
 
-	log "github.com/inconshreveable/log15"
+	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	gtypes "gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/common"
@@ -11,7 +11,7 @@ import (
 	"errors"
 )
 
-var bilog = log.New("module", "tendermint-blockinfo")
+var bilog = log15.New("module", "tendermint-blockinfo")
 
 var ConsensusCrypto crypto.Crypto
 
