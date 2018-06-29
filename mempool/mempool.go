@@ -204,50 +204,34 @@ func (mem *Mempool) DelBlock(block *types.Block) {
 		return
 	}
 	blkTxs := block.Txs
-	i := 0
-	for i < len(blkTxs) {
+
+	for i := 0; i < len(blkTxs); i++ {
 		tx := blkTxs[i]
 		if "ticket" == string(tx.Execer) {
 			var action types.TicketAction
 			err := types.Decode(tx.Payload, &action)
 			if err != nil {
-				i++
 				continue
 			}
 			if action.Ty == types.TicketActionMiner && action.GetMiner() != nil {
-				i++
 				continue
 			}
 		}
 		groupCount := tx.GetGroupCount()
-		if groupCount > 1 {
-			txs := &types.Transactions{}
-			header := tx.Header
-			valid := true
-			for j := 0; int32(j) < groupCount; j++ {
-				i++
-				if !bytes.Equal(blkTxs[i].Header, header) {
-					valid = false
-					break
-				}
-				txs.Txs = append(txs.Txs, blkTxs[i])
-			}
-			if !valid {
-				continue
-			}
-			tx = txs.Tx()
+		if groupCount > 1 && i+groupCount <= len(blkTxs) {
+			txs := txs[i : i+groupCount]
+			group := types.Transactions{Txs: txs}
+			tx = group.Tx()
+			i = i + groupCount - 1
 		}
 		err := tx.Check(mem.minFee)
 		if err != nil {
-			i++
 			continue
 		}
-		if tx.IsExpire(mem.header.GetHeight(), mem.header.GetBlockTime()) {
-			i++
+		if !mem.checkExpireValid(tx) {
 			continue
 		}
 		mem.PushTx(tx)
-		i++
 	}
 }
 
@@ -389,6 +373,10 @@ func (mem *Mempool) CheckExpireValid(msg queue.Message) bool {
 		return false
 	}
 	tx := msg.GetData().(types.TxGroup).Tx()
+	return mem.checkExpireValid(tx)
+}
+
+func (mem *Mempool) checkExpireValid(tx *types.Transaction) bool {
 	if tx.IsExpire(mem.header.GetHeight(), mem.header.GetBlockTime()) {
 		return false
 	}
