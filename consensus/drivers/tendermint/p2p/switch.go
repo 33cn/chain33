@@ -10,7 +10,7 @@ import (
 
 	"math"
 
-	log "github.com/inconshreveable/log15"
+	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -32,6 +32,10 @@ const (
 	reconnectBackOffBaseSeconds = 3
 )
 
+var (
+	switchlog = log15.New("module", "tendermint-switch")
+)
+
 type Reactor interface {
 	cmn.Service
 	SetSwitch(*Switch)
@@ -50,7 +54,7 @@ type BaseReactor struct {
 
 func NewBaseReactor(name string, impl Reactor) *BaseReactor {
 	return &BaseReactor{
-		BaseService: *cmn.NewBaseService(nil, name, impl),
+		BaseService: *cmn.NewBaseService(name, impl),
 		Switch:      nil,
 	}
 }
@@ -143,7 +147,7 @@ func DefaultP2PConfig() *P2PConfig {
 		AddrBookStrict:          true,
 		MaxNumPeers:             50,
 		FlushThrottleTimeout:    100,
-		MaxMsgPacketPayloadSize: 1024,   // 1 kB
+		MaxMsgPacketPayloadSize: 51200,//50k  1024,   // 1 kB
 		SendRate:                512000, // 500 kB/s
 		RecvRate:                512000, // 500 kB/s
 		PexReactor:              true,
@@ -172,12 +176,8 @@ func NewSwitch(config *P2PConfig) *Switch {
 	sw.peerConfig.MConfig.RecvRate = config.RecvRate
 	sw.peerConfig.MConfig.maxMsgPacketPayloadSize = config.MaxMsgPacketPayloadSize
 
-	sw.BaseService = *cmn.NewBaseService(nil, "P2P Switch", sw)
+	sw.BaseService = *cmn.NewBaseService("P2P Switch", sw)
 	return sw
-}
-
-func (bs *Switch) SetLogger(l log.Logger) {
-	bs.Logger = l
 }
 
 // AddReactor adds the given reactor to the switch.
@@ -281,7 +281,7 @@ func (sw *Switch) OnStop() {
 		sw.peers.Remove(peer)
 	}
 	// Stop reactors
-	sw.Logger.Debug("Switch: Stopping reactors")
+	switchlog.Debug("Switch: Stopping reactors")
 	for _, reactor := range sw.reactors {
 		reactor.Stop()
 	}
@@ -333,7 +333,7 @@ func (sw *Switch) addPeer(peer *peer) error {
 		return err
 	}
 
-	sw.Logger.Info("Added peer", "peer", peer)
+	switchlog.Info("Added peer", "peer", peer)
 	return nil
 }
 
@@ -368,7 +368,7 @@ func (sw *Switch) startInitPeer(peer *peer) {
 	err := peer.Start() // spawn send/recv routines
 	if err != nil {
 		// Should never happen
-		sw.Logger.Error("Error starting peer", "peer", peer, "err", err)
+		switchlog.Error("Error starting peer", "peer", peer, "err", err)
 	}
 
 	for _, reactor := range sw.reactors {
@@ -380,7 +380,7 @@ func (sw *Switch) startInitPeer(peer *peer) {
 func (sw *Switch) DialSeeds(addrBook *AddrBook, seeds []string) error {
 	netAddrs, errs := NewNetAddressStrings(seeds)
 	for _, err := range errs {
-		sw.Logger.Error("Error in seed's address", "err", err)
+		switchlog.Error("Error in seed's address", "err", err)
 	}
 
 	if addrBook != nil {
@@ -418,9 +418,9 @@ func (sw *Switch) randomSleep(interval time.Duration) {
 func (sw *Switch) dialSeed(addr *NetAddress) {
 	peer, err := sw.DialPeerWithAddress(addr, true)
 	if err != nil {
-		sw.Logger.Error("Error dialing seed", "err", err)
+		switchlog.Error("Error dialing seed", "err", err)
 	} else {
-		sw.Logger.Info("Connected to seed", "peer", peer)
+		switchlog.Info("Connected to seed", "peer", peer)
 	}
 }
 
@@ -430,23 +430,22 @@ func (sw *Switch) DialPeerWithAddress(addr *NetAddress, persistent bool) (Peer, 
 	sw.dialing.Set(addr.IP.String(), addr)
 	defer sw.dialing.Delete(addr.IP.String())
 
-	sw.Logger.Info("Dialing peer", "address", addr)
+	switchlog.Info("Dialing peer", "address", addr)
 	peer, err := newOutboundPeer(addr, sw.reactorsByCh, sw.chDescs, sw.StopPeerForError, sw.nodePrivKey, sw.peerConfig)
 	if err != nil {
-		sw.Logger.Error("Failed to dial peer", "address", addr, "err", err)
+		switchlog.Error("Failed to dial peer", "address", addr, "err", err)
 		return nil, err
 	}
-	peer.SetLogger(sw.Logger)
 	if persistent {
 		peer.makePersistent()
 	}
 	err = sw.addPeer(peer)
 	if err != nil {
-		sw.Logger.Error("Failed to add peer", "address", addr, "err", err)
+		switchlog.Error("Failed to add peer", "address", addr, "err", err)
 		peer.CloseConn()
 		return nil, err
 	}
-	sw.Logger.Info("Dialed and added peer", "address", addr, "peer", peer)
+	switchlog.Info("Dialed and added peer", "address", addr, "peer", peer)
 	return peer, nil
 }
 
@@ -462,7 +461,7 @@ func (sw *Switch) IsDialing(addr *NetAddress) bool {
 // TODO: Something more intelligent.
 func (sw *Switch) Broadcast(chID byte, msg interface{}) chan bool {
 	successChan := make(chan bool, len(sw.peers.List()))
-	sw.Logger.Debug("Broadcast", "channel", chID, "msg", msg)
+	switchlog.Debug("Broadcast", "channel", chID, "msg", msg)
 	for _, peer := range sw.peers.List() {
 		go func(peer Peer) {
 			success := peer.Send(chID, msg)
@@ -495,7 +494,7 @@ func (sw *Switch) Peers() IPeerSet {
 // If the peer is persistent, it will attempt to reconnect.
 // TODO: make record depending on reason.
 func (sw *Switch) StopPeerForError(peer Peer, reason interface{}) {
-	sw.Logger.Error("Stopping peer for error", "peer", peer, "err", reason)
+	switchlog.Error("Stopping peer for error", "peer", peer, "err", reason)
 	sw.stopAndRemovePeer(peer, reason)
 
 	if peer.IsPersistent() {
@@ -511,7 +510,7 @@ func (sw *Switch) reconnectToPeer(peer Peer) {
 
 	addr, _ := NewNetAddressString(peer.NodeInfo().RemoteAddr)
 	start := time.Now()
-	sw.Logger.Info("Reconnecting to peer", "peer", peer)
+	switchlog.Info("Reconnecting to peer", "peer", peer)
 
 	for i := 0; i < reconnectAttempts; i++ {
 		if !sw.IsRunning() {
@@ -520,17 +519,17 @@ func (sw *Switch) reconnectToPeer(peer Peer) {
 
 		peer, err := sw.DialPeerWithAddress(addr, true)
 		if err != nil {
-			sw.Logger.Error("Error reconnecting to peer. Trying again", "tries", i, "err", err, "peer", peer)
+			switchlog.Error("Error reconnecting to peer. Trying again", "tries", i, "err", err, "peer", peer)
 			// sleep a set amount
 			sw.randomSleep(reconnectInterval)
 			continue
 		} else {
-			sw.Logger.Info("Reconnected to peer", "peer", peer)
+			switchlog.Info("Reconnected to peer", "peer", peer)
 			return
 		}
 	}
 
-	sw.Logger.Error("Failed to reconnect to peer. Beginning exponential backoff",
+	switchlog.Error("Failed to reconnect to peer. Beginning exponential backoff",
 		"peer", peer, "elapsed", time.Since(start))
 	for i := 0; i < reconnectBackOffAttempts; i++ {
 		if !sw.IsRunning() {
@@ -542,20 +541,20 @@ func (sw *Switch) reconnectToPeer(peer Peer) {
 		sw.randomSleep(time.Duration(sleepIntervalSeconds) * time.Second)
 		peer, err := sw.DialPeerWithAddress(addr, true)
 		if err != nil {
-			sw.Logger.Error("Error reconnecting to peer. Trying again", "tries", i, "err", err, "peer", peer)
+			switchlog.Error("Error reconnecting to peer. Trying again", "tries", i, "err", err, "peer", peer)
 			continue
 		} else {
-			sw.Logger.Info("Reconnected to peer", "peer", peer)
+			switchlog.Info("Reconnected to peer", "peer", peer)
 			return
 		}
 	}
-	sw.Logger.Error("Failed to reconnect to peer. Giving up", "peer", peer, "elapsed", time.Since(start))
+	switchlog.Error("Failed to reconnect to peer. Giving up", "peer", peer, "elapsed", time.Since(start))
 }
 
 // StopPeerGracefully disconnects from a peer gracefully.
 // TODO: handle graceful disconnects.
 func (sw *Switch) StopPeerGracefully(peer Peer) {
-	sw.Logger.Info("Stopping peer gracefully")
+	switchlog.Info("Stopping peer gracefully")
 	sw.stopAndRemovePeer(peer, nil)
 }
 
@@ -577,14 +576,14 @@ func (sw *Switch) listenerRoutine(l Listener) {
 		// ignore connection if we already have enough
 		maxPeers := sw.config.MaxNumPeers
 		if maxPeers <= sw.peers.Size() {
-			sw.Logger.Debug("Ignoring inbound connection: already have enough peers", "address", inConn.RemoteAddr().String(), "numPeers", sw.peers.Size(), "max", maxPeers)
+			switchlog.Debug("Ignoring inbound connection: already have enough peers", "address", inConn.RemoteAddr().String(), "numPeers", sw.peers.Size(), "max", maxPeers)
 			continue
 		}
 
 		// New inbound connection!
 		err := sw.addPeerWithConnectionAndConfig(inConn, sw.peerConfig)
 		if err != nil {
-			sw.Logger.Info("Ignoring inbound connection: error while adding peer", "address", inConn.RemoteAddr().String(), "err", err)
+			switchlog.Info("Ignoring inbound connection: error while adding peer", "address", inConn.RemoteAddr().String(), "err", err)
 			continue
 		}
 
@@ -691,11 +690,10 @@ func (sw *Switch) addPeerWithConnection(conn net.Conn) error {
 	peer, err := newInboundPeer(conn, sw.reactorsByCh, sw.chDescs, sw.StopPeerForError, sw.nodePrivKey, sw.peerConfig)
 	if err != nil {
 		if err := conn.Close(); err != nil {
-			sw.Logger.Error("Error closing connection", "err", err)
+			switchlog.Error("Error closing connection", "err", err)
 		}
 		return err
 	}
-	peer.SetLogger(sw.Logger)
 	if err = sw.addPeer(peer); err != nil {
 		peer.CloseConn()
 		return err
@@ -708,11 +706,10 @@ func (sw *Switch) addPeerWithConnectionAndConfig(conn net.Conn, config *PeerConf
 	peer, err := newInboundPeer(conn, sw.reactorsByCh, sw.chDescs, sw.StopPeerForError, sw.nodePrivKey, config)
 	if err != nil {
 		if err := conn.Close(); err != nil {
-			sw.Logger.Error("Error closing connection", "err", err)
+			switchlog.Error("Error closing connection", "err", err)
 		}
 		return err
 	}
-	peer.SetLogger(sw.Logger)
 	if err = sw.addPeer(peer); err != nil {
 		peer.CloseConn()
 		return err

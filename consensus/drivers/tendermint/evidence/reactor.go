@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	log "github.com/inconshreveable/log15"
+	"github.com/inconshreveable/log15"
 
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/p2p"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
@@ -18,12 +18,15 @@ const (
 	broadcastEvidenceIntervalS = 60      // broadcast uncommitted evidence this often
 )
 
+var (
+	erlog = log15.New("module", "tendermint-evidence-reactor")
+)
+
 // EvidenceReactor handles evpool evidence broadcasting amongst peers.
 type EvidenceReactor struct {
 	p2p.BaseReactor
 	evpool   *EvidencePool
 	eventBus *types.EventBus
-	Logger   log.Logger
 	Quit     chan struct{}
 }
 
@@ -34,12 +37,6 @@ func NewEvidenceReactor(evpool *EvidencePool) *EvidenceReactor {
 	}
 	evR.BaseReactor = *p2p.NewBaseReactor("EvidenceReactor", evR)
 	return evR
-}
-
-// SetLogger sets the Logger on the reactor and the underlying Evidence.
-func (evR *EvidenceReactor) SetLogger(l log.Logger) {
-	evR.Logger = l
-	evR.evpool.SetLogger(l)
 }
 
 // OnStart implements cmn.Service
@@ -86,16 +83,16 @@ func (evR *EvidenceReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 	envelope := types.MsgEnvelope{}
 	err := json.Unmarshal(msgBytes, &envelope)
 	if err != nil {
-		evR.Logger.Error("Error decoding message", "err", err)
+		erlog.Error("Error decoding message", "err", err)
 		return
 	}
-	//evR.Logger.Debug("Receive", "src", src, "chId", chID)
+	//erlog.Debug("Receive", "src", src, "chId", chID)
 
 	if v, ok := types.MsgMap[envelope.Kind]; ok {
 		msg := v.(types.ReactorMsg).Copy()
 		err = json.Unmarshal(*envelope.Data, &msg)
 		if err != nil {
-			evR.Logger.Error("EvidenceReactor Receive Unmarshal data failed:%v\n", err)
+			erlog.Error("EvidenceReactor Receive Unmarshal data failed:%v\n", err)
 			return
 		}
 		switch msg := msg.(type) {
@@ -103,15 +100,15 @@ func (evR *EvidenceReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 			for _, ev := range msg.Evidence {
 				err := evR.evpool.AddEvidence(ev)
 				if err != nil {
-					evR.Logger.Error("Evidence is not valid", "evidence", msg.Evidence, "err", err)
+					erlog.Error("Evidence is not valid", "evidence", msg.Evidence, "err", err)
 					// TODO: punish peer
 				}
 			}
 		default:
-			evR.Logger.Error(fmt.Sprintf("Unknown message type %v", msg.TypeName()))
+			erlog.Error(fmt.Sprintf("Unknown message type %v", msg.TypeName()))
 		}
 	} else {
-		evR.Logger.Error("not find ReactorMsg kind", "kind", envelope.Kind)
+		erlog.Error("not find ReactorMsg kind", "kind", envelope.Kind)
 	}
 }
 

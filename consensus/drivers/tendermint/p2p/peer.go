@@ -7,7 +7,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	log "github.com/inconshreveable/log15"
+	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"io"
 	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
@@ -16,6 +16,9 @@ import (
 	"encoding/binary"
 )
 
+var (
+	peerlog = log15.New("module", "tendermint-peer")
+)
 // Peer is an interface representing a peer connected on a reactor.
 type Peer interface {
 	cmn.Service
@@ -124,14 +127,9 @@ func newPeerFromConnAndConfig(rawConn net.Conn, outbound bool, reactorsByCh map[
 
 	p.mconn = createMConnection(conn, p, reactorsByCh, chDescs, onPeerError, config.MConfig)
 
-	p.BaseService = *cmn.NewBaseService(nil, "Peer", p)
+	p.BaseService = *cmn.NewBaseService("Peer", p)
 
 	return p, nil
-}
-
-func (p *peer) SetLogger(l log.Logger) {
-	p.Logger = l
-	p.mconn.SetLogger(l)
 }
 
 // CloseConn should be used when the peer was created, but never started.
@@ -180,7 +178,7 @@ func (p *peer) HandshakeTimeout(ourNodeInfo *NodeInfo, timeout time.Duration) er
 		func() {
 			info, err1 := json.Marshal(ourNodeInfoTrans)
 			if err1 != nil {
-				p.Logger.Error("Peer handshake peerNodeInfo failed", "err", err1)
+				peerlog.Error("Peer handshake peerNodeInfo failed", "err", err1)
 				return
 			} else {
 				frame := make([]byte, 4)
@@ -219,7 +217,7 @@ func (p *peer) HandshakeTimeout(ourNodeInfo *NodeInfo, timeout time.Duration) er
 			peerNodeInfo.Other = peerNodeInfoTrans.Other
 			//var n int
 			//wire.ReadBinary(peerNodeInfo, p.conn, maxNodeInfoSize, &n, &err2)
-			p.Logger.Info("Peer handshake", "peerNodeInfo", peerNodeInfo)
+			peerlog.Info("Peer handshake", "peerNodeInfo", peerNodeInfo)
 		})
 	if err1 != nil {
 		return errors.Wrap(err1, "Error during handshake/write")

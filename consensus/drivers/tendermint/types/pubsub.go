@@ -65,7 +65,7 @@ func NewServer(options ...Option) *Server {
 	s := &Server{
 		subscriptions: make(map[string]map[string]struct{}),
 	}
-	s.BaseService = *cmn.NewBaseService(nil, "PubSub", s)
+	s.BaseService = *cmn.NewBaseService("PubSub", s)
 
 	for _, option := range options {
 		option(s)

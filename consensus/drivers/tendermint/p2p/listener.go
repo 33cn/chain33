@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	log "github.com/inconshreveable/log15"
+	"github.com/inconshreveable/log15"
 	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/p2p/upnp"
 )
@@ -35,6 +35,9 @@ const (
 	tryListenSeconds       = 5
 )
 
+var (
+	listenerlog = log15.New("module", "tendermint-listener")
+)
 func splitHostPort(addr string) (host string, port int) {
 	host, portStr, err := net.SplitHostPort(addr)
 	if err != nil {
@@ -48,7 +51,7 @@ func splitHostPort(addr string) (host string, port int) {
 }
 
 // skipUPNP: If true, does not try getUPNPExternalAddress()
-func NewDefaultListener(protocol string, lAddr string, skipUPNP bool, logger log.Logger) Listener {
+func NewDefaultListener(protocol string, lAddr string, skipUPNP bool) Listener {
 	// Local listen IP & port
 	lAddrIP, lAddrPort := splitHostPort(lAddr)
 
@@ -68,7 +71,7 @@ func NewDefaultListener(protocol string, lAddr string, skipUPNP bool, logger log
 	}
 	// Actual listener local IP & port
 	listenerIP, listenerPort := splitHostPort(listener.Addr().String())
-	logger.Info("Local listener", "ip", listenerIP, "port", listenerPort)
+	listenerlog.Info("Local listener", "ip", listenerIP, "port", listenerPort)
 
 	// Determine internal address...
 	var intAddr *NetAddress
@@ -82,12 +85,12 @@ func NewDefaultListener(protocol string, lAddr string, skipUPNP bool, logger log
 	if !skipUPNP {
 		// If the lAddrIP is INADDR_ANY, try UPnP
 		if lAddrIP == "" || lAddrIP == "0.0.0.0" {
-			extAddr = getUPNPExternalAddress(lAddrPort, listenerPort, logger)
+			extAddr = getUPNPExternalAddress(lAddrPort, listenerPort)
 		}
 	}
 	// Otherwise just use the local address...
 	if extAddr == nil {
-		extAddr = getNaiveExternalAddress(listenerPort, false, logger)
+		extAddr = getNaiveExternalAddress(listenerPort, false)
 	}
 	if extAddr == nil {
 		panic("Could not determine external address!")
@@ -99,10 +102,10 @@ func NewDefaultListener(protocol string, lAddr string, skipUPNP bool, logger log
 		extAddr:     extAddr,
 		connections: make(chan net.Conn, numBufferedConnections),
 	}
-	dl.BaseService = *cmn.NewBaseService(logger, "DefaultListener", dl)
+	dl.BaseService = *cmn.NewBaseService("DefaultListener", dl)
 	err = dl.Start() // Started upon construction
 	if err != nil {
-		logger.Error("Error starting base service", "err", err)
+		listenerlog.Error("Error starting base service", "err", err)
 	}
 	return dl
 }
@@ -172,17 +175,17 @@ func (l *DefaultListener) String() string {
 /* external address helpers */
 
 // UPNP external address discovery & port mapping
-func getUPNPExternalAddress(externalPort, internalPort int, logger log.Logger) *NetAddress {
-	logger.Info("Getting UPNP external address")
+func getUPNPExternalAddress(externalPort, internalPort int) *NetAddress {
+	listenerlog.Info("Getting UPNP external address")
 	nat, err := upnp.Discover()
 	if err != nil {
-		logger.Info("Could not perform UPNP discover", "err", err)
+		listenerlog.Info("Could not perform UPNP discover", "err", err)
 		return nil
 	}
 
 	ext, err := nat.GetExternalAddress()
 	if err != nil {
-		logger.Info("Could not get UPNP external address", "err", err)
+		listenerlog.Info("Could not get UPNP external address", "err", err)
 		return nil
 	}
 
@@ -193,16 +196,16 @@ func getUPNPExternalAddress(externalPort, internalPort int, logger log.Logger) *
 
 	externalPort, err = nat.AddPortMapping("tcp", externalPort, internalPort, "tendermint", 0)
 	if err != nil {
-		logger.Info("Could not add UPNP port mapping", "err", err)
+		listenerlog.Info("Could not add UPNP port mapping", "err", err)
 		return nil
 	}
 
-	logger.Info("Got UPNP external address", "address", ext)
+	listenerlog.Info("Got UPNP external address", "address", ext)
 	return NewNetAddressIPPort(ext, uint16(externalPort))
 }
 
 // TODO: use syscalls: see issue #712
-func getNaiveExternalAddress(port int, settleForLocal bool, logger log.Logger) *NetAddress {
+func getNaiveExternalAddress(port int, settleForLocal bool) *NetAddress {
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
 		panic(cmn.Fmt("Could not fetch interface addresses: %v", err))
@@ -221,6 +224,6 @@ func getNaiveExternalAddress(port int, settleForLocal bool, logger log.Logger) *
 	}
 
 	// try again, but settle for local
-	logger.Info("Node may not be connected to internet. Settling for local address")
-	return getNaiveExternalAddress(port, true, logger)
+	listenerlog.Info("Node may not be connected to internet. Settling for local address")
+	return getNaiveExternalAddress(port, true)
 }

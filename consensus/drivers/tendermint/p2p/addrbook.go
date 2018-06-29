@@ -17,7 +17,7 @@ import (
 
 	"crypto/sha256"
 
-	log "github.com/inconshreveable/log15"
+	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
 )
@@ -79,6 +79,9 @@ const (
 	bucketTypeOld = 0x02
 )
 
+var (
+	addbooklog = log15.New("module", "tendermint-addbook")
+)
 // AddrBook - concurrency safe peer address manager.
 type AddrBook struct {
 	//cmn.BaseService
@@ -99,7 +102,6 @@ type AddrBook struct {
 	nNew       int
 
 	wg     sync.WaitGroup
-	Logger log.Logger
 	Quit   chan struct{}
 }
 
@@ -114,9 +116,6 @@ func NewAddrBook(filePath string, routabilityStrict bool) *AddrBook {
 		routabilityStrict: routabilityStrict,
 	}
 	am.init()
-	if am.Logger == nil {
-		am.Logger = log.New("module", "tendermint-AddrBook")
-	}
 	//am.BaseService = *cmn.NewBaseService(nil, "AddrBook", am)
 	return am
 }
@@ -166,7 +165,7 @@ func (a *AddrBook) Wait() {
 func (a *AddrBook) AddOurAddress(addr *NetAddress) {
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
-	a.Logger.Info("Add our address to book", "addr", addr)
+	addbooklog.Info("Add our address to book", "addr", addr)
 	a.ourAddrs[addr.String()] = addr
 }
 
@@ -293,7 +292,7 @@ func (a *AddrBook) RemoveAddress(addr *NetAddress) {
 	if ka == nil {
 		return
 	}
-	a.Logger.Info("Remove address from book", "addr", addr)
+	addbooklog.Info("Remove address from book", "addr", addr)
 	a.removeFromAllBuckets(ka)
 }
 
@@ -341,7 +340,7 @@ type addrBookJSON struct {
 }
 
 func (a *AddrBook) saveToFile(filePath string) {
-	a.Logger.Info("Saving AddrBook to file", "size", a.Size())
+	addbooklog.Info("Saving AddrBook to file", "size", a.Size())
 
 	a.mtx.Lock()
 	defer a.mtx.Unlock()
@@ -358,12 +357,12 @@ func (a *AddrBook) saveToFile(filePath string) {
 
 	jsonBytes, err := json.MarshalIndent(aJSON, "", "\t")
 	if err != nil {
-		a.Logger.Error("Failed to save AddrBook to file", "err", err)
+		addbooklog.Error("Failed to save AddrBook to file", "err", err)
 		return
 	}
 	err = cmn.WriteFileAtomic(filePath, jsonBytes, 0644)
 	if err != nil {
-		a.Logger.Error("Failed to save AddrBook to file", "file", filePath, "err", err)
+		addbooklog.Error("Failed to save AddrBook to file", "file", filePath, "err", err)
 	}
 }
 
@@ -410,7 +409,7 @@ func (a *AddrBook) loadFromFile(filePath string) bool {
 
 // Save saves the book.
 func (a *AddrBook) Save() {
-	a.Logger.Info("Saving AddrBook to file", "size", a.Size())
+	addbooklog.Info("Saving AddrBook to file", "size", a.Size())
 	a.saveToFile(a.filePath)
 }
 
@@ -431,7 +430,7 @@ out:
 	}
 	saveFileTicker.Stop()
 	a.saveToFile(a.filePath)
-	a.Logger.Info("Address handler done")
+	addbooklog.Info("Address handler done")
 }
 
 func (a *AddrBook) getBucket(bucketType byte, bucketIdx int) map[string]*knownAddress {
@@ -451,7 +450,7 @@ func (a *AddrBook) getBucket(bucketType byte, bucketIdx int) map[string]*knownAd
 func (a *AddrBook) addToNewBucket(ka *knownAddress, bucketIdx int) bool {
 	// Sanity check
 	if ka.isOld() {
-		a.Logger.Error(cmn.Fmt("Cannot add address already in old bucket to a new bucket: %v", ka))
+		addbooklog.Error(cmn.Fmt("Cannot add address already in old bucket to a new bucket: %v", ka))
 		return false
 	}
 
@@ -465,7 +464,7 @@ func (a *AddrBook) addToNewBucket(ka *knownAddress, bucketIdx int) bool {
 
 	// Enforce max addresses.
 	if len(bucket) > newBucketSize {
-		a.Logger.Info("new bucket is full, expiring old ")
+		addbooklog.Info("new bucket is full, expiring old ")
 		a.expireNew(bucketIdx)
 	}
 
@@ -485,11 +484,11 @@ func (a *AddrBook) addToNewBucket(ka *knownAddress, bucketIdx int) bool {
 func (a *AddrBook) addToOldBucket(ka *knownAddress, bucketIdx int) bool {
 	// Sanity check
 	if ka.isNew() {
-		a.Logger.Error(cmn.Fmt("Cannot add new address to old bucket: %v", ka))
+		addbooklog.Error(cmn.Fmt("Cannot add new address to old bucket: %v", ka))
 		return false
 	}
 	if len(ka.Buckets) != 0 {
-		a.Logger.Error(cmn.Fmt("Cannot add already old address to another old bucket: %v", ka))
+		addbooklog.Error(cmn.Fmt("Cannot add already old address to another old bucket: %v", ka))
 		return false
 	}
 
@@ -520,7 +519,7 @@ func (a *AddrBook) addToOldBucket(ka *knownAddress, bucketIdx int) bool {
 
 func (a *AddrBook) removeFromBucket(ka *knownAddress, bucketType byte, bucketIdx int) {
 	if ka.BucketType != bucketType {
-		a.Logger.Error(cmn.Fmt("Bucket type mismatch: %v", ka))
+		addbooklog.Error(cmn.Fmt("Bucket type mismatch: %v", ka))
 		return
 	}
 	bucket := a.getBucket(bucketType, bucketIdx)
@@ -592,7 +591,7 @@ func (a *AddrBook) addAddress(addr, src *NetAddress) error {
 	bucket := a.calcNewBucket(addr, src)
 	a.addToNewBucket(ka, bucket)
 
-	a.Logger.Info("Added new address", "address", addr, "total", a.size())
+	addbooklog.Info("Added new address", "address", addr, "total", a.size())
 	return nil
 }
 
@@ -602,7 +601,7 @@ func (a *AddrBook) expireNew(bucketIdx int) {
 	for addrStr, ka := range a.bucketsNew[bucketIdx] {
 		// If an entry is bad, throw it away
 		if ka.isBad() {
-			a.Logger.Info(cmn.Fmt("expiring bad address %v", addrStr))
+			addbooklog.Info(cmn.Fmt("expiring bad address %v", addrStr))
 			a.removeFromBucket(ka, bucketTypeNew, bucketIdx)
 			return
 		}
@@ -619,11 +618,11 @@ func (a *AddrBook) expireNew(bucketIdx int) {
 func (a *AddrBook) moveToOld(ka *knownAddress) {
 	// Sanity check
 	if ka.isOld() {
-		a.Logger.Error(cmn.Fmt("Cannot promote address that is already old %v", ka))
+		addbooklog.Error(cmn.Fmt("Cannot promote address that is already old %v", ka))
 		return
 	}
 	if len(ka.Buckets) == 0 {
-		a.Logger.Error(cmn.Fmt("Cannot promote address that isn't in any new buckets %v", ka))
+		addbooklog.Error(cmn.Fmt("Cannot promote address that isn't in any new buckets %v", ka))
 		return
 	}
 
@@ -648,13 +647,13 @@ func (a *AddrBook) moveToOld(ka *knownAddress) {
 		if !added {
 			added := a.addToNewBucket(oldest, freedBucket)
 			if !added {
-				a.Logger.Error(cmn.Fmt("Could not migrate oldest %v to freedBucket %v", oldest, freedBucket))
+				addbooklog.Error(cmn.Fmt("Could not migrate oldest %v to freedBucket %v", oldest, freedBucket))
 			}
 		}
 		// Finally, add to bucket again.
 		added = a.addToOldBucket(ka, oldBucketIdx)
 		if !added {
-			a.Logger.Error(cmn.Fmt("Could not re-add ka %v to oldBucketIdx %v", ka, oldBucketIdx))
+			addbooklog.Error(cmn.Fmt("Could not re-add ka %v to oldBucketIdx %v", ka, oldBucketIdx))
 		}
 	}
 }

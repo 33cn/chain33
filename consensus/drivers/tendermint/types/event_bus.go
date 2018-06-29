@@ -3,7 +3,6 @@ package types
 import (
 	"context"
 
-	log "github.com/inconshreveable/log15"
 	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
 )
 
@@ -33,13 +32,8 @@ func NewEventBusWithBufferCapacity(cap int) *EventBus {
 	// capacity could be exposed later if needed
 	pubsub := NewServer(BufferCapacity(cap))
 	b := &EventBus{pubsub: pubsub}
-	b.BaseService = *cmn.NewBaseService(nil, "EventBus", b)
+	b.BaseService = *cmn.NewBaseService("EventBus", b)
 	return b
-}
-
-func (b *EventBus) SetLogger(l log.Logger) {
-	b.BaseService.SetLogger(l)
-	b.pubsub.SetLogger(l.New("module", "tendermint-pubsub"))
 }
 
 func (b *EventBus) OnStart() error {

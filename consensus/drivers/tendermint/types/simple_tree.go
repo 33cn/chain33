@@ -30,11 +30,11 @@ import (
 
 	"golang.org/x/crypto/ripemd160"
 	"encoding/json"
-	log "github.com/inconshreveable/log15"
+	"github.com/inconshreveable/log15"
 	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
 )
 
-var commonlog = log.New("module", "tendermint-common")
+var commonlog = log15.New("module", "tendermint-common")
 
 func SimpleHashFromTwoHashes(left []byte, right []byte) []byte {
 

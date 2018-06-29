@@ -4,13 +4,13 @@ import (
 	"gitlab.33.cn/chain33/chain33/consensus/drivers"
 	"fmt"
 	gtypes "gitlab.33.cn/chain33/chain33/types"
-	log "github.com/inconshreveable/log15"
+	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
 	"sync"
 	"errors"
 )
 
-var csStateLog = log.New("module", "tendermint-stateDB")
+var csStateLog = log15.New("module", "tendermint-stateDB")
 
 type CSStateDB struct {
 	client *drivers.BaseClient
