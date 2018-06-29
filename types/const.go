@@ -80,7 +80,7 @@ func SetTestNetFork() {
 	ForkV16Withdraw = 480000
 	ForkV17EVM = 500000
 	ForkV18Relay = 570000
-	ForkV19TokenPrice = 580000
+	ForkV19TokenPrice = 560000
 }
 
 func SetForkToOne() {
