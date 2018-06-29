@@ -116,7 +116,7 @@ func (client *Client) FilterTxsForPara(Txs []*types.Transaction) []*types.Transa
 func (client *Client) GetBlockedSeq() int64 {
 	lastBlock := client.GetCurrentBlock()
 	if lastBlock.Height == 0 {
-		return 0
+		return -1
 	}
 	return client.GetSeqByBlockhash(lastBlock.Hash())
 }
@@ -206,7 +206,9 @@ func (client *Client) RequestTx(currSeq int64) ([]*types.Transaction, int64, int
 
 		return txs, height, seqTy, nil
 	}
-	return nil, -1, -1, errors.New("Waiting new sequence from main chain")
+	plog.Info("Waiting new sequence from main chain")
+	time.Sleep(time.Second * time.Duration(blockSec*2))
+	return nil, -1, -1, errors.New("Waiting new sequence")
 }
 
 var seqMap map[string]int64
@@ -234,6 +236,10 @@ func (client *Client) CreateBlock() {
 		}
 		lastBlock := client.GetCurrentBlock()
 		blockedSeq := client.GetBlockedSeq()
+		//sequence in main chain start from 0
+		if blockedSeq == -1 {
+			blockedSeq = 0
+		}
 		blockOnMain, _, err := client.GetBlockOnMainBySeq(blockedSeq)
 		if err != nil {
 			incSeqFlag = false
@@ -252,10 +258,11 @@ func (client *Client) CreateBlock() {
 				plog.Info("Delete empty block")
 			}
 			err := client.DelBlock(lastBlock, currSeq)
-			incSeqFlag = false
 			if err != nil {
+				incSeqFlag = false
 				continue
 			}
+			incSeqFlag = true
 			time.Sleep(time.Second * time.Duration(blockSec))
 		} else if seqTy == AddAct {
 			if len(txs) == 0 {
