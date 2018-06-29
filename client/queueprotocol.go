@@ -53,8 +53,8 @@ func New(client queue.Client, option *QueueProtocolOption) (QueueProtocolAPI, er
 	if option != nil {
 		q.option = *option
 	} else {
-		q.option.SendTimeout = 120 * time.Second
-		q.option.WaitTimeout = 60 * time.Second
+		q.option.SendTimeout = 600 * time.Second
+		q.option.WaitTimeout = 600 * time.Second
 	}
 	return q, nil
 }
@@ -784,6 +784,10 @@ func (q *QueueProtocol) GetFatalFailure() (*types.Int32, error) {
 		return reply, nil
 	}
 	return nil, types.ErrTypeAsset
+}
+
+func (q *QueueProtocol) CloseQueue() (*types.Reply, error) {
+	return q.client.CloseQueue()
 }
 func (q *QueueProtocol) GetLastBlockSequence() (*types.Int64, error) {
 	msg, err := q.query(blockchainKey, types.EventGetLastBlockSequence, &types.ReqNil{})

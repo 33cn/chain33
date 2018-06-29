@@ -42,7 +42,7 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	random = rand.New(rand.NewSource(time.Now().UnixNano()))
+	random = rand.New(rand.NewSource(types.Now().UnixNano()))
 	//common.SetLogLevel("info")
 }
 func TestPbft(t *testing.T) {
