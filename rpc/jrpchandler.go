@@ -851,48 +851,61 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		return nil, types.ErrEmpty
 	}
 	var pl interface{}
+	type unkownPl struct{ payload []byte }
 	if "coins" == string(tx.Execer) {
 		var action types.CoinsAction
 		err := types.Decode(tx.GetPayload(), &action)
 		if err != nil {
-			return nil, err
+			pl = unkownPl{tx.GetPayload()}
+			// return nil, err
+		} else {
+			pl = &action
 		}
-		pl = &action
 	} else if "ticket" == string(tx.Execer) {
 		var action types.TicketAction
 		err := types.Decode(tx.GetPayload(), &action)
 		if err != nil {
-			return nil, err
+			pl = unkownPl{tx.GetPayload()}
+			// return nil, err
+		} else {
+			pl = &action
 		}
-		pl = &action
 	} else if "hashlock" == string(tx.Execer) {
 		var action types.HashlockAction
 		err := types.Decode(tx.GetPayload(), &action)
 		if err != nil {
-			return nil, err
+			pl = unkownPl{tx.GetPayload()}
+			// return nil, err
+		} else {
+			pl = &action
 		}
-		pl = &action
 	} else if "token" == string(tx.Execer) {
 		var action types.TokenAction
 		err := types.Decode(tx.GetPayload(), &action)
 		if err != nil {
-			return nil, err
+			pl = unkownPl{tx.GetPayload()}
+			// return nil, err
+		} else {
+			pl = &action
 		}
-		pl = &action
 	} else if "trade" == string(tx.Execer) {
 		var action types.Trade
 		err := types.Decode(tx.GetPayload(), &action)
 		if err != nil {
-			return nil, err
+			pl = unkownPl{tx.GetPayload()}
+			// return nil, err
+		} else {
+			pl = &action
 		}
-		pl = &action
 	} else if "evm" == string(tx.Execer) {
 		var action types.EVMContractAction
 		err := types.Decode(tx.GetPayload(), &action)
 		if err != nil {
-			return nil, err
+			pl = unkownPl{tx.GetPayload()}
+			// return nil, err
+		} else {
+			pl = &action
 		}
-		pl = &action
 	} else if "user.write" == string(tx.Execer) {
 		pl = decodeUserWrite(tx.GetPayload())
 	} else {

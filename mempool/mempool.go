@@ -1,6 +1,7 @@
 package mempool
 
 import (
+	"bytes"
 	"sync"
 	"time"
 
@@ -203,25 +204,50 @@ func (mem *Mempool) DelBlock(block *types.Block) {
 		return
 	}
 	blkTxs := block.Txs
-	for _, tx := range blkTxs {
+	i := 0
+	for i < len(blkTxs) {
+		tx := blkTxs[i]
 		if "ticket" == string(tx.Execer) {
 			var action types.TicketAction
 			err := types.Decode(tx.Payload, &action)
 			if err != nil {
+				i++
 				continue
 			}
 			if action.Ty == types.TicketActionMiner && action.GetMiner() != nil {
+				i++
 				continue
 			}
 		}
+		groupCount := tx.GetGroupCount()
+		if groupCount > 1 {
+			txs := &types.Transactions{}
+			header := tx.Header
+			valid := true
+			for j := 0; int32(j) < groupCount; j++ {
+				i++
+				if !bytes.Equal(blkTxs[i].Header, header) {
+					valid = false
+					break
+				}
+				txs.Txs = append(txs.Txs, blkTxs[i])
+			}
+			if !valid {
+				continue
+			}
+			tx = txs.Tx()
+		}
 		err := tx.Check(mem.minFee)
 		if err != nil {
+			i++
 			continue
 		}
 		if tx.IsExpire(mem.header.GetHeight(), mem.header.GetBlockTime()) {
+			i++
 			continue
 		}
 		mem.PushTx(tx)
+		i++
 	}
 }
 

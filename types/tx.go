@@ -388,6 +388,10 @@ func (tx *Transaction) GetRealFee(minFee int64) (int64, error) {
 var expireBound int64 = 1000000000 // 交易过期分界线，小于expireBound比较height，大于expireBound比较blockTime
 
 func (tx *Transaction) IsExpire(height, blocktime int64) bool {
+	group, _ := tx.GetTxGroup()
+	if group != nil {
+		return group.IsExpire(height, blocktime)
+	}
 	return tx.isExpire(height, blocktime)
 }
 
