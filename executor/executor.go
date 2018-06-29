@@ -250,6 +250,10 @@ func isAllowExec(key, txexecer []byte, toaddr string, height int64) bool {
 		}
 	}
 
+	if bytes.HasPrefix(txexecer, []byte(types.ExecNamePrefix)) {
+		return true
+	}
+
 	return false
 }
 
@@ -525,6 +529,7 @@ func (e *executor) loadDriverForExec(exector string, height int64) (c drivers.Dr
 	exec, err := drivers.LoadDriver(exector, height)
 	if err != nil {
 		exec, err = drivers.LoadDriver("none", height)
+		elog.Debug("loadDriverForExec", "none", height)
 		if err != nil {
 			panic(err)
 		}

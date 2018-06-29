@@ -1,4 +1,4 @@
-Title="chain33"
+Title="parachain"
 # TestNet=true
 
 [log]
@@ -81,7 +81,7 @@ driver="leveldb"
 dbPath="parawallet"
 dbCache=16
 signType="secp256k1"
-minerdisable=false
+minerdisable=true
 
 [exec]
 isFree=true

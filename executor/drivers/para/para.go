@@ -7,9 +7,11 @@ import (
 )
 
 var clog = log.New("module", "execs.para")
+var keyPart string
 
 func Init() {
-	drivers.Register(newPara().GetName(), newPara, 0)
+	keyPart = "mavl-user.para-"
+	drivers.Register("user."+newPara().GetName(), newPara, 0)
 }
 
 type Para struct {
@@ -24,7 +26,7 @@ func newPara() drivers.Driver {
 }
 
 func (p *Para) GetName() string {
-	return "user.para"
+	return "para"
 }
 
 func (p *Para) GetActionValue(tx *types.Transaction) (*types.ParaAction, error) {
@@ -49,7 +51,7 @@ func (p *Para) GetActionName(tx *types.Transaction) string {
 }
 
 func Key(str string) (key []byte) {
-	key = append(key, []byte("mavl-user.para-")...)
+	key = append(key, []byte(keyPart)...)
 	key = append(key, str...)
 	return key
 }
