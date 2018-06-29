@@ -1,9 +1,8 @@
-package state
+package tendermint
 
 import (
 	"fmt"
 
-	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
 	"sync"
 	"errors"
@@ -22,7 +21,6 @@ type ValidatorsCache struct {
 
 var (
 	validatorsCache ValidatorsCache
-	executionlog = log15.New("module", "tendermint-execution")
 )
 
 func InitValidatorsCache(vals *types.ValidatorSet) {
@@ -180,7 +178,7 @@ func updateState( s State, blockID types.BlockID, block *types.Block) (State, er
 	if len(validatorUpdates) > 0 {
 		err := updateValidators(nextValSet, validatorUpdates)
 		if err != nil {
-			executionlog.Error("Error changing validator set", "error", err)
+			tendermintlog.Error("Error changing validator set", "error", err)
 			//return s, fmt.Errorf("Error changing validator set: %v", err)
 		}
 		// change results from this height but only applies to the next height

@@ -1,14 +1,9 @@
-package core
+package tendermint
 
 import (
-	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
 	"sync"
 	"errors"
-)
-
-var (
-	roundRobinQueueLog = log15.New("module", "tendermint-RRqueue")
 )
 
 type BaseQueue struct {
@@ -25,13 +20,13 @@ func (bq *BaseQueue) InitQueue(capacity int) {
 	bq.mutex.Lock()
 	defer bq.mutex.Unlock()
 	if capacity <= 0 {
-		roundRobinQueueLog.Error("InitQueue:Queue capacity must > 0")
+		tendermintlog.Error("InitQueue:Queue capacity must > 0")
 		return
 	}
 	if bq.oldProposal == nil {
 		bq.oldProposal = make([]*types.Proposal, capacity+1)
 	} else {
-		roundRobinQueueLog.Error("InitQueue:Queue already inited or not clear last time")
+		tendermintlog.Error("InitQueue:Queue already inited or not clear last time")
 		panic("Queue already inited or not clear last time")
 	}
 	bq.front = 0
@@ -47,7 +42,7 @@ func (bq *BaseQueue) ClearQueue() {
 	if bq.oldProposal == nil {
 		bq.front = 0
 		bq.rear = 0
-		roundRobinQueueLog.Error("Queue is already nil")
+		tendermintlog.Error("Queue is already nil")
 		return
 	}
 	bq.oldProposal = nil
@@ -68,7 +63,7 @@ func (bq *BaseQueue) IsEmpty() (bool,error) {
 	bq.mutex.Lock()
 	defer bq.mutex.Unlock()
 	if bq.cap == 0 {
-		roundRobinQueueLog.Error("IsEmpty:Queue is not init or already cleared")
+		tendermintlog.Error("IsEmpty:Queue is not init or already cleared")
 		return false, errors.New("Queue is not init or already cleared")
 	}
 	return bq.front == bq.rear, nil
@@ -78,7 +73,7 @@ func (bq *BaseQueue) IsFull() (bool, error) {
 	bq.mutex.Lock()
 	defer bq.mutex.Unlock()
 	if bq.cap == 0 {
-		roundRobinQueueLog.Error("IsFull:Queue is not init or already cleared")
+		tendermintlog.Error("IsFull:Queue is not init or already cleared")
 		return false, errors.New("Queue is not init or already cleared")
 	}
 	return (bq.rear + 1) % bq.cap == bq.front, nil
@@ -88,7 +83,7 @@ func (bq *BaseQueue) Length() (int, error) {
 	bq.mutex.Lock()
 	defer bq.mutex.Unlock()
 	if bq.cap == 0 {
-		roundRobinQueueLog.Error("Length:Queue is not init or already cleared")
+		tendermintlog.Error("Length:Queue is not init or already cleared")
 		return 0, errors.New("Queue is not init or already cleared")
 	}
 	return (bq.rear - bq.front + bq.cap) % bq.cap, nil
@@ -98,7 +93,7 @@ func (bq *BaseQueue) GetHead() (*types.Proposal, error) {
 	bq.mutex.Lock()
 	defer bq.mutex.Unlock()
 	if bq.cap == 0 {
-		roundRobinQueueLog.Error("GetHead:Queue is not init or already cleared")
+		tendermintlog.Error("GetHead:Queue is not init or already cleared")
 		return nil, errors.New("Queue is not init or already cleared")
 	}
 	return bq.oldProposal[bq.front], nil
@@ -108,7 +103,7 @@ func (bq *BaseQueue) Enqueue(proposal *types.Proposal) error {
 	bq.mutex.Lock()
 	defer bq.mutex.Unlock()
 	if bq.cap == 0 {
-		roundRobinQueueLog.Error("Enqueue:Queue is not init or already cleared")
+		tendermintlog.Error("Enqueue:Queue is not init or already cleared")
 		return errors.New("Queue is not init or already cleared")
 	}
 	//if full, cover the oldest one
@@ -137,11 +132,11 @@ func (bq *BaseQueue) Dequeue() (proposal *types.Proposal, err error) {
 	bq.mutex.Lock()
 	defer bq.mutex.Unlock()
 	if bq.cap == 0 {
-		roundRobinQueueLog.Error("Dequeue:Queue is not init or already cleared")
+		tendermintlog.Error("Dequeue:Queue is not init or already cleared")
 		return nil, errors.New("Queue is not init or already cleared")
 	}
 	if bq.front == bq.rear {
-		roundRobinQueueLog.Error("Dequeue:Queue is Queue is empty")
+		tendermintlog.Error("Dequeue:Queue is Queue is empty")
 		return nil, errors.New("Queue is empty")
 	}
 
@@ -161,12 +156,12 @@ func (bq *BaseQueue) QueryElem(height int64) (proposal *types.Proposal, err erro
 	bq.mutex.Lock()
 	defer bq.mutex.Unlock()
 	if bq.cap == 0 {
-		roundRobinQueueLog.Error("QueryElem:Queue is not init or already cleared")
+		tendermintlog.Error("QueryElem:Queue is not init or already cleared")
 		return nil, errors.New("Queue is not init or already cleared")
 	}
 	if index, ok := bq.height2Index[height]; ok {
 		return bq.oldProposal[index], nil
 	}
-	//roundRobinQueueLog.Debug("QueryElem: not found proposal of height", "height", height)
+	//tendermintlog.Debug("QueryElem: not found proposal of height", "height", height)
 	return nil, errors.New("not found proposal")
 }
