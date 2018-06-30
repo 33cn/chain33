@@ -63,6 +63,8 @@ message Consensus {
     int64  writeBlockSeconds    = 20;
     int32  heartbeatTick        = 21;
 	string paraRemoteGrpcClient = 22;
+	int64  startHeight          = 23;
+	int64  emptyBlockInterval   = 24;
 }
 
 message Wallet {
