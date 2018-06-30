@@ -68,6 +68,12 @@ minTxFee=0
 name="para"
 minerstart=true
 ParaRemoteGrpcClient = "localhost:8802"
+#主链指定高度的区块开始同步
+startHeight=0
+#打包时间间隔，单位秒
+writeBlockSeconds=5
+#主链每隔几个没有相关交易的区块，平行链上打包空区块
+emptyBlockInterval=4
 
 [store]
 name="mavl"
