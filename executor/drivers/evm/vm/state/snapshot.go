@@ -236,6 +236,18 @@ func (ch storageChange) getData(mdb *MemoryStateDB) []*types.KeyValue {
 	return nil
 }
 
+func (ch storageChange) getLog(mdb *MemoryStateDB) []*types.ReceiptLog {
+	if types.IsMatchFork(mdb.blockHeight, types.ForkV19EVMState) {
+		acc := mdb.accounts[ch.account]
+		if acc != nil {
+			currentVal := acc.GetState(ch.key)
+			receipt := &types.EVMStateChangeItem{Key: getStateItemKey(ch.account, ch.key.Hex()), PreValue: ch.prevalue.Bytes(), CurrentValue: currentVal.Bytes()}
+			return []*types.ReceiptLog{{Ty: types.TyLogEVMStateChangeItem, Log: types.Encode(receipt)}}
+		}
+	}
+	return nil
+}
+
 func (ch refundChange) revert(mdb *MemoryStateDB) {
 	mdb.refund = ch.prev
 }
