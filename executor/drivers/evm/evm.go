@@ -59,7 +59,7 @@ func (evm *EVMExecutor) GetName() string {
 
 func (evm *EVMExecutor) CheckInit() {
 	if evm.mStateDB == nil {
-		evm.mStateDB = state.NewMemoryStateDB(evm.DriverBase.GetStateDB(), evm.DriverBase.GetLocalDB(), evm.DriverBase.GetCoinsAccount())
+		evm.mStateDB = state.NewMemoryStateDB(evm.DriverBase.GetStateDB(), evm.DriverBase.GetLocalDB(), evm.DriverBase.GetCoinsAccount(), evm.DriverBase.GetHeight())
 	}
 }
 
@@ -170,7 +170,22 @@ func (evm *EVMExecutor) Exec(tx *types.Transaction, index int) (*types.Receipt, 
 		evm.mStateDB.WritePreimages(evm.DriverBase.GetHeight())
 	}
 
+	evm.collectEvmTx(tx, contractReceipt, receipt)
 	return receipt, nil
+}
+
+func (evm *EVMExecutor) collectEvmTx(tx *types.Transaction, cr *types.ReceiptEVMContract, receipt *types.Receipt) {
+	log.Error("-----------------evm collect begin-----------------------------")
+	log.Error("Tx info", "txHash", common.Bytes2Hex(tx.Hash()), "height", evm.DriverBase.GetHeight())
+	log.Error("ReceiptEVMContract", "data", fmt.Sprintf("caller=%v, name=%v, addr=%v, usedGas=%v, ret=%v", cr.Caller, cr.ContractName, cr.ContractAddr, cr.UsedGas, common.Bytes2Hex(cr.Ret)))
+	log.Error("receipt data", "type", receipt.Ty)
+	for _, kv := range receipt.KV {
+		log.Error("KeyValue", "key", common.Bytes2Hex(kv.Key), "value", common.Bytes2Hex(kv.Value))
+	}
+	for _, kv := range receipt.Logs {
+		log.Error("ReceiptLog", "Type", kv.Ty, "log", common.Bytes2Hex(kv.Log))
+	}
+	log.Error("-----------------evm collect end-----------------------------")
 }
 
 //获取运行状态名
@@ -189,6 +204,22 @@ func (evm *EVMExecutor) ExecLocal(tx *types.Transaction, receipt *types.ReceiptD
 	if receipt.GetTy() != types.ExecOk {
 		return set, nil
 	}
+
+	if types.IsMatchFork(evm.DriverBase.GetHeight(), types.ForkV19EVMState) {
+		// 需要将Exec中生成的合约状态变更信息写入localdb
+		for _, logItem := range receipt.Logs {
+			if types.TyLogEVMStateChangeItem == logItem.Ty {
+				data := logItem.Log
+				var changeItem types.EVMStateChangeItem
+				err = types.Decode(data, &changeItem)
+				if err != nil {
+					return set, err
+				}
+				set.KV = append(set.KV, &types.KeyValue{[]byte(changeItem.Key), changeItem.CurrentValue})
+			}
+		}
+	}
+
 	return set, err
 }
 
@@ -200,6 +231,22 @@ func (evm *EVMExecutor) ExecDelLocal(tx *types.Transaction, receipt *types.Recei
 	if receipt.GetTy() != types.ExecOk {
 		return set, nil
 	}
+
+	if types.IsMatchFork(evm.DriverBase.GetHeight(), types.ForkV19EVMState) {
+		// 需要将Exec中生成的合约状态变更信息从localdb中恢复
+		for _, logItem := range receipt.Logs {
+			if types.TyLogEVMStateChangeItem == logItem.Ty {
+				data := logItem.Log
+				var changeItem types.EVMStateChangeItem
+				err = types.Decode(data, &changeItem)
+				if err != nil {
+					return set, err
+				}
+				set.KV = append(set.KV, &types.KeyValue{[]byte(changeItem.Key), changeItem.PreValue})
+			}
+		}
+	}
+
 	return set, err
 }
 
@@ -292,7 +339,7 @@ func (evm *EVMExecutor) EstimateGas(req *types.EstimateEVMGasReq) (types.Message
 	msg := common.NewMessage(caller, nil, 0, req.Amount, model.MaxGasLimit, 1, req.Code, "estimateGas")
 	context := evm.NewEVMContext(msg)
 	// 创建EVM运行时对象
-	evm.mStateDB = state.NewMemoryStateDB(evm.DriverBase.GetStateDB(), evm.DriverBase.GetLocalDB(), evm.DriverBase.GetCoinsAccount())
+	evm.mStateDB = state.NewMemoryStateDB(evm.DriverBase.GetStateDB(), evm.DriverBase.GetLocalDB(), evm.DriverBase.GetCoinsAccount(), evm.DriverBase.GetHeight())
 	env := runtime.NewEVM(context, evm.mStateDB, *evm.vmCfg)
 	evm.mStateDB.Prepare(common.BigToHash(big.NewInt(model.MaxGasLimit)), 0)
 
