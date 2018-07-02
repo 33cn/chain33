@@ -75,6 +75,9 @@ func (chain *BlockChain) ProcRecvMsg() {
 		case types.EventAddParaChainBlockDetail:
 			go chain.processMsg(msg, reqnum, chain.addParaChainBlockDetail)
 
+		case types.EventGetSeqByHash:
+			go chain.processMsg(msg, reqnum, chain.getSeqByHash)
+
 		default:
 			<-reqnum
 			chainlog.Warn("ProcRecvMsg unknow msg", "msgtype", msgtype)
@@ -409,4 +412,13 @@ func (chain *BlockChain) addParaChainBlockDetail(msg queue.Message) {
 	}
 	chainlog.Debug("EventAddParaChainBlockDetail", "success", "ok")
 	msg.Reply(chain.client.NewMessage("p2p", types.EventReply, &reply))
+}
+
+//parachian 通过blockhash获取对应的seq，只记录了addblock时的seq
+func (chain *BlockChain) getSeqByHash(msg queue.Message) {
+	var sequence types.Int64
+
+	blockhash := (msg.Data).(*types.ReqHash)
+	sequence.Data, _ = chain.ProcGetSeqByHash(blockhash.Hash)
+	msg.Reply(chain.client.NewMessage("rpc", types.EventGetSeqByHash, &sequence))
 }
