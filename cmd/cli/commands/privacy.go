@@ -376,7 +376,7 @@ func parseShowUTXOs4SpecifiedAmountRes(arg interface{}) (interface{}, error) {
 func CreateUTXOsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "createutxos",
-		Short: "Show specified amount UTXOs",
+		Short: "Create specified count UTXOs with specified amount",
 		Run:   createUTXOs,
 	}
 	createUTXOsFlag(cmd)
