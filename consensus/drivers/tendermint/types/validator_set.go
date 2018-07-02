@@ -8,6 +8,7 @@ import (
 
 	"github.com/pkg/errors"
 	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
+	"code.aliyun.com/chain33/chain33/common/merkle"
 )
 
 // ValidatorSet represent a set of *Validator at a given height.
@@ -146,11 +147,11 @@ func (valSet *ValidatorSet) Hash() []byte {
 	if len(valSet.Validators) == 0 {
 		return nil
 	}
-	hashables := make([]cmn.Hashable, len(valSet.Validators))
+	hashables := make([][]byte, len(valSet.Validators))
 	for i, val := range valSet.Validators {
-		hashables[i] = val
+		hashables[i] = val.Hash()
 	}
-	return SimpleHashFromHashables(hashables)
+	return merkle.GetMerkleRoot(hashables)
 }
 
 func (valSet *ValidatorSet) Add(val *Validator) (added bool) {

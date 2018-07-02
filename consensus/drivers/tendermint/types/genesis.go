@@ -115,7 +115,7 @@ func GenesisDocFromFile(genDocFile string) (*GenesisDoc, error) {
 	}
 	genDoc, err := GenesisDocFromJSON(jsonBlob)
 	if err != nil {
-		return nil, errors.Wrap(err, cmn.Fmt("Error reading GenesisDoc at %v", genDocFile))
+		return nil, errors.Wrap(err, Fmt("Error reading GenesisDoc at %v", genDocFile))
 	}
 	return genDoc, nil
 }

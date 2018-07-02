@@ -115,3 +115,39 @@ func (evpool *EvidencePool) MarkEvidenceAsCommitted(evidence types.EvidenceEnvel
 		}
 	}
 }
+
+// VerifyEvidence verifies the evidence fully by checking it is internally
+// consistent and sufficiently recent.
+func VerifyEvidence(stateDB *CSStateDB, s State, evidence types.Evidence) error {
+	height := s.LastBlockHeight
+
+	evidenceAge := height - evidence.Height()
+	maxAge := s.ConsensusParams.EvidenceParams.MaxAge
+	if evidenceAge > maxAge {
+		return fmt.Errorf("Evidence from height %d is too old. Min height is %d",
+			evidence.Height(), height-maxAge)
+	}
+
+	if err := evidence.Verify(s.ChainID); err != nil {
+		return err
+	}
+
+	valset, err := stateDB.LoadValidators(evidence.Height())
+	if err != nil {
+		// TODO: if err is just that we cant find it cuz we pruned, ignore.
+		// TODO: if its actually bad evidence, punish peer
+		return err
+	}
+
+	// The address must have been an active validator at the height
+	ev := evidence
+	height, addr, idx := ev.Height(), ev.Address(), ev.Index()
+	valIdx, val := valset.GetByAddress(addr)
+	if val == nil {
+		return fmt.Errorf("Address %X was not a validator at height %d", addr, height)
+	} else if idx != valIdx {
+		return fmt.Errorf("Address %X was validator %d at height %d, not %d", addr, valIdx, height, idx)
+	}
+
+	return nil
+}

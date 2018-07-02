@@ -10,6 +10,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
 	"encoding/json"
+	"github.com/inconshreveable/log15"
 )
 
 var (
@@ -20,6 +21,7 @@ var (
 	ErrVoteInvalidBlockHash          = errors.New("Invalid block hash")
 	ErrVoteNonDeterministicSignature = errors.New("Non-deterministic signature")
 	ErrVoteNil                       = errors.New("Nil vote")
+	votelog = log15.New("module", "tendermint-vote")
 )
 
 type ErrVoteConflictingVotes struct {
@@ -87,6 +89,7 @@ func (vote *Vote) WriteSignBytes(chainID string, w io.Writer, n *int, err *error
 	byteVote,e := json.Marshal(&canonical)
 	if e != nil {
 		*err = e
+		votelog.Error("vote WriteSignBytes marshal failed", "err", e)
 		return
 	}
 	n_, err_ := w.Write(byteVote)
@@ -111,7 +114,7 @@ func (vote *Vote) String() string {
 	case VoteTypePrecommit:
 		typeString = "Precommit"
 	default:
-		cmn.PanicSanity("Unknown vote type")
+		PanicSanity("Unknown vote type")
 	}
 
 	return fmt.Sprintf("Vote{%v:%X %v/%02d/%v(%v) %X %v @ %s}",
@@ -129,6 +132,7 @@ func (vote *Vote) Verify(chainID string, pubKey crypto.PubKey) error {
 
 	sig, err := ConsensusCrypto.SignatureFromBytes(vote.Signature)
 	if err != nil {
+		votelog.Error("vote Verify failed", "err", err)
 		return err
 	}
 
@@ -136,4 +140,18 @@ func (vote *Vote) Verify(chainID string, pubKey crypto.PubKey) error {
 		return ErrVoteInvalidSignature
 	}
 	return nil
+}
+
+func (vote *Vote) Hash() []byte {
+	if vote == nil {
+		votelog.Error("vote hash is nil")
+		return nil
+	}
+	bytes, err := json.Marshal(vote)
+	if err != nil {
+		votelog.Error("vote hash marshal failed", "err", err)
+		return nil
+	}
+
+	return crypto.Ripemd160(bytes)
 }
