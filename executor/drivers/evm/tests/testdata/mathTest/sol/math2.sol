@@ -1,57 +1,73 @@
 pragma solidity ^0.4.0;
 
 contract LogicTest1 {
-    function keccakx(int p, int n) pure public returns (byte) {
-        //确定一变量
-        assembly {
-             let data :=[]byte("abcdefghijk")
-        }
-        //for循环从常量中获取一定内容进行哈希
-        //内联编译支持一个简单的for风格的循环。
-        // for风格的循环的头部有三个部分，一个是初始部分，一个条件和一个后叠加部分。
-        // 条件必须是一个函数风格的表达式，而其它两个部分用大括号包裹。
-        // 如果在初始化的块中定义了任何变量，这些变量的作用域会被默认扩展到循环体内
-        // （条件，与后面的叠加部分定义的变量也类似。译者注：因为默认是块作用域，所以这里是一种特殊情况）。
-   for (uint i = p; i < p+n; ++i) {
-            assembly {
-                 sum += data[i];
-            }
-        }
-        //for (uint i = p; i < p+n; ++i) {
-              //        assembly {
-            //              o_sum := mload(add(add(data, 0x20), mul(i, 0x20)))
-            //          }
-           //       }
-          z :=  keccak(sum) ;
-          return z;
+  function hashArray() constant returns(bytes32) {
+  bytes8[] memory tickers = new bytes8[](4);
+tickers[0] = bytes8('BTC');
+tickers[1] = bytes8('ETH');
+tickers[2] = bytes8('LTC');
+tickers[3] = bytes8('DOGE');
+return keccak256(tickers);
+// 0x374c0504f79c1d5e6e4ded17d488802b5656bd1d96b16a568d6c324e1c04c37b
 }
 
-function sha3x(int p, int n) pure public returns (byte) {
-        //确定一变量
-        assembly {
-             let data :=[]byte("abcdefghijk")
-        }
-        //for循环从常量中获取一定内容进行哈希
-   for (uint i = p; i < p+n; ++i) {
-            assembly {
-                 sum += data[i];
-            }
-        }
-          z :=  keccak(sum) ;
-          return z;
+function hashPackedArray() constant returns(bytes32) {
+bytes8 btc = bytes8('BTC');
+bytes8 eth = bytes8('ETH');
+bytes8 ltc = bytes8('LTC');
+bytes8 doge = bytes8('DOGE');
+return keccak256(btc, eth, ltc, doge);
+// 0xe79a6745d2205095147fd735f329de58377b2f0b9f4b81ae23e010062127f2bc
 }
-function mloadx(int p) pure public returns (byte) {
-        //确定一变量
-        assembly {
-             let data :=[]byte("abcdefghijk")
-        }
-        //for循环从常量中获取一定内容进行哈希
 
-   for (uint i = p; i < p+32; ++i) {
-            assembly {
-                 sum += data[i];
-            }
-        }
-          z :=  sum ;
-          return z;
+function hashAddress() constant returns(bytes32) {
+address account = 0x6779913e982688474f710b47e1c0506c5dca4634;
+return keccak256(bytes20(account));
+// 0x229327de236bd04ccac2efc445f1a2b63afddf438b35874b9f6fd1e6c38b0198
+}
+
+function testPackedArgs() constant returns (bool) {
+return keccak256('ab') == keccak256('a', 'b');
+}
+
+function hashHex() constant returns (bytes32) {
+return keccak256(0x0a);
+// 0x0ef9d8f8804d174666011a394cab7901679a8944d24249fd148a6a36071151f8
+}
+
+function hashInt() constant returns (bytes32) {
+return keccak256(int(1));
+}
+
+function hashNegative() constant returns (bytes32) {
+return keccak256(int(-1));
+}
+
+function hash8() constant returns (bytes32) {
+return keccak256(1);
+}
+
+function hash32() constant returns (bytes32) {
+return keccak256(uint32(1));
+}
+
+function hash256() constant returns (bytes32) {
+return keccak256(uint(1));
+}
+
+function hashEth() constant returns (bytes32) {
+return keccak256(uint(100 ether));
+}
+
+function hashWei() constant returns (bytes32) {
+return keccak256(uint(100));
+}
+
+function hashMultipleArgs() constant returns (bytes32) {
+return keccak256('a', uint(1));
+}
+
+function hashString() constant returns (bytes32) {
+return keccak256('a');
+}
 }

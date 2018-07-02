@@ -143,8 +143,8 @@ func setPwd(cmd *cobra.Command, args []string) {
 	oldPwd, _ := cmd.Flags().GetString("old")
 	newPwd, _ := cmd.Flags().GetString("new")
 	params := types.ReqWalletSetPasswd{
-		Oldpass: oldPwd,
-		Newpass: newPwd,
+		OldPass: oldPwd,
+		NewPass: newPwd,
 	}
 	var res jsonrpc.Reply
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.SetPasswd", params, &res)

@@ -3,17 +3,18 @@ package commands
 import (
 	"encoding/hex"
 	"fmt"
+	"math"
 	"math/rand"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/gogo/protobuf/proto"
-	"github.com/spf13/cobra"
-	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
+	"github.com/spf13/cobra"
 )
 
 func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
@@ -153,7 +154,9 @@ func decodeLog(rlog jsonrpc.ReceiptDataResult) *ReceiptData {
 		case types.TyLogErr, types.TyLogGenesis, types.TyLogNewTicket, types.TyLogCloseTicket, types.TyLogMinerTicket,
 			types.TyLogTicketBind, types.TyLogPreCreateToken, types.TyLogFinishCreateToken, types.TyLogRevokeCreateToken,
 			types.TyLogTradeSellLimit, types.TyLogTradeBuyMarket, types.TyLogTradeSellRevoke,
-			types.TyLogTradeBuyLimit, types.TyLogTradeSellMarket, types.TyLogTradeBuyRevoke:
+			types.TyLogTradeBuyLimit, types.TyLogTradeSellMarket, types.TyLogTradeBuyRevoke,
+			types.TyLogRelayCreate, types.TyLogRelayRevokeCreate, types.TyLogRelayAccept, types.TyLogRelayRevokeAccept,
+			types.TyLogRelayRcvBTCHead, types.TyLogRelayConfirmTx, types.TyLogRelayFinishTx:
 			rl.Log = l.Log
 		//case 2, 3, 5, 11:
 		case types.TyLogFee, types.TyLogTransfer, types.TyLogDeposit, types.TyLogGenesisTransfer,
@@ -219,7 +222,7 @@ func buildContractDataResult(l *jsonrpc.ReceiptLogResult) interface{} {
 	data, _ := common.FromHex(l.RawLog)
 	receipt := &types.EVMContractData{}
 	proto.Unmarshal(data, receipt)
-	rlog := &types.EVMContractDataCmd{Creator: receipt.Creator, Name: receipt.Name, Addr: receipt.Addr, CreateTime: time.Unix(0, receipt.CreateTime).String(), Alias: receipt.Alias}
+	rlog := &types.EVMContractDataCmd{Creator: receipt.Creator, Name: receipt.Name, Addr: receipt.Addr, Alias: receipt.Alias}
 	rlog.Code = common.ToHex(receipt.Code)
 	rlog.CodeHash = common.ToHex(receipt.CodeHash)
 	return rlog
@@ -305,7 +308,7 @@ func CreateRawTx(to string, amount float64, note string, isWithdraw bool, isToke
 	if amount < 0 {
 		return "", types.ErrAmount
 	}
-	amountInt64 := int64(amount*1e4) * 1e4
+	amountInt64 := int64(math.Trunc((amount+0.0000001)*1e4)) * 1e4
 	if execName != "" && !types.IsAllowExecName(execName) {
 		return "", types.ErrExecNameNotMatch
 	}
@@ -323,7 +326,7 @@ func CreateRawTx(to string, amount float64, note string, isWithdraw bool, isToke
 				transfer.Ty = types.CoinsActionTransfer
 			}
 		} else {
-			v := &types.CoinsAction_Withdraw{Withdraw: &types.CoinsWithdraw{Amount: amountInt64, Note: note}}
+			v := &types.CoinsAction_Withdraw{Withdraw: &types.CoinsWithdraw{Amount: amountInt64, Note: note, ExecName: execName}}
 			transfer.Value = v
 			transfer.Ty = types.CoinsActionWithdraw
 		}
@@ -358,16 +361,14 @@ func GetExecAddr(exec string) (string, error) {
 		return "", err
 	}
 
-	addrResult := account.ExecAddress(exec)
+	addrResult := address.ExecAddress(exec)
 	result := addrResult
 	return result, nil
 }
 
-var allowExeName = []string{"none", "coins", "hashlock", "retrieve", "ticket", "token", "trade", "privacy"}
-
 func isAllowExecName(exec string) (bool, error) {
-	// exec name长度不能超过50
-	if len(exec) > 50 {
+	// exec name长度不能超过系统限制
+	if len(exec) > address.MaxExecNameLength {
 		return false, types.ErrExecNameNotAllow
 	}
 	// exec name中不允许有 "-"
@@ -377,7 +378,7 @@ func isAllowExecName(exec string) (bool, error) {
 	if strings.HasPrefix(exec, "user.") {
 		return true, nil
 	}
-	for _, e := range allowExeName {
+	for _, e := range []string{"none", "coins", "hashlock", "retrieve", "ticket", "token", "trade", "relay", "privacy"} {
 		if exec == e {
 			return true, nil
 		}
@@ -385,6 +386,7 @@ func isAllowExecName(exec string) (bool, error) {
 	return false, types.ErrExecNameNotAllow
 }
 
+var allowExeName = []string{"none", "coins", "hashlock", "retrieve", "ticket", "token", "trade", "privacy"}
 func getExecuterNameString() string {
 	str := "executer name ("
 	nameLen := len(allowExeName)

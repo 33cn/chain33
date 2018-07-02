@@ -19,7 +19,6 @@ import (
 	"bytes"
 
 	log "github.com/inconshreveable/log15"
-	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -60,7 +59,7 @@ func (p *privacy) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 		public2Privacy := action.GetPublic2Privacy()
 		if types.BTY == public2Privacy.Tokenname {
 			coinsAccount := p.GetCoinsAccount()
-			from := account.From(tx).String()
+			from := tx.From()
 			receipt, err := coinsAccount.ExecWithdraw(p.GetAddr(), from, public2Privacy.Amount)
 			if err != nil {
 				privacylog.Error("Privacy exec ActionPublic2Privacy", "ExecWithdraw failed due to ", err)

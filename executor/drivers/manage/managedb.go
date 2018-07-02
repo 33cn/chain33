@@ -1,7 +1,6 @@
 package manage
 
 import (
-	"gitlab.33.cn/chain33/chain33/account"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -13,7 +12,7 @@ type Action struct {
 }
 
 func NewAction(m *Manage, tx *types.Transaction) *Action {
-	return &Action{db: m.GetStateDB(), fromaddr: account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String(), height: m.GetHeight()}
+	return &Action{db: m.GetStateDB(), fromaddr: tx.From(), height: m.GetHeight()}
 
 }
 

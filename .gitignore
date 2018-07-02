@@ -6,6 +6,9 @@ datadir*
 cmd/chain33/chain33
 build/chain33*
 build/datadir
+build/bityuan
+build/relayd
+build/relayd.toml
 build/*.log
 common/mavl/datastore
 .DS_Store
@@ -13,4 +16,5 @@ common/.DS_Store
 common/config/.DS_Store
 executor/executor.test
 logs/
-
+build/wallet
+consensus/drivers/raft/chain33_raft*

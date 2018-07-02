@@ -20,20 +20,20 @@ package types;
 //	 actionName  :交易对应的函数调用
 //   spendrecv 交易对应的输入UTXO
 message WalletTxDetail {
-	Transaction tx = 1;
-	ReceiptData receipt = 2;
-	int64 height = 3;
-	int64 index = 4;
-	int64 blocktime = 5;
-	int64 amount = 6;
-    string senderRecver = 7;
-	bytes txhash = 8;
-	string actionName  =9;
-	repeated UTXO spendrecv = 10;
+    Transaction tx         = 1;
+    ReceiptData receipt    = 2;
+    int64       height     = 3;
+    int64       index      = 4;
+    int64       blocktime  = 5;
+    int64       amount     = 6;
+    string      fromaddr   = 7;
+    bytes       txhash     = 8;
+    string      actionName = 9;
+    repeated UTXO spendrecv = 10;
 }
 
 message WalletTxDetails {
-	repeated WalletTxDetail txDetails = 1;
+    repeated WalletTxDetail txDetails = 1;
 }
 
 //钱包模块存贮的账户信息
@@ -42,10 +42,10 @@ message WalletTxDetails {
 //	 addr :账户地址
 //	 timeStamp :创建账户时的时标
 message WalletAccountStore {
-	string privkey = 1;
-	string label = 2;
-	string addr = 3;
-	string timeStamp = 4;
+    string privkey   = 1;
+    string label     = 2;
+    string addr      = 3;
+    string timeStamp = 4;
 }
 
 message WalletAccountPrivacy {
@@ -59,8 +59,8 @@ message WalletAccountPrivacy {
 // 	 pwHash : 对钱包密码和一个随机值组合进行哈希计算
 //	 randstr :对钱包密码加密的一个随机值
 message WalletPwHash {
-	bytes pwHash = 1;
-	string randstr = 2;
+    bytes  pwHash  = 1;
+    string randstr = 2;
 }
 
 //钱包当前的状态
@@ -69,14 +69,14 @@ message WalletPwHash {
 // 	 isHasSeed : 钱包是否有种子，true已有，false没有
 //	 isTicketLock :钱包挖矿买票锁状态，true锁定，false解锁，只能用于挖矿转账
 message WalletStatus {
-	bool isWalletLock = 1;
-	bool isAutoMining = 2;
-	bool isHasSeed = 3;
-	bool isTicketLock = 4;
+    bool isWalletLock = 1;
+    bool isAutoMining = 2;
+    bool isHasSeed    = 3;
+    bool isTicketLock = 4;
 }
 
 message WalletAccounts {
-	repeated WalletAccount wallets = 1;
+    repeated WalletAccount wallets = 1;
 }
 
 //钱包账户信息
@@ -84,8 +84,8 @@ message WalletAccounts {
 //	 label :钱包账户对应的标签
 
 message WalletAccount {
-	Account acc = 1;
-	string label = 2;
+    Account acc   = 1;
+    string  label = 2;
 }
 
 //钱包解锁
@@ -93,44 +93,43 @@ message WalletAccount {
 //	 timeout :钱包解锁时间，0，一直解锁，非0值，超时之后继续锁定
 //	 walletOrTicket :解锁整个钱包还是只解锁挖矿买票功能，1只解锁挖矿买票，0解锁整个钱包
 message WalletUnLock {
-	string passwd = 1;
-	int64 timeout = 2;
-	bool walletOrTicket = 3;
+    string passwd         = 1;
+    int64  timeout        = 2;
+    bool   walletOrTicket = 3;
 }
 
 message GenSeedLang {
-	int32 lang = 1;
+    int32 lang = 1;
 }
 
 message GetSeedByPw {
-	string passwd = 1;
+    string passwd = 1;
 }
 
 //存储钱包的种子
 // 	 seed : 钱包种子
 //	 passwd :钱包密码
 message SaveSeedByPw {
-	string seed = 1;
-	string passwd = 2;
+    string seed   = 1;
+    string passwd = 2;
 }
 
 message ReplySeed {
-	string seed = 1;
+    string seed = 1;
 }
 
 message ReqWalletSetPasswd {
-	string oldpass = 1;
-	string newpass = 2;
+    string oldPass = 1;
+    string newPass = 2;
 }
 
 message ReqNewAccount {
-	string label = 1;
+    string label = 1;
 }
 
 message MinerFlag {
-	int32 flag = 1;
-	int64 reserve = 2;
-
+    int32 flag    = 1;
+    int64 reserve = 2;
 }
 
 //获取钱包交易的详细信息
@@ -153,9 +152,9 @@ message ReqWalletTransactionList {
 }
 
 message ReqWalletImportPrivKey {
-	//bitcoin 的私钥格式
-	string privkey = 1;
-	string label = 2;
+    //bitcoin 的私钥格式
+    string privkey = 1;
+    string label   = 2;
 }
 
 //发送交易
@@ -164,60 +163,60 @@ message ReqWalletImportPrivKey {
 // 	 amount : 转账额度
 //	 note :转账备注
 message ReqWalletSendToAddress {
-	string from        = 1;
-	string to          = 2;
-	int64  amount      = 3;
-	string note        = 4;
-	bool   isToken     = 5;
-	string tokenSymbol = 6;
+    string from        = 1;
+    string to          = 2;
+    int64  amount      = 3;
+    string note        = 4;
+    bool   isToken     = 5;
+    string tokenSymbol = 6;
 }
 
 message ReqWalletSetFee {
-	int64 amount = 1;
+    int64 amount = 1;
 }
 
 message ReqWalletSetLabel {
-	string addr = 1;
-	string label = 2;
+    string addr  = 1;
+    string label = 2;
 }
 
 message ReqWalletMergeBalance {
-	string to = 1;
+    string to = 1;
 }
 
 message ReqStr {
-	string reqStr = 1;
+    string reqStr = 1;
 }
 
 message ReplyStr {
-	string replystr = 1;
+    string replystr = 1;
 }
 
 message ReqTokenPreCreate {
     string creator_addr = 1;
-    string name = 2;
-    string symbol = 3;
+    string name         = 2;
+    string symbol       = 3;
     string introduction = 4;
-    string owner_addr = 5;
-    int64  total = 6;
-    int64  price = 7;
+    string owner_addr   = 5;
+    int64  total        = 6;
+    int64  price        = 7;
 }
 
 message ReqTokenFinishCreate {
-	string finisher_addr = 1;
-	string symbol = 2;
-	string owner_addr = 3;
+    string finisher_addr = 1;
+    string symbol        = 2;
+    string owner_addr    = 3;
 }
 
 message ReqTokenRevokeCreate {
-	string revoker_addr = 1;
-	string symbol = 2;
-	string owner_addr = 3;
+    string revoker_addr = 1;
+    string symbol       = 2;
+    string owner_addr   = 3;
 }
 
 message ReqSellToken {
-	TradeForSell sell  = 1;
-	string       owner = 2;
+    TradeForSell sell  = 1;
+    string       owner = 2;
 }
 
 message ReqBuyToken {
@@ -231,23 +230,23 @@ message ReqRevokeSell {
 }
 
 message ReqModifyConfig {
-    string key = 1;
-    string op = 2;
-    string value = 3;
+    string key      = 1;
+    string op       = 2;
+    string value    = 3;
     string modifier = 4;
 }
 
 message ReqSignRawTx {
-    string addr = 1;
+    string addr    = 1;
     string privkey = 2;
-    string txHex = 3;
-    string expire = 4;
-    int32  index = 5;
+    string txHex   = 3;
+    string expire  = 4;
+    int32  index   = 5;
 	// 签名的模式类型
 	// 0：普通交易
 	// 1：隐私交易
-	int32	mode = 6;
-	string	token = 7;
+	int32	mode   = 6;
+	string	token  = 7;
 }
 
 message ReplySignRawTx {
@@ -256,8 +255,8 @@ message ReplySignRawTx {
 
 message ReportErrEvent {
     string frommodule = 1;
-    string tomodule = 2;
-    string error = 3;
+    string tomodule   = 2;
+    string error      = 3;
 }
 
 message Int32 {
@@ -481,4 +480,15 @@ message ReplyPrivacyAccount {
 message ReqCreateCacheTxKey {
 	string		tokenname	= 1;
 	bytes		hashkey		= 2;
+}
+
+message ReqBindMiner {
+    string bindAddr     = 1;
+    string originAddr   = 2;
+    int64  amount       = 3;
+    bool   checkBalance = 4;
+}
+
+message ReplyBindMiner {
+    string txHex = 1;
 }

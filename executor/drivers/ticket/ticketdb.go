@@ -7,6 +7,7 @@ import (
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -97,7 +98,7 @@ type Action struct {
 
 func NewAction(t *Ticket, tx *types.Transaction) *Action {
 	hash := tx.Hash()
-	fromaddr := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
+	fromaddr := tx.From()
 	return &Action{t.GetCoinsAccount(), t.GetStateDB(), hash, fromaddr, t.GetBlockTime(), t.GetHeight(), t.GetAddr()}
 }
 
@@ -171,17 +172,17 @@ func (action *Action) TicketBind(tbind *types.TicketBind) (*types.Receipt, error
 	}
 	//"" 表示设置为空
 	if len(tbind.MinerAddress) > 0 {
-		if err := account.CheckAddress(tbind.MinerAddress); err != nil {
+		if err := address.CheckAddress(tbind.MinerAddress); err != nil {
 			return nil, err
 		}
 	}
 	var logs []*types.ReceiptLog
 	var kvs []*types.KeyValue
-	saveBind(action.db, tbind)
-	kv := getBindKV(tbind)
 	oldbind := action.getBind(tbind.ReturnAddress)
 	log := getBindLog(tbind, oldbind)
 	logs = append(logs, log)
+	saveBind(action.db, tbind)
+	kv := getBindKV(tbind)
 	kvs = append(kvs, kv...)
 	receipt := &types.Receipt{types.ExecOk, kvs, logs}
 	return receipt, nil
