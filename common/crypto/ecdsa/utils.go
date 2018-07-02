@@ -1,12 +1,12 @@
 package ecdsa
 
 import (
-	"math/big"
-	"encoding/asn1"
 	"crypto/ecdsa"
 	"crypto/elliptic"
-	"fmt"
+	"encoding/asn1"
 	"errors"
+	"fmt"
+	"math/big"
 )
 
 func MarshalECDSASignature(r, s *big.Int) ([]byte, error) {
@@ -48,7 +48,7 @@ func ToLowS(k *ecdsa.PublicKey, s *big.Int) (*big.Int, bool, error) {
 	return s, false, nil
 }
 
-func IsLowS(s *big.Int) (bool) {
+func IsLowS(s *big.Int) bool {
 	return s.Cmp(new(big.Int).Rsh(elliptic.P256().Params().N, 1)) != 1
 }
 
@@ -92,4 +92,3 @@ func paddedAppend(size uint, dst, src []byte) []byte {
 	}
 	return append(dst, src...)
 }
-
