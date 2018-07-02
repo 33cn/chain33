@@ -5,20 +5,22 @@ import (
 	"errors"
 	"fmt"
 
-	"gitlab.33.cn/chain33/chain33/common/crypto"
-	"crypto/elliptic"
-	"math/big"
 	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/rand"
-	"encoding/pem"
 	"crypto/x509"
 	"encoding/asn1"
+	"encoding/pem"
+	"math/big"
+
+	"gitlab.33.cn/chain33/chain33/common/crypto"
 )
 
 const (
 	ECDSA_RPIVATEKEY_LENGTH = 32
-	ECDSA_PUBLICKEY_LENGTH = 65
+	ECDSA_PUBLICKEY_LENGTH  = 65
 )
+
 type Driver struct{}
 
 // Ctypto

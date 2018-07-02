@@ -1,11 +1,11 @@
 package utils
 
 import (
-	"io"
-	"os"
-	"fmt"
 	"encoding/pem"
+	"fmt"
+	"io"
 	"io/ioutil"
+	"os"
 )
 
 func DirMissingOrEmpty(path string) (bool, error) {

@@ -842,6 +842,29 @@ func (_m *QueueProtocolAPI) StoreGetTotalCoins(_a0 *types.IterateRangeByStateHas
 	return r0, r1
 }
 
+// ValidateCert provides a mock function with given fields: cert
+func (_m *QueueProtocolAPI) ValidateCert(cert *types.ReqAuthCheckCert) (*types.ReplyAuthCheckCert, error) {
+	ret := _m.Called(cert)
+
+	var r0 *types.ReplyAuthCheckCert
+	if rf, ok := ret.Get(0).(func(*types.ReqAuthCheckCert) *types.ReplyAuthCheckCert); ok {
+		r0 = rf(cert)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.ReplyAuthCheckCert)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*types.ReqAuthCheckCert) error); ok {
+		r1 = rf(cert)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // Version provides a mock function with given fields:
 func (_m *QueueProtocolAPI) Version() (*types.Reply, error) {
 	ret := _m.Called()
