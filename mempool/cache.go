@@ -114,7 +114,8 @@ func (cache *txCache) GetAccTxs(addrs *types.ReqAddrs) *types.TransactionDetails
 			for _, v := range value {
 				txAmount, err := v.Amount()
 				if err != nil {
-					continue
+					// continue
+					txAmount = 0
 				}
 				res.Txs = append(res.Txs,
 					&types.TransactionDetail{
