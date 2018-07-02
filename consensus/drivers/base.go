@@ -5,7 +5,6 @@ import (
 	"math/rand"
 	"sync"
 	"sync/atomic"
-	"time"
 
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
@@ -22,7 +21,7 @@ var (
 var randgen *rand.Rand
 
 func init() {
-	randgen = rand.New(rand.NewSource(time.Now().UnixNano()))
+	randgen = rand.New(rand.NewSource(types.Now().UnixNano()))
 }
 
 type Miner interface {
@@ -128,12 +127,12 @@ func (bc *BaseClient) CheckTxDup(txs []*types.Transaction) (transactions []*type
 		checkHashList.Hashes = append(checkHashList.Hashes, hash)
 	}
 	// 发送Hash过后的交易列表给blockchain模块
-	//beg := time.Now()
+	//beg := types.Now()
 	//log.Error("----EventTxHashList----->[beg]", "time", beg)
 	hashList := bc.client.NewMessage("blockchain", types.EventTxHashList, &checkHashList)
 	bc.client.Send(hashList, true)
 	dupTxList, _ := bc.client.Wait(hashList)
-	//log.Error("----EventTxHashList----->[end]", "time", time.Now().Sub(beg))
+	//log.Error("----EventTxHashList----->[end]", "time", types.Now().Sub(beg))
 	// 取出blockchain返回的重复交易列表
 	dupTxs := dupTxList.GetData().(*types.TxHashList).Hashes
 

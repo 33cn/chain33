@@ -4,14 +4,16 @@ import (
 	"errors"
 	"math/rand"
 	"testing"
-	"time"
 
-	"gitlab.33.cn/chain33/chain33/account"
+	"gitlab.33.cn/chain33/chain33/blockchain"
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/limits"
+	"gitlab.33.cn/chain33/chain33/executor"
 	"gitlab.33.cn/chain33/chain33/queue"
+	"gitlab.33.cn/chain33/chain33/store"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -23,7 +25,7 @@ var (
 	privKey, _ = c.PrivKeyFromBytes(a)
 	random     *rand.Rand
 	mainPriv   crypto.PrivKey
-	toAddr     = account.PubKeyToAddress(privKey.PubKey().Bytes()).String()
+	toAddr     = address.PubKeyToAddress(privKey.PubKey().Bytes()).String()
 	amount     = int64(1e8)
 	v          = &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
 	transfer   = &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
@@ -45,7 +47,7 @@ var (
 )
 
 //var privTo, _ = c.GenKey()
-//var ad = account.PubKeyToAddress(privKey.PubKey().Bytes()).String()
+//var ad = address.PubKeyToAddress(privKey.PubKey().Bytes()).String()
 
 var blk = &types.Block{
 	Version:    1,
@@ -61,7 +63,7 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	random = rand.New(rand.NewSource(time.Now().UnixNano()))
+	random = rand.New(rand.NewSource(types.Now().UnixNano()))
 	queue.DisableLog()
 	DisableLog() // 不输出任何log
 	//	SetLogLevel("debug") // 输出DBUG(含)以下log
@@ -72,6 +74,22 @@ func init() {
 	//	SetLogLevel("") // 输出所有log
 	//	maxTxNumPerAccount = 10000
 	mainPriv = getprivkey("CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944")
+	tx1.Sign(types.SECP256K1, privKey)
+	tx2.Sign(types.SECP256K1, privKey)
+	tx3.Sign(types.SECP256K1, privKey)
+	tx4.Sign(types.SECP256K1, privKey)
+	tx5.Sign(types.SECP256K1, privKey)
+	tx6.Sign(types.SECP256K1, privKey)
+	tx7.Sign(types.SECP256K1, privKey)
+	tx8.Sign(types.SECP256K1, privKey)
+	tx9.Sign(types.SECP256K1, privKey)
+	tx10.Sign(types.SECP256K1, privKey)
+	tx11.Sign(types.SECP256K1, privKey)
+	tx12.Sign(types.SECP256K1, privKey)
+	tx13.Sign(types.SECP256K1, privKey)
+	tx14.Sign(types.SECP256K1, privKey)
+	tx15.Sign(types.SECP256K1, privKey)
+
 }
 
 func getprivkey(key string) crypto.PrivKey {
@@ -90,58 +108,56 @@ func getprivkey(key string) crypto.PrivKey {
 	return priv
 }
 
+func initEnv3() (queue.Queue, queue.Module, queue.Module, *Mempool) {
+	var q = queue.New("channel")
+	cfg := config.InitCfg("../cmd/chain33/chain33.test.toml")
+	cfg.Consensus.Minerstart = false
+	chain := blockchain.New(cfg.BlockChain)
+	chain.SetQueueClient(q.Client())
+
+	exec := executor.New(cfg.Exec)
+	exec.SetQueueClient(q.Client())
+
+	types.SetMinFee(0)
+	s := store.New(cfg.Store)
+	s.SetQueueClient(q.Client())
+	mem := New(cfg.MemPool)
+	mem.SetQueueClient(q.Client())
+	mem.setSync(true)
+	mem.waitPollLastHeader()
+	return q, chain, s, mem
+}
+
 func initEnv2(size int) (queue.Queue, *Mempool) {
 	var q = queue.New("channel")
 	cfg := config.InitCfg("../cmd/chain33/chain33.test.toml")
 
 	blockchainProcess(q)
 	execProcess(q)
-
 	mem := New(cfg.MemPool)
 	mem.SetQueueClient(q.Client())
 	mem.setSync(true)
-
 	if size > 0 {
 		mem.Resize(size)
 	}
 	mem.SetMinFee(0)
+	mem.waitPollLastHeader()
 	return q, mem
 }
 
 func initEnv(size int) (queue.Queue, *Mempool) {
 	var q = queue.New("channel")
 	cfg := config.InitCfg("../cmd/chain33/chain33.test.toml")
-
 	blockchainProcess(q)
 	execProcess(q)
-
 	mem := New(cfg.MemPool)
 	mem.SetQueueClient(q.Client())
-	time.Sleep(time.Millisecond * 200)
 	mem.setSync(true)
-
 	if size > 0 {
 		mem.Resize(size)
 	}
-
 	mem.SetMinFee(types.MinFee)
-
-	tx1.Sign(types.SECP256K1, privKey)
-	tx2.Sign(types.SECP256K1, privKey)
-	tx3.Sign(types.SECP256K1, privKey)
-	tx4.Sign(types.SECP256K1, privKey)
-	tx5.Sign(types.SECP256K1, privKey)
-	tx6.Sign(types.SECP256K1, privKey)
-	tx7.Sign(types.SECP256K1, privKey)
-	tx8.Sign(types.SECP256K1, privKey)
-	tx9.Sign(types.SECP256K1, privKey)
-	tx10.Sign(types.SECP256K1, privKey)
-	tx11.Sign(types.SECP256K1, privKey)
-	tx12.Sign(types.SECP256K1, privKey)
-	tx13.Sign(types.SECP256K1, privKey)
-	tx14.Sign(types.SECP256K1, privKey)
-	tx15.Sign(types.SECP256K1, privKey)
-
+	mem.waitPollLastHeader()
 	return q, mem
 }
 
@@ -163,7 +179,7 @@ func genaddress() (string, crypto.PrivKey) {
 	if err != nil {
 		panic(err)
 	}
-	addrto := account.PubKeyToAddress(privto.PubKey().Bytes())
+	addrto := address.PubKeyToAddress(privto.PubKey().Bytes())
 	return addrto.String(), privto
 }
 
@@ -571,7 +587,21 @@ func TestCheckSignature(t *testing.T) {
 	}
 }
 
-func TestCheckExpire(t *testing.T) {
+func TestCheckExpire1(t *testing.T) {
+	q, mem := initEnv(0)
+	defer q.Close()
+	defer mem.Close()
+	mem.setHeader(&types.Header{Height: 50, BlockTime: 1e9 + 1})
+	ctx1 := *tx1
+	msg := mem.client.NewMessage("mempool", types.EventTx, &ctx1)
+	mem.client.Send(msg, true)
+	resp, _ := mem.client.Wait(msg)
+	if string(resp.GetData().(*types.Reply).GetMsg()) != types.ErrTxExpire.Error() {
+		t.Error("TestCheckExpire failed", string(resp.GetData().(*types.Reply).GetMsg()))
+	}
+}
+
+func TestCheckExpire2(t *testing.T) {
 	q, mem := initEnv(0)
 	defer q.Close()
 	defer mem.Close()
@@ -582,9 +612,8 @@ func TestCheckExpire(t *testing.T) {
 		t.Error("add tx error", err.Error())
 		return
 	}
-
 	mem.setHeader(&types.Header{Height: 50, BlockTime: 1e9 + 1})
-	msg := mem.client.NewMessage("mempool", types.EventTxList, &types.TxHashList{Count: 100, Hashes: nil})
+	msg := mem.client.NewMessage("mempool", types.EventTxList, &types.TxHashList{Count: 100})
 	mem.client.Send(msg, true)
 	data, err := mem.client.Wait(msg)
 
@@ -615,14 +644,15 @@ func TestWrongToAddr(t *testing.T) {
 }
 
 func TestExecToAddrNotMatch(t *testing.T) {
-	q, mem := initEnv(0)
+	q, chain, s, mem := initEnv3()
 	defer q.Close()
 	defer mem.Close()
+	defer chain.Close()
+	defer s.Close()
 
 	msg := mem.client.NewMessage("mempool", types.EventTx, tx15)
 	mem.client.Send(msg, true)
 	resp, _ := mem.client.Wait(msg)
-
 	if string(resp.GetData().(*types.Reply).GetMsg()) != types.ErrToAddrNotSameToExecAddr.Error() {
 		t.Error("TestExecToAddrNotMatch failed", string(resp.GetData().(*types.Reply).GetMsg()))
 	}
@@ -640,7 +670,7 @@ func TestGetAddrTxs(t *testing.T) {
 		return
 	}
 
-	ad := account.PubKeyToAddress(privKey.PubKey().Bytes()).String()
+	ad := address.PubKeyToAddress(privKey.PubKey().Bytes()).String()
 	addrs := []string{ad}
 	msg := mem.client.NewMessage("mempool", types.EventGetAddrTxs, &types.ReqAddrs{Addrs: addrs})
 	mem.client.Send(msg, true)
@@ -724,7 +754,12 @@ func TestAddTxGroup(t *testing.T) {
 	defer q.Close()
 	defer mem.Close()
 
-	txGroup, _ := types.CreateTxGroup([]*types.Transaction{tx2, tx3, tx4})
+	//copytx
+
+	ctx2 := *tx2
+	ctx3 := *tx3
+	ctx4 := *tx4
+	txGroup, _ := types.CreateTxGroup([]*types.Transaction{&ctx2, &ctx3, &ctx4})
 	tx := txGroup.Tx()
 	msg := mem.client.NewMessage("mempool", types.EventTx, tx)
 	mem.client.Send(msg, true)

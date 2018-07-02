@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	"gitlab.33.cn/chain33/chain33/account"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -40,7 +40,7 @@ func GetExecAddrCmd() *cobra.Command {
 }
 
 func addGetAddrFlags(cmd *cobra.Command) {
-	cmd.Flags().StringP("exec", "e", "", getExecuterNameString())
+	cmd.Flags().StringP("exec", "e", "", `executor name ("none", "coins", "hashlock", "retrieve", "ticket", "token" , "trade" and "relay" supported)`)
 	cmd.MarkFlagRequired("exec")
 }
 
@@ -50,7 +50,7 @@ func getAddrByExec(cmd *cobra.Command, args []string) {
 		fmt.Println(err.Error())
 		return
 	}
-	addrResult := account.ExecAddress(execer)
+	addrResult := address.ExecAddress(execer)
 	result := addrResult
 	fmt.Println(result)
 }
@@ -87,7 +87,7 @@ func addUserData(cmd *cobra.Command, args []string) {
 		fmt.Println("executor name too long")
 		return
 	}
-	addrResult := account.ExecAddress(execer)
+	addrResult := address.ExecAddress(execer)
 	topic, _ := cmd.Flags().GetString("topic")
 	data, _ := cmd.Flags().GetString("data")
 	if topic != "" {

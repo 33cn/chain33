@@ -10,6 +10,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/address"
 
 	_ "gitlab.33.cn/chain33/chain33/common/crypto/ed25519"
 	_ "gitlab.33.cn/chain33/chain33/common/crypto/secp256k1"
@@ -24,6 +25,10 @@ type Message proto.Message
 var userKey = []byte("user.")
 var slash = []byte("-")
 
+const UserEvmString = "user.evm."
+
+var UserEvm = []byte(UserEvmString)
+
 //交易组的接口，Transactions 和 Transaction 都符合这个接口
 type TxGroup interface {
 	Tx() *Transaction
@@ -36,13 +41,17 @@ func IsAllowExecName(name string) bool {
 }
 
 func isAllowExecName(name []byte) bool {
-	// name长度不能超过50
-	if len(name) > 50 {
+	// name长度不能超过系统限制
+	if len(name) > address.MaxExecNameLength {
 		return false
 	}
 	// name中不允许有 "-"
 	if bytes.Contains(name, slash) {
 		return false
+	}
+	//vm:
+	if bytes.HasPrefix(name, UserEvm) {
+		name = ExecerEvm
 	}
 	if bytes.HasPrefix(name, userKey) {
 		return true
@@ -401,6 +410,54 @@ func (r *ReceiptData) DecodeReceiptLog() (*ReceiptDataResult, error) {
 		case TyLogTokenGenesisDeposit:
 			lTy = "LogTokenGenesisDeposit"
 			var logTmp ReceiptExecAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogRelayCreate:
+			lTy = "LogRelaySell"
+			var logTmp ReceiptRelayLog
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogRelayRevokeCreate:
+			lTy = "LogRelayRevokeSell"
+			var logTmp ReceiptRelayLog
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogRelayAccept:
+			lTy = "LogRelayBuy"
+			var logTmp ReceiptRelayLog
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogRelayRevokeAccept:
+			lTy = "LogRelayRevokeBuy"
+			var logTmp ReceiptRelayLog
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogRelayConfirmTx:
+			lTy = "LogRelayConfirmTx"
+			var logTmp ReceiptRelayLog
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogRelayRcvBTCHead:
+			lTy = "LogRelayRcvBTCHead"
+			var logTmp ReceiptRelayRcvBTCHeaders
 			err = Decode(lLog, &logTmp)
 			if err != nil {
 				return nil, err

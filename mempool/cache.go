@@ -2,9 +2,7 @@ package mempool
 
 import (
 	"container/list"
-	"time"
 
-	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -66,18 +64,17 @@ func (cache *txCache) Push(tx *types.Transaction, direction PushDirection) error
 		return types.ErrMemFull
 	}
 
-	it := &Item{value: tx, priority: tx.Fee, enterTime: time.Now().UnixNano() / 1000000}
+	it := &Item{value: tx, priority: tx.Fee, enterTime: types.Now().Unix()}
 	var txElement *list.Element
 	if direction == pushback {
 		txElement = cache.txList.PushBack(it)
 	} else {
 		txElement = cache.txList.PushFront(it)
 	}
-
 	cache.txMap[string(hash)] = txElement
 
 	// 账户交易数量
-	accountAddr := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
+	accountAddr := tx.From()
 	cache.accMap[accountAddr] = append(cache.accMap[accountAddr], tx)
 
 	//对于单独保留最新10笔交易的需求只是在pushback的时候才进行更新
@@ -105,7 +102,7 @@ func (cache *txCache) Remove(hash []byte) {
 		return
 	}
 	tx := value.(*Item).value
-	addr := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
+	addr := tx.From()
 	if cache.TxNumOfAccount(addr) > 0 {
 		cache.AccountTxNumDecrease(addr, hash)
 	}
@@ -132,7 +129,8 @@ func (cache *txCache) GetAccTxs(addrs *types.ReqAddrs) *types.TransactionDetails
 			for _, v := range value {
 				txAmount, err := v.Amount()
 				if err != nil {
-					continue
+					// continue
+					txAmount = 0
 				}
 				res.Txs = append(res.Txs,
 					&types.TransactionDetail{

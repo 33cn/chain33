@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/blockchain"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/limits"
@@ -31,7 +31,7 @@ func init() {
 		panic(err)
 	}
 	log.SetLogLevel("info")
-	random = rand.New(rand.NewSource(time.Now().UnixNano()))
+	random = rand.New(rand.NewSource(types.Now().UnixNano()))
 }
 
 // 执行： go test -cover
@@ -106,7 +106,7 @@ func genaddress() (string, crypto.PrivKey) {
 	if err != nil {
 		panic(err)
 	}
-	addrto := account.PubKeyToAddress(privto.PubKey().Bytes())
+	addrto := address.PubKeyToAddress(privto.PubKey().Bytes())
 	return addrto.String(), privto
 }
 
@@ -115,7 +115,7 @@ func createTx(priv crypto.PrivKey, to string, amount int64) *types.Transaction {
 	transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
 	tx := &types.Transaction{Execer: []byte("none"), Payload: types.Encode(transfer), Fee: 1e6, To: to}
 	tx.Nonce = random.Int63()
-	tx.To = account.ExecAddress("none")
+	tx.To = address.ExecAddress("none")
 	tx.Sign(types.SECP256K1, priv)
 	return tx
 }

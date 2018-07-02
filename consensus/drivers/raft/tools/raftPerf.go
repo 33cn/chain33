@@ -10,8 +10,8 @@ import (
 	"strconv"
 	"time"
 
-	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	rlog "gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -35,7 +35,7 @@ func createConn(ip string) {
 		return
 	}
 	c = types.NewGrpcserviceClient(conn)
-	r = rand.New(rand.NewSource(time.Now().UnixNano()))
+	r = rand.New(rand.NewSource(types.Now().UnixNano()))
 }
 
 func main() {
@@ -206,7 +206,7 @@ func NormPerf(size string, num string, interval string, duration string) {
 
 func RandStringBytes(n int) string {
 	b := make([]byte, n)
-	rand.Seed(time.Now().UnixNano())
+	rand.Seed(types.Now().UnixNano())
 	for i := range b {
 		b[i] = letterBytes[rand.Intn(len(letterBytes))]
 	}
@@ -218,7 +218,7 @@ func NormPut(privkey string, key string, value string) {
 	nput := &types.NormAction_Nput{&types.NormPut{Key: key, Value: []byte(value)}}
 	action := &types.NormAction{Value: nput, Ty: types.NormActionPut}
 	tx := &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(action), Fee: fee}
-	tx.To = account.ExecAddress("norm")
+	tx.To = address.ExecAddress("norm")
 	tx.Nonce = r.Int63()
 	tx.Sign(types.SECP256K1, getprivkey(privkey))
 
@@ -279,7 +279,7 @@ func genaddress() (string, crypto.PrivKey) {
 	if err != nil {
 		panic(err)
 	}
-	addrto := account.PubKeyToAddress(privto.PubKey().Bytes())
+	addrto := address.PubKeyToAddress(privto.PubKey().Bytes())
 	fmt.Println("addr:", addrto.String())
 	return addrto.String(), privto
 }

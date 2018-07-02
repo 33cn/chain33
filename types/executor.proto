@@ -5,352 +5,351 @@ import "transaction.proto";
 package types;
 
 message Genesis {
-	bool isrun = 1;
+    bool isrun = 1;
 }
 
-//message for execs.coins
+// message for execs.coins
 message CoinsAction {
-	oneof value {
-		CoinsTransfer transfer = 1;
-		CoinsWithdraw withdraw = 4;
-		CoinsGenesis genesis = 2;
-		CoinsTransferToExec transferToExec = 5;
-	}
-	int32 ty = 3;
+    oneof value {
+        CoinsTransfer       transfer       = 1;
+        CoinsWithdraw       withdraw       = 4;
+        CoinsGenesis        genesis        = 2;
+        CoinsTransferToExec transferToExec = 5;
+    }
+    int32 ty = 3;
 }
 
 //给某个地址凭空打币
 //只能执行一次，不能执行第二次
 message CoinsGenesis {
-	int64 amount = 2;
-	string returnAddress = 3;
+    int64  amount        = 2;
+    string returnAddress = 3;
 }
 
 message CoinsTransfer {
-	string cointoken = 1;
-	int64 amount     = 2;
-	string note      = 3;
+    string cointoken = 1;
+    int64  amount    = 2;
+    string note      = 3;
 }
 
 message CoinsTransferToExec {
-	string cointoken = 1;
-	int64 amount     = 2;
-	string note      = 3;
-	string execName  = 4;
+    string cointoken = 1;
+    int64  amount    = 2;
+    string note      = 3;
+    string execName  = 4;
 }
 
 message CoinsWithdraw {
-	string cointoken = 1;
-	int64 amount = 2;
-	string note = 3;
+    string cointoken = 1;
+    int64  amount    = 2;
+    string note      = 3;
+    string execName  = 4;
 }
 
 message Hashlock {
-	bytes hashlockId = 1;
-	int32 status = 2;
-	int64 CreateTime = 3;
-	string toAddress = 4;
-	string returnAddress = 5;
-	int64 amount = 6;
-	int64 frozentime = 7;
+    bytes  hashlockId    = 1;
+    int32  status        = 2;
+    int64  CreateTime    = 3;
+    string toAddress     = 4;
+    string returnAddress = 5;
+    int64  amount        = 6;
+    int64  frozentime    = 7;
 }
 
-//message for hashlock
+// message for hashlock
 message HashlockAction {
-	oneof value {
-		HashlockLock hlock = 1;
-		HashlockSend hsend = 2;
-		HashlockUnlock hunlock = 3;
-	}
-	int32 ty = 4;
+    oneof value {
+        HashlockLock   hlock   = 1;
+        HashlockSend   hsend   = 2;
+        HashlockUnlock hunlock = 3;
+    }
+    int32 ty = 4;
 }
 
 message HashlockLock {
-	int64 amount = 1;
-	int64 time = 2;
-	bytes hash = 3;
-	string toAddress = 4;
-	string returnAddress = 5;
+    int64  amount        = 1;
+    int64  time          = 2;
+    bytes  hash          = 3;
+    string toAddress     = 4;
+    string returnAddress = 5;
 }
 
 message HashlockUnlock {
-	bytes secret = 1;
-	//bytes  hash     = 3;
+    bytes secret = 1;
+    // bytes  hash     = 3;
 }
 
 message HashlockSend {
-	bytes secret = 1;
-	//bytes  hash     = 3;
+    bytes secret = 1;
+    // bytes  hash     = 3;
 }
 
-message HashRecv  {
-	bytes HashlockId  = 1;
-	Hashlockquery Infomation = 2;
+message HashRecv {
+    bytes         HashlockId = 1;
+    Hashlockquery Infomation = 2;
 }
 
-message Hashlockquery  {
-	int64 time    = 1;
-	int32 status  = 2;
-	int64 amount  = 3;
-	int64 createTime = 4;
-	int64 currentTime = 5;
+message Hashlockquery {
+    int64 time        = 1;
+    int32 status      = 2;
+    int64 amount      = 3;
+    int64 createTime  = 4;
+    int64 currentTime = 5;
 }
 
 message Ticket {
-	string ticketId = 1;
-	//0 -> 未成熟 1 -> 可挖矿 2 -> 已挖成功 3-> 已关闭
-	int32 status = 2;
-	//genesis 创建的私钥比较特殊
-	bool isGenesis = 3;
-	 //创建时间
-	int64 createTime = 4;
-	//挖矿时间
-	int64 minerTime = 5;
-	//挖到的币的数目
-	int64 minerValue = 8;
-	string minerAddress = 6;
-	//return wallet
-	string returnAddress = 7;
+    string ticketId = 1;
+    // 0 -> 未成熟 1 -> 可挖矿 2 -> 已挖成功 3-> 已关闭
+    int32 status = 2;
+    // genesis 创建的私钥比较特殊
+    bool isGenesis = 3;
+    //创建时间
+    int64 createTime = 4;
+    //挖矿时间
+    int64 minerTime = 5;
+    //挖到的币的数目
+    int64  minerValue   = 8;
+    string minerAddress = 6;
+    // return wallet
+    string returnAddress = 7;
 }
 
-//message for execs.ticket
+// message for execs.ticket
 message TicketAction {
-	oneof value {
-		TicketBind tbind = 5;
-		TicketOpen topen = 1;
-		TicketGenesis genesis = 2;
-		TicketClose tclose = 3;
-		TicketMiner miner = 4;
-	}
-	int32 ty = 10;
+    oneof value {
+        TicketBind    tbind   = 5;
+        TicketOpen    topen   = 1;
+        TicketGenesis genesis = 2;
+        TicketClose   tclose  = 3;
+        TicketMiner   miner   = 4;
+    }
+    int32 ty = 10;
 }
 
 message TicketMiner {
-	uint32 bits = 1;
-	int64 reward = 2;
-	string ticketId = 3;
-	bytes modify = 4;
+    uint32 bits     = 1;
+    int64  reward   = 2;
+    string ticketId = 3;
+    bytes  modify   = 4;
 }
 
 message TicketBind {
-	string minerAddress = 1;
-	string returnAddress = 2;
+    string minerAddress  = 1;
+    string returnAddress = 2;
 }
 
 message TicketOpen {
-	//用户挖矿的ticket 地址
-	string minerAddress = 1;
-	//购买ticket的数目
-	int32 count = 2;
-	//币实际存储的地址
-	string returnAddress = 3;
+    //用户挖矿的ticket 地址
+    string minerAddress = 1;
+    //购买ticket的数目
+    int32 count = 2;
+    //币实际存储的地址
+    string returnAddress = 3;
 }
 
 message TicketGenesis {
-	string minerAddress = 1;
-	string returnAddress = 2;
-	int32 count = 3;
+    string minerAddress  = 1;
+    string returnAddress = 2;
+    int32  count         = 3;
 }
 
 message TicketClose {
-	repeated string ticketId = 1;
+    repeated string ticketId = 1;
 }
 
 message TicketList {
-	string addr = 1;
-	int32 status = 3;
+    string addr   = 1;
+    int32  status = 3;
 }
 
 message TicketInfos {
-	repeated string ticketIds = 1;
+    repeated string ticketIds = 1;
 }
 
 message ReplyTicketList {
-	repeated Ticket tickets = 1;
+    repeated Ticket tickets = 1;
 }
 
 message ReplyWalletTickets {
-	repeated Ticket tickets = 1;
-	repeated bytes privkeys = 2;
+    repeated Ticket tickets = 1;
+    repeated bytes privkeys = 2;
 }
 
 message ReceiptTicket {
-	string ticketId = 1;
-	int32 status = 2;
-	int32 prevStatus = 3;
-	string addr = 4;
+    string ticketId   = 1;
+    int32  status     = 2;
+    int32  prevStatus = 3;
+    string addr       = 4;
 }
 
 message ReceiptTicketBind {
-	string oldMinerAddress = 1;
-	string newMinerAddress = 2;
-	string returnAddress = 3;
+    string oldMinerAddress = 1;
+    string newMinerAddress = 2;
+    string returnAddress   = 3;
 }
 
 message ExecTxList {
-	bytes stateHash = 1;
-	repeated Transaction txs = 2;
-	int64 blockTime = 3;
-	int64 height = 4;
-	uint64 difficulty = 5;
+    bytes    stateHash              = 1;
+    repeated Transaction txs        = 2;
+    int64                blockTime  = 3;
+    int64                height     = 4;
+    uint64               difficulty = 5;
 }
 
 message Query {
-	bytes execer = 1;
-	string funcName = 2;
-	bytes payload = 3;
+    bytes  execer   = 1;
+    string funcName = 2;
+    bytes  payload  = 3;
 }
 
 message Norm {
-	bytes  normId     = 1;
-	int64  createTime = 2;
-	string key        = 3;
-	bytes value       = 4;
-
+    bytes  normId     = 1;
+    int64  createTime = 2;
+    string key        = 3;
+    bytes  value      = 4;
 }
 
 message NormAction {
-	oneof value {
-		NormPut nput = 1;
-	}
-	int32 ty = 5;
+    oneof value {
+        NormPut nput = 1;
+    }
+    int32 ty = 5;
 }
 
 message NormPut {
-	string key   = 1;
-	bytes value  = 2;
+    string key   = 1;
+    bytes  value = 2;
 }
-//message for retrieve start
-message RetrievePara{
-	string defaultAddress = 1;
-	int32 status          = 2;
-	int64 createTime      = 3;
-	int64 prepareTime     = 4;
-	int64 delayPeriod     = 5;
+// message for retrieve start
+message RetrievePara {
+    string defaultAddress = 1;
+    int32  status         = 2;
+    int64  createTime     = 3;
+    int64  prepareTime    = 4;
+    int64  delayPeriod    = 5;
 }
 
-message Retrieve{
-	//used as key
-	string backupAddress          = 1;
-	repeated RetrievePara retPara = 2;
+message Retrieve {
+    // used as key
+    string   backupAddress        = 1;
+    repeated RetrievePara retPara = 2;
 }
 
 message RetrieveAction {
-	oneof value {
-		PreRetrieve          preRet    = 1;
-		PerformRetrieve      perfRet   = 2;
-		BackupRetrieve	     backup    = 3;
-		CancelRetrieve       cancel    = 4;
-	}
-	int32 ty = 5;
+    oneof value {
+        PreRetrieve     preRet  = 1;
+        PerformRetrieve perfRet = 2;
+        BackupRetrieve  backup  = 3;
+        CancelRetrieve  cancel  = 4;
+    }
+    int32 ty = 5;
 }
 
-message BackupRetrieve{
-	string backupAddress     = 1;
-	string defaultAddress    = 2;
-	int64 delayPeriod        = 3;
+message BackupRetrieve {
+    string backupAddress  = 1;
+    string defaultAddress = 2;
+    int64  delayPeriod    = 3;
 }
 
-message PreRetrieve{	
-	string backupAddress     = 1;
-	string defaultAddress    = 2;
+message PreRetrieve {
+    string backupAddress  = 1;
+    string defaultAddress = 2;
 }
 
-message PerformRetrieve{
-	string backupAddress     = 1;
-	string defaultAddress    = 2;
+message PerformRetrieve {
+    string backupAddress  = 1;
+    string defaultAddress = 2;
 }
 
-message CancelRetrieve{
-	string backupAddress     = 1;
-	string defaultAddress    = 2;
+message CancelRetrieve {
+    string backupAddress  = 1;
+    string defaultAddress = 2;
 }
 
-message ReqRetrieveInfo{
-	string backupAddress     = 1;
-	string defaultAddress    = 2;
+message ReqRetrieveInfo {
+    string backupAddress  = 1;
+    string defaultAddress = 2;
 }
 
-message RetrieveQuery{
-	string backupAddress  = 1;
-	string defaultAddress = 2;
-	int64 delayPeriod     = 3;
-	int64 prepareTime     = 4;
-	int64 remainTime      = 5;
-	int32 status          = 6;
+message RetrieveQuery {
+    string backupAddress  = 1;
+    string defaultAddress = 2;
+    int64  delayPeriod    = 3;
+    int64  prepareTime    = 4;
+    int64  remainTime     = 5;
+    int32  status         = 6;
 }
-//message for retrieve end
-
+// message for retrieve end
 
 //////////////////////////////////////////////////////////////////////////////
-//message for token start/////////////////////////////////////////////////////
+// message for token start/////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
 message TokenAction {
-	oneof value {
-		TokenPreCreate    tokenprecreate    = 1;
-		TokenFinishCreate tokenfinishcreate = 2;
-		TokenRevokeCreate tokenrevokecreate = 3;
-		CoinsTransfer     transfer          = 4;
-		CoinsWithdraw     withdraw          = 5;
-		CoinsGenesis      genesis           = 6;
-		CoinsTransferToExec transferToExec  = 8;
-	}
-	int32 Ty = 7;
+    oneof value {
+        TokenPreCreate      tokenprecreate    = 1;
+        TokenFinishCreate   tokenfinishcreate = 2;
+        TokenRevokeCreate   tokenrevokecreate = 3;
+        CoinsTransfer       transfer          = 4;
+        CoinsWithdraw       withdraw          = 5;
+        CoinsGenesis        genesis           = 6;
+        CoinsTransferToExec transferToExec    = 8;
+    }
+    int32 Ty = 7;
 }
 
 //创建token，支持最大精确度是6位小数,即存入数据库的实际总额需要放大1e6倍
 message TokenPreCreate {
-	string name         = 1;
-	string symbol       = 2;
-	string introduction = 3;
-	int64 total         = 4;
-	int64  price        = 5;
-	string owner        = 6;
+    string name         = 1;
+    string symbol       = 2;
+    string introduction = 3;
+    int64  total        = 4;
+    int64  price        = 5;
+    string owner        = 6;
 }
 
 message TokenFinishCreate {
-	string symbol       = 1;
-	string owner        = 2;
+    string symbol = 1;
+    string owner  = 2;
 }
 
 message TokenRevokeCreate {
-	string symbol       = 1;
-	string owner        = 2;
+    string symbol = 1;
+    string owner  = 2;
 }
 
 message Token {
-	string name         = 1;
-	string symbol       = 2;
-	string introduction = 3;
-	int64  total        = 4;
-	int64  price        = 5;
-	string owner        = 6;
-	string creator      = 7;
-	int32  status       = 8;
+    string name         = 1;
+    string symbol       = 2;
+    string introduction = 3;
+    int64  total        = 4;
+    int64  price        = 5;
+    string owner        = 6;
+    string creator      = 7;
+    int32  status       = 8;
 }
 
 message ReqTokens {
-	bool queryAll          = 1;
-	int32 status           = 2;
-	repeated string tokens = 3;
+    bool     queryAll      = 1;
+    int32    status        = 2;
+    repeated string tokens = 3;
 }
 
 message ReplyTokens {
-	repeated Token tokens = 1;
+    repeated Token tokens = 1;
 }
 
 message ReceiptToken {
-	string symbol       = 1;
-	string owner        = 2;
-	int32  status       = 3;
+    string symbol = 1;
+    string owner  = 2;
+    int32  status = 3;
 }
 
 message TokenRecv {
-	string token = 1;
-	int64  recv  = 2;
+    string token = 1;
+    int64  recv  = 2;
 }
 message ReplyAddrRecvForTokens {
-	repeated TokenRecv tokenRecvs = 1;
+    repeated TokenRecv tokenRecvs = 1;
 }
 
 // 配置修改部分
@@ -365,21 +364,21 @@ message Int32Config {
 }
 
 message ConfigItem {
-    string key = 1;
+    string key  = 1;
     string addr = 2;
-    oneof value {
-        ArrayConfig arr = 3;
+    oneof  value {
+        ArrayConfig  arr = 3;
         StringConfig str = 4;
-        Int32Config int = 5;
+        Int32Config int  = 5;
     }
     int32 Ty = 11;
 }
 
 message ModifyConfig {
-    string key = 1;
+    string key   = 1;
     string value = 2;
-    string op = 3;
-    string addr = 4;
+    string op    = 3;
+    string addr  = 4;
 }
 
 message ManageAction {
@@ -390,12 +389,12 @@ message ManageAction {
 }
 
 message ReceiptConfig {
-    ConfigItem prev = 1;
+    ConfigItem prev    = 1;
     ConfigItem current = 2;
 }
 
 message ReplyConfig {
-    string key = 1;
+    string key   = 1;
     string value = 2;
 }
 

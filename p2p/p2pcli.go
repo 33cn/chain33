@@ -4,9 +4,9 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"net"
 
 	"math/rand"
-	"strings"
 
 	"sync/atomic"
 	"time"
@@ -196,6 +196,7 @@ func (m *Cli) GetAddrList(peer *Peer) (map[string]int64, error) {
 
 	for _, peerinfo := range peerinfos {
 		if localBlockHeight-peerinfo.GetHeader().GetHeight() < 2048 {
+
 			addrlist[fmt.Sprintf("%v:%v", peerinfo.GetAddr(), peerinfo.GetPort())] = peerinfo.GetHeader().GetHeight()
 		}
 	}
@@ -228,7 +229,7 @@ func (m *Cli) SendVersion(peer *Peer, nodeinfo *NodeInfo) (string, error) {
 	}
 	addrfrom := nodeinfo.GetExternalAddr().String()
 
-	resp, err := peer.mconn.gcli.Version2(context.Background(), &pb.P2PVersion{Version: nodeinfo.cfg.GetVersion(), Service: int64(nodeinfo.ServiceTy()), Timestamp: time.Now().Unix(),
+	resp, err := peer.mconn.gcli.Version2(context.Background(), &pb.P2PVersion{Version: nodeinfo.cfg.GetVersion(), Service: int64(nodeinfo.ServiceTy()), Timestamp: pb.Now().Unix(),
 		AddrRecv: peer.Addr(), AddrFrom: addrfrom, Nonce: int64(rand.Int31n(102040)),
 		UserAgent: hex.EncodeToString(in.Sign.GetPubkey()), StartHeight: blockheight}, grpc.FailFast(true))
 	log.Debug("SendVersion", "resp", resp, "addrfrom", addrfrom, "sendto", peer.Addr())
@@ -245,15 +246,15 @@ func (m *Cli) SendVersion(peer *Peer, nodeinfo *NodeInfo) (string, error) {
 	log.Debug("SHOW VERSION BACK", "VersionBack", resp, "peer", peer.Addr())
 	peer.version.SetVersion(resp.GetVersion())
 
-	if len(strings.Split(resp.GetAddrRecv(), ":")) == 2 {
-		if strings.Split(resp.GetAddrRecv(), ":")[0] != nodeinfo.GetExternalAddr().IP.String() {
-			externalIP := strings.Split(resp.GetAddrRecv(), ":")[0]
-			log.Debug("sendVersion", "externalip", externalIP)
+	ip, _, err := net.SplitHostPort(resp.GetAddrRecv())
+	if err == nil {
+		if ip != nodeinfo.GetExternalAddr().IP.String() {
+
+			log.Debug("sendVersion", "externalip", ip)
 			if peer.IsPersistent() {
 				//永久加入黑名单
-				nodeinfo.blacklist.Add(externalIP, 0)
+				nodeinfo.blacklist.Add(ip, 0)
 			}
-
 		}
 	}
 
@@ -304,15 +305,14 @@ func (m *Cli) GetPeerInfo(msg queue.Message, taskindex int64) {
 	defer func() {
 		log.Debug("GetPeerInfo", "task complete:", taskindex)
 	}()
-	log.Debug("getlocalpeerinfo", "befor getlocalpeerinfoxxxxxxxxxxx", taskindex)
+
 	peerinfo, err := m.getLocalPeerInfo()
 	if err != nil {
 		log.Error("GetPeerInfo", "p2p cli Err", err.Error())
 		msg.Reply(m.network.client.NewMessage("blockchain", pb.EventPeerList, &pb.PeerList{Peers: m.peerInfos()}))
 		return
 	}
-	log.Debug("getlocalpeerinfo", "after getlocalpeerinfoxxxxxxxxxxx", taskindex)
-	log.Debug("GetPeerInfo", "p2pcli", "getlocalpeerinfo")
+
 	var peers = m.peerInfos()
 	var peer pb.Peer
 	peer.Addr = peerinfo.GetAddr()

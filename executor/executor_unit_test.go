@@ -4,10 +4,8 @@ import (
 	"strconv"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/golang/protobuf/proto"
-	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
@@ -24,12 +22,10 @@ func initUnitEnv() (queue.Queue, *Executor) {
 	cfg := config.InitCfg("../cmd/chain33/chain33.test.toml")
 	exec := New(cfg.Exec)
 	exec.SetQueueClient(q.Client())
-	//types.SetMinFee(0)
 	return q, exec
 }
 
 func createTxEx(priv crypto.PrivKey, to string, amount int64, ty int32, execer string) *types.Transaction {
-
 	var tx *types.Transaction
 	switch execer {
 	case "coins":
@@ -109,7 +105,7 @@ func createTxEx(priv crypto.PrivKey, to string, amount int64, ty int32, execer s
 		return nil
 	}
 	tx.Nonce = random.Int63()
-	//tx.To = account.ExecAddress(execer).String()
+	//tx.To = address.ExecAddress(execer).String()
 	tx.Sign(types.SECP256K1, priv)
 	return tx
 }
@@ -122,10 +118,11 @@ func genTxsEx(n int64, ty int32, execer string) (txs []*types.Transaction) {
 	}
 	return txs
 }
+
 func createBlockEx(n int64, ty int32, execer string) *types.Block {
 	newblock := &types.Block{}
 	newblock.Height = -1
-	newblock.BlockTime = time.Now().Unix()
+	newblock.BlockTime = types.Now().Unix()
 	newblock.ParentHash = zeroHash[:]
 	newblock.Txs = genTxsEx(n, ty, execer)
 	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
@@ -339,7 +336,7 @@ func TestQueueClient(t *testing.T) {
 	for _, str := range execTy {
 		ty, _ := strconv.Atoi(str[1])
 		block = createBlockEx(txNum, int32(ty), str[0])
-		addr1 = account.PubKeyToAddress(block.Txs[0].GetSignature().GetPubkey()).String() //将获取随机生成交易地址
+		addr1 = block.Txs[0].From() //将获取随机生成交易地址
 
 		// 1、测试 EventExecTxList 消息
 		msg = genExecTxListMsg(q.Client(), block)

@@ -7,20 +7,29 @@
 SRC := gitlab.33.cn/chain33/chain33/cmd/chain33
 SRC_CLI := gitlab.33.cn/chain33/chain33/cmd/cli
 SRC_SIGNATORY := gitlab.33.cn/chain33/chain33/cmd/signatory-server
+SRC_MINER := gitlab.33.cn/chain33/chain33/cmd/miner_accounts
 APP := build/chain33
 CLI := build/chain33-cli
 SIGNATORY := build/signatory-server
+MINER := build/miner_accounts
+RELAYD := build/relayd
+SRC_RELAYD := gitlab.33.cn/chain33/chain33/cmd/relayd
 LDFLAGS := -ldflags "-w -s"
-PKG_LIST := `go list ./... | grep -v "vendor" | grep -v "chain33/test" | grep -v "mocks"`
+PKG_LIST := `go list ./... | grep -v "vendor" | grep -v "chain33/test" | grep -v "mocks" | grep -v "pbft"`
 BUILD_FLAGS = -ldflags "-X gitlab.33.cn/chain33/chain33/common/version.GitCommit=`git rev-parse --short=8 HEAD`"
 .PHONY: default dep all build release cli linter race test fmt vet bench msan coverage coverhtml docker docker-compose protobuf clean help
 
-default: build cli
+default: build cli relayd
 
 dep: ## Get the dependencies
 	@go get -u gopkg.in/alecthomas/gometalinter.v2
 	@gometalinter.v2 -i
 	@go get -u github.com/mitchellh/gox
+	@go get -u github.com/vektra/mockery/.../
+	@go get -u mvdan.cc/sh/cmd/shfmt
+	@go get -u mvdan.cc/sh/cmd/gosh
+	@apt install clang-format
+	@apt install shellcheck
 
 all: ## Builds for multiple platforms
 	@gox  $(LDFLAGS) $(SRC)
@@ -43,10 +52,19 @@ signatory:
 	@go build -v -o $(SIGNATORY) $(SRC_SIGNATORY)
 	@cp cmd/signatory-server/signatory.toml build/
 
-build_ci: ## Build the binary file for CI
-	@go build -race -v -o $(CLI) $(SRC_CLI)
+miner:
+	@cd cmd/miner_accounts/accounts && bash ./create_protobuf.sh && cd ../.../..
+	@go build -v -o $(MINER) $(SRC_MINER)
+	@cp cmd/miner_accounts/miner_accounts.toml build/
+
+build_ci: relayd ## Build the binary file for CI
+	@go build -race -v -i -o $(CLI) $(SRC_CLI)
 	@go build  $(BUILD_FLAGS)-race -v -o $(APP) $(SRC)
 	@cp cmd/chain33/chain33.toml build/
+
+relayd: ## Build relay deamon binary
+	@go build -race -i -v -o $(RELAYD) $(SRC_RELAYD)
+	@cp cmd/relayd/relayd.toml build/
 
 linter: ## Use gometalinter check code, ignore some unserious warning
 	@res=$$(gometalinter.v2 -t --sort=linter --enable-gc --deadline=2m --disable-all \
@@ -71,6 +89,7 @@ linter: ## Use gometalinter check code, ignore some unserious warning
 		echo "$${res}"; \
 		exit 1; \
 		fi;
+	@find . -name '*.sh' -not -path "./vendor/*" | xargs shellcheck
 
 race: ## Run data race detector
 	@go test -race -short $(PKG_LIST)
@@ -78,9 +97,16 @@ race: ## Run data race detector
 test: ## Run unittests
 	@go test -parallel 1 -race $(PKG_LIST)
 
-fmt: ## go fmt
+fmt: fmt_proto fmt_shell ## go fmt
 	@go fmt ./...
-	@$$(find . -name '*.go' -not -path "./vendor/*" | xargs goimports -l -w)
+	@find . -name '*.go' -not -path "./vendor/*" | xargs goimports -l -w
+
+.PHONY: fmt_proto fmt_shell
+fmt_proto: ## go fmt protobuf file
+	@find . -name '*.proto' -not -path "./vendor/*" | xargs clang-format -i
+
+fmt_shell: ## check shell file
+	@find . -name '*.sh' -not -path "./vendor/*" | xargs shfmt -w -s -i 4 -ci -bn
 
 vet: ## go vet
 	@go vet ./...
@@ -101,7 +127,7 @@ docker: ## build docker image for chain33 run
 	@sudo docker build . -f ./build/Dockerfile-run -t chain33:latest
 
 docker-compose: ## build docker-compose for chain33 run
-	@cd build && ./docker-compose.sh && cd ..
+	@cd build && ./docker-compose.sh build && cd ..
 
 chain-fork-test: ## build docker-compose for chain33 run
 	@cd build && ./docker-compose.sh && ./chain-fork-test.sh && cd ..
@@ -109,6 +135,7 @@ chain-fork-test: ## build docker-compose for chain33 run
 clean: ## Remove previous build
 	@rm -rf $(shell find . -name 'datadir' -not -path "./vendor/*")
 	@rm -rf build/chain33*
+	@rm -rf build/relayd*
 	@rm -rf build/*.log
 	@rm -rf build/logs
 	@go clean
@@ -131,20 +158,21 @@ cleandata:
 checkgofmt: ## get all go files and run go fmt on them
 	@files=$$(find . -name '*.go' -not -path "./vendor/*" | xargs gofmt -l -s); if [ -n "$$files" ]; then \
 		  echo "Error: 'make fmt' needs to be run on:"; \
-		  echo "$${files}"; \
+		  echo "${files}"; \
 		  exit 1; \
 		  fi;
 	@files=$$(find . -name '*.go' -not -path "./vendor/*" | xargs goimports -l -w); if [ -n "$$files" ]; then \
 		  echo "Error: 'make fmt' needs to be run on:"; \
-		  echo "$${files}"; \
+		  echo "${files}"; \
 		  exit 1; \
 		  fi;
 
 .PHONY: mock
 mock:
 	@cd client && mockery -name=QueueProtocolAPI && mv mocks/QueueProtocolAPI.go mocks/api.go && cd -
+	@cd queue && mockery -name=Client && mv mocks/Client.go mocks/client.go && cd -
 
-.PHONY: auto_ci_before auto_ci_after
+.PHONY: auto_ci_before auto_ci_after auto_ci
 auto_ci_before: clean fmt protobuf mock
 	@echo "auto_ci"
 	@go version
@@ -155,12 +183,32 @@ auto_ci_before: clean fmt protobuf mock
 	@git version
 	@git status
 
+.PHONY: auto_ci_after
 auto_ci_after: clean fmt protobuf mock
-	@git add *.go
+	@git add *.go *.sh *.proto
 	@git status
 	@files=$$(git status -suno);if [ -n "$$files" ]; then \
-		  git add *.go; \
+		  git add *.go *.sh *.proto; \
 		  git status; \
 		  git commit -m "auto ci [ci-skip]"; \
 		  git push origin HEAD:$(branch); \
 		  fi;
+
+.PHONY: auto_ci
+auto_fmt := find . -name '*.go' -not -path './vendor/*' | xargs goimports -l -w
+auto_ci: clean fmt_proto fmt_shell protobuf mock
+	@-go fmt ./...
+	@-${auto_fmt}
+	@go fmt ./...
+	@${auto_fmt}
+	@git add *.go *.sh *.proto
+	@git status
+	@files=$$(git status -suno);if [ -n "$$files" ]; then \
+		  git add *.go *.sh *.proto; \
+		  git status; \
+		  git commit -m "auto ci"; \
+		  git push origin HEAD:$(branch); \
+		  exit 1; \
+		  fi;
+
+
