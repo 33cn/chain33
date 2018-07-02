@@ -117,3 +117,15 @@ func (bi *blockIndex) AddNode(node *blockNode) {
 		delete(bi.index, string(hash))
 	}
 }
+
+//删除index节点
+func (bi *blockIndex) DelNode(hash []byte) {
+	bi.Lock()
+	defer bi.Unlock()
+
+	elem, ok := bi.index[string(hash)]
+	if ok {
+		bi.cacheQueue.Remove(elem)
+		delete(bi.index, string(hash))
+	}
+}
