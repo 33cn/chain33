@@ -111,7 +111,7 @@ func (c *channelClient) SendRawTransaction(param *types.SignedTx) (*types.Reply,
 	var tx types.Transaction
 	err := types.Decode(param.GetUnsign(), &tx)
 	if err == nil {
-		tx.Signature = &types.Signature{param.GetTy(), param.GetPubkey(), param.GetSign(), nil}
+		tx.Signature = &types.Signature{param.GetTy(), param.GetPubkey(), param.GetSign()}
 		return c.SendTx(&tx)
 	}
 	return nil, err

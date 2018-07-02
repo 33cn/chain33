@@ -12,6 +12,7 @@ import (
 	"crypto/rand"
 	"encoding/pem"
 	"crypto/x509"
+	"encoding/asn1"
 )
 
 const (
@@ -52,7 +53,17 @@ func (d Driver) PubKeyFromBytes(b []byte) (pubKey crypto.PubKey, err error) {
 }
 
 func (d Driver) SignatureFromBytes(b []byte) (sig crypto.Signature, err error) {
-	return SignatureECDSA(b), nil
+	var certSignature crypto.CertSignature
+	_, err = asn1.Unmarshal(b, &certSignature)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(certSignature.Cert) == 0 {
+		return SignatureECDSA(b), nil
+	}
+
+	return SignatureECDSA(certSignature.Signature), nil
 }
 
 // PrivKey

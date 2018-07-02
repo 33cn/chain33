@@ -62,3 +62,8 @@ func New(name string) (c Crypto, err error) {
 
 	return c, nil
 }
+
+type CertSignature struct {
+	Signature []byte
+	Cert []byte
+}
