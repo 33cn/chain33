@@ -8,7 +8,7 @@ import (
 
 	"github.com/pkg/errors"
 	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
-	"code.aliyun.com/chain33/chain33/common/merkle"
+	"gitlab.33.cn/chain33/chain33/common/merkle"
 )
 
 // ValidatorSet represent a set of *Validator at a given height.
