@@ -3,6 +3,9 @@ package types
 import (
 	"bytes"
 	"fmt"
+	"gitlab.33.cn/chain33/chain33/common/merkle"
+	"encoding/json"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
 )
 
 // ErrEvidenceInvalid wraps a piece of evidence and the error denoting how or why it is invalid.
@@ -61,7 +64,7 @@ func (evl EvidenceList) Hash() []byte {
 	default:
 		left := evl[:(len(evl)+1)/2].Hash()
 		right := evl[(len(evl)+1)/2:].Hash()
-		return SimpleHashFromTwoHashes(left, right)
+		return merkle.GetHashFromTwoHash(left, right)
 	}
 }
 
@@ -174,9 +177,11 @@ func (dve *DuplicateVoteEvidence) Equal(ev Evidence) bool {
 	if _, ok := ev.(*DuplicateVoteEvidence); !ok {
 		return false
 	}
-
+	if dve == nil {
+		return false
+	}
 	// just check their hashes
-	return bytes.Equal(SimpleHashFromBinary(dve), SimpleHashFromBinary(ev))
+	return bytes.Equal(SimpleHashFromBinary(dve), SimpleHashFromBinary(ev.(*DuplicateVoteEvidence)))
 }
 
 func (dve *DuplicateVoteEvidence) TypeName() string {
@@ -185,6 +190,16 @@ func (dve *DuplicateVoteEvidence) TypeName() string {
 
 func (dve *DuplicateVoteEvidence) Copy() Evidence {
 	return &DuplicateVoteEvidence{}
+}
+
+func SimpleHashFromBinary(item *DuplicateVoteEvidence) []byte {
+	bytes, e := json.Marshal(item)
+	if e != nil {
+		//commonlog.Error("SimpleHashFromBinary marshal failed", "type", item, "error", e)
+		panic(fmt.Sprintf("SimpleHashFromBinary marshal failed, err:%v", e))
+	}
+	return crypto.Ripemd160(bytes)
+
 }
 
 //-----------------------------------------------------------------

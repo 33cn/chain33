@@ -16,7 +16,6 @@ import (
 	"errors"
 	"sync"
 
-	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
 )
 
 type operation int
@@ -46,7 +45,7 @@ type Query interface {
 // Server allows clients to subscribe/unsubscribe for messages, publishing
 // messages with or without tags, and manages internal state.
 type Server struct {
-	cmn.BaseService
+	BaseService
 
 	cmds    chan cmd
 	cmdsCap int
@@ -65,7 +64,7 @@ func NewServer(options ...Option) *Server {
 	s := &Server{
 		subscriptions: make(map[string]map[string]struct{}),
 	}
-	s.BaseService = *cmn.NewBaseService("PubSub", s)
+	s.BaseService = *NewBaseService("PubSub", s)
 
 	for _, option := range options {
 		option(s)

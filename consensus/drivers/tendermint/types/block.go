@@ -17,7 +17,9 @@ import (
 	"github.com/golang/protobuf/proto"
 )
 
-var blocklog = log15.New("module", "tendermint-block")
+var (
+	blocklog = log15.New("module", "tendermint-block")
+)
 
 // Block defines the atomic unit of a Tendermint blockchain.
 // TODO: add Version byte
@@ -371,11 +373,11 @@ func (commit *Commit) ValidateBasic() error {
 // Hash returns the hash of the commit
 func (commit *Commit) Hash() []byte {
 	if commit.hash == nil {
-		bs := make([]interface{}, len(commit.Precommits))
+		bs := make([][]byte, len(commit.Precommits))
 		for i, precommit := range commit.Precommits {
-			bs[i] = precommit
+			bs[i] = precommit.Hash()
 		}
-		commit.hash = SimpleHashFromBinaries(bs)
+		commit.hash = merkle.GetMerkleRoot(bs)
 	}
 	return commit.hash
 }
@@ -451,7 +453,7 @@ func (evl EvidenceEnvelopeList) Hash() []byte {
 	default:
 		left := evl[:(len(evl)+1)/2].Hash()
 		right := evl[(len(evl)+1)/2:].Hash()
-		return SimpleHashFromTwoHashes(left, right)
+		return merkle.GetHashFromTwoHash(left, right)
 	}
 }
 

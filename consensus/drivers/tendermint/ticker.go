@@ -3,7 +3,7 @@ package tendermint
 import (
 	"time"
 
-	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
+	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
 )
 
 var (
@@ -27,7 +27,7 @@ type TimeoutTicker interface {
 // Timeouts are scheduled along the tickChan,
 // and fired on the tockChan.
 type timeoutTicker struct {
-	cmn.BaseService
+	types.BaseService
 	timer    *time.Timer
 	tickChan chan timeoutInfo // for scheduling timeouts
 	tockChan chan timeoutInfo // for notifying about them
@@ -40,7 +40,7 @@ func NewTimeoutTicker() TimeoutTicker {
 		tickChan: make(chan timeoutInfo, tickTockBufferSize),
 		tockChan: make(chan timeoutInfo, tickTockBufferSize),
 	}
-	tt.BaseService = *cmn.NewBaseService("TimeoutTicker", tt)
+	tt.BaseService = *types.NewBaseService("TimeoutTicker", tt)
 	tt.stopTimer() // don't want to fire until the first scheduled timeout
 	return tt
 }

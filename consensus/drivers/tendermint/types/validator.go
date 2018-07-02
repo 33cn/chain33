@@ -51,7 +51,7 @@ func (v *Validator) CompareAccum(other *Validator) *Validator {
 		} else if bytes.Compare(v.Address, other.Address) > 0 {
 			return other
 		} else {
-			cmn.PanicSanity("Cannot compare identical validators")
+			PanicSanity("Cannot compare identical validators")
 			return nil
 		}
 	}

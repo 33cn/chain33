@@ -3,7 +3,6 @@ package types
 import (
 	"context"
 
-	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
 )
 
 const defaultCapacity = 1000
@@ -18,7 +17,7 @@ type EventBusSubscriber interface {
 // are proxied to underlying pubsub server. All events must be published using
 // EventBus to ensure correct data types.
 type EventBus struct {
-	cmn.BaseService
+	BaseService
 	pubsub *Server
 }
 
@@ -32,7 +31,7 @@ func NewEventBusWithBufferCapacity(cap int) *EventBus {
 	// capacity could be exposed later if needed
 	pubsub := NewServer(BufferCapacity(cap))
 	b := &EventBus{pubsub: pubsub}
-	b.BaseService = *cmn.NewBaseService("EventBus", b)
+	b.BaseService = *NewBaseService("EventBus", b)
 	return b
 }
 
