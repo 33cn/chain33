@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"path"
 	"runtime"
+	"encoding/asn1"
+	"io/ioutil"
+	"sync"
 
 	log "github.com/inconshreveable/log15"
 	"github.com/pkg/errors"
@@ -11,15 +14,12 @@ import (
 	"gitlab.33.cn/chain33/chain33/authority/utils"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
-	"io/ioutil"
-	"sync"
-	"gitlab.33.cn/chain33/chain33/common/crypto"
-	"encoding/asn1"
+
 )
 
 var alog = log.New("module", "autority")
 var OrgName = "Chain33"
-var cpuNum  = runtime.NumCPU()
+var cpuNum = runtime.NumCPU()
 
 type Authority struct {
 	cryptoPath string
@@ -27,7 +27,7 @@ type Authority struct {
 	cfg        *types.Authority
 	signType   int32
 	userMap    map[string]*User
-	validator   core.Validator
+	validator  core.Validator
 }
 
 type User struct {
@@ -58,20 +58,20 @@ func (auth *Authority) loadUsers(configPath string) error {
 	auth.userMap = make(map[string]*User)
 
 	certDir := path.Join(configPath, "signcerts")
-	dir,err := ioutil.ReadDir(certDir)
+	dir, err := ioutil.ReadDir(certDir)
 	if err != nil {
 		return err
 	}
 
 	keyDir := path.Join(configPath, "keystore")
-	for _,file := range dir {
-		filePath := path.Join(certDir,file.Name())
+	for _, file := range dir {
+		filePath := path.Join(certDir, file.Name())
 		certBytes, err := utils.ReadFile(filePath)
 		if err != nil {
 			continue
 		}
 
-		ski,err := utils.GetPublicKeySKIFromCert(certBytes)
+		ski, err := utils.GetPublicKeySKIFromCert(certBytes)
 		if err != nil {
 			alog.Error(fmt.Sprintf("Value in certificate file:%s not found", filePath))
 			continue
@@ -131,7 +131,7 @@ func (auth *Authority) SetQueueClient(client queue.Client) {
 }
 
 func (auth *Authority) procCheckCerts(msg queue.Message) {
-	data,_ := msg.GetData().(*types.ReqAuthCheckCerts)
+	data, _ := msg.GetData().(*types.ReqAuthCheckCerts)
 
 	done := make(chan struct{})
 	defer close(done)
@@ -216,7 +216,7 @@ func (auth *Authority) checkCert(signature *types.Signature) error {
 }
 
 func (auth *Authority) procCheckCert(msg queue.Message) {
-	data,_ := msg.GetData().(*types.ReqAuthCheckCert)
+	data, _ := msg.GetData().(*types.ReqAuthCheckCert)
 
 	err := auth.checkCert(data.GetSig())
 	if err != nil {
@@ -232,7 +232,7 @@ func (auth *Authority) procGetUser(msg queue.Message) {
 
 	userName := data.GetName()
 	keyvalue := fmt.Sprintf("%s@%s-cert.pem", userName, OrgName)
-	user,ok := auth.userMap[keyvalue]
+	user, ok := auth.userMap[keyvalue]
 	if !ok {
 		msg.ReplyErr("EventReplyAuthGetUser", types.ErrInvalidParam)
 		return
@@ -242,7 +242,7 @@ func (auth *Authority) procGetUser(msg queue.Message) {
 	resp.Cert = append(resp.Cert, user.enrollmentCertificate...)
 	resp.Key = append(resp.Key, user.privateKey...)
 
-	msg.Reply(auth.client.NewMessage("", types.EventReplyAuthGetUser,resp))
+	msg.Reply(auth.client.NewMessage("", types.EventReplyAuthGetUser, resp))
 }
 
 func (auth *Authority) Close() {

@@ -54,8 +54,8 @@ message Transactions {
 // ty = 2 -> ed25519
 // ty = 3 -> sm2
 message Signature {
-    int32 ty = 1;
-    bytes pubkey = 2;
+    int32 ty        = 1;
+    bytes pubkey    = 2;
     bytes signature = 3;
 }
 
@@ -154,13 +154,13 @@ message ReqDecodeRawTransaction {
     string txHex = 1;
 }
 
-message ReqAuthGetUser{
-	string name = 1;
+message ReqAuthGetUser {
+    string name = 1;
 }
 
-message ReplyAuthGetUser{
-	bytes cert = 1;
-	bytes key = 2;
+message ReplyAuthGetUser {
+    bytes cert = 1;
+    bytes key  = 2;
 }
 
 message ReqAuthCheckCert {

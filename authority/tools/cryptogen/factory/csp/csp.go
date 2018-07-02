@@ -22,7 +22,6 @@ type CSP interface {
 }
 
 type KeyStore interface {
-
 	ReadOnly() bool
 
 	GetKey(ski []byte) (k Key, err error)

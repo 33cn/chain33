@@ -15,6 +15,7 @@ import (
 type ecdsaPrivateKey struct {
 	privKey *ecdsa.PrivateKey
 }
+
 func (k *ecdsaPrivateKey) Bytes() (raw []byte, err error) {
 	return nil, errors.New("Not supported.")
 }
