@@ -174,7 +174,7 @@ func (mem *Mempool) RemoveTxsOfBlock(block *types.Block) bool {
 	defer mem.proxyMtx.Unlock()
 	for _, tx := range block.Txs {
 		hash := tx.Hash()
-		mem.addedTxs.Add(string(hash), types.Now().Unix())
+		mem.addedTxs.Add(string(hash), nil)
 		exist := mem.cache.Exists(hash)
 		if exist {
 			mem.cache.Remove(hash)
@@ -188,7 +188,7 @@ func (mem *Mempool) RemoveTxs(hashList *types.TxHashList) error {
 	mem.proxyMtx.Lock()
 	defer mem.proxyMtx.Unlock()
 	for _, hash := range hashList.Hashes {
-		mem.addedTxs.Add(string(hash), types.Now().Unix())
+		mem.addedTxs.Add(string(hash), nil)
 		exist := mem.cache.Exists(hash)
 		if exist {
 			mem.cache.Remove(hash)
