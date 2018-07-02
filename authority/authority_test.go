@@ -1,9 +1,9 @@
 package authority
 
 import (
+	"encoding/asn1"
 	"fmt"
 	"testing"
-	"encoding/asn1"
 	"time"
 
 	"gitlab.33.cn/chain33/chain33/common/config"
@@ -43,7 +43,7 @@ func signtx(tx *types.Transaction, priv crypto.PrivKey, cert []byte) {
 	certSign := crypto.CertSignature{}
 	certSign.Signature = append(certSign.Signature, tx.Signature.Signature...)
 	certSign.Cert = append(certSign.Cert, cert...)
-	tx.Signature.Signature,_ = asn1.Marshal(certSign)
+	tx.Signature.Signature, _ = asn1.Marshal(certSign)
 }
 
 func signtxs(priv crypto.PrivKey, cert []byte) {
