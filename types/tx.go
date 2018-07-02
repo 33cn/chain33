@@ -600,7 +600,7 @@ func (tx *Transaction) ActionName() string {
 		} else if action.Ty == RetrieveCancel && action.GetCancel() != nil {
 			return "cancel"
 		}
-	} else if bytes.Equal(tx.Execer, []byte("token")) {
+	} else if bytes.Equal(tx.Execer, []byte(ExecNamePrefix+"token")) {
 		var action TokenAction
 		err := Decode(tx.Payload, &action)
 		if err != nil {

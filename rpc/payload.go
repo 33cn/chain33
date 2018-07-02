@@ -125,9 +125,7 @@ func relayPayloadType(funcname string) (proto.Message, error) {
 
 func payloadType(execer, funcname string) (proto.Message, error) {
 	switch execer {
-	case "token":
-		return tokenPayloadType(funcname)
-	case "user.company.token":
+	case types.ExecNamePrefix + "token":
 		return tokenPayloadType(funcname)
 	case "coins":
 		return coinsPayloadType(funcname)
