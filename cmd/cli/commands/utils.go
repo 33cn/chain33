@@ -209,7 +209,7 @@ func SendToAddress(rpcAddr string, from string, to string, amount int64, note st
 	ctx.Run()
 }
 
-func CreateRawTx(to string, amount float64, note string, isWithdraw bool, isToken bool, tokenSymbol string, execName string) (string, error) {
+func CreateRawTx(to string, amount float64, note string, isWithdraw bool, isToken bool, tokenSymbol string, execName string, tokenPrefix string) (string, error) {
 	if amount < 0 {
 		return "", types.ErrAmount
 	}
@@ -247,7 +247,9 @@ func CreateRawTx(to string, amount float64, note string, isWithdraw bool, isToke
 			transfer.Value = v
 			transfer.Ty = types.ActionWithdraw
 		}
-		tx = &types.Transaction{Execer: []byte("token"), Payload: types.Encode(transfer), To: to}
+
+		tx = &types.Transaction{Execer: []byte(tokenPrefix + "token"), Payload: types.Encode(transfer), To: to}
+
 	}
 
 	var err error
