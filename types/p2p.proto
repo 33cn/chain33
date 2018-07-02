@@ -46,8 +46,10 @@ service p2pgservice {
 
     // grpc server 发送数据给客户端
     rpc ServerStreamSend(P2PPing) returns (stream BroadCastData) {}
+
     // grpc 收集inpeers
     rpc CollectInPeers(P2PPing) returns (PeerList) {}
+    rpc CollectInPeers2(P2PPing) returns (PeersReply) {}
 }
 
 /**
@@ -213,15 +215,24 @@ message P2PTx {
 message P2PBlock {
     Block block = 1;
 }
+/**
+ * p2p 协议和软件版本
+ */
+message Versions {
+    int32  p2pversion  = 1;
+    string softversion = 2;
+    string peername    = 3;
+}
 
 /**
  * p2p 广播数据协议
  */
 message BroadCastData {
     oneof value {
-        P2PTx    tx    = 1;
-        P2PBlock block = 2;
-        P2PPing  ping  = 3;
+        P2PTx    tx      = 1;
+        P2PBlock block   = 2;
+        P2PPing  ping    = 3;
+        Versions version = 4;
     }
 }
 
@@ -287,4 +298,20 @@ message NodeNetInfo {
     bool   service      = 3;
     int32  outbounds    = 4;
     int32  inbounds     = 5;
+}
+
+/**
+ * p2p节点扫描返回的结构数据
+ */
+
+message PeersReply {
+    repeated PeersInfo peers = 1;
+}
+
+message PeersInfo {
+    string name        = 1;
+    string ip          = 2;
+    int32  port        = 3;
+    string softversion = 4;
+    int32  p2pversion  = 5;
 }

@@ -227,7 +227,8 @@ func (chain *BlockChain) ProcQueryTxMsg(txhash []byte) (proof *types.Transaction
 	//获取Amount
 	amount, err := txresult.GetTx().Amount()
 	if err != nil {
-		return nil, err
+		// return nil, err
+		amount = 0
 	}
 	TransactionDetail.Amount = amount
 	TransactionDetail.ActionName = txresult.GetTx().ActionName()
@@ -937,4 +938,16 @@ func (chain *BlockChain) ProcAddParaChainBlockMsg(broadcast bool, ParaChainblock
 	chainlog.Debug("ProcAddParaChainBlockMsg result:", "height", block.Height, "sequence", sequence, "ismain", ismain, "isorphan", isorphan, "hash", common.ToHex(block.Hash()), "err", err)
 
 	return err
+}
+
+//处理共识过来的通过blockhash获取seq的消息，只提供add block时的seq，用于平行链block回退
+func (chain *BlockChain) ProcGetSeqByHash(hash []byte) (int64, error) {
+	if len(hash) == 0 {
+		chainlog.Error("ProcGetSeqByHash input hash is null")
+		return -1, types.ErrInputPara
+	}
+	seq, err := chain.blockStore.GetSequenceByHash(hash)
+	chainlog.Debug("ProcGetSeqByHash", "blockhash", common.ToHex(hash), "seq", seq, "err", err)
+
+	return seq, err
 }
