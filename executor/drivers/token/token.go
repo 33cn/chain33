@@ -27,6 +27,7 @@ const (
 
 func Init() {
 	drivers.Register(newToken().GetName(), newToken, types.ForkV2AddToken)
+	setReciptPrefix()
 }
 
 type token struct {

@@ -7,12 +7,20 @@ import (
 )
 
 var (
-	tokenCreated          = "mavl-" + types.ExecNamePrefix + "token-"
-	tokenPreCreatedOT     = "mavl-create-" + types.ExecNamePrefix + "token-ot-"
-	tokenPreCreatedSTO    = "mavl-create-" + types.ExecNamePrefix + "token-sto-"
-	tokenPreCreatedOTNew  = "mavl-" + types.ExecNamePrefix + "token-create-ot-"
-	tokenPreCreatedSTONew = "mavl-" + types.ExecNamePrefix + "token-create-sto-"
+	tokenCreated          string
+	tokenPreCreatedOT     string
+	tokenPreCreatedSTO    string
+	tokenPreCreatedOTNew  string
+	tokenPreCreatedSTONew string
 )
+
+func setReciptPrefix() {
+	tokenCreated = "mavl-" + types.ExecNamePrefix + "token-"
+	tokenPreCreatedOT = "mavl-create-" + types.ExecNamePrefix + "token-ot-"
+	tokenPreCreatedSTO = "mavl-create-" + types.ExecNamePrefix + "token-sto-"
+	tokenPreCreatedOTNew = "mavl-" + types.ExecNamePrefix + "token-create-ot-"
+	tokenPreCreatedSTONew = "mavl-" + types.ExecNamePrefix + "token-create-sto-"
+}
 
 func calcTokenKey(token string) (key []byte) {
 	return []byte(fmt.Sprintf(tokenCreated+"%s", token))

@@ -124,6 +124,7 @@ func SetTitle(t string) {
 		CheckForkInExec = false
 		ForkV12TransferExec = 1
 		ForkV19TokenPrice = 1
+		ForkV13ExecKey = 1
 	}
 }
 
