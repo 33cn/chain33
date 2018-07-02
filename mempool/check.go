@@ -34,7 +34,7 @@ func (mem *Mempool) checkTx(msg queue.Message) queue.Message {
 		msg.Data = types.ErrDupTx
 		return msg
 	}
-	mem.addedTxs.Add(string(tx.Hash()), nil)
+	//mem.addedTxs.Add(string(tx.Hash()), nil)
 
 	// 检查交易账户在Mempool中是否存在过多交易
 	from := tx.From()
