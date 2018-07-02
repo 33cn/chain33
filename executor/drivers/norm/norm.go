@@ -4,6 +4,9 @@ import (
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
+	"encoding/asn1"
+	"fmt"
 )
 
 var clog = log.New("module", "execs.norm")
@@ -127,13 +130,19 @@ func (n *Norm)  CheckTx(tx *types.Transaction, index int) error {
 		return nil
 	}
 
-	certByte := tx.Signature.Cert
-	if certByte == nil {
+	var certSignature crypto.CertSignature
+	_, err = asn1.Unmarshal(tx.Signature.Signature, &certSignature)
+	if err != nil {
+		clog.Error(fmt.Sprintf("unmashal certificate from signature failed. %s", err.Error()))
+		return err
+	}
+	if len(certSignature.Cert) == 0 {
+		clog.Error("cert can not be null")
 		return types.ErrInvalidParam
 	}
 
 	// 本地缓存是否存在
-	str := string(certByte)
+	str := string(certSignature.Cert)
 	result, ok := n.certValidateCache[str]
 	if ok {
 		return result

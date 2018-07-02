@@ -12,6 +12,7 @@ import (
 	"time"
 	"gitlab.33.cn/chain33/chain33/executor"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
+	"encoding/asn1"
 )
 
 var (
@@ -37,45 +38,29 @@ var (
 
 var USERNAME = "User"
 
-func sign(priv crypto.PrivKey, cert []byte) {
-	tx1.Sign(types.AUTH_ECDSA, priv)
-	tx1.Signature.Cert = append(tx1.Signature.Cert, cert...)
+func signtx(tx *types.Transaction, priv crypto.PrivKey, cert []byte) {
+	tx.Sign(types.AUTH_ECDSA, priv)
+	certSign := crypto.CertSignature{}
+	certSign.Signature = append(certSign.Signature, tx.Signature.Signature...)
+	certSign.Cert = append(certSign.Cert, cert...)
+	tx.Signature.Signature,_ = asn1.Marshal(certSign)
+}
 
-	tx2.Sign(types.AUTH_ECDSA, priv)
-	tx2.Signature.Cert = append(tx2.Signature.Cert, cert...)
+func signtxs(priv crypto.PrivKey, cert []byte) {
+	signtx(tx1, priv, cert)
+	signtx(tx2, priv, cert)
+	signtx(tx3, priv, cert)
+	signtx(tx4, priv, cert)
+	signtx(tx5, priv, cert)
+	signtx(tx6, priv, cert)
+	signtx(tx7, priv, cert)
+	signtx(tx8, priv, cert)
+	signtx(tx9, priv, cert)
+	signtx(tx10, priv, cert)
+	signtx(tx11, priv, cert)
+	signtx(tx12, priv, cert)
+	signtx(tx13, priv, cert)
 
-	tx3.Sign(types.AUTH_ECDSA, priv)
-	tx3.Signature.Cert = append(tx3.Signature.Cert, cert...)
-
-	tx4.Sign(types.AUTH_ECDSA, priv)
-	tx4.Signature.Cert = append(tx4.Signature.Cert, cert...)
-
-	tx5.Sign(types.AUTH_ECDSA, priv)
-	tx5.Signature.Cert = append(tx5.Signature.Cert, cert...)
-
-	tx6.Sign(types.AUTH_ECDSA, priv)
-	tx6.Signature.Cert = append(tx6.Signature.Cert, cert...)
-
-	tx7.Sign(types.AUTH_ECDSA, priv)
-	tx7.Signature.Cert = append(tx7.Signature.Cert, cert...)
-
-	tx8.Sign(types.AUTH_ECDSA, priv)
-	tx8.Signature.Cert = append(tx8.Signature.Cert, cert...)
-
-	tx9.Sign(types.AUTH_ECDSA, priv)
-	tx9.Signature.Cert = append(tx9.Signature.Cert, cert...)
-
-	tx10.Sign(types.AUTH_ECDSA, priv)
-	tx10.Signature.Cert = append(tx10.Signature.Cert, cert...)
-
-	tx11.Sign(types.AUTH_ECDSA, priv)
-	tx11.Signature.Cert = append(tx11.Signature.Cert, cert...)
-
-	tx12.Sign(types.AUTH_ECDSA, priv)
-	tx12.Signature.Cert = append(tx12.Signature.Cert, cert...)
-
-	tx13.Sign(types.AUTH_ECDSA, priv)
-	tx13.Signature.Cert = append(tx13.Signature.Cert, cert...)
 }
 
 func initEnv() (queue.Queue, *Authority, error) {
@@ -108,7 +93,7 @@ func initEnv() (queue.Queue, *Authority, error) {
 	if err != nil {
 		return nil, nil, fmt.Errorf("get private key failed, error:%s", err)
 	}
-	sign(priv, cert)
+	signtxs(priv, cert)
 
 	return q, auth, nil
 }
