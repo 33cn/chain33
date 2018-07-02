@@ -1,20 +1,20 @@
 package authority
 
 import (
+	"encoding/asn1"
 	"fmt"
+	"io/ioutil"
 	"path"
 	"runtime"
-	"encoding/asn1"
-	"io/ioutil"
 	"sync"
 
 	log "github.com/inconshreveable/log15"
 	"github.com/pkg/errors"
 	"gitlab.33.cn/chain33/chain33/authority/core"
 	"gitlab.33.cn/chain33/chain33/authority/utils"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
-
 )
 
 var alog = log.New("module", "autority")

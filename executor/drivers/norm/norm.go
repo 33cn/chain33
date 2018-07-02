@@ -1,12 +1,13 @@
 package norm
 
 import (
-	log "github.com/inconshreveable/log15"
-	"gitlab.33.cn/chain33/chain33/executor/drivers"
-	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"encoding/asn1"
 	"fmt"
+
+	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
+	"gitlab.33.cn/chain33/chain33/executor/drivers"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var clog = log.New("module", "execs.norm")
