@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/cmd/cli/commands"
 	"gitlab.33.cn/chain33/chain33/common/log"
+	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 )
 
 var rootCmd = &cobra.Command{
@@ -18,6 +19,19 @@ var sendCmd = &cobra.Command{
 	Use:   "send",
 	Short: "Send transaction in one move",
 	Run:   func(cmd *cobra.Command, args []string) {},
+}
+
+var closeCmd = &cobra.Command{
+	Use:   "close",
+	Short: "Close chain33",
+	Run: func(cmd *cobra.Command, args []string) {
+		rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+		//		rpc, _ := jsonrpc.NewJSONClient(rpcLaddr)
+		//		rpc.Call("Chain33.CloseQueue", nil, nil)
+		var res jsonrpc.Reply
+		ctx := commands.NewRpcCtx(rpcLaddr, "Chain33.CloseQueue", nil, &res)
+		ctx.Run()
+	},
 }
 
 func init() {
@@ -37,11 +51,14 @@ func init() {
 		commands.TicketCmd(),
 		commands.TokenCmd(),
 		commands.TradeCmd(),
+		commands.RelayCmd(),
 		commands.TxCmd(),
 		commands.WalletCmd(),
 		commands.PrivacyCmd(),
 		commands.VersionCmd(),
-		sendCmd)
+		sendCmd,
+		closeCmd,
+	)
 }
 
 func main() {

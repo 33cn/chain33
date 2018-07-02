@@ -179,12 +179,8 @@ func (m *mockWallet) SetQueueClient(q queue.Queue) {
 				}
 			case types.EventFatalFailure:
 				msg.Reply(client.NewMessage(walletKey, types.EventReplyFatalFailure, &types.Int32{}))
-			case types.EventShowPrivacyAccount:
-				msg.Reply(client.NewMessage(walletKey, types.EventReplyShowPrivacyAccount, &types.UTXOs{}))
 			case types.EventShowPrivacyPK:
 				msg.Reply(client.NewMessage(walletKey, types.EventReplyShowPrivacyPK, &types.ReplyPrivacyPkPair{}))
-			case types.EventShowPrivacyBalance:
-				msg.Reply(client.NewMessage(walletKey, types.EventReplyShowPrivacyBalance, &types.Account{}))
 			case types.EventCreateUTXOs:
 				msg.Reply(client.NewMessage(walletKey, types.EventReplyCreateUTXOs, &types.Reply{}))
 			case types.EventPublic2privacy:

@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"time"
 
-	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/version"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -254,6 +255,7 @@ func (c *Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 		//hb := common.FromHex(v)
 		hb, err := common.FromHex(v)
 		if err != nil {
+			parm.Hashes = append(parm.Hashes, nil)
 			continue
 		}
 		parm.Hashes = append(parm.Hashes, hb)
@@ -284,6 +286,7 @@ func (c *Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 			recpResult, err = DecodeLog(&recp)
 			if err != nil {
 				log.Error("GetTxByHashes", "Failed to DecodeLog for type", err)
+				txdetails.Txs = append(txdetails.Txs, nil)
 				continue
 			}
 			txProofs := tx.GetProofs()
@@ -293,6 +296,7 @@ func (c *Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 			tran, err := DecodeTx(tx.GetTx())
 			if err != nil {
 				log.Info("GetTxByHashes", "Failed to DecodeTx due to", err)
+				txdetails.Txs = append(txdetails.Txs, nil)
 				continue
 			}
 			txdetails.Txs = append(txdetails.Txs,
@@ -327,7 +331,7 @@ func (c *Chain33) GetMempool(in *types.ReqNil, result *interface{}) error {
 			if err != nil {
 				amount = 0
 			}
-			from := account.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
+			from := tx.From()
 			tran, err := DecodeTx(tx)
 			if err != nil {
 				continue
@@ -415,7 +419,7 @@ func (c *Chain33) WalletTxList(in ReqWalletTransactionList, result *interface{})
 				Index:      tx.GetIndex(),
 				BlockTime:  tx.GetBlocktime(),
 				Amount:     tx.GetAmount(),
-				FromAddr:   tx.GetSenderRecver(),
+				FromAddr:   tx.GetFromaddr(),
 				TxHash:     common.ToHex(tx.GetTxhash()),
 				ActionName: tx.GetActionName(),
 			})
@@ -872,39 +876,52 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		return nil, types.ErrEmpty
 	}
 	var pl interface{}
+	unkownPl := make(map[string]interface{})
 	if "coins" == string(tx.Execer) {
 		var action types.CoinsAction
 		err := types.Decode(tx.GetPayload(), &action)
 		if err != nil {
-			return nil, err
+			unkownPl["unkownpayload"] = string(tx.GetPayload())
+			pl = unkownPl
+			fmt.Println(pl)
+		} else {
+			pl = &action
 		}
-		pl = &action
 	} else if "ticket" == string(tx.Execer) {
 		var action types.TicketAction
 		err := types.Decode(tx.GetPayload(), &action)
 		if err != nil {
-			return nil, err
+			unkownPl["unkownpayload"] = string(tx.GetPayload())
+			pl = unkownPl
+		} else {
+			pl = &action
 		}
-		pl = &action
 	} else if "hashlock" == string(tx.Execer) {
 		var action types.HashlockAction
 		err := types.Decode(tx.GetPayload(), &action)
 		if err != nil {
-			return nil, err
+			unkownPl["unkownpayload"] = string(tx.GetPayload())
+			pl = unkownPl
+		} else {
+			pl = &action
 		}
-		pl = &action
 	} else if "token" == string(tx.Execer) {
 		var action types.TokenAction
 		err := types.Decode(tx.GetPayload(), &action)
 		if err != nil {
-			return nil, err
+			unkownPl["unkownpayload"] = string(tx.GetPayload())
+			pl = unkownPl
+		} else {
+			pl = &action
 		}
-		pl = &action
 	} else if "trade" == string(tx.Execer) {
 		var action types.Trade
 		err := types.Decode(tx.GetPayload(), &action)
 		if err != nil {
-			return nil, err
+			unkownPl["unkownpayload"] = string(tx.GetPayload())
+			pl = unkownPl
+		} else {
+			pl = &action
 		}
 		pl = &action
 	} else if types.PrivacyX == string(tx.Execer) {
@@ -918,9 +935,11 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		var action types.EVMContractAction
 		err := types.Decode(tx.GetPayload(), &action)
 		if err != nil {
-			return nil, err
+			unkownPl["unkownpayload"] = string(tx.GetPayload())
+			pl = unkownPl
+		} else {
+			pl = &action
 		}
-		pl = &action
 	} else if "user.write" == string(tx.Execer) {
 		pl = decodeUserWrite(tx.GetPayload())
 	} else {
@@ -945,12 +964,14 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 
 func decodeUserWrite(payload []byte) *userWrite {
 	var article userWrite
-	if payload[0] == '#' {
-		data := bytes.SplitN(payload[1:], []byte("#"), 2)
-		if len(data) == 2 {
-			article.Topic = string(data[0])
-			article.Content = string(data[1])
-			return &article
+	if len(payload) != 0 {
+		if payload[0] == '#' {
+			data := bytes.SplitN(payload[1:], []byte("#"), 2)
+			if len(data) == 2 {
+				article.Topic = string(data[0])
+				article.Content = string(data[1])
+				return &article
+			}
 		}
 	}
 	article.Topic = ""
@@ -1300,6 +1321,62 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
 				return nil, err
 			}
 			logIns = logTmp
+		case types.TyLogRelayCreate:
+			lTy = "LogRelayCreate"
+			var logTmp types.ReceiptRelayLog
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogRelayRevokeCreate:
+			lTy = "LogRelayRevokeCreate"
+			var logTmp types.ReceiptRelayLog
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogRelayAccept:
+			lTy = "LogRelayAccept"
+			var logTmp types.ReceiptRelayLog
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogRelayRevokeAccept:
+			lTy = "LogRelayRevokeAccept"
+			var logTmp types.ReceiptRelayLog
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogRelayConfirmTx:
+			lTy = "LogRelayConfirmTx"
+			var logTmp types.ReceiptRelayLog
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogRelayFinishTx:
+			lTy = "LogRelayFinishTx"
+			var logTmp types.ReceiptRelayLog
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogRelayRcvBTCHead:
+			lTy = "LogRelayRcvBTCHead"
+			var logTmp types.ReceiptRelayRcvBTCHeaders
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
 		default:
 			log.Error("Fail to DecodeLog", "type", l.Ty)
 			lTy = "unkownType"
@@ -1503,26 +1580,6 @@ func (c *Chain33) QueryTicketInfoList(in *types.LocalDBList, result *interface{}
 }
 
 /////////////////privacy///////////////
-func (c *Chain33) ShowPrivacyBalance(in types.ReqPrivBal4AddrToken, result *interface{}) error {
-	account, err := c.cli.ShowPrivacyBalance(&in)
-	if err != nil {
-		log.Info("ShowPrivacyBalance", "return err info", err)
-		return err
-	}
-	*result = account
-	return nil
-}
-
-func (c *Chain33) ShowPrivacyAccount(in types.ReqPrivBal4AddrToken, result *interface{}) error {
-	account, err := c.cli.ShowPrivacyAccount(&in)
-	if err != nil {
-		log.Info("ShowPrivacyAccount", "return err info", err)
-		return err
-	}
-	*result = account
-	return nil
-}
-
 func (c *Chain33) ShowPrivacyAccountSpend(in types.ReqPrivBal4AddrToken, result *interface{}) error {
 	account, err := c.cli.ShowPrivacyAccountSpend(&in)
 	if err != nil {
@@ -1549,6 +1606,72 @@ func (c *Chain33) MakeTxPublic2privacy(in types.ReqPub2Pri, result *interface{})
 	}
 
 	*result = ReplyHash{Hash: common.ToHex(reply.GetMsg())}
+
+	return nil
+}
+
+func (c *Chain33) CreateBindMiner(in *types.ReqBindMiner, result *interface{}) error {
+	if in.Amount%(10000*types.Coin) != 0 || in.Amount < 0 {
+		return types.ErrAmount
+	}
+	err := address.CheckAddress(in.BindAddr)
+	if err != nil {
+		return err
+	}
+	err = address.CheckAddress(in.OriginAddr)
+	if err != nil {
+		return err
+	}
+
+	if in.CheckBalance {
+		getBalance := &types.ReqBalance{Addresses: []string{in.OriginAddr}, Execer: "coins"}
+		balances, err := c.cli.GetBalance(getBalance)
+		if err != nil {
+			return err
+		}
+		if len(balances) == 0 {
+			return types.ErrInputPara
+		}
+		if balances[0].Balance < in.Amount+2*types.Coin {
+			return types.ErrNoBalance
+		}
+	}
+
+	reply, err := c.cli.BindMiner(in)
+	if err != nil {
+		return err
+	}
+
+	*result = reply
+	return nil
+}
+
+func (c *Chain33) DecodeRawTransaction(in *types.ReqDecodeRawTransaction, result *interface{}) error {
+	reply, err := c.cli.DecodeRawTransaction(in)
+	if err != nil {
+		return err
+	}
+	res, err := DecodeTx(reply)
+	if err != nil {
+		return err
+	}
+	*result = res
+	return nil
+}
+
+func (c *Chain33) GetTimeStatus(in *types.ReqNil, result *interface{}) error {
+	reply, err := c.cli.GetTimeStatus()
+	if err != nil {
+		return err
+	}
+
+	timeStatus := &TimeStatus{
+		NtpTime:   reply.NtpTime,
+		LocalTime: reply.LocalTime,
+		Diff:      reply.Diff,
+	}
+
+	*result = timeStatus
 
 	return nil
 }
@@ -1628,5 +1751,120 @@ func (c *Chain33) ShowPrivacyAccountInfo(in types.ReqPPrivacyAccount, result *in
 		return err
 	}
 	*result = reply
+	return nil
+}
+
+func (c *Chain33) CloseQueue(in *types.ReqNil, result *interface{}) error {
+	go func() {
+		time.Sleep(time.Millisecond * 100)
+		c.cli.CloseQueue()
+	}()
+
+	*result = &types.Reply{IsOk: true, Msg: []byte("Ok")}
+	return nil
+}
+
+func (c *Chain33) GetLastBlockSequence(in *types.ReqNil, result *interface{}) error {
+	resp, err := c.cli.GetLastBlockSequence()
+	if err != nil {
+		return err
+	}
+	*result = resp.GetData()
+	return nil
+}
+
+// 获取指定区间的block加载序列号信息。输入信息只使用：start，end
+func (c *Chain33) GetBlockSequences(in BlockParam, result *interface{}) error {
+	resp, err := c.cli.GetBlockSequences(&types.ReqBlocks{Start: in.Start, End: in.End, IsDetail: in.Isdetail, Pid: []string{""}})
+	if err != nil {
+		return err
+	}
+	var BlkSeqs ReplyBlkSeqs
+	items := resp.GetItems()
+	for _, item := range items {
+		BlkSeqs.BlkSeqInfos = append(BlkSeqs.BlkSeqInfos, &ReplyBlkSeq{Hash: common.ToHex(item.GetHash()),
+			Type: item.GetType()})
+	}
+	*result = &BlkSeqs
+	return nil
+}
+
+// 通过block hash 获取对应的block信息
+func (c *Chain33) GetBlockByHashes(in ReqHashes, result *interface{}) error {
+	log.Warn("GetBlockByHashes", "hashes", in)
+	var parm types.ReqHashes
+	parm.Hashes = make([][]byte, 0)
+	for _, v := range in.Hashes {
+		hb, err := common.FromHex(v)
+		if err != nil {
+			parm.Hashes = append(parm.Hashes, nil)
+			continue
+		}
+		parm.Hashes = append(parm.Hashes, hb)
+
+	}
+	reply, err := c.cli.GetBlockByHashes(&parm)
+	if err != nil {
+		return err
+	}
+	*result = reply
+	return nil
+}
+
+func (c *Chain33) CreateRawRelayOrderTx(in *RelayOrderTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawRelayOrderTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Chain33) CreateRawRelayAcceptTx(in *RelayAcceptTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawRelayAcceptTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+func (c *Chain33) CreateRawRelayRevokeTx(in *RelayRevokeTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawRelayRevokeTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+func (c *Chain33) CreateRawRelayConfirmTx(in *RelayConfirmTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawRelayConfirmTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+func (c *Chain33) CreateRawRelayVerifyBTCTx(in *RelayVerifyBTCTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawRelayVerifyBTCTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Chain33) CreateRawRelaySaveBTCHeadTx(in *RelaySaveBTCHeadTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawRelaySaveBTCHeadTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+
 	return nil
 }

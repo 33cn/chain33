@@ -1,8 +1,6 @@
 package state
 
 import (
-	"time"
-
 	"github.com/golang/protobuf/proto"
 	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common/db"
@@ -13,10 +11,10 @@ import (
 var (
 	// 在StateDB中合约账户保存的键值有以下几种
 	// 合约数据，前缀+合约地址，第一次生成合约时设置，后面不会发生变化
-	ContractDataPrefix = "mavl-user.evm-data: "
+	ContractDataPrefix = "mavl-evm-data: "
 
 	// 合约状态，前缀+合约地址，保存合约nonce以及其它数据，可变
-	ContractStatePrefix = "mavl-user.evm-state: "
+	ContractStatePrefix = "mavl-evm-state: "
 
 	// 注意，合约账户本身也可能有余额信息，这部分在CoinsAccount处理
 )
@@ -45,7 +43,6 @@ func NewContractAccount(addr string, db *MemoryStateDB) *ContractAccount {
 	}
 	ca := &ContractAccount{Addr: addr, mdb: db}
 	ca.State.Storage = make(map[string][]byte)
-	ca.Data.CreateTime = time.Now().UTC().UnixNano()
 	return ca
 }
 
@@ -167,9 +164,6 @@ func (self *ContractAccount) SetAliasName(alias string) {
 
 func (self *ContractAccount) GetAliasName() string {
 	return self.Data.Alias
-}
-func (self *ContractAccount) GetCreateTime() string {
-	return time.Unix(0, self.Data.CreateTime).String()
 }
 
 func (self *ContractAccount) GetCreator() string {

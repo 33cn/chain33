@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"time"
 
-	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/crypto/privacy"
 	"gitlab.33.cn/chain33/chain33/common/db"
@@ -165,7 +165,7 @@ func (wallet *Wallet) createUTXOsByPub2Priv(priv crypto.PrivKey, reqCreateUTXOs 
 		Execer:  []byte("privacy"),
 		Payload: types.Encode(action),
 		Nonce:   wallet.random.Int63(),
-		To:      account.ExecAddress(types.PrivacyX),
+		To:      address.ExecAddress(types.PrivacyX),
 	}
 	tx.SetExpire(time.Hour)
 	txSize := types.Size(tx) + types.SignatureSize
@@ -235,7 +235,7 @@ func (wallet *Wallet) transPub2PriV2(priv crypto.PrivKey, reqPub2Pri *types.ReqP
 		Payload: types.Encode(action),
 		Nonce:   wallet.random.Int63(),
 		// TODO: 采用隐私合约地址来设定目标合约接收的目标地址,让验证通过
-		To: account.ExecAddress(types.PrivacyX),
+		To: address.ExecAddress(types.PrivacyX),
 	}
 	tx.SetExpire(time.Hour)
 	txSize := types.Size(tx) + types.SignatureSize
@@ -388,7 +388,7 @@ func (w *Wallet) signatureTx(tx *types.Transaction, privacyInput *types.PrivacyI
 		Ty:        types.RingBaseonED25519,
 		Signature: ringSignData,
 		// 这里填的是隐私合约的公钥，让框架保持一致
-		Pubkey: account.ExecPubKey(types.PrivacyX),
+		Pubkey: address.ExecPubKey(types.PrivacyX),
 	}
 	return nil
 }
@@ -448,7 +448,7 @@ func (wallet *Wallet) transPri2PriV2(privacykeyParirs *privacy.Privacy, reqPri2P
 		Fee:     types.PrivacyTxFee,
 		Nonce:   wallet.random.Int63(),
 		// TODO: 采用隐私合约地址来设定目标合约接收的目标地址,让验证通过
-		To: account.ExecAddress(types.PrivacyX),
+		To:      address.ExecAddress(types.PrivacyX),
 	}
 	tx.SetExpire(time.Hour)
 	//完成了input和output的添加之后，即已经完成了交易基本内容的添加，
@@ -859,7 +859,7 @@ func (wallet *Wallet) createPublic2PrivacyTx(req *types.ReqCreateTransaction) (*
 		Execer:  types.ExecerPrivacy,
 		Payload: types.Encode(action),
 		Nonce:   wallet.random.Int63(),
-		To:      account.ExecAddress(types.PrivacyX),
+		To:      address.ExecAddress(types.PrivacyX),
 	}
 	txSize := types.Size(tx) + types.SignatureSize
 	realFee := int64((txSize+1023)>>types.Size_1K_shiftlen) * types.FeePerKB
@@ -942,7 +942,7 @@ func (wallet *Wallet) createPrivacy2PrivacyTx(req *types.ReqCreateTransaction) (
 		Payload: types.Encode(action),
 		Fee:     types.PrivacyTxFee,
 		Nonce:   wallet.random.Int63(),
-		To:      account.ExecAddress(types.PrivacyX),
+		To:      address.ExecAddress(types.PrivacyX),
 	}
 	tx.SetExpire(time.Hour)
 
@@ -1156,7 +1156,7 @@ func (wallet *Wallet) procInvalidTxOnTimer(dbbatch db.Batch) error {
 		keys = append(keys, calcKey4FTXOsInTx(ftxo.Tokenname, ftxo.Sender, ftxo.Txhash))
 	}
 	for _, ftxo := range revertFTXOTxs {
-		walletlog.Info("procInvalidTxOnTimer", "tx hash ",ftxo.Txhash, "Sender", ftxo.Sender)
+		walletlog.Info("procInvalidTxOnTimer", "tx hash ", ftxo.Txhash, "Sender", ftxo.Sender)
 		keys = append(keys, calcRevertSendTxKey(ftxo.Tokenname, ftxo.Sender, ftxo.Txhash))
 	}
 
@@ -1173,7 +1173,7 @@ func (wallet *Wallet) procInvalidTxOnTimer(dbbatch db.Batch) error {
 			}
 			if (ftxo.GetFreezetime() + int64(time.Duration(timeout)*time.Second)) <= now {
 				// 交易送入打包后，长时间未确认，需要将FTXO回退到UTXO
-				walletlog.Info("==============moveFTXO2UTXO==============", "tx hash ",ftxo.Txhash)
+				walletlog.Info("==============moveFTXO2UTXO==============", "tx hash ", ftxo.Txhash)
 				wallet.walletStore.moveFTXO2UTXO(keys[i], dbbatch)
 			}
 		} else {
@@ -1224,4 +1224,145 @@ func (wallet *Wallet) procDeleteCacheTransaction(req *types.ReqCreateCacheTxKey)
 	dbbatch.Write()
 
 	return &types.ReplyHash{Hash: req.GetHashkey()}, nil
+}
+
+func (w *Wallet) procPrivacyAccountInfo(req *types.ReqPPrivacyAccount) (*types.ReplyPrivacyAccount, error){
+	w.mtx.Lock()
+	defer w.mtx.Unlock()
+
+	addr := req.GetAddr()
+	token := req.GetToken()
+	reply := &types.ReplyPrivacyAccount{}
+	reply.Displaymode = req.Displaymode
+	// 搜索可用余额
+	privacyDBStore, err := w.walletStore.listAvailableUTXOs(token, addr)
+	utxos := make([]*types.UTXO, 0)
+	for _, ele := range privacyDBStore {
+		utxoBasic := &types.UTXOBasic{
+			UtxoGlobalIndex: &types.UTXOGlobalIndex{
+				Outindex: ele.OutIndex,
+				Txhash:   ele.Txhash,
+			},
+			OnetimePubkey: ele.OnetimePublicKey,
+		}
+		utxo := &types.UTXO{
+			Amount:    ele.Amount,
+			UtxoBasic: utxoBasic,
+		}
+		utxos = append(utxos, utxo)
+	}
+	reply.Utxos = &types.UTXOs{Utxos: utxos}
+
+	// 搜索冻结余额
+	utxos = make([]*types.UTXO, 0)
+	ftxoslice, err := w.walletStore.listFrozenUTXOs(token, addr)
+	if err == nil && ftxoslice != nil {
+		for _, ele := range ftxoslice {
+			utxos = append(utxos, ele.Utxos...)
+		}
+	}
+
+	reply.Ftxos = &types.UTXOs{Utxos: utxos}
+
+	return reply, nil
+}
+
+func (wallet *Wallet) getPrivacykeyPair(addr string) (*privacy.Privacy, error) {
+	if accPrivacy, _ := wallet.walletStore.GetWalletAccountPrivacy(addr); accPrivacy != nil {
+		privacyInfo := &privacy.Privacy{}
+		copy(privacyInfo.ViewPubkey[:], accPrivacy.ViewPubkey)
+		decrypteredView := CBCDecrypterPrivkey([]byte(wallet.Password), accPrivacy.ViewPrivKey)
+		copy(privacyInfo.ViewPrivKey[:], decrypteredView)
+		copy(privacyInfo.SpendPubkey[:], accPrivacy.SpendPubkey)
+		decrypteredSpend := CBCDecrypterPrivkey([]byte(wallet.Password), accPrivacy.SpendPrivKey)
+		copy(privacyInfo.SpendPrivKey[:], decrypteredSpend)
+
+		return privacyInfo, nil
+	}
+	priv, err := wallet.getPrivKeyByAddr(addr)
+	if err != nil {
+		return nil, err
+	}
+
+	newPrivacy, err := privacy.NewPrivacyWithPrivKey((*[privacy.KeyLen32]byte)(unsafe.Pointer(&priv.Bytes()[0])))
+	if err != nil {
+		return nil, err
+	}
+
+	encrypteredView := CBCEncrypterPrivkey([]byte(wallet.Password), newPrivacy.ViewPrivKey.Bytes())
+	encrypteredSpend := CBCEncrypterPrivkey([]byte(wallet.Password), newPrivacy.SpendPrivKey.Bytes())
+	walletPrivacy := &types.WalletAccountPrivacy{
+		ViewPubkey:   newPrivacy.ViewPubkey[:],
+		ViewPrivKey:  encrypteredView,
+		SpendPubkey:  newPrivacy.SpendPubkey[:],
+		SpendPrivKey: encrypteredSpend,
+	}
+	//save the privacy created to wallet db
+	wallet.walletStore.SetWalletAccountPrivacy(addr, walletPrivacy)
+	return newPrivacy, nil
+}
+
+func (wallet *Wallet) showPrivacyAccountsSpend(req *types.ReqPrivBal4AddrToken) (*types.UTXOHaveTxHashs, error) {
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+
+	addr := req.GetAddr()
+	token := req.GetToken()
+	utxoHaveTxHashs, err := wallet.walletStore.listSpendUTXOs(token, addr)
+	if err != nil {
+		return nil, err
+	}
+
+	return utxoHaveTxHashs, nil
+}
+
+func (wallet *Wallet) showPrivacyPkPair(reqAddr *types.ReqStr) (*types.ReplyPrivacyPkPair, error) {
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+
+	privacyInfo, err := wallet.getPrivacykeyPair(reqAddr.GetReqStr())
+	if err != nil {
+		return nil, err
+	}
+
+	pair := privacyInfo.ViewPubkey[:]
+	pair = append(pair, privacyInfo.SpendPubkey[:]...)
+
+	replyPrivacyPkPair := &types.ReplyPrivacyPkPair{
+		ShowSuccessful: true,
+		Pubkeypair:     makeViewSpendPubKeyPairToString(privacyInfo.ViewPubkey[:], privacyInfo.SpendPubkey[:]),
+	}
+
+	return replyPrivacyPkPair, nil
+}
+
+func makeViewSpendPubKeyPairToString(viewPubKey, spendPubKey []byte) string {
+	pair := viewPubKey
+	pair = append(pair, spendPubKey...)
+	return common.Bytes2Hex(pair)
+}
+
+func (wallet *Wallet) getPrivacyKeyPairsOfWallet() ([]addrAndprivacy, error) {
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+
+	//通过Account前缀查找获取钱包中的所有账户信息
+	WalletAccStores, err := wallet.walletStore.GetAccountByPrefix("Account")
+	if err != nil || len(WalletAccStores) == 0 {
+		walletlog.Info("getPrivacyKeyPairsOfWallet", "GetAccountByPrefix:err", err)
+		return nil, err
+	}
+
+	infoPriRes := make([]addrAndprivacy, len(WalletAccStores))
+	for index, AccStore := range WalletAccStores {
+		if len(AccStore.Addr) != 0 {
+			if privacyInfo, err := wallet.getPrivacykeyPair(AccStore.Addr); err == nil {
+				var priInfo addrAndprivacy
+				priInfo.Addr = &AccStore.Addr
+				priInfo.PrivacyKeyPair = privacyInfo
+				infoPriRes[index] = priInfo
+			}
+		}
+	}
+	return infoPriRes, nil
 }

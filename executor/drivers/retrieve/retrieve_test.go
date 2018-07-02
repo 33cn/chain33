@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/types"
 	"google.golang.org/grpc"
@@ -62,10 +62,10 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	r = rand.New(rand.NewSource(time.Now().UnixNano()))
+	r = rand.New(rand.NewSource(types.Now().UnixNano()))
 	c = types.NewGrpcserviceClient(conn)
 
-	addrexec = account.ExecAddress("retrieve")
+	addrexec = address.ExecAddress("retrieve")
 }
 
 func estInitAccount(t *testing.T) {
@@ -81,7 +81,7 @@ func estInitAccount(t *testing.T) {
 	for index := 0; index < accountMax; index++ {
 		addr[index], privkey[index] = genaddress()
 		//fmt.Println("privkey: ", common.ToHex(privkey[index].Bytes()))
-		label[index] = strconv.Itoa(int(time.Now().UnixNano()))
+		label[index] = strconv.Itoa(int(types.Now().UnixNano()))
 		params = types.ReqWalletImportPrivKey{Privkey: common.ToHex(privkey[index].Bytes()), Label: label[index]}
 		_, err := c.ImportPrivKey(context.Background(), &params)
 		if err != nil {
@@ -586,7 +586,7 @@ func genaddress() (string, crypto.PrivKey) {
 	if err != nil {
 		panic(err)
 	}
-	addrto := account.PubKeyToAddress(privto.PubKey().Bytes())
+	addrto := address.PubKeyToAddress(privto.PubKey().Bytes())
 	return addrto.String(), privto
 }
 

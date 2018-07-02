@@ -78,10 +78,6 @@ type QueueProtocolAPI interface {
 	SignRawTx(param *types.ReqSignRawTx) (*types.ReplySignRawTx, error)
 	GetFatalFailure() (*types.Int32, error)
 	// Privacy Begin
-	// types.EventShowPrivacyBalance
-	ShowPrivacyBalance(param *types.ReqPrivBal4AddrToken) (*types.Account, error)
-	// types.EventShowPrivacyAccount
-	ShowPrivacyAccount(param *types.ReqPrivBal4AddrToken) (*types.UTXOs, error)
 	// types.EventShowPrivacyAccountSpend
 	ShowPrivacyAccountSpend(param *types.ReqPrivBal4AddrToken) (*types.UTXOHaveTxHashs, error)
 	// types.EventShowPrivacyPK
@@ -130,6 +126,14 @@ type QueueProtocolAPI interface {
 	IsNtpClockSync() (*types.Reply, error)
 	// types.EventGetLastHeader
 	GetLastHeader() (*types.Header, error)
+
+	//types.EventGetLastBlockSequence:
+	GetLastBlockSequence() (*types.Int64, error)
+	//types.EventGetBlockSequences:
+	GetBlockSequences(param *types.ReqBlocks) (*types.BlockSequences, error)
+	//types.EventGetBlockByHashes:
+	GetBlockByHashes(param *types.ReqHashes) (*types.BlockDetails, error)
+
 	// --------------- blockchain interfaces end
 
 	// +++++++++++++++ store interfaces begin
@@ -138,5 +142,7 @@ type QueueProtocolAPI interface {
 	// --------------- store interfaces end
 
 	// +++++++++++++++ other interfaces begin
+	// close chain33
+	CloseQueue() (*types.Reply, error)
 	// --------------- other interfaces end
 }

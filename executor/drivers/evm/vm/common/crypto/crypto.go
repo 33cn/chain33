@@ -5,7 +5,7 @@ import (
 	"math/big"
 
 	"github.com/btcsuite/btcd/btcec"
-	"gitlab.33.cn/chain33/chain33/account"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -51,8 +51,8 @@ func RandomContractAddress() *common.Address {
 		return nil
 	}
 
-	acc := account.PubKeyToAddress(key.PubKey().Bytes())
-	ret := common.StringToAddress(account.ExecAddress(acc.String()))
+	acc := address.PubKeyToAddress(key.PubKey().Bytes())
+	ret := common.StringToAddress(address.ExecAddress(acc.String()))
 	return ret
 }
 

@@ -3,54 +3,20 @@ version: '3'
 services:
   chain33:
     build:
-      context: "./"
-    ports:
-      - "8801:8801"
-      - "8802:8802"
-      - "50051:50051"
-    networks: 
-      chain33_net:
-        ipv4_address: 172.18.18.151
+      context: .
 
   chain32:
     build:
-      context: "./"
-    networks: 
-      chain33_net:
-        ipv4_address: 172.18.18.97
+      context: .
 
   chain31:
     build:
-      context: "./"
-    networks:
-      chain33_net:
-        ipv4_address: 172.18.18.177
+      context: .
 
-  chain30:
+  relayd:
     build:
-      context: "./"
-    networks:
-      chain33_net:
-        ipv4_address: 172.18.18.132
+      context: .
+      dockerfile: Dockerfile-relayd
 
-  chain29:
-    build:
-      context: "./"
-    networks:
-      chain33_net:
-        ipv4_address: 172.18.18.139
-
-  chain28:
-    build:
-      context: "./"
-    networks:
-      chain33_net:
-        ipv4_address: 172.18.18.100
-
-networks: 
-  chain33_net: 
-    driver: bridge
-    ipam:
-      driver: default
-      config:
-      - subnet: 172.18.18.0/24
+  btcd:
+    image: suyanlong/btcd-run:latest

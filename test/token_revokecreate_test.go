@@ -8,8 +8,6 @@ import (
 	"net/http"
 	"testing"
 
-	"time"
-
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -53,7 +51,7 @@ func TestRevokeCreateToken(t *testing.T) {
 
 	tokenPrecreate := &types.TokenAction{v, types.TokenActionRevokeCreate}
 
-	random := rand.New(rand.NewSource(time.Now().UnixNano()))
+	random := rand.New(rand.NewSource(types.Now().UnixNano()))
 	tx := &types.Transaction{Execer: []byte("token"), Payload: types.Encode(tokenPrecreate), Fee: 1e6, Nonce: random.Int63()}
 	tx.Sign(types.SECP256K1, priv)
 	poststr := fmt.Sprintf(`{"jsonrpc":"2.0","id":2,"method":"Chain33.SendTransaction","params":[{"data":"%v"}]}`,

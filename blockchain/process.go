@@ -5,7 +5,6 @@ import (
 	"container/list"
 	"math/big"
 	"sync/atomic"
-	"time"
 
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/difficulty"
@@ -17,7 +16,7 @@ import (
 // 共识模块和peer广播过来的block需要广播出去
 //共识模块过来的Receipts不为空,广播和同步过来的Receipts为空
 // 返回参数说明：是否主链，是否孤儿节点，具体err
-func (b *BlockChain) ProcessBlock(broadcast bool, block *types.BlockDetail, pid string) (bool, bool, error) {
+func (b *BlockChain) ProcessBlock(broadcast bool, block *types.BlockDetail, pid string, addOrdel bool, sequence int64) (bool, bool, error) {
 
 	b.chainLock.Lock()
 	defer b.chainLock.Unlock()
@@ -28,6 +27,10 @@ func (b *BlockChain) ProcessBlock(broadcast bool, block *types.BlockDetail, pid 
 	blockHash := block.Block.Hash()
 	chainlog.Debug("ProcessBlock Processing block", "height", block.Block.Height, "blockHash", common.ToHex(blockHash))
 
+	//目前只支持删除平行链的block处理
+	if !addOrdel {
+		return b.ProcessDelParaChainBlock(broadcast, block, pid, sequence)
+	}
 	// 判断本block是否已经存在主链或者侧链中
 	exists := b.blockExists(blockHash)
 	if exists {
@@ -62,12 +65,12 @@ func (b *BlockChain) ProcessBlock(broadcast bool, block *types.BlockDetail, pid 
 	}
 	if !prevHashExists {
 		chainlog.Debug("ProcessBlock addOrphanBlock", "height", block.Block.GetHeight(), "blockHash", common.ToHex(blockHash), "prevHash", common.ToHex(prevHash))
-		b.orphanPool.addOrphanBlock(broadcast, block.Block, pid)
+		b.orphanPool.addOrphanBlock(broadcast, block.Block, pid, sequence)
 		return false, true, nil
 	}
 
 	// 尝试将此block添加到主链上
-	isMainChain, err := b.maybeAcceptBlock(broadcast, block, pid)
+	isMainChain, err := b.maybeAcceptBlock(broadcast, block, pid, sequence)
 	if err != nil {
 		return false, false, err
 	}
@@ -129,7 +132,7 @@ func (b *BlockChain) processOrphans(hash []byte) error {
 
 			chainlog.Debug("processOrphans  maybeAcceptBlock", "height", orphan.block.GetHeight(), "hash", common.ToHex(orphan.block.Hash()))
 			// 尝试将此孤儿节点添加到主链
-			_, err := b.maybeAcceptBlock(orphan.broadcast, &types.BlockDetail{Block: orphan.block}, orphan.pid)
+			_, err := b.maybeAcceptBlock(orphan.broadcast, &types.BlockDetail{Block: orphan.block}, orphan.pid, orphan.sequence)
 			if err != nil {
 				return err
 			}
@@ -142,7 +145,7 @@ func (b *BlockChain) processOrphans(hash []byte) error {
 }
 
 // 尝试接受此block
-func (b *BlockChain) maybeAcceptBlock(broadcast bool, block *types.BlockDetail, pid string) (bool, error) {
+func (b *BlockChain) maybeAcceptBlock(broadcast bool, block *types.BlockDetail, pid string, sequence int64) (bool, error) {
 	// 首先判断本block的Parent block是否存在index中
 	prevHash := block.Block.GetParentHash()
 	prevNode := b.index.LookupNode(prevHash)
@@ -172,7 +175,7 @@ func (b *BlockChain) maybeAcceptBlock(broadcast bool, block *types.BlockDetail, 
 		return false, err
 	}
 	// 创建一个node并添加到内存中index
-	newNode := newBlockNode(broadcast, block.Block, pid)
+	newNode := newBlockNode(broadcast, block.Block, pid, sequence)
 	if prevNode != nil {
 		newNode.parent = prevNode
 	}
@@ -277,13 +280,13 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 		blockdetail, _, err = util.ExecBlock(b.client, prevStateHash, block, true, sync)
 		if err != nil {
 			//记录执行出错的block信息
-			b.RecordFaultPeer(node.pid, block.Height, block.Hash(), err)
+			b.RecordFaultPeer(node.pid, block.Height, node.hash, err)
 			chainlog.Error("connectBlock ExecBlock is err!", "height", block.Height, "err", err)
 			return err
 		}
 	}
 
-	beg := time.Now()
+	beg := types.Now()
 	// 写入磁盘
 	//批量将block信息写入磁盘
 
@@ -297,7 +300,7 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 	//chainlog.Debug("connectBlock AddTxs!", "height", block.Height, "batchsync", sync)
 
 	//保存block信息到db中
-	err = b.blockStore.SaveBlock(newbatch, blockdetail)
+	err = b.blockStore.SaveBlock(newbatch, blockdetail, node.sequence)
 	if err != nil {
 		chainlog.Error("connectBlock SaveBlock:", "height", block.Height, "err", err)
 		return err
@@ -330,7 +333,7 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 		go util.ReportErrEventToFront(chainlog, b.client, "blockchain", "wallet", types.ErrDataBaseDamage)
 		return err
 	}
-	chainlog.Debug("connectBlock write db", "height", block.Height, "batchsync", sync, "cost", time.Since(beg))
+	chainlog.Debug("connectBlock write db", "height", block.Height, "batchsync", sync, "cost", types.Since(beg))
 
 	// 更新最新的高度和header
 	b.blockStore.UpdateHeight()
@@ -348,10 +351,10 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 
 	//广播此block到全网络
 	if node.broadcast {
-		if blockdetail.Block.BlockTime-time.Now().Unix() > FutureBlockDelayTime {
+		if blockdetail.Block.BlockTime-types.Now().Unix() > FutureBlockDelayTime {
 			//将此block添加到futureblocks中延时广播
 			b.futureBlocks.Add(string(blockdetail.Block.Hash()), blockdetail)
-			chainlog.Debug("connectBlock futureBlocks.Add", "height", block.Height, "hash", common.ToHex(blockdetail.Block.Hash()), "blocktime", blockdetail.Block.BlockTime, "curtime", time.Now().Unix())
+			chainlog.Debug("connectBlock futureBlocks.Add", "height", block.Height, "hash", common.ToHex(blockdetail.Block.Hash()), "blocktime", blockdetail.Block.BlockTime, "curtime", types.Now().Unix())
 		} else {
 			b.SendBlockBroadcast(blockdetail)
 		}
@@ -360,7 +363,7 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 }
 
 //从主链中删除blocks
-func (b *BlockChain) disconnectBlock(node *blockNode, blockdetail *types.BlockDetail) error {
+func (b *BlockChain) disconnectBlock(node *blockNode, blockdetail *types.BlockDetail, sequence int64) error {
 	// 只能从 best chain tip节点开始删除
 	if !bytes.Equal(node.hash, b.bestChain.Tip().hash) {
 		chainlog.Error("disconnectBlock:", "height", blockdetail.Block.Height, "node.hash", common.ToHex(node.hash), "bestChain.top.hash", common.ToHex(b.bestChain.Tip().hash))
@@ -378,7 +381,7 @@ func (b *BlockChain) disconnectBlock(node *blockNode, blockdetail *types.BlockDe
 	}
 
 	//从db中删除block相关的信息
-	err = b.blockStore.DelBlock(newbatch, blockdetail)
+	err = b.blockStore.DelBlock(newbatch, blockdetail, sequence)
 	if err != nil {
 		chainlog.Error("disconnectBlock DelBlock:", "height", blockdetail.Block.Height, "err", err)
 		return err
@@ -473,7 +476,7 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 		block := detachBlocks[i]
 
 		// Update the database and chain state.
-		err := b.disconnectBlock(n, block)
+		err := b.disconnectBlock(n, block, n.sequence)
 		if err != nil {
 			return err
 		}
@@ -508,4 +511,22 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 		chainlog.Debug("REORGANIZE: New best chain head is hash", "hash", common.ToHex(lastAttachNode.hash), "height", lastAttachNode.parent.height)
 	}
 	return nil
+}
+
+//只能从 best chain tip节点开始删除，目前只提供给平行链使用
+func (b *BlockChain) ProcessDelParaChainBlock(broadcast bool, blockdetail *types.BlockDetail, pid string, sequence int64) (bool, bool, error) {
+
+	//获取当前的tip节点
+	tipnode := b.bestChain.Tip()
+	blockHash := blockdetail.Block.Hash()
+
+	if !bytes.Equal(blockHash, b.bestChain.Tip().hash) {
+		chainlog.Error("ProcessDelParaChainBlock:", "delblockheight", blockdetail.Block.Height, "delblockHash", common.ToHex(blockHash), "bestChain.top.hash", common.ToHex(b.bestChain.Tip().hash))
+		return false, false, types.ErrBlockHashNoMatch
+	}
+	err := b.disconnectBlock(tipnode, blockdetail, sequence)
+	if err != nil {
+		return false, false, err
+	}
+	return true, false, nil
 }

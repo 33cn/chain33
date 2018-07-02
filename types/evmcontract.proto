@@ -4,28 +4,27 @@ package types;
 
 //合约对象信息
 message EVMContractObject {
-    string addr = 1;
-    EVMContractData data = 2;
+    string           addr  = 1;
+    EVMContractData  data  = 2;
     EVMContractState state = 3;
 }
 
 // 存放合约固定数据
 message EVMContractData {
-    string creator = 1;
-    int64 createTime = 2;
-    string name = 3;
-    string alias = 4;
-    string addr = 5;
-    bytes code = 6;
-    bytes codeHash = 7;
+    string creator  = 1;
+    string name     = 2;
+    string alias    = 3;
+    string addr     = 4;
+    bytes  code     = 5;
+    bytes  codeHash = 6;
 }
 
 // 存放合约变化数据
 message EVMContractState {
-    uint64 nonce = 1;
-    bool suicided = 2;
-    bytes storageHash = 3;
-    map<string,bytes> storage = 4;
+    uint64             nonce       = 1;
+    bool               suicided    = 2;
+    bytes              storageHash = 3;
+    map<string, bytes> storage     = 4;
 }
 
 // 创建/调用合约的请求结构
@@ -44,34 +43,32 @@ message EVMContractAction {
     string note = 6;
 }
 
-
 // 合约创建/调用日志
 message ReceiptEVMContract {
-    string caller = 1;
+    string caller       = 1;
     string contractName = 2;
     string contractAddr = 3;
-    uint64 usedGas = 4;
+    uint64 usedGas      = 4;
     // 创建合约返回的代码
-    bytes  ret = 5;
+    bytes ret = 5;
 }
 
 // 存放合约固定数据
 message EVMContractDataCmd {
-    string creator = 1;
-    string createTime = 2;
-    string name = 3;
-    string alias = 4;
-    string addr = 5;
-    string code = 6;
-    string codeHash = 7;
+    string creator  = 1;
+    string name     = 2;
+    string alias    = 3;
+    string addr     = 4;
+    string code     = 5;
+    string codeHash = 6;
 }
 
 // 存放合约变化数据
 message EVMContractStateCmd {
-    uint64 nonce = 1;
-    bool suicided = 2;
-    string storageHash = 3;
-    map<string,string> storage = 4;
+    uint64              nonce       = 1;
+    bool                suicided    = 2;
+    string              storageHash = 3;
+    map<string, string> storage     = 4;
 }
 
 // 合约创建/调用日志
@@ -80,25 +77,26 @@ message ReceiptEVMContractCmd {
     // 合约创建时才会返回此内容
     string contractName = 2;
     string contractAddr = 3;
-    uint64 usedGas = 4;
+    uint64 usedGas      = 4;
     // 创建合约返回的代码
-    string  ret = 5;
+    string ret = 5;
 }
 
 message CheckEVMAddrReq {
     string addr = 1;
 }
 message CheckEVMAddrResp {
-    bool contract = 1;
-    string createTime = 2;
-    string contractAddr = 3;
-    string contractName = 4;
-    string aliasName = 5;
+    bool   contract     = 1;
+    string contractAddr = 2;
+    string contractName = 3;
+    string aliasName    = 4;
 }
 
 message EstimateEVMGasReq {
-    string to = 1;
-    bytes code = 2;
+    string to     = 1;
+    bytes  code   = 2;
+    string caller = 3;
+    uint64 amount = 4;
 }
 message EstimateEVMGasResp {
     uint64 gas = 1;
