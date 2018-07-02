@@ -529,5 +529,7 @@ func (b *BlockChain) ProcessDelParaChainBlock(broadcast bool, blockdetail *types
 	if err != nil {
 		return false, false, err
 	}
+	//平行链回滚可能出现 向同一高度写哈希相同的区块，这里需要删除
+	delete(b.index.index, string(blockHash))
 	return true, false, nil
 }
