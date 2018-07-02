@@ -218,6 +218,7 @@ It has these top-level messages:
 	P2PGetData
 	P2PTx
 	P2PBlock
+	Versions
 	BroadCastData
 	P2PGetHeaders
 	P2PHeaders
@@ -226,6 +227,8 @@ It has these top-level messages:
 	Peer
 	PeerList
 	NodeNetInfo
+	PeersReply
+	PeersInfo
 	Operation
 	Checkpoint
 	Entry
