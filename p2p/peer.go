@@ -7,6 +7,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	v "gitlab.33.cn/chain33/chain33/common/version"
 	pb "gitlab.33.cn/chain33/chain33/types"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -190,6 +191,18 @@ func (p *Peer) sendStream() {
 			continue
 		}
 
+		//send softversion&p2pversion
+		_, peername := (*p.nodeInfo).addrBook.GetPrivPubKey()
+		p2pdata.Value = &pb.BroadCastData_Version{Version: &pb.Versions{P2Pversion: (*p.nodeInfo).cfg.GetVersion(),
+			Softversion: v.GetVersion(), Peername: peername}}
+
+		if err := resp.Send(p2pdata); err != nil {
+			resp.CloseSend()
+			cancel()
+			log.Error("sendStream", "sendping", err)
+			time.Sleep(time.Second)
+			continue
+		}
 		timeout := time.NewTimer(time.Second * 2)
 		defer timeout.Stop()
 		var hash [64]byte
@@ -281,6 +294,7 @@ func (p *Peer) readStream() {
 			time.Sleep(time.Second)
 			continue
 		}
+
 		log.Debug("SubStreamBlock", "Start", p.Addr())
 		var hash [64]byte
 		for {
