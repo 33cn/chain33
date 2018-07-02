@@ -75,7 +75,7 @@ queue is full.
 Inbound message bytes are handled with an onReceive callback function.
 */
 type MConnection struct {
-	cmn.BaseService
+	types.BaseService
 
 	conn        net.Conn
 	bufReader   *bufio.Reader
@@ -164,7 +164,7 @@ func NewMConnectionWithConfig(conn net.Conn, chDescs []*ChannelDescriptor, onRec
 	mconn.channels = channels
 	mconn.channelsIdx = channelsIdx
 
-	mconn.BaseService = *cmn.NewBaseService("MConnection", mconn)
+	mconn.BaseService = *types.NewBaseService("MConnection", mconn)
 
 	return mconn
 }
@@ -219,7 +219,7 @@ func (c *MConnection) flush() {
 func (c *MConnection) _recover() {
 	if r := recover(); r != nil {
 		stack := debug.Stack()
-		err := cmn.StackError{r, stack}
+		err := types.StackError{r, stack}
 		c.stopForError(err)
 	}
 }
@@ -236,7 +236,7 @@ func (c *MConnection) stopForError(r interface{}) {
 func (c *MConnection) MsgToByte(msg types.ReactorMsg) ([]byte, error) {
 	tmp, err := json.Marshal(msg)
 	if err != nil {
-		mconnectionlog.Error(cmn.Fmt("send bytes, marshal msg [%v] failed:%v", msg.TypeName(), err))
+		mconnectionlog.Error(types.Fmt("send bytes, marshal msg [%v] failed:%v", msg.TypeName(), err))
 		return nil, err
 	}
 	context := json.RawMessage(tmp)
@@ -246,7 +246,7 @@ func (c *MConnection) MsgToByte(msg types.ReactorMsg) ([]byte, error) {
 	}
 	msgBytes, err := json.Marshal(&enve)
 	if err != nil {
-		mconnectionlog.Error(cmn.Fmt("send bytes, marshal envelope failed:%v", err))
+		mconnectionlog.Error(types.Fmt("send bytes, marshal envelope failed:%v", err))
 		return nil, err
 	}
 	return msgBytes, nil
@@ -264,14 +264,14 @@ func (c *MConnection) Send(chID byte, msg interface{}) bool {
 	// Send message to channel.
 	channel, ok := c.channelsIdx[chID]
 	if !ok {
-		mconnectionlog.Error(cmn.Fmt("Cannot send bytes, unknown channel %X", chID))
+		mconnectionlog.Error(types.Fmt("Cannot send bytes, unknown channel %X", chID))
 		return false
 	}
 
 	if v, ok := msg.(types.ReactorMsg); ok {  // checked type assertion
 		msgBytes, err := c.MsgToByte(v)
 		if err != nil {
-			mconnectionlog.Error(cmn.Fmt("send bytes, marshal envelope failed:%v", err))
+			mconnectionlog.Error(types.Fmt("send bytes, marshal envelope failed:%v", err))
 			return false
 		}
 		success := channel.sendBytes(msgBytes)
@@ -303,13 +303,13 @@ func (c *MConnection) TrySend(chID byte, msg interface{}) bool {
 	// Send message to channel.
 	channel, ok := c.channelsIdx[chID]
 	if !ok {
-		mconnectionlog.Error(cmn.Fmt("Cannot send bytes, unknown channel %X", chID))
+		mconnectionlog.Error(types.Fmt("Cannot send bytes, unknown channel %X", chID))
 		return false
 	}
 	if v, ok := msg.(types.ReactorMsg); ok { // checked type assertion
 		msgBytes, err := c.MsgToByte(v)
 		if err != nil {
-			mconnectionlog.Error(cmn.Fmt("send bytes, marshal envelope failed:%v", err))
+			mconnectionlog.Error(types.Fmt("send bytes, marshal envelope failed:%v", err))
 			return false
 		}
 		ok = channel.trySendBytes(msgBytes)
@@ -336,7 +336,7 @@ func (c *MConnection) CanSend(chID byte) bool {
 
 	channel, ok := c.channelsIdx[chID]
 	if !ok {
-		mconnectionlog.Error(cmn.Fmt("Unknown channel %X", chID))
+		mconnectionlog.Error(types.Fmt("Unknown channel %X", chID))
 		return false
 	}
 	return channel.canSend()
@@ -643,7 +643,7 @@ type Channel struct {
 func newChannel(conn *MConnection, desc ChannelDescriptor) *Channel {
 	desc = desc.FillDefaults()
 	if desc.Priority <= 0 {
-		cmn.PanicSanity("Channel default priority must be a positive integer")
+		types.PanicSanity("Channel default priority must be a positive integer")
 	}
 	return &Channel{
 		conn:                    conn,

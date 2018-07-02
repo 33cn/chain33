@@ -7,8 +7,7 @@ import (
 	"time"
 
 	"github.com/inconshreveable/log15"
-	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
-	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/p2p/upnp"
+	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
 )
 
 type Listener interface {
@@ -21,7 +20,7 @@ type Listener interface {
 
 // Implements Listener
 type DefaultListener struct {
-	cmn.BaseService
+	types.BaseService
 
 	listener    net.Listener
 	intAddr     *NetAddress
@@ -51,9 +50,7 @@ func splitHostPort(addr string) (host string, port int) {
 }
 
 // skipUPNP: If true, does not try getUPNPExternalAddress()
-func NewDefaultListener(protocol string, lAddr string, skipUPNP bool) Listener {
-	// Local listen IP & port
-	lAddrIP, lAddrPort := splitHostPort(lAddr)
+func NewDefaultListener(protocol string, lAddr string) Listener {
 
 	// Create listener
 	var listener net.Listener
@@ -82,12 +79,6 @@ func NewDefaultListener(protocol string, lAddr string, skipUPNP bool) Listener {
 
 	// Determine external address...
 	var extAddr *NetAddress
-	if !skipUPNP {
-		// If the lAddrIP is INADDR_ANY, try UPnP
-		if lAddrIP == "" || lAddrIP == "0.0.0.0" {
-			extAddr = getUPNPExternalAddress(lAddrPort, listenerPort)
-		}
-	}
 	// Otherwise just use the local address...
 	if extAddr == nil {
 		extAddr = getNaiveExternalAddress(listenerPort, false)
@@ -102,7 +93,7 @@ func NewDefaultListener(protocol string, lAddr string, skipUPNP bool) Listener {
 		extAddr:     extAddr,
 		connections: make(chan net.Conn, numBufferedConnections),
 	}
-	dl.BaseService = *cmn.NewBaseService("DefaultListener", dl)
+	dl.BaseService = *types.NewBaseService("DefaultListener", dl)
 	err = dl.Start() // Started upon construction
 	if err != nil {
 		listenerlog.Error("Error starting base service", "err", err)
@@ -173,42 +164,11 @@ func (l *DefaultListener) String() string {
 }
 
 /* external address helpers */
-
-// UPNP external address discovery & port mapping
-func getUPNPExternalAddress(externalPort, internalPort int) *NetAddress {
-	listenerlog.Info("Getting UPNP external address")
-	nat, err := upnp.Discover()
-	if err != nil {
-		listenerlog.Info("Could not perform UPNP discover", "err", err)
-		return nil
-	}
-
-	ext, err := nat.GetExternalAddress()
-	if err != nil {
-		listenerlog.Info("Could not get UPNP external address", "err", err)
-		return nil
-	}
-
-	// UPnP can't seem to get the external port, so let's just be explicit.
-	if externalPort == 0 {
-		externalPort = defaultExternalPort
-	}
-
-	externalPort, err = nat.AddPortMapping("tcp", externalPort, internalPort, "tendermint", 0)
-	if err != nil {
-		listenerlog.Info("Could not add UPNP port mapping", "err", err)
-		return nil
-	}
-
-	listenerlog.Info("Got UPNP external address", "address", ext)
-	return NewNetAddressIPPort(ext, uint16(externalPort))
-}
-
 // TODO: use syscalls: see issue #712
 func getNaiveExternalAddress(port int, settleForLocal bool) *NetAddress {
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
-		panic(cmn.Fmt("Could not fetch interface addresses: %v", err))
+		panic(types.Fmt("Could not fetch interface addresses: %v", err))
 	}
 
 	for _, a := range addrs {

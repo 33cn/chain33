@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"gitlab.33.cn/chain33/chain33/common/crypto"
-	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
 	"encoding/hex"
+	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
 )
 
 // TODO: type ?
@@ -35,7 +35,7 @@ func voteToStep(vote *Vote) int8 {
 	case VoteTypePrecommit:
 		return stepPrecommit
 	default:
-		cmn.PanicSanity("Unknown vote type")
+		PanicSanity("Unknown vote type")
 		return 0
 	}
 }
@@ -210,7 +210,7 @@ func LoadPrivValidatorFSWithSigner(filePath string, signerFunc func(PrivValidato
 	privVal := &PrivValidatorFS{}
 	err = json.Unmarshal(privValJSONBytes, &privVal)
 	if err != nil {
-		cmn.Exit(cmn.Fmt("Error reading PrivValidator from %v: %v\n", filePath, err))
+		cmn.Exit(Fmt("Error reading PrivValidator from %v: %v\n", filePath, err))
 	}
 	if len(privVal.PubKey.Data) == 0 {
 		cmn.Exit("Error PrivValidator pubkey is empty\n")
@@ -220,7 +220,7 @@ func LoadPrivValidatorFSWithSigner(filePath string, signerFunc func(PrivValidato
 	}
 	addr, err := hex.DecodeString(privVal.Address)
 	if err != nil {
-		cmn.Exit(cmn.Fmt("Error PrivValidator DecodeString failed:%v\n",err))
+		cmn.Exit(Fmt("Error PrivValidator DecodeString failed:%v\n",err))
 	}
 	privValImp := &PrivValidatorImp{
 		Address:    addr,
@@ -230,31 +230,31 @@ func LoadPrivValidatorFSWithSigner(filePath string, signerFunc func(PrivValidato
 	}
 	tmp,err := hex.DecodeString(privVal.PrivKey.Data)
 	if err != nil {
-		cmn.Exit(cmn.Fmt("Error DecodeString PrivKey data failed: %v\n", err))
+		cmn.Exit(Fmt("Error DecodeString PrivKey data failed: %v\n", err))
 	}
 	privKey, err := ConsensusCrypto.PrivKeyFromBytes(tmp)
 	if err != nil {
-		cmn.Exit(cmn.Fmt("Error PrivKeyFromBytes failed: %v\n", err))
+		cmn.Exit(Fmt("Error PrivKeyFromBytes failed: %v\n", err))
 	}
 	privValImp.PrivKey = privKey
 
 	pubKey, err := PubKeyFromString(privVal.PubKey.Data)
 	if err != nil {
-		cmn.Exit(cmn.Fmt("Error PubKeyFromBytes failed: %v\n", err))
+		cmn.Exit(Fmt("Error PubKeyFromBytes failed: %v\n", err))
 	}
 	privValImp.PubKey = pubKey
 
 	if len(privVal.LastSignBytes) != 0 {
 		tmp, err = hex.DecodeString(string(privVal.LastSignBytes))
 		if err != nil {
-			cmn.Exit(cmn.Fmt("Error DecodeString LastSignBytes data failed: %v\n", err))
+			cmn.Exit(Fmt("Error DecodeString LastSignBytes data failed: %v\n", err))
 		}
 		privValImp.LastSignBytes = tmp
 	}
 	if privVal.LastSignature != nil {
 		signature, err := SignatureFromString(privVal.LastSignature.Data)
 		if err != nil {
-			cmn.Exit(cmn.Fmt("Error SignatureFromBytes failed: %v\n", err))
+			cmn.Exit(Fmt("Error SignatureFromBytes failed: %v\n", err))
 		}
 		privValImp.LastSignature = signature
 	} else {
@@ -275,7 +275,7 @@ func (privVal *PrivValidatorImp) Save() {
 
 func (privVal *PrivValidatorImp) save() {
 	if privVal.filePath == "" {
-		cmn.PanicSanity("Cannot save PrivValidator: filePath not set")
+		PanicSanity("Cannot save PrivValidator: filePath not set")
 	}
 	addr := fmt.Sprintf("%X", privVal.Address[:])
 
@@ -299,12 +299,12 @@ func (privVal *PrivValidatorImp) save() {
 	jsonBytes, err := json.Marshal(privValFS)
 	if err != nil {
 		// `@; BOOM!!!
-		cmn.PanicCrisis(err)
+		PanicCrisis(err)
 	}
 	err = cmn.WriteFileAtomic(privVal.filePath, jsonBytes, 0600)
 	if err != nil {
 		// `@; BOOM!!!
-		cmn.PanicCrisis(err)
+		PanicCrisis(err)
 	}
 }
 
@@ -327,7 +327,7 @@ func (privVal *PrivValidatorImp) SignVote(chainID string, vote *Vote) error {
 	signature, err := privVal.signBytesHRS(vote.Height, vote.Round, voteToStep(vote),
 		SignBytes(chainID, vote), checkVotesOnlyDifferByTimestamp)
 	if err != nil {
-		return errors.New(cmn.Fmt("Error signing vote: %v", err))
+		return errors.New(Fmt("Error signing vote: %v", err))
 	}
 	vote.Signature = signature.Bytes()
 	return nil

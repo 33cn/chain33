@@ -14,6 +14,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
 	"gitlab.33.cn/chain33/chain33/types"
+	gtypes "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
 )
 
 const (
@@ -37,7 +38,7 @@ var (
 )
 
 type Reactor interface {
-	cmn.Service
+	gtypes.Service
 	SetSwitch(*Switch)
 	GetChannels() []*ChannelDescriptor
 	AddPeer(peer Peer)
@@ -48,13 +49,13 @@ type Reactor interface {
 //--------------------------------------
 
 type BaseReactor struct {
-	cmn.BaseService // Provides Start, Stop, .Quit
+	gtypes.BaseService // Provides Start, Stop, .Quit
 	Switch          *Switch
 }
 
 func NewBaseReactor(name string, impl Reactor) *BaseReactor {
 	return &BaseReactor{
-		BaseService: *cmn.NewBaseService(name, impl),
+		BaseService: *gtypes.NewBaseService(name, impl),
 		Switch:      nil,
 	}
 }
@@ -76,7 +77,7 @@ or more `Channels`.  So while sending outgoing messages is typically performed o
 incoming messages are received on the reactor.
 */
 type Switch struct {
-	cmn.BaseService
+	gtypes.BaseService
 	config       *P2PConfig
 	peerConfig   *PeerConfig
 	listeners    []Listener
@@ -176,7 +177,7 @@ func NewSwitch(config *P2PConfig) *Switch {
 	sw.peerConfig.MConfig.RecvRate = config.RecvRate
 	sw.peerConfig.MConfig.maxMsgPacketPayloadSize = config.MaxMsgPacketPayloadSize
 
-	sw.BaseService = *cmn.NewBaseService("P2P Switch", sw)
+	sw.BaseService = *gtypes.NewBaseService("P2P Switch", sw)
 	return sw
 }
 
@@ -189,7 +190,7 @@ func (sw *Switch) AddReactor(name string, reactor Reactor) Reactor {
 	for _, chDesc := range reactorChannels {
 		chID := chDesc.ID
 		if sw.reactorsByCh[chID] != nil {
-			cmn.PanicSanity(fmt.Sprintf("Channel %X has multiple reactors %v & %v", chID, sw.reactorsByCh[chID], reactor))
+			gtypes.PanicSanity(fmt.Sprintf("Channel %X has multiple reactors %v & %v", chID, sw.reactorsByCh[chID], reactor))
 		}
 		sw.chDescs = append(sw.chDescs, chDesc)
 		sw.reactorsByCh[chID] = reactor
@@ -377,24 +378,10 @@ func (sw *Switch) startInitPeer(peer *peer) {
 }
 
 // DialSeeds dials a list of seeds asynchronously in random order.
-func (sw *Switch) DialSeeds(addrBook *AddrBook, seeds []string) error {
+func (sw *Switch) DialSeeds(seeds []string) error {
 	netAddrs, errs := NewNetAddressStrings(seeds)
 	for _, err := range errs {
 		switchlog.Error("Error in seed's address", "err", err)
-	}
-
-	if addrBook != nil {
-		// add seeds to `addrBook`
-		ourAddrS := sw.nodeInfo.ListenAddr
-		ourAddr, _ := NewNetAddressString(ourAddrS)
-		for _, netAddr := range netAddrs {
-			// do not add ourselves
-			if netAddr.Equals(ourAddr) {
-				continue
-			}
-			addrBook.AddAddress(netAddr, ourAddr)
-		}
-		addrBook.Save()
 	}
 
 	// permute the list, dial them in random order.
@@ -676,11 +663,11 @@ func makeSwitch(cfg *P2PConfig, i int, network, version string, initSwitch func(
 	s := initSwitch(i, NewSwitch(cfg))
 	s.SetNodeInfo(&NodeInfo{
 		PubKey:     privKey.PubKey(),
-		Moniker:    cmn.Fmt("switch%d", i),
+		Moniker:    gtypes.Fmt("switch%d", i),
 		Network:    network,
 		Version:    version,
-		RemoteAddr: cmn.Fmt("%v:%v", network, rand.Intn(64512)+1023),
-		ListenAddr: cmn.Fmt("%v:%v", network, rand.Intn(64512)+1023),
+		RemoteAddr: gtypes.Fmt("%v:%v", network, rand.Intn(64512)+1023),
+		ListenAddr: gtypes.Fmt("%v:%v", network, rand.Intn(64512)+1023),
 	})
 	s.SetNodePrivKey(privKey)
 	return s

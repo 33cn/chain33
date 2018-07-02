@@ -226,7 +226,7 @@ func (client *TendermintClient) StartConsensus() {
 	}
 	// Create & add listener
 	protocol, address := "tcp", "0.0.0.0:46656"
-	l := p2p.NewDefaultListener(protocol, address, false)
+	l := p2p.NewDefaultListener(protocol, address)
 	client.sw.AddListener(l)
 
 	// Start the switch
@@ -241,7 +241,7 @@ func (client *TendermintClient) StartConsensus() {
 	// If seeds exist, add them to the address book and dial out
 	if len(client.Cfg.Seeds) != 0 {
 		// dial out
-		client.sw.DialSeeds(nil, client.Cfg.Seeds)
+		client.sw.DialSeeds(client.Cfg.Seeds)
 	}
 
 	go client.CreateBlock()

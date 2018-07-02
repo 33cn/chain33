@@ -65,7 +65,7 @@ func (ti *timeoutInfo) String() string {
 // commits blocks to the chain and executes them against the application.
 // The internal state machine receives input from peers, the internal validator, and from a timer.
 type ConsensusState struct {
-	cmn.BaseService
+	ttypes.BaseService
 	// config details
 	client        *drivers.BaseClient
 	privValidator ttypes.PrivValidator // for signing votes
@@ -148,7 +148,7 @@ func NewConsensusState(client *drivers.BaseClient, blockStore *ttypes.BlockStore
 	// We do that upon Start().
 	cs.reconstructLastCommit(state)
 
-	cs.BaseService = *cmn.NewBaseService("ConsensusState", cs)
+	cs.BaseService = *ttypes.NewBaseService("ConsensusState", cs)
 	//old proposal cache
 	cs.LastProposals = BaseQueue{}
 	cs.LastProposals.InitQueue(2)

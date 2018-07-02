@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
+	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
 )
 
 // NetAddress defines information about a peer on the network
@@ -32,7 +32,7 @@ func NewNetAddress(addr net.Addr) *NetAddress {
 	tcpAddr, ok := addr.(*net.TCPAddr)
 	if !ok {
 		if flag.Lookup("test.v") == nil { // normal run
-			cmn.PanicSanity(cmn.Fmt("Only TCPAddrs are supported. Got: %v", addr))
+			types.PanicSanity(types.Fmt("Only TCPAddrs are supported. Got: %v", addr))
 		} else { // in testing
 			return NewNetAddressIPPort(net.IP("0.0.0.0"), 0)
 		}
@@ -115,7 +115,7 @@ func (na *NetAddress) Less(other interface{}) bool {
 		return na.String() < o.String()
 	}
 
-	cmn.PanicSanity("Cannot compare unequal types")
+	types.PanicSanity("Cannot compare unequal types")
 	return false
 }
 

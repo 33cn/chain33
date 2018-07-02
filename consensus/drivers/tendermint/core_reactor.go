@@ -242,7 +242,7 @@ func (conR *ConsensusReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) 
 					"height", hb.Height, "round", hb.Round, "sequence", hb.Sequence,
 					"valIdx", hb.ValidatorIndex, "valAddr", hb.ValidatorAddress)
 			default:
-				tendermintlog.Error(cmn.Fmt("Unknown message type %v", reflect.TypeOf(msg)))
+				tendermintlog.Error(types.Fmt("Unknown message type %v", reflect.TypeOf(msg)))
 			}
 
 		case DataChannel:
@@ -258,7 +258,7 @@ func (conR *ConsensusReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) 
 			case *types.ProposalPOLMessage:
 				ps.ApplyProposalPOLMessage(msg)
 			default:
-				tendermintlog.Error(cmn.Fmt("Unknown message type %v", reflect.TypeOf(msg)))
+				tendermintlog.Error(types.Fmt("Unknown message type %v", reflect.TypeOf(msg)))
 			}
 
 		case VoteChannel:
@@ -280,7 +280,7 @@ func (conR *ConsensusReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) 
 
 			default:
 				// don't punish (leave room for soft upgrades)
-				tendermintlog.Error(cmn.Fmt("Unknown message type %v", reflect.TypeOf(msg)))
+				tendermintlog.Error(types.Fmt("Unknown message type %v", reflect.TypeOf(msg)))
 			}
 
 		case VoteSetBitsChannel:
@@ -312,11 +312,11 @@ func (conR *ConsensusReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) 
 				}
 			default:
 				// don't punish (leave room for soft upgrades)
-				tendermintlog.Error(cmn.Fmt("Unknown message type %v", msg.TypeName()))
+				tendermintlog.Error(types.Fmt("Unknown message type %v", msg.TypeName()))
 			}
 
 		default:
-			tendermintlog.Error(cmn.Fmt("Unknown chId %X", chID))
+			tendermintlog.Error(types.Fmt("Unknown chId %X", chID))
 		}
 	} else {
 	tendermintlog.Error("not find ReactorMsg kind %v", envelope.Kind)
@@ -915,7 +915,7 @@ func (ps *PeerState) ensureCatchupCommitRound(height int64, round int, numValida
 		NOTE: This is wrong, 'round' could change.
 		e.g. if orig round is not the same as block LastCommit round.
 		if ps.CatchupCommitRound != -1 && ps.CatchupCommitRound != round {
-			cmn.PanicSanity(cmn.Fmt("Conflicting CatchupCommitRound. Height: %v, Orig: %v, New: %v", height, ps.CatchupCommitRound, round))
+			types.PanicSanity(types.Fmt("Conflicting CatchupCommitRound. Height: %v, Orig: %v, New: %v", height, ps.CatchupCommitRound, round))
 		}
 	*/
 	if ps.CatchupCommitRound == round {

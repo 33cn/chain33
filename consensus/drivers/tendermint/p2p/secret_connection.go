@@ -198,7 +198,7 @@ func genEphKeys() (ephPub, ephPriv *[32]byte) {
 	var err error
 	ephPub, ephPriv, err = box.GenerateKey(crand.Reader)
 	if err != nil {
-		cmn.PanicCrisis("Could not generate ephemeral keypairs")
+		types.PanicCrisis("Could not generate ephemeral keypairs")
 	}
 	return
 }

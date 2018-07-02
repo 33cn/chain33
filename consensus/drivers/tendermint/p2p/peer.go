@@ -21,7 +21,7 @@ var (
 )
 // Peer is an interface representing a peer connected on a reactor.
 type Peer interface {
-	cmn.Service
+	types.Service
 	Key() string
 	IsOutbound() bool
 	IsPersistent() bool
@@ -41,7 +41,7 @@ type Peer interface {
 //
 // Before using a peer, you will need to perform a handshake on connection.
 type peer struct {
-	cmn.BaseService
+	types.BaseService
 	outbound bool
 
 	conn  net.Conn     // source connection
@@ -127,7 +127,7 @@ func newPeerFromConnAndConfig(rawConn net.Conn, outbound bool, reactorsByCh map[
 
 	p.mconn = createMConnection(conn, p, reactorsByCh, chDescs, onPeerError, config.MConfig)
 
-	p.BaseService = *cmn.NewBaseService("Peer", p)
+	p.BaseService = *types.NewBaseService("Peer", p)
 
 	return p, nil
 }
@@ -372,7 +372,7 @@ func createMConnection(conn net.Conn, p *peer, reactorsByCh map[byte]Reactor, ch
 	onReceive := func(chID byte, msgBytes []byte) {
 		reactor := reactorsByCh[chID]
 		if reactor == nil {
-			cmn.PanicSanity(cmn.Fmt("Unknown channel %X", chID))
+			types.PanicSanity(types.Fmt("Unknown channel %X", chID))
 		}
 		reactor.Receive(chID, p, msgBytes)
 	}

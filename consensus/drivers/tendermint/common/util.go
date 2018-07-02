@@ -46,7 +46,7 @@ func WriteFileAtomic(filePath string, newBytes []byte, mode os.FileMode) error {
 func Tempfile(prefix string) (*os.File, string) {
 	file, err := ioutil.TempFile("", prefix)
 	if err != nil {
-		PanicCrisis(err)
+		panic(err)
 	}
 	return file, file.Name()
 }
@@ -138,4 +138,18 @@ func (p Percent) String() string {
 	b = strconv.AppendUint(b, 1000+uint64(p)%1000, 10)
 	b[n] = '.'
 	return string(append(b, '%'))
+}
+//-------------------------------------------------------------------
+func MinInt(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func MaxInt(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }
