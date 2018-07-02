@@ -325,6 +325,7 @@ const (
 	EventReplyBlockDetailsBySeqs = 124
 	EventDelParaChainBlockDetail = 125
 	EventAddParaChainBlockDetail = 126
+	EventGetSeqByHash            = 127
 
 	//Auth
 	EventAuthorityCheckCert  = 180
@@ -465,6 +466,7 @@ var eventName = map[int]string{
 	124: "EventReplyBlockDetailsBySeqs",
 	125: "EventDelParaChainBlockDetail",
 	126: "EventAddParaChainBlockDetail",
+	127: "EventGetSeqByHash",
 	// Token
 	EventBlockChainQuery: "EventBlockChainQuery",
 }
