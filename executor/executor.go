@@ -252,10 +252,6 @@ func isAllowExec(key, txexecer []byte, toaddr string, height int64) bool {
 		}
 	}
 
-	if bytes.HasPrefix(txexecer, []byte(types.ExecNamePrefix)) {
-		return true
-	}
-
 	return false
 }
 
