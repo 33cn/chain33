@@ -310,7 +310,7 @@ func (tx *Transaction) Sign(ty int32, priv crypto.PrivKey) {
 	data := Encode(tx)
 	pub := priv.PubKey()
 	sign := priv.Sign(data)
-	tx.Signature = &Signature{ty, pub.Bytes(), sign.Bytes(), nil}
+	tx.Signature = &Signature{ty, pub.Bytes(), sign.Bytes()}
 }
 
 //tx 有些时候是一个交易组

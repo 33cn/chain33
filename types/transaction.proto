@@ -57,7 +57,6 @@ message Signature {
     int32 ty = 1;
     bytes pubkey = 2;
     bytes signature = 3;
-    bytes cert = 4;
 }
 
 message AddrOverview {

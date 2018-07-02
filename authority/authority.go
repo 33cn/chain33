@@ -13,6 +13,8 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 	"io/ioutil"
 	"sync"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
+	"encoding/asn1"
 )
 
 var alog = log.New("module", "autority")
@@ -192,12 +194,19 @@ func (auth *Authority) checksign(done <-chan struct{}, taskes <-chan *types.Sign
 }
 
 func (auth *Authority) checkCert(signature *types.Signature) error {
-	if len(signature.GetCert()) == 0 {
+	var certSignature crypto.CertSignature
+	_, err := asn1.Unmarshal(signature.Signature, &certSignature)
+	if err != nil {
+		alog.Error(fmt.Sprintf("unmashal certificate from signature failed. %s", err.Error()))
+		return err
+	}
+
+	if len(certSignature.Cert) == 0 {
 		alog.Error("cert can not be null")
 		return types.ErrInvalidParam
 	}
 
-	err := auth.validator.Validate(signature.GetCert(), signature.GetPubkey())
+	err = auth.validator.Validate(certSignature.Cert, signature.GetPubkey())
 	if err != nil {
 		alog.Error(fmt.Sprintf("validate cert failed. %s", err.Error()))
 		return fmt.Errorf("validate cert failed. error:%s", err.Error())
