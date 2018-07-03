@@ -106,7 +106,7 @@ function init() {
     echo "=========== # save seed to wallet ============="
     result=$(sudo docker exec -it build_chain30_1 ./chain33-cli seed save -p 1314 -s "tortoise main civil member grace happy century convince father cage beach hip maid merry rib" | jq ".isok")
     if [ "${result}" = "false" ]; then
-        echo "save seed to wallet error seed: \${seed}, result: \$result"
+        echo 'save seed to wallet error seed: ${seed}, result: $result'
         exit 1
     fi
 
