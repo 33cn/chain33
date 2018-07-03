@@ -151,7 +151,6 @@ function init() {
         exit 1
     fi
 
-
     ## 2nd mining
     echo "=========== # save seed to wallet ============="
     result=$(${CLI4} seed save -p 1314 -s "tortoise main civil member grace happy century convince father cage beach hip maid merry rib" | jq ".isok")
@@ -192,8 +191,6 @@ function init() {
     if [ "${result}" = "false" ]; then
         exit 1
     fi
-
-
 
     echo "=========== sleep ${SLEEP}s ============="
     sleep ${SLEEP}
