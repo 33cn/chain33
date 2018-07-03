@@ -167,7 +167,7 @@ func (wallet *Wallet) createUTXOsByPub2Priv(priv crypto.PrivKey, reqCreateUTXOs 
 		Nonce:   wallet.random.Int63(),
 		To:      address.ExecAddress(types.PrivacyX),
 	}
-	tx.SetExpire(time.Hour)
+	tx.SetExpire(wallet.getExpire(reqCreateUTXOs.GetExpire()))
 	txSize := types.Size(tx) + types.SignatureSize
 	realFee := int64((txSize+1023)>>types.Size_1K_shiftlen) * types.FeePerKB
 	tx.Fee = realFee
@@ -237,7 +237,7 @@ func (wallet *Wallet) transPub2PriV2(priv crypto.PrivKey, reqPub2Pri *types.ReqP
 		// TODO: 采用隐私合约地址来设定目标合约接收的目标地址,让验证通过
 		To: address.ExecAddress(types.PrivacyX),
 	}
-	tx.SetExpire(time.Hour)
+	tx.SetExpire(wallet.getExpire(reqPub2Pri.GetExpire()))
 	txSize := types.Size(tx) + types.SignatureSize
 	realFee := int64((txSize+1023)>>types.Size_1K_shiftlen) * types.FeePerKB
 	tx.Fee = realFee
@@ -448,9 +448,9 @@ func (wallet *Wallet) transPri2PriV2(privacykeyParirs *privacy.Privacy, reqPri2P
 		Fee:     types.PrivacyTxFee,
 		Nonce:   wallet.random.Int63(),
 		// TODO: 采用隐私合约地址来设定目标合约接收的目标地址,让验证通过
-		To:      address.ExecAddress(types.PrivacyX),
+		To: address.ExecAddress(types.PrivacyX),
 	}
-	tx.SetExpire(time.Hour)
+	tx.SetExpire(wallet.getExpire(reqPri2Pri.GetExpire()))
 	//完成了input和output的添加之后，即已经完成了交易基本内容的添加，
 	//这时候就需要进行交易的签名了
 	err = wallet.signatureTx(tx, privacyInput, utxosInKeyInput, realkeyInputSlice)
@@ -527,7 +527,7 @@ func (wallet *Wallet) transPri2PubV2(privacykeyParirs *privacy.Privacy, reqPri2P
 		Nonce:   wallet.random.Int63(),
 		To:      reqPri2Pub.Receiver,
 	}
-	tx.SetExpire(time.Hour)
+	tx.SetExpire(wallet.getExpire(reqPri2Pub.GetExpire()))
 	//step 3,generate ring signature
 	err = wallet.signatureTx(tx, privacyInput, utxosInKeyInput, realkeyInputSlice)
 	if err != nil {
@@ -864,7 +864,7 @@ func (wallet *Wallet) createPublic2PrivacyTx(req *types.ReqCreateTransaction) (*
 	txSize := types.Size(tx) + types.SignatureSize
 	realFee := int64((txSize+1023)>>types.Size_1K_shiftlen) * types.FeePerKB
 	tx.Fee = realFee
-	tx.SetExpire(time.Hour)
+	tx.SetExpire(wallet.getExpire(req.GetExpire()))
 
 	byteshash := tx.Hash()
 	dbkey := calcCreateTxKey(req.Tokenname, common.Bytes2Hex(byteshash))
@@ -944,7 +944,7 @@ func (wallet *Wallet) createPrivacy2PrivacyTx(req *types.ReqCreateTransaction) (
 		Nonce:   wallet.random.Int63(),
 		To:      address.ExecAddress(types.PrivacyX),
 	}
-	tx.SetExpire(time.Hour)
+	tx.SetExpire(wallet.getExpire(req.GetExpire()))
 
 	byteshash := tx.Hash()
 	dbkey := calcCreateTxKey(req.Tokenname, common.Bytes2Hex(byteshash))
@@ -1023,7 +1023,7 @@ func (wallet *Wallet) createPrivacy2PublicTx(req *types.ReqCreateTransaction) (*
 		Nonce:   wallet.random.Int63(),
 		To:      req.GetTo(),
 	}
-	tx.SetExpire(time.Hour)
+	tx.SetExpire(wallet.getExpire(req.GetExpire()))
 
 	byteshash := tx.Hash()
 	dbkey := calcCreateTxKey(req.Tokenname, common.Bytes2Hex(byteshash))
@@ -1226,7 +1226,7 @@ func (wallet *Wallet) procDeleteCacheTransaction(req *types.ReqCreateCacheTxKey)
 	return &types.ReplyHash{Hash: req.GetHashkey()}, nil
 }
 
-func (w *Wallet) procPrivacyAccountInfo(req *types.ReqPPrivacyAccount) (*types.ReplyPrivacyAccount, error){
+func (w *Wallet) procPrivacyAccountInfo(req *types.ReqPPrivacyAccount) (*types.ReplyPrivacyAccount, error) {
 	w.mtx.Lock()
 	defer w.mtx.Unlock()
 
@@ -1365,4 +1365,12 @@ func (wallet *Wallet) getPrivacyKeyPairsOfWallet() ([]addrAndprivacy, error) {
 		}
 	}
 	return infoPriRes, nil
+}
+
+func (wallet *Wallet) getExpire(expire int64) time.Duration {
+	retexpir := time.Hour
+	if expire > 0{
+		retexpir = time.Duration(expire)
+	}
+	return retexpir
 }

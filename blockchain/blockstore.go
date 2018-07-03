@@ -621,7 +621,6 @@ func (bs *BlockStore) dbMaybeStoreBlock(blockdetail *types.BlockDetail, sync boo
 	return nil
 }
 
-
 func (bs *BlockStore) getUTXOsByTokenAndAmount(token string, amount int64, count int32) []*types.LocalUTXOItem {
 	querydb := bs.db
 	var localUTXOItemSlice []*types.LocalUTXOItem
@@ -646,6 +645,7 @@ func (bs *BlockStore) getUTXOsByTokenAndAmount(token string, amount int64, count
 
 	return localUTXOItemSlice
 }
+
 //获取当前最新的block操作序列号
 func (bs *BlockStore) LoadBlockLastSequence() (int64, error) {
 	bytes, err := bs.db.Get(LastSequence)

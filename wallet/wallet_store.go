@@ -593,7 +593,6 @@ func (ws *Store) setUTXO(addr, txhash *string, outindex int, dbStore *types.Priv
 		}
 	}
 
-
 	privacyStorebyte, err := proto.Marshal(dbStore)
 	if err != nil {
 		walletlog.Error("setUTXO proto.Marshal err!", "err", err)
@@ -1077,6 +1076,7 @@ func (ws *Store) listCreateTransactionCache(token string) ([]*types.CreateTransa
 	}
 	return caches, nil
 }
+
 //升级数据库的版本号
 func (ws *Store) SetWalletVersion(version int64) error {
 	data, err := json.Marshal(version)

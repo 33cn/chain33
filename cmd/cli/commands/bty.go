@@ -7,7 +7,7 @@ import (
 	"io"
 	"os"
 	"strings"
-
+	"time"
 	"unsafe"
 
 	"github.com/spf13/cobra"
@@ -479,6 +479,7 @@ func createPub2PrivTx(cmd *cobra.Command, args []string) {
 		Note:       note,
 		Pubkeypair: pubkeypair,
 		From:       sender,
+		Expire:     int64(time.Hour),
 	}
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateTrasaction", params, nil)
 	ctx.RunWithoutMarshal()
@@ -522,6 +523,7 @@ func createPriv2PrivTx(cmd *cobra.Command, args []string) {
 		Pubkeypair: pubkeypair,
 		From:       sender,
 		Mixcount:   16,
+		Expire:     int64(time.Hour),
 	}
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateTrasaction", params, nil)
 	ctx.RunWithoutMarshal()
@@ -565,6 +567,7 @@ func createPriv2PubTx(cmd *cobra.Command, args []string) {
 		From:      from,
 		To:        to,
 		Mixcount:  16,
+		Expire:    int64(time.Hour),
 	}
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateTrasaction", params, nil)
 	ctx.RunWithoutMarshal()
