@@ -1,12 +1,5 @@
 package privacy
 
-import (
-	"testing"
-
-	"gitlab.33.cn/chain33/chain33/common"
-	"gitlab.33.cn/chain33/chain33/types"
-)
-
 /*
 func TestPrivacyOnetimeKey(t *testing.T) {
 	t.Logf("Begin to do TestPrivacyOnetimeKey\n")
@@ -59,6 +52,8 @@ func TestPrivacyOnetimeKey(t *testing.T) {
 }
 */
 
+/*
+// TODO: 需要增加隐私签名的UT
 func TestPrivacySignWithFixInput(t *testing.T) {
 	prislice, _ := common.Hex2Bytes("9E0ED368F3DDAA9F472FE7F319F866227A74A2EF16B43410CEB3CE7C1BAAEB09")
 	var onetimePriKey PrivKeyPrivacy
@@ -101,6 +96,7 @@ func TestPrivacySignWithFixInput(t *testing.T) {
 
 	t.Logf("End to do TestPrivacyOnetimeKey\n")
 }
+*/
 
 //func TestPrivacySign(t *testing.T) {
 //	t.Logf("Begin to do TestPrivacyOnetimeKey\n")
