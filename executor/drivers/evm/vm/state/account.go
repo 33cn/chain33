@@ -58,7 +58,7 @@ func NewContractAccount(addr string, db *MemoryStateDB) *ContractAccount {
 // 获取数据分为两层，一层是从当前的缓存中获取，如果获取不到，再从localdb中获取
 func (self *ContractAccount) GetState(key common.Hash) common.Hash {
 	// 从ForkV19开始，状态数据使用单独的KEY存储
-	if types.IsMatchFork(self.mdb.blockHeight, types.ForkV19EVMState) {
+	if types.IsMatchFork(self.mdb.blockHeight, types.ForkV20EVMState) {
 		if val, ok := self.stateCache[key.Hex()]; ok {
 			return val
 		}
@@ -79,7 +79,7 @@ func (self *ContractAccount) GetState(key common.Hash) common.Hash {
 
 // 设置状态数据
 func (self *ContractAccount) SetState(key, value common.Hash) {
-	if self.mdb.blockHeight > types.ForkV19EVMState {
+	if types.IsMatchFork(self.mdb.blockHeight, types.ForkV20EVMState) {
 		self.mdb.addChange(storageChange{
 			baseChange: baseChange{},
 			account:    self.Addr,
@@ -102,9 +102,27 @@ func (self *ContractAccount) SetState(key, value common.Hash) {
 	}
 }
 
+// 从原有的存储在一个对象，将状态数据分散存储到多个KEY，保证合约可以支撑大量状态数据
+func (self *ContractAccount) TransferState() {
+	if len(self.State.Storage) > 0 {
+		storage := self.State.Storage
+		// 为了保证不会造成新、旧数据并存的情况，需要将旧的状态数据清空
+		self.State.Storage = make(map[string][]byte)
+		self.State.StorageHash = common.ToHash([]byte{}).Bytes()
+
+		// 从旧的区块迁移状态数据到新的区块，模拟状态数据变更的操作
+		for key, value := range storage {
+			self.SetState(common.BytesToHash(common.FromHex(key)), common.BytesToHash(value))
+		}
+		// 更新本合约的状态数据（删除旧的map存储信息）
+		self.mdb.UpdateState(self.Addr)
+		return
+	}
+}
+
 func (self *ContractAccount) updateStorageHash() {
 	// 从ForkV19开始，状态数据使用单独KEY存储
-	if self.mdb.blockHeight > types.ForkV19EVMState {
+	if types.IsMatchFork(self.mdb.blockHeight, types.ForkV20EVMState) {
 		return
 	}
 	var state = &types.EVMContractState{Suicided: self.State.Suicided, Nonce: self.State.Nonce}
@@ -133,32 +151,12 @@ func (self *ContractAccount) resotreData(data []byte) {
 	self.Data = content
 }
 
-func (self *ContractAccount) transferState(state map[string][]byte) {
-	for key, value := range state {
-		self.SetState(common.BytesToHash(common.FromHex(key)), common.BytesToHash(value))
-	}
-}
-
 // 从外部恢复合约状态
 func (self *ContractAccount) resotreState(data []byte) {
 	var content types.EVMContractState
 	err := proto.Unmarshal(data, &content)
 	if err != nil {
 		log15.Error("read contract state error", self.Addr)
-		return
-	}
-	// 这里恢复的数据有可能是之前存储的，因此出了判断分叉外，还需要判断数据内容
-	if len(content.Storage) > 0 && types.IsMatchFork(self.mdb.blockHeight, types.ForkV19EVMState) {
-		storage := content.Storage
-		// 为了保证不会造成新、旧数据并存的情况，需要将旧的状态数据清空
-		content.Storage = make(map[string][]byte)
-		content.StorageHash = []byte{}
-		self.State = content
-		// 从旧的区块迁移状态数据到新的区块，模拟状态数据变更的操作
-		self.transferState(storage)
-
-		// 更新本合约的状态数据（删除旧的map存储信息）
-		self.mdb.UpdateState(self.Addr)
 		return
 	}
 	self.State = content
@@ -239,7 +237,7 @@ func (self *ContractAccount) GetDataKV() (kvSet []*types.KeyValue) {
 	self.Data.Addr = self.Addr
 	datas, err := proto.Marshal(&self.Data)
 	if err != nil {
-		log15.Error("marshal contract data error!", self.Addr)
+		log15.Error("marshal contract data error!", "addr", self.Addr, "error", err)
 		return
 	}
 	kvSet = append(kvSet, &types.KeyValue{Key: self.GetDataKey(), Value: datas})
@@ -250,7 +248,7 @@ func (self *ContractAccount) GetDataKV() (kvSet []*types.KeyValue) {
 func (self *ContractAccount) GetStateKV() (kvSet []*types.KeyValue) {
 	datas, err := proto.Marshal(&self.State)
 	if err != nil {
-		log15.Error("marshal contract state error!", self.Addr)
+		log15.Error("marshal contract state error!", "addr", self.Addr, "error", err)
 		return
 	}
 	kvSet = append(kvSet, &types.KeyValue{Key: self.GetStateKey(), Value: datas})
@@ -261,7 +259,7 @@ func (self *ContractAccount) GetStateKV() (kvSet []*types.KeyValue) {
 func (self *ContractAccount) BuildDataLog() (log *types.ReceiptLog) {
 	datas, err := proto.Marshal(&self.Data)
 	if err != nil {
-		log15.Error("marshal contract state error!", self.Addr)
+		log15.Error("marshal contract data error!", "addr", self.Addr, "error", err)
 		return
 	}
 	return &types.ReceiptLog{types.TyLogContractData, datas}
@@ -270,8 +268,8 @@ func (self *ContractAccount) BuildDataLog() (log *types.ReceiptLog) {
 // 构建变更日志
 func (self *ContractAccount) BuildStateLog() (log *types.ReceiptLog) {
 	datas, err := proto.Marshal(&self.State)
-	if err != nil || len(datas) == 0 {
-		log15.Error("marshal contract state error!", "error", self.Addr)
+	if err != nil {
+		log15.Error("marshal contract state log error!", "addr", self.Addr, "error", err)
 		return
 	}
 

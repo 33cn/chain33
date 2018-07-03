@@ -852,48 +852,62 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		return nil, types.ErrEmpty
 	}
 	var pl interface{}
+	unkownPl := make(map[string]interface{})
 	if "coins" == string(tx.Execer) {
 		var action types.CoinsAction
 		err := types.Decode(tx.GetPayload(), &action)
 		if err != nil {
-			return nil, err
+			unkownPl["unkownpayload"] = string(tx.GetPayload())
+			pl = unkownPl
+			fmt.Println(pl)
+		} else {
+			pl = &action
 		}
-		pl = &action
 	} else if "ticket" == string(tx.Execer) {
 		var action types.TicketAction
 		err := types.Decode(tx.GetPayload(), &action)
 		if err != nil {
-			return nil, err
+			unkownPl["unkownpayload"] = string(tx.GetPayload())
+			pl = unkownPl
+		} else {
+			pl = &action
 		}
-		pl = &action
 	} else if "hashlock" == string(tx.Execer) {
 		var action types.HashlockAction
 		err := types.Decode(tx.GetPayload(), &action)
 		if err != nil {
-			return nil, err
+			unkownPl["unkownpayload"] = string(tx.GetPayload())
+			pl = unkownPl
+		} else {
+			pl = &action
 		}
-		pl = &action
 	} else if "token" == string(tx.Execer) {
 		var action types.TokenAction
 		err := types.Decode(tx.GetPayload(), &action)
 		if err != nil {
-			return nil, err
+			unkownPl["unkownpayload"] = string(tx.GetPayload())
+			pl = unkownPl
+		} else {
+			pl = &action
 		}
-		pl = &action
 	} else if "trade" == string(tx.Execer) {
 		var action types.Trade
 		err := types.Decode(tx.GetPayload(), &action)
 		if err != nil {
-			return nil, err
+			unkownPl["unkownpayload"] = string(tx.GetPayload())
+			pl = unkownPl
+		} else {
+			pl = &action
 		}
-		pl = &action
 	} else if "evm" == string(tx.Execer) {
 		var action types.EVMContractAction
 		err := types.Decode(tx.GetPayload(), &action)
 		if err != nil {
-			return nil, err
+			unkownPl["unkownpayload"] = string(tx.GetPayload())
+			pl = unkownPl
+		} else {
+			pl = &action
 		}
-		pl = &action
 	} else if "user.write" == string(tx.Execer) {
 		pl = decodeUserWrite(tx.GetPayload())
 	} else {
@@ -1222,6 +1236,14 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
 		case types.TyLogCallContract:
 			lTy = "LogCallContract"
 			var logTmp types.ReceiptEVMContract
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case types.TyLogEVMStateChangeItem:
+			lTy = "LogEVMStateChangeItem"
+			var logTmp types.EVMStateChangeItem
 			err = types.Decode(lLog, &logTmp)
 			if err != nil {
 				return nil, err

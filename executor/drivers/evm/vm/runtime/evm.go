@@ -3,7 +3,6 @@ package runtime
 import (
 	"math/big"
 	"sync/atomic"
-	"time"
 
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/gas"
@@ -206,8 +205,13 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 		evm.VmConfig.Tracer.CaptureStart(caller.Address(), addr, false, input, gas, value)
 
 		defer func() {
-			evm.VmConfig.Tracer.CaptureEnd(ret, gas-contract.Gas, time.Since(start), err)
+			evm.VmConfig.Tracer.CaptureEnd(ret, gas-contract.Gas, types.Since(start), err)
 		}()
+	}
+
+	// 从ForkV20EVMState开始，状态数据存储发生变更，需要做数据迁移
+	if types.IsMatchFork(evm.BlockNumber.Int64(), types.ForkV20EVMState) {
+		evm.StateDB.TransferStateData(addr.String())
 	}
 
 	ret, err = run(evm, contract, input)
@@ -397,7 +401,7 @@ func (evm *EVM) Create(caller ContractRef, contractAddr common.Address, code []b
 	}
 
 	if evm.VmConfig.Debug && evm.depth == 0 {
-		evm.VmConfig.Tracer.CaptureEnd(ret, gas-contract.Gas, time.Since(start), err)
+		evm.VmConfig.Tracer.CaptureEnd(ret, gas-contract.Gas, types.Since(start), err)
 	}
 
 	return ret, snapshot, contract.Gas, err

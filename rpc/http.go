@@ -80,7 +80,7 @@ func (j *JSONRPCServer) Listen() {
 					return
 				}
 				funcName := strings.Split(client.Method, ".")[len(strings.Split(client.Method, "."))-1]
-				if !checkJrpcFuncWritelist(funcName) {
+				if checkJrpcFuncBlacklist(funcName) || !checkJrpcFuncWhitelist(funcName) {
 					writeError(w, r, client.Id, fmt.Sprintf(`The %s method is not authorized!`, funcName))
 					return
 				}
@@ -168,7 +168,7 @@ func auth(ctx context.Context, info *grpc.UnaryServerInfo) error {
 		}
 
 		funcName := strings.Split(info.FullMethod, "/")[len(strings.Split(info.FullMethod, "/"))-1]
-		if !checkGrpcFuncWritelist(funcName) {
+		if checkGrpcFuncBlacklist(funcName) || !checkGrpcFuncWhitelist(funcName) {
 			return fmt.Errorf("The %s method is not authorized!", funcName)
 		}
 		return nil
