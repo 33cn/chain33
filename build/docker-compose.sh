@@ -106,7 +106,7 @@ function init() {
     echo "=========== # save seed to wallet ============="
     result=$(sudo docker exec -it build_chain30_1 ./chain33-cli seed save -p 1314 -s "tortoise main civil member grace happy century convince father cage beach hip maid merry rib" | jq ".isok")
     if [ "${result}" = "false" ]; then
-        echo "save seed to wallet error seed: ""${seed}"", result: ""$result"
+        echo "save seed to wallet error seed: \${seed}, result: \$result"
         exit 1
     fi
 
@@ -122,7 +122,7 @@ function init() {
 
     echo "=========== # import private key transer ============="
     result=$(sudo docker exec -it build_chain30_1 ./chain33-cli account import_key -k 2AFF1981291355322C7A6308D46A9C9BA311AA21D94F36B43FC6A6021A1334CF -l transer | jq ".label")
-    echo ${result}
+    echo "${result}"
     if [ -z "${result}" ]; then
         exit 1
     fi
@@ -131,7 +131,7 @@ function init() {
 
     echo "=========== # import private key minig ============="
     result=$(sudo docker exec -it build_chain30_1 ./chain33-cli account import_key -k 2116459C0EC8ED01AA0EEAE35CAC5C96F94473F7816F114873291217303F6989 -l mining | jq ".label")
-    echo ${result}
+    echo "${result}"
     if [ -z "${result}" ]; then
         exit 1
     fi
