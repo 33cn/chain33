@@ -63,7 +63,7 @@ func (ver *Snapshot) getData() (kvSet []*types.KeyValue, logs []*types.ReceiptLo
 		}
 	}
 
-	// 这里也可能会引起数据顺序不一致的问题，需要修改
+	// 这里也可能会引起数据顺序不一致的问题，需要修改（目前看KV的顺序不会影响哈希计算，但代码最好保证顺序一致）
 	names := make([]string, 0, len(dataMap))
 	for name := range dataMap {
 		names = append(names, name)

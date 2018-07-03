@@ -79,24 +79,18 @@ func (self *ContractAccount) GetState(key common.Hash) common.Hash {
 
 // 设置状态数据
 func (self *ContractAccount) SetState(key, value common.Hash) {
+	self.mdb.addChange(storageChange{
+		baseChange: baseChange{},
+		account:    self.Addr,
+		key:        key,
+		prevalue:   self.GetState(key),
+	})
 	if types.IsMatchFork(self.mdb.blockHeight, types.ForkV20EVMState) {
-		self.mdb.addChange(storageChange{
-			baseChange: baseChange{},
-			account:    self.Addr,
-			key:        key,
-			prevalue:   self.GetState(key),
-		})
 		self.stateCache[key.Hex()] = value
 		//需要设置到localdb中，以免同一个区块中同一个合约多次调用时，状态数据丢失
 		keyStr := getStateItemKey(self.Addr, key.Hex())
 		self.mdb.LocalDB.Set([]byte(keyStr), value.Bytes())
 	} else {
-		self.mdb.addChange(storageChange{
-			baseChange: baseChange{},
-			account:    self.Addr,
-			key:        key,
-			prevalue:   self.GetState(key),
-		})
 		self.State.GetStorage()[key.Hex()] = value.Bytes()
 		self.updateStorageHash()
 	}
@@ -121,7 +115,7 @@ func (self *ContractAccount) TransferState() {
 }
 
 func (self *ContractAccount) updateStorageHash() {
-	// 从ForkV19开始，状态数据使用单独KEY存储
+	// 从ForkV20开始，状态数据使用单独KEY存储
 	if types.IsMatchFork(self.mdb.blockHeight, types.ForkV20EVMState) {
 		return
 	}

@@ -492,7 +492,7 @@ func (r *ReceiptData) DecodeReceiptLog() (*ReceiptDataResult, error) {
 			}
 			logIns = logTmp
 		case TyLogEVMStateChangeItem:
-			lTy = "LogContractStateChangeItem"
+			lTy = "LogEVMStateChangeItem"
 			var logTmp EVMStateChangeItem
 			err = Decode(lLog, &logTmp)
 			if err != nil {

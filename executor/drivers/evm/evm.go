@@ -179,7 +179,7 @@ func (evm *EVMExecutor) Exec(tx *types.Transaction, index int) (*types.Receipt, 
 }
 
 func (evm *EVMExecutor) collectEvmTxLog(tx *types.Transaction, cr *types.ReceiptEVMContract, receipt *types.Receipt) {
-	log.Debug("-----------------evm collect begin-----------------------------")
+	log.Debug("evm collect begin")
 	log.Debug("Tx info", "txHash", common.Bytes2Hex(tx.Hash()), "height", evm.GetHeight())
 	log.Debug("ReceiptEVMContract", "data", fmt.Sprintf("caller=%v, name=%v, addr=%v, usedGas=%v, ret=%v", cr.Caller, cr.ContractName, cr.ContractAddr, cr.UsedGas, common.Bytes2Hex(cr.Ret)))
 	log.Debug("receipt data", "type", receipt.Ty)
@@ -189,7 +189,7 @@ func (evm *EVMExecutor) collectEvmTxLog(tx *types.Transaction, cr *types.Receipt
 	for _, kv := range receipt.Logs {
 		log.Debug("ReceiptLog", "Type", kv.Ty, "log", common.Bytes2Hex(kv.Log))
 	}
-	log.Debug("-----------------evm collect end-----------------------------")
+	log.Debug("evm collect end")
 }
 
 //获取运行状态名
