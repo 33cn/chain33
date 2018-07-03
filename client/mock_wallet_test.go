@@ -89,7 +89,7 @@ func (m *mockWallet) SetQueueClient(q queue.Queue) {
 				}
 			case types.EventWalletSetPasswd:
 				if req, ok := msg.GetData().(*types.ReqWalletSetPasswd); ok {
-					if req.GetOldpass() == "case1" {
+					if req.GetOldPass() == "case1" {
 						msg.Reply(client.NewMessage(walletKey, types.EventReply, &types.Transaction{}))
 					} else {
 						msg.Reply(client.NewMessage(walletKey, types.EventReply, &types.Reply{}))

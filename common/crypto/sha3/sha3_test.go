@@ -73,6 +73,8 @@ type KeccakKats struct {
 	}
 }
 
+const xorImplementationUnaligned = "generic"
+
 func testUnalignedAndGeneric(t *testing.T, testf func(impl string)) {
 	xorInOrig, copyOutOrig := xorIn, copyOut
 	xorIn, copyOut = xorInGeneric, copyOutGeneric

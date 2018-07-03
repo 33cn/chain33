@@ -251,8 +251,7 @@ func showPrivacyAccountSpend(cmd *cobra.Command, args []string) {
 func parseShowPrivacyAccountSpendRes(arg interface{}) (interface{}, error) {
 	total := float64(0)
 	res := arg.(*types.UTXOHaveTxHashs)
-	var rets []*PrivacyAccountSpendResult
-	rets = make([]*PrivacyAccountSpendResult, 0)
+	rets := make([]*PrivacyAccountSpendResult, 0)
 	for _, utxo := range res.UtxoHaveTxHashs {
 		amount := float64(utxo.Amount) / float64(types.Coin)
 		total += amount
@@ -271,7 +270,7 @@ func parseShowPrivacyAccountSpendRes(arg interface{}) (interface{}, error) {
 			}
 		}
 
-		if false == isSave {
+		if !isSave {
 			result := &PrivacyAccountResult{
 				//Height:   utxo.UtxoBasic.UtxoGlobalIndex.Height,
 				//TxIndex:  utxo.UtxoBasic.UtxoGlobalIndex.Txindex,

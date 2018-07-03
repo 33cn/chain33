@@ -210,8 +210,6 @@ func GenerateKeyPair(privKeyPrivacyPtr *PrivKeyPrivacy, pubKeyPrivacyPtr *PubKey
 	edwards25519.GeScalarMultBase(&A, addr32)
 	A.ToBytes(pubKeyAddr32)
 	copy(addr64[KeyLen32:], pubKeyAddr32[:])
-
-	return
 }
 
 func generateKeyPairWithPrivKey(privByte *[KeyLen32]byte, privKeyPrivacyPtr *PrivKeyPrivacy, pubKeyPrivacyPtr *PubKeyPrivacy) error {
