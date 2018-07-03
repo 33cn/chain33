@@ -35,10 +35,9 @@ func init() {
 
 type GoCouchBase struct {
 	TransactionDB
-	// db      *leveldb.DB
-	bucket *gocb.Bucket
-	items  []gocb.BulkOp
-	// batch  map[string][]byte
+	bucket   *gocb.Bucket
+	batch    map[string][]byte
+	batchDel []string
 }
 
 func NewGoCouchBase(name string, dir string, cache int) (*GoCouchBase, error) {
@@ -58,7 +57,8 @@ func NewGoCouchBase(name string, dir string, cache int) (*GoCouchBase, error) {
 		fmt.Println("Get Pool err", "error", err)
 	}
 
-	return &GoCouchBase{bucket: bucket}, nil
+	batch := make(map[string][]byte)
+	return &GoCouchBase{bucket: bucket, batch: batch, batchDel: nil}, nil
 }
 
 func (db *GoCouchBase) Get(key []byte) (val []byte, err error) {
@@ -75,7 +75,7 @@ func (db *GoCouchBase) Get(key []byte) (val []byte, err error) {
 }
 
 func (db *GoCouchBase) Set(key []byte, value []byte) error {
-	db.items = append(db.items, &gocb.UpsertOp{Key: hex.EncodeToString(key), Value: value})
+	db.batch[hex.EncodeToString(key)] = value
 	return nil
 }
 
@@ -89,12 +89,7 @@ func (db *GoCouchBase) SetSync(key []byte, value []byte) error {
 }
 
 func (db *GoCouchBase) Delete(key []byte) error {
-	for _, op := range db.items {
-		k := op.(*gocb.UpsertOp).Key
-		if k == hex.EncodeToString(key) {
-			op = nil
-		}
-	}
+	db.batchDel = append(db.batchDel, hex.EncodeToString(key))
 	return nil
 }
 
@@ -109,10 +104,10 @@ func (db *GoCouchBase) DeleteSync(key []byte) error {
 
 func (db *GoCouchBase) Close() {
 	db.bucket.Close()
+	db.batch = nil
 }
 
 func (db *GoCouchBase) Print() {
-
 }
 
 func (db *GoCouchBase) Stats() map[string]string {
@@ -166,10 +161,8 @@ func (dbit *GoCouchBaseIt) Close() {
 func (dbit *GoCouchBaseIt) Next() bool {
 	if dbit.reserve {
 		dbit.index--
-
 	} else {
 		dbit.index++
-
 	}
 
 	if dbit.mVal[dbit.keys[dbit.index]] != nil {
@@ -185,7 +178,6 @@ func (dbit *GoCouchBaseIt) Rewind() bool {
 	} else {
 		dbit.index = 0
 	}
-
 	return dbit.Valid()
 }
 
@@ -238,33 +230,30 @@ func (dbit *GoCouchBaseIt) Seek(key []byte) bool {
 }
 
 type GoCouchBaseBatch struct {
-	bucket   *gocb.Bucket
-	batchMap []gocb.BulkOp
+	db *GoCouchBase
 }
 
 func (db *GoCouchBase) NewBatch(sync bool) Batch {
-	bucket := db.bucket
-	batch := db.items
-	return &GoCouchBaseBatch{bucket, batch}
+	return &GoCouchBaseBatch{db}
 }
 
 func (mBatch *GoCouchBaseBatch) Set(key, value []byte) {
-	mBatch.batchMap = append(mBatch.batchMap, &gocb.UpsertOp{Key: hex.EncodeToString(key), Value: value})
+	mBatch.db.batch[hex.EncodeToString(key)] = value
 }
 
 func (mBatch *GoCouchBaseBatch) Delete(key []byte) {
-	for _, op := range mBatch.batchMap {
-		k := op.(*gocb.UpsertOp).Key
-		if k == hex.EncodeToString(key) {
-			op = nil
-		}
-	}
+	mBatch.db.batchDel = append(mBatch.db.batchDel, hex.EncodeToString(key))
 }
 
 func (mBatch *GoCouchBaseBatch) Write() error {
-	err := mBatch.bucket.Do(mBatch.batchMap)
-	if err != nil {
-		clog.Error("Write err", "error", err)
+	for k, v := range mBatch.db.batch {
+		_, err := mBatch.db.bucket.Upsert(k, v, 0)
 	}
+	for _, key := range mBatch.db.batchDel {
+		mBatch.db.bucket.Remove(key, 0)
+	}
+	mBatch.db.batch = nil
+	mBatch.db.batch = make(map[string][]byte)
+	mBatch.db.batchDel = nil
 	return nil
 }
