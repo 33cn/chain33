@@ -229,6 +229,7 @@ func (mem *Mempool) DelBlock(block *types.Block) {
 		if !mem.checkExpireValid(tx) {
 			continue
 		}
+		mem.addedTxs.Remove(string(tx.Hash()))
 		mem.PushTx(tx)
 	}
 }
@@ -249,30 +250,30 @@ func (mem *Mempool) GetLatestTx() []*types.Transaction {
 }
 
 // Mempool.ReTrySend每隔两分钟运行一次ReTry
-//func (mem *Mempool) ReTrySend() {
-//	for {
-//		time.Sleep(time.Minute * 2)
-//		mem.ReTry()
-//	}
-//}
+func (mem *Mempool) ReTrySend() {
+	for {
+		time.Sleep(time.Minute * 2)
+		mem.ReTry()
+	}
+}
 
 // Mempool.ReTry检查Mempool，将未过期的交易重发送给P2P
-//func (mem *Mempool) ReTry() {
-//	var result []*types.Transaction
-//	mem.proxyMtx.Lock()
-//	for _, v := range mem.cache.txMap {
-//		if types.Now().Unix()-v.Value.(*Item).enterTime >= mempoolReSendInterval {
-//			result = append(result, v.Value.(*Item).value)
-//		}
-//	}
-//	mem.proxyMtx.Unlock()
-//	if len(result) > 0 {
-//		mlog.Debug("retry send tx...")
-//	}
-//	for _, tx := range result {
-//		mem.SendTxToP2P(tx)
-//	}
-//}
+func (mem *Mempool) ReTry() {
+	var result []*types.Transaction
+	mem.proxyMtx.Lock()
+	for _, v := range mem.cache.txMap {
+		if types.Now().Unix()-v.Value.(*Item).enterTime >= mempoolReSendInterval {
+			result = append(result, v.Value.(*Item).value)
+		}
+	}
+	mem.proxyMtx.Unlock()
+	if len(result) > 0 {
+		mlog.Debug("retry send tx...")
+	}
+	for _, tx := range result {
+		mem.SendTxToP2P(tx)
+	}
+}
 
 // Mempool.RemoveBlockedTxs每隔1分钟清理一次已打包的交易
 func (mem *Mempool) RemoveBlockedTxs() {
