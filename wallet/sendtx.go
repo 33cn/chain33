@@ -641,20 +641,3 @@ func (wallet *Wallet) GetRofPrivateTx(txhashptr *string) (R_txpubkey []byte, err
 		return nil, errors.New("ErrPrivacyType")
 	}
 }
-
-func convertPubPairstr2bytes(viewPub, spendPub *string) (viewPubSlice, spendPubSlice []byte, err error) {
-	viewPubSlice, err = common.FromHex(*viewPub)
-	if err != nil {
-		return nil, nil, err
-	}
-	spendPubSlice, err = common.FromHex(*spendPub)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if 32 != len(viewPubSlice) || 32 != len(spendPubSlice) {
-		return nil, nil, types.ErrPubKeyLen
-	}
-
-	return
-}

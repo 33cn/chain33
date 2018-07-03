@@ -19,7 +19,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers/manage"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/none"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/norm"
-
 	"gitlab.33.cn/chain33/chain33/executor/drivers/relay"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/retrieve"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/ticket"

@@ -55,4 +55,4 @@ var (
 	copyOut = copyOutUnaligned
 )
 
-const xorImplementationUnaligned = "unaligned"
+//const xorImplementationUnaligned = "unaligned"

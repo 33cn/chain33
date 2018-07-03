@@ -341,7 +341,7 @@ func (ws *Store) getTxDetailByIter(TxList *types.ReqWalletTransactionList) (*typ
 	if len(TxList.FromTx) == 0 {
 		list := dbm.NewListHelper(ws.db)
 		if TxList.GetMode() == walletQueryModeNormal {
-			txbytes = list.IteratorScanFromLast([]byte(calcTxKey("")), TxList.Count)
+			txbytes = list.IteratorScanFromLast(calcTxKey(""), TxList.Count)
 		} else if TxList.GetMode() == walletQueryModePrivacy {
 			var keyPrefix []byte
 			if sendTx == TxList.SendRecvPrivacy {
@@ -371,13 +371,13 @@ func (ws *Store) getTxDetailByIter(TxList *types.ReqWalletTransactionList) (*typ
 	} else {
 		list := dbm.NewListHelper(ws.db)
 		if TxList.GetMode() == walletQueryModeNormal {
-			txbytes = list.IteratorScan([]byte("Tx:"), []byte(calcTxKey(string(TxList.FromTx))), TxList.Count, TxList.Direction)
+			txbytes = list.IteratorScan([]byte("Tx:"), calcTxKey(string(TxList.FromTx)), TxList.Count, TxList.Direction)
 		} else if TxList.GetMode() == walletQueryModePrivacy {
 			var txkeybytes [][]byte
 			if sendTx == TxList.SendRecvPrivacy {
-				txkeybytes = list.IteratorScan([]byte(SendPrivacyTx), []byte(calcSendPrivacyTxKey(TxList.Tokenname, TxList.Address, string(TxList.FromTx))), TxList.Count, TxList.Direction)
+				txkeybytes = list.IteratorScan([]byte(SendPrivacyTx), calcSendPrivacyTxKey(TxList.Tokenname, TxList.Address, string(TxList.FromTx)), TxList.Count, TxList.Direction)
 			} else {
-				txkeybytes = list.IteratorScan([]byte(RecvPrivacyTx), []byte(calcRecvPrivacyTxKey(TxList.Tokenname, TxList.Address, string(TxList.FromTx))), TxList.Count, TxList.Direction)
+				txkeybytes = list.IteratorScan([]byte(RecvPrivacyTx), calcRecvPrivacyTxKey(TxList.Tokenname, TxList.Address, string(TxList.FromTx)), TxList.Count, TxList.Direction)
 			}
 
 			for _, keybyte := range txkeybytes {
