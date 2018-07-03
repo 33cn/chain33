@@ -62,13 +62,13 @@ const (
 	// a transaction which fits into a message could possibly have.
 	maxTxInPerMessage = (MaxMessagePayload / minTxInPayload) + 1
 
-	// MinTxOutPayload is the minimum payload size for a transaction output.
+	// minTxOutPayload is the minimum payload size for a transaction output.
 	// Value 8 bytes + Varint for PkScript length 1 byte.
-	MinTxOutPayload = 9
+	minTxOutPayload = 9
 
 	// maxTxOutPerMessage is the maximum number of transactions outputs that
 	// a transaction which fits into a message could possibly have.
-	maxTxOutPerMessage = (MaxMessagePayload / MinTxOutPayload) + 1
+	maxTxOutPerMessage = (MaxMessagePayload / minTxOutPayload) + 1
 
 	// minTxPayload is the minimum payload size for a transaction.  Note
 	// that any realistically usable transaction must have at least one
