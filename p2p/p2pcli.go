@@ -196,6 +196,7 @@ func (m *Cli) GetAddrList(peer *Peer) (map[string]int64, error) {
 
 	for _, peerinfo := range peerinfos {
 		if localBlockHeight-peerinfo.GetHeader().GetHeight() < 2048 {
+
 			addrlist[fmt.Sprintf("%v:%v", peerinfo.GetAddr(), peerinfo.GetPort())] = peerinfo.GetHeader().GetHeight()
 		}
 	}

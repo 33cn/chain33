@@ -279,8 +279,8 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 
 	if !isStrongConsistency || blockdetail.Receipts == nil {
 		blockdetail, _, err = util.ExecBlock(b.client, prevStateHash, block, true, sync)
-		if err != nil {
-			//记录执行出错的block信息
+		if err != nil && err != types.ErrFutureBlock {
+			//记录执行出错的block信息,需要过滤掉ErrFutureBlock错误的block，不计入故障中，尝试再次执行
 			b.RecordFaultPeer(node.pid, block.Height, node.hash, err)
 			chainlog.Error("connectBlock ExecBlock is err!", "height", block.Height, "err", err)
 			return err
@@ -529,5 +529,10 @@ func (b *BlockChain) ProcessDelParaChainBlock(broadcast bool, blockdetail *types
 	if err != nil {
 		return false, false, err
 	}
+	//平行链回滚可能出现 向同一高度写哈希相同的区块，
+	// 主链中对应的节点信息已经在disconnectBlock处理函数中删除了
+	// 这里还需要删除index链中对应的节点信息
+	b.index.DelNode(blockHash)
+
 	return true, false, nil
 }
