@@ -94,6 +94,7 @@ It has these top-level messages:
 	EVMContractState
 	EVMContractAction
 	ReceiptEVMContract
+	EVMStateChangeItem
 	EVMContractDataCmd
 	EVMContractStateCmd
 	ReceiptEVMContractCmd
