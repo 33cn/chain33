@@ -1,6 +1,7 @@
 package p2p
 
 import (
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -17,10 +18,17 @@ func NewFilter() *Filterdata {
 }
 
 type Filterdata struct {
-	isclose  int32
-	regRData *lru.Cache
+	isclose    int32
+	regRData   *lru.Cache
+	atomicLock sync.Mutex
 }
 
+func (f *Filterdata) GetLock() {
+	f.atomicLock.Lock()
+}
+func (f *Filterdata) ReleaseLock() {
+	f.atomicLock.Unlock()
+}
 func (f *Filterdata) RegRecvData(key string) bool {
 	f.regRData.Add(key, time.Duration(types.Now().Unix()))
 	return true
