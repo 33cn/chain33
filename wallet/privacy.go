@@ -1369,7 +1369,7 @@ func (wallet *Wallet) getPrivacyKeyPairsOfWallet() ([]addrAndprivacy, error) {
 
 func (wallet *Wallet) getExpire(expire int64) time.Duration {
 	retexpir := time.Hour
-	if expire > 0{
+	if expire > 0 {
 		retexpir = time.Duration(expire)
 	}
 	return retexpir
