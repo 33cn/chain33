@@ -10,8 +10,6 @@ package btcjson
 import (
 	"encoding/json"
 	"fmt"
-
-	"github.com/btcsuite/btcd/wire"
 )
 
 // AddNodeSubCmd defines the type used in the addnode JSON-RPC command for the
@@ -278,37 +276,6 @@ type GetBlockTemplateCmd struct {
 func NewGetBlockTemplateCmd(request *TemplateRequest) *GetBlockTemplateCmd {
 	return &GetBlockTemplateCmd{
 		Request: request,
-	}
-}
-
-// GetCFilterCmd defines the getcfilter JSON-RPC command.
-type GetCFilterCmd struct {
-	Hash       string
-	FilterType wire.FilterType
-}
-
-// NewGetCFilterCmd returns a new instance which can be used to issue a
-// getcfilter JSON-RPC command.
-func NewGetCFilterCmd(hash string, filterType wire.FilterType) *GetCFilterCmd {
-	return &GetCFilterCmd{
-		Hash:       hash,
-		FilterType: filterType,
-	}
-}
-
-// GetCFilterHeaderCmd defines the getcfilterheader JSON-RPC command.
-type GetCFilterHeaderCmd struct {
-	Hash       string
-	FilterType wire.FilterType
-}
-
-// NewGetCFilterHeaderCmd returns a new instance which can be used to issue a
-// getcfilterheader JSON-RPC command.
-func NewGetCFilterHeaderCmd(hash string,
-	filterType wire.FilterType) *GetCFilterHeaderCmd {
-	return &GetCFilterHeaderCmd{
-		Hash:       hash,
-		FilterType: filterType,
 	}
 }
 
@@ -789,8 +756,6 @@ func init() {
 	MustRegisterCmd("getblockhash", (*GetBlockHashCmd)(nil), flags)
 	MustRegisterCmd("getblockheader", (*GetBlockHeaderCmd)(nil), flags)
 	MustRegisterCmd("getblocktemplate", (*GetBlockTemplateCmd)(nil), flags)
-	MustRegisterCmd("getcfilter", (*GetCFilterCmd)(nil), flags)
-	MustRegisterCmd("getcfilterheader", (*GetCFilterHeaderCmd)(nil), flags)
 	MustRegisterCmd("getchaintips", (*GetChainTipsCmd)(nil), flags)
 	MustRegisterCmd("getconnectioncount", (*GetConnectionCountCmd)(nil), flags)
 	MustRegisterCmd("getdifficulty", (*GetDifficultyCmd)(nil), flags)

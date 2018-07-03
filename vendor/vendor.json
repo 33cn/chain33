@@ -9,70 +9,46 @@
 			"revisionTime": "2017-06-26T11:06:00Z"
 		},
 		{
-			"checksumSHA1": "mq7Np3rIjHnE06Of949JjXdU/Rk=",
+			"checksumSHA1": "lPcTak2cIrUzxysFsqkPiCGUo6w=",
 			"path": "github.com/btcsuite/btcd/btcec",
-			"revision": "86fed781132ac890ee03e906e4ecd5d6fa180c64",
-			"revisionTime": "2018-05-31T02:59:44Z"
+			"revision": "8cea3866d0f7fb12d567a20744942c0d078c7d15",
+			"revisionTime": "2017-10-26T12:26:30Z"
 		},
 		{
-			"checksumSHA1": "ivHZ9HEwLx7z2CPMcxtP2LLSo44=",
+			"checksumSHA1": "PopAEis/dczrSV4YL70qNVTNbOI=",
 			"path": "github.com/btcsuite/btcd/btcjson",
-			"revision": "86fed781132ac890ee03e906e4ecd5d6fa180c64",
-			"revisionTime": "2018-05-31T02:59:44Z"
+			"revision": "2be2f12b358dc57d70b8f501b00be450192efbc3",
+			"revisionTime": "2018-02-20T00:36:29Z"
 		},
 		{
-			"checksumSHA1": "wB5yJMpoju/0eCGIFslLvXNd1WU=",
+			"checksumSHA1": "x8MiLYkRT+y3YudDz3Ms8V82WtA=",
 			"path": "github.com/btcsuite/btcd/chaincfg",
-			"revision": "86fed781132ac890ee03e906e4ecd5d6fa180c64",
-			"revisionTime": "2018-05-31T02:59:44Z"
+			"revision": "2be2f12b358dc57d70b8f501b00be450192efbc3",
+			"revisionTime": "2018-02-20T00:36:29Z"
 		},
 		{
-			"checksumSHA1": "hI5NhyOyOaazvlK8vWFFsPVEPiM=",
+			"checksumSHA1": "GmSJfFUhbXmiqjiEMbjKs4knqzA=",
 			"path": "github.com/btcsuite/btcd/chaincfg/chainhash",
-			"revision": "86fed781132ac890ee03e906e4ecd5d6fa180c64",
-			"revisionTime": "2018-05-31T02:59:44Z"
+			"revision": "2be2f12b358dc57d70b8f501b00be450192efbc3",
+			"revisionTime": "2018-02-20T00:36:29Z"
 		},
 		{
-			"checksumSHA1": "8jZm/Bnq0jDQhUsD7QxYSF53UOQ=",
+			"checksumSHA1": "vEqylhd1SEYlggjqChbr6an1dxA=",
 			"path": "github.com/btcsuite/btcd/rpcclient",
-			"revision": "86fed781132ac890ee03e906e4ecd5d6fa180c64",
-			"revisionTime": "2018-05-31T02:59:44Z"
+			"revision": "2be2f12b358dc57d70b8f501b00be450192efbc3",
+			"revisionTime": "2018-02-20T00:36:29Z"
 		},
 		{
-			"checksumSHA1": "Bc8OjOQCassS4yJjA9wZgLjE524=",
+			"checksumSHA1": "h40q1aaRr76gs5lulcmuPJlAuZQ=",
 			"path": "github.com/btcsuite/btcd/wire",
-			"revision": "86fed781132ac890ee03e906e4ecd5d6fa180c64",
-			"revisionTime": "2018-05-31T02:59:44Z"
+			"revision": "2be2f12b358dc57d70b8f501b00be450192efbc3",
+			"revisionTime": "2018-02-20T00:36:29Z"
 		},
 		{
-			"checksumSHA1": "J6VwqSZwsPkigujNZo4vyYIFPWU=",
-			"path": "github.com/btcsuite/btclog",
-			"revision": "84c8d2346e9fc8c7b947e243b9c24e6df9fd206a",
-			"revisionTime": "2017-06-28T15:40:31Z"
-		},
-		{
-			"checksumSHA1": "a0lhAUra/SLAkKMxrBZIydBVJjU=",
+			"checksumSHA1": "rcHsr+etM1m5c2FngwV5vRe9VXA=",
 			"path": "github.com/btcsuite/btcutil",
-			"revision": "d4cc87b860166d00d6b5b9e0d3b3d71d6088d4d4",
-			"revisionTime": "2018-05-24T03:27:03Z"
-		},
-		{
-			"checksumSHA1": "oQgLy8KmIOVov04WXH7KgU1bszc=",
-			"path": "github.com/btcsuite/btcutil/base58",
-			"revision": "d4cc87b860166d00d6b5b9e0d3b3d71d6088d4d4",
-			"revisionTime": "2018-05-24T03:27:03Z"
-		},
-		{
-			"checksumSHA1": "BBnsAiKyNfocRwmEav5EJpVCwzk=",
-			"path": "github.com/btcsuite/btcutil/bech32",
-			"revision": "d4cc87b860166d00d6b5b9e0d3b3d71d6088d4d4",
-			"revisionTime": "2018-05-24T03:27:03Z"
-		},
-		{
-			"checksumSHA1": "j3yRnuia1i5Wb7C9Tc5g0d6gdpM=",
-			"path": "github.com/btcsuite/go-socks/socks",
-			"revision": "4720035b7bfd2a9bb130b1c184f8bbe41b6f0d0f",
-			"revisionTime": "2016-12-14T21:12:04Z"
+			"revision": "501929d3d046174c3d39f0ea54ece471aa17238c",
+			"revisionTime": "2017-07-02T00:39:31Z"
 		},
 		{
 			"checksumSHA1": "Uf5l11rLPQGlCJsRbgX9CI2wbuA=",
@@ -81,10 +57,10 @@
 			"revisionTime": "2015-01-19T17:41:27Z"
 		},
 		{
-			"checksumSHA1": "CSPbwbyzqA6sfORicn4HFtIhF/c=",
+			"checksumSHA1": "mrz/kicZiUaHxkyfvC/DyQcr8Do=",
 			"path": "github.com/davecgh/go-spew/spew",
-			"revision": "8991bc29aa16c548c550c7ff78260e27b9ab7c73",
-			"revisionTime": "2018-02-21T22:46:20Z"
+			"revision": "ecdeabc65495df2dec95d7c4a4c3e021903035e5",
+			"revisionTime": "2017-10-02T20:02:53Z"
 		},
 		{
 			"checksumSHA1": "Q5YN3JDk0g8zt0gZulGLn+uFC30=",
@@ -145,12 +121,6 @@
 			"path": "github.com/dgryski/go-farm",
 			"revision": "2de33835d10275975374b37b2dcfd22c9020a1f5",
 			"revisionTime": "2018-01-09T07:02:41Z"
-		},
-		{
-			"checksumSHA1": "pQzUVRi0z/3Z4FpRyExSg1ROLSA=",
-			"path": "github.com/ethereum/go-ethereum/crypto/sha3",
-			"revision": "d57e85ecc91608a9095479365308a285f05c755d",
-			"revisionTime": "2018-07-03T08:42:18Z"
 		},
 		{
 			"checksumSHA1": "KrIRJ4p3nRze4NcxfgX5+N9+D1M=",
@@ -285,22 +255,26 @@
 			"revisionTime": "2017-04-05T19:55:58Z"
 		},
 		{
-			"checksumSHA1": "rmCbOBewXcbEdHRerzoanS+kI2U=",
+			"path": "github.com/klauspost/compress",
+			"revision": ""
+		},
+		{
+			"checksumSHA1": "+IQN6csaE5uxhZJnulb6uwhVCr4=",
 			"path": "github.com/klauspost/compress/flate",
-			"revision": "a17685a03bf4c0a9219e110eb90e028b36193570",
-			"revisionTime": "2018-06-29T12:25:43Z"
+			"revision": "5fb1f31b0a61e9858f12f39266e059848a5f1cea",
+			"revisionTime": "2018-04-02T19:26:10Z"
 		},
 		{
 			"checksumSHA1": "kWBC7CTgppTdJFXizt4XkURbyCE=",
 			"path": "github.com/klauspost/compress/gzip",
-			"revision": "a17685a03bf4c0a9219e110eb90e028b36193570",
-			"revisionTime": "2018-06-29T12:25:43Z"
+			"revision": "5fb1f31b0a61e9858f12f39266e059848a5f1cea",
+			"revisionTime": "2018-04-02T19:26:10Z"
 		},
 		{
 			"checksumSHA1": "KQ77MI2l4iDQE0Z/DiDeO0S963o=",
 			"path": "github.com/klauspost/compress/zlib",
-			"revision": "a17685a03bf4c0a9219e110eb90e028b36193570",
-			"revisionTime": "2018-06-29T12:25:43Z"
+			"revision": "5fb1f31b0a61e9858f12f39266e059848a5f1cea",
+			"revisionTime": "2018-04-02T19:26:10Z"
 		},
 		{
 			"checksumSHA1": "vGHBCcWkLCbAc3PJcRs7vFbvaYM=",
@@ -551,14 +525,14 @@
 		{
 			"checksumSHA1": "nj123dGxKPIF17B6y3VEK2pihRk=",
 			"path": "github.com/stretchr/testify",
-			"revision": "c679ae2cc0cb27ec3293fea7e254e47386f05d69",
-			"revisionTime": "2018-03-14T08:05:35Z"
-		},
-		{
-			"checksumSHA1": "c6pbpF7eowwO59phRTpF8cQ80Z0=",
-			"path": "github.com/stretchr/testify/assert",
 			"revision": "f35b8ab0b5a2cef36673838d662e249dd9c94686",
 			"revisionTime": "2018-05-06T18:05:49Z"
+		},
+		{
+			"checksumSHA1": "mGbTYZ8dHVTiPTTJu3ktp+84pPI=",
+			"path": "github.com/stretchr/testify/assert",
+			"revision": "2aa2c176b9dab406a6970f6a55f513e8a8c8b18f",
+			"revisionTime": "2017-08-14T20:04:35Z"
 		},
 		{
 			"checksumSHA1": "fg3TzS9/QK3wZbzei3Z6O8XPLHg=",
@@ -573,10 +547,10 @@
 			"revisionTime": "2018-03-14T08:05:35Z"
 		},
 		{
-			"checksumSHA1": "wnEANt4k5X/KGwoFyfSSnpxULm4=",
+			"checksumSHA1": "7vs6dSc1PPGBKyzb/SCIyeMJPLQ=",
 			"path": "github.com/stretchr/testify/require",
-			"revision": "f35b8ab0b5a2cef36673838d662e249dd9c94686",
-			"revisionTime": "2018-05-06T18:05:49Z"
+			"revision": "2aa2c176b9dab406a6970f6a55f513e8a8c8b18f",
+			"revisionTime": "2017-08-14T20:04:35Z"
 		},
 		{
 			"checksumSHA1": "uefllr2OtKBGo/kQSAPbW3w6p0A=",
@@ -585,13 +559,13 @@
 			"revisionTime": "2018-05-06T18:05:49Z"
 		},
 		{
-			"checksumSHA1": "UE0mdFc5vJe4cSHnaIhALD/KuwQ=",
+			"checksumSHA1": "/DB9/UNUMYS4k4MopZLGdkXSRBQ=",
 			"path": "github.com/tendermint/ed25519",
 			"revision": "d8387025d2b9d158cf4efb07e7ebf814bcce2057",
 			"revisionTime": "2017-10-27T05:02:19Z"
 		},
 		{
-			"checksumSHA1": "sCdbZKulPG4ejRiKd3slKdRp5WA=",
+			"checksumSHA1": "PX22ovkpLWYpJMxlCCT1t+SXJls=",
 			"path": "github.com/tendermint/ed25519/edwards25519",
 			"revision": "d8387025d2b9d158cf4efb07e7ebf814bcce2057",
 			"revisionTime": "2017-10-27T05:02:19Z"
@@ -637,11 +611,6 @@
 			"path": "golang.org/x/crypto/ripemd160",
 			"revision": "88942b9c40a4c9d203b82b3731787b672d6e809b",
 			"revisionTime": "2018-03-21T23:38:19Z"
-		},
-		{
-			"checksumSHA1": "LN1V2pZQwKnoDwcsgXpzG4+Vges=",
-			"path": "golang.org/x/crypto/sha3",
-			"revision": ""
 		},
 		{
 			"checksumSHA1": "BGm8lKZmvJbf/YOJLeL1rw2WVjA=",
