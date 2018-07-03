@@ -805,9 +805,7 @@ func TestGRPC(t *testing.T) {
 	testIsSyncGRPC(t, &grpcMock)
 	testIsNtpClockSyncGRPC(t, &grpcMock)
 	testNetInfoGRPC(t, &grpcMock)
-	testShowPrivacyAccount(t, &grpcMock)
 	testShowPrivacyKey(t, &grpcMock)
-	testShowPrivacyBalance(t, &grpcMock)
 	testCreateUTXOs(t, &grpcMock)
 	testMakeTxPublic2Privacy(t, &grpcMock)
 	testMakeTxPrivacy2Privacy(t, &grpcMock)
@@ -846,27 +844,11 @@ func testCreateUTXOs(t *testing.T, rpc *mockGRPCSystem) {
 	}
 }
 
-func testShowPrivacyBalance(t *testing.T, rpc *mockGRPCSystem) {
-	var res types.Account
-	err := rpc.newRpcCtx("ShowPrivacyBalance", &types.ReqPrivBal4AddrToken{}, &res)
-	if err != nil {
-		t.Error("Call ShowPrivacyBalance Failed.", err)
-	}
-}
-
 func testShowPrivacyKey(t *testing.T, rpc *mockGRPCSystem) {
 	var res types.ReplyPrivacyPkPair
 	err := rpc.newRpcCtx("ShowPrivacyKey", &types.ReqStr{}, &res)
 	if err != nil {
 		t.Error("Call ShowPrivacyKey Failed.", err)
-	}
-}
-
-func testShowPrivacyAccount(t *testing.T, rpc *mockGRPCSystem) {
-	var res types.UTXOs
-	err := rpc.newRpcCtx("ShowPrivacyAccount", &types.ReqPrivBal4AddrToken{}, &res)
-	if err != nil {
-		t.Error("Call ShowPrivacyAccount Failed.", err)
 	}
 }
 
@@ -1160,7 +1142,7 @@ func testSendRawTransactionGRPC(t *testing.T, rpc *mockGRPCSystem) {
 
 func testCreateRawTransactionGRPC(t *testing.T, rpc *mockGRPCSystem) {
 	var res types.UnsignTx
-	err := rpc.newRpcCtx("CreateRawTransaction", &types.CreateTx{}, &res)
+	err := rpc.newRpcCtx("CreateRawTransaction", &types.CreateTx{To:"1EDDghAtgBsamrNEtNmYdQzC1QEhLkr87t"}, &res)
 	if err != nil {
 		t.Error("Call CreateRawTransaction Failed.", err)
 	}
