@@ -237,9 +237,17 @@ func (self *MemoryStateDB) SetState(addr string, key common.Hash, value common.H
 	if acc != nil {
 		acc.SetState(key, value)
 		// 新的分叉中状态数据变更不需要单独进行标识
-		if !types.IsMatchFork(self.blockHeight, types.ForkV19EVMState) {
+		if !types.IsMatchFork(self.blockHeight, types.ForkV20EVMState) {
 			self.stateDirty[addr] = true
 		}
+	}
+}
+
+// 转换合约状态数据存储
+func (self *MemoryStateDB) TransferStateData(addr string) {
+	acc := self.GetAccount(addr)
+	if acc != nil {
+		acc.TransferState()
 	}
 }
 
@@ -349,7 +357,7 @@ func (self *MemoryStateDB) GetReceiptLogs(addr string) (logs []*types.ReceiptLog
 		if self.stateDirty[addr] != nil {
 			stateLog := acc.BuildStateLog()
 			if stateLog != nil {
-				logs = append(logs, acc.BuildStateLog())
+				logs = append(logs, stateLog)
 			}
 		}
 
