@@ -65,5 +65,5 @@ func New(name string) (c Crypto, err error) {
 
 type CertSignature struct {
 	Signature []byte
-	Cert []byte
+	Cert      []byte
 }
