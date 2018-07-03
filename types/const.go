@@ -94,7 +94,7 @@ func SetForkToOne() {
 	ForkV16Withdraw = 1
 	ForkV17EVM = 1
 	ForkV18Relay = 1
-	ForkV20EVMState = 500
+	ForkV20EVMState = 1
 }
 
 var (
