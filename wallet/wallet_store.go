@@ -6,12 +6,13 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"time"
+
 	"github.com/golang/protobuf/proto"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
-	"time"
 )
 
 var (

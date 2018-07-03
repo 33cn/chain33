@@ -47,32 +47,30 @@ message Transactions {
 
 // 环签名类型时，签名字段存储的环签名信息
 message RingSignature {
-	repeated RingSignatureItem items = 1;
+    repeated RingSignatureItem items = 1;
 }
 
 // 环签名中的一组签名数据
 message RingSignatureItem {
-	repeated bytes pubkey = 1;
-	repeated bytes signature = 2;
+    repeated bytes pubkey    = 1;
+    repeated bytes signature = 2;
 }
-
-
 
 //对于一个交易组中的交易，要么全部成功，要么全部失败
 //这个要好好设计一下
 //最好交易构成一个链条[prevhash].独立的交易构成链条
 //只要这个组中有一个执行是出错的，那么就执行不成功
 //三种签名支持
-//ty = 1 -> secp256k1
-//ty = 2 -> ed25519
-//ty = 3 -> sm2
-//ty = 4 -> OnetimeED25519
-//ty = 5 -> RingBaseonED25519
+// ty = 1 -> secp256k1
+// ty = 2 -> ed25519
+// ty = 3 -> sm2
+// ty = 4 -> OnetimeED25519
+// ty = 5 -> RingBaseonED25519
 message Signature {
-	int32 ty        = 1;
-	bytes pubkey    = 2;
-	//当ty为5时，格式应该用RingSignature去解析
-	bytes signature = 3;
+    int32 ty     = 1;
+    bytes pubkey = 2;
+    //当ty为5时，格式应该用RingSignature去解析
+    bytes signature = 3;
 }
 
 message AddrOverview {
@@ -92,9 +90,9 @@ message ReqAddr {
 }
 
 message ReqPrivacy {
-	int32 count = 1;
-	int32 direction = 2;
-	int64 height = 3;
+    int32 count     = 1;
+    int32 direction = 2;
+    int64 height    = 3;
 }
 
 message HexTx {

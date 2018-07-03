@@ -86,18 +86,18 @@ message Receipts {
 }
 
 message PrivacyKV {
-	repeated PrivacyKVToken privacyKVToken = 1;
+    repeated PrivacyKVToken privacyKVToken = 1;
 }
 
 message PrivacyKVToken {
-	string token  = 1;
-    int32 txIndex = 2;
-	bytes txhash  = 3;
-	repeated KeyValue KV = 4;
+    string   token       = 1;
+    int32    txIndex     = 2;
+    bytes    txhash      = 3;
+    repeated KeyValue KV = 4;
 }
 
 message ReceiptsAndPrivacyKV {
-	Receipts receipts  = 1;
+    Receipts  receipts  = 1;
     PrivacyKV privacyKV = 2;
 }
 
