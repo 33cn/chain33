@@ -262,7 +262,7 @@ func (wallet *Wallet) transPub2PriV2(priv crypto.PrivKey, reqPub2Pri *types.ReqP
 
 func genCustomOuts(viewpubTo, spendpubto *[32]byte, transAmount int64, count int32) (*types.PrivacyOutput, error) {
 	decomDigit := make([]int64, count)
-	for i, _ := range decomDigit {
+	for i := range decomDigit {
 		decomDigit[i] = transAmount
 	}
 
