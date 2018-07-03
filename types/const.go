@@ -59,7 +59,7 @@ var (
 	ForkV17EVM           int64 = 250000
 	ForkV18Relay         int64 = 500000
 	ForkV19TokenPrice    int64 = 300000
-	ForkV20EVMState      int64 = 500000
+	ForkV20EVMState      int64 = 350000
 )
 
 func SetTestNetFork() {
