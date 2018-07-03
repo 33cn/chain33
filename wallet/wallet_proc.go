@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"bytes"
+
 	"github.com/golang/protobuf/proto"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"

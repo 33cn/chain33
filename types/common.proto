@@ -46,12 +46,12 @@ message ReplyHashes {
 }
 
 message KeyValue {
-	bytes key = 1;
-	bytes value = 2;
+    bytes key   = 1;
+    bytes value = 2;
 }
 
 message TxHash {
-	string hash = 1;
+    string hash = 1;
 }
 
 message TimeStatus {

@@ -399,84 +399,84 @@ message ReplyConfig {
 }
 
 //////////////////////////////////////////////////////////////////////////////
-//message for Privacy start/////////////////////////////////////////////////////
+// message for Privacy start/////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
 message PrivacyAction {
-	oneof value {
-		Public2Privacy  public2privacy  = 1;
-		Privacy2Privacy privacy2privacy = 2;
-		Privacy2Public  privacy2public  = 3;
-	}
-	int32 ty = 4;
+    oneof value {
+        Public2Privacy  public2privacy  = 1;
+        Privacy2Privacy privacy2privacy = 2;
+        Privacy2Public  privacy2public  = 3;
+    }
+    int32 ty = 4;
 }
 
 message Public2Privacy {
-	string tokenname    = 1;
-	int64 amount        = 2;
-	string note         = 5;
-    PrivacyOutput output = 7;
+    string        tokenname = 1;
+    int64         amount    = 2;
+    string        note      = 5;
+    PrivacyOutput output    = 7;
 }
 
 message Privacy2Privacy {
-	string tokenname    = 1;
-	int64 amount        = 2;
-	string note         = 5;
-    PrivacyInput input  = 6;
-    PrivacyOutput output = 7;
+    string        tokenname = 1;
+    int64         amount    = 2;
+    string        note      = 5;
+    PrivacyInput  input     = 6;
+    PrivacyOutput output    = 7;
 }
 
 message Privacy2Public {
-	string tokenname    = 1;
-	int64 amount        = 2;
-	string note         = 3;
-    PrivacyInput input  = 4;
-	PrivacyOutput output = 5;
+    string        tokenname = 1;
+    int64         amount    = 2;
+    string        note      = 3;
+    PrivacyInput  input     = 4;
+    PrivacyOutput output    = 5;
 }
 
 message UTXOGlobalIndex {
-//	int64 height   = 1;
-//	int32 txindex  = 2;
+    //	int64 height   = 1;
+    //	int32 txindex  = 2;
     bytes txhash   = 3;
-	int32 outindex = 4;
+    int32 outindex = 4;
 }
 
-//privacy input
+// privacy input
 message KeyInput {
-    int64 amount = 1;
+    int64    amount                          = 1;
     repeated UTXOGlobalIndex utxoGlobalIndex = 2;
-    bytes keyImage = 3;
+    bytes                    keyImage        = 3;
 }
 
 message PrivacyInput {
     repeated KeyInput keyinput = 1;
 }
 
-//privacy output
+// privacy output
 message keyOutput {
-    int64 amount = 1;
+    int64 amount        = 1;
     bytes onetimepubkey = 2;
 }
 
 message PrivacyOutput {
-    bytes RpubKeytx     = 1;
+    bytes    RpubKeytx           = 1;
     repeated keyOutput keyoutput = 2;
 }
 
 message GroupUTXOGlobalIndex {
-    int64 amount = 1;
+    int64    amount                          = 1;
     repeated UTXOGlobalIndex utxoGlobalIndex = 2;
 }
 
 message LocalUTXOItem {
-    int64 height   = 1;
-    int32 txindex  = 2;
-    int32 outindex = 3;
-    bytes txhash   = 4;
+    int64 height        = 1;
+    int32 txindex       = 2;
+    int32 outindex      = 3;
+    bytes txhash        = 4;
     bytes onetimepubkey = 5;
 }
 
 message ReqUTXOPubKeys {
-    string tokenName = 1;
+    string   tokenName                                 = 1;
     repeated GroupUTXOGlobalIndex groupUTXOGlobalIndex = 2;
 }
 
@@ -496,13 +496,13 @@ message ResUTXOPubKeys {
 }
 
 message ReqPrivacyToken {
-    string token = 1;
-    int64 amount = 2;
+    string token  = 1;
+    int64  amount = 2;
 }
 
 message AmountDetail {
-	int64 amount = 1;
-	int64 count  = 2;
+    int64 amount = 1;
+    int64 count  = 2;
 }
 
 message ReplyPrivacyAmounts {
@@ -514,7 +514,7 @@ message replyUTXOsOfAmount {
 }
 
 message ReceiptPrivacyOutput {
-    string token = 1;
+    string   token               = 1;
     repeated keyOutput keyoutput = 2;
 }
 //各种amount额度的UTXO在链上的数量
