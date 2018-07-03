@@ -22,19 +22,30 @@ NODE2="${1}_chain32_1"
 CLI2="docker exec ${NODE2} /root/chain33-cli"
 
 NODE1="${1}_chain31_1"
-#CLI1="docker exec ${NODE1} /root/chain33-cli"
+CLI3="docker exec ${NODE1} /root/chain33-cli"
 
+NODE4="${1}_chain30_1"
+CLI4="docker exec ${NODE4} /root/chain33-cli"
+
+NODE5="${1}_chain29_1"
+CLI5="docker exec ${NODE5} /root/chain33-cli"
+
+NODE6="${1}_chain28_1"
+CLI6="docker exec ${NODE6} /root/chain33-cli"
 BTCD="${1}_btcd_1"
 BTC_CTL="docker exec ${BTCD} btcctl"
 
 RELAYD="${1}_relayd_1"
 
-containers=("${NODE1}" "${NODE2}" "${NODE3}" "${BTCD}" "${RELAYD}")
+containers=("${NODE1}" "${NODE2}" "${NODE3}" "${NODE4}" "${NODE5}" "${NODE6}" "${BTCD}" "${RELAYD}")
+forkContainers=("${CLI3}" "${CLI2}" "${CLI}" "${CLI4}" "${CLI5}" "${CLI6}")
 
 sedfix=""
 if [ "$(uname)" == "Darwin" ]; then
     sedfix=".bak"
 fi
+
+. ./fork-test.sh
 
 function init() {
     # update test environment
@@ -139,6 +150,50 @@ function init() {
     if [ "${result}" = "false" ]; then
         exit 1
     fi
+
+
+    ## 2nd mining
+    echo "=========== # save seed to wallet ============="
+    result=$(${CLI4} seed save -p 1314 -s "tortoise main civil member grace happy century convince father cage beach hip maid merry rib" | jq ".isok")
+    if [ "${result}" = "false" ]; then
+        echo "save seed to wallet error seed, result: ${result}"
+        exit 1
+    fi
+
+    sleep 1
+
+    echo "=========== # unlock wallet ============="
+    result=$(${CLI4} wallet unlock -p 1314 -t 0 | jq ".isok")
+    if [ "${result}" = "false" ]; then
+        exit 1
+    fi
+
+    sleep 1
+
+    echo "=========== # import private key returnAddr ============="
+    result=$(${CLI4} account import_key -k 2AFF1981291355322C7A6308D46A9C9BA311AA21D94F36B43FC6A6021A1334CF -l returnAddr | jq ".label")
+    echo "${result}"
+    if [ -z "${result}" ]; then
+        exit 1
+    fi
+
+    sleep 1
+
+    echo "=========== # import private key mining ============="
+    result=$(${CLI4} account import_key -k 2116459C0EC8ED01AA0EEAE35CAC5C96F94473F7816F114873291217303F6989 -l minerAddr | jq ".label")
+    echo "${result}"
+    if [ -z "${result}" ]; then
+        exit 1
+    fi
+
+    sleep 1
+    echo "=========== # close auto mining ============="
+    result=$(${CLI4} wallet auto_mine -f 0 | jq ".isok")
+    if [ "${result}" = "false" ]; then
+        exit 1
+    fi
+
+
 
     echo "=========== sleep ${SLEEP}s ============="
     sleep ${SLEEP}
@@ -606,6 +661,8 @@ function main() {
     transfer
     relay "${CLI}"
     # TODO other work!!!
+    # 构造分叉测试
+    optDockerfun
 
     check_docker_container
     echo "==========================================main end========================================================="
