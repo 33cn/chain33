@@ -385,7 +385,7 @@ func AddTokenToAssets(addr string, db dbm.KVDB, symbol string) []*types.KeyValue
 	}
 
 	var found = false
-	for sym := range tokenAssets.Datas {
+	for _, sym := range tokenAssets.Datas {
 		if string(sym) == symbol {
 			found = true
 			break
