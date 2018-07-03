@@ -356,7 +356,7 @@ func (client *ParaClient) CreateBlock() {
 			time.Sleep(time.Second)
 			continue
 		}
-		plog.Info("Parachain CreateBlock", "blockedSeq", blockedSeq, "blockOnMain.Height", blockOnMain.Height, "savedBlockOnMain.Height", savedBlockOnMain.Height)
+		plog.Info("Parachain process block", "blockedSeq", blockedSeq, "blockOnMain.Height", blockOnMain.Height, "savedBlockOnMain.Height", savedBlockOnMain.Height)
 
 		if seqTy == DelAct {
 			if len(txs) == 0 {
@@ -383,7 +383,6 @@ func (client *ParaClient) CreateBlock() {
 				}
 				plog.Info("Create empty block")
 			}
-
 			err := client.createBlock(lastBlock, txs, currSeq, blockOnMain.BlockTime)
 			incSeqFlag = false
 			if err != nil {
@@ -447,7 +446,7 @@ func (client *ParaClient) DelBlock(block *types.Block, seq int64) error {
 	if start == 0 {
 		panic("Parachain attempt to Delete GenesisBlock !")
 	}
-	msg := client.GetQueueClient().NewMessage("blockchain", types.EventGetBlocks, &types.ReqBlocks{start, start, false, []string{""}})
+	msg := client.GetQueueClient().NewMessage("blockchain", types.EventGetBlocks, &types.ReqBlocks{start, start, true, []string{""}})
 	client.GetQueueClient().Send(msg, true)
 	resp, err := client.GetQueueClient().Wait(msg)
 	if err != nil {
