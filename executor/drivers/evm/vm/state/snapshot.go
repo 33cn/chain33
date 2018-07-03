@@ -1,6 +1,8 @@
 package state
 
 import (
+	"sort"
+
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -61,8 +63,15 @@ func (ver *Snapshot) getData() (kvSet []*types.KeyValue, logs []*types.ReceiptLo
 		}
 	}
 
-	for _, value := range dataMap {
-		kvSet = append(kvSet, value)
+	// 这里也可能会引起数据顺序不一致的问题，需要修改
+	names := make([]string, 0, len(dataMap))
+	for name := range dataMap {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
+	for _, name := range names {
+		kvSet = append(kvSet, dataMap[name])
 	}
 
 	return kvSet, logs
@@ -230,14 +239,14 @@ func (ch storageChange) revert(mdb *MemoryStateDB) {
 
 func (ch storageChange) getData(mdb *MemoryStateDB) []*types.KeyValue {
 	acc := mdb.accounts[ch.account]
-	if acc != nil {
+	if _, ok := mdb.stateDirty[ch.account]; ok && acc != nil {
 		return acc.GetStateKV()
 	}
 	return nil
 }
 
 func (ch storageChange) getLog(mdb *MemoryStateDB) []*types.ReceiptLog {
-	if types.IsMatchFork(mdb.blockHeight, types.ForkV19EVMState) {
+	if types.IsMatchFork(mdb.blockHeight, types.ForkV20EVMState) {
 		acc := mdb.accounts[ch.account]
 		if acc != nil {
 			currentVal := acc.GetState(ch.key)

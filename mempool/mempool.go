@@ -203,7 +203,9 @@ func (mem *Mempool) DelBlock(block *types.Block) {
 		return
 	}
 	blkTxs := block.Txs
-	for _, tx := range blkTxs {
+
+	for i := 0; i < len(blkTxs); i++ {
+		tx := blkTxs[i]
 		if "ticket" == string(tx.Execer) {
 			var action types.TicketAction
 			err := types.Decode(tx.Payload, &action)
@@ -214,11 +216,17 @@ func (mem *Mempool) DelBlock(block *types.Block) {
 				continue
 			}
 		}
+		groupCount := int(tx.GetGroupCount())
+		if groupCount > 1 && i+groupCount <= len(blkTxs) {
+			group := types.Transactions{Txs: blkTxs[i : i+groupCount]}
+			tx = group.Tx()
+			i = i + groupCount - 1
+		}
 		err := tx.Check(mem.minFee)
 		if err != nil {
 			continue
 		}
-		if tx.IsExpire(mem.header.GetHeight(), mem.header.GetBlockTime()) {
+		if !mem.checkExpireValid(tx) {
 			continue
 		}
 		mem.PushTx(tx)
@@ -363,6 +371,10 @@ func (mem *Mempool) CheckExpireValid(msg queue.Message) bool {
 		return false
 	}
 	tx := msg.GetData().(types.TxGroup).Tx()
+	return mem.checkExpireValid(tx)
+}
+
+func (mem *Mempool) checkExpireValid(tx *types.Transaction) bool {
 	if tx.IsExpire(mem.header.GetHeight(), mem.header.GetBlockTime()) {
 		return false
 	}
@@ -585,7 +597,7 @@ func (mem *Mempool) SetQueueClient(client queue.Client) {
 				mlog.Debug("reply EventGetAddrTxs ok", "msg", msg)
 			default:
 			}
-			mlog.Debug("mempool", "cost", time.Since(beg), "msg", types.GetEventName(int(msg.Ty)))
+			mlog.Debug("mempool", "cost", types.Since(beg), "msg", types.GetEventName(int(msg.Ty)))
 		}
 	}()
 }
