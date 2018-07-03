@@ -1,8 +1,8 @@
 package wallet
 
 import (
-	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 func (wallet *Wallet) ProcRecvMsg() {

@@ -115,11 +115,10 @@ func balance(cmd *cobra.Command, args []string) {
 
 	err := address.CheckAddress(addr)
 	if err != nil {
-		fmt.Println(err.Error())
+		fmt.Println(types.ErrExecNameNotAllow.Error())
 		return
 	}
-	if ok, err := isAllowExecName(execer); !ok {
-		fmt.Println(err.Error())
+	if ok := types.IsAllowExecName(execer); !ok {
 		return
 	}
 

@@ -6,13 +6,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-const (
-	pushfront = PushDirection(0x12345678)
-	pushback  = PushDirection(0x76543210)
-)
-
-type PushDirection int32
-
 //--------------------------------------------------------------------------------
 // Module txCache
 
@@ -54,7 +47,7 @@ func (cache *txCache) Exists(hash []byte) bool {
 }
 
 // txCache.Push把给定tx添加到txCache；如果tx已经存在txCache中或Mempool已满则返回对应error
-func (cache *txCache) Push(tx *types.Transaction, direction PushDirection) error {
+func (cache *txCache) Push(tx *types.Transaction) error {
 	hash := tx.Hash()
 	if cache.Exists(hash) {
 		return types.ErrTxExist
@@ -65,25 +58,17 @@ func (cache *txCache) Push(tx *types.Transaction, direction PushDirection) error
 	}
 
 	it := &Item{value: tx, priority: tx.Fee, enterTime: types.Now().Unix()}
-	var txElement *list.Element
-	if direction == pushback {
-		txElement = cache.txList.PushBack(it)
-	} else {
-		txElement = cache.txList.PushFront(it)
-	}
+	txElement := cache.txList.PushBack(it)
 	cache.txMap[string(hash)] = txElement
 
 	// 账户交易数量
 	accountAddr := tx.From()
 	cache.accMap[accountAddr] = append(cache.accMap[accountAddr], tx)
 
-	//对于单独保留最新10笔交易的需求只是在pushback的时候才进行更新
-	if direction == pushback {
-		if len(cache.txFrontTen) >= 10 {
-			cache.txFrontTen = cache.txFrontTen[len(cache.txFrontTen)-9:]
-		}
-		cache.txFrontTen = append(cache.txFrontTen, tx)
+	if len(cache.txFrontTen) >= 10 {
+		cache.txFrontTen = cache.txFrontTen[len(cache.txFrontTen)-9:]
 	}
+	cache.txFrontTen = append(cache.txFrontTen, tx)
 
 	return nil
 }

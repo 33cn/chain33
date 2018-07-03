@@ -7,17 +7,16 @@ import (
 	"sync/atomic"
 	"time"
 
+	"bytes"
 	"github.com/golang/protobuf/proto"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
+	"gitlab.33.cn/chain33/chain33/common/crypto/privacy"
+	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/wallet/bipwallet"
-	"bytes"
-	"gitlab.33.cn/chain33/chain33/common/address"
-	dbm "gitlab.33.cn/chain33/chain33/common/db"
-	"gitlab.33.cn/chain33/chain33/common/crypto/privacy"
-
 )
 
 //input:
@@ -828,8 +827,6 @@ func (wallet *Wallet) resetTimeout(IsTicket bool, Timeout int64) {
 	}
 }
 
-
-
 //wallet模块收到blockchain广播的addblock消息，需要解析钱包相关的tx并存储到db中
 func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 	if block == nil {
@@ -928,7 +925,7 @@ func (wallet *Wallet) buildAndStoreWalletTxDetail(param *buildStoreWalletTxDetai
 
 		txdetail.ActionName = txdetail.Tx.ActionName()
 		txdetail.Amount, _ = param.tx.Amount()
-		txdetail.Fromaddr  = param.senderRecver
+		txdetail.Fromaddr = param.senderRecver
 		txdetail.Spendrecv = param.utxos
 
 		txdetailbyte, err := proto.Marshal(&txdetail)
@@ -1020,7 +1017,7 @@ func (wallet *Wallet) AddDelPrivacyTxsFromBlock(tx *types.Transaction, index int
 	if err := types.Decode(tx.GetPayload(), &privateAction); err != nil {
 		walletlog.Error("AddDelPrivacyTxsFromBlock failed to decode payload")
 	}
-	walletlog.Info("AddDelPrivacyTxsFromBlock","addDelType",addDelType,"tx hash",txhash)
+	walletlog.Info("AddDelPrivacyTxsFromBlock", "addDelType", addDelType, "tx hash", txhash)
 	var RpubKey []byte
 	var privacyOutput *types.PrivacyOutput
 	var tokenname string

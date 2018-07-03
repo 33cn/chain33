@@ -102,7 +102,6 @@ func tradePayloadType(funcname string) (proto.Message, error) {
 	return req, nil
 }
 
-
 func privacyPayloadType(funcname string) (proto.Message, error) {
 	var req proto.Message
 	switch funcname {

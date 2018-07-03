@@ -15,15 +15,15 @@ const (
 )
 
 const (
-	CoinsX    = "coins"
-	TicketX   = "ticket"
-	HashlockX = "hashlock"
-	RetrieveX = "retrieve"
-	NoneX     = "none"
-	TokenX    = "token"
-	TradeX    = "trade"
-	ManageX   = "manage"
-	PrivacyX  = "privacy"
+	CoinsX          = "coins"
+	TicketX         = "ticket"
+	HashlockX       = "hashlock"
+	RetrieveX       = "retrieve"
+	NoneX           = "none"
+	TokenX          = "token"
+	TradeX          = "trade"
+	ManageX         = "manage"
+	PrivacyX        = "privacy"
 	ExecerEvmString = "evm"
 )
 
@@ -35,7 +35,7 @@ var (
 	ExecerToken      = []byte("token")
 	ExecerEvm        = []byte("evm")
 	ExecerPrivacy    = []byte("privacy")
-    ExecerRelay      = []byte("relay")
+	ExecerRelay      = []byte("relay")
 	AllowDepositExec = [][]byte{ExecerTicket}
 	AllowUserExec    = [][]byte{ExecerCoins, ExecerTicket, []byte("norm"), []byte("hashlock"),
 		[]byte("retrieve"), []byte("none"), ExecerToken, []byte("trade"), ExecerManage, ExecerEvm, ExecerRelay, ExecerPrivacy}
@@ -195,7 +195,7 @@ func SetMinFee(fee int64) {
 
 // coin conversation
 const (
-	BlockDurPerSecCnt           = 16
+	BlockDurPerSecCnt           = 15
 	Coin                int64   = 1e8
 	MaxCoin             int64   = 1e17
 	MaxTxSize                   = 100000 //100K

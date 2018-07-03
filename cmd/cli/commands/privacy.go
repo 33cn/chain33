@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/common"
@@ -106,6 +107,7 @@ func public2Privacy(cmd *cobra.Command, args []string) {
 		Amount:     amountInt64,
 		Note:       note,
 		Tokenname:  types.BTY,
+		Expire:     int64(time.Hour),
 	}
 
 	var res jsonrpc.ReplyHash
@@ -156,6 +158,7 @@ func privacy2Privacy(cmd *cobra.Command, args []string) {
 		Mixin:      mixcount,
 		Note:       note,
 		Tokenname:  types.BTY,
+		Expire:     int64(time.Hour),
 	}
 
 	var res jsonrpc.ReplyHash
@@ -207,6 +210,7 @@ func privacy2Public(cmd *cobra.Command, args []string) {
 		Note:      note,
 		Tokenname: types.BTY,
 		Mixin:     mixcount,
+		Expire:    int64(time.Hour),
 	}
 
 	var res jsonrpc.ReplyHash
@@ -248,7 +252,7 @@ func parseShowPrivacyAccountSpendRes(arg interface{}) (interface{}, error) {
 	total := float64(0)
 	res := arg.(*types.UTXOHaveTxHashs)
 	var rets []*PrivacyAccountSpendResult
-	rets = make([]*PrivacyAccountSpendResult,0)
+	rets = make([]*PrivacyAccountSpendResult, 0)
 	for _, utxo := range res.UtxoHaveTxHashs {
 		amount := float64(utxo.Amount) / float64(types.Coin)
 		total += amount
@@ -412,6 +416,7 @@ func createUTXOs(cmd *cobra.Command, args []string) {
 		Amount:     amountInt64,
 		Count:      count,
 		Note:       note,
+		Expire:     int64(time.Hour),
 	}
 
 	var res jsonrpc.ReplyHash
