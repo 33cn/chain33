@@ -1142,7 +1142,7 @@ func testSendRawTransactionGRPC(t *testing.T, rpc *mockGRPCSystem) {
 
 func testCreateRawTransactionGRPC(t *testing.T, rpc *mockGRPCSystem) {
 	var res types.UnsignTx
-	err := rpc.newRpcCtx("CreateRawTransaction", &types.CreateTx{To:"1EDDghAtgBsamrNEtNmYdQzC1QEhLkr87t"}, &res)
+	err := rpc.newRpcCtx("CreateRawTransaction", &types.CreateTx{To: "1EDDghAtgBsamrNEtNmYdQzC1QEhLkr87t"}, &res)
 	if err != nil {
 		t.Error("Call CreateRawTransaction Failed.", err)
 	}
