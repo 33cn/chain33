@@ -15,6 +15,12 @@
 			"revisionTime": "2017-10-26T12:26:30Z"
 		},
 		{
+			"checksumSHA1": "hI5NhyOyOaazvlK8vWFFsPVEPiM=",
+			"path": "github.com/btcsuite/btcd/chaincfg/chainhash",
+			"revision": "86fed781132ac890ee03e906e4ecd5d6fa180c64",
+			"revisionTime": "2018-05-31T02:59:44Z"
+		},
+		{
 			"checksumSHA1": "mrz/kicZiUaHxkyfvC/DyQcr8Do=",
 			"path": "github.com/davecgh/go-spew/spew",
 			"revision": "ecdeabc65495df2dec95d7c4a4c3e021903035e5",
