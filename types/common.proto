@@ -59,4 +59,3 @@ message TimeStatus {
 message ReqKey {
     bytes key = 1;
 }
-
