@@ -323,22 +323,10 @@ func (c *GrpcCtx) Run() (err error) {
 			*c.Res.(*types.NodeNetInfo) = *reply
 		}
 		errRet = err
-	case "ShowPrivacyAccount":
-		reply, err := rpc.ShowPrivacyAccount(context.Background(), c.Params.(*types.ReqPrivBal4AddrToken))
-		if err == nil {
-			*c.Res.(*types.UTXOs) = *reply
-		}
-		errRet = err
 	case "ShowPrivacyKey":
 		reply, err := rpc.ShowPrivacyKey(context.Background(), c.Params.(*types.ReqStr))
 		if err == nil {
 			*c.Res.(*types.ReplyPrivacyPkPair) = *reply
-		}
-		errRet = err
-	case "ShowPrivacyBalance":
-		reply, err := rpc.ShowPrivacyBalance(context.Background(), c.Params.(*types.ReqPrivBal4AddrToken))
-		if err == nil {
-			*c.Res.(*types.Account) = *reply
 		}
 		errRet = err
 	case "CreateUTXOs":

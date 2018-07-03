@@ -363,7 +363,7 @@ func testWalletSetPasswd(t *testing.T, api client.QueueProtocolAPI) {
 	if err == nil {
 		t.Error("WalletSetPasswd(nil) need return error.")
 	}
-	_, err = api.WalletSetPasswd(&types.ReqWalletSetPasswd{Oldpass: "case1"})
+	_, err = api.WalletSetPasswd(&types.ReqWalletSetPasswd{OldPass: "case1"})
 	if err == nil {
 		t.Error("WalletSetPasswd(&types.ReqWalletSetPasswd{OldPass:\"case1\"}) need return error.")
 	}

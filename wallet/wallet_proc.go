@@ -1111,7 +1111,7 @@ func (wallet *Wallet) AddDelPrivacyTxsFromBlock(tx *types.Transaction, index int
 					}
 				}
 			}
-			if true == matched4addr {
+			if matched4addr {
 				matchedCount++
 				//匹配次数达到2次，不再对本钱包中的其他地址进行匹配尝试
 				walletlog.Debug("AddDelPrivacyTxsFromBlock", "Get matched privacy transfer for address", *info.Addr,

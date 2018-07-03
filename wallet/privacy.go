@@ -1069,7 +1069,7 @@ func (wallet *Wallet) signTxWithPrivacy(key crypto.PrivKey, req *types.ReqSignRa
 		if group == nil {
 			tx.Sign(int32(SignType), key)
 		} else {
-			if int(index) > len(group.GetTxs()) {
+			if index > len(group.GetTxs()) {
 				return "", types.ErrIndex
 			}
 			if index <= 0 {
@@ -1078,7 +1078,7 @@ func (wallet *Wallet) signTxWithPrivacy(key crypto.PrivKey, req *types.ReqSignRa
 				}
 			} else {
 				index -= 1
-				group.SignN(int(index), int32(SignType), key)
+				group.SignN(index, int32(SignType), key)
 			}
 		}
 	} else {

@@ -71,7 +71,6 @@ type Wallet struct {
 	cfg              *types.Wallet
 	done             chan struct{}
 	rescanwg         *sync.WaitGroup
-	privacyActive    map[string]map[string]*walletUTXOs //不同token类型对应的公开地址拥有的隐私存款记录，map[token]map[addr]
 }
 
 type walletUTXOs struct {

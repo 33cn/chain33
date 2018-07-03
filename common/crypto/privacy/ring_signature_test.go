@@ -71,7 +71,7 @@ func TestGenerateKeyImage1(t *testing.T) {
 	if err != nil {
 		t.Error("generateKeyImage() failed. error ", err)
 	}
-	if bytes.Compare(actual[:], expected[:]) != 0 {
+	if !bytes.Equal(actual[:], expected[:]) {
 		t.Fatal("generateKeyImage() failed.")
 	}
 }

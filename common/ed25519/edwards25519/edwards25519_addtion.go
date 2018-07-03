@@ -340,8 +340,7 @@ func CachedGroupElementCMove(t, u *CachedGroupElement, b int32) {
 }
 
 func negative8(b int8) byte {
-	var x uint64
-	x = uint64(b)
+	x := uint64(b)
 	x = x >> 63
 	return byte(x)
 }
