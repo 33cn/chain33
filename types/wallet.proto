@@ -268,13 +268,14 @@ message ReqPub2Pri {
 	//string viewPublic  = 1;
 	//接收人花费公钥B
 	//string spendPublic = 2;
-	string tokenname   = 3;
-	int64 amount       = 4;
-	string note        = 5;
+	string tokenname    = 3;
+	int64  amount       = 4;
+	string note         = 5;
 	//发送人地址
-	string sender      = 6;
-	int32  mixin       = 7;
-	string	pubkeypair	= 8;
+	string sender       = 6;
+	int32  mixin        = 7;
+	string pubkeypair	= 8;
+    int64  expire       = 9;
 }
 
 message ReqPri2Pri {
@@ -283,35 +284,38 @@ message ReqPri2Pri {
 	//接收人花费公钥B
 	//string spendPublic = 2; //B
 	string tokenname   = 3;
-	int64 amount       = 4;
+	int64  amount      = 4;
 	string note        = 5;
 	//隐私交易发起人地址
     string sender      = 6;
 	int32  mixin       = 7;
 //	string txhash      = 7;
-	string	pubkeypair	= 8;
+	string pubkeypair  = 8;
+    int64  expire      = 9;
 }
 
 message ReqPri2Pub {
 	string receiver   = 1;
 	string tokenname  = 2;
-	int64 amount      = 3;
+	int64  amount     = 3;
 	string note       = 4;
 	//隐私交易发起人地址
 	string sender     = 5;
 	int32  mixin      = 6;
 //	string txhash     = 6;
+    int64  expire     = 7;
 }
 
 message ReqCreateUTXOs {
     //string viewPublic  = 1; //接收人可见公钥A
     //string spendPublic = 2; //接收人花费公钥B
     string tokenname   = 3;
-    int64 amount       = 4;
+    int64  amount       = 4;
     string note        = 5;
     string sender      = 6; //发送人地址
     int32  count       = 7;
 	string pubkeypair  = 8;
+    int64  expire      = 9;
 }
 
 message ReplyPrivacyPkPair {
@@ -411,6 +415,7 @@ message ReqCreateTransaction {
 	// 隐私交易，接收方的公钥对
 	string		pubkeypair	= 10;
 	int32		mixcount	= 11;
+    int64       expire      = 12;
 }
 
 

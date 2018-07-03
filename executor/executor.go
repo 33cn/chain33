@@ -240,10 +240,6 @@ func isAllowExec(key, txexecer []byte, toaddr string, height int64) bool {
 				return true
 			}
 		}
-		// TODO: 隐私交易，这里为了让其测试通过
-		if bytes.Equal(txexecer, types.ExecerPrivacy) && bytes.Equal(keyexecer, types.ExecerCoins) {
-			return true
-		}
 	}
 
 	// user.evm 的交易，使用evm执行器

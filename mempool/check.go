@@ -29,7 +29,6 @@ func (mem *Mempool) checkTx(msg queue.Message) queue.Message {
 		msg.Data = types.ErrInvalidAddress
 		return msg
 	}
-
 	// 检查交易是否为重复交易
 	if mem.addedTxs.Contains(string(tx.Hash())) {
 		addedTime, _ := mem.addedTxs.Get(string(tx.Hash()))
@@ -178,7 +177,7 @@ func (mem *Mempool) checkTxList(msgs []queue.Message) {
 	for i := 0; i < len(result.Errs); i++ {
 		err := result.Errs[i]
 		if err == "" {
-			err1 := mem.PushTx(txlist.Txs[i], pushback)
+			err1 := mem.PushTx(txlist.Txs[i])
 			if err1 == nil {
 				// 推入Mempool成功，传入goodChan，待回复消息
 				mem.goodChan <- msgs[i]

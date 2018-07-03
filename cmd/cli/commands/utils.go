@@ -6,15 +6,14 @@ import (
 	"math"
 	"math/rand"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/gogo/protobuf/proto"
+	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
-	"github.com/spf13/cobra"
 )
 
 func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
@@ -357,8 +356,8 @@ func CreateRawTx(to string, amount float64, note string, isWithdraw bool, isToke
 }
 
 func GetExecAddr(exec string) (string, error) {
-	if ok, err := isAllowExecName(exec); !ok {
-		return "", err
+	if ok := types.IsAllowExecName(exec); !ok {
+		return "", types.ErrExecNameNotAllow
 	}
 
 	addrResult := address.ExecAddress(exec)
@@ -366,40 +365,20 @@ func GetExecAddr(exec string) (string, error) {
 	return result, nil
 }
 
-func isAllowExecName(exec string) (bool, error) {
-	// exec name长度不能超过系统限制
-	if len(exec) > address.MaxExecNameLength {
-		return false, types.ErrExecNameNotAllow
-	}
-	// exec name中不允许有 "-"
-	if strings.Contains(exec, "-") {
-		return false, types.ErrExecNameNotAllow
-	}
-	if strings.HasPrefix(exec, "user.") {
-		return true, nil
-	}
-	for _, e := range []string{"none", "coins", "hashlock", "retrieve", "ticket", "token", "trade", "relay", "privacy"} {
-		if exec == e {
-			return true, nil
-		}
-	}
-	return false, types.ErrExecNameNotAllow
-}
-
-var allowExeName = []string{"none", "coins", "hashlock", "retrieve", "ticket", "token", "trade", "privacy"}
 func getExecuterNameString() string {
 	str := "executer name ("
+	allowExeName := types.AllowUserExec
 	nameLen := len(allowExeName)
 	if nameLen > 1 {
 		for i := 0; i < nameLen-1; i++ {
 			if i > 0 {
 				str += ", "
 			}
-			str += fmt.Sprintf("\"%s\"", allowExeName[i])
+			str += fmt.Sprintf("\"%s\"", string(allowExeName[i]))
 		}
-		str += fmt.Sprintf(" and \"%s\" supported", allowExeName[nameLen-1])
+		str += fmt.Sprintf(" and \"%s\" supported", string(allowExeName[nameLen-1]))
 	} else {
-		str += fmt.Sprintf("\"%s\" supported", allowExeName[nameLen-1])
+		str += fmt.Sprintf("\"%s\" supported", string(allowExeName[nameLen-1]))
 	}
 	return str
 }
