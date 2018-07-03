@@ -51,7 +51,7 @@ scpFileFromLocal() {
     echo "pemFile:$pemFile"
     scpFile=$5
     deployDir=$6
-    ssh -i "$pemFile" -p "$port" "$userName"@"$hostIP" "mkdir -p \$deployDir"
+    ssh -i "$pemFile" -p "$port" "$userName"@"$hostIP" "mkdir -p $deployDir"
     echo "scp -i $pemFile -P $port $scpFile $userName@$hostIP:$deployDir"
     scp -i "$pemFile" -P "$port" "$scpFile" "$userName"@"$hostIP":"$deployDir"
 
@@ -63,7 +63,8 @@ startChain33() {
     userName=$3
     pemFile=$4
     deployDir=$5
-    ssh -i "$pemFile" -p "$port" "$userName"@"$hostIP" "cd \$deployDir;tar -xvf chain33.tgz;bash raft_conf.sh bash run.sh start"
+    nodeId=$6
+    ssh -i "$pemFile" -p "$port" "$userName"@"$hostIP" "cd $deployDir;tar -xvf chain33.tgz;bash raft_conf.sh $nodeId;bash run.sh start"
     echo done!
 }
 stopChain33() {
@@ -72,7 +73,8 @@ stopChain33() {
     userName=$3
     pemFile=$4
     deployDir=$5
-    ssh -i "$pemFile" -p "$port" "$userName"@"$hostIP" "cd \$deployDir;bash run.sh stop"
+    nodeId=$6
+    ssh -i "$pemFile" -p "$port" "$userName"@"$hostIP" "cd $deployDir;bash run.sh stop"
     echo done!
 }
 clearChain33() {
@@ -81,7 +83,7 @@ clearChain33() {
     userName=$3
     pemFile=$4
     deployDir=$5
-    ssh -i "$pemFile" -p "$port" "$userName"@"$hostIP" "cd \$deployDir;bash run.sh clear"
+    ssh -i "$pemFile" -p "$port" "$userName"@"$hostIP" "cd $deployDir;bash run.sh clear"
     echo done!
 }
 
