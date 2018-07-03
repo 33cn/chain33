@@ -55,3 +55,8 @@ message TimeStatus {
     string localTime = 2;
     int64  diff      = 3;
 }
+
+message ReqKey {
+    bytes key = 1;
+}
+

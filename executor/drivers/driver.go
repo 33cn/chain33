@@ -89,12 +89,20 @@ func (d *DriverBase) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData
 		fromkey2 := CalcTxAddrHashKey(txindex.from, txindex.heightstr)
 		set.KV = append(set.KV, &types.KeyValue{fromkey1, txinfobyte})
 		set.KV = append(set.KV, &types.KeyValue{fromkey2, txinfobyte})
+		kv, err := updateAddrTxsCount(d.GetLocalDB(), txindex.from, 1, true)
+		if err == nil && kv != nil {
+			set.KV = append(set.KV, kv)
+		}
 	}
 	if len(txindex.to) != 0 {
 		tokey1 := CalcTxAddrDirHashKey(txindex.to, 2, txindex.heightstr)
 		tokey2 := CalcTxAddrHashKey(txindex.to, txindex.heightstr)
 		set.KV = append(set.KV, &types.KeyValue{tokey1, txinfobyte})
 		set.KV = append(set.KV, &types.KeyValue{tokey2, txinfobyte})
+		kv, err := updateAddrTxsCount(d.GetLocalDB(), txindex.to, 1, true)
+		if err == nil && kv != nil {
+			set.KV = append(set.KV, kv)
+		}
 	}
 	return &set, nil
 }
@@ -148,12 +156,20 @@ func (d *DriverBase) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptD
 		fromkey2 := CalcTxAddrHashKey(txindex.from, txindex.heightstr)
 		set.KV = append(set.KV, &types.KeyValue{fromkey1, nil})
 		set.KV = append(set.KV, &types.KeyValue{fromkey2, nil})
+		kv, err := updateAddrTxsCount(d.GetLocalDB(), txindex.from, 1, false)
+		if err == nil && kv != nil {
+			set.KV = append(set.KV, kv)
+		}
 	}
 	if len(txindex.to) != 0 {
 		tokey1 := CalcTxAddrDirHashKey(txindex.to, 2, txindex.heightstr)
 		tokey2 := CalcTxAddrHashKey(txindex.to, txindex.heightstr)
 		set.KV = append(set.KV, &types.KeyValue{tokey1, nil})
 		set.KV = append(set.KV, &types.KeyValue{tokey2, nil})
+		kv, err := updateAddrTxsCount(d.GetLocalDB(), txindex.to, 1, false)
+		if err == nil && kv != nil {
+			set.KV = append(set.KV, kv)
+		}
 	}
 	set.KV = append(set.KV, &types.KeyValue{hash, nil})
 	return &set, nil
@@ -294,4 +310,20 @@ func (d *DriverBase) GetTxsByAddr(addr *types.ReqAddr) (types.Message, error) {
 		replyTxInfos.TxInfos[index] = &replyTxInfo
 	}
 	return &replyTxInfos, nil
+}
+
+//查询指定prefix的key数量，用于统计
+func (d *DriverBase) GetPrefixCount(Prefix *types.ReqKey) (types.Message, error) {
+	var counts types.Int64
+	db := d.GetLocalDB()
+	counts.Data = db.PrefixCount(Prefix.Key)
+	return &counts, nil
+}
+
+//查询指定地址参与的交易计数，用于统计
+func (d *DriverBase) GetAddrTxsCount(reqkey *types.ReqKey) (types.Message, error) {
+	var counts types.Int64
+	db := d.GetLocalDB()
+	counts.Data = db.AddrTxsCount(reqkey.Key)
+	return &counts, nil
 }
