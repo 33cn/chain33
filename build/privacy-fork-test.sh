@@ -57,7 +57,7 @@ function genFirstChainPritx() {
 
         sleep 3
         height=$(${name} block last_header | jq ".height")
-        printf "发送公对私第 %d 笔交易 当前高度 %d \n" $i $height
+        printf '发送公对私第 %d 笔交易当前高度 %s \n' i "${height}"
     done
 
     echo "======sleep 100s======"
@@ -73,11 +73,11 @@ function genFirstChainPritx() {
         mixcount=0
         priv2priv "${name}" $fromAdd $priAdd $note $amount $mixcount
         priTxHashs1[$priTxindex]=$PrigStr
-        priTxindex=$(expr $priTxindex + 1)
+        priTxindex=$((priTxindex + 1))
 
         sleep 3
         height=$(${name} block last_header | jq ".height")
-        printf "发送私对私第 %d 笔交易 当前高度 %d \n" $i $height
+        printf '发送私对私第 %d 笔交易当前高度 %s \n' $i "${height}"
     done
 
     echo "======sleep 100s======"
@@ -92,11 +92,11 @@ function genFirstChainPritx() {
         mixcount=0
         priv2pub "${name}" $fromAdd $toAdd $note $amount $mixcount
         priTxHashs1[$priTxindex]=$PrigStr
-        priTxindex=$(expr $priTxindex + 1)
+        priTxindex=$((priTxindex + 1))
 
         sleep 3
         height=$(${name} block last_header | jq ".height")
-        printf "发送私对公第 %d 笔交易 当前高度 %d \n" $i $height
+        printf '发送私对公第 %d 笔交易当前高度 %s \n' $i "${height}"
     done
 
     echo "====== sleep 100s 第二组内部同步 ======"
@@ -124,7 +124,7 @@ function genSecondChainPritx() {
 
         sleep 3
         height=$(${name} block last_header | jq ".height")
-        printf "发送公对私第 %d 笔交易 当前高度 %d \n" $i $height
+        printf '发送公对私第 %d 笔交易当前高度 %s \n' $i "${height}"
     done
 
     echo "======sleep 100s======"
@@ -141,11 +141,11 @@ function genSecondChainPritx() {
         mixcount=0
         priv2priv "${name}" $fromAdd $priAdd $note $amount $mixcount
         priTxHashs2[$priTxindex]=$PrigStr
-        priTxindex=$(expr $priTxindex + 1)
+        priTxindex=$((priTxindex + 1))
 
         sleep 3
         height=$(${name} block last_header | jq ".height")
-        printf "发送私对私第 %d 笔交易 当前高度 %d \n" $i $height
+        printf '发送私对私第 %d 笔交易当前高度 %s \n' $i "${height}"
     done
 
     echo "======sleep 100s======"
@@ -160,11 +160,11 @@ function genSecondChainPritx() {
         mixcount=0
         priv2pub "${name}" $fromAdd $toAdd $note $amount $mixcount
         priTxHashs2[$priTxindex]=$PrigStr
-        priTxindex=$(expr $priTxindex + 1)
+        priTxindex=$((priTxindex + 1))
 
         sleep 3
         height=$(${name} block last_header | jq ".height")
-        printf "发送私对私第 %d 笔交易 当前高度 %d \n" $i $height
+        printf '发送私对私第 %d 笔交易当前高度 %s \n' $i "${height}"
     done
 
     echo "====== sleep 100s 第一组内部同步 ======"
@@ -193,7 +193,7 @@ function checkPriResult() {
         txQuery "${name1}" $txHash
         result=$?
         if [ $result -eq 0 ]; then
-            priTxFee1=$(expr $priTxFee1 + 1)
+            priTxFee1=$((priTxFee1 + 1))
         fi
         sleep 3
     done
@@ -214,7 +214,7 @@ function checkPriResult() {
     showPrivacyBalance "${name1}" $fromAdd
     value3=$PrigStr
 
-    printf "中间交易费为%d \n" $priTxFee1
+    printf '中间交易费为%d \n' "${priTxFee1}"
 
     actTotal=$(echo "$value1 + $value2 + $value3 + $priTxFee1" | bc)
     echo "${name1} 实际金额：$actTotal"
@@ -231,7 +231,7 @@ function checkPriResult() {
         txQuery "${name2}" $txHash
         result=$?
         if [ $result -eq 0 ]; then
-            priTxFee2=$(expr $priTxFee2 + 1)
+            priTxFee2=$((priTxFee2 + 1))
         fi
         sleep 3
     done
@@ -250,7 +250,7 @@ function checkPriResult() {
     showPrivacyBalance "${name2}" $fromAdd
     value3=$PrigStr
 
-    printf "中间交易费为%d \n" $priTxFee2
+    printf '中间交易费为%d \n' "${priTxFee2}"
 
     actTotal=$(echo "$value1 + $value2 + $value3 + $priTxFee2" | bc)
     echo "${name2} 实际金额：$actTotal"
@@ -276,7 +276,7 @@ function SendToPrivacyExec() {
     note=$4
     amount=$5
     #sudo docker exec -it $name ./chain33-cli send bty transfer -k $fromAdd -t $execAdd -n $note -a $amount
-    result=$($name send bty transfer -k $fromAdd -t $execAdd -n $note -a $amount)
+    result=$($name send bty transfer -k "${fromAdd}" -t "${execAdd}" -n "${note}" -a "${amount}")
     echo "hash : $result"
     PrigStr=$result
 }
@@ -293,7 +293,7 @@ function pub2priv() {
     note=$4
     amount=$5
     #sudo docker exec -it $name ./chain33-cli privacy pub2priv -f $fromAdd -p $priAdd -a $amount -n $note
-    result=$($name privacy pub2priv -f $fromAdd -p $priAdd -a $amount -n $note | jq -r ".hash")
+    result=$($name privacy pub2priv -f "${fromAdd}" -p "${priAdd}" -a "${amount}" -n "${note}" | jq -r ".hash")
     echo "hash : $result"
     PrigStr=$result
 }
@@ -312,7 +312,7 @@ function priv2priv() {
     amount=$5
     mixcount=$6
     #sudo docker exec -it $name ./chain33-cli privacy priv2priv -f $fromAdd -p $priAdd -a $amount -n $note
-    result=$($name privacy priv2priv -f $fromAdd -p $priAdd -a $amount -n $note | jq -r ".hash")
+    result=$($name privacy priv2priv -f "${fromAdd}" -p "${priAdd}" -a "${amount}" -n "${note}" | jq -r ".hash")
     echo "hash : $result"
     PrigStr=$result
 }
@@ -330,7 +330,7 @@ function priv2pub() {
     note=$4
     amount=$5
     mixcount=$6
-    result=$($name privacy priv2pub -f $fromAdd -t $toAdd -a $amount -n $note -m $mixcount | jq -r ".hash")
+    result=$($name privacy priv2pub -f "${fromAdd}" -t "${toAdd}" -a "${amount}" -n "${note}" -m "${mixcount}" | jq -r ".hash")
     #sudo docker exec -it $name ./chain33-cli privacy priv2pub -f $fromAdd -t $toAdd -a $amount -n $note -m $mixcount
     echo "hash : $result"
     PrigStr=$result
@@ -341,9 +341,9 @@ function priv2pub() {
 function showPrivacyExec() {
     name=$1
     fromAdd=$2
-    printf "==========showPrivacyExec name=%s addr=%s==========\n" "${name}" $fromAdd
-    result=$($name account balance -e privacy -a $fromAdd | jq -r ".balance")
-    printf "balance %s \n" $result
+    printf '==========showPrivacyExec name=%s addr=%s==========\n' "${name}" "${fromAdd}"
+    result=$($name account balance -e privacy -a "${fromAdd}" | jq -r ".balance")
+    printf 'balance %s \n' "${result}"
     PrigStr=$result
 }
 
@@ -352,9 +352,9 @@ function showPrivacyExec() {
 function showPrivacyBalance() {
     name=$1
     fromAdd=$2
-    printf "==========showPrivacyBalance name=%s addr=%s==========\n" "${name}" $fromAdd
-    result=$($name privacy showpai -a $fromAdd -d 0 | jq -r ".AvailableAmount")
-    printf "AvailableAmount %s \n" $result
+    printf '==========showPrivacyBalance name=%s addr=%s==========\n' "${name}" "${fromAdd}"
+    result=$($name privacy showpai -a "${fromAdd}" -d 0 | jq -r ".AvailableAmount")
+    printf 'AvailableAmount %s \n' "${result}"
     PrigStr=$result
 }
 

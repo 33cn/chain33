@@ -3,7 +3,11 @@
 set +e
 
 #引入隐私交易分叉测试
-. ./privacy-fork-test.sh
+# shellcheck disable=SC1091
+source privacy-fork-test.sh
+
+export forkContainers
+export containers
 
 function optDockerfun() {
     init
@@ -63,7 +67,7 @@ function optDockerPart1() {
             break
         fi
         #检查是否超过了最大检测次数
-        if [ $i -ge $(expr $loopCount - 1) ]; then
+        if [ $i -ge $((loopCount - 1)) ]; then
             echo "====== peers not enough ======"
             exit 1
         fi
@@ -89,11 +93,11 @@ function optDockerPart2() {
     echo "==================================="
 
     echo "======停止第二组docker ======"
-    sudo docker stop $NODE4
+    sudo docker stop "${NODE4}"
     sleep 3
-    sudo docker stop $NODE5
+    sudo docker stop "${NODE5}"
     sleep 3
-    sudo docker stop $NODE6
+    sudo docker stop "${NODE6}"
 
     echo "======开启第一组docker节点挖矿======"
     sleep 3
@@ -133,22 +137,22 @@ function optDockerPart3() {
 
     echo "======停止第一组docker======"
     sleep 3
-    sudo docker stop $NODE1
+    sudo docker stop "${NODE1}"
     sleep 3
-    sudo docker stop $NODE2
+    sudo docker stop "${NODE2}"
     sleep 3
-    sudo docker stop $NODE3
+    sudo docker stop "${NODE3}"
 
     echo "======sleep 20s======"
     sleep 20
 
     echo "======启动第二组docker======"
     sleep 3
-    sudo docker start $NODE4
+    sudo docker start "${NODE4}"
     sleep 3
-    sudo docker start $NODE5
+    sudo docker start "${NODE5}"
     sleep 3
-    sudo docker start $NODE6
+    sudo docker start "${NODE6}"
 
     echo "======sleep 20s======"
     sleep 20
@@ -189,11 +193,11 @@ function optDockerPart4() {
 
     echo "======启动第一组docker======"
     sleep 3
-    sudo docker start $NODE1
+    sudo docker start "${NODE1}"
     sleep 3
-    sudo docker start $NODE2
+    sudo docker start "${NODE2}"
     sleep 3
-    sudo docker start $NODE3
+    sudo docker start "${NODE3}"
 
     echo "======sleep 20s======"
     sleep 20
@@ -233,15 +237,15 @@ function checkMineHeight() {
     height1=$($CLI4 block last_header | jq ".height")
     sleep 3
     height2=$($CLI block last_header | jq ".height")
-    if [ $height2 -ge $height1 ]; then
+    if [ "${height2}" -ge "${height1}" ]; then
         height=$height2
-        printf "当前最大高度 %d \n" $height
+        printf '当前最大高度 %s \n' "${height}"
     else
         height=$height1
-        printf "当前最大高度 %d \n" $height
+        printf '当前最大高度 %s \n' "${height}"
     fi
 
-    if [ $height -eq 0 ]; then
+    if [ "${height}" -eq 0 ]; then
         echo "获取当前最大高度失败"
         return 1
     fi
@@ -249,17 +253,17 @@ function checkMineHeight() {
     for ((k = 0; k < ${#forkContainers[*]}; k++)); do
         for ((j = 0; j < loopCount; j++)); do
             height1=$(${forkContainers[$k]} block last_header | jq ".height")
-            if [ $height1 -gt $height ]; then #如果大于说明区块还没有完全产生完，替换期望高度
+            if [ "${height1}" -gt "${height}" ]; then #如果大于说明区块还没有完全产生完，替换期望高度
                 height=$height1
-                printf "查询 %s 目前区块最高高度为第 %d \n" "${containers[$k]}" $height
-            elif [ $height1 -eq $height ]; then #找到目标高度
+                printf '查询 %s 目前区块最高高度为第 %s \n' "${containers[$k]}" "${height}"
+            elif [ "${height1}" -eq "${height}" ]; then #找到目标高度
                 break
             else
-                printf "查询 %s 第 %d 次，当前高度 %d, 需要高度%d, 同步中，sleep 60s 后查询\n" "${containers[$k]}" $j $height1 $height
+                printf '查询 %s 第 %d 次，当前高度 %d, 需要高度%d, 同步中，sleep 60s 后查询\n' "${containers[$k]}" $j "${height1}" "${height}"
                 sleep 60
             fi
             #检查是否超过了最大检测次数
-            if [ $j -ge $(expr $loopCount - 1) ]; then
+            if [ $j -ge $((loopCount - 1)) ]; then
                 echo "====== syn blockchain fail======"
                 return 1
             fi
@@ -276,7 +280,7 @@ function peersCount() {
 
     for ((i = 0; i < time; i++)); do
         peersCount=$($name net peer_info | jq '.[] | length')
-        printf "查询节点 %s ,所需节点数 %d ,当前节点数 %s\n" "${name}" $needCount ${peersCount}
+        printf '查询节点 %s ,所需节点数 %d ,当前节点数 %s \n' "${name}" "${needCount}" "${peersCount}"
         if [ "${peersCount}" = "$needCount" ]; then
             echo "============= 符合节点数要求 ============="
             return 0
@@ -299,27 +303,27 @@ function checkBlockHashfun() {
     height1=$($CLI block last_header | jq ".height")
     sleep 3
     height2=$($CLI4 block last_header | jq ".height")
-    if [ $height2 -ge $height1 ]; then
+    if [ "${height2}" -ge "${height1}" ]; then
         height=$height2
-        printf "主链为 $CLI 当前最大高度 %d \n" $height
+        printf "主链为 $CLI 当前最大高度 %d \\n" "${height}"
         sleep 3
-        hash=$($CLI block hash -t $height | jq ".hash")
+        hash=$($CLI block hash -t "${height}" | jq ".hash")
     else
         height=$height1
-        printf "主链为 $CLI4 当前最大高度 %d \n" $height
+        printf "主链为 $CLI4 当前最大高度 %d \\n" "${height}"
         sleep 3
-        hash=$($CLI4 block hash -t $height | jq ".hash")
+        hash=$($CLI4 block hash -t "${height}" | jq ".hash")
     fi
 
-    echo $hash
+    echo "${hash}"
 
     for ((j = 0; j < $1; j++)); do
         for ((k = 0; k < ${#forkContainers[*]}; k++)); do
             sleep 3
             height0[$k]=$(${forkContainers[$k]} block last_header | jq ".height")
-            if [ ${height0[$k]} -ge $height ]; then
+            if [ "${height0[$k]}" -ge "${height}" ]; then
                 sleep 3
-                hash0[$k]=$(${forkContainers[$k]} block hash -t $height | jq ".hash")
+                hash0[$k]=$(${forkContainers[$k]} block hash -t "${height}" | jq ".hash")
             else
                 hash0[$k]="${forkContainers[$k]}"
             fi
@@ -334,11 +338,11 @@ function checkBlockHashfun() {
                 break
             fi
         fi
-        printf "第 %d 次，未查询到网络同步，sleep 100s 后查询\n" $j
+        printf '第 %d 次，未查询到网络同步，sleep 100s 后查询\n' $j
         sleep 100
         #检查是否超过了最大检测次数
-        var=$(expr $1 - 1)
-        if [ $j -ge $var ]; then
+        var=$(($1 - 1))
+        if [ $j -ge "${var}" ]; then
             echo "====== syn blockchain fail======"
             exit 1
         fi
@@ -351,7 +355,7 @@ function checkBlockHashfun() {
 function txQuery() {
     name=$1
     txHash=$2
-    result=$($name tx query -s $txHash | jq -r ".receipt.tyname")
+    result=$($name tx query -s "${txHash}" | jq -r ".receipt.tyname")
     if [ "${result}" = "ExecOk" ]; then
         return 0
     fi
