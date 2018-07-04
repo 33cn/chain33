@@ -148,20 +148,3 @@ func (l *LocalDB) PrefixCount(prefix []byte) (count int64) {
 	count = resp.GetData().(*types.Int64).Data
 	return
 }
-
-//从数据库中查询指定前缀的key的数量
-func (l *LocalDB) AddrTxsCount(reqkey []byte) int64 {
-	var count types.Int64
-	TxsCount, err := l.Get(reqkey)
-	if err != nil && err != types.ErrNotFound {
-		return 0
-	}
-	if len(TxsCount) == 0 {
-		return 0
-	}
-	err = types.Decode(TxsCount, &count)
-	if err != nil {
-		return 0
-	}
-	return count.Data
-}
