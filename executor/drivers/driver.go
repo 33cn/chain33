@@ -96,11 +96,6 @@ func (d *DriverBase) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData
 		set.KV = append(set.KV, &types.KeyValue{tokey1, txinfobyte})
 		set.KV = append(set.KV, &types.KeyValue{tokey2, txinfobyte})
 	}
-	//保存隐私交易
-	if types.PrivacyX == string(tx.Execer) {
-		privacykey := CalcPrivacyTxHashKey(TxIndexPrivacy, txindex.heightstr)
-		set.KV = append(set.KV, &types.KeyValue{privacykey, txinfobyte})
-	}
 
 	return &set, nil
 }
@@ -291,37 +286,6 @@ func (d *DriverBase) GetTxsByAddr(addr *types.ReqAddr) (types.Message, error) {
 		if len(txinfos) == 0 {
 			return nil, errors.New("tx does not exist")
 		}
-	}
-	var replyTxInfos types.ReplyTxInfos
-	replyTxInfos.TxInfos = make([]*types.ReplyTxInfo, len(txinfos))
-	for index, txinfobyte := range txinfos {
-		var replyTxInfo types.ReplyTxInfo
-		err := types.Decode(txinfobyte, &replyTxInfo)
-		if err != nil {
-			blog.Error("GetTxsByAddr proto.Unmarshal!", "err:", err)
-			return nil, err
-		}
-		replyTxInfos.TxInfos[index] = &replyTxInfo
-	}
-	return &replyTxInfos, nil
-}
-
-func (d *DriverBase) GetPrivacyTxs(privacy *types.ReqPrivacy) (types.Message, error) {
-	db := d.GetLocalDB()
-	var prefix []byte
-	var txinfos [][]byte
-
-	prefix = CalcPrivacyTxHashKeyPrefix(TxIndexPrivacy)
-	if privacy.GetHeight() == -1 {
-		txinfos, err := db.List(prefix, nil, privacy.Count, 0)
-		if err != nil {
-			return nil, err
-		}
-		if len(txinfos) == 0 {
-			return nil, errors.New("does not exist tx!")
-		}
-	} else { //翻页查找指定的txhash列表
-
 	}
 	var replyTxInfos types.ReplyTxInfos
 	replyTxInfos.TxInfos = make([]*types.ReplyTxInfo, len(txinfos))

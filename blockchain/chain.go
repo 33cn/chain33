@@ -602,29 +602,6 @@ func (chain *BlockChain) ProcGetTransactionByAddr(addr *types.ReqAddr) (*types.R
 	return txinfos.(*types.ReplyTxInfos), nil
 }
 
-func (chain *BlockChain) procgetPrivacyTransaction(reqPrivacy *types.ReqPrivacy) (*types.ReplyTxInfos, error) {
-	if reqPrivacy.GetCount() <= 0 {
-		chainlog.Error("procgetPrivacyTransaction count err", "count value", reqPrivacy.GetCount())
-		return nil, types.ErrInputPara
-	}
-	curheigt := chain.GetBlockHeight()
-	if reqPrivacy.GetHeight() > curheigt || reqPrivacy.GetHeight() < -1 {
-		chainlog.Error("procgetPrivacyTransaction Height err")
-		return nil, types.ErrInputPara
-	}
-	if reqPrivacy.GetDirection() != 0 && reqPrivacy.GetDirection() != 1 {
-		chainlog.Error("procgetPrivacyTransaction Direction err")
-		return nil, types.ErrInputPara
-	}
-
-	txinfos, err := chain.query.Query("coins", "GetPrivacyTxs", types.Encode(reqPrivacy))
-	if err != nil {
-		chainlog.Info("procgetPrivacyTransaction does not get any privacy tx!", "reqPrivacy", reqPrivacy, "err", err)
-		return nil, err
-	}
-	return txinfos.(*types.ReplyTxInfos), nil
-}
-
 // ProcGetGlobalIndexMsg 从区块链上获取已经被确认，并且满足条件的交易UTXO信息
 // 条件：
 // 1.同一种TokenName
