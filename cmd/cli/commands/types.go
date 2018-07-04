@@ -232,3 +232,13 @@ type RelayOrder2Show struct {
 	FinishTxHash  string `json:"finishtxhash"`
 	Height        int64  `json:"height"`
 }
+
+type AllExecBalance struct {
+	Addr        string         `json:"addr"`
+	ExecAccount []*ExecAccount `json:"execAccount"`
+}
+
+type ExecAccount struct {
+	Execer  string         `json:"execer"`
+	Account *AccountResult `json:"account"`
+}

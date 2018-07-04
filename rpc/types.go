@@ -389,3 +389,13 @@ type RelaySaveBTCHeadTx struct {
 	IsReset      bool   `json:"isReset"`
 	Fee          int64  `json:"fee"`
 }
+
+type AllExecBalance struct {
+	Addr        string         `json:"addr"`
+	ExecAccount []*ExecAccount `json:"execAccount"`
+}
+
+type ExecAccount struct {
+	Execer  string   `json:"execer"`
+	Account *Account `json:"account"`
+}
