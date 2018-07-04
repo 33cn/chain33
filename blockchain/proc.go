@@ -69,6 +69,15 @@ func (chain *BlockChain) ProcRecvMsg() {
 		case types.EventGetBlockByHashes:
 			go chain.processMsg(msg, reqnum, chain.getBlockByHashes)
 
+		case types.EventDelParaChainBlockDetail:
+			go chain.processMsg(msg, reqnum, chain.delParaChainBlockDetail)
+
+		case types.EventAddParaChainBlockDetail:
+			go chain.processMsg(msg, reqnum, chain.addParaChainBlockDetail)
+
+		case types.EventGetSeqByHash:
+			go chain.processMsg(msg, reqnum, chain.getSeqByHash)
+
 		default:
 			<-reqnum
 			chainlog.Warn("ProcRecvMsg unknow msg", "msgtype", msgtype)
@@ -365,4 +374,51 @@ func (chain *BlockChain) getBlockByHashes(msg queue.Message) {
 	} else {
 		msg.Reply(chain.client.NewMessage("rpc", types.EventBlocks, BlockDetails))
 	}
+}
+
+//平行链del block的处理
+func (chain *BlockChain) delParaChainBlockDetail(msg queue.Message) {
+	var parablockDetail *types.ParaChainBlockDetail
+	var reply types.Reply
+	reply.IsOk = true
+	parablockDetail = msg.Data.(*types.ParaChainBlockDetail)
+
+	chainlog.Debug("delParaChainBlockDetail", "height", parablockDetail.Blockdetail.Block.Height, "hash", common.HashHex(parablockDetail.Blockdetail.Block.Hash()))
+
+	err := chain.ProcDelParaChainBlockMsg(true, parablockDetail, "self")
+	if err != nil {
+		chainlog.Error("ProcDelParaChainBlockMsg", "err", err.Error())
+		reply.IsOk = false
+		reply.Msg = []byte(err.Error())
+	}
+	chainlog.Debug("delParaChainBlockDetail", "success", "ok")
+	msg.Reply(chain.client.NewMessage("p2p", types.EventReply, &reply))
+}
+
+//平行链add block的处理
+func (chain *BlockChain) addParaChainBlockDetail(msg queue.Message) {
+	var parablockDetail *types.ParaChainBlockDetail
+	var reply types.Reply
+	reply.IsOk = true
+	parablockDetail = msg.Data.(*types.ParaChainBlockDetail)
+
+	chainlog.Debug("EventAddParaChainBlockDetail", "height", parablockDetail.Blockdetail.Block.Height, "hash", common.HashHex(parablockDetail.Blockdetail.Block.Hash()))
+
+	err := chain.ProcAddParaChainBlockMsg(true, parablockDetail, "self")
+	if err != nil {
+		chainlog.Error("ProcAddParaChainBlockMsg", "err", err.Error())
+		reply.IsOk = false
+		reply.Msg = []byte(err.Error())
+	}
+	chainlog.Debug("EventAddParaChainBlockDetail", "success", "ok")
+	msg.Reply(chain.client.NewMessage("p2p", types.EventReply, &reply))
+}
+
+//parachian 通过blockhash获取对应的seq，只记录了addblock时的seq
+func (chain *BlockChain) getSeqByHash(msg queue.Message) {
+	var sequence types.Int64
+
+	blockhash := (msg.Data).(*types.ReqHash)
+	sequence.Data, _ = chain.ProcGetSeqByHash(blockhash.Hash)
+	msg.Reply(chain.client.NewMessage("rpc", types.EventGetSeqByHash, &sequence))
 }

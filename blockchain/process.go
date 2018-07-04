@@ -16,7 +16,7 @@ import (
 // 共识模块和peer广播过来的block需要广播出去
 //共识模块过来的Receipts不为空,广播和同步过来的Receipts为空
 // 返回参数说明：是否主链，是否孤儿节点，具体err
-func (b *BlockChain) ProcessBlock(broadcast bool, block *types.BlockDetail, pid string) (bool, bool, error) {
+func (b *BlockChain) ProcessBlock(broadcast bool, block *types.BlockDetail, pid string, addOrdel bool, sequence int64) (bool, bool, error) {
 
 	b.chainLock.Lock()
 	defer b.chainLock.Unlock()
@@ -27,6 +27,10 @@ func (b *BlockChain) ProcessBlock(broadcast bool, block *types.BlockDetail, pid 
 	blockHash := block.Block.Hash()
 	chainlog.Debug("ProcessBlock Processing block", "height", block.Block.Height, "blockHash", common.ToHex(blockHash))
 
+	//目前只支持删除平行链的block处理
+	if !addOrdel {
+		return b.ProcessDelParaChainBlock(broadcast, block, pid, sequence)
+	}
 	// 判断本block是否已经存在主链或者侧链中
 	exists := b.blockExists(blockHash)
 	if exists {
@@ -61,12 +65,12 @@ func (b *BlockChain) ProcessBlock(broadcast bool, block *types.BlockDetail, pid 
 	}
 	if !prevHashExists {
 		chainlog.Debug("ProcessBlock addOrphanBlock", "height", block.Block.GetHeight(), "blockHash", common.ToHex(blockHash), "prevHash", common.ToHex(prevHash))
-		b.orphanPool.addOrphanBlock(broadcast, block.Block, pid)
+		b.orphanPool.addOrphanBlock(broadcast, block.Block, pid, sequence)
 		return false, true, nil
 	}
 
 	// 尝试将此block添加到主链上
-	isMainChain, err := b.maybeAcceptBlock(broadcast, block, pid)
+	isMainChain, err := b.maybeAcceptBlock(broadcast, block, pid, sequence)
 	if err != nil {
 		return false, false, err
 	}
@@ -128,7 +132,7 @@ func (b *BlockChain) processOrphans(hash []byte) error {
 
 			chainlog.Debug("processOrphans  maybeAcceptBlock", "height", orphan.block.GetHeight(), "hash", common.ToHex(orphan.block.Hash()))
 			// 尝试将此孤儿节点添加到主链
-			_, err := b.maybeAcceptBlock(orphan.broadcast, &types.BlockDetail{Block: orphan.block}, orphan.pid)
+			_, err := b.maybeAcceptBlock(orphan.broadcast, &types.BlockDetail{Block: orphan.block}, orphan.pid, orphan.sequence)
 			if err != nil {
 				return err
 			}
@@ -141,7 +145,7 @@ func (b *BlockChain) processOrphans(hash []byte) error {
 }
 
 // 尝试接受此block
-func (b *BlockChain) maybeAcceptBlock(broadcast bool, block *types.BlockDetail, pid string) (bool, error) {
+func (b *BlockChain) maybeAcceptBlock(broadcast bool, block *types.BlockDetail, pid string, sequence int64) (bool, error) {
 	// 首先判断本block的Parent block是否存在index中
 	prevHash := block.Block.GetParentHash()
 	prevNode := b.index.LookupNode(prevHash)
@@ -171,7 +175,7 @@ func (b *BlockChain) maybeAcceptBlock(broadcast bool, block *types.BlockDetail, 
 		return false, err
 	}
 	// 创建一个node并添加到内存中index
-	newNode := newBlockNode(broadcast, block.Block, pid)
+	newNode := newBlockNode(broadcast, block.Block, pid, sequence)
 	if prevNode != nil {
 		newNode.parent = prevNode
 	}
@@ -275,8 +279,8 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 
 	if !isStrongConsistency || blockdetail.Receipts == nil {
 		blockdetail, _, err = util.ExecBlock(b.client, prevStateHash, block, true, sync)
-		if err != nil {
-			//记录执行出错的block信息
+		if err != nil && err != types.ErrFutureBlock {
+			//记录执行出错的block信息,需要过滤掉ErrFutureBlock错误的block，不计入故障中，尝试再次执行
 			b.RecordFaultPeer(node.pid, block.Height, node.hash, err)
 			chainlog.Error("connectBlock ExecBlock is err!", "height", block.Height, "err", err)
 			return err
@@ -297,7 +301,7 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 	//chainlog.Debug("connectBlock AddTxs!", "height", block.Height, "batchsync", sync)
 
 	//保存block信息到db中
-	err = b.blockStore.SaveBlock(newbatch, blockdetail)
+	err = b.blockStore.SaveBlock(newbatch, blockdetail, node.sequence)
 	if err != nil {
 		chainlog.Error("connectBlock SaveBlock:", "height", block.Height, "err", err)
 		return err
@@ -360,7 +364,7 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 }
 
 //从主链中删除blocks
-func (b *BlockChain) disconnectBlock(node *blockNode, blockdetail *types.BlockDetail) error {
+func (b *BlockChain) disconnectBlock(node *blockNode, blockdetail *types.BlockDetail, sequence int64) error {
 	// 只能从 best chain tip节点开始删除
 	if !bytes.Equal(node.hash, b.bestChain.Tip().hash) {
 		chainlog.Error("disconnectBlock:", "height", blockdetail.Block.Height, "node.hash", common.ToHex(node.hash), "bestChain.top.hash", common.ToHex(b.bestChain.Tip().hash))
@@ -378,7 +382,7 @@ func (b *BlockChain) disconnectBlock(node *blockNode, blockdetail *types.BlockDe
 	}
 
 	//从db中删除block相关的信息
-	err = b.blockStore.DelBlock(newbatch, blockdetail)
+	err = b.blockStore.DelBlock(newbatch, blockdetail, sequence)
 	if err != nil {
 		chainlog.Error("disconnectBlock DelBlock:", "height", blockdetail.Block.Height, "err", err)
 		return err
@@ -473,7 +477,7 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 		block := detachBlocks[i]
 
 		// Update the database and chain state.
-		err := b.disconnectBlock(n, block)
+		err := b.disconnectBlock(n, block, n.sequence)
 		if err != nil {
 			return err
 		}
@@ -508,4 +512,27 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 		chainlog.Debug("REORGANIZE: New best chain head is hash", "hash", common.ToHex(lastAttachNode.hash), "height", lastAttachNode.parent.height)
 	}
 	return nil
+}
+
+//只能从 best chain tip节点开始删除，目前只提供给平行链使用
+func (b *BlockChain) ProcessDelParaChainBlock(broadcast bool, blockdetail *types.BlockDetail, pid string, sequence int64) (bool, bool, error) {
+
+	//获取当前的tip节点
+	tipnode := b.bestChain.Tip()
+	blockHash := blockdetail.Block.Hash()
+
+	if !bytes.Equal(blockHash, b.bestChain.Tip().hash) {
+		chainlog.Error("ProcessDelParaChainBlock:", "delblockheight", blockdetail.Block.Height, "delblockHash", common.ToHex(blockHash), "bestChain.top.hash", common.ToHex(b.bestChain.Tip().hash))
+		return false, false, types.ErrBlockHashNoMatch
+	}
+	err := b.disconnectBlock(tipnode, blockdetail, sequence)
+	if err != nil {
+		return false, false, err
+	}
+	//平行链回滚可能出现 向同一高度写哈希相同的区块，
+	// 主链中对应的节点信息已经在disconnectBlock处理函数中删除了
+	// 这里还需要删除index链中对应的节点信息
+	b.index.DelNode(blockHash)
+
+	return true, false, nil
 }
