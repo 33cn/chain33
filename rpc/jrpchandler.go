@@ -1241,6 +1241,14 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
 				return nil, err
 			}
 			logIns = logTmp
+		case types.TyLogEVMStateChangeItem:
+			lTy = "LogEVMStateChangeItem"
+			var logTmp types.EVMStateChangeItem
+			err = types.Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
 		case types.TyLogContractData:
 			lTy = "LogContractData"
 			var logTmp types.EVMContractData

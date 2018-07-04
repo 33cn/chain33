@@ -209,6 +209,11 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 		}()
 	}
 
+	// 从ForkV20EVMState开始，状态数据存储发生变更，需要做数据迁移
+	if types.IsMatchFork(evm.BlockNumber.Int64(), types.ForkV20EVMState) {
+		evm.StateDB.TransferStateData(addr.String())
+	}
+
 	ret, err = run(evm, contract, input)
 
 	// 当合约调用出错时，操作将会回滚（对数据的变更操作会被恢复），并且会消耗掉所有的gas

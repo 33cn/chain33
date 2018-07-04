@@ -491,6 +491,14 @@ func (r *ReceiptData) DecodeReceiptLog() (*ReceiptDataResult, error) {
 				return nil, err
 			}
 			logIns = logTmp
+		case TyLogEVMStateChangeItem:
+			lTy = "LogEVMStateChangeItem"
+			var logTmp EVMStateChangeItem
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
 		default:
 			//log.Error("DecodeLog", "Faile to decodeLog with type value:%d", l.Ty)
 			return nil, ErrLogType
