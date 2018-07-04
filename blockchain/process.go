@@ -276,7 +276,6 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 	block := blockdetail.Block
 	prevStateHash := b.bestChain.Tip().statehash
 	//广播或者同步过来的blcok需要调用执行模块
-
 	if !isStrongConsistency || blockdetail.Receipts == nil {
 		blockdetail, _, err = util.ExecBlock(b.client, prevStateHash, block, true, sync)
 		if err != nil && err != types.ErrFutureBlock {
