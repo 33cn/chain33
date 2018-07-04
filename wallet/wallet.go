@@ -172,9 +172,9 @@ func (wallet *Wallet) SetQueueClient(cli queue.Client) {
 
 	//获取wallet db version ,自动升级数据库首先，然后再启动钱包.
 	//和blockchain模块有消息来往所以需要先启动ProcRecvMsg任务
-	versin := wallet.walletStore.GetWalletVersion()
-	walletlog.Info("wallet db", "versin:", versin)
-	if versin == 0 {
+	version := wallet.walletStore.GetWalletVersion()
+	walletlog.Info("wallet db", "version:", version)
+	if version == 0 {
 		wallet.RescanAllTxByAddr()
 		wallet.walletStore.SetWalletVersion(1)
 	}
