@@ -83,7 +83,18 @@ func (db *GoPikaDB) Stats() map[string]string {
 }
 
 func (db *GoPikaDB) Iterator(prefix []byte, reserve bool) Iterator {
-	return &GoPikaIt{}
+	keys, err := db.client.Keys(hex.EncodeToString(prefix) + "*")
+	if err != nil {
+		plog.Error("Get keys err", "error", err)
+	}
+
+	var mVal map[string][]byte
+	mVal = make(map[string][]byte)
+	for _, k := range keys {
+		v, _ := db.client.Get(k)
+		mVal[k] = v
+	}
+	return &GoPikaIt{keys: keys, mVal: mVal, prefix: prefix, reserve: reserve}
 }
 
 type GoPikaIt struct {
