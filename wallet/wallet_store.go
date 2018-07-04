@@ -12,6 +12,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
+	"gitlab.33.cn/chain33/chain33/common/version"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -20,7 +21,6 @@ var (
 	WalletFeeAmount = []byte("WalletFeeAmount")
 	EncryptionFlag  = []byte("Encryption")
 	PasswordHash    = []byte("PasswordHash")
-	WalletVerKey    = []byte("WalletVerKey")
 	storelog        = walletlog.New("submodule", "store")
 )
 
@@ -1079,28 +1079,28 @@ func (ws *Store) listCreateTransactionCache(token string) ([]*types.CreateTransa
 }
 
 //升级数据库的版本号
-func (ws *Store) SetWalletVersion(version int64) error {
-	data, err := json.Marshal(version)
+func (ws *Store) SetWalletVersion(ver int64) error {
+	data, err := json.Marshal(ver)
 	if err != nil {
 		walletlog.Error("SetWalletVerKey marshal version", "err", err)
 		return types.ErrMarshal
 	}
 
-	ws.db.SetSync(WalletVerKey, data)
+	ws.db.SetSync(version.WalletVerKey, data)
 	return nil
 }
 
 // 获取wallet数据库的版本号
 func (ws *Store) GetWalletVersion() int64 {
-	var version int64
-	data, err := ws.db.Get(WalletVerKey)
+	var ver int64
+	data, err := ws.db.Get(version.WalletVerKey)
 	if data == nil || err != nil {
 		return 0
 	}
-	err = json.Unmarshal(data, &version)
+	err = json.Unmarshal(data, &ver)
 	if err != nil {
 		walletlog.Error("GetWalletVersion unmarshal", "err", err)
 		return 0
 	}
-	return version
+	return ver
 }
