@@ -81,7 +81,7 @@ const (
 	goLevelDBBackendStr   = "goleveldb"
 	memDBBackendStr       = "memdb"
 	goBadgerDBBackendStr  = "gobadgerdb"
-	goCouchBaseBackendStr = "couchbase"
+	goPikaDbBackendStr = "pika"
 )
 
 type dbCreator func(name string, dir string, cache int) (DB, error)
