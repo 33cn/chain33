@@ -755,7 +755,7 @@ func (c *Chain33) GetAllExecBalance(in types.ReqAddr, result *interface{}) error
 			Execer:    execer,
 		}
 		var res interface{}
-		err := c.GetBalance(params, &res)
+		err = c.GetBalance(params, &res)
 		if err != nil {
 			continue
 		}
