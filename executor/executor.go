@@ -33,6 +33,7 @@ import (
 var elog = log.New("module", "execs")
 var coinsAccount = account.NewCoinsAccount()
 var enableStat bool
+
 // 统计标志 0-初始状态 1-已开启
 var enableStatFlag int64
 
@@ -346,13 +347,15 @@ func (exec *Executor) procExecAddBlock(msg queue.Message) {
 			if err == nil {
 				err = types.Decode(flagBytes, flag)
 				if err != nil {
-					elog.Error("Decode StatisticFlag failed","err", err)
+					elog.Error("Decode StatisticFlag failed", "err", err)
 					panic(err)
 				}
-			} else if err != types.ErrNotFound {
+				enableStatFlag = flag.GetData()
+			} else if err == types.ErrNotFound {
 				enableStatFlag = 0
 			} else {
-				enableStatFlag = flag.GetData()
+				elog.Error("execute.localDB.Get failed", "err", err)
+				panic(err)
 			}
 		}
 
@@ -361,10 +364,10 @@ func (exec *Executor) procExecAddBlock(msg queue.Message) {
 			panic("chain33.toml enableStat = true, it must be synchronized from 0 height")
 		}
 
-        // 初始状态置为开启状态
+		// 初始状态置为开启状态
 		if enableStatFlag == 0 {
 			enableStatFlag = 1
-			kvset.KV = append(kvset.KV, &types.KeyValue{StatisticFlag(), types.Encode(&types.Int64{enableStatFlag})})
+			kvset.KV = append(kvset.KV, &types.KeyValue{StatisticFlag(), types.Encode(&types.Int64{Data: enableStatFlag})})
 		}
 
 		kvs, err := countInfo(execute, datas)
