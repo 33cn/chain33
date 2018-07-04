@@ -209,13 +209,6 @@ func (c *Coins) Query(funcName string, params []byte) (types.Message, error) {
 			return nil, err
 		}
 		return c.GetTxsByAddr(&in)
-	} else if funcName == "GetPrivacyTxs" {
-		var in types.ReqPrivacy
-		err := types.Decode(params, &in)
-		if err != nil {
-			return nil, err
-		}
-		return c.GetPrivacyTxs(&in)
 	}
 	return nil, types.ErrActionNotSupport
 }

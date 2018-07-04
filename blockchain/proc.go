@@ -59,8 +59,6 @@ func (chain *BlockChain) ProcRecvMsg() {
 			go chain.processMsg(msg, reqnum, chain.isSync)
 		case types.EventIsNtpClockSync:
 			go chain.processMsg(msg, reqnum, chain.isNtpClockSync)
-		case types.EventGetPrivacyTransaction:
-			go chain.processMsg(msg, reqnum, chain.getPrivacyTransaction)
 		case types.EventGetGlobalIndex:
 			go chain.processMsg(msg, reqnum, chain.getGlobalIndex)
 		case types.EventGetLastBlockSequence:
@@ -231,19 +229,6 @@ func (chain *BlockChain) getTransactionByAddr(msg queue.Message) {
 	} else {
 		//chainlog.Debug("EventGetTransactionByAddr", "success", "ok")
 		msg.Reply(chain.client.NewMessage("rpc", types.EventReplyTxInfo, replyTxInfos))
-	}
-}
-
-func (chain *BlockChain) getPrivacyTransaction(msg queue.Message) {
-	privacyReq := (msg.Data).(*types.ReqPrivacy)
-	chainlog.Info("getPrivacyTransaction", "req", privacyReq)
-	replyTxInfos, err := chain.procgetPrivacyTransaction(privacyReq)
-	if err != nil {
-		chainlog.Error("getPrivacyTransaction", "err", err.Error())
-		msg.Reply(chain.client.NewMessage("rpc", types.EventReplyGetPrivacyTransaction, err))
-	} else {
-		chainlog.Debug("getPrivacyTransaction", "success", "ok")
-		msg.Reply(chain.client.NewMessage("rpc", types.EventReplyGetPrivacyTransaction, replyTxInfos))
 	}
 }
 
