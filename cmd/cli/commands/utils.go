@@ -6,6 +6,7 @@ import (
 	"math"
 	"math/rand"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gogo/protobuf/proto"
@@ -199,6 +200,8 @@ func decodeLog(rlog jsonrpc.ReceiptDataResult) *ReceiptData {
 		case types.TyLogPrivacyOutput:
 			rl.Log = buildPrivacyOutputResult(l)
 
+		case types.TyLogEVMStateChangeItem:
+			rl.Log = buildStateChangeItemResult(l)
 		default:
 			fmt.Printf("---The log with vlaue:%d is not decoded --------------------\n", l.Ty)
 			return nil
@@ -240,6 +243,13 @@ func buildContractStateResult(l *jsonrpc.ReceiptLogResult) interface{} {
 		}
 	}
 	return rlog
+}
+
+func buildStateChangeItemResult(l *jsonrpc.ReceiptLogResult) interface{} {
+	data, _ := common.FromHex(l.RawLog)
+	receipt := &types.EVMStateChangeItem{}
+	proto.Unmarshal(data, receipt)
+	return receipt
 }
 
 func buildPrivacyInputResult(l *jsonrpc.ReceiptLogResult) interface{} {

@@ -75,6 +75,7 @@ var (
 	ForkV17EVM           int64 = 250000
 	ForkV18Relay         int64 = 500000
 	ForkV19TokenPrice    int64 = 300000
+	ForkV20EVMState      int64 = 350000
 )
 
 func SetTestNetFork() {
@@ -97,6 +98,7 @@ func SetTestNetFork() {
 	ForkV17EVM = 500000
 	ForkV18Relay = 570000
 	ForkV19TokenPrice = 560000
+	ForkV20EVMState = 650000
 }
 
 func SetForkToOne() {
@@ -108,6 +110,7 @@ func SetForkToOne() {
 	ForkV16Withdraw = 1
 	ForkV17EVM = 1
 	ForkV18Relay = 1
+	ForkV20EVMState = 1
 }
 
 var (
@@ -669,6 +672,8 @@ const (
 	TyLogContractState = 602
 	// 合约状态数据变更日志
 	TyLogCallContract = 603
+	// 合约状态数据变更项日志
+	TyLogEVMStateChangeItem = 604
 )
 
 //exec type
