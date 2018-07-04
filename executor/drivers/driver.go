@@ -85,17 +85,18 @@ func (d *DriverBase) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData
 	txindex := d.getTxIndex(tx, receipt, index)
 	txinfobyte := types.Encode(txindex.index)
 	if len(txindex.from) != 0 {
-		fromkey1 := CalcTxAddrDirHashKey(txindex.from, 1, txindex.heightstr)
+		fromkey1 := CalcTxAddrDirHashKey(txindex.from, TxIndexFrom, txindex.heightstr)
 		fromkey2 := CalcTxAddrHashKey(txindex.from, txindex.heightstr)
 		set.KV = append(set.KV, &types.KeyValue{fromkey1, txinfobyte})
 		set.KV = append(set.KV, &types.KeyValue{fromkey2, txinfobyte})
 	}
 	if len(txindex.to) != 0 {
-		tokey1 := CalcTxAddrDirHashKey(txindex.to, 2, txindex.heightstr)
+		tokey1 := CalcTxAddrDirHashKey(txindex.to, TxIndexTo, txindex.heightstr)
 		tokey2 := CalcTxAddrHashKey(txindex.to, txindex.heightstr)
 		set.KV = append(set.KV, &types.KeyValue{tokey1, txinfobyte})
 		set.KV = append(set.KV, &types.KeyValue{tokey2, txinfobyte})
 	}
+
 	return &set, nil
 }
 
@@ -144,13 +145,13 @@ func (d *DriverBase) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptD
 	//del: addr index
 	txindex := d.getTxIndex(tx, receipt, index)
 	if len(txindex.from) != 0 {
-		fromkey1 := CalcTxAddrDirHashKey(txindex.from, 1, txindex.heightstr)
+		fromkey1 := CalcTxAddrDirHashKey(txindex.from, TxIndexFrom, txindex.heightstr)
 		fromkey2 := CalcTxAddrHashKey(txindex.from, txindex.heightstr)
 		set.KV = append(set.KV, &types.KeyValue{fromkey1, nil})
 		set.KV = append(set.KV, &types.KeyValue{fromkey2, nil})
 	}
 	if len(txindex.to) != 0 {
-		tokey1 := CalcTxAddrDirHashKey(txindex.to, 2, txindex.heightstr)
+		tokey1 := CalcTxAddrDirHashKey(txindex.to, TxIndexTo, txindex.heightstr)
 		tokey2 := CalcTxAddrHashKey(txindex.to, txindex.heightstr)
 		set.KV = append(set.KV, &types.KeyValue{tokey1, nil})
 		set.KV = append(set.KV, &types.KeyValue{tokey2, nil})
@@ -237,6 +238,10 @@ func (d *DriverBase) GetName() string {
 
 func (d *DriverBase) GetActionName(tx *types.Transaction) string {
 	return tx.ActionName()
+}
+
+func (d *DriverBase) CheckSignatureData(tx *types.Transaction, index int) bool {
+	return true
 }
 
 //通过addr前缀查找本地址参与的所有交易

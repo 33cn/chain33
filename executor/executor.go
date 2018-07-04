@@ -361,7 +361,7 @@ func (exec *Executor) procExecDelBlock(msg queue.Message) {
 			continue
 		}
 		if err != nil {
-			msg.Reply(exec.client.NewMessage("", types.EventAddBlock, err))
+			msg.Reply(exec.client.NewMessage("", types.EventDelBlock, err))
 			return
 		}
 
@@ -378,7 +378,7 @@ func (exec *Executor) procExecDelBlock(msg queue.Message) {
 	//删除手续费
 	feekv, err := delFee(execute, b.Hash())
 	if err != nil {
-		msg.Reply(exec.client.NewMessage("", types.EventAddBlock, err))
+		msg.Reply(exec.client.NewMessage("", types.EventDelBlock, err))
 		return
 	}
 	kvset.KV = append(kvset.KV, feekv)
@@ -387,13 +387,13 @@ func (exec *Executor) procExecDelBlock(msg queue.Message) {
 	if enableStat {
 		kvs, err := delCountInfo(execute, datas)
 		if err != nil {
-			msg.Reply(exec.client.NewMessage("", types.EventAddBlock, err))
+			msg.Reply(exec.client.NewMessage("", types.EventDelBlock, err))
 			return
 		}
 		kvset.KV = append(kvset.KV, kvs.KV...)
 	}
 
-	msg.Reply(exec.client.NewMessage("", types.EventAddBlock, &kvset))
+	msg.Reply(exec.client.NewMessage("", types.EventDelBlock, &kvset))
 }
 
 func (exec *Executor) checkPrefix(execer []byte, kvs []*types.KeyValue) error {
@@ -431,6 +431,9 @@ func newExecutor(stateHash []byte, client queue.Client, height, blocktime int64,
 	return e
 }
 
+//隐私交易费扣除规则：
+//1.公对私交易：直接从coin合约中扣除
+//2.私对私交易或者私对公交易：交易费的扣除从隐私合约账户在coin合约中的账户中扣除
 func (e *executor) processFee(tx *types.Transaction) (*types.Receipt, error) {
 	from := tx.From()
 	accFrom := e.coinsAccount.LoadAccount(from)
@@ -441,6 +444,7 @@ func (e *executor) processFee(tx *types.Transaction) (*types.Receipt, error) {
 		e.coinsAccount.SaveAccount(accFrom)
 		return e.cutFeeReceipt(accFrom, receiptBalance), nil
 	}
+
 	return nil, types.ErrNoBalance
 }
 
@@ -457,6 +461,7 @@ func (e *executor) checkTx(tx *types.Transaction, index int) error {
 	if err := tx.Check(types.MinFee); err != nil {
 		return err
 	}
+
 	return nil
 }
 
