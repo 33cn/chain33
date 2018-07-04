@@ -358,6 +358,7 @@ const (
 	EventDelParaChainBlockDetail = 125
 	EventAddParaChainBlockDetail = 126
 	EventGetSeqByHash            = 127
+	EventLocalPrefixCount        = 128
 	// Token
 	EventBlockChainQuery        = 212
 	EventTokenPreCreate         = 200
@@ -531,6 +532,7 @@ var eventName = map[int]string{
 	125: "EventDelParaChainBlockDetail",
 	126: "EventAddParaChainBlockDetail",
 	127: "EventGetSeqByHash",
+	128: "EventLocalPrefixCount",
 	// Token
 	EventBlockChainQuery: "EventBlockChainQuery",
 

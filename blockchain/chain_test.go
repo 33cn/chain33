@@ -198,6 +198,8 @@ func TestBlockChain(t *testing.T) {
 
 	testGetBlockByHashes(t, blockchain)
 	testGetSeqByHash(t, blockchain)
+	testPrefixCount(t, blockchain)
+	testAddrTxCount(t, blockchain)
 	//testProcGetTransactionByHashes(t, blockchain)
 
 	//testProcGetTransactionByAddr(t, blockchain)
@@ -486,4 +488,24 @@ func testGetSeqByHash(t *testing.T, blockchain *BlockChain) {
 	seq, err := blockchain.ProcGetSeqByHash(hashes[0])
 	chainlog.Info("testGetSeqByHash", "seq", seq, "err", err)
 	chainlog.Info("testGetSeqByHash end --------------------")
+}
+
+func testPrefixCount(t *testing.T, blockchain *BlockChain) {
+	chainlog.Info("testPrefixCount begin --------------------")
+
+	msgGen := blockchain.client.NewMessage("blockchain", types.EventLocalPrefixCount, &types.ReqKey{Key: []byte("TxAddrHash:14KEKbYtKKQm4wMthSK9J4La4nAiidGozt:")})
+	blockchain.client.Send(msgGen, true)
+	Res, _ := blockchain.client.Wait(msgGen)
+	count := Res.GetData().(*types.Int64).Data
+	println("count: ", count)
+	chainlog.Info("testPrefixCount end --------------------")
+}
+
+func testAddrTxCount(t *testing.T, blockchain *BlockChain) {
+	chainlog.Info("testAddrTxCount begin --------------------")
+	var reqkey types.ReqKey
+	reqkey.Key = []byte(fmt.Sprintf("AddrTxsCount:%s", "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"))
+	count, _ := blockchain.query.Query("coins", "GetAddrTxsCount", types.Encode(&reqkey))
+	println("count: ", count.(*types.Int64).GetData())
+	chainlog.Info("testAddrTxCount end --------------------")
 }

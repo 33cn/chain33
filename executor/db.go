@@ -166,3 +166,16 @@ func (l *LocalDB) List(prefix, key []byte, count, direction int32) ([][]byte, er
 	}
 	return values, nil
 }
+
+//从数据库中查询指定前缀的key的数量
+func (l *LocalDB) PrefixCount(prefix []byte) (count int64) {
+	query := &types.ReqKey{Key: prefix}
+	msg := l.client.NewMessage("blockchain", types.EventLocalPrefixCount, query)
+	l.client.Send(msg, true)
+	resp, err := l.client.Wait(msg)
+	if err != nil {
+		panic(err) //no happen for ever
+	}
+	count = resp.GetData().(*types.Int64).Data
+	return
+}

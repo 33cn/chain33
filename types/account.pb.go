@@ -71,6 +71,7 @@ It has these top-level messages:
 	KeyValue
 	TxHash
 	TimeStatus
+	ReqKey
 	Config
 	Log
 	MemPool

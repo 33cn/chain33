@@ -170,6 +170,12 @@ func (chain *BlockChain) SetQueueClient(client queue.Client) {
 	//startTime
 	chain.startTime = types.Now()
 
+	//获取数据库中最新的区块高度，以及blockchain的数据库版本号
+	curheight := chain.GetBlockHeight()
+	curdbver := chain.blockStore.GetDbVersion()
+	if curdbver == 0 && curheight == -1 {
+		chain.blockStore.SetDbVersion(1)
+	}
 	//recv 消息的处理
 	go chain.ProcRecvMsg()
 
@@ -775,20 +781,24 @@ func (chain *BlockChain) ProcGetAddrOverview(addr *types.ReqAddr) (*types.AddrOv
 	} else {
 		addrOverview.Reciver = amount.(*types.Int64).GetData()
 	}
-	//获取地址对应的交易count
-	addr.Flag = 0
-	addr.Count = 0x7fffffff
-	addr.Height = -1
-	addr.Index = 0
-	txinfos, err := chain.query.Query("coins", "GetTxsByAddr", types.Encode(addr))
-	if err != nil {
-		chainlog.Info("ProcGetAddrOverview", "GetTxsByAddr err", err)
-		//return nil, err
-		addrOverview.TxCount = 0
+	beg := types.Now()
+	curdbver := chain.blockStore.GetDbVersion()
+	var reqkey types.ReqKey
 
+	if curdbver == 0 {
+		//旧的数据库获取地址对应的交易count，使用前缀查找的方式获取
+		//前缀和util.go 文件中的CalcTxAddrHashKey保持一致
+		reqkey.Key = []byte(fmt.Sprintf("TxAddrHash:%s:%s", addr.Addr, ""))
+		count, _ := chain.query.Query("coins", "GetPrefixCount", types.Encode(&reqkey))
+		addrOverview.TxCount = count.(*types.Int64).GetData()
+		chainlog.Debug("GetPrefixCount", "cost ", types.Since(beg))
 	} else {
-		addrOverview.TxCount = int64(len(txinfos.(*types.ReplyTxInfos).GetTxInfos()))
-		chainlog.Debug("ProcGetAddrOverview", "addr", addr.Addr, "addrOverview", addrOverview.String())
+		//新的数据库直接使用key值查找就可以
+		//前缀和util.go 文件中的calcAddrTxsCountKey保持一致
+		reqkey.Key = []byte(fmt.Sprintf("AddrTxsCount:%s", addr.Addr))
+		count, _ := chain.query.Query("coins", "GetAddrTxsCount", types.Encode(&reqkey))
+		addrOverview.TxCount = count.(*types.Int64).GetData()
+		chainlog.Debug("GetAddrTxsCount", "cost ", types.Since(beg))
 	}
 	return &addrOverview, nil
 }

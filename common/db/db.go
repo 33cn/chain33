@@ -9,6 +9,8 @@ var ErrNotFoundInDb = errors.New("ErrNotFoundInDb")
 
 type Lister interface {
 	List(prefix, key []byte, count, direction int32) ([][]byte, error)
+	PrefixCount(prefix []byte) int64
+	//AddrTxsCount(key []byte) int64
 }
 
 type KV interface {
