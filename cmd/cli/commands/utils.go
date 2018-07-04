@@ -402,6 +402,7 @@ func FormatAmountDisplay2Value(amount float64) int64 {
 	return int64(amount*types.InputPrecision) * types.Multiple1E4
 }
 
+// GetAmountValue 将命令行中的amount值转换成int64
 func GetAmountValue(cmd *cobra.Command, field string) int64 {
 	amount, _ := cmd.Flags().GetFloat64(field)
 	return FormatAmountDisplay2Value(amount)
