@@ -41,8 +41,8 @@ func TestDecodeTx(t *testing.T) {
 
 	tx.Execer = []byte("coins")
 	data, err = DecodeTx(&tx)
-	assert.NotNil(t, err)
-	assert.Nil(t, data)
+	assert.NotNil(t, data)
+	assert.Nil(t, err)
 
 	tx = types.Transaction{
 		Execer:  []byte("hashlock"),

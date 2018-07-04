@@ -174,7 +174,7 @@ func (mem *Mempool) RemoveTxsOfBlock(block *types.Block) bool {
 	defer mem.proxyMtx.Unlock()
 	for _, tx := range block.Txs {
 		hash := tx.Hash()
-		mem.addedTxs.Add(string(hash), types.Now().Unix())
+		mem.addedTxs.Add(string(hash), nil)
 		exist := mem.cache.Exists(hash)
 		if exist {
 			mem.cache.Remove(hash)
@@ -188,7 +188,6 @@ func (mem *Mempool) RemoveTxs(hashList *types.TxHashList) error {
 	mem.proxyMtx.Lock()
 	defer mem.proxyMtx.Unlock()
 	for _, hash := range hashList.Hashes {
-		mem.addedTxs.Add(string(hash), types.Now().Unix())
 		exist := mem.cache.Exists(hash)
 		if exist {
 			mem.cache.Remove(hash)
@@ -203,7 +202,9 @@ func (mem *Mempool) DelBlock(block *types.Block) {
 		return
 	}
 	blkTxs := block.Txs
-	for _, tx := range blkTxs {
+
+	for i := 0; i < len(blkTxs); i++ {
+		tx := blkTxs[i]
 		if "ticket" == string(tx.Execer) {
 			var action types.TicketAction
 			err := types.Decode(tx.Payload, &action)
@@ -214,13 +215,20 @@ func (mem *Mempool) DelBlock(block *types.Block) {
 				continue
 			}
 		}
+		groupCount := int(tx.GetGroupCount())
+		if groupCount > 1 && i+groupCount <= len(blkTxs) {
+			group := types.Transactions{Txs: blkTxs[i : i+groupCount]}
+			tx = group.Tx()
+			i = i + groupCount - 1
+		}
 		err := tx.Check(mem.minFee)
 		if err != nil {
 			continue
 		}
-		if tx.IsExpire(mem.header.GetHeight(), mem.header.GetBlockTime()) {
+		if !mem.checkExpireValid(tx) {
 			continue
 		}
+		mem.addedTxs.Remove(string(tx.Hash()))
 		mem.PushTx(tx)
 	}
 }
@@ -309,6 +317,7 @@ func (mem *Mempool) RemoveBlockedTxs() {
 		for _, t := range dupTxs {
 			txValue, exists := mem.cache.txMap[string(t)]
 			if exists {
+				mem.addedTxs.Add(string(t), nil)
 				mem.cache.Remove(txValue.Value.(*Item).value.Hash())
 			}
 		}
@@ -363,6 +372,10 @@ func (mem *Mempool) CheckExpireValid(msg queue.Message) bool {
 		return false
 	}
 	tx := msg.GetData().(types.TxGroup).Tx()
+	return mem.checkExpireValid(tx)
+}
+
+func (mem *Mempool) checkExpireValid(tx *types.Transaction) bool {
 	if tx.IsExpire(mem.header.GetHeight(), mem.header.GetBlockTime()) {
 		return false
 	}
@@ -475,7 +488,7 @@ func (mem *Mempool) SetQueueClient(client queue.Client) {
 
 	go mem.pollLastHeader()
 	go mem.getSync()
-	go mem.ReTrySend()
+	//	go mem.ReTrySend()
 	// 从badChan读取坏消息，并回复错误信息
 	go func() {
 		for m := range mem.badChan {
