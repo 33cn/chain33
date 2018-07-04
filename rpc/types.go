@@ -28,7 +28,9 @@ type SignedTx struct {
 }
 
 type RawParm struct {
-	Data string `json:"data"`
+	Mode  int32  `json:"mode"`
+	Token string `json:"token"`
+	Data  string `json:"data"`
 }
 
 type QueryParm struct {
@@ -196,10 +198,15 @@ type ReqHashes struct {
 }
 
 type ReqWalletTransactionList struct {
-	FromTx    string `json:"fromTx"`
-	Count     int32  `json:"count"`
-	Direction int32  `json:"direction"`
+	FromTx          string `json:"fromTx"`
+	Count           int32  `json:"count"`
+	Direction       int32  `json:"direction"`
+	Mode            int32  `json:"mode,omitempty"`
+	SendRecvPrivacy int32  `json:"sendRecvPrivacy,omitempty"`
+	Address         string `json:"address,omitempty"`
+	TokenName       string `json:"tokenname,omitempty"`
 }
+
 type WalletTxDetails struct {
 	TxDetails []*WalletTxDetail `protobuf:"bytes,1,rep,name=txDetails" json:"txDetails"`
 }
@@ -310,6 +317,16 @@ type NodeNetinfo struct {
 	Service      bool   `json:"service"`
 	Outbounds    int32  `json:"outbounds"`
 	Inbounds     int32  `json:"inbounds"`
+}
+
+type ReplyPrivacyPkPair struct {
+	ShowSuccessful bool   `json:"showSuccessful,omitempty"`
+	ViewPub        string `json:"viewPub,omitempty"`
+	SpendPub       string `json:"spendPub,omitempty"`
+}
+
+type ReplyCacheTxList struct {
+	Txs []*Transaction `json:"txs,omitempty"`
 }
 
 type TimeStatus struct {
