@@ -118,6 +118,14 @@ func balance(cmd *cobra.Command, args []string) {
 		fmt.Println(types.ErrExecNameNotAllow.Error())
 		return
 	}
+	if execer == "*" {
+		req := types.ReqAddr{Addr: addr}
+		var res jsonrpc.AllExecBalance
+		ctx := NewRpcCtx(rpcLaddr, "Chain33.GetAllExecBalance", req, &res)
+		ctx.SetResultCb(parseGetAllBalanceRes)
+		ctx.Run()
+		return
+	}
 	if ok := types.IsAllowExecName(execer); !ok {
 		return
 	}
@@ -144,6 +152,23 @@ func parseGetBalanceRes(arg interface{}) (interface{}, error) {
 		Currency: res[0].Currency,
 		Balance:  balanceResult,
 		Frozen:   frozenResult,
+	}
+	return result, nil
+}
+
+func parseGetAllBalanceRes(arg interface{}) (interface{}, error) {
+	res := *arg.(*jsonrpc.AllExecBalance)
+	accs := res.ExecAccount
+	result := AllExecBalance{Addr: res.Addr}
+	for _, acc := range accs {
+		balanceResult := strconv.FormatFloat(float64(acc.Account.Balance)/float64(types.Coin), 'f', 4, 64)
+		frozenResult := strconv.FormatFloat(float64(acc.Account.Frozen)/float64(types.Coin), 'f', 4, 64)
+		ar := &AccountResult{
+			Currency: acc.Account.Currency,
+			Balance:  balanceResult,
+			Frozen:   frozenResult,
+		}
+		result.ExecAccount = append(result.ExecAccount, &ExecAccount{Execer: acc.Execer, Account: ar})
 	}
 	return result, nil
 }
