@@ -14,11 +14,8 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/common/difficulty"
-<<<<<<< HEAD
 	"gitlab.33.cn/chain33/chain33/common/version"
-=======
 	"gitlab.33.cn/chain33/chain33/executor/drivers/privacy"
->>>>>>> origin/develop
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 )
