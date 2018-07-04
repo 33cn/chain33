@@ -6,10 +6,10 @@ import (
 	"math"
 	"math/rand"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/gogo/protobuf/proto"
+	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
@@ -57,8 +57,53 @@ func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
 			result.Payload.(map[string]interface{})["Value"].(map[string]interface{})["Miner"].(map[string]interface{})["reward"] = rwdResult
 		}
 	}
-
+	// 隐私交易
+	if pub2priv, ok := payloadValue["Public2Privacy"]; ok {
+		decodePrivacyPayload(pub2priv)
+	} else if priv2priv, ok := payloadValue["Privacy2Privacy"]; ok {
+		decodePrivacyPayload(priv2priv)
+	} else if priv2priv, ok := payloadValue["Privacy2Public"]; ok {
+		decodePrivacyPayload(priv2priv)
+	}
 	return result
+}
+
+func decodePrivacyPayload(pub2priv interface{}) {
+	if amountVal, ok := getStrMapValue(pub2priv, "amount"); ok {
+		amount := amountVal.(float64) / float64(types.Coin)
+		getStrMapPair(pub2priv)["amount"] = strconv.FormatFloat(amount, 'f', 4, 64)
+	}
+
+	if inputVal, ok := getStrMapValue(pub2priv, "input"); ok {
+		if keyinputVals, ok := getStrMapValue(inputVal, "keyinput"); ok {
+			for _, value := range keyinputVals.([]interface{}) {
+				if amountVal, ok := getStrMapValue(value, "amount"); ok {
+					amount := amountVal.(float64) / float64(types.Coin)
+					getStrMapPair(value)["amount"] = strconv.FormatFloat(amount, 'f', 4, 64)
+				}
+			}
+		}
+	}
+
+	if outputVal, ok := getStrMapValue(pub2priv, "output"); ok {
+		if keyoutputVals, ok := getStrMapValue(outputVal, "keyoutput"); ok {
+			for _, value := range keyoutputVals.([]interface{}) {
+				if amountVal, ok := getStrMapValue(value, "amount"); ok {
+					amount := amountVal.(float64) / float64(types.Coin)
+					getStrMapPair(value)["amount"] = strconv.FormatFloat(amount, 'f', 4, 64)
+				}
+			}
+		}
+	}
+}
+
+func getStrMapPair(m interface{}) map[string]interface{} {
+	return m.(map[string]interface{})
+}
+
+func getStrMapValue(m interface{}, key string) (interface{}, bool) {
+	ret, ok := m.(map[string]interface{})[key]
+	return ret, ok
 }
 
 func decodeAccount(acc *types.Account, precision int64) *AccountResult {
@@ -148,6 +193,14 @@ func decodeLog(rlog jsonrpc.ReceiptDataResult) *ReceiptData {
 			rl.Log = buildContractDataResult(l)
 		case types.TyLogContractState:
 			rl.Log = buildContractStateResult(l)
+			// 隐私交易
+		case types.TyLogPrivacyInput:
+			rl.Log = buildPrivacyInputResult(l)
+		case types.TyLogPrivacyOutput:
+			rl.Log = buildPrivacyOutputResult(l)
+
+		case types.TyLogEVMStateChangeItem:
+			rl.Log = buildStateChangeItemResult(l)
 		default:
 			fmt.Printf("---The log with vlaue:%d is not decoded --------------------\n", l.Ty)
 			return nil
@@ -189,6 +242,56 @@ func buildContractStateResult(l *jsonrpc.ReceiptLogResult) interface{} {
 		}
 	}
 	return rlog
+}
+
+func buildStateChangeItemResult(l *jsonrpc.ReceiptLogResult) interface{} {
+	data, _ := common.FromHex(l.RawLog)
+	receipt := &types.EVMStateChangeItem{}
+	proto.Unmarshal(data, receipt)
+	return receipt
+}
+
+func buildPrivacyInputResult(l *jsonrpc.ReceiptLogResult) interface{} {
+	data, _ := common.FromHex(l.RawLog)
+	srcInput := &types.PrivacyInput{}
+	dstInput := &PrivacyInput{}
+	if proto.Unmarshal(data, srcInput) != nil {
+		return dstInput
+	}
+	for _, srcKeyInput := range srcInput.Keyinput {
+		var dstUtxoGlobalIndex []*UTXOGlobalIndex
+		for _, srcUTXOGlobalIndex := range srcKeyInput.UtxoGlobalIndex {
+			dstUtxoGlobalIndex = append(dstUtxoGlobalIndex, &UTXOGlobalIndex{
+				Outindex: srcUTXOGlobalIndex.GetOutindex(),
+				Txhash:   common.ToHex(srcUTXOGlobalIndex.GetTxhash()),
+			})
+		}
+		dstKeyInput := &KeyInput{
+			Amount:          strconv.FormatFloat(float64(srcKeyInput.GetAmount())/float64(types.Coin), 'f', 4, 64),
+			UtxoGlobalIndex: dstUtxoGlobalIndex,
+			KeyImage:        common.ToHex(srcKeyInput.GetKeyImage()),
+		}
+		dstInput.Keyinput = append(dstInput.Keyinput, dstKeyInput)
+	}
+	return dstInput
+}
+
+func buildPrivacyOutputResult(l *jsonrpc.ReceiptLogResult) interface{} {
+	data, _ := common.FromHex(l.RawLog)
+	srcOutput := &types.ReceiptPrivacyOutput{}
+	dstOutput := &ReceiptPrivacyOutput{}
+	if proto.Unmarshal(data, srcOutput) != nil {
+		return dstOutput
+	}
+	dstOutput.Token = srcOutput.Token
+	for _, srcKeyoutput := range srcOutput.Keyoutput {
+		dstKeyoutput := &KeyOutput{
+			Amount:        strconv.FormatFloat(float64(srcKeyoutput.GetAmount())/float64(types.Coin), 'f', 4, 64),
+			Onetimepubkey: common.ToHex(srcKeyoutput.Onetimepubkey),
+		}
+		dstOutput.Keyoutput = append(dstOutput.Keyoutput, dstKeyoutput)
+	}
+	return dstOutput
 }
 
 func SendToAddress(rpcAddr string, from string, to string, amount int64, note string, isToken bool, tokenSymbol string, isWithdraw bool) {
@@ -262,8 +365,8 @@ func CreateRawTx(to string, amount float64, note string, isWithdraw bool, isToke
 }
 
 func GetExecAddr(exec string) (string, error) {
-	if ok, err := isAllowExecName(exec); !ok {
-		return "", err
+	if ok := types.IsAllowExecName(exec); !ok {
+		return "", types.ErrExecNameNotAllow
 	}
 
 	addrResult := address.ExecAddress(exec)
@@ -271,22 +374,36 @@ func GetExecAddr(exec string) (string, error) {
 	return result, nil
 }
 
-func isAllowExecName(exec string) (bool, error) {
-	// exec name长度不能超过系统限制
-	if len(exec) > address.MaxExecNameLength {
-		return false, types.ErrExecNameNotAllow
-	}
-	// exec name中不允许有 "-"
-	if strings.Contains(exec, "-") {
-		return false, types.ErrExecNameNotAllow
-	}
-	if strings.HasPrefix(exec, "user.") {
-		return true, nil
-	}
-	for _, e := range []string{"none", "coins", "hashlock", "retrieve", "ticket", "token", "trade", "relay"} {
-		if exec == e {
-			return true, nil
+func getExecuterNameString() string {
+	str := "executer name ("
+	allowExeName := types.AllowUserExec
+	nameLen := len(allowExeName)
+	if nameLen > 1 {
+		for i := 0; i < nameLen-1; i++ {
+			if i > 0 {
+				str += ", "
+			}
+			str += fmt.Sprintf("\"%s\"", string(allowExeName[i]))
 		}
+		str += fmt.Sprintf(" and \"%s\" supported", string(allowExeName[nameLen-1]))
+	} else {
+		str += fmt.Sprintf("\"%s\" supported", string(allowExeName[nameLen-1]))
 	}
-	return false, types.ErrExecNameNotAllow
+	return str
+}
+
+// FormatAmountValue2Display 将传输、计算的amount值格式化成显示值
+func FormatAmountValue2Display(amount int64) string {
+	return strconv.FormatFloat(float64(amount)/float64(types.Coin), 'f', 4, 64)
+}
+
+// FormatAmountDisplay2Value 将显示、输入的amount值格式话成传输、计算值
+func FormatAmountDisplay2Value(amount float64) int64 {
+	return int64(amount*types.InputPrecision) * types.Multiple1E4
+}
+
+// GetAmountValue 将命令行中的amount值转换成int64
+func GetAmountValue(cmd *cobra.Command, field string) int64 {
+	amount, _ := cmd.Flags().GetFloat64(field)
+	return FormatAmountDisplay2Value(amount)
 }
