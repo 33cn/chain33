@@ -105,8 +105,7 @@ func GetBalanceCmd() *cobra.Command {
 func addBalanceFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("addr", "a", "", "account addr")
 	cmd.MarkFlagRequired("addr")
-
-	cmd.Flags().StringP("exec", "e", "", `executer name ("none", "coins", "hashlock", "retrieve", "ticket", "token", "trade" and "relay" supported)`)
+	cmd.Flags().StringP("exec", "e", "", getExecuterNameString())
 }
 
 func balance(cmd *cobra.Command, args []string) {
@@ -116,11 +115,10 @@ func balance(cmd *cobra.Command, args []string) {
 
 	err := address.CheckAddress(addr)
 	if err != nil {
-		fmt.Println(err.Error())
+		fmt.Println(types.ErrExecNameNotAllow.Error())
 		return
 	}
-	if ok, err := isAllowExecName(execer); !ok {
-		fmt.Println(err.Error())
+	if ok := types.IsAllowExecName(execer); !ok {
 		return
 	}
 

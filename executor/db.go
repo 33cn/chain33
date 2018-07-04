@@ -80,6 +80,21 @@ func (s *StateDB) Set(key []byte, value []byte) error {
 	return nil
 }
 
+func (db *StateDB) BatchGet(keys [][]byte) (value [][]byte, err error) {
+	query := &types.StoreGet{db.stateHash, keys}
+	msg := db.client.NewMessage("store", types.EventStoreGet, query)
+	db.client.Send(msg, true)
+	resp, err := db.client.Wait(msg)
+	if err != nil {
+		panic(err) //no happen for ever
+	}
+	value = resp.GetData().(*types.StoreReplyValue).Values
+	if value == nil {
+		return nil, types.ErrNotFound
+	}
+	return value, nil
+}
+
 type LocalDB struct {
 	db.TransactionDB
 	cache  map[string][]byte
@@ -117,6 +132,22 @@ func (l *LocalDB) Get(key []byte) ([]byte, error) {
 func (l *LocalDB) Set(key []byte, value []byte) error {
 	l.cache[string(key)] = value
 	return nil
+}
+
+func (db *LocalDB) BatchGet(keys [][]byte) (values [][]byte, err error) {
+	query := &types.LocalDBGet{keys}
+	msg := db.client.NewMessage("blockchain", types.EventLocalGet, query)
+	db.client.Send(msg, true)
+	resp, err := db.client.Wait(msg)
+	if err != nil {
+		panic(err) //no happen for ever
+	}
+	values = resp.GetData().(*types.LocalReplyValue).Values
+	if values == nil {
+		//panic(string(key))
+		return nil, types.ErrNotFound
+	}
+	return values, nil
 }
 
 //从数据库中查询数据列表，set 中的cache 更新不会影响这个list

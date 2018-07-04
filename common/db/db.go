@@ -15,6 +15,7 @@ type Lister interface {
 
 type KV interface {
 	Get(key []byte) ([]byte, error)
+	BatchGet(keys [][]byte) (values [][]byte, err error)
 	Set(key []byte, value []byte) (err error)
 	Begin()
 	Rollback()
