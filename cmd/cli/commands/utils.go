@@ -6,7 +6,6 @@ import (
 	"math"
 	"math/rand"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/gogo/protobuf/proto"
