@@ -1537,11 +1537,11 @@ func (c *Chain33) CreateBindMiner(in *types.ReqBindMiner, result *interface{}) e
 	}
 	err := address.CheckAddress(in.BindAddr)
 	if err != nil {
-		return err
+		return types.ErrInvalidAddress
 	}
 	err = address.CheckAddress(in.OriginAddr)
 	if err != nil {
-		return err
+		return types.ErrInvalidAddress
 	}
 
 	if in.CheckBalance {
