@@ -324,6 +324,19 @@ func (d *DriverBase) GetPrefixCount(Prefix *types.ReqKey) (types.Message, error)
 func (d *DriverBase) GetAddrTxsCount(reqkey *types.ReqKey) (types.Message, error) {
 	var counts types.Int64
 	db := d.GetLocalDB()
-	counts.Data = db.AddrTxsCount(reqkey.Key)
+	TxsCount, err := db.Get(reqkey.Key)
+	if err != nil && err != types.ErrNotFound {
+		blog.Error("GetAddrTxsCount!", "err:", err)
+		counts.Data = 0
+	}
+	if len(TxsCount) == 0 {
+		blog.Error("GetAddrTxsCount TxsCount is nil!")
+		counts.Data = 0
+	}
+	err = types.Decode(TxsCount, &counts)
+	if err != nil {
+		blog.Error("GetAddrTxsCount!", "err:", err)
+		counts.Data = 0
+	}
 	return &counts, nil
 }
