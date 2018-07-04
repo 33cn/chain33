@@ -78,11 +78,8 @@ func (chain *BlockChain) ProcRecvMsg() {
 
 		case types.EventGetSeqByHash:
 			go chain.processMsg(msg, reqnum, chain.getSeqByHash)
-<<<<<<< HEAD
 		case types.EventLocalPrefixCount:
 			go chain.processMsg(msg, reqnum, chain.localPrefixCount)
-=======
->>>>>>> origin/develop
 		default:
 			<-reqnum
 			chainlog.Warn("ProcRecvMsg unknow msg", "msgtype", msgtype)
