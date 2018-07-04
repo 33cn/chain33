@@ -748,7 +748,7 @@ func (c *Chain33) GetAllExecBalance(in types.ReqAddr, result *interface{}) error
 	var addrs []string
 	addrs = append(addrs, addr)
 	allBalance := &AllExecBalance{Addr: addr}
-	for exec := range types.AllowUserExec {
+	for _, exec := range types.AllowUserExec {
 		execer := string(exec)
 		params := types.ReqBalance{
 			Addresses: addrs,

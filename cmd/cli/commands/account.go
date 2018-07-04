@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 
 	"github.com/spf13/cobra"
@@ -115,7 +116,7 @@ func balance(cmd *cobra.Command, args []string) {
 
 	err := address.CheckAddress(addr)
 	if err != nil {
-		fmt.Println(types.ErrExecNameNotAllow.Error())
+		fmt.Fprintln(os.Stderr, types.ErrInvalidAddress)
 		return
 	}
 	if execer == "*" {
@@ -127,6 +128,7 @@ func balance(cmd *cobra.Command, args []string) {
 		return
 	}
 	if ok := types.IsAllowExecName(execer); !ok {
+		fmt.Fprintln(os.Stderr, types.ErrExecNameNotAllow)
 		return
 	}
 
