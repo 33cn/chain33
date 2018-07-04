@@ -53,6 +53,13 @@ message ReceiptEVMContract {
     bytes ret = 5;
 }
 
+// 用于保存EVM只能合约中的状态数据变更
+message EVMStateChangeItem {
+    string key          = 1;
+    bytes  preValue     = 2;
+    bytes  currentValue = 3;
+}
+
 // 存放合约固定数据
 message EVMContractDataCmd {
     string creator  = 1;

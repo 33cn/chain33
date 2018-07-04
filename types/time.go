@@ -27,7 +27,7 @@ func IsFixTime() bool {
 //超过60s 不做修正
 //为了系统的安全，我们只做小范围时间错误的修复
 func SetTimeDelta(dt int64) {
-	if dt > 60*int64(time.Second) || dt < -60*int64(time.Second) {
+	if dt > 300*int64(time.Second) || dt < -300*int64(time.Second) {
 		dt = 0
 	}
 	atomic.StoreInt64(&deltaTime, dt)

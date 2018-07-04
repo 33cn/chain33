@@ -58,6 +58,8 @@ var (
 	ForkV16Withdraw      int64 = 200000
 	ForkV17EVM           int64 = 250000
 	ForkV18Relay         int64 = 500000
+	ForkV19TokenPrice    int64 = 300000
+	ForkV20EVMState      int64 = 350000
 )
 
 func SetTestNetFork() {
@@ -79,6 +81,8 @@ func SetTestNetFork() {
 	ForkV16Withdraw = 480000
 	ForkV17EVM = 500000
 	ForkV18Relay = 570000
+	ForkV19TokenPrice = 560000
+	ForkV20EVMState = 650000
 }
 
 func SetForkToOne() {
@@ -90,6 +94,7 @@ func SetForkToOne() {
 	ForkV16Withdraw = 1
 	ForkV17EVM = 1
 	ForkV18Relay = 1
+	ForkV20EVMState = 1
 }
 
 var (
@@ -320,6 +325,9 @@ const (
 	EventReplyBlockSequences     = 122
 	EventGetBlockByHashes        = 123
 	EventReplyBlockDetailsBySeqs = 124
+	EventDelParaChainBlockDetail = 125
+	EventAddParaChainBlockDetail = 126
+	EventGetSeqByHash            = 127
 	// Token
 	EventBlockChainQuery = 212
 )
@@ -449,6 +457,9 @@ var eventName = map[int]string{
 	122: "EventReplyBlockSequences",
 	123: "EventGetBlockByHashes",
 	124: "EventReplyBlockDetailsBySeqs",
+	125: "EventDelParaChainBlockDetail",
+	126: "EventAddParaChainBlockDetail",
+	127: "EventGetSeqByHash",
 	// Token
 	EventBlockChainQuery: "EventBlockChainQuery",
 }
@@ -526,6 +537,8 @@ const (
 	TyLogContractState = 602
 	// 合约状态数据变更日志
 	TyLogCallContract = 603
+	// 合约状态数据变更项日志
+	TyLogEVMStateChangeItem = 604
 )
 
 //exec type

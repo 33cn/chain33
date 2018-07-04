@@ -148,6 +148,8 @@ func decodeLog(rlog jsonrpc.ReceiptDataResult) *ReceiptData {
 			rl.Log = buildContractDataResult(l)
 		case types.TyLogContractState:
 			rl.Log = buildContractStateResult(l)
+		case types.TyLogEVMStateChangeItem:
+			rl.Log = buildStateChangeItemResult(l)
 		default:
 			fmt.Printf("---The log with vlaue:%d is not decoded --------------------\n", l.Ty)
 			return nil
@@ -189,6 +191,13 @@ func buildContractStateResult(l *jsonrpc.ReceiptLogResult) interface{} {
 		}
 	}
 	return rlog
+}
+
+func buildStateChangeItemResult(l *jsonrpc.ReceiptLogResult) interface{} {
+	data, _ := common.FromHex(l.RawLog)
+	receipt := &types.EVMStateChangeItem{}
+	proto.Unmarshal(data, receipt)
+	return receipt
 }
 
 func SendToAddress(rpcAddr string, from string, to string, amount int64, note string, isToken bool, tokenSymbol string, isWithdraw bool) {

@@ -197,6 +197,7 @@ func TestBlockChain(t *testing.T) {
 	testGetBlockSequences(t, blockchain)
 
 	testGetBlockByHashes(t, blockchain)
+	testGetSeqByHash(t, blockchain)
 	//testProcGetTransactionByHashes(t, blockchain)
 
 	//testProcGetTransactionByAddr(t, blockchain)
@@ -464,4 +465,25 @@ func testGetBlockByHashes(t *testing.T, blockchain *BlockChain) {
 		}
 	}
 	chainlog.Info("testGetBlockByHashes end --------------------")
+}
+
+func testGetSeqByHash(t *testing.T, blockchain *BlockChain) {
+	chainlog.Info("testGetSeqByHash begin --------------------")
+	lastSequence, _ := blockchain.blockStore.LoadBlockLastSequence()
+	var reqBlock types.ReqBlocks
+
+	reqBlock.Start = lastSequence
+	reqBlock.End = lastSequence
+	reqBlock.IsDetail = true
+	hashes := make([][]byte, 1)
+	Sequences, err := blockchain.GetBlockSequences(&reqBlock)
+	if err == nil && Sequences != nil {
+		for index, sequence := range Sequences.Items {
+			hashes[index] = sequence.Hash
+		}
+	}
+
+	seq, err := blockchain.ProcGetSeqByHash(hashes[0])
+	chainlog.Info("testGetSeqByHash", "seq", seq, "err", err)
+	chainlog.Info("testGetSeqByHash end --------------------")
 }
