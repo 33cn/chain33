@@ -739,6 +739,40 @@ func (c *Chain33) GetBalance(in types.ReqBalance, result *interface{}) error {
 	return nil
 }
 
+func (c *Chain33) GetAllExecBalance(in types.ReqAddr, result *interface{}) error {
+	addr := in.Addr
+	err := address.CheckAddress(addr)
+	if err != nil {
+		return types.ErrInvalidAddress
+	}
+	var addrs []string
+	addrs = append(addrs, addr)
+	allBalance := &AllExecBalance{Addr: addr}
+	for _, exec := range types.AllowUserExec {
+		execer := string(exec)
+		params := types.ReqBalance{
+			Addresses: addrs,
+			Execer:    execer,
+		}
+		var res interface{}
+		err = c.GetBalance(params, &res)
+		if err != nil {
+			continue
+		}
+		if len(res.([]*Account)) < 1 {
+			continue
+		}
+		acc := res.([]*Account)[0]
+		if acc.Balance == 0 && acc.Frozen == 0 {
+			continue
+		}
+		execAcc := &ExecAccount{Execer: execer, Account: acc}
+		allBalance.ExecAccount = append(allBalance.ExecAccount, execAcc)
+	}
+	*result = allBalance
+	return nil
+}
+
 func (c *Chain33) GetTokenBalance(in types.ReqTokenBalance, result *interface{}) error {
 
 	balances, err := c.cli.GetTokenBalance(&in)
