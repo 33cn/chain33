@@ -328,15 +328,18 @@ func (d *DriverBase) GetAddrTxsCount(reqkey *types.ReqKey) (types.Message, error
 	if err != nil && err != types.ErrNotFound {
 		blog.Error("GetAddrTxsCount!", "err:", err)
 		counts.Data = 0
+		return &counts, nil
 	}
 	if len(TxsCount) == 0 {
 		blog.Error("GetAddrTxsCount TxsCount is nil!")
 		counts.Data = 0
+		return &counts, nil
 	}
 	err = types.Decode(TxsCount, &counts)
 	if err != nil {
 		blog.Error("GetAddrTxsCount!", "err:", err)
 		counts.Data = 0
+		return &counts, nil
 	}
 	return &counts, nil
 }
