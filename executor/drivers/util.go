@@ -4,6 +4,11 @@ import (
 	"fmt"
 )
 
+const (
+	TxIndexFrom = 1
+	TxIndexTo   = 2
+)
+
 //用于存储地址相关的hash列表，key=TxAddrHash:addr:height*100000 + index
 //地址下面所有的交易
 func CalcTxAddrHashKey(addr string, heightindex string) []byte {
