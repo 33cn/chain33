@@ -34,6 +34,9 @@ var elog = log.New("module", "execs")
 var coinsAccount = account.NewCoinsAccount()
 var enableStat bool
 
+// 统计标志 0-初始状态 1-已开启
+var enableStatFlag int64
+
 func SetLogLevel(level string) {
 	clog.SetLogLevel(level)
 }
@@ -337,6 +340,36 @@ func (exec *Executor) procExecAddBlock(msg queue.Message) {
 
 	//定制数据统计
 	if enableStat {
+		// 开启数据统计，需要从0开始同步数据
+		if enableStatFlag == 0 {
+			flag := &types.Int64{}
+			flagBytes, err := execute.localDB.Get(StatisticFlag())
+			if err == nil {
+				err = types.Decode(flagBytes, flag)
+				if err != nil {
+					elog.Error("Decode StatisticFlag failed", "err", err)
+					panic(err)
+				}
+				enableStatFlag = flag.GetData()
+			} else if err == types.ErrNotFound {
+				enableStatFlag = 0
+			} else {
+				elog.Error("execute.localDB.Get failed", "err", err)
+				panic(err)
+			}
+		}
+
+		if b.Height != 0 && enableStatFlag == 0 {
+			elog.Error("chain33.toml enableStat = true, it must be synchronized from 0 height")
+			panic("chain33.toml enableStat = true, it must be synchronized from 0 height")
+		}
+
+		// 初始状态置为开启状态
+		if enableStatFlag == 0 {
+			enableStatFlag = 1
+			kvset.KV = append(kvset.KV, &types.KeyValue{StatisticFlag(), types.Encode(&types.Int64{Data: enableStatFlag})})
+		}
+
 		kvs, err := countInfo(execute, datas)
 		if err != nil {
 			msg.Reply(exec.client.NewMessage("", types.EventAddBlock, err))
