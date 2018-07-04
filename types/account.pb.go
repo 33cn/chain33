@@ -42,6 +42,9 @@ It has these top-level messages:
 	BlockOverview
 	BlockDetail
 	Receipts
+	PrivacyKV
+	PrivacyKVToken
+	ReceiptsAndPrivacyKV
 	ReceiptCheckTxList
 	ChainStatus
 	ReqBlocks
@@ -66,6 +69,7 @@ It has these top-level messages:
 	ReqHashes
 	ReplyHashes
 	KeyValue
+	TxHash
 	TimeStatus
 	Config
 	Log
@@ -162,6 +166,28 @@ It has these top-level messages:
 	ManageAction
 	ReceiptConfig
 	ReplyConfig
+	PrivacyAction
+	Public2Privacy
+	Privacy2Privacy
+	Privacy2Public
+	UTXOGlobalIndex
+	KeyInput
+	PrivacyInput
+	KeyOutput
+	PrivacyOutput
+	GroupUTXOGlobalIndex
+	LocalUTXOItem
+	ReqUTXOPubKeys
+	PublicKeyData
+	GroupUTXOPubKey
+	ResUTXOPubKeys
+	ReqPrivacyToken
+	AmountDetail
+	ReplyPrivacyAmounts
+	ReplyUTXOsOfAmount
+	ReceiptPrivacyOutput
+	AmountsOfUTXO
+	TokenNamesOfUTXO
 	Trade
 	TradeForSell
 	TradeForBuy
@@ -277,9 +303,12 @@ It has these top-level messages:
 	SignedTx
 	Transaction
 	Transactions
+	RingSignature
+	RingSignatureItem
 	Signature
 	AddrOverview
 	ReqAddr
+	ReqPrivacy
 	HexTx
 	ReplyTxInfo
 	ReqTxList
@@ -297,6 +326,7 @@ It has these top-level messages:
 	WalletTxDetail
 	WalletTxDetails
 	WalletAccountStore
+	WalletAccountPrivacy
 	WalletPwHash
 	WalletStatus
 	WalletAccounts
@@ -328,6 +358,33 @@ It has these top-level messages:
 	ReplySignRawTx
 	ReportErrEvent
 	Int32
+	ReqPub2Pri
+	ReqPri2Pri
+	ReqPri2Pub
+	ReqCreateUTXOs
+	ReplyPrivacyPkPair
+	ReqPrivBal4AddrToken
+	ReplyPrivacyBalance
+	PrivacyDBStore
+	UTXO
+	UTXOHaveTxHash
+	UTXOs
+	UTXOHaveTxHashs
+	ReqUTXOGlobalIndex
+	UTXOBasic
+	UTXOIndex4Amount
+	ResUTXOGlobalIndex
+	FTXOsSTXOsInOneTx
+	ReqCreateTransaction
+	RealKeyInput
+	UTXOBasics
+	CreateTransactionCache
+	ReqCacheTxList
+	ReplyCacheTxList
+	ReqPrivacyAccount
+	ReqPPrivacyAccount
+	ReplyPrivacyAccount
+	ReqCreateCacheTxKey
 	ReqBindMiner
 	ReplyBindMiner
 */
