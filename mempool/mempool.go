@@ -188,7 +188,6 @@ func (mem *Mempool) RemoveTxs(hashList *types.TxHashList) error {
 	mem.proxyMtx.Lock()
 	defer mem.proxyMtx.Unlock()
 	for _, hash := range hashList.Hashes {
-		mem.addedTxs.Add(string(hash), nil)
 		exist := mem.cache.Exists(hash)
 		if exist {
 			mem.cache.Remove(hash)
