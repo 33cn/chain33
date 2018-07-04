@@ -59,7 +59,8 @@ func (chain *BlockChain) ProcRecvMsg() {
 			go chain.processMsg(msg, reqnum, chain.isSync)
 		case types.EventIsNtpClockSync:
 			go chain.processMsg(msg, reqnum, chain.isNtpClockSync)
-
+		case types.EventGetGlobalIndex:
+			go chain.processMsg(msg, reqnum, chain.getGlobalIndex)
 		case types.EventGetLastBlockSequence:
 			go chain.processMsg(msg, reqnum, chain.getLastBlockSequence)
 
@@ -77,7 +78,6 @@ func (chain *BlockChain) ProcRecvMsg() {
 
 		case types.EventGetSeqByHash:
 			go chain.processMsg(msg, reqnum, chain.getSeqByHash)
-
 		default:
 			<-reqnum
 			chainlog.Warn("ProcRecvMsg unknow msg", "msgtype", msgtype)
@@ -332,6 +332,18 @@ func (chain *BlockChain) getLastBlock(msg queue.Message) {
 func (chain *BlockChain) isNtpClockSync(msg queue.Message) {
 	ok := GetNtpClockSyncStatus()
 	msg.Reply(chain.client.NewMessage("", types.EventReplyIsNtpClockSync, &types.IsNtpClockSync{ok}))
+}
+
+func (chain *BlockChain) getGlobalIndex(msg queue.Message) {
+	reqUTXOGlobalIndex := msg.Data.(*types.ReqUTXOGlobalIndex)
+	response, err := chain.ProcGetGlobalIndexMsg(reqUTXOGlobalIndex)
+	if err != nil {
+		chainlog.Error("ProcGetGlobalIndexMsg", "err", err.Error())
+		msg.Reply(chain.client.NewMessage("wallet", types.EventReplyGetGlobalIndex, err))
+	} else {
+		chainlog.Debug("ProcGetGlobalIndexMsg", "success", "ok")
+		msg.Reply(chain.client.NewMessage("wallet", types.EventReplyGetGlobalIndex, response))
+	}
 }
 
 type funcProcess func(msg queue.Message)
