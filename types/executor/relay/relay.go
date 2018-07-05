@@ -31,7 +31,7 @@ func init() {
 type RelayType struct {
 }
 
-func (evm RelayType) ActionName(tx *types.Transaction) string {
+func (r RelayType) ActionName(tx *types.Transaction) string {
 	// 这个需要通过合约交易目标地址来判断Action
 	// 如果目标地址为空，或为evm的固定合约地址，则为创建合约，否则为调用合约
 	if strings.EqualFold(tx.To, "19tjS51kjwrCoSQS13U3owe7gYBLfSfoFm") {
@@ -42,7 +42,15 @@ func (evm RelayType) ActionName(tx *types.Transaction) string {
 	return "unknow"
 }
 
-func (evm RelayType) Amount(tx *types.Transaction) (int64, error) {
+func (r RelayType) Amount(tx *types.Transaction) (int64, error) {
+	var relay types.RelayAction
+	err := types.Decode(tx.GetPayload(), &relay)
+	if err != nil {
+		return 0, types.ErrDecode
+	}
+	if types.RelayActionCreate == relay.Ty && relay.GetCreate() != nil {
+		return int64(relay.GetCreate().BtyAmount), nil
+	}
 	return 0, nil
 }
 
