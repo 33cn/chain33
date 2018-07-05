@@ -41,22 +41,12 @@ type PrivacyType struct {
 }
 
 func (coins PrivacyType) ActionName(tx *types.Transaction) string {
-
-	var action types.CoinsAction
+	var action types.PrivacyAction
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
-		return "unknow-err"
+		return "unknow-privacy-err"
 	}
-	if action.Ty == types.CoinsActionTransfer && action.GetTransfer() != nil {
-		return "transfer"
-	} else if action.Ty == types.CoinsActionWithdraw && action.GetWithdraw() != nil {
-		return "withdraw"
-	} else if action.Ty == types.CoinsActionGenesis && action.GetGenesis() != nil {
-		return "genesis"
-	} else if action.Ty == types.CoinsActionTransferToExec && action.GetTransferToExec() != nil {
-		return "sendToExec"
-	}
-	return "unknow"
+	return action.GetActionName()
 }
 
 func (t PrivacyType) Amount(tx *types.Transaction) (int64, error) {
