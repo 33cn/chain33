@@ -742,34 +742,21 @@ func (c *Chain33) GetBalance(in types.ReqBalance, result *interface{}) error {
 }
 
 func (c *Chain33) GetAllExecBalance(in types.ReqAddr, result *interface{}) error {
-	addr := in.Addr
-	err := address.CheckAddress(addr)
+	balance, err := c.cli.GetAllExecBalance(&in)
 	if err != nil {
-		return types.ErrInvalidAddress
+		return err
 	}
-	var addrs []string
-	addrs = append(addrs, addr)
-	allBalance := &AllExecBalance{Addr: addr}
-	for _, exec := range types.AllowUserExec {
-		execer := string(exec)
-		params := types.ReqBalance{
-			Addresses: addrs,
-			Execer:    execer,
+
+	allBalance := &AllExecBalance{Addr: in.Addr}
+	for _, execAcc := range balance.ExecAccount {
+		res := &ExecAccount{Execer: execAcc.Execer}
+		acc := &Account{
+			Balance:  execAcc.Account.GetBalance(),
+			Currency: execAcc.Account.GetCurrency(),
+			Frozen:   execAcc.Account.GetFrozen(),
 		}
-		var res interface{}
-		err = c.GetBalance(params, &res)
-		if err != nil {
-			continue
-		}
-		if len(res.([]*Account)) < 1 {
-			continue
-		}
-		acc := res.([]*Account)[0]
-		if acc.Balance == 0 && acc.Frozen == 0 {
-			continue
-		}
-		execAcc := &ExecAccount{Execer: execer, Account: acc}
-		allBalance.ExecAccount = append(allBalance.ExecAccount, execAcc)
+		res.Account = acc
+		allBalance.ExecAccount = append(allBalance.ExecAccount, res)
 	}
 	*result = allBalance
 	return nil

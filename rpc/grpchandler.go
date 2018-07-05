@@ -162,6 +162,10 @@ func (g *Grpc) GetBalance(ctx context.Context, in *pb.ReqBalance) (*pb.Accounts,
 	return &pb.Accounts{Acc: reply}, nil
 }
 
+func (g *Grpc) GetAllExecBalance(ctx context.Context, in *pb.ReqAddr) (*pb.AllExecBalance, error) {
+	return g.cli.GetAllExecBalance(in)
+}
+
 func (g *Grpc) GetTokenBalance(ctx context.Context, in *pb.ReqTokenBalance) (*pb.Accounts, error) {
 	reply, err := g.cli.GetTokenBalance(in)
 	if err != nil {
