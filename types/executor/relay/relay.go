@@ -1,12 +1,10 @@
 package relay
 
-
 import (
-"encoding/json"
-"strings"
+	"encoding/json"
 
-//log "github.com/inconshreveable/log15"
-"gitlab.33.cn/chain33/chain33/types"
+	//log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 const name = "relay"
@@ -171,4 +169,3 @@ func (t *EvmDebug) Input(message json.RawMessage) ([]byte, error) {
 func (t *EvmDebug) Output(reply interface{}) (interface{}, error) {
 	return reply, nil
 }
-
