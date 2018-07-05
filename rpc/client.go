@@ -198,6 +198,38 @@ func (c *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account, erro
 	}
 }
 
+func (c *channelClient) GetAllExecBalance(in *types.ReqAddr) (*types.AllExecBalance, error) {
+	addr := in.Addr
+	err := address.CheckAddress(addr)
+	if err != nil {
+		return nil, types.ErrInvalidAddress
+	}
+	var addrs []string
+	addrs = append(addrs, addr)
+	allBalance := &types.AllExecBalance{Addr: addr}
+	for _, exec := range types.AllowUserExec {
+		execer := string(exec)
+		params := &types.ReqBalance{
+			Addresses: addrs,
+			Execer:    execer,
+		}
+		res, err := c.GetBalance(params)
+		if err != nil {
+			continue
+		}
+		if len(res) < 1 {
+			continue
+		}
+		acc := res[0]
+		if acc.Balance == 0 && acc.Frozen == 0 {
+			continue
+		}
+		execAcc := &types.ExecAccount{Execer: execer, Account: acc}
+		allBalance.ExecAccount = append(allBalance.ExecAccount, execAcc)
+	}
+	return allBalance, nil
+}
+
 //TODO:和GetBalance进行泛化处理，同时LoadAccounts和LoadExecAccountQueue也需要进行泛化处理, added by hzj
 func (c *channelClient) GetTokenBalance(in *types.ReqTokenBalance) ([]*types.Account, error) {
 	accountTokendb, err := account.NewAccountDB("token", in.GetTokenSymbol(), nil)
