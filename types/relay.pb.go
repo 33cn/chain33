@@ -66,7 +66,9 @@ func (m *RelayAction) String() string            { return proto.CompactTextStrin
 func (*RelayAction) ProtoMessage()               {}
 func (*RelayAction) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{0} }
 
-type isRelayAction_Value interface{ isRelayAction_Value() }
+type isRelayAction_Value interface {
+	isRelayAction_Value()
+}
 
 type RelayAction_Create struct {
 	Create *RelayCreate `protobuf:"bytes,1,opt,name=create,oneof"`
