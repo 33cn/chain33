@@ -138,17 +138,17 @@ func relayPayloadType(funcname string) (proto.Message, error) {
 
 func payloadType(execer, funcname string) (proto.Message, error) {
 	switch execer {
-	case "token":
+	case "token": // D
 		return tokenPayloadType(funcname)
-	case "coins":
+	case "coins": // D
 		return coinsPayloadType(funcname)
-	case "manage":
+	case "manage": // D
 		return managePayloadType(funcname)
-	case "retrieve":
+	case "retrieve": // D
 		return retrievePayloadType(funcname)
-	case "ticket":
+	case "ticket": // D
 		return ticketPayloadType(funcname)
-	case "trade":
+	case "trade": // D
 		return tradePayloadType(funcname)
 	case "evm":
 		return evmPayloadType(funcname)
