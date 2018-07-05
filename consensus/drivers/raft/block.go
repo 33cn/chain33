@@ -172,7 +172,7 @@ func (client *RaftClient) CreateBlock() {
 			emptyBlock.Height = block.Height + 1
 			emptyBlock.Txs = nil
 			emptyBlock.TxHash = zeroHash[:]
-			emptyBlock.BlockTime = time.Now().Unix()
+			emptyBlock.BlockTime = types.Now().Unix()
 
 			entry := emptyBlock
 			client.propose(entry)
@@ -203,7 +203,7 @@ func (client *RaftClient) CreateBlock() {
 		newblock.Height = lastBlock.Height + 1
 		client.AddTxsToBlock(&newblock, txs)
 		newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
-		newblock.BlockTime = time.Now().Unix()
+		newblock.BlockTime = types.Now().Unix()
 		if lastBlock.BlockTime >= newblock.BlockTime {
 			newblock.BlockTime = lastBlock.BlockTime + 1
 		}

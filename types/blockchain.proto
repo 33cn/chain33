@@ -1,5 +1,6 @@
 syntax = "proto3";
 import "transaction.proto";
+import "common.proto";
 
 package types;
 
@@ -84,6 +85,22 @@ message Receipts {
     repeated Receipt receipts = 1;
 }
 
+message PrivacyKV {
+    repeated PrivacyKVToken privacyKVToken = 1;
+}
+
+message PrivacyKVToken {
+    string   token       = 1;
+    int32    txIndex     = 2;
+    bytes    txhash      = 3;
+    repeated KeyValue KV = 4;
+}
+
+message ReceiptsAndPrivacyKV {
+    Receipts  receipts  = 1;
+    PrivacyKV privacyKV = 2;
+}
+
 message ReceiptCheckTxList {
     repeated string errs = 1;
 }
@@ -151,4 +168,12 @@ message BlockSequence {
 // resp
 message BlockSequences {
     repeated BlockSequence items = 1;
+}
+
+//平行链区块详细信息
+// 	 blockdetail : 区块详细信息
+//	 sequence :区块序列号
+message ParaChainBlockDetail {
+    BlockDetail blockdetail = 1;
+    int64       sequence    = 2;
 }

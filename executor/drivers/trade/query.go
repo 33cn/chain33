@@ -405,6 +405,10 @@ func buyBase2Order(base *types.ReceiptBuyBase, txHash string, blockTime int64) *
 		tradelog.Error("txResult2sellOrderReply", "decode receipt", err)
 		return nil
 	}
+	key := txHash
+	if len(base.BuyID) > 0 {
+		key = base.BuyID
+	}
 	//txhash := common.ToHex(txResult.GetTx().Hash())
 	reply := &types.ReplyTradeOrder{
 		base.TokenSymbol,
@@ -419,7 +423,7 @@ func buyBase2Order(base *types.ReceiptBuyBase, txHash string, blockTime int64) *
 		base.SellID,
 		txHash,
 		base.Height,
-		txHash,
+		key,
 		blockTime,
 		false,
 	}
@@ -439,6 +443,10 @@ func sellBase2Order(base *types.ReceiptSellBase, txHash string, blockTime int64)
 		return nil
 	}
 	//txhash := common.ToHex(txResult.GetTx().Hash())
+	key := txHash
+	if len(base.SellID) > 0 {
+		key = base.SellID
+	}
 	reply := &types.ReplyTradeOrder{
 		base.TokenSymbol,
 		base.Owner,
@@ -452,7 +460,7 @@ func sellBase2Order(base *types.ReceiptSellBase, txHash string, blockTime int64)
 		base.SellID,
 		txHash,
 		base.Height,
-		txHash,
+		key,
 		blockTime,
 		true,
 	}

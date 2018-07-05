@@ -14,6 +14,7 @@ message Config {
     Rpc        rpc        = 10;
     Exec       exec       = 11;
     bool       testNet    = 12;
+    bool       fixTime    = 13;
 }
 
 message Log {
@@ -63,13 +64,14 @@ message Consensus {
 }
 
 message Wallet {
-    int64  minFee       = 1;
-    string driver       = 2;
-    string dbPath       = 3;
-    int32  dbCache      = 4;
-    string signType     = 5;
-    bool   forceMining  = 6;
-    bool   minerdisable = 7;
+    int64    minFee                = 1;
+    string   driver                = 2;
+    string   dbPath                = 3;
+    int32    dbCache               = 4;
+    string   signType              = 5;
+    bool     forceMining           = 6;
+    bool     minerdisable          = 7;
+    repeated string minerwhitelist = 8;
 }
 
 message Store {
@@ -91,6 +93,7 @@ message BlockChain {
     bool   singleMode            = 9;
     bool   batchsync             = 10;
     bool   isRecordBlockSequence = 11;
+    bool   isParaChain           = 12;
 }
 
 message P2P {
@@ -119,6 +122,8 @@ message Rpc {
     repeated string whitelist         = 4;
     repeated string jrpcFuncWhitelist = 5;
     repeated string grpcFuncWhitelist = 6;
+    repeated string jrpcFuncBlacklist = 7;
+    repeated string grpcFuncBlacklist = 8;
 }
 
 message Exec {
