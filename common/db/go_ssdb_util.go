@@ -198,6 +198,34 @@ func (c *SDBClient) MultiDel(key ...string) (err error) {
 	return makeError(resp, key)
 }
 
+//批量删除一批 key 和其对应的值内容.
+//
+//  key，要删除的 key，可以为多个
+//  返回 err，可能的错误，操作成功返回 nil
+func (c *SDBClient) MultiGet(key ...string) (vals []*Value, err error) {
+	if len(key) == 0 {
+		return nil, nil
+	}
+	data := []interface{}{"multi_get"}
+	for _, k := range key {
+		data = append(data, k)
+	}
+	resp, err := c.Do(data...)
+
+	if err != nil {
+		return nil, newErrorf(err, "MultiGet %s error", key)
+	}
+
+	size := len(resp)
+	if size > 0 && resp[0] == OK {
+		for i := 1; i < size && i+1 < size; i += 2 {
+			vals = append(vals, toValue(resp[i+1]))
+		}
+		return vals, nil
+	}
+	return nil, makeError(resp, key)
+}
+
 //列出处于区间 (key_start, key_end] 的 key 列表.("", ""] 表示整个区间.
 //
 //  keyStart int 返回的起始 key(不包含), 空字符串表示 -inf.
