@@ -67,65 +67,8 @@ func (t PrivacyType) Amount(tx *types.Transaction) (int64, error) {
 
 // TODO 暂时不修改实现， 先完成结构的重构
 func (t PrivacyType) CreateTx(action string, message json.RawMessage) (*types.Transaction, error) {
-	var param types.CreateTx
-	err := json.Unmarshal(message, &param)
-	if err != nil {
-		tlog.Error("CreateTx", "Error", err)
-		return nil, types.ErrInputPara
-	}
-
-	if param.ExecName != "" && !types.IsAllowExecName(param.ExecName) {
-		tlog.Error("CreateTx", "Error", types.ErrExecNameNotMatch)
-		return nil, types.ErrExecNameNotMatch
-	}
-
-	//to地址要么是普通用户地址，要么就是执行器地址，不能为空
-	if param.To == "" {
-		return nil, types.ErrAddrNotExist
-	}
-
 	var tx *types.Transaction
-	if param.Amount < 0 {
-		return nil, types.ErrAmount
-	}
-	if param.IsToken {
-		return nil, types.ErrNotSupport
-	} else {
-		tx = CreateCoinsTransfer(&param)
-	}
-
-	tx.Fee, err = tx.GetRealFee(types.MinFee)
-	if err != nil {
-		return nil, err
-	}
-
-	random := rand.New(rand.NewSource(time.Now().UnixNano()))
-	tx.Nonce = random.Int63()
-
 	return tx, nil
-}
-
-func CreateCoinsTransfer(param *types.CreateTx) *types.Transaction {
-	transfer := &types.CoinsAction{}
-	if !param.IsWithdraw {
-		if param.ExecName != "" {
-			v := &types.CoinsAction_TransferToExec{TransferToExec: &types.CoinsTransferToExec{
-				Amount: param.Amount, Note: param.GetNote(), ExecName: param.GetExecName()}}
-			transfer.Value = v
-			transfer.Ty = types.CoinsActionTransferToExec
-		} else {
-			v := &types.CoinsAction_Transfer{Transfer: &types.CoinsTransfer{
-				Amount: param.Amount, Note: param.GetNote()}}
-			transfer.Value = v
-			transfer.Ty = types.CoinsActionTransfer
-		}
-	} else {
-		v := &types.CoinsAction_Withdraw{Withdraw: &types.CoinsWithdraw{
-			Amount: param.Amount, Note: param.GetNote()}}
-		transfer.Value = v
-		transfer.Ty = types.CoinsActionWithdraw
-	}
-	return &types.Transaction{Execer: []byte(name), Payload: types.Encode(transfer), To: param.GetTo()}
 }
 
 type CoinsDepositLog struct {
