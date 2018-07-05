@@ -8,6 +8,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/queue"
 	lt "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
+	_ "gitlab.33.cn/chain33/chain33/types/executor"
 )
 
 var (
