@@ -31,9 +31,7 @@ func (m *Trade) String() string            { return proto.CompactTextString(m) }
 func (*Trade) ProtoMessage()               {}
 func (*Trade) Descriptor() ([]byte, []int) { return fileDescriptor7, []int{0} }
 
-type isTrade_Value interface {
-	isTrade_Value()
-}
+type isTrade_Value interface{ isTrade_Value() }
 
 type Trade_Tokensell struct {
 	Tokensell *TradeForSell `protobuf:"bytes,1,opt,name=tokensell,oneof"`
