@@ -141,4 +141,7 @@ service grpcservice {
     rpc GetBlockByHashes(ReqHashes) returns (BlockDetails) {}
     //关闭chain33
     rpc CloseQueue(ReqNil) returns (Reply) {}
+	
+	//获取地址所以合约下的余额
+	rpc GetAllExecBalance(ReqAddr) returns (AllExecBalance) {}
 }

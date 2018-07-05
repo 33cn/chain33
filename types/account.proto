@@ -65,3 +65,13 @@ message TokenAsset {
 message ReplyAccountTokenAssets {
     repeated TokenAsset tokenAssets = 1;
 }
+
+message ExecAccount {
+	string execer = 1;
+	Account account = 2;
+}
+
+message AllExecBalance {
+	string addr = 1;
+	repeated ExecAccount ExecAccount = 2;
+}
