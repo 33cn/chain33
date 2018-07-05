@@ -16,9 +16,13 @@ func init() {
 	types.RegistorExecutor(name, &RelayType{})
 
 	// init log
-	types.RegistorLog(types.TyLogCallContract, &EvmCallContractLog{})
-	types.RegistorLog(types.TyLogContractData, &EvmContractDataLog{})
-	types.RegistorLog(types.TyLogContractState, &EvmContractStateLog{})
+	types.RegistorLog(types.TyLogRelayCreate, &RelayCreateLog{})
+	types.RegistorLog(types.TyLogRelayRevokeCreate, &RelayRevokeCreateLog{})
+	types.RegistorLog(types.TyLogRelayAccept, &RelayAcceptLog{})
+	types.RegistorLog(types.TyLogRelayRevokeAccept, &RelayRevokeAcceptLog{})
+	types.RegistorLog(types.TyLogRelayConfirmTx, &RelayConfirmTxLog{})
+	types.RegistorLog(types.TyLogRelayFinishTx, &RelayFinishTxLog{})
+	types.RegistorLog(types.TyLogRelayRcvBTCHead, &RelayRcvBTCHeadLog{})
 
 	// init query rpc
 	types.RegistorRpcType("CheckAddrExists", &EvmCheckAddrExists{})
@@ -69,20 +73,20 @@ func (r RelayType) Amount(tx *types.Transaction) (int64, error) {
 }
 
 // TODO 暂时不修改实现， 先完成结构的重构
-func (evm RelayType) CreateTx(action string, message json.RawMessage) (*types.Transaction, error) {
+func (r RelayType) CreateTx(action string, message json.RawMessage) (*types.Transaction, error) {
 	var tx *types.Transaction
 	return tx, nil
 }
 
-type EvmCallContractLog struct {
+type RelayCreateLog struct {
 }
 
-func (l EvmCallContractLog) Name() string {
-	return "LogCallContract"
+func (l RelayCreateLog) Name() string {
+	return "LogRelayCreate"
 }
 
-func (l EvmCallContractLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp types.ReceiptEVMContract
+func (l RelayCreateLog) Decode(msg []byte) (interface{}, error) {
+	var logTmp types.ReceiptRelayLog
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
 		return nil, err
@@ -90,15 +94,15 @@ func (l EvmCallContractLog) Decode(msg []byte) (interface{}, error) {
 	return logTmp, err
 }
 
-type EvmContractDataLog struct {
+type RelayRevokeCreateLog struct {
 }
 
-func (l EvmContractDataLog) Name() string {
-	return "LogContractData"
+func (l RelayRevokeCreateLog) Name() string {
+	return "LogRelayRevokeCreate"
 }
 
-func (l EvmContractDataLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp types.EVMContractData
+func (l RelayRevokeCreateLog) Decode(msg []byte) (interface{}, error) {
+	var logTmp types.ReceiptRelayLog
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
 		return nil, err
@@ -106,15 +110,80 @@ func (l EvmContractDataLog) Decode(msg []byte) (interface{}, error) {
 	return logTmp, err
 }
 
-type EvmContractStateLog struct {
+type RelayAcceptLog struct {
 }
 
-func (l EvmContractStateLog) Name() string {
-	return "LogContractState"
+func (l RelayAcceptLog) Name() string {
+	return "LogRelayAccept"
 }
 
-func (l EvmContractStateLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp types.EVMContractState
+func (l RelayAcceptLog) Decode(msg []byte) (interface{}, error) {
+	var logTmp types.ReceiptRelayLog
+	err := types.Decode(msg, &logTmp)
+	if err != nil {
+		return nil, err
+	}
+	return logTmp, err
+}
+
+type RelayRevokeAcceptLog struct {
+}
+
+func (l RelayRevokeAcceptLog) Name() string {
+	return "LogRelayRevokeAccept"
+}
+
+func (l RelayRevokeAcceptLog) Decode(msg []byte) (interface{}, error) {
+	var logTmp types.ReceiptRelayLog
+	err := types.Decode(msg, &logTmp)
+	if err != nil {
+		return nil, err
+	}
+	return logTmp, err
+}
+
+
+type RelayConfirmTxLog struct {
+}
+
+func (l RelayConfirmTxLog) Name() string {
+	return "LogRelayConfirmTx"
+}
+
+func (l RelayConfirmTxLog) Decode(msg []byte) (interface{}, error) {
+	var logTmp types.ReceiptRelayLog
+	err := types.Decode(msg, &logTmp)
+	if err != nil {
+		return nil, err
+	}
+	return logTmp, err
+}
+
+type RelayFinishTxLog struct {
+}
+
+func (l RelayFinishTxLog) Name() string {
+	return "LogRelayFinishTx"
+}
+
+func (l RelayFinishTxLog) Decode(msg []byte) (interface{}, error) {
+	var logTmp types.ReceiptRelayLog
+	err := types.Decode(msg, &logTmp)
+	if err != nil {
+		return nil, err
+	}
+	return logTmp, err
+}
+
+type RelayRcvBTCHeadLog struct {
+}
+
+func (l RelayRcvBTCHeadLog) Name() string {
+	return "LogRelayRcvBTCHead"
+}
+
+func (l RelayRcvBTCHeadLog) Decode(msg []byte) (interface{}, error) {
+	var logTmp types.ReceiptRelayRcvBTCHeaders
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
 		return nil, err
