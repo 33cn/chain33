@@ -2,13 +2,12 @@ package p2p
 
 import (
 	"encoding/hex"
-	"io"
-	"strconv"
-	"sync/atomic"
-
 	"fmt"
-	"strings"
+	"io"
+	"net"
+	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"gitlab.33.cn/chain33/chain33/common/version"
@@ -27,9 +26,11 @@ type P2pServer struct {
 	closed       int32
 }
 type innerpeer struct {
-	addr      string
-	name      string
-	timestamp int64
+	addr        string
+	name        string
+	timestamp   int64
+	softversion string
+	p2pversion  int32
 }
 
 func (s *P2pServer) Start() {
@@ -59,11 +60,14 @@ func (s *P2pServer) Ping(ctx context.Context, in *pb.P2PPing) (*pb.P2PPong, erro
 		log.Error("Ping", "p2p server", "check sig err")
 		return nil, pb.ErrPing
 	}
-
-	getctx, ok := pr.FromContext(ctx)
 	var peerip string
+	var err error
+	getctx, ok := pr.FromContext(ctx)
 	if ok {
-		peerip = strings.Split(getctx.Addr.String(), ":")[0]
+		peerip, _, err = net.SplitHostPort(getctx.Addr.String())
+		if err != nil {
+			return nil, fmt.Errorf("ctx.Addr format err")
+		}
 	}
 
 	peeraddr := fmt.Sprintf("%s:%v", peerip, in.Port)
@@ -114,11 +118,14 @@ func (s *P2pServer) Version(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVerA
 
 func (s *P2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVersion, error) {
 	log.Debug("Version2")
-	getctx, ok := pr.FromContext(ctx)
 	var peerip string
+	var err error
+	getctx, ok := pr.FromContext(ctx)
 	if ok {
-		peerip = strings.Split(getctx.Addr.String(), ":")[0]
-		log.Debug("Version2", "ip", peerip)
+		peerip, _, err = net.SplitHostPort(getctx.Addr.String())
+		if err != nil {
+			return nil, fmt.Errorf("ctx.Addr format err")
+		}
 	}
 
 	if !s.checkVersion(in.GetVersion()) {
@@ -129,11 +136,10 @@ func (s *P2pServer) Version2(ctx context.Context, in *pb.P2PVersion) (*pb.P2PVer
 	_, pub := s.node.nodeInfo.addrBook.GetPrivPubKey()
 	log.Debug("Version2", "after", "GetPrivPubKey")
 	//addrFrom:表示自己的外网地址，addrRecv:表示对方的外网地址
-	var port string
-	if len(strings.Split(in.AddrFrom, ":")) == 2 {
-		port = strings.Split(in.AddrFrom, ":")[1]
+	_, port, err := net.SplitHostPort(in.AddrFrom)
+	if err != nil {
+		return nil, fmt.Errorf("AddrFrom format err")
 	}
-
 	remoteNetwork, err := NewNetAddressString(fmt.Sprintf("%v:%v", peerip, port))
 	if err == nil {
 		if !s.node.nodeInfo.blacklist.Has(remoteNetwork.String()) {
@@ -439,11 +445,16 @@ func (s *P2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 		if block := in.GetBlock(); block != nil {
 			hex.Encode(hash[:], block.GetBlock().Hash())
 			blockhash := string(hash[:])
+
+			Filter.GetLock()                     //通过锁的形式，确保原子操作
 			if Filter.QueryRecvData(blockhash) { //已经注册了相同的区块hash，则不会再发送给blockchain
+				Filter.ReleaseLock() //释放锁
 				continue
 			}
 
 			Filter.RegRecvData(blockhash) //注册已经收到的区块
+			Filter.ReleaseLock()          //释放锁
+
 			log.Info("ServerStreamRead", " Recv block==+=====+=>Height", block.GetBlock().GetHeight(),
 				"block size(KB)", float32(len(pb.Encode(block)))/1024, "block hash", blockhash)
 			if block.GetBlock() != nil {
@@ -474,18 +485,32 @@ func (s *P2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 
 			getctx, ok := pr.FromContext(stream.Context())
 			if ok && s.node.Size() > 0 {
-				peerIp := strings.Split(getctx.Addr.String(), ":")[0]
+				//peerIp := strings.Split(getctx.Addr.String(), ":")[0]
+				peerIp, _, err := net.SplitHostPort(getctx.Addr.String())
+				if err != nil {
+					return fmt.Errorf("ctx.Addr format err")
+				}
 				if peerIp != LocalAddr && peerIp != s.node.nodeInfo.GetExternalAddr().IP.String() {
 					s.node.nodeInfo.SetServiceTy(Service)
 				}
 			}
 			peername = hex.EncodeToString(ping.GetSign().GetPubkey())
 			peeraddr = fmt.Sprintf("%s:%v", in.GetPing().GetAddr(), in.GetPing().GetPort())
-			s.addInBoundPeerInfo(peername, innerpeer{addr: peeraddr, name: peername, timestamp: time.Now().Unix()})
+			s.addInBoundPeerInfo(peername, innerpeer{addr: peeraddr, name: peername, timestamp: pb.Now().Unix()})
+		} else if ver := in.GetVersion(); ver != nil {
+			//接收版本信息
+			peername := ver.GetPeername()
+			softversion := ver.GetSoftversion()
+			p2pversion := ver.GetP2Pversion()
+			innerpeer := s.getInBoundPeerInfo(peername)
+			if innerpeer != nil {
+				innerpeer.p2pversion = p2pversion
+				innerpeer.softversion = softversion
+				s.addInBoundPeerInfo(peername, *innerpeer)
+			}
 
 		}
 	}
-
 }
 
 /**
@@ -501,16 +526,43 @@ func (s *P2pServer) CollectInPeers(ctx context.Context, in *pb.P2PPing) (*pb.Pee
 	inPeers := s.getInBoundPeers()
 	var p2pPeers []*pb.Peer
 	for _, inpeer := range inPeers {
-		addrport := strings.Split(inpeer.addr, ":")
-		var addr string
-		var port int
-		if len(addrport) == 2 {
-			addr = addrport[0]
-			port, _ = strconv.Atoi(addrport[1])
+		ip, portstr, err := net.SplitHostPort(inpeer.addr)
+		if err != nil {
+			continue
 		}
-		p2pPeers = append(p2pPeers, &pb.Peer{Name: inpeer.name, Addr: addr, Port: int32(port)}) ///仅用name,addr,port字段，用于统计peer num.
+		port, err := strconv.Atoi(portstr)
+		if err != nil {
+			continue
+		}
+
+		p2pPeers = append(p2pPeers, &pb.Peer{Name: inpeer.name, Addr: ip, Port: int32(port)}) ///仅用name,addr,port字段，用于统计peer num.
 	}
 	return &pb.PeerList{Peers: p2pPeers}, nil
+}
+
+func (s *P2pServer) CollectInPeers2(ctx context.Context, in *pb.P2PPing) (*pb.PeersReply, error) {
+	log.Info("CollectInPeers2")
+	if !P2pComm.CheckSign(in) {
+		log.Info("CollectInPeers", "ping", "signatrue err")
+		return nil, pb.ErrPing
+	}
+	inPeers := s.getInBoundPeers()
+	var p2pPeers []*pb.PeersInfo
+	for _, inpeer := range inPeers {
+		ip, portstr, err := net.SplitHostPort(inpeer.addr)
+		if err != nil {
+			continue
+		}
+		port, err := strconv.Atoi(portstr)
+		if err != nil {
+			continue
+		}
+
+		p2pPeers = append(p2pPeers, &pb.PeersInfo{Name: inpeer.name, Ip: ip, Port: int32(port),
+			Softversion: inpeer.softversion, P2Pversion: inpeer.p2pversion}) ///仅用name,addr,port字段，用于统计peer num.
+	}
+
+	return &pb.PeersReply{Peers: p2pPeers}, nil
 }
 
 func (s *P2pServer) checkVersion(version int32) bool {

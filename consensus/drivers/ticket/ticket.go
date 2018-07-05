@@ -300,7 +300,7 @@ func (client *Client) GetModify(beg, end int64) ([]byte, error) {
 
 func (client *Client) CheckBlock(parent *types.Block, current *types.BlockDetail) error {
 	cfg := types.GetP(current.Block.Height)
-	if current.Block.BlockTime-time.Now().Unix() > cfg.FutureBlockTime {
+	if current.Block.BlockTime-types.Now().Unix() > cfg.FutureBlockTime {
 		return types.ErrFutureBlock
 	}
 	ticketAction, err := client.getMinerTx(current.Block)
@@ -593,7 +593,7 @@ func (client *Client) createBlock() (*types.Block, *types.Block) {
 	var newblock types.Block
 	newblock.ParentHash = lastBlock.Hash()
 	newblock.Height = lastBlock.Height + 1
-	newblock.BlockTime = time.Now().Unix()
+	newblock.BlockTime = types.Now().Unix()
 	if lastBlock.BlockTime >= newblock.BlockTime {
 		newblock.BlockTime = lastBlock.BlockTime + 1
 	}
@@ -610,7 +610,7 @@ func (client *Client) updateBlock(newblock *types.Block, txHashList [][]byte) (*
 	}
 	newblock.ParentHash = lastBlock.Hash()
 	newblock.Height = lastBlock.Height + 1
-	newblock.BlockTime = time.Now().Unix()
+	newblock.BlockTime = types.Now().Unix()
 	cfg := types.GetP(newblock.Height)
 	var txs []*types.Transaction
 	if len(newblock.Txs) < int(cfg.MaxTxNumber-1) {
@@ -648,7 +648,7 @@ func (client *Client) CreateBlock() {
 			//加入新的txs, 继续挖矿
 			lasttime := block.BlockTime
 			//只有时间增加了1s影响，影响难度计算了，才会去更新区块
-			for lasttime >= time.Now().Unix() {
+			for lasttime >= types.Now().Unix() {
 				time.Sleep(time.Second / 10)
 			}
 			lastBlock, hashlist = client.updateBlock(block, hashlist)

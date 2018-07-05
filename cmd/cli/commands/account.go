@@ -2,9 +2,11 @@ package commands
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 
 	"github.com/spf13/cobra"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -104,8 +106,7 @@ func GetBalanceCmd() *cobra.Command {
 func addBalanceFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("addr", "a", "", "account addr")
 	cmd.MarkFlagRequired("addr")
-
-	cmd.Flags().StringP("exec", "e", "", `executer name ("none", "coins", "hashlock", "retrieve", "ticket", "token", "trade" and "relay" supported)`)
+	cmd.Flags().StringP("exec", "e", "", getExecuterNameString())
 }
 
 func balance(cmd *cobra.Command, args []string) {
@@ -113,8 +114,21 @@ func balance(cmd *cobra.Command, args []string) {
 	addr, _ := cmd.Flags().GetString("addr")
 	execer, _ := cmd.Flags().GetString("exec")
 
-	if ok, err := isAllowExecName(execer); !ok {
-		fmt.Println(err.Error())
+	err := address.CheckAddress(addr)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, types.ErrInvalidAddress)
+		return
+	}
+	if execer == "" {
+		req := types.ReqAddr{Addr: addr}
+		var res jsonrpc.AllExecBalance
+		ctx := NewRpcCtx(rpcLaddr, "Chain33.GetAllExecBalance", req, &res)
+		ctx.SetResultCb(parseGetAllBalanceRes)
+		ctx.Run()
+		return
+	}
+	if ok := types.IsAllowExecName(execer); !ok {
+		fmt.Fprintln(os.Stderr, types.ErrExecNameNotAllow)
 		return
 	}
 
@@ -140,6 +154,23 @@ func parseGetBalanceRes(arg interface{}) (interface{}, error) {
 		Currency: res[0].Currency,
 		Balance:  balanceResult,
 		Frozen:   frozenResult,
+	}
+	return result, nil
+}
+
+func parseGetAllBalanceRes(arg interface{}) (interface{}, error) {
+	res := *arg.(*jsonrpc.AllExecBalance)
+	accs := res.ExecAccount
+	result := AllExecBalance{Addr: res.Addr}
+	for _, acc := range accs {
+		balanceResult := strconv.FormatFloat(float64(acc.Account.Balance)/float64(types.Coin), 'f', 4, 64)
+		frozenResult := strconv.FormatFloat(float64(acc.Account.Frozen)/float64(types.Coin), 'f', 4, 64)
+		ar := &AccountResult{
+			Currency: acc.Account.Currency,
+			Balance:  balanceResult,
+			Frozen:   frozenResult,
+		}
+		result.ExecAccount = append(result.ExecAccount, &ExecAccount{Execer: acc.Execer, Account: ar})
 	}
 	return result, nil
 }

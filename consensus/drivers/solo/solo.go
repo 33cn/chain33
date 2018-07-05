@@ -92,7 +92,7 @@ func (client *Client) CreateBlock() {
 		//solo 挖矿固定难度
 		newblock.Difficulty = types.GetP(0).PowLimitBits
 		newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
-		newblock.BlockTime = time.Now().Unix()
+		newblock.BlockTime = types.Now().Unix()
 		if lastBlock.BlockTime >= newblock.BlockTime {
 			newblock.BlockTime = lastBlock.BlockTime + 1
 		}
