@@ -165,3 +165,80 @@ type GetTicketMinerInfoResult struct {
 	MinerValue   int64  `json:"minerValue,omitempty"`
 	MinerAddress string `json:"minerAddress,omitempty"`
 }
+
+type PrivacyAccountResult struct {
+	Token         string `json:"Token,omitempty"`
+	Txhash        string `json:"Txhash,omitempty"`
+	OutIndex      int32  `json:"OutIndex,omitempty"`
+	Amount        string `json:"Amount,omitempty"`
+	OnetimePubKey string `json:"OnetimePubKey,omitempty"`
+}
+
+type PrivacyAccountInfoResult struct {
+	AvailableDetail []*PrivacyAccountResult `json:"AvailableDetail,omitempty"`
+	FrozenDetail    []*PrivacyAccountResult `json:"FrozenDetail,omitempty"`
+	AvailableAmount string                  `json:"AvailableAmount,omitempty"`
+	FrozenAmount    string                  `json:"FrozenAmount,omitempty"`
+	TotalAmount     string                  `json:"TotalAmount,omitempty"`
+}
+
+type UTXOGlobalIndex struct {
+	Height   int64  `json:"height,omitempty"`
+	Txindex  int32  `json:"txindex,omitempty"`
+	Outindex int32  `json:"outindex,omitempty"`
+	Txhash   string `json:"txhash,omitempty"`
+}
+
+type KeyInput struct {
+	Amount          string             `json:"amount,omitempty"`
+	UtxoGlobalIndex []*UTXOGlobalIndex `json:"utxoGlobalIndex,omitempty"`
+	KeyImage        string             `json:"keyImage,omitempty"`
+}
+
+type PrivacyInput struct {
+	Keyinput []*KeyInput `json:"keyinput,omitempty"`
+}
+
+// privacy output
+type KeyOutput struct {
+	Amount        string `json:"amount,omitempty"`
+	Onetimepubkey string `json:"onetimepubkey,omitempty"`
+}
+
+type ReceiptPrivacyOutput struct {
+	Token     string       `json:"token,omitempty"`
+	Keyoutput []*KeyOutput `json:"keyoutput,omitempty"`
+}
+
+type PrivacyAccountSpendResult struct {
+	Txhash string                  `json:"Txhash,omitempty"`
+	Res    []*PrivacyAccountResult `json:"Spend,omitempty"`
+}
+
+type RelayOrder2Show struct {
+	OrderId       string `json:"orderid"`
+	Status        string `json:"status"`
+	Creator       string `json:"address"`
+	Amount        string `json:"amount"`
+	CoinOperation string `json:"coinoperation"`
+	Coin          string `json:"coin"`
+	CoinAmount    string `json:"coinamount"`
+	CoinAddr      string `json:"coinaddr"`
+	CreateTime    int64  `json:"createtime"`
+	AcceptAddr    string `json:"acceptaddr"`
+	AcceptTime    int64  `json:"accepttime"`
+	ConfirmTime   int64  `json:"confirmtime"`
+	FinishTime    int64  `json:"finishtime"`
+	FinishTxHash  string `json:"finishtxhash"`
+	Height        int64  `json:"height"`
+}
+
+type AllExecBalance struct {
+	Addr        string         `json:"addr"`
+	ExecAccount []*ExecAccount `json:"execAccount"`
+}
+
+type ExecAccount struct {
+	Execer  string         `json:"execer"`
+	Account *AccountResult `json:"account"`
+}

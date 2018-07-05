@@ -9,10 +9,13 @@ var ErrNotFoundInDb = errors.New("ErrNotFoundInDb")
 
 type Lister interface {
 	List(prefix, key []byte, count, direction int32) ([][]byte, error)
+	PrefixCount(prefix []byte) int64
+	//AddrTxsCount(key []byte) int64
 }
 
 type KV interface {
 	Get(key []byte) ([]byte, error)
+	BatchGet(keys [][]byte) (values [][]byte, err error)
 	Set(key []byte, value []byte) (err error)
 	Begin()
 	Rollback()

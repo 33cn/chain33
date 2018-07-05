@@ -39,6 +39,14 @@ var (
 
 var driverMutex sync.Mutex
 
+const (
+	SignNameSecp256k1      = "secp256k1"
+	SignNameED25519        = "ed25519"
+	SignNameSM2            = "sm2"
+	SignNameOnetimeED25519 = "onetimeed25519"
+	SignNameRing           = "RingSignatue"
+)
+
 func Register(name string, driver Crypto) {
 	driverMutex.Lock()
 	defer driverMutex.Unlock()

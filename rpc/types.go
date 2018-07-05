@@ -28,7 +28,9 @@ type SignedTx struct {
 }
 
 type RawParm struct {
-	Data string `json:"data"`
+	Mode  int32  `json:"mode"`
+	Token string `json:"token"`
+	Data  string `json:"data"`
 }
 
 type QueryParm struct {
@@ -196,10 +198,15 @@ type ReqHashes struct {
 }
 
 type ReqWalletTransactionList struct {
-	FromTx    string `json:"fromTx"`
-	Count     int32  `json:"count"`
-	Direction int32  `json:"direction"`
+	FromTx          string `json:"fromTx"`
+	Count           int32  `json:"count"`
+	Direction       int32  `json:"direction"`
+	Mode            int32  `json:"mode,omitempty"`
+	SendRecvPrivacy int32  `json:"sendRecvPrivacy,omitempty"`
+	Address         string `json:"address,omitempty"`
+	TokenName       string `json:"tokenname,omitempty"`
 }
+
 type WalletTxDetails struct {
 	TxDetails []*WalletTxDetail `protobuf:"bytes,1,rep,name=txDetails" json:"txDetails"`
 }
@@ -248,6 +255,16 @@ type NodeNetinfo struct {
 	Inbounds     int32  `json:"inbounds"`
 }
 
+type ReplyPrivacyPkPair struct {
+	ShowSuccessful bool   `json:"showSuccessful,omitempty"`
+	ViewPub        string `json:"viewPub,omitempty"`
+	SpendPub       string `json:"spendPub,omitempty"`
+}
+
+type ReplyCacheTxList struct {
+	Txs []*Transaction `json:"txs,omitempty"`
+}
+
 type TimeStatus struct {
 	NtpTime   string `json:"ntpTime"`
 	LocalTime string `json:"localTime"`
@@ -266,4 +283,61 @@ type TransactionCreate struct {
 	Execer     string          `protobuf:"bytes,1,opt,name=execer,proto3" json:"execer"`
 	ActionName string          `protobuf:"bytes,2,opt,name=actionName" json:"actionName"`
 	Payload    json.RawMessage `protobuf:"bytes,3,opt,name=payload" json:"payload"`
+}
+
+//Relay Transaction
+type RelayOrderTx struct {
+	Operation uint32 `json:"operation"`
+	Coin      string `json:"coin"`
+	Amount    uint64 `json:"coinamount"`
+	Addr      string `json:"coinaddr"`
+	BtyAmount uint64 `json:"btyamount"`
+	Fee       int64  `json:"fee"`
+}
+
+type RelayAcceptTx struct {
+	OrderId  string `json:"order_id"`
+	CoinAddr string `json:"coinaddr"`
+	Fee      int64  `json:"fee"`
+}
+
+type RelayRevokeTx struct {
+	OrderId string `json:"order_id"`
+	Target  uint32 `json:"target"`
+	Action  uint32 `json:"action"`
+	Fee     int64  `json:"fee"`
+}
+
+type RelayConfirmTx struct {
+	OrderId string `json:"order_id"`
+	TxHash  string `json:"tx_hash"`
+	Fee     int64  `json:"fee"`
+}
+
+type RelayVerifyBTCTx struct {
+	OrderId     string `json:"order_id"`
+	RawTx       string `json:"raw_tx"`
+	TxIndex     uint32 `json:"tx_index"`
+	MerklBranch string `json:"merkle_branch"`
+	BlockHash   string `json:"block_hash"`
+	Fee         int64  `json:"fee"`
+}
+
+type RelaySaveBTCHeadTx struct {
+	Hash         string `json:"hash"`
+	Height       uint64 `json:"height"`
+	MerkleRoot   string `json:"merkleRoot"`
+	PreviousHash string `json:"previousHash"`
+	IsReset      bool   `json:"isReset"`
+	Fee          int64  `json:"fee"`
+}
+
+type AllExecBalance struct {
+	Addr        string         `json:"addr"`
+	ExecAccount []*ExecAccount `json:"execAccount"`
+}
+
+type ExecAccount struct {
+	Execer  string   `json:"execer"`
+	Account *Account `json:"account"`
 }

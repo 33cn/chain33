@@ -13,8 +13,10 @@ It is generated from these files:
 	evmcontract.proto
 	executor.proto
 	executorTrade.proto
+	game.proto
 	p2p.proto
 	pbft.proto
+	relay.proto
 	rpc.proto
 	statistic.proto
 	transaction.proto
@@ -40,6 +42,9 @@ It has these top-level messages:
 	BlockOverview
 	BlockDetail
 	Receipts
+	PrivacyKV
+	PrivacyKVToken
+	ReceiptsAndPrivacyKV
 	ReceiptCheckTxList
 	ChainStatus
 	ReqBlocks
@@ -51,6 +56,7 @@ It has these top-level messages:
 	BlockChainQuery
 	BlockSequence
 	BlockSequences
+	ParaChainBlockDetail
 	Reply
 	ReqString
 	ReplyString
@@ -63,7 +69,9 @@ It has these top-level messages:
 	ReqHashes
 	ReplyHashes
 	KeyValue
+	TxHash
 	TimeStatus
+	ReqKey
 	Config
 	Log
 	MemPool
@@ -91,6 +99,7 @@ It has these top-level messages:
 	EVMContractState
 	EVMContractAction
 	ReceiptEVMContract
+	EVMStateChangeItem
 	EVMContractDataCmd
 	EVMContractStateCmd
 	ReceiptEVMContractCmd
@@ -158,6 +167,28 @@ It has these top-level messages:
 	ManageAction
 	ReceiptConfig
 	ReplyConfig
+	PrivacyAction
+	Public2Privacy
+	Privacy2Privacy
+	Privacy2Public
+	UTXOGlobalIndex
+	KeyInput
+	PrivacyInput
+	KeyOutput
+	PrivacyOutput
+	GroupUTXOGlobalIndex
+	LocalUTXOItem
+	ReqUTXOPubKeys
+	PublicKeyData
+	GroupUTXOPubKey
+	ResUTXOPubKeys
+	ReqPrivacyToken
+	AmountDetail
+	ReplyPrivacyAmounts
+	ReplyUTXOsOfAmount
+	ReceiptPrivacyOutput
+	AmountsOfUTXO
+	TokenNamesOfUTXO
 	Trade
 	TradeForSell
 	TradeForBuy
@@ -184,6 +215,16 @@ It has these top-level messages:
 	ReplyBuyOrders
 	ReplyTradeOrder
 	ReplyTradeOrders
+	Game
+	GameAction
+	GameMatch
+	GameCancel
+	GameClose
+	GameOpen
+	GameList
+	GameInfos
+	ReplyGameList
+	ReceiptGame
 	P2PGetPeerInfo
 	P2PPeerInfo
 	P2PVersion
@@ -201,6 +242,7 @@ It has these top-level messages:
 	P2PGetData
 	P2PTx
 	P2PBlock
+	Versions
 	BroadCastData
 	P2PGetHeaders
 	P2PHeaders
@@ -209,6 +251,8 @@ It has these top-level messages:
 	Peer
 	PeerList
 	NodeNetInfo
+	PeersReply
+	PeersInfo
 	Operation
 	Checkpoint
 	Entry
@@ -225,6 +269,30 @@ It has these top-level messages:
 	RequestAck
 	RequestNewView
 	ClientReply
+	RelayAction
+	RelayCreate
+	RelayOrder
+	RelayAccept
+	RelayRevoke
+	RelayConfirmTx
+	RelayVerify
+	RelayVerifyCli
+	BtcHeader
+	BtcHeaders
+	BtcTransaction
+	Vin
+	Vout
+	BtcSpv
+	ReceiptRelayRcvBTCHeaders
+	ReceiptRelayLog
+	ReqRelayAddrCoins
+	ReplyRelayOrders
+	QueryRelayOrderParam
+	QueryRelayOrderResult
+	ReqRelayBtcHeaderHeightList
+	ReplyRelayBtcHeadHeightList
+	ReqRelayQryBTCHeadHeight
+	ReplayRelayQryBTCHeadHeight
 	TotalFee
 	ReqGetTotalCoins
 	ReplyGetTotalCoins
@@ -236,9 +304,12 @@ It has these top-level messages:
 	SignedTx
 	Transaction
 	Transactions
+	RingSignature
+	RingSignatureItem
 	Signature
 	AddrOverview
 	ReqAddr
+	ReqPrivacy
 	HexTx
 	ReplyTxInfo
 	ReqTxList
@@ -256,6 +327,7 @@ It has these top-level messages:
 	WalletTxDetail
 	WalletTxDetails
 	WalletAccountStore
+	WalletAccountPrivacy
 	WalletPwHash
 	WalletStatus
 	WalletAccounts
@@ -287,6 +359,33 @@ It has these top-level messages:
 	ReplySignRawTx
 	ReportErrEvent
 	Int32
+	ReqPub2Pri
+	ReqPri2Pri
+	ReqPri2Pub
+	ReqCreateUTXOs
+	ReplyPrivacyPkPair
+	ReqPrivBal4AddrToken
+	ReplyPrivacyBalance
+	PrivacyDBStore
+	UTXO
+	UTXOHaveTxHash
+	UTXOs
+	UTXOHaveTxHashs
+	ReqUTXOGlobalIndex
+	UTXOBasic
+	UTXOIndex4Amount
+	ResUTXOGlobalIndex
+	FTXOsSTXOsInOneTx
+	ReqCreateTransaction
+	RealKeyInput
+	UTXOBasics
+	CreateTransactionCache
+	ReqCacheTxList
+	ReplyCacheTxList
+	ReqPrivacyAccount
+	ReqPPrivacyAccount
+	ReplyPrivacyAccount
+	ReqCreateCacheTxKey
 	ReqBindMiner
 	ReplyBindMiner
 */

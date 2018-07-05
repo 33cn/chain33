@@ -2,7 +2,6 @@ package types
 
 // 注释掉系统中没有用到的枚举项
 // 与AllowUserExec中驱动名称的顺序一致
-//TODO 后面会有专门执行器相关的目录
 const (
 	ExecTypeCoins    = 0
 	ExecTypeTicket   = 1
@@ -15,6 +14,19 @@ const (
 	ExecTypeManage   = 8
 )
 
+const (
+	CoinsX          = "coins"
+	TicketX         = "ticket"
+	HashlockX       = "hashlock"
+	RetrieveX       = "retrieve"
+	NoneX           = "none"
+	TokenX          = "token"
+	TradeX          = "trade"
+	ManageX         = "manage"
+	PrivacyX        = "privacy"
+	ExecerEvmString = "evm"
+)
+
 var (
 	ExecerCoins      = []byte("coins")
 	ExecerTicket     = []byte("ticket")
@@ -22,19 +34,27 @@ var (
 	ExecerManage     = []byte("manage")
 	ExecerToken      = []byte("token")
 	ExecerEvm        = []byte("evm")
+	ExecerPrivacy    = []byte("privacy")
+	ExecerRelay      = []byte("relay")
 	AllowDepositExec = [][]byte{ExecerTicket}
 	AllowUserExec    = [][]byte{ExecerCoins, ExecerTicket, []byte("norm"), []byte("hashlock"),
-		[]byte("retrieve"), []byte("none"), ExecerToken, []byte("trade"), ExecerManage, ExecerEvm}
+		[]byte("retrieve"), []byte("none"), ExecerToken, []byte("trade"), ExecerManage, ExecerEvm, ExecerRelay, ExecerPrivacy}
+
 	GenesisAddr            = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 	GenesisBlockTime int64 = 1526486816
 	HotkeyAddr             = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
-	FundKeyAddr            = "1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"
+	FundKeyAddr            = "1BQXS6TxaYYG5mADaWij4AxhZZUTpw95a5"
 	EmptyValue             = []byte("emptyBVBiCj5jvE15pEiwro8TQRGnJSNsJF") //这字符串表示数据库中的空值
-	SuperManager           = []string{"1JmFaA6unrCFYEWPGRi7uuXY1KthTJxJEP"}
+	SuperManager           = []string{"1Bsg9j6gW83sShoee1fZAt9TkUjcrCgA9S", "1Q8hGLfoGe63efeWa8fJ4Pnukhkngt6poK"}
+	ConfigPrefix           = "mavl-config-"
 	TokenApprs             = []string{}
+	//addr:1Cbo5u8V5F3ubWBv9L6qu9wWxKuD3qBVpi,这里只是作为测试用，后面需要修改为系统账户
+	ViewPubFee  = "0x0f7b661757fe8471c0b853b09bf526b19537a2f91254494d19874a04119415e8"
+	SpendPubFee = "0x64204db5a521771eeeddee59c25aaae6bebe796d564effb6ba11352418002ee3"
+	ViewPrivFee = "0x0f7b661757fe8471c0b853b09bf526b19537a2f91254494d19874a04119415e8"
 )
 
-//hard fork block height
+//default hard fork block height
 var (
 	ForkV1               int64 = 1
 	ForkV2AddToken       int64 = 1
@@ -53,13 +73,55 @@ var (
 	ForkV15ResetTx0      int64 = 200000
 	ForkV16Withdraw      int64 = 200000
 	ForkV17EVM           int64 = 250000
+	ForkV18Relay         int64 = 500000
+	ForkV19TokenPrice    int64 = 300000
+	ForkV20EVMState      int64 = 350000
 )
+
+func SetTestNetFork() {
+	ForkV1 = 75260
+	ForkV2AddToken = 100899
+	ForkV3 = 110000
+	ForkV4AddManage = 120000
+	ForkV5Retrive = 180000
+	ForkV6TokenBlackList = 190000
+	ForkV7BadTokenSymbol = 184000
+	ForkBlockHash = 208986 + 200
+	ForkV9 = 350000
+	ForkV10TradeBuyLimit = 301000
+	ForkV11ManageExec = 400000
+	ForkV12TransferExec = 408400
+	ForkV13ExecKey = 408400
+	ForkV14TxGroup = 408400
+	ForkV15ResetTx0 = 453400
+	ForkV16Withdraw = 480000
+	ForkV17EVM = 500000
+	ForkV18Relay = 570000
+	ForkV19TokenPrice = 560000
+	ForkV20EVMState = 650000
+}
+
+func SetForkToOne() {
+	ForkV11ManageExec = 1
+	ForkV12TransferExec = 1
+	ForkV13ExecKey = 1
+	ForkV14TxGroup = 1
+	ForkV15ResetTx0 = 1
+	ForkV16Withdraw = 1
+	ForkV17EVM = 1
+	ForkV18Relay = 1
+	ForkV20EVMState = 1
+}
 
 var (
 	MinFee             int64 = 1e5
 	MinBalanceTransfer int64 = 1e6
 	testNet            bool
 	title              string
+	FeePerKB           = MinFee
+	SignatureSize      = (4 + 33 + 65)
+	// 隐私交易中最大的混淆度
+	PrivacyMaxCount = 16
 )
 
 func SetTitle(t string) {
@@ -70,12 +132,7 @@ func SetTitle(t string) {
 		return
 	}
 	if IsLocal() {
-		ForkV11ManageExec = 1
-		ForkV12TransferExec = 1
-		ForkV13ExecKey = 1
-		ForkV14TxGroup = 1
-		ForkV15ResetTx0 = 1
-		ForkV16Withdraw = 1
+		SetForkToOne()
 		return
 	}
 }
@@ -123,24 +180,8 @@ func SetTestNet(isTestNet bool) {
 	if IsLocal() {
 		return
 	}
-	//测试网络的fork
-	ForkV1 = 75260
-	ForkV2AddToken = 100899
-	ForkV3 = 110000
-	ForkV4AddManage = 120000
-	ForkV5Retrive = 180000
-	ForkV6TokenBlackList = 190000
-	ForkV7BadTokenSymbol = 184000
-	ForkBlockHash = 208986 + 200
-	ForkV9 = 350000
-	ForkV10TradeBuyLimit = 301000
-	ForkV11ManageExec = 400000
-	ForkV12TransferExec = 408400
-	ForkV13ExecKey = 408400
-	ForkV14TxGroup = 408400
-	ForkV15ResetTx0 = 453400
-	ForkV16Withdraw = 480000
-	ForkV17EVM = 500000
+	//测试网络的Fork
+	SetTestNetFork()
 }
 
 func IsTestNet() bool {
@@ -157,21 +198,31 @@ func SetMinFee(fee int64) {
 
 // coin conversation
 const (
-	Coin                int64 = 1e8
-	MaxCoin             int64 = 1e17
-	MaxTxSize                 = 100000 //100K
-	MaxTxGroupSize      int32 = 20
-	MaxBlockSize              = 20000000 //20M
-	MaxTxsPerBlock            = 100000
-	TokenPrecision      int64 = 1e8
-	MaxTokenBalance           = 900 * 1e8 * TokenPrecision //900亿
-	InputPrecision            = 1e4
-	Multiple1E4         int64 = 1e4
-	TokenNameLenLimit         = 128
-	TokenSymbolLenLimit       = 16
-	TokenIntroLenLimit        = 1024
-	InvalidStartTime          = 0
-	InvalidStopTime           = 0
+	BlockDurPerSecCnt           = 15
+	Coin                int64   = 1e8
+	MaxCoin             int64   = 1e17
+	MaxTxSize                   = 100000 //100K
+	MaxTxGroupSize      int32   = 20
+	MaxBlockSize                = 20000000 //20M
+	MaxTxsPerBlock              = 100000
+	TokenPrecision      int64   = 1e8
+	MaxTokenBalance     int64   = 900 * 1e8 * TokenPrecision //900亿
+	InputPrecision      float64 = 1e4
+	Multiple1E4         int64   = 1e4
+	TokenNameLenLimit           = 128
+	TokenSymbolLenLimit         = 16
+	TokenIntroLenLimit          = 1024
+	InvalidStartTime            = 0
+	InvalidStopTime             = 0
+	BTY                         = "BTY"
+	BTYDustThreshold            = Coin
+	ConfirmedHeight             = 12
+	UTXOCacheCount              = 256
+	M_1_TIMES                   = 1
+	M_2_TIMES                   = 2
+	M_5_TIMES                   = 5
+	M_10_TIMES                  = 10
+	PrivacyTxFee                = Coin
 )
 
 // event
@@ -304,8 +355,53 @@ const (
 	EventReplyBlockSequences     = 122
 	EventGetBlockByHashes        = 123
 	EventReplyBlockDetailsBySeqs = 124
+	EventDelParaChainBlockDetail = 125
+	EventAddParaChainBlockDetail = 126
+	EventGetSeqByHash            = 127
+	EventLocalPrefixCount        = 128
 	// Token
-	EventBlockChainQuery = 212
+	EventBlockChainQuery        = 212
+	EventTokenPreCreate         = 200
+	EventReplyTokenPreCreate    = 201
+	EventTokenFinishCreate      = 202
+	EventReplyTokenFinishCreate = 203
+	EventTokenRevokeCreate      = 204
+	EventReplyTokenRevokeCreate = 205
+	EventSellToken              = 206
+	EventReplySellToken         = 207
+	EventBuyToken               = 208
+	EventReplyBuyToken          = 209
+	EventRevokeSellToken        = 210
+	EventReplyRevokeSellToken   = 211
+	// config
+	EventModifyConfig      = 300
+	EventReplyModifyConfig = 301
+
+	// privacy
+	EventPublic2privacy = iota + 400
+	EventReplyPublic2privacy
+	EventPrivacy2privacy
+	EventReplyPrivacy2privacy
+	EventPrivacy2public
+	EventReplyPrivacy2public
+	EventShowPrivacyPK
+	EventReplyShowPrivacyPK
+	EventShowPrivacyAccountSpend
+	EventReplyShowPrivacyAccountSpend
+	EventGetGlobalIndex
+	EventReplyGetGlobalIndex
+	EventCreateUTXOs
+	EventReplyCreateUTXOs
+	EventCreateTransaction
+	EventReplyCreateTransaction
+	EventSendTxHashToWallet
+	EventReplySendTxHashToWallet
+	EventQueryCacheTransaction
+	EventReplyQueryCacheTransaction
+	EventDeleteCacheTransaction
+	EventReplyDeleteCacheTransaction
+	EventPrivacyAccountInfo
+	EventReplyPrivacyAccountInfo
 )
 
 var eventName = map[int]string{
@@ -433,23 +529,86 @@ var eventName = map[int]string{
 	122: "EventReplyBlockSequences",
 	123: "EventGetBlockByHashes",
 	124: "EventReplyBlockDetailsBySeqs",
+	125: "EventDelParaChainBlockDetail",
+	126: "EventAddParaChainBlockDetail",
+	127: "EventGetSeqByHash",
+	128: "EventLocalPrefixCount",
 	// Token
 	EventBlockChainQuery: "EventBlockChainQuery",
+
+	//privacy
+	EventPublic2privacy:               "EventPublic2privacy",
+	EventReplyPublic2privacy:          "EventReplyPublic2privacy",
+	EventPrivacy2privacy:              "EventPrivacy2privacy",
+	EventReplyPrivacy2privacy:         "EventReplyPrivacy2privacy",
+	EventPrivacy2public:               "EventPrivacy2public",
+	EventReplyPrivacy2public:          "EventReplyPrivacy2public",
+	EventShowPrivacyPK:                "EventShowPrivacyPK",
+	EventReplyShowPrivacyPK:           "EventReplyShowPrivacyPK",
+	EventShowPrivacyAccountSpend:      "EventShowPrivacyAccountSpend",
+	EventReplyShowPrivacyAccountSpend: "EventReplyShowPrivacyAccountSpend",
+	EventGetGlobalIndex:               "EventGetGlobalIndex",
+	EventReplyGetGlobalIndex:          "EventReplyGetGlobalIndex",
+	EventCreateUTXOs:                  "EventCreateUTXOs",
+	EventReplyCreateUTXOs:             "EventReplyCreateUTXOs",
+	EventQueryCacheTransaction:        "EventQueryCacheTransaction",
+	EventDeleteCacheTransaction:       "EventDeleteCacheTransaction",
+	EventPrivacyAccountInfo:           "EventPrivacyAccountInfo",
+	EventReplyPrivacyAccountInfo:      "EventReplyPrivacyAccountInfo",
 }
 
 //ty = 1 -> secp256k1
 //ty = 2 -> ed25519
 //ty = 3 -> sm2
+//ty = 4 -> onetimeed25519
+//ty = 5 -> RingBaseonED25519
 const (
-	SECP256K1 = 1
-	ED25519   = 2
-	SM2       = 3
+	Invalid           = 0
+	SECP256K1         = 1
+	ED25519           = 2
+	SM2               = 3
+	OnetimeED25519    = 4
+	RingBaseonED25519 = 5
 )
+
+//const (
+//	SignTypeInvalid        = 0
+//	SignTypeSecp256k1      = 1
+//	SignTypeED25519        = 2
+//	SignTypeSM2            = 3
+//	SignTypeOnetimeED25519 = 4
+//	SignTypeRing           = 5
+//)
+
+const (
+	SignNameSecp256k1      = "secp256k1"
+	SignNameED25519        = "ed25519"
+	SignNameSM2            = "sm2"
+	SignNameOnetimeED25519 = "onetimeed25519"
+	SignNameRing           = "RingSignatue"
+)
+
+var MapSignType2name = map[int]string{
+	SECP256K1:         SignNameSecp256k1,
+	ED25519:           SignNameED25519,
+	SM2:               SignNameSM2,
+	OnetimeED25519:    SignNameOnetimeED25519,
+	RingBaseonED25519: SignNameRing,
+}
+
+var MapSignName2Type = map[string]int{
+	SignNameSecp256k1:      SECP256K1,
+	SignNameED25519:        ED25519,
+	SignNameSM2:            SM2,
+	SignNameOnetimeED25519: OnetimeED25519,
+	SignNameRing:           RingBaseonED25519,
+}
 
 //log type
 const (
-	TyLogErr = 1
-	TyLogFee = 2
+	TyLogReserved = 0
+	TyLogErr      = 1
+	TyLogFee      = 2
 	//coins
 	TyLogTransfer        = 3
 	TyLogGenesis         = 4
@@ -491,8 +650,22 @@ const (
 	TyLogTradeBuyLimit        = 331
 	TyLogTradeBuyRevoke       = 332
 
+	//log for relay
+	TyLogRelayCreate       = 350
+	TyLogRelayRevokeCreate = 351
+	TyLogRelayAccept       = 352
+	TyLogRelayRevokeAccept = 353
+	TyLogRelayConfirmTx    = 354
+	TyLogRelayFinishTx     = 355
+	TyLogRelayRcvBTCHead   = 356
+
 	// log for config
 	TyLogModifyConfig = 410
+
+	// log for privacy
+	TyLogPrivacyFee    = 500
+	TyLogPrivacyInput  = 501
+	TyLogPrivacyOutput = 502
 
 	// log for evm
 	// 合约代码变更日志
@@ -501,6 +674,8 @@ const (
 	TyLogContractState = 602
 	// 合约状态数据变更日志
 	TyLogCallContract = 603
+	// 合约状态数据变更项日志
+	TyLogEVMStateChangeItem = 604
 )
 
 //exec type
@@ -510,7 +685,6 @@ const (
 	ExecOk   = 2
 )
 
-//coinsaction
 const (
 	InvalidAction       = 0
 	CoinsActionTransfer = 1
@@ -526,6 +700,10 @@ const (
 	TokenActionRevokeCreate   = 9
 	CoinsActionTransferToExec = 10
 	TokenActionTransferToExec = 11
+	//action type for privacy
+	ActionPublic2Privacy = iota + 100
+	ActionPrivacy2Privacy
+	ActionPrivacy2Public
 )
 
 //ticket
@@ -627,3 +805,34 @@ var MapSellOrderStatusStr2Int = map[string]int32{
 	"soldout": TradeOrderStatusSoldOut,
 	"revoked": TradeOrderStatusRevoked,
 }
+
+// relay
+const (
+	RelayRevokeCreate = iota
+	RelayRevokeAccept
+)
+const (
+	RelayOrderBuy = iota
+	RelayOrderSell
+)
+
+var RelayOrderOperation = map[uint32]string{
+	RelayOrderBuy:  "buy",
+	RelayOrderSell: "sell",
+}
+
+const (
+	RelayUnlock = iota
+	RelayCancel
+)
+
+//relay action ty
+const (
+	RelayActionCreate = iota
+	RelayActionAccept
+	RelayActionRevoke
+	RelayActionConfirmTx
+	RelayActionVerifyTx
+	RelayActionVerifyCmdTx
+	RelayActionRcvBTCHeaders
+)
