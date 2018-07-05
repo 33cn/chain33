@@ -3,7 +3,6 @@ package rpc
 import (
 	"encoding/hex"
 	"math/rand"
-	"time"
 
 	"encoding/json"
 
@@ -56,6 +55,7 @@ func callExecNewTx(execName, action string, param interface{}) ([]byte, error) {
 		log.Error("callExecNewTx", "Error", err)
 		return nil, err
 	}
+
 	txHex := types.Encode(tx)
 	return txHex, nil
 }
@@ -268,7 +268,7 @@ func (c *channelClient) BindMiner(param *types.ReqBindMiner) (*types.ReplyBindMi
 	execer := []byte("ticket")
 	to := address.ExecAddress(string(execer))
 	txBind := &types.Transaction{Execer: execer, Payload: types.Encode(ta), To: to}
-	random := rand.New(rand.NewSource(time.Now().UnixNano()))
+	random := rand.New(rand.NewSource(types.Now().UnixNano()))
 	txBind.Nonce = random.Int63()
 	var err error
 	txBind.Fee, err = txBind.GetRealFee(types.MinFee)
@@ -296,37 +296,159 @@ func (c *channelClient) DecodeRawTransaction(param *types.ReqDecodeRawTransactio
 }
 
 func (c *channelClient) GetTimeStatus() (*types.TimeStatus, error) {
-	var diffTmp []int64
-	var ntpTime time.Time
-	var local time.Time
-	var diff int64
-	for i := 0; i < 3; i++ {
-		time.Sleep(time.Millisecond * 100)
-		errTimes := 0
-		for {
-			time.Sleep(time.Millisecond * 100)
-			var err error
-			ntpTime, err = common.GetNtpTime("time.windows.com:123")
-			if err != nil {
-				errTimes++
-			} else {
-				break
-			}
-			if errTimes == 10 {
-				return &types.TimeStatus{NtpTime: "", LocalTime: time.Now().Format("2006-01-02 15:04:05"), Diff: 0}, nil
-			}
-		}
-
-		local = time.Now()
-		diff = local.Unix() - ntpTime.Unix()
-		diffTmp = append(diffTmp, diff)
+	ntpTime := common.GetRealTimeRetry(types.NtpHosts, 10)
+	local := types.Now()
+	if ntpTime.IsZero() {
+		return &types.TimeStatus{NtpTime: "", LocalTime: local.Format("2006-01-02 15:04:05"), Diff: 0}, nil
 	}
-	for j := 0; j < 2; j++ {
-		for k := j + 1; k < 3; k++ {
-			if diffTmp[j] != diffTmp[k] {
-				return &types.TimeStatus{NtpTime: "", LocalTime: time.Now().Format("2006-01-02 15:04:05"), Diff: 0}, nil
-			}
-		}
-	}
+	diff := local.Unix() - ntpTime.Unix()
 	return &types.TimeStatus{NtpTime: ntpTime.Format("2006-01-02 15:04:05"), LocalTime: local.Format("2006-01-02 15:04:05"), Diff: diff}, nil
+}
+
+func (c *channelClient) CreateRawRelayOrderTx(parm *RelayOrderTx) ([]byte, error) {
+	if parm == nil {
+		return nil, types.ErrInvalidParam
+	}
+	v := &types.RelayCreate{
+		Operation: parm.Operation,
+		Coin:      parm.Coin,
+		Amount:    parm.Amount,
+		Addr:      parm.Addr,
+		BtyAmount: parm.BtyAmount,
+	}
+	sell := &types.RelayAction{
+		Ty:    types.RelayActionCreate,
+		Value: &types.RelayAction_Create{v},
+	}
+	tx := &types.Transaction{
+		Execer:  types.ExecerRelay,
+		Payload: types.Encode(sell),
+		Fee:     parm.Fee,
+		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
+		To:      address.ExecAddress(string(types.ExecerRelay)),
+	}
+
+	data := types.Encode(tx)
+	return data, nil
+}
+
+func (c *channelClient) CreateRawRelayAcceptTx(parm *RelayAcceptTx) ([]byte, error) {
+	if parm == nil {
+		return nil, types.ErrInvalidParam
+	}
+	v := &types.RelayAccept{OrderId: parm.OrderId, CoinAddr: parm.CoinAddr}
+	val := &types.RelayAction{
+		Ty:    types.RelayActionAccept,
+		Value: &types.RelayAction_Accept{v},
+	}
+	tx := &types.Transaction{
+		Execer:  types.ExecerRelay,
+		Payload: types.Encode(val),
+		Fee:     parm.Fee,
+		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
+		To:      address.ExecAddress(string(types.ExecerRelay)),
+	}
+
+	data := types.Encode(tx)
+	return data, nil
+}
+
+func (c *channelClient) CreateRawRelayRevokeTx(parm *RelayRevokeTx) ([]byte, error) {
+	if parm == nil {
+		return nil, types.ErrInvalidParam
+	}
+	v := &types.RelayRevoke{OrderId: parm.OrderId, Target: parm.Target, Action: parm.Action}
+	val := &types.RelayAction{
+		Ty:    types.RelayActionRevoke,
+		Value: &types.RelayAction_Revoke{v},
+	}
+	tx := &types.Transaction{
+		Execer:  types.ExecerRelay,
+		Payload: types.Encode(val),
+		Fee:     parm.Fee,
+		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
+		To:      address.ExecAddress(string(types.ExecerRelay)),
+	}
+
+	data := types.Encode(tx)
+	return data, nil
+}
+
+func (c *channelClient) CreateRawRelayConfirmTx(parm *RelayConfirmTx) ([]byte, error) {
+	if parm == nil {
+		return nil, types.ErrInvalidParam
+	}
+	v := &types.RelayConfirmTx{OrderId: parm.OrderId, TxHash: parm.TxHash}
+	val := &types.RelayAction{
+		Ty:    types.RelayActionConfirmTx,
+		Value: &types.RelayAction_ConfirmTx{v},
+	}
+	tx := &types.Transaction{
+		Execer:  types.ExecerRelay,
+		Payload: types.Encode(val),
+		Fee:     parm.Fee,
+		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
+		To:      address.ExecAddress(string(types.ExecerRelay)),
+	}
+
+	data := types.Encode(tx)
+	return data, nil
+}
+
+func (c *channelClient) CreateRawRelayVerifyBTCTx(parm *RelayVerifyBTCTx) ([]byte, error) {
+	if parm == nil {
+		return nil, types.ErrInvalidParam
+	}
+	v := &types.RelayVerifyCli{
+		OrderId:    parm.OrderId,
+		RawTx:      parm.RawTx,
+		TxIndex:    parm.TxIndex,
+		MerkBranch: parm.MerklBranch,
+		BlockHash:  parm.BlockHash}
+	val := &types.RelayAction{
+		Ty:    types.RelayActionVerifyCmdTx,
+		Value: &types.RelayAction_VerifyCli{v},
+	}
+	tx := &types.Transaction{
+		Execer:  types.ExecerRelay,
+		Payload: types.Encode(val),
+		Fee:     parm.Fee,
+		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
+		To:      address.ExecAddress(string(types.ExecerRelay)),
+	}
+
+	data := types.Encode(tx)
+	return data, nil
+}
+
+func (c *channelClient) CreateRawRelaySaveBTCHeadTx(parm *RelaySaveBTCHeadTx) ([]byte, error) {
+	if parm == nil {
+		return nil, types.ErrInvalidParam
+	}
+
+	head := &types.BtcHeader{
+		Hash:         parm.Hash,
+		PreviousHash: parm.PreviousHash,
+		MerkleRoot:   parm.MerkleRoot,
+		Height:       parm.Height,
+		IsReset:      parm.IsReset,
+	}
+
+	v := &types.BtcHeaders{}
+	v.BtcHeader = append(v.BtcHeader, head)
+
+	val := &types.RelayAction{
+		Ty:    types.RelayActionRcvBTCHeaders,
+		Value: &types.RelayAction_BtcHeaders{v},
+	}
+	tx := &types.Transaction{
+		Execer:  types.ExecerRelay,
+		Payload: types.Encode(val),
+		Fee:     parm.Fee,
+		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
+		To:      address.ExecAddress(string(types.ExecerRelay)),
+	}
+
+	data := types.Encode(tx)
+	return data, nil
 }

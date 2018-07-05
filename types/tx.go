@@ -9,6 +9,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
+	"strings"
 )
 
 var (
@@ -363,7 +364,7 @@ func (tx *Transaction) SetExpire(expire time.Duration) {
 			expire = time.Second * 120
 		}
 		//用秒数来表示的时间
-		tx.Expire = time.Now().Unix() + int64(expire/time.Second)
+		tx.Expire = Now().Unix() + int64(expire/time.Second)
 	} else {
 		tx.Expire = int64(expire)
 	}
@@ -386,7 +387,11 @@ func (tx *Transaction) GetRealFee(minFee int64) (int64, error) {
 var expireBound int64 = 1000000000 // 交易过期分界线，小于expireBound比较height，大于expireBound比较blockTime
 
 func (tx *Transaction) IsExpire(height, blocktime int64) bool {
-	return tx.isExpire(height, blocktime)
+	group, _ := tx.GetTxGroup()
+	if group == nil {
+		return tx.isExpire(height, blocktime)
+	}
+	return group.IsExpire(height, blocktime)
 }
 
 func (tx *Transaction) From() string {
@@ -461,6 +466,96 @@ func (tx *Transaction) Amount() (int64, error) {
 		return 0, nil
 	}
 	return exec.Amount(tx)
+
+	// TODO has new
+	if CoinsX == string(tx.Execer) {
+		var action CoinsAction
+		err := Decode(tx.GetPayload(), &action)
+		if err != nil {
+			return 0, ErrDecode
+		}
+		if action.Ty == CoinsActionTransfer && action.GetTransfer() != nil {
+			transfer := action.GetTransfer()
+			return transfer.Amount, nil
+		} else if action.Ty == CoinsActionGenesis && action.GetGenesis() != nil {
+			gen := action.GetGenesis()
+			return gen.Amount, nil
+		} else if action.Ty == CoinsActionWithdraw && action.GetWithdraw() != nil {
+			transfer := action.GetWithdraw()
+			return transfer.Amount, nil
+		} else if action.Ty == CoinsActionTransferToExec && action.GetTransferToExec() != nil {
+			transfer := action.GetTransferToExec()
+			return transfer.Amount, nil
+		}
+	} else if TicketX == string(tx.Execer) {
+		var action TicketAction
+		err := Decode(tx.GetPayload(), &action)
+		if err != nil {
+			return 0, ErrDecode
+		}
+		if action.Ty == TicketActionMiner && action.GetMiner() != nil {
+			ticketMiner := action.GetMiner()
+			return ticketMiner.Reward, nil
+		}
+	} else if TokenX == string(tx.Execer) { //TODO: 补充和完善token和trade分支的amount的计算, added by hzj
+		var action TokenAction
+		err := Decode(tx.GetPayload(), &action)
+		if err != nil {
+			return 0, ErrDecode
+		}
+
+		if TokenActionPreCreate == action.Ty && action.GetTokenprecreate() != nil {
+			precreate := action.GetTokenprecreate()
+			return precreate.Price, nil
+		} else if TokenActionFinishCreate == action.Ty && action.GetTokenfinishcreate() != nil {
+			return 0, nil
+		} else if TokenActionRevokeCreate == action.Ty && action.GetTokenrevokecreate() != nil {
+			return 0, nil
+		} else if ActionTransfer == action.Ty && action.GetTransfer() != nil {
+			return 0, nil
+		} else if ActionWithdraw == action.Ty && action.GetWithdraw() != nil {
+			return 0, nil
+		}
+
+	} else if TradeX == string(tx.Execer) {
+		var trade Trade
+		err := Decode(tx.GetPayload(), &trade)
+		if err != nil {
+			return 0, ErrDecode
+		}
+
+		if TradeSellLimit == trade.Ty && trade.GetTokensell() != nil {
+			return 0, nil
+		} else if TradeBuyMarket == trade.Ty && trade.GetTokenbuy() != nil {
+			return 0, nil
+		} else if TradeRevokeSell == trade.Ty && trade.GetTokenrevokesell() != nil {
+			return 0, nil
+		}
+	} else if PrivacyX == string(tx.Execer) {
+		var action PrivacyAction
+		err := Decode(tx.Payload, &action)
+		if err != nil {
+			return 0, ErrDecode
+		}
+		if action.Ty == ActionPublic2Privacy && action.GetPublic2Privacy() != nil {
+			return action.GetPublic2Privacy().GetAmount(), nil
+		} else if action.Ty == ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
+			return action.GetPrivacy2Privacy().GetAmount(), nil
+		} else if action.Ty == ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
+			return action.GetPrivacy2Public().GetAmount(), nil
+		}
+	} else if string(ExecerRelay) == string(tx.Execer) {
+		var relay RelayAction
+		err := Decode(tx.GetPayload(), &relay)
+		if err != nil {
+			return 0, ErrDecode
+		}
+		if RelayActionCreate == relay.Ty && relay.GetCreate() != nil {
+			return int64(relay.GetCreate().BtyAmount), nil
+		}
+		return 0, nil
+	}
+	return exec.Amount(tx)
 }
 
 //获取tx交易的Actionname
@@ -474,6 +569,149 @@ func (tx *Transaction) ActionName() string {
 		return "unknow"
 	}
 	return exec.ActionName(tx)
+
+	// TODO check has new
+	if bytes.Equal(tx.Execer, []byte("coins")) {
+		var action CoinsAction
+		err := Decode(tx.Payload, &action)
+		if err != nil {
+			return "unknow-err"
+		}
+		if action.Ty == CoinsActionTransfer && action.GetTransfer() != nil {
+			return "transfer"
+		} else if action.Ty == CoinsActionWithdraw && action.GetWithdraw() != nil {
+			return "withdraw"
+		} else if action.Ty == CoinsActionGenesis && action.GetGenesis() != nil {
+			return "genesis"
+		} else if action.Ty == CoinsActionTransferToExec && action.GetTransferToExec() != nil {
+			return "sendToExec"
+		}
+	} else if bytes.Equal(tx.Execer, []byte("ticket")) {
+		var action TicketAction
+		err := Decode(tx.Payload, &action)
+		if err != nil {
+			return "unknow-err"
+		}
+		if action.Ty == TicketActionGenesis && action.GetGenesis() != nil {
+			return "genesis"
+		} else if action.Ty == TicketActionOpen && action.GetTopen() != nil {
+			return "open"
+		} else if action.Ty == TicketActionClose && action.GetTclose() != nil {
+			return "close"
+		} else if action.Ty == TicketActionMiner && action.GetMiner() != nil {
+			return "miner"
+		} else if action.Ty == TicketActionBind && action.GetTbind() != nil {
+			return "bindminer"
+		}
+	} else if bytes.Equal(tx.Execer, []byte("none")) {
+		return "none"
+	} else if bytes.Equal(tx.Execer, []byte("hashlock")) {
+		var action HashlockAction
+		err := Decode(tx.Payload, &action)
+		if err != nil {
+			return "unknow-err"
+		}
+		if action.Ty == HashlockActionLock && action.GetHlock() != nil {
+			return "lock"
+		} else if action.Ty == HashlockActionUnlock && action.GetHunlock() != nil {
+			return "unlock"
+		} else if action.Ty == HashlockActionSend && action.GetHsend() != nil {
+			return "send"
+		}
+	} else if bytes.Equal(tx.Execer, []byte("retrieve")) {
+		var action RetrieveAction
+		err := Decode(tx.Payload, &action)
+		if err != nil {
+			return "unknow-err"
+		}
+		if action.Ty == RetrievePre && action.GetPreRet() != nil {
+			return "prepare"
+		} else if action.Ty == RetrievePerf && action.GetPerfRet() != nil {
+			return "perform"
+		} else if action.Ty == RetrieveBackup && action.GetBackup() != nil {
+			return "backup"
+		} else if action.Ty == RetrieveCancel && action.GetCancel() != nil {
+			return "cancel"
+		}
+	} else if bytes.Equal(tx.Execer, []byte("token")) {
+		var action TokenAction
+		err := Decode(tx.Payload, &action)
+		if err != nil {
+			return "unknow-err"
+		}
+
+		if action.Ty == TokenActionPreCreate && action.GetTokenprecreate() != nil {
+			return "preCreate"
+		} else if action.Ty == TokenActionFinishCreate && action.GetTokenfinishcreate() != nil {
+			return "finishCreate"
+		} else if action.Ty == TokenActionRevokeCreate && action.GetTokenrevokecreate() != nil {
+			return "revokeCreate"
+		} else if action.Ty == ActionTransfer && action.GetTransfer() != nil {
+			return "transferToken"
+		} else if action.Ty == ActionWithdraw && action.GetWithdraw() != nil {
+			return "withdrawToken"
+		}
+	} else if bytes.Equal(tx.Execer, []byte("trade")) {
+		var trade Trade
+		err := Decode(tx.Payload, &trade)
+		if err != nil {
+			return "unknow-err"
+		}
+
+		if trade.Ty == TradeSellLimit && trade.GetTokensell() != nil {
+			return "selltoken"
+		} else if trade.Ty == TradeBuyMarket && trade.GetTokenbuy() != nil {
+			return "buytoken"
+		} else if trade.Ty == TradeRevokeSell && trade.GetTokenrevokesell() != nil {
+			return "revokeselltoken"
+		} else if trade.Ty == TradeBuyLimit && trade.GetTokenbuylimit() != nil {
+			return "buylimittoken"
+		} else if trade.Ty == TradeSellMarket && trade.GetTokensellmarket() != nil {
+			return "sellmarkettoken"
+		} else if trade.Ty == TradeRevokeBuy && trade.GetTokenrevokebuy() != nil {
+			return "revokebuytoken"
+		}
+	} else if bytes.Equal(tx.Execer, ExecerPrivacy) {
+		var action PrivacyAction
+		err := Decode(tx.Payload, &action)
+		if err != nil {
+			return "unknow-privacy-err"
+		}
+		return action.GetActionName()
+	} else if bytes.Equal(tx.Execer, ExecerEvm) || bytes.HasPrefix(tx.Execer, []byte("user.evm.")) {
+		// 这个需要通过合约交易目标地址来判断Action
+		// 如果目标地址为空，或为evm的固定合约地址，则为创建合约，否则为调用合约
+		if strings.EqualFold(tx.To, "19tjS51kjwrCoSQS13U3owe7gYBLfSfoFm") {
+			return "createEvmContract"
+		} else {
+			return "callEvmContract"
+		}
+	} else if bytes.Equal(tx.Execer, ExecerRelay) {
+		var relay RelayAction
+		err := Decode(tx.Payload, &relay)
+		if err != nil {
+			return "unkown-relay-action-err"
+		}
+		if relay.Ty == RelayActionCreate && relay.GetCreate() != nil {
+			return "relayCreateTx"
+		}
+		if relay.Ty == RelayActionRevoke && relay.GetRevoke() != nil {
+			return "relayRevokeTx"
+		}
+		if relay.Ty == RelayActionAccept && relay.GetAccept() != nil {
+			return "relayAcceptTx"
+		}
+		if relay.Ty == RelayActionConfirmTx && relay.GetConfirmTx() != nil {
+			return "relayConfirmTx"
+		}
+		if relay.Ty == RelayActionVerifyTx && relay.GetVerify() != nil {
+			return "relayVerifyTx"
+		}
+		if relay.Ty == RelayActionRcvBTCHeaders && relay.GetBtcHeaders() != nil {
+			return "relay-receive-btc-heads"
+		}
+	}
+	return "unknow"
 }
 
 //判断交易是withdraw交易，需要做from和to地址的swap，方便上层客户理解

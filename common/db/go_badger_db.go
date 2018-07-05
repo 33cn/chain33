@@ -179,6 +179,11 @@ func (db *GoBadgerDB) Iterator(prefix []byte, reserse bool) Iterator {
 	return &goBadgerDBIt{it, txn, nil, prefix, reserse}
 }
 
+func (db *GoBadgerDB) BatchGet(keys [][]byte) (value [][]byte, err error) {
+	blog.Error("BatchGet", "Need to implement")
+	return nil, nil
+}
+
 type goBadgerDBIt struct {
 	*badger.Iterator
 	txn     *badger.Txn
