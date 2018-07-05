@@ -81,7 +81,7 @@ func createTx(priv crypto.PrivKey, to string, amount int64) *types.Transaction {
 
 	v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
 	transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
-	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1e6, To: to}
+	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1e6, To: to, Expire: 0}
 	tx.Nonce = random.Int63()
 	tx.To = address.ExecAddress("none")
 	tx.Sign(types.SECP256K1, priv)
@@ -152,6 +152,7 @@ func PrintSequenceInfo(Sequence *types.BlockSequence) {
 }
 func addTx() (string, error) {
 	txs, _, _ := genTxs(1)
+	fmt.Println("addTx: ", txs[0])
 	hash := common.Bytes2Hex(txs[0].Hash())
 	reply, err := api.SendTx(txs[0])
 	if err != nil {
