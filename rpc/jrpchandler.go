@@ -792,6 +792,7 @@ func (c *Chain33) GetTokenBalance(in types.ReqTokenBalance, result *interface{})
 	return nil
 }
 
+/*
 func (c *Chain33) QueryOld(in Query4Jrpc, result *interface{}) error {
 	decodePayload, err := protoPayload(in.Execer, in.FuncName, &in.Payload)
 	if err != nil {
@@ -807,6 +808,7 @@ func (c *Chain33) QueryOld(in Query4Jrpc, result *interface{}) error {
 	*result = resp
 	return nil
 }
+*/
 
 func (c *Chain33) Query(in Query4Jrpc, result *interface{}) error {
 	trans := types.LoadQueryType(in.FuncName)
