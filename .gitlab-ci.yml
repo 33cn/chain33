@@ -104,3 +104,15 @@ deploy:
         - develop
         - bty_develop
 
+fort_test:
+    stage: deploy
+    tags:
+        - 33cn
+    script:
+        - make build_ci
+        - make fork-test
+        - cd build && docker-compose down && cd ..
+    only:
+        - master
+        - develop
+
