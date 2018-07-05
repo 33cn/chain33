@@ -586,7 +586,9 @@ func (m *BroadCastData) String() string            { return proto.CompactTextStr
 func (*BroadCastData) ProtoMessage()               {}
 func (*BroadCastData) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{18} }
 
-type isBroadCastData_Value interface{ isBroadCastData_Value() }
+type isBroadCastData_Value interface {
+	isBroadCastData_Value()
+}
 
 type BroadCastData_Tx struct {
 	Tx *P2PTx `protobuf:"bytes,1,opt,name=tx,oneof"`
@@ -820,7 +822,9 @@ func (m *InvData) String() string            { return proto.CompactTextString(m)
 func (*InvData) ProtoMessage()               {}
 func (*InvData) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{21} }
 
-type isInvData_Value interface{ isInvData_Value() }
+type isInvData_Value interface {
+	isInvData_Value()
+}
 
 type InvData_Tx struct {
 	Tx *Transaction `protobuf:"bytes,1,opt,name=tx,oneof"`
