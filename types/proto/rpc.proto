@@ -144,4 +144,10 @@ service grpcservice {
 
     //获取地址所以合约下的余额
     rpc GetAllExecBalance(ReqAddr) returns (AllExecBalance) {}
+
+    //创建绑定挖矿
+    rpc CreateBindMiner(ReqBindMiner) returns (ReplyBindMiner) {}
+
+    //签名交易
+    rpc SignRawTx(ReqSignRawTx) returns (ReplySignRawTx) {}
 }
