@@ -60,23 +60,17 @@ func (coins PrivacyType) ActionName(tx *types.Transaction) string {
 }
 
 func (t PrivacyType) Amount(tx *types.Transaction) (int64, error) {
-	var action types.CoinsAction
-	err := types.Decode(tx.GetPayload(), &action)
+	var action types.PrivacyAction
+	err := types.Decode(tx.Payload, &action)
 	if err != nil {
 		return 0, types.ErrDecode
 	}
-	if action.Ty == types.CoinsActionTransfer && action.GetTransfer() != nil {
-		transfer := action.GetTransfer()
-		return transfer.Amount, nil
-	} else if action.Ty == types.CoinsActionGenesis && action.GetGenesis() != nil {
-		gen := action.GetGenesis()
-		return gen.Amount, nil
-	} else if action.Ty == types.CoinsActionWithdraw && action.GetWithdraw() != nil {
-		transfer := action.GetWithdraw()
-		return transfer.Amount, nil
-	} else if action.Ty == types.CoinsActionTransferToExec && action.GetTransferToExec() != nil {
-		transfer := action.GetTransferToExec()
-		return transfer.Amount, nil
+	if action.Ty == types.ActionPublic2Privacy && action.GetPublic2Privacy() != nil {
+		return action.GetPublic2Privacy().GetAmount(), nil
+	} else if action.Ty == types.ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
+		return action.GetPrivacy2Privacy().GetAmount(), nil
+	} else if action.Ty == types.ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
+		return action.GetPrivacy2Public().GetAmount(), nil
 	}
 	return 0, nil
 }
