@@ -32,7 +32,7 @@ type GoPikaDB struct {
 
 func NewGoPikaDB(name string, dir string, cache int) (*GoPikaDB, error) {
 	var client redis.Client
-	client.Addr = "127.0.0.1:9221"
+	client.Addr = dir
 	batch := make(map[string][]byte)
 	return &GoPikaDB{client: &client, batch: batch}, nil
 }
