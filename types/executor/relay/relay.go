@@ -32,12 +32,28 @@ type RelayType struct {
 }
 
 func (r RelayType) ActionName(tx *types.Transaction) string {
-	// 这个需要通过合约交易目标地址来判断Action
-	// 如果目标地址为空，或为evm的固定合约地址，则为创建合约，否则为调用合约
-	if strings.EqualFold(tx.To, "19tjS51kjwrCoSQS13U3owe7gYBLfSfoFm") {
-		return "createEvmContract"
-	} else {
-		return "callEvmContract"
+	var relay types.RelayAction
+	err := types.Decode(tx.Payload, &relay)
+	if err != nil {
+		return "unkown-relay-action-err"
+	}
+	if relay.Ty == types.RelayActionCreate && relay.GetCreate() != nil {
+		return "relayCreateTx"
+	}
+	if relay.Ty == types.RelayActionRevoke && relay.GetRevoke() != nil {
+		return "relayRevokeTx"
+	}
+	if relay.Ty == types.RelayActionAccept && relay.GetAccept() != nil {
+		return "relayAcceptTx"
+	}
+	if relay.Ty == types.RelayActionConfirmTx && relay.GetConfirmTx() != nil {
+		return "relayConfirmTx"
+	}
+	if relay.Ty == types.RelayActionVerifyTx && relay.GetVerify() != nil {
+		return "relayVerifyTx"
+	}
+	if relay.Ty == types.RelayActionRcvBTCHeaders && relay.GetBtcHeaders() != nil {
+		return "relay-receive-btc-heads"
 	}
 	return "unknow"
 }
