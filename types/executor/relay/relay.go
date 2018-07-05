@@ -25,9 +25,13 @@ func init() {
 	types.RegistorLog(types.TyLogRelayRcvBTCHead, &RelayRcvBTCHeadLog{})
 
 	// init query rpc
-	types.RegistorRpcType("CheckAddrExists", &EvmCheckAddrExists{})
-	types.RegistorRpcType("EstimateGas", &EvmEstimateGas{})
-	types.RegistorRpcType("EvmDebug", &EvmDebug{})
+	types.RegistorRpcType("GetRelayOrderByStatus", &RelayGetRelayOrderByStatus{})
+	types.RegistorRpcType("GetSellRelayOrder", &RelayGetSellRelayOrder{})
+	types.RegistorRpcType("GetBuyRelayOrder", &RelayGetBuyRelayOrder{})
+	types.RegistorRpcType("GetBTCHeaderList", &RelayGetBTCHeaderList{})
+	types.RegistorRpcType("GetBTCHeaderMissList", &RelayGetBTCHeaderMissList{})
+	types.RegistorRpcType("GetBTCHeaderCurHeight", &RelayGetBTCHeaderCurHeight{})
+
 }
 
 type RelayType struct {
@@ -191,11 +195,11 @@ func (l RelayRcvBTCHeadLog) Decode(msg []byte) (interface{}, error) {
 	return logTmp, err
 }
 
-type EvmCheckAddrExists struct {
+type RelayGetRelayOrderByStatus struct {
 }
 
-func (t *EvmCheckAddrExists) Input(message json.RawMessage) ([]byte, error) {
-	var req types.CheckEVMAddrReq
+func (t *RelayGetRelayOrderByStatus) Input(message json.RawMessage) ([]byte, error) {
+	var req types.ReqRelayAddrCoins
 	err := json.Unmarshal(message, &req)
 	if err != nil {
 		return nil, err
@@ -203,15 +207,15 @@ func (t *EvmCheckAddrExists) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *EvmCheckAddrExists) Output(reply interface{}) (interface{}, error) {
+func (t *RelayGetRelayOrderByStatus) Output(reply interface{}) (interface{}, error) {
 	return reply, nil
 }
 
-type EvmEstimateGas struct {
+type RelayGetSellRelayOrder struct {
 }
 
-func (t *EvmEstimateGas) Input(message json.RawMessage) ([]byte, error) {
-	var req types.EstimateEVMGasReq
+func (t *RelayGetSellRelayOrder) Input(message json.RawMessage) ([]byte, error) {
+	var req types.ReqRelayAddrCoins
 	err := json.Unmarshal(message, &req)
 	if err != nil {
 		return nil, err
@@ -219,15 +223,15 @@ func (t *EvmEstimateGas) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *EvmEstimateGas) Output(reply interface{}) (interface{}, error) {
+func (t *RelayGetSellRelayOrder) Output(reply interface{}) (interface{}, error) {
 	return reply, nil
 }
 
-type EvmDebug struct {
+type RelayGetBuyRelayOrder struct {
 }
 
-func (t *EvmDebug) Input(message json.RawMessage) ([]byte, error) {
-	var req types.EvmDebugReq
+func (t *RelayGetBuyRelayOrder) Input(message json.RawMessage) ([]byte, error) {
+	var req types.ReqRelayAddrCoins
 	err := json.Unmarshal(message, &req)
 	if err != nil {
 		return nil, err
@@ -235,6 +239,56 @@ func (t *EvmDebug) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *EvmDebug) Output(reply interface{}) (interface{}, error) {
+func (t *RelayGetBuyRelayOrder) Output(reply interface{}) (interface{}, error) {
+	return reply, nil
+}
+
+type RelayGetBTCHeaderList struct {
+}
+
+func (t *RelayGetBTCHeaderList) Input(message json.RawMessage) ([]byte, error) {
+	var req types.ReqRelayBtcHeaderHeightList
+	err := json.Unmarshal(message, &req)
+	if err != nil {
+		return nil, err
+	}
+	return types.Encode(&req), nil
+}
+
+func (t *RelayGetBTCHeaderList) Output(reply interface{}) (interface{}, error) {
+	return reply, nil
+}
+
+
+type RelayGetBTCHeaderMissList struct {
+}
+
+func (t *RelayGetBTCHeaderMissList) Input(message json.RawMessage) ([]byte, error) {
+	var req types.ReqRelayBtcHeaderHeightList
+	err := json.Unmarshal(message, &req)
+	if err != nil {
+		return nil, err
+	}
+	return types.Encode(&req), nil
+}
+
+func (t *RelayGetBTCHeaderMissList) Output(reply interface{}) (interface{}, error) {
+	return reply, nil
+}
+
+
+type RelayGetBTCHeaderCurHeight struct {
+}
+
+func (t *RelayGetBTCHeaderCurHeight) Input(message json.RawMessage) ([]byte, error) {
+	var req types.ReqRelayQryBTCHeadHeight
+	err := json.Unmarshal(message, &req)
+	if err != nil {
+		return nil, err
+	}
+	return types.Encode(&req), nil
+}
+
+func (t *RelayGetBTCHeaderCurHeight) Output(reply interface{}) (interface{}, error) {
 	return reply, nil
 }
