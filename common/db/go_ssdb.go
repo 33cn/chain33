@@ -128,6 +128,28 @@ func (db *GoSSDB) Get(key []byte) ([]byte, error) {
 	return value.Bytes(), nil
 }
 
+func (db *GoSSDB) BatchGet(keys [][]byte) (values [][]byte, err error) {
+	start := time.Now()
+	var keylist = []string{}
+	for _, v := range keys {
+		keylist = append(keylist, string(v))
+	}
+	vals, err := db.pool.get().MultiGet(keylist...)
+	if err != nil {
+		//dlog.Error("Get value error", "error", err, "key", key, "keyhex", hex.EncodeToString(key), "keystr", string(key))
+		return nil, err
+	}
+	if vals == nil {
+		return nil, ErrNotFoundInDb
+	}
+
+	for _, v := range vals {
+		values = append(values, v.Bytes())
+	}
+	benchmark.read(1, time.Since(start))
+	return values, nil
+}
+
 func (db *GoSSDB) Set(key []byte, value []byte) error {
 	start := time.Now()
 
