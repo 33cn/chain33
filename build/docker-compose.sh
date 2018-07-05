@@ -40,9 +40,6 @@ RELAYD="${1}_relayd_1"
 containers=("${NODE1}" "${NODE2}" "${NODE3}" "${NODE4}" "${NODE5}" "${NODE6}" "${BTCD}" "${RELAYD}")
 export forkContainers=("${CLI3}" "${CLI2}" "${CLI}" "${CLI4}" "${CLI5}" "${CLI6}")
 
-# shellcheck disable=SC1091
-source fork-test.sh
-
 sedfix=""
 if [ "$(uname)" == "Darwin" ]; then
     sedfix=".bak"
@@ -94,6 +91,7 @@ function init() {
     ping_btcd
 
     # query node run status
+
     ${CLI} block last_header
     ${CLI} net info
 
@@ -659,8 +657,6 @@ function main() {
     transfer
     relay "${CLI}"
     # TODO other work!!!
-    # 构造分叉测试
-    optDockerfun
 
     check_docker_container
     echo "==========================================main end========================================================="

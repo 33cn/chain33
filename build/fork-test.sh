@@ -1,13 +1,206 @@
 #!/usr/bin/env bash
-
+# shellcheck disable=SC2178
 set +e
+
+PWD=$(cd "$(dirname "$0")" && pwd)
+export PATH="$PWD:$PATH"
+
+NODE3="${1}_chain33_1"
+CLI="docker exec ${NODE3} /root/chain33-cli"
+
+NODE2="${1}_chain32_1"
+CLI2="docker exec ${NODE2} /root/chain33-cli"
+
+NODE1="${1}_chain31_1"
+CLI3="docker exec ${NODE1} /root/chain33-cli"
+
+NODE4="${1}_chain30_1"
+CLI4="docker exec ${NODE4} /root/chain33-cli"
+
+NODE5="${1}_chain29_1"
+CLI5="docker exec ${NODE5} /root/chain33-cli"
+
+NODE6="${1}_chain28_1"
+CLI6="docker exec ${NODE6} /root/chain33-cli"
+
+containers=("${NODE1}" "${NODE2}" "${NODE3}" "${NODE4}" "${NODE5}" "${NODE6}" "${BTCD}" "${RELAYD}")
+forkContainers=("${CLI3}" "${CLI2}" "${CLI}" "${CLI4}" "${CLI5}" "${CLI6}")
 
 #引入隐私交易分叉测试
 # shellcheck disable=SC1091
 source privacy-fork-test.sh
 
-export forkContainers
-export containers
+sedfix=""
+if [ "$(uname)" == "Darwin" ]; then
+    sedfix=".bak"
+fi
+
+function init() {
+    # update test environment
+    sed -i $sedfix 's/^Title.*/Title="local"/g' chain33.toml
+    sed -i $sedfix 's/^TestNet=.*/TestNet=true/g' chain33.toml
+
+    # p2p
+    sed -i $sedfix 's/^seeds=.*/seeds=["chain33:13802","chain32:13802","chain31:13802","chain30:13802","chain29:13802","chain28:13802"]/g' chain33.toml
+    sed -i $sedfix 's/^enable=.*/enable=true/g' chain33.toml
+    sed -i $sedfix 's/^isSeed=.*/isSeed=true/g' chain33.toml
+    sed -i $sedfix 's/^innerSeedEnable=.*/innerSeedEnable=false/g' chain33.toml
+    sed -i $sedfix 's/^useGithub=.*/useGithub=false/g' chain33.toml
+
+    # rpc
+    sed -i $sedfix 's/^jrpcBindAddr=.*/jrpcBindAddr="0.0.0.0:8801"/g' chain33.toml
+    sed -i $sedfix 's/^grpcBindAddr=.*/grpcBindAddr="0.0.0.0:8802"/g' chain33.toml
+    sed -i $sedfix 's/^whitelist=.*/whitelist=["localhost","127.0.0.1","0.0.0.0"]/g' chain33.toml
+
+    # wallet
+    sed -i $sedfix 's/^minerdisable=.*/minerdisable=false/g' chain33.toml
+
+    # relayd
+    sed -i $sedfix 's/^btcdOrWeb.*/btcdOrWeb = 0/g' relayd.toml
+    sed -i $sedfix 's/^Tick33.*/Tick33 = 5/g' relayd.toml
+    sed -i $sedfix 's/^TickBTC.*/TickBTC = 5/g' relayd.toml
+    sed -i $sedfix 's/^pprof.*/pprof = false/g' relayd.toml
+    sed -i $sedfix 's/^watch.*/watch = false/g' relayd.toml
+
+    # docker-compose ps
+    docker-compose ps
+
+    # remove exsit container
+    docker-compose down
+
+    # create and run docker-compose container
+    docker-compose up --build -d
+
+    local SLEEP=60
+    echo "=========== sleep ${SLEEP}s ============="
+    sleep ${SLEEP}
+
+    docker-compose ps
+
+    # query node run status
+
+    ${CLI} block last_header
+    ${CLI} net info
+
+    ${CLI} net peer_info
+    peersCount=$(${CLI} net peer_info | jq '.[] | length')
+    echo "${peersCount}"
+    if [ "${peersCount}" -lt 2 ]; then
+        echo "peers error"
+        exit 1
+    fi
+
+    #echo "=========== # create seed for wallet ============="
+    #seed=$(${CLI} seed generate -l 0 | jq ".seed")
+    #if [ -z "${seed}" ]; then
+    #    echo "create seed error"
+    #    exit 1
+    #fi
+
+    echo "=========== # save seed to wallet ============="
+    result=$(${CLI} seed save -p 1314 -s "tortoise main civil member grace happy century convince father cage beach hip maid merry rib" | jq ".isok")
+    if [ "${result}" = "false" ]; then
+        echo "save seed to wallet error seed, result: ${result}"
+        exit 1
+    fi
+
+    sleep 1
+
+    echo "=========== # unlock wallet ============="
+    result=$(${CLI} wallet unlock -p 1314 -t 0 | jq ".isok")
+    if [ "${result}" = "false" ]; then
+        exit 1
+    fi
+
+    sleep 1
+
+    echo "=========== # import private key returnAddr ============="
+    result=$(${CLI} account import_key -k CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944 -l returnAddr | jq ".label")
+    echo "${result}"
+    if [ -z "${result}" ]; then
+        exit 1
+    fi
+
+    sleep 1
+
+    echo "=========== # import private key mining ============="
+    result=$(${CLI} account import_key -k 4257D8692EF7FE13C68B65D6A52F03933DB2FA5CE8FAF210B5B8B80C721CED01 -l minerAddr | jq ".label")
+    echo "${result}"
+    if [ -z "${result}" ]; then
+        exit 1
+    fi
+
+    sleep 1
+    echo "=========== # close auto mining ============="
+    result=$(${CLI} wallet auto_mine -f 0 | jq ".isok")
+    if [ "${result}" = "false" ]; then
+        exit 1
+    fi
+
+    ## 2nd mining
+    echo "=========== # save seed to wallet ============="
+    result=$(${CLI4} seed save -p 1314 -s "tortoise main civil member grace happy century convince father cage beach hip maid merry rib" | jq ".isok")
+    if [ "${result}" = "false" ]; then
+        echo "save seed to wallet error seed, result: ${result}"
+        exit 1
+    fi
+
+    sleep 1
+
+    echo "=========== # unlock wallet ============="
+    result=$(${CLI4} wallet unlock -p 1314 -t 0 | jq ".isok")
+    if [ "${result}" = "false" ]; then
+        exit 1
+    fi
+
+    sleep 1
+
+    echo "=========== # import private key returnAddr ============="
+    result=$(${CLI4} account import_key -k 2AFF1981291355322C7A6308D46A9C9BA311AA21D94F36B43FC6A6021A1334CF -l returnAddr | jq ".label")
+    echo "${result}"
+    if [ -z "${result}" ]; then
+        exit 1
+    fi
+
+    sleep 1
+
+    echo "=========== # import private key mining ============="
+    result=$(${CLI4} account import_key -k 2116459C0EC8ED01AA0EEAE35CAC5C96F94473F7816F114873291217303F6989 -l minerAddr | jq ".label")
+    echo "${result}"
+    if [ -z "${result}" ]; then
+        exit 1
+    fi
+
+    sleep 1
+    echo "=========== # close auto mining ============="
+    result=$(${CLI4} wallet auto_mine -f 0 | jq ".isok")
+    if [ "${result}" = "false" ]; then
+        exit 1
+    fi
+
+    echo "=========== sleep ${SLEEP}s ============="
+    sleep ${SLEEP}
+
+    echo "=========== check genesis hash ========== "
+    ${CLI} block hash -t 0
+    res=$(${CLI} block hash -t 0 | jq ".hash")
+    count=$(echo "$res" | grep -c "0x67c58d6ba9175313f0468ae4e0ddec946549af7748037c2fdd5d54298afd20b6")
+    if [ "${count}" != 1 ]; then
+        echo "genesis hash error!"
+        exit 1
+    fi
+
+    echo "=========== query height ========== "
+    ${CLI} block last_header
+    result=$(${CLI} block last_header | jq ".height")
+    if [ "${result}" -lt 1 ]; then
+        exit 1
+    fi
+
+    ${CLI} wallet status
+    ${CLI} account list
+    ${CLI} mempool list
+}
 
 function optDockerfun() {
     init
@@ -46,8 +239,9 @@ function optDockerfun() {
 }
 
 function optDockerPart1() {
-    echo "====== sleep 100s 区块生成中 ======"
-    sleep 100
+    echo "====== 区块生成中 ======"
+    #sleep 100
+    block_wait_timeout "${CLI}" 15 100
 
     loopCount=20
     for ((i = 0; i < loopCount; i++)); do
@@ -80,7 +274,6 @@ function optDockerPart1() {
 function optDockerPart2() {
     checkMineHeight
     status=$?
-    echo $status
     if [ $status -eq 0 ]; then
         echo "====== All peers is the same height ======"
     else
@@ -93,11 +286,7 @@ function optDockerPart2() {
     echo "==================================="
 
     echo "======停止第二组docker ======"
-    sudo docker stop "${NODE4}"
-    sleep 3
-    sudo docker stop "${NODE5}"
-    sleep 3
-    sudo docker stop "${NODE6}"
+    sudo docker stop "${NODE4}" "${NODE5}" "${NODE6}"
 
     echo "======开启第一组docker节点挖矿======"
     sleep 3
@@ -113,11 +302,14 @@ function optDockerPart2() {
 
     peersCount "${name}" $time $needCount
     peerStatus=$?
-    echo $peerStatus
     if [ $peerStatus -eq 1 ]; then
         echo "====== peers not enough ======"
         exit 1
     fi
+
+    echo "======第一组docker节点挖矿中======"
+    block_wait_timeout "${CLI}" 10 100
+
 }
 
 function optDockerPart3() {
@@ -128,31 +320,24 @@ function optDockerPart3() {
         exit 1
     fi
 
-    echo "====== sleep 100s 第一组内部同步 ======"
-    sleep 100
+    echo "====== 第一组内部同步中 ======"
+    names[0]="${NODE3}"
+    names[1]="${NODE2}"
+    names[2]="${NODE1}"
+    syn_block_timeout "${CLI}" 5 50 "${names[@]}"
 
     echo "======================================="
     echo "======== 第二步：第二组docker挖矿 ======="
     echo "======================================="
 
     echo "======停止第一组docker======"
-    sleep 3
-    sudo docker stop "${NODE1}"
-    sleep 3
-    sudo docker stop "${NODE2}"
-    sleep 3
-    sudo docker stop "${NODE3}"
+    sudo docker stop "${NODE1}" "${NODE2}" "${NODE3}"
 
-    echo "======sleep 20s======"
-    sleep 20
+    echo "======sleep 5s======"
+    sleep 5
 
     echo "======启动第二组docker======"
-    sleep 3
-    sudo docker start "${NODE4}"
-    sleep 3
-    sudo docker start "${NODE5}"
-    sleep 3
-    sudo docker start "${NODE6}"
+    sudo docker start "${NODE4}" "${NODE5}" "${NODE6}"
 
     echo "======sleep 20s======"
     sleep 20
@@ -162,42 +347,42 @@ function optDockerPart3() {
         exit 1
     fi
 
-    name=$CLI4
+    name="${CLI4}"
     time=60
     needCount=3
 
     peersCount "${name}" $time $needCount
     peerStatus=$?
-    echo $peerStatus
     if [ $peerStatus -eq 1 ]; then
         echo "====== peers not enough ======"
         exit 1
     fi
 
     echo "======开启第二组docker节点挖矿======"
-    sleep 3
+    sleep 1
     result=$($CLI4 wallet auto_mine -f 1 | jq ".isok")
     if [ "${result}" = "false" ]; then
         echo "start wallet1 mine fail"
         exit 1
     fi
+
+    echo "======第二组docker节点挖矿中======"
+    block_wait_timeout "${CLI4}" 10 100
 }
 
 function optDockerPart4() {
-    echo "====== sleep 100s 第二组内部同步 ======"
-    sleep 100
+    echo "====== 第二组内部同步中 ======"
+    names[0]="${NODE4}"
+    names[1]="${NODE5}"
+    names[2]="${NODE6}"
+    syn_block_timeout "${CLI4}" 5 50 "${names[@]}"
 
     echo "======================================="
     echo "====== 第三步：两组docker共同挖矿 ======="
     echo "======================================="
 
     echo "======启动第一组docker======"
-    sleep 3
-    sudo docker start "${NODE1}"
-    sleep 3
-    sudo docker start "${NODE2}"
-    sleep 3
-    sudo docker start "${NODE3}"
+    sudo docker start "${NODE1}" "${NODE2}" "${NODE3}"
 
     echo "======sleep 20s======"
     sleep 20
@@ -207,12 +392,15 @@ function optDockerPart4() {
         exit 1
     fi
     echo "======开启第一组docker节点挖矿======"
-    sleep 3
+    sleep 1
     result=$($CLI wallet auto_mine -f 1 | jq ".isok")
     if [ "${result}" = "false" ]; then
         echo "start wallet2 mine fail"
         exit 1
     fi
+
+    echo "======两组docker节点共同挖矿中======"
+    block_wait_timeout "${CLI}" 5 50
 }
 
 function checkMineHeight() {
@@ -221,7 +409,7 @@ function checkMineHeight() {
         echo "stop wallet1 mine fail"
         return 1
     fi
-    sleep 3
+    sleep 1
     result=$($CLI wallet auto_mine -f 0 | jq ".isok")
     if [ "${result}" = "false" ]; then
         echo "stop wallet2 mine fail"
@@ -230,12 +418,12 @@ function checkMineHeight() {
 
     echo "====== stop all wallet mine success ======"
 
-    echo "====== sleep 100s syn blockchain ======"
-    sleep 100
+    echo "====== syn blockchain ======"
+    syn_block_timeout "${CLI}" 5 50 "${containers[@]}"
 
     height=0
     height1=$($CLI4 block last_header | jq ".height")
-    sleep 3
+    sleep 1
     height2=$($CLI block last_header | jq ".height")
     if [ "${height2}" -ge "${height1}" ]; then
         height=$height2
@@ -294,35 +482,32 @@ function peersCount() {
 }
 
 function checkBlockHashfun() {
-    echo "====== sleep 100s syn blockchain ======"
-    sleep 100
+    echo "====== syn blockchain ======"
+    syn_block_timeout "${CLI}" 10 50 "${containers[@]}"
 
     height=0
     hash=""
-    sleep 3
     height1=$($CLI block last_header | jq ".height")
-    sleep 3
+    sleep 1
     height2=$($CLI4 block last_header | jq ".height")
     if [ "${height2}" -ge "${height1}" ]; then
         height=$height2
         printf "主链为 $CLI 当前最大高度 %d \\n" "${height}"
-        sleep 3
+        sleep 1
         hash=$($CLI block hash -t "${height}" | jq ".hash")
     else
         height=$height1
         printf "主链为 $CLI4 当前最大高度 %d \\n" "${height}"
-        sleep 3
+        sleep 1
         hash=$($CLI4 block hash -t "${height}" | jq ".hash")
     fi
 
-    echo "${hash}"
-
     for ((j = 0; j < $1; j++)); do
         for ((k = 0; k < ${#forkContainers[*]}; k++)); do
-            sleep 3
+            sleep 1
             height0[$k]=$(${forkContainers[$k]} block last_header | jq ".height")
             if [ "${height0[$k]}" -ge "${height}" ]; then
-                sleep 3
+                sleep 1
                 hash0[$k]=$(${forkContainers[$k]} block hash -t "${height}" | jq ".hash")
             else
                 hash0[$k]="${forkContainers[$k]}"
@@ -338,7 +523,9 @@ function checkBlockHashfun() {
                 break
             fi
         fi
-        printf '第 %d 次，未查询到网络同步，sleep 100s 后查询\n' $j
+        peersCount=0
+        peersCount=$(${forkContainers[0]} net peer_info | jq '.[] | length')
+        printf '第 %d 次，未查询到网络同步，当前节点数 %d 个，100s后查询\n' $j "${peersCount}"
         sleep 100
         #检查是否超过了最大检测次数
         var=$(($1 - 1))
@@ -361,3 +548,73 @@ function txQuery() {
     fi
     return 1
 }
+
+function block_wait_timeout() {
+    if [ "$#" -lt 3 ]; then
+        echo "wrong block_wait params"
+        exit 1
+    fi
+    cur_height=$(${1} block last_header | jq ".height")
+    expect=$((cur_height + ${2}))
+    count=0
+    while true; do
+        new_height=$(${1} block last_header | jq ".height")
+        if [ "${new_height}" -ge "${expect}" ]; then
+            break
+        fi
+        count=$((count + 1))
+        sleep 1
+        if [ $count -ge "${3}" ]; then
+            echo "====== block wait timeout ======"
+            break
+        fi
+    done
+    echo "wait new block $count s"
+}
+
+function syn_block_timeout() {
+    #${1} name
+    #${2} minHeight
+    #${3} timeout
+    #${4} names
+
+    names=${4}
+
+    if [ "$#" -lt 3 ]; then
+        echo "wrong block_wait params"
+        exit 1
+    fi
+    cur_height=$(${1} block last_header | jq ".height")
+    expect=$((cur_height + ${2}))
+    count=0
+    while true; do
+        new_height=$(${1} block last_header | jq ".height")
+        if [ "${new_height}" -lt "${expect}" ]; then
+            count=$((count + 1))
+            sleep 1
+        else
+            isSyn="true"
+            for ((k = 0; k < ${#names[@]}; k++)); do
+                sync_status=$(docker exec "${names[$k]}" /root/chain33-cli net is_sync)
+                if [ "${sync_status}" = "false" ]; then
+                    isSyn="false"
+                    break
+                fi
+                count=$((count + 1))
+                sleep 1
+            done
+            if [ "${isSyn}" = "true" ]; then
+                break
+            fi
+        fi
+
+        if [ $count -ge $(($3 + 1)) ]; then
+            echo "====== syn block wait timeout ======"
+            break
+        fi
+
+    done
+    echo "wait block $count s"
+}
+
+optDockerfun
