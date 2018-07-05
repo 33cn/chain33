@@ -166,7 +166,9 @@ func (m *Request) String() string            { return proto.CompactTextString(m)
 func (*Request) ProtoMessage()               {}
 func (*Request) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{6} }
 
-type isRequest_Value interface{ isRequest_Value() }
+type isRequest_Value interface {
+	isRequest_Value()
+}
 
 type Request_Client struct {
 	Client *RequestClient `protobuf:"bytes,1,opt,name=client,oneof"`

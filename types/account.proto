@@ -67,11 +67,11 @@ message ReplyAccountTokenAssets {
 }
 
 message ExecAccount {
-	string execer = 1;
-	Account account = 2;
+    string  execer  = 1;
+    Account account = 2;
 }
 
 message AllExecBalance {
-	string addr = 1;
-	repeated ExecAccount ExecAccount = 2;
+    string   addr                    = 1;
+    repeated ExecAccount ExecAccount = 2;
 }
