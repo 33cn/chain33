@@ -21,9 +21,8 @@ func init() {
 	types.RegistorLog(types.TyLogPrivacyOutput, &PrivacyOutputLog{})
 
 	// init query rpc
-	types.RegistorRpcType("GetAddrReciver", &CoinsGetAddrReceiver{})
-	types.RegistorRpcType("GetAddrReceiver", &CoinsGetAddrReceiver{})
-	types.RegistorRpcType("GetTxsByAddr", &CoinsGetTxsByAddr{})
+	types.RegistorRpcType("ShowAmountsOfUTXO", &PrivacyShowAmountsOfUTXO{})
+	types.RegistorRpcType("ShowUTXOs4SpecifiedAmount", &PrivacyShowUTXOs4SpecifiedAmount{})
 }
 
 type PrivacyType struct {
@@ -110,11 +109,11 @@ func (l PrivacyOutputLog) Decode(msg []byte) (interface{}, error) {
 }
 
 // query
-type CoinsGetAddrReceiver struct {
+type PrivacyShowAmountsOfUTXO struct {
 }
 
-func (t *CoinsGetAddrReceiver) Input(message json.RawMessage) ([]byte, error) {
-	var req types.ReqAddr
+func (t *PrivacyShowAmountsOfUTXO) Input(message json.RawMessage) ([]byte, error) {
+	var req types.ReqPrivacyToken
 	err := json.Unmarshal(message, &req)
 	if err != nil {
 		return nil, err
@@ -122,15 +121,15 @@ func (t *CoinsGetAddrReceiver) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *CoinsGetAddrReceiver) Output(reply interface{}) (interface{}, error) {
+func (t *PrivacyShowAmountsOfUTXO) Output(reply interface{}) (interface{}, error) {
 	return reply, nil
 }
 
-type CoinsGetTxsByAddr struct {
+type PrivacyShowUTXOs4SpecifiedAmount struct {
 }
 
-func (t *CoinsGetTxsByAddr) Input(message json.RawMessage) ([]byte, error) {
-	var req types.ReqAddr
+func (t *PrivacyShowUTXOs4SpecifiedAmount) Input(message json.RawMessage) ([]byte, error) {
+	var req types.ReqPrivacyToken
 	err := json.Unmarshal(message, &req)
 	if err != nil {
 		return nil, err
@@ -138,7 +137,7 @@ func (t *CoinsGetTxsByAddr) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *CoinsGetTxsByAddr) Output(reply interface{}) (interface{}, error) {
+func (t *PrivacyShowUTXOs4SpecifiedAmount) Output(reply interface{}) (interface{}, error) {
 	return reply, nil
 }
 
