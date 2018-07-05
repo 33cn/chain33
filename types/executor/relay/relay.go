@@ -146,7 +146,6 @@ func (l RelayRevokeAcceptLog) Decode(msg []byte) (interface{}, error) {
 	return logTmp, err
 }
 
-
 type RelayConfirmTxLog struct {
 }
 
@@ -259,7 +258,6 @@ func (t *RelayGetBTCHeaderList) Output(reply interface{}) (interface{}, error) {
 	return reply, nil
 }
 
-
 type RelayGetBTCHeaderMissList struct {
 }
 
@@ -275,7 +273,6 @@ func (t *RelayGetBTCHeaderMissList) Input(message json.RawMessage) ([]byte, erro
 func (t *RelayGetBTCHeaderMissList) Output(reply interface{}) (interface{}, error) {
 	return reply, nil
 }
-
 
 type RelayGetBTCHeaderCurHeight struct {
 }

@@ -59,7 +59,6 @@ func (t PrivacyType) CreateTx(action string, message json.RawMessage) (*types.Tr
 	return tx, nil
 }
 
-
 type PrivacyFeeLog struct {
 }
 
@@ -140,4 +139,3 @@ func (t *PrivacyShowUTXOs4SpecifiedAmount) Input(message json.RawMessage) ([]byt
 func (t *PrivacyShowUTXOs4SpecifiedAmount) Output(reply interface{}) (interface{}, error) {
 	return reply, nil
 }
-
