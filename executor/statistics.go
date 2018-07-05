@@ -271,6 +271,10 @@ func delCountTicket(ex *executor, b *types.BlockDetail) (*types.LocalDBSet, erro
 	return &kvset, nil
 }
 
+func StatisticFlag() []byte {
+	return []byte("Statistics:Flag")
+}
+
 func StatisticTicketInfoKey(ticketId string) []byte {
 	return []byte("Statistics:TicketInfo:TicketId:" + ticketId)
 }

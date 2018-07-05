@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"time"
 
 	"github.com/golang/protobuf/proto"
 	log "github.com/inconshreveable/log15"
@@ -16,10 +17,16 @@ import (
 
 var tlog = log.New("module", "types")
 
+const Size_1K_shiftlen uint = 10
+
 type Message proto.Message
 
 var userKey = []byte("user.")
 var slash = []byte("-")
+
+const UserEvmString = "user.evm."
+
+var UserEvm = []byte(UserEvmString)
 
 //交易组的接口，Transactions 和 Transaction 都符合这个接口
 type TxGroup interface {
@@ -40,6 +47,10 @@ func isAllowExecName(name []byte) bool {
 	// name中不允许有 "-"
 	if bytes.Contains(name, slash) {
 		return false
+	}
+	//vm:
+	if bytes.HasPrefix(name, UserEvm) {
+		name = ExecerEvm
 	}
 	if bytes.HasPrefix(name, userKey) {
 		return true
@@ -106,18 +117,12 @@ func GetEventName(event int) string {
 }
 
 func GetSignatureTypeName(signType int) string {
-	if signType == 1 {
-		return "secp256k1"
-	} else if signType == 2 {
-		return "ed25519"
-	} else if signType == 3 {
-		return "sm2"
-	} else {
-		return "unknow"
+	if name, exist := MapSignType2name[signType]; exist {
+		return name
 	}
-}
 
-var ConfigPrefix = "mavl-config-"
+	return "unknow"
+}
 
 func ConfigKey(key string) string {
 	return fmt.Sprintf("%s-%s", ConfigPrefix, key)
@@ -177,6 +182,331 @@ func (r *ReceiptData) DecodeReceiptLog() (*ReceiptDataResult, error) {
 			//tlog.Error("DecodeReceiptLog:", "Faile to decodeLog with type value logtype", l.Ty)
 			return nil, ErrLogType
 		}
+/*  TODO check has new log
+		switch l.Ty {
+		case TyLogErr:
+			lTy = "LogErr"
+			logIns = string(lLog)
+		case TyLogFee:
+			lTy = "LogFee"
+			var logTmp ReceiptAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogTransfer:
+			lTy = "LogTransfer"
+			var logTmp ReceiptAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogGenesis:
+			lTy = "LogGenesis"
+			logIns = nil
+		case TyLogDeposit:
+			lTy = "LogDeposit"
+			var logTmp ReceiptAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogExecTransfer:
+			lTy = "LogExecTransfer"
+			var logTmp ReceiptExecAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogExecWithdraw:
+			lTy = "LogExecWithdraw"
+			var logTmp ReceiptExecAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogExecDeposit:
+			lTy = "LogExecDeposit"
+			var logTmp ReceiptExecAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogExecFrozen:
+			lTy = "LogExecFrozen"
+			var logTmp ReceiptExecAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogExecActive:
+			lTy = "LogExecActive"
+			var logTmp ReceiptExecAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogGenesisTransfer:
+			lTy = "LogGenesisTransfer"
+			var logTmp ReceiptAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogGenesisDeposit:
+			lTy = "LogGenesisDeposit"
+			var logTmp ReceiptExecAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogNewTicket:
+			lTy = "LogNewTicket"
+			var logTmp ReceiptTicket
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogCloseTicket:
+			lTy = "LogCloseTicket"
+			var logTmp ReceiptTicket
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogMinerTicket:
+			lTy = "LogMinerTicket"
+			var logTmp ReceiptTicket
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogTicketBind:
+			lTy = "LogTicketBind"
+			var logTmp ReceiptTicketBind
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogPreCreateToken:
+			lTy = "LogPreCreateToken"
+			var logTmp ReceiptToken
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogFinishCreateToken:
+			lTy = "LogFinishCreateToken"
+			var logTmp ReceiptToken
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogRevokeCreateToken:
+			lTy = "LogRevokeCreateToken"
+			var logTmp ReceiptToken
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogTradeSellLimit:
+			lTy = "LogTradeSell"
+			var logTmp ReceiptTradeSell
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogTradeBuyMarket:
+			lTy = "LogTradeBuy"
+			var logTmp ReceiptTradeBuyMarket
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogTradeSellRevoke:
+			lTy = "LogTradeRevoke"
+			var logTmp ReceiptTradeRevoke
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogTokenTransfer:
+			lTy = "LogTokenTransfer"
+			var logTmp ReceiptAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogTokenDeposit:
+			lTy = "LogTokenDeposit"
+			var logTmp ReceiptAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogTokenExecTransfer:
+			lTy = "LogTokenExecTransfer"
+			var logTmp ReceiptExecAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogTokenExecWithdraw:
+			lTy = "LogTokenExecWithdraw"
+			var logTmp ReceiptExecAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogTokenExecDeposit:
+			lTy = "LogTokenExecDeposit"
+			var logTmp ReceiptExecAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogTokenExecFrozen:
+			lTy = "LogTokenExecFrozen"
+			var logTmp ReceiptExecAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogTokenExecActive:
+			lTy = "LogTokenExecActive"
+			var logTmp ReceiptExecAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogTokenGenesisTransfer:
+			lTy = "LogTokenGenesisTransfer"
+			var logTmp ReceiptAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogTokenGenesisDeposit:
+			lTy = "LogTokenGenesisDeposit"
+			var logTmp ReceiptExecAccountTransfer
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogRelayCreate:
+			lTy = "LogRelaySell"
+			var logTmp ReceiptRelayLog
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogRelayRevokeCreate:
+			lTy = "LogRelayRevokeSell"
+			var logTmp ReceiptRelayLog
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogRelayAccept:
+			lTy = "LogRelayBuy"
+			var logTmp ReceiptRelayLog
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogRelayRevokeAccept:
+			lTy = "LogRelayRevokeBuy"
+			var logTmp ReceiptRelayLog
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogRelayConfirmTx:
+			lTy = "LogRelayConfirmTx"
+			var logTmp ReceiptRelayLog
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogRelayRcvBTCHead:
+			lTy = "LogRelayRcvBTCHead"
+			var logTmp ReceiptRelayRcvBTCHeaders
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogCallContract:
+			lTy = "LogCallContract"
+			var logTmp ReceiptEVMContract
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogContractData:
+			lTy = "LogContractData"
+			var logTmp EVMContractData
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogContractState:
+			lTy = "LogContractState"
+			var logTmp EVMContractState
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogEVMStateChangeItem:
+			lTy = "LogEVMStateChangeItem"
+			var logTmp EVMStateChangeItem
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		default:
+			//log.Error("DecodeLog", "Faile to decodeLog with type value:%d", l.Ty)
+			return nil, ErrLogType
+		}
+*/
 		logIns, err = logType.Decode(lLog)
 		lTy = logType.Name()
 
@@ -213,4 +543,41 @@ func (t *ReplyGetTotalCoins) IterateRangeByStateHash(key, value []byte) bool {
 	t.Num++
 	t.Amount += acc.Balance
 	return false
+}
+
+func (action *PrivacyAction) GetInput() *PrivacyInput {
+	if action.GetTy() == ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
+		return action.GetPrivacy2Privacy().GetInput()
+
+	} else if action.GetTy() == ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
+		return action.GetPrivacy2Public().GetInput()
+	}
+	return nil
+}
+
+func (action *PrivacyAction) GetOutput() *PrivacyOutput {
+	if action.GetTy() == ActionPublic2Privacy && action.GetPublic2Privacy() != nil {
+		return action.GetPublic2Privacy().GetOutput()
+	} else if action.GetTy() == ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
+		return action.GetPrivacy2Public().GetOutput()
+	} else if action.GetTy() == ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
+		return action.GetPrivacy2Public().GetOutput()
+	}
+	return nil
+}
+
+func (action *PrivacyAction) GetActionName() string {
+	if action.Ty == ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
+		return "Privacy2Privacy"
+	} else if action.Ty == ActionPublic2Privacy && action.GetPublic2Privacy() != nil {
+		return "Public2Privacy"
+	} else if action.Ty == ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
+		return "Privacy2Public"
+	}
+	return "unknow-privacy"
+}
+
+// GetTxTimeInterval 获取交易有效期
+func GetTxTimeInterval() time.Duration {
+	return time.Second * 120
 }

@@ -2,8 +2,6 @@ package blockchain
 
 //message callback
 import (
-	"time"
-
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/queue"
@@ -61,7 +59,8 @@ func (chain *BlockChain) ProcRecvMsg() {
 			go chain.processMsg(msg, reqnum, chain.isSync)
 		case types.EventIsNtpClockSync:
 			go chain.processMsg(msg, reqnum, chain.isNtpClockSync)
-
+		case types.EventGetGlobalIndex:
+			go chain.processMsg(msg, reqnum, chain.getGlobalIndex)
 		case types.EventGetLastBlockSequence:
 			go chain.processMsg(msg, reqnum, chain.getLastBlockSequence)
 
@@ -71,6 +70,16 @@ func (chain *BlockChain) ProcRecvMsg() {
 		case types.EventGetBlockByHashes:
 			go chain.processMsg(msg, reqnum, chain.getBlockByHashes)
 
+		case types.EventDelParaChainBlockDetail:
+			go chain.processMsg(msg, reqnum, chain.delParaChainBlockDetail)
+
+		case types.EventAddParaChainBlockDetail:
+			go chain.processMsg(msg, reqnum, chain.addParaChainBlockDetail)
+
+		case types.EventGetSeqByHash:
+			go chain.processMsg(msg, reqnum, chain.getSeqByHash)
+		case types.EventLocalPrefixCount:
+			go chain.processMsg(msg, reqnum, chain.localPrefixCount)
 		default:
 			<-reqnum
 			chainlog.Warn("ProcRecvMsg unknow msg", "msgtype", msgtype)
@@ -186,10 +195,19 @@ func (chain *BlockChain) addBlockDetail(msg queue.Message) {
 }
 
 func (chain *BlockChain) broadcastAddBlock(msg queue.Message) {
-	//var block *types.Block
 	var reply types.Reply
 	reply.IsOk = true
 	blockwithpid := msg.Data.(*types.BlockPid)
+
+	castheight := blockwithpid.Block.Height
+	curheight := chain.GetBlockHeight()
+	//当本节点在同步阶段并且远远落后主网最新高度时不处理广播block,暂定落后128个区块
+	//以免广播区块占用go goroutine资源
+	if blockwithpid.Block.Height > curheight+BackBlockNum {
+		chainlog.Debug("EventBroadcastAddBlock", "curheight", curheight, "castheight", castheight, "hash", common.ToHex(blockwithpid.Block.Hash()), "pid", blockwithpid.Pid, "result", "Do not handle broad cast Block in sync")
+		msg.Reply(chain.client.NewMessage("p2p", types.EventReply, &reply))
+		return
+	}
 	err := chain.ProcAddBlockMsg(true, &types.BlockDetail{Block: blockwithpid.Block}, blockwithpid.Pid)
 	if err != nil {
 		chainlog.Error("ProcAddBlockMsg", "err", err.Error())
@@ -318,14 +336,26 @@ func (chain *BlockChain) isNtpClockSync(msg queue.Message) {
 	msg.Reply(chain.client.NewMessage("", types.EventReplyIsNtpClockSync, &types.IsNtpClockSync{ok}))
 }
 
+func (chain *BlockChain) getGlobalIndex(msg queue.Message) {
+	reqUTXOGlobalIndex := msg.Data.(*types.ReqUTXOGlobalIndex)
+	response, err := chain.ProcGetGlobalIndexMsg(reqUTXOGlobalIndex)
+	if err != nil {
+		chainlog.Error("ProcGetGlobalIndexMsg", "err", err.Error())
+		msg.Reply(chain.client.NewMessage("wallet", types.EventReplyGetGlobalIndex, err))
+	} else {
+		chainlog.Debug("ProcGetGlobalIndexMsg", "success", "ok")
+		msg.Reply(chain.client.NewMessage("wallet", types.EventReplyGetGlobalIndex, response))
+	}
+}
+
 type funcProcess func(msg queue.Message)
 
 func (chain *BlockChain) processMsg(msg queue.Message, reqnum chan struct{}, cb funcProcess) {
-	beg := time.Now()
+	beg := types.Now()
 	defer func() {
 		<-reqnum
 		chain.recvwg.Done()
-		chainlog.Debug("process", "cost", time.Since(beg), "msg", types.GetEventName(int(msg.Ty)))
+		chainlog.Debug("process", "cost", types.Since(beg), "msg", types.GetEventName(int(msg.Ty)))
 	}()
 	cb(msg)
 }
@@ -358,4 +388,89 @@ func (chain *BlockChain) getBlockByHashes(msg queue.Message) {
 	} else {
 		msg.Reply(chain.client.NewMessage("rpc", types.EventBlocks, BlockDetails))
 	}
+}
+
+//平行链del block的处理
+func (chain *BlockChain) delParaChainBlockDetail(msg queue.Message) {
+	var parablockDetail *types.ParaChainBlockDetail
+	var reply types.Reply
+	reply.IsOk = true
+	parablockDetail = msg.Data.(*types.ParaChainBlockDetail)
+
+	chainlog.Debug("delParaChainBlockDetail", "height", parablockDetail.Blockdetail.Block.Height, "hash", common.HashHex(parablockDetail.Blockdetail.Block.Hash()))
+
+	err := chain.ProcDelParaChainBlockMsg(true, parablockDetail, "self")
+	if err != nil {
+		chainlog.Error("ProcDelParaChainBlockMsg", "err", err.Error())
+		reply.IsOk = false
+		reply.Msg = []byte(err.Error())
+	}
+	chainlog.Debug("delParaChainBlockDetail", "success", "ok")
+	msg.Reply(chain.client.NewMessage("p2p", types.EventReply, &reply))
+}
+
+//平行链add block的处理
+func (chain *BlockChain) addParaChainBlockDetail(msg queue.Message) {
+	var parablockDetail *types.ParaChainBlockDetail
+	var reply types.Reply
+	reply.IsOk = true
+	parablockDetail = msg.Data.(*types.ParaChainBlockDetail)
+
+	chainlog.Debug("EventAddParaChainBlockDetail", "height", parablockDetail.Blockdetail.Block.Height, "hash", common.HashHex(parablockDetail.Blockdetail.Block.Hash()))
+
+	err := chain.ProcAddParaChainBlockMsg(true, parablockDetail, "self")
+	if err != nil {
+		chainlog.Error("ProcAddParaChainBlockMsg", "err", err.Error())
+		reply.IsOk = false
+		reply.Msg = []byte(err.Error())
+	}
+	chainlog.Debug("EventAddParaChainBlockDetail", "success", "ok")
+	msg.Reply(chain.client.NewMessage("p2p", types.EventReply, &reply))
+}
+
+//parachian 通过blockhash获取对应的seq，只记录了addblock时的seq
+func (chain *BlockChain) getSeqByHash(msg queue.Message) {
+	var sequence types.Int64
+
+	blockhash := (msg.Data).(*types.ReqHash)
+	sequence.Data, _ = chain.ProcGetSeqByHash(blockhash.Hash)
+	msg.Reply(chain.client.NewMessage("rpc", types.EventGetSeqByHash, &sequence))
+}
+
+//获取指定前缀key的数量
+func (chain *BlockChain) localPrefixCount(msg queue.Message) {
+	Prefix := (msg.Data).(*types.ReqKey)
+	counts := db.NewListHelper(chain.blockStore.db).PrefixCount(Prefix.Key)
+	msg.Reply(chain.client.NewMessage("rpc", types.EventLocalReplyValue, &types.Int64{Data: counts}))
+}
+
+//获取指定地址参与的tx交易计数
+func (chain *BlockChain) localAddrTxCount(msg queue.Message) {
+	reqkey := (msg.Data).(*types.ReqKey)
+
+	count := types.Int64{}
+	var counts int64
+
+	TxsCount, err := chain.blockStore.db.Get(reqkey.Key)
+	if err != nil && err != types.ErrNotFound {
+		counts = 0
+		chainlog.Error("localAddrTxCount", "err", err.Error())
+		msg.Reply(chain.client.NewMessage("rpc", types.EventLocalReplyValue, &types.Int64{Data: counts}))
+		return
+	}
+	if len(TxsCount) == 0 {
+		counts = 0
+		chainlog.Error("localAddrTxCount", "TxsCount", "0")
+		msg.Reply(chain.client.NewMessage("rpc", types.EventLocalReplyValue, &types.Int64{Data: counts}))
+		return
+	}
+	err = types.Decode(TxsCount, &count)
+	if err != nil {
+		counts = 0
+		chainlog.Error("localAddrTxCount", "types.Decode", err)
+		msg.Reply(chain.client.NewMessage("rpc", types.EventLocalReplyValue, &types.Int64{Data: counts}))
+		return
+	}
+	counts = count.Data
+	msg.Reply(chain.client.NewMessage("rpc", types.EventLocalReplyValue, &types.Int64{Data: counts}))
 }

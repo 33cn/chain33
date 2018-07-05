@@ -23,6 +23,7 @@ import (
 
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/blockchain"
+	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/limits"
 	clog "gitlab.33.cn/chain33/chain33/common/log"
@@ -48,6 +49,7 @@ var (
 	configPath = flag.String("f", "chain33.toml", "configfile")
 	datadir    = flag.String("datadir", "", "data dir of chain33, include logs and datas")
 	versionCmd = flag.Bool("v", false, "version")
+	fixtime    = flag.Bool("fixtime", false, "fix time")
 )
 
 func main() {
@@ -56,7 +58,6 @@ func main() {
 		fmt.Println(version.GetVersion())
 		return
 	}
-
 	d, _ := os.Getwd()
 	log.Info("current dir:", "dir", d)
 	os.Chdir(pwd())
@@ -66,15 +67,21 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
-	//set config
+	//set config: bityuan 用 bityuan.toml 这个配置文件
 	cfg := config.InitCfg(*configPath)
 	if *datadir != "" {
 		resetDatadir(cfg, *datadir)
 	}
+	if *fixtime {
+		cfg.FixTime = *fixtime
+	}
 	//set test net flag
 	types.SetTestNet(cfg.TestNet)
 	types.SetTitle(cfg.Title)
+	types.SetFixTime(cfg.FixTime)
+	if cfg.FixTime {
+		go fixtimeRoutine()
+	}
 	//compare minFee in wallet, mempool, exec
 	if cfg.Exec.MinExecFee > cfg.MemPool.MinTxFee || cfg.MemPool.MinTxFee > cfg.Wallet.MinFee {
 		panic("config must meet: wallet.minFee >= mempool.minTxFee >= exec.minExecFee")
@@ -224,4 +231,31 @@ func pwd() string {
 		panic(err)
 	}
 	return dir
+}
+
+func fixtimeRoutine() {
+	hosts := types.NtpHosts
+	for i := 0; i < len(hosts); i++ {
+		t, err := common.GetNtpTime(hosts[i])
+		if err == nil {
+			log.Info("time", "host", hosts[i], "now", t)
+		} else {
+			log.Error("time", "err", err)
+		}
+	}
+	t := common.GetRealTimeRetry(hosts, 10)
+	if !t.IsZero() {
+		//update
+		types.SetTimeDelta(int64(time.Until(t)))
+		log.Info("change time", "delta", time.Until(t), "real.now", types.Now())
+	}
+	ticket := time.NewTicker(time.Minute * 10)
+	for range ticket.C {
+		t = common.GetRealTimeRetry(hosts, 10)
+		if !t.IsZero() {
+			//update
+			log.Info("change time", "delta", time.Until(t))
+			types.SetTimeDelta(int64(time.Until(t)))
+		}
+	}
 }
