@@ -137,9 +137,7 @@ func (m *GameAction) String() string            { return proto.CompactTextString
 func (*GameAction) ProtoMessage()               {}
 func (*GameAction) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{1} }
 
-type isGameAction_Value interface {
-	isGameAction_Value()
-}
+type isGameAction_Value interface{ isGameAction_Value() }
 
 type GameAction_Open struct {
 	Open *GameOpen `protobuf:"bytes,1,opt,name=open,oneof"`
