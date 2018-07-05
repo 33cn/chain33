@@ -8,14 +8,11 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"sort"
-
 	"github.com/golang/protobuf/proto"
 	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/common/difficulty"
 	"gitlab.33.cn/chain33/chain33/common/version"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/privacy"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -620,31 +617,6 @@ func (bs *BlockStore) dbMaybeStoreBlock(blockdetail *types.BlockDetail, sync boo
 		return types.ErrDataBaseDamage
 	}
 	return nil
-}
-
-func (bs *BlockStore) getUTXOsByTokenAndAmount(token string, amount int64, count int32) []*types.LocalUTXOItem {
-	querydb := bs.db
-	var localUTXOItemSlice []*types.LocalUTXOItem
-	list := dbm.NewListHelper(querydb)
-	values := list.List(privacy.CalcPrivacyUTXOkeyHeightPrefix(token, amount), nil, count, 0)
-	if len(values) != 0 {
-		for _, value := range values {
-			var localUTXOItem types.LocalUTXOItem
-			err := types.Decode(value, &localUTXOItem)
-			if err == nil {
-				localUTXOItemSlice = append(localUTXOItemSlice, &localUTXOItem)
-			} else {
-				chainlog.Error("getUTXOsByTokenAndAmount:", "Failed to Decode localUTXOItem due to cause", err)
-				return nil
-			}
-		}
-	}
-
-	sort.Slice(localUTXOItemSlice, func(i, j int) bool {
-		return localUTXOItemSlice[i].Height <= localUTXOItemSlice[j].Height
-	})
-
-	return localUTXOItemSlice
 }
 
 //获取当前最新的block操作序列号
