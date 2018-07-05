@@ -50,8 +50,16 @@ message KeyValue {
     bytes value = 2;
 }
 
+message TxHash {
+    string hash = 1;
+}
+
 message TimeStatus {
     string ntpTime   = 1;
     string localTime = 2;
     int64  diff      = 3;
+}
+
+message ReqKey {
+    bytes key = 1;
 }

@@ -209,6 +209,20 @@ func (c *Coins) Query(funcName string, params []byte) (types.Message, error) {
 			return nil, err
 		}
 		return c.GetTxsByAddr(&in)
+	} else if funcName == "GetPrefixCount" {
+		var in types.ReqKey
+		err := types.Decode(params, &in)
+		if err != nil {
+			return nil, err
+		}
+		return c.GetPrefixCount(&in)
+	} else if funcName == "GetAddrTxsCount" {
+		var in types.ReqKey
+		err := types.Decode(params, &in)
+		if err != nil {
+			return nil, err
+		}
+		return c.GetAddrTxsCount(&in)
 	}
 	return nil, types.ErrActionNotSupport
 }

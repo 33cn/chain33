@@ -365,7 +365,7 @@ func (tx *Transaction) SetExpire(expire time.Duration) {
 			expire = time.Second * 120
 		}
 		//用秒数来表示的时间
-		tx.Expire = time.Now().Unix() + int64(expire/time.Second)
+		tx.Expire = Now().Unix() + int64(expire/time.Second)
 	} else {
 		tx.Expire = int64(expire)
 	}
@@ -388,7 +388,11 @@ func (tx *Transaction) GetRealFee(minFee int64) (int64, error) {
 var expireBound int64 = 1000000000 // 交易过期分界线，小于expireBound比较height，大于expireBound比较blockTime
 
 func (tx *Transaction) IsExpire(height, blocktime int64) bool {
-	return tx.isExpire(height, blocktime)
+	group, _ := tx.GetTxGroup()
+	if group == nil {
+		return tx.isExpire(height, blocktime)
+	}
+	return group.IsExpire(height, blocktime)
 }
 
 func (tx *Transaction) From() string {
@@ -458,7 +462,7 @@ func (tx *Transaction) Json() string {
 //解析tx的payload获取amount值
 func (tx *Transaction) Amount() (int64, error) {
 
-	if "coins" == string(tx.Execer) {
+	if CoinsX == string(tx.Execer) {
 		var action CoinsAction
 		err := Decode(tx.GetPayload(), &action)
 		if err != nil {
@@ -477,7 +481,7 @@ func (tx *Transaction) Amount() (int64, error) {
 			transfer := action.GetTransferToExec()
 			return transfer.Amount, nil
 		}
-	} else if "ticket" == string(tx.Execer) {
+	} else if TicketX == string(tx.Execer) {
 		var action TicketAction
 		err := Decode(tx.GetPayload(), &action)
 		if err != nil {
@@ -487,7 +491,7 @@ func (tx *Transaction) Amount() (int64, error) {
 			ticketMiner := action.GetMiner()
 			return ticketMiner.Reward, nil
 		}
-	} else if "token" == string(tx.Execer) { //TODO: 补充和完善token和trade分支的amount的计算, added by hzj
+	} else if TokenX == string(tx.Execer) { //TODO: 补充和完善token和trade分支的amount的计算, added by hzj
 		var action TokenAction
 		err := Decode(tx.GetPayload(), &action)
 		if err != nil {
@@ -507,7 +511,7 @@ func (tx *Transaction) Amount() (int64, error) {
 			return 0, nil
 		}
 
-	} else if "trade" == string(tx.Execer) {
+	} else if TradeX == string(tx.Execer) {
 		var trade Trade
 		err := Decode(tx.GetPayload(), &trade)
 		if err != nil {
@@ -521,13 +525,25 @@ func (tx *Transaction) Amount() (int64, error) {
 		} else if TradeRevokeSell == trade.Ty && trade.GetTokenrevokesell() != nil {
 			return 0, nil
 		}
+	} else if PrivacyX == string(tx.Execer) {
+		var action PrivacyAction
+		err := Decode(tx.Payload, &action)
+		if err != nil {
+			return 0, ErrDecode
+		}
+		if action.Ty == ActionPublic2Privacy && action.GetPublic2Privacy() != nil {
+			return action.GetPublic2Privacy().GetAmount(), nil
+		} else if action.Ty == ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
+			return action.GetPrivacy2Privacy().GetAmount(), nil
+		} else if action.Ty == ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
+			return action.GetPrivacy2Public().GetAmount(), nil
+		}
 	} else if string(ExecerRelay) == string(tx.Execer) {
 		var relay RelayAction
 		err := Decode(tx.GetPayload(), &relay)
 		if err != nil {
 			return 0, ErrDecode
 		}
-
 		if RelayActionCreate == relay.Ty && relay.GetCreate() != nil {
 			return int64(relay.GetCreate().BtyAmount), nil
 		}
@@ -638,6 +654,13 @@ func (tx *Transaction) ActionName() string {
 		} else if trade.Ty == TradeRevokeBuy && trade.GetTokenrevokebuy() != nil {
 			return "revokebuytoken"
 		}
+	} else if bytes.Equal(tx.Execer, ExecerPrivacy) {
+		var action PrivacyAction
+		err := Decode(tx.Payload, &action)
+		if err != nil {
+			return "unknow-privacy-err"
+		}
+		return action.GetActionName()
 	} else if bytes.Equal(tx.Execer, ExecerEvm) || bytes.HasPrefix(tx.Execer, []byte("user.evm.")) {
 		// 这个需要通过合约交易目标地址来判断Action
 		// 如果目标地址为空，或为evm的固定合约地址，则为创建合约，否则为调用合约
@@ -670,7 +693,6 @@ func (tx *Transaction) ActionName() string {
 		if relay.Ty == RelayActionRcvBTCHeaders && relay.GetBtcHeaders() != nil {
 			return "relay-receive-btc-heads"
 		}
-
 	}
 	return "unknow"
 }

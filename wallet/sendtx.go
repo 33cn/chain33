@@ -6,6 +6,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -255,6 +256,11 @@ func (wallet *Wallet) buyMinerAddrTicketOne(height int64, priv crypto.PrivKey) (
 	var hashes [][]byte
 	for i := 0; i < len(addrs); i++ {
 		walletlog.Info("sourceaddr", "addr", addrs[i])
+		ok := checkMinerWhiteList(addrs[i])
+		if !ok {
+			walletlog.Info("buyMinerAddrTicketOne Cold Addr not in MinerWhiteList", "addr", addrs[i])
+			continue
+		}
 		acc, err := wallet.getBalance(addrs[i], "ticket")
 		if err != nil {
 			return nil, 0, err
@@ -303,7 +309,7 @@ func (wallet *Wallet) closeTicketsByAddr(height int64, priv crypto.PrivKey) ([]b
 	}
 	var ids []string
 	var tl []*types.Ticket
-	now := time.Now().Unix()
+	now := types.Now().Unix()
 	for _, t := range tlist {
 		if !t.IsGenesis {
 			if now-t.GetCreateTime() < types.GetP(height).TicketWithdrawTime {
@@ -337,7 +343,7 @@ func (wallet *Wallet) forceCloseTicketsByAddr(height int64, priv crypto.PrivKey)
 	tlist := append(tlist1, tlist2...)
 	var ids []string
 	var tl []*types.Ticket
-	now := time.Now().Unix()
+	now := types.Now().Unix()
 	for _, t := range tlist {
 		if !t.IsGenesis {
 			if t.Status == 1 && now-t.GetCreateTime() < types.GetP(height).TicketWithdrawTime {
@@ -586,4 +592,52 @@ func (wallet *Wallet) IsCaughtUp() bool {
 		return false
 	}
 	return resp.GetData().(*types.IsCaughtUp).GetIscaughtup()
+}
+
+func (wallet *Wallet) GetRofPrivateTx(txhashptr *string) (R_txpubkey []byte, err error) {
+	txhash, err := common.FromHex(*txhashptr)
+	if err != nil {
+		walletlog.Error("GetRofPrivateTx common.FromHex", "err", err)
+		return nil, err
+	}
+	var reqHashes types.ReqHashes
+	reqHashes.Hashes = append(reqHashes.Hashes, txhash)
+
+	//通过txhashs获取对应的txdetail
+	msg := wallet.client.NewMessage("blockchain", types.EventGetTransactionByHash, &reqHashes)
+	wallet.client.Send(msg, true)
+	resp, err := wallet.client.Wait(msg)
+	if err != nil {
+		walletlog.Error("GetRofPrivateTx EventGetTransactionByHash", "err", err)
+		return nil, err
+	}
+	TxDetails := resp.GetData().(*types.TransactionDetails)
+	if TxDetails == nil {
+		walletlog.Error("GetRofPrivateTx TransactionDetails is nil")
+		return nil, errors.New("ErrTxDetail")
+	}
+	if len(TxDetails.Txs) <= 0 {
+		walletlog.Error("GetRofPrivateTx TransactionDetails is empty")
+		return nil, errors.New("ErrTxDetail")
+	}
+
+	if "privacy" != string(TxDetails.Txs[0].Tx.Execer) {
+		walletlog.Error("GetRofPrivateTx get tx but not privacy")
+		return nil, errors.New("ErrPrivacyExecer")
+	}
+
+	var privateAction types.PrivacyAction
+	if err := types.Decode(TxDetails.Txs[0].Tx.Payload, &privateAction); err != nil {
+		walletlog.Error("GetRofPrivateTx failed to decode payload")
+		return nil, errors.New("ErrPrivacyPayload")
+	}
+
+	if types.ActionPublic2Privacy == privateAction.Ty {
+		return privateAction.GetPublic2Privacy().GetOutput().GetRpubKeytx(), nil
+	} else if types.ActionPrivacy2Privacy == privateAction.Ty {
+		return privateAction.GetPrivacy2Privacy().GetOutput().GetRpubKeytx(), nil
+	} else {
+		walletlog.Info("GetPrivateTxByHashes failed to get value required", "privacy type is", privateAction.Ty)
+		return nil, errors.New("ErrPrivacyType")
+	}
 }

@@ -3,11 +3,12 @@ package blockchain
 import (
 	"container/list"
 	"fmt"
+	"math/rand"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	lru "github.com/hashicorp/golang-lru"
+	"github.com/hashicorp/golang-lru"
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
@@ -21,12 +22,14 @@ var (
 	DefCacheSize        int64 = 512
 	cachelock           sync.Mutex
 	zeroHash            [32]byte
-	InitBlockNum        int64 = 128 //节点刚启动时从db向index和bestchain缓存中添加的blocknode数
+	InitBlockNum        int64 = 1024 //节点刚启动时从db向index和bestchain缓存中添加的blocknode数
 	isStrongConsistency       = false
 
 	chainlog                    = log.New("module", "blockchain")
 	FutureBlockDelayTime  int64 = 1
 	isRecordBlockSequence       = false //是否记录add或者del block的序列，方便blcokchain的恢复通过记录的序列表
+	isParaChain                 = false //是否是平行链。平行链需要记录Sequence信息
+
 )
 
 const maxFutureBlocks = 256
@@ -130,6 +133,7 @@ func initConfig(cfg *types.BlockChain) {
 	}
 	isStrongConsistency = cfg.IsStrongConsistency
 	isRecordBlockSequence = cfg.IsRecordBlockSequence
+	isParaChain = cfg.IsParaChain
 }
 
 func (chain *BlockChain) Close() {
@@ -137,7 +141,6 @@ func (chain *BlockChain) Close() {
 	atomic.StoreInt32(&chain.isclosed, 1)
 
 	//退出线程
-	//chain.quit <- struct{}{}
 	close(chain.quit)
 
 	//wait for recvwg quit:
@@ -165,8 +168,14 @@ func (chain *BlockChain) SetQueueClient(client queue.Client) {
 	chain.InitIndexAndBestView()
 
 	//startTime
-	chain.startTime = time.Now()
+	chain.startTime = types.Now()
 
+	//获取数据库中最新的区块高度，以及blockchain的数据库版本号
+	curheight := chain.GetBlockHeight()
+	curdbver := chain.blockStore.GetDbVersion()
+	if curdbver == 0 && curheight == -1 {
+		chain.blockStore.SetDbVersion(1)
+	}
 	//recv 消息的处理
 	go chain.ProcRecvMsg()
 
@@ -224,7 +233,8 @@ func (chain *BlockChain) ProcQueryTxMsg(txhash []byte) (proof *types.Transaction
 	//获取Amount
 	amount, err := txresult.GetTx().Amount()
 	if err != nil {
-		return nil, err
+		// return nil, err
+		amount = 0
 	}
 	TransactionDetail.Amount = amount
 	TransactionDetail.ActionName = txresult.GetTx().ActionName()
@@ -318,7 +328,7 @@ func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, blockdetail *types.Bloc
 		chainlog.Error("ProcAddBlockMsg input block is null")
 		return types.ErrInputPara
 	}
-	ismain, isorphan, err := chain.ProcessBlock(broadcast, blockdetail, pid)
+	ismain, isorphan, err := chain.ProcessBlock(broadcast, blockdetail, pid, true, -1)
 	//非孤儿block或者已经存在的block
 	if (!isorphan && err == nil) || (err == types.ErrBlockExist) {
 		chain.task.Done(blockdetail.Block.GetHeight())
@@ -598,6 +608,62 @@ func (chain *BlockChain) ProcGetTransactionByAddr(addr *types.ReqAddr) (*types.R
 	return txinfos.(*types.ReplyTxInfos), nil
 }
 
+// ProcGetGlobalIndexMsg 从区块链上获取已经被确认，并且满足条件的交易UTXO信息
+// 条件：
+// 1.同一种TokenName
+// 2.混淆度需要大于0
+// 3.确认区块高度大于等于types.ConfirmedHeight
+func (chain *BlockChain) ProcGetGlobalIndexMsg(reqUTXOGlobalIndex *types.ReqUTXOGlobalIndex) (*types.ResUTXOGlobalIndex, error) {
+	debugBeginTime := time.Now()
+
+	tokenName := reqUTXOGlobalIndex.Tokenname
+	currentHeight := chain.GetBlockHeight()
+	resUTXOGlobalIndex := &types.ResUTXOGlobalIndex{}
+	resUTXOGlobalIndex.Tokenname = tokenName
+	resUTXOGlobalIndex.MixCount = reqUTXOGlobalIndex.MixCount
+	for _, amount := range reqUTXOGlobalIndex.Amount {
+		utxoItems := chain.blockStore.getUTXOsByTokenAndAmount(tokenName, amount, types.UTXOCacheCount)
+		index := len(utxoItems) - 1
+		for ; index >= 0; index-- {
+			//要求是经过了12个块确认的UTXO才能被使用
+			if utxoItems[index].GetHeight()+types.ConfirmedHeight <= currentHeight {
+				break
+			}
+		}
+
+		utxoIndex4Amount := &types.UTXOIndex4Amount{
+			Amount: amount,
+		}
+
+		mixCount := reqUTXOGlobalIndex.MixCount
+		totalCnt := int32(index + 1)
+		if mixCount > totalCnt {
+			mixCount = totalCnt
+		}
+
+		//随机化每个item的位置，随机选择N个存在的
+		random := rand.New(rand.NewSource(time.Now().UnixNano()))
+		positions := random.Perm(int(totalCnt))
+		for i := int(mixCount - 1); i >= 0; i-- {
+			position := positions[i]
+			item := utxoItems[position]
+			utxoGlobalIndex := &types.UTXOGlobalIndex{
+				Outindex: item.GetOutindex(),
+				Txhash:   item.GetTxhash(),
+			}
+			utxo := &types.UTXOBasic{
+				UtxoGlobalIndex: utxoGlobalIndex,
+				OnetimePubkey:   item.GetOnetimepubkey(),
+			}
+			utxoIndex4Amount.Utxos = append(utxoIndex4Amount.Utxos, utxo)
+		}
+		resUTXOGlobalIndex.UtxoIndex4Amount = append(resUTXOGlobalIndex.UtxoIndex4Amount, utxoIndex4Amount)
+	}
+	debugDurtime := time.Since(debugBeginTime)
+	chainlog.Debug(fmt.Sprintf("ProcGetGlobalIndexMsg cost： %d", debugDurtime))
+	return resUTXOGlobalIndex, nil
+}
+
 //type TransactionDetails struct {
 //	Txs []*Transaction
 //}
@@ -715,20 +781,24 @@ func (chain *BlockChain) ProcGetAddrOverview(addr *types.ReqAddr) (*types.AddrOv
 	} else {
 		addrOverview.Reciver = amount.(*types.Int64).GetData()
 	}
-	//获取地址对应的交易count
-	addr.Flag = 0
-	addr.Count = 0x7fffffff
-	addr.Height = -1
-	addr.Index = 0
-	txinfos, err := chain.query.Query("coins", "GetTxsByAddr", types.Encode(addr))
-	if err != nil {
-		chainlog.Info("ProcGetAddrOverview", "GetTxsByAddr err", err)
-		//return nil, err
-		addrOverview.TxCount = 0
+	beg := types.Now()
+	curdbver := chain.blockStore.GetDbVersion()
+	var reqkey types.ReqKey
 
+	if curdbver == 0 {
+		//旧的数据库获取地址对应的交易count，使用前缀查找的方式获取
+		//前缀和util.go 文件中的CalcTxAddrHashKey保持一致
+		reqkey.Key = []byte(fmt.Sprintf("TxAddrHash:%s:%s", addr.Addr, ""))
+		count, _ := chain.query.Query("coins", "GetPrefixCount", types.Encode(&reqkey))
+		addrOverview.TxCount = count.(*types.Int64).GetData()
+		chainlog.Debug("GetPrefixCount", "cost ", types.Since(beg))
 	} else {
-		addrOverview.TxCount = int64(len(txinfos.(*types.ReplyTxInfos).GetTxInfos()))
-		chainlog.Debug("ProcGetAddrOverview", "addr", addr.Addr, "addrOverview", addrOverview.String())
+		//新的数据库直接使用key值查找就可以
+		//前缀和util.go 文件中的calcAddrTxsCountKey保持一致
+		reqkey.Key = []byte(fmt.Sprintf("AddrTxsCount:%s", addr.Addr))
+		count, _ := chain.query.Query("coins", "GetAddrTxsCount", types.Encode(&reqkey))
+		addrOverview.TxCount = count.(*types.Int64).GetData()
+		chainlog.Debug("GetAddrTxsCount", "cost ", types.Since(beg))
 	}
 	return &addrOverview, nil
 }
@@ -805,7 +875,7 @@ func (chain *BlockChain) InitIndexAndBestView() {
 			if block == nil {
 				return
 			}
-			newNode := newBlockNode(false, block.Block, "self")
+			newNode := newBlockNode(false, block.Block, "self", -1)
 			newNode.parent = prevNode
 			prevNode = newNode
 
@@ -846,10 +916,10 @@ func (chain *BlockChain) ProcFutureBlocks() {
 			if block != nil {
 				blockdetail := block.(*types.BlockDetail)
 				//block产生的时间小于当前时间，广播此block，然后将此block从futureblocks中移除
-				if time.Now().Unix() > blockdetail.Block.BlockTime {
+				if types.Now().Unix() > blockdetail.Block.BlockTime {
 					chain.SendBlockBroadcast(blockdetail)
 					chain.futureBlocks.Remove(hash)
-					chainlog.Debug("ProcFutureBlocks Remove", "height", blockdetail.Block.Height, "hash", common.ToHex(blockdetail.Block.Hash()), "blocktime", blockdetail.Block.BlockTime, "curtime", time.Now().Unix())
+					chainlog.Debug("ProcFutureBlocks Remove", "height", blockdetail.Block.Height, "hash", common.ToHex(blockdetail.Block.Hash()), "blocktime", blockdetail.Block.BlockTime, "curtime", types.Now().Unix())
 				}
 			}
 		}
@@ -902,4 +972,48 @@ func (chain *BlockChain) GetBlockSequences(requestblock *types.ReqBlocks) (*type
 		}
 	}
 	return &blockSequences, nil
+}
+
+//处理共识过来的删除block的消息，目前只提供给平行链使用
+func (chain *BlockChain) ProcDelParaChainBlockMsg(broadcast bool, ParaChainblockdetail *types.ParaChainBlockDetail, pid string) (err error) {
+	if ParaChainblockdetail == nil || ParaChainblockdetail.GetBlockdetail() == nil || ParaChainblockdetail.GetBlockdetail().GetBlock() == nil {
+		chainlog.Error("ProcDelParaChainBlockMsg input block is null")
+		return types.ErrInputPara
+	}
+	blockdetail := ParaChainblockdetail.GetBlockdetail()
+	block := ParaChainblockdetail.GetBlockdetail().GetBlock()
+	sequence := ParaChainblockdetail.GetSequence()
+
+	ismain, isorphan, err := chain.ProcessBlock(broadcast, blockdetail, pid, false, sequence)
+	chainlog.Debug("ProcDelParaChainBlockMsg result:", "height", block.Height, "sequence", sequence, "ismain", ismain, "isorphan", isorphan, "hash", common.ToHex(block.Hash()), "err", err)
+
+	return err
+}
+
+//处理共识过来的add block的消息，目前只提供给平行链使用
+func (chain *BlockChain) ProcAddParaChainBlockMsg(broadcast bool, ParaChainblockdetail *types.ParaChainBlockDetail, pid string) (err error) {
+	if ParaChainblockdetail == nil || ParaChainblockdetail.GetBlockdetail() == nil || ParaChainblockdetail.GetBlockdetail().GetBlock() == nil {
+		chainlog.Error("ProcAddParaChainBlockMsg input block is null")
+		return types.ErrInputPara
+	}
+	blockdetail := ParaChainblockdetail.GetBlockdetail()
+	block := ParaChainblockdetail.GetBlockdetail().GetBlock()
+	sequence := ParaChainblockdetail.GetSequence()
+
+	ismain, isorphan, err := chain.ProcessBlock(broadcast, blockdetail, pid, true, sequence)
+	chainlog.Debug("ProcAddParaChainBlockMsg result:", "height", block.Height, "sequence", sequence, "ismain", ismain, "isorphan", isorphan, "hash", common.ToHex(block.Hash()), "err", err)
+
+	return err
+}
+
+//处理共识过来的通过blockhash获取seq的消息，只提供add block时的seq，用于平行链block回退
+func (chain *BlockChain) ProcGetSeqByHash(hash []byte) (int64, error) {
+	if len(hash) == 0 {
+		chainlog.Error("ProcGetSeqByHash input hash is null")
+		return -1, types.ErrInputPara
+	}
+	seq, err := chain.blockStore.GetSequenceByHash(hash)
+	chainlog.Debug("ProcGetSeqByHash", "blockhash", common.ToHex(hash), "seq", seq, "err", err)
+
+	return seq, err
 }
