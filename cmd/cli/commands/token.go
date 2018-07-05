@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
+	tokentype "gitlab.33.cn/chain33/chain33/types/executor/token"
 )
 
 var (
@@ -369,7 +370,7 @@ func tokenPrecreated(cmd *cobra.Command, args []string) {
 
 	priceInt64 := int64(price * 1e4)
 	feeInt64 := int64(fee * 1e4)
-	params := &jsonrpc.TokenPreCreateTx{
+	params := &tokentype.TokenPreCreateTx{
 		Price:        priceInt64 * 1e4,
 		Name:         name,
 		Symbol:       symbol,
@@ -412,7 +413,7 @@ func tokenFinish(cmd *cobra.Command, args []string) {
 	fee, _ := cmd.Flags().GetFloat64("fee")
 
 	feeInt64 := int64(fee * 1e4)
-	params := &jsonrpc.TokenFinishTx{
+	params := &tokentype.TokenFinishTx{
 		Symbol:    symbol,
 		OwnerAddr: ownerAddr,
 		Fee:       feeInt64 * 1e4,
@@ -451,7 +452,7 @@ func tokenRevoke(cmd *cobra.Command, args []string) {
 	fee, _ := cmd.Flags().GetFloat64("fee")
 
 	feeInt64 := int64(fee * 1e4)
-	params := &jsonrpc.TokenRevokeTx{
+	params := &tokentype.TokenRevokeTx{
 		Symbol:    symbol,
 		OwnerAddr: ownerAddr,
 		Fee:       feeInt64 * 1e4,
