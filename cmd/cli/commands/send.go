@@ -63,10 +63,10 @@ func OneStepSend(args []string) {
 	for i, v := range params {
 		if v == "privacy" {
 			if i < size-1 {
-				mode = params[i+1]
-				params = append(params[:i], params[i+2:]...)
+				params = append(params[:i], params[i+1:]...)
 			}
 			inPrivacyMode = true
+			break
 		}
 	}
 	if inPrivacyMode {
