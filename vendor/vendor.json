@@ -147,6 +147,17 @@
 			"revisionTime": "2017-04-27T21:32:20Z"
 		},
 		{
+			"checksumSHA1": "2SLl9ZpQElbaFSw65uhZCY1VWgE=",
+			"path": "github.com/google/btree",
+			"revision": ""
+		},
+		{
+			"checksumSHA1": "jqCFBBbqLAbJGe/s7CwUOkqglCs=",
+			"path": "github.com/hoisie/redis",
+			"revision": "b5c6e81454e0395c280f220d82a6854fd0fcf42e",
+			"revisionTime": "2016-07-30T15:44:56Z"
+		},
+		{
 			"checksumSHA1": "uX6VcogbZBGBqjvuUQJvlDZQk1I=",
 			"path": "github.com/huin/goupnp",
 			"revision": "dceda08e705b2acee36aab47d765ed801f64cfc7",
