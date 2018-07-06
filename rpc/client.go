@@ -200,12 +200,12 @@ func (c *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account, erro
 
 //TODO:和GetBalance进行泛化处理，同时LoadAccounts和LoadExecAccountQueue也需要进行泛化处理, added by hzj
 func (c *channelClient) GetTokenBalance(in *types.ReqTokenBalance) ([]*types.Account, error) {
-	accountTokendb, err := account.NewAccountDB(types.ExecNamePrefix+"token", in.GetTokenSymbol(), nil)
+	accountTokendb, err := account.NewAccountDB("token", in.GetTokenSymbol(), nil)
 	if err != nil {
 		return nil, err
 	}
 	switch in.GetExecer() {
-	case types.ExecNamePrefix + "token":
+	case "token":
 		addrs := in.GetAddresses()
 		var queryAddrs []string
 		for _, addr := range addrs {
@@ -266,11 +266,11 @@ func (c *channelClient) CreateRawTokenPreCreateTx(parm *TokenPreCreateTx) ([]byt
 		Value: &types.TokenAction_Tokenprecreate{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte(parm.ParaName + "token"),
+		Execer:  []byte("token"),
 		Payload: types.Encode(precreate),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(parm.ParaName + "token"),
+		To:      address.ExecAddress("token"),
 	}
 
 	data := types.Encode(tx)
@@ -288,11 +288,11 @@ func (c *channelClient) CreateRawTokenFinishTx(parm *TokenFinishTx) ([]byte, err
 		Value: &types.TokenAction_Tokenfinishcreate{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte(parm.ParaName + "token"),
+		Execer:  []byte("token"),
 		Payload: types.Encode(finish),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(parm.ParaName + "token"),
+		To:      address.ExecAddress("token"),
 	}
 
 	data := types.Encode(tx)
@@ -309,11 +309,11 @@ func (c *channelClient) CreateRawTokenRevokeTx(parm *TokenRevokeTx) ([]byte, err
 		Value: &types.TokenAction_Tokenrevokecreate{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte(parm.ParaName + "token"),
+		Execer:  []byte("token"),
 		Payload: types.Encode(revoke),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(parm.ParaName + "token"),
+		To:      address.ExecAddress("token"),
 	}
 
 	data := types.Encode(tx)
