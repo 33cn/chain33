@@ -682,11 +682,6 @@ var MapSellOrderStatusStr2Int = map[string]int32{
 	"revoked": TradeOrderStatusRevoked,
 }
 
-//para
-const (
-	ParaActionPut = 1
-)
-
 // relay
 const (
 	RelayRevokeCreate = iota
