@@ -7,8 +7,13 @@ import (
 	"strconv"
 	"time"
 
+	"gitlab.33.cn/chain33/chain33/common/address"
+
+	"math/big"
+
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/difficulty"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -25,6 +30,7 @@ func StatCmd() *cobra.Command {
 		GetTicketStatCmd(),
 		GetTicketInfoCmd(),
 		GetTicketInfoListCmd(),
+		GetMinerStatCmd(),
 	)
 
 	return cmd
@@ -220,7 +226,7 @@ func ticketStat(cmd *cobra.Command, args []string) {
 	var resp GetTicketStatisticResult
 	resp.CurrentOpenCount = res.CurrentOpenCount
 	resp.TotalMinerCount = res.TotalMinerCount
-	resp.TotalCancleCount = res.TotalCancleCount
+	resp.TotalCloseCount = res.TotalCancleCount
 
 	data, err := json.MarshalIndent(resp, "", "    ")
 	if err != nil {
@@ -314,7 +320,7 @@ func addTicketInfoListCmdFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("addr", "a", "", "addr")
 	cmd.MarkFlagRequired("addr")
 	cmd.Flags().Int32P("count", "c", 10, "count")
-	cmd.MarkFlagRequired("count")
+	//cmd.MarkFlagRequired("count")
 	cmd.Flags().Int32P("direction", "d", 1, "query direction (0: pre page, 1: next page)")
 	cmd.Flags().StringP("create_time", "r", "", "create_time")
 	cmd.Flags().StringP("ticket_id", "t", "", "ticket_id")
@@ -396,4 +402,214 @@ func ticketInfoList(cmd *cobra.Command, args []string) {
 	}
 
 	fmt.Println(string(data))
+}
+
+func GetMinerStatCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "miner",
+		Short: "Get miner statistic",
+		Run:   minerStat,
+	}
+	addMinerStatCmdFlags(cmd)
+	return cmd
+}
+
+func addMinerStatCmdFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("addr", "a", "", "addr")
+	cmd.MarkFlagRequired("addr")
+
+	cmd.Flags().Int64P("height", "t", 0, "start block height")
+	cmd.MarkFlagRequired("height")
+}
+
+func minerStat(cmd *cobra.Command, args []string) {
+	rpcAddr, _ := cmd.Flags().GetString("rpc_laddr")
+	addr, _ := cmd.Flags().GetString("addr")
+	height, _ := cmd.Flags().GetInt64("height")
+
+	if err := address.CheckAddress(addr); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	if height <= 0 {
+		fmt.Fprintln(os.Stderr, fmt.Errorf("input err, height:%v", height))
+		return
+	}
+
+	rpc, err := jsonrpc.NewJSONClient(rpcAddr)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	// 获取最新高度
+	var lastheader jsonrpc.Header
+	err = rpc.Call("Chain33.GetLastHeader", nil, &lastheader)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	// 循环取难度区间
+	var diffList []difficultyRange
+	var diff difficultyRange
+
+	startH := height
+diffListLoop:
+	for {
+		endH := startH + 10
+		if endH > lastheader.Height {
+			endH = lastheader.Height
+		}
+
+		params := types.ReqBlocks{
+			Start:    startH,
+			End:      endH,
+			IsDetail: false,
+		}
+		var respHeaders jsonrpc.Headers
+		err = rpc.Call("Chain33.GetHeaders", params, &respHeaders)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+
+		for _, h := range respHeaders.Items {
+			if diff.bits != h.Difficulty {
+				diff.timestamp = h.BlockTime
+				diff.height = h.Height
+				diff.bits = h.Difficulty
+				diff.diff = difficulty.CompactToBig(diff.bits)
+				diffList = append(diffList, diff)
+			}
+		}
+
+		if len(respHeaders.Items) < 10 || endH+1 > lastheader.Height {
+			// 最后一个点，记录截止时间
+			diff.timestamp = respHeaders.Items[len(respHeaders.Items)-1].BlockTime
+			diffList = append(diffList, diff)
+			break diffListLoop
+		}
+		startH = endH + 1
+	}
+
+	// 统计挖矿概率
+	bigOne := big.NewInt(1)
+	oneLsh256 := new(big.Int).Lsh(bigOne, 256)
+	oneLsh256.Sub(oneLsh256, bigOne)
+	resp := new(MinerResult)
+	resp.Expect = new(big.Float).SetInt64(0)
+
+	var key []byte
+	prefix := []byte("Statistics:TicketInfoOrder:Addr:" + addr)
+	for {
+		params := types.LocalDBList{Prefix: prefix, Key: key, Direction: 1, Count: 10}
+		var res []types.TicketMinerInfo
+		err = rpc.Call("Chain33.QueryTicketInfoList", params, &res)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, fmt.Errorf("QueryTicketInfoList failed:%v", err))
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+
+		for _, v := range res {
+			if v.CreateTime < diffList[0].timestamp-types.GetP(diffList[0].height).TicketFrozenTime {
+				continue
+			}
+			//找到开始挖矿的难度坐标
+			var pos int
+			for i := range diffList {
+				//创建时间+冻结时间<右节点
+				if v.CreateTime >= diffList[i].timestamp-types.GetP(diffList[i].height).TicketFrozenTime {
+					continue
+				} else {
+					pos = i - 1
+					break
+				}
+			}
+			diffList2 := diffList[pos:]
+
+			//没有挖到，还在挖
+			if v.CloseTime == 0 && v.MinerTime == 0 {
+				for i := range diffList2 {
+					if i == 0 {
+						continue
+					}
+					probability := new(big.Float).Quo(new(big.Float).SetInt(diffList2[i-1].diff), new(big.Float).SetInt(oneLsh256))
+					if i == 1 {
+						resp.Expect = resp.Expect.Add(resp.Expect, probability.Mul(probability, new(big.Float).SetInt64(diffList2[i].timestamp-v.CreateTime-types.GetP(diffList2[i-1].height).TicketFrozenTime)))
+					} else {
+						resp.Expect = resp.Expect.Add(resp.Expect, probability.Mul(probability, new(big.Float).SetInt64(diffList2[i].timestamp-diffList2[i-1].timestamp)))
+					}
+				}
+			}
+
+			//没有挖到，主动关闭
+			if v.MinerTime == 0 && v.CloseTime != 0 {
+				for i := range diffList2 {
+					if i == 0 {
+						continue
+					}
+					probability := new(big.Float).Quo(new(big.Float).SetInt(diffList2[i-1].diff), new(big.Float).SetInt(oneLsh256))
+					if i == 1 {
+						resp.Expect = resp.Expect.Add(resp.Expect, probability.Mul(probability, new(big.Float).SetInt64(diffList2[i].timestamp-v.CreateTime-types.GetP(diffList2[i-1].height).TicketFrozenTime)))
+					} else {
+						if v.CloseTime <= diffList2[i].timestamp {
+							resp.Expect = resp.Expect.Add(resp.Expect, probability.Mul(probability, new(big.Float).SetInt64(v.CloseTime-diffList2[i-1].timestamp)))
+							break
+						} else {
+							resp.Expect = resp.Expect.Add(resp.Expect, probability.Mul(probability, new(big.Float).SetInt64(diffList2[i].timestamp-diffList2[i-1].timestamp)))
+						}
+					}
+				}
+			}
+
+			//挖到
+			if v.MinerTime != 0 {
+				for i := range diffList2 {
+					if i == 0 {
+						continue
+					}
+					probability := new(big.Float).Quo(new(big.Float).SetInt(diffList2[i-1].diff), new(big.Float).SetInt(oneLsh256))
+					if i == 1 {
+						resp.Expect = resp.Expect.Add(resp.Expect, probability.Mul(probability, new(big.Float).SetInt64(diffList2[i].timestamp-v.CreateTime-types.GetP(diffList2[i-1].height).TicketFrozenTime)))
+					} else {
+						if v.MinerTime <= diffList2[i].timestamp {
+							resp.Expect = resp.Expect.Add(resp.Expect, probability.Mul(probability, new(big.Float).SetInt64(v.MinerTime-diffList2[i-1].timestamp)))
+							break
+						} else {
+							resp.Expect = resp.Expect.Add(resp.Expect, probability.Mul(probability, new(big.Float).SetInt64(diffList2[i].timestamp-diffList2[i-1].timestamp)))
+						}
+					}
+				}
+
+				resp.Actual += 1
+			}
+		}
+
+		if len(res) < 10 {
+			break
+		}
+		key = []byte("Statistics:TicketInfoOrder:Addr:" + addr + ":CreateTime:" + time.Unix(res[len(res)-1].CreateTime, 0).Format("20060102150405") + ":TicketId:" + res[len(res)-1].TicketId)
+	}
+
+	expect := resp.Expect.Text('f', 2)
+	fmt.Println("Expect:", expect)
+	fmt.Println("Actual:", resp.Actual)
+
+	e, _ := strconv.ParseFloat(expect, 64)
+	fmt.Printf("Deviation:%+.3f%%\n", (float64(resp.Actual)/e-1.0)*100.0)
+}
+
+type difficultyRange struct {
+	timestamp int64
+	height    int64
+	bits      uint32
+	diff      *big.Int
+}
+
+type MinerResult struct {
+	Expect *big.Float
+	Actual int64
 }
