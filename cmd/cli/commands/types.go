@@ -151,7 +151,7 @@ type GetTotalCoinsResult struct {
 type GetTicketStatisticResult struct {
 	CurrentOpenCount int64 `json:"currentOpenCount"`
 	TotalMinerCount  int64 `json:"totalMinerCount"`
-	TotalCloseCount int64 `json:"totalCloseCount"`
+	TotalCloseCount  int64 `json:"totalCloseCount"`
 }
 
 type GetTicketMinerInfoResult struct {
