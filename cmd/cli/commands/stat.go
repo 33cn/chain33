@@ -517,7 +517,7 @@ diffListLoop:
 			}
 			//找到开始挖矿的难度坐标
 			var pos int
-			for i, _ := range diffList {
+			for i := range diffList {
 				//创建时间+冻结时间<右节点
 				if v.CreateTime >= diffList[i].timestamp-types.GetP(diffList[i].height).TicketFrozenTime {
 					continue
@@ -530,7 +530,7 @@ diffListLoop:
 
 			//没有挖到，还在挖
 			if v.CloseTime == 0 && v.MinerTime == 0 {
-				for i, _ := range diffList2 {
+				for i := range diffList2 {
 					if i == 0 {
 						continue
 					}
@@ -545,7 +545,7 @@ diffListLoop:
 
 			//没有挖到，主动关闭
 			if v.MinerTime == 0 && v.CloseTime != 0 {
-				for i, _ := range diffList2 {
+				for i := range diffList2 {
 					if i == 0 {
 						continue
 					}
@@ -565,7 +565,7 @@ diffListLoop:
 
 			//挖到
 			if v.MinerTime != 0 {
-				for i, _ := range diffList2 {
+				for i := range diffList2 {
 					if i == 0 {
 						continue
 					}
