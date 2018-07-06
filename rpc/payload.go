@@ -102,6 +102,19 @@ func tradePayloadType(funcname string) (proto.Message, error) {
 	return req, nil
 }
 
+func privacyPayloadType(funcname string) (proto.Message, error) {
+	var req proto.Message
+	switch funcname {
+	case "ShowAmountsOfUTXO":
+		req = &types.ReqPrivacyToken{}
+	case "ShowUTXOs4SpecifiedAmount":
+		req = &types.ReqPrivacyToken{}
+	default:
+		return nil, types.ErrInputPara
+	}
+	return req, nil
+}
+
 func relayPayloadType(funcname string) (proto.Message, error) {
 	var req proto.Message
 	switch funcname {
@@ -125,20 +138,22 @@ func relayPayloadType(funcname string) (proto.Message, error) {
 
 func payloadType(execer, funcname string) (proto.Message, error) {
 	switch execer {
-	case "token":
+	case "token": // D
 		return tokenPayloadType(funcname)
-	case "coins":
+	case "coins": // D
 		return coinsPayloadType(funcname)
-	case "manage":
+	case "manage": // D
 		return managePayloadType(funcname)
-	case "retrieve":
+	case "retrieve": // D
 		return retrievePayloadType(funcname)
-	case "ticket":
+	case "ticket": // D
 		return ticketPayloadType(funcname)
-	case "trade":
+	case "trade": // D
 		return tradePayloadType(funcname)
 	case "evm":
 		return evmPayloadType(funcname)
+	case "privacy":
+		return privacyPayloadType(funcname)
 	case "relay":
 		return relayPayloadType(funcname)
 	}

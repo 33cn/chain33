@@ -226,12 +226,12 @@ func blockchainProcess(q queue.Queue) {
 				//fmt.Println("EventLocalGet rsp")
 				msg.Reply(client.NewMessage("", types.EventLocalReplyValue, &types.LocalReplyValue{}))
 			case types.EventLocalList:
-				//fmt.Println("EventLocalList rsp")
-				//value := []byte{1,2,3,4,5,6}
-				//values := make([][]byte,2)
-				//values = append(values[:0],value)
 				var values [][]byte
 				msg.Reply(client.NewMessage("", types.EventLocalReplyValue, &types.LocalReplyValue{Values: values}))
+
+			case types.EventLocalPrefixCount:
+				msg.Reply(client.NewMessage("", types.EventLocalReplyValue, &types.Int64{Data: 0}))
+
 			default:
 				msg.ReplyErr("Do not support", types.ErrNotSupport)
 			}
@@ -243,15 +243,20 @@ func createBlockChainQueryRq(execer string, funcName string) proto.Message {
 	switch execer {
 	case "coins":
 		{
-			reqAddr := &types.ReqAddr{}
-			reqAddr.Addr, _ = genaddress()
-			reqAddr.Flag = 0
-			reqAddr.Count = 10
-			reqAddr.Direction = 0
-			reqAddr.Height = -1
-			reqAddr.Index = 0
+			if funcName == "GetPrefixCount" || funcName == "GetAddrTxsCount" {
+				in := &types.ReqKey{Key: []byte("14KEKbYtKKQm4wMthSK9J4La4nAiidGozt")}
+				return in
+			} else {
+				reqAddr := &types.ReqAddr{}
+				reqAddr.Addr, _ = genaddress()
+				reqAddr.Flag = 0
+				reqAddr.Count = 10
+				reqAddr.Direction = 0
+				reqAddr.Height = -1
+				reqAddr.Index = 0
 
-			return reqAddr
+				return reqAddr
+			}
 		}
 	case "manage":
 		{
@@ -377,6 +382,8 @@ func TestQueueClient(t *testing.T) {
 		{"token", "GetTokenInfo"},
 		{"token", "GetAddrReceiverforTokens"},
 		{"token", "GetAccountTokenAssets"},
+		{"coins", "GetPrefixCount"},
+		{"coins", "GetAddrTxsCount"},
 	}
 
 	for _, str := range execFunName {

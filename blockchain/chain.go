@@ -3,11 +3,12 @@ package blockchain
 import (
 	"container/list"
 	"fmt"
+	"math/rand"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	lru "github.com/hashicorp/golang-lru"
+	"github.com/hashicorp/golang-lru"
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
@@ -21,7 +22,7 @@ var (
 	DefCacheSize        int64 = 512
 	cachelock           sync.Mutex
 	zeroHash            [32]byte
-	InitBlockNum        int64 = 128 //节点刚启动时从db向index和bestchain缓存中添加的blocknode数
+	InitBlockNum        int64 = 1024 //节点刚启动时从db向index和bestchain缓存中添加的blocknode数
 	isStrongConsistency       = false
 
 	chainlog                    = log.New("module", "blockchain")
@@ -140,7 +141,6 @@ func (chain *BlockChain) Close() {
 	atomic.StoreInt32(&chain.isclosed, 1)
 
 	//退出线程
-	//chain.quit <- struct{}{}
 	close(chain.quit)
 
 	//wait for recvwg quit:
@@ -170,6 +170,12 @@ func (chain *BlockChain) SetQueueClient(client queue.Client) {
 	//startTime
 	chain.startTime = types.Now()
 
+	//获取数据库中最新的区块高度，以及blockchain的数据库版本号
+	curheight := chain.GetBlockHeight()
+	curdbver := chain.blockStore.GetDbVersion()
+	if curdbver == 0 && curheight == -1 {
+		chain.blockStore.SetDbVersion(1)
+	}
 	//recv 消息的处理
 	go chain.ProcRecvMsg()
 	if !chain.cfg.IsParaChain {
@@ -604,6 +610,62 @@ func (chain *BlockChain) ProcGetTransactionByAddr(addr *types.ReqAddr) (*types.R
 	return txinfos.(*types.ReplyTxInfos), nil
 }
 
+// ProcGetGlobalIndexMsg 从区块链上获取已经被确认，并且满足条件的交易UTXO信息
+// 条件：
+// 1.同一种TokenName
+// 2.混淆度需要大于0
+// 3.确认区块高度大于等于types.ConfirmedHeight
+func (chain *BlockChain) ProcGetGlobalIndexMsg(reqUTXOGlobalIndex *types.ReqUTXOGlobalIndex) (*types.ResUTXOGlobalIndex, error) {
+	debugBeginTime := time.Now()
+
+	tokenName := reqUTXOGlobalIndex.Tokenname
+	currentHeight := chain.GetBlockHeight()
+	resUTXOGlobalIndex := &types.ResUTXOGlobalIndex{}
+	resUTXOGlobalIndex.Tokenname = tokenName
+	resUTXOGlobalIndex.MixCount = reqUTXOGlobalIndex.MixCount
+	for _, amount := range reqUTXOGlobalIndex.Amount {
+		utxoItems := chain.blockStore.getUTXOsByTokenAndAmount(tokenName, amount, types.UTXOCacheCount)
+		index := len(utxoItems) - 1
+		for ; index >= 0; index-- {
+			//要求是经过了12个块确认的UTXO才能被使用
+			if utxoItems[index].GetHeight()+types.ConfirmedHeight <= currentHeight {
+				break
+			}
+		}
+
+		utxoIndex4Amount := &types.UTXOIndex4Amount{
+			Amount: amount,
+		}
+
+		mixCount := reqUTXOGlobalIndex.MixCount
+		totalCnt := int32(index + 1)
+		if mixCount > totalCnt {
+			mixCount = totalCnt
+		}
+
+		//随机化每个item的位置，随机选择N个存在的
+		random := rand.New(rand.NewSource(time.Now().UnixNano()))
+		positions := random.Perm(int(totalCnt))
+		for i := int(mixCount - 1); i >= 0; i-- {
+			position := positions[i]
+			item := utxoItems[position]
+			utxoGlobalIndex := &types.UTXOGlobalIndex{
+				Outindex: item.GetOutindex(),
+				Txhash:   item.GetTxhash(),
+			}
+			utxo := &types.UTXOBasic{
+				UtxoGlobalIndex: utxoGlobalIndex,
+				OnetimePubkey:   item.GetOnetimepubkey(),
+			}
+			utxoIndex4Amount.Utxos = append(utxoIndex4Amount.Utxos, utxo)
+		}
+		resUTXOGlobalIndex.UtxoIndex4Amount = append(resUTXOGlobalIndex.UtxoIndex4Amount, utxoIndex4Amount)
+	}
+	debugDurtime := time.Since(debugBeginTime)
+	chainlog.Debug(fmt.Sprintf("ProcGetGlobalIndexMsg cost： %d", debugDurtime))
+	return resUTXOGlobalIndex, nil
+}
+
 //type TransactionDetails struct {
 //	Txs []*Transaction
 //}
@@ -683,6 +745,8 @@ func (chain *BlockChain) ProcGetBlockOverview(ReqHash *types.ReqHash) (*types.Bl
 	header.Height = block.Block.Height
 	header.Hash = block.Block.Hash()
 	header.TxCount = int64(len(block.Block.GetTxs()))
+	header.Difficulty = block.Block.Difficulty
+	header.Signature = block.Block.Signature
 
 	blockOverview.Head = &header
 
@@ -721,20 +785,24 @@ func (chain *BlockChain) ProcGetAddrOverview(addr *types.ReqAddr) (*types.AddrOv
 	} else {
 		addrOverview.Reciver = amount.(*types.Int64).GetData()
 	}
-	//获取地址对应的交易count
-	addr.Flag = 0
-	addr.Count = 0x7fffffff
-	addr.Height = -1
-	addr.Index = 0
-	txinfos, err := chain.query.Query("coins", "GetTxsByAddr", types.Encode(addr))
-	if err != nil {
-		chainlog.Info("ProcGetAddrOverview", "GetTxsByAddr err", err)
-		//return nil, err
-		addrOverview.TxCount = 0
+	beg := types.Now()
+	curdbver := chain.blockStore.GetDbVersion()
+	var reqkey types.ReqKey
 
+	if curdbver == 0 {
+		//旧的数据库获取地址对应的交易count，使用前缀查找的方式获取
+		//前缀和util.go 文件中的CalcTxAddrHashKey保持一致
+		reqkey.Key = []byte(fmt.Sprintf("TxAddrHash:%s:%s", addr.Addr, ""))
+		count, _ := chain.query.Query("coins", "GetPrefixCount", types.Encode(&reqkey))
+		addrOverview.TxCount = count.(*types.Int64).GetData()
+		chainlog.Debug("GetPrefixCount", "cost ", types.Since(beg))
 	} else {
-		addrOverview.TxCount = int64(len(txinfos.(*types.ReplyTxInfos).GetTxInfos()))
-		chainlog.Debug("ProcGetAddrOverview", "addr", addr.Addr, "addrOverview", addrOverview.String())
+		//新的数据库直接使用key值查找就可以
+		//前缀和util.go 文件中的calcAddrTxsCountKey保持一致
+		reqkey.Key = []byte(fmt.Sprintf("AddrTxsCount:%s", addr.Addr))
+		count, _ := chain.query.Query("coins", "GetAddrTxsCount", types.Encode(&reqkey))
+		addrOverview.TxCount = count.(*types.Int64).GetData()
+		chainlog.Debug("GetAddrTxsCount", "cost ", types.Since(beg))
 	}
 	return &addrOverview, nil
 }
