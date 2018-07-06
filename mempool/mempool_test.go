@@ -4,7 +4,6 @@ import (
 	"errors"
 	"math/rand"
 	"testing"
-	"time"
 
 	"gitlab.33.cn/chain33/chain33/blockchain"
 	"gitlab.33.cn/chain33/chain33/common"
@@ -64,7 +63,7 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	random = rand.New(rand.NewSource(time.Now().UnixNano()))
+	random = rand.New(rand.NewSource(types.Now().UnixNano()))
 	queue.DisableLog()
 	DisableLog() // 不输出任何log
 	//	SetLogLevel("debug") // 输出DBUG(含)以下log
@@ -495,6 +494,42 @@ func TestRemoveTxOfBlock(t *testing.T) {
 
 	if reply.GetData().(*types.MempoolSize).Size != 3 {
 		t.Error("TestGetMempoolSize failed")
+	}
+}
+
+func TestAddBlockedTx(t *testing.T) {
+	q, mem := initEnv(0)
+	defer q.Close()
+	defer mem.Close()
+
+	msg1 := mem.client.NewMessage("mempool", types.EventTx, tx3)
+	err := mem.client.Send(msg1, true)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	msg1, err = mem.client.Wait(msg1)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	blkDetail := &types.BlockDetail{Block: blk}
+	msg2 := mem.client.NewMessage("mempool", types.EventAddBlock, blkDetail)
+	mem.client.Send(msg2, false)
+
+	msg3 := mem.client.NewMessage("mempool", types.EventTx, tx3)
+	err = mem.client.Send(msg3, true)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	resp, err := mem.client.Wait(msg3)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if string(resp.GetData().(*types.Reply).GetMsg()) != types.ErrDupTx.Error() {
+		t.Error("TestAddBlockedTx failed")
 	}
 }
 

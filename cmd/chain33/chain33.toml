@@ -1,5 +1,6 @@
 Title="chain33"
 TestNet=true
+FixTime=false
 
 [log]
 # 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
@@ -34,6 +35,8 @@ dbCache=64
 isStrongConsistency=false
 singleMode=false
 batchsync=false
+isRecordBlockSequence=false
+isParaChain=false
 
 [p2p]
 seeds=[]
@@ -53,7 +56,9 @@ grpcLogFile="grpc33.log"
 [rpc]
 jrpcBindAddr="localhost:8801"
 grpcBindAddr="localhost:8802"
-whitlist=["127.0.0.1"]
+whitelist=["127.0.0.1"]
+jrpcFuncWhitelist=["*"]
+grpcFuncWhitelist=["*"]
 
 [mempool]
 poolCacheSize=10240
@@ -76,6 +81,7 @@ dbPath="wallet"
 dbCache=16
 signType="secp256k1"
 minerdisable=false
+minerwhitelist=["*"]
 
 [exec]
 isFree=false

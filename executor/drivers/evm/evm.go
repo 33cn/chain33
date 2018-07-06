@@ -27,8 +27,10 @@ var (
 )
 
 func Init() {
-	// TODO 注册的驱动高度需要更新为上线时的正确高度
-	drivers.Register(model.ExecutorName, newEVMDriver, 0)
+	drivers.Register(model.ExecutorName, newEVMDriver, types.ForkV17EVM)
+
+	// 初始化硬分叉数据
+	state.InitForkData()
 }
 
 func newEVMDriver() drivers.Driver {
@@ -60,7 +62,7 @@ func (evm *EVMExecutor) GetName() string {
 
 func (evm *EVMExecutor) CheckInit() {
 	if evm.mStateDB == nil {
-		evm.mStateDB = state.NewMemoryStateDB(evm.DriverBase.GetStateDB(), evm.DriverBase.GetLocalDB(), evm.DriverBase.GetCoinsAccount())
+		evm.mStateDB = state.NewMemoryStateDB(evm.GetStateDB(), evm.GetLocalDB(), evm.GetCoinsAccount(), evm.GetHeight())
 	}
 }
 
@@ -75,7 +77,6 @@ func (evm *EVMExecutor) getNewAddr(txHash []byte) common.Address {
 // FIXME 目前evm执行器暂时没有ExecLocal，执行默认逻辑，后面根据需要再考虑增加；
 func (evm *EVMExecutor) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	evm.CheckInit()
-
 	// 先转换消息
 	msg, err := evm.GetMessage(tx)
 	if err != nil {
@@ -120,16 +121,15 @@ func (evm *EVMExecutor) Exec(tx *types.Transaction, index int) (*types.Receipt, 
 	if isCreate {
 		ret, snapshot, leftOverGas, vmerr = env.Create(runtime.AccountRef(msg.From()), contractAddr, msg.Data(), context.GasLimit, execName, msg.Alias())
 	} else {
-
 		ret, snapshot, leftOverGas, vmerr = env.Call(runtime.AccountRef(msg.From()), *msg.To(), msg.Data(), context.GasLimit, msg.Value())
 	}
 
+	log.Debug("call(create) contract ", "input", common.Bytes2Hex(msg.Data()))
 	usedGas := msg.GasLimit() - leftOverGas
 	logMsg := "call contract details:"
 	if isCreate {
 		logMsg = "create contract details:"
 	}
-
 	log.Debug(logMsg, "caller address", msg.From().String(), "contract address", contractAddr.String(), "exec name", execName, "alias name", msg.Alias(), "usedGas", usedGas, "return data", common.Bytes2Hex(ret))
 
 	curVer := evm.mStateDB.GetLastSnapshot()
@@ -168,10 +168,28 @@ func (evm *EVMExecutor) Exec(tx *types.Transaction, index int) (*types.Receipt, 
 
 	// 返回之前，把本次交易在区块中生成的合约日志集中打印出来
 	if evm.mStateDB != nil {
-		evm.mStateDB.WritePreimages(evm.DriverBase.GetHeight())
+		evm.mStateDB.WritePreimages(evm.GetHeight())
 	}
 
+	// 替换导致分叉的执行数据信息
+	state.ProcessFork(evm.GetHeight(), tx.Hash(), receipt)
+
+	evm.collectEvmTxLog(tx, contractReceipt, receipt)
 	return receipt, nil
+}
+
+func (evm *EVMExecutor) collectEvmTxLog(tx *types.Transaction, cr *types.ReceiptEVMContract, receipt *types.Receipt) {
+	log.Debug("evm collect begin")
+	log.Debug("Tx info", "txHash", common.Bytes2Hex(tx.Hash()), "height", evm.GetHeight())
+	log.Debug("ReceiptEVMContract", "data", fmt.Sprintf("caller=%v, name=%v, addr=%v, usedGas=%v, ret=%v", cr.Caller, cr.ContractName, cr.ContractAddr, cr.UsedGas, common.Bytes2Hex(cr.Ret)))
+	log.Debug("receipt data", "type", receipt.Ty)
+	for _, kv := range receipt.KV {
+		log.Debug("KeyValue", "key", common.Bytes2Hex(kv.Key), "value", common.Bytes2Hex(kv.Value))
+	}
+	for _, kv := range receipt.Logs {
+		log.Debug("ReceiptLog", "Type", kv.Ty, "log", common.Bytes2Hex(kv.Log))
+	}
+	log.Debug("evm collect end")
 }
 
 //获取运行状态名
@@ -190,6 +208,22 @@ func (evm *EVMExecutor) ExecLocal(tx *types.Transaction, receipt *types.ReceiptD
 	if receipt.GetTy() != types.ExecOk {
 		return set, nil
 	}
+
+	if types.IsMatchFork(evm.GetHeight(), types.ForkV20EVMState) {
+		// 需要将Exec中生成的合约状态变更信息写入localdb
+		for _, logItem := range receipt.Logs {
+			if types.TyLogEVMStateChangeItem == logItem.Ty {
+				data := logItem.Log
+				var changeItem types.EVMStateChangeItem
+				err = types.Decode(data, &changeItem)
+				if err != nil {
+					return set, err
+				}
+				set.KV = append(set.KV, &types.KeyValue{Key: []byte(changeItem.Key), Value: changeItem.CurrentValue})
+			}
+		}
+	}
+
 	return set, err
 }
 
@@ -201,6 +235,22 @@ func (evm *EVMExecutor) ExecDelLocal(tx *types.Transaction, receipt *types.Recei
 	if receipt.GetTy() != types.ExecOk {
 		return set, nil
 	}
+
+	if types.IsMatchFork(evm.GetHeight(), types.ForkV20EVMState) {
+		// 需要将Exec中生成的合约状态变更信息从localdb中恢复
+		for _, logItem := range receipt.Logs {
+			if types.TyLogEVMStateChangeItem == logItem.Ty {
+				data := logItem.Log
+				var changeItem types.EVMStateChangeItem
+				err = types.Decode(data, &changeItem)
+				if err != nil {
+					return set, err
+				}
+				set.KV = append(set.KV, &types.KeyValue{Key: []byte(changeItem.Key), Value: changeItem.PreValue})
+			}
+		}
+	}
+
 	return set, err
 }
 
@@ -266,7 +316,6 @@ func (evm *EVMExecutor) CheckAddrExists(req *types.CheckEVMAddrReq) (types.Messa
 			ret.ContractAddr = account.Addr
 			ret.ContractName = account.GetExecName()
 			ret.AliasName = account.GetAliasName()
-			ret.CreateTime = account.GetCreateTime()
 		}
 	}
 	return ret, nil
@@ -275,24 +324,26 @@ func (evm *EVMExecutor) CheckAddrExists(req *types.CheckEVMAddrReq) (types.Messa
 // 此方法用来估算合约消耗的Gas，不能修改原有执行器的状态数据
 func (evm *EVMExecutor) EstimateGas(req *types.EstimateEVMGasReq) (types.Message, error) {
 	var (
-		caller   common.Address
-		to       *common.Address
-		isCreate bool
+		caller common.Address
+		to     *common.Address
 	)
 
-	// 估算Gas时直接使用一个虚拟的地址发起调用
-	caller = common.ExecAddress(model.ExecutorName)
-
-	isCreate = true
-	if len(req.To) > 0 {
-		to = common.StringToAddress(req.To)
-		return nil, model.ErrAddrNotExists
+	// 如果未指定调用地址，则直接使用一个虚拟的地址发起调用
+	if len(req.Caller) > 0 {
+		callAddr := common.StringToAddress(req.Caller)
+		if callAddr != nil {
+			caller = *callAddr
+		}
+	} else {
+		caller = common.ExecAddress(model.ExecutorName)
 	}
 
-	msg := common.NewMessage(caller, to, 0, 0, model.MaxGasLimit, 1, req.Code, "estimateGas")
+	isCreate := strings.EqualFold(req.To, EvmAddress)
+
+	msg := common.NewMessage(caller, nil, 0, req.Amount, model.MaxGasLimit, 1, req.Code, "estimateGas")
 	context := evm.NewEVMContext(msg)
 	// 创建EVM运行时对象
-	evm.mStateDB = state.NewMemoryStateDB(evm.DriverBase.GetStateDB(), evm.DriverBase.GetLocalDB(), evm.DriverBase.GetCoinsAccount())
+	evm.mStateDB = state.NewMemoryStateDB(evm.GetStateDB(), evm.GetLocalDB(), evm.GetCoinsAccount(), evm.GetHeight())
 	env := runtime.NewEVM(context, evm.mStateDB, *evm.vmCfg)
 	evm.mStateDB.Prepare(common.BigToHash(big.NewInt(model.MaxGasLimit)), 0)
 
@@ -309,7 +360,8 @@ func (evm *EVMExecutor) EstimateGas(req *types.EstimateEVMGasReq) (types.Message
 		execName = fmt.Sprintf("%s%s", model.EvmPrefix, common.BytesToHash(txHash).Hex())
 		_, _, leftOverGas, vmerr = env.Create(runtime.AccountRef(msg.From()), contractAddr, msg.Data(), context.GasLimit, execName, "estimateGas")
 	} else {
-		_, _, leftOverGas, vmerr = env.Call(runtime.AccountRef(msg.From()), *msg.To(), msg.Data(), context.GasLimit, msg.Value())
+		to = common.StringToAddress(req.To)
+		_, _, leftOverGas, vmerr = env.Call(runtime.AccountRef(msg.From()), *to, msg.Data(), context.GasLimit, msg.Value())
 	}
 
 	result := &types.EstimateEVMGasResp{}

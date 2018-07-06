@@ -58,7 +58,7 @@ const (
 )
 
 const (
-	P2pCacheTxSize = 10240
+	P2pCacheTxSize = 102400
 )
 
 var TestNetSeeds = []string{

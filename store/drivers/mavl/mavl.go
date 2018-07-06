@@ -81,7 +81,7 @@ func (mavls *Store) MemSet(datas *types.StoreSet, sync bool) []byte {
 	}
 	hash := tree.Hash()
 	mavls.trees[string(hash)] = tree
-	if len(mavls.trees) > 100 {
+	if len(mavls.trees) > 1000 {
 		mlog.Error("too many trees in cache")
 	}
 	return hash

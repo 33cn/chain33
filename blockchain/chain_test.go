@@ -77,11 +77,11 @@ func initEnv() (*BlockChain, queue.Module, queue.Module, queue.Module, queue.Mod
 }
 
 func createTx(priv crypto.PrivKey, to string, amount int64) *types.Transaction {
-	random = rand.New(rand.NewSource(time.Now().UnixNano()))
+	random = rand.New(rand.NewSource(types.Now().UnixNano()))
 
 	v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
 	transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
-	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1e6, To: to}
+	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1e6, To: to, Expire: 0}
 	tx.Nonce = random.Int63()
 	tx.To = address.ExecAddress("none")
 	tx.Sign(types.SECP256K1, priv)
@@ -141,8 +141,18 @@ func PrintBlockInfo(block *types.BlockDetail) {
 	}
 }
 
+// 打印block的信息
+func PrintSequenceInfo(Sequence *types.BlockSequence) {
+	if Sequence == nil {
+		return
+	}
+	fmt.Println("PrintSequenceInfo!")
+	fmt.Println("Sequence.Hash:", Sequence.Hash)
+	fmt.Println("Sequence.Type:", Sequence.Type)
+}
 func addTx() (string, error) {
 	txs, _, _ := genTxs(1)
+	fmt.Println("addTx: ", txs[0])
 	hash := common.Bytes2Hex(txs[0].Hash())
 	reply, err := api.SendTx(txs[0])
 	if err != nil {
@@ -183,6 +193,14 @@ func TestBlockChain(t *testing.T) {
 
 	testGetBlockByHash(t, blockchain)
 
+	testProcGetLastSequence(t, blockchain)
+
+	testGetBlockSequences(t, blockchain)
+
+	testGetBlockByHashes(t, blockchain)
+	testGetSeqByHash(t, blockchain)
+	testPrefixCount(t, blockchain)
+	testAddrTxCount(t, blockchain)
 	//testProcGetTransactionByHashes(t, blockchain)
 
 	//testProcGetTransactionByAddr(t, blockchain)
@@ -394,4 +412,101 @@ func testGetBlockByHash(t *testing.T, blockchain *BlockChain) {
 
 	PrintBlockInfo(block)
 	chainlog.Info("TestGetBlockByHash end --------------------")
+}
+
+func testProcGetLastSequence(t *testing.T, blockchain *BlockChain) {
+	chainlog.Info("testProcGetLastSequence begin --------------------")
+
+	lastSequence, err := blockchain.blockStore.LoadBlockLastSequence()
+
+	if err == nil {
+		fmt.Println("testProcGetLastSequence info:.")
+		fmt.Println("lastSequence:", lastSequence)
+	}
+	chainlog.Info("testProcGetLastSequence end --------------------")
+}
+
+func testGetBlockSequences(t *testing.T, blockchain *BlockChain) {
+	chainlog.Info("testGetBlockSequences begin --------------------")
+	lastSequence, _ := blockchain.blockStore.LoadBlockLastSequence()
+	var reqBlock types.ReqBlocks
+	if lastSequence >= 5 {
+		reqBlock.Start = lastSequence - 5
+	}
+	reqBlock.End = lastSequence
+	reqBlock.IsDetail = true
+	Sequences, err := blockchain.GetBlockSequences(&reqBlock)
+	if err == nil && Sequences != nil {
+		for _, sequence := range Sequences.Items {
+			PrintSequenceInfo(sequence)
+		}
+	}
+	chainlog.Info("testGetBlockSequences end --------------------")
+}
+
+func testGetBlockByHashes(t *testing.T, blockchain *BlockChain) {
+	chainlog.Info("testGetBlockByHashes begin --------------------")
+	lastSequence, _ := blockchain.blockStore.LoadBlockLastSequence()
+	var reqBlock types.ReqBlocks
+	if lastSequence >= 5 {
+		reqBlock.Start = lastSequence - 5
+	}
+	reqBlock.End = lastSequence
+	reqBlock.IsDetail = true
+	hashes := make([][]byte, 6)
+	Sequences, err := blockchain.GetBlockSequences(&reqBlock)
+	if err == nil && Sequences != nil {
+		for index, sequence := range Sequences.Items {
+			hashes[index] = sequence.Hash
+		}
+	}
+
+	blocks, err := blockchain.GetBlockByHashes(hashes)
+	if err == nil && blocks != nil {
+		for _, block := range blocks.Items {
+			PrintBlockInfo(block)
+		}
+	}
+	chainlog.Info("testGetBlockByHashes end --------------------")
+}
+
+func testGetSeqByHash(t *testing.T, blockchain *BlockChain) {
+	chainlog.Info("testGetSeqByHash begin --------------------")
+	lastSequence, _ := blockchain.blockStore.LoadBlockLastSequence()
+	var reqBlock types.ReqBlocks
+
+	reqBlock.Start = lastSequence
+	reqBlock.End = lastSequence
+	reqBlock.IsDetail = true
+	hashes := make([][]byte, 1)
+	Sequences, err := blockchain.GetBlockSequences(&reqBlock)
+	if err == nil && Sequences != nil {
+		for index, sequence := range Sequences.Items {
+			hashes[index] = sequence.Hash
+		}
+	}
+
+	seq, err := blockchain.ProcGetSeqByHash(hashes[0])
+	chainlog.Info("testGetSeqByHash", "seq", seq, "err", err)
+	chainlog.Info("testGetSeqByHash end --------------------")
+}
+
+func testPrefixCount(t *testing.T, blockchain *BlockChain) {
+	chainlog.Info("testPrefixCount begin --------------------")
+
+	msgGen := blockchain.client.NewMessage("blockchain", types.EventLocalPrefixCount, &types.ReqKey{Key: []byte("TxAddrHash:14KEKbYtKKQm4wMthSK9J4La4nAiidGozt:")})
+	blockchain.client.Send(msgGen, true)
+	Res, _ := blockchain.client.Wait(msgGen)
+	count := Res.GetData().(*types.Int64).Data
+	println("count: ", count)
+	chainlog.Info("testPrefixCount end --------------------")
+}
+
+func testAddrTxCount(t *testing.T, blockchain *BlockChain) {
+	chainlog.Info("testAddrTxCount begin --------------------")
+	var reqkey types.ReqKey
+	reqkey.Key = []byte(fmt.Sprintf("AddrTxsCount:%s", "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"))
+	count, _ := blockchain.query.Query("coins", "GetAddrTxsCount", types.Encode(&reqkey))
+	println("count: ", count.(*types.Int64).GetData())
+	chainlog.Info("testAddrTxCount end --------------------")
 }

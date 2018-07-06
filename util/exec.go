@@ -3,7 +3,6 @@ package util
 import (
 	"bytes"
 	"errors"
-	"time"
 
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common"
@@ -20,10 +19,11 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	//发送执行交易给execs模块
 	//通过consensus module 再次检查
 	ulog.Debug("ExecBlock", "height------->", block.Height, "ntx", len(block.Txs))
-	beg := time.Now()
+	beg := types.Now()
 	defer func() {
-		ulog.Info("ExecBlock", "height", block.Height, "ntx", len(block.Txs), "writebatchsync", sync, "cost", time.Since(beg))
+		ulog.Info("ExecBlock", "height", block.Height, "ntx", len(block.Txs), "writebatchsync", sync, "cost", types.Since(beg))
 	}()
+
 	if errReturn && block.Height > 0 && !block.CheckSign() {
 		//block的来源不是自己的mempool，而是别人的区块
 		return nil, nil, types.ErrSign
@@ -31,7 +31,7 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	//tx交易去重处理, 这个地方要查询数据库，需要一个更快的办法
 	cacheTxs := types.TxsToCache(block.Txs)
 	oldtxscount := len(cacheTxs)
-	cacheTxs = CheckTxDup(client, cacheTxs, block.Height)
+	//cacheTxs = CheckTxDup(client, cacheTxs, block.Height)
 	newtxscount := len(cacheTxs)
 	if oldtxscount != newtxscount && errReturn {
 		return nil, nil, types.ErrTxDup
@@ -55,6 +55,7 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 			deltxlist[i] = true
 			continue
 		}
+
 		rdata = append(rdata, &types.ReceiptData{receipt.Ty, receipt.Logs})
 		//处理KV
 		kvs := receipt.KV

@@ -14,17 +14,20 @@ import (
 	"google.golang.org/grpc"
 )
 
-func TestCheckWhitlist(t *testing.T) {
-	address := "0.0.0.0"
-	assert.False(t, checkWhitlist(address))
+func TestCheckIpWhitelist(t *testing.T) {
+	address := "127.0.0.1"
+	assert.True(t, checkIpWhitelist(address))
+
+	address = "::1"
+	assert.True(t, checkIpWhitelist(address))
 
 	address = "192.168.3.1"
-	whitlist[address] = true
-	assert.False(t, checkWhitlist("192.168.3.2"))
+	remoteIpWhitelist[address] = true
+	assert.False(t, checkIpWhitelist("192.168.3.2"))
 
-	whitlist["0.0.0.0"] = true
-	assert.True(t, checkWhitlist(address))
-	assert.True(t, checkWhitlist("192.168.3.2"))
+	remoteIpWhitelist["0.0.0.0"] = true
+	assert.True(t, checkIpWhitelist(address))
+	assert.True(t, checkIpWhitelist("192.168.3.2"))
 
 }
 
@@ -32,7 +35,9 @@ func TestJSONClient_Call(t *testing.T) {
 	rpcCfg = new(types.Rpc)
 	rpcCfg.GrpcBindAddr = "127.0.0.1:8101"
 	rpcCfg.JrpcBindAddr = "127.0.0.1:8200"
-	rpcCfg.Whitlist = []string{"127.0.0.1", "0.0.0.0"}
+	rpcCfg.Whitelist = []string{"127.0.0.1", "0.0.0.0"}
+	rpcCfg.JrpcFuncWhitelist = []string{"*"}
+	rpcCfg.GrpcFuncWhitelist = []string{"*"}
 	Init(rpcCfg)
 	server := NewJSONRPCServer(&qmocks.Client{})
 	assert.NotNil(t, server)
@@ -121,7 +126,9 @@ func TestGrpc_Call(t *testing.T) {
 	rpcCfg = new(types.Rpc)
 	rpcCfg.GrpcBindAddr = "127.0.0.1:8101"
 	rpcCfg.JrpcBindAddr = "127.0.0.1:8200"
-	rpcCfg.Whitlist = []string{"127.0.0.1", "0.0.0.0"}
+	rpcCfg.Whitelist = []string{"127.0.0.1", "0.0.0.0"}
+	rpcCfg.JrpcFuncWhitelist = []string{"*"}
+	rpcCfg.GrpcFuncWhitelist = []string{"*"}
 	Init(rpcCfg)
 	server := NewGRpcServer(&qmocks.Client{})
 	assert.NotNil(t, server)
@@ -129,7 +136,7 @@ func TestGrpc_Call(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 	server.grpc.cli.QueueProtocolAPI = api
 	go server.Listen()
-
+	time.Sleep(time.Second)
 	ret := &types.Reply{
 		IsOk: true,
 		Msg:  []byte("123"),
@@ -137,7 +144,6 @@ func TestGrpc_Call(t *testing.T) {
 	api.On("IsSync").Return(ret, nil)
 	api.On("Close").Return()
 
-	time.Sleep(100)
 	ctx := context.Background()
 	c, err := grpc.DialContext(ctx, rpcCfg.GrpcBindAddr, grpc.WithInsecure())
 	assert.Nil(t, err)
