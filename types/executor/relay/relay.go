@@ -35,6 +35,7 @@ func init() {
 }
 
 type RelayType struct {
+	types.ExecTypeBase
 }
 
 func (r RelayType) ActionName(tx *types.Transaction) string {

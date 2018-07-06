@@ -23,6 +23,7 @@ func init() {
 }
 
 type HashlockType struct {
+	types.ExecTypeBase
 }
 
 func (hashlock HashlockType) ActionName(tx *types.Transaction) string {

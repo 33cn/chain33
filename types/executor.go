@@ -3,8 +3,10 @@ package types
 import "encoding/json"
 
 type ExecutorType interface {
-	// name 是 executor name 构造时用
-	//func Name()
+	//获取交易真正的to addr
+	GetRealToAddr(tx *Transaction) string
+	//给用户显示的from 和 to
+	GetViewFromToAddr(tx *Transaction) (string, string)
 	ActionName(tx *Transaction) string
 	CreateTx(action string, message json.RawMessage) (*Transaction, error)
 	Amount(tx *Transaction) (int64, error)
@@ -74,4 +76,17 @@ func LoadQueryType(funcName string) RpcQueryType {
 		return trans
 	}
 	return nil
+}
+
+type ExecTypeBase struct {
+}
+
+//用户看到的ToAddr
+func (base ExecTypeBase) GetRealToAddr(tx *Transaction) string {
+	return tx.To
+}
+
+//用户看到的FromAddr
+func (base ExecTypeBase) GetViewFromToAddr(tx *Transaction) (string, string) {
+	return tx.From(), tx.To
 }

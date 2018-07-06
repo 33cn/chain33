@@ -29,6 +29,7 @@ func init() {
 }
 
 type TicketType struct {
+	types.ExecTypeBase
 }
 
 func (ticket TicketType) ActionName(tx *types.Transaction) string {
