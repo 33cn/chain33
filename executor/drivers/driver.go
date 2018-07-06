@@ -183,7 +183,7 @@ func (d *DriverBase) CheckTx(tx *types.Transaction, index int) error {
 	blog.Info("CheckTx", "exec", execer, "to", tx.To)
 	if ExecAddress(execer) != tx.To {
 		blog.Error("CheckTx", "exec", ExecAddress(execer), "to", tx.To)
-		if !bytes.HasPrefix(tx.Execer, []byte("user.company.")) {
+		if !bytes.HasPrefix(tx.Execer, []byte("user.p.")) {
 			return types.ErrToAddrNotSameToExecAddr
 		}
 	}
