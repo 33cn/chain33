@@ -124,7 +124,7 @@ func initEnv3() (queue.Queue, queue.Module, queue.Module, *Mempool) {
 	mem := New(cfg.MemPool)
 	mem.SetQueueClient(q.Client())
 	mem.setSync(true)
-	mem.waitPollLastHeader()
+	mem.WaitPollLastHeader()
 	return q, chain, s, mem
 }
 
@@ -141,7 +141,7 @@ func initEnv2(size int) (queue.Queue, *Mempool) {
 		mem.Resize(size)
 	}
 	mem.SetMinFee(0)
-	mem.waitPollLastHeader()
+	mem.WaitPollLastHeader()
 	return q, mem
 }
 
@@ -157,7 +157,7 @@ func initEnv(size int) (queue.Queue, *Mempool) {
 		mem.Resize(size)
 	}
 	mem.SetMinFee(types.MinFee)
-	mem.waitPollLastHeader()
+	mem.WaitPollLastHeader()
 	return q, mem
 }
 
