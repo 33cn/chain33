@@ -403,7 +403,7 @@ func (client *ParaClient) createBlock(lastBlock *types.Block, txs []*types.Trans
 	plog.Debug(fmt.Sprintf("the len txs is: %v", len(txs)))
 	newblock.ParentHash = lastBlock.Hash()
 	newblock.Height = lastBlock.Height + 1
-	client.AddTxsToBlock(&newblock, txs)
+	newblock.Txs = txs
 	//挖矿固定难度
 	newblock.Difficulty = types.GetP(0).PowLimitBits
 	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
