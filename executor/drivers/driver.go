@@ -142,7 +142,7 @@ func (d *DriverBase) getTxIndex(tx *types.Transaction, receipt *types.ReceiptDat
 	txIndexInfo.heightstr = heightstr
 
 	txIndexInfo.from = address.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
-	txIndexInfo.to = tx.To
+	txIndexInfo.to = tx.GetRealToAddr()
 	return &txIndexInfo
 }
 
