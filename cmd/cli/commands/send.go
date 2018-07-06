@@ -56,6 +56,30 @@ func OneStepSend(args []string) {
 		isAddr = true
 	}
 
+	size = len(params)
+	mode := "0"
+	inPrivacyMode := false
+	// 检查隐私交易标签，如果含有privacy
+	for i, v := range params {
+		if v == "privacy" {
+			if i < size-1 {
+				params = append(params[:i], params[i+1:]...)
+			}
+			inPrivacyMode = true
+			break
+		}
+	}
+	if inPrivacyMode {
+		for i, v := range params {
+			if v == "-m" {
+				if i < size-1 {
+					mode = params[i+1]
+					params = append(params[:i], params[i+2:]...)
+				}
+			}
+		}
+	}
+
 	cmdCreate := exec.Command(name, params...)
 	var outCreate bytes.Buffer
 	var errCreate bytes.Buffer
@@ -81,6 +105,9 @@ func OneStepSend(args []string) {
 		addrOrKey = "-a"
 	}
 	cParams := []string{"wallet", "sign", "-d", string(bufCreate[:len(bufCreate)-1]), addrOrKey, key}
+	if inPrivacyMode {
+		cParams = append(cParams, []string{"-m", mode}...)
+	}
 	if hasAddr {
 		cParams = append(cParams, "--rpc_laddr", rpcAddr)
 	}
@@ -101,6 +128,9 @@ func OneStepSend(args []string) {
 
 	bufSign := outSign.Bytes()
 	cParams = []string{"wallet", "send", "-d", string(bufSign[:len(bufSign)-1])}
+	if inPrivacyMode {
+		cParams = append(cParams, []string{"-m", mode}...)
+	}
 	if hasAddr {
 		cParams = append(cParams, "--rpc_laddr", rpcAddr)
 	}

@@ -8,10 +8,14 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"sort"
+
 	"github.com/golang/protobuf/proto"
 	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/common/difficulty"
+	"gitlab.33.cn/chain33/chain33/common/version"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/privacy"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -386,6 +390,7 @@ func (bs *BlockStore) DelTxs(storeBatch dbm.Batch, blockDetail *types.BlockDetai
 			storeBatch.Set(kv.KV[i].Key, kv.KV[i].Value)
 		}
 	}
+
 	return nil
 }
 
@@ -496,8 +501,8 @@ func (bs *BlockStore) getDelLocalKV(detail *types.BlockDetail) (*types.LocalDBSe
 	if err != nil {
 		return nil, err
 	}
-	kv := resp.GetData().(*types.LocalDBSet)
-	return kv, nil
+	localDBSet := resp.GetData().(*types.LocalDBSet)
+	return localDBSet, nil
 }
 
 //从db数据库中获取指定blockhash对应的block总难度td
@@ -617,6 +622,31 @@ func (bs *BlockStore) dbMaybeStoreBlock(blockdetail *types.BlockDetail, sync boo
 	return nil
 }
 
+func (bs *BlockStore) getUTXOsByTokenAndAmount(token string, amount int64, count int32) []*types.LocalUTXOItem {
+	querydb := bs.db
+	var localUTXOItemSlice []*types.LocalUTXOItem
+	list := dbm.NewListHelper(querydb)
+	values := list.List(privacy.CalcPrivacyUTXOkeyHeightPrefix(token, amount), nil, count, 0)
+	if len(values) != 0 {
+		for _, value := range values {
+			var localUTXOItem types.LocalUTXOItem
+			err := types.Decode(value, &localUTXOItem)
+			if err == nil {
+				localUTXOItemSlice = append(localUTXOItemSlice, &localUTXOItem)
+			} else {
+				chainlog.Error("getUTXOsByTokenAndAmount:", "Failed to Decode localUTXOItem due to cause", err)
+				return nil
+			}
+		}
+	}
+
+	sort.Slice(localUTXOItemSlice, func(i, j int) bool {
+		return localUTXOItemSlice[i].Height <= localUTXOItemSlice[j].Height
+	})
+
+	return localUTXOItemSlice
+}
+
 //获取当前最新的block操作序列号
 func (bs *BlockStore) LoadBlockLastSequence() (int64, error) {
 	bytes, err := bs.db.Get(LastSequence)
@@ -725,4 +755,35 @@ func (bs *BlockStore) GetSequenceByHash(hash []byte) (int64, error) {
 		return -1, types.ErrUnmarshal
 	}
 	return seq.Data, nil
+}
+
+//获取blockchain的数据库版本号
+func (bs *BlockStore) GetDbVersion() int64 {
+	ver := types.Int64{}
+	version, err := bs.db.Get(version.BlockChainVerKey)
+	if err != nil && err != types.ErrNotFound {
+		storeLog.Info("GetDbVersion", "err", err)
+		return 0
+	}
+	if len(version) == 0 {
+		storeLog.Info("GetDbVersion len(version)==0")
+		return 0
+	}
+	err = types.Decode(version, &ver)
+	if err != nil {
+		storeLog.Info("GetDbVersion", "types.Decode err", err)
+		return 0
+	}
+	storeLog.Info("GetDbVersion", "blcokchain db version", ver.Data)
+	return ver.Data
+}
+
+//获取blockchain的数据库版本号
+func (bs *BlockStore) SetDbVersion(versionNo int64) error {
+	ver := types.Int64{Data: versionNo}
+	verByte := types.Encode(&ver)
+
+	storeLog.Info("SetDbVersion", "blcokchain db version", versionNo)
+
+	return bs.db.SetSync(version.BlockChainVerKey, verByte)
 }
