@@ -93,6 +93,21 @@ func SaveSeed(db dbm.DB, seed string, password string) (bool, error) {
 	return true, nil
 }
 
+func SaveSeedInBatch(db dbm.DB, seed string, password string, batch dbm.Batch) (bool, error) {
+	if len(seed) == 0 || len(password) == 0 {
+		return false, types.ErrInputPara
+	}
+
+	Encrypted, err := AesgcmEncrypter([]byte(password), []byte(seed))
+	if err != nil {
+		seedlog.Error("SaveSeed", "AesgcmEncrypter err", err)
+		return false, err
+	}
+	batch.Set(WalletSeed, Encrypted)
+	//seedlog.Info("SaveSeed ok", "Encryptedseed", Encryptedseed)
+	return true, nil
+}
+
 //使用password解密seed上报给上层
 func GetSeed(db dbm.DB, password string) (string, error) {
 	if len(password) == 0 {

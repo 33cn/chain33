@@ -14,6 +14,29 @@ func (_m *QueueProtocolAPI) Close() {
 	_m.Called()
 }
 
+// CloseQueue provides a mock function with given fields:
+func (_m *QueueProtocolAPI) CloseQueue() (*types.Reply, error) {
+	ret := _m.Called()
+
+	var r0 *types.Reply
+	if rf, ok := ret.Get(0).(func() *types.Reply); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.Reply)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func() error); ok {
+		r1 = rf()
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // CloseTickets provides a mock function with given fields:
 func (_m *QueueProtocolAPI) CloseTickets() (*types.ReplyHashes, error) {
 	ret := _m.Called()
@@ -30,6 +53,75 @@ func (_m *QueueProtocolAPI) CloseTickets() (*types.ReplyHashes, error) {
 	var r1 error
 	if rf, ok := ret.Get(1).(func() error); ok {
 		r1 = rf()
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// CreateTrasaction provides a mock function with given fields: param
+func (_m *QueueProtocolAPI) CreateTrasaction(param *types.ReqCreateTransaction) (*types.Reply, error) {
+	ret := _m.Called(param)
+
+	var r0 *types.Reply
+	if rf, ok := ret.Get(0).(func(*types.ReqCreateTransaction) *types.Reply); ok {
+		r0 = rf(param)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.Reply)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*types.ReqCreateTransaction) error); ok {
+		r1 = rf(param)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// CreateUTXOs provides a mock function with given fields: param
+func (_m *QueueProtocolAPI) CreateUTXOs(param *types.ReqCreateUTXOs) (*types.Reply, error) {
+	ret := _m.Called(param)
+
+	var r0 *types.Reply
+	if rf, ok := ret.Get(0).(func(*types.ReqCreateUTXOs) *types.Reply); ok {
+		r0 = rf(param)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.Reply)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*types.ReqCreateUTXOs) error); ok {
+		r1 = rf(param)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// DeleteCacheTransaction provides a mock function with given fields: param
+func (_m *QueueProtocolAPI) DeleteCacheTransaction(param *types.ReqCreateCacheTxKey) (*types.Reply, error) {
+	ret := _m.Called(param)
+
+	var r0 *types.Reply
+	if rf, ok := ret.Get(0).(func(*types.ReqCreateCacheTxKey) *types.Reply); ok {
+		r0 = rf(param)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.Reply)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*types.ReqCreateCacheTxKey) error); ok {
+		r1 = rf(param)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -106,6 +198,29 @@ func (_m *QueueProtocolAPI) GetAddrOverview(param *types.ReqAddr) (*types.AddrOv
 	return r0, r1
 }
 
+// GetBlockByHashes provides a mock function with given fields: param
+func (_m *QueueProtocolAPI) GetBlockByHashes(param *types.ReqHashes) (*types.BlockDetails, error) {
+	ret := _m.Called(param)
+
+	var r0 *types.BlockDetails
+	if rf, ok := ret.Get(0).(func(*types.ReqHashes) *types.BlockDetails); ok {
+		r0 = rf(param)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.BlockDetails)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*types.ReqHashes) error); ok {
+		r1 = rf(param)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetBlockHash provides a mock function with given fields: param
 func (_m *QueueProtocolAPI) GetBlockHash(param *types.ReqInt) (*types.ReplyHash, error) {
 	ret := _m.Called(param)
@@ -144,6 +259,29 @@ func (_m *QueueProtocolAPI) GetBlockOverview(param *types.ReqHash) (*types.Block
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(*types.ReqHash) error); ok {
+		r1 = rf(param)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetBlockSequences provides a mock function with given fields: param
+func (_m *QueueProtocolAPI) GetBlockSequences(param *types.ReqBlocks) (*types.BlockSequences, error) {
+	ret := _m.Called(param)
+
+	var r0 *types.BlockSequences
+	if rf, ok := ret.Get(0).(func(*types.ReqBlocks) *types.BlockSequences); ok {
+		r0 = rf(param)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.BlockSequences)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*types.ReqBlocks) error); ok {
 		r1 = rf(param)
 	} else {
 		r1 = ret.Error(1)
@@ -214,6 +352,29 @@ func (_m *QueueProtocolAPI) GetHeaders(param *types.ReqBlocks) (*types.Headers, 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(*types.ReqBlocks) error); ok {
 		r1 = rf(param)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetLastBlockSequence provides a mock function with given fields:
+func (_m *QueueProtocolAPI) GetLastBlockSequence() (*types.Int64, error) {
+	ret := _m.Called()
+
+	var r0 *types.Int64
+	if rf, ok := ret.Get(0).(func() *types.Int64); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.Int64)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func() error); ok {
+		r1 = rf()
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -589,6 +750,75 @@ func (_m *QueueProtocolAPI) PeerInfo() (*types.PeerList, error) {
 	return r0, r1
 }
 
+// Privacy2Privacy provides a mock function with given fields: param
+func (_m *QueueProtocolAPI) Privacy2Privacy(param *types.ReqPri2Pri) (*types.Reply, error) {
+	ret := _m.Called(param)
+
+	var r0 *types.Reply
+	if rf, ok := ret.Get(0).(func(*types.ReqPri2Pri) *types.Reply); ok {
+		r0 = rf(param)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.Reply)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*types.ReqPri2Pri) error); ok {
+		r1 = rf(param)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// Privacy2Public provides a mock function with given fields: param
+func (_m *QueueProtocolAPI) Privacy2Public(param *types.ReqPri2Pub) (*types.Reply, error) {
+	ret := _m.Called(param)
+
+	var r0 *types.Reply
+	if rf, ok := ret.Get(0).(func(*types.ReqPri2Pub) *types.Reply); ok {
+		r0 = rf(param)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.Reply)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*types.ReqPri2Pub) error); ok {
+		r1 = rf(param)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// Publick2Privacy provides a mock function with given fields: param
+func (_m *QueueProtocolAPI) Publick2Privacy(param *types.ReqPub2Pri) (*types.Reply, error) {
+	ret := _m.Called(param)
+
+	var r0 *types.Reply
+	if rf, ok := ret.Get(0).(func(*types.ReqPub2Pri) *types.Reply); ok {
+		r0 = rf(param)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.Reply)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*types.ReqPub2Pri) error); ok {
+		r1 = rf(param)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // Query provides a mock function with given fields: param
 func (_m *QueueProtocolAPI) Query(param *types.Query) (*types.Message, error) {
 	ret := _m.Called(param)
@@ -604,6 +834,29 @@ func (_m *QueueProtocolAPI) Query(param *types.Query) (*types.Message, error) {
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(*types.Query) error); ok {
+		r1 = rf(param)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// QueryCacheTransaction provides a mock function with given fields: param
+func (_m *QueueProtocolAPI) QueryCacheTransaction(param *types.ReqCacheTxList) (*types.ReplyCacheTxList, error) {
+	ret := _m.Called(param)
+
+	var r0 *types.ReplyCacheTxList
+	if rf, ok := ret.Get(0).(func(*types.ReqCacheTxList) *types.ReplyCacheTxList); ok {
+		r0 = rf(param)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.ReplyCacheTxList)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*types.ReqCacheTxList) error); ok {
 		r1 = rf(param)
 	} else {
 		r1 = ret.Error(1)
@@ -673,6 +926,98 @@ func (_m *QueueProtocolAPI) SendTx(param *types.Transaction) (*types.Reply, erro
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(*types.Transaction) error); ok {
+		r1 = rf(param)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// SendTxHashToWallet provides a mock function with given fields: param
+func (_m *QueueProtocolAPI) SendTxHashToWallet(param *types.ReqCreateCacheTxKey) (*types.Reply, error) {
+	ret := _m.Called(param)
+
+	var r0 *types.Reply
+	if rf, ok := ret.Get(0).(func(*types.ReqCreateCacheTxKey) *types.Reply); ok {
+		r0 = rf(param)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.Reply)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*types.ReqCreateCacheTxKey) error); ok {
+		r1 = rf(param)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ShowPrivacyAccountInfo provides a mock function with given fields: param
+func (_m *QueueProtocolAPI) ShowPrivacyAccountInfo(param *types.ReqPPrivacyAccount) (*types.ReplyPrivacyAccount, error) {
+	ret := _m.Called(param)
+
+	var r0 *types.ReplyPrivacyAccount
+	if rf, ok := ret.Get(0).(func(*types.ReqPPrivacyAccount) *types.ReplyPrivacyAccount); ok {
+		r0 = rf(param)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.ReplyPrivacyAccount)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*types.ReqPPrivacyAccount) error); ok {
+		r1 = rf(param)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ShowPrivacyAccountSpend provides a mock function with given fields: param
+func (_m *QueueProtocolAPI) ShowPrivacyAccountSpend(param *types.ReqPrivBal4AddrToken) (*types.UTXOHaveTxHashs, error) {
+	ret := _m.Called(param)
+
+	var r0 *types.UTXOHaveTxHashs
+	if rf, ok := ret.Get(0).(func(*types.ReqPrivBal4AddrToken) *types.UTXOHaveTxHashs); ok {
+		r0 = rf(param)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.UTXOHaveTxHashs)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*types.ReqPrivBal4AddrToken) error); ok {
+		r1 = rf(param)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ShowPrivacyKey provides a mock function with given fields: param
+func (_m *QueueProtocolAPI) ShowPrivacyKey(param *types.ReqStr) (*types.ReplyPrivacyPkPair, error) {
+	ret := _m.Called(param)
+
+	var r0 *types.ReplyPrivacyPkPair
+	if rf, ok := ret.Get(0).(func(*types.ReqStr) *types.ReplyPrivacyPkPair); ok {
+		r0 = rf(param)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.ReplyPrivacyPkPair)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*types.ReqStr) error); ok {
 		r1 = rf(param)
 	} else {
 		r1 = ret.Error(1)

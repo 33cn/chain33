@@ -3,12 +3,31 @@ version: '3'
 services:
   chain33:
     build:
-      context: "./"
+      context: .
 
   chain32:
     build:
-      context: "./"
+      context: .
 
   chain31:
     build:
-      context: "./"
+      context: .
+
+  chain30:
+    build:
+      context: .
+
+  chain29:
+    build:
+      context: .
+
+  chain28:
+    build:
+      context: .
+  relayd:
+    build:
+      context: .
+      dockerfile: Dockerfile-relayd
+
+  btcd:
+    image: suyanlong/btcd-run:latest

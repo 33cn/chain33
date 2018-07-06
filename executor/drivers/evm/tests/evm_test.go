@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"time"
+
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm"
@@ -36,8 +38,10 @@ func TestVM(t *testing.T) {
 }
 
 func TestTmp(t *testing.T) {
-	addr := common.StringToAddress("19i4kLkSrAr4ssvk1pLwjkFAnoXeJgvGvj")
-	fmt.Println(hex.EncodeToString(addr.Bytes()))
+	//addr := common.StringToAddress("19i4kLkSrAr4ssvk1pLwjkFAnoXeJgvGvj")
+	//fmt.Println(hex.EncodeToString(addr.Bytes()))
+	tt := types.Now().Unix()
+	fmt.Println(time.Unix(tt, 0).String())
 }
 
 type CaseFilter struct{}

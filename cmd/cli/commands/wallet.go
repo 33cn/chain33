@@ -33,6 +33,8 @@ func WalletCmd() *cobra.Command {
 		SignRawTxCmd(),
 		SetFeeCmd(),
 		SendTxCmd(),
+		QueryCacheTxByAddrCmd(),
+		DeleteCacheTxCmd(),
 	)
 
 	return cmd
@@ -161,24 +163,34 @@ func WalletListTxsCmd() *cobra.Command {
 }
 
 func addWalletListTxsFlags(cmd *cobra.Command) {
-	cmd.Flags().StringP("from", "f", "", "from which transaction begin")
-	cmd.MarkFlagRequired("from")
+	cmd.Flags().StringP("addr", "a", "", "account address")
+	cmd.MarkFlagRequired("addr")
 
-	cmd.Flags().Int32P("count", "c", 0, "number of transactions")
-	cmd.MarkFlagRequired("count")
-
+	cmd.Flags().Int32P("sendrecv", "s", 1, "send or recv flag (1: send, 2: recv)")
+	cmd.Flags().Int32P("count", "c", 10, "number of transactions")
+	cmd.Flags().StringP("starttxhash", "t", "", "from which transaction begin")
+	cmd.Flags().Int32P("mode", "m", 0, "query mode. (0: normal, 1:privacy)")
 	cmd.Flags().Int32P("direction", "d", 1, "query direction (0: pre page, 1: next page)")
+	cmd.Flags().StringP("token", "n", "", "token name.(BTY supported)")
 }
 
 func walletListTxs(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	txHash, _ := cmd.Flags().GetString("from")
+	txHash, _ := cmd.Flags().GetString("starttxhash")
 	count, _ := cmd.Flags().GetInt32("count")
 	direction, _ := cmd.Flags().GetInt32("dir")
+	mode, _ := cmd.Flags().GetInt32("mode")
+	addr, _ := cmd.Flags().GetString("addr")
+	sendRecvPrivacy, _ := cmd.Flags().GetInt32("sendrecv")
+	tokenname, _ := cmd.Flags().GetString("token")
 	params := jsonrpc.ReqWalletTransactionList{
-		FromTx:    txHash,
-		Count:     count,
-		Direction: direction,
+		FromTx:          txHash,
+		Count:           count,
+		Direction:       direction,
+		Mode:            mode,
+		Address:         addr,
+		SendRecvPrivacy: sendRecvPrivacy,
+		TokenName:       tokenname,
 	}
 	var res jsonrpc.WalletTxDetails
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.WalletTxList", params, &res)
@@ -285,6 +297,8 @@ func addSignRawTxFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("key", "k", "", "private key (optional)")
 	cmd.Flags().StringP("addr", "a", "", "account address (optional)")
 	cmd.Flags().StringP("expire", "e", "120s", "transaction expire time")
+	cmd.Flags().Int32P("mode", "m", 0, "transaction sign mode")
+	cmd.Flags().StringP("token", "t", types.BTY, "token name. (BTY supported)")
 	// A duration string is a possibly signed sequence of
 	// decimal numbers, each with optional fraction and a unit suffix,
 	// such as "300ms", "-1.5h" or "2h45m".
@@ -299,6 +313,8 @@ func signRawTx(cmd *cobra.Command, args []string) {
 	index, _ := cmd.Flags().GetInt32("index")
 	expire, _ := cmd.Flags().GetString("expire")
 	expireTime, err := time.ParseDuration(expire)
+	mode, _ := cmd.Flags().GetInt32("mode")
+	token, _ := cmd.Flags().GetString("token")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -375,6 +391,8 @@ func signRawTx(cmd *cobra.Command, args []string) {
 			TxHex:  data,
 			Expire: expire,
 			Index:  index,
+			Mode:   mode,
+			Token:  token,
 		}
 		ctx := NewRpcCtx(rpcLaddr, "Chain33.SignRawTx", params, nil)
 		ctx.RunWithoutMarshal()
@@ -425,15 +443,99 @@ func SendTxCmd() *cobra.Command {
 func addSendTxFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("data", "d", "", "transaction content")
 	cmd.MarkFlagRequired("data")
+
+	cmd.Flags().Int32P("mode", "m", 0, "transaction send mode")
+	cmd.Flags().StringP("token", "t", types.BTY, "token name. (BTY supported)")
 }
 
 func sendTx(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	data, _ := cmd.Flags().GetString("data")
+	mode, _ := cmd.Flags().GetInt32("mode")
+	token, _ := cmd.Flags().GetString("token")
 	params := jsonrpc.RawParm{
-		Data: data,
+		Mode:  mode,
+		Token: token,
+		Data:  data,
 	}
 
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.SendTransaction", params, nil)
+	ctx.RunWithoutMarshal()
+}
+
+// QueryCacheTxByAddrCmd 查询还未发送的隐私交易
+func QueryCacheTxByAddrCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "queryctx",
+		Short: "Query transaction in cache by address",
+		Run:   queryCacheTx,
+	}
+	queryCacheTxFlags(cmd)
+	return cmd
+}
+
+func queryCacheTxFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("addr", "a", "", "account address")
+	cmd.MarkFlagRequired("addr")
+
+	cmd.Flags().StringP("token", "t", types.BTY, "token name. (BTY supported)")
+}
+
+func queryCacheTx(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	addr, _ := cmd.Flags().GetString("addr")
+	token, _ := cmd.Flags().GetString("token")
+	params := types.ReqCacheTxList{
+		Addr:      addr,
+		Tokenname: token,
+	}
+
+	var res jsonrpc.ReplyCacheTxList
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.QueryCacheTransaction", params, &res)
+	ctx.SetResultCb(parseQueryCacheTxRes)
+	ctx.Run()
+}
+
+func parseQueryCacheTxRes(arg interface{}) (interface{}, error) {
+	res := arg.(*jsonrpc.ReplyCacheTxList)
+	var result TxListResult
+	for _, v := range res.Txs {
+		result.Txs = append(result.Txs, decodeTransaction(v))
+	}
+	return result, nil
+}
+
+// DeleteCacheTxCmd 删除位与缓存中未发送的隐私交易
+func DeleteCacheTxCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "deletectx",
+		Short: "Delete transaction in cache by hash",
+		Run:   deleteCacheTx,
+	}
+	deleteCacheTxFlags(cmd)
+	return cmd
+}
+
+func deleteCacheTxFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("txhash", "x", "", "transaction hash")
+	cmd.MarkFlagRequired("txhash")
+
+	cmd.Flags().StringP("token", "t", types.BTY, "token name. (BTY supported)")
+}
+
+func deleteCacheTx(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	txhash, _ := cmd.Flags().GetString("txhash")
+	token, _ := cmd.Flags().GetString("token")
+	hash, err := common.FromHex(txhash)
+	if err != nil {
+		fmt.Println("FromHex error .", err)
+		return
+	}
+	params := types.ReqCreateCacheTxKey{
+		Tokenname: token,
+		Hashkey:   hash,
+	}
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.DeleteCacheTransaction", params, nil)
 	ctx.RunWithoutMarshal()
 }

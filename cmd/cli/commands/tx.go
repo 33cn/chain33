@@ -243,7 +243,9 @@ func decodeTx(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	result, err := json.MarshalIndent(res, "", "    ")
+	txResult := decodeTransaction(res)
+
+	result, err := json.MarshalIndent(txResult, "", "    ")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return

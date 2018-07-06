@@ -18,6 +18,7 @@ type blockNode struct {
 	statehash  []byte
 	broadcast  bool
 	pid        string
+	sequence   int64
 }
 
 type blockIndex struct {
@@ -30,7 +31,7 @@ const (
 	indexCacheLimit = 500
 )
 
-func initBlockNode(node *blockNode, block *types.Block, broadcast bool, pid string) {
+func initBlockNode(node *blockNode, block *types.Block, broadcast bool, pid string, sequence int64) {
 	*node = blockNode{
 		hash:       block.Hash(),
 		Difficulty: difficulty.CalcWork(block.Difficulty),
@@ -38,12 +39,13 @@ func initBlockNode(node *blockNode, block *types.Block, broadcast bool, pid stri
 		statehash:  block.GetStateHash(),
 		broadcast:  broadcast,
 		pid:        pid,
+		sequence:   sequence,
 	}
 }
 
-func newBlockNode(broadcast bool, block *types.Block, pid string) *blockNode {
+func newBlockNode(broadcast bool, block *types.Block, pid string, sequence int64) *blockNode {
 	var node blockNode
-	initBlockNode(&node, block, broadcast, pid)
+	initBlockNode(&node, block, broadcast, pid, sequence)
 	return &node
 }
 func newPreGenBlockNode() *blockNode {
@@ -112,6 +114,18 @@ func (bi *blockIndex) AddNode(node *blockNode) {
 	// Maybe expire an item.
 	if int64(bi.cacheQueue.Len()) > indexCacheLimit {
 		hash := bi.cacheQueue.Remove(bi.cacheQueue.Front()).(*blockNode).hash
+		delete(bi.index, string(hash))
+	}
+}
+
+//删除index节点
+func (bi *blockIndex) DelNode(hash []byte) {
+	bi.Lock()
+	defer bi.Unlock()
+
+	elem, ok := bi.index[string(hash)]
+	if ok {
+		bi.cacheQueue.Remove(elem)
 		delete(bi.index, string(hash))
 	}
 }

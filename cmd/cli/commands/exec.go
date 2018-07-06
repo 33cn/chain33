@@ -40,14 +40,14 @@ func GetExecAddrCmd() *cobra.Command {
 }
 
 func addGetAddrFlags(cmd *cobra.Command) {
-	cmd.Flags().StringP("exec", "e", "", `executor name ("none", "coins", "hashlock", "retrieve", "ticket", "token" and "trade" supported)`)
+	cmd.Flags().StringP("exec", "e", "", `executor name ("none", "coins", "hashlock", "retrieve", "ticket", "token" , "trade" and "relay" supported)`)
 	cmd.MarkFlagRequired("exec")
 }
 
 func getAddrByExec(cmd *cobra.Command, args []string) {
 	execer, _ := cmd.Flags().GetString("exec")
-	if ok, err := isAllowExecName(execer); !ok {
-		fmt.Println(err.Error())
+	if ok := types.IsAllowExecName(execer); !ok {
+		fmt.Println(types.ErrExecNameNotAllow.Error())
 		return
 	}
 	addrResult := address.ExecAddress(execer)
