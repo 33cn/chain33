@@ -47,10 +47,10 @@ func TestJSONClient_Call(t *testing.T) {
 	assert.NotNil(t, testChain33)
 	server.jrpc = *testChain33
 	done := make(chan struct{}, 1)
-	go func () {
+	go func() {
 		done <- struct{}{}
 		server.Listen()
-	()
+	}()
 	<-done
 	time.Sleep(time.Millisecond)
 	ret := &types.Reply{
