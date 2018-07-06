@@ -18,7 +18,7 @@ function initPriAccount() {
     amount=$priTotalAmount1
     SendToPrivacyExec "${name}" $fromAdd $execAdd $note $amount
 
-    sleep 3
+    sleep 1
 
     name="${CLI4}"
     fromAdd="1EDnnePAZN48aC2hiTDzhkczfF39g1pZZX"
@@ -27,16 +27,13 @@ function initPriAccount() {
     amount=$priTotalAmount2
     SendToPrivacyExec "${name}" $fromAdd $execAdd $note $amount
 
-    echo "====== sleep 60s ======"
-    sleep 60
-
-    sleep 3
+    block_wait_timeout "${CLI}" 3 50
 
     name="${CLI}"
     fromAdd="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
     showPrivacyExec "${name}" $fromAdd
 
-    sleep 3
+    sleep 1
 
     name="${CLI4}"
     fromAdd="1EDnnePAZN48aC2hiTDzhkczfF39g1pZZX"
@@ -55,13 +52,12 @@ function genFirstChainPritx() {
         amount=10
         pub2priv "${name}" $fromAdd $priAdd $note $amount
 
-        sleep 3
+        sleep 1
         height=$(${name} block last_header | jq ".height")
         printf '发送公对私第 %d 笔交易当前高度 %s \n' i "${height}"
     done
 
-    echo "======sleep 100s======"
-    sleep 100
+    block_wait_timeout "${CLI}" 5 80
 
     priTxindex=0
     echo "====== 发送私对私交易 ======"
@@ -75,13 +71,12 @@ function genFirstChainPritx() {
         priTxHashs1[$priTxindex]=$PrigStr
         priTxindex=$((priTxindex + 1))
 
-        sleep 3
+        sleep 1
         height=$(${name} block last_header | jq ".height")
         printf '发送私对私第 %d 笔交易当前高度 %s \n' $i "${height}"
     done
 
-    echo "======sleep 100s======"
-    sleep 100
+    block_wait_timeout "${CLI}" 5 80
 
     echo "====== 发送私对公交易 ======"
     for ((i = 0; i < priRepeatTx; i++)); do
@@ -94,13 +89,10 @@ function genFirstChainPritx() {
         priTxHashs1[$priTxindex]=$PrigStr
         priTxindex=$((priTxindex + 1))
 
-        sleep 3
+        sleep 1
         height=$(${name} block last_header | jq ".height")
         printf '发送私对公第 %d 笔交易当前高度 %s \n' $i "${height}"
     done
-
-    echo "====== sleep 100s 第二组内部同步 ======"
-    sleep 100
 
     echo "=============查询当前隐私余额============="
 
@@ -122,13 +114,12 @@ function genSecondChainPritx() {
         amount=10
         pub2priv "${name}" $fromAdd $priAdd $note $amount
 
-        sleep 3
+        sleep 1
         height=$(${name} block last_header | jq ".height")
         printf '发送公对私第 %d 笔交易当前高度 %s \n' $i "${height}"
     done
 
-    echo "======sleep 100s======"
-    sleep 100
+    block_wait_timeout "${name}" 5 80
 
     priTxHashs2=("")
     priTxindex=0
@@ -143,13 +134,12 @@ function genSecondChainPritx() {
         priTxHashs2[$priTxindex]=$PrigStr
         priTxindex=$((priTxindex + 1))
 
-        sleep 3
+        sleep 1
         height=$(${name} block last_header | jq ".height")
         printf '发送私对私第 %d 笔交易当前高度 %s \n' $i "${height}"
     done
 
-    echo "======sleep 100s======"
-    sleep 100
+    block_wait_timeout "${name}" 5 80
 
     echo "====== 发送私对公交易 ======"
     for ((i = 0; i < priRepeatTx; i++)); do
@@ -162,13 +152,10 @@ function genSecondChainPritx() {
         priTxHashs2[$priTxindex]=$PrigStr
         priTxindex=$((priTxindex + 1))
 
-        sleep 3
+        sleep 1
         height=$(${name} block last_header | jq ".height")
         printf '发送私对私第 %d 笔交易当前高度 %s \n' $i "${height}"
     done
-
-    echo "====== sleep 100s 第一组内部同步 ======"
-    sleep 100
 
     echo "=============查询当前隐私余额============="
 
@@ -180,8 +167,8 @@ function genSecondChainPritx() {
 }
 
 function checkPriResult() {
-    echo "====== sleep 100s====="
-    sleep 100
+
+    block_wait_timeout "${CLI}" 5 80
 
     name1=$CLI
     name2=$CLI4
@@ -195,20 +182,20 @@ function checkPriResult() {
         if [ $result -eq 0 ]; then
             priTxFee1=$((priTxFee1 + 1))
         fi
-        sleep 3
+        sleep 1
     done
 
     fromAdd="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
     showPrivacyExec "${name1}" $fromAdd
     value1=$PrigStr
 
-    sleep 3
+    sleep 1
 
     fromAdd="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
     showPrivacyBalance "${name1}" $fromAdd
     value2=$PrigStr
 
-    sleep 3
+    sleep 1
 
     fromAdd="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
     showPrivacyBalance "${name1}" $fromAdd
@@ -233,7 +220,7 @@ function checkPriResult() {
         if [ $result -eq 0 ]; then
             priTxFee2=$((priTxFee2 + 1))
         fi
-        sleep 3
+        sleep 1
     done
 
     fromAdd="1EDnnePAZN48aC2hiTDzhkczfF39g1pZZX"
@@ -244,7 +231,7 @@ function checkPriResult() {
     showPrivacyBalance "${name2}" $fromAdd
     value2=$PrigStr
 
-    sleep 3
+    sleep 1
 
     fromAdd="1KcCVZLSQYRUwE5EXTsAoQs9LuJW6xwfQa"
     showPrivacyBalance "${name2}" $fromAdd
@@ -261,7 +248,7 @@ function checkPriResult() {
         echo "${name2} 分叉后检查实际金额不符合"
     fi
 
-    sleep 3
+    sleep 1
 }
 
 # $1 name
