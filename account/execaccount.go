@@ -24,28 +24,7 @@ func (acc *DB) LoadExecAccountQueue(api client.QueueProtocolAPI, addr, execaddr 
 	if err != nil {
 		return nil, err
 	}
-
-	get := types.StoreGet{StateHash: header.GetStateHash()}
-	get.Keys = append(get.Keys, acc.ExecAccountKey(addr, execaddr))
-	values, err := api.StoreGet(&get)
-	if err != nil {
-		return nil, err
-	}
-	if len(values.Values) <= 0 {
-		return nil, types.ErrNotFound
-	}
-	value := values.Values[0]
-	if value == nil {
-		return &types.Account{Addr: addr}, nil
-	}
-
-	var acc1 types.Account
-	err = types.Decode(value, &acc1)
-	if err != nil {
-		return nil, err
-	}
-
-	return &acc1, nil
+	return acc.LoadExecAccountHistoryQueue(api, addr, execaddr, header.GetStateHash())
 }
 
 func (acc *DB) SaveExecAccount(execaddr string, acc1 *types.Account) {
@@ -77,7 +56,7 @@ func (acc *DB) TransferToExec(from, to string, amount int64) (*types.Receipt, er
 	if err != nil {
 		return nil, err
 	}
-	receipt2, err := acc.execDeposit(from, to, amount)
+	receipt2, err := acc.ExecDeposit(from, to, amount)
 	if err != nil {
 		//存款不应该出任何问题
 		panic(err)
@@ -90,7 +69,7 @@ func (acc *DB) TransferWithdraw(from, to string, amount int64) (*types.Receipt, 
 	if err := acc.CheckTransfer(to, from, amount); err != nil {
 		return nil, err
 	}
-	receipt, err := acc.execWithdraw(to, from, amount)
+	receipt, err := acc.ExecWithdraw(to, from, amount)
 	if err != nil {
 		return nil, err
 	}
@@ -283,7 +262,7 @@ func (acc *DB) execDepositFrozen(addr, execaddr string, amount int64) (*types.Re
 	return acc.execReceipt(ty, acc1, receiptBalance), nil
 }
 
-func (acc *DB) execDeposit(addr, execaddr string, amount int64) (*types.Receipt, error) {
+func (acc *DB) ExecDeposit(addr, execaddr string, amount int64) (*types.Receipt, error) {
 	if addr == execaddr {
 		return nil, types.ErrSendSameToRecv
 	}
@@ -307,7 +286,7 @@ func (acc *DB) execDeposit(addr, execaddr string, amount int64) (*types.Receipt,
 	return acc.execReceipt(ty, acc1, receiptBalance), nil
 }
 
-func (acc *DB) execWithdraw(execaddr, addr string, amount int64) (*types.Receipt, error) {
+func (acc *DB) ExecWithdraw(execaddr, addr string, amount int64) (*types.Receipt, error) {
 	if addr == execaddr {
 		return nil, types.ErrSendSameToRecv
 	}
@@ -372,4 +351,28 @@ func (acc *DB) mergeReceipt(receipt, receipt2 *types.Receipt) *types.Receipt {
 	receipt.Logs = append(receipt.Logs, receipt2.Logs...)
 	receipt.KV = append(receipt.KV, receipt2.KV...)
 	return receipt
+}
+
+func (acc *DB) LoadExecAccountHistoryQueue(api client.QueueProtocolAPI, addr, execaddr string, stateHash []byte) (*types.Account, error) {
+	get := types.StoreGet{StateHash: stateHash}
+	get.Keys = append(get.Keys, acc.ExecAccountKey(addr, execaddr))
+	values, err := api.StoreGet(&get)
+	if err != nil {
+		return nil, err
+	}
+	if len(values.Values) <= 0 {
+		return nil, types.ErrNotFound
+	}
+	value := values.Values[0]
+	if value == nil {
+		return &types.Account{Addr: addr}, nil
+	}
+
+	var acc1 types.Account
+	err = types.Decode(value, &acc1)
+	if err != nil {
+		return nil, err
+	}
+
+	return &acc1, nil
 }

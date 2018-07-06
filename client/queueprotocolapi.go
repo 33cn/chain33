@@ -77,6 +77,30 @@ type QueueProtocolAPI interface {
 	// types.EventSignRawTx
 	SignRawTx(param *types.ReqSignRawTx) (*types.ReplySignRawTx, error)
 	GetFatalFailure() (*types.Int32, error)
+	// Privacy Begin
+	// types.EventShowPrivacyAccountSpend
+	ShowPrivacyAccountSpend(param *types.ReqPrivBal4AddrToken) (*types.UTXOHaveTxHashs, error)
+	// types.EventShowPrivacyPK
+	ShowPrivacyKey(param *types.ReqStr) (*types.ReplyPrivacyPkPair, error)
+	// types.EventPublic2privacy
+	Publick2Privacy(param *types.ReqPub2Pri) (*types.Reply, error)
+	// types.EventPrivacy2privacy
+	Privacy2Privacy(param *types.ReqPri2Pri) (*types.Reply, error)
+	// types.EventPrivacy2public
+	Privacy2Public(param *types.ReqPri2Pub) (*types.Reply, error)
+	// types.EventCreateUTXOs
+	CreateUTXOs(param *types.ReqCreateUTXOs) (*types.Reply, error)
+	// types.EventCreateTransaction 由服务器协助创建一个交易
+	CreateTrasaction(param *types.ReqCreateTransaction) (*types.Reply, error)
+	// types.EventSendTxHashToWallet
+	SendTxHashToWallet(param *types.ReqCreateCacheTxKey) (*types.Reply, error)
+	// types.EventQueryCacheTransaction 查询当前未发送的隐私交易列表
+	QueryCacheTransaction(param *types.ReqCacheTxList) (*types.ReplyCacheTxList, error)
+	// types.EventDeleteCacheTransaction 根据指定的哈希值删除未发送的隐私交易
+	DeleteCacheTransaction(param *types.ReqCreateCacheTxKey) (*types.Reply, error)
+	// types.EventPrivacyAccountInfo
+	ShowPrivacyAccountInfo(param *types.ReqPPrivacyAccount) (*types.ReplyPrivacyAccount, error)
+	// Privacy End
 	// --------------- wallet interfaces end
 
 	// +++++++++++++++ blockchain interfaces begin
@@ -102,6 +126,14 @@ type QueueProtocolAPI interface {
 	IsNtpClockSync() (*types.Reply, error)
 	// types.EventGetLastHeader
 	GetLastHeader() (*types.Header, error)
+
+	//types.EventGetLastBlockSequence:
+	GetLastBlockSequence() (*types.Int64, error)
+	//types.EventGetBlockSequences:
+	GetBlockSequences(param *types.ReqBlocks) (*types.BlockSequences, error)
+	//types.EventGetBlockByHashes:
+	GetBlockByHashes(param *types.ReqHashes) (*types.BlockDetails, error)
+
 	// --------------- blockchain interfaces end
 
 	// +++++++++++++++ store interfaces begin
@@ -110,5 +142,7 @@ type QueueProtocolAPI interface {
 	// --------------- store interfaces end
 
 	// +++++++++++++++ other interfaces begin
+	// close chain33
+	CloseQueue() (*types.Reply, error)
 	// --------------- other interfaces end
 }

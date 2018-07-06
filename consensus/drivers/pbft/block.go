@@ -48,7 +48,7 @@ func (client *PbftClient) ExecBlock(prevHash []byte, block *pb.Block) (*pb.Block
 
 func (client *PbftClient) Propose(block *pb.Block) {
 	op := &pb.Operation{block}
-	req := ToRequestClient(op, time.Now().String(), client.BaseClient.Cfg.ClientAddr)
+	req := ToRequestClient(op, pb.Now().String(), client.BaseClient.Cfg.ClientAddr)
 	client.requestChan <- req
 }
 
@@ -94,7 +94,7 @@ func (client *PbftClient) CreateBlock() {
 		newblock.Height = lastBlock.Height + 1
 		newblock.Txs = txs
 		newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
-		newblock.BlockTime = time.Now().Unix()
+		newblock.BlockTime = pb.Now().Unix()
 		if lastBlock.BlockTime >= newblock.BlockTime {
 			newblock.BlockTime = lastBlock.BlockTime + 1
 		}

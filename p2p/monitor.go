@@ -212,7 +212,7 @@ func (n *Node) getAddrFromAddrBook() {
 			tickerTimes = 0
 		}
 
-		log.Debug("OUTBOUND NUM", "NUM", n.Size(), "start getaddr from peer", n.nodeInfo.addrBook.GetPeers())
+		log.Debug("OUTBOUND NUM", "NUM", n.Size(), "start getaddr from peer,peernum", len(n.nodeInfo.addrBook.GetPeers()))
 
 		addrNetArr := n.nodeInfo.addrBook.GetPeers()
 
@@ -262,7 +262,7 @@ func (n *Node) nodeReBalance() {
 		cachePeers := n.GetCacheBounds()
 		var MixCacheInBounds int32 = 1000
 		var MixCacheInBoundPeer *Peer
-		var MaxCacheInbounds int32
+		var MaxCacheInBounds int32
 		var MaxCacheInBoundPeer *Peer
 		for _, peer := range cachePeers {
 			inbounds, err := p2pcli.GetInPeersNum(peer)
@@ -278,8 +278,8 @@ func (n *Node) nodeReBalance() {
 			}
 
 			//选出负载最大
-			if int32(inbounds) > MaxCacheInbounds {
-				MixCacheInBounds = int32(inbounds)
+			if int32(inbounds) > MaxCacheInBounds {
+				MaxCacheInBounds = int32(inbounds)
 				MaxCacheInBoundPeer = peer
 			}
 		}
@@ -289,7 +289,7 @@ func (n *Node) nodeReBalance() {
 		}
 
 		//如果连接的节点最大负载量小于当前缓存节点的最大负载量
-		if MaxInBounds < MaxCacheInbounds {
+		if MaxInBounds < MaxCacheInBounds {
 			n.RemoveCachePeer(MaxCacheInBoundPeer.Addr())
 			MaxCacheInBoundPeer.Close()
 		}
@@ -466,7 +466,7 @@ func (n *Node) monitorDialPeers() {
 				if peer != nil {
 					peer.Close()
 				}
-				n.nodeInfo.blacklist.Add(netAddr.String(), int64(60*10))
+				n.nodeInfo.blacklist.Add(netAddr.String(), int64(60))
 				return
 			}
 			//查询远程节点的负载
@@ -510,7 +510,7 @@ func (n *Node) monitorBlackList() {
 
 		<-ticker.C
 		badPeers := n.nodeInfo.blacklist.GetBadPeers()
-		now := time.Now().Unix()
+		now := types.Now().Unix()
 		for badPeer, intime := range badPeers {
 			if n.nodeInfo.addrBook.IsOurStringAddress(badPeer) {
 				continue

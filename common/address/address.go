@@ -11,8 +11,6 @@ import (
 )
 
 var addrSeed = []byte("address seed bytes for public key")
-var bname [200]byte
-
 var addressCache *lru.Cache
 var checkAddressCache *lru.Cache
 
@@ -21,6 +19,17 @@ const MaxExecNameLength = 100
 func init() {
 	addressCache, _ = lru.New(10240)
 	checkAddressCache, _ = lru.New(10240)
+}
+
+func ExecPubKey(name string) []byte {
+	if len(name) > MaxExecNameLength {
+		panic("name too long")
+	}
+	var bname [200]byte
+	buf := append(bname[:0], addrSeed...)
+	buf = append(buf, []byte(name)...)
+	hash := Sha2Sum(buf)
+	return hash[:]
 }
 
 //计算量有点大，做一次cache
@@ -38,6 +47,7 @@ func ExecPubkey(name string) []byte {
 	if len(name) > MaxExecNameLength {
 		panic("name too long")
 	}
+	var bname [200]byte
 	buf := append(bname[:0], addrSeed...)
 	buf = append(buf, []byte(name)...)
 	hash := Sha2Sum(buf)
@@ -48,6 +58,7 @@ func GetExecAddress(name string) *Address {
 	if len(name) > MaxExecNameLength {
 		panic("name too long")
 	}
+	var bname [200]byte
 	buf := append(bname[:0], addrSeed...)
 	buf = append(buf, []byte(name)...)
 	hash := Sha2Sum(buf)

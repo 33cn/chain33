@@ -10,13 +10,12 @@ pipeline {
     }
 
     options {
-        //buildDiscarder(logRotator(numToKeepStr: '8'))
-        timeout(time: 1,unit: 'HOURS')
-        retry(3)
+        timeout(time: 2,unit: 'HOURS')
+        retry(1)
         timestamps()
         gitLabConnection('gitlab33')
         gitlabBuilds(builds: ['check', 'build', 'test', 'deploy'])
-        checkoutToSubdirectory 'src/gitlab.33.cn/chain33/chain33'
+        checkoutToSubdirectory "src/gitlab.33.cn/chain33/chain33"
     }
 
     stages {
@@ -30,60 +29,34 @@ pipeline {
             }
         }
 
-        stage('parallel'){
-            parallel {
-                stage('build') {
-                    agent {
-                        docker{
-                            image 'suyanlong/chain33-run:latest'
-                        }
-                    }
-                    environment {
-                        GOPATH = "${WORKSPACE}"
-                        PROJ_DIR = "${WORKSPACE}/src/gitlab.33.cn/chain33/chain33"
-                    }
-                    steps {
-                        dir("${env.PROJ_DIR}"){
-                            gitlabCommitStatus(name: 'build'){
-                                sh 'pwd'
-                                sh "ls -l"
-                                sh "echo ${env.WORKSPACE}"
-                                sh "echo ${env.PROJ_DIR}"
-                                sh "echo ${env.GOPATH}"
-
-                                sh 'make checkgofmt'
-                                sh 'make linter'
-                                sh 'make build_ci'
-                            }
-                        }
+        stage('build') {
+            steps {
+                dir("${env.PROJ_DIR}"){
+                    gitlabCommitStatus(name: 'build'){
+                        sh 'make checkgofmt'
+                        sh 'make linter'
                     }
                 }
+            }
+        }
 
-                stage('test'){
-                    agent {
-                        docker{
-                            image 'suyanlong/chain33-run:latest'
-                        }
-                    }
+        stage('test'){
+            agent {
+                docker{
+                    image 'suyanlong/chain33-run:latest'
+                }
+            }
 
-                    environment {
-                        GOPATH = "${WORKSPACE}"
-                        PROJ_DIR = "${WORKSPACE}/src/gitlab.33.cn/chain33/chain33"
-                    }
+            environment {
+                GOPATH = "${WORKSPACE}"
+                PROJ_DIR = "${WORKSPACE}/src/gitlab.33.cn/chain33/chain33"
+            }
 
-                    steps {
-                        dir("${env.PROJ_DIR}"){
-                            gitlabCommitStatus(name: 'test'){
-                                sh 'pwd'
-                                sh "ls -l"
-                                sh "echo ${env.WORKSPACE}"
-                                sh "echo ${env.PROJ_DIR}"
-                                sh "echo ${env.GOPATH}"
-
-                                sh 'make test'
-                                //sh 'export CC=clang-5.0 && make msan'
-                            }
-                        }
+            steps {
+                dir("${env.PROJ_DIR}"){
+                    gitlabCommitStatus(name: 'test'){
+                        sh 'make test'
+                        //sh 'export CC=clang-5.0 && make msan'
                     }
                 }
             }
@@ -94,7 +67,7 @@ pipeline {
                 dir("${PROJ_DIR}"){
                     gitlabCommitStatus(name: 'deploy'){
                         sh 'make build_ci'
-                        sh "cd build && mkdir ${env.BUILD_NUMBER} && cp chain33* Dockerfile docker* ${env.BUILD_NUMBER}/ && cd ${env.BUILD_NUMBER}/ && ./docker-compose.sh ${env.BUILD_NUMBER}"
+                        sh "cd build && mkdir ${env.BUILD_NUMBER} && cp chain33* Dockerfile* docker* relayd* *.sh ${env.BUILD_NUMBER}/ && cd ${env.BUILD_NUMBER}/ && ./docker-compose.sh ${env.BUILD_NUMBER}"
                     }
                 }
             }
@@ -103,7 +76,7 @@ pipeline {
                 always {
                     dir("${PROJ_DIR}"){
                         sh "cd build/${env.BUILD_NUMBER} && docker-compose down && cd .. && rm -rf ${env.BUILD_NUMBER}"
-                        sh "docker rmi ${env.BUILD_NUMBER}_chain31 ${env.BUILD_NUMBER}_chain32 ${env.BUILD_NUMBER}_chain33"
+                        sh "docker rmi ${env.BUILD_NUMBER}_chain31 ${env.BUILD_NUMBER}_chain32 ${env.BUILD_NUMBER}_chain33 ${env.BUILD_NUMBER}_relayd"
                     }
                 }
             }
@@ -114,7 +87,7 @@ pipeline {
         always {
             echo 'One way or another, I have finished'
             // clean up our workspace
-            // deleteDir()
+            deleteDir()
         }
 
         success {
@@ -125,26 +98,12 @@ pipeline {
                  body: "this is success with ${env.BUILD_URL}"
         }
 
-        unstable {
-            echo 'I am unstable'
-            mail to: "${gitlabUserEmail}",
-                 subject: "unstable Pipeline: ${currentBuild.fullDisplayName}",
-                 body: "this is unstable with ${env.BUILD_URL}"
-        }
-
         failure {
             echo 'I failed '
             echo "email user: ${gitlabUserEmail}"
             mail to: "${gitlabUserEmail}",
                  subject: "Failed Pipeline: ${currentBuild.fullDisplayName}",
                  body: "Something is wrong with ${env.BUILD_URL}"
-        }
-
-        changed {
-            echo 'Things were different before...'
-            mail to: "${gitlabUserEmail}",
-                 subject: "changed Pipeline: ${currentBuild.fullDisplayName}",
-                 body: "this is changed with ${env.BUILD_URL}"
         }
     }
 }

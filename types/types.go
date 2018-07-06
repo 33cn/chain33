@@ -3,9 +3,9 @@ package types
 import (
 	"bytes"
 	"encoding/hex"
-	"fmt"
-
 	"encoding/json"
+	"fmt"
+	"time"
 
 	"github.com/golang/protobuf/proto"
 	log "github.com/inconshreveable/log15"
@@ -18,10 +18,16 @@ import (
 
 var tlog = log.New("module", "types")
 
+const Size_1K_shiftlen uint = 10
+
 type Message proto.Message
 
 var userKey = []byte("user.")
 var slash = []byte("-")
+
+const UserEvmString = "user.evm."
+
+var UserEvm = []byte(UserEvmString)
 
 //交易组的接口，Transactions 和 Transaction 都符合这个接口
 type TxGroup interface {
@@ -42,6 +48,10 @@ func isAllowExecName(name []byte) bool {
 	// name中不允许有 "-"
 	if bytes.Contains(name, slash) {
 		return false
+	}
+	//vm:
+	if bytes.HasPrefix(name, UserEvm) {
+		name = ExecerEvm
 	}
 	if bytes.HasPrefix(name, userKey) {
 		return true
@@ -108,18 +118,12 @@ func GetEventName(event int) string {
 }
 
 func GetSignatureTypeName(signType int) string {
-	if signType == 1 {
-		return "secp256k1"
-	} else if signType == 2 {
-		return "ed25519"
-	} else if signType == 3 {
-		return "sm2"
-	} else {
-		return "unknow"
+	if name, exist := MapSignType2name[signType]; exist {
+		return name
 	}
-}
 
-var ConfigPrefix = "mavl-config-"
+	return "unknow"
+}
 
 func ConfigKey(key string) string {
 	return fmt.Sprintf("%s-%s", ConfigPrefix, key)
@@ -411,6 +415,54 @@ func (r *ReceiptData) DecodeReceiptLog() (*ReceiptDataResult, error) {
 				return nil, err
 			}
 			logIns = logTmp
+		case TyLogRelayCreate:
+			lTy = "LogRelaySell"
+			var logTmp ReceiptRelayLog
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogRelayRevokeCreate:
+			lTy = "LogRelayRevokeSell"
+			var logTmp ReceiptRelayLog
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogRelayAccept:
+			lTy = "LogRelayBuy"
+			var logTmp ReceiptRelayLog
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogRelayRevokeAccept:
+			lTy = "LogRelayRevokeBuy"
+			var logTmp ReceiptRelayLog
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogRelayConfirmTx:
+			lTy = "LogRelayConfirmTx"
+			var logTmp ReceiptRelayLog
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogRelayRcvBTCHead:
+			lTy = "LogRelayRcvBTCHead"
+			var logTmp ReceiptRelayRcvBTCHeaders
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
 		case TyLogCallContract:
 			lTy = "LogCallContract"
 			var logTmp ReceiptEVMContract
@@ -430,6 +482,14 @@ func (r *ReceiptData) DecodeReceiptLog() (*ReceiptDataResult, error) {
 		case TyLogContractState:
 			lTy = "LogContractState"
 			var logTmp EVMContractState
+			err = Decode(lLog, &logTmp)
+			if err != nil {
+				return nil, err
+			}
+			logIns = logTmp
+		case TyLogEVMStateChangeItem:
+			lTy = "LogEVMStateChangeItem"
+			var logTmp EVMStateChangeItem
 			err = Decode(lLog, &logTmp)
 			if err != nil {
 				return nil, err
@@ -493,3 +553,40 @@ func init() {
 }
 
 var RpcTypeUtilMap = map[string]interface{}{}
+
+func (action *PrivacyAction) GetInput() *PrivacyInput {
+	if action.GetTy() == ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
+		return action.GetPrivacy2Privacy().GetInput()
+
+	} else if action.GetTy() == ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
+		return action.GetPrivacy2Public().GetInput()
+	}
+	return nil
+}
+
+func (action *PrivacyAction) GetOutput() *PrivacyOutput {
+	if action.GetTy() == ActionPublic2Privacy && action.GetPublic2Privacy() != nil {
+		return action.GetPublic2Privacy().GetOutput()
+	} else if action.GetTy() == ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
+		return action.GetPrivacy2Public().GetOutput()
+	} else if action.GetTy() == ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
+		return action.GetPrivacy2Public().GetOutput()
+	}
+	return nil
+}
+
+func (action *PrivacyAction) GetActionName() string {
+	if action.Ty == ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
+		return "Privacy2Privacy"
+	} else if action.Ty == ActionPublic2Privacy && action.GetPublic2Privacy() != nil {
+		return "Public2Privacy"
+	} else if action.Ty == ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
+		return "Privacy2Public"
+	}
+	return "unknow-privacy"
+}
+
+// GetTxTimeInterval 获取交易有效期
+func GetTxTimeInterval() time.Duration {
+	return time.Second * 120
+}

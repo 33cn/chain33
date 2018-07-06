@@ -1,10 +1,12 @@
 package p2p
 
 import (
+	"sync"
 	"sync/atomic"
 	"time"
 
 	lru "github.com/hashicorp/golang-lru"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var Filter = NewFilter()
@@ -16,12 +18,19 @@ func NewFilter() *Filterdata {
 }
 
 type Filterdata struct {
-	isclose  int32
-	regRData *lru.Cache
+	isclose    int32
+	regRData   *lru.Cache
+	atomicLock sync.Mutex
 }
 
+func (f *Filterdata) GetLock() {
+	f.atomicLock.Lock()
+}
+func (f *Filterdata) ReleaseLock() {
+	f.atomicLock.Unlock()
+}
 func (f *Filterdata) RegRecvData(key string) bool {
-	f.regRData.Add(key, time.Duration(time.Now().Unix()))
+	f.regRData.Add(key, time.Duration(types.Now().Unix()))
 	return true
 }
 
@@ -49,7 +58,7 @@ func (f *Filterdata) ManageRecvFilter() {
 	defer ticker.Stop()
 	for {
 		<-ticker.C
-		now := time.Now().Unix()
+		now := types.Now().Unix()
 		for _, key := range f.regRData.Keys() {
 			regtime, exist := f.regRData.Get(key)
 			if !exist {

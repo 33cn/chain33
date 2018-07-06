@@ -155,7 +155,7 @@ func (mem *Mempool) RemoveExpiredAndDuplicateMempoolTxs() []*types.Transaction {
 	for _, v := range mem.cache.txMap {
 		item := v.Value.(*Item)
 		hash := item.value.Hash()
-		if time.Now().UnixNano()/1000000-item.enterTime >= mempoolExpiredInterval {
+		if types.Now().Unix()-item.enterTime >= mempoolExpiredInterval {
 			// 清理滞留Mempool中超过10分钟的交易
 			mem.cache.Remove(hash)
 		} else if item.value.IsExpire(mem.header.GetHeight(), mem.header.GetBlockTime()) {
@@ -188,7 +188,6 @@ func (mem *Mempool) RemoveTxs(hashList *types.TxHashList) error {
 	mem.proxyMtx.Lock()
 	defer mem.proxyMtx.Unlock()
 	for _, hash := range hashList.Hashes {
-		mem.addedTxs.Add(string(hash), nil)
 		exist := mem.cache.Exists(hash)
 		if exist {
 			mem.cache.Remove(hash)
@@ -203,7 +202,9 @@ func (mem *Mempool) DelBlock(block *types.Block) {
 		return
 	}
 	blkTxs := block.Txs
-	for _, tx := range blkTxs {
+
+	for i := 0; i < len(blkTxs); i++ {
+		tx := blkTxs[i]
 		if "ticket" == string(tx.Execer) {
 			var action types.TicketAction
 			err := types.Decode(tx.Payload, &action)
@@ -214,13 +215,20 @@ func (mem *Mempool) DelBlock(block *types.Block) {
 				continue
 			}
 		}
+		groupCount := int(tx.GetGroupCount())
+		if groupCount > 1 && i+groupCount <= len(blkTxs) {
+			group := types.Transactions{Txs: blkTxs[i : i+groupCount]}
+			tx = group.Tx()
+			i = i + groupCount - 1
+		}
 		err := tx.Check(mem.minFee)
 		if err != nil {
 			continue
 		}
-		if tx.IsExpire(mem.header.GetHeight(), mem.header.GetBlockTime()) {
+		if !mem.checkExpireValid(tx) {
 			continue
 		}
+		mem.addedTxs.Remove(string(tx.Hash()))
 		mem.PushTx(tx)
 	}
 }
@@ -253,7 +261,7 @@ func (mem *Mempool) ReTry() {
 	var result []*types.Transaction
 	mem.proxyMtx.Lock()
 	for _, v := range mem.cache.txMap {
-		if time.Now().UnixNano()/1000000-v.Value.(*Item).enterTime >= mempoolReSendInterval {
+		if types.Now().Unix()-v.Value.(*Item).enterTime >= mempoolReSendInterval {
 			result = append(result, v.Value.(*Item).value)
 		}
 	}
@@ -309,6 +317,7 @@ func (mem *Mempool) RemoveBlockedTxs() {
 		for _, t := range dupTxs {
 			txValue, exists := mem.cache.txMap[string(t)]
 			if exists {
+				mem.addedTxs.Add(string(t), nil)
 				mem.cache.Remove(txValue.Value.(*Item).value.Hash())
 			}
 		}
@@ -363,10 +372,14 @@ func (mem *Mempool) CheckExpireValid(msg queue.Message) bool {
 		return false
 	}
 	tx := msg.GetData().(types.TxGroup).Tx()
+	return mem.checkExpireValid(tx)
+}
+
+func (mem *Mempool) checkExpireValid(tx *types.Transaction) bool {
 	if tx.IsExpire(mem.header.GetHeight(), mem.header.GetBlockTime()) {
 		return false
 	}
-	if tx.Expire > 1000000000 && tx.Expire < time.Now().Unix()+int64(time.Minute/time.Second) {
+	if tx.Expire > 1000000000 && tx.Expire < types.Now().Unix()+int64(time.Minute/time.Second) {
 		return false
 	}
 	return true
@@ -475,7 +488,7 @@ func (mem *Mempool) SetQueueClient(client queue.Client) {
 
 	go mem.pollLastHeader()
 	go mem.getSync()
-	go mem.ReTrySend()
+	//	go mem.ReTrySend()
 	// 从badChan读取坏消息，并回复错误信息
 	go func() {
 		for m := range mem.badChan {
@@ -499,7 +512,7 @@ func (mem *Mempool) SetQueueClient(client queue.Client) {
 	go func() {
 		for msg := range mem.client.Recv() {
 			mlog.Debug("mempool recv", "msgid", msg.Id, "msg", types.GetEventName(int(msg.Ty)))
-			beg := time.Now()
+			beg := types.Now()
 			switch msg.Ty {
 			case types.EventTx:
 				if !mem.isSync() {
@@ -585,7 +598,7 @@ func (mem *Mempool) SetQueueClient(client queue.Client) {
 				mlog.Debug("reply EventGetAddrTxs ok", "msg", msg)
 			default:
 			}
-			mlog.Debug("mempool", "cost", time.Since(beg), "msg", types.GetEventName(int(msg.Ty)))
+			mlog.Debug("mempool", "cost", types.Since(beg), "msg", types.GetEventName(int(msg.Ty)))
 		}
 	}()
 }

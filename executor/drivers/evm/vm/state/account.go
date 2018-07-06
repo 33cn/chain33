@@ -1,7 +1,7 @@
 package state
 
 import (
-	"time"
+	"fmt"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/inconshreveable/log15"
@@ -18,6 +18,8 @@ var (
 	// 合约状态，前缀+合约地址，保存合约nonce以及其它数据，可变
 	ContractStatePrefix = "mavl-evm-state: "
 
+	// 合约中存储的具体状态数据，包含两个参数：合约地址、状态KEY
+	ContractStateItemKey = "mavl-evm-state:%v:%v"
 	// 注意，合约账户本身也可能有余额信息，这部分在CoinsAccount处理
 )
 
@@ -33,6 +35,9 @@ type ContractAccount struct {
 
 	// 合约状态数据
 	State types.EVMContractState
+
+	// 当前的状态数据缓存
+	stateCache map[string]common.Hash
 }
 
 // 创建一个新的合约对象
@@ -45,13 +50,31 @@ func NewContractAccount(addr string, db *MemoryStateDB) *ContractAccount {
 	}
 	ca := &ContractAccount{Addr: addr, mdb: db}
 	ca.State.Storage = make(map[string][]byte)
-	ca.Data.CreateTime = time.Now().UTC().UnixNano()
+	ca.stateCache = make(map[string]common.Hash)
 	return ca
 }
 
-// 获取状态数据
+// 获取状态数据；
+// 获取数据分为两层，一层是从当前的缓存中获取，如果获取不到，再从localdb中获取
 func (self *ContractAccount) GetState(key common.Hash) common.Hash {
-	return common.BytesToHash(self.State.GetStorage()[key.Hex()])
+	// 从ForkV19开始，状态数据使用单独的KEY存储
+	if types.IsMatchFork(self.mdb.blockHeight, types.ForkV20EVMState) {
+		if val, ok := self.stateCache[key.Hex()]; ok {
+			return val
+		}
+		keyStr := getStateItemKey(self.Addr, key.Hex())
+		// 如果缓存中取不到数据，则只能到本地数据库中查询
+		val, err := self.mdb.LocalDB.Get([]byte(keyStr))
+		if err != nil {
+			log15.Error("GetState error!", "key", key, "error", err)
+			return common.Hash{}
+		}
+		valHash := common.BytesToHash(val)
+		self.stateCache[key.Hex()] = valHash
+		return valHash
+	} else {
+		return common.BytesToHash(self.State.GetStorage()[key.Hex()])
+	}
 }
 
 // 设置状态数据
@@ -62,17 +85,45 @@ func (self *ContractAccount) SetState(key, value common.Hash) {
 		key:        key,
 		prevalue:   self.GetState(key),
 	})
-	self.State.GetStorage()[key.Hex()] = value.Bytes()
-	self.updateStorageHash()
+	if types.IsMatchFork(self.mdb.blockHeight, types.ForkV20EVMState) {
+		self.stateCache[key.Hex()] = value
+		//需要设置到localdb中，以免同一个区块中同一个合约多次调用时，状态数据丢失
+		keyStr := getStateItemKey(self.Addr, key.Hex())
+		self.mdb.LocalDB.Set([]byte(keyStr), value.Bytes())
+	} else {
+		self.State.GetStorage()[key.Hex()] = value.Bytes()
+		self.updateStorageHash()
+	}
+}
+
+// 从原有的存储在一个对象，将状态数据分散存储到多个KEY，保证合约可以支撑大量状态数据
+func (self *ContractAccount) TransferState() {
+	if len(self.State.Storage) > 0 {
+		storage := self.State.Storage
+		// 为了保证不会造成新、旧数据并存的情况，需要将旧的状态数据清空
+		self.State.Storage = make(map[string][]byte)
+		self.State.StorageHash = common.ToHash([]byte{}).Bytes()
+
+		// 从旧的区块迁移状态数据到新的区块，模拟状态数据变更的操作
+		for key, value := range storage {
+			self.SetState(common.BytesToHash(common.FromHex(key)), common.BytesToHash(value))
+		}
+		// 更新本合约的状态数据（删除旧的map存储信息）
+		self.mdb.UpdateState(self.Addr)
+		return
+	}
 }
 
 func (self *ContractAccount) updateStorageHash() {
+	// 从ForkV20开始，状态数据使用单独KEY存储
+	if types.IsMatchFork(self.mdb.blockHeight, types.ForkV20EVMState) {
+		return
+	}
 	var state = &types.EVMContractState{Suicided: self.State.Suicided, Nonce: self.State.Nonce}
 	state.Storage = make(map[string][]byte)
 	for k, v := range self.State.GetStorage() {
 		state.Storage[k] = v
 	}
-
 	ret, err := proto.Marshal(state)
 	if err != nil {
 		log15.Error("marshal contract state data error", "error", err)
@@ -102,9 +153,7 @@ func (self *ContractAccount) resotreState(data []byte) {
 		log15.Error("read contract state error", self.Addr)
 		return
 	}
-
 	self.State = content
-
 	if self.State.Storage == nil {
 		self.State.Storage = make(map[string][]byte)
 	}
@@ -168,9 +217,6 @@ func (self *ContractAccount) SetAliasName(alias string) {
 func (self *ContractAccount) GetAliasName() string {
 	return self.Data.Alias
 }
-func (self *ContractAccount) GetCreateTime() string {
-	return time.Unix(0, self.Data.CreateTime).String()
-}
 
 func (self *ContractAccount) GetCreator() string {
 	return self.Data.Creator
@@ -185,7 +231,7 @@ func (self *ContractAccount) GetDataKV() (kvSet []*types.KeyValue) {
 	self.Data.Addr = self.Addr
 	datas, err := proto.Marshal(&self.Data)
 	if err != nil {
-		log15.Error("marshal contract data error!", self.Addr)
+		log15.Error("marshal contract data error!", "addr", self.Addr, "error", err)
 		return
 	}
 	kvSet = append(kvSet, &types.KeyValue{Key: self.GetDataKey(), Value: datas})
@@ -196,7 +242,7 @@ func (self *ContractAccount) GetDataKV() (kvSet []*types.KeyValue) {
 func (self *ContractAccount) GetStateKV() (kvSet []*types.KeyValue) {
 	datas, err := proto.Marshal(&self.State)
 	if err != nil {
-		log15.Error("marshal contract state error!", self.Addr)
+		log15.Error("marshal contract state error!", "addr", self.Addr, "error", err)
 		return
 	}
 	kvSet = append(kvSet, &types.KeyValue{Key: self.GetStateKey(), Value: datas})
@@ -207,7 +253,7 @@ func (self *ContractAccount) GetStateKV() (kvSet []*types.KeyValue) {
 func (self *ContractAccount) BuildDataLog() (log *types.ReceiptLog) {
 	datas, err := proto.Marshal(&self.Data)
 	if err != nil {
-		log15.Error("marshal contract state error!", self.Addr)
+		log15.Error("marshal contract data error!", "addr", self.Addr, "error", err)
 		return
 	}
 	return &types.ReceiptLog{types.TyLogContractData, datas}
@@ -216,8 +262,8 @@ func (self *ContractAccount) BuildDataLog() (log *types.ReceiptLog) {
 // 构建变更日志
 func (self *ContractAccount) BuildStateLog() (log *types.ReceiptLog) {
 	datas, err := proto.Marshal(&self.State)
-	if err != nil || len(datas) == 0 {
-		log15.Error("marshal contract state error!", "error", self.Addr)
+	if err != nil {
+		log15.Error("marshal contract state log error!", "addr", self.Addr, "error", err)
 		return
 	}
 
@@ -230,6 +276,10 @@ func (self *ContractAccount) GetDataKey() []byte {
 
 func (self *ContractAccount) GetStateKey() []byte {
 	return []byte(ContractStatePrefix + self.Addr)
+}
+
+func getStateItemKey(addr, key string) string {
+	return fmt.Sprintf(ContractStateItemKey, addr, key)
 }
 
 func (self *ContractAccount) Suicide() bool {

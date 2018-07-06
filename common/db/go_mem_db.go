@@ -128,6 +128,11 @@ func (db *GoMemDB) Iterator(prefix []byte, reserve bool) Iterator {
 	return &goMemDBIt{index, keys, db, reserve, prefix}
 }
 
+func (db *GoMemDB) BatchGet(keys [][]byte) (value [][]byte, err error) {
+	mlog.Error("BatchGet", "Need to implement")
+	return nil, nil
+}
+
 type goMemDBIt struct {
 	index   int      // 记录当前索引
 	keys    []string // 记录所有keys值
