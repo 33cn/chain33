@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"encoding/hex"
+
 	"github.com/stretchr/testify/require"
 	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/common"
@@ -22,7 +24,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/store"
 	"gitlab.33.cn/chain33/chain33/types"
-	"encoding/hex"
 )
 
 var random *rand.Rand
@@ -590,7 +591,7 @@ func testGetBlockHerderByHash(t *testing.T, blockchain *BlockChain) {
 func testProcGetTransactionByAddr(t *testing.T, blockchain *BlockChain) {
 	chainlog.Info("testProcGetTransactionByAddr begin --------------------")
 	parm := &types.ReqAddr{
-		Addr: "1DzTdTLa5JPpLdNNP2PrV1a6JCtULA7GsT",
+		Addr:   "1DzTdTLa5JPpLdNNP2PrV1a6JCtULA7GsT",
 		Height: -1,
 	}
 	txinfos, err := blockchain.ProcGetTransactionByAddr(parm)
@@ -611,7 +612,7 @@ func testProcGetTransactionByAddr(t *testing.T, blockchain *BlockChain) {
 func textProcGetTransactionByHashes(t *testing.T, blockchain *BlockChain) {
 	chainlog.Info("textProcGetTransactionByHashes begin --------------------")
 	parm := &types.ReqAddr{
-		Addr: "1DzTdTLa5JPpLdNNP2PrV1a6JCtULA7GsT",
+		Addr:   "1DzTdTLa5JPpLdNNP2PrV1a6JCtULA7GsT",
 		Height: -1,
 	}
 	txinfos, err := blockchain.ProcGetTransactionByAddr(parm)
@@ -627,7 +628,7 @@ func textProcGetTransactionByHashes(t *testing.T, blockchain *BlockChain) {
 	TxDetails, err := blockchain.ProcGetTransactionByHashes(Hashes)
 	require.NoError(t, err)
 
-	if TxDetails != nil{
+	if TxDetails != nil {
 		for _, tx := range TxDetails.Txs {
 			if tx.Tx != nil {
 				fmt.Println("PrintTxDetails Receipts!", "tx.Tx.Payload", tx.Tx.Payload)
@@ -638,7 +639,7 @@ func textProcGetTransactionByHashes(t *testing.T, blockchain *BlockChain) {
 	chainlog.Info("textProcGetTransactionByHashes end --------------------")
 }
 
-func textProcGetBlockOverview(t *testing.T, blockchain *BlockChain)  {
+func textProcGetBlockOverview(t *testing.T, blockchain *BlockChain) {
 	chainlog.Info("textProcGetBlockOverview begin --------------------")
 	curheight := blockchain.GetBlockHeight()
 	block, err := blockchain.GetBlock(curheight - 5)
@@ -660,7 +661,7 @@ func textProcGetBlockOverview(t *testing.T, blockchain *BlockChain)  {
 	chainlog.Info("textProcGetBlockOverview end --------------------")
 }
 
-func testProcGetAddrOverview(t *testing.T, blockchain *BlockChain)  {
+func testProcGetAddrOverview(t *testing.T, blockchain *BlockChain) {
 	chainlog.Info("testProcGetAddrOverview begin --------------------")
 	curheight := blockchain.GetBlockHeight()
 	chainlog.Info("testProcGetAddrOverview ", "curheight", curheight)
@@ -690,7 +691,7 @@ func testProcGetAddrOverview(t *testing.T, blockchain *BlockChain)  {
 	chainlog.Info("testProcGetAddrOverview end --------------------")
 }
 
-func testProcGetBlockHash(t *testing.T, blockchain *BlockChain)  {
+func testProcGetBlockHash(t *testing.T, blockchain *BlockChain) {
 	chainlog.Info("testProcGetBlockHash begin --------------------")
 	curheight := blockchain.GetBlockHeight()
 	chainlog.Info("testProcGetBlockHash ", "curheight", curheight)
@@ -715,6 +716,7 @@ func testProcGetBlockHash(t *testing.T, blockchain *BlockChain)  {
 
 	chainlog.Info("testProcGetBlockHash end --------------------")
 }
+
 /*
 func testSendDelBlockEvent(t *testing.T, blockchain *BlockChain)  {
 
@@ -743,11 +745,11 @@ func testRemoveOrphanBlock(t *testing.T, blockchain *BlockChain) {
 	block.Block.ParentHash = ParentHashNotexist
 
 	oBlock := &orphanBlock{
-		block:      block.Block,
-//		expiration: time.Second,
-		broadcast:  false,
-		pid:        "123",
-		sequence:   0,
+		block: block.Block,
+		//		expiration: time.Second,
+		broadcast: false,
+		pid:       "123",
+		sequence:  0,
 	}
 
 	blockchain.orphanPool.RemoveOrphanBlock(oBlock)
@@ -782,7 +784,7 @@ func testProcGetGlobalIndexMsg(t *testing.T, blockchain *BlockChain) {
 	chainlog.Info("testProcGetGlobalIndexMsg end --------------------")
 }
 
-func testLoadBlockBySequence(t *testing.T, blockchain *BlockChain)  {
+func testLoadBlockBySequence(t *testing.T, blockchain *BlockChain) {
 	chainlog.Info("testLoadBlockBySequence begin ---------------------")
 
 	curheight := blockchain.GetBlockHeight()
@@ -797,7 +799,7 @@ func testProcDelParaChainBlockMsg(t *testing.T, blockchain *BlockChain) {
 	chainlog.Info("testProcDelParaChainBlockMsg begin --------------------")
 
 	curheight := blockchain.GetBlockHeight()
-	block, err := blockchain.GetBlock(curheight-1)
+	block, err := blockchain.GetBlock(curheight - 1)
 	require.NoError(t, err)
 
 	var parablockDetail types.ParaChainBlockDetail
