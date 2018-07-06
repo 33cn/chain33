@@ -30,6 +30,10 @@ forkContainers=("${CLI3}" "${CLI2}" "${CLI}" "${CLI4}" "${CLI5}" "${CLI6}")
 # shellcheck disable=SC1091
 source privacy-fork-test.sh
 
+#引入coins交易分叉测试
+# shellcheck disable=SC1091
+source coins-fork-test.sh
+
 sedfix=""
 if [ "$(uname)" == "Darwin" ]; then
     sedfix=".bak"
@@ -203,6 +207,24 @@ function init() {
 }
 
 function optDockerfun() {
+    #############################################
+    #1 第一种分叉构造：两组docker起初在同一条链上进行挖
+    # 矿，然后再分别进行挖矿，最后共同挖矿
+    #############################################
+    forkType1
+    #############################################
+    #2 第二种分叉构造：一共5个节点，其中一个为公共节点，
+    # 首先共同挖矿，然后停掉其中2个节点（非公共节点），
+    # 进行挖矿，并且备份公共节点数据库，建立交易，然后停掉
+    # 发送，然后一段时间后，关掉当前挖矿的两个节点，然后
+    # 将当前公共节点恢复到备份状态，然后启动另外两个节点
+    # 最后启动全部节点共同挖矿
+    #############################################
+    forkType2
+
+}
+
+function forkType1() {
     init
 
     optDockerPart1
@@ -210,6 +232,8 @@ function optDockerfun() {
     #此处根据具体需求加入；如从钱包中转入某个具体合约账户
     #1 初始化隐私交易余额
     #initPriAccount
+    # 初始化coins余额
+    initCoinsAccount
 
     #############################################
     optDockerPart2
@@ -218,12 +242,16 @@ function optDockerfun() {
     #2 构造第一条链中隐私交易
     #genFirstChainPritx
 
+    genFirstChainCoinstx
+
     #############################################
     optDockerPart3
     #############################################
     #此处根据具体需求加入在第二条测试链中发送测试数据
     #3 构造第二条链中隐私交易
     #genSecondChainPritx
+
+    genSecondChainCoinstx
 
     #############################################
     optDockerPart4
@@ -234,8 +262,22 @@ function optDockerfun() {
     #4 检查隐私交易结果
     #checkPriResult
 
-    #############################################
+    checkCoinsResult
 
+    #############################################
+}
+
+function forkType2() {
+    init
+
+}
+
+function copyData() {
+    name="${NODE3}"
+    docker exec "${name}" mkdir beifen
+    docker exec "${name}" cp -r datadir beifen
+    docker exec "${name}" rm -rf datadir
+    docker exec "${name}" cp -r beifen/datadir ./
 }
 
 function optDockerPart1() {
@@ -286,7 +328,7 @@ function optDockerPart2() {
     echo "==================================="
 
     echo "======停止第二组docker ======"
-    sudo docker stop "${NODE4}" "${NODE5}" "${NODE6}"
+    docker stop "${NODE4}" "${NODE5}" "${NODE6}"
 
     echo "======开启第一组docker节点挖矿======"
     sleep 3
@@ -307,12 +349,11 @@ function optDockerPart2() {
         exit 1
     fi
 
-    echo "======第一组docker节点挖矿中======"
-    block_wait_timeout "${CLI}" 10 100
-
 }
 
 function optDockerPart3() {
+    echo "======第一组docker节点挖矿中======"
+    block_wait_timeout "${CLI}" 5 100
     echo "======停止第一组docker节点挖矿======"
     result=$($CLI wallet auto_mine -f 0 | jq ".isok")
     if [ "${result}" = "false" ]; then
@@ -324,20 +365,20 @@ function optDockerPart3() {
     names[0]="${NODE3}"
     names[1]="${NODE2}"
     names[2]="${NODE1}"
-    syn_block_timeout "${CLI}" 5 50 "${names[@]}"
+    syn_block_timeout "${CLI}" 3 50 "${names[@]}"
 
     echo "======================================="
     echo "======== 第二步：第二组docker挖矿 ======="
     echo "======================================="
 
     echo "======停止第一组docker======"
-    sudo docker stop "${NODE1}" "${NODE2}" "${NODE3}"
+    docker stop "${NODE1}" "${NODE2}" "${NODE3}"
 
     echo "======sleep 5s======"
     sleep 5
 
     echo "======启动第二组docker======"
-    sudo docker start "${NODE4}" "${NODE5}" "${NODE6}"
+    docker start "${NODE4}" "${NODE5}" "${NODE6}"
 
     echo "======sleep 20s======"
     sleep 20
@@ -366,23 +407,23 @@ function optDockerPart3() {
         exit 1
     fi
 
-    echo "======第二组docker节点挖矿中======"
-    block_wait_timeout "${CLI4}" 10 100
 }
 
 function optDockerPart4() {
+    echo "======第二组docker节点挖矿中======"
+    block_wait_timeout "${CLI4}" 5 100
     echo "====== 第二组内部同步中 ======"
     names[0]="${NODE4}"
     names[1]="${NODE5}"
     names[2]="${NODE6}"
-    syn_block_timeout "${CLI4}" 5 50 "${names[@]}"
+    syn_block_timeout "${CLI4}" 3 50 "${names[@]}"
 
     echo "======================================="
     echo "====== 第三步：两组docker共同挖矿 ======="
     echo "======================================="
 
     echo "======启动第一组docker======"
-    sudo docker start "${NODE1}" "${NODE2}" "${NODE3}"
+    docker start "${NODE1}" "${NODE2}" "${NODE3}"
 
     echo "======sleep 20s======"
     sleep 20
@@ -400,7 +441,7 @@ function optDockerPart4() {
     fi
 
     echo "======两组docker节点共同挖矿中======"
-    block_wait_timeout "${CLI}" 5 50
+    block_wait_timeout "${CLI}" 5 100
 }
 
 function checkMineHeight() {
