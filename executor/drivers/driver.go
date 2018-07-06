@@ -186,14 +186,14 @@ func (d *DriverBase) checkAddress(addr string) error {
 //调用子类的CheckTx, 也可以不调用，实现自己的CheckTx
 func (d *DriverBase) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	//to 必须是一个地址
-	if err := d.checkAddress(tx.To); err != nil {
+	if err := d.checkAddress(tx.GetRealToAddr()); err != nil {
 		return nil, err
 	}
 	err := d.child.CheckTx(tx, index)
 	return nil, err
 }
 
-//默认情况下，to地址指向合约地址
+//默认情况下，tx.To 地址指向合约地址
 func (d *DriverBase) CheckTx(tx *types.Transaction, index int) error {
 	execer := string(tx.Execer)
 	if ExecAddress(execer) != tx.To {
