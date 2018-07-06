@@ -38,6 +38,22 @@ func init() {
 }
 
 type CoinsType struct {
+	types.ExecTypeBase
+}
+
+func (coins CoinsType) GetRealToAddr(tx *types.Transaction) string {
+	if string(tx.Execer) == name {
+		return tx.To
+	}
+	var action types.CoinsAction
+	err := types.Decode(tx.Payload, &action)
+	if err != nil {
+		return tx.To
+	}
+	if action.Ty == types.CoinsActionTransfer && action.GetTransfer() != nil {
+		return action.GetTransfer().GetTo()
+	}
+	return tx.To
 }
 
 func (coins CoinsType) ActionName(tx *types.Transaction) string {

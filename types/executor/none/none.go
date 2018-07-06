@@ -23,6 +23,7 @@ func init() {
 }
 
 type NoneType struct {
+	types.ExecTypeBase
 }
 
 func (none NoneType) ActionName(tx *types.Transaction) string {
