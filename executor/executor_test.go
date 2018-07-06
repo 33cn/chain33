@@ -385,9 +385,12 @@ func TestExecBlock2(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	if detail.Receipts[0].GetTy() != 2 || detail.Receipts[1].GetTy() != 2 {
-		t.Errorf("exec expect true, but now false")
+	for _, Receipt := range detail.Receipts {
+		if Receipt.GetTy() != 2 {
+			t.Errorf("exec expect true, but now false")
+		}
 	}
+
 	N := 5000
 	done := make(chan struct{}, N)
 	for i := 0; i < N; i++ {
@@ -399,8 +402,10 @@ func TestExecBlock2(t *testing.T) {
 				t.Error(err)
 				return
 			}
-			if detail.Receipts[0].GetTy() != 2 || detail.Receipts[1].GetTy() != 2 {
-				t.Errorf("exec expect true, but now false")
+			for _, Receipt := range detail.Receipts {
+				if Receipt.GetTy() != 2 {
+					t.Errorf("exec expect true, but now false")
+				}
 			}
 			done <- struct{}{}
 		}()

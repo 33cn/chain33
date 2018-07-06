@@ -80,6 +80,21 @@ func (s *StateDB) Set(key []byte, value []byte) error {
 	return nil
 }
 
+func (db *StateDB) BatchGet(keys [][]byte) (value [][]byte, err error) {
+	query := &types.StoreGet{db.stateHash, keys}
+	msg := db.client.NewMessage("store", types.EventStoreGet, query)
+	db.client.Send(msg, true)
+	resp, err := db.client.Wait(msg)
+	if err != nil {
+		panic(err) //no happen for ever
+	}
+	value = resp.GetData().(*types.StoreReplyValue).Values
+	if value == nil {
+		return nil, types.ErrNotFound
+	}
+	return value, nil
+}
+
 type LocalDB struct {
 	db.TransactionDB
 	cache  map[string][]byte
@@ -119,6 +134,22 @@ func (l *LocalDB) Set(key []byte, value []byte) error {
 	return nil
 }
 
+func (db *LocalDB) BatchGet(keys [][]byte) (values [][]byte, err error) {
+	query := &types.LocalDBGet{keys}
+	msg := db.client.NewMessage("blockchain", types.EventLocalGet, query)
+	db.client.Send(msg, true)
+	resp, err := db.client.Wait(msg)
+	if err != nil {
+		panic(err) //no happen for ever
+	}
+	values = resp.GetData().(*types.LocalReplyValue).Values
+	if values == nil {
+		//panic(string(key))
+		return nil, types.ErrNotFound
+	}
+	return values, nil
+}
+
 //从数据库中查询数据列表，set 中的cache 更新不会影响这个list
 func (l *LocalDB) List(prefix, key []byte, count, direction int32) ([][]byte, error) {
 	query := &types.LocalDBList{Prefix: prefix, Key: key, Count: count, Direction: direction}
@@ -134,4 +165,17 @@ func (l *LocalDB) List(prefix, key []byte, count, direction int32) ([][]byte, er
 		return nil, types.ErrNotFound
 	}
 	return values, nil
+}
+
+//从数据库中查询指定前缀的key的数量
+func (l *LocalDB) PrefixCount(prefix []byte) (count int64) {
+	query := &types.ReqKey{Key: prefix}
+	msg := l.client.NewMessage("blockchain", types.EventLocalPrefixCount, query)
+	l.client.Send(msg, true)
+	resp, err := l.client.Wait(msg)
+	if err != nil {
+		panic(err) //no happen for ever
+	}
+	count = resp.GetData().(*types.Int64).Data
+	return
 }

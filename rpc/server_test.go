@@ -136,7 +136,7 @@ func TestGrpc_Call(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 	server.grpc.cli.QueueProtocolAPI = api
 	go server.Listen()
-
+	time.Sleep(time.Second)
 	ret := &types.Reply{
 		IsOk: true,
 		Msg:  []byte("123"),
@@ -144,7 +144,6 @@ func TestGrpc_Call(t *testing.T) {
 	api.On("IsSync").Return(ret, nil)
 	api.On("Close").Return()
 
-	time.Sleep(100)
 	ctx := context.Background()
 	c, err := grpc.DialContext(ctx, rpcCfg.GrpcBindAddr, grpc.WithInsecure())
 	assert.Nil(t, err)

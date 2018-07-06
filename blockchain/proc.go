@@ -59,7 +59,8 @@ func (chain *BlockChain) ProcRecvMsg() {
 			go chain.processMsg(msg, reqnum, chain.isSync)
 		case types.EventIsNtpClockSync:
 			go chain.processMsg(msg, reqnum, chain.isNtpClockSync)
-
+		case types.EventGetGlobalIndex:
+			go chain.processMsg(msg, reqnum, chain.getGlobalIndex)
 		case types.EventGetLastBlockSequence:
 			go chain.processMsg(msg, reqnum, chain.getLastBlockSequence)
 
@@ -77,7 +78,8 @@ func (chain *BlockChain) ProcRecvMsg() {
 
 		case types.EventGetSeqByHash:
 			go chain.processMsg(msg, reqnum, chain.getSeqByHash)
-
+		case types.EventLocalPrefixCount:
+			go chain.processMsg(msg, reqnum, chain.localPrefixCount)
 		default:
 			<-reqnum
 			chainlog.Warn("ProcRecvMsg unknow msg", "msgtype", msgtype)
@@ -334,6 +336,18 @@ func (chain *BlockChain) isNtpClockSync(msg queue.Message) {
 	msg.Reply(chain.client.NewMessage("", types.EventReplyIsNtpClockSync, &types.IsNtpClockSync{ok}))
 }
 
+func (chain *BlockChain) getGlobalIndex(msg queue.Message) {
+	reqUTXOGlobalIndex := msg.Data.(*types.ReqUTXOGlobalIndex)
+	response, err := chain.ProcGetGlobalIndexMsg(reqUTXOGlobalIndex)
+	if err != nil {
+		chainlog.Error("ProcGetGlobalIndexMsg", "err", err.Error())
+		msg.Reply(chain.client.NewMessage("wallet", types.EventReplyGetGlobalIndex, err))
+	} else {
+		chainlog.Debug("ProcGetGlobalIndexMsg", "success", "ok")
+		msg.Reply(chain.client.NewMessage("wallet", types.EventReplyGetGlobalIndex, response))
+	}
+}
+
 type funcProcess func(msg queue.Message)
 
 func (chain *BlockChain) processMsg(msg queue.Message, reqnum chan struct{}, cb funcProcess) {
@@ -421,4 +435,42 @@ func (chain *BlockChain) getSeqByHash(msg queue.Message) {
 	blockhash := (msg.Data).(*types.ReqHash)
 	sequence.Data, _ = chain.ProcGetSeqByHash(blockhash.Hash)
 	msg.Reply(chain.client.NewMessage("rpc", types.EventGetSeqByHash, &sequence))
+}
+
+//获取指定前缀key的数量
+func (chain *BlockChain) localPrefixCount(msg queue.Message) {
+	Prefix := (msg.Data).(*types.ReqKey)
+	counts := db.NewListHelper(chain.blockStore.db).PrefixCount(Prefix.Key)
+	msg.Reply(chain.client.NewMessage("rpc", types.EventLocalReplyValue, &types.Int64{Data: counts}))
+}
+
+//获取指定地址参与的tx交易计数
+func (chain *BlockChain) localAddrTxCount(msg queue.Message) {
+	reqkey := (msg.Data).(*types.ReqKey)
+
+	count := types.Int64{}
+	var counts int64
+
+	TxsCount, err := chain.blockStore.db.Get(reqkey.Key)
+	if err != nil && err != types.ErrNotFound {
+		counts = 0
+		chainlog.Error("localAddrTxCount", "err", err.Error())
+		msg.Reply(chain.client.NewMessage("rpc", types.EventLocalReplyValue, &types.Int64{Data: counts}))
+		return
+	}
+	if len(TxsCount) == 0 {
+		counts = 0
+		chainlog.Error("localAddrTxCount", "TxsCount", "0")
+		msg.Reply(chain.client.NewMessage("rpc", types.EventLocalReplyValue, &types.Int64{Data: counts}))
+		return
+	}
+	err = types.Decode(TxsCount, &count)
+	if err != nil {
+		counts = 0
+		chainlog.Error("localAddrTxCount", "types.Decode", err)
+		msg.Reply(chain.client.NewMessage("rpc", types.EventLocalReplyValue, &types.Int64{Data: counts}))
+		return
+	}
+	counts = count.Data
+	msg.Reply(chain.client.NewMessage("rpc", types.EventLocalReplyValue, &types.Int64{Data: counts}))
 }

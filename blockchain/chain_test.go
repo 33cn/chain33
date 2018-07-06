@@ -81,7 +81,7 @@ func createTx(priv crypto.PrivKey, to string, amount int64) *types.Transaction {
 
 	v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
 	transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
-	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1e6, To: to}
+	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1e6, To: to, Expire: 0}
 	tx.Nonce = random.Int63()
 	tx.To = address.ExecAddress("none")
 	tx.Sign(types.SECP256K1, priv)
@@ -152,6 +152,7 @@ func PrintSequenceInfo(Sequence *types.BlockSequence) {
 }
 func addTx() (string, error) {
 	txs, _, _ := genTxs(1)
+	fmt.Println("addTx: ", txs[0])
 	hash := common.Bytes2Hex(txs[0].Hash())
 	reply, err := api.SendTx(txs[0])
 	if err != nil {
@@ -198,6 +199,8 @@ func TestBlockChain(t *testing.T) {
 
 	testGetBlockByHashes(t, blockchain)
 	testGetSeqByHash(t, blockchain)
+	testPrefixCount(t, blockchain)
+	testAddrTxCount(t, blockchain)
 	//testProcGetTransactionByHashes(t, blockchain)
 
 	//testProcGetTransactionByAddr(t, blockchain)
@@ -486,4 +489,24 @@ func testGetSeqByHash(t *testing.T, blockchain *BlockChain) {
 	seq, err := blockchain.ProcGetSeqByHash(hashes[0])
 	chainlog.Info("testGetSeqByHash", "seq", seq, "err", err)
 	chainlog.Info("testGetSeqByHash end --------------------")
+}
+
+func testPrefixCount(t *testing.T, blockchain *BlockChain) {
+	chainlog.Info("testPrefixCount begin --------------------")
+
+	msgGen := blockchain.client.NewMessage("blockchain", types.EventLocalPrefixCount, &types.ReqKey{Key: []byte("TxAddrHash:14KEKbYtKKQm4wMthSK9J4La4nAiidGozt:")})
+	blockchain.client.Send(msgGen, true)
+	Res, _ := blockchain.client.Wait(msgGen)
+	count := Res.GetData().(*types.Int64).Data
+	println("count: ", count)
+	chainlog.Info("testPrefixCount end --------------------")
+}
+
+func testAddrTxCount(t *testing.T, blockchain *BlockChain) {
+	chainlog.Info("testAddrTxCount begin --------------------")
+	var reqkey types.ReqKey
+	reqkey.Key = []byte(fmt.Sprintf("AddrTxsCount:%s", "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"))
+	count, _ := blockchain.query.Query("coins", "GetAddrTxsCount", types.Encode(&reqkey))
+	println("count: ", count.(*types.Int64).GetData())
+	chainlog.Info("testAddrTxCount end --------------------")
 }

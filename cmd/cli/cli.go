@@ -55,6 +55,7 @@ func init() {
 		commands.RelayCmd(),
 		commands.TxCmd(),
 		commands.WalletCmd(),
+		commands.PrivacyCmd(),
 		commands.VersionCmd(),
 		sendCmd,
 		closeCmd,
