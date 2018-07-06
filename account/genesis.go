@@ -28,7 +28,7 @@ func (acc *DB) GenesisInitExec(addr string, amount int64, execaddr string) (*typ
 	}
 	acc.SaveAccount(accTo)
 	receipt := acc.genesisReceipt(accTo, receiptBalanceTo)
-	receipt2, err := acc.execDeposit(addr, execaddr, amount)
+	receipt2, err := acc.ExecDeposit(addr, execaddr, amount)
 	if err != nil {
 		panic(err)
 	}

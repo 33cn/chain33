@@ -2,7 +2,9 @@ package rpc
 
 import (
 	"encoding/hex"
+	"time"
 
+	"gitlab.33.cn/chain33/chain33/common/address"
 	pb "gitlab.33.cn/chain33/chain33/types"
 	"golang.org/x/net/context"
 )
@@ -161,6 +163,10 @@ func (g *Grpc) GetBalance(ctx context.Context, in *pb.ReqBalance) (*pb.Accounts,
 	return &pb.Accounts{Acc: reply}, nil
 }
 
+func (g *Grpc) GetAllExecBalance(ctx context.Context, in *pb.ReqAddr) (*pb.AllExecBalance, error) {
+	return g.cli.GetAllExecBalance(in)
+}
+
 func (g *Grpc) GetTokenBalance(ctx context.Context, in *pb.ReqTokenBalance) (*pb.Accounts, error) {
 	reply, err := g.cli.GetTokenBalance(in)
 	if err != nil {
@@ -224,6 +230,15 @@ func (g *Grpc) GetFatalFailure(ctx context.Context, in *pb.ReqNil) (*pb.Int32, e
 	return g.cli.GetFatalFailure()
 }
 
+func (g *Grpc) CloseQueue(ctx context.Context, in *pb.ReqNil) (*pb.Reply, error) {
+	go func() {
+		time.Sleep(time.Millisecond * 100)
+		g.cli.CloseQueue()
+	}()
+
+	return &pb.Reply{IsOk: true, Msg: []byte("Ok")}, nil
+}
+
 func (g *Grpc) GetLastBlockSequence(ctx context.Context, in *pb.ReqNil) (*pb.Int64, error) {
 	return g.cli.GetLastBlockSequence()
 }
@@ -232,4 +247,65 @@ func (g *Grpc) GetBlockSequences(ctx context.Context, in *pb.ReqBlocks) (*pb.Blo
 }
 func (g *Grpc) GetBlockByHashes(ctx context.Context, in *pb.ReqHashes) (*pb.BlockDetails, error) {
 	return g.cli.GetBlockByHashes(in)
+}
+
+// 显示指定地址的公钥对信息，可以作为后续交易参数
+func (g *Grpc) ShowPrivacyKey(ctx context.Context, in *pb.ReqStr) (*pb.ReplyPrivacyPkPair, error) {
+	return g.cli.ShowPrivacyKey(in)
+
+}
+
+// 创建一系列UTXO
+func (g *Grpc) CreateUTXOs(ctx context.Context, in *pb.ReqCreateUTXOs) (*pb.Reply, error) {
+	return g.cli.CreateUTXOs(in)
+}
+
+// 将资金从公开到隐私转移
+func (g *Grpc) MakeTxPublic2Privacy(ctx context.Context, in *pb.ReqPub2Pri) (*pb.Reply, error) {
+	return g.cli.Publick2Privacy(in)
+}
+
+// 将资产从隐私到隐私进行转移
+func (g *Grpc) MakeTxPrivacy2Privacy(ctx context.Context, in *pb.ReqPri2Pri) (*pb.Reply, error) {
+	return g.cli.Privacy2Privacy(in)
+}
+
+// 将资产从隐私到公开进行转移
+func (g *Grpc) MakeTxPrivacy2Public(ctx context.Context, in *pb.ReqPri2Pub) (*pb.Reply, error) {
+	return g.cli.Privacy2Public(in)
+}
+
+// 创建绑定挖矿
+func (g *Grpc) CreateBindMiner(ctx context.Context, in *pb.ReqBindMiner) (*pb.ReplyBindMiner, error) {
+	if in.Amount%(10000*pb.Coin) != 0 || in.Amount < 0 {
+		return nil, pb.ErrAmount
+	}
+	err := address.CheckAddress(in.BindAddr)
+	if err != nil {
+		return nil, err
+	}
+	err = address.CheckAddress(in.OriginAddr)
+	if err != nil {
+		return nil, err
+	}
+
+	if in.CheckBalance {
+		getBalance := &pb.ReqBalance{Addresses: []string{in.OriginAddr}, Execer: "coins"}
+		balances, err := g.cli.GetBalance(getBalance)
+		if err != nil {
+			return nil, err
+		}
+		if len(balances) == 0 {
+			return nil, pb.ErrInputPara
+		}
+		if balances[0].Balance < in.Amount+2*pb.Coin {
+			return nil, pb.ErrNoBalance
+		}
+	}
+
+	return g.cli.BindMiner(in)
+}
+
+func (g *Grpc) SignRawTx(ctx context.Context, in *pb.ReqSignRawTx) (*pb.ReplySignRawTx, error) {
+	return g.cli.SignRawTx(in)
 }
