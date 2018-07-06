@@ -73,6 +73,7 @@ func initEnv() (*BlockChain, queue.Module, queue.Module, queue.Module, queue.Mod
 	mem := mempool.New(cfg.MemPool)
 	mem.SetQueueClient(q.Client())
 	mem.SetSync(true)
+	mem.WaitPollLastHeader()
 	return blockchain, exec, cons, s, mem
 }
 
