@@ -597,7 +597,7 @@ diffListLoop:
 	fmt.Println("Actual:", resp.Actual)
 
 	e, _ := strconv.ParseFloat(expect, 64)
-	fmt.Printf("Deviation:%.4f\n", e/float64(resp.Actual)-1.0)
+	fmt.Printf("Deviation:%+.3f%%\n", (float64(resp.Actual)/e-1.0)*100.0)
 }
 
 type difficultyRange struct {
