@@ -13,9 +13,8 @@ import (
 )
 
 var (
-	ErrNodeNotExist     = errors.New("ErrNodeNotExist")
-	defCacheSize    int = 10240
-	treelog             = log.New("module", "mavl")
+	ErrNodeNotExist = errors.New("ErrNodeNotExist")
+	treelog         = log.New("module", "mavl")
 )
 
 //merkle avl tree
