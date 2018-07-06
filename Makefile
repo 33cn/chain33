@@ -25,6 +25,7 @@ dep: ## Get the dependencies
 	@go get -u gopkg.in/alecthomas/gometalinter.v2
 	@gometalinter.v2 -i
 	@go get -u github.com/mitchellh/gox
+	@go get -u github.com/vektra/mockery/.../
 	@go get -u mvdan.cc/sh/cmd/shfmt
 	@go get -u mvdan.cc/sh/cmd/gosh
 	@apt install clang-format
@@ -57,12 +58,12 @@ miner:
 	@cp cmd/miner_accounts/miner_accounts.toml build/
 
 build_ci: relayd ## Build the binary file for CI
-	@go build -race -v -o $(CLI) $(SRC_CLI)
+	@go build -race -v -i -o $(CLI) $(SRC_CLI)
 	@go build  $(BUILD_FLAGS)-race -v -o $(APP) $(SRC)
 	@cp cmd/chain33/chain33.toml build/
 
 relayd: ## Build relay deamon binary
-	@go build -race -v -o $(RELAYD) $(SRC_RELAYD)
+	@go build -race -i -v -o $(RELAYD) $(SRC_RELAYD)
 	@cp cmd/relayd/relayd.toml build/
 
 linter: ## Use gometalinter check code, ignore some unserious warning
@@ -128,6 +129,10 @@ docker: ## build docker image for chain33 run
 docker-compose: ## build docker-compose for chain33 run
 	@cd build && ./docker-compose.sh build && cd ..
 
+
+fork-test: ## build fork-test for chain33 run
+	@cd build && ./fork-test.sh build && cd ..
+
 clean: ## Remove previous build
 	@rm -rf $(shell find . -name 'datadir' -not -path "./vendor/*")
 	@rm -rf build/chain33*
@@ -137,7 +142,7 @@ clean: ## Remove previous build
 	@go clean
 
 protobuf: ## Generate protbuf file of types package
-	@cd types && ./create_protobuf.sh && cd ..
+	@cd types/proto && ./create_protobuf.sh && cd ../..
 
 help: ## Display this help screen
 	@printf "Help doc:\nUsage: make [command]\n"
