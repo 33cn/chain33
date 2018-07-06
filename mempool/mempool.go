@@ -431,7 +431,7 @@ func (mem *Mempool) setHeader(h *types.Header) {
 	mem.proxyMtx.Unlock()
 }
 
-func (mem *Mempool) waitPollLastHeader() {
+func (mem *Mempool) WaitPollLastHeader() {
 	<-mem.poolHeader
 }
 
