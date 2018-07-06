@@ -273,17 +273,3 @@ func (mBatch *GoBadgerDBBatch) Write() error {
 	}
 	return nil
 }
-
-type TransactionDB struct{}
-
-func (db *TransactionDB) Begin() {
-
-}
-
-func (db *TransactionDB) Rollback() {
-
-}
-
-func (db *TransactionDB) Commit() {
-
-}
