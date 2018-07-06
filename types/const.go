@@ -1,5 +1,7 @@
 package types
 
+import "strings"
+
 // 注释掉系统中没有用到的枚举项
 // 与AllowUserExec中驱动名称的顺序一致
 const (
@@ -120,11 +122,12 @@ func SetTitle(t string) {
 		return
 	}
 	if IsPara() {
-		ExecNamePrefix = "user.company."
+		ExecNamePrefix = title
 		CheckForkInExec = false
 		ForkV12TransferExec = 1
 		ForkV19TokenPrice = 1
 		ForkV13ExecKey = 1
+		//SuperManager = []string{"1BjLtd6Eqeo19URRVQzvBFbx1X2TSoPabp"}
 	}
 }
 
@@ -148,7 +151,7 @@ func IsYcc() bool {
 }
 
 func IsPara() bool {
-	return title == "parachain"
+	return strings.HasPrefix(title, "user.p.")
 }
 
 func IsPublicChain() bool {

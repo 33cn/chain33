@@ -22,7 +22,7 @@ import (
 )
 
 var (
-	isMainNetTest bool = false
+	isMainNetTest bool = true
 	isParaNetTest bool = false
 )
 
@@ -53,7 +53,7 @@ var (
 	tokenIntro        = "newtoken"
 	tokenPrice  int64 = 0
 	tokenAmount int64 = 1000 * 1e4 * 1e4
-	execName          = "user.company.token"
+	execName          = "user.p.guodun.token"
 	feeForToken int64 = 1e6
 	transToAddr       = "1NYxhca2zVMzxFqMRJdMcZfrSFnqbqotKe" //exec addr for convenience
 	transAmount int64 = 100 * 1e4 * 1e4
@@ -87,7 +87,7 @@ func init() {
 	paraClient = types.NewGrpcserviceClient(conn)
 
 	r = rand.New(rand.NewSource(time.Now().UnixNano()))
-	addrexec = address.ExecAddress("user.company.token")
+	addrexec = address.ExecAddress("user.p.guodun.token")
 
 	privGenesis = getprivkey("CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944")
 }
