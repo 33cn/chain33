@@ -30,7 +30,7 @@ message CoinsTransfer {
     string cointoken = 1;
     int64  amount    = 2;
     string note      = 3;
-	string to        = 4;
+    string to        = 4;
 }
 
 message CoinsTransferToExec {
