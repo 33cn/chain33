@@ -117,6 +117,8 @@ fork_test:
        variables:
         - $onceEveryday == 'onceEveryday'
     only:
+        - master
+        - develop
         - forkTest
 
 

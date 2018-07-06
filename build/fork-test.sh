@@ -211,10 +211,10 @@ function optDockerfun() {
     #1 第一种分叉构造：两组docker起初在同一条链上进行挖
     # 矿，然后再分别进行挖矿，最后共同挖矿
     #############################################
-    forkType1
+    #forkType1
     #############################################
-    #2 第二种分叉构造：一共5个节点，其中一个为公共节点，
-    # 首先共同挖矿，然后停掉其中2个节点（非公共节点），
+    #2 第二种分叉构造：一共6个节点，其中一个为公共节点，
+    # 首先共同挖矿，然后停掉其中3个节点（非公共节点），
     # 进行挖矿，并且备份公共节点数据库，建立交易，然后停掉
     # 发送，然后一段时间后，关掉当前挖矿的两个节点，然后
     # 将当前公共节点恢复到备份状态，然后启动另外两个节点
@@ -230,28 +230,22 @@ function forkType1() {
     optDockerPart1
     #############################################
     #此处根据具体需求加入；如从钱包中转入某个具体合约账户
-    #1 初始化隐私交易余额
+    #1 初始化交易余额
     #initPriAccount
-    # 初始化coins余额
-    initCoinsAccount
 
     #############################################
     optDockerPart2
     #############################################
     #此处根据具体需求加入在一条测试链中发送测试数据
-    #2 构造第一条链中隐私交易
+    #2 构造第一条链中交易
     #genFirstChainPritx
-
-    genFirstChainCoinstx
 
     #############################################
     optDockerPart3
     #############################################
     #此处根据具体需求加入在第二条测试链中发送测试数据
-    #3 构造第二条链中隐私交易
+    #3 构造第二条链中交易
     #genSecondChainPritx
-
-    genSecondChainCoinstx
 
     #############################################
     optDockerPart4
@@ -259,10 +253,8 @@ function forkType1() {
     checkBlockHashfun $loopCount
     #############################################
     #此处根据具体需求加入结果检查
-    #4 检查隐私交易结果
+    #4 检查交易结果
     #checkPriResult
-
-    checkCoinsResult
 
     #############################################
 }
@@ -270,44 +262,69 @@ function forkType1() {
 function forkType2() {
     init
 
-}
+    optDockerPart1
+    #############################################
+    #此处根据具体需求加入；如从钱包中转入某个具体合约账户
+    #1 初始化交易余额
+    initCoinsAccount
 
-function copyData() {
-    name="${NODE3}"
-    docker exec "${name}" mkdir beifen
-    docker exec "${name}" cp -r datadir beifen
-    docker exec "${name}" rm -rf datadir
-    docker exec "${name}" cp -r beifen/datadir ./
+    #############################################
+    type2_optDockerPart2
+    #############################################
+    #此处根据具体需求加入在一条测试链中发送测试数据
+    #2 构造第一条链中交易
+    genFirstChainCoinstx
+
+    #############################################
+    type2_optDockerPart3
+    #############################################
+    #此处根据具体需求加入在第二条测试链中发送测试数据
+    #3 构造第二条链中交易
+
+    genSecondChainCoinstx
+
+    #############################################
+    type2_optDockerPart4
+    loopCount=30 #循环次数，每次循环休眠时间100s
+    checkBlockHashfun $loopCount
+    #############################################
+    #此处根据具体需求加入结果检查
+    #4 检查交易结果
+
+    checkCoinsResult
+
+    #############################################
+
 }
 
 function optDockerPart1() {
     echo "====== 区块生成中 ======"
     #sleep 100
-    block_wait_timeout "${CLI}" 15 100
+    block_wait_timeout "${CLI}" 10 100
 
-    loopCount=20
-    for ((i = 0; i < loopCount; i++)); do
-        name="${CLI}"
-        time=2
-        needCount=6
-        peersCount "${name}" $time $needCount
-        peerStatus=$?
-        if [ $peerStatus -eq 1 ]; then
-            name="${CLI4}"
-            peersCount "${name}" $time $needCount
-            peerStatus=$?
-            if [ $peerStatus -eq 0 ]; then
-                break
-            fi
-        else
-            break
-        fi
-        #检查是否超过了最大检测次数
-        if [ $i -ge $((loopCount - 1)) ]; then
-            echo "====== peers not enough ======"
-            exit 1
-        fi
-    done
+    #    loopCount=20
+    #    for ((i = 0; i < loopCount; i++)); do
+    #        name="${CLI}"
+    #        time=2
+    #        needCount=6
+    #        peersCount "${name}" $time $needCount
+    #        peerStatus=$?
+    #        if [ $peerStatus -eq 1 ]; then
+    #            name="${CLI4}"
+    #            peersCount "${name}" $time $needCount
+    #            peerStatus=$?
+    #            if [ $peerStatus -eq 0 ]; then
+    #                break
+    #            fi
+    #        else
+    #            break
+    #        fi
+    #        #检查是否超过了最大检测次数
+    #        if [ $i -ge $((loopCount - 1)) ]; then
+    #            echo "====== peers not enough ======"
+    #            exit 1
+    #        fi
+    #    done
 
     return 1
 
@@ -439,6 +456,169 @@ function optDockerPart4() {
         echo "start wallet2 mine fail"
         exit 1
     fi
+
+    echo "======两组docker节点共同挖矿中======"
+    block_wait_timeout "${CLI}" 5 100
+}
+
+function copyData() {
+    name="${NODE3}"
+    sleep 1
+    docker exec "${name}" mkdir beifen
+    sleep 1
+    docker exec "${name}" cp -r datadir beifen
+    sleep 1
+}
+
+function restoreData() {
+    name="${NODE3}"
+    sleep 1
+    docker exec "${name}" rm -rf datadir
+    sleep 1
+    docker exec "${name}" cp -r beifen/datadir ./
+    sleep 1
+}
+
+function type2_optDockerPart2() {
+    checkMineHeight
+    status=$?
+    if [ $status -eq 0 ]; then
+        echo "====== All peers is the same height ======"
+    else
+        echo "====== All peers is the different height, syn blockchain fail======"
+        exit 1
+    fi
+
+    echo "=============== 备份公共节点数据 =============="
+    copyData
+
+    echo "==================================="
+    echo "====== 第一步：第一组docker挖矿======"
+    echo "==================================="
+
+    echo "======停止第二组docker ======"
+    docker stop "${NODE4}" "${NODE5}" "${NODE6}"
+
+    echo "======开启第一组docker节点挖矿======"
+    sleep 3
+    result=$($CLI wallet auto_mine -f 1 | jq ".isok")
+    if [ "${result}" = "false" ]; then
+        echo "start wallet2 mine fail"
+        exit 1
+    fi
+
+    #    name=$CLI
+    #    time=60
+    #    needCount=3
+    #
+    #    peersCount "${name}" $time $needCount
+    #    peerStatus=$?
+    #    if [ $peerStatus -eq 1 ]; then
+    #        echo "====== peers not enough ======"
+    #        exit 1
+    #    fi
+
+}
+
+function type2_optDockerPart3() {
+    echo "======第一组docker节点挖矿中======"
+    block_wait_timeout "${CLI}" 5 100
+    echo "======停止第一组docker节点挖矿======"
+    result=$($CLI wallet auto_mine -f 0 | jq ".isok")
+    if [ "${result}" = "false" ]; then
+        echo "stop wallet2 mine fail"
+        exit 1
+    fi
+
+    echo "====== 第一组内部同步中 ======"
+    names[0]="${NODE3}"
+    names[1]="${NODE2}"
+    names[2]="${NODE1}"
+    syn_block_timeout "${CLI}" 3 50 "${names[@]}"
+
+    echo "======================================="
+    echo "======== 第二步：第二组docker挖矿 ======="
+    echo "======================================="
+
+    echo "======停止第一组中除公共节点的docker======"
+    docker stop "${NODE1}" "${NODE2}"
+
+    echo "=============== 恢复公共节点数据 =============="
+    restoreData
+    docker stop "${NODE3}"
+
+    echo "======sleep 5s======"
+    sleep 5
+
+    echo "======启动第二组docker======"
+    docker start "${NODE3}" "${NODE4}" "${NODE5}" "${NODE6}"
+
+    #    name="${CLI}"
+    #    time=60
+    #    needCount=4
+    #
+    #    peersCount "${name}" $time $needCount
+    #    peerStatus=$?
+    #    if [ $peerStatus -eq 1 ]; then
+    #        echo "====== peers not enough ======"
+    #        exit 1
+    #    fi
+
+    echo "======sleep 20s======"
+    sleep 20
+    echo "======开启第二组docker节点挖矿======"
+
+    result=$($CLI wallet unlock -p 1314 -t 0 | jq ".isok")
+    if [ "${result}" = "false" ]; then
+        echo "wallet1 unlock fail"
+        exit 1
+    fi
+
+    sleep 1
+    result=$($CLI wallet auto_mine -f 1 | jq ".isok")
+    if [ "${result}" = "false" ]; then
+        echo "start wallet1 mine fail"
+        exit 1
+    fi
+
+    sleep 1
+    result=$($CLI4 wallet unlock -p 1314 -t 0 | jq ".isok")
+    if [ "${result}" = "false" ]; then
+        echo "wallet2 unlock fail"
+        exit 1
+    fi
+
+    sleep 1
+    result=$($CLI4 wallet auto_mine -f 1 | jq ".isok")
+    if [ "${result}" = "false" ]; then
+        echo "start wallet2 mine fail"
+        exit 1
+    fi
+
+    names[0]="${NODE3}"
+    names[1]="${NODE4}"
+    names[3]="${NODE5}"
+    names[4]="${NODE6}"
+    syn_block_timeout "${CLI}" 2 100 "${names[@]}"
+
+}
+
+function type2_optDockerPart4() {
+    echo "======第二组docker节点挖矿中======"
+    block_wait_timeout "${CLI}" 5 100
+    echo "====== 第二组内部同步中 ======"
+    names[0]="${NODE4}"
+    names[1]="${NODE5}"
+    names[2]="${NODE6}"
+    names[3]="${NODE3}"
+    syn_block_timeout "${CLI}" 3 50 "${names[@]}"
+
+    echo "======================================="
+    echo "====== 第三步：两组docker共同挖矿 ======="
+    echo "======================================="
+
+    echo "======启动第一组docker======"
+    docker start "${NODE1}" "${NODE2}"
 
     echo "======两组docker节点共同挖矿中======"
     block_wait_timeout "${CLI}" 5 100
