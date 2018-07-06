@@ -117,3 +117,19 @@ func (db *ListHelper) IteratorScanFromLast(prefix []byte, count int32) (values [
 	}
 	return
 }
+
+func (db *ListHelper) PrefixCount(prefix []byte) (count int64) {
+	it := db.db.Iterator(prefix, true)
+	defer it.Close()
+
+	for it.Rewind(); it.Valid(); it.Next() {
+		if it.Error() != nil {
+			listlog.Error("PrefixCount it.Value()", "error", it.Error())
+			count = 0
+			return
+		}
+
+		count++
+	}
+	return
+}

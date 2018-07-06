@@ -121,14 +121,20 @@ func (action *tokenAction) preCreate(token *types.TokenPreCreate) (*types.Receip
 		}
 	}
 
-	receipt, err := action.coinsAccount.ExecFrozen(action.fromaddr, action.execaddr, token.GetPrice())
-	if err != nil {
-		tokenlog.Error("token precreate ", "addr", action.fromaddr, "execaddr", action.execaddr, "amount", token.GetTotal())
-		return nil, err
-	}
-
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
+
+	if types.IsMatchFork(action.height, types.ForkV19TokenPrice) && token.GetPrice() == 0 {
+		// pay for create token offline
+	} else {
+		receipt, err := action.coinsAccount.ExecFrozen(action.fromaddr, action.execaddr, token.GetPrice())
+		if err != nil {
+			tokenlog.Error("token precreate ", "addr", action.fromaddr, "execaddr", action.execaddr, "amount", token.GetTotal())
+			return nil, err
+		}
+		logs = append(logs, receipt.Logs...)
+		kv = append(kv, receipt.KV...)
+	}
 
 	tokendb := newTokenDB(token, action.fromaddr)
 	var statuskey []byte
@@ -143,15 +149,13 @@ func (action *tokenAction) preCreate(token *types.TokenPreCreate) (*types.Receip
 	tokendb.save(action.db, statuskey)
 	tokendb.save(action.db, key)
 
-	logs = append(logs, receipt.Logs...)
 	logs = append(logs, tokendb.getLogs(types.TyLogPreCreateToken, types.TokenStatusPreCreated)...)
-	kv = append(kv, receipt.KV...)
 	kv = append(kv, tokendb.getKVSet(key)...)
 	kv = append(kv, tokendb.getKVSet(statuskey)...)
 	//tokenlog.Info("func token preCreate", "token:", tokendb.token.Symbol, "owner:", tokendb.token.Owner,
 	//	"key:", key, "key string", string(key), "value:", tokendb.getKVSet(key)[0].Value)
 
-	receipt = &types.Receipt{types.ExecOk, kv, logs}
+	receipt := &types.Receipt{types.ExecOk, kv, logs}
 	return receipt, nil
 }
 
@@ -174,11 +178,20 @@ func (action *tokenAction) finishCreate(tokenFinish *types.TokenFinishCreate) (*
 		return nil, types.ErrTokenCreatedApprover
 	}
 
-	//将之前冻结的资金转账到fund合约账户中
-	receiptForCoin, err := action.coinsAccount.ExecTransferFrozen(token.Creator, action.toaddr, action.execaddr, token.Price)
-	if err != nil {
-		tokenlog.Error("token finishcreate ", "addr", action.fromaddr, "execaddr", action.execaddr, "token", token.Symbol)
-		return nil, err
+	var logs []*types.ReceiptLog
+	var kv []*types.KeyValue
+
+	if types.IsMatchFork(action.height, types.ForkV19TokenPrice) && token.GetPrice() == 0 {
+		// pay for create token offline
+	} else {
+		//将之前冻结的资金转账到fund合约账户中
+		receiptForCoin, err := action.coinsAccount.ExecTransferFrozen(token.Creator, action.toaddr, action.execaddr, token.Price)
+		if err != nil {
+			tokenlog.Error("token finishcreate ", "addr", action.fromaddr, "execaddr", action.execaddr, "token", token.Symbol)
+			return nil, err
+		}
+		logs = append(logs, receiptForCoin.Logs...)
+		kv = append(kv, receiptForCoin.KV...)
 	}
 
 	//创建token类型的账户，同时需要创建的额度存入
@@ -201,12 +214,8 @@ func (action *tokenAction) finishCreate(tokenFinish *types.TokenFinishCreate) (*
 	}
 	tokendb.save(action.db, key)
 
-	var logs []*types.ReceiptLog
-	var kv []*types.KeyValue
-	logs = append(logs, receiptForCoin.Logs...)
 	logs = append(logs, receiptForToken.Logs...)
 	logs = append(logs, tokendb.getLogs(types.TyLogFinishCreateToken, types.TokenStatusCreated)...)
-	kv = append(kv, receiptForCoin.KV...)
 	kv = append(kv, receiptForToken.KV...)
 	kv = append(kv, tokendb.getKVSet(key)...)
 
@@ -238,11 +247,19 @@ func (action *tokenAction) revokeCreate(tokenRevoke *types.TokenRevokeCreate) (*
 		return nil, types.ErrTokenRevoker
 	}
 
-	//解锁之前冻结的资金
-	receipt, err := action.coinsAccount.ExecActive(token.Creator, action.execaddr, token.Price)
-	if err != nil {
-		tokenlog.Error("token revokeCreate error ", "error info", err, "creator addr", token.Creator, "execaddr", action.execaddr, "token", token.Symbol)
-		return nil, err
+	var logs []*types.ReceiptLog
+	var kv []*types.KeyValue
+	if types.IsMatchFork(action.height, types.ForkV19TokenPrice) && token.GetPrice() == 0 {
+		// pay for create token offline
+	} else {
+		//解锁之前冻结的资金
+		receipt, err := action.coinsAccount.ExecActive(token.Creator, action.execaddr, token.Price)
+		if err != nil {
+			tokenlog.Error("token revokeCreate error ", "error info", err, "creator addr", token.Creator, "execaddr", action.execaddr, "token", token.Symbol)
+			return nil, err
+		}
+		logs = append(logs, receipt.Logs...)
+		kv = append(kv, receipt.KV...)
 	}
 
 	token.Status = types.TokenStatusCreateRevoked
@@ -255,14 +272,10 @@ func (action *tokenAction) revokeCreate(tokenRevoke *types.TokenRevokeCreate) (*
 	}
 	tokendb.save(action.db, key)
 
-	var logs []*types.ReceiptLog
-	var kv []*types.KeyValue
-	logs = append(logs, receipt.Logs...)
 	logs = append(logs, tokendb.getLogs(types.TyLogRevokeCreateToken, types.TokenStatusCreateRevoked)...)
-	kv = append(kv, receipt.KV...)
 	kv = append(kv, tokendb.getKVSet(key)...)
 
-	receipt = &types.Receipt{types.ExecOk, kv, logs}
+	receipt := &types.Receipt{types.ExecOk, kv, logs}
 	return receipt, nil
 }
 

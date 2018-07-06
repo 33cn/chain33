@@ -28,7 +28,9 @@ type SignedTx struct {
 }
 
 type RawParm struct {
-	Data string `json:"data"`
+	Mode  int32  `json:"mode"`
+	Token string `json:"token"`
+	Data  string `json:"data"`
 }
 
 type QueryParm struct {
@@ -198,10 +200,15 @@ type ReqHashes struct {
 }
 
 type ReqWalletTransactionList struct {
-	FromTx    string `json:"fromTx"`
-	Count     int32  `json:"count"`
-	Direction int32  `json:"direction"`
+	FromTx          string `json:"fromTx"`
+	Count           int32  `json:"count"`
+	Direction       int32  `json:"direction"`
+	Mode            int32  `json:"mode,omitempty"`
+	SendRecvPrivacy int32  `json:"sendRecvPrivacy,omitempty"`
+	Address         string `json:"address,omitempty"`
+	TokenName       string `json:"tokenname,omitempty"`
 }
+
 type WalletTxDetails struct {
 	TxDetails []*WalletTxDetail `protobuf:"bytes,1,rep,name=txDetails" json:"txDetails"`
 }
@@ -242,76 +249,22 @@ type WalletStatus struct {
 	IsTicketLock bool `json:"isTicketLock"`
 }
 
-// Token Transaction
-type TokenPreCreateTx struct {
-	Price        int64  `json:"price"`
-	Name         string `json:"name"`
-	Symbol       string `json:"symbol"`
-	Introduction string `json:"introduction"`
-	OwnerAddr    string `json:"ownerAddr"`
-	Total        int64  `json:"total"`
-	Fee          int64  `json:"fee"`
-}
-
-type TokenFinishTx struct {
-	OwnerAddr string `json:"ownerAddr"`
-	Symbol    string `json:"symbol"`
-	Fee       int64  `json:"fee"`
-}
-
-type TokenRevokeTx struct {
-	OwnerAddr string `json:"ownerAddr"`
-	Symbol    string `json:"symbol"`
-	Fee       int64  `json:"fee"`
-}
-
-// Trade Transaction
-type TradeSellTx struct {
-	TokenSymbol       string `json:"tokenSymbol"`
-	AmountPerBoardlot int64  `json:"amountPerBoardlot"`
-	MinBoardlot       int64  `json:"minBoardlot"`
-	PricePerBoardlot  int64  `json:"pricePerBoardlot"`
-	TotalBoardlot     int64  `json:"totalBoardlot"`
-	Fee               int64  `json:"fee"`
-}
-
-type TradeBuyTx struct {
-	SellID      string `json:"sellID"`
-	BoardlotCnt int64  `json:"boardlotCnt"`
-	Fee         int64  `json:"fee"`
-}
-
-type TradeRevokeTx struct {
-	SellID string `json:"sellID,"`
-	Fee    int64  `json:"fee"`
-}
-
-type TradeBuyLimitTx struct {
-	TokenSymbol       string `json:"tokenSymbol"`
-	AmountPerBoardlot int64  `json:"amountPerBoardlot"`
-	MinBoardlot       int64  `json:"minBoardlot"`
-	PricePerBoardlot  int64  `json:"pricePerBoardlot"`
-	TotalBoardlot     int64  `json:"totalBoardlot"`
-	Fee               int64  `json:"fee"`
-}
-
-type TradeSellMarketTx struct {
-	BuyID       string `json:"buyID"`
-	BoardlotCnt int64  `json:"boardlotCnt"`
-	Fee         int64  `json:"fee"`
-}
-
-type TradeRevokeBuyTx struct {
-	BuyID string `json:"buyID,"`
-	Fee   int64  `json:"fee"`
-}
-
 type NodeNetinfo struct {
 	Externaladdr string `json:"externalAddr"`
 	Localaddr    string `json:"localAddr"`
 	Service      bool   `json:"service"`
 	Outbounds    int32  `json:"outbounds"`
 	Inbounds     int32  `json:"inbounds"`
+}
+
+type ReplyPrivacyPkPair struct {
+	ShowSuccessful bool   `json:"showSuccessful,omitempty"`
+	ViewPub        string `json:"viewPub,omitempty"`
+	SpendPub       string `json:"spendPub,omitempty"`
+}
+
+type ReplyCacheTxList struct {
+	Txs []*Transaction `json:"txs,omitempty"`
 }
 
 type TimeStatus struct {
@@ -326,6 +279,12 @@ type ReplyBlkSeqs struct {
 type ReplyBlkSeq struct {
 	Hash string `json:"hash"`
 	Type int64  `json:"type"`
+}
+
+type TransactionCreate struct {
+	Execer     string          `protobuf:"bytes,1,opt,name=execer,proto3" json:"execer"`
+	ActionName string          `protobuf:"bytes,2,opt,name=actionName" json:"actionName"`
+	Payload    json.RawMessage `protobuf:"bytes,3,opt,name=payload" json:"payload"`
 }
 
 //Relay Transaction
@@ -373,4 +332,14 @@ type RelaySaveBTCHeadTx struct {
 	PreviousHash string `json:"previousHash"`
 	IsReset      bool   `json:"isReset"`
 	Fee          int64  `json:"fee"`
+}
+
+type AllExecBalance struct {
+	Addr        string         `json:"addr"`
+	ExecAccount []*ExecAccount `json:"execAccount"`
+}
+
+type ExecAccount struct {
+	Execer  string   `json:"execer"`
+	Account *Account `json:"account"`
 }

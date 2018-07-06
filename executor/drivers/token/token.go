@@ -330,7 +330,6 @@ func (t *token) GetTokens(reqTokens *types.ReqTokens) (types.Message, error) {
 				}
 			}
 		}
-
 	} else {
 		for _, token := range reqTokens.Tokens {
 			//list := dbm.NewListHelper(querydb)
