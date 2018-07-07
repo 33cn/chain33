@@ -82,4 +82,3 @@ Note that the Go project uses the issue tracker for bug reports and proposals on
 
 ## License
 
-hello world
