@@ -8,7 +8,7 @@ Official golang implementation of the fuzamei blockchain
 
 ## Binary
 
-**cli**: it is used test chain33 for a cli tool.
+**chain33-cli**: it is used test chain33 for a cli tool.
 
 **chain33**: 33fuzamei blockchain product.
 
