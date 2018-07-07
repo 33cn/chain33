@@ -4,7 +4,7 @@
 
 # Chain33 Core Developer Edition
 
-Official golang implementation of the 33fuzamei blockchain.
+Official golang implementation of the fuzamei blockchain
 
 ## Binary
 
