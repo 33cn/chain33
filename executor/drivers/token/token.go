@@ -27,7 +27,6 @@ const (
 
 func Init() {
 	drivers.Register(newToken().GetName(), newToken, types.ForkV2AddToken)
-	setReciptPrefix()
 }
 
 type token struct {
@@ -108,8 +107,8 @@ func (t *token) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 		if action.Ty == types.ActionTransfer {
 			transfer := action.GetTransfer()
 			// 添加个人资产列表
-			//tokenlog.Info("ExecLocalTransWithdraw", "addr", tx.To, "asset", transfer.Cointoken)
-			kv := AddTokenToAssets(tx.To, t.GetLocalDB(), transfer.Cointoken)
+			//tokenlog.Info("ExecLocalTransWithdraw", "addr", tx.GetRealToAddr(), "asset", transfer.Cointoken)
+			kv := AddTokenToAssets(tx.GetRealToAddr(), t.GetLocalDB(), transfer.Cointoken)
 			if kv != nil {
 				set.KV = append(set.KV, kv...)
 			}
