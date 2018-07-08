@@ -1,26 +1,15 @@
 package token
 
-import (
-	"fmt"
+import "fmt"
 
-	"gitlab.33.cn/chain33/chain33/types"
+const (
+	tokenCreated          = "mavl-token-"
+	tokenPreCreatedOT     = "mavl-create-token-ot-"
+	tokenPreCreatedSTO    = "mavl-create-token-sto-"
+	tokenPreCreatedOTNew  = "mavl-token-create-ot-"
+	tokenPreCreatedSTONew = "mavl-token-create-sto-"
 )
 
-var (
-	tokenCreated          string
-	tokenPreCreatedOT     string
-	tokenPreCreatedSTO    string
-	tokenPreCreatedOTNew  string
-	tokenPreCreatedSTONew string
-)
-
-func setReciptPrefix() {
-	tokenCreated = "mavl-" + types.ExecNamePrefix + "token-"
-	tokenPreCreatedOT = "mavl-create-" + types.ExecNamePrefix + "token-ot-"
-	tokenPreCreatedSTO = "mavl-create-" + types.ExecNamePrefix + "token-sto-"
-	tokenPreCreatedOTNew = "mavl-" + types.ExecNamePrefix + "token-create-ot-"
-	tokenPreCreatedSTONew = "mavl-" + types.ExecNamePrefix + "token-create-sto-"
-}
 
 func calcTokenKey(token string) (key []byte) {
 	return []byte(fmt.Sprintf(tokenCreated+"%s", token))

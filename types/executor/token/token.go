@@ -43,6 +43,21 @@ func init() {
 
 // exec
 type TokenType struct {
+	types.ExecTypeBase
+}
+func (token TokenType) GetRealToAddr(tx *types.Transaction) string {
+	if string(tx.Execer) == name {
+		return tx.To
+	}
+	var action types.TokenAction
+	err := types.Decode(tx.Payload, &action)
+	if err != nil {
+		return tx.To
+	}
+	if action.Ty == types.ActionTransfer && action.GetTransfer() != nil {
+		return action.GetTransfer().GetTo()
+	}
+	return tx.To
 }
 
 func (token TokenType) ActionName(tx *types.Transaction) string {

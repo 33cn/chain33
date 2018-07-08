@@ -3,6 +3,7 @@ package db
 import (
 	"errors"
 	"fmt"
+	lru "github.com/hashicorp/golang-lru"
 )
 
 var ErrNotFoundInDb = errors.New("ErrNotFoundInDb")
@@ -39,6 +40,8 @@ type DB interface {
 	// For debugging
 	Print()
 	Stats() map[string]string
+	SetCacheSize(size int)
+	GetCache() *lru.ARCCache
 }
 
 type Batch interface {
@@ -110,4 +113,22 @@ func NewDB(name string, backend string, dir string, cache int32) DB {
 		panic("initializing DB error")
 	}
 	return db
+}
+type TransactionDB struct {
+	cache *lru.ARCCache
+}
+func (db *TransactionDB) Begin() {
+}
+func (db *TransactionDB) Rollback() {
+}
+func (db *TransactionDB) Commit() {
+}
+func (db *TransactionDB) GetCache() *lru.ARCCache {
+	return db.cache
+}
+func (db *TransactionDB) SetCacheSize(size int) {
+	if db.cache != nil {
+		return
+	}
+	db.cache, _ = lru.NewARC(size)
 }

@@ -113,7 +113,7 @@ func (action *tokenAction) preCreate(token *types.TokenPreCreate) (*types.Receip
 		return nil, types.ErrTokenHavePrecreated
 	}
 
-	if types.CheckForkInExec && action.height >= types.ForkV6TokenBlackList {
+	if action.height >= types.ForkV6TokenBlackList {
 		found, err := inBlacklist(token.GetSymbol(), blacklist, action.db)
 		if err != nil {
 			return nil, err
@@ -169,7 +169,6 @@ func (action *tokenAction) finishCreate(tokenFinish *types.TokenFinishCreate) (*
 		return nil, types.ErrTokenNotPrecreated
 	}
 
-	if types.CheckForkInExec {
 		approverValid := false
 		for _, approver := range types.TokenApprs {
 			if approver == action.fromaddr {
@@ -181,7 +180,6 @@ func (action *tokenAction) finishCreate(tokenFinish *types.TokenFinishCreate) (*
 		hasPriv, ok := validFinisher(action.fromaddr, action.db)
 		if (ok != nil || !hasPriv) && !approverValid {
 			return nil, types.ErrTokenCreatedApprover
-		}
 	}
 
 	var logs []*types.ReceiptLog

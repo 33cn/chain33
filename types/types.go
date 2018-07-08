@@ -21,12 +21,8 @@ const Size_1K_shiftlen uint = 10
 
 type Message proto.Message
 
-var userKey = []byte("user.")
-var slash = []byte("-")
 
-const UserEvmString = "user.evm."
 
-var UserEvm = []byte(UserEvmString)
 
 //交易组的接口，Transactions 和 Transaction 都符合这个接口
 type TxGroup interface {
@@ -124,6 +120,7 @@ func GetSignatureTypeName(signType int) string {
 	return "unknow"
 }
 
+var ConfigPrefix = "mavl-config"
 func ConfigKey(key string) string {
 	return fmt.Sprintf("%s-%s", ConfigPrefix, key)
 }

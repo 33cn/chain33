@@ -26,6 +26,7 @@ func init() {
 }
 
 type PrivacyType struct {
+	types.ExecTypeBase
 }
 
 func (coins PrivacyType) ActionName(tx *types.Transaction) string {
