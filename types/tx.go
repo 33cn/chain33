@@ -467,6 +467,22 @@ func (tx *Transaction) Amount() (int64, error) {
 	return exec.Amount(tx)
 }
 
+//解析tx的payload获取real to值
+func (tx *Transaction) GetRealToAddr() string {
+	exec := LoadExecutor(string(tx.Execer))
+	if exec == nil {
+		return tx.To
+	}
+	return exec.GetRealToAddr(tx)
+}
+//解析tx的payload获取view from to 值
+func (tx *Transaction) GetViewFromToAddr() (string, string) {
+	exec := LoadExecutor(string(tx.Execer))
+	if exec == nil {
+		return tx.From(), tx.To
+	}
+	return exec.GetViewFromToAddr(tx)
+}
 //获取tx交易的Actionname
 func (tx *Transaction) ActionName() string {
 	execName := string(tx.Execer)
