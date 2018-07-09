@@ -2,6 +2,7 @@ package token
 
 import (
 	"fmt"
+
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
