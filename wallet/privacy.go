@@ -776,7 +776,7 @@ func decomposeAmount2digits(amount, dust_threshold int64) []int64 {
 func decomAmount2Nature(amount int64, order int64) []int64 {
 	res := make([]int64, 0)
 	if order == 0 {
-		return nil
+		return res
 	}
 	mul := amount / order
 	switch mul {
@@ -812,6 +812,12 @@ func (wallet *Wallet) procCreateTransaction(req *types.ReqCreateTransaction) (*t
 	if !ok {
 		walletlog.Error("procCreateTransaction", "CheckWalletStatus cause error.", err)
 		return nil, err
+	}
+	if req == nil {
+		return nil, types.ErrInvalidParams
+	}
+	if !checkAmountValid(req.Amount) {
+		return nil, types.ErrAmount
 	}
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
@@ -1055,7 +1061,7 @@ func (wallet *Wallet) signTxWithPrivacy(key crypto.PrivKey, req *types.ReqSignRa
 		return "", err
 	}
 	action := new(types.PrivacyAction)
-	if err = types.Decode(txOrigin.Payload, action); err!=nil {
+	if err = types.Decode(txOrigin.Payload, action); err != nil {
 		return "", err
 	}
 
@@ -1218,6 +1224,9 @@ func (wallet *Wallet) procReqCacheTxList(req *types.ReqCacheTxList) (*types.Repl
 func (wallet *Wallet) procDeleteCacheTransaction(req *types.ReqCreateCacheTxKey) (*types.ReplyHash, error) {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
+	if req == nil {
+		return nil, types.ErrInvalidParams
+	}
 
 	txhash := common.Bytes2Hex(req.GetHashkey())
 	dbkey := calcCreateTxKey(req.Tokenname, txhash)
