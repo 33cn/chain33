@@ -3,11 +3,10 @@ package wallet
 import (
 	"bytes"
 	"errors"
-	"sort"
-	"unsafe"
-
 	"fmt"
+	"sort"
 	"time"
+	"unsafe"
 
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
@@ -451,6 +450,7 @@ func (wallet *Wallet) transPri2PriV2(privacykeyParirs *privacy.Privacy, reqPri2P
 		To: address.ExecAddress(types.PrivacyX),
 	}
 	tx.SetExpire(wallet.getExpire(reqPri2Pri.GetExpire()))
+	// TODO: 签名前对交易中的输入进行混淆
 	//完成了input和output的添加之后，即已经完成了交易基本内容的添加，
 	//这时候就需要进行交易的签名了
 	err = wallet.signatureTx(tx, privacyInput, utxosInKeyInput, realkeyInputSlice)
@@ -807,7 +807,7 @@ func decomAmount2Nature(amount int64, order int64) []int64 {
 	return res
 }
 
-func (wallet *Wallet) procCreateTransaction(req *types.ReqCreateTransaction) (*types.ReplyHash, error) {
+func (wallet *Wallet) procCreateTransaction(req *types.ReqCreateTransaction) (*types.Transaction, error) {
 	ok, err := wallet.CheckWalletStatus()
 	if !ok {
 		walletlog.Error("procCreateTransaction", "CheckWalletStatus cause error.", err)
@@ -828,7 +828,7 @@ func (wallet *Wallet) procCreateTransaction(req *types.ReqCreateTransaction) (*t
 	return nil, types.ErrInvalidParams
 }
 
-func (wallet *Wallet) createPublic2PrivacyTx(req *types.ReqCreateTransaction) (*types.ReplyHash, error) {
+func (wallet *Wallet) createPublic2PrivacyTx(req *types.ReqCreateTransaction) (*types.Transaction, error) {
 	viewPubSlice, spendPubSlice, err := parseViewSpendPubKeyPair(req.GetPubkeypair())
 	if err != nil {
 		walletlog.Error("parse view spend public key pair failed.  err ", err)
@@ -879,10 +879,10 @@ func (wallet *Wallet) createPublic2PrivacyTx(req *types.ReqCreateTransaction) (*
 	if err = wallet.walletStore.SetCreateTransactionCache(dbkey, cache); err != nil {
 		return nil, err
 	}
-	return &types.ReplyHash{Hash: byteshash}, nil
+	return tx, nil
 }
 
-func (wallet *Wallet) createPrivacy2PrivacyTx(req *types.ReqCreateTransaction) (*types.ReplyHash, error) {
+func (wallet *Wallet) createPrivacy2PrivacyTx(req *types.ReqCreateTransaction) (*types.Transaction, error) {
 	buildInfo := &buildInputInfo{
 		tokenname: req.GetTokenname(),
 		sender:    req.GetFrom(),
@@ -951,7 +951,7 @@ func (wallet *Wallet) createPrivacy2PrivacyTx(req *types.ReqCreateTransaction) (
 	cache := &types.CreateTransactionCache{
 		Tokenname:    req.GetTokenname(),
 		Key:          dbkey,
-		Createtime:   time.Now().UnixNano(),
+		Createtime:   types.Now().UnixNano(),
 		Transaction:  tx,
 		Status:       cacheTxStatus_Created,
 		Sender:       req.GetFrom(),
@@ -963,10 +963,10 @@ func (wallet *Wallet) createPrivacy2PrivacyTx(req *types.ReqCreateTransaction) (
 	}
 	// 创建交易成功，将已经使用掉的UTXO冻结
 	wallet.saveFTXOInfo(req.GetTokenname(), req.GetFrom(), common.Bytes2Hex(byteshash), selectedUtxo)
-	return &types.ReplyHash{Hash: byteshash}, nil
+	return tx, nil
 }
 
-func (wallet *Wallet) createPrivacy2PublicTx(req *types.ReqCreateTransaction) (*types.ReplyHash, error) {
+func (wallet *Wallet) createPrivacy2PublicTx(req *types.ReqCreateTransaction) (*types.Transaction, error) {
 	buildInfo := &buildInputInfo{
 		tokenname: req.GetTokenname(),
 		sender:    req.GetFrom(),
@@ -1030,7 +1030,7 @@ func (wallet *Wallet) createPrivacy2PublicTx(req *types.ReqCreateTransaction) (*
 	cache := &types.CreateTransactionCache{
 		Tokenname:    req.GetTokenname(),
 		Key:          dbkey,
-		Createtime:   time.Now().UnixNano(),
+		Createtime:   types.Now().UnixNano(),
 		Transaction:  tx,
 		Status:       cacheTxStatus_Created,
 		Sender:       req.GetFrom(),
@@ -1041,14 +1041,20 @@ func (wallet *Wallet) createPrivacy2PublicTx(req *types.ReqCreateTransaction) (*
 		return nil, err
 	}
 	wallet.saveFTXOInfo(req.GetTokenname(), req.GetFrom(), common.Bytes2Hex(byteshash), selectedUtxo)
-	return &types.ReplyHash{Hash: byteshash}, nil
+	return tx, nil
 }
 
 func (wallet *Wallet) signTxWithPrivacy(key crypto.PrivKey, req *types.ReqSignRawTx) (string, error) {
-	txhash, err := common.FromHex(req.GetTxHex())
+	bytes, err := common.FromHex(req.GetTxHex())
 	if err != nil {
 		return "", err
 	}
+	txOrigin := new(types.Transaction)
+	err = types.Decode(bytes, txOrigin)
+	if err != nil {
+		return "", err
+	}
+	txhash := txOrigin.Hash()
 	dbkey := calcCreateTxKey(req.Token, common.Bytes2Hex(txhash))
 	cache, err := wallet.walletStore.GetCreateTransactionCache(dbkey)
 	if err != nil {
@@ -1086,12 +1092,13 @@ func (wallet *Wallet) signTxWithPrivacy(key crypto.PrivKey, req *types.ReqSignRa
 			return "", err
 		}
 	}
-	cache.Signtime = time.Now().UnixNano()
+	cache.Signtime = types.Now().UnixNano()
 	cache.Status = cacheTxStatus_Signed
 	if err = wallet.walletStore.SetCreateTransactionCache(dbkey, cache); err != nil {
 		return "", err
 	}
-	return common.ToHex(txhash), nil
+	txHex := types.Encode(tx)
+	return common.ToHex(txHex), nil
 }
 
 func (wallet *Wallet) procSendTxHashToWallet(req *types.ReqCreateCacheTxKey) (*types.ReplyHash, error) {
@@ -1122,7 +1129,7 @@ func (wallet *Wallet) procSendTxHashToWallet(req *types.ReqCreateCacheTxKey) (*t
 	}
 	// 发送成功以后，以发送时间作为FTXO起始计时时间
 	dbbatch := wallet.walletStore.NewBatch(true)
-	wallet.walletStore.updateFTXOFreezeTime(time.Now().UnixNano(), cache.GetTokenname(), cache.GetSender(), hexhash, dbbatch)
+	wallet.walletStore.updateFTXOFreezeTime(types.Now().UnixNano(), cache.GetTokenname(), cache.GetSender(), hexhash, dbbatch)
 	dbbatch.Write()
 	return &types.ReplyHash{Hash: cache.Transaction.Hash()}, nil
 }
@@ -1131,7 +1138,7 @@ func (wallet *Wallet) procInvalidTxOnTimer(dbbatch db.Batch) error {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
 	// TODO: 这里是逐条进行删除，可以考虑修改为批量删除
-	now := time.Now().UnixNano()
+	now := types.Now().UnixNano()
 	// 先清理未成功发送的交易
 	caches, err := wallet.walletStore.listCreateTransactionCache("")
 	if err == nil && caches != nil {

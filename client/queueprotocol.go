@@ -867,13 +867,13 @@ func (q *QueueProtocol) CreateUTXOs(param *types.ReqCreateUTXOs) (*types.Reply, 
 	return nil, types.ErrTypeAsset
 }
 
-func (q *QueueProtocol) CreateTrasaction(param *types.ReqCreateTransaction) (*types.Reply, error) {
+func (q *QueueProtocol) CreateTrasaction(param *types.ReqCreateTransaction) (*types.Transaction, error) {
 	msg, err := q.query(walletKey, types.EventCreateTransaction, param)
 	if err != nil {
 		log.Error("CreateTrasaction", "Error", err.Error())
 		return nil, err
 	}
-	if reply, ok := msg.GetData().(*types.Reply); ok {
+	if reply, ok := msg.GetData().(*types.Transaction); ok {
 		return reply, nil
 	}
 	return nil, types.ErrTypeAsset
