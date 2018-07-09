@@ -29,7 +29,7 @@ import (
 
 var privacylog = log.New("module", "execs.privacy")
 
-func Init() {
+func init() {
 	drivers.Register(newPrivacy().GetName(), newPrivacy, 0)
 }
 
