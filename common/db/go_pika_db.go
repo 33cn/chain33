@@ -3,18 +3,17 @@ package db
 import (
 	"bytes"
 	"encoding/hex"
-	log "github.com/inconshreveable/log15"
 	"strings"
-	"github.com/syndtr/goleveldb/leveldb/iterator"
+
 	"github.com/hoisie/redis"
+	log "github.com/inconshreveable/log15"
 	"github.com/pkg/errors"
+	"github.com/syndtr/goleveldb/leveldb/iterator"
 )
 
 var (
-	plog = log.New("module", "db.gocouchbase")
+	plog = log.New("module", "db.gopika")
 )
-
-type RedisError string
 
 func init() {
 	dbCreator := func(name string, dir string, cache int) (DB, error) {
@@ -93,8 +92,7 @@ func (db *GoPikaDB) Print() {
 }
 
 func (db *GoPikaDB) Stats() map[string]string {
-	stats := make(map[string]string)
-	return stats
+	return nil
 }
 
 func (db *GoPikaDB) Iterator(prefix []byte, reserve bool) Iterator {
@@ -103,8 +101,7 @@ func (db *GoPikaDB) Iterator(prefix []byte, reserve bool) Iterator {
 		plog.Error("Get keys err", "error", err)
 	}
 
-	var mVal map[string][]byte
-	mVal = make(map[string][]byte)
+	mVal := make(map[string][]byte)
 	for _, k := range keys {
 		v, _ := db.client.Get(k)
 		mVal[k] = v
@@ -163,7 +160,7 @@ func (dbit *GoPikaIt) ValueCopy() []byte {
 }
 
 func (dbit *GoPikaIt) Valid() bool {
-	if dbit.index <= 0 || int(dbit.index) >= len(dbit.keys) {
+	if dbit.index <= 0 || dbit.index >= len(dbit.keys) {
 		return false
 	}
 	val, _ := hex.DecodeString(dbit.keys[dbit.index])

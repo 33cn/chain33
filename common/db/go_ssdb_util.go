@@ -3,11 +3,12 @@ package db
 import (
 	"bytes"
 	"fmt"
-	"gitlab.33.cn/chain33/chain33/types"
 	"net"
 	"strconv"
 	"sync"
 	"time"
+
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 const (
