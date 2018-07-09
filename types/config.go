@@ -1,8 +1,8 @@
 package types
 
 import (
-	"time"
 	"strings"
+	"time"
 )
 
 var chainBaseParam *ChainParam
@@ -102,7 +102,6 @@ var (
 	ExecNamePrefix string
 	//remove fork for manage for paraChain
 	CheckForkInTokenForManage bool = true
-
 )
 
 func SetTitle(t string) {
