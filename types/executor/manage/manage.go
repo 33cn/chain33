@@ -23,6 +23,7 @@ func init() {
 }
 
 type ManageType struct {
+	types.ExecTypeBase
 }
 
 func (m ManageType) ActionName(tx *types.Transaction) string {

@@ -743,6 +743,8 @@ func (chain *BlockChain) ProcGetBlockOverview(ReqHash *types.ReqHash) (*types.Bl
 	header.Height = block.Block.Height
 	header.Hash = block.Block.Hash()
 	header.TxCount = int64(len(block.Block.GetTxs()))
+	header.Difficulty = block.Block.Difficulty
+	header.Signature = block.Block.Signature
 
 	blockOverview.Head = &header
 
