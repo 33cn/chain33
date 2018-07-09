@@ -111,6 +111,7 @@ var (
 	ErrNoBalance                  = errors.New("ErrNoBalance")
 	ErrBalanceLessThanTenTimesFee = errors.New("ErrBalanceLessThanTenTimesFee")
 	ErrTxExpire                   = errors.New("ErrTxExpire")
+	ErrHeaderNotSet               = errors.New("ErrHeaderNotSet")
 	ErrSign                       = errors.New("ErrSign")
 	ErrFeeTooLow                  = errors.New("ErrFeeTooLow")
 	ErrEmptyTx                    = errors.New("ErrEmptyTx")
