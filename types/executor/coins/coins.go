@@ -40,6 +40,7 @@ func init() {
 type CoinsType struct {
 	types.ExecTypeBase
 }
+
 func (coins CoinsType) GetRealToAddr(tx *types.Transaction) string {
 	if string(tx.Execer) == name {
 		return tx.To

@@ -17,6 +17,7 @@ const (
 
 var userKey = []byte("user.")
 var slash = []byte("-")
+
 const (
 	CoinsX          = "coins"
 	TicketX         = "ticket"
@@ -50,16 +51,6 @@ var (
 	UserEvm        = []byte(UserEvmString)
 )
 
-
-
-
-
-
-
-
-
-
-
 const (
 	InputPrecision      float64 = 1e4
 	Multiple1E4         int64   = 1e4
@@ -86,8 +77,6 @@ var (
 	SpendPubFee = "0x64204db5a521771eeeddee59c25aaae6bebe796d564effb6ba11352418002ee3"
 	ViewPrivFee = "0x0f7b661757fe8471c0b853b09bf526b19537a2f91254494d19874a04119415e8"
 )
-
-
 
 //ty = 1 -> secp256k1
 //ty = 2 -> ed25519
@@ -343,6 +332,7 @@ const (
 	RelayRevokeCreate = iota
 	RelayRevokeAccept
 )
+
 const (
 	RelayOrderBuy = iota
 	RelayOrderSell

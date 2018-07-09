@@ -45,6 +45,7 @@ func init() {
 type TokenType struct {
 	types.ExecTypeBase
 }
+
 func (token TokenType) GetRealToAddr(tx *types.Transaction) string {
 	if string(tx.Execer) == name {
 		return tx.To

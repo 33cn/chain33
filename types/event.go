@@ -1,4 +1,5 @@
 package types
+
 // event
 const (
 	EventTx                   = 1
@@ -101,6 +102,7 @@ const (
 	EventReplyPrivkey        = 95
 	EventIsSync              = 96
 	EventReplyIsSync         = 97
+
 	EventCloseTickets            = 98
 	EventGetAddrTxs              = 99
 	EventReplyAddrTxs            = 100
@@ -149,6 +151,7 @@ const (
 	// config
 	EventModifyConfig      = 300
 	EventReplyModifyConfig = 301
+
 	// privacy
 	EventPublic2privacy = iota + 400
 	EventReplyPublic2privacy
@@ -175,6 +178,7 @@ const (
 	EventPrivacyAccountInfo
 	EventReplyPrivacyAccountInfo
 )
+
 var eventName = map[int]string{
 	1:  "EventTx",
 	2:  "EventGetBlocks",
@@ -306,6 +310,7 @@ var eventName = map[int]string{
 	128: "EventLocalPrefixCount",
 	// Token
 	EventBlockChainQuery: "EventBlockChainQuery",
+
 	//privacy
 	EventPublic2privacy:               "EventPublic2privacy",
 	EventReplyPublic2privacy:          "EventReplyPublic2privacy",

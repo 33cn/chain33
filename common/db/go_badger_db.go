@@ -273,10 +273,3 @@ func (mBatch *GoBadgerDBBatch) Write() error {
 	}
 	return nil
 }
-
-
-
-
-
-
-

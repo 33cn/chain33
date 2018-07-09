@@ -60,12 +60,14 @@ func GetP(height int64) *ChainParam {
 	}
 	return chainV3Param
 }
+
 //区块链共识相关的参数，重要参数不要随便修改
 var (
 	AllowDepositExec = [][]byte{ExecerTicket}
 	AllowUserExec    = [][]byte{ExecerCoins, ExecerTicket, ExecerNorm, ExecerHashlock,
 		ExecerRetrieve, ExecerNone, ExecerToken, ExecerTrade, ExecerManage,
 		ExecerEvm, ExecerRelay, ExecerPrivacy}
+
 	GenesisAddr              = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 	GenesisBlockTime   int64 = 1526486816
 	HotkeyAddr               = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
@@ -78,6 +80,7 @@ var (
 	// 隐私交易中最大的混淆度
 	PrivacyMaxCount = 16
 )
+
 // coin conversation
 const (
 	Coin            int64 = 1e8
@@ -89,6 +92,7 @@ const (
 	TokenPrecision  int64 = 1e8
 	MaxTokenBalance int64 = 900 * 1e8 * TokenPrecision //900亿
 )
+
 var (
 	testNet      bool
 	title        string
@@ -97,6 +101,7 @@ var (
 	//used in Getname for exec driver
 	ExecNamePrefix string
 )
+
 func SetTitle(t string) {
 	title = t
 	if IsBityuan() {
@@ -131,6 +136,7 @@ func IsPara() bool {
 func IsPublicChain() bool {
 	return IsBityuan() || IsYcc()
 }
+
 func SetTestNet(isTestNet bool) {
 	if !isTestNet {
 		testNet = false
@@ -154,9 +160,11 @@ func SetTestNet(isTestNet bool) {
 	//测试网络的Fork
 	SetTestNetFork()
 }
+
 func IsTestNet() bool {
 	return testNet
 }
+
 func SetMinFee(fee int64) {
 	if fee < 0 {
 		panic("fee less than zero")
