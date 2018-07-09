@@ -22,7 +22,7 @@ import (
 )
 
 var (
-	isMainNetTest bool = true
+	isMainNetTest bool = false
 	isParaNetTest bool = false
 )
 
@@ -129,7 +129,7 @@ func TestInitAccount(t *testing.T) {
 		return
 	}
 	time.Sleep(5 * time.Second)
-	return
+
 }
 
 func TestPrecreate(t *testing.T) {
@@ -177,7 +177,7 @@ func TestPrecreate(t *testing.T) {
 		return
 	}
 	time.Sleep(5 * time.Second)
-	return
+
 }
 
 func TestFinish(t *testing.T) {
@@ -218,7 +218,7 @@ func TestFinish(t *testing.T) {
 		return
 	}
 	time.Sleep(5 * time.Second)
-	return
+
 }
 
 func TestTransferToken(t *testing.T) {
@@ -251,7 +251,6 @@ func TestTransferToken(t *testing.T) {
 		t.Error(ErrTest)
 		return
 	}
-	return
 
 }
 

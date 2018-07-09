@@ -26,7 +26,6 @@ const (
 var (
 	plog                     = log.New("module", "para")
 	grpcSite                 = "localhost:8802"
-	filterExec               = "user.ticket" //execName not decided
 	genesisBlockTime   int64 = 1514533390
 	startHeight        int64 = 0 //parachain sync from startHeight in mainchain
 	searchSeq          int64 = 0 //start sequence to search  startHeight in mainchain

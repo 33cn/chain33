@@ -24,13 +24,13 @@ type Item struct {
 }
 
 // NewTxCache初始化txCache
-func newTxCache(cacheSize int64) *txCache {
-	return &txCache{
-		size:   int(cacheSize),
-		txMap:  make(map[string]*list.Element, cacheSize),
-		txList: list.New(),
-	}
-}
+//func newTxCache(cacheSize int64) *txCache {
+//	return &txCache{
+//		size:   int(cacheSize),
+//		txMap:  make(map[string]*list.Element, cacheSize),
+//		txList: list.New(),
+//	}
+//}
 
 // txCache.Exists判断txCache中是否存在给定tx
 func (cache *txCache) Exists(hash []byte) bool {
@@ -103,7 +103,7 @@ func (cache *txCache) Pull(size int, seqRange int64, txHashList [][]byte) []*typ
 		}
 		result = append(result, tx)
 		index++
-		if index == int(size) {
+		if index == size {
 			result = result[0 : len(result)-seqRecord[seq]]
 			break
 		}
