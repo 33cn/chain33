@@ -95,7 +95,7 @@ race: ## Run data race detector
 	@go test -race -short $(PKG_LIST)
 
 test: ## Run unittests
-	@go test -parallel 1 -race $(PKG_LIST)
+	@go test -race $(PKG_LIST)
 
 fmt: fmt_proto fmt_shell ## go fmt
 	@go fmt ./...
