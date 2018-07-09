@@ -59,7 +59,6 @@ func TestJSONClient_Call(t *testing.T) {
 	}
 	api.On("IsSync").Return(ret, nil)
 	api.On("Close").Return()
-
 	jsonClient, err := NewJSONClient("http://" + rpcCfg.JrpcBindAddr + "/root")
 	assert.Nil(t, err)
 	assert.NotNil(t, jsonClient)
@@ -131,6 +130,7 @@ func TestGrpc_Call(t *testing.T) {
 	rpcCfg.GrpcBindAddr = "127.0.0.1:8101"
 	rpcCfg.JrpcBindAddr = "127.0.0.1:8200"
 	rpcCfg.Whitelist = []string{"127.0.0.1", "0.0.0.0"}
+	rpcCfg.JrpcFuncWhitelist = []string{"*"}
 	rpcCfg.GrpcFuncWhitelist = []string{"*"}
 	Init(rpcCfg)
 	server := NewGRpcServer(&qmocks.Client{})
