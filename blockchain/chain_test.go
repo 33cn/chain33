@@ -255,8 +255,6 @@ func TestBlockChain(t *testing.T) {
 
 	testDelBlock(t, blockchain)
 
-	testProcGetGlobalIndexMsg(t, blockchain)
-
 	testLoadBlockBySequence(t, blockchain)
 
 	testProcDelParaChainBlockMsg(t, blockchain)
@@ -768,21 +766,6 @@ func testDelBlock(t *testing.T, blockchain *BlockChain) {
 	blockchain.ProcessBlock(true, block, "1", true, 0)
 
 	chainlog.Info("testDelBlock end --------------------")
-}
-
-func testProcGetGlobalIndexMsg(t *testing.T, blockchain *BlockChain) {
-	chainlog.Info("testProcGetGlobalIndexMsg begin --------------------")
-
-	var reqUTXOGlobalIndex types.ReqUTXOGlobalIndex
-	reqUTXOGlobalIndex.Tokenname = "QMJ"
-	reqUTXOGlobalIndex.MixCount = 1
-	reqUTXOGlobalIndex.Amount = make([]int64, 1)
-	msgGen := blockchain.client.NewMessage("blockchain", types.EventGetGlobalIndex, &reqUTXOGlobalIndex)
-
-	blockchain.client.Send(msgGen, true)
-	Res, _ := blockchain.client.Wait(msgGen)
-	fmt.Println(Res)
-	chainlog.Info("testProcGetGlobalIndexMsg end --------------------")
 }
 
 func testLoadBlockBySequence(t *testing.T, blockchain *BlockChain) {
