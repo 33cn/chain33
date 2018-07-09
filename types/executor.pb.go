@@ -278,12 +278,6 @@ func (m *CoinsTransfer) GetNote() string {
 	}
 	return ""
 }
-func (m *CoinsTransfer) GetTo() string {
-	if m != nil {
-		return m.To
-	}
-	return ""
-}
 
 func (m *CoinsTransfer) GetTo() string {
 	if m != nil {
