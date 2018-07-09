@@ -1,2 +1,2 @@
 all:
-	./create_protobuf.sh
+	cd proto && ./create_protobuf.sh

@@ -119,7 +119,7 @@ func balance(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, types.ErrInvalidAddress)
 		return
 	}
-	if execer == "*" {
+	if execer == "" {
 		req := types.ReqAddr{Addr: addr}
 		var res jsonrpc.AllExecBalance
 		ctx := NewRpcCtx(rpcLaddr, "Chain33.GetAllExecBalance", req, &res)
