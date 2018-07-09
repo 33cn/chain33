@@ -234,8 +234,8 @@ func (action *PrivacyAction) GetInput() *PrivacyInput {
 func (action *PrivacyAction) GetOutput() *PrivacyOutput {
 	if action.GetTy() == ActionPublic2Privacy && action.GetPublic2Privacy() != nil {
 		return action.GetPublic2Privacy().GetOutput()
-	} else if action.GetTy() == ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
-		return action.GetPrivacy2Public().GetOutput()
+	} else if action.GetTy() == ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
+		return action.GetPrivacy2Privacy().GetOutput()
 	} else if action.GetTy() == ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
 		return action.GetPrivacy2Public().GetOutput()
 	}
@@ -251,6 +251,17 @@ func (action *PrivacyAction) GetActionName() string {
 		return "Privacy2Public"
 	}
 	return "unknow-privacy"
+}
+
+func (action *PrivacyAction) GetTokenName() string {
+	if action.GetTy() == ActionPublic2Privacy && action.GetPublic2Privacy() != nil {
+		return action.GetPublic2Privacy().GetTokenname()
+	} else if action.GetTy() == ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
+		return action.GetPrivacy2Privacy().GetTokenname()
+	} else if action.GetTy() == ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
+		return action.GetPrivacy2Public().GetTokenname()
+	}
+	return ""
 }
 
 // GetTxTimeInterval 获取交易有效期
