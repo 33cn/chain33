@@ -142,7 +142,7 @@ clean: ## Remove previous build
 	@go clean
 
 protobuf: ## Generate protbuf file of types package
-	@cd types && ./create_protobuf.sh && cd ..
+	@cd types/proto && ./create_protobuf.sh && cd ../..
 
 help: ## Display this help screen
 	@printf "Help doc:\nUsage: make [command]\n"
