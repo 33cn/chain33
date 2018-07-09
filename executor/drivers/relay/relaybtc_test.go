@@ -3,6 +3,7 @@ package relay
 import (
 	"testing"
 
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/golang/protobuf/proto"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
@@ -296,7 +297,6 @@ func (s *suiteBtcStore) TestGetHeadHeightList() {
 }
 
 func (s *suiteBtcStore) TestVerifyBlockHeader() {
-	s.T().Log("merkle")
 	var head = &types.BtcHeader{
 		Version:      1,
 		Hash:         "00000000d1145790a8694403d4063f323d499e655c83426834d4ce2f8dd4a2ee",
@@ -312,13 +312,146 @@ func (s *suiteBtcStore) TestVerifyBlockHeader() {
 		Version: 1,
 		Hash:    "000000002a22cfee1f2c846adbd12b3e183d4f97683f85dad08a79780a84bd55",
 		Height:  1,
+		Bits:    486604799,
 	}
-
 	var preHead = &types.RelayLastRcvBtcHeader{
 		Header:     lastHead,
 		BaseHeight: 1,
 	}
 
-	re := verifyBlockHeader(head, preHead)
-	s.Equal(nil, re)
+	err := verifyBlockHeader(head, preHead, s.kvdb)
+	s.Nil(err)
+}
+
+func (s *suiteBtcStore) TestVerifyBlockHeader_2() {
+
+	lastHead := &types.BtcHeader{
+		Version:      1,
+		PreviousHash: "000000003ae696c44274e40817d4acaf40c1ff1853411d4f0573421caf5faa07",
+		MerkleRoot:   "f1b2e16f74ee0e90cad3dc2e5be4806ff0581ed50a9cb3dfeee591dac76b17a7",
+		Time:         1266189979,
+		Bits:         486575299,
+		Nonce:        126672526,
+		Hash:         "000000000683a474ef810000fd22f0edde4cf33ae76ae506b220e57aeeafeaa4",
+		Height:       40318,
+	}
+	var preHead = &types.RelayLastRcvBtcHeader{
+		Header:     lastHead,
+		BaseHeight: 1,
+	}
+	head := &types.BtcHeader{
+		Version:      1,
+		PreviousHash: "000000000683a474ef810000fd22f0edde4cf33ae76ae506b220e57aeeafeaa4",
+		MerkleRoot:   "b4d736ca74838036ebd19b085c3eeb9ffec2307f6452347cdd8ddaa249686f39",
+		Time:         1266190073,
+		Bits:         386575299, //changed the bits from 4xxx->3xxx
+		Nonce:        32196448,
+		Hash:         "000000008135b689ad1557d4e148a8b9e58e2c4a67240fc87962abb69710231a",
+		Height:       40319,
+	}
+
+	err := verifyBlockHeader(head, preHead, s.kvdb)
+	s.Equal(types.ErrRelayBtcHeadNewBitsErr, err)
+
+}
+
+func (s *suiteBtcStore) TestCalcNextRequiredDifficulty_1() {
+
+	firstSelfHash, _ := chainhash.NewHashFromStr("0000000015bb50096055846954f7120e30d6aa2bd5ab8d4a4055ceacc853328a")
+	lastSelfHash, _ := chainhash.NewHashFromStr("000000008135b689ad1557d4e148a8b9e58e2c4a67240fc87962abb69710231a")
+	newSelfHash, _ := chainhash.NewHashFromStr("0000000045861e169b5a961b7034f8de9e98022e7a39100dde3ae3ea240d7245")
+	firstHead := &types.BtcHeader{
+		Version:      1,
+		PreviousHash: "000000008dde642fb80481bb5e1671cb04c6716de5b7f783aa3388456d5c8a85",
+		MerkleRoot:   "012e04850c40b1beee7d9df6e0cc3afa8f13fa8deb0eea92bbfdb52910c108e4",
+		Time:         1265319794,
+		Bits:         486575299,
+		Nonce:        3582704905,
+		Hash:         "0000000015bb50096055846954f7120e30d6aa2bd5ab8d4a4055ceacc853328a",
+		Height:       38304,
+	}
+
+	lastHead := &types.BtcHeader{
+		Version:      1,
+		PreviousHash: "000000000683a474ef810000fd22f0edde4cf33ae76ae506b220e57aeeafeaa4",
+		MerkleRoot:   "b4d736ca74838036ebd19b085c3eeb9ffec2307f6452347cdd8ddaa249686f39",
+		Time:         1266190073,
+		Bits:         486575299,
+		Nonce:        32196448,
+		Hash:         "000000008135b689ad1557d4e148a8b9e58e2c4a67240fc87962abb69710231a",
+		Height:       40319,
+	}
+
+	newHead := &types.BtcHeader{
+		Version:      1,
+		PreviousHash: "000000008135b689ad1557d4e148a8b9e58e2c4a67240fc87962abb69710231a",
+		MerkleRoot:   "a86b3c149f204d4cb47c67bf9bfeea2719df101dd6e6fc3f0e60d86efeba22a8",
+		Time:         1266191579,
+		Bits:         476399191,
+		Nonce:        404824782,
+		Hash:         "0000000045861e169b5a961b7034f8de9e98022e7a39100dde3ae3ea240d7245",
+		Height:       40320,
+	}
+
+	firstWireHead, _ := btcWireHeader(firstHead)
+	lastWireHead, _ := btcWireHeader(lastHead)
+	newWireHead, _ := btcWireHeader(newHead)
+	s.Equal(*firstSelfHash, firstWireHead.BlockHash())
+	s.Equal(*lastSelfHash, lastWireHead.BlockHash())
+	s.Equal(*newSelfHash, newWireHead.BlockHash())
+
+	firstHeadEncode := types.Encode(firstHead)
+	s.kvdb.On("Get", mock.Anything).Return(firstHeadEncode, nil).Once()
+	newbits, _ := calcNextRequiredDifficulty(lastHead, s.kvdb)
+	s.Equal(newHead.Bits, newbits)
+
+}
+
+func (s *suiteBtcStore) TestCalcNextRequiredDifficulty_2() {
+
+	firstSelfHash, _ := chainhash.NewHashFromStr("0000000000000000006cd44d7a940c79f94c7c272d159ba19feb15891aa1ea54")
+	lastSelfHash, _ := chainhash.NewHashFromStr("0000000000000000006a8957cbd52c2038861514f106f7f9f76392d5cb83fd4c")
+	firstHead := &types.BtcHeader{
+		Version:      536870912,
+		PreviousHash: "000000000000000000720da39f66f29337b9a29223e1ce05fd5ee57bb72a9223",
+		MerkleRoot:   "6195fe0cded5aeb07c8d36826758343778ccd81e4285bba0f76e35e8549ab93c",
+		Time:         1515827554,
+		Bits:         394155916,
+		Nonce:        3750147913,
+		Hash:         "0000000000000000006cd44d7a940c79f94c7c272d159ba19feb15891aa1ea54",
+		Height:       504000,
+	}
+
+	lastHead := &types.BtcHeader{
+		Version:      536870912,
+		PreviousHash: "00000000000000000072aeab8610166cca1e3d4d8407d5a8edff5bfa78f6b149",
+		MerkleRoot:   "416100b7e19d37af6a777ec82b0691ceef2f70da5050d8ed1afe5981ba5b6c17",
+		Time:         1516862792,
+		Bits:         394155916,
+		Nonce:        1192182831,
+		Hash:         "0000000000000000006a8957cbd52c2038861514f106f7f9f76392d5cb83fd4c",
+		Height:       506015,
+	}
+
+	newHead := &types.BtcHeader{
+		Version:      536870912,
+		PreviousHash: "0000000000000000006a8957cbd52c2038861514f106f7f9f76392d5cb83fd4c",
+		MerkleRoot:   "82b19050016e068a2f69b34d66165d2fc9372840609d27c383c9da14f2537dba",
+		Time:         1516862900,
+		Bits:         392962374,
+		Nonce:        4220492261,
+		Hash:         "000000000000000000258fe79c8b891a7cecdf96196c6c9b2e609318c7ad95c9",
+		Height:       506016,
+	}
+
+	firstWireHead, _ := btcWireHeader(firstHead)
+	lastWireHead, _ := btcWireHeader(lastHead)
+	s.Equal(*firstSelfHash, firstWireHead.BlockHash())
+	s.Equal(*lastSelfHash, lastWireHead.BlockHash())
+
+	firstHeadEncode := types.Encode(firstHead)
+	s.kvdb.On("Get", mock.Anything).Return(firstHeadEncode, nil).Once()
+	newbits, _ := calcNextRequiredDifficulty(lastHead, s.kvdb)
+	s.Equal(newHead.Bits, newbits)
+
 }
