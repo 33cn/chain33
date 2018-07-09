@@ -1051,21 +1051,22 @@ func (wallet *Wallet) signTxWithPrivacy(key crypto.PrivKey, req *types.ReqSignRa
 	}
 	txOrigin := new(types.Transaction)
 	err = types.Decode(bytes, txOrigin)
-	if err != nil {
+	if err = types.Decode(bytes, txOrigin); err != nil {
 		return "", err
 	}
+	action := new(types.PrivacyAction)
+	if err = types.Decode(txOrigin.Payload, action); err!=nil {
+		return "", err
+	}
+
 	txhash := txOrigin.Hash()
-	dbkey := calcCreateTxKey(req.Token, common.Bytes2Hex(txhash))
+	dbkey := calcCreateTxKey(action.GetTokenName(), common.Bytes2Hex(txhash))
 	cache, err := wallet.walletStore.GetCreateTransactionCache(dbkey)
 	if err != nil {
 		return "", err
 	}
 	index := int(req.Index)
 	tx := cache.Transaction
-	action := types.PrivacyAction{}
-	if err = types.Decode(tx.Payload, &action); err != nil {
-		return "", err
-	}
 	if action.GetTy() == types.ActionPublic2Privacy {
 		// 公开到隐私的交易，走普通的token交易，用普通的签名方式签名
 		group, err := tx.GetTxGroup()

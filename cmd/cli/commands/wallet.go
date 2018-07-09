@@ -297,8 +297,6 @@ func addSignRawTxFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("key", "k", "", "private key (optional)")
 	cmd.Flags().StringP("addr", "a", "", "account address (optional)")
 	cmd.Flags().StringP("expire", "e", "120s", "transaction expire time")
-	cmd.Flags().StringP("token", "t", types.BTY, "token name. (BTY supported)")
-	cmd.Flags().Int32P("signtype", "", 0, "signature type, default 0, use wallet config.(1:secp256k1 2:ed25519 3:sm2 4:onetimeed25519 5:ringbaseoned25519")
 	// A duration string is a possibly signed sequence of
 	// decimal numbers, each with optional fraction and a unit suffix,
 	// such as "300ms", "-1.5h" or "2h45m".
@@ -313,14 +311,8 @@ func signRawTx(cmd *cobra.Command, args []string) {
 	index, _ := cmd.Flags().GetInt32("index")
 	expire, _ := cmd.Flags().GetString("expire")
 	expireTime, err := time.ParseDuration(expire)
-	token, _ := cmd.Flags().GetString("token")
-	signtype, _ := cmd.Flags().GetInt32("signtype")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-	if signtype < types.SECP256K1 || signtype > types.RingBaseonED25519 {
-		fmt.Println("Invalid signType. ", signtype)
 		return
 	}
 	if expireTime < time.Minute*2 && expireTime != time.Second*0 {
@@ -395,8 +387,6 @@ func signRawTx(cmd *cobra.Command, args []string) {
 			TxHex:    data,
 			Expire:   expire,
 			Index:    index,
-			Token:    token,
-			Signtype: signtype,
 		}
 		ctx := NewRpcCtx(rpcLaddr, "Chain33.SignRawTx", params, nil)
 		ctx.RunWithoutMarshal()

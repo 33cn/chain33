@@ -242,14 +242,6 @@ message ReqSignRawTx {
     string txHex   = 3;
     string expire  = 4;
     int32  index   = 5;
-    // 交易使用的签名方式
-    // 1: secp256k1
-    // 2: ed25519
-    // 3: sm2
-    // 4: onetimeed25519
-    // 5: ringbaseoned25519
-    int32  signtype = 6;
-    string token    = 7;
 }
 
 message ReplySignRawTx {
