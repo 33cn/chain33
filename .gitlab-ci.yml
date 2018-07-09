@@ -110,9 +110,6 @@ fork_test:
     tags:
         - 33cn
     script:
-#        - make build_ci
-#        - make fork-test
-#        - cd build && docker-compose down && cd ..
          - if [ -n "${onceEveryday}" ]; then
          - make build_ci
          - make fork-test

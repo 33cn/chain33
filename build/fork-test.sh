@@ -23,7 +23,7 @@ CLI5="docker exec ${NODE5} /root/chain33-cli"
 NODE6="${1}_chain28_1"
 CLI6="docker exec ${NODE6} /root/chain33-cli"
 
-containers=("${NODE1}" "${NODE2}" "${NODE3}" "${NODE4}" "${NODE5}" "${NODE6}" "${BTCD}" "${RELAYD}")
+containers=("${NODE1}" "${NODE2}" "${NODE3}" "${NODE4}" "${NODE5}" "${NODE6}")
 forkContainers=("${CLI3}" "${CLI2}" "${CLI}" "${CLI4}" "${CLI5}" "${CLI6}")
 
 #引入隐私交易分叉测试
@@ -58,13 +58,6 @@ function init() {
 
     # wallet
     sed -i $sedfix 's/^minerdisable=.*/minerdisable=false/g' chain33.toml
-
-    # relayd
-    sed -i $sedfix 's/^btcdOrWeb.*/btcdOrWeb = 0/g' relayd.toml
-    sed -i $sedfix 's/^Tick33.*/Tick33 = 5/g' relayd.toml
-    sed -i $sedfix 's/^TickBTC.*/TickBTC = 5/g' relayd.toml
-    sed -i $sedfix 's/^pprof.*/pprof = false/g' relayd.toml
-    sed -i $sedfix 's/^watch.*/watch = false/g' relayd.toml
 
     # docker-compose ps
     docker-compose ps
@@ -208,17 +201,17 @@ function init() {
 
 function optDockerfun() {
     #############################################
-    #1 第一种分叉构造：两组docker起初在同一条链上进行挖
-    # 矿，然后再分别进行挖矿，最后共同挖矿
+    #1 第一种分叉构造：首先两条链进行共同挖矿，然后再分
+    # 别进行挖矿，即两条链上发生分叉时候的交易是不同的。
     #############################################
-    #forkType1
+    forkType1
     #############################################
-    #2 第二种分叉构造：一共6个节点，其中一个为公共节点，
-    # 首先共同挖矿，然后停掉其中3个节点（非公共节点），
-    # 进行挖矿，并且备份公共节点数据库，建立交易，然后停掉
-    # 发送，然后一段时间后，关掉当前挖矿的两个节点，然后
-    # 将当前公共节点恢复到备份状态，然后启动另外两个节点
-    # 最后启动全部节点共同挖矿
+    #2 第二种分叉构造：包括第一组docker,第二组docker，
+    # 以及公共节点docker，首先共同挖矿，然后停掉第二组
+    # docker，备份公共节点docker数据库，在公共节点docker
+    # 上创建交易，签名交易，记录签名，发送，然后关掉第一组
+    # docker，然后将公共节点docker数据库恢复到备份状态，
+    # 然后启动第二组docker,最后启动全部节点共同挖矿
     #############################################
     forkType2
 
@@ -302,29 +295,29 @@ function optDockerPart1() {
     #sleep 100
     block_wait_timeout "${CLI}" 10 100
 
-    #    loopCount=20
-    #    for ((i = 0; i < loopCount; i++)); do
-    #        name="${CLI}"
-    #        time=2
-    #        needCount=6
-    #        peersCount "${name}" $time $needCount
-    #        peerStatus=$?
-    #        if [ $peerStatus -eq 1 ]; then
-    #            name="${CLI4}"
-    #            peersCount "${name}" $time $needCount
-    #            peerStatus=$?
-    #            if [ $peerStatus -eq 0 ]; then
-    #                break
-    #            fi
-    #        else
-    #            break
-    #        fi
-    #        #检查是否超过了最大检测次数
-    #        if [ $i -ge $((loopCount - 1)) ]; then
-    #            echo "====== peers not enough ======"
-    #            exit 1
-    #        fi
-    #    done
+    loopCount=20
+    for ((i = 0; i < loopCount; i++)); do
+        name="${CLI}"
+        time=2
+        needCount=6
+        peersCount "${name}" $time $needCount
+        peerStatus=$?
+        if [ $peerStatus -eq 1 ]; then
+            name="${CLI4}"
+            peersCount "${name}" $time $needCount
+            peerStatus=$?
+            if [ $peerStatus -eq 0 ]; then
+                break
+            fi
+        else
+            break
+        fi
+        #检查是否超过了最大检测次数
+        if [ $i -ge $((loopCount - 1)) ]; then
+            echo "====== peers not enough ======"
+            exit 1
+        fi
+    done
 
     return 1
 
@@ -424,11 +417,16 @@ function optDockerPart3() {
         exit 1
     fi
 
+    names[0]="${NODE4}"
+    names[1]="${NODE5}"
+    names[2]="${NODE6}"
+    syn_block_timeout "${CLI4}" 2 100 "${names[@]}"
+
 }
 
 function optDockerPart4() {
     echo "======第二组docker节点挖矿中======"
-    block_wait_timeout "${CLI4}" 5 100
+    block_wait_timeout "${CLI4}" 3 50
     echo "====== 第二组内部同步中 ======"
     names[0]="${NODE4}"
     names[1]="${NODE5}"
@@ -507,16 +505,16 @@ function type2_optDockerPart2() {
         exit 1
     fi
 
-    #    name=$CLI
-    #    time=60
-    #    needCount=3
-    #
-    #    peersCount "${name}" $time $needCount
-    #    peerStatus=$?
-    #    if [ $peerStatus -eq 1 ]; then
-    #        echo "====== peers not enough ======"
-    #        exit 1
-    #    fi
+    name=$CLI
+    time=60
+    needCount=3
+
+    peersCount "${name}" $time $needCount
+    peerStatus=$?
+    if [ $peerStatus -eq 1 ]; then
+        echo "====== peers not enough ======"
+        exit 1
+    fi
 
 }
 
@@ -553,16 +551,16 @@ function type2_optDockerPart3() {
     echo "======启动第二组docker======"
     docker start "${NODE3}" "${NODE4}" "${NODE5}" "${NODE6}"
 
-    #    name="${CLI}"
-    #    time=60
-    #    needCount=4
-    #
-    #    peersCount "${name}" $time $needCount
-    #    peerStatus=$?
-    #    if [ $peerStatus -eq 1 ]; then
-    #        echo "====== peers not enough ======"
-    #        exit 1
-    #    fi
+    name="${CLI}"
+    time=60
+    needCount=4
+
+    peersCount "${name}" $time $needCount
+    peerStatus=$?
+    if [ $peerStatus -eq 1 ]; then
+        echo "====== peers not enough ======"
+        exit 1
+    fi
 
     echo "======sleep 20s======"
     sleep 20
@@ -605,7 +603,7 @@ function type2_optDockerPart3() {
 
 function type2_optDockerPart4() {
     echo "======第二组docker节点挖矿中======"
-    block_wait_timeout "${CLI}" 5 100
+    block_wait_timeout "${CLI}" 3 50
     echo "====== 第二组内部同步中 ======"
     names[0]="${NODE4}"
     names[1]="${NODE5}"
