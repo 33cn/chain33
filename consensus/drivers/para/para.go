@@ -105,11 +105,12 @@ func (client *ParaClient) ExecBlock(prevHash []byte, block *types.Block) (*types
 }
 
 func (client *ParaClient) Close() {
+	client.BaseClient.Close()
 	plog.Info("consensus para closed")
 }
 
 func (client *ParaClient) SetQueueClient(c queue.Client) {
-	plog.Info("Enter SetQueue method of para consensus")
+	plog.Info("Enter SetQueueClient method of Para consensus")
 	client.InitClient(c, func() {
 		client.InitBlock()
 	})
@@ -294,7 +295,7 @@ func (client *ParaClient) RequestTx(currSeq int64) ([]*types.Transaction, *types
 		return txs, block, seqTy, nil
 	}
 	plog.Debug("Waiting new sequence from main chain")
-	time.Sleep(time.Second * time.Duration(blockSec))
+	time.Sleep(time.Second * time.Duration(blockSec*2))
 	return nil, nil, -1, errors.New("Waiting new sequence")
 }
 
@@ -307,12 +308,6 @@ func (client *ParaClient) CreateBlock() {
 		return
 	}
 	for {
-		//don't check condition for block caughtup
-		if !client.IsMining() {
-			time.Sleep(time.Second)
-			continue
-		}
-
 		lastSeq, err := client.GetLastSeq()
 		if err != nil {
 			plog.Error("Parachain GetLastSeq fail", "err", err)
