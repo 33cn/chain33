@@ -2,14 +2,16 @@ package db
 
 import (
 	"bytes"
+
 	log "github.com/inconshreveable/log15"
 	"github.com/syndtr/goleveldb/leveldb/util"
 
 	"fmt"
-	"gitlab.33.cn/chain33/chain33/types"
 	"strconv"
 	"strings"
 	"time"
+
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var dlog = log.New("module", "db.ssdb")
