@@ -9,6 +9,8 @@ import (
 	"github.com/btcsuite/btcd/wire"
 	"github.com/golang/protobuf/proto"
 
+	"math/big"
+
 	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/common/difficulty"
@@ -193,7 +195,7 @@ func (b *btcStore) getMerkleRootFromHeader(blockhash string) (string, error) {
 func (b *btcStore) verifyBtcTx(verify *types.RelayVerify, order *types.RelayOrder) error {
 	var foundtx bool
 	for _, outtx := range verify.GetTx().GetVout() {
-		if outtx.Address == order.CoinAddr && outtx.Value == order.CoinAmount {
+		if outtx.Address == order.CoinAddr && outtx.Value >= order.CoinAmount {
 			foundtx = true
 		}
 	}
@@ -216,7 +218,7 @@ func (b *btcStore) verifyBtcTx(verify *types.RelayVerify, order *types.RelayOrde
 		return err
 	}
 
-	if verify.Tx.BlockHeight+waitBlockHeight > uint64(height) {
+	if verify.Tx.BlockHeight+uint64(order.CoinWaits) > uint64(height) {
 		return types.ErrRelayWaitBlocksErr
 	}
 
@@ -353,13 +355,26 @@ func btcWireHeader(head *types.BtcHeader) (*wire.BlockHeader, error) {
 	return h, nil
 }
 
-func verifyBlockHeader(head *types.BtcHeader, preHead *types.RelayLastRcvBtcHeader) error {
+func verifyBlockHeader(head *types.BtcHeader, preHead *types.RelayLastRcvBtcHeader, localDb dbm.KVDB) error {
 	if head == nil {
 		return types.ErrInputPara
 	}
 
 	if preHead != nil && preHead.Header != nil && (preHead.Header.Hash != head.PreviousHash || preHead.Header.Height+1 != head.Height) && !head.IsReset {
+
 		return types.ErrRelayBtcHeadSequenceErr
+	}
+
+	//real BTC block not change the bits before height<30000, not match with the calculation result
+	if !head.IsReset && head.Height > 30000 {
+		newBits, err := calcNextRequiredDifficulty(preHead.Header, localDb)
+		if err != nil && err != types.ErrNotFound {
+			return err
+		}
+
+		if newBits != 0 && newBits != head.Bits {
+			return types.ErrRelayBtcHeadNewBitsErr
+		}
 	}
 
 	btcHeader, err := btcWireHeader(head)
@@ -381,4 +396,76 @@ func verifyBlockHeader(head *types.BtcHeader, preHead *types.RelayLastRcvBtcHead
 	}
 
 	return nil
+}
+
+// refer to btcd's blockchain's calcNextRequiredDifficulty() function
+// calcNextRequiredDifficulty calculates the required difficulty for the block
+// after the passed previous block node based on the difficulty retarget rules.
+func calcNextRequiredDifficulty(preHead *types.BtcHeader, localDb dbm.KVDB) (int64, error) {
+	if preHead == nil {
+		return 0, nil
+	}
+
+	// Genesis block.
+	targetTimespan := time.Hour * 24 * 14  // 14 days
+	TargetTimePerBlock := time.Minute * 10 // 10 minutes
+	retargetAdjustmentFactor := int64(4)   // 25% less, 400% more
+	timeSpan := int64(targetTimespan / time.Second)
+	timeBlock := int64(TargetTimePerBlock / time.Second)
+
+	// powLimit is the highest proof of work value a Bitcoin block
+	// can have for the regression test network.  It is the value 2^255 - 1.
+	bigOne := big.NewInt(1)
+	powLimit := new(big.Int).Sub(new(big.Int).Lsh(bigOne, 255), bigOne)
+	blocksPerRetarget := uint64(timeSpan / timeBlock)
+	minRetargetTimespan := timeSpan / retargetAdjustmentFactor
+	maxRetargetTimespan := timeSpan * retargetAdjustmentFactor
+
+	// Return the previous block's difficulty requirements if this block
+	// is not at a difficulty retarget interval.
+	if (preHead.Height+1)%blocksPerRetarget != 0 {
+		// For networks that support it, allow special reduction of the
+		// required difficulty once too much time has elapsed without
+		// mining a block.
+
+		// For the main network (or any unrecognized networks), simply
+		// return the previous block's difficulty requirements.
+		return preHead.Bits, nil
+	}
+
+	// Get the block node at the previous retarget (targetTimespan days
+	// worth of blocks).
+	btc := newBtcStore(localDb)
+	firstHead, err := btc.getBtcHeadByHeight(int64(preHead.Height - (blocksPerRetarget - 1)))
+	if err != nil {
+		return 0, err
+	}
+
+	// Limit the amount of adjustment that can occur to the previous
+	// difficulty.
+	actualTimespan := preHead.Time - firstHead.Time
+	adjustedTimespan := actualTimespan
+	if actualTimespan < minRetargetTimespan {
+		adjustedTimespan = minRetargetTimespan
+	} else if actualTimespan > maxRetargetTimespan {
+		adjustedTimespan = maxRetargetTimespan
+	}
+
+	// Calculate new target difficulty as:
+	//  currentDifficulty * (adjustedTimespan / targetTimespan)
+	// The result uses integer division which means it will be slightly
+	// rounded down.  Bitcoind also uses integer division to calculate this
+	// result.
+	oldTarget := difficulty.CompactToBig(uint32(preHead.Bits))
+	newTarget := new(big.Int).Mul(oldTarget, big.NewInt(adjustedTimespan))
+	newTarget.Div(newTarget, big.NewInt(timeSpan))
+
+	// Limit new value to the proof of work limit.
+	if newTarget.Cmp(powLimit) > 0 {
+		newTarget.Set(powLimit)
+	}
+
+	newTargetBits := difficulty.BigToCompact(newTarget)
+
+	return int64(newTargetBits), nil
 }

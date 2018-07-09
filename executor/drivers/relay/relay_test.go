@@ -31,11 +31,11 @@ func (s *suiteRelay) accountSetup() {
 	acc.SaveAccount(account)
 	account = acc.LoadAccount(addrFrom)
 	s.Equal(int64(1000*1e8), account.Balance)
-	//s.addrRelay = address.ExecAddress("relay")
-	//_, err := acc.TransferToExec(addrFrom, s.addrRelay, 200*1e8)
-	//s.Nil(err)
-	//account = acc.LoadExecAccount(addrFrom, s.addrRelay)
-	//s.Equal(int64(200*1e8), account.Balance)
+	s.addrRelay = address.ExecAddress("relay")
+	_, err := acc.TransferToExec(addrFrom, s.addrRelay, 200*1e8)
+	s.Nil(err)
+	account = acc.LoadExecAccount(addrFrom, s.addrRelay)
+	s.Equal(int64(200*1e8), account.Balance)
 
 	account = &types.Account{
 		Balance: 1000 * 1e8,
@@ -45,7 +45,7 @@ func (s *suiteRelay) accountSetup() {
 	account = acc.LoadAccount(addrTo)
 	s.Equal(int64(1000*1e8), account.Balance)
 	s.addrRelay = address.ExecAddress("relay")
-	_, err := acc.TransferToExec(addrTo, s.addrRelay, 200*1e8)
+	_, err = acc.TransferToExec(addrTo, s.addrRelay, 200*1e8)
 	s.Nil(err)
 	account = acc.LoadExecAccount(addrTo, s.addrRelay)
 	s.Equal(int64(200*1e8), account.Balance)
@@ -285,7 +285,7 @@ func (s *suiteRelay) TestExec_4() {
 	//s.Equal(int64(200*1e8),account.Balance)
 	s.Zero(account.Frozen)
 	account = acc.LoadExecAccount(addrFrom, s.addrRelay)
-	s.Equal(int64(200*1e8), account.Balance)
+	s.Equal(int64(400*1e8), account.Balance)
 	s.Zero(account.Frozen)
 
 	//	s.T().Log("exec4",len(receipt.Logs))

@@ -57,7 +57,7 @@ func (r *relay) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 		return actiondb.verifyCmdTx(action.GetVerifyCli())
 
 	case types.RelayActionRcvBTCHeaders:
-		return actiondb.saveBtcHeader(action.GetBtcHeaders())
+		return actiondb.saveBtcHeader(action.GetBtcHeaders(), r.GetLocalDB())
 
 	default:
 		return nil, types.ErrActionNotSupport
