@@ -215,6 +215,14 @@ func (c *Chain33) GetLastHeader(in *types.ReqNil, result *interface{}) error {
 		header.Version = reply.GetVersion()
 		header.Hash = common.ToHex(reply.GetHash())
 		header.TxCount = reply.TxCount
+		header.Difficulty = reply.GetDifficulty()
+		/* 空值，斩不显示
+		Signature: &Signature{
+			Ty:        reply.GetSignature().GetTy(),
+			Pubkey:    common.ToHex(reply.GetSignature().GetPubkey()),
+			Signature: common.ToHex(reply.GetSignature().GetSignature()),
+		}
+		*/
 		*result = &header
 	}
 
@@ -588,7 +596,15 @@ func (c *Chain33) GetHeaders(in types.ReqBlocks, result *interface{}) error {
 				ParentHash: common.ToHex(item.GetParentHash()),
 				StateHash:  common.ToHex(item.GetStateHash()),
 				TxHash:     common.ToHex(item.GetTxHash()),
-				Version:    item.GetVersion()})
+				Difficulty: item.GetDifficulty(),
+				/* 空值，斩不显示
+				Signature: &Signature{
+					Ty:        item.GetSignature().GetTy(),
+					Pubkey:    common.ToHex(item.GetSignature().GetPubkey()),
+					Signature: common.ToHex(item.GetSignature().GetSignature()),
+				},
+				*/
+				Version: item.GetVersion()})
 		}
 		*result = &headers
 	}
@@ -641,6 +657,14 @@ func (c *Chain33) GetBlockOverview(in QueryParm, result *interface{}) error {
 	header.Version = reply.GetHead().GetVersion()
 	header.Hash = common.ToHex(reply.GetHead().GetHash())
 	header.TxCount = reply.GetHead().GetTxCount()
+	header.Difficulty = reply.GetHead().GetDifficulty()
+	/* 空值，斩不显示
+	header.Signature = &Signature{
+		Ty:        reply.GetHead().GetSignature().GetTy(),
+		Pubkey:    common.ToHex(reply.GetHead().GetSignature().GetPubkey()),
+		Signature: common.ToHex(reply.GetHead().GetSignature().GetSignature()),
+	}
+	*/
 	blockOverview.Head = &header
 
 	//获取blocktxhashs信息

@@ -28,6 +28,7 @@ func init() {
 }
 
 type EvmType struct {
+	types.ExecTypeBase
 }
 
 func (evm EvmType) ActionName(tx *types.Transaction) string {
