@@ -228,6 +228,7 @@ var (
 	ErrRelayBalanceNotEnough   = errors.New("ErrRelaySellBalanceNotEnough")
 	ErrRelayOrderNotExist      = errors.New("ErrRelayOrderNotExist")
 	ErrRelayOrderOnSell        = errors.New("ErrRelayOrderOnSell")
+	ErrRelayOrderStatusErr     = errors.New("ErrRelayOrderStatusErr")
 	ErrRelayOrderParamErr      = errors.New("ErrRelayOrderParamErr")
 	ErrRelayOrderSoldout       = errors.New("ErrRelayOrderSoldout")
 	ErrRelayOrderRevoked       = errors.New("ErrRelayOrderRevoked")

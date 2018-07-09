@@ -291,6 +291,7 @@ It has these top-level messages:
 	Vin
 	Vout
 	BtcSpv
+	RelayLastRcvBtcHeader
 	ReceiptRelayRcvBTCHeaders
 	ReceiptRelayLog
 	ReqRelayAddrCoins

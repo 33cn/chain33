@@ -20,8 +20,8 @@ type btcStore struct {
 	db dbm.KVDB
 }
 
-func newBtcStore(r *relay) *btcStore {
-	return &btcStore{db: r.GetLocalDB()}
+func newBtcStore(db dbm.KVDB) *btcStore {
+	return &btcStore{db: db}
 }
 
 func (b *btcStore) getBtcHeadHeightFromDb(key []byte) (int64, error) {
@@ -332,14 +332,14 @@ func (b *btcStore) getHeadHeightList(req *types.ReqRelayBtcHeaderHeightList) (ty
 
 }
 
-func btcWireHeader(head *types.BtcHeader) (error, *wire.BlockHeader) {
+func btcWireHeader(head *types.BtcHeader) (*wire.BlockHeader, error) {
 	preHash, err := chainhash.NewHashFromStr(head.PreviousHash)
 	if err != nil {
-		return err, nil
+		return nil, err
 	}
 	merkleRoot, err := chainhash.NewHashFromStr(head.MerkleRoot)
 	if err != nil {
-		return err, nil
+		return nil, err
 	}
 
 	h := &wire.BlockHeader{}
@@ -350,7 +350,7 @@ func btcWireHeader(head *types.BtcHeader) (error, *wire.BlockHeader) {
 	h.Nonce = uint32(head.Nonce)
 	h.Timestamp = time.Unix(head.Time, 0)
 
-	return nil, h
+	return h, nil
 }
 
 func verifyBlockHeader(head *types.BtcHeader, preHead *types.RelayLastRcvBtcHeader) error {
@@ -362,7 +362,7 @@ func verifyBlockHeader(head *types.BtcHeader, preHead *types.RelayLastRcvBtcHead
 		return types.ErrRelayBtcHeadSequenceErr
 	}
 
-	err, btcHeader := btcWireHeader(head)
+	btcHeader, err := btcWireHeader(head)
 	if err != nil {
 		return err
 	}

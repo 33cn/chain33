@@ -36,26 +36,25 @@ func (r *relay) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	}
 
 	actiondb := newRelayDB(r, tx)
-	btc := newBtcStore(r)
 	switch action.GetTy() {
 	case types.RelayActionCreate:
 		return actiondb.relayCreate(action.GetCreate())
 
 	case types.RelayActionAccept:
-		return actiondb.accept(btc, action.GetAccept())
+		return actiondb.accept(action.GetAccept())
 
 	case types.RelayActionRevoke:
-		return actiondb.relayRevoke(btc, action.GetRevoke())
+		return actiondb.relayRevoke(action.GetRevoke())
 
 	case types.RelayActionConfirmTx:
-		return actiondb.confirmTx(btc, action.GetConfirmTx())
+		return actiondb.confirmTx(action.GetConfirmTx())
 
 	case types.RelayActionVerifyTx:
-		return actiondb.verifyTx(btc, action.GetVerify())
+		return actiondb.verifyTx(action.GetVerify())
 
 	// OrderId, rawTx, index sibling, blockhash
 	case types.RelayActionVerifyCmdTx:
-		return actiondb.verifyCmdTx(btc, action.GetVerifyCli())
+		return actiondb.verifyCmdTx(action.GetVerifyCli())
 
 	case types.RelayActionRcvBTCHeaders:
 		return actiondb.saveBtcHeader(action.GetBtcHeaders())
@@ -102,7 +101,7 @@ func (r *relay) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 				return nil, err
 			}
 
-			btc := newBtcStore(r)
+			btc := newBtcStore(r.GetLocalDB())
 			for _, head := range receipt.Headers {
 				kv, err := btc.saveBlockHead(head)
 				if err != nil {
@@ -158,7 +157,7 @@ func (r *relay) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 				return nil, err
 			}
 
-			btc := newBtcStore(r)
+			btc := newBtcStore(r.GetLocalDB())
 			for _, head := range receipt.Headers {
 				kv, err := btc.delBlockHead(head)
 				if err != nil {
@@ -212,7 +211,7 @@ func (r *relay) Query(funcName string, params []byte) (types.Message, error) {
 		if err != nil {
 			return nil, err
 		}
-		db := newBtcStore(r)
+		db := newBtcStore(r.GetLocalDB())
 		return db.getHeadHeightList(&req)
 
 	case "GetBTCHeaderCurHeight":
@@ -221,7 +220,7 @@ func (r *relay) Query(funcName string, params []byte) (types.Message, error) {
 		if err != nil {
 			return nil, err
 		}
-		db := newBtcStore(r)
+		db := newBtcStore(r.GetLocalDB())
 		return db.getBtcCurHeight(&req)
 	default:
 	}
@@ -287,7 +286,6 @@ func (r *relay) GetSellOrder(prefixs [][]byte) (types.Message, error) {
 		}
 
 		if 0 != len(values) {
-			relaylog.Debug("relay coin status Query", "get number of OrderId", len(values))
 			OrderIds = append(OrderIds, values...)
 		}
 	}
@@ -303,7 +301,6 @@ func (r *relay) getRelayOrderReply(OrderIds [][]byte) (types.Message, error) {
 	for _, OrderId := range OrderIds {
 		if !OrderIdGot[string(OrderId)] {
 			if order, err := r.getSellOrderFromDb(OrderId); err == nil {
-				relaylog.Debug("relay Query", "getSellOrderFromID", string(OrderId))
 				reply.Relayorders = insertOrderDescending(order, reply.Relayorders)
 			}
 			OrderIdGot[string(OrderId)] = true
