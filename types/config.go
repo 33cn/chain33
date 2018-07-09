@@ -118,9 +118,7 @@ func SetTitle(t string) {
 	if IsPara() {
 		ExecNamePrefix = title
 		CheckForkInTokenForManage = false
-		ForkV12TransferExec = 1
-		ForkV19TokenPrice = 1
-		ForkV13ExecKey = 1
+		SetForkToOne()
 		//SuperManager = []string{"1BjLtd6Eqeo19URRVQzvBFbx1X2TSoPabp"}
 	}
 }
