@@ -3,10 +3,7 @@ package db
 import (
 	"errors"
 	"fmt"
-<<<<<<< HEAD
-=======
 
->>>>>>> develop
 	lru "github.com/hashicorp/golang-lru"
 )
 
