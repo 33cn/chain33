@@ -54,7 +54,7 @@ func (privkey *RingSignPrivateKey) Bytes() []byte {
 
 func (privkey *RingSignPrivateKey) Sign(msg []byte) crypto.Signature {
 	emptySign := &RingSignature{}
-	if !checkByteSliceValid(msg) {
+	if len(msg) <= 0 {
 		return emptySign
 	}
 	tx := new(types.Transaction)
@@ -132,7 +132,7 @@ func (pubkey *RingSignPublicKey) Bytes() []byte {
 }
 
 func (pubkey *RingSignPublicKey) VerifyBytes(msg []byte, sign crypto.Signature) bool {
-	if !checkByteSliceValid(msg) {
+	if len(msg) <= 0 {
 		return false
 	}
 	ringSign := new(types.RingSignature)
@@ -200,7 +200,7 @@ func (r *RingSignED25519) GenKey() (crypto.PrivKey, error) {
 }
 
 func (r *RingSignED25519) PrivKeyFromBytes(b []byte) (crypto.PrivKey, error) {
-	if !checkByteSliceValid(b) {
+	if len(b) <= 0 {
 		return nil, types.ErrInvalidParams
 	}
 	if len(b) != KeyLen32 {
@@ -212,7 +212,7 @@ func (r *RingSignED25519) PrivKeyFromBytes(b []byte) (crypto.PrivKey, error) {
 }
 
 func (r *RingSignED25519) PubKeyFromBytes(b []byte) (crypto.PubKey, error) {
-	if !checkByteSliceValid(b) {
+	if len(b) <= 0 {
 		return nil, types.ErrInvalidParams
 	}
 	if len(b) != PublicKeyLen {
@@ -224,7 +224,7 @@ func (r *RingSignED25519) PubKeyFromBytes(b []byte) (crypto.PubKey, error) {
 }
 
 func (r *RingSignED25519) SignatureFromBytes(b []byte) (crypto.Signature, error) {
-	if !checkByteSliceValid(b) {
+	if len(b) <= 0 {
 		return nil, types.ErrInvalidParams
 	}
 	sign := new(RingSignature)

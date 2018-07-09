@@ -61,15 +61,15 @@ func (_m *QueueProtocolAPI) CloseTickets() (*types.ReplyHashes, error) {
 }
 
 // CreateTrasaction provides a mock function with given fields: param
-func (_m *QueueProtocolAPI) CreateTrasaction(param *types.ReqCreateTransaction) (*types.Reply, error) {
+func (_m *QueueProtocolAPI) CreateTrasaction(param *types.ReqCreateTransaction) (*types.Transaction, error) {
 	ret := _m.Called(param)
 
-	var r0 *types.Reply
-	if rf, ok := ret.Get(0).(func(*types.ReqCreateTransaction) *types.Reply); ok {
+	var r0 *types.Transaction
+	if rf, ok := ret.Get(0).(func(*types.ReqCreateTransaction) *types.Transaction); ok {
 		r0 = rf(param)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.Reply)
+			r0 = ret.Get(0).(*types.Transaction)
 		}
 	}
 
