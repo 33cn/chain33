@@ -476,7 +476,6 @@ func (tx *Transaction) GetRealToAddr() string {
 	return exec.GetRealToAddr(tx)
 }
 
-
 //解析tx的payload获取view from to 值
 func (tx *Transaction) GetViewFromToAddr() (string, string) {
 	exec := LoadExecutor(string(tx.Execer))
