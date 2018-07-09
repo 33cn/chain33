@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"encoding/hex"
+
 	"github.com/stretchr/testify/require"
 	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/common"
@@ -119,17 +121,19 @@ func PrintBlockInfo(block *types.BlockDetail) {
 	}
 	if block.Block != nil {
 		fmt.Println("PrintBlockInfo block!")
-		fmt.Println("block.ParentHash:", block.Block.ParentHash)
-		fmt.Println("block.TxHash:", block.Block.TxHash)
+		fmt.Println("block.Hash:", hex.EncodeToString(block.Block.Hash()))
+		fmt.Println("block.ParentHash:", hex.EncodeToString(block.Block.ParentHash))
+		fmt.Println("block.TxHash:", hex.EncodeToString(block.Block.TxHash))
 		fmt.Println("block.BlockTime:", block.Block.BlockTime)
 		fmt.Println("block.Height:", block.Block.Height)
 		fmt.Println("block.Version:", block.Block.Version)
-		fmt.Println("block.StateHash:", block.Block.StateHash)
+		fmt.Println("block.Difficulty:", block.Block.Difficulty)
+		fmt.Println("block.StateHash:", hex.EncodeToString(block.Block.StateHash))
 
 		fmt.Println("txs len:", len(block.Block.Txs))
 		for _, tx := range block.Block.Txs {
 			transaction := tx
-			fmt.Println("tx.Payload:", string(transaction.Payload))
+			fmt.Println("tx.Payload:", hex.EncodeToString(transaction.Payload))
 			fmt.Println("tx.Signature:", transaction.Signature.String())
 		}
 	}
@@ -139,6 +143,30 @@ func PrintBlockInfo(block *types.BlockDetail) {
 			fmt.Println("PrintBlockInfo Receipts!", "txindex", index)
 			fmt.Println("PrintBlockInfo Receipts!", "ReceiptData", receipt.String())
 		}
+	}
+}
+
+// 打印header的信息
+func PrintHeaderInfo(header *types.Header) {
+	if header == nil {
+		return
+	}
+
+	fmt.Println("header.Version:", header.Version)
+	fmt.Println("header.ParentHash:", header.ParentHash)
+	fmt.Println("header.TxHash:", header.TxHash)
+	fmt.Println("header.StateHash:", header.StateHash)
+	fmt.Println("header.Height:", header.Height)
+	fmt.Println("header.BlockTime:", header.BlockTime)
+	fmt.Println("header.TxCount:", header.TxCount)
+	fmt.Println("header.Hash:", header.Hash)
+	fmt.Println("header.Difficulty:", header.Difficulty)
+
+	if header.Signature != nil {
+		fmt.Println("header Signature!")
+		fmt.Println("header.Signature.Ty:", header.Signature.Ty)
+		fmt.Println("header.Signature.Pubkey:", header.Signature.Pubkey)
+		fmt.Println("header.Signature.Signature:", header.Signature.Signature)
 	}
 }
 
@@ -205,6 +233,35 @@ func TestBlockChain(t *testing.T) {
 	//testProcGetTransactionByHashes(t, blockchain)
 
 	//testProcGetTransactionByAddr(t, blockchain)
+
+	// QM add
+	testGetBlockHerderByHash(t, blockchain)
+
+	testProcGetTransactionByAddr(t, blockchain)
+
+	textProcGetTransactionByHashes(t, blockchain)
+
+	textProcGetBlockOverview(t, blockchain)
+
+	testProcGetAddrOverview(t, blockchain)
+
+	testProcGetBlockHash(t, blockchain)
+
+	//	testSendDelBlockEvent(t, blockchain)
+
+	testGetOrphanRoot(t, blockchain)
+
+	testRemoveOrphanBlock(t, blockchain)
+
+	testDelBlock(t, blockchain)
+
+	testProcGetGlobalIndexMsg(t, blockchain)
+
+	testLoadBlockBySequence(t, blockchain)
+
+	testProcDelParaChainBlockMsg(t, blockchain)
+
+	testProcAddParaChainBlockMsg(t, blockchain)
 }
 
 func testProcAddBlockMsg(t *testing.T, blockchain *BlockChain) {
@@ -499,7 +556,7 @@ func testPrefixCount(t *testing.T, blockchain *BlockChain) {
 	blockchain.client.Send(msgGen, true)
 	Res, _ := blockchain.client.Wait(msgGen)
 	count := Res.GetData().(*types.Int64).Data
-	println("count: ", count)
+	fmt.Println("count: ", count)
 	chainlog.Info("testPrefixCount end --------------------")
 }
 
@@ -508,6 +565,271 @@ func testAddrTxCount(t *testing.T, blockchain *BlockChain) {
 	var reqkey types.ReqKey
 	reqkey.Key = []byte(fmt.Sprintf("AddrTxsCount:%s", "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"))
 	count, _ := blockchain.query.Query("coins", "GetAddrTxsCount", types.Encode(&reqkey))
-	println("count: ", count.(*types.Int64).GetData())
+	fmt.Println("count: ", count.(*types.Int64).GetData())
 	chainlog.Info("testAddrTxCount end --------------------")
+}
+
+func testGetBlockHerderByHash(t *testing.T, blockchain *BlockChain) {
+	chainlog.Info("testGetBlockHerderByHash begin --------------------")
+	curheight := blockchain.GetBlockHeight()
+	chainlog.Info("testGetBlockHerderByHash ", "curheight", curheight)
+	block, err := blockchain.GetBlock(curheight - 5)
+	require.NoError(t, err)
+
+	blockhash := block.Block.Hash()
+	block, err = blockchain.GetBlock(curheight - 4)
+	require.NoError(t, err)
+
+	if !bytes.Equal(blockhash, block.Block.ParentHash) {
+		fmt.Println("block.ParentHash != prehash: nextParentHash", blockhash, block.Block.ParentHash)
+	}
+	header, err := blockchain.blockStore.GetBlockHerderByHash(block.Block.Hash())
+	require.NoError(t, err)
+	PrintHeaderInfo(header)
+	chainlog.Info("testGetBlockHerderByHash end --------------------")
+}
+
+func testProcGetTransactionByAddr(t *testing.T, blockchain *BlockChain) {
+	chainlog.Info("testProcGetTransactionByAddr begin --------------------")
+	parm := &types.ReqAddr{
+		Addr:   "1DzTdTLa5JPpLdNNP2PrV1a6JCtULA7GsT",
+		Height: -1,
+	}
+	txinfos, err := blockchain.ProcGetTransactionByAddr(parm)
+	require.NoError(t, err)
+
+	if txinfos != nil {
+		fmt.Println("PrintTxinfos Receipts!")
+		for index, receipt := range txinfos.TxInfos {
+			fmt.Println("PrintTxinfos Receipts!", "txindex", index)
+			fmt.Println("PrintTxinfos Receipts!", "Hash", receipt.Hash)
+			fmt.Println("PrintTxinfos Receipts!", "Height", receipt.Height)
+			fmt.Println("PrintTxinfos Receipts!", "Index", receipt.Index)
+		}
+	}
+	chainlog.Info("testProcGetTransactionByAddr end --------------------")
+}
+
+func textProcGetTransactionByHashes(t *testing.T, blockchain *BlockChain) {
+	chainlog.Info("textProcGetTransactionByHashes begin --------------------")
+	parm := &types.ReqAddr{
+		Addr:   "1DzTdTLa5JPpLdNNP2PrV1a6JCtULA7GsT",
+		Height: -1,
+	}
+	txinfos, err := blockchain.ProcGetTransactionByAddr(parm)
+	require.NoError(t, err)
+
+	var Hashes [][]byte
+	if txinfos != nil {
+		for _, receipt := range txinfos.TxInfos {
+			Hashes = append(Hashes, receipt.Hash)
+		}
+	}
+
+	TxDetails, err := blockchain.ProcGetTransactionByHashes(Hashes)
+	require.NoError(t, err)
+
+	if TxDetails != nil {
+		for _, tx := range TxDetails.Txs {
+			if tx.Tx != nil {
+				fmt.Println("PrintTxDetails Receipts!", "tx.Tx.Payload", tx.Tx.Payload)
+			}
+		}
+	}
+
+	chainlog.Info("textProcGetTransactionByHashes end --------------------")
+}
+
+func textProcGetBlockOverview(t *testing.T, blockchain *BlockChain) {
+	chainlog.Info("textProcGetBlockOverview begin --------------------")
+	curheight := blockchain.GetBlockHeight()
+	block, err := blockchain.GetBlock(curheight - 5)
+	require.NoError(t, err)
+
+	fmt.Println("Print block.Block.Hash(): ", block.Block.Hash())
+	parm := &types.ReqHash{
+		Hash: block.Block.Hash(),
+	}
+	blockOverview, err := blockchain.ProcGetBlockOverview(parm)
+	require.NoError(t, err)
+
+	if blockOverview != nil {
+		fmt.Println("PrintaddrOverview Receipts!")
+		fmt.Println("Print blockOverview.Head.Hash: ", hex.EncodeToString(blockOverview.Head.Hash))
+		fmt.Println("Print blockOverview.TxCount: ", blockOverview.TxCount)
+		fmt.Println("Print blockOverview.TxHashes: ", blockOverview.TxHashes)
+	}
+	chainlog.Info("textProcGetBlockOverview end --------------------")
+}
+
+func testProcGetAddrOverview(t *testing.T, blockchain *BlockChain) {
+	chainlog.Info("testProcGetAddrOverview begin --------------------")
+	curheight := blockchain.GetBlockHeight()
+	chainlog.Info("testProcGetAddrOverview ", "curheight", curheight)
+	block, err := blockchain.GetBlock(curheight - 5)
+	require.NoError(t, err)
+
+	blockhash := block.Block.Hash()
+	block, err = blockchain.GetBlock(curheight - 4)
+	require.NoError(t, err)
+
+	if !bytes.Equal(blockhash, block.Block.ParentHash) {
+		fmt.Println("block.ParentHash != prehash: nextParentHash", blockhash, block.Block.ParentHash)
+	}
+
+	parm := &types.ReqAddr{
+		Addr: "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt",
+	}
+	addrOverview, err := blockchain.ProcGetAddrOverview(parm)
+	require.NoError(t, err)
+
+	if addrOverview != nil {
+		fmt.Println("PrintaddrOverview Receipts!")
+		fmt.Println("Print addrOverview.Reciver: ", addrOverview.Reciver)
+		fmt.Println("Print addrOverview.Balance: ", addrOverview.Balance)
+		fmt.Println("Print addrOverview.TxCount: ", addrOverview.TxCount)
+	}
+	chainlog.Info("testProcGetAddrOverview end --------------------")
+}
+
+func testProcGetBlockHash(t *testing.T, blockchain *BlockChain) {
+	chainlog.Info("testProcGetBlockHash begin --------------------")
+	curheight := blockchain.GetBlockHeight()
+	chainlog.Info("testProcGetBlockHash ", "curheight", curheight)
+	block, err := blockchain.GetBlock(curheight - 5)
+	require.NoError(t, err)
+
+	blockhash := block.Block.Hash()
+	block, err = blockchain.GetBlock(curheight - 4)
+	require.NoError(t, err)
+
+	if !bytes.Equal(blockhash, block.Block.ParentHash) {
+		fmt.Println("block.ParentHash != prehash: nextParentHash", blockhash, block.Block.ParentHash)
+	}
+
+	height := &types.ReqInt{curheight}
+	hash, err := blockchain.ProcGetBlockHash(height)
+	require.NoError(t, err)
+
+	if hash != nil {
+		fmt.Println("Print  hash.Hash: ", hash.Hash)
+	}
+
+	chainlog.Info("testProcGetBlockHash end --------------------")
+}
+
+/*
+func testSendDelBlockEvent(t *testing.T, blockchain *BlockChain)  {
+
+}*/
+
+func testGetOrphanRoot(t *testing.T, blockchain *BlockChain) {
+	chainlog.Info("testGetOrphanRoot begin --------------------")
+	curheight := blockchain.GetBlockHeight()
+	block, err := blockchain.GetBlock(curheight - 5)
+	require.NoError(t, err)
+
+	fmt.Println("Print  hash: ", hex.EncodeToString(block.Block.Hash()))
+	hash := blockchain.orphanPool.GetOrphanRoot(block.Block.Hash())
+	fmt.Println("Print  hash: ", hex.EncodeToString(hash))
+
+	chainlog.Info("testGetOrphanRoot end --------------------")
+}
+
+func testRemoveOrphanBlock(t *testing.T, blockchain *BlockChain) {
+	chainlog.Info("testRemoveOrphanBlock begin --------------------")
+	curheight := blockchain.GetBlockHeight()
+	block, err := blockchain.GetBlock(curheight - 5)
+	require.NoError(t, err)
+
+	ParentHashNotexist, _ := hex.DecodeString("8bd1f23741c90e9db4edd663acc0328a49f7c92d9974f83e2d5b57b25f3f059b")
+	block.Block.ParentHash = ParentHashNotexist
+
+	oBlock := &orphanBlock{
+		block: block.Block,
+		//		expiration: time.Second,
+		broadcast: false,
+		pid:       "123",
+		sequence:  0,
+	}
+
+	blockchain.orphanPool.RemoveOrphanBlock(oBlock)
+
+	chainlog.Info("testRemoveOrphanBlock end --------------------")
+}
+
+func testDelBlock(t *testing.T, blockchain *BlockChain) {
+	chainlog.Info("testDelBlock begin --------------------")
+	curheight := blockchain.GetBlockHeight()
+	block, err := blockchain.GetBlock(curheight)
+	require.NoError(t, err)
+
+	block.Block.Difficulty = block.Block.Difficulty - 100
+	blockchain.ProcessBlock(true, block, "1", true, 0)
+
+	chainlog.Info("testDelBlock end --------------------")
+}
+
+func testProcGetGlobalIndexMsg(t *testing.T, blockchain *BlockChain) {
+	chainlog.Info("testProcGetGlobalIndexMsg begin --------------------")
+
+	var reqUTXOGlobalIndex types.ReqUTXOGlobalIndex
+	reqUTXOGlobalIndex.Tokenname = "QMJ"
+	reqUTXOGlobalIndex.MixCount = 1
+	reqUTXOGlobalIndex.Amount = make([]int64, 1)
+	msgGen := blockchain.client.NewMessage("blockchain", types.EventGetGlobalIndex, &reqUTXOGlobalIndex)
+
+	blockchain.client.Send(msgGen, true)
+	Res, _ := blockchain.client.Wait(msgGen)
+	fmt.Println(Res)
+	chainlog.Info("testProcGetGlobalIndexMsg end --------------------")
+}
+
+func testLoadBlockBySequence(t *testing.T, blockchain *BlockChain) {
+	chainlog.Info("testLoadBlockBySequence begin ---------------------")
+
+	curheight := blockchain.GetBlockHeight()
+	block, err := blockchain.blockStore.LoadBlockBySequence(curheight)
+	require.NoError(t, err)
+
+	PrintBlockInfo(block)
+	chainlog.Info("testLoadBlockBySequence end -------------------------")
+}
+
+func testProcDelParaChainBlockMsg(t *testing.T, blockchain *BlockChain) {
+	chainlog.Info("testProcDelParaChainBlockMsg begin --------------------")
+
+	curheight := blockchain.GetBlockHeight()
+	block, err := blockchain.GetBlock(curheight - 1)
+	require.NoError(t, err)
+
+	var parablockDetail types.ParaChainBlockDetail
+	parablockDetail.Blockdetail = block
+	parablockDetail.Sequence = 1
+
+	msgGen := blockchain.client.NewMessage("blockchain", types.EventDelParaChainBlockDetail, &parablockDetail)
+
+	blockchain.client.Send(msgGen, true)
+	Res, _ := blockchain.client.Wait(msgGen)
+	fmt.Println(Res)
+	chainlog.Info("testProcDelParaChainBlockMsg end --------------------")
+}
+
+func testProcAddParaChainBlockMsg(t *testing.T, blockchain *BlockChain) {
+	chainlog.Info("testProcAddParaChainBlockMsg begin --------------------")
+
+	curheight := blockchain.GetBlockHeight()
+	block, err := blockchain.GetBlock(curheight)
+	require.NoError(t, err)
+
+	var parablockDetail types.ParaChainBlockDetail
+	parablockDetail.Blockdetail = block
+	parablockDetail.Sequence = 1
+
+	msgGen := blockchain.client.NewMessage("blockchain", types.EventAddParaChainBlockDetail, &parablockDetail)
+
+	blockchain.client.Send(msgGen, true)
+	Res, _ := blockchain.client.Wait(msgGen)
+	fmt.Println(Res)
+	chainlog.Info("testProcAddParaChainBlockMsg end --------------------")
 }
