@@ -23,6 +23,7 @@ func init() {
 }
 
 type RetrieveType struct {
+	types.ExecTypeBase
 }
 
 func (r RetrieveType) ActionName(tx *types.Transaction) string {

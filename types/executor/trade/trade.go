@@ -37,6 +37,7 @@ func init() {
 }
 
 type tradeType struct {
+	types.ExecTypeBase
 }
 
 func (trade tradeType) ActionName(tx *types.Transaction) string {
