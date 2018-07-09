@@ -342,7 +342,7 @@ func CreateRawTx(to string, amount float64, note string, isWithdraw bool, isToke
 	} else {
 		transfer := &types.TokenAction{}
 		if !isWithdraw {
-			v := &types.TokenAction_Transfer{Transfer: &types.CoinsTransfer{Cointoken: tokenSymbol, Amount: amountInt64, Note: note}}
+			v := &types.TokenAction_Transfer{Transfer: &types.CoinsTransfer{Cointoken: tokenSymbol, Amount: amountInt64, Note: note, To: to}}
 			transfer.Value = v
 			transfer.Ty = types.ActionTransfer
 		} else {
@@ -350,8 +350,11 @@ func CreateRawTx(to string, amount float64, note string, isWithdraw bool, isToke
 			transfer.Value = v
 			transfer.Ty = types.ActionWithdraw
 		}
-
-		tx = &types.Transaction{Execer: []byte(tokenPrefix + "token"), Payload: types.Encode(transfer), To: to}
+		if tokenPrefix == "" {
+			tx = &types.Transaction{Execer: []byte(tokenPrefix + "token"), Payload: types.Encode(transfer), To: to}
+		} else {
+			tx = &types.Transaction{Execer: []byte(tokenPrefix + "token"), Payload: types.Encode(transfer), To: address.ExecAddress(tokenPrefix + "token")}
+		}
 
 	}
 
