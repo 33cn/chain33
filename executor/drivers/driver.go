@@ -5,7 +5,6 @@ package drivers
 //nofee transaction will not pack into block
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 
@@ -197,12 +196,8 @@ func (d *DriverBase) Exec(tx *types.Transaction, index int) (*types.Receipt, err
 //默认情况下，tx.To 地址指向合约地址
 func (d *DriverBase) CheckTx(tx *types.Transaction, index int) error {
 	execer := string(tx.Execer)
-	blog.Info("CheckTx", "exec", execer, "to", tx.To)
 	if ExecAddress(execer) != tx.To {
-		blog.Error("CheckTx", "exec", ExecAddress(execer), "to", tx.To)
-		if !bytes.HasPrefix(tx.Execer, []byte("user.p.")) {
-			return types.ErrToAddrNotSameToExecAddr
-		}
+		return types.ErrToAddrNotSameToExecAddr
 	}
 	return nil
 }

@@ -100,6 +100,9 @@ var (
 	PrivacyTxFee = Coin
 	//used in Getname for exec driver
 	ExecNamePrefix string
+	//remove fork for manage for paraChain
+	CheckForkInTokenForManage bool = true
+
 )
 
 func SetTitle(t string) {
@@ -115,21 +118,26 @@ func SetTitle(t string) {
 	}
 	if IsPara() {
 		ExecNamePrefix = title
+		CheckForkInTokenForManage = false
 		ForkV12TransferExec = 1
 		ForkV19TokenPrice = 1
 		ForkV13ExecKey = 1
 		//SuperManager = []string{"1BjLtd6Eqeo19URRVQzvBFbx1X2TSoPabp"}
 	}
 }
+
 func IsBityuan() bool {
 	return title == "bityuan"
 }
+
 func IsLocal() bool {
 	return title == "local"
 }
+
 func IsYcc() bool {
 	return title == "yuanchain"
 }
+
 func IsPara() bool {
 	return strings.HasPrefix(title, "user.p.")
 }
