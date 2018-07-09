@@ -231,6 +231,7 @@ type nodeDB struct {
 	batch   dbm.Batch
 	orphans map[string]struct{}
 }
+
 type nodeBatch struct {
 	batch dbm.Batch
 }
