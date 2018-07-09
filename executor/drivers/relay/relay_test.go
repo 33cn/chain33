@@ -75,6 +75,8 @@ func (s *suiteRelay) testExecLocal(tx *types.Transaction, receipt *types.Receipt
 	rData := &types.ReceiptData{}
 	rData.Ty = receipt.Ty
 	rData.Logs = append(rData.Logs, receipt.Logs...)
+	s.kvdb.On("Get", mock.Anything).Return([]byte{}, nil).Twice()
+
 	set, err := s.relay.ExecLocal(tx, rData, 0)
 	s.Nil(err)
 	order, _ := s.relay.getSellOrderFromDb([]byte(s.orderId))
@@ -91,6 +93,8 @@ func (s *suiteRelay) testExecDelLocal(tx *types.Transaction, receipt *types.Rece
 	rData := &types.ReceiptData{}
 	rData.Ty = receipt.Ty
 	rData.Logs = append(rData.Logs, receipt.Logs...)
+	s.kvdb.On("Get", mock.Anything).Return([]byte{}, nil).Twice()
+
 	set, err := s.relay.ExecDelLocal(tx, rData, 0)
 	s.Nil(err)
 	order, _ := s.relay.getSellOrderFromDb([]byte(s.orderId))
@@ -291,116 +295,6 @@ func (s *suiteRelay) TestExec_4() {
 
 }
 
-func (s *suiteRelay) testExecBtcHeadLocal(tx *types.Transaction, receipt *types.Receipt, headers *types.BtcHeaders) {
-	s.Equal(int32(types.ExecOk), receipt.Ty)
-	rData := &types.ReceiptData{}
-	rData.Ty = receipt.Ty
-	rData.Logs = append(rData.Logs, receipt.Logs...)
-	set, err := s.relay.ExecLocal(tx, rData, 0)
-	s.Nil(err)
-
-	var kv []*types.KeyValue
-	btc := newBtcStore(s.relay.GetLocalDB())
-	for _, head := range headers.BtcHeader {
-		val, err := btc.saveBlockHead(head)
-		s.Nil(err)
-		kv = append(kv, val...)
-
-	}
-
-	s.Subset(set.KV, kv)
-
-}
-
-func (s *suiteRelay) testExecBtcHeadDelLocal(tx *types.Transaction, receipt *types.Receipt, headers *types.BtcHeaders) {
-	s.Equal(int32(types.ExecOk), receipt.Ty)
-	rData := &types.ReceiptData{}
-	rData.Ty = receipt.Ty
-	rData.Logs = append(rData.Logs, receipt.Logs...)
-	set, err := s.relay.ExecDelLocal(tx, rData, 0)
-	s.Nil(err)
-
-	var kv []*types.KeyValue
-	btc := newBtcStore(s.relay.GetLocalDB())
-	for _, head := range headers.BtcHeader {
-		val, err := btc.delBlockHead(head)
-		s.Nil(err)
-		kv = append(kv, val...)
-
-	}
-
-	s.Subset(set.KV, kv)
-}
-
-//rcv btchead
-func (s *suiteRelay) TestExec_6() {
-	head0 := &types.BtcHeader{
-		Hash:          "5e7d9c599cd040ec2ba53f4dee28028710be8c135e779f65c56feadaae34c3f2",
-		Confirmations: 92,
-		Height:        10,
-		Version:       536870912,
-		MerkleRoot:    "ab91cd4160e1379c337eee6b7a4bdbb7399d70268d86045aba150743c00c90b6",
-		Time:          1530862108,
-		Nonce:         0,
-		Bits:          545259519,
-		Difficulty:    0,
-		PreviousHash:  "604efe53975ab06cad8748fd703ad5bc960e8b752b2aae98f0f871a4a05abfc7",
-	}
-	head1 := &types.BtcHeader{
-		Hash:          "7b7a4a9b49db5a1162be515d380cd186e98c2bf0bb90f1145485d7c43343fc7c",
-		Confirmations: 91,
-		Height:        11,
-		Version:       536870912,
-		MerkleRoot:    "cfa9b66696aea63b7266ffaa1cb4b96c8dd6959eaabf2eb14173f4adaa551f6f",
-		Time:          1530862108,
-		Nonce:         1,
-		Bits:          545259519,
-		Difficulty:    0,
-		PreviousHash:  "5e7d9c599cd040ec2ba53f4dee28028710be8c135e779f65c56feadaae34c3f2",
-	}
-
-	head2 := &types.BtcHeader{
-		Hash:          "57bd2805725dd2d102708af4c8f6eb67cd0b3de6dd531f59fbc7d441a0388b6e",
-		Confirmations: 90,
-		Height:        12,
-		Version:       536870912,
-		MerkleRoot:    "f549e7024c07b741d34633654847be8778d2ccc9b1b17571914050060cc785f6",
-		Time:          1530862108,
-		Nonce:         4,
-		Bits:          545259519,
-		Difficulty:    0,
-		PreviousHash:  "7b7a4a9b49db5a1162be515d380cd186e98c2bf0bb90f1145485d7c43343fc7c",
-	}
-
-	headers := &types.BtcHeaders{}
-	headers.BtcHeader = append(headers.BtcHeader, head0)
-	headers.BtcHeader = append(headers.BtcHeader, head1)
-	headers.BtcHeader = append(headers.BtcHeader, head2)
-
-	sell := &types.RelayAction{
-		Ty:    types.RelayActionRcvBTCHeaders,
-		Value: &types.RelayAction_BtcHeaders{headers},
-	}
-
-	tx := &types.Transaction{}
-	tx.Execer = types.ExecerRelay
-	tx.To = address.ExecAddress(string(types.ExecerRelay))
-	tx.Nonce = 1 //for different order id
-	tx.Payload = types.Encode(sell)
-	tx.Sign(types.SECP256K1, privFrom)
-
-	s.relay.SetEnv(10, 1000, 1)
-	heightBytes := types.Encode(&types.Int64{int64(10)})
-	s.kvdb.On("Get", mock.Anything).Return(heightBytes, nil).Once()
-
-	receipt, err := s.relay.Exec(tx, 0)
-	s.Nil(err)
-
-	s.testExecBtcHeadLocal(tx, receipt, headers)
-	s.testExecBtcHeadDelLocal(tx, receipt, headers)
-
-}
-
 func (s *suiteRelay) TestExec_9_QryStatus1() {
 	addrCoins := &types.ReqRelayAddrCoins{
 		Status: types.RelayOrderStatus_finished,
@@ -483,5 +377,149 @@ func (s *suiteRelay) TestExec_9_QryStatus5() {
 
 func TestRunSuiteRelay(t *testing.T) {
 	log := new(suiteRelay)
+	suite.Run(t, log)
+}
+
+//////////////////////////////////////
+
+type suiteBtcHeader struct {
+	// Include our basic suite logic.
+	suite.Suite
+	db    *mocks.KV
+	kvdb  *mocks.KVDB
+	relay *relay
+}
+
+func (s *suiteBtcHeader) SetupSuite() {
+	s.db = new(mocks.KV)
+	s.kvdb = new(mocks.KVDB)
+	//accDb, _ := db.NewGoMemDB("relayTestDb", "test", 128)
+	relay := &relay{}
+	relay.SetStateDB(s.db)
+	relay.SetLocalDB(s.kvdb)
+	relay.SetEnv(10, 100, 1)
+	relay.SetIsFree(false)
+	relay.SetApi(nil)
+	relay.SetChild(relay)
+	s.relay = relay
+
+	s.Equal("relay", s.relay.GetName())
+
+}
+
+func (s *suiteBtcHeader) testExecBtcHeadLocal(tx *types.Transaction, receipt *types.Receipt, headers *types.BtcHeaders) {
+	s.Equal(int32(types.ExecOk), receipt.Ty)
+	rData := &types.ReceiptData{}
+	rData.Ty = receipt.Ty
+	rData.Logs = append(rData.Logs, receipt.Logs...)
+	s.kvdb.On("Get", mock.Anything).Return([]byte{}, nil).Twice()
+	set, err := s.relay.ExecLocal(tx, rData, 0)
+	s.Nil(err)
+
+	var kv []*types.KeyValue
+	btc := newBtcStore(s.relay.GetLocalDB())
+	for _, head := range headers.BtcHeader {
+		val, err := btc.saveBlockHead(head)
+		s.Nil(err)
+		kv = append(kv, val...)
+
+	}
+
+	s.Subset(set.KV, kv)
+
+}
+
+func (s *suiteBtcHeader) testExecBtcHeadDelLocal(tx *types.Transaction, receipt *types.Receipt, headers *types.BtcHeaders) {
+	s.Equal(int32(types.ExecOk), receipt.Ty)
+	rData := &types.ReceiptData{}
+	rData.Ty = receipt.Ty
+	rData.Logs = append(rData.Logs, receipt.Logs...)
+	s.kvdb.On("Get", mock.Anything).Return([]byte{}, nil).Twice()
+	set, err := s.relay.ExecDelLocal(tx, rData, 0)
+	s.Nil(err)
+
+	var kv []*types.KeyValue
+	btc := newBtcStore(s.relay.GetLocalDB())
+	for _, head := range headers.BtcHeader {
+		val, err := btc.delBlockHead(head)
+		s.Nil(err)
+		kv = append(kv, val...)
+
+	}
+
+	s.Subset(set.KV, kv)
+}
+
+//rcv btchead
+func (s *suiteBtcHeader) TestSaveBtcHead_1() {
+	head0 := &types.BtcHeader{
+		Hash:          "5e7d9c599cd040ec2ba53f4dee28028710be8c135e779f65c56feadaae34c3f2",
+		Confirmations: 92,
+		Height:        10,
+		Version:       536870912,
+		MerkleRoot:    "ab91cd4160e1379c337eee6b7a4bdbb7399d70268d86045aba150743c00c90b6",
+		Time:          1530862108,
+		Nonce:         0,
+		Bits:          545259519,
+		Difficulty:    0,
+		PreviousHash:  "604efe53975ab06cad8748fd703ad5bc960e8b752b2aae98f0f871a4a05abfc7",
+	}
+	head1 := &types.BtcHeader{
+		Hash:          "7b7a4a9b49db5a1162be515d380cd186e98c2bf0bb90f1145485d7c43343fc7c",
+		Confirmations: 91,
+		Height:        11,
+		Version:       536870912,
+		MerkleRoot:    "cfa9b66696aea63b7266ffaa1cb4b96c8dd6959eaabf2eb14173f4adaa551f6f",
+		Time:          1530862108,
+		Nonce:         1,
+		Bits:          545259519,
+		Difficulty:    0,
+		PreviousHash:  "5e7d9c599cd040ec2ba53f4dee28028710be8c135e779f65c56feadaae34c3f2",
+	}
+
+	head2 := &types.BtcHeader{
+		Hash:          "57bd2805725dd2d102708af4c8f6eb67cd0b3de6dd531f59fbc7d441a0388b6e",
+		Confirmations: 90,
+		Height:        12,
+		Version:       536870912,
+		MerkleRoot:    "f549e7024c07b741d34633654847be8778d2ccc9b1b17571914050060cc785f6",
+		Time:          1530862108,
+		Nonce:         4,
+		Bits:          545259519,
+		Difficulty:    0,
+		PreviousHash:  "7b7a4a9b49db5a1162be515d380cd186e98c2bf0bb90f1145485d7c43343fc7c",
+	}
+
+	headers := &types.BtcHeaders{}
+	headers.BtcHeader = append(headers.BtcHeader, head0)
+	headers.BtcHeader = append(headers.BtcHeader, head1)
+	headers.BtcHeader = append(headers.BtcHeader, head2)
+
+	sell := &types.RelayAction{
+		Ty:    types.RelayActionRcvBTCHeaders,
+		Value: &types.RelayAction_BtcHeaders{headers},
+	}
+
+	tx := &types.Transaction{}
+	tx.Execer = types.ExecerRelay
+	tx.To = address.ExecAddress(string(types.ExecerRelay))
+	tx.Nonce = 2 //for different order id
+	tx.Payload = types.Encode(sell)
+	tx.Sign(types.SECP256K1, privFrom)
+
+	s.relay.SetEnv(10, 1000, 1)
+
+	s.db.On("Get", mock.Anything).Return(nil, types.ErrNotFound).Once()
+	s.db.On("Set", mock.Anything, mock.Anything).Return(nil).Twice()
+	receipt, err := s.relay.Exec(tx, 0)
+	s.Nil(err)
+
+	s.testExecBtcHeadLocal(tx, receipt, headers)
+	s.testExecBtcHeadDelLocal(tx, receipt, headers)
+
+}
+
+func TestRunSuiteBtcHeader(t *testing.T) {
+	log := new(suiteBtcHeader)
 	suite.Run(t, log)
 }

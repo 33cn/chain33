@@ -611,7 +611,7 @@ func (action *relayDB) saveBtcHeader(headers *types.BtcHeaders) (*types.Receipt,
 	var receipt = &types.ReceiptRelayRcvBTCHeaders{}
 
 	lastHead, err := getBtcLastHead(action.db)
-	if err != nil && err != dbm.ErrNotFoundInDb {
+	if err != nil && err != types.ErrNotFound {
 		return nil, err
 	}
 
