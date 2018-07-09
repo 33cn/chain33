@@ -71,9 +71,6 @@ func (c *Chain33) sendTxToWallet(in RawParm, result *interface{}) error {
 }
 
 func (c *Chain33) SendTransaction(in RawParm, result *interface{}) error {
-	if in.Mode == 1 {
-		return c.sendTxToWallet(in, result)
-	}
 	var parm types.Transaction
 	data, err := common.FromHex(in.Data)
 	if err != nil {
@@ -1370,7 +1367,8 @@ func (c *Chain33) CreateTrasaction(in types.ReqCreateTransaction, result *interf
 	if err != nil {
 		return err
 	}
-	*result = common.ToHex(reply.GetMsg())
+	txHex := types.Encode(reply)
+	*result = hex.EncodeToString(txHex)
 	return nil
 }
 

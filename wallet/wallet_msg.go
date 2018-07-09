@@ -328,17 +328,13 @@ func (wallet *Wallet) ProcRecvMsg() {
 			}
 		case types.EventCreateTransaction:
 			req := msg.Data.(*types.ReqCreateTransaction)
-			replyHash, err := wallet.procCreateTransaction(req)
-			var reply types.Reply
+			reply, err := wallet.procCreateTransaction(req)
 			if err != nil {
-				reply.IsOk = false
 				walletlog.Error("procCreateTransaction", "err", err.Error())
 				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyCreateTransaction, err))
 			} else {
-				reply.IsOk = true
-				reply.Msg = replyHash.Hash
-				walletlog.Info("procCreateTransaction", "tx hash", common.Bytes2Hex(replyHash.Hash), "result", "success")
-				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyCreateTransaction, &reply))
+				walletlog.Info("procCreateTransaction", "tx hash", common.Bytes2Hex(reply.Hash()), "result", "success")
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyCreateTransaction, reply))
 			}
 		case types.EventSendTxHashToWallet:
 			req := msg.Data.(*types.ReqCreateCacheTxKey)

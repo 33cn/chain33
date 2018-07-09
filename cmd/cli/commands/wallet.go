@@ -297,8 +297,8 @@ func addSignRawTxFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("key", "k", "", "private key (optional)")
 	cmd.Flags().StringP("addr", "a", "", "account address (optional)")
 	cmd.Flags().StringP("expire", "e", "120s", "transaction expire time")
-	cmd.Flags().Int32P("mode", "m", 0, "transaction sign mode")
 	cmd.Flags().StringP("token", "t", types.BTY, "token name. (BTY supported)")
+	cmd.Flags().Int32P("signtype", "", 0, "signature type, default 0, use wallet config.(1:secp256k1 2:ed25519 3:sm2 4:onetimeed25519 5:ringbaseoned25519")
 	// A duration string is a possibly signed sequence of
 	// decimal numbers, each with optional fraction and a unit suffix,
 	// such as "300ms", "-1.5h" or "2h45m".
@@ -313,10 +313,14 @@ func signRawTx(cmd *cobra.Command, args []string) {
 	index, _ := cmd.Flags().GetInt32("index")
 	expire, _ := cmd.Flags().GetString("expire")
 	expireTime, err := time.ParseDuration(expire)
-	mode, _ := cmd.Flags().GetInt32("mode")
 	token, _ := cmd.Flags().GetString("token")
+	signtype, _ := cmd.Flags().GetInt32("signtype")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	if signtype < types.SECP256K1 || signtype > types.RingBaseonED25519 {
+		fmt.Println("Invalid signType. ", signtype)
 		return
 	}
 	if expireTime < time.Minute*2 && expireTime != time.Second*0 {
@@ -387,12 +391,12 @@ func signRawTx(cmd *cobra.Command, args []string) {
 		}
 	} else if addr != "" {
 		params := types.ReqSignRawTx{
-			Addr:   addr,
-			TxHex:  data,
-			Expire: expire,
-			Index:  index,
-			Mode:   mode,
-			Token:  token,
+			Addr:     addr,
+			TxHex:    data,
+			Expire:   expire,
+			Index:    index,
+			Token:    token,
+			Signtype: signtype,
 		}
 		ctx := NewRpcCtx(rpcLaddr, "Chain33.SignRawTx", params, nil)
 		ctx.RunWithoutMarshal()
@@ -444,17 +448,14 @@ func addSendTxFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("data", "d", "", "transaction content")
 	cmd.MarkFlagRequired("data")
 
-	cmd.Flags().Int32P("mode", "m", 0, "transaction send mode")
 	cmd.Flags().StringP("token", "t", types.BTY, "token name. (BTY supported)")
 }
 
 func sendTx(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	data, _ := cmd.Flags().GetString("data")
-	mode, _ := cmd.Flags().GetInt32("mode")
 	token, _ := cmd.Flags().GetString("token")
 	params := jsonrpc.RawParm{
-		Mode:  mode,
 		Token: token,
 		Data:  data,
 	}
