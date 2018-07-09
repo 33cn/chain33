@@ -1201,63 +1201,54 @@ func Test_signTxWithPrivacy(t *testing.T) {
 	privateKey, _ := wallet.getPrivKeyByAddr(testAddrs[0])
 
 	// Public -> Privacy
-	replyHash, _ := wallet.procCreateTransaction(&types.ReqCreateTransaction{
+	tx, _ := wallet.procCreateTransaction(&types.ReqCreateTransaction{
 		Tokenname:  types.BTY,
 		Type:       1,
 		Amount:     10 * types.Coin,
 		From:       testAddrs[0],
 		Pubkeypair: testPubkeyPairs[0],
 	})
-	txhash := common.ToHex(replyHash.Hash)
+	txhex := common.ToHex(types.Encode(tx))
 	reqSignRawTx := &types.ReqSignRawTx{
 		Addr:  testAddrs[0],
-		TxHex: txhash,
-		Mode:  1,
-		Token: types.BTY,
+		TxHex: txhex,
 	}
-	ret, err := wallet.signTxWithPrivacy(privateKey, reqSignRawTx)
+	_, err := wallet.signTxWithPrivacy(privateKey, reqSignRawTx)
 	require.Equal(t, err, nil)
-	require.Equal(t, ret, txhash)
 
 	// Privacy -> Privacy
 	wtd.createUTXOs(testAddrs[0], testPubkeyPairs[0], 10*types.Coin, 10)
-	replyHash, _ = wallet.procCreateTransaction(&types.ReqCreateTransaction{
+	tx, _ = wallet.procCreateTransaction(&types.ReqCreateTransaction{
 		Tokenname:  types.BTY,
 		Type:       2,
 		Amount:     20 * types.Coin,
 		From:       testAddrs[0],
 		Pubkeypair: testPubkeyPairs[0],
 	})
-	txhash = common.ToHex(replyHash.Hash)
+	txhex = common.ToHex(types.Encode(tx))
 	reqSignRawTx = &types.ReqSignRawTx{
 		Addr:  testAddrs[0],
-		TxHex: txhash,
-		Mode:  1,
-		Token: types.BTY,
+		TxHex: txhex,
 	}
-	ret, err = wallet.signTxWithPrivacy(privateKey, reqSignRawTx)
+	_, err = wallet.signTxWithPrivacy(privateKey, reqSignRawTx)
 	require.Equal(t, err, nil)
-	require.Equal(t, ret, txhash)
 
 	// Privacy -> Public
 	wtd.createUTXOs(testAddrs[1], testPubkeyPairs[1], 10*types.Coin, 10)
-	replyHash, _ = wallet.procCreateTransaction(&types.ReqCreateTransaction{
+	tx, _ = wallet.procCreateTransaction(&types.ReqCreateTransaction{
 		Tokenname: types.BTY,
 		Type:      3,
 		Amount:    10 * types.Coin,
 		From:      testAddrs[1],
 		To:        testAddrs[2],
 	})
-	txhash = common.ToHex(replyHash.Hash)
+	txhex = common.ToHex(types.Encode(tx))
 	reqSignRawTx = &types.ReqSignRawTx{
 		Addr:  testAddrs[1],
-		TxHex: txhash,
-		Mode:  1,
-		Token: types.BTY,
+		TxHex: txhex,
 	}
-	ret, err = wallet.signTxWithPrivacy(privateKey, reqSignRawTx)
+	_, err = wallet.signTxWithPrivacy(privateKey, reqSignRawTx)
 	require.Equal(t, err, nil)
-	require.Equal(t, ret, txhash)
 }
 
 func Test_procReqCacheTxList(t *testing.T) {
@@ -1315,17 +1306,14 @@ func Test_procDeleteCacheTransaction(t *testing.T) {
 	wallet := wtd.wallet
 
 	// add test data
-	var replyHash *types.ReplyHash
-	{
-		req := &types.ReqCreateTransaction{
-			Tokenname:  types.BTY,
-			Type:       1,
-			Amount:     10 * types.Coin,
-			From:       testAddrs[0],
-			Pubkeypair: testPubkeyPairs[0],
-		}
-		replyHash, _ = wallet.procCreateTransaction(req)
+	req := &types.ReqCreateTransaction{
+		Tokenname:  types.BTY,
+		Type:       1,
+		Amount:     10 * types.Coin,
+		From:       testAddrs[0],
+		Pubkeypair: testPubkeyPairs[0],
 	}
+	tx, _ := wallet.procCreateTransaction(req)
 
 	testCase := []struct {
 		req       *types.ReqCreateCacheTxKey
@@ -1345,13 +1333,13 @@ func Test_procDeleteCacheTransaction(t *testing.T) {
 		{
 			req: &types.ReqCreateCacheTxKey{
 				Tokenname: types.BTY,
-				Hashkey:   replyHash.Hash,
+				Hashkey:   tx.Hash(),
 			},
 		},
 	}
 
-	for _, test := range testCase {
+	for index, test := range testCase {
 		_, err := wallet.procDeleteCacheTransaction(test.req)
-		require.Equal(t, err, test.actualErr)
+		require.Equalf(t, err, test.actualErr, "unittest case index = %d", index)
 	}
 }

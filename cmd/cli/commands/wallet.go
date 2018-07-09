@@ -383,10 +383,10 @@ func signRawTx(cmd *cobra.Command, args []string) {
 		}
 	} else if addr != "" {
 		params := types.ReqSignRawTx{
-			Addr:     addr,
-			TxHex:    data,
-			Expire:   expire,
-			Index:    index,
+			Addr:   addr,
+			TxHex:  data,
+			Expire: expire,
+			Index:  index,
 		}
 		ctx := NewRpcCtx(rpcLaddr, "Chain33.SignRawTx", params, nil)
 		ctx.RunWithoutMarshal()
