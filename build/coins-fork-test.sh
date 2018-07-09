@@ -107,6 +107,7 @@ function checkCoinsResult() {
     #if [ `echo "${actTotal} > ${coinsTotalAmount1}" | bc` -eq 1 ]; then
     if [ "$(echo "${actTotal} > ${coinsTotalAmount1}" | bc)" -eq 1 ]; then
         echo "${name} 出现双花"
+        exit 1
     else
         echo "${name} 未出现双花"
     fi
