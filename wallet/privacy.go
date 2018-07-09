@@ -589,17 +589,22 @@ func (wallet *Wallet) buildInput(privacykeyParirs *privacy.Privacy, buildInfo *b
 	// 混淆数大于0时候才向blockchain请求
 	var resUTXOGlobalIndex *types.ResUTXOGlobalIndex
 	if buildInfo.mixcount > 0 {
+		query := &types.BlockChainQuery{
+			Driver:   "privacy",
+			FuncName: "GetUTXOGlobalIndex",
+			Param:    types.Encode(&reqGetGlobalIndex),
+		}
 		//向blockchain请求相同额度的不同utxo用于相同额度的混淆作用
-		msg := wallet.client.NewMessage("blockchain", types.EventGetGlobalIndex, &reqGetGlobalIndex)
+		msg := wallet.client.NewMessage("execs", types.EventBlockChainQuery, query)
 		wallet.client.Send(msg, true)
 		resp, err := wallet.client.Wait(msg)
 		if err != nil {
-			walletlog.Error("buildInput EventGetGlobalIndex", "err", err)
+			walletlog.Error("buildInput EventBlockChainQuery", "err", err)
 			return nil, nil, nil, nil, err
 		}
 		resUTXOGlobalIndex = resp.GetData().(*types.ResUTXOGlobalIndex)
 		if resUTXOGlobalIndex == nil {
-			walletlog.Info("buildInput EventGetGlobalIndex is nil")
+			walletlog.Info("buildInput EventBlockChainQuery is nil")
 			return nil, nil, nil, nil, err
 		}
 
@@ -608,7 +613,7 @@ func (wallet *Wallet) buildInput(privacykeyParirs *privacy.Privacy, buildInfo *b
 		})
 
 		if len(selectedUtxo) != len(resUTXOGlobalIndex.UtxoIndex4Amount) {
-			walletlog.Error("buildInput EventGetGlobalIndex get not the same count for mix",
+			walletlog.Error("buildInput EventBlockChainQuery get not the same count for mix",
 				"len(selectedUtxo)", len(selectedUtxo),
 				"len(resUTXOGlobalIndex.UtxoIndex4Amount)", len(resUTXOGlobalIndex.UtxoIndex4Amount))
 		}

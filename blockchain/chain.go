@@ -3,7 +3,6 @@ package blockchain
 import (
 	"container/list"
 	"fmt"
-	"math/rand"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -606,62 +605,6 @@ func (chain *BlockChain) ProcGetTransactionByAddr(addr *types.ReqAddr) (*types.R
 		return nil, err
 	}
 	return txinfos.(*types.ReplyTxInfos), nil
-}
-
-// ProcGetGlobalIndexMsg 从区块链上获取已经被确认，并且满足条件的交易UTXO信息
-// 条件：
-// 1.同一种TokenName
-// 2.混淆度需要大于0
-// 3.确认区块高度大于等于types.ConfirmedHeight
-func (chain *BlockChain) ProcGetGlobalIndexMsg(reqUTXOGlobalIndex *types.ReqUTXOGlobalIndex) (*types.ResUTXOGlobalIndex, error) {
-	debugBeginTime := time.Now()
-
-	tokenName := reqUTXOGlobalIndex.Tokenname
-	currentHeight := chain.GetBlockHeight()
-	resUTXOGlobalIndex := &types.ResUTXOGlobalIndex{}
-	resUTXOGlobalIndex.Tokenname = tokenName
-	resUTXOGlobalIndex.MixCount = reqUTXOGlobalIndex.MixCount
-	for _, amount := range reqUTXOGlobalIndex.Amount {
-		utxoItems := chain.blockStore.getUTXOsByTokenAndAmount(tokenName, amount, types.UTXOCacheCount)
-		index := len(utxoItems) - 1
-		for ; index >= 0; index-- {
-			//要求是经过了12个块确认的UTXO才能被使用
-			if utxoItems[index].GetHeight()+types.ConfirmedHeight <= currentHeight {
-				break
-			}
-		}
-
-		utxoIndex4Amount := &types.UTXOIndex4Amount{
-			Amount: amount,
-		}
-
-		mixCount := reqUTXOGlobalIndex.MixCount
-		totalCnt := int32(index + 1)
-		if mixCount > totalCnt {
-			mixCount = totalCnt
-		}
-
-		//随机化每个item的位置，随机选择N个存在的
-		random := rand.New(rand.NewSource(time.Now().UnixNano()))
-		positions := random.Perm(int(totalCnt))
-		for i := int(mixCount - 1); i >= 0; i-- {
-			position := positions[i]
-			item := utxoItems[position]
-			utxoGlobalIndex := &types.UTXOGlobalIndex{
-				Outindex: item.GetOutindex(),
-				Txhash:   item.GetTxhash(),
-			}
-			utxo := &types.UTXOBasic{
-				UtxoGlobalIndex: utxoGlobalIndex,
-				OnetimePubkey:   item.GetOnetimepubkey(),
-			}
-			utxoIndex4Amount.Utxos = append(utxoIndex4Amount.Utxos, utxo)
-		}
-		resUTXOGlobalIndex.UtxoIndex4Amount = append(resUTXOGlobalIndex.UtxoIndex4Amount, utxoIndex4Amount)
-	}
-	debugDurtime := time.Since(debugBeginTime)
-	chainlog.Debug(fmt.Sprintf("ProcGetGlobalIndexMsg cost： %d", debugDurtime))
-	return resUTXOGlobalIndex, nil
 }
 
 //type TransactionDetails struct {

@@ -163,8 +163,6 @@ const (
 	EventReplyShowPrivacyPK
 	EventShowPrivacyAccountSpend
 	EventReplyShowPrivacyAccountSpend
-	EventGetGlobalIndex
-	EventReplyGetGlobalIndex
 	EventCreateUTXOs
 	EventReplyCreateUTXOs
 	EventCreateTransaction
@@ -322,8 +320,6 @@ var eventName = map[int]string{
 	EventReplyShowPrivacyPK:           "EventReplyShowPrivacyPK",
 	EventShowPrivacyAccountSpend:      "EventShowPrivacyAccountSpend",
 	EventReplyShowPrivacyAccountSpend: "EventReplyShowPrivacyAccountSpend",
-	EventGetGlobalIndex:               "EventGetGlobalIndex",
-	EventReplyGetGlobalIndex:          "EventReplyGetGlobalIndex",
 	EventCreateUTXOs:                  "EventCreateUTXOs",
 	EventReplyCreateUTXOs:             "EventReplyCreateUTXOs",
 	EventQueryCacheTransaction:        "EventQueryCacheTransaction",
