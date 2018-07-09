@@ -118,10 +118,7 @@ func GetSignatureTypeName(signType int) string {
 }
 
 var ConfigPrefix = "mavl-config"
-<<<<<<< HEAD
-=======
 
->>>>>>> develop
 func ConfigKey(key string) string {
 	return fmt.Sprintf("%s-%s", ConfigPrefix, key)
 }
