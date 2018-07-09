@@ -228,10 +228,10 @@ func TestTransferToken(t *testing.T) {
 	fmt.Println("TestTransferToken start")
 	defer fmt.Println("TestTransferToken end")
 
-	v := &types.TokenAction_Transfer{Transfer: &types.CoinsTransfer{Cointoken: tokenSym, Amount: transAmount, Note: ""}}
+	v := &types.TokenAction_Transfer{Transfer: &types.CoinsTransfer{Cointoken: tokenSym, Amount: transAmount, Note: "", To: transToAddr}}
 	transfer := &types.TokenAction{Value: v, Ty: types.ActionTransfer}
 
-	tx := &types.Transaction{Execer: []byte(execName), Payload: types.Encode(transfer), Fee: fee, To: transToAddr}
+	tx := &types.Transaction{Execer: []byte(execName), Payload: types.Encode(transfer), Fee: fee, To: addrexec}
 	tx.Nonce = r.Int63()
 	tx.Sign(types.SECP256K1, privkey)
 
