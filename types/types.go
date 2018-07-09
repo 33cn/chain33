@@ -21,9 +21,6 @@ const Size_1K_shiftlen uint = 10
 
 type Message proto.Message
 
-
-
-
 //交易组的接口，Transactions 和 Transaction 都符合这个接口
 type TxGroup interface {
 	Tx() *Transaction
@@ -121,6 +118,10 @@ func GetSignatureTypeName(signType int) string {
 }
 
 var ConfigPrefix = "mavl-config"
+<<<<<<< HEAD
+=======
+
+>>>>>>> develop
 func ConfigKey(key string) string {
 	return fmt.Sprintf("%s-%s", ConfigPrefix, key)
 }

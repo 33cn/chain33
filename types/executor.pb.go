@@ -285,6 +285,13 @@ func (m *CoinsTransfer) GetTo() string {
 	return ""
 }
 
+func (m *CoinsTransfer) GetTo() string {
+	if m != nil {
+		return m.To
+	}
+	return ""
+}
+
 type CoinsTransferToExec struct {
 	Cointoken string `protobuf:"bytes,1,opt,name=cointoken" json:"cointoken,omitempty"`
 	Amount    int64  `protobuf:"varint,2,opt,name=amount" json:"amount,omitempty"`

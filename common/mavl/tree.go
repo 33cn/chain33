@@ -13,8 +13,8 @@ import (
 )
 
 var (
-	ErrNodeNotExist     = errors.New("ErrNodeNotExist")
-	treelog             = log.New("module", "mavl")
+	ErrNodeNotExist = errors.New("ErrNodeNotExist")
+	treelog         = log.New("module", "mavl")
 )
 
 //merkle avl tree
@@ -225,13 +225,12 @@ func (t *Tree) IterateRangeInclusive(start, end []byte, ascending bool, fn func(
 //-----------------------------------------------------------------------------
 
 type nodeDB struct {
-	mtx        sync.Mutex
+	mtx     sync.Mutex
 	cache   *lru.ARCCache
-	db         dbm.DB
-	batch      dbm.Batch
-	orphans    map[string]struct{}
+	db      dbm.DB
+	batch   dbm.Batch
+	orphans map[string]struct{}
 }
-
 type nodeBatch struct {
 	batch dbm.Batch
 }
@@ -239,9 +238,9 @@ type nodeBatch struct {
 func newNodeDB(db dbm.DB, sync bool) *nodeDB {
 	ndb := &nodeDB{
 		cache:   db.GetCache(),
-		db:         db,
-		batch:      db.NewBatch(sync),
-		orphans:    make(map[string]struct{}),
+		db:      db,
+		batch:   db.NewBatch(sync),
+		orphans: make(map[string]struct{}),
 	}
 	return ndb
 }
@@ -251,27 +250,28 @@ func (ndb *nodeDB) GetNode(t *Tree, hash []byte) (*Node, error) {
 	defer ndb.mtx.Unlock()
 
 	// Check the cache.
+
 	if ndb.cache != nil {
 		elem, ok := ndb.cache.Get(string(hash))
-	if ok {
+		if ok {
 			return elem.(*Node), nil
 		}
 	}
-		// Doesn't exist, load from db.
-		var buf []byte
-		buf, err := ndb.db.Get(hash)
+	// Doesn't exist, load from db.
+	var buf []byte
+	buf, err := ndb.db.Get(hash)
 
-		if len(buf) == 0 || err != nil {
-			return nil, ErrNodeNotExist
-		}
-		node, err := MakeNode(buf, t)
-		if err != nil {
-			panic(fmt.Sprintf("Error reading IAVLNode. bytes: %X  error: %v", buf, err))
-		}
-		node.hash = hash
-		node.persisted = true
-		ndb.cacheNode(node)
-		return node, nil
+	if len(buf) == 0 || err != nil {
+		return nil, ErrNodeNotExist
+	}
+	node, err := MakeNode(buf, t)
+	if err != nil {
+		panic(fmt.Sprintf("Error reading IAVLNode. bytes: %X  error: %v", buf, err))
+	}
+	node.hash = hash
+	node.persisted = true
+	ndb.cacheNode(node)
+	return node, nil
 }
 
 func (ndb *nodeDB) GetBatch(sync bool) *nodeBatch {
@@ -293,7 +293,6 @@ func (ndb *nodeDB) SaveNode(t *Tree, node *Node) {
 	storenode := node.storeNode(t)
 	ndb.batch.Set(node.hash, storenode)
 	node.persisted = true
-
 	ndb.cacheNode(node)
 	delete(ndb.orphans, string(node.hash))
 	//treelog.Debug("SaveNode", "hash", node.hash, "height", node.height, "value", node.value)

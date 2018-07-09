@@ -131,7 +131,6 @@ func TestGrpc_Call(t *testing.T) {
 	rpcCfg.GrpcBindAddr = "127.0.0.1:8101"
 	rpcCfg.JrpcBindAddr = "127.0.0.1:8200"
 	rpcCfg.Whitelist = []string{"127.0.0.1", "0.0.0.0"}
-	rpcCfg.JrpcFuncWhitelist = []string{"*"}
 	rpcCfg.GrpcFuncWhitelist = []string{"*"}
 	Init(rpcCfg)
 	server := NewGRpcServer(&qmocks.Client{})

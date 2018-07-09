@@ -3,6 +3,10 @@ package db
 import (
 	"errors"
 	"fmt"
+<<<<<<< HEAD
+=======
+
+>>>>>>> develop
 	lru "github.com/hashicorp/golang-lru"
 )
 
@@ -114,18 +118,27 @@ func NewDB(name string, backend string, dir string, cache int32) DB {
 	}
 	return db
 }
+
 type TransactionDB struct {
 	cache *lru.ARCCache
 }
+
 func (db *TransactionDB) Begin() {
+
 }
+
 func (db *TransactionDB) Rollback() {
+
 }
+
 func (db *TransactionDB) Commit() {
+
 }
+
 func (db *TransactionDB) GetCache() *lru.ARCCache {
 	return db.cache
 }
+
 func (db *TransactionDB) SetCacheSize(size int) {
 	if db.cache != nil {
 		return

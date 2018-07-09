@@ -1,4 +1,5 @@
 package types
+
 //default hard fork block height for bityuan real network
 var (
 	ForkV1               int64 = 1
@@ -22,6 +23,7 @@ var (
 	ForkV19TokenPrice    int64 = 300000
 	ForkV20EVMState      int64 = 350000
 )
+
 //bityuan test net fork
 func SetTestNetFork() {
 	ForkV1 = 75260
@@ -45,6 +47,7 @@ func SetTestNetFork() {
 	ForkV19TokenPrice = 560000
 	ForkV20EVMState = 650000
 }
+
 func SetForkToOne() {
 	ForkV1 = 1
 	ForkV2AddToken = 1
@@ -67,6 +70,7 @@ func SetForkToOne() {
 	ForkV19TokenPrice = 1
 	ForkV20EVMState = 1
 }
+
 func IsMatchFork(height int64, fork int64) bool {
 	if height == -1 || height >= fork {
 		return true
