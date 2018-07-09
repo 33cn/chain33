@@ -83,7 +83,6 @@ const (
 	memDBBackendStr      = "memdb"
 	goBadgerDBBackendStr = "gobadgerdb"
 	ssDBBackendStr = "ssdb"
-	goCouchBaseBackendStr = "couchbase"
 	goPikaDbBackendStr = "pika"
 )
 

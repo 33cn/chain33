@@ -7,6 +7,7 @@ import (
 	"strings"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
 	"github.com/hoisie/redis"
+	"github.com/pkg/errors"
 )
 
 var (
@@ -43,6 +44,20 @@ func (db *GoPikaDB) Get(key []byte) (val []byte, err error) {
 		return nil, ErrNotFoundInDb
 	}
 	return val, nil
+}
+
+func (db *GoPikaDB) BatchGet(keys [][]byte) (value [][]byte, err error) {
+	for _, key := range keys {
+		val, _ := db.Get(key)
+		value = append(value, val)
+
+	}
+	if value != nil {
+		return value, nil
+	} else {
+		return nil, errors.New("All keys get failed.")
+	}
+
 }
 
 func (db *GoPikaDB) Set(key []byte, value []byte) error {
