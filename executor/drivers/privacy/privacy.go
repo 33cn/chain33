@@ -41,7 +41,7 @@ func newPrivacy() drivers.Driver {
 }
 
 func (p *privacy) GetName() string {
-	return "privacy"
+	return types.ExecName("privacy")
 }
 
 func (p *privacy) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
