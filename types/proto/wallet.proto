@@ -410,7 +410,6 @@ message ReqCreateTransaction {
     // 隐私交易，接收方的公钥对
     string pubkeypair = 10;
     int32  mixcount   = 11;
-    int64  expire     = 12;
 }
 
 message RealKeyInput {
