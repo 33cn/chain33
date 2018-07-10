@@ -64,11 +64,12 @@ func addCreateTokenTransferFlags(cmd *cobra.Command) {
 }
 
 func createTokenTransfer(cmd *cobra.Command, args []string) {
+	paraName, _ := cmd.Flags().GetString("paraName")
 	toAddr, _ := cmd.Flags().GetString("to")
 	amount, _ := cmd.Flags().GetFloat64("amount")
 	note, _ := cmd.Flags().GetString("note")
 	symbol, _ := cmd.Flags().GetString("symbol")
-	txHex, err := CreateRawTx(toAddr, amount, note, false, true, symbol, "")
+	txHex, err := CreateRawTx(toAddr, amount, note, false, true, symbol, "", paraName)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -101,6 +102,7 @@ func addCreateTokenWithdrawFlags(cmd *cobra.Command) {
 }
 
 func createTokenWithdraw(cmd *cobra.Command, args []string) {
+	paraName, _ := cmd.Flags().GetString("paraName")
 	exec, _ := cmd.Flags().GetString("exec")
 	amount, _ := cmd.Flags().GetFloat64("amount")
 	note, _ := cmd.Flags().GetString("note")
@@ -110,7 +112,7 @@ func createTokenWithdraw(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	txHex, err := CreateRawTx(execAddr, amount, note, true, true, symbol, exec)
+	txHex, err := CreateRawTx(execAddr, amount, note, true, true, symbol, exec, paraName)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -130,11 +132,12 @@ func GetTokensPreCreatedCmd() *cobra.Command {
 
 func getPreCreatedTokens(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	paraName, _ := cmd.Flags().GetString("paraName")
 	var reqtokens types.ReqTokens
 	reqtokens.Status = types.TokenStatusPreCreated
 	reqtokens.QueryAll = true
 	var params jsonrpc.Query4Cli
-	params.Execer = "token"
+	params.Execer = getRealExecName(paraName, "token")
 	params.FuncName = "GetTokens"
 	params.Payload = reqtokens
 	rpc, err := jsonrpc.NewJSONClient(rpcLaddr)
@@ -176,11 +179,12 @@ func GetTokensFinishCreatedCmd() *cobra.Command {
 
 func getFinishCreatedTokens(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	paraName, _ := cmd.Flags().GetString("paraName")
 	var reqtokens types.ReqTokens
 	reqtokens.Status = types.TokenStatusCreated
 	reqtokens.QueryAll = true
 	var params jsonrpc.Query4Cli
-	params.Execer = "token"
+	params.Execer = getRealExecName(paraName, "token")
 	params.FuncName = "GetTokens"
 	params.Payload = reqtokens
 	rpc, err := jsonrpc.NewJSONClient(rpcLaddr)
@@ -231,6 +235,7 @@ func addTokenAssetsFlags(cmd *cobra.Command) {
 
 func tokenAssets(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	paraName, _ := cmd.Flags().GetString("paraName")
 	addr, _ := cmd.Flags().GetString("addr")
 	execer, _ := cmd.Flags().GetString("exec")
 	req := types.ReqAccountTokenAssets{
@@ -239,7 +244,7 @@ func tokenAssets(cmd *cobra.Command, args []string) {
 	}
 
 	var params jsonrpc.Query4Cli
-	params.Execer = "token"
+	params.Execer = getRealExecName(paraName, "token")
 	params.FuncName = "GetAccountTokenAssets"
 	params.Payload = req
 
@@ -360,6 +365,7 @@ func addTokenPrecreatedFlags(cmd *cobra.Command) {
 
 func tokenPrecreated(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	paraName, _ := cmd.Flags().GetString("paraName")
 	name, _ := cmd.Flags().GetString("name")
 	symbol, _ := cmd.Flags().GetString("symbol")
 	introduction, _ := cmd.Flags().GetString("introduction")
@@ -378,6 +384,7 @@ func tokenPrecreated(cmd *cobra.Command, args []string) {
 		OwnerAddr:    ownerAddr,
 		Total:        total * types.TokenPrecision,
 		Fee:          feeInt64 * 1e4,
+		ParaName:     paraName,
 	}
 
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawTokenPreCreateTx", params, nil)
@@ -408,6 +415,7 @@ func addTokenFinishFlags(cmd *cobra.Command) {
 
 func tokenFinish(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	paraName, _ := cmd.Flags().GetString("paraName")
 	symbol, _ := cmd.Flags().GetString("symbol")
 	ownerAddr, _ := cmd.Flags().GetString("owner_addr")
 	fee, _ := cmd.Flags().GetFloat64("fee")
@@ -417,6 +425,7 @@ func tokenFinish(cmd *cobra.Command, args []string) {
 		Symbol:    symbol,
 		OwnerAddr: ownerAddr,
 		Fee:       feeInt64 * 1e4,
+		ParaName:  paraName,
 	}
 
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawTokenFinishTx", params, nil)
@@ -447,6 +456,7 @@ func addTokenRevokeFlags(cmd *cobra.Command) {
 
 func tokenRevoke(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	paraName, _ := cmd.Flags().GetString("paraName")
 	symbol, _ := cmd.Flags().GetString("symbol")
 	ownerAddr, _ := cmd.Flags().GetString("owner_addr")
 	fee, _ := cmd.Flags().GetFloat64("fee")
@@ -456,6 +466,7 @@ func tokenRevoke(cmd *cobra.Command, args []string) {
 		Symbol:    symbol,
 		OwnerAddr: ownerAddr,
 		Fee:       feeInt64 * 1e4,
+		ParaName:  paraName,
 	}
 
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawTokenRevokeTx", params, nil)

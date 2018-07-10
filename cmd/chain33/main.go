@@ -106,7 +106,12 @@ func main() {
 	}()
 	//set pprof
 	go func() {
-		http.ListenAndServe("localhost:6060", nil)
+		if cfg.Pprof != nil {
+			http.ListenAndServe(cfg.Pprof.ListenAddr, nil)
+		} else {
+			http.ListenAndServe("localhost:6060", nil)
+		}
+
 	}()
 	//set trace
 	grpc.EnableTracing = true
