@@ -177,6 +177,8 @@ const (
 	EventReplyDeleteCacheTransaction
 	EventPrivacyAccountInfo
 	EventReplyPrivacyAccountInfo
+	EventNotifySendTxResult
+	EventReplyNotifySendTxResult
 )
 
 var eventName = map[int]string{
@@ -330,4 +332,6 @@ var eventName = map[int]string{
 	EventDeleteCacheTransaction:       "EventDeleteCacheTransaction",
 	EventPrivacyAccountInfo:           "EventPrivacyAccountInfo",
 	EventReplyPrivacyAccountInfo:      "EventReplyPrivacyAccountInfo",
+	EventNotifySendTxResult:           "EventNotifySendTxResult",
+	EventReplyNotifySendTxResult:      "EventReplyNotifySendTxResult",
 }

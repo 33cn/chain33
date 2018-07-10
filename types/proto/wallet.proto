@@ -490,3 +490,8 @@ message ReqBindMiner {
 message ReplyBindMiner {
     string txHex = 1;
 }
+
+message NotifySendTxResult {
+    bool        isok = 1;
+    Transaction tx   = 2;
+}

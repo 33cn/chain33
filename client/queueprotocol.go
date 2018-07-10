@@ -68,6 +68,17 @@ func (q *QueueProtocol) query(topic string, ty int64, data interface{}) (queue.M
 	}
 	return client.WaitTimeout(msg, q.option.WaitTimeout)
 }
+
+func (q *QueueProtocol) notify(topic string, ty int64, data interface{}) (queue.Message, error) {
+	client := q.client
+	msg := client.NewMessage(topic, ty, data)
+	err := client.SendTimeout(msg, true, q.option.SendTimeout)
+	if err != nil {
+		return queue.Message{}, err
+	}
+	return msg, err
+}
+
 func (q *QueueProtocol) Close() {
 	q.client.Close()
 }
@@ -97,6 +108,10 @@ func (q *QueueProtocol) SendTx(param *types.Transaction) (*types.Reply, error) {
 			err = fmt.Errorf(msg)
 			reply = nil
 		}
+		q.notify(walletKey, types.EventNotifySendTxResult, &types.NotifySendTxResult{
+			Isok: reply.GetIsOk(),
+			Tx:   param,
+		})
 	} else {
 		err = types.ErrTypeAsset
 	}
