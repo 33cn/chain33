@@ -2,17 +2,17 @@ package executor
 
 import (
 	"gitlab.33.cn/chain33/chain33/types"
-	_ "gitlab.33.cn/chain33/chain33/types/executor/coins"
-	_ "gitlab.33.cn/chain33/chain33/types/executor/evm"
-	_ "gitlab.33.cn/chain33/chain33/types/executor/hashlock"
-	_ "gitlab.33.cn/chain33/chain33/types/executor/manage"
-	_ "gitlab.33.cn/chain33/chain33/types/executor/none"
-	_ "gitlab.33.cn/chain33/chain33/types/executor/privacy"
-	_ "gitlab.33.cn/chain33/chain33/types/executor/relay"
-	_ "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
-	_ "gitlab.33.cn/chain33/chain33/types/executor/ticket"
-	_ "gitlab.33.cn/chain33/chain33/types/executor/token"
-	_ "gitlab.33.cn/chain33/chain33/types/executor/trade"
+	"gitlab.33.cn/chain33/chain33/types/executor/coins"
+	"gitlab.33.cn/chain33/chain33/types/executor/evm"
+	"gitlab.33.cn/chain33/chain33/types/executor/hashlock"
+	"gitlab.33.cn/chain33/chain33/types/executor/manage"
+	"gitlab.33.cn/chain33/chain33/types/executor/none"
+	"gitlab.33.cn/chain33/chain33/types/executor/privacy"
+	"gitlab.33.cn/chain33/chain33/types/executor/relay"
+	"gitlab.33.cn/chain33/chain33/types/executor/retrieve"
+	"gitlab.33.cn/chain33/chain33/types/executor/ticket"
+	"gitlab.33.cn/chain33/chain33/types/executor/token"
+	"gitlab.33.cn/chain33/chain33/types/executor/trade"
 )
 
 // 进度：
@@ -30,14 +30,26 @@ import (
 // token:		actionName	CreateTx	log		query	Amount
 // trade:		actionName	CreateTx	log		query	Amount
 
-func init() {
-	// not need to init executor
+func Init() {
 
 	// init common log
 	types.RegistorLog(types.TyLogErr, &ErrLog{})
 	types.RegistorLog(types.TyLogFee, &FeeLog{})
 
 	// init query rpc type
+
+	//avoid init for ExecPrifex
+	coins.Init()
+	evm.Init()
+	hashlock.Init()
+	manage.Init()
+	none.Init()
+	privacy.Init()
+	relay.Init()
+	retrieve.Init()
+	ticket.Init()
+	token.Init()
+	trade.Init()
 }
 
 type ErrLog struct {

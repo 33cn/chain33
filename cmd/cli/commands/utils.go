@@ -313,7 +313,7 @@ func SendToAddress(rpcAddr string, from string, to string, amount int64, note st
 	ctx.Run()
 }
 
-func CreateRawTx(to string, amount float64, note string, isWithdraw bool, isToken bool, tokenSymbol string, execName string) (string, error) {
+func CreateRawTx(to string, amount float64, note string, isWithdraw bool, isToken bool, tokenSymbol string, execName string, tokenPrefix string) (string, error) {
 	if amount < 0 {
 		return "", types.ErrAmount
 	}
@@ -343,7 +343,7 @@ func CreateRawTx(to string, amount float64, note string, isWithdraw bool, isToke
 	} else {
 		transfer := &types.TokenAction{}
 		if !isWithdraw {
-			v := &types.TokenAction_Transfer{Transfer: &types.CoinsTransfer{Cointoken: tokenSymbol, Amount: amountInt64, Note: note}}
+			v := &types.TokenAction_Transfer{Transfer: &types.CoinsTransfer{Cointoken: tokenSymbol, Amount: amountInt64, Note: note, To: to}}
 			transfer.Value = v
 			transfer.Ty = types.ActionTransfer
 		} else {
@@ -351,7 +351,12 @@ func CreateRawTx(to string, amount float64, note string, isWithdraw bool, isToke
 			transfer.Value = v
 			transfer.Ty = types.ActionWithdraw
 		}
-		tx = &types.Transaction{Execer: []byte("token"), Payload: types.Encode(transfer), To: to}
+		if tokenPrefix == "" {
+			tx = &types.Transaction{Execer: []byte(tokenPrefix + "token"), Payload: types.Encode(transfer), To: to}
+		} else {
+			tx = &types.Transaction{Execer: []byte(tokenPrefix + "token"), Payload: types.Encode(transfer), To: address.ExecAddress(tokenPrefix + "token")}
+		}
+
 	}
 
 	var err error
@@ -403,4 +408,8 @@ func FormatAmountDisplay2Value(amount float64) int64 {
 func GetAmountValue(cmd *cobra.Command, field string) int64 {
 	amount, _ := cmd.Flags().GetFloat64(field)
 	return FormatAmountDisplay2Value(amount)
+}
+
+func getRealExecName(paraName string, name string) string {
+	return paraName + name
 }
