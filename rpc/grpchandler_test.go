@@ -94,6 +94,7 @@ func testSendTransactionOk(t *testing.T) {
 	var in *types.Transaction
 	reply := &types.Reply{IsOk: true, Msg: nil}
 	qapi.On("SendTx", in).Return(reply, nil)
+	// NotifySendTxResult called in SendTx
 	qapi.On("NotifySendTxResult", &types.ReqNotifySendTxResult{Isok: true, Tx: in}).Return(reply, nil)
 
 	reply, err := g.SendTransaction(getOkCtx(), in)
