@@ -1374,8 +1374,7 @@ func (wallet *Wallet) procNotifySendTxResult(notifyRes *types.NotifySendTxResult
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
 
-	var tx types.Transaction
-	tx = *notifyRes.Tx
+	tx := *notifyRes.Tx
 	tx.Signature = nil
 	txhashbyte := tx.Hash()
 	txhashhex := common.Bytes2Hex(txhashbyte)
