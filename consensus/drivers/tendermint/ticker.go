@@ -2,8 +2,6 @@ package tendermint
 
 import (
 	"time"
-
-	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
 )
 
 var (
@@ -14,8 +12,8 @@ var (
 // conditional on the height/round/step in the timeoutInfo.
 // The timeoutInfo.Duration may be non-positive.
 type TimeoutTicker interface {
-	Start() error
-	Stop() error
+	Start()
+	Stop()
 	Chan() <-chan timeoutInfo       // on which to receive a timeout
 	ScheduleTimeout(ti timeoutInfo) // reset the timer
 
@@ -27,7 +25,6 @@ type TimeoutTicker interface {
 // Timeouts are scheduled along the tickChan,
 // and fired on the tockChan.
 type timeoutTicker struct {
-	types.BaseService
 	timer    *time.Timer
 	tickChan chan timeoutInfo // for scheduling timeouts
 	tockChan chan timeoutInfo // for notifying about them
@@ -40,22 +37,17 @@ func NewTimeoutTicker() TimeoutTicker {
 		tickChan: make(chan timeoutInfo, tickTockBufferSize),
 		tockChan: make(chan timeoutInfo, tickTockBufferSize),
 	}
-	tt.BaseService = *types.NewBaseService("TimeoutTicker", tt)
 	tt.stopTimer() // don't want to fire until the first scheduled timeout
 	return tt
 }
 
 // OnStart implements cmn.Service. It starts the timeout routine.
-func (t *timeoutTicker) OnStart() error {
-
+func (t *timeoutTicker) Start()  {
 	go t.timeoutRoutine()
-
-	return nil
 }
 
 // OnStop implements cmn.Service. It stops the timeout routine.
-func (t *timeoutTicker) OnStop() {
-	t.BaseService.OnStop()
+func (t *timeoutTicker) Stop() {
 	t.stopTimer()
 }
 

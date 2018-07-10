@@ -74,8 +74,6 @@ type BlockExecutor struct {
 	// execute the app against this
 	//proxyApp proxy.AppConnConsensus
 
-	// events
-	eventBus types.BlockEventPublisher
 
 	// update these with block results after commit
 	//mempool types.Mempool
@@ -88,17 +86,8 @@ type BlockExecutor struct {
 func NewBlockExecutor(db *CSStateDB, evpool types.EvidencePool) *BlockExecutor {
 	return &BlockExecutor{
 		db: db,
-		//proxyApp: proxyApp,
-		eventBus: types.NopEventBus{},
-		//mempool:  mempool,
 		evpool: evpool,
 	}
-}
-
-// SetEventBus - sets the event bus for publishing block related events.
-// If not called, it defaults to types.NopEventBus.
-func (blockExec *BlockExecutor) SetEventBus(eventBus types.BlockEventPublisher) {
-	blockExec.eventBus = eventBus
 }
 
 // ValidateBlock validates the given block against the given state.
@@ -158,10 +147,6 @@ func (blockExec *BlockExecutor) ApplyBlock(s State, blockID types.BlockID, block
 	// ie. (may need to call Update for last block)
 	blockExec.evpool.Update(block)
 
-	// events are fired after everything else
-	// NOTE: if we crash between Commit and Save, events wont be fired during replay
-	fireEvents(blockExec.eventBus, block)
-
 	return s, nil
 }
 
@@ -208,32 +193,6 @@ func updateState( s State, blockID types.BlockID, block *types.Block) (State, er
 		LastResultsHash:                  nil,
 		AppHash:                          nil,
 	}, nil
-}
-
-// Fire NewBlock, NewBlockHeader.
-// Fire TxEvent for every tx.
-// NOTE: if Tendermint crashes before commit, some or all of these events may be published again.
-func fireEvents(eventBus types.BlockEventPublisher, block *types.Block /*, abciResponses *ABCIResponses*/) {
-	/*
-		// NOTE: do we still need this buffer ?
-		txEventBuffer := types.NewTxEventBuffer(eventBus, int(block.NumTxs))
-		for i, tx := range block.Data.Txs {
-			txEventBuffer.PublishEventTx(types.EventDataTx{types.TxResult{
-				Height: block.Height,
-				Index:  uint32(i),
-				Tx:     tx,
-				Result: *(abciResponses.DeliverTx[i]),
-			}})
-		}
-	*/
-	eventBus.PublishEventNewBlock(types.EventDataNewBlock{block})
-	eventBus.PublishEventNewBlockHeader(types.EventDataNewBlockHeader{block.Header})
-	/*
-		err := txEventBuffer.Flush()
-		if err != nil {
-			logger.Error("Failed to flush event buffer", "err", err)
-		}
-	*/
 }
 
 //----------------------------------------------------------------------------------------------------

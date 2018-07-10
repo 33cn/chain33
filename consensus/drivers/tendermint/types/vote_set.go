@@ -7,8 +7,6 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
-
-	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
 )
 
 /*
@@ -53,7 +51,7 @@ type VoteSet struct {
 
 	mtx           sync.Mutex
 	valSet        *ValidatorSet
-	votesBitArray *cmn.BitArray
+	votesBitArray *BitArray
 	votes         []*Vote                // Primary votes to share
 	sum           int64                  // Sum of voting power for seen votes, discounting conflicts
 	maj23         *BlockID               // First 2/3 majority seen
@@ -72,7 +70,7 @@ func NewVoteSet(chainID string, height int64, round int, type_ byte, valSet *Val
 		round:         round,
 		type_:         type_,
 		valSet:        valSet,
-		votesBitArray: cmn.NewBitArray(valSet.Size()),
+		votesBitArray: NewBitArray(valSet.Size()),
 		votes:         make([]*Vote, valSet.Size()),
 		sum:           0,
 		maj23:         nil,
@@ -329,7 +327,7 @@ func (voteSet *VoteSet) SetPeerMaj23(peerID string, blockID BlockID) {
 	}
 }
 
-func (voteSet *VoteSet) BitArray() *cmn.BitArray {
+func (voteSet *VoteSet) BitArray() *BitArray {
 	if voteSet == nil {
 		return nil
 	}
@@ -338,7 +336,7 @@ func (voteSet *VoteSet) BitArray() *cmn.BitArray {
 	return voteSet.votesBitArray.Copy()
 }
 
-func (voteSet *VoteSet) BitArrayByBlockID(blockID BlockID) *cmn.BitArray {
+func (voteSet *VoteSet) BitArrayByBlockID(blockID BlockID) *BitArray {
 	if voteSet == nil {
 		return nil
 	}
@@ -496,7 +494,7 @@ func (voteSet *VoteSet) MakeCommit() *Commit {
 */
 type blockVotes struct {
 	peerMaj23 bool          // peer claims to have maj23
-	bitArray  *cmn.BitArray // valIndex -> hasVote?
+	bitArray  *BitArray // valIndex -> hasVote?
 	votes     []*Vote       // valIndex -> *Vote
 	sum       int64         // vote sum
 }
@@ -504,7 +502,7 @@ type blockVotes struct {
 func newBlockVotes(peerMaj23 bool, numValidators int) *blockVotes {
 	return &blockVotes{
 		peerMaj23: peerMaj23,
-		bitArray:  cmn.NewBitArray(numValidators),
+		bitArray:  NewBitArray(numValidators),
 		votes:     make([]*Vote, numValidators),
 		sum:       0,
 	}
@@ -534,7 +532,7 @@ type VoteSetReader interface {
 	Round() int
 	Type() byte
 	Size() int
-	BitArray() *cmn.BitArray
+	BitArray() *BitArray
 	GetByIndex(int) *Vote
 	IsCommit() bool
 }

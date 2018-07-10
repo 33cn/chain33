@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"encoding/json"
 	"github.com/inconshreveable/log15"
@@ -263,7 +262,7 @@ type Commit struct {
 	// Volatile
 	firstPrecommit *Vote
 	hash           []byte
-	bitArray       *cmn.BitArray
+	bitArray       *BitArray
 }
 
 // FirstPrecommit returns the first non-nil precommit in the commit
@@ -313,9 +312,9 @@ func (commit *Commit) Size() int {
 }
 
 // BitArray returns a BitArray of which validators voted in this commit
-func (commit *Commit) BitArray() *cmn.BitArray {
+func (commit *Commit) BitArray() *BitArray {
 	if commit.bitArray == nil {
-		commit.bitArray = cmn.NewBitArray(len(commit.Precommits))
+		commit.bitArray = NewBitArray(len(commit.Precommits))
 		for i, precommit := range commit.Precommits {
 			// TODO: need to check the BlockID otherwise we could be counting conflicts,
 			// not just the one with +2/3 !
@@ -506,7 +505,7 @@ func (data *EvidenceData) StringIndented(indent string) string {
 	if data == nil {
 		return "nil-Evidence"
 	}
-	evStrings := make([]string, cmn.MinInt(len(data.Evidence), 21))
+	evStrings := make([]string, MinInt(len(data.Evidence), 21))
 	for i, ev := range data.Evidence {
 		if i == 20 {
 			evStrings[i] = fmt.Sprintf("... (%v total)", len(data.Evidence))

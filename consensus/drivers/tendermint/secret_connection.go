@@ -4,7 +4,7 @@
 // is known ahead of time, and thus we are technically
 // still vulnerable to MITM. (TODO!)
 // See docs/sts-final.pdf for more info
-package p2p
+package tendermint
 
 import (
 	"bytes"
@@ -21,7 +21,6 @@ import (
 	"golang.org/x/crypto/ripemd160"
 
 	"gitlab.33.cn/chain33/chain33/common/crypto"
-	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
 	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
 )
@@ -33,7 +32,7 @@ const totalFrameSize = dataMaxSize + dataLenSize
 const sealedFrameSize = totalFrameSize + secretbox.Overhead
 const authSigMsgSize = (32 ) + (64 ) // fixed size (length prefixed) byte arrays
 
-var secret = log15.New("module", "tendermint-secret_connection")
+var secret = log15.New("module", "tendermint-secret-connection")
 
 // Implements net.Conn
 type SecretConnection struct {
@@ -117,7 +116,7 @@ func (sc *SecretConnection) RemotePubKey() crypto.PubKey {
 // CONTRACT: data smaller than dataMaxSize is read atomically.
 func (sc *SecretConnection) Write(data []byte) (n int, err error) {
 	for 0 < len(data) {
-		var frame []byte = make([]byte, totalFrameSize)
+		var frame = make([]byte, totalFrameSize)
 		var chunk []byte
 		if dataMaxSize < len(data) {
 			chunk = data[:dataMaxSize]
@@ -206,7 +205,7 @@ func genEphKeys() (ephPub, ephPriv *[32]byte) {
 func shareEphPubKey(conn io.ReadWriteCloser, locEphPub *[32]byte) (remEphPub *[32]byte, err error) {
 	var err1, err2 error
 
-	cmn.Parallel(
+	Parallel(
 		func() {
 			_, err1 = conn.Write(locEphPub[:])
 		},
@@ -276,13 +275,11 @@ func shareAuthSignature(sc *SecretConnection, pubKey crypto.PubKey, signature cr
 	var recvMsg authSigMessage
 	var err1, err2 error
 
-	cmn.Parallel(
+	Parallel(
 		func() {
-			//msgBytes := wire.BinaryBytes(authSigMessage{pubKey, signature})
 			msgByte := make([]byte, len(pubKey.Bytes())+len(signature.Bytes()))
 			copy(msgByte, pubKey.Bytes())
 			copy(msgByte[len(pubKey.Bytes()):], signature.Bytes())
-			//secret.Info("shareAuthSignature", "writemsg", msgByte)
 			_, err1 = sc.Write(msgByte)
 		},
 		func() {

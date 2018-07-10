@@ -72,18 +72,30 @@ type RoundState struct {
 	LastValidators     *ValidatorSet
 }
 
-// RoundStateEvent returns the H/R/S of the RoundState as an event.
-func (rs *RoundState) RoundStateEvent() EventDataRoundState {
-	// XXX: copy the RoundState
-	// if we want to avoid this, we may need synchronous events after all
-	rs_ := *rs
-	edrs := EventDataRoundState{
-		Height:     rs.Height,
-		Round:      rs.Round,
-		Step:       rs.Step.String(),
-		RoundState: &rs_,
+func makeRoundStepMessages(rs *RoundState) (nrsMsg *NewRoundStepMessage, csMsg *CommitStepMessage) {
+	nrsMsg = &NewRoundStepMessage{
+		Height: rs.Height,
+		Round:  rs.Round,
+		Step:   rs.Step,
+		SecondsSinceStartTime: int(time.Since(rs.StartTime).Seconds()),
+		LastCommitRound:       rs.LastCommit.Round(),
 	}
-	return edrs
+	if rs.Step == RoundStepCommit {
+		csMsg = &CommitStepMessage{
+			Height:           rs.Height,
+		}
+	}
+	return
+}
+
+func (rs *RoundState) RoundStateMessage() *NewRoundStepMessage {
+	return &NewRoundStepMessage{
+		Height: rs.Height,
+		Round:  rs.Round,
+		Step:   rs.Step,
+		SecondsSinceStartTime: int(time.Since(rs.StartTime).Seconds()),
+		LastCommitRound:       rs.LastCommit.Round(),
+	}
 }
 
 // String returns a string

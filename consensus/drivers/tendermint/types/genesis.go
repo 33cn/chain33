@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
 	"fmt"
 )
 
@@ -36,7 +35,7 @@ func (genDoc *GenesisDoc) SaveAs(file string) error {
 	if err != nil {
 		return err
 	}
-	return cmn.WriteFile(file, genDocBytes, 0644)
+	return WriteFile(file, genDocBytes, 0644)
 }
 
 // ValidatorHash returns the hash of the validator set contained in the GenesisDoc

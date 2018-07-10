@@ -7,14 +7,10 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 
 	"fmt"
-	"math/rand"
-	"net"
-	"strings"
 	"time"
 
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
-	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/p2p"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/util"
 )
@@ -23,20 +19,19 @@ var (
 	tendermintlog = log15.New("module", "tendermint")
 	genesisDocKey = []byte("genesisDoc")
 )
+const tendermint_version = "0.1.0"
 
 type TendermintClient struct {
 	//config
 	*drivers.BaseClient
 	genesisDoc    *ttypes.GenesisDoc // initial validator set
 	privValidator ttypes.PrivValidator
-	eventBus     *ttypes.EventBus
 	privKey      crypto.PrivKey // local node's p2p key
-	sw           *p2p.Switch
-	state        State
 	csState      *ConsensusState
 	blockStore   *ttypes.BlockStore
 	evidenceDB   dbm.DB
 	crypto       crypto.Crypto
+	node         *Node
 }
 
 // DefaultDBProvider returns a database using the DBBackend and DBDir
@@ -47,6 +42,9 @@ func DefaultDBProvider(ID string) (dbm.DB, error) {
 
 func New(cfg *types.Consensus) *TendermintClient {
 	tendermintlog.Info("Start to create tendermint client")
+
+	//init rand
+	ttypes.Init()
 
 	genDoc, err := ttypes.GenesisDocFromFile("./genesis.json")
 	if err != nil {
@@ -85,10 +83,6 @@ func New(cfg *types.Consensus) *TendermintClient {
 
 	pubkey := privValidator.GetPubKey().KeyString()
 
-	sw := p2p.NewSwitch(p2p.DefaultP2PConfig())
-
-	eventBus := ttypes.NewEventBus()
-
 	c := drivers.NewBaseClient(cfg)
 
 	blockStore := ttypes.NewBlockStore(c, pubkey)
@@ -98,8 +92,6 @@ func New(cfg *types.Consensus) *TendermintClient {
 		genesisDoc:    genDoc,
 		privValidator: privValidator,
 		privKey:       priv,
-		sw:            sw,
-		eventBus:      eventBus,
 		blockStore:    blockStore,
 		evidenceDB:    evidenceDB,
 		crypto:        cr,
@@ -196,7 +188,6 @@ func (client *TendermintClient) StartConsensus() {
 	//make evidenceReactor
 	evidenceStore := NewEvidenceStore(client.evidenceDB)
 	evidencePool := NewEvidencePool(stateDB, state, evidenceStore)
-	evidenceReactor := NewEvidenceReactor(evidencePool)
 
 	// make block executor for consensus and blockchain reactors to execute blocks
 	blockExec := NewBlockExecutor(stateDB, evidencePool)
@@ -207,42 +198,14 @@ func (client *TendermintClient) StartConsensus() {
 	client.privValidator.ResetLastHeight(state.LastBlockHeight)
 	csState.SetPrivValidator(client.privValidator)
 
-	consensusReactor := NewConsensusReactor(csState, false)
-	// services which will be publishing and/or subscribing for messages (events)
-	// consensusReactor will set it on consensusState and blockExecutor
-	consensusReactor.SetEventBus(client.eventBus)
-
-	client.sw.AddReactor("EVIDENCE", evidenceReactor)
-
-	client.sw.AddReactor("CONSENSUS", consensusReactor)
-
 	client.csState = csState
 
-	//event start
-	err = client.eventBus.Start()
-	if err != nil {
-		tendermintlog.Error("TendermintClientSetQueue", "msg", "EventBus start failed", "error", err)
-		return
-	}
 	// Create & add listener
-	protocol, address := "tcp", "0.0.0.0:46656"
-	l := p2p.NewDefaultListener(protocol, address)
-	client.sw.AddListener(l)
+	protocol, listeningAddress := "tcp", "0.0.0.0:46656"
+	node := NewNode(client.Cfg.Seeds, protocol, listeningAddress, client.privKey, state.ChainID, tendermint_version, csState, evidencePool)
 
-	// Start the switch
-	client.sw.SetNodeInfo(client.MakeDefaultNodeInfo())
-	client.sw.SetNodePrivKey(client.privKey)
-	err = client.sw.Start()
-	if err != nil {
-		tendermintlog.Error("TendermintClientSetQueue", "msg", "switch start failed", "error", err)
-		return
-	}
-
-	// If seeds exist, add them to the address book and dial out
-	if len(client.Cfg.Seeds) != 0 {
-		// dial out
-		client.sw.DialSeeds(client.Cfg.Seeds)
-	}
+	client.node = node
+	node.Start()
 
 	go client.CreateBlock()
 }
@@ -319,28 +282,4 @@ func (client *TendermintClient) CreateBlock() {
 			continue
 		}
 	}
-}
-
-func GetPulicIPInUse() string {
-	conn, _ := net.Dial("udp", "8.8.8.8:80")
-	defer conn.Close()
-	localAddr := conn.LocalAddr().String()
-	idx := strings.LastIndex(localAddr, ":")
-	return localAddr[0:idx]
-}
-
-func (client *TendermintClient) MakeDefaultNodeInfo() *p2p.NodeInfo {
-	nodeInfo := &p2p.NodeInfo{
-		PubKey:  client.privKey.PubKey(),
-		Moniker: "test_" + fmt.Sprintf("%v", rand.Intn(100)),
-		Network: client.state.ChainID,
-		Version: "v0.1.0",
-		Other: []string{
-			fmt.Sprintf("p2p_version=%v", p2p.Version),
-		},
-	}
-
-	nodeInfo.ListenAddr = GetPulicIPInUse() + ":36656"
-
-	return nodeInfo
 }
