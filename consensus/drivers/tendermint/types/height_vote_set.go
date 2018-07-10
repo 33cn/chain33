@@ -100,7 +100,7 @@ func (hvs *HeightVoteSet) addRound(round int) {
 
 // Duplicate votes return added=false, err=nil.
 // By convention, peerKey is "" if origin is self.
-func (hvs *HeightVoteSet) AddVote(vote *Vote, peerKey string) (added bool, err error) {
+func (hvs *HeightVoteSet) AddVote(vote *Vote, peerID string) (added bool, err error) {
 	hvs.mtx.Lock()
 	defer hvs.mtx.Unlock()
 	if !IsVoteTypeValid(vote.Type) {
@@ -108,10 +108,10 @@ func (hvs *HeightVoteSet) AddVote(vote *Vote, peerKey string) (added bool, err e
 	}
 	voteSet := hvs.getVoteSet(vote.Round, vote.Type)
 	if voteSet == nil {
-		if rndz := hvs.peerCatchupRounds[peerKey]; len(rndz) < 2 {
+		if rndz := hvs.peerCatchupRounds[peerID]; len(rndz) < 2 {
 			hvs.addRound(vote.Round)
 			voteSet = hvs.getVoteSet(vote.Round, vote.Type)
-			hvs.peerCatchupRounds[peerKey] = append(rndz, vote.Round)
+			hvs.peerCatchupRounds[peerID] = append(rndz, vote.Round)
 		} else {
 			// Peer has sent a vote that does not match our round,
 			// for more than one round.  Bad peer!

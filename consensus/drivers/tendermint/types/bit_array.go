@@ -1,4 +1,4 @@
-package common
+package types
 
 import (
 	"encoding/binary"
@@ -18,6 +18,7 @@ func NewBitArray(bits int) *BitArray {
 	if bits == 0 {
 		return nil
 	}
+
 	return &BitArray{
 		Bits:  bits,
 		Elems: make([]uint64, (bits+63)/64),

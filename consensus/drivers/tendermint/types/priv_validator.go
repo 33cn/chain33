@@ -12,7 +12,6 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"encoding/hex"
-	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
 )
 
 // TODO: type ?
@@ -205,22 +204,22 @@ func LoadOrGenPrivValidatorFS(filePath string) *PrivValidatorImp {
 func LoadPrivValidatorFSWithSigner(filePath string, signerFunc func(PrivValidator) Signer) *PrivValidatorImp {
 	privValJSONBytes, err := ioutil.ReadFile(filePath)
 	if err != nil {
-		cmn.Exit(err.Error())
+		Exit(err.Error())
 	}
 	privVal := &PrivValidatorFS{}
 	err = json.Unmarshal(privValJSONBytes, &privVal)
 	if err != nil {
-		cmn.Exit(Fmt("Error reading PrivValidator from %v: %v\n", filePath, err))
+		Exit(Fmt("Error reading PrivValidator from %v: %v\n", filePath, err))
 	}
 	if len(privVal.PubKey.Data) == 0 {
-		cmn.Exit("Error PrivValidator pubkey is empty\n")
+		Exit("Error PrivValidator pubkey is empty\n")
 	}
 	if len(privVal.PrivKey.Data) == 0 {
-		cmn.Exit("Error PrivValidator privkey is empty\n")
+		Exit("Error PrivValidator privkey is empty\n")
 	}
 	addr, err := hex.DecodeString(privVal.Address)
 	if err != nil {
-		cmn.Exit(Fmt("Error PrivValidator DecodeString failed:%v\n",err))
+		Exit(Fmt("Error PrivValidator DecodeString failed:%v\n",err))
 	}
 	privValImp := &PrivValidatorImp{
 		Address:    addr,
@@ -230,31 +229,31 @@ func LoadPrivValidatorFSWithSigner(filePath string, signerFunc func(PrivValidato
 	}
 	tmp,err := hex.DecodeString(privVal.PrivKey.Data)
 	if err != nil {
-		cmn.Exit(Fmt("Error DecodeString PrivKey data failed: %v\n", err))
+		Exit(Fmt("Error DecodeString PrivKey data failed: %v\n", err))
 	}
 	privKey, err := ConsensusCrypto.PrivKeyFromBytes(tmp)
 	if err != nil {
-		cmn.Exit(Fmt("Error PrivKeyFromBytes failed: %v\n", err))
+		Exit(Fmt("Error PrivKeyFromBytes failed: %v\n", err))
 	}
 	privValImp.PrivKey = privKey
 
 	pubKey, err := PubKeyFromString(privVal.PubKey.Data)
 	if err != nil {
-		cmn.Exit(Fmt("Error PubKeyFromBytes failed: %v\n", err))
+		Exit(Fmt("Error PubKeyFromBytes failed: %v\n", err))
 	}
 	privValImp.PubKey = pubKey
 
 	if len(privVal.LastSignBytes) != 0 {
 		tmp, err = hex.DecodeString(string(privVal.LastSignBytes))
 		if err != nil {
-			cmn.Exit(Fmt("Error DecodeString LastSignBytes data failed: %v\n", err))
+			Exit(Fmt("Error DecodeString LastSignBytes data failed: %v\n", err))
 		}
 		privValImp.LastSignBytes = tmp
 	}
 	if privVal.LastSignature != nil {
 		signature, err := SignatureFromString(privVal.LastSignature.Data)
 		if err != nil {
-			cmn.Exit(Fmt("Error SignatureFromBytes failed: %v\n", err))
+			Exit(Fmt("Error SignatureFromBytes failed: %v\n", err))
 		}
 		privValImp.LastSignature = signature
 	} else {
@@ -301,7 +300,7 @@ func (privVal *PrivValidatorImp) save() {
 		// `@; BOOM!!!
 		PanicCrisis(err)
 	}
-	err = cmn.WriteFileAtomic(privVal.filePath, jsonBytes, 0600)
+	err = WriteFileAtomic(privVal.filePath, jsonBytes, 0600)
 	if err != nil {
 		// `@; BOOM!!!
 		PanicCrisis(err)

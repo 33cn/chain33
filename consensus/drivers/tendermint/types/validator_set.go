@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 )
 
@@ -51,7 +50,7 @@ func NewValidatorSet(vals []*Validator) *ValidatorSet {
 // TODO: mind the overflow when times and votingPower shares too large.
 func (valSet *ValidatorSet) IncrementAccum(times int) {
 	// Add VotingPower * times to each validator and order into heap.
-	validatorsHeap := cmn.NewHeap()
+	validatorsHeap := NewHeap()
 	for _, val := range valSet.Validators {
 		val.Accum += val.VotingPower * int64(times) // TODO: mind overflow
 		validatorsHeap.Push(val, accumComparable{val})
