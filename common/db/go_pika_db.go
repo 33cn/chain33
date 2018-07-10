@@ -2,12 +2,12 @@ package db
 
 import (
 	"bytes"
-	"encoding/hex"
 	"strings"
+
+	"encoding/hex"
 
 	"github.com/hoisie/redis"
 	log "github.com/inconshreveable/log15"
-	"github.com/pkg/errors"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
 )
 
@@ -25,9 +25,8 @@ func init() {
 
 type GoPikaDB struct {
 	TransactionDB
-	client   *redis.Client
-	batch    map[string][]byte
-	batchDel []string
+	client *redis.Client
+	batch  map[string][]byte
 }
 
 func NewGoPikaDB(name string, dir string, cache int) (*GoPikaDB, error) {
@@ -38,7 +37,7 @@ func NewGoPikaDB(name string, dir string, cache int) (*GoPikaDB, error) {
 }
 
 func (db *GoPikaDB) Get(key []byte) (val []byte, err error) {
-	val, err = db.client.Get(hex.EncodeToString(key))
+	val, err = db.client.Get(string(key))
 	if err != nil {
 		return nil, ErrNotFoundInDb
 	}
@@ -46,21 +45,26 @@ func (db *GoPikaDB) Get(key []byte) (val []byte, err error) {
 }
 
 func (db *GoPikaDB) BatchGet(keys [][]byte) (value [][]byte, err error) {
-	for _, key := range keys {
-		val, _ := db.Get(key)
-		value = append(value, val)
-
+	var mkey = []string{}
+	for _, v := range keys {
+		mkey = append(mkey, string(v))
 	}
-	if value != nil {
-		return value, nil
+	val, err := db.client.Mget(mkey...)
+	if err != nil {
+		plog.Error("BatchGet err", "error", err)
+		return nil, err
 	} else {
-		return nil, errors.New("All keys get failed.")
+		return val, nil
 	}
 
 }
 
 func (db *GoPikaDB) Set(key []byte, value []byte) error {
-	db.batch[hex.EncodeToString(key)] = value
+	err := db.client.Set(string(key), value)
+	if err != nil {
+		plog.Error("Set err", "error", err)
+		return err
+	}
 	return nil
 }
 
@@ -70,7 +74,11 @@ func (db *GoPikaDB) SetSync(key []byte, value []byte) error {
 }
 
 func (db *GoPikaDB) Delete(key []byte) error {
-	db.batchDel = append(db.batchDel, hex.EncodeToString(key))
+	_, err := db.client.Del(string(key))
+	if err != nil {
+		plog.Error("Delete err", "error", err)
+		return err
+	}
 	return nil
 }
 
@@ -95,25 +103,25 @@ func (db *GoPikaDB) Stats() map[string]string {
 	return nil
 }
 
-func (db *GoPikaDB) Iterator(prefix []byte, reserve bool) Iterator {
+func (db *GoPikaDB) Iterator(prefix []byte, reverse bool) Iterator {
 	keys, err := db.client.Keys(hex.EncodeToString(prefix) + "*")
 	if err != nil {
 		plog.Error("Get keys err", "error", err)
 	}
-
 	mVal := make(map[string][]byte)
 	for _, k := range keys {
 		v, _ := db.client.Get(k)
 		mVal[k] = v
 	}
-	return &GoPikaIt{keys: keys, mVal: mVal, prefix: prefix, reserve: reserve}
+	return &GoPikaIt{keys: keys, mVal: mVal, prefix: prefix, reverse: reverse}
+
 }
 
 type GoPikaIt struct {
 	iterator.Iterator
 	mVal    map[string][]byte
 	prefix  []byte
-	reserve bool
+	reverse bool
 	keys    []string
 	index   int
 }
@@ -121,12 +129,12 @@ type GoPikaIt struct {
 func (dbit *GoPikaIt) Close() {
 	dbit.mVal = nil
 	dbit.prefix = nil
-	dbit.reserve = false
+	dbit.reverse = false
 	dbit.index = 0
 }
 
 func (dbit *GoPikaIt) Next() bool {
-	if dbit.reserve {
+	if dbit.reverse {
 		dbit.index--
 	} else {
 		dbit.index++
@@ -140,7 +148,7 @@ func (dbit *GoPikaIt) Next() bool {
 }
 
 func (dbit *GoPikaIt) Rewind() bool {
-	if dbit.reserve {
+	if dbit.reverse {
 		dbit.index = (len(dbit.keys)) - 1
 	} else {
 		dbit.index = 0
@@ -163,7 +171,7 @@ func (dbit *GoPikaIt) Valid() bool {
 	if dbit.index <= 0 || dbit.index >= len(dbit.keys) {
 		return false
 	}
-	val, _ := hex.DecodeString(dbit.keys[dbit.index])
+	val := []byte(dbit.keys[dbit.index])
 	return dbit.mVal[dbit.keys[dbit.index]] != nil && bytes.Contains(val, dbit.prefix)
 }
 
@@ -194,6 +202,7 @@ func (dbit *GoPikaIt) Seek(key []byte) bool {
 		dbit.index = tmp
 		return false
 	}
+
 }
 
 type GoPikdBatch struct {
@@ -205,11 +214,11 @@ func (db *GoPikaDB) NewBatch(sync bool) Batch {
 }
 
 func (mBatch *GoPikdBatch) Set(key, value []byte) {
-	mBatch.db.batch[hex.EncodeToString(key)] = value
+	mBatch.db.batch[string(key)] = value
 }
 
 func (mBatch *GoPikdBatch) Delete(key []byte) {
-	mBatch.db.batchDel = append(mBatch.db.batchDel, hex.EncodeToString(key))
+	mBatch.db.batch[string(key)] = nil
 }
 
 func (mBatch *GoPikdBatch) Write() error {
@@ -218,11 +227,7 @@ func (mBatch *GoPikdBatch) Write() error {
 		return err
 	}
 
-	for _, key := range mBatch.db.batchDel {
-		mBatch.db.client.Del(key)
-	}
 	mBatch.db.batch = nil
 	mBatch.db.batch = make(map[string][]byte)
-	mBatch.db.batchDel = nil
 	return nil
 }
