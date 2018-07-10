@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"gitlab.33.cn/chain33/chain33/common/crypto"
-	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
 	"encoding/binary"
 )
 
@@ -85,11 +84,11 @@ func (v *Validator) Hash() []byte {
 // RandValidator returns a randomized validator, useful for testing.
 // UNSTABLE
 func RandValidator(randPower bool, minPower int64) (*Validator, *PrivValidatorImp) {
-	_, tempFilePath := cmn.Tempfile("priv_validator_")
+	_, tempFilePath := Tempfile("priv_validator_")
 	privVal := GenPrivValidatorImp(tempFilePath)
 	votePower := minPower
 	if randPower {
-		votePower += int64(cmn.RandUint32())
+		votePower += int64(Randgen.Uint32())
 	}
 	val := NewValidator(privVal.PubKey, votePower)
 	return val, privVal

@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"gitlab.33.cn/chain33/chain33/common/crypto"
-	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
 	"encoding/json"
 	"github.com/inconshreveable/log15"
 )
@@ -118,9 +117,9 @@ func (vote *Vote) String() string {
 	}
 
 	return fmt.Sprintf("Vote{%v:%X %v/%02d/%v(%v) %X %v @ %s}",
-		vote.ValidatorIndex, cmn.Fingerprint(vote.ValidatorAddress),
+		vote.ValidatorIndex, Fingerprint(vote.ValidatorAddress),
 		vote.Height, vote.Round, vote.Type, typeString,
-		cmn.Fingerprint(vote.BlockID.Hash), vote.Signature,
+		Fingerprint(vote.BlockID.Hash), vote.Signature,
 		CanonicalTime(vote.Timestamp))
 }
 
@@ -144,7 +143,7 @@ func (vote *Vote) Verify(chainID string, pubKey crypto.PubKey) error {
 
 func (vote *Vote) Hash() []byte {
 	if vote == nil {
-		votelog.Error("vote hash is nil")
+		//votelog.Error("vote hash is nil")
 		return nil
 	}
 	bytes, err := json.Marshal(vote)

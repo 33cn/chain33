@@ -12,11 +12,11 @@ import (
 	"github.com/golang/protobuf/proto"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers"
-	cmn "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/common"
 	ttypes "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
 	"gitlab.33.cn/chain33/chain33/types"
 	gtypes "gitlab.33.cn/chain33/chain33/types"
 	"encoding/json"
+	"sync/atomic"
 )
 
 //-----------------------------------------------------------------------------
@@ -42,12 +42,6 @@ var (
 	msgQueueSize = 1000
 )
 
-// msgs from the reactor which may update the state
-type msgInfo struct {
-	Msg     ttypes.ReactorMsg `json:"msg"`
-	PeerKey string           `json:"peer_key"`
-}
-
 // internally generated messages which may update the state
 type timeoutInfo struct {
 	Duration time.Duration        `json:"duration"`
@@ -65,7 +59,6 @@ func (ti *timeoutInfo) String() string {
 // commits blocks to the chain and executes them against the application.
 // The internal state machine receives input from peers, the internal validator, and from a timer.
 type ConsensusState struct {
-	ttypes.BaseService
 	// config details
 	client        *drivers.BaseClient
 	privValidator ttypes.PrivValidator // for signing votes
@@ -83,13 +76,9 @@ type ConsensusState struct {
 
 	// state changes may be triggered by msgs from peers,
 	// msgs from ourself, or by timeouts
-	peerMsgQueue     chan msgInfo
-	internalMsgQueue chan msgInfo
+	peerMsgQueue     chan MsgInfo
+	internalMsgQueue chan MsgInfo
 	timeoutTicker    TimeoutTicker
-
-	// we use eventBus to trigger msg broadcasts in the reactor,
-	// and to notify external subscribers, eg. through a websocket
-	eventBus *ttypes.EventBus
 
 	// a Write-Ahead Log ensures we can recover from any kind of crash
 	// and helps us avoid signing conflicting votes
@@ -118,6 +107,13 @@ type ConsensusState struct {
 
 	roundstateRWLock sync.RWMutex //only lock roundstate so gossip in reactor can go on
 
+	broadcastChannel chan<- ttypes.ReactorMsg
+
+	ourId              ID
+
+	started uint32 // atomic
+	stopped uint32 // atomic
+	Quit    chan struct{}
 }
 
 // NewConsensusState returns a new ConsensusState.
@@ -125,8 +121,8 @@ func NewConsensusState(client *drivers.BaseClient, blockStore *ttypes.BlockStore
 	cs := &ConsensusState{
 		client:           client,
 		blockExec:        blockExec,
-		peerMsgQueue:     make(chan msgInfo, msgQueueSize),
-		internalMsgQueue: make(chan msgInfo, msgQueueSize),
+		peerMsgQueue:     make(chan MsgInfo, msgQueueSize),
+		internalMsgQueue: make(chan MsgInfo, msgQueueSize),
 		timeoutTicker:    NewTimeoutTicker(),
 		done:             make(chan struct{}),
 		doWALCatchup:     true,
@@ -137,6 +133,7 @@ func NewConsensusState(client *drivers.BaseClient, blockStore *ttypes.BlockStore
 		NewTxsFinished: make(chan bool),
 		blockStore:     blockStore,
 		needSetFinish:  false,
+		Quit:   make(chan struct{}),
 	}
 	// set function defaults (may be overwritten before calling Start)
 	cs.decideProposal = cs.defaultDecideProposal
@@ -148,7 +145,6 @@ func NewConsensusState(client *drivers.BaseClient, blockStore *ttypes.BlockStore
 	// We do that upon Start().
 	cs.reconstructLastCommit(state)
 
-	cs.BaseService = *ttypes.NewBaseService("ConsensusState", cs)
 	//old proposal cache
 	cs.LastProposals = BaseQueue{}
 	cs.LastProposals.InitQueue(2)
@@ -156,15 +152,19 @@ func NewConsensusState(client *drivers.BaseClient, blockStore *ttypes.BlockStore
 	return cs
 }
 
-//----------------------------------------
-// Public interface
-
-// SetEventBus sets event bus.
-func (cs *ConsensusState) SetEventBus(b *ttypes.EventBus) {
-	cs.eventBus = b
-	cs.blockExec.SetEventBus(b)
+func (cs *ConsensusState) SetOurID(id ID) {
+	cs.ourId = id
 }
 
+func (cs *ConsensusState) SetBroadcastChannel(broadcastChannel chan<- ttypes.ReactorMsg) {
+	cs.broadcastChannel = broadcastChannel
+}
+
+func (cs *ConsensusState) IsRunning() bool {
+	return atomic.LoadUint32(&cs.started) == 1 && atomic.LoadUint32(&cs.stopped) == 0
+}
+
+//----------------------------------------
 // String returns a string.
 func (cs *ConsensusState) String() string {
 	// better not to access shared variables
@@ -225,69 +225,25 @@ func (cs *ConsensusState) LoadCommit(height int64) *ttypes.Commit {
 
 // OnStart implements cmn.Service.
 // It loads the latest state via the WAL, and starts the timeout and receive routines.
-func (cs *ConsensusState) OnStart() error {
-	// we may set the WAL in testing before calling Start,
-	// so only OpenWAL if its still the nilWAL
-
-	/* 20180224 hg do it later
-	if _, ok := cs.wal.(nilWAL); ok {
-		walFile := cs.config.WalFile()
-		wal, err := cs.OpenWAL(walFile)
-		if err != nil {
-			cs.Logger.Error("Error loading ConsensusState wal", "err", err.Error())
-			return err
+func (cs *ConsensusState) Start() {
+	if atomic.CompareAndSwapUint32(&cs.started, 0, 1) {
+		if atomic.LoadUint32(&cs.stopped) == 1 {
+			tendermintlog.Error("ConsensusState already stoped")
 		}
-		cs.wal = wal
+		cs.timeoutTicker.Start()
+
+		// now start the receiveRoutine
+		go cs.receiveRoutine(0)
+
+		// schedule the first round!
+		// use GetRoundState so we don't race the receiveRoutine for access
+		cs.scheduleRound0(cs.GetRoundState())
+
 	}
-	*/
-
-	// we need the timeoutRoutine for replay so
-	// we don't block on the tick chan.
-	// NOTE: we will get a build up of garbage go routines
-	// firing on the tockChan until the receiveRoutine is started
-	// to deal with them (by that point, at most one will be valid)
-	err := cs.timeoutTicker.Start()
-	if err != nil {
-		return err
-	}
-
-	/* 20180224 do it later
-	// we may have lost some votes if the process crashed
-	// reload from consensus log to catchup
-	if cs.doWALCatchup {
-		if err := cs.catchupReplay(cs.Height); err != nil {
-			cs.Logger.Error("Error on catchup replay. Proceeding to start ConsensusState anyway", "err", err.Error())
-			// NOTE: if we ever do return an error here,
-			// make sure to stop the timeoutTicker
-		}
-	}
-	*/
-
-	// now start the receiveRoutine
-	go cs.receiveRoutine(0)
-
-	// schedule the first round!
-	// use GetRoundState so we don't race the receiveRoutine for access
-	cs.scheduleRound0(cs.GetRoundState())
-
-	return nil
-}
-
-// timeoutRoutine: receive requests for timeouts on tickChan and fire timeouts on tockChan
-// receiveRoutine: serializes processing of proposoals, block parts, votes; coordinates state transitions
-func (cs *ConsensusState) startRoutines(maxSteps int) {
-	err := cs.timeoutTicker.Start()
-	if err != nil {
-		tendermintlog.Error("Error starting timeout ticker", "err", err)
-		return
-	}
-	go cs.receiveRoutine(maxSteps)
 }
 
 // OnStop implements cmn.Service. It stops all routines and waits for the WAL to finish.
-func (cs *ConsensusState) OnStop() {
-	cs.BaseService.OnStop()
-
+func (cs *ConsensusState) Stop() {
 	cs.timeoutTicker.Stop()
 
 	// Make BaseService.Wait() wait until cs.wal.Wait()
@@ -320,38 +276,6 @@ func (cs *ConsensusState) OpenWAL(walFile string) (WAL, error) {
 */
 
 //------------------------------------------------------------
-// Public interface for passing messages into the consensus state, possibly causing a state transition.
-// If peerKey == "", the msg is considered internal.
-// Messages are added to the appropriate queue (peer or internal).
-// If the queue is full, the function may block.
-// TODO: should these return anything or let callers just use events?
-
-// AddVote inputs a vote.
-func (cs *ConsensusState) AddVote(vote *ttypes.Vote, peerKey string) (added bool, err error) {
-	if peerKey == "" {
-		cs.internalMsgQueue <- msgInfo{&ttypes.VoteMessage{vote}, ""}
-	} else {
-		cs.peerMsgQueue <- msgInfo{&ttypes.VoteMessage{vote}, peerKey}
-	}
-
-	// TODO: wait for event?!
-	return false, nil
-}
-
-// SetProposal inputs a proposal.
-func (cs *ConsensusState) SetProposal(proposal *ttypes.Proposal, peerKey string) error {
-	proposalTrans := ttypes.ProposalToProposalTrans(proposal)
-	if peerKey == "" {
-		cs.internalMsgQueue <- msgInfo{&ttypes.ProposalMessage{proposalTrans}, ""}
-	} else {
-		cs.peerMsgQueue <- msgInfo{&ttypes.ProposalMessage{proposalTrans}, peerKey}
-	}
-
-	// TODO: wait for event?!
-	return nil
-}
-
-//------------------------------------------------------------
 // internal functions for managing the state
 
 func (cs *ConsensusState) updateHeight(height int64) {
@@ -380,7 +304,7 @@ func (cs *ConsensusState) scheduleTimeout(duration time.Duration, height int64, 
 }
 
 // send a msg into the receiveRoutine regarding our own proposal, block part, or vote
-func (cs *ConsensusState) sendInternalMessage(mi msgInfo) {
+func (cs *ConsensusState) sendInternalMessage(mi MsgInfo) {
 	select {
 	case cs.internalMsgQueue <- mi:
 	default:
@@ -485,16 +409,13 @@ func (cs *ConsensusState) updateToState(state State) {
 }
 
 func (cs *ConsensusState) newStep() {
-	rs := cs.RoundStateEvent()
+
+	if cs.broadcastChannel != nil {
+		cs.broadcastChannel <- cs.RoundStateMessage()
+	}
 	//20180226 hg do it later
 	//cs.wal.Save(rs)
 	cs.nSteps += 1
-
-	// newStep is called by updateToStep in NewConsensusState before the eventBus is set!
-	if cs.eventBus != nil {
-		cs.eventBus.PublishEventNewRoundStep(rs)
-	}
-
 }
 
 func (cs *ConsensusState) NewTxsAvailable(height int64) {
@@ -528,7 +449,7 @@ func (cs *ConsensusState) receiveRoutine(maxSteps int) {
 			}
 		}
 		rs := cs.RoundState
-		var mi msgInfo
+		var mi MsgInfo
 		/*
 			txs:=cs.client.RequestTx()
 			if len(txs) != 0 {
@@ -570,12 +491,12 @@ func (cs *ConsensusState) receiveRoutine(maxSteps int) {
 }
 
 // state transitions on complete-proposal, 2/3-any, 2/3-one
-func (cs *ConsensusState) handleMsg(mi msgInfo) {
+func (cs *ConsensusState) handleMsg(mi MsgInfo) {
 	cs.mtx.Lock()
 	defer cs.mtx.Unlock()
 
 	var err error
-	msg, peerKey := mi.Msg, mi.PeerKey
+	msg, peerID, peerIP := mi.Msg, string(mi.PeerID), mi.PeerIP
 	switch msg := msg.(type) {
 	case *ttypes.ProposalMessage:
 		// will not cause transition.
@@ -587,7 +508,7 @@ func (cs *ConsensusState) handleMsg(mi msgInfo) {
 	case *ttypes.VoteMessage:
 		// attempt to add the vote and dupeout the validator if its a duplicate signature
 		// if the vote gives us a 2/3-any or 2/3-one, we transition
-		err := cs.tryAddVote(msg.Vote, peerKey)
+		err := cs.tryAddVote(msg.Vote, peerID)
 		if err == ErrAddingVote {
 			// TODO: punish peer
 		}
@@ -599,10 +520,10 @@ func (cs *ConsensusState) handleMsg(mi msgInfo) {
 		// the peer is sending us CatchupCommit precommits.
 		// We could make note of this and help filter in broadcastHasVoteMessage().
 	default:
-		tendermintlog.Error("Unknown msg type", reflect.TypeOf(msg))
+		tendermintlog.Error("Unknown msg type", msg.TypeName(), "peerid", peerID, "peerip", peerIP)
 	}
 	if err != nil {
-		tendermintlog.Error("Error with msg", "type", reflect.TypeOf(msg), "peer", peerKey, "err", err, "msg", msg)
+		tendermintlog.Error("Error with msg", "type", reflect.TypeOf(msg), "peerid", peerID, "peerip", peerIP, "err", err, "msg", msg)
 	}
 }
 
@@ -627,13 +548,13 @@ func (cs *ConsensusState) handleTimeout(ti timeoutInfo, rs ttypes.RoundState) {
 	case ttypes.RoundStepNewRound:
 		cs.enterPropose(ti.Height, 0)
 	case ttypes.RoundStepPropose:
-		cs.eventBus.PublishEventTimeoutPropose(cs.RoundStateEvent())
+		//cs.eventBus.PublishEventTimeoutPropose(cs.RoundStateEvent())
 		cs.enterPrevote(ti.Height, ti.Round)
 	case ttypes.RoundStepPrevoteWait:
-		cs.eventBus.PublishEventTimeoutWait(cs.RoundStateEvent())
+		//cs.eventBus.PublishEventTimeoutWait(cs.RoundStateEvent())
 		cs.enterPrecommit(ti.Height, ti.Round)
 	case ttypes.RoundStepPrecommitWait:
-		cs.eventBus.PublishEventTimeoutWait(cs.RoundStateEvent())
+		//cs.eventBus.PublishEventTimeoutWait(cs.RoundStateEvent())
 		cs.enterNewRound(ti.Height, ti.Round+1)
 	default:
 		panic(fmt.Sprintf("Invalid timeout step: %v", ti.Step))
@@ -702,7 +623,7 @@ func (cs *ConsensusState) enterNewRound(height int64, round int) {
 	}
 	cs.Votes.SetRound(round + 1) // also track next round (round+1) to allow round-skipping
 
-	cs.eventBus.PublishEventNewRound(cs.RoundStateEvent())
+	//cs.eventBus.PublishEventNewRound(cs.RoundStateEvent())
 
 	// Wait for txs to be available in the mempool
 	// before we enterPropose in round 0. If the last block changed the app hash,
@@ -757,7 +678,7 @@ func (cs *ConsensusState) proposalHeartbeat(height int64, round int) {
 			ValidatorIndex:   valIndex,
 		}
 		cs.privValidator.SignHeartbeat(chainID, heartbeat)
-		cs.eventBus.PublishEventProposalHeartbeat(ttypes.EventDataProposalHeartbeat{heartbeat})
+		cs.broadcastChannel <- &ttypes.ProposalHeartbeatMessage{heartbeat}
 		counter += 1
 		time.Sleep(proposalHeartbeatIntervalSeconds * time.Second)
 	}
@@ -844,7 +765,7 @@ func (cs *ConsensusState) defaultDecideProposal(height int64, round int) {
 
 		// send proposal and block parts on internal msg queue
 		proposalTrans := ttypes.ProposalToProposalTrans(proposal)
-		cs.sendInternalMessage(msgInfo{&ttypes.ProposalMessage{proposalTrans}, ""})
+		cs.sendInternalMessage(MsgInfo{&ttypes.ProposalMessage{proposalTrans}, cs.ourId,""})
 		tendermintlog.Debug("Signed proposal", "height", height, "round", round, "proposal", proposal)
 	} else {
 		if !cs.replayMode {
@@ -933,7 +854,7 @@ func (cs *ConsensusState) enterPrevote(height int64, round int) {
 	// fire event for how we got here
 	if cs.isProposalComplete() {
 		//only used to test hg 20180227
-		cs.eventBus.PublishEventCompleteProposal(cs.RoundStateEvent())
+		//cs.eventBus.PublishEventCompleteProposal(cs.RoundStateEvent())
 	} else {
 		// we received +2/3 prevotes for a future round
 		// TODO: catchup event?
@@ -1034,7 +955,7 @@ func (cs *ConsensusState) enterPrecommit(height int64, round int) {
 	}
 
 	// At this point +2/3 prevoted for a particular block or nil
-	cs.eventBus.PublishEventPolka(cs.RoundStateEvent())
+	//cs.eventBus.PublishEventPolka(cs.RoundStateEvent())
 
 	// the latest POLRound should be this round
 	polRound, _ := cs.Votes.POLInfo()
@@ -1052,7 +973,7 @@ func (cs *ConsensusState) enterPrecommit(height int64, round int) {
 			cs.LockedRound = 0
 			cs.LockedBlock = nil
 			cs.roundstateRWLock.Unlock()
-			cs.eventBus.PublishEventUnlock(cs.RoundStateEvent())
+			//cs.eventBus.PublishEventUnlock(cs.RoundStateEvent())
 		}
 		cs.signAddVote(ttypes.VoteTypePrecommit, nil)
 		return
@@ -1066,7 +987,7 @@ func (cs *ConsensusState) enterPrecommit(height int64, round int) {
 		cs.roundstateRWLock.Lock()
 		cs.LockedRound = round
 		cs.roundstateRWLock.Unlock()
-		cs.eventBus.PublishEventRelock(cs.RoundStateEvent())
+		//cs.eventBus.PublishEventRelock(cs.RoundStateEvent())
 		cs.signAddVote(ttypes.VoteTypePrecommit, blockID.Hash)
 		return
 	}
@@ -1082,7 +1003,7 @@ func (cs *ConsensusState) enterPrecommit(height int64, round int) {
 		cs.LockedRound = round
 		cs.LockedBlock = cs.ProposalBlock
 		cs.roundstateRWLock.Unlock()
-		cs.eventBus.PublishEventLock(cs.RoundStateEvent())
+		//cs.eventBus.PublishEventLock(cs.RoundStateEvent())
 		cs.signAddVote(ttypes.VoteTypePrecommit, blockID.Hash)
 		return
 	}
@@ -1095,7 +1016,7 @@ func (cs *ConsensusState) enterPrecommit(height int64, round int) {
 	cs.LockedRound = 0
 	cs.LockedBlock = nil
 	cs.roundstateRWLock.Unlock()
-	cs.eventBus.PublishEventUnlock(cs.RoundStateEvent())
+	//cs.eventBus.PublishEventUnlock(cs.RoundStateEvent())
 	cs.signAddVote(ttypes.VoteTypePrecommit, nil)
 }
 
@@ -1223,7 +1144,7 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 	if err != nil {
 		tendermintlog.Error("Error on ApplyBlock. Did the application crash? Please restart tendermint", "err", err)
 		//windows not support
-		err := cmn.Kill()
+		err := ttypes.Kill()
 		if err != nil {
 			tendermintlog.Error("Failed to kill this process - please do so manually", "err", err)
 		}
@@ -1418,8 +1339,8 @@ func (cs *ConsensusState) defaultSetProposal(proposalTrans *ttypes.ProposalTrans
 }
 
 // Attempt to add the vote. if its a duplicate signature, dupeout the validator
-func (cs *ConsensusState) tryAddVote(vote *ttypes.Vote, peerKey string) error {
-	_, err := cs.addVote(vote, peerKey)
+func (cs *ConsensusState) tryAddVote(vote *ttypes.Vote, peerID string) error {
+	_, err := cs.addVote(vote, peerID)
 	if err != nil {
 		// If the vote height is off, we'll just ignore it,
 		// But if it's a conflicting sig, add it to the cs.evpool.
@@ -1445,7 +1366,7 @@ func (cs *ConsensusState) tryAddVote(vote *ttypes.Vote, peerKey string) error {
 
 //-----------------------------------------------------------------------------
 
-func (cs *ConsensusState) addVote(vote *ttypes.Vote, peerKey string) (added bool, err error) {
+func (cs *ConsensusState) addVote(vote *ttypes.Vote, peerID string) (added bool, err error) {
 	tendermintlog.Debug("addVote", "voteHeight", vote.Height, "voteType", vote.Type, "valIndex", vote.ValidatorIndex, "csHeight", cs.Height)
 
 	// A precommit for the previous height?
@@ -1458,7 +1379,7 @@ func (cs *ConsensusState) addVote(vote *ttypes.Vote, peerKey string) (added bool
 		}
 		added, err = cs.LastCommit.AddVote(vote)
 		if added {
-			cs.eventBus.PublishEventVote(ttypes.EventDataVote{vote})
+			cs.broadcastChannel <- &ttypes.VoteMessage{vote}
 
 			// if we can skip timeoutCommit and have all the votes now,
 			if cs.client.Cfg.SkipTimeoutCommit && cs.LastCommit.HasAll() {
@@ -1474,9 +1395,9 @@ func (cs *ConsensusState) addVote(vote *ttypes.Vote, peerKey string) (added bool
 	// A prevote/precommit for this height?
 	if vote.Height == cs.Height {
 		height := cs.Height
-		added, err = cs.Votes.AddVote(vote, peerKey)
+		added, err = cs.Votes.AddVote(vote, peerID)
 		if added {
-			cs.eventBus.PublishEventVote(ttypes.EventDataVote{vote})
+			cs.broadcastChannel <- &ttypes.VoteMessage{vote}
 
 			switch vote.Type {
 			case ttypes.VoteTypePrevote:
@@ -1495,7 +1416,7 @@ func (cs *ConsensusState) addVote(vote *ttypes.Vote, peerKey string) (added bool
 						cs.LockedRound = 0
 						cs.LockedBlock = nil
 						cs.roundstateRWLock.Unlock()
-						cs.eventBus.PublishEventUnlock(cs.RoundStateEvent())
+						//cs.eventBus.PublishEventUnlock(cs.RoundStateEvent())
 					}
 				}
 				if cs.Round <= vote.Round && prevotes.HasTwoThirdsAny() {
@@ -1583,7 +1504,7 @@ func (cs *ConsensusState) signAddVote(type_ byte, hash []byte) *ttypes.Vote {
 	}
 	vote, err := cs.signVote(type_, hash)
 	if err == nil {
-		cs.sendInternalMessage(msgInfo{&ttypes.VoteMessage{vote}, ""})
+		cs.sendInternalMessage(MsgInfo{&ttypes.VoteMessage{vote}, cs.ourId,""})
 		tendermintlog.Info("Signed and pushed vote", "height", cs.Height, "round", cs.Round, "vote", vote, "err", err)
 		return vote
 	} else {
@@ -1657,4 +1578,24 @@ func (cs *ConsensusState) PeerQueryMaj23Sleep() time.Duration {
 
 func (cs *ConsensusState) IsProposer() bool {
 	return cs.isProposer()
+}
+
+func (cs *ConsensusState) GetPrevotesState(height int64, round int, blockID ttypes.BlockID) *ttypes.BitArray {
+	if height != cs.Height {
+		return nil
+	}
+	return cs.Votes.Prevotes(round).BitArrayByBlockID(blockID)
+}
+
+func (cs *ConsensusState) GetPrecommitsState(height int64, round int, blockID ttypes.BlockID) *ttypes.BitArray {
+	if height != cs.Height {
+		return nil
+	}
+	return cs.Votes.Precommits(round).BitArrayByBlockID(blockID)
+}
+
+func (cs *ConsensusState) SetPeerMaj23(height int64, round int, type_ byte, peerID ID, blockID ttypes.BlockID) {
+	if height == cs.Height {
+		cs.Votes.SetPeerMaj23(round, type_, string(peerID), blockID)
+	}
 }

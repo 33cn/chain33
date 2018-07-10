@@ -1,4 +1,4 @@
-package common
+package types
 
 import (
 	"fmt"
@@ -10,7 +10,19 @@ import (
 	"sync"
 	"syscall"
 	"time"
+	"math/rand"
 )
+
+var (
+	Randgen *rand.Rand
+	Fmt = fmt.Sprintf
+)
+
+func Init() {
+	if Randgen == nil {
+		Randgen = rand.New(rand.NewSource(time.Now().UnixNano()))
+	}
+}
 
 func WriteFile(filePath string, contents []byte, mode os.FileMode) error {
 	return ioutil.WriteFile(filePath, contents, mode)
@@ -152,4 +164,26 @@ func MaxInt(a, b int) int {
 		return a
 	}
 	return b
+}
+//--------------------------------------------------------------
+func RandIntn(n int) int {
+	if n <= 0 {
+		panic("invalid argument to Intn")
+	}
+	if n <= 1<<31-1 {
+		return int(Randgen.Int31n(int32(n)))
+	}
+	return int(Randgen.Int63n(int64(n)))
+}
+//-------------------------------------------------------------
+func PanicSanity(v interface{}) {
+	panic(Fmt("Panicked on a Sanity Check: %v", v))
+}
+
+func PanicCrisis(v interface{}) {
+	panic(Fmt("Panicked on a Crisis: %v", v))
+}
+
+func PanicQ(v interface{}) {
+	panic(Fmt("Panicked questionably: %v", v))
 }
