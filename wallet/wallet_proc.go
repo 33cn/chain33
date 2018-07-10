@@ -121,7 +121,6 @@ func (wallet *Wallet) ProcGetAccountList() (*types.WalletAccounts, error) {
 		if len(AccStore.Addr) != 0 {
 			addrs[index] = AccStore.Addr
 		}
-		//walletlog.Debug("ProcGetAccountList", "all AccStore", AccStore.String())
 	}
 	//获取所有地址对应的账户详细信息从account模块
 	accounts, err := accountdb.LoadAccounts(wallet.api, addrs)
@@ -147,8 +146,6 @@ func (wallet *Wallet) ProcGetAccountList() (*types.WalletAccounts, error) {
 		WalletAccount.Acc = Account
 		WalletAccount.Label = WalletAccStores[index].GetLabel()
 		WalletAccounts.Wallets[index] = &WalletAccount
-
-		//walletlog.Info("ProcGetAccountList", "LoadAccounts:account", Account.String())
 	}
 	return &WalletAccounts, nil
 }
