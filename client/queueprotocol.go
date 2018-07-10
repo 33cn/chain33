@@ -88,6 +88,7 @@ func (q *QueueProtocol) setOption(option *QueueProtocolOption) {
 		q.option = *option
 	}
 }
+
 func (q *QueueProtocol) SendTx(param *types.Transaction) (*types.Reply, error) {
 	if param == nil {
 		err := types.ErrInvalidParam
@@ -108,10 +109,6 @@ func (q *QueueProtocol) SendTx(param *types.Transaction) (*types.Reply, error) {
 			err = fmt.Errorf(msg)
 			reply = nil
 		}
-		q.notify(walletKey, types.EventNotifySendTxResult, &types.NotifySendTxResult{
-			Isok: reply.GetIsOk(),
-			Tx:   param,
-		})
 	} else {
 		err = types.ErrTypeAsset
 	}
@@ -965,5 +962,24 @@ func (q *QueueProtocol) GetBlockSequences(param *types.ReqBlocks) (*types.BlockS
 	}
 	err = types.ErrTypeAsset
 	log.Error("GetBlockSequences", "Error", err.Error())
+	return nil, err
+}
+
+func (q *QueueProtocol) NotifySendTxResult(param *types.NotifySendTxResult) (*types.Reply, error) {
+	if param == nil {
+		err := types.ErrInvalidParam
+		log.Error("NotifySendTxResult", "Error", err)
+		return nil, err
+	}
+	msg, err := q.notify(walletKey, types.EventNotifySendTxResult, param)
+	if err != nil {
+		log.Error("NotifySendTxResult", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.Reply); ok {
+		return reply, nil
+	}
+	err = types.ErrTypeAsset
+	log.Error("NotifySendTxResult", "Error", err.Error())
 	return nil, err
 }
