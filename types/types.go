@@ -28,6 +28,10 @@ type TxGroup interface {
 	CheckSign() bool
 }
 
+func ExecName(name string) string {
+	return ExecNamePrefix + name
+}
+
 func IsAllowExecName(name string) bool {
 	return isAllowExecName([]byte(name))
 }
@@ -117,16 +121,16 @@ func GetSignatureTypeName(signType int) string {
 	return "unknow"
 }
 
-var ConfigPrefix = "mavl-config"
+var ConfigPrefix = "mavl-config-"
 
 func ConfigKey(key string) string {
 	return fmt.Sprintf("%s-%s", ConfigPrefix, key)
 }
 
-var ManagePrefix = "mavl-manage"
+var ManagePrefix = "mavl-"
 
 func ManageKey(key string) string {
-	return fmt.Sprintf("%s-%s", ManagePrefix, key)
+	return fmt.Sprintf("%s-%s", ManagePrefix+ExecName("manage"), key)
 }
 
 func ManaeKeyWithHeigh(key string, height int64) string {

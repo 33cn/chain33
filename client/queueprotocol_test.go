@@ -8,7 +8,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/queue"
 	lt "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
-	_ "gitlab.33.cn/chain33/chain33/types/executor"
+	"gitlab.33.cn/chain33/chain33/types/executor"
 )
 
 var (
@@ -21,6 +21,7 @@ var (
 func TestMain(m *testing.M) {
 	mock.grpcMock = &grpcMock
 	mock.jrpcMock = &jrpc
+	executor.Init()
 	api = mock.startup(0)
 	flag := m.Run()
 	mock.stop()

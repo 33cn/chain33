@@ -177,12 +177,14 @@ func (chain *BlockChain) SetQueueClient(client queue.Client) {
 	}
 	//recv 消息的处理
 	go chain.ProcRecvMsg()
+	if !chain.cfg.IsParaChain {
+		// 定时检测/同步block
+		go chain.SynRoutine()
 
-	// 定时检测/同步block
-	go chain.SynRoutine()
+		// 定时处理futureblock
+		go chain.UpdateRoutine()
+	}
 
-	// 定时处理futureblock
-	go chain.UpdateRoutine()
 }
 
 func (chain *BlockChain) getStateHash() []byte {
