@@ -55,21 +55,6 @@ func (c *Chain33) SendRawTransaction(in SignedTx, result *interface{}) error {
 	}
 }
 
-func (c *Chain33) sendTxToWallet(in RawParm, result *interface{}) error {
-	var ccTxKey types.ReqCreateCacheTxKey
-	bytes, err := common.FromHex(in.Data)
-	if err != nil {
-		return err
-	}
-	ccTxKey.Hashkey = bytes
-	ccTxKey.Tokenname = in.Token
-	reply, err := c.cli.SendTxHashToWallet(&ccTxKey)
-	if err == nil {
-		*result = common.ToHex(reply.GetMsg())
-	}
-	return err
-}
-
 func (c *Chain33) SendTransaction(in RawParm, result *interface{}) error {
 	var parm types.Transaction
 	data, err := common.FromHex(in.Data)

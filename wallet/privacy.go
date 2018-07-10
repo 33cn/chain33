@@ -1108,39 +1108,6 @@ func (wallet *Wallet) signTxWithPrivacy(key crypto.PrivKey, req *types.ReqSignRa
 	return common.ToHex(txHex), nil
 }
 
-func (wallet *Wallet) procSendTxHashToWallet(req *types.ReqCreateCacheTxKey) (*types.ReplyHash, error) {
-	wallet.mtx.Lock()
-	defer wallet.mtx.Unlock()
-
-	hexhash := common.Bytes2Hex(req.GetHashkey())
-	dbkey := calcCreateTxKey(req.Tokenname, hexhash)
-	cache, err := wallet.walletStore.GetCreateTransactionCache(dbkey)
-	if err != nil {
-		return nil, err
-	}
-	msg := wallet.client.NewMessage("mempool", types.EventTx, cache.Transaction)
-	wallet.client.Send(msg, true)
-	resp, err := wallet.client.Wait(msg)
-	if err != nil {
-		walletlog.Error("procSendTxHashToWallet", "Send err", err)
-		return nil, err
-	}
-	cache.Status = cacheTxStatus_Sent
-	if err = wallet.walletStore.SetCreateTransactionCache(dbkey, cache); err != nil {
-		return nil, err
-	}
-	reply := resp.GetData().(*types.Reply)
-	if !reply.GetIsOk() {
-		walletlog.Error("procSendTxHashToWallet", "Return err", err)
-		return nil, errors.New(string(reply.GetMsg()))
-	}
-	// 发送成功以后，以发送时间作为FTXO起始计时时间
-	dbbatch := wallet.walletStore.NewBatch(true)
-	wallet.walletStore.updateFTXOFreezeTime(types.Now().UnixNano(), cache.GetTokenname(), cache.GetSender(), hexhash, dbbatch)
-	dbbatch.Write()
-	return &types.ReplyHash{Hash: cache.Transaction.Hash()}, nil
-}
-
 func (wallet *Wallet) procInvalidTxOnTimer(dbbatch db.Batch) error {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
