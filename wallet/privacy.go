@@ -166,7 +166,6 @@ func (wallet *Wallet) createUTXOsByPub2Priv(priv crypto.PrivKey, reqCreateUTXOs 
 		Nonce:   wallet.random.Int63(),
 		To:      address.ExecAddress(types.PrivacyX),
 	}
-	tx.SetExpire(wallet.getExpire(reqCreateUTXOs.GetExpire()))
 	txSize := types.Size(tx) + types.SignatureSize
 	realFee := int64((txSize+1023)>>types.Size_1K_shiftlen) * types.FeePerKB
 	tx.Fee = realFee
@@ -870,7 +869,6 @@ func (wallet *Wallet) createPublic2PrivacyTx(req *types.ReqCreateTransaction) (*
 	txSize := types.Size(tx) + types.SignatureSize
 	realFee := int64((txSize+1023)>>types.Size_1K_shiftlen) * types.FeePerKB
 	tx.Fee = realFee
-	tx.SetExpire(wallet.getExpire(req.GetExpire()))
 
 	byteshash := tx.Hash()
 	dbkey := calcCreateTxKey(req.Tokenname, common.Bytes2Hex(byteshash))
@@ -950,7 +948,6 @@ func (wallet *Wallet) createPrivacy2PrivacyTx(req *types.ReqCreateTransaction) (
 		Nonce:   wallet.random.Int63(),
 		To:      address.ExecAddress(types.PrivacyX),
 	}
-	tx.SetExpire(wallet.getExpire(req.GetExpire()))
 
 	byteshash := tx.Hash()
 	dbkey := calcCreateTxKey(req.Tokenname, common.Bytes2Hex(byteshash))
@@ -1029,7 +1026,6 @@ func (wallet *Wallet) createPrivacy2PublicTx(req *types.ReqCreateTransaction) (*
 		Nonce:   wallet.random.Int63(),
 		To:      req.GetTo(),
 	}
-	tx.SetExpire(wallet.getExpire(req.GetExpire()))
 
 	byteshash := tx.Hash()
 	dbkey := calcCreateTxKey(req.Tokenname, common.Bytes2Hex(byteshash))
@@ -1064,8 +1060,12 @@ func (wallet *Wallet) signTxWithPrivacy(key crypto.PrivKey, req *types.ReqSignRa
 	if err = types.Decode(txOrigin.Payload, action); err != nil {
 		return "", err
 	}
-
+	// ProcSignRawTx() will change Expire, change to default
+	expire := txOrigin.GetExpire()
+	txOrigin.SetExpire(time.Duration(0))
 	txhash := txOrigin.Hash()
+	txOrigin.SetExpire(time.Duration(expire))
+
 	dbkey := calcCreateTxKey(action.GetTokenName(), common.Bytes2Hex(txhash))
 	cache, err := wallet.walletStore.GetCreateTransactionCache(dbkey)
 	if err != nil {
@@ -1376,6 +1376,7 @@ func (wallet *Wallet) procNotifySendTxResult(notifyRes *types.ReqNotifySendTxRes
 
 	tx := *notifyRes.Tx
 	tx.Signature = nil
+	tx.SetExpire(time.Duration(0))
 	txhashbyte := tx.Hash()
 	txhashhex := common.Bytes2Hex(txhashbyte)
 	dbkey := calcCreateTxKey(action.GetTokenName(), txhashhex)

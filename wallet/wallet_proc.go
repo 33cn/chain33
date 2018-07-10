@@ -57,14 +57,14 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 	if err != nil {
 		return "", err
 	}
-	if bytes.Equal(tx.Execer, types.ExecerPrivacy) {
-		return wallet.signTxWithPrivacy(key, unsigned)
-	}
 	expire, err := time.ParseDuration(unsigned.GetExpire())
 	if err != nil {
 		return "", err
 	}
 	tx.SetExpire(expire)
+	if bytes.Equal(tx.Execer, types.ExecerPrivacy) {
+		return wallet.signTxWithPrivacy(key, unsigned)
+	}
 	group, err := tx.GetTxGroup()
 	if err != nil {
 		return "", err
