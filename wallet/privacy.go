@@ -1391,3 +1391,40 @@ func (wallet *Wallet) getExpire(expire int64) time.Duration {
 	}
 	return retexpir
 }
+
+func (wallet *Wallet) procNotifySendTxResult(notifyRes *types.NotifySendTxResult) (*types.Reply, error) {
+	if !notifyRes.Isok {
+		return &types.Reply{IsOk: false}, nil
+	}
+	action := new(types.PrivacyAction)
+	if err := types.Decode(notifyRes.Tx.Payload, action); err != nil {
+		return nil, err
+	}
+	if action.Ty != types.ActionPrivacy2Privacy && action.Ty != types.ActionPrivacy2Public {
+		return &types.Reply{IsOk: false}, nil
+	}
+
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+
+	var tx types.Transaction
+	tx = *notifyRes.Tx
+	tx.Signature = nil
+	txhashbyte := tx.Hash()
+	txhashhex := common.Bytes2Hex(txhashbyte)
+	dbkey := calcCreateTxKey(action.GetTokenName(), txhashhex)
+	cache, err := wallet.walletStore.GetCreateTransactionCache(dbkey)
+	if err != nil {
+		return nil, err
+	}
+	cache.Status = cacheTxStatus_Sent
+	if err = wallet.walletStore.SetCreateTransactionCache(dbkey, cache); err != nil {
+		return nil, err
+	}
+	// 发送成功以后，以发送时间作为FTXO起始计时时间
+	dbbatch := wallet.walletStore.NewBatch(true)
+	wallet.walletStore.updateFTXOFreezeTime(types.Now().UnixNano(), cache.GetTokenname(), cache.GetSender(), txhashhex, dbbatch)
+	dbbatch.Write()
+	walletlog.Info("procNotifySendTxResult update cache tx status", "tx hash", common.Bytes2Hex(notifyRes.Tx.Hash()))
+	return &types.Reply{IsOk: true}, nil
+}
