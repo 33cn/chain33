@@ -566,7 +566,7 @@ func (t *trade) loadOrderFromKey(key []byte) *types.ReplyTradeOrder {
 			return nil
 		}
 		reply := limitOrderTxResult2Order(txResult)
-		
+
 		buyOrder, err := getBuyOrderFromID(key, t.GetStateDB())
 		if err != nil {
 			return nil
