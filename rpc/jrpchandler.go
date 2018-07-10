@@ -341,13 +341,11 @@ func (c *Chain33) GetMempool(in *types.ReqNil, result *interface{}) error {
 			if err != nil {
 				amount = 0
 			}
-			from := tx.From()
 			tran, err := DecodeTx(tx)
 			if err != nil {
 				continue
 			}
 			tran.Amount = amount
-			tran.From = from
 			txlist.Txs = append(txlist.Txs, tran)
 		}
 		*result = &txlist
@@ -1009,6 +1007,7 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		Expire: tx.Expire,
 		Nonce:  tx.Nonce,
 		To:     tx.To,
+		From:   tx.From(),
 	}
 	return result, nil
 }
