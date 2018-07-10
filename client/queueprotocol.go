@@ -894,18 +894,6 @@ func (q *QueueProtocol) CreateTrasaction(param *types.ReqCreateTransaction) (*ty
 	return nil, types.ErrTypeAsset
 }
 
-func (q *QueueProtocol) SendTxHashToWallet(param *types.ReqCreateCacheTxKey) (*types.Reply, error) {
-	msg, err := q.query(walletKey, types.EventSendTxHashToWallet, param)
-	if err != nil {
-		log.Error("SendTxHashToWallet", "Error", err.Error())
-		return nil, err
-	}
-	if reply, ok := msg.GetData().(*types.Reply); ok {
-		return reply, nil
-	}
-	return nil, types.ErrTypeAsset
-}
-
 func (q *QueueProtocol) QueryCacheTransaction(param *types.ReqCacheTxList) (*types.ReplyCacheTxList, error) {
 	msg, err := q.query(walletKey, types.EventQueryCacheTransaction, param)
 	if err != nil {

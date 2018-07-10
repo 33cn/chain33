@@ -934,29 +934,6 @@ func (_m *QueueProtocolAPI) SendTx(param *types.Transaction) (*types.Reply, erro
 	return r0, r1
 }
 
-// SendTxHashToWallet provides a mock function with given fields: param
-func (_m *QueueProtocolAPI) SendTxHashToWallet(param *types.ReqCreateCacheTxKey) (*types.Reply, error) {
-	ret := _m.Called(param)
-
-	var r0 *types.Reply
-	if rf, ok := ret.Get(0).(func(*types.ReqCreateCacheTxKey) *types.Reply); ok {
-		r0 = rf(param)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.Reply)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(*types.ReqCreateCacheTxKey) error); ok {
-		r1 = rf(param)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // ShowPrivacyAccountInfo provides a mock function with given fields: param
 func (_m *QueueProtocolAPI) ShowPrivacyAccountInfo(param *types.ReqPPrivacyAccount) (*types.ReplyPrivacyAccount, error) {
 	ret := _m.Called(param)
