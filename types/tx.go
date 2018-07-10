@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
-	"strings"
 	"time"
 
 	"gitlab.33.cn/chain33/chain33/common"
@@ -470,7 +469,7 @@ func (tx *Transaction) Amount() (int64, error) {
 
 //解析tx的payload获取real to值
 func (tx *Transaction) GetRealToAddr() string {
-	exec := LoadExecutor(strings.Replace(string(tx.Execer), ExecNamePrefix, "", -1))
+	exec := LoadExecutor(string(tx.Execer))
 	if exec == nil {
 		return tx.To
 	}

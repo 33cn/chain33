@@ -28,6 +28,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
+	exec "gitlab.33.cn/chain33/chain33/types/executor"
 )
 
 var elog = log.New("module", "execs")
@@ -51,6 +52,7 @@ type Executor struct {
 }
 
 func execInit() {
+	exec.Init()
 	coins.Init()
 	hashlock.Init()
 	manage.Init()

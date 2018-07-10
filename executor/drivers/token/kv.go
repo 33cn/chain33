@@ -23,11 +23,11 @@ var (
 //)
 
 func setReciptPrefix() {
-	tokenCreated = "mavl-" + types.ExecNamePrefix + "token-"
-	tokenPreCreatedOT = "mavl-create-" + types.ExecNamePrefix + "token-ot-"
-	tokenPreCreatedSTO = "mavl-create-" + types.ExecNamePrefix + "token-sto-"
-	tokenPreCreatedOTNew = "mavl-" + types.ExecNamePrefix + "token-create-ot-"
-	tokenPreCreatedSTONew = "mavl-" + types.ExecNamePrefix + "token-create-sto-"
+	tokenCreated = "mavl-" + types.ExecName("token") + "-"
+	tokenPreCreatedOT = "mavl-create-" + types.ExecName("token") + "-ot-"
+	tokenPreCreatedSTO = "mavl-create-" + types.ExecName("token") + "-sto-"
+	tokenPreCreatedOTNew = "mavl-" + types.ExecName("token") + "-create-ot-"
+	tokenPreCreatedSTONew = "mavl-" + types.ExecName("token") + "-create-sto-"
 }
 
 func calcTokenKey(token string) (key []byte) {
