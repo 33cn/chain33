@@ -169,8 +169,6 @@ const (
 	EventReplyCreateUTXOs
 	EventCreateTransaction
 	EventReplyCreateTransaction
-	EventSendTxHashToWallet
-	EventReplySendTxHashToWallet
 	EventQueryCacheTransaction
 	EventReplyQueryCacheTransaction
 	EventDeleteCacheTransaction
