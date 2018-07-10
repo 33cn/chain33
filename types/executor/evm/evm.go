@@ -12,7 +12,7 @@ const name = "evm"
 
 //var tlog = log.New("module", name)
 
-func init() {
+func Init() {
 	// init executor type
 	types.RegistorExecutor(name, &EvmType{})
 
