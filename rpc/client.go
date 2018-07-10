@@ -204,12 +204,12 @@ func (c *channelClient) GetAllExecBalance(in *types.ReqAddr) (*types.AllExecBala
 
 //TODO:和GetBalance进行泛化处理，同时LoadAccounts和LoadExecAccountQueue也需要进行泛化处理, added by hzj
 func (c *channelClient) GetTokenBalance(in *types.ReqTokenBalance) ([]*types.Account, error) {
-	accountTokendb, err := account.NewAccountDB("token", in.GetTokenSymbol(), nil)
+	accountTokendb, err := account.NewAccountDB(types.ExecName("token"), in.GetTokenSymbol(), nil)
 	if err != nil {
 		return nil, err
 	}
 	switch in.GetExecer() {
-	case "token":
+	case types.ExecName("token"):
 		addrs := in.GetAddresses()
 		var queryAddrs []string
 		for _, addr := range addrs {

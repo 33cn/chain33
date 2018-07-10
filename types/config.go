@@ -1,6 +1,7 @@
 package types
 
 import (
+	"strings"
 	"time"
 )
 
@@ -97,6 +98,8 @@ var (
 	title        string
 	FeePerKB     = MinFee
 	PrivacyTxFee = Coin
+	//used in Getname for exec driver
+	ExecNamePrefix string
 )
 
 func SetTitle(t string) {
@@ -109,6 +112,11 @@ func SetTitle(t string) {
 	if IsLocal() {
 		SetForkToOne()
 		return
+	}
+	if IsPara() {
+		ExecNamePrefix = title
+		SetForkToOne()
+		SuperManager = []string{"1BjLtd6Eqeo19URRVQzvBFbx1X2TSoPabp"}
 	}
 }
 
@@ -124,6 +132,9 @@ func IsYcc() bool {
 	return title == "yuanchain"
 }
 
+func IsPara() bool {
+	return strings.HasPrefix(title, "user.p.")
+}
 func IsPublicChain() bool {
 	return IsBityuan() || IsYcc()
 }
