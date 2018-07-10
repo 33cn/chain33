@@ -34,7 +34,7 @@ func newCoins() drivers.Driver {
 }
 
 func (c *Coins) GetName() string {
-	return "coins"
+	return types.ExecName("coins")
 }
 
 func (c *Coins) CheckTx(tx *types.Transaction, index int) error {
