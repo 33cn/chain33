@@ -100,8 +100,6 @@ var (
 	PrivacyTxFee = Coin
 	//used in Getname for exec driver
 	ExecNamePrefix string
-	//remove fork for manage for paraChain
-	CheckForkInTokenForManage bool = true
 )
 
 func SetTitle(t string) {
@@ -117,7 +115,6 @@ func SetTitle(t string) {
 	}
 	if IsPara() {
 		ExecNamePrefix = title
-		CheckForkInTokenForManage = false
 		SetForkToOne()
 		SuperManager = []string{"1BjLtd6Eqeo19URRVQzvBFbx1X2TSoPabp"}
 	}

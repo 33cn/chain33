@@ -23,5 +23,5 @@ func newNone() drivers.Driver {
 }
 
 func (n *None) GetName() string {
-	return "none"
+	return types.ExecName("none")
 }
