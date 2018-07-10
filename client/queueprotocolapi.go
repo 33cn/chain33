@@ -98,9 +98,10 @@ type QueueProtocolAPI interface {
 	DeleteCacheTransaction(param *types.ReqCreateCacheTxKey) (*types.Reply, error)
 	// types.EventPrivacyAccountInfo
 	ShowPrivacyAccountInfo(param *types.ReqPPrivacyAccount) (*types.ReplyPrivacyAccount, error)
+	// types.EventNotifySendTxResult
+	NotifySendTxResult(param *types.NotifySendTxResult) (*types.Reply, error)
 	// Privacy End
 	// --------------- wallet interfaces end
-
 	// +++++++++++++++ blockchain interfaces begin
 	// types.EventGetBlocks
 	GetBlocks(param *types.ReqBlocks) (*types.BlockDetails, error)
