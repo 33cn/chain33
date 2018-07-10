@@ -412,3 +412,7 @@ func GetAmountValue(cmd *cobra.Command, field string) int64 {
 	amount, _ := cmd.Flags().GetFloat64(field)
 	return FormatAmountDisplay2Value(amount)
 }
+
+func getRealExecName(paraName string, name string) string {
+	return paraName + name
+}

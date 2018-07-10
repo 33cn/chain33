@@ -137,7 +137,7 @@ func getPreCreatedTokens(cmd *cobra.Command, args []string) {
 	reqtokens.Status = types.TokenStatusPreCreated
 	reqtokens.QueryAll = true
 	var params jsonrpc.Query4Cli
-	params.Execer = paraName + "token"
+	params.Execer = getRealExecName(paraName, "token")
 	params.FuncName = "GetTokens"
 	params.Payload = reqtokens
 	rpc, err := jsonrpc.NewJSONClient(rpcLaddr)
@@ -184,7 +184,7 @@ func getFinishCreatedTokens(cmd *cobra.Command, args []string) {
 	reqtokens.Status = types.TokenStatusCreated
 	reqtokens.QueryAll = true
 	var params jsonrpc.Query4Cli
-	params.Execer = paraName + "token"
+	params.Execer = getRealExecName(paraName, "token")
 	params.FuncName = "GetTokens"
 	params.Payload = reqtokens
 	rpc, err := jsonrpc.NewJSONClient(rpcLaddr)
@@ -244,7 +244,7 @@ func tokenAssets(cmd *cobra.Command, args []string) {
 	}
 
 	var params jsonrpc.Query4Cli
-	params.Execer = paraName + "token"
+	params.Execer = getRealExecName(paraName, "token")
 	params.FuncName = "GetAccountTokenAssets"
 	params.Payload = req
 

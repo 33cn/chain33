@@ -41,7 +41,7 @@ func newToken() drivers.Driver {
 }
 
 func (t *token) GetName() string {
-	return types.ExecNamePrefix + "token"
+	return types.ExecName("token")
 }
 
 func (c *token) CheckTx(tx *types.Transaction, index int) error {
@@ -251,7 +251,7 @@ func (t *token) GetAccountTokenAssets(req *types.ReqAccountTokenAssets) (types.M
 		if req.Execer == "trade" {
 			execaddress := address.ExecAddress(req.Execer)
 			acc1 = acc.LoadExecAccount(req.Address, execaddress)
-		} else if req.Execer == types.ExecNamePrefix+"token" {
+		} else if req.Execer == t.GetName() {
 			acc1 = acc.LoadAccount(req.Address)
 		}
 		if acc1 == nil {

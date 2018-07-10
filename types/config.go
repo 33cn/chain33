@@ -119,7 +119,7 @@ func SetTitle(t string) {
 		ExecNamePrefix = title
 		CheckForkInTokenForManage = false
 		SetForkToOne()
-		//SuperManager = []string{"1BjLtd6Eqeo19URRVQzvBFbx1X2TSoPabp"}
+		SuperManager = []string{"1BjLtd6Eqeo19URRVQzvBFbx1X2TSoPabp"}
 	}
 }
 

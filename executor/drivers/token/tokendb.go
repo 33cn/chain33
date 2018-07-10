@@ -113,7 +113,7 @@ func (action *tokenAction) preCreate(token *types.TokenPreCreate) (*types.Receip
 		return nil, types.ErrTokenHavePrecreated
 	}
 
-	if types.CheckForkInTokenForManage && action.height >= types.ForkV6TokenBlackList {
+	if action.height >= types.ForkV6TokenBlackList {
 		found, err := inBlacklist(token.GetSymbol(), blacklist, action.db)
 		if err != nil {
 			return nil, err
@@ -169,19 +169,17 @@ func (action *tokenAction) finishCreate(tokenFinish *types.TokenFinishCreate) (*
 		return nil, types.ErrTokenNotPrecreated
 	}
 
-	if types.CheckForkInTokenForManage {
-		approverValid := false
-		for _, approver := range types.TokenApprs {
-			if approver == action.fromaddr {
-				approverValid = true
-				break
-			}
+	approverValid := false
+	for _, approver := range types.TokenApprs {
+		if approver == action.fromaddr {
+			approverValid = true
+			break
 		}
+	}
 
-		hasPriv, ok := validFinisher(action.fromaddr, action.db)
-		if (ok != nil || !hasPriv) && !approverValid {
-			return nil, types.ErrTokenCreatedApprover
-		}
+	hasPriv, ok := validFinisher(action.fromaddr, action.db)
+	if (ok != nil || !hasPriv) && !approverValid {
+		return nil, types.ErrTokenCreatedApprover
 	}
 
 	var logs []*types.ReceiptLog
@@ -202,7 +200,7 @@ func (action *tokenAction) finishCreate(tokenFinish *types.TokenFinishCreate) (*
 
 	//创建token类型的账户，同时需要创建的额度存入
 
-	tokenAccount, err := account.NewAccountDB(types.ExecNamePrefix+"token", tokenFinish.GetSymbol(), action.db)
+	tokenAccount, err := account.NewAccountDB(types.ExecName("token"), tokenFinish.GetSymbol(), action.db)
 	if err != nil {
 		return nil, err
 	}
