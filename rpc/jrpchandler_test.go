@@ -1035,7 +1035,9 @@ func TestChain33_SendRawTransactionUnsignError(t *testing.T) {
 
 func TestChain33_SendTransaction(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
-	api.On("SendTx", &types.Transaction{}).Return(nil, errors.New("error value"))
+	tx := &types.Transaction{}
+	api.On("SendTx", tx).Return(nil, errors.New("error value"))
+	api.On("NotifySendTxResult", &types.ReqNotifySendTxResult{Isok: false, Tx: tx}).Return(&types.Reply{IsOk:true}, nil)
 	testChain33 := newTestChain33(api)
 	var testResult interface{}
 	data := RawParm{
