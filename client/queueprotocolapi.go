@@ -99,7 +99,7 @@ type QueueProtocolAPI interface {
 	// types.EventPrivacyAccountInfo
 	ShowPrivacyAccountInfo(param *types.ReqPPrivacyAccount) (*types.ReplyPrivacyAccount, error)
 	// types.EventNotifySendTxResult
-	NotifySendTxResult(param *types.NotifySendTxResult) (*types.Reply, error)
+	NotifySendTxResult(param *types.ReqNotifySendTxResult) (*types.Reply, error)
 	// Privacy End
 	// --------------- wallet interfaces end
 	// +++++++++++++++ blockchain interfaces begin

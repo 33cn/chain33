@@ -728,11 +728,11 @@ func (_m *QueueProtocolAPI) NewAccount(param *types.ReqNewAccount) (*types.Walle
 }
 
 // NotifySendTxResult provides a mock function with given fields: param
-func (_m *QueueProtocolAPI) NotifySendTxResult(param *types.NotifySendTxResult) (*types.Reply, error) {
+func (_m *QueueProtocolAPI) NotifySendTxResult(param *types.ReqNotifySendTxResult) (*types.Reply, error) {
 	ret := _m.Called(param)
 
 	var r0 *types.Reply
-	if rf, ok := ret.Get(0).(func(*types.NotifySendTxResult) *types.Reply); ok {
+	if rf, ok := ret.Get(0).(func(*types.ReqNotifySendTxResult) *types.Reply); ok {
 		r0 = rf(param)
 	} else {
 		if ret.Get(0) != nil {
@@ -741,7 +741,7 @@ func (_m *QueueProtocolAPI) NotifySendTxResult(param *types.NotifySendTxResult) 
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(*types.NotifySendTxResult) error); ok {
+	if rf, ok := ret.Get(1).(func(*types.ReqNotifySendTxResult) error); ok {
 		r1 = rf(param)
 	} else {
 		r1 = ret.Error(1)

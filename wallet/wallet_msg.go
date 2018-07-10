@@ -370,7 +370,7 @@ func (wallet *Wallet) ProcRecvMsg() {
 				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyPrivacyAccountInfo, reply))
 			}
 		case types.EventNotifySendTxResult:
-			req := msg.Data.(*types.NotifySendTxResult)
+			req := msg.Data.(*types.ReqNotifySendTxResult)
 			reply, err := wallet.procNotifySendTxResult(req)
 			if err != nil {
 				walletlog.Error("procNotifySendTxResult", "err", err.Error())

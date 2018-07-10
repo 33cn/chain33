@@ -965,19 +965,15 @@ func (q *QueueProtocol) GetBlockSequences(param *types.ReqBlocks) (*types.BlockS
 	return nil, err
 }
 
-func (q *QueueProtocol) NotifySendTxResult(param *types.NotifySendTxResult) (*types.Reply, error) {
-	if param == nil {
+func (q *QueueProtocol) NotifySendTxResult(param *types.ReqNotifySendTxResult) (*types.Reply, error) {
+	if param == nil || param.Tx == nil {
 		err := types.ErrInvalidParam
 		log.Error("NotifySendTxResult", "Error", err)
 		return nil, err
 	}
 	msg, err := q.notify(walletKey, types.EventNotifySendTxResult, param)
-	if err != nil {
-		log.Error("NotifySendTxResult", "Error", err.Error())
-		return nil, err
-	}
-	if reply, ok := msg.GetData().(*types.Reply); ok {
-		return reply, nil
+	if _, ok := msg.GetData().(*types.Reply); ok {
+		return &types.Reply{IsOk: true}, nil
 	}
 	err = types.ErrTypeAsset
 	log.Error("NotifySendTxResult", "Error", err.Error())

@@ -15,7 +15,7 @@ func (g *Grpc) SendTransaction(ctx context.Context, in *pb.Transaction) (*pb.Rep
 	if reply != nil {
 		isok = reply.IsOk
 	}
-	g.cli.NotifySendTxResult(&pb.NotifySendTxResult{
+	g.cli.NotifySendTxResult(&pb.ReqNotifySendTxResult{
 		Isok: isok,
 		Tx:   in,
 	})

@@ -1359,7 +1359,7 @@ func (wallet *Wallet) getExpire(expire int64) time.Duration {
 	return retexpir
 }
 
-func (wallet *Wallet) procNotifySendTxResult(notifyRes *types.NotifySendTxResult) (*types.Reply, error) {
+func (wallet *Wallet) procNotifySendTxResult(notifyRes *types.ReqNotifySendTxResult) (*types.Reply, error) {
 	if !notifyRes.Isok {
 		return &types.Reply{IsOk: false}, nil
 	}
