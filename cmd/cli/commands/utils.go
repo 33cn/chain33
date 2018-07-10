@@ -27,6 +27,7 @@ func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
 		Expire:     tx.Expire,
 		Nonce:      tx.Nonce,
 		To:         tx.To,
+		From:       tx.From,
 	}
 
 	if tx.Amount != 0 {
