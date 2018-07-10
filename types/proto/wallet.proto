@@ -491,7 +491,7 @@ message ReplyBindMiner {
     string txHex = 1;
 }
 
-message NotifySendTxResult {
+message ReqNotifySendTxResult {
     bool        isok = 1;
     Transaction tx   = 2;
 }
