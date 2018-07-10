@@ -422,20 +422,21 @@ func (dbit *ssDBIt) Valid() bool {
 type ssDBBatch struct {
 	db       *GoSSDB
 	batchset map[string][]byte
-	batchdel []string
+	batchdel map[string]bool
 }
 
 func (db *GoSSDB) NewBatch(sync bool) Batch {
-	return &ssDBBatch{db: db, batchset: make(map[string][]byte)}
+	return &ssDBBatch{db: db, batchset: make(map[string][]byte), batchdel: make(map[string]bool)}
 }
 
 func (db *ssDBBatch) Set(key, value []byte) {
 	db.batchset[string(key)] = value
+	delete(db.batchdel, string(key))
 }
 
 func (db *ssDBBatch) Delete(key []byte) {
 	db.batchset[string(key)] = []byte{}
-	db.batchdel = append(db.batchdel, string(key))
+	db.batchdel[string(key)] = true
 }
 
 // 注意本方法的实现逻辑，因为ssdb没有提供删除和更新同时进行的批量操作；
@@ -454,7 +455,11 @@ func (db *ssDBBatch) Write() error {
 	}
 
 	if len(db.batchdel) > 0 {
-		err := db.db.pool.get().MultiDel(db.batchdel...)
+		var dkeys []string
+		for k, _ := range db.batchdel {
+			dkeys = append(dkeys, k)
+		}
+		err := db.db.pool.get().MultiDel(dkeys...)
 		if err != nil {
 			dlog.Error("Write (multi_del)", "error", err)
 			return err
