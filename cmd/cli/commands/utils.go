@@ -376,20 +376,16 @@ func GetExecAddr(exec string) (string, error) {
 }
 
 func getExecuterNameString() string {
-	str := "executer name ("
+	str := "executer name (only "
 	allowExeName := types.AllowUserExec
 	nameLen := len(allowExeName)
-	if nameLen > 1 {
-		for i := 0; i < nameLen-1; i++ {
-			if i > 0 {
-				str += ", "
-			}
-			str += fmt.Sprintf("\"%s\"", string(allowExeName[i]))
+	for i := 0; i < nameLen; i++ {
+		if i > 0 {
+			str += ", "
 		}
-		str += fmt.Sprintf(" and \"%s\" supported", string(allowExeName[nameLen-1]))
-	} else {
-		str += fmt.Sprintf("\"%s\" supported", string(allowExeName[nameLen-1]))
+		str += fmt.Sprintf("\"%s\"", string(allowExeName[i]))
 	}
+	str += " and user-defined type supported)"
 	return str
 }
 
