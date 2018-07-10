@@ -73,9 +73,7 @@ func (j *JSONRPCServer) Listen() {
 			}
 			//格式做一个检查
 			client, err := parseJsonRpcParams(data)
-			if client != nil {
-				log.Info("JSONRPCServer", "request", string(data))
-			}
+			log.Debug("JSONRPCServer", "request", string(data), "err", err.Error())
 			if err != nil {
 				writeError(w, r, 0, fmt.Sprintf(`parse request err %s`, err.Error()))
 				return
