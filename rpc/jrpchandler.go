@@ -71,7 +71,7 @@ func (c *Chain33) SendTransaction(in RawParm, result *interface{}) error {
 	if reply != nil {
 		isok = reply.IsOk
 	}
-	c.cli.NotifySendTxResult(&types.NotifySendTxResult{
+	c.cli.NotifySendTxResult(&types.ReqNotifySendTxResult{
 		Isok: isok,
 		Tx:   &parm,
 	})
