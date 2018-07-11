@@ -54,7 +54,7 @@ func (wallet *Wallet) getBalance(addr string, execer string) (*types.Account, er
 }
 
 func (wallet *Wallet) GetTickets(status int32) ([]*types.Ticket, [][]byte, error) {
-	accounts, err := wallet.ProcGetAccountList()
+	accounts, err := wallet.GetWalletAccounts()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -67,8 +67,8 @@ func (wallet *Wallet) GetTickets(status int32) ([]*types.Ticket, [][]byte, error
 	//循环遍历所有的账户-->保证钱包已经解锁
 	var tickets []*types.Ticket
 	var privs [][]byte
-	for _, acc := range accounts.Wallets {
-		t, err := wallet.getTickets(acc.Acc.Addr, status)
+	for _, acc := range accounts {
+		t, err := wallet.getTickets(acc.Addr, status)
 		if err == types.ErrNotFound {
 			continue
 		}
@@ -76,7 +76,7 @@ func (wallet *Wallet) GetTickets(status int32) ([]*types.Ticket, [][]byte, error
 			return nil, nil, err
 		}
 		if t != nil {
-			priv, err := wallet.getPrivKeyByAddr(acc.Acc.Addr)
+			priv, err := wallet.getPrivKeyByAddr(acc.Addr)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -91,7 +91,7 @@ func (wallet *Wallet) GetTickets(status int32) ([]*types.Ticket, [][]byte, error
 }
 
 func (wallet *Wallet) getAllPrivKeys() ([]crypto.PrivKey, error) {
-	accounts, err := wallet.ProcGetAccountList()
+	accounts, err := wallet.GetWalletAccounts()
 	if err != nil {
 		return nil, err
 	}
@@ -102,8 +102,8 @@ func (wallet *Wallet) getAllPrivKeys() ([]crypto.PrivKey, error) {
 		return nil, err
 	}
 	var privs []crypto.PrivKey
-	for _, acc := range accounts.Wallets {
-		priv, err := wallet.getPrivKeyByAddr(acc.Acc.Addr)
+	for _, acc := range accounts {
+		priv, err := wallet.getPrivKeyByAddr(acc.Addr)
 		if err != nil {
 			return nil, err
 		}

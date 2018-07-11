@@ -70,7 +70,7 @@ func (r *Retrieve) Exec(tx *types.Transaction, index int) (*types.Receipt, error
 }
 
 func (r *Retrieve) GetName() string {
-	return "retrieve"
+	return types.ExecName("retrieve")
 }
 
 func (r *Retrieve) GetActionName(tx *types.Transaction) string {
