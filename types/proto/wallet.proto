@@ -242,11 +242,6 @@ message ReqSignRawTx {
     string txHex   = 3;
     string expire  = 4;
     int32  index   = 5;
-    // 签名的模式类型
-    // 0：普通交易
-    // 1：隐私交易
-    int32  mode  = 6;
-    string token = 7;
 }
 
 message ReplySignRawTx {
@@ -415,7 +410,6 @@ message ReqCreateTransaction {
     // 隐私交易，接收方的公钥对
     string pubkeypair = 10;
     int32  mixcount   = 11;
-    int64  expire     = 12;
 }
 
 message RealKeyInput {
@@ -494,4 +488,9 @@ message ReqBindMiner {
 
 message ReplyBindMiner {
     string txHex = 1;
+}
+
+message ReqNotifySendTxResult {
+    bool        isok = 1;
+    Transaction tx   = 2;
 }

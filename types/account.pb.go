@@ -391,6 +391,7 @@ It has these top-level messages:
 	ReqCreateCacheTxKey
 	ReqBindMiner
 	ReplyBindMiner
+	ReqNotifySendTxResult
 */
 package types
 

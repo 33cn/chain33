@@ -91,18 +91,17 @@ type QueueProtocolAPI interface {
 	// types.EventCreateUTXOs
 	CreateUTXOs(param *types.ReqCreateUTXOs) (*types.Reply, error)
 	// types.EventCreateTransaction 由服务器协助创建一个交易
-	CreateTrasaction(param *types.ReqCreateTransaction) (*types.Reply, error)
-	// types.EventSendTxHashToWallet
-	SendTxHashToWallet(param *types.ReqCreateCacheTxKey) (*types.Reply, error)
+	CreateTrasaction(param *types.ReqCreateTransaction) (*types.Transaction, error)
 	// types.EventQueryCacheTransaction 查询当前未发送的隐私交易列表
 	QueryCacheTransaction(param *types.ReqCacheTxList) (*types.ReplyCacheTxList, error)
 	// types.EventDeleteCacheTransaction 根据指定的哈希值删除未发送的隐私交易
 	DeleteCacheTransaction(param *types.ReqCreateCacheTxKey) (*types.Reply, error)
 	// types.EventPrivacyAccountInfo
 	ShowPrivacyAccountInfo(param *types.ReqPPrivacyAccount) (*types.ReplyPrivacyAccount, error)
+	// types.EventNotifySendTxResult
+	NotifySendTxResult(param *types.ReqNotifySendTxResult) (*types.Reply, error)
 	// Privacy End
 	// --------------- wallet interfaces end
-
 	// +++++++++++++++ blockchain interfaces begin
 	// types.EventGetBlocks
 	GetBlocks(param *types.ReqBlocks) (*types.BlockDetails, error)
