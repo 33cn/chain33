@@ -1,0 +1,497 @@
+syntax = "proto3";
+
+import "transaction.proto";
+import "blockchain.proto";
+import "account.proto";
+import "executor.proto";
+import "executorTrade.proto";
+
+package types;
+
+//钱包模块存贮的tx交易详细信息
+// 	 tx : tx交易信息
+//	 receipt :交易收据信息
+//	 height :交易所在的区块高度
+//	 index :交易所在区块中的索引
+//	 blocktime :交易所在区块的时标
+//	 amount :交易量
+//	 fromaddr :交易打出地址
+//	 txhash : 交易对应的哈希值
+//	 actionName  :交易对应的函数调用
+//   spendrecv 交易对应的输入UTXO
+message WalletTxDetail {
+    Transaction tx          = 1;
+    ReceiptData receipt     = 2;
+    int64       height      = 3;
+    int64       index       = 4;
+    int64       blocktime   = 5;
+    int64       amount      = 6;
+    string      fromaddr    = 7;
+    bytes       txhash      = 8;
+    string      actionName  = 9;
+    repeated UTXO spendrecv = 10;
+}
+
+message WalletTxDetails {
+    repeated WalletTxDetail txDetails = 1;
+}
+
+//钱包模块存贮的账户信息
+// 	 privkey : 账户地址对应的私钥
+//	 label :账户地址对应的标签
+//	 addr :账户地址
+//	 timeStamp :创建账户时的时标
+message WalletAccountStore {
+    string privkey   = 1;
+    string label     = 2;
+    string addr      = 3;
+    string timeStamp = 4;
+}
+
+message WalletAccountPrivacy {
+    bytes viewPubkey   = 1;
+    bytes viewPrivKey  = 2;
+    bytes spendPubkey  = 3;
+    bytes spendPrivKey = 4;
+}
+
+//钱包模块通过一个随机值对钱包密码加密
+// 	 pwHash : 对钱包密码和一个随机值组合进行哈希计算
+//	 randstr :对钱包密码加密的一个随机值
+message WalletPwHash {
+    bytes  pwHash  = 1;
+    string randstr = 2;
+}
+
+//钱包当前的状态
+// 	 isWalletLock : 钱包是否锁状态，true锁定，false解锁
+//	 isAutoMining :钱包是否开启挖矿功能，true开启挖矿，false关闭挖矿
+// 	 isHasSeed : 钱包是否有种子，true已有，false没有
+//	 isTicketLock :钱包挖矿买票锁状态，true锁定，false解锁，只能用于挖矿转账
+message WalletStatus {
+    bool isWalletLock = 1;
+    bool isAutoMining = 2;
+    bool isHasSeed    = 3;
+    bool isTicketLock = 4;
+}
+
+message WalletAccounts {
+    repeated WalletAccount wallets = 1;
+}
+
+//钱包账户信息
+// 	 acc : 钱包账户信息
+//	 label :钱包账户对应的标签
+
+message WalletAccount {
+    Account acc   = 1;
+    string  label = 2;
+}
+
+//钱包解锁
+// 	 passwd : 钱包密码
+//	 timeout :钱包解锁时间，0，一直解锁，非0值，超时之后继续锁定
+//	 walletOrTicket :解锁整个钱包还是只解锁挖矿买票功能，1只解锁挖矿买票，0解锁整个钱包
+message WalletUnLock {
+    string passwd         = 1;
+    int64  timeout        = 2;
+    bool   walletOrTicket = 3;
+}
+
+message GenSeedLang {
+    int32 lang = 1;
+}
+
+message GetSeedByPw {
+    string passwd = 1;
+}
+
+//存储钱包的种子
+// 	 seed : 钱包种子
+//	 passwd :钱包密码
+message SaveSeedByPw {
+    string seed   = 1;
+    string passwd = 2;
+}
+
+message ReplySeed {
+    string seed = 1;
+}
+
+message ReqWalletSetPasswd {
+    string oldPass = 1;
+    string newPass = 2;
+}
+
+message ReqNewAccount {
+    string label = 1;
+}
+
+message MinerFlag {
+    int32 flag    = 1;
+    int64 reserve = 2;
+}
+
+//获取钱包交易的详细信息
+// 	 fromTx : []byte( Sprintf("%018d", height*100000 + index)，
+//				表示从高度 height 中的 index 开始获取交易列表；
+//			    第一次传参为空，获取最新的交易。)
+//	 count :获取交易列表的个数。
+//	 direction :查找方式；0，上一页；1，下一页。
+//  mode: 查询模式，0：普通查询，1：隐私合约查询
+//  sendRecvPrivacy: 查询隐私交易的发送还是接收：0：发送； 1：接收
+message ReqWalletTransactionList {
+    bytes fromTx          = 1;
+    int32 count           = 2;
+    int32 direction       = 3;
+    int32 mode            = 4;
+    int32 sendRecvPrivacy = 5;
+    // 需要查询的账号地址
+    string address   = 6;
+    string tokenname = 7;
+}
+
+message ReqWalletImportPrivKey {
+    // bitcoin 的私钥格式
+    string privkey = 1;
+    string label   = 2;
+}
+
+//发送交易
+// 	 from : 打出地址
+//	 to :接受地址
+// 	 amount : 转账额度
+//	 note :转账备注
+message ReqWalletSendToAddress {
+    string from        = 1;
+    string to          = 2;
+    int64  amount      = 3;
+    string note        = 4;
+    bool   isToken     = 5;
+    string tokenSymbol = 6;
+}
+
+message ReqWalletSetFee {
+    int64 amount = 1;
+}
+
+message ReqWalletSetLabel {
+    string addr  = 1;
+    string label = 2;
+}
+
+message ReqWalletMergeBalance {
+    string to = 1;
+}
+
+message ReqStr {
+    string reqStr = 1;
+}
+
+message ReplyStr {
+    string replystr = 1;
+}
+
+message ReqTokenPreCreate {
+    string creator_addr = 1;
+    string name         = 2;
+    string symbol       = 3;
+    string introduction = 4;
+    string owner_addr   = 5;
+    int64  total        = 6;
+    int64  price        = 7;
+}
+
+message ReqTokenFinishCreate {
+    string finisher_addr = 1;
+    string symbol        = 2;
+    string owner_addr    = 3;
+}
+
+message ReqTokenRevokeCreate {
+    string revoker_addr = 1;
+    string symbol       = 2;
+    string owner_addr   = 3;
+}
+
+message ReqSellToken {
+    TradeForSell sell  = 1;
+    string       owner = 2;
+}
+
+message ReqBuyToken {
+    TradeForBuy buy   = 1;
+    string      buyer = 2;
+}
+
+message ReqRevokeSell {
+    TradeForRevokeSell revoke = 1;
+    string             owner  = 2;
+}
+
+message ReqModifyConfig {
+    string key      = 1;
+    string op       = 2;
+    string value    = 3;
+    string modifier = 4;
+}
+
+message ReqSignRawTx {
+    string addr    = 1;
+    string privkey = 2;
+    string txHex   = 3;
+    string expire  = 4;
+    int32  index   = 5;
+    // 签名的模式类型
+    // 0：普通交易
+    // 1：隐私交易
+    int32  mode  = 6;
+    string token = 7;
+}
+
+message ReplySignRawTx {
+    string txHex = 1;
+}
+
+message ReportErrEvent {
+    string frommodule = 1;
+    string tomodule   = 2;
+    string error      = 3;
+}
+
+message Int32 {
+    int32 data = 1;
+}
+
+message ReqPub2Pri {
+    //接收人可见公钥A
+    // string viewPublic  = 1;
+    //接收人花费公钥B
+    // string spendPublic = 2;
+    string tokenname = 3;
+    int64  amount    = 4;
+    string note      = 5;
+    //发送人地址
+    string sender     = 6;
+    int32  mixin      = 7;
+    string pubkeypair = 8;
+    int64  expire     = 9;
+}
+
+message ReqPri2Pri {
+    //接收人可见公钥A
+    // string viewPublic  = 1; //A
+    //接收人花费公钥B
+    // string spendPublic = 2; //B
+    string tokenname = 3;
+    int64  amount    = 4;
+    string note      = 5;
+    //隐私交易发起人地址
+    string sender = 6;
+    int32  mixin  = 7;
+    //	string txhash      = 7;
+    string pubkeypair = 8;
+    int64  expire     = 9;
+}
+
+message ReqPri2Pub {
+    string receiver  = 1;
+    string tokenname = 2;
+    int64  amount    = 3;
+    string note      = 4;
+    //隐私交易发起人地址
+    string sender = 5;
+    int32  mixin  = 6;
+    //	string txhash     = 6;
+    int64 expire = 7;
+}
+
+message ReqCreateUTXOs {
+    // string viewPublic  = 1; //接收人可见公钥A
+    // string spendPublic = 2; //接收人花费公钥B
+    string tokenname  = 3;
+    int64  amount     = 4;
+    string note       = 5;
+    string sender     = 6; //发送人地址
+    int32  count      = 7;
+    string pubkeypair = 8;
+    int64  expire     = 9;
+}
+
+message ReplyPrivacyPkPair {
+    bool showSuccessful = 1;
+    // string viewPub       = 2;
+    // string spendPub      = 3;
+    string pubkeypair = 4;
+}
+
+message ReqPrivBal4AddrToken {
+    string addr  = 1;
+    string token = 2;
+}
+
+message ReplyPrivacyBalance {
+    string onetimeaddr = 1;
+    int64  balance     = 2;
+}
+
+message PrivacyDBStore {
+    bytes  txhash           = 1;
+    string tokenname        = 2;
+    int64  amount           = 3;
+    int32  outIndex         = 4;
+    bytes  txPublicKeyR     = 5;
+    bytes  onetimePublicKey = 6;
+    string owner            = 7;
+    int64  height           = 8;
+    int32  txindex          = 9;
+    bytes  blockhash        = 10;
+}
+
+message UTXO {
+    int64     amount    = 1;
+    UTXOBasic utxoBasic = 2;
+}
+message UTXOHaveTxHash {
+    int64     amount    = 1;
+    string    txHash    = 2;
+    UTXOBasic utxoBasic = 3;
+}
+
+message UTXOs {
+    repeated UTXO utxos = 1;
+}
+
+message UTXOHaveTxHashs {
+    repeated UTXOHaveTxHash utxoHaveTxHashs = 1;
+}
+
+message ReqUTXOGlobalIndex {
+    string   tokenname    = 1;
+    int32    mixCount     = 2;
+    repeated int64 amount = 3;
+}
+
+message UTXOBasic {
+    UTXOGlobalIndex utxoGlobalIndex = 1;
+    bytes           onetimePubkey   = 2;
+}
+
+message UTXOIndex4Amount {
+    int64    amount          = 1;
+    repeated UTXOBasic utxos = 2;
+}
+
+message ResUTXOGlobalIndex {
+    string   tokenname                         = 1;
+    int32    mixCount                          = 2;
+    repeated UTXOIndex4Amount utxoIndex4Amount = 3;
+}
+
+message FTXOsSTXOsInOneTx {
+    string tokenname = 1;
+    string sender    = 2;
+    // 交易倍成功发送以后，计入冻结的开始时间
+    int64    freezetime = 3;
+    string   txhash     = 4;
+    repeated UTXO utxos = 5;
+}
+
+// 某些交易需要存在一些复杂的算法，所以需要请求服务器协助构建交易，返回对应交易哈希值，后续签名可以根据此哈希值进行处理
+message ReqCreateTransaction {
+    string tokenname = 1;
+    // 构建交易类型
+    // 0：普通的交易（暂不支持）
+    // 1：隐私交易 公开->隐私
+    // 2：隐私交易 隐私->隐私
+    // 3：隐私交易 隐私->公开
+    int32  type   = 2;
+    int64  amount = 3;
+    string note   = 4;
+    // 普通交易的发送方
+    string from = 5;
+    // 普通交易的接收方
+    string to = 6;
+    // 隐私交易，接收方的公钥对
+    string pubkeypair = 10;
+    int32  mixcount   = 11;
+    int64  expire     = 12;
+}
+
+message RealKeyInput {
+    int32 realinputkey   = 1;
+    bytes onetimeprivkey = 2;
+}
+
+message UTXOBasics {
+    repeated UTXOBasic utxos = 1;
+}
+
+message CreateTransactionCache {
+    bytes key = 1;
+    // 记录创建时间，用以处理过期的交易
+    int64 createtime = 2;
+    // 记录签名成功的时间，用以处理过期交易
+    int64 signtime = 3;
+    // 缓存状态
+    // 0 - 创建状态
+    // 1 - 已经签名状态
+    int32 status = 4;
+    //
+    Transaction transaction = 5;
+
+    string   sender                    = 6;
+    repeated RealKeyInput realkeyinput = 7;
+    repeated UTXOBasics utxos          = 8;
+    string              tokenname      = 9;
+}
+
+message ReqCacheTxList {
+    string addr      = 1;
+    string tokenname = 2;
+}
+
+message ReplyCacheTxList {
+    repeated Transaction txs = 1;
+}
+
+message ReqPrivacyAccount {
+    string tokenname = 1;
+    string addr      = 2;
+}
+
+message ReqPPrivacyAccount {
+    string addr  = 1;
+    string token = 2;
+    // 设定显示的数据类型信息
+    // 0： 只显示账户的数值信息
+    // 1： 显示UTXO明细
+    // 2： 显示FTXO明细
+    // 3： 全部显示
+    int32 displaymode = 3;
+}
+
+// 请求隐私账户信息的应答
+message ReplyPrivacyAccount {
+    // 未花费的UTXO
+    UTXOs utxos = 1;
+    // 冻结的UTXO
+    UTXOs ftxos       = 2;
+    int32 displaymode = 3;
+}
+
+message ReqCreateCacheTxKey {
+    string tokenname = 1;
+    bytes  hashkey   = 2;
+}
+
+message ReqBindMiner {
+    string bindAddr     = 1;
+    string originAddr   = 2;
+    int64  amount       = 3;
+    bool   checkBalance = 4;
+}
+
+message ReplyBindMiner {
+    string txHex = 1;
+}

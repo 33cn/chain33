@@ -50,7 +50,25 @@ func (cache *txCache) Exists(hash []byte) bool {
 func (cache *txCache) Push(tx *types.Transaction) error {
 	hash := tx.Hash()
 	if cache.Exists(hash) {
-		return types.ErrTxExist
+		addedItem, ok := cache.txMap[string(hash)].Value.(*Item)
+		if !ok {
+			mlog.Error("mempoolItemError", "item", cache.txMap[string(hash)].Value)
+			return types.ErrTxExist
+		}
+		addedTime := addedItem.enterTime
+		if types.Now().Unix()-addedTime < mempoolDupResendInterval {
+			return types.ErrTxExist
+		} else {
+			// 超过2分钟之后的重发交易返回nil，再次发送给P2P，但是不再次加入mempool
+			// 并修改其enterTime，以避免该交易一直在节点间被重发
+			newEnterTime := types.Now().Unix()
+			resendItem := &Item{value: tx, priority: tx.Fee, enterTime: newEnterTime}
+			newItem := cache.txList.InsertAfter(resendItem, cache.txMap[string(hash)])
+			cache.txList.Remove(cache.txMap[string(hash)])
+			cache.txMap[string(hash)] = newItem
+			// ------------------
+			return nil
+		}
 	}
 
 	if cache.txList.Len() >= cache.size {

@@ -90,6 +90,9 @@ var (
 	ErrTBuyOrderRevoked        = errors.New("ErrTradeBuyOrderRevoked")
 	ErrTBuyOrderRevoke         = errors.New("ErrTradeBuyOrderRevokeNotAllowed")
 	ErrTCntLessThanMinBoardlot = errors.New("ErrTradeCountLessThanMinBoardlot")
+	//err for privacy
+	ErrWrongKey     = errors.New("ErrWrongKey")
+	ErrInvalidOrder = errors.New("ErrInvalidOrder")
 
 	ErrStartBigThanEnd            = errors.New("ErrStartBigThanEnd")
 	ErrToAddrNotSameToExecAddr    = errors.New("ErrToAddrNotSameToExecAddr")
@@ -108,6 +111,7 @@ var (
 	ErrNoBalance                  = errors.New("ErrNoBalance")
 	ErrBalanceLessThanTenTimesFee = errors.New("ErrBalanceLessThanTenTimesFee")
 	ErrTxExpire                   = errors.New("ErrTxExpire")
+	ErrHeaderNotSet               = errors.New("ErrHeaderNotSet")
 	ErrSign                       = errors.New("ErrSign")
 	ErrFeeTooLow                  = errors.New("ErrFeeTooLow")
 	ErrEmptyTx                    = errors.New("ErrEmptyTx")
@@ -144,6 +148,15 @@ var (
 	ErrIsClosed               = errors.New("ErrIsClosed")
 	ErrDecode                 = errors.New("ErrDecode")
 	ErrNotRollBack            = errors.New("ErrNotRollBack")
+	ErrNoUTXORec4Token        = errors.New("ErrNoUTXORec4Token")
+	ErrNoUTXORec4Amount       = errors.New("ErrNoUTXORec4Amount")
+	ErrNotEnoughUTXOs         = errors.New("ErrNotEnoughUTXOs")
+	ErrNoSuchPrivacyTX        = errors.New("ErrNoSuchPrivacyTX")
+	ErrDoubeSpendOccur        = errors.New("ErrDoubeSpendOccur")
+	ErrOutputIndex            = errors.New("ErrOutputIndex")
+	ErrPubkeysOfUTXO          = errors.New("ErrPubkeysOfUTXO")
+	ErrRecoverUTXO            = errors.New("ErrRecoverUTXO")
+
 	//wallet
 	ErrInputPara            = errors.New("ErrInputPara")
 	ErrWalletIsLocked       = errors.New("ErrWalletIsLocked")
@@ -165,17 +178,21 @@ var (
 	ErrSeedExist            = errors.New("ErrSeedExist")
 	ErrNotSupport           = errors.New("ErrNotSupport")
 	ErrSeedWordNum          = errors.New("ErrSeedWordNum")
+	ErrPubKeyLen            = errors.New("ErrPublicKeyLen")
 	ErrSeedWord             = errors.New("ErrSeedWord")
 	ErrNoPrivKeyOrAddr      = errors.New("ErrNoPrivKeyOrAddr")
 	ErrNewWalletFromSeed    = errors.New("ErrNewWalletFromSeed")
 	ErrNewKeyPair           = errors.New("ErrNewKeyPair")
 	ErrPrivkeyToPub         = errors.New("ErrPrivkeyToPub")
 
-	ErrOnlyTicketUnLocked = errors.New("ErrOnlyTicketUnLocked")
-	ErrNewCrypto          = errors.New("ErrNewCrypto")
-	ErrFromHex            = errors.New("ErrFromHex")
-	ErrPrivKeyFromBytes   = errors.New("ErrFromHex")
-	ErrParentHash         = errors.New("ErrParentHash")
+	ErrOnlyTicketUnLocked    = errors.New("ErrOnlyTicketUnLocked")
+	ErrNewCrypto             = errors.New("ErrNewCrypto")
+	ErrFromHex               = errors.New("ErrFromHex")
+	ErrPrivKeyFromBytes      = errors.New("ErrFromHex")
+	ErrParentHash            = errors.New("ErrParentHash")
+	ErrPrivacyNotExist       = errors.New("ErrPrivacyNotExist")
+	ErrPrivacyTxFeeNotEnough = errors.New("ErrPrivacyTxFeeNotEnough")
+
 	// manage
 	ErrNoPrivilege    = errors.New("ErrNoPrivilege")
 	ErrBadConfigKey   = errors.New("ErrBadConfigKey")
@@ -202,7 +219,10 @@ var (
 	ErrNotAllowKey                = errors.New("ErrNotAllowKey")
 	ErrDataBaseDamage             = errors.New("ErrDataBaseDamage")
 	ErrIndex                      = errors.New("ErrIndex")
-	ErrNotAllowPubkey             = errors.New("ErrNotAllowPubkey")
+	// ring signature
+	ErrGeFromBytesVartime = errors.New("ErrGeFromBytesVartime")
+	ErrInvalidParams      = errors.New("ErrInvalidParams")
+	ErrNotAllowPubkey     = errors.New("ErrNotAllowPubkey")
 
 	ErrRelayBalanceNotEnough   = errors.New("ErrRelaySellBalanceNotEnough")
 	ErrRelayOrderNotExist      = errors.New("ErrRelayOrderNotExist")
