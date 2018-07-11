@@ -123,6 +123,7 @@ func (client *ParaClient) InitBlock() {
 	if err != nil {
 		panic(err)
 	}
+
 	if block == nil {
 		startSeq := int64(0)
 		if searchSeq > 0 {
@@ -171,7 +172,7 @@ func (client *ParaClient) GetSeqByHeightOnMain(height int64, originSeq int64) in
 
 func (client *ParaClient) CreateGenesisTx() (ret []*types.Transaction) {
 	var tx types.Transaction
-	tx.Execer = []byte("coins")
+	tx.Execer = []byte(types.ExecName("coins"))
 	tx.To = client.Cfg.Genesis
 	//gen payload
 	g := &types.CoinsAction_Genesis{}

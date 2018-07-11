@@ -35,10 +35,11 @@ var (
 
 	ErrTest = errors.New("ErrTest")
 
-	addrexec    string
-	addr        string
-	privkey     crypto.PrivKey
-	privGenesis crypto.PrivKey
+	addrexec     string
+	addr         string
+	privkey      crypto.PrivKey
+	privGenesis  crypto.PrivKey
+	privkeySuper crypto.PrivKey
 )
 
 const (
@@ -90,6 +91,7 @@ func init() {
 	addrexec = address.ExecAddress("user.p.guodun.token")
 
 	privGenesis = getprivkey("CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944")
+	privkeySuper = getprivkey("4a92f3700920dc422c8ba993020d26b54711ef9b3d74deab7c3df055218ded42")
 }
 
 func TestInitAccount(t *testing.T) {
@@ -130,6 +132,89 @@ func TestInitAccount(t *testing.T) {
 	}
 	time.Sleep(5 * time.Second)
 
+}
+
+func TestManageForTokenBlackList(t *testing.T) {
+	if !isMainNetTest {
+		return
+	}
+	fmt.Println("TestManageForTokenBlackList start")
+	defer fmt.Println("TestManageForTokenBlackList end")
+
+	v := &types.ModifyConfig{Key: "token-blacklist", Op: "add", Value: "GDT", Addr: ""}
+	modify := &types.ManageAction{
+		Ty:    types.ManageActionModifyConfig,
+		Value: &types.ManageAction_Modify{Modify: v},
+	}
+	tx := &types.Transaction{
+		Execer:  []byte("user.p.guodun.manage"),
+		Payload: types.Encode(modify),
+		Fee:     feeForToken,
+		Nonce:   r.Int63(),
+		To:      address.ExecAddress("user.p.guodun.manage"),
+	}
+
+	tx.Sign(types.SECP256K1, privkeySuper)
+
+	reply, err := mainClient.SendTransaction(context.Background(), tx)
+	if err != nil {
+		fmt.Println("err", err)
+		t.Error(err)
+		return
+	}
+	if !reply.IsOk {
+		fmt.Println("err = ", reply.GetMsg())
+		t.Error(ErrTest)
+		return
+	}
+
+	if !waitTx(tx.Hash()) {
+		t.Error(ErrTest)
+		return
+	}
+	time.Sleep(5 * time.Second)
+
+}
+
+func TestManageForTokenFinisher(t *testing.T) {
+	if !isMainNetTest {
+		return
+	}
+	fmt.Println("TestManageForTokenFinisher start")
+	defer fmt.Println("TestManageForTokenFinisher end")
+
+	v := &types.ModifyConfig{Key: "token-finisher", Op: "add", Value: addr, Addr: ""}
+	modify := &types.ManageAction{
+		Ty:    types.ManageActionModifyConfig,
+		Value: &types.ManageAction_Modify{Modify: v},
+	}
+	tx := &types.Transaction{
+		Execer:  []byte("user.p.guodun.manage"),
+		Payload: types.Encode(modify),
+		Fee:     feeForToken,
+		Nonce:   r.Int63(),
+		To:      address.ExecAddress("user.p.guodun.manage"),
+	}
+
+	tx.Sign(types.SECP256K1, privkeySuper)
+
+	reply, err := mainClient.SendTransaction(context.Background(), tx)
+	if err != nil {
+		fmt.Println("err", err)
+		t.Error(err)
+		return
+	}
+	if !reply.IsOk {
+		fmt.Println("err = ", reply.GetMsg())
+		t.Error(ErrTest)
+		return
+	}
+
+	if !waitTx(tx.Hash()) {
+		t.Error(ErrTest)
+		return
+	}
+	time.Sleep(5 * time.Second)
 }
 
 func TestPrecreate(t *testing.T) {
