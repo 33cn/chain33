@@ -124,7 +124,7 @@ func initEnv3() (queue.Queue, queue.Module, queue.Module, *Mempool) {
 	mem := New(cfg.MemPool)
 	mem.SetQueueClient(q.Client())
 	mem.setSync(true)
-	mem.waitPollLastHeader()
+	mem.WaitPollLastHeader()
 	return q, chain, s, mem
 }
 
@@ -141,7 +141,7 @@ func initEnv2(size int) (queue.Queue, *Mempool) {
 		mem.Resize(size)
 	}
 	mem.SetMinFee(0)
-	mem.waitPollLastHeader()
+	mem.WaitPollLastHeader()
 	return q, mem
 }
 
@@ -157,7 +157,7 @@ func initEnv(size int) (queue.Queue, *Mempool) {
 		mem.Resize(size)
 	}
 	mem.SetMinFee(types.MinFee)
-	mem.waitPollLastHeader()
+	mem.WaitPollLastHeader()
 	return q, mem
 }
 
@@ -494,6 +494,42 @@ func TestRemoveTxOfBlock(t *testing.T) {
 
 	if reply.GetData().(*types.MempoolSize).Size != 3 {
 		t.Error("TestGetMempoolSize failed")
+	}
+}
+
+func TestAddBlockedTx(t *testing.T) {
+	q, mem := initEnv(0)
+	defer q.Close()
+	defer mem.Close()
+
+	msg1 := mem.client.NewMessage("mempool", types.EventTx, tx3)
+	err := mem.client.Send(msg1, true)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	msg1, err = mem.client.Wait(msg1)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	blkDetail := &types.BlockDetail{Block: blk}
+	msg2 := mem.client.NewMessage("mempool", types.EventAddBlock, blkDetail)
+	mem.client.Send(msg2, false)
+
+	msg3 := mem.client.NewMessage("mempool", types.EventTx, tx3)
+	err = mem.client.Send(msg3, true)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	resp, err := mem.client.Wait(msg3)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if string(resp.GetData().(*types.Reply).GetMsg()) != types.ErrDupTx.Error() {
+		t.Error("TestAddBlockedTx failed")
 	}
 }
 

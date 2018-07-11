@@ -90,6 +90,12 @@ func createBlockCert(txs []*types.Transaction) *types.Block {
 	return newblock
 }
 
+func genEventAddBlockMsgCert(client queue.Client, block *types.Block) queue.Message {
+	blockDetail := constructionBlockDetail(block, 1, 2)
+	msg := client.NewMessage("execs", types.EventAddBlock, blockDetail)
+	return msg
+}
+
 func TestCertMgr(t *testing.T) {
 	q, _ := initCertEnv()
 	storeProcess(q)
@@ -105,12 +111,12 @@ func TestCertMgr(t *testing.T) {
 
 	txs := []*types.Transaction{tx1, tx3}
 	block := createBlockCert(txs)
-	msg = genEventAddBlockMsg(q.Client(), block)
+	msg = genEventAddBlockMsgCert(q.Client(), block)
 	msgs = append(msgs, msg)
 
 	txs = []*types.Transaction{tx2, tx3}
 	block = createBlockCert(txs)
-	msg = genEventAddBlockMsg(q.Client(), block)
+	msg = genEventAddBlockMsgCert(q.Client(), block)
 	msgs = append(msgs, msg)
 
 	go func() {

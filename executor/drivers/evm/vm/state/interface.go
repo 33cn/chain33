@@ -58,6 +58,8 @@ type StateDB interface {
 	RevertToSnapshot(int)
 	// 生成一个新版本号（递增操作）
 	Snapshot() int
+	// 转换合约状态数据存储
+	TransferStateData(addr string)
 
 	// 添加新的日志信息
 	AddLog(*model.ContractLog)

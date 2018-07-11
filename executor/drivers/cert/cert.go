@@ -88,7 +88,7 @@ func (c *Cert) CheckTx(tx *types.Transaction, index int) error {
 	}
 
 	// auth模块关闭则返回
-	if !types.IsAuthEnable {
+	if !authority.IsAuthEnable {
 		return nil
 	}
 

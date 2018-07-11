@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/tendermint/ed25519"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
+	"gitlab.33.cn/chain33/chain33/common/ed25519"
 )
 
 type Driver struct{}
@@ -138,5 +138,5 @@ func (sig SignatureEd25519) Equals(other crypto.Signature) bool {
 }
 
 func init() {
-	crypto.Register("ed25519", &Driver{})
+	crypto.Register(crypto.SignNameED25519, &Driver{})
 }

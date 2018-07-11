@@ -4,114 +4,8 @@ import (
 	"encoding/json"
 )
 
-func init() {
-	registorRpcType("GetTokenSellOrderByStatus", &TradeQueryTokenSellOrder{})
-	registorRpcType("GetOnesSellOrderWithStatus", &TradeQueryOnesSellOrder{})
-	registorRpcType("GetOnesSellOrder", &TradeQueryOnesSellOrder{})
-	registorRpcType("GetTokenBuyOrderByStatus", &TradeQueryTokenBuyOrder{})
-	registorRpcType("GetOnesBuyOrderWithStatus", &TradeQueryOnesBuyOrder{})
-	registorRpcType("GetOnesBuyOrder", &TradeQueryOnesBuyOrder{})
-	registorRpcType("GetOnesOrderWithStatus", &TradeQueryOnesOrder{})
-
-	//tlog.Info("rpc", "typeUtil", RpcTypeUtilMap)
-}
-
-// rpc query trade sell order part
-type RpcReplySellOrders struct {
-	SellOrders []*rpcReplyTradeOrder `json:"sellOrders"`
-}
-
-type TradeQueryTokenSellOrder struct {
-}
-
-func (t *TradeQueryTokenSellOrder) Input(message json.RawMessage) ([]byte, error) {
-	var req ReqTokenSellOrder
-	err := json.Unmarshal(message, &req)
-	if err != nil {
-		return nil, err
-	}
-	return Encode(&req), nil
-}
-
-func (t *TradeQueryTokenSellOrder) Output(reply interface{}) (interface{}, error) {
-	orders := (*(reply.(*Message))).(*ReplyTradeOrders)
-	var rpcReply RpcReplySellOrders
-	for _, order := range orders.Orders {
-		rpcReply.SellOrders = append(rpcReply.SellOrders, (*rpcReplyTradeOrder)(order))
-	}
-	return &rpcReply, nil
-}
-
-type TradeQueryOnesSellOrder struct {
-}
-
-func (t *TradeQueryOnesSellOrder) Input(message json.RawMessage) ([]byte, error) {
-	var req ReqAddrTokens
-	err := json.Unmarshal(message, &req)
-	if err != nil {
-		return nil, err
-	}
-	return Encode(&req), nil
-}
-
-func (t *TradeQueryOnesSellOrder) Output(reply interface{}) (interface{}, error) {
-	orders := (*(reply.(*Message))).(*ReplyTradeOrders)
-	var rpcReply RpcReplySellOrders
-	for _, order := range orders.Orders {
-		rpcReply.SellOrders = append(rpcReply.SellOrders, (*rpcReplyTradeOrder)(order))
-	}
-	return &rpcReply, nil
-}
-
-// rpc query trade buy order
-type RpcReplyBuyOrders struct {
-	BuyOrders []*rpcReplyTradeOrder `json:"buyOrders"`
-}
-
-type TradeQueryTokenBuyOrder struct {
-}
-
-func (t *TradeQueryTokenBuyOrder) Input(message json.RawMessage) ([]byte, error) {
-	var req ReqTokenBuyOrder
-	err := json.Unmarshal(message, &req)
-	if err != nil {
-		return nil, err
-	}
-	return Encode(&req), nil
-}
-
-func (t *TradeQueryTokenBuyOrder) Output(reply interface{}) (interface{}, error) {
-	orders := (*(reply.(*Message))).(*ReplyTradeOrders)
-	var rpcReply RpcReplyBuyOrders
-	for _, order := range orders.Orders {
-		rpcReply.BuyOrders = append(rpcReply.BuyOrders, (*rpcReplyTradeOrder)(order))
-	}
-	return &rpcReply, nil
-}
-
-type TradeQueryOnesBuyOrder struct {
-}
-
-func (t *TradeQueryOnesBuyOrder) Input(message json.RawMessage) ([]byte, error) {
-	var req ReqAddrTokens
-	err := json.Unmarshal(message, &req)
-	if err != nil {
-		return nil, err
-	}
-	return Encode(&req), nil
-}
-
-func (t *TradeQueryOnesBuyOrder) Output(reply interface{}) (interface{}, error) {
-	orders := (*(reply.(*Message))).(*ReplyTradeOrders)
-	var rpcReply RpcReplyBuyOrders
-	for _, order := range orders.Orders {
-		rpcReply.BuyOrders = append(rpcReply.BuyOrders, (*rpcReplyTradeOrder)(order))
-	}
-	return &rpcReply, nil
-}
-
 // trade order
-type rpcReplyTradeOrder struct {
+type RpcReplyTradeOrder struct {
 	TokenSymbol       string `protobuf:"bytes,1,opt,name=tokenSymbol" json:"tokenSymbol"`
 	Owner             string `protobuf:"bytes,2,opt,name=owner" json:"owner"`
 	AmountPerBoardlot int64  `protobuf:"varint,3,opt,name=amountPerBoardlot" json:"amountPerBoardlot"`
@@ -129,28 +23,7 @@ type rpcReplyTradeOrder struct {
 	IsSellOrder       bool   `protobuf:"varint,15,opt,name=isSellOrder" json:"isSellOrder"`
 }
 
-type RpcReplyTradeOrders struct {
-	Orders []*rpcReplyTradeOrder `protobuf:"bytes,1,rep,name=orders" json:"orders"`
-}
-
 func (reply *ReplyTradeOrder) MarshalJSON() ([]byte, error) {
-	r := (*rpcReplyTradeOrder)(reply)
+	r := (*RpcReplyTradeOrder)(reply)
 	return json.Marshal(r)
-}
-
-type TradeQueryOnesOrder struct {
-}
-
-func (t *TradeQueryOnesOrder) Input(message json.RawMessage) ([]byte, error) {
-	var req ReqAddrTokens
-	err := json.Unmarshal(message, &req)
-	if err != nil {
-		return nil, err
-	}
-	return Encode(&req), nil
-}
-
-func (t *TradeQueryOnesOrder) Output(reply interface{}) (interface{}, error) {
-	orders := (*(reply.(*Message))).(*ReplyTradeOrders)
-	return orders, nil
 }

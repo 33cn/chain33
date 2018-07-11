@@ -21,6 +21,7 @@ var (
     OrgName = "Chain33"
     cpuNum = runtime.NumCPU()
 	Author = &Authority{}
+	IsAuthEnable = false
 )
 
 type Authority struct {
@@ -77,7 +78,7 @@ func (auth *Authority) Init(conf *types.Authority) error {
 	auth.validCertCache = make([][]byte, 0)
 	auth.HistoryCertCache = &HistoryCertData{authConfig, -1, -1}
 
-	types.IsAuthEnable = true
+	IsAuthEnable = true
 	return nil
 }
 
@@ -108,7 +109,7 @@ func newAuthConfig(store *types.HistoryCertStore) *core.AuthConfig {
 从数据库中的记录数据恢复证书，用于证书回滚
  */
 func (auth *Authority) ReloadCert(store *types.HistoryCertStore) error {
-	if !types.IsAuthEnable {
+	if !IsAuthEnable {
 		return nil
 	}
 
@@ -139,7 +140,7 @@ func (auth *Authority) ReloadCert(store *types.HistoryCertStore) error {
 从新的authdir下的文件更新证书，用于证书更新
  */
 func (auth *Authority) ReloadCertByHeght(currentHeight int64) error {
-	if !types.IsAuthEnable {
+	if !IsAuthEnable {
 		return nil
 	}
 

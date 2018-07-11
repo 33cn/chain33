@@ -14,6 +14,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
+	"gitlab.33.cn/chain33/chain33/common/crypto/privacy"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	clog "gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/queue"
@@ -21,7 +22,7 @@ import (
 )
 
 var (
-	minFee                  = types.MinFee
+	minFee            int64 = types.MinFee
 	maxTxNumPerBlock  int64 = types.MaxTxsPerBlock
 	MaxTxHashsPerTime int64 = 100
 	walletlog               = log.New("module", "wallet")
@@ -29,6 +30,22 @@ var (
 	SignType    = 1
 	accountdb   = account.NewCoinsAccount()
 	accTokenMap = make(map[string]*account.DB)
+)
+
+const (
+	// 分成3步操作中
+	cacheTxStatus_Created int32 = 10000
+	cacheTxStatus_Signed  int32 = 10001
+	cacheTxStatus_Sent    int32 = 10002
+	// 交易操作的方向
+	AddTx int32 = 20001
+	DelTx int32 = 20002
+	// 交易收发方向
+	sendTx int32 = 30001
+	recvTx int32 = 30002
+	// 查询类型定义
+	walletQueryModeNormal  int32 = 0
+	walletQueryModePrivacy int32 = 1
 )
 
 type Wallet struct {
@@ -56,6 +73,22 @@ type Wallet struct {
 	rescanwg         *sync.WaitGroup
 }
 
+type walletUTXOs struct {
+	outs []*txOutputInfo
+}
+
+type txOutputInfo struct {
+	amount           int64
+	utxoGlobalIndex  *types.UTXOGlobalIndex
+	txPublicKeyR     []byte
+	onetimePublicKey []byte
+}
+
+type addrAndprivacy struct {
+	PrivacyKeyPair *privacy.Privacy
+	Addr           *string
+}
+
 func SetLogLevel(level string) {
 	clog.SetLogLevel(level)
 }
@@ -70,11 +103,12 @@ func New(cfg *types.Wallet) *Wallet {
 	walletStoreDB := dbm.NewDB("wallet", cfg.Driver, cfg.DbPath, cfg.DbCache)
 	walletStore := NewStore(walletStoreDB)
 	minFee = cfg.MinFee
-	if "secp256k1" == cfg.SignType {
-		SignType = 1
-	} else if "ed25519" == cfg.SignType {
-		SignType = 2
+	signType, exist := types.MapSignName2Type[cfg.SignType]
+	if !exist {
+		signType = types.SECP256K1
 	}
+	SignType = signType
+
 	wallet := &Wallet{
 		walletStore:      walletStore,
 		isWalletLocked:   1,
@@ -133,23 +167,26 @@ func (wallet *Wallet) SetQueueClient(cli queue.Client) {
 	wallet.client = cli
 	wallet.client.Sub("wallet")
 	wallet.api, _ = client.New(cli, nil)
-
 	wallet.wg.Add(1)
 	go wallet.ProcRecvMsg()
 
 	//获取wallet db version ,自动升级数据库首先，然后再启动钱包.
 	//和blockchain模块有消息来往所以需要先启动ProcRecvMsg任务
-	versin := wallet.walletStore.GetWalletVersion()
-	walletlog.Info("wallet db", "versin:", versin)
-	if versin == 0 {
+	version := wallet.walletStore.GetWalletVersion()
+	walletlog.Info("wallet db", "version:", version)
+	if version == 0 {
 		wallet.RescanAllTxByAddr()
 		wallet.walletStore.SetWalletVersion(1)
 	}
 
 	wallet.wg.Add(1)
 	go wallet.autoMining()
-	//InitSeedLibrary()
+
+	//开启检查FTXO的协程
+	wallet.wg.Add(1)
+	go wallet.checkWalletStoreData()
 }
+
 func (wallet *Wallet) getPrivKeyByAddr(addr string) (crypto.PrivKey, error) {
 	//获取指定地址在钱包里的账户信息
 	Accountstor, err := wallet.walletStore.GetAccountByAddr(addr)
@@ -211,15 +248,15 @@ func (wallet *Wallet) RescanReqTxDetailByAddr(addr string) {
 
 //重新扫描钱包所有地址对应的交易从blockchain模块
 func (wallet *Wallet) RescanAllTxByAddr() {
-	accounts, err := wallet.ProcGetAccountList()
+	accounts, err := wallet.GetWalletAccounts()
 	if err != nil {
 		return
 	}
 	walletlog.Debug("RescanAllTxByAddr begin!")
-	for _, acc := range accounts.Wallets {
+	for _, acc := range accounts {
 		//从blockchain模块同步Account.Addr对应的所有交易详细信息
 		wallet.rescanwg.Add(1)
-		go wallet.RescanReqTxDetailByAddr(acc.Acc.Addr)
+		go wallet.RescanReqTxDetailByAddr(acc.Addr)
 	}
 	wallet.rescanwg.Wait()
 
@@ -305,5 +342,48 @@ func (wallet *Wallet) GetWalletStatus() *types.WalletStatus {
 	s.IsHasSeed, _ = HasSeed(wallet.walletStore.db)
 	s.IsAutoMining = wallet.isAutoMining()
 	s.IsTicketLock = wallet.IsTicketLocked()
+
+	walletlog.Debug("GetWalletStatus", "walletstatus", s)
 	return s
+}
+
+func (wallet *Wallet) checkWalletStoreData() {
+	defer wallet.wg.Done()
+	timecount := 10
+	checkTicker := time.NewTicker(time.Duration(timecount) * time.Second)
+	for {
+		select {
+		case <-checkTicker.C:
+			newbatch := wallet.walletStore.NewBatch(true)
+			err := wallet.procInvalidTxOnTimer(newbatch)
+			if err != nil && err != dbm.ErrNotFoundInDb {
+				walletlog.Error("checkWalletStoreData", "procInvalidTxOnTimer error ", err)
+				return
+			}
+			newbatch.Write()
+		case <-wallet.done:
+			return
+		}
+	}
+
+}
+
+//output:
+//type WalletAccountStore struct {
+//	Privkey   string  //加密后的私钥hex值
+//	Label     string
+//	Addr      string
+//	TimeStamp string
+//获取钱包的所有账户地址列表，
+func (wallet *Wallet) GetWalletAccounts() ([]*types.WalletAccountStore, error) {
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+
+	//通过Account前缀查找获取钱包中的所有账户信息
+	WalletAccStores, err := wallet.walletStore.GetAccountByPrefix("Account")
+	if err != nil || len(WalletAccStores) == 0 {
+		walletlog.Info("GetWalletAccounts", "GetAccountByPrefix:err", err)
+		return nil, err
+	}
+	return WalletAccStores, err
 }
