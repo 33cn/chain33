@@ -20,10 +20,10 @@ func (t *token) ExecTransWithdraw(accountDB *account.DB, tx *types.Transaction, 
 		transfer := action.GetTransfer()
 		from := tx.From()
 		//to 是 execs 合约地址
-		if drivers.IsDriverAddress(tx.To, t.GetHeight()) {
-			return accountDB.TransferToExec(from, tx.To, transfer.Amount)
+		if drivers.IsDriverAddress(tx.GetRealToAddr(), t.GetHeight()) {
+			return accountDB.TransferToExec(from, tx.GetRealToAddr(), transfer.Amount)
 		}
-		return accountDB.Transfer(from, tx.To, transfer.Amount)
+		return accountDB.Transfer(from, tx.GetRealToAddr(), transfer.Amount)
 	} else if (action.Ty == types.ActionWithdraw) && action.GetWithdraw() != nil {
 		withdraw := action.GetWithdraw()
 		if !types.IsMatchFork(t.GetHeight(), types.ForkV16Withdraw) {
@@ -31,17 +31,17 @@ func (t *token) ExecTransWithdraw(accountDB *account.DB, tx *types.Transaction, 
 		}
 		from := tx.From()
 		//to 是 execs 合约地址
-		if drivers.IsDriverAddress(tx.To, t.GetHeight()) || isExecAddrMatch(withdraw.ExecName, tx.To) {
-			return accountDB.TransferWithdraw(from, tx.To, withdraw.Amount)
+		if drivers.IsDriverAddress(tx.GetRealToAddr(), t.GetHeight()) || isExecAddrMatch(withdraw.ExecName, tx.GetRealToAddr()) {
+			return accountDB.TransferWithdraw(from, tx.GetRealToAddr(), withdraw.Amount)
 		}
 		return nil, types.ErrActionNotSupport
 	} else if (action.Ty == types.ActionGenesis) && action.GetGenesis() != nil {
 		genesis := action.GetGenesis()
 		if t.GetHeight() == 0 {
-			if drivers.IsDriverAddress(tx.To, t.GetHeight()) {
-				return accountDB.GenesisInitExec(genesis.ReturnAddress, genesis.Amount, tx.To)
+			if drivers.IsDriverAddress(tx.GetRealToAddr(), t.GetHeight()) {
+				return accountDB.GenesisInitExec(genesis.ReturnAddress, genesis.Amount, tx.GetRealToAddr())
 			}
-			return accountDB.GenesisInit(tx.To, genesis.Amount)
+			return accountDB.GenesisInit(tx.GetRealToAddr(), genesis.Amount)
 		} else {
 			return nil, types.ErrReRunGenesis
 		}
@@ -52,10 +52,10 @@ func (t *token) ExecTransWithdraw(accountDB *account.DB, tx *types.Transaction, 
 		transfer := action.GetTransferToExec()
 		from := tx.From()
 		//to 是 execs 合约地址
-		if !isExecAddrMatch(transfer.ExecName, tx.To) {
+		if !isExecAddrMatch(transfer.ExecName, tx.GetRealToAddr()) {
 			return nil, types.ErrToAddrNotSameToExecAddr
 		}
-		return accountDB.TransferToExec(from, tx.To, transfer.Amount)
+		return accountDB.TransferToExec(from, tx.GetRealToAddr(), transfer.Amount)
 	} else {
 		return nil, types.ErrActionNotSupport
 	}
@@ -87,17 +87,17 @@ func (t *token) ExecLocalTransWithdraw(tx *types.Transaction, receipt *types.Rec
 	var kv *types.KeyValue
 	if action.Ty == types.ActionTransfer && action.GetTransfer() != nil {
 		transfer := action.GetTransfer()
-		kv, err = updateAddrReciver(t.GetLocalDB(), transfer.Cointoken, tx.To, transfer.Amount, true)
+		kv, err = updateAddrReciver(t.GetLocalDB(), transfer.Cointoken, tx.GetRealToAddr(), transfer.Amount, true)
 	} else if action.Ty == types.ActionWithdraw && action.GetWithdraw() != nil {
 		withdraw := action.GetWithdraw()
 		from := tx.From()
 		kv, err = updateAddrReciver(t.GetLocalDB(), withdraw.Cointoken, from, withdraw.Amount, true)
 	} else if action.Ty == types.ActionGenesis && action.GetGenesis() != nil {
 		gen := action.GetGenesis()
-		kv, err = updateAddrReciver(t.GetLocalDB(), "token", tx.To, gen.Amount, true)
+		kv, err = updateAddrReciver(t.GetLocalDB(), "token", tx.GetRealToAddr(), gen.Amount, true)
 	} else if action.Ty == types.TokenActionTransferToExec && action.GetTransferToExec() != nil {
 		transfer := action.GetTransferToExec()
-		kv, err = updateAddrReciver(t.GetLocalDB(), transfer.Cointoken, tx.To, transfer.Amount, true)
+		kv, err = updateAddrReciver(t.GetLocalDB(), transfer.Cointoken, tx.GetRealToAddr(), transfer.Amount, true)
 	}
 	if err != nil {
 		return set, nil
@@ -125,14 +125,14 @@ func (t *token) ExecDelLocalLocalTransWithdraw(tx *types.Transaction, receipt *t
 	var kv *types.KeyValue
 	if action.Ty == types.ActionTransfer && action.GetTransfer() != nil {
 		transfer := action.GetTransfer()
-		kv, err = updateAddrReciver(t.GetLocalDB(), transfer.Cointoken, tx.To, transfer.Amount, false)
+		kv, err = updateAddrReciver(t.GetLocalDB(), transfer.Cointoken, tx.GetRealToAddr(), transfer.Amount, false)
 	} else if action.Ty == types.ActionWithdraw && action.GetWithdraw() != nil {
 		withdraw := action.GetWithdraw()
 		from := tx.From()
 		kv, err = updateAddrReciver(t.GetLocalDB(), withdraw.Cointoken, from, withdraw.Amount, false)
 	} else if action.Ty == types.TokenActionTransferToExec && action.GetTransferToExec() != nil {
 		transfer := action.GetTransferToExec()
-		kv, err = updateAddrReciver(t.GetLocalDB(), transfer.Cointoken, tx.To, transfer.Amount, false)
+		kv, err = updateAddrReciver(t.GetLocalDB(), transfer.Cointoken, tx.GetRealToAddr(), transfer.Amount, false)
 	}
 	if err != nil {
 		return set, nil

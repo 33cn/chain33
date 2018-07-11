@@ -34,7 +34,7 @@ func newCoins() drivers.Driver {
 }
 
 func (c *Coins) GetName() string {
-	return "coins"
+	return types.ExecName("coins")
 }
 
 func (c *Coins) CheckTx(tx *types.Transaction, index int) error {
@@ -56,11 +56,11 @@ func (c *Coins) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 		transfer := action.GetTransfer()
 		from := tx.From()
 		//to 是 execs 合约地址
-		if drivers.IsDriverAddress(tx.To, c.GetHeight()) {
-			return coinsAccount.TransferToExec(from, tx.To, transfer.Amount)
+		if drivers.IsDriverAddress(tx.GetRealToAddr(), c.GetHeight()) {
+			return coinsAccount.TransferToExec(from, tx.GetRealToAddr(), transfer.Amount)
 		}
 
-		return coinsAccount.Transfer(from, tx.To, transfer.Amount)
+		return coinsAccount.Transfer(from, tx.GetRealToAddr(), transfer.Amount)
 	} else if action.Ty == types.CoinsActionTransferToExec && action.GetTransferToExec() != nil {
 		if c.GetHeight() < types.ForkV12TransferExec {
 			return nil, types.ErrActionNotSupport
@@ -68,10 +68,10 @@ func (c *Coins) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 		transfer := action.GetTransferToExec()
 		from := tx.From()
 		//to 是 execs 合约地址
-		if !isExecAddrMatch(transfer.ExecName, tx.To) {
+		if !isExecAddrMatch(transfer.ExecName, tx.GetRealToAddr()) {
 			return nil, types.ErrToAddrNotSameToExecAddr
 		}
-		return coinsAccount.TransferToExec(from, tx.To, transfer.Amount)
+		return coinsAccount.TransferToExec(from, tx.GetRealToAddr(), transfer.Amount)
 	} else if action.Ty == types.CoinsActionWithdraw && action.GetWithdraw() != nil {
 		withdraw := action.GetWithdraw()
 		if !types.IsMatchFork(c.GetHeight(), types.ForkV16Withdraw) {
@@ -79,17 +79,17 @@ func (c *Coins) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 		}
 		from := tx.From()
 		//to 是 execs 合约地址
-		if drivers.IsDriverAddress(tx.To, c.GetHeight()) || isExecAddrMatch(withdraw.ExecName, tx.To) {
-			return coinsAccount.TransferWithdraw(from, tx.To, withdraw.Amount)
+		if drivers.IsDriverAddress(tx.GetRealToAddr(), c.GetHeight()) || isExecAddrMatch(withdraw.ExecName, tx.GetRealToAddr()) {
+			return coinsAccount.TransferWithdraw(from, tx.GetRealToAddr(), withdraw.Amount)
 		}
 		return nil, types.ErrActionNotSupport
 	} else if action.Ty == types.CoinsActionGenesis && action.GetGenesis() != nil {
 		genesis := action.GetGenesis()
 		if c.GetHeight() == 0 {
-			if drivers.IsDriverAddress(tx.To, c.GetHeight()) {
-				return coinsAccount.GenesisInitExec(genesis.ReturnAddress, genesis.Amount, tx.To)
+			if drivers.IsDriverAddress(tx.GetRealToAddr(), c.GetHeight()) {
+				return coinsAccount.GenesisInitExec(genesis.ReturnAddress, genesis.Amount, tx.GetRealToAddr())
 			}
-			return coinsAccount.GenesisInit(tx.To, genesis.Amount)
+			return coinsAccount.GenesisInit(tx.GetRealToAddr(), genesis.Amount)
 		} else {
 			return nil, types.ErrReRunGenesis
 		}
@@ -124,17 +124,17 @@ func (c *Coins) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 	var kv *types.KeyValue
 	if action.Ty == types.CoinsActionTransfer && action.GetTransfer() != nil {
 		transfer := action.GetTransfer()
-		kv, err = updateAddrReciver(c.GetLocalDB(), tx.To, transfer.Amount, true)
+		kv, err = updateAddrReciver(c.GetLocalDB(), tx.GetRealToAddr(), transfer.Amount, true)
 	} else if action.Ty == types.CoinsActionTransferToExec && action.GetTransferToExec() != nil {
 		transfer := action.GetTransferToExec()
-		kv, err = updateAddrReciver(c.GetLocalDB(), tx.To, transfer.Amount, true)
+		kv, err = updateAddrReciver(c.GetLocalDB(), tx.GetRealToAddr(), transfer.Amount, true)
 	} else if action.Ty == types.CoinsActionWithdraw && action.GetWithdraw() != nil {
 		transfer := action.GetWithdraw()
 		from := tx.From()
 		kv, err = updateAddrReciver(c.GetLocalDB(), from, transfer.Amount, true)
 	} else if action.Ty == types.CoinsActionGenesis && action.GetGenesis() != nil {
 		gen := action.GetGenesis()
-		kv, err = updateAddrReciver(c.GetLocalDB(), tx.To, gen.Amount, true)
+		kv, err = updateAddrReciver(c.GetLocalDB(), tx.GetRealToAddr(), gen.Amount, true)
 	}
 	if err != nil {
 		return set, nil
@@ -162,10 +162,10 @@ func (c *Coins) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 	var kv *types.KeyValue
 	if action.Ty == types.CoinsActionTransfer && action.GetTransfer() != nil {
 		transfer := action.GetTransfer()
-		kv, err = updateAddrReciver(c.GetLocalDB(), tx.To, transfer.Amount, false)
+		kv, err = updateAddrReciver(c.GetLocalDB(), tx.GetRealToAddr(), transfer.Amount, false)
 	} else if action.Ty == types.CoinsActionTransferToExec && action.GetTransferToExec() != nil {
 		transfer := action.GetTransferToExec()
-		kv, err = updateAddrReciver(c.GetLocalDB(), tx.To, transfer.Amount, false)
+		kv, err = updateAddrReciver(c.GetLocalDB(), tx.GetRealToAddr(), transfer.Amount, false)
 	} else if action.Ty == types.CoinsActionWithdraw && action.GetWithdraw() != nil {
 		transfer := action.GetWithdraw()
 		from := tx.From()

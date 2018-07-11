@@ -95,7 +95,7 @@ race: ## Run data race detector
 	@go test -race -short $(PKG_LIST)
 
 test: ## Run unittests
-	@go test -parallel 1 -race $(PKG_LIST)
+	@go test -race $(PKG_LIST)
 
 fmt: fmt_proto fmt_shell ## go fmt
 	@go fmt ./...
@@ -142,7 +142,7 @@ clean: ## Remove previous build
 	@go clean
 
 protobuf: ## Generate protbuf file of types package
-	@cd types && ./create_protobuf.sh && cd ..
+	@cd types/proto && ./create_protobuf.sh && cd ../..
 
 help: ## Display this help screen
 	@printf "Help doc:\nUsage: make [command]\n"

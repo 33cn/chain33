@@ -71,14 +71,20 @@ func (j *JSONRPCServer) Listen() {
 				writeError(w, r, 0, "Can't get request body!")
 				return
 			}
+			//格式做一个检查
+			client, err := parseJsonRpcParams(data)
+			errstr := "nil"
+			if err != nil {
+				errstr = err.Error()
+			}
+			log.Debug("JSONRPCServer", "request", string(data), "err", errstr)
+			if err != nil {
+				writeError(w, r, 0, fmt.Sprintf(`parse request err %s`, err.Error()))
+				return
+			}
 			//Release local request
 			ipaddr := net.ParseIP(ip)
 			if !ipaddr.IsLoopback() {
-				client, err := parseJsonRpcParams(data)
-				if err != nil {
-					writeError(w, r, 0, fmt.Sprintf(`parse request err %s`, err.Error()))
-					return
-				}
 				funcName := strings.Split(client.Method, ".")[len(strings.Split(client.Method, "."))-1]
 				if checkJrpcFuncBlacklist(funcName) || !checkJrpcFuncWhitelist(funcName) {
 					writeError(w, r, client.Id, fmt.Sprintf(`The %s method is not authorized!`, funcName))
@@ -176,12 +182,11 @@ func auth(ctx context.Context, info *grpc.UnaryServerInfo) error {
 	return fmt.Errorf("Can't get remote ip!")
 }
 
-func parseJsonRpcParams(data []byte) (clientRequest, error) {
+func parseJsonRpcParams(data []byte) (*clientRequest, error) {
 	var req clientRequest
 	err := json.Unmarshal(data, &req)
 	if err != nil {
-		return req, err
+		return nil, err
 	}
-	log.Debug("request method: %v", req.Method)
-	return req, nil
+	return &req, nil
 }

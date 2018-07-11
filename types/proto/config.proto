@@ -15,6 +15,7 @@ message Config {
     Exec       exec       = 11;
     bool       testNet    = 12;
     bool       fixTime    = 13;
+    Pprof      pprof      = 14;
 }
 
 message Log {
@@ -45,22 +46,25 @@ message MemPool {
 }
 
 message Consensus {
-    string name              = 1;
-    string genesis           = 2;
-    bool   minerstart        = 3;
-    int64  genesisBlockTime  = 4;
-    string hotkeyAddr        = 5;
-    bool   forceMining       = 6;
-    int64  NodeId            = 7;
-    string PeersURL          = 8;
-    string ClientAddr        = 9;
-    int64  raftApiPort       = 15;
-    bool   isNewJoinNode     = 16;
-    string readOnlyPeersURL  = 17;
-    string addPeersURL       = 18;
-    int64  defaultSnapCount  = 19;
-    int64  writeBlockSeconds = 20;
-    int32  heartbeatTick     = 21;
+    string name                 = 1;
+    string genesis              = 2;
+    bool   minerstart           = 3;
+    int64  genesisBlockTime     = 4;
+    string hotkeyAddr           = 5;
+    bool   forceMining          = 6;
+    int64  NodeId               = 7;
+    string PeersURL             = 8;
+    string ClientAddr           = 9;
+    int64  raftApiPort          = 15;
+    bool   isNewJoinNode        = 16;
+    string readOnlyPeersURL     = 17;
+    string addPeersURL          = 18;
+    int64  defaultSnapCount     = 19;
+    int64  writeBlockSeconds    = 20;
+    int32  heartbeatTick        = 21;
+    string paraRemoteGrpcClient = 22;
+    int64  startHeight          = 23;
+    int64  emptyBlockInterval   = 24;
 }
 
 message Wallet {
@@ -130,4 +134,8 @@ message Exec {
     int64 minExecFee = 1;
     bool  isFree     = 2;
     bool  enableStat = 3;
+}
+
+message Pprof {
+    string listenAddr = 1;
 }
