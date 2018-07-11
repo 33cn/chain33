@@ -378,10 +378,9 @@ func testProcImportPrivKey(t *testing.T, wallet *Wallet) {
 func testProcWalletTxList(t *testing.T, wallet *Wallet) {
 	println("TestProcWalletTxList begin")
 	txList := &types.ReqWalletTransactionList{
-		Count:           3,
-		Direction:       1,
-		FromTx:          []byte(""),
-		SendRecvPrivacy: sendTx,
+		Count:     3,
+		Direction: 1,
+		FromTx:    []byte(""),
 	}
 	msg := wallet.client.NewMessage("wallet", types.EventWalletTransactionList, txList)
 	wallet.client.Send(msg, true)

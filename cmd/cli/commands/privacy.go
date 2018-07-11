@@ -550,7 +550,7 @@ func listPrivacyTxsFlags(cmd *cobra.Command, args []string) {
 		Direction:    direction,
 		Count:        count,
 		Address:      addr,
-		Seedtxhash:   seedtxhash,
+		Seedtxhash:   []byte(seedtxhash),
 	}
 	var res jsonrpc.WalletTxDetails
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.PrivacyTxList", params, &res)
