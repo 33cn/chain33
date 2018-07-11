@@ -55,25 +55,7 @@ func (c *Chain33) SendRawTransaction(in SignedTx, result *interface{}) error {
 	}
 }
 
-func (c *Chain33) sendTxToWallet(in RawParm, result *interface{}) error {
-	var ccTxKey types.ReqCreateCacheTxKey
-	bytes, err := common.FromHex(in.Data)
-	if err != nil {
-		return err
-	}
-	ccTxKey.Hashkey = bytes
-	ccTxKey.Tokenname = in.Token
-	reply, err := c.cli.SendTxHashToWallet(&ccTxKey)
-	if err == nil {
-		*result = common.ToHex(reply.GetMsg())
-	}
-	return err
-}
-
 func (c *Chain33) SendTransaction(in RawParm, result *interface{}) error {
-	if in.Mode == 1 {
-		return c.sendTxToWallet(in, result)
-	}
 	var parm types.Transaction
 	data, err := common.FromHex(in.Data)
 	if err != nil {
@@ -85,6 +67,14 @@ func (c *Chain33) SendTransaction(in RawParm, result *interface{}) error {
 	if err == nil {
 		*result = common.ToHex(reply.GetMsg())
 	}
+	isok := false
+	if reply != nil {
+		isok = reply.IsOk
+	}
+	c.cli.NotifySendTxResult(&types.ReqNotifySendTxResult{
+		Isok: isok,
+		Tx:   &parm,
+	})
 	return err
 }
 
@@ -1393,7 +1383,8 @@ func (c *Chain33) CreateTrasaction(in types.ReqCreateTransaction, result *interf
 	if err != nil {
 		return err
 	}
-	*result = common.ToHex(reply.GetMsg())
+	txHex := types.Encode(reply)
+	*result = hex.EncodeToString(txHex)
 	return nil
 }
 

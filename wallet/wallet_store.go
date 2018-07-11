@@ -1041,6 +1041,9 @@ func (ws *Store) GetCreateTransactionCache(key []byte) (*types.CreateTransaction
 	data, err := ws.db.Get(key)
 	if err != nil {
 		walletlog.Error("GetCreateTransactionCache", "db.Get err:", err)
+		if err == dbm.ErrNotFoundInDb {
+			err = types.ErrNotFound
+		}
 		return nil, err
 	}
 	cache := types.CreateTransactionCache{}

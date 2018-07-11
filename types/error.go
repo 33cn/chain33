@@ -179,6 +179,7 @@ var (
 	ErrNotSupport           = errors.New("ErrNotSupport")
 	ErrSeedWordNum          = errors.New("ErrSeedWordNum")
 	ErrPubKeyLen            = errors.New("ErrPublicKeyLen")
+	ErrPrivateKeyLen        = errors.New("ErrPrivateKeyLen")
 	ErrSeedWord             = errors.New("ErrSeedWord")
 	ErrNoPrivKeyOrAddr      = errors.New("ErrNoPrivKeyOrAddr")
 	ErrNewWalletFromSeed    = errors.New("ErrNewWalletFromSeed")
