@@ -21,6 +21,17 @@ func init() {
 	checkAddressCache, _ = lru.New(10240)
 }
 
+func ExecPubKey(name string) []byte {
+	if len(name) > MaxExecNameLength {
+		panic("name too long")
+	}
+	var bname [200]byte
+	buf := append(bname[:0], addrSeed...)
+	buf = append(buf, []byte(name)...)
+	hash := Sha2Sum(buf)
+	return hash[:]
+}
+
 //计算量有点大，做一次cache
 func ExecAddress(name string) string {
 	if value, ok := addressCache.Get(name); ok {

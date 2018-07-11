@@ -164,5 +164,5 @@ func (sig SignatureSecp256k1) Equals(other crypto.Signature) bool {
 }
 
 func init() {
-	crypto.Register("secp256k1", &Driver{})
+	crypto.Register(crypto.SignNameSecp256k1, &Driver{})
 }

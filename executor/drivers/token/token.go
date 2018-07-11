@@ -27,6 +27,7 @@ const (
 
 func Init() {
 	drivers.Register(newToken().GetName(), newToken, types.ForkV2AddToken)
+	setReciptPrefix()
 }
 
 type token struct {
@@ -40,7 +41,7 @@ func newToken() drivers.Driver {
 }
 
 func (t *token) GetName() string {
-	return "token"
+	return types.ExecName("token")
 }
 
 func (c *token) CheckTx(tx *types.Transaction, index int) error {
@@ -107,8 +108,8 @@ func (t *token) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 		if action.Ty == types.ActionTransfer {
 			transfer := action.GetTransfer()
 			// 添加个人资产列表
-			//tokenlog.Info("ExecLocalTransWithdraw", "addr", tx.To, "asset", transfer.Cointoken)
-			kv := AddTokenToAssets(tx.To, t.GetLocalDB(), transfer.Cointoken)
+			//tokenlog.Info("ExecLocalTransWithdraw", "addr", tx.GetRealToAddr(), "asset", transfer.Cointoken)
+			kv := AddTokenToAssets(tx.GetRealToAddr(), t.GetLocalDB(), transfer.Cointoken)
 			if kv != nil {
 				set.KV = append(set.KV, kv...)
 			}
@@ -250,14 +251,13 @@ func (t *token) GetAccountTokenAssets(req *types.ReqAccountTokenAssets) (types.M
 		if req.Execer == "trade" {
 			execaddress := address.ExecAddress(req.Execer)
 			acc1 = acc.LoadExecAccount(req.Address, execaddress)
-		} else if req.Execer == "token" {
+		} else if req.Execer == t.GetName() {
 			acc1 = acc.LoadAccount(req.Address)
 		}
 		if acc1 == nil {
 			continue
 		}
 		tokenAsset := &types.TokenAsset{asset, acc1}
-		//tokenlog.Info("GetAccountTokenAssets", "token-asset-symbol", asset, "info", acc1)
 		reply.TokenAssets = append(reply.TokenAssets, tokenAsset)
 	}
 	return reply, nil
@@ -330,7 +330,6 @@ func (t *token) GetTokens(reqTokens *types.ReqTokens) (types.Message, error) {
 				}
 			}
 		}
-
 	} else {
 		for _, token := range reqTokens.Tokens {
 			//list := dbm.NewListHelper(querydb)

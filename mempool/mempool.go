@@ -174,7 +174,7 @@ func (mem *Mempool) RemoveTxsOfBlock(block *types.Block) bool {
 	defer mem.proxyMtx.Unlock()
 	for _, tx := range block.Txs {
 		hash := tx.Hash()
-		mem.addedTxs.Add(string(hash), types.Now().Unix())
+		mem.addedTxs.Add(string(hash), nil)
 		exist := mem.cache.Exists(hash)
 		if exist {
 			mem.cache.Remove(hash)
@@ -188,7 +188,6 @@ func (mem *Mempool) RemoveTxs(hashList *types.TxHashList) error {
 	mem.proxyMtx.Lock()
 	defer mem.proxyMtx.Unlock()
 	for _, hash := range hashList.Hashes {
-		mem.addedTxs.Add(string(hash), types.Now().Unix())
 		exist := mem.cache.Exists(hash)
 		if exist {
 			mem.cache.Remove(hash)
@@ -229,6 +228,7 @@ func (mem *Mempool) DelBlock(block *types.Block) {
 		if !mem.checkExpireValid(tx) {
 			continue
 		}
+		mem.addedTxs.Remove(string(tx.Hash()))
 		mem.PushTx(tx)
 	}
 }
@@ -317,6 +317,7 @@ func (mem *Mempool) RemoveBlockedTxs() {
 		for _, t := range dupTxs {
 			txValue, exists := mem.cache.txMap[string(t)]
 			if exists {
+				mem.addedTxs.Add(string(t), nil)
 				mem.cache.Remove(txValue.Value.(*Item).value.Hash())
 			}
 		}
@@ -364,14 +365,18 @@ func (mem *Mempool) SendTxToP2P(tx *types.Transaction) {
 }
 
 // Mempool.CheckExpireValid检查交易过期有效性，过期返回false，未过期返回true
-func (mem *Mempool) CheckExpireValid(msg queue.Message) bool {
+func (mem *Mempool) CheckExpireValid(msg queue.Message) (bool, error) {
 	mem.proxyMtx.Lock()
 	defer mem.proxyMtx.Unlock()
 	if mem.header == nil {
-		return false
+		return false, types.ErrHeaderNotSet
 	}
 	tx := msg.GetData().(types.TxGroup).Tx()
-	return mem.checkExpireValid(tx)
+	ok := mem.checkExpireValid(tx)
+	if !ok {
+		return ok, types.ErrTxExpire
+	}
+	return ok, nil
 }
 
 func (mem *Mempool) checkExpireValid(tx *types.Transaction) bool {
@@ -430,7 +435,7 @@ func (mem *Mempool) setHeader(h *types.Header) {
 	mem.proxyMtx.Unlock()
 }
 
-func (mem *Mempool) waitPollLastHeader() {
+func (mem *Mempool) WaitPollLastHeader() {
 	<-mem.poolHeader
 }
 
@@ -487,7 +492,7 @@ func (mem *Mempool) SetQueueClient(client queue.Client) {
 
 	go mem.pollLastHeader()
 	go mem.getSync()
-	go mem.ReTrySend()
+	//	go mem.ReTrySend()
 	// 从badChan读取坏消息，并回复错误信息
 	go func() {
 		for m := range mem.badChan {

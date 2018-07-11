@@ -36,6 +36,7 @@ var closeCmd = &cobra.Command{
 
 func init() {
 	rootCmd.PersistentFlags().String("rpc_laddr", "http://localhost:8801", "http url")
+	rootCmd.PersistentFlags().String("paraName", "", "parachain")
 
 	rootCmd.AddCommand(
 		commands.AccountCmd(),
@@ -54,6 +55,7 @@ func init() {
 		commands.RelayCmd(),
 		commands.TxCmd(),
 		commands.WalletCmd(),
+		commands.PrivacyCmd(),
 		commands.VersionCmd(),
 		sendCmd,
 		closeCmd,

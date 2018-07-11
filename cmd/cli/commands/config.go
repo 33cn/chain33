@@ -52,6 +52,7 @@ func addConfigTxFlags(cmd *cobra.Command) {
 }
 
 func configTx(cmd *cobra.Command, args []string) {
+	paraName, _ := cmd.Flags().GetString("paraName")
 	key, _ := cmd.Flags().GetString("key")
 	op, _ := cmd.Flags().GetString("operation")
 	opAddr, _ := cmd.Flags().GetString("value")
@@ -61,12 +62,12 @@ func configTx(cmd *cobra.Command, args []string) {
 		Ty:    types.ManageActionModifyConfig,
 		Value: &types.ManageAction_Modify{Modify: v},
 	}
-	tx := &types.Transaction{Execer: []byte("manage"), Payload: types.Encode(modify)}
+	tx := &types.Transaction{Execer: []byte(getRealExecName(paraName, "manage")), Payload: types.Encode(modify)}
 
 	random := rand.New(rand.NewSource(time.Now().UnixNano()))
 	tx.Nonce = random.Int63()
 
-	tx.To = address.ExecAddress("manage")
+	tx.To = address.ExecAddress(getRealExecName(paraName, "manage"))
 
 	var err error
 	tx.Fee, err = tx.GetRealFee(types.MinFee)
@@ -97,12 +98,13 @@ func addQueryConfigFlags(cmd *cobra.Command) {
 
 func queryConfig(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	paraName, _ := cmd.Flags().GetString("paraName")
 	key, _ := cmd.Flags().GetString("key")
 	req := &types.ReqString{
 		Data: key,
 	}
 	var params jsonrpc.Query4Cli
-	params.Execer = "manage"
+	params.Execer = getRealExecName(paraName, "manage")
 	params.FuncName = "GetConfigItem"
 	params.Payload = req
 

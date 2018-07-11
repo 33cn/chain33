@@ -25,7 +25,7 @@ func newNorm() drivers.Driver {
 }
 
 func (n *Norm) GetName() string {
-	return "norm"
+	return types.ExecName("norm")
 }
 
 func (n *Norm) GetActionValue(tx *types.Transaction) (*types.NormAction, error) {

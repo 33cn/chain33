@@ -85,17 +85,26 @@ func (d *DriverBase) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData
 	txindex := d.getTxIndex(tx, receipt, index)
 	txinfobyte := types.Encode(txindex.index)
 	if len(txindex.from) != 0 {
-		fromkey1 := CalcTxAddrDirHashKey(txindex.from, 1, txindex.heightstr)
+		fromkey1 := CalcTxAddrDirHashKey(txindex.from, TxIndexFrom, txindex.heightstr)
 		fromkey2 := CalcTxAddrHashKey(txindex.from, txindex.heightstr)
 		set.KV = append(set.KV, &types.KeyValue{fromkey1, txinfobyte})
 		set.KV = append(set.KV, &types.KeyValue{fromkey2, txinfobyte})
+		kv, err := updateAddrTxsCount(d.GetLocalDB(), txindex.from, 1, true)
+		if err == nil && kv != nil {
+			set.KV = append(set.KV, kv)
+		}
 	}
 	if len(txindex.to) != 0 {
-		tokey1 := CalcTxAddrDirHashKey(txindex.to, 2, txindex.heightstr)
+		tokey1 := CalcTxAddrDirHashKey(txindex.to, TxIndexTo, txindex.heightstr)
 		tokey2 := CalcTxAddrHashKey(txindex.to, txindex.heightstr)
 		set.KV = append(set.KV, &types.KeyValue{tokey1, txinfobyte})
 		set.KV = append(set.KV, &types.KeyValue{tokey2, txinfobyte})
+		kv, err := updateAddrTxsCount(d.GetLocalDB(), txindex.to, 1, true)
+		if err == nil && kv != nil {
+			set.KV = append(set.KV, kv)
+		}
 	}
+
 	return &set, nil
 }
 
@@ -133,7 +142,7 @@ func (d *DriverBase) getTxIndex(tx *types.Transaction, receipt *types.ReceiptDat
 	txIndexInfo.heightstr = heightstr
 
 	txIndexInfo.from = address.PubKeyToAddress(tx.GetSignature().GetPubkey()).String()
-	txIndexInfo.to = tx.To
+	txIndexInfo.to = tx.GetRealToAddr()
 	return &txIndexInfo
 }
 
@@ -144,16 +153,24 @@ func (d *DriverBase) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptD
 	//del: addr index
 	txindex := d.getTxIndex(tx, receipt, index)
 	if len(txindex.from) != 0 {
-		fromkey1 := CalcTxAddrDirHashKey(txindex.from, 1, txindex.heightstr)
+		fromkey1 := CalcTxAddrDirHashKey(txindex.from, TxIndexFrom, txindex.heightstr)
 		fromkey2 := CalcTxAddrHashKey(txindex.from, txindex.heightstr)
 		set.KV = append(set.KV, &types.KeyValue{fromkey1, nil})
 		set.KV = append(set.KV, &types.KeyValue{fromkey2, nil})
+		kv, err := updateAddrTxsCount(d.GetLocalDB(), txindex.from, 1, false)
+		if err == nil && kv != nil {
+			set.KV = append(set.KV, kv)
+		}
 	}
 	if len(txindex.to) != 0 {
-		tokey1 := CalcTxAddrDirHashKey(txindex.to, 2, txindex.heightstr)
+		tokey1 := CalcTxAddrDirHashKey(txindex.to, TxIndexTo, txindex.heightstr)
 		tokey2 := CalcTxAddrHashKey(txindex.to, txindex.heightstr)
 		set.KV = append(set.KV, &types.KeyValue{tokey1, nil})
 		set.KV = append(set.KV, &types.KeyValue{tokey2, nil})
+		kv, err := updateAddrTxsCount(d.GetLocalDB(), txindex.to, 1, false)
+		if err == nil && kv != nil {
+			set.KV = append(set.KV, kv)
+		}
 	}
 	set.KV = append(set.KV, &types.KeyValue{hash, nil})
 	return &set, nil
@@ -169,14 +186,14 @@ func (d *DriverBase) checkAddress(addr string) error {
 //调用子类的CheckTx, 也可以不调用，实现自己的CheckTx
 func (d *DriverBase) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	//to 必须是一个地址
-	if err := d.checkAddress(tx.To); err != nil {
+	if err := d.checkAddress(tx.GetRealToAddr()); err != nil {
 		return nil, err
 	}
 	err := d.child.CheckTx(tx, index)
 	return nil, err
 }
 
-//默认情况下，to地址指向合约地址
+//默认情况下，tx.To 地址指向合约地址
 func (d *DriverBase) CheckTx(tx *types.Transaction, index int) error {
 	execer := string(tx.Execer)
 	if ExecAddress(execer) != tx.To {
@@ -239,6 +256,10 @@ func (d *DriverBase) GetActionName(tx *types.Transaction) string {
 	return tx.ActionName()
 }
 
+func (d *DriverBase) CheckSignatureData(tx *types.Transaction, index int) bool {
+	return true
+}
+
 //通过addr前缀查找本地址参与的所有交易
 //查询交易默认放到：coins 中查询
 func (d *DriverBase) GetTxsByAddr(addr *types.ReqAddr) (types.Message, error) {
@@ -294,4 +315,36 @@ func (d *DriverBase) GetTxsByAddr(addr *types.ReqAddr) (types.Message, error) {
 		replyTxInfos.TxInfos[index] = &replyTxInfo
 	}
 	return &replyTxInfos, nil
+}
+
+//查询指定prefix的key数量，用于统计
+func (d *DriverBase) GetPrefixCount(Prefix *types.ReqKey) (types.Message, error) {
+	var counts types.Int64
+	db := d.GetLocalDB()
+	counts.Data = db.PrefixCount(Prefix.Key)
+	return &counts, nil
+}
+
+//查询指定地址参与的交易计数，用于统计
+func (d *DriverBase) GetAddrTxsCount(reqkey *types.ReqKey) (types.Message, error) {
+	var counts types.Int64
+	db := d.GetLocalDB()
+	TxsCount, err := db.Get(reqkey.Key)
+	if err != nil && err != types.ErrNotFound {
+		blog.Error("GetAddrTxsCount!", "err:", err)
+		counts.Data = 0
+		return &counts, nil
+	}
+	if len(TxsCount) == 0 {
+		blog.Error("GetAddrTxsCount TxsCount is nil!")
+		counts.Data = 0
+		return &counts, nil
+	}
+	err = types.Decode(TxsCount, &counts)
+	if err != nil {
+		blog.Error("GetAddrTxsCount!", "err:", err)
+		counts.Data = 0
+		return &counts, nil
+	}
+	return &counts, nil
 }
