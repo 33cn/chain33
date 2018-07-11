@@ -55,6 +55,7 @@ var (
 	tokenPrice  int64 = 0
 	tokenAmount int64 = 1000 * 1e4 * 1e4
 	execName          = "user.p.guodun.token"
+	execNameMa        = "user.p.guodun.manage"
 	feeForToken int64 = 1e6
 	transToAddr       = "1NYxhca2zVMzxFqMRJdMcZfrSFnqbqotKe" //exec addr for convenience
 	transAmount int64 = 100 * 1e4 * 1e4
@@ -147,11 +148,11 @@ func TestManageForTokenBlackList(t *testing.T) {
 		Value: &types.ManageAction_Modify{Modify: v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte("user.p.guodun.manage"),
+		Execer:  []byte(execNameMa),
 		Payload: types.Encode(modify),
 		Fee:     feeForToken,
 		Nonce:   r.Int63(),
-		To:      address.ExecAddress("user.p.guodun.manage"),
+		To:      address.ExecAddress(execNameMa),
 	}
 
 	tx.Sign(types.SECP256K1, privkeySuper)
@@ -189,11 +190,11 @@ func TestManageForTokenFinisher(t *testing.T) {
 		Value: &types.ManageAction_Modify{Modify: v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte("user.p.guodun.manage"),
+		Execer:  []byte(execNameMa),
 		Payload: types.Encode(modify),
 		Fee:     feeForToken,
 		Nonce:   r.Int63(),
-		To:      address.ExecAddress("user.p.guodun.manage"),
+		To:      address.ExecAddress(execNameMa),
 	}
 
 	tx.Sign(types.SECP256K1, privkeySuper)
