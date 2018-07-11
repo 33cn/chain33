@@ -135,6 +135,9 @@ It has these top-level messages:
 	Norm
 	NormAction
 	NormPut
+	Cert
+	CertAction
+	CertPut
 	RetrievePara
 	Retrieve
 	RetrieveAction
@@ -162,6 +165,7 @@ It has these top-level messages:
 	ManageAction
 	ReceiptConfig
 	ReplyConfig
+	HistoryCertStore
 	Trade
 	TradeForSell
 	TradeForBuy
@@ -294,12 +298,6 @@ It has these top-level messages:
 	TransactionDetails
 	ReqAddrs
 	ReqDecodeRawTransaction
-	ReqAuthGetUser
-	ReplyAuthGetUser
-	ReqAuthCheckCert
-	ReplyAuthCheckCert
-	ReqAuthCheckCerts
-	ReplyAuthCheckCerts
 	WalletTxDetail
 	WalletTxDetails
 	WalletAccountStore

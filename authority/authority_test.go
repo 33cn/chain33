@@ -9,30 +9,26 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
-	"gitlab.33.cn/chain33/chain33/executor"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
-	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var (
-	amount   = int64(1e8)
-	v        = &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
-	transfer = &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
-	to       = drivers.ExecAddress("norm")
-	tx1      = &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: 1000000, Expire: 2, To: to}
-	tx2      = &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0, To: to}
-	tx3      = &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: 200000000, Expire: 0, To: to}
-	tx4      = &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: 300000000, Expire: 0, To: to}
-	tx5      = &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: 400000000, Expire: 0, To: to}
-	tx6      = &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: 500000000, Expire: 0, To: to}
-	tx7      = &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: 600000000, Expire: 0, To: to}
-	tx8      = &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: 700000000, Expire: 0, To: to}
-	tx9      = &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: 800000000, Expire: 0, To: to}
-	tx10     = &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: 900000000, Expire: 0, To: to}
-	tx11     = &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: 450000000, Expire: 0, To: to}
-	tx12     = &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: 460000000, Expire: 0, To: to}
-	tx13     = &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(transfer), Fee: 100, Expire: 0, To: to}
+	transfer = &types.CertAction{Value: nil, Ty: types.CertActionNormal}
+	to       = drivers.ExecAddress("cert")
+	tx1      = &types.Transaction{Execer: []byte("cert"), Payload: types.Encode(transfer), Fee: 1000000, Expire: 2, To: to}
+	tx2      = &types.Transaction{Execer: []byte("cert"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0, To: to}
+	tx3      = &types.Transaction{Execer: []byte("cert"), Payload: types.Encode(transfer), Fee: 200000000, Expire: 0, To: to}
+	tx4      = &types.Transaction{Execer: []byte("cert"), Payload: types.Encode(transfer), Fee: 300000000, Expire: 0, To: to}
+	tx5      = &types.Transaction{Execer: []byte("cert"), Payload: types.Encode(transfer), Fee: 400000000, Expire: 0, To: to}
+	tx6      = &types.Transaction{Execer: []byte("cert"), Payload: types.Encode(transfer), Fee: 500000000, Expire: 0, To: to}
+	tx7      = &types.Transaction{Execer: []byte("cert"), Payload: types.Encode(transfer), Fee: 600000000, Expire: 0, To: to}
+	tx8      = &types.Transaction{Execer: []byte("cert"), Payload: types.Encode(transfer), Fee: 700000000, Expire: 0, To: to}
+	tx9      = &types.Transaction{Execer: []byte("cert"), Payload: types.Encode(transfer), Fee: 800000000, Expire: 0, To: to}
+	tx10     = &types.Transaction{Execer: []byte("cert"), Payload: types.Encode(transfer), Fee: 900000000, Expire: 0, To: to}
+	tx11     = &types.Transaction{Execer: []byte("cert"), Payload: types.Encode(transfer), Fee: 450000000, Expire: 0, To: to}
+	tx12     = &types.Transaction{Execer: []byte("cert"), Payload: types.Encode(transfer), Fee: 460000000, Expire: 0, To: to}
+	tx13     = &types.Transaction{Execer: []byte("cert"), Payload: types.Encode(transfer), Fee: 100, Expire: 0, To: to}
 	txs      = []*types.Transaction{tx1, tx2, tx3, tx4, tx5, tx6, tx7, tx8, tx9, tx10, tx11, tx12, tx13}
 )
 
@@ -60,51 +56,53 @@ func signtxs(priv crypto.PrivKey, cert []byte) {
 	signtx(tx11, priv, cert)
 	signtx(tx12, priv, cert)
 	signtx(tx13, priv, cert)
-
 }
 
-func initEnv() (queue.Queue, *Authority, error) {
-	var q = queue.New("channel")
-	cfg := config.InitCfg("./chain33.auth.test.toml")
+func initEnv() error {
+	cfg := config.InitCfg("./test/chain33.auth.test.toml")
 
-	types.SetMinFee(0)
+	Author.Init(cfg.Auth)
 
-	auth := New(cfg.Auth)
-	auth.SetQueueClient(q.Client())
-
-	exec := executor.New(cfg.Exec)
-	exec.SetQueueClient(q.Client())
-
-	msg := auth.client.NewMessage("authority", types.EventAuthorityGetUser, &types.ReqAuthGetUser{USERNAME})
-	auth.client.Send(msg, true)
-	resp, err := auth.client.Wait(msg)
+	userLoader := &UserLoader{}
+	err := userLoader.Init(cfg.Auth.CryptoPath)
 	if err != nil {
-		return nil, nil, fmt.Errorf("get user %s failed, error:%s", USERNAME, err)
+		fmt.Printf("Init user loader falied")
+		return err
 	}
-	cert := resp.Data.(*types.ReplyAuthGetUser).Cert
-	key := resp.Data.(*types.ReplyAuthGetUser).Key
+
+	user,err := userLoader.GetUser(USERNAME)
+	if err != nil {
+		fmt.Printf("Get user failed")
+		return err
+	}
 
 	cr, err := crypto.New(types.GetSignatureTypeName(types.AUTH_ECDSA))
 	if err != nil {
-		return nil, nil, fmt.Errorf("create crypto %s failed, error:%s", types.GetSignatureTypeName(types.AUTH_ECDSA), err)
+		return fmt.Errorf("create crypto %s failed, error:%s", types.GetSignatureTypeName(types.AUTH_ECDSA), err)
 	}
 
-	priv, err := cr.PrivKeyFromBytes(key)
+	priv, err := cr.PrivKeyFromBytes(user.Key)
 	if err != nil {
-		return nil, nil, fmt.Errorf("get private key failed, error:%s", err)
+		return fmt.Errorf("get private key failed, error:%s", err)
 	}
-	signtxs(priv, cert)
+	signtxs(priv, user.Cert)
 
-	return q, auth, nil
+	if err != nil {
+		fmt.Printf("Init authority failed")
+		return err
+	}
+
+	return nil
 }
 
 func TestChckSign(t *testing.T) {
-	q, auth, err := initEnv()
+	err := initEnv()
 	if err != nil {
 		t.Errorf("init env failed, error:%s", err)
 	}
-	defer q.Close()
-	defer auth.Close()
+	prev := types.MinFee
+	types.SetMinFee(0)
+	defer types.SetMinFee(prev)
 
 	if !tx1.CheckSign() {
 		t.Error("check signature failed")
@@ -113,12 +111,13 @@ func TestChckSign(t *testing.T) {
 }
 
 func TestChckSigns(t *testing.T) {
-	q, auth, err := initEnv()
+	err := initEnv()
 	if err != nil {
 		t.Errorf("init env failed, error:%s", err)
 	}
-	defer q.Close()
-	defer auth.Close()
+	prev := types.MinFee
+	types.SetMinFee(0)
+	defer types.SetMinFee(prev)
 
 	block := types.Block{}
 	block.Txs = txs
@@ -129,50 +128,37 @@ func TestChckSigns(t *testing.T) {
 }
 
 func TestValidateCert(t *testing.T) {
-	q, auth, err := initEnv()
+	err := initEnv()
 	if err != nil {
 		t.Errorf("init env failed, error:%s", err)
 	}
-	defer q.Close()
-	defer auth.Close()
 
-	txReq := &types.ReqAuthCheckCert{tx1.Signature}
-	msg := auth.client.NewMessage("authority", types.EventAuthorityCheckCert, txReq)
-	auth.client.Send(msg, true)
-	resp, err := auth.client.Wait(msg)
+	prev := types.MinFee
+	types.SetMinFee(0)
+	defer types.SetMinFee(prev)
+
+	err = Author.Validate(tx1.Signature)
 	if err != nil {
-		t.Error(err)
-		return
-	}
-
-	respData := resp.GetData().(*types.ReplyAuthCheckCert).GetResult()
-	if !respData {
-		t.Error("error process txs signature validate")
+		t.Error("error process txs signature validate", err.Error())
 	}
 }
 
 func TestValidateCerts(t *testing.T) {
-	q, auth, err := initEnv()
+	err := initEnv()
 	if err != nil {
 		t.Errorf("init env failed, error:%s", err)
 	}
-	defer q.Close()
-	defer auth.Close()
+
+	prev := types.MinFee
+	types.SetMinFee(0)
+	defer types.SetMinFee(prev)
 
 	signatures := []*types.Signature{tx1.Signature, tx2.Signature, tx3.Signature, tx4.Signature, tx5.Signature,
 		tx6.Signature, tx7.Signature, tx8.Signature, tx9.Signature, tx10.Signature, tx11.Signature,
 		tx12.Signature, tx13.Signature}
-	txsReq := &types.ReqAuthCheckCerts{signatures}
-	msg := auth.client.NewMessage("authority", types.EventAuthorityCheckCerts, txsReq)
-	auth.client.Send(msg, true)
-	resp, err := auth.client.Wait(msg)
-	if err != nil {
-		t.Error(err)
-		return
-	}
 
-	respData := resp.GetData().(*types.ReplyAuthCheckCerts).GetResult()
-	if !respData {
+	result := Author.ValidateCerts(signatures)
+	if !result {
 		t.Error("error process txs signature validate")
 	}
 }
@@ -189,13 +175,14 @@ func createBlock(n int64) *types.Block {
 }
 
 func TestCheckTx(t *testing.T) {
-	q, auth, err := initEnv()
+	err := initEnv()
 	if err != nil {
 		t.Errorf("init env failed, error:%s", err)
 	}
 
-	defer q.Close()
-	defer auth.Close()
+	prev := types.MinFee
+	types.SetMinFee(0)
+	defer types.SetMinFee(prev)
 
 	block := createBlock(10)
 
@@ -206,24 +193,41 @@ func TestCheckTx(t *testing.T) {
 	txlist.StateHash = block.StateHash
 	// 增加这个属性，在执行器中会使用到
 	txlist.Difficulty = uint64(block.Difficulty)
+}
 
-	msg := auth.client.NewMessage("execs", types.EventCheckTx, txlist)
-	err = auth.client.Send(msg, true)
+func TestReloadCert(t *testing.T) {
+	err := initEnv()
 	if err != nil {
-		t.Error(err)
-		return
-	}
-	msg, err = auth.client.Wait(msg)
-	if err != nil {
-		t.Error(err)
-		return
+		t.Errorf("init env failed, error:%s", err)
 	}
 
-	result := msg.GetData().(*types.ReceiptCheckTxList)
-	for i := 0; i < len(result.Errs); i++ {
-		if result.Errs[i] != "" {
-			t.Error(result.Errs[i])
-			return
-		}
+	prev := types.MinFee
+	types.SetMinFee(0)
+	defer types.SetMinFee(prev)
+
+	store := &types.HistoryCertStore{}
+
+	Author.ReloadCert(store)
+
+	err = Author.Validate(tx1.Signature)
+	if err != nil {
+		t.Error(err.Error())
+	}
+}
+
+func TestReloadByHeight(t *testing.T) {
+	err := initEnv()
+	if err != nil {
+		t.Errorf("init env failed, error:%s", err)
+	}
+
+	prev := types.MinFee
+	types.SetMinFee(0)
+	defer types.SetMinFee(prev)
+
+	Author.ReloadCertByHeght(30)
+
+	if Author.HistoryCertCache.CurHeight != 30 {
+		t.Error("reload by height failed")
 	}
 }

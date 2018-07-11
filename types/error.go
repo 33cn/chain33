@@ -223,5 +223,6 @@ var (
 	ErrRelayBtcHeadBitsErr     = errors.New("ErrRelayBtcHeadBitsErr")
 
 	//authority
-	ErrValidateCertFailed = errors.New("validate cert failed")
+	ErrValidateCertFailed = errors.New("ErrValidateCertFailed")
+	ErrGetHistoryCertData = errors.New("ErrGetHistoryCertData")
 )

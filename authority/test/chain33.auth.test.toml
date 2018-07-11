@@ -92,5 +92,3 @@ enable=true
 cryptoPath="./test/authdir/crypto"
 # 签名类型，支持1:secp256r1 2:sm2
 signType=1
-# 组织名，默认使用chain33
-orgName="Chain33"

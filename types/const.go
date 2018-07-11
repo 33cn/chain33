@@ -26,9 +26,10 @@ var (
 	ExecerToken      = []byte("token")
 	ExecerEvm        = []byte(ExecerEvmString)
 	ExecerRelay      = []byte("relay")
+	ExecerCert       = []byte("cert")
 	AllowDepositExec = [][]byte{ExecerTicket}
 	AllowUserExec    = [][]byte{ExecerCoins, ExecerTicket, []byte("norm"), []byte("hashlock"),
-		[]byte("retrieve"), []byte("none"), ExecerToken, []byte("trade"), ExecerManage, ExecerEvm, ExecerRelay}
+		[]byte("retrieve"), []byte("none"), ExecerToken, []byte("trade"), ExecerManage, ExecerEvm, ExecerRelay, ExecerCert}
 	GenesisAddr            = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 	GenesisBlockTime int64 = 1526486816
 	HotkeyAddr             = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
@@ -327,14 +328,6 @@ const (
 	EventAddParaChainBlockDetail = 126
 	EventGetSeqByHash            = 127
 
-	//Auth
-	EventAuthorityCheckCert  = 180
-	EventReplyAuthCheckCert  = 181
-	EventAuthorityGetUser    = 182
-	EventReplyAuthGetUser    = 183
-	EventAuthorityCheckCerts = 184
-	EventReplyAuthCheckCerts = 185
-
 	// Token
 	EventBlockChainQuery = 212
 )
@@ -597,6 +590,14 @@ const (
 const (
 	NormActionPut = 1
 )
+
+//cert
+const (
+	CertActionNew = 1
+	CertActionUpdate = 2
+	CertActionNormal = 3
+)
+
 
 // retrieve op
 const (

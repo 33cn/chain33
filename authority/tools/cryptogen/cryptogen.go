@@ -15,11 +15,11 @@ const (
 	commonName     = "ca"
 	CONFIGFILENAME = "chain33.cryptogen.toml"
 	OUTPUTDIR      = "./authdir/crypto"
+	ORGNAME        = "Chain33"
 )
 
 type Config struct {
 	Name    []string
-	OrgName string
 }
 
 var (
@@ -71,9 +71,8 @@ func generate(cmd *cobra.Command, args []string) {
 
 	cryptocfg := initCfg(configfile)
 	fmt.Println(cryptocfg.Name)
-	fmt.Println(cryptocfg.OrgName)
 
-	generateUsers(outputdir, cryptocfg.Name, cryptocfg.OrgName)
+	generateUsers(outputdir, cryptocfg.Name, ORGNAME)
 }
 
 func generateNodes(baseDir string, names []string, signCA *ca.CA, orgName string) {

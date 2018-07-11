@@ -220,6 +220,26 @@ message NormPut {
     string key   = 1;
     bytes  value = 2;
 }
+
+message Cert {
+    bytes  certId     = 1;
+    int64  createTime = 2;
+    string key        = 3;
+    bytes  value      = 4;
+}
+
+message CertAction {
+    oneof value {
+        CertPut nput = 1;
+    }
+    int32 ty = 5;
+}
+
+message CertPut {
+    string key   = 1;
+    bytes  value = 2;
+}
+
 // message for retrieve start
 message RetrievePara {
     string defaultAddress = 1;
@@ -397,4 +417,12 @@ message ReceiptConfig {
 message ReplyConfig {
     string key   = 1;
     string value = 2;
+}
+
+message HistoryCertStore {
+    repeated bytes rootcerts = 1;
+    repeated bytes intermediateCerts = 2;
+    repeated bytes revocationList = 3;
+    int64 curHeigth = 4;
+    int64 nxtHeight = 5;
 }
