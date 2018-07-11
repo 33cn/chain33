@@ -172,6 +172,7 @@ func (auth *Authority) ReloadCertByHeght(currentHeight int64) error {
 并发校验证书
 */
 func (auth *Authority) ValidateCerts(task []*types.Signature) bool {
+	//FIXME 有并发校验的场景需要考虑竞争，暂时没有并发校验的场景
 	done := make(chan struct{})
 	defer close(done)
 
