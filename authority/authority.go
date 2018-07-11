@@ -9,141 +9,178 @@ import (
 	"sync"
 
 	log "github.com/inconshreveable/log15"
-	"github.com/pkg/errors"
 	"gitlab.33.cn/chain33/chain33/authority/core"
 	"gitlab.33.cn/chain33/chain33/authority/utils"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
-	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
+	"bytes"
 )
 
-var alog = log.New("module", "autority")
-var OrgName = "Chain33"
-var cpuNum = runtime.NumCPU()
+var (
+    alog = log.New("module", "autority")
+    OrgName = "Chain33"
+    cpuNum = runtime.NumCPU()
+	Author = &Authority{}
+)
 
 type Authority struct {
-	cryptoPath string
-	client     queue.Client
-	cfg        *types.Authority
-	signType   int32
-	userMap    map[string]*User
-	validator  core.Validator
+	// 证书文件路径
+	cryptoPath     string
+	// certByte缓存
+	authConfig     *core.AuthConfig
+	// 校验器
+	validator      core.Validator
+	// 签名类型
+	signType       int
+	// 有效证书缓存
+	validCertCache [][]byte
+	// 历史证书缓存
+	HistoryCertCache *HistoryCertData
 }
 
-type User struct {
-	id                    string
-	enrollmentCertificate []byte
-	privateKey            []byte
+/** 历史变更记录 **/
+type HistoryCertData struct {
+	CryptoCfg *core.AuthConfig
+	CurHeight int64
+	NxtHeight int64
 }
 
-func New(conf *types.Authority) *Authority {
-	auth := &Authority{}
-	if conf != nil && conf.Enable {
-		err := auth.initConfig(conf)
-		if err != nil {
-			alog.Error("Initialize authority module failed", "Error", err.Error())
-			panic("")
-		}
-
-		auth.signType = conf.SignType
-		auth.cryptoPath = conf.CryptoPath
-		auth.cfg = conf
-		OrgName = conf.GetOrgName()
+/**
+初始化auth
+ */
+func (auth *Authority) Init(conf *types.Authority) error {
+	if conf == nil || !conf.Enable {
+		return nil
 	}
-
-	return auth
-}
-
-func (auth *Authority) loadUsers(configPath string) error {
-	auth.userMap = make(map[string]*User)
-
-	certDir := path.Join(configPath, "signcerts")
-	dir, err := ioutil.ReadDir(certDir)
-	if err != nil {
-		return err
-	}
-
-	keyDir := path.Join(configPath, "keystore")
-	for _, file := range dir {
-		filePath := path.Join(certDir, file.Name())
-		certBytes, err := utils.ReadFile(filePath)
-		if err != nil {
-			continue
-		}
-
-		ski, err := utils.GetPublicKeySKIFromCert(certBytes)
-		if err != nil {
-			alog.Error(fmt.Sprintf("Value in certificate file:%s not found", filePath))
-			continue
-		}
-		filePath = path.Join(keyDir, ski+"_sk")
-		KeyBytes, err := utils.ReadFile(filePath)
-		if err != nil {
-			continue
-		}
-
-		auth.userMap[file.Name()] = &User{file.Name(), certBytes, KeyBytes}
-	}
-
-	return nil
-}
-
-func (auth *Authority) initConfig(conf *types.Authority) error {
-	types.IsAuthEnable = true
 
 	if len(conf.CryptoPath) == 0 {
-		return errors.New("Config path cannot be null")
+		alog.Error("Crypto config path can not be null")
+		return types.ErrInvalidParam
 	}
 
-	err := auth.loadUsers(conf.CryptoPath)
+	auth.signType = int(conf.SignType)
+	auth.cryptoPath = conf.CryptoPath
+
+	authConfig, err := core.GetAuthConfig(conf.CryptoPath)
 	if err != nil {
-		return errors.WithMessage(err, "Failed to load users' file")
+		alog.Error("Get authority crypto config failed")
+		return err
 	}
+	auth.authConfig = authConfig
 
-	vldt, err := core.GetLocalValidator(conf.CryptoPath)
+	vldt, err := core.GetLocalValidator(authConfig, auth.signType)
 	if err != nil {
 		return err
 	}
 	auth.validator = vldt
 
+	auth.validCertCache = make([][]byte, 0)
+	auth.HistoryCertCache = &HistoryCertData{authConfig, -1, -1}
+
+	types.IsAuthEnable = true
 	return nil
 }
 
-func (auth *Authority) SetQueueClient(client queue.Client) {
-	if types.IsAuthEnable {
-		auth.client = client
-		auth.client.Sub("authority")
-
-		//recv 消息的处理
-		go func() {
-			for msg := range client.Recv() {
-				alog.Debug("authority recv", "msg", msg)
-				if msg.Ty == types.EventAuthorityGetUser {
-					go auth.procGetUser(msg)
-				} else if msg.Ty == types.EventAuthorityCheckCert {
-					go auth.procCheckCert(msg)
-				} else if msg.Ty == types.EventAuthorityCheckCerts {
-					go auth.procCheckCerts(msg)
-				}
-			}
-		}()
+/**
+store数据转成authConfig数据
+ */
+func newAuthConfig(store *types.HistoryCertStore) *core.AuthConfig {
+	ret := &core.AuthConfig{}
+	ret.RootCerts = make([][]byte, len(store.Rootcerts))
+	for i,v := range store.Rootcerts {
+		ret.RootCerts[i] = append(ret.RootCerts[i], v...)
 	}
+
+	ret.IntermediateCerts = make([][]byte, len(store.IntermediateCerts))
+	for i,v := range store.IntermediateCerts {
+		ret.IntermediateCerts[i] = append(ret.IntermediateCerts[i], v...)
+	}
+
+	ret.RevocationList = make([][]byte, len(store.RevocationList))
+	for i,v := range store.RevocationList {
+		ret.RevocationList[i] = append(ret.RevocationList[i], v...)
+	}
+
+	return ret
 }
 
-func (auth *Authority) procCheckCerts(msg queue.Message) {
-	data, _ := msg.GetData().(*types.ReqAuthCheckCerts)
+/**
+从数据库中的记录数据恢复证书，用于证书回滚
+ */
+func (auth *Authority) ReloadCert(store *types.HistoryCertStore) error {
+	if !types.IsAuthEnable {
+		return nil
+	}
 
+	//判断是否回滚到无证书区块
+	if len(store.Rootcerts) == 0 {
+		auth.authConfig = nil
+		auth.validator,_ = core.NewNoneValidator()
+	} else {
+		auth.authConfig = newAuthConfig(store)
+		// 加载校验器
+		vldt, err := core.GetLocalValidator(auth.authConfig, auth.signType)
+		if err != nil {
+			return err
+		}
+		auth.validator = vldt
+	}
+
+	// 清空有效证书缓存
+	auth.validCertCache = auth.validCertCache[:0]
+
+	// 更新最新历史数据
+	auth.HistoryCertCache = &HistoryCertData{auth.authConfig, store.CurHeigth, store.NxtHeight}
+
+	return nil
+}
+
+/**
+从新的authdir下的文件更新证书，用于证书更新
+ */
+func (auth *Authority) ReloadCertByHeght(currentHeight int64) error {
+	if !types.IsAuthEnable {
+		return nil
+	}
+
+	authConfig, err := core.GetAuthConfig(auth.cryptoPath)
+	if err != nil {
+		alog.Error("Get authority crypto config failed")
+		return err
+	}
+	auth.authConfig = authConfig
+
+    // 加载校验器
+	vldt, err := core.GetLocalValidator(auth.authConfig, auth.signType)
+	if err != nil {
+		return err
+	}
+	auth.validator = vldt
+
+	// 清空有效证书缓存
+	auth.validCertCache = auth.validCertCache[:0]
+
+	// 更新最新历史数据
+	auth.HistoryCertCache = &HistoryCertData{auth.authConfig, currentHeight, -1}
+
+	return nil
+}
+
+/**
+并发校验证书
+ */
+func (auth *Authority) ValidateCerts(task []*types.Signature) bool {
 	done := make(chan struct{})
 	defer close(done)
 
-	taskes := gen(done, data.GetSig())
+	taskes := gen(done, task)
 
 	c := make(chan result)
 	var wg sync.WaitGroup
 	wg.Add(cpuNum)
 	for i := 0; i < cpuNum; i++ {
 		go func() {
-			auth.checksign(done, taskes, c)
+			auth.task(done, taskes, c)
 			wg.Done()
 		}()
 	}
@@ -154,12 +191,11 @@ func (auth *Authority) procCheckCerts(msg queue.Message) {
 
 	for r := range c {
 		if r.err != nil {
-			msg.Reply(auth.client.NewMessage("", types.EventReplyAuthCheckCerts, &types.ReplyAuthCheckCerts{false}))
-			return
+			return false
 		}
 	}
 
-	msg.Reply(auth.client.NewMessage("", types.EventReplyAuthCheckCerts, &types.ReplyAuthCheckCerts{true}))
+	return true
 }
 
 func gen(done <-chan struct{}, task []*types.Signature) <-chan *types.Signature {
@@ -183,17 +219,21 @@ type result struct {
 	err error
 }
 
-func (auth *Authority) checksign(done <-chan struct{}, taskes <-chan *types.Signature, c chan<- result) {
+func (auth *Authority) task(done <-chan struct{}, taskes <-chan *types.Signature, c chan<- result) {
 	for task := range taskes {
 		select {
-		case c <- result{auth.checkCert(task)}:
+		case c <- result{auth.Validate(task)}:
 		case <-done:
 			return
 		}
 	}
 }
 
-func (auth *Authority) checkCert(signature *types.Signature) error {
+/**
+检验证书
+ */
+func (auth *Authority) Validate(signature *types.Signature) error {
+	// 从proto中解码signature
 	var certSignature crypto.CertSignature
 	_, err := asn1.Unmarshal(signature.Signature, &certSignature)
 	if err != nil {
@@ -206,45 +246,113 @@ func (auth *Authority) checkCert(signature *types.Signature) error {
 		return types.ErrInvalidParam
 	}
 
+	// 是否在有效证书缓存中
+	for _,v := range auth.validCertCache {
+		if bytes.Equal(v, certSignature.Cert) {
+			fmt.Print("cert cache hit\n")
+			return nil
+		}
+	}
+
+	// 校验
 	err = auth.validator.Validate(certSignature.Cert, signature.GetPubkey())
 	if err != nil {
 		alog.Error(fmt.Sprintf("validate cert failed. %s", err.Error()))
 		return fmt.Errorf("validate cert failed. error:%s", err.Error())
 	}
+	auth.validCertCache = append(auth.validCertCache, certSignature.Cert)
 
 	return nil
 }
 
-func (auth *Authority) procCheckCert(msg queue.Message) {
-	data, _ := msg.GetData().(*types.ReqAuthCheckCert)
+/**
+历史数据转成store可存储的历史数据
+ */
+func (certdata *HistoryCertData) ToHistoryCertStore(store *types.HistoryCertStore) {
+	if store == nil {
+		alog.Error("Convert cert data to cert store failed")
+		return
+	}
 
-	err := auth.checkCert(data.GetSig())
+	store.Rootcerts = make([][]byte, len(certdata.CryptoCfg.RootCerts))
+	for i, v := range certdata.CryptoCfg.RootCerts {
+		store.Rootcerts[i] = append(store.Rootcerts[i], v...)
+	}
+
+	store.IntermediateCerts = make([][]byte, len(certdata.CryptoCfg.IntermediateCerts))
+	for i, v := range certdata.CryptoCfg.IntermediateCerts {
+		store.IntermediateCerts[i] = append(store.IntermediateCerts[i], v...)
+	}
+
+	store.RevocationList = make([][]byte, len(certdata.CryptoCfg.RevocationList))
+	for i, v := range certdata.CryptoCfg.RevocationList {
+		store.RevocationList[i] = append(store.RevocationList[i], v...)
+	}
+
+	store.CurHeigth = certdata.CurHeight
+	store.NxtHeight = certdata.NxtHeight
+}
+
+type User struct {
+	Id     string
+	Cert   []byte
+	Key    []byte
+}
+
+//userloader, SKD加载user使用
+type UserLoader struct {
+	configPath string
+	userMap    map[string]*User
+}
+
+func (loader *UserLoader) Init(configPath string) error {
+	loader.configPath = configPath
+	loader.userMap = make(map[string]*User)
+	return loader.loadUsers()
+}
+
+func (loader *UserLoader)loadUsers() error {
+	certDir := path.Join(loader.configPath, "signcerts")
+	dir, err := ioutil.ReadDir(certDir)
 	if err != nil {
-		msg.Reply(auth.client.NewMessage("", types.EventReplyAuthCheckCert, &types.ReplyAuthCheckCert{false}))
-		return
+		return err
 	}
 
-	msg.Reply(auth.client.NewMessage("", types.EventReplyAuthCheckCert, &types.ReplyAuthCheckCert{true}))
+	keyDir := path.Join(loader.configPath, "keystore")
+	for _, file := range dir {
+		filePath := path.Join(certDir, file.Name())
+		certBytes, err := utils.ReadFile(filePath)
+		if err != nil {
+			continue
+		}
+
+		ski, err := utils.GetPublicKeySKIFromCert(certBytes)
+		if err != nil {
+			alog.Error(fmt.Sprintf("Value in certificate file:%s not found", filePath))
+			continue
+		}
+		filePath = path.Join(keyDir, ski+"_sk")
+		KeyBytes, err := utils.ReadFile(filePath)
+		if err != nil {
+			continue
+		}
+
+		loader.userMap[file.Name()] = &User{file.Name(), certBytes, KeyBytes}
+	}
+
+	return nil
 }
 
-func (auth *Authority) procGetUser(msg queue.Message) {
-	data, _ := msg.GetData().(*types.ReqAuthGetUser)
-
-	userName := data.GetName()
+func (load *UserLoader) GetUser(userName string) (*User, error) {
 	keyvalue := fmt.Sprintf("%s@%s-cert.pem", userName, OrgName)
-	user, ok := auth.userMap[keyvalue]
+	user, ok := load.userMap[keyvalue]
 	if !ok {
-		msg.ReplyErr("EventReplyAuthGetUser", types.ErrInvalidParam)
-		return
+		return nil, types.ErrInvalidParam
 	}
 
-	resp := &types.ReplyAuthGetUser{}
-	resp.Cert = append(resp.Cert, user.enrollmentCertificate...)
-	resp.Key = append(resp.Key, user.privateKey...)
+	resp := &User{}
+	resp.Cert = append(resp.Cert, user.Cert...)
+	resp.Key = append(resp.Key, user.Key...)
 
-	msg.Reply(auth.client.NewMessage("", types.EventReplyAuthGetUser, resp))
-}
-
-func (auth *Authority) Close() {
-	alog.Info("authority module closed")
+	return resp, nil
 }

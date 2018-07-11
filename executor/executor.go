@@ -28,6 +28,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/cert"
 )
 
 var elog = log.New("module", "execs")
@@ -59,6 +60,7 @@ func execInit() {
 	trade.Init()
 	evm.Init()
 	relay.Init()
+	cert.Init()
 }
 
 var runonce sync.Once

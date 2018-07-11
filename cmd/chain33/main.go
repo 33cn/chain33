@@ -140,10 +140,6 @@ func main() {
 	cs := consensus.New(cfg.Consensus)
 	cs.SetQueueClient(q.Client())
 
-	log.Info("loading authority module")
-	auth := authority.New(cfg.Auth)
-	auth.SetQueueClient(q.Client())
-
 	var network *p2p.P2p
 	if cfg.P2P.Enable {
 		log.Info("loading p2p module")
@@ -161,6 +157,7 @@ func main() {
 	walletm := wallet.New(cfg.Wallet)
 	walletm.SetQueueClient(q.Client())
 
+	authority.Author.Init(cfg.Auth)
 	defer func() {
 		//close all module,clean some resource
 		log.Info("begin close blockchain module")
