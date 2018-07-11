@@ -488,3 +488,16 @@ message ReqBindMiner {
 message ReplyBindMiner {
     string txHex = 1;
 }
+
+// get privacy transaction list in wallet
+message ReqPrivacyTransactionList {
+    // support BTY
+    string tokenname = 1;
+    // 1:sendtx  2:recvtx
+    int32  sendRecvFlag = 2;
+    int32  direction    = 3;
+    int32  count        = 4;
+    string from         = 5;
+    string address      = 6;
+    string seedtxhash   = 7;
+}

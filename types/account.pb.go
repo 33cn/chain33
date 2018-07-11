@@ -390,6 +390,7 @@ It has these top-level messages:
 	ReqCreateCacheTxKey
 	ReqBindMiner
 	ReplyBindMiner
+	ReqPrivacyTransactionList
 */
 package types
 

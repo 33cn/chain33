@@ -1055,3 +1055,87 @@ func (ws *Store) GetWalletVersion() int64 {
 	}
 	return ver
 }
+
+func (ws *Store) getWalletPrivacyTxDetails(param *types.ReqPrivacyTransactionList) (*types.WalletTxDetails, error) {
+	walletlog.Info("call Store.getWalletPrivacyTxDetails")
+	if param == nil {
+		walletlog.Error("getWalletPrivacyTxDetails", "param is nil")
+		return nil, types.ErrInvalidParams
+	}
+	if param.SendRecvFlag != sendTx && param.SendRecvFlag != recvTx {
+		walletlog.Error("procPrivacyTransactionList", "invalid sendrecvflag ", param.SendRecvFlag)
+		return nil, types.ErrInvalidParams
+	}
+	var txbytes [][]byte
+	list := dbm.NewListHelper(ws.db)
+	if len(param.Seedtxhash) == 0 {
+		var keyPrefix []byte
+		if param.SendRecvFlag == sendTx {
+			keyPrefix = calcSendPrivacyTxKey(param.Tokenname, param.Address, "")
+		} else {
+			keyPrefix = calcRecvPrivacyTxKey(param.Tokenname, param.Address, "")
+		}
+		txkeybytes := list.IteratorScanFromLast(keyPrefix, param.Count)
+		for _, keybyte := range txkeybytes {
+			value, err := ws.db.Get(keybyte)
+			if err != nil {
+				walletlog.Error("getWalletPrivacyTxDetails", "db Get error", err)
+				continue
+			}
+			if nil == value {
+				continue
+			}
+			txbytes = append(txbytes, value)
+		}
+		if len(txbytes) == 0 {
+			walletlog.Error("getWalletPrivacyTxDetails does not exist tx!")
+			return nil, types.ErrTxNotExist
+		}
+
+	} else {
+		list := dbm.NewListHelper(ws.db)
+		var txkeybytes [][]byte
+		if param.SendRecvFlag == sendTx {
+			txkeybytes = list.IteratorScan([]byte(SendPrivacyTx), calcSendPrivacyTxKey(param.Tokenname, param.Address, string(param.Seedtxhash)), param.Count, param.Direction)
+		} else {
+			txkeybytes = list.IteratorScan([]byte(RecvPrivacyTx), calcRecvPrivacyTxKey(param.Tokenname, param.Address, string(param.Seedtxhash)), param.Count, param.Direction)
+		}
+		for _, keybyte := range txkeybytes {
+			value, err := ws.db.Get(keybyte)
+			if err != nil {
+				walletlog.Error("getWalletPrivacyTxDetails", "db Get error", err)
+				continue
+			}
+			if nil == value {
+				continue
+			}
+			txbytes = append(txbytes, value)
+		}
+
+		if len(txbytes) == 0 {
+			walletlog.Error("getWalletPrivacyTxDetails does not exist tx!")
+			return nil, types.ErrTxNotExist
+		}
+	}
+
+	txDetails := new(types.WalletTxDetails)
+	txDetails.TxDetails = make([]*types.WalletTxDetail, len(txbytes))
+	for index, txdetailbyte := range txbytes {
+		var txdetail types.WalletTxDetail
+		err := proto.Unmarshal(txdetailbyte, &txdetail)
+		if err != nil {
+			walletlog.Error("getWalletPrivacyTxDetails", "proto.Unmarshal err:", err)
+			return nil, types.ErrUnmarshal
+		}
+		txhash := txdetail.GetTx().Hash()
+		txdetail.Txhash = txhash
+		if txdetail.GetTx().IsWithdraw() {
+			//swap from and to
+			txdetail.Fromaddr, txdetail.Tx.To = txdetail.Tx.To, txdetail.Fromaddr
+		}
+
+		txDetails.TxDetails[index] = &txdetail
+	}
+
+	return txDetails, nil
+}
