@@ -1,11 +1,7 @@
 package norm
 
 import (
-	"encoding/asn1"
-	"fmt"
-
 	log "github.com/inconshreveable/log15"
-	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -18,7 +14,6 @@ func Init() {
 
 type Norm struct {
 	drivers.DriverBase
-	certValidateCache map[string]error
 }
 
 func newNorm() drivers.Driver {
@@ -26,7 +21,6 @@ func newNorm() drivers.Driver {
 	n.SetChild(n)
 	n.SetIsFree(true)
 
-	n.certValidateCache = make(map[string]error)
 	return n
 }
 
@@ -117,50 +111,4 @@ func (n *Norm) Query(funcname string, params []byte) (types.Message, error) {
 		return &types.ReplyString{"true"}, nil
 	}
 	return nil, types.ErrActionNotSupport
-}
-
-func (n *Norm) CheckTx(tx *types.Transaction, index int) error {
-	// 基类检查
-	err := n.DriverBase.CheckTx(tx, index)
-	if err != nil {
-		return err
-	}
-
-	// auth模块关闭则返回
-	if !types.IsAuthEnable {
-		return nil
-	}
-
-	var certSignature crypto.CertSignature
-	_, err = asn1.Unmarshal(tx.Signature.Signature, &certSignature)
-	if err != nil {
-		clog.Error(fmt.Sprintf("unmashal certificate from signature failed. %s", err.Error()))
-		return err
-	}
-	if len(certSignature.Cert) == 0 {
-		clog.Error("cert can not be null")
-		return types.ErrInvalidParam
-	}
-
-	// 本地缓存是否存在
-	str := string(certSignature.Cert)
-	result, ok := n.certValidateCache[str]
-	if ok {
-		return result
-	}
-
-	// 调用auth模块api校验
-	param := types.ReqAuthCheckCert{tx.GetSignature()}
-	reply, err := n.GetApi().ValidateCert(&param)
-	if err != nil {
-		return err
-	}
-
-	if reply.Result {
-		n.certValidateCache[str] = nil
-		return nil
-	}
-
-	n.certValidateCache[str] = types.ErrValidateCertFailed
-	return types.ErrValidateCertFailed
 }
