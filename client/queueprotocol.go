@@ -68,6 +68,17 @@ func (q *QueueProtocol) query(topic string, ty int64, data interface{}) (queue.M
 	}
 	return client.WaitTimeout(msg, q.option.WaitTimeout)
 }
+
+func (q *QueueProtocol) notify(topic string, ty int64, data interface{}) (queue.Message, error) {
+	client := q.client
+	msg := client.NewMessage(topic, ty, data)
+	err := client.SendTimeout(msg, true, q.option.SendTimeout)
+	if err != nil {
+		return queue.Message{}, err
+	}
+	return msg, err
+}
+
 func (q *QueueProtocol) Close() {
 	q.client.Close()
 }
@@ -77,6 +88,7 @@ func (q *QueueProtocol) setOption(option *QueueProtocolOption) {
 		q.option = *option
 	}
 }
+
 func (q *QueueProtocol) SendTx(param *types.Transaction) (*types.Reply, error) {
 	if param == nil {
 		err := types.ErrInvalidParam
@@ -867,25 +879,13 @@ func (q *QueueProtocol) CreateUTXOs(param *types.ReqCreateUTXOs) (*types.Reply, 
 	return nil, types.ErrTypeAsset
 }
 
-func (q *QueueProtocol) CreateTrasaction(param *types.ReqCreateTransaction) (*types.Reply, error) {
+func (q *QueueProtocol) CreateTrasaction(param *types.ReqCreateTransaction) (*types.Transaction, error) {
 	msg, err := q.query(walletKey, types.EventCreateTransaction, param)
 	if err != nil {
 		log.Error("CreateTrasaction", "Error", err.Error())
 		return nil, err
 	}
-	if reply, ok := msg.GetData().(*types.Reply); ok {
-		return reply, nil
-	}
-	return nil, types.ErrTypeAsset
-}
-
-func (q *QueueProtocol) SendTxHashToWallet(param *types.ReqCreateCacheTxKey) (*types.Reply, error) {
-	msg, err := q.query(walletKey, types.EventSendTxHashToWallet, param)
-	if err != nil {
-		log.Error("SendTxHashToWallet", "Error", err.Error())
-		return nil, err
-	}
-	if reply, ok := msg.GetData().(*types.Reply); ok {
+	if reply, ok := msg.GetData().(*types.Transaction); ok {
 		return reply, nil
 	}
 	return nil, types.ErrTypeAsset
@@ -962,6 +962,21 @@ func (q *QueueProtocol) GetBlockSequences(param *types.ReqBlocks) (*types.BlockS
 	}
 	err = types.ErrTypeAsset
 	log.Error("GetBlockSequences", "Error", err.Error())
+	return nil, err
+}
+
+func (q *QueueProtocol) NotifySendTxResult(param *types.ReqNotifySendTxResult) (*types.Reply, error) {
+	if param == nil || param.Tx == nil {
+		err := types.ErrInvalidParam
+		log.Error("NotifySendTxResult", "Error", err)
+		return nil, err
+	}
+	msg, err := q.notify(walletKey, types.EventNotifySendTxResult, param)
+	if _, ok := msg.GetData().(*types.Reply); ok {
+		return &types.Reply{IsOk: true}, nil
+	}
+	err = types.ErrTypeAsset
+	log.Error("NotifySendTxResult", "Error", err.Error())
 	return nil, err
 }
 

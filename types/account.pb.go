@@ -84,6 +84,7 @@ It has these top-level messages:
 	P2P
 	Rpc
 	Exec
+	Pprof
 	LeafNode
 	InnerNode
 	MAVLProof
@@ -390,7 +391,7 @@ It has these top-level messages:
 	ReqCreateCacheTxKey
 	ReqBindMiner
 	ReplyBindMiner
-	ReqPrivacyTransactionList
+	ReqNotifySendTxResult
 */
 package types
 
