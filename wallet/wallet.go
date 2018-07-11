@@ -248,15 +248,15 @@ func (wallet *Wallet) RescanReqTxDetailByAddr(addr string) {
 
 //重新扫描钱包所有地址对应的交易从blockchain模块
 func (wallet *Wallet) RescanAllTxByAddr() {
-	accounts, err := wallet.ProcGetAccountList()
+	accounts, err := wallet.GetWalletAccounts()
 	if err != nil {
 		return
 	}
 	walletlog.Debug("RescanAllTxByAddr begin!")
-	for _, acc := range accounts.Wallets {
+	for _, acc := range accounts {
 		//从blockchain模块同步Account.Addr对应的所有交易详细信息
 		wallet.rescanwg.Add(1)
-		go wallet.RescanReqTxDetailByAddr(acc.Acc.Addr)
+		go wallet.RescanReqTxDetailByAddr(acc.Addr)
 	}
 	wallet.rescanwg.Wait()
 
@@ -342,6 +342,8 @@ func (wallet *Wallet) GetWalletStatus() *types.WalletStatus {
 	s.IsHasSeed, _ = HasSeed(wallet.walletStore.db)
 	s.IsAutoMining = wallet.isAutoMining()
 	s.IsTicketLock = wallet.IsTicketLocked()
+
+	walletlog.Debug("GetWalletStatus", "walletstatus", s)
 	return s
 }
 
@@ -364,4 +366,24 @@ func (wallet *Wallet) checkWalletStoreData() {
 		}
 	}
 
+}
+
+//output:
+//type WalletAccountStore struct {
+//	Privkey   string  //加密后的私钥hex值
+//	Label     string
+//	Addr      string
+//	TimeStamp string
+//获取钱包的所有账户地址列表，
+func (wallet *Wallet) GetWalletAccounts() ([]*types.WalletAccountStore, error) {
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+
+	//通过Account前缀查找获取钱包中的所有账户信息
+	WalletAccStores, err := wallet.walletStore.GetAccountByPrefix("Account")
+	if err != nil || len(WalletAccStores) == 0 {
+		walletlog.Info("GetWalletAccounts", "GetAccountByPrefix:err", err)
+		return nil, err
+	}
+	return WalletAccStores, err
 }

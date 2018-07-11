@@ -40,6 +40,8 @@ import (
 	"golang.org/x/net/trace"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/grpclog"
+
+	_ "gitlab.33.cn/chain33/chain33/types/executor"
 )
 
 var (
@@ -104,7 +106,12 @@ func main() {
 	}()
 	//set pprof
 	go func() {
-		http.ListenAndServe("localhost:6060", nil)
+		if cfg.Pprof != nil {
+			http.ListenAndServe(cfg.Pprof.ListenAddr, nil)
+		} else {
+			http.ListenAndServe("localhost:6060", nil)
+		}
+
 	}()
 	//set trace
 	grpc.EnableTracing = true

@@ -8,6 +8,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/queue"
 	lt "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/types/executor"
 )
 
 var (
@@ -20,6 +21,7 @@ var (
 func TestMain(m *testing.M) {
 	mock.grpcMock = &grpcMock
 	mock.jrpcMock = &jrpc
+	executor.Init()
 	api = mock.startup(0)
 	flag := m.Run()
 	mock.stop()
@@ -1142,7 +1144,15 @@ func testSendRawTransactionGRPC(t *testing.T, rpc *mockGRPCSystem) {
 
 func testCreateRawTransactionGRPC(t *testing.T, rpc *mockGRPCSystem) {
 	var res types.UnsignTx
-	err := rpc.newRpcCtx("CreateRawTransaction", &types.CreateTx{To: "1EDDghAtgBsamrNEtNmYdQzC1QEhLkr87t"}, &res)
+	err := rpc.newRpcCtx("CreateRawTransaction",
+		&types.CreateTx{To: "1EDDghAtgBsamrNEtNmYdQzC1QEhLkr87t",
+			Amount:     10000000,
+			Fee:        1000000,
+			IsWithdraw: false,
+			IsToken:    false,
+			ExecName:   "coins",
+		},
+		&res)
 	if err != nil {
 		t.Error("Call CreateRawTransaction Failed.", err)
 	}

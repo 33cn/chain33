@@ -17,6 +17,7 @@ stages:
     - build
     - test
     - deploy
+    - fork_test
 
 go_fmt:
     stage: build
@@ -104,15 +105,19 @@ deploy:
         - develop
         - bty_develop
 
-fort_test:
-    stage: deploy
+fork_test:
+    stage: fork_test
     tags:
         - 33cn
     script:
-        - make build_ci
-        - make fork-test
-        - cd build && docker-compose down && cd ..
+         - if [ -n "${onceEveryday}" ]; then
+         - make build_ci
+         - make fork-test
+         - cd build && docker-compose down && cd ..
+         - fi
     only:
         - master
         - develop
+        - forkTest
+
 

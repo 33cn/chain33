@@ -17,6 +17,9 @@ privacy执行器支持隐私交易的执行，
 
 import (
 	"bytes"
+	"math/rand"
+	"sort"
+	"time"
 
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common"
@@ -41,7 +44,7 @@ func newPrivacy() drivers.Driver {
 }
 
 func (p *privacy) GetName() string {
-	return "privacy"
+	return types.ExecName("privacy")
 }
 
 func (p *privacy) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
@@ -389,8 +392,93 @@ func (p *privacy) Query(funcName string, params []byte) (types.Message, error) {
 
 		return p.ShowUTXOs4SpecifiedAmount(&reqtoken)
 
+	case "GetUTXOGlobalIndex":
+		var getUtxoIndexReq types.ReqUTXOGlobalIndex
+		err := types.Decode(params, &getUtxoIndexReq)
+		if err != nil {
+			return nil, err
+		}
+		privacylog.Info("GetUTXOGlobalIndex", "get utxo global index", err)
+
+		return p.getGlobalUtxoIndex(&getUtxoIndexReq)
 	}
 	return nil, types.ErrActionNotSupport
+}
+
+func (p *privacy) getUtxosByTokenAndAmount(tokenName string, amount int64, count int32) ([]*types.LocalUTXOItem, error) {
+	localDB := p.GetLocalDB()
+	var utxos []*types.LocalUTXOItem
+	prefix := CalcPrivacyUTXOkeyHeightPrefix(tokenName, amount)
+	values, err := localDB.List(prefix, nil, count, 0)
+	if err != nil {
+		return utxos, err
+	}
+
+	for _, value := range values {
+		var utxo types.LocalUTXOItem
+		err := types.Decode(value, &utxo)
+		if err != nil {
+			privacylog.Info("getUtxosByTokenAndAmount", "decode to LocalUTXOItem failed because of", err)
+			return utxos, err
+		}
+		utxos = append(utxos, &utxo)
+	}
+
+	sort.Slice(utxos, func(i, j int) bool {
+		return utxos[i].Height <= utxos[j].Height
+	})
+	return utxos, nil
+}
+
+func (p *privacy) getGlobalUtxoIndex(getUtxoIndexReq *types.ReqUTXOGlobalIndex) (types.Message, error) {
+	debugBeginTime := time.Now()
+	utxoGlobalIndexResp := &types.ResUTXOGlobalIndex{}
+	tokenName := getUtxoIndexReq.Tokenname
+	currentHeight := p.GetHeight()
+	for _, amount := range getUtxoIndexReq.Amount {
+		utxos, err := p.getUtxosByTokenAndAmount(tokenName, amount, types.UTXOCacheCount)
+		if err != nil {
+			return utxoGlobalIndexResp, err
+		}
+
+		index := len(utxos) - 1
+		for ; index >= 0; index-- {
+			if utxos[index].GetHeight()+types.ConfirmedHeight <= currentHeight {
+				break
+			}
+		}
+
+		mixCount := getUtxoIndexReq.MixCount
+		totalCnt := int32(index + 1)
+		if mixCount > totalCnt {
+			mixCount = totalCnt
+		}
+
+		utxoIndex4Amount := &types.UTXOIndex4Amount{
+			Amount: amount,
+		}
+
+		random := rand.New(rand.NewSource(time.Now().UnixNano()))
+		positions := random.Perm(int(totalCnt))
+		for i := int(mixCount - 1); i >= 0; i-- {
+			position := positions[i]
+			item := utxos[position]
+			utxoGlobalIndex := &types.UTXOGlobalIndex{
+				Outindex: item.GetOutindex(),
+				Txhash:   item.GetTxhash(),
+			}
+			utxo := &types.UTXOBasic{
+				UtxoGlobalIndex: utxoGlobalIndex,
+				OnetimePubkey:   item.GetOnetimepubkey(),
+			}
+			utxoIndex4Amount.Utxos = append(utxoIndex4Amount.Utxos, utxo)
+		}
+		utxoGlobalIndexResp.UtxoIndex4Amount = append(utxoGlobalIndexResp.UtxoIndex4Amount, utxoIndex4Amount)
+	}
+
+	duration := time.Since(debugBeginTime)
+	privacylog.Debug("getGlobalUtxoIndex cost", duration)
+	return utxoGlobalIndexResp, nil
 }
 
 //获取指定amount下的所有utxo，这样就可以查询当前系统不同amout下存在的UTXO,可以帮助查询用于混淆用的资源

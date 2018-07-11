@@ -42,9 +42,9 @@ func (mem *Mempool) checkTx(msg queue.Message) queue.Message {
 		return msg
 	}
 	// 检查交易是否过期
-	valid := mem.CheckExpireValid(msg)
+	valid, err := mem.CheckExpireValid(msg)
 	if !valid {
-		msg.Data = types.ErrTxExpire
+		msg.Data = err
 		return msg
 	}
 	return msg
