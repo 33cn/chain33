@@ -1429,3 +1429,35 @@ func (wallet *Wallet) setFatalFailure(reportErrEvent *types.ReportErrEvent) {
 func (wallet *Wallet) getFatalFailure() int32 {
 	return atomic.LoadInt32(&wallet.fatalFailureFlag)
 }
+
+func (wallet *Wallet) procPrivacyTransactionList(req *types.ReqPrivacyTransactionList) (*types.WalletTxDetails, error) {
+	walletlog.Info("call procPrivacyTransactionList")
+	if req == nil {
+		walletlog.Error("procPrivacyTransactionList", "param is nil")
+		return nil, types.ErrInvalidParams
+	}
+	if req.Direction != 0 && req.Direction != 1 {
+		walletlog.Error("procPrivacyTransactionList", "invalid direction ", req.Direction)
+		return nil, types.ErrInvalidParams
+	}
+	// convert to sendTx / recvTx
+	sendRecvFlag := req.SendRecvFlag + sendTx
+	if sendRecvFlag != sendTx && sendRecvFlag != recvTx {
+		walletlog.Error("procPrivacyTransactionList", "invalid sendrecvflag ", req.SendRecvFlag)
+		return nil, types.ErrInvalidParams
+	}
+	req.SendRecvFlag = sendRecvFlag
+	if req.Count < 0 || req.Count > 1000 {
+		walletlog.Warn("procPrivacyTransactionList", "invalid count ", req.Count)
+		req.Count = 10
+	}
+
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+	reply, err := wallet.walletStore.getWalletPrivacyTxDetails(req)
+	if err != nil {
+		walletlog.Error("procPrivacyTransactionList", "getWalletPrivacyTxDetails error", err)
+		return nil, err
+	}
+	return reply, nil
+}
