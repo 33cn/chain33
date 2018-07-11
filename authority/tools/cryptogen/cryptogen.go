@@ -19,7 +19,7 @@ const (
 )
 
 type Config struct {
-	Name    []string
+	Name []string
 }
 
 var (

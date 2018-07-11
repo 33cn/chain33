@@ -48,7 +48,7 @@ var (
 	ExecerTrade    = []byte(TradeX)
 	ExecerNorm     = []byte(Normx)
 	ExecerConfig   = []byte("config")
-	ExecerCert       = []byte(CertX)
+	ExecerCert     = []byte(CertX)
 	UserEvm        = []byte(UserEvmString)
 )
 
@@ -263,11 +263,10 @@ const (
 
 //cert
 const (
-	CertActionNew = 1
+	CertActionNew    = 1
 	CertActionUpdate = 2
 	CertActionNormal = 3
 )
-
 
 // retrieve op
 const (

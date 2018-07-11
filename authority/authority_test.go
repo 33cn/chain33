@@ -70,7 +70,7 @@ func initEnv() error {
 		return err
 	}
 
-	user,err := userLoader.GetUser(USERNAME)
+	user, err := userLoader.GetUser(USERNAME)
 	if err != nil {
 		fmt.Printf("Get user failed")
 		return err
