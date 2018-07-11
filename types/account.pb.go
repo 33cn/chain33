@@ -84,6 +84,7 @@ It has these top-level messages:
 	P2P
 	Rpc
 	Exec
+	Authority
 	Pprof
 	LeafNode
 	InnerNode
@@ -143,6 +144,9 @@ It has these top-level messages:
 	Norm
 	NormAction
 	NormPut
+	Cert
+	CertAction
+	CertPut
 	RetrievePara
 	Retrieve
 	RetrieveAction
@@ -170,6 +174,7 @@ It has these top-level messages:
 	ManageAction
 	ReceiptConfig
 	ReplyConfig
+	HistoryCertStore
 	PrivacyAction
 	Public2Privacy
 	Privacy2Privacy

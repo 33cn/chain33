@@ -31,6 +31,7 @@ const (
 	RelayX          = "relay"
 	Normx           = "norm"
 	UserEvmString   = "user.evm."
+	CertX           = "cert"
 )
 
 var (
@@ -47,6 +48,7 @@ var (
 	ExecerTrade    = []byte(TradeX)
 	ExecerNorm     = []byte(Normx)
 	ExecerConfig   = []byte("config")
+	ExecerCert     = []byte(CertX)
 	UserEvm        = []byte(UserEvmString)
 )
 
@@ -82,6 +84,8 @@ var (
 //ty = 3 -> sm2
 //ty = 4 -> onetimeed25519
 //ty = 5 -> RingBaseonED25519
+//ty = 1+offset(1<<8) ->auth_ecdsa
+//ty = 2+offset(1<<8) -> auth_sm2
 const (
 	Invalid           = 0
 	SECP256K1         = 1
@@ -89,6 +93,8 @@ const (
 	SM2               = 3
 	OnetimeED25519    = 4
 	RingBaseonED25519 = 5
+	AUTH_ECDSA        = 257
+	AUTH_SM2          = 258
 )
 
 //const (
@@ -106,6 +112,8 @@ const (
 	SignNameSM2            = "sm2"
 	SignNameOnetimeED25519 = "onetimeed25519"
 	SignNameRing           = "RingSignatue"
+	SignNameAuthECDSA      = "auth_ecdsa"
+	SignNameAuthSM2        = "auth_sm2"
 )
 
 var MapSignType2name = map[int]string{
@@ -114,6 +122,8 @@ var MapSignType2name = map[int]string{
 	SM2:               SignNameSM2,
 	OnetimeED25519:    SignNameOnetimeED25519,
 	RingBaseonED25519: SignNameRing,
+	AUTH_ECDSA:        SignNameAuthECDSA,
+	AUTH_SM2:          SignNameAuthSM2,
 }
 
 var MapSignName2Type = map[string]int{
@@ -122,6 +132,8 @@ var MapSignName2Type = map[string]int{
 	SignNameSM2:            SM2,
 	SignNameOnetimeED25519: OnetimeED25519,
 	SignNameRing:           RingBaseonED25519,
+	SignNameAuthECDSA:      AUTH_ECDSA,
+	SignNameAuthSM2:        AUTH_SM2,
 }
 
 //log type
@@ -247,6 +259,13 @@ const (
 //norm
 const (
 	NormActionPut = 1
+)
+
+//cert
+const (
+	CertActionNew    = 1
+	CertActionUpdate = 2
+	CertActionNormal = 3
 )
 
 // retrieve op

@@ -22,6 +22,7 @@ import (
 	"time"
 
 	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/authority"
 	"gitlab.33.cn/chain33/chain33/blockchain"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/config"
@@ -162,6 +163,7 @@ func main() {
 	walletm := wallet.New(cfg.Wallet)
 	walletm.SetQueueClient(q.Client())
 
+	authority.Author.Init(cfg.Auth)
 	defer func() {
 		//close all module,clean some resource
 		log.Info("begin close blockchain module")
