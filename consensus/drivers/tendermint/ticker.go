@@ -42,7 +42,7 @@ func NewTimeoutTicker() TimeoutTicker {
 }
 
 // OnStart implements cmn.Service. It starts the timeout routine.
-func (t *timeoutTicker) Start()  {
+func (t *timeoutTicker) Start() {
 	go t.timeoutRoutine()
 }
 

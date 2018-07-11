@@ -3,12 +3,13 @@ package types
 import (
 	"time"
 
+	"errors"
+	"fmt"
+
 	"github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	gtypes "gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/common"
-	"fmt"
-	"errors"
 )
 
 var bilog = log15.New("module", "tendermint-blockinfo")
@@ -27,7 +28,7 @@ func GetBlockInfo(block *gtypes.Block) (*gtypes.TendermintBlockInfo, error) {
 	err := gtypes.Decode(baseTx.GetPayload(), action)
 	if err != nil {
 		bilog.Error("GetBlockInfo decode payload failed", "error", err)
-		return nil, errors.New(fmt.Sprintf("GetBlockInfo decode payload failed:%v",err))
+		return nil, errors.New(fmt.Sprintf("GetBlockInfo decode payload failed:%v", err))
 	}
 	if nGet = action.GetNput(); nGet == nil {
 		bilog.Error("GetBlockInfo get nput failed")
@@ -70,7 +71,7 @@ func SaveVotes(des []*gtypes.Vote, source []*Vote) {
 	for i, item := range source {
 
 		if item == nil {
-			des[i] = &gtypes.Vote{Height:-1, BlockID:&gtypes.BlockID{}}
+			des[i] = &gtypes.Vote{Height: -1, BlockID: &gtypes.BlockID{}}
 			bilog.Debug("SaveVotes-item=nil")
 			continue
 		}
@@ -91,15 +92,15 @@ func SaveVotes(des []*gtypes.Vote, source []*Vote) {
 
 }
 
-func SaveCommits(lastCommitVotes *Commit, seenCommitVotes *Commit) (*gtypes.TendermintCommit,*gtypes.TendermintCommit) {
+func SaveCommits(lastCommitVotes *Commit, seenCommitVotes *Commit) (*gtypes.TendermintCommit, *gtypes.TendermintCommit) {
 	newLastCommitVotes := make([]*gtypes.Vote, len(lastCommitVotes.Precommits))
 	newSeenCommitVotes := make([]*gtypes.Vote, len(seenCommitVotes.Precommits))
 	if len(lastCommitVotes.Precommits) > 0 {
-		bilog.Debug("SaveCommits","lastCommitVotes",lastCommitVotes.StringIndented("last"))
+		bilog.Debug("SaveCommits", "lastCommitVotes", lastCommitVotes.StringIndented("last"))
 		SaveVotes(newLastCommitVotes, lastCommitVotes.Precommits)
 	}
 	if len(seenCommitVotes.Precommits) > 0 {
-		bilog.Debug("SaveCommits","seenCommitVotes",seenCommitVotes.StringIndented("seen"))
+		bilog.Debug("SaveCommits", "seenCommitVotes", seenCommitVotes.StringIndented("seen"))
 		SaveVotes(newSeenCommitVotes, seenCommitVotes.Precommits)
 	}
 	lastCommit := &gtypes.TendermintCommit{
@@ -133,7 +134,6 @@ func getprivkey(key string) crypto.PrivKey {
 	}
 	return priv
 }
-
 
 func LoadValidators(des []*Validator, source []*gtypes.Validator) {
 	for i, item := range source {
@@ -179,12 +179,11 @@ func LoadProposer(source *gtypes.Validator) (*Validator, error) {
 	return des, nil
 }
 
-
 func CreateBlockInfoTx(pubkey string, lastCommit *gtypes.TendermintCommit, seenCommit *gtypes.TendermintCommit, state *gtypes.State) *gtypes.Transaction {
-	blockInfo := & gtypes.TendermintBlockInfo{
-		SeenCommit:seenCommit,
-		LastCommit:lastCommit,
-		State:state,
+	blockInfo := &gtypes.TendermintBlockInfo{
+		SeenCommit: seenCommit,
+		LastCommit: lastCommit,
+		State:      state,
 	}
 	bilog.Debug("CreateBlockInfoTx", "validators", blockInfo.State.Validators.Validators)
 
