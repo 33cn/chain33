@@ -8,31 +8,32 @@ import (
 	"runtime"
 	"sync"
 
+	"bytes"
+
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/authority/core"
 	"gitlab.33.cn/chain33/chain33/authority/utils"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/types"
-	"bytes"
 )
 
 var (
-    alog = log.New("module", "autority")
-    OrgName = "Chain33"
-    cpuNum = runtime.NumCPU()
-	Author = &Authority{}
+	alog         = log.New("module", "autority")
+	OrgName      = "Chain33"
+	cpuNum       = runtime.NumCPU()
+	Author       = &Authority{}
 	IsAuthEnable = false
 )
 
 type Authority struct {
 	// 证书文件路径
-	cryptoPath     string
+	cryptoPath string
 	// certByte缓存
-	authConfig     *core.AuthConfig
+	authConfig *core.AuthConfig
 	// 校验器
-	validator      core.Validator
+	validator core.Validator
 	// 签名类型
-	signType       int
+	signType int
 	// 有效证书缓存
 	validCertCache [][]byte
 	// 历史证书缓存
@@ -48,7 +49,7 @@ type HistoryCertData struct {
 
 /**
 初始化auth
- */
+*/
 func (auth *Authority) Init(conf *types.Authority) error {
 	if conf == nil || !conf.Enable {
 		return nil
@@ -84,21 +85,21 @@ func (auth *Authority) Init(conf *types.Authority) error {
 
 /**
 store数据转成authConfig数据
- */
+*/
 func newAuthConfig(store *types.HistoryCertStore) *core.AuthConfig {
 	ret := &core.AuthConfig{}
 	ret.RootCerts = make([][]byte, len(store.Rootcerts))
-	for i,v := range store.Rootcerts {
+	for i, v := range store.Rootcerts {
 		ret.RootCerts[i] = append(ret.RootCerts[i], v...)
 	}
 
 	ret.IntermediateCerts = make([][]byte, len(store.IntermediateCerts))
-	for i,v := range store.IntermediateCerts {
+	for i, v := range store.IntermediateCerts {
 		ret.IntermediateCerts[i] = append(ret.IntermediateCerts[i], v...)
 	}
 
 	ret.RevocationList = make([][]byte, len(store.RevocationList))
-	for i,v := range store.RevocationList {
+	for i, v := range store.RevocationList {
 		ret.RevocationList[i] = append(ret.RevocationList[i], v...)
 	}
 
@@ -107,7 +108,7 @@ func newAuthConfig(store *types.HistoryCertStore) *core.AuthConfig {
 
 /**
 从数据库中的记录数据恢复证书，用于证书回滚
- */
+*/
 func (auth *Authority) ReloadCert(store *types.HistoryCertStore) error {
 	if !IsAuthEnable {
 		return nil
@@ -116,7 +117,7 @@ func (auth *Authority) ReloadCert(store *types.HistoryCertStore) error {
 	//判断是否回滚到无证书区块
 	if len(store.Rootcerts) == 0 {
 		auth.authConfig = nil
-		auth.validator,_ = core.NewNoneValidator()
+		auth.validator, _ = core.NewNoneValidator()
 	} else {
 		auth.authConfig = newAuthConfig(store)
 		// 加载校验器
@@ -138,7 +139,7 @@ func (auth *Authority) ReloadCert(store *types.HistoryCertStore) error {
 
 /**
 从新的authdir下的文件更新证书，用于证书更新
- */
+*/
 func (auth *Authority) ReloadCertByHeght(currentHeight int64) error {
 	if !IsAuthEnable {
 		return nil
@@ -151,7 +152,7 @@ func (auth *Authority) ReloadCertByHeght(currentHeight int64) error {
 	}
 	auth.authConfig = authConfig
 
-    // 加载校验器
+	// 加载校验器
 	vldt, err := core.GetLocalValidator(auth.authConfig, auth.signType)
 	if err != nil {
 		return err
@@ -169,7 +170,7 @@ func (auth *Authority) ReloadCertByHeght(currentHeight int64) error {
 
 /**
 并发校验证书
- */
+*/
 func (auth *Authority) ValidateCerts(task []*types.Signature) bool {
 	done := make(chan struct{})
 	defer close(done)
@@ -232,7 +233,7 @@ func (auth *Authority) task(done <-chan struct{}, taskes <-chan *types.Signature
 
 /**
 检验证书
- */
+*/
 func (auth *Authority) Validate(signature *types.Signature) error {
 	// 从proto中解码signature
 	var certSignature crypto.CertSignature
@@ -248,7 +249,7 @@ func (auth *Authority) Validate(signature *types.Signature) error {
 	}
 
 	// 是否在有效证书缓存中
-	for _,v := range auth.validCertCache {
+	for _, v := range auth.validCertCache {
 		if bytes.Equal(v, certSignature.Cert) {
 			fmt.Print("cert cache hit\n")
 			return nil
@@ -268,7 +269,7 @@ func (auth *Authority) Validate(signature *types.Signature) error {
 
 /**
 历史数据转成store可存储的历史数据
- */
+*/
 func (certdata *HistoryCertData) ToHistoryCertStore(store *types.HistoryCertStore) {
 	if store == nil {
 		alog.Error("Convert cert data to cert store failed")
@@ -295,9 +296,9 @@ func (certdata *HistoryCertData) ToHistoryCertStore(store *types.HistoryCertStor
 }
 
 type User struct {
-	Id     string
-	Cert   []byte
-	Key    []byte
+	Id   string
+	Cert []byte
+	Key  []byte
 }
 
 //userloader, SKD加载user使用
@@ -312,7 +313,7 @@ func (loader *UserLoader) Init(configPath string) error {
 	return loader.loadUsers()
 }
 
-func (loader *UserLoader)loadUsers() error {
+func (loader *UserLoader) loadUsers() error {
 	certDir := path.Join(loader.configPath, "signcerts")
 	dir, err := ioutil.ReadDir(certDir)
 	if err != nil {

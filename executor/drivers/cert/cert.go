@@ -5,10 +5,10 @@ import (
 	"fmt"
 
 	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/authority"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/authority"
 )
 
 var clog = log.New("module", "execs.cert")
@@ -106,7 +106,7 @@ func (c *Cert) CheckTx(tx *types.Transaction, index int) error {
 
 	// 重启
 	if authority.Author.HistoryCertCache.CurHeight == -1 {
-        c.initHistoryByPrefix()
+		c.initHistoryByPrefix()
 	}
 
 	// 当前区块<上次证书变更区块，cert回滚
@@ -126,10 +126,10 @@ func (c *Cert) CheckTx(tx *types.Transaction, index int) error {
 
 /**
 系统重启，初始化auth模块的curHeight
- */
+*/
 func (c *Cert) initHistoryByPrefix() error {
 	parm := &types.LocalDBList{[]byte("cert_"), nil, 0, 0}
-	result,err := c.DriverBase.GetApi().LocalList(parm)
+	result, err := c.DriverBase.GetApi().LocalList(parm)
 	if err != nil {
 		return err
 	}
@@ -142,7 +142,7 @@ func (c *Cert) initHistoryByPrefix() error {
 
 	// 数据库有变更记录，nxt = -1为最近一次变更
 	var historyData types.HistoryCertStore
-	for _,v := range result.Values {
+	for _, v := range result.Values {
 		types.Decode(v, &historyData)
 		if historyData.NxtHeight == -1 {
 			authority.Author.HistoryCertCache.CurHeight = historyData.CurHeigth
@@ -155,16 +155,16 @@ func (c *Cert) initHistoryByPrefix() error {
 
 /**
 根据前缀查找证书变更记录，cert回滚用到
- */
+*/
 func (c *Cert) loadHistoryByPrefix() error {
 	parm := &types.LocalDBList{[]byte("cert_"), nil, 0, 0}
-	result,err := c.DriverBase.GetApi().LocalList(parm)
+	result, err := c.DriverBase.GetApi().LocalList(parm)
 	if err != nil {
 		return err
 	}
 
 	var historyData types.HistoryCertStore
-	for _,v := range result.Values {
+	for _, v := range result.Values {
 		types.Decode(v, &historyData)
 		if historyData.CurHeigth <= c.GetHeight() && historyData.NxtHeight > c.GetHeight() {
 			return authority.Author.ReloadCert(&historyData)
@@ -176,17 +176,17 @@ func (c *Cert) loadHistoryByPrefix() error {
 
 /**
 根据具体高度查找变更记录，cert回滚用到
- */
+*/
 func (c *Cert) loadHistoryByHeight() error {
 	key := []byte(fmt.Sprintf("cert_%s", c.GetHeight()))
 	parm := &types.LocalDBGet{[][]byte{key}}
-	result,err := c.DriverBase.GetApi().LocalGet(parm)
+	result, err := c.DriverBase.GetApi().LocalGet(parm)
 	if err != nil {
 		return err
 	}
 
 	var historyData types.HistoryCertStore
-	for _,v := range result.Values {
+	for _, v := range result.Values {
 		types.Decode(v, &historyData)
 		if historyData.CurHeigth <= c.GetHeight() && historyData.NxtHeight > c.GetHeight() {
 			return authority.Author.ReloadCert(&historyData)

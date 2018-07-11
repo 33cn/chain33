@@ -26,9 +26,9 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers/trade"
 
 	"gitlab.33.cn/chain33/chain33/client"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/cert"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/cert"
 	exectype "gitlab.33.cn/chain33/chain33/types/executor"
 )
 
