@@ -43,9 +43,6 @@ const (
 	// 交易收发方向
 	sendTx int32 = 30001
 	recvTx int32 = 30002
-	// 查询类型定义
-	walletQueryModeNormal  int32 = 0
-	walletQueryModePrivacy int32 = 1
 )
 
 type Wallet struct {
