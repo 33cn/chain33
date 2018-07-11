@@ -331,68 +331,19 @@ func (ws *Store) getTxDetailByIter(TxList *types.ReqWalletTransactionList) (*typ
 		walletlog.Error("GetTxDetailByIter TxList is nil")
 		return nil, types.ErrInputPara
 	}
-	if TxList.SendRecvPrivacy != sendTx && TxList.SendRecvPrivacy != recvTx {
-		walletlog.Error("GetTxDetailByIter only suport type is sendTx and recvTx")
-		return nil, types.ErrInputPara
-	}
 
 	var txbytes [][]byte
 	//FromTx是空字符串时。默认从最新的交易开始取count个
 	if len(TxList.FromTx) == 0 {
 		list := dbm.NewListHelper(ws.db)
-		if TxList.GetMode() == walletQueryModeNormal {
-			txbytes = list.IteratorScanFromLast(calcTxKey(""), TxList.Count)
-		} else if TxList.GetMode() == walletQueryModePrivacy {
-			var keyPrefix []byte
-			if sendTx == TxList.SendRecvPrivacy {
-				keyPrefix = calcSendPrivacyTxKey(TxList.Tokenname, TxList.Address, "")
-			} else {
-				keyPrefix = calcRecvPrivacyTxKey(TxList.Tokenname, TxList.Address, "")
-			}
-
-			txkeybytes := list.IteratorScanFromLast(keyPrefix, TxList.Count)
-			for _, keybyte := range txkeybytes {
-				value, err := ws.db.Get(keybyte)
-				if err != nil {
-					walletlog.Error(fmt.Sprintf("GetTxDetailByIter() db.Get() error. ", err))
-					continue
-				}
-				if nil == value {
-					continue
-				}
-				txbytes = append(txbytes, value)
-			}
-		}
-
+		txbytes = list.IteratorScanFromLast(calcTxKey(""), TxList.Count)
 		if len(txbytes) == 0 {
 			walletlog.Error("GetTxDetailByIter IteratorScanFromLast does not exist tx!")
 			return nil, types.ErrTxNotExist
 		}
 	} else {
 		list := dbm.NewListHelper(ws.db)
-		if TxList.GetMode() == walletQueryModeNormal {
-			txbytes = list.IteratorScan([]byte("Tx:"), calcTxKey(string(TxList.FromTx)), TxList.Count, TxList.Direction)
-		} else if TxList.GetMode() == walletQueryModePrivacy {
-			var txkeybytes [][]byte
-			if sendTx == TxList.SendRecvPrivacy {
-				txkeybytes = list.IteratorScan([]byte(SendPrivacyTx), calcSendPrivacyTxKey(TxList.Tokenname, TxList.Address, string(TxList.FromTx)), TxList.Count, TxList.Direction)
-			} else {
-				txkeybytes = list.IteratorScan([]byte(RecvPrivacyTx), calcRecvPrivacyTxKey(TxList.Tokenname, TxList.Address, string(TxList.FromTx)), TxList.Count, TxList.Direction)
-			}
-
-			for _, keybyte := range txkeybytes {
-				value, err := ws.db.Get(keybyte)
-				if err != nil {
-					walletlog.Error(fmt.Sprintf("GetTxDetailByIter() db.Get() error. ", err))
-					continue
-				}
-				if nil == value {
-					continue
-				}
-				txbytes = append(txbytes, value)
-			}
-		}
-
+		txbytes = list.IteratorScan([]byte("Tx:"), calcTxKey(string(TxList.FromTx)), TxList.Count, TxList.Direction)
 		if len(txbytes) == 0 {
 			walletlog.Error("GetTxDetailByIter IteratorScan does not exist tx!")
 			return nil, types.ErrTxNotExist
@@ -407,16 +358,16 @@ func (ws *Store) getTxDetailByIter(TxList *types.ReqWalletTransactionList) (*typ
 			walletlog.Error("GetTxDetailByIter", "proto.Unmarshal err:", err)
 			return nil, types.ErrUnmarshal
 		}
-		txhash := txdetail.GetTx().Hash()
-		txdetail.Txhash = txhash
-		if txdetail.GetTx().IsWithdraw() {
+		if string(txdetail.Tx.GetExecer()) == "coins" && txdetail.Tx.ActionName() == "withdraw" {
 			//swap from and to
 			txdetail.Fromaddr, txdetail.Tx.To = txdetail.Tx.To, txdetail.Fromaddr
 		}
-
+		txhash := txdetail.GetTx().Hash()
+		txdetail.Txhash = txhash
 		txDetails.TxDetails[index] = &txdetail
+		//print
+		//walletlog.Debug("GetTxDetailByIter", "txdetail:", txdetail.String())
 	}
-
 	return &txDetails, nil
 }
 
