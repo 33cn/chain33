@@ -531,8 +531,8 @@ func addListPrivacyTxsFlags(cmd *cobra.Command) {
 	//
 	cmd.Flags().Int32P("sendrecv", "", 0, "send or recv flag (0: send, 1: recv), default 0")
 	cmd.Flags().Int32P("count", "c", 10, "number of transactions, default 10")
-	cmd.Flags().Int32P("direction", "d", 1, "query direction (0: pre page, 1: next page)")
 	cmd.Flags().StringP("token", "", types.BTY, "token name.(BTY supported)")
+	cmd.Flags().Int32P("direction", "d", 1, "query direction (0: pre page, 1: next page), valid with seedtxhash param")
 	cmd.Flags().StringP("seedtxhash", "", "", "seed trasnaction hash")
 }
 
