@@ -16,6 +16,7 @@ message Config {
     bool       testNet    = 12;
     bool       fixTime    = 13;
     Pprof      pprof      = 14;
+    Authority  auth       = 15;
 }
 
 message Log {
@@ -134,6 +135,12 @@ message Exec {
     int64 minExecFee = 1;
     bool  isFree     = 2;
     bool  enableStat = 3;
+}
+
+message Authority {
+    bool   enable     = 1;
+    string cryptoPath = 2;
+    int32  signType   = 3;
 }
 
 message Pprof {
