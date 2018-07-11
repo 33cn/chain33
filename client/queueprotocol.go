@@ -964,3 +964,20 @@ func (q *QueueProtocol) GetBlockSequences(param *types.ReqBlocks) (*types.BlockS
 	log.Error("GetBlockSequences", "Error", err.Error())
 	return nil, err
 }
+
+func (q *QueueProtocol) PrivacyTransactionList(param *types.ReqPrivacyTransactionList) (*types.WalletTxDetails, error) {
+	if param == nil {
+		err := types.ErrInvalidParam
+		log.Error("PrivacyTransactionList", "Error", err)
+		return nil, err
+	}
+	msg, err := q.query(walletKey, types.EventPrivacyTransactionList, param)
+	if err != nil {
+		log.Error("PrivacyTransactionList", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.WalletTxDetails); ok {
+		return reply, nil
+	}
+	return nil, types.ErrTypeAsset
+}
