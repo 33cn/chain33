@@ -20,7 +20,6 @@ func newNorm() drivers.Driver {
 	n := &Norm{}
 	n.SetChild(n)
 	n.SetIsFree(true)
-
 	return n
 }
 
