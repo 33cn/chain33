@@ -3,10 +3,11 @@ package tendermint
 import (
 	"fmt"
 
+	"encoding/json"
+
+	"github.com/pkg/errors"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
-	"encoding/json"
-	"github.com/pkg/errors"
 )
 
 /*
@@ -84,9 +85,9 @@ type EvidenceStore struct {
 func NewEvidenceStore(db dbm.DB) *EvidenceStore {
 	if len(types.EvidenceType2Obj) == 0 {
 		types.EvidenceType2Obj = map[string]interface{}{
-			types.DuplicateVote:&types.DuplicateVoteEvidence{},
-			types.MockGood: &types.MockGoodEvidence{},
-			types.MockBad : &types.MockBadEvidence{},
+			types.DuplicateVote: &types.DuplicateVoteEvidence{},
+			types.MockGood:      &types.MockGoodEvidence{},
+			types.MockBad:       &types.MockBadEvidence{},
 		}
 	}
 	return &EvidenceStore{
@@ -156,7 +157,7 @@ func (store *EvidenceStore) AddNewEvidence(evidence types.Evidence, priority int
 		return false
 	}
 
-	eiBytes,err := EvidenceToInfoBytes(evidence, priority)
+	eiBytes, err := EvidenceToInfoBytes(evidence, priority)
 	if err != nil {
 		fmt.Printf("AddNewEvidence failed:%v\n", err)
 		return false
@@ -241,7 +242,7 @@ func EvidenceToInfoBytes(evidence types.Evidence, priority int64) ([]byte, error
 	return eiBytes, nil
 }
 
-func (store *EvidenceStore)EvidenceFromInfoBytes(data []byte) (types.Evidence, error) {
+func (store *EvidenceStore) EvidenceFromInfoBytes(data []byte) (types.Evidence, error) {
 	vote2 := EvidenceInfo{}
 	err := json.Unmarshal(data, &vote2)
 	if err != nil {

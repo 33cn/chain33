@@ -56,20 +56,20 @@ func (rs RoundStepType) String() string {
 // NOTE: Not thread safe. Should only be manipulated by functions downstream
 // of the cs.receiveRoutine
 type RoundState struct {
-	Height             int64 // Height we are working on
-	Round              int
-	Step               RoundStepType
-	StartTime          time.Time
-	CommitTime         time.Time // Subjective time when +2/3 precommits for Block at Round were found
-	Validators         *ValidatorSet
-	Proposal           *Proposal
-	ProposalBlock      *Block
-	LockedRound        int
-	LockedBlock        *Block
-	Votes              *HeightVoteSet
-	CommitRound        int      //
-	LastCommit         *VoteSet // Last precommits at Height-1
-	LastValidators     *ValidatorSet
+	Height         int64 // Height we are working on
+	Round          int
+	Step           RoundStepType
+	StartTime      time.Time
+	CommitTime     time.Time // Subjective time when +2/3 precommits for Block at Round were found
+	Validators     *ValidatorSet
+	Proposal       *Proposal
+	ProposalBlock  *Block
+	LockedRound    int
+	LockedBlock    *Block
+	Votes          *HeightVoteSet
+	CommitRound    int      //
+	LastCommit     *VoteSet // Last precommits at Height-1
+	LastValidators *ValidatorSet
 }
 
 func makeRoundStepMessages(rs *RoundState) (nrsMsg *NewRoundStepMessage, csMsg *CommitStepMessage) {
@@ -82,7 +82,7 @@ func makeRoundStepMessages(rs *RoundState) (nrsMsg *NewRoundStepMessage, csMsg *
 	}
 	if rs.Step == RoundStepCommit {
 		csMsg = &CommitStepMessage{
-			Height:           rs.Height,
+			Height: rs.Height,
 		}
 	}
 	return
@@ -125,7 +125,7 @@ func (rs *RoundState) StringIndented(indent string) string {
 		indent, rs.Proposal,
 		indent, rs.ProposalBlock.StringShort(),
 		indent, rs.LockedRound,
-		indent,  rs.LockedBlock.StringShort(),
+		indent, rs.LockedBlock.StringShort(),
 		indent, rs.Votes.StringIndented(indent+"    "),
 		indent, rs.LastCommit.StringShort(),
 		indent, rs.LastValidators.StringIndented(indent+"    "),

@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
 	"encoding/json"
+
+	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
 	gtypes "gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -107,7 +108,7 @@ func (s State) GetValidators() (last *types.ValidatorSet, current *types.Validat
 // Create a block from the latest state
 
 // MakeBlock builds a block with the given txs and commit from the current state.
-func (s State) MakeBlock(height int64, txs []*gtypes.Transaction, commit *types.Commit) (*types.Block) {
+func (s State) MakeBlock(height int64, txs []*gtypes.Transaction, commit *types.Commit) *types.Block {
 	// build base block
 	block := types.MakeBlock(height, txs, commit)
 
