@@ -25,8 +25,6 @@ var (
 
 	transfer3 = &types.CertAction{Value: nil, Ty: types.CertActionNormal}
 	tx3       = &types.Transaction{Execer: []byte("cert"), Payload: types.Encode(transfer3), Fee: 3000000, Expire: 0, To: to}
-
-	transfer4 = &types.CertAction{Value: nil, Ty: types.CertActionNormal}
 	tx4       = &types.Transaction{Execer: []byte("cert"), Payload: types.Encode(transfer3), Fee: 4000000, Expire: 0, To: to}
 )
 
@@ -83,9 +81,7 @@ func createBlockCert(txs []*types.Transaction) *types.Block {
 	newblock.Height = 2
 	newblock.BlockTime = types.Now().Unix()
 	newblock.ParentHash = zeroHash[:]
-	for _, v := range txs {
-		newblock.Txs = append(newblock.Txs, v)
-	}
+	newblock.Txs = append(newblock.Txs, txs...)
 	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
 	return newblock
 }
