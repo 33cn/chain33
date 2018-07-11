@@ -1,20 +1,20 @@
 package executor
 
 import (
-	"testing"
-	"fmt"
 	"encoding/asn1"
+	"fmt"
+	"testing"
 
+	"gitlab.33.cn/chain33/chain33/authority"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
+	"gitlab.33.cn/chain33/chain33/common/merkle"
+	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/common/crypto"
-	"gitlab.33.cn/chain33/chain33/executor/drivers"
-	"gitlab.33.cn/chain33/chain33/common/merkle"
-	"gitlab.33.cn/chain33/chain33/authority"
 )
 
 var (
-	USERNAME  = "User"
+	USERNAME = "User"
 
 	to        = drivers.ExecAddress("cert")
 	transfer1 = &types.CertAction{Value: nil, Ty: types.CertActionNew}
@@ -58,10 +58,10 @@ func initCertEnv() (queue.Queue, error) {
 		return nil, err
 	}
 
-	user,err := userLoader.GetUser(USERNAME)
+	user, err := userLoader.GetUser(USERNAME)
 	if err != nil {
 		fmt.Printf("Get user failed")
-		return nil,err
+		return nil, err
 	}
 
 	cr, err := crypto.New(types.GetSignatureTypeName(types.AUTH_ECDSA))

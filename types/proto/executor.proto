@@ -420,11 +420,11 @@ message ReplyConfig {
 }
 
 message HistoryCertStore {
-    repeated bytes rootcerts = 1;
+    repeated bytes rootcerts         = 1;
     repeated bytes intermediateCerts = 2;
-    repeated bytes revocationList = 3;
-    int64 curHeigth = 4;
-    int64 nxtHeight = 5;
+    repeated bytes revocationList    = 3;
+    int64          curHeigth         = 4;
+    int64          nxtHeight         = 5;
 }
 
 //////////////////////////////////////////////////////////////////////////////
