@@ -4,17 +4,18 @@ import (
 	"bytes"
 	"fmt"
 
-	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"encoding/binary"
+
+	"gitlab.33.cn/chain33/chain33/common/crypto"
 )
 
 // Volatile state for each Validator
 // NOTE: The Accum is not included in Validator.Hash();
 // make sure to update that method if changes are made here
 type Validator struct {
-	Address     []byte    `json:"address"`
-	PubKey      []byte    `json:"pub_key"`
-	VotingPower int64     `json:"voting_power"`
+	Address     []byte `json:"address"`
+	PubKey      []byte `json:"pub_key"`
+	VotingPower int64  `json:"voting_power"`
 
 	Accum int64 `json:"accum"`
 }
@@ -72,7 +73,7 @@ func (v *Validator) String() string {
 func (v *Validator) Hash() []byte {
 	hashBytes := v.Address
 	hashBytes = append(hashBytes, v.PubKey...)
-	bPowder := make([]byte,8)
+	bPowder := make([]byte, 8)
 	binary.BigEndian.PutUint64(bPowder, uint64(v.VotingPower))
 	hashBytes = append(hashBytes, bPowder...)
 	return crypto.Ripemd160(hashBytes)

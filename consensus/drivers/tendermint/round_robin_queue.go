@@ -1,17 +1,18 @@
 package tendermint
 
 import (
-	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
-	"sync"
 	"errors"
+	"sync"
+
+	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
 )
 
 type BaseQueue struct {
-	oldProposal []*types.Proposal
-	mutex sync.Mutex
-	front int
-	rear  int
-	cap   int
+	oldProposal  []*types.Proposal
+	mutex        sync.Mutex
+	front        int
+	rear         int
+	cap          int
 	height2Index map[int64]int //proposal of height
 	index2Height map[int]int64 //to find proposal of height
 }
@@ -59,7 +60,7 @@ func (bq *BaseQueue) ClearQueue() {
 	bq.height2Index = nil
 }
 
-func (bq *BaseQueue) IsEmpty() (bool,error) {
+func (bq *BaseQueue) IsEmpty() (bool, error) {
 	bq.mutex.Lock()
 	defer bq.mutex.Unlock()
 	if bq.cap == 0 {
@@ -76,7 +77,7 @@ func (bq *BaseQueue) IsFull() (bool, error) {
 		tendermintlog.Error("IsFull:Queue is not init or already cleared")
 		return false, errors.New("Queue is not init or already cleared")
 	}
-	return (bq.rear + 1) % bq.cap == bq.front, nil
+	return (bq.rear+1)%bq.cap == bq.front, nil
 }
 
 func (bq *BaseQueue) Length() (int, error) {
@@ -88,6 +89,7 @@ func (bq *BaseQueue) Length() (int, error) {
 	}
 	return (bq.rear - bq.front + bq.cap) % bq.cap, nil
 }
+
 //may not useful
 func (bq *BaseQueue) GetHead() (*types.Proposal, error) {
 	bq.mutex.Lock()
@@ -107,7 +109,7 @@ func (bq *BaseQueue) Enqueue(proposal *types.Proposal) error {
 		return errors.New("Queue is not init or already cleared")
 	}
 	//if full, cover the oldest one
-	if (bq.rear + 1) % bq.cap == bq.front {
+	if (bq.rear+1)%bq.cap == bq.front {
 		//1.update map
 		height := bq.oldProposal[bq.front].Height
 		index := bq.height2Index[height]
@@ -127,6 +129,7 @@ func (bq *BaseQueue) Enqueue(proposal *types.Proposal) error {
 
 	return nil
 }
+
 //may not useful
 func (bq *BaseQueue) Dequeue() (proposal *types.Proposal, err error) {
 	bq.mutex.Lock()

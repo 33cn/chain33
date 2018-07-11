@@ -2,14 +2,15 @@ package commands
 
 import (
 	"math/rand"
-	"github.com/spf13/cobra"
+	"os"
+	"strconv"
+	"time"
+
 	"github.com/inconshreveable/log15"
-	"gitlab.33.cn/chain33/chain33/types"
+	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	ttypes "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
-	"time"
-	"strconv"
-	"os"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var (
@@ -67,7 +68,7 @@ MAIN_LOOP:
 		val := rand.Int63()
 		for i := 0; i < 10; i++ {
 			v := int(val & 0x3f) // rightmost 6 bits
-			if v >= 62 { // only 62 characters in strChars
+			if v >= 62 {         // only 62 characters in strChars
 				val >>= 6
 				continue
 			} else {
@@ -108,7 +109,7 @@ func createFiles(cmd *cobra.Command, args []string) {
 
 	num, _ := cmd.Flags().GetString("num")
 	n, _ := strconv.Atoi(num)
-	for i := 0; i < n; i ++ {
+	for i := 0; i < n; i++ {
 		// create private validator file
 		pvFileName := pvFile + strconv.Itoa(i) + ".json"
 		privValidator := ttypes.LoadOrGenPrivValidatorFS(pvFileName)

@@ -20,8 +20,8 @@ import (
 	"golang.org/x/crypto/nacl/secretbox"
 	"golang.org/x/crypto/ripemd160"
 
-	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
 )
 
@@ -30,7 +30,7 @@ const dataLenSize = 2 // uint16 to describe the length, is <= dataMaxSize
 const dataMaxSize = 1024
 const totalFrameSize = dataMaxSize + dataLenSize
 const sealedFrameSize = totalFrameSize + secretbox.Overhead
-const authSigMsgSize = (32 ) + (64 ) // fixed size (length prefixed) byte arrays
+const authSigMsgSize = (32) + (64) // fixed size (length prefixed) byte arrays
 
 var secret = log15.New("module", "tendermint-secret-connection")
 
@@ -51,7 +51,6 @@ type SecretConnection struct {
 func MakeSecretConnection(conn io.ReadWriteCloser, locPrivKey crypto.PrivKey) (*SecretConnection, error) {
 
 	locPubKey := locPrivKey.PubKey()
-
 
 	// Generate ephemeral keys for perfect forward secrecy.
 	locEphPub, locEphPriv := genEphKeys()

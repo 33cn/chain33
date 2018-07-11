@@ -1,19 +1,20 @@
 package tendermint
 
 import (
-	"sync"
-	"net"
 	"bufio"
-	"time"
-	"github.com/pkg/errors"
 	"encoding/binary"
-	"encoding/json"
-	"io"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net"
 	"runtime/debug"
-	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
+	"sync"
 	"sync/atomic"
+	"time"
+
+	"github.com/pkg/errors"
+	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
 )
 
 // ID is a hex-encoded crypto.Address
@@ -21,19 +22,19 @@ type ID string
 
 // Messages in channels are chopped into smaller msgPackets for multiplexing.
 type msgPacket struct {
-	TypeID    byte
-	Bytes     []byte
+	TypeID byte
+	Bytes  []byte
 }
 
 type MsgInfo struct {
-	Msg     types.ReactorMsg `json:"msg"`
-	PeerID  ID               `json:"peer_id"`
-	PeerIP  string           `json:"peer_ip"`
+	Msg    types.ReactorMsg `json:"msg"`
+	PeerID ID               `json:"peer_id"`
+	PeerIP string           `json:"peer_ip"`
 }
 
 type Peer interface {
 	ID() ID
-	RemoteIP() (net.IP,error)   // remote IP of the connection
+	RemoteIP() (net.IP, error) // remote IP of the connection
 	RemoteAddr() (net.Addr, error)
 	IsOutbound() bool
 	IsPersistent() bool
@@ -56,9 +57,9 @@ type PeerConnState struct {
 type peerConn struct {
 	outbound bool
 
-	conn  net.Conn     // source connection
-	bufReader   *bufio.Reader
-	bufWriter   *bufio.Writer
+	conn      net.Conn // source connection
+	bufReader *bufio.Reader
+	bufWriter *bufio.Writer
 
 	persistent bool
 	ip         net.IP
@@ -68,28 +69,27 @@ type peerConn struct {
 	sendQueueSize int32
 	pongChannel   chan struct{}
 
-	started       uint32 //atomic
-	stopped       uint32 // atomic
+	started uint32 //atomic
+	stopped uint32 // atomic
 
-	quit          chan struct{}
-	waitQuit      sync.WaitGroup
+	quit     chan struct{}
+	waitQuit sync.WaitGroup
 
 	transferChannel chan MsgInfo
 
-	sendBuffer   []byte
+	sendBuffer []byte
 
 	onPeerError func(Peer, interface{})
 
-	myState    *ConsensusState
-	myevpool   *EvidencePool
+	myState  *ConsensusState
+	myevpool *EvidencePool
 
-	state PeerConnState
+	state            PeerConnState
 	updateStateQueue chan types.ReactorMsg
-	heartbeatQueue  chan types.Heartbeat
+	heartbeatQueue   chan types.Heartbeat
 	//config     *PeerConfig
 	//Data     *cmn.CMap // User data.
 }
-
 
 type PeerSet struct {
 	mtx    sync.Mutex
@@ -212,7 +212,7 @@ func (pc peerConn) ID() ID {
 	return pc.id
 }
 
-func (pc peerConn) RemoteIP() (net.IP,error) {
+func (pc peerConn) RemoteIP() (net.IP, error) {
 	if pc.ip != nil {
 		return pc.ip, nil
 	}
@@ -238,7 +238,7 @@ func (pc peerConn) RemoteIP() (net.IP,error) {
 	return pc.ip, nil
 }
 
-func (pc peerConn) RemoteAddr() (net.Addr,error) {
+func (pc peerConn) RemoteAddr() (net.Addr, error) {
 	if pc.conn == nil || pc.conn.RemoteAddr().String() == "pipe" {
 		return nil, errors.New("connect is nil or just pipe")
 	}
@@ -261,7 +261,7 @@ func (pc *peerConn) HandshakeTimeout(
 	peerNodeInfo = NodeInfo{}
 	// Set deadline for handshake so we don't block forever on conn.ReadFull
 	if err := pc.conn.SetDeadline(time.Now().Add(timeout)); err != nil {
-		return peerNodeInfo, errors.Wrap(err,"Error setting deadline")
+		return peerNodeInfo, errors.Wrap(err, "Error setting deadline")
 	}
 
 	var err1 error
@@ -326,10 +326,10 @@ func (pc *peerConn) IsPersistent() bool {
 	return pc.persistent
 }
 
-func (pc *peerConn)Send(msg types.ReactorMsg) bool {
+func (pc *peerConn) Send(msg types.ReactorMsg) bool {
 	timeout := make(chan bool, 1)
 	go func() {
-		time.Sleep(1*time.Minute) // 等待1分钟
+		time.Sleep(1 * time.Minute) // 等待1分钟
 		timeout <- true
 	}()
 	select {
@@ -342,7 +342,7 @@ func (pc *peerConn)Send(msg types.ReactorMsg) bool {
 	}
 }
 
-func (pc *peerConn)TrySend( msg types.ReactorMsg) bool {
+func (pc *peerConn) TrySend(msg types.ReactorMsg) bool {
 	select {
 	case pc.sendQueue <- msg:
 		atomic.AddInt32(&pc.sendQueueSize, 1)
@@ -356,7 +356,7 @@ func (pc *peerConn) IsRunning() bool {
 	return atomic.LoadUint32(&pc.started) == 1 && atomic.LoadUint32(&pc.stopped) == 0
 }
 
-func (pc *peerConn) Start() error{
+func (pc *peerConn) Start() error {
 	if atomic.CompareAndSwapUint32(&pc.started, 0, 1) {
 		if atomic.LoadUint32(&pc.stopped) == 1 {
 			tendermintlog.Error("peerConn already stoped can not start", "peerIP", pc.ip.String())
@@ -455,8 +455,8 @@ FOR_LOOP:
 			pc.sendBuffer = append(pc.sendBuffer, bytelen...)
 
 			pc.sendBuffer = append(pc.sendBuffer, bytes...)
-			if len + 5 > MaxMsgPacketPayloadSize {
-				pc.sendBuffer = append(pc.sendBuffer,bytes[MaxMsgPacketPayloadSize-5:]...)
+			if len+5 > MaxMsgPacketPayloadSize {
+				pc.sendBuffer = append(pc.sendBuffer, bytes[MaxMsgPacketPayloadSize-5:]...)
 			}
 			n, err = pc.bufWriter.Write(pc.sendBuffer[:len+5])
 			if err != nil {
@@ -508,10 +508,10 @@ FOR_LOOP:
 		if len > 0 {
 			buf2 := make([]byte, len)
 			_, err = io.ReadFull(pc.bufReader, buf2)
-			if err != nil  {
+			if err != nil {
 				tendermintlog.Error("Connection failed @ recvRoutine", "conn", pc, "err", err)
 				pc.stopForError(err)
-				panic(fmt.Sprintf("peerConn recvRoutine packetTypeMsg failed :%v",err))
+				panic(fmt.Sprintf("peerConn recvRoutine packetTypeMsg failed :%v", err))
 			}
 			pkt.Bytes = buf2
 		}
@@ -528,7 +528,7 @@ FOR_LOOP:
 					tendermintlog.Error("peerConn recvRoutine Unmarshal data failed:%v\n", err)
 					continue
 				}
-				if pc.transferChannel != nil && (pkt.TypeID == types.ProposalID || pkt.TypeID == types.VoteID){
+				if pc.transferChannel != nil && (pkt.TypeID == types.ProposalID || pkt.TypeID == types.VoteID) {
 					if pkt.TypeID == types.ProposalID {
 						pc.state.SetHasProposal(realMsg.(*types.ProposalMessage).Proposal)
 
@@ -537,7 +537,7 @@ FOR_LOOP:
 					}
 					pc.transferChannel <- MsgInfo{realMsg, pc.ID(), pc.ip.String()}
 				} else if pkt.TypeID == types.ProposalHeartbeatID {
-					pc.heartbeatQueue <-*(realMsg.(*types.ProposalHeartbeatMessage).Heartbeat)
+					pc.heartbeatQueue <- *(realMsg.(*types.ProposalHeartbeatMessage).Heartbeat)
 				} else if pkt.TypeID == types.EvidenceListID {
 					go func() {
 						for _, ev := range realMsg.(*types.EvidenceListMessage).Evidence {
@@ -603,9 +603,9 @@ FOR_LOOP:
 			} else {
 				tendermintlog.Error("msg not deal in updateStateRoutine", "msgTypeName", msg.TypeName())
 			}
-			case <-pc.quit:
-				pc.waitQuit.Done()
-				break FOR_LOOP
+		case <-pc.quit:
+			pc.waitQuit.Done()
+			break FOR_LOOP
 		}
 	}
 	close(pc.updateStateQueue)
@@ -655,7 +655,7 @@ OUTER_LOOP:
 		// Now consider sending other things, like the Proposal itself.
 
 		// Send Proposal && ProposalPOL BitArray?
-		if rs.Proposal != nil && !prs.Proposal{
+		if rs.Proposal != nil && !prs.Proposal {
 			// Proposal: share the proposal metadata with peer.
 			{
 				proposalTrans := types.ProposalToProposalTrans(rs.Proposal)
@@ -787,7 +787,7 @@ func (pc *peerConn) gossipVotesForHeight(rs *types.RoundState, prs *types.PeerRo
 			return true
 		}
 	}
-	if !prs.Proposal && rs.Proposal != nil{
+	if !prs.Proposal && rs.Proposal != nil {
 		tendermintlog.Info("peer proposal not set sleeping")
 		time.Sleep(pc.myState.PeerGossipSleep())
 		return true
@@ -920,6 +920,7 @@ func (se StackError) String() string {
 func (se StackError) Error() string {
 	return se.String()
 }
+
 //-----------------------------------------------------------------
 // GetRoundState returns an atomic snapshot of the PeerRoundState.
 // There's no point in mutating it since it won't change PeerState.
