@@ -1447,10 +1447,6 @@ func (wallet *Wallet) procPrivacyTransactionList(req *types.ReqPrivacyTransactio
 		return nil, types.ErrInvalidParams
 	}
 	req.SendRecvFlag = sendRecvFlag
-	if req.Count < 0 || req.Count > 1000 {
-		walletlog.Warn("procPrivacyTransactionList", "invalid count ", req.Count)
-		req.Count = 10
-	}
 
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
