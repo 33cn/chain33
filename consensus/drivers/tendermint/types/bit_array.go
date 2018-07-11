@@ -15,7 +15,7 @@ type BitArray struct {
 
 // There is no BitArray whose Size is 0.  Use nil instead.
 func NewBitArray(bits int) *BitArray {
-	if bits == 0 {
+	if bits <= 0 {
 		return nil
 	}
 
@@ -100,8 +100,14 @@ func (bA *BitArray) copyBits(bits int) *BitArray {
 
 // Returns a BitArray of larger bits size.
 func (bA *BitArray) Or(o *BitArray) *BitArray {
-	if bA == nil {
+	if bA == nil && o == nil {
+		return nil
+	}
+	if bA == nil && o != nil {
 		o.Copy()
+	}
+	if o == nil {
+		return bA.Copy()
 	}
 	bA.mtx.Lock()
 	defer bA.mtx.Unlock()
@@ -114,7 +120,7 @@ func (bA *BitArray) Or(o *BitArray) *BitArray {
 
 // Returns a BitArray of smaller bit size.
 func (bA *BitArray) And(o *BitArray) *BitArray {
-	if bA == nil {
+	if bA == nil || o == nil {
 		return nil
 	}
 	bA.mtx.Lock()
@@ -144,7 +150,7 @@ func (bA *BitArray) Not() *BitArray {
 }
 
 func (bA *BitArray) Sub(o *BitArray) *BitArray {
-	if bA == nil {
+	if bA == nil || o == nil{
 		return nil
 	}
 	bA.mtx.Lock()
@@ -162,9 +168,8 @@ func (bA *BitArray) Sub(o *BitArray) *BitArray {
 			}
 		}
 		return c
-	} else {
-		return bA.and(o.Not()) // Note degenerate case where o == nil
 	}
+	return bA.and(o.Not()) // Note degenerate case where o == nil
 }
 
 func (bA *BitArray) IsEmpty() bool {
