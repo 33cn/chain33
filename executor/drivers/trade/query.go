@@ -549,12 +549,15 @@ func (t *trade) loadOrderFromKey(key []byte) *types.ReplyTradeOrder {
 		if err != nil {
 			return nil
 		}
-		return limitOrderTxResult2Order(txResult)
-		// sellOrder 中没有 blocktime， 需要查询两次， 不如直接查询
-		//if sellorder, err := getSellOrderFromID(key, t.GetStateDB()); err == nil {
-		//	tradelog.Debug("trade Query", "getSellOrderFromID", string(key))
-		//	return sellOrder2Order(sellorder)
-		//}
+		reply := limitOrderTxResult2Order(txResult)
+
+		sellOrder, err := getSellOrderFromID(key, t.GetStateDB())
+		tradelog.Debug("trade Query", "getSellOrderFromID", string(key))
+		if err != nil {
+			return nil
+		}
+		reply.TradedBoardlot = sellOrder.SoldBoardlot
+		return reply
 	} else if strings.HasPrefix(string(key), buyIDPrefix) {
 		txHash := strings.Replace(string(key), buyIDPrefix, "0x", 1)
 		txResult, err := getTx([]byte(txHash), t.GetLocalDB())
@@ -562,7 +565,14 @@ func (t *trade) loadOrderFromKey(key []byte) *types.ReplyTradeOrder {
 		if err != nil {
 			return nil
 		}
-		return limitOrderTxResult2Order(txResult)
+		reply := limitOrderTxResult2Order(txResult)
+
+		buyOrder, err := getBuyOrderFromID(key, t.GetStateDB())
+		if err != nil {
+			return nil
+		}
+		reply.TradedBoardlot = buyOrder.BoughtBoardlot
+		return reply
 	} else { // txhash as key
 		txResult, err := getTx(key, t.GetLocalDB())
 		tradelog.Debug("loadOrderFromKey ", "load txhash", string(key))

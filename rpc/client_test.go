@@ -12,6 +12,7 @@ import (
 	qmock "gitlab.33.cn/chain33/chain33/queue/mocks"
 	"gitlab.33.cn/chain33/chain33/types"
 	_ "gitlab.33.cn/chain33/chain33/types/executor"
+	exec "gitlab.33.cn/chain33/chain33/types/executor"
 	tokentype "gitlab.33.cn/chain33/chain33/types/executor/token"
 	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
 )
@@ -26,6 +27,7 @@ func newTestChannelClient() *channelClient {
 func TestInit(t *testing.T) {
 	client := newTestChannelClient()
 	client.Init(&qmock.Client{})
+	exec.Init()
 }
 
 func testCreateRawTransactionNil(t *testing.T) {

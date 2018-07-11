@@ -47,17 +47,13 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 	if err != nil {
 		return "", err
 	}
-	if unsigned.Mode == 1 {
-		// TODO：由于隐私交易传递的是交易HASH，隐私交易签名处理需要特殊处理，这块本次测试跑通，二期需要将其改为传递交易内容
-		return wallet.signTxWithPrivacy(key, unsigned)
-	}
 
 	var tx types.Transaction
-	bytes, err := common.FromHex(unsigned.GetTxHex())
+	txByteData, err := common.FromHex(unsigned.GetTxHex())
 	if err != nil {
 		return "", err
 	}
-	err = types.Decode(bytes, &tx)
+	err = types.Decode(txByteData, &tx)
 	if err != nil {
 		return "", err
 	}
@@ -66,6 +62,9 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 		return "", err
 	}
 	tx.SetExpire(expire)
+	if bytes.Equal(tx.Execer, types.ExecerPrivacy) {
+		return wallet.signTxWithPrivacy(key, unsigned)
+	}
 	group, err := tx.GetTxGroup()
 	if err != nil {
 		return "", err
@@ -121,7 +120,6 @@ func (wallet *Wallet) ProcGetAccountList() (*types.WalletAccounts, error) {
 		if len(AccStore.Addr) != 0 {
 			addrs[index] = AccStore.Addr
 		}
-		//walletlog.Debug("ProcGetAccountList", "all AccStore", AccStore.String())
 	}
 	//获取所有地址对应的账户详细信息从account模块
 	accounts, err := accountdb.LoadAccounts(wallet.api, addrs)
@@ -147,8 +145,6 @@ func (wallet *Wallet) ProcGetAccountList() (*types.WalletAccounts, error) {
 		WalletAccount.Acc = Account
 		WalletAccount.Label = WalletAccStores[index].GetLabel()
 		WalletAccounts.Wallets[index] = &WalletAccount
-
-		//walletlog.Info("ProcGetAccountList", "LoadAccounts:account", Account.String())
 	}
 	return &WalletAccounts, nil
 }

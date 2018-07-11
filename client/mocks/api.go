@@ -61,15 +61,15 @@ func (_m *QueueProtocolAPI) CloseTickets() (*types.ReplyHashes, error) {
 }
 
 // CreateTrasaction provides a mock function with given fields: param
-func (_m *QueueProtocolAPI) CreateTrasaction(param *types.ReqCreateTransaction) (*types.Reply, error) {
+func (_m *QueueProtocolAPI) CreateTrasaction(param *types.ReqCreateTransaction) (*types.Transaction, error) {
 	ret := _m.Called(param)
 
-	var r0 *types.Reply
-	if rf, ok := ret.Get(0).(func(*types.ReqCreateTransaction) *types.Reply); ok {
+	var r0 *types.Transaction
+	if rf, ok := ret.Get(0).(func(*types.ReqCreateTransaction) *types.Transaction); ok {
 		r0 = rf(param)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.Reply)
+			r0 = ret.Get(0).(*types.Transaction)
 		}
 	}
 
@@ -727,6 +727,29 @@ func (_m *QueueProtocolAPI) NewAccount(param *types.ReqNewAccount) (*types.Walle
 	return r0, r1
 }
 
+// NotifySendTxResult provides a mock function with given fields: param
+func (_m *QueueProtocolAPI) NotifySendTxResult(param *types.ReqNotifySendTxResult) (*types.Reply, error) {
+	ret := _m.Called(param)
+
+	var r0 *types.Reply
+	if rf, ok := ret.Get(0).(func(*types.ReqNotifySendTxResult) *types.Reply); ok {
+		r0 = rf(param)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.Reply)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*types.ReqNotifySendTxResult) error); ok {
+		r1 = rf(param)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // PeerInfo provides a mock function with given fields:
 func (_m *QueueProtocolAPI) PeerInfo() (*types.PeerList, error) {
 	ret := _m.Called()
@@ -949,29 +972,6 @@ func (_m *QueueProtocolAPI) SendTx(param *types.Transaction) (*types.Reply, erro
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(*types.Transaction) error); ok {
-		r1 = rf(param)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// SendTxHashToWallet provides a mock function with given fields: param
-func (_m *QueueProtocolAPI) SendTxHashToWallet(param *types.ReqCreateCacheTxKey) (*types.Reply, error) {
-	ret := _m.Called(param)
-
-	var r0 *types.Reply
-	if rf, ok := ret.Get(0).(func(*types.ReqCreateCacheTxKey) *types.Reply); ok {
-		r0 = rf(param)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.Reply)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(*types.ReqCreateCacheTxKey) error); ok {
 		r1 = rf(param)
 	} else {
 		r1 = ret.Error(1)
