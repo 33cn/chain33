@@ -392,6 +392,7 @@ It has these top-level messages:
 	ReqBindMiner
 	ReplyBindMiner
 	ReqNotifySendTxResult
+	ReqPrivacyTransactionList
 */
 package types
 
