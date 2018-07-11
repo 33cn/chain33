@@ -504,5 +504,5 @@ message ReqPrivacyTransactionList {
     int32  count        = 4;
     string from         = 5;
     string address      = 6;
-    string seedtxhash   = 7;
+    bytes  seedtxhash   = 7;
 }
