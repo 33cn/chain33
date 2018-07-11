@@ -26,7 +26,6 @@ const (
 	walletKey     = "wallet"     // 钱包
 	blockchainKey = "blockchain" // 区块
 	storeKey      = "store"
-	authKey       = "authority" // 证书验证
 )
 
 var log = log15.New("module", "client")
