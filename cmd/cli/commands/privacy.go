@@ -515,7 +515,6 @@ func parseshowPrivacyAccountInfo(arg interface{}) (interface{}, error) {
 	return ret, nil
 }
 
-
 func ListPrivacyTxsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list_txs",
@@ -529,35 +528,32 @@ func ListPrivacyTxsCmd() *cobra.Command {
 func addListPrivacyTxsFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("addr", "a", "", "account address")
 	cmd.MarkFlagRequired("addr")
-
-	cmd.Flags().Int32P("sendrecv", "s", 1, "send or recv flag (1: send, 2: recv)")
-	cmd.Flags().Int32P("count", "c", 10, "number of transactions")
-	cmd.Flags().StringP("starttxhash", "t", "", "from which transaction begin")
-	cmd.Flags().Int32P("mode", "m", 0, "query mode. (0: normal, 1:privacy)")
+	//
+	cmd.Flags().Int32P("sendrecv", "", 0, "send or recv flag (0: send, 1: recv), default 0")
+	cmd.Flags().Int32P("count", "c", 10, "number of transactions, default 10")
 	cmd.Flags().Int32P("direction", "d", 1, "query direction (0: pre page, 1: next page)")
-	cmd.Flags().StringP("token", "n", "", "token name.(BTY supported)")
+	cmd.Flags().StringP("token", "", types.BTY, "token name.(BTY supported)")
+	cmd.Flags().StringP("seedtxhash", "", "", "seed trasnaction hash")
 }
 
 func listPrivacyTxsFlags(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	txHash, _ := cmd.Flags().GetString("starttxhash")
 	count, _ := cmd.Flags().GetInt32("count")
-	direction, _ := cmd.Flags().GetInt32("dir")
-	mode, _ := cmd.Flags().GetInt32("mode")
+	direction, _ := cmd.Flags().GetInt32("direction")
 	addr, _ := cmd.Flags().GetString("addr")
-	sendRecvPrivacy, _ := cmd.Flags().GetInt32("sendrecv")
+	sendRecvFlag, _ := cmd.Flags().GetInt32("sendrecv")
 	tokenname, _ := cmd.Flags().GetString("token")
-	params := jsonrpc.ReqWalletTransactionList{
-		FromTx:          txHash,
-		Count:           count,
-		Direction:       direction,
-		Mode:            mode,
-		Address:         addr,
-		SendRecvPrivacy: sendRecvPrivacy,
-		TokenName:       tokenname,
+	seedtxhash, _ := cmd.Flags().GetString("seedtxhash")
+	params := types.ReqPrivacyTransactionList{
+		Tokenname:    tokenname,
+		SendRecvFlag: sendRecvFlag,
+		Direction:    direction,
+		Count:        count,
+		Address:      addr,
+		Seedtxhash:   seedtxhash,
 	}
 	var res jsonrpc.WalletTxDetails
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.WalletTxList", params, &res)
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.PrivacyTxList", params, &res)
 	ctx.SetResultCb(parseWalletTxListRes)
 	ctx.Run()
 }
