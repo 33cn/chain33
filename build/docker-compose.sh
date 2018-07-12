@@ -350,17 +350,17 @@ function relay() {
     echo "${hash}"
 
     block_wait "${1}" 1
-    before=$(${CLI} account balance -a 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv -e relay | jq -r ".balance")
+    before=$(${1} account balance -a 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv -e relay | jq -r ".balance")
     if [ "${before}" == "0.0000" ]; then
         echo "wrong relay addr balance, should not be zero"
         exit 1
     fi
-    before=$(${CLI} account balance -a 14KEKbYtKKQm4wMthSK9J4La4nAiidGozt -e coins | jq -r ".balance")
+    before=$(${1} account balance -a 14KEKbYtKKQm4wMthSK9J4La4nAiidGozt -e coins | jq -r ".balance")
     if [ "${before}" == "0.0000" ]; then
         echo "wrong accept addr balance, should not be zero"
         exit 1
     fi
-    before=$(${CLI} account balance -a "${real_buy_addr}" -e coins | jq -r ".balance")
+    before=$(${1} account balance -a "${real_buy_addr}" -e coins | jq -r ".balance")
     if [ "${before}" == "0.0000" ]; then
         echo "wrong real accept addr balance, should not be zero"
         exit 1
@@ -383,65 +383,65 @@ function relay() {
 
     block_wait "${1}" 1
 
-    coinaddr=$(${CLI} tx query -s "${buy_hash}" | jq -r ".receipt.logs[2].log.coinAddr")
+    coinaddr=$(${1} tx query -s "${buy_hash}" | jq -r ".receipt.logs[2].log.coinAddr")
     if [ "${coinaddr}" != "1Am9UTGfdnxabvcywYG2hvzr6qK8T3oUZT" ]; then
         echo "wrong create order to coinaddr"
         exit 1
     fi
-    buy_id=$(${CLI} tx query -s "${buy_hash}" | jq -r ".receipt.logs[2].log.orderId")
+    buy_id=$(${1} tx query -s "${buy_hash}" | jq -r ".receipt.logs[2].log.orderId")
     if [ -z "${buy_id}" ]; then
         echo "wrong buy id"
         exit 1
     fi
-    oper=$(${CLI} tx query -s "${buy_hash}" | jq -r ".receipt.logs[2].log.coinOperation")
+    oper=$(${1} tx query -s "${buy_hash}" | jq -r ".receipt.logs[2].log.coinOperation")
     if [ "${oper}" != "buy" ]; then
         echo "wrong buy operation"
         exit 1
     fi
 
-    status=$(${CLI} tx query -s "${sell_hash}" | jq -r ".receipt.logs[2].log.curStatus")
+    status=$(${1} tx query -s "${sell_hash}" | jq -r ".receipt.logs[2].log.curStatus")
     if [ "${status}" != "pending" ]; then
         echo "wrong create sell order status"
         exit 1
     fi
-    sell_id=$(${CLI} tx query -s "${sell_hash}" | jq -r ".receipt.logs[2].log.orderId")
+    sell_id=$(${1} tx query -s "${sell_hash}" | jq -r ".receipt.logs[2].log.orderId")
     if [ -z "${sell_id}" ]; then
         echo "wrong sell id"
         exit 1
     fi
-    oper=$(${CLI} tx query -s "${sell_hash}" | jq -r ".receipt.logs[2].log.coinOperation")
+    oper=$(${1} tx query -s "${sell_hash}" | jq -r ".receipt.logs[2].log.coinOperation")
     if [ "${oper}" != "sell" ]; then
         echo "wrong sell operation"
         exit 1
     fi
-    realbuy_id=$(${CLI} tx query -s "${realbuy_hash}" | jq -r ".receipt.logs[2].log.orderId")
+    realbuy_id=$(${1} tx query -s "${realbuy_hash}" | jq -r ".receipt.logs[2].log.orderId")
     if [ -z "${realbuy_id}" ]; then
         echo "wrong realbuy_id "
         exit 1
     fi
-    before=$(${CLI} account balance -a 14KEKbYtKKQm4wMthSK9J4La4nAiidGozt -e relay | jq -r ".balance")
+    before=$(${1} account balance -a 14KEKbYtKKQm4wMthSK9J4La4nAiidGozt -e relay | jq -r ".balance")
     if [ "${before}" == "0.0000" ]; then
         echo "wrong relay balance, should not be zero"
         exit 1
     fi
-    before=$(${CLI} account balance -a "${real_buy_addr}" -e relay | jq -r ".balance")
+    before=$(${1} account balance -a "${real_buy_addr}" -e relay | jq -r ".balance")
     if [ "${before}" != "100.0000" ]; then
         echo "wrong relay real buy balance, should be 100"
         exit 1
     fi
 
-    id=$(${CLI} relay status -s 1 | jq -sr '.[] | select(.coinoperation=="buy")| select(.coinaddr=="1Am9UTGfdnxabvcywYG2hvzr6qK8T3oUZT") |.orderid')
+    id=$(${1} relay status -s 1 | jq -sr '.[] | select(.coinoperation=="buy")| select(.coinaddr=="1Am9UTGfdnxabvcywYG2hvzr6qK8T3oUZT") |.orderid')
     if [ "${id}" != "${buy_id}" ]; then
         echo "wrong relay status buy order id"
         exit 1
     fi
-    id=$(${CLI} relay status -s 1 | jq -sr '.[] | select(.coinoperation=="buy")| select(.coinamount=="10.0000") |.orderid')
+    id=$(${1} relay status -s 1 | jq -sr '.[] | select(.coinoperation=="buy")| select(.coinamount=="10.0000") |.orderid')
     if [ "${id}" != "${realbuy_id}" ]; then
         echo "wrong relay status real buy order id"
         exit 1
     fi
 
-    id=$(${CLI} relay status -s 1 | jq -sr '.[] | select(.coinoperation=="sell")|.orderid')
+    id=$(${1} relay status -s 1 | jq -sr '.[] | select(.coinoperation=="sell")|.orderid')
     if [ "${id}" != "${sell_id}" ]; then
         echo "wrong relay status sell order id"
         exit 1
@@ -457,24 +457,24 @@ function relay() {
     sell_hash=$(${1} send relay accept -f 0.001 -o "${sell_id}" -a 1Am9UTGfdnxabvcywYG2hvzr6qK8T3oUZT -k 14KEKbYtKKQm4wMthSK9J4La4nAiidGozt)
     echo "${sell_hash}"
     block_wait "${1}" 1
-    frozen=$(${CLI} tx query -s "${buy_hash}" | jq -r ".receipt.logs[1].log.current.frozen")
+    frozen=$(${1} tx query -s "${buy_hash}" | jq -r ".receipt.logs[1].log.current.frozen")
     if [ "${frozen}" != "100.0000" ]; then
         echo "wrong buy frozen account, should be 100"
         exit 1
     fi
 
-    id=$(${CLI} relay status -s 2 | jq -sr '.[] | select(.coinoperation=="buy") | select(.coinaddr=="1Am9UTGfdnxabvcywYG2hvzr6qK8T3oUZT") |.orderid')
+    id=$(${1} relay status -s 2 | jq -sr '.[] | select(.coinoperation=="buy") | select(.coinaddr=="1Am9UTGfdnxabvcywYG2hvzr6qK8T3oUZT") |.orderid')
     if [ "${id}" != "${buy_id}" ]; then
         echo "wrong relay status buy order id"
         exit 1
     fi
-    id=$(${CLI} relay status -s 2 | jq -sr '.[] | select(.coinoperation=="buy")| select(.coinamount=="10.0000")|.orderid')
+    id=$(${1} relay status -s 2 | jq -sr '.[] | select(.coinoperation=="buy")| select(.coinamount=="10.0000")|.orderid')
     if [ "${id}" != "${realbuy_id}" ]; then
         echo "wrong relay status real buy order id"
         exit 1
     fi
 
-    id=$(${CLI} relay status -s 2 | jq -sr '.[] | select(.coinoperation=="sell")|.orderid')
+    id=$(${1} relay status -s 2 | jq -sr '.[] | select(.coinoperation=="sell")|.orderid')
     if [ "${id}" != "${sell_id}" ]; then
         echo "wrong relay status sell order id"
         exit 1
@@ -498,7 +498,7 @@ function relay() {
     wait_btc_height "${1}" $((current + 80 + 4))
 
     echo "=========== # unlock buy order ==========="
-    acceptHeight=$(${CLI} tx query -s "${buy_hash}" | jq -r ".receipt.logs[2].log.coinHeight")
+    acceptHeight=$(${1} tx query -s "${buy_hash}" | jq -r ".receipt.logs[2].log.coinHeight")
     if [ "${acceptHeight}" -lt "${btc_cur_height}" ]; then
         echo "accept height less previous height"
         exit 1
@@ -518,18 +518,18 @@ function relay() {
 
     block_wait "${1}" 1
 
-    id=$(${CLI} relay status -s 1 | jq -sr '.[] | select(.coinoperation=="buy")|.orderid')
+    id=$(${1} relay status -s 1 | jq -sr '.[] | select(.coinoperation=="buy")|.orderid')
     if [ "${id}" != "${buy_id}" ]; then
         echo "wrong relay pending status unlock buy order id"
         exit 1
     fi
 
-    id=$(${CLI} relay status -s 3 | jq -sr '.[] | select(.coinoperation=="buy")|.orderid')
+    id=$(${1} relay status -s 3 | jq -sr '.[] | select(.coinoperation=="buy")|.orderid')
     if [ "${id}" != "${realbuy_id}" ]; then
         echo "wrong relay status confirming real buy order id"
         exit 1
     fi
-    id=$(${CLI} relay status -s 3 | jq -sr '.[] | select(.coinoperation=="sell")|.orderid')
+    id=$(${1} relay status -s 3 | jq -sr '.[] | select(.coinoperation=="sell")|.orderid')
     if [ "${id}" != "${sell_id}" ]; then
         echo "wrong relay status confirming sell order id"
         exit 1
@@ -541,7 +541,7 @@ function relay() {
     wait_btc_height "${1}" $((current + 300))
 
     echo "=========== # unlock sell order ==="
-    confirmHeight=$(${CLI} tx query -s "${confirm_hash}" | jq -r ".receipt.logs[1].log.coinHeight")
+    confirmHeight=$(${1} tx query -s "${confirm_hash}" | jq -r ".receipt.logs[1].log.coinHeight")
     if [ "${confirmHeight}" -lt "${btc_cur_height}" ]; then
         echo "wrong confirm height"
         exit 1
@@ -557,12 +557,12 @@ function relay() {
 
     block_wait "${1}" 1
 
-    cancel_id=$(${CLI} tx query -s "${cancel_hash}" | jq -r ".receipt.logs[2].log.orderId")
+    cancel_id=$(${1} tx query -s "${cancel_hash}" | jq -r ".receipt.logs[2].log.orderId")
     if [ -z "${cancel_id}" ]; then
         echo "wrong buy id"
         exit 1
     fi
-    id=$(${CLI} relay status -s 1 | jq -sr '.[] | select(.coinoperation=="sell")| select(.address=="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv") | .orderid')
+    id=$(${1} relay status -s 1 | jq -sr '.[] | select(.coinoperation=="sell")| select(.address=="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv") | .orderid')
     if [ "${id}" != "${sell_id}" ]; then
         echo "wrong relay revoke order id "
         exit 1
@@ -575,7 +575,7 @@ function relay() {
     echo "=========== # check finish order ============="
     count=30
     while true; do
-        id=$(${CLI} relay status -s 4 | jq -sr '.[] | select(.coinoperation=="buy")|.orderid')
+        id=$(${1} relay status -s 4 | jq -sr '.[] | select(.coinoperation=="buy")|.orderid')
         if [ "${id}" == "${realbuy_id}" ]; then
             break
         fi
@@ -587,7 +587,7 @@ function relay() {
         fi
     done
 
-    before=$(${CLI} account balance -a "${real_buy_addr}" -e relay | jq -r ".balance")
+    before=$(${1} account balance -a "${real_buy_addr}" -e relay | jq -r ".balance")
     if [ "${before}" != "300.0000" ]; then
         echo "wrong relay real buy addr balance, should be 300"
         exit 1
@@ -598,12 +598,12 @@ function relay() {
     echo "${hash}"
     block_wait "${1}" 1
 
-    status=$(${CLI} relay status -s 5 | jq -r ".status")
+    status=$(${1} relay status -s 5 | jq -r ".status")
     if [ "${status}" != "canceled" ]; then
         echo "wrong relay order pending status"
         exit 1
     fi
-    id=$(${CLI} relay status -s 5 | jq -sr '.[] | select(.coinoperation=="buy")|.orderid')
+    id=$(${1} relay status -s 5 | jq -sr '.[] | select(.coinoperation=="buy")|.orderid')
     if [ "${id}" != "${cancel_id}" ]; then
         echo "wrong relay status cancel order id"
         exit 1

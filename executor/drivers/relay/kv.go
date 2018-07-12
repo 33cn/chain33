@@ -15,7 +15,6 @@ const (
 	orderIDPrefix            = "mavl-relay-orderid-"
 	coinHashPrefix           = "mavl-relay-coinhash-"
 	btcLastHead              = "mavl-relay-btclasthead"
-	btcLastBaseHeight        = "mavl-relay-btclastbaseheight"
 	relayBTCHeaderHash       = "relay-btcheader-hash"
 	relayBTCHeaderHeight     = "relay-btcheader-height"
 	relayBTCHeaderHeightList = "relay-btcheader-height-list"

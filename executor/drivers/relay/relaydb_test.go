@@ -186,7 +186,6 @@ func (s *suiteRelayDB) TestRelayCreate_1() {
 	s.Equal("200.0000", log.TxAmount)
 	s.Equal(uint64(10), log.CoinHeight)
 	s.orderId = log.OrderId
-	s.T().Log("orderid", s.orderId)
 }
 
 // the test suite function name need sequence so here aUnlock, bCancel
@@ -1107,188 +1106,225 @@ func TestRunSuiteVerifyCli(t *testing.T) {
 }
 
 /////////////////////////////////////////////
-//
-//type suiteSaveBtcHeader struct {
-//	// Include our basic suite logic.
-//	suite.Suite
-//	db      *mocks.KV
-//	kvdb    *mocks.KVDB
-//	relay   *relay
-//	relayDb *relayDB
-//}
-//
-//func (s *suiteSaveBtcHeader) SetupSuite() {
-//	s.db = new(mocks.KV)
-//	s.kvdb = new(mocks.KVDB)
-//	relay := &relay{}
-//	relay.SetStateDB(s.db)
-//	relay.SetLocalDB(s.kvdb)
-//	relay.SetEnv(10, 100, 1)
-//	relay.SetIsFree(false)
-//	relay.SetApi(nil)
-//	relay.SetChild(relay)
-//	s.relay = relay
-//
-//	tx := &types.Transaction{}
-//	tx.To = "addr"
-//	tx.Sign(types.SECP256K1, privFrom)
-//
-//	s.relay.SetEnv(40, 4000, 1)
-//	s.relayDb = newRelayDB(s.relay, tx)
-//
-//}
-//
-//func (s *suiteSaveBtcHeader) TestSaveBtcHeader_1() {
-//	head0 := &types.BtcHeader{
-//		Hash:          "5e7d9c599cd040ec2ba53f4dee28028710be8c135e779f65c56feadaae34c3f2",
-//		Confirmations: 92,
-//		Height:        10,
-//		Version:       536870912,
-//		MerkleRoot:    "ab91cd4160e1379c337eee6b7a4bdbb7399d70268d86045aba150743c00c90b6",
-//		Time:          1530862108,
-//		Nonce:         0,
-//		Bits:          545259519,
-//		Difficulty:    0,
-//		PreviousHash:  "604efe53975ab06cad8748fd703ad5bc960e8b752b2aae98f0f871a4a05abfc7",
-//	}
-//	head1 := &types.BtcHeader{
-//		Hash:          "7b7a4a9b49db5a1162be515d380cd186e98c2bf0bb90f1145485d7c43343fc7c",
-//		Confirmations: 91,
-//		Height:        11,
-//		Version:       536870912,
-//		MerkleRoot:    "cfa9b66696aea63b7266ffaa1cb4b96c8dd6959eaabf2eb14173f4adaa551f6f",
-//		Time:          1530862108,
-//		Nonce:         1,
-//		Bits:          545259519,
-//		Difficulty:    0,
-//		PreviousHash:  "5e7d9c599cd040ec2ba53f4dee28028710be8c135e779f65c56feadaae34c3f2",
-//	}
-//
-//	head2 := &types.BtcHeader{
-//		Hash:          "57bd2805725dd2d102708af4c8f6eb67cd0b3de6dd531f59fbc7d441a0388b6e",
-//		Confirmations: 90,
-//		Height:        12,
-//		Version:       536870912,
-//		MerkleRoot:    "f549e7024c07b741d34633654847be8778d2ccc9b1b17571914050060cc785f6",
-//		Time:          1530862108,
-//		Nonce:         4,
-//		Bits:          545259519,
-//		Difficulty:    0,
-//		PreviousHash:  "7b7a4a9b49db5a1162be515d380cd186e98c2bf0bb90f1145485d7c43343fc7c",
-//	}
-//
-//	headers := &types.BtcHeaders{}
-//	headers.BtcHeader = append(headers.BtcHeader, head0)
-//	headers.BtcHeader = append(headers.BtcHeader, head1)
-//	headers.BtcHeader = append(headers.BtcHeader, head2)
-//
-//	receipt, err := s.relayDb.saveBtcHeader(headers)
-//	s.Nil(err)
-//	var log types.ReceiptRelayRcvBTCHeaders
-//	types.Decode(receipt.Logs[len(receipt.Logs)-1].Log, &log)
-//
-//	s.Zero(log.LastHeight)
-//	s.Zero(log.LastBaseHeight)
-//	s.Equal(head2.Height, log.NewHeight)
-//	s.Zero(log.NewBaseHeight)
-//	s.Equal(headers.BtcHeader, log.Headers)
-//
-//	lastHead, err := getBtcLastHead(s.relayDb.db)
-//	s.Nil(err)
-//	s.Equal(head2, lastHead.Header)
-//	s.Zero(lastHead.BaseHeight)
-//
-//}
-//
-////not continuous
-//func (s *suiteSaveBtcHeader) TestSaveBtcHeader_2() {
-//	head3 := &types.BtcHeader{
-//		Hash:          "16ad6d588aeca12bf3e7fd6b2263992b4442c9692f4e134ba7cf0d791746328a",
-//		Confirmations: 89,
-//		Height:        13,
-//		Version:       536870912,
-//		MerkleRoot:    "0921a87a7a196a54d3cf3f89b2dc218d6451d3fd1ce719db4d6c3f74746cb63c",
-//		Time:          1530862108,
-//		Nonce:         0,
-//		Bits:          545259519,
-//		Difficulty:    0,
-//		PreviousHash:  "67bd2805725dd2d102708af4c8f6eb67cd0b3de6dd531f59fbc7d441a0388b6e",
-//	}
-//	head4 := &types.BtcHeader{
-//		Hash:          "3bc0ee712c84c589c693b09aa3685f266c2c295a6d031952ecc863a2a1eefe45",
-//		Confirmations: 89,
-//		Height:        14,
-//		Version:       536870912,
-//		MerkleRoot:    "05a9866eda375bc91a404aa10f3fface31d3494716ead686fe72ebc46793b0ba",
-//		Time:          1530862109,
-//		Nonce:         2,
-//		Bits:          545259519,
-//		Difficulty:    0,
-//		PreviousHash:  "16ad6d588aeca12bf3e7fd6b2263992b4442c9692f4e134ba7cf0d791746328a",
-//	}
-//
-//	headers := &types.BtcHeaders{}
-//	headers.BtcHeader = append(headers.BtcHeader, head3)
-//	headers.BtcHeader = append(headers.BtcHeader, head4)
-//
-//	_, err := s.relayDb.saveBtcHeader(headers)
-//	s.Equal(types.ErrRelayBtcHeadSequenceErr, err)
-//
-//}
-//
-////reset
-//func (s *suiteSaveBtcHeader) TestSaveBtcHeader_3() {
-//
-//	head4 := &types.BtcHeader{
-//		Hash:          "3bc0ee712c84c589c693b09aa3685f266c2c295a6d031952ecc863a2a1eefe45",
-//		Confirmations: 89,
-//		Height:        14,
-//		Version:       536870912,
-//		MerkleRoot:    "05a9866eda375bc91a404aa10f3fface31d3494716ead686fe72ebc46793b0ba",
-//		Time:          1530862109,
-//		Nonce:         2,
-//		Bits:          545259519,
-//		Difficulty:    0,
-//		PreviousHash:  "16ad6d588aeca12bf3e7fd6b2263992b4442c9692f4e134ba7cf0d791746328a",
-//		IsReset:       true,
-//	}
-//
-//	head5 := &types.BtcHeader{
-//		Hash:          "439e515ee8307fccc104395a46626bd43f6042482d56f4abcfaeee3c0a1b1ece",
-//		Confirmations: 89,
-//		Height:        15,
-//		Version:       536870912,
-//		MerkleRoot:    "07a3c184d6f9813f468f0890f1da4449844e684a819c91cb58d2d5a74eeaf5a9",
-//		Time:          1530862109,
-//		Nonce:         2,
-//		Bits:          545259519,
-//		Difficulty:    0,
-//		PreviousHash:  "3bc0ee712c84c589c693b09aa3685f266c2c295a6d031952ecc863a2a1eefe45",
-//	}
-//
-//	headers := &types.BtcHeaders{}
-//	headers.BtcHeader = append(headers.BtcHeader, head4)
-//	headers.BtcHeader = append(headers.BtcHeader, head5)
-//
-//	receipt, err := s.relayDb.saveBtcHeader(headers)
-//	s.Nil(err)
-//	var log types.ReceiptRelayRcvBTCHeaders
-//	types.Decode(receipt.Logs[len(receipt.Logs)-1].Log, &log)
-//
-//	s.Equal(uint64(12), log.LastHeight)
-//	s.Zero(log.LastBaseHeight)
-//	s.Equal(head5.Height, log.NewHeight)
-//	s.Equal(head4.Height, log.NewBaseHeight)
-//	s.Equal(headers.BtcHeader, log.Headers)
-//
-//	lastHead, err := getBtcLastHead(s.relayDb.db)
-//	s.Nil(err)
-//	s.Equal(head5, lastHead.Header)
-//	s.Equal(head4.Height, lastHead.BaseHeight)
-//
-//}
-//
-//func TestRunSuiteSaveBtcHeader(t *testing.T) {
-//	log := new(suiteSaveBtcHeader)
-//	suite.Run(t, log)
-//}
+
+type suiteSaveBtcHeader struct {
+	// Include our basic suite logic.
+	suite.Suite
+	db      *mocks.KV
+	kvdb    *mocks.KVDB
+	relay   *relay
+	relayDb *relayDB
+}
+
+func (s *suiteSaveBtcHeader) SetupSuite() {
+	s.db = new(mocks.KV)
+	s.kvdb = new(mocks.KVDB)
+	relay := &relay{}
+	relay.SetStateDB(s.db)
+	relay.SetLocalDB(s.kvdb)
+	relay.SetEnv(10, 100, 1)
+	relay.SetIsFree(false)
+	relay.SetApi(nil)
+	relay.SetChild(relay)
+	s.relay = relay
+
+	tx := &types.Transaction{}
+	tx.To = "addr"
+	tx.Sign(types.SECP256K1, privFrom)
+
+	s.relay.SetEnv(40, 4000, 1)
+	s.relayDb = newRelayDB(s.relay, tx)
+
+}
+
+func (s *suiteSaveBtcHeader) TestSaveBtcHeader_1() {
+	head0 := &types.BtcHeader{
+		Hash:          "5e7d9c599cd040ec2ba53f4dee28028710be8c135e779f65c56feadaae34c3f2",
+		Confirmations: 92,
+		Height:        10,
+		Version:       536870912,
+		MerkleRoot:    "ab91cd4160e1379c337eee6b7a4bdbb7399d70268d86045aba150743c00c90b6",
+		Time:          1530862108,
+		Nonce:         0,
+		Bits:          545259519,
+		Difficulty:    0,
+		PreviousHash:  "604efe53975ab06cad8748fd703ad5bc960e8b752b2aae98f0f871a4a05abfc7",
+	}
+	head1 := &types.BtcHeader{
+		Hash:          "7b7a4a9b49db5a1162be515d380cd186e98c2bf0bb90f1145485d7c43343fc7c",
+		Confirmations: 91,
+		Height:        11,
+		Version:       536870912,
+		MerkleRoot:    "cfa9b66696aea63b7266ffaa1cb4b96c8dd6959eaabf2eb14173f4adaa551f6f",
+		Time:          1530862108,
+		Nonce:         1,
+		Bits:          545259519,
+		Difficulty:    0,
+		PreviousHash:  "5e7d9c599cd040ec2ba53f4dee28028710be8c135e779f65c56feadaae34c3f2",
+	}
+
+	head2 := &types.BtcHeader{
+		Hash:          "57bd2805725dd2d102708af4c8f6eb67cd0b3de6dd531f59fbc7d441a0388b6e",
+		Confirmations: 90,
+		Height:        12,
+		Version:       536870912,
+		MerkleRoot:    "f549e7024c07b741d34633654847be8778d2ccc9b1b17571914050060cc785f6",
+		Time:          1530862108,
+		Nonce:         4,
+		Bits:          545259519,
+		Difficulty:    0,
+		PreviousHash:  "7b7a4a9b49db5a1162be515d380cd186e98c2bf0bb90f1145485d7c43343fc7c",
+	}
+
+	headers := &types.BtcHeaders{}
+	headers.BtcHeader = append(headers.BtcHeader, head0)
+	headers.BtcHeader = append(headers.BtcHeader, head1)
+	headers.BtcHeader = append(headers.BtcHeader, head2)
+
+	s.db.On("Get", mock.Anything).Return(nil, types.ErrNotFound).Once()
+	s.db.On("Set", mock.Anything, mock.Anything).Return(nil).Once()
+	receipt, err := s.relayDb.saveBtcHeader(headers, s.kvdb)
+	s.Nil(err)
+	var log types.ReceiptRelayRcvBTCHeaders
+	types.Decode(receipt.Logs[len(receipt.Logs)-1].Log, &log)
+
+	s.Zero(log.LastHeight)
+	s.Zero(log.LastBaseHeight)
+	s.Equal(head2.Height, log.NewHeight)
+	s.Zero(log.NewBaseHeight)
+	s.Equal(headers.BtcHeader, log.Headers)
+
+}
+
+//not continuous
+func (s *suiteSaveBtcHeader) TestSaveBtcHeader_2() {
+	head3 := &types.BtcHeader{
+		Hash:          "16ad6d588aeca12bf3e7fd6b2263992b4442c9692f4e134ba7cf0d791746328a",
+		Confirmations: 89,
+		Height:        13,
+		Version:       536870912,
+		MerkleRoot:    "0921a87a7a196a54d3cf3f89b2dc218d6451d3fd1ce719db4d6c3f74746cb63c",
+		Time:          1530862108,
+		Nonce:         0,
+		Bits:          545259519,
+		Difficulty:    0,
+		PreviousHash:  "67bd2805725dd2d102708af4c8f6eb67cd0b3de6dd531f59fbc7d441a0388b6e",
+	}
+	head4 := &types.BtcHeader{
+		Hash:          "3bc0ee712c84c589c693b09aa3685f266c2c295a6d031952ecc863a2a1eefe45",
+		Confirmations: 89,
+		Height:        14,
+		Version:       536870912,
+		MerkleRoot:    "05a9866eda375bc91a404aa10f3fface31d3494716ead686fe72ebc46793b0ba",
+		Time:          1530862109,
+		Nonce:         2,
+		Bits:          545259519,
+		Difficulty:    0,
+		PreviousHash:  "16ad6d588aeca12bf3e7fd6b2263992b4442c9692f4e134ba7cf0d791746328a",
+	}
+
+	headers := &types.BtcHeaders{}
+	headers.BtcHeader = append(headers.BtcHeader, head3)
+	headers.BtcHeader = append(headers.BtcHeader, head4)
+	s.db.On("Get", mock.Anything).Return(nil, types.ErrNotFound).Once()
+	_, err := s.relayDb.saveBtcHeader(headers, s.kvdb)
+	s.Equal(types.ErrRelayBtcHeadHashErr, err)
+
+}
+
+//not continuous than previous
+func (s *suiteSaveBtcHeader) TestSaveBtcHeader_3() {
+	head3 := &types.BtcHeader{
+		Hash:          "16ad6d588aeca12bf3e7fd6b2263992b4442c9692f4e134ba7cf0d791746328a",
+		Confirmations: 89,
+		Height:        13,
+		Version:       536870912,
+		MerkleRoot:    "0921a87a7a196a54d3cf3f89b2dc218d6451d3fd1ce719db4d6c3f74746cb63c",
+		Time:          1530862108,
+		Nonce:         0,
+		Bits:          545259519,
+		Difficulty:    0,
+		PreviousHash:  "67bd2805725dd2d102708af4c8f6eb67cd0b3de6dd531f59fbc7d441a0388b6e",
+	}
+	head4 := &types.BtcHeader{
+		Hash:          "3bc0ee712c84c589c693b09aa3685f266c2c295a6d031952ecc863a2a1eefe45",
+		Confirmations: 89,
+		Height:        14,
+		Version:       536870912,
+		MerkleRoot:    "05a9866eda375bc91a404aa10f3fface31d3494716ead686fe72ebc46793b0ba",
+		Time:          1530862109,
+		Nonce:         2,
+		Bits:          545259519,
+		Difficulty:    0,
+		PreviousHash:  "16ad6d588aeca12bf3e7fd6b2263992b4442c9692f4e134ba7cf0d791746328a",
+	}
+
+	headers := &types.BtcHeaders{}
+	headers.BtcHeader = append(headers.BtcHeader, head3)
+
+	lastHead := &types.RelayLastRcvBtcHeader{
+		Header:     head4,
+		BaseHeight: 10,
+	}
+
+	head4Encode := types.Encode(lastHead)
+	s.db.On("Get", mock.Anything).Return(head4Encode, nil).Once()
+
+	_, err := s.relayDb.saveBtcHeader(headers, s.kvdb)
+	s.Equal(types.ErrRelayBtcHeadSequenceErr, err)
+
+}
+
+//reset
+func (s *suiteSaveBtcHeader) TestSaveBtcHeader_4() {
+
+	head4 := &types.BtcHeader{
+		Hash:          "3bc0ee712c84c589c693b09aa3685f266c2c295a6d031952ecc863a2a1eefe45",
+		Confirmations: 89,
+		Height:        14,
+		Version:       536870912,
+		MerkleRoot:    "05a9866eda375bc91a404aa10f3fface31d3494716ead686fe72ebc46793b0ba",
+		Time:          1530862109,
+		Nonce:         2,
+		Bits:          545259519,
+		Difficulty:    0,
+		PreviousHash:  "16ad6d588aeca12bf3e7fd6b2263992b4442c9692f4e134ba7cf0d791746328a",
+		IsReset:       true,
+	}
+
+	head5 := &types.BtcHeader{
+		Hash:          "439e515ee8307fccc104395a46626bd43f6042482d56f4abcfaeee3c0a1b1ece",
+		Confirmations: 89,
+		Height:        15,
+		Version:       536870912,
+		MerkleRoot:    "07a3c184d6f9813f468f0890f1da4449844e684a819c91cb58d2d5a74eeaf5a9",
+		Time:          1530862109,
+		Nonce:         2,
+		Bits:          545259519,
+		Difficulty:    0,
+		PreviousHash:  "3bc0ee712c84c589c693b09aa3685f266c2c295a6d031952ecc863a2a1eefe45",
+	}
+
+	headers := &types.BtcHeaders{}
+	headers.BtcHeader = append(headers.BtcHeader, head4)
+	headers.BtcHeader = append(headers.BtcHeader, head5)
+
+	s.db.On("Get", mock.Anything).Return(nil, types.ErrNotFound).Once()
+	s.db.On("Set", mock.Anything, mock.Anything).Return(nil).Once()
+	receipt, err := s.relayDb.saveBtcHeader(headers, s.kvdb)
+	s.Nil(err)
+	var log types.ReceiptRelayRcvBTCHeaders
+	types.Decode(receipt.Logs[len(receipt.Logs)-1].Log, &log)
+
+	s.Zero(log.LastHeight)
+	s.Zero(log.LastBaseHeight)
+	s.Equal(head5.Height, log.NewHeight)
+	s.Equal(head4.Height, log.NewBaseHeight)
+	s.Equal(headers.BtcHeader, log.Headers)
+
+}
+
+func TestRunSuiteSaveBtcHeader(t *testing.T) {
+	log := new(suiteSaveBtcHeader)
+	suite.Run(t, log)
+}
