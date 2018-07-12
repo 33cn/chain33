@@ -682,8 +682,8 @@ func (wallet *Wallet) selectUTXO(token, addr string, amount int64) ([]*txOutputI
 	if len(token) == 0 || len(addr) == 0 || amount <= 0 {
 		return nil, types.ErrInvalidParams
 	}
-	wutxos := wallet.walletStore.getPrivacyTokenUTXOs(token, addr)
-	if wutxos == nil {
+	wutxos, err := wallet.walletStore.getPrivacyTokenUTXOs(token, addr)
+	if err != nil {
 		return nil, types.ErrInsufficientBalance
 	}
 	curBlockHeight := wallet.GetHeight()

@@ -211,6 +211,23 @@ func (wtd *walletTestData) mockMempoolProc(q queue.Queue) {
 		}
 	}()
 }
+func (wtd *walletTestData) cleanDBData() {
+	wallet := wtd.wallet
+	storeDB := wallet.walletStore.db
+	dbbatch := wallet.walletStore.NewBatch(true)
+	prefixs := []string{
+		PrivacyUTXO, PrivacySTXO, FTXOs4Tx + "-", STXOs4Tx + "-", RevertSendtx + "-", RecvPrivacyTx + "-", SendPrivacyTx + "-",
+	}
+
+	for _, prefix := range prefixs {
+		iter := storeDB.Iterator([]byte(prefix), false)
+		defer iter.Close()
+		for iter.Rewind(); iter.Valid(); iter.Next() {
+			dbbatch.Delete(iter.Key())
+		}
+	}
+	dbbatch.Write()
+}
 
 func (wtd *walletTestData) createUTXOs(sender string, pubkeypair string, amount int64, height int64, count int) {
 	wallet := wtd.wallet
@@ -857,9 +874,12 @@ func testSelectUTXOFlow(t *testing.T) {
 	wtd.init()
 	wallet := wtd.wallet
 
+	addr := testAddrs[0]
+	pubkeyPair := testPubkeyPairs[0]
+
 	blockBaseHeight := int64(10000)
 	for i := 1; i < 30; i++ {
-		wtd.createUTXOs(testAddrs[0], testPubkeyPairs[0], int64(i)*types.Coin, blockBaseHeight+int64(i), 2)
+		wtd.createUTXOs(addr, pubkeyPair, int64(i)*types.Coin, blockBaseHeight+int64(i), 2)
 	}
 
 	testCase := []struct {
@@ -900,7 +920,6 @@ func testSelectUTXOFlow(t *testing.T) {
 			require.Equal(t, len(res) > 0, true)
 		}
 	}
-
 }
 
 func Test_selectUTXO(t *testing.T) {
