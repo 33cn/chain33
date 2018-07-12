@@ -167,6 +167,7 @@ message ReceiptRelayLog {
     int64  finishTime    = 15;
     string finishTxHash  = 16;
     uint64 coinHeight    = 17;
+    uint32 coinWaits     = 18;
 }
 
 message ReqRelayAddrCoins {
