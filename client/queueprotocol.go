@@ -22,7 +22,7 @@ const (
 	//rpcKey			= "rpc"
 	consensusKey = "consensus" // 共识系统
 	//accountKey		= "accout"		// 账号系统
-	//executorKey		= "execs"		// 交易执行器
+	executorKey   = "execs"      // 交易执行器
 	walletKey     = "wallet"     // 钱包
 	blockchainKey = "blockchain" // 区块
 	storeKey      = "store"
@@ -995,4 +995,24 @@ func (q *QueueProtocol) PrivacyTransactionList(param *types.ReqPrivacyTransactio
 		return reply, nil
 	}
 	return nil, types.ErrTypeAsset
+}
+
+func (q *QueueProtocol) BlockChainQuery(param *types.BlockChainQuery) (*types.ResUTXOGlobalIndex, error) {
+	if param == nil {
+		err := types.ErrInvalidParams
+		log.Error("BlockChainQuery", "Error", err)
+		return nil, err
+	}
+	msg, err := q.query(executorKey, types.EventBlockChainQuery, param)
+	if err != nil {
+		log.Error("BlockChainQuery", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.ResUTXOGlobalIndex); ok {
+		return reply, nil
+	}
+	err = types.ErrTypeAsset
+	log.Error("BlockChainQuery", "Error", err.Error())
+	return nil, err
+
 }
