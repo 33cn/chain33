@@ -19,6 +19,7 @@ var (
 	tendermintlog = log15.New("module", "tendermint")
 	genesisDocKey = []byte("genesisDoc")
 )
+
 const tendermint_version = "0.1.0"
 
 type TendermintClient struct {
@@ -26,12 +27,12 @@ type TendermintClient struct {
 	*drivers.BaseClient
 	genesisDoc    *ttypes.GenesisDoc // initial validator set
 	privValidator ttypes.PrivValidator
-	privKey      crypto.PrivKey // local node's p2p key
-	csState      *ConsensusState
-	blockStore   *ttypes.BlockStore
-	evidenceDB   dbm.DB
-	crypto       crypto.Crypto
-	node         *Node
+	privKey       crypto.PrivKey // local node's p2p key
+	csState       *ConsensusState
+	blockStore    *ttypes.BlockStore
+	evidenceDB    dbm.DB
+	crypto        crypto.Crypto
+	node          *Node
 }
 
 // DefaultDBProvider returns a database using the DBBackend and DBDir
@@ -145,7 +146,7 @@ func (client *TendermintClient) StartConsensus() {
 	blockInfo, err := ttypes.GetBlockInfo(block)
 	if err != nil {
 		tendermintlog.Error("StartConsensus GetBlockInfo failed", "error", err)
-		panic(fmt.Sprintf("StartConsensus GetBlockInfo failed:%v",err))
+		panic(fmt.Sprintf("StartConsensus GetBlockInfo failed:%v", err))
 	}
 
 	var state State

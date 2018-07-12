@@ -7,9 +7,10 @@ import (
 	"io"
 	"time"
 
-	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"encoding/json"
+
 	"github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
 )
 
 var (
@@ -20,7 +21,7 @@ var (
 	ErrVoteInvalidBlockHash          = errors.New("Invalid block hash")
 	ErrVoteNonDeterministicSignature = errors.New("Non-deterministic signature")
 	ErrVoteNil                       = errors.New("Nil vote")
-	votelog = log15.New("module", "tendermint-vote")
+	votelog                          = log15.New("module", "tendermint-vote")
 )
 
 type ErrVoteConflictingVotes struct {
@@ -37,7 +38,7 @@ func (err *ErrVoteConflictingVotes) Error() string {
 }
 
 func NewConflictingVoteError(val *Validator, voteA, voteB *Vote) *ErrVoteConflictingVotes {
-	keyString := fmt.Sprintf("%X",val.PubKey)
+	keyString := fmt.Sprintf("%X", val.PubKey)
 	return &ErrVoteConflictingVotes{
 		&DuplicateVoteEvidence{
 			PubKey: keyString,
@@ -67,14 +68,14 @@ func IsVoteTypeValid(type_ byte) bool {
 
 // Represents a prevote, precommit, or commit vote from validators for consensus.
 type Vote struct {
-	ValidatorAddress []byte       `json:"validator_address"`
-	ValidatorIndex   int              `json:"validator_index"`
-	Height           int64            `json:"height"`
-	Round            int              `json:"round"`
-	Timestamp        time.Time        `json:"timestamp"`
-	Type             byte             `json:"type"`
-	BlockID          BlockID          `json:"block_id"` // zero if vote is nil.
-	Signature        []byte           `json:"signature"`
+	ValidatorAddress []byte    `json:"validator_address"`
+	ValidatorIndex   int       `json:"validator_index"`
+	Height           int64     `json:"height"`
+	Round            int       `json:"round"`
+	Timestamp        time.Time `json:"timestamp"`
+	Type             byte      `json:"type"`
+	BlockID          BlockID   `json:"block_id"` // zero if vote is nil.
+	Signature        []byte    `json:"signature"`
 }
 
 func (vote *Vote) WriteSignBytes(chainID string, w io.Writer, n *int, err *error) {
@@ -85,7 +86,7 @@ func (vote *Vote) WriteSignBytes(chainID string, w io.Writer, n *int, err *error
 		chainID,
 		CanonicalVote(vote),
 	}
-	byteVote,e := json.Marshal(&canonical)
+	byteVote, e := json.Marshal(&canonical)
 	if e != nil {
 		*err = e
 		votelog.Error("vote WriteSignBytes marshal failed", "err", e)

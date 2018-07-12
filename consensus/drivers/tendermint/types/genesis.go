@@ -5,8 +5,9 @@ import (
 	"io/ioutil"
 	"time"
 
-	"github.com/pkg/errors"
 	"fmt"
+
+	"github.com/pkg/errors"
 )
 
 //------------------------------------------------------------
@@ -15,8 +16,8 @@ import (
 // GenesisValidator is an initial validator.
 type GenesisValidator struct {
 	PubKey KeyText `json:"pub_key"`
-	Power  int64         `json:"power"`
-	Name   string        `json:"name"`
+	Power  int64   `json:"power"`
+	Name   string  `json:"name"`
 }
 
 // GenesisDoc defines the initial conditions for a tendermint blockchain, in particular its validator set.
@@ -25,7 +26,7 @@ type GenesisDoc struct {
 	ChainID         string             `json:"chain_id"`
 	ConsensusParams *ConsensusParams   `json:"consensus_params,omitempty"`
 	Validators      []GenesisValidator `json:"validators"`
-	AppHash         []byte         `json:"app_hash"`
+	AppHash         []byte             `json:"app_hash"`
 	AppOptions      interface{}        `json:"app_options,omitempty"`
 }
 
