@@ -94,7 +94,7 @@ func (valSet *ValidatorSet) GetByAddress(address []byte) (index int, val *Valida
 	if idx != len(valSet.Validators) && bytes.Equal(valSet.Validators[idx].Address, address) {
 		return idx, valSet.Validators[idx].Copy()
 	} else {
-		return 0, nil
+		return -1, nil
 	}
 }
 
