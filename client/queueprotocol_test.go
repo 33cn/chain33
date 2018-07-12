@@ -4,6 +4,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/queue"
 	lt "gitlab.33.cn/chain33/chain33/rpc"
@@ -89,6 +90,28 @@ func TestQueueProtocol(t *testing.T) {
 	testGetLastHeader(t, api)
 	testSignRawTx(t, api)
 	testStoreGetTotalCoins(t, api)
+	testBlockChainQuery(t, api)
+}
+
+func testBlockChainQuery(t *testing.T, api client.QueueProtocolAPI) {
+	testCases := []struct {
+		param     *types.BlockChainQuery
+		actualRes *types.ResUTXOGlobalIndex
+		actualErr error
+	}{
+		{
+			actualErr: types.ErrInvalidParams,
+		},
+		{
+			param:     &types.BlockChainQuery{},
+			actualRes: &types.ResUTXOGlobalIndex{},
+		},
+	}
+	for index, test := range testCases {
+		res, err := api.BlockChainQuery(test.param)
+		require.Equalf(t, err, test.actualErr, "testBlockChainQuery case index %d", index)
+		require.Equal(t, res, test.actualRes)
+	}
 }
 
 func testStoreGetTotalCoins(t *testing.T, api client.QueueProtocolAPI) {
