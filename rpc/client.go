@@ -346,6 +346,7 @@ func (c *channelClient) CreateRawRelayOrderTx(parm *RelayOrderTx) ([]byte, error
 		Coin:      parm.Coin,
 		Amount:    parm.Amount,
 		Addr:      parm.Addr,
+		CoinWaits: parm.CoinWait,
 		BtyAmount: parm.BtyAmount,
 	}
 	sell := &types.RelayAction{
@@ -368,7 +369,7 @@ func (c *channelClient) CreateRawRelayAcceptTx(parm *RelayAcceptTx) ([]byte, err
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}
-	v := &types.RelayAccept{OrderId: parm.OrderId, CoinAddr: parm.CoinAddr}
+	v := &types.RelayAccept{OrderId: parm.OrderId, CoinAddr: parm.CoinAddr, CoinWaits: parm.CoinWait}
 	val := &types.RelayAction{
 		Ty:    types.RelayActionAccept,
 		Value: &types.RelayAction_Accept{v},

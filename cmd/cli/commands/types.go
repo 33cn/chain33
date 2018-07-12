@@ -224,6 +224,7 @@ type RelayOrder2Show struct {
 	Coin          string `json:"coin"`
 	CoinAmount    string `json:"coinamount"`
 	CoinAddr      string `json:"coinaddr"`
+	CoinWaits     uint32 `json:"coinwaits"`
 	CreateTime    int64  `json:"createtime"`
 	AcceptAddr    string `json:"acceptaddr"`
 	AcceptTime    int64  `json:"accepttime"`

@@ -296,6 +296,7 @@ func parseRelayOrders(res types.ReplyRelayOrders) {
 		show.Coin = order.Coin
 		show.CoinAddr = order.CoinAddr
 		show.CoinAmount = strconv.FormatFloat(float64(order.CoinAmount)/float64(types.Coin), 'f', 4, 64)
+		show.CoinWaits = order.CoinWaits
 		show.CreateTime = order.CreateTime
 		show.AcceptAddr = order.AcceptAddr
 		show.AcceptTime = order.AcceptTime
@@ -314,7 +315,7 @@ func parseRelayOrders(res types.ReplyRelayOrders) {
 }
 
 func parseRelayBtcHeadHeightList(res types.ReplyRelayBtcHeadHeightList) {
-	data, _ := json.MarshalIndent(res, "", "    ")
+	data, _ := json.Marshal(res)
 	fmt.Println(string(data))
 }
 
@@ -351,6 +352,8 @@ func addExchangeFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("coin_addr", "a", "", "coin address in coin's block chain")
 	cmd.MarkFlagRequired("coin_addr")
 
+	cmd.Flags().Uint32P("coin_wait", "n", 6, "coin blocks to wait,default:6,min:1")
+
 	cmd.Flags().Float64P("bty_amount", "b", 0, "exchange amount of BTY")
 	cmd.MarkFlagRequired("bty_amount")
 
@@ -365,9 +368,13 @@ func relayOrder(cmd *cobra.Command, args []string) {
 	coin, _ := cmd.Flags().GetString("coin")
 	coinamount, _ := cmd.Flags().GetFloat64("coin_amount")
 	coinaddr, _ := cmd.Flags().GetString("coin_addr")
+	coinwait, _ := cmd.Flags().GetUint32("coin_wait")
 	btyamount, _ := cmd.Flags().GetFloat64("bty_amount")
 	fee, _ := cmd.Flags().GetFloat64("fee")
 
+	if coinwait == 0 {
+		coinwait = 1
+	}
 	feeInt64 := int64(fee * 1e4)
 	btyUInt64 := uint64(btyamount * 1e4)
 	coinUInt64 := uint64(coinamount * 1e4)
@@ -377,6 +384,7 @@ func relayOrder(cmd *cobra.Command, args []string) {
 		Amount:    coinUInt64 * 1e4,
 		Coin:      coin,
 		Addr:      coinaddr,
+		CoinWait:  coinwait,
 		BtyAmount: btyUInt64 * 1e4,
 		Fee:       feeInt64 * 1e4,
 	}
@@ -403,6 +411,8 @@ func addRelayAcceptFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("coin_addr", "a", "", "coin address in coin's block chain")
 	cmd.MarkFlagRequired("coin_addr")
 
+	cmd.Flags().Uint32P("coin_wait", "n", 6, "coin blocks to wait,default:6,min:1")
+
 	cmd.Flags().Float64P("fee", "f", 0, "coin transaction fee")
 	cmd.MarkFlagRequired("fee")
 }
@@ -411,12 +421,17 @@ func relayAccept(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	orderID, _ := cmd.Flags().GetString("order_id")
 	coinaddr, _ := cmd.Flags().GetString("coin_addr")
+	coinwait, _ := cmd.Flags().GetUint32("coin_wait")
 	fee, _ := cmd.Flags().GetFloat64("fee")
 
+	if coinwait == 0 {
+		coinwait = 1
+	}
 	feeInt64 := int64(fee * 1e4)
 	params := &jsonrpc.RelayAcceptTx{
 		OrderId:  orderID,
 		CoinAddr: coinaddr,
+		CoinWait: coinwait,
 		Fee:      feeInt64 * 1e4,
 	}
 	var res string
