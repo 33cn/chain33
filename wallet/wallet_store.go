@@ -97,6 +97,10 @@ func calcSTXOTokenAddrTxKey(token, addr, txhash string) []byte {
 	return []byte(fmt.Sprintf(PrivacySTXO+"%s-%s-%s", token, addr, txhash))
 }
 
+func calcSTXOPrefix(token, addr string) []byte {
+	return []byte(fmt.Sprintf(PrivacySTXO+"%s-%s-", token, addr))
+}
+
 //通过height*100000+index 查询Tx交易信息
 //key:Tx:height*100000+index
 func calcTxKey(key string) []byte {
@@ -772,24 +776,27 @@ func (ws *Store) moveSTXO2FTXO(txhash string, newbatch dbm.Batch) error {
 	return nil
 }
 
-func (ws *Store) getPrivacyTokenUTXOs(token, addr string) *walletUTXOs {
+func (ws *Store) getPrivacyTokenUTXOs(token, addr string) (*walletUTXOs, error) {
 	list := dbm.NewListHelper(ws.db)
 	prefix := calcPrivacyUTXOPrefix4Addr(token, addr)
 	values := list.List(prefix, nil, 0, 0)
-	if len(values) == 0 {
-		return nil
-	}
 	wutxos := new(walletUTXOs)
+	if len(values) == 0 {
+		return wutxos, nil
+	}
 	for _, value := range values {
+		if len(value) == 0 {
+			continue
+		}
 		accByte, err := ws.db.Get(value)
 		if err != nil {
-			panic(err)
+			return nil, types.ErrDataBaseDamage
 		}
 		privacyDBStore := new(types.PrivacyDBStore)
 		err = types.Decode(accByte, privacyDBStore)
 		if err != nil {
 			walletlog.Error("getPrivacyTokenUTXOs", "decode PrivacyDBStore error. ", err)
-			return nil
+			return nil, types.ErrDataBaseDamage
 		}
 		wutxo := &walletUTXO{
 			height: privacyDBStore.Height,
@@ -805,7 +812,7 @@ func (ws *Store) getPrivacyTokenUTXOs(token, addr string) *walletUTXOs {
 		}
 		wutxos.utxos = append(wutxos.utxos, wutxo)
 	}
-	return wutxos
+	return wutxos, nil
 }
 
 func (ws *Store) listAvailableUTXOs(token, addr string) ([]*types.PrivacyDBStore, error) {
