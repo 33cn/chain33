@@ -679,6 +679,9 @@ func (slice walletUTXOSlice) Less(i, j int) bool { // 重写 Less() 方法， �
 // 如果选择还不够则再从老到新选择12个区块内的UTXO
 // 当该地址上的可用UTXO比较多时，可以考虑改进算法，优先选择币值小的，花掉小票，然后再选择币值接近的，减少找零，最后才选择大面值的找零
 func (wallet *Wallet) selectUTXO(token, addr string, amount int64) ([]*txOutputInfo, error) {
+	if len(token) == 0 || len(addr) == 0 || amount <= 0 {
+		return nil, types.ErrInvalidParams
+	}
 	wutxos := wallet.walletStore.getPrivacyTokenUTXOs(token, addr)
 	if wutxos == nil {
 		return nil, types.ErrInsufficientBalance
@@ -687,6 +690,9 @@ func (wallet *Wallet) selectUTXO(token, addr string, amount int64) ([]*txOutputI
 	var confirmUTXOs, unconfirmUTXOs []*walletUTXO
 	var balance int64
 	for _, wutxo := range wutxos.utxos {
+		if curBlockHeight < wutxo.height {
+			continue
+		}
 		if curBlockHeight-wutxo.height > types.PrivacyMaturityDegree {
 			balance += wutxo.outinfo.amount
 			confirmUTXOs = append(confirmUTXOs, wutxo)
@@ -694,7 +700,7 @@ func (wallet *Wallet) selectUTXO(token, addr string, amount int64) ([]*txOutputI
 			unconfirmUTXOs = append(unconfirmUTXOs, wutxo)
 		}
 	}
-	if balance < amount {
+	if balance < amount && len(unconfirmUTXOs) > 0 {
 		// 已经确认的UTXO还不够支付，则需要按照从老到新的顺序，从可能回退的队列中获取
 		// 高度从低到高获取
 		sort.Sort(walletUTXOSlice(unconfirmUTXOs))
