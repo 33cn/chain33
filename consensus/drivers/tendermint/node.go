@@ -380,6 +380,8 @@ func (node *Node) addPeer(pc peerConn) error {
 		return err
 	}
 
+	remoteIP, rErr := pc.RemoteIP()
+
 	nodeinfo := NodeInfo{
 		ID: node.ID,
 		Network: node.Network,
@@ -411,9 +413,9 @@ func (node *Node) addPeer(pc peerConn) error {
 		// and add to our addresses to avoid dialing again
 		//node.addrBook.RemoveAddress(addr)
 		//node.addrBook.AddOurAddress(addr)
-		ip, err := pc.RemoteIP()
-		if err == nil {
-			node.IP = ip.String()
+
+		if rErr == nil {
+			node.IP = remoteIP.String()
 		}
 		return fmt.Errorf("Connect to self: %v", addr)
 	}
@@ -424,10 +426,10 @@ func (node *Node) addPeer(pc peerConn) error {
 	}
 
 	// Check for duplicate connection or peer info IP.
-	if ip,err := pc.RemoteIP(); err == nil && node.peerSet.HasIP(ip) {
-		return errors.New(fmt.Sprintf("Duplicate peer IP %v", ip))
-	} else if err != nil {
-		return errors.New(fmt.Sprintf("get remote ip failed:%v", err))
+	if rErr == nil && node.peerSet.HasIP(remoteIP) {
+		return errors.New(fmt.Sprintf("Duplicate peer IP %v", remoteIP))
+	} else if rErr != nil {
+		return errors.New(fmt.Sprintf("get remote ip failed:%v", rErr))
 	}
 
 	// Filter peer against ID white list
@@ -458,7 +460,7 @@ func (node *Node) addPeer(pc peerConn) error {
 	}
 	//node.metrics.Peers.Add(float64(1))
 
-	tendermintlog.Info("Added peer", "peer", pc)
+	tendermintlog.Info("Added peer", "peer", pc.ip)
 	return nil
 }
 

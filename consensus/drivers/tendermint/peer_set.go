@@ -203,7 +203,7 @@ func (ps *PeerSet) Remove(peer Peer) {
 }
 
 //-------------------------peer connection--------------------------------
-func (pc peerConn) ID() ID {
+func (pc *peerConn) ID() ID {
 	if len(pc.id) != 0 {
 		return pc.id
 	}
@@ -212,8 +212,8 @@ func (pc peerConn) ID() ID {
 	return pc.id
 }
 
-func (pc peerConn) RemoteIP() (net.IP,error) {
-	if pc.ip != nil {
+func (pc *peerConn) RemoteIP() (net.IP,error) {
+	if pc.ip != nil && len(pc.ip) > 0 {
 		return pc.ip, nil
 	}
 
@@ -238,7 +238,7 @@ func (pc peerConn) RemoteIP() (net.IP,error) {
 	return pc.ip, nil
 }
 
-func (pc peerConn) RemoteAddr() (net.Addr,error) {
+func (pc *peerConn) RemoteAddr() (net.Addr,error) {
 	if pc.conn == nil || pc.conn.RemoteAddr().String() == "pipe" {
 		return nil, errors.New("connect is nil or just pipe")
 	}
@@ -327,6 +327,9 @@ func (pc *peerConn) IsPersistent() bool {
 }
 
 func (pc *peerConn)Send(msg types.ReactorMsg) bool {
+	if !pc.IsRunning()	{
+		return false
+	}
 	timeout := make(chan bool, 1)
 	go func() {
 		time.Sleep(1*time.Minute) // 等待1分钟
@@ -343,6 +346,9 @@ func (pc *peerConn)Send(msg types.ReactorMsg) bool {
 }
 
 func (pc *peerConn)TrySend( msg types.ReactorMsg) bool {
+	if !pc.IsRunning()	{
+		return false
+	}
 	select {
 	case pc.sendQueue <- msg:
 		atomic.AddInt32(&pc.sendQueueSize, 1)
@@ -376,9 +382,8 @@ func (pc *peerConn) Start() error{
 		}}
 		pc.updateStateQueue = make(chan types.ReactorMsg, maxSendQueueSize)
 		pc.heartbeatQueue = make(chan types.Heartbeat, 100)
-		pc.waitQuit.Add(2) //sendRoutine, updateStateRoutine
+		pc.waitQuit.Add(5) //sendRoutine, updateStateRoutine,gossipDataRoutine,gossipVotesRoutine,queryMaj23Routine
 
-		atomic.CompareAndSwapUint32(&pc.started, 0, 1)
 		go pc.sendRoutine()
 		go pc.recvRoutine()
 		go pc.updateStateRoutine()
@@ -432,8 +437,6 @@ func (pc *peerConn) sendRoutine() {
 	defer pc._recover()
 FOR_LOOP:
 	for {
-		var n int
-		var err error
 		select {
 		case <-pc.quit:
 			pc.waitQuit.Done()
@@ -458,20 +461,20 @@ FOR_LOOP:
 			if len + 5 > MaxMsgPacketPayloadSize {
 				pc.sendBuffer = append(pc.sendBuffer,bytes[MaxMsgPacketPayloadSize-5:]...)
 			}
-			n, err = pc.bufWriter.Write(pc.sendBuffer[:len+5])
+			_, err = pc.bufWriter.Write(pc.sendBuffer[:len+5])
 			if err != nil {
 				tendermintlog.Error("peerConn sendroutine write data failed", "error", err)
 				pc.stopForError(err)
 				break FOR_LOOP
 			}
 			pc.bufWriter.Flush()
-			tendermintlog.Debug("write msg finish", "size", n)
+			//tendermintlog.Info("write msg finish", "peer", pc.ip.String(), "msg", msg, "n", n)
 		case _, ok := <-pc.pongChannel:
 			if ok {
 				tendermintlog.Debug("Send Pong")
 				var pong [5]byte
 				pong[0] = types.PacketTypePong
-				n, err = pc.bufWriter.Write(pong[:])
+				_, err := pc.bufWriter.Write(pong[:])
 				if err != nil {
 					tendermintlog.Error("peerConn sendroutine write pong failed", "error", err)
 					pc.stopForError(err)
@@ -490,7 +493,6 @@ FOR_LOOP:
 }
 
 func (pc *peerConn) recvRoutine() {
-	tendermintlog.Info("receive routine start", "peerip", pc.ip.String())
 	defer pc._recover()
 FOR_LOOP:
 	for {
@@ -515,6 +517,7 @@ FOR_LOOP:
 			}
 			pkt.Bytes = buf2
 		}
+		//tendermintlog.Info("received", "msgType", pkt.TypeID, "peerip", pc.ip.String())
 		if pkt.TypeID == types.PacketTypePong {
 			tendermintlog.Debug("Receive Pong")
 		} else if pkt.TypeID == types.PacketTypePing {
@@ -636,6 +639,7 @@ OUTER_LOOP:
 
 		if !pc.IsRunning() {
 			tendermintlog.Error("Stopping gossipDataRoutine for peer")
+			pc.waitQuit.Done()
 			return
 		}
 
@@ -696,6 +700,7 @@ OUTER_LOOP:
 		// Manage disconnects from self or peer.
 		if !pc.IsRunning() {
 			tendermintlog.Info("Stopping gossipVotesRoutine for peer")
+			pc.waitQuit.Done()
 			return
 		}
 
@@ -721,10 +726,10 @@ OUTER_LOOP:
 
 		if (0 < prs.Height) && (prs.Height < rs.Height) && !prs.Proposal {
 			proposal, err := pc.myState.LastProposals.QueryElem(prs.Height)
-			if err == nil && proposal != nil {
+			if err == nil && proposal != nil && proposal.Round == prs.Round{
 				proposalTrans := types.ProposalToProposalTrans(proposal)
 				msg := &types.ProposalMessage{Proposal: proposalTrans}
-				tendermintlog.Debug("peer height behind, Sending old proposal", "peerip", pc.ip.String(), "height", prs.Height, "round", prs.Round, "proopsal-height", proposalTrans.Height)
+				tendermintlog.Info("peer height behind, Sending old proposal", "peerip", pc.ip.String(), "height", prs.Height, "round", prs.Round, "proopsal-height", proposalTrans.Height)
 				if pc.Send(msg) {
 					pc.state.SetHasProposal(proposalTrans)
 					time.Sleep(pc.myState.PeerGossipSleep())
@@ -741,6 +746,7 @@ OUTER_LOOP:
 			if vote, ok := pc.state.PickVoteToSend(rs.LastCommit); ok {
 				msg := &types.VoteMessage{vote}
 				pc.Send(msg)
+				tendermintlog.Debug("gossipVotesRoutine Picked vote to send height +1","peerip", pc.ip.String())
 			} else {
 				continue OUTER_LOOP
 			}
@@ -755,6 +761,7 @@ OUTER_LOOP:
 			if vote, ok := pc.state.PickVoteToSend(commit); ok {
 				msg := &types.VoteMessage{vote}
 				pc.Send(msg)
+				tendermintlog.Debug("gossipVotesRoutine Picked vote to send height +2","peerip", pc.ip.String())
 			} else {
 				continue OUTER_LOOP
 			}
@@ -783,12 +790,12 @@ func (pc *peerConn) gossipVotesForHeight(rs *types.RoundState, prs *types.PeerRo
 		if vote, ok := pc.state.PickVoteToSend(rs.LastCommit); ok {
 			msg := &types.VoteMessage{vote}
 			pc.Send(msg)
-			tendermintlog.Debug("Picked rs.LastCommit to send")
+			tendermintlog.Debug("Picked rs.LastCommit to send","peerip", pc.ip.String())
 			return true
 		}
 	}
 	if !prs.Proposal && rs.Proposal != nil{
-		tendermintlog.Info("peer proposal not set sleeping")
+		tendermintlog.Info("peer proposal not set sleeping", "peerip", pc.ip.String())
 		time.Sleep(pc.myState.PeerGossipSleep())
 		return true
 	}
@@ -797,7 +804,7 @@ func (pc *peerConn) gossipVotesForHeight(rs *types.RoundState, prs *types.PeerRo
 		if vote, ok := pc.state.PickVoteToSend(rs.Votes.Prevotes(prs.Round)); ok {
 			msg := &types.VoteMessage{vote}
 			pc.Send(msg)
-			tendermintlog.Debug("Picked rs.Prevotes(prs.Round) to send", "round", prs.Round)
+			tendermintlog.Debug("Picked rs.Prevotes(prs.Round) to send","peerip", pc.ip.String(), "round", prs.Round)
 			return true
 		}
 	}
@@ -806,7 +813,7 @@ func (pc *peerConn) gossipVotesForHeight(rs *types.RoundState, prs *types.PeerRo
 		if vote, ok := pc.state.PickVoteToSend(rs.Votes.Precommits(prs.Round)); ok {
 			msg := &types.VoteMessage{vote}
 			pc.Send(msg)
-			tendermintlog.Debug("Picked rs.Precommits(prs.Round) to send", "round", prs.Round)
+			tendermintlog.Debug("Picked rs.Precommits(prs.Round) to send","peerip", pc.ip.String(), "round", prs.Round)
 			return true
 		}
 	}
@@ -816,7 +823,7 @@ func (pc *peerConn) gossipVotesForHeight(rs *types.RoundState, prs *types.PeerRo
 			if vote, ok := pc.state.PickVoteToSend(polPrevotes); ok {
 				msg := &types.VoteMessage{vote}
 				pc.Send(msg)
-				tendermintlog.Debug("Picked rs.Prevotes(prs.ProposalPOLRound) to send", "round", prs.ProposalPOLRound)
+				tendermintlog.Debug("Picked rs.Prevotes(prs.ProposalPOLRound) to send","peerip", pc.ip.String(), "round", prs.ProposalPOLRound)
 				return true
 			}
 		}
@@ -830,6 +837,7 @@ OUTER_LOOP:
 		// Manage disconnects from self or peer.
 		if !pc.IsRunning() {
 			tendermintlog.Info("Stopping queryMaj23Routine for peer")
+			pc.waitQuit.Done()
 			return
 		}
 
@@ -950,7 +958,7 @@ func (ps *PeerConnState) SetHasProposal(proposal *types.ProposalTrans) {
 	if ps.Proposal {
 		return
 	}
-
+	tendermintlog.Info("ps set has proposal", "proposal-height", proposal.Height)
 	ps.Proposal = true
 
 	ps.ProposalPOLRound = proposal.POLRound
