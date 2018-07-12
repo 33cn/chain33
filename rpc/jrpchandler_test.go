@@ -2047,3 +2047,20 @@ func TestChain33_CreateTransaction(t *testing.T) {
 	err = client.CreateTransaction(in, &result)
 	assert.Nil(t, err)
 }
+
+func TestChain33_PrivacyTxList(t *testing.T) {
+	api := new(mocks.QueueProtocolAPI)
+	testChain33 := newTestChain33(api)
+
+	expected := &types.ReqPrivacyTransactionList{}
+	api.On("PrivacyTransactionList", expected).Return(nil, errors.New("error value"))
+
+	var testResult interface{}
+	actual := &types.ReqPrivacyTransactionList{}
+	err := testChain33.PrivacyTxList(actual, &testResult)
+	t.Log(err)
+	assert.Equal(t, nil, testResult)
+	assert.NotNil(t, err)
+
+	mock.AssertExpectationsForObjects(t, api)
+}

@@ -819,6 +819,29 @@ func (_m *QueueProtocolAPI) Privacy2Public(param *types.ReqPri2Pub) (*types.Repl
 	return r0, r1
 }
 
+// PrivacyTransactionList provides a mock function with given fields: param
+func (_m *QueueProtocolAPI) PrivacyTransactionList(param *types.ReqPrivacyTransactionList) (*types.WalletTxDetails, error) {
+	ret := _m.Called(param)
+
+	var r0 *types.WalletTxDetails
+	if rf, ok := ret.Get(0).(func(*types.ReqPrivacyTransactionList) *types.WalletTxDetails); ok {
+		r0 = rf(param)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.WalletTxDetails)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*types.ReqPrivacyTransactionList) error); ok {
+		r1 = rf(param)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // Publick2Privacy provides a mock function with given fields: param
 func (_m *QueueProtocolAPI) Publick2Privacy(param *types.ReqPub2Pri) (*types.Reply, error) {
 	ret := _m.Called(param)
