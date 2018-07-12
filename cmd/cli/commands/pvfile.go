@@ -2,20 +2,16 @@ package commands
 
 import (
 	"math/rand"
-	"os"
-	"strconv"
-	"time"
-
 	"github.com/inconshreveable/log15"
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	ttypes "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
-<<<<<<< HEAD
+
 	"time"
 	"strconv"
-=======
+
 	"gitlab.33.cn/chain33/chain33/types"
->>>>>>> 005c02e027526a9ece9a289da0e8857cbe96cb21
+
 )
 
 var (
