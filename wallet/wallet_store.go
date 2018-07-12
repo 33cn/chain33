@@ -773,39 +773,39 @@ func (ws *Store) moveSTXO2FTXO(txhash string, newbatch dbm.Batch) error {
 }
 
 func (ws *Store) getPrivacyTokenUTXOs(token, addr string) *walletUTXOs {
-	prefix := calcPrivacyUTXOPrefix4Addr(token, addr)
 	list := dbm.NewListHelper(ws.db)
+	prefix := calcPrivacyUTXOPrefix4Addr(token, addr)
 	values := list.List(prefix, nil, 0, 0)
-	if len(values) != 0 {
-		outs4token := &walletUTXOs{}
-		for _, value := range values {
-			var privacyDBStore types.PrivacyDBStore
-			accByte, err := ws.db.Get(value)
-			if err != nil {
-				panic(err)
-			}
-			err = types.Decode(accByte, &privacyDBStore)
-			if err == nil {
-				utxoGlobalIndex := &types.UTXOGlobalIndex{
+	if len(values) == 0 {
+		return nil
+	}
+	wutxos := new(walletUTXOs)
+	for _, value := range values {
+		accByte, err := ws.db.Get(value)
+		if err != nil {
+			panic(err)
+		}
+		privacyDBStore := new(types.PrivacyDBStore)
+		err = types.Decode(accByte, privacyDBStore)
+		if err != nil {
+			walletlog.Error("getPrivacyTokenUTXOs", "decode PrivacyDBStore error. ", err)
+			return nil
+		}
+		wutxo := &walletUTXO{
+			height: privacyDBStore.Height,
+			outinfo: &txOutputInfo{
+				amount:           privacyDBStore.Amount,
+				txPublicKeyR:     privacyDBStore.TxPublicKeyR,
+				onetimePublicKey: privacyDBStore.OnetimePublicKey,
+				utxoGlobalIndex: &types.UTXOGlobalIndex{
 					Outindex: privacyDBStore.OutIndex,
 					Txhash:   privacyDBStore.Txhash,
-				}
-				txOutputInfo := &txOutputInfo{
-					amount:           privacyDBStore.Amount,
-					utxoGlobalIndex:  utxoGlobalIndex,
-					txPublicKeyR:     privacyDBStore.TxPublicKeyR,
-					onetimePublicKey: privacyDBStore.OnetimePublicKey,
-				}
-
-				outs4token.outs = append(outs4token.outs, txOutputInfo)
-			} else {
-				walletlog.Error("Failed to decode PrivacyDBStore for getWalletPrivacyTokenUTXOs")
-			}
+				},
+			},
 		}
-		return outs4token
+		wutxos.utxos = append(wutxos.utxos, wutxo)
 	}
-
-	return nil
+	return wutxos
 }
 
 func (ws *Store) listAvailableUTXOs(token, addr string) ([]*types.PrivacyDBStore, error) {
