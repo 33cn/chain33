@@ -510,7 +510,7 @@ func (s *suiteBtcHeader) TestSaveBtcHead_1() {
 	s.relay.SetEnv(10, 1000, 1)
 
 	s.db.On("Get", mock.Anything).Return(nil, types.ErrNotFound).Once()
-	s.db.On("Set", mock.Anything, mock.Anything).Return(nil).Twice()
+	s.db.On("Set", mock.Anything, mock.Anything).Return(nil).Once()
 	receipt, err := s.relay.Exec(tx, 0)
 	s.Nil(err)
 
