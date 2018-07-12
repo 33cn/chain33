@@ -70,8 +70,13 @@ type Wallet struct {
 	rescanwg         *sync.WaitGroup
 }
 
+type walletUTXO struct {
+	height  int64
+	outinfo *txOutputInfo
+}
+
 type walletUTXOs struct {
-	outs []*txOutputInfo
+	utxos []*walletUTXO
 }
 
 type txOutputInfo struct {
