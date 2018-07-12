@@ -1,29 +1,29 @@
 package tendermint
 
 import (
-	"net"
-	"strconv"
-	"sync"
-	"time"
-	"sync/atomic"
+	"encoding/hex"
 	"errors"
 	"fmt"
-	"encoding/hex"
-	"strings"
 	"math"
+	"net"
+	"strconv"
+	"strings"
+	"sync"
+	"sync/atomic"
+	"time"
 
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
 )
 
 const (
-	numBufferedConnections = 10
-	MaxNumPeers      = 50
-	tryListenSeconds = 5
-    HandshakeTimeout = 20 // * time.Second,
-    maxSendQueueSize = 1024
-	MaxMsgPacketPayloadSize = 10*1024*1024
-	DefaultDialTimeout = 3 * time.Second
+	numBufferedConnections             = 10
+	MaxNumPeers                        = 50
+	tryListenSeconds                   = 5
+	HandshakeTimeout                   = 20 // * time.Second,
+	maxSendQueueSize                   = 1024
+	MaxMsgPacketPayloadSize            = 10 * 1024 * 1024
+	DefaultDialTimeout                 = 3 * time.Second
 	dialRandomizerIntervalMilliseconds = 3000
 	// repeatedly try to reconnect for a few minutes
 	// ie. 5 * 20 = 100s
@@ -38,7 +38,7 @@ const (
 	minReadBufferSize  = 1024
 	minWriteBufferSize = 65536
 
-	broadcastEvidenceIntervalS = 60      // broadcast uncommitted evidence this often
+	broadcastEvidenceIntervalS = 60 // broadcast uncommitted evidence this often
 )
 
 func Parallel(tasks ...func()) {
@@ -55,12 +55,12 @@ func Parallel(tasks ...func()) {
 
 func GenAddressByPubKey(pubkey crypto.PubKey) []byte {
 	//must add 3 bytes ahead to make compatibly
-	typeAddr := append([]byte{byte(0x01), byte(0x01), byte(0x20)},pubkey.Bytes()...)
+	typeAddr := append([]byte{byte(0x01), byte(0x01), byte(0x20)}, pubkey.Bytes()...)
 	return crypto.Ripemd160(typeAddr)
 }
 
 type IP2IPPort struct {
-	mutex sync.RWMutex
+	mutex   sync.RWMutex
 	mapList map[string]string
 }
 
@@ -93,23 +93,23 @@ func (ipp *IP2IPPort) Delete(ip string) {
 }
 
 type NodeInfo struct {
-	ID ID            `json:"id"`
-	Network string   `json:"network"`
-	Version string   `json:"version"`
-	IP   string      `json:"ip,omitempty"`
+	ID      ID     `json:"id"`
+	Network string `json:"network"`
+	Version string `json:"version"`
+	IP      string `json:"ip,omitempty"`
 }
 
 type Node struct {
-	listener net.Listener
+	listener    net.Listener
 	connections chan net.Conn
-	privKey  crypto.PrivKey
-	Network  string
-	Version  string
-	ID       ID
-	IP       string  //get ip from connect to ourself
+	privKey     crypto.PrivKey
+	Network     string
+	Version     string
+	ID          ID
+	IP          string //get ip from connect to ourself
 
 	localIPs map[string]net.IP
-	peerSet *PeerSet
+	peerSet  *PeerSet
 
 	dialing      *IP2IPPort
 	reconnecting *IP2IPPort
@@ -118,34 +118,34 @@ type Node struct {
 	protocol string
 	lAddr    string
 
-	state    *ConsensusState
-	evpool   *EvidencePool
+	state            *ConsensusState
+	evpool           *EvidencePool
 	broadcastChannel chan types.ReactorMsg
-	started uint32 // atomic
-	stopped uint32 // atomic
-	quit    chan struct{}
+	started          uint32 // atomic
+	stopped          uint32 // atomic
+	quit             chan struct{}
 }
 
-func NewNode(seeds []string, protocol string, lAddr string, privKey  crypto.PrivKey, network string, version string, state *ConsensusState, evpool *EvidencePool) *Node {
+func NewNode(seeds []string, protocol string, lAddr string, privKey crypto.PrivKey, network string, version string, state *ConsensusState, evpool *EvidencePool) *Node {
 	address := GenAddressByPubKey(privKey.PubKey())
 
 	node := &Node{
-		peerSet:  NewPeerSet(),
-		seeds:    seeds,
-		protocol: protocol,
-		lAddr:    lAddr,
+		peerSet:     NewPeerSet(),
+		seeds:       seeds,
+		protocol:    protocol,
+		lAddr:       lAddr,
 		connections: make(chan net.Conn, numBufferedConnections),
 
-		privKey: privKey,
-		Network: network,
-		Version: version,
-		ID: ID(hex.EncodeToString(address)),
-		dialing: NewMutexMap(),
-		reconnecting: NewMutexMap(),
+		privKey:          privKey,
+		Network:          network,
+		Version:          version,
+		ID:               ID(hex.EncodeToString(address)),
+		dialing:          NewMutexMap(),
+		reconnecting:     NewMutexMap(),
 		broadcastChannel: make(chan types.ReactorMsg, maxSendQueueSize),
-		state:state,
-		evpool :evpool,
-		localIPs: make(map[string]net.IP),
+		state:            state,
+		evpool:           evpool,
+		localIPs:         make(map[string]net.IP),
 	}
 
 	state.SetOurID(node.ID)
@@ -225,7 +225,7 @@ func (node *Node) addOutboundPeerWithConfig(addr string) error {
 
 	peerConn, err := newOutboundPeerConn(addr, node.privKey, node.StopPeerForError, node.state, node.evpool)
 	if err != nil {
-			go node.reconnectToPeer(addr)
+		go node.reconnectToPeer(addr)
 		return err
 	}
 
@@ -285,7 +285,7 @@ func (node *Node) StartConsensusRoutine() {
 			node.state.Start()
 			break
 		}
-		time.Sleep(1*time.Second)
+		time.Sleep(1 * time.Second)
 	}
 }
 
@@ -305,7 +305,7 @@ func (node *Node) evidenceBroadcastRoutine() {
 			// broadcast all pending evidence
 			msg := &types.EvidenceListMessage{node.evpool.PendingEvidence()}
 			node.Broadcast(msg)
-		case _, ok :=<-node.quit:
+		case _, ok := <-node.quit:
 			if !ok {
 				node.quit = nil
 				tendermintlog.Info("evidenceBroadcastRoutine quit")
@@ -381,12 +381,12 @@ func (node *Node) addPeer(pc peerConn) error {
 	}
 
 	nodeinfo := NodeInfo{
-		ID: node.ID,
+		ID:      node.ID,
 		Network: node.Network,
 		Version: node.Version,
 	}
 	// Exchange NodeInfo on the conn
-	peerNodeInfo, err := pc.HandshakeTimeout(nodeinfo, time.Duration(HandshakeTimeout * time.Second))
+	peerNodeInfo, err := pc.HandshakeTimeout(nodeinfo, time.Duration(HandshakeTimeout*time.Second))
 	if err != nil {
 		return err
 	}
@@ -424,7 +424,7 @@ func (node *Node) addPeer(pc peerConn) error {
 	}
 
 	// Check for duplicate connection or peer info IP.
-	if ip,err := pc.RemoteIP(); err == nil && node.peerSet.HasIP(ip) {
+	if ip, err := pc.RemoteIP(); err == nil && node.peerSet.HasIP(ip) {
 		return errors.New(fmt.Sprintf("Duplicate peer IP %v", ip))
 	} else if err != nil {
 		return errors.New(fmt.Sprintf("get remote ip failed:%v", err))
@@ -432,7 +432,7 @@ func (node *Node) addPeer(pc peerConn) error {
 
 	// Filter peer against ID white list
 	//if err := node.FilterConnByID(peerID); err != nil {
-		//return err
+	//return err
 	//}
 
 	// Check version, chain id
@@ -462,7 +462,7 @@ func (node *Node) addPeer(pc peerConn) error {
 	return nil
 }
 
-func (node *Node) Broadcast( msg types.ReactorMsg) chan bool{
+func (node *Node) Broadcast(msg types.ReactorMsg) chan bool {
 	successChan := make(chan bool, len(node.peerSet.List()))
 	tendermintlog.Debug("Broadcast", "msgtype", msg.TypeName())
 	var wg sync.WaitGroup
@@ -579,6 +579,7 @@ func (node *Node) reconnectToPeer(addr string) {
 	}
 	tendermintlog.Error("Failed to reconnect to peer. Giving up", "addr", addr, "elapsed", time.Since(start))
 }
+
 //---------------------------------------------------------------------
 
 //---------------------------------------------------------------------
@@ -652,7 +653,7 @@ func dial(addr string) (net.Conn, error) {
 func newOutboundPeerConn(addr string, ourNodePrivKey crypto.PrivKey, onPeerError func(Peer, interface{}), state *ConsensusState, evpool *EvidencePool) (peerConn, error) {
 	conn, err := dial(addr)
 	if err != nil {
-		return peerConn{}, fmt.Errorf("Error creating peer:%v",err)
+		return peerConn{}, fmt.Errorf("Error creating peer:%v", err)
 	}
 
 	pc, err := newPeerConn(conn, true, true, ourNodePrivKey, onPeerError, state, evpool)
@@ -692,22 +693,22 @@ func newPeerConn(
 	// Set deadline for secret handshake
 	dl := time.Now().Add(HandshakeTimeout * time.Second)
 	if err := conn.SetDeadline(dl); err != nil {
-		return pc, errors.New(fmt.Sprintf("Error setting deadline while encrypting connection:%v",err))
+		return pc, errors.New(fmt.Sprintf("Error setting deadline while encrypting connection:%v", err))
 	}
 
 	// Encrypt connection
 	conn, err = MakeSecretConnection(conn, ourNodePrivKey)
 	if err != nil {
-		return pc, errors.New(fmt.Sprintf("Error creating peer:%v",err))
+		return pc, errors.New(fmt.Sprintf("Error creating peer:%v", err))
 	}
 
 	// Only the information we already have
 	return peerConn{
-		outbound:   outbound,
-		persistent: persistent,
-		conn:       conn,
+		outbound:    outbound,
+		persistent:  persistent,
+		conn:        conn,
 		onPeerError: onPeerError,
-		myState :  state,
-		myevpool: evpool,
+		myState:     state,
+		myevpool:    evpool,
 	}, nil
 }
