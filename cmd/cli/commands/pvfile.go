@@ -9,7 +9,6 @@ import (
 	ttypes "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
 	"time"
 	"strconv"
-	"os"
 )
 
 var (
@@ -23,11 +22,10 @@ func KeyFileCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "keyfile",
 		Short: "Initialize Tendermint Keyfile",
-		Args:  cobra.MaximumNArgs(1),
+		Args:  cobra.MinimumNArgs(1),
 	}
 	cmd.AddCommand(
 		CreateCmd(),
-		CleanCmd(),
 	)
 	return cmd
 }
@@ -39,16 +37,6 @@ func CreateCmd() *cobra.Command {
 		Run:   createFiles,
 	}
 	addCreateCmdFlags(cmd)
-	return cmd
-}
-
-func CleanCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "clean",
-		Short: "Clean the keyfile created before",
-		Run:   cleanFiles,
-	}
-	addCleanCmdFlags(cmd)
 	return cmd
 }
 
@@ -131,18 +119,5 @@ func createFiles(cmd *cobra.Command, args []string) {
 	}
 	tendermintlog.Info("Generated genesis file", "path", genFile)
 
-	return
-}
-
-func cleanFiles(cmd *cobra.Command, args []string) {
-	err := os.Remove(pvFile)
-	if err != nil {
-		tendermintlog.Error("Remove private validator file err: ", err)
-	}
-
-	err = os.Remove(genFile)
-	if err != nil {
-		tendermintlog.Error("Remove gensis file err: ", err)
-	}
 	return
 }
