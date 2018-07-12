@@ -1,12 +1,13 @@
 package valnode
 
 import (
+	"fmt"
+
 	log "github.com/inconshreveable/log15"
+	"github.com/pkg/errors"
+	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/types"
-	"github.com/pkg/errors"
-	"fmt"
-	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint"
 )
 
 var clog = log.New("module", "execs.valnode")
@@ -48,13 +49,13 @@ func (n *ValNode) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 	clog.Debug("exec valnode tx", "tx=", action)
 
 	receipt := &types.Receipt{types.ExecErr, nil, nil}
-	if action.Ty == types.ValNodeActionUpdate && action.GetNode() != nil{
+	if action.Ty == types.ValNodeActionUpdate && action.GetNode() != nil {
 		if len(action.GetNode().Pubkey) == 0 {
 			return nil, errors.New("validator pubkey is empty")
 		}
 		updateVal := tendermint.ValidatorCache{
-			PubKey:action.GetNode().Pubkey,
-			Power: action.GetNode().Power,
+			PubKey: action.GetNode().Pubkey,
+			Power:  action.GetNode().Power,
 		}
 		tendermint.UpdateValidator2Cache(updateVal)
 		receipt.Ty = types.ExecOk

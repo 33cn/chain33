@@ -10,8 +10,9 @@ import (
 	"sync"
 	"time"
 
-	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"encoding/hex"
+
+	"gitlab.33.cn/chain33/chain33/common/crypto"
 )
 
 // TODO: type ?
@@ -61,13 +62,13 @@ type PrivValidator interface {
 // to prevent double signing. The Signer itself can be mutated to use
 // something besides the default, for instance a hardware signer.
 type PrivValidatorFS struct {
-	Address       string       `json:"address"`
-	PubKey        KeyText       `json:"pub_key"`
-	LastHeight    int64            `json:"last_height"`
-	LastRound     int              `json:"last_round"`
-	LastStep      int8             `json:"last_step"`
-	LastSignature *KeyText      `json:"last_signature,omitempty"` // so we dont lose signatures
-	LastSignBytes string       `json:"last_signbytes,omitempty"` // so we dont lose signatures
+	Address       string   `json:"address"`
+	PubKey        KeyText  `json:"pub_key"`
+	LastHeight    int64    `json:"last_height"`
+	LastRound     int      `json:"last_round"`
+	LastStep      int8     `json:"last_step"`
+	LastSignature *KeyText `json:"last_signature,omitempty"` // so we dont lose signatures
+	LastSignBytes string   `json:"last_signbytes,omitempty"` // so we dont lose signatures
 
 	// PrivKey should be empty if a Signer other than the default is being used.
 	PrivKey KeyText `json:"priv_key"`
@@ -91,6 +92,7 @@ type PrivValidatorImp struct {
 	filePath string
 	mtx      sync.Mutex
 }
+
 // Signer is an interface that defines how to sign messages.
 // It is the caller's duty to verify the msg before calling Sign,
 // eg. to avoid double signing.
@@ -131,7 +133,7 @@ func (pv *PrivValidatorImp) GetPubKey() crypto.PubKey {
 
 func GenAddressByPubKey(pubkey crypto.PubKey) []byte {
 	//must add 3 bytes ahead to make compatibly
-	typeAddr := append([]byte{byte(0x01), byte(0x01), byte(0x20)},pubkey.Bytes()...)
+	typeAddr := append([]byte{byte(0x01), byte(0x01), byte(0x20)}, pubkey.Bytes()...)
 	return crypto.Ripemd160(typeAddr)
 }
 
@@ -219,7 +221,7 @@ func LoadPrivValidatorFSWithSigner(filePath string, signerFunc func(PrivValidato
 	}
 	addr, err := hex.DecodeString(privVal.Address)
 	if err != nil {
-		Exit(Fmt("Error PrivValidator DecodeString failed:%v\n",err))
+		Exit(Fmt("Error PrivValidator DecodeString failed:%v\n", err))
 	}
 	privValImp := &PrivValidatorImp{
 		Address:    addr,
@@ -227,7 +229,7 @@ func LoadPrivValidatorFSWithSigner(filePath string, signerFunc func(PrivValidato
 		LastRound:  privVal.LastRound,
 		LastStep:   privVal.LastStep,
 	}
-	tmp,err := hex.DecodeString(privVal.PrivKey.Data)
+	tmp, err := hex.DecodeString(privVal.PrivKey.Data)
 	if err != nil {
 		Exit(Fmt("Error DecodeString PrivKey data failed: %v\n", err))
 	}
@@ -279,21 +281,21 @@ func (privVal *PrivValidatorImp) save() {
 	addr := fmt.Sprintf("%X", privVal.Address[:])
 
 	privValFS := &PrivValidatorFS{
-		Address: addr,
-		LastHeight: privVal.LastHeight,
-		LastRound:  privVal.LastRound,
-		LastStep:   privVal.LastStep,
-		LastSignature:nil,
+		Address:       addr,
+		LastHeight:    privVal.LastHeight,
+		LastRound:     privVal.LastRound,
+		LastStep:      privVal.LastStep,
+		LastSignature: nil,
 	}
-	privValFS.PrivKey = KeyText{Kind:"ed25519", Data:fmt.Sprintf("%X", privVal.PrivKey.Bytes()[:])}
-	privValFS.PubKey = KeyText{Kind:"ed25519", Data:privVal.PubKey.KeyString()}
+	privValFS.PrivKey = KeyText{Kind: "ed25519", Data: fmt.Sprintf("%X", privVal.PrivKey.Bytes()[:])}
+	privValFS.PubKey = KeyText{Kind: "ed25519", Data: privVal.PubKey.KeyString()}
 	if len(privVal.LastSignBytes) != 0 {
-		tmp := fmt.Sprintf("%X",privVal.LastSignBytes[:])
+		tmp := fmt.Sprintf("%X", privVal.LastSignBytes[:])
 		privValFS.LastSignBytes = tmp
 	}
 	if privVal.LastSignature != nil {
-		sig := fmt.Sprintf("%X",privVal.LastSignature.Bytes()[:])
-		privValFS.LastSignature = &KeyText{Kind:"ed25519", Data:sig}
+		sig := fmt.Sprintf("%X", privVal.LastSignature.Bytes()[:])
+		privValFS.LastSignature = &KeyText{Kind: "ed25519", Data: sig}
 	}
 	jsonBytes, err := json.Marshal(privValFS)
 	if err != nil {
@@ -449,6 +451,7 @@ func (privVal *PrivValidatorImp) ResetLastHeight(height int64) {
 	privVal.LastRound = 0
 	privVal.LastStep = 0
 }
+
 //-------------------------------------
 
 type PrivValidatorsByAddress []*PrivValidatorImp
