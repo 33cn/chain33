@@ -383,45 +383,13 @@ func (c *Chain33) WalletTxList(in ReqWalletTransactionList, result *interface{})
 	parm.FromTx = []byte(in.FromTx)
 	parm.Count = in.Count
 	parm.Direction = in.Direction
-	parm.Mode = in.Mode
-	parm.SendRecvPrivacy = in.SendRecvPrivacy
-	parm.Address = in.Address
-	parm.Tokenname = in.TokenName
 	reply, err := c.cli.WalletTransactionList(&parm)
 	if err != nil {
 		return err
 	}
 	{
 		var txdetails WalletTxDetails
-
-		for _, tx := range reply.TxDetails {
-			var recp ReceiptData
-			logs := tx.GetReceipt().GetLogs()
-			recp.Ty = tx.GetReceipt().GetTy()
-			for _, lg := range logs {
-				recp.Logs = append(recp.Logs,
-					&ReceiptLog{Ty: lg.Ty, Log: common.ToHex(lg.GetLog())})
-			}
-			rd, err := DecodeLog(&recp)
-			if err != nil {
-				continue
-			}
-			tran, err := DecodeTx(tx.GetTx())
-			if err != nil {
-				continue
-			}
-			txdetails.TxDetails = append(txdetails.TxDetails, &WalletTxDetail{
-				Tx:         tran,
-				Receipt:    rd,
-				Height:     tx.GetHeight(),
-				Index:      tx.GetIndex(),
-				BlockTime:  tx.GetBlocktime(),
-				Amount:     tx.GetAmount(),
-				FromAddr:   tx.GetFromaddr(),
-				TxHash:     common.ToHex(tx.GetTxhash()),
-				ActionName: tx.GetActionName(),
-			})
-		}
+		c.convertWalletTxDetailToJson(reply, &txdetails)
 		*result = &txdetails
 	}
 
@@ -1554,5 +1522,54 @@ func (c *Chain33) CreateRawRelaySaveBTCHeadTx(in *RelaySaveBTCHeadTx, result *in
 
 	*result = hex.EncodeToString(reply)
 
+	return nil
+}
+
+func (c *Chain33) convertWalletTxDetailToJson(in *types.WalletTxDetails, out *WalletTxDetails) error {
+	if in == nil || out == nil {
+		return types.ErrInvalidParams
+	}
+	for _, tx := range in.TxDetails {
+		var recp ReceiptData
+		logs := tx.GetReceipt().GetLogs()
+		recp.Ty = tx.GetReceipt().GetTy()
+		for _, lg := range logs {
+			recp.Logs = append(recp.Logs,
+				&ReceiptLog{Ty: lg.Ty, Log: common.ToHex(lg.GetLog())})
+		}
+		rd, err := DecodeLog(&recp)
+		if err != nil {
+			continue
+		}
+		tran, err := DecodeTx(tx.GetTx())
+		if err != nil {
+			continue
+		}
+		out.TxDetails = append(out.TxDetails, &WalletTxDetail{
+			Tx:         tran,
+			Receipt:    rd,
+			Height:     tx.GetHeight(),
+			Index:      tx.GetIndex(),
+			BlockTime:  tx.GetBlocktime(),
+			Amount:     tx.GetAmount(),
+			FromAddr:   tx.GetFromaddr(),
+			TxHash:     common.ToHex(tx.GetTxhash()),
+			ActionName: tx.GetActionName(),
+		})
+	}
+	return nil
+}
+
+// PrivacyTxList get all privacy transaction list by param
+func (c *Chain33) PrivacyTxList(in *types.ReqPrivacyTransactionList, result *interface{}) error {
+	reply, err := c.cli.PrivacyTransactionList(in)
+	if err != nil {
+		return err
+	}
+	{
+		var txdetails WalletTxDetails
+		c.convertWalletTxDetailToJson(reply, &txdetails)
+		*result = &txdetails
+	}
 	return nil
 }
