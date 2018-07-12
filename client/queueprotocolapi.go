@@ -21,6 +21,11 @@ type QueueProtocolAPI interface {
 	Query(param *types.Query) (*types.Message, error)
 	// --------------- mempool interfaces end
 
+	// +++++++++++++++ execs interfaces begin
+	// types.EventBlockChainQuery
+	BlockChainQuery(param *types.BlockChainQuery) (*types.ResUTXOGlobalIndex, error)
+	// --------------- execs interfaces end
+
 	// +++++++++++++++ p2p interfaces begin
 	// types.EventPeerInfo
 	PeerInfo() (*types.PeerList, error)
