@@ -639,12 +639,8 @@ func saveBtcLastHead(db dbm.KV, head *types.RelayLastRcvBtcHeader) (set []*types
 		return nil
 	}
 
-	value := types.Encode(head.Header)
+	value := types.Encode(head)
 	key := []byte(btcLastHead)
-	set = append(set, &types.KeyValue{key, value})
-
-	value = types.Encode(&types.Int64{int64(head.BaseHeight)})
-	key = []byte(btcLastBaseHeight)
 	set = append(set, &types.KeyValue{key, value})
 
 	for i := 0; i < len(set); i++ {
@@ -654,29 +650,16 @@ func saveBtcLastHead(db dbm.KV, head *types.RelayLastRcvBtcHeader) (set []*types
 }
 
 func getBtcLastHead(db dbm.KV) (*types.RelayLastRcvBtcHeader, error) {
-	var lastHead types.RelayLastRcvBtcHeader
-
 	value, err := db.Get([]byte(btcLastHead))
 	if err != nil {
 		return nil, err
 	}
-	var head types.BtcHeader
+	var head types.RelayLastRcvBtcHeader
 	if err = types.Decode(value, &head); err != nil {
 		return nil, err
 	}
-	lastHead.Header = &head
 
-	value, err = db.Get([]byte(btcLastBaseHeight))
-	if err != nil {
-		return nil, err
-	}
-	height, err := decodeHeight(value)
-	if err != nil {
-		return nil, err
-	}
-	lastHead.BaseHeight = uint64(height)
-
-	return &lastHead, nil
+	return &head, nil
 }
 
 func (action *relayDB) saveBtcHeader(headers *types.BtcHeaders, localDb dbm.KVDB) (*types.Receipt, error) {
