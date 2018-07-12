@@ -9,6 +9,29 @@ type QueueProtocolAPI struct {
 	mock.Mock
 }
 
+// BlockChainQuery provides a mock function with given fields: param
+func (_m *QueueProtocolAPI) BlockChainQuery(param *types.BlockChainQuery) (*types.ResUTXOGlobalIndex, error) {
+	ret := _m.Called(param)
+
+	var r0 *types.ResUTXOGlobalIndex
+	if rf, ok := ret.Get(0).(func(*types.BlockChainQuery) *types.ResUTXOGlobalIndex); ok {
+		r0 = rf(param)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.ResUTXOGlobalIndex)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*types.BlockChainQuery) error); ok {
+		r1 = rf(param)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // Close provides a mock function with given fields:
 func (_m *QueueProtocolAPI) Close() {
 	_m.Called()

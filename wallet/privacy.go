@@ -171,17 +171,10 @@ func (wallet *Wallet) createUTXOsByPub2Priv(priv crypto.PrivKey, reqCreateUTXOs 
 	tx.Fee = realFee
 	tx.Sign(int32(SignType), priv)
 
-	msg := wallet.client.NewMessage("mempool", types.EventTx, tx)
-	wallet.client.Send(msg, true)
-	resp, err := wallet.client.Wait(msg)
+	_, err = wallet.api.SendTx(tx)
 	if err != nil {
 		walletlog.Error("transPub2PriV2", "Send err", err)
 		return nil, err
-	}
-
-	reply := resp.GetData().(*types.Reply)
-	if !reply.GetIsOk() {
-		return nil, errors.New(string(reply.GetMsg()))
 	}
 	var hash types.ReplyHash
 	hash.Hash = tx.Hash()
@@ -241,17 +234,10 @@ func (wallet *Wallet) transPub2PriV2(priv crypto.PrivKey, reqPub2Pri *types.ReqP
 	tx.Fee = realFee
 	tx.Sign(int32(SignType), priv)
 
-	msg := wallet.client.NewMessage("mempool", types.EventTx, tx)
-	wallet.client.Send(msg, true)
-	resp, err := wallet.client.Wait(msg)
+	_, err = wallet.api.SendTx(tx)
 	if err != nil {
 		walletlog.Error("transPub2PriV2", "Send err", err)
 		return nil, err
-	}
-
-	reply := resp.GetData().(*types.Reply)
-	if !reply.GetIsOk() {
-		return nil, errors.New(string(reply.GetMsg()))
 	}
 	var hash types.ReplyHash
 	hash.Hash = tx.Hash()
@@ -456,18 +442,10 @@ func (wallet *Wallet) transPri2PriV2(privacykeyParirs *privacy.Privacy, reqPri2P
 	if err != nil {
 		return nil, err
 	}
-
-	msg := wallet.client.NewMessage("mempool", types.EventTx, tx)
-	wallet.client.Send(msg, true)
-	resp, err := wallet.client.Wait(msg)
+	_, err = wallet.api.SendTx(tx)
 	if err != nil {
 		walletlog.Error("transPri2Pri", "Send err", err)
 		return nil, err
-	}
-
-	reply := resp.GetData().(*types.Reply)
-	if !reply.GetIsOk() {
-		return nil, errors.New(string(reply.GetMsg()))
 	}
 	var hash types.ReplyHash
 	hash.Hash = tx.Hash()
@@ -533,17 +511,10 @@ func (wallet *Wallet) transPri2PubV2(privacykeyParirs *privacy.Privacy, reqPri2P
 		return nil, err
 	}
 
-	msg := wallet.client.NewMessage("mempool", types.EventTx, tx)
-	wallet.client.Send(msg, true)
-	resp, err := wallet.client.Wait(msg)
+	_, err = wallet.api.SendTx(tx)
 	if err != nil {
 		walletlog.Error("transPri2PubV2", "Send err", err)
 		return nil, err
-	}
-
-	reply := resp.GetData().(*types.Reply)
-	if !reply.GetIsOk() {
-		return nil, errors.New(string(reply.GetMsg()))
 	}
 	var hash types.ReplyHash
 	hash.Hash = tx.Hash()
@@ -594,14 +565,11 @@ func (wallet *Wallet) buildInput(privacykeyParirs *privacy.Privacy, buildInfo *b
 			Param:    types.Encode(&reqGetGlobalIndex),
 		}
 		//向blockchain请求相同额度的不同utxo用于相同额度的混淆作用
-		msg := wallet.client.NewMessage("execs", types.EventBlockChainQuery, query)
-		wallet.client.Send(msg, true)
-		resp, err := wallet.client.Wait(msg)
+		resUTXOGlobalIndex, err = wallet.api.BlockChainQuery(query)
 		if err != nil {
-			walletlog.Error("buildInput EventBlockChainQuery", "err", err)
+			walletlog.Error("buildInput BlockChainQuery", "err", err)
 			return nil, nil, nil, nil, err
 		}
-		resUTXOGlobalIndex = resp.GetData().(*types.ResUTXOGlobalIndex)
 		if resUTXOGlobalIndex == nil {
 			walletlog.Info("buildInput EventBlockChainQuery is nil")
 			return nil, nil, nil, nil, err
