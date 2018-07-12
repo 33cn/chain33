@@ -121,6 +121,7 @@ type ConsensusState struct {
 	Quit    chan struct{}
 
 	needCommitByInfo chan CommitInfo
+	precommitOK  bool
 }
 
 // NewConsensusState returns a new ConsensusState.
@@ -142,6 +143,7 @@ func NewConsensusState(client *drivers.BaseClient, blockStore *ttypes.BlockStore
 		needSetFinish:    false,
 		Quit:             make(chan struct{}),
 		needCommitByInfo: make(chan CommitInfo, maxCommitInfoSize),
+		precommitOK:      false,
 	}
 	// set function defaults (may be overwritten before calling Start)
 	cs.decideProposal = cs.defaultDecideProposal
@@ -410,6 +412,7 @@ func (cs *ConsensusState) updateToState(state State) {
 	cs.LastCommit = lastPrecommits
 	cs.LastValidators = state.LastValidators
 	cs.roundstateRWLock.Unlock()
+	cs.precommitOK = false
 
 	cs.state = state
 
@@ -630,6 +633,7 @@ func (cs *ConsensusState) enterNewRound(height int64, round int) {
 		cs.Proposal = nil
 		cs.ProposalBlock = nil
 		cs.roundstateRWLock.Unlock()
+		cs.precommitOK = false
 	}
 	cs.Votes.SetRound(round + 1) // also track next round (round+1) to allow round-skipping
 
@@ -1322,20 +1326,23 @@ func (cs *ConsensusState) defaultSetProposal(proposalTrans *ttypes.ProposalTrans
 	cs.roundstateRWLock.Unlock()
 
 	// NOTE: it's possible to receive complete proposal blocks for future rounds without having the proposal
-	tendermintlog.Error("Received complete proposal block", "height", cs.ProposalBlock.Height, "round", cs.Round, "hash", fmt.Sprintf("%X",cs.ProposalBlock.Hash()))
+	tendermintlog.Error("Received complete proposal block", "height", cs.ProposalBlock.Height, "round", cs.Round, "hash", fmt.Sprintf("%X",cs.ProposalBlock.Hash()), "precommitOK", cs.precommitOK)
+
+	if cs.isProposer() {
+		proposalTrans := ttypes.ProposalToProposalTrans(cs.Proposal)
+		msg := &ttypes.ProposalMessage{Proposal: proposalTrans}
+		cs.broadcastChannel<- msg
+	}
+
+	if cs.precommitOK {
+		cs.needCommitByInfo<- CommitInfo{height:block.Height, round:cs.Round}
+		cs.precommitOK = false
+		return nil
+	}
+
 	if cs.Step <= ttypes.RoundStepPropose && cs.isProposalComplete() {
 		// Move onto the next step
 		cs.enterPrevote(block.Height, cs.Round)
-		/*
-		if cs.precommitOK {
-			tendermintlog.Debug("Received complete proposal block finish prevote", "cs-step", cs.Step)
-			cs.updateRoundStep(cs.Round, ttypes.RoundStepPrevote)
-			cs.enterPrecommit(block.Height, cs.Round)
-			cs.enterCommit(block.Height, cs.Round)
-			cs.precommitOK = false
-		}
-		*/
-
 	} else if cs.Step == ttypes.RoundStepCommit {
 		// If we're waiting on the proposal block...
 		cs.tryFinalizeCommit(block.Height)
@@ -1428,7 +1435,11 @@ func (cs *ConsensusState) addVote(vote *ttypes.Vote, peerID string) (added bool,
 				if cs.Round <= vote.Round && prevotes.HasTwoThirdsAny() {
 					// Round-skip over to PrevoteWait or goto Precommit.
 					cs.enterNewRound(height, vote.Round) // if the vote is ahead of us
-					if prevotes.HasTwoThirdsMajority() {
+					//if prevote(block not nil) > 2/3 and we don't have proposal, means we are slow, so skip to precommit nil
+					if blockID, ok := prevotes.TwoThirdsMajority(); ok {
+						if len(blockID.Hash) > 0 && cs.ProposalBlock == nil {
+							return
+						}
 						cs.enterPrecommit(height, vote.Round)
 					} else {
 						cs.enterPrevote(height, vote.Round) // if the vote is ahead of us
@@ -1450,10 +1461,13 @@ func (cs *ConsensusState) addVote(vote *ttypes.Vote, peerID string) (added bool,
 					} else {
 						cs.enterNewRound(height, vote.Round)
 						cs.enterPrecommit(height, vote.Round)
+
 						if cs.ProposalBlock == nil {
 							tendermintlog.Error("Added to precommit proposal not ok, send info")
+							cs.precommitOK = true
 						}
-						cs.needCommitByInfo <- CommitInfo{height:height, round:vote.Round}
+
+						cs.needCommitByInfo <-CommitInfo{height:height, round:vote.Round}
 
 						if cs.client.Cfg.SkipTimeoutCommit && precommits.HasAll() {
 							// if we have all the votes now,
@@ -1610,6 +1624,7 @@ func (cs *ConsensusState) checkProposalToCommit() {
 					cs.enterCommit(info.height, info.round)
 				}
 			} else {
+				tendermintlog.Error("checkProposalToCommit channel closed")
 				cs.needCommitByInfo = nil
 				return
 			}
