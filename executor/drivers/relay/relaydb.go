@@ -61,6 +61,7 @@ func (r *relayLog) receiptLog(relayLogType int32) *types.ReceiptLog {
 		CoinAmount:    strconv.FormatFloat(float64(r.CoinAmount)/float64(types.Coin), 'f', 4, 64),
 		CoinAddr:      r.CoinAddr,
 		CoinTxHash:    r.CoinTxHash,
+		CoinWaits:     r.CoinWaits,
 		CreateTime:    r.CreateTime,
 		AcceptAddr:    r.AcceptAddr,
 		AcceptTime:    r.AcceptTime,
