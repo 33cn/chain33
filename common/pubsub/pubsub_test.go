@@ -218,14 +218,12 @@ func (s *Suite) TestTryPub(c *check.C) {
 
 func (s *Suite) TestFIFOPub(c *check.C) {
 	ps := NewPubSub(1) //订阅的buffer 为 1，也就是发两个数据就满了
+
 	ch1 := ps.Sub("t1")
 	ch2 := ps.Sub("t1")
-
 	ps.FIFOPub("hi", "t1")
 	ps.FIFOPub("there", "t1")
-	//wait for pub run , only use in test
-	time.Sleep(time.Millisecond)
-
+	time.Sleep(time.Second)
 	c.Check(<-ch1, check.Equals, "there")
 	c.Check(<-ch2, check.Equals, "there")
 	ps.Shutdown()
