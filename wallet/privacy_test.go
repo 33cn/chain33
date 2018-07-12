@@ -43,8 +43,11 @@ var (
 )
 
 type walletTestData struct {
-	mockMempool bool
-	wallet      *Wallet
+	mockMempool    bool
+	mockBlockChain bool
+	wallet         *Wallet
+
+	blockChainHeight int64
 
 	password string
 	api      client.QueueProtocolAPI
@@ -77,6 +80,10 @@ func (wtd *walletTestData) initAccount() {
 		account.Balance = 1000 * types.Coin
 		accCoin.SaveAccount(account)
 	}
+}
+
+func (wtd *walletTestData) setBlockChainHeight(height int64) {
+	wtd.blockChainHeight = height
 }
 
 func (wtd *walletTestData) importPrivateKey(PrivKey *types.ReqWalletImportPrivKey) {
@@ -171,6 +178,23 @@ func (wtd *walletTestData) unlockWallet() {
 	})
 }
 
+func (wtd *walletTestData) mockBlockChainProc(q queue.Queue) {
+	// blockchain
+	go func() {
+		topic := "blockchain"
+		client := q.Client()
+		client.Sub(topic)
+		for msg := range client.Recv() {
+			switch msg.Ty {
+			case types.EventGetBlockHeight:
+				msg.Reply(client.NewMessage(topic, types.EventReplyBlockHeight, &types.ReplyBlockHeight{Height: wtd.blockChainHeight}))
+			default:
+				msg.ReplyErr("Do not support", types.ErrNotSupport)
+			}
+		}
+	}()
+}
+
 func (wtd *walletTestData) mockMempoolProc(q queue.Queue) {
 	// mempool
 	go func() {
@@ -188,7 +212,7 @@ func (wtd *walletTestData) mockMempoolProc(q queue.Queue) {
 	}()
 }
 
-func (wtd *walletTestData) createUTXOs(sender string, pubkeypair string, amount int64, count int) {
+func (wtd *walletTestData) createUTXOs(sender string, pubkeypair string, amount int64, height int64, count int) {
 	wallet := wtd.wallet
 	tokenname := types.BTY
 	dbbatch := wallet.walletStore.NewBatch(true)
@@ -236,7 +260,7 @@ func (wtd *walletTestData) createUTXOs(sender string, pubkeypair string, amount 
 						TxPublicKeyR:     RpubKey,
 						OnetimePublicKey: output.Onetimepubkey,
 						Owner:            *info.Addr,
-						Height:           10000,
+						Height:           height,
 						Txindex:          0,
 						Blockhash:        []byte("5e3dafda"),
 					}
@@ -462,8 +486,12 @@ func (wtd *walletTestData) iniParams() {
 	store := store.New(cfg.Store)
 	store.SetQueueClient(q.Client())
 
-	chain := blockchain.New(cfg.BlockChain)
-	chain.SetQueueClient(q.Client())
+	if wtd.mockBlockChain {
+		wtd.mockBlockChainProc(q)
+	} else {
+		chain := blockchain.New(cfg.BlockChain)
+		chain.SetQueueClient(q.Client())
+	}
 
 	if wtd.mockMempool {
 		wtd.mockMempoolProc(q)
@@ -783,7 +811,7 @@ func Test_showPrivacyPkPair(t *testing.T) {
 	}
 }
 
-func Test_selectUTXO(t *testing.T) {
+func testSelectUTXO(t *testing.T) {
 	wtd := &walletTestData{}
 	wtd.init()
 	wallet := wtd.wallet
@@ -796,7 +824,8 @@ func Test_selectUTXO(t *testing.T) {
 		actualErr error
 	}{
 		{
-			actualErr: types.ErrInsufficientBalance,
+			amount:    -1,
+			actualErr: types.ErrInvalidParams,
 		},
 		{
 			token:     types.BTY,
@@ -818,29 +847,65 @@ func Test_selectUTXO(t *testing.T) {
 			require.Equal(t, len(res), int(test.amount/types.Coin))
 		}
 	}
+}
 
-	wtd.createUTXOs(testAddrs[0], testPubkeyPairs[0], 1*types.Coin, 16)
-	testCase = []struct {
-		token     string
-		addr      string
-		amount    int64
-		actual    []*txOutputInfo
-		actualErr error
+func testSelectUTXOFlow(t *testing.T) {
+	wtd := &walletTestData{
+		mockBlockChain: true,
+		mockMempool:    true,
+	}
+	wtd.init()
+	wallet := wtd.wallet
+
+	blockBaseHeight := int64(10000)
+	for i := 1; i < 30; i++ {
+		wtd.createUTXOs(testAddrs[0], testPubkeyPairs[0], int64(i)*types.Coin, blockBaseHeight+int64(i), 2)
+	}
+
+	testCase := []struct {
+		token       string
+		addr        string
+		amount      int64
+		blockheight int64
+		actual      []*txOutputInfo
+		actualErr   error
 	}{
 		{
-			token:  types.BTY,
-			addr:   testAddrs[0],
-			amount: 3 * types.Coin,
+			token:       types.BTY,
+			addr:        testAddrs[0],
+			amount:      3 * types.Coin,
+			blockheight: blockBaseHeight,
+			actualErr:   types.ErrInsufficientBalance,
+		},
+		{
+			token:       types.BTY,
+			addr:        testAddrs[0],
+			amount:      3000 * types.Coin,
+			blockheight: blockBaseHeight + 12,
+			actualErr:   types.ErrInsufficientBalance,
+		},
+		{
+			token:       types.BTY,
+			addr:        testAddrs[0],
+			amount:      3 * types.Coin,
+			blockheight: blockBaseHeight + 12,
 		},
 	}
 
 	for index, test := range testCase {
+		wtd.setBlockChainHeight(test.blockheight)
 		res, err := wallet.selectUTXO(test.token, test.addr, test.amount)
 		require.Equalf(t, err, test.actualErr, "testcase index %d", index)
 		if err == nil {
-			require.Equal(t, len(res), int(test.amount/types.Coin))
+			require.Equal(t, len(res) > 0, true)
 		}
 	}
+
+}
+
+func Test_selectUTXO(t *testing.T) {
+	testSelectUTXO(t)
+	testSelectUTXOFlow(t)
 }
 
 func Test_createUTXOsByPub2Priv(t *testing.T) {
@@ -1217,7 +1282,7 @@ func Test_signTxWithPrivacy(t *testing.T) {
 	require.Equal(t, err, nil)
 
 	// Privacy -> Privacy
-	wtd.createUTXOs(testAddrs[0], testPubkeyPairs[0], 10*types.Coin, 10)
+	wtd.createUTXOs(testAddrs[0], testPubkeyPairs[0], 10*types.Coin, 10000, 10)
 	tx, _ = wallet.procCreateTransaction(&types.ReqCreateTransaction{
 		Tokenname:  types.BTY,
 		Type:       2,
@@ -1234,7 +1299,7 @@ func Test_signTxWithPrivacy(t *testing.T) {
 	require.Equal(t, err, nil)
 
 	// Privacy -> Public
-	wtd.createUTXOs(testAddrs[1], testPubkeyPairs[1], 10*types.Coin, 10)
+	wtd.createUTXOs(testAddrs[1], testPubkeyPairs[1], 10*types.Coin, 10000, 10)
 	tx, _ = wallet.procCreateTransaction(&types.ReqCreateTransaction{
 		Tokenname: types.BTY,
 		Type:      3,
