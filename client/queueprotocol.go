@@ -982,7 +982,7 @@ func (q *QueueProtocol) NotifySendTxResult(param *types.ReqNotifySendTxResult) (
 
 func (q *QueueProtocol) BlockChainQuery(param *types.BlockChainQuery) (*types.ResUTXOGlobalIndex, error) {
 	if param == nil {
-		err := types.ErrInvalidParam
+		err := types.ErrInvalidParams
 		log.Error("BlockChainQuery", "Error", err)
 		return nil, err
 	}
