@@ -12,12 +12,12 @@ import (
 // json field tags because we always want the JSON
 // representation to be in its canonical form.
 type Heartbeat struct {
-	ValidatorAddress []byte           `json:"validator_address"`
-	ValidatorIndex   int              `json:"validator_index"`
-	Height           int64            `json:"height"`
-	Round            int              `json:"round"`
-	Sequence         int              `json:"sequence"`
-	Signature        []byte           `json:"signature"`
+	ValidatorAddress []byte `json:"validator_address"`
+	ValidatorIndex   int    `json:"validator_index"`
+	Height           int64  `json:"height"`
+	Round            int    `json:"round"`
+	Sequence         int    `json:"sequence"`
+	Signature        []byte `json:"signature"`
 }
 
 // WriteSignBytes writes the Heartbeat for signing.
@@ -30,7 +30,7 @@ func (heartbeat *Heartbeat) WriteSignBytes(chainID string, w io.Writer, n *int, 
 		chainID,
 		CanonicalHeartbeat(heartbeat),
 	}
-	byteHeartbeat,e := json.Marshal(&canonical)
+	byteHeartbeat, e := json.Marshal(&canonical)
 	if e != nil {
 		*err = e
 		return
