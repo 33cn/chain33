@@ -89,7 +89,7 @@ func RandValidator(randPower bool, minPower int64) (*Validator, *PrivValidatorIm
 	privVal := GenPrivValidatorImp(tempFilePath)
 	votePower := minPower
 	if randPower {
-		votePower += int64(Randgen.Uint32())
+		votePower += int64(RandUint32())
 	}
 	val := NewValidator(privVal.PubKey, votePower)
 	return val, privVal

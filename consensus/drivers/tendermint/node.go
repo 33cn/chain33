@@ -209,7 +209,7 @@ func (node *Node) Start() {
 }
 
 func randomSleep(interval time.Duration) {
-	r := time.Duration(types.Randgen.Int63n(dialRandomizerIntervalMilliseconds)) * time.Millisecond
+	r := time.Duration(types.RandInt63n(dialRandomizerIntervalMilliseconds)) * time.Millisecond
 	time.Sleep(r + interval)
 }
 

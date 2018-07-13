@@ -219,12 +219,12 @@ func (bA *BitArray) PickRandom() (int, bool) {
 	}
 	randElemStart := RandIntn(length)
 	for i := 0; i < length; i++ {
-		elemIdx := ((i + randElemStart) % length)
+		elemIdx := (i + randElemStart) % length
 		if elemIdx < length-1 {
 			if bA.Elems[elemIdx] > 0 {
 				randBitStart := RandIntn(64)
 				for j := 0; j < 64; j++ {
-					bitIdx := ((j + randBitStart) % 64)
+					bitIdx := (j + randBitStart) % 64
 					if (bA.Elems[elemIdx] & (uint64(1) << uint(bitIdx))) > 0 {
 						return 64*elemIdx + bitIdx, true
 					}
