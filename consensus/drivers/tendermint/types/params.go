@@ -3,8 +3,9 @@ package types
 import (
 	"github.com/pkg/errors"
 
-	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"encoding/json"
+
+	"gitlab.33.cn/chain33/chain33/common/crypto"
 )
 
 const (

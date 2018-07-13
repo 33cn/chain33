@@ -9,8 +9,8 @@ import (
 
 type BitArray struct {
 	mtx   sync.Mutex `json:"-"`
-	Bits  int      `json:"bits"`  // NOTE: persisted via reflect, must be exported
-	Elems []uint64 `json:"elems"` // NOTE: persisted via reflect, must be exported
+	Bits  int        `json:"bits"`  // NOTE: persisted via reflect, must be exported
+	Elems []uint64   `json:"elems"` // NOTE: persisted via reflect, must be exported
 }
 
 // There is no BitArray whose Size is 0.  Use nil instead.
@@ -150,7 +150,7 @@ func (bA *BitArray) Not() *BitArray {
 }
 
 func (bA *BitArray) Sub(o *BitArray) *BitArray {
-	if bA == nil || o == nil{
+	if bA == nil || o == nil {
 		return nil
 	}
 	bA.mtx.Lock()

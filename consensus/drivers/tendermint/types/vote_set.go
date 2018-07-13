@@ -493,10 +493,10 @@ func (voteSet *VoteSet) MakeCommit() *Commit {
 	2. A peer claims to have a 2/3 majority w/ blockKey (peerMaj23=true)
 */
 type blockVotes struct {
-	peerMaj23 bool          // peer claims to have maj23
+	peerMaj23 bool      // peer claims to have maj23
 	bitArray  *BitArray // valIndex -> hasVote?
-	votes     []*Vote       // valIndex -> *Vote
-	sum       int64         // vote sum
+	votes     []*Vote   // valIndex -> *Vote
+	sum       int64     // vote sum
 }
 
 func newBlockVotes(peerMaj23 bool, numValidators int) *blockVotes {

@@ -4,18 +4,18 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"strconv"
 	"sync"
 	"syscall"
 	"time"
-	"math/rand"
 )
 
 var (
 	Randgen *rand.Rand
-	Fmt = fmt.Sprintf
+	Fmt     = fmt.Sprintf
 )
 
 func Init() {
@@ -151,6 +151,7 @@ func (p Percent) String() string {
 	b[n] = '.'
 	return string(append(b, '%'))
 }
+
 //-------------------------------------------------------------------
 func MinInt(a, b int) int {
 	if a < b {
@@ -165,6 +166,7 @@ func MaxInt(a, b int) int {
 	}
 	return b
 }
+
 //--------------------------------------------------------------
 func RandIntn(n int) int {
 	if n <= 0 {
@@ -175,6 +177,7 @@ func RandIntn(n int) int {
 	}
 	return int(Randgen.Int63n(int64(n)))
 }
+
 //-------------------------------------------------------------
 func PanicSanity(v interface{}) {
 	panic(Fmt("Panicked on a Sanity Check: %v", v))

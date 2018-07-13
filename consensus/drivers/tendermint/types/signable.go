@@ -3,7 +3,6 @@ package types
 import (
 	"bytes"
 	"io"
-
 )
 
 // Signable is an interface for all signable things.
@@ -21,4 +20,3 @@ func SignBytes(chainID string, o Signable) []byte {
 	}
 	return buf.Bytes()
 }
-

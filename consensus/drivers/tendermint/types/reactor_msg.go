@@ -11,49 +11,48 @@ var (
 )
 
 const (
-	EvidenceListMsg      = "EvidenceList"
-	
+	EvidenceListMsg = "EvidenceList"
+
 	NewRoundStepMsg      = "NewRoundStep"
 	CommitStepMsg        = "CommitStep"
 	ProposalMsg          = "Proposal"
 	ProposalPOLMsg       = "ProposalPOL"
 	VoteMsg              = "Vote"
-	HasVoteMsg      	 = "HasVote"
-	VoteSetMaj23Msg 	 = "VoteSetMaj23"
+	HasVoteMsg           = "HasVote"
+	VoteSetMaj23Msg      = "VoteSetMaj23"
 	VoteSetBitsMsg       = "VoteSetBits"
 	ProposalHeartbeatMsg = "ProposalHeartbeat"
 
-
-	EvidenceListID      = byte(0x01)
+	EvidenceListID = byte(0x01)
 
 	NewRoundStepID      = byte(0x02)
 	CommitStepID        = byte(0x03)
 	ProposalID          = byte(0x04)
 	ProposalPOLID       = byte(0x05)
 	VoteID              = byte(0x06)
-	HasVoteID      	    = byte(0x07)
-	VoteSetMaj23ID 	    = byte(0X08)
+	HasVoteID           = byte(0x07)
+	VoteSetMaj23ID      = byte(0X08)
 	VoteSetBitsID       = byte(0x09)
 	ProposalHeartbeatID = byte(0x0a)
 
-	PacketTypePing           = byte(0xff)
-	PacketTypePong           = byte(0xfe)
+	PacketTypePing = byte(0xff)
+	PacketTypePong = byte(0xfe)
 )
 
 type PeerRoundState struct {
-	Height                   int64         // Height peer is at
-	Round                    int           // Round peer is at, -1 if unknown.
-	Step                     RoundStepType // Step peer is at
-	StartTime                time.Time     // Estimated start of round 0 at this height
-	Proposal                 bool          // True if peer has proposal for this round
-	ProposalPOLRound         int           // Proposal's POL round. -1 if none.
-	ProposalPOL              *BitArray // nil until ProposalPOLMessage received.
-	Prevotes                 *BitArray // All votes peer has for this round
-	Precommits               *BitArray // All precommits peer has for this round
-	LastCommitRound          int           // Round of commit for last height. -1 if none.
-	LastCommit               *BitArray // All commit precommits of commit for last height.
-	CatchupCommitRound       int           // Round that we have commit for. Not necessarily unique. -1 if none.
-	CatchupCommit            *BitArray // All commit precommits peer has for this height & CatchupCommitRound
+	Height             int64         // Height peer is at
+	Round              int           // Round peer is at, -1 if unknown.
+	Step               RoundStepType // Step peer is at
+	StartTime          time.Time     // Estimated start of round 0 at this height
+	Proposal           bool          // True if peer has proposal for this round
+	ProposalPOLRound   int           // Proposal's POL round. -1 if none.
+	ProposalPOL        *BitArray     // nil until ProposalPOLMessage received.
+	Prevotes           *BitArray     // All votes peer has for this round
+	Precommits         *BitArray     // All precommits peer has for this round
+	LastCommitRound    int           // Round of commit for last height. -1 if none.
+	LastCommit         *BitArray     // All commit precommits of commit for last height.
+	CatchupCommitRound int           // Round that we have commit for. Not necessarily unique. -1 if none.
+	CatchupCommit      *BitArray     // All commit precommits peer has for this height & CatchupCommitRound
 }
 
 // String returns a string representation of the PeerRoundState
@@ -83,7 +82,7 @@ func (prs PeerRoundState) StringIndented(indent string) string {
 }
 
 type ReactorMsg interface {
-	TypeID()  byte
+	TypeID() byte
 	TypeName() string
 	Copy() ReactorMsg
 }
@@ -118,11 +117,11 @@ func (m *EvidenceListMessage) String() string {
 }
 
 func (m *EvidenceListMessage) TypeName() string {
-	return 	EvidenceListMsg
+	return EvidenceListMsg
 }
 
 func (m *EvidenceListMessage) Copy() ReactorMsg {
-	return 	&EvidenceListMessage{}
+	return &EvidenceListMessage{}
 }
 
 func (m *EvidenceListMessage) TypeID() byte {
@@ -159,7 +158,7 @@ func (m *NewRoundStepMessage) TypeID() byte {
 
 // CommitStepMessage is sent when a block is committed.
 type CommitStepMessage struct {
-	Height           int64
+	Height int64
 }
 
 // String returns a string representation.
@@ -178,6 +177,7 @@ func (m *CommitStepMessage) Copy() ReactorMsg {
 func (m *CommitStepMessage) TypeID() byte {
 	return CommitStepID
 }
+
 //-------------------------------------
 
 // ProposalMessage is sent when a new block is proposed.
@@ -202,6 +202,7 @@ func (m *ProposalMessage) Copy() ReactorMsg {
 func (m *ProposalMessage) TypeID() byte {
 	return ProposalID
 }
+
 //-------------------------------------
 
 // ProposalPOLMessage is sent when a previous proposal is re-proposed.
@@ -227,6 +228,7 @@ func (m *ProposalPOLMessage) Copy() ReactorMsg {
 func (m *ProposalPOLMessage) TypeID() byte {
 	return ProposalPOLID
 }
+
 //-------------------------------------
 
 // VoteMessage is sent when voting for a proposal (or lack thereof).
@@ -250,6 +252,7 @@ func (m *VoteMessage) Copy() ReactorMsg {
 func (m *VoteMessage) TypeID() byte {
 	return VoteID
 }
+
 //-------------------------------------
 
 // HasVoteMessage is sent to indicate that a particular vote has been received.
@@ -303,6 +306,7 @@ func (m *VoteSetMaj23Message) Copy() ReactorMsg {
 func (m *VoteSetMaj23Message) TypeID() byte {
 	return VoteSetMaj23ID
 }
+
 //-------------------------------------
 
 // VoteSetBitsMessage is sent to communicate the bit-array of votes seen for the BlockID.
@@ -330,6 +334,7 @@ func (m *VoteSetBitsMessage) Copy() ReactorMsg {
 func (m *VoteSetBitsMessage) TypeID() byte {
 	return VoteSetBitsID
 }
+
 //-------------------------------------
 
 // ProposalHeartbeatMessage is sent to signal that a node is alive and waiting for transactions for a proposal.

@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"sync"
 
-	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
 	"encoding/json"
+
+	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
 )
 
 // EvidencePool maintains a pool of valid evidence
