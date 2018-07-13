@@ -1182,6 +1182,7 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 		newblock.ParentHash = lastBlock.Hash()
 
 		lastCommit := block.LastCommit
+
 		precommits := cs.Votes.Precommits(cs.CommitRound)
 		seenCommit := precommits.MakeCommit()
 
