@@ -907,7 +907,7 @@ func testSelectUTXOFlow(t *testing.T) {
 		{
 			token:       types.BTY,
 			addr:        testAddrs[0],
-			amount:      3 * types.Coin,
+			amount:      30 * types.Coin,
 			blockheight: blockBaseHeight + 12,
 		},
 	}
@@ -918,6 +918,11 @@ func testSelectUTXOFlow(t *testing.T) {
 		require.Equalf(t, err, test.actualErr, "testcase index %d", index)
 		if err == nil {
 			require.Equal(t, len(res) > 0, true)
+			amount := int64(0)
+			for _, r := range res {
+				amount += r.amount
+			}
+			require.Equal(t, amount >= test.amount, true)
 		}
 	}
 }
