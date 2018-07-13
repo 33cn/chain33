@@ -30,6 +30,7 @@ func init() {
 		commands.ConfigCmd(),
 		commands.EvmCmd(),
 		commands.ExecCmd(),
+		commands.KeyFileCmd(),
 		commands.MempoolCmd(),
 		commands.NetCmd(),
 		commands.SeedCmd(),

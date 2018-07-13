@@ -2,10 +2,11 @@ package types
 
 import (
 	"bytes"
-	"fmt"
-	"gitlab.33.cn/chain33/chain33/common/merkle"
 	"encoding/json"
+	"fmt"
+
 	"gitlab.33.cn/chain33/chain33/common/crypto"
+	"gitlab.33.cn/chain33/chain33/common/merkle"
 )
 
 // ErrEvidenceInvalid wraps a piece of evidence and the error denoting how or why it is invalid.
@@ -26,8 +27,8 @@ func (err *ErrEvidenceInvalid) Error() string {
 //-------------------------------------------
 const (
 	DuplicateVote = "DuplicateVote"
-	MockGood = "MockGood"
-	MockBad = "MockBad"
+	MockGood      = "MockGood"
+	MockBad       = "MockBad"
 )
 
 var EvidenceType2Obj map[string]interface{}

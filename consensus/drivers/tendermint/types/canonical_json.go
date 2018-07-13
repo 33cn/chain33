@@ -13,22 +13,22 @@ const (
 const timeFormat = RFC3339Millis
 
 type CanonicalJSONBlockID struct {
-	Hash        []byte                 `json:"hash,omitempty"`
+	Hash        []byte                     `json:"hash,omitempty"`
 	PartsHeader CanonicalJSONPartSetHeader `json:"parts,omitempty"`
 }
 
 type CanonicalJSONPartSetHeader struct {
 	Hash  []byte `json:"hash"`
-	Total int        `json:"total"`
+	Total int    `json:"total"`
 }
 
 type CanonicalJSONProposal struct {
-	BlockBytes       []byte                     `json:"block_parts_header"`
-	Height           int64                      `json:"height"`
-	POLBlockID       CanonicalJSONBlockID       `json:"pol_block_id"`
-	POLRound         int                        `json:"pol_round"`
-	Round            int                        `json:"round"`
-	Timestamp        string                     `json:"timestamp"`
+	BlockBytes []byte               `json:"block_parts_header"`
+	Height     int64                `json:"height"`
+	POLBlockID CanonicalJSONBlockID `json:"pol_block_id"`
+	POLRound   int                  `json:"pol_round"`
+	Round      int                  `json:"round"`
+	Timestamp  string               `json:"timestamp"`
 }
 
 type CanonicalJSONVote struct {
@@ -40,11 +40,11 @@ type CanonicalJSONVote struct {
 }
 
 type CanonicalJSONHeartbeat struct {
-	Height           int64      `json:"height"`
-	Round            int        `json:"round"`
-	Sequence         int        `json:"sequence"`
+	Height           int64  `json:"height"`
+	Round            int    `json:"round"`
+	Sequence         int    `json:"sequence"`
 	ValidatorAddress []byte `json:"validator_address"`
-	ValidatorIndex   int        `json:"validator_index"`
+	ValidatorIndex   int    `json:"validator_index"`
 }
 
 //------------------------------------
@@ -70,19 +70,18 @@ type CanonicalJSONOnceHeartbeat struct {
 
 func CanonicalBlockID(blockID BlockID) CanonicalJSONBlockID {
 	return CanonicalJSONBlockID{
-		Hash:        blockID.Hash,
+		Hash: blockID.Hash,
 	}
 }
 
-
 func CanonicalProposal(proposal *Proposal) CanonicalJSONProposal {
 	return CanonicalJSONProposal{
-		BlockBytes:        proposal.BlockBytes,
-		Height:           proposal.Height,
-		Timestamp:        CanonicalTime(proposal.Timestamp),
-		POLBlockID:       CanonicalBlockID(proposal.POLBlockID),
-		POLRound:         proposal.POLRound,
-		Round:            proposal.Round,
+		BlockBytes: proposal.BlockBytes,
+		Height:     proposal.Height,
+		Timestamp:  CanonicalTime(proposal.Timestamp),
+		POLBlockID: CanonicalBlockID(proposal.POLBlockID),
+		POLRound:   proposal.POLRound,
+		Round:      proposal.Round,
 	}
 }
 

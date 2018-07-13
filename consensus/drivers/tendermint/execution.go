@@ -3,11 +3,12 @@ package tendermint
 import (
 	"fmt"
 
-	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
-	"sync"
-	"errors"
 	"bytes"
 	"encoding/json"
+	"errors"
+	"sync"
+
+	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
 )
 
 type ValidatorCache struct {
@@ -16,7 +17,7 @@ type ValidatorCache struct {
 }
 
 type ValidatorsCache struct {
-	mtx sync.Mutex
+	mtx        sync.Mutex
 	validators []*ValidatorCache
 }
 
@@ -30,8 +31,8 @@ func InitValidatorsCache(vals *types.ValidatorSet) {
 	validatorsCache.validators = make([]*ValidatorCache, len(vals.Validators))
 	for i, item := range vals.Validators {
 		validatorsCache.validators[i] = &ValidatorCache{
-			PubKey:item.PubKey,
-			Power:item.VotingPower,
+			PubKey: item.PubKey,
+			Power:  item.VotingPower,
 		}
 	}
 }
@@ -42,8 +43,8 @@ func GetValidatorsCache() []*ValidatorCache {
 	validators := make([]*ValidatorCache, len(validatorsCache.validators))
 	for i, item := range validatorsCache.validators {
 		validators[i] = &ValidatorCache{
-			PubKey:item.PubKey,
-			Power:item.Power,
+			PubKey: item.PubKey,
+			Power:  item.Power,
 		}
 	}
 	return validators
@@ -53,7 +54,7 @@ func UpdateValidator2Cache(val ValidatorCache) {
 	validatorsCache.mtx.Lock()
 	defer validatorsCache.mtx.Unlock()
 	for _, item := range validatorsCache.validators {
-		if bytes.Equal(item.PubKey, val.PubKey){
+		if bytes.Equal(item.PubKey, val.PubKey) {
 			item.Power = val.Power
 			return
 		}
@@ -74,18 +75,16 @@ type BlockExecutor struct {
 	// execute the app against this
 	//proxyApp proxy.AppConnConsensus
 
-
 	// update these with block results after commit
 	//mempool types.Mempool
 	evpool types.EvidencePool
-
 }
 
 // NewBlockExecutor returns a new BlockExecutor with a NopEventBus.
 // Call SetEventBus to provide one.
 func NewBlockExecutor(db *CSStateDB, evpool types.EvidencePool) *BlockExecutor {
 	return &BlockExecutor{
-		db: db,
+		db:     db,
 		evpool: evpool,
 	}
 }
@@ -151,7 +150,7 @@ func (blockExec *BlockExecutor) ApplyBlock(s State, blockID types.BlockID, block
 }
 
 // updateState returns a new State updated according to the header and responses.
-func updateState( s State, blockID types.BlockID, block *types.Block) (State, error) {
+func updateState(s State, blockID types.BlockID, block *types.Block) (State, error) {
 
 	// copy the valset so we can apply changes from EndBlock
 	// and update s.LastValidators and s.Validators

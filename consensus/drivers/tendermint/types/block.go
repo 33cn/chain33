@@ -8,12 +8,13 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"encoding/json"
-	"github.com/inconshreveable/log15"
-	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/common/merkle"
+
 	"github.com/golang/protobuf/proto"
+	"github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
+	"gitlab.33.cn/chain33/chain33/common/merkle"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var (
@@ -26,14 +27,14 @@ type Block struct {
 	*Header    `json:"header"`
 	Evidence   EvidenceData `json:"evidence"`
 	LastCommit *Commit      `json:"last_commit"`
-	BlockBytes  []byte       `json:"block_bytes"`
+	BlockBytes []byte       `json:"block_bytes"`
 }
 
 // MakeBlock returns a new block with an empty header, except what can be computed from itself.
 // It populates the same set of fields validated by ValidateBasic
 func MakeBlock(height int64, txs []*types.Transaction, commit *Commit) *Block {
 	curTime := time.Now().Unix()
-    oriBlock:= &types.Block{
+	oriBlock := &types.Block{
 		Height:    height,
 		BlockTime: curTime,
 		Txs:       txs,
@@ -48,7 +49,7 @@ func MakeBlock(height int64, txs []*types.Transaction, commit *Commit) *Block {
 	block := &Block{
 		Header: &Header{
 			Height: height,
-			Time : curTime,
+			Time:   curTime,
 			NumTxs: int64(len(txs)),
 		},
 		LastCommit: commit,
@@ -77,7 +78,7 @@ func (b *Block) AddEvidence(evidence []Evidence) {
 
 // ValidateBasic performs basic validation that doesn't involve state data.
 // It checks the internal consistency of the block.
-func (b *Block) ValidateBasic() (int64,error) {
+func (b *Block) ValidateBasic() (int64, error) {
 	block := types.Block{}
 	err := proto.Unmarshal(b.BlockBytes, &block)
 	if err != nil {
@@ -178,10 +179,10 @@ func (b *Block) StringShort() string {
 // NOTE: changes to the Header should be duplicated in the abci Header
 type Header struct {
 	// basic block info
-	ChainID string    `json:"chain_id"`
-	Height  int64     `json:"height"`
-	Time    int64     `json:"time"`
-	NumTxs  int64     `json:"num_txs"`
+	ChainID string `json:"chain_id"`
+	Height  int64  `json:"height"`
+	Time    int64  `json:"time"`
+	NumTxs  int64  `json:"num_txs"`
 
 	// prev block info
 	LastBlockID BlockID `json:"last_block_id"`
@@ -235,7 +236,7 @@ func (h *Header) StringIndented(indent string) string {
 %s}#%v`,
 		indent, h.ChainID,
 		indent, h.Height,
-		indent, time.Unix(0,h.Time),
+		indent, time.Unix(0, h.Time),
 		indent, h.NumTxs,
 		indent, h.TotalTxs,
 		indent, h.LastBlockID,
@@ -525,7 +526,7 @@ func (data *EvidenceData) StringIndented(indent string) string {
 
 // BlockID defines the unique ID of a block as its Hash and its PartSetHeader
 type BlockID struct {
-	Hash        []byte    `json:"hash"`
+	Hash []byte `json:"hash"`
 	//PartsHeader PartSetHeader `json:"parts"`
 }
 
@@ -556,7 +557,7 @@ func (blockID BlockID) WriteSignBytes(w io.Writer, n *int, err *error) {
 		return
 	} else {
 		canonical := CanonicalBlockID(blockID)
-		byteBlockID,e := json.Marshal(&canonical)
+		byteBlockID, e := json.Marshal(&canonical)
 		if e != nil {
 			*err = e
 			return

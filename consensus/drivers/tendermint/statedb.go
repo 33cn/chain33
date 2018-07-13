@@ -1,48 +1,47 @@
 package tendermint
 
 import (
-	"gitlab.33.cn/chain33/chain33/consensus/drivers"
-	"fmt"
-	gtypes "gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
-	"sync"
 	"errors"
-)
+	"fmt"
+	"sync"
 
+	"gitlab.33.cn/chain33/chain33/consensus/drivers"
+	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
+	gtypes "gitlab.33.cn/chain33/chain33/types"
+)
 
 type CSStateDB struct {
 	client *drivers.BaseClient
 	state  State
-	mtx sync.Mutex
+	mtx    sync.Mutex
 }
 
-func NewStateDB(client *drivers.BaseClient, state State) *CSStateDB{
+func NewStateDB(client *drivers.BaseClient, state State) *CSStateDB {
 	return &CSStateDB{
-		client:client,
-		state: state,
+		client: client,
+		state:  state,
 	}
 }
 
 func LoadState(state *gtypes.State) State {
-	stateTmp := State {
-		ChainID: state.GetChainID(),
-		LastBlockHeight: state.GetLastBlockHeight(),
-		LastBlockTotalTx: state.GetLastBlockTotalTx(),
-		LastBlockTime: state.LastBlockTime,
-		Validators: nil,
-		LastValidators:nil,
-		LastHeightValidatorsChanged: state.LastHeightValidatorsChanged,
-		ConsensusParams: types.ConsensusParams{BlockSize:types.BlockSize{}, TxSize:types.TxSize{}, BlockGossip:types.BlockGossip{}, EvidenceParams:types.EvidenceParams{}},
+	stateTmp := State{
+		ChainID:                          state.GetChainID(),
+		LastBlockHeight:                  state.GetLastBlockHeight(),
+		LastBlockTotalTx:                 state.GetLastBlockTotalTx(),
+		LastBlockTime:                    state.LastBlockTime,
+		Validators:                       nil,
+		LastValidators:                   nil,
+		LastHeightValidatorsChanged:      state.LastHeightValidatorsChanged,
+		ConsensusParams:                  types.ConsensusParams{BlockSize: types.BlockSize{}, TxSize: types.TxSize{}, BlockGossip: types.BlockGossip{}, EvidenceParams: types.EvidenceParams{}},
 		LastHeightConsensusParamsChanged: state.LastHeightConsensusParamsChanged,
-		LastResultsHash:state.LastResultsHash,
-		AppHash:state.AppHash,
-
+		LastResultsHash:                  state.LastResultsHash,
+		AppHash:                          state.AppHash,
 	}
 	if validators := state.GetValidators(); validators != nil {
 		if array := validators.GetValidators(); array != nil {
 			targetArray := make([]*types.Validator, len(array))
 			types.LoadValidators(targetArray, array)
-			stateTmp.Validators = &types.ValidatorSet{Validators:targetArray, Proposer: nil}
+			stateTmp.Validators = &types.ValidatorSet{Validators: targetArray, Proposer: nil}
 		}
 		if proposer := validators.GetProposer(); proposer != nil {
 			if stateTmp.Validators == nil {
@@ -54,11 +53,11 @@ func LoadState(state *gtypes.State) State {
 			}
 		}
 	}
-	if lastValidators := state.GetLastValidators();lastValidators != nil {
+	if lastValidators := state.GetLastValidators(); lastValidators != nil {
 		if array := lastValidators.GetValidators(); array != nil {
 			targetArray := make([]*types.Validator, len(array))
 			types.LoadValidators(targetArray, array)
-			stateTmp.LastValidators = &types.ValidatorSet{Validators:targetArray, Proposer: nil}
+			stateTmp.LastValidators = &types.ValidatorSet{Validators: targetArray, Proposer: nil}
 		}
 		if proposer := lastValidators.GetProposer(); proposer != nil {
 			if stateTmp.LastValidators == nil {
@@ -107,19 +106,19 @@ func (csdb *CSStateDB) LoadValidators(height int64) (*types.ValidatorSet, error)
 	if height == 0 {
 		return nil, nil
 	}
-	if csdb.state.LastBlockHeight + 1 == height {
+	if csdb.state.LastBlockHeight+1 == height {
 		return csdb.state.Validators, nil
 	}
 	curHeight := csdb.client.GetCurrentHeight()
 	block, err := csdb.client.RequestBlock(height)
 	if err != nil {
-		tendermintlog.Error(fmt.Sprintf("LoadValidators : Couldn't find block at height %d as current height %d",height, curHeight))
+		tendermintlog.Error(fmt.Sprintf("LoadValidators : Couldn't find block at height %d as current height %d", height, curHeight))
 		return nil, nil
 	}
 	blockInfo, err := types.GetBlockInfo(block)
 	if err != nil {
 		tendermintlog.Error("LoadValidators GetBlockInfo failed", "error", err)
-		panic(fmt.Sprintf("LoadValidators GetBlockInfo failed:%v",err))
+		panic(fmt.Sprintf("LoadValidators GetBlockInfo failed:%v", err))
 	}
 
 	var state State
@@ -147,16 +146,16 @@ func saveConsensusParams(dest *gtypes.ConsensusParams, source types.ConsensusPar
 	dest.EvidenceParams.MaxAge = source.EvidenceParams.MaxAge
 }
 
-func saveValidators(dest []*gtypes.Validator, source []*types.Validator) []*gtypes.Validator{
+func saveValidators(dest []*gtypes.Validator, source []*types.Validator) []*gtypes.Validator {
 	for _, item := range source {
 		if item == nil {
 			dest = append(dest, &gtypes.Validator{})
 		} else {
 			validator := &gtypes.Validator{
-				Address: item.Address,
-				PubKey: item.PubKey,
+				Address:     item.Address,
+				PubKey:      item.PubKey,
 				VotingPower: item.VotingPower,
-				Accum: item.Accum,
+				Accum:       item.Accum,
 			}
 			dest = append(dest, validator)
 		}
@@ -164,28 +163,28 @@ func saveValidators(dest []*gtypes.Validator, source []*types.Validator) []*gtyp
 	return dest
 }
 
-func saveProposer(dest *gtypes.Validator, source *types.Validator){
+func saveProposer(dest *gtypes.Validator, source *types.Validator) {
 	if source != nil {
 		dest.Address = source.Address
 		dest.PubKey = source.PubKey
 		dest.VotingPower = source.VotingPower
 		dest.Accum = source.Accum
-		}
+	}
 }
 
 func SaveState(state State) *gtypes.State {
-	newState := gtypes.State {
-		ChainID: state.ChainID,
-		LastBlockHeight: state.LastBlockHeight,
-		LastBlockTotalTx: state.LastBlockTotalTx,
-		LastBlockTime: state.LastBlockTime,
-		Validators: &gtypes.ValidatorSet{Validators:make([]*gtypes.Validator,0), Proposer:&gtypes.Validator{}},
-		LastValidators:&gtypes.ValidatorSet{Validators:make([]*gtypes.Validator,0), Proposer:&gtypes.Validator{}},
-		LastHeightValidatorsChanged: state.LastHeightValidatorsChanged,
-		ConsensusParams: &gtypes.ConsensusParams{BlockSize:&gtypes.BlockSize{}, TxSize:&gtypes.TxSize{}, BlockGossip:&gtypes.BlockGossip{}, EvidenceParams:&gtypes.EvidenceParams{}},
+	newState := gtypes.State{
+		ChainID:                          state.ChainID,
+		LastBlockHeight:                  state.LastBlockHeight,
+		LastBlockTotalTx:                 state.LastBlockTotalTx,
+		LastBlockTime:                    state.LastBlockTime,
+		Validators:                       &gtypes.ValidatorSet{Validators: make([]*gtypes.Validator, 0), Proposer: &gtypes.Validator{}},
+		LastValidators:                   &gtypes.ValidatorSet{Validators: make([]*gtypes.Validator, 0), Proposer: &gtypes.Validator{}},
+		LastHeightValidatorsChanged:      state.LastHeightValidatorsChanged,
+		ConsensusParams:                  &gtypes.ConsensusParams{BlockSize: &gtypes.BlockSize{}, TxSize: &gtypes.TxSize{}, BlockGossip: &gtypes.BlockGossip{}, EvidenceParams: &gtypes.EvidenceParams{}},
 		LastHeightConsensusParamsChanged: state.LastHeightConsensusParamsChanged,
-		LastResultsHash:state.LastResultsHash,
-		AppHash:state.AppHash,
+		LastResultsHash:                  state.LastResultsHash,
+		AppHash:                          state.AppHash,
 	}
 	if state.Validators != nil {
 		newState.Validators.Validators = saveValidators(newState.Validators.Validators, state.Validators.Validators)
