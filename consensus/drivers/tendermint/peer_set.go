@@ -726,7 +726,7 @@ OUTER_LOOP:
 
 		if (0 < prs.Height) && (prs.Height < rs.Height) && !prs.Proposal {
 			proposal, err := pc.myState.LastProposals.QueryElem(prs.Height)
-			if err == nil && proposal != nil && proposal.Round == prs.Round{
+			if err == nil && proposal != nil {
 				proposalTrans := types.ProposalToProposalTrans(proposal)
 				msg := &types.ProposalMessage{Proposal: proposalTrans}
 				tendermintlog.Info("peer height behind, Sending old proposal", "peerip", pc.ip.String(), "height", prs.Height, "round", prs.Round, "proopsal-height", proposalTrans.Height)
