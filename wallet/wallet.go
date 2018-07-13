@@ -176,6 +176,9 @@ func (wallet *Wallet) SetQueueClient(cli queue.Client) {
 	walletlog.Info("wallet db", "version:", version)
 	if version == 0 {
 		wallet.RescanAllTxByAddr()
+
+		//重新扫描UTXO
+		wallet.reScanWalletUtxos()
 		wallet.walletStore.SetWalletVersion(1)
 	}
 
@@ -185,6 +188,7 @@ func (wallet *Wallet) SetQueueClient(cli queue.Client) {
 	//开启检查FTXO的协程
 	wallet.wg.Add(1)
 	go wallet.checkWalletStoreData()
+
 }
 
 func (wallet *Wallet) getPrivKeyByAddr(addr string) (crypto.PrivKey, error) {
@@ -386,4 +390,26 @@ func (wallet *Wallet) GetWalletAccounts() ([]*types.WalletAccountStore, error) {
 		return nil, err
 	}
 	return WalletAccStores, err
+}
+
+func (wallet *Wallet) reScanWalletUtxos() {
+	accounts, err := wallet.GetWalletAccounts()
+	if err != nil {
+		return
+	}
+	walletlog.Debug("RescanAllUTXOByAddr begin!")
+	for _, acc := range accounts {
+		//从blockchain模块同步Account.Addr对应的UTXO
+		wallet.rescanwg.Add(1)
+		go wallet.RescanReqUtxosByAddr(acc.Addr)
+	}
+	wallet.rescanwg.Wait()
+
+	walletlog.Debug("RescanAllUTXOByAddr sucess!")
+}
+
+//从blockchain模块同步addr参与的所有交易详细信息
+func (wallet *Wallet) RescanReqUtxosByAddr(addr string) {
+	defer wallet.rescanwg.Done()
+	wallet.reqUtxosByAddr(addr)
 }

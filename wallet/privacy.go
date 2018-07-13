@@ -24,6 +24,10 @@ type buildInputInfo struct {
 	mixcount  int32
 }
 
+const (
+	ForkV21Privacy  = 1
+)
+
 func checkAmountValid(amount int64) bool {
 	if amount <= 0 {
 		return false
@@ -1378,4 +1382,59 @@ func (wallet *Wallet) getExpire(expire int64) time.Duration {
 		retexpir = time.Duration(expire)
 	}
 	return retexpir
+}
+
+func (wallet *Wallet) reqUtxosByAddr(addr string) {
+
+	if len(addr) == 0 {
+		walletlog.Error("ReqTxInfosByAddr input addr is nil!")
+		return
+	}
+	var txInfo types.ReplyTxInfo
+
+	i := 0
+	for {
+		//首先从blockchain模块获取地址对应的所有UTXOs
+		var ReqAddr types.ReqAddr
+		ReqAddr.Addr = addr
+		ReqAddr.Flag = 0
+		ReqAddr.Direction = 0
+		ReqAddr.Count = int32(MaxTxHashsPerTime)
+		if i == 0 {
+			ReqAddr.Height = ForkV21Privacy
+			ReqAddr.Index = 0
+		} else {
+			ReqAddr.Height = txInfo.GetHeight()
+			ReqAddr.Index = txInfo.GetIndex()
+		}
+		i++
+		msg := wallet.client.NewMessage("blockchain", types.EventGetTransactionByAddr, &ReqAddr)
+		wallet.client.Send(msg, true)
+		resp, err := wallet.client.Wait(msg)
+		if err != nil {
+			walletlog.Error("ReqTxInfosByAddr EventGetTransactionByAddr", "err", err, "addr", addr)
+			return
+		}
+
+		ReplyTxInfos := resp.GetData().(*types.ReplyTxInfos)
+		if ReplyTxInfos == nil {
+			walletlog.Info("ReqTxInfosByAddr ReplyTxInfos is nil")
+			return
+		}
+		txcount := len(ReplyTxInfos.TxInfos)
+
+		var ReqHashes types.ReqHashes
+		ReqHashes.Hashes = make([][]byte, len(ReplyTxInfos.TxInfos))
+		for index, ReplyTxInfo := range ReplyTxInfos.TxInfos {
+			ReqHashes.Hashes[index] = ReplyTxInfo.GetHash()
+			txInfo.Hash = ReplyTxInfo.GetHash()
+			txInfo.Height = ReplyTxInfo.GetHeight()
+			txInfo.Index = ReplyTxInfo.GetIndex()
+		}
+		wallet.GetTxDetailByHashs(&ReqHashes)
+		if txcount < int(MaxTxHashsPerTime) {
+			return
+		}
+	}
+
 }
