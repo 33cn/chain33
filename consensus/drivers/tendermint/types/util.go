@@ -14,13 +14,16 @@ import (
 )
 
 var (
-	Randgen *rand.Rand
-	Fmt     = fmt.Sprintf
+	randgen *rand.Rand
+	randMux sync.Mutex
+	Fmt          = fmt.Sprintf
 )
 
 func Init() {
-	if Randgen == nil {
-		Randgen = rand.New(rand.NewSource(time.Now().UnixNano()))
+	if randgen == nil {
+		randMux.Lock()
+		randgen = rand.New(rand.NewSource(time.Now().UnixNano()))
+		randMux.Unlock()
 	}
 }
 
@@ -173,9 +176,29 @@ func RandIntn(n int) int {
 		panic("invalid argument to Intn")
 	}
 	if n <= 1<<31-1 {
-		return int(Randgen.Int31n(int32(n)))
+		randMux.Lock()
+		i32 := randgen.Int31n(int32(n))
+		randMux.Unlock()
+		return int(i32)
 	}
-	return int(Randgen.Int63n(int64(n)))
+	randMux.Lock()
+	i64 := randgen.Int63n(int64(n))
+	randMux.Unlock()
+	return int(i64)
+}
+
+func RandUint32() uint32 {
+	randMux.Lock()
+	u32 := randgen.Uint32()
+	randMux.Unlock()
+	return u32
+}
+
+func RandInt63n(n int64) int64 {
+	randMux.Lock()
+	i64 := randgen.Int63n(n)
+	randMux.Unlock()
+	return i64
 }
 
 //-------------------------------------------------------------
