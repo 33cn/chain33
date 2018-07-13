@@ -1284,7 +1284,10 @@ func Test_transPri2PubV2(t *testing.T) {
 }
 
 func Test_signTxWithPrivacy(t *testing.T) {
-	wtd := &walletTestData{}
+	wtd := &walletTestData{
+		mockMempool:    true,
+		mockBlockChain: true,
+	}
 	wtd.init()
 	wallet := wtd.wallet
 	privateKey, _ := wallet.getPrivKeyByAddr(testAddrs[0])
@@ -1307,6 +1310,7 @@ func Test_signTxWithPrivacy(t *testing.T) {
 
 	// Privacy -> Privacy
 	wtd.createUTXOs(testAddrs[0], testPubkeyPairs[0], 10*types.Coin, 10000, 10)
+	wtd.setBlockChainHeight(10020)
 	tx, _ = wallet.procCreateTransaction(&types.ReqCreateTransaction{
 		Tokenname:  types.BTY,
 		Type:       2,
