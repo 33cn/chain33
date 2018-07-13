@@ -97,10 +97,6 @@ func calcSTXOTokenAddrTxKey(token, addr, txhash string) []byte {
 	return []byte(fmt.Sprintf(PrivacySTXO+"%s-%s-%s", token, addr, txhash))
 }
 
-func calcSTXOPrefix(token, addr string) []byte {
-	return []byte(fmt.Sprintf(PrivacySTXO+"%s-%s-", token, addr))
-}
-
 //通过height*100000+index 查询Tx交易信息
 //key:Tx:height*100000+index
 func calcTxKey(key string) []byte {
