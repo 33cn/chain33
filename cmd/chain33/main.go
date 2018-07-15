@@ -22,7 +22,6 @@ import (
 	"time"
 
 	log "github.com/inconshreveable/log15"
-	"gitlab.33.cn/chain33/chain33/authority"
 	"gitlab.33.cn/chain33/chain33/blockchain"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/config"
@@ -85,7 +84,7 @@ func main() {
 	}
 	//compare minFee in wallet, mempool, exec
 	if cfg.Exec.MinExecFee > cfg.MemPool.MinTxFee || cfg.MemPool.MinTxFee > cfg.Wallet.MinFee {
-		panic("config must meet: wallet.minFee >= mempool.minTxFee >= exec.minExecFee")
+		panic("config must meet: wallet.minFee >= mempool.minTxFee >= exec.sourceaddr")
 	}
 	//set file log
 	clog.SetFileLog(cfg.Log)
@@ -107,12 +106,7 @@ func main() {
 	}()
 	//set pprof
 	go func() {
-		if cfg.Pprof != nil {
-			http.ListenAndServe(cfg.Pprof.ListenAddr, nil)
-		} else {
-			http.ListenAndServe("localhost:6060", nil)
-		}
-
+		http.ListenAndServe("localhost:6060", nil)
 	}()
 	//set trace
 	grpc.EnableTracing = true
@@ -163,7 +157,6 @@ func main() {
 	walletm := wallet.New(cfg.Wallet)
 	walletm.SetQueueClient(q.Client())
 
-	authority.Author.Init(cfg.Auth)
 	defer func() {
 		//close all module,clean some resource
 		log.Info("begin close blockchain module")
