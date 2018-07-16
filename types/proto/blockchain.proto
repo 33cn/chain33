@@ -79,6 +79,7 @@ message BlockOverview {
 message BlockDetail {
     Block    block                = 1;
     repeated ReceiptData receipts = 2;
+	repeated KeyValue KV = 3;
 }
 
 message Receipts {
