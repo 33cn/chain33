@@ -1,19 +1,5 @@
 package types
 
-// 注释掉系统中没有用到的枚举项
-// 与AllowUserExec中驱动名称的顺序一致
-const (
-	ExecTypeCoins    = 0
-	ExecTypeTicket   = 1
-	ExecTypeHashLock = 2
-	ExecTypeNorm     = 3
-	ExecTypeRetrieve = 4
-	ExecTypeNone     = 5
-	ExecTypeToken    = 6
-	ExecTypeTrade    = 7
-	ExecTypeManage   = 8
-)
-
 var userKey = []byte("user.")
 var slash = []byte("-")
 
@@ -53,23 +39,24 @@ var (
 )
 
 const (
-	InputPrecision      float64 = 1e4
-	Multiple1E4         int64   = 1e4
-	TokenNameLenLimit           = 128
-	TokenSymbolLenLimit         = 16
-	TokenIntroLenLimit          = 1024
-	InvalidStartTime            = 0
-	InvalidStopTime             = 0
-	BlockDurPerSecCnt           = 15
-	BTY                         = "BTY"
-	BTYDustThreshold            = Coin
-	ConfirmedHeight             = 12
-	UTXOCacheCount              = 256
-	M_1_TIMES                   = 1
-	M_2_TIMES                   = 2
-	M_5_TIMES                   = 5
-	M_10_TIMES                  = 10
-	SignatureSize               = (4 + 33 + 65)
+	InputPrecision        float64 = 1e4
+	Multiple1E4           int64   = 1e4
+	TokenNameLenLimit             = 128
+	TokenSymbolLenLimit           = 16
+	TokenIntroLenLimit            = 1024
+	InvalidStartTime              = 0
+	InvalidStopTime               = 0
+	BlockDurPerSecCnt             = 15
+	BTY                           = "BTY"
+	BTYDustThreshold              = Coin
+	ConfirmedHeight               = 12
+	UTXOCacheCount                = 256
+	M_1_TIMES                     = 1
+	M_2_TIMES                     = 2
+	M_5_TIMES                     = 5
+	M_10_TIMES                    = 10
+	SignatureSize                 = (4 + 33 + 65)
+	PrivacyMaturityDegree         = 12
 )
 
 var (
