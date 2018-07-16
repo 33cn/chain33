@@ -1,7 +1,7 @@
 #!/bin/sh
 
 package="chain33_tendermint_config.tar.gz"
-log_file="auto_deploy.log"
+log_file=".autoDeploy_log"
 
 InitLog()
 {
@@ -26,8 +26,10 @@ Log()
 
 GetInputFile()
 {
-    echo "Please input the file "
+    echo "Please input the file: (such as \"chain33 chain33-cli genesis.json\" ...) "
     read file
+
+    # todo: file detection
     Log "The input file is ${file}"
 }
 
@@ -37,9 +39,9 @@ PackageFiles()
     `tar zcf ${package} $file` 
 }
 
-GetIPAndPath()
+GetUserNamePasswdAndPath()
 {
-    echo "Please input the username, password, ip and path of the destination:"
+    echo "Please input the username, password, ip and path of the destination: (such as \"ubuntu 123456 192.168.3.143 /home/ubuntu/chain33\")"
 
     read destInfo
     username=`echo ${destInfo} | awk -F ' ' '{print $1}'`
@@ -73,8 +75,23 @@ ExpectCmd()
     expect eof"
 }
 
+help()
+{
+    echo "***************************************************************************************************"
+    echo "*"
+    echo "* This tool can send file to specified path."
+    echo "* And you should input the file first(It doesn't support get file auto-matically now)"
+    echo "* Then it will pack those file into a package and send to the environment."
+    echo "*"
+    echo "* Note: You should move the file to the current directory, otherwise the packing process will be failed."
+    echo "*"
+    echo "***************************************************************************************************"
+}
+
 main()
 {
+    # Help for this tool 
+    help
     # Init log file
     InitLog
 
@@ -83,13 +100,29 @@ main()
 
     # Package the files
     PackageFiles
+    if [ $? -ne 0 ]; then
+        Log "Pachage file err, this tool will be stoped..."
+        exit
+    fi
 
     # Input the IP and path of the destination
-    GetIPAndPath
+    GetUserNamePasswdAndPath
+    if [ $? -ne 0 ]; then
+        Log "GetUserNamePasswdAndPath err, this tool will be stoped..."
+        exit
+    fi
 
     # Send and decompress the package
     SendFile
+    if [ $? -ne 0 ]; then
+        Log "SendFile err, this tool will be stoped..."
+        exit
+    fi
+    
     DecompressFile
+    if [ $? -ne 0 ]; then
+        Log "DecompressFile err, this tool will be stoped..."
+    fi
 }
 
 
