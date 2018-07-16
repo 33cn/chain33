@@ -12,6 +12,7 @@ import (
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	clog "gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
+
 	// register drivers
 	"gitlab.33.cn/chain33/chain33/executor/drivers/coins"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm"
@@ -312,6 +313,10 @@ func (exec *Executor) procExecAddBlock(msg queue.Message) {
 	execute.api = exec.qclient
 	var totalFee types.TotalFee
 	var kvset types.LocalDBSet
+	kvs := execute.AddMVCC(datas)
+	if kvs != nil {
+		kvset.KV = append(kvset.KV, kvs...)
+	}
 	for i := 0; i < len(b.Txs); i++ {
 		tx := b.Txs[i]
 		totalFee.Fee += tx.Fee
@@ -391,6 +396,10 @@ func (exec *Executor) procExecDelBlock(msg queue.Message) {
 	execute := newExecutor(b.StateHash, exec.client, b.Height, b.BlockTime, uint64(b.Difficulty))
 	execute.api = exec.qclient
 	var kvset types.LocalDBSet
+	kvs := execute.DelMVCC(datas)
+	if kvs != nil {
+		kvset.KV = append(kvset.KV, kvs...)
+	}
 	for i := len(b.Txs) - 1; i >= 0; i-- {
 		tx := b.Txs[i]
 		kv, err := execute.execDelLocal(tx, datas.Receipts[i], i)
@@ -466,6 +475,14 @@ func newExecutor(stateHash []byte, client queue.Client, height, blocktime int64,
 	}
 	e.coinsAccount.SetDB(e.stateDB)
 	return e
+}
+
+func (e *executor) AddMVCC(detail *types.BlockDetail) []*types.KeyValue {
+	return nil
+}
+
+func (e *executor) DelMVCC(detail *types.BlockDetail) []*types.KeyValue {
+	return nil
 }
 
 //隐私交易费扣除规则：

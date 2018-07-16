@@ -12,16 +12,25 @@ type StateDB struct {
 	intx      bool
 	client    queue.Client
 	stateHash []byte
+	version   int64
+	local     *db.SimpleMVCC
 }
 
 func NewStateDB(client queue.Client, stateHash []byte) db.KV {
-	return &StateDB{
+	db := &StateDB{
 		cache:     make(map[string][]byte),
 		txcache:   make(map[string][]byte),
 		intx:      false,
 		client:    client,
 		stateHash: stateHash,
+		version:   -1,
+		local:     db.NewSimpleMVCC(NewLocalDB(client)),
 	}
+	v, err := db.local.GetVersion(stateHash)
+	if err == nil && v >= 0 {
+		db.version = v
+	}
+	return db
 }
 
 func (s *StateDB) Begin() {
@@ -49,6 +58,10 @@ func (s *StateDB) Get(key []byte) ([]byte, error) {
 	}
 	if value, ok := s.cache[skey]; ok {
 		return value, nil
+	}
+	//mvcc 是有效的情况下，直接从mvcc中获取
+	if s.version >= 0 {
+		return s.local.GetV(key, s.version)
 	}
 	query := &types.StoreGet{s.stateHash, [][]byte{key}}
 	msg := s.client.NewMessage("store", types.EventStoreGet, query)
