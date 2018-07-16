@@ -119,7 +119,7 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 		ExecKVSetCommit(client, block.StateHash)
 	}
 	detail.KV = kvset
-
+	detail.PrevStateHash = prevStateRoot
 	//get receipts
 	//save kvset and get state hash
 	//ulog.Debug("blockdetail-->", "detail=", detail)
