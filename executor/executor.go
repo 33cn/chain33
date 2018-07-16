@@ -27,7 +27,6 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/cert"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/privacy"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 	exectype "gitlab.33.cn/chain33/chain33/types/executor"
@@ -67,7 +66,6 @@ func execInit() {
 	evm.Init()
 	relay.Init()
 	cert.Init()
-	privacy.Init()
 }
 
 var runonce sync.Once
