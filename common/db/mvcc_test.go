@@ -1,7 +1,9 @@
 package db
 
 import (
+	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -150,4 +152,69 @@ func TestVersionSetAndGet(t *testing.T) {
 	v, err = m.GetV([]byte("k3"), 4)
 	assert.Nil(t, err)
 	assert.Equal(t, v, []byte("v3"))
+}
+
+func randBytes() []byte {
+	return hashN(rand.Int())
+}
+
+func hashN(n int) []byte {
+	s := fmt.Sprint(n)
+	return common.Sha256([]byte(s))
+}
+
+func genkv(n int) (kvlist []*types.KeyValue) {
+	for i := 0; i < n; i++ {
+		kvlist = append(kvlist, &types.KeyValue{Key: randBytes(), Value: randBytes()})
+	}
+	return kvlist
+}
+func TestAddDelMVCC(t *testing.T) {
+	m := getMVCC()
+	defer closeMVCC(m)
+	kvlist, err := m.AddMVCC(genkv(2), hashN(0), nil, 0)
+	assert.Nil(t, err)
+	for _, v := range kvlist {
+		m.db.Set(v.Key, v.Value)
+	}
+	_, err = m.AddMVCC(genkv(2), hashN(1), nil, 1)
+	assert.Equal(t, err, types.ErrPrevVersion)
+
+	kv1 := genkv(2)
+	kvlist, err = m.AddMVCC(kv1, hashN(1), hashN(0), 1)
+	assert.Nil(t, err)
+	for _, v := range kvlist {
+		m.db.Set(v.Key, v.Value)
+	}
+
+	kvlist, err = m.AddMVCC(genkv(2), hashN(2), hashN(1), 1)
+	assert.Equal(t, err, types.ErrPrevVersion)
+
+	kvlist, err = m.AddMVCC(genkv(2), hashN(2), hashN(0), 3)
+	assert.Equal(t, err, types.ErrPrevVersion)
+
+	kvlist, err = m.AddMVCC(genkv(2), hashN(2), hashN(3), 3)
+	assert.Equal(t, err, types.ErrNotFound)
+
+	maxv, err := m.GetMaxVersion()
+	assert.Nil(t, err)
+	assert.Equal(t, int64(1), maxv)
+
+	kvlist, err = m.DelMVCC(kv1, hashN(2), 1)
+	assert.Equal(t, err, types.ErrNotFound)
+
+	kvlist, err = m.DelMVCC(kv1, hashN(0), 0)
+	assert.Equal(t, err, types.ErrCanOnlyDelTopVersion)
+
+	kvlist, err = m.DelMVCC(kv1, hashN(1), 1)
+	assert.Nil(t, err)
+	m.PrintAll()
+	for _, v := range kvlist {
+		m.db.Delete(v.Key)
+	}
+	m.PrintAll()
+	maxv, err = m.GetMaxVersion()
+	assert.Nil(t, err)
+	assert.Equal(t, int64(0), maxv)
+
 }
