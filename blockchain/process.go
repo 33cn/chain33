@@ -292,7 +292,7 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 
 	newbatch := b.blockStore.NewBatch(sync)
 	//保存tx信息到db中 (newbatch, blockdetail)
-	err = b.blockStore.AddTxs(newbatch, blockdetail, prevStateHash)
+	err = b.blockStore.AddTxs(newbatch, blockdetail)
 	if err != nil {
 		chainlog.Error("connectBlock indexTxs:", "height", block.Height, "err", err)
 		return err
