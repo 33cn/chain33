@@ -15,8 +15,17 @@ func TestPrefix(t *testing.T) {
 	assert.Equal(t, []byte(".-mvcc-.d."), mvccData)
 }
 
+func TestMVCC(t *testing.T) {
+	m := getMVCC2()
+	_, ok := m.(MVCC)
+	assert.True(t, ok)
+}
 func TestPad(t *testing.T) {
 	assert.Equal(t, []byte("00000000000000000001"), pad(1))
+}
+
+func getMVCC2() MVCC {
+	return getMVCC()
 }
 
 func getMVCC() *MVCCHelper {
@@ -54,7 +63,7 @@ func TestSetVersion(t *testing.T) {
 func TestGetSaveKV(t *testing.T) {
 	m := getMVCC()
 	defer closeMVCC(m)
-	kv := m.GetSaveKV([]byte("key"), []byte("value"), 1)
+	kv, _ := m.GetSaveKV([]byte("key"), []byte("value"), 1)
 	assert.Equal(t, []byte(".-mvcc-.d.key.00000000000000000001"), kv.GetKey())
 	assert.Equal(t, []byte("value"), kv.GetValue())
 }
@@ -62,7 +71,7 @@ func TestGetSaveKV(t *testing.T) {
 func TestGetDelKV(t *testing.T) {
 	m := getMVCC()
 	defer closeMVCC(m)
-	kv := m.GetDelKV([]byte("key"), 1)
+	kv, _ := m.GetDelKV([]byte("key"), 1)
 	assert.Equal(t, []byte(".-mvcc-.d.key.00000000000000000001"), kv.GetKey())
 	assert.Equal(t, []byte(nil), kv.GetValue())
 }
@@ -103,7 +112,6 @@ func TestVersionSetAndGet(t *testing.T) {
 	m.SetVersion(common.Sha256([]byte("4")), 4)
 	m.SetV([]byte("k4"), []byte("v4"), 4)
 
-	m.Trash(0)
 	_, err = m.GetVersion(common.Sha256([]byte("5")))
 	assert.Equal(t, err, types.ErrNotFound)
 
@@ -134,4 +142,12 @@ func TestVersionSetAndGet(t *testing.T) {
 	v, err = m.GetV([]byte("k0"), 3)
 	assert.Nil(t, err)
 	assert.Equal(t, v, []byte("v03"))
+
+	m.Trash(3)
+	v, err = m.GetV([]byte("k0"), 0)
+	assert.Equal(t, err, types.ErrNotFound)
+
+	v, err = m.GetV([]byte("k3"), 4)
+	assert.Nil(t, err)
+	assert.Equal(t, v, []byte("v3"))
 }
