@@ -12,6 +12,7 @@ import (
 var mvccPrefix = []byte(".-mvcc-.")
 var mvccMeta = append(mvccPrefix, []byte("m.")...)
 var mvccData = append(mvccPrefix, []byte("d.")...)
+var mvccMetaVersion = append(mvccMeta, []byte("version.")...)
 
 //MVCC mvcc interface
 type MVCC interface {
@@ -32,8 +33,8 @@ type MVCC interface {
 type MVCCKV interface {
 	GetSaveKV(key []byte, value []byte, version int64) (*types.KeyValue, error)
 	GetDelKV(key []byte, version int64) (*types.KeyValue, error)
-	SetVersionKV(hash []byte, version int64) (*types.KeyValue, error)
-	DelVersionKV(hash []byte) *types.KeyValue
+	SetVersionKV(hash []byte, version int64) ([]*types.KeyValue, error)
+	DelVersionKV([]byte, int64) ([]*types.KeyValue, error)
 }
 
 //MVCCHelper impl MVCC interface
@@ -51,6 +52,30 @@ var mvcclog = log.New("module", "db.mvcc")
 //NewMVCC create MVCC object use db DB
 func NewMVCC(db DB) *MVCCHelper {
 	return &MVCCHelper{SimpleMVCC: NewSimpleMVCC(NewKVDB(db)), db: db}
+}
+
+func (m *MVCCHelper) PrintAll() {
+	println("--meta--")
+	it := m.db.Iterator(mvccMeta, true)
+	defer it.Close()
+	for it.Rewind(); it.Valid(); it.Next() {
+		if it.Error() != nil {
+			mvcclog.Error("PrintAll", "error", it.Error())
+			return
+		}
+		println(string(it.Key()), string(it.Value()))
+	}
+
+	println("--data--")
+	it = m.db.Iterator(mvccData, true)
+	defer it.Close()
+	for it.Rewind(); it.Valid(); it.Next() {
+		if it.Error() != nil {
+			mvcclog.Error("PrintAll", "error", it.Error())
+			return
+		}
+		println(string(it.Key()), string(it.Value()))
+	}
 }
 
 //Trash del some old kv
@@ -86,8 +111,32 @@ func (m *MVCCHelper) Trash(version int64) error {
 
 //DelVersion del stateHash version map
 func (m *MVCCHelper) DelVersion(hash []byte) error {
-	kv := m.DelVersionKV(hash)
-	return m.db.Delete(kv.Key)
+	version, err := m.GetVersion(hash)
+	if err != nil {
+		return err
+	}
+	kvs, err := m.DelVersionKV(hash, version)
+	if err != nil {
+		return err
+	}
+	batch := m.db.NewBatch(true)
+	for _, v := range kvs {
+		batch.Delete(v.Key)
+	}
+	return batch.Write()
+}
+
+//SetVersion set stateHash -> version map
+func (m *MVCCHelper) SetVersion(hash []byte, version int64) error {
+	kvlist, err := m.SetVersionKV(hash, version)
+	if err != nil {
+		return err
+	}
+	batch := m.db.NewBatch(true)
+	for _, v := range kvlist {
+		batch.Set(v.Key, v.Value)
+	}
+	return batch.Write()
 }
 
 //DelV del key with version
@@ -124,6 +173,27 @@ func (m *SimpleMVCC) GetVersion(hash []byte) (int64, error) {
 	return data.GetData(), nil
 }
 
+func (m *SimpleMVCC) GetVersionHash(version int64) ([]byte, error) {
+	key := append(mvccMetaVersion, pad(version)...)
+	value, err := m.kvdb.Get(key)
+	if err != nil {
+		if err == ErrNotFoundInDb {
+			return nil, types.ErrNotFound
+		}
+		return nil, err
+	}
+	return value, nil
+}
+
+func (m *SimpleMVCC) GetMaxVersion() (int64, error) {
+	vals, err := m.kvdb.List(mvccMetaVersion, nil, 1, ListDESC)
+	if err != nil {
+		return 0, err
+	}
+	hash := vals[0]
+	return m.GetVersion(hash)
+}
+
 //GetSaveKV only export set key and value with version
 func (m *SimpleMVCC) GetSaveKV(key []byte, value []byte, version int64) (*types.KeyValue, error) {
 	k, err := getKey(key, version)
@@ -143,28 +213,29 @@ func (m *SimpleMVCC) GetDelKV(key []byte, version int64) (*types.KeyValue, error
 }
 
 //SetVersionKV only export SetVersionKV key and value
-func (m *SimpleMVCC) SetVersionKV(hash []byte, version int64) (*types.KeyValue, error) {
+func (m *SimpleMVCC) SetVersionKV(hash []byte, version int64) ([]*types.KeyValue, error) {
 	if version < 0 {
 		return nil, types.ErrVersion
 	}
 	key := append(mvccMeta, hash...)
 	data := &types.Int64{Data: version}
-	return &types.KeyValue{Key: key, Value: types.Encode(data)}, nil
+	v1 := &types.KeyValue{Key: key, Value: types.Encode(data)}
+
+	k2 := append(mvccMetaVersion, pad(version)...)
+	v2 := &types.KeyValue{Key: k2, Value: hash}
+	return []*types.KeyValue{v1, v2}, nil
 }
 
 //DelVersionKV only export del version key value
-func (m *SimpleMVCC) DelVersionKV(hash []byte) *types.KeyValue {
-	key := append(mvccMeta, hash...)
-	return &types.KeyValue{Key: key}
-}
-
-//SetVersion set stateHash -> version map
-func (m *SimpleMVCC) SetVersion(hash []byte, version int64) error {
-	kv, err := m.SetVersionKV(hash, version)
+func (m *SimpleMVCC) DelVersionKV(hash []byte, version int64) ([]*types.KeyValue, error) {
+	kvs, err := m.SetVersionKV(hash, version)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return m.kvdb.Set(kv.Key, kv.Value)
+	for i := 0; i < len(kvs); i++ {
+		kvs[i].Value = nil
+	}
+	return kvs, nil
 }
 
 //SetV set key and value with version
@@ -197,6 +268,75 @@ func (m *SimpleMVCC) GetV(key []byte, version int64) ([]byte, error) {
 		return nil, types.ErrVersion
 	}
 	return val, nil
+}
+
+//AddMVCC add keys in a version
+//添加MVCC的规则:
+//必须提供现有hash 和 prev 的hash, 而且这两个版本号相差1
+func (m *SimpleMVCC) AddMVCC(kvs []*types.KeyValue, hash []byte, prevHash []byte, version int64) ([]*types.KeyValue, error) {
+	if version > 0 {
+		if prevHash == nil {
+			return nil, types.ErrPrevVersion
+		}
+		prevVersion := version - 1
+		v, err := m.GetVersion(prevHash)
+		if err != nil {
+			return nil, err
+		}
+		if v != prevVersion {
+			return nil, types.ErrPrevVersion
+		}
+	}
+	versionlist, err := m.SetVersionKV(hash, version)
+	if err != nil {
+		return nil, err
+	}
+	var kvlist []*types.KeyValue
+	kvlist = append(kvlist, versionlist...)
+	for i := 0; i < len(kvs); i++ {
+		kv, err := m.GetSaveKV(kvs[i].Key, kvs[i].Value, version)
+		if err != nil {
+			return nil, err
+		}
+		kvlist = append(kvlist, kv)
+	}
+	return kvlist, nil
+}
+
+//DelMVCC 删除某个版本
+//我们目前规定删除的方法:
+//1 -> 1-2-3-4-5,6 version 必须连续的增长
+//2 -> del 也必须从尾部开始删除
+func (m *SimpleMVCC) DelMVCC(kvs []*types.KeyValue, hash []byte, version int64) ([]*types.KeyValue, error) {
+	maxv, err := m.GetMaxVersion()
+	if err != nil {
+		return nil, err
+	}
+	if maxv != version {
+		return nil, types.ErrCanOnlyDelTopVersion
+	}
+	//check hash and version is match
+	vdb, err := m.GetVersion(hash)
+	if err != nil {
+		return nil, err
+	}
+	if vdb != version {
+		return nil, types.ErrVersion
+	}
+	kv, err := m.DelVersionKV(hash, version)
+	if err != nil {
+		return nil, err
+	}
+	var kvlist []*types.KeyValue
+	kvlist = append(kvlist, kv...)
+	for i := 0; i < len(kvs); i++ {
+		kv, err := m.GetDelKV(kvs[i].Key, version)
+		if err != nil {
+			return nil, err
+		}
+		kvlist = append(kvlist, kv)
+	}
+	return kvlist, nil
 }
 
 func getVersionString(key []byte) (string, error) {
