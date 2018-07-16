@@ -484,27 +484,9 @@ func (e *executor) AddMVCC(detail *types.BlockDetail) (kvlist []*types.KeyValue)
 	hash := detail.Block.StateHash
 	mvcc := db.NewSimpleMVCC(e.localDB)
 	//检查版本号是否是连续的
-	if detail.Block.Height > 0 {
-		prevVersion := detail.Block.Height - 1
-		v, err := mvcc.GetVersion(detail.PrevStatusHash)
-		if err != nil {
-			panic(err)
-		}
-		if v != prevVersion {
-			panic("mvcc database error")
-		}
-	}
-	kv, err := mvcc.SetVersionKV(hash, detail.Block.Height)
+	kvlist, err := mvcc.AddMVCC(kvs, hash, detail.PrevStatusHash, detail.Block.Height)
 	if err != nil {
-		return nil
-	}
-	kvlist = append(kvlist, kv)
-	for i := 0; i < len(kvs); i++ {
-		kv, err = mvcc.GetSaveKV(kvs[i].Key, kvs[i].Value, detail.Block.Height)
-		if err != nil {
-			panic(err)
-		}
-		kvlist = append(kvlist, kv)
+		panic(err)
 	}
 	return kvlist
 }
@@ -513,14 +495,9 @@ func (e *executor) DelMVCC(detail *types.BlockDetail) (kvlist []*types.KeyValue)
 	kvs := detail.KV
 	hash := detail.Block.StateHash
 	mvcc := db.NewSimpleMVCC(e.localDB)
-	kv := mvcc.DelVersionKV(hash)
-	kvlist = append(kvlist, kv)
-	for i := 0; i < len(kvs); i++ {
-		kv, err := mvcc.GetDelKV(kvs[i].Key, detail.Block.Height)
-		if err != nil {
-			panic(err)
-		}
-		kvlist = append(kvlist, kv)
+	kvlist, err := mvcc.DelMVCC(kvs, hash, detail.Block.Height)
+	if err != nil {
+		panic(err)
 	}
 	return kvlist
 }
