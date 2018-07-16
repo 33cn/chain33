@@ -1,7 +1,9 @@
-#!/bin/sh
+#!/bin/bash
 
 package="chain33_tendermint_config.tar.gz"
-log_file=".autoDeploy_log"
+log_file=".auto_deploy.log"
+config_file="auto_deploy.config"
+serverStr="servers"
 
 InitLog()
 {
@@ -41,26 +43,77 @@ PackageFiles()
 
 GetUserNamePasswdAndPath()
 {
-    echo "Please input the username, password, ip and path of the destination: (such as \"ubuntu 123456 192.168.3.143 /home/ubuntu/chain33\")"
+    echo "Which way to get environment? 1) Input 2) Config file"
+    read choice
+    if [ ${choice} -eq 1 ]; then
+        echo "Please input the username, password and path of the destination: (such as \"ubuntu 123456 /home/ubuntu/chain33\")"
 
-    read destInfo
-    username=`echo ${destInfo} | awk -F ' ' '{print $1}'`
-    password=`echo ${destInfo} | awk -F ' ' '{print $2}'`
-    ip=`echo ${destInfo} | awk -F ' ' '{print $3}'`
-    remote_dir=`echo ${destInfo} | awk -F ' ' '{print $4}'`
+        read destInfo
+        username=`echo ${destInfo} | awk -F ' ' '{print $1}'`
+        password=`echo ${destInfo} | awk -F ' ' '{print $2}'`
+        remote_dir=`echo ${destInfo} | awk -F ' ' '{print $3}'`
 
-    Log "The dest ip is ${ip} and path is ${remote_dir}"
-    
+        echo "Please input ip list of your destination: (such as \"192.168.3.143 192.168.3.144 192.168.3.145 192.168.3.146\")"
+        read iplist
+        set index=0
+        CreateNewConfigFile
+        for ip in `echo ${iplist}` 
+        do 
+            index=`expr $index + 1`
+            echo "[servers.${index}]" >> ${config_file}
+            echo "userName:${username}" >> ${config_file}
+            echo "password:${password}" >> ${config_file}
+            echo "hostIp:${ip}" >> ${config_file}
+            echo "path:${remote_dir}" >> ${config_file}
+        done
+
+        Log "The dest ip is ${ip} and path is ${remote_dir}"
+    elif [ ${choice} -eq 2 ]; then
+        ShowConfigInfo
+
+        echo "Does the config of destination right?(yes/no)"
+        read input
+        if [ "X${input}" = "Xno" ]; then
+            echo "The config file is wrong. You can config it manually."
+            return 1
+           fi
+    elif [ ${choice} -eq 3 ]; then
+        echo "Wrong input..."
+        return -1
+    fi
+
+    ShowConfigInfo
 }
 
-SendFile()
+SendFileAndDecompressFile()
 {
-    ExpectCmd "scp  ${package} ${username}@${ip}:${remote_dir}"
-}
+    getSections
 
-DecompressFile()
-{
-    ExpectCmd "ssh ${username}@${ip} tar zxf ${remote_dir}/${package} -C ${remote_dir}"
+    for line in $sections
+    do
+        if [[ "$line" =~ "$serverStr" ]]; then
+            index=`echo $line | awk -F '.' '{print $2}' | awk -F ']' '{print$1}'`
+            getInfoByIndexAndKey $index "userName"
+            username=${info}
+            getInfoByIndexAndKey $index "password"
+            password=${info}
+            getInfoByIndexAndKey $index "hostIp"
+            ip=${info}
+            getInfoByIndexAndKey $index "path"
+            remote_dir=${info}
+
+            ExpectCmd "scp  ${package} ${username}@${ip}:${remote_dir}"
+            if [ $? -ne 0 ]; then
+                Log "Send file failed, this tool will stoped..."
+                return -1
+               fi
+            ExpectCmd "ssh ${username}@${ip} tar zxf ${remote_dir}/${package} -C ${remote_dir}"
+            if [ $? -ne 0 ]; then
+                Log "Decompress file failed, this tool will stoped..."
+                return -2
+               fi
+        fi
+    done
 }
 
 ExpectCmd()
@@ -73,6 +126,60 @@ ExpectCmd()
         "password" { send "$password\\r" }
     }
     expect eof"
+}
+
+CreateNewConfigFile()
+{
+    if [ -f ${config_file} ]; then
+        rm ${config_file}
+    fi
+
+    touch ${config_file}
+}
+
+ShowConfigInfo()
+{
+    if [ ! -f ${config_file} ]; then
+        Log "Config file is not existed."
+        return 1
+    fi
+
+    getSections
+
+    for line in $sections
+    do
+        if [[ "$line" =~ "$serverStr" ]]; then
+            index=`echo $line | awk -F '.' '{print $2}' | awk -F ']' '{print$1}'`
+            getInfoByIndexAndKey $index "userName"
+            echo "servers.$index: userName->$info"
+            getInfoByIndexAndKey $index "password"
+            echo "servers.$index: password->$info"
+            getInfoByIndexAndKey $index "hostIp"
+            echo "servers.$index: hostIp->$info"
+            getInfoByIndexAndKey $index "path"
+            echo "servers.$index: path->$info"
+        fi
+    done
+}
+
+getSections()
+{
+   sections=`sed -n '/^[# ]*\[.*\][ ]*/p' ${config_file}`
+}
+
+getInfoByIndex()
+{
+    index=$1
+    nextIndex=`expr ${index} + 1`
+    info=`cat ${config_file} | sed -n "/^[# ]*\[servers.${index}/,/^[# ]*\[servers.${nextIndex}/p"`
+}
+
+getInfoByIndexAndKey()
+{
+    index=$1
+    nextIndex=`expr ${index} + 1`
+    key=$2
+    info=`cat ${config_file} | sed -n "/^[# ]*\[servers.${index}/,/^[# ]*\[servers.${nextIndex}/p" | grep -i $key | awk -F ':' '{print $2}'`
 }
 
 help()
@@ -113,15 +220,12 @@ main()
     fi
 
     # Send and decompress the package
-    SendFile
-    if [ $? -ne 0 ]; then
-        Log "SendFile err, this tool will be stoped..."
+    SendFileAndDecompressFile
+    if [ $? -eq -1 ]; then
+        echo "Send file err and exit soon..."
         exit
-    fi
-    
-    DecompressFile
-    if [ $? -ne 0 ]; then
-        Log "DecompressFile err, this tool will be stoped..."
+    elif [ $? -eq -2 ]; then
+        echo "Decompress file err and exit soon..."
     fi
 }
 
