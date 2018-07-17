@@ -4,7 +4,6 @@ import (
 	"math/big"
 	"encoding/asn1"
 	"github.com/tjfoc/gmsm/sm2"
-	auth "gitlab.33.cn/chain33/chain33/common/crypto/sm2"
 	"fmt"
 )
 
@@ -19,8 +18,6 @@ func signSM2(k *sm2.PrivateKey, digest []byte, opts SignerOpts) (signature []byt
 	if err != nil {
 		return nil, err
 	}
-
-	s = auth.ToLowS(&k.PublicKey, s)
 
 	return MarshalSM2Signature(r, s)
 }

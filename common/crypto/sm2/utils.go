@@ -41,17 +41,6 @@ func UnmarshalSM2Signature(raw []byte) (*big.Int, *big.Int, error) {
 	return sig.R, sig.S, nil
 }
 
-func SignatureToLowS(k *sm2.PublicKey, signature []byte) ([]byte, error) {
-	r, s, err := UnmarshalSM2Signature(signature)
-	if err != nil {
-		return nil, err
-	}
-
-	s = ToLowS(k, s)
-
-	return MarshalSM2Signature(r, s)
-}
-
 func ToLowS(k *sm2.PublicKey, s *big.Int) (*big.Int) {
 	lowS := IsLowS(s)
 	if !lowS && k.Curve != sm2.P256Sm2() {

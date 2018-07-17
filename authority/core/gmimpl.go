@@ -86,11 +86,6 @@ func (validator *gmValidator) Validate(certByte []byte, pubKey []byte) error {
 		return fmt.Errorf("Invalid public key.")
 	}
 
-	cert, err = validator.sanitizeCert(cert)
-	if err != nil {
-		return fmt.Errorf("Sanitize certification failed. err %s", err)
-	}
-
 	validationChain, err := validator.getCertificationChain(cert)
 	if err != nil {
 		return fmt.Errorf("Could not obtain certification chain, err %s", err)
@@ -180,10 +175,6 @@ func (validator *gmValidator) setupCAs(conf *AuthConfig) error {
 		if err != nil {
 			return err
 		}
-		cert, err = validator.sanitizeCert(cert)
-		if err != nil {
-			return err
-		}
 
 		validator.rootCerts[i] = cert
 	}
@@ -191,10 +182,6 @@ func (validator *gmValidator) setupCAs(conf *AuthConfig) error {
 	validator.intermediateCerts = make([]*sm2.Certificate, len(conf.IntermediateCerts))
 	for i, trustedCert := range conf.IntermediateCerts {
 		cert, err := validator.getCertFromPem(trustedCert)
-		if err != nil {
-			return err
-		}
-		cert, err = validator.sanitizeCert(cert)
 		if err != nil {
 			return err
 		}
@@ -251,36 +238,6 @@ func (validator *gmValidator) finalizeSetupCAs(config *AuthConfig) error {
 	}
 
 	return nil
-}
-
-func (validator *gmValidator) sanitizeCert(cert *sm2.Certificate) (*sm2.Certificate, error) {
-	if isSM2ECDSASignedCert(cert) {
-		var parentCert *sm2.Certificate
-		if cert.IsCA {
-			chain, err := validator.getUniqueValidationChain(cert, validator.getValidityOptsForCert(cert))
-			if err != nil {
-				return nil, err
-			}
-			if len(chain) == 1 {
-				parentCert = cert
-			} else {
-				parentCert = chain[1]
-			}
-		} else {
-			chain, err := validator.getUniqueValidationChain(cert, validator.getValidityOptsForCert(cert))
-			if err != nil {
-				return nil, err
-			}
-			parentCert = chain[1]
-		}
-
-		var err error
-		cert, err = sanitizeSM2ECDSASignedCert(cert, parentCert)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return cert, nil
 }
 
 func getSubjectKeyIdentifierFromSm2Cert(cert *sm2.Certificate) ([]byte, error) {
