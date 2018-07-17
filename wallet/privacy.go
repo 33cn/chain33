@@ -171,17 +171,10 @@ func (wallet *Wallet) createUTXOsByPub2Priv(priv crypto.PrivKey, reqCreateUTXOs 
 	tx.Fee = realFee
 	tx.Sign(int32(SignType), priv)
 
-	msg := wallet.client.NewMessage("mempool", types.EventTx, tx)
-	wallet.client.Send(msg, true)
-	resp, err := wallet.client.Wait(msg)
+	_, err = wallet.api.SendTx(tx)
 	if err != nil {
 		walletlog.Error("transPub2PriV2", "Send err", err)
 		return nil, err
-	}
-
-	reply := resp.GetData().(*types.Reply)
-	if !reply.GetIsOk() {
-		return nil, errors.New(string(reply.GetMsg()))
 	}
 	var hash types.ReplyHash
 	hash.Hash = tx.Hash()
@@ -241,17 +234,10 @@ func (wallet *Wallet) transPub2PriV2(priv crypto.PrivKey, reqPub2Pri *types.ReqP
 	tx.Fee = realFee
 	tx.Sign(int32(SignType), priv)
 
-	msg := wallet.client.NewMessage("mempool", types.EventTx, tx)
-	wallet.client.Send(msg, true)
-	resp, err := wallet.client.Wait(msg)
+	_, err = wallet.api.SendTx(tx)
 	if err != nil {
 		walletlog.Error("transPub2PriV2", "Send err", err)
 		return nil, err
-	}
-
-	reply := resp.GetData().(*types.Reply)
-	if !reply.GetIsOk() {
-		return nil, errors.New(string(reply.GetMsg()))
 	}
 	var hash types.ReplyHash
 	hash.Hash = tx.Hash()
@@ -456,18 +442,10 @@ func (wallet *Wallet) transPri2PriV2(privacykeyParirs *privacy.Privacy, reqPri2P
 	if err != nil {
 		return nil, err
 	}
-
-	msg := wallet.client.NewMessage("mempool", types.EventTx, tx)
-	wallet.client.Send(msg, true)
-	resp, err := wallet.client.Wait(msg)
+	_, err = wallet.api.SendTx(tx)
 	if err != nil {
 		walletlog.Error("transPri2Pri", "Send err", err)
 		return nil, err
-	}
-
-	reply := resp.GetData().(*types.Reply)
-	if !reply.GetIsOk() {
-		return nil, errors.New(string(reply.GetMsg()))
 	}
 	var hash types.ReplyHash
 	hash.Hash = tx.Hash()
@@ -533,17 +511,10 @@ func (wallet *Wallet) transPri2PubV2(privacykeyParirs *privacy.Privacy, reqPri2P
 		return nil, err
 	}
 
-	msg := wallet.client.NewMessage("mempool", types.EventTx, tx)
-	wallet.client.Send(msg, true)
-	resp, err := wallet.client.Wait(msg)
+	_, err = wallet.api.SendTx(tx)
 	if err != nil {
 		walletlog.Error("transPri2PubV2", "Send err", err)
 		return nil, err
-	}
-
-	reply := resp.GetData().(*types.Reply)
-	if !reply.GetIsOk() {
-		return nil, errors.New(string(reply.GetMsg()))
 	}
 	var hash types.ReplyHash
 	hash.Hash = tx.Hash()
@@ -594,14 +565,11 @@ func (wallet *Wallet) buildInput(privacykeyParirs *privacy.Privacy, buildInfo *b
 			Param:    types.Encode(&reqGetGlobalIndex),
 		}
 		//向blockchain请求相同额度的不同utxo用于相同额度的混淆作用
-		msg := wallet.client.NewMessage("execs", types.EventBlockChainQuery, query)
-		wallet.client.Send(msg, true)
-		resp, err := wallet.client.Wait(msg)
+		resUTXOGlobalIndex, err = wallet.api.BlockChainQuery(query)
 		if err != nil {
-			walletlog.Error("buildInput EventBlockChainQuery", "err", err)
+			walletlog.Error("buildInput BlockChainQuery", "err", err)
 			return nil, nil, nil, nil, err
 		}
-		resUTXOGlobalIndex = resp.GetData().(*types.ResUTXOGlobalIndex)
 		if resUTXOGlobalIndex == nil {
 			walletlog.Info("buildInput EventBlockChainQuery is nil")
 			return nil, nil, nil, nil, err
@@ -694,45 +662,69 @@ func (wallet *Wallet) buildInput(privacykeyParirs *privacy.Privacy, buildInfo *b
 	return privacyInput, utxosInKeyInput, realkeyInputSlice, selectedUtxo, nil
 }
 
+type walletUTXOSlice []*walletUTXO
+
+func (slice walletUTXOSlice) Len() int { // 重写 Len() 方法
+	return len(slice)
+}
+func (slice walletUTXOSlice) Swap(i, j int) { // 重写 Swap() 方法
+	slice[i], slice[j] = slice[j], slice[i]
+}
+func (slice walletUTXOSlice) Less(i, j int) bool { // 重写 Less() 方法， 从大到小排序
+	return slice[j].height < slice[i].height
+}
+
 // TODO: 修改选择UTXO的算法
 // 优先选择UTXO高度与当前高度建个12个区块以上的UTXO
 // 如果选择还不够则再从老到新选择12个区块内的UTXO
 // 当该地址上的可用UTXO比较多时，可以考虑改进算法，优先选择币值小的，花掉小票，然后再选择币值接近的，减少找零，最后才选择大面值的找零
 func (wallet *Wallet) selectUTXO(token, addr string, amount int64) ([]*txOutputInfo, error) {
-	walletOuts4Addr := wallet.walletStore.getPrivacyTokenUTXOs(token, addr)
-	if walletOuts4Addr != nil {
-		balanceLeft := int64(0)
-		for _, txOutputInfo := range walletOuts4Addr.outs {
-			balanceLeft += txOutputInfo.amount
-			if balanceLeft > amount {
-				// 余额足够支付，可以直接跳出循环
+	if len(token) == 0 || len(addr) == 0 || amount <= 0 {
+		return nil, types.ErrInvalidParams
+	}
+	wutxos, err := wallet.walletStore.getPrivacyTokenUTXOs(token, addr)
+	if err != nil {
+		return nil, types.ErrInsufficientBalance
+	}
+	curBlockHeight := wallet.GetHeight()
+	var confirmUTXOs, unconfirmUTXOs []*walletUTXO
+	var balance int64
+	for _, wutxo := range wutxos.utxos {
+		if curBlockHeight < wutxo.height {
+			continue
+		}
+		if curBlockHeight-wutxo.height > types.PrivacyMaturityDegree {
+			balance += wutxo.outinfo.amount
+			confirmUTXOs = append(confirmUTXOs, wutxo)
+		} else {
+			unconfirmUTXOs = append(unconfirmUTXOs, wutxo)
+		}
+	}
+	if balance < amount && len(unconfirmUTXOs) > 0 {
+		// 已经确认的UTXO还不够支付，则需要按照从老到新的顺序，从可能回退的队列中获取
+		// 高度从低到高获取
+		sort.Sort(walletUTXOSlice(unconfirmUTXOs))
+		for _, wutxo := range unconfirmUTXOs {
+			confirmUTXOs = append(confirmUTXOs, wutxo)
+			balance += wutxo.outinfo.amount
+			if balance >= amount {
 				break
 			}
 		}
-		//在挑选具体的输出前，先确认余额是否满足转账额度
-		if balanceLeft < amount {
-			return nil, types.ErrInsufficientBalance
-		}
-		balanceFound := int64(0)
-
-		// 1.组织需要请求的交易哈希列表
-		// 2.向区块链发送查询请求
-		// 3.根据获取到的区块链上的信息进行进一步处理
-
-		var selectedOuts []*txOutputInfo
-		for balanceFound < amount {
-			//随机选择其中一个utxo
-			index := wallet.random.Intn(len(walletOuts4Addr.outs))
-			selectedOuts = append(selectedOuts, walletOuts4Addr.outs[index])
-			balanceFound += walletOuts4Addr.outs[index].amount
-			//remove from the origin slice
-			walletOuts4Addr.outs = append(walletOuts4Addr.outs[:index], walletOuts4Addr.outs[index+1:]...)
-		}
-		return selectedOuts, nil
-	} else {
+	}
+	if balance < amount {
 		return nil, types.ErrInsufficientBalance
 	}
-	return nil, types.ErrInsufficientBalance
+	balance = 0
+	var selectedOuts []*txOutputInfo
+	for balance < amount {
+		index := wallet.random.Intn(len(confirmUTXOs))
+		selectedOuts = append(selectedOuts, confirmUTXOs[index].outinfo)
+		balance += confirmUTXOs[index].outinfo.amount
+		// remove selected utxo
+		confirmUTXOs = append(confirmUTXOs[:index], confirmUTXOs[index+1:]...)
+	}
+	return selectedOuts, nil
 }
 
 // 62387455827 -> 455827 + 7000000 + 80000000 + 300000000 + 2000000000 + 60000000000, where 455827 <= dust_threshold

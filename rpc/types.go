@@ -292,6 +292,7 @@ type RelayOrderTx struct {
 	Coin      string `json:"coin"`
 	Amount    uint64 `json:"coinamount"`
 	Addr      string `json:"coinaddr"`
+	CoinWait  uint32 `json:"waitblocks"`
 	BtyAmount uint64 `json:"btyamount"`
 	Fee       int64  `json:"fee"`
 }
@@ -299,6 +300,7 @@ type RelayOrderTx struct {
 type RelayAcceptTx struct {
 	OrderId  string `json:"order_id"`
 	CoinAddr string `json:"coinaddr"`
+	CoinWait uint32 `json:"waitblocks"`
 	Fee      int64  `json:"fee"`
 }
 

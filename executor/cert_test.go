@@ -100,7 +100,6 @@ func TestCertMgr(t *testing.T) {
 	prev := types.MinFee
 	types.SetMinFee(0)
 	defer types.SetMinFee(prev)
-	defer q.Close()
 
 	var msgs []queue.Message
 	var msg queue.Message
@@ -138,7 +137,6 @@ func TestCertTxCheck(t *testing.T) {
 	prev := types.MinFee
 	types.SetMinFee(0)
 	defer types.SetMinFee(prev)
-	defer q.Close()
 
 	var msgs []queue.Message
 	var msg queue.Message
@@ -171,7 +169,6 @@ func TestCertTxCheckRollback(t *testing.T) {
 	prev := types.MinFee
 	types.SetMinFee(0)
 	defer types.SetMinFee(prev)
-	defer q.Close()
 
 	var msgs []queue.Message
 	var msg queue.Message
