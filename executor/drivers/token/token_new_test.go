@@ -24,6 +24,7 @@ import (
 var (
 	isMainNetTest bool = false
 	isParaNetTest bool = false
+	isManageTest  bool = false
 )
 
 var (
@@ -57,8 +58,9 @@ var (
 	execName          = "user.p.guodun.token"
 	execNameMa        = "user.p.guodun.manage"
 	feeForToken int64 = 1e6
-	transToAddr       = "1NYxhca2zVMzxFqMRJdMcZfrSFnqbqotKe" //exec addr for convenience
+	transToAddr       = "1NYxhca2zVMzxFqMRJdMcZfrSFnqbqotKe"
 	transAmount int64 = 100 * 1e4 * 1e4
+	walletPass        = "fzm123"
 )
 
 //测试过程：
@@ -102,11 +104,14 @@ func TestInitAccount(t *testing.T) {
 	fmt.Println("TestInitAccount start")
 	defer fmt.Println("TestInitAccount end")
 
-	addr, privkey = genaddress()
+	//need update to fixed addr here
+	//addr = ""
+	//privkey = ""
+	//addr, privkey = genaddress()
 	label := strconv.Itoa(int(types.Now().UnixNano()))
 	params := types.ReqWalletImportPrivKey{Privkey: common.ToHex(privkey.Bytes()), Label: label}
 
-	unlock := types.WalletUnLock{Passwd: "fzm123", Timeout: 0, WalletOrTicket: false}
+	unlock := types.WalletUnLock{Passwd: walletPass, Timeout: 0, WalletOrTicket: false}
 	_, err := mainClient.UnLock(context.Background(), &unlock)
 	if err != nil {
 		fmt.Println(err)
@@ -114,29 +119,32 @@ func TestInitAccount(t *testing.T) {
 		return
 	}
 	time.Sleep(5 * time.Second)
+
 	_, err = mainClient.ImportPrivKey(context.Background(), &params)
-	if err != nil {
+	if err != nil && err != types.ErrPrivkeyExist {
 		fmt.Println(err)
 		t.Error(err)
 		return
 	}
 	time.Sleep(5 * time.Second)
-	txhash, err := sendtoaddress(mainClient, privGenesis, addr, defaultAmount)
+	/*
+		txhash, err := sendtoaddress(mainClient, privGenesis, addr, defaultAmount)
 
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	if !waitTx(txhash) {
-		t.Error(ErrTest)
-		return
-	}
-	time.Sleep(5 * time.Second)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		if !waitTx(txhash) {
+			t.Error(ErrTest)
+			return
+		}
 
+		time.Sleep(5 * time.Second)
+	*/
 }
 
 func TestManageForTokenBlackList(t *testing.T) {
-	if !isMainNetTest {
+	if !isManageTest {
 		return
 	}
 	fmt.Println("TestManageForTokenBlackList start")
@@ -178,7 +186,7 @@ func TestManageForTokenBlackList(t *testing.T) {
 }
 
 func TestManageForTokenFinisher(t *testing.T) {
-	if !isMainNetTest {
+	if !isManageTest {
 		return
 	}
 	fmt.Println("TestManageForTokenFinisher start")
