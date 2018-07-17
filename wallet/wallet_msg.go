@@ -380,6 +380,17 @@ func (wallet *Wallet) ProcRecvMsg() {
 				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyPrivacyAccountInfo, reply))
 			}
 
+		case types.EventPrivacyTransactionList:
+			req := msg.Data.(*types.ReqPrivacyTransactionList)
+			reply, err := wallet.procPrivacyTransactionList(req)
+			if err != nil {
+				walletlog.Error("procPrivacyTransactionList", "err", err.Error())
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyPrivacyTransactionList, err))
+			} else {
+				walletlog.Info("procPrivacyTransactionList", "req", req)
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyPrivacyTransactionList, reply))
+			}
+
 		default:
 			walletlog.Info("ProcRecvMsg unknow msg", "msgtype", msgtype)
 		}
