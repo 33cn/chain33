@@ -392,15 +392,10 @@ func (wallet *Wallet) GetWalletAccounts() ([]*types.WalletAccountStore, error) {
 }
 
 func (wallet *Wallet) setLastHeader(header *types.Header) {
-	wallet.mtx.Lock()
-	defer wallet.mtx.Unlock()
 	wallet.lastHeader = header
 }
 
 func (wallet *Wallet) getLastHeader() *types.Header {
-	wallet.mtx.Lock()
-	defer wallet.mtx.Unlock()
-
 	if wallet.lastHeader == nil {
 		header, err := wallet.api.GetLastHeader()
 		if err != nil {
