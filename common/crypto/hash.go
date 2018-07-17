@@ -3,9 +3,8 @@ package crypto
 import (
 	"crypto/sha256"
 
-	sm3 "github.com/lotus-king/SM3"
-
 	"golang.org/x/crypto/ripemd160"
+	"github.com/tjfoc/gmsm/sm3"
 )
 
 func Sha256(bytes []byte) []byte {
