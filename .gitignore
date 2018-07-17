@@ -8,6 +8,7 @@ cmd/chain33/chain33
 build/chain33*
 build/datadir
 build/bityuan*
+build/para
 build/relayd
 build/relayd.toml
 build/*.log

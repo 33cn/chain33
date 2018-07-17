@@ -71,6 +71,30 @@ func SetForkToOne() {
 	ForkV20EVMState = 1
 }
 
+//paraName not used currently
+func SetForkForPara(paraName string) {
+	ForkV1 = 1
+	ForkV2AddToken = 1
+	ForkV3 = 1
+	ForkV4AddManage = 1
+	ForkV5Retrive = 1
+	ForkV6TokenBlackList = 1
+	ForkV7BadTokenSymbol = 1
+	ForkBlockHash = 1
+	ForkV9 = 1
+	ForkV10TradeBuyLimit = 1
+	ForkV11ManageExec = 1
+	ForkV12TransferExec = 1
+	ForkV13ExecKey = 1
+	ForkV14TxGroup = 1
+	ForkV15ResetTx0 = 1
+	ForkV16Withdraw = 1
+	ForkV17EVM = 1
+	ForkV18Relay = 1
+	ForkV19TokenPrice = 1
+	ForkV20EVMState = 1
+}
+
 func IsMatchFork(height int64, fork int64) bool {
 	if height == -1 || height >= fork {
 		return true
