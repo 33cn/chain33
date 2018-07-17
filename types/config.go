@@ -114,9 +114,9 @@ func SetTitle(t string) {
 		return
 	}
 	if IsPara() {
+		//keep superManager same with mainnet
 		ExecNamePrefix = title
-		SetForkToOne()
-		SuperManager = []string{"1BjLtd6Eqeo19URRVQzvBFbx1X2TSoPabp"}
+		SetForkForPara(title)
 	}
 }
 

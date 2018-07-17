@@ -585,13 +585,11 @@ func (wallet *Wallet) IsCaughtUp() bool {
 	if wallet.client == nil {
 		panic("wallet client not bind message queue.")
 	}
-	msg := wallet.client.NewMessage("blockchain", types.EventIsSync, nil)
-	wallet.client.Send(msg, true)
-	resp, err := wallet.client.Wait(msg)
+	reply, err := wallet.api.IsSync()
 	if err != nil {
 		return false
 	}
-	return resp.GetData().(*types.IsCaughtUp).GetIscaughtup()
+	return reply.IsOk
 }
 
 func (wallet *Wallet) GetRofPrivateTx(txhashptr *string) (R_txpubkey []byte, err error) {
