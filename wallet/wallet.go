@@ -68,6 +68,7 @@ type Wallet struct {
 	cfg              *types.Wallet
 	done             chan struct{}
 	rescanwg         *sync.WaitGroup
+	lastHeader       *types.Header
 }
 
 type walletUTXO struct {
@@ -388,4 +389,25 @@ func (wallet *Wallet) GetWalletAccounts() ([]*types.WalletAccountStore, error) {
 		return nil, err
 	}
 	return WalletAccStores, err
+}
+
+func (wallet *Wallet) setLastHeader(header *types.Header) {
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+	wallet.lastHeader = header
+}
+
+func (wallet *Wallet) getLastHeader() *types.Header {
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+
+	if wallet.lastHeader == nil {
+		header, err := wallet.api.GetLastHeader()
+		if err != nil {
+			walletlog.Error("getLastHeader", "GetLastHeader error", err)
+			return nil
+		}
+		wallet.lastHeader = header
+	}
+	return wallet.lastHeader
 }

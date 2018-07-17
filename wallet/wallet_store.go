@@ -6,8 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"time"
-
 	"github.com/golang/protobuf/proto"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
@@ -483,7 +481,7 @@ func (ws *Store) getWalletPrivacyTokenMap() *types.TokenNamesOfUTXO {
 	return &tokenNamesOfUTXO
 }
 
-func (ws *Store) updateFTXOFreezeTime(freezetime int64, token, sender, txhash string, newbatch dbm.Batch) error {
+func (ws *Store) updateFTXOFreezeTime(tx *types.Transaction, token, sender, txhash string, newbatch dbm.Batch) error {
 	//设置ftxo的key，使其能够方便地获取到对应的交易花费的utxo
 	key1 := calcKey4FTXOsInTx(token, sender, txhash)
 	value1, err := ws.db.Get(key1)
@@ -503,7 +501,7 @@ func (ws *Store) updateFTXOFreezeTime(freezetime int64, token, sender, txhash st
 		walletlog.Error("unmoveUTXO2FTXO", "Failed to decode FTXOsSTXOsInOneTx for value", value2)
 		return err
 	}
-	ftxosInOneTx.Freezetime = freezetime
+	ftxosInOneTx.SetExpire(tx)
 	newValue := types.Encode(&ftxosInOneTx)
 	newbatch.Set(key2, newValue)
 	return nil
@@ -609,7 +607,7 @@ func (ws *Store) unsetUTXO(addr, txhash *string, outindex int, token string, new
 //calcKey4UTXOsSpentInTx------>types.FTXOsSTXOsInOneTx,将当前交易的所有花费的utxo进行打包，设置为ftxo，同时通过支付交易hash索引
 //calcKey4FTXOsInTx----------->calcKey4UTXOsSpentInTx,创建该交易冻结的所有的utxo的信息
 //状态转移，将utxo转移至ftxo，同时记录该生成tx的花费的utxo，这样在确认执行成功之后就可以快速将相应的FTXO转换成STXO
-func (ws *Store) moveUTXO2FTXO(token, sender, txhash string, selectedUtxos []*txOutputInfo) {
+func (ws *Store) moveUTXO2FTXO(tx *types.Transaction, token, sender, txhash string, selectedUtxos []*txOutputInfo) {
 	FTXOsInOneTx := &types.FTXOsSTXOsInOneTx{}
 	newbatch := ws.NewBatch(true)
 	for _, txOutputInfo := range selectedUtxos {
@@ -626,8 +624,8 @@ func (ws *Store) moveUTXO2FTXO(token, sender, txhash string, selectedUtxos []*tx
 	}
 	FTXOsInOneTx.Tokenname = token
 	FTXOsInOneTx.Sender = sender
-	FTXOsInOneTx.Freezetime = time.Now().UnixNano()
 	FTXOsInOneTx.Txhash = txhash
+	FTXOsInOneTx.SetExpire(tx)
 	//设置在该交易中花费的UTXO
 	key1 := calcKey4UTXOsSpentInTx(txhash)
 	value1 := types.Encode(FTXOsInOneTx)
@@ -726,7 +724,7 @@ func (ws *Store) moveFTXO2STXO(key1 []byte, txhash string, newbatch dbm.Batch) e
 
 //由于块的回退的原因，导致其中的交易需要被回退，即将stxo回退到ftxo，
 //正常情况下，被回退的交易会被重新加入到新的区块中并得到执行
-func (ws *Store) moveSTXO2FTXO(txhash string, newbatch dbm.Batch) error {
+func (ws *Store) moveSTXO2FTXO(tx *types.Transaction, txhash string, newbatch dbm.Batch) error {
 	//设置ftxo的key，使其能够方便地获取到对应的交易花费的utxo
 	key2 := calcKey4STXOsInTx(txhash)
 	value2, err := ws.db.Get(key2)
@@ -762,8 +760,7 @@ func (ws *Store) moveSTXO2FTXO(txhash string, newbatch dbm.Batch) error {
 	newbatch.Set(key1, value1)
 	walletlog.Info("moveSTXO2FTXO", "txhash ", txhash)
 
-	//更新数据库中的超时时间设置，回退处理的超时处理时间设置为256区块时间
-	ftxosInOneTx.Freezetime = time.Now().UnixNano()
+	ftxosInOneTx.SetExpire(tx)
 	value = types.Encode(&ftxosInOneTx)
 	newbatch.Set(key, value)
 
