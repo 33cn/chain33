@@ -72,15 +72,15 @@ func (privKey PrivKeySM2) Bytes() []byte {
 }
 
 func (privKey PrivKeySM2) Sign(msg []byte) crypto.Signature {
-	priv, pub := privKeyFromBytes(sm2.P256Sm2(), privKey[:])
+	priv, _ := privKeyFromBytes(sm2.P256Sm2(), privKey[:])
 	r, s, err := sm2.Sign(priv, crypto.Sm3Hash(msg))
 	if err != nil {
 		return nil
 	}
 
-	s = ToLowS(pub, s)
+	//sm2不需要LowS转换
+	//s = ToLowS(pub, s)
 	sm2SigByte, _ := MarshalSM2Signature(r, s)
-	//fmt.Printf("hash:%x, r:%d s:%d\n", crypto.Sm3Hash(msg), r, s)
 	return SignatureSM2(sm2SigByte)
 }
 
@@ -111,11 +111,10 @@ func (pubKey PubKeySM2) Bytes() []byte {
 }
 
 func (pubKey PubKeySM2) VerifyBytes(msg []byte, sig crypto.Signature) bool {
-	// unwrap if needed
 	if wrap, ok := sig.(SignatureS); ok {
 		sig = wrap.Signature
 	}
-	// and assert same algorithm to sign and verify
+
 	sigSM2, ok := sig.(SignatureSM2)
 	if !ok {
 		fmt.Printf("convert failed\n")
@@ -134,6 +133,7 @@ func (pubKey PubKeySM2) VerifyBytes(msg []byte, sig crypto.Signature) bool {
 		return false
 	}
 
+	//国密签名算法和ecdsa不一样，-s验签不通过，所以不需要LowS检查
 	//fmt.Printf("verify:%x, r:%d, s:%d\n", crypto.Sm3Hash(msg), r, s)
 	//lowS := IsLowS(s)
 	//if !lowS {

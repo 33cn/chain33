@@ -4,7 +4,6 @@ import (
 	"crypto/x509"
 
 	"github.com/tjfoc/gmsm/sm2"
-	"crypto/ecdsa"
 	"gitlab.33.cn/chain33/chain33/authority/tools/cryptogen/factory/csp"
 )
 
@@ -40,43 +39,6 @@ func CreateCertificateToPem(FileName string, template, parent *sm2.Certificate, 
 	}
 
 	return result,err
-}
-
-//调用SM2接口生成SM2证书请求
-func CreateSm2CertificateRequestToMem(certificateRequest *sm2.CertificateRequest, key csp.Key) (csr []byte, err error) {
-	pk := key.(*csp.SM2PrivateKey).PrivKey
-	csr, err = sm2.CreateCertificateRequestToMem(certificateRequest, pk)
-	return
-}
-
-// X509 证书请求转换 SM2证书请求
-func ParseX509CertificateRequest2Sm2(x509req *x509.CertificateRequest) *sm2.CertificateRequest {
-	sm2req := &sm2.CertificateRequest{
-		Raw: x509req.Raw,
-		RawTBSCertificateRequest: x509req.RawTBSCertificateRequest,
-		RawSubjectPublicKeyInfo:  x509req.RawSubjectPublicKeyInfo,
-		RawSubject:               x509req.RawSubject,
-
-		Version:            x509req.Version,
-		Signature:          x509req.Signature,
-		SignatureAlgorithm: sm2.SignatureAlgorithm(x509req.SignatureAlgorithm),
-
-		PublicKeyAlgorithm: sm2.PublicKeyAlgorithm(x509req.PublicKeyAlgorithm),
-		PublicKey:          x509req.PublicKey,
-
-		Subject: x509req.Subject,
-
-		Attributes: x509req.Attributes,
-
-		Extensions: x509req.Extensions,
-
-		ExtraExtensions: x509req.ExtraExtensions,
-
-		DNSNames:       x509req.DNSNames,
-		EmailAddresses: x509req.EmailAddresses,
-		IPAddresses:    x509req.IPAddresses,
-	}
-	return sm2req
 }
 
 // X509证书格式转换为 SM2证书格式

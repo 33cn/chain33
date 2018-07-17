@@ -252,7 +252,6 @@ func (auth *Authority) Validate(signature *types.Signature) error {
 	// 是否在有效证书缓存中
 	for _, v := range auth.validCertCache {
 		if bytes.Equal(v, certSignature.Cert) {
-			fmt.Print("cert cache hit\n")
 			return nil
 		}
 	}

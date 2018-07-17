@@ -11,7 +11,6 @@ import (
 	"time"
 
 	ecdsa_util "gitlab.33.cn/chain33/chain33/common/crypto/ecdsa"
-	sm2_util "gitlab.33.cn/chain33/chain33/common/crypto/sm2"
 	"github.com/tjfoc/gmsm/sm2"
 )
 
@@ -53,13 +52,6 @@ func isECDSASignedCert(cert *x509.Certificate) bool {
 		cert.SignatureAlgorithm == x509.ECDSAWithSHA512
 }
 
-func isSM2ECDSASignedCert(cert *sm2.Certificate) bool {
-	return cert.SignatureAlgorithm == sm2.ECDSAWithSHA1 ||
-		cert.SignatureAlgorithm == sm2.ECDSAWithSHA256 ||
-		cert.SignatureAlgorithm == sm2.ECDSAWithSHA384 ||
-		cert.SignatureAlgorithm == sm2.ECDSAWithSHA512
-}
-
 func sanitizeECDSASignedCert(cert *x509.Certificate, parentCert *x509.Certificate) (*x509.Certificate, error) {
 	if cert == nil {
 		return nil, errors.New("Certificate must be different from nil.")
@@ -92,39 +84,6 @@ func sanitizeECDSASignedCert(cert *x509.Certificate, parentCert *x509.Certificat
 	}
 
 	return x509.ParseCertificate(newRaw)
-}
-
-func sanitizeSM2ECDSASignedCert(cert *sm2.Certificate, parentCert *sm2.Certificate) (*sm2.Certificate, error) {
-	if cert == nil {
-		return nil, errors.New("Certificate must be different from nil.")
-	}
-	if parentCert == nil {
-		return nil, errors.New("Parent certificate must be different from nil.")
-	}
-
-	expectedSig, err := sm2_util.SignatureToLowS(parentCert.PublicKey.(*sm2.PublicKey), cert.Signature)
-	if err != nil {
-		return nil, err
-	}
-
-	if bytes.Equal(cert.Signature, expectedSig) {
-		return cert, nil
-	}
-
-	newCert, err := certFromSM2Cert(cert)
-	if err != nil {
-		return nil, err
-	}
-
-	newCert.SignatureValue = asn1.BitString{Bytes: expectedSig, BitLength: len(expectedSig) * 8}
-
-	newCert.Raw = nil
-	newRaw, err := asn1.Marshal(newCert)
-	if err != nil {
-		return nil, err
-	}
-
-	return sm2.ParseCertificate(newRaw)
 }
 
 func signatureToLowS(k *ecdsa.PublicKey, signature []byte) ([]byte, error) {
