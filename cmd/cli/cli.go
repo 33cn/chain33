@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/cmd/cli/commands"
+	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/log"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 )
@@ -35,8 +36,11 @@ var closeCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.PersistentFlags().String("rpc_laddr", "http://localhost:8801", "http url")
-	rootCmd.PersistentFlags().String("paraName", "", "parachain")
+	if config.RPCAddr == "" {
+		config.RPCAddr = "http://localhost:8801"
+	}
+	rootCmd.PersistentFlags().String("rpc_laddr", config.RPCAddr, "http url")
+	rootCmd.PersistentFlags().String("paraName", config.ParaName, "parachain")
 
 	rootCmd.AddCommand(
 		commands.AccountCmd(),
