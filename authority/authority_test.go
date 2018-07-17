@@ -33,9 +33,10 @@ var (
 )
 
 var USERNAME = "User"
+var SIGNTYPE = types.AUTH_SM2
 
 func signtx(tx *types.Transaction, priv crypto.PrivKey, cert []byte) {
-	tx.Sign(types.AUTH_ECDSA, priv)
+	tx.Sign(int32(SIGNTYPE), priv)
 	certSign := crypto.CertSignature{}
 	certSign.Signature = append(certSign.Signature, tx.Signature.Signature...)
 	certSign.Cert = append(certSign.Cert, cert...)
@@ -76,9 +77,9 @@ func initEnv() error {
 		return err
 	}
 
-	cr, err := crypto.New(types.GetSignatureTypeName(types.AUTH_ECDSA))
+	cr, err := crypto.New(types.GetSignatureTypeName(SIGNTYPE))
 	if err != nil {
-		return fmt.Errorf("create crypto %s failed, error:%s", types.GetSignatureTypeName(types.AUTH_ECDSA), err)
+		return fmt.Errorf("create crypto %s failed, error:%s", types.GetSignatureTypeName(SIGNTYPE), err)
 	}
 
 	priv, err := cr.PrivKeyFromBytes(user.Key)
@@ -99,6 +100,7 @@ func TestChckSign(t *testing.T) {
 	err := initEnv()
 	if err != nil {
 		t.Errorf("init env failed, error:%s", err)
+		return
 	}
 	prev := types.MinFee
 	types.SetMinFee(0)
@@ -114,6 +116,7 @@ func TestChckSigns(t *testing.T) {
 	err := initEnv()
 	if err != nil {
 		t.Errorf("init env failed, error:%s", err)
+		return
 	}
 	prev := types.MinFee
 	types.SetMinFee(0)
@@ -131,6 +134,7 @@ func TestValidateCert(t *testing.T) {
 	err := initEnv()
 	if err != nil {
 		t.Errorf("init env failed, error:%s", err)
+		return
 	}
 
 	prev := types.MinFee
@@ -139,7 +143,7 @@ func TestValidateCert(t *testing.T) {
 
 	err = Author.Validate(tx1.Signature)
 	if err != nil {
-		t.Error("error process txs signature validate", err.Error())
+		t.Error("error cert validate", err.Error())
 	}
 }
 
@@ -181,6 +185,7 @@ func TestCheckTx(t *testing.T) {
 	err := initEnv()
 	if err != nil {
 		t.Errorf("init env failed, error:%s", err)
+		return
 	}
 
 	prev := types.MinFee
@@ -202,6 +207,7 @@ func TestReloadCert(t *testing.T) {
 	err := initEnv()
 	if err != nil {
 		t.Errorf("init env failed, error:%s", err)
+		return
 	}
 
 	prev := types.MinFee
@@ -222,6 +228,7 @@ func TestReloadByHeight(t *testing.T) {
 	err := initEnv()
 	if err != nil {
 		t.Errorf("init env failed, error:%s", err)
+		return
 	}
 
 	prev := types.MinFee

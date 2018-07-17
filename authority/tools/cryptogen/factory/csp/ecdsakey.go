@@ -4,11 +4,8 @@ import (
 	"crypto/ecdsa"
 	"crypto/x509"
 	"fmt"
-
 	"crypto/sha256"
-
 	"errors"
-
 	"crypto/elliptic"
 )
 
