@@ -30,6 +30,9 @@ type TxGroup interface {
 }
 
 func ExecName(name string) string {
+	if IsParaExecName(name) {
+		return name
+	}
 	return ExecNamePrefix + name
 }
 
