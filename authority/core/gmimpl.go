@@ -1,42 +1,36 @@
 package core
 
 import (
-	"bytes"
-	"crypto/x509"
 	"crypto/x509/pkix"
-	"encoding/asn1"
-	"encoding/pem"
-	"errors"
+	"github.com/tjfoc/gmsm/sm2"
 	"fmt"
-	"math/big"
-	"reflect"
+	"errors"
+	"encoding/pem"
 	"time"
-
+	"reflect"
+	"encoding/asn1"
+	"bytes"
+	sm2_util "gitlab.33.cn/chain33/chain33/common/crypto/sm2"
 	"crypto/ecdsa"
-
-	log "github.com/inconshreveable/log15"
-	ecdsa_util "gitlab.33.cn/chain33/chain33/common/crypto/ecdsa"
 )
 
-var authLogger = log.New("module", "autority")
+type gmValidator struct {
+	rootCerts []*sm2.Certificate
 
-type ecdsaValidator struct {
-	rootCerts []*x509.Certificate
-
-	intermediateCerts []*x509.Certificate
+	intermediateCerts []*sm2.Certificate
 
 	certificationTreeInternalNodesMap map[string]bool
 
-	opts *x509.VerifyOptions
+	opts *sm2.VerifyOptions
 
 	CRL []*pkix.CertificateList
 }
 
-func NewEcdsaValidator() Validator {
-	return &ecdsaValidator{}
+func NewGmValidator() Validator {
+	return &gmValidator{}
 }
 
-func (validator *ecdsaValidator) getCertFromPem(idBytes []byte) (*x509.Certificate, error) {
+func (validator *gmValidator) getCertFromPem(idBytes []byte) (*sm2.Certificate, error) {
 	if idBytes == nil {
 		return nil, fmt.Errorf("getIdentityFromConf error: nil idBytes")
 	}
@@ -46,69 +40,16 @@ func (validator *ecdsaValidator) getCertFromPem(idBytes []byte) (*x509.Certifica
 		return nil, fmt.Errorf("getIdentityFromBytes error: could not decode pem bytes [%v]", idBytes)
 	}
 
-	var cert *x509.Certificate
-	cert, err := x509.ParseCertificate(pemCert.Bytes)
+	var cert *sm2.Certificate
+	cert, err := sm2.ParseCertificate(pemCert.Bytes)
 	if err != nil {
-		return nil, fmt.Errorf("getIdentityFromBytes error: failed to parse x509 cert, err %s", err)
+		return nil, fmt.Errorf("getIdentityFromBytes error: failed to parse sm2 cert, err %s", err)
 	}
 
 	return cert, nil
 }
 
-type authorityKeyIdentifier struct {
-	KeyIdentifier             []byte  `asn1:"optional,tag:0"`
-	AuthorityCertIssuer       []byte  `asn1:"optional,tag:1"`
-	AuthorityCertSerialNumber big.Int `asn1:"optional,tag:2"`
-}
-
-func getAuthorityKeyIdentifierFromCrl(crl *pkix.CertificateList) ([]byte, error) {
-	aki := authorityKeyIdentifier{}
-
-	for _, ext := range crl.TBSCertList.Extensions {
-		if reflect.DeepEqual(ext.Id, asn1.ObjectIdentifier{2, 5, 29, 35}) {
-			_, err := asn1.Unmarshal(ext.Value, &aki)
-			if err != nil {
-				return nil, fmt.Errorf("Failed to unmarshal AKI, error %s", err)
-			}
-
-			return aki.KeyIdentifier, nil
-		}
-	}
-
-	return nil, errors.New("authorityKeyIdentifier not found in certificate")
-}
-
-func getSubjectKeyIdentifierFromCert(cert *x509.Certificate) ([]byte, error) {
-	var SKI []byte
-
-	for _, ext := range cert.Extensions {
-		if reflect.DeepEqual(ext.Id, asn1.ObjectIdentifier{2, 5, 29, 14}) {
-			_, err := asn1.Unmarshal(ext.Value, &SKI)
-			if err != nil {
-				return nil, fmt.Errorf("Failed to unmarshal Subject Key Identifier, err %s", err)
-			}
-
-			return SKI, nil
-		}
-	}
-
-	return nil, errors.New("subjectKeyIdentifier not found in certificate")
-}
-
-func isCACert(cert *x509.Certificate) bool {
-	_, err := getSubjectKeyIdentifierFromCert(cert)
-	if err != nil {
-		return false
-	}
-
-	if !cert.IsCA {
-		return false
-	}
-
-	return true
-}
-
-func (validator *ecdsaValidator) Setup(conf *AuthConfig) error {
+func (validator *gmValidator) Setup(conf *AuthConfig) error {
 	if conf == nil {
 		return fmt.Errorf("Setup error: nil conf reference")
 	}
@@ -128,7 +69,7 @@ func (validator *ecdsaValidator) Setup(conf *AuthConfig) error {
 	return nil
 }
 
-func (validator *ecdsaValidator) Validate(certByte []byte, pubKey []byte) error {
+func (validator *gmValidator) Validate(certByte []byte, pubKey []byte) error {
 	authLogger.Debug("validating certificate")
 
 	cert, err := validator.getCertFromPem(certByte)
@@ -138,10 +79,10 @@ func (validator *ecdsaValidator) Validate(certByte []byte, pubKey []byte) error 
 
 	certPubKey, ok := cert.PublicKey.(*ecdsa.PublicKey)
 	if !ok {
-		return fmt.Errorf("Error publick key type in transaction. expect ECDSA")
+		return fmt.Errorf("Error publick key type in transaction. expect SM2")
 	}
 
-	if !bytes.Equal(pubKey, ecdsa_util.SerializePublicKey(certPubKey)) {
+	if !bytes.Equal(pubKey, sm2_util.SerializePublicKey(ParseECDSAPubKey2SM2PubKey(certPubKey))) {
 		return fmt.Errorf("Invalid public key.")
 	}
 
@@ -163,35 +104,36 @@ func (validator *ecdsaValidator) Validate(certByte []byte, pubKey []byte) error 
 	return nil
 }
 
-func (validator *ecdsaValidator) getCertificationChain(cert *x509.Certificate) ([]*x509.Certificate, error) {
+func (validator *gmValidator) getCertificationChain(cert *sm2.Certificate) ([]*sm2.Certificate, error) {
 	if validator.opts == nil {
 		return nil, errors.New("Invalid validator instance")
 	}
 
 	if cert.IsCA {
-		return nil, errors.New("A CA certificate cannot be used directly")
+		return nil, errors.New("A CA certificate cannot be used directly by this validator")
 	}
 
 	return validator.getValidationChain(cert, false)
 }
 
-func (validator *ecdsaValidator) getUniqueValidationChain(cert *x509.Certificate, opts x509.VerifyOptions) ([]*x509.Certificate, error) {
+func (validator *gmValidator) getUniqueValidationChain(cert *sm2.Certificate, opts sm2.VerifyOptions) ([]*sm2.Certificate, error) {
 	if validator.opts == nil {
 		return nil, fmt.Errorf("The supplied identity has no verify options")
 	}
+
 	validationChains, err := cert.Verify(opts)
 	if err != nil {
 		return nil, fmt.Errorf("The supplied identity is not valid, Verify() returned %s", err)
 	}
 
 	if len(validationChains) != 1 {
-		return nil, fmt.Errorf("Only supports a single validation chain, got %d", len(validationChains))
+		return nil, fmt.Errorf("This validator only supports a single validation chain, got %d", len(validationChains))
 	}
 
 	return validationChains[0], nil
 }
 
-func (validator *ecdsaValidator) getValidationChain(cert *x509.Certificate, isIntermediateChain bool) ([]*x509.Certificate, error) {
+func (validator *gmValidator) getValidationChain(cert *sm2.Certificate, isIntermediateChain bool) ([]*sm2.Certificate, error) {
 	validationChain, err := validator.getUniqueValidationChain(cert, validator.getValidityOptsForCert(cert))
 	if err != nil {
 		return nil, fmt.Errorf("Failed getting validation chain %s", err)
@@ -211,12 +153,12 @@ func (validator *ecdsaValidator) getValidationChain(cert *x509.Certificate, isIn
 	return validationChain, nil
 }
 
-func (validator *ecdsaValidator) setupCAs(conf *AuthConfig) error {
+func (validator *gmValidator) setupCAs(conf *AuthConfig) error {
 	if len(conf.RootCerts) == 0 {
 		return errors.New("Expected at least one CA certificate")
 	}
 
-	validator.opts = &x509.VerifyOptions{Roots: x509.NewCertPool(), Intermediates: x509.NewCertPool()}
+	validator.opts = &sm2.VerifyOptions{Roots: sm2.NewCertPool(), Intermediates: sm2.NewCertPool()}
 	for _, v := range conf.RootCerts {
 		cert, err := validator.getCertFromPem(v)
 		if err != nil {
@@ -232,7 +174,7 @@ func (validator *ecdsaValidator) setupCAs(conf *AuthConfig) error {
 		validator.opts.Intermediates.AddCert(cert)
 	}
 
-	validator.rootCerts = make([]*x509.Certificate, len(conf.RootCerts))
+	validator.rootCerts = make([]*sm2.Certificate, len(conf.RootCerts))
 	for i, trustedCert := range conf.RootCerts {
 		cert, err := validator.getCertFromPem(trustedCert)
 		if err != nil {
@@ -246,7 +188,7 @@ func (validator *ecdsaValidator) setupCAs(conf *AuthConfig) error {
 		validator.rootCerts[i] = cert
 	}
 
-	validator.intermediateCerts = make([]*x509.Certificate, len(conf.IntermediateCerts))
+	validator.intermediateCerts = make([]*sm2.Certificate, len(conf.IntermediateCerts))
 	for i, trustedCert := range conf.IntermediateCerts {
 		cert, err := validator.getCertFromPem(trustedCert)
 		if err != nil {
@@ -260,7 +202,7 @@ func (validator *ecdsaValidator) setupCAs(conf *AuthConfig) error {
 		validator.intermediateCerts[i] = cert
 	}
 
-	validator.opts = &x509.VerifyOptions{Roots: x509.NewCertPool(), Intermediates: x509.NewCertPool()}
+	validator.opts = &sm2.VerifyOptions{Roots: sm2.NewCertPool(), Intermediates: sm2.NewCertPool()}
 	for _, cert := range validator.rootCerts {
 		validator.opts.Roots.AddCert(cert)
 	}
@@ -271,32 +213,33 @@ func (validator *ecdsaValidator) setupCAs(conf *AuthConfig) error {
 	return nil
 }
 
-func (validator *ecdsaValidator) setupCRLs(conf *AuthConfig) error {
+func (validator *gmValidator) setupCRLs(conf *AuthConfig) error {
 	validator.CRL = make([]*pkix.CertificateList, len(conf.RevocationList))
 	for i, crlbytes := range conf.RevocationList {
-		crl, err := x509.ParseCRL(crlbytes)
+		crl, err := sm2.ParseCRL(crlbytes)
 		if err != nil {
 			return fmt.Errorf("Could not parse RevocationList, err %s", err)
 		}
+
 		validator.CRL[i] = crl
 	}
 
 	return nil
 }
 
-func (validator *ecdsaValidator) finalizeSetupCAs(config *AuthConfig) error {
-	for _, cert := range append(append([]*x509.Certificate{}, validator.rootCerts...), validator.intermediateCerts...) {
-		if !isCACert(cert) {
+func (validator *gmValidator) finalizeSetupCAs(config *AuthConfig) error {
+	for _, cert := range append(append([]*sm2.Certificate{}, validator.rootCerts...), validator.intermediateCerts...) {
+		if !isSm2CACert(cert) {
 			return fmt.Errorf("CA Certificate did not have the Subject Key Identifier extension, (SN: %s)", cert.SerialNumber)
 		}
 
 		if err := validator.validateCAIdentity(cert); err != nil {
-			return fmt.Errorf("CA Certificate is not valid, (SN: %s) [%s]", cert.SerialNumber, err)
+			return fmt.Errorf("CA Certificate is not valid, (SN: %s) [%s]",cert.SerialNumber, err)
 		}
 	}
 
 	validator.certificationTreeInternalNodesMap = make(map[string]bool)
-	for _, cert := range append([]*x509.Certificate{}, validator.intermediateCerts...) {
+	for _, cert := range append([]*sm2.Certificate{}, validator.intermediateCerts...) {
 		chain, err := validator.getUniqueValidationChain(cert, validator.getValidityOptsForCert(cert))
 		if err != nil {
 			return fmt.Errorf("Failed getting validation chain, (SN: %s)", cert.SerialNumber)
@@ -310,9 +253,9 @@ func (validator *ecdsaValidator) finalizeSetupCAs(config *AuthConfig) error {
 	return nil
 }
 
-func (validator *ecdsaValidator) sanitizeCert(cert *x509.Certificate) (*x509.Certificate, error) {
-	if isECDSASignedCert(cert) {
-		var parentCert *x509.Certificate
+func (validator *gmValidator) sanitizeCert(cert *sm2.Certificate) (*sm2.Certificate, error) {
+	if isSM2ECDSASignedCert(cert) {
+		var parentCert *sm2.Certificate
 		if cert.IsCA {
 			chain, err := validator.getUniqueValidationChain(cert, validator.getValidityOptsForCert(cert))
 			if err != nil {
@@ -332,7 +275,7 @@ func (validator *ecdsaValidator) sanitizeCert(cert *x509.Certificate) (*x509.Cer
 		}
 
 		var err error
-		cert, err = sanitizeECDSASignedCert(cert, parentCert)
+		cert, err = sanitizeSM2ECDSASignedCert(cert, parentCert)
 		if err != nil {
 			return nil, err
 		}
@@ -340,7 +283,37 @@ func (validator *ecdsaValidator) sanitizeCert(cert *x509.Certificate) (*x509.Cer
 	return cert, nil
 }
 
-func (validator *ecdsaValidator) validateCAIdentity(cert *x509.Certificate) error {
+func getSubjectKeyIdentifierFromSm2Cert(cert *sm2.Certificate) ([]byte, error) {
+	var SKI []byte
+
+	for _, ext := range cert.Extensions {
+		if reflect.DeepEqual(ext.Id, asn1.ObjectIdentifier{2, 5, 29, 14}) {
+			_, err := asn1.Unmarshal(ext.Value, &SKI)
+			if err != nil {
+				return nil, fmt.Errorf("Failed to unmarshal Subject Key Identifier, err %s", err)
+			}
+
+			return SKI, nil
+		}
+	}
+
+	return nil, errors.New("subjectKeyIdentifier not found in certificate")
+}
+
+func isSm2CACert(cert *sm2.Certificate) bool {
+	_, err := getSubjectKeyIdentifierFromSm2Cert(cert)
+	if err != nil {
+		return false
+	}
+
+	if !cert.IsCA {
+		return false
+	}
+
+	return true
+}
+
+func (validator *gmValidator) validateCAIdentity(cert *sm2.Certificate) error {
 	if !cert.IsCA {
 		return errors.New("Only CA identities can be validated")
 	}
@@ -356,8 +329,8 @@ func (validator *ecdsaValidator) validateCAIdentity(cert *x509.Certificate) erro
 	return validator.validateCertAgainstChain(cert, validationChain)
 }
 
-func (validator *ecdsaValidator) validateCertAgainstChain(cert *x509.Certificate, validationChain []*x509.Certificate) error {
-	SKI, err := getSubjectKeyIdentifierFromCert(validationChain[1])
+func (validator *gmValidator) validateCertAgainstChain(cert *sm2.Certificate, validationChain []*sm2.Certificate) error {
+	SKI, err := getSubjectKeyIdentifierFromSm2Cert(validationChain[1])
 	if err != nil {
 		return fmt.Errorf("Could not obtain Subject Key Identifier for signer cert, err %s", err)
 	}
@@ -373,7 +346,7 @@ func (validator *ecdsaValidator) validateCertAgainstChain(cert *x509.Certificate
 				if rc.SerialNumber.Cmp(cert.SerialNumber) == 0 {
 					err = validationChain[1].CheckCRLSignature(crl)
 					if err != nil {
-						authLogger.Warn("Invalid signature over the identified CRL, error %s", err)
+						authLogger.Warn(fmt.Sprintf("Invalid signature over the identified CRL, error %s", err))
 						continue
 					}
 
@@ -386,9 +359,10 @@ func (validator *ecdsaValidator) validateCertAgainstChain(cert *x509.Certificate
 	return nil
 }
 
-func (validator *ecdsaValidator) getValidityOptsForCert(cert *x509.Certificate) x509.VerifyOptions {
-	var tempOpts x509.VerifyOptions
+func (validator *gmValidator) getValidityOptsForCert(cert *sm2.Certificate) sm2.VerifyOptions {
+	var tempOpts sm2.VerifyOptions
 	tempOpts.Roots = validator.opts.Roots
+
 	tempOpts.DNSName = validator.opts.DNSName
 	tempOpts.Intermediates = validator.opts.Intermediates
 	tempOpts.KeyUsages = validator.opts.KeyUsages

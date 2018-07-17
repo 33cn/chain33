@@ -244,6 +244,8 @@ var (
 	ErrRelayBtcHeadBitsErr     = errors.New("ErrRelayBtcHeadBitsErr")
 
 	//authority
-	ErrValidateCertFailed = errors.New("ErrValidateCertFailed")
-	ErrGetHistoryCertData = errors.New("ErrGetHistoryCertData")
+	ErrValidateCertFailed  = errors.New("ErrValidateCertFailed")
+	ErrGetHistoryCertData  = errors.New("ErrGetHistoryCertData")
+	ErrUnknowAuthSignType  = errors.New("ErrUnknowAuthSignType")
+	ErrInitializeAuthority = errors.New("ErrInitializeAuthority")
 )
