@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	lru "github.com/hashicorp/golang-lru"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var ErrNotFoundInDb = errors.New("ErrNotFoundInDb")
@@ -12,7 +13,6 @@ var ErrNotFoundInDb = errors.New("ErrNotFoundInDb")
 type Lister interface {
 	List(prefix, key []byte, count, direction int32) ([][]byte, error)
 	PrefixCount(prefix []byte) int64
-	//AddrTxsCount(key []byte) int64
 }
 
 type KV interface {
@@ -43,6 +43,27 @@ type DB interface {
 	Stats() map[string]string
 	SetCacheSize(size int)
 	GetCache() *lru.ARCCache
+}
+
+type KVDBList struct {
+	DB
+	list *ListHelper
+}
+
+func (l *KVDBList) List(prefix, key []byte, count, direction int32) ([][]byte, error) {
+	vals := l.list.List(prefix, key, count, direction)
+	if vals == nil {
+		return nil, types.ErrNotFound
+	}
+	return vals, nil
+}
+
+func (l *KVDBList) PrefixCount(prefix []byte) int64 {
+	return l.list.PrefixCount(prefix)
+}
+
+func NewKVDB(db DB) KVDB {
+	return &KVDBList{DB: db, list: NewListHelper(db)}
 }
 
 type Batch interface {

@@ -85,6 +85,7 @@ minerwhitelist=["*"]
 isFree=false
 minExecFee=100000
 enableStat=false
+enableMVCC=false
 
 [auth]
 # 是否启用auth模块签名验签
