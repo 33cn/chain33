@@ -77,10 +77,10 @@ message BlockOverview {
 // 	 block : 区块信息
 //	 receipts :区块上所有交易的收据信息列表
 message BlockDetail {
-    Block    block                = 1;
-    repeated ReceiptData receipts = 2;
-	repeated KeyValue KV = 3;
-    bytes prevStatusHash = 4;
+    Block    block                   = 1;
+    repeated ReceiptData receipts    = 2;
+    repeated KeyValue KV             = 3;
+    bytes             prevStatusHash = 4;
 }
 
 message Receipts {
