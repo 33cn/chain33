@@ -44,8 +44,8 @@ var (
 )
 
 const (
-	defaultAmount = 1e10
-	fee           = 1e6
+	//defaultAmount = 1e10
+	fee = 1e6
 )
 
 //for token
