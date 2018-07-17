@@ -35,7 +35,7 @@ dbCache=64
 isStrongConsistency=false
 singleMode=false
 batchsync=false
-isRecordBlockSequence=false
+isRecordBlockSequence=true
 isParaChain=false
 
 [p2p]
