@@ -16,7 +16,7 @@ type StateDB struct {
 	local     *db.SimpleMVCC
 }
 
-func NewStateDB(client queue.Client, stateHash []byte) db.KV {
+func NewStateDB(client queue.Client, stateHash []byte, enableMVCC bool) db.KV {
 	db := &StateDB{
 		cache:     make(map[string][]byte),
 		txcache:   make(map[string][]byte),
@@ -26,9 +26,11 @@ func NewStateDB(client queue.Client, stateHash []byte) db.KV {
 		version:   -1,
 		local:     db.NewSimpleMVCC(NewLocalDB(client)),
 	}
-	v, err := db.local.GetVersion(stateHash)
-	if err == nil && v >= 0 {
-		db.version = v
+	if enableMVCC {
+		v, err := db.local.GetVersion(stateHash)
+		if err == nil && v >= 0 {
+			db.version = v
+		}
 	}
 	return db
 }
