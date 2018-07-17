@@ -9,11 +9,11 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-const name = "coins"
-
+var name string
 var tlog = log.New("module", name)
 
 func Init() {
+	name = types.ExecName("coins")
 	// init executor type
 	types.RegistorExecutor(name, &CoinsType{})
 
