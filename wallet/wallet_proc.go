@@ -1199,7 +1199,7 @@ func (wallet *Wallet) AddDelPrivacyTxsFromBlock(tx *types.Transaction, index int
 				}
 
 				if types.ExecOk == txExecRes && types.ActionPublic2Privacy != privateAction.Ty {
-					wallet.walletStore.moveSTXO2FTXO(txhash, newbatch)
+					wallet.walletStore.moveSTXO2FTXO(tx, txhash, newbatch)
 					wallet.buildAndStoreWalletTxDetail(param)
 				} else if types.ExecOk != txExecRes && types.ActionPublic2Privacy != privateAction.Ty {
 					wallet.buildAndStoreWalletTxDetail(param)
