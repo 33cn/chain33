@@ -21,6 +21,11 @@ type QueueProtocolAPI interface {
 	Query(param *types.Query) (*types.Message, error)
 	// --------------- mempool interfaces end
 
+	// +++++++++++++++ execs interfaces begin
+	// types.EventBlockChainQuery
+	BlockChainQuery(param *types.BlockChainQuery) (*types.ResUTXOGlobalIndex, error)
+	// --------------- execs interfaces end
+
 	// +++++++++++++++ p2p interfaces begin
 	// types.EventPeerInfo
 	PeerInfo() (*types.PeerList, error)
@@ -100,8 +105,11 @@ type QueueProtocolAPI interface {
 	ShowPrivacyAccountInfo(param *types.ReqPPrivacyAccount) (*types.ReplyPrivacyAccount, error)
 	// types.EventNotifySendTxResult
 	NotifySendTxResult(param *types.ReqNotifySendTxResult) (*types.Reply, error)
+	// types.EventPrivacyTransactionList
+	PrivacyTransactionList(param *types.ReqPrivacyTransactionList) (*types.WalletTxDetails, error)
 	// Privacy End
 	// --------------- wallet interfaces end
+
 	// +++++++++++++++ blockchain interfaces begin
 	// types.EventGetBlocks
 	GetBlocks(param *types.ReqBlocks) (*types.BlockDetails, error)

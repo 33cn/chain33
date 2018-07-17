@@ -291,6 +291,7 @@ It has these top-level messages:
 	Vin
 	Vout
 	BtcSpv
+	RelayLastRcvBtcHeader
 	ReceiptRelayRcvBTCHeaders
 	ReceiptRelayLog
 	ReqRelayAddrCoins
@@ -397,6 +398,7 @@ It has these top-level messages:
 	ReqBindMiner
 	ReplyBindMiner
 	ReqNotifySendTxResult
+	ReqPrivacyTransactionList
 */
 package types
 
