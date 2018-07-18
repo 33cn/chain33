@@ -55,7 +55,25 @@ func (c *Chain33) SendRawTransaction(in SignedTx, result *interface{}) error {
 	}
 }
 
+//used only in parachain
+func forwardTranToMainNet(in RawParm, result *interface{}) error {
+	if rpcCfg.GetMainnetJrpcAddr() == "" {
+		return types.ErrInvalidMainnetRpcAddr
+	}
+	rpc, err := NewJSONClient(rpcCfg.GetMainnetJrpcAddr())
+
+	if err != nil {
+		return err
+	}
+
+	err = rpc.Call("Chain33.SendTransaction", in, result)
+	return err
+}
+
 func (c *Chain33) SendTransaction(in RawParm, result *interface{}) error {
+	if types.IsPara() {
+		return forwardTranToMainNet(in, result)
+	}
 	var parm types.Transaction
 	data, err := common.FromHex(in.Data)
 	if err != nil {
