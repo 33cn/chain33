@@ -1,12 +1,13 @@
 package sm2
 
 import (
+	"crypto/elliptic"
 	"encoding/asn1"
-	"github.com/tjfoc/gmsm/sm2"
 	"errors"
 	"fmt"
 	"math/big"
-	"crypto/elliptic"
+
+	"github.com/tjfoc/gmsm/sm2"
 )
 
 type SM2Signature struct {
@@ -41,7 +42,7 @@ func UnmarshalSM2Signature(raw []byte) (*big.Int, *big.Int, error) {
 	return sig.R, sig.S, nil
 }
 
-func ToLowS(k *sm2.PublicKey, s *big.Int) (*big.Int) {
+func ToLowS(k *sm2.PublicKey, s *big.Int) *big.Int {
 	lowS := IsLowS(s)
 	if !lowS && k.Curve != sm2.P256Sm2() {
 		s.Sub(k.Params().N, s)

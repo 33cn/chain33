@@ -5,12 +5,13 @@ import (
 	"errors"
 	"fmt"
 
-	"encoding/asn1"
-	"gitlab.33.cn/chain33/chain33/common/crypto"
-	"github.com/tjfoc/gmsm/sm2"
-	"math/big"
-	"encoding/pem"
 	"crypto/elliptic"
+	"encoding/asn1"
+	"encoding/pem"
+	"math/big"
+
+	"github.com/tjfoc/gmsm/sm2"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
 )
 
 const (
@@ -65,6 +66,7 @@ func (d Driver) SignatureFromBytes(b []byte) (sig crypto.Signature, err error) {
 }
 
 type PrivKeySM2 [SM2_RPIVATEKEY_LENGTH]byte
+
 func (privKey PrivKeySM2) Bytes() []byte {
 	s := make([]byte, SM2_RPIVATEKEY_LENGTH)
 	copy(s, privKey[:])
@@ -104,6 +106,7 @@ func (privKey PrivKeySM2) String() string {
 }
 
 type PubKeySM2 [SM2_PUBLICKEY_LENGTH]byte
+
 func (pubKey PubKeySM2) Bytes() []byte {
 	s := make([]byte, SM2_PUBLICKEY_LENGTH)
 	copy(s, pubKey[:])
