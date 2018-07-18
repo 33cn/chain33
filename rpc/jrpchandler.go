@@ -979,11 +979,14 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 			Pubkey:    common.ToHex(tx.GetSignature().GetPubkey()),
 			Signature: common.ToHex(tx.GetSignature().GetSignature()),
 		},
-		Fee:    tx.Fee,
-		Expire: tx.Expire,
-		Nonce:  tx.Nonce,
-		To:     tx.To,
-		From:   tx.From(),
+		Fee:        tx.Fee,
+		Expire:     tx.Expire,
+		Nonce:      tx.Nonce,
+		To:         tx.To,
+		From:       tx.From(),
+		GroupCount: tx.GroupCount,
+		Header:     common.ToHex(tx.Header),
+		Next:       common.ToHex(tx.Next),
 	}
 	return result, nil
 }
