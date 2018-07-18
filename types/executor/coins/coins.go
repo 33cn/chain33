@@ -42,7 +42,7 @@ type CoinsType struct {
 }
 
 func (coins CoinsType) GetRealToAddr(tx *types.Transaction) string {
-	if string(tx.Execer) == name {
+	if string(tx.Execer) == "coins" {
 		return tx.To
 	}
 	var action types.CoinsAction
