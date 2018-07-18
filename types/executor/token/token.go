@@ -56,7 +56,7 @@ type TokenType struct {
 }
 
 func (token TokenType) GetRealToAddr(tx *types.Transaction) string {
-	if string(tx.Execer) == name {
+	if string(tx.Execer) == "token" {
 		return tx.To
 	}
 	var action types.TokenAction
