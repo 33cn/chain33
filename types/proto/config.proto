@@ -135,6 +135,7 @@ message Exec {
     int64 minExecFee = 1;
     bool  isFree     = 2;
     bool  enableStat = 3;
+    bool  enableMVCC = 4;
 }
 
 message Authority {

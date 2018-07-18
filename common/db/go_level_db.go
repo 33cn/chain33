@@ -188,11 +188,15 @@ func (dbit *goLevelDBIt) Value() []byte {
 	return dbit.Iterator.Value()
 }
 
-func (dbit *goLevelDBIt) ValueCopy() []byte {
-	v := dbit.Iterator.Value()
+func cloneByte(v []byte) []byte {
 	value := make([]byte, len(v))
 	copy(value, v)
 	return value
+}
+
+func (dbit *goLevelDBIt) ValueCopy() []byte {
+	v := dbit.Iterator.Value()
+	return cloneByte(v)
 }
 
 func (dbit *goLevelDBIt) Valid() bool {
