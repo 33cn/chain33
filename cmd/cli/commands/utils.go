@@ -29,6 +29,9 @@ func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
 		Nonce:      tx.Nonce,
 		To:         tx.To,
 		From:       tx.From,
+		GroupCount: tx.GroupCount,
+		Header:     tx.Header,
+		Next:       tx.Next,
 	}
 
 	if tx.Amount != 0 {
