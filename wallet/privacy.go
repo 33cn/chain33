@@ -244,6 +244,8 @@ func (wallet *Wallet) transPub2PriV2(priv crypto.PrivKey, reqPub2Pri *types.ReqP
 	return &hash, nil
 }
 
+// genCustomOuts 构建一个交易的输出
+// 构建方式是，P=Hs(rA)G+B
 func genCustomOuts(viewpubTo, spendpubto *[32]byte, transAmount int64, count int32) (*types.PrivacyOutput, error) {
 	decomDigit := make([]int64, count)
 	for i := range decomDigit {
@@ -530,6 +532,13 @@ func (wallet *Wallet) saveFTXOInfo(tx *types.Transaction, token, sender, txhash 
 	//TODO:然后当该交易得到执行之后，没法将FTXO转化为STXO，added by hezhengjun on 2018.6.5
 }
 
+/*
+buildInput 构建隐私交易的输入信息
+操作步骤
+	1.从当前钱包中选择可用并且足够支付金额的UTXO列表
+	2.如果需要混淆(mixcout>0)，则根据UTXO的金额从数据库中获取足够数量的UTXO，与当前UTXO进行混淆
+	3.通过公式 x=Hs(aR)+b，计算出一个整数，因为 xG = Hs(ar)G+bG = Hs(aR)G+B，所以可以继续使用这笔交易
+*/
 func (wallet *Wallet) buildInput(privacykeyParirs *privacy.Privacy, buildInfo *buildInputInfo) (*types.PrivacyInput, []*types.UTXOBasics, []*types.RealKeyInput, []*txOutputInfo, error) {
 	//挑选满足额度的utxo
 	selectedUtxo, err := wallet.selectUTXO(buildInfo.tokenname, buildInfo.sender, buildInfo.amount)
@@ -662,19 +671,7 @@ func (wallet *Wallet) buildInput(privacykeyParirs *privacy.Privacy, buildInfo *b
 	return privacyInput, utxosInKeyInput, realkeyInputSlice, selectedUtxo, nil
 }
 
-type walletUTXOSlice []*walletUTXO
-
-func (slice walletUTXOSlice) Len() int { // 重写 Len() 方法
-	return len(slice)
-}
-func (slice walletUTXOSlice) Swap(i, j int) { // 重写 Swap() 方法
-	slice[i], slice[j] = slice[j], slice[i]
-}
-func (slice walletUTXOSlice) Less(i, j int) bool { // 重写 Less() 方法， 从大到小排序
-	return slice[j].height < slice[i].height
-}
-
-// TODO: 修改选择UTXO的算法
+// 修改选择UTXO的算法
 // 优先选择UTXO高度与当前高度建个12个区块以上的UTXO
 // 如果选择还不够则再从老到新选择12个区块内的UTXO
 // 当该地址上的可用UTXO比较多时，可以考虑改进算法，优先选择币值小的，花掉小票，然后再选择币值接近的，减少找零，最后才选择大面值的找零
@@ -703,7 +700,9 @@ func (wallet *Wallet) selectUTXO(token, addr string, amount int64) ([]*txOutputI
 	if balance < amount && len(unconfirmUTXOs) > 0 {
 		// 已经确认的UTXO还不够支付，则需要按照从老到新的顺序，从可能回退的队列中获取
 		// 高度从低到高获取
-		sort.Sort(walletUTXOSlice(unconfirmUTXOs))
+		sort.Slice(unconfirmUTXOs, func(i, j int) bool {
+			return unconfirmUTXOs[i].height < unconfirmUTXOs[j].height
+		})
 		for _, wutxo := range unconfirmUTXOs {
 			confirmUTXOs = append(confirmUTXOs, wutxo)
 			balance += wutxo.outinfo.amount
