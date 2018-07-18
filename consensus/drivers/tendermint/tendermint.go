@@ -341,17 +341,16 @@ func (client *TendermintClient) CommitBlock(txs []*types.Transaction) error {
 	if err != nil {
 		tendermintlog.Error(fmt.Sprintf("********************CommitBlock err:%v", err.Error()))
 	}
-	tendermintlog.Debug("Commit block success", "height", newblock.Height)
+	tendermintlog.Info("Commit block success", "height", newblock.Height)
 	return err
 }
 
-func (client *TendermintClient) CheckCommit() (bool, error) {
-	height := client.lastBlock.Height + 1
+func (client *TendermintClient) CheckCommit(height int64) (bool, error) {
 	retry := 0
 	for {
 		block, _ := client.RequestLastBlock()
-		if block.Height == client.lastBlock.Height+1 {
-			tendermintlog.Debug("Sync block success", "height", height)
+		if block.Height == height {
+			tendermintlog.Info("Sync block success", "height", height)
 			return true, nil
 		}
 		retry++

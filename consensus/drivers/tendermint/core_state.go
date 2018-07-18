@@ -1169,7 +1169,7 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 		tendermintlog.Info("finalizeCommit: enqueue proposal", "height", proposal.Height)
 		cs.LastProposals.Enqueue(&proposal)
 	} else {
-		reachCons, err := cs.client.CheckCommit()
+		reachCons, err := cs.client.CheckCommit(block.Height)
 		if err != nil {
 			panic("Not proposer, and exit consensus")
 		}
