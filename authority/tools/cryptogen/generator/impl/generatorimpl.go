@@ -12,7 +12,6 @@ import (
 
 	"path/filepath"
 
-	"gitlab.33.cn/chain33/chain33/authority/tools/cryptogen/common"
 	"github.com/tjfoc/gmsm/sm2"
 	"gitlab.33.cn/chain33/chain33/authority/tools/cryptogen/factory/csp"
 	"fmt"
@@ -51,7 +50,7 @@ func newEcdsaCA(baseDir, name string) (*EcdsaCA, error) {
 	}
 
 	var ca *EcdsaCA
-	priv, signer, err := utils.GeneratePrivateKey(baseDir, common.ECDSAP256KeyGen)
+	priv, signer, err := utils.GeneratePrivateKey(baseDir, csp.ECDSAP256KeyGen)
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +114,7 @@ func (ca *EcdsaCA) GenerateLocalUser(baseDir, name string) error {
 	}
 
 	keystore := filepath.Join(baseDir, "keystore")
-	priv, _, err := utils.GeneratePrivateKey(keystore, common.ECDSAP256KeyGen)
+	priv, _, err := utils.GeneratePrivateKey(keystore, csp.ECDSAP256KeyGen)
 	if err != nil {
 		return err
 	}
@@ -188,7 +187,7 @@ func genCertificateECDSA(baseDir, name string, template, parent *x509.Certificat
 
 func newSM2CA(baseDir, name string) (*SM2CA, error) {
 	var ca *SM2CA
-	priv, signer, err := utils.GeneratePrivateKey(baseDir, common.SM2P256KygGen)
+	priv, signer, err := utils.GeneratePrivateKey(baseDir, csp.SM2P256KygGen)
 	if err != nil {
 		return nil, err
 	}
@@ -211,7 +210,7 @@ func newSM2CA(baseDir, name string) (*SM2CA, error) {
 	template.Subject = subject
 	template.SubjectKeyId = priv.SKI()
 
-	sm2cert := ParseX509Certificate2Sm2(&template)
+	sm2cert := utils.ParseX509CertificateToSm2(&template)
 	sm2cert.PublicKey = smPubKey
 	x509Cert, err := genCertificateGMSM2(baseDir, name, sm2cert, sm2cert, priv)
 	if err == nil {
@@ -238,13 +237,13 @@ func (ca *SM2CA) SignCertificate(baseDir, name string, sans []string, pub interf
 	template.DNSNames = sans
 	template.PublicKey = pub
 
-	sm2Tpl := ParseX509Certificate2Sm2(&template)
+	sm2Tpl := utils.ParseX509CertificateToSm2(&template)
 	cert, err := genCertificateGMSM2(baseDir, name, sm2Tpl, ca.SignCert, ca.Sm2Key)
 	if err != nil {
 		return nil, err
 	}
 
-	return ParseSm2Certificate2X509(cert), nil
+	return utils.ParseSm2CertificateToX509(cert), nil
 }
 
 func (ca *SM2CA) GenerateLocalUser(baseDir, name string) error {
@@ -254,7 +253,7 @@ func (ca *SM2CA) GenerateLocalUser(baseDir, name string) error {
 	}
 
 	keystore := filepath.Join(baseDir, "keystore")
-	priv, _, err := utils.GeneratePrivateKey(keystore, common.SM2P256KygGen)
+	priv, _, err := utils.GeneratePrivateKey(keystore, csp.SM2P256KygGen)
 	if err != nil {
 		return err
 	}
@@ -274,14 +273,14 @@ func (ca *SM2CA) GenerateLocalUser(baseDir, name string) error {
 }
 
 func genCertificateGMSM2(baseDir, name string, template, parent *sm2.Certificate, key csp.Key) (*sm2.Certificate, error) {
-	certBytes, err := CreateCertificateToMem(template, parent, key)
+	certBytes, err := utils.CreateCertificateToMem(template, parent, key)
 	if err != nil {
 		return nil, err
 	}
 
 	fileName := filepath.Join(baseDir, name+"-cert.pem")
 
-	CreateCertificateToPem(fileName, template, parent, key)
+	utils.CreateCertificateToPem(fileName, template, parent, key)
 
 	x509Cert, err := sm2.ReadCertificateFromMem(certBytes)
 	if err != nil {
