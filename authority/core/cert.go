@@ -10,8 +10,8 @@ import (
 	"math/big"
 	"time"
 
-	ecdsa_util "gitlab.33.cn/chain33/chain33/common/crypto/ecdsa"
 	"github.com/tjfoc/gmsm/sm2"
+	ecdsa_util "gitlab.33.cn/chain33/chain33/common/crypto/ecdsa"
 )
 
 type validity struct {
@@ -114,7 +114,7 @@ func certFromSM2Cert(cert *sm2.Certificate) (certificate, error) {
 	return newCert, nil
 }
 
-func ParseECDSAPubKey2SM2PubKey(key *ecdsa.PublicKey) (*sm2.PublicKey) {
+func ParseECDSAPubKey2SM2PubKey(key *ecdsa.PublicKey) *sm2.PublicKey {
 	sm2Key := &sm2.PublicKey{
 		key.Curve,
 		key.X,

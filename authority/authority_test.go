@@ -141,7 +141,7 @@ func TestValidateCert(t *testing.T) {
 	types.SetMinFee(0)
 	defer types.SetMinFee(prev)
 
-	for _,tx := range txs {
+	for _, tx := range txs {
 		err = Author.Validate(tx.Signature)
 		if err != nil {
 			t.Error("error cert validate", err.Error())
