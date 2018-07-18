@@ -135,6 +135,11 @@ func IsYcc() bool {
 func IsPara() bool {
 	return strings.HasPrefix(title, "user.p.")
 }
+
+func IsParaExecName(name string) bool {
+	return strings.HasPrefix(name, "user.p.")
+}
+
 func IsPublicChain() bool {
 	return IsBityuan() || IsYcc()
 }

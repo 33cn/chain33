@@ -10,6 +10,7 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/tjfoc/gmsm/sm2"
 	ecdsa_util "gitlab.33.cn/chain33/chain33/common/crypto/ecdsa"
 )
 
@@ -91,16 +92,8 @@ func signatureToLowS(k *ecdsa.PublicKey, signature []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	s, modified, err := ecdsa_util.ToLowS(k, s)
-	if err != nil {
-		return nil, err
-	}
-
-	if modified {
-		return ecdsa_util.MarshalECDSASignature(r, s)
-	}
-
-	return signature, nil
+	s = ecdsa_util.ToLowS(k, s)
+	return ecdsa_util.MarshalECDSASignature(r, s)
 }
 
 func certFromX509Cert(cert *x509.Certificate) (certificate, error) {
@@ -110,4 +103,14 @@ func certFromX509Cert(cert *x509.Certificate) (certificate, error) {
 		return certificate{}, err
 	}
 	return newCert, nil
+}
+
+func ParseECDSAPubKey2SM2PubKey(key *ecdsa.PublicKey) *sm2.PublicKey {
+	sm2Key := &sm2.PublicKey{
+		key.Curve,
+		key.X,
+		key.Y,
+	}
+
+	return sm2Key
 }
