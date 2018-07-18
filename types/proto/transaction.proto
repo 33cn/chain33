@@ -19,6 +19,14 @@ message UnsignTx {
     bytes data = 1;
 }
 
+//payAddr 可以支持 1. 地址 2. 私钥
+message NoBalanceTx {
+    string txHex    = 1;
+    string payAddr = 2;
+    string privkey = 3;
+    string expire  = 4;
+}
+
 message SignedTx {
     bytes unsign = 1;
     bytes sign   = 2;

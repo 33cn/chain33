@@ -22,6 +22,15 @@ func (g *Grpc) SendTransaction(ctx context.Context, in *pb.Transaction) (*pb.Rep
 	return reply, err
 }
 
+func (g *Grpc) CreateNoBalanceTransaction(ctx context.Context, in *pb.NoBalanceTx) (*pb.ReplySignRawTx, error) {
+	reply, err := g.cli.CreateNoBalanceTransaction(in)
+	if err != nil {
+		return nil, err
+	}
+	tx := pb.Encode(reply)
+	return &pb.ReplySignRawTx{TxHex: hex.EncodeToString(tx)}, nil
+}
+
 func (g *Grpc) CreateRawTransaction(ctx context.Context, in *pb.CreateTx) (*pb.UnsignTx, error) {
 	reply, err := g.cli.CreateRawTransaction(in)
 	if err != nil {
