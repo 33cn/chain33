@@ -1144,17 +1144,15 @@ func (wallet *Wallet) procInvalidTxOnTimer(dbbatch db.Batch) error {
 		dbkey := calcCreateTxKey(ftxo.Tokenname, txhash)
 		cache, _ := wallet.walletStore.GetCreateTransactionCache(dbkey)
 
-		if ftxo.IsExpire(header.Height, header.BlockTime) {
-			wallet.walletStore.moveFTXO2UTXO(keys[i], dbbatch)
-			if cache != nil {
-				// FTXO已经过期了，直接删除缓存交易，因为没用了
+		if cache != nil {
+			if cache.GetStatus() == cacheTxStatus_Sent || ftxo.IsExpire(header.Height, header.BlockTime) {
+				// 交易已经发送或交易对应的FTXO已经过期，需要移除缓存交易
 				wallet.walletStore.DeleteCreateTransactionCache(cache.Key)
 				cache = nil
 			}
 		}
-		if cache != nil && cache.GetStatus() == cacheTxStatus_Sent {
-			// 交易已经发送，需要移除交易
-			wallet.walletStore.DeleteCreateTransactionCache(cache.Key)
+		if cache == nil && ftxo.IsExpire(header.Height, header.BlockTime) {
+			wallet.walletStore.moveFTXO2UTXO(keys[i], dbbatch)
 		}
 	}
 	return nil
