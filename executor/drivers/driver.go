@@ -278,7 +278,7 @@ func (d *DriverBase) GetTxsByAddr(addr *types.ReqAddr) (types.Message, error) {
 	}
 	blog.Error("GetTxsByAddr", "height", addr.GetHeight())
 	if addr.GetHeight() == -1 {
-		txinfos, err = db.List(prefix, nil, addr.Count, 0)
+		txinfos, err = db.List(prefix, nil, addr.Count, addr.GetDirection())
 		if err != nil {
 			return nil, err
 		}
