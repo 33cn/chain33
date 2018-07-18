@@ -12,9 +12,10 @@ import (
 
 	"path/filepath"
 
+	"fmt"
+
 	"github.com/tjfoc/gmsm/sm2"
 	"gitlab.33.cn/chain33/chain33/authority/tools/cryptogen/factory/csp"
-	"fmt"
 	"gitlab.33.cn/chain33/chain33/authority/tools/cryptogen/generator"
 	"gitlab.33.cn/chain33/chain33/authority/tools/cryptogen/generator/utils"
 	auth_utils "gitlab.33.cn/chain33/chain33/authority/utils"
@@ -184,7 +185,6 @@ func genCertificateECDSA(baseDir, name string, template, parent *x509.Certificat
 	return x509Cert, nil
 }
 
-
 func newSM2CA(baseDir, name string) (*SM2CA, error) {
 	var ca *SM2CA
 	priv, signer, err := utils.GeneratePrivateKey(baseDir, csp.SM2P256KygGen)
@@ -215,7 +215,7 @@ func newSM2CA(baseDir, name string) (*SM2CA, error) {
 	x509Cert, err := genCertificateGMSM2(baseDir, name, sm2cert, sm2cert, priv)
 	if err == nil {
 		ca = &SM2CA{
-			Name: name,
+			Name:     name,
 			Signer:   signer,
 			SignCert: x509Cert,
 			Sm2Key:   priv,

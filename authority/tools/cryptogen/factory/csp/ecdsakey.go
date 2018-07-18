@@ -2,11 +2,11 @@ package csp
 
 import (
 	"crypto/ecdsa"
-	"crypto/x509"
-	"fmt"
-	"crypto/sha256"
-	"errors"
 	"crypto/elliptic"
+	"crypto/sha256"
+	"crypto/x509"
+	"errors"
+	"fmt"
 )
 
 type ecdsaPrivateKey struct {
