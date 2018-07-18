@@ -7,19 +7,19 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/spf13/cobra"
-	"gitlab.33.cn/chain33/chain33/authority/tools/cryptogen/generator/impl"
 	"gitlab.33.cn/chain33/chain33/authority/tools/cryptogen/generator"
+	"gitlab.33.cn/chain33/chain33/authority/tools/cryptogen/generator/impl"
 )
 
 const (
-	CANAME      = "ca"
-	CONFIGFILENAME  = "chain33.cryptogen.toml"
-	OUTPUTDIR       = "./authdir/crypto"
-	ORGNAME         = "Chain33"
+	CANAME         = "ca"
+	CONFIGFILENAME = "chain33.cryptogen.toml"
+	OUTPUTDIR      = "./authdir/crypto"
+	ORGNAME        = "Chain33"
 )
 
 type Config struct {
-	Name []string
+	Name     []string
 	SignType int
 }
 
