@@ -1,17 +1,18 @@
 package tendermint
 
 import (
-	"github.com/inconshreveable/log15"
-	"gitlab.33.cn/chain33/chain33/consensus/drivers"
-	ttypes "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
-	"gitlab.33.cn/chain33/chain33/types"
-
+	"errors"
 	"fmt"
 	"time"
 
+	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
+	"gitlab.33.cn/chain33/chain33/common/merkle"
+	"gitlab.33.cn/chain33/chain33/consensus/drivers"
+	ttypes "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
 	"gitlab.33.cn/chain33/chain33/queue"
+	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/util"
 )
 
@@ -33,6 +34,10 @@ type TendermintClient struct {
 	evidenceDB    dbm.DB
 	crypto        crypto.Crypto
 	node          *Node
+	txsAvailable  chan int64
+	consResult    chan bool
+	lastBlock     *types.Block
+	proposeTxs    []*types.Transaction
 }
 
 // DefaultDBProvider returns a database using the DBBackend and DBDir
@@ -96,6 +101,10 @@ func New(cfg *types.Consensus) *TendermintClient {
 		blockStore:    blockStore,
 		evidenceDB:    evidenceDB,
 		crypto:        cr,
+		txsAvailable:  make(chan int64, 1),
+		consResult:    make(chan bool, 1),
+		lastBlock:     &types.Block{},
+		proposeTxs:    make([]*types.Transaction, 100),
 	}
 
 	c.SetChild(client)
@@ -194,7 +203,7 @@ func (client *TendermintClient) StartConsensus() {
 	blockExec := NewBlockExecutor(stateDB, evidencePool)
 
 	// Make ConsensusReactor
-	csState := NewConsensusState(client.BaseClient, client.blockStore, state, blockExec, evidencePool)
+	csState := NewConsensusState(client, client.blockStore, state, blockExec, evidencePool)
 	// reset height, round, state begin at newheigt,0,0
 	client.privValidator.ResetLastHeight(state.LastBlockHeight)
 	csState.SetPrivValidator(client.privValidator)
@@ -250,6 +259,22 @@ func (client *TendermintClient) ExecBlock(prevHash []byte, block *types.Block) (
 
 func (client *TendermintClient) CreateBlock() {
 	issleep := true
+	retry := 0
+
+	//进入共识前先同步到最大高度
+	time.Sleep(5 * time.Second)
+	for {
+		if client.IsCaughtUp() {
+			tendermintlog.Info("This node has caught up the max height")
+			break
+		}
+		retry++
+		time.Sleep(time.Second)
+		if retry >= 600 {
+			panic("This node encounter problem, exit.")
+		}
+	}
+
 	for {
 
 		if !client.csState.IsRunning() {
@@ -262,11 +287,14 @@ func (client *TendermintClient) CreateBlock() {
 			time.Sleep(time.Second)
 		}
 
-		lastBlock := client.GetCurrentBlock()
+		lastBlock, err := client.RequestLastBlock()
+		if err != nil {
+			tendermintlog.Error("RequestLastBlock fail", "err", err.Error())
+			time.Sleep(time.Second)
+			continue
+		}
 		//tendermintlog.Info("get last block","height", lastBlock.Height, "time", lastBlock.BlockTime,"txhash",lastBlock.TxHash)
 		txs := client.RequestTx(int(types.GetP(lastBlock.Height+1).MaxTxNumber)-1, nil)
-		//check dup
-		txs = client.CheckTxDup(txs)
 
 		if len(txs) == 0 {
 			issleep = true
@@ -274,13 +302,67 @@ func (client *TendermintClient) CreateBlock() {
 		}
 		issleep = false
 
-		//tendermintlog.Debug("performance: get mempool txs not empty")
-		client.csState.NewTxsAvailable(lastBlock.Height)
-		//tendermintlog.Debug("performance: waiting NewTxsFinished")
+		//check dup
+		txs = client.CheckTxDup(txs)
+		client.lastBlock = lastBlock
+		client.proposeTxs = txs
+		client.txsAvailable <- lastBlock.Height + 1
 		select {
-		case finish := <-client.csState.NewTxsFinished:
-			tendermintlog.Info("performance: TendermintClientSetQueue", "msg", "new txs finish dealing", "result", finish)
-			continue
+		case success := <-client.consResult:
+			tendermintlog.Info("Tendermint Consensus result", "success", success)
+		}
+		time.Sleep(time.Second)
+	}
+}
+
+func (client *TendermintClient) TxsAvailable() <-chan int64 {
+	return client.txsAvailable
+}
+
+func (client *TendermintClient) ConsResult() chan<- bool {
+	return client.consResult
+}
+
+func (client *TendermintClient) CommitBlock(txs []*types.Transaction) error {
+	newblock := &types.Block{}
+	lastBlock := client.lastBlock
+	tendermintlog.Debug(fmt.Sprintf("the len txs is: %v", len(txs)))
+	newblock.ParentHash = lastBlock.Hash()
+	newblock.Height = lastBlock.Height + 1
+	newblock.Txs = txs
+	//挖矿固定难度
+	newblock.Difficulty = types.GetP(0).PowLimitBits
+	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
+	newblock.BlockTime = time.Now().Unix()
+	if lastBlock.BlockTime >= newblock.BlockTime {
+		newblock.BlockTime = lastBlock.BlockTime + 1
+	}
+	err := client.WriteBlock(lastBlock.StateHash, newblock)
+	if err != nil {
+		tendermintlog.Error(fmt.Sprintf("********************CommitBlock err:%v", err.Error()))
+	}
+	tendermintlog.Debug("Commit block success", "height", newblock.Height)
+	return err
+}
+
+func (client *TendermintClient) CheckCommit() (bool, error) {
+	height := client.lastBlock.Height + 1
+	retry := 0
+	for {
+		block, _ := client.RequestLastBlock()
+		if block.Height == client.lastBlock.Height+1 {
+			tendermintlog.Debug("Sync block success", "height", height)
+			return true, nil
+		}
+		retry++
+		time.Sleep(time.Second)
+		if retry >= 60 {
+			tendermintlog.Error("Sync block fail", "height", height)
 		}
 	}
+	if client.IsCaughtUp() {
+		tendermintlog.Info("Tendermint consensus is not reached at", "height", height)
+		return false, nil
+	}
+	return false, errors.New("sync block fail")
 }
