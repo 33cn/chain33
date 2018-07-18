@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+package types;
+
+// stateDB
+message ParacrossStatusDetails {
+    repeated string addrs = 1;
+    repeated string stateHash = 2;
+}
+
+message ParacrossStatus {
+    // ing, done
+    int32 status = 1;
+    string title = 2;
+    int64 height = 3;
+    ParacrossStatusDetails details = 4;
+}
+
+// action
+message ParacrossNodeStatus {
+    string title = 1;
+    int64 height = 2;
+    string stateHash = 3;
+    // TODO maybe more field needed
+}
+
+message ParacrossCommitAction {
+    ParacrossNodeStatus status = 1;
+}
+
+// logs
+message ReceiptParacrossCommit {
+    string addr = 1;
+    ParacrossNodeStatus status = 2;
+}
+
+message ReceiptParacrossDode {
+    // most-count/commit-count/total-count
+    repeated int32 n = 1;
+    string title = 2;
+    int64 height = 3;
+    string stateHash = 4;
+}
+
+// LocalDB
+// title-height-addr : txHash
+message ParacrossTx {
+    string txHash = 1;
+}
