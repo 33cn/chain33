@@ -209,6 +209,10 @@ const (
 	// 合约状态数据变更项日志
 	TyLogEVMStateChangeItem = 604
 
+	// paracross 执行器的日志类型
+	TyLogParacrossCommit = 701
+	TyLogParacrossDode = 702
+
 	//log for game
 	TyLogCreateGame = 711
 	TyLogMatchGame  = 712
