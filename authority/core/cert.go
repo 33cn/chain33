@@ -105,15 +105,6 @@ func certFromX509Cert(cert *x509.Certificate) (certificate, error) {
 	return newCert, nil
 }
 
-func certFromSM2Cert(cert *sm2.Certificate) (certificate, error) {
-	var newCert certificate
-	_, err := asn1.Unmarshal(cert.Raw, &newCert)
-	if err != nil {
-		return certificate{}, err
-	}
-	return newCert, nil
-}
-
 func ParseECDSAPubKey2SM2PubKey(key *ecdsa.PublicKey) (*sm2.PublicKey) {
 	sm2Key := &sm2.PublicKey{
 		key.Curve,
