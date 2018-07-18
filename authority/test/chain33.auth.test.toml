@@ -89,7 +89,6 @@ enableStat=false
 # 是否启用auth模块签名验签
 enable=true
 # 加密文件路径
-cryptoPath="./tools/cryptogen/authdir/crypto/User"
-#cryptoPath="./test/authdir/crypto"
+cryptoPath="./test/authdir/crypto"
 # 签名类型，支持1:secp256r1 2:sm2
 signType=2
