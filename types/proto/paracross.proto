@@ -28,6 +28,13 @@ message ParacrossCommitAction {
     ParacrossNodeStatus status = 1;
 }
 
+message ParacrossAction {
+    oneof value {
+        ParacrossCommitAction commit = 1;
+    }
+    int32 ty = 2;
+}
+
 // logs
 message ReceiptParacrossCommit {
     string addr = 1;
