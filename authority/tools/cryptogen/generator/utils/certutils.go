@@ -32,12 +32,12 @@ func CreateCertificateToPem(FileName string, template, parent *sm2.Certificate, 
 	puk.Curve = sm2.P256Sm2()
 	puk.X = pub.X
 	puk.Y = pub.Y
-	result,err = sm2.CreateCertificateToPem(FileName, template,parent, &puk, pk)
+	result, err = sm2.CreateCertificateToPem(FileName, template, parent, &puk, pk)
 	if err != nil {
-		return false,err
+		return false, err
 	}
 
-	return result,err
+	return result, err
 }
 
 func ParseX509CertificateToSm2(x509Cert *x509.Certificate) *sm2.Certificate {
@@ -71,8 +71,8 @@ func ParseX509CertificateToSm2(x509Cert *x509.Certificate) *sm2.Certificate {
 		UnknownExtKeyUsage: x509Cert.UnknownExtKeyUsage,
 
 		BasicConstraintsValid: x509Cert.BasicConstraintsValid,
-		IsCA:       x509Cert.IsCA,
-		MaxPathLen: x509Cert.MaxPathLen,
+		IsCA:           x509Cert.IsCA,
+		MaxPathLen:     x509Cert.MaxPathLen,
 		MaxPathLenZero: x509Cert.MaxPathLenZero,
 
 		SubjectKeyId:   x509Cert.SubjectKeyId,
@@ -133,8 +133,8 @@ func ParseSm2CertificateToX509(sm2Cert *sm2.Certificate) *x509.Certificate {
 		UnknownExtKeyUsage: sm2Cert.UnknownExtKeyUsage,
 
 		BasicConstraintsValid: sm2Cert.BasicConstraintsValid,
-		IsCA:       sm2Cert.IsCA,
-		MaxPathLen: sm2Cert.MaxPathLen,
+		IsCA:           sm2Cert.IsCA,
+		MaxPathLen:     sm2Cert.MaxPathLen,
 		MaxPathLenZero: sm2Cert.MaxPathLenZero,
 
 		SubjectKeyId:   sm2Cert.SubjectKeyId,

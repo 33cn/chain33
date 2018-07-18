@@ -4,7 +4,7 @@ import "crypto"
 
 const (
 	ECDSAP256KeyGen = 1
-	SM2P256KygGen = 2
+	SM2P256KygGen   = 2
 )
 
 type Key interface {
