@@ -14,14 +14,11 @@ import (
 
 func BTYCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "coins",
-		Short: "Construct system coins transactions",
+		Use:   "bty",
+		Short: "Construct BTY transactions",
 		Args:  cobra.MinimumNArgs(1),
 	}
-
 	cmd.AddCommand(
-		//TransferCmd(),
-		//WithdrawFromExecCmd(),
 		CreateRawTransferCmd(),
 		CreateRawWithdrawCmd(),
 		CreateRawSendToExecCmd(),
@@ -30,7 +27,24 @@ func BTYCmd() *cobra.Command {
 		CreatePriv2PrivTxCmd(),
 		CreatePriv2PubTxCmd(),
 	)
+	return cmd
+}
 
+func CoinsCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "coins",
+		Short: "Construct system coins transactions",
+		Args:  cobra.MinimumNArgs(1),
+	}
+	cmd.AddCommand(
+		CreateRawTransferCmd(),
+		CreateRawWithdrawCmd(),
+		CreateRawSendToExecCmd(),
+		CreateTxGroupCmd(),
+		CreatePub2PrivTxCmd(),
+		CreatePriv2PrivTxCmd(),
+		CreatePriv2PubTxCmd(),
+	)
 	return cmd
 }
 

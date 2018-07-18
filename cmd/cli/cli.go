@@ -46,6 +46,7 @@ func init() {
 		commands.AccountCmd(),
 		commands.BlockCmd(),
 		commands.BTYCmd(),
+		commands.CoinsCmd(),
 		commands.ConfigCmd(),
 		commands.EvmCmd(),
 		commands.ExecCmd(),
