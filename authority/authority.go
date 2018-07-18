@@ -330,7 +330,7 @@ func (loader *UserLoader) loadUsers() error {
 
 		ski, err := utils.GetPublicKeySKIFromCert(certBytes, Author.signType)
 		if err != nil {
-			alog.Error(fmt.Sprintf("Value in certificate file:%s not found", filePath))
+			alog.Error(err.Error())
 			continue
 		}
 		filePath = path.Join(keyDir, ski+"_sk")

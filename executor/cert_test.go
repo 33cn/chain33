@@ -11,6 +11,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/authority/utils"
 )
 
 var (
@@ -29,7 +30,7 @@ var (
 )
 
 func signtx(tx *types.Transaction, priv crypto.PrivKey, cert []byte) {
-	tx.Sign(types.AUTH_ECDSA, priv)
+	tx.Sign(types.AUTH_SM2, priv)
 	certSign := crypto.CertSignature{}
 	certSign.Signature = append(certSign.Signature, tx.Signature.Signature...)
 	certSign.Cert = append(certSign.Cert, cert...)
@@ -46,7 +47,7 @@ func signtxs(priv crypto.PrivKey, cert []byte) {
 func initCertEnv() (queue.Queue, error) {
 	q, _ := initUnitEnv()
 
-	cfgAuth := types.Authority{true, "../authority/test/authdir/crypto", 1}
+	cfgAuth := types.Authority{true, "../authority/test/authdir/crypto", utils.SIGN_TYPE_AUTHSM2}
 	authority.Author.Init(&cfgAuth)
 
 	userLoader := &authority.UserLoader{}
@@ -62,9 +63,9 @@ func initCertEnv() (queue.Queue, error) {
 		return nil, err
 	}
 
-	cr, err := crypto.New(types.GetSignatureTypeName(types.AUTH_ECDSA))
+	cr, err := crypto.New(types.GetSignatureTypeName(types.AUTH_SM2))
 	if err != nil {
-		return nil, fmt.Errorf("create crypto %s failed, error:%s", types.GetSignatureTypeName(types.AUTH_ECDSA), err)
+		return nil, fmt.Errorf("create crypto %s failed, error:%s", types.GetSignatureTypeName(types.AUTH_SM2), err)
 	}
 
 	priv, err := cr.PrivKeyFromBytes(user.Key)
