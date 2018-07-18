@@ -1,17 +1,18 @@
 package core
 
 import (
-	"crypto/x509/pkix"
-	"github.com/tjfoc/gmsm/sm2"
-	"fmt"
-	"errors"
-	"encoding/pem"
-	"time"
-	"reflect"
-	"encoding/asn1"
 	"bytes"
-	sm2_util "gitlab.33.cn/chain33/chain33/common/crypto/sm2"
 	"crypto/ecdsa"
+	"crypto/x509/pkix"
+	"encoding/asn1"
+	"encoding/pem"
+	"errors"
+	"fmt"
+	"reflect"
+	"time"
+
+	"github.com/tjfoc/gmsm/sm2"
+	sm2_util "gitlab.33.cn/chain33/chain33/common/crypto/sm2"
 )
 
 type gmValidator struct {
@@ -221,7 +222,7 @@ func (validator *gmValidator) finalizeSetupCAs(config *AuthConfig) error {
 		}
 
 		if err := validator.validateCAIdentity(cert); err != nil {
-			return fmt.Errorf("CA Certificate is not valid, (SN: %s) [%s]",cert.SerialNumber, err)
+			return fmt.Errorf("CA Certificate is not valid, (SN: %s) [%s]", cert.SerialNumber, err)
 		}
 	}
 

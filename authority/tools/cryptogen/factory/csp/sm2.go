@@ -1,10 +1,11 @@
 package csp
 
 import (
-	"math/big"
 	"encoding/asn1"
-	"github.com/tjfoc/gmsm/sm2"
 	"fmt"
+	"math/big"
+
+	"github.com/tjfoc/gmsm/sm2"
 )
 
 type sm2Signer struct{}

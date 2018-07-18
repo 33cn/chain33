@@ -2,8 +2,9 @@ package core
 
 import (
 	"errors"
-	"gitlab.33.cn/chain33/chain33/types"
+
 	"gitlab.33.cn/chain33/chain33/authority/utils"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 func GetLocalValidator(authConfig *AuthConfig, signType int) (Validator, error) {
