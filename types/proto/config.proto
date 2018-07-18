@@ -129,6 +129,7 @@ message Rpc {
     repeated string grpcFuncWhitelist = 6;
     repeated string jrpcFuncBlacklist = 7;
     repeated string grpcFuncBlacklist = 8;
+    string          mainnetJrpcAddr   = 9; //仅用于平行链向主链转发数据
 }
 
 message Exec {
