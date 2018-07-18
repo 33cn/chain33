@@ -32,6 +32,7 @@ func (c *channelClient) Init(q queue.Client) {
 
 // support old rpc create transaction interface. call new imlp
 func callExecNewTx(execName, action string, param interface{}) ([]byte, error) {
+	execName = types.ExecName(execName)
 	exec := types.LoadExecutor(execName)
 	if exec == nil {
 		log.Error("callExecNewTx", "Error", "exec not found")
