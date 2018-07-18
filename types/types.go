@@ -14,6 +14,7 @@ import (
 	_ "gitlab.33.cn/chain33/chain33/common/crypto/ecdsa"
 	_ "gitlab.33.cn/chain33/chain33/common/crypto/ed25519"
 	_ "gitlab.33.cn/chain33/chain33/common/crypto/secp256k1"
+	_ "gitlab.33.cn/chain33/chain33/common/crypto/sm2"
 )
 
 var tlog = log.New("module", "types")

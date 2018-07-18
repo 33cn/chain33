@@ -37,15 +37,15 @@ func UnmarshalECDSASignature(raw []byte) (*big.Int, *big.Int, error) {
 	return sig.R, sig.S, nil
 }
 
-func ToLowS(k *ecdsa.PublicKey, s *big.Int) (*big.Int, bool, error) {
+func ToLowS(k *ecdsa.PublicKey, s *big.Int) *big.Int {
 	lowS := IsLowS(s)
 	if !lowS {
 		s.Sub(k.Params().N, s)
 
-		return s, true, nil
+		return s
 	}
 
-	return s, false, nil
+	return s
 }
 
 func IsLowS(s *big.Int) bool {
