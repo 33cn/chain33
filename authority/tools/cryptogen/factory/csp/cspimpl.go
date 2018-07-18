@@ -5,7 +5,6 @@ import (
 	"reflect"
 
 	"github.com/pkg/errors"
-	"gitlab.33.cn/chain33/chain33/authority/tools/cryptogen/common"
 )
 
 func New(keyStore KeyStore) (CSP, error) {
@@ -18,8 +17,8 @@ func New(keyStore KeyStore) (CSP, error) {
 		signers: signers}
 
 	keyGenerators := make(map[int]KeyGenerator)
-	keyGenerators[common.ECDSAP256KeyGen] = &ecdsaKeyGenerator{curve: elliptic.P256()}
-	keyGenerators[common.SM2P256KygGen] = &sm2KeyGenerator{}
+	keyGenerators[ECDSAP256KeyGen] = &ecdsaKeyGenerator{curve: elliptic.P256()}
+	keyGenerators[SM2P256KygGen] = &sm2KeyGenerator{}
 	impl.keyGenerators = keyGenerators
 
 	return impl, nil

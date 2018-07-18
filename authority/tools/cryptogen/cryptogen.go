@@ -7,9 +7,15 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/spf13/cobra"
-	"gitlab.33.cn/chain33/chain33/authority/tools/cryptogen/generator/ca"
-	"gitlab.33.cn/chain33/chain33/authority/tools/cryptogen/common"
+	"gitlab.33.cn/chain33/chain33/authority/tools/cryptogen/generator/impl"
 	"gitlab.33.cn/chain33/chain33/authority/tools/cryptogen/generator"
+)
+
+const (
+	CANAME      = "ca"
+	CONFIGFILENAME  = "chain33.cryptogen.toml"
+	OUTPUTDIR       = "./authdir/crypto"
+	ORGNAME         = "Chain33"
 )
 
 type Config struct {
@@ -35,8 +41,8 @@ func initCfg(path string) *Config {
 }
 
 func main() {
-	cmd.Flags().StringP("configfile", "f", common.CONFIGFILENAME, "config file for users")
-	cmd.Flags().StringP("outputdir", "o", common.OUTPUTDIR, "output diraction for key and certificate")
+	cmd.Flags().StringP("configfile", "f", CONFIGFILENAME, "config file for users")
+	cmd.Flags().StringP("outputdir", "o", OUTPUTDIR, "output diraction for key and certificate")
 
 	if err := cmd.Execute(); err != nil {
 		fmt.Println(err)
@@ -51,7 +57,7 @@ func generate(cmd *cobra.Command, args []string) {
 	initCfg(configfile)
 	fmt.Println(cfg.Name)
 
-	generateUsers(outputdir, common.ORGNAME)
+	generateUsers(outputdir, ORGNAME)
 }
 
 func generateUsers(baseDir string, orgName string) {
@@ -61,7 +67,7 @@ func generateUsers(baseDir string, orgName string) {
 	os.RemoveAll(baseDir)
 	caDir := filepath.Join(baseDir, "cacerts")
 
-	signCA, err := ca.NewCA(caDir, common.CANAME, cfg.SignType)
+	signCA, err := ca.NewCA(caDir, CANAME, cfg.SignType)
 	if err != nil {
 		fmt.Printf("Error generating signCA:%s", err.Error())
 		os.Exit(1)
