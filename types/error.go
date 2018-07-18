@@ -250,4 +250,7 @@ var (
 	//authority
 	ErrValidateCertFailed = errors.New("ErrValidateCertFailed")
 	ErrGetHistoryCertData = errors.New("ErrGetHistoryCertData")
+
+	//rpc
+	ErrInvalidMainnetRpcAddr = errors.New("ErrInvalidMainnetRpcAddr")
 )
