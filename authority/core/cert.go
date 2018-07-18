@@ -12,7 +12,6 @@ import (
 
 	"github.com/tjfoc/gmsm/sm2"
 	ecdsa_util "gitlab.33.cn/chain33/chain33/common/crypto/ecdsa"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/cert"
 )
 
 type validity struct {
@@ -106,7 +105,7 @@ func certFromX509Cert(cert *x509.Certificate) (certificate, error) {
 	return newCert, nil
 }
 
-func ParseECDSAPubKey2SM2PubKey(key *ecdsa.PublicKey) (*sm2.PublicKey) {
+func ParseECDSAPubKey2SM2PubKey(key *ecdsa.PublicKey) *sm2.PublicKey {
 	sm2Key := &sm2.PublicKey{
 		key.Curve,
 		key.X,
