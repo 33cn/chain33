@@ -59,6 +59,7 @@ grpcBindAddr="localhost:8902"
 whitelist=["127.0.0.1"]
 jrpcFuncWhitelist=["*"]
 grpcFuncWhitelist=["*"]
+mainnetJrpcAddr= "http://localhost:8801"
 
 [mempool]
 poolCacheSize=10240
