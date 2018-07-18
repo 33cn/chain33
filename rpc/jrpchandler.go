@@ -67,10 +67,7 @@ func forwardTranToMainNet(in RawParm, result *interface{}) error {
 	}
 
 	err = rpc.Call("Chain33.SendTransaction", in, result)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func (c *Chain33) SendTransaction(in RawParm, result *interface{}) error {
