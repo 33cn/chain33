@@ -23,7 +23,7 @@ const (
 
 	ReadBufSize = 8 * 1024
 
-	IteratorPageSize = 1024
+	IteratorPageSize = 10240
 
 	PooledSize = 3
 )
