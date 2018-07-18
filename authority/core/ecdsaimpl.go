@@ -32,8 +32,8 @@ type ecdsaValidator struct {
 	CRL []*pkix.CertificateList
 }
 
-func NewEcdsaValidator() (Validator, error) {
-	return &ecdsaValidator{}, nil
+func NewEcdsaValidator() Validator {
+	return &ecdsaValidator{}
 }
 
 func (validator *ecdsaValidator) getCertFromPem(idBytes []byte) (*x509.Certificate, error) {
@@ -131,13 +131,11 @@ func (validator *ecdsaValidator) Setup(conf *AuthConfig) error {
 func (validator *ecdsaValidator) Validate(certByte []byte, pubKey []byte) error {
 	authLogger.Debug("validating certificate")
 
-	// byte to cert
 	cert, err := validator.getCertFromPem(certByte)
 	if err != nil {
 		return fmt.Errorf("ParseCertificate failed %s", err)
 	}
 
-	// cmp public in tx and public from cert
 	certPubKey, ok := cert.PublicKey.(*ecdsa.PublicKey)
 	if !ok {
 		return fmt.Errorf("Error publick key type in transaction. expect ECDSA")
@@ -147,13 +145,11 @@ func (validator *ecdsaValidator) Validate(certByte []byte, pubKey []byte) error 
 		return fmt.Errorf("Invalid public key.")
 	}
 
-	// low-s check
 	cert, err = validator.sanitizeCert(cert)
 	if err != nil {
 		return fmt.Errorf("Sanitize certification failed. err %s", err)
 	}
 
-	// validation chain check
 	validationChain, err := validator.getCertificationChain(cert)
 	if err != nil {
 		return fmt.Errorf("Could not obtain certification chain, err %s", err)
@@ -242,6 +238,10 @@ func (validator *ecdsaValidator) setupCAs(conf *AuthConfig) error {
 		if err != nil {
 			return err
 		}
+		cert, err = validator.sanitizeCert(cert)
+		if err != nil {
+			return err
+		}
 
 		validator.rootCerts[i] = cert
 	}
@@ -249,6 +249,10 @@ func (validator *ecdsaValidator) setupCAs(conf *AuthConfig) error {
 	validator.intermediateCerts = make([]*x509.Certificate, len(conf.IntermediateCerts))
 	for i, trustedCert := range conf.IntermediateCerts {
 		cert, err := validator.getCertFromPem(trustedCert)
+		if err != nil {
+			return err
+		}
+		cert, err = validator.sanitizeCert(cert)
 		if err != nil {
 			return err
 		}
