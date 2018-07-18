@@ -1,4 +1,4 @@
-package ca
+package utils
 
 import (
 	"crypto/x509"
@@ -7,7 +7,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/authority/tools/cryptogen/factory/csp"
 )
 
-//调用SM2接口生成SM2证书
 func CreateCertificateToMem(template, parent *sm2.Certificate, key csp.Key) (cert []byte, err error) {
 	pk := key.(*csp.SM2PrivateKey).PrivKey
 
@@ -41,8 +40,7 @@ func CreateCertificateToPem(FileName string, template, parent *sm2.Certificate, 
 	return result,err
 }
 
-// X509证书格式转换为 SM2证书格式
-func ParseX509Certificate2Sm2(x509Cert *x509.Certificate) *sm2.Certificate {
+func ParseX509CertificateToSm2(x509Cert *x509.Certificate) *sm2.Certificate {
 	sm2cert := &sm2.Certificate{
 		Raw:                     x509Cert.Raw,
 		RawTBSCertificate:       x509Cert.RawTBSCertificate,
@@ -101,8 +99,7 @@ func ParseX509Certificate2Sm2(x509Cert *x509.Certificate) *sm2.Certificate {
 	return sm2cert
 }
 
-//sm2 证书转换 x509 证书
-func ParseSm2Certificate2X509(sm2Cert *sm2.Certificate) *x509.Certificate {
+func ParseSm2CertificateToX509(sm2Cert *sm2.Certificate) *x509.Certificate {
 	if sm2Cert == nil {
 		return nil
 	}
