@@ -252,4 +252,6 @@ var (
 	ErrGetHistoryCertData  = errors.New("ErrGetHistoryCertData")
 	ErrUnknowAuthSignType  = errors.New("ErrUnknowAuthSignType")
 	ErrInitializeAuthority = errors.New("ErrInitializeAuthority")
+	//rpc
+	ErrInvalidMainnetRpcAddr = errors.New("ErrInvalidMainnetRpcAddr")
 )
