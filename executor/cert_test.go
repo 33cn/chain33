@@ -6,12 +6,12 @@ import (
 	"testing"
 
 	"gitlab.33.cn/chain33/chain33/authority"
+	"gitlab.33.cn/chain33/chain33/authority/utils"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/authority/utils"
 )
 
 var (
