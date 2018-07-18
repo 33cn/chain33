@@ -7,19 +7,20 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/spf13/cobra"
-	"gitlab.33.cn/chain33/chain33/authority/tools/cryptogen/ca"
-	"gitlab.33.cn/chain33/chain33/authority/tools/cryptogen/msp"
+	"gitlab.33.cn/chain33/chain33/authority/tools/cryptogen/generator"
+	"gitlab.33.cn/chain33/chain33/authority/tools/cryptogen/generator/impl"
 )
 
 const (
-	commonName     = "ca"
+	CANAME         = "ca"
 	CONFIGFILENAME = "chain33.cryptogen.toml"
 	OUTPUTDIR      = "./authdir/crypto"
 	ORGNAME        = "Chain33"
 )
 
 type Config struct {
-	Name []string
+	Name     []string
+	SignType int
 }
 
 var (
@@ -28,10 +29,10 @@ var (
 		Short: "chain33 crypto tool for generating key and certificate",
 		Run:   generate,
 	}
+	cfg Config
 )
 
 func initCfg(path string) *Config {
-	var cfg Config
 	if _, err := toml.DecodeFile(path, &cfg); err != nil {
 		fmt.Println(err)
 		os.Exit(0)
@@ -49,39 +50,39 @@ func main() {
 	}
 }
 
-func generateUsers(baseDir string, users []string, orgName string) {
+func generate(cmd *cobra.Command, args []string) {
+	configfile, _ := cmd.Flags().GetString("configfile")
+	outputdir, _ := cmd.Flags().GetString("outputdir")
+
+	initCfg(configfile)
+	fmt.Println(cfg.Name)
+
+	generateUsers(outputdir, ORGNAME)
+}
+
+func generateUsers(baseDir string, orgName string) {
 	fmt.Printf("generateUsers\n")
 	fmt.Println(baseDir)
 
 	os.RemoveAll(baseDir)
 	caDir := filepath.Join(baseDir, "cacerts")
 
-	signCA, err := ca.NewCA(caDir, commonName)
+	signCA, err := ca.NewCA(caDir, CANAME, cfg.SignType)
 	if err != nil {
-		fmt.Printf("Error generating signCA", err.Error())
+		fmt.Printf("Error generating signCA:%s", err.Error())
 		os.Exit(1)
 	}
 
-	generateNodes(baseDir, users, signCA, orgName)
+	generateNodes(baseDir, signCA, orgName)
 }
 
-func generate(cmd *cobra.Command, args []string) {
-	configfile, _ := cmd.Flags().GetString("configfile")
-	outputdir, _ := cmd.Flags().GetString("outputdir")
-
-	cryptocfg := initCfg(configfile)
-	fmt.Println(cryptocfg.Name)
-
-	generateUsers(outputdir, cryptocfg.Name, ORGNAME)
-}
-
-func generateNodes(baseDir string, names []string, signCA *ca.CA, orgName string) {
-	for _, name := range names {
+func generateNodes(baseDir string, signCA generator.CAGenerator, orgName string) {
+	for _, name := range cfg.Name {
 		userDir := filepath.Join(baseDir, name)
 		fileName := fmt.Sprintf("%s@%s", name, orgName)
-		err := msp.GenerateLocalMSP(userDir, fileName, signCA)
+		err := signCA.GenerateLocalUser(userDir, fileName)
 		if err != nil {
-			fmt.Printf("Error generating local MSP")
+			fmt.Printf("Error generating local user")
 			os.Exit(1)
 		}
 	}
