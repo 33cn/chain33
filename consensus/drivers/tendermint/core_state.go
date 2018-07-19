@@ -823,7 +823,7 @@ func (cs *ConsensusState) createProposalBlock() (block *ttypes.Block) {
 	txs := cs.client.RequestTx(int(gtypes.GetP(cs.client.lastBlock.Height+1).MaxTxNumber)-1, hashList)
 	//check dup
 	//txs = cs.client.CheckTxDup(txs)
-	tendermintlog.Info("createProposalBlock RequestTx", "height", cs.Height, "cost", time.Since(beg))
+	tendermintlog.Info(fmt.Sprintf("createProposalBlock. Current: %v/%v/%v", cs.Height, cs.Round, cs.Step), "cost", time.Since(beg))
 	if len(txs) == 0 {
 		tendermintlog.Error("No new txs to propose, will change Proposer", "height", cs.Height)
 		return
@@ -861,7 +861,7 @@ func (cs *ConsensusState) enterPrevote(height int64, round int) {
 		// TODO: catchup event?
 	}
 
-	tendermintlog.Info(fmt.Sprintf("enterPrevote(%v/%v). Current: %v/%v/%v", height, round, cs.Height, cs.Round, cs.Step))
+	tendermintlog.Info(fmt.Sprintf("enterPrevote(%v/%v). Current: %v/%v/%v", height, round, cs.Height, cs.Round, cs.Step), "cost", time.Since(cs.begCons))
 
 	// Sign and broadcast vote as necessary
 	cs.doPrevote(height, round)
@@ -934,7 +934,7 @@ func (cs *ConsensusState) enterPrecommit(height int64, round int) {
 		return
 	}
 
-	tendermintlog.Info(fmt.Sprintf("enterPrecommit(%v/%v). Current: %v/%v/%v", height, round, cs.Height, cs.Round, cs.Step))
+	tendermintlog.Info(fmt.Sprintf("enterPrecommit(%v/%v). Current: %v/%v/%v", height, round, cs.Height, cs.Round, cs.Step), "cost", time.Since(cs.begCons))
 
 	defer func() {
 		// Done enterPrecommit:
@@ -1049,7 +1049,7 @@ func (cs *ConsensusState) enterCommit(height int64, commitRound int) {
 		tendermintlog.Debug(fmt.Sprintf("enterCommit(%v/%v): Invalid args. Current step: %v/%v/%v", height, commitRound, cs.Height, cs.Round, cs.Step))
 		return
 	}
-	tendermintlog.Info(fmt.Sprintf("enterCommit(%v/%v). Current: %v/%v/%v", height, commitRound, cs.Height, cs.Round, cs.Step))
+	tendermintlog.Info(fmt.Sprintf("enterCommit(%v/%v). Current: %v/%v/%v", height, commitRound, cs.Height, cs.Round, cs.Step), "cost", time.Since(cs.begCons))
 
 	defer func() {
 		// Done enterCommit:
@@ -1166,7 +1166,7 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 	newState := SaveState(stateCopy)
 
 	//tendermintlog.Info("blockid info", "seen commit", seenCommit.StringIndented("seen"),"last commit", lastCommit.StringIndented("last"), "state", stateCopy)
-	tendermintlog.Info("finalizeCommit", "height", cs.Height, "cost", time.Since(cs.begCons))
+	tendermintlog.Info(fmt.Sprintf("Save consensus state. Current: %v/%v/%v", cs.Height, cs.Round, cs.Step), "cost", time.Since(cs.begCons))
 	//hg 20180302
 	if cs.isProposer() {
 		tx0 := ttypes.CreateBlockInfoTx(cs.blockStore.GetPubkey(), newLastCommit, newSeenCommit, newState)
@@ -1176,11 +1176,11 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 			cs.LockedRound = 0
 			cs.LockedBlock = nil
 			cs.CommitRound = -1
-			tendermintlog.Info("I am proposer, and continue consensus", "height", block.Height)
+			tendermintlog.Info(fmt.Sprintf("Proposer continue consensus. Current: %v/%v/%v", cs.Height, cs.Round, cs.Step), "cost", time.Since(cs.begCons))
 			cs.scheduleTimeout(time.Duration(0), cs.Height, cs.Round, ttypes.RoundStepPrevoteWait)
 			return
 		}
-		tendermintlog.Info("I am proposer, and reach consensus", "height", block.Height)
+		tendermintlog.Info(fmt.Sprintf("Proposer reach consensus. Current: %v/%v/%v", cs.Height, cs.Round, cs.Step), "cost", time.Since(cs.begCons))
 
 		proposal := ttypes.Proposal{}
 		proposal = *cs.Proposal
@@ -1195,11 +1195,11 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 			cs.LockedRound = 0
 			cs.LockedBlock = nil
 			cs.CommitRound = -1
-			tendermintlog.Info("Not proposer, and continue consensus", "height", block.Height)
+			tendermintlog.Info(fmt.Sprintf("Not-Proposer reach consensus. Current: %v/%v/%v", cs.Height, cs.Round, cs.Step), "cost", time.Since(cs.begCons))
 			cs.scheduleTimeout(time.Duration(0), cs.Height, cs.Round, ttypes.RoundStepPrevoteWait)
 			return
 		}
-		tendermintlog.Info("Not proposer, and reach consensus", "height", block.Height)
+		tendermintlog.Info(fmt.Sprintf("Not-Proposer reach consensus. Current: %v/%v/%v", cs.Height, cs.Round, cs.Step), "cost", time.Since(cs.begCons))
 	}
 
 	//fail.Fail() // XXX
@@ -1288,6 +1288,8 @@ func (cs *ConsensusState) defaultSetProposal(proposalTrans *ttypes.ProposalTrans
 		msg := &ttypes.ProposalMessage{Proposal: proposalTrans}
 		cs.broadcastChannel <- msg
 	}
+	// Move onto the next step
+	cs.enterPrevote(cs.Height, cs.Round)
 	return nil
 }
 
