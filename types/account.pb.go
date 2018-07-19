@@ -297,7 +297,8 @@ It has these top-level messages:
 	ParacrossCommitAction
 	ParacrossAction
 	ReceiptParacrossCommit
-	ReceiptParacrossDode
+	ReceiptParacrossDone
+	ReceiptParacrossRecord
 	ParacrossTx
 	Operation
 	Checkpoint

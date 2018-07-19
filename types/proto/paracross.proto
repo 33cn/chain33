@@ -44,14 +44,21 @@ message ParacrossAction {
 message ReceiptParacrossCommit {
     string addr = 1;
     ParacrossNodeStatus status = 2;
+    ParacrossHeightStatus prev = 3;
+    ParacrossHeightStatus current = 4;
 }
 
-message ReceiptParacrossDode {
+message ReceiptParacrossDone {
     // most-count/commit-count/total-count
     repeated int32 n = 1;
     string title = 2;
     int64 height = 3;
     string stateHash = 4;
+}
+
+message ReceiptParacrossRecord {
+    string addr = 1;
+    ParacrossNodeStatus status = 2;
 }
 
 // LocalDB
