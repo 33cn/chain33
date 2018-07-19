@@ -11,11 +11,9 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/tjfoc/gmsm/sm2"
-)
-
-const (
-	SIGN_TYPE_AUTHECDSA = 1
-	SIGN_TYPE_AUTHSM2   = 2
+	"encoding/asn1"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 func SKI(curve elliptic.Curve, x, y *big.Int) (ski []byte) {
@@ -34,14 +32,14 @@ func GetPublicKeySKIFromCert(cert []byte, signType int) (string, error) {
 
 	var ski []byte
 	switch signType {
-	case SIGN_TYPE_AUTHECDSA:
+	case types.AUTH_ECDSA:
 		x509Cert, err := x509.ParseCertificate(dcert.Bytes)
 		if err != nil {
 			return "", errors.Errorf("Unable to parse cert from decoded bytes: %s", err)
 		}
 		ecdsaPk := x509Cert.PublicKey.(*ecdsa.PublicKey)
 		ski = SKI(ecdsaPk.Curve, ecdsaPk.X, ecdsaPk.Y)
-	case SIGN_TYPE_AUTHSM2:
+	case types.AUTH_SM2:
 		sm2Cert, err := sm2.ParseCertificate(dcert.Bytes)
 		if err != nil {
 			return "", errors.Errorf("Unable to parse cert from decoded bytes: %s", err)
@@ -53,4 +51,21 @@ func GetPublicKeySKIFromCert(cert []byte, signType int) (string, error) {
 	}
 
 	return hex.EncodeToString(ski), nil
+}
+
+func EncodeCertToSignature(signByte []byte, cert []byte) ([]byte, error) {
+	certSign := crypto.CertSignature{}
+	certSign.Signature = append(certSign.Signature, signByte...)
+	certSign.Cert = append(certSign.Cert, cert...)
+	return asn1.Marshal(certSign)
+}
+
+func DecodeCertFromSignature(signByte []byte) ([]byte, []byte, error) {
+	var certSignature crypto.CertSignature
+	_, err := asn1.Unmarshal(signByte, &certSignature)
+	if err != nil {
+		return nil,nil,err
+	}
+
+	return certSignature.Cert, certSignature.Signature, nil
 }

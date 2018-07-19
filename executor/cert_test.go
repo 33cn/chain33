@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"gitlab.33.cn/chain33/chain33/authority"
-	"gitlab.33.cn/chain33/chain33/authority/utils"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
@@ -47,23 +46,23 @@ func signtxs(priv crypto.PrivKey, cert []byte) {
 func initCertEnv() (queue.Queue, error) {
 	q, _ := initUnitEnv()
 
-	cfgAuth := types.Authority{true, "../authority/test/authdir/crypto", utils.SIGN_TYPE_AUTHSM2}
+	cfgAuth := types.Authority{true, "../authority/test/authdir/crypto", types.SignNameAuthSM2}
 	authority.Author.Init(&cfgAuth)
 
 	userLoader := &authority.UserLoader{}
-	err := userLoader.Init(cfgAuth.CryptoPath)
+	err := userLoader.Init(cfgAuth.CryptoPath, cfgAuth.SignType)
 	if err != nil {
 		fmt.Printf("Init user loader falied")
 		return nil, err
 	}
 
-	user, err := userLoader.GetUser(USERNAME)
+	user, err := userLoader.Get(USERNAME)
 	if err != nil {
 		fmt.Printf("Get user failed")
 		return nil, err
 	}
 
-	cr, err := crypto.New(types.GetSignatureTypeName(types.AUTH_SM2))
+	cr, err := crypto.New(cfgAuth.SignType)
 	if err != nil {
 		return nil, fmt.Errorf("create crypto %s failed, error:%s", types.GetSignatureTypeName(types.AUTH_SM2), err)
 	}

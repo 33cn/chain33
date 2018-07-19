@@ -198,7 +198,7 @@ func (sig SignatureECDSA) Equals(other crypto.Signature) bool {
 }
 
 func init() {
-	crypto.Register("auth_ecdsa", &Driver{})
+	crypto.Register(crypto.SignNameAuthECDSA, &Driver{})
 }
 
 func privKeyFromRaw(raw []byte) (*ecdsa.PrivateKey, *ecdsa.PublicKey, error) {
