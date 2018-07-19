@@ -33,19 +33,33 @@ import (
 func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error) {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
-
 	index := unsigned.Index
-	if unsigned.GetAddr() == "" {
-		return "", types.ErrNoPrivKeyOrAddr
-	}
 
-	ok, err := wallet.CheckWalletStatus()
-	if !ok {
-		return "", err
-	}
-	key, err := wallet.getPrivKeyByAddr(unsigned.GetAddr())
-	if err != nil {
-		return "", err
+	var key crypto.PrivKey
+	if unsigned.GetAddr() != "" {
+		ok, err := wallet.CheckWalletStatus()
+		if !ok {
+			return "", err
+		}
+		key, err = wallet.getPrivKeyByAddr(unsigned.GetAddr())
+		if err != nil {
+			return "", err
+		}
+	} else if unsigned.GetPrivkey() != "" {
+		keyByte, err := common.FromHex(unsigned.GetPrivkey())
+		if err != nil || len(keyByte) == 0 {
+			return "", err
+		}
+		cr, err := crypto.New(types.GetSignatureTypeName(SignType))
+		if err != nil {
+			return "", err
+		}
+		key, err = cr.PrivKeyFromBytes(keyByte)
+		if err != nil {
+			return "", err
+		}
+	} else {
+		return "", types.ErrNoPrivKeyOrAddr
 	}
 
 	var tx types.Transaction
@@ -86,15 +100,13 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 		txHex := types.Encode(grouptx)
 		signedTx := hex.EncodeToString(txHex)
 		return signedTx, nil
-	} else {
-		index -= 1
-		group.SignN(int(index), int32(SignType), key)
-		grouptx := group.Tx()
-		txHex := types.Encode(grouptx)
-		signedTx := hex.EncodeToString(txHex)
-		return signedTx, nil
 	}
-	return "", nil
+	index--
+	group.SignN(int(index), int32(SignType), key)
+	grouptx := group.Tx()
+	txHex := types.Encode(grouptx)
+	signedTx := hex.EncodeToString(txHex)
+	return signedTx, nil
 }
 
 //output:
