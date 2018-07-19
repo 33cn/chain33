@@ -291,6 +291,7 @@ It has these top-level messages:
 	PeersReply
 	PeersInfo
 	ParacrossStatusDetails
+	ParacrossHeightStatus
 	ParacrossStatus
 	ParacrossNodeStatus
 	ParacrossCommitAction
