@@ -8,12 +8,17 @@ message ParacrossStatusDetails {
     repeated string stateHash = 2;
 }
 
-message ParacrossStatus {
+message ParacrossHeightStatus {
     // ing, done
     int32 status = 1;
     string title = 2;
     int64 height = 3;
     ParacrossStatusDetails details = 4;
+}
+
+message ParacrossStatus {
+    string title = 1;
+    int64 height = 2;
 }
 
 // action
