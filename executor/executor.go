@@ -646,7 +646,7 @@ func (e *executor) execDelLocal(tx *types.Transaction, r *types.ReceiptData, ind
 func (e *executor) loadDriverForExec(exector string, height int64) (c drivers.Driver) {
 	exec, err := drivers.LoadDriver(exector, height)
 	if err != nil {
-		exec, err = drivers.LoadDriver("none", height)
+		exec, err = drivers.LoadDriver(types.ExecName("none"), height)
 		if err != nil {
 			panic(err)
 		}
