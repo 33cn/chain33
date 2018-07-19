@@ -25,6 +25,16 @@ func (c *Chain33) CreateRawTransaction(in *types.CreateTx, result *interface{}) 
 
 }
 
+func (c *Chain33) CreateNoBalanceTransaction(in *types.NoBalanceTx, result *string) error {
+	tx, err := c.cli.CreateNoBalanceTransaction(in)
+	if err != nil {
+		return err
+	}
+	grouptx := hex.EncodeToString(types.Encode(tx))
+	*result = grouptx
+	return nil
+}
+
 func (c *Chain33) SendRawTransaction(in SignedTx, result *interface{}) error {
 	var stx types.SignedTx
 	var err error

@@ -310,6 +310,7 @@ It has these top-level messages:
 	TicketMinerInfo
 	CreateTx
 	UnsignTx
+	NoBalanceTx
 	SignedTx
 	Transaction
 	Transactions
