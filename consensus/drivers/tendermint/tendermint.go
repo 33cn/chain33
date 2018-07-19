@@ -37,7 +37,6 @@ type TendermintClient struct {
 	txsAvailable  chan int64
 	consResult    chan bool
 	lastBlock     *types.Block
-	proposeTxs    []*types.Transaction
 }
 
 // DefaultDBProvider returns a database using the DBBackend and DBDir
@@ -104,7 +103,6 @@ func New(cfg *types.Consensus) *TendermintClient {
 		txsAvailable:  make(chan int64, 1),
 		consResult:    make(chan bool, 1),
 		lastBlock:     &types.Block{},
-		proposeTxs:    make([]*types.Transaction, 100),
 	}
 
 	c.SetChild(client)
@@ -293,25 +291,20 @@ func (client *TendermintClient) CreateBlock() {
 			time.Sleep(time.Second)
 			continue
 		}
-		//tendermintlog.Info("get last block","height", lastBlock.Height, "time", lastBlock.BlockTime,"txhash",lastBlock.TxHash)
-		txs := client.RequestTx(int(types.GetP(lastBlock.Height+1).MaxTxNumber)-1, nil)
 
+		txs := client.RequestTx(10, nil)
 		if len(txs) == 0 {
 			issleep = true
 			continue
 		}
 		issleep = false
 
-		//check dup
-		txs = client.CheckTxDup(txs)
 		client.lastBlock = lastBlock
-		client.proposeTxs = txs
 		client.txsAvailable <- lastBlock.Height + 1
 		select {
 		case success := <-client.consResult:
 			tendermintlog.Info("Tendermint Consensus result", "success", success)
 		}
-		time.Sleep(time.Second)
 	}
 }
 
@@ -341,21 +334,23 @@ func (client *TendermintClient) CommitBlock(txs []*types.Transaction) error {
 	if err != nil {
 		tendermintlog.Error(fmt.Sprintf("********************CommitBlock err:%v", err.Error()))
 	}
-	tendermintlog.Info("Commit block success", "height", newblock.Height)
+	time.Sleep(time.Second)
+	tendermintlog.Info("Commit block success", "height", newblock.Height, "CurrentHeight", client.GetCurrentHeight())
 	return err
 }
 
 func (client *TendermintClient) CheckCommit(height int64) (bool, error) {
 	retry := 0
+	newHeight := int64(1)
 	for {
-		block, _ := client.RequestLastBlock()
-		if block.Height == height {
+		newHeight = client.GetCurrentHeight()
+		if newHeight == height {
 			tendermintlog.Info("Sync block success", "height", height)
 			return true, nil
 		}
 		retry++
-		time.Sleep(time.Second)
-		if retry >= 60 {
+		time.Sleep(200 * time.Millisecond)
+		if retry >= 100 {
 			tendermintlog.Error("Sync block fail", "height", height)
 		}
 	}
