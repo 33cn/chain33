@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/authority/tools/cryptogen/generator"
 	"gitlab.33.cn/chain33/chain33/authority/tools/cryptogen/generator/impl"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 const (
@@ -20,7 +21,7 @@ const (
 
 type Config struct {
 	Name     []string
-	SignType int
+	SignType string
 }
 
 var (
@@ -67,7 +68,13 @@ func generateUsers(baseDir string, orgName string) {
 	os.RemoveAll(baseDir)
 	caDir := filepath.Join(baseDir, "cacerts")
 
-	signCA, err := ca.NewCA(caDir, CANAME, cfg.SignType)
+	signType,ok := types.MapSignName2Type[cfg.SignType]
+	if !ok {
+		fmt.Printf("Invalid sign type:%s", cfg.SignType)
+		return
+	}
+
+	signCA, err := ca.NewCA(caDir, CANAME, signType)
 	if err != nil {
 		fmt.Printf("Error generating signCA:%s", err.Error())
 		os.Exit(1)

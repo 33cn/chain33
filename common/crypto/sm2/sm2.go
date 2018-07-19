@@ -194,7 +194,7 @@ func (sig SignatureSM2) Equals(other crypto.Signature) bool {
 }
 
 func init() {
-	crypto.Register("auth_sm2", &Driver{})
+	crypto.Register(crypto.SignNameAuthSM2, &Driver{})
 }
 
 func privKeyFromRaw(raw []byte) (*sm2.PrivateKey, *sm2.PublicKey, error) {
