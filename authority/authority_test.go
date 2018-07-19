@@ -1,7 +1,6 @@
 package authority
 
 import (
-	"encoding/asn1"
 	"fmt"
 	"testing"
 	"time"
@@ -11,6 +10,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/authority/utils"
 )
 
 var (
@@ -37,10 +37,7 @@ var SIGNTYPE = types.AUTH_SM2
 
 func signtx(tx *types.Transaction, priv crypto.PrivKey, cert []byte) {
 	tx.Sign(int32(SIGNTYPE), priv)
-	certSign := crypto.CertSignature{}
-	certSign.Signature = append(certSign.Signature, tx.Signature.Signature...)
-	certSign.Cert = append(certSign.Cert, cert...)
-	tx.Signature.Signature, _ = asn1.Marshal(certSign)
+	tx.Signature.Signature, _ = utils.EncodeCertToSignature(tx.Signature.Signature, cert)
 }
 
 func signtxs(priv crypto.PrivKey, cert []byte) {
@@ -65,13 +62,13 @@ func initEnv() error {
 	Author.Init(cfg.Auth)
 
 	userLoader := &UserLoader{}
-	err := userLoader.Init(cfg.Auth.CryptoPath)
+	err := userLoader.Init(cfg.Auth.CryptoPath, cfg.Auth.SignType)
 	if err != nil {
 		fmt.Printf("Init user loader falied")
 		return err
 	}
 
-	user, err := userLoader.GetUser(USERNAME)
+	user, err := userLoader.Get(USERNAME)
 	if err != nil {
 		fmt.Printf("Get user failed")
 		return err

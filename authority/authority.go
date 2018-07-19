@@ -1,7 +1,6 @@
 package authority
 
 import (
-	"encoding/asn1"
 	"fmt"
 	"io/ioutil"
 	"path"
@@ -13,7 +12,6 @@ import (
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/authority/core"
 	"gitlab.33.cn/chain33/chain33/authority/utils"
-	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -59,9 +57,14 @@ func (auth *Authority) Init(conf *types.Authority) error {
 		alog.Error("Crypto config path can not be null")
 		return types.ErrInvalidParam
 	}
-
-	auth.signType = int(conf.SignType)
 	auth.cryptoPath = conf.CryptoPath
+
+	sign, ok := types.MapSignName2Type[conf.SignType]
+	if !ok {
+		alog.Error(fmt.Sprintf("Invalid sign type:%s", conf.SignType))
+		return types.ErrInvalidParam
+	}
+	auth.signType = sign
 
 	authConfig, err := core.GetAuthConfig(conf.CryptoPath)
 	if err != nil {
@@ -72,6 +75,7 @@ func (auth *Authority) Init(conf *types.Authority) error {
 
 	vldt, err := core.GetLocalValidator(authConfig, auth.signType)
 	if err != nil {
+		alog.Error(fmt.Sprintf("Get loacal validator failed. err:%s", err.Error()))
 		return err
 	}
 	auth.validator = vldt
@@ -237,32 +241,31 @@ func (auth *Authority) task(done <-chan struct{}, taskes <-chan *types.Signature
 */
 func (auth *Authority) Validate(signature *types.Signature) error {
 	// 从proto中解码signature
-	var certSignature crypto.CertSignature
-	_, err := asn1.Unmarshal(signature.Signature, &certSignature)
+	cert, _, err := utils.DecodeCertFromSignature(signature.Signature)
 	if err != nil {
 		alog.Error(fmt.Sprintf("unmashal certificate from signature failed. %s", err.Error()))
 		return err
 	}
 
-	if len(certSignature.Cert) == 0 {
+	if len(cert) == 0 {
 		alog.Error("cert can not be null")
 		return types.ErrInvalidParam
 	}
 
 	// 是否在有效证书缓存中
 	for _, v := range auth.validCertCache {
-		if bytes.Equal(v, certSignature.Cert) {
+		if bytes.Equal(v, cert) {
 			return nil
 		}
 	}
 
 	// 校验
-	err = auth.validator.Validate(certSignature.Cert, signature.GetPubkey())
+	err = auth.validator.Validate(cert, signature.GetPubkey())
 	if err != nil {
 		alog.Error(fmt.Sprintf("validate cert failed. %s", err.Error()))
 		return fmt.Errorf("validate cert failed. error:%s", err.Error())
 	}
-	auth.validCertCache = append(auth.validCertCache, certSignature.Cert)
+	auth.validCertCache = append(auth.validCertCache, cert)
 
 	return nil
 }
@@ -305,11 +308,20 @@ type User struct {
 type UserLoader struct {
 	configPath string
 	userMap    map[string]*User
+	signType   int
 }
 
-func (loader *UserLoader) Init(configPath string) error {
+func (loader *UserLoader) Init(configPath string, signType string) error {
 	loader.configPath = configPath
 	loader.userMap = make(map[string]*User)
+
+	sign, ok := types.MapSignName2Type[signType]
+	if !ok {
+		alog.Error(fmt.Sprintf("Invalid sign type:%s", signType))
+		return types.ErrInvalidParam
+	}
+	loader.signType = sign
+
 	return loader.loadUsers()
 }
 
@@ -328,7 +340,7 @@ func (loader *UserLoader) loadUsers() error {
 			continue
 		}
 
-		ski, err := utils.GetPublicKeySKIFromCert(certBytes, Author.signType)
+		ski, err := utils.GetPublicKeySKIFromCert(certBytes, loader.signType)
 		if err != nil {
 			alog.Error(err.Error())
 			continue
@@ -345,7 +357,7 @@ func (loader *UserLoader) loadUsers() error {
 	return nil
 }
 
-func (load *UserLoader) GetUser(userName string) (*User, error) {
+func (load *UserLoader) Get(userName string) (*User, error) {
 	keyvalue := fmt.Sprintf("%s@%s-cert.pem", userName, OrgName)
 	user, ok := load.userMap[keyvalue]
 	if !ok {
