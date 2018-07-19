@@ -120,6 +120,7 @@ type ConsensusState struct {
 
 	needCommitByInfo chan CommitInfo
 	precommitOK      bool
+	begCons          time.Time
 }
 
 // NewConsensusState returns a new ConsensusState.
@@ -142,6 +143,7 @@ func NewConsensusState(client *TendermintClient, blockStore *ttypes.BlockStore, 
 		Quit:             make(chan struct{}),
 		needCommitByInfo: make(chan CommitInfo, maxCommitInfoSize),
 		precommitOK:      false,
+		begCons:          time.Time{},
 	}
 	// set function defaults (may be overwritten before calling Start)
 	cs.decideProposal = cs.defaultDecideProposal
@@ -577,6 +579,7 @@ func (cs *ConsensusState) handleTxsAvailable(height int64) {
 	cs.mtx.Lock()
 	defer cs.mtx.Unlock()
 	// we only need to do this for round 0
+	cs.begCons = time.Now()
 	cs.enterPropose(height, 0)
 }
 
@@ -811,7 +814,22 @@ func (cs *ConsensusState) createProposalBlock() (block *ttypes.Block) {
 	}
 
 	// Mempool validated transactions
-	block = cs.state.MakeBlock(cs.Height, cs.client.proposeTxs, commit)
+	// workaround to avoid check dup
+	beg := time.Now()
+	var hashList [][]byte
+	for _, tx := range cs.client.lastBlock.Txs {
+		hashList = append(hashList, tx.Hash())
+	}
+	txs := cs.client.RequestTx(int(gtypes.GetP(cs.client.lastBlock.Height+1).MaxTxNumber)-1, hashList)
+	//check dup
+	//txs = cs.client.CheckTxDup(txs)
+	tendermintlog.Info("createProposalBlock RequestTx", "height", cs.Height, "cost", time.Since(beg))
+	if len(txs) == 0 {
+		tendermintlog.Error("No new txs to propose, will change Proposer", "height", cs.Height)
+		return
+	}
+
+	block = cs.state.MakeBlock(cs.Height, txs, commit)
 	evidence := cs.evpool.PendingEvidence()
 	block.AddEvidence(evidence)
 	return block
@@ -1148,7 +1166,7 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 	newState := SaveState(stateCopy)
 
 	//tendermintlog.Info("blockid info", "seen commit", seenCommit.StringIndented("seen"),"last commit", lastCommit.StringIndented("last"), "state", stateCopy)
-
+	tendermintlog.Info("finalizeCommit", "height", cs.Height, "cost", time.Since(cs.begCons))
 	//hg 20180302
 	if cs.isProposer() {
 		tx0 := ttypes.CreateBlockInfoTx(cs.blockStore.GetPubkey(), newLastCommit, newSeenCommit, newState)
