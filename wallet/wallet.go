@@ -48,6 +48,12 @@ const (
 	walletQueryModePrivacy int32 = 1
 )
 
+const (
+	utxoFlagNoScan  int32 = 0
+	utxoFlagScaning int32 = 1
+	utxoFlagReScan  int32 = 2
+)
+
 type Wallet struct {
 	client queue.Client
 	// 模块间通信的操作接口,建议用api代替client调用
@@ -71,6 +77,7 @@ type Wallet struct {
 	cfg              *types.Wallet
 	done             chan struct{}
 	rescanwg         *sync.WaitGroup
+	rescanUTXOflag   int32
 }
 
 type walletUTXOs struct {
@@ -122,6 +129,7 @@ func New(cfg *types.Wallet) *Wallet {
 		done:             make(chan struct{}),
 		cfg:              cfg,
 		rescanwg:         &sync.WaitGroup{},
+		rescanUTXOflag:   utxoFlagNoScan,
 	}
 	value, _ := walletStore.db.Get([]byte("WalletAutoMiner"))
 	if value != nil && string(value) == "1" {
@@ -176,9 +184,6 @@ func (wallet *Wallet) SetQueueClient(cli queue.Client) {
 	walletlog.Info("wallet db", "version:", version)
 	if version == 0 {
 		wallet.RescanAllTxByAddr()
-
-		//重新扫描UTXO
-		wallet.reScanWalletUtxos()
 		wallet.walletStore.SetWalletVersion(1)
 	}
 
@@ -188,6 +193,10 @@ func (wallet *Wallet) SetQueueClient(cli queue.Client) {
 	//开启检查FTXO的协程
 	wallet.wg.Add(1)
 	go wallet.checkWalletStoreData()
+
+	//需要标记重新扫描UTXO
+	wallet.wg.Add(1)
+	go wallet.reScanWalletUtxos()
 
 }
 
@@ -393,23 +402,16 @@ func (wallet *Wallet) GetWalletAccounts() ([]*types.WalletAccountStore, error) {
 }
 
 func (wallet *Wallet) reScanWalletUtxos() {
-	accounts, err := wallet.GetWalletAccounts()
-	if err != nil {
-		return
-	}
-	walletlog.Debug("RescanAllUTXOByAddr begin!")
-	for _, acc := range accounts {
-		//从blockchain模块同步Account.Addr对应的UTXO
-		wallet.rescanwg.Add(1)
-		go wallet.RescanReqUtxosByAddr(acc.Addr)
-	}
-	wallet.rescanwg.Wait()
+	walletlog.Debug("RescanAllUTXO begin!")
 
-	walletlog.Debug("RescanAllUTXOByAddr sucess!")
+	priExecAddr := address.ExecAddress(types.PrivacyX)
+	go wallet.RescanReqUtxosByAddr(priExecAddr)
+
+	walletlog.Debug("RescanAllUTXO sucess!")
 }
 
 //从blockchain模块同步addr参与的所有交易详细信息
 func (wallet *Wallet) RescanReqUtxosByAddr(addr string) {
-	defer wallet.rescanwg.Done()
+	defer wallet.wg.Done()
 	wallet.reqUtxosByAddr(addr)
 }

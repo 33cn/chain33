@@ -401,6 +401,13 @@ func (p *privacy) Query(funcName string, params []byte) (types.Message, error) {
 		privacylog.Info("GetUTXOGlobalIndex", "get utxo global index", err)
 
 		return p.getGlobalUtxoIndex(&getUtxoIndexReq)
+	case "GetTxsByAddr": // 通过查询获取交易hash这里主要通过获取隐私合约执行器地址的交易
+		var in types.ReqAddr
+		err := types.Decode(params, &in)
+		if err != nil {
+			return nil, err
+		}
+		return p.GetTxsByAddr(&in)
 	}
 	return nil, types.ErrActionNotSupport
 }

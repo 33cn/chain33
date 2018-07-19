@@ -54,7 +54,7 @@ function genFirstChainPritx() {
 
         sleep 1
         height=$(${name} block last_header | jq ".height")
-        printf '发送公对私第 %d 笔交易当前高度 %s \n' i "${height}"
+        printf '发送公对私第 %d 笔交易当前高度 %s \n' $i "${height}"
     done
 
     block_wait_timeout "${CLI}" 5 80

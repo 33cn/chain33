@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"time"
 
+	"sync/atomic"
+
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
@@ -23,10 +25,6 @@ type buildInputInfo struct {
 	amount    int64
 	mixcount  int32
 }
-
-const (
-	ForkV21Privacy  = 1
-)
 
 func checkAmountValid(amount int64) bool {
 	if amount <= 0 {
@@ -1387,39 +1385,70 @@ func (wallet *Wallet) getExpire(expire int64) time.Duration {
 func (wallet *Wallet) reqUtxosByAddr(addr string) {
 
 	if len(addr) == 0 {
-		walletlog.Error("ReqTxInfosByAddr input addr is nil!")
+		walletlog.Error("reqUtxosByAddr input addr is nil!")
 		return
 	}
 	var txInfo types.ReplyTxInfo
-
 	i := 0
 	for {
-		//首先从blockchain模块获取地址对应的所有UTXOs
+		select {
+		case <-wallet.done:
+			return
+		default:
+		}
+
+		if wallet.IsWalletLocked() {
+			time.Sleep(time.Millisecond * 200)
+			continue
+		}
+		// 判断是否需要扫描，不需要直接休眠
+		if utxoFlagNoScan == atomic.LoadInt32(&wallet.rescanUTXOflag) {
+			i = 0
+			time.Sleep(time.Millisecond * 100)
+			continue
+		} else if utxoFlagReScan == atomic.LoadInt32(&wallet.rescanUTXOflag) {
+			i = 0
+			atomic.StoreInt32(&wallet.rescanUTXOflag, utxoFlagScaning)
+		}
+
+		//首先从execs模块获取地址对应的所有UTXOs,
+		// 1 先获取隐私合约地址相关交易
 		var ReqAddr types.ReqAddr
 		ReqAddr.Addr = addr
 		ReqAddr.Flag = 0
 		ReqAddr.Direction = 0
 		ReqAddr.Count = int32(MaxTxHashsPerTime)
 		if i == 0 {
-			ReqAddr.Height = ForkV21Privacy
+			ReqAddr.Height = -1
 			ReqAddr.Index = 0
 		} else {
 			ReqAddr.Height = txInfo.GetHeight()
 			ReqAddr.Index = txInfo.GetIndex()
 		}
 		i++
-		msg := wallet.client.NewMessage("blockchain", types.EventGetTransactionByAddr, &ReqAddr)
+
+		query := &types.BlockChainQuery{
+			Driver:   "privacy",
+			FuncName: "GetTxsByAddr",
+			Param:    types.Encode(&ReqAddr),
+		}
+		//请求交易信息
+		msg := wallet.client.NewMessage("execs", types.EventBlockChainQuery, query)
 		wallet.client.Send(msg, true)
 		resp, err := wallet.client.Wait(msg)
 		if err != nil {
-			walletlog.Error("ReqTxInfosByAddr EventGetTransactionByAddr", "err", err, "addr", addr)
-			return
+			walletlog.Error("privacy ReqTxInfosByAddr EventBlockChainQuery", "err", err, "addr", addr)
+			// 扫描完毕
+			atomic.StoreInt32(&wallet.rescanUTXOflag, utxoFlagNoScan)
+			continue
 		}
 
 		ReplyTxInfos := resp.GetData().(*types.ReplyTxInfos)
 		if ReplyTxInfos == nil {
-			walletlog.Info("ReqTxInfosByAddr ReplyTxInfos is nil")
-			return
+			walletlog.Info("privacy ReqTxInfosByAddr ReplyTxInfos is nil")
+			// 扫描完毕
+			atomic.StoreInt32(&wallet.rescanUTXOflag, utxoFlagNoScan)
+			continue
 		}
 		txcount := len(ReplyTxInfos.TxInfos)
 
@@ -1431,10 +1460,198 @@ func (wallet *Wallet) reqUtxosByAddr(addr string) {
 			txInfo.Height = ReplyTxInfo.GetHeight()
 			txInfo.Index = ReplyTxInfo.GetIndex()
 		}
-		wallet.GetTxDetailByHashs(&ReqHashes)
+		wallet.GetPrivacyTxDetailByHashs(&ReqHashes)
 		if txcount < int(MaxTxHashsPerTime) {
-			return
+			// 扫描完毕
+			atomic.StoreInt32(&wallet.rescanUTXOflag, utxoFlagNoScan)
+			// 删除privacyInput
+			time.Sleep(time.Second)
+			wallet.DeleteScanPrivacyInputUtxo()
+		}
+	}
+}
+
+func (wallet *Wallet) GetPrivacyTxDetailByHashs(ReqHashes *types.ReqHashes) {
+	//通过txhashs获取对应的txdetail
+	msg := wallet.client.NewMessage("blockchain", types.EventGetTransactionByHash, ReqHashes)
+	wallet.client.Send(msg, true)
+	resp, err := wallet.client.Wait(msg)
+	if err != nil {
+		walletlog.Error("privacy GetTxDetailByHashs EventGetTransactionByHash", "err", err)
+		return
+	}
+	TxDetails := resp.GetData().(*types.TransactionDetails)
+	if TxDetails == nil {
+		walletlog.Info("privacy GetTxDetailByHashs TransactionDetails is nil")
+		return
+	}
+	//批量存储地址对应的所有交易的详细信息到wallet db中
+	newbatch := wallet.walletStore.NewBatch(true)
+	for _, txdetal := range TxDetails.Txs {
+		index := txdetal.Index
+		wallet.SelectCurrentWalletPrivacyTx(txdetal, int32(index), newbatch)
+	}
+	newbatch.Write()
+
+}
+
+func (wallet *Wallet) SelectCurrentWalletPrivacyTx(txDetal *types.TransactionDetail, index int32, newbatch db.Batch) {
+	tx := txDetal.Tx
+	amount, err := tx.Amount()
+	if err != nil {
+		walletlog.Error("SelectCurrentWalletPrivacyTx failed to tx.Amount()")
+		return
+	}
+
+	if types.PrivacyX != string(tx.Execer) {
+		return
+	}
+
+	txExecRes := txDetal.Receipt.Ty
+	height := txDetal.Height
+
+	txhashInbytes := tx.Hash()
+	txhash := common.Bytes2Hex(txhashInbytes)
+	var privateAction types.PrivacyAction
+	if err := types.Decode(tx.GetPayload(), &privateAction); err != nil {
+		walletlog.Error("SelectCurrentWalletPrivacyTx failed to decode payload")
+		return
+	}
+	walletlog.Info("SelectCurrentWalletPrivacyTx", "tx hash", txhash)
+	var RpubKey []byte
+	var privacyOutput *types.PrivacyOutput
+	var privacyInput *types.PrivacyInput
+	var tokenname string
+	if types.ActionPublic2Privacy == privateAction.Ty {
+		RpubKey = privateAction.GetPublic2Privacy().GetOutput().GetRpubKeytx()
+		privacyOutput = privateAction.GetPublic2Privacy().GetOutput()
+		tokenname = privateAction.GetPublic2Privacy().GetTokenname()
+	} else if types.ActionPrivacy2Privacy == privateAction.Ty {
+		RpubKey = privateAction.GetPrivacy2Privacy().GetOutput().GetRpubKeytx()
+		privacyOutput = privateAction.GetPrivacy2Privacy().GetOutput()
+		tokenname = privateAction.GetPrivacy2Privacy().GetTokenname()
+		privacyInput = privateAction.GetPrivacy2Privacy().GetInput()
+	} else if types.ActionPrivacy2Public == privateAction.Ty {
+		RpubKey = privateAction.GetPrivacy2Public().GetOutput().GetRpubKeytx()
+		privacyOutput = privateAction.GetPrivacy2Public().GetOutput()
+		tokenname = privateAction.GetPrivacy2Public().GetTokenname()
+		privacyInput = privateAction.GetPrivacy2Public().GetInput()
+	}
+
+	//处理output
+	if nil != privacyOutput && len(privacyOutput.Keyoutput) > 0 {
+		utxoProcessed := make([]bool, len(privacyOutput.Keyoutput))
+		privacyInfo, _ := wallet.getPrivacyKeyPairsOfWallet()
+		for _, info := range privacyInfo {
+			walletlog.Debug("SelectCurrentWalletPrivacyTx", "individual privacyInfo's addr", *info.Addr)
+			privacykeyParirs := info.PrivacyKeyPair
+			walletlog.Debug("SelectCurrentWalletPrivacyTx", "individual ViewPubkey", common.Bytes2Hex(privacykeyParirs.ViewPubkey.Bytes()),
+				"individual SpendPubkey", common.Bytes2Hex(privacykeyParirs.SpendPubkey.Bytes()))
+
+			var utxos []*types.UTXO
+			for indexoutput, output := range privacyOutput.Keyoutput {
+				if utxoProcessed[indexoutput] {
+					continue
+				}
+				priv, err := privacy.RecoverOnetimePriKey(RpubKey, privacykeyParirs.ViewPrivKey, privacykeyParirs.SpendPrivKey, int64(indexoutput))
+				if err == nil {
+					recoverPub := priv.PubKey().Bytes()[:]
+					if bytes.Equal(recoverPub, output.Onetimepubkey) {
+						//为了避免匹配成功之后不必要的验证计算，需要统计匹配次数
+						//因为目前只会往一个隐私账户转账，
+						//1.一般情况下，只会匹配一次，如果是往其他钱包账户转账，
+						//2.但是如果是往本钱包的其他地址转账，因为可能存在的change，会匹配2次
+						utxoProcessed[indexoutput] = true
+						walletlog.Debug("SelectCurrentWalletPrivacyTx got privacy tx belong to current wallet",
+							"Address", *info.Addr, "tx with hash", txhash, "Amount", amount)
+						//只有当该交易执行成功才进行相应的UTXO的处理
+						if types.ExecOk == txExecRes {
+
+							// 先判断该UTXO的hash是否存在，不存在则写入
+							accPrivacy, err := wallet.walletStore.IsUTXOExist(common.Bytes2Hex(txhashInbytes), indexoutput)
+							if err == nil && accPrivacy != nil {
+								continue
+							}
+
+							info2store := &types.PrivacyDBStore{
+								Txhash:           txhashInbytes,
+								Tokenname:        tokenname,
+								Amount:           output.Amount,
+								OutIndex:         int32(indexoutput),
+								TxPublicKeyR:     RpubKey,
+								OnetimePublicKey: output.Onetimepubkey,
+								Owner:            *info.Addr,
+								Height:           height,
+								Txindex:          index,
+								//Blockhash:        block.Block.Hash(),
+							}
+
+							utxoGlobalIndex := &types.UTXOGlobalIndex{
+								Outindex: int32(indexoutput),
+								Txhash:   txhashInbytes,
+							}
+
+							utxoCreated := &types.UTXO{
+								Amount: output.Amount,
+								UtxoBasic: &types.UTXOBasic{
+									UtxoGlobalIndex: utxoGlobalIndex,
+									OnetimePubkey:   output.Onetimepubkey,
+								},
+							}
+
+							utxos = append(utxos, utxoCreated)
+							wallet.walletStore.setUTXO(info.Addr, &txhash, indexoutput, info2store, newbatch)
+						}
+					}
+				}
+			}
 		}
 	}
 
+	//处理input
+	if nil != privacyInput && len(privacyInput.Keyinput) > 0 {
+		var utxoGlobalIndexs []*types.UTXOGlobalIndex
+		for _, input := range privacyInput.Keyinput {
+			for _, utxoGlobal := range input.UtxoGlobalIndex {
+				utxoGlobalIndexs = append(utxoGlobalIndexs, utxoGlobal)
+			}
+		}
+
+		if len(utxoGlobalIndexs) > 0 {
+			wallet.walletStore.StoreScanPrivacyInputUTXO(utxoGlobalIndexs, newbatch)
+		}
+	}
+}
+
+func (wallet *Wallet) DeleteScanPrivacyInputUtxo() {
+	newbatch := wallet.walletStore.NewBatch(true)
+	utxoGlobalIndexs := wallet.walletStore.GetScanPrivacyInputUTXO(0)
+	if len(utxoGlobalIndexs) > 0 {
+		var utxos []*types.UTXO
+		var owner string
+		var token string
+		var txhash string
+		for _, utxoGlobal := range utxoGlobalIndexs {
+			accPrivacy, err := wallet.walletStore.IsUTXOExist(common.Bytes2Hex(utxoGlobal.Txhash), int(utxoGlobal.Outindex))
+			if err == nil && accPrivacy != nil {
+				utxo := &types.UTXO{
+					Amount: accPrivacy.Amount,
+					UtxoBasic: &types.UTXOBasic{
+						UtxoGlobalIndex: utxoGlobal,
+						OnetimePubkey:   accPrivacy.OnetimePublicKey,
+					},
+				}
+				utxos = append(utxos, utxo)
+				owner = accPrivacy.Owner
+				token = accPrivacy.Tokenname
+				txhash = common.Bytes2Hex(accPrivacy.Txhash)
+			}
+			key := calcScanPrivacyInputUTXOKey(common.Bytes2Hex(utxoGlobal.Txhash), int(utxoGlobal.Outindex))
+			newbatch.Delete(key)
+		}
+		if len(utxos) > 0 {
+			wallet.walletStore.moveUTXO2STXO(owner, token, txhash, utxos, newbatch)
+		}
+	}
+	newbatch.Write()
 }
