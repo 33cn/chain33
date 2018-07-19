@@ -75,6 +75,52 @@ func (c *channelClient) CreateRawTransaction(param *types.CreateTx) ([]byte, err
 	}
 }
 
+func (c *channelClient) CreateNoBalanceTransaction(in *types.NoBalanceTx) (*types.Transaction, error) {
+	txNone := &types.Transaction{Execer: []byte(types.ExecName("none")), Payload: []byte("no-fee-transaction")}
+	txNone.To = address.ExecAddress(string(txNone.Execer))
+	txNone.Fee, _ = txNone.GetRealFee(types.MinFee)
+	txNone.Nonce = rand.New(rand.NewSource(types.Now().UnixNano())).Int63()
+
+	tx, err := decodeTx(in.TxHex)
+	if err != nil {
+		return nil, err
+	}
+	transactions := []*types.Transaction{txNone, tx}
+	group, err := types.CreateTxGroup(transactions)
+	if err != nil {
+		return nil, err
+	}
+	err = group.Check(types.MinFee)
+	if err != nil {
+		return nil, err
+	}
+	newtx := group.Tx()
+	//如果可能要做签名
+	if in.PayAddr != "" || in.Privkey != "" {
+		rawTx := hex.EncodeToString(types.Encode(newtx))
+		req := &types.ReqSignRawTx{Addr: in.PayAddr, Privkey: in.Privkey, Expire: in.Expire, TxHex: rawTx, Index: 1}
+		signedTx, err := c.SignRawTx(req)
+		if err != nil {
+			return nil, err
+		}
+		return decodeTx(signedTx.TxHex)
+	}
+	return newtx, nil
+}
+
+func decodeTx(hexstr string) (*types.Transaction, error) {
+	var tx types.Transaction
+	data, err := hex.DecodeString(hexstr)
+	if err != nil {
+		return nil, err
+	}
+	err = types.Decode(data, &tx)
+	if err != nil {
+		return nil, err
+	}
+	return &tx, nil
+}
+
 func (c *channelClient) SendRawTransaction(param *types.SignedTx) (*types.Reply, error) {
 	if param == nil {
 		err := types.ErrInvalidParam
