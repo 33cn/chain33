@@ -25,6 +25,7 @@
  1. 达成共识， 记录 prefix-title
  1. kv-log-1: 状态变化
  1. kv-log-2: 达成共识 (看是否达成共识)
+ 1. kv-log-3: 在达成共识后收到， 记录
 
 达成共识条件
  1. 对应title-height的同一个状态的数据超过配置节点的 2/3
@@ -36,3 +37,8 @@
 
 ## 本地数据删除
  1. 记录交易信息 prifex-title-height-addr
+
+## 查询
+ 1. 某title 的共识高度
+ 1. 某title， 某高度的信息
+ 1. 所有的title
