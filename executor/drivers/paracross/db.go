@@ -8,8 +8,13 @@ import (
 func getTitle(db dbm.KV, key []byte) (*types.ParacrossStatus, error) {
 	val, err := db.Get(key)
 	if err != nil {
-		return nil, err
+		if err != types.ErrNotFound {
+			return nil, err
+		}
+		// 平行链如果是从其他链上移过来的，  需要增加配置， 对应title的平行链的起始高度
+		return &types.ParacrossStatus{Height: -1}, nil
 	}
+
 	var title types.ParacrossStatus
 	err = types.Decode(val, &title)
 	return &title, err
