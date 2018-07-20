@@ -16,6 +16,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/util"
 	"google.golang.org/grpc"
+	"gitlab.33.cn/chain33/chain33/common"
 )
 
 const (
@@ -406,6 +407,11 @@ func (client *ParaClient) createBlock(lastBlock *types.Block, txs []*types.Trans
 	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
 	newblock.BlockTime = blocktime
 	err := client.WriteBlock(lastBlock.StateHash, &newblock, seq)
+	plog.Debug("para create new Block", "newblock.ParentHash", common.ToHex(newblock.ParentHash),
+		"newblock.Height", newblock.Height,
+			"newblock.TxHash", common.ToHex(newblock.TxHash),
+				"newblock.BlockTime", newblock.BlockTime,
+					"sequence", seq)
 	return err
 }
 
