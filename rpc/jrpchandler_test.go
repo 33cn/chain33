@@ -25,14 +25,14 @@ func TestDecodeUserWrite(t *testing.T) {
 	data = decodeUserWrite(payload)
 	assert.Equal(t, data, &userWrite{Topic: "", Content: "hello#world"})
 
-	payload = []byte("123#hello#suyanlong")
+	payload = []byte("123#hello#wzw")
 	data = decodeUserWrite(payload)
 	assert.NotEqual(t, data, &userWrite{Topic: "123", Content: "hello#world"})
 }
 
 func TestDecodeTx(t *testing.T) {
 	tx := types.Transaction{
-		Execer:  []byte("coin"),
+		Execer:  []byte(types.ExecName("coin")),
 		Payload: []byte("342412abcd"),
 		Nonce:   8978167239,
 		To:      "1asd234dsf43fds",
@@ -42,13 +42,13 @@ func TestDecodeTx(t *testing.T) {
 	assert.NotNil(t, data)
 	assert.Nil(t, err)
 
-	tx.Execer = []byte("coins")
+	tx.Execer = []byte(types.ExecName(types.CoinsX))
 	data, err = DecodeTx(&tx)
 	assert.NotNil(t, data)
 	assert.Nil(t, err)
 
 	tx = types.Transaction{
-		Execer:  []byte("hashlock"),
+		Execer:  []byte(types.ExecName(types.HashlockX)),
 		Payload: []byte("34"),
 		Nonce:   8978167239,
 		To:      "1asd234dsf43fds",
@@ -931,7 +931,7 @@ func TestChain33_CreateRawTransaction(t *testing.T) {
 		IsWithdraw:  false,
 		IsToken:     true,
 		TokenSymbol: "CNY",
-		ExecName:    "token",
+		ExecName:    types.ExecName(types.TokenX),
 	}
 
 	err = testChain33.CreateRawTransaction(tx, &testResult)
@@ -1034,6 +1034,10 @@ func TestChain33_SendRawTransactionUnsignError(t *testing.T) {
 }
 
 func TestChain33_SendTransaction(t *testing.T) {
+	if types.IsPara() {
+		t.Skip()
+		return
+	}
 	api := new(mocks.QueueProtocolAPI)
 	tx := &types.Transaction{}
 	api.On("SendTx", tx).Return(nil, errors.New("error value"))
@@ -1093,7 +1097,7 @@ func TestChain33_QueryTransactionOk(t *testing.T) {
 	}
 	payload := types.Encode(act)
 	var tx = &types.Transaction{
-		Execer:  []byte("ticket"),
+		Execer:  []byte(types.ExecName(types.TicketX)),
 		Payload: payload,
 	}
 
@@ -1142,7 +1146,7 @@ func TestChain33_GetTxByHashesOk(t *testing.T) {
 	}
 	payload := types.Encode(act)
 	var tx = &types.Transaction{
-		Execer:  []byte("token"),
+		Execer:  []byte(types.ExecName(types.TokenX)),
 		Payload: payload,
 	}
 
@@ -1217,7 +1221,7 @@ func TestChain33_GetBlocksOk(t *testing.T) {
 	}
 	payload := types.Encode(act)
 	var tx = &types.Transaction{
-		Execer:  []byte("token"),
+		Execer:  []byte(types.ExecName(types.TokenX)),
 		Payload: payload,
 	}
 
@@ -1602,7 +1606,7 @@ func TestChain33_GetLastMemPoolOk(t *testing.T) {
 	var action types.Trade
 	act := types.Encode(&action)
 	var tx = &types.Transaction{
-		Execer:  []byte("trade"),
+		Execer:  []byte(types.ExecName(types.TradeX)),
 		Payload: act,
 		To:      "to",
 	}
@@ -2035,12 +2039,12 @@ func TestChain33_CreateTransaction(t *testing.T) {
 	err = client.CreateTransaction(in, &result)
 	assert.Equal(t, types.ErrExecNameNotAllow, err)
 
-	in = &TransactionCreate{Execer: "token", ActionName: "notExist", Payload: []byte("x")}
+	in = &TransactionCreate{Execer: types.ExecName(types.TokenX), ActionName: "notExist", Payload: []byte("x")}
 	err = client.CreateTransaction(in, &result)
 	assert.Equal(t, types.ErrNotSupport, err)
 
 	in = &TransactionCreate{
-		Execer:     "token",
+		Execer:     types.ExecName(types.TokenX),
 		ActionName: "TokenFinish",
 		Payload:    []byte("{\"fee\" : 10000, \"symbol\": \"TOKEN\", \"ownerAddr\":\"string\"}"),
 	}
