@@ -66,3 +66,9 @@ message ReceiptParacrossRecord {
 message ParacrossTx {
     string txHash = 1;
 }
+
+// query
+message ReqParacrossTitleHeight {
+    string title = 1;
+    int64 height = 2;
+}
