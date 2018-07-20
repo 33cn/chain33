@@ -30,7 +30,7 @@ import (
 var privacylog = log.New("module", "execs.privacy")
 
 func Init() {
-	drivers.Register(newPrivacy().GetName(), newPrivacy, 0)
+	drivers.Register(newPrivacy().GetName(), newPrivacy, types.ForkV21Privacy)
 }
 
 type privacy struct {
