@@ -8,19 +8,19 @@ type TokenPreCreateTx struct {
 	OwnerAddr    string `json:"ownerAddr"`
 	Total        int64  `json:"total"`
 	Fee          int64  `json:"fee"`
-	ParaName     string `json:"ParaName"`
+	ParaName     string `json:"paraName"`
 }
 
 type TokenFinishTx struct {
 	OwnerAddr string `json:"ownerAddr"`
 	Symbol    string `json:"symbol"`
 	Fee       int64  `json:"fee"`
-	ParaName  string `json:"ParaName"`
+	ParaName  string `json:"paraName"`
 }
 
 type TokenRevokeTx struct {
 	OwnerAddr string `json:"ownerAddr"`
 	Symbol    string `json:"symbol"`
 	Fee       int64  `json:"fee"`
-	ParaName  string `json:"ParaName"`
+	ParaName  string `json:"paraName"`
 }
