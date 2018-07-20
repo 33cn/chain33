@@ -190,15 +190,26 @@ func (coins TokenType) CreateTx(action string, message json.RawMessage) (*types.
 func CreateTokenTransfer(param *types.CreateTx) *types.Transaction {
 	transfer := &types.TokenAction{}
 	if !param.IsWithdraw {
-		v := &types.TokenAction_Transfer{Transfer: &types.CoinsTransfer{
-			Cointoken: param.GetTokenSymbol(), Amount: param.Amount, Note: param.GetNote()}}
-		transfer.Value = v
-		transfer.Ty = types.ActionTransfer
+		if types.IsPara() {
+			v := &types.TokenAction_Transfer{Transfer: &types.CoinsTransfer{
+				Cointoken: param.GetTokenSymbol(), Amount: param.Amount, Note: param.GetNote(), To: param.GetTo()}}
+			transfer.Value = v
+			transfer.Ty = types.ActionTransfer
+		} else {
+			v := &types.TokenAction_Transfer{Transfer: &types.CoinsTransfer{
+				Cointoken: param.GetTokenSymbol(), Amount: param.Amount, Note: param.GetNote()}}
+			transfer.Value = v
+			transfer.Ty = types.ActionTransfer
+		}
+
 	} else {
 		v := &types.TokenAction_Withdraw{Withdraw: &types.CoinsWithdraw{
 			Cointoken: param.GetTokenSymbol(), Amount: param.Amount, Note: param.GetNote()}}
 		transfer.Value = v
 		transfer.Ty = types.ActionWithdraw
+	}
+	if types.IsPara() {
+		return &types.Transaction{Execer: []byte(param.GetExecName()), Payload: types.Encode(transfer), To: param.GetExecName()}
 	}
 	return &types.Transaction{Execer: []byte(name), Payload: types.Encode(transfer), To: param.GetTo()}
 }
