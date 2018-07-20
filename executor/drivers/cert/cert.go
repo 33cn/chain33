@@ -60,7 +60,7 @@ func (c *Cert) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, inde
 		set.KV = append(set.KV, &types.KeyValue{[]byte("cert_0"), types.Encode(noneCertdata)})
 	} else if action.Ty == types.CertActionUpdate {
 		// 写入上一纪录的next-height
-		key := []byte(fmt.Sprintf("cert_%s", authority.Author.HistoryCertCache.CurHeight))
+		key := []byte(fmt.Sprintf("cert_%d", authority.Author.HistoryCertCache.CurHeight))
 		historityCertdata := &types.HistoryCertStore{}
 		authority.Author.HistoryCertCache.NxtHeight = c.GetHeight()
 		authority.Author.HistoryCertCache.ToHistoryCertStore(historityCertdata)
