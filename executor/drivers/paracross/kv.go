@@ -8,11 +8,13 @@ import (
 var (
 	title string
 	titleHeight string
+	configNodes string
 )
 
 func setPrefix() {
 	title = "mavl-" + types.ExecName("paracross") + "title-"
 	titleHeight = "mavl-" + types.ExecName("paracross") + "titleHeight-"
+	configNodes = "paracross-nodes-"
 }
 
 func calcTitleKey(title string) []byte {
@@ -21,6 +23,11 @@ func calcTitleKey(title string) []byte {
 
 func calcTitleHeightKey(title string, height int64) []byte {
 	return []byte(fmt.Sprintf(titleHeight+"%s-%012d", title, height))
+}
+
+func calcConfigNodesKey(title string) []byte {
+	key := configNodes + title
+	return []byte(types.ManageKey(key))
 }
 
 
