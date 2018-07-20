@@ -1,10 +1,9 @@
 package paracross
 
-
 import (
+	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/types"
-	log "github.com/inconshreveable/log15"
 	pt "gitlab.33.cn/chain33/chain33/types/executor/paracross"
 )
 
@@ -28,7 +27,6 @@ func newParacross() drivers.Driver {
 func (c *Paracross) GetName() string {
 	return types.ExecName("paracross")
 }
-
 
 func (c *Paracross) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	_, err := c.DriverBase.Exec(tx, index)

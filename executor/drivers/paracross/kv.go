@@ -1,16 +1,17 @@
 package paracross
 
 import (
-	"gitlab.33.cn/chain33/chain33/types"
 	"fmt"
+
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var (
-	title string
-	titleHeight string
-	configNodes string
-	localTx string
-	localTitle string
+	title            string
+	titleHeight      string
+	configNodes      string
+	localTx          string
+	localTitle       string
 	localTitleHeight string
 )
 
@@ -49,7 +50,5 @@ func calcLocalTitleHeightKey(title string, height int64) []byte {
 }
 
 func calcLocalTitlePrefix() []byte {
-	return  []byte(localTitle)
+	return []byte(localTitle)
 }
-
-

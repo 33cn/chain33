@@ -3,11 +3,12 @@ package paracross
 import (
 	"encoding/json"
 
-	log "github.com/inconshreveable/log15"
-	"gitlab.33.cn/chain33/chain33/types"
-	"time"
 	"math/rand"
+	"time"
+
+	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common/address"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 // action type
@@ -78,10 +79,10 @@ func CreateRawParacrossCommitTx(parm *ParacrossCommitTx) (*types.Transaction, er
 		return nil, types.ErrInvalidParam
 	}
 	v := &types.ParacrossCommitAction{
-		Status:         &types.ParacrossNodeStatus{
+		Status: &types.ParacrossNodeStatus{
 			StateHash: parm.StateHash,
-			Height: parm.Height,
-			Title: parm.Title,
+			Height:    parm.Height,
+			Title:     parm.Title,
 		},
 	}
 	action := &types.ParacrossAction{
@@ -146,6 +147,3 @@ func (t *ParacrossGetHeight) Input(message json.RawMessage) ([]byte, error) {
 func (t *ParacrossGetHeight) Output(reply interface{}) (interface{}, error) {
 	return reply, nil
 }
-
-
-
