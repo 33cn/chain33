@@ -27,6 +27,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers/token"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/trade"
 
+	"fmt"
 	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/cert"
 	"gitlab.33.cn/chain33/chain33/queue"
@@ -727,8 +728,9 @@ func (execute *executor) execFee(tx *types.Transaction, index int) (*types.Recei
 	}
 	var err error
 	//公链不允许手续费为0
-	if types.MinFee > 0 && (!e.IsFree() || types.IsPublicChain()) || !types.IsPara() {
+	if !types.IsPara() || types.MinFee > 0 && (!e.IsFree() || types.IsPublicChain()) {
 		feelog, err = execute.processFee(tx)
+		fmt.Println("processFee have err:", err.Error())
 		if err != nil {
 			return nil, err
 		}
