@@ -209,7 +209,7 @@ func CreateTokenTransfer(param *types.CreateTx) *types.Transaction {
 		transfer.Ty = types.ActionWithdraw
 	}
 	if types.IsPara() {
-		return &types.Transaction{Execer: []byte(param.GetExecName()), Payload: types.Encode(transfer), To: param.GetExecName()}
+		return &types.Transaction{Execer: []byte(param.GetExecName()), Payload: types.Encode(transfer), To: address.ExecAddress(param.GetExecName())}
 	}
 	return &types.Transaction{Execer: []byte(name), Payload: types.Encode(transfer), To: param.GetTo()}
 }
