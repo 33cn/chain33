@@ -138,23 +138,23 @@ func relayPayloadType(funcname string) (proto.Message, error) {
 
 func payloadType(execer, funcname string) (proto.Message, error) {
 	switch execer {
-	case types.ExecName("token"): // D
+	case types.ExecName(types.TokenX): // D
 		return tokenPayloadType(funcname)
-	case types.ExecName("coins"): // D
+	case types.ExecName(types.CoinsX): // D
 		return coinsPayloadType(funcname)
-	case types.ExecName("manage"): // D
+	case types.ExecName(types.ManageX): // D
 		return managePayloadType(funcname)
-	case types.ExecName("retrieve"): // D
+	case types.ExecName(types.RetrieveX): // D
 		return retrievePayloadType(funcname)
-	case types.ExecName("ticket"): // D
+	case types.ExecName(types.TicketX): // D
 		return ticketPayloadType(funcname)
-	case types.ExecName("trade"): // D
+	case types.ExecName(types.TradeX): // D
 		return tradePayloadType(funcname)
-	case types.ExecName("evm"):
+	case types.ExecName(types.EvmX):
 		return evmPayloadType(funcname)
-	case types.ExecName("privacy"):
+	case types.ExecName(types.PrivacyX):
 		return privacyPayloadType(funcname)
-	case types.ExecName("relay"):
+	case types.ExecName(types.RelayX):
 		return relayPayloadType(funcname)
 	}
 	return nil, types.ErrInputPara
