@@ -1,19 +1,5 @@
 package types
 
-// 注释掉系统中没有用到的枚举项
-// 与AllowUserExec中驱动名称的顺序一致
-const (
-	ExecTypeCoins    = 0
-	ExecTypeTicket   = 1
-	ExecTypeHashLock = 2
-	ExecTypeNorm     = 3
-	ExecTypeRetrieve = 4
-	ExecTypeNone     = 5
-	ExecTypeToken    = 6
-	ExecTypeTrade    = 7
-	ExecTypeManage   = 8
-)
-
 var userKey = []byte("user.")
 var slash = []byte("-")
 
@@ -31,6 +17,7 @@ const (
 	RelayX          = "relay"
 	Normx           = "norm"
 	UserEvmString   = "user.evm."
+	CertX           = "cert"
 )
 
 var (
@@ -47,27 +34,29 @@ var (
 	ExecerTrade    = []byte(TradeX)
 	ExecerNorm     = []byte(Normx)
 	ExecerConfig   = []byte("config")
+	ExecerCert     = []byte(CertX)
 	UserEvm        = []byte(UserEvmString)
 )
 
 const (
-	InputPrecision      float64 = 1e4
-	Multiple1E4         int64   = 1e4
-	TokenNameLenLimit           = 128
-	TokenSymbolLenLimit         = 16
-	TokenIntroLenLimit          = 1024
-	InvalidStartTime            = 0
-	InvalidStopTime             = 0
-	BlockDurPerSecCnt           = 15
-	BTY                         = "BTY"
-	BTYDustThreshold            = Coin
-	ConfirmedHeight             = 12
-	UTXOCacheCount              = 256
-	M_1_TIMES                   = 1
-	M_2_TIMES                   = 2
-	M_5_TIMES                   = 5
-	M_10_TIMES                  = 10
-	SignatureSize               = (4 + 33 + 65)
+	InputPrecision        float64 = 1e4
+	Multiple1E4           int64   = 1e4
+	TokenNameLenLimit             = 128
+	TokenSymbolLenLimit           = 16
+	TokenIntroLenLimit            = 1024
+	InvalidStartTime              = 0
+	InvalidStopTime               = 0
+	BlockDurPerSecCnt             = 15
+	BTY                           = "BTY"
+	BTYDustThreshold              = Coin
+	ConfirmedHeight               = 12
+	UTXOCacheCount                = 256
+	M_1_TIMES                     = 1
+	M_2_TIMES                     = 2
+	M_5_TIMES                     = 5
+	M_10_TIMES                    = 10
+	SignatureSize                 = (4 + 33 + 65)
+	PrivacyMaturityDegree         = 12
 )
 
 var (
@@ -82,6 +71,8 @@ var (
 //ty = 3 -> sm2
 //ty = 4 -> onetimeed25519
 //ty = 5 -> RingBaseonED25519
+//ty = 1+offset(1<<8) ->auth_ecdsa
+//ty = 2+offset(1<<8) -> auth_sm2
 const (
 	Invalid           = 0
 	SECP256K1         = 1
@@ -89,6 +80,8 @@ const (
 	SM2               = 3
 	OnetimeED25519    = 4
 	RingBaseonED25519 = 5
+	AUTH_ECDSA        = 257
+	AUTH_SM2          = 258
 )
 
 //const (
@@ -106,6 +99,8 @@ const (
 	SignNameSM2            = "sm2"
 	SignNameOnetimeED25519 = "onetimeed25519"
 	SignNameRing           = "RingSignatue"
+	SignNameAuthECDSA      = "auth_ecdsa"
+	SignNameAuthSM2        = "auth_sm2"
 )
 
 var MapSignType2name = map[int]string{
@@ -114,6 +109,8 @@ var MapSignType2name = map[int]string{
 	SM2:               SignNameSM2,
 	OnetimeED25519:    SignNameOnetimeED25519,
 	RingBaseonED25519: SignNameRing,
+	AUTH_ECDSA:        SignNameAuthECDSA,
+	AUTH_SM2:          SignNameAuthSM2,
 }
 
 var MapSignName2Type = map[string]int{
@@ -122,6 +119,8 @@ var MapSignName2Type = map[string]int{
 	SignNameSM2:            SM2,
 	SignNameOnetimeED25519: OnetimeED25519,
 	SignNameRing:           RingBaseonED25519,
+	SignNameAuthECDSA:      AUTH_ECDSA,
+	SignNameAuthSM2:        AUTH_SM2,
 }
 
 //log type
@@ -247,6 +246,13 @@ const (
 //norm
 const (
 	NormActionPut = 1
+)
+
+//cert
+const (
+	CertActionNew    = 1
+	CertActionUpdate = 2
+	CertActionNormal = 3
 )
 
 // retrieve op

@@ -47,17 +47,13 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 	if err != nil {
 		return "", err
 	}
-	if unsigned.Mode == 1 {
-		// TODO：由于隐私交易传递的是交易HASH，隐私交易签名处理需要特殊处理，这块本次测试跑通，二期需要将其改为传递交易内容
-		return wallet.signTxWithPrivacy(key, unsigned)
-	}
 
 	var tx types.Transaction
-	bytes, err := common.FromHex(unsigned.GetTxHex())
+	txByteData, err := common.FromHex(unsigned.GetTxHex())
 	if err != nil {
 		return "", err
 	}
-	err = types.Decode(bytes, &tx)
+	err = types.Decode(txByteData, &tx)
 	if err != nil {
 		return "", err
 	}
@@ -66,6 +62,9 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 		return "", err
 	}
 	tx.SetExpire(expire)
+	if bytes.Equal(tx.Execer, types.ExecerPrivacy) {
+		return wallet.signTxWithPrivacy(key, unsigned)
+	}
 	group, err := tx.GetTxGroup()
 	if err != nil {
 		return "", err
@@ -1431,4 +1430,32 @@ func (wallet *Wallet) setFatalFailure(reportErrEvent *types.ReportErrEvent) {
 
 func (wallet *Wallet) getFatalFailure() int32 {
 	return atomic.LoadInt32(&wallet.fatalFailureFlag)
+}
+
+func (wallet *Wallet) procPrivacyTransactionList(req *types.ReqPrivacyTransactionList) (*types.WalletTxDetails, error) {
+	walletlog.Info("call procPrivacyTransactionList")
+	if req == nil {
+		walletlog.Error("procPrivacyTransactionList", "param is nil")
+		return nil, types.ErrInvalidParams
+	}
+	if req.Direction != 0 && req.Direction != 1 {
+		walletlog.Error("procPrivacyTransactionList", "invalid direction ", req.Direction)
+		return nil, types.ErrInvalidParams
+	}
+	// convert to sendTx / recvTx
+	sendRecvFlag := req.SendRecvFlag + sendTx
+	if sendRecvFlag != sendTx && sendRecvFlag != recvTx {
+		walletlog.Error("procPrivacyTransactionList", "invalid sendrecvflag ", req.SendRecvFlag)
+		return nil, types.ErrInvalidParams
+	}
+	req.SendRecvFlag = sendRecvFlag
+
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+	reply, err := wallet.walletStore.getWalletPrivacyTxDetails(req)
+	if err != nil {
+		walletlog.Error("procPrivacyTransactionList", "getWalletPrivacyTxDetails error", err)
+		return nil, err
+	}
+	return reply, nil
 }

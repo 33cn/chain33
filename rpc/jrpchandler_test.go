@@ -1035,7 +1035,9 @@ func TestChain33_SendRawTransactionUnsignError(t *testing.T) {
 
 func TestChain33_SendTransaction(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
-	api.On("SendTx", &types.Transaction{}).Return(nil, errors.New("error value"))
+	tx := &types.Transaction{}
+	api.On("SendTx", tx).Return(nil, errors.New("error value"))
+	api.On("NotifySendTxResult", &types.ReqNotifySendTxResult{Isok: false, Tx: tx}).Return(&types.Reply{IsOk: true}, nil)
 	testChain33 := newTestChain33(api)
 	var testResult interface{}
 	data := RawParm{
@@ -2044,4 +2046,21 @@ func TestChain33_CreateTransaction(t *testing.T) {
 	}
 	err = client.CreateTransaction(in, &result)
 	assert.Nil(t, err)
+}
+
+func TestChain33_PrivacyTxList(t *testing.T) {
+	api := new(mocks.QueueProtocolAPI)
+	testChain33 := newTestChain33(api)
+
+	expected := &types.ReqPrivacyTransactionList{}
+	api.On("PrivacyTransactionList", expected).Return(nil, errors.New("error value"))
+
+	var testResult interface{}
+	actual := &types.ReqPrivacyTransactionList{}
+	err := testChain33.PrivacyTxList(actual, &testResult)
+	t.Log(err)
+	assert.Equal(t, nil, testResult)
+	assert.NotNil(t, err)
+
+	mock.AssertExpectationsForObjects(t, api)
 }

@@ -7,7 +7,6 @@ import (
 	"io"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -19,10 +18,7 @@ func BTYCmd() *cobra.Command {
 		Short: "Construct BTY transactions",
 		Args:  cobra.MinimumNArgs(1),
 	}
-
 	cmd.AddCommand(
-		//TransferCmd(),
-		//WithdrawFromExecCmd(),
 		CreateRawTransferCmd(),
 		CreateRawWithdrawCmd(),
 		CreateRawSendToExecCmd(),
@@ -31,7 +27,24 @@ func BTYCmd() *cobra.Command {
 		CreatePriv2PrivTxCmd(),
 		CreatePriv2PubTxCmd(),
 	)
+	return cmd
+}
 
+func CoinsCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "coins",
+		Short: "Construct system coins transactions",
+		Args:  cobra.MinimumNArgs(1),
+	}
+	cmd.AddCommand(
+		CreateRawTransferCmd(),
+		CreateRawWithdrawCmd(),
+		CreateRawSendToExecCmd(),
+		CreateTxGroupCmd(),
+		CreatePub2PrivTxCmd(),
+		CreatePriv2PrivTxCmd(),
+		CreatePriv2PubTxCmd(),
+	)
 	return cmd
 }
 
@@ -60,7 +73,7 @@ func createTransfer(cmd *cobra.Command, args []string) {
 	toAddr, _ := cmd.Flags().GetString("to")
 	amount, _ := cmd.Flags().GetFloat64("amount")
 	note, _ := cmd.Flags().GetString("note")
-	txHex, err := CreateRawTx(toAddr, amount, note, false, false, "", "", "")
+	txHex, err := CreateRawTx(cmd, toAddr, amount, note, false, false, "", "")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -98,7 +111,7 @@ func createWithdraw(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	txHex, err := CreateRawTx(execAddr, amount, note, true, false, "", exec, "")
+	txHex, err := CreateRawTx(cmd, execAddr, amount, note, true, false, "", exec)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -136,7 +149,7 @@ func sendToExec(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	txHex, err := CreateRawTx(execAddr, amount, note, false, false, "", exec, "")
+	txHex, err := CreateRawTx(cmd, execAddr, amount, note, false, false, "", exec)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -311,10 +324,8 @@ func createPub2PrivTxFlags(cmd *cobra.Command) {
 	cmd.MarkFlagRequired("pubkeypair")
 	cmd.Flags().Float64P("amount", "a", 0.0, "transfer amount, at most 4 decimal places")
 	cmd.MarkFlagRequired("amount")
-	cmd.Flags().StringP("sender", "s", "", "account address")
-	cmd.MarkFlagRequired("sender")
 
-	cmd.Flags().StringP("tokenname", "t", "BTY", "token name")
+	cmd.Flags().StringP("tokenname", "", "BTY", "token name")
 	cmd.Flags().StringP("note", "n", "", "note for transaction")
 }
 
@@ -324,7 +335,6 @@ func createPub2PrivTx(cmd *cobra.Command, args []string) {
 	amount := GetAmountValue(cmd, "amount")
 	tokenname, _ := cmd.Flags().GetString("tokenname")
 	note, _ := cmd.Flags().GetString("note")
-	sender, _ := cmd.Flags().GetString("sender")
 
 	params := types.ReqCreateTransaction{
 		Tokenname:  tokenname,
@@ -332,8 +342,6 @@ func createPub2PrivTx(cmd *cobra.Command, args []string) {
 		Amount:     amount,
 		Note:       note,
 		Pubkeypair: pubkeypair,
-		From:       sender,
-		Expire:     int64(time.Hour),
 	}
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateTrasaction", params, nil)
 	ctx.RunWithoutMarshal()
@@ -377,7 +385,6 @@ func createPriv2PrivTx(cmd *cobra.Command, args []string) {
 		Pubkeypair: pubkeypair,
 		From:       sender,
 		Mixcount:   16,
-		Expire:     int64(time.Hour),
 	}
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateTrasaction", params, nil)
 	ctx.RunWithoutMarshal()
@@ -421,7 +428,6 @@ func createPriv2PubTx(cmd *cobra.Command, args []string) {
 		From:      from,
 		To:        to,
 		Mixcount:  16,
-		Expire:    int64(time.Hour),
 	}
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateTrasaction", params, nil)
 	ctx.RunWithoutMarshal()

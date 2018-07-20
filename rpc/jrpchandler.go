@@ -55,24 +55,24 @@ func (c *Chain33) SendRawTransaction(in SignedTx, result *interface{}) error {
 	}
 }
 
-func (c *Chain33) sendTxToWallet(in RawParm, result *interface{}) error {
-	var ccTxKey types.ReqCreateCacheTxKey
-	bytes, err := common.FromHex(in.Data)
+//used only in parachain
+func forwardTranToMainNet(in RawParm, result *interface{}) error {
+	if rpcCfg.GetMainnetJrpcAddr() == "" {
+		return types.ErrInvalidMainnetRpcAddr
+	}
+	rpc, err := NewJSONClient(rpcCfg.GetMainnetJrpcAddr())
+
 	if err != nil {
 		return err
 	}
-	ccTxKey.Hashkey = bytes
-	ccTxKey.Tokenname = in.Token
-	reply, err := c.cli.SendTxHashToWallet(&ccTxKey)
-	if err == nil {
-		*result = common.ToHex(reply.GetMsg())
-	}
+
+	err = rpc.Call("Chain33.SendTransaction", in, result)
 	return err
 }
 
 func (c *Chain33) SendTransaction(in RawParm, result *interface{}) error {
-	if in.Mode == 1 {
-		return c.sendTxToWallet(in, result)
+	if types.IsPara() {
+		return forwardTranToMainNet(in, result)
 	}
 	var parm types.Transaction
 	data, err := common.FromHex(in.Data)
@@ -85,6 +85,14 @@ func (c *Chain33) SendTransaction(in RawParm, result *interface{}) error {
 	if err == nil {
 		*result = common.ToHex(reply.GetMsg())
 	}
+	isok := false
+	if reply != nil {
+		isok = reply.IsOk
+	}
+	c.cli.NotifySendTxResult(&types.ReqNotifySendTxResult{
+		Isok: isok,
+		Tx:   &parm,
+	})
 	return err
 }
 
@@ -393,45 +401,13 @@ func (c *Chain33) WalletTxList(in ReqWalletTransactionList, result *interface{})
 	parm.FromTx = []byte(in.FromTx)
 	parm.Count = in.Count
 	parm.Direction = in.Direction
-	parm.Mode = in.Mode
-	parm.SendRecvPrivacy = in.SendRecvPrivacy
-	parm.Address = in.Address
-	parm.Tokenname = in.TokenName
 	reply, err := c.cli.WalletTransactionList(&parm)
 	if err != nil {
 		return err
 	}
 	{
 		var txdetails WalletTxDetails
-
-		for _, tx := range reply.TxDetails {
-			var recp ReceiptData
-			logs := tx.GetReceipt().GetLogs()
-			recp.Ty = tx.GetReceipt().GetTy()
-			for _, lg := range logs {
-				recp.Logs = append(recp.Logs,
-					&ReceiptLog{Ty: lg.Ty, Log: common.ToHex(lg.GetLog())})
-			}
-			rd, err := DecodeLog(&recp)
-			if err != nil {
-				continue
-			}
-			tran, err := DecodeTx(tx.GetTx())
-			if err != nil {
-				continue
-			}
-			txdetails.TxDetails = append(txdetails.TxDetails, &WalletTxDetail{
-				Tx:         tran,
-				Receipt:    rd,
-				Height:     tx.GetHeight(),
-				Index:      tx.GetIndex(),
-				BlockTime:  tx.GetBlocktime(),
-				Amount:     tx.GetAmount(),
-				FromAddr:   tx.GetFromaddr(),
-				TxHash:     common.ToHex(tx.GetTxhash()),
-				ActionName: tx.GetActionName(),
-			})
-		}
+		c.convertWalletTxDetailToJson(reply, &txdetails)
 		*result = &txdetails
 	}
 
@@ -835,7 +811,7 @@ func (c *Chain33) Query(in Query4Jrpc, result *interface{}) error {
 		return err
 	}
 
-	resp, err := c.cli.Query(&types.Query{Execer: []byte(in.Execer), FuncName: in.FuncName, Payload: decodePayload})
+	resp, err := c.cli.Query(&types.Query{Execer: []byte(types.ExecName(in.Execer)), FuncName: in.FuncName, Payload: decodePayload})
 	if err != nil {
 		log.Error("EventQuery", "err", err.Error())
 		return err
@@ -1003,11 +979,14 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 			Pubkey:    common.ToHex(tx.GetSignature().GetPubkey()),
 			Signature: common.ToHex(tx.GetSignature().GetSignature()),
 		},
-		Fee:    tx.Fee,
-		Expire: tx.Expire,
-		Nonce:  tx.Nonce,
-		To:     tx.To,
-		From:   tx.From(),
+		Fee:        tx.Fee,
+		Expire:     tx.Expire,
+		Nonce:      tx.Nonce,
+		To:         tx.To,
+		From:       tx.From(),
+		GroupCount: tx.GroupCount,
+		Header:     common.ToHex(tx.Header),
+		Next:       common.ToHex(tx.Next),
 	}
 	return result, nil
 }
@@ -1393,7 +1372,8 @@ func (c *Chain33) CreateTrasaction(in types.ReqCreateTransaction, result *interf
 	if err != nil {
 		return err
 	}
-	*result = common.ToHex(reply.GetMsg())
+	txHex := types.Encode(reply)
+	*result = hex.EncodeToString(txHex)
 	return nil
 }
 
@@ -1563,5 +1543,54 @@ func (c *Chain33) CreateRawRelaySaveBTCHeadTx(in *RelaySaveBTCHeadTx, result *in
 
 	*result = hex.EncodeToString(reply)
 
+	return nil
+}
+
+func (c *Chain33) convertWalletTxDetailToJson(in *types.WalletTxDetails, out *WalletTxDetails) error {
+	if in == nil || out == nil {
+		return types.ErrInvalidParams
+	}
+	for _, tx := range in.TxDetails {
+		var recp ReceiptData
+		logs := tx.GetReceipt().GetLogs()
+		recp.Ty = tx.GetReceipt().GetTy()
+		for _, lg := range logs {
+			recp.Logs = append(recp.Logs,
+				&ReceiptLog{Ty: lg.Ty, Log: common.ToHex(lg.GetLog())})
+		}
+		rd, err := DecodeLog(&recp)
+		if err != nil {
+			continue
+		}
+		tran, err := DecodeTx(tx.GetTx())
+		if err != nil {
+			continue
+		}
+		out.TxDetails = append(out.TxDetails, &WalletTxDetail{
+			Tx:         tran,
+			Receipt:    rd,
+			Height:     tx.GetHeight(),
+			Index:      tx.GetIndex(),
+			BlockTime:  tx.GetBlocktime(),
+			Amount:     tx.GetAmount(),
+			FromAddr:   tx.GetFromaddr(),
+			TxHash:     common.ToHex(tx.GetTxhash()),
+			ActionName: tx.GetActionName(),
+		})
+	}
+	return nil
+}
+
+// PrivacyTxList get all privacy transaction list by param
+func (c *Chain33) PrivacyTxList(in *types.ReqPrivacyTransactionList, result *interface{}) error {
+	reply, err := c.cli.PrivacyTransactionList(in)
+	if err != nil {
+		return err
+	}
+	{
+		var txdetails WalletTxDetails
+		c.convertWalletTxDetailToJson(reply, &txdetails)
+		*result = &txdetails
+	}
 	return nil
 }
