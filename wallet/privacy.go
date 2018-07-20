@@ -1465,7 +1465,6 @@ func (wallet *Wallet) reqUtxosByAddr(addr string) {
 			// 扫描完毕
 			atomic.StoreInt32(&wallet.rescanUTXOflag, utxoFlagNoScan)
 			// 删除privacyInput
-			time.Sleep(time.Second)
 			wallet.DeleteScanPrivacyInputUtxo()
 		}
 	}
@@ -1624,34 +1623,43 @@ func (wallet *Wallet) SelectCurrentWalletPrivacyTx(txDetal *types.TransactionDet
 }
 
 func (wallet *Wallet) DeleteScanPrivacyInputUtxo() {
-	newbatch := wallet.walletStore.NewBatch(true)
-	utxoGlobalIndexs := wallet.walletStore.GetScanPrivacyInputUTXO(0)
-	if len(utxoGlobalIndexs) > 0 {
-		var utxos []*types.UTXO
-		var owner string
-		var token string
-		var txhash string
-		for _, utxoGlobal := range utxoGlobalIndexs {
-			accPrivacy, err := wallet.walletStore.IsUTXOExist(common.Bytes2Hex(utxoGlobal.Txhash), int(utxoGlobal.Outindex))
-			if err == nil && accPrivacy != nil {
-				utxo := &types.UTXO{
-					Amount: accPrivacy.Amount,
-					UtxoBasic: &types.UTXOBasic{
-						UtxoGlobalIndex: utxoGlobal,
-						OnetimePubkey:   accPrivacy.OnetimePublicKey,
-					},
+	MaxUtxosPerTime := 1000
+
+	for {
+		utxoGlobalIndexs := wallet.walletStore.GetScanPrivacyInputUTXO(int32(MaxUtxosPerTime))
+		if len(utxoGlobalIndexs) > 0 {
+			newbatch := wallet.walletStore.NewBatch(true)
+			var utxos []*types.UTXO
+			var owner string
+			var token string
+			var txhash string
+			for _, utxoGlobal := range utxoGlobalIndexs {
+				accPrivacy, err := wallet.walletStore.IsUTXOExist(common.Bytes2Hex(utxoGlobal.Txhash), int(utxoGlobal.Outindex))
+				if err == nil && accPrivacy != nil {
+					utxo := &types.UTXO{
+						Amount: accPrivacy.Amount,
+						UtxoBasic: &types.UTXOBasic{
+							UtxoGlobalIndex: utxoGlobal,
+							OnetimePubkey:   accPrivacy.OnetimePublicKey,
+						},
+					}
+					utxos = append(utxos, utxo)
+					owner = accPrivacy.Owner
+					token = accPrivacy.Tokenname
+					txhash = common.Bytes2Hex(accPrivacy.Txhash)
 				}
-				utxos = append(utxos, utxo)
-				owner = accPrivacy.Owner
-				token = accPrivacy.Tokenname
-				txhash = common.Bytes2Hex(accPrivacy.Txhash)
+				key := calcScanPrivacyInputUTXOKey(common.Bytes2Hex(utxoGlobal.Txhash), int(utxoGlobal.Outindex))
+				newbatch.Delete(key)
 			}
-			key := calcScanPrivacyInputUTXOKey(common.Bytes2Hex(utxoGlobal.Txhash), int(utxoGlobal.Outindex))
-			newbatch.Delete(key)
+			if len(utxos) > 0 {
+				wallet.walletStore.moveUTXO2STXO(owner, token, txhash, utxos, newbatch)
+			}
+			newbatch.Write()
 		}
-		if len(utxos) > 0 {
-			wallet.walletStore.moveUTXO2STXO(owner, token, txhash, utxos, newbatch)
+
+		if  len(utxoGlobalIndexs) < MaxUtxosPerTime {
+			break
 		}
 	}
-	newbatch.Write()
+
 }
