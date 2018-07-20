@@ -301,6 +301,7 @@ It has these top-level messages:
 	ReceiptParacrossRecord
 	ParacrossTx
 	ReqParacrossTitleHeight
+	RespParacrossTitles
 	Operation
 	Checkpoint
 	Entry
