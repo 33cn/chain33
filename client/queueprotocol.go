@@ -1014,5 +1014,38 @@ func (q *QueueProtocol) BlockChainQuery(param *types.BlockChainQuery) (*types.Re
 	err = types.ErrTypeAsset
 	log.Error("BlockChainQuery", "Error", err.Error())
 	return nil, err
+}
 
+func (q *QueueProtocol) QueryUTXOChangeLog(param *types.ReqUTXOChangeLog) (*types.UTXOChangeLogItems, error) {
+	if param == nil {
+		err := types.ErrInvalidParam
+		log.Error("QueryUTXOChangeLog", "Error", err)
+		return nil, err
+	}
+	msg, err := q.query(walletKey, types.EventQueryUTXOChangeLog, param)
+	if err != nil {
+		log.Error("QueryUTXOChangeLog", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.UTXOChangeLogItems); ok {
+		return reply, nil
+	}
+	return nil, types.ErrTypeAsset
+}
+
+func (q *QueueProtocol) QueryPrivacyTxChangeLog(param *types.ReqNil) (*types.PrivacyTxChangeItems, error) {
+	if param == nil {
+		err := types.ErrInvalidParam
+		log.Error("QueryPrivacyTxChangeLog", "Error", err)
+		return nil, err
+	}
+	msg, err := q.query(walletKey, types.EventQueryPrivacyTxChangeLog, param)
+	if err != nil {
+		log.Error("QueryPrivacyTxChangeLog", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.PrivacyTxChangeItems); ok {
+		return reply, nil
+	}
+	return nil, types.ErrTypeAsset
 }
