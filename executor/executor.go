@@ -27,7 +27,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers/token"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/trade"
 
-	"fmt"
 	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/cert"
 	"gitlab.33.cn/chain33/chain33/queue"
