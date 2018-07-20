@@ -25,7 +25,7 @@ func TestTokenPayloadType(t *testing.T) {
 	assert.Equal(t, &types.ReqAccountTokenAssets{}, msg)
 	assert.Nil(t, err)
 
-	msg, err = tokenPayloadType("suyanlong")
+	msg, err = tokenPayloadType("wzw")
 	assert.Nil(t, msg)
 	assert.Equal(t, err, types.ErrInputPara)
 }
@@ -39,7 +39,7 @@ func TestCoinsPayloadType(t *testing.T) {
 	assert.Equal(t, &types.ReqAddr{}, msg)
 	assert.Nil(t, err)
 
-	msg, err = coinsPayloadType("suyanlong")
+	msg, err = coinsPayloadType("wzw")
 	assert.Nil(t, msg)
 	assert.Equal(t, err, types.ErrInputPara)
 }
@@ -49,7 +49,7 @@ func TestManagePayloadType(t *testing.T) {
 	assert.Equal(t, &types.ReqString{}, msg)
 	assert.Nil(t, err)
 
-	msg, err = managePayloadType("suyanlong")
+	msg, err = managePayloadType("wzw")
 	assert.Nil(t, msg)
 	assert.Equal(t, err, types.ErrInputPara)
 }
@@ -59,7 +59,7 @@ func TestRetrievePayloadType(t *testing.T) {
 	assert.Equal(t, &types.ReqRetrieveInfo{}, msg)
 	assert.Nil(t, err)
 
-	msg, err = retrievePayloadType("suyanlong")
+	msg, err = retrievePayloadType("wzw")
 	assert.Nil(t, msg)
 	assert.Equal(t, err, types.ErrInputPara)
 }
@@ -81,7 +81,7 @@ func TestTicketPayloadType(t *testing.T) {
 	assert.Equal(t, &types.ReqString{}, msg)
 	assert.Nil(t, err)
 
-	msg, err = ticketPayloadType("suyanlong")
+	msg, err = ticketPayloadType("wzw")
 	assert.Nil(t, msg)
 	assert.Equal(t, err, types.ErrInputPara)
 }
@@ -111,37 +111,37 @@ func TestTradePayloadType(t *testing.T) {
 	assert.Equal(t, &types.ReqTokenBuyOrder{}, msg)
 	assert.Nil(t, err)
 
-	msg, err = tradePayloadType("suyanlong")
+	msg, err = tradePayloadType("wzw")
 	assert.Nil(t, msg)
 	assert.Equal(t, err, types.ErrInputPara)
 }
 
 func TestPayloadType(t *testing.T) {
-	msg, err := payloadType("token", "GetTokens")
+	msg, err := payloadType(types.ExecName("token"), "GetTokens")
 	assert.Equal(t, &types.ReqTokens{}, msg)
 	assert.Nil(t, err)
 
-	msg, err = payloadType("coins", "GetAddrReciver")
+	msg, err = payloadType(types.ExecName("coins"), "GetAddrReciver")
 	assert.Equal(t, &types.ReqAddr{}, msg)
 	assert.Nil(t, err)
 
-	msg, err = payloadType("manage", "GetConfigItem")
+	msg, err = payloadType(types.ExecName("manage"), "GetConfigItem")
 	assert.Equal(t, &types.ReqString{}, msg)
 	assert.Nil(t, err)
 
-	msg, err = payloadType("retrieve", "GetRetrieveInfo")
+	msg, err = payloadType(types.ExecName("retrieve"), "GetRetrieveInfo")
 	assert.Equal(t, &types.ReqRetrieveInfo{}, msg)
 	assert.Nil(t, err)
 
-	msg, err = payloadType("ticket", "TicketInfos")
+	msg, err = payloadType(types.ExecName("ticket"), "TicketInfos")
 	assert.Equal(t, &types.TicketInfos{}, msg)
 	assert.Nil(t, err)
 
-	msg, err = payloadType("trade", "GetOnesSellOrder")
+	msg, err = payloadType(types.ExecName("trade"), "GetOnesSellOrder")
 	assert.Equal(t, &types.ReqAddrTokens{}, msg)
 	assert.Nil(t, err)
 
-	msg, err = payloadType("suyanlong", "suyanlong")
+	msg, err = payloadType(types.ExecName("wzw"), "wzw")
 	assert.Nil(t, msg)
 	assert.Equal(t, err, types.ErrInputPara)
 }
@@ -168,7 +168,7 @@ func TestProtoPayload(t *testing.T) {
 	assert.NotNil(t, data)
 	assert.Nil(t, err)
 
-	msg, err = protoPayload("suyanlong", "suyanlong", nil)
+	msg, err = protoPayload("wzw", "wzw", nil)
 	assert.Equal(t, types.ErrInputPara, err)
 	assert.Nil(t, msg)
 

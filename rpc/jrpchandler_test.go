@@ -25,7 +25,7 @@ func TestDecodeUserWrite(t *testing.T) {
 	data = decodeUserWrite(payload)
 	assert.Equal(t, data, &userWrite{Topic: "", Content: "hello#world"})
 
-	payload = []byte("123#hello#suyanlong")
+	payload = []byte("123#hello#wzw")
 	data = decodeUserWrite(payload)
 	assert.NotEqual(t, data, &userWrite{Topic: "123", Content: "hello#world"})
 }
