@@ -121,6 +121,7 @@ type ConsensusState struct {
 	needCommitByInfo chan CommitInfo
 	precommitOK      bool
 	begCons          time.Time
+	trigFinalCommit  chan int64
 }
 
 // NewConsensusState returns a new ConsensusState.
@@ -144,6 +145,7 @@ func NewConsensusState(client *TendermintClient, blockStore *ttypes.BlockStore, 
 		needCommitByInfo: make(chan CommitInfo, maxCommitInfoSize),
 		precommitOK:      false,
 		begCons:          time.Time{},
+		trigFinalCommit:  make(chan int64, 1),
 	}
 	// set function defaults (may be overwritten before calling Start)
 	cs.decideProposal = cs.defaultDecideProposal
@@ -473,6 +475,8 @@ func (cs *ConsensusState) receiveRoutine(maxSteps int) {
 		select {
 		case height := <-cs.client.TxsAvailable():
 			cs.handleTxsAvailable(height)
+		case height := <-cs.trigFinalCommit:
+			cs.finalizeCommit(height)
 		case mi = <-cs.peerMsgQueue:
 			//cs.wal.Save(mi)
 			// handles proposals, block parts, votes
@@ -580,6 +584,9 @@ func (cs *ConsensusState) handleTxsAvailable(height int64) {
 	defer cs.mtx.Unlock()
 	// we only need to do this for round 0
 	cs.begCons = time.Now()
+	tendermintlog.Info(fmt.Sprintf("handleTxsAvailable. Current: %v/%v/%v", cs.Height, cs.Round, cs.Step), "height", height)
+	// catch up
+	cs.updateHeight(height)
 	cs.enterPropose(height, 0)
 }
 
@@ -816,14 +823,14 @@ func (cs *ConsensusState) createProposalBlock() (block *ttypes.Block) {
 	// Mempool validated transactions
 	// workaround to avoid check dup
 	beg := time.Now()
-	var hashList [][]byte
-	for _, tx := range cs.client.lastBlock.Txs {
-		hashList = append(hashList, tx.Hash())
-	}
-	txs := cs.client.RequestTx(int(gtypes.GetP(cs.client.lastBlock.Height+1).MaxTxNumber)-1, hashList)
+	//var hashList [][]byte
+	//for _, tx := range cs.client.lastBlock.Txs {
+	//	hashList = append(hashList, tx.Hash())
+	//}
+	txs := cs.client.RequestTx(int(gtypes.GetP(cs.client.lastBlock.Height+1).MaxTxNumber)-1, nil)
 	//check dup
-	//txs = cs.client.CheckTxDup(txs)
-	tendermintlog.Info(fmt.Sprintf("createProposalBlock. Current: %v/%v/%v", cs.Height, cs.Round, cs.Step), "cost", time.Since(beg))
+	txs = cs.client.CheckTxDup(txs)
+	tendermintlog.Info(fmt.Sprintf("createProposalBlock RequestTx. Current: %v/%v/%v", cs.Height, cs.Round, cs.Step), "txs-len", len(txs), "cost", time.Since(beg))
 	if len(txs) == 0 {
 		tendermintlog.Error("No new txs to propose, will change Proposer", "height", cs.Height)
 		return
@@ -1099,7 +1106,10 @@ func (cs *ConsensusState) tryFinalizeCommit(height int64) {
 	}
 
 	//	go
-	cs.finalizeCommit(height)
+	//cs.finalizeCommit(height)
+
+	// trigger finalizeCommit in receiveRoutine to avoid receiving other messages before finishing commit
+	cs.trigFinalCommit <- height
 }
 
 func (cs *ConsensusState) commitReturn(result bool) {
@@ -1213,7 +1223,7 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 	// Schedule Round0 to start soon.
 	cs.scheduleRound0(&cs.RoundState)
 
-	cs.client.ConsResult() <- true
+	cs.client.ConsResult() <- cs.Height - 1
 
 	// By here,
 	// * cs.Height has been increment to height+1
