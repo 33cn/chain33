@@ -562,7 +562,7 @@ func testAddrTxCount(t *testing.T, blockchain *BlockChain) {
 	chainlog.Info("testAddrTxCount begin --------------------")
 	var reqkey types.ReqKey
 	reqkey.Key = []byte(fmt.Sprintf("AddrTxsCount:%s", "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"))
-	count, _ := blockchain.query.Query("coins", "GetAddrTxsCount", types.Encode(&reqkey))
+	count, _ := blockchain.query.Query(types.ExecName("coins"), "GetAddrTxsCount", types.Encode(&reqkey))
 	fmt.Println("count: ", count.(*types.Int64).GetData())
 	chainlog.Info("testAddrTxCount end --------------------")
 }

@@ -28,7 +28,6 @@ type SignedTx struct {
 }
 
 type RawParm struct {
-	Mode  int32  `json:"mode"`
 	Token string `json:"token"`
 	Data  string `json:"data"`
 }
@@ -73,6 +72,9 @@ type Transaction struct {
 	From       string      `json:"from,omitempty"`
 	To         string      `json:"to"`
 	Amount     int64       `json:"amount,omitempty"`
+	GroupCount int32       `json:"groupCount,omitempty"`
+	Header     string      `json:"header,omitempty"`
+	Next       string      `json:"next,omitempty"`
 }
 
 type ReceiptLog struct {
@@ -130,7 +132,7 @@ type TransactionDetail struct {
 }
 
 type ReplyTxInfos struct {
-	TxInfos []*ReplyTxInfo `protobuf:"bytes,1,rep,name=txInfos" json:"txInfos"`
+	TxInfos []*ReplyTxInfo `json:"txInfos"`
 }
 
 type ReplyTxInfo struct {
@@ -141,7 +143,7 @@ type ReplyTxInfo struct {
 
 type TransactionDetails struct {
 	//Txs []*Transaction `json:"txs"`
-	Txs []*TransactionDetail `protobuf:"bytes,1,rep,name=txs" json:"txs"`
+	Txs []*TransactionDetail `json:"txs"`
 }
 
 type ReplyTxList struct {
@@ -169,25 +171,25 @@ type Peer struct {
 
 // Wallet Module
 type WalletAccounts struct {
-	Wallets []*WalletAccount `protobuf:"bytes,1,rep,name=wallets" json:"wallets"`
+	Wallets []*WalletAccount `json:"wallets"`
 }
 type WalletAccount struct {
-	Acc   *Account `protobuf:"bytes,1,opt,name=acc" json:"acc"`
-	Label string   `protobuf:"bytes,2,opt,name=label" json:"label"`
+	Acc   *Account `json:"acc"`
+	Label string   `json:"label"`
 }
 
 type Account struct {
-	Currency int32  `protobuf:"varint,1,opt,name=currency" json:"currency"`
-	Balance  int64  `protobuf:"varint,2,opt,name=balance" json:"balance"`
-	Frozen   int64  `protobuf:"varint,3,opt,name=frozen" json:"frozen"`
-	Addr     string `protobuf:"bytes,4,opt,name=addr" json:"addr"`
+	Currency int32  `json:"currency"`
+	Balance  int64  `json:"balance"`
+	Frozen   int64  `json:"frozen"`
+	Addr     string `json:"addr"`
 }
 type Reply struct {
-	IsOk bool   `protobuf:"varint,1,opt,name=isOk" json:"isOK"`
-	Msg  string `protobuf:"bytes,2,opt,name=msg,proto3" json:"msg"`
+	IsOk bool   `json:"isOK"`
+	Msg  string `json:"msg"`
 }
 type Headers struct {
-	Items []*Header `protobuf:"bytes,1,rep,name=items" json:"items"`
+	Items []*Header `json:"items"`
 }
 
 type ReqAddr struct {
@@ -210,13 +212,13 @@ type ReqWalletTransactionList struct {
 }
 
 type WalletTxDetails struct {
-	TxDetails []*WalletTxDetail `protobuf:"bytes,1,rep,name=txDetails" json:"txDetails"`
+	TxDetails []*WalletTxDetail `json:"txDetails"`
 }
 type WalletTxDetail struct {
-	Tx         *Transaction       `protobuf:"bytes,1,opt,name=tx" json:"tx"`
-	Receipt    *ReceiptDataResult `protobuf:"bytes,2,opt,name=receipt" json:"receipt"`
-	Height     int64              `protobuf:"varint,3,opt,name=height" json:"height"`
-	Index      int64              `protobuf:"varint,4,opt,name=index" json:"index"`
+	Tx         *Transaction       `json:"tx"`
+	Receipt    *ReceiptDataResult `json:"receipt"`
+	Height     int64              `json:"height"`
+	Index      int64              `json:"index"`
 	BlockTime  int64              `json:"blockTime"`
 	Amount     int64              `json:"amount"`
 	FromAddr   string             `json:"fromAddr"`
@@ -225,21 +227,21 @@ type WalletTxDetail struct {
 }
 
 type BlockOverview struct {
-	Head     *Header  `protobuf:"bytes,1,opt,name=head" json:"head"`
-	TxCount  int64    `protobuf:"varint,2,opt,name=txCount" json:"txCount"`
-	TxHashes []string `protobuf:"bytes,3,rep,name=txHashes,proto3" json:"txHashes"`
+	Head     *Header  `json:"head"`
+	TxCount  int64    `json:"txCount"`
+	TxHashes []string `json:"txHashes"`
 }
 
 type Query4Cli struct {
-	Execer   string      `protobuf:"bytes,1,opt,name=execer,proto3" json:"execer"`
-	FuncName string      `protobuf:"bytes,2,opt,name=funcName" json:"funcName"`
-	Payload  interface{} `protobuf:"bytes,3,opt,name=payload" json:"payload"`
+	Execer   string      `json:"execer"`
+	FuncName string      `json:"funcName"`
+	Payload  interface{} `json:"payload"`
 }
 
 type Query4Jrpc struct {
-	Execer   string          `protobuf:"bytes,1,opt,name=execer,proto3" json:"execer"`
-	FuncName string          `protobuf:"bytes,2,opt,name=funcName" json:"funcName"`
-	Payload  json.RawMessage `protobuf:"bytes,3,opt,name=payload" json:"payload"`
+	Execer   string          `json:"execer"`
+	FuncName string          `json:"funcName"`
+	Payload  json.RawMessage `json:"payload"`
 }
 
 type WalletStatus struct {
@@ -282,9 +284,9 @@ type ReplyBlkSeq struct {
 }
 
 type TransactionCreate struct {
-	Execer     string          `protobuf:"bytes,1,opt,name=execer,proto3" json:"execer"`
-	ActionName string          `protobuf:"bytes,2,opt,name=actionName" json:"actionName"`
-	Payload    json.RawMessage `protobuf:"bytes,3,opt,name=payload" json:"payload"`
+	Execer     string          `json:"execer"`
+	ActionName string          `json:"actionName"`
+	Payload    json.RawMessage `json:"payload"`
 }
 
 //Relay Transaction
@@ -293,6 +295,7 @@ type RelayOrderTx struct {
 	Coin      string `json:"coin"`
 	Amount    uint64 `json:"coinamount"`
 	Addr      string `json:"coinaddr"`
+	CoinWait  uint32 `json:"waitblocks"`
 	BtyAmount uint64 `json:"btyamount"`
 	Fee       int64  `json:"fee"`
 }
@@ -300,6 +303,7 @@ type RelayOrderTx struct {
 type RelayAcceptTx struct {
 	OrderId  string `json:"order_id"`
 	CoinAddr string `json:"coinaddr"`
+	CoinWait uint32 `json:"waitblocks"`
 	Fee      int64  `json:"fee"`
 }
 
