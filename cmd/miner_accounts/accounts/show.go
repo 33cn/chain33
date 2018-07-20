@@ -18,6 +18,7 @@ import (
 const secondsPerBlock = 15
 const btyPreBlock = 18
 const statInterval = 3600
+const monitorBtyLowLimit = 3 * 1e7 * types.Coin
 
 var log = l.New("module", "accounts")
 
@@ -66,7 +67,18 @@ func (show *ShowMinerAccount) Get(in *TimeAt, out *interface{}) error {
 	if err != nil {
 		return nil
 	}
-	lastHourHeader, lastAcc, err := cache.getBalance(addrs, "ticket", header.BlockTime-statInterval)
+
+	totalBty := int64(0)
+	for _, acc := range curAcc {
+		totalBty += acc.Frozen
+	}
+
+	monitorInterval := int64(statInterval)
+	if totalBty < monitorBtyLowLimit && totalBty > 0 {
+		monitorInterval = int64(float64(statInterval) * float64(monitorBtyLowLimit) / float64(totalBty))
+	}
+	log.Info("show", "monitor Interval", monitorInterval)
+	lastHourHeader, lastAcc, err := cache.getBalance(addrs, "ticket", header.BlockTime-monitorInterval)
 	if err != nil {
 		return nil
 	}

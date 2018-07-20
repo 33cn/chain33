@@ -35,7 +35,7 @@ dbCache=64
 isStrongConsistency=false
 singleMode=false
 batchsync=false
-isRecordBlockSequence=false
+isRecordBlockSequence=true
 isParaChain=false
 
 [p2p]
@@ -87,3 +87,12 @@ minerwhitelist=["*"]
 isFree=false
 minExecFee=100000
 enableStat=false
+enableMVCC=false
+
+[auth]
+# 是否启用auth模块签名验签
+enable=false
+# 加密文件路径
+cryptoPath="authdir/crypto"
+# 签名类型，支持1:secp256r1 2:sm2
+signType=1

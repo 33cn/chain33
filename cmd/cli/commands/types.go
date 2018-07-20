@@ -41,6 +41,9 @@ type TxResult struct {
 	To         string             `json:"to"`
 	Amount     string             `json:"amount,omitempty"`
 	From       string             `json:"from,omitempty"`
+	GroupCount int32              `json:"groupCount,omitempty"`
+	Header     string             `json:"header,omitempty"`
+	Next       string             `json:"next,omitempty"`
 }
 
 type ReceiptData struct {
@@ -224,6 +227,7 @@ type RelayOrder2Show struct {
 	Coin          string `json:"coin"`
 	CoinAmount    string `json:"coinamount"`
 	CoinAddr      string `json:"coinaddr"`
+	CoinWaits     uint32 `json:"coinwaits"`
 	CreateTime    int64  `json:"createtime"`
 	AcceptAddr    string `json:"acceptaddr"`
 	AcceptTime    int64  `json:"accepttime"`

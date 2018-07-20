@@ -5,6 +5,8 @@ import (
 )
 
 var (
+	ErrCanOnlyDelTopVersion    = errors.New("ErrCanOnlyDelTopVersion")
+	ErrPrevVersion             = errors.New("ErrPrevVersion")
 	ErrNoExecerInMavlKey       = errors.New("ErrNoExecerInMavlKey")
 	ErrMavlKeyNotStartWithMavl = errors.New("ErrMavlKeyNotStartWithMavl")
 	ErrNotFound                = errors.New("ErrNotFound")
@@ -179,6 +181,7 @@ var (
 	ErrNotSupport           = errors.New("ErrNotSupport")
 	ErrSeedWordNum          = errors.New("ErrSeedWordNum")
 	ErrPubKeyLen            = errors.New("ErrPublicKeyLen")
+	ErrPrivateKeyLen        = errors.New("ErrPrivateKeyLen")
 	ErrSeedWord             = errors.New("ErrSeedWord")
 	ErrNoPrivKeyOrAddr      = errors.New("ErrNoPrivKeyOrAddr")
 	ErrNewWalletFromSeed    = errors.New("ErrNewWalletFromSeed")
@@ -227,6 +230,7 @@ var (
 	ErrRelayBalanceNotEnough   = errors.New("ErrRelaySellBalanceNotEnough")
 	ErrRelayOrderNotExist      = errors.New("ErrRelayOrderNotExist")
 	ErrRelayOrderOnSell        = errors.New("ErrRelayOrderOnSell")
+	ErrRelayOrderStatusErr     = errors.New("ErrRelayOrderStatusErr")
 	ErrRelayOrderParamErr      = errors.New("ErrRelayOrderParamErr")
 	ErrRelayOrderSoldout       = errors.New("ErrRelayOrderSoldout")
 	ErrRelayOrderRevoked       = errors.New("ErrRelayOrderRevoked")
@@ -241,4 +245,13 @@ var (
 	ErrRelayBtcHeadSequenceErr = errors.New("ErrRelayBtcHeadSequenceErr")
 	ErrRelayBtcHeadHashErr     = errors.New("ErrRelayBtcHeadHashErr")
 	ErrRelayBtcHeadBitsErr     = errors.New("ErrRelayBtcHeadBitsErr")
+	ErrRelayBtcHeadNewBitsErr  = errors.New("ErrRelayBtcHeadNewBitsErr")
+
+	//authority
+	ErrValidateCertFailed  = errors.New("ErrValidateCertFailed")
+	ErrGetHistoryCertData  = errors.New("ErrGetHistoryCertData")
+	ErrUnknowAuthSignType  = errors.New("ErrUnknowAuthSignType")
+	ErrInitializeAuthority = errors.New("ErrInitializeAuthority")
+	//rpc
+	ErrInvalidMainnetRpcAddr = errors.New("ErrInvalidMainnetRpcAddr")
 )

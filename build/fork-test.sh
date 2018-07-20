@@ -596,8 +596,8 @@ function type2_optDockerPart3() {
 
     names[0]="${NODE3}"
     names[1]="${NODE4}"
-    names[3]="${NODE5}"
-    names[4]="${NODE6}"
+    names[2]="${NODE5}"
+    names[3]="${NODE6}"
     syn_block_timeout "${CLI}" 2 100 "${names[@]}"
 
 }
