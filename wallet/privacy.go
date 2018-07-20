@@ -774,7 +774,7 @@ func decomposeAmount2digits(amount, dust_threshold int64) []int64 {
 func decomAmount2Nature(amount int64, order int64) []int64 {
 	res := make([]int64, 0)
 	if order == 0 {
-		return nil
+		return res
 	}
 	mul := amount / order
 	switch mul {
@@ -1358,6 +1358,43 @@ func (wallet *Wallet) getExpire(expire int64) time.Duration {
 	return retexpir
 }
 
+func (wallet *Wallet) procNotifySendTxResult(notifyRes *types.ReqNotifySendTxResult) (*types.Reply, error) {
+	if !notifyRes.Isok {
+		return &types.Reply{IsOk: false}, nil
+	}
+	action := new(types.PrivacyAction)
+	if err := types.Decode(notifyRes.Tx.Payload, action); err != nil {
+		return nil, err
+	}
+	if action.Ty != types.ActionPrivacy2Privacy && action.Ty != types.ActionPrivacy2Public {
+		return &types.Reply{IsOk: false}, nil
+	}
+
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+
+	tx := *notifyRes.Tx
+	tx.Signature = nil
+	tx.SetExpire(time.Duration(0))
+	txhashbyte := tx.Hash()
+	txhashhex := common.Bytes2Hex(txhashbyte)
+	dbkey := calcCreateTxKey(action.GetTokenName(), txhashhex)
+	cache, err := wallet.walletStore.GetCreateTransactionCache(dbkey)
+	if err != nil {
+		return nil, err
+	}
+	cache.Status = cacheTxStatus_Sent
+	if err = wallet.walletStore.SetCreateTransactionCache(dbkey, cache); err != nil {
+		return nil, err
+	}
+	// 发送成功以后，以发送时间作为FTXO起始计时时间
+	dbbatch := wallet.walletStore.NewBatch(true)
+	wallet.walletStore.updateFTXOFreezeTime(types.Now().UnixNano(), cache.GetTokenname(), cache.GetSender(), txhashhex, dbbatch)
+	dbbatch.Write()
+	walletlog.Info("procNotifySendTxResult update cache tx status", "tx hash", common.Bytes2Hex(notifyRes.Tx.Hash()))
+	return &types.Reply{IsOk: true}, nil
+}
+
 func (wallet *Wallet) reqUtxosByAddr(addr string) {
 
 	if len(addr) == 0 {
@@ -1400,6 +1437,10 @@ func (wallet *Wallet) reqUtxosByAddr(addr string) {
 		} else {
 			ReqAddr.Height = txInfo.GetHeight()
 			ReqAddr.Index = txInfo.GetIndex()
+			if types.ForkV21Privacy > ReqAddr.Height {
+				atomic.StoreInt32(&wallet.rescanUTXOflag, utxoFlagNoScan)
+				continue
+			}
 		}
 		i++
 
@@ -1587,9 +1628,7 @@ func (wallet *Wallet) SelectCurrentWalletPrivacyTx(txDetal *types.TransactionDet
 	if nil != privacyInput && len(privacyInput.Keyinput) > 0 {
 		var utxoGlobalIndexs []*types.UTXOGlobalIndex
 		for _, input := range privacyInput.Keyinput {
-			for _, utxoGlobal := range input.UtxoGlobalIndex {
-				utxoGlobalIndexs = append(utxoGlobalIndexs, utxoGlobal)
-			}
+			utxoGlobalIndexs = append(utxoGlobalIndexs, input.UtxoGlobalIndex...)
 		}
 
 		if len(utxoGlobalIndexs) > 0 {
@@ -1633,7 +1672,7 @@ func (wallet *Wallet) DeleteScanPrivacyInputUtxo() {
 			newbatch.Write()
 		}
 
-		if  len(utxoGlobalIndexs) < MaxUtxosPerTime {
+		if len(utxoGlobalIndexs) < MaxUtxosPerTime {
 			break
 		}
 	}
