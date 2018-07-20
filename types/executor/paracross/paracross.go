@@ -123,7 +123,7 @@ func (l ParacrossDoneLog) Name() string {
 }
 
 func (l ParacrossDoneLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp types.ReceiptParacrossDode
+	var logTmp types.ReceiptParacrossDone
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
 		return nil, err
