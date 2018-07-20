@@ -117,27 +117,27 @@ func TestTradePayloadType(t *testing.T) {
 }
 
 func TestPayloadType(t *testing.T) {
-	msg, err := payloadType(types.ExecName("token"), "GetTokens")
+	msg, err := payloadType(types.ExecName(types.TokenX), "GetTokens")
 	assert.Equal(t, &types.ReqTokens{}, msg)
 	assert.Nil(t, err)
 
-	msg, err = payloadType(types.ExecName("coins"), "GetAddrReciver")
+	msg, err = payloadType(types.ExecName(types.CoinsX), "GetAddrReciver")
 	assert.Equal(t, &types.ReqAddr{}, msg)
 	assert.Nil(t, err)
 
-	msg, err = payloadType(types.ExecName("manage"), "GetConfigItem")
+	msg, err = payloadType(types.ExecName(types.ManageX), "GetConfigItem")
 	assert.Equal(t, &types.ReqString{}, msg)
 	assert.Nil(t, err)
 
-	msg, err = payloadType(types.ExecName("retrieve"), "GetRetrieveInfo")
+	msg, err = payloadType(types.ExecName(types.RetrieveX), "GetRetrieveInfo")
 	assert.Equal(t, &types.ReqRetrieveInfo{}, msg)
 	assert.Nil(t, err)
 
-	msg, err = payloadType(types.ExecName("ticket"), "TicketInfos")
+	msg, err = payloadType(types.ExecName(types.TicketX), "TicketInfos")
 	assert.Equal(t, &types.TicketInfos{}, msg)
 	assert.Nil(t, err)
 
-	msg, err = payloadType(types.ExecName("trade"), "GetOnesSellOrder")
+	msg, err = payloadType(types.ExecName(types.TradeX), "GetOnesSellOrder")
 	assert.Equal(t, &types.ReqAddrTokens{}, msg)
 	assert.Nil(t, err)
 
@@ -147,7 +147,7 @@ func TestPayloadType(t *testing.T) {
 }
 
 func TestProtoPayload(t *testing.T) {
-	msg, err := protoPayload("token", "GetTokens", nil)
+	msg, err := protoPayload(types.ExecName(types.TokenX), "GetTokens", nil)
 	assert.Equal(t, types.ErrInputPara, err)
 	assert.Nil(t, msg)
 
@@ -164,7 +164,7 @@ func TestProtoPayload(t *testing.T) {
 	assert.NotNil(t, data)
 
 	d := json.RawMessage(data)
-	msg, err = protoPayload("token", "GetTokens", &d)
+	msg, err = protoPayload(types.ExecName(types.TokenX), "GetTokens", &d)
 	assert.NotNil(t, data)
 	assert.Nil(t, err)
 
