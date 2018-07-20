@@ -300,6 +300,7 @@ It has these top-level messages:
 	ReceiptParacrossDone
 	ReceiptParacrossRecord
 	ParacrossTx
+	ReqParacrossTitleHeight
 	Operation
 	Checkpoint
 	Entry
