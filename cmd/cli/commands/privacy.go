@@ -33,6 +33,8 @@ func PrivacyCmd() *cobra.Command {
 		CreateUTXOsCmd(),
 		ShowPrivacyAccountInfoCmd(),
 		ListPrivacyTxsCmd(),
+		QueryUTXOChangeLogCmd(),
+		QueryTxLogCmd(),
 	)
 
 	return cmd
@@ -556,4 +558,131 @@ func listPrivacyTxsFlags(cmd *cobra.Command, args []string) {
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.PrivacyTxList", params, &res)
 	ctx.SetResultCb(parseWalletTxListRes)
 	ctx.Run()
+}
+
+func QueryUTXOChangeLogCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "changelog",
+		Short: "List privacy transactions change log",
+		Run:   queryUTXOChangeLog,
+	}
+	addQueryUTXOChangeLogFlags(cmd)
+	return cmd
+}
+
+func addQueryUTXOChangeLogFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("sender", "", "", "account address")
+}
+
+func queryUTXOChangeLog(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	sender, _ := cmd.Flags().GetString("sender")
+
+	params := types.ReqUTXOChangeLog{
+		Sender: sender,
+	}
+
+	var res types.UTXOChangeLogItems
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.QueryUTXOChangeLog", params, &res)
+	ctx.SetResultCb(parseUTXOChangeLogItems)
+	ctx.Run()
+}
+
+func parseUTXOChangeLogItems(arg interface{}) (interface{}, error) {
+	res := arg.(*types.UTXOChangeLogItems)
+	ret := new(jsonrpc.UTXOChangeLogItems)
+	ret.Items = make([]*jsonrpc.UTXOChangeLogItem, 0)
+	for _, item := range res.Items {
+		jitem := &jsonrpc.UTXOChangeLogItem{
+			Changetime:  item.Changetime,
+			Description: item.Description,
+			Amount:      FormatAmountValue2Display(item.Amount),
+			Txhash:      item.Txhash,
+			Sender:      item.Sender,
+			Utxogl: &jsonrpc.UTXOGlobalIndex{
+				Txhash:   common.ToHex(item.Utxogl.Txhash),
+				Outindex: item.Utxogl.Outindex,
+			},
+		}
+		ret.Items = append(ret.Items, jitem)
+	}
+	return ret, nil
+}
+
+func QueryTxLogCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "txlog",
+		Short: "List privacy transactions change log",
+		Run:   queryTxLog,
+	}
+	addQueryTxLogFlags(cmd)
+	return cmd
+}
+
+func addQueryTxLogFlags(cmd *cobra.Command) {
+}
+
+func queryTxLog(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+
+	params := types.ReqNil{}
+
+	var res types.PrivacyTxChangeItems
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.QueryPrivacyTxChangeLog", params, &res)
+	ctx.SetResultCb(parsePrivacyTxChangeItems)
+	ctx.Run()
+}
+
+func parsePrivacyTxChangeItems(arg interface{}) (interface{}, error) {
+	res := arg.(*types.PrivacyTxChangeItems)
+	ret := new(jsonrpc.PrivacyTxChangeItems)
+	ret.Items = make([]*jsonrpc.PrivacyTxChangeItem, 0)
+	for _, item := range res.Items {
+		t := time.Unix(item.ChangeTime, 0)
+		jitem := new(jsonrpc.PrivacyTxChangeItem)
+		jitem.Txhash = item.Txhash
+		jitem.ActionType = item.ActionType
+		jitem.Amount = FormatAmountValue2Display(item.Amount)
+		jitem.From = item.From
+		jitem.To = item.To
+		jitem.Note = item.Note
+		jitem.ChangeTime = fmt.Sprintf("%02d-%02d %02d:%02d:%02d", t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second())
+		for _, input := range item.InputUTXOs {
+			info := new(jsonrpc.UTXOLogInfo)
+			info.Amount = FormatAmountValue2Display(input.Amount)
+			for _, utxogl := range input.Utxogl {
+				jutxogl := &jsonrpc.UTXOGlobalIndex{
+					Txhash:   common.ToHex(utxogl.Txhash),
+					Outindex: utxogl.Outindex,
+				}
+				info.Utxogl = append(info.Utxogl, jutxogl)
+			}
+			jitem.InputUTXOs = append(jitem.InputUTXOs, info)
+		}
+		for _, output := range item.OutputUTXOs {
+			info := new(jsonrpc.UTXOLogInfo)
+			info.Amount = FormatAmountValue2Display(output.Amount)
+			for _, utxogl := range output.Utxogl {
+				jutxogl := &jsonrpc.UTXOGlobalIndex{
+					Txhash:   common.ToHex(utxogl.Txhash),
+					Outindex: utxogl.Outindex,
+				}
+				info.Utxogl = append(info.Utxogl, jutxogl)
+			}
+			jitem.OutputUTXOs = append(jitem.OutputUTXOs, info)
+		}
+
+		for _, info := range item.BalanceInfo {
+			jinfo := new(jsonrpc.PrivacyBalanceInfo)
+			jinfo.Addr = info.Addr
+			jinfo.Balance = FormatAmountValue2Display(info.Balance)
+			jinfo.UtxoAmount = FormatAmountValue2Display(info.UtxoAmount)
+			jinfo.FtxoAmount = FormatAmountValue2Display(info.FtxoAmount)
+
+			jitem.BalanceInfo = append(jitem.BalanceInfo, jinfo)
+		}
+
+		ret.Items = append(ret.Items, jitem)
+	}
+	return ret, nil
 }

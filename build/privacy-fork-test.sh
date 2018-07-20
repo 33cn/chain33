@@ -38,7 +38,14 @@ function initPriAccount() {
     name="${CLI4}"
     fromAdd="1EDnnePAZN48aC2hiTDzhkczfF39g1pZZX"
     showPrivacyExec "${name}" $fromAdd
+}
 
+function displayPrivateTotalAmount() {
+    fromAdd="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
+    showPrivacyTotalAmount "${name}" $fromAdd
+
+    fromAdd="1EDnnePAZN48aC2hiTDzhkczfF39g1pZZX"
+    showPrivacyTotalAmount "${name}" $fromAdd
 }
 
 function genFirstChainPritx() {
@@ -54,7 +61,7 @@ function genFirstChainPritx() {
 
         sleep 1
         height=$(${name} block last_header | jq ".height")
-        printf '发送公对私第 %d 笔交易当前高度 %s \n' i "${height}"
+        printf '发送公对私第 %d 笔交易当前高度 %s \n' $i "${height}"
     done
 
     block_wait_timeout "${CLI}" 5 80
@@ -93,6 +100,79 @@ function genFirstChainPritx() {
         height=$(${name} block last_header | jq ".height")
         printf '发送私对公第 %d 笔交易当前高度 %s \n' $i "${height}"
     done
+
+    echo "=============查询当前隐私余额============="
+
+    fromAdd="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
+    showPrivacyBalance "${name}" $fromAdd
+
+    fromAdd="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
+    showPrivacyBalance "${name}" $fromAdd
+}
+
+function genFirstChainPritx1Step() {
+    echo "====== 发送公对私交易 ======"
+    name=$CLI
+    echo "当前链为：${name}"
+    for ((i = 0; i < priRepeatTx; i++)); do
+        fromAdd="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
+        priAdd="0a9d212b2505aefaa8da370319088bbccfac097b007f52ed71d8133456c8185823c8eac43c5e937953d7b6c8e68b0db1f4f03df4946a29f524875118960a35fb"
+        note="pub2priv_test"
+        amount=10
+        pub2priv "${name}" $fromAdd $priAdd $note $amount
+
+        sleep 1
+        height=$(${name} block last_header | jq ".height")
+        printf '发送公对私第 %d 笔交易当前高度 %s \n' $i "${height}"
+    done
+
+    block_wait_timeout "${CLI}" 2 80
+
+    echo "=============查询当前隐私余额============="
+
+    fromAdd="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
+    showPrivacyBalance "${name}" $fromAdd
+
+    fromAdd="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
+    showPrivacyBalance "${name}" $fromAdd
+}
+
+function genFirstChainPritx2StepA2B() {
+    echo "====== 发送公对私交易 ======"
+    name=$CLI
+    echo "当前链为：${name}"
+    for ((i = 0; i < priRepeatTx; i++)); do
+        fromAdd="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
+        priAdd="0a9d212b2505aefaa8da370319088bbccfac097b007f52ed71d8133456c8185823c8eac43c5e937953d7b6c8e68b0db1f4f03df4946a29f524875118960a35fb"
+        note="pub2priv_test"
+        amount=11
+        pub2priv "${name}" $fromAdd $priAdd $note $amount
+
+        sleep 1
+        height=$(${name} block last_header | jq ".height")
+        printf '发送公对私第 %d 笔交易当前高度 %s \n' $i "${height}"
+    done
+
+    block_wait_timeout "${CLI}" 2 80
+
+    priTxindex=0
+    echo "====== 发送私对私交易 ======"
+    for ((i = 0; i < priRepeatTx; i++)); do
+        fromAdd="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
+        priAdd="fcbb75f2b96b6d41f301f2d1abc853d697818427819f412f8e4b4e12cacc0814d2c3914b27bea9151b8968ed1732bd241c8788a332b295b731aee8d39a060388"
+        note="priv2priv_test"
+        amount=5
+        mixcount=0
+        priv2priv "${name}" $fromAdd $priAdd $note $amount $mixcount
+        priTxHashs1[$priTxindex]=$PrigStr
+        priTxindex=$((priTxindex + 1))
+
+        sleep 1
+        height=$(${name} block last_header | jq ".height")
+        printf '发送私对私第 %d 笔交易当前高度 %s \n' $i "${height}"
+    done
+
+    block_wait_timeout "${CLI}" 2 80
 
     echo "=============查询当前隐私余额============="
 
@@ -166,9 +246,83 @@ function genSecondChainPritx() {
     showPrivacyBalance "${name}" $fromAdd
 }
 
+function genSecondChainPritx1Step() {
+    echo "====== 发送公对私交易 ======"
+    name=$CLI4
+    echo "当前链为：${name}"
+    for ((i = 0; i < priRepeatTx; i++)); do
+        fromAdd="1EDnnePAZN48aC2hiTDzhkczfF39g1pZZX"
+        priAdd="069fdcd7a2d7cf30dfc87df6f277ae451a78cae6720a6bb05514a4a43e0622d55c854169cc63b6353234c3e65db75e7b205878b1bd94e9f698c7043b27fa162b"
+        note="pub2priv_test"
+        amount=10
+        pub2priv "${name}" $fromAdd $priAdd $note $amount
+
+        sleep 1
+        height=$(${name} block last_header | jq ".height")
+        printf '发送公对私第 %d 笔交易当前高度 %s \n' $i "${height}"
+    done
+
+    block_wait_timeout "${name}" 2 80
+
+    echo "=============查询当前隐私余额============="
+
+    fromAdd="1EDnnePAZN48aC2hiTDzhkczfF39g1pZZX"
+    showPrivacyBalance "${name}" $fromAdd
+
+    fromAdd="1KcCVZLSQYRUwE5EXTsAoQs9LuJW6xwfQa"
+    showPrivacyBalance "${name}" $fromAdd
+}
+
+function genSecondChainPritx2StepA2B() {
+    echo "====== 发送公对私交易 ======"
+    name=$CLI4
+    echo "当前链为：${name}"
+    for ((i = 0; i < priRepeatTx; i++)); do
+        fromAdd="1EDnnePAZN48aC2hiTDzhkczfF39g1pZZX"
+        priAdd="069fdcd7a2d7cf30dfc87df6f277ae451a78cae6720a6bb05514a4a43e0622d55c854169cc63b6353234c3e65db75e7b205878b1bd94e9f698c7043b27fa162b"
+        note="pub2priv_test"
+        amount=10
+        pub2priv "${name}" $fromAdd $priAdd $note $amount
+
+        sleep 1
+        height=$(${name} block last_header | jq ".height")
+        printf '发送公对私第 %d 笔交易当前高度 %s \n' $i "${height}"
+    done
+
+    block_wait_timeout "${name}" 2 80
+
+    priTxHashs2=("")
+    priTxindex=0
+    echo "====== 发送私对私交易 ======"
+    for ((i = 0; i < priRepeatTx; i++)); do
+        fromAdd="1EDnnePAZN48aC2hiTDzhkczfF39g1pZZX"
+        priAdd="d5672eeafbcdf53c8fc27969a5d9797083bb64fb4848bd391cd9b3919c4a1d3cb8534f12e09de3cc541eaaf45acccacaf808a6804fd10a976804397e9ecaf96f"
+        note="priv2priv_test"
+        amount=4
+        mixcount=0
+        priv2priv "${name}" $fromAdd $priAdd $note $amount $mixcount
+        priTxHashs2[$priTxindex]=$PrigStr
+        priTxindex=$((priTxindex + 1))
+
+        sleep 1
+        height=$(${name} block last_header | jq ".height")
+        printf '发送私对私第 %d 笔交易当前高度 %s \n' $i "${height}"
+    done
+
+    block_wait_timeout "${name}" 2 80
+
+    echo "=============查询当前隐私余额============="
+
+    fromAdd="1EDnnePAZN48aC2hiTDzhkczfF39g1pZZX"
+    showPrivacyBalance "${name}" $fromAdd
+
+    fromAdd="1KcCVZLSQYRUwE5EXTsAoQs9LuJW6xwfQa"
+    showPrivacyBalance "${name}" $fromAdd
+}
+
 function checkPriResult() {
 
-    block_wait_timeout "${CLI}" 5 80
+    block_wait_timeout "${CLI}" 10 170
 
     name1=$CLI
     name2=$CLI4
@@ -341,6 +495,28 @@ function showPrivacyBalance() {
     fromAdd=$2
     printf '==========showPrivacyBalance name=%s addr=%s==========\n' "${name}" "${fromAdd}"
     result=$($name privacy showpai -a "${fromAdd}" -d 0 | jq -r ".AvailableAmount")
+    printf 'AvailableAmount %s \n' "${result}"
+    PrigStr=$result
+}
+
+# $1 name
+# $2 fromAdd
+function showPrivacyFrozenAmount() {
+    name=$1
+    fromAdd=$2
+    printf '==========showPrivacyBalance name=%s addr=%s==========\n' "${name}" "${fromAdd}"
+    result=$($name privacy showpai -a "${fromAdd}" -d 0 | jq -r ".FrozenAmount")
+    printf 'AvailableAmount %s \n' "${result}"
+    PrigStr=$result
+}
+
+# $1 name
+# $2 fromAdd
+function showPrivacyTotalAmount() {
+    name=$1
+    fromAdd=$2
+    printf '==========showPrivacyBalance name=%s addr=%s==========\n' "${name}" "${fromAdd}"
+    result=$($name privacy showpai -a "${fromAdd}" -d 0 | jq -r ".TotalAmount")
     printf 'AvailableAmount %s \n' "${result}"
     PrigStr=$result
 }

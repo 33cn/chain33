@@ -35,6 +35,9 @@ const (
 	RecvPrivacyTx      = "RecvPrivacyTx"
 	SendPrivacyTx      = "SendPrivacyTx"
 	createTxPrefix     = "CreateTx"
+
+	UTXOChangeLog = "UTXOChangeLog"
+	PrivacyTxChangeLog = "PrivacyTxChangeLog"
 )
 
 type Store struct {
@@ -155,6 +158,30 @@ func calcCreateTxKeyPrefix(token string) []byte {
 	}
 	return []byte(fmt.Sprintf("%s:", createTxPrefix))
 }
+
+// calckUTXOChangeLogKey 获取记录UTXO变化过程的健值
+func calckUTXOChangeLogKey(sender string) []byte {
+	now := types.Now()
+	return []byte(fmt.Sprintf("%s:BTY-%s-%d", UTXOChangeLog, sender, now.Unix()))
+}
+
+// calckUTXOChangeLogPrefix
+func calckUTXOChangeLogPrefix(sender string) []byte {
+	if len(sender) == 0 {
+		return []byte(fmt.Sprintf("%s:BTY-", UTXOChangeLog))
+	}
+	return []byte(fmt.Sprintf("%s:BTY-%s-", UTXOChangeLog, sender))
+}
+
+func calckPrivacyTxChangeLogKey() []byte {
+	now := types.Now()
+	return []byte(fmt.Sprintf("%s:BTY-%d", PrivacyTxChangeLog, now.Unix()))
+}
+func calckPrivacyTxChangeLogPrefix() []byte {
+	return []byte(fmt.Sprintf("%s:BTY-", PrivacyTxChangeLog))
+}
+
+
 
 func NewStore(db dbm.DB) *Store {
 	return &Store{
@@ -557,6 +584,10 @@ func (ws *Store) setUTXO(addr, txhash *string, outindex int, dbStore *types.Priv
 	return nil
 }
 
+// unsetUTXO 交易发生回撤时，需要执行一些处理
+// 1.属于本次交易的输出UTXO，需要查看当前钱包是否使用（UTXO、FTXO），如果使用了则需要被移除
+// 2.属于本次交易的输入UTXO，也就是另一笔交易的STXO，需要将其移动到FTXO，因为本交易可能很快就会被执行。
+
 //当发生交易退回时回退产生的UTXO
 //1.如果该utxo未被冻结，即未转移至FTXO，则直接删除就可以
 //2.如果该utxo已经被转移至FTXO，则需要先将其所在交易的所有FTXO都回退至UTXO，然后再进行删除
@@ -583,14 +614,19 @@ func (ws *Store) unsetUTXO(addr, txhash *string, outindex int, token string, new
 	}
 
 	k1 := calcUTXOKey(*txhash, outindex)
-	if val, err := ws.db.Get(k1); err != nil || val == nil {
+	val, err := ws.db.Get(k1)
+	if err != nil || val == nil {
 		walletlog.Error("unsetUTXO get value for keys are nil", "calcUTXOKey", string(k1))
 		return types.ErrNotFound
+	}
+	dbStore := new(types.PrivacyDBStore)
+	if err := types.Decode(val, dbStore); err != nil {
+		walletlog.Error("unsetUTXO", "Decode PrivacyDBStore error ", err)
 	}
 	newbatch.Delete(k1)
 
 	k2 := calcUTXOKey4TokenAddr(token, *addr, *txhash, outindex)
-	val, err := ws.db.Get(k2)
+	val, err = ws.db.Get(k2)
 	if err != nil || val == nil {
 		//当发生需要回退的UTXO不能从当前特定地址可用的UTXO找到时，
 		//需要从当前的FTXO从查找并回退
@@ -599,7 +635,6 @@ func (ws *Store) unsetUTXO(addr, txhash *string, outindex int, token string, new
 
 	}
 	newbatch.Delete(k2)
-
 	return nil
 }
 
@@ -635,11 +670,14 @@ func (ws *Store) moveUTXO2FTXO(tx *types.Transaction, token, sender, txhash stri
 	key2 := calcKey4FTXOsInTx(token, sender, txhash)
 	value2 := key1
 	newbatch.Set(key2, value2)
+
 	newbatch.Write()
 }
 
+type fnCheckFTXOValid func(txhash []byte) bool
+
 //将FTXO重置为UTXO
-func (ws *Store) moveFTXO2UTXO(key1 []byte, newbatch dbm.Batch) {
+func (ws *Store) moveFTXO2UTXO(key1 []byte, newbatch dbm.Batch, description string, fn fnCheckFTXOValid) {
 	//设置ftxo的key，使其能够方便地获取到对应的交易花费的utxo
 	value1, err := ws.db.Get(key1)
 	if err != nil {
@@ -665,11 +703,19 @@ func (ws *Store) moveFTXO2UTXO(key1 []byte, newbatch dbm.Batch) {
 	var ftxosInOneTx types.FTXOsSTXOsInOneTx
 	err = types.Decode(value2, &ftxosInOneTx)
 	if nil != err {
-
 		walletlog.Error("moveFTXO2UTXO", "Failed to decode FTXOsSTXOsInOneTx for value", value2)
 		return
 	}
-	if err == nil {
+	ftxovalid := true
+	if fn != nil {
+		txhashbt, err := common.FromHex(ftxosInOneTx.Txhash)
+		if err == nil {
+			ftxovalid = fn(txhashbt)
+		} else {
+			walletlog.Error("moveFTXO2UTXO", "FromHex error", err)
+		}
+	}
+	if err == nil && ftxovalid {
 		for _, ftxo := range ftxosInOneTx.Utxos {
 			utxohash := common.Bytes2Hex(ftxo.UtxoBasic.UtxoGlobalIndex.Txhash)
 			newbatch.Set(calcUTXOKey4TokenAddr(ftxosInOneTx.Tokenname, ftxosInOneTx.Sender, utxohash, int(ftxo.UtxoBasic.UtxoGlobalIndex.Outindex)), calcUTXOKey(utxohash, int(ftxo.UtxoBasic.UtxoGlobalIndex.Outindex)))
@@ -678,6 +724,16 @@ func (ws *Store) moveFTXO2UTXO(key1 []byte, newbatch dbm.Batch) {
 	// 需要将FTXO的所有相关信息删除掉
 	newbatch.Delete(key1)
 	newbatch.Delete(key2)
+
+	if ftxovalid {
+		description += " 输入交易有效"
+	} else {
+		description += " 输入交易无效"
+	}
+
+	for _, utxo := range ftxosInOneTx.Utxos {
+		ws.logUTXOChange(ftxosInOneTx.Txhash, ftxosInOneTx.Sender, utxo.Amount, description, utxo.UtxoBasic.UtxoGlobalIndex)
+	}
 }
 
 //calcKey4FTXOsInTx-----x------>calcKey4UTXOsSpentInTx,被删除，
@@ -718,13 +774,12 @@ func (ws *Store) moveFTXO2STXO(key1 []byte, txhash string, newbatch dbm.Batch) e
 	newbatch.Write()
 
 	walletlog.Info("moveFTXO2STXO", "tx hash", txhash)
-
 	return nil
 }
 
 //由于块的回退的原因，导致其中的交易需要被回退，即将stxo回退到ftxo，
 //正常情况下，被回退的交易会被重新加入到新的区块中并得到执行
-func (ws *Store) moveSTXO2FTXO(tx *types.Transaction, txhash string, newbatch dbm.Batch) error {
+func (ws *Store) moveSTXO2FTXO(tx *types.Transaction, txhash string, newbatch dbm.Batch, description string) error {
 	//设置ftxo的key，使其能够方便地获取到对应的交易花费的utxo
 	key2 := calcKey4STXOsInTx(txhash)
 	value2, err := ws.db.Get(key2)
@@ -765,6 +820,11 @@ func (ws *Store) moveSTXO2FTXO(tx *types.Transaction, txhash string, newbatch db
 	newbatch.Set(key, value)
 
 	newbatch.Write()
+
+	txhashstr := common.ToHex(tx.Hash())
+	for _, utxo := range ftxosInOneTx.Utxos {
+		ws.logUTXOChange(txhashstr, ftxosInOneTx.Sender, utxo.Amount, description, utxo.UtxoBasic.UtxoGlobalIndex)
+	}
 
 	return nil
 }
@@ -1141,4 +1201,55 @@ func (ws *Store) getWalletPrivacyTxDetails(param *types.ReqPrivacyTransactionLis
 	}
 
 	return txDetails, nil
+}
+func (ws *Store) logUTXOChange(txhashstr string, sender string, amount int64, description string, utxogl *types.UTXOGlobalIndex) {
+	logkey := calckUTXOChangeLogKey(sender)
+	now := types.Now()
+	item := &types.UTXOChangeLogItem{
+		Utxogl:      utxogl,
+		Changetime:  fmt.Sprintf("%02d-%02d %02d:%02d:%02d", now.Month(), now.Day(), now.Hour(), now.Minute(), now.Second()),
+		Description: description,
+		Amount:      amount,
+		Txhash:      txhashstr,
+		Sender:		 sender,
+	}
+
+	ws.db.Set(logkey, types.Encode(item))
+}
+
+func (ws *Store) savePrivacyTxChangeItem (item *types.PrivacyTxChangeItem)  {
+	logkey := calckPrivacyTxChangeLogKey()
+	ws.db.Set(logkey, types.Encode(item))
+}
+
+func (ws *Store) queryUTXOChangeLog(param *types.ReqUTXOChangeLog) (*types.UTXOChangeLogItems, error) {
+	prefix := calckUTXOChangeLogPrefix(param.Sender)
+	list := dbm.NewListHelper(ws.db)
+	values := list.List(prefix, nil, 0, 0)
+	items := &types.UTXOChangeLogItems{}
+	items.Items = make([]*types.UTXOChangeLogItem, 0)
+	for _, value := range values {
+		item := &types.UTXOChangeLogItem{}
+		if err := types.Decode(value, item); err != nil {
+			return items, err
+		}
+		items.Items = append(items.Items, item)
+	}
+	return items, nil
+}
+
+func (ws *Store) queryPrivacyTxChangeLog(param *types.ReqNil) (*types.PrivacyTxChangeItems, error) {
+	prefix := calckPrivacyTxChangeLogPrefix()
+	list := dbm.NewListHelper(ws.db)
+	values := list.List(prefix, nil, 0, 0)
+	items := &types.PrivacyTxChangeItems{}
+	items.Items = make([]*types.PrivacyTxChangeItem, 0)
+	for _, value := range values {
+		item := &types.PrivacyTxChangeItem{}
+		if err := types.Decode(value, item); err != nil {
+			return items, err
+		}
+		items.Items = append(items.Items, item)
+	}
+	return items, nil
 }

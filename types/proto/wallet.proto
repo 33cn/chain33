@@ -506,3 +506,51 @@ message ReqPrivacyTransactionList {
     string address      = 6;
     bytes  seedtxhash   = 7;
 }
+
+message UTXOChangeLogItem {
+    UTXOGlobalIndex utxogl      = 1;
+    string          changetime  = 2;
+    string          description = 3;
+    int64           amount      = 4;
+    string          txhash      = 5;
+    string          sender      = 6;
+}
+
+message UTXOChangeLogItems {
+    repeated UTXOChangeLogItem items = 1;
+}
+
+message ReqUTXOChangeLog {
+    string sender = 1;
+}
+
+message UTXOLogInfo {
+    int64    amount                 = 1;
+    repeated UTXOGlobalIndex utxogl = 2;
+}
+
+message PrivacyBalanceInfo {
+    string addr       = 1;
+    int64  balance    = 2;
+    int64  utxoAmount = 3;
+    int64  ftxoAmount = 4;
+}
+
+message PrivacyTxChangeItem {
+    string txhash     = 1;
+    string actionType = 2;
+    int64  amount     = 3;
+    string from       = 4;
+    string to         = 5;
+    string keypair    = 6;
+    string note       = 7;
+    int64  changeTime = 8;
+
+    repeated PrivacyBalanceInfo balanceInfo = 21;
+    repeated UTXOLogInfo inputUTXOs         = 22;
+    repeated UTXOLogInfo outputUTXOs        = 23;
+}
+
+message PrivacyTxChangeItems {
+    repeated PrivacyTxChangeItem items = 1;
+}

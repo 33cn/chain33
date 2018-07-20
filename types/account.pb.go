@@ -399,6 +399,13 @@ It has these top-level messages:
 	ReplyBindMiner
 	ReqNotifySendTxResult
 	ReqPrivacyTransactionList
+	UTXOChangeLogItem
+	UTXOChangeLogItems
+	ReqUTXOChangeLog
+	UTXOLogInfo
+	PrivacyBalanceInfo
+	PrivacyTxChangeItem
+	PrivacyTxChangeItems
 */
 package types
 

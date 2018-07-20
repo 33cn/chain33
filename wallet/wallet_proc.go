@@ -885,6 +885,7 @@ func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 			//TODO:当前不会出现扣掉交易费，而实际的交易不执行的情况，因为如果交易费得不到保障，交易将不被执行
 			//确认隐私交易是否是ExecOk
 			wallet.AddDelPrivacyTxsFromBlock(tx, int32(index), block, newbatch, AddTx)
+			//wallet.onAddPrivacyTxFromBlock(tx, int32(index), block, newbatch)
 		}
 	}
 	err := newbatch.Write()
@@ -995,6 +996,7 @@ func (wallet *Wallet) ProcWalletDelBlock(block *types.BlockDetail) {
 		} else {
 			walletlog.Info("ProcWalletDelBlock going to call AddDelPrivacyTxsFromBlock")
 			wallet.AddDelPrivacyTxsFromBlock(tx, int32(index), block, newbatch, DelTx)
+			//wallet.onDelPrivacyTxFromBlock(tx, int32(index), block, newbatch)
 		}
 	}
 	newbatch.Write()
@@ -1099,9 +1101,14 @@ func (wallet *Wallet) AddDelPrivacyTxsFromBlock(tx *types.Transaction, index int
 
 								utxos = append(utxos, utxoCreated)
 								wallet.walletStore.setUTXO(info.Addr, &txhash, indexoutput, info2store, newbatch)
+								wallet.walletStore.logUTXOChange(common.ToHex(txhashInbytes), *info.Addr, output.Amount, "Create UTXO 接收确认 AddDelPrivacyTxsFromBlock", utxoGlobalIndex)
 							} else {
 								walletlog.Debug("AddDelPrivacyTxsFromBlock going to unsetUTXO", "txhash", txhash)
 								wallet.walletStore.unsetUTXO(info.Addr, &txhash, indexoutput, tokenname, newbatch)
+								wallet.walletStore.logUTXOChange(common.ToHex(txhashInbytes), *info.Addr, output.Amount, "Destroy UTXO 区块回退 AddDelPrivacyTxsFromBlock", &types.UTXOGlobalIndex{
+									Outindex: int32(indexoutput),
+									Txhash:   txhashInbytes,
+								})
 							}
 						} else {
 							//对于执行失败的交易，只需要将该交易记录在钱包就行
@@ -1160,9 +1167,16 @@ func (wallet *Wallet) AddDelPrivacyTxsFromBlock(tx *types.Transaction, index int
 				if ftxo.Txhash == txhash {
 					if types.ExecOk == txExecRes && types.ActionPublic2Privacy != privateAction.Ty {
 						wallet.walletStore.moveFTXO2STXO(keys[i], txhash, newbatch)
+						for _, utxo := range ftxo.Utxos {
+							wallet.walletStore.logUTXOChange(common.ToHex(txhashInbytes), ftxo.Sender, utxo.Amount, "FTXO To STXO 执行成功 AddDelPrivacyTxsFromBlock", utxo.UtxoBasic.UtxoGlobalIndex)
+						}
 					} else if types.ExecOk != txExecRes && types.ActionPublic2Privacy != privateAction.Ty {
 						//如果执行失败
-						wallet.walletStore.moveFTXO2UTXO(keys[i], newbatch)
+						wallet.walletStore.moveFTXO2UTXO(keys[i], newbatch, "FTXO To UTXO 执行失败 AddDelPrivacyTxsFromBlock",
+							func(txhash []byte) bool {
+								_, err := wallet.api.QueryTx(&types.ReqHash{Hash:txhash})
+								return err==nil
+							})
 					}
 					//该交易正常执行完毕，删除对其的关注
 					param := &buildStoreWalletTxDetailParam{
@@ -1187,7 +1201,8 @@ func (wallet *Wallet) AddDelPrivacyTxsFromBlock(tx *types.Transaction, index int
 		for _, ftxo := range stxosInOneTx {
 			if ftxo.Txhash == txhash {
 				param := &buildStoreWalletTxDetailParam{
-					tokenname: tokenname, block: block,
+					tokenname:    tokenname,
+					block:        block,
 					tx:           tx,
 					index:        int(index),
 					newbatch:     newbatch,
@@ -1199,12 +1214,25 @@ func (wallet *Wallet) AddDelPrivacyTxsFromBlock(tx *types.Transaction, index int
 				}
 
 				if types.ExecOk == txExecRes && types.ActionPublic2Privacy != privateAction.Ty {
-					wallet.walletStore.moveSTXO2FTXO(tx, txhash, newbatch)
+					wallet.walletStore.moveSTXO2FTXO(tx, txhash, newbatch, "STXO To FTXO 交易发生回撤")
 					wallet.buildAndStoreWalletTxDetail(param)
 				} else if types.ExecOk != txExecRes && types.ActionPublic2Privacy != privateAction.Ty {
 					wallet.buildAndStoreWalletTxDetail(param)
 				}
 			}
+		}
+	}
+	if addDelType == AddTx {
+		if types.ExecOk == txExecRes {
+			wallet.addPrivacyTxChangeLog(tx, "AddDelPrivacyTxsFromBlock 交易被打包确认 执行成功")
+		} else {
+			wallet.addPrivacyTxChangeLog(tx, "AddDelPrivacyTxsFromBlock 交易被打包确认 执行失败")
+		}
+	} else {
+		if types.ExecOk == txExecRes {
+			wallet.addPrivacyTxChangeLog(tx, "AddDelPrivacyTxsFromBlock 交易被回退取消 执行成功")
+		} else {
+			wallet.addPrivacyTxChangeLog(tx, "AddDelPrivacyTxsFromBlock 交易被回退取消 执行失败")
 		}
 	}
 }
@@ -1449,6 +1477,30 @@ func (wallet *Wallet) procPrivacyTransactionList(req *types.ReqPrivacyTransactio
 	reply, err := wallet.walletStore.getWalletPrivacyTxDetails(req)
 	if err != nil {
 		walletlog.Error("procPrivacyTransactionList", "getWalletPrivacyTxDetails error", err)
+		return nil, err
+	}
+	return reply, nil
+}
+
+func (wallet *Wallet) procQueryUTXOChangeLog(req *types.ReqUTXOChangeLog) (*types.UTXOChangeLogItems, error) {
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+
+	reply, err := wallet.walletStore.queryUTXOChangeLog(req)
+	if err != nil {
+		walletlog.Error("procQueryUTXOChangeLog", "queryUTXOChangeLog error", err)
+		return nil, err
+	}
+	return reply, nil
+}
+
+func (wallet *Wallet) procQueryPrivacyTxChangeLog(req *types.ReqNil) (*types.PrivacyTxChangeItems, error) {
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+
+	reply, err := wallet.walletStore.queryPrivacyTxChangeLog(req)
+	if err != nil {
+		walletlog.Error("procQueryPrivacyTxChangeLog", "queryPrivacyTxChangeLog error", err)
 		return nil, err
 	}
 	return reply, nil
