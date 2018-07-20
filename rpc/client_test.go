@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/client/mocks"
+	slog "gitlab.33.cn/chain33/chain33/common/log"
 	qmock "gitlab.33.cn/chain33/chain33/queue/mocks"
 	"gitlab.33.cn/chain33/chain33/types"
 	_ "gitlab.33.cn/chain33/chain33/types/executor"
@@ -16,6 +17,11 @@ import (
 	tokentype "gitlab.33.cn/chain33/chain33/types/executor/token"
 	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
 )
+
+func init() {
+	slog.SetLogLevel("error")
+	types.SetTitle("user.p.guodun.")
+}
 
 func newTestChannelClient() *channelClient {
 	return &channelClient{
@@ -45,7 +51,7 @@ func testCreateRawTransactionExecNameErr(t *testing.T) {
 }
 
 func testCreateRawTransactionAmoutErr(t *testing.T) {
-	tx := types.CreateTx{ExecName: "coins", Amount: -1, To: "1MY4pMgjpS2vWiaSDZasRhN47pcwEire32"}
+	tx := types.CreateTx{ExecName: types.ExecName(types.CoinsX), Amount: -1, To: "1MY4pMgjpS2vWiaSDZasRhN47pcwEire32"}
 
 	client := newTestChannelClient()
 	_, err := client.CreateRawTransaction(&tx)
@@ -84,7 +90,7 @@ func testCreateRawTransactionCoinTransfer(t *testing.T) {
 	assert.Nil(t, err)
 	var tx types.Transaction
 	types.Decode(txHex, &tx)
-	assert.Equal(t, []byte("coins"), tx.Execer)
+	assert.Equal(t, []byte(types.ExecName(types.CoinsX)), tx.Execer)
 
 	var transfer types.CoinsAction
 	types.Decode(tx.Payload, &transfer)
@@ -93,7 +99,7 @@ func testCreateRawTransactionCoinTransfer(t *testing.T) {
 
 func testCreateRawTransactionCoinTransferExec(t *testing.T) {
 	ctx := types.CreateTx{
-		ExecName:   "ticket",
+		ExecName:   types.ExecName(types.TicketX),
 		Amount:     10,
 		IsToken:    false,
 		IsWithdraw: false,
@@ -106,7 +112,7 @@ func testCreateRawTransactionCoinTransferExec(t *testing.T) {
 	assert.Nil(t, err)
 	var tx types.Transaction
 	types.Decode(txHex, &tx)
-	assert.Equal(t, []byte("coins"), tx.Execer)
+	assert.Equal(t, []byte(types.ExecName(types.CoinsX)), tx.Execer)
 
 	var transfer types.CoinsAction
 	types.Decode(tx.Payload, &transfer)
@@ -115,7 +121,7 @@ func testCreateRawTransactionCoinTransferExec(t *testing.T) {
 
 func testCreateRawTransactionCoinWithdraw(t *testing.T) {
 	ctx := types.CreateTx{
-		ExecName:   "ticket",
+		ExecName:   types.ExecName(types.TicketX),
 		Amount:     10,
 		IsToken:    false,
 		IsWithdraw: true,
@@ -128,7 +134,7 @@ func testCreateRawTransactionCoinWithdraw(t *testing.T) {
 	assert.Nil(t, err)
 	var tx types.Transaction
 	types.Decode(txHex, &tx)
-	assert.Equal(t, []byte("coins"), tx.Execer)
+	assert.Equal(t, []byte(types.ExecName(types.CoinsX)), tx.Execer)
 
 	var transfer types.CoinsAction
 	types.Decode(tx.Payload, &transfer)
@@ -137,7 +143,7 @@ func testCreateRawTransactionCoinWithdraw(t *testing.T) {
 
 func testCreateRawTransactionTokenTransfer(t *testing.T) {
 	ctx := types.CreateTx{
-		ExecName:   "token",
+		ExecName:   types.ExecName(types.TokenX),
 		Amount:     10,
 		IsToken:    true,
 		IsWithdraw: false,
@@ -150,7 +156,7 @@ func testCreateRawTransactionTokenTransfer(t *testing.T) {
 	assert.Nil(t, err)
 	var tx types.Transaction
 	types.Decode(txHex, &tx)
-	assert.Equal(t, []byte("token"), tx.Execer)
+	assert.Equal(t, []byte(types.ExecName(types.TokenX)), tx.Execer)
 
 	var transfer types.TokenAction
 	types.Decode(tx.Payload, &transfer)
@@ -159,7 +165,7 @@ func testCreateRawTransactionTokenTransfer(t *testing.T) {
 
 func testCreateRawTransactionTokenWithdraw(t *testing.T) {
 	ctx := types.CreateTx{
-		ExecName:   "token",
+		ExecName:   types.ExecName(types.TokenX),
 		Amount:     10,
 		IsToken:    true,
 		IsWithdraw: true,
@@ -172,7 +178,7 @@ func testCreateRawTransactionTokenWithdraw(t *testing.T) {
 	assert.Nil(t, err)
 	var tx types.Transaction
 	types.Decode(txHex, &tx)
-	assert.Equal(t, []byte("token"), tx.Execer)
+	assert.Equal(t, []byte(types.ExecName(types.TokenX)), tx.Execer)
 
 	var transfer types.TokenAction
 	types.Decode(tx.Payload, &transfer)
@@ -213,7 +219,7 @@ func testSendRawTransactionErr(t *testing.T) {
 
 func testSendRawTransactionOk(t *testing.T) {
 	transfer := &types.Transaction{
-		Execer: []byte("ticket"),
+		Execer: []byte(types.ExecName(types.TicketX)),
 	}
 	payload := types.Encode(transfer)
 
@@ -355,7 +361,7 @@ func testChannelClient_GetBalanceOther(t *testing.T) {
 	var addrs = make([]string, 1)
 	addrs = append(addrs, "1Jn2qu84Z1SUUosWjySggBS9pKWdAP3tZt")
 	var in = &types.ReqBalance{
-		Execer:    "ticket",
+		Execer:    types.ExecName(types.TicketX),
 		Addresses: addrs,
 	}
 	data, err := client.GetBalance(in)
@@ -390,7 +396,7 @@ func testChannelClient_GetTokenBalanceToken(t *testing.T) {
 	var addrs = make([]string, 1)
 	addrs = append(addrs, "1Jn2qu84Z1SUUosWjySggBS9pKWdAP3tZt")
 	var in = &types.ReqTokenBalance{
-		Execer:      "token",
+		Execer:      types.ExecName(types.TokenX),
 		Addresses:   addrs,
 		TokenSymbol: "xxx",
 	}
@@ -420,7 +426,7 @@ func testChannelClient_GetTokenBalanceOther(t *testing.T) {
 	var addrs = make([]string, 1)
 	addrs = append(addrs, "1Jn2qu84Z1SUUosWjySggBS9pKWdAP3tZt")
 	var in = &types.ReqTokenBalance{
-		Execer:      "trade",
+		Execer:      types.ExecName(types.TradeX),
 		Addresses:   addrs,
 		TokenSymbol: "xxx",
 	}

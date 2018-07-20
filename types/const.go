@@ -14,9 +14,11 @@ const (
 	ManageX         = "manage"
 	PrivacyX        = "privacy"
 	ExecerEvmString = "evm"
+	EvmX            = "evm"
 	RelayX          = "relay"
 	Normx           = "norm"
 	UserEvmString   = "user.evm."
+	UserEvmX        = "user.evm."
 	CertX           = "cert"
 )
 
