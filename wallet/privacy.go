@@ -1473,10 +1473,14 @@ func (wallet *Wallet) reqUtxosByAddr(addr string) {
 		ReqHashes.Hashes = make([][]byte, len(ReplyTxInfos.TxInfos))
 		for index, ReplyTxInfo := range ReplyTxInfos.TxInfos {
 			ReqHashes.Hashes[index] = ReplyTxInfo.GetHash()
-			txInfo.Hash = ReplyTxInfo.GetHash()
-			txInfo.Height = ReplyTxInfo.GetHeight()
-			txInfo.Index = ReplyTxInfo.GetIndex()
 		}
+
+		if txcount > 0 {
+			txInfo.Hash = ReplyTxInfos.TxInfos[txcount-1].GetHash()
+			txInfo.Height = ReplyTxInfos.TxInfos[txcount-1].GetHeight()
+			txInfo.Index = ReplyTxInfos.TxInfos[txcount-1].GetIndex()
+		}
+
 		wallet.GetPrivacyTxDetailByHashs(&ReqHashes)
 		if txcount < int(MaxTxHashsPerTime) {
 			// 扫描完毕
