@@ -35,7 +35,7 @@ type TendermintClient struct {
 	crypto        crypto.Crypto
 	node          *Node
 	txsAvailable  chan int64
-	consResult    chan bool
+	consResult    chan int64
 	lastBlock     *types.Block
 }
 
@@ -101,7 +101,7 @@ func New(cfg *types.Consensus) *TendermintClient {
 		evidenceDB:    evidenceDB,
 		crypto:        cr,
 		txsAvailable:  make(chan int64, 1),
-		consResult:    make(chan bool, 1),
+		consResult:    make(chan int64, 1),
 		lastBlock:     &types.Block{},
 	}
 
@@ -302,8 +302,8 @@ func (client *TendermintClient) CreateBlock() {
 		client.lastBlock = lastBlock
 		client.txsAvailable <- lastBlock.Height + 1
 		select {
-		case success := <-client.consResult:
-			tendermintlog.Info("Tendermint Consensus result", "success", success)
+		case height := <-client.consResult:
+			tendermintlog.Info("Tendermint Consensus complete", "height", height)
 		}
 	}
 }
@@ -312,7 +312,7 @@ func (client *TendermintClient) TxsAvailable() <-chan int64 {
 	return client.txsAvailable
 }
 
-func (client *TendermintClient) ConsResult() chan<- bool {
+func (client *TendermintClient) ConsResult() chan<- int64 {
 	return client.consResult
 }
 
