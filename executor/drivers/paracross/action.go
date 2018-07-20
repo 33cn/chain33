@@ -5,7 +5,6 @@ import dbm "gitlab.33.cn/chain33/chain33/common/db"
 import "gitlab.33.cn/chain33/chain33/types"
 import (
 	pt "gitlab.33.cn/chain33/chain33/types/executor/paracross"
-	"golang.org/x/tools/go/gcimporter15/testdata"
 )
 
 
@@ -27,24 +26,55 @@ func newAction(t *Paracross, tx *types.Transaction) *action {
 }
 
 
-func getNodes(title string) ([]string, error) {
-	return nil, nil
+func getNodes(db dbm.KV, title string) ([]string, error) {
+	key := calcConfigNodesKey(title)
+	item, err := db.Get(key)
+	if err != nil {
+		clog.Info("getNodes", "get db key", key, "failed", err)
+		return nil, err
+	}
+	var config types.ConfigItem
+	err = types.Decode(item, &config)
+	if err != nil {
+		return nil, err
+	}
+	value := config.GetArr()
+	if value == nil {
+		// 在配置地址后，发现配置错了， 删除会出现这种情况
+		return []string{}, nil
+	}
+	return value.Value, nil
 }
 
 func validTitle(title string) bool {
-	return true
+	return len(title) > 0
 }
 
 func validNode(addr string, nodes []string) bool {
-	return true
+	for _, n := range nodes {
+		if n == addr {
+			return true
+		}
+	}
+	return false
 }
 
 func checkCommitInfo(commit *types.ParacrossCommitAction) error {
+	if commit.Status == nil {
+		return types.ErrInputPara
+	}
+	if len(commit.Status.StateHash) == 0 {
+		return types.ErrInputPara
+	}
+	if !validTitle(commit.Status.Title) || commit.Status.Height < 0 {
+		return types.ErrInputPara
+	}
+
 	return nil
 }
 
-func isCommitDone(f interface{}, nodes []string) bool {
-	return true
+func isCommitDone(f interface{}, nodes []string, mostSameHash int) bool {
+	return float32(mostSameHash) > float32(len(nodes)) * float32(2) / float32(3)
 }
 
 func makeCommitReceipt(addr string, commit *types.ParacrossCommitAction, prev, current *types.ParacrossHeightStatus) *types.Receipt {
@@ -86,9 +116,11 @@ func makeRecordReceipt(addr string, commit *types.ParacrossCommitAction) *types.
 	}
 }
 
-func makeDoneReceipt(addr string, commit *types.ParacrossCommitAction, current *types.ParacrossHeightStatus) *types.Receipt {
+func makeDoneReceipt(addr string, commit *types.ParacrossCommitAction, current *types.ParacrossHeightStatus,
+	most, commitCount, totalCount int32) *types.Receipt {
 
 	log := &types.ReceiptParacrossDone {
+		N: []int32{most, commitCount, totalCount},
 		Title: commit.Status.Title,
 		Height: commit.Status.Height,
 		StateHash: commit.Status.StateHash,
@@ -132,16 +164,16 @@ func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, er
 		return nil, err
 	}
 	if !validTitle(commit.Status.Title) {
-		return nil, types.ErrInputPara // TODO
+		return nil, types.ErrInputPara
 	}
 
-	nodes, err := getNodes(commit.Status.Title)
+	nodes, err := getNodes(a.db, commit.Status.Title)
 	if err != nil {
-		return nil, types.ErrInputPara // TODO
+		return nil, types.ErrInputPara
 	}
 
 	if !validNode(a.fromaddr, nodes) {
-		return nil, types.ErrInputPara // TODO
+		return nil, types.ErrInputPara
 	}
 
 	titleStatus, err := getTitle(a.db, calcTitleKey(commit.Status.Title))
@@ -163,8 +195,6 @@ func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, er
 		return nil, err
 	}
 
-	var logs []*types.ReceiptLog
-	var kv []*types.KeyValue
 	var receipt *types.Receipt
 	if err == types.ErrNotFound {
 		stat = &types.ParacrossHeightStatus{
@@ -185,28 +215,21 @@ func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, er
 	}
 
 	commitCount := len(stat.Details.Addrs)
-	most, statHash := getMostCommit(stat)
-	if isCommitDone(stat, nodes) {
+	most, _ := getMostCommit(stat)
+	if isCommitDone(stat, nodes, most) {
+		stat.Status = pt.ParacrossStatusDone
+		receiptDone := makeDoneReceipt(a.fromaddr, commit, stat, int32(most), int32(commitCount), int32(len(nodes)))
+		receipt.KV = append(receipt.KV, receiptDone.KV...)
+		receipt.Logs = append(receipt.Logs, receiptDone.Logs...)
+		saveTitleHeight(a.db, calcTitleHeightKey(commit.Status.Title, commit.Status.Height), stat)
 
+		titleStatus.Title = commit.Status.Title
+		titleStatus.Height = commit.Status.Height
+		saveTitle(a.db, calcTitleKey(commit.Status.Title), titleStatus)
+	} else {
+		saveTitleHeight(a.db, calcTitleHeightKey(commit.Status.Title, commit.Status.Height), stat)
 	}
 
-
-
-	return &types.Receipt{types.ExecOk, kv, logs}, nil
-
-/*
-	logs = append(logs, receipt.Logs...)
-	kv = append(kv, receipt.KV...)
-
-	order := newOrder(put, a.fromaddr)
-
-	key := calcOrderKey(string(a.txhash))
-	value := types.Encode(&order.g)
-	order.save(a.db, key, value)
-
-	kv = append(kv, &types.KeyValue{key, value})
-	log := &types.ReceiptGuessing{Order:&order.g}
-	logs = append(logs, &types.ReceiptLog{types.TyLogGuessingPut, types.Encode(log)})
-*/
+	return receipt, nil
 }
 
