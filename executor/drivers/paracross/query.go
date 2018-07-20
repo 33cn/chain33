@@ -13,8 +13,6 @@ func (c *Paracross) ParacrossGetHeight(title string) (types.Message, error) {
 	return ret, nil
 }
 
-
-
 func (c *Paracross) ParacrossListTitles() (types.Message, error) {
 	return listLocalTitles(c.GetLocalDB())
 }
@@ -32,7 +30,7 @@ func listLocalTitles(db dbm.KVDB) (types.Message, error) {
 		if err != nil {
 			panic(err)
 		}
-		resp.Titles = append(resp.Titles, st)
+		resp.Titles = append(resp.Titles, &st)
 	}
 	return &resp, nil
 }

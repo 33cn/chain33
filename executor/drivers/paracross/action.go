@@ -7,7 +7,6 @@ import (
 	pt "gitlab.33.cn/chain33/chain33/types/executor/paracross"
 )
 
-
 type action struct {
 	coinsAccount *account.DB
 	db           dbm.KV
@@ -24,7 +23,6 @@ func newAction(t *Paracross, tx *types.Transaction) *action {
 	return &action{t.GetCoinsAccount(), t.GetStateDB(), hash, fromaddr,
 		t.GetBlockTime(), t.GetHeight(), t.GetAddr()}
 }
-
 
 func getNodes(db dbm.KV, title string) ([]string, error) {
 	key := calcConfigNodesKey(title)
@@ -74,25 +72,25 @@ func checkCommitInfo(commit *types.ParacrossCommitAction) error {
 }
 
 func isCommitDone(f interface{}, nodes []string, mostSameHash int) bool {
-	return float32(mostSameHash) > float32(len(nodes)) * float32(2) / float32(3)
+	return float32(mostSameHash) > float32(len(nodes))*float32(2)/float32(3)
 }
 
 func makeCommitReceipt(addr string, commit *types.ParacrossCommitAction, prev, current *types.ParacrossHeightStatus) *types.Receipt {
 	key := calcTitleHeightKey(commit.Status.Title, commit.Status.Height)
 	log := &types.ReceiptParacrossCommit{
-		Addr: addr,
-		Status: commit.Status,
-		Prev: prev,
+		Addr:    addr,
+		Status:  commit.Status,
+		Prev:    prev,
 		Current: current,
 	}
 	return &types.Receipt{
 		Ty: types.ExecOk,
 		KV: []*types.KeyValue{
-			&types.KeyValue{key, types.Encode(current)},
+			{key, types.Encode(current)},
 		},
-		Logs: []*types.ReceiptLog {
-			&types.ReceiptLog{
-				Ty: types.TyLogParacrossCommit,
+		Logs: []*types.ReceiptLog{
+			{
+				Ty:  types.TyLogParacrossCommit,
 				Log: types.Encode(log),
 			},
 		},
@@ -101,15 +99,15 @@ func makeCommitReceipt(addr string, commit *types.ParacrossCommitAction, prev, c
 
 func makeRecordReceipt(addr string, commit *types.ParacrossCommitAction) *types.Receipt {
 	log := &types.ReceiptParacrossRecord{
-		Addr: addr,
+		Addr:   addr,
 		Status: commit.Status,
 	}
 	return &types.Receipt{
 		Ty: types.ExecOk,
 		KV: nil,
-		Logs: []*types.ReceiptLog {
-			&types.ReceiptLog{
-				Ty: types.TyLogParacrossRecord,
+		Logs: []*types.ReceiptLog{
+			{
+				Ty:  types.TyLogParacrossRecord,
 				Log: types.Encode(log),
 			},
 		},
@@ -119,18 +117,18 @@ func makeRecordReceipt(addr string, commit *types.ParacrossCommitAction) *types.
 func makeDoneReceipt(addr string, commit *types.ParacrossCommitAction, current *types.ParacrossHeightStatus,
 	most, commitCount, totalCount int32) *types.Receipt {
 
-	log := &types.ReceiptParacrossDone {
-		N: []int32{most, commitCount, totalCount},
-		Title: commit.Status.Title,
-		Height: commit.Status.Height,
+	log := &types.ReceiptParacrossDone{
+		N:         []int32{most, commitCount, totalCount},
+		Title:     commit.Status.Title,
+		Height:    commit.Status.Height,
 		StateHash: commit.Status.StateHash,
 	}
 	return &types.Receipt{
 		Ty: types.ExecOk,
 		KV: nil,
-		Logs: []*types.ReceiptLog {
-			&types.ReceiptLog{
-				Ty: types.TyLogParacrossDode,
+		Logs: []*types.ReceiptLog{
+			{
+				Ty:  types.TyLogParacrossDode,
 				Log: types.Encode(log),
 			},
 		},
@@ -138,7 +136,7 @@ func makeDoneReceipt(addr string, commit *types.ParacrossCommitAction, current *
 }
 
 func getMostCommit(stat *types.ParacrossHeightStatus) (int, string) {
-	stats := make(map[string]int, 0)
+	stats := make(map[string]int)
 	n := len(stat.Details.Addrs)
 	for i := 0; i < n; i++ {
 		if _, ok := stats[stat.Details.StateHash[i]]; ok {
@@ -155,7 +153,7 @@ func getMostCommit(stat *types.ParacrossHeightStatus) (int, string) {
 			statHash = k
 		}
 	}
-	return  most, statHash
+	return most, statHash
 }
 
 func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, error) {
@@ -180,7 +178,7 @@ func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, er
 	if err != nil {
 		return nil, err
 	}
-	if commit.Status.Height > titleStatus.Height + 1 {
+	if commit.Status.Height > titleStatus.Height+1 {
 		// 也许是在分叉上挖矿， 也许是非正常的交易
 		return nil, types.ErrInputPara // future height
 	} else if commit.Status.Height <= titleStatus.Height {
@@ -199,11 +197,11 @@ func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, er
 	if err == types.ErrNotFound {
 		stat = &types.ParacrossHeightStatus{
 			Status: pt.ParacrossStatusCommiting,
-			Title: commit.Status.Title,
+			Title:  commit.Status.Title,
 			Height: commit.Status.Height,
 			Details: &types.ParacrossStatusDetails{
-				Addrs:[]string{a.fromaddr},
-				StateHash:[]string{commit.Status.StateHash},
+				Addrs:     []string{a.fromaddr},
+				StateHash: []string{commit.Status.StateHash},
 			},
 		}
 		receipt = makeCommitReceipt(a.fromaddr, commit, nil, stat)
@@ -235,4 +233,3 @@ func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, er
 
 	return receipt, nil
 }
-
