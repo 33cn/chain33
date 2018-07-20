@@ -230,6 +230,9 @@ func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, er
 		saveTitleHeight(a.db, calcTitleHeightKey(commit.Status.Title, commit.Status.Height), stat)
 	}
 
+	// TODO 触发交易组跨链交易
+	// TODO 需要生成本地db 用原交易组查询执行结果
+
 	return receipt, nil
 }
 
