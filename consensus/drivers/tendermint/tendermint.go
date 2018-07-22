@@ -303,7 +303,7 @@ func (client *TendermintClient) CreateBlock() {
 		client.txsAvailable <- lastBlock.Height + 1
 		select {
 		case height := <-client.consResult:
-			tendermintlog.Info("Tendermint Consensus complete", "height", height)
+			tendermintlog.Info("Tendermint consensus reached at", "height", height)
 		}
 	}
 }
@@ -333,10 +333,13 @@ func (client *TendermintClient) CommitBlock(txs []*types.Transaction) error {
 	err := client.WriteBlock(lastBlock.StateHash, newblock)
 	if err != nil {
 		tendermintlog.Error(fmt.Sprintf("********************CommitBlock err:%v", err.Error()))
+		return err
 	}
-	time.Sleep(time.Second)
-	tendermintlog.Info("Commit block success", "height", newblock.Height, "CurrentHeight", client.GetCurrentHeight())
-	return err
+	tendermintlog.Info("Commit block complete", "height", newblock.Height, "CurrentHeight", client.GetCurrentHeight())
+	if client.GetCurrentHeight() != newblock.Height {
+		tendermintlog.Warn("Encounter problem in commit block")
+	}
+	return nil
 }
 
 func (client *TendermintClient) CheckCommit(height int64) (bool, error) {
@@ -349,8 +352,8 @@ func (client *TendermintClient) CheckCommit(height int64) (bool, error) {
 			return true, nil
 		}
 		retry++
-		time.Sleep(200 * time.Millisecond)
-		if retry >= 100 {
+		time.Sleep(100 * time.Millisecond)
+		if retry >= 600 {
 			tendermintlog.Error("Sync block fail", "height", height)
 		}
 	}
