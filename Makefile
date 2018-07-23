@@ -39,13 +39,18 @@ all: ## Builds for multiple platforms
 build: ## Build the binary file
 	@go build $(BUILD_FLAGS) -v -i -o  $(APP) $(SRC)
 	@cp cmd/chain33/chain33.toml build/
+	@cp cmd/chain33/chain33.para.toml build/
 
 release: ## Build the binary file
 	@go build -v -i -o $(APP) $(LDFLAGS) $(SRC) 
 	@cp cmd/chain33/chain33.toml build/
+	@cp cmd/chain33/chain33.para.toml build/
 
 cli: ## Build cli binary
 	@go build -v -o $(CLI) $(SRC_CLI)
+
+para:
+	@go build -v -o build/$(NAME) -ldflags "-X gitlab.33.cn/chain33/chain33/common/config.ParaName=user.p.$(NAME). -X gitlab.33.cn/chain33/chain33/common/config.RPCAddr=http://localhost:8901" $(SRC_CLI)
 
 signatory:
 	@cd cmd/signatory-server/signatory && bash ./create_protobuf.sh && cd ../.../..

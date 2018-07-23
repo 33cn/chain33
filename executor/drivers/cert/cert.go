@@ -34,6 +34,11 @@ func (c *Cert) GetName() string {
 }
 
 func (c *Cert) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	if !authority.IsAuthEnable {
+		clog.Error("Authority is not available. Please check the authority config or authority initialize error logs.")
+		return nil, types.ErrInitializeAuthority
+	}
+
 	var action types.CertAction
 	err := types.Decode(tx.GetPayload(), &action)
 	if err != nil {
@@ -89,7 +94,8 @@ func (c *Cert) CheckTx(tx *types.Transaction, index int) error {
 
 	// auth模块关闭则返回
 	if !authority.IsAuthEnable {
-		return nil
+		clog.Error("Authority is not available. Please check the authority config or authority initialize error logs.")
+		return types.ErrInitializeAuthority
 	}
 
 	// 签名中解码cert

@@ -114,9 +114,9 @@ func SetTitle(t string) {
 		return
 	}
 	if IsPara() {
+		//keep superManager same with mainnet
 		ExecNamePrefix = title
-		SetForkToOne()
-		SuperManager = []string{"1BjLtd6Eqeo19URRVQzvBFbx1X2TSoPabp"}
+		SetForkForPara(title)
 	}
 }
 
@@ -135,6 +135,11 @@ func IsYcc() bool {
 func IsPara() bool {
 	return strings.HasPrefix(title, "user.p.")
 }
+
+func IsParaExecName(name string) bool {
+	return strings.HasPrefix(name, "user.p.")
+}
+
 func IsPublicChain() bool {
 	return IsBityuan() || IsYcc()
 }

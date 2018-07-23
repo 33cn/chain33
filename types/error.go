@@ -5,6 +5,8 @@ import (
 )
 
 var (
+	ErrCanOnlyDelTopVersion    = errors.New("ErrCanOnlyDelTopVersion")
+	ErrPrevVersion             = errors.New("ErrPrevVersion")
 	ErrNoExecerInMavlKey       = errors.New("ErrNoExecerInMavlKey")
 	ErrMavlKeyNotStartWithMavl = errors.New("ErrMavlKeyNotStartWithMavl")
 	ErrNotFound                = errors.New("ErrNotFound")
@@ -246,6 +248,10 @@ var (
 	ErrRelayBtcHeadNewBitsErr  = errors.New("ErrRelayBtcHeadNewBitsErr")
 
 	//authority
-	ErrValidateCertFailed = errors.New("ErrValidateCertFailed")
-	ErrGetHistoryCertData = errors.New("ErrGetHistoryCertData")
+	ErrValidateCertFailed  = errors.New("ErrValidateCertFailed")
+	ErrGetHistoryCertData  = errors.New("ErrGetHistoryCertData")
+	ErrUnknowAuthSignType  = errors.New("ErrUnknowAuthSignType")
+	ErrInitializeAuthority = errors.New("ErrInitializeAuthority")
+	//rpc
+	ErrInvalidMainnetRpcAddr = errors.New("ErrInvalidMainnetRpcAddr")
 )

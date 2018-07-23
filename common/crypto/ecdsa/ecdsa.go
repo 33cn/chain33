@@ -84,11 +84,7 @@ func (privKey PrivKeyECDSA) Sign(msg []byte) crypto.Signature {
 		return nil
 	}
 
-	s, _, err = ToLowS(pub, s)
-	if err != nil {
-		return nil
-	}
-
+	s = ToLowS(pub, s)
 	ecdsaSigByte, _ := MarshalECDSASignature(r, s)
 	return SignatureECDSA(ecdsaSigByte)
 }

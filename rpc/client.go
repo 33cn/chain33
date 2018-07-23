@@ -32,6 +32,7 @@ func (c *channelClient) Init(q queue.Client) {
 
 // support old rpc create transaction interface. call new imlp
 func callExecNewTx(execName, action string, param interface{}) ([]byte, error) {
+	execName = types.ExecName(execName)
 	exec := types.LoadExecutor(execName)
 	if exec == nil {
 		log.Error("callExecNewTx", "Error", "exec not found")
@@ -68,10 +69,56 @@ func (c *channelClient) CreateRawTransaction(param *types.CreateTx) ([]byte, err
 	}
 
 	if param.IsToken {
-		return callExecNewTx("token", "", param)
+		return callExecNewTx(types.ExecName(types.TokenX), "", param)
 	} else {
-		return callExecNewTx("coins", "", param)
+		return callExecNewTx(types.ExecName(types.CoinsX), "", param)
 	}
+}
+
+func (c *channelClient) CreateNoBalanceTransaction(in *types.NoBalanceTx) (*types.Transaction, error) {
+	txNone := &types.Transaction{Execer: []byte(types.ExecName(types.NoneX)), Payload: []byte("no-fee-transaction")}
+	txNone.To = address.ExecAddress(string(txNone.Execer))
+	txNone.Fee, _ = txNone.GetRealFee(types.MinFee)
+	txNone.Nonce = rand.New(rand.NewSource(types.Now().UnixNano())).Int63()
+
+	tx, err := decodeTx(in.TxHex)
+	if err != nil {
+		return nil, err
+	}
+	transactions := []*types.Transaction{txNone, tx}
+	group, err := types.CreateTxGroup(transactions)
+	if err != nil {
+		return nil, err
+	}
+	err = group.Check(types.MinFee)
+	if err != nil {
+		return nil, err
+	}
+	newtx := group.Tx()
+	//如果可能要做签名
+	if in.PayAddr != "" || in.Privkey != "" {
+		rawTx := hex.EncodeToString(types.Encode(newtx))
+		req := &types.ReqSignRawTx{Addr: in.PayAddr, Privkey: in.Privkey, Expire: in.Expire, TxHex: rawTx, Index: 1}
+		signedTx, err := c.SignRawTx(req)
+		if err != nil {
+			return nil, err
+		}
+		return decodeTx(signedTx.TxHex)
+	}
+	return newtx, nil
+}
+
+func decodeTx(hexstr string) (*types.Transaction, error) {
+	var tx types.Transaction
+	data, err := hex.DecodeString(hexstr)
+	if err != nil {
+		return nil, err
+	}
+	err = types.Decode(data, &tx)
+	if err != nil {
+		return nil, err
+	}
+	return &tx, nil
 }
 
 func (c *channelClient) SendRawTransaction(param *types.SignedTx) (*types.Reply, error) {
@@ -116,7 +163,7 @@ func (c *channelClient) GetAddrOverview(parm *types.ReqAddr) (*types.AddrOvervie
 func (c *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account, error) {
 
 	switch in.GetExecer() {
-	case "coins":
+	case types.ExecName(types.CoinsX):
 		addrs := in.GetAddresses()
 		var exaddrs []string
 		for _, addr := range addrs {
@@ -204,12 +251,12 @@ func (c *channelClient) GetAllExecBalance(in *types.ReqAddr) (*types.AllExecBala
 
 //TODO:和GetBalance进行泛化处理，同时LoadAccounts和LoadExecAccountQueue也需要进行泛化处理, added by hzj
 func (c *channelClient) GetTokenBalance(in *types.ReqTokenBalance) ([]*types.Account, error) {
-	accountTokendb, err := account.NewAccountDB(types.ExecName("token"), in.GetTokenSymbol(), nil)
+	accountTokendb, err := account.NewAccountDB(types.ExecName(types.TokenX), in.GetTokenSymbol(), nil)
 	if err != nil {
 		return nil, err
 	}
 	switch in.GetExecer() {
-	case types.ExecName("token"):
+	case types.ExecName(types.TokenX):
 		addrs := in.GetAddresses()
 		var queryAddrs []string
 		for _, addr := range addrs {
@@ -254,39 +301,39 @@ func (c *channelClient) GetTotalCoins(in *types.ReqGetTotalCoins) (*types.ReplyG
 }
 
 func (c *channelClient) CreateRawTokenPreCreateTx(parm *tokentype.TokenPreCreateTx) ([]byte, error) {
-	return callExecNewTx("token", "TokenPreCreate", parm)
+	return callExecNewTx(types.ExecName(types.TokenX), "TokenPreCreate", parm)
 }
 
 func (c *channelClient) CreateRawTokenFinishTx(parm *tokentype.TokenFinishTx) ([]byte, error) {
-	return callExecNewTx("token", "TokenFinish", parm)
+	return callExecNewTx(types.ExecName(types.TokenX), "TokenFinish", parm)
 }
 
 func (c *channelClient) CreateRawTokenRevokeTx(parm *tokentype.TokenRevokeTx) ([]byte, error) {
-	return callExecNewTx("token", "TokenRevoke", parm)
+	return callExecNewTx(types.ExecName(types.TokenX), "TokenRevoke", parm)
 }
 
 func (c *channelClient) CreateRawTradeSellTx(parm *tradetype.TradeSellTx) ([]byte, error) {
-	return callExecNewTx("trade", "TradeSellLimit", parm)
+	return callExecNewTx(types.ExecName(types.TradeX), "TradeSellLimit", parm)
 }
 
 func (c *channelClient) CreateRawTradeBuyTx(parm *tradetype.TradeBuyTx) ([]byte, error) {
-	return callExecNewTx("trade", "TradeBuyMarket", parm)
+	return callExecNewTx(types.ExecName(types.TradeX), "TradeBuyMarket", parm)
 }
 
 func (c *channelClient) CreateRawTradeRevokeTx(parm *tradetype.TradeRevokeTx) ([]byte, error) {
-	return callExecNewTx("trade", "TradeSellRevoke", parm)
+	return callExecNewTx(types.ExecName(types.TradeX), "TradeSellRevoke", parm)
 }
 
 func (c *channelClient) CreateRawTradeBuyLimitTx(parm *tradetype.TradeBuyLimitTx) ([]byte, error) {
-	return callExecNewTx("trade", "TradeBuyLimit", parm)
+	return callExecNewTx(types.ExecName(types.TradeX), "TradeBuyLimit", parm)
 }
 
 func (c *channelClient) CreateRawTradeSellMarketTx(parm *tradetype.TradeSellMarketTx) ([]byte, error) {
-	return callExecNewTx("trade", "TradeSellMarket", parm)
+	return callExecNewTx(types.ExecName(types.TradeX), "TradeSellMarket", parm)
 }
 
 func (c *channelClient) CreateRawTradeRevokeBuyTx(parm *tradetype.TradeRevokeBuyTx) ([]byte, error) {
-	return callExecNewTx("trade", "TradeRevokeBuy", parm)
+	return callExecNewTx(types.ExecName(types.TradeX), "TradeRevokeBuy", parm)
 }
 
 func (c *channelClient) BindMiner(param *types.ReqBindMiner) (*types.ReplyBindMiner, error) {
@@ -297,7 +344,7 @@ func (c *channelClient) BindMiner(param *types.ReqBindMiner) (*types.ReplyBindMi
 	}
 	ta.Value = &types.TicketAction_Tbind{Tbind: tBind}
 	ta.Ty = types.TicketActionBind
-	execer := []byte("ticket")
+	execer := []byte(types.ExecName(types.TicketX))
 	to := address.ExecAddress(string(execer))
 	txBind := &types.Transaction{Execer: execer, Payload: types.Encode(ta), To: to}
 	random := rand.New(rand.NewSource(types.Now().UnixNano()))

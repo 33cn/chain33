@@ -37,9 +37,10 @@ var (
 
 type ParaClient struct {
 	*drivers.BaseClient
-	conn       *grpc.ClientConn
-	grpcClient types.GrpcserviceClient
-	lock       sync.RWMutex
+	conn         *grpc.ClientConn
+	grpcClient   types.GrpcserviceClient
+	lock         sync.RWMutex
+	isCatchingUp bool
 }
 
 func New(cfg *types.Consensus) *ParaClient {
@@ -68,7 +69,7 @@ func New(cfg *types.Consensus) *ParaClient {
 	}
 	grpcClient := types.NewGrpcserviceClient(conn)
 
-	para := &ParaClient{c, conn, grpcClient, sync.RWMutex{}}
+	para := &ParaClient{c, conn, grpcClient, sync.RWMutex{}, false}
 
 	c.SetChild(para)
 
@@ -286,6 +287,11 @@ func (client *ParaClient) RequestTx(currSeq int64) ([]*types.Transaction, *types
 	}
 	plog.Info("RequestTx", "LastSeq", lastSeq, "CurrSeq", currSeq)
 	if lastSeq >= currSeq {
+		if lastSeq-currSeq > emptyBlockInterval {
+			client.isCatchingUp = true
+		} else {
+			client.isCatchingUp = false
+		}
 		block, seqTy, err := client.GetBlockOnMainBySeq(currSeq)
 		if err != nil {
 			return nil, nil, -1, err
@@ -357,7 +363,6 @@ func (client *ParaClient) CreateBlock() {
 			if len(txs) == 0 {
 				if blockOnMain.Height > savedBlockOnMain.Height {
 					incSeqFlag = true
-					time.Sleep(time.Second)
 					continue
 				}
 				plog.Info("Delete empty block")
@@ -366,14 +371,11 @@ func (client *ParaClient) CreateBlock() {
 			incSeqFlag = false
 			if err != nil {
 				plog.Error(fmt.Sprintf("********************err:%v", err.Error()))
-				continue
 			}
-			time.Sleep(time.Second * time.Duration(blockSec))
 		} else if seqTy == AddAct {
 			if len(txs) == 0 {
 				if blockOnMain.Height-savedBlockOnMain.Height < emptyBlockInterval {
 					incSeqFlag = true
-					time.Sleep(time.Second)
 					continue
 				}
 				plog.Info("Create empty block")
@@ -382,13 +384,13 @@ func (client *ParaClient) CreateBlock() {
 			incSeqFlag = false
 			if err != nil {
 				plog.Error(fmt.Sprintf("********************err:%v", err.Error()))
-				continue
 			}
-			time.Sleep(time.Second * time.Duration(blockSec))
 		} else {
 			plog.Error("Incorrect sequence type")
 			incSeqFlag = false
-			time.Sleep(time.Second)
+		}
+		if !client.isCatchingUp {
+			time.Sleep(time.Second * time.Duration(blockSec))
 		}
 	}
 }

@@ -252,7 +252,6 @@ func (auth *Authority) Validate(signature *types.Signature) error {
 	// 是否在有效证书缓存中
 	for _, v := range auth.validCertCache {
 		if bytes.Equal(v, certSignature.Cert) {
-			fmt.Print("cert cache hit\n")
 			return nil
 		}
 	}
@@ -329,9 +328,9 @@ func (loader *UserLoader) loadUsers() error {
 			continue
 		}
 
-		ski, err := utils.GetPublicKeySKIFromCert(certBytes)
+		ski, err := utils.GetPublicKeySKIFromCert(certBytes, Author.signType)
 		if err != nil {
-			alog.Error(fmt.Sprintf("Value in certificate file:%s not found", filePath))
+			alog.Error(err.Error())
 			continue
 		}
 		filePath = path.Join(keyDir, ski+"_sk")
