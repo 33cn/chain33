@@ -1141,7 +1141,6 @@ func (wallet *Wallet) procInvalidTxOnTimer(dbbatch db.Batch) error {
 		}
 	}
 	curFTXOTxs = append(curFTXOTxs, revertFTXOTxs...)
-	walletlog.Info("PrivacyTrading procInvalidTxOnTimer", "curFTXOTxs count ", len(curFTXOTxs))
 	header := wallet.getLastHeader()
 	for i, ftxo := range curFTXOTxs {
 		txhash := ftxo.Txhash
@@ -1159,7 +1158,12 @@ func (wallet *Wallet) procInvalidTxOnTimer(dbbatch db.Batch) error {
 		}
 		if cache == nil && ftxo.IsExpire(header.Height, header.BlockTime) {
 			walletlog.Info("PrivacyTrading procInvalidTxOnTimer", "moveFTXO2UTXO key", string(keys[i]), "ftxo.IsExpire", ftxo.IsExpire(header.Height, header.BlockTime))
-			wallet.walletStore.moveFTXO2UTXO(keys[i], dbbatch)
+			wallet.walletStore.moveFTXO2UTXO(keys[i], dbbatch,
+				func(txhash []byte) bool {
+					// do not add to UTXO list if transaction is not existed.
+					_, err := wallet.api.QueryTx(&types.ReqHash{Hash: txhash})
+					return err == nil
+				})
 		}
 	}
 	return nil
@@ -1203,9 +1207,7 @@ func (wallet *Wallet) procDeleteCacheTransaction(req *types.ReqCreateCacheTxKey)
 
 	dbbatch := wallet.walletStore.NewBatch(true)
 	wallet.walletStore.moveFTXO2UTXO(
-		calcKey4FTXOsInTx(cache.Tokenname, cache.Sender, txhash),
-		dbbatch,
-		"FTXO To UTXO 缓存交易被删除",
+		calcKey4FTXOsInTx(cache.Tokenname, cache.Sender, txhash), dbbatch,
 		func(txhash []byte) bool {
 			_, err := wallet.api.QueryTx(&types.ReqHash{Hash: txhash})
 			return err == nil
