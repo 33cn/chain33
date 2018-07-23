@@ -71,7 +71,7 @@ func (c *Paracross) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData,
 			var r types.ParacrossTx
 			r.TxHash = string(tx.Hash())
 			set.KV = append(set.KV, &types.KeyValue{calcLocalTxKey(g.Status.Title, g.Status.Height, tx.From()), types.Encode(&r)})
-		} else if log.Ty == types.TyLogParacrossDode {
+		} else if log.Ty == types.TyLogParacrossDone {
 			var g types.ReceiptParacrossDone
 			types.Decode(log.Log, &g)
 
@@ -116,7 +116,7 @@ func (c *Paracross) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptDa
 			var r types.ParacrossTx
 			r.TxHash = string(tx.Hash())
 			set.KV = append(set.KV, &types.KeyValue{calcLocalTxKey(g.Status.Title, g.Status.Height, tx.From()), nil})
-		} else if log.Ty == types.TyLogParacrossDode {
+		} else if log.Ty == types.TyLogParacrossDone {
 			var g types.ReceiptParacrossDone
 			types.Decode(log.Log, &g)
 			g.Height = g.Height - 1
