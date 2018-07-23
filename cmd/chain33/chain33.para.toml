@@ -59,6 +59,7 @@ grpcBindAddr="localhost:8902"
 whitelist=["127.0.0.1"]
 jrpcFuncWhitelist=["*"]
 grpcFuncWhitelist=["*"]
+mainnetJrpcAddr= "http://localhost:8801"
 
 [mempool]
 poolCacheSize=10240
@@ -68,7 +69,7 @@ minTxFee=0
 name="para"
 ParaRemoteGrpcClient = "localhost:8802"
 #主链指定高度的区块开始同步
-startHeight=0
+startHeight=345850
 #打包时间间隔，单位秒
 writeBlockSeconds=2
 #主链每隔几个没有相关交易的区块，平行链上打包空区块

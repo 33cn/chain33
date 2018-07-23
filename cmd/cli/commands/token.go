@@ -64,12 +64,11 @@ func addCreateTokenTransferFlags(cmd *cobra.Command) {
 }
 
 func createTokenTransfer(cmd *cobra.Command, args []string) {
-	paraName, _ := cmd.Flags().GetString("paraName")
 	toAddr, _ := cmd.Flags().GetString("to")
 	amount, _ := cmd.Flags().GetFloat64("amount")
 	note, _ := cmd.Flags().GetString("note")
 	symbol, _ := cmd.Flags().GetString("symbol")
-	txHex, err := CreateRawTx(toAddr, amount, note, false, true, symbol, "", paraName)
+	txHex, err := CreateRawTx(cmd, toAddr, amount, note, false, true, symbol, "")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -102,8 +101,9 @@ func addCreateTokenWithdrawFlags(cmd *cobra.Command) {
 }
 
 func createTokenWithdraw(cmd *cobra.Command, args []string) {
-	paraName, _ := cmd.Flags().GetString("paraName")
 	exec, _ := cmd.Flags().GetString("exec")
+	paraName, _ := cmd.Flags().GetString("paraName")
+	exec = getRealExecName(paraName, exec)
 	amount, _ := cmd.Flags().GetFloat64("amount")
 	note, _ := cmd.Flags().GetString("note")
 	symbol, _ := cmd.Flags().GetString("symbol")
@@ -112,7 +112,7 @@ func createTokenWithdraw(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	txHex, err := CreateRawTx(execAddr, amount, note, true, true, symbol, exec, paraName)
+	txHex, err := CreateRawTx(cmd, execAddr, amount, note, true, true, symbol, exec)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -238,6 +238,7 @@ func tokenAssets(cmd *cobra.Command, args []string) {
 	paraName, _ := cmd.Flags().GetString("paraName")
 	addr, _ := cmd.Flags().GetString("addr")
 	execer, _ := cmd.Flags().GetString("exec")
+	execer = getRealExecName(paraName, execer)
 	req := types.ReqAccountTokenAssets{
 		Address: addr,
 		Execer:  execer,
@@ -299,6 +300,8 @@ func tokenBalance(cmd *cobra.Command, args []string) {
 	addr, _ := cmd.Flags().GetString("address")
 	token, _ := cmd.Flags().GetString("symbol")
 	execer, _ := cmd.Flags().GetString("exec")
+	paraName, _ := cmd.Flags().GetString("paraName")
+	execer = getRealExecName(paraName, execer)
 	addresses := strings.Split(addr, " ")
 	params := types.ReqTokenBalance{
 		Addresses:   addresses,

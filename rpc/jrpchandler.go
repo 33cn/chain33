@@ -25,6 +25,16 @@ func (c *Chain33) CreateRawTransaction(in *types.CreateTx, result *interface{}) 
 
 }
 
+func (c *Chain33) CreateNoBalanceTransaction(in *types.NoBalanceTx, result *string) error {
+	tx, err := c.cli.CreateNoBalanceTransaction(in)
+	if err != nil {
+		return err
+	}
+	grouptx := hex.EncodeToString(types.Encode(tx))
+	*result = grouptx
+	return nil
+}
+
 func (c *Chain33) SendRawTransaction(in SignedTx, result *interface{}) error {
 	var stx types.SignedTx
 	var err error
@@ -55,7 +65,25 @@ func (c *Chain33) SendRawTransaction(in SignedTx, result *interface{}) error {
 	}
 }
 
+//used only in parachain
+func forwardTranToMainNet(in RawParm, result *interface{}) error {
+	if rpcCfg.GetMainnetJrpcAddr() == "" {
+		return types.ErrInvalidMainnetRpcAddr
+	}
+	rpc, err := NewJSONClient(rpcCfg.GetMainnetJrpcAddr())
+
+	if err != nil {
+		return err
+	}
+
+	err = rpc.Call("Chain33.SendTransaction", in, result)
+	return err
+}
+
 func (c *Chain33) SendTransaction(in RawParm, result *interface{}) error {
+	if types.IsPara() {
+		return forwardTranToMainNet(in, result)
+	}
 	var parm types.Transaction
 	data, err := common.FromHex(in.Data)
 	if err != nil {
@@ -793,7 +821,7 @@ func (c *Chain33) Query(in Query4Jrpc, result *interface{}) error {
 		return err
 	}
 
-	resp, err := c.cli.Query(&types.Query{Execer: []byte(in.Execer), FuncName: in.FuncName, Payload: decodePayload})
+	resp, err := c.cli.Query(&types.Query{Execer: []byte(types.ExecName(in.Execer)), FuncName: in.FuncName, Payload: decodePayload})
 	if err != nil {
 		log.Error("EventQuery", "err", err.Error())
 		return err
@@ -884,7 +912,7 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 	}
 	var pl interface{}
 	unkownPl := make(map[string]interface{})
-	if "coins" == string(tx.Execer) {
+	if types.ExecName(types.CoinsX) == string(tx.Execer) {
 		var action types.CoinsAction
 		err := types.Decode(tx.GetPayload(), &action)
 		if err != nil {
@@ -894,7 +922,7 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		} else {
 			pl = &action
 		}
-	} else if "ticket" == string(tx.Execer) {
+	} else if types.ExecName(types.TicketX) == string(tx.Execer) {
 		var action types.TicketAction
 		err := types.Decode(tx.GetPayload(), &action)
 		if err != nil {
@@ -903,7 +931,7 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		} else {
 			pl = &action
 		}
-	} else if "hashlock" == string(tx.Execer) {
+	} else if types.ExecName(types.HashlockX) == string(tx.Execer) {
 		var action types.HashlockAction
 		err := types.Decode(tx.GetPayload(), &action)
 		if err != nil {
@@ -912,7 +940,7 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		} else {
 			pl = &action
 		}
-	} else if "token" == string(tx.Execer) {
+	} else if types.ExecName(types.TokenX) == string(tx.Execer) {
 		var action types.TokenAction
 		err := types.Decode(tx.GetPayload(), &action)
 		if err != nil {
@@ -921,7 +949,7 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		} else {
 			pl = &action
 		}
-	} else if "trade" == string(tx.Execer) {
+	} else if types.ExecName(types.TradeX) == string(tx.Execer) {
 		var action types.Trade
 		err := types.Decode(tx.GetPayload(), &action)
 		if err != nil {
@@ -931,14 +959,14 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 			pl = &action
 		}
 		pl = &action
-	} else if types.PrivacyX == string(tx.Execer) {
+	} else if types.ExecName(types.PrivacyX) == string(tx.Execer) {
 		var action types.PrivacyAction
 		err := types.Decode(tx.GetPayload(), &action)
 		if err != nil {
 			return nil, err
 		}
 		pl = &action
-	} else if "evm" == string(tx.Execer) {
+	} else if types.ExecName(types.EvmX) == string(tx.Execer) {
 		var action types.EVMContractAction
 		err := types.Decode(tx.GetPayload(), &action)
 		if err != nil {
@@ -961,11 +989,14 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 			Pubkey:    common.ToHex(tx.GetSignature().GetPubkey()),
 			Signature: common.ToHex(tx.GetSignature().GetSignature()),
 		},
-		Fee:    tx.Fee,
-		Expire: tx.Expire,
-		Nonce:  tx.Nonce,
-		To:     tx.To,
-		From:   tx.From(),
+		Fee:        tx.Fee,
+		Expire:     tx.Expire,
+		Nonce:      tx.Nonce,
+		To:         tx.To,
+		From:       tx.From(),
+		GroupCount: tx.GroupCount,
+		Header:     common.ToHex(tx.Header),
+		Next:       common.ToHex(tx.Next),
 	}
 	return result, nil
 }

@@ -571,6 +571,18 @@
 			"revisionTime": "2017-10-27T05:02:19Z"
 		},
 		{
+			"checksumSHA1": "SeChM0s1DGrXB9g2jaPB7Liehps=",
+			"path": "github.com/tjfoc/gmsm/sm2",
+			"revision": "31bd720984f8ed12526f8667a2b4432f3132da0f",
+			"revisionTime": "2018-07-10T05:27:16Z"
+		},
+		{
+			"checksumSHA1": "zhRJnd9B6OyEWJluP9Ys2Wj4i+M=",
+			"path": "github.com/tjfoc/gmsm/sm3",
+			"revision": "31bd720984f8ed12526f8667a2b4432f3132da0f",
+			"revisionTime": "2018-07-10T05:27:16Z"
+		},
+		{
 			"checksumSHA1": "LTOa3BADhwvT0wFCknPueQALm8I=",
 			"path": "github.com/valyala/bytebufferpool",
 			"revision": "e746df99fe4a3986f4d4f79e13c1e0117ce9c2f7",
@@ -653,6 +665,11 @@
 			"path": "golang.org/x/sys/unix",
 			"revision": "3b87a42e500a6dc65dae1a55d0b641295971163e",
 			"revisionTime": "2018-04-06T09:01:59Z"
+		},
+		{
+			"checksumSHA1": "kQB2wRB3twjUp615F6zEwGHjNe0=",
+			"path": "golang.org/x/sys/windows",
+			"revision": ""
 		},
 		{
 			"checksumSHA1": "AnXFEvmaJ7w2Q7hWPcLUmCbPgq0=",

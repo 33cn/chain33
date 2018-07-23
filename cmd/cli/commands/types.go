@@ -41,6 +41,9 @@ type TxResult struct {
 	To         string             `json:"to"`
 	Amount     string             `json:"amount,omitempty"`
 	From       string             `json:"from,omitempty"`
+	GroupCount int32              `json:"groupCount,omitempty"`
+	Header     string             `json:"header,omitempty"`
+	Next       string             `json:"next,omitempty"`
 }
 
 type ReceiptData struct {

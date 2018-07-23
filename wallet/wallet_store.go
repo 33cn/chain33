@@ -35,6 +35,7 @@ const (
 	RecvPrivacyTx      = "RecvPrivacyTx"
 	SendPrivacyTx      = "SendPrivacyTx"
 	createTxPrefix     = "CreateTx"
+	ScanPrivacyInput   = "ScanPrivacyInput-"
 )
 
 type Store struct {
@@ -93,6 +94,10 @@ func calcSTXOPrefix4Addr(token, addr string) []byte {
 
 func calcSTXOTokenAddrTxKey(token, addr, txhash string) []byte {
 	return []byte(fmt.Sprintf(PrivacySTXO+"%s-%s-%s", token, addr, txhash))
+}
+
+func calcScanPrivacyInputUTXOKey(txhash string, index int) []byte {
+	return []byte(fmt.Sprintf(ScanPrivacyInput+"%s-%d", txhash, index))
 }
 
 //通过height*100000+index 查询Tx交易信息
@@ -767,6 +772,88 @@ func (ws *Store) moveSTXO2FTXO(tx *types.Transaction, txhash string, newbatch db
 
 	newbatch.Write()
 	return nil
+}
+
+func (ws *Store) moveUTXO2STXO(owner, token, txhash string, utxos []*types.UTXO, newbatch dbm.Batch) {
+	if len(utxos) == 0 {
+		return
+	}
+
+	FTXOsInOneTx := &types.FTXOsSTXOsInOneTx{}
+
+	FTXOsInOneTx.Utxos = utxos
+	FTXOsInOneTx.Sender = owner
+	FTXOsInOneTx.Tokenname = token
+	FTXOsInOneTx.Freezetime = time.Now().UnixNano()
+	FTXOsInOneTx.Txhash = txhash
+
+	for _, utxo := range utxos {
+		Txhash := utxo.UtxoBasic.UtxoGlobalIndex.Txhash
+		Outindex := utxo.UtxoBasic.UtxoGlobalIndex.Outindex
+		//删除存在的UTXO索引
+		key := calcUTXOKey4TokenAddr(token, owner, common.Bytes2Hex(Txhash), int(Outindex))
+		newbatch.Delete(key)
+	}
+
+	//设置在该交易中花费的UTXO
+	key1 := calcKey4UTXOsSpentInTx(txhash)
+	value1 := types.Encode(FTXOsInOneTx)
+	newbatch.Set(key1, value1)
+
+	//设置花费stxo的key
+	key2 := calcKey4STXOsInTx(txhash)
+	value2 := key1
+	newbatch.Set(key2, value2)
+
+	// 在此处加入stxo-token-addr-txhash 作为key，便于查找花费出去交易
+	key3 := calcSTXOTokenAddrTxKey(FTXOsInOneTx.Tokenname, FTXOsInOneTx.Sender, FTXOsInOneTx.Txhash)
+	value3 := key1
+	newbatch.Set(key3, value3)
+
+	walletlog.Info("moveUTXO2STXO", "tx hash", txhash)
+}
+
+func (ws *Store) IsUTXOExist(txhash string, outindex int) (*types.PrivacyDBStore, error) {
+	value1, err := ws.db.Get(calcUTXOKey(txhash, outindex))
+	if err != nil {
+		return nil, err
+	}
+	var accPrivacy types.PrivacyDBStore
+	err = proto.Unmarshal(value1, &accPrivacy)
+	if err != nil {
+		walletlog.Error("IsUTXOExist PrivacyAccount", "proto.Unmarshal err:", err)
+		return nil, err
+	}
+	return &accPrivacy, nil
+}
+
+func (ws *Store) StoreScanPrivacyInputUTXO(utxoGlobalIndexs []*types.UTXOGlobalIndex, newbatch dbm.Batch) {
+	for _, utxoGlobalIndex := range utxoGlobalIndexs {
+		key1 := calcScanPrivacyInputUTXOKey(common.Bytes2Hex(utxoGlobalIndex.Txhash), int(utxoGlobalIndex.Outindex))
+		utxoIndex := &types.UTXOGlobalIndex{
+			Txhash:   utxoGlobalIndex.Txhash,
+			Outindex: utxoGlobalIndex.Outindex,
+		}
+		value1 := types.Encode(utxoIndex)
+		newbatch.Set(key1, value1)
+	}
+}
+
+func (ws *Store) GetScanPrivacyInputUTXO(count int32) []*types.UTXOGlobalIndex {
+	prefix := []byte(ScanPrivacyInput)
+	list := dbm.NewListHelper(ws.db)
+	values := list.List(prefix, nil, count, 0)
+	var utxoGlobalIndexs []*types.UTXOGlobalIndex
+	if len(values) != 0 {
+		for _, value := range values {
+			var utxoGlobalIndex types.UTXOGlobalIndex
+			err := types.Decode(value, &utxoGlobalIndex)
+			if err == nil {
+				utxoGlobalIndexs = append(utxoGlobalIndexs, &utxoGlobalIndex)
+			}
+		}
+	}
+	return utxoGlobalIndexs
 }
 
 func (ws *Store) getPrivacyTokenUTXOs(token, addr string) (*walletUTXOs, error) {

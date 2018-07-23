@@ -33,19 +33,33 @@ import (
 func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error) {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
-
 	index := unsigned.Index
-	if unsigned.GetAddr() == "" {
-		return "", types.ErrNoPrivKeyOrAddr
-	}
 
-	ok, err := wallet.CheckWalletStatus()
-	if !ok {
-		return "", err
-	}
-	key, err := wallet.getPrivKeyByAddr(unsigned.GetAddr())
-	if err != nil {
-		return "", err
+	var key crypto.PrivKey
+	if unsigned.GetAddr() != "" {
+		ok, err := wallet.CheckWalletStatus()
+		if !ok {
+			return "", err
+		}
+		key, err = wallet.getPrivKeyByAddr(unsigned.GetAddr())
+		if err != nil {
+			return "", err
+		}
+	} else if unsigned.GetPrivkey() != "" {
+		keyByte, err := common.FromHex(unsigned.GetPrivkey())
+		if err != nil || len(keyByte) == 0 {
+			return "", err
+		}
+		cr, err := crypto.New(types.GetSignatureTypeName(SignType))
+		if err != nil {
+			return "", err
+		}
+		key, err = cr.PrivKeyFromBytes(keyByte)
+		if err != nil {
+			return "", err
+		}
+	} else {
+		return "", types.ErrNoPrivKeyOrAddr
 	}
 
 	var tx types.Transaction
@@ -86,15 +100,13 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 		txHex := types.Encode(grouptx)
 		signedTx := hex.EncodeToString(txHex)
 		return signedTx, nil
-	} else {
-		index -= 1
-		group.SignN(int(index), int32(SignType), key)
-		grouptx := group.Tx()
-		txHex := types.Encode(grouptx)
-		signedTx := hex.EncodeToString(txHex)
-		return signedTx, nil
 	}
-	return "", nil
+	index--
+	group.SignN(int(index), int32(SignType), key)
+	grouptx := group.Tx()
+	txHex := types.Encode(grouptx)
+	signedTx := hex.EncodeToString(txHex)
+	return signedTx, nil
 }
 
 //output:
@@ -398,6 +410,12 @@ func (wallet *Wallet) ProcImportPrivKey(PrivKey *types.ReqWalletImportPrivKey) (
 	//从blockchain模块同步Account.Addr对应的所有交易详细信息
 	wallet.wg.Add(1)
 	go wallet.ReqTxDetailByAddr(addr)
+
+	if utxoFlagNoScan == atomic.LoadInt32(&wallet.rescanUTXOflag) {
+		atomic.StoreInt32(&wallet.rescanUTXOflag, utxoFlagScaning)
+	} else {
+		atomic.StoreInt32(&wallet.rescanUTXOflag, utxoFlagReScan)
+	}
 
 	return &walletaccount, nil
 }

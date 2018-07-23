@@ -6,6 +6,7 @@ import (
 	"math"
 	"math/rand"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gogo/protobuf/proto"
@@ -28,6 +29,9 @@ func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
 		Nonce:      tx.Nonce,
 		To:         tx.To,
 		From:       tx.From,
+		GroupCount: tx.GroupCount,
+		Header:     tx.Header,
+		Next:       tx.Next,
 	}
 
 	if tx.Amount != 0 {
@@ -313,11 +317,13 @@ func SendToAddress(rpcAddr string, from string, to string, amount int64, note st
 	ctx.Run()
 }
 
-func CreateRawTx(to string, amount float64, note string, isWithdraw bool, isToken bool, tokenSymbol string, execName string, tokenPrefix string) (string, error) {
+func CreateRawTx(cmd *cobra.Command, to string, amount float64, note string, isWithdraw, isToken bool, tokenSymbol, execName string) (string, error) {
 	if amount < 0 {
 		return "", types.ErrAmount
 	}
+	paraName, _ := cmd.Flags().GetString("paraName")
 	amountInt64 := int64(math.Trunc((amount+0.0000001)*1e4)) * 1e4
+	execName = getRealExecName(paraName, execName)
 	if execName != "" && !types.IsAllowExecName(execName) {
 		return "", types.ErrExecNameNotMatch
 	}
@@ -330,7 +336,7 @@ func CreateRawTx(to string, amount float64, note string, isWithdraw bool, isToke
 				transfer.Value = v
 				transfer.Ty = types.CoinsActionTransferToExec
 			} else {
-				v := &types.CoinsAction_Transfer{Transfer: &types.CoinsTransfer{Amount: amountInt64, Note: note}}
+				v := &types.CoinsAction_Transfer{Transfer: &types.CoinsTransfer{Amount: amountInt64, Note: note, To: to}}
 				transfer.Value = v
 				transfer.Ty = types.CoinsActionTransfer
 			}
@@ -339,7 +345,12 @@ func CreateRawTx(to string, amount float64, note string, isWithdraw bool, isToke
 			transfer.Value = v
 			transfer.Ty = types.CoinsActionWithdraw
 		}
-		tx = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), To: to}
+		execer := []byte(getRealExecName(paraName, "coins"))
+		if paraName == "" {
+			tx = &types.Transaction{Execer: execer, Payload: types.Encode(transfer), To: to}
+		} else {
+			tx = &types.Transaction{Execer: execer, Payload: types.Encode(transfer), To: address.ExecAddress(string(execer))}
+		}
 	} else {
 		transfer := &types.TokenAction{}
 		if !isWithdraw {
@@ -351,12 +362,12 @@ func CreateRawTx(to string, amount float64, note string, isWithdraw bool, isToke
 			transfer.Value = v
 			transfer.Ty = types.ActionWithdraw
 		}
-		if tokenPrefix == "" {
-			tx = &types.Transaction{Execer: []byte(tokenPrefix + "token"), Payload: types.Encode(transfer), To: to}
+		execer := []byte(getRealExecName(paraName, "token"))
+		if paraName == "" {
+			tx = &types.Transaction{Execer: execer, Payload: types.Encode(transfer), To: to}
 		} else {
-			tx = &types.Transaction{Execer: []byte(tokenPrefix + "token"), Payload: types.Encode(transfer), To: address.ExecAddress(tokenPrefix + "token")}
+			tx = &types.Transaction{Execer: execer, Payload: types.Encode(transfer), To: address.ExecAddress(string(execer))}
 		}
-
 	}
 
 	var err error
@@ -411,5 +422,8 @@ func GetAmountValue(cmd *cobra.Command, field string) int64 {
 }
 
 func getRealExecName(paraName string, name string) string {
+	if strings.HasPrefix(name, "user.p.") {
+		return name
+	}
 	return paraName + name
 }
