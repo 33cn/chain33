@@ -242,8 +242,7 @@ func (wallet *Wallet) transPub2PriV2(priv crypto.PrivKey, reqPub2Pri *types.ReqP
 	var hash types.ReplyHash
 	hash.Hash = tx.Hash()
 
-	wallet.addPrivacyTxChangeLog(tx, "transPub2PriV2 创建交易")
-	walletlog.Info("隐私交易 transPub2PriV2", "创建交易 hash", common.Bytes2Hex(hash.Hash))
+	walletlog.Debug("PrivacyTrading", "transPub2PriV2 txhash", common.Bytes2Hex(hash.Hash))
 	return &hash, nil
 }
 
@@ -454,10 +453,8 @@ func (wallet *Wallet) transPri2PriV2(privacykeyParirs *privacy.Privacy, reqPri2P
 	}
 	var hash types.ReplyHash
 	hash.Hash = tx.Hash()
-	wallet.saveFTXOInfo(tx, reqPri2Pri.Tokenname, reqPri2Pri.Sender, common.Bytes2Hex(hash.Hash), selectedUtxo, "UTXO To FTXO saveFTXOInfo Private To Private")
-
-	wallet.addPrivacyTxChangeLog(tx, "transPri2PriV2 创建交易")
-	walletlog.Info("隐私交易 transPri2PriV2", "创建交易 hash", common.Bytes2Hex(hash.Hash))
+	wallet.saveFTXOInfo(tx, reqPri2Pri.Tokenname, reqPri2Pri.Sender, common.Bytes2Hex(hash.Hash), selectedUtxo)
+	walletlog.Debug("PrivacyTrading", "transPri2PriV2 txhash", common.Bytes2Hex(hash.Hash))
 	return &hash, nil
 }
 
@@ -527,19 +524,14 @@ func (wallet *Wallet) transPri2PubV2(privacykeyParirs *privacy.Privacy, reqPri2P
 	var hash types.ReplyHash
 	hash.Hash = tx.Hash()
 
-	wallet.saveFTXOInfo(tx, reqPri2Pub.Tokenname, reqPri2Pub.Sender, common.Bytes2Hex(hash.Hash), selectedUtxo, "UTXO To FTXO saveFTXOInfo Private To Public")
-	wallet.addPrivacyTxChangeLog(tx, "transPri2PubV2 创建交易")
-	walletlog.Info("隐私交易 transPri2PubV2", "创建交易 hash", common.Bytes2Hex(hash.Hash))
+	wallet.saveFTXOInfo(tx, reqPri2Pub.Tokenname, reqPri2Pub.Sender, common.Bytes2Hex(hash.Hash), selectedUtxo)
+	walletlog.Debug("PrivacyTrading", "transPri2PubV2 txhash", common.Bytes2Hex(hash.Hash))
 	return &hash, nil
 }
 
-func (wallet *Wallet) saveFTXOInfo(tx *types.Transaction, token, sender, txhash string, selectedUtxos []*txOutputInfo, description string) {
+func (wallet *Wallet) saveFTXOInfo(tx *types.Transaction, token, sender, txhash string, selectedUtxos []*txOutputInfo) {
 	//将已经作为本次交易输入的utxo进行冻结，防止产生双花交易
 	wallet.walletStore.moveUTXO2FTXO(tx, token, sender, txhash, selectedUtxos)
-	txhashstr := common.ToHex(tx.Hash())
-	for _, output := range selectedUtxos {
-		wallet.walletStore.logUTXOChange(txhashstr, sender, output.amount, description, output.utxoGlobalIndex)
-	}
 	//TODO:需要加入超时处理，需要将此处的txhash写入到数据库中，以免钱包瞬间奔溃后没有对该笔隐私交易的记录，
 	//TODO:然后当该交易得到执行之后，没法将FTXO转化为STXO，added by hezhengjun on 2018.6.5
 }
@@ -973,7 +965,7 @@ func (wallet *Wallet) createPrivacy2PrivacyTx(req *types.ReqCreateTransaction) (
 		return nil, err
 	}
 	// 创建交易成功，将已经使用掉的UTXO冻结
-	wallet.saveFTXOInfo(tx, req.GetTokenname(), req.GetFrom(), common.Bytes2Hex(byteshash), selectedUtxo, "UTXO To FTXO saveFTXOInfo Private To Private")
+	wallet.saveFTXOInfo(tx, req.GetTokenname(), req.GetFrom(), common.Bytes2Hex(byteshash), selectedUtxo)
 	return tx, nil
 }
 
@@ -1050,7 +1042,7 @@ func (wallet *Wallet) createPrivacy2PublicTx(req *types.ReqCreateTransaction) (*
 	if err = wallet.walletStore.SetCreateTransactionCache(dbkey, cache); err != nil {
 		return nil, err
 	}
-	wallet.saveFTXOInfo(tx, req.GetTokenname(), req.GetFrom(), common.Bytes2Hex(byteshash), selectedUtxo, "UTXO To FTXO saveFTXOInfo Private To Public")
+	wallet.saveFTXOInfo(tx, req.GetTokenname(), req.GetFrom(), common.Bytes2Hex(byteshash), selectedUtxo)
 	return tx, nil
 }
 
@@ -1127,28 +1119,29 @@ func (wallet *Wallet) procInvalidTxOnTimer(dbbatch db.Batch) error {
 		for _, cache := range caches {
 			if cache.GetStatus() != cacheTxStatus_Sent &&
 				(cache.GetCreatetime()+int64(types.GetTxTimeInterval())) <= now {
+				walletlog.Info("PrivacyTrading procInvalidTxOnTimer", "Delete expire transaction ", common.Bytes2Hex(cache.Transaction.Hash()))
 				// 交易长时间未发送，已经超时，则直接删除
 				wallet.walletStore.DeleteCreateTransactionCache(cache.Key)
 			}
 		}
 	}
 
-	// 再处理已经发送的交易
+	// 获取已经冻结列表 FTXO，主要由FTXO列表和回退FTXO列表组成
 	curFTXOTxs, _, err := wallet.walletStore.GetWalletFtxoStxo(FTXOs4Tx)
-	if nil != err {
-		return err
-	}
 	revertFTXOTxs, _, _ := wallet.walletStore.GetWalletFtxoStxo(RevertSendtx)
 	var keys [][]byte
-	for _, ftxo := range curFTXOTxs {
-		keys = append(keys, calcKey4FTXOsInTx(ftxo.Tokenname, ftxo.Sender, ftxo.Txhash))
+	if curFTXOTxs != nil {
+		for _, ftxo := range curFTXOTxs {
+			keys = append(keys, calcKey4FTXOsInTx(ftxo.Tokenname, ftxo.Sender, ftxo.Txhash))
+		}
 	}
-	for _, ftxo := range revertFTXOTxs {
-		walletlog.Info("procInvalidTxOnTimer", "tx hash ", ftxo.Txhash, "Sender", ftxo.Sender)
-		keys = append(keys, calcRevertSendTxKey(ftxo.Tokenname, ftxo.Sender, ftxo.Txhash))
+	if revertFTXOTxs != nil {
+		for _, ftxo := range revertFTXOTxs {
+			keys = append(keys, calcRevertSendTxKey(ftxo.Tokenname, ftxo.Sender, ftxo.Txhash))
+		}
 	}
 	curFTXOTxs = append(curFTXOTxs, revertFTXOTxs...)
-
+	walletlog.Info("PrivacyTrading procInvalidTxOnTimer", "curFTXOTxs count ", len(curFTXOTxs))
 	header := wallet.getLastHeader()
 	for i, ftxo := range curFTXOTxs {
 		txhash := ftxo.Txhash
@@ -1159,16 +1152,14 @@ func (wallet *Wallet) procInvalidTxOnTimer(dbbatch db.Batch) error {
 			if cache.GetStatus() == cacheTxStatus_Sent || ftxo.IsExpire(header.Height, header.BlockTime) {
 				// 交易已经发送或交易对应的FTXO已经过期，需要移除缓存交易
 				wallet.walletStore.DeleteCreateTransactionCache(cache.Key)
+				walletlog.Info("PrivacyTrading procInvalidTxOnTimer", "delete cache transaction txhash", common.Bytes2Hex(cache.Transaction.Hash()),
+					"status", cache.GetStatus(), "ftxo.IsExpire", ftxo.IsExpire(header.Height, header.BlockTime))
 				cache = nil
 			}
 		}
 		if cache == nil && ftxo.IsExpire(header.Height, header.BlockTime) {
-			wallet.walletStore.moveFTXO2UTXO(keys[i], dbbatch, "FTXO To UTXO FTXO超期 ",
-				func(txhash []byte) bool {
-					_, err = wallet.api.QueryTx(&types.ReqHash{Hash: txhash})
-					return err == nil
-				})
-			walletlog.Info("隐私交易 procInvalidTxOnTimer", "FTXO超期 moveFTXO2UTXO txhash ", txhash)
+			walletlog.Info("PrivacyTrading procInvalidTxOnTimer", "moveFTXO2UTXO key", string(keys[i]), "ftxo.IsExpire", ftxo.IsExpire(header.Height, header.BlockTime))
+			wallet.walletStore.moveFTXO2UTXO(keys[i], dbbatch)
 		}
 	}
 	return nil
@@ -1534,57 +1525,4 @@ func (wallet *Wallet) calcPrivacyBalace(addr, token string) (uamout int64, famou
 	}
 	return
 
-}
-
-func (wallet *Wallet) addPrivacyTxChangeLog(tx *types.Transaction, note string) {
-	logItem := new(types.PrivacyTxChangeItem)
-	action := new(types.PrivacyAction)
-	if err := types.Decode(tx.Payload, action); err != nil {
-		return
-	}
-	txhashbt := tx.Hash()
-	logItem.Txhash = common.ToHex(txhashbt)
-	logItem.ActionType = action.GetActionName()
-	logItem.Amount, _ = tx.Amount()
-	logItem.From = tx.From()
-	logItem.To = tx.To
-	logItem.Note = note
-	logItem.ChangeTime = types.Now().Unix()
-	privacyInput := action.GetInput()
-	privacyOutput := action.GetOutput()
-
-	if privacyInput != nil {
-		for _, keyinput := range privacyInput.Keyinput {
-			info := new(types.UTXOLogInfo)
-			info.Amount = keyinput.Amount
-			for _, utxogl := range keyinput.UtxoGlobalIndex {
-				info.Utxogl = append(info.Utxogl, utxogl)
-			}
-			logItem.InputUTXOs = append(logItem.InputUTXOs, info)
-		}
-	}
-
-	for index, output := range privacyOutput.Keyoutput {
-		info := new(types.UTXOLogInfo)
-		info.Amount = output.Amount
-		utxogl := new(types.UTXOGlobalIndex)
-		utxogl.Txhash = txhashbt
-		utxogl.Outindex = int32(index)
-		info.Utxogl = append(info.Utxogl, utxogl)
-		logItem.OutputUTXOs = append(logItem.OutputUTXOs, info)
-	}
-
-	privacyAccInfos, _ := wallet.getPrivacyKeyPairsOfWalletNolock()
-	if privacyAccInfos != nil {
-		for _, info := range privacyAccInfos {
-			binfo := new(types.PrivacyBalanceInfo)
-			binfo.Addr = *info.Addr
-			acc, _ := wallet.getBalance(*info.Addr, types.PrivacyX)
-			binfo.Balance = acc.Balance
-			binfo.UtxoAmount, binfo.FtxoAmount = wallet.calcPrivacyBalace(*info.Addr, types.BTY)
-			logItem.BalanceInfo = append(logItem.BalanceInfo, binfo)
-		}
-	}
-
-	wallet.walletStore.savePrivacyTxChangeItem(logItem)
 }
