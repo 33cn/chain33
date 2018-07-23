@@ -36,7 +36,7 @@ const (
 	SendPrivacyTx      = "SendPrivacyTx"
 	createTxPrefix     = "CreateTx"
 
-	UTXOChangeLog = "UTXOChangeLog"
+	UTXOChangeLog      = "UTXOChangeLog"
 	PrivacyTxChangeLog = "PrivacyTxChangeLog"
 )
 
@@ -180,8 +180,6 @@ func calckPrivacyTxChangeLogKey() []byte {
 func calckPrivacyTxChangeLogPrefix() []byte {
 	return []byte(fmt.Sprintf("%s:BTY-", PrivacyTxChangeLog))
 }
-
-
 
 func NewStore(db dbm.DB) *Store {
 	return &Store{
@@ -547,28 +545,28 @@ func (ws *Store) setUTXO(addr, txhash *string, outindex int, dbStore *types.Priv
 		return types.ErrInputPara
 	}
 
-	//如果该交易产生的UTXO是包含在之前被回退对外支付的交易，则不重新添加相应的UTXO
-	if revertFtos, _, _ := ws.GetWalletFtxoStxo(RevertSendtx); nil != revertFtos {
-		for _, ftxos4tx := range revertFtos {
-			for _, ftxo := range ftxos4tx.Utxos {
-				if common.Bytes2Hex(ftxo.UtxoBasic.UtxoGlobalIndex.Txhash) == *txhash {
-					walletlog.Info("setUTXO for reverted tx", "txHash", *txhash, "outindex", outindex)
-					return nil
-				}
-			}
-		}
-	}
-
-	if Ftos, _, _ := ws.GetWalletFtxoStxo(FTXOs4Tx); nil != Ftos {
-		for _, ftxos4tx := range Ftos {
-			for _, ftxo := range ftxos4tx.Utxos {
-				if common.Bytes2Hex(ftxo.UtxoBasic.UtxoGlobalIndex.Txhash) == *txhash {
-					walletlog.Info("setUTXO for FTXOs4Tx tx", "txHash", *txhash, "outindex", outindex)
-					return nil
-				}
-			}
-		}
-	}
+	////如果该交易产生的UTXO是包含在之前被回退对外支付的交易，则不重新添加相应的UTXO
+	//if revertFtos, _, _ := ws.GetWalletFtxoStxo(RevertSendtx); nil != revertFtos {
+	//	for _, ftxos4tx := range revertFtos {
+	//		for _, ftxo := range ftxos4tx.Utxos {
+	//			if common.Bytes2Hex(ftxo.UtxoBasic.UtxoGlobalIndex.Txhash) == *txhash {
+	//				walletlog.Info("setUTXO for reverted tx", "txHash", *txhash, "outindex", outindex)
+	//				return nil
+	//			}
+	//		}
+	//	}
+	//}
+	//
+	//if Ftos, _, _ := ws.GetWalletFtxoStxo(FTXOs4Tx); nil != Ftos {
+	//	for _, ftxos4tx := range Ftos {
+	//		for _, ftxo := range ftxos4tx.Utxos {
+	//			if common.Bytes2Hex(ftxo.UtxoBasic.UtxoGlobalIndex.Txhash) == *txhash {
+	//				walletlog.Info("setUTXO for FTXOs4Tx tx", "txHash", *txhash, "outindex", outindex)
+	//				return nil
+	//			}
+	//		}
+	//	}
+	//}
 
 	privacyStorebyte, err := proto.Marshal(dbStore)
 	if err != nil {
@@ -599,25 +597,34 @@ func (ws *Store) unsetUTXO(addr, txhash *string, outindex int, token string, new
 		return types.ErrInputPara
 	}
 
-	found := false
-	ftxos4Txs, _, _ := ws.GetWalletFtxoStxo(RevertSendtx)
-	for _, ftxos4Singletx := range ftxos4Txs {
-		for _, utxo := range ftxos4Singletx.Utxos {
-			if common.Bytes2Hex(utxo.UtxoBasic.UtxoGlobalIndex.Txhash) == *txhash {
-				found = true
-				break
-			}
-		}
-		if found {
-			return nil
-		}
-	}
-
 	k1 := calcUTXOKey(*txhash, outindex)
 	val, err := ws.db.Get(k1)
 	if err != nil || val == nil {
+		// UTXO中没有
 		walletlog.Error("unsetUTXO get value for keys are nil", "calcUTXOKey", string(k1))
-		return types.ErrNotFound
+		err = types.ErrNotFound
+	}
+	if err != nil {
+		k1 = calcKey4FTXOsInTx(token, *addr, *txhash)
+		val, err := ws.db.Get(k1)
+		if err != nil || val == nil {
+			// UTXO中没有
+			walletlog.Error("unsetUTXO get value for keys are nil", "calcKey4FTXOsInTx", string(k1))
+			err = types.ErrNotFound
+		}
+	}
+	if err != nil {
+		k1 = calcRevertSendTxKey(token, *addr, *txhash)
+		val, err := ws.db.Get(k1)
+		if err != nil || val == nil {
+			// UTXO中没有
+			walletlog.Error("unsetUTXO get value for keys are nil", "calcRevertSendTxKey", string(k1))
+			err = types.ErrNotFound
+		}
+	}
+	if err != nil {
+		walletlog.Error("unsetUTXO ", "无法找到对应的缓存信息 txhash", *txhash)
+		return err
 	}
 	dbStore := new(types.PrivacyDBStore)
 	if err := types.Decode(val, dbStore); err != nil {
@@ -635,6 +642,7 @@ func (ws *Store) unsetUTXO(addr, txhash *string, outindex int, token string, new
 
 	}
 	newbatch.Delete(k2)
+
 	return nil
 }
 
@@ -1211,13 +1219,13 @@ func (ws *Store) logUTXOChange(txhashstr string, sender string, amount int64, de
 		Description: description,
 		Amount:      amount,
 		Txhash:      txhashstr,
-		Sender:		 sender,
+		Sender:      sender,
 	}
 
 	ws.db.Set(logkey, types.Encode(item))
 }
 
-func (ws *Store) savePrivacyTxChangeItem (item *types.PrivacyTxChangeItem)  {
+func (ws *Store) savePrivacyTxChangeItem(item *types.PrivacyTxChangeItem) {
 	logkey := calckPrivacyTxChangeLogKey()
 	ws.db.Set(logkey, types.Encode(item))
 }
