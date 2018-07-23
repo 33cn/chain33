@@ -215,7 +215,7 @@ func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, er
 	commitCount := len(stat.Details.Addrs)
 	most, _ := getMostCommit(stat)
 	if isCommitDone(stat, nodes, most) {
-		stat.Status = pt.ParacrossStatusDone
+		stat.Status = pt.ParacrossStatusCommitDone
 		receiptDone := makeDoneReceipt(a.fromaddr, commit, stat, int32(most), int32(commitCount), int32(len(nodes)))
 		receipt.KV = append(receipt.KV, receiptDone.KV...)
 		receipt.Logs = append(receipt.Logs, receiptDone.Logs...)
