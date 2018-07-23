@@ -90,7 +90,7 @@ func public2PrivacyFlag(cmd *cobra.Command) {
 	cmd.MarkFlagRequired("amount")
 
 	cmd.Flags().StringP("note", "n", "", "transfer note")
-	cmd.MarkFlagRequired("note")
+	cmd.Flags().Int64P("expire", "", int64(time.Hour), "transfer expire, default one hour")
 
 }
 
@@ -100,6 +100,7 @@ func public2Privacy(cmd *cobra.Command, args []string) {
 	pubkeypair, _ := cmd.Flags().GetString("pubkeypair")
 	amount, _ := cmd.Flags().GetFloat64("amount")
 	note, _ := cmd.Flags().GetString("note")
+	expire, _ := cmd.Flags().GetInt64("expire")
 
 	amountInt64 := int64(amount*types.InputPrecision) * types.Multiple1E4 //支持4位小数输入，多余的输入将被截断
 	params := types.ReqPub2Pri{
@@ -108,7 +109,7 @@ func public2Privacy(cmd *cobra.Command, args []string) {
 		Amount:     amountInt64,
 		Note:       note,
 		Tokenname:  types.BTY,
-		Expire:     int64(time.Hour),
+		Expire:     expire,
 	}
 
 	var res jsonrpc.ReplyHash
@@ -138,9 +139,8 @@ func privacy2PrivacyFlag(cmd *cobra.Command) {
 	cmd.MarkFlagRequired("amount")
 
 	cmd.Flags().StringP("note", "n", "", "transfer note")
-	cmd.MarkFlagRequired("note")
-
 	cmd.Flags().Int32P("mixcount", "m", defMixCount, "transfer note")
+	cmd.Flags().Int64P("expire", "", int64(time.Hour), "transfer expire, default one hour")
 }
 
 func privacy2Privacy(cmd *cobra.Command, args []string) {
@@ -150,6 +150,7 @@ func privacy2Privacy(cmd *cobra.Command, args []string) {
 	amount, _ := cmd.Flags().GetFloat64("amount")
 	mixcount, _ := cmd.Flags().GetInt32("mixcount")
 	note, _ := cmd.Flags().GetString("note")
+	expire, _ := cmd.Flags().GetInt64("expire")
 
 	amountInt64 := int64(amount*types.InputPrecision) * types.Multiple1E4 //支持4位小数输入，多余的输入将被截断
 	params := types.ReqPri2Pri{
@@ -159,7 +160,7 @@ func privacy2Privacy(cmd *cobra.Command, args []string) {
 		Mixin:      mixcount,
 		Note:       note,
 		Tokenname:  types.BTY,
-		Expire:     int64(time.Hour),
+		Expire:     expire,
 	}
 
 	var res jsonrpc.ReplyHash
@@ -189,9 +190,8 @@ func privacy2Publiclag(cmd *cobra.Command) {
 	cmd.MarkFlagRequired("amount")
 
 	cmd.Flags().StringP("note", "n", "", "transfer note")
-	cmd.MarkFlagRequired("note")
-
 	cmd.Flags().Int32P("mixcount", "m", defMixCount, "transfer note")
+	cmd.Flags().Int64P("expire", "", int64(time.Hour), "transfer expire, default one hour")
 
 }
 
@@ -202,6 +202,7 @@ func privacy2Public(cmd *cobra.Command, args []string) {
 	amount, _ := cmd.Flags().GetFloat64("amount")
 	mixcount, _ := cmd.Flags().GetInt32("mixcount")
 	note, _ := cmd.Flags().GetString("note")
+	expire, _ := cmd.Flags().GetInt64("expire")
 
 	amountInt64 := int64(amount*types.InputPrecision) * types.Multiple1E4 //支持4位小数输入，多余的输入将被截断
 	params := types.ReqPri2Pub{
@@ -211,7 +212,7 @@ func privacy2Public(cmd *cobra.Command, args []string) {
 		Note:      note,
 		Tokenname: types.BTY,
 		Mixin:     mixcount,
-		Expire:    int64(time.Hour),
+		Expire:    expire,
 	}
 
 	var res jsonrpc.ReplyHash
@@ -394,10 +395,9 @@ func createUTXOsFlag(cmd *cobra.Command) {
 	cmd.MarkFlagRequired("pubkeypair")
 	cmd.Flags().Float64P("amount", "a", 0, "amount")
 	cmd.MarkFlagRequired("amount")
-	cmd.Flags().Int32P("count", "c", 0, "mix count")
-	cmd.MarkFlagRequired("count")
+	cmd.Flags().Int32P("count", "c", 0, "mix count, default 0")
 	cmd.Flags().StringP("note", "n", "", "transfer note")
-	cmd.MarkFlagRequired("note")
+	cmd.Flags().Int64P("expire", "", int64(time.Hour), "transfer expire, default one hour")
 }
 
 func createUTXOs(cmd *cobra.Command, args []string) {
@@ -408,6 +408,7 @@ func createUTXOs(cmd *cobra.Command, args []string) {
 	count, _ := cmd.Flags().GetInt32("count")
 	amount, _ := cmd.Flags().GetFloat64("amount")
 	amountInt64 := int64(amount*types.InputPrecision) * types.Multiple1E4
+	expire, _ := cmd.Flags().GetInt64("expire")
 
 	params := &types.ReqCreateUTXOs{
 		Tokenname:  types.BTY,
@@ -416,7 +417,7 @@ func createUTXOs(cmd *cobra.Command, args []string) {
 		Amount:     amountInt64,
 		Count:      count,
 		Note:       note,
-		Expire:     int64(time.Hour),
+		Expire:     expire,
 	}
 
 	var res jsonrpc.ReplyHash
