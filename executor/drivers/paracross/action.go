@@ -1,9 +1,9 @@
 package paracross
 
-import "gitlab.33.cn/chain33/chain33/account"
-import dbm "gitlab.33.cn/chain33/chain33/common/db"
-import "gitlab.33.cn/chain33/chain33/types"
 import (
+	"gitlab.33.cn/chain33/chain33/account"
+	dbm "gitlab.33.cn/chain33/chain33/common/db"
+	"gitlab.33.cn/chain33/chain33/types"
 	pt "gitlab.33.cn/chain33/chain33/types/executor/paracross"
 )
 
