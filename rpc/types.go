@@ -364,28 +364,28 @@ type UTXOChangeLogItems struct {
 }
 
 type UTXOLogInfo struct {
-	Amount string              `json:"amount"`
+	Amount string             `json:"amount"`
 	Utxogl []*UTXOGlobalIndex `json:"utxogl"`
 }
 
 type PrivacyBalanceInfo struct {
 	Addr       string `json:"addr"`
-	Balance    string  `json:"balance"`
-	UtxoAmount string  `json:"utxoAmount"`
-	FtxoAmount string  `json:"ftxoAmount"`
+	Balance    string `json:"balance"`
+	UtxoAmount string `json:"utxoAmount"`
+	FtxoAmount string `json:"ftxoAmount"`
 }
 
 type PrivacyTxChangeItem struct {
-	Txhash      string         `json:"txhash"`
-	ActionType  string         `json:"actionType"`
-	Amount      string          `json:"amount"`
-	From        string         `json:"from"`
-	To          string         `json:"to"`
-	Note        string         `json:"note"`
-	ChangeTime  string          `json:"changeTime"`
+	Txhash      string                `json:"txhash"`
+	ActionType  string                `json:"actionType"`
+	Amount      string                `json:"amount"`
+	From        string                `json:"from"`
+	To          string                `json:"to"`
+	Note        string                `json:"note"`
+	ChangeTime  string                `json:"changeTime"`
 	BalanceInfo []*PrivacyBalanceInfo `json:"balanceInfo"`
-	InputUTXOs  []*UTXOLogInfo `json:"inputUTXOs"`
-	OutputUTXOs []*UTXOLogInfo `json:"outputUTXOs"`
+	InputUTXOs  []*UTXOLogInfo        `json:"inputUTXOs"`
+	OutputUTXOs []*UTXOLogInfo        `json:"outputUTXOs"`
 }
 
 type PrivacyTxChangeItems struct {
