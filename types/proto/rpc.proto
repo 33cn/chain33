@@ -150,4 +150,6 @@ service grpcservice {
 
     //签名交易
     rpc SignRawTx(ReqSignRawTx) returns (ReplySignRawTx) {}
+
+    rpc CreateNoBalanceTransaction(NoBalanceTx) returns (ReplySignRawTx) {}
 }

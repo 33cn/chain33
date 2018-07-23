@@ -3,8 +3,7 @@ package crypto
 import (
 	"crypto/sha256"
 
-	sm3 "github.com/lotus-king/SM3"
-
+	"github.com/tjfoc/gmsm/sm3"
 	"golang.org/x/crypto/ripemd160"
 )
 

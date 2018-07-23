@@ -5,11 +5,9 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"encoding/asn1"
-	"errors"
 	"fmt"
 	"math/big"
 
-	"gitlab.33.cn/chain33/chain33/authority/tools/cryptogen/factory/utils"
 	auth "gitlab.33.cn/chain33/chain33/common/crypto/ecdsa"
 )
 
@@ -25,10 +23,7 @@ func signECDSA(k *ecdsa.PrivateKey, digest []byte, opts SignerOpts) (signature [
 		return nil, err
 	}
 
-	s, _, err = auth.ToLowS(&k.PublicKey, s)
-	if err != nil {
-		return nil, err
-	}
+	s = auth.ToLowS(&k.PublicKey, s)
 
 	return MarshalECDSASignature(r, s)
 }
@@ -52,65 +47,4 @@ func (kg *ecdsaKeyGenerator) KeyGen(opts int) (k Key, err error) {
 	}
 
 	return &ecdsaPrivateKey{privKey}, nil
-}
-
-type ecdsaPKIXPublicKeyImportOptsKeyImporter struct{}
-
-func (*ecdsaPKIXPublicKeyImportOptsKeyImporter) KeyImport(raw interface{}, opts int) (k Key, err error) {
-	der, ok := raw.([]byte)
-	if !ok {
-		return nil, errors.New("Invalid raw material. Expected byte array.")
-	}
-
-	if len(der) == 0 {
-		return nil, errors.New("Invalid raw. It must not be nil.")
-	}
-
-	lowLevelKey, err := utils.DERToPublicKey(der)
-	if err != nil {
-		return nil, fmt.Errorf("Failed converting PKIX to ECDSA public key [%s]", err)
-	}
-
-	ecdsaPK, ok := lowLevelKey.(*ecdsa.PublicKey)
-	if !ok {
-		return nil, errors.New("Failed casting to ECDSA public key. Invalid raw material.")
-	}
-
-	return &ecdsaPublicKey{ecdsaPK}, nil
-}
-
-type ecdsaPrivateKeyImportOptsKeyImporter struct{}
-
-func (*ecdsaPrivateKeyImportOptsKeyImporter) KeyImport(raw interface{}, opts int) (k Key, err error) {
-	der, ok := raw.([]byte)
-	if !ok {
-		return nil, errors.New("[ECDSADERPrivateKeyImportOpts] Invalid raw material. Expected byte array.")
-	}
-
-	if len(der) == 0 {
-		return nil, errors.New("[ECDSADERPrivateKeyImportOpts] Invalid raw. It must not be nil.")
-	}
-
-	lowLevelKey, err := utils.DERToPrivateKey(der)
-	if err != nil {
-		return nil, fmt.Errorf("Failed converting PKIX to ECDSA public key [%s]", err)
-	}
-
-	ecdsaSK, ok := lowLevelKey.(*ecdsa.PrivateKey)
-	if !ok {
-		return nil, errors.New("Failed casting to ECDSA private key. Invalid raw material.")
-	}
-
-	return &ecdsaPrivateKey{ecdsaSK}, nil
-}
-
-type ecdsaGoPublicKeyImportOptsKeyImporter struct{}
-
-func (*ecdsaGoPublicKeyImportOptsKeyImporter) KeyImport(raw interface{}, opts int) (k Key, err error) {
-	lowLevelKey, ok := raw.(*ecdsa.PublicKey)
-	if !ok {
-		return nil, errors.New("Invalid raw material. Expected *ecdsa.PublicKey.")
-	}
-
-	return &ecdsaPublicKey{lowLevelKey}, nil
 }

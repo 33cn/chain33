@@ -35,6 +35,7 @@ func TestJSONClient_Call(t *testing.T) {
 	rpcCfg = new(types.Rpc)
 	rpcCfg.GrpcBindAddr = "127.0.0.1:8101"
 	rpcCfg.JrpcBindAddr = "127.0.0.1:8200"
+	rpcCfg.MainnetJrpcAddr = rpcCfg.JrpcBindAddr
 	rpcCfg.Whitelist = []string{"127.0.0.1", "0.0.0.0"}
 	rpcCfg.JrpcFuncWhitelist = []string{"*"}
 	rpcCfg.GrpcFuncWhitelist = []string{"*"}
@@ -129,6 +130,7 @@ func TestGrpc_Call(t *testing.T) {
 	rpcCfg = new(types.Rpc)
 	rpcCfg.GrpcBindAddr = "127.0.0.1:8101"
 	rpcCfg.JrpcBindAddr = "127.0.0.1:8200"
+	rpcCfg.MainnetJrpcAddr = rpcCfg.JrpcBindAddr
 	rpcCfg.Whitelist = []string{"127.0.0.1", "0.0.0.0"}
 	rpcCfg.JrpcFuncWhitelist = []string{"*"}
 	rpcCfg.GrpcFuncWhitelist = []string{"*"}

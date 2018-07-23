@@ -8,12 +8,13 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-const name = "evm"
+var name string
 
 //var tlog = log.New("module", name)
 
 func Init() {
 	// init executor type
+	name = types.ExecName("evm")
 	types.RegistorExecutor(name, &EvmType{})
 
 	// init log
