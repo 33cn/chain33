@@ -912,7 +912,7 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 	}
 	var pl interface{}
 	unkownPl := make(map[string]interface{})
-	if "coins" == string(tx.Execer) {
+	if types.ExecName(types.CoinsX) == string(tx.Execer) {
 		var action types.CoinsAction
 		err := types.Decode(tx.GetPayload(), &action)
 		if err != nil {
@@ -922,7 +922,7 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		} else {
 			pl = &action
 		}
-	} else if "ticket" == string(tx.Execer) {
+	} else if types.ExecName(types.TicketX) == string(tx.Execer) {
 		var action types.TicketAction
 		err := types.Decode(tx.GetPayload(), &action)
 		if err != nil {
@@ -931,7 +931,7 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		} else {
 			pl = &action
 		}
-	} else if "hashlock" == string(tx.Execer) {
+	} else if types.ExecName(types.HashlockX) == string(tx.Execer) {
 		var action types.HashlockAction
 		err := types.Decode(tx.GetPayload(), &action)
 		if err != nil {
@@ -940,7 +940,7 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		} else {
 			pl = &action
 		}
-	} else if "token" == string(tx.Execer) {
+	} else if types.ExecName(types.TokenX) == string(tx.Execer) {
 		var action types.TokenAction
 		err := types.Decode(tx.GetPayload(), &action)
 		if err != nil {
@@ -949,7 +949,7 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		} else {
 			pl = &action
 		}
-	} else if "trade" == string(tx.Execer) {
+	} else if types.ExecName(types.TradeX) == string(tx.Execer) {
 		var action types.Trade
 		err := types.Decode(tx.GetPayload(), &action)
 		if err != nil {
@@ -959,14 +959,14 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 			pl = &action
 		}
 		pl = &action
-	} else if types.PrivacyX == string(tx.Execer) {
+	} else if types.ExecName(types.PrivacyX) == string(tx.Execer) {
 		var action types.PrivacyAction
 		err := types.Decode(tx.GetPayload(), &action)
 		if err != nil {
 			return nil, err
 		}
 		pl = &action
-	} else if "evm" == string(tx.Execer) {
+	} else if types.ExecName(types.EvmX) == string(tx.Execer) {
 		var action types.EVMContractAction
 		err := types.Decode(tx.GetPayload(), &action)
 		if err != nil {
