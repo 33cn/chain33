@@ -19,7 +19,7 @@ const (
 // status
 const (
 	ParacrossStatusCommiting = iota
-	ParacrossStatusDone
+	ParacrossStatusCommitDone
 )
 
 const name = "paracross"
