@@ -10,13 +10,13 @@ import (
 
 	log "github.com/inconshreveable/log15"
 	//"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/util"
 	"google.golang.org/grpc"
-	"gitlab.33.cn/chain33/chain33/common"
 )
 
 const (
@@ -409,9 +409,9 @@ func (client *ParaClient) createBlock(lastBlock *types.Block, txs []*types.Trans
 	err := client.WriteBlock(lastBlock.StateHash, &newblock, seq)
 	plog.Debug("para create new Block", "newblock.ParentHash", common.ToHex(newblock.ParentHash),
 		"newblock.Height", newblock.Height,
-			"newblock.TxHash", common.ToHex(newblock.TxHash),
-				"newblock.BlockTime", newblock.BlockTime,
-					"sequence", seq)
+		"newblock.TxHash", common.ToHex(newblock.TxHash),
+		"newblock.BlockTime", newblock.BlockTime,
+		"sequence", seq)
 	return err
 }
 
