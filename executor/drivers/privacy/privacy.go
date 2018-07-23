@@ -58,6 +58,7 @@ func (p *privacy) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 		return nil, err
 	}
 	privacylog.Info("Privacy exec", "action type", action.Ty)
+	privacylog.Info("隐私交易", "Exec 执行 hash ", common.Bytes2Hex(tx.Hash()))
 	if action.Ty == types.ActionPublic2Privacy && action.GetPublic2Privacy() != nil {
 		public2Privacy := action.GetPublic2Privacy()
 		if types.BTY == public2Privacy.Tokenname {
@@ -203,7 +204,7 @@ func (p *privacy) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, i
 	}
 
 	localDB := p.GetLocalDB()
-
+	privacylog.Info("隐私交易", "ExecLocal 执行 hash ", common.Bytes2Hex(tx.Hash()))
 	for i := 0; i < len(receipt.Logs); i++ {
 		item := receipt.Logs[i]
 		if item.Ty == types.TyLogPrivacyOutput {
@@ -555,16 +556,19 @@ func (p *privacy) CheckTx(tx *types.Transaction, index int) error {
 		token = action.GetPrivacy2Public().Tokenname
 		amount = action.GetPrivacy2Public().Amount
 	}
+	privacylog.Info("隐私交易 CheckTx", "进入交易检查 txhash ", common.Bytes2Hex(tx.Hash()))
 
 	if tx.Fee < types.PrivacyTxFee {
 		privacylog.Error("Privacy CheckTx failed due to ErrPrivacyTxFeeNotEnough", "fee set:", tx.Fee,
 			"required:", types.PrivacyTxFee)
+		privacylog.Error("隐私交易 CheckTx", "进入交易检查 手续费不够 txhash ", common.Bytes2Hex(tx.Hash()))
 		return types.ErrPrivacyTxFeeNotEnough
 	}
 
 	var ringSignature types.RingSignature
 	if err := types.Decode(tx.Signature.Signature, &ringSignature); err != nil {
 		privacylog.Error("Privacy exec failed to decode ring signature")
+		privacylog.Error("隐私交易 CheckTx", "进入交易检查 签名获取失败 txhash ", common.Bytes2Hex(tx.Hash()))
 		return err
 	}
 
@@ -591,6 +595,7 @@ func (p *privacy) CheckTx(tx *types.Transaction, index int) error {
 		}
 
 		privacylog.Error("exec UTXO double spend check failed")
+		privacylog.Error("隐私交易 CheckTx", "进入交易检查 UTXO有效性检查失败 txhash ", common.Bytes2Hex(tx.Hash()))
 		return types.ErrDoubeSpendOccur
 	}
 
@@ -600,6 +605,7 @@ func (p *privacy) CheckTx(tx *types.Transaction, index int) error {
 			privacylog.Error("Wrong pubkey", "errIndex", errIndex)
 		}
 		privacylog.Error("exec UTXO double spend check failed")
+		privacylog.Error("隐私交易 CheckTx", "进入交易检查 Publick Key 有效性检查失败 txhash ", common.Bytes2Hex(tx.Hash()))
 		return types.ErrPubkeysOfUTXO
 	}
 
@@ -617,9 +623,11 @@ func (p *privacy) CheckTx(tx *types.Transaction, index int) error {
 	if feeAmount < types.PrivacyTxFee {
 		privacylog.Error("Privacy CheckTx failed due to ErrPrivacyTxFeeNotEnough", "fee available:", feeAmount,
 			"required:", types.PrivacyTxFee)
+		privacylog.Error("隐私交易 CheckTx", "进入交易检查 费用不足 txhash ", common.Bytes2Hex(tx.Hash()))
 		return types.ErrPrivacyTxFeeNotEnough
 	}
 
+	privacylog.Error("隐私交易 CheckTx", "进入交易检查 检查通过 txhash ", common.Bytes2Hex(tx.Hash()))
 	return nil
 }
 

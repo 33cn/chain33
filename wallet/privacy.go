@@ -243,6 +243,7 @@ func (wallet *Wallet) transPub2PriV2(priv crypto.PrivKey, reqPub2Pri *types.ReqP
 	hash.Hash = tx.Hash()
 
 	wallet.addPrivacyTxChangeLog(tx, "transPub2PriV2 创建交易")
+	walletlog.Info("隐私交易 transPub2PriV2", "创建交易 hash", common.Bytes2Hex(hash.Hash))
 	return &hash, nil
 }
 
@@ -456,6 +457,7 @@ func (wallet *Wallet) transPri2PriV2(privacykeyParirs *privacy.Privacy, reqPri2P
 	wallet.saveFTXOInfo(tx, reqPri2Pri.Tokenname, reqPri2Pri.Sender, common.Bytes2Hex(hash.Hash), selectedUtxo, "UTXO To FTXO saveFTXOInfo Private To Private")
 
 	wallet.addPrivacyTxChangeLog(tx, "transPri2PriV2 创建交易")
+	walletlog.Info("隐私交易 transPri2PriV2", "创建交易 hash", common.Bytes2Hex(hash.Hash))
 	return &hash, nil
 }
 
@@ -527,6 +529,7 @@ func (wallet *Wallet) transPri2PubV2(privacykeyParirs *privacy.Privacy, reqPri2P
 
 	wallet.saveFTXOInfo(tx, reqPri2Pub.Tokenname, reqPri2Pub.Sender, common.Bytes2Hex(hash.Hash), selectedUtxo, "UTXO To FTXO saveFTXOInfo Private To Public")
 	wallet.addPrivacyTxChangeLog(tx, "transPri2PubV2 创建交易")
+	walletlog.Info("隐私交易 transPri2PubV2", "创建交易 hash", common.Bytes2Hex(hash.Hash))
 	return &hash, nil
 }
 
@@ -1165,6 +1168,7 @@ func (wallet *Wallet) procInvalidTxOnTimer(dbbatch db.Batch) error {
 					_, err = wallet.api.QueryTx(&types.ReqHash{Hash: txhash})
 					return err == nil
 				})
+			walletlog.Info("隐私交易 procInvalidTxOnTimer", "FTXO超期 moveFTXO2UTXO txhash ", txhash)
 		}
 	}
 	return nil
@@ -1212,8 +1216,8 @@ func (wallet *Wallet) procDeleteCacheTransaction(req *types.ReqCreateCacheTxKey)
 		dbbatch,
 		"FTXO To UTXO 缓存交易被删除",
 		func(txhash []byte) bool {
-			_, err := wallet.api.QueryTx(&types.ReqHash{Hash:txhash})
-			return err==nil
+			_, err := wallet.api.QueryTx(&types.ReqHash{Hash: txhash})
+			return err == nil
 		})
 	dbbatch.Write()
 
@@ -1226,7 +1230,6 @@ func (w *Wallet) procPrivacyAccountInfo(req *types.ReqPPrivacyAccount) (*types.R
 
 	return w.getPrivacyAccountInfo(req)
 }
-
 
 func (w *Wallet) getPrivacyAccountInfo(req *types.ReqPPrivacyAccount) (*types.ReplyPrivacyAccount, error) {
 	addr := req.GetAddr()
@@ -1519,9 +1522,9 @@ func (wallet *Wallet) onDelPrivacyTxFromBlock(tx *types.Transaction, index int32
 
 func (wallet *Wallet) calcPrivacyBalace(addr, token string) (uamout int64, famout int64) {
 	painfo, _ := wallet.getPrivacyAccountInfo(&types.ReqPPrivacyAccount{
-		Addr:addr,
-		Token:token,
-		Displaymode:0,
+		Addr:        addr,
+		Token:       token,
+		Displaymode: 0,
 	})
 	for _, utxo := range painfo.Utxos.Utxos {
 		uamout += utxo.Amount
@@ -1533,10 +1536,10 @@ func (wallet *Wallet) calcPrivacyBalace(addr, token string) (uamout int64, famou
 
 }
 
-func (wallet *Wallet) addPrivacyTxChangeLog (tx *types.Transaction, note string)  {
+func (wallet *Wallet) addPrivacyTxChangeLog(tx *types.Transaction, note string) {
 	logItem := new(types.PrivacyTxChangeItem)
 	action := new(types.PrivacyAction)
-	if err:=types.Decode(tx.Payload, action); err!=nil {
+	if err := types.Decode(tx.Payload, action); err != nil {
 		return
 	}
 	txhashbt := tx.Hash()
