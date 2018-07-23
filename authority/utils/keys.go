@@ -9,9 +9,10 @@ import (
 	"encoding/pem"
 	"math/big"
 
+	"encoding/asn1"
+
 	"github.com/pkg/errors"
 	"github.com/tjfoc/gmsm/sm2"
-	"encoding/asn1"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -64,7 +65,7 @@ func DecodeCertFromSignature(signByte []byte) ([]byte, []byte, error) {
 	var certSignature crypto.CertSignature
 	_, err := asn1.Unmarshal(signByte, &certSignature)
 	if err != nil {
-		return nil,nil,err
+		return nil, nil, err
 	}
 
 	return certSignature.Cert, certSignature.Signature, nil
