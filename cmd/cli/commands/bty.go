@@ -7,9 +7,14 @@ import (
 	"io"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/types"
+)
+
+const (
+	defaultPrivacyMixCount = 16
 )
 
 func BTYCmd() *cobra.Command {
@@ -313,6 +318,7 @@ func createPub2PrivTxFlags(cmd *cobra.Command) {
 
 	cmd.Flags().StringP("tokenname", "", "BTY", "token name")
 	cmd.Flags().StringP("note", "n", "", "note for transaction")
+	cmd.Flags().Int64P("expire", "", int64(time.Hour), "transfer expire, default one hour")
 }
 
 func createPub2PrivTx(cmd *cobra.Command, args []string) {
@@ -321,6 +327,7 @@ func createPub2PrivTx(cmd *cobra.Command, args []string) {
 	amount := GetAmountValue(cmd, "amount")
 	tokenname, _ := cmd.Flags().GetString("tokenname")
 	note, _ := cmd.Flags().GetString("note")
+	expire, _ := cmd.Flags().GetInt64("expire")
 
 	params := types.ReqCreateTransaction{
 		Tokenname:  tokenname,
@@ -328,6 +335,7 @@ func createPub2PrivTx(cmd *cobra.Command, args []string) {
 		Amount:     amount,
 		Note:       note,
 		Pubkeypair: pubkeypair,
+		Expire:     expire,
 	}
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateTrasaction", params, nil)
 	ctx.RunWithoutMarshal()
@@ -353,6 +361,7 @@ func createPriv2PrivTxFlags(cmd *cobra.Command) {
 
 	cmd.Flags().StringP("tokenname", "t", "BTY", "token name")
 	cmd.Flags().StringP("note", "n", "", "note for transaction")
+	cmd.Flags().Int64P("expire", "", int64(time.Hour), "transfer expire, default one hour")
 }
 
 func createPriv2PrivTx(cmd *cobra.Command, args []string) {
@@ -362,6 +371,7 @@ func createPriv2PrivTx(cmd *cobra.Command, args []string) {
 	tokenname, _ := cmd.Flags().GetString("tokenname")
 	note, _ := cmd.Flags().GetString("note")
 	sender, _ := cmd.Flags().GetString("sender")
+	expire, _ := cmd.Flags().GetInt64("expire")
 
 	params := types.ReqCreateTransaction{
 		Tokenname:  tokenname,
@@ -370,7 +380,8 @@ func createPriv2PrivTx(cmd *cobra.Command, args []string) {
 		Note:       note,
 		Pubkeypair: pubkeypair,
 		From:       sender,
-		Mixcount:   16,
+		Mixcount:   defaultPrivacyMixCount,
+		Expire:     expire,
 	}
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateTrasaction", params, nil)
 	ctx.RunWithoutMarshal()
@@ -396,6 +407,7 @@ func createPriv2PubTxFlags(cmd *cobra.Command) {
 
 	cmd.Flags().StringP("tokenname", "t", "BTY", "token name")
 	cmd.Flags().StringP("note", "n", "", "note for transaction")
+	cmd.Flags().Int64P("expire", "", int64(time.Hour), "transfer expire, default one hour")
 }
 
 func createPriv2PubTx(cmd *cobra.Command, args []string) {
@@ -405,6 +417,7 @@ func createPriv2PubTx(cmd *cobra.Command, args []string) {
 	from, _ := cmd.Flags().GetString("from")
 	to, _ := cmd.Flags().GetString("to")
 	note, _ := cmd.Flags().GetString("note")
+	expire, _ := cmd.Flags().GetInt64("expire")
 
 	params := types.ReqCreateTransaction{
 		Tokenname: tokenname,
@@ -413,7 +426,8 @@ func createPriv2PubTx(cmd *cobra.Command, args []string) {
 		Note:      note,
 		From:      from,
 		To:        to,
-		Mixcount:  16,
+		Mixcount:  defaultPrivacyMixCount,
+		Expire:    expire,
 	}
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateTrasaction", params, nil)
 	ctx.RunWithoutMarshal()

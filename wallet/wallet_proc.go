@@ -1010,7 +1010,7 @@ func (wallet *Wallet) AddDelPrivacyTxsFromBlock(tx *types.Transaction, index int
 	walletlog.Debug("PrivacyTrading AddDelPrivacyTxsFromBlock", "Enter AddDelPrivacyTxsFromBlock txhash", txhashstr)
 	defer walletlog.Debug("PrivacyTrading AddDelPrivacyTxsFromBlock", "Leave AddDelPrivacyTxsFromBlock txhash", txhashstr)
 
-	amount, err := tx.Amount()
+	_, err := tx.Amount()
 	if err != nil {
 		walletlog.Error("PrivacyTrading AddDelPrivacyTxsFromBlock", "txhash", txhashstr, "tx.Amount() error", err)
 		return
@@ -1153,7 +1153,12 @@ func (wallet *Wallet) AddDelPrivacyTxsFromBlock(tx *types.Transaction, index int
 					} else if types.ExecOk != txExecRes && types.ActionPublic2Privacy != privateAction.Ty {
 						//如果执行失败
 						walletlog.Debug("PrivacyTrading AddDelPrivacyTxsFromBlock", "txhash", txhashstr, "addDelType", addDelType, "moveFTXO2UTXO, key", string(keys[i]), "txExecRes", txExecRes)
-						wallet.walletStore.moveFTXO2UTXO(keys[i], newbatch)
+						wallet.walletStore.moveFTXO2UTXO(keys[i], newbatch,
+							func(txhash []byte) bool {
+								// do not add to UTXO list if transaction is not existed.
+								_, err := wallet.api.QueryTx(&types.ReqHash{Hash: txhash})
+								return err == nil
+							})
 					}
 					//该交易正常执行完毕，删除对其的关注
 					param := &buildStoreWalletTxDetailParam{

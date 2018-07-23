@@ -630,8 +630,10 @@ func (ws *Store) moveUTXO2FTXO(tx *types.Transaction, token, sender, txhash stri
 	newbatch.Write()
 }
 
+type fnCheckFTXOValid func(txhash []byte) bool
+
 //将FTXO重置为UTXO
-func (ws *Store) moveFTXO2UTXO(key1 []byte, newbatch dbm.Batch) {
+func (ws *Store) moveFTXO2UTXO(key1 []byte, newbatch dbm.Batch, fn fnCheckFTXOValid) {
 	//设置ftxo的key，使其能够方便地获取到对应的交易花费的utxo
 	value1, err := ws.db.Get(key1)
 	if err != nil {
