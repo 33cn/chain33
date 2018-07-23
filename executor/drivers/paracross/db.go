@@ -35,7 +35,7 @@ func getTitleHeight(db dbm.KV, key []byte) (*types.ParacrossHeightStatus, error)
 	return &heightStatus, err
 }
 
-func saveTitleHeight(db dbm.KV, key []byte, heightStatus types.Message/* heightStatus *types.ParacrossHeightStatus*/) error {
+func saveTitleHeight(db dbm.KV, key []byte, heightStatus types.Message /* heightStatus *types.ParacrossHeightStatus*/) error {
 	// use as a types.Message
 	val := types.Encode(heightStatus)
 	return db.Set(key, val)
