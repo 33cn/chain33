@@ -1089,6 +1089,7 @@ func (cs *ConsensusState) enterCommit(height int64, commitRound int) {
 	// Move them over to ProposalBlock if they match the commit hash,
 	// otherwise they'll be cleared in updateToState.
 	if cs.LockedBlock.HashesTo(blockID.Hash) {
+		tendermintlog.Info("Commit is for locked block. Set ProposalBlock=LockedBlock", "blockHash", blockID.Hash)
 		//cs.roundstateRWLock.Lock()
 		cs.ProposalBlock = cs.LockedBlock
 		//cs.roundstateRWLock.Unlock()
@@ -1103,13 +1104,17 @@ func (cs *ConsensusState) tryFinalizeCommit(height int64) {
 
 	blockID, ok := cs.Votes.Precommits(cs.CommitRound).TwoThirdsMajority()
 	if !ok || len(blockID.Hash) == 0 {
-		tendermintlog.Error("Attempt to finalize failed. There was no +2/3 majority, or +2/3 was for <nil>.", "height", height, "blockid", blockID, "commitround", cs.CommitRound)
+		tendermintlog.Error("Attempt to finalize failed. There was no +2/3 majority, or +2/3 was for <nil>.")
+		tendermintlog.Info(fmt.Sprintf("Continue consensus. Current: %v/%v/%v", cs.Height, cs.CommitRound, cs.Step), "cost", time.Since(cs.begCons))
+		cs.enterNewRound(cs.Height, cs.CommitRound+1)
 		return
 	}
 	if !cs.ProposalBlock.HashesTo(blockID.Hash) {
 		// TODO: this happens every time if we're not a validator (ugly logs)
 		// TODO: ^^ wait, why does it matter that we're a validator?
-		tendermintlog.Info("Attempt to finalize failed. We don't have the commit block.", "height", height, "proposal-block", cs.ProposalBlock.Hash(), "commit-block", blockID.Hash)
+		tendermintlog.Error("Attempt to finalize failed. We don't have the commit block.", "proposal-block", cs.ProposalBlock.Hash(), "commit-block", blockID.Hash)
+		tendermintlog.Info(fmt.Sprintf("Continue consensus. Current: %v/%v/%v", cs.Height, cs.CommitRound, cs.Step), "cost", time.Since(cs.begCons))
+		cs.enterNewRound(cs.Height, cs.CommitRound+1)
 		return
 	}
 
@@ -1181,7 +1186,7 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 	newState := SaveState(stateCopy)
 
 	//tendermintlog.Info("blockid info", "seen commit", seenCommit.StringIndented("seen"),"last commit", lastCommit.StringIndented("last"), "state", stateCopy)
-	tendermintlog.Info(fmt.Sprintf("Save consensus state. Current: %v/%v/%v", cs.Height, cs.Round, cs.Step), "cost", time.Since(cs.begCons))
+	tendermintlog.Info(fmt.Sprintf("Save consensus state. Current: %v/%v/%v", cs.Height, cs.CommitRound, cs.Step), "cost", time.Since(cs.begCons))
 	//hg 20180302
 	if cs.isProposer() {
 		tx0 := ttypes.CreateBlockInfoTx(cs.blockStore.GetPubkey(), newLastCommit, newSeenCommit, newState)
@@ -1192,8 +1197,9 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 			cs.LockedBlock = nil
 			tendermintlog.Info(fmt.Sprintf("Proposer continue consensus. Current: %v/%v/%v", cs.Height, cs.Round, cs.Step), "cost", time.Since(cs.begCons))
 			cs.enterNewRound(cs.Height, cs.CommitRound+1)
+			return
 		}
-		tendermintlog.Info(fmt.Sprintf("Proposer reach consensus. Current: %v/%v/%v", cs.Height, cs.Round, cs.Step), "cost", time.Since(cs.begCons))
+		tendermintlog.Info(fmt.Sprintf("Proposer reach consensus. Current: %v/%v/%v", cs.Height, cs.CommitRound, cs.Step), "tx-lens", len(newTxs), "cost", time.Since(cs.begCons))
 
 		proposal := ttypes.Proposal{}
 		proposal = *cs.Proposal
@@ -1207,10 +1213,11 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 		if !reachCons {
 			cs.LockedRound = 0
 			cs.LockedBlock = nil
-			tendermintlog.Info(fmt.Sprintf("Not-Proposer reach consensus. Current: %v/%v/%v", cs.Height, cs.Round, cs.Step), "cost", time.Since(cs.begCons))
+			tendermintlog.Info(fmt.Sprintf("Not-Proposer continue consensus. Current: %v/%v/%v", cs.Height, cs.CommitRound, cs.Step), "cost", time.Since(cs.begCons))
 			cs.enterNewRound(cs.Height, cs.CommitRound+1)
+			return
 		}
-		tendermintlog.Info(fmt.Sprintf("Not-Proposer reach consensus. Current: %v/%v/%v", cs.Height, cs.Round, cs.Step), "cost", time.Since(cs.begCons))
+		tendermintlog.Info(fmt.Sprintf("Not-Proposer reach consensus. Current: %v/%v/%v", cs.Height, cs.CommitRound, cs.Step), "tx-lens", len(newblock.Txs)+1, "cost", time.Since(cs.begCons))
 	}
 
 	//fail.Fail() // XXX
@@ -1242,6 +1249,7 @@ func (cs *ConsensusState) defaultSetProposal(proposalTrans *ttypes.ProposalTrans
 		tendermintlog.Error("defaultSetProposal:", "msg", "ProposalTransToProposal failed", "err", err)
 		return err
 	}
+	tendermintlog.Info(fmt.Sprintf("Received proposal. Current: %v/%v/%v", cs.Height, cs.Round, cs.Step), "proposal-height", proposal.Height, "proposal-round", proposal.Round)
 
 	// Already have one
 	// TODO: possibly catch double proposals
@@ -1287,7 +1295,8 @@ func (cs *ConsensusState) defaultSetProposal(proposalTrans *ttypes.ProposalTrans
 	cs.ProposalBlock = &block
 
 	// NOTE: it's possible to receive complete proposal blocks for future rounds without having the proposal
-	tendermintlog.Error("Received complete proposal block", "height", cs.ProposalBlock.Height, "round", cs.Round, "hash", fmt.Sprintf("%X", cs.ProposalBlock.Hash()), "precommitOK", cs.precommitOK)
+	tendermintlog.Error(fmt.Sprintf("Set proposal block. Current: %v/%v/%v", cs.Height, cs.Round, cs.Step), "height", cs.ProposalBlock.Height,
+		"hash", fmt.Sprintf("%X", cs.ProposalBlock.Hash()))
 
 	if cs.isProposer() {
 		proposalTrans := ttypes.ProposalToProposalTrans(cs.Proposal)

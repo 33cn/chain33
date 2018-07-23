@@ -354,11 +354,11 @@ func (client *TendermintClient) CheckCommit(height int64) (bool, error) {
 		retry++
 		time.Sleep(100 * time.Millisecond)
 		if retry >= 600 {
-			tendermintlog.Error("Sync block fail", "height", height)
+			tendermintlog.Error("Sync block fail", "height", height, "CurrentHeight", newHeight)
 		}
 	}
 	if client.IsCaughtUp() {
-		tendermintlog.Info("Tendermint consensus is not reached at", "height", height)
+		tendermintlog.Info("Tendermint consensus not reached at", "height", height)
 		return false, nil
 	}
 	return false, errors.New("sync block fail")
