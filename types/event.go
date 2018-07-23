@@ -177,10 +177,6 @@ const (
 	EventReplyNotifySendTxResult
 	EventPrivacyTransactionList
 	EventReplyPrivacyTransactionList
-	EventQueryUTXOChangeLog
-	EventReplyQueryUTXOChangeLog
-	EventQueryPrivacyTxChangeLog
-	EventReplyQueryPrivacyTxChangeLog
 )
 
 var eventName = map[int]string{
@@ -336,8 +332,4 @@ var eventName = map[int]string{
 	EventReplyNotifySendTxResult:      "EventReplyNotifySendTxResult",
 	EventPrivacyTransactionList:       "EventPrivacyTransactionList",
 	EventReplyPrivacyTransactionList:  "EventReplyPrivacyTransactionList",
-	EventQueryUTXOChangeLog:           "EventQueryUTXOChangeLog",
-	EventReplyQueryUTXOChangeLog:      "EventReplyQueryUTXOChangeLog",
-	EventQueryPrivacyTxChangeLog:      "EventQueryPrivacyTxChangeLog",
-	EventReplyQueryPrivacyTxChangeLog: "EventReplyQueryPrivacyTxChangeLog",
 }
