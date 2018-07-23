@@ -411,6 +411,12 @@ func (wallet *Wallet) ProcImportPrivKey(PrivKey *types.ReqWalletImportPrivKey) (
 	wallet.wg.Add(1)
 	go wallet.ReqTxDetailByAddr(addr)
 
+	if utxoFlagNoScan == atomic.LoadInt32(&wallet.rescanUTXOflag) {
+		atomic.StoreInt32(&wallet.rescanUTXOflag, utxoFlagScaning)
+	} else {
+		atomic.StoreInt32(&wallet.rescanUTXOflag, utxoFlagReScan)
+	}
+
 	return &walletaccount, nil
 }
 
