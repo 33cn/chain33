@@ -32,7 +32,7 @@ func Init() {
 
 	// init log
 	types.RegistorLog(types.TyLogParacrossCommit, &ParacrossCommitLog{})
-	types.RegistorLog(types.TyLogParacrossDode, &ParacrossDoneLog{})
+	types.RegistorLog(types.TyLogParacrossDone, &ParacrossDoneLog{})
 
 	// init query rpc
 	types.RegistorRpcType("ParacrossGetHeight", &ParacrossGetHeight{})
