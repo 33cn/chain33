@@ -405,28 +405,6 @@ func (wallet *Wallet) ProcRecvMsg() {
 				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyPrivacyTransactionList, reply))
 			}
 
-		case types.EventQueryUTXOChangeLog:
-			req := msg.Data.(*types.ReqUTXOChangeLog)
-			reply, err := wallet.procQueryUTXOChangeLog(req)
-			if err != nil {
-				walletlog.Error("procQueryUTXOChangeLog", "err", err.Error())
-				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyQueryUTXOChangeLog, err))
-			} else {
-				walletlog.Info("procQueryUTXOChangeLog", "req", req)
-				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyQueryUTXOChangeLog, reply))
-			}
-
-		case types.EventQueryPrivacyTxChangeLog:
-			req := msg.Data.(*types.ReqNil)
-			reply, err := wallet.procQueryPrivacyTxChangeLog(req)
-			if err != nil {
-				walletlog.Error("procQueryPrivacyTxChangeLog", "err", err.Error())
-				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyQueryPrivacyTxChangeLog, err))
-			} else {
-				walletlog.Info("procQueryPrivacyTxChangeLog", "req", req)
-				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyQueryPrivacyTxChangeLog, reply))
-			}
-
 		default:
 			walletlog.Info("ProcRecvMsg unknow msg", "msgtype", msgtype)
 		}

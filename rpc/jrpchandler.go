@@ -1573,22 +1573,3 @@ func (c *Chain33) PrivacyTxList(in *types.ReqPrivacyTransactionList, result *int
 	}
 	return nil
 }
-
-// QueryUTXOChangeLog query utxo change log
-func (c *Chain33) QueryUTXOChangeLog(in *types.ReqUTXOChangeLog, result *interface{}) error {
-	reply, err := c.cli.QueryUTXOChangeLog(in)
-	if err != nil {
-		return err
-	}
-	*result = reply
-	return nil
-}
-
-func (c *Chain33) QueryPrivacyTxChangeLog(in *types.ReqNil, result *interface{}) error {
-	reply, err := c.cli.QueryPrivacyTxChangeLog(in)
-	if err != nil {
-		return err
-	}
-	*result = reply
-	return nil
-}
