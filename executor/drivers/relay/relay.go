@@ -42,25 +42,47 @@ func (r *relay) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	}
 	switch action.GetTy() {
 	case types.RelayActionCreate:
+		if action.GetCreate() == nil {
+			return nil, types.ErrInputPara
+		}
 		return actiondb.relayCreate(action.GetCreate())
 
 	case types.RelayActionAccept:
+
+		if action.GetAccept() == nil {
+			return nil, types.ErrInputPara
+		}
 		return actiondb.accept(btc, action.GetAccept())
 
 	case types.RelayActionRevoke:
+		if action.GetRevoke() == nil {
+			return nil, types.ErrInputPara
+		}
 		return actiondb.relayRevoke(btc, action.GetRevoke())
 
 	case types.RelayActionConfirmTx:
+		if action.GetConfirmTx() == nil {
+			return nil, types.ErrInputPara
+		}
 		return actiondb.confirmTx(btc, action.GetConfirmTx())
 
 	case types.RelayActionVerifyTx:
+		if action.GetVerify() == nil {
+			return nil, types.ErrInputPara
+		}
 		return actiondb.verifyTx(btc, action.GetVerify())
 
 	// OrderId, rawTx, index sibling, blockhash
 	case types.RelayActionVerifyCmdTx:
+		if action.GetVerifyCli() == nil {
+			return nil, types.ErrInputPara
+		}
 		return actiondb.verifyCmdTx(btc, action.GetVerifyCli())
 
 	case types.RelayActionRcvBTCHeaders:
+		if action.GetBtcHeaders() == nil {
+			return nil, types.ErrInputPara
+		}
 		return actiondb.saveBtcHeader(action.GetBtcHeaders())
 
 	default:

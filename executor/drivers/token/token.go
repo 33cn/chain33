@@ -67,6 +67,9 @@ func (t *token) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 		return action.revokeCreate(tokenAction.GetTokenrevokecreate())
 
 	case types.ActionTransfer:
+		if tokenAction.GetTransfer() == nil {
+			return nil, types.ErrInputPara
+		}
 		token := tokenAction.GetTransfer().GetCointoken()
 		db, err := account.NewAccountDB(t.GetName(), token, t.GetStateDB())
 		if err != nil {
@@ -75,6 +78,9 @@ func (t *token) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 		return t.ExecTransWithdraw(db, tx, &tokenAction, index)
 
 	case types.ActionWithdraw:
+		if tokenAction.GetWithdraw() == nil {
+			return nil, types.ErrInputPara
+		}
 		token := tokenAction.GetWithdraw().GetCointoken()
 		db, err := account.NewAccountDB(t.GetName(), token, t.GetStateDB())
 		if err != nil {
@@ -83,6 +89,9 @@ func (t *token) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 		return t.ExecTransWithdraw(db, tx, &tokenAction, index)
 
 	case types.TokenActionTransferToExec:
+		if tokenAction.GetTransferToExec() == nil {
+			return nil, types.ErrInputPara
+		}
 		token := tokenAction.GetTransferToExec().GetCointoken()
 		db, err := account.NewAccountDB(t.GetName(), token, t.GetStateDB())
 		if err != nil {
@@ -103,6 +112,9 @@ func (t *token) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 	var set *types.LocalDBSet
 	if action.Ty == types.ActionTransfer || action.Ty == types.ActionWithdraw {
 		set, err = t.ExecLocalTransWithdraw(tx, receipt, index)
+		if err != nil {
+			return nil, err
+		}
 
 		if action.Ty == types.ActionTransfer {
 			transfer := action.GetTransfer()
