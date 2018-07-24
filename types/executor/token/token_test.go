@@ -1,10 +1,11 @@
 package token
 
 import (
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/types"
-	"testing"
 )
 
 func init() {
