@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"gitlab.33.cn/chain33/chain33/account"
-	"gitlab.33.cn/chain33/chain33/common/address"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -99,10 +98,6 @@ func (action *tokenAction) preCreate(token *types.TokenPreCreate) (*types.Receip
 		return nil, types.ErrTokenSymbolLen
 	} else if token.GetTotal() > types.MaxTokenBalance || token.GetTotal() <= 0 {
 		return nil, types.ErrTokenTotalOverflow
-	} else if token.GetOwner() == "" || address.CheckAddress(token.GetOwner()) != nil {
-		if types.IsMatchFork(action.height, types.ForkV22OwnerAddr) {
-			return nil, types.ErrTokenOwner
-		}
 	}
 
 	if !ValidSymbolWithHeight([]byte(token.GetSymbol()), action.height) {

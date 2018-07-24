@@ -23,7 +23,6 @@ var (
 	ForkV19TokenPrice    int64 = 300000
 	ForkV20EVMState      int64 = 350000
 	ForkV21Privacy       int64 = 10000000
-	ForkV22OwnerAddr     int64 = 500000
 )
 
 //bityuan test net fork
@@ -49,7 +48,6 @@ func SetTestNetFork() {
 	ForkV19TokenPrice = 560000
 	ForkV20EVMState = 650000
 	ForkV21Privacy = 10000000
-	ForkV22OwnerAddr = 850000
 }
 
 func SetForkToOne() {
@@ -74,7 +72,6 @@ func SetForkToOne() {
 	ForkV19TokenPrice = 1
 	ForkV20EVMState = 1
 	ForkV21Privacy = 1
-	ForkV22OwnerAddr = 1
 }
 
 //paraName not used currently
@@ -100,7 +97,6 @@ func SetForkForPara(paraName string) {
 	ForkV19TokenPrice = 1
 	ForkV20EVMState = 1
 	ForkV21Privacy = 1
-	ForkV22OwnerAddr = 1
 }
 
 func IsMatchFork(height int64, fork int64) bool {
