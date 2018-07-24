@@ -48,7 +48,7 @@ func SetTestNetFork() {
 	ForkV19TokenPrice = 560000
 	ForkV20EVMState = 650000
 	ForkV21Privacy = 10000000
-	
+
 }
 
 func SetForkToOne() {
