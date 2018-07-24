@@ -1111,12 +1111,13 @@ func (wallet *Wallet) signTxWithPrivacy(key crypto.PrivKey, req *types.ReqSignRa
 }
 
 func (wallet *Wallet) procInvalidTxOnTimer(dbbatch db.Batch) error {
-	header := wallet.getLastHeader()
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+
+	header := wallet.lastHeader
 	if header == nil {
 		return nil
 	}
-	wallet.mtx.Lock()
-	defer wallet.mtx.Unlock()
 	// TODO: 这里是逐条进行删除，可以考虑修改为批量删除
 	// 先清理未成功发送的交易
 	caches, err := wallet.walletStore.listCreateTransactionCache("")
