@@ -72,7 +72,7 @@ func (q *QueueProtocol) query(topic string, ty int64, data interface{}) (queue.M
 func (q *QueueProtocol) notify(topic string, ty int64, data interface{}) (queue.Message, error) {
 	client := q.client
 	msg := client.NewMessage(topic, ty, data)
-	err := client.SendTimeout(msg, true, q.option.SendTimeout)
+	err := client.SendTimeout(msg, false, q.option.SendTimeout)
 	if err != nil {
 		return queue.Message{}, err
 	}
