@@ -151,7 +151,6 @@ func TestBasic(t *testing.T) {
 		}
 	}
 }
-
 func TestTreeHeightAndSize(t *testing.T) {
 	dir, err := ioutil.TempDir("", "datastore")
 	require.NoError(t, err)
@@ -634,6 +633,26 @@ func TestIterateRange(t *testing.T) {
 	require.Equal(t, trav.Values, []string{"low", "good"})
 }
 
+func TestIAVLPrint(t *testing.T) {
+	dir, err := ioutil.TempDir("", "datastore")
+	require.NoError(t, err)
+	t.Log(dir)
+	dbm := db.NewDB("test", "leveldb", dir, 100)
+	prevHash := make([]byte, 32)
+	tree := NewTree(dbm, true)
+	tree.Load(prevHash)
+	PrintNode(tree.root)
+	kvs := genKVShort(0, 10)
+	for i, kv := range kvs {
+		tree.Set(kv.Key, kv.Value)
+		println("insert", i)
+		PrintNode(tree.root)
+		tree.Hash()
+		//println("insert.hash", i)
+		//PrintNode(tree.root)
+	}
+}
+
 func BenchmarkDBSet(b *testing.B) {
 	dir, err := ioutil.TempDir("", "datastore")
 	require.NoError(b, err)
@@ -699,6 +718,16 @@ func BenchmarkDBGetMVCC(b *testing.B) {
 		assert.Nil(b, err)
 		assert.Equal(b, value, v)
 	}
+}
+
+func genKVShort(height int64, txN int64) (kvs []*types.KeyValue) {
+	for i := int64(0); i < txN; i++ {
+		n := height*1000 + i
+		key := []byte(fmt.Sprintf("k:%d", n))
+		value := []byte(fmt.Sprintf("v:%d", n))
+		kvs = append(kvs, &types.KeyValue{Key: key, Value: value})
+	}
+	return kvs
 }
 
 func genKV(height int64, txN int64) (kvs []*types.KeyValue) {
