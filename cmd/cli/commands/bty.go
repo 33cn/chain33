@@ -342,6 +342,9 @@ func createPub2PrivTx(cmd *cobra.Command, args []string) {
 	tokenname, _ := cmd.Flags().GetString("tokenname")
 	note, _ := cmd.Flags().GetString("note")
 	expire, _ := cmd.Flags().GetInt64("expire")
+	if expire <= 0 {
+		expire = int64(time.Hour)
+	}
 
 	params := types.ReqCreateTransaction{
 		Tokenname:  tokenname,
@@ -386,6 +389,9 @@ func createPriv2PrivTx(cmd *cobra.Command, args []string) {
 	note, _ := cmd.Flags().GetString("note")
 	sender, _ := cmd.Flags().GetString("sender")
 	expire, _ := cmd.Flags().GetInt64("expire")
+	if expire <= 0 {
+		expire = int64(time.Hour)
+	}
 
 	params := types.ReqCreateTransaction{
 		Tokenname:  tokenname,
@@ -432,6 +438,9 @@ func createPriv2PubTx(cmd *cobra.Command, args []string) {
 	to, _ := cmd.Flags().GetString("to")
 	note, _ := cmd.Flags().GetString("note")
 	expire, _ := cmd.Flags().GetInt64("expire")
+	if expire <= 0 {
+		expire = int64(time.Hour)
+	}
 
 	params := types.ReqCreateTransaction{
 		Tokenname: tokenname,
