@@ -38,7 +38,14 @@ function initPriAccount() {
     name="${CLI4}"
     fromAdd="1EDnnePAZN48aC2hiTDzhkczfF39g1pZZX"
     showPrivacyExec "${name}" $fromAdd
+}
 
+function displayPrivateTotalAmount() {
+    fromAdd="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
+    showPrivacyTotalAmount "${name}" $fromAdd
+
+    fromAdd="1EDnnePAZN48aC2hiTDzhkczfF39g1pZZX"
+    showPrivacyTotalAmount "${name}" $fromAdd
 }
 
 function genFirstChainPritx() {
@@ -168,7 +175,7 @@ function genSecondChainPritx() {
 
 function checkPriResult() {
 
-    block_wait_timeout "${CLI}" 5 80
+    block_wait_timeout "${CLI}" 10 170
 
     name1=$CLI
     name2=$CLI4
@@ -273,14 +280,16 @@ function SendToPrivacyExec() {
 # $3 priAdd
 # $4 note
 # $5 amount
+# $6 expire
 function pub2priv() {
     name=$1
     fromAdd=$2
     priAdd=$3
     note=$4
     amount=$5
+    expire=$6
     #sudo docker exec -it $name ./chain33-cli privacy pub2priv -f $fromAdd -p $priAdd -a $amount -n $note
-    result=$($name privacy pub2priv -f "${fromAdd}" -p "${priAdd}" -a "${amount}" -n "${note}" | jq -r ".hash")
+    result=$($name privacy pub2priv -f "${fromAdd}" -p "${priAdd}" -a "${amount}" -n "${note}" --expire "${expire}" | jq -r ".hash")
     echo "hash : $result"
     PrigStr=$result
 }
@@ -291,6 +300,7 @@ function pub2priv() {
 # $4 note
 # $5 amount
 # $6 mixcount
+# $7 expire
 function priv2priv() {
     name=$1
     fromAdd=$2
@@ -298,8 +308,9 @@ function priv2priv() {
     note=$4
     amount=$5
     mixcount=$6
+    expire=$7
     #sudo docker exec -it $name ./chain33-cli privacy priv2priv -f $fromAdd -p $priAdd -a $amount -n $note
-    result=$($name privacy priv2priv -f "${fromAdd}" -p "${priAdd}" -a "${amount}" -n "${note}" | jq -r ".hash")
+    result=$($name privacy priv2priv -f "${fromAdd}" -p "${priAdd}" -a "${amount}" -n "${note}" --expire "${expire}" | jq -r ".hash")
     echo "hash : $result"
     PrigStr=$result
 }
@@ -310,6 +321,7 @@ function priv2priv() {
 # $4 note
 # $5 amount
 # $6 mixcount
+# $7 expire
 function priv2pub() {
     name=$1
     fromAdd=$2
@@ -317,7 +329,8 @@ function priv2pub() {
     note=$4
     amount=$5
     mixcount=$6
-    result=$($name privacy priv2pub -f "${fromAdd}" -t "${toAdd}" -a "${amount}" -n "${note}" -m "${mixcount}" | jq -r ".hash")
+    expire=$7
+    result=$($name privacy priv2pub -f "${fromAdd}" -t "${toAdd}" -a "${amount}" -n "${note}" -m "${mixcount}" --expire "${expire}" | jq -r ".hash")
     #sudo docker exec -it $name ./chain33-cli privacy priv2pub -f $fromAdd -t $toAdd -a $amount -n $note -m $mixcount
     echo "hash : $result"
     PrigStr=$result
@@ -341,6 +354,28 @@ function showPrivacyBalance() {
     fromAdd=$2
     printf '==========showPrivacyBalance name=%s addr=%s==========\n' "${name}" "${fromAdd}"
     result=$($name privacy showpai -a "${fromAdd}" -d 0 | jq -r ".AvailableAmount")
+    printf 'AvailableAmount %s \n' "${result}"
+    PrigStr=$result
+}
+
+# $1 name
+# $2 fromAdd
+function showPrivacyFrozenAmount() {
+    name=$1
+    fromAdd=$2
+    printf '==========showPrivacyBalance name=%s addr=%s==========\n' "${name}" "${fromAdd}"
+    result=$($name privacy showpai -a "${fromAdd}" -d 0 | jq -r ".FrozenAmount")
+    printf 'AvailableAmount %s \n' "${result}"
+    PrigStr=$result
+}
+
+# $1 name
+# $2 fromAdd
+function showPrivacyTotalAmount() {
+    name=$1
+    fromAdd=$2
+    printf '==========showPrivacyBalance name=%s addr=%s==========\n' "${name}" "${fromAdd}"
+    result=$($name privacy showpai -a "${fromAdd}" -d 0 | jq -r ".TotalAmount")
     printf 'AvailableAmount %s \n' "${result}"
     PrigStr=$result
 }
