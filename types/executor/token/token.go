@@ -190,7 +190,8 @@ func (coins TokenType) CreateTx(action string, message json.RawMessage) (*types.
 func CreateTokenTransfer(param *types.CreateTx) *types.Transaction {
 	transfer := &types.TokenAction{}
 	if !param.IsWithdraw {
-		if types.IsPara() {
+		//如果在平行链上构造，或者传入的execName是paraExecName,则加入ToAddr
+		if types.IsPara() || types.IsParaExecName(param.GetExecName()) {
 			v := &types.TokenAction_Transfer{Transfer: &types.CoinsTransfer{
 				Cointoken: param.GetTokenSymbol(), Amount: param.Amount, Note: param.GetNote(), To: param.GetTo()}}
 			transfer.Value = v
@@ -208,9 +209,15 @@ func CreateTokenTransfer(param *types.CreateTx) *types.Transaction {
 		transfer.Value = v
 		transfer.Ty = types.ActionWithdraw
 	}
-	if types.IsPara() {
+	//在平行链上，execName=token或者没加，默认构造平行链的交易
+	if types.IsPara() && (param.GetExecName() == "token" || param.GetExecName() == "") {
+		return &types.Transaction{Execer: []byte(getRealExecName(types.GetParaName())), Payload: types.Encode(transfer), To: address.ExecAddress(getRealExecName(types.GetParaName()))}
+	}
+	//如果传入 execName 是平行链的execName的话，按照传入的execName构造交易
+	if types.IsParaExecName(param.GetExecName()) {
 		return &types.Transaction{Execer: []byte(param.GetExecName()), Payload: types.Encode(transfer), To: address.ExecAddress(param.GetExecName())}
 	}
+	//其他情况，默认构造主链交易
 	return &types.Transaction{Execer: []byte(name), Payload: types.Encode(transfer), To: param.GetTo()}
 }
 
