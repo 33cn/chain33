@@ -307,7 +307,6 @@ func addTokenSellFlags(cmd *cobra.Command) {
 	cmd.MarkFlagRequired("price")
 
 	cmd.Flags().Float64P("fee", "f", 0, "transaction fee")
-	cmd.MarkFlagRequired("fee")
 
 	cmd.Flags().Float64P("total", "t", 0, "total tokens to be sold")
 	cmd.MarkFlagRequired("total")
@@ -356,7 +355,6 @@ func addTokenBuyFlags(cmd *cobra.Command) {
 	cmd.MarkFlagRequired("count")
 
 	cmd.Flags().Float64P("fee", "f", 0, "transaction fee")
-	cmd.MarkFlagRequired("fee")
 }
 
 func tokenBuy(cmd *cobra.Command, args []string) {
@@ -392,7 +390,6 @@ func addTokenSellRevokeFlags(cmd *cobra.Command) {
 	cmd.MarkFlagRequired("sell_id")
 
 	cmd.Flags().Float64P("fee", "f", 0, "transaction fee")
-	cmd.MarkFlagRequired("fee")
 }
 
 func tokenSellRevoke(cmd *cobra.Command, args []string) {
