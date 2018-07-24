@@ -806,6 +806,7 @@ func (q *QueueProtocol) ShowPrivacyAccountSpend(param *types.ReqPrivBal4AddrToke
 func (q *QueueProtocol) CloseQueue() (*types.Reply, error) {
 	return q.client.CloseQueue()
 }
+
 func (q *QueueProtocol) GetLastBlockSequence() (*types.Int64, error) {
 	msg, err := q.query(blockchainKey, types.EventGetLastBlockSequence, &types.ReqNil{})
 	if err != nil {
