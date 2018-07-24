@@ -180,8 +180,8 @@ func SetMinFee(fee int64) {
 	MinBalanceTransfer = fee * 10
 }
 
-func GetParaName()string{
-	if IsPara(){
+func GetParaName() string {
+	if IsPara() {
 		return title
 	}
 	return ""
