@@ -110,79 +110,6 @@ function genFirstChainPritx() {
     showPrivacyBalance "${name}" $fromAdd
 }
 
-function genFirstChainPritx1Step() {
-    echo "====== 发送公对私交易 ======"
-    name=$CLI
-    echo "当前链为：${name}"
-    for ((i = 0; i < priRepeatTx; i++)); do
-        fromAdd="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
-        priAdd="0a9d212b2505aefaa8da370319088bbccfac097b007f52ed71d8133456c8185823c8eac43c5e937953d7b6c8e68b0db1f4f03df4946a29f524875118960a35fb"
-        note="pub2priv_test"
-        amount=10
-        pub2priv "${name}" $fromAdd $priAdd $note $amount
-
-        sleep 1
-        height=$(${name} block last_header | jq ".height")
-        printf '发送公对私第 %d 笔交易当前高度 %s \n' $i "${height}"
-    done
-
-    block_wait_timeout "${CLI}" 2 80
-
-    echo "=============查询当前隐私余额============="
-
-    fromAdd="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
-    showPrivacyBalance "${name}" $fromAdd
-
-    fromAdd="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
-    showPrivacyBalance "${name}" $fromAdd
-}
-
-function genFirstChainPritx2StepA2B() {
-    echo "====== 发送公对私交易 ======"
-    name=$CLI
-    echo "当前链为：${name}"
-    for ((i = 0; i < priRepeatTx; i++)); do
-        fromAdd="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
-        priAdd="0a9d212b2505aefaa8da370319088bbccfac097b007f52ed71d8133456c8185823c8eac43c5e937953d7b6c8e68b0db1f4f03df4946a29f524875118960a35fb"
-        note="pub2priv_test"
-        amount=11
-        pub2priv "${name}" $fromAdd $priAdd $note $amount
-
-        sleep 1
-        height=$(${name} block last_header | jq ".height")
-        printf '发送公对私第 %d 笔交易当前高度 %s \n' $i "${height}"
-    done
-
-    block_wait_timeout "${CLI}" 2 80
-
-    priTxindex=0
-    echo "====== 发送私对私交易 ======"
-    for ((i = 0; i < priRepeatTx; i++)); do
-        fromAdd="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
-        priAdd="fcbb75f2b96b6d41f301f2d1abc853d697818427819f412f8e4b4e12cacc0814d2c3914b27bea9151b8968ed1732bd241c8788a332b295b731aee8d39a060388"
-        note="priv2priv_test"
-        amount=5
-        mixcount=0
-        priv2priv "${name}" $fromAdd $priAdd $note $amount $mixcount
-        priTxHashs1[$priTxindex]=$PrigStr
-        priTxindex=$((priTxindex + 1))
-
-        sleep 1
-        height=$(${name} block last_header | jq ".height")
-        printf '发送私对私第 %d 笔交易当前高度 %s \n' $i "${height}"
-    done
-
-    block_wait_timeout "${CLI}" 2 80
-
-    echo "=============查询当前隐私余额============="
-
-    fromAdd="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
-    showPrivacyBalance "${name}" $fromAdd
-
-    fromAdd="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
-    showPrivacyBalance "${name}" $fromAdd
-}
-
 function genSecondChainPritx() {
     echo "====== 发送公对私交易 ======"
     name=$CLI4
@@ -236,80 +163,6 @@ function genSecondChainPritx() {
         height=$(${name} block last_header | jq ".height")
         printf '发送私对私第 %d 笔交易当前高度 %s \n' $i "${height}"
     done
-
-    echo "=============查询当前隐私余额============="
-
-    fromAdd="1EDnnePAZN48aC2hiTDzhkczfF39g1pZZX"
-    showPrivacyBalance "${name}" $fromAdd
-
-    fromAdd="1KcCVZLSQYRUwE5EXTsAoQs9LuJW6xwfQa"
-    showPrivacyBalance "${name}" $fromAdd
-}
-
-function genSecondChainPritx1Step() {
-    echo "====== 发送公对私交易 ======"
-    name=$CLI4
-    echo "当前链为：${name}"
-    for ((i = 0; i < priRepeatTx; i++)); do
-        fromAdd="1EDnnePAZN48aC2hiTDzhkczfF39g1pZZX"
-        priAdd="069fdcd7a2d7cf30dfc87df6f277ae451a78cae6720a6bb05514a4a43e0622d55c854169cc63b6353234c3e65db75e7b205878b1bd94e9f698c7043b27fa162b"
-        note="pub2priv_test"
-        amount=10
-        pub2priv "${name}" $fromAdd $priAdd $note $amount
-
-        sleep 1
-        height=$(${name} block last_header | jq ".height")
-        printf '发送公对私第 %d 笔交易当前高度 %s \n' $i "${height}"
-    done
-
-    block_wait_timeout "${name}" 2 80
-
-    echo "=============查询当前隐私余额============="
-
-    fromAdd="1EDnnePAZN48aC2hiTDzhkczfF39g1pZZX"
-    showPrivacyBalance "${name}" $fromAdd
-
-    fromAdd="1KcCVZLSQYRUwE5EXTsAoQs9LuJW6xwfQa"
-    showPrivacyBalance "${name}" $fromAdd
-}
-
-function genSecondChainPritx2StepA2B() {
-    echo "====== 发送公对私交易 ======"
-    name=$CLI4
-    echo "当前链为：${name}"
-    for ((i = 0; i < priRepeatTx; i++)); do
-        fromAdd="1EDnnePAZN48aC2hiTDzhkczfF39g1pZZX"
-        priAdd="069fdcd7a2d7cf30dfc87df6f277ae451a78cae6720a6bb05514a4a43e0622d55c854169cc63b6353234c3e65db75e7b205878b1bd94e9f698c7043b27fa162b"
-        note="pub2priv_test"
-        amount=10
-        pub2priv "${name}" $fromAdd $priAdd $note $amount
-
-        sleep 1
-        height=$(${name} block last_header | jq ".height")
-        printf '发送公对私第 %d 笔交易当前高度 %s \n' $i "${height}"
-    done
-
-    block_wait_timeout "${name}" 2 80
-
-    priTxHashs2=("")
-    priTxindex=0
-    echo "====== 发送私对私交易 ======"
-    for ((i = 0; i < priRepeatTx; i++)); do
-        fromAdd="1EDnnePAZN48aC2hiTDzhkczfF39g1pZZX"
-        priAdd="d5672eeafbcdf53c8fc27969a5d9797083bb64fb4848bd391cd9b3919c4a1d3cb8534f12e09de3cc541eaaf45acccacaf808a6804fd10a976804397e9ecaf96f"
-        note="priv2priv_test"
-        amount=4
-        mixcount=0
-        priv2priv "${name}" $fromAdd $priAdd $note $amount $mixcount
-        priTxHashs2[$priTxindex]=$PrigStr
-        priTxindex=$((priTxindex + 1))
-
-        sleep 1
-        height=$(${name} block last_header | jq ".height")
-        printf '发送私对私第 %d 笔交易当前高度 %s \n' $i "${height}"
-    done
-
-    block_wait_timeout "${name}" 2 80
 
     echo "=============查询当前隐私余额============="
 
@@ -427,14 +280,16 @@ function SendToPrivacyExec() {
 # $3 priAdd
 # $4 note
 # $5 amount
+# $6 expire
 function pub2priv() {
     name=$1
     fromAdd=$2
     priAdd=$3
     note=$4
     amount=$5
+    expire=$6
     #sudo docker exec -it $name ./chain33-cli privacy pub2priv -f $fromAdd -p $priAdd -a $amount -n $note
-    result=$($name privacy pub2priv -f "${fromAdd}" -p "${priAdd}" -a "${amount}" -n "${note}" | jq -r ".hash")
+    result=$($name privacy pub2priv -f "${fromAdd}" -p "${priAdd}" -a "${amount}" -n "${note}" --expire "${expire}" | jq -r ".hash")
     echo "hash : $result"
     PrigStr=$result
 }
@@ -445,6 +300,7 @@ function pub2priv() {
 # $4 note
 # $5 amount
 # $6 mixcount
+# $7 expire
 function priv2priv() {
     name=$1
     fromAdd=$2
@@ -452,8 +308,9 @@ function priv2priv() {
     note=$4
     amount=$5
     mixcount=$6
+    expire=$7
     #sudo docker exec -it $name ./chain33-cli privacy priv2priv -f $fromAdd -p $priAdd -a $amount -n $note
-    result=$($name privacy priv2priv -f "${fromAdd}" -p "${priAdd}" -a "${amount}" -n "${note}" | jq -r ".hash")
+    result=$($name privacy priv2priv -f "${fromAdd}" -p "${priAdd}" -a "${amount}" -n "${note}" --expire "${expire}" | jq -r ".hash")
     echo "hash : $result"
     PrigStr=$result
 }
@@ -464,6 +321,7 @@ function priv2priv() {
 # $4 note
 # $5 amount
 # $6 mixcount
+# $7 expire
 function priv2pub() {
     name=$1
     fromAdd=$2
@@ -471,7 +329,8 @@ function priv2pub() {
     note=$4
     amount=$5
     mixcount=$6
-    result=$($name privacy priv2pub -f "${fromAdd}" -t "${toAdd}" -a "${amount}" -n "${note}" -m "${mixcount}" | jq -r ".hash")
+    expire=$7
+    result=$($name privacy priv2pub -f "${fromAdd}" -t "${toAdd}" -a "${amount}" -n "${note}" -m "${mixcount}" --expire "${expire}" | jq -r ".hash")
     #sudo docker exec -it $name ./chain33-cli privacy priv2pub -f $fromAdd -t $toAdd -a $amount -n $note -m $mixcount
     echo "hash : $result"
     PrigStr=$result

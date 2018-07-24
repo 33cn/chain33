@@ -420,6 +420,8 @@ func (wallet *Wallet) RescanReqUtxosByAddr(addr string) {
 }
 
 func (wallet *Wallet) setLastHeader(header *types.Header) {
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
 	wallet.lastHeader = header
 }
 
@@ -433,4 +435,27 @@ func (wallet *Wallet) getLastHeader() *types.Header {
 		wallet.lastHeader = header
 	}
 	return wallet.lastHeader
+}
+
+func (wallet *Wallet) updateLastHeader(block *types.BlockDetail, mode int) error {
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+	header, err := wallet.api.GetLastHeader()
+	if err != nil {
+		return err
+	}
+	if block != nil {
+		if mode == 1 && block.Block.Height > header.Height {
+			wallet.lastHeader = &types.Header{
+				BlockTime: block.Block.BlockTime,
+				Height:    block.Block.Height,
+				StateHash: block.Block.StateHash,
+			}
+		} else if mode == -1 && wallet.lastHeader != nil && wallet.lastHeader.Height == block.Block.Height {
+			wallet.lastHeader = header
+		}
+	} else {
+		wallet.lastHeader = header
+	}
+	return nil
 }
