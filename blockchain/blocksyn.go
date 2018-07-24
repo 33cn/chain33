@@ -311,68 +311,14 @@ func (chain *BlockChain) GetPeerMaxBlkHeight() int64 {
 				}
 			}
 		}
+		//没有合法的peer，此时本节点可能在侧链上，返回peerlist中最高的peer尝试矫正
+		maxpeer := chain.peerList[peerlen-1]
+		if maxpeer != nil {
+			synlog.Debug("GetPeerMaxBlkHeight all peers are faultpeer maybe self on Side chain", "pid", maxpeer.Name, "Height", maxpeer.Height, "Hash", common.ToHex(maxpeer.Hash))
+			return maxpeer.Height
+		}
 	}
 	return -1
-}
-
-//获取peerlist中合法的高度最高的peer pid，需要过滤掉可疑的故障peer节点
-func (chain *BlockChain) GetPeerMaxBlkPid() string {
-	peerMaxBlklock.Lock()
-	defer peerMaxBlklock.Unlock()
-
-	//获取peerlist中最高高度的pid
-	var pid string
-	if chain.peerList != nil {
-		peerlen := len(chain.peerList)
-		for i := peerlen - 1; i >= 0; i-- {
-			if chain.peerList[i] != nil {
-				ok := chain.IsFaultPeer(chain.peerList[i].Name)
-				if !ok {
-					return chain.peerList[i].Name
-				}
-			}
-		}
-	}
-	return pid
-}
-
-//获取peerlist中合法的高度最高的lastblkhash，需要过滤掉可疑的故障peer节点
-func (chain *BlockChain) GetPeerMaxBlkHash() []byte {
-	peerMaxBlklock.Lock()
-	defer peerMaxBlklock.Unlock()
-
-	//获取peerlist中最高高度的blockhash
-	if chain.peerList != nil {
-		peerlen := len(chain.peerList)
-		for i := peerlen - 1; i >= 0; i-- {
-			if chain.peerList[i] != nil {
-				ok := chain.IsFaultPeer(chain.peerList[i].Name)
-				if !ok {
-					return chain.peerList[i].Hash
-				}
-			}
-		}
-	}
-	return common.Hash{}.Bytes()
-}
-
-//获取peerlist中合法pids，需要过滤掉可疑的故障peer节点
-func (chain *BlockChain) GetPeerPids() []string {
-	peerMaxBlklock.Lock()
-	defer peerMaxBlklock.Unlock()
-
-	//获取peerlist中最高的高度
-	var PeerPids []string
-	if chain.peerList != nil {
-		for _, peer := range chain.peerList {
-			ok := chain.IsFaultPeer(peer.Name)
-			if !ok {
-				PeerPids = append(PeerPids, peer.Name)
-				//synlog.Debug("GetPeerPids", "pid", peer.Name)
-			}
-		}
-	}
-	return PeerPids
 }
 
 //通过peerid获取peerinfo
@@ -738,8 +684,15 @@ func (chain *BlockChain) ProcBlockHeaders(headers *types.Headers, pid string) er
 	}
 	synlog.Info("ProcBlockHeaders find fork point", "height", ForkHeight, "hash", common.ToHex(forkhash))
 
+	//获取此pid对应的peer信息，
+	peerinfo := chain.GetPeerInfo(pid)
+	if peerinfo == nil {
+		synlog.Error("ProcBlockHeaders GetPeerInfo is nil", "pid", pid)
+		return types.ErrPeerInfoIsNil
+	}
+
 	//从分叉节点高度继续请求block，从pid
-	peermaxheight := chain.GetPeerMaxBlkHeight()
+	peermaxheight := peerinfo.Height
 
 	//此时停止同步的任务
 	chain.task.Cancel()
