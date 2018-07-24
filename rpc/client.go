@@ -408,6 +408,8 @@ func (c *channelClient) CreateRawRelayOrderTx(parm *RelayOrderTx) ([]byte, error
 		To:      address.ExecAddress(string(types.ExecerRelay)),
 	}
 
+	tx.SetRealFee(types.MinFee)
+
 	data := types.Encode(tx)
 	return data, nil
 }
@@ -428,6 +430,8 @@ func (c *channelClient) CreateRawRelayAcceptTx(parm *RelayAcceptTx) ([]byte, err
 		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
 		To:      address.ExecAddress(string(types.ExecerRelay)),
 	}
+
+	tx.SetRealFee(types.MinFee)
 
 	data := types.Encode(tx)
 	return data, nil
@@ -450,6 +454,8 @@ func (c *channelClient) CreateRawRelayRevokeTx(parm *RelayRevokeTx) ([]byte, err
 		To:      address.ExecAddress(string(types.ExecerRelay)),
 	}
 
+	tx.SetRealFee(types.MinFee)
+
 	data := types.Encode(tx)
 	return data, nil
 }
@@ -470,6 +476,8 @@ func (c *channelClient) CreateRawRelayConfirmTx(parm *RelayConfirmTx) ([]byte, e
 		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
 		To:      address.ExecAddress(string(types.ExecerRelay)),
 	}
+
+	tx.SetRealFee(types.MinFee)
 
 	data := types.Encode(tx)
 	return data, nil
@@ -496,6 +504,8 @@ func (c *channelClient) CreateRawRelayVerifyBTCTx(parm *RelayVerifyBTCTx) ([]byt
 		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
 		To:      address.ExecAddress(string(types.ExecerRelay)),
 	}
+
+	tx.SetRealFee(types.MinFee)
 
 	data := types.Encode(tx)
 	return data, nil
@@ -528,6 +538,8 @@ func (c *channelClient) CreateRawRelaySaveBTCHeadTx(parm *RelaySaveBTCHeadTx) ([
 		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
 		To:      address.ExecAddress(string(types.ExecerRelay)),
 	}
+
+	tx.SetRealFee(types.MinFee)
 
 	data := types.Encode(tx)
 	return data, nil

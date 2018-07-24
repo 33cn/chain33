@@ -358,8 +358,6 @@ func addExchangeFlags(cmd *cobra.Command) {
 	cmd.MarkFlagRequired("bty_amount")
 
 	cmd.Flags().Float64P("fee", "f", 0, "coin transaction fee")
-	cmd.MarkFlagRequired("fee")
-
 }
 
 func relayOrder(cmd *cobra.Command, args []string) {
@@ -414,7 +412,6 @@ func addRelayAcceptFlags(cmd *cobra.Command) {
 	cmd.Flags().Uint32P("coin_wait", "n", 6, "coin blocks to wait,default:6,min:1")
 
 	cmd.Flags().Float64P("fee", "f", 0, "coin transaction fee")
-	cmd.MarkFlagRequired("fee")
 }
 
 func relayAccept(cmd *cobra.Command, args []string) {
@@ -460,7 +457,6 @@ func addRevokeFlags(cmd *cobra.Command) {
 	cmd.MarkFlagRequired("action")
 
 	cmd.Flags().Float64P("fee", "f", 0, "coin transaction fee")
-	cmd.MarkFlagRequired("fee")
 }
 
 func relayRevoke(cmd *cobra.Command, args []string) {
@@ -500,7 +496,6 @@ func addConfirmFlags(cmd *cobra.Command) {
 	cmd.MarkFlagRequired("tx_hash")
 
 	cmd.Flags().Float64P("fee", "f", 0, "coin transaction fee")
-	cmd.MarkFlagRequired("fee")
 }
 
 func relayConfirm(cmd *cobra.Command, args []string) {
@@ -546,7 +541,6 @@ func addSaveBtcHeadFlags(cmd *cobra.Command) {
 	cmd.Flags().Int32P("flag", "g", 0, "block height")
 
 	cmd.Flags().Float64P("fee", "f", 0, "coin transaction fee")
-	cmd.MarkFlagRequired("fee")
 }
 
 func relaySaveBtcHead(cmd *cobra.Command, args []string) {
@@ -602,7 +596,6 @@ func addVerifyBTCFlags(cmd *cobra.Command) {
 	cmd.MarkFlagRequired("block_hash")
 
 	cmd.Flags().Float64P("fee", "f", 0, "coin transaction fee")
-	cmd.MarkFlagRequired("fee")
 }
 
 func relayVerifyBTC(cmd *cobra.Command, args []string) {
