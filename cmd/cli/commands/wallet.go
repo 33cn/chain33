@@ -270,7 +270,7 @@ func autoMine(cmd *cobra.Command, args []string) {
 func NoBalanceCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "nobalance",
-		Short: "create nobalance transaction",
+		Short: "Create nobalance transaction",
 		Run:   noBalanceTx,
 	}
 	addNoBalanceFlags(cmd)
