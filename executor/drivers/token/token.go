@@ -136,7 +136,7 @@ func (t *token) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 				set.KV = append(set.KV, receiptKV...)
 
 				// 添加个人资产列表
-				if item.Ty == types.TyLogFinishCreateToken {
+				if item.Ty == types.TyLogFinishCreateToken && action.GetTokenfinishcreate() != nil {
 					kv := AddTokenToAssets(action.GetTokenfinishcreate().Owner, t.GetLocalDB(), action.GetTokenfinishcreate().Symbol)
 					if kv != nil {
 						set.KV = append(set.KV, kv...)
