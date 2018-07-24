@@ -228,6 +228,8 @@ func CreateRawTokenPreCreateTx(parm *TokenPreCreateTx) (*types.Transaction, erro
 		To:      address.ExecAddress(getRealExecName(parm.ParaName)),
 	}
 
+	tx.SetRealFee(types.MinFee)
+
 	return tx, nil
 }
 
@@ -249,6 +251,8 @@ func CreateRawTokenFinishTx(parm *TokenFinishTx) (*types.Transaction, error) {
 		To:      address.ExecAddress(getRealExecName(parm.ParaName)),
 	}
 
+	tx.SetRealFee(types.MinFee)
+
 	return tx, nil
 }
 
@@ -268,6 +272,8 @@ func CreateRawTokenRevokeTx(parm *TokenRevokeTx) (*types.Transaction, error) {
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
 		To:      address.ExecAddress(getRealExecName(parm.ParaName)),
 	}
+
+	tx.SetRealFee(types.MinFee)
 
 	return tx, nil
 }
