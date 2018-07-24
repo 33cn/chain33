@@ -48,16 +48,21 @@ func (p *privacy) GetName() string {
 }
 
 func (p *privacy) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
+	txhashstr := common.Bytes2Hex(tx.Hash())
+	privacylog.Debug("PrivacyTrading Exec", "Enter Exec txhash", txhashstr)
+	defer privacylog.Debug("PrivacyTrading Exec", "Leave Exec txhash", txhashstr)
 	_, err := p.DriverBase.Exec(tx, index)
 	if err != nil {
+		privacylog.Error("PrivacyTrading Exec", " txhash", txhashstr, "DriverBase.Exec error ", err)
 		return nil, err
 	}
 	var action types.PrivacyAction
 	err = types.Decode(tx.Payload, &action)
 	if err != nil {
+		privacylog.Error("PrivacyTrading Exec", "txhash", txhashstr, "Decode error ", err)
 		return nil, err
 	}
-	privacylog.Info("Privacy exec", "action type", action.Ty)
+	privacylog.Info("PrivacyTrading Exec", "txhash", txhashstr, "action type ", action.Ty)
 	if action.Ty == types.ActionPublic2Privacy && action.GetPublic2Privacy() != nil {
 		public2Privacy := action.GetPublic2Privacy()
 		if types.BTY == public2Privacy.Tokenname {
@@ -65,7 +70,7 @@ func (p *privacy) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 			from := tx.From()
 			receipt, err := coinsAccount.ExecWithdraw(p.GetAddr(), from, public2Privacy.Amount)
 			if err != nil {
-				privacylog.Error("Privacy exec ActionPublic2Privacy", "ExecWithdraw failed due to ", err)
+				privacylog.Error("PrivacyTrading Exec", "txhash", txhashstr, "ExecWithdraw error ", err)
 				return nil, err
 			}
 
@@ -89,7 +94,7 @@ func (p *privacy) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 			receipt.Logs = append(receipt.Logs, execlog)
 
 			//////////////////debug code begin///////////////
-			privacylog.Debug("Privacy exec ActionPublic2Privacy", "receipt is", receipt)
+			privacylog.Debug("PrivacyTrading Exec", "ActionPublic2Privacy txhash", txhashstr, "receipt is", receipt)
 			//////////////////debug code end///////////////
 
 			return receipt, nil
@@ -132,7 +137,7 @@ func (p *privacy) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 			receipt.Ty = types.ExecOk
 
 			//////////////////debug code begin///////////////
-			privacylog.Debug("Privacy exec ActionPrivacy2Privacy", "receipt is", receipt)
+			privacylog.Debug("PrivacyTrading Exec", "ActionPrivacy2Privacy txhash", txhashstr, "receipt is", receipt)
 			//////////////////debug code end///////////////
 			return receipt, nil
 
@@ -147,7 +152,7 @@ func (p *privacy) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 			coinsAccount := p.GetCoinsAccount()
 			receipt, err := coinsAccount.ExecDeposit(tx.To, p.GetAddr(), privacy2public.Amount)
 			if err != nil {
-				privacylog.Error("Privacy exec ActionPrivacy2Public", "ExecDeposit failed due to ", err)
+				privacylog.Error("PrivacyTrading Exec", "ActionPrivacy2Public txhash", txhashstr, "ExecDeposit error ", err)
 				return nil, err
 			}
 
@@ -180,12 +185,12 @@ func (p *privacy) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 			receipt.Logs = append(receipt.Logs, execlog)
 
 			//////////////////debug code begin///////////////
-			privacylog.Debug("Privacy exec ActionPrivacy2Public", "receipt is", receipt)
+			privacylog.Debug("PrivacyTrading Exec", "ActionPrivacy2Public txhash", txhashstr, "receipt is", receipt)
 			//////////////////debug code end///////////////
 			return receipt, nil
 		} else {
 			//token 转账操作
-
+			privacylog.Error("PrivacyTrading Exec", "Do not support operator txhash", txhashstr)
 		}
 
 	}
@@ -193,23 +198,29 @@ func (p *privacy) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 }
 
 func (p *privacy) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	txhashstr := common.Bytes2Hex(tx.Hash())
+	privacylog.Debug("PrivacyTrading ExecLocal", "Enter ExecLocal txhash", txhashstr)
+	defer privacylog.Debug("PrivacyTrading ExecLocal", "Leave ExecLocal txhash", txhashstr)
+
 	set, err := p.DriverBase.ExecLocal(tx, receipt, index)
 	if err != nil {
+		privacylog.Error("PrivacyTrading ExecLocal", "DriverBase.ExecLocal txhash", txhashstr, "ExecLocal error ", err)
 		return nil, err
 	}
 
 	if receipt.GetTy() != types.ExecOk {
+		privacylog.Error("PrivacyTrading ExecLocal", "txhash", txhashstr, "receipt.GetTy() = ", receipt.GetTy())
 		return set, nil
 	}
 
 	localDB := p.GetLocalDB()
-
 	for i := 0; i < len(receipt.Logs); i++ {
 		item := receipt.Logs[i]
 		if item.Ty == types.TyLogPrivacyOutput {
 			var receiptPrivacyOutput types.ReceiptPrivacyOutput
 			err := types.Decode(item.Log, &receiptPrivacyOutput)
 			if err != nil {
+				privacylog.Error("PrivacyTrading ExecLocal", "txhash", txhashstr, "Decode item.Log error ", err)
 				panic(err) //数据错误了，已经被修改了
 			}
 
@@ -251,6 +262,7 @@ func (p *privacy) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, i
 						//在本地的query数据库进行设置，这样可以防止相同的新增amout不会被重复生成kv,而进行重复的设置
 						localDB.Set(key2, types.Encode(&amountTypes))
 					} else {
+						privacylog.Error("PrivacyTrading ExecLocal", "txhash", txhashstr, "value2 Decode error ", err)
 						panic(err)
 					}
 				} else {
@@ -291,12 +303,18 @@ func (p *privacy) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, i
 }
 
 func (p *privacy) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	txhashstr := common.Bytes2Hex(tx.Hash())
+	privacylog.Debug("PrivacyTrading ExecDelLocal", "Enter ExecDelLocal txhash", txhashstr)
+	defer privacylog.Debug("PrivacyTrading ExecDelLocal", "Leave ExecDelLocal txhash", txhashstr)
+
 	set, err := p.DriverBase.ExecDelLocal(tx, receipt, index)
 	if err != nil {
+		privacylog.Error("PrivacyTrading ExecDelLocal", "txhash", txhashstr, "DriverBase.ExecDelLocal error ", err)
 		return nil, err
 	}
 
 	if receipt.GetTy() != types.ExecOk {
+		privacylog.Error("PrivacyTrading ExecDelLocal", "txhash", txhashstr, "receipt.GetTy() = ", receipt.GetTy())
 		return set, nil
 	}
 	localDB := p.GetLocalDB()
@@ -307,6 +325,7 @@ func (p *privacy) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData
 			var receiptPrivacyOutput types.ReceiptPrivacyOutput
 			err := types.Decode(item.Log, &receiptPrivacyOutput)
 			if err != nil {
+				privacylog.Error("PrivacyTrading ExecDelLocal", "txhash", txhashstr, "Decode item.Log error ", err)
 				panic(err)
 			}
 
@@ -540,38 +559,43 @@ func (p *privacy) ShowUTXOs4SpecifiedAmount(reqtoken *types.ReqPrivacyToken) (ty
 }
 
 func (p *privacy) CheckTx(tx *types.Transaction, index int) error {
+	txhashstr := common.Bytes2Hex(tx.Hash())
+	privacylog.Debug("PrivacyTrading CheckTx", "Enter CheckTx txhash", txhashstr)
+	defer privacylog.Debug("PrivacyTrading CheckTx", "Leave CheckTx txhash", txhashstr)
+
 	var action types.PrivacyAction
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
+		privacylog.Error("PrivacyTrading CheckTx", "txhash", txhashstr, "Decode tx.Payload error", err)
 		return err
 	}
-	//如果是私到私 或者私到公，交易费扣除则需要utxo实现,交易费并不生成真正的UTXO,也是即时燃烧掉而已
-	var keyinput []*types.KeyInput
-	var keyOutput []*types.KeyOutput
-	var token string
-	var amount int64
-	if action.Ty == types.ActionPublic2Privacy {
+	privacylog.Info("PrivacyTrading CheckTx", "txhash", txhashstr, "action type ", action.Ty)
+	if types.ActionPublic2Privacy == action.Ty {
 		return nil
-	} else if action.Ty == types.ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
-		keyinput = action.GetPrivacy2Privacy().Input.Keyinput
-		keyOutput = action.GetPrivacy2Privacy().Output.Keyoutput
-		token = action.GetPrivacy2Privacy().Tokenname
-	} else if action.Ty == types.ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
-		keyinput = action.GetPrivacy2Public().Input.Keyinput
-		keyOutput = action.GetPrivacy2Public().Output.Keyoutput
-		token = action.GetPrivacy2Public().Tokenname
+	}
+	input := action.GetInput()
+	output := action.GetOutput()
+	if input == nil || output == nil {
+		privacylog.Error("PrivacyTrading CheckTx", "txhash", txhashstr, "input", input, "output", output)
+		return nil
+	}
+	//如果是私到私 或者私到公，交易费扣除则需要utxo实现,交易费并不生成真正的UTXO,也是即时燃烧掉而已
+	var amount int64
+	keyinput := input.Keyinput
+	keyOutput := output.Keyoutput
+	token := action.GetTokenName()
+	if action.Ty == types.ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
 		amount = action.GetPrivacy2Public().Amount
 	}
 
 	if tx.Fee < types.PrivacyTxFee {
-		privacylog.Error("Privacy CheckTx failed due to ErrPrivacyTxFeeNotEnough", "fee set:", tx.Fee,
-			"required:", types.PrivacyTxFee)
+		privacylog.Error("PrivacyTrading CheckTx", "txhash", txhashstr, "fee set:", tx.Fee, "required:", types.PrivacyTxFee, " error ErrPrivacyTxFeeNotEnough")
 		return types.ErrPrivacyTxFeeNotEnough
 	}
 
 	var ringSignature types.RingSignature
 	if err := types.Decode(tx.Signature.Signature, &ringSignature); err != nil {
-		privacylog.Error("Privacy exec failed to decode ring signature")
+		privacylog.Error("PrivacyTrading CheckTx", "txhash", txhashstr, "Decode tx.Signature.Signature error ", err)
 		return err
 	}
 
@@ -593,20 +617,18 @@ func (p *privacy) CheckTx(tx *types.Transaction, index int) error {
 	if !res {
 		if errIndex >= 0 && errIndex < int32(len(keyinput)) {
 			input := keyinput[errIndex]
-			privacylog.Error("UTXO spent already", "privacy tx hash", common.ToHex(tx.Hash()),
-				"errindex", errIndex, "utxo amout", input.Amount, "utxo keyimage", common.ToHex(input.KeyImage))
+			privacylog.Error("PrivacyTrading CheckTx", "txhash", txhashstr, "UTXO spent already errindex", errIndex, "utxo amout", input.Amount, "utxo keyimage", common.ToHex(input.KeyImage))
 		}
-
-		privacylog.Error("exec UTXO double spend check failed")
+		privacylog.Error("PrivacyTrading CheckTx", "txhash", txhashstr, "checkUTXOValid failed ")
 		return types.ErrDoubeSpendOccur
 	}
 
 	res, errIndex = p.checkPubKeyValid(keys, pubkeys)
 	if !res {
 		if errIndex >= 0 && errIndex < int32(len(pubkeys)) {
-			privacylog.Error("Wrong pubkey", "errIndex", errIndex)
+			privacylog.Error("PrivacyTrading CheckTx", "txhash", txhashstr, "Wrong pubkey errIndex ", errIndex)
 		}
-		privacylog.Error("exec UTXO double spend check failed")
+		privacylog.Error("PrivacyTrading CheckTx", "txhash", txhashstr, "checkPubKeyValid failed ")
 		return types.ErrPubkeysOfUTXO
 	}
 
@@ -622,11 +644,9 @@ func (p *privacy) CheckTx(tx *types.Transaction, index int) error {
 	}
 
 	if feeAmount < types.PrivacyTxFee {
-		privacylog.Error("Privacy CheckTx failed due to ErrPrivacyTxFeeNotEnough", "fee available:", feeAmount,
-			"required:", types.PrivacyTxFee)
+		privacylog.Error("PrivacyTrading CheckTx", "txhash", txhashstr, "fee available:", feeAmount, "required:", types.PrivacyTxFee)
 		return types.ErrPrivacyTxFeeNotEnough
 	}
-
 	return nil
 }
 
