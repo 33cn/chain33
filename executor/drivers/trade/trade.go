@@ -52,17 +52,29 @@ func (t *trade) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	action := newTradeAction(t, tx)
 	switch trade.GetTy() {
 	case types.TradeSellLimit:
+		if trade.GetTokensell() == nil {
+			return nil, types.ErrInputPara
+		}
 		return action.tradeSell(trade.GetTokensell())
 
 	case types.TradeBuyMarket:
+		if trade.GetTokenbuy() == nil {
+			return nil, types.ErrInputPara
+		}
 		return action.tradeBuy(trade.GetTokenbuy())
 
 	case types.TradeRevokeSell:
+		if trade.GetTokenrevokesell() == nil {
+			return nil, types.ErrInputPara
+		}
 		return action.tradeRevokeSell(trade.GetTokenrevokesell())
 
 	case types.TradeBuyLimit:
 		if t.GetHeight() < types.ForkV10TradeBuyLimit {
 			return nil, types.ErrActionNotSupport
+		}
+		if trade.GetTokenbuylimit() == nil {
+			return nil, types.ErrInputPara
 		}
 		return action.tradeBuyLimit(trade.GetTokenbuylimit())
 
@@ -70,11 +82,17 @@ func (t *trade) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 		if t.GetHeight() < types.ForkV10TradeBuyLimit {
 			return nil, types.ErrActionNotSupport
 		}
+		if trade.GetTokensellmarket() == nil {
+			return nil, types.ErrInputPara
+		}
 		return action.tradeSellMarket(trade.GetTokensellmarket())
 
 	case types.TradeRevokeBuy:
 		if t.GetHeight() < types.ForkV10TradeBuyLimit {
 			return nil, types.ErrActionNotSupport
+		}
+		if trade.GetTokenrevokebuy() == nil {
+			return nil, types.ErrInputPara
 		}
 		return action.tradeRevokeBuyLimit(trade.GetTokenrevokebuy())
 
