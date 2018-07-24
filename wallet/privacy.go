@@ -1111,6 +1111,10 @@ func (wallet *Wallet) signTxWithPrivacy(key crypto.PrivKey, req *types.ReqSignRa
 }
 
 func (wallet *Wallet) procInvalidTxOnTimer(dbbatch db.Batch) error {
+	header := wallet.getLastHeader()
+	if header == nil {
+		return nil
+	}
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
 	// TODO: 这里是逐条进行删除，可以考虑修改为批量删除
@@ -1132,32 +1136,26 @@ func (wallet *Wallet) procInvalidTxOnTimer(dbbatch db.Batch) error {
 	curFTXOTxs, _, err := wallet.walletStore.GetWalletFtxoStxo(FTXOs4Tx)
 	revertFTXOTxs, _, _ := wallet.walletStore.GetWalletFtxoStxo(RevertSendtx)
 	var keys [][]byte
-	if curFTXOTxs != nil {
-		for _, ftxo := range curFTXOTxs {
-			keys = append(keys, calcKey4FTXOsInTx(ftxo.Tokenname, ftxo.Sender, ftxo.Txhash))
-		}
+	for _, ftxo := range curFTXOTxs {
+		keys = append(keys, calcKey4FTXOsInTx(ftxo.Tokenname, ftxo.Sender, ftxo.Txhash))
 	}
-	if revertFTXOTxs != nil {
-		for _, ftxo := range revertFTXOTxs {
-			keys = append(keys, calcRevertSendTxKey(ftxo.Tokenname, ftxo.Sender, ftxo.Txhash))
-		}
+	for _, ftxo := range revertFTXOTxs {
+		keys = append(keys, calcRevertSendTxKey(ftxo.Tokenname, ftxo.Sender, ftxo.Txhash))
 	}
 	curFTXOTxs = append(curFTXOTxs, revertFTXOTxs...)
-	header := wallet.getLastHeader()
 	for i, ftxo := range curFTXOTxs {
 		txhash := ftxo.Txhash
 		dbkey := calcCreateTxKey(ftxo.Tokenname, txhash)
 		cache, _ := wallet.walletStore.GetCreateTransactionCache(dbkey)
 
-		if cache != nil {
-			if cache.GetStatus() == cacheTxStatus_Sent || ftxo.IsExpire(header.Height, header.BlockTime) {
-				// 交易已经发送或交易对应的FTXO已经过期，需要移除缓存交易
-				wallet.walletStore.DeleteCreateTransactionCache(cache.Key)
-				walletlog.Info("PrivacyTrading procInvalidTxOnTimer", "delete cache transaction txhash", common.Bytes2Hex(cache.Transaction.Hash()),
-					"status", cache.GetStatus(), "ftxo.IsExpire", ftxo.IsExpire(header.Height, header.BlockTime))
-				cache = nil
-			}
+		if cache != nil && cache.GetStatus() == cacheTxStatus_Sent || ftxo.IsExpire(header.Height, header.BlockTime) {
+			// 交易已经发送或交易对应的FTXO已经过期，需要移除缓存交易
+			wallet.walletStore.DeleteCreateTransactionCache(cache.Key)
+			walletlog.Info("PrivacyTrading procInvalidTxOnTimer", "delete cache transaction txhash", common.Bytes2Hex(cache.Transaction.Hash()),
+				"status", cache.GetStatus(), "ftxo.IsExpire", ftxo.IsExpire(header.Height, header.BlockTime))
+			cache = nil
 		}
+
 		if cache == nil && ftxo.IsExpire(header.Height, header.BlockTime) {
 			walletlog.Info("PrivacyTrading procInvalidTxOnTimer", "moveFTXO2UTXO key", string(keys[i]), "ftxo.IsExpire", ftxo.IsExpire(header.Height, header.BlockTime))
 			wallet.walletStore.moveFTXO2UTXO(keys[i], dbbatch,

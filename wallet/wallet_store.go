@@ -784,7 +784,6 @@ func (ws *Store) moveUTXO2STXO(owner, token, txhash string, utxos []*types.UTXO,
 	FTXOsInOneTx.Utxos = utxos
 	FTXOsInOneTx.Sender = owner
 	FTXOsInOneTx.Tokenname = token
-	FTXOsInOneTx.Freezetime = time.Now().UnixNano()
 	FTXOsInOneTx.Txhash = txhash
 
 	for _, utxo := range utxos {

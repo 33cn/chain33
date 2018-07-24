@@ -158,25 +158,13 @@ func (wallet *Wallet) ProcRecvMsg() {
 
 		case types.EventAddBlock:
 			block := msg.Data.(*types.BlockDetail)
-			header := wallet.getLastHeader()
-			if header != nil && block.Block.Height > header.Height {
-				wallet.setLastHeader(&types.Header{
-					BlockTime: block.Block.BlockTime,
-					Height:    block.Block.Height,
-					StateHash: block.Block.StateHash,
-				})
-			}
+			wallet.updateLastHeader(block, 1)
 			wallet.ProcWalletAddBlock(block)
 			walletlog.Debug("wallet add block --->", "height", block.Block.GetHeight())
 
 		case types.EventDelBlock:
 			block := msg.Data.(*types.BlockDetail)
-			if wallet.lastHeader != nil && wallet.lastHeader.Height == block.Block.Height {
-				header, err := wallet.api.GetLastHeader()
-				if err == nil && header != nil {
-					wallet.setLastHeader(header)
-				}
-			}
+			wallet.updateLastHeader(block, -1)
 			wallet.ProcWalletDelBlock(block)
 			walletlog.Debug("wallet del block --->", "height", block.Block.GetHeight())
 

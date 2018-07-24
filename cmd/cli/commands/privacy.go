@@ -101,6 +101,9 @@ func public2Privacy(cmd *cobra.Command, args []string) {
 	amount, _ := cmd.Flags().GetFloat64("amount")
 	note, _ := cmd.Flags().GetString("note")
 	expire, _ := cmd.Flags().GetInt64("expire")
+	if expire <= 0 {
+		expire = int64(time.Hour)
+	}
 
 	amountInt64 := int64(amount*types.InputPrecision) * types.Multiple1E4 //支持4位小数输入，多余的输入将被截断
 	params := types.ReqPub2Pri{
@@ -151,6 +154,9 @@ func privacy2Privacy(cmd *cobra.Command, args []string) {
 	mixcount, _ := cmd.Flags().GetInt32("mixcount")
 	note, _ := cmd.Flags().GetString("note")
 	expire, _ := cmd.Flags().GetInt64("expire")
+	if expire <= 0 {
+		expire = int64(time.Hour)
+	}
 
 	amountInt64 := int64(amount*types.InputPrecision) * types.Multiple1E4 //支持4位小数输入，多余的输入将被截断
 	params := types.ReqPri2Pri{
@@ -203,6 +209,9 @@ func privacy2Public(cmd *cobra.Command, args []string) {
 	mixcount, _ := cmd.Flags().GetInt32("mixcount")
 	note, _ := cmd.Flags().GetString("note")
 	expire, _ := cmd.Flags().GetInt64("expire")
+	if expire <= 0 {
+		expire = int64(time.Hour)
+	}
 
 	amountInt64 := int64(amount*types.InputPrecision) * types.Multiple1E4 //支持4位小数输入，多余的输入将被截断
 	params := types.ReqPri2Pub{
@@ -409,6 +418,9 @@ func createUTXOs(cmd *cobra.Command, args []string) {
 	amount, _ := cmd.Flags().GetFloat64("amount")
 	amountInt64 := int64(amount*types.InputPrecision) * types.Multiple1E4
 	expire, _ := cmd.Flags().GetInt64("expire")
+	if expire <= 0 {
+		expire = int64(time.Hour)
+	}
 
 	params := &types.ReqCreateUTXOs{
 		Tokenname:  types.BTY,

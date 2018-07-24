@@ -29,6 +29,6 @@ func (ftxos *FTXOsSTXOsInOneTx) SetExpire(tx *Transaction) {
 		ftxos.Expire = Now().Unix() + int64(timeexpire/time.Second+6)
 	} else {
 		// FTXO的过期时间为区块高度时，则用Tx的高度+1
-		ftxos.Expire = int64(expire + 1)
+		ftxos.Expire = expire + 1
 	}
 }
