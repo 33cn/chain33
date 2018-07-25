@@ -1379,34 +1379,6 @@ func (c *Chain33) CreateTrasaction(in types.ReqCreateTransaction, result *interf
 	return nil
 }
 
-// QueryCacheTransaction 查询由服务器创建未发送的交易列表
-func (c *Chain33) QueryCacheTransaction(in types.ReqCacheTxList, result *interface{}) error {
-	reply, err := c.cli.QueryCacheTransaction(&in)
-	if err != nil {
-		return err
-	}
-	cacheTxList := &ReplyCacheTxList{}
-	for _, fromtx := range reply.Txs {
-		totx, err := DecodeTx(fromtx)
-		if err != nil {
-			continue
-		}
-		cacheTxList.Txs = append(cacheTxList.Txs, totx)
-	}
-	*result = cacheTxList
-	return nil
-}
-
-// DeleteCacheTransaction 删除由服务器创建未发送的交易列表
-func (c *Chain33) DeleteCacheTransaction(in types.ReqCreateCacheTxKey, result *interface{}) error {
-	reply, err := c.cli.DeleteCacheTransaction(&in)
-	if err != nil {
-		return err
-	}
-	*result = common.ToHex(reply.GetMsg())
-	return nil
-}
-
 func (c *Chain33) ShowPrivacyAccountInfo(in types.ReqPPrivacyAccount, result *interface{}) error {
 	reply, err := c.cli.ShowPrivacyAccountInfo(&in)
 	if err != nil {
