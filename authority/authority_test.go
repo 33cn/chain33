@@ -6,13 +6,13 @@ import (
 	"time"
 
 	"gitlab.33.cn/chain33/chain33/authority/utils"
+	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/common"
-	"gitlab.33.cn/chain33/chain33/common/address"
 )
 
 var (
@@ -39,7 +39,7 @@ var (
 	toAddr     = address.PubKeyToAddress(privKey.PubKey().Bytes()).String()
 	v          = &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: int64(1e8)}}
 	tx14       = &types.Transaction{Execer: []byte("coins"),
-	                  Payload: types.Encode(&types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}), Fee: 1000000, Expire: 2, To: toAddr}
+		Payload: types.Encode(&types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}), Fee: 1000000, Expire: 2, To: toAddr}
 )
 
 var USERNAME = "User"
