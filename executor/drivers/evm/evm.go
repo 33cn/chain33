@@ -23,11 +23,11 @@ var (
 	evmDebug = false
 
 	// 本合约地址
-	EvmAddress = address.ExecAddress(model.ExecutorName)
+	EvmAddress = address.ExecAddress(types.ExecName(model.ExecutorName))
 )
 
 func Init() {
-	drivers.Register(model.ExecutorName, newEVMDriver, types.ForkV17EVM)
+	drivers.Register(types.ExecName(model.ExecutorName), newEVMDriver, types.ForkV17EVM)
 
 	// 初始化硬分叉数据
 	state.InitForkData()
@@ -57,7 +57,7 @@ func NewEVMExecutor() *EVMExecutor {
 }
 
 func (evm *EVMExecutor) GetName() string {
-	return model.ExecutorName
+	return types.ExecName(model.ExecutorName)
 }
 
 func (evm *EVMExecutor) CheckInit() {
@@ -194,8 +194,8 @@ func (evm *EVMExecutor) collectEvmTxLog(tx *types.Transaction, cr *types.Receipt
 
 //获取运行状态名
 func (evm *EVMExecutor) GetActionName(tx *types.Transaction) string {
-	if bytes.Equal(tx.Execer, []byte(model.ExecutorName)) {
-		return model.ExecutorName
+	if bytes.Equal(tx.Execer, []byte(types.ExecName(model.ExecutorName))) {
+		return types.ExecName(model.ExecutorName)
 	}
 	return tx.ActionName()
 }
@@ -335,7 +335,7 @@ func (evm *EVMExecutor) EstimateGas(req *types.EstimateEVMGasReq) (types.Message
 			caller = *callAddr
 		}
 	} else {
-		caller = common.ExecAddress(model.ExecutorName)
+		caller = common.ExecAddress(types.ExecName(model.ExecutorName))
 	}
 
 	isCreate := strings.EqualFold(req.To, EvmAddress)
