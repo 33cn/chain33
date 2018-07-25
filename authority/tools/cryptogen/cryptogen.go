@@ -68,7 +68,7 @@ func generateUsers(baseDir string, orgName string) {
 	os.RemoveAll(baseDir)
 	caDir := filepath.Join(baseDir, "cacerts")
 
-	signType,ok := types.MapSignName2Type[cfg.SignType]
+	signType, ok := types.MapSignName2Type[cfg.SignType]
 	if !ok {
 		fmt.Printf("Invalid sign type:%s", cfg.SignType)
 		return
