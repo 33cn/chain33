@@ -2,12 +2,14 @@ package commands
 
 import (
 	"github.com/spf13/cobra"
+	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 func RetriveCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "retrive",
-		Short: "Wallet retrive operation",
+		Use:   "retrieve",
+		Short: "Wallet retrieve operation",
 		Args:  cobra.MinimumNArgs(1),
 	}
 
@@ -45,7 +47,7 @@ func PrepareCmd() *cobra.Command {
 func PerformCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "perform",
-		Short: "Perform the retrive",
+		Short: "Perform the retrieve",
 		Run:   performCmd,
 	}
 	addPerformCmdFlags(cmd)
@@ -55,7 +57,7 @@ func PerformCmd() *cobra.Command {
 func CancelCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "cancel",
-		Short: "Cancel the retrive",
+		Short: "Cancel the retrieve",
 		Run:   cancelCmd,
 	}
 	addCancelCmdFlags(cmd)
