@@ -116,7 +116,7 @@ func (t *token) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 			return nil, err
 		}
 
-		if action.Ty == types.ActionTransfer {
+		if action.Ty == types.ActionTransfer && action.GetTransfer() != nil {
 			transfer := action.GetTransfer()
 			// 添加个人资产列表
 			//tokenlog.Info("ExecLocalTransWithdraw", "addr", tx.To, "asset", transfer.Cointoken)
