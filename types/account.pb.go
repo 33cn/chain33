@@ -400,6 +400,7 @@ It has these top-level messages:
 	ReplyBindMiner
 	ReqNotifySendTxResult
 	ReqPrivacyTransactionList
+	PrivacySignatureParam
 */
 package types
 
