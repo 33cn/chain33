@@ -149,7 +149,10 @@ func CreateRawRetrieveBackupTx(parm *RetrieveBackupTx) (*types.Transaction, erro
 		To:      address.ExecAddress(name),
 	}
 
-	tx.SetRealFee(types.MinFee)
+	err := tx.SetRealFee(types.MinFee)
+	if err != nil {
+		return nil, err
+	}
 
 	return tx, nil
 }
@@ -176,7 +179,10 @@ func CreateRawRetrievePrepareTx(parm *RetrievePrepareTx) (*types.Transaction, er
 		To:      address.ExecAddress(name),
 	}
 
-	tx.SetRealFee(types.MinFee)
+	err := tx.SetRealFee(types.MinFee)
+	if err != nil {
+		return nil, err
+	}
 
 	return tx, nil
 }
@@ -203,7 +209,10 @@ func CreateRawRetrievePerformTx(parm *RetrievePerformTx) (*types.Transaction, er
 		To:      address.ExecAddress(name),
 	}
 
-	tx.SetRealFee(types.MinFee)
+	err := tx.SetRealFee(types.MinFee)
+	if err != nil {
+		return nil, err
+	}
 
 	return tx, nil
 }
@@ -230,7 +239,10 @@ func CreateRawRetrieveCancelTx(parm *RetrieveCancelTx) (*types.Transaction, erro
 		To:      address.ExecAddress(name),
 	}
 
-	tx.SetRealFee(types.MinFee)
+	err := tx.SetRealFee(types.MinFee)
+	if err != nil {
+		return nil, err
+	}
 
 	return tx, nil
 }
