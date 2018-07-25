@@ -14,6 +14,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 	_ "gitlab.33.cn/chain33/chain33/types/executor"
 	exec "gitlab.33.cn/chain33/chain33/types/executor"
+	retrievetype "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
 	tokentype "gitlab.33.cn/chain33/chain33/types/executor/token"
 	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
 )
@@ -586,6 +587,71 @@ func TestChannelClient_CreateRawTradeRevokeBuyTx(t *testing.T) {
 		Fee:   1,
 	}
 	data, err = client.CreateRawTradeRevokeBuyTx(token)
+	assert.NotNil(t, data)
+	assert.Nil(t, err)
+}
+
+func TestChannelClient_CreateRawRetrieveBackupTx(t *testing.T) {
+	client := newTestChannelClient()
+	data, err := client.CreateRawRetrieveBackupTx(nil)
+	assert.NotNil(t, err)
+	assert.Nil(t, data)
+
+	backup := &retrievetype.RetrieveBackupTx{
+		BackupAddr:  "12asdfa",
+		DefaultAddr: "0x3456",
+		DelayPeriod: 1,
+		Fee:         1,
+	}
+	data, err = client.CreateRawRetrieveBackupTx(backup)
+	assert.NotNil(t, data)
+	assert.Nil(t, err)
+}
+
+func TestChannelClient_CreateRawRetrievePrepareTx(t *testing.T) {
+	client := newTestChannelClient()
+	data, err := client.CreateRawRetrievePrepareTx(nil)
+	assert.NotNil(t, err)
+	assert.Nil(t, data)
+
+	prepare := &retrievetype.RetrievePrepareTx{
+		BackupAddr:  "12asdfa",
+		DefaultAddr: "0x3456",
+		Fee:         1,
+	}
+	data, err = client.CreateRawRetrievePrepareTx(prepare)
+	assert.NotNil(t, data)
+	assert.Nil(t, err)
+}
+
+func TestChannelClient_CreateRawRetrievePerformTx(t *testing.T) {
+	client := newTestChannelClient()
+	data, err := client.CreateRawRetrievePerformTx(nil)
+	assert.NotNil(t, err)
+	assert.Nil(t, data)
+
+	perform := &retrievetype.RetrievePerformTx{
+		BackupAddr:  "12asdfa",
+		DefaultAddr: "0x3456",
+		Fee:         1,
+	}
+	data, err = client.CreateRawRetrievePerformTx(perform)
+	assert.NotNil(t, data)
+	assert.Nil(t, err)
+}
+
+func TestChannelClient_CreateRawRetrieveCancelTx(t *testing.T) {
+	client := newTestChannelClient()
+	data, err := client.CreateRawRetrieveCancelTx(nil)
+	assert.NotNil(t, err)
+	assert.Nil(t, data)
+
+	cancel := &retrievetype.RetrieveCancelTx{
+		BackupAddr:  "12asdfa",
+		DefaultAddr: "0x3456",
+		Fee:         1,
+	}
+	data, err = client.CreateRawRetrieveCancelTx(cancel)
 	assert.NotNil(t, data)
 	assert.Nil(t, err)
 }
