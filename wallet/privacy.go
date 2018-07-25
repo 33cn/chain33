@@ -865,23 +865,15 @@ func (wallet *Wallet) createPublic2PrivacyTx(req *types.ReqCreateTransaction) (*
 		Nonce:   wallet.random.Int63(),
 		To:      address.ExecAddress(types.PrivacyX),
 	}
+	tx.Signature = &types.Signature{
+		Signature: types.Encode(&types.PrivacySignatureParam{
+			ActionType: action.Ty,
+		}),
+	}
+
 	txSize := types.Size(tx) + types.SignatureSize
 	realFee := int64((txSize+1023)>>types.Size_1K_shiftlen) * types.FeePerKB
 	tx.Fee = realFee
-
-	byteshash := tx.Hash()
-	dbkey := calcCreateTxKey(req.Tokenname, common.Bytes2Hex(byteshash))
-	cache := &types.CreateTransactionCache{
-		Key:         dbkey,
-		Createtime:  time.Now().UnixNano(),
-		Transaction: tx,
-		Status:      cacheTxStatus_Created,
-		Sender:      req.GetFrom(),
-	}
-
-	if err = wallet.walletStore.SetCreateTransactionCache(dbkey, cache); err != nil {
-		return nil, err
-	}
 	return tx, nil
 }
 
@@ -947,24 +939,15 @@ func (wallet *Wallet) createPrivacy2PrivacyTx(req *types.ReqCreateTransaction) (
 		Nonce:   wallet.random.Int63(),
 		To:      address.ExecAddress(types.PrivacyX),
 	}
-
-	byteshash := tx.Hash()
-	dbkey := calcCreateTxKey(req.Tokenname, common.Bytes2Hex(byteshash))
-	cache := &types.CreateTransactionCache{
-		Tokenname:    req.GetTokenname(),
-		Key:          dbkey,
-		Createtime:   types.Now().UnixNano(),
-		Transaction:  tx,
-		Status:       cacheTxStatus_Created,
-		Sender:       req.GetFrom(),
-		Realkeyinput: realkeyInputSlice,
-		Utxos:        utxosInKeyInput,
-	}
-	if err = wallet.walletStore.SetCreateTransactionCache(dbkey, cache); err != nil {
-		return nil, err
-	}
 	// 创建交易成功，将已经使用掉的UTXO冻结
-	wallet.saveFTXOInfo(req.GetTokenname(), req.GetFrom(), common.Bytes2Hex(byteshash), selectedUtxo)
+	wallet.saveFTXOInfo(req.GetTokenname(), req.GetFrom(), common.Bytes2Hex(tx.Hash()), selectedUtxo)
+	tx.Signature = &types.Signature{
+		Signature: types.Encode(&types.PrivacySignatureParam{
+			ActionType:    action.Ty,
+			Utxobasics:    utxosInKeyInput,
+			RealKeyInputs: realkeyInputSlice,
+		}),
+	}
 	return tx, nil
 }
 
@@ -1025,83 +1008,57 @@ func (wallet *Wallet) createPrivacy2PublicTx(req *types.ReqCreateTransaction) (*
 		Nonce:   wallet.random.Int63(),
 		To:      req.GetTo(),
 	}
-
-	byteshash := tx.Hash()
-	dbkey := calcCreateTxKey(req.Tokenname, common.Bytes2Hex(byteshash))
-	cache := &types.CreateTransactionCache{
-		Tokenname:    req.GetTokenname(),
-		Key:          dbkey,
-		Createtime:   types.Now().UnixNano(),
-		Transaction:  tx,
-		Status:       cacheTxStatus_Created,
-		Sender:       req.GetFrom(),
-		Realkeyinput: realkeyInputSlice,
-		Utxos:        utxosInKeyInput,
+	// 创建交易成功，将已经使用掉的UTXO冻结
+	wallet.saveFTXOInfo(req.GetTokenname(), req.GetFrom(), common.Bytes2Hex(tx.Hash()), selectedUtxo)
+	tx.Signature = &types.Signature{
+		Signature: types.Encode(&types.PrivacySignatureParam{
+			ActionType:    action.Ty,
+			Utxobasics:    utxosInKeyInput,
+			RealKeyInputs: realkeyInputSlice,
+		}),
 	}
-	if err = wallet.walletStore.SetCreateTransactionCache(dbkey, cache); err != nil {
-		return nil, err
-	}
-	wallet.saveFTXOInfo(req.GetTokenname(), req.GetFrom(), common.Bytes2Hex(byteshash), selectedUtxo)
 	return tx, nil
 }
 
 func (wallet *Wallet) signTxWithPrivacy(key crypto.PrivKey, req *types.ReqSignRawTx) (string, error) {
 	bytes, err := common.FromHex(req.GetTxHex())
 	if err != nil {
+		walletlog.Error("PrivacyTrading signTxWithPrivacy", "common.FromHex error", err)
 		return "", err
 	}
-	txOrigin := new(types.Transaction)
-	err = types.Decode(bytes, txOrigin)
-	if err = types.Decode(bytes, txOrigin); err != nil {
+	tx := new(types.Transaction)
+	if err = types.Decode(bytes, tx); err != nil {
+		walletlog.Error("PrivacyTrading signTxWithPrivacy", "Decode Transaction error", err)
+		return "", err
+	}
+	signParam := &types.PrivacySignatureParam{}
+	if err = types.Decode(tx.Signature.Signature, signParam); err != nil {
+		walletlog.Error("PrivacyTrading signTxWithPrivacy", "Decode PrivacySignatureParam error", err)
 		return "", err
 	}
 	action := new(types.PrivacyAction)
-	if err = types.Decode(txOrigin.Payload, action); err != nil {
+	if err = types.Decode(tx.Payload, action); err != nil {
+		walletlog.Error("PrivacyTrading signTxWithPrivacy", "Decode PrivacyAction error", err)
 		return "", err
 	}
-	// ProcSignRawTx() will change Expire, change to default
-	expire := txOrigin.GetExpire()
-	txOrigin.SetExpire(time.Duration(0))
-	txhash := txOrigin.Hash()
-	txOrigin.SetExpire(time.Duration(expire))
+	if action.Ty != signParam.ActionType {
+		walletlog.Error("PrivacyTrading signTxWithPrivacy", "action type ", action.Ty, "signature action type ", signParam.ActionType)
+		return "", types.ErrInvalidParams
+	}
+	switch action.Ty {
+	case types.ActionPublic2Privacy:
+		// 隐私交易的公对私动作，不存在交易组的操作
+		tx.Sign(int32(SignType), key)
 
-	dbkey := calcCreateTxKey(action.GetTokenName(), common.Bytes2Hex(txhash))
-	cache, err := wallet.walletStore.GetCreateTransactionCache(dbkey)
-	if err != nil {
-		return "", err
-	}
-	index := int(req.Index)
-	tx := cache.Transaction
-	if action.GetTy() == types.ActionPublic2Privacy {
-		// 公开到隐私的交易，走普通的token交易，用普通的签名方式签名
-		group, err := tx.GetTxGroup()
-		if err != nil {
+	case types.ActionPrivacy2Privacy:
+	case types.ActionPrivacy2Public:
+		if err = wallet.signatureTx(tx, action.GetInput(), signParam.GetUtxobasics(), signParam.GetRealKeyInputs()); err != nil {
 			return "", err
 		}
-		if group == nil {
-			tx.Sign(int32(SignType), key)
-		} else {
-			if index > len(group.GetTxs()) {
-				return "", types.ErrIndex
-			}
-			if index <= 0 {
-				for i := range group.Txs {
-					group.SignN(i, int32(SignType), key)
-				}
-			} else {
-				index -= 1
-				group.SignN(index, int32(SignType), key)
-			}
-		}
-	} else {
-		if err = wallet.signatureTx(tx, action.GetInput(), cache.GetUtxos(), cache.GetRealkeyinput()); err != nil {
-			return "", err
-		}
-	}
-	cache.Signtime = types.Now().UnixNano()
-	cache.Status = cacheTxStatus_Signed
-	if err = wallet.walletStore.SetCreateTransactionCache(dbkey, cache); err != nil {
-		return "", err
+
+	default:
+		walletlog.Error("PrivacyTrading signTxWithPrivacy", "Invalid action type ", action.Ty)
+		return "", types.ErrInvalidParams
 	}
 	txHex := types.Encode(tx)
 	return common.ToHex(txHex), nil
