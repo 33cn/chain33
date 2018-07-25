@@ -158,7 +158,7 @@ var (
 	ErrOutputIndex            = errors.New("ErrOutputIndex")
 	ErrPubkeysOfUTXO          = errors.New("ErrPubkeysOfUTXO")
 	ErrRecoverUTXO            = errors.New("ErrRecoverUTXO")
-
+	ErrPeerInfoIsNil          = errors.New("ErrPeerInfoIsNil")
 	//wallet
 	ErrInputPara            = errors.New("ErrInputPara")
 	ErrWalletIsLocked       = errors.New("ErrWalletIsLocked")

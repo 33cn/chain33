@@ -63,7 +63,7 @@ mainnetJrpcAddr= "http://localhost:8801"
 
 [mempool]
 poolCacheSize=10240
-minTxFee=0
+minTxFee=100000
 
 [consensus]
 name="para"
@@ -73,7 +73,7 @@ startHeight=345850
 #打包时间间隔，单位秒
 writeBlockSeconds=2
 #主链每隔几个没有相关交易的区块，平行链上打包空区块
-emptyBlockInterval=4
+emptyBlockInterval=50
 
 [store]
 name="mavl"
@@ -82,7 +82,7 @@ dbPath="paradatadir/mavltree"
 dbCache=128
 
 [wallet]
-minFee=0
+minFee=100000
 driver="leveldb"
 dbPath="parawallet"
 dbCache=16
@@ -91,7 +91,7 @@ minerdisable=true
 
 [exec]
 isFree=true
-minExecFee=0
+minExecFee=100000
 enableStat=false
 
 [pprof]

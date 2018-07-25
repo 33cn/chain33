@@ -254,7 +254,7 @@ func (g *Grpc) CloseQueue(ctx context.Context, in *pb.ReqNil) (*pb.Reply, error)
 		g.cli.CloseQueue()
 	}()
 
-	return &pb.Reply{IsOk: true, Msg: []byte("Ok")}, nil
+	return &pb.Reply{IsOk: true}, nil
 }
 
 func (g *Grpc) GetLastBlockSequence(ctx context.Context, in *pb.ReqNil) (*pb.Int64, error) {

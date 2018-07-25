@@ -99,10 +99,12 @@ func (c *Chain33) SendTransaction(in RawParm, result *interface{}) error {
 	if reply != nil {
 		isok = reply.IsOk
 	}
-	c.cli.NotifySendTxResult(&types.ReqNotifySendTxResult{
-		Isok: isok,
-		Tx:   &parm,
-	})
+	if bytes.Equal(parm.Execer, types.ExecerPrivacy) {
+		c.cli.NotifySendTxResult(&types.ReqNotifySendTxResult{
+			Isok: isok,
+			Tx:   &parm,
+		})
+	}
 	return err
 }
 
@@ -1430,7 +1432,7 @@ func (c *Chain33) CloseQueue(in *types.ReqNil, result *interface{}) error {
 		c.cli.CloseQueue()
 	}()
 
-	*result = &types.Reply{IsOk: true, Msg: []byte("Ok")}
+	*result = &types.Reply{IsOk: true}
 	return nil
 }
 
