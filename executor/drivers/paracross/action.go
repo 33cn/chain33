@@ -179,18 +179,13 @@ func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, er
 		return nil, err
 	}
 
-	//
-	if commit.Status.Height > titleStatus.Height+1 {
-		// 也许是在分叉上挖矿， 也许是非正常的交易
-		return nil, types.ErrInputPara // future height
-	} else if commit.Status.Height <= titleStatus.Height {
-		// 在完成共识之后来的， 增加 record log， 只记录不修改已经达成的共识
+	// 在完成共识之后来的， 增加 record log， 只记录不修改已经达成的共识
+	if commit.Status.Height <= titleStatus.Height {
 		return makeRecordReceipt(a.fromaddr, commit), nil
 	}
 
-	// 处理当前高度的共识
+	// 未共识处理， 接受当前高度以及后续高度
 	stat, err := getTitleHeight(a.db, calcTitleHeightKey(commit.Status.Title, commit.Status.Height))
-	// 三种情况， 第一个， 非第一个， 触发共识
 	if err != nil && err != types.ErrNotFound {
 		return nil, err
 	}
@@ -212,6 +207,10 @@ func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, er
 		stat.Details.Addrs = append(stat.Details.Addrs, a.fromaddr)
 		stat.Details.StateHash = append(stat.Details.StateHash, commit.Status.StateHash)
 		receipt = makeCommitReceipt(a.fromaddr, commit, &copyStat, stat)
+	}
+
+	if commit.Status.Height > titleStatus.Height+1 {
+		return receipt, nil
 	}
 
 	commitCount := len(stat.Details.Addrs)
