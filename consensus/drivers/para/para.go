@@ -76,7 +76,11 @@ func New(cfg *types.Consensus) *ParaClient {
 	grpcClient := types.NewGrpcserviceClient(conn)
 
 	para := &ParaClient{c, conn, grpcClient, sync.RWMutex{}, false, nil}
-	para.commitMsgClient = &ParaCommitClient{paraClient: para}
+	para.commitMsgClient = &ParaCommitClient{
+		paraClient:      para,
+		commitMsgNofity: make(chan *ParaCommitMsg, 1),
+		mainBlockNotify: make(chan *types.Block, 1),
+	}
 
 	c.SetChild(para)
 

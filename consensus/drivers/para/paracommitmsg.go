@@ -9,6 +9,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/types/executor/paracross"
+	"gitlab.33.cn/chain33/chain33/util"
 )
 
 const (
@@ -33,72 +34,127 @@ type ParaCommitClient struct {
 
 func (client *ParaCommitClient) handler() {
 	var notifications []*ParaCommitMsg
-
+	readTick := time.Tick(time.Second)
+	type sendResult struct {
+		err error
+	}
+	sendResponse := make(chan sendResult, 1)
 	for {
 		select {
 		case msg, ok := <-client.commitMsgNofity:
 			if !ok {
 				continue
 			}
-
 			notifications = append(notifications, msg)
 
-			if !client.waitingTx {
-				client.sendCommitMsg(&notifications)
-
-			}
-
 		case block := <-client.mainBlockNotify:
-			if client.currentTx == "" {
-				continue
-			}
-			exist, err := checkTxInMainBlock(client.currentTx, block)
-			if err != nil {
-				continue
-			}
-			if exist {
-				if len(notifications) != 0 {
-					client.sendCommitMsg(&notifications)
-				} else {
+			if client.currentTx != "" {
+				exist, err := checkTxInMainBlock(client.currentTx, block)
+				if err != nil {
+					continue
+				}
+				if exist {
 					client.waitingTx = false
 					client.currentTx = ""
-				}
-
-			} else {
-				client.checkTxCommitTimes++
-				if client.checkTxCommitTimes > waitMainBlocks {
-					client.sendCommitMsgTx(client.currentTx)
 					client.checkTxCommitTimes = 0
+				} else {
+					client.checkTxCommitTimes++
+					if client.checkTxCommitTimes > waitMainBlocks {
+						client.checkTxCommitTimes = 0
+						go func() {
+							err = client.sendCommitMsgTx(client.currentTx)
+							if err != nil {
+								sendResponse <- sendResult{err}
+							}
+						}()
+					}
 				}
 			}
 
+		case <-readTick:
+			if len(notifications) != 0 && !client.waitingTx {
+				rawTxs, count, err := calcRawTxs(notifications)
+				if err != nil {
+					continue
+				}
+				signTx, err := client.signCommitMsgTx(rawTxs)
+				if err != nil || signTx == "" {
+					continue
+				}
+				notifications = notifications[count:]
+				client.currentTx = signTx
+				client.waitingTx = true
+				client.checkTxCommitTimes = 0
+				go func() {
+					err = client.sendCommitMsgTx(client.currentTx)
+					if err != nil {
+						sendResponse <- sendResult{err}
+					}
+				}()
+			}
+		case <-sendResponse:
+			go func() {
+				err := client.sendCommitMsgTx(client.currentTx)
+				if err != nil {
+					sendResponse <- sendResult{err}
+				}
+			}()
 		}
 	}
 }
 
-func (client *ParaCommitClient) sendCommitMsg(notifications *[]*ParaCommitMsg) error {
+func calcRawTxs(notifications []*ParaCommitMsg) (string, int, error) {
+	txs, count, err := batchCalcTxGroup(notifications)
+	if err != nil {
+		txs, err = singleCalcTx((notifications)[0])
+		if err != nil {
+			plog.Error("single calc tx", "height", notifications[0].block.Block.Height)
+
+			return "", 0, err
+		}
+		return txs, 1, nil
+	}
+	return txs, count, nil
+}
+
+func batchCalcTxGroup(notifications []*ParaCommitMsg) (string, int, error) {
 	var buff []*ParaCommitMsg
-	if len(*notifications) > types.TxGroupMaxCount {
-		buff = (*notifications)[:types.TxGroupMaxCount]
-		*notifications = (*notifications)[types.TxGroupMaxCount:]
+	if len(notifications) > types.TxGroupMaxCount {
+		buff = (notifications)[:types.TxGroupMaxCount]
 	} else {
-		buff = (*notifications)[:]
-		*notifications = (*notifications)[len(*notifications):]
+		buff = (notifications)[:]
 	}
 	var rawTxs types.Transactions
 	for _, msg := range buff {
 		tx, err := getCommitMsgTx(msg)
 		if err != nil {
 			plog.Error("para get commit tx", "block height", msg.block.Block.Height)
-			continue
+			return "", 0, err
 		}
 		rawTxs.Txs = append(rawTxs.Txs, tx)
 
 	}
+
 	txs, err := getTxsGroup(&rawTxs)
 	if err != nil {
-		return err
+		return "", 0, err
 	}
+	return txs, len(buff), nil
+}
+
+func singleCalcTx(msg *ParaCommitMsg) (string, error) {
+	tx, err := getCommitMsgTx(msg)
+	if err != nil {
+		plog.Error("para get commit tx", "block height", msg.block.Block.Height)
+		return "", err
+	}
+
+	ret := hex.EncodeToString(types.Encode(tx))
+	return ret, nil
+
+}
+
+func (client *ParaCommitClient) sendCommitMsg(txs string) error {
 	signTx, err := client.signCommitMsgTx(txs)
 	if err != nil {
 		return err
@@ -108,6 +164,7 @@ func (client *ParaCommitClient) sendCommitMsg(notifications *[]*ParaCommitMsg) e
 		//if send fail, not return, just send 2 blocks after
 		plog.Error("para sendCommitMsgTx", "tx", signTx)
 	}
+
 	client.currentTx = signTx
 	client.waitingTx = true
 	client.checkTxCommitTimes = 0
@@ -147,24 +204,7 @@ func getCommitMsgTx(msg *ParaCommitMsg) (*types.Transaction, error) {
 		curTxsHash = append(curTxsHash, tx.Hash())
 	}
 
-	var bitRst byte
-	for index := 0; index < len(msg.oriParaTxHashs); index++ {
-		if index > 0 && index%8 == 0 {
-			status.TxResult = append(status.TxResult, bitRst)
-			bitRst = 0
-		}
-		for i, curHash := range curTxsHash {
-			if bytes.Equal(msg.oriParaTxHashs[index], curHash) {
-				if msg.block.Receipts[i].Ty == types.ExecOk {
-					bitRst |= 1 << (7 - (uint32(index) % 8))
-				}
-			}
-		}
-	}
-
-	if len(msg.oriParaTxHashs)%8 > 0 {
-		status.TxResult = append(status.TxResult, bitRst)
-	}
+	status.TxResult = util.CalcByteBitMap(msg.oriParaTxHashs, curTxsHash, msg.block.Receipts)
 	status.TxCounts = uint32(len(msg.oriParaTxHashs))
 
 	tx := paracross.CreateRawCommitTx(status)
