@@ -34,14 +34,16 @@ var (
 	emptyBlockInterval int64 = 4 //write empty block every interval blocks in mainchain
 	zeroHash           [32]byte
 	grpcRecSize        int = 30 * 1024 * 1024 //the size should be limited in server
+	paraAccount            = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 )
 
 type ParaClient struct {
 	*drivers.BaseClient
-	conn         *grpc.ClientConn
-	grpcClient   types.GrpcserviceClient
-	lock         sync.RWMutex
-	isCatchingUp bool
+	conn            *grpc.ClientConn
+	grpcClient      types.GrpcserviceClient
+	lock            sync.RWMutex
+	isCatchingUp    bool
+	commitMsgClient *ParaCommitClient
 }
 
 func New(cfg *types.Consensus) *ParaClient {
@@ -59,6 +61,9 @@ func New(cfg *types.Consensus) *ParaClient {
 	if cfg.EmptyBlockInterval > 0 {
 		emptyBlockInterval = cfg.EmptyBlockInterval
 	}
+	if cfg.ParaAccount != "" {
+		paraAccount = cfg.ParaAccount
+	}
 
 	plog.Debug("New Para consensus client")
 
@@ -70,7 +75,8 @@ func New(cfg *types.Consensus) *ParaClient {
 	}
 	grpcClient := types.NewGrpcserviceClient(conn)
 
-	para := &ParaClient{c, conn, grpcClient, sync.RWMutex{}, false}
+	para := &ParaClient{c, conn, grpcClient, sync.RWMutex{}, false, nil}
+	para.commitMsgClient = &ParaCommitClient{paraClient: para}
 
 	c.SetChild(para)
 
@@ -118,6 +124,7 @@ func (client *ParaClient) SetQueueClient(c queue.Client) {
 	})
 	go client.EventLoop()
 	go client.CreateBlock()
+	go client.commitMsgClient.handler()
 }
 
 func (client *ParaClient) InitBlock() {
@@ -139,7 +146,7 @@ func (client *ParaClient) InitBlock() {
 		tx := client.CreateGenesisTx()
 		newblock.Txs = tx
 		newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
-		client.WriteBlock(zeroHash[:], newblock, startSeq-int64(1))
+		client.WriteBlock(zeroHash[:], newblock, nil, startSeq-int64(1))
 	} else {
 		client.SetCurrentBlock(block)
 	}
@@ -300,6 +307,8 @@ func (client *ParaClient) RequestTx(currSeq int64) ([]*types.Transaction, *types
 		txs := client.FilterTxsForPara(block.Txs)
 		plog.Info("GetCurrentSeq", "Len of txs", len(txs), "seqTy", seqTy)
 
+		client.commitMsgClient.onMainBlockAdded(block)
+
 		return txs, block, seqTy, nil
 	}
 	plog.Debug("Waiting new sequence from main chain")
@@ -381,7 +390,7 @@ func (client *ParaClient) CreateBlock() {
 				}
 				plog.Info("Create empty block")
 			}
-			err := client.createBlock(lastBlock, txs, currSeq, blockOnMain.BlockTime)
+			err := client.createBlock(lastBlock, txs, currSeq, blockOnMain)
 			incSeqFlag = false
 			if err != nil {
 				plog.Error(fmt.Sprintf("********************err:%v", err.Error()))
@@ -396,7 +405,7 @@ func (client *ParaClient) CreateBlock() {
 	}
 }
 
-func (client *ParaClient) createBlock(lastBlock *types.Block, txs []*types.Transaction, seq int64, blocktime int64) error {
+func (client *ParaClient) createBlock(lastBlock *types.Block, txs []*types.Transaction, seq int64, mainBlock *types.Block) error {
 	var newblock types.Block
 	plog.Debug(fmt.Sprintf("the len txs is: %v", len(txs)))
 	newblock.ParentHash = lastBlock.Hash()
@@ -405,8 +414,8 @@ func (client *ParaClient) createBlock(lastBlock *types.Block, txs []*types.Trans
 	//挖矿固定难度
 	newblock.Difficulty = types.GetP(0).PowLimitBits
 	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
-	newblock.BlockTime = blocktime
-	err := client.WriteBlock(lastBlock.StateHash, &newblock, seq)
+	newblock.BlockTime = mainBlock.BlockTime
+	err := client.WriteBlock(lastBlock.StateHash, &newblock, mainBlock, seq)
 	plog.Debug("para create new Block", "newblock.ParentHash", common.ToHex(newblock.ParentHash),
 		"newblock.Height", newblock.Height,
 		"newblock.TxHash", common.ToHex(newblock.TxHash),
@@ -416,9 +425,14 @@ func (client *ParaClient) createBlock(lastBlock *types.Block, txs []*types.Trans
 }
 
 // 向blockchain写区块
-func (client *ParaClient) WriteBlock(prev []byte, block *types.Block, seq int64) error {
+func (client *ParaClient) WriteBlock(prev []byte, paraBlock *types.Block, mainBlock *types.Block, seq int64) error {
 	plog.Debug("write block in parachain")
-	blockdetail, deltx, err := client.ExecBlock(prev, block)
+	var oriTxHashs [][]byte
+	for _, tx := range paraBlock.Txs {
+		oriTxHashs = append(oriTxHashs, tx.Hash())
+	}
+
+	blockdetail, deltx, err := client.ExecBlock(prev, paraBlock)
 	if len(deltx) > 0 {
 		plog.Warn("parachain receive invalid txs")
 	}
@@ -434,7 +448,18 @@ func (client *ParaClient) WriteBlock(prev []byte, block *types.Block, seq int64)
 	}
 
 	if resp.GetData().(*types.Reply).IsOk {
-		client.SetCurrentBlock(block)
+		client.SetCurrentBlock(paraBlock)
+		if mainBlock != nil && len(paraBlock.Txs) > 0 {
+			commitMsg := &ParaCommitMsg{
+				height:             blockdetail.Block.Height,
+				oriParaTxHashs:     oriTxHashs,
+				mainBlockStateHash: mainBlock.StateHash,
+				block:              blockdetail,
+			}
+			client.commitMsgClient.onBlockAdded(commitMsg)
+
+		}
+
 	} else {
 		reply := resp.GetData().(*types.Reply)
 		return errors.New(string(reply.GetMsg()))
