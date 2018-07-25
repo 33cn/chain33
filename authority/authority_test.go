@@ -11,6 +11,8 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/authority/utils"
+	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/address"
 )
 
 var (
@@ -29,7 +31,15 @@ var (
 	tx11     = &types.Transaction{Execer: []byte("cert"), Payload: types.Encode(transfer), Fee: 450000000, Expire: 0, To: to}
 	tx12     = &types.Transaction{Execer: []byte("cert"), Payload: types.Encode(transfer), Fee: 460000000, Expire: 0, To: to}
 	tx13     = &types.Transaction{Execer: []byte("cert"), Payload: types.Encode(transfer), Fee: 100, Expire: 0, To: to}
-	txs      = []*types.Transaction{tx1, tx2, tx3, tx4, tx5, tx6, tx7, tx8, tx9, tx10, tx11, tx12, tx13}
+	txs      = []*types.Transaction{tx1, tx2, tx3, tx4, tx5, tx6, tx7, tx8, tx9, tx10, tx11, tx12}
+
+	c, _       = crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	a, _       = common.FromHex("CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944")
+	privKey, _ = c.PrivKeyFromBytes(a)
+	toAddr     = address.PubKeyToAddress(privKey.PubKey().Bytes()).String()
+	v          = &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: int64(1e8)}}
+	tx14       = &types.Transaction{Execer: []byte("coins"),
+	                  Payload: types.Encode(&types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}), Fee: 1000000, Expire: 2, To: toAddr}
 )
 
 var USERNAME = "User"
@@ -53,7 +63,8 @@ func signtxs(priv crypto.PrivKey, cert []byte) {
 	signtx(tx10, priv, cert)
 	signtx(tx11, priv, cert)
 	signtx(tx12, priv, cert)
-	signtx(tx13, priv, cert)
+	tx13.Sign(int32(SIGNTYPE), priv)
+	tx14.Sign(types.SECP256K1, privKey)
 }
 
 func initEnv() error {
@@ -127,6 +138,38 @@ func TestChckSigns(t *testing.T) {
 	}
 }
 
+func TestChckSignWithNoneAuth(t *testing.T) {
+	err := initEnv()
+	if err != nil {
+		t.Errorf("init env failed, error:%s", err)
+		return
+	}
+	prev := types.MinFee
+	types.SetMinFee(0)
+	defer types.SetMinFee(prev)
+
+	if !tx14.CheckSign() {
+		t.Error("check signature failed")
+		return
+	}
+}
+
+func TestChckSignWithoutCert(t *testing.T) {
+	err := initEnv()
+	if err != nil {
+		t.Errorf("init env failed, error:%s", err)
+		return
+	}
+	prev := types.MinFee
+	types.SetMinFee(0)
+	defer types.SetMinFee(prev)
+
+	if !tx13.CheckSign() {
+		t.Error("check signature failed")
+		return
+	}
+}
+
 func TestValidateCert(t *testing.T) {
 	err := initEnv()
 	if err != nil {
@@ -144,6 +187,27 @@ func TestValidateCert(t *testing.T) {
 			t.Error("error cert validate", err.Error())
 			return
 		}
+	}
+}
+
+func TestValidateTxWithNoneAuth(t *testing.T) {
+	err := initEnv()
+	if err != nil {
+		t.Errorf("init env failed, error:%s", err)
+		return
+	}
+	noneCertdata := &types.HistoryCertStore{}
+	noneCertdata.CurHeigth = 0
+	Author.ReloadCert(noneCertdata)
+
+	prev := types.MinFee
+	types.SetMinFee(0)
+	defer types.SetMinFee(prev)
+
+	err = Author.Validate(tx14.Signature)
+	if err != nil {
+		t.Error("error cert validate", err.Error())
+		return
 	}
 }
 

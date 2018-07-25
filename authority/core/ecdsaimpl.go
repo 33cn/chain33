@@ -16,6 +16,8 @@ import (
 
 	log "github.com/inconshreveable/log15"
 	ecdsa_util "gitlab.33.cn/chain33/chain33/common/crypto/ecdsa"
+	"gitlab.33.cn/chain33/chain33/authority/utils"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var authLogger = log.New("module", "autority")
@@ -395,4 +397,19 @@ func (validator *ecdsaValidator) getValidityOptsForCert(cert *x509.Certificate) 
 	tempOpts.CurrentTime = cert.NotBefore.Add(time.Second)
 
 	return tempOpts
+}
+
+func (Validator *ecdsaValidator) GetCertFromSignature(signature []byte) ([]byte, error) {
+	cert, _, err := utils.DecodeCertFromSignature(signature)
+	if err != nil {
+		authLogger.Error(fmt.Sprintf("unmashal certificate from signature failed. %s", err.Error()))
+		return nil, err
+	}
+
+	if len(cert) == 0 {
+		authLogger.Error("cert can not be null")
+		return nil, types.ErrInvalidParam
+	}
+
+	return cert, nil
 }

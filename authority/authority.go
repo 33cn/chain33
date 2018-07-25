@@ -241,15 +241,9 @@ func (auth *Authority) task(done <-chan struct{}, taskes <-chan *types.Signature
 */
 func (auth *Authority) Validate(signature *types.Signature) error {
 	// 从proto中解码signature
-	cert, _, err := utils.DecodeCertFromSignature(signature.Signature)
+	cert, err := auth.validator.GetCertFromSignature(signature.Signature)
 	if err != nil {
-		alog.Error(fmt.Sprintf("unmashal certificate from signature failed. %s", err.Error()))
 		return err
-	}
-
-	if len(cert) == 0 {
-		alog.Error("cert can not be null")
-		return types.ErrInvalidParam
 	}
 
 	// 是否在有效证书缓存中
