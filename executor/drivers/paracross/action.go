@@ -139,10 +139,10 @@ func getMostCommit(stat *types.ParacrossHeightStatus) (int, string) {
 	stats := make(map[string]int)
 	n := len(stat.Details.Addrs)
 	for i := 0; i < n; i++ {
-		if _, ok := stats[stat.Details.StateHash[i]]; ok {
-			stats[stat.Details.StateHash[i]]++
+		if _, ok := stats[string(stat.Details.StateHash[i])]; ok {
+			stats[string(stat.Details.StateHash[i])]++
 		} else {
-			stats[stat.Details.StateHash[i]] = 1
+			stats[string(stat.Details.StateHash[i])] = 1
 		}
 	}
 	most := -1
@@ -198,7 +198,7 @@ func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, er
 			Height: commit.Status.Height,
 			Details: &types.ParacrossStatusDetails{
 				Addrs:     []string{a.fromaddr},
-				StateHash: []string{commit.Status.StateHash},
+				StateHash: [][]byte{commit.Status.StateHash},
 			},
 		}
 		receipt = makeCommitReceipt(a.fromaddr, commit, nil, stat)

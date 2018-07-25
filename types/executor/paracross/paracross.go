@@ -107,6 +107,25 @@ func CreateRawParacrossCommitTx(parm *ParacrossCommitTx) (*types.Transaction, er
 	return tx, nil
 }
 
+func CreateRawCommitTx(status *types.ParacrossNodeStatus) *types.Transaction {
+	v := &types.ParacrossCommitAction{
+		Status: status,
+	}
+	action := &types.ParacrossAction{
+		Ty:    ParacrossActionCommit,
+		Value: &types.ParacrossAction_Commit{v},
+	}
+	tx := &types.Transaction{
+		Execer:  []byte(name),
+		Payload: types.Encode(action),
+		Fee:     0,
+		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
+		To:      address.ExecAddress(name),
+	}
+
+	return tx
+}
+
 type ParacrossCommitLog struct {
 }
 
