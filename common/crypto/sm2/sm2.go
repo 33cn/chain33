@@ -55,7 +55,7 @@ func (d Driver) SignatureFromBytes(b []byte) (sig crypto.Signature, err error) {
 	var certSignature crypto.CertSignature
 	_, err = asn1.Unmarshal(b, &certSignature)
 	if err != nil {
-		return nil, err
+		return SignatureSM2(b), nil
 	}
 
 	if len(certSignature.Cert) == 0 {
