@@ -4,8 +4,8 @@ package types;
 
 // stateDB
 message ParacrossStatusDetails {
-    repeated string addrs     = 1;
-    repeated string stateHash = 2;
+    repeated string addrs    = 1;
+    repeated bytes stateHash = 2;
 }
 
 message ParacrossHeightStatus {
@@ -23,10 +23,12 @@ message ParacrossStatus {
 
 // action
 message ParacrossNodeStatus {
-    string title     = 1;
-    int64  height    = 2;
-    string stateHash = 3;
-    // TODO maybe more field needed
+    string title         = 1;
+    int64  height        = 2;
+    bytes  stateHash     = 3;
+    bytes  mainStateHash = 4;
+    uint32 txCounts      = 5;
+    bytes  txResult      = 6;
 }
 
 message ParacrossCommitAction {
@@ -53,7 +55,9 @@ message ReceiptParacrossDone {
     repeated int32 n         = 1;
     string         title     = 2;
     int64          height    = 3;
-    string         stateHash = 4;
+    bytes          stateHash = 4;
+    uint32         txCounts  = 5;
+    bytes          txResult  = 6;
 }
 
 message ReceiptParacrossRecord {
