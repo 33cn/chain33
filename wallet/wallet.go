@@ -33,10 +33,6 @@ var (
 )
 
 const (
-	// 分成3步操作中
-	cacheTxStatus_Created int32 = 10000
-	cacheTxStatus_Signed  int32 = 10001
-	cacheTxStatus_Sent    int32 = 10002
 	// 交易操作的方向
 	AddTx int32 = 20001
 	DelTx int32 = 20002

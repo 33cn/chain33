@@ -1012,7 +1012,7 @@ func (wallet *Wallet) createPrivacy2PublicTx(req *types.ReqCreateTransaction) (*
 		To:      req.GetTo(),
 	}
 	// 创建交易成功，将已经使用掉的UTXO冻结
-	wallet.saveFTXOInfo(req.GetTokenname(), req.GetFrom(), common.Bytes2Hex(tx.Hash()), selectedUtxo)
+	wallet.saveFTXOInfo(tx, req.GetTokenname(), req.GetFrom(), common.Bytes2Hex(tx.Hash()), selectedUtxo)
 	tx.Signature = &types.Signature{
 		Signature: types.Encode(&types.PrivacySignatureParam{
 			ActionType:    action.Ty,
@@ -1074,23 +1074,9 @@ func (wallet *Wallet) procInvalidTxOnTimer(dbbatch db.Batch) error {
 	if header == nil {
 		return nil
 	}
-	// TODO: 这里是逐条进行删除，可以考虑修改为批量删除
-	// 先清理未成功发送的交易
-	caches, err := wallet.walletStore.listCreateTransactionCache("")
-	if err == nil && caches != nil {
-		now := types.Now().UnixNano()
-		for _, cache := range caches {
-			if cache.GetStatus() != cacheTxStatus_Sent &&
-				(cache.GetCreatetime()+int64(types.GetTxTimeInterval())) <= now {
-				walletlog.Info("PrivacyTrading procInvalidTxOnTimer", "Delete expire transaction ", common.Bytes2Hex(cache.Transaction.Hash()))
-				// 交易长时间未发送，已经超时，则直接删除
-				wallet.walletStore.DeleteCreateTransactionCache(cache.Key)
-			}
-		}
-	}
 
 	// 获取已经冻结列表 FTXO，主要由FTXO列表和回退FTXO列表组成
-	curFTXOTxs, _, err := wallet.walletStore.GetWalletFtxoStxo(FTXOs4Tx)
+	curFTXOTxs, _, _ := wallet.walletStore.GetWalletFtxoStxo(FTXOs4Tx)
 	revertFTXOTxs, _, _ := wallet.walletStore.GetWalletFtxoStxo(RevertSendtx)
 	var keys [][]byte
 	for _, ftxo := range curFTXOTxs {
@@ -1101,77 +1087,18 @@ func (wallet *Wallet) procInvalidTxOnTimer(dbbatch db.Batch) error {
 	}
 	curFTXOTxs = append(curFTXOTxs, revertFTXOTxs...)
 	for i, ftxo := range curFTXOTxs {
-		txhash := ftxo.Txhash
-		dbkey := calcCreateTxKey(ftxo.Tokenname, txhash)
-		cache, _ := wallet.walletStore.GetCreateTransactionCache(dbkey)
-
-		if cache != nil && cache.GetStatus() == cacheTxStatus_Sent || ftxo.IsExpire(header.Height, header.BlockTime) {
-			// 交易已经发送或交易对应的FTXO已经过期，需要移除缓存交易
-			wallet.walletStore.DeleteCreateTransactionCache(cache.Key)
-			walletlog.Info("PrivacyTrading procInvalidTxOnTimer", "delete cache transaction txhash", common.Bytes2Hex(cache.Transaction.Hash()),
-				"status", cache.GetStatus(), "ftxo.IsExpire", ftxo.IsExpire(header.Height, header.BlockTime))
-			cache = nil
-		}
-
-		if cache == nil && ftxo.IsExpire(header.Height, header.BlockTime) {
-			walletlog.Info("PrivacyTrading procInvalidTxOnTimer", "moveFTXO2UTXO key", string(keys[i]), "ftxo.IsExpire", ftxo.IsExpire(header.Height, header.BlockTime))
-			wallet.walletStore.moveFTXO2UTXO(keys[i], dbbatch,
-				func(txhash []byte) bool {
-					// do not add to UTXO list if transaction is not existed.
-					_, err := wallet.api.QueryTx(&types.ReqHash{Hash: txhash})
-					return err == nil
-				})
-		}
-	}
-	return nil
-}
-
-func (wallet *Wallet) procReqCacheTxList(req *types.ReqCacheTxList) (*types.ReplyCacheTxList, error) {
-	wallet.mtx.Lock()
-	defer wallet.mtx.Unlock()
-
-	caches, err := wallet.walletStore.listCreateTransactionCache(req.GetTokenname())
-	if err != nil {
-		return nil, err
-	}
-	replyTxLis := types.ReplyCacheTxList{}
-	addr := req.Addr
-
-	for _, cache := range caches {
-		if cache.Sender != addr {
+		if !ftxo.IsExpire(header.Height, header.BlockTime) {
 			continue
 		}
-		replyTxLis.Txs = append(replyTxLis.Txs, cache.GetTransaction())
+		walletlog.Info("PrivacyTrading procInvalidTxOnTimer", "moveFTXO2UTXO key", string(keys[i]), "ftxo.IsExpire", ftxo.IsExpire(header.Height, header.BlockTime))
+		wallet.walletStore.moveFTXO2UTXO(keys[i], dbbatch,
+			func(txhash []byte) bool {
+				// do not add to UTXO list if transaction is not existed.
+				_, err := wallet.api.QueryTx(&types.ReqHash{Hash: txhash})
+				return err == nil
+			})
 	}
-
-	return &replyTxLis, nil
-}
-
-func (wallet *Wallet) procDeleteCacheTransaction(req *types.ReqCreateCacheTxKey) (*types.ReplyHash, error) {
-	wallet.mtx.Lock()
-	defer wallet.mtx.Unlock()
-	if req == nil {
-		return nil, types.ErrInvalidParams
-	}
-
-	txhash := common.Bytes2Hex(req.GetHashkey())
-	dbkey := calcCreateTxKey(req.Tokenname, txhash)
-	cache, err := wallet.walletStore.GetCreateTransactionCache(dbkey)
-	if err != nil {
-		return nil, err
-	}
-	wallet.walletStore.DeleteCreateTransactionCache(cache.Key)
-
-	dbbatch := wallet.walletStore.NewBatch(true)
-	wallet.walletStore.moveFTXO2UTXO(
-		calcKey4FTXOsInTx(cache.Tokenname, cache.Sender, txhash), dbbatch,
-		func(txhash []byte) bool {
-			_, err := wallet.api.QueryTx(&types.ReqHash{Hash: txhash})
-			return err == nil
-		})
-	dbbatch.Write()
-
-	return &types.ReplyHash{Hash: req.GetHashkey()}, nil
+	return nil
 }
 
 func (w *Wallet) procPrivacyAccountInfo(req *types.ReqPPrivacyAccount) (*types.ReplyPrivacyAccount, error) {
