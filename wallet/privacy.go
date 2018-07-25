@@ -1050,8 +1050,7 @@ func (wallet *Wallet) signTxWithPrivacy(key crypto.PrivKey, req *types.ReqSignRa
 		// 隐私交易的公对私动作，不存在交易组的操作
 		tx.Sign(int32(SignType), key)
 
-	case types.ActionPrivacy2Privacy:
-	case types.ActionPrivacy2Public:
+	case types.ActionPrivacy2Privacy, types.ActionPrivacy2Public:
 		if err = wallet.signatureTx(tx, action.GetInput(), signParam.GetUtxobasics(), signParam.GetRealKeyInputs()); err != nil {
 			return "", err
 		}
