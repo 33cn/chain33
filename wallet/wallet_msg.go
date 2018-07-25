@@ -158,11 +158,13 @@ func (wallet *Wallet) ProcRecvMsg() {
 
 		case types.EventAddBlock:
 			block := msg.Data.(*types.BlockDetail)
+			wallet.updateLastHeader(block, 1)
 			wallet.ProcWalletAddBlock(block)
 			walletlog.Debug("wallet add block --->", "height", block.Block.GetHeight())
 
 		case types.EventDelBlock:
 			block := msg.Data.(*types.BlockDetail)
+			wallet.updateLastHeader(block, -1)
 			wallet.ProcWalletDelBlock(block)
 			walletlog.Debug("wallet del block --->", "height", block.Block.GetHeight())
 
