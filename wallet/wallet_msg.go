@@ -336,29 +336,6 @@ func (wallet *Wallet) ProcRecvMsg() {
 				walletlog.Info("procCreateTransaction", "tx hash", common.Bytes2Hex(reply.Hash()), "result", "success")
 				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyCreateTransaction, reply))
 			}
-		case types.EventQueryCacheTransaction:
-			req := msg.Data.(*types.ReqCacheTxList)
-			reply, err := wallet.procReqCacheTxList(req)
-			if err != nil {
-				walletlog.Error("procReqCacheTxList", "err", err.Error())
-				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyQueryCacheTransaction, err))
-			} else {
-				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyQueryCacheTransaction, reply))
-			}
-		case types.EventDeleteCacheTransaction:
-			req := msg.Data.(*types.ReqCreateCacheTxKey)
-			replyHash, err := wallet.procDeleteCacheTransaction(req)
-			var reply types.Reply
-			if err != nil {
-				reply.IsOk = false
-				walletlog.Error("procDeleteCacheTransaction", "err", err.Error())
-				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyDeleteCacheTransaction, err))
-			} else {
-				reply.IsOk = true
-				reply.Msg = replyHash.Hash
-				walletlog.Info("procDeleteCacheTransaction", "tx hash", common.Bytes2Hex(replyHash.Hash), "result", "success")
-				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyDeleteCacheTransaction, &reply))
-			}
 		case types.EventPrivacyAccountInfo:
 			req := msg.Data.(*types.ReqPPrivacyAccount)
 			reply, err := wallet.procPrivacyAccountInfo(req)
