@@ -23,18 +23,16 @@ var (
 )
 
 const (
-	Privacy4Addr       = "Privacy4Addr-"
-	PrivacyUTXO        = "UTXO-"
-	PrivacySTXO        = "STXO-"
-	PrivacyTokenMap    = "PrivacyTokenMap"
-	FTXOTimeout        = types.ConfirmedHeight * types.BlockDurPerSecCnt //Ftxo超时时间
-	FTXOTimeout4Revert = 256 * types.BlockDurPerSecCnt                   //revert Ftxo超时时间
-	FTXOs4Tx           = "FTXOs4Tx"
-	STXOs4Tx           = "STXOs4Tx"
-	RevertSendtx       = "RevertSendtx"
-	RecvPrivacyTx      = "RecvPrivacyTx"
-	SendPrivacyTx      = "SendPrivacyTx"
-	ScanPrivacyInput   = "ScanPrivacyInput-"
+	Privacy4Addr     = "Privacy4Addr-"
+	PrivacyUTXO      = "UTXO-"
+	PrivacySTXO      = "STXO-"
+	PrivacyTokenMap  = "PrivacyTokenMap"
+	FTXOs4Tx         = "FTXOs4Tx"
+	STXOs4Tx         = "STXOs4Tx"
+	RevertSendtx     = "RevertSendtx"
+	RecvPrivacyTx    = "RecvPrivacyTx"
+	SendPrivacyTx    = "SendPrivacyTx"
+	ScanPrivacyInput = "ScanPrivacyInput-"
 )
 
 type Store struct {
