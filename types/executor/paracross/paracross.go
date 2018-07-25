@@ -22,11 +22,16 @@ const (
 	ParacrossStatusCommitDone
 )
 
-const name = "paracross"
+const orgName = "paracross"
 
-var glog = log.New("module", name)
+var name string
+
+
+
+var glog = log.New("module", orgName)
 
 func Init() {
+	name = types.ExecName(orgName)
 	// init executor type
 	types.RegistorExecutor(name, &ParacrossType{})
 
@@ -35,7 +40,9 @@ func Init() {
 	types.RegistorLog(types.TyLogParacrossDone, &ParacrossDoneLog{})
 
 	// init query rpc
-	types.RegistorRpcType("ParacrossGetHeight", &ParacrossGetHeight{})
+	types.RegistorRpcType("ParacrossGetTitle", &ParacrossGetTitle{})
+	types.RegistorRpcType("ParacrossListTitles", &ParacrossListTitles{})
+	types.RegistorRpcType("ParacrossGetTitleHeight", &ParacrossGetTitleHeight{})
 }
 
 type ParacrossType struct {
@@ -132,10 +139,10 @@ func (l ParacrossDoneLog) Decode(msg []byte) (interface{}, error) {
 	return logTmp, err
 }
 
-type ParacrossGetHeight struct {
+type ParacrossGetTitle struct {
 }
 
-func (t *ParacrossGetHeight) Input(message json.RawMessage) ([]byte, error) {
+func (t *ParacrossGetTitle) Input(message json.RawMessage) ([]byte, error) {
 	var req types.ReqStr
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -144,6 +151,34 @@ func (t *ParacrossGetHeight) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *ParacrossGetHeight) Output(reply interface{}) (interface{}, error) {
+func (t *ParacrossGetTitle) Output(reply interface{}) (interface{}, error) {
+	return reply, nil
+}
+
+type ParacrossListTitles struct {
+}
+
+func (t *ParacrossListTitles) Input(message json.RawMessage) ([]byte, error) {
+	var req types.ReqNil
+	return types.Encode(&req), nil
+}
+
+func (t *ParacrossListTitles) Output(reply interface{}) (interface{}, error) {
+	return reply, nil
+}
+
+type ParacrossGetTitleHeight struct {
+}
+
+func (t *ParacrossGetTitleHeight) Input(message json.RawMessage) ([]byte, error) {
+	var req types.ReqParacrossTitleHeight
+	err := json.Unmarshal(message, &req)
+	if err != nil {
+		return nil, err
+	}
+	return types.Encode(&req), nil
+}
+
+func (t *ParacrossGetTitleHeight) Output(reply interface{}) (interface{}, error) {
 	return reply, nil
 }
