@@ -72,7 +72,7 @@ func (q *QueueProtocol) query(topic string, ty int64, data interface{}) (queue.M
 func (q *QueueProtocol) notify(topic string, ty int64, data interface{}) (queue.Message, error) {
 	client := q.client
 	msg := client.NewMessage(topic, ty, data)
-	err := client.SendTimeout(msg, true, q.option.SendTimeout)
+	err := client.SendTimeout(msg, false, q.option.SendTimeout)
 	if err != nil {
 		return queue.Message{}, err
 	}
@@ -806,6 +806,7 @@ func (q *QueueProtocol) ShowPrivacyAccountSpend(param *types.ReqPrivBal4AddrToke
 func (q *QueueProtocol) CloseQueue() (*types.Reply, error) {
 	return q.client.CloseQueue()
 }
+
 func (q *QueueProtocol) GetLastBlockSequence() (*types.Int64, error) {
 	msg, err := q.query(blockchainKey, types.EventGetLastBlockSequence, &types.ReqNil{})
 	if err != nil {
