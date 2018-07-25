@@ -75,6 +75,7 @@ type Wallet struct {
 	done             chan struct{}
 	rescanwg         *sync.WaitGroup
 	rescanUTXOflag   int32
+	lastHeader       *types.Header
 }
 
 type walletUTXO struct {
@@ -416,4 +417,27 @@ func (wallet *Wallet) reScanWalletUtxos() {
 func (wallet *Wallet) RescanReqUtxosByAddr(addr string) {
 	defer wallet.wg.Done()
 	wallet.reqUtxosByAddr(addr)
+}
+
+func (wallet *Wallet) updateLastHeader(block *types.BlockDetail, mode int) error {
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+	header, err := wallet.api.GetLastHeader()
+	if err != nil {
+		return err
+	}
+	if block != nil {
+		if mode == 1 && block.Block.Height > header.Height {
+			wallet.lastHeader = &types.Header{
+				BlockTime: block.Block.BlockTime,
+				Height:    block.Block.Height,
+				StateHash: block.Block.StateHash,
+			}
+		} else if mode == -1 && wallet.lastHeader != nil && wallet.lastHeader.Height == block.Block.Height {
+			wallet.lastHeader = header
+		}
+	} else {
+		wallet.lastHeader = header
+	}
+	return nil
 }
