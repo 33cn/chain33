@@ -87,6 +87,7 @@ func createContract(cmd *cobra.Command, args []string) {
 	alias, _ := cmd.Flags().GetString("alias")
 	fee, _ := cmd.Flags().GetFloat64("fee")
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	paraName, _ := cmd.Flags().GetString("paraName")
 
 	feeInt64 := uint64(fee*1e4) * 1e4
 
@@ -97,7 +98,7 @@ func createContract(cmd *cobra.Command, args []string) {
 	}
 	action := types.EVMContractAction{Amount: 0, Code: bCode, GasLimit: 0, GasPrice: 0, Note: note, Alias: alias}
 
-	data, err := createEvmTx(&action, "evm", caller, address.ExecAddress("evm"), expire, rpcLaddr, feeInt64)
+	data, err := createEvmTx(&action, types.ExecName(paraName+"evm"), caller, address.ExecAddress(types.ExecName(paraName+"evm")), expire, rpcLaddr, feeInt64)
 
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "create contract error:", err)
@@ -215,6 +216,7 @@ func callContract(cmd *cobra.Command, args []string) {
 	fee, _ := cmd.Flags().GetFloat64("fee")
 	name, _ := cmd.Flags().GetString("exec")
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	paraName, _ := cmd.Flags().GetString("paraName")
 
 	amountInt64 := uint64(amount*1e4) * 1e4
 	feeInt64 := uint64(fee*1e4) * 1e4
