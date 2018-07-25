@@ -243,9 +243,13 @@ func (wallet *Wallet) transPub2PriV2(priv crypto.PrivKey, reqPub2Pri *types.ReqP
 	}
 	var hash types.ReplyHash
 	hash.Hash = tx.Hash()
+
+	walletlog.Debug("PrivacyTrading", "transPub2PriV2 txhash", common.Bytes2Hex(hash.Hash))
 	return &hash, nil
 }
 
+// genCustomOuts 构建一个交易的输出
+// 构建方式是，P=Hs(rA)G+B
 func genCustomOuts(viewpubTo, spendpubto *[32]byte, transAmount int64, count int32) (*types.PrivacyOutput, error) {
 	decomDigit := make([]int64, count)
 	for i := range decomDigit {
@@ -451,7 +455,8 @@ func (wallet *Wallet) transPri2PriV2(privacykeyParirs *privacy.Privacy, reqPri2P
 	}
 	var hash types.ReplyHash
 	hash.Hash = tx.Hash()
-	wallet.saveFTXOInfo(reqPri2Pri.Tokenname, reqPri2Pri.Sender, common.Bytes2Hex(hash.Hash), selectedUtxo)
+	wallet.saveFTXOInfo(tx, reqPri2Pri.Tokenname, reqPri2Pri.Sender, common.Bytes2Hex(hash.Hash), selectedUtxo)
+	walletlog.Debug("PrivacyTrading", "transPri2PriV2 txhash", common.Bytes2Hex(hash.Hash))
 	return &hash, nil
 }
 
@@ -521,17 +526,25 @@ func (wallet *Wallet) transPri2PubV2(privacykeyParirs *privacy.Privacy, reqPri2P
 	var hash types.ReplyHash
 	hash.Hash = tx.Hash()
 
-	wallet.saveFTXOInfo(reqPri2Pub.Tokenname, reqPri2Pub.Sender, common.Bytes2Hex(hash.Hash), selectedUtxo)
+	wallet.saveFTXOInfo(tx, reqPri2Pub.Tokenname, reqPri2Pub.Sender, common.Bytes2Hex(hash.Hash), selectedUtxo)
+	walletlog.Debug("PrivacyTrading", "transPri2PubV2 txhash", common.Bytes2Hex(hash.Hash))
 	return &hash, nil
 }
 
-func (wallet *Wallet) saveFTXOInfo(token, sender, txhash string, selectedUtxos []*txOutputInfo) {
+func (wallet *Wallet) saveFTXOInfo(tx *types.Transaction, token, sender, txhash string, selectedUtxos []*txOutputInfo) {
 	//将已经作为本次交易输入的utxo进行冻结，防止产生双花交易
-	wallet.walletStore.moveUTXO2FTXO(token, sender, txhash, selectedUtxos)
+	wallet.walletStore.moveUTXO2FTXO(tx, token, sender, txhash, selectedUtxos)
 	//TODO:需要加入超时处理，需要将此处的txhash写入到数据库中，以免钱包瞬间奔溃后没有对该笔隐私交易的记录，
 	//TODO:然后当该交易得到执行之后，没法将FTXO转化为STXO，added by hezhengjun on 2018.6.5
 }
 
+/*
+buildInput 构建隐私交易的输入信息
+操作步骤
+	1.从当前钱包中选择可用并且足够支付金额的UTXO列表
+	2.如果需要混淆(mixcout>0)，则根据UTXO的金额从数据库中获取足够数量的UTXO，与当前UTXO进行混淆
+	3.通过公式 x=Hs(aR)+b，计算出一个整数，因为 xG = Hs(ar)G+bG = Hs(aR)G+B，所以可以继续使用这笔交易
+*/
 func (wallet *Wallet) buildInput(privacykeyParirs *privacy.Privacy, buildInfo *buildInputInfo) (*types.PrivacyInput, []*types.UTXOBasics, []*types.RealKeyInput, []*txOutputInfo, error) {
 	//挑选满足额度的utxo
 	selectedUtxo, err := wallet.selectUTXO(buildInfo.tokenname, buildInfo.sender, buildInfo.amount)
@@ -664,19 +677,7 @@ func (wallet *Wallet) buildInput(privacykeyParirs *privacy.Privacy, buildInfo *b
 	return privacyInput, utxosInKeyInput, realkeyInputSlice, selectedUtxo, nil
 }
 
-type walletUTXOSlice []*walletUTXO
-
-func (slice walletUTXOSlice) Len() int { // 重写 Len() 方法
-	return len(slice)
-}
-func (slice walletUTXOSlice) Swap(i, j int) { // 重写 Swap() 方法
-	slice[i], slice[j] = slice[j], slice[i]
-}
-func (slice walletUTXOSlice) Less(i, j int) bool { // 重写 Less() 方法， 从大到小排序
-	return slice[j].height < slice[i].height
-}
-
-// TODO: 修改选择UTXO的算法
+// 修改选择UTXO的算法
 // 优先选择UTXO高度与当前高度建个12个区块以上的UTXO
 // 如果选择还不够则再从老到新选择12个区块内的UTXO
 // 当该地址上的可用UTXO比较多时，可以考虑改进算法，优先选择币值小的，花掉小票，然后再选择币值接近的，减少找零，最后才选择大面值的找零
@@ -705,7 +706,9 @@ func (wallet *Wallet) selectUTXO(token, addr string, amount int64) ([]*txOutputI
 	if balance < amount && len(unconfirmUTXOs) > 0 {
 		// 已经确认的UTXO还不够支付，则需要按照从老到新的顺序，从可能回退的队列中获取
 		// 高度从低到高获取
-		sort.Sort(walletUTXOSlice(unconfirmUTXOs))
+		sort.Slice(unconfirmUTXOs, func(i, j int) bool {
+			return unconfirmUTXOs[i].height < unconfirmUTXOs[j].height
+		})
 		for _, wutxo := range unconfirmUTXOs {
 			confirmUTXOs = append(confirmUTXOs, wutxo)
 			balance += wutxo.outinfo.amount
@@ -940,7 +943,7 @@ func (wallet *Wallet) createPrivacy2PrivacyTx(req *types.ReqCreateTransaction) (
 		To:      address.ExecAddress(types.PrivacyX),
 	}
 	// 创建交易成功，将已经使用掉的UTXO冻结
-	wallet.saveFTXOInfo(req.GetTokenname(), req.GetFrom(), common.Bytes2Hex(tx.Hash()), selectedUtxo)
+	wallet.saveFTXOInfo(tx, req.GetTokenname(), req.GetFrom(), common.Bytes2Hex(tx.Hash()), selectedUtxo)
 	tx.Signature = &types.Signature{
 		Signature: types.Encode(&types.PrivacySignatureParam{
 			ActionType:    action.Ty,
@@ -1067,6 +1070,26 @@ func (wallet *Wallet) procInvalidTxOnTimer(dbbatch db.Batch) error {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
 
+	header := wallet.lastHeader
+	if header == nil {
+		return nil
+	}
+	// TODO: 这里是逐条进行删除，可以考虑修改为批量删除
+	// 先清理未成功发送的交易
+	caches, err := wallet.walletStore.listCreateTransactionCache("")
+	if err == nil && caches != nil {
+		now := types.Now().UnixNano()
+		for _, cache := range caches {
+			if cache.GetStatus() != cacheTxStatus_Sent &&
+				(cache.GetCreatetime()+int64(types.GetTxTimeInterval())) <= now {
+				walletlog.Info("PrivacyTrading procInvalidTxOnTimer", "Delete expire transaction ", common.Bytes2Hex(cache.Transaction.Hash()))
+				// 交易长时间未发送，已经超时，则直接删除
+				wallet.walletStore.DeleteCreateTransactionCache(cache.Key)
+			}
+		}
+	}
+
+	// 获取已经冻结列表 FTXO，主要由FTXO列表和回退FTXO列表组成
 	curFTXOTxs, _, err := wallet.walletStore.GetWalletFtxoStxo(FTXOs4Tx)
 	revertFTXOTxs, _, _ := wallet.walletStore.GetWalletFtxoStxo(RevertSendtx)
 	var keys [][]byte
@@ -1074,17 +1097,91 @@ func (wallet *Wallet) procInvalidTxOnTimer(dbbatch db.Batch) error {
 		keys = append(keys, calcKey4FTXOsInTx(ftxo.Tokenname, ftxo.Sender, ftxo.Txhash))
 	}
 	for _, ftxo := range revertFTXOTxs {
-		walletlog.Info("procInvalidTxOnTimer", "tx hash ", ftxo.Txhash, "Sender", ftxo.Sender)
 		keys = append(keys, calcRevertSendTxKey(ftxo.Tokenname, ftxo.Sender, ftxo.Txhash))
 	}
 	curFTXOTxs = append(curFTXOTxs, revertFTXOTxs...)
-	return err
+	for i, ftxo := range curFTXOTxs {
+		txhash := ftxo.Txhash
+		dbkey := calcCreateTxKey(ftxo.Tokenname, txhash)
+		cache, _ := wallet.walletStore.GetCreateTransactionCache(dbkey)
+
+		if cache != nil && cache.GetStatus() == cacheTxStatus_Sent || ftxo.IsExpire(header.Height, header.BlockTime) {
+			// 交易已经发送或交易对应的FTXO已经过期，需要移除缓存交易
+			wallet.walletStore.DeleteCreateTransactionCache(cache.Key)
+			walletlog.Info("PrivacyTrading procInvalidTxOnTimer", "delete cache transaction txhash", common.Bytes2Hex(cache.Transaction.Hash()),
+				"status", cache.GetStatus(), "ftxo.IsExpire", ftxo.IsExpire(header.Height, header.BlockTime))
+			cache = nil
+		}
+
+		if cache == nil && ftxo.IsExpire(header.Height, header.BlockTime) {
+			walletlog.Info("PrivacyTrading procInvalidTxOnTimer", "moveFTXO2UTXO key", string(keys[i]), "ftxo.IsExpire", ftxo.IsExpire(header.Height, header.BlockTime))
+			wallet.walletStore.moveFTXO2UTXO(keys[i], dbbatch,
+				func(txhash []byte) bool {
+					// do not add to UTXO list if transaction is not existed.
+					_, err := wallet.api.QueryTx(&types.ReqHash{Hash: txhash})
+					return err == nil
+				})
+		}
+	}
+	return nil
+}
+
+func (wallet *Wallet) procReqCacheTxList(req *types.ReqCacheTxList) (*types.ReplyCacheTxList, error) {
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+
+	caches, err := wallet.walletStore.listCreateTransactionCache(req.GetTokenname())
+	if err != nil {
+		return nil, err
+	}
+	replyTxLis := types.ReplyCacheTxList{}
+	addr := req.Addr
+
+	for _, cache := range caches {
+		if cache.Sender != addr {
+			continue
+		}
+		replyTxLis.Txs = append(replyTxLis.Txs, cache.GetTransaction())
+	}
+
+	return &replyTxLis, nil
+}
+
+func (wallet *Wallet) procDeleteCacheTransaction(req *types.ReqCreateCacheTxKey) (*types.ReplyHash, error) {
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+	if req == nil {
+		return nil, types.ErrInvalidParams
+	}
+
+	txhash := common.Bytes2Hex(req.GetHashkey())
+	dbkey := calcCreateTxKey(req.Tokenname, txhash)
+	cache, err := wallet.walletStore.GetCreateTransactionCache(dbkey)
+	if err != nil {
+		return nil, err
+	}
+	wallet.walletStore.DeleteCreateTransactionCache(cache.Key)
+
+	dbbatch := wallet.walletStore.NewBatch(true)
+	wallet.walletStore.moveFTXO2UTXO(
+		calcKey4FTXOsInTx(cache.Tokenname, cache.Sender, txhash), dbbatch,
+		func(txhash []byte) bool {
+			_, err := wallet.api.QueryTx(&types.ReqHash{Hash: txhash})
+			return err == nil
+		})
+	dbbatch.Write()
+
+	return &types.ReplyHash{Hash: req.GetHashkey()}, nil
 }
 
 func (w *Wallet) procPrivacyAccountInfo(req *types.ReqPPrivacyAccount) (*types.ReplyPrivacyAccount, error) {
 	w.mtx.Lock()
 	defer w.mtx.Unlock()
 
+	return w.getPrivacyAccountInfo(req)
+}
+
+func (w *Wallet) getPrivacyAccountInfo(req *types.ReqPPrivacyAccount) (*types.ReplyPrivacyAccount, error) {
 	addr := req.GetAddr()
 	token := req.GetToken()
 	reply := &types.ReplyPrivacyAccount{}
@@ -1200,7 +1297,10 @@ func makeViewSpendPubKeyPairToString(viewPubKey, spendPubKey []byte) string {
 func (wallet *Wallet) getPrivacyKeyPairsOfWallet() ([]addrAndprivacy, error) {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
+	return wallet.getPrivacyKeyPairsOfWalletNolock()
+}
 
+func (wallet *Wallet) getPrivacyKeyPairsOfWalletNolock() ([]addrAndprivacy, error) {
 	//通过Account前缀查找获取钱包中的所有账户信息
 	WalletAccStores, err := wallet.walletStore.GetAccountByPrefix("Account")
 	if err != nil || len(WalletAccStores) == 0 {
@@ -1515,5 +1615,124 @@ func (wallet *Wallet) DeleteScanPrivacyInputUtxo() {
 			break
 		}
 	}
+
+}
+
+func (wallet *Wallet) updateWalletPrivacyAccountUTXO(action *types.PrivacyAction, execOK bool, newbatch db.Batch, addDelType int32) {
+	privAccInfo, err := wallet.getPrivacyKeyPairsOfWallet()
+	if err != nil {
+		return
+	}
+	output := action.GetOutput()
+	rpubkey := output.GetRpubKeytx()
+	//tokenname := action.GetTokenName()
+	for _, info := range privAccInfo {
+		keyPair := info.PrivacyKeyPair
+		// 遍历交易中的所有输入
+		//if action.Ty != types.ActionPublic2Privacy {
+		//	for index, input := range action.GetInput() {
+		//
+		//	}
+		//}
+		// 遍历交易中的所有输出
+		for index, keyoutput := range output.Keyoutput {
+			oneTimePrivKey, err := privacy.RecoverOnetimePriKey(rpubkey, keyPair.ViewPrivKey, keyPair.SpendPrivKey, int64(index))
+			if err != nil {
+				walletlog.Error("updateWalletPrivacyAccountUTXO", "RecoverOnetimePriKey error ", err)
+				return
+			}
+			oneTimePubKey := oneTimePrivKey.PubKey()
+			if !bytes.Equal(oneTimePubKey.Bytes(), keyoutput.Onetimepubkey) {
+				// 只有 P' == P 才需要处理
+				continue
+			}
+
+			if execOK {
+				// 处理执行成功的交易，
+				if addDelType == AddTx {
+					// 交易被确认
+
+				} else {
+					// 交易被回退
+				}
+			} else {
+				// 处理执行失败的交易，需要将FTXO回退到UTXO
+			}
+		}
+	}
+}
+
+func (wallet *Wallet) updateWalletPrivacyTxDetail(action *types.PrivacyAction, execOK bool, newbatch db.Batch, addDelType int32) {
+	if addDelType == AddTx {
+		// 交易被确认
+		if action.Ty != types.ActionPublic2Privacy {
+			// 遍历所有UTXO的输入
+			//for index, input := range action.GetInput() {
+			//
+			//}
+		}
+
+	} else {
+		// 交易被回退
+
+	}
+}
+
+// onAddPrivacyTxFromBlock 当区块发送变化增加时，需要更新隐私交易相关的信息
+// 	区块被增加，表示区块中的交易被确认，需要执行以下步骤
+//	1.检查区块交易的输入，确认是否是隐私交易，如果不是则不需要处理
+// 	2.检查该交易是否是发给当前钱包账户，如果是则需要将该交易中的输出加入到当前钱包账户的可用UTXO中
+// 	3.检查所有UTXO、FTXO，将交易哈希相同的UTXO更新到STXO队列中
+func (wallet *Wallet) onAddPrivacyTxFromBlock(tx *types.Transaction, index int32, block *types.BlockDetail, newbatch db.Batch) {
+	_, err := tx.Amount()
+	if err != nil {
+		walletlog.Error("onAddPrivacyTxFromBlock", "Amount error", err)
+		return
+	}
+	action := new(types.PrivacyAction)
+	if err := types.Decode(tx.GetPayload(), action); err != nil {
+		walletlog.Error("onAddPrivacyTxFromBlock", "Decode error", err)
+		return
+	}
+	exeOK := block.Receipts[index].Ty == types.ExecOk
+	wallet.updateWalletPrivacyAccountUTXO(action, exeOK, newbatch, AddTx)
+	wallet.updateWalletPrivacyTxDetail(action, exeOK, newbatch, AddTx)
+}
+
+// onDelPrivacyTxFromBlock 当区块发送变化回退时，需要更新隐私交易相关的信息
+//	区块被回滚，表示节点区块链有分叉，需要切换主链。从分叉点到当前最新区块的所有交易都需要回退到交易池重新进行打包确认
+//	在这个过程中，重新放入交易池的交易可能因为过期，导致不会被放入交易池；也有可能因为该交易已经被打包到了其他区块上
+//	交易重新被打包确认时，系统不再保证交易的时序性，会导致关联交易可能出现执行失败的情况
+//	1.检查区块交易的输入，确认是否是隐私交易，如果不是则不需要处理
+//	2.检查该交易是否是发给当前钱包账户，如果是则需要
+func (wallet *Wallet) onDelPrivacyTxFromBlock(tx *types.Transaction, index int32, block *types.BlockDetail, newbatch db.Batch) {
+	_, err := tx.Amount()
+	if err != nil {
+		walletlog.Error("onDelPrivacyTxFromBlock", "Amount error", err)
+		return
+	}
+	action := new(types.PrivacyAction)
+	if err := types.Decode(tx.GetPayload(), action); err != nil {
+		walletlog.Error("onDelPrivacyTxFromBlock", "Decode error", err)
+		return
+	}
+	exeOK := block.Receipts[index].Ty == types.ExecOk
+	wallet.updateWalletPrivacyAccountUTXO(action, exeOK, newbatch, DelTx)
+	wallet.updateWalletPrivacyTxDetail(action, exeOK, newbatch, DelTx)
+}
+
+func (wallet *Wallet) calcPrivacyBalace(addr, token string) (uamout int64, famout int64) {
+	painfo, _ := wallet.getPrivacyAccountInfo(&types.ReqPPrivacyAccount{
+		Addr:        addr,
+		Token:       token,
+		Displaymode: 0,
+	})
+	for _, utxo := range painfo.Utxos.Utxos {
+		uamout += utxo.Amount
+	}
+	for _, utxo := range painfo.Ftxos.Utxos {
+		famout += utxo.Amount
+	}
+	return
 
 }
