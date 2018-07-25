@@ -489,11 +489,6 @@ message ReplyBindMiner {
     string txHex = 1;
 }
 
-message ReqNotifySendTxResult {
-    bool        isok = 1;
-    Transaction tx   = 2;
-}
-
 // get privacy transaction list in wallet
 message ReqPrivacyTransactionList {
     // support BTY

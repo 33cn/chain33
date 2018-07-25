@@ -95,16 +95,6 @@ func (c *Chain33) SendTransaction(in RawParm, result *interface{}) error {
 	if err == nil {
 		*result = common.ToHex(reply.GetMsg())
 	}
-	isok := false
-	if reply != nil {
-		isok = reply.IsOk
-	}
-	if bytes.Equal(parm.Execer, types.ExecerPrivacy) {
-		c.cli.NotifySendTxResult(&types.ReqNotifySendTxResult{
-			Isok: isok,
-			Tx:   &parm,
-		})
-	}
 	return err
 }
 

@@ -10,16 +10,7 @@ import (
 )
 
 func (g *Grpc) SendTransaction(ctx context.Context, in *pb.Transaction) (*pb.Reply, error) {
-	reply, err := g.cli.SendTx(in)
-	isok := false
-	if reply != nil {
-		isok = reply.IsOk
-	}
-	g.cli.NotifySendTxResult(&pb.ReqNotifySendTxResult{
-		Isok: isok,
-		Tx:   in,
-	})
-	return reply, err
+	return g.cli.SendTx(in)
 }
 
 func (g *Grpc) CreateNoBalanceTransaction(ctx context.Context, in *pb.NoBalanceTx) (*pb.ReplySignRawTx, error) {
