@@ -363,7 +363,6 @@ func addTokenPrecreatedFlags(cmd *cobra.Command) {
 	cmd.MarkFlagRequired("total")
 
 	cmd.Flags().Float64P("fee", "f", 0, "token transaction fee")
-	cmd.MarkFlagRequired("fee")
 }
 
 func tokenPrecreated(cmd *cobra.Command, args []string) {
@@ -413,7 +412,6 @@ func addTokenFinishFlags(cmd *cobra.Command) {
 	cmd.MarkFlagRequired("symbol")
 
 	cmd.Flags().Float64P("fee", "f", 0, "token transaction fee")
-	cmd.MarkFlagRequired("fee")
 }
 
 func tokenFinish(cmd *cobra.Command, args []string) {
@@ -454,7 +452,6 @@ func addTokenRevokeFlags(cmd *cobra.Command) {
 	cmd.MarkFlagRequired("symbol")
 
 	cmd.Flags().Float64P("fee", "f", 0, "token transaction fee")
-	cmd.MarkFlagRequired("fee")
 }
 
 func tokenRevoke(cmd *cobra.Command, args []string) {
