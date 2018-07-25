@@ -178,6 +178,8 @@ func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, er
 	if err != nil {
 		return nil, err
 	}
+
+	//
 	if commit.Status.Height > titleStatus.Height+1 {
 		// 也许是在分叉上挖矿， 也许是非正常的交易
 		return nil, types.ErrInputPara // future height
