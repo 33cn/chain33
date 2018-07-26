@@ -117,10 +117,12 @@ func calcSendPrivacyTxKey(tokenname, addr, key string) []byte {
 	return []byte(fmt.Sprintf("%s:%s-%s-%s", SendPrivacyTx, tokenname, addr, key))
 }
 
+// calcKey4FTXOsInTx 交易构建以后,将可用UTXO冻结的健值
 func calcKey4FTXOsInTx(token, addr, txhash string) []byte {
 	return []byte(fmt.Sprintf("%s:%s-%s-%s", FTXOs4Tx, token, addr, txhash))
 }
 
+// calcRevertSendTxKey 交易因为区块回退而将已经花费的UTXO移动到冻结UTXO队列的健值
 func calcRevertSendTxKey(tokenname, addr, txhash string) []byte {
 	return []byte(fmt.Sprintf("%s:%s-%s-%s", RevertSendtx, tokenname, addr, txhash))
 }
@@ -470,32 +472,6 @@ func (ws *Store) getWalletPrivacyTokenMap() *types.TokenNamesOfUTXO {
 	return &tokenNamesOfUTXO
 }
 
-func (ws *Store) updateFTXOFreezeTime(tx *types.Transaction, token, sender, txhash string, newbatch dbm.Batch) error {
-	//设置ftxo的key，使其能够方便地获取到对应的交易花费的utxo
-	key1 := calcKey4FTXOsInTx(token, sender, txhash)
-	value1, err := ws.db.Get(key1)
-	if nil != err {
-		walletlog.Error("unmoveUTXO2FTXO", "Get nil value for key", string(key1))
-		return err
-	}
-	key2 := value1
-	value2, err := ws.db.Get(key2)
-	if nil != err {
-		walletlog.Error("unmoveUTXO2FTXO", "Get nil value for key", string(key2))
-		return nil
-	}
-	var ftxosInOneTx types.FTXOsSTXOsInOneTx
-	err = types.Decode(value2, &ftxosInOneTx)
-	if nil != err {
-		walletlog.Error("unmoveUTXO2FTXO", "Failed to decode FTXOsSTXOsInOneTx for value", value2)
-		return err
-	}
-	ftxosInOneTx.SetExpire(tx)
-	newValue := types.Encode(&ftxosInOneTx)
-	newbatch.Set(key2, newValue)
-	return nil
-}
-
 //UTXO---->moveUTXO2FTXO---->FTXO---->moveFTXO2STXO---->STXO
 //1.calcUTXOKey------------>types.PrivacyDBStore 该kv值在db中的存储一旦写入就不再改变，除非产生该UTXO的交易被撤销
 //2.calcUTXOKey4TokenAddr-->calcUTXOKey，创建kv，方便查询现在某个地址下某种token的可用utxo
@@ -523,63 +499,28 @@ func (ws *Store) setUTXO(addr, txhash *string, outindex int, dbStore *types.Priv
 	return nil
 }
 
-//当发生交易退回时回退产生的UTXO
-//1.如果该utxo未被冻结，即未转移至FTXO，则直接删除就可以
-//2.如果该utxo已经被转移至FTXO，则需要先将其所在交易的所有FTXO都回退至UTXO，然后再进行删除
-//第2种情况下，因为只是交易被回退，但是交易还是会被重新打包执行，这时需要将该交易进行记录，
-//等到回退的交易再次执行时，需要能够从FTXO转换至STXO
+// unsetUTXO 当区块发生回退时,交易也需要回退,从而需要更新钱包中的UTXO相关信息,其具体步骤如下
+// 1.清除可用UTXO列表中的UTXO索引信息
+// 2.清除冻结UTXO列表中的UTXO索引信息
+// 3.清除因为回退而将花费UTXO移入到冻结UTXO列表的UTXO索引信息
+// 4.清除UTXO信息
 func (ws *Store) unsetUTXO(addr, txhash *string, outindex int, token string, newbatch dbm.Batch) error {
-	if 0 == len(*addr) || 0 == len(*txhash) {
-		walletlog.Error("unsetUTXO addr or txhash is nil")
+	if 0 == len(*addr) || 0 == len(*txhash) || outindex<0 || len(token)<=0 {
+		walletlog.Error("PrivacyTrading unsetUTXO", "InvalidParam addr", *addr, "txhash", *txhash, "outindex", outindex, "token", token)
 		return types.ErrInputPara
 	}
-
-	k1 := calcUTXOKey(*txhash, outindex)
-	val, err := ws.db.Get(k1)
-	if err != nil || val == nil {
-		// UTXO中没有
-		walletlog.Error("unsetUTXO get value for keys are nil", "calcUTXOKey", string(k1))
-		err = types.ErrNotFound
-	}
-	if err != nil {
-		k1 = calcKey4FTXOsInTx(token, *addr, *txhash)
-		val, err := ws.db.Get(k1)
-		if err != nil || val == nil {
-			// UTXO中没有
-			walletlog.Error("unsetUTXO get value for keys are nil", "calcKey4FTXOsInTx", string(k1))
-			err = types.ErrNotFound
-		}
-	}
-	if err != nil {
-		k1 = calcRevertSendTxKey(token, *addr, *txhash)
-		val, err := ws.db.Get(k1)
-		if err != nil || val == nil {
-			// UTXO中没有
-			walletlog.Error("unsetUTXO get value for keys are nil", "calcRevertSendTxKey", string(k1))
-			err = types.ErrNotFound
-		}
-	}
-	if err != nil {
-		walletlog.Error("unsetUTXO ", "无法找到对应的缓存信息 txhash", *txhash)
-		return err
-	}
-	dbStore := new(types.PrivacyDBStore)
-	if err := types.Decode(val, dbStore); err != nil {
-		walletlog.Error("unsetUTXO", "Decode PrivacyDBStore error ", err)
-	}
-	newbatch.Delete(k1)
-
-	k2 := calcUTXOKey4TokenAddr(token, *addr, *txhash, outindex)
-	val, err = ws.db.Get(k2)
-	if err != nil || val == nil {
-		//当发生需要回退的UTXO不能从当前特定地址可用的UTXO找到时，
-		//需要从当前的FTXO从查找并回退
-		walletlog.Error("unsetUTXO get nil value", "calcUTXOKey4TokenAddr", string(k2))
-		return types.ErrRecoverUTXO
-
-	}
-	newbatch.Delete(k2)
-
+	// 1.删除可用UTXO列表的索引关系
+	ftxokey := calcUTXOKey(*txhash, outindex)
+	newbatch.Delete(ftxokey)
+	// 2.删除冻结UTXO列表的索引关系
+	ftxokey = calcKey4FTXOsInTx(token, *addr, *txhash)
+	newbatch.Delete(ftxokey)
+	// 3.删除回退冻结UTXO列表中的索引关系
+	ftxokey = calcRevertSendTxKey(token, *addr, *txhash)
+	newbatch.Delete(ftxokey)
+	// 4.清除可用UTXO索引信息
+	utxokey := calcUTXOKey4TokenAddr(token, *addr, *txhash, outindex)
+	newbatch.Delete(utxokey)
 	return nil
 }
 
@@ -619,10 +560,12 @@ func (ws *Store) moveUTXO2FTXO(tx *types.Transaction, token, sender, txhash stri
 	newbatch.Write()
 }
 
-type fnCheckFTXOValid func(txhash []byte) bool
+type fnCheckTXValid func(txhash []byte) bool
 
 //将FTXO重置为UTXO
-func (ws *Store) moveFTXO2UTXO(key1 []byte, newbatch dbm.Batch, fn fnCheckFTXOValid) {
+// moveFTXO2UTXO 当交易因为区块被回退而进行回滚时,需要将交易对应的冻结UTXO移动到可用UTXO队列中
+// 由于交易回退可能会因为UTXO对应的交易过期,未被打入区块等情况,导致UTXO不可用,所以需要检查UTXO对应的交易是否有效
+func (ws *Store) moveFTXO2UTXO(key1 []byte, newbatch dbm.Batch, fn fnCheckTXValid) {
 	//设置ftxo的key，使其能够方便地获取到对应的交易花费的utxo
 	value1, err := ws.db.Get(key1)
 	if err != nil {
