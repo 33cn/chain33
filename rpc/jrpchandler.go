@@ -438,6 +438,50 @@ func (c *Chain33) ImportPrivkey(in types.ReqWalletImportPrivKey, result *interfa
 
 func (c *Chain33) SendToAddress(in types.ReqWalletSendToAddress, result *interface{}) error {
 	log.Debug("Rpc SendToAddress", "Tx", in)
+	if types.IsPara() {
+		createTx := &types.CreateTx{
+			in.GetTo(),
+			in.GetAmount(),
+			1e5,
+			in.GetNote(),
+			false,
+			true,
+			in.GetTokenSymbol(),
+			types.ExecName(types.TokenX),
+		}
+		tx, err := c.cli.CreateRawTransaction(createTx)
+		if err != nil {
+			log.Debug("ParaChain CreateRawTransaction", "Error", err.Error())
+			return err
+		}
+		//不需要自己去导出私钥，signRawTx 里面只需带入公钥地址，也回优先去查出相应的私钥，前提是私钥已经导入
+		reqSignRawTx := &types.ReqSignRawTx{
+			in.From,
+			"",
+			hex.EncodeToString(tx),
+			"300s",
+			0,
+			0,
+			"",
+		}
+		replySignRawTx, err := c.cli.SignRawTx(reqSignRawTx)
+		if err != nil {
+			log.Debug("ParaChain SignRawTx", "Error", err.Error())
+			return err
+		}
+		rawParm := RawParm{
+			"",
+			replySignRawTx.GetTxHex(),
+		}
+		var txHash interface{}
+		err = forwardTranToMainNet(rawParm, &txHash)
+		if err != nil {
+			log.Debug("ParaChain forwardTranToMainNet", "Error", err.Error())
+			return err
+		}
+		*result = &ReplyHash{Hash: txHash.(string)}
+		return nil
+	}
 	reply, err := c.cli.WalletSendToAddress(&in)
 	if err != nil {
 		log.Debug("SendToAddress", "Error", err.Error())
