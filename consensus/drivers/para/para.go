@@ -43,7 +43,7 @@ type ParaClient struct {
 	grpcClient      types.GrpcserviceClient
 	lock            sync.RWMutex
 	isCatchingUp    bool
-	commitMsgClient *ParaCommitClient
+	commitMsgClient *CommitMsgClient
 }
 
 func New(cfg *types.Consensus) *ParaClient {
@@ -76,10 +76,11 @@ func New(cfg *types.Consensus) *ParaClient {
 	grpcClient := types.NewGrpcserviceClient(conn)
 
 	para := &ParaClient{c, conn, grpcClient, sync.RWMutex{}, false, nil}
-	para.commitMsgClient = &ParaCommitClient{
+	para.commitMsgClient = &CommitMsgClient{
 		paraClient:      para,
-		commitMsgNofity: make(chan *ParaCommitMsg, 1),
+		commitMsgNofity: make(chan *CommitMsg, 1),
 		mainBlockNotify: make(chan *types.Block, 1),
+		quit:            make(chan struct{}),
 	}
 
 	c.SetChild(para)
@@ -118,6 +119,8 @@ func (client *ParaClient) ExecBlock(prevHash []byte, block *types.Block) (*types
 
 func (client *ParaClient) Close() {
 	client.BaseClient.Close()
+	close(client.commitMsgClient.quit)
+	client.conn.Close()
 	plog.Info("consensus para closed")
 }
 
@@ -454,11 +457,11 @@ func (client *ParaClient) WriteBlock(prev []byte, paraBlock *types.Block, mainBl
 	if resp.GetData().(*types.Reply).IsOk {
 		client.SetCurrentBlock(paraBlock)
 		if mainBlock != nil && len(paraBlock.Txs) > 0 {
-			commitMsg := &ParaCommitMsg{
-				height:             blockdetail.Block.Height,
-				oriParaTxHashs:     oriTxHashs,
-				mainBlockStateHash: mainBlock.StateHash,
-				block:              blockdetail,
+			commitMsg := &CommitMsg{
+				height:        blockdetail.Block.Height,
+				initTxHashs:   oriTxHashs,
+				mainStateHash: mainBlock.StateHash,
+				block:         blockdetail,
 			}
 			client.commitMsgClient.onBlockAdded(commitMsg)
 

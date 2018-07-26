@@ -16,24 +16,25 @@ const (
 	waitMainBlocks = 2
 )
 
-type ParaCommitMsg struct {
-	height             int64
-	oriParaTxHashs     [][]byte
-	mainBlockStateHash []byte
-	block              *types.BlockDetail
+type CommitMsg struct {
+	height        int64
+	mainStateHash []byte
+	initTxHashs   [][]byte
+	block         *types.BlockDetail
 }
 
-type ParaCommitClient struct {
+type CommitMsgClient struct {
 	paraClient         *ParaClient
-	commitMsgNofity    chan *ParaCommitMsg
+	commitMsgNofity    chan *CommitMsg
 	mainBlockNotify    chan *types.Block
 	currentTx          string
 	waitingTx          bool
 	checkTxCommitTimes int
+	quit               chan struct{}
 }
 
-func (client *ParaCommitClient) handler() {
-	var notifications []*ParaCommitMsg
+func (client *CommitMsgClient) handler() {
+	var notifications []*CommitMsg
 	readTick := time.Tick(time.Second)
 	type sendResult struct {
 		err error
@@ -99,11 +100,13 @@ func (client *ParaCommitClient) handler() {
 					sendResponse <- sendResult{err}
 				}
 			}()
+		case <-client.quit:
+			return
 		}
 	}
 }
 
-func calcRawTxs(notifications []*ParaCommitMsg) (string, int, error) {
+func calcRawTxs(notifications []*CommitMsg) (string, int, error) {
 	txs, count, err := batchCalcTxGroup(notifications)
 	if err != nil {
 		txs, err = singleCalcTx((notifications)[0])
@@ -117,8 +120,8 @@ func calcRawTxs(notifications []*ParaCommitMsg) (string, int, error) {
 	return txs, count, nil
 }
 
-func batchCalcTxGroup(notifications []*ParaCommitMsg) (string, int, error) {
-	var buff []*ParaCommitMsg
+func batchCalcTxGroup(notifications []*CommitMsg) (string, int, error) {
+	var buff []*CommitMsg
 	if len(notifications) > types.TxGroupMaxCount {
 		buff = (notifications)[:types.TxGroupMaxCount]
 	} else {
@@ -142,7 +145,7 @@ func batchCalcTxGroup(notifications []*ParaCommitMsg) (string, int, error) {
 	return txs, len(buff), nil
 }
 
-func singleCalcTx(msg *ParaCommitMsg) (string, error) {
+func singleCalcTx(msg *CommitMsg) (string, error) {
 	tx, err := getCommitMsgTx(msg)
 	if err != nil {
 		plog.Error("para get commit tx", "block height", msg.block.Block.Height)
@@ -154,7 +157,7 @@ func singleCalcTx(msg *ParaCommitMsg) (string, error) {
 
 }
 
-func (client *ParaCommitClient) sendCommitMsg(txs string) error {
+func (client *CommitMsgClient) sendCommitMsg(txs string) error {
 	signTx, err := client.signCommitMsgTx(txs)
 	if err != nil {
 		return err
@@ -191,12 +194,13 @@ func checkTxInMainBlock(targetTx string, block *types.Block) (bool, error) {
 
 }
 
-func getCommitMsgTx(msg *ParaCommitMsg) (*types.Transaction, error) {
+func getCommitMsgTx(msg *CommitMsg) (*types.Transaction, error) {
 	status := &types.ParacrossNodeStatus{
 		Title:         types.GetTitle(),
 		Height:        msg.block.Block.Height,
 		StateHash:     msg.block.Block.StateHash,
-		MainStateHash: msg.mainBlockStateHash,
+		MainStateHash: msg.mainStateHash,
+		PreStateHash:  msg.block.PrevStatusHash,
 	}
 
 	var curTxsHash [][]byte
@@ -204,8 +208,8 @@ func getCommitMsgTx(msg *ParaCommitMsg) (*types.Transaction, error) {
 		curTxsHash = append(curTxsHash, tx.Hash())
 	}
 
-	status.TxResult = util.CalcByteBitMap(msg.oriParaTxHashs, curTxsHash, msg.block.Receipts)
-	status.TxCounts = uint32(len(msg.oriParaTxHashs))
+	status.TxResult = util.CalcByteBitMap(msg.initTxHashs, curTxsHash, msg.block.Receipts)
+	status.TxCounts = uint32(len(msg.initTxHashs))
 
 	tx := paracross.CreateRawCommitTx(status)
 	fee, err := tx.GetRealFee(types.MinFee)
@@ -239,7 +243,7 @@ func getTxsGroup(txsArr *types.Transactions) (string, error) {
 	return grouptx, nil
 }
 
-func (client *ParaCommitClient) signCommitMsgTx(rawTx string) (string, error) {
+func (client *CommitMsgClient) signCommitMsgTx(rawTx string) (string, error) {
 
 	unsignedTx := &types.ReqSignRawTx{
 		Addr:   paraAccount,
@@ -258,7 +262,7 @@ func (client *ParaCommitClient) signCommitMsgTx(rawTx string) (string, error) {
 	return resp.GetData().(*types.ReplySignRawTx).TxHex, nil
 }
 
-func (client *ParaCommitClient) sendCommitMsgTx(txHex string) error {
+func (client *CommitMsgClient) sendCommitMsgTx(txHex string) error {
 	var parm types.Transaction
 	data, err := common.FromHex(txHex)
 	if err != nil {
@@ -277,20 +281,20 @@ func (client *ParaCommitClient) sendCommitMsgTx(txHex string) error {
 
 }
 
-func (client *ParaCommitClient) onBlockAdded(msg *ParaCommitMsg) {
+func (client *CommitMsgClient) onBlockAdded(msg *CommitMsg) {
 	checkTicker := time.NewTicker(time.Second * 1)
 	select {
 	case client.commitMsgNofity <- msg:
 	case <-checkTicker.C:
-		//case <-b.quit:
+	case <-client.quit:
 	}
 }
 
-func (client *ParaCommitClient) onMainBlockAdded(block *types.Block) {
+func (client *CommitMsgClient) onMainBlockAdded(block *types.Block) {
 	checkTicker := time.NewTicker(time.Second * 1)
 	select {
 	case client.mainBlockNotify <- block:
 	case <-checkTicker.C:
-		//case <-b.quit:
+	case <-client.quit:
 	}
 }
