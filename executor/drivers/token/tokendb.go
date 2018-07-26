@@ -89,6 +89,10 @@ func newTokenAction(t *token, toaddr string, tx *types.Transaction) *tokenAction
 }
 
 func (action *tokenAction) preCreate(token *types.TokenPreCreate) (*types.Receipt, error) {
+	if token == nil {
+		return nil, types.ErrInputPara
+	}
+
 	if len(token.GetName()) > types.TokenNameLenLimit {
 		return nil, types.ErrTokenNameLen
 	} else if len(token.GetIntroduction()) > types.TokenIntroLenLimit {
@@ -160,6 +164,10 @@ func (action *tokenAction) preCreate(token *types.TokenPreCreate) (*types.Receip
 }
 
 func (action *tokenAction) finishCreate(tokenFinish *types.TokenFinishCreate) (*types.Receipt, error) {
+	if tokenFinish == nil {
+		return nil, types.ErrInputPara
+	}
+
 	token, err := getTokenFromDB(action.db, tokenFinish.GetSymbol(), tokenFinish.GetOwner())
 	if err != nil || token.Status != types.TokenStatusPreCreated {
 		return nil, types.ErrTokenNotPrecreated
@@ -228,6 +236,9 @@ func (action *tokenAction) finishCreate(tokenFinish *types.TokenFinishCreate) (*
 }
 
 func (action *tokenAction) revokeCreate(tokenRevoke *types.TokenRevokeCreate) (*types.Receipt, error) {
+	if tokenRevoke == nil {
+		return nil, types.ErrInputPara
+	}
 	token, err := getTokenFromDB(action.db, tokenRevoke.GetSymbol(), tokenRevoke.GetOwner())
 	if err != nil {
 		tokenlog.Error("token revokeCreate ", "Can't get token form db for token", tokenRevoke.GetSymbol())
