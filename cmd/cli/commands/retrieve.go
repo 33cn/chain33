@@ -45,7 +45,7 @@ func addBakupCmdFlags(cmd *cobra.Command) {
 	cmd.MarkFlagRequired("delay")
 
 	defaultFee := float64(types.MinFee) / float64(types.Coin)
-	cmd.Flags().Float64P("fee", "f", defaultFee, "sign address")
+	cmd.Flags().Float64P("fee", "f", defaultFee, "transaction fee")
 }
 
 func backupCmd(cmd *cobra.Command, args []string) {
