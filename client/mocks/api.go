@@ -957,6 +957,29 @@ func (_m *QueueProtocolAPI) QueryTx(param *types.ReqHash) (*types.TransactionDet
 	return r0, r1
 }
 
+// RescanUtxos provides a mock function with given fields: param
+func (_m *QueueProtocolAPI) RescanUtxos(param *types.ReqRescanUtxos) (*types.RepRescanUtxos, error) {
+	ret := _m.Called(param)
+
+	var r0 *types.RepRescanUtxos
+	if rf, ok := ret.Get(0).(func(*types.ReqRescanUtxos) *types.RepRescanUtxos); ok {
+		r0 = rf(param)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.RepRescanUtxos)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*types.ReqRescanUtxos) error); ok {
+		r1 = rf(param)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // SaveSeed provides a mock function with given fields: param
 func (_m *QueueProtocolAPI) SaveSeed(param *types.SaveSeedByPw) (*types.Reply, error) {
 	ret := _m.Called(param)

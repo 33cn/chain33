@@ -107,6 +107,8 @@ type QueueProtocolAPI interface {
 	NotifySendTxResult(param *types.ReqNotifySendTxResult) (*types.Reply, error)
 	// types.EventPrivacyTransactionList
 	PrivacyTransactionList(param *types.ReqPrivacyTransactionList) (*types.WalletTxDetails, error)
+	// types.EventRescanUtxos
+	RescanUtxos(param *types.ReqRescanUtxos) (*types.RepRescanUtxos, error)
 	// Privacy End
 	// --------------- wallet interfaces end
 

@@ -45,6 +45,9 @@ func (wallet *Wallet) procPublic2PrivacyV2(public2private *types.ReqPub2Pri) (*t
 	if !ok {
 		return nil, err
 	}
+	if ok, err := wallet.IsRescanUtxosFlagScaning(); ok {
+		return nil, err
+	}
 	if public2private == nil {
 		walletlog.Error("public2private input para is nil")
 		return nil, types.ErrInputPara
@@ -69,6 +72,9 @@ func (wallet *Wallet) procPrivacy2PrivacyV2(privacy2privacy *types.ReqPri2Pri) (
 	defer wallet.mtx.Unlock()
 	ok, err := wallet.CheckWalletStatus()
 	if !ok {
+		return nil, err
+	}
+	if ok, err := wallet.IsRescanUtxosFlagScaning(); ok {
 		return nil, err
 	}
 	if privacy2privacy == nil {
@@ -96,6 +102,9 @@ func (wallet *Wallet) procPrivacy2PublicV2(privacy2Pub *types.ReqPri2Pub) (*type
 	if !ok {
 		return nil, err
 	}
+	if ok, err := wallet.IsRescanUtxosFlagScaning(); ok {
+		return nil, err
+	}
 	if privacy2Pub == nil {
 		walletlog.Error("privacy2privacy input para is nil")
 		return nil, types.ErrInputPara
@@ -118,6 +127,9 @@ func (wallet *Wallet) procCreateUTXOs(createUTXOs *types.ReqCreateUTXOs) (*types
 
 	ok, err := wallet.CheckWalletStatus()
 	if !ok {
+		return nil, err
+	}
+	if ok, err := wallet.IsRescanUtxosFlagScaning(); ok {
 		return nil, err
 	}
 	if createUTXOs == nil {
@@ -814,6 +826,9 @@ func (wallet *Wallet) procCreateTransaction(req *types.ReqCreateTransaction) (*t
 	if req == nil {
 		return nil, types.ErrInvalidParams
 	}
+	if ok, err := wallet.IsRescanUtxosFlagScaning(); ok {
+		return nil, err
+	}
 	if !checkAmountValid(req.Amount) {
 		return nil, types.ErrAmount
 	}
@@ -1289,6 +1304,10 @@ func (wallet *Wallet) showPrivacyAccountsSpend(req *types.ReqPrivBal4AddrToken) 
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
 
+	if ok, err := wallet.IsRescanUtxosFlagScaning(); ok {
+		return nil, err
+	}
+
 	addr := req.GetAddr()
 	token := req.GetToken()
 	utxoHaveTxHashs, err := wallet.walletStore.listSpendUTXOs(token, addr)
@@ -1395,12 +1414,41 @@ func (wallet *Wallet) procNotifySendTxResult(notifyRes *types.ReqNotifySendTxRes
 	return &types.Reply{IsOk: true}, nil
 }
 
-func (wallet *Wallet) reqUtxosByAddr(addr string) {
+//从blockchain模块同步addr参与的所有交易详细信息
+func (wallet *Wallet) RescanReqUtxosByAddr(addrs []string) {
+	defer wallet.wg.Done()
+	walletlog.Debug("RescanAllUTXO begin!")
+	wallet.reqUtxosByAddr(addrs)
+	walletlog.Debug("RescanAllUTXO sucess!")
+}
 
-	if len(addr) == 0 {
-		walletlog.Error("reqUtxosByAddr input addr is nil!")
-		return
+func (wallet *Wallet) reqUtxosByAddr(addrs []string) {
+
+	// 更新数据库存储状态
+	var storeAddrs []string
+	if len(addrs) == 0 {
+		WalletAccStores, err := wallet.walletStore.GetAccountByPrefix("Account")
+		if err != nil || len(WalletAccStores) == 0 {
+			walletlog.Info("getPrivacyKeyPairsOfWallet", "GetAccountByPrefix:err", err)
+			return
+		}
+		for _, WalletAccStore := range WalletAccStores {
+			storeAddrs = append(storeAddrs, WalletAccStore.Addr)
+		}
+	} else {
+		storeAddrs = append(storeAddrs, addrs...)
 	}
+	newbatch := wallet.walletStore.NewBatch(true)
+	for _, addr := range storeAddrs {
+		data := &types.Int64{
+			Data: int64(types.UtxoFlagNoScan),
+		}
+		value := types.Encode(data)
+		newbatch.Set(calcRescanUtxosFlagKey(addr), value)
+	}
+	newbatch.Write()
+
+	reqAddr := address.ExecAddress(types.PrivacyX)
 	var txInfo types.ReplyTxInfo
 	i := 0
 	for {
@@ -1410,24 +1458,24 @@ func (wallet *Wallet) reqUtxosByAddr(addr string) {
 		default:
 		}
 
-		if wallet.IsWalletLocked() {
-			time.Sleep(time.Millisecond * 200)
-			continue
-		}
-		// 判断是否需要扫描，不需要直接休眠
-		if utxoFlagNoScan == atomic.LoadInt32(&wallet.rescanUTXOflag) {
-			i = 0
-			time.Sleep(time.Millisecond * 100)
-			continue
-		} else if utxoFlagReScan == atomic.LoadInt32(&wallet.rescanUTXOflag) {
-			i = 0
-			atomic.StoreInt32(&wallet.rescanUTXOflag, utxoFlagScaning)
-		}
+		//if wallet.IsWalletLocked() {
+		//	time.Sleep(time.Millisecond * 200)
+		//	continue
+		//}
+		//// 判断是否需要扫描，不需要直接休眠
+		//if utxoFlagNoScan == atomic.LoadInt32(&wallet.rescanUTXOflag) {
+		//	i = 0
+		//	time.Sleep(time.Millisecond * 100)
+		//	continue
+		//} else if utxoFlagReScan == atomic.LoadInt32(&wallet.rescanUTXOflag) {
+		//	i = 0
+		//	atomic.StoreInt32(&wallet.rescanUTXOflag, utxoFlagScaning)
+		//}
 
 		//首先从execs模块获取地址对应的所有UTXOs,
 		// 1 先获取隐私合约地址相关交易
 		var ReqAddr types.ReqAddr
-		ReqAddr.Addr = addr
+		ReqAddr.Addr = reqAddr
 		ReqAddr.Flag = 0
 		ReqAddr.Direction = 0
 		ReqAddr.Count = int32(MaxTxHashsPerTime)
@@ -1437,9 +1485,8 @@ func (wallet *Wallet) reqUtxosByAddr(addr string) {
 		} else {
 			ReqAddr.Height = txInfo.GetHeight()
 			ReqAddr.Index = txInfo.GetIndex()
-			if types.ForkV21Privacy > ReqAddr.Height {
-				atomic.StoreInt32(&wallet.rescanUTXOflag, utxoFlagNoScan)
-				continue
+			if types.ForkV21Privacy > ReqAddr.Height { // 小于隐私分叉高度不做扫描
+				break
 			}
 		}
 		i++
@@ -1454,18 +1501,14 @@ func (wallet *Wallet) reqUtxosByAddr(addr string) {
 		wallet.client.Send(msg, true)
 		resp, err := wallet.client.Wait(msg)
 		if err != nil {
-			walletlog.Error("privacy ReqTxInfosByAddr EventBlockChainQuery", "err", err, "addr", addr)
-			// 扫描完毕
-			atomic.StoreInt32(&wallet.rescanUTXOflag, utxoFlagNoScan)
-			continue
+			walletlog.Error("privacy ReqTxInfosByAddr EventBlockChainQuery", "err", err, "addr", reqAddr)
+			break
 		}
 
 		ReplyTxInfos := resp.GetData().(*types.ReplyTxInfos)
 		if ReplyTxInfos == nil {
 			walletlog.Info("privacy ReqTxInfosByAddr ReplyTxInfos is nil")
-			// 扫描完毕
-			atomic.StoreInt32(&wallet.rescanUTXOflag, utxoFlagNoScan)
-			continue
+			break
 		}
 		txcount := len(ReplyTxInfos.TxInfos)
 
@@ -1481,17 +1524,28 @@ func (wallet *Wallet) reqUtxosByAddr(addr string) {
 			txInfo.Index = ReplyTxInfos.TxInfos[txcount-1].GetIndex()
 		}
 
-		wallet.GetPrivacyTxDetailByHashs(&ReqHashes)
+		wallet.GetPrivacyTxDetailByHashs(&ReqHashes, addrs)
 		if txcount < int(MaxTxHashsPerTime) {
-			// 扫描完毕
-			atomic.StoreInt32(&wallet.rescanUTXOflag, utxoFlagNoScan)
-			// 删除privacyInput
-			wallet.DeleteScanPrivacyInputUtxo()
+			break
 		}
 	}
+	// 扫描完毕
+	atomic.StoreInt32(&wallet.rescanUTXOflag, types.UtxoFlagNoScan)
+	// 删除privacyInput
+	wallet.DeleteScanPrivacyInputUtxo()
+	// 将状态保存到数据库
+	newbatch = wallet.walletStore.NewBatch(true)
+	for _, addr := range storeAddrs {
+		data := &types.Int64{
+			Data: int64(types.UtxoFlagScanEnd),
+		}
+		value := types.Encode(data)
+		newbatch.Set(calcRescanUtxosFlagKey(addr), value)
+	}
+	newbatch.Write()
 }
 
-func (wallet *Wallet) GetPrivacyTxDetailByHashs(ReqHashes *types.ReqHashes) {
+func (wallet *Wallet) GetPrivacyTxDetailByHashs(ReqHashes *types.ReqHashes, addrs []string) {
 	//通过txhashs获取对应的txdetail
 	msg := wallet.client.NewMessage("blockchain", types.EventGetTransactionByHash, ReqHashes)
 	wallet.client.Send(msg, true)
@@ -1509,13 +1563,13 @@ func (wallet *Wallet) GetPrivacyTxDetailByHashs(ReqHashes *types.ReqHashes) {
 	newbatch := wallet.walletStore.NewBatch(true)
 	for _, txdetal := range TxDetails.Txs {
 		index := txdetal.Index
-		wallet.SelectCurrentWalletPrivacyTx(txdetal, int32(index), newbatch)
+		wallet.SelectCurrentWalletPrivacyTx(txdetal, int32(index), addrs, newbatch)
 	}
 	newbatch.Write()
 
 }
 
-func (wallet *Wallet) SelectCurrentWalletPrivacyTx(txDetal *types.TransactionDetail, index int32, newbatch db.Batch) {
+func (wallet *Wallet) SelectCurrentWalletPrivacyTx(txDetal *types.TransactionDetail, index int32, addrs []string, newbatch db.Batch) {
 	tx := txDetal.Tx
 	amount, err := tx.Amount()
 	if err != nil {
@@ -1561,7 +1615,20 @@ func (wallet *Wallet) SelectCurrentWalletPrivacyTx(txDetal *types.TransactionDet
 	//处理output
 	if nil != privacyOutput && len(privacyOutput.Keyoutput) > 0 {
 		utxoProcessed := make([]bool, len(privacyOutput.Keyoutput))
-		privacyInfo, _ := wallet.getPrivacyKeyPairsOfWallet()
+		var privacyInfo []addrAndprivacy
+		if len(addrs) != 0 {
+			for _, addr := range addrs {
+				if privacy, err := wallet.getPrivacykeyPair(addr); err == nil {
+					var priInfo addrAndprivacy
+					priInfo.Addr = &addr
+					priInfo.PrivacyKeyPair = privacy
+					privacyInfo = append(privacyInfo, priInfo)
+				}
+			}
+		} else {
+			privacyInfo, _ = wallet.getPrivacyKeyPairsOfWallet()
+		}
+
 		for _, info := range privacyInfo {
 			walletlog.Debug("SelectCurrentWalletPrivacyTx", "individual privacyInfo's addr", *info.Addr)
 			privacykeyParirs := info.PrivacyKeyPair
@@ -1680,5 +1747,12 @@ func (wallet *Wallet) DeleteScanPrivacyInputUtxo() {
 			break
 		}
 	}
+}
 
+func (wallet *Wallet) IsRescanUtxosFlagScaning() (bool, error) {
+	if types.UtxoFlagScaning == atomic.LoadInt32(&wallet.rescanUTXOflag) {
+		return true, types.ErrRescanFlagScaning
+	} else {
+		return false, nil
+	}
 }
