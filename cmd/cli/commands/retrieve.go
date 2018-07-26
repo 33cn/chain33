@@ -19,7 +19,7 @@ func RetrieveCmd() *cobra.Command {
 		PrepareCmd(),
 		PerformCmd(),
 		CancelCmd(),
-		QueryCmd(),
+		RetrieveQueryCmd(),
 	)
 
 	return cmd
@@ -166,7 +166,7 @@ func cancelCmd(cmd *cobra.Command, args []string) {
 }
 
 // 查询
-func QueryCmd() *cobra.Command {
+func RetrieveQueryCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "query",
 		Short: "Backup the wallet",
