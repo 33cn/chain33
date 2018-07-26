@@ -156,6 +156,16 @@ func getMostCommit(stat *types.ParacrossHeightStatus) (int, string) {
 	return most, statHash
 }
 
+func hasCommited(addrs []string, addr string) (bool, int) {
+	for i, a := range addrs {
+		if a == addr {
+			return true, i
+		}
+	}
+	return false, 0
+}
+
+
 func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, error) {
 	err := checkCommitInfo(commit)
 	if err != nil {
@@ -204,8 +214,14 @@ func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, er
 		receipt = makeCommitReceipt(a.fromaddr, commit, nil, stat)
 	} else {
 		copyStat := *stat
-		stat.Details.Addrs = append(stat.Details.Addrs, a.fromaddr)
-		stat.Details.StateHash = append(stat.Details.StateHash, commit.Status.StateHash)
+		// 如有分叉， 同一个节点可能再次提交commit交易
+		found, index := hasCommited(stat.Details.Addrs, a.fromaddr)
+		if found {
+			stat.Details.StateHash[index] = commit.Status.StateHash
+		} else {
+			stat.Details.Addrs = append(stat.Details.Addrs, a.fromaddr)
+			stat.Details.StateHash = append(stat.Details.StateHash, commit.Status.StateHash)
+		}
 		receipt = makeCommitReceipt(a.fromaddr, commit, &copyStat, stat)
 	}
 
