@@ -23,19 +23,16 @@ var (
 )
 
 const (
-	Privacy4Addr       = "Privacy4Addr-"
-	PrivacyUTXO        = "UTXO-"
-	PrivacySTXO        = "STXO-"
-	PrivacyTokenMap    = "PrivacyTokenMap"
-	FTXOTimeout        = types.ConfirmedHeight * types.BlockDurPerSecCnt //Ftxo超时时间
-	FTXOTimeout4Revert = 256 * types.BlockDurPerSecCnt                   //revert Ftxo超时时间
-	FTXOs4Tx           = "FTXOs4Tx"
-	STXOs4Tx           = "STXOs4Tx"
-	RevertSendtx       = "RevertSendtx"
-	RecvPrivacyTx      = "RecvPrivacyTx"
-	SendPrivacyTx      = "SendPrivacyTx"
-	createTxPrefix     = "CreateTx"
-	ScanPrivacyInput   = "ScanPrivacyInput-"
+	Privacy4Addr     = "Privacy4Addr-"
+	PrivacyUTXO      = "UTXO-"
+	PrivacySTXO      = "STXO-"
+	PrivacyTokenMap  = "PrivacyTokenMap"
+	FTXOs4Tx         = "FTXOs4Tx"
+	STXOs4Tx         = "STXOs4Tx"
+	RevertSendtx     = "RevertSendtx"
+	RecvPrivacyTx    = "RecvPrivacyTx"
+	SendPrivacyTx    = "SendPrivacyTx"
+	ScanPrivacyInput = "ScanPrivacyInput-"
 )
 
 type Store struct {
@@ -146,19 +143,6 @@ func calcKey4STXOsInTx(txhash string) []byte {
 
 func calcKey4UTXOsSpentInTx(key string) []byte {
 	return []byte(fmt.Sprintf("UTXOsSpentInTx:%s", key))
-}
-
-// 保存协助前端创建交易的Key
-// txhash：为common.ToHex()后的字符串
-func calcCreateTxKey(token, txhash string) []byte {
-	return []byte(fmt.Sprintf("%s:%s-%s", createTxPrefix, token, txhash))
-}
-
-func calcCreateTxKeyPrefix(token string) []byte {
-	if len(token) > 0 {
-		return []byte(fmt.Sprintf("%s:%s-", createTxPrefix, token))
-	}
-	return []byte(fmt.Sprintf("%s:", createTxPrefix))
 }
 
 func NewStore(db dbm.DB) *Store {
@@ -1097,25 +1081,6 @@ func (ws *Store) DeleteCreateTransactionCache(key []byte) {
 		return
 	}
 	ws.db.Delete(key)
-}
-
-func (ws *Store) listCreateTransactionCache(token string) ([]*types.CreateTransactionCache, error) {
-	prefix := calcCreateTxKeyPrefix(token)
-	list := dbm.NewListHelper(ws.db)
-	values := list.PrefixScan(prefix)
-	caches := make([]*types.CreateTransactionCache, 0)
-	if len(values) == 0 {
-		return caches, nil
-	}
-	for _, value := range values {
-		cache := types.CreateTransactionCache{}
-		err := types.Decode(value, &cache)
-		if err != nil {
-			return caches, err
-		}
-		caches = append(caches, &cache)
-	}
-	return caches, nil
 }
 
 //升级数据库的版本号
