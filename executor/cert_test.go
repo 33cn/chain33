@@ -87,7 +87,7 @@ func genEventAddBlockMsgCert(client queue.Client, block *types.Block) queue.Mess
 
 /**
 Testcase01 证书管理new，update，normal
- */
+*/
 func TestCertMgr(t *testing.T) {
 	q, _ := initCertEnv()
 	storeProcess(q)
@@ -125,10 +125,9 @@ func TestCertMgr(t *testing.T) {
 	q.Start()
 }
 
-
 /**
 TestCase02 交易校验
- */
+*/
 func TestCertTxCheck(t *testing.T) {
 	q, _ := initCertEnv()
 	storeProcess(q)
@@ -163,7 +162,7 @@ func TestCertTxCheck(t *testing.T) {
 
 /**
 TestCase03 回滚验证
- */
+*/
 func TestCertTxCheckRollback(t *testing.T) {
 	q, _ := initCertEnv()
 	storeProcess(q)
