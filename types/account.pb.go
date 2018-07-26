@@ -400,6 +400,9 @@ It has these top-level messages:
 	ReplyBindMiner
 	ReqNotifySendTxResult
 	ReqPrivacyTransactionList
+	ReqRescanUtxos
+	RepRescanResult
+	RepRescanUtxos
 */
 package types
 

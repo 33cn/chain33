@@ -246,3 +246,12 @@ type ExecAccount struct {
 	Execer  string         `json:"execer"`
 	Account *AccountResult `json:"account"`
 }
+
+type ShowRescanResult struct {
+	Addr       string `json:"addr"`
+	FlagString string `json:"FlagString"`
+}
+
+type showRescanResults struct {
+	RescanResults []*ShowRescanResult `json:"ShowRescanResults,omitempty"`
+}

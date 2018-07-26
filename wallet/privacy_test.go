@@ -3,12 +3,12 @@ package wallet
 import (
 	"bytes"
 	"fmt"
-	"testing"
 	"time"
 	"unsafe"
 
-	"github.com/stretchr/testify/require"
+	"testing"
 
+	"github.com/stretchr/testify/require"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/blockchain"
 	"gitlab.33.cn/chain33/chain33/client"
@@ -491,6 +491,178 @@ func (wtd *walletTestData) createPrivate2PublicTx(req *types.ReqCreateTransactio
 		realKeyInput: realkeyInputSlice,
 		outputInfo:   selectedUtxo,
 	}
+}
+
+func genPub2Pri(genAmount int64) (*types.TransactionDetail, error) {
+
+	wtd := &walletTestData{
+		mockMempool:    true,
+		mockBlockChain: true,
+	}
+
+	wtd.init()
+	wallet := wtd.wallet
+	privateKey, err := wallet.getPrivKeyByAddr(testAddrs[0])
+	if nil != err {
+		return nil, err
+	}
+
+	var txDetal *types.TransactionDetail
+	var Tx types.Transaction
+
+	//// Public -> Privacy
+	tx, err := wallet.procCreateTransaction(&types.ReqCreateTransaction{
+		Tokenname:  types.BTY,
+		Type:       1,
+		Amount:     genAmount,
+		From:       testAddrs[0],
+		Pubkeypair: testPubkeyPairs[0],
+	})
+	if nil != err {
+		return nil, err
+	}
+
+	txhex := common.ToHex(types.Encode(tx))
+	reqSignRawTx := &types.ReqSignRawTx{
+		Addr:  testAddrs[0],
+		TxHex: txhex,
+	}
+	txString, err := wallet.signTxWithPrivacy(privateKey, reqSignRawTx)
+	if nil != err {
+		return nil, err
+	}
+
+	data, _ := common.FromHex(txString)
+	err = types.Decode(data, &Tx)
+	if nil != err {
+		return nil, err
+	}
+
+	txDetal = &types.TransactionDetail{
+		Tx: &Tx,
+		Receipt: &types.ReceiptData{
+			Ty: types.ExecOk,
+		},
+		Height: 9000,
+	}
+
+	return txDetal, nil
+}
+
+func genPri2Pri(genAmount, spendAmount int64) (*types.TransactionDetail, error) {
+
+	wtd := &walletTestData{
+		mockMempool:    true,
+		mockBlockChain: true,
+	}
+
+	wtd.init()
+	wallet := wtd.wallet
+	privateKey, err := wallet.getPrivKeyByAddr(testAddrs[0])
+	if nil != err {
+		return nil, err
+	}
+
+	var Tx types.Transaction
+
+	// Privacy -> Privacy
+	wtd.createUTXOs(testAddrs[0], testPubkeyPairs[0], genAmount, 10000, 1)
+	wtd.setBlockChainHeight(10020)
+
+	tx, err := wallet.procCreateTransaction(&types.ReqCreateTransaction{
+		Tokenname:  types.BTY,
+		Type:       2,
+		Amount:     spendAmount,
+		From:       testAddrs[0],
+		Pubkeypair: testPubkeyPairs[1],
+	})
+
+	if nil != err {
+		return nil, err
+	}
+
+	txhex := common.ToHex(types.Encode(tx))
+	reqSignRawTx := &types.ReqSignRawTx{
+		Addr:  testAddrs[0],
+		TxHex: txhex,
+	}
+	txString, err := wallet.signTxWithPrivacy(privateKey, reqSignRawTx)
+	if nil != err {
+		return nil, err
+	}
+
+	data, _ := common.FromHex(txString)
+	err = types.Decode(data, &Tx)
+	if nil != err {
+		return nil, err
+	}
+
+	txDetal := &types.TransactionDetail{
+		Tx: &Tx,
+		Receipt: &types.ReceiptData{
+			Ty: types.ExecOk,
+		},
+		Height: 10021,
+	}
+
+	return txDetal, nil
+}
+
+func genPri2Pub(genAmount, spendAmount int64) (*types.TransactionDetail, error) {
+	wtd := &walletTestData{
+		mockMempool:    true,
+		mockBlockChain: true,
+	}
+
+	wtd.init()
+	wallet := wtd.wallet
+	privateKey, err := wallet.getPrivKeyByAddr(testAddrs[0])
+	if nil != err {
+		return nil, err
+	}
+
+	var Tx types.Transaction
+
+	//// Privacy -> Public
+	wtd.setBlockChainHeight(10020)
+	wtd.createUTXOs(testAddrs[0], testPubkeyPairs[0], genAmount, 10003, 1)
+	tx, err := wallet.procCreateTransaction(&types.ReqCreateTransaction{
+		Tokenname: types.BTY,
+		Type:      3,
+		Amount:    spendAmount,
+		From:      testAddrs[0],
+		To:        testAddrs[0],
+	})
+	if nil != err {
+		return nil, err
+	}
+
+	txhex := common.ToHex(types.Encode(tx))
+	reqSignRawTx := &types.ReqSignRawTx{
+		Addr:  testAddrs[0],
+		TxHex: txhex,
+	}
+
+	txString, err := wallet.signTxWithPrivacy(privateKey, reqSignRawTx)
+	if nil != err {
+		return nil, err
+	}
+
+	data, _ := common.FromHex(txString)
+	err = types.Decode(data, &Tx)
+	if nil != err {
+		return nil, err
+	}
+
+	txDetal := &types.TransactionDetail{
+		Tx: &Tx,
+		Receipt: &types.ReceiptData{
+			Ty: types.ExecOk,
+		},
+		Height: 11000,
+	}
+
+	return txDetal, nil
 }
 
 func (wtd *walletTestData) iniParams() {
@@ -1434,5 +1606,182 @@ func Test_procDeleteCacheTransaction(t *testing.T) {
 	for index, test := range testCase {
 		_, err := wallet.procDeleteCacheTransaction(test.req)
 		require.Equalf(t, err, test.actualErr, "unittest case index = %d", index)
+	}
+}
+
+func Test_SelectCurrentWalletPrivacyTx(t *testing.T) {
+	for i := 0; i < 3; i++ {
+		switch i {
+		case 0:
+			{
+				wtd := &walletTestData{
+					mockMempool:    true,
+					mockBlockChain: true,
+				}
+
+				wtd.init()
+				wallet := wtd.wallet
+				var txDetals []*types.TransactionDetail
+				genAmount := 50 * types.Coin
+				txDetal, err := genPub2Pri(genAmount)
+
+				require.Equal(t, err, nil)
+
+				txDetals = append(txDetals, txDetal)
+				newbatch := wallet.walletStore.NewBatch(true)
+				var addrs []string
+				addrs = append(addrs, testAddrs[0])
+				for index, txdetal := range txDetals {
+					wallet.SelectCurrentWalletPrivacyTx(txdetal, int32(index), addrs, newbatch)
+				}
+				newbatch.Write()
+
+				privacyDBStore, _ := wallet.walletStore.listAvailableUTXOs(types.BTY, testAddrs[0])
+				var Amount int64
+				for _, ele := range privacyDBStore {
+					Amount += ele.Amount
+					walletlog.Error("walletStore", "addr", testAddrs[0], "txhash is", common.Bytes2Hex(ele.Txhash), "amount is", ele.Amount)
+				}
+
+				require.Equal(t, Amount, genAmount)
+			}
+		case 1:
+			{
+				wtd := &walletTestData{
+					mockMempool:    true,
+					mockBlockChain: true,
+				}
+
+				wtd.init()
+				wallet := wtd.wallet
+				var txDetals []*types.TransactionDetail
+				genAmount := 50 * types.Coin
+				spendAmount := 20 * types.Coin
+				txDetal, err := genPri2Pri(genAmount, spendAmount)
+
+				require.Equal(t, err, nil)
+
+				txDetals = append(txDetals, txDetal)
+				newbatch := wallet.walletStore.NewBatch(true)
+				var addrs []string
+				addrs = append(addrs, testAddrs[0])
+				addrs = append(addrs, testAddrs[1])
+				for index, txdetal := range txDetals {
+					wallet.SelectCurrentWalletPrivacyTx(txdetal, int32(index), addrs, newbatch)
+				}
+				newbatch.Write()
+
+				privacyDBStore, _ := wallet.walletStore.listAvailableUTXOs(types.BTY, testAddrs[0])
+				var Amount1 int64
+				for _, ele := range privacyDBStore {
+					Amount1 += ele.Amount
+					walletlog.Error("walletStore", "addr", testAddrs[0], "txhash is", common.Bytes2Hex(ele.Txhash), "amount is", ele.Amount)
+				}
+
+				privacyDBStore, _ = wallet.walletStore.listAvailableUTXOs(types.BTY, testAddrs[1])
+				var Amount2 int64
+				for _, ele := range privacyDBStore {
+					Amount2 += ele.Amount
+					walletlog.Error("walletStore", "addr", testAddrs[1], "txhash is", common.Bytes2Hex(ele.Txhash), "amount is", ele.Amount)
+				}
+
+				txfee := types.Coin
+				require.Equal(t, txfee+Amount1+Amount2, genAmount)
+			}
+		case 2:
+			{
+				wtd := &walletTestData{
+					mockMempool:    true,
+					mockBlockChain: true,
+				}
+
+				wtd.init()
+				wallet := wtd.wallet
+				var txDetals []*types.TransactionDetail
+				genAmount := 50 * types.Coin
+				spendAmount := 20 * types.Coin
+				txDetal, err := genPri2Pub(genAmount, spendAmount)
+
+				require.Equal(t, err, nil)
+
+				txDetals = append(txDetals, txDetal)
+				newbatch := wallet.walletStore.NewBatch(true)
+				var addrs []string
+				addrs = append(addrs, testAddrs[0])
+				for index, txdetal := range txDetals {
+					wallet.SelectCurrentWalletPrivacyTx(txdetal, int32(index), addrs, newbatch)
+				}
+				newbatch.Write()
+
+				privacyDBStore, _ := wallet.walletStore.listAvailableUTXOs(types.BTY, testAddrs[0])
+				var Amount1 int64
+				for _, ele := range privacyDBStore {
+					Amount1 += ele.Amount
+					walletlog.Error("walletStore", "addr", testAddrs[0], "txhash is", common.Bytes2Hex(ele.Txhash), "amount is", ele.Amount)
+				}
+
+				txfee := types.Coin
+				require.Equal(t, txfee+Amount1+spendAmount, genAmount)
+			}
+		default:
+			{
+			}
+		}
+	}
+}
+
+func Test_DeleteScanPrivacyInputUtxo(t *testing.T) {
+
+	wtd := &walletTestData{
+		mockMempool:    true,
+		mockBlockChain: true,
+	}
+
+	wtd.init()
+	wallet := wtd.wallet
+
+	txhash := "01234567890123456789012345678901"
+	outindex := int32(1)
+
+	Tx, _ := common.FromHex(txhash)
+
+	var utxoGlobalIndexs []*types.UTXOGlobalIndex
+	utxoGlobalIndex := &types.UTXOGlobalIndex{
+		Txhash:   Tx,
+		Outindex: outindex,
+	}
+
+	utxoGlobalIndexs = append(utxoGlobalIndexs, utxoGlobalIndex)
+
+	newbatch := wallet.walletStore.NewBatch(true)
+	wallet.walletStore.StoreScanPrivacyInputUTXO(utxoGlobalIndexs, newbatch)
+	newbatch.Write()
+
+	addr := testAddrs[0]
+	dbStore := &types.PrivacyDBStore{
+		Owner:     addr,
+		Tokenname: types.BTY,
+		Txhash:    Tx,
+	}
+
+	newbatch = wallet.walletStore.NewBatch(true)
+	wallet.walletStore.setUTXO(&addr, &txhash, int(outindex), dbStore, newbatch)
+	newbatch.Write()
+
+	wallet.DeleteScanPrivacyInputUtxo()
+
+	utxoHaveTxHashs, err := wallet.walletStore.listSpendUTXOs(types.BTY, testAddrs[0])
+	require.Equal(t, err, nil)
+
+	for _, utxoHaveTxHash := range utxoHaveTxHashs.UtxoHaveTxHashs {
+
+		if utxoHaveTxHash.UtxoBasic != nil && utxoHaveTxHash.UtxoBasic.UtxoGlobalIndex != nil {
+			if common.Bytes2Hex(utxoHaveTxHash.UtxoBasic.UtxoGlobalIndex.Txhash) != txhash ||
+				utxoHaveTxHash.UtxoBasic.UtxoGlobalIndex.Outindex != outindex {
+				require.Error(t, types.ErrNotFound)
+			}
+		} else {
+			require.Error(t, types.ErrNotFound)
+		}
 	}
 }

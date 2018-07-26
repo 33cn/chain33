@@ -506,3 +506,18 @@ message ReqPrivacyTransactionList {
     string address      = 6;
     bytes  seedtxhash   = 7;
 }
+
+message ReqRescanUtxos {
+    repeated string addrs = 1;
+    int32           flag  = 2;
+}
+
+message RepRescanResult {
+    string addr = 1;
+    int32  flag = 2;
+}
+
+message RepRescanUtxos {
+    int32    flag                             = 1;
+    repeated RepRescanResult repRescanResults = 2;
+}
