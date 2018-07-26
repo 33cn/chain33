@@ -446,13 +446,12 @@ func (c *Chain33) SendToAddress(in types.ReqWalletSendToAddress, result *interfa
 		}
 		//不需要自己去导出私钥，signRawTx 里面只需带入公钥地址，也回优先去查出相应的私钥，前提是私钥已经导入
 		reqSignRawTx := &types.ReqSignRawTx{
-			in.From,
-			"",
-			hex.EncodeToString(tx),
-			"300s",
-			0,
-			0,
-			"",
+			Addr:    in.From,
+			Privkey: "",
+			TxHex:   hex.EncodeToString(tx),
+			Expire:  "300s",
+			Index:   0,
+			Token:   "",
 		}
 		replySignRawTx, err := c.cli.SignRawTx(reqSignRawTx)
 		if err != nil {
