@@ -17,16 +17,15 @@ const (
 )
 
 type CommitMsg struct {
-	height        int64
-	mainStateHash []byte
+	mainBlockHash []byte
 	initTxHashs   [][]byte
-	block         *types.BlockDetail
+	blockDetail   *types.BlockDetail
 }
 
 type CommitMsgClient struct {
 	paraClient         *ParaClient
 	commitMsgNofity    chan *CommitMsg
-	mainBlockNotify    chan *types.Block
+	mainBlockNotify    chan *types.BlockDetail
 	currentTx          string
 	waitingTx          bool
 	checkTxCommitTimes int
@@ -36,6 +35,7 @@ type CommitMsgClient struct {
 func (client *CommitMsgClient) handler() {
 	var notifications []*CommitMsg
 	readTick := time.Tick(time.Second)
+	consensusTick := time.Tick(time.Minute)
 	type sendResult struct {
 		err error
 	}
@@ -93,6 +93,8 @@ func (client *CommitMsgClient) handler() {
 					}
 				}()
 			}
+		case <-consensusTick:
+
 		case <-sendResponse:
 			go func() {
 				err := client.sendCommitMsgTx(client.currentTx)
@@ -111,7 +113,7 @@ func calcRawTxs(notifications []*CommitMsg) (string, int, error) {
 	if err != nil {
 		txs, err = singleCalcTx((notifications)[0])
 		if err != nil {
-			plog.Error("single calc tx", "height", notifications[0].block.Block.Height)
+			plog.Error("single calc tx", "height", notifications[0].blockDetail.Block.Height)
 
 			return "", 0, err
 		}
@@ -131,7 +133,7 @@ func batchCalcTxGroup(notifications []*CommitMsg) (string, int, error) {
 	for _, msg := range buff {
 		tx, err := getCommitMsgTx(msg)
 		if err != nil {
-			plog.Error("para get commit tx", "block height", msg.block.Block.Height)
+			plog.Error("para get commit tx", "block height", msg.blockDetail.Block.Height)
 			return "", 0, err
 		}
 		rawTxs.Txs = append(rawTxs.Txs, tx)
@@ -148,7 +150,7 @@ func batchCalcTxGroup(notifications []*CommitMsg) (string, int, error) {
 func singleCalcTx(msg *CommitMsg) (string, error) {
 	tx, err := getCommitMsgTx(msg)
 	if err != nil {
-		plog.Error("para get commit tx", "block height", msg.block.Block.Height)
+		plog.Error("para get commit tx", "block height", msg.blockDetail.Block.Height)
 		return "", err
 	}
 
@@ -175,7 +177,7 @@ func (client *CommitMsgClient) sendCommitMsg(txs string) error {
 	return nil
 }
 
-func checkTxInMainBlock(targetTx string, block *types.Block) (bool, error) {
+func checkTxInMainBlock(targetTx string, detail *types.BlockDetail) (bool, error) {
 	data, err := common.FromHex(targetTx)
 	if err != nil {
 		plog.Error("checkTxInMainBlock targetTx", "tx", targetTx, "err", err.Error())
@@ -185,8 +187,8 @@ func checkTxInMainBlock(targetTx string, block *types.Block) (bool, error) {
 	types.Decode(data, &decodeTx)
 	targetHash := decodeTx.Hash()
 
-	for _, tx := range block.Txs {
-		if bytes.Equal(targetHash, tx.Hash()) {
+	for i, tx := range detail.Block.Txs {
+		if bytes.Equal(targetHash, tx.Hash()) && detail.Receipts[i].Ty == types.ExecOk {
 			return true, nil
 		}
 	}
@@ -197,18 +199,20 @@ func checkTxInMainBlock(targetTx string, block *types.Block) (bool, error) {
 func getCommitMsgTx(msg *CommitMsg) (*types.Transaction, error) {
 	status := &types.ParacrossNodeStatus{
 		Title:         types.GetTitle(),
-		Height:        msg.block.Block.Height,
-		StateHash:     msg.block.Block.StateHash,
-		MainStateHash: msg.mainStateHash,
-		PreStateHash:  msg.block.PrevStatusHash,
+		Height:        msg.blockDetail.Block.Height,
+		PreBlockHash:  msg.blockDetail.Block.ParentHash,
+		BlockHash:     msg.blockDetail.Block.Hash(),
+		MainBlockHash: msg.mainBlockHash,
+		PreStateHash:  msg.blockDetail.PrevStatusHash,
+		StateHash:     msg.blockDetail.Block.StateHash,
 	}
 
 	var curTxsHash [][]byte
-	for _, tx := range msg.block.Block.Txs {
+	for _, tx := range msg.blockDetail.Block.Txs {
 		curTxsHash = append(curTxsHash, tx.Hash())
 	}
 
-	status.TxResult = util.CalcByteBitMap(msg.initTxHashs, curTxsHash, msg.block.Receipts)
+	status.TxResult = util.CalcByteBitMap(msg.initTxHashs, curTxsHash, msg.blockDetail.Receipts)
 	status.TxCounts = uint32(len(msg.initTxHashs))
 
 	tx := paracross.CreateRawCommitTx(status)
@@ -290,7 +294,7 @@ func (client *CommitMsgClient) onBlockAdded(msg *CommitMsg) {
 	}
 }
 
-func (client *CommitMsgClient) onMainBlockAdded(block *types.Block) {
+func (client *CommitMsgClient) onMainBlockAdded(block *types.BlockDetail) {
 	checkTicker := time.NewTicker(time.Second * 1)
 	select {
 	case client.mainBlockNotify <- block:

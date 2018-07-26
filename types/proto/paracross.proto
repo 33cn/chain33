@@ -23,13 +23,15 @@ message ParacrossStatus {
 
 // action
 message ParacrossNodeStatus {
-    string title         = 1;
-    int64  height        = 2;
-    bytes  stateHash     = 3;
-    bytes  mainStateHash = 4;
-    uint32 txCounts      = 5;
-    bytes  txResult      = 6;
-    bytes  preStateHash  = 7;
+    bytes  mainBlockHash = 1;
+    string title         = 2;
+    int64  height        = 3;
+    bytes  preBlockHash  = 4;
+    bytes  blockHash     = 5;
+    bytes  preStateHash  = 6;
+    bytes  stateHash     = 7;
+    uint32 txCounts      = 8;
+    bytes  txResult      = 9;
 }
 
 message ParacrossCommitAction {

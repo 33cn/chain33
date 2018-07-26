@@ -79,7 +79,7 @@ func New(cfg *types.Consensus) *ParaClient {
 	para.commitMsgClient = &CommitMsgClient{
 		paraClient:      para,
 		commitMsgNofity: make(chan *CommitMsg, 1),
-		mainBlockNotify: make(chan *types.Block, 1),
+		mainBlockNotify: make(chan *types.BlockDetail, 1),
 		quit:            make(chan struct{}),
 	}
 
@@ -172,11 +172,11 @@ func (client *ParaClient) GetSeqByHeightOnMain(height int64, originSeq int64) in
 		case <-hint.C:
 			plog.Info("Still Searching......", "searchAtSeq", originSeq, "lastSeq", lastSeq)
 		default:
-			block, seqTy, err := client.GetBlockOnMainBySeq(originSeq)
+			blockDetail, seqTy, err := client.GetBlockOnMainBySeq(originSeq)
 			if err != nil {
 				panic(err)
 			}
-			if block.Height == height && seqTy == AddAct {
+			if blockDetail.Block.Height == height && seqTy == AddAct {
 				plog.Info("the target sequence in mainchain", "heightOnMain", height, "targetSeq", originSeq)
 				return originSeq
 			}
@@ -268,7 +268,7 @@ func (client *ParaClient) GetBlockHashFromMainChain(start int64, end int64) (*ty
 	return blockSeqs, nil
 }
 
-func (client *ParaClient) GetBlockOnMainBySeq(seq int64) (*types.Block, int64, error) {
+func (client *ParaClient) GetBlockOnMainBySeq(seq int64) (*types.BlockDetail, int64, error) {
 	blockSeqs, err := client.GetBlockHashFromMainChain(seq, seq)
 	if err != nil {
 		plog.Error("Not found block hash on seq", "start", seq, "end", seq)
@@ -290,7 +290,7 @@ func (client *ParaClient) GetBlockOnMainBySeq(seq int64) (*types.Block, int64, e
 		panic("Inconsistency between GetBlockSequences and GetBlockByHashes")
 	}
 
-	return blockDetails.Items[0].Block, blockSeqs.Items[0].Type, nil
+	return blockDetails.Items[0], blockSeqs.Items[0].Type, nil
 }
 
 func (client *ParaClient) RequestTx(currSeq int64) ([]*types.Transaction, *types.Block, int64, error) {
@@ -307,16 +307,16 @@ func (client *ParaClient) RequestTx(currSeq int64) ([]*types.Transaction, *types
 		} else {
 			client.isCatchingUp = false
 		}
-		block, seqTy, err := client.GetBlockOnMainBySeq(currSeq)
+		blockDetail, seqTy, err := client.GetBlockOnMainBySeq(currSeq)
 		if err != nil {
 			return nil, nil, -1, err
 		}
-		txs := client.FilterTxsForPara(block.Txs)
+		txs := client.FilterTxsForPara(blockDetail.Block.Txs)
 		plog.Info("GetCurrentSeq", "Len of txs", len(txs), "seqTy", seqTy)
 
-		client.commitMsgClient.onMainBlockAdded(block)
+		client.commitMsgClient.onMainBlockAdded(blockDetail)
 
-		return txs, block, seqTy, nil
+		return txs, blockDetail.Block, seqTy, nil
 	}
 	plog.Debug("Waiting new sequence from main chain")
 	time.Sleep(time.Second * time.Duration(blockSec*2))
@@ -374,11 +374,11 @@ func (client *ParaClient) CreateBlock() {
 			time.Sleep(time.Second)
 			continue
 		}
-		plog.Info("Parachain process block", "blockedSeq", blockedSeq, "blockOnMain.Height", blockOnMain.Height, "savedBlockOnMain.Height", savedBlockOnMain.Height)
+		plog.Info("Parachain process block", "blockedSeq", blockedSeq, "blockOnMain.Height", blockOnMain.Height, "savedBlockOnMain.Height", savedBlockOnMain.Block.Height)
 
 		if seqTy == DelAct {
 			if len(txs) == 0 {
-				if blockOnMain.Height > savedBlockOnMain.Height {
+				if blockOnMain.Height > savedBlockOnMain.Block.Height {
 					incSeqFlag = true
 					continue
 				}
@@ -391,7 +391,7 @@ func (client *ParaClient) CreateBlock() {
 			}
 		} else if seqTy == AddAct {
 			if len(txs) == 0 {
-				if blockOnMain.Height-savedBlockOnMain.Height < emptyBlockInterval {
+				if blockOnMain.Height-savedBlockOnMain.Block.Height < emptyBlockInterval {
 					incSeqFlag = true
 					continue
 				}
@@ -458,10 +458,9 @@ func (client *ParaClient) WriteBlock(prev []byte, paraBlock *types.Block, mainBl
 		client.SetCurrentBlock(paraBlock)
 		if mainBlock != nil && len(paraBlock.Txs) > 0 {
 			commitMsg := &CommitMsg{
-				height:        blockdetail.Block.Height,
 				initTxHashs:   oriTxHashs,
-				mainStateHash: mainBlock.StateHash,
-				block:         blockdetail,
+				mainBlockHash: mainBlock.Hash(),
+				blockDetail:   blockdetail,
 			}
 			client.commitMsgClient.onBlockAdded(commitMsg)
 
