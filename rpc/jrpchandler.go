@@ -10,6 +10,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/version"
 	"gitlab.33.cn/chain33/chain33/types"
+	retrievetype "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
 	tokentype "gitlab.33.cn/chain33/chain33/types/executor/token"
 	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
 )
@@ -95,14 +96,6 @@ func (c *Chain33) SendTransaction(in RawParm, result *interface{}) error {
 	if err == nil {
 		*result = common.ToHex(reply.GetMsg())
 	}
-	isok := false
-	if reply != nil {
-		isok = reply.IsOk
-	}
-	c.cli.NotifySendTxResult(&types.ReqNotifySendTxResult{
-		Isok: isok,
-		Tx:   &parm,
-	})
 	return err
 }
 
@@ -1170,6 +1163,46 @@ func (c *Chain33) CreateRawTradeRevokeBuyTx(in *tradetype.TradeRevokeBuyTx, resu
 	return nil
 }
 
+func (c *Chain33) CreateRawRetrieveBackupTx(in *retrievetype.RetrieveBackupTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawRetrieveBackupTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Chain33) CreateRawRetrievePrepareTx(in *retrievetype.RetrievePrepareTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawRetrievePrepareTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Chain33) CreateRawRetrievePerformTx(in *retrievetype.RetrievePerformTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawRetrievePerformTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Chain33) CreateRawRetrieveCancelTx(in *retrievetype.RetrieveCancelTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawRetrieveCancelTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
 func (c *Chain33) SignRawTx(in *types.ReqSignRawTx, result *interface{}) error {
 	resp, err := c.cli.SignRawTx(in)
 	if err != nil {
@@ -1387,34 +1420,6 @@ func (c *Chain33) CreateTrasaction(in types.ReqCreateTransaction, result *interf
 	return nil
 }
 
-// QueryCacheTransaction 查询由服务器创建未发送的交易列表
-func (c *Chain33) QueryCacheTransaction(in types.ReqCacheTxList, result *interface{}) error {
-	reply, err := c.cli.QueryCacheTransaction(&in)
-	if err != nil {
-		return err
-	}
-	cacheTxList := &ReplyCacheTxList{}
-	for _, fromtx := range reply.Txs {
-		totx, err := DecodeTx(fromtx)
-		if err != nil {
-			continue
-		}
-		cacheTxList.Txs = append(cacheTxList.Txs, totx)
-	}
-	*result = cacheTxList
-	return nil
-}
-
-// DeleteCacheTransaction 删除由服务器创建未发送的交易列表
-func (c *Chain33) DeleteCacheTransaction(in types.ReqCreateCacheTxKey, result *interface{}) error {
-	reply, err := c.cli.DeleteCacheTransaction(&in)
-	if err != nil {
-		return err
-	}
-	*result = common.ToHex(reply.GetMsg())
-	return nil
-}
-
 func (c *Chain33) ShowPrivacyAccountInfo(in types.ReqPPrivacyAccount, result *interface{}) error {
 	reply, err := c.cli.ShowPrivacyAccountInfo(&in)
 	if err != nil {
@@ -1430,7 +1435,7 @@ func (c *Chain33) CloseQueue(in *types.ReqNil, result *interface{}) error {
 		c.cli.CloseQueue()
 	}()
 
-	*result = &types.Reply{IsOk: true, Msg: []byte("Ok")}
+	*result = &types.Reply{IsOk: true}
 	return nil
 }
 

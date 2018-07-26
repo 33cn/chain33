@@ -14,6 +14,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
+	retrievetype "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
 	tokentype "gitlab.33.cn/chain33/chain33/types/executor/token"
 	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
 )
@@ -336,6 +337,22 @@ func (c *channelClient) CreateRawTradeRevokeBuyTx(parm *tradetype.TradeRevokeBuy
 	return callExecNewTx(types.ExecName(types.TradeX), "TradeRevokeBuy", parm)
 }
 
+func (c *channelClient) CreateRawRetrieveBackupTx(parm *retrievetype.RetrieveBackupTx) ([]byte, error) {
+	return callExecNewTx(types.ExecName(types.RetrieveX), "RetrieveBackup", parm)
+}
+
+func (c *channelClient) CreateRawRetrievePrepareTx(parm *retrievetype.RetrievePrepareTx) ([]byte, error) {
+	return callExecNewTx(types.ExecName(types.RetrieveX), "RetrievePrepare", parm)
+}
+
+func (c *channelClient) CreateRawRetrievePerformTx(parm *retrievetype.RetrievePerformTx) ([]byte, error) {
+	return callExecNewTx(types.ExecName(types.RetrieveX), "RetrievePerform", parm)
+}
+
+func (c *channelClient) CreateRawRetrieveCancelTx(parm *retrievetype.RetrieveCancelTx) ([]byte, error) {
+	return callExecNewTx(types.ExecName(types.RetrieveX), "RetrieveCancel", parm)
+}
+
 func (c *channelClient) BindMiner(param *types.ReqBindMiner) (*types.ReplyBindMiner, error) {
 	ta := &types.TicketAction{}
 	tBind := &types.TicketBind{
@@ -408,6 +425,8 @@ func (c *channelClient) CreateRawRelayOrderTx(parm *RelayOrderTx) ([]byte, error
 		To:      address.ExecAddress(string(types.ExecerRelay)),
 	}
 
+	tx.SetRealFee(types.MinFee)
+
 	data := types.Encode(tx)
 	return data, nil
 }
@@ -428,6 +447,8 @@ func (c *channelClient) CreateRawRelayAcceptTx(parm *RelayAcceptTx) ([]byte, err
 		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
 		To:      address.ExecAddress(string(types.ExecerRelay)),
 	}
+
+	tx.SetRealFee(types.MinFee)
 
 	data := types.Encode(tx)
 	return data, nil
@@ -450,6 +471,8 @@ func (c *channelClient) CreateRawRelayRevokeTx(parm *RelayRevokeTx) ([]byte, err
 		To:      address.ExecAddress(string(types.ExecerRelay)),
 	}
 
+	tx.SetRealFee(types.MinFee)
+
 	data := types.Encode(tx)
 	return data, nil
 }
@@ -470,6 +493,8 @@ func (c *channelClient) CreateRawRelayConfirmTx(parm *RelayConfirmTx) ([]byte, e
 		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
 		To:      address.ExecAddress(string(types.ExecerRelay)),
 	}
+
+	tx.SetRealFee(types.MinFee)
 
 	data := types.Encode(tx)
 	return data, nil
@@ -496,6 +521,8 @@ func (c *channelClient) CreateRawRelayVerifyBTCTx(parm *RelayVerifyBTCTx) ([]byt
 		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
 		To:      address.ExecAddress(string(types.ExecerRelay)),
 	}
+
+	tx.SetRealFee(types.MinFee)
 
 	data := types.Encode(tx)
 	return data, nil
@@ -528,6 +555,8 @@ func (c *channelClient) CreateRawRelaySaveBTCHeadTx(parm *RelaySaveBTCHeadTx) ([
 		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
 		To:      address.ExecAddress(string(types.ExecerRelay)),
 	}
+
+	tx.SetRealFee(types.MinFee)
 
 	data := types.Encode(tx)
 	return data, nil

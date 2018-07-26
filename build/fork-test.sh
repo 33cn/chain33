@@ -219,27 +219,28 @@ function optDockerfun() {
 }
 
 function forkType1() {
+    echo "=========== 开始进行类型1分叉测试 ========== "
     init
 
     optDockerPart1
     #############################################
     #此处根据具体需求加入；如从钱包中转入某个具体合约账户
     #1 初始化交易余额
-    #initPriAccount
+    initPriAccount
 
     #############################################
     optDockerPart2
     #############################################
     #此处根据具体需求加入在一条测试链中发送测试数据
     #2 构造第一条链中交易
-    #genFirstChainPritx
+    genFirstChainPritx
 
     #############################################
     optDockerPart3
     #############################################
     #此处根据具体需求加入在第二条测试链中发送测试数据
     #3 构造第二条链中交易
-    #genSecondChainPritx
+    genSecondChainPritx
 
     #############################################
     optDockerPart4
@@ -248,12 +249,14 @@ function forkType1() {
     #############################################
     #此处根据具体需求加入结果检查
     #4 检查交易结果
-    #checkPriResult
+    checkPriResult
 
     #############################################
+    echo "=========== 类型1分叉测试结束 ========== "
 }
 
 function forkType2() {
+    echo "=========== 开始进行类型2分叉测试 ========== "
     init
 
     optDockerPart1
@@ -288,7 +291,7 @@ function forkType2() {
     checkCoinsResult
 
     #############################################
-
+    echo "=========== 类型2分叉测试结束 ========== "
 }
 
 function optDockerPart1() {

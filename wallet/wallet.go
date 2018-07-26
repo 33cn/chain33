@@ -33,10 +33,6 @@ var (
 )
 
 const (
-	// 分成3步操作中
-	cacheTxStatus_Created int32 = 10000
-	cacheTxStatus_Signed  int32 = 10001
-	cacheTxStatus_Sent    int32 = 10002
 	// 交易操作的方向
 	AddTx int32 = 20001
 	DelTx int32 = 20002
@@ -69,6 +65,7 @@ type Wallet struct {
 	done             chan struct{}
 	rescanwg         *sync.WaitGroup
 	rescanUTXOflag   int32
+	lastHeader       *types.Header
 }
 
 type walletUTXO struct {
@@ -391,4 +388,42 @@ func (wallet *Wallet) GetWalletAccounts() ([]*types.WalletAccountStore, error) {
 		return nil, err
 	}
 	return WalletAccStores, err
+}
+
+func (wallet *Wallet) reScanWalletUtxos() {
+	walletlog.Debug("RescanAllUTXO begin!")
+
+	priExecAddr := address.ExecAddress(types.PrivacyX)
+	go wallet.RescanReqUtxosByAddr(priExecAddr)
+
+	walletlog.Debug("RescanAllUTXO sucess!")
+}
+
+//从blockchain模块同步addr参与的所有交易详细信息
+func (wallet *Wallet) RescanReqUtxosByAddr(addr string) {
+	defer wallet.wg.Done()
+	wallet.reqUtxosByAddr(addr)
+}
+
+func (wallet *Wallet) updateLastHeader(block *types.BlockDetail, mode int) error {
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+	header, err := wallet.api.GetLastHeader()
+	if err != nil {
+		return err
+	}
+	if block != nil {
+		if mode == 1 && block.Block.Height > header.Height {
+			wallet.lastHeader = &types.Header{
+				BlockTime: block.Block.BlockTime,
+				Height:    block.Block.Height,
+				StateHash: block.Block.StateHash,
+			}
+		} else if mode == -1 && wallet.lastHeader != nil && wallet.lastHeader.Height == block.Block.Height {
+			wallet.lastHeader = header
+		}
+	} else {
+		wallet.lastHeader = header
+	}
+	return nil
 }

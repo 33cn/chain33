@@ -129,29 +129,6 @@ func (_m *QueueProtocolAPI) CreateUTXOs(param *types.ReqCreateUTXOs) (*types.Rep
 	return r0, r1
 }
 
-// DeleteCacheTransaction provides a mock function with given fields: param
-func (_m *QueueProtocolAPI) DeleteCacheTransaction(param *types.ReqCreateCacheTxKey) (*types.Reply, error) {
-	ret := _m.Called(param)
-
-	var r0 *types.Reply
-	if rf, ok := ret.Get(0).(func(*types.ReqCreateCacheTxKey) *types.Reply); ok {
-		r0 = rf(param)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.Reply)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(*types.ReqCreateCacheTxKey) error); ok {
-		r1 = rf(param)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // DumpPrivkey provides a mock function with given fields: param
 func (_m *QueueProtocolAPI) DumpPrivkey(param *types.ReqStr) (*types.ReplyStr, error) {
 	ret := _m.Called(param)
@@ -750,29 +727,6 @@ func (_m *QueueProtocolAPI) NewAccount(param *types.ReqNewAccount) (*types.Walle
 	return r0, r1
 }
 
-// NotifySendTxResult provides a mock function with given fields: param
-func (_m *QueueProtocolAPI) NotifySendTxResult(param *types.ReqNotifySendTxResult) (*types.Reply, error) {
-	ret := _m.Called(param)
-
-	var r0 *types.Reply
-	if rf, ok := ret.Get(0).(func(*types.ReqNotifySendTxResult) *types.Reply); ok {
-		r0 = rf(param)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.Reply)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(*types.ReqNotifySendTxResult) error); ok {
-		r1 = rf(param)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // PeerInfo provides a mock function with given fields:
 func (_m *QueueProtocolAPI) PeerInfo() (*types.PeerList, error) {
 	ret := _m.Called()
@@ -903,29 +857,6 @@ func (_m *QueueProtocolAPI) Query(param *types.Query) (*types.Message, error) {
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(*types.Query) error); ok {
-		r1 = rf(param)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// QueryCacheTransaction provides a mock function with given fields: param
-func (_m *QueueProtocolAPI) QueryCacheTransaction(param *types.ReqCacheTxList) (*types.ReplyCacheTxList, error) {
-	ret := _m.Called(param)
-
-	var r0 *types.ReplyCacheTxList
-	if rf, ok := ret.Get(0).(func(*types.ReqCacheTxList) *types.ReplyCacheTxList); ok {
-		r0 = rf(param)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.ReplyCacheTxList)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(*types.ReqCacheTxList) error); ok {
 		r1 = rf(param)
 	} else {
 		r1 = ret.Error(1)
