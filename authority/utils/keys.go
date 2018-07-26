@@ -9,13 +9,16 @@ import (
 	"encoding/pem"
 	"math/big"
 
+	"encoding/asn1"
+
+	"fmt"
+
 	"github.com/pkg/errors"
 	"github.com/tjfoc/gmsm/sm2"
-)
-
-const (
-	SIGN_TYPE_AUTHECDSA = 1
-	SIGN_TYPE_AUTHSM2   = 2
+	"gitlab.33.cn/chain33/chain33/common/crypto"
+	ecdsa_util "gitlab.33.cn/chain33/chain33/common/crypto/ecdsa"
+	sm2_util "gitlab.33.cn/chain33/chain33/common/crypto/sm2"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 func SKI(curve elliptic.Curve, x, y *big.Int) (ski []byte) {
@@ -34,14 +37,14 @@ func GetPublicKeySKIFromCert(cert []byte, signType int) (string, error) {
 
 	var ski []byte
 	switch signType {
-	case SIGN_TYPE_AUTHECDSA:
+	case types.AUTH_ECDSA:
 		x509Cert, err := x509.ParseCertificate(dcert.Bytes)
 		if err != nil {
 			return "", errors.Errorf("Unable to parse cert from decoded bytes: %s", err)
 		}
 		ecdsaPk := x509Cert.PublicKey.(*ecdsa.PublicKey)
 		ski = SKI(ecdsaPk.Curve, ecdsaPk.X, ecdsaPk.Y)
-	case SIGN_TYPE_AUTHSM2:
+	case types.AUTH_SM2:
 		sm2Cert, err := sm2.ParseCertificate(dcert.Bytes)
 		if err != nil {
 			return "", errors.Errorf("Unable to parse cert from decoded bytes: %s", err)
@@ -53,4 +56,45 @@ func GetPublicKeySKIFromCert(cert []byte, signType int) (string, error) {
 	}
 
 	return hex.EncodeToString(ski), nil
+}
+
+func EncodeCertToSignature(signByte []byte, cert []byte) ([]byte, error) {
+	certSign := crypto.CertSignature{}
+	certSign.Signature = append(certSign.Signature, signByte...)
+	certSign.Cert = append(certSign.Cert, cert...)
+	return asn1.Marshal(certSign)
+}
+
+func DecodeCertFromSignature(signByte []byte) ([]byte, []byte, error) {
+	var certSignature crypto.CertSignature
+	_, err := asn1.Unmarshal(signByte, &certSignature)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return certSignature.Cert, certSignature.Signature, nil
+}
+
+func PrivKeyByteFromRaw(raw []byte, signType int) ([]byte, error) {
+	block, _ := pem.Decode(raw)
+	if block == nil {
+		return nil, fmt.Errorf("Failed decoding PEM. Block must be different from nil. [% x]", raw)
+	}
+
+	switch signType {
+	case types.AUTH_ECDSA:
+		key, err := x509.ParsePKCS8PrivateKey(block.Bytes)
+		if err != nil {
+			return nil, err
+		}
+		return ecdsa_util.SerializePrivateKey(key.(*ecdsa.PrivateKey)), nil
+	case types.AUTH_SM2:
+		key, err := sm2.ParsePKCS8PrivateKey(block.Bytes, nil)
+		if err != nil {
+			return nil, err
+		}
+		return sm2_util.SerializePrivateKey(key), nil
+	}
+
+	return nil, errors.Errorf("unknow public key type")
 }

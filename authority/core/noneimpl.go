@@ -14,3 +14,7 @@ func (validator *noneValidator) Setup(conf *AuthConfig) error {
 func (validator *noneValidator) Validate(certByte []byte, pubKey []byte) error {
 	return nil
 }
+
+func (Validator *noneValidator) GetCertFromSignature(signature []byte) ([]byte, error) {
+	return []byte(""), nil
+}

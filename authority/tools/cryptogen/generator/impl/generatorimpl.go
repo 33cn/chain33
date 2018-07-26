@@ -18,7 +18,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/authority/tools/cryptogen/factory/csp"
 	"gitlab.33.cn/chain33/chain33/authority/tools/cryptogen/generator"
 	"gitlab.33.cn/chain33/chain33/authority/tools/cryptogen/generator/utils"
-	auth_utils "gitlab.33.cn/chain33/chain33/authority/utils"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 type EcdsaCA struct {
@@ -35,9 +35,9 @@ type SM2CA struct {
 }
 
 func NewCA(baseDir, name string, signType int) (generator.CAGenerator, error) {
-	if signType == auth_utils.SIGN_TYPE_AUTHECDSA {
+	if signType == types.AUTH_ECDSA {
 		return newEcdsaCA(baseDir, name)
-	} else if signType == auth_utils.SIGN_TYPE_AUTHSM2 {
+	} else if signType == types.AUTH_SM2 {
 		return newSM2CA(baseDir, name)
 	} else {
 		return nil, fmt.Errorf("Invalid sign type")
