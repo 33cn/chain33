@@ -29,6 +29,7 @@ message ParacrossNodeStatus {
     bytes  mainStateHash = 4;
     uint32 txCounts      = 5;
     bytes  txResult      = 6;
+    bytes  preStateHash  = 7;
 }
 
 message ParacrossCommitAction {
