@@ -10,16 +10,7 @@ import (
 )
 
 func (g *Grpc) SendTransaction(ctx context.Context, in *pb.Transaction) (*pb.Reply, error) {
-	reply, err := g.cli.SendTx(in)
-	isok := false
-	if reply != nil {
-		isok = reply.IsOk
-	}
-	g.cli.NotifySendTxResult(&pb.ReqNotifySendTxResult{
-		Isok: isok,
-		Tx:   in,
-	})
-	return reply, err
+	return g.cli.SendTx(in)
 }
 
 func (g *Grpc) CreateNoBalanceTransaction(ctx context.Context, in *pb.NoBalanceTx) (*pb.ReplySignRawTx, error) {
@@ -254,7 +245,7 @@ func (g *Grpc) CloseQueue(ctx context.Context, in *pb.ReqNil) (*pb.Reply, error)
 		g.cli.CloseQueue()
 	}()
 
-	return &pb.Reply{IsOk: true, Msg: []byte("Ok")}, nil
+	return &pb.Reply{IsOk: true}, nil
 }
 
 func (g *Grpc) GetLastBlockSequence(ctx context.Context, in *pb.ReqNil) (*pb.Int64, error) {

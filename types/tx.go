@@ -387,6 +387,17 @@ func (tx *Transaction) GetRealFee(minFee int64) (int64, error) {
 	return realFee, nil
 }
 
+func (tx *Transaction) SetRealFee(minFee int64) error {
+	if tx.Fee == 0 {
+		fee, err := tx.GetRealFee(minFee)
+		if err != nil {
+			return err
+		}
+		tx.Fee = fee
+	}
+	return nil
+}
+
 var expireBound int64 = 1000000000 // 交易过期分界线，小于expireBound比较height，大于expireBound比较blockTime
 
 func (tx *Transaction) IsExpire(height, blocktime int64) bool {

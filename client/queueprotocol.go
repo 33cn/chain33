@@ -72,7 +72,7 @@ func (q *QueueProtocol) query(topic string, ty int64, data interface{}) (queue.M
 func (q *QueueProtocol) notify(topic string, ty int64, data interface{}) (queue.Message, error) {
 	client := q.client
 	msg := client.NewMessage(topic, ty, data)
-	err := client.SendTimeout(msg, true, q.option.SendTimeout)
+	err := client.SendTimeout(msg, false, q.option.SendTimeout)
 	if err != nil {
 		return queue.Message{}, err
 	}
@@ -806,6 +806,7 @@ func (q *QueueProtocol) ShowPrivacyAccountSpend(param *types.ReqPrivBal4AddrToke
 func (q *QueueProtocol) CloseQueue() (*types.Reply, error) {
 	return q.client.CloseQueue()
 }
+
 func (q *QueueProtocol) GetLastBlockSequence() (*types.Int64, error) {
 	msg, err := q.query(blockchainKey, types.EventGetLastBlockSequence, &types.ReqNil{})
 	if err != nil {
@@ -891,30 +892,6 @@ func (q *QueueProtocol) CreateTrasaction(param *types.ReqCreateTransaction) (*ty
 	return nil, types.ErrTypeAsset
 }
 
-func (q *QueueProtocol) QueryCacheTransaction(param *types.ReqCacheTxList) (*types.ReplyCacheTxList, error) {
-	msg, err := q.query(walletKey, types.EventQueryCacheTransaction, param)
-	if err != nil {
-		log.Error("QueryCacheTransaction", "Error", err.Error())
-		return nil, err
-	}
-	if reply, ok := msg.GetData().(*types.ReplyCacheTxList); ok {
-		return reply, nil
-	}
-	return nil, types.ErrTypeAsset
-}
-
-func (q *QueueProtocol) DeleteCacheTransaction(param *types.ReqCreateCacheTxKey) (*types.Reply, error) {
-	msg, err := q.query(walletKey, types.EventDeleteCacheTransaction, param)
-	if err != nil {
-		log.Error("DeleteCacheTransaction", "Error", err.Error())
-		return nil, err
-	}
-	if reply, ok := msg.GetData().(*types.Reply); ok {
-		return reply, nil
-	}
-	return nil, types.ErrTypeAsset
-}
-
 func (q *QueueProtocol) ShowPrivacyAccountInfo(param *types.ReqPPrivacyAccount) (*types.ReplyPrivacyAccount, error) {
 	msg, err := q.query(walletKey, types.EventPrivacyAccountInfo, param)
 	if err != nil {
@@ -974,21 +951,6 @@ func (q *QueueProtocol) GetBlockSequences(param *types.ReqBlocks) (*types.BlockS
 	}
 	err = types.ErrTypeAsset
 	log.Error("GetBlockSequences", "Error", err.Error())
-	return nil, err
-}
-
-func (q *QueueProtocol) NotifySendTxResult(param *types.ReqNotifySendTxResult) (*types.Reply, error) {
-	if param == nil || param.Tx == nil {
-		err := types.ErrInvalidParam
-		log.Error("NotifySendTxResult", "Error", err)
-		return nil, err
-	}
-	msg, err := q.notify(walletKey, types.EventNotifySendTxResult, param)
-	if _, ok := msg.GetData().(*types.Reply); ok {
-		return &types.Reply{IsOk: true}, nil
-	}
-	err = types.ErrTypeAsset
-	log.Error("NotifySendTxResult", "Error", err.Error())
 	return nil, err
 }
 
