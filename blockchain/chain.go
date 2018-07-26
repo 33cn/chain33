@@ -21,7 +21,7 @@ var (
 	DefCacheSize        int64 = 512
 	cachelock           sync.Mutex
 	zeroHash            [32]byte
-	InitBlockNum        int64 = 1024 //节点刚启动时从db向index和bestchain缓存中添加的blocknode数
+	InitBlockNum        int64 = 10240 //节点刚启动时从db向index和bestchain缓存中添加的blocknode数，和blockNodeCacheLimit保持一致
 	isStrongConsistency       = false
 
 	chainlog                    = log.New("module", "blockchain")
@@ -334,6 +334,7 @@ func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, blockdetail *types.Bloc
 	if (!isorphan && err == nil) || (err == types.ErrBlockExist) {
 		chain.task.Done(blockdetail.Block.GetHeight())
 	}
+
 	//此处只更新广播block的高度
 	if broadcast {
 		chain.UpdateRcvCastBlkHeight(blockdetail.Block.Height)
@@ -841,9 +842,7 @@ func (chain *BlockChain) InitIndexAndBestView() {
 				initflag = true
 			} else {
 				chain.bestChain.SetTip(newNode)
-
 			}
-
 		}
 	}
 }
