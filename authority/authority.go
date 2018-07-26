@@ -13,6 +13,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/authority/core"
 	"gitlab.33.cn/chain33/chain33/authority/utils"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
 )
 
 var (
@@ -295,7 +296,7 @@ func (certdata *HistoryCertData) ToHistoryCertStore(store *types.HistoryCertStor
 type User struct {
 	Id   string
 	Cert []byte
-	Key  []byte
+	Key  crypto.PrivKey
 }
 
 //userloader, SKD加载user使用
@@ -340,15 +341,40 @@ func (loader *UserLoader) loadUsers() error {
 			continue
 		}
 		filePath = path.Join(keyDir, ski+"_sk")
-		KeyBytes, err := utils.ReadFile(filePath)
+		keyBytes, err := utils.ReadFile(filePath)
 		if err != nil {
 			continue
 		}
 
-		loader.userMap[file.Name()] = &User{file.Name(), certBytes, KeyBytes}
+		priv, err := loader.genCryptoPriv(keyBytes)
+		if err != nil {
+			alog.Error(fmt.Sprintf("Generate crypto private failed. error:%s", err.Error()))
+			continue
+		}
+
+		loader.userMap[file.Name()] = &User{file.Name(), certBytes, priv}
 	}
 
 	return nil
+}
+
+func (loader *UserLoader) genCryptoPriv(keyBytes []byte) (crypto.PrivKey, error) {
+	cr, err := crypto.New(types.GetSignatureTypeName(loader.signType))
+	if err != nil {
+		return nil, fmt.Errorf("create crypto %s failed, error:%s", types.GetSignatureTypeName(loader.signType), err)
+	}
+
+	privKeyByte, err := utils.PrivKeyByteFromRaw(keyBytes, loader.signType)
+	if err != nil {
+		return nil, err
+	}
+
+	priv, err := cr.PrivKeyFromBytes(privKeyByte)
+	if err != nil {
+		return nil, fmt.Errorf("get private key failed, error:%s", err)
+	}
+
+	return priv, nil
 }
 
 func (load *UserLoader) Get(userName string) (*User, error) {
@@ -360,7 +386,7 @@ func (load *UserLoader) Get(userName string) (*User, error) {
 
 	resp := &User{}
 	resp.Cert = append(resp.Cert, user.Cert...)
-	resp.Key = append(resp.Key, user.Key...)
+	resp.Key = user.Key
 
 	return resp, nil
 }

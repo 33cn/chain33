@@ -7,7 +7,6 @@ import (
 
 	"crypto/elliptic"
 	"encoding/asn1"
-	"encoding/pem"
 	"math/big"
 
 	"github.com/tjfoc/gmsm/sm2"
@@ -25,20 +24,20 @@ func (d Driver) GenKey() (crypto.PrivKey, error) {
 	privKeyBytes := [SM2_RPIVATEKEY_LENGTH]byte{}
 	copy(privKeyBytes[:], crypto.CRandBytes(SM2_RPIVATEKEY_LENGTH))
 	priv, _ := privKeyFromBytes(sm2.P256Sm2(), privKeyBytes[:])
-	copy(privKeyBytes[:], serializePrivateKey(priv))
+	copy(privKeyBytes[:], SerializePrivateKey(priv))
 	return PrivKeySM2(privKeyBytes), nil
 }
 
 func (d Driver) PrivKeyFromBytes(b []byte) (privKey crypto.PrivKey, err error) {
-	priv, _, err := privKeyFromRaw(b[:])
-	if err != nil {
-		return nil, err
+	if len(b) != SM2_RPIVATEKEY_LENGTH {
+		return nil, errors.New("invalid priv key byte")
 	}
-
 	privKeyBytes := new([SM2_RPIVATEKEY_LENGTH]byte)
 	copy(privKeyBytes[:], b[:SM2_RPIVATEKEY_LENGTH])
 
-	copy(privKeyBytes[:], serializePrivateKey(priv))
+	priv, _ := privKeyFromBytes(sm2.P256Sm2(), privKeyBytes[:])
+
+	copy(privKeyBytes[:], SerializePrivateKey(priv))
 	return PrivKeySM2(*privKeyBytes), nil
 }
 
@@ -195,20 +194,6 @@ func (sig SignatureSM2) Equals(other crypto.Signature) bool {
 
 func init() {
 	crypto.Register(crypto.SignNameAuthSM2, &Driver{})
-}
-
-func privKeyFromRaw(raw []byte) (*sm2.PrivateKey, *sm2.PublicKey, error) {
-	block, _ := pem.Decode(raw)
-	if block == nil {
-		return nil, nil, fmt.Errorf("Failed decoding PEM. Block must be different from nil. [% x]", raw)
-	}
-
-	key, err := sm2.ParsePKCS8PrivateKey(block.Bytes, nil)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return key, &key.PublicKey, nil
 }
 
 func privKeyFromBytes(curve elliptic.Curve, pk []byte) (*sm2.PrivateKey, *sm2.PublicKey) {

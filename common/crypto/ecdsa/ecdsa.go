@@ -8,9 +8,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
-	"crypto/x509"
 	"encoding/asn1"
-	"encoding/pem"
 	"math/big"
 
 	"gitlab.33.cn/chain33/chain33/common/crypto"
@@ -28,20 +26,20 @@ func (d Driver) GenKey() (crypto.PrivKey, error) {
 	privKeyBytes := [ECDSA_RPIVATEKEY_LENGTH]byte{}
 	copy(privKeyBytes[:], crypto.CRandBytes(ECDSA_RPIVATEKEY_LENGTH))
 	priv, _ := privKeyFromBytes(elliptic.P256(), privKeyBytes[:])
-	copy(privKeyBytes[:], serializePrivateKey(priv))
+	copy(privKeyBytes[:], SerializePrivateKey(priv))
 	return PrivKeyECDSA(privKeyBytes), nil
 }
 
 func (d Driver) PrivKeyFromBytes(b []byte) (privKey crypto.PrivKey, err error) {
-	priv, _, err := privKeyFromRaw(b[:])
-	if err != nil {
-		return nil, err
+	if len(b) != ECDSA_RPIVATEKEY_LENGTH {
+		return nil, errors.New("invalid priv key byte")
 	}
 
 	privKeyBytes := new([ECDSA_RPIVATEKEY_LENGTH]byte)
 	copy(privKeyBytes[:], b[:ECDSA_RPIVATEKEY_LENGTH])
+	priv, _ := privKeyFromBytes(elliptic.P256(), privKeyBytes[:])
 
-	copy(privKeyBytes[:], serializePrivateKey(priv))
+	copy(privKeyBytes[:], SerializePrivateKey(priv))
 	return PrivKeyECDSA(*privKeyBytes), nil
 }
 
@@ -58,7 +56,7 @@ func (d Driver) SignatureFromBytes(b []byte) (sig crypto.Signature, err error) {
 	var certSignature crypto.CertSignature
 	_, err = asn1.Unmarshal(b, &certSignature)
 	if err != nil {
-		return nil, err
+		return SignatureECDSA(b), nil
 	}
 
 	if len(certSignature.Cert) == 0 {
@@ -199,20 +197,6 @@ func (sig SignatureECDSA) Equals(other crypto.Signature) bool {
 
 func init() {
 	crypto.Register(crypto.SignNameAuthECDSA, &Driver{})
-}
-
-func privKeyFromRaw(raw []byte) (*ecdsa.PrivateKey, *ecdsa.PublicKey, error) {
-	block, _ := pem.Decode(raw)
-	if block == nil {
-		return nil, nil, fmt.Errorf("Failed decoding PEM. Block must be different from nil. [% x]", raw)
-	}
-
-	key, err := x509.ParsePKCS8PrivateKey(block.Bytes)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return key.(*ecdsa.PrivateKey), &key.(*ecdsa.PrivateKey).PublicKey, nil
 }
 
 func privKeyFromBytes(curve elliptic.Curve, pk []byte) (*ecdsa.PrivateKey, *ecdsa.PublicKey) {

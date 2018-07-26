@@ -81,7 +81,7 @@ func SerializePublicKey(p *ecdsa.PublicKey) []byte {
 	return paddedAppend(32, b, p.Y.Bytes())
 }
 
-func serializePrivateKey(p *ecdsa.PrivateKey) []byte {
+func SerializePrivateKey(p *ecdsa.PrivateKey) []byte {
 	b := make([]byte, 0, ECDSA_RPIVATEKEY_LENGTH)
 	return paddedAppend(ECDSA_RPIVATEKEY_LENGTH, b, p.D.Bytes())
 }
