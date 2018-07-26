@@ -430,14 +430,14 @@ func (c *Chain33) SendToAddress(in types.ReqWalletSendToAddress, result *interfa
 	log.Debug("Rpc SendToAddress", "Tx", in)
 	if types.IsPara() {
 		createTx := &types.CreateTx{
-			in.GetTo(),
-			in.GetAmount(),
-			1e5,
-			in.GetNote(),
-			false,
-			true,
-			in.GetTokenSymbol(),
-			types.ExecName(types.TokenX),
+			To:          in.GetTo(),
+			Amount:      in.GetAmount(),
+			Fee:         1e5,
+			Note:        in.GetNote(),
+			IsWithdraw:  false,
+			IsToken:     true,
+			TokenSymbol: in.GetTokenSymbol(),
+			ExecName:    types.ExecName(types.TokenX),
 		}
 		tx, err := c.cli.CreateRawTransaction(createTx)
 		if err != nil {
@@ -459,8 +459,8 @@ func (c *Chain33) SendToAddress(in types.ReqWalletSendToAddress, result *interfa
 			return err
 		}
 		rawParm := RawParm{
-			"",
-			replySignRawTx.GetTxHex(),
+			Token: "",
+			Data:  replySignRawTx.GetTxHex(),
 		}
 		var txHash interface{}
 		err = forwardTranToMainNet(rawParm, &txHash)
