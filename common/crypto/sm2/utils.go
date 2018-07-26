@@ -86,7 +86,7 @@ func SerializePublicKey(p *sm2.PublicKey) []byte {
 	return paddedAppend(32, b, p.Y.Bytes())
 }
 
-func serializePrivateKey(p *sm2.PrivateKey) []byte {
+func SerializePrivateKey(p *sm2.PrivateKey) []byte {
 	b := make([]byte, 0, SM2_RPIVATEKEY_LENGTH)
 	return paddedAppend(SM2_RPIVATEKEY_LENGTH, b, p.D.Bytes())
 }

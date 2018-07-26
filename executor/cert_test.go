@@ -28,8 +28,10 @@ var (
 	tx4       = &types.Transaction{Execer: []byte("cert"), Payload: types.Encode(transfer3), Fee: 4000000, Expire: 0, To: to}
 )
 
+var SIGNTYPE = types.SignNameAuthSM2
+
 func signtx(tx *types.Transaction, priv crypto.PrivKey, cert []byte) {
-	tx.Sign(types.AUTH_SM2, priv)
+	tx.Sign(int32(types.MapSignName2Type[SIGNTYPE]), priv)
 	certSign := crypto.CertSignature{}
 	certSign.Signature = append(certSign.Signature, tx.Signature.Signature...)
 	certSign.Cert = append(certSign.Cert, cert...)
@@ -46,7 +48,7 @@ func signtxs(priv crypto.PrivKey, cert []byte) {
 func initCertEnv() (queue.Queue, error) {
 	q, _ := initUnitEnv()
 
-	cfgAuth := types.Authority{true, "../authority/test/authdir/crypto", types.SignNameAuthSM2}
+	cfgAuth := types.Authority{true, "../authority/test/authdir/crypto", SIGNTYPE}
 	authority.Author.Init(&cfgAuth)
 
 	userLoader := &authority.UserLoader{}
@@ -62,16 +64,7 @@ func initCertEnv() (queue.Queue, error) {
 		return nil, err
 	}
 
-	cr, err := crypto.New(cfgAuth.SignType)
-	if err != nil {
-		return nil, fmt.Errorf("create crypto %s failed, error:%s", types.GetSignatureTypeName(types.AUTH_SM2), err)
-	}
-
-	priv, err := cr.PrivKeyFromBytes(user.Key)
-	if err != nil {
-		return nil, fmt.Errorf("get private key failed, error:%s", err)
-	}
-	signtxs(priv, user.Cert)
+	signtxs(user.Key, user.Cert)
 
 	return q, nil
 }
@@ -92,6 +85,9 @@ func genEventAddBlockMsgCert(client queue.Client, block *types.Block) queue.Mess
 	return msg
 }
 
+/**
+Testcase01 证书管理new，update，normal
+ */
 func TestCertMgr(t *testing.T) {
 	q, _ := initCertEnv()
 	storeProcess(q)
@@ -129,6 +125,10 @@ func TestCertMgr(t *testing.T) {
 	q.Start()
 }
 
+
+/**
+TestCase02 交易校验
+ */
 func TestCertTxCheck(t *testing.T) {
 	q, _ := initCertEnv()
 	storeProcess(q)
@@ -161,6 +161,9 @@ func TestCertTxCheck(t *testing.T) {
 	q.Start()
 }
 
+/**
+TestCase03 回滚验证
+ */
 func TestCertTxCheckRollback(t *testing.T) {
 	q, _ := initCertEnv()
 	storeProcess(q)
