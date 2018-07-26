@@ -37,7 +37,7 @@ var (
 	privKey, _  = secpp256.PrivKeyFromBytes(privRaw)
 	tx14        = &types.Transaction{Execer: []byte("coins"),
 		Payload: types.Encode(&types.CoinsAction{Value: tr, Ty: types.CoinsActionTransfer}),
-		Fee: 1000000, Expire: 2, To: address.PubKeyToAddress(privKey.PubKey().Bytes()).String()}
+		Fee:     1000000, Expire: 2, To: address.PubKeyToAddress(privKey.PubKey().Bytes()).String()}
 )
 
 var USERNAME = "User"
@@ -66,7 +66,7 @@ func signtxs(priv crypto.PrivKey, cert []byte) {
 
 /**
 初始化Author实例和userloader
- */
+*/
 func initEnv() error {
 	cfg := config.InitCfg("./test/chain33.auth.test.toml")
 
@@ -97,7 +97,7 @@ func initEnv() error {
 
 /**
 TestCase01 带证书的交易验签
- */
+*/
 func TestChckSign(t *testing.T) {
 	err := initEnv()
 	if err != nil {
@@ -116,7 +116,7 @@ func TestChckSign(t *testing.T) {
 
 /**
 TestCase02 带证书的交易并行验签
- */
+*/
 func TestChckSigns(t *testing.T) {
 	err := initEnv()
 	if err != nil {
@@ -137,7 +137,7 @@ func TestChckSigns(t *testing.T) {
 
 /**
 TestCase03 不带证书，公链签名算法验证
- */
+*/
 func TestChckSignWithNoneAuth(t *testing.T) {
 	err := initEnv()
 	if err != nil {
@@ -157,13 +157,13 @@ func TestChckSignWithNoneAuth(t *testing.T) {
 
 /**
 TestCase04 不带证书，SM2签名验证
- */
+*/
 func TestChckSignWithSm2(t *testing.T) {
-	sm2, _       := crypto.New(types.GetSignatureTypeName(types.AUTH_SM2))
-	privKeysm2,_ := sm2.PrivKeyFromBytes(privRaw)
-	tx15         := &types.Transaction{Execer: []byte("coins"),
+	sm2, _ := crypto.New(types.GetSignatureTypeName(types.AUTH_SM2))
+	privKeysm2, _ := sm2.PrivKeyFromBytes(privRaw)
+	tx15 := &types.Transaction{Execer: []byte("coins"),
 		Payload: types.Encode(&types.CoinsAction{Value: tr, Ty: types.CoinsActionTransfer}),
-		Fee: 1000000, Expire: 2, To: address.PubKeyToAddress(privKeysm2.PubKey().Bytes()).String()}
+		Fee:     1000000, Expire: 2, To: address.PubKeyToAddress(privKeysm2.PubKey().Bytes()).String()}
 
 	err := initEnv()
 	if err != nil {
@@ -183,13 +183,13 @@ func TestChckSignWithSm2(t *testing.T) {
 
 /**
 TestCase05 不带证书，secp256r1签名验证
- */
+*/
 func TestChckSignWithEcdsa(t *testing.T) {
-	ecdsacrypto, _       := crypto.New(types.GetSignatureTypeName(types.AUTH_ECDSA))
-	privKeyecdsa,_ := ecdsacrypto.PrivKeyFromBytes(privRaw)
-	tx16         := &types.Transaction{Execer: []byte("coins"),
+	ecdsacrypto, _ := crypto.New(types.GetSignatureTypeName(types.AUTH_ECDSA))
+	privKeyecdsa, _ := ecdsacrypto.PrivKeyFromBytes(privRaw)
+	tx16 := &types.Transaction{Execer: []byte("coins"),
 		Payload: types.Encode(&types.CoinsAction{Value: tr, Ty: types.CoinsActionTransfer}),
-		Fee: 1000000, Expire: 2, To: address.PubKeyToAddress(privKeyecdsa.PubKey().Bytes()).String()}
+		Fee:     1000000, Expire: 2, To: address.PubKeyToAddress(privKeyecdsa.PubKey().Bytes()).String()}
 
 	err := initEnv()
 	if err != nil {
@@ -209,7 +209,7 @@ func TestChckSignWithEcdsa(t *testing.T) {
 
 /**
 TestCase 06 证书检验
- */
+*/
 func TestValidateCert(t *testing.T) {
 	err := initEnv()
 	if err != nil {
@@ -232,7 +232,7 @@ func TestValidateCert(t *testing.T) {
 
 /**
 Testcase07 noneimpl校验器验证（回滚到未开启证书验证的区块使用）
- */
+*/
 func TestValidateTxWithNoneAuth(t *testing.T) {
 	err := initEnv()
 	if err != nil {
@@ -256,7 +256,7 @@ func TestValidateTxWithNoneAuth(t *testing.T) {
 
 /**
 Testcase08 重载历史证书
- */
+*/
 func TestReloadCert(t *testing.T) {
 	err := initEnv()
 	if err != nil {
@@ -280,7 +280,7 @@ func TestReloadCert(t *testing.T) {
 
 /**
 Testcase09 根据高度重载历史证书
- */
+*/
 func TestReloadByHeight(t *testing.T) {
 	err := initEnv()
 	if err != nil {
@@ -321,4 +321,3 @@ func TestValidateCerts(t *testing.T) {
 	}
 }
 */
-
