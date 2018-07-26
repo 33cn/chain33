@@ -135,7 +135,7 @@ func (op *OrphanPool) addOrphanBlock(broadcast bool, block *types.Block, pid str
 	}
 
 	// 孤儿池超过最大限制时，删除最早的一个孤儿block
-	if int64(len(op.orphans)+1) > maxOrphanBlocks {
+	if (len(op.orphans) + 1) > maxOrphanBlocks {
 		op.removeOrphanBlock(op.oldestOrphan)
 		chainlog.Debug("addOrphanBlock:removeOrphanBlock maxOrphanBlocks ", "block.height", op.oldestOrphan.block.Height, "block.hash", common.ToHex(op.oldestOrphan.block.Hash()))
 
