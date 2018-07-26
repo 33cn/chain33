@@ -14,7 +14,10 @@ import (
 	"github.com/pkg/errors"
 	"github.com/tjfoc/gmsm/sm2"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
+	sm2_util "gitlab.33.cn/chain33/chain33/common/crypto/sm2"
+	ecdsa_util "gitlab.33.cn/chain33/chain33/common/crypto/ecdsa"
 	"gitlab.33.cn/chain33/chain33/types"
+	"fmt"
 )
 
 func SKI(curve elliptic.Curve, x, y *big.Int) (ski []byte) {
@@ -69,4 +72,28 @@ func DecodeCertFromSignature(signByte []byte) ([]byte, []byte, error) {
 	}
 
 	return certSignature.Cert, certSignature.Signature, nil
+}
+
+func PrivKeyByteFromRaw(raw []byte, signType int) ([]byte, error) {
+	block, _ := pem.Decode(raw)
+	if block == nil {
+		return nil, fmt.Errorf("Failed decoding PEM. Block must be different from nil. [% x]", raw)
+	}
+
+	switch signType {
+	case types.AUTH_ECDSA:
+		key, err := x509.ParsePKCS8PrivateKey(block.Bytes)
+		if err != nil {
+			return nil, err
+		}
+		return ecdsa_util.SerializePrivateKey(key.(*ecdsa.PrivateKey)), nil
+	case types.AUTH_SM2:
+		key, err := sm2.ParsePKCS8PrivateKey(block.Bytes, nil)
+		if err != nil {
+			return nil, err
+		}
+		return sm2_util.SerializePrivateKey(key), nil
+	}
+
+	return nil, errors.Errorf("unknow public key type")
 }
