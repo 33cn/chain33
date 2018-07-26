@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"time"
 
+	"strings"
+
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/common"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
@@ -33,6 +35,7 @@ func PrivacyCmd() *cobra.Command {
 		CreateUTXOsCmd(),
 		ShowPrivacyAccountInfoCmd(),
 		ListPrivacyTxsCmd(),
+		RescanUtxosOptCmd(),
 	)
 
 	return cmd
@@ -556,4 +559,61 @@ func listPrivacyTxsFlags(cmd *cobra.Command, args []string) {
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.PrivacyTxList", params, &res)
 	ctx.SetResultCb(parseWalletTxListRes)
 	ctx.Run()
+}
+
+func RescanUtxosOptCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "rescanOpt",
+		Short: "rescan Utxos in wallet and query rescan utxos status",
+		Run:   RescanUtxosOpt,
+	}
+	RescanUtxosOptFlags(cmd)
+	return cmd
+}
+
+func RescanUtxosOptFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("addr", "a", "", "address; multi address delimited by spaces;default scan wallet all address")
+	//
+	cmd.Flags().Int32P("flag", "f", 0, "Rescan or query rescan flag (0: Rescan, 1: query rescan)")
+	cmd.MarkFlagRequired("flag")
+}
+
+func RescanUtxosOpt(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	address, _ := cmd.Flags().GetString("addr")
+	flag, _ := cmd.Flags().GetInt32("flag")
+
+	var params types.ReqRescanUtxos
+
+	params.Flag = flag
+	if len(address) > 0 {
+		addrs := strings.Split(address, " ")
+		params.Addrs = append(params.Addrs, addrs...)
+	}
+
+	var res types.RepRescanUtxos
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.RescanUtxos", params, &res)
+	ctx.SetResultCb(parseRescanUtxosOpt)
+	ctx.Run()
+}
+
+func parseRescanUtxosOpt(arg interface{}) (interface{}, error) {
+	res := arg.(*types.RepRescanUtxos)
+	var result showRescanResults
+	if 0 == res.Flag {
+		str := "start rescan UTXO"
+		return str, nil
+	} else {
+		for _, v := range res.RepRescanResults {
+			str, ok := types.RescanFlagMapint2string[v.Flag]
+			if ok {
+				showRescanResult := &ShowRescanResult{
+					Addr:       v.Addr,
+					FlagString: str,
+				}
+				result.RescanResults = append(result.RescanResults, showRescanResult)
+			}
+		}
+		return &result, nil
+	}
 }
