@@ -96,16 +96,6 @@ func (c *Chain33) SendTransaction(in RawParm, result *interface{}) error {
 	if err == nil {
 		*result = common.ToHex(reply.GetMsg())
 	}
-	isok := false
-	if reply != nil {
-		isok = reply.IsOk
-	}
-	if bytes.Equal(parm.Execer, types.ExecerPrivacy) {
-		c.cli.NotifySendTxResult(&types.ReqNotifySendTxResult{
-			Isok: isok,
-			Tx:   &parm,
-		})
-	}
 	return err
 }
 
@@ -1471,34 +1461,6 @@ func (c *Chain33) CreateTrasaction(in types.ReqCreateTransaction, result *interf
 	}
 	txHex := types.Encode(reply)
 	*result = hex.EncodeToString(txHex)
-	return nil
-}
-
-// QueryCacheTransaction 查询由服务器创建未发送的交易列表
-func (c *Chain33) QueryCacheTransaction(in types.ReqCacheTxList, result *interface{}) error {
-	reply, err := c.cli.QueryCacheTransaction(&in)
-	if err != nil {
-		return err
-	}
-	cacheTxList := &ReplyCacheTxList{}
-	for _, fromtx := range reply.Txs {
-		totx, err := DecodeTx(fromtx)
-		if err != nil {
-			continue
-		}
-		cacheTxList.Txs = append(cacheTxList.Txs, totx)
-	}
-	*result = cacheTxList
-	return nil
-}
-
-// DeleteCacheTransaction 删除由服务器创建未发送的交易列表
-func (c *Chain33) DeleteCacheTransaction(in types.ReqCreateCacheTxKey, result *interface{}) error {
-	reply, err := c.cli.DeleteCacheTransaction(&in)
-	if err != nil {
-		return err
-	}
-	*result = common.ToHex(reply.GetMsg())
 	return nil
 }
 

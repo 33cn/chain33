@@ -219,6 +219,7 @@ function optDockerfun() {
 }
 
 function forkType1() {
+    echo "=========== 开始进行类型1分叉测试 ========== "
     init
 
     optDockerPart1
@@ -251,9 +252,11 @@ function forkType1() {
     checkPriResult
 
     #############################################
+    echo "=========== 类型1分叉测试结束 ========== "
 }
 
 function forkType2() {
+    echo "=========== 开始进行类型2分叉测试 ========== "
     init
 
     optDockerPart1
@@ -288,7 +291,7 @@ function forkType2() {
     checkCoinsResult
 
     #############################################
-
+    echo "=========== 类型2分叉测试结束 ========== "
 }
 
 function optDockerPart1() {
