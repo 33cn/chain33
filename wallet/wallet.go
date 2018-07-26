@@ -390,21 +390,6 @@ func (wallet *Wallet) GetWalletAccounts() ([]*types.WalletAccountStore, error) {
 	return WalletAccStores, err
 }
 
-func (wallet *Wallet) reScanWalletUtxos() {
-	walletlog.Debug("RescanAllUTXO begin!")
-
-	priExecAddr := address.ExecAddress(types.PrivacyX)
-	go wallet.RescanReqUtxosByAddr(priExecAddr)
-
-	walletlog.Debug("RescanAllUTXO sucess!")
-}
-
-//从blockchain模块同步addr参与的所有交易详细信息
-func (wallet *Wallet) RescanReqUtxosByAddr(addr string) {
-	defer wallet.wg.Done()
-	wallet.reqUtxosByAddr(addr)
-}
-
 func (wallet *Wallet) updateLastHeader(block *types.BlockDetail, mode int) error {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
