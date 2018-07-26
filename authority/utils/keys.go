@@ -11,13 +11,14 @@ import (
 
 	"encoding/asn1"
 
+	"fmt"
+
 	"github.com/pkg/errors"
 	"github.com/tjfoc/gmsm/sm2"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
-	sm2_util "gitlab.33.cn/chain33/chain33/common/crypto/sm2"
 	ecdsa_util "gitlab.33.cn/chain33/chain33/common/crypto/ecdsa"
+	sm2_util "gitlab.33.cn/chain33/chain33/common/crypto/sm2"
 	"gitlab.33.cn/chain33/chain33/types"
-	"fmt"
 )
 
 func SKI(curve elliptic.Curve, x, y *big.Int) (ski []byte) {
