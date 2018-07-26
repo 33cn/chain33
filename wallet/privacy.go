@@ -1116,49 +1116,6 @@ func (wallet *Wallet) procInvalidTxOnTimer(dbbatch db.Batch) error {
 	return nil
 }
 
-func (wallet *Wallet) procReqCacheTxList(req *types.ReqCacheTxList) (*types.ReplyCacheTxList, error) {
-	wallet.mtx.Lock()
-	defer wallet.mtx.Unlock()
-
-	caches, err := wallet.walletStore.listCreateTransactionCache(req.GetTokenname())
-	if err != nil {
-		return nil, err
-	}
-	replyTxLis := types.ReplyCacheTxList{}
-	addr := req.Addr
-
-	for _, cache := range caches {
-		if cache.Sender != addr {
-			continue
-		}
-		replyTxLis.Txs = append(replyTxLis.Txs, cache.GetTransaction())
-	}
-
-	return &replyTxLis, nil
-}
-
-func (wallet *Wallet) procDeleteCacheTransaction(req *types.ReqCreateCacheTxKey) (*types.ReplyHash, error) {
-	wallet.mtx.Lock()
-	defer wallet.mtx.Unlock()
-	if req == nil {
-		return nil, types.ErrInvalidParams
-	}
-
-	txhash := common.Bytes2Hex(req.GetHashkey())
-	dbkey := calcCreateTxKey(req.Tokenname, txhash)
-	cache, err := wallet.walletStore.GetCreateTransactionCache(dbkey)
-	if err != nil {
-		return nil, err
-	}
-	wallet.walletStore.DeleteCreateTransactionCache(cache.Key)
-
-	dbbatch := wallet.walletStore.NewBatch(true)
-	wallet.walletStore.moveFTXO2UTXO(calcKey4FTXOsInTx(cache.Tokenname, cache.Sender, txhash), dbbatch)
-	dbbatch.Write()
-
-	return &types.ReplyHash{Hash: req.GetHashkey()}, nil
-}
-
 func (w *Wallet) procPrivacyAccountInfo(req *types.ReqPPrivacyAccount) (*types.ReplyPrivacyAccount, error) {
 	w.mtx.Lock()
 	defer w.mtx.Unlock()
@@ -1319,7 +1276,13 @@ func (wallet *Wallet) getExpire(expire int64) time.Duration {
 	return retexpir
 }
 
-func (wallet *Wallet) reqUtxosByAddr(addr string) {
+//从blockchain模块同步addr参与的所有交易详细信息
+func (wallet *Wallet) RescanReqUtxosByAddr(addrs []string) {
+	defer wallet.wg.Done()
+	walletlog.Debug("RescanAllUTXO begin!")
+	wallet.reqUtxosByAddr(addrs)
+	walletlog.Debug("RescanAllUTXO sucess!")
+}
 
 func (wallet *Wallet) reqUtxosByAddr(addrs []string) {
 

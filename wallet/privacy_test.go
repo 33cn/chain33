@@ -1564,51 +1564,6 @@ func Test_procReqCacheTxList(t *testing.T) {
 	}
 }
 
-func Test_procDeleteCacheTransaction(t *testing.T) {
-	wtd := &walletTestData{}
-	wtd.init()
-
-	wallet := wtd.wallet
-
-	// add test data
-	req := &types.ReqCreateTransaction{
-		Tokenname:  types.BTY,
-		Type:       1,
-		Amount:     10 * types.Coin,
-		From:       testAddrs[0],
-		Pubkeypair: testPubkeyPairs[0],
-	}
-	tx, _ := wallet.procCreateTransaction(req)
-
-	testCase := []struct {
-		req       *types.ReqCreateCacheTxKey
-		actual    *types.ReplyHash
-		actualErr error
-	}{
-		{
-			actualErr: types.ErrInvalidParams,
-		},
-		{
-			req: &types.ReqCreateCacheTxKey{
-				Tokenname: types.BTY,
-				Hashkey:   []byte{},
-			},
-			actualErr: types.ErrNotFound,
-		},
-		{
-			req: &types.ReqCreateCacheTxKey{
-				Tokenname: types.BTY,
-				Hashkey:   tx.Hash(),
-			},
-		},
-	}
-
-	for index, test := range testCase {
-		_, err := wallet.procDeleteCacheTransaction(test.req)
-		require.Equalf(t, err, test.actualErr, "unittest case index = %d", index)
-	}
-}
-
 func Test_SelectCurrentWalletPrivacyTx(t *testing.T) {
 	for i := 0; i < 3; i++ {
 		switch i {

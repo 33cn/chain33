@@ -6,8 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"time"
-
 	"github.com/golang/protobuf/proto"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
@@ -35,7 +33,7 @@ const (
 	RecvPrivacyTx    = "RecvPrivacyTx"
 	SendPrivacyTx    = "SendPrivacyTx"
 	ScanPrivacyInput = "ScanPrivacyInput-"
-	ReScanUtxosFlag    = "ReScanUtxosFlag-"
+	ReScanUtxosFlag  = "ReScanUtxosFlag-"
 )
 
 type Store struct {
