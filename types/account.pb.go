@@ -398,8 +398,8 @@ It has these top-level messages:
 	ReqCreateCacheTxKey
 	ReqBindMiner
 	ReplyBindMiner
-	ReqNotifySendTxResult
 	ReqPrivacyTransactionList
+	PrivacySignatureParam
 	ReqRescanUtxos
 	RepRescanResult
 	RepRescanUtxos

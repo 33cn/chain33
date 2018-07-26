@@ -21,6 +21,7 @@ func Init() {
 	types.RegistorLog(types.TyLogCallContract, &EvmCallContractLog{})
 	types.RegistorLog(types.TyLogContractData, &EvmContractDataLog{})
 	types.RegistorLog(types.TyLogContractState, &EvmContractStateLog{})
+	types.RegistorLog(types.TyLogEVMStateChangeItem, &EvmStateChangeItemLog{})
 
 	// init query rpc
 	types.RegistorRpcType("CheckAddrExists", &EvmCheckAddrExists{})
@@ -78,6 +79,22 @@ func (l EvmContractDataLog) Name() string {
 
 func (l EvmContractDataLog) Decode(msg []byte) (interface{}, error) {
 	var logTmp types.EVMContractData
+	err := types.Decode(msg, &logTmp)
+	if err != nil {
+		return nil, err
+	}
+	return logTmp, err
+}
+
+type EvmStateChangeItemLog struct {
+}
+
+func (l EvmStateChangeItemLog) Name() string {
+	return "LogEVMStateChangeItem"
+}
+
+func (l EvmStateChangeItemLog) Decode(msg []byte) (interface{}, error) {
+	var logTmp types.EVMStateChangeItem
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
 		return nil, err

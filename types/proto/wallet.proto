@@ -238,7 +238,7 @@ message ReqSignRawTx {
     // 签名的模式类型
     // 0：普通交易
     // 1：隐私交易
-    int32  mode  = 6;
+    // int32  mode  = 6;
     string token = 7;
 }
 
@@ -384,8 +384,8 @@ message ResUTXOGlobalIndex {
 message FTXOsSTXOsInOneTx {
     string tokenname = 1;
     string sender    = 2;
-    // 交易倍成功发送以后，计入冻结的开始时间
-    int64    freezetime = 3;
+    // FTXO的超期，设定原则与Transaction.expire一致
+    int64    expire     = 3;
     string   txhash     = 4;
     repeated UTXO utxos = 5;
 }
@@ -489,11 +489,6 @@ message ReplyBindMiner {
     string txHex = 1;
 }
 
-message ReqNotifySendTxResult {
-    bool        isok = 1;
-    Transaction tx   = 2;
-}
-
 // get privacy transaction list in wallet
 message ReqPrivacyTransactionList {
     // support BTY
@@ -520,4 +515,11 @@ message RepRescanResult {
 message RepRescanUtxos {
     int32    flag                             = 1;
     repeated RepRescanResult repRescanResults = 2;
+}
+
+// 隐私交易三步发送时，临时存储签名需要的数据信息结构
+message PrivacySignatureParam {
+    int32    actionType                 = 1;
+    repeated UTXOBasics utxobasics      = 2;
+    repeated RealKeyInput realKeyInputs = 3;
 }
