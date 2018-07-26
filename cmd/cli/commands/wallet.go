@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	"gitlab.33.cn/chain33/chain33/common"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -31,8 +30,6 @@ func WalletCmd() *cobra.Command {
 		NoBalanceCmd(),
 		SetFeeCmd(),
 		SendTxCmd(),
-		QueryCacheTxByAddrCmd(),
-		DeleteCacheTxCmd(),
 	)
 
 	return cmd
@@ -418,82 +415,5 @@ func sendTx(cmd *cobra.Command, args []string) {
 	}
 
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.SendTransaction", params, nil)
-	ctx.RunWithoutMarshal()
-}
-
-// QueryCacheTxByAddrCmd 查询还未发送的隐私交易
-func QueryCacheTxByAddrCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "queryctx",
-		Short: "Query transaction in cache by address",
-		Run:   queryCacheTx,
-	}
-	queryCacheTxFlags(cmd)
-	return cmd
-}
-
-func queryCacheTxFlags(cmd *cobra.Command) {
-	cmd.Flags().StringP("addr", "a", "", "account address")
-	cmd.MarkFlagRequired("addr")
-
-	cmd.Flags().StringP("token", "t", types.BTY, "token name. (BTY supported)")
-}
-
-func queryCacheTx(cmd *cobra.Command, args []string) {
-	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	addr, _ := cmd.Flags().GetString("addr")
-	token, _ := cmd.Flags().GetString("token")
-	params := types.ReqCacheTxList{
-		Addr:      addr,
-		Tokenname: token,
-	}
-
-	var res jsonrpc.ReplyCacheTxList
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.QueryCacheTransaction", params, &res)
-	ctx.SetResultCb(parseQueryCacheTxRes)
-	ctx.Run()
-}
-
-func parseQueryCacheTxRes(arg interface{}) (interface{}, error) {
-	res := arg.(*jsonrpc.ReplyCacheTxList)
-	var result TxListResult
-	for _, v := range res.Txs {
-		result.Txs = append(result.Txs, decodeTransaction(v))
-	}
-	return result, nil
-}
-
-// DeleteCacheTxCmd 删除位与缓存中未发送的隐私交易
-func DeleteCacheTxCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "deletectx",
-		Short: "Delete transaction in cache by hash",
-		Run:   deleteCacheTx,
-	}
-	deleteCacheTxFlags(cmd)
-	return cmd
-}
-
-func deleteCacheTxFlags(cmd *cobra.Command) {
-	cmd.Flags().StringP("txhash", "x", "", "transaction hash")
-	cmd.MarkFlagRequired("txhash")
-
-	cmd.Flags().StringP("token", "t", types.BTY, "token name. (BTY supported)")
-}
-
-func deleteCacheTx(cmd *cobra.Command, args []string) {
-	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	txhash, _ := cmd.Flags().GetString("txhash")
-	token, _ := cmd.Flags().GetString("token")
-	hash, err := common.FromHex(txhash)
-	if err != nil {
-		fmt.Println("FromHex error .", err)
-		return
-	}
-	params := types.ReqCreateCacheTxKey{
-		Tokenname: token,
-		Hashkey:   hash,
-	}
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.DeleteCacheTransaction", params, nil)
 	ctx.RunWithoutMarshal()
 }
