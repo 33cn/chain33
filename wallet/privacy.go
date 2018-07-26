@@ -46,18 +46,21 @@ func (wallet *Wallet) procPublic2PrivacyV2(public2private *types.ReqPub2Pri) (*t
 		return nil, err
 	}
 	if public2private == nil {
-		walletlog.Error("public2private input para is nil")
+		walletlog.Error("PrivacyTrading procPublic2PrivacyV2", "public2private is nil")
 		return nil, types.ErrInputPara
 	}
 	if len(public2private.GetTokenname()) <= 0 {
+		walletlog.Error("PrivacyTrading procPublic2PrivacyV2", "tokenname is nil")
 		return nil, types.ErrInvalidParams
 	}
 	if !checkAmountValid(public2private.GetAmount()) {
+		walletlog.Error("PrivacyTrading procPublic2PrivacyV2", "invalid amount", public2private.GetAmount())
 		return nil, types.ErrAmount
 	}
 
 	priv, err := wallet.getPrivKeyByAddr(public2private.GetSender())
 	if err != nil {
+		walletlog.Error("PrivacyTrading procPublic2PrivacyV2", "getPrivKeyByAddr error", err)
 		return nil, err
 	}
 
@@ -201,7 +204,7 @@ func parseViewSpendPubKeyPair(in string) (viewPubKey, spendPubKey []byte, err er
 func (wallet *Wallet) transPub2PriV2(priv crypto.PrivKey, reqPub2Pri *types.ReqPub2Pri) (*types.ReplyHash, error) {
 	viewPubSlice, spendPubSlice, err := parseViewSpendPubKeyPair(reqPub2Pri.Pubkeypair)
 	if err != nil {
-		walletlog.Error("transPub2Pri", "parseViewSpendPubKeyPair  ", err)
+		walletlog.Error("PrivacyTrading transPub2Pri", "parseViewSpendPubKeyPair error", err)
 		return nil, err
 	}
 
@@ -210,6 +213,7 @@ func (wallet *Wallet) transPub2PriV2(priv crypto.PrivKey, reqPub2Pri *types.ReqP
 	//因为此时是pub2priv的交易，此时不需要构造找零的输出，同时设置fee为0，也是为了简化计算
 	privacyOutput, err := generateOuts(viewPublic, spendPublic, nil, nil, reqPub2Pri.Amount, reqPub2Pri.Amount, 0)
 	if err != nil {
+		walletlog.Error("PrivacyTrading transPub2Pri", "generateOuts error", err)
 		return nil, err
 	}
 
@@ -238,13 +242,13 @@ func (wallet *Wallet) transPub2PriV2(priv crypto.PrivKey, reqPub2Pri *types.ReqP
 
 	_, err = wallet.api.SendTx(tx)
 	if err != nil {
-		walletlog.Error("transPub2PriV2", "Send err", err)
+		walletlog.Error("PrivacyTrading transPub2PriV2", "Send err", err)
 		return nil, err
 	}
 	var hash types.ReplyHash
 	hash.Hash = tx.Hash()
 
-	walletlog.Debug("PrivacyTrading", "transPub2PriV2 txhash", common.Bytes2Hex(hash.Hash))
+	walletlog.Debug("PrivacyTrading transPub2PriV2", "txhash", common.Bytes2Hex(hash.Hash))
 	return &hash, nil
 }
 
@@ -1066,16 +1070,7 @@ func (wallet *Wallet) signTxWithPrivacy(key crypto.PrivKey, req *types.ReqSignRa
 	return common.ToHex(txHex), nil
 }
 
-func (wallet *Wallet) procInvalidTxOnTimer(dbbatch db.Batch) error {
-	wallet.mtx.Lock()
-	defer wallet.mtx.Unlock()
-
-	header := wallet.lastHeader
-	if header == nil {
-		return nil
-	}
-
-	// 获取已经冻结列表 FTXO，主要由FTXO列表和回退FTXO列表组成
+func (wallet *Wallet) getFTXOlist() ([]*types.FTXOsSTXOsInOneTx, [][]byte)  {
 	curFTXOTxs, _, _ := wallet.walletStore.GetWalletFtxoStxo(FTXOs4Tx)
 	revertFTXOTxs, _, _ := wallet.walletStore.GetWalletFtxoStxo(RevertSendtx)
 	var keys [][]byte
@@ -1086,6 +1081,20 @@ func (wallet *Wallet) procInvalidTxOnTimer(dbbatch db.Batch) error {
 		keys = append(keys, calcRevertSendTxKey(ftxo.Tokenname, ftxo.Sender, ftxo.Txhash))
 	}
 	curFTXOTxs = append(curFTXOTxs, revertFTXOTxs...)
+	return curFTXOTxs, keys
+}
+
+func (wallet *Wallet) procInvalidTxOnTimer(dbbatch db.Batch) error {
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+
+	header := wallet.lastHeader
+	if header == nil {
+		return nil
+	}
+
+	// 获取已经冻结列表 FTXO，主要由FTXO列表和回退FTXO列表组成
+	curFTXOTxs, keys := wallet.getFTXOlist()
 	for i, ftxo := range curFTXOTxs {
 		if !ftxo.IsExpire(header.Height, header.BlockTime) {
 			continue

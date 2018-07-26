@@ -1149,51 +1149,39 @@ func (wallet *Wallet) AddDelPrivacyTxsFromBlock(tx *types.Transaction, index int
 	//处理input,对于公对私的交易类型，只会出现在output类型处理中
 	//如果该隐私交易是本钱包中的地址发送出去的，则需要对相应的utxo进行处理
 	if AddTx == addDelType {
-		ftxosInOneTx, _, _ := wallet.walletStore.GetWalletFtxoStxo(FTXOs4Tx)
-		ftxosInRevTx, _, _ := wallet.walletStore.GetWalletFtxoStxo(RevertSendtx)
-		len := len(ftxosInOneTx) + len(ftxosInRevTx)
-		if len > 0 {
-			var keys [][]byte
-			for _, ftxo := range ftxosInOneTx {
-				keys = append(keys, calcKey4FTXOsInTx(ftxo.Tokenname, ftxo.Sender, ftxo.Txhash))
+		ftxos, keys := wallet.getFTXOlist()
+		for i, ftxo := range ftxos {
+			//查询确认该交易是否为记录的支付交易
+			if ftxo.Txhash != txhash {
+				continue
 			}
-			for _, ftxo := range ftxosInRevTx {
-				keys = append(keys, calcRevertSendTxKey(ftxo.Tokenname, ftxo.Sender, ftxo.Txhash))
+			if types.ExecOk == txExecRes && types.ActionPublic2Privacy != privateAction.Ty {
+				walletlog.Info("PrivacyTrading AddDelPrivacyTxsFromBlock", "txhash", txhashstr, "addDelType", addDelType, "moveFTXO2STXO, key", string(keys[i]), "txExecRes", txExecRes)
+				wallet.walletStore.moveFTXO2STXO(keys[i], txhash, newbatch)
+			} else if types.ExecOk != txExecRes && types.ActionPublic2Privacy != privateAction.Ty {
+				//如果执行失败
+				walletlog.Info("PrivacyTrading AddDelPrivacyTxsFromBlock", "txhash", txhashstr, "addDelType", addDelType, "moveFTXO2UTXO, key", string(keys[i]), "txExecRes", txExecRes)
+				wallet.walletStore.moveFTXO2UTXO(keys[i], newbatch,
+					func(txhash []byte) bool {
+						// do not add to UTXO list if transaction is not existed.
+						_, err := wallet.api.QueryTx(&types.ReqHash{Hash: txhash})
+						return err == nil
+					})
 			}
-
-			ftxos := append(ftxosInOneTx, ftxosInRevTx...)
-			for i, ftxo := range ftxos {
-				//查询确认该交易是否为记录的支付交易
-				if ftxo.Txhash == txhash {
-					if types.ExecOk == txExecRes && types.ActionPublic2Privacy != privateAction.Ty {
-						walletlog.Info("PrivacyTrading AddDelPrivacyTxsFromBlock", "txhash", txhashstr, "addDelType", addDelType, "moveFTXO2STXO, key", string(keys[i]), "txExecRes", txExecRes)
-						wallet.walletStore.moveFTXO2STXO(keys[i], txhash, newbatch)
-					} else if types.ExecOk != txExecRes && types.ActionPublic2Privacy != privateAction.Ty {
-						//如果执行失败
-						walletlog.Info("PrivacyTrading AddDelPrivacyTxsFromBlock", "txhash", txhashstr, "addDelType", addDelType, "moveFTXO2UTXO, key", string(keys[i]), "txExecRes", txExecRes)
-						wallet.walletStore.moveFTXO2UTXO(keys[i], newbatch,
-							func(txhash []byte) bool {
-								// do not add to UTXO list if transaction is not existed.
-								_, err := wallet.api.QueryTx(&types.ReqHash{Hash: txhash})
-								return err == nil
-							})
-					}
-					//该交易正常执行完毕，删除对其的关注
-					param := &buildStoreWalletTxDetailParam{
-						tokenname:    tokenname,
-						block:        block,
-						tx:           tx,
-						index:        int(index),
-						newbatch:     newbatch,
-						senderRecver: ftxo.Sender,
-						isprivacy:    true,
-						addDelType:   addDelType,
-						sendRecvFlag: sendTx,
-						utxos:        nil,
-					}
-					wallet.buildAndStoreWalletTxDetail(param)
-				}
+			//该交易正常执行完毕，删除对其的关注
+			param := &buildStoreWalletTxDetailParam{
+				tokenname:    tokenname,
+				block:        block,
+				tx:           tx,
+				index:        int(index),
+				newbatch:     newbatch,
+				senderRecver: ftxo.Sender,
+				isprivacy:    true,
+				addDelType:   addDelType,
+				sendRecvFlag: sendTx,
+				utxos:        nil,
 			}
+			wallet.buildAndStoreWalletTxDetail(param)
 		}
 	} else {
 		//当发生交易回撤时，从记录的STXO中查找相关的交易，并将其重置为FTXO，因为该交易大概率会在其他区块中再次执行
