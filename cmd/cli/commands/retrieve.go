@@ -7,7 +7,7 @@ import (
 	retrievetype "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
 )
 
-func RetriveCmd() *cobra.Command {
+func RetrieveCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "retrieve",
 		Short: "Wallet retrieve operation",
@@ -170,20 +170,20 @@ func QueryCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "query",
 		Short: "Backup the wallet",
-		Run:   queryRetriveCmd,
+		Run:   queryRetrieveCmd,
 	}
-	addQueryRetriveCmdFlags(cmd)
+	addQueryRetrieveCmdFlags(cmd)
 	return cmd
 }
 
-func addQueryRetriveCmdFlags(cmd *cobra.Command) {
+func addQueryRetrieveCmdFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("backup", "b", "", "backup address")
 	cmd.MarkFlagRequired("backup")
 	cmd.Flags().StringP("default", "t", "", "default address")
 	cmd.MarkFlagRequired("default")
 }
 
-func queryRetriveCmd(cmd *cobra.Command, args []string) {
+func queryRetrieveCmd(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	backup, _ := cmd.Flags().GetString("backup")
 	defaultAddr, _ := cmd.Flags().GetString("default")
