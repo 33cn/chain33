@@ -260,4 +260,3 @@ type RetrieveResult struct {
 	//RemainTime  int64  `json:"remainTime"`
 	Status string `json:"status"`
 }
-
