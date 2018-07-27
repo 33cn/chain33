@@ -168,3 +168,12 @@ func (e *TestDB) Set(key []byte, value []byte) error {
 	e.cache[string(key)] = value
 	return nil
 }
+
+func (db *TestDB) BatchGet(keys [][]byte) (values [][]byte, err error) {
+	return nil, types.ErrNotFound
+}
+
+//从数据库中查询数据列表，set 中的cache 更新不会影响这个list
+func (l *TestDB) List(prefix, key []byte, count, direction int32) ([][]byte, error) {
+	return nil, types.ErrNotFound
+}

@@ -2,7 +2,12 @@ package version
 
 const version = "5.2.7"
 
-var GitCommit string
+var (
+	WalletVerKey     = []byte("WalletVerKey")
+	BlockChainVerKey = []byte("BlockChainVerKey")
+	MavlTreeVerKey   = []byte("MavlTreeVerKey")
+	GitCommit        string
+)
 
 func GetVersion() string {
 	if GitCommit != "" {
@@ -22,3 +27,10 @@ func GetVersion() string {
 //更新内容
 // p2p  增加节点下载速度监控功能，改进下载模块
 // p2p  增加p2p serverStart 功能，及时自身节点在外网或者可以穿透网络，也不会对外提供服务，但不影响挖矿，数据同步
+
+//数据库版本相关接口
+// blcokchain db
+//	ver=1:增加地址参与交易量的记录，
+// wallet db:
+//	ver=1:增加rescan的功能，自动将wallet账户相关的tx交易信息重新扫描从blockchian模块
+// state mavltree db

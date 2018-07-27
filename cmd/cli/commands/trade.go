@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
+	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
 )
 
 func TradeCmd() *cobra.Command {
@@ -74,7 +75,7 @@ func showOnesSellOrders(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	var res types.RpcReplyTradeOrders
+	var res tradetype.RpcReplyTradeOrders
 	err = rpc.Call("Chain33.Query", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -133,7 +134,7 @@ func showTokenSellOrders(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	var res types.RpcReplyTradeOrders
+	var res tradetype.RpcReplyTradeOrders
 	err = rpc.Call("Chain33.Query", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -180,7 +181,7 @@ func showSellOrderWithStatus(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	var res types.RpcReplyTradeOrders
+	var res tradetype.RpcReplyTradeOrders
 	err = rpc.Call("Chain33.Query", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -190,7 +191,7 @@ func showSellOrderWithStatus(cmd *cobra.Command, args []string) {
 	parseSellOrders(res)
 }
 
-func parseSellOrders(res types.RpcReplyTradeOrders) {
+func parseSellOrders(res tradetype.RpcReplyTradeOrders) {
 	for i, sellorder := range res.Orders {
 		var sellOrders2show SellOrder2Show
 		sellOrders2show.Tokensymbol = sellorder.TokenSymbol
@@ -266,7 +267,7 @@ func showOnesBuyOrders(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	var res types.RpcReplyTradeOrders
+	var res tradetype.RpcReplyTradeOrders
 	err = rpc.Call("Chain33.Query", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -306,7 +307,6 @@ func addTokenSellFlags(cmd *cobra.Command) {
 	cmd.MarkFlagRequired("price")
 
 	cmd.Flags().Float64P("fee", "f", 0, "transaction fee")
-	cmd.MarkFlagRequired("fee")
 
 	cmd.Flags().Float64P("total", "t", 0, "total tokens to be sold")
 	cmd.MarkFlagRequired("total")
@@ -323,7 +323,7 @@ func tokenSell(cmd *cobra.Command, args []string) {
 	priceInt64 := int64(price * 1e4)
 	feeInt64 := int64(fee * 1e4)
 	totalInt64 := int64(total * 1e8 / 1e6)
-	params := &jsonrpc.TradeSellTx{
+	params := &tradetype.TradeSellTx{
 		TokenSymbol:       symbol,
 		AmountPerBoardlot: 1e6,
 		MinBoardlot:       min,
@@ -355,7 +355,6 @@ func addTokenBuyFlags(cmd *cobra.Command) {
 	cmd.MarkFlagRequired("count")
 
 	cmd.Flags().Float64P("fee", "f", 0, "transaction fee")
-	cmd.MarkFlagRequired("fee")
 }
 
 func tokenBuy(cmd *cobra.Command, args []string) {
@@ -365,7 +364,7 @@ func tokenBuy(cmd *cobra.Command, args []string) {
 	count, _ := cmd.Flags().GetInt64("count")
 
 	feeInt64 := int64(fee * 1e4)
-	params := &jsonrpc.TradeBuyTx{
+	params := &tradetype.TradeBuyTx{
 		SellID:      sellID,
 		BoardlotCnt: count,
 		Fee:         feeInt64 * 1e4,
@@ -391,7 +390,6 @@ func addTokenSellRevokeFlags(cmd *cobra.Command) {
 	cmd.MarkFlagRequired("sell_id")
 
 	cmd.Flags().Float64P("fee", "f", 0, "transaction fee")
-	cmd.MarkFlagRequired("fee")
 }
 
 func tokenSellRevoke(cmd *cobra.Command, args []string) {
@@ -400,7 +398,7 @@ func tokenSellRevoke(cmd *cobra.Command, args []string) {
 	fee, _ := cmd.Flags().GetFloat64("fee")
 
 	feeInt64 := int64(fee * 1e4)
-	params := &jsonrpc.TradeRevokeTx{
+	params := &tradetype.TradeRevokeTx{
 		SellID: sellID,
 		Fee:    feeInt64 * 1e4,
 	}
