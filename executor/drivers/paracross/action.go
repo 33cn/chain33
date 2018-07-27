@@ -143,21 +143,21 @@ func getMostCommit(stat *types.ParacrossHeightStatus) (int, string) {
 	stats := make(map[string]int)
 	n := len(stat.Details.Addrs)
 	for i := 0; i < n; i++ {
-		if _, ok := stats[string(stat.Details.StateHash[i])]; ok {
-			stats[string(stat.Details.StateHash[i])]++
+		if _, ok := stats[string(stat.Details.BlockHash[i])]; ok {
+			stats[string(stat.Details.BlockHash[i])]++
 		} else {
-			stats[string(stat.Details.StateHash[i])] = 1
+			stats[string(stat.Details.BlockHash[i])] = 1
 		}
 	}
 	most := -1
-	var statHash string
+	var hash string
 	for k, v := range stats {
 		if v > most {
 			most = v
-			statHash = k
+			hash = k
 		}
 	}
-	return most, statHash
+	return most, hash
 }
 
 func hasCommited(addrs []string, addr string) (bool, int) {
@@ -212,7 +212,7 @@ func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, er
 			Height: commit.Status.Height,
 			Details: &types.ParacrossStatusDetails{
 				Addrs:     []string{a.fromaddr},
-				StateHash: [][]byte{commit.Status.StateHash},
+				BlockHash: [][]byte{commit.Status.BlockHash},
 			},
 		}
 		receipt = makeCommitReceipt(a.fromaddr, commit, nil, stat)
@@ -221,10 +221,10 @@ func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, er
 		// 如有分叉， 同一个节点可能再次提交commit交易
 		found, index := hasCommited(stat.Details.Addrs, a.fromaddr)
 		if found {
-			stat.Details.StateHash[index] = commit.Status.StateHash
+			stat.Details.BlockHash[index] = commit.Status.StateHash
 		} else {
 			stat.Details.Addrs = append(stat.Details.Addrs, a.fromaddr)
-			stat.Details.StateHash = append(stat.Details.StateHash, commit.Status.StateHash)
+			stat.Details.BlockHash = append(stat.Details.BlockHash, commit.Status.StateHash)
 		}
 		receipt = makeCommitReceipt(a.fromaddr, commit, &copyStat, stat)
 	}
