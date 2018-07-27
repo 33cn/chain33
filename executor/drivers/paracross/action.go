@@ -254,20 +254,22 @@ func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, er
 
 	commitCount := len(stat.Details.Addrs)
 	most, _ := getMostCommit(stat)
-	if isCommitDone(stat, nodes, most) {
-		stat.Status = pt.ParacrossStatusCommitDone
-		receiptDone := makeDoneReceipt(a.fromaddr, commit, stat, int32(most), int32(commitCount), int32(len(nodes)))
-		receipt.KV = append(receipt.KV, receiptDone.KV...)
-		receipt.Logs = append(receipt.Logs, receiptDone.Logs...)
+	if !isCommitDone(stat, nodes, most) {
 		saveTitleHeight(a.db, calcTitleHeightKey(commit.Status.Title, commit.Status.Height), stat)
-
-		titleStatus.Title = commit.Status.Title
-		titleStatus.Height = commit.Status.Height
-		titleStatus.BlockHash = commit.Status.BlockHash
-		saveTitle(a.db, calcTitleKey(commit.Status.Title), titleStatus)
-	} else {
-		saveTitleHeight(a.db, calcTitleHeightKey(commit.Status.Title, commit.Status.Height), stat)
+		return receipt, nil
 	}
+
+	stat.Status = pt.ParacrossStatusCommitDone
+	receiptDone := makeDoneReceipt(a.fromaddr, commit, stat, int32(most), int32(commitCount), int32(len(nodes)))
+	receipt.KV = append(receipt.KV, receiptDone.KV...)
+	receipt.Logs = append(receipt.Logs, receiptDone.Logs...)
+	saveTitleHeight(a.db, calcTitleHeightKey(commit.Status.Title, commit.Status.Height), stat)
+
+	titleStatus.Title = commit.Status.Title
+	titleStatus.Height = commit.Status.Height
+	titleStatus.BlockHash = commit.Status.BlockHash
+	saveTitle(a.db, calcTitleKey(commit.Status.Title), titleStatus)
+
 
 	// TODO 触发交易组跨链交易
 	print(block)
