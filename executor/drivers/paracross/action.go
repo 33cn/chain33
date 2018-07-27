@@ -6,6 +6,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 	pt "gitlab.33.cn/chain33/chain33/types/executor/paracross"
 	"gitlab.33.cn/chain33/chain33/util"
+	"bytes"
 )
 
 type action struct {
@@ -126,6 +127,8 @@ func makeDoneReceipt(addr string, commit *types.ParacrossCommitAction, current *
 		Title:     commit.Status.Title,
 		Height:    commit.Status.Height,
 		StateHash: commit.Status.StateHash,
+		TxCounts:  commit.Status.TxCounts,
+		TxResult:  commit.Status.TxResult,
 	}
 	return &types.Receipt{
 		Ty: types.ExecOk,
@@ -193,6 +196,12 @@ func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, er
 		return nil, err
 	}
 
+	if titleStatus.Height + 1 == commit.Status.Height {
+		if bytes.Equal(titleStatus.BlockHash, commit.Status.PreBlockHash)  {
+			return nil, types.ErrInputPara
+		}
+	}
+
 	// 在完成共识之后来的， 增加 record log， 只记录不修改已经达成的共识
 	if commit.Status.Height <= titleStatus.Height {
 		return makeRecordReceipt(a.fromaddr, commit), nil
@@ -244,6 +253,7 @@ func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, er
 
 		titleStatus.Title = commit.Status.Title
 		titleStatus.Height = commit.Status.Height
+		titleStatus.BlockHash = commit.Status.BlockHash
 		saveTitle(a.db, calcTitleKey(commit.Status.Title), titleStatus)
 	} else {
 		saveTitleHeight(a.db, calcTitleHeightKey(commit.Status.Title, commit.Status.Height), stat)
