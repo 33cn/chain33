@@ -13,6 +13,17 @@ services:
     build:
       context: .
 
+  chain30:
+    build:
+      context: .
+
+  chain29:
+    build:
+      context: .
+
+  chain28:
+    build:
+      context: .
   relayd:
     build:
       context: .

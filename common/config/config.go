@@ -8,6 +8,11 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
+var (
+	RPCAddr  string
+	ParaName string
+)
+
 func InitCfg(path string) *types.Config {
 	var cfg types.Config
 	if _, err := tml.DecodeFile(path, &cfg); err != nil {

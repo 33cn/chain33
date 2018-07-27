@@ -67,10 +67,12 @@
 挂单方有unlock和撤单两种操作，unlock是在其他状态基础上取消到pending，撤单是撤销到canceled状态
 接单方只有unlock操作, 是在其他状态基础上取消到pending
 
-locking状态unlock需要等待6个小时
-confirming 状态，撤销需要等待4*6小时
+locking状态unlock需要等待12个小时或者12*6个BTC block  因为BTC交易等待的时间很长
+confirming 状态，撤销需要等待4*12小时或者4*12*6个BTC block
 
-finish状态要等待BTC 6个块之后
+finish状态要等待BTC n个块之后，n缺省为6，可以由买BTC的一方设定
+
+注意：为了安全考虑，目前只允许特殊的账户发送BTC Header信息，目前是testNet的genesis addr,正式使用时候要修改
 
 结论：
 状态的转换需要外部事件的触发。

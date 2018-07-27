@@ -7,7 +7,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	lru "github.com/hashicorp/golang-lru"
+	"github.com/hashicorp/golang-lru"
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
@@ -21,7 +21,7 @@ var (
 	DefCacheSize        int64 = 512
 	cachelock           sync.Mutex
 	zeroHash            [32]byte
-	InitBlockNum        int64 = 128 //节点刚启动时从db向index和bestchain缓存中添加的blocknode数
+	InitBlockNum        int64 = 1024 //节点刚启动时从db向index和bestchain缓存中添加的blocknode数
 	isStrongConsistency       = false
 
 	chainlog                    = log.New("module", "blockchain")
@@ -140,7 +140,6 @@ func (chain *BlockChain) Close() {
 	atomic.StoreInt32(&chain.isclosed, 1)
 
 	//退出线程
-	//chain.quit <- struct{}{}
 	close(chain.quit)
 
 	//wait for recvwg quit:
@@ -170,14 +169,22 @@ func (chain *BlockChain) SetQueueClient(client queue.Client) {
 	//startTime
 	chain.startTime = types.Now()
 
+	//获取数据库中最新的区块高度，以及blockchain的数据库版本号
+	curheight := chain.GetBlockHeight()
+	curdbver := chain.blockStore.GetDbVersion()
+	if curdbver == 0 && curheight == -1 {
+		chain.blockStore.SetDbVersion(1)
+	}
 	//recv 消息的处理
 	go chain.ProcRecvMsg()
+	if !chain.cfg.IsParaChain {
+		// 定时检测/同步block
+		go chain.SynRoutine()
 
-	// 定时检测/同步block
-	go chain.SynRoutine()
+		// 定时处理futureblock
+		go chain.UpdateRoutine()
+	}
 
-	// 定时处理futureblock
-	go chain.UpdateRoutine()
 }
 
 func (chain *BlockChain) getStateHash() []byte {
@@ -594,7 +601,7 @@ func (chain *BlockChain) ProcGetTransactionByAddr(addr *types.ReqAddr) (*types.R
 	//查询的drivers--> main 驱动的名称
 	//查询的方法：  --> GetTxsByAddr
 	//查询的参数：  --> interface{} 类型
-	txinfos, err := chain.query.Query("coins", "GetTxsByAddr", types.Encode(addr))
+	txinfos, err := chain.query.Query(types.ExecName("coins"), "GetTxsByAddr", types.Encode(addr))
 	if err != nil {
 		chainlog.Info("ProcGetTransactionByAddr does not exist tx!", "addr", addr, "err", err)
 		return nil, err
@@ -681,6 +688,8 @@ func (chain *BlockChain) ProcGetBlockOverview(ReqHash *types.ReqHash) (*types.Bl
 	header.Height = block.Block.Height
 	header.Hash = block.Block.Hash()
 	header.TxCount = int64(len(block.Block.GetTxs()))
+	header.Difficulty = block.Block.Difficulty
+	header.Signature = block.Block.Signature
 
 	blockOverview.Head = &header
 
@@ -711,28 +720,41 @@ func (chain *BlockChain) ProcGetAddrOverview(addr *types.ReqAddr) (*types.AddrOv
 	var addrOverview types.AddrOverview
 
 	//获取地址的reciver
-	amount, err := chain.query.Query("coins", "GetAddrReciver", types.Encode(addr))
+	amount, err := chain.query.Query(types.ExecName("coins"), "GetAddrReciver", types.Encode(addr))
 	if err != nil {
 		chainlog.Error("ProcGetAddrOverview", "GetAddrReciver err", err)
-		//return nil, err
 		addrOverview.Reciver = 0
 	} else {
 		addrOverview.Reciver = amount.(*types.Int64).GetData()
 	}
-	//获取地址对应的交易count
-	addr.Flag = 0
-	addr.Count = 0x7fffffff
-	addr.Height = -1
-	addr.Index = 0
-	txinfos, err := chain.query.Query("coins", "GetTxsByAddr", types.Encode(addr))
-	if err != nil {
-		chainlog.Info("ProcGetAddrOverview", "GetTxsByAddr err", err)
-		//return nil, err
-		addrOverview.TxCount = 0
+	beg := types.Now()
+	curdbver := chain.blockStore.GetDbVersion()
+	var reqkey types.ReqKey
 
+	if curdbver == 0 {
+		//旧的数据库获取地址对应的交易count，使用前缀查找的方式获取
+		//前缀和util.go 文件中的CalcTxAddrHashKey保持一致
+		reqkey.Key = []byte(fmt.Sprintf("TxAddrHash:%s:%s", addr.Addr, ""))
+		count, err := chain.query.Query(types.ExecName("coins"), "GetPrefixCount", types.Encode(&reqkey))
+		if err != nil {
+			chainlog.Error("ProcGetAddrOverview", "GetPrefixCount err", err)
+			addrOverview.TxCount = 0
+		} else {
+			addrOverview.TxCount = count.(*types.Int64).GetData()
+		}
+		chainlog.Debug("GetPrefixCount", "cost ", types.Since(beg))
 	} else {
-		addrOverview.TxCount = int64(len(txinfos.(*types.ReplyTxInfos).GetTxInfos()))
-		chainlog.Debug("ProcGetAddrOverview", "addr", addr.Addr, "addrOverview", addrOverview.String())
+		//新的数据库直接使用key值查找就可以
+		//前缀和util.go 文件中的calcAddrTxsCountKey保持一致
+		reqkey.Key = []byte(fmt.Sprintf("AddrTxsCount:%s", addr.Addr))
+		count, err := chain.query.Query(types.ExecName("coins"), "GetAddrTxsCount", types.Encode(&reqkey))
+		if err != nil {
+			chainlog.Error("ProcGetAddrOverview", "GetAddrTxsCount err", err)
+			addrOverview.TxCount = 0
+		} else {
+			addrOverview.TxCount = count.(*types.Int64).GetData()
+		}
+		chainlog.Debug("GetAddrTxsCount", "cost ", types.Since(beg))
 	}
 	return &addrOverview, nil
 }

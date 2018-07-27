@@ -1,6 +1,7 @@
 package wallet
 
 import (
+	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -157,11 +158,13 @@ func (wallet *Wallet) ProcRecvMsg() {
 
 		case types.EventAddBlock:
 			block := msg.Data.(*types.BlockDetail)
+			wallet.updateLastHeader(block, 1)
 			wallet.ProcWalletAddBlock(block)
 			walletlog.Debug("wallet add block --->", "height", block.Block.GetHeight())
 
 		case types.EventDelBlock:
 			block := msg.Data.(*types.BlockDetail)
+			wallet.updateLastHeader(block, -1)
 			wallet.ProcWalletDelBlock(block)
 			walletlog.Debug("wallet del block --->", "height", block.Block.GetHeight())
 
@@ -250,6 +253,112 @@ func (wallet *Wallet) ProcRecvMsg() {
 		case types.EventFatalFailure: //定时查询是否有致命性故障产生
 			fatalFailure := wallet.getFatalFailure()
 			msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyFatalFailure, &types.Int32{Data: fatalFailure}))
+		case types.EventShowPrivacyAccountSpend:
+			reqPrivBal4AddrToken := msg.Data.(*types.ReqPrivBal4AddrToken)
+			UTXOs, err := wallet.showPrivacyAccountsSpend(reqPrivBal4AddrToken)
+			if err != nil {
+				walletlog.Error("showPrivacyAccountSpend", "err", err.Error())
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyShowPrivacyAccountSpend, err))
+			} else {
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyShowPrivacyAccountSpend, UTXOs))
+			}
+		case types.EventShowPrivacyPK:
+			reqAddr := msg.Data.(*types.ReqStr)
+			replyPrivacyPair, err := wallet.showPrivacyPkPair(reqAddr)
+			if err != nil {
+				walletlog.Error("showPrivacyPkPair", "err", err.Error())
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyShowPrivacyPK, err))
+			} else {
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyShowPrivacyPK, replyPrivacyPair))
+			}
+		case types.EventPublic2privacy:
+			reqPub2Pri := msg.Data.(*types.ReqPub2Pri)
+			replyHash, err := wallet.procPublic2PrivacyV2(reqPub2Pri)
+			var reply types.Reply
+			if err != nil {
+				reply.IsOk = false
+				walletlog.Error("procPublic2Privacy", "err", err.Error())
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyPublic2privacy, err))
+			} else {
+				reply.IsOk = true
+				reply.Msg = replyHash.Hash
+				walletlog.Info("procPublic2Privacy", "tx hash", common.Bytes2Hex(replyHash.Hash), "result", "success")
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyPublic2privacy, &reply))
+			}
+
+		case types.EventPrivacy2privacy:
+			reqPri2Pri := msg.Data.(*types.ReqPri2Pri)
+			replyHash, err := wallet.procPrivacy2PrivacyV2(reqPri2Pri)
+			var reply types.Reply
+			if err != nil {
+				reply.IsOk = false
+				walletlog.Error("procPrivacy2Privacy", "err", err.Error())
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyPrivacy2privacy, err))
+			} else {
+				reply.IsOk = true
+				reply.Msg = replyHash.Hash
+				walletlog.Info("procPrivacy2Privacy", "tx hash", common.Bytes2Hex(replyHash.Hash), "result", "success")
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyPrivacy2privacy, &reply))
+			}
+		case types.EventPrivacy2public:
+			reqPri2Pub := msg.Data.(*types.ReqPri2Pub)
+			replyHash, err := wallet.procPrivacy2PublicV2(reqPri2Pub)
+			var reply types.Reply
+			if err != nil {
+				reply.IsOk = false
+				walletlog.Error("procPrivacy2Public", "err", err.Error())
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyPrivacy2public, err))
+			} else {
+				reply.IsOk = true
+				reply.Msg = replyHash.Hash
+				walletlog.Info("procPrivacy2Public", "tx hash", common.Bytes2Hex(replyHash.Hash), "result", "success")
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyPrivacy2public, &reply))
+			}
+		case types.EventCreateUTXOs:
+			reqCreateUTXOs := msg.Data.(*types.ReqCreateUTXOs)
+			replyHash, err := wallet.procCreateUTXOs(reqCreateUTXOs)
+			var reply types.Reply
+			if err != nil {
+				reply.IsOk = false
+				walletlog.Error("procCreateUTXOs", "err", err.Error())
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyCreateUTXOs, err))
+			} else {
+				reply.IsOk = true
+				reply.Msg = replyHash.Hash
+				walletlog.Info("procCreateUTXOs", "tx hash", common.Bytes2Hex(replyHash.Hash), "result", "success")
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyCreateUTXOs, &reply))
+			}
+		case types.EventCreateTransaction:
+			req := msg.Data.(*types.ReqCreateTransaction)
+			reply, err := wallet.procCreateTransaction(req)
+			if err != nil {
+				walletlog.Error("procCreateTransaction", "err", err.Error())
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyCreateTransaction, err))
+			} else {
+				walletlog.Info("procCreateTransaction", "tx hash", common.Bytes2Hex(reply.Hash()), "result", "success")
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyCreateTransaction, reply))
+			}
+		case types.EventPrivacyAccountInfo:
+			req := msg.Data.(*types.ReqPPrivacyAccount)
+			reply, err := wallet.procPrivacyAccountInfo(req)
+			if err != nil {
+				walletlog.Error("procPrivacyAccountInfo", "err", err.Error())
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyPrivacyAccountInfo, err))
+			} else {
+				walletlog.Info("procPrivacyAccountInfo", "req", req)
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyPrivacyAccountInfo, reply))
+			}
+
+		case types.EventPrivacyTransactionList:
+			req := msg.Data.(*types.ReqPrivacyTransactionList)
+			reply, err := wallet.procPrivacyTransactionList(req)
+			if err != nil {
+				walletlog.Error("procPrivacyTransactionList", "err", err.Error())
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyPrivacyTransactionList, err))
+			} else {
+				walletlog.Info("procPrivacyTransactionList", "req", req)
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyPrivacyTransactionList, reply))
+			}
 
 		default:
 			walletlog.Info("ProcRecvMsg unknow msg", "msgtype", msgtype)

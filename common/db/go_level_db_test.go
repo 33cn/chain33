@@ -16,7 +16,7 @@ func TestGoLevelDBIterator(t *testing.T) {
 	require.NoError(t, err)
 	t.Log(dir)
 
-	leveldb, err := NewGoLevelDB("gobagderdb", dir, 128)
+	leveldb, err := NewGoLevelDB("goleveldb", dir, 128)
 	require.NoError(t, err)
 	defer leveldb.Close()
 
@@ -29,7 +29,7 @@ func TestGoLevelDBBoundary(t *testing.T) {
 	require.NoError(t, err)
 	t.Log(dir)
 
-	leveldb, err := NewGoLevelDB("gobagderdb", dir, 128)
+	leveldb, err := NewGoLevelDB("goleveldb", dir, 128)
 	require.NoError(t, err)
 	defer leveldb.Close()
 
