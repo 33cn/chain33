@@ -3,6 +3,7 @@ package paracross
 import (
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/blockchain"
 )
 
 func getTitle(db dbm.KV, key []byte) (*types.ParacrossStatus, error) {
@@ -39,4 +40,17 @@ func saveTitleHeight(db dbm.KV, key []byte, heightStatus types.Message /* height
 	// use as a types.Message
 	val := types.Encode(heightStatus)
 	return db.Set(key, val)
+}
+
+func getBlock(db dbm.KVDB, blockHash []byte) (*types.BlockBody, error) {
+	data, err := db.Get(blockchain.CalcHashToBlockBodyKey(blockHash))
+	if err != nil {
+		return nil, err
+	}
+	var block types.BlockBody
+	err = types.Decode(data, &block)
+	if err != nil {
+		return nil, err
+	}
+	return &block, nil
 }
