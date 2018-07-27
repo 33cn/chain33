@@ -439,14 +439,14 @@ func (client *ParaClient) WriteBlock(prev []byte, paraBlock *types.Block, mainBl
 		oriTxHashs = append(oriTxHashs, tx.Hash())
 	}
 
-	blockdetail, deltx, err := client.ExecBlock(prev, paraBlock)
+	blockDetail, deltx, err := client.ExecBlock(prev, paraBlock)
 	if len(deltx) > 0 {
 		plog.Warn("parachain receive invalid txs")
 	}
 	if err != nil {
 		return err
 	}
-	parablockDetail := &types.ParaChainBlockDetail{blockdetail, seq}
+	parablockDetail := &types.ParaChainBlockDetail{blockDetail, seq}
 	msg := client.GetQueueClient().NewMessage("blockchain", types.EventAddParaChainBlockDetail, parablockDetail)
 	client.GetQueueClient().Send(msg, true)
 	resp, err := client.GetQueueClient().Wait(msg)
@@ -456,11 +456,11 @@ func (client *ParaClient) WriteBlock(prev []byte, paraBlock *types.Block, mainBl
 
 	if resp.GetData().(*types.Reply).IsOk {
 		client.SetCurrentBlock(paraBlock)
-		if mainBlock != nil && len(paraBlock.Txs) > 0 {
+		if mainBlock != nil {
 			commitMsg := &CommitMsg{
 				initTxHashs:   oriTxHashs,
 				mainBlockHash: mainBlock.Hash(),
-				blockDetail:   blockdetail,
+				blockDetail:   blockDetail,
 			}
 			client.commitMsgClient.onBlockAdded(commitMsg)
 
