@@ -74,7 +74,17 @@ func TestTicket(t *testing.T) {
 	// 创建钱包测试 coverage: 62.5%
 	// newWalletRealize(qApi, w, cs)
 
-	time.Sleep(60 * time.Second)
+	for {
+		header, err := qApi.GetLastHeader()
+		if err != nil {
+			panic(err)
+		}
+		// 区块 0 产生后开始下面的运作
+		if header.Height >= 2 {
+			break
+		}
+		time.Sleep(time.Second)
+	}
 }
 
 func initEnvTicket() (queue.Queue, *blockchain.BlockChain, *mempool.Mempool, queue.Module, *Client, *wallet.Wallet, client.QueueProtocolAPI) {
@@ -113,7 +123,6 @@ func initEnvTicket() (queue.Queue, *blockchain.BlockChain, *mempool.Mempool, que
 
 // 获取票的列表
 func getTicketList(qApi client.QueueProtocolAPI) (*types.Message, error) {
-	time.Sleep(5 * time.Second) // 购票 5 秒后票成熟
 	reqaddr := &types.TicketList{"12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv", 1}
 	var req types.Query
 	req.Execer = []byte("ticket")
