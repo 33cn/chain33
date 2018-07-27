@@ -835,6 +835,15 @@ func TestGRPC(t *testing.T) {
 	testMakeTxPublic2Privacy(t, &grpcMock)
 	testMakeTxPrivacy2Privacy(t, &grpcMock)
 	testMakeTxPrivacy2Public(t, &grpcMock)
+	testRescanUtxos(t, &grpcMock)
+}
+
+func testRescanUtxos(t *testing.T, rpc *mockGRPCSystem) {
+	var res types.RepRescanUtxos
+	err := rpc.newRpcCtx("RescanUtxos", &types.ReqRescanUtxos{}, &res)
+	if err != nil {
+		t.Error("Call RescanUtxos Failed.", err)
+	}
 }
 
 func testMakeTxPrivacy2Public(t *testing.T, rpc *mockGRPCSystem) {

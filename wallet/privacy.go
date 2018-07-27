@@ -1320,20 +1320,6 @@ func (wallet *Wallet) reqUtxosByAddr(addrs []string) {
 		default:
 		}
 
-		//if wallet.IsWalletLocked() {
-		//	time.Sleep(time.Millisecond * 200)
-		//	continue
-		//}
-		//// 判断是否需要扫描，不需要直接休眠
-		//if utxoFlagNoScan == atomic.LoadInt32(&wallet.rescanUTXOflag) {
-		//	i = 0
-		//	time.Sleep(time.Millisecond * 100)
-		//	continue
-		//} else if utxoFlagReScan == atomic.LoadInt32(&wallet.rescanUTXOflag) {
-		//	i = 0
-		//	atomic.StoreInt32(&wallet.rescanUTXOflag, utxoFlagScaning)
-		//}
-
 		//首先从execs模块获取地址对应的所有UTXOs,
 		// 1 先获取隐私合约地址相关交易
 		var ReqAddr types.ReqAddr
