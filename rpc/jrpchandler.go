@@ -10,6 +10,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/version"
 	"gitlab.33.cn/chain33/chain33/types"
+	hashlocktype "gitlab.33.cn/chain33/chain33/types/executor/hashlock"
 	retrievetype "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
 	tokentype "gitlab.33.cn/chain33/chain33/types/executor/token"
 	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
@@ -1011,6 +1012,15 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		} else {
 			pl = &action
 		}
+	} else if types.ExecName(types.RetrieveX) == string(tx.Execer) {
+		var action types.RetrieveAction
+		err := types.Decode(tx.GetPayload(), &action)
+		if err != nil {
+			unkownPl["unkownpayload"] = string(tx.GetPayload())
+			pl = unkownPl
+		} else {
+			pl = &action
+		}
 	} else if "user.write" == string(tx.Execer) {
 		pl = decodeUserWrite(tx.GetPayload())
 	} else {
@@ -1238,6 +1248,36 @@ func (c *Chain33) CreateRawRetrievePerformTx(in *retrievetype.RetrievePerformTx,
 
 func (c *Chain33) CreateRawRetrieveCancelTx(in *retrievetype.RetrieveCancelTx, result *interface{}) error {
 	reply, err := c.cli.CreateRawRetrieveCancelTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Chain33) CreateRawHashlockLockTx(in *hashlocktype.HashlockLockTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawHashlockLockTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Chain33) CreateRawHashlockUnlockTx(in *hashlocktype.HashlockUnlockTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawHashlockUnlockTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Chain33) CreateRawHashlockSendTx(in *hashlocktype.HashlockSendTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawHashlockSendTx(in)
 	if err != nil {
 		return err
 	}
