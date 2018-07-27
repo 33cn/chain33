@@ -1,6 +1,8 @@
 package commands
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -41,7 +43,7 @@ func addBakupCmdFlags(cmd *cobra.Command) {
 	cmd.MarkFlagRequired("backup")
 	cmd.Flags().StringP("default", "t", "", "default address")
 	cmd.MarkFlagRequired("default")
-	cmd.Flags().Int64P("delay", "d", 0, "delay period")
+	cmd.Flags().Int64P("delay", "d", 60, "delay period (minimum 60 seconds)")
 	cmd.MarkFlagRequired("delay")
 
 	defaultFee := float64(types.MinFee) / float64(types.Coin)
@@ -55,6 +57,10 @@ func backupCmd(cmd *cobra.Command, args []string) {
 	delay, _ := cmd.Flags().GetInt64("delay")
 	fee, _ := cmd.Flags().GetFloat64("fee")
 
+	if delay < 60 {
+		fmt.Println("delay period changed to 60")
+		delay = 60
+	}
 	feeInt64 := int64(fee*types.InputPrecision) * types.Multiple1E4
 	params := retrievetype.RetrieveBackupTx{
 		BackupAddr:  backup,
