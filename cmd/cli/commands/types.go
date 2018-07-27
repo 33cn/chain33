@@ -260,3 +260,12 @@ type RetrieveResult struct {
 	//RemainTime  int64  `json:"remainTime"`
 	Status string `json:"status"`
 }
+
+type ShowRescanResult struct {
+	Addr       string `json:"addr"`
+	FlagString string `json:"FlagString"`
+}
+
+type showRescanResults struct {
+	RescanResults []*ShowRescanResult `json:"ShowRescanResults,omitempty"`
+}
