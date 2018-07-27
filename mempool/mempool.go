@@ -365,14 +365,18 @@ func (mem *Mempool) SendTxToP2P(tx *types.Transaction) {
 }
 
 // Mempool.CheckExpireValid检查交易过期有效性，过期返回false，未过期返回true
-func (mem *Mempool) CheckExpireValid(msg queue.Message) bool {
+func (mem *Mempool) CheckExpireValid(msg queue.Message) (bool, error) {
 	mem.proxyMtx.Lock()
 	defer mem.proxyMtx.Unlock()
 	if mem.header == nil {
-		return false
+		return false, types.ErrHeaderNotSet
 	}
 	tx := msg.GetData().(types.TxGroup).Tx()
-	return mem.checkExpireValid(tx)
+	ok := mem.checkExpireValid(tx)
+	if !ok {
+		return ok, types.ErrTxExpire
+	}
+	return ok, nil
 }
 
 func (mem *Mempool) checkExpireValid(tx *types.Transaction) bool {
@@ -431,7 +435,7 @@ func (mem *Mempool) setHeader(h *types.Header) {
 	mem.proxyMtx.Unlock()
 }
 
-func (mem *Mempool) waitPollLastHeader() {
+func (mem *Mempool) WaitPollLastHeader() {
 	<-mem.poolHeader
 }
 

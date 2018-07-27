@@ -39,13 +39,18 @@ all: ## Builds for multiple platforms
 build: ## Build the binary file
 	@go build $(BUILD_FLAGS) -v -i -o  $(APP) $(SRC)
 	@cp cmd/chain33/chain33.toml build/
+	@cp cmd/chain33/chain33.para.toml build/
 
 release: ## Build the binary file
 	@go build -v -i -o $(APP) $(LDFLAGS) $(SRC) 
 	@cp cmd/chain33/chain33.toml build/
+	@cp cmd/chain33/chain33.para.toml build/
 
 cli: ## Build cli binary
 	@go build -v -o $(CLI) $(SRC_CLI)
+
+para:
+	@go build -v -o build/$(NAME) -ldflags "-X gitlab.33.cn/chain33/chain33/common/config.ParaName=user.p.$(NAME). -X gitlab.33.cn/chain33/chain33/common/config.RPCAddr=http://localhost:8901" $(SRC_CLI)
 
 signatory:
 	@cd cmd/signatory-server/signatory && bash ./create_protobuf.sh && cd ../.../..
@@ -95,7 +100,7 @@ race: ## Run data race detector
 	@go test -race -short $(PKG_LIST)
 
 test: ## Run unittests
-	@go test -parallel 1 -race $(PKG_LIST)
+	@go test -race $(PKG_LIST)
 
 fmt: fmt_proto fmt_shell ## go fmt
 	@go fmt ./...
@@ -129,6 +134,10 @@ docker: ## build docker image for chain33 run
 docker-compose: ## build docker-compose for chain33 run
 	@cd build && ./docker-compose.sh build && cd ..
 
+
+fork-test: ## build fork-test for chain33 run
+	@cd build && ./fork-test.sh build && cd ..
+
 clean: ## Remove previous build
 	@rm -rf $(shell find . -name 'datadir' -not -path "./vendor/*")
 	@rm -rf build/chain33*
@@ -138,7 +147,7 @@ clean: ## Remove previous build
 	@go clean
 
 protobuf: ## Generate protbuf file of types package
-	@cd types && ./create_protobuf.sh && cd ..
+	@cd types/proto && ./create_protobuf.sh && cd ../..
 
 help: ## Display this help screen
 	@printf "Help doc:\nUsage: make [command]\n"
@@ -168,6 +177,9 @@ checkgofmt: ## get all go files and run go fmt on them
 mock:
 	@cd client && mockery -name=QueueProtocolAPI && mv mocks/QueueProtocolAPI.go mocks/api.go && cd -
 	@cd queue && mockery -name=Client && mv mocks/Client.go mocks/client.go && cd -
+	@cd common/db && mockery -name=KV && mv mocks/KV.go mocks/kv.go && cd -
+	@cd common/db && mockery -name=KVDB && mv mocks/KVDB.go mocks/kvdb.go && cd -
+
 
 .PHONY: auto_ci_before auto_ci_after auto_ci
 auto_ci_before: clean fmt protobuf mock

@@ -1,0 +1,4 @@
+## 用户名，可配置多用户
+name = ["User"]
+## 签名类型，支持"auth_ecdsa", "auth_sm2"
+signType = "auth_sm2"

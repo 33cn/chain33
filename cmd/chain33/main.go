@@ -22,6 +22,7 @@ import (
 	"time"
 
 	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/authority"
 	"gitlab.33.cn/chain33/chain33/blockchain"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/config"
@@ -36,6 +37,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/store"
 	"gitlab.33.cn/chain33/chain33/types"
+	_ "gitlab.33.cn/chain33/chain33/types/executor"
 	"gitlab.33.cn/chain33/chain33/wallet"
 	"golang.org/x/net/trace"
 	"google.golang.org/grpc"
@@ -104,7 +106,11 @@ func main() {
 	}()
 	//set pprof
 	go func() {
-		http.ListenAndServe("localhost:6060", nil)
+		if cfg.Pprof != nil {
+			http.ListenAndServe(cfg.Pprof.ListenAddr, nil)
+		} else {
+			http.ListenAndServe("localhost:6060", nil)
+		}
 	}()
 	//set trace
 	grpc.EnableTracing = true
@@ -154,7 +160,7 @@ func main() {
 	log.Info("loading wallet module")
 	walletm := wallet.New(cfg.Wallet)
 	walletm.SetQueueClient(q.Client())
-
+	authority.Author.Init(cfg.Auth)
 	defer func() {
 		//close all module,clean some resource
 		log.Info("begin close blockchain module")

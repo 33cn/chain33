@@ -67,7 +67,7 @@ pipeline {
                 dir("${PROJ_DIR}"){
                     gitlabCommitStatus(name: 'deploy'){
                         sh 'make build_ci'
-                        sh "cd build && mkdir ${env.BUILD_NUMBER} && cp chain33* Dockerfile* docker* relayd* ${env.BUILD_NUMBER}/ && cd ${env.BUILD_NUMBER}/ && ./docker-compose.sh ${env.BUILD_NUMBER}"
+                        sh "cd build && mkdir ${env.BUILD_NUMBER} && cp chain33* Dockerfile* docker* relayd* *.sh ${env.BUILD_NUMBER}/ && cd ${env.BUILD_NUMBER}/ && ./docker-compose.sh ${env.BUILD_NUMBER}"
                     }
                 }
             }

@@ -23,6 +23,7 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	defer func() {
 		ulog.Info("ExecBlock", "height", block.Height, "ntx", len(block.Txs), "writebatchsync", sync, "cost", types.Since(beg))
 	}()
+
 	if errReturn && block.Height > 0 && !block.CheckSign() {
 		//block的来源不是自己的mempool，而是别人的区块
 		return nil, nil, types.ErrSign
@@ -54,6 +55,7 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 			deltxlist[i] = true
 			continue
 		}
+
 		rdata = append(rdata, &types.ReceiptData{receipt.Ty, receipt.Logs})
 		//处理KV
 		kvs := receipt.KV
@@ -116,7 +118,8 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	if kvset != nil {
 		ExecKVSetCommit(client, block.StateHash)
 	}
-
+	detail.KV = kvset
+	detail.PrevStatusHash = prevStateRoot
 	//get receipts
 	//save kvset and get state hash
 	//ulog.Debug("blockdetail-->", "detail=", detail)

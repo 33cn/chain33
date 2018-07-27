@@ -1,21 +1,20 @@
 package mavl
 
 import (
-	"container/list"
 	"errors"
 	"fmt"
 	"sync"
 
 	"github.com/golang/protobuf/proto"
+	lru "github.com/hashicorp/golang-lru"
 	log "github.com/inconshreveable/log15"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var (
-	ErrNodeNotExist     = errors.New("ErrNodeNotExist")
-	defCacheSize    int = 128
-	treelog             = log.New("module", "mavl")
+	ErrNodeNotExist = errors.New("ErrNodeNotExist")
+	treelog         = log.New("module", "mavl")
 )
 
 //merkle avl tree
@@ -32,10 +31,9 @@ func NewTree(db dbm.DB, sync bool) *Tree {
 		return &Tree{}
 	} else {
 		// Persistent IAVLTree
-		ndb := newNodeDB(defCacheSize, db, sync)
+		ndb := newNodeDB(db, sync)
 		return &Tree{
 			ndb: ndb,
-			//batch: ndb.GetBatch(sync),
 		}
 	}
 }
@@ -227,27 +225,23 @@ func (t *Tree) IterateRangeInclusive(start, end []byte, ascending bool, fn func(
 //-----------------------------------------------------------------------------
 
 type nodeDB struct {
-	mtx        sync.Mutex
-	cache      map[string]*list.Element
-	cacheSize  int
-	cacheQueue *list.List
-	db         dbm.DB
-	batch      dbm.Batch
-	orphans    map[string]struct{}
+	mtx     sync.Mutex
+	cache   *lru.ARCCache
+	db      dbm.DB
+	batch   dbm.Batch
+	orphans map[string]struct{}
 }
 
 type nodeBatch struct {
 	batch dbm.Batch
 }
 
-func newNodeDB(cacheSize int, db dbm.DB, sync bool) *nodeDB {
+func newNodeDB(db dbm.DB, sync bool) *nodeDB {
 	ndb := &nodeDB{
-		cache:      make(map[string]*list.Element),
-		cacheSize:  cacheSize,
-		cacheQueue: list.New(),
-		db:         db,
-		batch:      db.NewBatch(sync),
-		orphans:    make(map[string]struct{}),
+		cache:   db.GetCache(),
+		db:      db,
+		batch:   db.NewBatch(sync),
+		orphans: make(map[string]struct{}),
 	}
 	return ndb
 }
@@ -257,28 +251,28 @@ func (ndb *nodeDB) GetNode(t *Tree, hash []byte) (*Node, error) {
 	defer ndb.mtx.Unlock()
 
 	// Check the cache.
-	elem, ok := ndb.cache[string(hash)]
-	if ok {
-		// Already exists. Move to back of cacheQueue.
-		ndb.cacheQueue.MoveToBack(elem)
-		return elem.Value.(*Node), nil
-	} else {
-		// Doesn't exist, load from db.
-		var buf []byte
-		buf, err := ndb.db.Get(hash)
 
-		if len(buf) == 0 || err != nil {
-			return nil, ErrNodeNotExist
+	if ndb.cache != nil {
+		elem, ok := ndb.cache.Get(string(hash))
+		if ok {
+			return elem.(*Node), nil
 		}
-		node, err := MakeNode(buf, t)
-		if err != nil {
-			panic(fmt.Sprintf("Error reading IAVLNode. bytes: %X  error: %v", buf, err))
-		}
-		node.hash = hash
-		node.persisted = true
-		ndb.cacheNode(node)
-		return node, nil
 	}
+	// Doesn't exist, load from db.
+	var buf []byte
+	buf, err := ndb.db.Get(hash)
+
+	if len(buf) == 0 || err != nil {
+		return nil, ErrNodeNotExist
+	}
+	node, err := MakeNode(buf, t)
+	if err != nil {
+		panic(fmt.Sprintf("Error reading IAVLNode. bytes: %X  error: %v", buf, err))
+	}
+	node.hash = hash
+	node.persisted = true
+	ndb.cacheNode(node)
+	return node, nil
 }
 
 func (ndb *nodeDB) GetBatch(sync bool) *nodeBatch {
@@ -300,7 +294,6 @@ func (ndb *nodeDB) SaveNode(t *Tree, node *Node) {
 	storenode := node.storeNode(t)
 	ndb.batch.Set(node.hash, storenode)
 	node.persisted = true
-
 	ndb.cacheNode(node)
 	delete(ndb.orphans, string(node.hash))
 	//treelog.Debug("SaveNode", "hash", node.hash, "height", node.height, "value", node.value)
@@ -309,13 +302,12 @@ func (ndb *nodeDB) SaveNode(t *Tree, node *Node) {
 
 //cache缓存节点
 func (ndb *nodeDB) cacheNode(node *Node) {
-	// Create entry in cache and append to cacheQueue.
-	elem := ndb.cacheQueue.PushBack(node)
-	ndb.cache[string(node.hash)] = elem
-	// Maybe expire an item.
-	if ndb.cacheQueue.Len() > ndb.cacheSize {
-		hash := ndb.cacheQueue.Remove(ndb.cacheQueue.Front()).(*Node).hash
-		delete(ndb.cache, string(hash))
+	//接进叶子节点，不容易命中cache，就不做cache
+	if ndb.cache != nil && node.height > 2 {
+		ndb.cache.Add(string(node.hash), node)
+		if ndb.cache.Len()%10000 == 0 {
+			log.Info("store db cache ", "len", ndb.cache.Len())
+		}
 	}
 }
 
@@ -330,11 +322,8 @@ func (ndb *nodeDB) RemoveNode(t *Tree, node *Node) {
 	if !node.persisted {
 		panic("Shouldn't be calling remove on a non-persisted node.")
 	}
-	elem, ok := ndb.cache[string(node.hash)]
-	if ok {
-		ndb.cacheQueue.Remove(elem)
-		delete(ndb.cache, string(node.hash))
-		//treelog.Debug("RemoveNode", "hash", node.hash, "height", node.height, "value", node.value)
+	if ndb.cache != nil {
+		ndb.cache.Remove(string(node.hash))
 	}
 	ndb.orphans[string(node.hash)] = struct{}{}
 }
