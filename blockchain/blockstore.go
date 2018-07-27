@@ -27,7 +27,7 @@ var (
 )
 
 //存储block hash对应的blockbody信息
-func calcHashToBlockBodyKey(hash []byte) []byte {
+func CalcHashToBlockBodyKey(hash []byte) []byte {
 	bodyPerfix := []byte("Body:")
 	return append(bodyPerfix, hash...)
 	//return []byte(fmt.Sprintf("Body:%v", hash))
@@ -314,7 +314,7 @@ func (bs *BlockStore) LoadBlockByHash(hash []byte) (*types.BlockDetail, error) {
 		return nil, err
 	}
 	//通过hash获取blockbody
-	body, err := bs.db.Get(calcHashToBlockBodyKey(hash))
+	body, err := bs.db.Get(CalcHashToBlockBodyKey(hash))
 	if body == nil || err != nil {
 		if err != dbm.ErrNotFoundInDb {
 			storeLog.Error("LoadBlockByHash calcHashToBlockBodyKey ", "err", err)
@@ -363,7 +363,7 @@ func (bs *BlockStore) SaveBlock(storeBatch dbm.Batch, blockdetail *types.BlockDe
 		storeLog.Error("SaveBlock Marshal blockbody", "height", height, "hash", common.ToHex(hash), "error", err)
 		return err
 	}
-	storeBatch.Set(calcHashToBlockBodyKey(hash), body)
+	storeBatch.Set(CalcHashToBlockBodyKey(hash), body)
 
 	// Save blockheader通过block hash
 	var blockheader types.Header
@@ -681,7 +681,7 @@ func (bs *BlockStore) dbMaybeStoreBlock(blockdetail *types.BlockDetail, sync boo
 		storeLog.Error("dbMaybeStoreBlock Marshal blockbody", "height", height, "hash", common.ToHex(hash), "error", err)
 		return types.ErrMarshal
 	}
-	storeBatch.Set(calcHashToBlockBodyKey(hash), body)
+	storeBatch.Set(CalcHashToBlockBodyKey(hash), body)
 
 	// Save blockheader通过block hash
 	var blockheader types.Header
