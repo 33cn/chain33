@@ -1,13 +1,12 @@
 package types
 
 import (
+	"encoding/json"
+	"fmt"
 	"math/rand"
 	"time"
 
 	"github.com/inconshreveable/log15"
-
-	"fmt"
-
 	"gitlab.33.cn/chain33/chain33/consensus/drivers"
 )
 
@@ -95,6 +94,38 @@ func (bs *BlockStore) LoadBlockCommit(height int64) *Commit {
 		}
 	}
 	return nil
+}
+
+func (bs *BlockStore) LoadProposal(height int64) *ProposalTrans {
+	block, err := bs.client.RequestBlock(height)
+	if err != nil {
+		bslog.Error("LoadProposal by height failed", "curHeight", bs.client.GetCurrentHeight(), "requestHeight", height, "error", err)
+		return nil
+	}
+	blockInfo, err := GetBlockInfo(block)
+	if err != nil {
+		panic(fmt.Sprintf("LoadProposal GetBlockInfo failed:%v", err))
+	}
+	if blockInfo == nil {
+		bslog.Error("LoadProposal get nil block info")
+		return nil
+	}
+	var proposalTrans ProposalTrans
+	propByte := blockInfo.GetProposal()
+	err = json.Unmarshal(propByte, &proposalTrans)
+	if err != nil {
+		panic(fmt.Sprintf("LoadProposal Unmarshal failed:%v", err))
+	}
+	//blockByte := proposalTrans.BlockBytes
+	//var propBlock gtypes.Block
+	//err = proto.Unmarshal(blockByte, &propBlock)
+	//	if err != nil {
+	//		panic(fmt.Sprintf("LoadProposal Unmarshal failed:%v", err))
+	//	}
+	//	propBlock.Txs = block.Txs[1:]
+	//	propBlockByte, _ := proto.Marshal(&propBlock)
+	//	proposalTrans.BlockBytes = propBlockByte
+	return &proposalTrans
 }
 
 func (bs *BlockStore) Height() int64 {

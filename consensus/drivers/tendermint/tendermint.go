@@ -134,14 +134,21 @@ func (client *TendermintClient) SetQueueClient(q queue.Client) {
 	go client.StartConsensus()
 }
 
+const DEBUG_CATCHUP = false
+
 func (client *TendermintClient) StartConsensus() {
-	//caught up
+	//进入共识前先同步到最大高度
+	retry := 0
 	for {
-		if !client.IsCaughtUp() {
-			time.Sleep(time.Second)
-			continue
+		if DEBUG_CATCHUP || client.IsCaughtUp() {
+			tendermintlog.Info("This node has caught up the max height")
+			break
 		}
-		break
+		retry++
+		time.Sleep(time.Second)
+		if retry >= 600 {
+			panic("This node encounter problem, exit.")
+		}
 	}
 
 	block := client.GetCurrentBlock()
@@ -257,21 +264,6 @@ func (client *TendermintClient) ExecBlock(prevHash []byte, block *types.Block) (
 
 func (client *TendermintClient) CreateBlock() {
 	issleep := true
-	retry := 0
-
-	//进入共识前先同步到最大高度
-	time.Sleep(5 * time.Second)
-	for {
-		if client.IsCaughtUp() {
-			tendermintlog.Info("This node has caught up the max height")
-			break
-		}
-		retry++
-		time.Sleep(time.Second)
-		if retry >= 600 {
-			panic("This node encounter problem, exit.")
-		}
-	}
 
 	for {
 
@@ -304,6 +296,10 @@ func (client *TendermintClient) CreateBlock() {
 		select {
 		case height := <-client.consResult:
 			tendermintlog.Info("Tendermint consensus reached at", "height", height)
+			if client.GetCurrentHeight()+1 != height {
+				tendermintlog.Info("Wait for sync between blockchain and consensus")
+				time.Sleep(5 * time.Second)
+			}
 		}
 	}
 }
@@ -316,21 +312,34 @@ func (client *TendermintClient) ConsResult() chan<- int64 {
 	return client.consResult
 }
 
-func (client *TendermintClient) CommitBlock(txs []*types.Transaction) error {
+func (client *TendermintClient) BuildBlock() *types.Block {
+	txs := client.RequestTx(int(types.GetP(client.lastBlock.Height+1).MaxTxNumber)-1, nil)
+	//check dup
+	txs = client.CheckTxDup(txs)
+	if len(txs) == 0 {
+		return nil
+	}
+
 	newblock := &types.Block{}
 	lastBlock := client.lastBlock
-	tendermintlog.Debug(fmt.Sprintf("the len txs is: %v", len(txs)))
 	newblock.ParentHash = lastBlock.Hash()
+	newblock.TxHash = merkle.CalcMerkleRoot(txs)
 	newblock.Height = lastBlock.Height + 1
-	newblock.Txs = txs
+	client.AddTxsToBlock(newblock, txs)
 	//挖矿固定难度
 	newblock.Difficulty = types.GetP(0).PowLimitBits
+	return newblock
+}
+
+func (client *TendermintClient) CommitBlock(propBlock *types.Block) error {
+	newblock := *propBlock
+	lastBlock := client.lastBlock
 	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
 	newblock.BlockTime = time.Now().Unix()
 	if lastBlock.BlockTime >= newblock.BlockTime {
 		newblock.BlockTime = lastBlock.BlockTime + 1
 	}
-	err := client.WriteBlock(lastBlock.StateHash, newblock)
+	err := client.WriteBlock(lastBlock.StateHash, &newblock)
 	if err != nil {
 		tendermintlog.Error(fmt.Sprintf("********************CommitBlock err:%v", err.Error()))
 		return err
@@ -347,14 +356,15 @@ func (client *TendermintClient) CheckCommit(height int64) (bool, error) {
 	newHeight := int64(1)
 	for {
 		newHeight = client.GetCurrentHeight()
-		if newHeight == height {
-			tendermintlog.Info("Sync block success", "height", height)
+		if newHeight >= height {
+			tendermintlog.Info("Sync block success", "height", height, "CurrentHeight", newHeight)
 			return true, nil
 		}
 		retry++
 		time.Sleep(100 * time.Millisecond)
 		if retry >= 600 {
 			tendermintlog.Error("Sync block fail", "height", height, "CurrentHeight", newHeight)
+			break
 		}
 	}
 	if client.IsCaughtUp() {
