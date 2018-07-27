@@ -1,12 +1,10 @@
 package cert
 
 import (
-	"encoding/asn1"
 	"fmt"
 
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/authority"
-	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -60,7 +58,7 @@ func (c *Cert) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, inde
 		set.KV = append(set.KV, &types.KeyValue{[]byte("cert_0"), types.Encode(noneCertdata)})
 	} else if action.Ty == types.CertActionUpdate {
 		// 写入上一纪录的next-height
-		key := []byte(fmt.Sprintf("cert_%s", authority.Author.HistoryCertCache.CurHeight))
+		key := []byte(fmt.Sprintf("cert_%d", authority.Author.HistoryCertCache.CurHeight))
 		historityCertdata := &types.HistoryCertStore{}
 		authority.Author.HistoryCertCache.NxtHeight = c.GetHeight()
 		authority.Author.HistoryCertCache.ToHistoryCertStore(historityCertdata)
@@ -98,31 +96,19 @@ func (c *Cert) CheckTx(tx *types.Transaction, index int) error {
 		return types.ErrInitializeAuthority
 	}
 
-	// 签名中解码cert
-	var certSignature crypto.CertSignature
-	_, err = asn1.Unmarshal(tx.Signature.Signature, &certSignature)
-	if err != nil {
-		clog.Error(fmt.Sprintf("unmashal certificate from signature failed. %s", err.Error()))
-		return err
-	}
-	if len(certSignature.Cert) == 0 {
-		clog.Error("cert can not be null")
-		return types.ErrInvalidParam
-	}
-
 	// 重启
 	if authority.Author.HistoryCertCache.CurHeight == -1 {
 		c.initHistoryByPrefix()
 	}
 
 	// 当前区块<上次证书变更区块，cert回滚
-	if c.GetHeight() < authority.Author.HistoryCertCache.CurHeight {
+	if c.GetHeight() <= authority.Author.HistoryCertCache.CurHeight {
 		c.loadHistoryByPrefix()
 	}
 
 	// 当前区块>上次变更下一区块，下一区块不为-1，即非最新证书变更记录，用于cert回滚时判断是否到了下一变更记录
 	nxtHeight := authority.Author.HistoryCertCache.NxtHeight
-	if nxtHeight != -1 && c.GetHeight() >= nxtHeight {
+	if nxtHeight != -1 && c.GetHeight() > nxtHeight {
 		c.loadHistoryByHeight()
 	}
 
@@ -172,7 +158,7 @@ func (c *Cert) loadHistoryByPrefix() error {
 	var historyData types.HistoryCertStore
 	for _, v := range result.Values {
 		types.Decode(v, &historyData)
-		if historyData.CurHeigth <= c.GetHeight() && historyData.NxtHeight > c.GetHeight() {
+		if historyData.CurHeigth < c.GetHeight() && historyData.NxtHeight >= c.GetHeight() {
 			return authority.Author.ReloadCert(&historyData)
 		}
 	}
@@ -194,7 +180,7 @@ func (c *Cert) loadHistoryByHeight() error {
 	var historyData types.HistoryCertStore
 	for _, v := range result.Values {
 		types.Decode(v, &historyData)
-		if historyData.CurHeigth <= c.GetHeight() && historyData.NxtHeight > c.GetHeight() {
+		if historyData.CurHeigth < c.GetHeight() && historyData.NxtHeight >= c.GetHeight() {
 			return authority.Author.ReloadCert(&historyData)
 		}
 	}
