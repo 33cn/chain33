@@ -108,7 +108,7 @@ func New(cfg *types.BlockChain) *BlockChain {
 		cfg:                cfg,
 		recvwg:             &sync.WaitGroup{},
 		task:               newTask(160 * time.Second),
-		forktask:           newTask(160 * time.Second),
+		forktask:           newTask(300 * time.Second),
 
 		quit:                make(chan struct{}),
 		synblock:            make(chan struct{}, 1),
@@ -348,6 +348,7 @@ func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, blockdetail *types.Bloc
 			chain.task.Done(blockdetail.Block.GetHeight())
 		}
 	}
+	//forktask 运行时设置对应的blockdone
 	if chain.forktask.InProgress() {
 		chain.forktask.Done(blockdetail.Block.GetHeight())
 	}

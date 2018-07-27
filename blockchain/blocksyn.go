@@ -37,7 +37,7 @@ var (
 	synlog = chainlog.New("submodule", "syn")
 )
 
-//blockchain模块需要保存的peerinfo
+//blockchain模块fork处理结构体
 type ForkInfo struct {
 	ForkStartHeight int64
 	ForkEndHeight   int64
@@ -719,18 +719,25 @@ func (chain *BlockChain) ProcBlockHeaders(headers *types.Headers, pid string) er
 	peermaxheight := peerinfo.Height
 
 	//启动一个线程在后台获取分叉的blcok
-	go chain.ProcBlockChainFork(ForkHeight, peermaxheight, pid)
-
+	if chain.forktask.InProgress() {
+		synlog.Info("ProcBlockHeaders forktask.InProgress")
+		return nil
+	} else {
+		go chain.ProcBlockChainFork(ForkHeight, peermaxheight, pid)
+	}
 	return nil
 }
 
 //处理从peer获取的headers消息
 func (chain *BlockChain) ProcBlockChainFork(forkStartHeight int64, forkEndHeight int64, pid string) {
 	forkinfo := chain.GetForkInfo()
+
+	//可能存在上次fork 处理过程中下载区块超时，forktask任务退出，但forkinfo没有恢复成默认值
 	if forkinfo.ForkStartHeight != -1 || forkinfo.ForkEndHeight != -1 {
-		synlog.Info("ProcBlockChainFork Fork processing", "pid", forkinfo.ForkPid, "ForkStartHeight", forkinfo.ForkStartHeight, "ForkEndHeight", forkinfo.ForkEndHeight)
-		return
+		synlog.Error("ProcBlockChainFork Fork processing", "pid", forkinfo.ForkPid, "ForkStartHeight", forkinfo.ForkStartHeight, "ForkEndHeight", forkinfo.ForkEndHeight)
 	}
+
+	chain.DefaultForkInfo()
 	chain.InitForkInfo(forkStartHeight, forkEndHeight, pid)
 	chain.ReqForkBlocks()
 }
