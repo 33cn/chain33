@@ -171,6 +171,8 @@ const (
 	EventReplyPrivacyAccountInfo
 	EventPrivacyTransactionList
 	EventReplyPrivacyTransactionList
+	EventRescanUtxos
+	EventReplyRescanUtxos
 )
 
 var eventName = map[int]string{
@@ -322,4 +324,6 @@ var eventName = map[int]string{
 	EventReplyPrivacyAccountInfo:      "EventReplyPrivacyAccountInfo",
 	EventPrivacyTransactionList:       "EventPrivacyTransactionList",
 	EventReplyPrivacyTransactionList:  "EventReplyPrivacyTransactionList",
+	EventRescanUtxos:                  "EventRescanUtxos",
+	EventReplyRescanUtxos:             "EventReplyRescanUtxos",
 }
