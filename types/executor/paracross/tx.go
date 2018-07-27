@@ -1,8 +1,10 @@
 package paracross
 
+import (
+	"gitlab.33.cn/chain33/chain33/types"
+)
+
 type ParacrossCommitTx struct {
 	Fee       int64  `json:"fee"`
-	Title     string `json:"title"`
-	Height    int64  `json:"height"`
-	StateHash []byte `json:"stateHash"`
+	Status    types.ParacrossNodeStatus `json:"status"`
 }
