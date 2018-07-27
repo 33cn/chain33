@@ -1392,6 +1392,10 @@ func TestChain33_ImportPrivkey(t *testing.T) {
 }
 
 func TestChain33_SendToAddress(t *testing.T) {
+	if types.IsPara() {
+		t.Skip()
+		return
+	}
 	api := new(mocks.QueueProtocolAPI)
 	testChain33 := newTestChain33(api)
 

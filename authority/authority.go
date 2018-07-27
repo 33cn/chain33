@@ -1,7 +1,6 @@
 package authority
 
 import (
-	"encoding/asn1"
 	"fmt"
 	"io/ioutil"
 	"path"
@@ -59,9 +58,14 @@ func (auth *Authority) Init(conf *types.Authority) error {
 		alog.Error("Crypto config path can not be null")
 		return types.ErrInvalidParam
 	}
-
-	auth.signType = int(conf.SignType)
 	auth.cryptoPath = conf.CryptoPath
+
+	sign, ok := types.MapSignName2Type[conf.SignType]
+	if !ok {
+		alog.Error(fmt.Sprintf("Invalid sign type:%s", conf.SignType))
+		return types.ErrInvalidParam
+	}
+	auth.signType = sign
 
 	authConfig, err := core.GetAuthConfig(conf.CryptoPath)
 	if err != nil {
@@ -72,6 +76,7 @@ func (auth *Authority) Init(conf *types.Authority) error {
 
 	vldt, err := core.GetLocalValidator(authConfig, auth.signType)
 	if err != nil {
+		alog.Error(fmt.Sprintf("Get loacal validator failed. err:%s", err.Error()))
 		return err
 	}
 	auth.validator = vldt
@@ -237,32 +242,25 @@ func (auth *Authority) task(done <-chan struct{}, taskes <-chan *types.Signature
 */
 func (auth *Authority) Validate(signature *types.Signature) error {
 	// 从proto中解码signature
-	var certSignature crypto.CertSignature
-	_, err := asn1.Unmarshal(signature.Signature, &certSignature)
+	cert, err := auth.validator.GetCertFromSignature(signature.Signature)
 	if err != nil {
-		alog.Error(fmt.Sprintf("unmashal certificate from signature failed. %s", err.Error()))
 		return err
-	}
-
-	if len(certSignature.Cert) == 0 {
-		alog.Error("cert can not be null")
-		return types.ErrInvalidParam
 	}
 
 	// 是否在有效证书缓存中
 	for _, v := range auth.validCertCache {
-		if bytes.Equal(v, certSignature.Cert) {
+		if bytes.Equal(v, cert) {
 			return nil
 		}
 	}
 
 	// 校验
-	err = auth.validator.Validate(certSignature.Cert, signature.GetPubkey())
+	err = auth.validator.Validate(cert, signature.GetPubkey())
 	if err != nil {
 		alog.Error(fmt.Sprintf("validate cert failed. %s", err.Error()))
 		return fmt.Errorf("validate cert failed. error:%s", err.Error())
 	}
-	auth.validCertCache = append(auth.validCertCache, certSignature.Cert)
+	auth.validCertCache = append(auth.validCertCache, cert)
 
 	return nil
 }
@@ -298,18 +296,27 @@ func (certdata *HistoryCertData) ToHistoryCertStore(store *types.HistoryCertStor
 type User struct {
 	Id   string
 	Cert []byte
-	Key  []byte
+	Key  crypto.PrivKey
 }
 
 //userloader, SKD加载user使用
 type UserLoader struct {
 	configPath string
 	userMap    map[string]*User
+	signType   int
 }
 
-func (loader *UserLoader) Init(configPath string) error {
+func (loader *UserLoader) Init(configPath string, signType string) error {
 	loader.configPath = configPath
 	loader.userMap = make(map[string]*User)
+
+	sign, ok := types.MapSignName2Type[signType]
+	if !ok {
+		alog.Error(fmt.Sprintf("Invalid sign type:%s", signType))
+		return types.ErrInvalidParam
+	}
+	loader.signType = sign
+
 	return loader.loadUsers()
 }
 
@@ -328,24 +335,49 @@ func (loader *UserLoader) loadUsers() error {
 			continue
 		}
 
-		ski, err := utils.GetPublicKeySKIFromCert(certBytes, Author.signType)
+		ski, err := utils.GetPublicKeySKIFromCert(certBytes, loader.signType)
 		if err != nil {
 			alog.Error(err.Error())
 			continue
 		}
 		filePath = path.Join(keyDir, ski+"_sk")
-		KeyBytes, err := utils.ReadFile(filePath)
+		keyBytes, err := utils.ReadFile(filePath)
 		if err != nil {
 			continue
 		}
 
-		loader.userMap[file.Name()] = &User{file.Name(), certBytes, KeyBytes}
+		priv, err := loader.genCryptoPriv(keyBytes)
+		if err != nil {
+			alog.Error(fmt.Sprintf("Generate crypto private failed. error:%s", err.Error()))
+			continue
+		}
+
+		loader.userMap[file.Name()] = &User{file.Name(), certBytes, priv}
 	}
 
 	return nil
 }
 
-func (load *UserLoader) GetUser(userName string) (*User, error) {
+func (loader *UserLoader) genCryptoPriv(keyBytes []byte) (crypto.PrivKey, error) {
+	cr, err := crypto.New(types.GetSignatureTypeName(loader.signType))
+	if err != nil {
+		return nil, fmt.Errorf("create crypto %s failed, error:%s", types.GetSignatureTypeName(loader.signType), err)
+	}
+
+	privKeyByte, err := utils.PrivKeyByteFromRaw(keyBytes, loader.signType)
+	if err != nil {
+		return nil, err
+	}
+
+	priv, err := cr.PrivKeyFromBytes(privKeyByte)
+	if err != nil {
+		return nil, fmt.Errorf("get private key failed, error:%s", err)
+	}
+
+	return priv, nil
+}
+
+func (load *UserLoader) Get(userName string) (*User, error) {
 	keyvalue := fmt.Sprintf("%s@%s-cert.pem", userName, OrgName)
 	user, ok := load.userMap[keyvalue]
 	if !ok {
@@ -354,7 +386,7 @@ func (load *UserLoader) GetUser(userName string) (*User, error) {
 
 	resp := &User{}
 	resp.Cert = append(resp.Cert, user.Cert...)
-	resp.Key = append(resp.Key, user.Key...)
+	resp.Key = user.Key
 
 	return resp, nil
 }

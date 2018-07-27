@@ -12,7 +12,9 @@ import (
 	"time"
 
 	"github.com/tjfoc/gmsm/sm2"
+	"gitlab.33.cn/chain33/chain33/authority/utils"
 	sm2_util "gitlab.33.cn/chain33/chain33/common/crypto/sm2"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 type gmValidator struct {
@@ -327,4 +329,20 @@ func (validator *gmValidator) getValidityOptsForCert(cert *sm2.Certificate) sm2.
 	tempOpts.CurrentTime = cert.NotBefore.Add(time.Second)
 
 	return tempOpts
+}
+
+func (Validator *gmValidator) GetCertFromSignature(signature []byte) ([]byte, error) {
+	// 从proto中解码signature
+	cert, _, err := utils.DecodeCertFromSignature(signature)
+	if err != nil {
+		authLogger.Error(fmt.Sprintf("unmashal certificate from signature failed. %s", err.Error()))
+		return nil, err
+	}
+
+	if len(cert) == 0 {
+		authLogger.Error("cert can not be null")
+		return nil, types.ErrInvalidParam
+	}
+
+	return cert, nil
 }

@@ -3,7 +3,6 @@ package core
 import (
 	"errors"
 
-	"gitlab.33.cn/chain33/chain33/authority/utils"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -11,9 +10,9 @@ func GetLocalValidator(authConfig *AuthConfig, signType int) (Validator, error) 
 	var lclValidator Validator
 	var err error
 
-	if signType == utils.SIGN_TYPE_AUTHECDSA {
+	if signType == types.AUTH_ECDSA {
 		lclValidator = NewEcdsaValidator()
-	} else if signType == utils.SIGN_TYPE_AUTHSM2 {
+	} else if signType == types.AUTH_SM2 {
 		lclValidator = NewGmValidator()
 	} else {
 		return nil, types.ErrUnknowAuthSignType
