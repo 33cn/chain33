@@ -62,10 +62,8 @@ func backupCmd(cmd *cobra.Command, args []string) {
 		DelayPeriod: delay,
 		Fee:         feeInt64,
 	}
-	var res string
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawRetrieveBackupTx", params, &res)
-	ctx.SetResultCb(parseBlockDetail)
-	ctx.Run()
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawRetrieveBackupTx", params, nil)
+	ctx.RunWithoutMarshal()
 }
 
 // 准备
@@ -101,10 +99,8 @@ func prepareCmd(cmd *cobra.Command, args []string) {
 		DefaultAddr: defaultAddr,
 		Fee:         feeInt64,
 	}
-	var res string
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawRetrievePrepareTx", params, &res)
-	ctx.SetResultCb(parseBlockDetail)
-	ctx.Run()
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawRetrievePrepareTx", params, nil)
+	ctx.RunWithoutMarshal()
 }
 
 // 执行
@@ -130,10 +126,8 @@ func performCmd(cmd *cobra.Command, args []string) {
 		DefaultAddr: defaultAddr,
 		Fee:         feeInt64,
 	}
-	var res string
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawRetrievePerformTx", params, &res)
-	ctx.SetResultCb(parseBlockDetail)
-	ctx.Run()
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawRetrievePerformTx", params, nil)
+	ctx.RunWithoutMarshal()
 }
 
 // 取消
@@ -159,10 +153,8 @@ func cancelCmd(cmd *cobra.Command, args []string) {
 		DefaultAddr: defaultAddr,
 		Fee:         feeInt64,
 	}
-	var res string
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawRetrieveCancelTx", params, &res)
-	ctx.SetResultCb(parseBlockDetail)
-	ctx.Run()
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawRetrieveCancelTx", params, nil)
+	ctx.RunWithoutMarshal()
 }
 
 // 查询
@@ -183,6 +175,28 @@ func addQueryRetrieveCmdFlags(cmd *cobra.Command) {
 	cmd.MarkFlagRequired("default")
 }
 
+func parseRerieveDetail(arg interface{}) (interface{}, error) {
+	res := arg.(*types.RetrieveQuery)
+
+	result := RetrieveResult{
+		DelayPeriod: res.DelayPeriod,
+	}
+	switch res.Status {
+	case RetrieveBackup:
+		result.Status = "backup"
+	case RetrievePreapred:
+		result.Status = "prepared"
+	case RetrievePerformed:
+		result.Status = "performed"
+	case RetrieveCanceled:
+		result.Status = "canceled"
+	default:
+		result.Status = "unknown"
+	}
+
+	return result, nil
+}
+
 func queryRetrieveCmd(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	backup, _ := cmd.Flags().GetString("backup")
@@ -200,6 +214,6 @@ func queryRetrieveCmd(cmd *cobra.Command, args []string) {
 
 	var res types.RetrieveQuery
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
-	ctx.SetResultCb(parseBlockDetail)
+	ctx.SetResultCb(parseRerieveDetail)
 	ctx.Run()
 }
