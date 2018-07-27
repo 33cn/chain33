@@ -31,6 +31,7 @@ message TendermintBlockInfo {
 	TendermintCommit SeenCommit = 1;
 	TendermintCommit LastCommit = 2;
 	State State = 3;
+	bytes Proposal = 4;
 }
 
 message BlockSize {

@@ -1,11 +1,10 @@
 package tendermint
 
 import (
-	"fmt"
-
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"sync"
 
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
@@ -310,10 +309,11 @@ func changeInVotingPowerMoreOrEqualToOneThird(currentSet *types.ValidatorSet, up
 
 func validateBlock(stateDB *CSStateDB, s State, b *types.Block) error {
 	// validate internal consistency
-	newTxs, err := b.ValidateBasic()
-	if err != nil {
-		return err
-	}
+	//newTxs, err := b.ValidateBasic()
+	//if err != nil {
+	//	return err
+	//}
+	newTxs := b.Header.NumTxs
 
 	// validate basic info
 	if b.ChainID != s.ChainID {

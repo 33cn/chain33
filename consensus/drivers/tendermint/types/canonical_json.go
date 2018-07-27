@@ -76,7 +76,7 @@ func CanonicalBlockID(blockID BlockID) CanonicalJSONBlockID {
 
 func CanonicalProposal(proposal *Proposal) CanonicalJSONProposal {
 	return CanonicalJSONProposal{
-		BlockBytes: proposal.BlockBytes,
+		//BlockBytes: proposal.BlockBytes,
 		Height:     proposal.Height,
 		Timestamp:  CanonicalTime(proposal.Timestamp),
 		POLBlockID: CanonicalBlockID(proposal.POLBlockID),
