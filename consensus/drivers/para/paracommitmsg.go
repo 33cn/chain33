@@ -34,12 +34,15 @@ type CommitMsgClient struct {
 
 func (client *CommitMsgClient) handler() {
 	var notifications []*CommitMsg
+	var sendingMsgs []*CommitMsg
+	var finishMsgs []*CommitMsg
 	readTick := time.Tick(time.Second)
 	consensusTick := time.Tick(time.Minute)
 	type sendResult struct {
 		err error
 	}
 	sendResponse := make(chan sendResult, 1)
+	consensusRsp := make(chan *types.ParacrossHeightStatus, 1)
 	for {
 		select {
 		case msg, ok := <-client.commitMsgNofity:
@@ -55,6 +58,8 @@ func (client *CommitMsgClient) handler() {
 					continue
 				}
 				if exist {
+					finishMsgs = append(finishMsgs,sendingMsgs...)
+					sendingMsgs = sendingMsgs[len(sendingMsgs):]
 					client.waitingTx = false
 					client.currentTx = ""
 					client.checkTxCommitTimes = 0
@@ -62,6 +67,15 @@ func (client *CommitMsgClient) handler() {
 					client.checkTxCommitTimes++
 					if client.checkTxCommitTimes > waitMainBlocks {
 						client.checkTxCommitTimes = 0
+						//这地方需要从rawtx构建,nonce需要改，不然会认为重复交易
+						rawTxs, _, err := calcRawTxs(sendingMsgs)
+						if err != nil {
+							continue
+						}
+						signTx, err := client.signCommitMsgTx(rawTxs)
+						if err != nil || signTx == "" {
+							continue
+						}
 						go func() {
 							err = client.sendCommitMsgTx(client.currentTx)
 							if err != nil {
@@ -82,6 +96,7 @@ func (client *CommitMsgClient) handler() {
 				if err != nil || signTx == "" {
 					continue
 				}
+				sendingMsgs = notifications[:count]
 				notifications = notifications[count:]
 				client.currentTx = signTx
 				client.waitingTx = true
@@ -94,7 +109,38 @@ func (client *CommitMsgClient) handler() {
 				}()
 			}
 		case <-consensusTick:
+			go func() {
+				payLoad := types.Encode(&types.ReqParacrossTitleHeight{
+					Title:  types.GetTitle(),
+				})
+				query := types.Query{
+					Execer:   types.ExecerPara,
+					FuncName: "ParacrossGetTitleHeight",
+					Payload:  payLoad,
+				}
+				ret,err := client.paraClient.grpcClient.QueryChain(context.Background(),&query)
+				if err != nil {
+					return
+				}
+				if !ret.GetIsOk() {
+					plog.Info("ParacrossGetTitleHeight", "error", ret.GetMsg())
+					return
+				}
+				var result types.ParacrossHeightStatus
+				types.Decode(ret.Msg, &result)
+				consensusRsp <- &result
+			}()
+		//获取正在共识的高度，也就是可能还没完成共识
+		case rsp := <-consensusRsp:
 
+			for i,msg := range finishMsgs{
+				if msg.blockDetail.Block.Height > rsp.Height{
+					if i>0{
+						finishMsgs = finishMsgs[i-1:]
+					}
+					break
+				}
+			}
 		case <-sendResponse:
 			go func() {
 				err := client.sendCommitMsgTx(client.currentTx)
