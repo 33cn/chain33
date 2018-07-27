@@ -1,19 +1,20 @@
 package tendermint
 
 import (
-	"sync"
-	"net"
 	"bufio"
-	"time"
-	"github.com/pkg/errors"
 	"encoding/binary"
-	"encoding/json"
-	"io"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net"
 	"runtime/debug"
-	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
+	"sync"
 	"sync/atomic"
+	"time"
+
+	"github.com/pkg/errors"
+	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
 )
 
 // ID is a hex-encoded crypto.Address
@@ -21,19 +22,19 @@ type ID string
 
 // Messages in channels are chopped into smaller msgPackets for multiplexing.
 type msgPacket struct {
-	TypeID    byte
-	Bytes     []byte
+	TypeID byte
+	Bytes  []byte
 }
 
 type MsgInfo struct {
-	Msg     types.ReactorMsg `json:"msg"`
-	PeerID  ID               `json:"peer_id"`
-	PeerIP  string           `json:"peer_ip"`
+	Msg    types.ReactorMsg `json:"msg"`
+	PeerID ID               `json:"peer_id"`
+	PeerIP string           `json:"peer_ip"`
 }
 
 type Peer interface {
 	ID() ID
-	RemoteIP() (net.IP,error)   // remote IP of the connection
+	RemoteIP() (net.IP, error) // remote IP of the connection
 	RemoteAddr() (net.Addr, error)
 	IsOutbound() bool
 	IsPersistent() bool
@@ -56,9 +57,9 @@ type PeerConnState struct {
 type peerConn struct {
 	outbound bool
 
-	conn  net.Conn     // source connection
-	bufReader   *bufio.Reader
-	bufWriter   *bufio.Writer
+	conn      net.Conn // source connection
+	bufReader *bufio.Reader
+	bufWriter *bufio.Writer
 
 	persistent bool
 	ip         net.IP
@@ -68,28 +69,27 @@ type peerConn struct {
 	sendQueueSize int32
 	pongChannel   chan struct{}
 
-	started       uint32 //atomic
-	stopped       uint32 // atomic
+	started uint32 //atomic
+	stopped uint32 // atomic
 
-	quit          chan struct{}
-	waitQuit      sync.WaitGroup
+	quit     chan struct{}
+	waitQuit sync.WaitGroup
 
 	transferChannel chan MsgInfo
 
-	sendBuffer   []byte
+	sendBuffer []byte
 
 	onPeerError func(Peer, interface{})
 
-	myState    *ConsensusState
-	myevpool   *EvidencePool
+	myState  *ConsensusState
+	myevpool *EvidencePool
 
-	state PeerConnState
+	state            PeerConnState
 	updateStateQueue chan types.ReactorMsg
-	heartbeatQueue  chan types.Heartbeat
+	heartbeatQueue   chan types.Heartbeat
 	//config     *PeerConfig
 	//Data     *cmn.CMap // User data.
 }
-
 
 type PeerSet struct {
 	mtx    sync.Mutex
@@ -212,7 +212,7 @@ func (pc *peerConn) ID() ID {
 	return pc.id
 }
 
-func (pc *peerConn) RemoteIP() (net.IP,error) {
+func (pc *peerConn) RemoteIP() (net.IP, error) {
 	if pc.ip != nil && len(pc.ip) > 0 {
 		return pc.ip, nil
 	}
@@ -238,7 +238,7 @@ func (pc *peerConn) RemoteIP() (net.IP,error) {
 	return pc.ip, nil
 }
 
-func (pc *peerConn) RemoteAddr() (net.Addr,error) {
+func (pc *peerConn) RemoteAddr() (net.Addr, error) {
 	if pc.conn == nil || pc.conn.RemoteAddr().String() == "pipe" {
 		return nil, errors.New("connect is nil or just pipe")
 	}
@@ -261,7 +261,7 @@ func (pc *peerConn) HandshakeTimeout(
 	peerNodeInfo = NodeInfo{}
 	// Set deadline for handshake so we don't block forever on conn.ReadFull
 	if err := pc.conn.SetDeadline(time.Now().Add(timeout)); err != nil {
-		return peerNodeInfo, errors.Wrap(err,"Error setting deadline")
+		return peerNodeInfo, errors.Wrap(err, "Error setting deadline")
 	}
 
 	var err1 error
@@ -326,13 +326,13 @@ func (pc *peerConn) IsPersistent() bool {
 	return pc.persistent
 }
 
-func (pc *peerConn)Send(msg types.ReactorMsg) bool {
-	if !pc.IsRunning()	{
+func (pc *peerConn) Send(msg types.ReactorMsg) bool {
+	if !pc.IsRunning() {
 		return false
 	}
 	timeout := make(chan bool, 1)
 	go func() {
-		time.Sleep(1*time.Minute) // 等待1分钟
+		time.Sleep(1 * time.Minute) // 等待1分钟
 		timeout <- true
 	}()
 	select {
@@ -345,8 +345,8 @@ func (pc *peerConn)Send(msg types.ReactorMsg) bool {
 	}
 }
 
-func (pc *peerConn)TrySend( msg types.ReactorMsg) bool {
-	if !pc.IsRunning()	{
+func (pc *peerConn) TrySend(msg types.ReactorMsg) bool {
+	if !pc.IsRunning() {
 		return false
 	}
 	select {
@@ -362,7 +362,7 @@ func (pc *peerConn) IsRunning() bool {
 	return atomic.LoadUint32(&pc.started) == 1 && atomic.LoadUint32(&pc.stopped) == 0
 }
 
-func (pc *peerConn) Start() error{
+func (pc *peerConn) Start() error {
 	if atomic.CompareAndSwapUint32(&pc.started, 0, 1) {
 		if atomic.LoadUint32(&pc.stopped) == 1 {
 			tendermintlog.Error("peerConn already stoped can not start", "peerIP", pc.ip.String())
@@ -427,10 +427,10 @@ func (pc *peerConn) _recover() {
 
 func (pc *peerConn) stopForError(r interface{}) {
 	tendermintlog.Error("peerConn recovered panic", "error", r, "peer", pc.ip.String())
-	pc.Stop()
 	if pc.onPeerError != nil {
 		pc.onPeerError(pc, r)
 	}
+	pc.Stop()
 }
 
 func (pc *peerConn) sendRoutine() {
@@ -458,8 +458,8 @@ FOR_LOOP:
 			pc.sendBuffer = append(pc.sendBuffer, bytelen...)
 
 			pc.sendBuffer = append(pc.sendBuffer, bytes...)
-			if len + 5 > MaxMsgPacketPayloadSize {
-				pc.sendBuffer = append(pc.sendBuffer,bytes[MaxMsgPacketPayloadSize-5:]...)
+			if len+5 > MaxMsgPacketPayloadSize {
+				pc.sendBuffer = append(pc.sendBuffer, bytes[MaxMsgPacketPayloadSize-5:]...)
 			}
 			_, err = pc.bufWriter.Write(pc.sendBuffer[:len+5])
 			if err != nil {
@@ -510,10 +510,10 @@ FOR_LOOP:
 		if len > 0 {
 			buf2 := make([]byte, len)
 			_, err = io.ReadFull(pc.bufReader, buf2)
-			if err != nil  {
+			if err != nil {
 				tendermintlog.Error("Connection failed @ recvRoutine", "conn", pc, "err", err)
 				pc.stopForError(err)
-				panic(fmt.Sprintf("peerConn recvRoutine packetTypeMsg failed :%v",err))
+				panic(fmt.Sprintf("peerConn recvRoutine packetTypeMsg failed :%v", err))
 			}
 			pkt.Bytes = buf2
 		}
@@ -531,16 +531,19 @@ FOR_LOOP:
 					tendermintlog.Error("peerConn recvRoutine Unmarshal data failed:%v\n", err)
 					continue
 				}
-				if pc.transferChannel != nil && (pkt.TypeID == types.ProposalID || pkt.TypeID == types.VoteID){
+				if pc.transferChannel != nil && (pkt.TypeID == types.ProposalID || pkt.TypeID == types.VoteID) {
 					if pkt.TypeID == types.ProposalID {
-						pc.state.SetHasProposal(realMsg.(*types.ProposalMessage).Proposal)
+						proposalTrans := realMsg.(*types.ProposalMessage).Proposal
+						tendermintlog.Info("Receiving proposal", "peerip", pc.ip.String(), "proposal-height", proposalTrans.Height,
+							"proposal-round", proposalTrans.Round)
+						pc.state.SetHasProposal(proposalTrans)
 
 					} else if pkt.TypeID == types.VoteID {
 						pc.state.SetHasVote(realMsg.(*types.VoteMessage).Vote)
 					}
 					pc.transferChannel <- MsgInfo{realMsg, pc.ID(), pc.ip.String()}
 				} else if pkt.TypeID == types.ProposalHeartbeatID {
-					pc.heartbeatQueue <-*(realMsg.(*types.ProposalHeartbeatMessage).Heartbeat)
+					pc.heartbeatQueue <- *(realMsg.(*types.ProposalHeartbeatMessage).Heartbeat)
 				} else if pkt.TypeID == types.EvidenceListID {
 					go func() {
 						for _, ev := range realMsg.(*types.EvidenceListMessage).Evidence {
@@ -606,9 +609,9 @@ FOR_LOOP:
 			} else {
 				tendermintlog.Error("msg not deal in updateStateRoutine", "msgTypeName", msg.TypeName())
 			}
-			case <-pc.quit:
-				pc.waitQuit.Done()
-				break FOR_LOOP
+		case <-pc.quit:
+			pc.waitQuit.Done()
+			break FOR_LOOP
 		}
 	}
 	close(pc.updateStateQueue)
@@ -646,9 +649,30 @@ OUTER_LOOP:
 		rs := pc.myState.GetRoundState()
 		prs := pc.state
 
+		// If the peer is on a previous height, help catch up.
+		if (0 < prs.Height) && (prs.Height < rs.Height) {
+			tendermintlog.Info("help catch up", "peerip", pc.ip.String(), "selfHeight", rs.Height, "peerHeight", prs.Height)
+			proposalTrans := pc.myState.blockStore.LoadProposal(prs.Height)
+			if proposalTrans == nil {
+				tendermintlog.Error("Failed to load propsal", "selfHeight", rs.Height, "blockstoreHeight", pc.myState.blockStore.Height())
+				time.Sleep(10 * pc.myState.PeerGossipSleep())
+				continue OUTER_LOOP
+			}
+			msg := &types.ProposalMessage{Proposal: proposalTrans}
+			tendermintlog.Info("Sending catchup proposal", "peerip", pc.ip.String(), "proposal-height", proposalTrans.Height,
+				"proposal-round", proposalTrans.Round)
+			if pc.Send(msg) {
+				//prs.SetHasProposal(proposalTrans)
+			} else {
+				tendermintlog.Error("Sending catchup proposal failed")
+			}
+			time.Sleep(10 * pc.myState.PeerGossipSleep())
+			continue OUTER_LOOP
+		}
+
 		// If height and round don't match, sleep.
 		if (rs.Height != prs.Height) || (rs.Round != prs.Round) {
-			//tendermintlog.Debug("Peer Height|Round mismatch, sleeping", "myheight", rs.Height, "myround", rs.Round, "peerHeight", prs.Height, "peerRound", prs.Round, "peer", peer.Key())
+			//tendermintlog.Debug("Peer Height|Round mismatch, sleeping", "selfHeight", rs.Height, "selfRound", rs.Round, "peerHeight", prs.Height, "peerRound", prs.Round)
 			time.Sleep(pc.myState.PeerGossipSleep())
 			continue OUTER_LOOP
 		}
@@ -659,14 +683,15 @@ OUTER_LOOP:
 		// Now consider sending other things, like the Proposal itself.
 
 		// Send Proposal && ProposalPOL BitArray?
-		if rs.Proposal != nil && !prs.Proposal{
+		if rs.Proposal != nil && !prs.Proposal {
 			// Proposal: share the proposal metadata with peer.
 			{
 				proposalTrans := types.ProposalToProposalTrans(rs.Proposal)
 				msg := &types.ProposalMessage{Proposal: proposalTrans}
-				tendermintlog.Debug("Sending proposal", "peerip", pc.ip.String(), "height", prs.Height, "round", prs.Round)
+				tendermintlog.Info(fmt.Sprintf("Sending proposal. Self state: %v/%v/%v", rs.Height, rs.Round, rs.Step),
+					"peerip", pc.ip.String(), "proposal-height", proposalTrans.Height, "proposal-round", proposalTrans.Round)
 				if pc.Send(msg) {
-					pc.state.SetHasProposal(proposalTrans)
+					prs.SetHasProposal(proposalTrans)
 				}
 			}
 			// ProposalPOL: lets peer know which POL votes we have so far.
@@ -682,6 +707,7 @@ OUTER_LOOP:
 				tendermintlog.Debug("Sending POL", "height", prs.Height, "round", prs.Round)
 				pc.Send(msg)
 			}
+			time.Sleep(pc.myState.PeerGossipSleep())
 			continue OUTER_LOOP
 		}
 
@@ -724,29 +750,13 @@ OUTER_LOOP:
 			}
 		}
 
-		if (0 < prs.Height) && (prs.Height < rs.Height) && !prs.Proposal {
-			proposal, err := pc.myState.LastProposals.QueryElem(prs.Height)
-			if err == nil && proposal != nil {
-				proposalTrans := types.ProposalToProposalTrans(proposal)
-				msg := &types.ProposalMessage{Proposal: proposalTrans}
-				tendermintlog.Info("peer height behind, Sending old proposal", "peerip", pc.ip.String(), "height", prs.Height, "round", prs.Round, "proopsal-height", proposalTrans.Height)
-				if pc.Send(msg) {
-					pc.state.SetHasProposal(proposalTrans)
-					time.Sleep(pc.myState.PeerGossipSleep())
-				} else {
-					tendermintlog.Error("peer height behind Sending old proposal failed")
-				}
-			}
-			continue OUTER_LOOP
-		}
-
 		// Special catchup logic.
 		// If peer is lagging by height 1, send LastCommit.
 		if prs.Height != 0 && rs.Height == prs.Height+1 {
 			if vote, ok := pc.state.PickVoteToSend(rs.LastCommit); ok {
 				msg := &types.VoteMessage{vote}
 				pc.Send(msg)
-				tendermintlog.Debug("gossipVotesRoutine Picked vote to send height +1","peerip", pc.ip.String())
+				tendermintlog.Debug("gossipVotesRoutine Picked vote to send height +1", "peerip", pc.ip.String())
 			} else {
 				continue OUTER_LOOP
 			}
@@ -761,7 +771,7 @@ OUTER_LOOP:
 			if vote, ok := pc.state.PickVoteToSend(commit); ok {
 				msg := &types.VoteMessage{vote}
 				pc.Send(msg)
-				tendermintlog.Debug("gossipVotesRoutine Picked vote to send height +2","peerip", pc.ip.String())
+				tendermintlog.Debug("gossipVotesRoutine Picked vote to send height +2", "peerip", pc.ip.String())
 			} else {
 				continue OUTER_LOOP
 			}
@@ -790,21 +800,16 @@ func (pc *peerConn) gossipVotesForHeight(rs *types.RoundState, prs *types.PeerRo
 		if vote, ok := pc.state.PickVoteToSend(rs.LastCommit); ok {
 			msg := &types.VoteMessage{vote}
 			pc.Send(msg)
-			tendermintlog.Debug("Picked rs.LastCommit to send","peerip", pc.ip.String())
+			tendermintlog.Debug("Picked rs.LastCommit to send", "peerip", pc.ip.String())
 			return true
 		}
-	}
-	if !prs.Proposal && rs.Proposal != nil{
-		tendermintlog.Info("peer proposal not set sleeping", "peerip", pc.ip.String())
-		time.Sleep(pc.myState.PeerGossipSleep())
-		return true
 	}
 	// If there are prevotes to send...
 	if prs.Step <= types.RoundStepPrevote && prs.Round != -1 && prs.Round <= rs.Round {
 		if vote, ok := pc.state.PickVoteToSend(rs.Votes.Prevotes(prs.Round)); ok {
 			msg := &types.VoteMessage{vote}
 			pc.Send(msg)
-			tendermintlog.Debug("Picked rs.Prevotes(prs.Round) to send","peerip", pc.ip.String(), "round", prs.Round)
+			tendermintlog.Debug("Picked rs.Prevotes(prs.Round) to send", "peerip", pc.ip.String(), "round", prs.Round)
 			return true
 		}
 	}
@@ -813,7 +818,7 @@ func (pc *peerConn) gossipVotesForHeight(rs *types.RoundState, prs *types.PeerRo
 		if vote, ok := pc.state.PickVoteToSend(rs.Votes.Precommits(prs.Round)); ok {
 			msg := &types.VoteMessage{vote}
 			pc.Send(msg)
-			tendermintlog.Debug("Picked rs.Precommits(prs.Round) to send","peerip", pc.ip.String(), "round", prs.Round)
+			tendermintlog.Debug("Picked rs.Precommits(prs.Round) to send", "peerip", pc.ip.String(), "round", prs.Round)
 			return true
 		}
 	}
@@ -823,7 +828,7 @@ func (pc *peerConn) gossipVotesForHeight(rs *types.RoundState, prs *types.PeerRo
 			if vote, ok := pc.state.PickVoteToSend(polPrevotes); ok {
 				msg := &types.VoteMessage{vote}
 				pc.Send(msg)
-				tendermintlog.Debug("Picked rs.Prevotes(prs.ProposalPOLRound) to send","peerip", pc.ip.String(), "round", prs.ProposalPOLRound)
+				tendermintlog.Debug("Picked rs.Prevotes(prs.ProposalPOLRound) to send", "peerip", pc.ip.String(), "round", prs.ProposalPOLRound)
 				return true
 			}
 		}
@@ -928,6 +933,7 @@ func (se StackError) String() string {
 func (se StackError) Error() string {
 	return se.String()
 }
+
 //-----------------------------------------------------------------
 // GetRoundState returns an atomic snapshot of the PeerRoundState.
 // There's no point in mutating it since it won't change PeerState.
@@ -958,7 +964,7 @@ func (ps *PeerConnState) SetHasProposal(proposal *types.ProposalTrans) {
 	if ps.Proposal {
 		return
 	}
-	tendermintlog.Info("ps set has proposal", "proposal-height", proposal.Height)
+	tendermintlog.Info(fmt.Sprintf("Peer set proposal. Peer state: %v/%v/%v", ps.Height, ps.Round, ps.Step))
 	ps.Proposal = true
 
 	ps.ProposalPOLRound = proposal.POLRound

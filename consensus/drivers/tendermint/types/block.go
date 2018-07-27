@@ -2,15 +2,13 @@ package types
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"strings"
 	"time"
 
-	"encoding/json"
-
-	"github.com/golang/protobuf/proto"
 	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
@@ -25,35 +23,22 @@ var (
 // TODO: add Version byte
 type Block struct {
 	*Header    `json:"header"`
+	Pblock     *types.Block `json:"pblock"`
 	Evidence   EvidenceData `json:"evidence"`
 	LastCommit *Commit      `json:"last_commit"`
-	BlockBytes []byte       `json:"block_bytes"`
 }
 
 // MakeBlock returns a new block with an empty header, except what can be computed from itself.
 // It populates the same set of fields validated by ValidateBasic
-func MakeBlock(height int64, txs []*types.Transaction, commit *Commit) *Block {
-	curTime := time.Now().Unix()
-	oriBlock := &types.Block{
-		Height:    height,
-		BlockTime: curTime,
-		Txs:       txs,
-		TxHash:    merkle.CalcMerkleRoot(txs),
-	}
-	blockByte, err := proto.Marshal(oriBlock)
-	if err != nil {
-		blocklog.Error("MakeBlock failed", "error", err)
-		return nil
-	}
-
+func MakeBlock(height int64, pblock *types.Block, commit *Commit) *Block {
 	block := &Block{
 		Header: &Header{
 			Height: height,
-			Time:   curTime,
-			NumTxs: int64(len(txs)),
+			Time:   time.Now().Unix(),
+			NumTxs: int64(len(pblock.Txs)),
 		},
+		Pblock:     pblock,
 		LastCommit: commit,
-		BlockBytes: blockByte,
 	}
 	block.FillHeader()
 	return block
@@ -79,12 +64,7 @@ func (b *Block) AddEvidence(evidence []Evidence) {
 // ValidateBasic performs basic validation that doesn't involve state data.
 // It checks the internal consistency of the block.
 func (b *Block) ValidateBasic() (int64, error) {
-	block := types.Block{}
-	err := proto.Unmarshal(b.BlockBytes, &block)
-	if err != nil {
-		blocklog.Error("ValidateBasic unmarshal failed", "error", err)
-		return 0, err
-	}
+	block := b.Pblock
 	newTxs := int64(len(block.Txs))
 
 	if b.NumTxs != newTxs {
@@ -158,7 +138,7 @@ func (b *Block) StringIndented(indent string) string {
 %s  %v
 %s}#%v`,
 		indent, b.Header.StringIndented(indent+"  "),
-		indent, b.Evidence.StringIndented(indent+"  "),
+		//		indent, b.Evidence.StringIndented(indent+"  "),
 		indent, b.LastCommit.StringIndented(indent+"  "),
 		indent, b.Hash())
 }

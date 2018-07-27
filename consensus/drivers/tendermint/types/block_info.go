@@ -1,10 +1,10 @@
 package types
 
 import (
-	"time"
-
+	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common"
@@ -179,11 +179,14 @@ func LoadProposer(source *gtypes.Validator) (*Validator, error) {
 	return des, nil
 }
 
-func CreateBlockInfoTx(pubkey string, lastCommit *gtypes.TendermintCommit, seenCommit *gtypes.TendermintCommit, state *gtypes.State) *gtypes.Transaction {
+func CreateBlockInfoTx(pubkey string, lastCommit *gtypes.TendermintCommit, seenCommit *gtypes.TendermintCommit, state *gtypes.State, proposal *Proposal) *gtypes.Transaction {
+	proposalTrans := ProposalToProposalTrans(proposal)
+	propByte, _ := json.Marshal(proposalTrans)
 	blockInfo := &gtypes.TendermintBlockInfo{
 		SeenCommit: seenCommit,
 		LastCommit: lastCommit,
 		State:      state,
+		Proposal:   propByte,
 	}
 	bilog.Debug("CreateBlockInfoTx", "validators", blockInfo.State.Validators.Validators)
 

@@ -108,9 +108,9 @@ func (s State) GetValidators() (last *types.ValidatorSet, current *types.Validat
 // Create a block from the latest state
 
 // MakeBlock builds a block with the given txs and commit from the current state.
-func (s State) MakeBlock(height int64, txs []*gtypes.Transaction, commit *types.Commit) *types.Block {
+func (s State) MakeBlock(height int64, pblock *gtypes.Block, commit *types.Commit) *types.Block {
 	// build base block
-	block := types.MakeBlock(height, txs, commit)
+	block := types.MakeBlock(height, pblock, commit)
 
 	// fill header with state data
 	block.ChainID = s.ChainID

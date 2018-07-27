@@ -17,6 +17,7 @@ It is generated from these files:
 	pbft.proto
 	rpc.proto
 	statistic.proto
+	tendermint.proto
 	transaction.proto
 	wallet.proto
 
@@ -158,6 +159,8 @@ It has these top-level messages:
 	ManageAction
 	ReceiptConfig
 	ReplyConfig
+	ValNode
+	ValNodeAction
 	Trade
 	TradeForSell
 	TradeForBuy
@@ -231,6 +234,19 @@ It has these top-level messages:
 	IterateRangeByStateHash
 	TicketStatistic
 	TicketMinerInfo
+	BlockID
+	TendermintBitArray
+	Vote
+	TendermintCommit
+	TendermintBlockInfo
+	BlockSize
+	TxSize
+	BlockGossip
+	EvidenceParams
+	ConsensusParams
+	Validator
+	ValidatorSet
+	State
 	CreateTx
 	UnsignTx
 	SignedTx

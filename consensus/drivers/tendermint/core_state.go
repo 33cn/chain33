@@ -11,7 +11,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/golang/protobuf/proto"
 	ttypes "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
 	gtypes "gitlab.33.cn/chain33/chain33/types"
 )
@@ -581,11 +580,11 @@ func (cs *ConsensusState) handleTxsAvailable(height int64) {
 	// we only need to do this for round 0
 	tendermintlog.Info(fmt.Sprintf("handleTxsAvailable. Current: %v/%v/%v", cs.Height, cs.Round, cs.Step), "height", height)
 	if cs.Height > height {
-		tendermintlog.Warn("consensus is ahead, might encounter problem in blockchain")
+		tendermintlog.Warn("consensus is ahead, wait blockchain finish catchup")
 		cs.client.ConsResult() <- cs.Height
 		return
 	} else if cs.Height < height {
-		tendermintlog.Warn("blockchain is ahead, might encounter problem in consensus")
+		tendermintlog.Warn("blockchain is ahead, wait consensus finish catchup")
 		cs.client.ConsResult() <- cs.Height
 		return
 	}
@@ -649,6 +648,7 @@ func (cs *ConsensusState) enterNewRound(height int64, round int) {
 	cs.Votes.SetRound(round + 1) // also track next round (round+1) to allow round-skipping
 
 	//cs.eventBus.PublishEventNewRound(cs.RoundStateEvent())
+	cs.broadcastChannel <- cs.RoundStateMessage()
 
 	// Wait for txs to be available in the mempool
 	// before we enterPropose in round 0. If the last block changed the app hash,
@@ -689,6 +689,9 @@ func (cs *ConsensusState) proposalHeartbeat(height int64, round int) {
 		rs := cs.GetRoundState()
 		// if we've already moved on, no need to send more heartbeats
 		if rs.Step > ttypes.RoundStepNewRound || rs.Round > round || rs.Height > height {
+			if round == 0 {
+				cs.begCons = time.Now()
+			}
 			return
 		}
 		heartbeat := &ttypes.Heartbeat{
@@ -829,24 +832,17 @@ func (cs *ConsensusState) createProposalBlock() (block *ttypes.Block) {
 	}
 
 	// Mempool validated transactions
-	// workaround to avoid check dup
 	beg := time.Now()
-	//var hashList [][]byte
-	//for _, tx := range cs.client.lastBlock.Txs {
-	//	hashList = append(hashList, tx.Hash())
-	//}
-	txs := cs.client.RequestTx(int(gtypes.GetP(cs.client.lastBlock.Height+1).MaxTxNumber)-1, nil)
-	//check dup
-	txs = cs.client.CheckTxDup(txs)
-	tendermintlog.Info(fmt.Sprintf("createProposalBlock RequestTx. Current: %v/%v/%v", cs.Height, cs.Round, cs.Step), "txs-len", len(txs), "cost", time.Since(beg))
-	if len(txs) == 0 {
-		tendermintlog.Error("No new txs to propose, will change Proposer", "height", cs.Height)
+	pblock := cs.client.BuildBlock()
+	if pblock == nil {
+		tendermintlog.Error("No new block to propose, will change Proposer", "height", cs.Height)
 		return
 	}
+	tendermintlog.Info(fmt.Sprintf("createProposalBlock BuildBlock. Current: %v/%v/%v", cs.Height, cs.Round, cs.Step), "txs-len", len(pblock.Txs), "cost", time.Since(beg))
 
-	block = cs.state.MakeBlock(cs.Height, txs, commit)
-	evidence := cs.evpool.PendingEvidence()
-	block.AddEvidence(evidence)
+	block = cs.state.MakeBlock(cs.Height, pblock, commit)
+	//evidence := cs.evpool.PendingEvidence()
+	//block.AddEvidence(evidence)
 	return block
 }
 
@@ -1114,7 +1110,6 @@ func (cs *ConsensusState) tryFinalizeCommit(height int64) {
 		// TODO: ^^ wait, why does it matter that we're a validator?
 		tendermintlog.Error("Attempt to finalize failed. We don't have the commit block.", "proposal-block", cs.ProposalBlock.Hash(), "commit-block", blockID.Hash)
 		tendermintlog.Info(fmt.Sprintf("Continue consensus. Current: %v/%v/%v", cs.Height, cs.CommitRound, cs.Step), "cost", time.Since(cs.begCons))
-		cs.enterNewRound(cs.Height, cs.CommitRound+1)
 		return
 	}
 
@@ -1153,12 +1148,6 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 		panic(fmt.Sprintf("Panicked on a Sanity Check: %v", fmt.Sprintf("+2/3 committed an invalid block: %v", err)))
 	}
 
-	var newblock gtypes.Block
-	eror := proto.Unmarshal(block.BlockBytes, &newblock)
-	if eror != nil {
-		panic(fmt.Sprintf("finalizeCommit ProposalBlock unmarshal failed: %v", eror))
-	}
-
 	tendermintlog.Debug("performance: Finalizing commit of block ", "tx_numbers", block.NumTxs,
 		"height", block.Height, "hash", block.Hash(), "root", block.AppHash)
 
@@ -1185,13 +1174,20 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 	newSeenCommit, newLastCommit := ttypes.SaveCommits(lastCommit, seenCommit)
 	newState := SaveState(stateCopy)
 
+	newBlock := *cs.ProposalBlock
 	//tendermintlog.Info("blockid info", "seen commit", seenCommit.StringIndented("seen"),"last commit", lastCommit.StringIndented("last"), "state", stateCopy)
 	tendermintlog.Info(fmt.Sprintf("Save consensus state. Current: %v/%v/%v", cs.Height, cs.CommitRound, cs.Step), "cost", time.Since(cs.begCons))
 	//hg 20180302
 	if cs.isProposer() {
-		tx0 := ttypes.CreateBlockInfoTx(cs.blockStore.GetPubkey(), newLastCommit, newSeenCommit, newState)
-		newTxs := append([]*gtypes.Transaction{tx0}, newblock.Txs...)
-		err = cs.client.CommitBlock(newTxs)
+		newProposal := *cs.Proposal
+		newBlock.Pblock = nil
+		blockByte, _ := json.Marshal(&newBlock)
+		newProposal.BlockBytes = blockByte
+		tx0 := ttypes.CreateBlockInfoTx(cs.blockStore.GetPubkey(), newLastCommit, newSeenCommit, newState, &newProposal)
+
+		commitBlock := *cs.ProposalBlock.Pblock
+		commitBlock.Txs = append([]*gtypes.Transaction{tx0}, commitBlock.Txs...)
+		err = cs.client.CommitBlock(&commitBlock)
 		if err != nil {
 			cs.LockedRound = 0
 			cs.LockedBlock = nil
@@ -1199,12 +1195,7 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 			cs.enterNewRound(cs.Height, cs.CommitRound+1)
 			return
 		}
-		tendermintlog.Info(fmt.Sprintf("Proposer reach consensus. Current: %v/%v/%v", cs.Height, cs.CommitRound, cs.Step), "tx-lens", len(newTxs), "cost", time.Since(cs.begCons))
-
-		proposal := ttypes.Proposal{}
-		proposal = *cs.Proposal
-		tendermintlog.Info("finalizeCommit: enqueue proposal", "height", proposal.Height)
-		cs.LastProposals.Enqueue(&proposal)
+		tendermintlog.Info(fmt.Sprintf("Proposer reach consensus. Current: %v/%v/%v", cs.Height, cs.CommitRound, cs.Step), "tx-lens", len(commitBlock.Txs), "cost", time.Since(cs.begCons))
 	} else {
 		reachCons, err := cs.client.CheckCommit(block.Height)
 		if err != nil {
@@ -1217,7 +1208,7 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 			cs.enterNewRound(cs.Height, cs.CommitRound+1)
 			return
 		}
-		tendermintlog.Info(fmt.Sprintf("Not-Proposer reach consensus. Current: %v/%v/%v", cs.Height, cs.CommitRound, cs.Step), "tx-lens", len(newblock.Txs)+1, "cost", time.Since(cs.begCons))
+		tendermintlog.Info(fmt.Sprintf("Not-Proposer reach consensus. Current: %v/%v/%v", cs.Height, cs.CommitRound, cs.Step), "tx-lens", newBlock.Header.NumTxs+1, "cost", time.Since(cs.begCons))
 	}
 
 	//fail.Fail() // XXX
@@ -1266,8 +1257,8 @@ func (cs *ConsensusState) defaultSetProposal(proposalTrans *ttypes.ProposalTrans
 
 	// We don't care about the proposal if we're already in ttypes.RoundStepCommit.
 	if ttypes.RoundStepCommit <= cs.Step {
-		tendermintlog.Error("defaultSetProposal:", "msg", "step not equal")
-		return nil
+		//tendermintlog.Error("defaultSetProposal:", "msg", "step not equal")
+		//return nil
 	}
 
 	// Verify POLRound, which must be -1 or between 0 and proposal.Round exclusive.
@@ -1304,11 +1295,11 @@ func (cs *ConsensusState) defaultSetProposal(proposalTrans *ttypes.ProposalTrans
 		cs.broadcastChannel <- msg
 	}
 
-	if cs.Step < ttypes.RoundStepPropose && cs.Round == 0 {
-		// receive proposal before txsAvailable, reset begCons
-		cs.begCons = time.Now()
-		cs.enterPropose(cs.Height, 0)
-	} else if cs.Step == ttypes.RoundStepPropose {
+	if cs.Step <= ttypes.RoundStepPropose {
+		if cs.Round == 0 {
+			// receive proposal before txsAvailable, reset begCons
+			cs.begCons = time.Now()
+		}
 		// Move onto the next step
 		cs.enterPrevote(cs.Height, cs.Round)
 	} else if cs.Step == ttypes.RoundStepCommit {
@@ -1552,7 +1543,7 @@ func (cs *ConsensusState) EmptyBlocksInterval() time.Duration {
 
 // PeerGossipSleep returns the amount of time to sleep if there is nothing to send from the ConsensusReactor
 func (cs *ConsensusState) PeerGossipSleep() time.Duration {
-	return time.Duration( /*cs.client.Cfg.PeerGossipSleepDuration*/ 10) * time.Millisecond
+	return time.Duration( /*cs.client.Cfg.PeerGossipSleepDuration*/ 100) * time.Millisecond
 }
 
 // PeerQueryMaj23Sleep returns the amount of time to sleep after each VoteSetMaj23Message is sent in the ConsensusReactor
