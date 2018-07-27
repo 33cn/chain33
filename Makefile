@@ -134,9 +134,11 @@ docker: ## build docker image for chain33 run
 docker-compose: ## build docker-compose for chain33 run
 	@cd build && ./docker-compose.sh build && cd ..
 
-
 fork-test: ## build fork-test for chain33 run
 	@cd build && ./fork-test.sh build && cd ..
+
+privacy-test: ## build privacy-test for chain33 run
+	@cd build && ./privacy-test.sh build && cd ..
 
 clean: ## Remove previous build
 	@rm -rf $(shell find . -name 'datadir' -not -path "./vendor/*")

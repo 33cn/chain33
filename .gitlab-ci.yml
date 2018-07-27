@@ -120,4 +120,17 @@ fork_test:
         - develop
         - forkTest
 
-
+private_test:
+    stage: private_test
+    tags:
+        - 33cn
+    script:
+         - if [ -n "${onceEveryday}" ]; then
+         - make build_ci
+         - make privacy-test
+         - cd build && docker-compose down && cd ..
+         - fi
+    only:
+        - master
+        - develop
+        - privacyTest
