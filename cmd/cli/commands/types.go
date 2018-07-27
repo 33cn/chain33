@@ -246,3 +246,17 @@ type ExecAccount struct {
 	Execer  string         `json:"execer"`
 	Account *AccountResult `json:"account"`
 }
+
+//retrieve
+const (
+	RetrieveBackup = iota + 1
+	RetrievePreapred
+	RetrievePerformed
+	RetrieveCanceled
+)
+
+type RetrieveResult struct {
+	DelayPeriod int64 `json:"delayPeriod"`
+	//RemainTime  int64  `json:"remainTime"`
+	Status string `json:"status"`
+}
