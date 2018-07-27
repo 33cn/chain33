@@ -86,11 +86,7 @@ func CreateRawParacrossCommitTx(parm *ParacrossCommitTx) (*types.Transaction, er
 		return nil, types.ErrInvalidParam
 	}
 	v := &types.ParacrossCommitAction{
-		Status: &types.ParacrossNodeStatus{
-			StateHash: parm.StateHash,
-			Height:    parm.Height,
-			Title:     parm.Title,
-		},
+		Status: &parm.Status,
 	}
 	action := &types.ParacrossAction{
 		Ty:    ParacrossActionCommit,
