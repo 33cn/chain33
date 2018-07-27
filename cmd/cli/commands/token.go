@@ -356,7 +356,7 @@ func addTokenPrecreatedFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("owner_addr", "a", "", "address of token owner")
 	cmd.MarkFlagRequired("owner_addr")
 
-	cmd.Flags().Float64P("price", "p", 0, "token price")
+	cmd.Flags().Float64P("price", "p", 0, "token price(mini: 0.0001)")
 	cmd.MarkFlagRequired("price")
 
 	cmd.Flags().Int64P("total", "t", 0, "total amount of the token")
@@ -376,8 +376,8 @@ func tokenPrecreated(cmd *cobra.Command, args []string) {
 	fee, _ := cmd.Flags().GetFloat64("fee")
 	total, _ := cmd.Flags().GetInt64("total")
 
-	priceInt64 := int64(price * 1e4)
-	feeInt64 := int64(fee * 1e4)
+	priceInt64 := int64((price + 0.000001) * 1e4)
+	feeInt64 := int64((fee + 0.000001) * 1e4)
 	params := &tokentype.TokenPreCreateTx{
 		Price:        priceInt64 * 1e4,
 		Name:         name,
