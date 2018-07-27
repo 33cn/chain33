@@ -353,7 +353,12 @@ func (c *GrpcCtx) Run() (err error) {
 			*c.Res.(*types.Reply) = *reply
 		}
 		errRet = err
-
+	case "RescanUtxos":
+		reply, err := rpc.RescanUtxos(context.Background(), c.Params.(*types.ReqRescanUtxos))
+		if err == nil {
+			*c.Res.(*types.RepRescanUtxos) = *reply
+		}
+		errRet = err
 	default:
 		errRet = errors.New(fmt.Sprintf("Unsupport method %v", c.Method))
 	}

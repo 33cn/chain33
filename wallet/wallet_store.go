@@ -33,6 +33,7 @@ const (
 	RecvPrivacyTx    = "RecvPrivacyTx"
 	SendPrivacyTx    = "SendPrivacyTx"
 	ScanPrivacyInput = "ScanPrivacyInput-"
+	ReScanUtxosFlag  = "ReScanUtxosFlag-"
 )
 
 type Store struct {
@@ -95,6 +96,10 @@ func calcSTXOTokenAddrTxKey(token, addr, txhash string) []byte {
 
 func calcScanPrivacyInputUTXOKey(txhash string, index int) []byte {
 	return []byte(fmt.Sprintf(ScanPrivacyInput+"%s-%d", txhash, index))
+}
+
+func calcRescanUtxosFlagKey(addr string) []byte {
+	return []byte(fmt.Sprintf(ReScanUtxosFlag+"%s", addr))
 }
 
 //通过height*100000+index 查询Tx交易信息
@@ -820,6 +825,51 @@ func (ws *Store) StoreScanPrivacyInputUTXO(utxoGlobalIndexs []*types.UTXOGlobalI
 		value1 := types.Encode(utxoIndex)
 		newbatch.Set(key1, value1)
 	}
+}
+
+func (ws *Store) GetRescanUtxosFlag4Addr(req *types.ReqRescanUtxos) (*types.RepRescanUtxos, error) {
+	var storeAddrs []string
+	if len(req.Addrs) == 0 {
+		WalletAccStores, err := ws.GetAccountByPrefix("Account")
+		if err != nil || len(WalletAccStores) == 0 {
+			walletlog.Info("GetRescanUtxosFlag4Addr", "GetAccountByPrefix:err", err)
+			return nil, types.ErrNotFound
+		}
+		for _, WalletAccStore := range WalletAccStores {
+			storeAddrs = append(storeAddrs, WalletAccStore.Addr)
+		}
+	} else {
+		storeAddrs = append(storeAddrs, req.Addrs...)
+	}
+
+	var repRescanUtxos types.RepRescanUtxos
+	for _, addr := range storeAddrs {
+		value, err := ws.db.Get(calcRescanUtxosFlagKey(addr))
+		if err != nil {
+			continue
+			walletlog.Error("GetRescanUtxosFlag4Addr", "Failed to get calcRescanUtxosFlagKey(addr) for value", addr)
+		}
+
+		var data types.Int64
+		err = types.Decode(value, &data)
+		if nil != err {
+			continue
+			walletlog.Error("GetRescanUtxosFlag4Addr", "Failed to decode types.Int64 for value", value)
+		}
+		result := &types.RepRescanResult{
+			Addr: addr,
+			Flag: int32(data.Data),
+		}
+		repRescanUtxos.RepRescanResults = append(repRescanUtxos.RepRescanResults, result)
+	}
+
+	if len(repRescanUtxos.RepRescanResults) == 0 {
+		return nil, types.ErrNotFound
+	}
+
+	repRescanUtxos.Flag = req.Flag
+
+	return &repRescanUtxos, nil
 }
 
 func (ws *Store) GetScanPrivacyInputUTXO(count int32) []*types.UTXOGlobalIndex {

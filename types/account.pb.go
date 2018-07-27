@@ -399,6 +399,9 @@ It has these top-level messages:
 	ReqBindMiner
 	ReplyBindMiner
 	ReqPrivacyTransactionList
+	ReqRescanUtxos
+	RepRescanResult
+	RepRescanUtxos
 	PrivacySignatureParam
 */
 package types

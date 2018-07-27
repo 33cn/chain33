@@ -1652,3 +1652,12 @@ func (c *Chain33) PrivacyTxList(in *types.ReqPrivacyTransactionList, result *int
 	}
 	return nil
 }
+
+func (c *Chain33) RescanUtxos(in types.ReqRescanUtxos, result *interface{}) error {
+	reply, err := c.cli.RescanUtxos(&in)
+	if err != nil {
+		return err
+	}
+	*result = reply
+	return nil
+}
