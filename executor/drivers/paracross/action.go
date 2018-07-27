@@ -5,6 +5,7 @@ import (
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
 	pt "gitlab.33.cn/chain33/chain33/types/executor/paracross"
+	"gitlab.33.cn/chain33/chain33/util"
 )
 
 type action struct {
@@ -61,10 +62,13 @@ func checkCommitInfo(commit *types.ParacrossCommitAction) error {
 	if commit.Status == nil {
 		return types.ErrInputPara
 	}
-	if len(commit.Status.StateHash) == 0 {
+	if len(commit.Status.MainBlockHash) == 0 || len(commit.Status.Title) == 0 || commit.Status.Height < 0 ||
+		len(commit.Status.PreBlockHash) == 0 || len(commit.Status.BlockHash) == 0 ||
+			len(commit.Status.StateHash) == 0 || len(commit.Status.PreStateHash) == 0 {
 		return types.ErrInputPara
 	}
-	if !validTitle(commit.Status.Title) || commit.Status.Height < 0 {
+
+	if ! util.ValidBitMap(commit.Status.TxResult, int(commit.Status.TxCounts)) {
 		return types.ErrInputPara
 	}
 
