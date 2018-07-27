@@ -38,3 +38,7 @@ func DecodeByteBitMap(bitmap []byte, index uint32) bool {
 	i := index % 8
 	return (0x1 & (bitmap[n] >> (7 - i))) == 0x1
 }
+
+func ValidBitMap(bitmap []byte, bits int) bool {
+	return len(bitmap) * 8 >= bits
+}
