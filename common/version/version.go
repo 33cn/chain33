@@ -1,6 +1,6 @@
 package version
 
-const version = "5.2.6"
+const version = "5.2.7"
 
 var (
 	WalletVerKey     = []byte("WalletVerKey")
