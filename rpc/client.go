@@ -14,6 +14,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
+	hashlocktype "gitlab.33.cn/chain33/chain33/types/executor/hashlock"
 	retrievetype "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
 	tokentype "gitlab.33.cn/chain33/chain33/types/executor/token"
 	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
@@ -351,6 +352,18 @@ func (c *channelClient) CreateRawRetrievePerformTx(parm *retrievetype.RetrievePe
 
 func (c *channelClient) CreateRawRetrieveCancelTx(parm *retrievetype.RetrieveCancelTx) ([]byte, error) {
 	return callExecNewTx(types.ExecName(types.RetrieveX), "RetrieveCancel", parm)
+}
+
+func (c *channelClient) CreateRawHashlockLockTx(parm *hashlocktype.HashlockLockTx) ([]byte, error) {
+	return callExecNewTx(types.ExecName(types.HashlockX), "HashlockLock", parm)
+}
+
+func (c *channelClient) CreateRawHashlockUnlockTx(parm *hashlocktype.HashlockUnlockTx) ([]byte, error) {
+	return callExecNewTx(types.ExecName(types.HashlockX), "HashlockUnlock", parm)
+}
+
+func (c *channelClient) CreateRawHashlockSendTx(parm *hashlocktype.HashlockSendTx) ([]byte, error) {
+	return callExecNewTx(types.ExecName(types.HashlockX), "HashlockSend", parm)
 }
 
 func (c *channelClient) BindMiner(param *types.ReqBindMiner) (*types.ReplyBindMiner, error) {
