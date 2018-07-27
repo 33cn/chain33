@@ -12,6 +12,7 @@ import (
 type action struct {
 	coinsAccount *account.DB
 	db           dbm.KV
+	localdb      dbm.KVDB
 	txhash       []byte
 	fromaddr     string
 	blocktime    int64
@@ -22,7 +23,7 @@ type action struct {
 func newAction(t *Paracross, tx *types.Transaction) *action {
 	hash := tx.Hash()
 	fromaddr := tx.From()
-	return &action{t.GetCoinsAccount(), t.GetStateDB(), hash, fromaddr,
+	return &action{t.GetCoinsAccount(), t.GetStateDB(), t.GetLocalDB(), hash, fromaddr,
 		t.GetBlockTime(), t.GetHeight(), t.GetAddr()}
 }
 
@@ -202,6 +203,15 @@ func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, er
 		}
 	}
 
+	// 极端情况， 分叉后在平行链生成了 commit交易 并发送之后， 但主链完成回滚，时间序如下
+	// 主链   （1）Bn1        （3） rollback-Bn1   （4） commit-done in Bn2
+	// 平行链         （2）commit                                 （5） 将得到一个错误的块
+	// 所以有必要做这个检测
+	block, err := getBlock(a.localdb, commit.Status.MainBlockHash)
+	if err != nil {
+		return nil, err
+	}
+
 	// 在完成共识之后来的， 增加 record log， 只记录不修改已经达成的共识
 	if commit.Status.Height <= titleStatus.Height {
 		return makeRecordReceipt(a.fromaddr, commit), nil
@@ -260,6 +270,7 @@ func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, er
 	}
 
 	// TODO 触发交易组跨链交易
+	print(block)
 	// TODO 需要生成本地db 用原交易组查询执行结果
 
 	return receipt, nil
