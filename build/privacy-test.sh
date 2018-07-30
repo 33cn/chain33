@@ -18,6 +18,8 @@ CLI4privKey11="069fdcd7a2d7cf30dfc87df6f277ae451a78cae6720a6bb05514a4a43e0622d55
 CLI4fromAddr2="1KcCVZLSQYRUwE5EXTsAoQs9LuJW6xwfQa"
 CLI4privKey12="d5672eeafbcdf53c8fc27969a5d9797083bb64fb4848bd391cd9b3919c4a1d3cb8534f12e09de3cc541eaaf45acccacaf808a6804fd10a976804397e9ecaf96f"
 
+privacyExecAddr="1FeyE6VDZ4FYgpK1n2okWMDAtPkwBuooQd"
+
 
 # $1 name
 function unlockWallet() {
@@ -67,6 +69,35 @@ function importPrivateKey() {
 function initPrivacyAccount() {
     saveSeedToWallet
     importPrivateKey
+
+    # 向隐私账户打入交易需要的金额
+    name="${CLI}"
+    fromAdd=$CLIfromAddr1
+    execAdd=$privacyExecAddr
+    note="test"
+    amount=$priTotalAmount1
+    SendToPrivacyExec "${name}" $fromAdd $execAdd $note $amount
+
+    sleep 1
+
+    name="${CLI4}"
+    fromAdd=$CLI4fromAddr1
+    execAdd=$privacyExecAddr
+    note="test"
+    amount=$priTotalAmount2
+    SendToPrivacyExec "${name}" $fromAdd $execAdd $note $amount
+
+    block_wait_timeout "${CLI}" 2 50
+
+    name="${CLI}"
+    fromAdd=$CLIfromAddr1
+    showPrivacyExec "${name}" $fromAdd
+
+    sleep 1
+
+    name="${CLI4}"
+    fromAdd=$CLI4fromAddr1
+    showPrivacyExec "${name}" $fromAdd
 }
 
 
@@ -82,7 +113,6 @@ function checkMineHeight() {
         echo "stop wallet2 mine fail"
         return 1
     fi
-
     echo "====== stop all wallet mine success ======"
 
     echo "====== syn blockchain ======"
@@ -143,23 +173,45 @@ function checkPeersInTheSameHeight() {
 function buildTransactionInGroup1() {
     name=$CLI
     echo "当前操作的链节点为：${name}"
-    height=$(${name} block last_header | jq ".height")
 
-    fromAddr=$CLIfromAddr1
-    priKey=$CLIprivKey1
-    note="CLI_public_2_privacy_transaction"
-    amount=10
-    expire=$((height+4))
-    echo $expire
-    pub2priv "${name}" $fromAddr $priKey $note $amount $expire
-    sleep 1
     height=$(${name} block last_header | jq ".height")
     printf '发送公对私交易当前高度 %s \n' "${height}"
-
-    createPrivacyPub2PrivTx "${name}" $CLIprivKey1 $amount $expire
-    signRawTx "${name}" $CLIfromAddr1 $returnStr1
+    priKey=$CLIprivKey1
+    amount=10
+    signAddr=$CLIfromAddr1
+    # 4个区块高度以后过期
+    expire=$((height+4))
+    createPrivacyPub2PrivTx "${name}" $priKey $amount $expire
+    signRawTx "${name}" $signAddr $returnStr1
     sendRawTx "${name}" $returnStr1
     echo $returnStr1
+    block_wait_timeout "${name}" 2 30
+
+    height=$(${name} block last_header | jq ".height")
+    printf '发送私对私交易当前高度 %s \n' "${height}"
+    amount=4
+    sender=$CLIfromAddr1
+    priKey=$CLIprivKey2
+    # 4个区块高度以后过期
+    expire=$((height+4))
+    createPrivacyPriv2PrivTx "${name}" $priKey $amount $sender $expire
+    signRawTx "${name}" $sender $returnStr1
+    sendRawTx "${name}" $returnStr1
+    echo $returnStr1
+    block_wait_timeout "${name}" 2 30
+
+    height=$(${name} block last_header | jq ".height")
+    printf '发送私对公交易当前高度 %s \n' "${height}"
+    amount=3
+    from=$CLIfromAddr1
+    to=$CLIfromAddr1
+    # 4个区块高度以后过期
+    expire=$((height+4))
+    createPrivacyPriv2PubTx "${name}" $from $to $amount $expire
+    signRawTx "${name}" $from $returnStr1
+    sendRawTx "${name}" $returnStr1
+    echo $returnStr1
+    block_wait_timeout "${name}" 2 30
 }
 
 

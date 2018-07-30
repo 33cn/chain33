@@ -339,7 +339,9 @@ function createPrivacyPub2PrivTx() {
     keypair=$2
     amount=$3
     expire=$4
-    result=$($name bty pub2priv -p "${keypair}" -a "${amount}" --expire "${expire}")
+    note="public_2_privacy_transaction"
+    echo $name bty pub2priv -p "${keypair}" -a "${amount}" -n "${note}" --expire "${expire}"
+    result=$($name bty pub2priv -p "${keypair}" -a "${amount}" -n "${note}" --expire "${expire}")
     returnStr1=$result
 }
 
@@ -355,7 +357,9 @@ function createPrivacyPriv2PrivTx() {
     amount=$3
     sender=$4
     expire=$5
-    result=$($name bty priv2priv -p "${keypair}" -a "${amount}" -s "${sender}" --expire "${expire}")
+    note="private_2_privacy_transaction"
+    echo $name bty priv2priv -p "${keypair}" -a "${amount}" -s "${sender}" -n "${note}" --expire "${expire}"
+    result=$($name bty priv2priv -p "${keypair}" -a "${amount}" -s "${sender}" -n "${note}" --expire "${expire}")
     returnStr1=$result
 }
 
@@ -371,7 +375,9 @@ function createPrivacyPriv2PubTx() {
     to=$3
     amount=$4
     expire=$5
-    result=$($name bty priv2pub -f "${from}" -o "${to}" -a "${amount}" --expire "${expire}")
+    note="private_2_privacy_transaction"
+    echo $name bty priv2pub -f "${from}" -o "${to}" -a "${amount}" -n "${note}" --expire "${expire}"
+    result=$($name bty priv2pub -f "${from}" -o "${to}" -a "${amount}" -n "${note}" --expire "${expire}")
     returnStr1=$result
 }
 
