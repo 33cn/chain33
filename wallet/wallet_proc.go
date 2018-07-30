@@ -35,6 +35,10 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 	defer wallet.mtx.Unlock()
 	index := unsigned.Index
 
+	if ok, err := wallet.IsRescanUtxosFlagScaning(); ok {
+		return "", err
+	}
+
 	var key crypto.PrivKey
 	if unsigned.GetAddr() != "" {
 		ok, err := wallet.CheckWalletStatus()
@@ -410,12 +414,6 @@ func (wallet *Wallet) ProcImportPrivKey(PrivKey *types.ReqWalletImportPrivKey) (
 	//从blockchain模块同步Account.Addr对应的所有交易详细信息
 	wallet.wg.Add(1)
 	go wallet.ReqTxDetailByAddr(addr)
-
-	if utxoFlagNoScan == atomic.LoadInt32(&wallet.rescanUTXOflag) {
-		atomic.StoreInt32(&wallet.rescanUTXOflag, utxoFlagScaning)
-	} else {
-		atomic.StoreInt32(&wallet.rescanUTXOflag, utxoFlagReScan)
-	}
 
 	return &walletaccount, nil
 }
@@ -1457,4 +1455,28 @@ func (wallet *Wallet) procPrivacyTransactionList(req *types.ReqPrivacyTransactio
 		return nil, err
 	}
 	return reply, nil
+}
+
+func (wallet *Wallet) procRescanUtxos(req *types.ReqRescanUtxos) (*types.RepRescanUtxos, error) {
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+
+	if 0 == req.Flag { // Rescan请求
+		var repRescanUtxos types.RepRescanUtxos
+		repRescanUtxos.Flag = req.Flag
+
+		if wallet.IsWalletLocked() {
+			return nil, types.ErrWalletIsLocked
+		}
+		if ok, err := wallet.IsRescanUtxosFlagScaning(); ok {
+			return nil, err
+		}
+		atomic.StoreInt32(&wallet.rescanUTXOflag, types.UtxoFlagScaning)
+		wallet.wg.Add(1)
+		go wallet.RescanReqUtxosByAddr(req.Addrs)
+		return &repRescanUtxos, nil
+	} else { // 查询地址对应扫描状态
+		repRescanUtxos, err := wallet.walletStore.GetRescanUtxosFlag4Addr(req)
+		return repRescanUtxos, err
+	}
 }

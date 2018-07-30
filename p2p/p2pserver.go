@@ -466,14 +466,18 @@ func (s *P2pServer) ServerStreamRead(stream pb.P2Pgservice_ServerStreamReadServe
 			hex.Encode(hash[:], tx.GetTx().Hash())
 			txhash := string(hash[:])
 			log.Debug("ServerStreamRead", "txhash:", txhash)
+			Filter.GetLock()
 			if Filter.QueryRecvData(txhash) { //同上
+				Filter.ReleaseLock()
 				continue
 			}
+			Filter.RegRecvData(txhash)
+			Filter.ReleaseLock()
 			if tx.GetTx() != nil {
 				msg := s.node.nodeInfo.client.NewMessage("mempool", pb.EventTx, tx.GetTx())
 				s.node.nodeInfo.client.Send(msg, false)
 			}
-			Filter.RegRecvData(txhash)
+			//Filter.RegRecvData(txhash)
 
 		} else if ping := in.GetPing(); ping != nil { ///被远程节点初次连接后，会收到ping 数据包，收到后注册到inboundpeers.
 			//Ping package

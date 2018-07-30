@@ -195,6 +195,7 @@ var (
 	ErrParentHash            = errors.New("ErrParentHash")
 	ErrPrivacyNotExist       = errors.New("ErrPrivacyNotExist")
 	ErrPrivacyTxFeeNotEnough = errors.New("ErrPrivacyTxFeeNotEnough")
+	ErrRescanFlagScaning     = errors.New("ErrRescanFlagScaning")
 
 	// manage
 	ErrNoPrivilege    = errors.New("ErrNoPrivilege")

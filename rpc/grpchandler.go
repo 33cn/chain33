@@ -284,6 +284,11 @@ func (g *Grpc) MakeTxPrivacy2Public(ctx context.Context, in *pb.ReqPri2Pub) (*pb
 	return g.cli.Privacy2Public(in)
 }
 
+// 扫描UTXO以及获取扫描UTXO后的状态
+func (g *Grpc) RescanUtxos(ctx context.Context, in *pb.ReqRescanUtxos) (*pb.RepRescanUtxos, error) {
+	return g.cli.RescanUtxos(in)
+}
+
 // 创建绑定挖矿
 func (g *Grpc) CreateBindMiner(ctx context.Context, in *pb.ReqBindMiner) (*pb.ReplyBindMiner, error) {
 	if in.Amount%(10000*pb.Coin) != 0 || in.Amount < 0 {

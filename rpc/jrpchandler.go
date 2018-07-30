@@ -10,6 +10,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/version"
 	"gitlab.33.cn/chain33/chain33/types"
+	hashlocktype "gitlab.33.cn/chain33/chain33/types/executor/hashlock"
 	retrievetype "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
 	tokentype "gitlab.33.cn/chain33/chain33/types/executor/token"
 	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
@@ -428,6 +429,49 @@ func (c *Chain33) ImportPrivkey(in types.ReqWalletImportPrivKey, result *interfa
 
 func (c *Chain33) SendToAddress(in types.ReqWalletSendToAddress, result *interface{}) error {
 	log.Debug("Rpc SendToAddress", "Tx", in)
+	if types.IsPara() {
+		createTx := &types.CreateTx{
+			To:          in.GetTo(),
+			Amount:      in.GetAmount(),
+			Fee:         1e5,
+			Note:        in.GetNote(),
+			IsWithdraw:  false,
+			IsToken:     true,
+			TokenSymbol: in.GetTokenSymbol(),
+			ExecName:    types.ExecName(types.TokenX),
+		}
+		tx, err := c.cli.CreateRawTransaction(createTx)
+		if err != nil {
+			log.Debug("ParaChain CreateRawTransaction", "Error", err.Error())
+			return err
+		}
+		//不需要自己去导出私钥，signRawTx 里面只需带入公钥地址，也回优先去查出相应的私钥，前提是私钥已经导入
+		reqSignRawTx := &types.ReqSignRawTx{
+			Addr:    in.From,
+			Privkey: "",
+			TxHex:   hex.EncodeToString(tx),
+			Expire:  "300s",
+			Index:   0,
+			Token:   "",
+		}
+		replySignRawTx, err := c.cli.SignRawTx(reqSignRawTx)
+		if err != nil {
+			log.Debug("ParaChain SignRawTx", "Error", err.Error())
+			return err
+		}
+		rawParm := RawParm{
+			Token: "",
+			Data:  replySignRawTx.GetTxHex(),
+		}
+		var txHash interface{}
+		err = forwardTranToMainNet(rawParm, &txHash)
+		if err != nil {
+			log.Debug("ParaChain forwardTranToMainNet", "Error", err.Error())
+			return err
+		}
+		*result = &ReplyHash{Hash: txHash.(string)}
+		return nil
+	}
 	reply, err := c.cli.WalletSendToAddress(&in)
 	if err != nil {
 		log.Debug("SendToAddress", "Error", err.Error())
@@ -968,6 +1012,15 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		} else {
 			pl = &action
 		}
+	} else if types.ExecName(types.RetrieveX) == string(tx.Execer) {
+		var action types.RetrieveAction
+		err := types.Decode(tx.GetPayload(), &action)
+		if err != nil {
+			unkownPl["unkownpayload"] = string(tx.GetPayload())
+			pl = unkownPl
+		} else {
+			pl = &action
+		}
 	} else if "user.write" == string(tx.Execer) {
 		pl = decodeUserWrite(tx.GetPayload())
 	} else {
@@ -1203,6 +1256,36 @@ func (c *Chain33) CreateRawRetrieveCancelTx(in *retrievetype.RetrieveCancelTx, r
 	return nil
 }
 
+func (c *Chain33) CreateRawHashlockLockTx(in *hashlocktype.HashlockLockTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawHashlockLockTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Chain33) CreateRawHashlockUnlockTx(in *hashlocktype.HashlockUnlockTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawHashlockUnlockTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Chain33) CreateRawHashlockSendTx(in *hashlocktype.HashlockSendTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawHashlockSendTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
 func (c *Chain33) SignRawTx(in *types.ReqSignRawTx, result *interface{}) error {
 	resp, err := c.cli.SignRawTx(in)
 	if err != nil {
@@ -1318,11 +1401,11 @@ func (c *Chain33) CreateBindMiner(in *types.ReqBindMiner, result *interface{}) e
 	}
 	err := address.CheckAddress(in.BindAddr)
 	if err != nil {
-		return err
+		return types.ErrInvalidAddress
 	}
 	err = address.CheckAddress(in.OriginAddr)
 	if err != nil {
-		return err
+		return types.ErrInvalidAddress
 	}
 
 	if in.CheckBalance {
@@ -1607,5 +1690,14 @@ func (c *Chain33) PrivacyTxList(in *types.ReqPrivacyTransactionList, result *int
 		c.convertWalletTxDetailToJson(reply, &txdetails)
 		*result = &txdetails
 	}
+	return nil
+}
+
+func (c *Chain33) RescanUtxos(in types.ReqRescanUtxos, result *interface{}) error {
+	reply, err := c.cli.RescanUtxos(&in)
+	if err != nil {
+		return err
+	}
+	*result = reply
 	return nil
 }
