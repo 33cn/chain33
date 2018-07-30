@@ -4,9 +4,13 @@
 source comm-test.sh
 
 
+containers=("${NODE1}" "${NODE2}" "${NODE3}" "${NODE4}" "${NODE5}" "${NODE6}")
+forkContainers=("${CLI3}" "${CLI2}" "${CLI}" "${CLI4}" "${CLI5}" "${CLI6}")
+
 password=1314
 walletSeed="tortoise main civil member grace happy century convince father cage beach hip maid merry rib"
 privExecAddr="1FeyE6VDZ4FYgpK1n2okWMDAtPkwBuooQd"
+
 CLIfromAddr1="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
 CLIprivKey1="0a9d212b2505aefaa8da370319088bbccfac097b007f52ed71d8133456c8185823c8eac43c5e937953d7b6c8e68b0db1f4f03df4946a29f524875118960a35fb"
 CLIfromAddr2="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
@@ -43,8 +47,8 @@ function importPrivateKey() {
     setAutomine "${CLI}" 0
     setAutomine "${CLI4}" 0
 
-    local SLEEP=10
-    echo "=========== sleep ${SLEEP}s ============="
+    local SLEEP=20
+    echo "=========== 私钥导入完毕,等待 ${SLEEP}s ============="
     sleep ${SLEEP}
 }
 
@@ -59,8 +63,7 @@ function initPrivacyAccount() {
     note="test"
     amount=$priTotalAmount1
     SendToPrivacyExec "${name}" $fromAdd $execAdd $note $amount
-
-    sleep 1
+    block_wait_timeout "${name}" 2 50
 
     name="${CLI4}"
     fromAdd=$CLI4fromAddr1
@@ -69,7 +72,7 @@ function initPrivacyAccount() {
     amount=$priTotalAmount2
     SendToPrivacyExec "${name}" $fromAdd $execAdd $note $amount
 
-    block_wait_timeout "${CLI}" 2 50
+    block_wait_timeout "${name}" 2 50
 
     name="${CLI}"
     fromAdd=$CLIfromAddr1
@@ -152,53 +155,79 @@ function checkPeersInTheSameHeight() {
     fi
 }
 
-function buildTransactionInGroup1() {
-    name=$CLI
-    echo "当前操作的链节点为：${name}"
+# $1 name
+# $2 fromAddr1  发起者的地址,以及私对公的接收者
+# $3 pk1        公对私的接收者
+# $4 pk2        私对私的接收者
+# $5 group      1表示Docker分组1,2表示Docker分组2
+function makeTransactionIn3Step() {
+    name=$1
+    fromAddr1=$2
+    pk1=$3
+    pk2=$4
+    group=$5
+    echo "当前操作的链节点为：${name}, 分组类型为${group}"
+
     priTxindex=0
 
     height=$(${name} block last_header | jq ".height")
-    printf '发送公对私交易当前高度 %s \n' "${height}"
-    priKey=$CLIprivKey1
     amount=10
-    signAddr=$CLIfromAddr1
-    # 4个区块高度以后过期
     expire=$((height+4))
-    createPrivacyPub2PrivTx "${name}" $priKey $amount $expire
-    signRawTx "${name}" $signAddr $returnStr1
+    printf '公对私交易 高度为:%s 转账金额为:%s \n' "${height}" "${amount}"
+    createPrivacyPub2PrivTx "${name}" $pk1 $amount $expire
+    signRawTx "${name}" $fromAddr1 $returnStr1
     sendRawTx "${name}" $returnStr1
     echo $returnStr1
-    block_wait_timeout "${name}" 2 30
+    block_wait_timeout "${name}" 1 15
+
 
     height=$(${name} block last_header | jq ".height")
     printf '发送私对私交易当前高度 %s \n' "${height}"
     amount=4
-    sender=$CLIfromAddr1
-    priKey=$CLIprivKey2
-    # 4个区块高度以后过期
     expire=$((height+4))
-    createPrivacyPriv2PrivTx "${name}" $priKey $amount $sender $expire
-    signRawTx "${name}" $sender $returnStr1
+    printf '私对私交易 高度为:%s 转账金额为:%s \n' "${height}" "${amount}"
+    createPrivacyPriv2PrivTx "${name}" $pk2 $amount $fromAddr1 $expire
+    signRawTx "${name}" $fromAddr1 $returnStr1
     sendRawTx "${name}" $returnStr1
     echo $returnStr1
-    priTxHashs1[$priTxindex]=$returnStr1
-    priTxindex=$((priTxindex + 1))
-    block_wait_timeout "${name}" 2 30
+    if [ $group -eq 1 ]
+    then
+        priTxHashs1[$priTxindex]=$returnStr1
+        priTxindex=$((priTxindex + 1))
+    else
+        priTxHashs2[$priTxindex]=$returnStr1
+        priTxindex=$((priTxindex + 1))
+    fi
+    block_wait_timeout "${name}" 1 15
 
     height=$(${name} block last_header | jq ".height")
     printf '发送私对公交易当前高度 %s \n' "${height}"
-    amount=3
-    from=$CLIfromAddr1
-    to=$CLIfromAddr1
+    amount=4
+    from=$fromAddr1
+    to=$fromAddr1
     # 4个区块高度以后过期
     expire=$((height+4))
     createPrivacyPriv2PubTx "${name}" $from $to $amount $expire
     signRawTx "${name}" $from $returnStr1
     sendRawTx "${name}" $returnStr1
     echo $returnStr1
-    priTxHashs1[$priTxindex]=$returnStr1
-    priTxindex=$((priTxindex + 1))
-    block_wait_timeout "${name}" 2 30
+    if [ $group -eq 1 ]
+    then
+        priTxHashs1[$priTxindex]=$returnStr1
+        priTxindex=$((priTxindex + 1))
+    else
+        priTxHashs2[$priTxindex]=$returnStr1
+        priTxindex=$((priTxindex + 1))
+    fi
+    block_wait_timeout "${name}" 1 15
+}
+
+function buildTransactionInGroup1() {
+    makeTransactionIn3Step "${CLI}" $CLIfromAddr1 $CLIprivKey1 $CLIprivKey2 1
+}
+
+function buildTransactionInGroup2() {
+    makeTransactionIn3Step "${CLI4}" $CLI4fromAddr1 $CLI4privKey11 $CLI4privKey12 2
 }
 
 function checkBlockHashfun() {
@@ -270,40 +299,107 @@ function checkPrivacyRunResult() {
         fi
         sleep 1
     done
-    fromAdd=$CLIfromAddr1
-    showPrivacyExec "${name1}" $fromAdd
+    showPrivacyExec "${name1}" $CLIfromAddr1
     value1=$returnStr1
     sleep 1
-    fromAdd=$CLIfromAddr1
-    showPrivacyBalance "${name1}" $fromAdd
+    showPrivacyBalance "${name1}" $CLIfromAddr1
     value2=$returnStr1
     sleep 1
-    fromAdd=$CLIfromAddr2
-    showPrivacyBalance "${name1}" $fromAdd
+    showPrivacyBalance "${name1}" $CLIfromAddr2
     value3=$returnStr1
     sleep 1
     printf '中间交易费为%d \n' "${priTxFee1}"
     actTotal=$(echo "$value1 + $value2 + $value3 + $priTxFee1" | bc)
     echo "${name1} 实际金额：$actTotal"
+
+
+    echo "====================检查第二组docker运行结果================="
+    for ((i = 0; i < ${#priTxHashs2[*]}; i++)); do
+        txHash=${priTxHashs2[$i]}
+        txQuery "${name2}" $txHash
+        result=$?
+        if [ $result -eq 0 ]; then
+            priTxFee2=$((priTxFee2 + 1))
+        fi
+        sleep 1
+    done
+    showPrivacyExec "${name2}" $CLI4fromAddr1
+    value1=$returnStr1
+    sleep 1
+    showPrivacyBalance "${name2}" $CLI4fromAddr1
+    value2=$returnStr1
+    sleep 1
+    showPrivacyBalance "${name2}" $CLI4fromAddr2
+    value3=$returnStr1
+    sleep 1
+    printf '中间交易费为%d \n' "${priTxFee2}"
+    actTotal=$(echo "$value1 + $value2 + $value3 + $priTxFee2" | bc)
+    echo "${name2} 实际金额：$actTotal"
+}
+
+function switchToDockerGroup1() {
+    echo "====== 第一步：第一组docker挖矿======"
+    docker start "${NODE1}" "${NODE2}" "${NODE3}"
+    echo "======停止第二组docker ======"
+    docker stop "${NODE4}" "${NODE5}" "${NODE6}"
+
+    echo "======开启第一组docker节点挖矿======"
+    sleep 3
+    waitAllPeerReady "${CLI}" 3
+    unlockWallet "${CLI}" ${password}
+    setAutomine "${CLI}" 1
+}
+
+function switchToDockerGroup2() {
+    echo "====== 第一步：第二组docker挖矿======"
+    docker start "${NODE4}" "${NODE5}" "${NODE6}"
+    echo "======停止第一组docker ======"
+    docker stop "${NODE1}" "${NODE2}" "${NODE3}"
+
+    echo "======开启第二组docker节点挖矿======"
+    sleep 3
+    waitAllPeerReady "${CLI4}" 3
+    unlockWallet "${CLI4}" ${password}
+    setAutomine "${CLI4}" 1
+}
+
+function startAllDockers() {
+    docker start "${NODE1}" "${NODE2}" "${NODE3}" "${NODE4}" "${NODE5}" "${NODE6}"
+    waitAllPeerReady "${CLI}" 6
+}
+
+function initTestEnv() {
+    startDockers
+    # display cli information
+    ${CLI} block last_header
+    ${CLI} net info
+    ${CLI} net peer_info
+    echo "=========== 等待所有节点在线 ==========="
+    waitAllPeerReady "${CLI}" 6
+
+    echo "=========== 初始化钱包账号信息以及资金信息 ==========="
+    initPrivacyAccount
+    displayWalletStatus "${CLI}"
+    listAccount "${CLI}"
+    listMempoolTxs "${CLI}"
 }
 
 function runPrivacyTestType1() {
-    startDockers
-    waitAllPeerReady "${CLI}" 6
-    initPrivacyAccount
+    echo "===== 初始化测试环境 ====="
+    initTestEnv
+
+    echo "===== 开始执行分叉超时测试 ====="
+    switchToDockerGroup1
+    buildTransactionInGroup1
+    switchToDockerGroup2
+    buildTransactionInGroup2
+    echo "===== 执行分叉超时测试结束 ====="
+
+    startAllDockers
     setAutomine "${CLI}" 0
     setAutomine "${CLI4}" 0
     checkPeersInTheSameHeight
 
-    echo "======停止第二组docker ======"
-    docker stop "${NODE4}" "${NODE5}" "${NODE6}"
-    echo "======开启第一组docker节点挖矿======"
-    setAutomine "${CLI}" 1
-    waitAllPeerReady "${CLI}" 3
-
-    buildTransactionInGroup1
-
-    #checkBlockHashfun
     checkPrivacyRunResult
 }
 
