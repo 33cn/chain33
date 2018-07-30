@@ -1070,7 +1070,7 @@ func (wallet *Wallet) signTxWithPrivacy(key crypto.PrivKey, req *types.ReqSignRa
 	return common.ToHex(txHex), nil
 }
 
-func (wallet *Wallet) getFTXOlist() ([]*types.FTXOsSTXOsInOneTx, [][]byte)  {
+func (wallet *Wallet) getFTXOlist() ([]*types.FTXOsSTXOsInOneTx, [][]byte) {
 	curFTXOTxs, _, _ := wallet.walletStore.GetWalletFtxoStxo(FTXOs4Tx)
 	revertFTXOTxs, _, _ := wallet.walletStore.GetWalletFtxoStxo(RevertSendtx)
 	var keys [][]byte
@@ -1099,11 +1099,14 @@ func (wallet *Wallet) procInvalidTxOnTimer(dbbatch db.Batch) error {
 		if !ftxo.IsExpire(header.Height, header.BlockTime) {
 			continue
 		}
-		walletlog.Info("PrivacyTrading procInvalidTxOnTimer", "moveFTXO2UTXO key", string(keys[i]), "ftxo.IsExpire", ftxo.IsExpire(header.Height, header.BlockTime))
+		walletlog.Debug("PrivacyTrading procInvalidTxOnTimer", "moveFTXO2UTXO key", string(keys[i]), "ftxo.IsExpire", ftxo.IsExpire(header.Height, header.BlockTime))
 		wallet.walletStore.moveFTXO2UTXO(keys[i], dbbatch,
 			func(txhash []byte) bool {
 				// do not add to UTXO list if transaction is not existed.
 				_, err := wallet.api.QueryTx(&types.ReqHash{Hash: txhash})
+				if err != nil {
+					walletlog.Debug("PrivacyTrading procInvalidTxOnTimer", "Invalid txhash", common.Bytes2Hex(txhash))
+				}
 				return err == nil
 			})
 	}
