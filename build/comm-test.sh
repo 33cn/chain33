@@ -248,7 +248,7 @@ function SendToPrivacyExec() {
     #sudo docker exec -it $name ./chain33-cli send coins transfer -k $fromAdd -t $execAdd -n $note -a $amount
     result=$($name send coins transfer -k "${fromAdd}" -t "${execAdd}" -n "${note}" -a "${amount}")
     echo "hash : $result"
-    PrigStr=$result
+    returnStr1=$result
 }
 
 # $1 name
@@ -267,7 +267,7 @@ function pub2priv() {
     #sudo docker exec -it $name ./chain33-cli privacy pub2priv -f $fromAdd -p $priAdd -a $amount -n $note --expire $expire
     result=$($name privacy pub2priv -f "${fromAdd}" -p "${priAdd}" -a "${amount}" -n "${note}" --expire "${expire}" | jq -r ".hash")
     echo "hash : $result"
-    PrigStr=$result
+    returnStr1=$result
 }
 
 # $1 name
@@ -288,7 +288,7 @@ function priv2priv() {
     #sudo docker exec -it $name ./chain33-cli privacy priv2priv -f $fromAdd -p $priAdd -a $amount -n $note --expire $expire
     result=$($name privacy priv2priv -f "${fromAdd}" -p "${priAdd}" -a "${amount}" -n "${note}" --expire "${expire}" | jq -r ".hash")
     echo "hash : $result"
-    PrigStr=$result
+    returnStr1=$result
 }
 
 # $1 name
@@ -309,7 +309,7 @@ function priv2pub() {
     #sudo docker exec -it $name ./chain33-cli privacy priv2pub -f $fromAdd -t $toAdd -a $amount -n $note -m $mixcount --expire $expire
     result=$($name privacy priv2pub -f "${fromAdd}" -t "${toAdd}" -a "${amount}" -n "${note}" -m "${mixcount}" --expire "${expire}" | jq -r ".hash")
     echo "hash : $result"
-    PrigStr=$result
+    returnStr1=$result
 }
 
 # $1 name
@@ -320,7 +320,7 @@ function showPrivacyExec() {
     printf '==========showPrivacyExec name=%s addr=%s==========\n' "${name}" "${fromAdd}"
     result=$($name account balance -e privacy -a "${fromAdd}" | jq -r ".balance")
     printf 'balance %s \n' "${result}"
-    PrigStr=$result
+    returnStr1=$result
 }
 
 # $1 name
@@ -331,7 +331,7 @@ function showPrivacyBalance() {
     printf '==========showPrivacyBalance name=%s addr=%s==========\n' "${name}" "${fromAdd}"
     result=$($name privacy showpai -a "${fromAdd}" -d 0 | jq -r ".AvailableAmount")
     printf 'AvailableAmount %s \n' "${result}"
-    PrigStr=$result
+    returnStr1=$result
 }
 
 # $1 name
@@ -342,7 +342,7 @@ function showPrivacyFrozenAmount() {
     printf '==========showPrivacyBalance name=%s addr=%s==========\n' "${name}" "${fromAdd}"
     result=$($name privacy showpai -a "${fromAdd}" -d 0 | jq -r ".FrozenAmount")
     printf 'AvailableAmount %s \n' "${result}"
-    PrigStr=$result
+    returnStr1=$result
 }
 
 # $1 name
@@ -353,7 +353,7 @@ function showPrivacyTotalAmount() {
     printf '==========showPrivacyBalance name=%s addr=%s==========\n' "${name}" "${fromAdd}"
     result=$($name privacy showpai -a "${fromAdd}" -d 0 | jq -r ".TotalAmount")
     printf 'AvailableAmount %s \n' "${result}"
-    PrigStr=$result
+    returnStr1=$result
 }
 
 # $1 name
