@@ -28,7 +28,7 @@ var (
 
 func Init() {
 	drivers.Register(types.ExecName(model.ExecutorName), newEVMDriver, types.ForkV17EVM)
-
+	EvmAddress = address.ExecAddress(types.ExecName(model.ExecutorName))
 	// 初始化硬分叉数据
 	state.InitForkData()
 }
@@ -90,8 +90,10 @@ func (evm *EVMExecutor) Exec(tx *types.Transaction, index int) (*types.Receipt, 
 	env := runtime.NewEVM(context, evm.mStateDB, *evm.vmCfg)
 
 	// 目标地址为空，或者为Evm合约的固定地址时，认为新增合约
-	isCreate := strings.Compare(msg.To().String(), EvmAddress) == 0
+	log.Error("evmexec", "to", msg.To().String(), "addres", EvmAddress)
 
+	isCreate := strings.Compare(msg.To().String(), EvmAddress) == 0
+	log.Error("evmexec", "iscreate", isCreate)
 	var (
 		ret          = []byte("")
 		vmerr        error
