@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 
-
+# 引用测试基础库
 source comm-test.sh
 
 priTotalAmount1="300.0000"
 priTotalAmount2="300.0000"
 
 password=1314
-seed="tortoise main civil member grace happy century convince father cage beach hip maid merry rib"
+walletSeed="tortoise main civil member grace happy century convince father cage beach hip maid merry rib"
 privExecAddr="1FeyE6VDZ4FYgpK1n2okWMDAtPkwBuooQd"
 CLIfromAddr1="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
 CLIprivKey1="0a9d212b2505aefaa8da370319088bbccfac097b007f52ed71d8133456c8185823c8eac43c5e937953d7b6c8e68b0db1f4f03df4946a29f524875118960a35fb"
@@ -21,35 +21,11 @@ CLI4privKey12="d5672eeafbcdf53c8fc27969a5d9797083bb64fb4848bd391cd9b3919c4a1d3cb
 privacyExecAddr="1FeyE6VDZ4FYgpK1n2okWMDAtPkwBuooQd"
 
 
-# $1 name
-function unlockWallet() {
-    name=$1
-    result=$(${name} wallet unlock -p ${password} -t 0 | jq ".isok")
-    if [ "${result}" = "false" ]; then
-        exit 1
-    fi
-    sleep 1
-}
-
-function saveSeed() {
-    name=$1
-    result=$(${name} seed save -p ${password} -s "${seed}" | jq ".isok")
-    if [ "${result}" = "false" ]; then
-        echo "save seed to wallet error seed, result: ${result}"
-        exit 1
-    fi
-    sleep 1
-
-    result=$(${name} wallet unlock -p ${password} -t 0 | jq ".isok")
-    if [ "${result}" = "false" ]; then
-        exit 1
-    fi
-    sleep 1
-}
-
 function saveSeedToWallet() {
-    saveSeed "${CLI}"
-    saveSeed "${CLI4}"
+    saveSeed "${CLI}" ${password} "${walletSeed}"
+    unlockWallet "${CLI}" ${password}
+    saveSeed "${CLI4}" ${password} "${walletSeed}"
+    unlockWallet "${CLI4}" ${password}
 }
 
 function importPrivateKey() {
