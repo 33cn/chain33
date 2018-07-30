@@ -38,6 +38,7 @@ message CoinsTransferToExec {
     int64  amount    = 2;
     string note      = 3;
     string execName  = 4;
+	string to        = 5;
 }
 
 message CoinsWithdraw {
