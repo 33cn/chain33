@@ -14,6 +14,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 	_ "gitlab.33.cn/chain33/chain33/types/executor"
 	exec "gitlab.33.cn/chain33/chain33/types/executor"
+	hashlocktype "gitlab.33.cn/chain33/chain33/types/executor/hashlock"
 	retrievetype "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
 	tokentype "gitlab.33.cn/chain33/chain33/types/executor/token"
 	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
@@ -652,6 +653,55 @@ func TestChannelClient_CreateRawRetrieveCancelTx(t *testing.T) {
 		Fee:         1,
 	}
 	data, err = client.CreateRawRetrieveCancelTx(cancel)
+	assert.NotNil(t, data)
+	assert.Nil(t, err)
+}
+
+func TestChannelClient_CreateRawHashlockLockTx(t *testing.T) {
+	client := newTestChannelClient()
+	data, err := client.CreateRawHashlockLockTx(nil)
+	assert.NotNil(t, err)
+	assert.Nil(t, data)
+
+	lock := &hashlocktype.HashlockLockTx{
+		Secret:     "12asdfa",
+		Amount:     100,
+		Time:       100,
+		ToAddr:     "12asdfa",
+		ReturnAddr: "0x3456",
+		Fee:        1,
+	}
+	data, err = client.CreateRawHashlockLockTx(lock)
+	assert.NotNil(t, data)
+	assert.Nil(t, err)
+}
+
+func TestChannelClient_CreateRawHashlockUnlockTx(t *testing.T) {
+	client := newTestChannelClient()
+	data, err := client.CreateRawHashlockUnlockTx(nil)
+	assert.NotNil(t, err)
+	assert.Nil(t, data)
+
+	unlock := &hashlocktype.HashlockUnlockTx{
+		Secret: "12asdfa",
+		Fee:    1,
+	}
+	data, err = client.CreateRawHashlockUnlockTx(unlock)
+	assert.NotNil(t, data)
+	assert.Nil(t, err)
+}
+
+func TestChannelClient_CreateRawHashlockSendTx(t *testing.T) {
+	client := newTestChannelClient()
+	data, err := client.CreateRawHashlockSendTx(nil)
+	assert.NotNil(t, err)
+	assert.Nil(t, data)
+
+	send := &hashlocktype.HashlockSendTx{
+		Secret: "12asdfa",
+		Fee:    1,
+	}
+	data, err = client.CreateRawHashlockSendTx(send)
 	assert.NotNil(t, data)
 	assert.Nil(t, err)
 }
