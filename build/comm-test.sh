@@ -67,6 +67,33 @@ function startDockers() {
 }
 
 # $1 name
+# $2 pswd
+function unlockWallet() {
+    name=$1
+    pswd=$2
+    result=$(${name} wallet unlock -p ${pswd} -t 0 | jq ".isok")
+    if [ "${result}" = "false" ]; then
+        exit 1
+    fi
+    sleep 1
+}
+
+# $1 name
+# $2 pswd
+# $3 seed
+function saveSeed() {
+    name=$1
+    pswd=$2
+    seed=$3
+    result=$(${name} seed save -p ${pswd} -s "${seed}" | jq ".isok")
+    if [ "${result}" = "false" ]; then
+        echo "save seed to wallet error seed, result: ${result}"
+        exit 1
+    fi
+    sleep 1
+}
+
+# $1 name
 # $2 key
 # $3 label
 function importKey() {
