@@ -50,6 +50,7 @@ func init() {
 		commands.ConfigCmd(),
 		commands.EvmCmd(),
 		commands.ExecCmd(),
+		commands.HashlockCmd(),
 		commands.MempoolCmd(),
 		commands.NetCmd(),
 		commands.RelayCmd(),
