@@ -3,8 +3,6 @@
 # 引用测试基础库
 source comm-test.sh
 
-priTotalAmount1="300.0000"
-priTotalAmount2="300.0000"
 
 password=1314
 walletSeed="tortoise main civil member grace happy century convince father cage beach hip maid merry rib"
@@ -19,6 +17,14 @@ CLI4fromAddr2="1KcCVZLSQYRUwE5EXTsAoQs9LuJW6xwfQa"
 CLI4privKey12="d5672eeafbcdf53c8fc27969a5d9797083bb64fb4848bd391cd9b3919c4a1d3cb8534f12e09de3cc541eaaf45acccacaf808a6804fd10a976804397e9ecaf96f"
 
 privacyExecAddr="1FeyE6VDZ4FYgpK1n2okWMDAtPkwBuooQd"
+
+
+priTotalAmount1="300.0000"
+priTotalAmount2="300.0000"
+priTxHashs1=("")
+priTxHashs2=("")
+priTxFee1=0
+priTxFee2=0
 
 
 function saveSeedToWallet() {
@@ -149,6 +155,7 @@ function checkPeersInTheSameHeight() {
 function buildTransactionInGroup1() {
     name=$CLI
     echo "当前操作的链节点为：${name}"
+    priTxindex=0
 
     height=$(${name} block last_header | jq ".height")
     printf '发送公对私交易当前高度 %s \n' "${height}"
@@ -174,6 +181,8 @@ function buildTransactionInGroup1() {
     signRawTx "${name}" $sender $returnStr1
     sendRawTx "${name}" $returnStr1
     echo $returnStr1
+    priTxHashs1[$priTxindex]=$returnStr1
+    priTxindex=$((priTxindex + 1))
     block_wait_timeout "${name}" 2 30
 
     height=$(${name} block last_header | jq ".height")
@@ -187,9 +196,96 @@ function buildTransactionInGroup1() {
     signRawTx "${name}" $from $returnStr1
     sendRawTx "${name}" $returnStr1
     echo $returnStr1
+    priTxHashs1[$priTxindex]=$returnStr1
+    priTxindex=$((priTxindex + 1))
     block_wait_timeout "${name}" 2 30
 }
 
+function checkBlockHashfun() {
+    echo "====== syn blockchain ======"
+    syn_block_timeout "${CLI}" 10 50 "${containers[@]}"
+
+    height=0
+    hash=""
+    height1=$($CLI block last_header | jq ".height")
+    sleep 1
+    height2=$($CLI4 block last_header | jq ".height")
+    if [ "${height2}" -ge "${height1}" ]; then
+        height=$height2
+        printf "主链为 $CLI 当前最大高度 %d \\n" "${height}"
+        sleep 1
+        hash=$($CLI block hash -t "${height}" | jq ".hash")
+    else
+        height=$height1
+        printf "主链为 $CLI4 当前最大高度 %d \\n" "${height}"
+        sleep 1
+        hash=$($CLI4 block hash -t "${height}" | jq ".hash")
+    fi
+
+    for ((j = 0; j < $1; j++)); do
+        for ((k = 0; k < ${#forkContainers[*]}; k++)); do
+            sleep 1
+            height0[$k]=$(${forkContainers[$k]} block last_header | jq ".height")
+            if [ "${height0[$k]}" -ge "${height}" ]; then
+                sleep 1
+                hash0[$k]=$(${forkContainers[$k]} block hash -t "${height}" | jq ".hash")
+            else
+                hash0[$k]="${forkContainers[$k]}"
+            fi
+        done
+
+        if [ "${hash0[0]}" = "${hash}" ] && [ "${hash0[1]}" = "${hash}" ] && [ "${hash0[2]}" = "${hash}" ] && [ "${hash0[3]}" = "${hash}" ] && [ "${hash0[4]}" = "${hash}" ] && [ "${hash0[5]}" = "${hash}" ]; then
+            echo "syn blockchain success break"
+            break
+        else
+            if [ "${hash0[1]}" = "${hash0[0]}" ] && [ "${hash0[2]}" = "${hash0[0]}" ] && [ "${hash0[3]}" = "${hash0[0]}" ] && [ "${hash0[4]}" = "${hash0[0]}" ] && [ "${hash0[5]}" = "${hash0[0]}" ]; then
+                echo "syn blockchain success break"
+                break
+            fi
+        fi
+        peersCount=0
+        peersCount=$(${forkContainers[0]} net peer_info | jq '.[] | length')
+        printf '第 %d 次，未查询到网络同步，当前节点数 %d 个，100s后查询\n' $j "${peersCount}"
+        sleep 100
+        #检查是否超过了最大检测次数
+        var=$(($1 - 1))
+        if [ $j -ge "${var}" ]; then
+            echo "====== syn blockchain fail======"
+            exit 1
+        fi
+    done
+    echo "====== syn blockchain success======"
+}
+
+function checkPrivacyRunResult() {
+    name1=${CLI}
+    name2=${CLI4}
+    echo "====================检查第一组docker运行结果================="
+    for ((i = 0; i < ${#priTxHashs1[*]}; i++)); do
+        txHash=${priTxHashs1[$i]}
+        txQuery "${name1}" $txHash
+        result=$?
+        if [ $result -eq 0 ]; then
+            priTxFee1=$((priTxFee1 + 1))
+        fi
+        sleep 1
+    done
+    fromAdd=$CLIfromAddr1
+    showPrivacyExec "${name1}" $fromAdd
+    value1=$returnStr1
+    sleep 1
+    fromAdd=$CLIfromAddr1
+    showPrivacyBalance "${name1}" $fromAdd
+    value2=$returnStr1
+    sleep 1
+    fromAdd=$CLIfromAddr2
+    showPrivacyBalance "${name1}" $fromAdd
+    value3=$returnStr1
+    sleep 1
+    printf '中间交易费为%d \n' "${priTxFee1}"
+    actTotal=$(echo "$value1 + $value2 + $value3 + $priTxFee1" | bc)
+    echo "${name1} 实际金额：$actTotal"
+}
 
 function runPrivacyTestType1() {
     startDockers
@@ -207,6 +303,8 @@ function runPrivacyTestType1() {
 
     buildTransactionInGroup1
 
+    #checkBlockHashfun
+    checkPrivacyRunResult
 }
 
 function runPrivacyTest() {
