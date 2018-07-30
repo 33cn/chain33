@@ -502,6 +502,21 @@ message ReqPrivacyTransactionList {
     bytes  seedtxhash   = 7;
 }
 
+message ReqRescanUtxos {
+    repeated string addrs = 1;
+    int32           flag  = 2;
+}
+
+message RepRescanResult {
+    string addr = 1;
+    int32  flag = 2;
+}
+
+message RepRescanUtxos {
+    int32    flag                             = 1;
+    repeated RepRescanResult repRescanResults = 2;
+}
+
 // 隐私交易三步发送时，临时存储签名需要的数据信息结构
 message PrivacySignatureParam {
     int32    actionType                 = 1;

@@ -325,15 +325,18 @@ func (p *Peer) readStream() {
 					//如果已经有登记过的消息记录，则不发送给本地blockchain
 					hex.Encode(hash[:], block.GetBlock().Hash())
 					blockhash := string(hash[:])
+					Filter.GetLock()
 					if Filter.QueryRecvData(blockhash) {
+						Filter.ReleaseLock()
 						continue
 					}
-
+					Filter.RegRecvData(blockhash)
+					Filter.ReleaseLock()
 					//判断比自己低的区块，则不发送给blockchain
 
 					height, err := pcli.GetBlockHeight((*p.nodeInfo))
 					if err == nil {
-						if height >= block.GetBlock().GetHeight() {
+						if height >= block.GetBlock().GetHeight()+128 {
 							continue
 						}
 					}
@@ -347,7 +350,7 @@ func (p *Peer) readStream() {
 						log.Error("readStream", "send to blockchain Error", err.Error())
 						continue
 					}
-					Filter.RegRecvData(blockhash) //添加发送登记，下次通过stream 接收同样的消息的时候可以过滤
+					//Filter.RegRecvData(blockhash) //添加发送登记，下次通过stream 接收同样的消息的时候可以过滤
 				}
 
 			} else if tx := data.GetTx(); tx != nil {
@@ -356,12 +359,16 @@ func (p *Peer) readStream() {
 					hex.Encode(hash[:], tx.Tx.Hash())
 					txhash := string(hash[:])
 					log.Debug("readStream", "tx", txhash)
+					Filter.GetLock()
 					if Filter.QueryRecvData(txhash) {
+						Filter.ReleaseLock()
 						continue //处理方式同上
 					}
+					Filter.RegRecvData(txhash)
+					Filter.ReleaseLock()
 					msg := (*p.nodeInfo).client.NewMessage("mempool", pb.EventTx, tx.GetTx())
 					(*p.nodeInfo).client.Send(msg, false)
-					Filter.RegRecvData(txhash) //登记
+					//Filter.RegRecvData(txhash) //登记
 				}
 			}
 		}
