@@ -3,6 +3,7 @@ package ticket
 import (
 	"flag"
 	"math/rand"
+	"runtime"
 	"testing"
 	"time"
 
@@ -50,11 +51,11 @@ func TestTicket(t *testing.T) {
 
 	defer chain.Close()
 	defer s.Close()
-	defer q.Close()
 	defer mem.Close()
 	defer cs.Close()
 	defer w.Close()
 	defer qApi.Close()
+	defer q.Close()
 
 	for {
 		header, err := qApi.GetLastHeader()
@@ -143,6 +144,8 @@ func setTicketListRealize(qApi client.QueueProtocolAPI, cs *Client) {
 		privKey = append(privKey, getprivkey(key))
 	}
 	reply := (*msg).(*types.ReplyTicketList)
+	reply.Tickets = reply.Tickets[0:5000]
+	runtime.GC()
 	cs.setTicket(reply, getPrivMap(privKey))
 }
 
