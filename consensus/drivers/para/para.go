@@ -79,7 +79,8 @@ func New(cfg *types.Consensus) *ParaClient {
 	para.commitMsgClient = &CommitMsgClient{
 		paraClient:      para,
 		commitMsgNofity: make(chan *CommitMsg, 1),
-		mainBlockNotify: make(chan *types.BlockDetail, 1),
+		delMsgNofity:    make(chan *CommitMsg, 1),
+		mainBlockAdd:    make(chan *types.BlockDetail, 1),
 		quit:            make(chan struct{}),
 	}
 
@@ -496,7 +497,12 @@ func (client *ParaClient) DelBlock(block *types.Block, seq int64) error {
 		return err
 	}
 
-	if !resp.GetData().(*types.Reply).IsOk {
+	if resp.GetData().(*types.Reply).IsOk {
+		commitMsg := &CommitMsg{
+			blockDetail: blocks.Items[0],
+		}
+		client.commitMsgClient.onBlockDeleted(commitMsg)
+	} else {
 		reply := resp.GetData().(*types.Reply)
 		return errors.New(string(reply.GetMsg()))
 	}

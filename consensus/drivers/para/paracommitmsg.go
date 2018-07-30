@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/types/executor/paracross"
 	"gitlab.33.cn/chain33/chain33/util"
@@ -25,24 +26,31 @@ type CommitMsg struct {
 type CommitMsgClient struct {
 	paraClient         *ParaClient
 	commitMsgNofity    chan *CommitMsg
-	mainBlockNotify    chan *types.BlockDetail
+	delMsgNofity       chan *CommitMsg
+	mainBlockAdd       chan *types.BlockDetail
 	currentTx          string
 	waitingTx          bool
 	checkTxCommitTimes int
+	privateKey         crypto.PrivKey
 	quit               chan struct{}
 }
 
+type sendMsgRst struct {
+	err error
+}
+
 func (client *CommitMsgClient) handler() {
+	var isSync bool
 	var notifications []*CommitMsg
 	var sendingMsgs []*CommitMsg
 	var finishMsgs []*CommitMsg
 	readTick := time.Tick(time.Second)
-	consensusTick := time.Tick(time.Minute)
-	type sendResult struct {
-		err error
-	}
-	sendResponse := make(chan sendResult, 1)
-	consensusRsp := make(chan *types.ParacrossHeightStatus, 1)
+	consensusTick := time.Tick(time.Second * 20)
+
+	sendMsgFail := make(chan sendMsgRst, 1)
+	consensusRst := make(chan *types.ReceiptParacrossDone, 1)
+	priKeyRst := make(chan crypto.PrivKey, 1)
+	go client.fetchPrivacyKey(priKeyRst)
 	for {
 		select {
 		case msg, ok := <-client.commitMsgNofity:
@@ -50,16 +58,36 @@ func (client *CommitMsgClient) handler() {
 				continue
 			}
 			notifications = append(notifications, msg)
-
-		case block := <-client.mainBlockNotify:
+		case msg := <-client.delMsgNofity:
+			var found bool
+			for i, node := range notifications {
+				if node.blockDetail.Block.Height == msg.blockDetail.Block.Height {
+					notifications = append(notifications[:i], notifications[i+1:]...)
+					found = true
+				}
+			}
+			//check only notify and sending, not check finished
+			if !found {
+				for i, node := range sendingMsgs {
+					if node.blockDetail.Block.Height == msg.blockDetail.Block.Height {
+						sendingMsgs = append(sendingMsgs[:i], sendingMsgs[i+1:]...)
+						notifications = append(sendingMsgs[:], notifications...)
+						sendingMsgs = nil
+						client.waitingTx = false
+						client.currentTx = ""
+						client.checkTxCommitTimes = 0
+					}
+				}
+			}
+		case block := <-client.mainBlockAdd:
 			if client.currentTx != "" {
 				exist, err := checkTxInMainBlock(client.currentTx, block)
 				if err != nil {
 					continue
 				}
 				if exist {
-					finishMsgs = append(finishMsgs,sendingMsgs...)
-					sendingMsgs = sendingMsgs[len(sendingMsgs):]
+					finishMsgs = append(finishMsgs, sendingMsgs...)
+					sendingMsgs = nil
 					client.waitingTx = false
 					client.currentTx = ""
 					client.checkTxCommitTimes = 0
@@ -67,32 +95,22 @@ func (client *CommitMsgClient) handler() {
 					client.checkTxCommitTimes++
 					if client.checkTxCommitTimes > waitMainBlocks {
 						client.checkTxCommitTimes = 0
-						//这地方需要从rawtx构建,nonce需要改，不然会认为重复交易
-						rawTxs, _, err := calcRawTxs(sendingMsgs)
-						if err != nil {
-							continue
-						}
-						signTx, err := client.signCommitMsgTx(rawTxs)
+						//需要从rawtx构建,nonce需要改，不然会认为重复交易
+						signTx, _, err := client.calcCommitMsgTxs(sendingMsgs)
 						if err != nil || signTx == "" {
 							continue
 						}
-						go func() {
-							err = client.sendCommitMsgTx(client.currentTx)
-							if err != nil {
-								sendResponse <- sendResult{err}
-							}
-						}()
+
+						client.currentTx = signTx
+						go client.sendCommitMsgTx(signTx, sendMsgFail)
 					}
 				}
 			}
 
 		case <-readTick:
-			if len(notifications) != 0 && !client.waitingTx {
-				rawTxs, count, err := calcRawTxs(notifications)
-				if err != nil {
-					continue
-				}
-				signTx, err := client.signCommitMsgTx(rawTxs)
+			if len(notifications) != 0 && !client.waitingTx && isSync && client.privateKey != nil {
+
+				signTx, count, err := client.calcCommitMsgTxs(notifications)
 				if err != nil || signTx == "" {
 					continue
 				}
@@ -101,63 +119,92 @@ func (client *CommitMsgClient) handler() {
 				client.currentTx = signTx
 				client.waitingTx = true
 				client.checkTxCommitTimes = 0
-				go func() {
-					err = client.sendCommitMsgTx(client.currentTx)
-					if err != nil {
-						sendResponse <- sendResult{err}
-					}
-				}()
+				go client.sendCommitMsgTx(signTx, sendMsgFail)
 			}
 		case <-consensusTick:
-			go func() {
-				payLoad := types.Encode(&types.ReqParacrossTitleHeight{
-					Title:  types.GetTitle(),
-				})
-				query := types.Query{
-					Execer:   types.ExecerPara,
-					FuncName: "ParacrossGetTitleHeight",
-					Payload:  payLoad,
-				}
-				ret,err := client.paraClient.grpcClient.QueryChain(context.Background(),&query)
-				if err != nil {
-					return
-				}
-				if !ret.GetIsOk() {
-					plog.Info("ParacrossGetTitleHeight", "error", ret.GetMsg())
-					return
-				}
-				var result types.ParacrossHeightStatus
-				types.Decode(ret.Msg, &result)
-				consensusRsp <- &result
-			}()
-		//获取正在共识的高度，也就是可能还没完成共识
-		case rsp := <-consensusRsp:
+			go client.getConsensusHeight(consensusRst)
 
-			for i,msg := range finishMsgs{
-				if msg.blockDetail.Block.Height > rsp.Height{
-					if i>0{
-						finishMsgs = finishMsgs[i-1:]
+		//获取正在共识的高度，也就是可能还没完成共识
+		case rsp := <-consensusRst:
+			if !isSync {
+				if len(notifications) == 0 && rsp.Height == -1 {
+					isSync = true
+				}
+				for i, msg := range notifications {
+					if msg.blockDetail.Block.Height >= rsp.Height {
+						isSync = true
+						notifications = notifications[i:]
+						break
 					}
-					break
+				}
+			} else {
+				for i, msg := range finishMsgs {
+					if msg.blockDetail.Block.Height >= rsp.Height {
+						finishMsgs = finishMsgs[i:]
+						break
+					}
 				}
 			}
-		case <-sendResponse:
-			go func() {
-				err := client.sendCommitMsgTx(client.currentTx)
-				if err != nil {
-					sendResponse <- sendResult{err}
-				}
-			}()
+
+		case <-sendMsgFail:
+			go client.sendCommitMsgTx(client.currentTx, sendMsgFail)
+
+		case key, ok := <-priKeyRst:
+			if !ok {
+				continue
+			}
+			client.privateKey = key
+
 		case <-client.quit:
 			return
 		}
 	}
 }
 
-func calcRawTxs(notifications []*CommitMsg) (string, int, error) {
-	txs, count, err := batchCalcTxGroup(notifications)
+func (client *CommitMsgClient) getConsensusHeight(consensusRst chan *types.ReceiptParacrossDone) {
+	req := &types.ReqNil{}
+	reply, err := client.paraClient.grpcClient.IsSync(context.Background(), req)
 	if err != nil {
-		txs, err = singleCalcTx((notifications)[0])
+		return
+	}
+	if !reply.IsOk {
+		plog.Info("Paracross main is syncing")
+		return
+	}
+
+	payLoad := types.Encode(&types.ReqParacrossTitleHeight{
+		Title: types.GetTitle(),
+	})
+	query := types.Query{
+		Execer:   types.ExecerPara,
+		FuncName: "ParacrossGetTitleHeight",
+		Payload:  payLoad,
+	}
+	ret, err := client.paraClient.grpcClient.QueryChain(context.Background(), &query)
+	if err == types.ErrNotFound {
+		rst := &types.ReceiptParacrossDone{
+			Height: -1,
+		}
+		consensusRst <- rst
+		return
+	}
+	if err != nil {
+		return
+	}
+	if !ret.GetIsOk() {
+		plog.Info("ParacrossGetTitleHeight", "error", ret.GetMsg())
+		return
+	}
+	var result types.ReceiptParacrossDone
+	types.Decode(ret.Msg, &result)
+	consensusRst <- &result
+
+}
+
+func (client *CommitMsgClient) calcCommitMsgTxs(notifications []*CommitMsg) (string, int, error) {
+	txs, count, err := client.batchCalcTxGroup(notifications)
+	if err != nil {
+		txs, err = client.singleCalcTx((notifications)[0])
 		if err != nil {
 			plog.Error("single calc tx", "height", notifications[0].blockDetail.Block.Height)
 
@@ -168,7 +215,33 @@ func calcRawTxs(notifications []*CommitMsg) (string, int, error) {
 	return txs, count, nil
 }
 
-func batchCalcTxGroup(notifications []*CommitMsg) (string, int, error) {
+func (client *CommitMsgClient) getTxsGroup(txsArr *types.Transactions) (string, error) {
+	if len(txsArr.Txs) < 2 {
+		tx := hex.EncodeToString(types.Encode(txsArr.Txs[0]))
+		return tx, nil
+	}
+
+	group, err := types.CreateTxGroup(txsArr.Txs)
+	if err != nil {
+		plog.Error("para CreateTxGroup", "err", err.Error())
+		return "", err
+	}
+	err = group.Check(types.MinFee)
+	if err != nil {
+		plog.Error("para CheckTxGroup", "err", err.Error())
+		return "", err
+	}
+	//key := client.getPrivacyKey()
+	for i := range group.Txs {
+		group.SignN(i, int32(types.SECP256K1), client.privateKey)
+	}
+
+	newtx := group.Tx()
+	grouptx := hex.EncodeToString(types.Encode(newtx))
+	return grouptx, nil
+}
+
+func (client *CommitMsgClient) batchCalcTxGroup(notifications []*CommitMsg) (string, int, error) {
 	var buff []*CommitMsg
 	if len(notifications) > types.TxGroupMaxCount {
 		buff = (notifications)[:types.TxGroupMaxCount]
@@ -186,41 +259,23 @@ func batchCalcTxGroup(notifications []*CommitMsg) (string, int, error) {
 
 	}
 
-	txs, err := getTxsGroup(&rawTxs)
+	txs, err := client.getTxsGroup(&rawTxs)
 	if err != nil {
 		return "", 0, err
 	}
 	return txs, len(buff), nil
 }
 
-func singleCalcTx(msg *CommitMsg) (string, error) {
+func (client *CommitMsgClient) singleCalcTx(msg *CommitMsg) (string, error) {
 	tx, err := getCommitMsgTx(msg)
 	if err != nil {
 		plog.Error("para get commit tx", "block height", msg.blockDetail.Block.Height)
 		return "", err
 	}
-
+	tx.Sign(types.SECP256K1, client.privateKey)
 	ret := hex.EncodeToString(types.Encode(tx))
 	return ret, nil
 
-}
-
-func (client *CommitMsgClient) sendCommitMsg(txs string) error {
-	signTx, err := client.signCommitMsgTx(txs)
-	if err != nil {
-		return err
-	}
-	err = client.sendCommitMsgTx(signTx)
-	if err != nil {
-		//if send fail, not return, just send 2 blocks after
-		plog.Error("para sendCommitMsgTx", "tx", signTx)
-	}
-
-	client.currentTx = signTx
-	client.waitingTx = true
-	client.checkTxCommitTimes = 0
-
-	return nil
 }
 
 func checkTxInMainBlock(targetTx string, detail *types.BlockDetail) (bool, error) {
@@ -272,47 +327,19 @@ func getCommitMsgTx(msg *CommitMsg) (*types.Transaction, error) {
 	return tx, nil
 }
 
-func getTxsGroup(txsArr *types.Transactions) (string, error) {
-	if len(txsArr.Txs) < 2 {
-		tx := hex.EncodeToString(types.Encode(txsArr.Txs[0]))
-		return tx, nil
-	}
+func (client *CommitMsgClient) sendCommitMsgTx(txHex string, sendFailCh chan sendMsgRst) {
+	err := client.sendCommitMsgTxEx(txHex)
+	if err != nil {
+		rst := sendMsgRst{err: err}
+		select {
+		case sendFailCh <- rst:
+		case <-client.quit:
+		}
 
-	group, err := types.CreateTxGroup(txsArr.Txs)
-	if err != nil {
-		plog.Error("para CreateTxGroup", "err", err.Error())
-		return "", err
 	}
-	err = group.Check(types.MinFee)
-	if err != nil {
-		plog.Error("para CheckTxGroup", "err", err.Error())
-		return "", err
-	}
-	newtx := group.Tx()
-	grouptx := hex.EncodeToString(types.Encode(newtx))
-	return grouptx, nil
 }
 
-func (client *CommitMsgClient) signCommitMsgTx(rawTx string) (string, error) {
-
-	unsignedTx := &types.ReqSignRawTx{
-		Addr:   paraAccount,
-		TxHex:  rawTx,
-		Expire: (time.Second * 120).String(),
-	}
-
-	msg := client.paraClient.GetQueueClient().NewMessage("wallet", types.EventSignRawTx, unsignedTx)
-	client.paraClient.GetQueueClient().Send(msg, true)
-	resp, err := client.paraClient.GetQueueClient().Wait(msg)
-	if err != nil {
-		plog.Error("sendCommitMsgTx wallet", "err", err.Error())
-		return "", err
-	}
-
-	return resp.GetData().(*types.ReplySignRawTx).TxHex, nil
-}
-
-func (client *CommitMsgClient) sendCommitMsgTx(txHex string) error {
+func (client *CommitMsgClient) sendCommitMsgTxEx(txHex string) error {
 	var parm types.Transaction
 	data, err := common.FromHex(txHex)
 	if err != nil {
@@ -340,11 +367,54 @@ func (client *CommitMsgClient) onBlockAdded(msg *CommitMsg) {
 	}
 }
 
-func (client *CommitMsgClient) onMainBlockAdded(block *types.BlockDetail) {
+func (client *CommitMsgClient) onBlockDeleted(msg *CommitMsg) {
 	checkTicker := time.NewTicker(time.Second * 1)
 	select {
-	case client.mainBlockNotify <- block:
+	case client.delMsgNofity <- msg:
 	case <-checkTicker.C:
 	case <-client.quit:
 	}
+}
+
+func (client *CommitMsgClient) onMainBlockAdded(block *types.BlockDetail) {
+	checkTicker := time.NewTicker(time.Second * 1)
+	select {
+	case client.mainBlockAdd <- block:
+	case <-checkTicker.C:
+	case <-client.quit:
+	}
+}
+
+func (client *CommitMsgClient) fetchPrivacyKey(priKeyRst chan crypto.PrivKey) {
+	req := &types.ReqStr{ReqStr: paraAccount}
+	for {
+		msg := client.paraClient.GetQueueClient().NewMessage("wallet", types.EventDumpPrivkey, req)
+		client.paraClient.GetQueueClient().Send(msg, true)
+		resp, err := client.paraClient.GetQueueClient().Wait(msg)
+		if err != nil {
+			plog.Error("sendCommitMsgTx wallet", "err", err.Error())
+			time.Sleep(time.Second * 1)
+			continue
+		}
+		str := resp.GetData().(*types.ReplyStr).Replystr
+		pk, err := common.FromHex(str)
+		if err != nil && pk == nil {
+			panic(err)
+		}
+
+		secp, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+		if err != nil {
+			panic(err)
+		}
+
+		priKey, err := secp.PrivKeyFromBytes(pk)
+		if err != nil {
+			panic(err)
+		}
+
+		priKeyRst <- priKey
+		break
+	}
+	close(priKeyRst)
+
 }
