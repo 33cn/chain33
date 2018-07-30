@@ -58,14 +58,18 @@ function startDockerCompose() {
     # create and run docker-compose container
     docker-compose up --build -d
 
+    echo "=========== sleep 30s wait for docker started ============="
+    sleep 30
     docker-compose ps
 }
 
+# 设置好测试Docker组的环境,并启动Docker-compose
 function startDockers() {
     setConfig
     startDockerCompose
 }
 
+# 将钱包进行解锁的操作
 # $1 name
 # $2 pswd
 function unlockWallet() {
@@ -78,6 +82,7 @@ function unlockWallet() {
     sleep 1
 }
 
+# 保存随机种子到钱包数据库
 # $1 name
 # $2 pswd
 # $3 seed
@@ -93,6 +98,7 @@ function saveSeed() {
     sleep 1
 }
 
+# 导入账号私钥到钱包
 # $1 name
 # $2 key
 # $3 label
@@ -107,6 +113,7 @@ function importKey() {
     sleep 1
 }
 
+# 开启或停止钱包的挖矿功能
 # $1 name
 # $2 flag 0:close 1:open
 function setAutomine() {
@@ -137,7 +144,7 @@ function peersCount() {
     name=$1
     needCount=$2
     retryTime=10
-    sleepTime=10
+    sleepTime=15
 
     for ((i = 0; i < retryTime; i++)); do
         peersCount=$($name net peer_info | jq '.[] | length')
@@ -390,6 +397,7 @@ function createPrivacyPriv2PrivTx() {
     returnStr1=$result
 }
 
+# 创建一个隐私到公开的交易,返回编码过的交易字符串
 # $1 name
 # $2 from
 # $3 to
@@ -408,6 +416,7 @@ function createPrivacyPriv2PubTx() {
     returnStr1=$result
 }
 
+# 对创建的交易进行签名
 # $1 name
 # $2 addr
 # $3 data
@@ -420,6 +429,7 @@ function signRawTx() {
     returnStr1=$result
 }
 
+# 将签名后的交易发送到内存池并广播
 # $1 name
 # $2 data
 function sendRawTx() {
@@ -427,4 +437,22 @@ function sendRawTx() {
     data=$2
     result=$($name wallet send -d "${data}")
     returnStr1=$result
+}
+
+# $1 name
+function displayWalletStatus() {
+    name=$1
+    ${name} wallet status
+}
+
+# $1 name
+function listAccount() {
+    name=$1
+    ${name} account list
+}
+
+# $1 name
+function listMempoolTxs() {
+    name=$1
+    ${name} mempool list
 }
