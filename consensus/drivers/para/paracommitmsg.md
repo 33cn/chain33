@@ -1,0 +1,38 @@
+# paracross 参与多节点共识，发送共识消息给主链
+
+## 初始启动
+ 1. 共识tick（20s）会定期通过grpc获取当前共识height
+    * 如果各节点都是创世启动，则返回ErrNotFound，则进入sync环节，发起共识消息
+    * 如果是本节点重启或一个全新节点，则主动同步其他节点数据，在同步过程中，不获取共识数据，也不发送共识消息，同步结束后，获取当前共识高度，在当前
+      共识高度之前的区块，不发送共识,从当前共识节点开始发送共识消息
+
+## 新节点增加（包括空块）
+   -----------------------------------
+   |         |           |            |
+   ----------------------------------- <<- new tx
+   |         |           |
+   finished  sending     notification
+
+   维护了三个slice， notification，sending,finished, 新的tx会append到notification里面，正在发送的放到sending，完成的放到finished
+   随着共识height的增加，finished也会把小的height删除
+   sending的tx有可能是一个块的交易，也可能是多个块的交易组，sending的tx成功被打包到主链且执行成功才算正常上链，若在两个新块里面没有上链会重发当前
+   的交易，一直当前的上链才会发后面的tx，如果发生了分叉回滚且分叉节点在sending tx里面，会取消发送。
+   打包成功的tx会移到finish里面。
+   finish的最初目的主要是考虑未达成共识，且本节点没有发交易，需要重发，所有在finish里面放了缓存，但是考虑到finish的交易都是被主链上链了的交易，
+   也就是本节点已经发送过了的交易，应该不需要重新发的场景。如果完成了的交易分叉了，应该会有同样高度的新交易发送而不会停止。
+   *异常场景：
+   1. 如果通过grpc发送失败，通知一个channel重发
+
+## 分叉，节点回滚
+ 1. delete的block高度先在notification里面查找，如果找到，意味着还没send，直接删除，如果notification没找到，在sending里面找，如果找到了，
+    取消所有sending的tx，把本tx删除后把其他的恢复到notification里面，重新发送
+
+## 普通执行
+ 1.维护一个1s的tick，定时检查notification里面有没有数据，当前有没有正在发送的tx，如果当前tx已经上链，且notification有数据，会把notification
+   数据转移到sending里面维持发送
+ 1.维护一个20s的tick，定时从主链检查当前共识的高度，移除本节点低于共识高度的tx。如果主链正在同步，则等同步完成后再检查高度。
+ 1.维护一个主链block add的channel，如果收到主链block，检查是否当前的交易在block里面且执行成功，如果执行失败或pack，都不算上链，都需要重发。
+   成功上链则移除当前sending数组到finish里面
+
+## 签名
+ 1. 根据配置的地址从wallet导出私钥，利用私钥在平行链共识签名
