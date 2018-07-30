@@ -505,7 +505,7 @@ func (ws *Store) setUTXO(addr, txhash *string, outindex int, dbStore *types.Priv
 // 3.清除因为回退而将花费UTXO移入到冻结UTXO列表的UTXO索引信息
 // 4.清除UTXO信息
 func (ws *Store) unsetUTXO(addr, txhash *string, outindex int, token string, newbatch dbm.Batch) error {
-	if 0 == len(*addr) || 0 == len(*txhash) || outindex<0 || len(token)<=0 {
+	if 0 == len(*addr) || 0 == len(*txhash) || outindex < 0 || len(token) <= 0 {
 		walletlog.Error("PrivacyTrading unsetUTXO", "InvalidParam addr", *addr, "txhash", *txhash, "outindex", outindex, "token", token)
 		return types.ErrInputPara
 	}

@@ -240,7 +240,6 @@ function syn_block_timeout() {
     echo "wait block $count s"
 }
 
-
 # $1 name
 # $2 fromAdd
 # $3 execAdd
