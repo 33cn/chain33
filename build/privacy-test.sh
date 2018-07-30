@@ -3,7 +3,6 @@
 # 引用测试基础库
 source comm-test.sh
 
-
 containers=("${NODE1}" "${NODE2}" "${NODE3}" "${NODE4}" "${NODE5}" "${NODE6}")
 forkContainers=("${CLI3}" "${CLI2}" "${CLI}" "${CLI4}" "${CLI5}" "${CLI6}")
 
@@ -22,14 +21,12 @@ CLI4privKey12="d5672eeafbcdf53c8fc27969a5d9797083bb64fb4848bd391cd9b3919c4a1d3cb
 
 privacyExecAddr="1FeyE6VDZ4FYgpK1n2okWMDAtPkwBuooQd"
 
-
 priTotalAmount1="300.0000"
 priTotalAmount2="300.0000"
 priTxHashs1=("")
 priTxHashs2=("")
 priTxFee1=0
 priTxFee2=0
-
 
 function saveSeedToWallet() {
     saveSeed "${CLI}" ${password} "${walletSeed}"
@@ -84,7 +81,6 @@ function initPrivacyAccount() {
     fromAdd=$CLI4fromAddr1
     showPrivacyExec "${name}" $fromAdd
 }
-
 
 function checkMineHeight() {
     result=$($CLI4 wallet auto_mine -f 0 | jq ".isok")
@@ -172,7 +168,7 @@ function makeTransactionIn3Step() {
 
     height=$(${name} block last_header | jq ".height")
     amount=10
-    expire=$((height+4))
+    expire=$((height + 4))
     printf '公对私交易 高度为:%s 转账金额为:%s \n' "${height}" "${amount}"
     createPrivacyPub2PrivTx "${name}" $pk1 $amount $expire
     signRawTx "${name}" $fromAddr1 $returnStr1
@@ -180,18 +176,16 @@ function makeTransactionIn3Step() {
     echo $returnStr1
     block_wait_timeout "${name}" 1 15
 
-
     height=$(${name} block last_header | jq ".height")
     printf '发送私对私交易当前高度 %s \n' "${height}"
     amount=4
-    expire=$((height+4))
+    expire=$((height + 4))
     printf '私对私交易 高度为:%s 转账金额为:%s \n' "${height}" "${amount}"
     createPrivacyPriv2PrivTx "${name}" $pk2 $amount $fromAddr1 $expire
     signRawTx "${name}" $fromAddr1 $returnStr1
     sendRawTx "${name}" $returnStr1
     echo $returnStr1
-    if [ $group -eq 1 ]
-    then
+    if [ $group -eq 1 ]; then
         priTxHashs1[$priTxindex]=$returnStr1
         priTxindex=$((priTxindex + 1))
     else
@@ -206,13 +200,12 @@ function makeTransactionIn3Step() {
     from=$fromAddr1
     to=$fromAddr1
     # 4个区块高度以后过期
-    expire=$((height+4))
+    expire=$((height + 4))
     createPrivacyPriv2PubTx "${name}" $from $to $amount $expire
     signRawTx "${name}" $from $returnStr1
     sendRawTx "${name}" $returnStr1
     echo $returnStr1
-    if [ $group -eq 1 ]
-    then
+    if [ $group -eq 1 ]; then
         priTxHashs1[$priTxindex]=$returnStr1
         priTxindex=$((priTxindex + 1))
     else
@@ -311,7 +304,6 @@ function checkPrivacyRunResult() {
     printf '中间交易费为%d \n' "${priTxFee1}"
     actTotal=$(echo "$value1 + $value2 + $value3 + $priTxFee1" | bc)
     echo "${name1} 实际金额：$actTotal"
-
 
     echo "====================检查第二组docker运行结果================="
     for ((i = 0; i < ${#priTxHashs2[*]}; i++)); do

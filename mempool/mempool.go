@@ -6,6 +6,7 @@ import (
 
 	lru "github.com/hashicorp/golang-lru"
 	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/common"
 	clog "gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -225,10 +226,11 @@ func (mem *Mempool) DelBlock(block *types.Block) {
 		if err != nil {
 			continue
 		}
+		mem.addedTxs.Remove(string(tx.Hash()))
 		if !mem.checkExpireValid(tx) {
+			mlog.Debug("PrivacyTrading Mempool DelBlock", "Invalid Expire txhash", common.Bytes2Hex(tx.Hash()))
 			continue
 		}
-		mem.addedTxs.Remove(string(tx.Hash()))
 		mem.PushTx(tx)
 	}
 }
