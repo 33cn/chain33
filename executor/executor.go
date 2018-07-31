@@ -222,6 +222,7 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 }
 
 func isAllowExec(key, txexecer []byte, toaddr string, height int64) bool {
+	elog.Error("isAllowExec", "execer", string(txexecer), "key", string(key))
 	keyexecer, err := findExecer(key)
 	if err != nil {
 		elog.Error("find execer ", "err", err)
@@ -258,12 +259,12 @@ func isAllowExec(key, txexecer []byte, toaddr string, height int64) bool {
 			}
 		}
 	}
-
+	elog.Error("isAllowExec", "execer", string(txexecer), "key", string(key), "keyexecer", keyexecer)
 	// user.evm 的交易，使用evm执行器
 	// 这部分判断逻辑不能放到前面几步，因为它修改了txexecer，会影响别的判断逻辑
-	if bytes.HasPrefix(txexecer, []byte("user.evm.")) {
-		txexecer = types.ExecerEvm
-		if bytes.Equal(keyexecer, txexecer) {
+	if bytes.HasPrefix(txexecer, []byte("user.evm.")) || bytes.HasPrefix(txexecer, []byte(types.ExecName(types.EvmX))) {
+		txexecer = []byte(types.ExecName(string(types.ExecerEvm)))
+		if bytes.Equal([]byte(types.ExecName(string(keyexecer))), txexecer) {
 			return true
 		}
 	}
