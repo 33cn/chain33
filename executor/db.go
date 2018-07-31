@@ -116,8 +116,15 @@ func (s *StateDB) Set(key []byte, value []byte) error {
 	return nil
 }
 
-func (db *StateDB) BatchGet(keys [][]byte) (value [][]byte, err error) {
-	panic("not support")
+func (db *StateDB) BatchGet(keys [][]byte) (values [][]byte, err error) {
+	for _, key := range keys {
+		v, err := db.Get(key)
+		if err != nil && err != types.ErrNotFound {
+			return nil, err
+		}
+		values = append(values, v)
+	}
+	return values, nil
 }
 
 type LocalDB struct {
@@ -160,7 +167,14 @@ func (l *LocalDB) Set(key []byte, value []byte) error {
 }
 
 func (db *LocalDB) BatchGet(keys [][]byte) (values [][]byte, err error) {
-	panic("local batch get not support")
+	for _, key := range keys {
+		v, err := db.Get(key)
+		if err != nil && err != types.ErrNotFound {
+			return nil, err
+		}
+		values = append(values, v)
+	}
+	return values, nil
 }
 
 //从数据库中查询数据列表，set 中的cache 更新不会影响这个list
