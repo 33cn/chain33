@@ -217,8 +217,8 @@ func (buydb *buyDB) getSellLogs(sellerAddr string, sellID string, boardlotCnt in
 		txhash,
 		buydb.Height,
 	}
-	receiptSellMartet := &types.ReceiptSellMarket{Base: base}
-	log.Log = types.Encode(receiptSellMartet)
+	receiptSellMarket := &types.ReceiptSellMarket{Base: base}
+	log.Log = types.Encode(receiptSellMarket)
 
 	return log
 }
