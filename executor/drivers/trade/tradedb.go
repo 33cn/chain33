@@ -89,7 +89,7 @@ func (selldb *sellDB) getBuyLogs(buyerAddr string, boardlotcnt int64, txhash str
 func getSellOrderFromID(sellID []byte, db dbm.KV) (*types.SellOrder, error) {
 	value, err := db.Get(sellID)
 	if err != nil {
-		tradelog.Error("getSellOrderFromID", "Failed to get value from db wiht sellid", string(sellID))
+		tradelog.Error("getSellOrderFromID", "Failed to get value from db with sellid", string(sellID))
 		return nil, err
 	}
 
@@ -108,7 +108,7 @@ func getTx(txHash []byte, db dbm.KV) (*types.TxResult, error) {
 	}
 	value, err := db.Get(hash)
 	if err != nil {
-		tradelog.Error("getTx", "Failed to get value from db wiht getTx", string(txHash))
+		tradelog.Error("getTx", "Failed to get value from db with getTx", string(txHash))
 		return nil, err
 	}
 	var txResult types.TxResult
@@ -185,7 +185,7 @@ func (buydb *buyDB) getBuyLogs(tradeType int32, txhash string) *types.ReceiptLog
 func getBuyOrderFromID(buyID []byte, db dbm.KV) (*types.BuyLimitOrder, error) {
 	value, err := db.Get(buyID)
 	if err != nil {
-		tradelog.Error("getBuyOrderFromID", "Failed to get value from db wiht buyID", string(buyID))
+		tradelog.Error("getBuyOrderFromID", "Failed to get value from db with buyID", string(buyID))
 		return nil, err
 	}
 
