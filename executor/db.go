@@ -13,6 +13,7 @@ type StateDB struct {
 	client    queue.Client
 	stateHash []byte
 	version   int64
+	height    int64
 	local     *db.SimpleMVCC
 	flagMVCC  int64
 }
@@ -37,9 +38,15 @@ func NewStateDB(client queue.Client, stateHash []byte, enableMVCC bool, flagMVCC
 	return db
 }
 
+func (s *StateDB) SetHeight(height int64) {
+	s.height = height
+}
+
 func (s *StateDB) Begin() {
 	s.intx = true
-	s.txcache = nil
+	if types.IsMatchFork(s.height, types.ForkV22ExecRollback) {
+		s.txcache = nil
+	}
 }
 
 func (s *StateDB) Rollback() {
@@ -51,7 +58,9 @@ func (s *StateDB) Commit() {
 		s.cache[k] = v
 	}
 	s.intx = false
-	s.resetTx()
+	if types.IsMatchFork(s.height, types.ForkV22ExecRollback) {
+		s.resetTx()
+	}
 }
 
 func (s *StateDB) resetTx() {
