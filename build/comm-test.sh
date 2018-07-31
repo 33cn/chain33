@@ -23,6 +23,9 @@ CLI5="docker exec ${NODE5} /root/chain33-cli"
 NODE6="${1}_chain28_1"
 CLI6="docker exec ${NODE6} /root/chain33-cli"
 
+containers=("${NODE1}" "${NODE2}" "${NODE3}" "${NODE4}" "${NODE5}" "${NODE6}")
+forkContainers=("${CLI3}" "${CLI2}" "${CLI}" "${CLI4}" "${CLI5}" "${CLI6}")
+
 returnStr1=""
 
 sedfix=""
@@ -334,7 +337,7 @@ function showPrivacyExec() {
 function showPrivacyBalance() {
     name=$1
     fromAdd=$2
-    printf '==========showPrivacyBalance name=%s addr=%s==========\n' "${name}" "${fromAdd}"
+    echo "$name" privacy showpai -a "${fromAdd}" -d 0
     result=$($name privacy showpai -a "${fromAdd}" -d 0 | jq -r ".AvailableAmount")
     printf 'AvailableAmount %s \n' "${result}"
     returnStr1=$result
@@ -345,7 +348,7 @@ function showPrivacyBalance() {
 function showPrivacyFrozenAmount() {
     name=$1
     fromAdd=$2
-    printf '==========showPrivacyBalance name=%s addr=%s==========\n' "${name}" "${fromAdd}"
+    echo "$name" privacy showpai -a "${fromAdd}" -d 0
     result=$($name privacy showpai -a "${fromAdd}" -d 0 | jq -r ".FrozenAmount")
     printf 'AvailableAmount %s \n' "${result}"
     returnStr1=$result
@@ -356,7 +359,7 @@ function showPrivacyFrozenAmount() {
 function showPrivacyTotalAmount() {
     name=$1
     fromAdd=$2
-    printf '==========showPrivacyBalance name=%s addr=%s==========\n' "${name}" "${fromAdd}"
+    echo "$name" privacy showpai -a "${fromAdd}" -d 0
     result=$($name privacy showpai -a "${fromAdd}" -d 0 | jq -r ".TotalAmount")
     printf 'AvailableAmount %s \n' "${result}"
     returnStr1=$result
@@ -409,7 +412,7 @@ function createPrivacyPriv2PubTx() {
     to=$3
     amount=$4
     expire=$5
-    note="private_2_privacy_transaction"
+    note="private_2_public_transaction"
     echo "$name" bty priv2pub -f "${from}" -o "${to}" -a "${amount}" -n "${note}" --expire "${expire}"
     result=$($name bty priv2pub -f "${from}" -o "${to}" -a "${amount}" -n "${note}" --expire "${expire}")
     returnStr1=$result

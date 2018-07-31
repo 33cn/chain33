@@ -630,7 +630,7 @@ func (p *privacy) CheckTx(tx *types.Transaction, index int) error {
 		if errIndex >= 0 && errIndex < int32(len(pubkeys)) {
 			privacylog.Error("PrivacyTrading CheckTx", "txhash", txhashstr, "Wrong pubkey errIndex ", errIndex)
 		}
-		privacylog.Error("PrivacyTrading CheckTx", "txhash", txhashstr, "checkPubKeyValid failed ")
+		privacylog.Error("PrivacyTrading CheckTx", "txhash", txhashstr, "checkPubKeyValid ", false)
 		return types.ErrPubkeysOfUTXO
 	}
 
