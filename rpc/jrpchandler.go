@@ -1046,13 +1046,13 @@ func convertToPrivacyInput4Print(privacyInput *types.PrivacyInput) *types.Privac
 	input4print := &types.PrivacyInput4Print{}
 	for _, fromKeyInput := range privacyInput.Keyinput {
 		keyinput := &types.KeyInput4Print{
-			Amount:fromKeyInput.Amount,
-			KeyImage:common.Bytes2Hex(fromKeyInput.KeyImage),
+			Amount:   fromKeyInput.Amount,
+			KeyImage: common.Bytes2Hex(fromKeyInput.KeyImage),
 		}
 		for _, fromUTXOGl := range fromKeyInput.UtxoGlobalIndex {
 			utxogl := &types.UTXOGlobalIndex4Print{
-				Txhash:common.Bytes2Hex(fromUTXOGl.Txhash),
-				Outindex:fromUTXOGl.Outindex,
+				Txhash:   common.Bytes2Hex(fromUTXOGl.Txhash),
+				Outindex: fromUTXOGl.Outindex,
 			}
 			keyinput.UtxoGlobalIndex = append(keyinput.UtxoGlobalIndex, utxogl)
 		}
@@ -1064,12 +1064,12 @@ func convertToPrivacyInput4Print(privacyInput *types.PrivacyInput) *types.Privac
 
 func convertToPrivacyOutput4Print(privacyOutput *types.PrivacyOutput) *types.PrivacyOutput4Print {
 	output4print := &types.PrivacyOutput4Print{
-		RpubKeytx:common.Bytes2Hex(privacyOutput.RpubKeytx),
+		RpubKeytx: common.Bytes2Hex(privacyOutput.RpubKeytx),
 	}
 	for _, fromoutput := range privacyOutput.Keyoutput {
 		output := &types.KeyOutput4Print{
-			Amount:fromoutput.Amount,
-			Onetimepubkey:common.Bytes2Hex(fromoutput.Onetimepubkey),
+			Amount:        fromoutput.Amount,
+			Onetimepubkey: common.Bytes2Hex(fromoutput.Onetimepubkey),
 		}
 		output4print.Keyoutput = append(output4print.Keyoutput, output)
 	}
@@ -1093,7 +1093,7 @@ func decodePrivacyAction(payload []byte) interface{} {
 		value.Note = fromValue.Note
 		value.Output = convertToPrivacyOutput4Print(fromValue.Output)
 
-		retAction.Value = &types.PrivacyAction4Print_Public2Privacy{Public2Privacy:value}
+		retAction.Value = &types.PrivacyAction4Print_Public2Privacy{Public2Privacy: value}
 	} else if fromAction.GetPrivacy2Privacy() != nil {
 		fromValue := fromAction.GetPrivacy2Privacy()
 		value := &types.Privacy2Privacy4Print{}
@@ -1105,7 +1105,7 @@ func decodePrivacyAction(payload []byte) interface{} {
 		value.Input = convertToPrivacyInput4Print(fromValue.Input)
 		value.Output = convertToPrivacyOutput4Print(fromValue.Output)
 
-		retAction.Value = &types.PrivacyAction4Print_Privacy2Privacy{Privacy2Privacy:value}
+		retAction.Value = &types.PrivacyAction4Print_Privacy2Privacy{Privacy2Privacy: value}
 	} else if fromAction.GetPrivacy2Public() != nil {
 		fromValue := fromAction.GetPrivacy2Public()
 		value := &types.Privacy2Public4Print{}
@@ -1117,7 +1117,7 @@ func decodePrivacyAction(payload []byte) interface{} {
 		value.Input = convertToPrivacyInput4Print(fromValue.Input)
 		value.Output = convertToPrivacyOutput4Print(fromValue.Output)
 
-		retAction.Value = &types.PrivacyAction4Print_Privacy2Public{Privacy2Public:value}
+		retAction.Value = &types.PrivacyAction4Print_Privacy2Public{Privacy2Public: value}
 	}
 	return retAction
 }
