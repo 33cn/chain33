@@ -1043,6 +1043,7 @@ func (wallet *Wallet) AddDelPrivacyTxsFromBlock(tx *types.Transaction, index int
 	}
 	walletlog.Info("PrivacyTrading AddDelPrivacyTxsFromBlock", "Enter AddDelPrivacyTxsFromBlock txhash", txhashstr, "index", index, "addDelType", addDelType)
 
+	privacyInput := privateAction.GetInput()
 	privacyOutput := privateAction.GetOutput()
 	tokenname := privateAction.GetTokenName()
 	RpubKey := privacyOutput.GetRpubKeytx()
@@ -1056,6 +1057,15 @@ func (wallet *Wallet) AddDelPrivacyTxsFromBlock(tx *types.Transaction, index int
 			privacykeyParirs := info.PrivacyKeyPair
 			matched4addr := false
 			var utxos []*types.UTXO
+			if privacyInput != nil && types.ExecOk == txExecRes && AddTx == addDelType {
+				// 如果输入中包含了已经设置的UTXO,需要直接移除
+				for _, keyinput := range privacyInput.Keyinput {
+					for _, utxogl := range keyinput.UtxoGlobalIndex {
+						txhashstr := common.Bytes2Hex(utxogl.Txhash)
+						wallet.walletStore.setUTXO2FTXO(info.Addr, &txhashstr, int(utxogl.Outindex), tokenname, newbatch)
+					}
+				}
+			}
 			for indexoutput, output := range privacyOutput.Keyoutput {
 				if utxoProcessed[indexoutput] {
 					continue

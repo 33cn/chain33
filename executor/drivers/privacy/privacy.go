@@ -622,7 +622,7 @@ func (p *privacy) CheckTx(tx *types.Transaction, index int) error {
 			privacylog.Error("PrivacyTrading CheckTx", "txhash", txhashstr, "UTXO spent already errindex", errIndex, "utxo amout", input.Amount, "utxo keyimage", common.ToHex(input.KeyImage))
 		}
 		privacylog.Error("PrivacyTrading CheckTx", "txhash", txhashstr, "checkUTXOValid failed ")
-		return types.ErrDoubeSpendOccur
+		return types.ErrDoubleSpendOccur
 	}
 
 	res, errIndex = p.checkPubKeyValid(keys, pubkeys)

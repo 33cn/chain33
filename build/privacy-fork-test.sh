@@ -306,10 +306,9 @@ function makeTransactionIn3Step() {
     block_wait_timeout "${name}" 1 15
 
     height=$(${name} block last_header | jq ".height")
-    printf '发送私对私交易当前高度 %s \n' "${height}"
     amount=4
     expire=$((height + 2))
-    printf '私对私交易 高度为:%s 转账金额为:%s \n' "${height}" "${amount}"
+    printf '私对私交易 高度为:%s 转账金额为:%s 剩余应该是:5 \n' "${height}" "${amount}"
     createPrivacyPriv2PrivTx "${name}" "$pk2" $amount "$fromAddr1" $expire
     signRawTx "${name}" "$fromAddr1" "$returnStr1"
     sendRawTx "${name}" "$returnStr1"
@@ -324,12 +323,11 @@ function makeTransactionIn3Step() {
     block_wait_timeout "${name}" 1 15
 
     height=$(${name} block last_header | jq ".height")
-    printf '发送私对公交易当前高度 %s \n' "${height}"
     amount=4
     from=$fromAddr1
     to=$fromAddr1
-    # 4个区块高度以后过期
     expire=$((height + 2))
+    printf '私对公交易 高度为:%s 转账金额为:%s 剩余应该是:0 \n' "${height}" "${amount}"
     createPrivacyPriv2PubTx "${name}" "$from" "$to" $amount $expire
     signRawTx "${name}" "$from" "$returnStr1"
     sendRawTx "${name}" "$returnStr1"
