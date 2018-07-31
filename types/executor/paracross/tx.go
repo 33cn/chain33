@@ -5,6 +5,6 @@ import (
 )
 
 type ParacrossCommitTx struct {
-	Fee       int64  `json:"fee"`
-	Status    types.ParacrossNodeStatus `json:"status"`
+	Fee    int64                     `json:"fee"`
+	Status types.ParacrossNodeStatus `json:"status"`
 }
