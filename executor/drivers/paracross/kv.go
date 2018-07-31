@@ -24,8 +24,8 @@ func setPrefix() {
 	localTitleHeight = types.ExecName("paracross") + "-titleHeight-"
 }
 
-func calcTitleKey(title string) []byte {
-	return []byte(fmt.Sprintf(title+"%s", title))
+func calcTitleKey(t string) []byte {
+	return []byte(fmt.Sprintf(title+"%s", t))
 }
 
 func calcTitleHeightKey(title string, height int64) []byte {
