@@ -40,8 +40,8 @@ func TestSolo(t *testing.T) {
 
 	defer chain.Close()
 	defer s.Close()
-	defer q.Close()
 	defer mem.Close()
+	defer q.Close()
 
 	sendReplyList(q)
 }
