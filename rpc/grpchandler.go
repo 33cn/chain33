@@ -10,16 +10,7 @@ import (
 )
 
 func (g *Grpc) SendTransaction(ctx context.Context, in *pb.Transaction) (*pb.Reply, error) {
-	reply, err := g.cli.SendTx(in)
-	isok := false
-	if reply != nil {
-		isok = reply.IsOk
-	}
-	g.cli.NotifySendTxResult(&pb.ReqNotifySendTxResult{
-		Isok: isok,
-		Tx:   in,
-	})
-	return reply, err
+	return g.cli.SendTx(in)
 }
 
 func (g *Grpc) CreateNoBalanceTransaction(ctx context.Context, in *pb.NoBalanceTx) (*pb.ReplySignRawTx, error) {
@@ -291,6 +282,11 @@ func (g *Grpc) MakeTxPrivacy2Privacy(ctx context.Context, in *pb.ReqPri2Pri) (*p
 // 将资产从隐私到公开进行转移
 func (g *Grpc) MakeTxPrivacy2Public(ctx context.Context, in *pb.ReqPri2Pub) (*pb.Reply, error) {
 	return g.cli.Privacy2Public(in)
+}
+
+// 扫描UTXO以及获取扫描UTXO后的状态
+func (g *Grpc) RescanUtxos(ctx context.Context, in *pb.ReqRescanUtxos) (*pb.RepRescanUtxos, error) {
+	return g.cli.RescanUtxos(in)
 }
 
 // 创建绑定挖矿

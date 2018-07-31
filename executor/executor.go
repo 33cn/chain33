@@ -677,6 +677,8 @@ func (execute *executor) execTxGroup(txs []*types.Transaction, index int) ([]*ty
 	}
 	receipts[0], err = execute.execTxOne(feelog, txs[0], index)
 	if err != nil {
+		//状态数据库回滚
+		execute.stateDB.Rollback()
 		return receipts, nil
 	}
 	for i := 1; i < len(txs); i++ {
@@ -802,8 +804,14 @@ func (execute *executor) execTx(tx *types.Transaction, index int) (*types.Receip
 		return nil, err
 	}
 	//ignore err
-	feelog, _ = execute.execTxOne(feelog, tx, index)
-	elog.Debug("exec tx = ", "index", index, "execer", string(tx.Execer))
+	execute.stateDB.Begin()
+	feelog, err = execute.execTxOne(feelog, tx, index)
+	if err != nil {
+		execute.stateDB.Rollback()
+	} else {
+		execute.stateDB.Commit()
+	}
+	elog.Debug("exec tx = ", "index", index, "execer", string(tx.Execer), "err", err)
 	return feelog, nil
 }
 

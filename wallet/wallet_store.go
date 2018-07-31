@@ -23,19 +23,17 @@ var (
 )
 
 const (
-	Privacy4Addr       = "Privacy4Addr-"
-	PrivacyUTXO        = "UTXO-"
-	PrivacySTXO        = "STXO-"
-	PrivacyTokenMap    = "PrivacyTokenMap"
-	FTXOTimeout        = types.ConfirmedHeight * types.BlockDurPerSecCnt //Ftxo超时时间
-	FTXOTimeout4Revert = 256 * types.BlockDurPerSecCnt                   //revert Ftxo超时时间
-	FTXOs4Tx           = "FTXOs4Tx"
-	STXOs4Tx           = "STXOs4Tx"
-	RevertSendtx       = "RevertSendtx"
-	RecvPrivacyTx      = "RecvPrivacyTx"
-	SendPrivacyTx      = "SendPrivacyTx"
-	createTxPrefix     = "CreateTx"
-	ScanPrivacyInput   = "ScanPrivacyInput-"
+	Privacy4Addr     = "Privacy4Addr-"
+	PrivacyUTXO      = "UTXO-"
+	PrivacySTXO      = "STXO-"
+	PrivacyTokenMap  = "PrivacyTokenMap"
+	FTXOs4Tx         = "FTXOs4Tx"
+	STXOs4Tx         = "STXOs4Tx"
+	RevertSendtx     = "RevertSendtx"
+	RecvPrivacyTx    = "RecvPrivacyTx"
+	SendPrivacyTx    = "SendPrivacyTx"
+	ScanPrivacyInput = "ScanPrivacyInput-"
+	ReScanUtxosFlag  = "ReScanUtxosFlag-"
 )
 
 type Store struct {
@@ -100,6 +98,10 @@ func calcScanPrivacyInputUTXOKey(txhash string, index int) []byte {
 	return []byte(fmt.Sprintf(ScanPrivacyInput+"%s-%d", txhash, index))
 }
 
+func calcRescanUtxosFlagKey(addr string) []byte {
+	return []byte(fmt.Sprintf(ReScanUtxosFlag+"%s", addr))
+}
+
 //通过height*100000+index 查询Tx交易信息
 //key:Tx:height*100000+index
 func calcTxKey(key string) []byte {
@@ -146,19 +148,6 @@ func calcKey4STXOsInTx(txhash string) []byte {
 
 func calcKey4UTXOsSpentInTx(key string) []byte {
 	return []byte(fmt.Sprintf("UTXOsSpentInTx:%s", key))
-}
-
-// 保存协助前端创建交易的Key
-// txhash：为common.ToHex()后的字符串
-func calcCreateTxKey(token, txhash string) []byte {
-	return []byte(fmt.Sprintf("%s:%s-%s", createTxPrefix, token, txhash))
-}
-
-func calcCreateTxKeyPrefix(token string) []byte {
-	if len(token) > 0 {
-		return []byte(fmt.Sprintf("%s:%s-", createTxPrefix, token))
-	}
-	return []byte(fmt.Sprintf("%s:", createTxPrefix))
 }
 
 func NewStore(db dbm.DB) *Store {
@@ -838,6 +827,51 @@ func (ws *Store) StoreScanPrivacyInputUTXO(utxoGlobalIndexs []*types.UTXOGlobalI
 	}
 }
 
+func (ws *Store) GetRescanUtxosFlag4Addr(req *types.ReqRescanUtxos) (*types.RepRescanUtxos, error) {
+	var storeAddrs []string
+	if len(req.Addrs) == 0 {
+		WalletAccStores, err := ws.GetAccountByPrefix("Account")
+		if err != nil || len(WalletAccStores) == 0 {
+			walletlog.Info("GetRescanUtxosFlag4Addr", "GetAccountByPrefix:err", err)
+			return nil, types.ErrNotFound
+		}
+		for _, WalletAccStore := range WalletAccStores {
+			storeAddrs = append(storeAddrs, WalletAccStore.Addr)
+		}
+	} else {
+		storeAddrs = append(storeAddrs, req.Addrs...)
+	}
+
+	var repRescanUtxos types.RepRescanUtxos
+	for _, addr := range storeAddrs {
+		value, err := ws.db.Get(calcRescanUtxosFlagKey(addr))
+		if err != nil {
+			continue
+			walletlog.Error("GetRescanUtxosFlag4Addr", "Failed to get calcRescanUtxosFlagKey(addr) for value", addr)
+		}
+
+		var data types.Int64
+		err = types.Decode(value, &data)
+		if nil != err {
+			continue
+			walletlog.Error("GetRescanUtxosFlag4Addr", "Failed to decode types.Int64 for value", value)
+		}
+		result := &types.RepRescanResult{
+			Addr: addr,
+			Flag: int32(data.Data),
+		}
+		repRescanUtxos.RepRescanResults = append(repRescanUtxos.RepRescanResults, result)
+	}
+
+	if len(repRescanUtxos.RepRescanResults) == 0 {
+		return nil, types.ErrNotFound
+	}
+
+	repRescanUtxos.Flag = req.Flag
+
+	return &repRescanUtxos, nil
+}
+
 func (ws *Store) GetScanPrivacyInputUTXO(count int32) []*types.UTXOGlobalIndex {
 	prefix := []byte(ScanPrivacyInput)
 	list := dbm.NewListHelper(ws.db)
@@ -1097,25 +1131,6 @@ func (ws *Store) DeleteCreateTransactionCache(key []byte) {
 		return
 	}
 	ws.db.Delete(key)
-}
-
-func (ws *Store) listCreateTransactionCache(token string) ([]*types.CreateTransactionCache, error) {
-	prefix := calcCreateTxKeyPrefix(token)
-	list := dbm.NewListHelper(ws.db)
-	values := list.PrefixScan(prefix)
-	caches := make([]*types.CreateTransactionCache, 0)
-	if len(values) == 0 {
-		return caches, nil
-	}
-	for _, value := range values {
-		cache := types.CreateTransactionCache{}
-		err := types.Decode(value, &cache)
-		if err != nil {
-			return caches, err
-		}
-		caches = append(caches, &cache)
-	}
-	return caches, nil
 }
 
 //升级数据库的版本号
