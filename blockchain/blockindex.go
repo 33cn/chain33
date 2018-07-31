@@ -28,7 +28,7 @@ type blockIndex struct {
 }
 
 const (
-	indexCacheLimit = 500
+	indexCacheLimit = 102400 //目前 暂定index链缓存blocknode的个数
 )
 
 func initBlockNode(node *blockNode, block *types.Block, broadcast bool, pid string, sequence int64) {
