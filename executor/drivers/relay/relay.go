@@ -38,25 +38,46 @@ func (r *relay) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	actiondb := newRelayDB(r, tx)
 	switch action.GetTy() {
 	case types.RelayActionCreate:
+		if action.GetCreate() == nil {
+			return nil, types.ErrInputPara
+		}
 		return actiondb.relayCreate(action.GetCreate())
 
 	case types.RelayActionAccept:
+		if action.GetAccept() == nil {
+			return nil, types.ErrInputPara
+		}
 		return actiondb.accept(action.GetAccept())
 
 	case types.RelayActionRevoke:
+		if action.GetRevoke() == nil {
+			return nil, types.ErrInputPara
+		}
 		return actiondb.relayRevoke(action.GetRevoke())
 
 	case types.RelayActionConfirmTx:
+		if action.GetConfirmTx() == nil {
+			return nil, types.ErrInputPara
+		}
 		return actiondb.confirmTx(action.GetConfirmTx())
 
 	case types.RelayActionVerifyTx:
+		if action.GetVerify() == nil {
+			return nil, types.ErrInputPara
+		}
 		return actiondb.verifyTx(action.GetVerify())
 
 	// OrderId, rawTx, index sibling, blockhash
 	case types.RelayActionVerifyCmdTx:
+		if action.GetVerifyCli() == nil {
+			return nil, types.ErrInputPara
+		}
 		return actiondb.verifyCmdTx(action.GetVerifyCli())
 
 	case types.RelayActionRcvBTCHeaders:
+		if action.GetBtcHeaders() == nil {
+			return nil, types.ErrInputPara
+		}
 		return actiondb.saveBtcHeader(action.GetBtcHeaders(), r.GetLocalDB())
 
 	default:

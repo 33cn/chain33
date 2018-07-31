@@ -57,7 +57,8 @@ function genFirstChainPritx() {
         priAdd="0a9d212b2505aefaa8da370319088bbccfac097b007f52ed71d8133456c8185823c8eac43c5e937953d7b6c8e68b0db1f4f03df4946a29f524875118960a35fb"
         note="pub2priv_test"
         amount=10
-        pub2priv "${name}" $fromAdd $priAdd $note $amount
+        expire=0
+        pub2priv "${name}" $fromAdd $priAdd $note $amount $expire
 
         sleep 1
         height=$(${name} block last_header | jq ".height")
@@ -74,7 +75,8 @@ function genFirstChainPritx() {
         note="priv2priv_test"
         amount=3
         mixcount=0
-        priv2priv "${name}" $fromAdd $priAdd $note $amount $mixcount
+        expire=0
+        priv2priv "${name}" $fromAdd $priAdd $note $amount $mixcount $expire
         priTxHashs1[$priTxindex]=$PrigStr
         priTxindex=$((priTxindex + 1))
 
@@ -92,7 +94,8 @@ function genFirstChainPritx() {
         note="priv2pub_test"
         amount=2
         mixcount=0
-        priv2pub "${name}" $fromAdd $toAdd $note $amount $mixcount
+        expire=0
+        priv2pub "${name}" $fromAdd $toAdd $note $amount $mixcount $expire
         priTxHashs1[$priTxindex]=$PrigStr
         priTxindex=$((priTxindex + 1))
 
@@ -119,7 +122,8 @@ function genSecondChainPritx() {
         priAdd="069fdcd7a2d7cf30dfc87df6f277ae451a78cae6720a6bb05514a4a43e0622d55c854169cc63b6353234c3e65db75e7b205878b1bd94e9f698c7043b27fa162b"
         note="pub2priv_test"
         amount=10
-        pub2priv "${name}" $fromAdd $priAdd $note $amount
+        expire=0
+        pub2priv "${name}" $fromAdd $priAdd $note $amount $expire
 
         sleep 1
         height=$(${name} block last_header | jq ".height")
@@ -137,7 +141,8 @@ function genSecondChainPritx() {
         note="priv2priv_test"
         amount=2
         mixcount=0
-        priv2priv "${name}" $fromAdd $priAdd $note $amount $mixcount
+        expire=0
+        priv2priv "${name}" $fromAdd $priAdd $note $amount $mixcount $expire
         priTxHashs2[$priTxindex]=$PrigStr
         priTxindex=$((priTxindex + 1))
 
@@ -155,7 +160,8 @@ function genSecondChainPritx() {
         note="priv2pub_test"
         amount=2
         mixcount=0
-        priv2pub "${name}" $fromAdd $toAdd $note $amount $mixcount
+        expire=0
+        priv2pub "${name}" $fromAdd $toAdd $note $amount $mixcount $expire
         priTxHashs2[$priTxindex]=$PrigStr
         priTxindex=$((priTxindex + 1))
 

@@ -365,3 +365,16 @@ const (
 	RelayActionVerifyCmdTx
 	RelayActionRcvBTCHeaders
 )
+
+// RescanUtxoFlag
+const (
+	UtxoFlagNoScan  int32 = 0
+	UtxoFlagScaning int32 = 1
+	UtxoFlagScanEnd int32 = 2
+)
+
+var RescanFlagMapint2string = map[int32]string{
+	UtxoFlagNoScan:  "UtxoFlagNoScan",
+	UtxoFlagScaning: "UtxoFlagScaning",
+	UtxoFlagScanEnd: "UtxoFlagScanEnd",
+}

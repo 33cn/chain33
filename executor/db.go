@@ -39,23 +39,28 @@ func NewStateDB(client queue.Client, stateHash []byte, enableMVCC bool, flagMVCC
 
 func (s *StateDB) Begin() {
 	s.intx = true
+	s.txcache = nil
 }
 
 func (s *StateDB) Rollback() {
-	s.intx = false
-	s.txcache = make(map[string][]byte)
+	s.resetTx()
 }
 
 func (s *StateDB) Commit() {
-	s.intx = false
 	for k, v := range s.txcache {
 		s.cache[k] = v
 	}
+	s.resetTx()
+}
+
+func (s *StateDB) resetTx() {
+	s.intx = false
+	s.txcache = nil
 }
 
 func (s *StateDB) Get(key []byte) ([]byte, error) {
 	skey := string(key)
-	if s.intx {
+	if s.intx && s.txcache != nil {
 		if value, ok := s.txcache[skey]; ok {
 			return value, nil
 		}
@@ -74,6 +79,9 @@ func (s *StateDB) Get(key []byte) ([]byte, error) {
 				return data, nil
 			}
 		}
+	}
+	if s.client == nil {
+		return nil, types.ErrNotFound
 	}
 	query := &types.StoreGet{s.stateHash, [][]byte{key}}
 	msg := s.client.NewMessage("store", types.EventStoreGet, query)
@@ -98,6 +106,9 @@ func (s *StateDB) Get(key []byte) ([]byte, error) {
 func (s *StateDB) Set(key []byte, value []byte) error {
 	skey := string(key)
 	if s.intx {
+		if s.txcache == nil {
+			s.txcache = make(map[string][]byte)
+		}
 		s.txcache[skey] = value
 	} else {
 		s.cache[skey] = value
@@ -105,19 +116,15 @@ func (s *StateDB) Set(key []byte, value []byte) error {
 	return nil
 }
 
-func (db *StateDB) BatchGet(keys [][]byte) (value [][]byte, err error) {
-	query := &types.StoreGet{db.stateHash, keys}
-	msg := db.client.NewMessage("store", types.EventStoreGet, query)
-	db.client.Send(msg, true)
-	resp, err := db.client.Wait(msg)
-	if err != nil {
-		panic(err) //no happen for ever
+func (db *StateDB) BatchGet(keys [][]byte) (values [][]byte, err error) {
+	for _, key := range keys {
+		v, err := db.Get(key)
+		if err != nil && err != types.ErrNotFound {
+			return nil, err
+		}
+		values = append(values, v)
 	}
-	value = resp.GetData().(*types.StoreReplyValue).Values
-	if value == nil {
-		return nil, types.ErrNotFound
-	}
-	return value, nil
+	return values, nil
 }
 
 type LocalDB struct {
@@ -160,17 +167,12 @@ func (l *LocalDB) Set(key []byte, value []byte) error {
 }
 
 func (db *LocalDB) BatchGet(keys [][]byte) (values [][]byte, err error) {
-	query := &types.LocalDBGet{keys}
-	msg := db.client.NewMessage("blockchain", types.EventLocalGet, query)
-	db.client.Send(msg, true)
-	resp, err := db.client.Wait(msg)
-	if err != nil {
-		panic(err) //no happen for ever
-	}
-	values = resp.GetData().(*types.LocalReplyValue).Values
-	if values == nil {
-		//panic(string(key))
-		return nil, types.ErrNotFound
+	for _, key := range keys {
+		v, err := db.Get(key)
+		if err != nil && err != types.ErrNotFound {
+			return nil, err
+		}
+		values = append(values, v)
 	}
 	return values, nil
 }
