@@ -402,6 +402,9 @@ It has these top-level messages:
 	ReqRescanUtxos
 	RepRescanResult
 	RepRescanUtxos
+	ReqEnablePrivacy
+	PrivacyAddress
+	RepEnablePrivacy
 	PrivacySignatureParam
 */
 package types
