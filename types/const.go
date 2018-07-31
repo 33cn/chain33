@@ -20,6 +20,7 @@ const (
 	UserEvmString   = "user.evm."
 	UserEvmX        = "user.evm."
 	CertX           = "cert"
+	GameX           = "game"
 )
 
 var (
@@ -38,6 +39,7 @@ var (
 	ExecerConfig   = []byte("config")
 	ExecerCert     = []byte(CertX)
 	UserEvm        = []byte(UserEvmString)
+	ExecerGame     = []byte(GameX)
 )
 
 const (
@@ -197,6 +199,12 @@ const (
 	TyLogCallContract = 603
 	// 合约状态数据变更项日志
 	TyLogEVMStateChangeItem = 604
+
+	//log for game
+	TyLogCreateGame = 711
+	TyLogMatchGame  = 712
+	TyLogCancleGame = 713
+	TyLogCloseGame  = 714
 )
 
 //exec type
@@ -378,3 +386,11 @@ var RescanFlagMapint2string = map[int32]string{
 	UtxoFlagScaning: "UtxoFlagScaning",
 	UtxoFlagScanEnd: "UtxoFlagScanEnd",
 }
+
+//game action ty
+const (
+	GameActionCreate = iota
+	GameActionMatch
+	GameActionCancel
+	GameActionClose
+)
