@@ -24,6 +24,8 @@ const (
 	IsMatcherWin = 2
 	//开奖超时
 	IsTimeOut = 3
+	//从有matcher参与游戏开始计算本局游戏开奖的有效时间，单位为天
+	Active_Time = 1
 )
 
 //game 的状态变化：
@@ -81,10 +83,10 @@ type Action struct {
 	execaddr     string
 }
 
-func NewAction(t *Game, tx *types.Transaction) *Action {
+func NewAction(g *Game, tx *types.Transaction) *Action {
 	hash := tx.Hash()
 	fromaddr := tx.From()
-	return &Action{t.GetCoinsAccount(), t.GetStateDB(), hash, fromaddr, t.GetBlockTime(), t.GetHeight(), t.GetAddr()}
+	return &Action{g.GetCoinsAccount(), g.GetStateDB(), hash, fromaddr, g.GetBlockTime(), g.GetHeight(), g.GetAddr()}
 }
 func (action *Action) saveStateDB(key, value []byte) {
 	action.db.Set(key, value)
@@ -199,7 +201,6 @@ func (action *Action) GameCancel(cancel *types.GameCancel) (*types.Receipt, erro
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
 }
 
-//TODO:时间控制，后面待完善
 func (action *Action) GameClose(close *types.GameClose) (*types.Receipt, error) {
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
@@ -209,10 +210,20 @@ func (action *Action) GameClose(close *types.GameClose) (*types.Receipt, error) 
 			close.GetGameId(), "err", err)
 		return nil, err
 	}
+	//开奖时间控制
+	if action.fromaddr != game.GetCreateAddress() && !action.checkGameIsTimeOut(game) {
+		//如果不是游戏创建者开奖，则检查是否超时
+		glog.Error(types.ErrGameCloseAddr.Error())
+		return nil, types.ErrGameCloseAddr
+	} else if action.fromaddr == game.GetCreateAddress() && action.checkGameIsTimeOut(game) {
+		//当超过游戏开奖时间，此时，禁止游戏创建者去开奖，只能由其他人开奖
+		glog.Error(types.ErrGameTimeOut.Error())
+		return nil, types.ErrGameTimeOut
+	}
 	//TODO:开奖涉及的一系列参数检查，后面需要补充
 	if game.GetStatus() != types.GameActionMatch {
 		glog.Error("the game status is not match.")
-		return nil, types.ErrInputPara // TODO
+		return nil, types.ErrInputPara
 	}
 	result := action.checkGameResult(game, close)
 	if result == IsCreatorWin {
@@ -304,6 +315,7 @@ func (action *Action) GameClose(close *types.GameClose) (*types.Receipt, error) 
 		logs = append(logs, receipt.Logs...)
 		kv = append(kv, receipt.KV...)
 	}
+	game.Closetime = action.blocktime
 	game.Status = types.GameActionClose
 	action.saveGameToStateDB(game)
 	receiptLog := action.GetReceiptLog(game)
@@ -311,6 +323,16 @@ func (action *Action) GameClose(close *types.GameClose) (*types.Receipt, error) 
 	kvs := action.GetKVSet(game)
 	kv = append(kv, kvs...)
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
+}
+
+// 检查开奖是否超时，若超过一天，则不让庄家开奖，但其他人可以开奖，
+// 若没有一天，则其他人没有开奖权限，只有庄家有开奖权限
+func (action *Action) checkGameIsTimeOut(game *types.Game) bool {
+	DurTime := 60 * 60 * 24 * Active_Time
+	if action.blocktime > (game.GetMatchTime() + int64(DurTime)) {
+		return true
+	}
+	return false
 }
 
 //根据传入密钥，揭晓游戏结果,只返回庄家是否取胜
