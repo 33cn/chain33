@@ -289,6 +289,11 @@ func (g *Grpc) RescanUtxos(ctx context.Context, in *pb.ReqRescanUtxos) (*pb.RepR
 	return g.cli.RescanUtxos(in)
 }
 
+// 使能隐私账户
+func (g *Grpc) EnablePrivacy(ctx context.Context, in *pb.ReqEnablePrivacy) (*pb.RepEnablePrivacy, error) {
+	return g.cli.EnablePrivacy(in)
+}
+
 // 创建绑定挖矿
 func (g *Grpc) CreateBindMiner(ctx context.Context, in *pb.ReqBindMiner) (*pb.ReplyBindMiner, error) {
 	if in.Amount%(10000*pb.Coin) != 0 || in.Amount < 0 {

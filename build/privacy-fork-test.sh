@@ -12,6 +12,9 @@ priTotalAmount2="300.0000"
 
 function initPriAccount() {
     name="${CLI}"
+    enablePrivacy "${name}"
+    sleep 1
+
     fromAdd="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
     execAdd="1FeyE6VDZ4FYgpK1n2okWMDAtPkwBuooQd"
     note="test"
@@ -21,6 +24,9 @@ function initPriAccount() {
     sleep 1
 
     name="${CLI4}"
+    enablePrivacy "${name}"
+    sleep 1
+
     fromAdd="1EDnnePAZN48aC2hiTDzhkczfF39g1pZZX"
     execAdd="1FeyE6VDZ4FYgpK1n2okWMDAtPkwBuooQd"
     note="test"
@@ -384,6 +390,13 @@ function showPrivacyTotalAmount() {
     result=$($name privacy showpai -a "${fromAdd}" -d 0 | jq -r ".TotalAmount")
     printf 'AvailableAmount %s \n' "${result}"
     PrigStr=$result
+}
+
+# $1 name
+function enablePrivacy() {
+    name=$1
+    printf '==========enablePrivacy name=%s ==========\n' "${name}"
+    $name privacy enablePrivacy -f 0
 }
 
 # $1 name

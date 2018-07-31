@@ -1172,28 +1172,13 @@ func (wallet *Wallet) getPrivacykeyPair(addr string) (*privacy.Privacy, error) {
 		copy(privacyInfo.SpendPrivKey[:], decrypteredSpend)
 
 		return privacyInfo, nil
+	} else {
+		_, err := wallet.getPrivKeyByAddr(addr)
+		if err != nil {
+			return nil, err
+		}
+		return nil, types.ErrPrivacyNotExist
 	}
-	priv, err := wallet.getPrivKeyByAddr(addr)
-	if err != nil {
-		return nil, err
-	}
-
-	newPrivacy, err := privacy.NewPrivacyWithPrivKey((*[privacy.KeyLen32]byte)(unsafe.Pointer(&priv.Bytes()[0])))
-	if err != nil {
-		return nil, err
-	}
-
-	encrypteredView := CBCEncrypterPrivkey([]byte(wallet.Password), newPrivacy.ViewPrivKey.Bytes())
-	encrypteredSpend := CBCEncrypterPrivkey([]byte(wallet.Password), newPrivacy.SpendPrivKey.Bytes())
-	walletPrivacy := &types.WalletAccountPrivacy{
-		ViewPubkey:   newPrivacy.ViewPubkey[:],
-		ViewPrivKey:  encrypteredView,
-		SpendPubkey:  newPrivacy.SpendPubkey[:],
-		SpendPrivKey: encrypteredSpend,
-	}
-	//save the privacy created to wallet db
-	wallet.walletStore.SetWalletAccountPrivacy(addr, walletPrivacy)
-	return newPrivacy, nil
 }
 
 func (wallet *Wallet) showPrivacyAccountsSpend(req *types.ReqPrivBal4AddrToken) (*types.UTXOHaveTxHashs, error) {
@@ -1254,17 +1239,22 @@ func (wallet *Wallet) getPrivacyKeyPairsOfWalletNolock() ([]addrAndprivacy, erro
 		return nil, err
 	}
 
-	infoPriRes := make([]addrAndprivacy, len(WalletAccStores))
-	for index, AccStore := range WalletAccStores {
+	var infoPriRes []addrAndprivacy
+	for _, AccStore := range WalletAccStores {
 		if len(AccStore.Addr) != 0 {
 			if privacyInfo, err := wallet.getPrivacykeyPair(AccStore.Addr); err == nil {
 				var priInfo addrAndprivacy
 				priInfo.Addr = &AccStore.Addr
 				priInfo.PrivacyKeyPair = privacyInfo
-				infoPriRes[index] = priInfo
+				infoPriRes = append(infoPriRes, priInfo)
 			}
 		}
 	}
+
+	if 0 == len(infoPriRes) {
+		return nil, types.ErrPrivacyNotExist
+	}
+
 	return infoPriRes, nil
 }
 
@@ -1722,4 +1712,64 @@ func (wallet *Wallet) calcPrivacyBalace(addr, token string) (uamout int64, famou
 	}
 	return
 
+}
+
+func (wallet *Wallet) EnablePrivacy(req *types.ReqEnablePrivacy) (*types.RepEnablePrivacy, error) {
+	var addrs []string
+	if 0 == len(req.Addrs) {
+		WalletAccStores, err := wallet.walletStore.GetAccountByPrefix("Account")
+		if err != nil || len(WalletAccStores) == 0 {
+			walletlog.Info("enablePrivacy", "GetAccountByPrefix:err", err)
+			return nil, types.ErrNotFound
+		}
+		for _, WalletAccStore := range WalletAccStores {
+			addrs = append(addrs, WalletAccStore.Addr)
+		}
+	} else {
+		addrs = append(addrs, req.Addrs...)
+	}
+
+	var rep types.RepEnablePrivacy
+	for _, addr := range addrs {
+		var privacyInfo *privacy.Privacy
+		privacyInfo, err := wallet.getPrivacykeyPair(addr)
+		if err != nil {
+			privacyInfo, err = wallet.savePrivacykeyPair(addr)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		priAddrs := &types.PrivacyAddress{
+			Addr:       addr,
+			Pubkeypair: makeViewSpendPubKeyPairToString(privacyInfo.ViewPubkey[:], privacyInfo.SpendPubkey[:]),
+		}
+
+		rep.PriAddrs = append(rep.PriAddrs, priAddrs)
+	}
+	return &rep, nil
+}
+
+func (wallet *Wallet) savePrivacykeyPair(addr string) (*privacy.Privacy, error) {
+	priv, err := wallet.getPrivKeyByAddr(addr)
+	if err != nil {
+		return nil, err
+	}
+
+	newPrivacy, err := privacy.NewPrivacyWithPrivKey((*[privacy.KeyLen32]byte)(unsafe.Pointer(&priv.Bytes()[0])))
+	if err != nil {
+		return nil, err
+	}
+
+	encrypteredView := CBCEncrypterPrivkey([]byte(wallet.Password), newPrivacy.ViewPrivKey.Bytes())
+	encrypteredSpend := CBCEncrypterPrivkey([]byte(wallet.Password), newPrivacy.SpendPrivKey.Bytes())
+	walletPrivacy := &types.WalletAccountPrivacy{
+		ViewPubkey:   newPrivacy.ViewPubkey[:],
+		ViewPrivKey:  encrypteredView,
+		SpendPubkey:  newPrivacy.SpendPubkey[:],
+		SpendPrivKey: encrypteredSpend,
+	}
+	//save the privacy created to wallet db
+	wallet.walletStore.SetWalletAccountPrivacy(addr, walletPrivacy)
+	return newPrivacy, nil
 }

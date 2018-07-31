@@ -1661,3 +1661,12 @@ func (c *Chain33) RescanUtxos(in types.ReqRescanUtxos, result *interface{}) erro
 	*result = reply
 	return nil
 }
+
+func (c *Chain33) EnablePrivacy(in types.ReqEnablePrivacy, result *interface{}) error {
+	reply, err := c.cli.EnablePrivacy(&in)
+	if err != nil {
+		return err
+	}
+	*result = reply
+	return nil
+}
