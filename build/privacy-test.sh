@@ -168,24 +168,24 @@ function makeTransactionIn3Step() {
 
     height=$(${name} block last_header | jq ".height")
     amount=10
-    expire=$((height + 4))
+    expire=$((height + 2))
     printf '公对私交易 高度为:%s 转账金额为:%s \n' "${height}" "${amount}"
-    createPrivacyPub2PrivTx "${name}" $pk1 $amount $expire
-    signRawTx "${name}" $fromAddr1 $returnStr1
-    sendRawTx "${name}" $returnStr1
-    echo $returnStr1
+    createPrivacyPub2PrivTx "${name}" "$pk1" $amount $expire
+    signRawTx "${name}" "$fromAddr1" "$returnStr1"
+    sendRawTx "${name}" "$returnStr1"
+    echo "$returnStr1"
     block_wait_timeout "${name}" 1 15
 
     height=$(${name} block last_header | jq ".height")
     printf '发送私对私交易当前高度 %s \n' "${height}"
     amount=4
-    expire=$((height + 4))
+    expire=$((height + 2))
     printf '私对私交易 高度为:%s 转账金额为:%s \n' "${height}" "${amount}"
-    createPrivacyPriv2PrivTx "${name}" $pk2 $amount $fromAddr1 $expire
-    signRawTx "${name}" $fromAddr1 $returnStr1
-    sendRawTx "${name}" $returnStr1
-    echo $returnStr1
-    if [ $group -eq 1 ]; then
+    createPrivacyPriv2PrivTx "${name}" "$pk2" $amount "$fromAddr1" $expire
+    signRawTx "${name}" "$fromAddr1" "$returnStr1"
+    sendRawTx "${name}" "$returnStr1"
+    echo "$returnStr1"
+    if [ "$group" -eq 1 ]; then
         priTxHashs1[$priTxindex]=$returnStr1
         priTxindex=$((priTxindex + 1))
     else
@@ -200,11 +200,11 @@ function makeTransactionIn3Step() {
     from=$fromAddr1
     to=$fromAddr1
     # 4个区块高度以后过期
-    expire=$((height + 4))
-    createPrivacyPriv2PubTx "${name}" $from $to $amount $expire
-    signRawTx "${name}" $from $returnStr1
-    sendRawTx "${name}" $returnStr1
-    echo $returnStr1
+    expire=$((height + 2))
+    createPrivacyPriv2PubTx "${name}" "$from" "$to" $amount $expire
+    signRawTx "${name}" "$from" "$returnStr1"
+    sendRawTx "${name}" "$returnStr1"
+    echo "$returnStr1"
     if [ $group -eq 1 ]; then
         priTxHashs1[$priTxindex]=$returnStr1
         priTxindex=$((priTxindex + 1))
@@ -285,7 +285,7 @@ function checkPrivacyRunResult() {
     echo "====================检查第一组docker运行结果================="
     for ((i = 0; i < ${#priTxHashs1[*]}; i++)); do
         txHash=${priTxHashs1[$i]}
-        txQuery "${name1}" $txHash
+        txQuery "${name1}" "$txHash"
         result=$?
         if [ $result -eq 0 ]; then
             priTxFee1=$((priTxFee1 + 1))
@@ -308,7 +308,7 @@ function checkPrivacyRunResult() {
     echo "====================检查第二组docker运行结果================="
     for ((i = 0; i < ${#priTxHashs2[*]}; i++)); do
         txHash=${priTxHashs2[$i]}
-        txQuery "${name2}" $txHash
+        txQuery "${name2}" "$txHash"
         result=$?
         if [ $result -eq 0 ]; then
             priTxFee2=$((priTxFee2 + 1))
@@ -381,8 +381,8 @@ function runPrivacyTestType1() {
     initTestEnv
 
     echo "===== 开始执行分叉超时测试 ====="
-    switchToDockerGroup1
-    buildTransactionInGroup1
+    #switchToDockerGroup1
+    #buildTransactionInGroup1
     switchToDockerGroup2
     buildTransactionInGroup2
     echo "===== 执行分叉超时测试结束 ====="
