@@ -33,22 +33,12 @@ var (
 )
 
 const (
-	// 分成3步操作中
-	cacheTxStatus_Created int32 = 10000
-	cacheTxStatus_Signed  int32 = 10001
-	cacheTxStatus_Sent    int32 = 10002
 	// 交易操作的方向
 	AddTx int32 = 20001
 	DelTx int32 = 20002
 	// 交易收发方向
 	sendTx int32 = 30001
 	recvTx int32 = 30002
-)
-
-const (
-	utxoFlagNoScan  int32 = 0
-	utxoFlagScaning int32 = 1
-	utxoFlagReScan  int32 = 2
 )
 
 type Wallet struct {
@@ -133,7 +123,7 @@ func New(cfg *types.Wallet) *Wallet {
 		done:             make(chan struct{}),
 		cfg:              cfg,
 		rescanwg:         &sync.WaitGroup{},
-		rescanUTXOflag:   utxoFlagNoScan,
+		rescanUTXOflag:   types.UtxoFlagNoScan,
 	}
 	value, _ := walletStore.db.Get([]byte("WalletAutoMiner"))
 	if value != nil && string(value) == "1" {
@@ -197,10 +187,6 @@ func (wallet *Wallet) SetQueueClient(cli queue.Client) {
 	//开启检查FTXO的协程
 	wallet.wg.Add(1)
 	go wallet.checkWalletStoreData()
-
-	//需要标记重新扫描UTXO
-	wallet.wg.Add(1)
-	go wallet.reScanWalletUtxos()
 
 }
 
@@ -403,21 +389,6 @@ func (wallet *Wallet) GetWalletAccounts() ([]*types.WalletAccountStore, error) {
 		return nil, err
 	}
 	return WalletAccStores, err
-}
-
-func (wallet *Wallet) reScanWalletUtxos() {
-	walletlog.Debug("RescanAllUTXO begin!")
-
-	priExecAddr := address.ExecAddress(types.PrivacyX)
-	go wallet.RescanReqUtxosByAddr(priExecAddr)
-
-	walletlog.Debug("RescanAllUTXO sucess!")
-}
-
-//从blockchain模块同步addr参与的所有交易详细信息
-func (wallet *Wallet) RescanReqUtxosByAddr(addr string) {
-	defer wallet.wg.Done()
-	wallet.reqUtxosByAddr(addr)
 }
 
 func (wallet *Wallet) updateLastHeader(block *types.BlockDetail, mode int) error {

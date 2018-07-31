@@ -10,6 +10,8 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/version"
 	"gitlab.33.cn/chain33/chain33/types"
+	hashlocktype "gitlab.33.cn/chain33/chain33/types/executor/hashlock"
+	retrievetype "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
 	tokentype "gitlab.33.cn/chain33/chain33/types/executor/token"
 	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
 )
@@ -94,16 +96,6 @@ func (c *Chain33) SendTransaction(in RawParm, result *interface{}) error {
 	reply, err := c.cli.SendTx(&parm)
 	if err == nil {
 		*result = common.ToHex(reply.GetMsg())
-	}
-	isok := false
-	if reply != nil {
-		isok = reply.IsOk
-	}
-	if bytes.Equal(parm.Execer, types.ExecerPrivacy) {
-		c.cli.NotifySendTxResult(&types.ReqNotifySendTxResult{
-			Isok: isok,
-			Tx:   &parm,
-		})
 	}
 	return err
 }
@@ -437,6 +429,49 @@ func (c *Chain33) ImportPrivkey(in types.ReqWalletImportPrivKey, result *interfa
 
 func (c *Chain33) SendToAddress(in types.ReqWalletSendToAddress, result *interface{}) error {
 	log.Debug("Rpc SendToAddress", "Tx", in)
+	if types.IsPara() {
+		createTx := &types.CreateTx{
+			To:          in.GetTo(),
+			Amount:      in.GetAmount(),
+			Fee:         1e5,
+			Note:        in.GetNote(),
+			IsWithdraw:  false,
+			IsToken:     true,
+			TokenSymbol: in.GetTokenSymbol(),
+			ExecName:    types.ExecName(types.TokenX),
+		}
+		tx, err := c.cli.CreateRawTransaction(createTx)
+		if err != nil {
+			log.Debug("ParaChain CreateRawTransaction", "Error", err.Error())
+			return err
+		}
+		//不需要自己去导出私钥，signRawTx 里面只需带入公钥地址，也回优先去查出相应的私钥，前提是私钥已经导入
+		reqSignRawTx := &types.ReqSignRawTx{
+			Addr:    in.From,
+			Privkey: "",
+			TxHex:   hex.EncodeToString(tx),
+			Expire:  "300s",
+			Index:   0,
+			Token:   "",
+		}
+		replySignRawTx, err := c.cli.SignRawTx(reqSignRawTx)
+		if err != nil {
+			log.Debug("ParaChain SignRawTx", "Error", err.Error())
+			return err
+		}
+		rawParm := RawParm{
+			Token: "",
+			Data:  replySignRawTx.GetTxHex(),
+		}
+		var txHash interface{}
+		err = forwardTranToMainNet(rawParm, &txHash)
+		if err != nil {
+			log.Debug("ParaChain forwardTranToMainNet", "Error", err.Error())
+			return err
+		}
+		*result = &ReplyHash{Hash: txHash.(string)}
+		return nil
+	}
 	reply, err := c.cli.WalletSendToAddress(&in)
 	if err != nil {
 		log.Debug("SendToAddress", "Error", err.Error())
@@ -977,6 +1012,15 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		} else {
 			pl = &action
 		}
+	} else if types.ExecName(types.RetrieveX) == string(tx.Execer) {
+		var action types.RetrieveAction
+		err := types.Decode(tx.GetPayload(), &action)
+		if err != nil {
+			unkownPl["unkownpayload"] = string(tx.GetPayload())
+			pl = unkownPl
+		} else {
+			pl = &action
+		}
 	} else if "user.write" == string(tx.Execer) {
 		pl = decodeUserWrite(tx.GetPayload())
 	} else {
@@ -1172,6 +1216,76 @@ func (c *Chain33) CreateRawTradeRevokeBuyTx(in *tradetype.TradeRevokeBuyTx, resu
 	return nil
 }
 
+func (c *Chain33) CreateRawRetrieveBackupTx(in *retrievetype.RetrieveBackupTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawRetrieveBackupTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Chain33) CreateRawRetrievePrepareTx(in *retrievetype.RetrievePrepareTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawRetrievePrepareTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Chain33) CreateRawRetrievePerformTx(in *retrievetype.RetrievePerformTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawRetrievePerformTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Chain33) CreateRawRetrieveCancelTx(in *retrievetype.RetrieveCancelTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawRetrieveCancelTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Chain33) CreateRawHashlockLockTx(in *hashlocktype.HashlockLockTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawHashlockLockTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Chain33) CreateRawHashlockUnlockTx(in *hashlocktype.HashlockUnlockTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawHashlockUnlockTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Chain33) CreateRawHashlockSendTx(in *hashlocktype.HashlockSendTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawHashlockSendTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
 func (c *Chain33) SignRawTx(in *types.ReqSignRawTx, result *interface{}) error {
 	resp, err := c.cli.SignRawTx(in)
 	if err != nil {
@@ -1287,11 +1401,11 @@ func (c *Chain33) CreateBindMiner(in *types.ReqBindMiner, result *interface{}) e
 	}
 	err := address.CheckAddress(in.BindAddr)
 	if err != nil {
-		return err
+		return types.ErrInvalidAddress
 	}
 	err = address.CheckAddress(in.OriginAddr)
 	if err != nil {
-		return err
+		return types.ErrInvalidAddress
 	}
 
 	if in.CheckBalance {
@@ -1386,34 +1500,6 @@ func (c *Chain33) CreateTrasaction(in types.ReqCreateTransaction, result *interf
 	}
 	txHex := types.Encode(reply)
 	*result = hex.EncodeToString(txHex)
-	return nil
-}
-
-// QueryCacheTransaction 查询由服务器创建未发送的交易列表
-func (c *Chain33) QueryCacheTransaction(in types.ReqCacheTxList, result *interface{}) error {
-	reply, err := c.cli.QueryCacheTransaction(&in)
-	if err != nil {
-		return err
-	}
-	cacheTxList := &ReplyCacheTxList{}
-	for _, fromtx := range reply.Txs {
-		totx, err := DecodeTx(fromtx)
-		if err != nil {
-			continue
-		}
-		cacheTxList.Txs = append(cacheTxList.Txs, totx)
-	}
-	*result = cacheTxList
-	return nil
-}
-
-// DeleteCacheTransaction 删除由服务器创建未发送的交易列表
-func (c *Chain33) DeleteCacheTransaction(in types.ReqCreateCacheTxKey, result *interface{}) error {
-	reply, err := c.cli.DeleteCacheTransaction(&in)
-	if err != nil {
-		return err
-	}
-	*result = common.ToHex(reply.GetMsg())
 	return nil
 }
 
@@ -1604,5 +1690,14 @@ func (c *Chain33) PrivacyTxList(in *types.ReqPrivacyTransactionList, result *int
 		c.convertWalletTxDetailToJson(reply, &txdetails)
 		*result = &txdetails
 	}
+	return nil
+}
+
+func (c *Chain33) RescanUtxos(in types.ReqRescanUtxos, result *interface{}) error {
+	reply, err := c.cli.RescanUtxos(&in)
+	if err != nil {
+		return err
+	}
+	*result = reply
 	return nil
 }

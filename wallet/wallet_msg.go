@@ -338,29 +338,6 @@ func (wallet *Wallet) ProcRecvMsg() {
 				walletlog.Info("procCreateTransaction", "tx hash", common.Bytes2Hex(reply.Hash()), "result", "success")
 				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyCreateTransaction, reply))
 			}
-		case types.EventQueryCacheTransaction:
-			req := msg.Data.(*types.ReqCacheTxList)
-			reply, err := wallet.procReqCacheTxList(req)
-			if err != nil {
-				walletlog.Error("procReqCacheTxList", "err", err.Error())
-				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyQueryCacheTransaction, err))
-			} else {
-				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyQueryCacheTransaction, reply))
-			}
-		case types.EventDeleteCacheTransaction:
-			req := msg.Data.(*types.ReqCreateCacheTxKey)
-			replyHash, err := wallet.procDeleteCacheTransaction(req)
-			var reply types.Reply
-			if err != nil {
-				reply.IsOk = false
-				walletlog.Error("procDeleteCacheTransaction", "err", err.Error())
-				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyDeleteCacheTransaction, err))
-			} else {
-				reply.IsOk = true
-				reply.Msg = replyHash.Hash
-				walletlog.Info("procDeleteCacheTransaction", "tx hash", common.Bytes2Hex(replyHash.Hash), "result", "success")
-				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyDeleteCacheTransaction, &reply))
-			}
 		case types.EventPrivacyAccountInfo:
 			req := msg.Data.(*types.ReqPPrivacyAccount)
 			reply, err := wallet.procPrivacyAccountInfo(req)
@@ -369,16 +346,6 @@ func (wallet *Wallet) ProcRecvMsg() {
 				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyPrivacyAccountInfo, err))
 			} else {
 				walletlog.Info("procPrivacyAccountInfo", "req", req)
-				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyPrivacyAccountInfo, reply))
-			}
-		case types.EventNotifySendTxResult:
-			req := msg.Data.(*types.ReqNotifySendTxResult)
-			reply, err := wallet.procNotifySendTxResult(req)
-			if err != nil {
-				walletlog.Error("procNotifySendTxResult", "err", err.Error())
-				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyPrivacyAccountInfo, err))
-			} else {
-				walletlog.Info("procNotifySendTxResult", "req", req)
 				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyPrivacyAccountInfo, reply))
 			}
 
@@ -391,6 +358,16 @@ func (wallet *Wallet) ProcRecvMsg() {
 			} else {
 				walletlog.Info("procPrivacyTransactionList", "req", req)
 				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyPrivacyTransactionList, reply))
+			}
+		case types.EventRescanUtxos:
+			req := msg.Data.(*types.ReqRescanUtxos)
+			reply, err := wallet.procRescanUtxos(req)
+			if err != nil {
+				walletlog.Error("procPrivacyTransactionList", "err", err.Error())
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyRescanUtxos, err))
+			} else {
+				walletlog.Info("procPrivacyTransactionList", "req", req)
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyRescanUtxos, reply))
 			}
 
 		default:

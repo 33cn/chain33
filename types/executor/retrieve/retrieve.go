@@ -2,14 +2,17 @@ package retrieve
 
 import (
 	"encoding/json"
+	"math/rand"
+	"time"
 
-	//log "github.com/inconshreveable/log15"
+	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var name string
 
-//var tlog = log.New("module", name)
+var rlog = log.New("module", name)
 
 func Init() {
 	name = types.ExecName("retrieve")
@@ -49,9 +52,45 @@ func (r RetrieveType) Amount(tx *types.Transaction) (int64, error) {
 	return 0, nil
 }
 
-// TODO 暂时不修改实现， 先完成结构的重构
-func (ticket RetrieveType) CreateTx(action string, message json.RawMessage) (*types.Transaction, error) {
+func (retrieve RetrieveType) CreateTx(action string, message json.RawMessage) (*types.Transaction, error) {
+	rlog.Debug("retrieve.CreateTx", "action", action)
 	var tx *types.Transaction
+	if action == "RetrieveBackup" {
+		var param RetrieveBackupTx
+		err := json.Unmarshal(message, &param)
+		if err != nil {
+			rlog.Error("CreateTx", "Error", err)
+			return nil, types.ErrInputPara
+		}
+		return CreateRawRetrieveBackupTx(&param)
+	} else if action == "RetrievePrepare" {
+		var param RetrievePrepareTx
+		err := json.Unmarshal(message, &param)
+		if err != nil {
+			rlog.Error("CreateTx", "Error", err)
+			return nil, types.ErrInputPara
+		}
+		return CreateRawRetrievePrepareTx(&param)
+	} else if action == "RetrievePerform" {
+		var param RetrievePerformTx
+		err := json.Unmarshal(message, &param)
+		if err != nil {
+			rlog.Error("CreateTx", "Error", err)
+			return nil, types.ErrInputPara
+		}
+		return CreateRawRetrievePerformTx(&param)
+	} else if action == "RetrieveCancel" {
+		var param RetrieveCancelTx
+		err := json.Unmarshal(message, &param)
+		if err != nil {
+			rlog.Error("CreateTx", "Error", err)
+			return nil, types.ErrInputPara
+		}
+		return CreateRawRetrieveCancelTx(&param)
+	} else {
+		return nil, types.ErrNotSupport
+	}
+
 	return tx, nil
 }
 
@@ -85,4 +124,125 @@ func (t *RetrieveGetInfo) Input(message json.RawMessage) ([]byte, error) {
 
 func (t *RetrieveGetInfo) Output(reply interface{}) (interface{}, error) {
 	return reply, nil
+}
+
+func CreateRawRetrieveBackupTx(parm *RetrieveBackupTx) (*types.Transaction, error) {
+	if parm == nil {
+		rlog.Error("CreateRawRetrieveBackupTx", "parm", parm)
+		return nil, types.ErrInvalidParam
+	}
+
+	v := &types.BackupRetrieve{
+		BackupAddress:  parm.BackupAddr,
+		DefaultAddress: parm.DefaultAddr,
+		DelayPeriod:    parm.DelayPeriod,
+	}
+	backup := &types.RetrieveAction{
+		Ty:    types.RetrieveBackup,
+		Value: &types.RetrieveAction_Backup{v},
+	}
+	tx := &types.Transaction{
+		Execer:  []byte(name),
+		Payload: types.Encode(backup),
+		Fee:     parm.Fee,
+		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
+		To:      address.ExecAddress(name),
+	}
+
+	err := tx.SetRealFee(types.MinFee)
+	if err != nil {
+		return nil, err
+	}
+
+	return tx, nil
+}
+
+func CreateRawRetrievePrepareTx(parm *RetrievePrepareTx) (*types.Transaction, error) {
+	if parm == nil {
+		rlog.Error("CreateRawRetrievePrepareTx", "parm", parm)
+		return nil, types.ErrInvalidParam
+	}
+
+	v := &types.PreRetrieve{
+		BackupAddress:  parm.BackupAddr,
+		DefaultAddress: parm.DefaultAddr,
+	}
+	prepare := &types.RetrieveAction{
+		Ty:    types.RetrievePre,
+		Value: &types.RetrieveAction_PreRet{v},
+	}
+	tx := &types.Transaction{
+		Execer:  []byte(name),
+		Payload: types.Encode(prepare),
+		Fee:     parm.Fee,
+		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
+		To:      address.ExecAddress(name),
+	}
+
+	err := tx.SetRealFee(types.MinFee)
+	if err != nil {
+		return nil, err
+	}
+
+	return tx, nil
+}
+
+func CreateRawRetrievePerformTx(parm *RetrievePerformTx) (*types.Transaction, error) {
+	if parm == nil {
+		rlog.Error("CreateRawRetrievePrepareTx", "parm", parm)
+		return nil, types.ErrInvalidParam
+	}
+
+	v := &types.PerformRetrieve{
+		BackupAddress:  parm.BackupAddr,
+		DefaultAddress: parm.DefaultAddr,
+	}
+	perform := &types.RetrieveAction{
+		Ty:    types.RetrievePerf,
+		Value: &types.RetrieveAction_PerfRet{v},
+	}
+	tx := &types.Transaction{
+		Execer:  []byte(name),
+		Payload: types.Encode(perform),
+		Fee:     parm.Fee,
+		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
+		To:      address.ExecAddress(name),
+	}
+
+	err := tx.SetRealFee(types.MinFee)
+	if err != nil {
+		return nil, err
+	}
+
+	return tx, nil
+}
+
+func CreateRawRetrieveCancelTx(parm *RetrieveCancelTx) (*types.Transaction, error) {
+	if parm == nil {
+		rlog.Error("CreateRawRetrieveCancelTx", "parm", parm)
+		return nil, types.ErrInvalidParam
+	}
+
+	v := &types.CancelRetrieve{
+		BackupAddress:  parm.BackupAddr,
+		DefaultAddress: parm.DefaultAddr,
+	}
+	cancel := &types.RetrieveAction{
+		Ty:    types.RetrieveCancel,
+		Value: &types.RetrieveAction_Cancel{v},
+	}
+	tx := &types.Transaction{
+		Execer:  []byte(name),
+		Payload: types.Encode(cancel),
+		Fee:     parm.Fee,
+		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
+		To:      address.ExecAddress(name),
+	}
+
+	err := tx.SetRealFee(types.MinFee)
+	if err != nil {
+		return nil, err
+	}
+
+	return tx, nil
 }
