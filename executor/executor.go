@@ -17,6 +17,7 @@ import (
 	// register drivers
 	"gitlab.33.cn/chain33/chain33/executor/drivers/coins"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/game"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/hashlock"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/manage"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/none"
@@ -77,6 +78,7 @@ func execInit() {
 	relay.Init()
 	cert.Init()
 	privacy.Init()
+	game.Init()
 }
 
 var runonce sync.Once

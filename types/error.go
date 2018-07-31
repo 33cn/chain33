@@ -248,6 +248,10 @@ var (
 	ErrRelayBtcHeadBitsErr     = errors.New("ErrRelayBtcHeadBitsErr")
 	ErrRelayBtcHeadNewBitsErr  = errors.New("ErrRelayBtcHeadNewBitsErr")
 
+	//game err
+	ErrGameOpenAmount = errors.New("ErrGameOpenExceeding the maximum limit")
+	ErrGameCreateAddr = errors.New("ErrGameCreateAddr")
+
 	//authority
 	ErrValidateCertFailed  = errors.New("ErrValidateCertFailed")
 	ErrGetHistoryCertData  = errors.New("ErrGetHistoryCertData")
