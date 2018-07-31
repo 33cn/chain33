@@ -154,7 +154,7 @@ var (
 	ErrNoUTXORec4Amount       = errors.New("ErrNoUTXORec4Amount")
 	ErrNotEnoughUTXOs         = errors.New("ErrNotEnoughUTXOs")
 	ErrNoSuchPrivacyTX        = errors.New("ErrNoSuchPrivacyTX")
-	ErrDoubeSpendOccur        = errors.New("ErrDoubeSpendOccur")
+	ErrDoubleSpendOccur       = errors.New("ErrDoubleSpendOccur")
 	ErrOutputIndex            = errors.New("ErrOutputIndex")
 	ErrPubkeysOfUTXO          = errors.New("ErrPubkeysOfUTXO")
 	ErrRecoverUTXO            = errors.New("ErrRecoverUTXO")

@@ -6,7 +6,6 @@ import (
 
 	lru "github.com/hashicorp/golang-lru"
 	log "github.com/inconshreveable/log15"
-	"gitlab.33.cn/chain33/chain33/common"
 	clog "gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -206,7 +205,6 @@ func (mem *Mempool) DelBlock(block *types.Block) {
 
 	for i := 0; i < len(blkTxs); i++ {
 		tx := blkTxs[i]
-		mem.addedTxs.Remove(string(tx.Hash()))
 		if "ticket" == string(tx.Execer) {
 			var action types.TicketAction
 			err := types.Decode(tx.Payload, &action)
@@ -222,17 +220,15 @@ func (mem *Mempool) DelBlock(block *types.Block) {
 			group := types.Transactions{Txs: blkTxs[i : i+groupCount]}
 			tx = group.Tx()
 			i = i + groupCount - 1
-			mem.addedTxs.Remove(string(tx.Hash()))
 		}
 		err := tx.Check(mem.minFee)
 		if err != nil {
 			continue
 		}
-		mem.addedTxs.Remove(string(tx.Hash()))
 		if !mem.checkExpireValid(tx) {
-			mlog.Debug("PrivacyTrading Mempool DelBlock", "Invalid Expire txhash", common.Bytes2Hex(tx.Hash()))
 			continue
 		}
+		mem.addedTxs.Remove(string(tx.Hash()))
 		mem.PushTx(tx)
 	}
 }
