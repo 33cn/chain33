@@ -16,12 +16,12 @@ var (
 )
 
 func setPrefix() {
-	title = "mavl-" + types.ExecName("paracross") + "title-"
-	titleHeight = "mavl-" + types.ExecName("paracross") + "titleHeight-"
+	title = "mavl-" + types.ExecName("paracross") + "-title-"
+	titleHeight = "mavl-" + types.ExecName("paracross") + "-titleHeight-"
 	configNodes = "paracross-nodes-"
-	localTx = types.ExecName("paracross") + "titleHeightAddr-"
-	localTitle = types.ExecName("paracross") + "title-"
-	localTitleHeight = types.ExecName("paracross") + "titleHeight-"
+	localTx = types.ExecName("paracross") + "-titleHeightAddr-"
+	localTitle = types.ExecName("paracross") + "-title-"
+	localTitleHeight = types.ExecName("paracross") + "-titleHeight-"
 }
 
 func calcTitleKey(title string) []byte {
@@ -29,7 +29,7 @@ func calcTitleKey(title string) []byte {
 }
 
 func calcTitleHeightKey(title string, height int64) []byte {
-	return []byte(fmt.Sprintf(titleHeight+"%s-%012d", title, height))
+	return []byte(fmt.Sprintf(titleHeight+"%s-%d", title, height))
 }
 
 func calcConfigNodesKey(title string) []byte {
