@@ -5,6 +5,7 @@ import (
 
 	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common/address"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 // 封装地址结构体，并提供各种常用操作封装
@@ -27,8 +28,14 @@ func (a Address) Big() *big.Int {
 
 // txHash生成EVM合约地址
 func NewAddress(txHash []byte) Address {
-	execAddr := address.GetExecAddress("user.evm." + BytesToHash(txHash).Hex())
-	return Address{addr: execAddr}
+	if types.IsPara() {
+		execAddr := address.GetExecAddress("user.p.guodun.evm." + BytesToHash(txHash).Hex())
+		return Address{addr: execAddr}
+	} else {
+		execAddr := address.GetExecAddress("user.evm." + BytesToHash(txHash).Hex())
+		return Address{addr: execAddr}
+	}
+	//return Address{addr: execAddr}
 }
 
 func ExecAddress(execName string) Address {

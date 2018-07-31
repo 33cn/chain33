@@ -67,6 +67,7 @@ func (acc *DB) SetDB(db dbm.KV) *DB {
 
 func (acc *DB) LoadAccount(addr string) *types.Account {
 	value, err := acc.db.Get(acc.AccountKey(addr))
+	alog.Error("LoadAccount", "acc.AccountKey(addr)", string(acc.AccountKey(addr)))
 	if err != nil {
 		return &types.Account{Addr: addr}
 	}
@@ -243,6 +244,7 @@ func (acc *DB) LoadAccountsHistory(api client.QueueProtocolAPI, addrs []string, 
 	get := types.StoreGet{StateHash: stateHash}
 	for i := 0; i < len(addrs); i++ {
 		get.Keys = append(get.Keys, acc.AccountKey(addrs[i]))
+		alog.Error("LoadAccountsHistory", "acc.AccountKey(addrs[i])", string(acc.AccountKey(addrs[i])))
 	}
 
 	values, err := api.StoreGet(&get)
