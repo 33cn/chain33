@@ -49,7 +49,6 @@ func NewInterpreter(evm *EVM, cfg Config) *Interpreter {
 		evm:      evm,
 		cfg:      cfg,
 		gasTable: evm.GasTable(evm.BlockNumber),
-		IntPool:  mm.NewIntPool(),
 	}
 }
 
@@ -68,6 +67,14 @@ func (in *Interpreter) enforceRestrictions(op OpCode, operation Operation, stack
 // 需要注意的是，如果返回执行出错，依然会扣除剩余的Gas
 // （除非返回的是ErrExecutionReverted，这种情况下会保留剩余的Gas）
 func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err error) {
+	if in.IntPool == nil {
+		in.IntPool = mm.PoolOfIntPools.Get()
+		defer func() {
+			mm.PoolOfIntPools.Put(in.IntPool)
+			in.IntPool = nil
+		}()
+	}
+
 	// 每次递归调用，深度加1
 	in.evm.depth++
 	defer func() { in.evm.depth-- }()
@@ -97,6 +104,9 @@ func (in *Interpreter) Run(contract *Contract, input []byte) (ret []byte, err er
 		logged  bool
 	)
 	contract.Input = input
+
+	// 执行结束后，重新初始化IntPool
+	defer func() { in.IntPool.Put(stack.Items...) }()
 
 	if in.cfg.Debug {
 		defer func() {
