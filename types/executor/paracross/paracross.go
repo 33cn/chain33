@@ -26,8 +26,6 @@ const orgName = "paracross"
 
 var name string
 
-
-
 var glog = log.New("module", orgName)
 
 func Init() {
