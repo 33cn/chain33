@@ -2,30 +2,9 @@
 # shellcheck disable=SC2178
 set +e
 
-PWD=$(cd "$(dirname "$0")" && pwd)
-export PATH="$PWD:$PATH"
-
-NODE3="${1}_chain33_1"
-CLI="docker exec ${NODE3} /root/chain33-cli"
-
-NODE2="${1}_chain32_1"
-CLI2="docker exec ${NODE2} /root/chain33-cli"
-
-NODE1="${1}_chain31_1"
-CLI3="docker exec ${NODE1} /root/chain33-cli"
-
-NODE4="${1}_chain30_1"
-CLI4="docker exec ${NODE4} /root/chain33-cli"
-
-NODE5="${1}_chain29_1"
-CLI5="docker exec ${NODE5} /root/chain33-cli"
-
-NODE6="${1}_chain28_1"
-CLI6="docker exec ${NODE6} /root/chain33-cli"
-
-containers=("${NODE1}" "${NODE2}" "${NODE3}" "${NODE4}" "${NODE5}" "${NODE6}")
-forkContainers=("${CLI3}" "${CLI2}" "${CLI}" "${CLI4}" "${CLI5}" "${CLI6}")
-
+# 引入通用的函数
+# shellcheck disable=SC1091
+source comm-test.sh
 #引入隐私交易分叉测试
 # shellcheck disable=SC1091
 source privacy-fork-test.sh
@@ -204,7 +183,7 @@ function optDockerfun() {
     #1 第一种分叉构造：首先两条链进行共同挖矿，然后再分
     # 别进行挖矿，即两条链上发生分叉时候的交易是不同的。
     #############################################
-    forkType1
+    # forkType1
     #############################################
     #2 第二种分叉构造：包括第一组docker,第二组docker，
     # 以及公共节点docker，首先共同挖矿，然后停掉第二组
@@ -214,7 +193,16 @@ function optDockerfun() {
     # 然后启动第二组docker,然后发送刚刚记录签名的交易。
     # 最后启动全部节点共同挖矿
     #############################################
-    forkType2
+    # forkType2
+
+    #############################################
+    # 第三种类型分叉构造:
+    # 1.两条链共同挖矿
+    # 2.停止一条链,另一条链单独挖矿,创建几组交易,交易的超时时间比较短,回退肯定过期
+    # 3.将两条同时开启进行合并
+    # 4.检查最后的总金额是否正确
+    #############################################
+    forkType3
 
 }
 
@@ -292,6 +280,43 @@ function forkType2() {
 
     #############################################
     echo "=========== 类型2分叉测试结束 ========== "
+}
+
+function forkType3() {
+    echo "=========== 开始进行类型3分叉测试 ========== "
+    init
+
+    optDockerPart1
+    #############################################
+    #此处根据具体需求加入；如从钱包中转入某个具体合约账户
+    #1 初始化交易余额
+    initPriAccount
+
+    #############################################
+    optDockerPart2
+    #############################################
+    #此处根据具体需求加入在一条测试链中发送测试数据
+    #2 构造第一条链中交易
+    genFirstChainPritxType3
+
+    #############################################
+    optDockerPart3
+    #############################################
+    #此处根据具体需求加入在第二条测试链中发送测试数据
+    #3 构造第二条链中交易
+    genSecondChainPritxType3
+
+    #############################################
+    optDockerPart4
+    loopCount=30 #循环次数，每次循环休眠时间100s
+    checkBlockHashfun $loopCount
+    #############################################
+    #此处根据具体需求加入结果检查
+    #4 检查交易结果
+    checkPriResult
+
+    #############################################
+    echo "=========== 类型3分叉测试结束 ========== "
 }
 
 function optDockerPart1() {
