@@ -664,10 +664,5 @@ func EnablePrivacy(cmd *cobra.Command, args []string) {
 
 	var res types.RepEnablePrivacy
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.EnablePrivacy", params, &res)
-	//ctx.SetResultCb(parseEnablePrivacy)
 	ctx.Run()
 }
-
-//func parseEnablePrivacy(arg interface{}) (interface{}, error) {
-//	res := arg.(*types.RepEnablePrivacy)
-//}
