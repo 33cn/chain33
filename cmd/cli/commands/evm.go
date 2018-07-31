@@ -223,7 +223,7 @@ func callContract(cmd *cobra.Command, args []string) {
 
 	amountInt64 := uint64(amount*1e4) * 1e4
 	feeInt64 := uint64(fee*1e4) * 1e4
-	toAddr := address.ExecAddress("user.evm.0x460652e524f30840f98ea49abf3c774b8703b8385298ecf2a4c233a40d0bc303") //name
+	toAddr := address.ExecAddress(name)
 
 	bCode, err := common.FromHex(code)
 	if err != nil {
@@ -233,6 +233,7 @@ func callContract(cmd *cobra.Command, args []string) {
 
 	action := types.EVMContractAction{Amount: amountInt64, Code: bCode, GasLimit: 0, GasPrice: 0, Note: note}
 
+	//name表示发给哪个执行器
 	data, err := createEvmTx(&action, name, caller, toAddr, expire, rpcLaddr, feeInt64)
 
 	if err != nil {
