@@ -1,12 +1,14 @@
 package paracross
 
 import (
+	"bytes"
+
 	"gitlab.33.cn/chain33/chain33/account"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 	"gitlab.33.cn/chain33/chain33/types"
 	pt "gitlab.33.cn/chain33/chain33/types/executor/paracross"
 	"gitlab.33.cn/chain33/chain33/util"
-	"bytes"
 )
 
 type action struct {
@@ -66,11 +68,11 @@ func checkCommitInfo(commit *types.ParacrossCommitAction) error {
 	}
 	if len(commit.Status.MainBlockHash) == 0 || len(commit.Status.Title) == 0 || commit.Status.Height < 0 ||
 		len(commit.Status.PreBlockHash) == 0 || len(commit.Status.BlockHash) == 0 ||
-			len(commit.Status.StateHash) == 0 || len(commit.Status.PreStateHash) == 0 {
+		len(commit.Status.StateHash) == 0 || len(commit.Status.PreStateHash) == 0 {
 		return types.ErrInputPara
 	}
 
-	if ! util.ValidBitMap(commit.Status.TxResult, int(commit.Status.TxCounts)) {
+	if !util.ValidBitMap(commit.Status.TxResult, int(commit.Status.TxCounts)) {
 		return types.ErrInputPara
 	}
 
@@ -131,9 +133,17 @@ func makeDoneReceipt(addr string, commit *types.ParacrossCommitAction, current *
 		TxCounts:  commit.Status.TxCounts,
 		TxResult:  commit.Status.TxResult,
 	}
+	key := calcTitleKey(commit.Status.Title)
+	stat := &types.ParacrossStatus{
+		Title:     commit.Status.Title,
+		Height:    commit.Status.Height,
+		BlockHash: commit.Status.BlockHash,
+	}
 	return &types.Receipt{
 		Ty: types.ExecOk,
-		KV: nil,
+		KV: []*types.KeyValue{
+			{key, types.Encode(stat)},
+		},
 		Logs: []*types.ReceiptLog{
 			{
 				Ty:  types.TyLogParacrossDone,
@@ -173,7 +183,6 @@ func hasCommited(addrs []string, addr string) (bool, int) {
 	return false, 0
 }
 
-
 func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, error) {
 	err := checkCommitInfo(commit)
 	if err != nil {
@@ -185,20 +194,25 @@ func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, er
 
 	nodes, err := getNodes(a.db, commit.Status.Title)
 	if err != nil {
+		clog.Error("paracross.Commit", "getNodes", err)
 		return nil, types.ErrInputPara
 	}
 
 	if !validNode(a.fromaddr, nodes) {
+		clog.Error("paracross.Commit", "validNode", a.fromaddr)
 		return nil, types.ErrInputPara
 	}
 
 	titleStatus, err := getTitle(a.db, calcTitleKey(commit.Status.Title))
 	if err != nil {
+		clog.Error("paracross.Commit", "getTitle", a.fromaddr)
 		return nil, err
 	}
 
-	if titleStatus.Height + 1 == commit.Status.Height {
-		if bytes.Equal(titleStatus.BlockHash, commit.Status.PreBlockHash)  {
+	if titleStatus.Height+1 == commit.Status.Height {
+		if !bytes.Equal(titleStatus.BlockHash, commit.Status.PreBlockHash) {
+			clog.Error("paracross.Commit", "check PreBlockHash", common.Bytes2Hex(titleStatus.BlockHash),
+				"commit tx", common.Bytes2Hex(commit.Status.PreBlockHash))
 			return nil, types.ErrInputPara
 		}
 	}
@@ -207,24 +221,35 @@ func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, er
 	// 主链   （1）Bn1        （3） rollback-Bn1   （4） commit-done in Bn2
 	// 平行链         （2）commit                                 （5） 将得到一个错误的块
 	// 所以有必要做这个检测
-	block, err := getBlock(a.localdb, commit.Status.MainBlockHash)
+	block, err := getBlockHeader(a.localdb, commit.Status.MainBlockHash)
 	if err != nil {
+		clog.Error("paracross.Commit getBlockHeader", "db", err,
+			"commit tx hash", common.Bytes2Hex(commit.Status.MainBlockHash))
 		return nil, err
 	}
+	if !bytes.Equal(block.Hash, commit.Status.MainBlockHash) {
+		clog.Error("paracross.Commit blockHash not match", "db", common.Bytes2Hex(block.Hash),
+			"commit tx", common.Bytes2Hex(commit.Status.MainBlockHash))
+		return nil, types.ErrInputPara
+	}
 
+	clog.Debug("paracross.Commit check input done")
 	// 在完成共识之后来的， 增加 record log， 只记录不修改已经达成的共识
 	if commit.Status.Height <= titleStatus.Height {
+		clog.Info("paracross.Commit record", "node", a.fromaddr, "titile", commit.Status.Title,
+			"height", commit.Status.Height)
 		return makeRecordReceipt(a.fromaddr, commit), nil
 	}
 
 	// 未共识处理， 接受当前高度以及后续高度
 	stat, err := getTitleHeight(a.db, calcTitleHeightKey(commit.Status.Title, commit.Status.Height))
-	if err != nil && err != types.ErrNotFound {
+	if err != nil && err != dbm.ErrNotFoundInDb {
+		clog.Error("paracross.Commit getTitleHeight failed", "err", err)
 		return nil, err
 	}
 
 	var receipt *types.Receipt
-	if err == types.ErrNotFound {
+	if err == dbm.ErrNotFoundInDb {
 		stat = &types.ParacrossHeightStatus{
 			Status: pt.ParacrossStatusCommiting,
 			Title:  commit.Status.Title,
@@ -247,8 +272,10 @@ func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, er
 		}
 		receipt = makeCommitReceipt(a.fromaddr, commit, &copyStat, stat)
 	}
+	clog.Info("paracross.Commit commit", "stat", stat)
 
 	if commit.Status.Height > titleStatus.Height+1 {
+		saveTitleHeight(a.db, calcTitleHeightKey(commit.Status.Title, commit.Status.Height), stat)
 		return receipt, nil
 	}
 
@@ -269,7 +296,6 @@ func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, er
 	titleStatus.Height = commit.Status.Height
 	titleStatus.BlockHash = commit.Status.BlockHash
 	saveTitle(a.db, calcTitleKey(commit.Status.Title), titleStatus)
-
 
 	// TODO 触发交易组跨链交易
 	print(block)
