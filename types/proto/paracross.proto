@@ -17,8 +17,8 @@ message ParacrossHeightStatus {
 }
 
 message ParacrossStatus {
-    string title  = 1;
-    int64  height = 2;
+    string title     = 1;
+    int64  height    = 2;
     bytes  blockHash = 3;
 }
 
