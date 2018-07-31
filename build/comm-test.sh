@@ -75,7 +75,7 @@ function startDockers() {
 function unlockWallet() {
     name=$1
     pswd=$2
-    result=$(${name} wallet unlock -p ${pswd} -t 0 | jq ".isok")
+    result=$(${name} wallet unlock -p "${pswd}" -t 0 | jq ".isok")
     if [ "${result}" = "false" ]; then
         exit 1
     fi
@@ -90,7 +90,7 @@ function saveSeed() {
     name=$1
     pswd=$2
     seed=$3
-    result=$(${name} seed save -p ${pswd} -s "${seed}" | jq ".isok")
+    result=$(${name} seed save -p "${pswd}" -s "${seed}" | jq ".isok")
     if [ "${result}" = "false" ]; then
         echo "save seed to wallet error seed, result: ${result}"
         exit 1
@@ -106,7 +106,7 @@ function importKey() {
     name=$1
     key=$2
     label=$3
-    result=$(${name} account import_key -k ${key} -l ${label} | jq ".label")
+    result=$(${name} account import_key -k "${key}" -l "${label}" | jq ".label")
     if [ -z "${result}" ]; then
         exit 1
     fi
@@ -119,7 +119,7 @@ function importKey() {
 function setAutomine() {
     name=$1
     flag=$2
-    result=$(${name} wallet auto_mine -f ${flag} | jq ".isok")
+    result=$(${name} wallet auto_mine -f "${flag}" | jq ".isok")
     if [ "${result}" = "false" ]; then
         exit 1
     fi
@@ -130,7 +130,7 @@ function setAutomine() {
 function waitAllPeerReady() {
     name=$1
     needCount=$2
-    peersCount "${name}" $needCount
+    peersCount "${name}" "$needCount"
     peerStatus=$?
     if [ $peerStatus -eq 1 ]; then
         echo "====== peers not enough ======"
@@ -373,7 +373,7 @@ function createPrivacyPub2PrivTx() {
     amount=$3
     expire=$4
     note="public_2_privacy_transaction"
-    echo $name bty pub2priv -p "${keypair}" -a "${amount}" -n "${note}" --expire "${expire}"
+    echo "$name" bty pub2priv -p "${keypair}" -a "${amount}" -n "${note}" --expire "${expire}"
     result=$($name bty pub2priv -p "${keypair}" -a "${amount}" -n "${note}" --expire "${expire}")
     returnStr1=$result
 }
@@ -391,7 +391,7 @@ function createPrivacyPriv2PrivTx() {
     sender=$4
     expire=$5
     note="private_2_privacy_transaction"
-    echo $name bty priv2priv -p "${keypair}" -a "${amount}" -s "${sender}" -n "${note}" --expire "${expire}"
+    echo "$name" bty priv2priv -p "${keypair}" -a "${amount}" -s "${sender}" -n "${note}" --expire "${expire}"
     result=$($name bty priv2priv -p "${keypair}" -a "${amount}" -s "${sender}" -n "${note}" --expire "${expire}")
     returnStr1=$result
 }
@@ -410,7 +410,7 @@ function createPrivacyPriv2PubTx() {
     amount=$4
     expire=$5
     note="private_2_privacy_transaction"
-    echo $name bty priv2pub -f "${from}" -o "${to}" -a "${amount}" -n "${note}" --expire "${expire}"
+    echo "$name" bty priv2pub -f "${from}" -o "${to}" -a "${amount}" -n "${note}" --expire "${expire}"
     result=$($name bty priv2pub -f "${from}" -o "${to}" -a "${amount}" -n "${note}" --expire "${expire}")
     returnStr1=$result
 }
