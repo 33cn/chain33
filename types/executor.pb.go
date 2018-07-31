@@ -326,6 +326,7 @@ func (m *CoinsTransferToExec) GetExecName() string {
 	}
 	return ""
 }
+
 func (m *CoinsTransferToExec) GetTo() string {
 	if m != nil {
 		return m.To
@@ -373,6 +374,7 @@ func (m *CoinsWithdraw) GetExecName() string {
 	}
 	return ""
 }
+
 func (m *CoinsWithdraw) GetTo() string {
 	if m != nil {
 		return m.To
