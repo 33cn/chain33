@@ -5,9 +5,9 @@ type GamePreCreateTx struct {
 	//下注必须时偶数，不能时级数
 	Amount int64 `json:"amount"`
 	//暂时只支持sha256加密
-	HashType string `json:"hashType"`
-	Guess    string `json:"guess"`
-	Fee      int64  `json:"fee"`
+	HashType  string `json:"hashType"`
+	HashValue []byte `json:"hashValue,omitempty"`
+	Fee       int64  `json:"fee"`
 }
 
 type GamePreMatchTx struct {

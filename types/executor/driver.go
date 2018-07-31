@@ -13,6 +13,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/types/executor/ticket"
 	"gitlab.33.cn/chain33/chain33/types/executor/token"
 	"gitlab.33.cn/chain33/chain33/types/executor/trade"
+	"gitlab.33.cn/chain33/chain33/types/executor/game"
 )
 
 // 进度：
@@ -50,6 +51,8 @@ func Init() {
 	ticket.Init()
 	token.Init()
 	trade.Init()
+	game.Init()
+
 }
 
 type ErrLog struct {
