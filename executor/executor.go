@@ -677,7 +677,9 @@ func (execute *executor) execTxGroup(txs []*types.Transaction, index int) ([]*ty
 	receipts[0], err = execute.execTxOne(feelog, txs[0], index)
 	if err != nil {
 		//状态数据库回滚
-		execute.stateDB.Rollback()
+		if types.IsMatchFork(execute.height, types.ForkV22ExecRollback) {
+			execute.stateDB.Rollback()
+		}
 		return receipts, nil
 	}
 	for i := 1; i < len(txs); i++ {
@@ -803,12 +805,19 @@ func (execute *executor) execTx(tx *types.Transaction, index int) (*types.Receip
 		return nil, err
 	}
 	//ignore err
-	execute.stateDB.Begin()
+	matchfork := types.IsMatchFork(execute.height, types.ForkV22ExecRollback)
+	if matchfork {
+		execute.stateDB.Begin()
+	}
 	feelog, err = execute.execTxOne(feelog, tx, index)
 	if err != nil {
-		execute.stateDB.Rollback()
+		if matchfork {
+			execute.stateDB.Rollback()
+		}
 	} else {
-		execute.stateDB.Commit()
+		if matchfork {
+			execute.stateDB.Commit()
+		}
 	}
 	elog.Debug("exec tx = ", "index", index, "execer", string(tx.Execer), "err", err)
 	return feelog, nil
