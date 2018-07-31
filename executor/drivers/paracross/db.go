@@ -9,10 +9,11 @@ import (
 func getTitle(db dbm.KV, key []byte) (*types.ParacrossStatus, error) {
 	val, err := db.Get(key)
 	if err != nil {
-		if err != types.ErrNotFound {
+		if err != dbm.ErrNotFoundInDb {
 			return nil, err
 		}
 		// 平行链如果是从其他链上移过来的，  需要增加配置， 对应title的平行链的起始高度
+		clog.Info("first time load title", string(key))
 		return &types.ParacrossStatus{Height: -1}, nil
 	}
 
@@ -29,6 +30,10 @@ func saveTitle(db dbm.KV, key []byte, title *types.ParacrossStatus) error {
 func getTitleHeight(db dbm.KV, key []byte) (*types.ParacrossHeightStatus, error) {
 	val, err := db.Get(key)
 	if err != nil {
+		// 对应高度第一次提交commit
+		if err == dbm.ErrNotFoundInDb {
+			clog.Info("paracross.Commit first commit","key", string(key))
+		}
 		return nil, err
 	}
 	var heightStatus types.ParacrossHeightStatus
@@ -42,7 +47,7 @@ func saveTitleHeight(db dbm.KV, key []byte, heightStatus types.Message /* height
 	return db.Set(key, val)
 }
 
-func getBlock(db dbm.KVDB, blockHash []byte) (*types.BlockBody, error) {
+func GetBlockBody(db dbm.KVDB, blockHash []byte) (*types.BlockBody, error) {
 	data, err := db.Get(blockchain.CalcHashToBlockBodyKey(blockHash))
 	if err != nil {
 		return nil, err
@@ -54,3 +59,17 @@ func getBlock(db dbm.KVDB, blockHash []byte) (*types.BlockBody, error) {
 	}
 	return &block, nil
 }
+
+func getBlockHeader(db dbm.KVDB, blockHash []byte) (*types.Header, error) {
+	data, err := db.Get(blockchain.CalcHashToBlockHeaderKey(blockHash))
+	if err != nil {
+		return nil, err
+	}
+	var block types.Header
+	err = types.Decode(data, &block)
+	if err != nil {
+		return nil, err
+	}
+	return &block, nil
+}
+
