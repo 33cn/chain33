@@ -40,5 +40,5 @@ func DecodeByteBitMap(bitmap []byte, index uint32) bool {
 }
 
 func ValidBitMap(bitmap []byte, bits int) bool {
-	return len(bitmap) * 8 >= bits
+	return len(bitmap)*8 >= bits
 }
