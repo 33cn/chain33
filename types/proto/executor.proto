@@ -554,3 +554,61 @@ message AmountsOfUTXO {
 message TokenNamesOfUTXO {
     map<string, string> tokensMap = 1;
 }
+
+// 用以转换成json后继续可见的结构
+message UTXOGlobalIndex4Print {
+    string txhash   = 1;
+    int32  outindex = 2;
+}
+
+message KeyInput4Print {
+    int64    amount                                = 1;
+    repeated UTXOGlobalIndex4Print utxoGlobalIndex = 2;
+    string                         keyImage        = 3;
+}
+
+message keyOutput4Print {
+    int64  amount        = 1;
+    string onetimepubkey = 2;
+}
+
+message PrivacyInput4Print {
+    repeated KeyInput4Print keyinput = 1;
+}
+
+message PrivacyOutput4Print {
+    string   RpubKeytx                 = 1;
+    repeated keyOutput4Print keyoutput = 2;
+}
+
+message Public2Privacy4Print {
+    string              tokenname = 1;
+    int64               amount    = 2;
+    string              note      = 5;
+    PrivacyOutput4Print output    = 7;
+}
+
+message Privacy2Privacy4Print {
+    string              tokenname = 1;
+    int64               amount    = 2;
+    string              note      = 5;
+    PrivacyInput4Print  input     = 6;
+    PrivacyOutput4Print output    = 7;
+}
+
+message Privacy2Public4Print {
+    string              tokenname = 1;
+    int64               amount    = 2;
+    string              note      = 3;
+    PrivacyInput4Print  input     = 4;
+    PrivacyOutput4Print output    = 5;
+}
+
+message PrivacyAction4Print {
+    oneof value {
+        Public2Privacy4Print  public2privacy  = 1;
+        Privacy2Privacy4Print privacy2privacy = 2;
+        Privacy2Public4Print  privacy2public  = 3;
+    }
+    int32 ty = 4;
+}
