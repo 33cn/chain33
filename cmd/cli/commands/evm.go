@@ -343,7 +343,7 @@ func checkContractAddr(cmd *cobra.Command, args []string) {
 	name, _ := cmd.Flags().GetString("exec")
 	toAddr := to
 	if len(toAddr) == 0 && len(name) > 0 {
-		if strings.HasPrefix(name, "user.evm.") {
+		if strings.Contains(name, "evm") {
 			toAddr = address.ExecAddress(name)
 		}
 	}
