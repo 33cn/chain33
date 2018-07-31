@@ -1,9 +1,9 @@
 package paracross
 
 import (
+	"gitlab.33.cn/chain33/chain33/blockchain"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/blockchain"
 )
 
 func getTitle(db dbm.KV, key []byte) (*types.ParacrossStatus, error) {
@@ -32,7 +32,7 @@ func getTitleHeight(db dbm.KV, key []byte) (*types.ParacrossHeightStatus, error)
 	if err != nil {
 		// 对应高度第一次提交commit
 		if err == dbm.ErrNotFoundInDb {
-			clog.Info("paracross.Commit first commit","key", string(key))
+			clog.Info("paracross.Commit first commit", "key", string(key))
 		}
 		return nil, err
 	}
@@ -72,4 +72,3 @@ func getBlockHeader(db dbm.KVDB, blockHash []byte) (*types.Header, error) {
 	}
 	return &block, nil
 }
-
