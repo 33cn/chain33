@@ -41,6 +41,7 @@ func TestStateDBTxGet(t *testing.T) {
 	assert.Equal(t, err, types.ErrNotFound)
 	assert.Equal(t, v, []byte(nil))
 
+	db.SetHeight(types.ForkV22ExecRollback - 1)
 	db.Begin()
 	err = db.Set([]byte("k1"), []byte("v1"))
 	assert.Nil(t, err)
