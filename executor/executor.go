@@ -141,7 +141,8 @@ func (exec *Executor) procExecQuery(msg queue.Message) {
 		return
 	}
 	driver.SetLocalDB(NewLocalDB(exec.client))
-	driver.SetStateDB(NewStateDB(exec.client, data.StateHash, exec.enableMVCC, exec.flagMVCC))
+	opt := &StateDBOption{EnableMVCC: exec.enableMVCC, FlagMVCC: exec.flagMVCC, Height: header.GetHeight()}
+	driver.SetStateDB(NewStateDB(exec.client, data.StateHash, opt))
 	ret, err := driver.Query(data.FuncName, data.Param)
 	if err != nil {
 		msg.Reply(exec.client.NewMessage("", types.EventBlockChainQuery, err))
@@ -515,8 +516,9 @@ func newExecutor(stateHash []byte, exec *Executor, height, blocktime int64, diff
 	client := exec.client
 	enableMVCC := exec.enableMVCC
 	flagMVCC := exec.flagMVCC
+	opt := &StateDBOption{EnableMVCC: enableMVCC, FlagMVCC: flagMVCC, Height: height}
 	e := &executor{
-		stateDB:      NewStateDB(client, stateHash, enableMVCC, flagMVCC),
+		stateDB:      NewStateDB(client, stateHash, opt),
 		localDB:      NewLocalDB(client),
 		coinsAccount: account.NewCoinsAccount(),
 		height:       height,

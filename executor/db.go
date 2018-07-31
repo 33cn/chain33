@@ -13,33 +13,46 @@ type StateDB struct {
 	client    queue.Client
 	stateHash []byte
 	version   int64
+	height    int64
 	local     *db.SimpleMVCC
 	flagMVCC  int64
 }
 
-func NewStateDB(client queue.Client, stateHash []byte, enableMVCC bool, flagMVCC int64) db.KV {
+type StateDBOption struct {
+	EnableMVCC bool
+	FlagMVCC   int64
+	Height     int64
+}
+
+func NewStateDB(client queue.Client, stateHash []byte, opt *StateDBOption) db.KV {
+	if opt == nil {
+		opt = &StateDBOption{}
+	}
 	db := &StateDB{
 		cache:     make(map[string][]byte),
 		txcache:   make(map[string][]byte),
 		intx:      false,
 		client:    client,
 		stateHash: stateHash,
+		height:    opt.Height,
 		version:   -1,
 		local:     db.NewSimpleMVCC(NewLocalDB(client)),
 	}
-	if enableMVCC {
+	if opt.EnableMVCC {
 		v, err := db.local.GetVersion(stateHash)
 		if err == nil && v >= 0 {
 			db.version = v
 		}
-		db.flagMVCC = flagMVCC
+		db.flagMVCC = opt.FlagMVCC
 	}
 	return db
 }
 
 func (s *StateDB) Begin() {
 	s.intx = true
-	s.txcache = nil
+	if types.IsMatchFork(s.height, types.ForkV22ExecRollback) {
+		s.txcache = nil
+	}
 }
 
 func (s *StateDB) Rollback() {
@@ -51,7 +64,9 @@ func (s *StateDB) Commit() {
 		s.cache[k] = v
 	}
 	s.intx = false
-	s.resetTx()
+	if types.IsMatchFork(s.height, types.ForkV22ExecRollback) {
+		s.resetTx()
+	}
 }
 
 func (s *StateDB) resetTx() {
