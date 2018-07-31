@@ -23,6 +23,7 @@ var (
 	ForkV19TokenPrice    int64 = 300000
 	ForkV20EVMState      int64 = 350000
 	ForkV21Privacy       int64 = 10000000
+	ForkV22ExecRollback  int64 = 450000
 )
 
 //bityuan test net fork
@@ -48,7 +49,7 @@ func SetTestNetFork() {
 	ForkV19TokenPrice = 560000
 	ForkV20EVMState = 650000
 	ForkV21Privacy = 10000000
-
+	ForkV22ExecRollback = 706531
 }
 
 func SetForkToOne() {

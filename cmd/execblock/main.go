@@ -23,6 +23,7 @@ import (
 
 var height = flag.Int64("height", 1, "exec block height")
 var datadir = flag.String("datadir", "", "data dir of chain33, include logs and datas")
+var configPath = flag.String("f", "chain33.toml", "configfile")
 
 func resetDatadir(cfg *types.Config, datadir string) {
 	// Check in case of paths like "/something/~/something/"
@@ -41,7 +42,7 @@ func resetDatadir(cfg *types.Config, datadir string) {
 
 func initEnv() (queue.Queue, queue.Module, queue.Module) {
 	var q = queue.New("channel")
-	cfg := config.InitCfg("../chain33/bityuan.toml")
+	cfg := config.InitCfg(*configPath)
 	if *datadir != "" {
 		resetDatadir(cfg, *datadir)
 	}
@@ -76,5 +77,24 @@ func main() {
 	prevState := blocks.Items[0].Block.StateHash
 	block := blocks.Items[1].Block
 	receipt := util.ExecTx(q.Client(), prevState, block)
-	fmt.Println(receipt)
+	for i, r := range receipt.GetReceipts() {
+		println("=======================")
+		println("tx index ", i)
+		for j, kv := range r.GetKV() {
+			fmt.Println("\tKV:", j, kv)
+		}
+		for k, l := range r.GetLogs() {
+			logType := types.LoadLog(int64(l.Ty))
+			lTy := "unkownType"
+			var logIns interface{}
+			if logType != nil {
+				logIns, err = logType.Decode(l.GetLog())
+				if err != nil {
+					panic(err)
+				}
+				lTy = logType.Name()
+			}
+			fmt.Printf("\tLog:%d %s->%v\n", k, lTy, logIns)
+		}
+	}
 }
