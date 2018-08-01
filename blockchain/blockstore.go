@@ -746,7 +746,7 @@ func (bs *BlockStore) GetDbVersion() int64 {
 		storeLog.Info("GetDbVersion", "types.Decode err", err)
 		return 0
 	}
-	storeLog.Info("GetDbVersion", "blcokchain db version", ver.Data)
+	storeLog.Info("GetDbVersion", "blockchain db version", ver.Data)
 	return ver.Data
 }
 
