@@ -29,12 +29,13 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 		return nil, nil, types.ErrSign
 	}
 	//tx交易去重处理, 这个地方要查询数据库，需要一个更快的办法
-	cacheTxs, err := types.TxsToCache(block.Txs)
+	cacheTxs := types.TxsToCache(block.Txs)
+	oldtxscount := len(cacheTxs)
+	var err error
+	cacheTxs, err = CheckTxDup(client, cacheTxs, block.Height)
 	if err != nil {
 		return nil, nil, err
 	}
-	oldtxscount := len(cacheTxs)
-	cacheTxs = CheckTxDup(client, cacheTxs, block.Height)
 	newtxscount := len(cacheTxs)
 	if oldtxscount != newtxscount && errReturn {
 		return nil, nil, types.ErrTxDup
