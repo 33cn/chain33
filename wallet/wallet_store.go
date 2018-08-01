@@ -540,9 +540,9 @@ func (ws *Store) unsetUTXO(addr, txhash *string, outindex int, token string, new
 	return nil
 }
 
-func (ws *Store) setUTXO2FTXO(addr, txhash *string, outindex int, token string, newbatch dbm.Batch) error {
+func (ws *Store) unlinkUTXO(addr, txhash *string, outindex int, token string, newbatch dbm.Batch) error {
 	if 0 == len(*addr) || 0 == len(*txhash) || outindex < 0 || len(token) <= 0 {
-		walletlog.Error("PrivacyTrading setUTXO2FTXO", "InvalidParam addr", *addr, "txhash", *txhash, "outindex", outindex, "token", token)
+		walletlog.Error("PrivacyTrading unlinkUTXO", "InvalidParam addr", *addr, "txhash", *txhash, "outindex", outindex, "token", token)
 		return types.ErrInputPara
 	}
 	// 删除冻结UTXO列表的索引关系
@@ -555,7 +555,7 @@ func (ws *Store) setUTXO2FTXO(addr, txhash *string, outindex int, token string, 
 	utxokey := calcUTXOKey4TokenAddr(token, *addr, *txhash, outindex)
 	newbatch.Delete(utxokey)
 
-	walletlog.Debug("PrivacyTrading setUTXO2FTXO", "addr", *addr, "tx with hash", *txhash, "outindex", outindex)
+	walletlog.Debug("PrivacyTrading unlinkUTXO", "addr", *addr, "tx with hash", *txhash, "outindex", outindex)
 	return nil
 
 }
