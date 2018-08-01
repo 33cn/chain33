@@ -1169,12 +1169,7 @@ func (wallet *Wallet) AddDelPrivacyTxsFromBlock(tx *types.Transaction, index int
 			} else if types.ExecOk != txExecRes && types.ActionPublic2Privacy != privateAction.Ty {
 				//如果执行失败
 				walletlog.Info("PrivacyTrading AddDelPrivacyTxsFromBlock", "txhash", txhashstr, "addDelType", addDelType, "moveFTXO2UTXO, key", string(keys[i]), "txExecRes", txExecRes)
-				wallet.walletStore.moveFTXO2UTXO(keys[i], newbatch,
-					func(txhash []byte) bool {
-						// do not add to UTXO list if transaction is not existed.
-						_, err := wallet.api.QueryTx(&types.ReqHash{Hash: txhash})
-						return err == nil
-					})
+				wallet.walletStore.moveFTXO2UTXO(keys[i], newbatch)
 			}
 			//该交易正常执行完毕，删除对其的关注
 			param := &buildStoreWalletTxDetailParam{
