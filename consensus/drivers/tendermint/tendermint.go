@@ -138,18 +138,21 @@ const DEBUG_CATCHUP = false
 
 func (client *TendermintClient) StartConsensus() {
 	//进入共识前先同步到最大高度
-	retry := 0
-	for {
-		if DEBUG_CATCHUP || client.IsCaughtUp() {
-			tendermintlog.Info("This node has caught up the max height")
-			break
-		}
-		retry++
-		time.Sleep(time.Second)
-		if retry >= 600 {
-			panic("This node encounter problem, exit.")
+	hint := time.NewTicker(5 * time.Second)
+	beg := time.Now()
+OuterLoop:
+	for !DEBUG_CATCHUP {
+		select {
+		case <-hint.C:
+			tendermintlog.Info("Still catching up max height......", "Height", client.GetCurrentHeight(), "cost", time.Since(beg))
+		default:
+			if client.IsCaughtUp() {
+				tendermintlog.Info("This node has caught up max height")
+				break OuterLoop
+			}
 		}
 	}
+	hint.Stop()
 
 	block := client.GetCurrentBlock()
 	if block == nil {
@@ -266,7 +269,6 @@ func (client *TendermintClient) CreateBlock() {
 	issleep := true
 
 	for {
-
 		if !client.csState.IsRunning() {
 			tendermintlog.Error("consensus not running now")
 			time.Sleep(time.Second)
@@ -293,14 +295,11 @@ func (client *TendermintClient) CreateBlock() {
 
 		client.lastBlock = lastBlock
 		client.txsAvailable <- lastBlock.Height + 1
-		select {
-		case height := <-client.consResult:
-			tendermintlog.Info("Tendermint consensus reached at", "height", height)
-			if client.GetCurrentHeight()+1 != height {
-				tendermintlog.Info("Wait for sync between blockchain and consensus")
-				time.Sleep(5 * time.Second)
-			}
-		}
+		time.Sleep(time.Second)
+		//select {
+		//case height := <-client.consResult:
+		//	tendermintlog.Info("Tendermint consensus reached at", "height", height)
+		//}
 	}
 }
 
