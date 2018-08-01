@@ -687,7 +687,7 @@ function makeTransactionIn3Step() {
     priTxindex=0
 
     height=$(${name} block last_header | jq ".height")
-    amount=10
+    amount=17
     expire=$((height + 2))
     printf '公对私交易 高度为:%s 转账金额为:%s \n' "${height}" "${amount}"
     createPrivacyPub2PrivTx "${name}" "$pk1" $amount $expire
@@ -697,7 +697,7 @@ function makeTransactionIn3Step() {
     block_wait_timeout "${name}" 1 15
 
     height=$(${name} block last_header | jq ".height")
-    amount=4
+    amount=7
     expire=$((height + 2))
     printf '私对私交易 高度为:%s 转账金额为:%s 剩余应该是:5 \n' "${height}" "${amount}"
     createPrivacyPriv2PrivTx "${name}" "$pk2" $amount "$fromAddr1" $expire
@@ -714,7 +714,7 @@ function makeTransactionIn3Step() {
     block_wait_timeout "${name}" 1 15
 
     height=$(${name} block last_header | jq ".height")
-    amount=4
+    amount=7
     from=$fromAddr1
     to=$fromAddr1
     expire=$((height + 2))
