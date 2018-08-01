@@ -7,6 +7,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
+	"sort"
 )
 
 const (
@@ -472,4 +473,52 @@ func removeDupByLoop(values [][]byte) []string {
 		}
 	}
 	return result
+}
+
+//TODO:复写sort方法，后面可以根据业务需求调整相关接口，进行升降排序
+//根据createTime递增排序
+func SortGameByCreateTimeAsc(games []*types.Game) {
+	SortGame(games, func(p, q *types.Game) bool {
+		return p.GetCreateTime() < q.GetCreateTime()
+	})
+}
+
+//降序
+func SortGameByCreateTimeDesc(games []*types.Game) {
+	SortGame(games, func(p, q *types.Game) bool {
+		return p.GetCreateTime() > q.GetCreateTime()
+	})
+}
+
+//根据matchTime递增排序
+func SortGameByMatchTimeAsc(games []*types.Game) {
+	SortGame(games, func(p, q *types.Game) bool {
+		return p.GetMatchTime() < q.GetMatchTime()
+	})
+}
+func SortGameByMatchTimeDesc(games []*types.Game) {
+	SortGame(games, func(p, q *types.Game) bool {
+		return p.GetMatchTime() > q.GetMatchTime()
+	})
+}
+
+type GameWrapper struct {
+	Games []*types.Game
+	by    func(p, q *types.Game) bool
+}
+type SortBy func(p, q *types.Game) bool
+
+func (gw GameWrapper) Len() int { // 重写 Len() 方法
+	return len(gw.Games)
+}
+func (gw GameWrapper) Swap(i, j int) { // 重写 Swap() 方法
+	gw.Games[i], gw.Games[j] = gw.Games[j], gw.Games[i]
+}
+func (gw GameWrapper) Less(i, j int) bool { // 重写 Less() 方法
+	return gw.by(gw.Games[i], gw.Games[j])
+}
+
+// 封装成 SortGame 方法
+func SortGame(games []*types.Game, by SortBy) {
+	sort.Sort(GameWrapper{games, by})
 }
