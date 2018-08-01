@@ -126,12 +126,14 @@ func makeDoneReceipt(addr string, commit *types.ParacrossCommitAction, current *
 	most, commitCount, totalCount int32) *types.Receipt {
 
 	log := &types.ReceiptParacrossDone{
-		N:         []int32{most, commitCount, totalCount},
-		Title:     commit.Status.Title,
-		Height:    commit.Status.Height,
-		StateHash: commit.Status.StateHash,
-		TxCounts:  commit.Status.TxCounts,
-		TxResult:  commit.Status.TxResult,
+		TotalNodes:     totalCount,
+		TotalCommit:    commitCount,
+		MostSameCommit: most,
+		Title:          commit.Status.Title,
+		Height:         commit.Status.Height,
+		StateHash:      commit.Status.StateHash,
+		TxCounts:       commit.Status.TxCounts,
+		TxResult:       commit.Status.TxResult,
 	}
 	key := calcTitleKey(commit.Status.Title)
 	stat := &types.ParacrossStatus{
