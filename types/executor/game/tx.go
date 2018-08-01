@@ -12,7 +12,7 @@ type GamePreCreateTx struct {
 
 type GamePreMatchTx struct {
 	GameId string `json:"gameId"`
-	Guess  string `json:"guess"`
+	Guess  int32  `json:"guess"`
 	Fee    int64  `json:"fee"`
 }
 

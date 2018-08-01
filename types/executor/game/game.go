@@ -5,7 +5,6 @@ import (
 	"math/rand"
 	"time"
 
-	"code.aliyun.com33/chain33/chain33/common"
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -38,11 +37,11 @@ func getRealExecName(paraName string) string {
 func Init() {
 	name = types.ExecName(types.GameX)
 	// init executor type
-	types.RegistorExecutor(types.ExecName(name), &TokenType{})
+	types.RegistorExecutor(types.ExecName(name), &GameType{})
 
 	// init log
 	types.RegistorLog(types.TyLogCreateGame, &CreateGameLog{})
-	types.RegistorLog(types.TyLogCancleGame, &CancleGameLog{})
+	types.RegistorLog(types.TyLogCancleGame, &CancelGameLog{})
 	types.RegistorLog(types.TyLogMatchGame, &MatchGameLog{})
 	types.RegistorLog(types.TyLogCloseGame, &CloseGameLog{})
 
@@ -86,6 +85,9 @@ func (game GameType) ActionName(tx *types.Transaction) string {
 		return Action_CloseGame
 	}
 	return "unknow"
+}
+func (game GameType) Amount(tx *types.Transaction) (int64, error) {
+	return 0, nil
 }
 
 // TODO createTx接口暂时没法用，作为一个预留接口
@@ -150,11 +152,11 @@ func CreateRawGamePreCreateTx(parm *GamePreCreateTx) (*types.Transaction, error)
 		Value: &types.GameAction_Create{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte(getRealExecName(parm.ParaName)),
+		Execer:  []byte(getRealExecName(types.GetParaName())),
 		Payload: types.Encode(precreate),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(getRealExecName(parm.ParaName)),
+		To:      address.ExecAddress(getRealExecName(types.GetParaName())),
 	}
 
 	tx.SetRealFee(types.MinFee)
@@ -176,11 +178,11 @@ func CreateRawGamePreMatchTx(parm *GamePreMatchTx) (*types.Transaction, error) {
 		Value: &types.GameAction_Match{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte(getRealExecName(parm.ParaName)),
+		Execer:  []byte(getRealExecName(types.GetParaName())),
 		Payload: types.Encode(game),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(getRealExecName(parm.ParaName)),
+		To:      address.ExecAddress(getRealExecName(types.GetParaName())),
 	}
 
 	tx.SetRealFee(types.MinFee)
@@ -200,11 +202,11 @@ func CreateRawGamePreCancelTx(parm *GamePreCancelTx) (*types.Transaction, error)
 		Value: &types.GameAction_Cancel{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte(getRealExecName(parm.ParaName)),
+		Execer:  []byte(getRealExecName(types.GetParaName())),
 		Payload: types.Encode(cancel),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(getRealExecName(parm.ParaName)),
+		To:      address.ExecAddress(getRealExecName(types.GetParaName())),
 	}
 
 	tx.SetRealFee(types.MinFee)
@@ -227,11 +229,11 @@ func CreateRawGamePreCloseTx(parm *GamePreCloseTx) (*types.Transaction, error) {
 		Value: &types.GameAction_Close{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte(getRealExecName(parm.ParaName)),
-		Payload: types.Encode(cancel),
+		Execer:  []byte(getRealExecName(types.GetParaName())),
+		Payload: types.Encode(close),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(getRealExecName(parm.ParaName)),
+		To:      address.ExecAddress(getRealExecName(types.GetParaName())),
 	}
 
 	tx.SetRealFee(types.MinFee)

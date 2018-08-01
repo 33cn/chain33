@@ -228,10 +228,12 @@ It has these top-level messages:
 	GameMatch
 	GameCancel
 	GameClose
-	GameOpen
-	GameList
-	GameInfos
+	GameCreate
+	QueryGameListByStatusAndAddr
+	QueryGameInfo
+	QueryGameInfos
 	ReplyGameList
+	ReplyGame
 	ReceiptGame
 	P2PGetPeerInfo
 	P2PPeerInfo
