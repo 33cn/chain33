@@ -21,6 +21,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/consensus"
 	"gitlab.33.cn/chain33/chain33/executor"
 	"gitlab.33.cn/chain33/chain33/mempool"
+	"gitlab.33.cn/chain33/chain33/p2p"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/store"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -55,7 +56,7 @@ func getprivkey(key string) crypto.PrivKey {
 	return priv
 }
 
-func initEnv() (*BlockChain, queue.Module, queue.Module, queue.Module, queue.Module) {
+func initEnv() (*BlockChain, queue.Module, queue.Module, queue.Module, queue.Module, queue.Module) {
 	var q = queue.New("channel")
 
 	api, _ = client.New(q.Client(), nil)
@@ -76,7 +77,11 @@ func initEnv() (*BlockChain, queue.Module, queue.Module, queue.Module, queue.Mod
 	mem.SetQueueClient(q.Client())
 	mem.SetSync(true)
 	mem.WaitPollLastHeader()
-	return blockchain, exec, cons, s, mem
+
+	network := p2p.New(cfg.P2P)
+	network.SetQueueClient(q.Client())
+
+	return blockchain, exec, cons, s, mem, network
 }
 
 func createTx(priv crypto.PrivKey, to string, amount int64) *types.Transaction {
@@ -194,13 +199,14 @@ func addTx() (string, error) {
 }
 
 func TestBlockChain(t *testing.T) {
-	blockchain, exec, cons, s, mem := initEnv()
+	blockchain, exec, cons, s, mem, p2p := initEnv()
 	defer func() {
 		blockchain.Close()
 		exec.Close()
 		cons.Close()
 		s.Close()
 		mem.Close()
+		p2p.Close()
 	}()
 
 	//等待共识模块增长10个区块
