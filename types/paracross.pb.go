@@ -347,7 +347,6 @@ func (m *ReceiptParacrossCommit) GetCurrent() *ParacrossHeightStatus {
 }
 
 type ReceiptParacrossDone struct {
-	// most-count/commit-count/total-count
 	TotalNodes     int32  `protobuf:"varint,1,opt,name=totalNodes" json:"totalNodes,omitempty"`
 	TotalCommit    int32  `protobuf:"varint,2,opt,name=totalCommit" json:"totalCommit,omitempty"`
 	MostSameCommit int32  `protobuf:"varint,3,opt,name=mostSameCommit" json:"mostSameCommit,omitempty"`

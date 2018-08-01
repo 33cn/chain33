@@ -1,10 +1,10 @@
 package paracross
 
 import (
-	dbm "gitlab.33.cn/chain33/chain33/common/db"
-	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/common"
+	dbm "gitlab.33.cn/chain33/chain33/common/db"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 func getTitle(db dbm.KV, key []byte) (*types.ParacrossStatus, error) {
@@ -65,4 +65,3 @@ func GetBlock(api client.QueueProtocolAPI, blockHash []byte) (*types.BlockDetail
 	}
 	return blockDetails.Items[0], nil
 }
-
