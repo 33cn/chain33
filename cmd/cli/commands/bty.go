@@ -332,7 +332,8 @@ func createPub2PrivTxFlags(cmd *cobra.Command) {
 
 	cmd.Flags().StringP("tokenname", "", "BTY", "token name")
 	cmd.Flags().StringP("note", "n", "", "note for transaction")
-	cmd.Flags().Int64P("expire", "", int64(time.Hour), "transfer expire, default one hour")
+	cmd.Flags().Int64P("expire", "", 0, "transfer expire, default one hour")
+	cmd.Flags().IntP("expiretype", "", 1, "0: height  1: time default is 1")
 }
 
 func createPub2PrivTx(cmd *cobra.Command, args []string) {
@@ -342,8 +343,21 @@ func createPub2PrivTx(cmd *cobra.Command, args []string) {
 	tokenname, _ := cmd.Flags().GetString("tokenname")
 	note, _ := cmd.Flags().GetString("note")
 	expire, _ := cmd.Flags().GetInt64("expire")
-	if expire <= 0 {
-		expire = int64(time.Hour)
+	expiretype, _ :=cmd.Flags().GetInt("expiretype")
+	if expiretype == 0 {
+		if expire <= 0{
+			fmt.Println("Invalid expire. expire must large than 0 in expiretype==0, expire", expire)
+			return
+		}
+	} else if expiretype == 1 {
+		if expire <= 0 {
+			expire = types.Now().Unix() + int64(time.Hour/time.Second)
+		} else {
+			expire = types.Now().Unix() + expire
+		}
+	} else {
+		fmt.Println("Invalid expiretype", expiretype)
+		return
 	}
 
 	params := types.ReqCreateTransaction{
@@ -378,7 +392,8 @@ func createPriv2PrivTxFlags(cmd *cobra.Command) {
 
 	cmd.Flags().StringP("tokenname", "t", "BTY", "token name")
 	cmd.Flags().StringP("note", "n", "", "note for transaction")
-	cmd.Flags().Int64P("expire", "", int64(time.Hour), "transfer expire, default one hour")
+	cmd.Flags().Int64P("expire", "", 0, "transfer expire, default one hour")
+	cmd.Flags().IntP("expiretype", "", 1, "0: height  1: time default is 1")
 }
 
 func createPriv2PrivTx(cmd *cobra.Command, args []string) {
@@ -389,8 +404,21 @@ func createPriv2PrivTx(cmd *cobra.Command, args []string) {
 	note, _ := cmd.Flags().GetString("note")
 	sender, _ := cmd.Flags().GetString("sender")
 	expire, _ := cmd.Flags().GetInt64("expire")
-	if expire <= 0 {
-		expire = int64(time.Hour)
+	expiretype, _ :=cmd.Flags().GetInt("expiretype")
+	if expiretype == 0 {
+		if expire <= 0{
+			fmt.Println("Invalid expire. expire must large than 0 in expiretype==0, expire", expire)
+			return
+		}
+	} else if expiretype == 1 {
+		if expire <= 0 {
+			expire = types.Now().Unix() + int64(time.Hour/time.Second)
+		} else {
+			expire = types.Now().Unix() + expire
+		}
+	} else {
+		fmt.Println("Invalid expiretype", expiretype)
+		return
 	}
 
 	params := types.ReqCreateTransaction{
@@ -427,7 +455,8 @@ func createPriv2PubTxFlags(cmd *cobra.Command) {
 
 	cmd.Flags().StringP("tokenname", "t", "BTY", "token name")
 	cmd.Flags().StringP("note", "n", "", "note for transaction")
-	cmd.Flags().Int64P("expire", "", int64(time.Hour), "transfer expire, default one hour")
+	cmd.Flags().Int64P("expire", "", 0, "transfer expire, default one hour")
+	cmd.Flags().IntP("expiretype", "", 1, "0: height  1: time default is 1")
 }
 
 func createPriv2PubTx(cmd *cobra.Command, args []string) {
@@ -438,8 +467,21 @@ func createPriv2PubTx(cmd *cobra.Command, args []string) {
 	to, _ := cmd.Flags().GetString("to")
 	note, _ := cmd.Flags().GetString("note")
 	expire, _ := cmd.Flags().GetInt64("expire")
-	if expire <= 0 {
-		expire = int64(time.Hour)
+	expiretype, _ :=cmd.Flags().GetInt("expiretype")
+	if expiretype == 0 {
+		if expire <= 0{
+			fmt.Println("Invalid expire. expire must large than 0 in expiretype==0, expire", expire)
+			return
+		}
+	} else if expiretype == 1 {
+		if expire <= 0 {
+			expire = types.Now().Unix() + int64(time.Hour/time.Second)
+		} else {
+			expire = types.Now().Unix() + expire
+		}
+	} else {
+		fmt.Println("Invalid expiretype", expiretype)
+		return
 	}
 
 	params := types.ReqCreateTransaction{
