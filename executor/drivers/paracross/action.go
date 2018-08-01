@@ -34,6 +34,9 @@ func getNodes(db dbm.KV, title string) ([]string, error) {
 	item, err := db.Get(key)
 	if err != nil {
 		clog.Info("getNodes", "get db key", key, "failed", err)
+		if err == dbm.ErrNotFoundInDb {
+			return nil, types.ErrTitleNotExist
+		}
 		return nil, err
 	}
 	var config types.ConfigItem
@@ -191,18 +194,18 @@ func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, er
 		return nil, err
 	}
 	if !validTitle(commit.Status.Title) {
-		return nil, types.ErrInputPara
+		return nil, types.ErrInvalidTitle
 	}
 
 	nodes, err := getNodes(a.db, commit.Status.Title)
 	if err != nil {
 		clog.Error("paracross.Commit", "getNodes", err)
-		return nil, types.ErrInputPara
+		return nil, err
 	}
 
 	if !validNode(a.fromaddr, nodes) {
 		clog.Error("paracross.Commit", "validNode", a.fromaddr)
-		return nil, types.ErrInputPara
+		return nil, types.ErrNodeNotForTheTitle
 	}
 
 	titleStatus, err := getTitle(a.db, calcTitleKey(commit.Status.Title))
@@ -215,7 +218,7 @@ func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, er
 		if !bytes.Equal(titleStatus.BlockHash, commit.Status.PreBlockHash) {
 			clog.Error("paracross.Commit", "check PreBlockHash", common.Bytes2Hex(titleStatus.BlockHash),
 				"commit tx", common.Bytes2Hex(commit.Status.PreBlockHash))
-			return nil, types.ErrInputPara
+			return nil, types.ErrParaBlockHashNoMatch
 		}
 	}
 
@@ -232,7 +235,7 @@ func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, er
 	if !bytes.Equal(block.Hash, commit.Status.MainBlockHash) {
 		clog.Error("paracross.Commit blockHash not match", "db", common.Bytes2Hex(block.Hash),
 			"commit tx", common.Bytes2Hex(commit.Status.MainBlockHash))
-		return nil, types.ErrInputPara
+		return nil, types.ErrBlockHashNoMatch
 	}
 
 	clog.Debug("paracross.Commit check input done")
