@@ -1248,7 +1248,7 @@ func (cs *ConsensusState) defaultSetProposal(proposalTrans *ttypes.ProposalTrans
 		tendermintlog.Error("defaultSetProposal:", "msg", "ProposalTransToProposal failed", "err", err)
 		return err
 	}
-	tendermintlog.Info(fmt.Sprintf("Consensus receive proposal. Current: %v/%v/%v", cs.Height, cs.Round, cs.Step), "proposal-height", proposal.Height, "proposal-round", proposal.Round)
+	tendermintlog.Info(fmt.Sprintf("Consensus receive proposal. Current: %v/%v/%v", cs.Height, cs.Round, cs.Step), "proposal", fmt.Sprintf("%v/%v", proposal.Height, proposal.Round))
 
 	// Already have one
 	// TODO: possibly catch double proposals
@@ -1444,6 +1444,10 @@ func (cs *ConsensusState) addVote(vote *ttypes.Vote, peerID string) (added bool,
 
 					}
 				} else if cs.Round <= vote.Round && precommits.HasTwoThirdsAny() {
+					// workaround: proposer need have all the votes
+					if cs.isProposer() && !precommits.HasAll() {
+						return
+					}
 					cs.enterNewRound(height, vote.Round)
 					cs.enterPrecommit(height, vote.Round)
 					cs.enterPrecommitWait(height, vote.Round)

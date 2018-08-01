@@ -534,8 +534,7 @@ FOR_LOOP:
 				if pc.transferChannel != nil && (pkt.TypeID == types.ProposalID || pkt.TypeID == types.VoteID) {
 					if pkt.TypeID == types.ProposalID {
 						proposalTrans := realMsg.(*types.ProposalMessage).Proposal
-						tendermintlog.Info("Receiving proposal", "peerip", pc.ip.String(), "proposal-height", proposalTrans.Height,
-							"proposal-round", proposalTrans.Round)
+						tendermintlog.Info("Receiving proposal", "peerip", pc.ip.String())
 						pc.state.SetHasProposal(proposalTrans)
 
 					} else if pkt.TypeID == types.VoteID {
@@ -958,13 +957,15 @@ func (ps *PeerConnState) SetHasProposal(proposal *types.ProposalTrans) {
 	ps.mtx.Lock()
 	defer ps.mtx.Unlock()
 
+	tendermintlog.Info("SetHasProposal", "peer-state", fmt.Sprintf("%v/%v/%v", ps.Height, ps.Round, ps.Step),
+		"proposal", fmt.Sprintf("%v/%v", proposal.Height, proposal.Round))
 	if ps.Height != proposal.Height || ps.Round != proposal.Round {
 		return
 	}
 	if ps.Proposal {
 		return
 	}
-	tendermintlog.Info(fmt.Sprintf("Peer set proposal. Peer state: %v/%v/%v", ps.Height, ps.Round, ps.Step))
+	tendermintlog.Info("Peer set proposal")
 	ps.Proposal = true
 
 	ps.ProposalPOLRound = proposal.POLRound
@@ -1140,7 +1141,7 @@ func (ps *PeerConnState) ApplyNewRoundStepMessage(msg *types.NewRoundStepMessage
 	ps.Step = msg.Step
 	ps.StartTime = startTime
 	if psHeight != msg.Height || psRound != msg.Round {
-		tendermintlog.Error("ApplyNewRoundStepMessage", "psHeight", psHeight, "psRound", psRound,
+		tendermintlog.Info("ApplyNewRoundStepMessage", "psHeight", psHeight, "psRound", psRound,
 			"msg.Height", msg.Height, "msg.Round", msg.Round)
 		ps.Proposal = false
 		ps.ProposalPOLRound = -1
