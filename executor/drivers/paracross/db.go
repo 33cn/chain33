@@ -1,9 +1,10 @@
 package paracross
 
 import (
-	"gitlab.33.cn/chain33/chain33/blockchain"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/client"
+	"gitlab.33.cn/chain33/chain33/common"
 )
 
 func getTitle(db dbm.KV, key []byte) (*types.ParacrossStatus, error) {
@@ -47,28 +48,21 @@ func saveTitleHeight(db dbm.KV, key []byte, heightStatus types.Message /* height
 	return db.Set(key, val)
 }
 
-func GetBlockBody(db dbm.KVDB, blockHash []byte) (*types.BlockBody, error) {
-	data, err := db.Get(blockchain.CalcHashToBlockBodyKey(blockHash))
+func GetBlock(api client.QueueProtocolAPI, blockHash []byte) (*types.BlockDetail, error) {
+	blockDetails, err := api.GetBlockByHashes(&types.ReqHashes{[][]byte{blockHash}})
 	if err != nil {
+		clog.Error("paracross.Commit getBlockHeader", "db", err,
+			"commit tx hash", common.Bytes2Hex(blockHash))
 		return nil, err
 	}
-	var block types.BlockBody
-	err = types.Decode(data, &block)
-	if err != nil {
-		return nil, err
+	if len(blockDetails.Items) != 1 {
+		clog.Error("paracross.Commit getBlockHeader", "len in not 1", len(blockDetails.Items))
+		return nil, types.ErrParaBlockHashNoMatch
 	}
-	return &block, nil
+	if blockDetails.Items[0] == nil {
+		clog.Error("paracross.Commit getBlockHeader", "commit tx hash net found", common.Bytes2Hex(blockHash))
+		return nil, types.ErrParaBlockHashNoMatch
+	}
+	return blockDetails.Items[0], nil
 }
 
-func getBlockHeader(db dbm.KVDB, blockHash []byte) (*types.Header, error) {
-	data, err := db.Get(blockchain.CalcHashToBlockHeaderKey(blockHash))
-	if err != nil {
-		return nil, err
-	}
-	var block types.Header
-	err = types.Decode(data, &block)
-	if err != nil {
-		return nil, err
-	}
-	return &block, nil
-}

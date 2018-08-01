@@ -9,6 +9,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 	pt "gitlab.33.cn/chain33/chain33/types/executor/paracross"
 	"gitlab.33.cn/chain33/chain33/util"
+	"gitlab.33.cn/chain33/chain33/client"
 )
 
 type action struct {
@@ -20,13 +21,14 @@ type action struct {
 	blocktime    int64
 	height       int64
 	execaddr     string
+	api          client.QueueProtocolAPI
 }
 
 func newAction(t *Paracross, tx *types.Transaction) *action {
 	hash := tx.Hash()
 	fromaddr := tx.From()
 	return &action{t.GetCoinsAccount(), t.GetStateDB(), t.GetLocalDB(), hash, fromaddr,
-		t.GetBlockTime(), t.GetHeight(), t.GetAddr()}
+		t.GetBlockTime(), t.GetHeight(), t.GetAddr(), t.GetApi()}
 }
 
 func getNodes(db dbm.KV, title string) ([]string, error) {
@@ -226,14 +228,14 @@ func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, er
 	// 主链   （1）Bn1        （3） rollback-Bn1   （4） commit-done in Bn2
 	// 平行链         （2）commit                                 （5） 将得到一个错误的块
 	// 所以有必要做这个检测
-	block, err := getBlockHeader(a.localdb, commit.Status.MainBlockHash)
+	blockDetail, err := GetBlock(a.api, commit.Status.MainBlockHash)
 	if err != nil {
-		clog.Error("paracross.Commit getBlockHeader", "db", err,
+		clog.Error("paracross.Commit getBlockHeader", "err", err,
 			"commit tx hash", common.Bytes2Hex(commit.Status.MainBlockHash))
 		return nil, err
 	}
-	if !bytes.Equal(block.Hash, commit.Status.MainBlockHash) {
-		clog.Error("paracross.Commit blockHash not match", "db", common.Bytes2Hex(block.Hash),
+	if !bytes.Equal(blockDetail.Block.Hash(), commit.Status.MainBlockHash) {
+		clog.Error("paracross.Commit blockHash not match", "db", common.Bytes2Hex(blockDetail.Block.Hash()),
 			"commit tx", common.Bytes2Hex(commit.Status.MainBlockHash))
 		return nil, types.ErrBlockHashNoMatch
 	}
@@ -303,7 +305,7 @@ func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, er
 	saveTitle(a.db, calcTitleKey(commit.Status.Title), titleStatus)
 
 	// TODO 触发交易组跨链交易
-	print(block)
+	print(blockDetail)
 	// TODO 需要生成本地db 用原交易组查询执行结果
 
 	return receipt, nil
