@@ -4,12 +4,12 @@ import (
 	"bytes"
 
 	"gitlab.33.cn/chain33/chain33/account"
+	"gitlab.33.cn/chain33/chain33/client"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 	"gitlab.33.cn/chain33/chain33/types"
 	pt "gitlab.33.cn/chain33/chain33/types/executor/paracross"
 	"gitlab.33.cn/chain33/chain33/util"
-	"gitlab.33.cn/chain33/chain33/client"
 )
 
 type action struct {
