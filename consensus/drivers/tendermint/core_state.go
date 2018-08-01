@@ -119,6 +119,7 @@ type ConsensusState struct {
 
 	needCommitByInfo chan CommitInfo
 	precommitOK      bool
+	txsAvailable     chan int64
 	begCons          time.Time
 }
 
@@ -142,6 +143,7 @@ func NewConsensusState(client *TendermintClient, blockStore *ttypes.BlockStore, 
 		Quit:             make(chan struct{}),
 		needCommitByInfo: make(chan CommitInfo, maxCommitInfoSize),
 		precommitOK:      false,
+		txsAvailable:     make(chan int64, 1),
 		begCons:          time.Time{},
 	}
 	// set function defaults (may be overwritten before calling Start)
@@ -241,7 +243,7 @@ func (cs *ConsensusState) Start() {
 		}
 		cs.timeoutTicker.Start()
 
-		//go cs.checkProposalToCommit()
+		go cs.checkTxsAvailable()
 		// now start the receiveRoutine
 		go cs.receiveRoutine(0)
 
@@ -470,7 +472,7 @@ func (cs *ConsensusState) receiveRoutine(maxSteps int) {
 			}
 		*/
 		select {
-		case height := <-cs.client.TxsAvailable():
+		case height := <-cs.txsAvailable:
 			cs.handleTxsAvailable(height)
 		case mi = <-cs.peerMsgQueue:
 			//cs.wal.Save(mi)
@@ -574,24 +576,28 @@ func (cs *ConsensusState) handleTimeout(ti timeoutInfo, rs ttypes.RoundState) {
 
 }
 
+func (cs *ConsensusState) checkTxsAvailable() {
+	for {
+		select {
+		case height := <-cs.client.TxsAvailable():
+			tendermintlog.Info(fmt.Sprintf("checkTxsAvailable. Current: %v/%v/%v", cs.Height, cs.Round, cs.Step), "height", height)
+			if cs.Height != height {
+				tendermintlog.Warn("blockchain and consensus are not sync")
+				break
+			}
+			if cs.isProposalComplete() {
+				tendermintlog.Info("already has proposal")
+				break
+			}
+			cs.txsAvailable <- height
+		}
+	}
+}
+
 func (cs *ConsensusState) handleTxsAvailable(height int64) {
 	cs.mtx.Lock()
 	defer cs.mtx.Unlock()
 	// we only need to do this for round 0
-	tendermintlog.Info(fmt.Sprintf("handleTxsAvailable. Current: %v/%v/%v", cs.Height, cs.Round, cs.Step), "height", height)
-	if cs.Height > height {
-		tendermintlog.Warn("consensus is ahead, wait blockchain finish catchup")
-		cs.client.ConsResult() <- cs.Height
-		return
-	} else if cs.Height < height {
-		tendermintlog.Warn("blockchain is ahead, wait consensus finish catchup")
-		cs.client.ConsResult() <- cs.Height
-		return
-	}
-	if cs.isProposalComplete() {
-		tendermintlog.Info("already has proposal")
-		return
-	}
 	cs.begCons = time.Now()
 	cs.enterPropose(height, 0)
 }
@@ -1195,7 +1201,8 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 			cs.enterNewRound(cs.Height, cs.CommitRound+1)
 			return
 		}
-		tendermintlog.Info(fmt.Sprintf("Proposer reach consensus. Current: %v/%v/%v", cs.Height, cs.CommitRound, cs.Step), "tx-lens", len(commitBlock.Txs), "cost", time.Since(cs.begCons))
+		tendermintlog.Info(fmt.Sprintf("Proposer reach consensus. Current: %v/%v/%v", cs.Height, cs.CommitRound, cs.Step),
+			"tx-lens", len(commitBlock.Txs), "cost", time.Since(cs.begCons), "proposer-addr", fmt.Sprintf("%X", ttypes.Fingerprint(cs.privValidator.GetAddress())))
 	} else {
 		reachCons, err := cs.client.CheckCommit(block.Height)
 		if err != nil {
@@ -1208,7 +1215,8 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 			cs.enterNewRound(cs.Height, cs.CommitRound+1)
 			return
 		}
-		tendermintlog.Info(fmt.Sprintf("Not-Proposer reach consensus. Current: %v/%v/%v", cs.Height, cs.CommitRound, cs.Step), "tx-lens", newBlock.Header.NumTxs+1, "cost", time.Since(cs.begCons))
+		tendermintlog.Info(fmt.Sprintf("Not-Proposer reach consensus. Current: %v/%v/%v", cs.Height, cs.CommitRound, cs.Step),
+			"tx-lens", newBlock.Header.NumTxs+1, "cost", time.Since(cs.begCons), "proposer-addr", fmt.Sprintf("%X", ttypes.Fingerprint(cs.Validators.GetProposer().Address)))
 	}
 
 	//fail.Fail() // XXX
@@ -1222,7 +1230,7 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 	// Schedule Round0 to start soon.
 	cs.scheduleRound0(&cs.RoundState)
 
-	cs.client.ConsResult() <- cs.Height
+	//cs.client.ConsResult() <- cs.Height
 
 	// By here,
 	// * cs.Height has been increment to height+1
@@ -1240,7 +1248,7 @@ func (cs *ConsensusState) defaultSetProposal(proposalTrans *ttypes.ProposalTrans
 		tendermintlog.Error("defaultSetProposal:", "msg", "ProposalTransToProposal failed", "err", err)
 		return err
 	}
-	tendermintlog.Info(fmt.Sprintf("Received proposal. Current: %v/%v/%v", cs.Height, cs.Round, cs.Step), "proposal-height", proposal.Height, "proposal-round", proposal.Round)
+	tendermintlog.Info(fmt.Sprintf("Consensus receive proposal. Current: %v/%v/%v", cs.Height, cs.Round, cs.Step), "proposal-height", proposal.Height, "proposal-round", proposal.Round)
 
 	// Already have one
 	// TODO: possibly catch double proposals
@@ -1290,9 +1298,9 @@ func (cs *ConsensusState) defaultSetProposal(proposalTrans *ttypes.ProposalTrans
 		"hash", fmt.Sprintf("%X", cs.ProposalBlock.Hash()))
 
 	if cs.isProposer() {
-		proposalTrans := ttypes.ProposalToProposalTrans(cs.Proposal)
-		msg := &ttypes.ProposalMessage{Proposal: proposalTrans}
-		cs.broadcastChannel <- msg
+		//proposalTrans := ttypes.ProposalToProposalTrans(cs.Proposal)
+		//msg := &ttypes.ProposalMessage{Proposal: proposalTrans}
+		//cs.broadcastChannel <- msg
 	}
 
 	if cs.Step <= ttypes.RoundStepPropose {

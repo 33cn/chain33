@@ -84,7 +84,7 @@ type peerConn struct {
 	myState  *ConsensusState
 	myevpool *EvidencePool
 
-	state            PeerConnState
+	state            *PeerConnState
 	updateStateQueue chan types.ReactorMsg
 	heartbeatQueue   chan types.Heartbeat
 	//config     *PeerConfig
@@ -374,7 +374,7 @@ func (pc *peerConn) Start() error {
 		pc.sendQueue = make(chan types.ReactorMsg, maxSendQueueSize)
 		pc.sendBuffer = make([]byte, 0, MaxMsgPacketPayloadSize)
 		pc.quit = make(chan struct{})
-		pc.state = PeerConnState{PeerRoundState: types.PeerRoundState{
+		pc.state = &PeerConnState{PeerRoundState: types.PeerRoundState{
 			Round:              -1,
 			ProposalPOLRound:   -1,
 			LastCommitRound:    -1,
@@ -740,7 +740,7 @@ OUTER_LOOP:
 			sleeping = 0
 		}
 
-		//logger.Debug("gossipVotesRoutine", "rsHeight", rs.Height, "rsRound", rs.Round,
+		//tendermintlog.Info("gossipVotesRoutine", "rsHeight", rs.Height, "rsRound", rs.Round,
 		//	"prsHeight", prs.Height, "prsRound", prs.Round, "prsStep", prs.Step)
 
 		// If height matches, then send LastCommit, Prevotes, Precommits.
@@ -1140,6 +1140,8 @@ func (ps *PeerConnState) ApplyNewRoundStepMessage(msg *types.NewRoundStepMessage
 	ps.Step = msg.Step
 	ps.StartTime = startTime
 	if psHeight != msg.Height || psRound != msg.Round {
+		tendermintlog.Error("ApplyNewRoundStepMessage", "psHeight", psHeight, "psRound", psRound,
+			"msg.Height", msg.Height, "msg.Round", msg.Round)
 		ps.Proposal = false
 		ps.ProposalPOLRound = -1
 		ps.ProposalPOL = nil
