@@ -17,6 +17,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
+	"gitlab.33.cn/chain33/chain33/p2p"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/store"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -57,7 +58,7 @@ func getprivkey(key string) crypto.PrivKey {
 	return priv
 }
 
-func initEnv() (queue.Queue, queue.Module, queue.Module) {
+func initEnv() (queue.Queue, queue.Module, queue.Module, queue.Module) {
 	var q = queue.New("channel")
 	cfg = config.InitCfg("../cmd/chain33/chain33.test.toml")
 	cfg.Consensus.Minerstart = false
@@ -68,7 +69,11 @@ func initEnv() (queue.Queue, queue.Module, queue.Module) {
 	types.SetMinFee(0)
 	s := store.New(cfg.Store)
 	s.SetQueueClient(q.Client())
-	return q, chain, s
+
+	network := p2p.New(cfg.P2P)
+	network.SetQueueClient(q.Client())
+
+	return q, chain, s, network
 }
 
 func createTx(priv crypto.PrivKey, to string, amount int64) *types.Transaction {
@@ -165,10 +170,11 @@ func createGenesisBlock() *types.Block {
 }
 
 func TestExecGenesisBlock(t *testing.T) {
-	q, chain, s := initEnv()
+	q, chain, s, p2p := initEnv()
 	defer chain.Close()
 	defer s.Close()
 	defer q.Close()
+	defer p2p.Close()
 	block := createGenesisBlock()
 	_, _, err := ExecBlock(q.Client(), zeroHash[:], block, false, true)
 	if err != nil {
@@ -176,13 +182,14 @@ func TestExecGenesisBlock(t *testing.T) {
 	}
 }
 func TestTxGroup(t *testing.T) {
-	q, chain, s := initEnv()
+	q, chain, s, p2p := initEnv()
 	prev := types.MinFee
 	types.SetMinFee(100000)
 	defer types.SetMinFee(prev)
 	defer chain.Close()
 	defer s.Close()
 	defer q.Close()
+	defer p2p.Close()
 	block := createGenesisBlock()
 	_, _, err := ExecBlock(q.Client(), zeroHash[:], block, false, true)
 	if err != nil {
@@ -267,7 +274,7 @@ func TestTxGroup(t *testing.T) {
 }
 
 func TestExecAllow(t *testing.T) {
-	q, chain, s := initEnv()
+	q, chain, s, p2p := initEnv()
 	prev := types.MinFee
 	types.SetMinFee(100000)
 	defer types.SetMinFee(prev)
@@ -275,6 +282,7 @@ func TestExecAllow(t *testing.T) {
 	defer chain.Close()
 	defer s.Close()
 	defer q.Close()
+	defer p2p.Close()
 	block := createGenesisBlock()
 	_, _, err := ExecBlock(q.Client(), zeroHash[:], block, false, true)
 	if err != nil {
@@ -366,11 +374,11 @@ func execAndCheckBlockCB(t *testing.T, qclient queue.Client,
 }
 
 func TestExecBlock2(t *testing.T) {
-	q, chain, s := initEnv()
+	q, chain, s, p2p := initEnv()
 	defer chain.Close()
 	defer s.Close()
 	defer q.Close()
-
+	defer p2p.Close()
 	block := createGenesisBlock()
 	detail, _, err := ExecBlock(q.Client(), zeroHash[:], block, false, true)
 	if err != nil {
@@ -442,10 +450,11 @@ func createNewBlock(t *testing.T, parent *types.Block, txs []*types.Transaction)
 }
 
 func TestExecBlock(t *testing.T) {
-	q, chain, s := initEnv()
+	q, chain, s, p2p := initEnv()
 	defer chain.Close()
 	defer s.Close()
 	defer q.Close()
+	defer p2p.Close()
 	block := createBlock(10)
 	ExecBlock(q.Client(), zeroHash[:], block, false, true)
 }
@@ -458,10 +467,11 @@ func BenchmarkGenRandBlock(b *testing.B) {
 }
 
 func BenchmarkExecBlock(b *testing.B) {
-	q, chain, s := initEnv()
+	q, chain, s, p2p := initEnv()
 	defer chain.Close()
 	defer s.Close()
 	defer q.Close()
+	defer p2p.Close()
 	block := createBlock(10000)
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
