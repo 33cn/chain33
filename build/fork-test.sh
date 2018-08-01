@@ -183,7 +183,7 @@ function optDockerfun() {
     #1 第一种分叉构造：首先两条链进行共同挖矿，然后再分
     # 别进行挖矿，即两条链上发生分叉时候的交易是不同的。
     #############################################
-    # forkType1
+    forkType1
     #############################################
     #2 第二种分叉构造：包括第一组docker,第二组docker，
     # 以及公共节点docker，首先共同挖矿，然后停掉第二组
@@ -193,7 +193,7 @@ function optDockerfun() {
     # 然后启动第二组docker,然后发送刚刚记录签名的交易。
     # 最后启动全部节点共同挖矿
     #############################################
-    # forkType2
+    forkType2
 
     #############################################
     # 第三种类型分叉构造:
@@ -209,6 +209,7 @@ function optDockerfun() {
 function forkType1() {
     echo "=========== 开始进行类型1分叉测试 ========== "
     init
+    resetPrivacyGlobalData
 
     optDockerPart1
     #############################################
@@ -246,6 +247,7 @@ function forkType1() {
 function forkType2() {
     echo "=========== 开始进行类型2分叉测试 ========== "
     init
+    resetPrivacyGlobalData
 
     optDockerPart1
     #############################################
@@ -285,6 +287,7 @@ function forkType2() {
 function forkType3() {
     echo "=========== 开始进行类型3分叉测试 ========== "
     init
+    resetPrivacyGlobalData
 
     optDockerPart1
     #############################################
