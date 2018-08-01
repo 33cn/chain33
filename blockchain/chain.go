@@ -21,7 +21,7 @@ var (
 	DefCacheSize        int64 = 512
 	cachelock           sync.Mutex
 	zeroHash            [32]byte
-	InitBlockNum        int64 = 1024 //节点刚启动时从db向index和bestchain缓存中添加的blocknode数
+	InitBlockNum        int64 = 10240 //节点刚启动时从db向index和bestchain缓存中添加的blocknode数，和blockNodeCacheLimit保持一致
 	isStrongConsistency       = false
 
 	chainlog                    = log.New("module", "blockchain")
@@ -43,7 +43,9 @@ type BlockChain struct {
 	cacheQueue *list.List
 	cfg        *types.BlockChain
 	task       *Task
-	query      *Query
+	forktask   *Task
+
+	query *Query
 
 	//记录收到的最新广播的block高度,用于节点追赶active链
 	rcvLastBlockHeight int64
@@ -87,6 +89,9 @@ type BlockChain struct {
 	//记录futureblocks
 	futureBlocks *lru.Cache // future blocks are broadcast later processing
 
+	//fork block req
+	forkInfo *ForkInfo
+	forklock sync.Mutex
 }
 
 func New(cfg *types.BlockChain) *BlockChain {
@@ -94,15 +99,17 @@ func New(cfg *types.BlockChain) *BlockChain {
 	futureBlocks, _ := lru.New(maxFutureBlocks)
 
 	blockchain := &BlockChain{
-		cache:               make(map[int64]*list.Element),
-		cacheSize:           DefCacheSize,
-		cacheQueue:          list.New(),
-		rcvLastBlockHeight:  -1,
-		synBlockHeight:      -1,
-		peerList:            nil,
-		cfg:                 cfg,
-		recvwg:              &sync.WaitGroup{},
-		task:                newTask(160 * time.Second),
+		cache:              make(map[int64]*list.Element),
+		cacheSize:          DefCacheSize,
+		cacheQueue:         list.New(),
+		rcvLastBlockHeight: -1,
+		synBlockHeight:     -1,
+		peerList:           nil,
+		cfg:                cfg,
+		recvwg:             &sync.WaitGroup{},
+		task:               newTask(160 * time.Second),
+		forktask:           newTask(300 * time.Second),
+
 		quit:                make(chan struct{}),
 		synblock:            make(chan struct{}, 1),
 		orphanPool:          NewOrphanPool(),
@@ -114,7 +121,9 @@ func New(cfg *types.BlockChain) *BlockChain {
 		faultPeerList:       make(map[string]*FaultPeerInfo),
 		bestChainPeerList:   make(map[string]*BestPeerInfo),
 		futureBlocks:        futureBlocks,
+		forkInfo:            &ForkInfo{},
 	}
+
 	return blockchain
 }
 
@@ -185,6 +194,8 @@ func (chain *BlockChain) SetQueueClient(client queue.Client) {
 		go chain.UpdateRoutine()
 	}
 
+	//初始化默认forkinfo
+	chain.DefaultForkInfo()
 }
 
 func (chain *BlockChain) getStateHash() []byte {
@@ -330,10 +341,18 @@ func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, blockdetail *types.Bloc
 		return types.ErrInputPara
 	}
 	ismain, isorphan, err := chain.ProcessBlock(broadcast, blockdetail, pid, true, -1)
+
 	//非孤儿block或者已经存在的block
-	if (!isorphan && err == nil) || (err == types.ErrBlockExist) {
-		chain.task.Done(blockdetail.Block.GetHeight())
+	if chain.task.InProgress() {
+		if (!isorphan && err == nil) || (err == types.ErrBlockExist) {
+			chain.task.Done(blockdetail.Block.GetHeight())
+		}
 	}
+	//forktask 运行时设置对应的blockdone
+	if chain.forktask.InProgress() {
+		chain.forktask.Done(blockdetail.Block.GetHeight())
+	}
+
 	//此处只更新广播block的高度
 	if broadcast {
 		chain.UpdateRcvCastBlkHeight(blockdetail.Block.Height)
@@ -841,9 +860,7 @@ func (chain *BlockChain) InitIndexAndBestView() {
 				initflag = true
 			} else {
 				chain.bestChain.SetTip(newNode)
-
 			}
-
 		}
 	}
 }
