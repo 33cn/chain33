@@ -56,12 +56,14 @@ message ReceiptParacrossCommit {
 
 message ReceiptParacrossDone {
     // most-count/commit-count/total-count
-    repeated int32 n         = 1;
-    string         title     = 2;
-    int64          height    = 3;
-    bytes          stateHash = 4;
-    uint32         txCounts  = 5;
-    bytes          txResult  = 6;
+    int32  totalNodes     = 1;
+    int32  totalCommit    = 2;
+    int32  mostSameCommit = 3;
+    string title          = 4;
+    int64  height         = 5;
+    bytes  stateHash      = 6;
+    uint32 txCounts       = 7;
+    bytes  txResult       = 8;
 }
 
 message ReceiptParacrossRecord {
