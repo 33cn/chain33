@@ -55,7 +55,6 @@ message ReceiptParacrossCommit {
 }
 
 message ReceiptParacrossDone {
-    // most-count/commit-count/total-count
     int32  totalNodes     = 1;
     int32  totalCommit    = 2;
     int32  mostSameCommit = 3;
