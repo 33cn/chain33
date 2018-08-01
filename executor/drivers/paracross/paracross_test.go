@@ -9,6 +9,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	dbmock "gitlab.33.cn/chain33/chain33/common/db/mocks"
+	apimock "gitlab.33.cn/chain33/chain33/client/mocks"
 	"gitlab.33.cn/chain33/chain33/types"
 
 	"gitlab.33.cn/chain33/chain33/blockchain"
@@ -48,6 +49,7 @@ type ExecTestSuite struct {
 	suite.Suite
 	stateDB dbm.KV
 	localDB *dbmock.KVDB
+	api *apimock.QueueProtocolAPI
 
 	exec *Paracross
 }
@@ -79,11 +81,23 @@ func (suite *ExecTestSuite) SetupSuite() {
 	// memdb 不支持KVDB接口， 等测试完Exec ， 再扩展 memdb
 	//suite.localDB, _ = dbm.NewGoMemDB("local", "local", 1024)
 	suite.localDB = new(dbmock.KVDB)
+	suite.api = new(apimock.QueueProtocolAPI)
 
 	suite.exec = newParacross().(*Paracross)
 	suite.exec.SetLocalDB(suite.localDB)
 	suite.exec.SetStateDB(suite.stateDB)
 	suite.exec.SetEnv(0, 0, 0)
+	suite.exec.SetApi(suite.api)
+
+	// TODO, more fields
+	// setup block
+	blockDetail := &types.BlockDetail{
+		Block: &types.Block{
+
+		},
+
+	}
+	MainBlockHash10 = blockDetail.Block.Hash()
 
 	// setup title nodes : len = 4
 	nodeConfigKey := calcConfigNodesKey(Title)
@@ -110,6 +124,13 @@ func (suite *ExecTestSuite) SetupSuite() {
 	}
 	header10key := blockchain.CalcHashToBlockHeaderKey(MainBlockHash10)
 	suite.localDB.On("Get", header10key).Return(types.Encode(&blockHeader10), nil)
+
+	// setup api
+	hashes := &types.ReqHashes{[][]byte{MainBlockHash10}}
+	suite.api.On("GetBlockByHashes", hashes).Return(
+		&types.BlockDetails{
+			Items: []*types.BlockDetail{blockDetail},
+		}, nil)
 }
 
 func (suite *ExecTestSuite) TestSetup() {
