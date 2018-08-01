@@ -29,7 +29,7 @@ func CalcByteBitMap(ori, cur [][]byte, data []*types.ReceiptData) []byte {
 		}
 	}
 
-	if len(ori) & bitLen > 0 {
+	if len(ori)&bitLen > 0 {
 		rst = append(rst, bitRst)
 	}
 	return rst

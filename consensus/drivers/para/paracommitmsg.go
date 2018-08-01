@@ -6,18 +6,17 @@ import (
 	"encoding/hex"
 	"time"
 
+	"github.com/pkg/errors"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/types/executor/paracross"
 	"gitlab.33.cn/chain33/chain33/util"
-	"github.com/pkg/errors"
 )
 
 const (
-	waitMainBlocks = 2
+	waitMainBlocks    = 2
 	consensusInterval = 16
-
 )
 
 type CommitMsg struct {
@@ -52,7 +51,7 @@ func (client *CommitMsgClient) handler() {
 
 	sendMsgFail := make(chan sendMsgRst, 1)
 	consensusRst := make(chan *types.ReceiptParacrossDone, 1)
-	priKeyRst := make(chan crypto.PrivKey,1)
+	priKeyRst := make(chan crypto.PrivKey, 1)
 	go client.fetchPrivacyKey(priKeyRst)
 	for {
 		select {
@@ -151,7 +150,7 @@ func (client *CommitMsgClient) handler() {
 		case <-sendMsgFail:
 			go client.sendCommitMsgTx(client.currentTx, sendMsgFail)
 
-		case key,ok := <-priKeyRst:
+		case key, ok := <-priKeyRst:
 			if !ok {
 				priKeyRst = nil
 				continue
@@ -356,7 +355,7 @@ func (client *CommitMsgClient) sendCommitMsgTxEx(txHex string) error {
 		return err
 	}
 
-	if !resp.GetIsOk(){
+	if !resp.GetIsOk() {
 		plog.Error("sendCommitMsgTx send tx Nok", "tx", txHex, "err", string(resp.GetMsg()))
 		return errors.New(string(resp.GetMsg()))
 	}
