@@ -688,7 +688,7 @@ function makeTransactionIn3Step() {
 
     height=$(${name} block last_header | jq ".height")
     amount=17
-    expire=$((height + 2))
+    expire=60
     printf '公对私交易 高度为:%s 转账金额为:%s \n' "${height}" "${amount}"
     createPrivacyPub2PrivTx "${name}" "$pk1" $amount $expire
     signRawTx "${name}" "$fromAddr1" "$returnStr1"
@@ -698,8 +698,8 @@ function makeTransactionIn3Step() {
 
     height=$(${name} block last_header | jq ".height")
     amount=7
-    expire=$((height + 2))
-    printf '私对私交易 高度为:%s 转账金额为:%s 剩余应该是:5 \n' "${height}" "${amount}"
+    expire=60
+    printf '私对私交易 高度为:%s 转账金额为:%s \n' "${height}" "${amount}"
     createPrivacyPriv2PrivTx "${name}" "$pk2" $amount "$fromAddr1" $expire
     signRawTx "${name}" "$fromAddr1" "$returnStr1"
     sendRawTx "${name}" "$returnStr1"
@@ -717,8 +717,8 @@ function makeTransactionIn3Step() {
     amount=7
     from=$fromAddr1
     to=$fromAddr1
-    expire=$((height + 2))
-    printf '私对公交易 高度为:%s 转账金额为:%s 剩余应该是:0 \n' "${height}" "${amount}"
+    expire=60
+    printf '私对公交易 高度为:%s 转账金额为:%s \n' "${height}" "${amount}"
     createPrivacyPriv2PubTx "${name}" "$from" "$to" $amount $expire
     signRawTx "${name}" "$from" "$returnStr1"
     sendRawTx "${name}" "$returnStr1"

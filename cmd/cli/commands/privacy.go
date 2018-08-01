@@ -105,9 +105,9 @@ func public2Privacy(cmd *cobra.Command, args []string) {
 	amount, _ := cmd.Flags().GetFloat64("amount")
 	note, _ := cmd.Flags().GetString("note")
 	expire, _ := cmd.Flags().GetInt64("expire")
-	expiretype, _ :=cmd.Flags().GetInt("expiretype")
+	expiretype, _ := cmd.Flags().GetInt("expiretype")
 	if expiretype == 0 {
-		if expire <= 0{
+		if expire <= 0 {
 			fmt.Println("Invalid expire. expire must large than 0 in expiretype==0, expire", expire)
 			return
 		}
@@ -172,9 +172,9 @@ func privacy2Privacy(cmd *cobra.Command, args []string) {
 	mixcount, _ := cmd.Flags().GetInt32("mixcount")
 	note, _ := cmd.Flags().GetString("note")
 	expire, _ := cmd.Flags().GetInt64("expire")
-	expiretype, _ :=cmd.Flags().GetInt("expiretype")
+	expiretype, _ := cmd.Flags().GetInt("expiretype")
 	if expiretype == 0 {
-		if expire <= 0{
+		if expire <= 0 {
 			fmt.Println("Invalid expire. expire must large than 0 in expiretype==0, expire", expire)
 			return
 		}
@@ -241,9 +241,9 @@ func privacy2Public(cmd *cobra.Command, args []string) {
 	mixcount, _ := cmd.Flags().GetInt32("mixcount")
 	note, _ := cmd.Flags().GetString("note")
 	expire, _ := cmd.Flags().GetInt64("expire")
-	expiretype, _ :=cmd.Flags().GetInt("expiretype")
+	expiretype, _ := cmd.Flags().GetInt("expiretype")
 	if expiretype == 0 {
-		if expire <= 0{
+		if expire <= 0 {
 			fmt.Println("Invalid expire. expire must large than 0 in expiretype==0, expire", expire)
 			return
 		}

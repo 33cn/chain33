@@ -343,9 +343,9 @@ func createPub2PrivTx(cmd *cobra.Command, args []string) {
 	tokenname, _ := cmd.Flags().GetString("tokenname")
 	note, _ := cmd.Flags().GetString("note")
 	expire, _ := cmd.Flags().GetInt64("expire")
-	expiretype, _ :=cmd.Flags().GetInt("expiretype")
+	expiretype, _ := cmd.Flags().GetInt("expiretype")
 	if expiretype == 0 {
-		if expire <= 0{
+		if expire <= 0 {
 			fmt.Println("Invalid expire. expire must large than 0 in expiretype==0, expire", expire)
 			return
 		}
@@ -404,9 +404,9 @@ func createPriv2PrivTx(cmd *cobra.Command, args []string) {
 	note, _ := cmd.Flags().GetString("note")
 	sender, _ := cmd.Flags().GetString("sender")
 	expire, _ := cmd.Flags().GetInt64("expire")
-	expiretype, _ :=cmd.Flags().GetInt("expiretype")
+	expiretype, _ := cmd.Flags().GetInt("expiretype")
 	if expiretype == 0 {
-		if expire <= 0{
+		if expire <= 0 {
 			fmt.Println("Invalid expire. expire must large than 0 in expiretype==0, expire", expire)
 			return
 		}
@@ -467,9 +467,9 @@ func createPriv2PubTx(cmd *cobra.Command, args []string) {
 	to, _ := cmd.Flags().GetString("to")
 	note, _ := cmd.Flags().GetString("note")
 	expire, _ := cmd.Flags().GetInt64("expire")
-	expiretype, _ :=cmd.Flags().GetInt("expiretype")
+	expiretype, _ := cmd.Flags().GetInt("expiretype")
 	if expiretype == 0 {
-		if expire <= 0{
+		if expire <= 0 {
 			fmt.Println("Invalid expire. expire must large than 0 in expiretype==0, expire", expire)
 			return
 		}
