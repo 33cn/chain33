@@ -8,7 +8,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 )
 
-const blockNodeCacheLimit = 1024
+const blockNodeCacheLimit = 10240 //目前best主链保存最新的10240个blocknode
 
 // chainView provides a flat view of a specific branch of the block chain from
 // its tip back to the genesis block and provides various convenience functions

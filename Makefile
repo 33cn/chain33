@@ -47,7 +47,11 @@ release: ## Build the binary file
 	@cp cmd/chain33/chain33.para.toml build/
 
 cli: ## Build cli binary
-	@go build -v -o $(CLI) $(SRC_CLI)
+	@go build -v -i -o $(CLI) $(SRC_CLI)
+
+execblock: ## Build cli binary
+	@go build -v -i -o build/execblock gitlab.33.cn/chain33/chain33/cmd/execblock
+
 
 para:
 	@go build -v -o build/$(NAME) -ldflags "-X gitlab.33.cn/chain33/chain33/common/config.ParaName=user.p.$(NAME). -X gitlab.33.cn/chain33/chain33/common/config.RPCAddr=http://localhost:8901" $(SRC_CLI)
