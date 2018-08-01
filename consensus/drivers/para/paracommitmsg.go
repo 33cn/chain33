@@ -11,10 +11,13 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/types/executor/paracross"
 	"gitlab.33.cn/chain33/chain33/util"
+	"github.com/pkg/errors"
 )
 
 const (
 	waitMainBlocks = 2
+	consensusInterval = 16
+
 )
 
 type CommitMsg struct {
@@ -45,11 +48,11 @@ func (client *CommitMsgClient) handler() {
 	var sendingMsgs []*CommitMsg
 	var finishMsgs []*CommitMsg
 	readTick := time.Tick(time.Second)
-	consensusTick := time.Tick(time.Second * 20)
+	consensusTick := time.Tick(time.Second * consensusInterval)
 
 	sendMsgFail := make(chan sendMsgRst, 1)
 	consensusRst := make(chan *types.ReceiptParacrossDone, 1)
-	priKeyRst := make(chan crypto.PrivKey, 1)
+	priKeyRst := make(chan crypto.PrivKey,1)
 	go client.fetchPrivacyKey(priKeyRst)
 	for {
 		select {
@@ -109,7 +112,6 @@ func (client *CommitMsgClient) handler() {
 
 		case <-readTick:
 			if len(notifications) != 0 && !client.waitingTx && isSync && client.privateKey != nil {
-
 				signTx, count, err := client.calcCommitMsgTxs(notifications)
 				if err != nil || signTx == "" {
 					continue
@@ -149,8 +151,9 @@ func (client *CommitMsgClient) handler() {
 		case <-sendMsgFail:
 			go client.sendCommitMsgTx(client.currentTx, sendMsgFail)
 
-		case key, ok := <-priKeyRst:
+		case key,ok := <-priKeyRst:
 			if !ok {
+				priKeyRst = nil
 				continue
 			}
 			client.privateKey = key
@@ -347,12 +350,16 @@ func (client *CommitMsgClient) sendCommitMsgTxEx(txHex string) error {
 		return err
 	}
 	types.Decode(data, &parm)
-	ret, err := client.paraClient.grpcClient.SendTransaction(context.Background(), &parm)
+	resp, err := client.paraClient.grpcClient.SendTransaction(context.Background(), &parm)
 	if err != nil {
 		plog.Error("sendCommitMsgTx send tx", "tx", txHex, "err", err.Error())
 		return err
 	}
-	plog.Info("procParaChain SendTransaction", "IsOk: ", ret.GetIsOk(), "msg: ", string(ret.GetMsg()))
+
+	if !resp.GetIsOk(){
+		plog.Error("sendCommitMsgTx send tx Nok", "tx", txHex, "err", string(resp.GetMsg()))
+		return errors.New(string(resp.GetMsg()))
+	}
 
 	return nil
 
@@ -416,5 +423,6 @@ func (client *CommitMsgClient) fetchPrivacyKey(priKeyRst chan crypto.PrivKey) {
 		break
 	}
 	close(priKeyRst)
+	return
 
 }
