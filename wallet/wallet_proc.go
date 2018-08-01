@@ -1062,7 +1062,7 @@ func (wallet *Wallet) AddDelPrivacyTxsFromBlock(tx *types.Transaction, index int
 				for _, keyinput := range privacyInput.Keyinput {
 					for _, utxogl := range keyinput.UtxoGlobalIndex {
 						txhashstr := common.Bytes2Hex(utxogl.Txhash)
-						wallet.walletStore.setUTXO2FTXO(info.Addr, &txhashstr, int(utxogl.Outindex), tokenname, newbatch)
+						wallet.walletStore.unlinkUTXO(info.Addr, &txhashstr, int(utxogl.Outindex), tokenname, newbatch)
 					}
 				}
 			}
