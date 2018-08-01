@@ -28,13 +28,8 @@ func (a Address) Big() *big.Int {
 
 // txHash生成EVM合约地址
 func NewAddress(txHash []byte) Address {
-	if types.IsPara() {
-		execAddr := address.GetExecAddress(types.ExecName(types.EvmX) + "." + BytesToHash(txHash).Hex())
-		return Address{addr: execAddr}
-	} else {
-		execAddr := address.GetExecAddress("user.evm." + BytesToHash(txHash).Hex())
-		return Address{addr: execAddr}
-	}
+	execAddr := address.GetExecAddress(types.ExecName(types.UserEvmX) + BytesToHash(txHash).Hex())
+	return Address{addr: execAddr}
 }
 
 func ExecAddress(execName string) Address {
