@@ -54,8 +54,10 @@ type BlockChain struct {
 	synBlockHeight int64
 
 	//记录peer的最新block高度,用于节点追赶active链
-	peerList            PeerInfoList
-	recvwg              *sync.WaitGroup
+	peerList PeerInfoList
+	recvwg   *sync.WaitGroup
+	tickerwg *sync.WaitGroup
+
 	synblock            chan struct{}
 	quit                chan struct{}
 	isclosed            int32
@@ -107,8 +109,10 @@ func New(cfg *types.BlockChain) *BlockChain {
 		peerList:           nil,
 		cfg:                cfg,
 		recvwg:             &sync.WaitGroup{},
-		task:               newTask(160 * time.Second),
-		forktask:           newTask(300 * time.Second),
+		tickerwg:           &sync.WaitGroup{},
+
+		task:     newTask(160 * time.Second),
+		forktask: newTask(300 * time.Second),
 
 		quit:                make(chan struct{}),
 		synblock:            make(chan struct{}, 1),
@@ -152,7 +156,12 @@ func (chain *BlockChain) Close() {
 	close(chain.quit)
 
 	//wait for recvwg quit:
+	chainlog.Info("blockchain wait for recvwg quit")
 	chain.recvwg.Wait()
+
+	//wait for tickerwg quit:
+	chainlog.Info("blockchain wait for tickerwg quit")
+	chain.tickerwg.Wait()
 
 	//退出接受数据, 在最后一个block写磁盘时addtx还需要接受数据
 	chain.client.Close()
