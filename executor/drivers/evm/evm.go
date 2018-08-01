@@ -30,11 +30,8 @@ var (
 func Init() {
 	drivers.Register(types.ExecName(model.ExecutorName), newEVMDriver, types.ForkV17EVM)
 	EvmAddress = address.ExecAddress(types.ExecName(model.ExecutorName))
-	if types.IsPara() {
-		realPrefix = types.ExecName(model.ExecutorName) + "."
-	} else {
-		realPrefix = model.EvmPrefix
-	}
+
+	realPrefix = types.ExecName(model.EvmPrefix)
 
 	// 初始化硬分叉数据
 	state.InitForkData()
