@@ -204,10 +204,10 @@ func (client *ParaClient) ProcEvent(msg queue.Message) bool {
 	return false
 }
 
-func (client *ParaClient) FilterTxsForPara(Txs []*types.Transaction) []*types.Transaction {
+func (client *ParaClient) FilterTxsForPara(main *types.BlockDetail) []*types.Transaction {
 	var txs []*types.Transaction
-	for _, tx := range Txs {
-		if bytes.Contains(tx.Execer, []byte(types.ExecNamePrefix)) {
+	for i, tx := range main.Block.Txs {
+		if bytes.Contains(tx.Execer, []byte(types.ExecNamePrefix)) && main.Receipts[i].Ty == types.ExecOk {
 			txs = append(txs, tx)
 		}
 	}
@@ -312,7 +312,7 @@ func (client *ParaClient) RequestTx(currSeq int64) ([]*types.Transaction, *types
 		if err != nil {
 			return nil, nil, -1, err
 		}
-		txs := client.FilterTxsForPara(blockDetail.Block.Txs)
+		txs := client.FilterTxsForPara(blockDetail)
 		plog.Info("GetCurrentSeq", "Len of txs", len(txs), "seqTy", seqTy)
 
 		client.commitMsgClient.onMainBlockAdded(blockDetail)
