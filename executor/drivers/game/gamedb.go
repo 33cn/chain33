@@ -94,9 +94,6 @@ func NewAction(g *Game, tx *types.Transaction) *Action {
 	fromaddr := tx.From()
 	return &Action{g.GetCoinsAccount(), g.GetStateDB(), hash, fromaddr, g.GetBlockTime(), g.GetHeight(), g.GetAddr()}
 }
-func (action *Action) saveStateDB(key, value []byte) {
-	action.db.Set(key, value)
-}
 func (action *Action) saveGameToStateDB(game *types.Game) {
 	value := types.Encode(game)
 	action.db.Set(Key(game.GetGameId()), value)
@@ -111,7 +108,7 @@ func (action *Action) GameCreate(create *types.GameCreate) (*types.Receipt, erro
 		glog.Error("GameCreate.ExecFrozen", "addr", action.fromaddr, "execaddr", action.execaddr, "amount", create.GetValue(), "err", err.Error())
 		return nil, err
 	}
-	game := types.Game{
+	game := &types.Game{
 		GameId:        gameId,
 		Value:         create.GetValue(),
 		HashType:      create.GetHashType(),
@@ -120,10 +117,10 @@ func (action *Action) GameCreate(create *types.GameCreate) (*types.Receipt, erro
 		CreateAddress: action.fromaddr,
 		Status:        types.GameActionCreate,
 	}
-	action.saveGameToStateDB(&game)
-	receiptLog := action.GetReceiptLog(&game)
+	action.saveGameToStateDB(game)
+	receiptLog := action.GetReceiptLog(game)
 	logs = append(logs, receiptLog)
-	kv = append(kv, action.GetKVSet(&game)...)
+	kv = append(kv, action.GetKVSet(game)...)
 	logs = append(logs, receipt.Logs...)
 	kv = append(kv, receipt.KV...)
 	receipt = &types.Receipt{types.ExecOk, kv, logs}
@@ -358,6 +355,9 @@ func (action *Action) checkGameResult(game *types.Game, close *types.GameClose) 
 			return IsCreatorWin
 		} else if game.GetGuess() == Paper {
 			return IsMatcherWin
+		} else {
+			//其他情况说明matcher 使坏，填了其他值，当做作弊处理
+			return IsCreatorWin
 		}
 	} else if bytes.Equal(common.Sha256([]byte(close.GetSecret()+string(Scissor))), game.GetHashValue()) {
 		//此刻庄家出的剪刀
@@ -366,6 +366,8 @@ func (action *Action) checkGameResult(game *types.Game, close *types.GameClose) 
 		} else if game.GetGuess() == Scissor {
 			return IsDraw
 		} else if game.GetGuess() == Paper {
+			return IsCreatorWin
+		} else {
 			return IsCreatorWin
 		}
 	} else if bytes.Equal(common.Sha256([]byte(close.GetSecret()+string(Paper))), game.GetHashValue()) {
@@ -376,9 +378,11 @@ func (action *Action) checkGameResult(game *types.Game, close *types.GameClose) 
 			return IsMatcherWin
 		} else if game.GetGuess() == Paper {
 			return IsDraw
+		} else {
+			return IsCreatorWin
 		}
 	}
-	//TODO: 其他情况默认是matcher win
+	//其他情况默认是matcher win
 	return IsMatcherWin
 }
 
