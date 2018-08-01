@@ -28,6 +28,11 @@ const (
 	Active_Time = 1
 )
 
+var (
+	//游戏状态
+	GameStatus = []int32{types.GameActionCreate, types.GameActionMatch, types.GameActionCancel, types.GameActionClose}
+)
+
 //game 的状态变化：
 // staus == 0  (创建，开始猜拳游戏）
 // status == 1 (匹配，参与)
@@ -96,8 +101,7 @@ func (action *Action) saveGameToStateDB(game *types.Game) {
 	action.db.Set(Key(game.GetGameId()), value)
 }
 func (action *Action) GameCreate(create *types.GameCreate) (*types.Receipt, error) {
-	//gameId = common.ToHex(action.txhash)
-	id := common.ToHex(action.txhash)
+	gameId := common.ToHex(action.txhash)
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
 	//冻结子账户资金
@@ -107,12 +111,13 @@ func (action *Action) GameCreate(create *types.GameCreate) (*types.Receipt, erro
 		return nil, err
 	}
 	game := types.Game{
-		GameId:        id,
+		GameId:        gameId,
 		Value:         create.GetValue(),
 		HashType:      create.GetHashType(),
 		HashValue:     create.GetHashValue(),
 		CreateTime:    action.blocktime,
 		CreateAddress: action.fromaddr,
+		Status:        types.GameActionCreate,
 	}
 	action.saveGameToStateDB(&game)
 	receiptLog := action.GetReceiptLog(&game)
@@ -153,6 +158,7 @@ func (action *Action) GameMatch(match *types.GameMatch) (*types.Receipt, error) 
 	game.Value = game.GetValue()/2 + game.GetValue()
 	game.MatchAddress = action.fromaddr
 	game.MatchTime = action.blocktime
+	game.Guess = match.GetGuess()
 	action.saveGameToStateDB(game)
 	var logs []*types.ReceiptLog
 	var kvs []*types.KeyValue
@@ -206,7 +212,7 @@ func (action *Action) GameClose(close *types.GameClose) (*types.Receipt, error) 
 	var kv []*types.KeyValue
 	game, err := action.readGame(close.GetGameId())
 	if err != nil {
-		glog.Error("GameClose ", "addr", action.fromaddr, "execaddr", action.execaddr, "get order failed",
+		glog.Error("GameClose ", "addr", action.fromaddr, "execaddr", action.execaddr, "get game failed",
 			close.GetGameId(), "err", err)
 		return nil, err
 	}
@@ -317,6 +323,8 @@ func (action *Action) GameClose(close *types.GameClose) (*types.Receipt, error) 
 	}
 	game.Closetime = action.blocktime
 	game.Status = types.GameActionClose
+	game.Secret = close.GetSecret()
+	game.Result = close.GetResult()
 	action.saveGameToStateDB(game)
 	receiptLog := action.GetReceiptLog(game)
 	logs = append(logs, receiptLog)
@@ -383,14 +391,14 @@ func (action *Action) readGame(id string) (*types.Game, error) {
 	return &game, nil
 }
 
-//TODO:这块可能需要做个分页，防止数据过大?
+//TODO:这块可能需要做个分页，防止数据过大?这里需要做补强
 func List(db dbm.Lister, db2 dbm.KV, glist *types.QueryGameListByStatusAndAddr) (types.Message, error) {
 	values, err := db.List(calcGamePrefix(glist.GetStatus(), glist.GetAddress()), nil, 0, 0)
 	if err != nil {
 		return nil, err
 	}
 	if len(values) == 0 {
-		return &types.ReplyTicketList{}, nil
+		return &types.ReplyGameList{}, nil
 	}
 	var ids types.QueryGameInfos
 	for i := 0; i < len(values); i++ {
@@ -424,4 +432,44 @@ func Infos(db dbm.KV, infos *types.QueryGameInfos) (types.Message, error) {
 		games = append(games, game)
 	}
 	return &types.ReplyGameList{Games: games}, nil
+}
+
+func CheckGameIdDup(values [][]byte) []string {
+	//根据别人测试总结，使用最节省时间的去重方式
+	if len(values) < 1024 {
+		// 切片长度小于1024的时候，循环来过滤
+		return removeDupByLoop(values)
+	} else {
+		// 大于的时候，通过map来过滤
+		return removeDupByMap(values)
+	}
+}
+func removeDupByMap(values [][]byte) []string {
+	var result []string
+	//利用map 中的key去覆盖，过滤
+	var tempMap map[string]byte
+	for _, value := range values {
+		lenth := len(tempMap)
+		tempMap[string(value)] = 0
+		if len(tempMap) != lenth {
+			result = append(result, string(value))
+		}
+	}
+	return result
+}
+func removeDupByLoop(values [][]byte) []string {
+	var result []string
+	for i := range values {
+		flag := true
+		for j := range result {
+			if string(values[i]) == result[j] {
+				flag = false // 存在重复元素，标识为false
+				break
+			}
+		}
+		if flag { // 标识为false，不添加进结果
+			result = append(result, string(values[i]))
+		}
+	}
+	return result
 }
