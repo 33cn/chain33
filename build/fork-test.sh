@@ -2,9 +2,30 @@
 # shellcheck disable=SC2178
 set +e
 
-# 引入通用的函数
-# shellcheck disable=SC1091
-source comm-test.sh
+PWD=$(cd "$(dirname "$0")" && pwd)
+export PATH="$PWD:$PATH"
+
+NODE3="${1}_chain33_1"
+CLI="docker exec ${NODE3} /root/chain33-cli"
+
+NODE2="${1}_chain32_1"
+CLI2="docker exec ${NODE2} /root/chain33-cli"
+
+NODE1="${1}_chain31_1"
+CLI3="docker exec ${NODE1} /root/chain33-cli"
+
+NODE4="${1}_chain30_1"
+CLI4="docker exec ${NODE4} /root/chain33-cli"
+
+NODE5="${1}_chain29_1"
+CLI5="docker exec ${NODE5} /root/chain33-cli"
+
+NODE6="${1}_chain28_1"
+CLI6="docker exec ${NODE6} /root/chain33-cli"
+
+containers=("${NODE1}" "${NODE2}" "${NODE3}" "${NODE4}" "${NODE5}" "${NODE6}")
+forkContainers=("${CLI3}" "${CLI2}" "${CLI}" "${CLI4}" "${CLI5}" "${CLI6}")
+
 #引入隐私交易分叉测试
 # shellcheck disable=SC1091
 source privacy-fork-test.sh
