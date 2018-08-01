@@ -1,7 +1,7 @@
 package types
 
 const (
-	ParaX = "para"
+	ParaX = "paracross"
 )
 
 var (
