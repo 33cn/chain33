@@ -26,6 +26,14 @@ priRepeatTx=1 #重复发送交易次数
 priTotalAmount1="300.0000"
 priTotalAmount2="300.0000"
 
+function resetPrivacyGlobalData() {
+    priTxFee1=0
+    priTxFee2=0
+    priTxindex=0
+    priTxHashs1=("")
+    priTxHashs2=("")
+}
+
 function initPriAccount() {
     name="${CLI}"
     fromAdd="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
