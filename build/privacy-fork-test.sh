@@ -22,7 +22,6 @@ priRepeatTx=1 #重复发送交易次数
 priTotalAmount1="300.0000"
 priTotalAmount2="300.0000"
 
-
 # 将钱包进行解锁的操作
 # $1 name
 # $2 pswd
@@ -409,7 +408,6 @@ function listMempoolTxs() {
     name=$1
     ${name} mempool list
 }
-
 
 function resetPrivacyGlobalData() {
     priTxFee1=0
