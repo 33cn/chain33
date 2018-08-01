@@ -6,10 +6,10 @@ import (
 	//"github.com/stretchr/testify/mock"
 	"testing"
 
+	apimock "gitlab.33.cn/chain33/chain33/client/mocks"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	dbmock "gitlab.33.cn/chain33/chain33/common/db/mocks"
-	apimock "gitlab.33.cn/chain33/chain33/client/mocks"
 	"gitlab.33.cn/chain33/chain33/types"
 
 	"gitlab.33.cn/chain33/chain33/blockchain"
@@ -49,7 +49,7 @@ type ExecTestSuite struct {
 	suite.Suite
 	stateDB dbm.KV
 	localDB *dbmock.KVDB
-	api *apimock.QueueProtocolAPI
+	api     *apimock.QueueProtocolAPI
 
 	exec *Paracross
 }
@@ -92,10 +92,7 @@ func (suite *ExecTestSuite) SetupSuite() {
 	// TODO, more fields
 	// setup block
 	blockDetail := &types.BlockDetail{
-		Block: &types.Block{
-
-		},
-
+		Block: &types.Block{},
 	}
 	MainBlockHash10 = blockDetail.Block.Hash()
 
