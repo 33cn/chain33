@@ -269,10 +269,8 @@ var (
 	//rpc
 	ErrInvalidMainnetRpcAddr = errors.New("ErrInvalidMainnetRpcAddr")
 	// executor.paracross
-	ErrInvalidTitle = errors.New("ErrInvalidTitle")
-	ErrTitleNotExist = errors.New("ErrTitleNotExist")
-	ErrNodeNotForTheTitle = errors.New("ErrNodeNotForTheTitle")
+	ErrInvalidTitle         = errors.New("ErrInvalidTitle")
+	ErrTitleNotExist        = errors.New("ErrTitleNotExist")
+	ErrNodeNotForTheTitle   = errors.New("ErrNodeNotForTheTitle")
 	ErrParaBlockHashNoMatch = errors.New("ErrParaBlockHashNoMatch")
-
-
 )
