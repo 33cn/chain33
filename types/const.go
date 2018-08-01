@@ -4,22 +4,20 @@ var userKey = []byte("user.")
 var slash = []byte("-")
 
 const (
-	CoinsX          = "coins"
-	TicketX         = "ticket"
-	HashlockX       = "hashlock"
-	RetrieveX       = "retrieve"
-	NoneX           = "none"
-	TokenX          = "token"
-	TradeX          = "trade"
-	ManageX         = "manage"
-	PrivacyX        = "privacy"
-	ExecerEvmString = "evm"
-	EvmX            = "evm"
-	RelayX          = "relay"
-	Normx           = "norm"
-	UserEvmString   = "user.evm."
-	UserEvmX        = "user.evm."
-	CertX           = "cert"
+	CoinsX    = "coins"
+	TicketX   = "ticket"
+	HashlockX = "hashlock"
+	RetrieveX = "retrieve"
+	NoneX     = "none"
+	TokenX    = "token"
+	TradeX    = "trade"
+	ManageX   = "manage"
+	PrivacyX  = "privacy"
+	EvmX      = "evm"
+	RelayX    = "relay"
+	Normx     = "norm"
+	UserEvmX  = "user.evm."
+	CertX     = "cert"
 )
 
 var (
@@ -27,7 +25,7 @@ var (
 	ExecerTicket   = []byte(TicketX)
 	ExecerManage   = []byte(ManageX)
 	ExecerToken    = []byte(TokenX)
-	ExecerEvm      = []byte(ExecerEvmString)
+	ExecerEvm      = []byte(EvmX)
 	ExecerPrivacy  = []byte(PrivacyX)
 	ExecerRelay    = []byte(RelayX)
 	ExecerHashlock = []byte(HashlockX)
@@ -37,7 +35,7 @@ var (
 	ExecerNorm     = []byte(Normx)
 	ExecerConfig   = []byte("config")
 	ExecerCert     = []byte(CertX)
-	UserEvm        = []byte(UserEvmString)
+	UserEvm        = []byte(UserEvmX)
 )
 
 const (
