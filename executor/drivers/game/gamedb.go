@@ -344,8 +344,12 @@ func (action *Action) checkGameIsTimeOut(game *types.Game) bool {
 	return false
 }
 
-//根据传入密钥，揭晓游戏结果,只返回庄家是否取胜
+//根据传入密钥，揭晓游戏结果
 func (action *Action) checkGameResult(game *types.Game, close *types.GameClose) int {
+	//如果超时，直接走超时开奖逻辑
+	if action.checkGameIsTimeOut(game) {
+		return IsTimeOut
+	}
 	if bytes.Equal(common.Sha256([]byte(close.GetSecret()+string(Rock))), game.GetHashValue()) {
 		//此刻庄家出的是石头
 		if game.GetGuess() == Rock {
