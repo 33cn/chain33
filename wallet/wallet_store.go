@@ -596,20 +596,18 @@ func (ws *Store) moveUTXO2FTXO(tx *types.Transaction, token, sender, txhash stri
 	newbatch.Write()
 }
 
-type fnCheckTXValid func(txhash []byte) bool
-
 //将FTXO重置为UTXO
 // moveFTXO2UTXO 当交易因为区块被回退而进行回滚时,需要将交易对应的冻结UTXO移动到可用UTXO队列中
 // 由于交易回退可能会因为UTXO对应的交易过期,未被打入区块等情况,导致UTXO不可用,所以需要检查UTXO对应的交易是否有效
-func (ws *Store) moveFTXO2UTXO(key1 []byte, newbatch dbm.Batch, fn fnCheckTXValid) {
+func (ws *Store) moveFTXO2UTXO(key1 []byte, newbatch dbm.Batch) {
 	//设置ftxo的key，使其能够方便地获取到对应的交易花费的utxo
 	value1, err := ws.db.Get(key1)
 	if err != nil {
-		walletlog.Error("moveFTXO2UTXO", "db Get(key1) error ", err)
+		walletlog.Error("PrivacyTrading moveFTXO2UTXO", "db Get(key1) error ", err)
 		return
 	}
 	if nil == value1 {
-		walletlog.Error("moveFTXO2UTXO", "Get nil value for key", string(key1))
+		walletlog.Error("PrivacyTrading moveFTXO2UTXO", "Get nil value for key", string(key1))
 		return
 
 	}
@@ -617,7 +615,7 @@ func (ws *Store) moveFTXO2UTXO(key1 []byte, newbatch dbm.Batch, fn fnCheckTXVali
 	value2, err := ws.db.Get(key2)
 	if err != nil {
 
-		walletlog.Error("moveFTXO2UTXO", "db Get(key2) error ", err)
+		walletlog.Error("PrivacyTrading moveFTXO2UTXO", "db Get(key2) error ", err)
 		return
 	}
 	if nil == value2 {
@@ -627,25 +625,10 @@ func (ws *Store) moveFTXO2UTXO(key1 []byte, newbatch dbm.Batch, fn fnCheckTXVali
 	var ftxosInOneTx types.FTXOsSTXOsInOneTx
 	err = types.Decode(value2, &ftxosInOneTx)
 	if nil != err {
-		walletlog.Error("moveFTXO2UTXO", "Failed to decode FTXOsSTXOsInOneTx for value", value2)
+		walletlog.Error("PrivacyTrading moveFTXO2UTXO", "Failed to decode FTXOsSTXOsInOneTx for value", value2)
 		return
 	}
-
-	// 检查FTXO列表中冻结的UTXO对应的交易是否有效,如果交易无效则冻结UTXO也无效
-	validFTXOs := make([]*types.UTXO, 0)
 	for _, ftxo := range ftxosInOneTx.Utxos {
-		if fn == nil {
-			validFTXOs = append(validFTXOs, ftxo)
-		} else {
-			txhash := ftxo.UtxoBasic.UtxoGlobalIndex.Txhash
-			if !fn(txhash) {
-				walletlog.Error("PrivacyTrading moveFTXO2UTXO", "invalid utxo txhash", common.Bytes2Hex(txhash))
-				continue
-			}
-			validFTXOs = append(validFTXOs, ftxo)
-		}
-	}
-	for _, ftxo := range validFTXOs {
 		utxohash := common.Bytes2Hex(ftxo.UtxoBasic.UtxoGlobalIndex.Txhash)
 		outindex := int(ftxo.UtxoBasic.UtxoGlobalIndex.Outindex)
 		key := calcUTXOKey4TokenAddr(ftxosInOneTx.Tokenname, ftxosInOneTx.Sender, utxohash, outindex)
@@ -656,6 +639,7 @@ func (ws *Store) moveFTXO2UTXO(key1 []byte, newbatch dbm.Batch, fn fnCheckTXVali
 	// 需要将FTXO的所有相关信息删除掉
 	newbatch.Delete(key1)
 	newbatch.Delete(key2)
+	walletlog.Debug("PrivacyTrading moveFTXO2UTXO", "addr", ftxosInOneTx.Sender, "tx with hash", ftxosInOneTx.Txhash)
 }
 
 //calcKey4FTXOsInTx-----x------>calcKey4UTXOsSpentInTx,被删除，

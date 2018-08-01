@@ -1115,15 +1115,7 @@ func (wallet *Wallet) procInvalidTxOnTimer(dbbatch db.Batch) error {
 			continue
 		}
 		walletlog.Debug("PrivacyTrading procInvalidTxOnTimer", "moveFTXO2UTXO key", string(keys[i]), "ftxo.IsExpire", ftxo.IsExpire(header.Height, header.BlockTime))
-		wallet.walletStore.moveFTXO2UTXO(keys[i], dbbatch,
-			func(txhash []byte) bool {
-				// do not add to UTXO list if transaction is not existed.
-				_, err := wallet.api.QueryTx(&types.ReqHash{Hash: txhash})
-				if err != nil {
-					walletlog.Debug("PrivacyTrading procInvalidTxOnTimer", "Invalid txhash", common.Bytes2Hex(txhash))
-				}
-				return err == nil
-			})
+		wallet.walletStore.moveFTXO2UTXO(keys[i], dbbatch)
 	}
 	return nil
 }
