@@ -78,8 +78,8 @@ func New(cfg *types.Consensus) *ParaClient {
 	para := &ParaClient{c, conn, grpcClient, sync.RWMutex{}, false, nil}
 	para.commitMsgClient = &CommitMsgClient{
 		paraClient:      para,
-		commitMsgNofity: make(chan *CommitMsg, 1),
-		delMsgNofity:    make(chan *CommitMsg, 1),
+		commitMsgNotify: make(chan *CommitMsg, 1),
+		delMsgNotify:    make(chan *CommitMsg, 1),
 		mainBlockAdd:    make(chan *types.BlockDetail, 1),
 		quit:            make(chan struct{}),
 	}

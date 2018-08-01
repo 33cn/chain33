@@ -27,8 +27,8 @@ type CommitMsg struct {
 
 type CommitMsgClient struct {
 	paraClient         *ParaClient
-	commitMsgNofity    chan *CommitMsg
-	delMsgNofity       chan *CommitMsg
+	commitMsgNotify    chan *CommitMsg
+	delMsgNotify       chan *CommitMsg
 	mainBlockAdd       chan *types.BlockDetail
 	currentTx          string
 	waitingTx          bool
@@ -55,12 +55,12 @@ func (client *CommitMsgClient) handler() {
 	go client.fetchPrivacyKey(priKeyRst)
 	for {
 		select {
-		case msg, ok := <-client.commitMsgNofity:
+		case msg, ok := <-client.commitMsgNotify:
 			if !ok {
 				continue
 			}
 			notifications = append(notifications, msg)
-		case msg := <-client.delMsgNofity:
+		case msg := <-client.delMsgNotify:
 			var found bool
 			for i, node := range notifications {
 				if node.blockDetail.Block.Height == msg.blockDetail.Block.Height {
@@ -367,7 +367,7 @@ func (client *CommitMsgClient) sendCommitMsgTxEx(txHex string) error {
 func (client *CommitMsgClient) onBlockAdded(msg *CommitMsg) {
 	checkTicker := time.NewTicker(time.Second * 1)
 	select {
-	case client.commitMsgNofity <- msg:
+	case client.commitMsgNotify <- msg:
 	case <-checkTicker.C:
 	case <-client.quit:
 	}
@@ -376,7 +376,7 @@ func (client *CommitMsgClient) onBlockAdded(msg *CommitMsg) {
 func (client *CommitMsgClient) onBlockDeleted(msg *CommitMsg) {
 	checkTicker := time.NewTicker(time.Second * 1)
 	select {
-	case client.delMsgNofity <- msg:
+	case client.delMsgNotify <- msg:
 	case <-checkTicker.C:
 	case <-client.quit:
 	}
@@ -422,6 +422,5 @@ func (client *CommitMsgClient) fetchPrivacyKey(priKeyRst chan crypto.PrivKey) {
 		break
 	}
 	close(priKeyRst)
-	return
 
 }

@@ -133,22 +133,31 @@ func (s *suiteParaCommitMsg) mainBlockAdd() {
 }
 
 func (s *suiteParaCommitMsg) addMsg_1() {
-	s.addMsg(int64(1))
+	commitMsg := s.calcMsg(int64(1))
+	s.para.commitMsgClient.onBlockAdded(commitMsg)
 }
 
 func (s *suiteParaCommitMsg) addMsg_2() {
-	s.addMsg(int64(2))
+	commitMsg := s.calcMsg(int64(2))
+	s.para.commitMsgClient.onBlockAdded(commitMsg)
 }
 
 func (s *suiteParaCommitMsg) addMsg_3() {
-	s.addMsg(int64(3))
+	commitMsg := s.calcMsg(int64(3))
+	s.para.commitMsgClient.onBlockAdded(commitMsg)
 }
 
 func (s *suiteParaCommitMsg) addMsg_4() {
-	s.addMsg(int64(4))
+	commitMsg := s.calcMsg(int64(4))
+	s.para.commitMsgClient.onBlockAdded(commitMsg)
 }
 
-func (s *suiteParaCommitMsg) addMsg(height int64) {
+func (s *suiteParaCommitMsg) delMsg_4() {
+	commitMsg := s.calcMsg(int64(4))
+	s.para.commitMsgClient.onBlockDeleted(commitMsg)
+}
+
+func (s *suiteParaCommitMsg) calcMsg(height int64) *CommitMsg {
 	tx1 := types.Transaction{
 		Execer:  []byte("user.p.guodun.token"),
 		Payload: []byte{1, 2},
@@ -182,52 +191,10 @@ func (s *suiteParaCommitMsg) addMsg(height int64) {
 		PrevStatusHash: []byte("1234"),
 	}
 
-	commitMsg := &CommitMsg{
+	return &CommitMsg{
 		initTxHashs:   oriTxHashs,
 		mainBlockHash: []byte("1234"),
 		blockDetail:   blockDetail,
 	}
-	s.para.commitMsgClient.onBlockAdded(commitMsg)
-}
 
-func (s *suiteParaCommitMsg) delMsg_4() {
-	tx1 := types.Transaction{
-		Execer:  []byte("user.p.guodun.token"),
-		Payload: []byte{1, 2},
-		Nonce:   1,
-	}
-
-	tx2 := types.Transaction{
-		Execer:  []byte("user.p.guodun.token"),
-		Payload: []byte{3, 4},
-		Nonce:   2,
-	}
-
-	block := &types.Block{
-		Height: 4,
-		Txs:    []*types.Transaction{&tx1, &tx2},
-	}
-	var oriTxHashs [][]byte
-	for _, tx := range block.Txs {
-		oriTxHashs = append(oriTxHashs, tx.Hash())
-	}
-
-	recep1 := &types.ReceiptData{
-		Ty: types.ExecOk,
-	}
-	recep2 := &types.ReceiptData{
-		Ty: types.ExecOk,
-	}
-	blockDetail := &types.BlockDetail{
-		Block:          block,
-		Receipts:       []*types.ReceiptData{recep1, recep2},
-		PrevStatusHash: []byte("1234"),
-	}
-
-	commitMsg := &CommitMsg{
-		initTxHashs:   oriTxHashs,
-		mainBlockHash: []byte("1234"),
-		blockDetail:   blockDetail,
-	}
-	s.para.commitMsgClient.onBlockDeleted(commitMsg)
 }
