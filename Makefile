@@ -185,6 +185,7 @@ mock:
 	@cd queue && mockery -name=Client && mv mocks/Client.go mocks/client.go && cd -
 	@cd common/db && mockery -name=KV && mv mocks/KV.go mocks/kv.go && cd -
 	@cd common/db && mockery -name=KVDB && mv mocks/KVDB.go mocks/kvdb.go && cd -
+	@cd types/ && mockery -name=GrpcserviceClient && mv mocks/GrpcserviceClient.go mocks/grpcserviceclient.go && cd -
 
 
 .PHONY: auto_ci_before auto_ci_after auto_ci
