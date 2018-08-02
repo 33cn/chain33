@@ -193,7 +193,7 @@ var (
 	ErrFromHex               = errors.New("ErrFromHex")
 	ErrPrivKeyFromBytes      = errors.New("ErrFromHex")
 	ErrParentHash            = errors.New("ErrParentHash")
-	ErrPrivacyNotExist       = errors.New("ErrPrivacyNotExist")
+	ErrPrivacyNotEnabled     = errors.New("ErrPrivacyNotEnabled")
 	ErrPrivacyTxFeeNotEnough = errors.New("ErrPrivacyTxFeeNotEnough")
 	ErrRescanFlagScaning     = errors.New("ErrRescanFlagScaning")
 

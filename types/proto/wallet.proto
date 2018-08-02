@@ -517,6 +517,20 @@ message RepRescanUtxos {
     repeated RepRescanResult repRescanResults = 2;
 }
 
+message ReqEnablePrivacy {
+    repeated string addrs = 2;
+}
+
+message PriAddrResult {
+    string addr = 1;
+    bool   IsOK = 2;
+    string msg  = 3;
+}
+
+message RepEnablePrivacy {
+    repeated PriAddrResult results = 1;
+}
+
 // 隐私交易三步发送时，临时存储签名需要的数据信息结构
 message PrivacySignatureParam {
     int32    actionType                 = 1;
