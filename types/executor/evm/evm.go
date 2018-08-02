@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"strings"
 
+	"gitlab.33.cn/chain33/chain33/common/address"
 	//log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -36,7 +37,7 @@ type EvmType struct {
 func (evm EvmType) ActionName(tx *types.Transaction) string {
 	// 这个需要通过合约交易目标地址来判断Action
 	// 如果目标地址为空，或为evm的固定合约地址，则为创建合约，否则为调用合约
-	if strings.EqualFold(tx.To, "19tjS51kjwrCoSQS13U3owe7gYBLfSfoFm") {
+	if strings.EqualFold(tx.To, address.ExecAddress(types.ExecName(types.EvmX))) {
 		return "createEvmContract"
 	} else {
 		return "callEvmContract"
