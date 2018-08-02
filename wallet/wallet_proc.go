@@ -1499,5 +1499,5 @@ func (wallet *Wallet) procRescanUtxos(req *types.ReqRescanUtxos) (*types.RepResc
 func (wallet *Wallet) procEnablePrivacy(req *types.ReqEnablePrivacy) (*types.RepEnablePrivacy, error) {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
-	return wallet.EnablePrivacy(req)
+	return wallet.enablePrivacy(req)
 }
