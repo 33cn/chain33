@@ -25,6 +25,7 @@ const (
 
 var (
 	MainBlockHash10 = []byte("main block hash 10")
+	MainBlockHeight = int64(10)
 	CurHeight       = int64(10)
 	Title           = string("test")
 	TitleHeight     = int64(10)
@@ -143,6 +144,7 @@ func (suite *ExecTestSuite) TestSetup() {
 func commitOnce(suite *ExecTestSuite, privkeyStr string) (receipt *types.Receipt) {
 	st1 := types.ParacrossNodeStatus{
 		MainBlockHash10,
+		MainBlockHeight,
 		Title,
 		TitleHeight,
 		[]byte("block-hash-9"),
