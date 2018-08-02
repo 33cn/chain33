@@ -228,14 +228,14 @@ func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, er
 	// 主链   （1）Bn1        （3） rollback-Bn1   （4） commit-done in Bn2
 	// 平行链         （2）commit                                 （5） 将得到一个错误的块
 	// 所以有必要做这个检测
-	blockDetail, err := GetBlock(a.api, commit.Status.MainBlockHash)
+	blockHash, err := getBlockHash(a.api, commit.Status.Height)
 	if err != nil {
-		clog.Error("paracross.Commit getBlockHeader", "err", err,
-			"commit tx hash", common.Bytes2Hex(commit.Status.MainBlockHash))
+		clog.Error("paracross.Commit getBlockHash", "err", err,
+			"commit tx Main.height", commit.Status.Height)
 		return nil, err
 	}
-	if !bytes.Equal(blockDetail.Block.Hash(), commit.Status.MainBlockHash) {
-		clog.Error("paracross.Commit blockHash not match", "db", common.Bytes2Hex(blockDetail.Block.Hash()),
+	if !bytes.Equal(blockHash.Hash, commit.Status.MainBlockHash) {
+		clog.Error("paracross.Commit blockHash not match", "db", common.Bytes2Hex(blockHash.Hash),
 			"commit tx", common.Bytes2Hex(commit.Status.MainBlockHash))
 		return nil, types.ErrBlockHashNoMatch
 	}
@@ -305,7 +305,7 @@ func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, er
 	saveTitle(a.db, calcTitleKey(commit.Status.Title), titleStatus)
 
 	// TODO 触发交易组跨链交易
-	print(blockDetail)
+	print(blockHash)
 	// TODO 需要生成本地db 用原交易组查询执行结果
 
 	return receipt, nil

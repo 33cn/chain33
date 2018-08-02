@@ -6,7 +6,7 @@
     * configPrefix-title-node-list, 列表是对应节点签名用的公钥地址
 
 ## 状态
- 1. prefix-title: height, 记录已经达成共识的高度
+ 1. prefix-title: height, 记录已经达成共识的高度等状态
  1. prefix-title-height: 记录对应高度的状态
 
 ## 执行逻辑
