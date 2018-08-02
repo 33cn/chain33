@@ -33,7 +33,8 @@ type DB struct {
 }
 
 func NewCoinsAccount() *DB {
-	return newAccountDB("mavl-coins-bty-")
+	prefix := "mavl-" + types.ExecName(types.CoinsX) + "-bty-"
+	return newAccountDB(prefix)
 }
 
 func NewAccountDB(execer string, symbol string, db dbm.KV) (*DB, error) {
