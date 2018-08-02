@@ -1757,57 +1757,62 @@ func Test_EnablePrivacy(t *testing.T) {
 
 	testRepCase := []types.RepEnablePrivacy{
 		{
-			Falg: 0,
-			PriAddrs: []*types.PrivacyAddress{
+			Results: []*types.PriAddrResult{
 				{
-					Addr:       testAddrs[0],
-					Pubkeypair: testPubkeyPairs[0],
+					Addr: testAddrs[0],
+					IsOK: true,
 				},
 				{
-					Addr:       testAddrs[1],
-					Pubkeypair: testPubkeyPairs[1],
+					Addr: testAddrs[1],
+					IsOK: true,
 				},
 				{
-					Addr:       testAddrs[2],
-					Pubkeypair: testPubkeyPairs[2],
-				},
-			},
-		},
-		{
-			Falg: 0,
-			PriAddrs: []*types.PrivacyAddress{
-				{
-					Addr:       testAddrs[0],
-					Pubkeypair: testPubkeyPairs[0],
+					Addr: testAddrs[2],
+					IsOK: true,
 				},
 			},
 		},
 		{
-			Falg: 0,
-			PriAddrs: []*types.PrivacyAddress{
+			Results: []*types.PriAddrResult{
 				{
-					Addr:       testAddrs[0],
-					Pubkeypair: testPubkeyPairs[0],
+					Addr: testAddrs[0],
+					IsOK: true,
+				},
+			},
+		},
+		{
+			Results: []*types.PriAddrResult{
+				{
+					Addr: testAddrs[0],
+					IsOK: true,
 				},
 				{
-					Addr:       testAddrs[1],
-					Pubkeypair: testPubkeyPairs[1],
+					Addr: testAddrs[1],
+					IsOK: true,
+				},
+			},
+		},
+		{
+			Results: []*types.PriAddrResult{
+				{
+					Addr: "1EDDghAtgBsamrNEtNmYdQzC1QEhLkr999",
+					IsOK: false,
+					Msg:  types.ErrAddrNotExist.Error(),
 				},
 			},
 		},
 	}
 
 	testCase := []types.ReqEnablePrivacy{
+		{},
 		{
-			Flag: 0,
-		},
-		{
-			Flag:  0,
 			Addrs: []string{testAddrs[0]},
 		},
 		{
-			Flag:  0,
 			Addrs: []string{testAddrs[0], testAddrs[1]},
+		},
+		{
+			Addrs: []string{"1EDDghAtgBsamrNEtNmYdQzC1QEhLkr999"},
 		},
 	}
 
@@ -1815,19 +1820,19 @@ func Test_EnablePrivacy(t *testing.T) {
 		wtd := &walletTestData{}
 		wtd.Init()
 		wallet := wtd.wallet
-		res, err := wallet.EnablePrivacy(&test)
+		res, err := wallet.enablePrivacy(&test)
 		require.Equal(t, err, nil)
 
 		k := 0
-		for _, priAddr := range res.PriAddrs {
-			for _, repPriAddr := range testRepCase[i].PriAddrs {
+		for _, priAddr := range res.Results {
+			for _, repPriAddr := range testRepCase[i].Results {
 				if priAddr.Addr == repPriAddr.Addr {
-					require.Equal(t, priAddr.Pubkeypair, repPriAddr.Pubkeypair)
+					require.Equal(t, priAddr.IsOK, repPriAddr.IsOK)
 					k++
 				}
 			}
 		}
-		if len(res.PriAddrs) != k {
+		if len(res.Results) != k {
 			require.Error(t, types.ErrNotFound)
 		}
 	}
