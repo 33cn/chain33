@@ -13,33 +13,46 @@ type StateDB struct {
 	client    queue.Client
 	stateHash []byte
 	version   int64
+	height    int64
 	local     *db.SimpleMVCC
 	flagMVCC  int64
 }
 
-func NewStateDB(client queue.Client, stateHash []byte, enableMVCC bool, flagMVCC int64) db.KV {
+type StateDBOption struct {
+	EnableMVCC bool
+	FlagMVCC   int64
+	Height     int64
+}
+
+func NewStateDB(client queue.Client, stateHash []byte, opt *StateDBOption) db.KV {
+	if opt == nil {
+		opt = &StateDBOption{}
+	}
 	db := &StateDB{
 		cache:     make(map[string][]byte),
 		txcache:   make(map[string][]byte),
 		intx:      false,
 		client:    client,
 		stateHash: stateHash,
+		height:    opt.Height,
 		version:   -1,
 		local:     db.NewSimpleMVCC(NewLocalDB(client)),
 	}
-	if enableMVCC {
+	if opt.EnableMVCC {
 		v, err := db.local.GetVersion(stateHash)
 		if err == nil && v >= 0 {
 			db.version = v
 		}
-		db.flagMVCC = flagMVCC
+		db.flagMVCC = opt.FlagMVCC
 	}
 	return db
 }
 
 func (s *StateDB) Begin() {
 	s.intx = true
-	s.txcache = nil
+	if types.IsMatchFork(s.height, types.ForkV22ExecRollback) {
+		s.txcache = nil
+	}
 }
 
 func (s *StateDB) Rollback() {
@@ -50,7 +63,10 @@ func (s *StateDB) Commit() {
 	for k, v := range s.txcache {
 		s.cache[k] = v
 	}
-	s.resetTx()
+	s.intx = false
+	if types.IsMatchFork(s.height, types.ForkV22ExecRollback) {
+		s.resetTx()
+	}
 }
 
 func (s *StateDB) resetTx() {
@@ -59,6 +75,12 @@ func (s *StateDB) resetTx() {
 }
 
 func (s *StateDB) Get(key []byte) ([]byte, error) {
+	v, err := s.get(key)
+	debugAccount("==get==", key, v)
+	return v, err
+}
+
+func (s *StateDB) get(key []byte) ([]byte, error) {
 	skey := string(key)
 	if s.intx && s.txcache != nil {
 		if value, ok := s.txcache[skey]; ok {
@@ -103,7 +125,19 @@ func (s *StateDB) Get(key []byte) ([]byte, error) {
 	return value, nil
 }
 
+func debugAccount(prefix string, key []byte, value []byte) {
+	if !types.Debug {
+		return
+	}
+	var msg types.Account
+	err := types.Decode(value, &msg)
+	if err == nil {
+		elog.Info(prefix, "key", string(key), "value", msg)
+	}
+}
+
 func (s *StateDB) Set(key []byte, value []byte) error {
+	debugAccount("==set==", key, value)
 	skey := string(key)
 	if s.intx {
 		if s.txcache == nil {

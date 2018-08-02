@@ -27,9 +27,9 @@ var (
 	MaxTxHashsPerTime int64 = 100
 	walletlog               = log.New("module", "wallet")
 	// 1；secp256k1，2：ed25519，3：sm2
-	SignType    = 1
-	accountdb   = account.NewCoinsAccount()
-	accTokenMap = make(map[string]*account.DB)
+	SignType                = 1
+	accountdb   *account.DB = nil
+	accTokenMap             = make(map[string]*account.DB)
 )
 
 const (
@@ -100,6 +100,7 @@ func DisableLog() {
 
 func New(cfg *types.Wallet) *Wallet {
 	//walletStore
+	accountdb = account.NewCoinsAccount()
 	walletStoreDB := dbm.NewDB("wallet", cfg.Driver, cfg.DbPath, cfg.DbCache)
 	walletStore := NewStore(walletStoreDB)
 	minFee = cfg.MinFee

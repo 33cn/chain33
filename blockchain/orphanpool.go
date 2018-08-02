@@ -10,10 +10,10 @@ import (
 )
 
 var (
-	maxOrphanBlocks = 2 * MaxFetchBlockNum //最大孤儿block数量，考虑到同步阶段孤儿block会很多
+	maxOrphanBlocks = 10240 //最大孤儿block数量，考虑到同步阶段孤儿block会很多
 )
 
-const orphanExpirationTime = time.Second * 300
+const orphanExpirationTime = time.Second * 600 // 孤儿过期时间设置为10分钟
 
 //孤儿节点，就是本节点的父节点未知的block
 type orphanBlock struct {
@@ -135,14 +135,14 @@ func (op *OrphanPool) addOrphanBlock(broadcast bool, block *types.Block, pid str
 	}
 
 	// 孤儿池超过最大限制时，删除最早的一个孤儿block
-	if int64(len(op.orphans)+1) > maxOrphanBlocks {
+	if (len(op.orphans) + 1) > maxOrphanBlocks {
 		op.removeOrphanBlock(op.oldestOrphan)
 		chainlog.Debug("addOrphanBlock:removeOrphanBlock maxOrphanBlocks ", "block.height", op.oldestOrphan.block.Height, "block.hash", common.ToHex(op.oldestOrphan.block.Hash()))
 
 		op.oldestOrphan = nil
 	}
 
-	// 将本孤儿节点插入孤儿池中，并启动90秒的过期定时器
+	// 将本孤儿节点插入孤儿池中，并启动过期定时器
 	expiration := types.Now().Add(orphanExpirationTime)
 	oBlock := &orphanBlock{
 		block:      block,

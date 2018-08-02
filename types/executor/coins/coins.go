@@ -52,6 +52,10 @@ func (coins CoinsType) GetRealToAddr(tx *types.Transaction) string {
 	}
 	if action.Ty == types.CoinsActionTransfer && action.GetTransfer() != nil {
 		return action.GetTransfer().GetTo()
+	} else if action.Ty == types.CoinsActionTransferToExec && action.GetTransferToExec() != nil {
+		return action.GetTransferToExec().GetTo()
+	} else if action.Ty == types.CoinsActionWithdraw && action.GetWithdraw() != nil {
+		return action.GetWithdraw().GetTo()
 	}
 	return tx.To
 }
