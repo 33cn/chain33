@@ -271,15 +271,15 @@ func (self *ContractAccount) BuildStateLog() (log *types.ReceiptLog) {
 }
 
 func (self *ContractAccount) GetDataKey() []byte {
-	return []byte(ContractDataPrefix + self.Addr)
+	return []byte("mavl-" + types.ExecName(types.EvmX) + "-data: " + self.Addr)
 }
 
 func (self *ContractAccount) GetStateKey() []byte {
-	return []byte(ContractStatePrefix + self.Addr)
+	return []byte("mavl-" + types.ExecName(types.EvmX) + "-state: " + self.Addr)
 }
 
 func getStateItemKey(addr, key string) string {
-	return fmt.Sprintf(ContractStateItemKey, addr, key)
+	return fmt.Sprintf("mavl-"+types.ExecName(types.EvmX)+"-state:%v:%v", addr, key)
 }
 
 func (self *ContractAccount) Suicide() bool {
