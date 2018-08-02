@@ -206,8 +206,8 @@ func (client *ParaClient) ProcEvent(msg queue.Message) bool {
 
 func (client *ParaClient) FilterTxsForPara(main *types.BlockDetail) []*types.Transaction {
 	var txs []*types.Transaction
-	for i, tx := range main.Block.Txs {
-		if bytes.Contains(tx.Execer, []byte(types.ExecNamePrefix)) && main.Receipts[i].Ty == types.ExecOk {
+	for _, tx := range main.Block.Txs {
+		if bytes.Contains(tx.Execer, []byte(types.ExecNamePrefix)) {
 			txs = append(txs, tx)
 		}
 	}
@@ -461,6 +461,7 @@ func (client *ParaClient) WriteBlock(prev []byte, paraBlock *types.Block, mainBl
 			commitMsg := &CommitMsg{
 				initTxHashs:   oriTxHashs,
 				mainBlockHash: mainBlock.Hash(),
+				mainHeight:    mainBlock.Height,
 				blockDetail:   blockDetail,
 			}
 			client.commitMsgClient.onBlockAdded(commitMsg)

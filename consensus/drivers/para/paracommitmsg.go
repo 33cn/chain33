@@ -21,6 +21,7 @@ const (
 
 type CommitMsg struct {
 	mainBlockHash []byte
+	mainHeight    int64
 	initTxHashs   [][]byte
 	blockDetail   *types.BlockDetail
 }
@@ -280,34 +281,16 @@ func (client *CommitMsgClient) singleCalcTx(msg *CommitMsg) (string, error) {
 
 }
 
-func checkTxInMainBlock(targetTx string, detail *types.BlockDetail) (bool, error) {
-	data, err := common.FromHex(targetTx)
-	if err != nil {
-		plog.Error("checkTxInMainBlock targetTx", "tx", targetTx, "err", err.Error())
-		return false, err
-	}
-	var decodeTx types.Transaction
-	types.Decode(data, &decodeTx)
-	targetHash := decodeTx.Hash()
-
-	for i, tx := range detail.Block.Txs {
-		if bytes.Equal(targetHash, tx.Hash()) && detail.Receipts[i].Ty == types.ExecOk {
-			return true, nil
-		}
-	}
-	return false, nil
-
-}
-
 func getCommitMsgTx(msg *CommitMsg) (*types.Transaction, error) {
 	status := &types.ParacrossNodeStatus{
-		Title:         types.GetTitle(),
-		Height:        msg.blockDetail.Block.Height,
-		PreBlockHash:  msg.blockDetail.Block.ParentHash,
-		BlockHash:     msg.blockDetail.Block.Hash(),
-		MainBlockHash: msg.mainBlockHash,
-		PreStateHash:  msg.blockDetail.PrevStatusHash,
-		StateHash:     msg.blockDetail.Block.StateHash,
+		MainBlockHash:   msg.mainBlockHash,
+		MainBlockHeight: msg.mainHeight,
+		Title:           types.GetTitle(),
+		Height:          msg.blockDetail.Block.Height,
+		PreBlockHash:    msg.blockDetail.Block.ParentHash,
+		BlockHash:       msg.blockDetail.Block.Hash(),
+		PreStateHash:    msg.blockDetail.PrevStatusHash,
+		StateHash:       msg.blockDetail.Block.StateHash,
 	}
 
 	var curTxsHash [][]byte
@@ -361,6 +344,25 @@ func (client *CommitMsgClient) sendCommitMsgTxEx(txHex string) error {
 	}
 
 	return nil
+
+}
+
+func checkTxInMainBlock(targetTx string, detail *types.BlockDetail) (bool, error) {
+	data, err := common.FromHex(targetTx)
+	if err != nil {
+		plog.Error("checkTxInMainBlock targetTx", "tx", targetTx, "err", err.Error())
+		return false, err
+	}
+	var decodeTx types.Transaction
+	types.Decode(data, &decodeTx)
+	targetHash := decodeTx.Hash()
+
+	for i, tx := range detail.Block.Txs {
+		if bytes.Equal(targetHash, tx.Hash()) && detail.Receipts[i].Ty == types.ExecOk {
+			return true, nil
+		}
+	}
+	return false, nil
 
 }
 
