@@ -9,6 +9,7 @@ build/chain33*
 build/datadir
 build/bityuan*
 build/para
+build/execblock
 build/relayd
 build/relayd.toml
 build/*.log

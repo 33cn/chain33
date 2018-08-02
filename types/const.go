@@ -3,6 +3,7 @@ package types
 var userKey = []byte("user.")
 var slash = []byte("-")
 
+const Debug = false
 const (
 	CoinsX          = "coins"
 	TicketX         = "ticket"
