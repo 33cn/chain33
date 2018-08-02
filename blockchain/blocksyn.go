@@ -29,13 +29,20 @@ var (
 	checkHeightNoIncSeconds int64 = 5 * 60 //高度不增长时的检测周期目前暂定5分钟
 	checkBlockHashSeconds   int64 = 1 * 60 //1分钟检测一次tip hash和peer 对应高度的hash是否一致
 	fetchPeerListSeconds    int64 = 5      //5 秒获取一个peerlist
-	MaxRollBlockNum         int64 = 5000   //最大回退block数量
+	MaxRollBlockNum         int64 = 10000  //最大回退block数量
 	//TODO
 	blockSynInterVal        = time.Duration(TimeoutSeconds)
 	batchsyncblocknum int64 = 5000 //同步阶段，如果自己高度小于最大高度5000个时，saveblock到db时批量处理不刷盘
 
 	synlog = chainlog.New("submodule", "syn")
 )
+
+//blockchain模块fork处理结构体
+type ForkInfo struct {
+	ForkStartHeight int64
+	ForkEndHeight   int64
+	ForkPid         string
+}
 
 //blockchain模块需要保存的peerinfo
 type PeerInfo struct {
@@ -172,22 +179,39 @@ func (chain *BlockChain) FetchBlock(start int64, end int64, pid []string, syncOr
 	requestblock.IsDetail = false
 	requestblock.Pid = pid
 
-	//同步block一次请求128个,fork分叉处理时请求block的个数不做限制
-	if blockcount >= MaxFetchBlockNum && !syncOrfork {
+	//同步block一次请求128个
+	if blockcount >= MaxFetchBlockNum {
 		requestblock.End = start + MaxFetchBlockNum - 1
 	} else {
 		requestblock.End = end
 	}
 	var cb func()
-	if chain.GetPeerMaxBlkHeight()-requestblock.End > BackBlockNum {
-		cb = func() {
-			chain.SynBlocksFromPeers()
+	if syncOrfork {
+		//还有区块需要请求，挂接钩子回调函数
+		if requestblock.End < chain.forkInfo.ForkEndHeight {
+			cb = func() {
+				chain.ReqForkBlocks()
+			}
+			chain.UpdateForkStartHeight(requestblock.End + 1)
+		} else { // 所有fork block已请求结束，恢复forkinfo为默认值
+			chain.DefaultForkInfo()
+		}
+		err = chain.forktask.Start(requestblock.Start, requestblock.End, cb)
+		if err != nil {
+			return err
+		}
+	} else {
+		if chain.GetPeerMaxBlkHeight()-requestblock.End > BackBlockNum {
+			cb = func() {
+				chain.SynBlocksFromPeers()
+			}
+		}
+		err = chain.task.Start(requestblock.Start, requestblock.End, cb)
+		if err != nil {
+			return err
 		}
 	}
-	err = chain.task.Start(requestblock.Start, requestblock.End, cb)
-	if err != nil {
-		return err
-	}
+
 	synlog.Debug("FetchBlock", "Start", requestblock.Start, "End", requestblock.End)
 	msg := chain.client.NewMessage("p2p", types.EventFetchBlocks, &requestblock)
 	Err := chain.client.Send(msg, true)
@@ -694,21 +718,77 @@ func (chain *BlockChain) ProcBlockHeaders(headers *types.Headers, pid string) er
 	//从分叉节点高度继续请求block，从pid
 	peermaxheight := peerinfo.Height
 
-	//此时停止同步的任务
-	chain.task.Cancel()
-
-	//分叉区块小于128个时向peer请求128个或者从分叉到peermaxheight指间的区块
-	//分叉区块大于128个时，至少取分叉节点到tipheight+1的block。用于总难度的比较
-	if peermaxheight > ForkHeight+MaxFetchBlockNum {
-		if tipheight > ForkHeight+MaxFetchBlockNum {
-			chain.FetchBlock(ForkHeight, tipheight+1, []string{pid}, true)
-		} else {
-			chain.FetchBlock(ForkHeight, ForkHeight+MaxFetchBlockNum, []string{pid}, true)
-		}
+	//启动一个线程在后台获取分叉的blcok
+	if chain.forktask.InProgress() {
+		synlog.Info("ProcBlockHeaders forktask.InProgress")
+		return nil
 	} else {
-		chain.FetchBlock(ForkHeight, peermaxheight, []string{pid}, true)
+		go chain.ProcBlockChainFork(ForkHeight, peermaxheight, pid)
 	}
 	return nil
+}
+
+//处理从peer获取的headers消息
+func (chain *BlockChain) ProcBlockChainFork(forkStartHeight int64, forkEndHeight int64, pid string) {
+	forkinfo := chain.GetForkInfo()
+
+	//可能存在上次fork 处理过程中下载区块超时，forktask任务退出，但forkinfo没有恢复成默认值
+	if forkinfo.ForkStartHeight != -1 || forkinfo.ForkEndHeight != -1 {
+		synlog.Error("ProcBlockChainFork Fork processing", "pid", forkinfo.ForkPid, "ForkStartHeight", forkinfo.ForkStartHeight, "ForkEndHeight", forkinfo.ForkEndHeight)
+	}
+
+	chain.DefaultForkInfo()
+	chain.InitForkInfo(forkStartHeight, forkEndHeight, pid)
+	chain.ReqForkBlocks()
+}
+
+//开始新的fork处理
+func (chain *BlockChain) InitForkInfo(forkStartHeight int64, forkEndHeight int64, pid string) {
+	chain.forklock.Lock()
+	defer chain.forklock.Unlock()
+
+	chain.forkInfo.ForkStartHeight = forkStartHeight
+	chain.forkInfo.ForkEndHeight = forkEndHeight
+	chain.forkInfo.ForkPid = pid
+	synlog.Info("InitForkInfo Fork process begin", "ForkStartHeight", forkStartHeight, "ForkEndHeight", forkEndHeight, "pid", pid)
+
+}
+
+//将forkinfo恢复成默认值
+func (chain *BlockChain) DefaultForkInfo() {
+	chain.forklock.Lock()
+	defer chain.forklock.Unlock()
+
+	chain.forkInfo.ForkStartHeight = -1
+	chain.forkInfo.ForkEndHeight = -1
+	chain.forkInfo.ForkPid = ""
+	synlog.Debug("DefaultForkInfo")
+}
+
+//获取forkinfo
+func (chain *BlockChain) GetForkInfo() *ForkInfo {
+	chain.forklock.Lock()
+	defer chain.forklock.Unlock()
+
+	return chain.forkInfo
+}
+
+// 更新fork 请求的起始block高度
+func (chain *BlockChain) UpdateForkStartHeight(forkStartHeight int64) {
+	chain.forklock.Lock()
+	defer chain.forklock.Unlock()
+
+	chain.forkInfo.ForkStartHeight = forkStartHeight
+	synlog.Debug("UpdateForkStartHeight", "ForkStartHeight", chain.forkInfo.ForkStartHeight, "ForkEndHeight", chain.forkInfo.ForkEndHeight, "pid", chain.forkInfo.ForkPid)
+}
+
+//请求fork处理的blocks
+func (chain *BlockChain) ReqForkBlocks() {
+	forkinfo := chain.GetForkInfo()
+	if forkinfo.ForkStartHeight != -1 && forkinfo.ForkEndHeight != -1 && forkinfo.ForkPid != "" {
+		synlog.Debug("ReqForkBlocks", "ForkStartHeight", forkinfo.ForkStartHeight, "ForkEndHeight", forkinfo.ForkEndHeight, "pid", forkinfo.ForkPid)
+		chain.FetchBlock(forkinfo.ForkStartHeight, forkinfo.ForkEndHeight, []string{forkinfo.ForkPid}, true)
+	}
 }
 
 //处理从peer获取的headers消息
@@ -812,7 +892,7 @@ func (chain *BlockChain) IsCaughtUp() bool {
 		peersNo++
 	}
 
-	isCaughtUp := (height > 0 || types.Since(chain.startTime) > 60*time.Second) && (maxPeerHeight == 0 || height >= maxPeerHeight)
+	isCaughtUp := (height > 0 || types.Since(chain.startTime) > 60*time.Second) && (maxPeerHeight == 0 || (height >= maxPeerHeight && maxPeerHeight != -1))
 
 	synlog.Debug("IsCaughtUp", "IsCaughtUp ", isCaughtUp, "height", height, "maxPeerHeight", maxPeerHeight, "peersNo", peersNo)
 	return isCaughtUp

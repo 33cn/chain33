@@ -116,7 +116,7 @@ func (chain *BlockChain) addBlock(msg queue.Message) {
 	blockpid := msg.Data.(*types.BlockPid)
 	err := chain.ProcAddBlockMsg(false, &types.BlockDetail{Block: blockpid.Block}, blockpid.Pid)
 	if err != nil {
-		chainlog.Error("ProcAddBlockMsg", "err", err.Error())
+		chainlog.Error("ProcAddBlockMsg", "height", blockpid.Block.Height, "err", err.Error())
 		reply.IsOk = false
 		reply.Msg = []byte(err.Error())
 	} else {
