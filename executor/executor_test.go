@@ -514,7 +514,11 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	//tx交易去重处理, 这个地方要查询数据库，需要一个更快的办法
 	cacheTxs := types.TxsToCache(block.Txs)
 	oldtxscount := len(cacheTxs)
-	cacheTxs = util.CheckTxDup(client, cacheTxs, block.Height)
+	var err error
+	cacheTxs, err = util.CheckTxDup(client, cacheTxs, block.Height)
+	if err != nil {
+		return nil, nil, err
+	}
 	newtxscount := len(cacheTxs)
 	if oldtxscount != newtxscount && errReturn {
 		return nil, nil, types.ErrTxDup
