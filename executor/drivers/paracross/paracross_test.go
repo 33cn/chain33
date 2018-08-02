@@ -11,7 +11,7 @@ import (
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	dbmock "gitlab.33.cn/chain33/chain33/common/db/mocks"
 	"gitlab.33.cn/chain33/chain33/types"
-	
+
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/log"
 	pt "gitlab.33.cn/chain33/chain33/types/executor/paracross"
