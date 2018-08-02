@@ -692,7 +692,7 @@ function makeTransactionIn3Step() {
     printf '公对私交易 高度为:%s 转账金额为:%s \n' "${height}" "${amount}"
     note="pub2priv_test"
     pub2priv "${name}" "$fromAddr1" "$pk1" $note $amount $expire
-    block_wait_timeout "${name}" 1 15
+    block_wait_timeout "${name}" 5 80
 
     height=$(${name} block last_header | jq ".height")
     amount=7
@@ -707,7 +707,7 @@ function makeTransactionIn3Step() {
         priTxHashs2[$priTxindex]="$returnStr1"
         priTxindex=$((priTxindex + 1))
     fi
-    block_wait_timeout "${name}" 1 15
+    block_wait_timeout "${name}" 5 80
 
     height=$(${name} block last_header | jq ".height")
     amount=7
@@ -724,7 +724,7 @@ function makeTransactionIn3Step() {
         priTxHashs2[$priTxindex]="$returnStr1"
         priTxindex=$((priTxindex + 1))
     fi
-    block_wait_timeout "${name}" 1 15
+    block_wait_timeout "${name}" 5 80
 }
 
 function genFirstChainPritxType3() {
