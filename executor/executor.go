@@ -143,7 +143,8 @@ func (exec *Executor) procExecQuery(msg queue.Message) {
 		return
 	}
 	driver.SetLocalDB(NewLocalDB(exec.client))
-	driver.SetStateDB(NewStateDB(exec.client, data.StateHash, exec.enableMVCC, exec.flagMVCC))
+	opt := &StateDBOption{EnableMVCC: exec.enableMVCC, FlagMVCC: exec.flagMVCC, Height: header.GetHeight()}
+	driver.SetStateDB(NewStateDB(exec.client, data.StateHash, opt))
 	ret, err := driver.Query(data.FuncName, data.Param)
 	if err != nil {
 		msg.Reply(exec.client.NewMessage("", types.EventBlockChainQuery, err))
@@ -517,8 +518,9 @@ func newExecutor(stateHash []byte, exec *Executor, height, blocktime int64, diff
 	client := exec.client
 	enableMVCC := exec.enableMVCC
 	flagMVCC := exec.flagMVCC
+	opt := &StateDBOption{EnableMVCC: enableMVCC, FlagMVCC: flagMVCC, Height: height}
 	e := &executor{
-		stateDB:      NewStateDB(client, stateHash, enableMVCC, flagMVCC),
+		stateDB:      NewStateDB(client, stateHash, opt),
 		localDB:      NewLocalDB(client),
 		coinsAccount: account.NewCoinsAccount(),
 		height:       height,
@@ -679,7 +681,9 @@ func (execute *executor) execTxGroup(txs []*types.Transaction, index int) ([]*ty
 	receipts[0], err = execute.execTxOne(feelog, txs[0], index)
 	if err != nil {
 		//状态数据库回滚
-		execute.stateDB.Rollback()
+		if types.IsMatchFork(execute.height, types.ForkV22ExecRollback) {
+			execute.stateDB.Rollback()
+		}
 		return receipts, nil
 	}
 	for i := 1; i < len(txs); i++ {
@@ -805,12 +809,19 @@ func (execute *executor) execTx(tx *types.Transaction, index int) (*types.Receip
 		return nil, err
 	}
 	//ignore err
-	execute.stateDB.Begin()
+	matchfork := types.IsMatchFork(execute.height, types.ForkV22ExecRollback)
+	if matchfork {
+		execute.stateDB.Begin()
+	}
 	feelog, err = execute.execTxOne(feelog, tx, index)
 	if err != nil {
-		execute.stateDB.Rollback()
+		if matchfork {
+			execute.stateDB.Rollback()
+		}
 	} else {
-		execute.stateDB.Commit()
+		if matchfork {
+			execute.stateDB.Commit()
+		}
 	}
 	elog.Debug("exec tx = ", "index", index, "execer", string(tx.Execer), "err", err)
 	return feelog, nil

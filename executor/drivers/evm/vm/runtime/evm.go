@@ -4,6 +4,8 @@ import (
 	"math/big"
 	"sync/atomic"
 
+	log "github.com/inconshreveable/log15"
+
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/gas"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/model"
@@ -25,7 +27,7 @@ type (
 )
 
 // 依据合约地址判断是否为预编译合约，如果不是，则全部通过解释器解释执行
-func run(evm *EVM, contract *Contract, input []byte) ([]byte, error) {
+func run(evm *EVM, contract *Contract, input []byte) (ret []byte, err error) {
 	if contract.CodeAddr != nil {
 		// 预编译合约以拜占庭分支为初始版本，后继如有分叉，需要在此处理
 		precompiles := PrecompiledContractsByzantium
@@ -33,7 +35,13 @@ func run(evm *EVM, contract *Contract, input []byte) ([]byte, error) {
 			return RunPrecompiledContract(p, input, contract)
 		}
 	}
-	return evm.Interpreter.Run(contract, input)
+	// 在此处打印下自定义合约的错误信息
+	ret, err = evm.Interpreter.Run(contract, input)
+	if err != nil {
+		log.Error("error occurs while run evm contract", "error info", err)
+	}
+
+	return ret, err
 }
 
 // EVM操作辅助上下文
