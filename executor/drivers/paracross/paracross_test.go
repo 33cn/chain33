@@ -123,7 +123,6 @@ func (suite *ExecTestSuite) SetupSuite() {
 	header10key := blockchain.CalcHashToBlockHeaderKey(MainBlockHash10)
 	suite.localDB.On("Get", header10key).Return(types.Encode(&blockHeader10), nil)
 
-
 	// setup api
 	hashes := &types.ReqHashes{[][]byte{MainBlockHash10}}
 	suite.api.On("GetBlockByHashes", hashes).Return(
