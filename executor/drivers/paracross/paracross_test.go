@@ -11,8 +11,7 @@ import (
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	dbmock "gitlab.33.cn/chain33/chain33/common/db/mocks"
 	"gitlab.33.cn/chain33/chain33/types"
-
-	"gitlab.33.cn/chain33/chain33/blockchain"
+	
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/log"
 	pt "gitlab.33.cn/chain33/chain33/types/executor/paracross"
@@ -114,14 +113,6 @@ func (suite *ExecTestSuite) SetupSuite() {
 	titleStatus.Height = CurHeight - 1
 	titleStatus.BlockHash = PerBlock
 	saveTitle(suite.stateDB, calcTitleKey(Title), &titleStatus)
-
-	// setup local block
-	blockHeader10 := types.Header{
-		Height: CurHeight,
-		Hash:   MainBlockHash10,
-	}
-	header10key := blockchain.CalcHashToBlockHeaderKey(MainBlockHash10)
-	suite.localDB.On("Get", header10key).Return(types.Encode(&blockHeader10), nil)
 
 	// setup api
 	hashes := &types.ReqHashes{[][]byte{MainBlockHash10}}
