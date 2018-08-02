@@ -401,7 +401,7 @@ func (action *Action) readGame(id string) (*types.Game, error) {
 }
 
 //TODO:这块可能需要做个分页，防止数据过大?这里需要做补强
-func List(db dbm.Lister, db2 dbm.KV, glist *types.QueryGameListByStatusAndAddr) (types.Message, error) {
+func List(db dbm.Lister, stateDB dbm.KV, glist *types.QueryGameListByStatusAndAddr) (types.Message, error) {
 	values, err := db.List(calcGamePrefix(glist.GetStatus(), glist.GetAddress()), nil, 0, 0)
 	if err != nil {
 		return nil, err
@@ -409,11 +409,9 @@ func List(db dbm.Lister, db2 dbm.KV, glist *types.QueryGameListByStatusAndAddr) 
 	if len(values) == 0 {
 		return &types.ReplyGameList{}, nil
 	}
-	var ids types.QueryGameInfos
-	for i := 0; i < len(values); i++ {
-		ids.GameIds = append(ids.GameIds, string(values[i]))
-	}
-	return Infos(db2, &ids)
+	queryGameInfo := &types.QueryGameInfos{CheckGameIdDup(values)}
+	//return Infos(stateDB, queryGameInfo)
+	return BatchGetGameList(stateDB, queryGameInfo)
 }
 
 func readGame(db dbm.KV, id string) (*types.Game, error) {
@@ -443,6 +441,29 @@ func Infos(db dbm.KV, infos *types.QueryGameInfos) (types.Message, error) {
 	return &types.ReplyGameList{Games: games}, nil
 }
 
+//批量查询接口
+func BatchGetGameList(db dbm.KV, infos *types.QueryGameInfos) (types.Message, error) {
+	var games []*types.Game
+	var keys [][]byte
+	for _, gameId := range infos.GameIds {
+		keys = append(keys, Key(gameId))
+	}
+	values, err := db.BatchGet(keys)
+	if err != nil {
+		return nil, err
+	}
+	for _, value := range values {
+		var game types.Game
+		err = types.Decode(value, &game)
+		if err != nil {
+			return nil, err
+		}
+		games = append(games, &game)
+	}
+
+	return &types.ReplyGameList{Games: games}, nil
+}
+
 func CheckGameIdDup(values [][]byte) []string {
 	//根据别人测试总结，使用最节省时间的去重方式
 	if len(values) < 1024 {
@@ -458,6 +479,10 @@ func removeDupByMap(values [][]byte) []string {
 	//利用map 中的key去覆盖，过滤
 	var tempMap map[string]byte
 	for _, value := range values {
+		//过滤空值
+		if bytes.Equal(value, types.EmptyValue) {
+			continue
+		}
 		lenth := len(tempMap)
 		tempMap[string(value)] = 0
 		if len(tempMap) != lenth {
@@ -469,8 +494,16 @@ func removeDupByMap(values [][]byte) []string {
 func removeDupByLoop(values [][]byte) []string {
 	var result []string
 	for i := range values {
+		//过滤空值
+		if bytes.Equal(values[i], types.EmptyValue) {
+			continue
+		}
 		flag := true
 		for j := range result {
+			//过滤空值
+			if bytes.Equal(values[i], types.EmptyValue) {
+				continue
+			}
 			if string(values[i]) == result[j] {
 				flag = false // 存在重复元素，标识为false
 				break

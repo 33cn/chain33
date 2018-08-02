@@ -179,6 +179,6 @@ func addGame(gameId string, status int32, addr string) *types.KeyValue {
 func delGame(gameId string, status int32, addr string) *types.KeyValue {
 	kv := &types.KeyValue{}
 	kv.Key = calcGameKey(gameId, status, addr)
-	kv.Value = nil
+	kv.Value = types.EmptyValue
 	return kv
 }
