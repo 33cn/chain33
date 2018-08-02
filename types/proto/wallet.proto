@@ -518,18 +518,17 @@ message RepRescanUtxos {
 }
 
 message ReqEnablePrivacy {
-    int32    flag         = 1;
     repeated string addrs = 2;
 }
 
-message PrivacyAddress {
-    string addr       = 1;
-    string Pubkeypair = 2;
+message PriAddrResult {
+    string addr = 1;
+    bool   IsOK = 2;
+    string msg  = 3;
 }
 
 message RepEnablePrivacy {
-    int32    falg                    = 1;
-    repeated PrivacyAddress priAddrs = 2;
+    repeated PriAddrResult results = 1;
 }
 
 // 隐私交易三步发送时，临时存储签名需要的数据信息结构

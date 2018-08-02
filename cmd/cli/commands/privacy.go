@@ -586,10 +586,10 @@ func RescanUtxosOptCmd() *cobra.Command {
 }
 
 func RescanUtxosOptFlags(cmd *cobra.Command) {
-	cmd.Flags().StringP("addr", "a", "", "address; multi address delimited by spaces;default scan wallet all address")
+	cmd.Flags().StringP("addr", "a", "", "privacy rescanOpt -a [all-addr0-addr1] (all indicate all wallet address)")
+	cmd.MarkFlagRequired("addr")
 	//
 	cmd.Flags().Int32P("flag", "f", 0, "Rescan or query rescan flag (0: Rescan, 1: query rescan)")
-	cmd.MarkFlagRequired("flag")
 }
 
 func RescanUtxosOpt(cmd *cobra.Command, args []string) {
@@ -600,9 +600,11 @@ func RescanUtxosOpt(cmd *cobra.Command, args []string) {
 	var params types.ReqRescanUtxos
 
 	params.Flag = flag
-	if len(address) > 0 {
-		addrs := strings.Split(address, " ")
-		params.Addrs = append(params.Addrs, addrs...)
+	if "all" != address {
+		if len(address) > 0 {
+			addrs := strings.Split(address, "-")
+			params.Addrs = append(params.Addrs, addrs...)
+		}
 	}
 
 	var res types.RepRescanUtxos
@@ -634,8 +636,8 @@ func parseRescanUtxosOpt(arg interface{}) (interface{}, error) {
 
 func EnablePrivacyCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "enablePrivacy",
-		Short: "enablePrivacy for address in wallet",
+		Use:   "enable",
+		Short: "enable privacy address in wallet",
 		Run:   EnablePrivacy,
 	}
 	EnablePrivacyFlags(cmd)
@@ -643,26 +645,40 @@ func EnablePrivacyCmd() *cobra.Command {
 }
 
 func EnablePrivacyFlags(cmd *cobra.Command) {
-	cmd.Flags().StringP("addr", "a", "", "address; multi address delimited by spaces;default enable privacy wallet all address")
-	//
-	cmd.Flags().Int32P("flag", "f", 0, "enable flag (0: enable)")
-	cmd.MarkFlagRequired("flag")
+	cmd.Flags().StringP("addr", "a", "", "privacy enable -a [all-addr0-addr1] (all indicate enable all wallet address)")
+	cmd.MarkFlagRequired("addr")
 }
 
 func EnablePrivacy(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	address, _ := cmd.Flags().GetString("addr")
-	flag, _ := cmd.Flags().GetInt32("flag")
 
 	var params types.ReqEnablePrivacy
 
-	params.Flag = flag
-	if len(address) > 0 {
-		addrs := strings.Split(address, " ")
-		params.Addrs = append(params.Addrs, addrs...)
+	if "all" != address {
+		if len(address) > 0 {
+			addrs := strings.Split(address, "-")
+			params.Addrs = append(params.Addrs, addrs...)
+		}
 	}
 
 	var res types.RepEnablePrivacy
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.EnablePrivacy", params, &res)
+	ctx.SetResultCb(parseEnablePrivacy)
 	ctx.Run()
+}
+
+func parseEnablePrivacy(arg interface{}) (interface{}, error) {
+	res := arg.(*types.RepEnablePrivacy)
+
+	var result ShowEnablePrivacy
+	for _, v := range res.Results {
+		showPriAddrResult := &ShowPriAddrResult{
+			Addr: v.Addr,
+			IsOK: v.IsOK,
+			Msg:  v.Msg,
+		}
+		result.Results = append(result.Results, showPriAddrResult)
+	}
+	return &result, nil
 }

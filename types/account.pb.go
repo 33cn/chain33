@@ -403,7 +403,7 @@ It has these top-level messages:
 	RepRescanResult
 	RepRescanUtxos
 	ReqEnablePrivacy
-	PrivacyAddress
+	PriAddrResult
 	RepEnablePrivacy
 	PrivacySignatureParam
 */

@@ -1177,7 +1177,7 @@ func (wallet *Wallet) getPrivacykeyPair(addr string) (*privacy.Privacy, error) {
 		if err != nil {
 			return nil, err
 		}
-		return nil, types.ErrPrivacyNotExist
+		return nil, types.ErrPrivacyNotEnabled
 	}
 }
 
@@ -1252,7 +1252,7 @@ func (wallet *Wallet) getPrivacyKeyPairsOfWalletNolock() ([]addrAndprivacy, erro
 	}
 
 	if 0 == len(infoPriRes) {
-		return nil, types.ErrPrivacyNotExist
+		return nil, types.ErrPrivacyNotEnabled
 	}
 
 	return infoPriRes, nil
@@ -1714,7 +1714,7 @@ func (wallet *Wallet) calcPrivacyBalace(addr, token string) (uamout int64, famou
 
 }
 
-func (wallet *Wallet) EnablePrivacy(req *types.ReqEnablePrivacy) (*types.RepEnablePrivacy, error) {
+func (wallet *Wallet) enablePrivacy(req *types.ReqEnablePrivacy) (*types.RepEnablePrivacy, error) {
 	var addrs []string
 	if 0 == len(req.Addrs) {
 		WalletAccStores, err := wallet.walletStore.GetAccountByPrefix("Account")
@@ -1731,21 +1731,24 @@ func (wallet *Wallet) EnablePrivacy(req *types.ReqEnablePrivacy) (*types.RepEnab
 
 	var rep types.RepEnablePrivacy
 	for _, addr := range addrs {
-		var privacyInfo *privacy.Privacy
-		privacyInfo, err := wallet.getPrivacykeyPair(addr)
+		str := ""
+		isOK := true
+		_, err := wallet.getPrivacykeyPair(addr)
 		if err != nil {
-			privacyInfo, err = wallet.savePrivacykeyPair(addr)
+			_, err = wallet.savePrivacykeyPair(addr)
 			if err != nil {
-				return nil, err
+				isOK = false
+				str = err.Error()
 			}
 		}
 
-		priAddrs := &types.PrivacyAddress{
-			Addr:       addr,
-			Pubkeypair: makeViewSpendPubKeyPairToString(privacyInfo.ViewPubkey[:], privacyInfo.SpendPubkey[:]),
+		priAddrResult := &types.PriAddrResult{
+			Addr: addr,
+			IsOK: isOK,
+			Msg:  str,
 		}
 
-		rep.PriAddrs = append(rep.PriAddrs, priAddrs)
+		rep.Results = append(rep.Results, priAddrResult)
 	}
 	return &rep, nil
 }
