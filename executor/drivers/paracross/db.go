@@ -67,7 +67,7 @@ func GetBlock(api client.QueueProtocolAPI, blockHash []byte) (*types.BlockDetail
 }
 
 func getBlockHash(api client.QueueProtocolAPI, height int64) (*types.ReplyHash, error) {
-	hash, err := api.GetBlockHash(&types.ReqInt{Height:height})
+	hash, err := api.GetBlockHash(&types.ReqInt{Height: height})
 	if err != nil {
 		clog.Error("paracross.Commit getBlockHeader", "db", err,
 			"commit height", height)
@@ -75,4 +75,3 @@ func getBlockHash(api client.QueueProtocolAPI, height int64) (*types.ReplyHash, 
 	}
 	return hash, nil
 }
-
