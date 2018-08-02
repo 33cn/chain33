@@ -689,9 +689,9 @@ function makeTransactionIn3Step() {
 
     height=$(${name} block last_header | jq ".height")
     amount=17
-    printf '公对私交易 高度为:%s 转账金额为:%s \n' "${height}" "${amErrInsufficientBalanceount}"
+    printf '公对私交易 高度为:%s 转账金额为:%s \n' "${height}" "${amount}"
     note="pub2priv_test"
-    pub2priv "${name}" $fromAddr1 $pk1 $note $amount $expire
+    pub2priv "${name}" "$fromAddr1" "$pk1" $note $amount $expire
     block_wait_timeout "${name}" 1 15
 
     height=$(${name} block last_header | jq ".height")
@@ -699,7 +699,7 @@ function makeTransactionIn3Step() {
     mixcount=0
     printf '私对私交易 高度为:%s 转账金额为:%s \n' "${height}" "${amount}"
     note="priv2priv_test"
-    priv2priv "${name}" $fromAddr1 $pk2 $note $amount $mixcount $expire
+    priv2priv "${name}" "$fromAddr1" "$pk2" $note $amount $mixcount $expire
     if [ "$group" -eq 1 ]; then
         priTxHashs1[$priTxindex]="$returnStr1"
         priTxindex=$((priTxindex + 1))
@@ -716,7 +716,7 @@ function makeTransactionIn3Step() {
     note="priv2pub_test"
     mixcount=0
     printf '私对公交易 高度为:%s 转账金额为:%s \n' "${height}" "${amount}"
-    priv2pub "${name}" $from $to $note $amount $mixcount $expire
+    priv2pub "${name}" "$from" "$to" $note $amount $mixcount $expire
     if [ "$group" -eq 1 ]; then
         priTxHashs1[$priTxindex]="$returnStr1"
         priTxindex=$((priTxindex + 1))
