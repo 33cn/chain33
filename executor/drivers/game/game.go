@@ -34,7 +34,7 @@ func newGame() drivers.Driver {
 }
 
 func (g *Game) GetName() string {
-	return "game"
+	return types.ExecName(types.GameX)
 }
 
 func (g *Game) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
