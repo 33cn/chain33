@@ -1023,9 +1023,6 @@ func (wallet *Wallet) ProcWalletDelBlock(block *types.BlockDetail) {
 
 func (wallet *Wallet) AddDelPrivacyTxsFromBlock(tx *types.Transaction, index int32, block *types.BlockDetail, newbatch dbm.Batch, addDelType int32) {
 	txhashstr := common.Bytes2Hex(tx.Hash())
-	walletlog.Debug("PrivacyTrading AddDelPrivacyTxsFromBlock", "Enter AddDelPrivacyTxsFromBlock txhash", txhashstr)
-	defer walletlog.Debug("PrivacyTrading AddDelPrivacyTxsFromBlock", "Leave AddDelPrivacyTxsFromBlock txhash", txhashstr)
-
 	_, err := tx.Amount()
 	if err != nil {
 		walletlog.Error("PrivacyTrading AddDelPrivacyTxsFromBlock", "txhash", txhashstr, "tx.Amount() error", err)
@@ -1043,7 +1040,6 @@ func (wallet *Wallet) AddDelPrivacyTxsFromBlock(tx *types.Transaction, index int
 	}
 	walletlog.Info("PrivacyTrading AddDelPrivacyTxsFromBlock", "Enter AddDelPrivacyTxsFromBlock txhash", txhashstr, "index", index, "addDelType", addDelType)
 
-	privacyInput := privateAction.GetInput()
 	privacyOutput := privateAction.GetOutput()
 	tokenname := privateAction.GetTokenName()
 	RpubKey := privacyOutput.GetRpubKeytx()
@@ -1057,25 +1053,14 @@ func (wallet *Wallet) AddDelPrivacyTxsFromBlock(tx *types.Transaction, index int
 			privacykeyParirs := info.PrivacyKeyPair
 			matched4addr := false
 			var utxos []*types.UTXO
-			if privacyInput != nil && types.ExecOk == txExecRes && AddTx == addDelType {
-				// 如果输入中包含了已经设置的UTXO,需要直接移除
-				for _, keyinput := range privacyInput.Keyinput {
-					for _, utxogl := range keyinput.UtxoGlobalIndex {
-						txhashstr := common.Bytes2Hex(utxogl.Txhash)
-						wallet.walletStore.unlinkUTXO(info.Addr, &txhashstr, int(utxogl.Outindex), tokenname, newbatch)
-					}
-				}
-			}
 			for indexoutput, output := range privacyOutput.Keyoutput {
 				if utxoProcessed[indexoutput] {
 					continue
 				}
 				priv, err := privacy.RecoverOnetimePriKey(RpubKey, privacykeyParirs.ViewPrivKey, privacykeyParirs.SpendPrivKey, int64(indexoutput))
 				if err == nil {
-					walletlog.Debug("PrivacyTrading AddDelPrivacyTxsFromBlock", "Enter RecoverOnetimePriKey txhash", txhashstr)
 					recoverPub := priv.PubKey().Bytes()[:]
 					if bytes.Equal(recoverPub, output.Onetimepubkey) {
-						walletlog.Debug("PrivacyTrading AddDelPrivacyTxsFromBlock", "txhash", txhashstr, "bytes.Equal(recoverPub, output.Onetimepubkey) true")
 						//为了避免匹配成功之后不必要的验证计算，需要统计匹配次数
 						//因为目前只会往一个隐私账户转账，
 						//1.一般情况下，只会匹配一次，如果是往其他钱包账户转账，

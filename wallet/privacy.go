@@ -5,10 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"sort"
-	"time"
 	"unsafe"
 
 	"sync/atomic"
+
+	"time"
 
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
@@ -246,7 +247,7 @@ func (wallet *Wallet) transPub2PriV2(priv crypto.PrivKey, reqPub2Pri *types.ReqP
 		// TODO: 采用隐私合约地址来设定目标合约接收的目标地址,让验证通过
 		To: address.ExecAddress(types.PrivacyX),
 	}
-	tx.SetExpire(wallet.getExpire(reqPub2Pri.GetExpire()))
+	tx.SetExpire(time.Duration(reqPub2Pri.GetExpire()))
 	txSize := types.Size(tx) + types.SignatureSize
 	realFee := int64((txSize+1023)>>types.Size_1K_shiftlen) * types.FeePerKB
 	tx.Fee = realFee
@@ -456,7 +457,7 @@ func (wallet *Wallet) transPri2PriV2(privacykeyParirs *privacy.Privacy, reqPri2P
 		// TODO: 采用隐私合约地址来设定目标合约接收的目标地址,让验证通过
 		To: address.ExecAddress(types.PrivacyX),
 	}
-	tx.SetExpire(wallet.getExpire(reqPri2Pri.GetExpire()))
+	tx.SetExpire(time.Duration(reqPri2Pri.GetExpire()))
 	// TODO: 签名前对交易中的输入进行混淆
 	//完成了input和output的添加之后，即已经完成了交易基本内容的添加，
 	//这时候就需要进行交易的签名了
@@ -527,7 +528,7 @@ func (wallet *Wallet) transPri2PubV2(privacykeyParirs *privacy.Privacy, reqPri2P
 		Nonce:   wallet.random.Int63(),
 		To:      reqPri2Pub.Receiver,
 	}
-	tx.SetExpire(wallet.getExpire(reqPri2Pub.GetExpire()))
+	tx.SetExpire(time.Duration(reqPri2Pub.GetExpire()))
 	//step 3,generate ring signature
 	err = wallet.signatureTx(tx, privacyInput, utxosInKeyInput, realkeyInputSlice)
 	if err != nil {
@@ -1270,14 +1271,6 @@ func (wallet *Wallet) getPrivacyKeyPairsOfWalletNolock() ([]addrAndprivacy, erro
 		}
 	}
 	return infoPriRes, nil
-}
-
-func (wallet *Wallet) getExpire(expire int64) time.Duration {
-	retexpir := time.Hour
-	if expire > 0 {
-		retexpir = time.Duration(expire)
-	}
-	return retexpir
 }
 
 //从blockchain模块同步addr参与的所有交易详细信息
