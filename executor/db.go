@@ -13,49 +13,76 @@ type StateDB struct {
 	client    queue.Client
 	stateHash []byte
 	version   int64
+	height    int64
 	local     *db.SimpleMVCC
 	flagMVCC  int64
 }
 
-func NewStateDB(client queue.Client, stateHash []byte, enableMVCC bool, flagMVCC int64) db.KV {
+type StateDBOption struct {
+	EnableMVCC bool
+	FlagMVCC   int64
+	Height     int64
+}
+
+func NewStateDB(client queue.Client, stateHash []byte, opt *StateDBOption) db.KV {
+	if opt == nil {
+		opt = &StateDBOption{}
+	}
 	db := &StateDB{
 		cache:     make(map[string][]byte),
 		txcache:   make(map[string][]byte),
 		intx:      false,
 		client:    client,
 		stateHash: stateHash,
+		height:    opt.Height,
 		version:   -1,
 		local:     db.NewSimpleMVCC(NewLocalDB(client)),
 	}
-	if enableMVCC {
+	if opt.EnableMVCC {
 		v, err := db.local.GetVersion(stateHash)
 		if err == nil && v >= 0 {
 			db.version = v
 		}
-		db.flagMVCC = flagMVCC
+		db.flagMVCC = opt.FlagMVCC
 	}
 	return db
 }
 
 func (s *StateDB) Begin() {
 	s.intx = true
-}
-
-func (s *StateDB) Rollback() {
-	s.intx = false
-	s.txcache = make(map[string][]byte)
-}
-
-func (s *StateDB) Commit() {
-	s.intx = false
-	for k, v := range s.txcache {
-		s.cache[k] = v
+	if types.IsMatchFork(s.height, types.ForkV22ExecRollback) {
+		s.txcache = nil
 	}
 }
 
+func (s *StateDB) Rollback() {
+	s.resetTx()
+}
+
+func (s *StateDB) Commit() {
+	for k, v := range s.txcache {
+		s.cache[k] = v
+	}
+	s.intx = false
+	if types.IsMatchFork(s.height, types.ForkV22ExecRollback) {
+		s.resetTx()
+	}
+}
+
+func (s *StateDB) resetTx() {
+	s.intx = false
+	s.txcache = nil
+}
+
 func (s *StateDB) Get(key []byte) ([]byte, error) {
+	v, err := s.get(key)
+	debugAccount("==get==", key, v)
+	return v, err
+}
+
+func (s *StateDB) get(key []byte) ([]byte, error) {
 	skey := string(key)
-	if s.intx {
+	if s.intx && s.txcache != nil {
 		if value, ok := s.txcache[skey]; ok {
 			return value, nil
 		}
@@ -74,6 +101,9 @@ func (s *StateDB) Get(key []byte) ([]byte, error) {
 				return data, nil
 			}
 		}
+	}
+	if s.client == nil {
+		return nil, types.ErrNotFound
 	}
 	query := &types.StoreGet{s.stateHash, [][]byte{key}}
 	msg := s.client.NewMessage("store", types.EventStoreGet, query)
@@ -95,9 +125,24 @@ func (s *StateDB) Get(key []byte) ([]byte, error) {
 	return value, nil
 }
 
+func debugAccount(prefix string, key []byte, value []byte) {
+	if !types.Debug {
+		return
+	}
+	var msg types.Account
+	err := types.Decode(value, &msg)
+	if err == nil {
+		elog.Info(prefix, "key", string(key), "value", msg)
+	}
+}
+
 func (s *StateDB) Set(key []byte, value []byte) error {
+	debugAccount("==set==", key, value)
 	skey := string(key)
 	if s.intx {
+		if s.txcache == nil {
+			s.txcache = make(map[string][]byte)
+		}
 		s.txcache[skey] = value
 	} else {
 		s.cache[skey] = value
@@ -105,19 +150,15 @@ func (s *StateDB) Set(key []byte, value []byte) error {
 	return nil
 }
 
-func (db *StateDB) BatchGet(keys [][]byte) (value [][]byte, err error) {
-	query := &types.StoreGet{db.stateHash, keys}
-	msg := db.client.NewMessage("store", types.EventStoreGet, query)
-	db.client.Send(msg, true)
-	resp, err := db.client.Wait(msg)
-	if err != nil {
-		panic(err) //no happen for ever
+func (db *StateDB) BatchGet(keys [][]byte) (values [][]byte, err error) {
+	for _, key := range keys {
+		v, err := db.Get(key)
+		if err != nil && err != types.ErrNotFound {
+			return nil, err
+		}
+		values = append(values, v)
 	}
-	value = resp.GetData().(*types.StoreReplyValue).Values
-	if value == nil {
-		return nil, types.ErrNotFound
-	}
-	return value, nil
+	return values, nil
 }
 
 type LocalDB struct {
@@ -160,17 +201,12 @@ func (l *LocalDB) Set(key []byte, value []byte) error {
 }
 
 func (db *LocalDB) BatchGet(keys [][]byte) (values [][]byte, err error) {
-	query := &types.LocalDBGet{keys}
-	msg := db.client.NewMessage("blockchain", types.EventLocalGet, query)
-	db.client.Send(msg, true)
-	resp, err := db.client.Wait(msg)
-	if err != nil {
-		panic(err) //no happen for ever
-	}
-	values = resp.GetData().(*types.LocalReplyValue).Values
-	if values == nil {
-		//panic(string(key))
-		return nil, types.ErrNotFound
+	for _, key := range keys {
+		v, err := db.Get(key)
+		if err != nil && err != types.ErrNotFound {
+			return nil, err
+		}
+		values = append(values, v)
 	}
 	return values, nil
 }
