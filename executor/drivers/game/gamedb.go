@@ -74,7 +74,7 @@ func (action *Action) GetKVSet(game *types.Game) (kvset []*types.KeyValue) {
 
 //gameId to save key
 func Key(id string) (key []byte) {
-	key = append(key, []byte("mavl-game-")...)
+	key = append(key, []byte("mavl-"+types.ExecName(types.GameX)+"-")...)
 	key = append(key, []byte(id)...)
 	return key
 }
