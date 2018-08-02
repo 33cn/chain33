@@ -5,7 +5,6 @@ var slash = []byte("-")
 
 const Debug = false
 const (
-<<<<<<< HEAD
 	CoinsX          = "coins"
 	TicketX         = "ticket"
 	HashlockX       = "hashlock"
@@ -19,26 +18,9 @@ const (
 	EvmX            = "evm"
 	RelayX          = "relay"
 	Normx           = "norm"
-	UserEvmString   = "user.evm."
 	UserEvmX        = "user.evm."
 	CertX           = "cert"
 	GameX           = "game"
-=======
-	CoinsX    = "coins"
-	TicketX   = "ticket"
-	HashlockX = "hashlock"
-	RetrieveX = "retrieve"
-	NoneX     = "none"
-	TokenX    = "token"
-	TradeX    = "trade"
-	ManageX   = "manage"
-	PrivacyX  = "privacy"
-	EvmX      = "evm"
-	RelayX    = "relay"
-	Normx     = "norm"
-	UserEvmX  = "user.evm."
-	CertX     = "cert"
->>>>>>> 3e4ded335bd4190f53e3d8b1ec9a6ed4a8a6adaa
 )
 
 var (
@@ -56,12 +38,8 @@ var (
 	ExecerNorm     = []byte(Normx)
 	ExecerConfig   = []byte("config")
 	ExecerCert     = []byte(CertX)
-<<<<<<< HEAD
-	UserEvm        = []byte(UserEvmString)
-	ExecerGame     = []byte(GameX)
-=======
 	UserEvm        = []byte(UserEvmX)
->>>>>>> 3e4ded335bd4190f53e3d8b1ec9a6ed4a8a6adaa
+	ExecerGame     = []byte(GameX)
 )
 
 const (
