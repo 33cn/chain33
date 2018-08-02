@@ -1443,11 +1443,8 @@ func (cs *ConsensusState) addVote(vote *ttypes.Vote, peerID string) (added bool,
 						}
 
 					}
-				} else if cs.Round <= vote.Round && precommits.HasTwoThirdsAny() {
-					// workaround: proposer need have all the votes
-					if cs.isProposer() && !precommits.HasAll() {
-						return
-					}
+				} else if cs.Round <= vote.Round && precommits.HasAll() {
+					// workaround: need have all the votes
 					cs.enterNewRound(height, vote.Round)
 					cs.enterPrecommit(height, vote.Round)
 					cs.enterPrecommitWait(height, vote.Round)
