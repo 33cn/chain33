@@ -269,3 +269,13 @@ type ShowRescanResult struct {
 type showRescanResults struct {
 	RescanResults []*ShowRescanResult `json:"ShowRescanResults,omitempty"`
 }
+
+type ShowPriAddrResult struct {
+	Addr string `json:"addr"`
+	IsOK bool   `json:"IsOK"`
+	Msg  string `json:"msg"`
+}
+
+type ShowEnablePrivacy struct {
+	Results []*ShowPriAddrResult `json:"results"`
+}
