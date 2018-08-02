@@ -152,6 +152,29 @@ func (_m *QueueProtocolAPI) DumpPrivkey(param *types.ReqStr) (*types.ReplyStr, e
 	return r0, r1
 }
 
+// EnablePrivacy provides a mock function with given fields: param
+func (_m *QueueProtocolAPI) EnablePrivacy(param *types.ReqEnablePrivacy) (*types.RepEnablePrivacy, error) {
+	ret := _m.Called(param)
+
+	var r0 *types.RepEnablePrivacy
+	if rf, ok := ret.Get(0).(func(*types.ReqEnablePrivacy) *types.RepEnablePrivacy); ok {
+		r0 = rf(param)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.RepEnablePrivacy)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*types.ReqEnablePrivacy) error); ok {
+		r1 = rf(param)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GenSeed provides a mock function with given fields: param
 func (_m *QueueProtocolAPI) GenSeed(param *types.GenSeedLang) (*types.ReplySeed, error) {
 	ret := _m.Called(param)
