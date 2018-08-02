@@ -396,7 +396,7 @@ function showPrivacyTotalAmount() {
 function enablePrivacy() {
     name=$1
     printf '==========enablePrivacy name=%s ==========\n' "${name}"
-    $name privacy enablePrivacy -f 0
+    $name privacy enable -a all
 }
 
 # $1 name
