@@ -326,6 +326,7 @@ func CreateRawTx(cmd *cobra.Command, to string, amount float64, note string, isW
 	}
 	paraName, _ := cmd.Flags().GetString("paraName")
 	amountInt64 := int64(math.Trunc((amount+0.0000001)*1e4)) * 1e4
+	initExecName := execName
 	execName = getRealExecName(paraName, execName)
 	if execName != "" && !types.IsAllowExecName(execName) {
 		return "", types.ErrExecNameNotMatch
@@ -334,7 +335,7 @@ func CreateRawTx(cmd *cobra.Command, to string, amount float64, note string, isW
 	if !isToken {
 		transfer := &types.CoinsAction{}
 		if !isWithdraw {
-			if execName != "" {
+			if initExecName != "" {
 				v := &types.CoinsAction_TransferToExec{TransferToExec: &types.CoinsTransferToExec{Amount: amountInt64, Note: note, ExecName: execName}}
 				transfer.Value = v
 				transfer.Ty = types.CoinsActionTransferToExec
