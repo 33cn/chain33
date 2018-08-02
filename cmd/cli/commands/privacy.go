@@ -113,9 +113,7 @@ func public2Privacy(cmd *cobra.Command, args []string) {
 		}
 	} else if expiretype == 1 {
 		if expire <= 0 {
-			expire = types.Now().Unix() + int64(time.Hour/time.Second)
-		} else {
-			expire = types.Now().Unix() + expire
+			expire = int64(time.Hour / time.Second)
 		}
 	} else {
 		fmt.Println("Invalid expiretype", expiretype)
@@ -180,9 +178,7 @@ func privacy2Privacy(cmd *cobra.Command, args []string) {
 		}
 	} else if expiretype == 1 {
 		if expire <= 0 {
-			expire = types.Now().Unix() + int64(time.Hour/time.Second)
-		} else {
-			expire = types.Now().Unix() + expire
+			expire = int64(time.Hour / time.Second)
 		}
 	} else {
 		fmt.Println("Invalid expiretype", expiretype)
@@ -249,9 +245,7 @@ func privacy2Public(cmd *cobra.Command, args []string) {
 		}
 	} else if expiretype == 1 {
 		if expire <= 0 {
-			expire = types.Now().Unix() + int64(time.Hour/time.Second)
-		} else {
-			expire = types.Now().Unix() + expire
+			expire = int64(time.Hour / time.Second)
 		}
 	} else {
 		fmt.Println("Invalid expiretype", expiretype)

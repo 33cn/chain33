@@ -540,26 +540,6 @@ func (ws *Store) unsetUTXO(addr, txhash *string, outindex int, token string, new
 	return nil
 }
 
-func (ws *Store) unlinkUTXO(addr, txhash *string, outindex int, token string, newbatch dbm.Batch) error {
-	if 0 == len(*addr) || 0 == len(*txhash) || outindex < 0 || len(token) <= 0 {
-		walletlog.Error("PrivacyTrading unlinkUTXO", "InvalidParam addr", *addr, "txhash", *txhash, "outindex", outindex, "token", token)
-		return types.ErrInputPara
-	}
-	// 删除冻结UTXO列表的索引关系
-	ftxokey := calcKey4FTXOsInTx(token, *addr, *txhash)
-	newbatch.Delete(ftxokey)
-	// 删除回退冻结UTXO列表中的索引关系
-	ftxokey = calcRevertSendTxKey(token, *addr, *txhash)
-	newbatch.Delete(ftxokey)
-	// 清除可用UTXO索引信息
-	utxokey := calcUTXOKey4TokenAddr(token, *addr, *txhash, outindex)
-	newbatch.Delete(utxokey)
-
-	walletlog.Debug("PrivacyTrading unlinkUTXO", "addr", *addr, "tx with hash", *txhash, "outindex", outindex)
-	return nil
-
-}
-
 //calcUTXOKey4TokenAddr---X--->calcUTXOKey 被删除,该地址下某种token的这个utxo变为不可用
 //calcKey4UTXOsSpentInTx------>types.FTXOsSTXOsInOneTx,将当前交易的所有花费的utxo进行打包，设置为ftxo，同时通过支付交易hash索引
 //calcKey4FTXOsInTx----------->calcKey4UTXOsSpentInTx,创建该交易冻结的所有的utxo的信息
@@ -611,10 +591,11 @@ func (ws *Store) moveFTXO2UTXO(key1 []byte, newbatch dbm.Batch) {
 		return
 
 	}
+	newbatch.Delete(key1)
+
 	key2 := value1
 	value2, err := ws.db.Get(key2)
 	if err != nil {
-
 		walletlog.Error("PrivacyTrading moveFTXO2UTXO", "db Get(key2) error ", err)
 		return
 	}
@@ -622,6 +603,8 @@ func (ws *Store) moveFTXO2UTXO(key1 []byte, newbatch dbm.Batch) {
 		walletlog.Error("moveFTXO2UTXO", "Get nil value for key", string(key2))
 		return
 	}
+	newbatch.Delete(key2)
+
 	var ftxosInOneTx types.FTXOsSTXOsInOneTx
 	err = types.Decode(value2, &ftxosInOneTx)
 	if nil != err {
@@ -636,9 +619,6 @@ func (ws *Store) moveFTXO2UTXO(key1 []byte, newbatch dbm.Batch) {
 		walletlog.Debug("PrivacyTrading moveFTXO2UTXO", "addr", ftxosInOneTx.Sender, "tx with hash", utxohash, "amount", ftxo.Amount/types.Coin)
 		newbatch.Set(key, value)
 	}
-	// 需要将FTXO的所有相关信息删除掉
-	newbatch.Delete(key1)
-	newbatch.Delete(key2)
 	walletlog.Debug("PrivacyTrading moveFTXO2UTXO", "addr", ftxosInOneTx.Sender, "tx with hash", ftxosInOneTx.Txhash)
 }
 
@@ -690,11 +670,11 @@ func (ws *Store) moveSTXO2FTXO(tx *types.Transaction, txhash string, newbatch db
 	key2 := calcKey4STXOsInTx(txhash)
 	value2, err := ws.db.Get(key2)
 	if err != nil {
-		walletlog.Error("moveSTXO2FTXO", "Get(key2) error ", err)
+		walletlog.Error("PrivacyTrading moveSTXO2FTXO", "Get(key2) error ", err)
 		return err
 	}
 	if value2 == nil {
-		walletlog.Debug("moveSTXO2FTXO", "Get nil value for txhash", txhash)
+		walletlog.Debug("PrivacyTrading moveSTXO2FTXO", "Get nil value for txhash", txhash)
 		return types.ErrNotFound
 	}
 	newbatch.Delete(key2)
@@ -702,13 +682,13 @@ func (ws *Store) moveSTXO2FTXO(tx *types.Transaction, txhash string, newbatch db
 	key := value2
 	value, err := ws.db.Get(key)
 	if err != nil {
-		walletlog.Error("moveSTXO2FTXO", "db Get(key) error ", err)
+		walletlog.Error("PrivacyTrading moveSTXO2FTXO", "db Get(key) error ", err)
 	}
 
 	var ftxosInOneTx types.FTXOsSTXOsInOneTx
 	err = types.Decode(value, &ftxosInOneTx)
 	if nil != err {
-		walletlog.Error("moveSTXO2FTXO", "Failed to decode FTXOsSTXOsInOneTx for value", value)
+		walletlog.Error("PrivacyTrading moveSTXO2FTXO", "Failed to decode FTXOsSTXOsInOneTx for value", value)
 	}
 
 	//删除stxo-token-addr-txhash key
@@ -719,7 +699,7 @@ func (ws *Store) moveSTXO2FTXO(tx *types.Transaction, txhash string, newbatch db
 	key1 := calcRevertSendTxKey(ftxosInOneTx.Tokenname, ftxosInOneTx.Sender, txhash)
 	value1 := value2
 	newbatch.Set(key1, value1)
-	walletlog.Info("moveSTXO2FTXO", "txhash ", txhash)
+	walletlog.Info("PrivacyTrading moveSTXO2FTXO", "txhash ", txhash)
 
 	ftxosInOneTx.SetExpire(tx)
 	value = types.Encode(&ftxosInOneTx)
