@@ -916,6 +916,18 @@ func (q *QueueProtocol) RescanUtxos(param *types.ReqRescanUtxos) (*types.RepResc
 	return nil, types.ErrTypeAsset
 }
 
+func (q *QueueProtocol) EnablePrivacy(param *types.ReqEnablePrivacy) (*types.RepEnablePrivacy, error) {
+	msg, err := q.query(walletKey, types.EventEnablePrivacy, param)
+	if err != nil {
+		log.Error("EventEnablePrivacy", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(*types.RepEnablePrivacy); ok {
+		return reply, nil
+	}
+	return nil, types.ErrTypeAsset
+}
+
 func (q *QueueProtocol) GetBlockByHashes(param *types.ReqHashes) (*types.BlockDetails, error) {
 	if param == nil {
 		err := types.ErrInvalidParam

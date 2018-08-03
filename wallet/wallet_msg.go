@@ -363,11 +363,21 @@ func (wallet *Wallet) ProcRecvMsg() {
 			req := msg.Data.(*types.ReqRescanUtxos)
 			reply, err := wallet.procRescanUtxos(req)
 			if err != nil {
-				walletlog.Error("procPrivacyTransactionList", "err", err.Error())
+				walletlog.Error("procRescanUtxos", "err", err.Error())
 				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyRescanUtxos, err))
 			} else {
-				walletlog.Info("procPrivacyTransactionList", "req", req)
+				walletlog.Info("procRescanUtxos", "req", req)
 				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyRescanUtxos, reply))
+			}
+		case types.EventEnablePrivacy:
+			req := msg.Data.(*types.ReqEnablePrivacy)
+			reply, err := wallet.procEnablePrivacy(req)
+			if err != nil {
+				walletlog.Error("procEnablePrivacy", "err", err.Error())
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyEnablePrivacy, err))
+			} else {
+				walletlog.Info("procEnablePrivacy", "req", req)
+				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyEnablePrivacy, reply))
 			}
 
 		default:
