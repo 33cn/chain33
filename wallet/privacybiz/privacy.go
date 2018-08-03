@@ -108,7 +108,7 @@ func (biz *walletPrivacyBiz) checkAmountValid(amount int64) bool {
 	return true
 }
 
-func (biz *walletPrivacyBiz) createUTXOs(createUTXOs *types.ReqCreateUTXOs) (*types.ReplyHash, error) {
+func (biz *walletPrivacyBiz) createUTXOs(createUTXOs *types.ReqCreateUTXOs) (*types.Reply, error) {
 	ok, err := biz.walletBiz.CheckWalletStatus()
 	if !ok {
 		return nil, err
@@ -181,7 +181,7 @@ func (biz *walletPrivacyBiz) genCustomOuts(viewpubTo, spendpubto *[32]byte, tran
 }
 
 //批量创建通过public2Privacy实现
-func (biz *walletPrivacyBiz) createUTXOsByPub2Priv(priv crypto.PrivKey, reqCreateUTXOs *types.ReqCreateUTXOs) (*types.ReplyHash, error) {
+func (biz *walletPrivacyBiz) createUTXOsByPub2Priv(priv crypto.PrivKey, reqCreateUTXOs *types.ReqCreateUTXOs) (*types.Reply, error) {
 	viewPubSlice, spendPubSlice, err := biz.parseViewSpendPubKeyPair(reqCreateUTXOs.GetPubkeypair())
 	if err != nil {
 		bizlog.Error("createUTXOsByPub2Priv", "parseViewSpendPubKeyPair error.", err)
@@ -219,14 +219,12 @@ func (biz *walletPrivacyBiz) createUTXOsByPub2Priv(priv crypto.PrivKey, reqCreat
 	tx.Fee = realFee
 	tx.Sign(int32(biz.walletBiz.GetSignType()), priv)
 
-	_, err = biz.walletBiz.GetAPI().SendTx(tx)
+	reply, err := biz.walletBiz.GetAPI().SendTx(tx)
 	if err != nil {
 		bizlog.Error("transPub2PriV2", "Send err", err)
 		return nil, err
 	}
-	var hash types.ReplyHash
-	hash.Hash = tx.Hash()
-	return &hash, nil
+	return reply, nil
 }
 
 func (biz *walletPrivacyBiz) onCreateUTXOs(msg *queue.Message) (string, int64, interface{}, error) {
