@@ -69,7 +69,6 @@ func initEnv() (queue.Queue, queue.Module, queue.Module, queue.Module) {
 	types.SetMinFee(0)
 	s := store.New(cfg.Store)
 	s.SetQueueClient(q.Client())
-
 	network := p2p.New(cfg.P2P)
 	network.SetQueueClient(q.Client())
 
