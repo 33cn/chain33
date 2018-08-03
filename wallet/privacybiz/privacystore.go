@@ -51,6 +51,20 @@ func calcFTXOsKeyPrefix(token, addr string) []byte {
 	return []byte(prefix)
 }
 
+// calcSendPrivacyTxKey 计算以指定地址作为发送地址的交易信息索引
+// addr为发送地址
+// key为通过calcTxKey(heightstr)计算出来的值
+func calcSendPrivacyTxKey(tokenname, addr, key string) []byte {
+	return []byte(fmt.Sprintf("%s:%s-%s-%s", SendPrivacyTx, tokenname, addr, key))
+}
+
+// calcRecvPrivacyTxKey 计算以指定地址作为接收地址的交易信息索引
+// addr为接收地址
+// key为通过calcTxKey(heightstr)计算出来的值
+func calcRecvPrivacyTxKey(tokenname, addr, key string) []byte {
+	return []byte(fmt.Sprintf("%s:%s-%s-%s", RecvPrivacyTx, tokenname, addr, key))
+}
+
 // privacyStore 隐私交易数据库存储操作类
 type privacyStore struct {
 	db db.DB
@@ -206,5 +220,87 @@ func (store *privacyStore) listFrozenUTXOs(token, addr string) ([]*types.FTXOsST
 		ftxoslice = append(ftxoslice, &ftxotx)
 	}
 	return ftxoslice, nil
+}
 
+func (store *privacyStore) getWalletPrivacyTxDetails(param *types.ReqPrivacyTransactionList) (*types.WalletTxDetails, error) {
+	if param == nil {
+		bizlog.Error("getWalletPrivacyTxDetails param is nil")
+		return nil, types.ErrInvalidParams
+	}
+	if param.SendRecvFlag != sendTx && param.SendRecvFlag != recvTx {
+		bizlog.Error("procPrivacyTransactionList", "invalid sendrecvflag ", param.SendRecvFlag)
+		return nil, types.ErrInvalidParams
+	}
+	var txbytes [][]byte
+	list := db.NewListHelper(store.db)
+	if len(param.Seedtxhash) == 0 {
+		var keyPrefix []byte
+		if param.SendRecvFlag == sendTx {
+			keyPrefix = calcSendPrivacyTxKey(param.Tokenname, param.Address, "")
+		} else {
+			keyPrefix = calcRecvPrivacyTxKey(param.Tokenname, param.Address, "")
+		}
+		txkeybytes := list.IteratorScanFromLast(keyPrefix, param.Count)
+		for _, keybyte := range txkeybytes {
+			value, err := store.db.Get(keybyte)
+			if err != nil {
+				bizlog.Error("getWalletPrivacyTxDetails", "db Get error", err)
+				continue
+			}
+			if nil == value {
+				continue
+			}
+			txbytes = append(txbytes, value)
+		}
+		if len(txbytes) == 0 {
+			bizlog.Error("getWalletPrivacyTxDetails does not exist tx!")
+			return nil, types.ErrTxNotExist
+		}
+
+	} else {
+		list := db.NewListHelper(store.db)
+		var txkeybytes [][]byte
+		if param.SendRecvFlag == sendTx {
+			txkeybytes = list.IteratorScan([]byte(SendPrivacyTx), calcSendPrivacyTxKey(param.Tokenname, param.Address, string(param.Seedtxhash)), param.Count, param.Direction)
+		} else {
+			txkeybytes = list.IteratorScan([]byte(RecvPrivacyTx), calcRecvPrivacyTxKey(param.Tokenname, param.Address, string(param.Seedtxhash)), param.Count, param.Direction)
+		}
+		for _, keybyte := range txkeybytes {
+			value, err := store.db.Get(keybyte)
+			if err != nil {
+				bizlog.Error("getWalletPrivacyTxDetails", "db Get error", err)
+				continue
+			}
+			if nil == value {
+				continue
+			}
+			txbytes = append(txbytes, value)
+		}
+
+		if len(txbytes) == 0 {
+			bizlog.Error("getWalletPrivacyTxDetails does not exist tx!")
+			return nil, types.ErrTxNotExist
+		}
+	}
+
+	txDetails := new(types.WalletTxDetails)
+	txDetails.TxDetails = make([]*types.WalletTxDetail, len(txbytes))
+	for index, txdetailbyte := range txbytes {
+		var txdetail types.WalletTxDetail
+		err := proto.Unmarshal(txdetailbyte, &txdetail)
+		if err != nil {
+			bizlog.Error("getWalletPrivacyTxDetails", "proto.Unmarshal err:", err)
+			return nil, types.ErrUnmarshal
+		}
+		txhash := txdetail.GetTx().Hash()
+		txdetail.Txhash = txhash
+		if txdetail.GetTx().IsWithdraw() {
+			//swap from and to
+			txdetail.Fromaddr, txdetail.Tx.To = txdetail.Tx.To, txdetail.Fromaddr
+		}
+
+		txDetails.TxDetails[index] = &txdetail
+	}
+
+	return txDetails, nil
 }

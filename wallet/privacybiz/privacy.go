@@ -44,7 +44,7 @@ func (biz *walletPrivacyBiz) Init(wbiz walletbiz.WalletBiz) {
 	biz.funcmap.Register(types.EventCreateUTXOs, biz.onCreateUTXOs)
 	//biz.funcmap.Register(types.EventCreateTransaction, biz.onCreateTransaction)
 	biz.funcmap.Register(types.EventPrivacyAccountInfo, biz.onPrivacyAccountInfo)
-	//biz.funcmap.Register(types.EventPrivacyTransactionList, biz.onPrivacyTransactionList)
+	biz.funcmap.Register(types.EventPrivacyTransactionList, biz.onPrivacyTransactionList)
 	//biz.funcmap.Register(types.EventRescanUtxos, biz.onRescanUtxos)
 	biz.funcmap.Register(types.EventEnablePrivacy, biz.onEnablePrivacy)
 }
@@ -140,13 +140,44 @@ func (biz *walletPrivacyBiz) onPrivacyAccountInfo(msg *queue.Message) (string, i
 
 	reply, err := biz.getPrivacyAccountInfo(req)
 	if err != nil {
-		bizlog.Error("enablePrivacy", "err", err.Error())
+		bizlog.Error("getPrivacyAccountInfo", "err", err.Error())
 	}
 	return topic, retty, reply, nil
 }
 
 func (biz *walletPrivacyBiz) onPrivacyTransactionList(msg *queue.Message) (string, int64, interface{}, error) {
-	return "rpc", 0, nil, nil
+	topic := "rpc"
+	retty := int64(types.EventReplyPrivacyTransactionList)
+	req, ok := msg.Data.(*types.ReqPrivacyTransactionList)
+	if !ok {
+		bizlog.Error("walletPrivacyBiz", "Invalid data type.", ok)
+		return topic, retty, nil, types.ErrInvalidParam
+	}
+
+	if req == nil {
+		bizlog.Error("onPrivacyTransactionList param is nil")
+		return topic, retty, nil, types.ErrInvalidParam
+	}
+	if req.Direction != 0 && req.Direction != 1 {
+		bizlog.Error("getPrivacyTransactionList", "invalid direction ", req.Direction)
+		return topic, retty, nil, types.ErrInvalidParam
+	}
+	// convert to sendTx / recvTx
+	sendRecvFlag := req.SendRecvFlag + sendTx
+	if sendRecvFlag != sendTx && sendRecvFlag != recvTx {
+		bizlog.Error("getPrivacyTransactionList", "invalid sendrecvflag ", req.SendRecvFlag)
+		return topic, retty, nil, types.ErrInvalidParam
+	}
+	req.SendRecvFlag = sendRecvFlag
+
+	biz.walletBiz.GetMutex().Lock()
+	defer biz.walletBiz.GetMutex().Unlock()
+
+	reply, err := biz.getPrivacyTransactionList(req)
+	if err != nil {
+		bizlog.Error("getPrivacyTransactionList", "err", err.Error())
+	}
+	return topic, retty, reply, nil
 }
 
 func (biz *walletPrivacyBiz) onRescanUtxos(msg *queue.Message) (string, int64, interface{}, error) {
@@ -483,4 +514,8 @@ func (biz *walletPrivacyBiz) getPrivacyAccountInfo(req *types.ReqPPrivacyAccount
 	reply.Ftxos = &types.UTXOs{Utxos: utxos}
 
 	return reply, nil
+}
+
+func (biz *walletPrivacyBiz) getPrivacyTransactionList(req *types.ReqPrivacyTransactionList) (*types.WalletTxDetails, error) {
+	return biz.store.getWalletPrivacyTxDetails(req)
 }
