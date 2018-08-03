@@ -14,7 +14,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/crypto/privacy"
 	"gitlab.33.cn/chain33/chain33/wallet/walletbiz"
-	)
+)
 
 var (
 	bizlog = log15.New("module", "privacybiz")
@@ -37,7 +37,7 @@ func (biz *walletPrivacyBiz) Init(wbiz walletbiz.WalletBiz) {
 	//biz.funcmap.Register(types.EventAddBlock, biz.onAddBlock)
 	//biz.funcmap.Register(types.EventDelBlock, biz.onDeleteBlock)
 	//
-	//biz.funcmap.Register(types.EventShowPrivacyPK, biz.onShowPrivacyPK)
+	biz.funcmap.Register(types.EventShowPrivacyPK, biz.onShowPrivacyPK)
 	//biz.funcmap.Register(types.EventPublic2privacy, biz.onPublic2Privacy)
 	//biz.funcmap.Register(types.EventPrivacy2privacy, biz.onPrivacy2Privacy)
 	//biz.funcmap.Register(types.EventPrivacy2public, biz.onPrivacy2Public)
@@ -74,7 +74,22 @@ func (biz *walletPrivacyBiz) onDeleteBlock(msg *queue.Message) (string, int64, i
 }
 
 func (biz *walletPrivacyBiz) onShowPrivacyPK(msg *queue.Message) (string, int64, interface{}, error) {
-	return "rpc", 0, nil, nil
+	topic := "rpc"
+	retty := int64(types.EventReplyShowPrivacyPK)
+
+	req, ok := msg.Data.(*types.ReqStr)
+	if !ok {
+		bizlog.Error("walletPrivacyBiz", "Invalid data type.", ok)
+		return topic, retty, nil, types.ErrInvalidParam
+	}
+
+	biz.walletBiz.GetMutex().Lock()
+	defer biz.walletBiz.GetMutex().Unlock()
+	reply, err := biz.showPrivacyKeyPair(req)
+	if err != nil {
+		bizlog.Error("showPrivacyKeyPair", "err", err.Error())
+	}
+	return topic, retty, reply, nil
 }
 
 func (biz *walletPrivacyBiz) onPublic2Privacy(msg *queue.Message) (string, int64, interface{}, error) {
@@ -87,6 +102,60 @@ func (biz *walletPrivacyBiz) onPrivacy2Privacy(msg *queue.Message) (string, int6
 
 func (biz *walletPrivacyBiz) onPrivacy2Public(msg *queue.Message) (string, int64, interface{}, error) {
 	return "rpc", 0, nil, nil
+}
+
+func (biz *walletPrivacyBiz) onCreateUTXOs(msg *queue.Message) (string, int64, interface{}, error) {
+	topic := "rpc"
+	retty := int64(types.EventReplyCreateUTXOs)
+
+	req, ok := msg.Data.(*types.ReqCreateUTXOs)
+	if !ok {
+		bizlog.Error("walletPrivacyBiz", "Invalid data type.", ok)
+		return topic, retty, nil, types.ErrInvalidParam
+	}
+
+	biz.walletBiz.GetMutex().Lock()
+	defer biz.walletBiz.GetMutex().Unlock()
+	reply, err := biz.createUTXOs(req)
+	if err != nil {
+		bizlog.Error("createUTXOs", "err", err.Error())
+	}
+	return topic, retty, reply, nil
+}
+
+func (biz *walletPrivacyBiz) onCreateTransaction(msg *queue.Message) (string, int64, interface{}, error) {
+	return "rpc", 0, nil, nil
+}
+
+func (biz *walletPrivacyBiz) onPrivacyAccountInfo(msg *queue.Message) (string, int64, interface{}, error) {
+	return "rpc", 0, nil, nil
+}
+
+func (biz *walletPrivacyBiz) onPrivacyTransactionList(msg *queue.Message) (string, int64, interface{}, error) {
+	return "rpc", 0, nil, nil
+}
+
+func (biz *walletPrivacyBiz) onRescanUtxos(msg *queue.Message) (string, int64, interface{}, error) {
+	return "rpc", 0, nil, nil
+}
+
+func (biz *walletPrivacyBiz) onEnablePrivacy(msg *queue.Message) (string, int64, interface{}, error) {
+	topic := "rpc"
+	retty := int64(types.EventReplyEnablePrivacy)
+	req, ok := msg.Data.(*types.ReqEnablePrivacy)
+
+	if !ok {
+		bizlog.Error("walletPrivacyBiz", "Invalid data type.", ok)
+		return topic, retty, nil, types.ErrInvalidParam
+	}
+	biz.walletBiz.GetMutex().Lock()
+	defer biz.walletBiz.GetMutex().Unlock()
+
+	reply, err := biz.enablePrivacy(req)
+	if err != nil {
+		bizlog.Error("enablePrivacy", "err", err.Error())
+	}
+	return topic, retty, reply, nil
 }
 
 func (biz *walletPrivacyBiz) isRescanUtxosFlagScaning() (bool, error) {
@@ -227,41 +296,6 @@ func (biz *walletPrivacyBiz) createUTXOsByPub2Priv(priv crypto.PrivKey, reqCreat
 	return reply, nil
 }
 
-func (biz *walletPrivacyBiz) onCreateUTXOs(msg *queue.Message) (string, int64, interface{}, error) {
-	topic := "rpc"
-	retty := int64(types.EventReplyCreateUTXOs)
-
-	req, ok := msg.Data.(*types.ReqCreateUTXOs)
-	if !ok {
-		bizlog.Error("walletPrivacyBiz", "Invalid data type.", ok)
-		return topic, retty, nil, types.ErrInvalidParam
-	}
-
-	biz.walletBiz.GetMutex().Lock()
-	defer  biz.walletBiz.GetMutex().Unlock()
-	reply, err := biz.createUTXOs(req)
-	if err!=nil {
-		bizlog.Error("createUTXOs", "err", err.Error())
-	}
-	return topic, retty, reply, nil
-}
-
-func (biz *walletPrivacyBiz) onCreateTransaction(msg *queue.Message) (string, int64, interface{}, error) {
-	return "rpc", 0, nil, nil
-}
-
-func (biz *walletPrivacyBiz) onPrivacyAccountInfo(msg *queue.Message) (string, int64, interface{}, error) {
-	return "rpc", 0, nil, nil
-}
-
-func (biz *walletPrivacyBiz) onPrivacyTransactionList(msg *queue.Message) (string, int64, interface{}, error) {
-	return "rpc", 0, nil, nil
-}
-
-func (biz *walletPrivacyBiz) onRescanUtxos(msg *queue.Message) (string, int64, interface{}, error) {
-	return "rpc", 0, nil, nil
-}
-
 func (biz *walletPrivacyBiz) getPrivKeyByAddr(addr string) (crypto.PrivKey, error) {
 	//获取指定地址在钱包里的账户信息
 	Accountstor, err := biz.store.getAccountByAddr(addr)
@@ -377,22 +411,25 @@ func (biz *walletPrivacyBiz) enablePrivacy(req *types.ReqEnablePrivacy) (*types.
 	}
 	return &rep, nil
 }
+func (biz *walletPrivacyBiz) makeViewSpendPubKeyPairToString(viewPubKey, spendPubKey []byte) string {
+	pair := viewPubKey
+	pair = append(pair, spendPubKey...)
+	return common.Bytes2Hex(pair)
+}
 
-func (biz *walletPrivacyBiz) onEnablePrivacy(msg *queue.Message) (string, int64, interface{}, error) {
-	topic := "rpc"
-	retty := int64(types.EventReplyEnablePrivacy)
-	req, ok := msg.Data.(*types.ReqEnablePrivacy)
-
-	if !ok {
-		bizlog.Error("walletPrivacyBiz", "Invalid data type.", ok)
-		return topic, retty, nil, types.ErrInvalidParam
+func (biz *walletPrivacyBiz) showPrivacyKeyPair(reqAddr *types.ReqStr) (*types.ReplyPrivacyPkPair, error) {
+	privacyInfo, err := biz.getPrivacykeyPair(reqAddr.GetReqStr())
+	if err != nil {
+		bizlog.Error("showPrivacyKeyPair", "getPrivacykeyPair error ", err)
+		return nil, err
 	}
-	biz.walletBiz.GetMutex().Lock()
-	defer biz.walletBiz.GetMutex().Unlock()
 
-	reply, err := biz.enablePrivacy(req)
-	if err!=nil {
-		bizlog.Error("enablePrivacy", "err", err.Error())
+	pair := privacyInfo.ViewPubkey[:]
+	pair = append(pair, privacyInfo.SpendPubkey[:]...)
+
+	replyPrivacyPkPair := &types.ReplyPrivacyPkPair{
+		ShowSuccessful: true,
+		Pubkeypair:     biz.makeViewSpendPubKeyPairToString(privacyInfo.ViewPubkey[:], privacyInfo.SpendPubkey[:]),
 	}
-	return topic, retty, reply, nil
+	return replyPrivacyPkPair, nil
 }

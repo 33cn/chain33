@@ -267,15 +267,6 @@ func (wallet *Wallet) ProcRecvMsg() {
 			} else {
 				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyShowPrivacyAccountSpend, UTXOs))
 			}
-		case types.EventShowPrivacyPK:
-			reqAddr := msg.Data.(*types.ReqStr)
-			replyPrivacyPair, err := wallet.showPrivacyPkPair(reqAddr)
-			if err != nil {
-				walletlog.Error("showPrivacyPkPair", "err", err.Error())
-				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyShowPrivacyPK, err))
-			} else {
-				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyShowPrivacyPK, replyPrivacyPair))
-			}
 		case types.EventPublic2privacy:
 			reqPub2Pri := msg.Data.(*types.ReqPub2Pri)
 			replyHash, err := wallet.procPublic2PrivacyV2(reqPub2Pri)
