@@ -184,6 +184,14 @@ func (wallet *Wallet) WaitGroupDone() {
 	wallet.wg.Done()
 }
 
+func (wallet *Wallet) GetBlockHeight() int64 {
+	return wallet.GetHeight()
+}
+
+func (wallet *Wallet) GetRandom() *rand.Rand {
+	return wallet.random
+}
+
 func (wallet *Wallet) Close() {
 	//等待所有的子线程退出
 	//set close flag to isclosed == 1
