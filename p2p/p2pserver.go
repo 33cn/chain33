@@ -616,7 +616,7 @@ func (s *P2pServer) manageStream() {
 		}
 	}()
 	go func() {
-		fifoChan := pub.Sub("block", "tx")
+		fifoChan := s.node.pubsub.Sub("block", "tx")
 		for data := range fifoChan {
 			if s.IsClose() {
 				return
