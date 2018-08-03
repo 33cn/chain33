@@ -94,14 +94,28 @@ func NewAction(g *Game, tx *types.Transaction) *Action {
 	fromaddr := tx.From()
 	return &Action{g.GetCoinsAccount(), g.GetStateDB(), hash, fromaddr, g.GetBlockTime(), g.GetHeight(), g.GetAddr()}
 }
+
 func (action *Action) saveGameToStateDB(game *types.Game) {
 	value := types.Encode(game)
 	action.db.Set(Key(game.GetGameId()), value)
+}
+
+func (action *Action) CheckExecAccountBalance(fromAddr string, ToFrozen, ToActive int64) bool {
+	acc := action.coinsAccount.LoadExecAccount(fromAddr, action.execaddr)
+	if acc.GetBalance() >= ToFrozen && acc.GetFrozen() >= ToActive {
+		return true
+	}
+	return false
 }
 func (action *Action) GameCreate(create *types.GameCreate) (*types.Receipt, error) {
 	gameId := common.ToHex(action.txhash)
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
+	if !action.CheckExecAccountBalance(action.fromaddr, create.GetValue(), 0) {
+		glog.Error("GameCreate", "addr", action.fromaddr, "execaddr", action.execaddr, "id",
+			gameId, "err", types.ErrNoBalance)
+		return nil, types.ErrNoBalance
+	}
 	//冻结子账户资金
 	receipt, err := action.coinsAccount.ExecFrozen(action.fromaddr, action.execaddr, create.GetValue())
 	if err != nil {
@@ -140,8 +154,7 @@ func (action *Action) GameMatch(match *types.GameMatch) (*types.Receipt, error) 
 			match.GetGameId(), "err", "can't join the game, the game has started or finished!")
 		return nil, types.ErrInputPara
 	}
-	acc := action.coinsAccount.LoadExecAccount(action.fromaddr, action.execaddr)
-	if acc.Balance < game.GetValue()/2 {
+	if !action.CheckExecAccountBalance(action.fromaddr, game.GetValue()/2, 0) {
 		glog.Error("GameMatch", "addr", action.fromaddr, "execaddr", action.execaddr, "id",
 			match.GetGameId(), "err", types.ErrNoBalance)
 		return nil, types.ErrNoBalance
@@ -185,6 +198,11 @@ func (action *Action) GameCancel(cancel *types.GameCancel) (*types.Receipt, erro
 			cancel.GetGameId(), "err", "can't cancel game, the game has started or finished!")
 		return nil, types.ErrInputPara
 	}
+	if !action.CheckExecAccountBalance(action.fromaddr, 0, game.GetValue()) {
+		glog.Error("GameCancel", "addr", action.fromaddr, "execaddr", action.execaddr, "id",
+			game.GetGameId(), "err", types.ErrNoBalance)
+		return nil, types.ErrNoBalance
+	}
 	receipt, err := action.coinsAccount.ExecActive(game.GetCreateAddress(), action.execaddr, game.GetValue())
 	if err != nil {
 		glog.Error("GameCancel ", "addr", action.fromaddr, "execaddr", action.execaddr, "id",
@@ -224,10 +242,20 @@ func (action *Action) GameClose(close *types.GameClose) (*types.Receipt, error) 
 		glog.Error(types.ErrGameTimeOut.Error())
 		return nil, types.ErrGameTimeOut
 	}
-	//TODO:开奖涉及的一系列参数检查，后面需要补充
 	if game.GetStatus() != types.GameActionMatch {
 		glog.Error("the game status is not match.")
 		return nil, types.ErrInputPara
+	}
+	//各自冻结余额检查
+	if !action.CheckExecAccountBalance(game.GetCreateAddress(), 0, 2*game.GetValue()/3) {
+		glog.Error("GameClose", "addr", game.GetCreateAddress(), "execaddr", action.execaddr, "id",
+			game.GetGameId(), "err", types.ErrNoBalance)
+		return nil, types.ErrNoBalance
+	}
+	if !action.CheckExecAccountBalance(game.GetMatchAddress(), 0, game.GetValue()/3) {
+		glog.Error("GameClose", "addr", game.GetMatchAddress(), "execaddr", action.execaddr, "id",
+			game.GetGameId(), "err", types.ErrNoBalance)
+		return nil, types.ErrNoBalance
 	}
 	result := action.checkGameResult(game, close)
 	if result == IsCreatorWin {
