@@ -103,6 +103,8 @@ type QueueProtocolAPI interface {
 	PrivacyTransactionList(param *types.ReqPrivacyTransactionList) (*types.WalletTxDetails, error)
 	// types.EventRescanUtxos
 	RescanUtxos(param *types.ReqRescanUtxos) (*types.RepRescanUtxos, error)
+	// types.EventEnablePrivacy
+	EnablePrivacy(param *types.ReqEnablePrivacy) (*types.RepEnablePrivacy, error)
 	// Privacy End
 	// --------------- wallet interfaces end
 
