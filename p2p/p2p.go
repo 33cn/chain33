@@ -6,7 +6,6 @@ import (
 	"time"
 
 	l "github.com/inconshreveable/log15"
-	"gitlab.33.cn/chain33/chain33/common/pubsub"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 	// register gzip
@@ -15,7 +14,6 @@ import (
 
 var (
 	log = l.New("module", "p2p")
-	pub = pubsub.NewPubSub(10240)
 )
 
 type P2p struct {
@@ -75,6 +73,7 @@ func (network *P2p) Close() {
 	if network.client != nil {
 		network.client.Close()
 	}
+	network.node.pubsub.Shutdown()
 }
 
 func (network *P2p) SetQueueClient(client queue.Client) {
