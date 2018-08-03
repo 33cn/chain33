@@ -46,12 +46,12 @@ func (g *Game) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	glog.Debug("exec Game tx=", "tx=", action)
 	actiondb := NewAction(g, tx)
 	if action.Ty == types.GameActionCreate && action.GetCreate() != nil {
-		open := action.GetCreate()
-		if open.GetValue() > MaxGameAmount {
-			glog.Error("open ", "value", open.GetValue())
-			return nil, types.ErrGameOpenAmount
+		create := action.GetCreate()
+		if create.GetValue() > MaxGameAmount {
+			glog.Error("Create the game, the deposit is too big  ", "value", create.GetValue())
+			return nil, types.ErrGameCreateAmount
 		}
-		return actiondb.GameCreate(open)
+		return actiondb.GameCreate(create)
 	} else if action.Ty == types.GameActionCancel && action.GetCancel() != nil {
 		return actiondb.GameCancel(action.GetCancel())
 	} else if action.Ty == types.GameActionClose && action.GetClose() != nil {
