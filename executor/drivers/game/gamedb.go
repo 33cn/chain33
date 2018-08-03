@@ -40,8 +40,9 @@ var (
 // status == 2 (取消)
 // status == 3 (Close的情况)
 
-//list 保存的方法:
+//list 索引保存的方法:
 //key=status:addr:gameId
+//value=gameId
 func (action *Action) GetReceiptLog(game *types.Game) *types.ReceiptLog {
 	log := &types.ReceiptLog{}
 	if game.Status == types.GameActionCreate {
@@ -350,7 +351,7 @@ func (action *Action) GameClose(close *types.GameClose) (*types.Receipt, error) 
 	game.Closetime = action.blocktime
 	game.Status = types.GameActionClose
 	game.Secret = close.GetSecret()
-	game.Result = close.GetResult()
+	game.Result = int32(result)
 	action.saveGameToStateDB(game)
 	receiptLog := action.GetReceiptLog(game)
 	logs = append(logs, receiptLog)
