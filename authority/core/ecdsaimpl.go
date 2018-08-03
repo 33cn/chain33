@@ -20,7 +20,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var authLogger = log.New("module", "autority")
+var authLogger = log.New("module", "authority")
 
 type ecdsaValidator struct {
 	rootCerts []*x509.Certificate
