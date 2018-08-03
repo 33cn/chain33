@@ -40,13 +40,13 @@ type privacyStore struct {
 
 func (store *privacyStore) getAccountByPrefix(addr string) ([]*types.WalletAccountStore, error) {
 	if len(addr) == 0 {
-		bizlog.Error("GetAccountByPrefix addr is nil")
+		bizlog.Error("getAccountByPrefix addr is nil")
 		return nil, types.ErrInputPara
 	}
 	list := db.NewListHelper(store.db)
 	accbytes := list.PrefixScan([]byte(addr))
 	if len(accbytes) == 0 {
-		bizlog.Error("GetAccountByPrefix addr not exist")
+		bizlog.Error("getAccountByPrefix addr not exist")
 		return nil, types.ErrAccountNotExist
 	}
 	WalletAccountStores := make([]*types.WalletAccountStore, len(accbytes))
@@ -128,3 +128,4 @@ func (store *privacyStore) setWalletAccountPrivacy(addr string, privacy *types.W
 
 	return nil
 }
+
