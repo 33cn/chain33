@@ -83,25 +83,14 @@ func CreateRawParacrossCommitTx(parm *ParacrossCommitTx) (*types.Transaction, er
 		glog.Error("CreateRawParacrossCommitTx", "parm", parm)
 		return nil, types.ErrInvalidParam
 	}
-	v := &types.ParacrossCommitAction{
-		Status: &parm.Status,
-	}
-	action := &types.ParacrossAction{
-		Ty:    ParacrossActionCommit,
-		Value: &types.ParacrossAction_Commit{v},
-	}
-	tx := &types.Transaction{
-		Execer:  []byte(name),
-		Payload: types.Encode(action),
-		Fee:     parm.Fee,
-		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(name),
-	}
-
-	return tx, nil
+	return createRawCommitTx(&parm.Status, name, parm.Fee)
 }
 
-func CreateRawCommitTx(status *types.ParacrossNodeStatus) *types.Transaction {
+func CreateRawCommitTx4MainChain(status *types.ParacrossNodeStatus, name string, fee int64) (*types.Transaction, error) {
+	return createRawCommitTx(status, name, fee)
+}
+
+func createRawCommitTx(status *types.ParacrossNodeStatus, name string, fee int64) (*types.Transaction, error) {
 	v := &types.ParacrossCommitAction{
 		Status: status,
 	}
@@ -112,12 +101,17 @@ func CreateRawCommitTx(status *types.ParacrossNodeStatus) *types.Transaction {
 	tx := &types.Transaction{
 		Execer:  []byte(name),
 		Payload: types.Encode(action),
-		Fee:     0,
+		Fee:     fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
 		To:      address.ExecAddress(name),
 	}
 
-	return tx
+	err := tx.SetRealFee(types.MinFee)
+	if err != nil {
+		return nil, err
+	}
+
+	return tx, nil
 }
 
 type ParacrossCommitLog struct {
