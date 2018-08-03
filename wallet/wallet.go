@@ -408,7 +408,8 @@ func (wallet *Wallet) updateLastHeader(block *types.BlockDetail, mode int) error
 		} else if mode == -1 && wallet.lastHeader != nil && wallet.lastHeader.Height == block.Block.Height {
 			wallet.lastHeader = header
 		}
-	} else {
+	}
+	if block == nil || wallet.lastHeader == nil {
 		wallet.lastHeader = header
 	}
 	return nil
