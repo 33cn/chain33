@@ -15,7 +15,7 @@ import (
 
 var (
 	log = l.New("module", "p2p")
-	pub *pubsub.PubSub
+	pub = pubsub.NewPubSub(10240)
 )
 
 type P2p struct {
@@ -29,8 +29,6 @@ type P2p struct {
 }
 
 func New(cfg *types.P2P) *P2p {
-	pub = pubsub.NewPubSub(int(cfg.GetMsgCacheSize()))
-
 	if cfg.Version == 0 {
 		if types.IsTestNet() {
 			cfg.Version = 119
@@ -77,9 +75,6 @@ func (network *P2p) Close() {
 	if network.client != nil {
 		network.client.Close()
 	}
-
-	pub.Shutdown()
-
 }
 
 func (network *P2p) SetQueueClient(client queue.Client) {
