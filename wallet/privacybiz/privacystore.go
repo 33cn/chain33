@@ -7,6 +7,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 
 	"github.com/golang/protobuf/proto"
+	"gitlab.33.cn/chain33/chain33/common"
 )
 
 const (
@@ -22,6 +23,10 @@ const (
 	ScanPrivacyInput = "ScanPrivacyInput-"
 	ReScanUtxosFlag  = "ReScanUtxosFlag-"
 )
+
+func calcKey4UTXOsSpentInTx(key string) []byte {
+	return []byte(fmt.Sprintf("UTXOsSpentInTx:%s", key))
+}
 
 // calcPrivacyAddrKey 获取隐私账户私钥对保存在钱包中的索引串
 func calcPrivacyAddrKey(addr string) []byte {
@@ -63,6 +68,16 @@ func calcSendPrivacyTxKey(tokenname, addr, key string) []byte {
 // key为通过calcTxKey(heightstr)计算出来的值
 func calcRecvPrivacyTxKey(tokenname, addr, key string) []byte {
 	return []byte(fmt.Sprintf("%s:%s-%s-%s", RecvPrivacyTx, tokenname, addr, key))
+}
+
+// calcUTXOKey4TokenAddr 计算当前地址可用UTXO的Key健值
+func calcUTXOKey4TokenAddr(token, addr, txhash string, index int) []byte {
+	return []byte(fmt.Sprintf("%s-%s-%s-%s-%d", AvailUTXOs, token, addr, txhash, index))
+}
+
+// calcKey4FTXOsInTx 交易构建以后,将可用UTXO冻结的健值
+func calcKey4FTXOsInTx(token, addr, txhash string) []byte {
+	return []byte(fmt.Sprintf("%s:%s-%s-%s", FrozenUTXOs, token, addr, txhash))
 }
 
 // privacyStore 隐私交易数据库存储操作类
@@ -303,4 +318,79 @@ func (store *privacyStore) getWalletPrivacyTxDetails(param *types.ReqPrivacyTran
 	}
 
 	return txDetails, nil
+}
+
+func (store *privacyStore) getPrivacyTokenUTXOs(token, addr string) (*walletUTXOs, error) {
+	list := db.NewListHelper(store.db)
+	prefix := calcPrivacyUTXOPrefix4Addr(token, addr)
+	values := list.List(prefix, nil, 0, 0)
+	wutxos := new(walletUTXOs)
+	if len(values) == 0 {
+		return wutxos, nil
+	}
+	for _, value := range values {
+		if len(value) == 0 {
+			continue
+		}
+		accByte, err := store.db.Get(value)
+		if err != nil {
+			return nil, types.ErrDataBaseDamage
+		}
+		privacyDBStore := new(types.PrivacyDBStore)
+		err = types.Decode(accByte, privacyDBStore)
+		if err != nil {
+			bizlog.Error("getPrivacyTokenUTXOs", "decode PrivacyDBStore error. ", err)
+			return nil, types.ErrDataBaseDamage
+		}
+		wutxo := &walletUTXO{
+			height: privacyDBStore.Height,
+			outinfo: &txOutputInfo{
+				amount:           privacyDBStore.Amount,
+				txPublicKeyR:     privacyDBStore.TxPublicKeyR,
+				onetimePublicKey: privacyDBStore.OnetimePublicKey,
+				utxoGlobalIndex: &types.UTXOGlobalIndex{
+					Outindex: privacyDBStore.OutIndex,
+					Txhash:   privacyDBStore.Txhash,
+				},
+			},
+		}
+		wutxos.utxos = append(wutxos.utxos, wutxo)
+	}
+	return wutxos, nil
+}
+
+//calcUTXOKey4TokenAddr---X--->calcUTXOKey 被删除,该地址下某种token的这个utxo变为不可用
+//calcKey4UTXOsSpentInTx------>types.FTXOsSTXOsInOneTx,将当前交易的所有花费的utxo进行打包，设置为ftxo，同时通过支付交易hash索引
+//calcKey4FTXOsInTx----------->calcKey4UTXOsSpentInTx,创建该交易冻结的所有的utxo的信息
+//状态转移，将utxo转移至ftxo，同时记录该生成tx的花费的utxo，这样在确认执行成功之后就可以快速将相应的FTXO转换成STXO
+func (store *privacyStore) moveUTXO2FTXO(tx *types.Transaction, token, sender, txhash string, selectedUtxos []*txOutputInfo) {
+	FTXOsInOneTx := &types.FTXOsSTXOsInOneTx{}
+	newbatch := store.db.NewBatch(true)
+	for _, txOutputInfo := range selectedUtxos {
+		key := calcUTXOKey4TokenAddr(token, sender, common.Bytes2Hex(txOutputInfo.utxoGlobalIndex.Txhash), int(txOutputInfo.utxoGlobalIndex.Outindex))
+		newbatch.Delete(key)
+		utxo := &types.UTXO{
+			Amount: txOutputInfo.amount,
+			UtxoBasic: &types.UTXOBasic{
+				UtxoGlobalIndex: txOutputInfo.utxoGlobalIndex,
+				OnetimePubkey:   txOutputInfo.onetimePublicKey,
+			},
+		}
+		FTXOsInOneTx.Utxos = append(FTXOsInOneTx.Utxos, utxo)
+	}
+	FTXOsInOneTx.Tokenname = token
+	FTXOsInOneTx.Sender = sender
+	FTXOsInOneTx.Txhash = txhash
+	FTXOsInOneTx.SetExpire(tx)
+	//设置在该交易中花费的UTXO
+	key1 := calcKey4UTXOsSpentInTx(txhash)
+	value1 := types.Encode(FTXOsInOneTx)
+	newbatch.Set(key1, value1)
+
+	//设置ftxo的key，使其能够方便地获取到对应的交易花费的utxo
+	key2 := calcKey4FTXOsInTx(token, sender, txhash)
+	value2 := key1
+	newbatch.Set(key2, value2)
+
+	newbatch.Write()
 }
