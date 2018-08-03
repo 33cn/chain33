@@ -1,12 +1,15 @@
 package privacybiz
 
 import (
+	"bytes"
+	"sort"
+	"sync/atomic"
 	"unsafe"
 
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 
-	"sync/atomic"
+	"errors"
 
 	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common"
@@ -42,7 +45,7 @@ func (biz *walletPrivacyBiz) Init(wbiz walletbiz.WalletBiz) {
 	//biz.funcmap.Register(types.EventPrivacy2privacy, biz.onPrivacy2Privacy)
 	//biz.funcmap.Register(types.EventPrivacy2public, biz.onPrivacy2Public)
 	biz.funcmap.Register(types.EventCreateUTXOs, biz.onCreateUTXOs)
-	//biz.funcmap.Register(types.EventCreateTransaction, biz.onCreateTransaction)
+	biz.funcmap.Register(types.EventCreateTransaction, biz.onCreateTransaction)
 	biz.funcmap.Register(types.EventPrivacyAccountInfo, biz.onPrivacyAccountInfo)
 	biz.funcmap.Register(types.EventPrivacyTransactionList, biz.onPrivacyTransactionList)
 	//biz.funcmap.Register(types.EventRescanUtxos, biz.onRescanUtxos)
@@ -89,7 +92,7 @@ func (biz *walletPrivacyBiz) onShowPrivacyPK(msg *queue.Message) (string, int64,
 	if err != nil {
 		bizlog.Error("showPrivacyKeyPair", "err", err.Error())
 	}
-	return topic, retty, reply, nil
+	return topic, retty, reply, err
 }
 
 func (biz *walletPrivacyBiz) onPublic2Privacy(msg *queue.Message) (string, int64, interface{}, error) {
@@ -120,11 +123,37 @@ func (biz *walletPrivacyBiz) onCreateUTXOs(msg *queue.Message) (string, int64, i
 	if err != nil {
 		bizlog.Error("createUTXOs", "err", err.Error())
 	}
-	return topic, retty, reply, nil
+	return topic, retty, reply, err
 }
 
 func (biz *walletPrivacyBiz) onCreateTransaction(msg *queue.Message) (string, int64, interface{}, error) {
-	return "rpc", 0, nil, nil
+	topic := "rpc"
+	retty := int64(types.EventReplyCreateTransaction)
+	req, ok := msg.Data.(*types.ReqCreateTransaction)
+	if !ok {
+		bizlog.Error("walletPrivacyBiz", "Invalid data type.", ok)
+		return topic, retty, nil, types.ErrInvalidParam
+	}
+	ok, err := biz.walletBiz.CheckWalletStatus()
+	if !ok {
+		bizlog.Error("createTransaction", "CheckWalletStatus cause error.", err)
+		return topic, retty, nil, err
+	}
+	if ok, err := biz.isRescanUtxosFlagScaning(); ok {
+		return topic, retty, nil, err
+	}
+	if !biz.checkAmountValid(req.Amount) {
+		return topic, retty, nil, types.ErrAmount
+	}
+
+	biz.walletBiz.GetMutex().Lock()
+	defer biz.walletBiz.GetMutex().Unlock()
+
+	reply, err := biz.createTransaction(req)
+	if err != nil {
+		bizlog.Error("createTransaction", "err", err.Error())
+	}
+	return topic, retty, reply, err
 }
 
 func (biz *walletPrivacyBiz) onPrivacyAccountInfo(msg *queue.Message) (string, int64, interface{}, error) {
@@ -142,7 +171,7 @@ func (biz *walletPrivacyBiz) onPrivacyAccountInfo(msg *queue.Message) (string, i
 	if err != nil {
 		bizlog.Error("getPrivacyAccountInfo", "err", err.Error())
 	}
-	return topic, retty, reply, nil
+	return topic, retty, reply, err
 }
 
 func (biz *walletPrivacyBiz) onPrivacyTransactionList(msg *queue.Message) (string, int64, interface{}, error) {
@@ -177,7 +206,7 @@ func (biz *walletPrivacyBiz) onPrivacyTransactionList(msg *queue.Message) (strin
 	if err != nil {
 		bizlog.Error("getPrivacyTransactionList", "err", err.Error())
 	}
-	return topic, retty, reply, nil
+	return topic, retty, reply, err
 }
 
 func (biz *walletPrivacyBiz) onRescanUtxos(msg *queue.Message) (string, int64, interface{}, error) {
@@ -199,7 +228,7 @@ func (biz *walletPrivacyBiz) onEnablePrivacy(msg *queue.Message) (string, int64,
 	if err != nil {
 		bizlog.Error("enablePrivacy", "err", err.Error())
 	}
-	return topic, retty, reply, nil
+	return topic, retty, reply, err
 }
 
 func (biz *walletPrivacyBiz) isRescanUtxosFlagScaning() (bool, error) {
@@ -518,4 +547,552 @@ func (biz *walletPrivacyBiz) getPrivacyAccountInfo(req *types.ReqPPrivacyAccount
 
 func (biz *walletPrivacyBiz) getPrivacyTransactionList(req *types.ReqPrivacyTransactionList) (*types.WalletTxDetails, error) {
 	return biz.store.getWalletPrivacyTxDetails(req)
+}
+
+// 62387455827 -> 455827 + 7000000 + 80000000 + 300000000 + 2000000000 + 60000000000, where 455827 <= dust_threshold
+//res:[455827, 7000000, 80000000, 300000000, 2000000000, 60000000000]
+func (biz *walletPrivacyBiz) decomposeAmount2digits(amount, dust_threshold int64) []int64 {
+	res := make([]int64, 0)
+	if 0 >= amount {
+		return res
+	}
+
+	is_dust_handled := false
+	var dust int64 = 0
+	var order int64 = 1
+	var chunk int64 = 0
+
+	for 0 != amount {
+		chunk = (amount % 10) * order
+		amount /= 10
+		order *= 10
+		if dust+chunk < dust_threshold {
+			dust += chunk //累加小数，直到超过dust_threshold为止
+		} else {
+			if !is_dust_handled && 0 != dust {
+				//1st 正常情况下，先把dust保存下来
+				res = append(res, dust)
+				is_dust_handled = true
+			}
+			if 0 != chunk {
+				//2nd 然后依次将大的整数额度进行保存
+				goodAmount := biz.decomAmount2Nature(chunk, order/10)
+				res = append(res, goodAmount...)
+			}
+		}
+	}
+
+	//如果需要被拆分的额度 < dust_threshold，则直接将其进行保存
+	if !is_dust_handled && 0 != dust {
+		res = append(res, dust)
+	}
+
+	return res
+}
+
+//将amount切分为1,2,5的组合，这样在进行amount混淆的时候就能够方便获取相同额度的utxo
+func (biz *walletPrivacyBiz) decomAmount2Nature(amount int64, order int64) []int64 {
+	res := make([]int64, 0)
+	if order == 0 {
+		return res
+	}
+	mul := amount / order
+	switch mul {
+	case 3:
+		res = append(res, order)
+		res = append(res, 2*order)
+	case 4:
+		res = append(res, 2*order)
+		res = append(res, 2*order)
+	case 6:
+		res = append(res, 5*order)
+		res = append(res, order)
+	case 7:
+		res = append(res, 5*order)
+		res = append(res, 2*order)
+	case 8:
+		res = append(res, 5*order)
+		res = append(res, 2*order)
+		res = append(res, 1*order)
+	case 9:
+		res = append(res, 5*order)
+		res = append(res, 2*order)
+		res = append(res, 2*order)
+	default:
+		res = append(res, mul*order)
+		return res
+	}
+	return res
+}
+
+// 修改选择UTXO的算法
+// 优先选择UTXO高度与当前高度建个12个区块以上的UTXO
+// 如果选择还不够则再从老到新选择12个区块内的UTXO
+// 当该地址上的可用UTXO比较多时，可以考虑改进算法，优先选择币值小的，花掉小票，然后再选择币值接近的，减少找零，最后才选择大面值的找零
+func (biz *walletPrivacyBiz) selectUTXO(token, addr string, amount int64) ([]*txOutputInfo, error) {
+	if len(token) == 0 || len(addr) == 0 || amount <= 0 {
+		return nil, types.ErrInvalidParams
+	}
+	wutxos, err := biz.store.getPrivacyTokenUTXOs(token, addr)
+	if err != nil {
+		return nil, types.ErrInsufficientBalance
+	}
+	curBlockHeight := biz.walletBiz.GetBlockHeight()
+	var confirmUTXOs, unconfirmUTXOs []*walletUTXO
+	var balance int64
+	for _, wutxo := range wutxos.utxos {
+		if curBlockHeight < wutxo.height {
+			continue
+		}
+		if curBlockHeight-wutxo.height > types.PrivacyMaturityDegree {
+			balance += wutxo.outinfo.amount
+			confirmUTXOs = append(confirmUTXOs, wutxo)
+		} else {
+			unconfirmUTXOs = append(unconfirmUTXOs, wutxo)
+		}
+	}
+	if balance < amount && len(unconfirmUTXOs) > 0 {
+		// 已经确认的UTXO还不够支付，则需要按照从老到新的顺序，从可能回退的队列中获取
+		// 高度从低到高获取
+		sort.Slice(unconfirmUTXOs, func(i, j int) bool {
+			return unconfirmUTXOs[i].height < unconfirmUTXOs[j].height
+		})
+		for _, wutxo := range unconfirmUTXOs {
+			confirmUTXOs = append(confirmUTXOs, wutxo)
+			balance += wutxo.outinfo.amount
+			if balance >= amount {
+				break
+			}
+		}
+	}
+	if balance < amount {
+		return nil, types.ErrInsufficientBalance
+	}
+	balance = 0
+	var selectedOuts []*txOutputInfo
+	for balance < amount {
+		index := biz.walletBiz.GetRandom().Intn(len(confirmUTXOs))
+		selectedOuts = append(selectedOuts, confirmUTXOs[index].outinfo)
+		balance += confirmUTXOs[index].outinfo.amount
+		// remove selected utxo
+		confirmUTXOs = append(confirmUTXOs[:index], confirmUTXOs[index+1:]...)
+	}
+	return selectedOuts, nil
+}
+
+/*
+buildInput 构建隐私交易的输入信息
+操作步骤
+	1.从当前钱包中选择可用并且足够支付金额的UTXO列表
+	2.如果需要混淆(mixcout>0)，则根据UTXO的金额从数据库中获取足够数量的UTXO，与当前UTXO进行混淆
+	3.通过公式 x=Hs(aR)+b，计算出一个整数，因为 xG = Hs(ar)G+bG = Hs(aR)G+B，所以可以继续使用这笔交易
+*/
+func (biz *walletPrivacyBiz) buildInput(privacykeyParirs *privacy.Privacy, buildInfo *buildInputInfo) (*types.PrivacyInput, []*types.UTXOBasics, []*types.RealKeyInput, []*txOutputInfo, error) {
+	//挑选满足额度的utxo
+	selectedUtxo, err := biz.selectUTXO(buildInfo.tokenname, buildInfo.sender, buildInfo.amount)
+	if err != nil {
+		bizlog.Error("buildInput", "Failed to selectOutput for amount", buildInfo.amount,
+			"Due to cause", err)
+		return nil, nil, nil, nil, err
+	}
+
+	bizlog.Debug("buildInput", "Before sort selectedUtxo", selectedUtxo)
+	sort.Slice(selectedUtxo, func(i, j int) bool {
+		return selectedUtxo[i].amount <= selectedUtxo[j].amount
+	})
+	bizlog.Debug("buildInput", "After sort selectedUtxo", selectedUtxo)
+
+	reqGetGlobalIndex := types.ReqUTXOGlobalIndex{
+		Tokenname: buildInfo.tokenname,
+		MixCount:  0,
+	}
+
+	if buildInfo.mixcount > 0 {
+		reqGetGlobalIndex.MixCount = common.MinInt32(int32(types.PrivacyMaxCount), common.MaxInt32(buildInfo.mixcount, 0))
+	}
+	for _, out := range selectedUtxo {
+		reqGetGlobalIndex.Amount = append(reqGetGlobalIndex.Amount, out.amount)
+	}
+	// 混淆数大于0时候才向blockchain请求
+	var resUTXOGlobalIndex *types.ResUTXOGlobalIndex
+	if buildInfo.mixcount > 0 {
+		query := &types.BlockChainQuery{
+			Driver:   "privacy",
+			FuncName: "GetUTXOGlobalIndex",
+			Param:    types.Encode(&reqGetGlobalIndex),
+		}
+		//向blockchain请求相同额度的不同utxo用于相同额度的混淆作用
+		resUTXOGlobalIndex, err = biz.walletBiz.GetAPI().BlockChainQuery(query)
+		if err != nil {
+			bizlog.Error("buildInput BlockChainQuery", "err", err)
+			return nil, nil, nil, nil, err
+		}
+		if resUTXOGlobalIndex == nil {
+			bizlog.Info("buildInput EventBlockChainQuery is nil")
+			return nil, nil, nil, nil, err
+		}
+
+		sort.Slice(resUTXOGlobalIndex.UtxoIndex4Amount, func(i, j int) bool {
+			return resUTXOGlobalIndex.UtxoIndex4Amount[i].Amount <= resUTXOGlobalIndex.UtxoIndex4Amount[j].Amount
+		})
+
+		if len(selectedUtxo) != len(resUTXOGlobalIndex.UtxoIndex4Amount) {
+			bizlog.Error("buildInput EventBlockChainQuery get not the same count for mix",
+				"len(selectedUtxo)", len(selectedUtxo),
+				"len(resUTXOGlobalIndex.UtxoIndex4Amount)", len(resUTXOGlobalIndex.UtxoIndex4Amount))
+		}
+	}
+
+	//构造输入PrivacyInput
+	privacyInput := &types.PrivacyInput{}
+	utxosInKeyInput := make([]*types.UTXOBasics, len(selectedUtxo))
+	realkeyInputSlice := make([]*types.RealKeyInput, len(selectedUtxo))
+	for i, utxo2pay := range selectedUtxo {
+		var utxoIndex4Amount *types.UTXOIndex4Amount
+		if nil != resUTXOGlobalIndex && i < len(resUTXOGlobalIndex.UtxoIndex4Amount) && utxo2pay.amount == resUTXOGlobalIndex.UtxoIndex4Amount[i].Amount {
+			utxoIndex4Amount = resUTXOGlobalIndex.UtxoIndex4Amount[i]
+			for j, utxo := range utxoIndex4Amount.Utxos {
+				//查找自身这条UTXO是否存在，如果存在则将其从其中删除
+				if bytes.Equal(utxo.OnetimePubkey, utxo2pay.onetimePublicKey) {
+					utxoIndex4Amount.Utxos = append(utxoIndex4Amount.Utxos[:j], utxoIndex4Amount.Utxos[j+1:]...)
+					break
+				}
+			}
+		}
+
+		if utxoIndex4Amount == nil {
+			utxoIndex4Amount = &types.UTXOIndex4Amount{}
+		}
+		if utxoIndex4Amount.Utxos == nil {
+			utxoIndex4Amount.Utxos = make([]*types.UTXOBasic, 0)
+		}
+		//如果请求返回的用于混淆的utxo不包含自身且达到mix的上限，则将最后一条utxo删除，保证最后的混淆度不大于设置
+		if len(utxoIndex4Amount.Utxos) > int(buildInfo.mixcount) {
+			utxoIndex4Amount.Utxos = utxoIndex4Amount.Utxos[:len(utxoIndex4Amount.Utxos)-1]
+		}
+
+		utxo := &types.UTXOBasic{
+			UtxoGlobalIndex: utxo2pay.utxoGlobalIndex,
+			OnetimePubkey:   utxo2pay.onetimePublicKey,
+		}
+		//将真实的utxo添加到最后一个
+		utxoIndex4Amount.Utxos = append(utxoIndex4Amount.Utxos, utxo)
+		positions := biz.walletBiz.GetRandom().Perm(len(utxoIndex4Amount.Utxos))
+		utxos := make([]*types.UTXOBasic, len(utxoIndex4Amount.Utxos))
+		for k, position := range positions {
+			utxos[position] = utxoIndex4Amount.Utxos[k]
+		}
+		utxosInKeyInput[i] = &types.UTXOBasics{Utxos: utxos}
+
+		//x = Hs(aR) + b
+		onetimePriv, err := privacy.RecoverOnetimePriKey(utxo2pay.txPublicKeyR, privacykeyParirs.ViewPrivKey, privacykeyParirs.SpendPrivKey, int64(utxo2pay.utxoGlobalIndex.Outindex))
+		if err != nil {
+			bizlog.Error("transPri2Pri", "Failed to RecoverOnetimePriKey", err)
+			return nil, nil, nil, nil, err
+		}
+
+		realkeyInput := &types.RealKeyInput{
+			Realinputkey:   int32(positions[len(positions)-1]),
+			Onetimeprivkey: onetimePriv.Bytes(),
+		}
+		realkeyInputSlice[i] = realkeyInput
+
+		keyImage, err := privacy.GenerateKeyImage(onetimePriv, utxo2pay.onetimePublicKey)
+		if err != nil {
+			return nil, nil, nil, nil, err
+		}
+
+		keyInput := &types.KeyInput{
+			Amount:   utxo2pay.amount,
+			KeyImage: keyImage[:],
+		}
+
+		for _, utxo := range utxos {
+			keyInput.UtxoGlobalIndex = append(keyInput.UtxoGlobalIndex, utxo.UtxoGlobalIndex)
+		}
+		//完成一个input的构造，包括基于其环签名的生成，keyImage的生成，
+		//必须要注意的是，此处要添加用于混淆的其他utxo添加到最终keyinput的顺序必须和生成环签名时提供pubkey的顺序一致
+		//否则会导致环签名验证的失败
+		privacyInput.Keyinput = append(privacyInput.Keyinput, keyInput)
+	}
+
+	return privacyInput, utxosInKeyInput, realkeyInputSlice, selectedUtxo, nil
+}
+
+//最后构造完成的utxo依次是2种类型，不构造交易费utxo，使其直接燃烧消失
+//1.进行实际转账utxo
+//2.进行找零转账utxo
+func (biz *walletPrivacyBiz) generateOuts(viewpubTo, spendpubto, viewpubChangeto, spendpubChangeto *[32]byte, transAmount, selectedAmount, fee int64) (*types.PrivacyOutput, error) {
+	decomDigit := biz.decomposeAmount2digits(transAmount, types.BTYDustThreshold)
+	//计算找零
+	changeAmount := selectedAmount - transAmount - fee
+	var decomChange []int64
+	if 0 < changeAmount {
+		decomChange = biz.decomposeAmount2digits(changeAmount, types.BTYDustThreshold)
+	}
+	bizlog.Info("generateOuts", "decompose digit for amount", selectedAmount-fee, "decomDigit", decomDigit)
+
+	pk := &privacy.PubKeyPrivacy{}
+	sk := &privacy.PrivKeyPrivacy{}
+	privacy.GenerateKeyPair(sk, pk)
+	RtxPublicKey := pk.Bytes()
+
+	sktx := (*[32]byte)(unsafe.Pointer(&sk[0]))
+	var privacyOutput types.PrivacyOutput
+	privacyOutput.RpubKeytx = RtxPublicKey
+	privacyOutput.Keyoutput = make([]*types.KeyOutput, len(decomDigit)+len(decomChange))
+
+	//添加本次转账的目的接收信息（UTXO），包括一次性公钥和额度
+	for index, digit := range decomDigit {
+		pubkeyOnetime, err := privacy.GenerateOneTimeAddr(viewpubTo, spendpubto, sktx, int64(index))
+		if err != nil {
+			bizlog.Error("generateOuts", "Fail to GenerateOneTimeAddr due to cause", err)
+			return nil, err
+		}
+		keyOutput := &types.KeyOutput{
+			Amount:        digit,
+			Onetimepubkey: pubkeyOnetime[:],
+		}
+		privacyOutput.Keyoutput[index] = keyOutput
+	}
+	//添加本次转账选择的UTXO后的找零后的UTXO
+	for index, digit := range decomChange {
+		pubkeyOnetime, err := privacy.GenerateOneTimeAddr(viewpubChangeto, spendpubChangeto, sktx, int64(index+len(decomDigit)))
+		if err != nil {
+			bizlog.Error("generateOuts", "Fail to GenerateOneTimeAddr for change due to cause", err)
+			return nil, err
+		}
+		keyOutput := &types.KeyOutput{
+			Amount:        digit,
+			Onetimepubkey: pubkeyOnetime[:],
+		}
+		privacyOutput.Keyoutput[index+len(decomDigit)] = keyOutput
+	}
+	//交易费不产生额外的utxo，方便执行器执行的时候直接燃烧殆尽
+	if 0 != fee {
+		//viewPub, _ := common.Hex2Bytes(types.ViewPubFee)
+		//spendPub, _ := common.Hex2Bytes(types.SpendPubFee)
+		//viewPublic := (*[32]byte)(unsafe.Pointer(&viewPub[0]))
+		//spendPublic := (*[32]byte)(unsafe.Pointer(&spendPub[0]))
+		//
+		//pubkeyOnetime, err := privacy.GenerateOneTimeAddr(viewPublic, spendPublic, sktx, int64(len(privacyOutput.Keyoutput)))
+		//if err != nil {
+		//	bizlog.Error("transPub2PriV2", "Fail to GenerateOneTimeAddr for fee due to cause", err)
+		//	return nil, nil, err
+		//}
+		//keyOutput := &types.KeyOutput{
+		//	Amount:        fee,
+		//	Ometimepubkey: pubkeyOnetime[:],
+		//}
+		//privacyOutput.Keyoutput = append(privacyOutput.Keyoutput, keyOutput)
+	}
+
+	return &privacyOutput, nil
+}
+
+func (biz *walletPrivacyBiz) createTransaction(req *types.ReqCreateTransaction) (*types.Transaction, error) {
+	switch req.Type {
+	case 1:
+		return biz.createPublic2PrivacyTx(req)
+	case 2:
+		return biz.createPrivacy2PrivacyTx(req)
+	case 3:
+		return biz.createPrivacy2PublicTx(req)
+	}
+	return nil, types.ErrInvalidParams
+}
+
+func (biz *walletPrivacyBiz) createPublic2PrivacyTx(req *types.ReqCreateTransaction) (*types.Transaction, error) {
+	viewPubSlice, spendPubSlice, err := biz.parseViewSpendPubKeyPair(req.GetPubkeypair())
+	if err != nil {
+		bizlog.Error("parse view spend public key pair failed.  err ", err)
+		return nil, err
+	}
+	amount := req.GetAmount()
+	viewPublic := (*[32]byte)(unsafe.Pointer(&viewPubSlice[0]))
+	spendPublic := (*[32]byte)(unsafe.Pointer(&spendPubSlice[0]))
+	privacyOutput, err := biz.generateOuts(viewPublic, spendPublic, nil, nil, amount, amount, 0)
+	if err != nil {
+		bizlog.Error("generate output failed.  err ", err)
+		return nil, err
+	}
+
+	value := &types.Public2Privacy{
+		Tokenname: req.Tokenname,
+		Amount:    amount,
+		Note:      req.GetNote(),
+		Output:    privacyOutput,
+	}
+
+	action := &types.PrivacyAction{
+		Ty:    types.ActionPublic2Privacy,
+		Value: &types.PrivacyAction_Public2Privacy{Public2Privacy: value},
+	}
+
+	tx := &types.Transaction{
+		Execer:  types.ExecerPrivacy,
+		Payload: types.Encode(action),
+		Nonce:   biz.walletBiz.Nonce(),
+		To:      address.ExecAddress(types.PrivacyX),
+	}
+	tx.Signature = &types.Signature{
+		Signature: types.Encode(&types.PrivacySignatureParam{
+			ActionType: action.Ty,
+		}),
+	}
+
+	txSize := types.Size(tx) + types.SignatureSize
+	realFee := int64((txSize+1023)>>types.Size_1K_shiftlen) * types.FeePerKB
+	tx.Fee = realFee
+	return tx, nil
+}
+
+func (biz *walletPrivacyBiz) createPrivacy2PrivacyTx(req *types.ReqCreateTransaction) (*types.Transaction, error) {
+	buildInfo := &buildInputInfo{
+		tokenname: req.GetTokenname(),
+		sender:    req.GetFrom(),
+		amount:    req.GetAmount() + types.PrivacyTxFee,
+		mixcount:  req.GetMixcount(),
+	}
+
+	privacyInfo, err := biz.getPrivacykeyPair(req.GetFrom())
+	if err != nil {
+		bizlog.Error("createPrivacy2PrivacyTx", "getPrivacykeyPair error", err)
+		return nil, err
+	}
+
+	//step 1,buildInput
+	privacyInput, utxosInKeyInput, realkeyInputSlice, selectedUtxo, err := biz.buildInput(privacyInfo, buildInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	//step 2,generateOuts
+	viewPublicSlice, spendPublicSlice, err := biz.parseViewSpendPubKeyPair(req.GetPubkeypair())
+	if err != nil {
+		bizlog.Error("createPrivacy2PrivacyTx", "parseViewSpendPubKeyPair  ", err)
+		return nil, err
+	}
+
+	viewPub4change, spendPub4change := privacyInfo.ViewPubkey.Bytes(), privacyInfo.SpendPubkey.Bytes()
+	viewPublic := (*[32]byte)(unsafe.Pointer(&viewPublicSlice[0]))
+	spendPublic := (*[32]byte)(unsafe.Pointer(&spendPublicSlice[0]))
+	viewPub4chgPtr := (*[32]byte)(unsafe.Pointer(&viewPub4change[0]))
+	spendPub4chgPtr := (*[32]byte)(unsafe.Pointer(&spendPub4change[0]))
+
+	selectedAmounTotal := int64(0)
+	for _, input := range privacyInput.Keyinput {
+		selectedAmounTotal += input.Amount
+	}
+	//构造输出UTXO
+	privacyOutput, err := biz.generateOuts(viewPublic, spendPublic, viewPub4chgPtr, spendPub4chgPtr, req.GetAmount(), selectedAmounTotal, types.PrivacyTxFee)
+	if err != nil {
+		return nil, err
+	}
+
+	value := &types.Privacy2Privacy{
+		Tokenname: req.GetTokenname(),
+		Amount:    req.GetAmount(),
+		Note:      req.GetNote(),
+		Input:     privacyInput,
+		Output:    privacyOutput,
+	}
+	action := &types.PrivacyAction{
+		Ty:    types.ActionPrivacy2Privacy,
+		Value: &types.PrivacyAction_Privacy2Privacy{Privacy2Privacy: value},
+	}
+
+	tx := &types.Transaction{
+		Execer:  types.ExecerPrivacy,
+		Payload: types.Encode(action),
+		Fee:     types.PrivacyTxFee,
+		Nonce:   biz.walletBiz.Nonce(),
+		To:      address.ExecAddress(types.PrivacyX),
+	}
+	// 创建交易成功，将已经使用掉的UTXO冻结
+	biz.saveFTXOInfo(tx, req.GetTokenname(), req.GetFrom(), common.Bytes2Hex(tx.Hash()), selectedUtxo)
+	tx.Signature = &types.Signature{
+		Signature: types.Encode(&types.PrivacySignatureParam{
+			ActionType:    action.Ty,
+			Utxobasics:    utxosInKeyInput,
+			RealKeyInputs: realkeyInputSlice,
+		}),
+	}
+	return tx, nil
+}
+
+func (biz *walletPrivacyBiz) createPrivacy2PublicTx(req *types.ReqCreateTransaction) (*types.Transaction, error) {
+	buildInfo := &buildInputInfo{
+		tokenname: req.GetTokenname(),
+		sender:    req.GetFrom(),
+		amount:    req.GetAmount() + types.PrivacyTxFee,
+		mixcount:  req.GetMixcount(),
+	}
+	privacyInfo, err := biz.getPrivacykeyPair(req.GetFrom())
+	if err != nil {
+		bizlog.Error("createPrivacy2PublicTx failed to getPrivacykeyPair")
+		return nil, err
+	}
+	//step 1,buildInput
+	privacyInput, utxosInKeyInput, realkeyInputSlice, selectedUtxo, err := biz.buildInput(privacyInfo, buildInfo)
+	if err != nil {
+		bizlog.Error("createPrivacy2PublicTx failed to buildInput")
+		return nil, err
+	}
+
+	viewPub4change, spendPub4change := privacyInfo.ViewPubkey.Bytes(), privacyInfo.SpendPubkey.Bytes()
+	viewPub4chgPtr := (*[32]byte)(unsafe.Pointer(&viewPub4change[0]))
+	spendPub4chgPtr := (*[32]byte)(unsafe.Pointer(&spendPub4change[0]))
+
+	selectedAmounTotal := int64(0)
+	for _, input := range privacyInput.Keyinput {
+		if input.Amount <= 0 {
+			return nil, errors.New("")
+		}
+		selectedAmounTotal += input.Amount
+	}
+	changeAmount := selectedAmounTotal - req.GetAmount()
+	//step 2,generateOuts
+	//构造输出UTXO,只生成找零的UTXO
+	privacyOutput, err := biz.generateOuts(nil, nil, viewPub4chgPtr, spendPub4chgPtr, 0, changeAmount, types.PrivacyTxFee)
+	if err != nil {
+		return nil, err
+	}
+
+	value := &types.Privacy2Public{
+		Tokenname: req.GetTokenname(),
+		Amount:    req.GetAmount(),
+		Note:      req.GetNote(),
+		Input:     privacyInput,
+		Output:    privacyOutput,
+	}
+	action := &types.PrivacyAction{
+		Ty:    types.ActionPrivacy2Public,
+		Value: &types.PrivacyAction_Privacy2Public{Privacy2Public: value},
+	}
+
+	tx := &types.Transaction{
+		Execer:  []byte(types.PrivacyX),
+		Payload: types.Encode(action),
+		Fee:     types.PrivacyTxFee,
+		Nonce:   biz.walletBiz.Nonce(),
+		To:      req.GetTo(),
+	}
+	// 创建交易成功，将已经使用掉的UTXO冻结
+	biz.saveFTXOInfo(tx, req.GetTokenname(), req.GetFrom(), common.Bytes2Hex(tx.Hash()), selectedUtxo)
+	tx.Signature = &types.Signature{
+		Signature: types.Encode(&types.PrivacySignatureParam{
+			ActionType:    action.Ty,
+			Utxobasics:    utxosInKeyInput,
+			RealKeyInputs: realkeyInputSlice,
+		}),
+	}
+	return tx, nil
+}
+
+func (biz *walletPrivacyBiz) saveFTXOInfo(tx *types.Transaction, token, sender, txhash string, selectedUtxos []*txOutputInfo) {
+	//将已经作为本次交易输入的utxo进行冻结，防止产生双花交易
+	biz.store.moveUTXO2FTXO(tx, token, sender, txhash, selectedUtxos)
+	//TODO:需要加入超时处理，需要将此处的txhash写入到数据库中，以免钱包瞬间奔溃后没有对该笔隐私交易的记录，
+	//TODO:然后当该交易得到执行之后，没法将FTXO转化为STXO，added by hezhengjun on 2018.6.5
 }

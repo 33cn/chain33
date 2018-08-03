@@ -310,16 +310,6 @@ func (wallet *Wallet) ProcRecvMsg() {
 				walletlog.Info("procPrivacy2Public", "tx hash", common.Bytes2Hex(replyHash.Hash), "result", "success")
 				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyPrivacy2public, &reply))
 			}
-		case types.EventCreateTransaction:
-			req := msg.Data.(*types.ReqCreateTransaction)
-			reply, err := wallet.procCreateTransaction(req)
-			if err != nil {
-				walletlog.Error("procCreateTransaction", "err", err.Error())
-				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyCreateTransaction, err))
-			} else {
-				walletlog.Info("procCreateTransaction", "tx hash", common.Bytes2Hex(reply.Hash()), "result", "success")
-				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyCreateTransaction, reply))
-			}
 		case types.EventRescanUtxos:
 			req := msg.Data.(*types.ReqRescanUtxos)
 			reply, err := wallet.procRescanUtxos(req)
