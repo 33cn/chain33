@@ -197,6 +197,15 @@ It has these top-level messages:
 	ReceiptPrivacyOutput
 	AmountsOfUTXO
 	TokenNamesOfUTXO
+	UTXOGlobalIndex4Print
+	KeyInput4Print
+	KeyOutput4Print
+	PrivacyInput4Print
+	PrivacyOutput4Print
+	Public2Privacy4Print
+	Privacy2Privacy4Print
+	Privacy2Public4Print
+	PrivacyAction4Print
 	Trade
 	TradeForSell
 	TradeForBuy
