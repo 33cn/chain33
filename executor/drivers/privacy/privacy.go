@@ -30,9 +30,9 @@ import (
 var privacylog = log.New("module", "execs.privacy")
 
 func Init() {
-	drivers.Register(newPrivacy().GetName(), newPrivacy, types.ForkV21Privacy)
+	// drivers.Register(newPrivacy().GetName(), newPrivacy, types.ForkV21Privacy)
 	// 如果需要在开发环境下使用隐私交易，则需要使用下面这行代码，否则用上面的代码
-	//drivers.Register(newPrivacy().GetName(), newPrivacy, 0)
+	drivers.Register(newPrivacy().GetName(), newPrivacy, 0)
 }
 
 type privacy struct {
@@ -51,8 +51,6 @@ func (p *privacy) GetName() string {
 
 func (p *privacy) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	txhashstr := common.Bytes2Hex(tx.Hash())
-	privacylog.Debug("PrivacyTrading Exec", "Enter Exec txhash", txhashstr)
-	defer privacylog.Debug("PrivacyTrading Exec", "Leave Exec txhash", txhashstr)
 	_, err := p.DriverBase.Exec(tx, index)
 	if err != nil {
 		privacylog.Error("PrivacyTrading Exec", " txhash", txhashstr, "DriverBase.Exec error ", err)
@@ -201,9 +199,6 @@ func (p *privacy) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 
 func (p *privacy) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	txhashstr := common.Bytes2Hex(tx.Hash())
-	privacylog.Debug("PrivacyTrading ExecLocal", "Enter ExecLocal txhash", txhashstr)
-	defer privacylog.Debug("PrivacyTrading ExecLocal", "Leave ExecLocal txhash", txhashstr)
-
 	set, err := p.DriverBase.ExecLocal(tx, receipt, index)
 	if err != nil {
 		privacylog.Error("PrivacyTrading ExecLocal", "DriverBase.ExecLocal txhash", txhashstr, "ExecLocal error ", err)
@@ -306,9 +301,6 @@ func (p *privacy) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, i
 
 func (p *privacy) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	txhashstr := common.Bytes2Hex(tx.Hash())
-	privacylog.Debug("PrivacyTrading ExecDelLocal", "Enter ExecDelLocal txhash", txhashstr)
-	defer privacylog.Debug("PrivacyTrading ExecDelLocal", "Leave ExecDelLocal txhash", txhashstr)
-
 	set, err := p.DriverBase.ExecDelLocal(tx, receipt, index)
 	if err != nil {
 		privacylog.Error("PrivacyTrading ExecDelLocal", "txhash", txhashstr, "DriverBase.ExecDelLocal error ", err)
@@ -562,16 +554,13 @@ func (p *privacy) ShowUTXOs4SpecifiedAmount(reqtoken *types.ReqPrivacyToken) (ty
 
 func (p *privacy) CheckTx(tx *types.Transaction, index int) error {
 	txhashstr := common.Bytes2Hex(tx.Hash())
-	privacylog.Debug("PrivacyTrading CheckTx", "Enter CheckTx txhash", txhashstr)
-	defer privacylog.Debug("PrivacyTrading CheckTx", "Leave CheckTx txhash", txhashstr)
-
 	var action types.PrivacyAction
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
 		privacylog.Error("PrivacyTrading CheckTx", "txhash", txhashstr, "Decode tx.Payload error", err)
 		return err
 	}
-	privacylog.Info("PrivacyTrading CheckTx", "txhash", txhashstr, "action type ", action.Ty)
+	privacylog.Debug("PrivacyTrading CheckTx", "txhash", txhashstr, "action type ", action.Ty)
 	if types.ActionPublic2Privacy == action.Ty {
 		return nil
 	}
@@ -622,7 +611,7 @@ func (p *privacy) CheckTx(tx *types.Transaction, index int) error {
 			privacylog.Error("PrivacyTrading CheckTx", "txhash", txhashstr, "UTXO spent already errindex", errIndex, "utxo amout", input.Amount, "utxo keyimage", common.ToHex(input.KeyImage))
 		}
 		privacylog.Error("PrivacyTrading CheckTx", "txhash", txhashstr, "checkUTXOValid failed ")
-		return types.ErrDoubeSpendOccur
+		return types.ErrDoubleSpendOccur
 	}
 
 	res, errIndex = p.checkPubKeyValid(keys, pubkeys)
@@ -630,7 +619,7 @@ func (p *privacy) CheckTx(tx *types.Transaction, index int) error {
 		if errIndex >= 0 && errIndex < int32(len(pubkeys)) {
 			privacylog.Error("PrivacyTrading CheckTx", "txhash", txhashstr, "Wrong pubkey errIndex ", errIndex)
 		}
-		privacylog.Error("PrivacyTrading CheckTx", "txhash", txhashstr, "checkPubKeyValid failed ")
+		privacylog.Error("PrivacyTrading CheckTx", "txhash", txhashstr, "checkPubKeyValid ", false)
 		return types.ErrPubkeysOfUTXO
 	}
 

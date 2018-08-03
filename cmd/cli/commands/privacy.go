@@ -94,7 +94,8 @@ func public2PrivacyFlag(cmd *cobra.Command) {
 	cmd.MarkFlagRequired("amount")
 
 	cmd.Flags().StringP("note", "n", "", "transfer note")
-	cmd.Flags().Int64P("expire", "", int64(time.Hour), "transfer expire, default one hour")
+	cmd.Flags().Int64P("expire", "", 0, "transfer expire, default one hour")
+	cmd.Flags().IntP("expiretype", "", 1, "0: height  1: time default is 1")
 
 }
 
@@ -105,8 +106,19 @@ func public2Privacy(cmd *cobra.Command, args []string) {
 	amount, _ := cmd.Flags().GetFloat64("amount")
 	note, _ := cmd.Flags().GetString("note")
 	expire, _ := cmd.Flags().GetInt64("expire")
-	if expire <= 0 {
-		expire = int64(time.Hour)
+	expiretype, _ := cmd.Flags().GetInt("expiretype")
+	if expiretype == 0 {
+		if expire <= 0 {
+			fmt.Println("Invalid expire. expire must large than 0 in expiretype==0, expire", expire)
+			return
+		}
+	} else if expiretype == 1 {
+		if expire <= 0 {
+			expire = int64(time.Hour / time.Second)
+		}
+	} else {
+		fmt.Println("Invalid expiretype", expiretype)
+		return
 	}
 
 	amountInt64 := int64(amount*types.InputPrecision) * types.Multiple1E4 //支持4位小数输入，多余的输入将被截断
@@ -147,7 +159,8 @@ func privacy2PrivacyFlag(cmd *cobra.Command) {
 
 	cmd.Flags().StringP("note", "n", "", "transfer note")
 	cmd.Flags().Int32P("mixcount", "m", defMixCount, "transfer note")
-	cmd.Flags().Int64P("expire", "", int64(time.Hour), "transfer expire, default one hour")
+	cmd.Flags().Int64P("expire", "", 0, "transfer expire, default one hour")
+	cmd.Flags().IntP("expiretype", "", 1, "0: height  1: time default is 1")
 }
 
 func privacy2Privacy(cmd *cobra.Command, args []string) {
@@ -158,8 +171,19 @@ func privacy2Privacy(cmd *cobra.Command, args []string) {
 	mixcount, _ := cmd.Flags().GetInt32("mixcount")
 	note, _ := cmd.Flags().GetString("note")
 	expire, _ := cmd.Flags().GetInt64("expire")
-	if expire <= 0 {
-		expire = int64(time.Hour)
+	expiretype, _ := cmd.Flags().GetInt("expiretype")
+	if expiretype == 0 {
+		if expire <= 0 {
+			fmt.Println("Invalid expire. expire must large than 0 in expiretype==0, expire", expire)
+			return
+		}
+	} else if expiretype == 1 {
+		if expire <= 0 {
+			expire = int64(time.Hour / time.Second)
+		}
+	} else {
+		fmt.Println("Invalid expiretype", expiretype)
+		return
 	}
 
 	amountInt64 := int64(amount*types.InputPrecision) * types.Multiple1E4 //支持4位小数输入，多余的输入将被截断
@@ -201,7 +225,8 @@ func privacy2Publiclag(cmd *cobra.Command) {
 
 	cmd.Flags().StringP("note", "n", "", "transfer note")
 	cmd.Flags().Int32P("mixcount", "m", defMixCount, "transfer note")
-	cmd.Flags().Int64P("expire", "", int64(time.Hour), "transfer expire, default one hour")
+	cmd.Flags().Int64P("expire", "", 0, "transfer expire, default one hour")
+	cmd.Flags().IntP("expiretype", "", 1, "0: height  1: time default is 1")
 
 }
 
@@ -213,8 +238,19 @@ func privacy2Public(cmd *cobra.Command, args []string) {
 	mixcount, _ := cmd.Flags().GetInt32("mixcount")
 	note, _ := cmd.Flags().GetString("note")
 	expire, _ := cmd.Flags().GetInt64("expire")
-	if expire <= 0 {
-		expire = int64(time.Hour)
+	expiretype, _ := cmd.Flags().GetInt("expiretype")
+	if expiretype == 0 {
+		if expire <= 0 {
+			fmt.Println("Invalid expire. expire must large than 0 in expiretype==0, expire", expire)
+			return
+		}
+	} else if expiretype == 1 {
+		if expire <= 0 {
+			expire = int64(time.Hour / time.Second)
+		}
+	} else {
+		fmt.Println("Invalid expiretype", expiretype)
+		return
 	}
 
 	amountInt64 := int64(amount*types.InputPrecision) * types.Multiple1E4 //支持4位小数输入，多余的输入将被截断
