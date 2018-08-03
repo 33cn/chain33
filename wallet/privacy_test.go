@@ -56,6 +56,7 @@ type walletTestData struct {
 func (wtd *walletTestData) init() {
 	wtd.iniParams()
 	wtd.initAccount()
+	wtd.initPrivacy()
 }
 
 func (wtd *walletTestData) initAccount() {
@@ -80,6 +81,17 @@ func (wtd *walletTestData) initAccount() {
 		account.Balance = 1000 * types.Coin
 		accCoin.SaveAccount(account)
 	}
+}
+
+func (wtd *walletTestData) initPrivacy() {
+	for _, addr := range testAddrs {
+		wtd.wallet.savePrivacykeyPair(addr)
+	}
+}
+
+func (wtd *walletTestData) Init() {
+	wtd.iniParams()
+	wtd.initAccount()
 }
 
 func (wtd *walletTestData) setBlockChainHeight(height int64) {
@@ -1736,6 +1748,91 @@ func Test_DeleteScanPrivacyInputUtxo(t *testing.T) {
 				require.Error(t, types.ErrNotFound)
 			}
 		} else {
+			require.Error(t, types.ErrNotFound)
+		}
+	}
+}
+
+func Test_EnablePrivacy(t *testing.T) {
+
+	testRepCase := []types.RepEnablePrivacy{
+		{
+			Results: []*types.PriAddrResult{
+				{
+					Addr: testAddrs[0],
+					IsOK: true,
+				},
+				{
+					Addr: testAddrs[1],
+					IsOK: true,
+				},
+				{
+					Addr: testAddrs[2],
+					IsOK: true,
+				},
+			},
+		},
+		{
+			Results: []*types.PriAddrResult{
+				{
+					Addr: testAddrs[0],
+					IsOK: true,
+				},
+			},
+		},
+		{
+			Results: []*types.PriAddrResult{
+				{
+					Addr: testAddrs[0],
+					IsOK: true,
+				},
+				{
+					Addr: testAddrs[1],
+					IsOK: true,
+				},
+			},
+		},
+		{
+			Results: []*types.PriAddrResult{
+				{
+					Addr: "1EDDghAtgBsamrNEtNmYdQzC1QEhLkr999",
+					IsOK: false,
+					Msg:  types.ErrAddrNotExist.Error(),
+				},
+			},
+		},
+	}
+
+	testCase := []types.ReqEnablePrivacy{
+		{},
+		{
+			Addrs: []string{testAddrs[0]},
+		},
+		{
+			Addrs: []string{testAddrs[0], testAddrs[1]},
+		},
+		{
+			Addrs: []string{"1EDDghAtgBsamrNEtNmYdQzC1QEhLkr999"},
+		},
+	}
+
+	for i, test := range testCase {
+		wtd := &walletTestData{}
+		wtd.Init()
+		wallet := wtd.wallet
+		res, err := wallet.enablePrivacy(&test)
+		require.Equal(t, err, nil)
+
+		k := 0
+		for _, priAddr := range res.Results {
+			for _, repPriAddr := range testRepCase[i].Results {
+				if priAddr.Addr == repPriAddr.Addr {
+					require.Equal(t, priAddr.IsOK, repPriAddr.IsOK)
+					k++
+				}
+			}
+		}
+		if len(res.Results) != k {
 			require.Error(t, types.ErrNotFound)
 		}
 	}

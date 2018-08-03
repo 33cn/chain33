@@ -191,6 +191,8 @@ func (m *mockWallet) SetQueueClient(q queue.Queue) {
 				msg.Reply(client.NewMessage(walletKey, types.EventReplyPrivacy2public, &types.Reply{}))
 			case types.EventRescanUtxos:
 				msg.Reply(client.NewMessage(walletKey, types.EventReplyRescanUtxos, &types.RepRescanUtxos{}))
+			case types.EventEnablePrivacy:
+				msg.Reply(client.NewMessage(walletKey, types.EventReplyEnablePrivacy, &types.RepEnablePrivacy{}))
 			case types.EventCreateTransaction:
 				msg.Reply(client.NewMessage(walletKey, types.EventReplyCreateTransaction, &types.Reply{}))
 			default:
