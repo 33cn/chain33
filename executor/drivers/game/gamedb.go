@@ -46,16 +46,20 @@ var (
 //value=gameId
 func (action *Action) GetReceiptLog(game *types.Game) *types.ReceiptLog {
 	log := &types.ReceiptLog{}
+	r := &types.ReceiptGame{}
 	if game.Status == types.GameActionCreate {
 		log.Ty = types.TyLogCreateGame
+		r.PrevStatus = -1
 	} else if game.Status == types.GameActionCancel {
 		log.Ty = types.TyLogCancleGame
+		r.PrevStatus = types.GameActionCreate
 	} else if game.Status == types.GameActionMatch {
 		log.Ty = types.TyLogMatchGame
+		r.PrevStatus = types.GameActionCreate
 	} else if game.Status == types.GameActionClose {
 		log.Ty = types.TyLogCloseGame
+		r.PrevStatus = types.GameActionMatch
 	}
-	r := &types.ReceiptGame{}
 	r.GameId = game.GameId
 	r.Status = game.Status
 	//TODO 记录这个action由哪个地址触发的

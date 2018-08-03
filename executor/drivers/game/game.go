@@ -97,29 +97,32 @@ func (g *Game) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, i
 	}
 	for i := 0; i < len(receipt.Logs); i++ {
 		item := receipt.Logs[i]
-		//这三个是Game 的log
-		if item.Ty == types.TyLogCreateGame || item.Ty == types.TyLogMatchGame || item.Ty == types.TyLogCloseGame || item.Ty == types.TyLogCancleGame {
-			var Gamelog types.ReceiptGame
-			err := types.Decode(item.Log, &Gamelog)
-			if err != nil {
-				panic(err) //数据错误了，已经被修改了
+		var Gamelog types.ReceiptGame
+		err := types.Decode(item.Log, &Gamelog)
+		if err != nil {
+			panic(err) //数据错误了，已经被修改了
+		}
+		//这三种Action才有上个prevStatus,回滚即可
+		if item.Ty == types.TyLogMatchGame || item.Ty == types.TyLogCloseGame || item.Ty == types.TyLogCancleGame {
+			gameLog := &types.ReceiptGame{
+				GameId: Gamelog.GetGameId(),
+				Status: Gamelog.GetPrevStatus(),
+				Addr:   Gamelog.GetAddr(),
 			}
-			kv := g.delGame(&Gamelog)
+			//状态数据库由于默克尔树特性，之前生成的索引无效，故不需要回滚，只回滚localDB
+			kv := g.saveGame(gameLog)
 			set.KV = append(set.KV, kv...)
 		}
+		kv := g.delGame(&Gamelog)
+		set.KV = append(set.KV, kv...)
 	}
 	return set, nil
 }
 
 func (g *Game) saveGame(gamelog *types.ReceiptGame) (kvs []*types.KeyValue) {
-	status := gamelog.GetStatus()
 	kvs = append(kvs, addGame(gamelog.GameId, gamelog.Status, gamelog.Addr))
-	if status == types.GameActionCancel || status == types.GameActionMatch {
-		status = types.GameActionCreate
-		kvs = append(kvs, delGame(gamelog.GetGameId(), status, gamelog.GetAddr()))
-	} else if status == types.GameActionClose {
-		status = types.GameActionMatch
-		kvs = append(kvs, delGame(gamelog.GetGameId(), status, gamelog.GetAddr()))
+	if gamelog.GetPrevStatus() >= 0 {
+		kvs = append(kvs, delGame(gamelog.GetGameId(), gamelog.GetPrevStatus(), gamelog.GetAddr()))
 	}
 	return kvs
 }
