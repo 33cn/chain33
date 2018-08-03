@@ -1461,6 +1461,10 @@ func (wallet *Wallet) procRescanUtxos(req *types.ReqRescanUtxos) (*types.RepResc
 		if ok, err := wallet.IsRescanUtxosFlagScaning(); ok {
 			return nil, err
 		}
+		_, err := wallet.getPrivacyKeyPairsOfWalletNolock()
+		if err != nil {
+			return nil, err
+		}
 		atomic.StoreInt32(&wallet.rescanUTXOflag, types.UtxoFlagScaning)
 		wallet.wg.Add(1)
 		go wallet.RescanReqUtxosByAddr(req.Addrs)
@@ -1469,4 +1473,9 @@ func (wallet *Wallet) procRescanUtxos(req *types.ReqRescanUtxos) (*types.RepResc
 		repRescanUtxos, err := wallet.walletStore.GetRescanUtxosFlag4Addr(req)
 		return repRescanUtxos, err
 	}
+}
+func (wallet *Wallet) procEnablePrivacy(req *types.ReqEnablePrivacy) (*types.RepEnablePrivacy, error) {
+	wallet.mtx.Lock()
+	defer wallet.mtx.Unlock()
+	return wallet.enablePrivacy(req)
 }

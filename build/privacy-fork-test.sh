@@ -419,6 +419,9 @@ function resetPrivacyGlobalData() {
 
 function initPriAccount() {
     name="${CLI}"
+    enablePrivacy "${name}"
+    sleep 1
+
     fromAdd=$CLIfromAddr1
     execAdd=$privacyExecAddr
     note="test"
@@ -428,6 +431,9 @@ function initPriAccount() {
     sleep 1
 
     name="${CLI4}"
+    enablePrivacy "${name}"
+    sleep 1
+
     fromAdd=$CLI4fromAddr1
     execAdd=$privacyExecAddr
     note="test"
@@ -742,3 +748,23 @@ function genSecondChainPritxType3() {
     showPrivacyBalance "${name}" $CLI4fromAddr1
     showPrivacyBalance "${name}" $CLI4fromAddr2
 }
+# $1 name
+function enablePrivacy() {
+    name=$1
+    printf '==========enablePrivacy name=%s ==========\n' "${name}"
+    $name privacy enable -a all
+}
+
+# $1 name
+# $2 txHash
+#function txQuery()
+#{
+#    name=$1
+#    txHash=$2
+#    echo "txQuery hash: $txHash"
+#    result=$($name tx query -s $txHash | jq -r ".receipt.tyname")
+#    if [ "${result}" = "ExecOk" ]; then
+#        return 0
+#    fi
+#    return 1
+#}
