@@ -762,7 +762,7 @@ func (chain *BlockChain) InitForkInfo(forkStartHeight int64, forkEndHeight int64
 	chain.forkInfo.ForkStartHeight = forkStartHeight
 	chain.forkInfo.ForkEndHeight = forkEndHeight
 	chain.forkInfo.ForkPid = pid
-	synlog.Info("InitForkInfo Fork process begin", "ForkStartHeight", forkStartHeight, "ForkEndHeight", forkEndHeight, "pid", pid)
+	synlog.Debug("InitForkInfo Fork process begin", "ForkStartHeight", forkStartHeight, "ForkEndHeight", forkEndHeight, "pid", pid)
 
 }
 
@@ -798,7 +798,7 @@ func (chain *BlockChain) UpdateForkStartHeight(forkStartHeight int64) {
 func (chain *BlockChain) ReqForkBlocks() {
 	forkinfo := chain.GetForkInfo()
 	if forkinfo.ForkStartHeight != -1 && forkinfo.ForkEndHeight != -1 && forkinfo.ForkPid != "" {
-		synlog.Debug("ReqForkBlocks", "ForkStartHeight", forkinfo.ForkStartHeight, "ForkEndHeight", forkinfo.ForkEndHeight, "pid", forkinfo.ForkPid)
+		synlog.Info("ReqForkBlocks", "ForkStartHeight", forkinfo.ForkStartHeight, "ForkEndHeight", forkinfo.ForkEndHeight, "pid", forkinfo.ForkPid)
 		chain.FetchBlock(forkinfo.ForkStartHeight, forkinfo.ForkEndHeight, []string{forkinfo.ForkPid}, true)
 	}
 }

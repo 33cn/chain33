@@ -266,6 +266,7 @@ func TestBlockChain(t *testing.T) {
 	testProcDelParaChainBlockMsg(t, blockchain)
 
 	testProcAddParaChainBlockMsg(t, blockchain)
+	testProcBlockChainFork(t, blockchain)
 }
 
 func testProcAddBlockMsg(t *testing.T, blockchain *BlockChain) {
@@ -821,4 +822,12 @@ func testProcAddParaChainBlockMsg(t *testing.T, blockchain *BlockChain) {
 	Res, _ := blockchain.client.Wait(msgGen)
 	fmt.Println(Res)
 	chainlog.Info("testProcAddParaChainBlockMsg end --------------------")
+}
+
+func testProcBlockChainFork(t *testing.T, blockchain *BlockChain) {
+	chainlog.Info("testProcBlockChainFork begin --------------------")
+
+	curheight := blockchain.GetBlockHeight()
+	blockchain.ProcBlockChainFork(curheight-1, curheight+256, "self")
+	chainlog.Info("testProcBlockChainFork end --------------------")
 }
