@@ -19,6 +19,8 @@ import (
 	clog "gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/wallet/bizpolicy"
+	"gitlab.33.cn/chain33/chain33/wallet/privacybiz"
 )
 
 var (
@@ -66,6 +68,8 @@ type Wallet struct {
 	rescanwg         *sync.WaitGroup
 	rescanUTXOflag   int32
 	lastHeader       *types.Header
+
+	policyContainer map[string]bizpolicy.WalletBizPolicy
 }
 
 type walletUTXO struct {
@@ -134,6 +138,44 @@ func New(cfg *types.Wallet) *Wallet {
 	return wallet
 }
 
+func (wallet *Wallet) initBizPolicy() {
+	wallet.policyContainer = make(map[string]bizpolicy.WalletBizPolicy, 0)
+
+	wallet.registerBizPolicy(types.PrivacyX, privacybiz.New())
+
+	for _, policy := range wallet.policyContainer {
+		policy.Init(wallet)
+	}
+}
+
+func (wallet *Wallet) registerBizPolicy(key string, policy bizpolicy.WalletBizPolicy) {
+	wallet.policyContainer[key] = policy
+}
+
+func (wallet *Wallet) GetAPI() client.QueueProtocolAPI {
+	return wallet.api
+}
+
+func (wallet *Wallet) GetMutex() *sync.Mutex {
+	return &wallet.mtx
+}
+
+func (wallet *Wallet) GetDBStore() dbm.DB {
+	return wallet.walletStore.db
+}
+
+func (wallet *Wallet) GetSignType() int {
+	return SignType
+}
+
+func (wallet *Wallet) GetPassword() string {
+	return wallet.Password
+}
+
+func (wallet *Wallet) Nonce() int64 {
+	return wallet.random.Int63()
+}
+
 func (wallet *Wallet) Close() {
 	//等待所有的子线程退出
 	//set close flag to isclosed == 1
@@ -169,6 +211,8 @@ func (wallet *Wallet) SetQueueClient(cli queue.Client) {
 	wallet.client = cli
 	wallet.client.Sub("wallet")
 	wallet.api, _ = client.New(cli, nil)
+	wallet.initBizPolicy()
+
 	wallet.wg.Add(1)
 	go wallet.ProcRecvMsg()
 

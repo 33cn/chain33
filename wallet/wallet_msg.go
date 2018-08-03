@@ -9,6 +9,11 @@ func (wallet *Wallet) ProcRecvMsg() {
 	defer wallet.wg.Done()
 	for msg := range wallet.client.Recv() {
 		walletlog.Debug("wallet recv", "msg", types.GetEventName(int(msg.Ty)), "Id", msg.Id)
+
+		for _, policy := range wallet.policyContainer {
+			policy.OnRecvQueueMsg(&msg)
+		}
+
 		msgtype := msg.Ty
 		switch msgtype {
 
@@ -314,20 +319,6 @@ func (wallet *Wallet) ProcRecvMsg() {
 				walletlog.Info("procPrivacy2Public", "tx hash", common.Bytes2Hex(replyHash.Hash), "result", "success")
 				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyPrivacy2public, &reply))
 			}
-		case types.EventCreateUTXOs:
-			reqCreateUTXOs := msg.Data.(*types.ReqCreateUTXOs)
-			replyHash, err := wallet.procCreateUTXOs(reqCreateUTXOs)
-			var reply types.Reply
-			if err != nil {
-				reply.IsOk = false
-				walletlog.Error("procCreateUTXOs", "err", err.Error())
-				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyCreateUTXOs, err))
-			} else {
-				reply.IsOk = true
-				reply.Msg = replyHash.Hash
-				walletlog.Info("procCreateUTXOs", "tx hash", common.Bytes2Hex(replyHash.Hash), "result", "success")
-				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyCreateUTXOs, &reply))
-			}
 		case types.EventCreateTransaction:
 			req := msg.Data.(*types.ReqCreateTransaction)
 			reply, err := wallet.procCreateTransaction(req)
@@ -368,16 +359,6 @@ func (wallet *Wallet) ProcRecvMsg() {
 			} else {
 				walletlog.Info("procRescanUtxos", "req", req)
 				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyRescanUtxos, reply))
-			}
-		case types.EventEnablePrivacy:
-			req := msg.Data.(*types.ReqEnablePrivacy)
-			reply, err := wallet.procEnablePrivacy(req)
-			if err != nil {
-				walletlog.Error("procEnablePrivacy", "err", err.Error())
-				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyEnablePrivacy, err))
-			} else {
-				walletlog.Info("procEnablePrivacy", "req", req)
-				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyEnablePrivacy, reply))
 			}
 
 		default:
