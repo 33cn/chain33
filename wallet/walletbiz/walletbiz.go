@@ -15,6 +15,8 @@ type WalletBiz interface {
 	GetPassword() string
 	CheckWalletStatus() (bool, error)
 	Nonce() int64
+	AddWaitGroup(delta int)
+	WaitGroupDone()
 
 	IsWalletLocked() bool
 }

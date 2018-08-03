@@ -176,6 +176,14 @@ func (wallet *Wallet) Nonce() int64 {
 	return wallet.random.Int63()
 }
 
+func (wallet *Wallet) AddWaitGroup(delta int) {
+	wallet.wg.Add(delta)
+}
+
+func (wallet *Wallet) WaitGroupDone() {
+	wallet.wg.Done()
+}
+
 func (wallet *Wallet) Close() {
 	//等待所有的子线程退出
 	//set close flag to isclosed == 1
