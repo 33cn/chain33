@@ -147,7 +147,11 @@ func commitOnce(suite *ExecTestSuite, privkeyStr string) (receipt *types.Receipt
 		10,
 		[]byte("abc"),
 	}
-	tx := pt.CreateRawCommitTx(&st1)
+	tx, err := pt.CreateRawCommitTx4MainChain(&st1, types.ParaX, 0)
+	if err != nil {
+		suite.T().Error("TestExec", "create tx failed", err)
+		return
+	}
 
 	cr, err := crypto.New(types.GetSignatureTypeName(SignedType))
 	if err != nil {

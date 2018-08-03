@@ -301,13 +301,11 @@ func getCommitMsgTx(msg *CommitMsg) (*types.Transaction, error) {
 	status.TxResult = util.CalcByteBitMap(msg.initTxHashs, curTxsHash, msg.blockDetail.Receipts)
 	status.TxCounts = uint32(len(msg.initTxHashs))
 
-	tx := paracross.CreateRawCommitTx(status)
-	fee, err := tx.GetRealFee(types.MinFee)
+	tx, err := paracross.CreateRawCommitTx4MainChain(status, types.ParaX, 0)
 	if err != nil {
 		plog.Error("getCommitMsgTx fee", "err", err.Error())
 		return nil, err
 	}
-	tx.Fee = fee
 
 	return tx, nil
 }
