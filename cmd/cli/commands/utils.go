@@ -62,13 +62,16 @@ func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
 			result.Payload.(map[string]interface{})["Value"].(map[string]interface{})["Miner"].(map[string]interface{})["reward"] = rwdResult
 		}
 	}
-	// 隐私交易
-	if pub2priv, ok := payloadValue["Public2Privacy"]; ok {
-		decodePrivacyPayload(pub2priv)
-	} else if priv2priv, ok := payloadValue["Privacy2Privacy"]; ok {
-		decodePrivacyPayload(priv2priv)
-	} else if priv2priv, ok := payloadValue["Privacy2Public"]; ok {
-		decodePrivacyPayload(priv2priv)
+
+	if types.PrivacyX == tx.Execer {
+		// 隐私交易
+		if pub2priv, ok := payloadValue["Public2Privacy"]; ok {
+			decodePrivacyPayload(pub2priv)
+		} else if priv2priv, ok := payloadValue["Privacy2Privacy"]; ok {
+			decodePrivacyPayload(priv2priv)
+		} else if priv2priv, ok := payloadValue["Privacy2Public"]; ok {
+			decodePrivacyPayload(priv2priv)
+		}
 	}
 	return result
 }
