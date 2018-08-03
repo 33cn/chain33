@@ -5,7 +5,7 @@ package types;
 message Game {
     //默认是由创建这局游戏的txHash作为gameId
     string gameId = 1;
-    //create 1 -> Match 2 -> Cancel 3 -> Close 4
+    // create 1 -> Match 2 -> Cancel 3 -> Close 4
     int32 status = 2;
     //创建时间
     int64 createTime = 3;
@@ -16,35 +16,35 @@ message Game {
     //赌注
     int64 value = 6;
     //发起者账号地址
-    string createAddress =7;
+    string createAddress = 7;
     //对赌者账号地址
     string matchAddress = 8;
-    //hash 类型，预留字段
+    // hash 类型，预留字段
     string hashType = 9;
     //庄家创建游戏时，庄家自己出拳结果加密后的hash值
     bytes hashValue = 10;
     //用来公布庄家出拳结果的私钥
     string secret = 11;
-    //0 平局，1 庄家获胜，2 matcher获胜，3 庄家开奖超时，matcher获胜，并获得本局所有赌资
+    // 0 平局，1 庄家获胜，2 matcher获胜，3 庄家开奖超时，matcher获胜，并获得本局所有赌资
     int32 result = 12;
-    //matcher 出拳结果
+    // matcher 出拳结果
     int32 guess = 13;
 }
 
-//message for execs.game
+// message for execs.game
 message GameAction {
     oneof value {
         GameCreate create = 1;
         GameCancel cancel = 2;
-        GameClose close = 3;
-        GameMatch match = 4;
+        GameClose  close  = 3;
+        GameMatch  match  = 4;
     }
     int32 ty = 10;
 }
 
 message GameMatch {
     string gameId = 1;
-    int32 guess = 2;
+    int32  guess  = 2;
     //    string matchAddress =3;
 }
 
@@ -68,16 +68,16 @@ message GameCreate {
     //    string createAddress = 4;
 }
 
-//queryByAddr 和 queryByStatus共用同一个结构体
-message QueryGameListByStatusAndAddr{
+// queryByAddr 和 queryByStatus共用同一个结构体
+message QueryGameListByStatusAndAddr {
     //优先根据status查询,status不可为空
     int32 status = 1;
     //二级搜索，如果要查询一个地址下的所有game信息，可以根据status，分多次查询，这样规避存储数据时的臃余情况
     string address = 2;
 }
 
-message QueryGameInfo{
-    string gameId=1;
+message QueryGameInfo {
+    string gameId = 1;
 }
 
 message QueryGameInfos {
@@ -88,13 +88,13 @@ message ReplyGameList {
     repeated Game games = 1;
 }
 
-message ReplyGame{
-    Game game=1;
+message ReplyGame {
+    Game game = 1;
 }
 
 message ReceiptGame {
     string gameId = 1;
-    int32 status = 2;
+    int32  status = 2;
     //    string txHash = 4;
-    string addr=5;
+    string addr = 5;
 }
