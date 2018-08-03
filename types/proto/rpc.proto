@@ -133,6 +133,8 @@ service grpcservice {
     rpc MakeTxPrivacy2Public(ReqPri2Pub) returns (Reply) {}
     // 扫描UTXO以及获取扫描UTXO后的状态
     rpc RescanUtxos(ReqRescanUtxos) returns (RepRescanUtxos) {}
+    // 使能隐私账户
+    rpc EnablePrivacy(ReqEnablePrivacy) returns (RepEnablePrivacy) {}
     //获取最新的block执行序列
     rpc GetLastBlockSequence(ReqNil) returns (Int64) {}
 

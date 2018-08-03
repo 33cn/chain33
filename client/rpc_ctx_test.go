@@ -359,6 +359,12 @@ func (c *GrpcCtx) Run() (err error) {
 			*c.Res.(*types.RepRescanUtxos) = *reply
 		}
 		errRet = err
+	case "EnablePrivacy":
+		reply, err := rpc.EnablePrivacy(context.Background(), c.Params.(*types.ReqEnablePrivacy))
+		if err == nil {
+			*c.Res.(*types.RepEnablePrivacy) = *reply
+		}
+		errRet = err
 	default:
 		errRet = errors.New(fmt.Sprintf("Unsupport method %v", c.Method))
 	}
