@@ -43,7 +43,7 @@ func (biz *walletPrivacyBiz) Init(wbiz walletbiz.WalletBiz) {
 	//biz.funcmap.Register(types.EventPrivacy2public, biz.onPrivacy2Public)
 	biz.funcmap.Register(types.EventCreateUTXOs, biz.onCreateUTXOs)
 	//biz.funcmap.Register(types.EventCreateTransaction, biz.onCreateTransaction)
-	//biz.funcmap.Register(types.EventPrivacyAccountInfo, biz.onPrivacyAccountInfo)
+	biz.funcmap.Register(types.EventPrivacyAccountInfo, biz.onPrivacyAccountInfo)
 	//biz.funcmap.Register(types.EventPrivacyTransactionList, biz.onPrivacyTransactionList)
 	//biz.funcmap.Register(types.EventRescanUtxos, biz.onRescanUtxos)
 	biz.funcmap.Register(types.EventEnablePrivacy, biz.onEnablePrivacy)
@@ -128,7 +128,21 @@ func (biz *walletPrivacyBiz) onCreateTransaction(msg *queue.Message) (string, in
 }
 
 func (biz *walletPrivacyBiz) onPrivacyAccountInfo(msg *queue.Message) (string, int64, interface{}, error) {
-	return "rpc", 0, nil, nil
+	topic := "rpc"
+	retty := int64(types.EventReplyPrivacyAccountInfo)
+	req, ok := msg.Data.(*types.ReqPPrivacyAccount)
+	if !ok {
+		bizlog.Error("walletPrivacyBiz", "Invalid data type.", ok)
+		return topic, retty, nil, types.ErrInvalidParam
+	}
+	biz.walletBiz.GetMutex().Lock()
+	defer biz.walletBiz.GetMutex().Unlock()
+
+	reply, err := biz.getPrivacyAccountInfo(req)
+	if err != nil {
+		bizlog.Error("enablePrivacy", "err", err.Error())
+	}
+	return topic, retty, reply, nil
 }
 
 func (biz *walletPrivacyBiz) onPrivacyTransactionList(msg *queue.Message) (string, int64, interface{}, error) {
@@ -143,7 +157,6 @@ func (biz *walletPrivacyBiz) onEnablePrivacy(msg *queue.Message) (string, int64,
 	topic := "rpc"
 	retty := int64(types.EventReplyEnablePrivacy)
 	req, ok := msg.Data.(*types.ReqEnablePrivacy)
-
 	if !ok {
 		bizlog.Error("walletPrivacyBiz", "Invalid data type.", ok)
 		return topic, retty, nil, types.ErrInvalidParam
@@ -432,4 +445,42 @@ func (biz *walletPrivacyBiz) showPrivacyKeyPair(reqAddr *types.ReqStr) (*types.R
 		Pubkeypair:     biz.makeViewSpendPubKeyPairToString(privacyInfo.ViewPubkey[:], privacyInfo.SpendPubkey[:]),
 	}
 	return replyPrivacyPkPair, nil
+}
+
+func (biz *walletPrivacyBiz) getPrivacyAccountInfo(req *types.ReqPPrivacyAccount) (*types.ReplyPrivacyAccount, error) {
+	addr := req.GetAddr()
+	token := req.GetToken()
+	reply := &types.ReplyPrivacyAccount{}
+	reply.Displaymode = req.Displaymode
+	// 搜索可用余额
+	privacyDBStore, err := biz.store.listAvailableUTXOs(token, addr)
+	utxos := make([]*types.UTXO, 0)
+	for _, ele := range privacyDBStore {
+		utxoBasic := &types.UTXOBasic{
+			UtxoGlobalIndex: &types.UTXOGlobalIndex{
+				Outindex: ele.OutIndex,
+				Txhash:   ele.Txhash,
+			},
+			OnetimePubkey: ele.OnetimePublicKey,
+		}
+		utxo := &types.UTXO{
+			Amount:    ele.Amount,
+			UtxoBasic: utxoBasic,
+		}
+		utxos = append(utxos, utxo)
+	}
+	reply.Utxos = &types.UTXOs{Utxos: utxos}
+
+	// 搜索冻结余额
+	utxos = make([]*types.UTXO, 0)
+	ftxoslice, err := biz.store.listFrozenUTXOs(token, addr)
+	if err == nil && ftxoslice != nil {
+		for _, ele := range ftxoslice {
+			utxos = append(utxos, ele.Utxos...)
+		}
+	}
+
+	reply.Ftxos = &types.UTXOs{Utxos: utxos}
+
+	return reply, nil
 }
