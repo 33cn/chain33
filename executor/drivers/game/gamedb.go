@@ -365,10 +365,7 @@ func (action *Action) GameClose(close *types.GameClose) (*types.Receipt, error) 
 // 若没有一天，则其他人没有开奖权限，只有庄家有开奖权限
 func (action *Action) checkGameIsTimeOut(game *types.Game) bool {
 	DurTime := 60 * 60 * 24 * Active_Time
-	if action.blocktime > (game.GetMatchTime() + int64(DurTime)) {
-		return true
-	}
-	return false
+	return action.blocktime > (game.GetMatchTime() + int64(DurTime))
 }
 
 //根据传入密钥，揭晓游戏结果
