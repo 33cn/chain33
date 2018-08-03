@@ -4,6 +4,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/types/executor/coins"
 	"gitlab.33.cn/chain33/chain33/types/executor/evm"
+	"gitlab.33.cn/chain33/chain33/types/executor/game"
 	"gitlab.33.cn/chain33/chain33/types/executor/hashlock"
 	"gitlab.33.cn/chain33/chain33/types/executor/manage"
 	"gitlab.33.cn/chain33/chain33/types/executor/none"
@@ -13,7 +14,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/types/executor/ticket"
 	"gitlab.33.cn/chain33/chain33/types/executor/token"
 	"gitlab.33.cn/chain33/chain33/types/executor/trade"
-	"gitlab.33.cn/chain33/chain33/types/executor/game"
 )
 
 // 进度：

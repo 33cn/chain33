@@ -3,11 +3,12 @@ package game
 //database opeartion for executor game
 import (
 	"bytes"
+	"sort"
+
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
-	"sort"
 )
 
 const (
