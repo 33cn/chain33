@@ -115,6 +115,10 @@ func calcSTXOTokenAddrTxKey(token, addr, txhash string) []byte {
 	return []byte(fmt.Sprintf("%s-%s-%s-%s", PrivacySTXO, token, addr, txhash))
 }
 
+func calcSTXOPrefix4Addr(token, addr string) []byte {
+	return []byte(fmt.Sprintf("%s-%s-%s", PrivacySTXO, token, addr))
+}
+
 // privacyStore 隐私交易数据库存储操作类
 type privacyStore struct {
 	db db.DB
@@ -763,4 +767,63 @@ func (store *privacyStore) storeScanPrivacyInputUTXO(utxoGlobalIndexs []*types.U
 		value1 := types.Encode(utxoIndex)
 		newbatch.Set(key1, value1)
 	}
+}
+
+func (store *privacyStore) listSpendUTXOs(token, addr string) (*types.UTXOHaveTxHashs, error) {
+	if 0 == len(addr) {
+		bizlog.Error("listSpendUTXOs addr is nil")
+		return nil, types.ErrInputPara
+	}
+	prefix := calcSTXOPrefix4Addr(token, addr)
+	list := db.NewListHelper(store.db)
+	Key4FTXOsInTxs := list.PrefixScan(prefix)
+	if len(Key4FTXOsInTxs) == 0 {
+		bizlog.Error("listSpendUTXOs ", "addr not exist", addr)
+		return nil, types.ErrNotFound
+	}
+
+	var utxoHaveTxHashs types.UTXOHaveTxHashs
+	utxoHaveTxHashs.UtxoHaveTxHashs = make([]*types.UTXOHaveTxHash, 0)
+	for _, Key4FTXOsInTx := range Key4FTXOsInTxs {
+		value, err := store.db.Get(Key4FTXOsInTx)
+		if err != nil {
+			continue
+		}
+		var ftxosInOneTx types.FTXOsSTXOsInOneTx
+		err = types.Decode(value, &ftxosInOneTx)
+		if nil != err {
+			bizlog.Error("listSpendUTXOs", "Failed to decode FTXOsSTXOsInOneTx for value", value)
+			return nil, types.ErrInputPara
+		}
+
+		for _, ftxo := range ftxosInOneTx.Utxos {
+			utxohash := common.Bytes2Hex(ftxo.UtxoBasic.UtxoGlobalIndex.Txhash)
+			value1, err := store.db.Get(calcUTXOKey(utxohash, int(ftxo.UtxoBasic.UtxoGlobalIndex.Outindex)))
+			if err != nil {
+				continue
+			}
+			var accPrivacy types.PrivacyDBStore
+			err = proto.Unmarshal(value1, &accPrivacy)
+			if err != nil {
+				bizlog.Error("listWalletPrivacyAccount", "proto.Unmarshal err:", err)
+				return nil, types.ErrUnmarshal
+			}
+
+			utxoBasic := &types.UTXOBasic{
+				UtxoGlobalIndex: &types.UTXOGlobalIndex{
+					Outindex: accPrivacy.OutIndex,
+					Txhash:   accPrivacy.Txhash,
+				},
+				OnetimePubkey: accPrivacy.OnetimePublicKey,
+			}
+
+			var utxoHaveTxHash types.UTXOHaveTxHash
+			utxoHaveTxHash.Amount = accPrivacy.Amount
+			utxoHaveTxHash.TxHash = ftxosInOneTx.Txhash
+			utxoHaveTxHash.UtxoBasic = utxoBasic
+
+			utxoHaveTxHashs.UtxoHaveTxHashs = append(utxoHaveTxHashs.UtxoHaveTxHashs, &utxoHaveTxHash)
+		}
+	}
+	return &utxoHaveTxHashs, nil
 }
