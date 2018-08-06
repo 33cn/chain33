@@ -5,6 +5,7 @@ import (
 	"errors"
 	"sort"
 	"sync/atomic"
+	"time"
 	"unsafe"
 
 	"gitlab.33.cn/chain33/chain33/common"
@@ -16,7 +17,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/wallet/walletbiz"
 
 	"github.com/inconshreveable/log15"
-	"time"
 )
 
 var (
@@ -45,7 +45,7 @@ func (biz *walletPrivacyBiz) Init(wbiz walletbiz.WalletBiz) {
 	biz.funcmap.Register(types.EventShowPrivacyPK, biz.onShowPrivacyPK)
 	biz.funcmap.Register(types.EventShowPrivacyAccountSpend, biz.onShowPrivacyAccountSpend)
 	biz.funcmap.Register(types.EventPublic2privacy, biz.onPublic2Privacy)
-	//biz.funcmap.Register(types.EventPrivacy2privacy, biz.onPrivacy2Privacy)
+	biz.funcmap.Register(types.EventPrivacy2privacy, biz.onPrivacy2Privacy)
 	//biz.funcmap.Register(types.EventPrivacy2public, biz.onPrivacy2Public)
 	biz.funcmap.Register(types.EventCreateUTXOs, biz.onCreateUTXOs)
 	biz.funcmap.Register(types.EventCreateTransaction, biz.onCreateTransaction)
@@ -137,7 +137,22 @@ func (biz *walletPrivacyBiz) onPublic2Privacy(msg *queue.Message) (string, int64
 }
 
 func (biz *walletPrivacyBiz) onPrivacy2Privacy(msg *queue.Message) (string, int64, interface{}, error) {
-	return "rpc", 0, nil, nil
+	topic := "rpc"
+	retty := int64(types.EventReplyPrivacy2privacy)
+
+	req, ok := msg.Data.(*types.ReqPri2Pri)
+	if !ok {
+		bizlog.Error("walletPrivacyBiz", "Invalid data type.", ok)
+		return topic, retty, nil, types.ErrInvalidParam
+	}
+
+	biz.walletBiz.GetMutex().Lock()
+	defer biz.walletBiz.GetMutex().Unlock()
+	reply, err := biz.sendPrivacy2PrivacyTransaction(req)
+	if err != nil {
+		bizlog.Error("sendPrivacy2PrivacyTransaction", "err", err.Error())
+	}
+	return topic, retty, reply, err
 }
 
 func (biz *walletPrivacyBiz) onPrivacy2Public(msg *queue.Message) (string, int64, interface{}, error) {
@@ -1238,4 +1253,135 @@ func (biz *walletPrivacyBiz) transPub2PriV2(priv crypto.PrivKey, reqPub2Pri *typ
 		return nil, err
 	}
 	return reply, err
+}
+
+func (biz *walletPrivacyBiz) sendPrivacy2PrivacyTransaction(privacy2privacy *types.ReqPri2Pri) (*types.Reply, error) {
+	if ok, err := biz.walletBiz.CheckWalletStatus(); !ok {
+		bizlog.Error("sendPrivacy2PrivacyTransaction", "CheckWalletStatus error", err)
+		return nil, err
+	}
+	if ok, err := biz.isRescanUtxosFlagScaning(); ok {
+		bizlog.Error("sendPrivacy2PrivacyTransaction", "isRescanUtxosFlagScaning error", err)
+		return nil, err
+	}
+	if privacy2privacy == nil {
+		bizlog.Error("sendPrivacy2PrivacyTransaction input para is nil")
+		return nil, types.ErrInputPara
+	}
+	if !checkAmountValid(privacy2privacy.GetAmount()) {
+		bizlog.Error("sendPrivacy2PrivacyTransaction", "invalid amount ", privacy2privacy.GetAmount())
+		return nil, types.ErrAmount
+	}
+
+	privacyInfo, err := biz.getPrivacykeyPair(privacy2privacy.GetSender())
+	if err != nil {
+		bizlog.Error("sendPrivacy2PrivacyTransaction", "getPrivacykeyPair error ", err)
+		return nil, err
+	}
+
+	return biz.transPri2PriV2(privacyInfo, privacy2privacy)
+}
+func (biz *walletPrivacyBiz) transPri2PriV2(privacykeyParirs *privacy.Privacy, reqPri2Pri *types.ReqPri2Pri) (*types.Reply, error) {
+	buildInfo := &buildInputInfo{
+		tokenname: reqPri2Pri.Tokenname,
+		sender:    reqPri2Pri.Sender,
+		amount:    reqPri2Pri.Amount + types.PrivacyTxFee,
+		mixcount:  reqPri2Pri.Mixin,
+	}
+
+	//step 1,buildInput
+	privacyInput, utxosInKeyInput, realkeyInputSlice, selectedUtxo, err := biz.buildInput(privacykeyParirs, buildInfo)
+	if err != nil {
+		bizlog.Error("transPri2PriV2", "buildInput error", err)
+		return nil, err
+	}
+
+	//step 2,generateOuts
+	viewPublicSlice, spendPublicSlice, err := parseViewSpendPubKeyPair(reqPri2Pri.Pubkeypair)
+	if err != nil {
+		bizlog.Error("transPub2Pri", "parseViewSpendPubKeyPair  ", err)
+		return nil, err
+	}
+
+	viewPub4change, spendPub4change := privacykeyParirs.ViewPubkey.Bytes(), privacykeyParirs.SpendPubkey.Bytes()
+	viewPublic := (*[32]byte)(unsafe.Pointer(&viewPublicSlice[0]))
+	spendPublic := (*[32]byte)(unsafe.Pointer(&spendPublicSlice[0]))
+	viewPub4chgPtr := (*[32]byte)(unsafe.Pointer(&viewPub4change[0]))
+	spendPub4chgPtr := (*[32]byte)(unsafe.Pointer(&spendPub4change[0]))
+
+	selectedAmounTotal := int64(0)
+	for _, input := range privacyInput.Keyinput {
+		selectedAmounTotal += input.Amount
+	}
+	//构造输出UTXO
+	privacyOutput, err := generateOuts(viewPublic, spendPublic, viewPub4chgPtr, spendPub4chgPtr, reqPri2Pri.Amount, selectedAmounTotal, types.PrivacyTxFee)
+	if err != nil {
+		bizlog.Error("transPub2Pri", "generateOuts  ", err)
+		return nil, err
+	}
+
+	value := &types.Privacy2Privacy{
+		Tokenname: reqPri2Pri.Tokenname,
+		Amount:    reqPri2Pri.Amount,
+		Note:      reqPri2Pri.Note,
+		Input:     privacyInput,
+		Output:    privacyOutput,
+	}
+	action := &types.PrivacyAction{
+		Ty:    types.ActionPrivacy2Privacy,
+		Value: &types.PrivacyAction_Privacy2Privacy{value},
+	}
+
+	tx := &types.Transaction{
+		Execer:  []byte(types.PrivacyX),
+		Payload: types.Encode(action),
+		Fee:     types.PrivacyTxFee,
+		Nonce:   biz.walletBiz.Nonce(),
+		// TODO: 采用隐私合约地址来设定目标合约接收的目标地址,让验证通过
+		To: address.ExecAddress(types.PrivacyX),
+	}
+	tx.SetExpire(time.Duration(reqPri2Pri.GetExpire()))
+	// TODO: 签名前对交易中的输入进行混淆
+	//完成了input和output的添加之后，即已经完成了交易基本内容的添加，
+	//这时候就需要进行交易的签名了
+	err = biz.signatureTx(tx, privacyInput, utxosInKeyInput, realkeyInputSlice)
+	if err != nil {
+		return nil, err
+	}
+	reply, err := biz.walletBiz.GetAPI().SendTx(tx)
+	if err != nil {
+		bizlog.Error("transPub2Pri", "SendTx  ", err)
+		return nil, err
+	}
+	biz.saveFTXOInfo(tx, reqPri2Pri.Tokenname, reqPri2Pri.Sender, common.Bytes2Hex(tx.Hash()), selectedUtxo)
+	return reply, nil
+}
+
+func (biz *walletPrivacyBiz) signatureTx(tx *types.Transaction, privacyInput *types.PrivacyInput, utxosInKeyInput []*types.UTXOBasics, realkeyInputSlice []*types.RealKeyInput) (err error) {
+	tx.Signature = nil
+	data := types.Encode(tx)
+	ringSign := &types.RingSignature{}
+	ringSign.Items = make([]*types.RingSignatureItem, len(privacyInput.Keyinput))
+	for i, input := range privacyInput.Keyinput {
+		utxos := utxosInKeyInput[i]
+		h := common.BytesToHash(data)
+		item, err := privacy.GenerateRingSignature(h.Bytes(),
+			utxos.Utxos,
+			realkeyInputSlice[i].Onetimeprivkey,
+			int(realkeyInputSlice[i].Realinputkey),
+			input.KeyImage)
+		if err != nil {
+			return err
+		}
+		ringSign.Items[i] = item
+	}
+
+	ringSignData := types.Encode(ringSign)
+	tx.Signature = &types.Signature{
+		Ty:        types.RingBaseonED25519,
+		Signature: ringSignData,
+		// 这里填的是隐私合约的公钥，让框架保持一致
+		Pubkey: address.ExecPubKey(types.PrivacyX),
+	}
+	return nil
 }
