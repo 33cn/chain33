@@ -29,7 +29,7 @@ type Trade struct {
 func (m *Trade) Reset()                    { *m = Trade{} }
 func (m *Trade) String() string            { return proto.CompactTextString(m) }
 func (*Trade) ProtoMessage()               {}
-func (*Trade) Descriptor() ([]byte, []int) { return fileDescriptor7, []int{0} }
+func (*Trade) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{0} }
 
 type isTrade_Value interface {
 	isTrade_Value()
@@ -286,7 +286,7 @@ type TradeForSell struct {
 func (m *TradeForSell) Reset()                    { *m = TradeForSell{} }
 func (m *TradeForSell) String() string            { return proto.CompactTextString(m) }
 func (*TradeForSell) ProtoMessage()               {}
-func (*TradeForSell) Descriptor() ([]byte, []int) { return fileDescriptor7, []int{1} }
+func (*TradeForSell) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{1} }
 
 func (m *TradeForSell) GetTokenSymbol() string {
 	if m != nil {
@@ -354,7 +354,7 @@ type TradeForBuy struct {
 func (m *TradeForBuy) Reset()                    { *m = TradeForBuy{} }
 func (m *TradeForBuy) String() string            { return proto.CompactTextString(m) }
 func (*TradeForBuy) ProtoMessage()               {}
-func (*TradeForBuy) Descriptor() ([]byte, []int) { return fileDescriptor7, []int{2} }
+func (*TradeForBuy) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{2} }
 
 func (m *TradeForBuy) GetSellID() string {
 	if m != nil {
@@ -378,7 +378,7 @@ type TradeForRevokeSell struct {
 func (m *TradeForRevokeSell) Reset()                    { *m = TradeForRevokeSell{} }
 func (m *TradeForRevokeSell) String() string            { return proto.CompactTextString(m) }
 func (*TradeForRevokeSell) ProtoMessage()               {}
-func (*TradeForRevokeSell) Descriptor() ([]byte, []int) { return fileDescriptor7, []int{3} }
+func (*TradeForRevokeSell) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{3} }
 
 func (m *TradeForRevokeSell) GetSellID() string {
 	if m != nil {
@@ -399,7 +399,7 @@ type TradeForBuyLimit struct {
 func (m *TradeForBuyLimit) Reset()                    { *m = TradeForBuyLimit{} }
 func (m *TradeForBuyLimit) String() string            { return proto.CompactTextString(m) }
 func (*TradeForBuyLimit) ProtoMessage()               {}
-func (*TradeForBuyLimit) Descriptor() ([]byte, []int) { return fileDescriptor7, []int{4} }
+func (*TradeForBuyLimit) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{4} }
 
 func (m *TradeForBuyLimit) GetTokenSymbol() string {
 	if m != nil {
@@ -445,7 +445,7 @@ type TradeForSellMarket struct {
 func (m *TradeForSellMarket) Reset()                    { *m = TradeForSellMarket{} }
 func (m *TradeForSellMarket) String() string            { return proto.CompactTextString(m) }
 func (*TradeForSellMarket) ProtoMessage()               {}
-func (*TradeForSellMarket) Descriptor() ([]byte, []int) { return fileDescriptor7, []int{5} }
+func (*TradeForSellMarket) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{5} }
 
 func (m *TradeForSellMarket) GetBuyID() string {
 	if m != nil {
@@ -469,7 +469,7 @@ type TradeForRevokeBuy struct {
 func (m *TradeForRevokeBuy) Reset()                    { *m = TradeForRevokeBuy{} }
 func (m *TradeForRevokeBuy) String() string            { return proto.CompactTextString(m) }
 func (*TradeForRevokeBuy) ProtoMessage()               {}
-func (*TradeForRevokeBuy) Descriptor() ([]byte, []int) { return fileDescriptor7, []int{6} }
+func (*TradeForRevokeBuy) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{6} }
 
 func (m *TradeForRevokeBuy) GetBuyID() string {
 	if m != nil {
@@ -502,7 +502,7 @@ type SellOrder struct {
 func (m *SellOrder) Reset()                    { *m = SellOrder{} }
 func (m *SellOrder) String() string            { return proto.CompactTextString(m) }
 func (*SellOrder) ProtoMessage()               {}
-func (*SellOrder) Descriptor() ([]byte, []int) { return fileDescriptor7, []int{7} }
+func (*SellOrder) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{7} }
 
 func (m *SellOrder) GetTokenSymbol() string {
 	if m != nil {
@@ -612,7 +612,7 @@ type BuyLimitOrder struct {
 func (m *BuyLimitOrder) Reset()                    { *m = BuyLimitOrder{} }
 func (m *BuyLimitOrder) String() string            { return proto.CompactTextString(m) }
 func (*BuyLimitOrder) ProtoMessage()               {}
-func (*BuyLimitOrder) Descriptor() ([]byte, []int) { return fileDescriptor7, []int{8} }
+func (*BuyLimitOrder) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{8} }
 
 func (m *BuyLimitOrder) GetTokenSymbol() string {
 	if m != nil {
@@ -703,7 +703,7 @@ type ReceiptBuyBase struct {
 func (m *ReceiptBuyBase) Reset()                    { *m = ReceiptBuyBase{} }
 func (m *ReceiptBuyBase) String() string            { return proto.CompactTextString(m) }
 func (*ReceiptBuyBase) ProtoMessage()               {}
-func (*ReceiptBuyBase) Descriptor() ([]byte, []int) { return fileDescriptor7, []int{9} }
+func (*ReceiptBuyBase) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{9} }
 
 func (m *ReceiptBuyBase) GetTokenSymbol() string {
 	if m != nil {
@@ -815,7 +815,7 @@ type ReceiptSellBase struct {
 func (m *ReceiptSellBase) Reset()                    { *m = ReceiptSellBase{} }
 func (m *ReceiptSellBase) String() string            { return proto.CompactTextString(m) }
 func (*ReceiptSellBase) ProtoMessage()               {}
-func (*ReceiptSellBase) Descriptor() ([]byte, []int) { return fileDescriptor7, []int{10} }
+func (*ReceiptSellBase) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{10} }
 
 func (m *ReceiptSellBase) GetTokenSymbol() string {
 	if m != nil {
@@ -929,7 +929,7 @@ type ReceiptTradeBuyMarket struct {
 func (m *ReceiptTradeBuyMarket) Reset()                    { *m = ReceiptTradeBuyMarket{} }
 func (m *ReceiptTradeBuyMarket) String() string            { return proto.CompactTextString(m) }
 func (*ReceiptTradeBuyMarket) ProtoMessage()               {}
-func (*ReceiptTradeBuyMarket) Descriptor() ([]byte, []int) { return fileDescriptor7, []int{11} }
+func (*ReceiptTradeBuyMarket) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{11} }
 
 func (m *ReceiptTradeBuyMarket) GetBase() *ReceiptBuyBase {
 	if m != nil {
@@ -945,7 +945,7 @@ type ReceiptTradeBuyLimit struct {
 func (m *ReceiptTradeBuyLimit) Reset()                    { *m = ReceiptTradeBuyLimit{} }
 func (m *ReceiptTradeBuyLimit) String() string            { return proto.CompactTextString(m) }
 func (*ReceiptTradeBuyLimit) ProtoMessage()               {}
-func (*ReceiptTradeBuyLimit) Descriptor() ([]byte, []int) { return fileDescriptor7, []int{12} }
+func (*ReceiptTradeBuyLimit) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{12} }
 
 func (m *ReceiptTradeBuyLimit) GetBase() *ReceiptBuyBase {
 	if m != nil {
@@ -961,7 +961,7 @@ type ReceiptTradeBuyRevoke struct {
 func (m *ReceiptTradeBuyRevoke) Reset()                    { *m = ReceiptTradeBuyRevoke{} }
 func (m *ReceiptTradeBuyRevoke) String() string            { return proto.CompactTextString(m) }
 func (*ReceiptTradeBuyRevoke) ProtoMessage()               {}
-func (*ReceiptTradeBuyRevoke) Descriptor() ([]byte, []int) { return fileDescriptor7, []int{13} }
+func (*ReceiptTradeBuyRevoke) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{13} }
 
 func (m *ReceiptTradeBuyRevoke) GetBase() *ReceiptBuyBase {
 	if m != nil {
@@ -977,7 +977,7 @@ type ReceiptTradeSell struct {
 func (m *ReceiptTradeSell) Reset()                    { *m = ReceiptTradeSell{} }
 func (m *ReceiptTradeSell) String() string            { return proto.CompactTextString(m) }
 func (*ReceiptTradeSell) ProtoMessage()               {}
-func (*ReceiptTradeSell) Descriptor() ([]byte, []int) { return fileDescriptor7, []int{14} }
+func (*ReceiptTradeSell) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{14} }
 
 func (m *ReceiptTradeSell) GetBase() *ReceiptSellBase {
 	if m != nil {
@@ -993,7 +993,7 @@ type ReceiptSellMarket struct {
 func (m *ReceiptSellMarket) Reset()                    { *m = ReceiptSellMarket{} }
 func (m *ReceiptSellMarket) String() string            { return proto.CompactTextString(m) }
 func (*ReceiptSellMarket) ProtoMessage()               {}
-func (*ReceiptSellMarket) Descriptor() ([]byte, []int) { return fileDescriptor7, []int{15} }
+func (*ReceiptSellMarket) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{15} }
 
 func (m *ReceiptSellMarket) GetBase() *ReceiptSellBase {
 	if m != nil {
@@ -1009,7 +1009,7 @@ type ReceiptTradeRevoke struct {
 func (m *ReceiptTradeRevoke) Reset()                    { *m = ReceiptTradeRevoke{} }
 func (m *ReceiptTradeRevoke) String() string            { return proto.CompactTextString(m) }
 func (*ReceiptTradeRevoke) ProtoMessage()               {}
-func (*ReceiptTradeRevoke) Descriptor() ([]byte, []int) { return fileDescriptor7, []int{16} }
+func (*ReceiptTradeRevoke) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{16} }
 
 func (m *ReceiptTradeRevoke) GetBase() *ReceiptSellBase {
 	if m != nil {
@@ -1030,7 +1030,7 @@ type ReqAddrTokens struct {
 func (m *ReqAddrTokens) Reset()                    { *m = ReqAddrTokens{} }
 func (m *ReqAddrTokens) String() string            { return proto.CompactTextString(m) }
 func (*ReqAddrTokens) ProtoMessage()               {}
-func (*ReqAddrTokens) Descriptor() ([]byte, []int) { return fileDescriptor7, []int{17} }
+func (*ReqAddrTokens) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{17} }
 
 func (m *ReqAddrTokens) GetAddr() string {
 	if m != nil {
@@ -1089,7 +1089,7 @@ type ReqTokenSellOrder struct {
 func (m *ReqTokenSellOrder) Reset()                    { *m = ReqTokenSellOrder{} }
 func (m *ReqTokenSellOrder) String() string            { return proto.CompactTextString(m) }
 func (*ReqTokenSellOrder) ProtoMessage()               {}
-func (*ReqTokenSellOrder) Descriptor() ([]byte, []int) { return fileDescriptor7, []int{18} }
+func (*ReqTokenSellOrder) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{18} }
 
 func (m *ReqTokenSellOrder) GetTokenSymbol() string {
 	if m != nil {
@@ -1137,7 +1137,7 @@ type ReqTokenBuyOrder struct {
 func (m *ReqTokenBuyOrder) Reset()                    { *m = ReqTokenBuyOrder{} }
 func (m *ReqTokenBuyOrder) String() string            { return proto.CompactTextString(m) }
 func (*ReqTokenBuyOrder) ProtoMessage()               {}
-func (*ReqTokenBuyOrder) Descriptor() ([]byte, []int) { return fileDescriptor7, []int{19} }
+func (*ReqTokenBuyOrder) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{19} }
 
 func (m *ReqTokenBuyOrder) GetTokenSymbol() string {
 	if m != nil {
@@ -1193,7 +1193,7 @@ type ReplyBuyOrder struct {
 func (m *ReplyBuyOrder) Reset()                    { *m = ReplyBuyOrder{} }
 func (m *ReplyBuyOrder) String() string            { return proto.CompactTextString(m) }
 func (*ReplyBuyOrder) ProtoMessage()               {}
-func (*ReplyBuyOrder) Descriptor() ([]byte, []int) { return fileDescriptor7, []int{20} }
+func (*ReplyBuyOrder) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{20} }
 
 func (m *ReplyBuyOrder) GetTokenSymbol() string {
 	if m != nil {
@@ -1305,7 +1305,7 @@ type ReplySellOrder struct {
 func (m *ReplySellOrder) Reset()                    { *m = ReplySellOrder{} }
 func (m *ReplySellOrder) String() string            { return proto.CompactTextString(m) }
 func (*ReplySellOrder) ProtoMessage()               {}
-func (*ReplySellOrder) Descriptor() ([]byte, []int) { return fileDescriptor7, []int{21} }
+func (*ReplySellOrder) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{21} }
 
 func (m *ReplySellOrder) GetTokenSymbol() string {
 	if m != nil {
@@ -1405,7 +1405,7 @@ type ReplySellOrders struct {
 func (m *ReplySellOrders) Reset()                    { *m = ReplySellOrders{} }
 func (m *ReplySellOrders) String() string            { return proto.CompactTextString(m) }
 func (*ReplySellOrders) ProtoMessage()               {}
-func (*ReplySellOrders) Descriptor() ([]byte, []int) { return fileDescriptor7, []int{22} }
+func (*ReplySellOrders) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{22} }
 
 func (m *ReplySellOrders) GetSellOrders() []*ReplySellOrder {
 	if m != nil {
@@ -1421,7 +1421,7 @@ type ReplyBuyOrders struct {
 func (m *ReplyBuyOrders) Reset()                    { *m = ReplyBuyOrders{} }
 func (m *ReplyBuyOrders) String() string            { return proto.CompactTextString(m) }
 func (*ReplyBuyOrders) ProtoMessage()               {}
-func (*ReplyBuyOrders) Descriptor() ([]byte, []int) { return fileDescriptor7, []int{23} }
+func (*ReplyBuyOrders) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{23} }
 
 func (m *ReplyBuyOrders) GetBuyOrders() []*ReplyBuyOrder {
 	if m != nil {
@@ -1451,7 +1451,7 @@ type ReplyTradeOrder struct {
 func (m *ReplyTradeOrder) Reset()                    { *m = ReplyTradeOrder{} }
 func (m *ReplyTradeOrder) String() string            { return proto.CompactTextString(m) }
 func (*ReplyTradeOrder) ProtoMessage()               {}
-func (*ReplyTradeOrder) Descriptor() ([]byte, []int) { return fileDescriptor7, []int{24} }
+func (*ReplyTradeOrder) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{24} }
 
 func (m *ReplyTradeOrder) GetTokenSymbol() string {
 	if m != nil {
@@ -1565,7 +1565,7 @@ type ReplyTradeOrders struct {
 func (m *ReplyTradeOrders) Reset()                    { *m = ReplyTradeOrders{} }
 func (m *ReplyTradeOrders) String() string            { return proto.CompactTextString(m) }
 func (*ReplyTradeOrders) ProtoMessage()               {}
-func (*ReplyTradeOrders) Descriptor() ([]byte, []int) { return fileDescriptor7, []int{25} }
+func (*ReplyTradeOrders) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{25} }
 
 func (m *ReplyTradeOrders) GetOrders() []*ReplyTradeOrder {
 	if m != nil {
@@ -1603,9 +1603,9 @@ func init() {
 	proto.RegisterType((*ReplyTradeOrders)(nil), "types.ReplyTradeOrders")
 }
 
-func init() { proto.RegisterFile("executorTrade.proto", fileDescriptor7) }
+func init() { proto.RegisterFile("executorTrade.proto", fileDescriptor8) }
 
-var fileDescriptor7 = []byte{
+var fileDescriptor8 = []byte{
 	// 1032 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe4, 0x58, 0xc1, 0x6e, 0xdb, 0x46,
 	0x10, 0xb5, 0x44, 0x51, 0x16, 0xc7, 0x96, 0x6c, 0x6f, 0x14, 0x97, 0x2d, 0x7a, 0x10, 0x88, 0xa2,
