@@ -34,7 +34,6 @@ var (
 	emptyBlockInterval int64 = 4 //write empty block every interval blocks in mainchain
 	zeroHash           [32]byte
 	grpcRecSize        int = 30 * 1024 * 1024 //the size should be limited in server
-	paraAccount            = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 )
 
 type ParaClient struct {
@@ -44,6 +43,7 @@ type ParaClient struct {
 	lock            sync.RWMutex
 	isCatchingUp    bool
 	commitMsgClient *CommitMsgClient
+	authAccount     string
 }
 
 func New(cfg *types.Consensus) *ParaClient {
@@ -61,9 +61,6 @@ func New(cfg *types.Consensus) *ParaClient {
 	if cfg.EmptyBlockInterval > 0 {
 		emptyBlockInterval = cfg.EmptyBlockInterval
 	}
-	if cfg.ParaAccount != "" {
-		paraAccount = cfg.ParaAccount
-	}
 
 	plog.Debug("New Para consensus client")
 
@@ -75,7 +72,7 @@ func New(cfg *types.Consensus) *ParaClient {
 	}
 	grpcClient := types.NewGrpcserviceClient(conn)
 
-	para := &ParaClient{c, conn, grpcClient, sync.RWMutex{}, false, nil}
+	para := &ParaClient{c, conn, grpcClient, sync.RWMutex{}, false, nil, cfg.AuthAccount}
 	para.commitMsgClient = &CommitMsgClient{
 		paraClient:      para,
 		commitMsgNotify: make(chan *CommitMsg, 1),
@@ -457,7 +454,7 @@ func (client *ParaClient) WriteBlock(prev []byte, paraBlock *types.Block, mainBl
 
 	if resp.GetData().(*types.Reply).IsOk {
 		client.SetCurrentBlock(paraBlock)
-		if mainBlock != nil {
+		if mainBlock != nil && client.authAccount != "" {
 			commitMsg := &CommitMsg{
 				initTxHashs:   oriTxHashs,
 				mainBlockHash: mainBlock.Hash(),
@@ -499,10 +496,12 @@ func (client *ParaClient) DelBlock(block *types.Block, seq int64) error {
 	}
 
 	if resp.GetData().(*types.Reply).IsOk {
-		commitMsg := &CommitMsg{
-			blockDetail: blocks.Items[0],
+		if client.authAccount != "" {
+			commitMsg := &CommitMsg{
+				blockDetail: blocks.Items[0],
+			}
+			client.commitMsgClient.onBlockDeleted(commitMsg)
 		}
-		client.commitMsgClient.onBlockDeleted(commitMsg)
 	} else {
 		reply := resp.GetData().(*types.Reply)
 		return errors.New(string(reply.GetMsg()))
