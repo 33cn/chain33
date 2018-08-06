@@ -36,7 +36,7 @@ func getNodes(db dbm.KV, title string) ([]string, error) {
 	item, err := db.Get(key)
 	if err != nil {
 		clog.Info("getNodes", "get db key", key, "failed", err)
-		if err == dbm.ErrNotFoundInDb {
+		if isNotFound(err) {
 			return nil, types.ErrTitleNotExist
 		}
 		return nil, err
@@ -250,13 +250,13 @@ func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, er
 
 	// 未共识处理， 接受当前高度以及后续高度
 	stat, err := getTitleHeight(a.db, calcTitleHeightKey(commit.Status.Title, commit.Status.Height))
-	if err != nil && err != dbm.ErrNotFoundInDb {
+	if err != nil && !isNotFound(err) {
 		clog.Error("paracross.Commit getTitleHeight failed", "err", err)
 		return nil, err
 	}
 
 	var receipt *types.Receipt
-	if err == dbm.ErrNotFoundInDb {
+	if isNotFound(err) {
 		stat = &types.ParacrossHeightStatus{
 			Status: pt.ParacrossStatusCommiting,
 			Title:  commit.Status.Title,

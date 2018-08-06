@@ -10,7 +10,7 @@ import (
 func getTitle(db dbm.KV, key []byte) (*types.ParacrossStatus, error) {
 	val, err := db.Get(key)
 	if err != nil {
-		if err != dbm.ErrNotFoundInDb {
+		if !isNotFound(err) {
 			return nil, err
 		}
 		// 平行链如果是从其他链上移过来的，  需要增加配置， 对应title的平行链的起始高度
@@ -32,7 +32,7 @@ func getTitleHeight(db dbm.KV, key []byte) (*types.ParacrossHeightStatus, error)
 	val, err := db.Get(key)
 	if err != nil {
 		// 对应高度第一次提交commit
-		if err == dbm.ErrNotFoundInDb {
+		if isNotFound(err) {
 			clog.Info("paracross.Commit first commit", "key", string(key))
 		}
 		return nil, err
@@ -74,4 +74,11 @@ func getBlockHash(api client.QueueProtocolAPI, height int64) (*types.ReplyHash, 
 		return nil, err
 	}
 	return hash, nil
+}
+
+func isNotFound(err error) bool {
+	if err != nil && (err == dbm.ErrNotFoundInDb || err == types.ErrNotFound) {
+		return true
+	}
+	return false
 }
