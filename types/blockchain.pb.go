@@ -38,7 +38,7 @@ type Header struct {
 func (m *Header) Reset()                    { *m = Header{} }
 func (m *Header) String() string            { return proto.CompactTextString(m) }
 func (*Header) ProtoMessage()               {}
-func (*Header) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{0} }
+func (*Header) Descriptor() ([]byte, []int) { return fileDescriptor2, []int{0} }
 
 func (m *Header) GetVersion() int64 {
 	if m != nil {
@@ -126,7 +126,7 @@ type Block struct {
 func (m *Block) Reset()                    { *m = Block{} }
 func (m *Block) String() string            { return proto.CompactTextString(m) }
 func (*Block) ProtoMessage()               {}
-func (*Block) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{1} }
+func (*Block) Descriptor() ([]byte, []int) { return fileDescriptor2, []int{1} }
 
 func (m *Block) GetVersion() int64 {
 	if m != nil {
@@ -198,7 +198,7 @@ type Blocks struct {
 func (m *Blocks) Reset()                    { *m = Blocks{} }
 func (m *Blocks) String() string            { return proto.CompactTextString(m) }
 func (*Blocks) ProtoMessage()               {}
-func (*Blocks) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{2} }
+func (*Blocks) Descriptor() ([]byte, []int) { return fileDescriptor2, []int{2} }
 
 func (m *Blocks) GetItems() []*Block {
 	if m != nil {
@@ -216,7 +216,7 @@ type BlockPid struct {
 func (m *BlockPid) Reset()                    { *m = BlockPid{} }
 func (m *BlockPid) String() string            { return proto.CompactTextString(m) }
 func (*BlockPid) ProtoMessage()               {}
-func (*BlockPid) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{3} }
+func (*BlockPid) Descriptor() ([]byte, []int) { return fileDescriptor2, []int{3} }
 
 func (m *BlockPid) GetPid() string {
 	if m != nil {
@@ -240,7 +240,7 @@ type BlockDetails struct {
 func (m *BlockDetails) Reset()                    { *m = BlockDetails{} }
 func (m *BlockDetails) String() string            { return proto.CompactTextString(m) }
 func (*BlockDetails) ProtoMessage()               {}
-func (*BlockDetails) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{4} }
+func (*BlockDetails) Descriptor() ([]byte, []int) { return fileDescriptor2, []int{4} }
 
 func (m *BlockDetails) GetItems() []*BlockDetail {
 	if m != nil {
@@ -257,7 +257,7 @@ type Headers struct {
 func (m *Headers) Reset()                    { *m = Headers{} }
 func (m *Headers) String() string            { return proto.CompactTextString(m) }
 func (*Headers) ProtoMessage()               {}
-func (*Headers) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{5} }
+func (*Headers) Descriptor() ([]byte, []int) { return fileDescriptor2, []int{5} }
 
 func (m *Headers) GetItems() []*Header {
 	if m != nil {
@@ -274,7 +274,7 @@ type HeadersPid struct {
 func (m *HeadersPid) Reset()                    { *m = HeadersPid{} }
 func (m *HeadersPid) String() string            { return proto.CompactTextString(m) }
 func (*HeadersPid) ProtoMessage()               {}
-func (*HeadersPid) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{6} }
+func (*HeadersPid) Descriptor() ([]byte, []int) { return fileDescriptor2, []int{6} }
 
 func (m *HeadersPid) GetPid() string {
 	if m != nil {
@@ -303,7 +303,7 @@ type BlockOverview struct {
 func (m *BlockOverview) Reset()                    { *m = BlockOverview{} }
 func (m *BlockOverview) String() string            { return proto.CompactTextString(m) }
 func (*BlockOverview) ProtoMessage()               {}
-func (*BlockOverview) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{7} }
+func (*BlockOverview) Descriptor() ([]byte, []int) { return fileDescriptor2, []int{7} }
 
 func (m *BlockOverview) GetHead() *Header {
 	if m != nil {
@@ -339,7 +339,7 @@ type BlockDetail struct {
 func (m *BlockDetail) Reset()                    { *m = BlockDetail{} }
 func (m *BlockDetail) String() string            { return proto.CompactTextString(m) }
 func (*BlockDetail) ProtoMessage()               {}
-func (*BlockDetail) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{8} }
+func (*BlockDetail) Descriptor() ([]byte, []int) { return fileDescriptor2, []int{8} }
 
 func (m *BlockDetail) GetBlock() *Block {
 	if m != nil {
@@ -376,7 +376,7 @@ type Receipts struct {
 func (m *Receipts) Reset()                    { *m = Receipts{} }
 func (m *Receipts) String() string            { return proto.CompactTextString(m) }
 func (*Receipts) ProtoMessage()               {}
-func (*Receipts) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{9} }
+func (*Receipts) Descriptor() ([]byte, []int) { return fileDescriptor2, []int{9} }
 
 func (m *Receipts) GetReceipts() []*Receipt {
 	if m != nil {
@@ -392,7 +392,7 @@ type PrivacyKV struct {
 func (m *PrivacyKV) Reset()                    { *m = PrivacyKV{} }
 func (m *PrivacyKV) String() string            { return proto.CompactTextString(m) }
 func (*PrivacyKV) ProtoMessage()               {}
-func (*PrivacyKV) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{10} }
+func (*PrivacyKV) Descriptor() ([]byte, []int) { return fileDescriptor2, []int{10} }
 
 func (m *PrivacyKV) GetPrivacyKVToken() []*PrivacyKVToken {
 	if m != nil {
@@ -411,7 +411,7 @@ type PrivacyKVToken struct {
 func (m *PrivacyKVToken) Reset()                    { *m = PrivacyKVToken{} }
 func (m *PrivacyKVToken) String() string            { return proto.CompactTextString(m) }
 func (*PrivacyKVToken) ProtoMessage()               {}
-func (*PrivacyKVToken) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{11} }
+func (*PrivacyKVToken) Descriptor() ([]byte, []int) { return fileDescriptor2, []int{11} }
 
 func (m *PrivacyKVToken) GetToken() string {
 	if m != nil {
@@ -449,7 +449,7 @@ type ReceiptsAndPrivacyKV struct {
 func (m *ReceiptsAndPrivacyKV) Reset()                    { *m = ReceiptsAndPrivacyKV{} }
 func (m *ReceiptsAndPrivacyKV) String() string            { return proto.CompactTextString(m) }
 func (*ReceiptsAndPrivacyKV) ProtoMessage()               {}
-func (*ReceiptsAndPrivacyKV) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{12} }
+func (*ReceiptsAndPrivacyKV) Descriptor() ([]byte, []int) { return fileDescriptor2, []int{12} }
 
 func (m *ReceiptsAndPrivacyKV) GetReceipts() *Receipts {
 	if m != nil {
@@ -472,7 +472,7 @@ type ReceiptCheckTxList struct {
 func (m *ReceiptCheckTxList) Reset()                    { *m = ReceiptCheckTxList{} }
 func (m *ReceiptCheckTxList) String() string            { return proto.CompactTextString(m) }
 func (*ReceiptCheckTxList) ProtoMessage()               {}
-func (*ReceiptCheckTxList) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{13} }
+func (*ReceiptCheckTxList) Descriptor() ([]byte, []int) { return fileDescriptor2, []int{13} }
 
 func (m *ReceiptCheckTxList) GetErrs() []string {
 	if m != nil {
@@ -494,7 +494,7 @@ type ChainStatus struct {
 func (m *ChainStatus) Reset()                    { *m = ChainStatus{} }
 func (m *ChainStatus) String() string            { return proto.CompactTextString(m) }
 func (*ChainStatus) ProtoMessage()               {}
-func (*ChainStatus) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{14} }
+func (*ChainStatus) Descriptor() ([]byte, []int) { return fileDescriptor2, []int{14} }
 
 func (m *ChainStatus) GetCurrentHeight() int64 {
 	if m != nil {
@@ -532,7 +532,7 @@ type ReqBlocks struct {
 func (m *ReqBlocks) Reset()                    { *m = ReqBlocks{} }
 func (m *ReqBlocks) String() string            { return proto.CompactTextString(m) }
 func (*ReqBlocks) ProtoMessage()               {}
-func (*ReqBlocks) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{15} }
+func (*ReqBlocks) Descriptor() ([]byte, []int) { return fileDescriptor2, []int{15} }
 
 func (m *ReqBlocks) GetStart() int64 {
 	if m != nil {
@@ -569,7 +569,7 @@ type MempoolSize struct {
 func (m *MempoolSize) Reset()                    { *m = MempoolSize{} }
 func (m *MempoolSize) String() string            { return proto.CompactTextString(m) }
 func (*MempoolSize) ProtoMessage()               {}
-func (*MempoolSize) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{16} }
+func (*MempoolSize) Descriptor() ([]byte, []int) { return fileDescriptor2, []int{16} }
 
 func (m *MempoolSize) GetSize() int64 {
 	if m != nil {
@@ -585,7 +585,7 @@ type ReplyBlockHeight struct {
 func (m *ReplyBlockHeight) Reset()                    { *m = ReplyBlockHeight{} }
 func (m *ReplyBlockHeight) String() string            { return proto.CompactTextString(m) }
 func (*ReplyBlockHeight) ProtoMessage()               {}
-func (*ReplyBlockHeight) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{17} }
+func (*ReplyBlockHeight) Descriptor() ([]byte, []int) { return fileDescriptor2, []int{17} }
 
 func (m *ReplyBlockHeight) GetHeight() int64 {
 	if m != nil {
@@ -605,7 +605,7 @@ type BlockBody struct {
 func (m *BlockBody) Reset()                    { *m = BlockBody{} }
 func (m *BlockBody) String() string            { return proto.CompactTextString(m) }
 func (*BlockBody) ProtoMessage()               {}
-func (*BlockBody) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{18} }
+func (*BlockBody) Descriptor() ([]byte, []int) { return fileDescriptor2, []int{18} }
 
 func (m *BlockBody) GetTxs() []*Transaction {
 	if m != nil {
@@ -629,7 +629,7 @@ type IsCaughtUp struct {
 func (m *IsCaughtUp) Reset()                    { *m = IsCaughtUp{} }
 func (m *IsCaughtUp) String() string            { return proto.CompactTextString(m) }
 func (*IsCaughtUp) ProtoMessage()               {}
-func (*IsCaughtUp) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{19} }
+func (*IsCaughtUp) Descriptor() ([]byte, []int) { return fileDescriptor2, []int{19} }
 
 func (m *IsCaughtUp) GetIscaughtup() bool {
 	if m != nil {
@@ -646,7 +646,7 @@ type IsNtpClockSync struct {
 func (m *IsNtpClockSync) Reset()                    { *m = IsNtpClockSync{} }
 func (m *IsNtpClockSync) String() string            { return proto.CompactTextString(m) }
 func (*IsNtpClockSync) ProtoMessage()               {}
-func (*IsNtpClockSync) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{20} }
+func (*IsNtpClockSync) Descriptor() ([]byte, []int) { return fileDescriptor2, []int{20} }
 
 func (m *IsNtpClockSync) GetIsntpclocksync() bool {
 	if m != nil {
@@ -665,7 +665,7 @@ type BlockChainQuery struct {
 func (m *BlockChainQuery) Reset()                    { *m = BlockChainQuery{} }
 func (m *BlockChainQuery) String() string            { return proto.CompactTextString(m) }
 func (*BlockChainQuery) ProtoMessage()               {}
-func (*BlockChainQuery) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{21} }
+func (*BlockChainQuery) Descriptor() ([]byte, []int) { return fileDescriptor2, []int{21} }
 
 func (m *BlockChainQuery) GetDriver() string {
 	if m != nil {
@@ -704,7 +704,7 @@ type BlockSequence struct {
 func (m *BlockSequence) Reset()                    { *m = BlockSequence{} }
 func (m *BlockSequence) String() string            { return proto.CompactTextString(m) }
 func (*BlockSequence) ProtoMessage()               {}
-func (*BlockSequence) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{22} }
+func (*BlockSequence) Descriptor() ([]byte, []int) { return fileDescriptor2, []int{22} }
 
 func (m *BlockSequence) GetHash() []byte {
 	if m != nil {
@@ -728,7 +728,7 @@ type BlockSequences struct {
 func (m *BlockSequences) Reset()                    { *m = BlockSequences{} }
 func (m *BlockSequences) String() string            { return proto.CompactTextString(m) }
 func (*BlockSequences) ProtoMessage()               {}
-func (*BlockSequences) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{23} }
+func (*BlockSequences) Descriptor() ([]byte, []int) { return fileDescriptor2, []int{23} }
 
 func (m *BlockSequences) GetItems() []*BlockSequence {
 	if m != nil {
@@ -748,7 +748,7 @@ type ParaChainBlockDetail struct {
 func (m *ParaChainBlockDetail) Reset()                    { *m = ParaChainBlockDetail{} }
 func (m *ParaChainBlockDetail) String() string            { return proto.CompactTextString(m) }
 func (*ParaChainBlockDetail) ProtoMessage()               {}
-func (*ParaChainBlockDetail) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{24} }
+func (*ParaChainBlockDetail) Descriptor() ([]byte, []int) { return fileDescriptor2, []int{24} }
 
 func (m *ParaChainBlockDetail) GetBlockdetail() *BlockDetail {
 	if m != nil {
@@ -792,9 +792,9 @@ func init() {
 	proto.RegisterType((*ParaChainBlockDetail)(nil), "types.ParaChainBlockDetail")
 }
 
-func init() { proto.RegisterFile("blockchain.proto", fileDescriptor1) }
+func init() { proto.RegisterFile("blockchain.proto", fileDescriptor2) }
 
-var fileDescriptor1 = []byte{
+var fileDescriptor2 = []byte{
 	// 970 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xd4, 0x56, 0xcd, 0x8f, 0xdb, 0x44,
 	0x14, 0x97, 0xf3, 0xb1, 0x9b, 0xbc, 0x64, 0xd3, 0x30, 0x0a, 0xc8, 0xaa, 0x10, 0xa4, 0x43, 0x85,
