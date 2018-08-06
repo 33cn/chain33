@@ -97,5 +97,5 @@ message ReceiptGame {
     int32  status = 2;
     //记录上一次状态
     int32  prevStatus = 4;
-    string addr = 5;
+    string addr       = 5;
 }
