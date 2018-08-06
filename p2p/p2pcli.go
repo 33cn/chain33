@@ -65,7 +65,7 @@ func (m *Cli) BroadCastTx(msg queue.Message, taskindex int64) {
 		atomic.AddInt32(&m.network.txCapcity, 1)
 		log.Debug("BroadCastTx", "task complete:", taskindex)
 	}()
-	pub.FIFOPub(&pb.P2PTx{Tx: msg.GetData().(*pb.Transaction)}, "tx")
+	m.network.node.pubsub.FIFOPub(&pb.P2PTx{Tx: msg.GetData().(*pb.Transaction)}, "tx")
 	msg.Reply(m.network.client.NewMessage("mempool", pb.EventReply, pb.Reply{true, []byte("ok")}))
 
 }
@@ -149,7 +149,7 @@ func (m *Cli) GetAddr(peer *Peer) ([]string, error) {
 	return resp.Addrlist, nil
 }
 func (m *Cli) GetInPeersNum(peer *Peer) (int, error) {
-	ping, err := P2pComm.NewPingData(*peer.nodeInfo)
+	ping, err := P2pComm.NewPingData(peer.node.nodeInfo)
 	if err != nil {
 		return 0, err
 	}
@@ -178,7 +178,7 @@ func (m *Cli) GetAddrList(peer *Peer) (map[string]int64, error) {
 		return addrlist, err
 	}
 	//获取本地高度
-	client := (*peer.nodeInfo).client
+	client := peer.node.nodeInfo.client
 	msg := client.NewMessage("blockchain", pb.EventGetLastHeader, nil)
 	err = client.SendTimeout(msg, true, time.Second*10)
 	if err != nil {
@@ -531,8 +531,7 @@ func (m *Cli) BlockBroadcast(msg queue.Message, taskindex int64) {
 		<-m.network.otherFactory
 		log.Debug("BlockBroadcast", "task complete:", taskindex)
 	}()
-	pub.FIFOPub(&pb.P2PBlock{Block: msg.GetData().(*pb.Block)}, "block")
-
+	m.network.node.pubsub.FIFOPub(&pb.P2PBlock{Block: msg.GetData().(*pb.Block)}, "block")
 }
 
 func (m *Cli) GetNetInfo(msg queue.Message, taskindex int64) {

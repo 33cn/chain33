@@ -18,6 +18,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/executor"
 	"gitlab.33.cn/chain33/chain33/mempool"
+	"gitlab.33.cn/chain33/chain33/p2p"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/store"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -47,7 +48,7 @@ func init() {
 
 // 执行： go test -cover
 func TestTicket(t *testing.T) {
-	q, chain, mem, s, cs, w, qApi := initEnvTicket()
+	q, chain, mem, s, cs, w, qApi, p2p := initEnvTicket()
 
 	defer chain.Close()
 	defer s.Close()
@@ -56,6 +57,7 @@ func TestTicket(t *testing.T) {
 	defer w.Close()
 	defer qApi.Close()
 	defer q.Close()
+	defer p2p.Close()
 
 	for {
 		header, err := qApi.GetLastHeader()
@@ -88,7 +90,7 @@ func TestTicket(t *testing.T) {
 	}
 }
 
-func initEnvTicket() (queue.Queue, *blockchain.BlockChain, *mempool.Mempool, queue.Module, *Client, *wallet.Wallet, client.QueueProtocolAPI) {
+func initEnvTicket() (queue.Queue, *blockchain.BlockChain, *mempool.Mempool, queue.Module, *Client, *wallet.Wallet, client.QueueProtocolAPI, queue.Module) {
 	q := queue.New("channel")
 	flag.Parse()
 	cfg := config.InitCfg("../../../cmd/chain33/chain33.test.toml")
@@ -117,9 +119,12 @@ func initEnvTicket() (queue.Queue, *blockchain.BlockChain, *mempool.Mempool, que
 	w := wallet.New(cfg.Wallet)
 	w.SetQueueClient(q.Client())
 
+	network := p2p.New(cfg.P2P)
+	network.SetQueueClient(q.Client())
+
 	qApi, _ := client.New(q.Client(), nil)
 
-	return q, chain, mem, s, cs, w, qApi
+	return q, chain, mem, s, cs, w, qApi, network
 }
 
 // 获取票的列表
