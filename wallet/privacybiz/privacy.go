@@ -42,6 +42,7 @@ func (biz *walletPrivacyBiz) Init(wbiz walletbiz.WalletBiz) {
 	//biz.funcmap.Register(types.EventDelBlock, biz.onDeleteBlock)
 	//
 	biz.funcmap.Register(types.EventShowPrivacyPK, biz.onShowPrivacyPK)
+	biz.funcmap.Register(types.EventShowPrivacyAccountSpend, biz.onShowPrivacyAccountSpend)
 	//biz.funcmap.Register(types.EventPublic2privacy, biz.onPublic2Privacy)
 	//biz.funcmap.Register(types.EventPrivacy2privacy, biz.onPrivacy2Privacy)
 	//biz.funcmap.Register(types.EventPrivacy2public, biz.onPrivacy2Public)
@@ -75,6 +76,25 @@ func (biz *walletPrivacyBiz) onAddBlock(msg *queue.Message) (string, int64, inte
 
 func (biz *walletPrivacyBiz) onDeleteBlock(msg *queue.Message) (string, int64, interface{}, error) {
 	return "rpc", 0, nil, nil
+}
+
+func (biz *walletPrivacyBiz) onShowPrivacyAccountSpend(msg *queue.Message) (string, int64, interface{}, error) {
+	topic := "rpc"
+	retty := int64(types.EventReplyShowPrivacyAccountSpend)
+
+	req, ok := msg.Data.(*types.ReqPrivBal4AddrToken)
+	if !ok {
+		bizlog.Error("walletPrivacyBiz", "Invalid data type.", ok)
+		return topic, retty, nil, types.ErrInvalidParam
+	}
+
+	biz.walletBiz.GetMutex().Lock()
+	defer biz.walletBiz.GetMutex().Unlock()
+	reply, err := biz.showPrivacyAccountsSpend(req)
+	if err != nil {
+		bizlog.Error("showPrivacyAccountsSpend", "err", err.Error())
+	}
+	return topic, retty, reply, err
 }
 
 func (biz *walletPrivacyBiz) onShowPrivacyPK(msg *queue.Message) (string, int64, interface{}, error) {
@@ -1296,5 +1316,19 @@ func (biz *walletPrivacyBiz) getPrivacyTxDetailByHashs(ReqHashes *types.ReqHashe
 		privacyInfo, _ = biz.getPrivacyKeyPairs()
 	}
 	biz.store.selectPrivacyTransactionToWallet(TxDetails, privacyInfo)
+}
 
+func (biz *walletPrivacyBiz) showPrivacyAccountsSpend(req *types.ReqPrivBal4AddrToken) (*types.UTXOHaveTxHashs, error) {
+	if ok, err := biz.isRescanUtxosFlagScaning(); ok {
+		return nil, err
+	}
+
+	addr := req.GetAddr()
+	token := req.GetToken()
+	utxoHaveTxHashs, err := biz.store.listSpendUTXOs(token, addr)
+	if err != nil {
+		return nil, err
+	}
+
+	return utxoHaveTxHashs, nil
 }
