@@ -228,10 +228,10 @@ func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, er
 	// 主链   （1）Bn1        （3） rollback-Bn1   （4） commit-done in Bn2
 	// 平行链         （2）commit                                 （5） 将得到一个错误的块
 	// 所以有必要做这个检测
-	blockHash, err := getBlockHash(a.api, commit.Status.Height)
+	blockHash, err := getBlockHash(a.api, commit.Status.MainBlockHeight)
 	if err != nil {
 		clog.Error("paracross.Commit getBlockHash", "err", err,
-			"commit tx Main.height", commit.Status.Height)
+			"commit tx Main.height", commit.Status.MainBlockHeight)
 		return nil, err
 	}
 	if !bytes.Equal(blockHash.Hash, commit.Status.MainBlockHash) {
