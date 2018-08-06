@@ -258,15 +258,7 @@ func (wallet *Wallet) ProcRecvMsg() {
 		case types.EventFatalFailure: //定时查询是否有致命性故障产生
 			fatalFailure := wallet.getFatalFailure()
 			msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyFatalFailure, &types.Int32{Data: fatalFailure}))
-		case types.EventShowPrivacyAccountSpend:
-			reqPrivBal4AddrToken := msg.Data.(*types.ReqPrivBal4AddrToken)
-			UTXOs, err := wallet.showPrivacyAccountsSpend(reqPrivBal4AddrToken)
-			if err != nil {
-				walletlog.Error("showPrivacyAccountSpend", "err", err.Error())
-				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyShowPrivacyAccountSpend, err))
-			} else {
-				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyShowPrivacyAccountSpend, UTXOs))
-			}
+
 		case types.EventPublic2privacy:
 			reqPub2Pri := msg.Data.(*types.ReqPub2Pri)
 			replyHash, err := wallet.procPublic2PrivacyV2(reqPub2Pri)
