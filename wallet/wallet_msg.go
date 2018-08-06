@@ -259,35 +259,6 @@ func (wallet *Wallet) ProcRecvMsg() {
 			fatalFailure := wallet.getFatalFailure()
 			msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyFatalFailure, &types.Int32{Data: fatalFailure}))
 
-		case types.EventPublic2privacy:
-			reqPub2Pri := msg.Data.(*types.ReqPub2Pri)
-			replyHash, err := wallet.procPublic2PrivacyV2(reqPub2Pri)
-			var reply types.Reply
-			if err != nil {
-				reply.IsOk = false
-				walletlog.Error("procPublic2Privacy", "err", err.Error())
-				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyPublic2privacy, err))
-			} else {
-				reply.IsOk = true
-				reply.Msg = replyHash.Hash
-				walletlog.Info("procPublic2Privacy", "tx hash", common.Bytes2Hex(replyHash.Hash), "result", "success")
-				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyPublic2privacy, &reply))
-			}
-
-		case types.EventPrivacy2privacy:
-			reqPri2Pri := msg.Data.(*types.ReqPri2Pri)
-			replyHash, err := wallet.procPrivacy2PrivacyV2(reqPri2Pri)
-			var reply types.Reply
-			if err != nil {
-				reply.IsOk = false
-				walletlog.Error("procPrivacy2Privacy", "err", err.Error())
-				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyPrivacy2privacy, err))
-			} else {
-				reply.IsOk = true
-				reply.Msg = replyHash.Hash
-				walletlog.Info("procPrivacy2Privacy", "tx hash", common.Bytes2Hex(replyHash.Hash), "result", "success")
-				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyPrivacy2privacy, &reply))
-			}
 		case types.EventPrivacy2public:
 			reqPri2Pub := msg.Data.(*types.ReqPri2Pub)
 			replyHash, err := wallet.procPrivacy2PublicV2(reqPri2Pub)
