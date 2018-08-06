@@ -40,7 +40,7 @@ func StatCmd() *cobra.Command {
 func GetTotalCoinsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "total_coins",
-		Short: "Get total amount of a token",
+		Short: "Get total amount of a token (default: bty of current height)",
 		Run:   totalCoins,
 	}
 	addTotalCoinsCmdFlags(cmd)
@@ -48,12 +48,9 @@ func GetTotalCoinsCmd() *cobra.Command {
 }
 
 func addTotalCoinsCmdFlags(cmd *cobra.Command) {
-	cmd.Flags().StringP("symbol", "s", "", "token symbol")
+	cmd.Flags().StringP("symbol", "s", "bty", "token symbol")
 	cmd.Flags().StringP("actual", "a", "", "actual statistics, any string")
-	cmd.MarkFlagRequired("symbol")
-
-	cmd.Flags().Int64P("height", "t", 0, "block height")
-	cmd.MarkFlagRequired("height")
+	cmd.Flags().Int64P("height", "t", -1, `block height, "-1" stands for current height`)
 }
 
 func totalCoins(cmd *cobra.Command, args []string) {
@@ -61,6 +58,21 @@ func totalCoins(cmd *cobra.Command, args []string) {
 	symbol, _ := cmd.Flags().GetString("symbol")
 	height, _ := cmd.Flags().GetInt64("height")
 	actual, _ := cmd.Flags().GetString("actual")
+
+	if height == -1 {
+		rpc, err := jsonrpc.NewJSONClient(rpcAddr)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		var res jsonrpc.Header
+		err = rpc.Call("Chain33.GetLastHeader", nil, &res)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		height = res.Height
+	}
 
 	// 获取高度statehash
 	params := jsonrpc.BlockParam{
