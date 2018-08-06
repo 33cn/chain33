@@ -2,25 +2,26 @@ package privacybiz
 
 import (
 	"bytes"
+	"errors"
 	"sort"
 	"sync/atomic"
 	"unsafe"
 
-	"gitlab.33.cn/chain33/chain33/queue"
-	"gitlab.33.cn/chain33/chain33/types"
-
-	"errors"
-
-	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/crypto/privacy"
+	"gitlab.33.cn/chain33/chain33/queue"
+	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/wallet/walletbiz"
+
+	"github.com/inconshreveable/log15"
 )
 
 var (
 	bizlog = log15.New("module", "privacybiz")
+
+	MaxTxHashsPerTime int64 = 100
 )
 
 type walletPrivacyBiz struct {
@@ -48,7 +49,7 @@ func (biz *walletPrivacyBiz) Init(wbiz walletbiz.WalletBiz) {
 	biz.funcmap.Register(types.EventCreateTransaction, biz.onCreateTransaction)
 	biz.funcmap.Register(types.EventPrivacyAccountInfo, biz.onPrivacyAccountInfo)
 	biz.funcmap.Register(types.EventPrivacyTransactionList, biz.onPrivacyTransactionList)
-	//biz.funcmap.Register(types.EventRescanUtxos, biz.onRescanUtxos)
+	biz.funcmap.Register(types.EventRescanUtxos, biz.onRescanUtxos)
 	biz.funcmap.Register(types.EventEnablePrivacy, biz.onEnablePrivacy)
 }
 
@@ -140,10 +141,13 @@ func (biz *walletPrivacyBiz) onCreateTransaction(msg *queue.Message) (string, in
 		return topic, retty, nil, err
 	}
 	if ok, err := biz.isRescanUtxosFlagScaning(); ok {
+		bizlog.Error("createTransaction", "isRescanUtxosFlagScaning cause error.", err)
 		return topic, retty, nil, err
 	}
 	if !biz.checkAmountValid(req.Amount) {
-		return topic, retty, nil, types.ErrAmount
+		err = types.ErrAmount
+		bizlog.Error("createTransaction", "isRescanUtxosFlagScaning cause error.", err)
+		return topic, retty, nil, err
 	}
 
 	biz.walletBiz.GetMutex().Lock()
@@ -210,7 +214,21 @@ func (biz *walletPrivacyBiz) onPrivacyTransactionList(msg *queue.Message) (strin
 }
 
 func (biz *walletPrivacyBiz) onRescanUtxos(msg *queue.Message) (string, int64, interface{}, error) {
-	return "rpc", 0, nil, nil
+	topic := "rpc"
+	retty := int64(types.EventReplyRescanUtxos)
+	req, ok := msg.Data.(*types.ReqRescanUtxos)
+	if !ok {
+		bizlog.Error("walletPrivacyBiz", "Invalid data type.", ok)
+		return topic, retty, nil, types.ErrInvalidParam
+	}
+	biz.walletBiz.GetMutex().Lock()
+	defer biz.walletBiz.GetMutex().Unlock()
+
+	reply, err := biz.rescanUTXOs(req)
+	if err != nil {
+		bizlog.Error("rescanUTXOs", "err", err.Error())
+	}
+	return topic, retty, reply, err
 }
 
 func (biz *walletPrivacyBiz) onEnablePrivacy(msg *queue.Message) (string, int64, interface{}, error) {
@@ -1095,4 +1113,188 @@ func (biz *walletPrivacyBiz) saveFTXOInfo(tx *types.Transaction, token, sender, 
 	biz.store.moveUTXO2FTXO(tx, token, sender, txhash, selectedUtxos)
 	//TODO:需要加入超时处理，需要将此处的txhash写入到数据库中，以免钱包瞬间奔溃后没有对该笔隐私交易的记录，
 	//TODO:然后当该交易得到执行之后，没法将FTXO转化为STXO，added by hezhengjun on 2018.6.5
+}
+
+func (biz *walletPrivacyBiz) getPrivacyKeyPairs() ([]addrAndprivacy, error) {
+	//通过Account前缀查找获取钱包中的所有账户信息
+	WalletAccStores, err := biz.store.getAccountByPrefix("Account")
+	if err != nil || len(WalletAccStores) == 0 {
+		bizlog.Info("getPrivacyKeyPairs", "store getAccountByPrefix error", err)
+		return nil, err
+	}
+
+	var infoPriRes []addrAndprivacy
+	for _, AccStore := range WalletAccStores {
+		if len(AccStore.Addr) != 0 {
+			if privacyInfo, err := biz.getPrivacykeyPair(AccStore.Addr); err == nil {
+				var priInfo addrAndprivacy
+				priInfo.Addr = &AccStore.Addr
+				priInfo.PrivacyKeyPair = privacyInfo
+				infoPriRes = append(infoPriRes, priInfo)
+			}
+		}
+	}
+
+	if 0 == len(infoPriRes) {
+		return nil, types.ErrPrivacyNotEnabled
+	}
+
+	return infoPriRes, nil
+
+}
+
+func (biz *walletPrivacyBiz) rescanUTXOs(req *types.ReqRescanUtxos) (*types.RepRescanUtxos, error) {
+	if req.Flag != 0 {
+		return biz.store.getRescanUtxosFlag4Addr(req)
+	}
+	// Rescan请求
+	var repRescanUtxos types.RepRescanUtxos
+	repRescanUtxos.Flag = req.Flag
+
+	if biz.walletBiz.IsWalletLocked() {
+		return nil, types.ErrWalletIsLocked
+	}
+	if ok, err := biz.isRescanUtxosFlagScaning(); ok {
+		return nil, err
+	}
+	_, err := biz.getPrivacyKeyPairs()
+	if err != nil {
+		return nil, err
+	}
+	atomic.StoreInt32(&biz.rescanUTXOflag, types.UtxoFlagScaning)
+	biz.walletBiz.AddWaitGroup(1)
+	go biz.rescanReqUtxosByAddr(req.Addrs)
+	return &repRescanUtxos, nil
+}
+
+//从blockchain模块同步addr参与的所有交易详细信息
+func (biz *walletPrivacyBiz) rescanReqUtxosByAddr(addrs []string) {
+	defer biz.walletBiz.WaitGroupDone()
+	bizlog.Debug("RescanAllUTXO begin!")
+	biz.reqUtxosByAddr(addrs)
+	bizlog.Debug("RescanAllUTXO sucess!")
+}
+
+func (biz *walletPrivacyBiz) reqUtxosByAddr(addrs []string) {
+	// 更新数据库存储状态
+	var storeAddrs []string
+	if len(addrs) == 0 {
+		WalletAccStores, err := biz.store.getAccountByPrefix("Account")
+		if err != nil || len(WalletAccStores) == 0 {
+			bizlog.Info("reqUtxosByAddr", "getAccountByPrefix error", err)
+			return
+		}
+		for _, WalletAccStore := range WalletAccStores {
+			storeAddrs = append(storeAddrs, WalletAccStore.Addr)
+		}
+	} else {
+		storeAddrs = append(storeAddrs, addrs...)
+	}
+	biz.store.saveREscanUTXOsAddresses(storeAddrs)
+
+	reqAddr := address.ExecAddress(types.PrivacyX)
+	var txInfo types.ReplyTxInfo
+	i := 0
+	for {
+		select {
+		case <-biz.walletBiz.GetWalletDone():
+			return
+		default:
+		}
+
+		//首先从execs模块获取地址对应的所有UTXOs,
+		// 1 先获取隐私合约地址相关交易
+		var ReqAddr types.ReqAddr
+		ReqAddr.Addr = reqAddr
+		ReqAddr.Flag = 0
+		ReqAddr.Direction = 0
+		ReqAddr.Count = int32(MaxTxHashsPerTime)
+		if i == 0 {
+			ReqAddr.Height = -1
+			ReqAddr.Index = 0
+		} else {
+			ReqAddr.Height = txInfo.GetHeight()
+			ReqAddr.Index = txInfo.GetIndex()
+			if types.ForkV21Privacy > ReqAddr.Height { // 小于隐私分叉高度不做扫描
+				break
+			}
+		}
+		i++
+
+		//请求交易信息
+		msg, err := biz.walletBiz.GetAPI().Query(&types.Query{
+			Execer:   types.ExecerPrivacy,
+			FuncName: "GetTxsByAddr",
+			Payload:  types.Encode(&ReqAddr),
+		})
+		if err != nil {
+			bizlog.Error("reqUtxosByAddr", "GetTxsByAddr error", err, "addr", reqAddr)
+			break
+		}
+		ReplyTxInfos := (*msg).(*types.ReplyTxInfos)
+		if ReplyTxInfos == nil {
+			bizlog.Info("privacy ReqTxInfosByAddr ReplyTxInfos is nil")
+			break
+		}
+		txcount := len(ReplyTxInfos.TxInfos)
+
+		var ReqHashes types.ReqHashes
+		ReqHashes.Hashes = make([][]byte, len(ReplyTxInfos.TxInfos))
+		for index, ReplyTxInfo := range ReplyTxInfos.TxInfos {
+			ReqHashes.Hashes[index] = ReplyTxInfo.GetHash()
+		}
+
+		if txcount > 0 {
+			txInfo.Hash = ReplyTxInfos.TxInfos[txcount-1].GetHash()
+			txInfo.Height = ReplyTxInfos.TxInfos[txcount-1].GetHeight()
+			txInfo.Index = ReplyTxInfos.TxInfos[txcount-1].GetIndex()
+		}
+
+		biz.getPrivacyTxDetailByHashs(&ReqHashes, addrs)
+		if txcount < int(MaxTxHashsPerTime) {
+			break
+		}
+	}
+	// 扫描完毕
+	atomic.StoreInt32(&biz.rescanUTXOflag, types.UtxoFlagNoScan)
+	// 删除privacyInput
+	biz.deleteScanPrivacyInputUtxo()
+	biz.store.saveREscanUTXOsAddresses(storeAddrs)
+}
+
+func (biz *walletPrivacyBiz) deleteScanPrivacyInputUtxo() {
+	MaxUtxosPerTime := 1000
+	for {
+		utxoGlobalIndexs := biz.store.setScanPrivacyInputUTXO(int32(MaxUtxosPerTime))
+		biz.store.updateScanInputUTXOs(utxoGlobalIndexs)
+		if len(utxoGlobalIndexs) < MaxUtxosPerTime {
+			break
+		}
+	}
+}
+
+func (biz *walletPrivacyBiz) getPrivacyTxDetailByHashs(ReqHashes *types.ReqHashes, addrs []string) {
+	//通过txhashs获取对应的txdetail
+	TxDetails, err := biz.walletBiz.GetAPI().GetTransactionByHash(ReqHashes)
+	if err != nil {
+		bizlog.Error("getPrivacyTxDetailByHashs", "GetTransactionByHash error", err)
+		return
+	}
+	var privacyInfo []addrAndprivacy
+	if len(addrs) > 0 {
+		for _, addr := range addrs {
+			if privacy, err := biz.getPrivacykeyPair(addr); err != nil {
+				priInfo := &addrAndprivacy{
+					Addr:           &addr,
+					PrivacyKeyPair: privacy,
+				}
+				privacyInfo = append(privacyInfo, *priInfo)
+			}
+
+		}
+	} else {
+		privacyInfo, _ = biz.getPrivacyKeyPairs()
+	}
+	biz.store.selectPrivacyTransactionToWallet(TxDetails, privacyInfo)
+
 }

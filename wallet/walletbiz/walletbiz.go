@@ -23,4 +23,5 @@ type WalletBiz interface {
 	IsWalletLocked() bool
 	GetBlockHeight() int64
 	GetRandom() *rand.Rand
+	GetWalletDone() chan struct{}
 }

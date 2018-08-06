@@ -1004,5 +1004,4 @@ func (q *QueueProtocol) BlockChainQuery(param *types.BlockChainQuery) (*types.Re
 	err = types.ErrTypeAsset
 	log.Error("BlockChainQuery", "Error", err.Error())
 	return nil, err
-
 }
