@@ -6,7 +6,6 @@ import (
 
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
-	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/queue"
 	qmocks "gitlab.33.cn/chain33/chain33/queue/mocks"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -26,7 +25,7 @@ func (s *suiteParaCommitMsg) SetupSuite() {
 	cfg := &types.Consensus{
 		ParaRemoteGrpcClient: "127.0.0.1:8106",
 		StartHeight:          345850,
-		ParaAccount:          "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt",
+		AuthAccount:          "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt",
 	}
 	s.para = New(cfg)
 	s.grpcCli = &typesmocks.GrpcserviceClient{}
@@ -110,17 +109,9 @@ func (s *suiteParaCommitMsg) mainBlockAdd() {
 		Nonce:   2,
 	}
 
-	data, err := common.FromHex(s.para.commitMsgClient.currentTx)
-	if err != nil {
-		plog.Error("mainBlockAdd targetTx", "tx", s.para.commitMsgClient.currentTx, "err", err.Error())
-		return
-	}
-	var decodeTx types.Transaction
-	types.Decode(data, &decodeTx)
-
 	block := &types.Block{
 		Height: 4,
-		Txs:    []*types.Transaction{&decodeTx, &tx2},
+		Txs:    []*types.Transaction{s.para.commitMsgClient.currentTx, &tx2},
 	}
 
 	recep1 := &types.ReceiptData{

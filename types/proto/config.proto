@@ -67,7 +67,7 @@ message Consensus {
     string paraRemoteGrpcClient = 22;
     int64  startHeight          = 23;
     int64  emptyBlockInterval   = 24;
-    string paraAccount          = 25;
+    string authAccount          = 25;
 }
 
 message Wallet {

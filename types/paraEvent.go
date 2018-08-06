@@ -1,5 +1,9 @@
 package types
 
+import (
+	"errors"
+)
+
 const (
 	ParaX = "paracross"
 )
@@ -7,6 +11,8 @@ const (
 var (
 	ExecerPara      = []byte(ParaX)
 	TxGroupMaxCount = 20
+
+	ErrTicketLocked = errors.New("ErrTicketLocked")
 )
 
 func GetTitle() string {
