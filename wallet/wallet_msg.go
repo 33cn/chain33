@@ -1,8 +1,7 @@
 package wallet
 
 import (
-	"gitlab.33.cn/chain33/chain33/common"
-	"gitlab.33.cn/chain33/chain33/types"
+		"gitlab.33.cn/chain33/chain33/types"
 )
 
 func (wallet *Wallet) ProcRecvMsg() {
@@ -258,21 +257,6 @@ func (wallet *Wallet) ProcRecvMsg() {
 		case types.EventFatalFailure: //定时查询是否有致命性故障产生
 			fatalFailure := wallet.getFatalFailure()
 			msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyFatalFailure, &types.Int32{Data: fatalFailure}))
-
-		case types.EventPrivacy2public:
-			reqPri2Pub := msg.Data.(*types.ReqPri2Pub)
-			replyHash, err := wallet.procPrivacy2PublicV2(reqPri2Pub)
-			var reply types.Reply
-			if err != nil {
-				reply.IsOk = false
-				walletlog.Error("procPrivacy2Public", "err", err.Error())
-				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyPrivacy2public, err))
-			} else {
-				reply.IsOk = true
-				reply.Msg = replyHash.Hash
-				walletlog.Info("procPrivacy2Public", "tx hash", common.Bytes2Hex(replyHash.Hash), "result", "success")
-				msg.Reply(wallet.client.NewMessage("rpc", types.EventReplyPrivacy2public, &reply))
-			}
 
 		default:
 			walletlog.Info("ProcRecvMsg unknow msg", "msgtype", msgtype)
