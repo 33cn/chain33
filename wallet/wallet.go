@@ -192,6 +192,10 @@ func (wallet *Wallet) GetRandom() *rand.Rand {
 	return wallet.random
 }
 
+func (wallet *Wallet) GetWalletDone() chan struct{} {
+	return wallet.done
+}
+
 func (wallet *Wallet) Close() {
 	//等待所有的子线程退出
 	//set close flag to isclosed == 1
