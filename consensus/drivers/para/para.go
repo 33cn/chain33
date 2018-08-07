@@ -454,12 +454,14 @@ func (client *ParaClient) WriteBlock(prev []byte, paraBlock *types.Block, mainBl
 
 	if resp.GetData().(*types.Reply).IsOk {
 		client.SetCurrentBlock(paraBlock)
-		if mainBlock != nil && client.authAccount != "" {
+		if client.authAccount != "" {
 			commitMsg := &CommitMsg{
-				initTxHashs:   oriTxHashs,
-				mainBlockHash: mainBlock.Hash(),
-				mainHeight:    mainBlock.Height,
-				blockDetail:   blockDetail,
+				initTxHashs: oriTxHashs,
+				blockDetail: blockDetail,
+			}
+			if mainBlock != nil {
+				commitMsg.mainBlockHash = mainBlock.Hash()
+				commitMsg.mainHeight = mainBlock.Height
 			}
 			client.commitMsgClient.onBlockAdded(commitMsg)
 
