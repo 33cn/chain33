@@ -71,6 +71,12 @@ func checkCommitInfo(commit *types.ParacrossCommitAction) error {
 	if commit.Status == nil {
 		return types.ErrInputPara
 	}
+	if commit.Status.Height == 0 {
+		if len(commit.Status.Title) == 0 || len(commit.Status.BlockHash) == 0 {
+			return types.ErrInputPara
+		}
+		return nil
+	}
 	if len(commit.Status.MainBlockHash) == 0 || len(commit.Status.Title) == 0 || commit.Status.Height < 0 ||
 		len(commit.Status.PreBlockHash) == 0 || len(commit.Status.BlockHash) == 0 ||
 		len(commit.Status.StateHash) == 0 || len(commit.Status.PreStateHash) == 0 {
@@ -195,6 +201,7 @@ func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, er
 	if err != nil {
 		return nil, err
 	}
+	clog.Debug("paracross.Commit check", "input", commit.Status)
 	if !validTitle(commit.Status.Title) {
 		return nil, types.ErrInvalidTitle
 	}
@@ -216,7 +223,7 @@ func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, er
 		return nil, err
 	}
 
-	if titleStatus.Height+1 == commit.Status.Height {
+	if titleStatus.Height+1 == commit.Status.Height && commit.Status.Height > 0 {
 		if !bytes.Equal(titleStatus.BlockHash, commit.Status.PreBlockHash) {
 			clog.Error("paracross.Commit", "check PreBlockHash", common.Bytes2Hex(titleStatus.BlockHash),
 				"commit tx", common.Bytes2Hex(commit.Status.PreBlockHash))
@@ -234,7 +241,7 @@ func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, er
 			"commit tx Main.height", commit.Status.MainBlockHeight)
 		return nil, err
 	}
-	if !bytes.Equal(blockHash.Hash, commit.Status.MainBlockHash) {
+	if !bytes.Equal(blockHash.Hash, commit.Status.MainBlockHash) && commit.Status.Height > 0 {
 		clog.Error("paracross.Commit blockHash not match", "db", common.Bytes2Hex(blockHash.Hash),
 			"commit tx", common.Bytes2Hex(commit.Status.MainBlockHash))
 		return nil, types.ErrBlockHashNoMatch
@@ -303,10 +310,13 @@ func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, er
 	titleStatus.Height = commit.Status.Height
 	titleStatus.BlockHash = commit.Status.BlockHash
 	saveTitle(a.db, calcTitleKey(commit.Status.Title), titleStatus)
+	clog.Info("paracross.Commit commit", "commitDone", titleStatus)
 
-	// TODO 触发交易组跨链交易
-	print(blockHash)
-	// TODO 需要生成本地db 用原交易组查询执行结果
-
+	if commit.Status.Height > 0 {
+		// 联调发现平行链创世区块的交易没有发送过来
+		// TODO 触发交易组跨链交易
+		print(blockHash)
+		// TODO 需要生成本地db 用原交易组查询执行结果
+	}
 	return receipt, nil
 }
