@@ -14,8 +14,11 @@ import (
 )
 
 const (
-	waitMainBlocks    = 2
-	consensusInterval = 16
+	waitMainBlocks = 2
+)
+
+var (
+	consensusInterval int = 16
 )
 
 type CommitMsg struct {
@@ -47,7 +50,7 @@ func (client *CommitMsgClient) handler() {
 	var sendingMsgs []*CommitMsg
 	var finishMsgs []*CommitMsg
 	readTick := time.Tick(time.Second)
-	consensusTick := time.Tick(time.Second * consensusInterval)
+	consensusTick := time.Tick(time.Second * time.Duration(consensusInterval))
 
 	sendMsgFail := make(chan sendMsgRst, 1)
 	consensusRst := make(chan *types.ParacrossStatus, 1)
@@ -132,6 +135,8 @@ func (client *CommitMsgClient) handler() {
 				if len(notifications) == 0 && rsp.Height == -1 {
 					isSync = true
 				}
+				//如果是节点重启过，未共识过的小于当前共识高度的区块，可以不参与共识
+				//如果是新节点，一直等到同步的区块达到了共识高度，才参与共识
 				for i, msg := range notifications {
 					if msg.blockDetail.Block.Height >= rsp.Height {
 						isSync = true
@@ -319,15 +324,13 @@ func getCommitMsgTx(msg *CommitMsg) (*types.Transaction, error) {
 	return tx, nil
 }
 
-func (client *CommitMsgClient) sendCommitMsgTx(tx *types.Transaction, sendFailCh chan sendMsgRst) {
+func (client *CommitMsgClient) sendCommitMsgTx(tx *types.Transaction, ch chan sendMsgRst) {
 	err := client.sendCommitMsgTxEx(tx)
 	if err != nil {
 		rst := sendMsgRst{err: err}
-		select {
-		case sendFailCh <- rst:
-		case <-client.quit:
-		}
-
+		//wait 1s re-send
+		time.Sleep(time.Second * 1)
+		ch <- rst
 	}
 }
 
