@@ -1,7 +1,7 @@
 package wallet
 
 import (
-		"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 func (wallet *Wallet) ProcRecvMsg() {
@@ -9,8 +9,26 @@ func (wallet *Wallet) ProcRecvMsg() {
 	for msg := range wallet.client.Recv() {
 		walletlog.Debug("wallet recv", "msg", types.GetEventName(int(msg.Ty)), "Id", msg.Id)
 
+		var err error
+		existed := false
+		funcExisted, topic, retty, reply, err := wallet.funcmap.Process(&msg)
 		for _, policy := range wallet.policyContainer {
-			policy.OnRecvQueueMsg(&msg)
+			existed, err = policy.OnRecvQueueMsg(&msg)
+			if existed && err != nil {
+				walletlog.Error("ProcRecvMsg", "OnRecvQueueMsg error ", err, "msg", types.GetEventName(int(msg.Ty)), "Id", msg.Id)
+			}
+		}
+
+		if !funcExisted && !existed {
+			walletlog.Error("ProcRecvMsg", "Do not support msg", types.GetEventName(int(msg.Ty)), "Id", msg.Id)
+			continue
+		}
+		if funcExisted {
+			if err != nil {
+				msg.Reply(wallet.api.NewMessage(topic, retty, err))
+			} else {
+				msg.Reply(wallet.api.NewMessage(topic, retty, reply))
+			}
 		}
 
 		msgtype := msg.Ty

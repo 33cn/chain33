@@ -8,7 +8,7 @@ type FuncMap struct {
 }
 
 func (qfm *FuncMap) Init() {
-	qfm.funcmap = make(map[int]msgcallback, 0)
+	qfm.funcmap = make(map[int]msgcallback)
 }
 
 func (qfm *FuncMap) Register(msgid int, fn msgcallback) {
