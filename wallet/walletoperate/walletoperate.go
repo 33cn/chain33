@@ -1,4 +1,4 @@
-package walletbiz
+package walletoperate
 
 import (
 	"sync"
@@ -9,7 +9,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/db"
 )
 
-type WalletBiz interface {
+type WalletOperate interface {
 	GetAPI() client.QueueProtocolAPI
 	GetMutex() *sync.Mutex
 	GetDBStore() db.DB
