@@ -50,7 +50,7 @@ func (client *CommitMsgClient) handler() {
 	consensusTick := time.Tick(time.Second * consensusInterval)
 
 	sendMsgFail := make(chan sendMsgRst, 1)
-	consensusRst := make(chan *types.ReceiptParacrossDone, 1)
+	consensusRst := make(chan *types.ParacrossStatus, 1)
 	priKeyRst := make(chan crypto.PrivKey, 1)
 	go client.fetchPrivacyKey(priKeyRst)
 
@@ -164,6 +164,7 @@ func (client *CommitMsgClient) handler() {
 	}
 }
 
+//only sync once, as main usually sync, here just need the first sync status after start up
 func (client *CommitMsgClient) mainSync() error {
 	req := &types.ReqNil{}
 	reply, err := client.paraClient.grpcClient.IsSync(context.Background(), req)
@@ -176,11 +177,12 @@ func (client *CommitMsgClient) mainSync() error {
 		return err
 	}
 
+	plog.Info("Paracross main sync succ")
 	return nil
 
 }
 
-func (client *CommitMsgClient) getConsensusHeight(isSync bool, consensusRst chan *types.ReceiptParacrossDone) {
+func (client *CommitMsgClient) getConsensusHeight(isSync bool, consensusRst chan *types.ParacrossStatus) {
 	if !isSync {
 		err := client.mainSync()
 		if err != nil {
@@ -197,22 +199,16 @@ func (client *CommitMsgClient) getConsensusHeight(isSync bool, consensusRst chan
 		Payload:  payLoad,
 	}
 	ret, err := client.paraClient.grpcClient.QueryChain(context.Background(), &query)
-	if err == types.ErrNotFound {
-		rst := &types.ReceiptParacrossDone{
-			Height: -1,
-		}
-		consensusRst <- rst
-		return
-	}
 	if err != nil {
-		plog.Info("Paracross err not nil", "err", err.Error())
+		plog.Error("getConsensusHeight ", "err", err.Error())
 		return
 	}
 	if !ret.GetIsOk() {
-		plog.Info("ParacrossGetTitleHeight", "error", ret.GetMsg())
+		plog.Info("getConsensusHeight not OK", "error", ret.GetMsg())
 		return
 	}
-	var result types.ReceiptParacrossDone
+
+	var result types.ParacrossStatus
 	types.Decode(ret.Msg, &result)
 	consensusRst <- &result
 
@@ -356,7 +352,6 @@ func checkTxInMainBlock(targetTx *types.Transaction, detail *types.BlockDetail) 
 
 	for i, tx := range detail.Block.Txs {
 		if bytes.Equal(targetHash, tx.Hash()) && detail.Receipts[i].Ty == types.ExecOk {
-			plog.Debug("checkTxInMainBlock found", "main height", detail.Block.Height)
 			return true, nil
 		}
 	}
