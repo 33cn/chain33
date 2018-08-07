@@ -1142,14 +1142,8 @@ func (wallet *Wallet) saveSeed(password string, seed string) (bool, error) {
 func (wallet *Wallet) ProcDumpPrivkey(addr string) (string, error) {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
-	var ok bool
-	var err error
-	if types.IsPara() {
-		ok, err = wallet.CheckTicketLockStatus()
-	} else {
-		ok, err = wallet.CheckWalletStatus()
-	}
 
+	ok, err := wallet.CheckWalletStatus()
 	if !ok {
 		return "", err
 	}
