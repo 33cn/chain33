@@ -78,7 +78,7 @@ func (biz *walletPrivacyBiz) onShowPrivacyAccountSpend(msg *queue.Message) (stri
 
 	req, ok := msg.Data.(*types.ReqPrivBal4AddrToken)
 	if !ok {
-		bizlog.Error("walletPrivacyBiz", "Invalid data type.", ok)
+		bizlog.Error("onShowPrivacyAccountSpend", "Invalid data type.", ok)
 		return topic, retty, nil, types.ErrInvalidParam
 	}
 
@@ -97,7 +97,7 @@ func (biz *walletPrivacyBiz) onShowPrivacyPK(msg *queue.Message) (string, int64,
 
 	req, ok := msg.Data.(*types.ReqStr)
 	if !ok {
-		bizlog.Error("walletPrivacyBiz", "Invalid data type.", ok)
+		bizlog.Error("onShowPrivacyPK", "Invalid data type.", ok)
 		return topic, retty, nil, types.ErrInvalidParam
 	}
 
@@ -116,7 +116,7 @@ func (biz *walletPrivacyBiz) onPublic2Privacy(msg *queue.Message) (string, int64
 
 	req, ok := msg.Data.(*types.ReqPub2Pri)
 	if !ok {
-		bizlog.Error("walletPrivacyBiz", "Invalid data type.", ok)
+		bizlog.Error("onPublic2Privacy", "Invalid data type.", ok)
 		return topic, retty, nil, types.ErrInvalidParam
 	}
 
