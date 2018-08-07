@@ -47,7 +47,7 @@ func (c *Cert) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, inde
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if action.Ty == types.CertActionNew {
 		//证书启用
 		historityCertdata := &types.HistoryCertStore{}
@@ -103,7 +103,7 @@ func (c *Cert) CheckTx(tx *types.Transaction, index int) error {
 
 	// 重启
 	if authority.Author.HistoryCertCache.CurHeight == -1 {
-		c.initHistoryByPrefix()
+		c.loadHistoryByPrefix()
 	}
 
 	// 当前区块<上次证书变更区块，cert回滚
@@ -122,9 +122,9 @@ func (c *Cert) CheckTx(tx *types.Transaction, index int) error {
 }
 
 /**
-系统重启，初始化auth模块的curHeight
+根据前缀查找证书变更记录，cert回滚、重启、同步用到
 */
-func (c *Cert) initHistoryByPrefix() error {
+func (c *Cert) loadHistoryByPrefix() error {
 	parm := &types.LocalDBList{[]byte("cert_"), nil, 0, 0}
 	result, err := c.DriverBase.GetApi().LocalList(parm)
 	if err != nil {
@@ -137,33 +137,11 @@ func (c *Cert) initHistoryByPrefix() error {
 		return nil
 	}
 
-	// 数据库有变更记录，nxt = -1为最近一次变更
+	// 寻找当前高度使用的证书区间
 	var historyData types.HistoryCertStore
 	for _, v := range result.Values {
 		types.Decode(v, &historyData)
-		if historyData.NxtHeight == -1 {
-			authority.Author.HistoryCertCache.CurHeight = historyData.CurHeigth
-			return nil
-		}
-	}
-
-	return types.ErrGetHistoryCertData
-}
-
-/**
-根据前缀查找证书变更记录，cert回滚用到
-*/
-func (c *Cert) loadHistoryByPrefix() error {
-	parm := &types.LocalDBList{[]byte("cert_"), nil, 0, 0}
-	result, err := c.DriverBase.GetApi().LocalList(parm)
-	if err != nil {
-		return err
-	}
-
-	var historyData types.HistoryCertStore
-	for _, v := range result.Values {
-		types.Decode(v, &historyData)
-		if historyData.CurHeigth < c.GetHeight() && historyData.NxtHeight >= c.GetHeight() {
+		if historyData.CurHeigth < c.GetHeight() && (historyData.NxtHeight >= c.GetHeight() || historyData.NxtHeight == -1) {
 			return authority.Author.ReloadCert(&historyData)
 		}
 	}
