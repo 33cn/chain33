@@ -14,7 +14,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
-	"gitlab.33.cn/chain33/chain33/common/crypto/privacy"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/wallet/bipwallet"
@@ -857,6 +856,12 @@ func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 	for index := 0; index < txlen; index++ {
 		tx := block.Block.Txs[index]
 
+		execer := string(tx.Execer)
+		// 执行钱包业务逻辑策略
+		if policy, ok := wallet.policyContainer[execer]; ok {
+			policy.OnAddBlockTx(block, tx, int32(index), newbatch)
+		}
+
 		//check whether the privacy tx belong to current wallet
 		if types.PrivacyX != string(tx.Execer) {
 			//获取from地址
@@ -900,7 +905,7 @@ func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 		} else {
 			//TODO:当前不会出现扣掉交易费，而实际的交易不执行的情况，因为如果交易费得不到保障，交易将不被执行
 			//确认隐私交易是否是ExecOk
-			wallet.AddDelPrivacyTxsFromBlock(tx, int32(index), block, newbatch, AddTx)
+			// wallet.AddDelPrivacyTxsFromBlock(tx, int32(index), block, newbatch, AddTx)
 			//wallet.onAddPrivacyTxFromBlock(tx, int32(index), block, newbatch)
 		}
 	}
@@ -911,6 +916,10 @@ func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 	}
 	if needflush {
 		//wallet.flushTicket()
+	}
+
+	for _, policy := range wallet.policyContainer {
+		policy.OnAddBlockFinish()
 	}
 }
 
@@ -988,6 +997,13 @@ func (wallet *Wallet) ProcWalletDelBlock(block *types.BlockDetail) {
 		blockheight := block.Block.Height*maxTxNumPerBlock + int64(index)
 		heightstr := fmt.Sprintf("%018d", blockheight)
 		tx := block.Block.Txs[index]
+
+		execer := string(tx.Execer)
+		// 执行钱包业务逻辑策略
+		if policy, ok := wallet.policyContainer[execer]; ok {
+			policy.OnDeleteBlockTx(block, tx, int32(index), newbatch)
+		}
+
 		if "ticket" == string(tx.Execer) {
 			receipt := block.Receipts[index]
 			if wallet.needFlushTicket(tx, receipt) {
@@ -1009,196 +1025,15 @@ func (wallet *Wallet) ProcWalletDelBlock(block *types.BlockDetail) {
 			if len(toaddr) != 0 && wallet.AddrInWallet(toaddr) {
 				newbatch.Delete(calcTxKey(heightstr))
 			}
-		} else {
-			walletlog.Info("ProcWalletDelBlock going to call AddDelPrivacyTxsFromBlock")
-			wallet.AddDelPrivacyTxsFromBlock(tx, int32(index), block, newbatch, DelTx)
-			//wallet.onDelPrivacyTxFromBlock(tx, int32(index), block, newbatch)
 		}
 	}
 	newbatch.Write()
 	if needflush {
 		wallet.flushTicket()
 	}
-}
 
-func (wallet *Wallet) AddDelPrivacyTxsFromBlock(tx *types.Transaction, index int32, block *types.BlockDetail, newbatch dbm.Batch, addDelType int32) {
-	txhashstr := common.Bytes2Hex(tx.Hash())
-	_, err := tx.Amount()
-	if err != nil {
-		walletlog.Error("PrivacyTrading AddDelPrivacyTxsFromBlock", "txhash", txhashstr, "tx.Amount() error", err)
-		return
-	}
-
-	txExecRes := block.Receipts[index].Ty
-
-	txhashInbytes := tx.Hash()
-	txhash := common.Bytes2Hex(txhashInbytes)
-	var privateAction types.PrivacyAction
-	if err := types.Decode(tx.GetPayload(), &privateAction); err != nil {
-		walletlog.Error("PrivacyTrading AddDelPrivacyTxsFromBlock", "txhash", txhashstr, "Decode tx.GetPayload() error", err)
-		return
-	}
-	walletlog.Info("PrivacyTrading AddDelPrivacyTxsFromBlock", "Enter AddDelPrivacyTxsFromBlock txhash", txhashstr, "index", index, "addDelType", addDelType)
-
-	privacyOutput := privateAction.GetOutput()
-	tokenname := privateAction.GetTokenName()
-	RpubKey := privacyOutput.GetRpubKeytx()
-
-	totalUtxosLeft := len(privacyOutput.Keyoutput)
-	//处理output
-	if privacyInfo, err := wallet.getPrivacyKeyPairsOfWallet(); err == nil {
-		matchedCount := 0
-		utxoProcessed := make([]bool, len(privacyOutput.Keyoutput))
-		for _, info := range privacyInfo {
-			privacykeyParirs := info.PrivacyKeyPair
-			matched4addr := false
-			var utxos []*types.UTXO
-			for indexoutput, output := range privacyOutput.Keyoutput {
-				if utxoProcessed[indexoutput] {
-					continue
-				}
-				priv, err := privacy.RecoverOnetimePriKey(RpubKey, privacykeyParirs.ViewPrivKey, privacykeyParirs.SpendPrivKey, int64(indexoutput))
-				if err == nil {
-					recoverPub := priv.PubKey().Bytes()[:]
-					if bytes.Equal(recoverPub, output.Onetimepubkey) {
-						//为了避免匹配成功之后不必要的验证计算，需要统计匹配次数
-						//因为目前只会往一个隐私账户转账，
-						//1.一般情况下，只会匹配一次，如果是往其他钱包账户转账，
-						//2.但是如果是往本钱包的其他地址转账，因为可能存在的change，会匹配2次
-						matched4addr = true
-						totalUtxosLeft--
-						utxoProcessed[indexoutput] = true
-						//只有当该交易执行成功才进行相应的UTXO的处理
-						if types.ExecOk == txExecRes {
-							if AddTx == addDelType {
-								info2store := &types.PrivacyDBStore{
-									Txhash:           txhashInbytes,
-									Tokenname:        tokenname,
-									Amount:           output.Amount,
-									OutIndex:         int32(indexoutput),
-									TxPublicKeyR:     RpubKey,
-									OnetimePublicKey: output.Onetimepubkey,
-									Owner:            *info.Addr,
-									Height:           block.Block.Height,
-									Txindex:          index,
-									Blockhash:        block.Block.Hash(),
-								}
-
-								utxoGlobalIndex := &types.UTXOGlobalIndex{
-									Outindex: int32(indexoutput),
-									Txhash:   txhashInbytes,
-								}
-
-								utxoCreated := &types.UTXO{
-									Amount: output.Amount,
-									UtxoBasic: &types.UTXOBasic{
-										UtxoGlobalIndex: utxoGlobalIndex,
-										OnetimePubkey:   output.Onetimepubkey,
-									},
-								}
-
-								utxos = append(utxos, utxoCreated)
-								wallet.walletStore.setUTXO(info.Addr, &txhash, indexoutput, info2store, newbatch)
-								walletlog.Info("PrivacyTrading AddDelPrivacyTxsFromBlock", "add tx txhash", txhashstr, "setUTXO addr ", *info.Addr, "indexoutput", indexoutput)
-							} else {
-								walletlog.Info("PrivacyTrading AddDelPrivacyTxsFromBlock", "delete tx txhash", txhashstr, "unsetUTXO addr ", *info.Addr, "indexoutput", indexoutput)
-								wallet.walletStore.unsetUTXO(info.Addr, &txhash, indexoutput, tokenname, newbatch)
-							}
-						} else {
-							//对于执行失败的交易，只需要将该交易记录在钱包就行
-							walletlog.Error("PrivacyTrading AddDelPrivacyTxsFromBlock", "txhash", txhashstr, "txExecRes", txExecRes)
-							break
-						}
-					}
-				} else {
-					walletlog.Error("PrivacyTrading AddDelPrivacyTxsFromBlock", "txhash", txhashstr, "RecoverOnetimePriKey error", err)
-				}
-			}
-			if matched4addr {
-				matchedCount++
-				//匹配次数达到2次，不再对本钱包中的其他地址进行匹配尝试
-				walletlog.Debug("PrivacyTrading AddDelPrivacyTxsFromBlock", "txhash", txhashstr, "address", *info.Addr, "totalUtxosLeft", totalUtxosLeft, "matchedCount", matchedCount)
-				param := &buildStoreWalletTxDetailParam{
-					tokenname:    tokenname,
-					block:        block,
-					tx:           tx,
-					index:        int(index),
-					newbatch:     newbatch,
-					senderRecver: *info.Addr,
-					isprivacy:    true,
-					addDelType:   addDelType,
-					sendRecvFlag: recvTx,
-					utxos:        utxos,
-				}
-				wallet.buildAndStoreWalletTxDetail(param)
-				if 2 == matchedCount || 0 == totalUtxosLeft || types.ExecOk != txExecRes {
-					walletlog.Info("PrivacyTrading AddDelPrivacyTxsFromBlock", "txhash", txhashstr, "Get matched privacy transfer for address address", *info.Addr, "totalUtxosLeft", totalUtxosLeft, "matchedCount", matchedCount)
-					break
-				}
-			}
-		}
-	}
-
-	//处理input,对于公对私的交易类型，只会出现在output类型处理中
-	//如果该隐私交易是本钱包中的地址发送出去的，则需要对相应的utxo进行处理
-	if AddTx == addDelType {
-		ftxos, keys := wallet.getFTXOlist()
-		for i, ftxo := range ftxos {
-			//查询确认该交易是否为记录的支付交易
-			if ftxo.Txhash != txhash {
-				continue
-			}
-			if types.ExecOk == txExecRes && types.ActionPublic2Privacy != privateAction.Ty {
-				walletlog.Info("PrivacyTrading AddDelPrivacyTxsFromBlock", "txhash", txhashstr, "addDelType", addDelType, "moveFTXO2STXO, key", string(keys[i]), "txExecRes", txExecRes)
-				wallet.walletStore.moveFTXO2STXO(keys[i], txhash, newbatch)
-			} else if types.ExecOk != txExecRes && types.ActionPublic2Privacy != privateAction.Ty {
-				//如果执行失败
-				walletlog.Info("PrivacyTrading AddDelPrivacyTxsFromBlock", "txhash", txhashstr, "addDelType", addDelType, "moveFTXO2UTXO, key", string(keys[i]), "txExecRes", txExecRes)
-				wallet.walletStore.moveFTXO2UTXO(keys[i], newbatch)
-			}
-			//该交易正常执行完毕，删除对其的关注
-			param := &buildStoreWalletTxDetailParam{
-				tokenname:    tokenname,
-				block:        block,
-				tx:           tx,
-				index:        int(index),
-				newbatch:     newbatch,
-				senderRecver: ftxo.Sender,
-				isprivacy:    true,
-				addDelType:   addDelType,
-				sendRecvFlag: sendTx,
-				utxos:        nil,
-			}
-			wallet.buildAndStoreWalletTxDetail(param)
-		}
-	} else {
-		//当发生交易回撤时，从记录的STXO中查找相关的交易，并将其重置为FTXO，因为该交易大概率会在其他区块中再次执行
-		stxosInOneTx, _, _ := wallet.walletStore.GetWalletFtxoStxo(STXOs4Tx)
-		for _, ftxo := range stxosInOneTx {
-			if ftxo.Txhash == txhash {
-				param := &buildStoreWalletTxDetailParam{
-					tokenname:    tokenname,
-					block:        block,
-					tx:           tx,
-					index:        int(index),
-					newbatch:     newbatch,
-					senderRecver: "",
-					isprivacy:    true,
-					addDelType:   addDelType,
-					sendRecvFlag: sendTx,
-					utxos:        nil,
-				}
-
-				if types.ExecOk == txExecRes && types.ActionPublic2Privacy != privateAction.Ty {
-					walletlog.Info("PrivacyTrading AddDelPrivacyTxsFromBlock", "txhash", txhashstr, "addDelType", addDelType, "moveSTXO2FTXO txExecRes", txExecRes)
-					wallet.walletStore.moveSTXO2FTXO(tx, txhash, newbatch)
-					wallet.buildAndStoreWalletTxDetail(param)
-				} else if types.ExecOk != txExecRes && types.ActionPublic2Privacy != privateAction.Ty {
-					walletlog.Info("PrivacyTrading AddDelPrivacyTxsFromBlock", "txhash", txhashstr, "addDelType", addDelType)
-					wallet.buildAndStoreWalletTxDetail(param)
-				}
-			}
-		}
+	for _, policy := range wallet.policyContainer {
+		policy.OnDeleteBlockFinish()
 	}
 }
 
@@ -1319,6 +1154,10 @@ func (wallet *Wallet) genSeed(lang int32) (*types.ReplySeed, error) {
 	return &ReplySeed, nil
 }
 
+func (wallet *Wallet) GenSeed(lang int32) (*types.ReplySeed, error) {
+	return wallet.genSeed(lang)
+}
+
 //获取seed种子, 通过钱包密码
 func (wallet *Wallet) getSeed(password string) (string, error) {
 	ok, err := wallet.CheckWalletStatus()
@@ -1332,6 +1171,10 @@ func (wallet *Wallet) getSeed(password string) (string, error) {
 		return "", err
 	}
 	return seed, nil
+}
+
+func (wallet *Wallet) SaveSeed(password string, seed string) (bool, error) {
+	return wallet.saveSeed(password, seed)
 }
 
 //保存seed种子到数据库中, 并通过钱包密码加密, 钱包起来首先要设置seed
@@ -1417,65 +1260,4 @@ func (wallet *Wallet) setFatalFailure(reportErrEvent *types.ReportErrEvent) {
 
 func (wallet *Wallet) getFatalFailure() int32 {
 	return atomic.LoadInt32(&wallet.fatalFailureFlag)
-}
-
-func (wallet *Wallet) procPrivacyTransactionList(req *types.ReqPrivacyTransactionList) (*types.WalletTxDetails, error) {
-	walletlog.Info("call procPrivacyTransactionList")
-	if req == nil {
-		walletlog.Error("procPrivacyTransactionList", "param is nil")
-		return nil, types.ErrInvalidParams
-	}
-	if req.Direction != 0 && req.Direction != 1 {
-		walletlog.Error("procPrivacyTransactionList", "invalid direction ", req.Direction)
-		return nil, types.ErrInvalidParams
-	}
-	// convert to sendTx / recvTx
-	sendRecvFlag := req.SendRecvFlag + sendTx
-	if sendRecvFlag != sendTx && sendRecvFlag != recvTx {
-		walletlog.Error("procPrivacyTransactionList", "invalid sendrecvflag ", req.SendRecvFlag)
-		return nil, types.ErrInvalidParams
-	}
-	req.SendRecvFlag = sendRecvFlag
-
-	wallet.mtx.Lock()
-	defer wallet.mtx.Unlock()
-	reply, err := wallet.walletStore.getWalletPrivacyTxDetails(req)
-	if err != nil {
-		walletlog.Error("procPrivacyTransactionList", "getWalletPrivacyTxDetails error", err)
-		return nil, err
-	}
-	return reply, nil
-}
-
-func (wallet *Wallet) procRescanUtxos(req *types.ReqRescanUtxos) (*types.RepRescanUtxos, error) {
-	wallet.mtx.Lock()
-	defer wallet.mtx.Unlock()
-
-	if 0 == req.Flag { // Rescan请求
-		var repRescanUtxos types.RepRescanUtxos
-		repRescanUtxos.Flag = req.Flag
-
-		if wallet.IsWalletLocked() {
-			return nil, types.ErrWalletIsLocked
-		}
-		if ok, err := wallet.IsRescanUtxosFlagScaning(); ok {
-			return nil, err
-		}
-		_, err := wallet.getPrivacyKeyPairsOfWalletNolock()
-		if err != nil {
-			return nil, err
-		}
-		atomic.StoreInt32(&wallet.rescanUTXOflag, types.UtxoFlagScaning)
-		wallet.wg.Add(1)
-		go wallet.RescanReqUtxosByAddr(req.Addrs)
-		return &repRescanUtxos, nil
-	} else { // 查询地址对应扫描状态
-		repRescanUtxos, err := wallet.walletStore.GetRescanUtxosFlag4Addr(req)
-		return repRescanUtxos, err
-	}
-}
-func (wallet *Wallet) procEnablePrivacy(req *types.ReqEnablePrivacy) (*types.RepEnablePrivacy, error) {
-	wallet.mtx.Lock()
-	defer wallet.mtx.Unlock()
-	return wallet.enablePrivacy(req)
 }

@@ -8,6 +8,9 @@ import (
 	"time"
 	"unsafe"
 
+	"fmt"
+
+	"github.com/golang/protobuf/proto"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
@@ -275,10 +278,6 @@ func (biz *walletPrivacyBiz) getPrivacyAccountInfo(req *types.ReqPPrivacyAccount
 	reply.Ftxos = &types.UTXOs{Utxos: utxos}
 
 	return reply, nil
-}
-
-func (biz *walletPrivacyBiz) getPrivacyTransactionList(req *types.ReqPrivacyTransactionList) (*types.WalletTxDetails, error) {
-	return biz.store.getWalletPrivacyTxDetails(req)
 }
 
 // 修改选择UTXO的算法
@@ -1185,4 +1184,49 @@ func (biz *walletPrivacyBiz) transPri2PubV2(privacykeyParirs *privacy.Privacy, r
 	biz.saveFTXOInfo(tx, reqPri2Pub.Tokenname, reqPri2Pub.Sender, txhashstr, selectedUtxo)
 	bizlog.Info("transPri2PubV2", "txhash", txhashstr)
 	return reply, nil
+}
+
+func (biz *walletPrivacyBiz) buildAndStoreWalletTxDetail(param *buildStoreWalletTxDetailParam) {
+	blockheight := param.block.Block.Height*maxTxNumPerBlock + int64(param.index)
+	heightstr := fmt.Sprintf("%018d", blockheight)
+	bizlog.Debug("buildAndStoreWalletTxDetail", "heightstr", heightstr, "addDelType", param.addDelType)
+	if AddTx == param.addDelType {
+		var txdetail types.WalletTxDetail
+		key := calcTxKey(heightstr)
+		txdetail.Tx = param.tx
+		txdetail.Height = param.block.Block.Height
+		txdetail.Index = int64(param.index)
+		txdetail.Receipt = param.block.Receipts[param.index]
+		txdetail.Blocktime = param.block.Block.BlockTime
+
+		txdetail.ActionName = txdetail.Tx.ActionName()
+		txdetail.Amount, _ = param.tx.Amount()
+		txdetail.Fromaddr = param.senderRecver
+		txdetail.Spendrecv = param.utxos
+
+		txdetailbyte, err := proto.Marshal(&txdetail)
+		if err != nil {
+			bizlog.Error("buildAndStoreWalletTxDetail err", "Height", param.block.Block.Height, "index", param.index)
+			return
+		}
+
+		param.newbatch.Set(key, txdetailbyte)
+		if param.isprivacy {
+			//额外存储可以快速定位到接收隐私的交易
+			if sendTx == param.sendRecvFlag {
+				param.newbatch.Set(calcSendPrivacyTxKey(param.tokenname, param.senderRecver, heightstr), key)
+			} else if recvTx == param.sendRecvFlag {
+				param.newbatch.Set(calcRecvPrivacyTxKey(param.tokenname, param.senderRecver, heightstr), key)
+			}
+		}
+	} else {
+		param.newbatch.Delete(calcTxKey(heightstr))
+		if param.isprivacy {
+			if sendTx == param.sendRecvFlag {
+				param.newbatch.Delete(calcSendPrivacyTxKey(param.tokenname, param.senderRecver, heightstr))
+			} else if recvTx == param.sendRecvFlag {
+				param.newbatch.Delete(calcRecvPrivacyTxKey(param.tokenname, param.senderRecver, heightstr))
+			}
+		}
+	}
 }
