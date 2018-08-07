@@ -272,10 +272,10 @@ func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, er
 		// 如有分叉， 同一个节点可能再次提交commit交易
 		found, index := hasCommited(stat.Details.Addrs, a.fromaddr)
 		if found {
-			stat.Details.BlockHash[index] = commit.Status.StateHash
+			stat.Details.BlockHash[index] = commit.Status.BlockHash
 		} else {
 			stat.Details.Addrs = append(stat.Details.Addrs, a.fromaddr)
-			stat.Details.BlockHash = append(stat.Details.BlockHash, commit.Status.StateHash)
+			stat.Details.BlockHash = append(stat.Details.BlockHash, commit.Status.BlockHash)
 		}
 		receipt = makeCommitReceipt(a.fromaddr, commit, &copyStat, stat)
 	}
