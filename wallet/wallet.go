@@ -139,10 +139,6 @@ func New(cfg *types.Wallet) *Wallet {
 	return wallet
 }
 
-func (wallet *Wallet) initFuncMap() {
-
-}
-
 func (wallet *Wallet) initBizPolicy() {
 	wallet.policyContainer = make(map[string]bizpolicy.WalletBizPolicy)
 	wallet.registerBizPolicy(types.PrivacyX, privacybizpolicy.New())
