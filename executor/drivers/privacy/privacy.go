@@ -608,7 +608,7 @@ func (p *privacy) CheckTx(tx *types.Transaction, index int) error {
 	if !res {
 		if errIndex >= 0 && errIndex < int32(len(keyinput)) {
 			input := keyinput[errIndex]
-			privacylog.Error("PrivacyTrading CheckTx", "txhash", txhashstr, "UTXO spent already errindex", errIndex, "utxo amout", input.Amount, "utxo keyimage", common.ToHex(input.KeyImage))
+			privacylog.Error("PrivacyTrading CheckTx", "txhash", txhashstr, "UTXO spent already errindex", errIndex, "utxo amout", input.Amount/types.Coin, "utxo keyimage", common.ToHex(input.KeyImage))
 		}
 		privacylog.Error("PrivacyTrading CheckTx", "txhash", txhashstr, "checkUTXOValid failed ")
 		return types.ErrDoubleSpendOccur

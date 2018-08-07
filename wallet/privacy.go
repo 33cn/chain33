@@ -1121,13 +1121,6 @@ func (wallet *Wallet) procInvalidTxOnTimer(dbbatch db.Batch) error {
 	return nil
 }
 
-func (w *Wallet) procPrivacyAccountInfo(req *types.ReqPPrivacyAccount) (*types.ReplyPrivacyAccount, error) {
-	w.mtx.Lock()
-	defer w.mtx.Unlock()
-
-	return w.getPrivacyAccountInfo(req)
-}
-
 func (w *Wallet) getPrivacyAccountInfo(req *types.ReqPPrivacyAccount) (*types.ReplyPrivacyAccount, error) {
 	addr := req.GetAddr()
 	token := req.GetToken()
