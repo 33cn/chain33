@@ -92,7 +92,7 @@ func (wallet *Wallet) onWalletAutoMiner(msg *queue.Message) (string, int64, inte
 	}
 	wallet.setAutoMining(req.Flag)
 	wallet.flushTicket()
-	return topic, retty, nil, nil
+	return topic, retty, &types.Reply{IsOk: true}, nil
 }
 
 func (wallet *Wallet) onWalletGetTickets(msg *queue.Message) (string, int64, interface{}, error) {
