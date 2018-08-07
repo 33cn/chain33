@@ -20,7 +20,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/wallet/bizpolicy"
-	"gitlab.33.cn/chain33/chain33/wallet/privacybiz"
+	"gitlab.33.cn/chain33/chain33/wallet/privacybizpolicy"
 )
 
 var (
@@ -69,6 +69,7 @@ type Wallet struct {
 	rescanUTXOflag   int32
 	lastHeader       *types.Header
 
+	funcmap         queue.FuncMap
 	policyContainer map[string]bizpolicy.WalletBizPolicy
 }
 
@@ -138,11 +139,13 @@ func New(cfg *types.Wallet) *Wallet {
 	return wallet
 }
 
+func (wallet *Wallet) initFuncMap() {
+
+}
+
 func (wallet *Wallet) initBizPolicy() {
-	wallet.policyContainer = make(map[string]bizpolicy.WalletBizPolicy, 0)
-
-	wallet.registerBizPolicy(types.PrivacyX, privacybiz.New())
-
+	wallet.policyContainer = make(map[string]bizpolicy.WalletBizPolicy)
+	wallet.registerBizPolicy(types.PrivacyX, privacybizpolicy.New())
 	for _, policy := range wallet.policyContainer {
 		policy.Init(wallet)
 	}
@@ -231,6 +234,7 @@ func (wallet *Wallet) SetQueueClient(cli queue.Client) {
 	wallet.client = cli
 	wallet.client.Sub("wallet")
 	wallet.api, _ = client.New(cli, nil)
+	wallet.initFuncMap()
 	wallet.initBizPolicy()
 
 	wallet.wg.Add(1)

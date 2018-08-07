@@ -1,4 +1,4 @@
-package privacybiz
+package privacybizpolicy
 
 const (
 	// 交易操作的方向

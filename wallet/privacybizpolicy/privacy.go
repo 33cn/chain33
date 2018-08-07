@@ -1,4 +1,4 @@
-package privacybiz
+package privacybizpolicy
 
 import (
 	"bytes"
@@ -12,308 +12,8 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/crypto/privacy"
-	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/wallet/walletbiz"
-
-	"github.com/inconshreveable/log15"
 )
-
-var (
-	bizlog = log15.New("module", "privacybiz")
-
-	MaxTxHashsPerTime int64 = 100
-)
-
-type walletPrivacyBiz struct {
-	funcmap   queue.FuncMap
-	store     *privacyStore
-	walletBiz walletbiz.WalletBiz
-
-	rescanUTXOflag int32
-}
-
-func (biz *walletPrivacyBiz) Init(wbiz walletbiz.WalletBiz) {
-	biz.walletBiz = wbiz
-	biz.store = &privacyStore{db: wbiz.GetDBStore()}
-
-	biz.funcmap.Init()
-
-	//biz.funcmap.Register(types.EventAddBlock, biz.onAddBlock)
-	//biz.funcmap.Register(types.EventDelBlock, biz.onDeleteBlock)
-	//
-	biz.funcmap.Register(types.EventShowPrivacyPK, biz.onShowPrivacyPK)
-	biz.funcmap.Register(types.EventShowPrivacyAccountSpend, biz.onShowPrivacyAccountSpend)
-	biz.funcmap.Register(types.EventPublic2privacy, biz.onPublic2Privacy)
-	biz.funcmap.Register(types.EventPrivacy2privacy, biz.onPrivacy2Privacy)
-	biz.funcmap.Register(types.EventPrivacy2public, biz.onPrivacy2Public)
-	biz.funcmap.Register(types.EventCreateUTXOs, biz.onCreateUTXOs)
-	biz.funcmap.Register(types.EventCreateTransaction, biz.onCreateTransaction)
-	biz.funcmap.Register(types.EventPrivacyAccountInfo, biz.onPrivacyAccountInfo)
-	biz.funcmap.Register(types.EventPrivacyTransactionList, biz.onPrivacyTransactionList)
-	biz.funcmap.Register(types.EventRescanUtxos, biz.onRescanUtxos)
-	biz.funcmap.Register(types.EventEnablePrivacy, biz.onEnablePrivacy)
-}
-
-func (biz *walletPrivacyBiz) OnRecvQueueMsg(msg *queue.Message) error {
-	if msg == nil {
-		return types.ErrInvalidParams
-	}
-	existed, topic, rettype, retdata, err := biz.funcmap.Process(msg)
-	if !existed {
-		return nil
-	}
-	if err == nil {
-		msg.Reply(biz.walletBiz.GetAPI().NewMessage(topic, rettype, retdata))
-	} else {
-		msg.Reply(biz.walletBiz.GetAPI().NewMessage(topic, rettype, err))
-	}
-	return err
-}
-
-func (biz *walletPrivacyBiz) onAddBlock(msg *queue.Message) (string, int64, interface{}, error) {
-	return "rpc", 0, nil, nil
-}
-
-func (biz *walletPrivacyBiz) onDeleteBlock(msg *queue.Message) (string, int64, interface{}, error) {
-	return "rpc", 0, nil, nil
-}
-
-func (biz *walletPrivacyBiz) onShowPrivacyAccountSpend(msg *queue.Message) (string, int64, interface{}, error) {
-	topic := "rpc"
-	retty := int64(types.EventReplyShowPrivacyAccountSpend)
-
-	req, ok := msg.Data.(*types.ReqPrivBal4AddrToken)
-	if !ok {
-		bizlog.Error("walletPrivacyBiz", "Invalid data type.", ok)
-		return topic, retty, nil, types.ErrInvalidParam
-	}
-
-	biz.walletBiz.GetMutex().Lock()
-	defer biz.walletBiz.GetMutex().Unlock()
-	reply, err := biz.showPrivacyAccountsSpend(req)
-	if err != nil {
-		bizlog.Error("showPrivacyAccountsSpend", "err", err.Error())
-	}
-	return topic, retty, reply, err
-}
-
-func (biz *walletPrivacyBiz) onShowPrivacyPK(msg *queue.Message) (string, int64, interface{}, error) {
-	topic := "rpc"
-	retty := int64(types.EventReplyShowPrivacyPK)
-
-	req, ok := msg.Data.(*types.ReqStr)
-	if !ok {
-		bizlog.Error("walletPrivacyBiz", "Invalid data type.", ok)
-		return topic, retty, nil, types.ErrInvalidParam
-	}
-
-	biz.walletBiz.GetMutex().Lock()
-	defer biz.walletBiz.GetMutex().Unlock()
-	reply, err := biz.showPrivacyKeyPair(req)
-	if err != nil {
-		bizlog.Error("showPrivacyKeyPair", "err", err.Error())
-	}
-	return topic, retty, reply, err
-}
-
-func (biz *walletPrivacyBiz) onPublic2Privacy(msg *queue.Message) (string, int64, interface{}, error) {
-	topic := "rpc"
-	retty := int64(types.EventReplyPublic2privacy)
-
-	req, ok := msg.Data.(*types.ReqPub2Pri)
-	if !ok {
-		bizlog.Error("walletPrivacyBiz", "Invalid data type.", ok)
-		return topic, retty, nil, types.ErrInvalidParam
-	}
-
-	biz.walletBiz.GetMutex().Lock()
-	defer biz.walletBiz.GetMutex().Unlock()
-	reply, err := biz.sendPublic2PrivacyTransaction(req)
-	if err != nil {
-		bizlog.Error("sendPublic2PrivacyTransaction", "err", err.Error())
-	}
-	return topic, retty, reply, err
-}
-
-func (biz *walletPrivacyBiz) onPrivacy2Privacy(msg *queue.Message) (string, int64, interface{}, error) {
-	topic := "rpc"
-	retty := int64(types.EventReplyPrivacy2privacy)
-
-	req, ok := msg.Data.(*types.ReqPri2Pri)
-	if !ok {
-		bizlog.Error("walletPrivacyBiz", "Invalid data type.", ok)
-		return topic, retty, nil, types.ErrInvalidParam
-	}
-
-	biz.walletBiz.GetMutex().Lock()
-	defer biz.walletBiz.GetMutex().Unlock()
-	reply, err := biz.sendPrivacy2PrivacyTransaction(req)
-	if err != nil {
-		bizlog.Error("sendPrivacy2PrivacyTransaction", "err", err.Error())
-	}
-	return topic, retty, reply, err
-}
-
-func (biz *walletPrivacyBiz) onPrivacy2Public(msg *queue.Message) (string, int64, interface{}, error) {
-	topic := "rpc"
-	retty := int64(types.EventReplyPrivacy2public)
-
-	req, ok := msg.Data.(*types.ReqPri2Pub)
-	if !ok {
-		bizlog.Error("walletPrivacyBiz", "Invalid data type.", ok)
-		return topic, retty, nil, types.ErrInvalidParam
-	}
-
-	biz.walletBiz.GetMutex().Lock()
-	defer biz.walletBiz.GetMutex().Unlock()
-	reply, err := biz.sendPrivacy2PublicTransaction(req)
-	if err != nil {
-		bizlog.Error("sendPrivacy2PublicTransaction", "err", err.Error())
-	}
-	return topic, retty, reply, err
-}
-
-func (biz *walletPrivacyBiz) onCreateUTXOs(msg *queue.Message) (string, int64, interface{}, error) {
-	topic := "rpc"
-	retty := int64(types.EventReplyCreateUTXOs)
-
-	req, ok := msg.Data.(*types.ReqCreateUTXOs)
-	if !ok {
-		bizlog.Error("walletPrivacyBiz", "Invalid data type.", ok)
-		return topic, retty, nil, types.ErrInvalidParam
-	}
-
-	biz.walletBiz.GetMutex().Lock()
-	defer biz.walletBiz.GetMutex().Unlock()
-	reply, err := biz.createUTXOs(req)
-	if err != nil {
-		bizlog.Error("createUTXOs", "err", err.Error())
-	}
-	return topic, retty, reply, err
-}
-
-func (biz *walletPrivacyBiz) onCreateTransaction(msg *queue.Message) (string, int64, interface{}, error) {
-	topic := "rpc"
-	retty := int64(types.EventReplyCreateTransaction)
-	req, ok := msg.Data.(*types.ReqCreateTransaction)
-	if !ok {
-		bizlog.Error("walletPrivacyBiz", "Invalid data type.", ok)
-		return topic, retty, nil, types.ErrInvalidParam
-	}
-	ok, err := biz.walletBiz.CheckWalletStatus()
-	if !ok {
-		bizlog.Error("createTransaction", "CheckWalletStatus cause error.", err)
-		return topic, retty, nil, err
-	}
-	if ok, err := biz.isRescanUtxosFlagScaning(); ok {
-		bizlog.Error("createTransaction", "isRescanUtxosFlagScaning cause error.", err)
-		return topic, retty, nil, err
-	}
-	if !biz.checkAmountValid(req.Amount) {
-		err = types.ErrAmount
-		bizlog.Error("createTransaction", "isRescanUtxosFlagScaning cause error.", err)
-		return topic, retty, nil, err
-	}
-
-	biz.walletBiz.GetMutex().Lock()
-	defer biz.walletBiz.GetMutex().Unlock()
-
-	reply, err := biz.createTransaction(req)
-	if err != nil {
-		bizlog.Error("createTransaction", "err", err.Error())
-	}
-	return topic, retty, reply, err
-}
-
-func (biz *walletPrivacyBiz) onPrivacyAccountInfo(msg *queue.Message) (string, int64, interface{}, error) {
-	topic := "rpc"
-	retty := int64(types.EventReplyPrivacyAccountInfo)
-	req, ok := msg.Data.(*types.ReqPPrivacyAccount)
-	if !ok {
-		bizlog.Error("walletPrivacyBiz", "Invalid data type.", ok)
-		return topic, retty, nil, types.ErrInvalidParam
-	}
-	biz.walletBiz.GetMutex().Lock()
-	defer biz.walletBiz.GetMutex().Unlock()
-
-	reply, err := biz.getPrivacyAccountInfo(req)
-	if err != nil {
-		bizlog.Error("getPrivacyAccountInfo", "err", err.Error())
-	}
-	return topic, retty, reply, err
-}
-
-func (biz *walletPrivacyBiz) onPrivacyTransactionList(msg *queue.Message) (string, int64, interface{}, error) {
-	topic := "rpc"
-	retty := int64(types.EventReplyPrivacyTransactionList)
-	req, ok := msg.Data.(*types.ReqPrivacyTransactionList)
-	if !ok {
-		bizlog.Error("walletPrivacyBiz", "Invalid data type.", ok)
-		return topic, retty, nil, types.ErrInvalidParam
-	}
-
-	if req == nil {
-		bizlog.Error("onPrivacyTransactionList param is nil")
-		return topic, retty, nil, types.ErrInvalidParam
-	}
-	if req.Direction != 0 && req.Direction != 1 {
-		bizlog.Error("getPrivacyTransactionList", "invalid direction ", req.Direction)
-		return topic, retty, nil, types.ErrInvalidParam
-	}
-	// convert to sendTx / recvTx
-	sendRecvFlag := req.SendRecvFlag + sendTx
-	if sendRecvFlag != sendTx && sendRecvFlag != recvTx {
-		bizlog.Error("getPrivacyTransactionList", "invalid sendrecvflag ", req.SendRecvFlag)
-		return topic, retty, nil, types.ErrInvalidParam
-	}
-	req.SendRecvFlag = sendRecvFlag
-
-	biz.walletBiz.GetMutex().Lock()
-	defer biz.walletBiz.GetMutex().Unlock()
-
-	reply, err := biz.getPrivacyTransactionList(req)
-	if err != nil {
-		bizlog.Error("getPrivacyTransactionList", "err", err.Error())
-	}
-	return topic, retty, reply, err
-}
-
-func (biz *walletPrivacyBiz) onRescanUtxos(msg *queue.Message) (string, int64, interface{}, error) {
-	topic := "rpc"
-	retty := int64(types.EventReplyRescanUtxos)
-	req, ok := msg.Data.(*types.ReqRescanUtxos)
-	if !ok {
-		bizlog.Error("walletPrivacyBiz", "Invalid data type.", ok)
-		return topic, retty, nil, types.ErrInvalidParam
-	}
-	biz.walletBiz.GetMutex().Lock()
-	defer biz.walletBiz.GetMutex().Unlock()
-
-	reply, err := biz.rescanUTXOs(req)
-	if err != nil {
-		bizlog.Error("rescanUTXOs", "err", err.Error())
-	}
-	return topic, retty, reply, err
-}
-
-func (biz *walletPrivacyBiz) onEnablePrivacy(msg *queue.Message) (string, int64, interface{}, error) {
-	topic := "rpc"
-	retty := int64(types.EventReplyEnablePrivacy)
-	req, ok := msg.Data.(*types.ReqEnablePrivacy)
-	if !ok {
-		bizlog.Error("walletPrivacyBiz", "Invalid data type.", ok)
-		return topic, retty, nil, types.ErrInvalidParam
-	}
-	biz.walletBiz.GetMutex().Lock()
-	defer biz.walletBiz.GetMutex().Unlock()
-
-	reply, err := biz.enablePrivacy(req)
-	if err != nil {
-		bizlog.Error("enablePrivacy", "err", err.Error())
-	}
-	return topic, retty, reply, err
-}
 
 func (biz *walletPrivacyBiz) isRescanUtxosFlagScaning() (bool, error) {
 	if types.UtxoFlagScaning == atomic.LoadInt32(&biz.rescanUTXOflag) {
@@ -322,20 +22,8 @@ func (biz *walletPrivacyBiz) isRescanUtxosFlagScaning() (bool, error) {
 	return false, nil
 }
 
-func (biz *walletPrivacyBiz) checkAmountValid(amount int64) bool {
-	if amount <= 0 {
-		return false
-	}
-	// 隐私交易中，交易金额必须是types.Coin的整数倍
-	// 后续调整了隐私交易中手续费计算以后需要修改
-	if (int64(float64(amount)/float64(types.Coin)) * types.Coin) != amount {
-		return false
-	}
-	return true
-}
-
 func (biz *walletPrivacyBiz) createUTXOs(createUTXOs *types.ReqCreateUTXOs) (*types.Reply, error) {
-	ok, err := biz.walletBiz.CheckWalletStatus()
+	ok, err := biz.walletOperate.CheckWalletStatus()
 	if !ok {
 		return nil, err
 	}
@@ -346,7 +34,7 @@ func (biz *walletPrivacyBiz) createUTXOs(createUTXOs *types.ReqCreateUTXOs) (*ty
 		bizlog.Error("createUTXOs input para is nil")
 		return nil, types.ErrInputPara
 	}
-	if !biz.checkAmountValid(createUTXOs.GetAmount()) {
+	if !checkAmountValid(createUTXOs.GetAmount()) {
 		bizlog.Error("not allow amount number")
 		return nil, types.ErrAmount
 	}
@@ -402,15 +90,15 @@ func (biz *walletPrivacyBiz) createUTXOsByPub2Priv(priv crypto.PrivKey, reqCreat
 	tx := &types.Transaction{
 		Execer:  []byte("privacy"),
 		Payload: types.Encode(action),
-		Nonce:   biz.walletBiz.Nonce(),
+		Nonce:   biz.walletOperate.Nonce(),
 		To:      address.ExecAddress(types.PrivacyX),
 	}
 	txSize := types.Size(tx) + types.SignatureSize
 	realFee := int64((txSize+1023)>>types.Size_1K_shiftlen) * types.FeePerKB
 	tx.Fee = realFee
-	tx.Sign(int32(biz.walletBiz.GetSignType()), priv)
+	tx.Sign(int32(biz.walletOperate.GetSignType()), priv)
 
-	reply, err := biz.walletBiz.GetAPI().SendTx(tx)
+	reply, err := biz.walletOperate.GetAPI().SendTx(tx)
 	if err != nil {
 		bizlog.Error("transPub2PriV2", "Send err", err)
 		return nil, err
@@ -433,10 +121,10 @@ func (biz *walletPrivacyBiz) getPrivKeyByAddr(addr string) (crypto.PrivKey, erro
 		return nil, err
 	}
 
-	password := []byte(biz.walletBiz.GetPassword())
+	password := []byte(biz.walletOperate.GetPassword())
 	privkey := CBCDecrypterPrivkey(password, prikeybyte)
 	//通过privkey生成一个pubkey然后换算成对应的addr
-	cr, err := crypto.New(types.GetSignatureTypeName(biz.walletBiz.GetSignType()))
+	cr, err := crypto.New(types.GetSignatureTypeName(biz.walletOperate.GetSignType()))
 	if err != nil {
 		bizlog.Error("ProcSendToAddress", "err", err)
 		return nil, err
@@ -452,7 +140,7 @@ func (biz *walletPrivacyBiz) getPrivKeyByAddr(addr string) (crypto.PrivKey, erro
 func (biz *walletPrivacyBiz) getPrivacykeyPair(addr string) (*privacy.Privacy, error) {
 	if accPrivacy, _ := biz.store.getWalletAccountPrivacy(addr); accPrivacy != nil {
 		privacyInfo := &privacy.Privacy{}
-		password := []byte(biz.walletBiz.GetPassword())
+		password := []byte(biz.walletOperate.GetPassword())
 		copy(privacyInfo.ViewPubkey[:], accPrivacy.ViewPubkey)
 		decrypteredView := CBCDecrypterPrivkey(password, accPrivacy.ViewPrivKey)
 		copy(privacyInfo.ViewPrivKey[:], decrypteredView)
@@ -481,7 +169,7 @@ func (biz *walletPrivacyBiz) savePrivacykeyPair(addr string) (*privacy.Privacy, 
 		return nil, err
 	}
 
-	password := []byte(biz.walletBiz.GetPassword())
+	password := []byte(biz.walletOperate.GetPassword())
 	encrypteredView := CBCEncrypterPrivkey(password, newPrivacy.ViewPrivKey.Bytes())
 	encrypteredSpend := CBCEncrypterPrivkey(password, newPrivacy.SpendPrivKey.Bytes())
 	walletPrivacy := &types.WalletAccountPrivacy{
@@ -605,7 +293,7 @@ func (biz *walletPrivacyBiz) selectUTXO(token, addr string, amount int64) ([]*tx
 	if err != nil {
 		return nil, types.ErrInsufficientBalance
 	}
-	curBlockHeight := biz.walletBiz.GetBlockHeight()
+	curBlockHeight := biz.walletOperate.GetBlockHeight()
 	var confirmUTXOs, unconfirmUTXOs []*walletUTXO
 	var balance int64
 	for _, wutxo := range wutxos.utxos {
@@ -639,7 +327,7 @@ func (biz *walletPrivacyBiz) selectUTXO(token, addr string, amount int64) ([]*tx
 	balance = 0
 	var selectedOuts []*txOutputInfo
 	for balance < amount {
-		index := biz.walletBiz.GetRandom().Intn(len(confirmUTXOs))
+		index := biz.walletOperate.GetRandom().Intn(len(confirmUTXOs))
 		selectedOuts = append(selectedOuts, confirmUTXOs[index].outinfo)
 		balance += confirmUTXOs[index].outinfo.amount
 		// remove selected utxo
@@ -690,7 +378,7 @@ func (biz *walletPrivacyBiz) buildInput(privacykeyParirs *privacy.Privacy, build
 			Param:    types.Encode(&reqGetGlobalIndex),
 		}
 		//向blockchain请求相同额度的不同utxo用于相同额度的混淆作用
-		resUTXOGlobalIndex, err = biz.walletBiz.GetAPI().BlockChainQuery(query)
+		resUTXOGlobalIndex, err = biz.walletOperate.GetAPI().BlockChainQuery(query)
 		if err != nil {
 			bizlog.Error("buildInput BlockChainQuery", "err", err)
 			return nil, nil, nil, nil, err
@@ -745,7 +433,7 @@ func (biz *walletPrivacyBiz) buildInput(privacykeyParirs *privacy.Privacy, build
 		}
 		//将真实的utxo添加到最后一个
 		utxoIndex4Amount.Utxos = append(utxoIndex4Amount.Utxos, utxo)
-		positions := biz.walletBiz.GetRandom().Perm(len(utxoIndex4Amount.Utxos))
+		positions := biz.walletOperate.GetRandom().Perm(len(utxoIndex4Amount.Utxos))
 		utxos := make([]*types.UTXOBasic, len(utxoIndex4Amount.Utxos))
 		for k, position := range positions {
 			utxos[position] = utxoIndex4Amount.Utxos[k]
@@ -829,7 +517,7 @@ func (biz *walletPrivacyBiz) createPublic2PrivacyTx(req *types.ReqCreateTransact
 	tx := &types.Transaction{
 		Execer:  types.ExecerPrivacy,
 		Payload: types.Encode(action),
-		Nonce:   biz.walletBiz.Nonce(),
+		Nonce:   biz.walletOperate.Nonce(),
 		To:      address.ExecAddress(types.PrivacyX),
 	}
 	tx.Signature = &types.Signature{
@@ -903,7 +591,7 @@ func (biz *walletPrivacyBiz) createPrivacy2PrivacyTx(req *types.ReqCreateTransac
 		Execer:  types.ExecerPrivacy,
 		Payload: types.Encode(action),
 		Fee:     types.PrivacyTxFee,
-		Nonce:   biz.walletBiz.Nonce(),
+		Nonce:   biz.walletOperate.Nonce(),
 		To:      address.ExecAddress(types.PrivacyX),
 	}
 	// 创建交易成功，将已经使用掉的UTXO冻结
@@ -972,7 +660,7 @@ func (biz *walletPrivacyBiz) createPrivacy2PublicTx(req *types.ReqCreateTransact
 		Execer:  []byte(types.PrivacyX),
 		Payload: types.Encode(action),
 		Fee:     types.PrivacyTxFee,
-		Nonce:   biz.walletBiz.Nonce(),
+		Nonce:   biz.walletOperate.Nonce(),
 		To:      req.GetTo(),
 	}
 	// 创建交易成功，将已经使用掉的UTXO冻结
@@ -1030,7 +718,7 @@ func (biz *walletPrivacyBiz) rescanUTXOs(req *types.ReqRescanUtxos) (*types.RepR
 	var repRescanUtxos types.RepRescanUtxos
 	repRescanUtxos.Flag = req.Flag
 
-	if biz.walletBiz.IsWalletLocked() {
+	if biz.walletOperate.IsWalletLocked() {
 		return nil, types.ErrWalletIsLocked
 	}
 	if ok, err := biz.isRescanUtxosFlagScaning(); ok {
@@ -1041,14 +729,14 @@ func (biz *walletPrivacyBiz) rescanUTXOs(req *types.ReqRescanUtxos) (*types.RepR
 		return nil, err
 	}
 	atomic.StoreInt32(&biz.rescanUTXOflag, types.UtxoFlagScaning)
-	biz.walletBiz.AddWaitGroup(1)
+	biz.walletOperate.AddWaitGroup(1)
 	go biz.rescanReqUtxosByAddr(req.Addrs)
 	return &repRescanUtxos, nil
 }
 
 //从blockchain模块同步addr参与的所有交易详细信息
 func (biz *walletPrivacyBiz) rescanReqUtxosByAddr(addrs []string) {
-	defer biz.walletBiz.WaitGroupDone()
+	defer biz.walletOperate.WaitGroupDone()
 	bizlog.Debug("RescanAllUTXO begin!")
 	biz.reqUtxosByAddr(addrs)
 	bizlog.Debug("RescanAllUTXO sucess!")
@@ -1076,7 +764,7 @@ func (biz *walletPrivacyBiz) reqUtxosByAddr(addrs []string) {
 	i := 0
 	for {
 		select {
-		case <-biz.walletBiz.GetWalletDone():
+		case <-biz.walletOperate.GetWalletDone():
 			return
 		default:
 		}
@@ -1101,7 +789,7 @@ func (biz *walletPrivacyBiz) reqUtxosByAddr(addrs []string) {
 		i++
 
 		//请求交易信息
-		msg, err := biz.walletBiz.GetAPI().Query(&types.Query{
+		msg, err := biz.walletOperate.GetAPI().Query(&types.Query{
 			Execer:   types.ExecerPrivacy,
 			FuncName: "GetTxsByAddr",
 			Payload:  types.Encode(&ReqAddr),
@@ -1154,7 +842,7 @@ func (biz *walletPrivacyBiz) deleteScanPrivacyInputUtxo() {
 
 func (biz *walletPrivacyBiz) getPrivacyTxDetailByHashs(ReqHashes *types.ReqHashes, addrs []string) {
 	//通过txhashs获取对应的txdetail
-	TxDetails, err := biz.walletBiz.GetAPI().GetTransactionByHash(ReqHashes)
+	TxDetails, err := biz.walletOperate.GetAPI().GetTransactionByHash(ReqHashes)
 	if err != nil {
 		bizlog.Error("getPrivacyTxDetailByHashs", "GetTransactionByHash error", err)
 		return
@@ -1192,7 +880,7 @@ func (biz *walletPrivacyBiz) showPrivacyAccountsSpend(req *types.ReqPrivBal4Addr
 }
 
 func (biz *walletPrivacyBiz) sendPublic2PrivacyTransaction(public2private *types.ReqPub2Pri) (*types.Reply, error) {
-	if ok, err := biz.walletBiz.CheckWalletStatus(); !ok {
+	if ok, err := biz.walletOperate.CheckWalletStatus(); !ok {
 		bizlog.Error("sendPublic2PrivacyTransaction", "CheckWalletStatus error", err)
 		return nil, err
 	}
@@ -1252,7 +940,7 @@ func (biz *walletPrivacyBiz) transPub2PriV2(priv crypto.PrivKey, reqPub2Pri *typ
 	tx := &types.Transaction{
 		Execer:  []byte("privacy"),
 		Payload: types.Encode(action),
-		Nonce:   biz.walletBiz.Nonce(),
+		Nonce:   biz.walletOperate.Nonce(),
 		// TODO: 采用隐私合约地址来设定目标合约接收的目标地址,让验证通过
 		To: address.ExecAddress(types.PrivacyX),
 	}
@@ -1260,9 +948,9 @@ func (biz *walletPrivacyBiz) transPub2PriV2(priv crypto.PrivKey, reqPub2Pri *typ
 	txSize := types.Size(tx) + types.SignatureSize
 	realFee := int64((txSize+1023)>>types.Size_1K_shiftlen) * types.FeePerKB
 	tx.Fee = realFee
-	tx.Sign(int32(biz.walletBiz.GetSignType()), priv)
+	tx.Sign(int32(biz.walletOperate.GetSignType()), priv)
 
-	reply, err := biz.walletBiz.GetAPI().SendTx(tx)
+	reply, err := biz.walletOperate.GetAPI().SendTx(tx)
 	if err != nil {
 		bizlog.Error("transPub2PriV2", "Send err", err)
 		return nil, err
@@ -1271,7 +959,7 @@ func (biz *walletPrivacyBiz) transPub2PriV2(priv crypto.PrivKey, reqPub2Pri *typ
 }
 
 func (biz *walletPrivacyBiz) sendPrivacy2PrivacyTransaction(privacy2privacy *types.ReqPri2Pri) (*types.Reply, error) {
-	if ok, err := biz.walletBiz.CheckWalletStatus(); !ok {
+	if ok, err := biz.walletOperate.CheckWalletStatus(); !ok {
 		bizlog.Error("sendPrivacy2PrivacyTransaction", "CheckWalletStatus error", err)
 		return nil, err
 	}
@@ -1351,7 +1039,7 @@ func (biz *walletPrivacyBiz) transPri2PriV2(privacykeyParirs *privacy.Privacy, r
 		Execer:  []byte(types.PrivacyX),
 		Payload: types.Encode(action),
 		Fee:     types.PrivacyTxFee,
-		Nonce:   biz.walletBiz.Nonce(),
+		Nonce:   biz.walletOperate.Nonce(),
 		// TODO: 采用隐私合约地址来设定目标合约接收的目标地址,让验证通过
 		To: address.ExecAddress(types.PrivacyX),
 	}
@@ -1363,7 +1051,7 @@ func (biz *walletPrivacyBiz) transPri2PriV2(privacykeyParirs *privacy.Privacy, r
 	if err != nil {
 		return nil, err
 	}
-	reply, err := biz.walletBiz.GetAPI().SendTx(tx)
+	reply, err := biz.walletOperate.GetAPI().SendTx(tx)
 	if err != nil {
 		bizlog.Error("transPub2Pri", "SendTx  ", err)
 		return nil, err
@@ -1402,7 +1090,7 @@ func (biz *walletPrivacyBiz) signatureTx(tx *types.Transaction, privacyInput *ty
 }
 
 func (biz *walletPrivacyBiz) sendPrivacy2PublicTransaction(privacy2Pub *types.ReqPri2Pub) (*types.Reply, error) {
-	if ok, err := biz.walletBiz.CheckWalletStatus(); !ok {
+	if ok, err := biz.walletOperate.CheckWalletStatus(); !ok {
 		bizlog.Error("sendPrivacy2PublicTransaction", "CheckWalletStatus error", err)
 		return nil, err
 	}
@@ -1477,7 +1165,7 @@ func (biz *walletPrivacyBiz) transPri2PubV2(privacykeyParirs *privacy.Privacy, r
 		Execer:  []byte(types.PrivacyX),
 		Payload: types.Encode(action),
 		Fee:     types.PrivacyTxFee,
-		Nonce:   biz.walletBiz.Nonce(),
+		Nonce:   biz.walletOperate.Nonce(),
 		To:      reqPri2Pub.Receiver,
 	}
 	tx.SetExpire(time.Duration(reqPri2Pub.GetExpire()))
@@ -1488,7 +1176,7 @@ func (biz *walletPrivacyBiz) transPri2PubV2(privacykeyParirs *privacy.Privacy, r
 		return nil, err
 	}
 
-	reply, err := biz.walletBiz.GetAPI().SendTx(tx)
+	reply, err := biz.walletOperate.GetAPI().SendTx(tx)
 	if err != nil {
 		bizlog.Error("transPri2PubV2", "SendTx error", err)
 		return nil, err
