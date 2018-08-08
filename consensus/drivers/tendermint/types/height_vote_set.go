@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 type RoundVoteSet struct {
@@ -103,15 +104,16 @@ func (hvs *HeightVoteSet) addRound(round int) {
 func (hvs *HeightVoteSet) AddVote(vote *Vote, peerID string) (added bool, err error) {
 	hvs.mtx.Lock()
 	defer hvs.mtx.Unlock()
-	if !IsVoteTypeValid(vote.Type) {
+	if !IsVoteTypeValid(byte(vote.Type)) {
 		return
 	}
-	voteSet := hvs.getVoteSet(vote.Round, vote.Type)
+	round := int(vote.Round)
+	voteSet := hvs.getVoteSet(round, byte(vote.Type))
 	if voteSet == nil {
 		if rndz := hvs.peerCatchupRounds[peerID]; len(rndz) < 2 {
-			hvs.addRound(vote.Round)
-			voteSet = hvs.getVoteSet(vote.Round, vote.Type)
-			hvs.peerCatchupRounds[peerID] = append(rndz, vote.Round)
+			hvs.addRound(int(vote.Round))
+			voteSet = hvs.getVoteSet(round, byte(vote.Type))
+			hvs.peerCatchupRounds[peerID] = append(rndz, round)
 		} else {
 			// Peer has sent a vote that does not match our round,
 			// for more than one round.  Bad peer!
@@ -145,7 +147,7 @@ func (hvs *HeightVoteSet) POLInfo() (polRound int, polBlockID BlockID) {
 		rvs := hvs.getVoteSet(r, VoteTypePrevote)
 		polBlockID, ok := rvs.TwoThirdsMajority()
 		if ok {
-			return r, polBlockID
+			return r, BlockID{polBlockID}
 		}
 	}
 	return -1, BlockID{}
@@ -204,7 +206,7 @@ func (hvs *HeightVoteSet) StringIndented(indent string) string {
 // NOTE: if there are too many peers, or too much peer churn,
 // this can cause memory issues.
 // TODO: implement ability to remove peers too
-func (hvs *HeightVoteSet) SetPeerMaj23(round int, type_ byte, peerID string, blockID BlockID) {
+func (hvs *HeightVoteSet) SetPeerMaj23(round int, type_ byte, peerID string, blockID *types.BlockID) {
 	hvs.mtx.Lock()
 	defer hvs.mtx.Unlock()
 	if !IsVoteTypeValid(type_) {

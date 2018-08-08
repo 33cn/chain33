@@ -1,13 +1,14 @@
 package types
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/rand"
 	"time"
 
 	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers"
+	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/common/merkle"
 )
 
 var bslog = log15.New("module", "tendermint-blockstore")
@@ -35,7 +36,7 @@ func NewBlockStore(client *drivers.BaseClient, pubkey string) *BlockStore {
 	}
 }
 
-func (bs *BlockStore) LoadSeenCommit(height int64) *Commit {
+func (bs *BlockStore) LoadSeenCommit(height int64) *types.TendermintCommit {
 	oldBlock, err := bs.client.RequestBlock(height)
 	if err != nil {
 		bslog.Error("LoadSeenCommit by height failed", "curHeight", bs.client.GetCurrentHeight(), "requestHeight", height, "error", err)
@@ -49,24 +50,10 @@ func (bs *BlockStore) LoadSeenCommit(height int64) *Commit {
 		bslog.Error("LoadSeenCommit get nil block info")
 		return nil
 	}
-	seenCommit := blockInfo.GetSeenCommit()
-	if seenCommit != nil {
-		votesCopy := make([]*Vote, len(seenCommit.GetPrecommits()))
-		LoadVotes(votesCopy, seenCommit.GetPrecommits())
-		if seenCommit.GetBlockID() != nil {
-			return &Commit{
-				BlockID: BlockID{
-					Hash: seenCommit.BlockID.Hash,
-				},
-				Precommits: votesCopy,
-			}
-		}
-	}
-
-	return nil
+	return blockInfo.GetSeenCommit()
 }
 
-func (bs *BlockStore) LoadBlockCommit(height int64) *Commit {
+func (bs *BlockStore) LoadBlockCommit(height int64) *types.TendermintCommit {
 	oldBlock, err := bs.client.RequestBlock(height)
 	if err != nil {
 		bslog.Error("LoadBlockCommit by height failed", "curHeight", bs.client.GetCurrentHeight(), "requestHeight", height, "error", err)
@@ -80,23 +67,10 @@ func (bs *BlockStore) LoadBlockCommit(height int64) *Commit {
 		bslog.Error("LoadBlockCommit get nil block info")
 		return nil
 	}
-	lastCommit := blockInfo.GetLastCommit()
-	if lastCommit != nil {
-		votesCopy := make([]*Vote, len(lastCommit.GetPrecommits()))
-		LoadVotes(votesCopy, lastCommit.GetPrecommits())
-		if lastCommit.GetBlockID() != nil {
-			return &Commit{
-				BlockID: BlockID{
-					Hash: lastCommit.BlockID.Hash,
-				},
-				Precommits: votesCopy,
-			}
-		}
-	}
-	return nil
+	return blockInfo.GetLastCommit()
 }
 
-func (bs *BlockStore) LoadProposal(height int64) *ProposalTrans {
+func (bs *BlockStore) LoadProposal(height int64) *types.Proposal {
 	block, err := bs.client.RequestBlock(height)
 	if err != nil {
 		bslog.Error("LoadProposal by height failed", "curHeight", bs.client.GetCurrentHeight(), "requestHeight", height, "error", err)
@@ -110,12 +84,13 @@ func (bs *BlockStore) LoadProposal(height int64) *ProposalTrans {
 		bslog.Error("LoadProposal get nil block info")
 		return nil
 	}
-	var proposalTrans ProposalTrans
-	propByte := blockInfo.GetProposal()
-	err = json.Unmarshal(propByte, &proposalTrans)
-	if err != nil {
-		panic(fmt.Sprintf("LoadProposal Unmarshal failed:%v", err))
+	proposal := blockInfo.GetProposal()
+	if proposal != nil {
+		proposal.Block.Txs = append(proposal.Block.Txs, block.Txs[1:]...)
+		txHash := merkle.CalcMerkleRoot(proposal.Block.Txs)
+		bslog.Info("LoadProposal get hash of txs of proposal", "height", proposal.Block.Header.Height, "hash", txHash)
 	}
+	return proposal
 	//blockByte := proposalTrans.BlockBytes
 	//var propBlock gtypes.Block
 	//err = proto.Unmarshal(blockByte, &propBlock)
@@ -125,7 +100,6 @@ func (bs *BlockStore) LoadProposal(height int64) *ProposalTrans {
 	//	propBlock.Txs = block.Txs[1:]
 	//	propBlockByte, _ := proto.Marshal(&propBlock)
 	//	proposalTrans.BlockBytes = propBlockByte
-	return &proposalTrans
 }
 
 func (bs *BlockStore) Height() int64 {

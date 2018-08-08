@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 type BitArray struct {
+	*types.TendermintBitArray
 	mtx   sync.Mutex `json:"-"`
-	Bits  int        `json:"bits"`  // NOTE: persisted via reflect, must be exported
-	Elems []uint64   `json:"elems"` // NOTE: persisted via reflect, must be exported
 }
 
 // There is no BitArray whose Size is 0.  Use nil instead.
@@ -19,9 +19,10 @@ func NewBitArray(bits int) *BitArray {
 		return nil
 	}
 
-	return &BitArray{
-		Bits:  bits,
+	return &BitArray{TendermintBitArray:&types.TendermintBitArray{
+		Bits:  int32(bits),
 		Elems: make([]uint64, (bits+63)/64),
+	},
 	}
 }
 
@@ -29,7 +30,7 @@ func (bA *BitArray) Size() int {
 	if bA == nil {
 		return 0
 	}
-	return bA.Bits
+	return int(bA.Bits)
 }
 
 // NOTE: behavior is undefined if i >= bA.Bits
@@ -43,7 +44,7 @@ func (bA *BitArray) GetIndex(i int) bool {
 }
 
 func (bA *BitArray) getIndex(i int) bool {
-	if i >= bA.Bits {
+	if i >= int(bA.Bits) {
 		return false
 	}
 	return bA.Elems[i/64]&(uint64(1)<<uint(i%64)) > 0
@@ -60,7 +61,7 @@ func (bA *BitArray) SetIndex(i int, v bool) bool {
 }
 
 func (bA *BitArray) setIndex(i int, v bool) bool {
-	if i >= bA.Bits {
+	if i >= int(bA.Bits) {
 		return false
 	}
 	if v {
@@ -83,35 +84,37 @@ func (bA *BitArray) Copy() *BitArray {
 func (bA *BitArray) copy() *BitArray {
 	c := make([]uint64, len(bA.Elems))
 	copy(c, bA.Elems)
-	return &BitArray{
+	return &BitArray{TendermintBitArray:&types.TendermintBitArray{
 		Bits:  bA.Bits,
 		Elems: c,
+	},
 	}
 }
 
 func (bA *BitArray) copyBits(bits int) *BitArray {
 	c := make([]uint64, (bits+63)/64)
 	copy(c, bA.Elems)
-	return &BitArray{
-		Bits:  bits,
+	return &BitArray{TendermintBitArray:&types.TendermintBitArray{
+		Bits:  int32(bits),
 		Elems: c,
+	},
 	}
 }
 
 // Returns a BitArray of larger bits size.
 func (bA *BitArray) Or(o *BitArray) *BitArray {
-	if bA == nil && o == nil {
+	if bA == nil && o.TendermintBitArray == nil{
 		return nil
 	}
 	if bA == nil && o != nil {
 		o.Copy()
 	}
-	if o == nil {
+	if o.TendermintBitArray == nil {
 		return bA.Copy()
 	}
 	bA.mtx.Lock()
 	defer bA.mtx.Unlock()
-	c := bA.copyBits(MaxInt(bA.Bits, o.Bits))
+	c := bA.copyBits(MaxInt(int(bA.Bits), int(o.Bits)))
 	for i := 0; i < len(c.Elems); i++ {
 		c.Elems[i] |= o.Elems[i]
 	}
@@ -120,7 +123,7 @@ func (bA *BitArray) Or(o *BitArray) *BitArray {
 
 // Returns a BitArray of smaller bit size.
 func (bA *BitArray) And(o *BitArray) *BitArray {
-	if bA == nil || o == nil {
+	if bA == nil || o.TendermintBitArray == nil {
 		return nil
 	}
 	bA.mtx.Lock()
@@ -129,7 +132,7 @@ func (bA *BitArray) And(o *BitArray) *BitArray {
 }
 
 func (bA *BitArray) and(o *BitArray) *BitArray {
-	c := bA.copyBits(MinInt(bA.Bits, o.Bits))
+	c := bA.copyBits(MinInt(int(bA.Bits), int(o.Bits)))
 	for i := 0; i < len(c.Elems); i++ {
 		c.Elems[i] &= o.Elems[i]
 	}
@@ -150,7 +153,7 @@ func (bA *BitArray) Not() *BitArray {
 }
 
 func (bA *BitArray) Sub(o *BitArray) *BitArray {
-	if bA == nil || o == nil {
+	if bA == nil || o.TendermintBitArray == nil {
 		return nil
 	}
 	bA.mtx.Lock()
@@ -162,7 +165,7 @@ func (bA *BitArray) Sub(o *BitArray) *BitArray {
 		}
 		i := len(o.Elems) - 1
 		if i >= 0 {
-			for idx := i * 64; idx < o.Bits; idx++ {
+			for idx := i * 64; idx < int(o.Bits); idx++ {
 				// NOTE: each individual GetIndex() call to o is safe.
 				c.setIndex(idx, c.getIndex(idx) && !o.GetIndex(idx))
 			}
@@ -233,7 +236,7 @@ func (bA *BitArray) PickRandom() (int, bool) {
 			}
 		} else {
 			// Special case for last elem, to ignore straggler bits
-			elemBits := bA.Bits % 64
+			elemBits := int(bA.Bits) % 64
 			if elemBits == 0 {
 				elemBits = 64
 			}
@@ -271,7 +274,7 @@ func (bA *BitArray) stringIndented(indent string) string {
 
 	lines := []string{}
 	bits := ""
-	for i := 0; i < bA.Bits; i++ {
+	for i := 0; i < int(bA.Bits); i++ {
 		if bA.getIndex(i) {
 			bits += "X"
 		} else {
@@ -312,7 +315,7 @@ func (bA *BitArray) Bytes() []byte {
 // so if necessary, caller must copy or lock o prior to calling Update.
 // If bA is nil, does nothing.
 func (bA *BitArray) Update(o *BitArray) {
-	if bA == nil || o == nil {
+	if bA == nil || o.TendermintBitArray == nil{
 		return
 	}
 	bA.mtx.Lock()

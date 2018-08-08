@@ -8,8 +8,10 @@ import (
 
 	"github.com/pkg/errors"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
+	"github.com/inconshreveable/log15"
 )
 
+var validatorsetlog = log15.New("module", "tendermint-val")
 // ValidatorSet represent a set of *Validator at a given height.
 // The validators can be fetched by address or index.
 // The index is in order of .Address, so the indices are fixed
@@ -226,29 +228,33 @@ func (valSet *ValidatorSet) VerifyCommit(chainID string, blockID BlockID, height
 	if valSet.Size() != len(commit.Precommits) {
 		return fmt.Errorf("Invalid commit -- wrong set size: %v vs %v", valSet.Size(), len(commit.Precommits))
 	}
-	if height != commit.Height() {
-		return fmt.Errorf("Invalid commit -- wrong height: %v vs %v", height, commit.Height())
+	validatorsetlog.Debug("VerifyCommit will get commit height", "height", commit.Height())
+	commitHeight := commit.Height()
+	if height != commitHeight {
+		return fmt.Errorf("VerifyCommit 1 Invalid commit -- wrong height: %v vs %v", height, commitHeight)
 	}
 
 	talliedVotingPower := int64(0)
 	round := commit.Round()
 
-	for idx, precommit := range commit.Precommits {
+	for idx, item := range commit.Precommits {
 		// may be nil if validator skipped.
-		if precommit == nil {
+		if item == nil || len(item.Signature) == 0{
 			continue
 		}
+		precommit := &Vote{Vote:item}
 		if precommit.Height != height {
-			return fmt.Errorf("Invalid commit -- wrong height: %v vs %v", height, precommit.Height)
+			return fmt.Errorf("VerifyCommit 2 Invalid commit -- wrong height: %v vs %v", height, precommit.Height)
 		}
-		if precommit.Round != round {
+		if int(precommit.Round) != round {
 			return fmt.Errorf("Invalid commit -- wrong round: %v vs %v", round, precommit.Round)
 		}
-		if precommit.Type != VoteTypePrecommit {
+		if precommit.Type != uint32(VoteTypePrecommit) {
 			return fmt.Errorf("Invalid commit -- not precommit @ index %v", idx)
 		}
 		_, val := valSet.GetByIndex(idx)
 		// Validate signature
+
 		precommitSignBytes := SignBytes(chainID, precommit)
 		sig, err := ConsensusCrypto.SignatureFromBytes(precommit.Signature)
 		if err != nil {
@@ -261,7 +267,7 @@ func (valSet *ValidatorSet) VerifyCommit(chainID string, blockID BlockID, height
 		if !pubkey.VerifyBytes(precommitSignBytes, sig) {
 			return fmt.Errorf("Invalid commit -- invalid signature: %v", precommit)
 		}
-		if !blockID.Equals(precommit.BlockID) {
+		if !bytes.Equal(blockID.Hash, precommit.BlockID.Hash) {
 			continue // Not an error, but doesn't count
 		}
 		// Good precommit!
@@ -304,22 +310,23 @@ func (valSet *ValidatorSet) VerifyCommitAny(newSet *ValidatorSet, chainID string
 	seen := map[int]bool{}
 	round := commit.Round()
 
-	for idx, precommit := range commit.Precommits {
+	for idx, item := range commit.Precommits {
 		// first check as in VerifyCommit
-		if precommit == nil {
+		if item == nil || len(item.Signature) == 0{
 			continue
 		}
+		precommit := &Vote{Vote:item}
 		if precommit.Height != height {
 			// return certerr.ErrHeightMismatch(height, precommit.Height)
 			return errors.Errorf("Blocks don't match - %d vs %d", round, precommit.Round)
 		}
-		if precommit.Round != round {
+		if int(precommit.Round) != round {
 			return errors.Errorf("Invalid commit -- wrong round: %v vs %v", round, precommit.Round)
 		}
-		if precommit.Type != VoteTypePrecommit {
+		if precommit.Type != uint32(VoteTypePrecommit) {
 			return errors.Errorf("Invalid commit -- not precommit @ index %v", idx)
 		}
-		if !blockID.Equals(precommit.BlockID) {
+		if !bytes.Equal(blockID.Hash, precommit.BlockID.Hash) {
 			continue // Not an error, but doesn't count
 		}
 

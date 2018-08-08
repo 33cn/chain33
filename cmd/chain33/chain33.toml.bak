@@ -31,12 +31,12 @@ driver="leveldb"
 dbPath="datadir"
 dbCache=64
 isStrongConsistency=true
-singleMode=true
+singleMode=false
 batchsync=false
 isRecordBlockSequence=false
 
 [p2p]
-seeds=["192.168.3.102:13802"]
+seeds=["192.168.3.102:13802","192.168.3.13:13802"]
 enable=true
 isSeed=true
 serverStart=true
@@ -80,7 +80,7 @@ timeoutCommit=1000
 skipTimeoutCommit=false
 createEmptyBlocks=false
 createEmptyBlocksInterval=0
-seeds=["192.168.3.102:46656"]
+seeds=["192.168.3.102:46656","192.168.3.13:46656"]
 
 [store]
 name="mavl"

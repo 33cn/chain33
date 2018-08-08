@@ -7,6 +7,9 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
+	"gitlab.33.cn/chain33/chain33/types"
+	"github.com/gogo/protobuf/proto"
+	"reflect"
 )
 
 // ErrEvidenceInvalid wraps a piece of evidence and the error denoting how or why it is invalid.
@@ -31,7 +34,8 @@ const (
 	MockBad       = "MockBad"
 )
 
-var EvidenceType2Obj map[string]interface{}
+var EvidenceType2Type map[string]reflect.Type
+var EvidenceType2Obj map[string]Evidence
 
 // Evidence represents any provable malicious activity by a validator
 type Evidence interface {
@@ -43,9 +47,10 @@ type Evidence interface {
 	Equal(Evidence) bool         // check equality of evidence
 
 	String() string
-
-	TypeName() string
 	Copy() Evidence
+	TypeName() string
+	SetChild(child proto.Message)
+	Child() proto.Message
 }
 
 //-------------------------------------------
@@ -91,9 +96,7 @@ func (evl EvidenceList) Has(evidence Evidence) bool {
 
 // DuplicateVoteEvidence contains evidence a validator signed two conflicting votes.
 type DuplicateVoteEvidence struct {
-	PubKey string
-	VoteA  *Vote
-	VoteB  *Vote
+	*types.DuplicateVoteEvidence
 }
 
 // String returns a string representation of the evidence.
@@ -118,7 +121,7 @@ func (dve *DuplicateVoteEvidence) Address() []byte {
 
 // Index returns the index of the validator.
 func (dve *DuplicateVoteEvidence) Index() int {
-	return dve.VoteA.ValidatorIndex
+	return int(dve.VoteA.ValidatorIndex)
 }
 
 // Hash returns the hash of the evidence.
@@ -145,8 +148,14 @@ func (dve *DuplicateVoteEvidence) Verify(chainID string) error {
 		return fmt.Errorf("DuplicateVoteEvidence Error: Validator indices do not match. Got %d and %d", dve.VoteA.ValidatorIndex, dve.VoteB.ValidatorIndex)
 	}
 
+	blockIDA := BlockID{
+		*dve.VoteA.BlockID,
+	}
+	blockIDB := BlockID{
+		*dve.VoteB.BlockID,
+	}
 	// BlockIDs must be different
-	if dve.VoteA.BlockID.Equals(dve.VoteB.BlockID) {
+	if blockIDA.Equals(blockIDB) {
 		return fmt.Errorf("DuplicateVoteEvidence Error: BlockIDs are the same (%v) - not a real duplicate vote!", dve.VoteA.BlockID)
 	}
 
@@ -163,10 +172,16 @@ func (dve *DuplicateVoteEvidence) Verify(chainID string) error {
 	if err != nil {
 		return fmt.Errorf("DuplicateVoteEvidence Error: SIGB[%v] to signature failed:%v", dve.VoteB.Signature, err)
 	}
-	if !pubkey.VerifyBytes(SignBytes(chainID, dve.VoteA), sigA) {
+	vote := &Vote{
+		dve.VoteA,
+	}
+	if !pubkey.VerifyBytes(SignBytes(chainID, vote), sigA) {
 		return fmt.Errorf("DuplicateVoteEvidence Error verifying VoteA: %v", ErrVoteInvalidSignature)
 	}
-	if !pubkey.VerifyBytes(SignBytes(chainID, dve.VoteB), sigB) {
+	vote = &Vote{
+		dve.VoteB,
+	}
+	if !pubkey.VerifyBytes(SignBytes(chainID, vote), sigB) {
 		return fmt.Errorf("DuplicateVoteEvidence Error verifying VoteB: %v", ErrVoteInvalidSignature)
 	}
 
@@ -193,6 +208,14 @@ func (dve *DuplicateVoteEvidence) Copy() Evidence {
 	return &DuplicateVoteEvidence{}
 }
 
+func (dve *DuplicateVoteEvidence) SetChild(child proto.Message) {
+	dve.DuplicateVoteEvidence = child.(*types.DuplicateVoteEvidence)
+}
+
+func (dve *DuplicateVoteEvidence) Child() proto.Message {
+	return dve.DuplicateVoteEvidence
+}
+
 func SimpleHashFromBinary(item *DuplicateVoteEvidence) []byte {
 	bytes, e := json.Marshal(item)
 	if e != nil {
@@ -203,6 +226,21 @@ func SimpleHashFromBinary(item *DuplicateVoteEvidence) []byte {
 
 }
 
+func EvidenceEnvelope2Evidence(envelope *types.EvidenceEnvelope) Evidence {
+	if v, ok := EvidenceType2Type[envelope.TypeName]; ok {
+		realMsg2 := reflect.New(v).Interface()
+		err := proto.Unmarshal(envelope.Data, realMsg2.(proto.Message))
+		if err != nil {
+			panic(fmt.Sprintf("Evidence is not valid", "evidenceType", envelope.TypeName, "err", err))
+		}
+		if evidence, ok2 := EvidenceType2Obj[envelope.TypeName]; ok2 {
+			evidence = evidence.Copy()
+			evidence.SetChild(realMsg2.(proto.Message))
+			return evidence.(Evidence)
+		}
+	}
+	return nil
+}
 //-----------------------------------------------------------------
 
 // UNSTABLE
@@ -239,6 +277,10 @@ func (e MockGoodEvidence) TypeName() string {
 func (e MockGoodEvidence) Copy() Evidence {
 	return &MockGoodEvidence{}
 }
+func (e MockGoodEvidence) SetChild(proto.Message) {}
+func (e MockGoodEvidence) Child() proto.Message {
+	return nil
+}
 
 // UNSTABLE
 type MockBadEvidence struct {
@@ -260,4 +302,8 @@ func (e MockBadEvidence) TypeName() string {
 }
 func (e MockBadEvidence) Copy() Evidence {
 	return &MockBadEvidence{}
+}
+func (e MockBadEvidence) SetChild(proto.Message){}
+func (e MockBadEvidence) Child() proto.Message {
+	return nil
 }

@@ -4,6 +4,7 @@ import (
 	"io"
 
 	"encoding/json"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 // Heartbeat is a simple vote-like structure so validators can
@@ -12,12 +13,7 @@ import (
 // json field tags because we always want the JSON
 // representation to be in its canonical form.
 type Heartbeat struct {
-	ValidatorAddress []byte `json:"validator_address"`
-	ValidatorIndex   int    `json:"validator_index"`
-	Height           int64  `json:"height"`
-	Round            int    `json:"round"`
-	Sequence         int    `json:"sequence"`
-	Signature        []byte `json:"signature"`
+	*types.Heartbeat
 }
 
 // WriteSignBytes writes the Heartbeat for signing.

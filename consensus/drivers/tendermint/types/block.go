@@ -9,110 +9,123 @@ import (
 	"strings"
 	"time"
 
-	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 	"gitlab.33.cn/chain33/chain33/types"
+	"github.com/golang/protobuf/proto"
+	"github.com/inconshreveable/log15"
 )
 
 var (
 	blocklog = log15.New("module", "tendermint-block")
 )
 
-// Block defines the atomic unit of a Tendermint blockchain.
-// TODO: add Version byte
-type Block struct {
-	*Header    `json:"header"`
-	Pblock     *types.Block `json:"pblock"`
-	Evidence   EvidenceData `json:"evidence"`
-	LastCommit *Commit      `json:"last_commit"`
+type TendermintBlock struct {
+	*types.TendermintBlock
+}
+
+type BlockID struct {
+	types.BlockID
 }
 
 // MakeBlock returns a new block with an empty header, except what can be computed from itself.
 // It populates the same set of fields validated by ValidateBasic
-func MakeBlock(height int64, pblock *types.Block, commit *Commit) *Block {
-	block := &Block{
-		Header: &Header{
+func MakeBlock(height int64, Txs []*types.Transaction, commit *types.TendermintCommit) *TendermintBlock {
+	block := &TendermintBlock{&types.TendermintBlock{
+		Header: &types.TendermintBlockHeader{
 			Height: height,
-			Time:   time.Now().Unix(),
-			NumTxs: int64(len(pblock.Txs)),
+			Time:   time.Now().UnixNano(),
+			NumTxs: int64(len(Txs)),
 		},
-		Pblock:     pblock,
+		Txs:     Txs,
+
 		LastCommit: commit,
+		Evidence: &types.EvidenceData{Evidence:make([]*types.EvidenceEnvelope, 0)},
+	},
 	}
 	block.FillHeader()
 	return block
 }
 
 // AddEvidence appends the given evidence to the block
-func (b *Block) AddEvidence(evidence []Evidence) {
+func (b *TendermintBlock) AddEvidence(evidence []Evidence) {
 	for _, item := range evidence {
-		data, err := json.Marshal(item)
-		if err != nil {
-			blocklog.Error("AddEvidence marshal failed", "error", err)
-			return
+		ev := item.Child()
+		if ev != nil {
+			data, err := proto.Marshal(ev)
+			if err != nil {
+				blocklog.Error("AddEvidence marshal failed", "error", err)
+				panic("AddEvidence marshal failed")
+			}
+			env := &types.EvidenceEnvelope{
+				TypeName:item.TypeName(),
+				Data:data,
+			}
+			b.Evidence.Evidence = append(b.Evidence.Evidence, env)
 		}
-		msg := json.RawMessage(data)
-		enve := MsgEnvelope{
-			Kind: item.TypeName(),
-			Data: &msg,
-		}
-		b.Evidence.Evidence = append(b.Evidence.Evidence, enve)
 	}
 }
 
 // ValidateBasic performs basic validation that doesn't involve state data.
 // It checks the internal consistency of the block.
-func (b *Block) ValidateBasic() (int64, error) {
-	block := b.Pblock
-	newTxs := int64(len(block.Txs))
+func (b *TendermintBlock) ValidateBasic() (int64, error) {
+	newTxs := int64(len(b.Txs))
 
-	if b.NumTxs != newTxs {
-		return 0, fmt.Errorf("Wrong Block.Header.NumTxs. Expected %v, got %v", newTxs, b.NumTxs)
+	if b.Header.NumTxs != newTxs {
+		return 0, fmt.Errorf("Wrong Block.Header.NumTxs. Expected %v, got %v", newTxs, b.Header.NumTxs)
 	}
-	if !bytes.Equal(b.LastCommitHash, b.LastCommit.Hash()) {
-		return 0, fmt.Errorf("Wrong Block.Header.LastCommitHash.  Expected %v, got %v", b.LastCommitHash, b.LastCommit.Hash())
+	lastCommit := Commit{
+		TendermintCommit:b.LastCommit,
 	}
-	if b.Height != 1 {
-		if err := b.LastCommit.ValidateBasic(); err != nil {
+	if !bytes.Equal(b.Header.LastCommitHash, lastCommit.Hash()) {
+		return 0, fmt.Errorf("Wrong Block.Header.LastCommitHash.  Expected %v, got %v", b.Header.LastCommitHash, lastCommit.Hash())
+	}
+	if b.Header.Height != 1 {
+		if err := lastCommit.ValidateBasic(); err != nil {
 			return 0, err
 		}
 	}
-
-	calHash := merkle.CalcMerkleRoot(block.Txs)
-	if !bytes.Equal(block.TxHash, calHash) {
-		return 0, fmt.Errorf("Wrong Block.Header.DataHash.  Expected %v, got %v", block.TxHash, calHash)
+/*
+	calHash := merkle.CalcMerkleRoot(b.Txs)
+	if !bytes.Equal(b.TxHash, calHash) {
+		return 0, fmt.Errorf("Wrong Block.Header.DataHash.  Expected %v, got %v", b.TxHash, calHash)
 	}
-
-	if !bytes.Equal(b.EvidenceHash, b.Evidence.Hash()) {
-		return 0, errors.New(fmt.Sprintf("Wrong Block.Header.EvidenceHash.  Expected %v, got %v", b.EvidenceHash, b.Evidence.Hash()))
+*/
+	evidence := &EvidenceData{EvidenceData:b.Evidence}
+	if !bytes.Equal(b.Header.EvidenceHash, evidence.Hash()) {
+		return 0, errors.New(fmt.Sprintf("Wrong Block.Header.EvidenceHash.  Expected %v, got %v", b.Header.EvidenceHash, evidence.Hash()))
 	}
 	return newTxs, nil
 }
 
 // FillHeader fills in any remaining header fields that are a function of the block data
-func (b *Block) FillHeader() {
-	if b.LastCommitHash == nil {
-		b.LastCommitHash = b.LastCommit.Hash()
+func (b *TendermintBlock) FillHeader() {
+	if b.Header.LastCommitHash == nil {
+		lastCommit := &Commit{
+			TendermintCommit:b.LastCommit,
+		}
+		b.Header.LastCommitHash = lastCommit.Hash()
 	}
-	if b.EvidenceHash == nil {
-		b.EvidenceHash = b.Evidence.Hash()
+	if b.Header.EvidenceHash == nil {
+		evidence := &EvidenceData{EvidenceData:b.Evidence}
+		b.Header.EvidenceHash = evidence.Hash()
 	}
 }
 
 // Hash computes and returns the block hash.
 // If the block is incomplete, block hash is nil for safety.
-func (b *Block) Hash() []byte {
+func (b *TendermintBlock) Hash() []byte {
 	if b == nil || b.Header == nil || b.LastCommit == nil {
 		return nil
 	}
 	b.FillHeader()
-	return b.Header.Hash()
+	header := &Header{TendermintBlockHeader:b.Header}
+	return header.Hash()
 }
 
 // HashesTo is a convenience function that checks if a block hashes to the given argument.
 // A nil block never hashes to anything, and nothing hashes to a nil hash.
-func (b *Block) HashesTo(hash []byte) bool {
+func (b *TendermintBlock) HashesTo(hash []byte) bool {
 	if len(hash) == 0 {
 		return false
 	}
@@ -123,28 +136,30 @@ func (b *Block) HashesTo(hash []byte) bool {
 }
 
 // String returns a string representation of the block
-func (b *Block) String() string {
+func (b *TendermintBlock) String() string {
 	return b.StringIndented("")
 }
 
 // StringIndented returns a string representation of the block
-func (b *Block) StringIndented(indent string) string {
+func (b *TendermintBlock) StringIndented(indent string) string {
 	if b == nil {
 		return "nil-Block"
 	}
+	header := &Header{TendermintBlockHeader:b.Header}
+	lastCommit := &Commit{TendermintCommit:b.LastCommit}
 	return fmt.Sprintf(`Block{
 %s  %v
 %s  %v
 %s  %v
 %s}#%v`,
-		indent, b.Header.StringIndented(indent+"  "),
+		indent, header.StringIndented(indent+"  "),
 		//		indent, b.Evidence.StringIndented(indent+"  "),
-		indent, b.LastCommit.StringIndented(indent+"  "),
+		indent, lastCommit.StringIndented(indent+"  "),
 		indent, b.Hash())
 }
 
 // StringShort returns a shortened string representation of the block
-func (b *Block) StringShort() string {
+func (b *TendermintBlock) StringShort() string {
 	if b == nil {
 		return "nil-Block"
 	} else {
@@ -158,27 +173,7 @@ func (b *Block) StringShort() string {
 // TODO: limit header size
 // NOTE: changes to the Header should be duplicated in the abci Header
 type Header struct {
-	// basic block info
-	ChainID string `json:"chain_id"`
-	Height  int64  `json:"height"`
-	Time    int64  `json:"time"`
-	NumTxs  int64  `json:"num_txs"`
-
-	// prev block info
-	LastBlockID BlockID `json:"last_block_id"`
-	TotalTxs    int64   `json:"total_txs"`
-
-	// hashes of block data
-	LastCommitHash []byte `json:"last_commit_hash"` // commit from validators from the last block
-
-	// hashes from the app output from the prev block
-	ValidatorsHash  []byte `json:"validators_hash"`   // validators for the current block
-	ConsensusHash   []byte `json:"consensus_hash"`    // consensus params for current block
-	AppHash         []byte `json:"app_hash"`          // state after txs from the previous block
-	LastResultsHash []byte `json:"last_results_hash"` // root hash of all results from the txs from the previous block
-
-	// consensus info
-	EvidenceHash []byte `json:"evidence_hash"` // evidence included in the block
+	*types.TendermintBlockHeader
 }
 
 // Hash returns the hash of the header.
@@ -230,24 +225,16 @@ func (h *Header) StringIndented(indent string) string {
 }
 
 //-------------------------------------
-
-// Commit contains the evidence that a block was committed by a set of validators.
-// NOTE: Commit is empty for height 1, but never nil.
 type Commit struct {
-	// NOTE: The Precommits are in order of address to preserve the bonded ValidatorSet order.
-	// Any peer with a block can gossip precommits by index with a peer without recalculating the
-	// active ValidatorSet.
-	BlockID    BlockID `json:"blockID"`
-	Precommits []*Vote `json:"precommits"`
+	*types.TendermintCommit
 
-	// Volatile
-	firstPrecommit *Vote
+	firstPrecommit *types.Vote
 	hash           []byte
 	bitArray       *BitArray
 }
 
 // FirstPrecommit returns the first non-nil precommit in the commit
-func (commit *Commit) FirstPrecommit() *Vote {
+func (commit *Commit) FirstPrecommit() *types.Vote {
 	if len(commit.Precommits) == 0 {
 		return nil
 	}
@@ -255,7 +242,7 @@ func (commit *Commit) FirstPrecommit() *Vote {
 		return commit.firstPrecommit
 	}
 	for _, precommit := range commit.Precommits {
-		if precommit != nil {
+		if precommit != nil && len(precommit.Signature) > 0{
 			commit.firstPrecommit = precommit
 			return precommit
 		}
@@ -276,7 +263,7 @@ func (commit *Commit) Round() int {
 	if len(commit.Precommits) == 0 {
 		return 0
 	}
-	return commit.FirstPrecommit().Round
+	return int(commit.FirstPrecommit().Round)
 }
 
 // Type returns the vote type of the commit, which is always VoteTypePrecommit
@@ -307,7 +294,7 @@ func (commit *Commit) BitArray() *BitArray {
 
 // GetByIndex returns the vote corresponding to a given validator index
 func (commit *Commit) GetByIndex(index int) *Vote {
-	return commit.Precommits[index]
+	return &Vote{Vote:commit.Precommits[index]}
 }
 
 // IsCommit returns true if there is at least one vote
@@ -317,7 +304,8 @@ func (commit *Commit) IsCommit() bool {
 
 // ValidateBasic performs basic validation that doesn't involve state data.
 func (commit *Commit) ValidateBasic() error {
-	if commit.BlockID.IsZero() {
+	blockID := &BlockID{BlockID:*commit.BlockID}
+	if blockID.IsZero() {
 		return errors.New("Commit cannot be for nil block")
 	}
 	if len(commit.Precommits) == 0 {
@@ -332,7 +320,7 @@ func (commit *Commit) ValidateBasic() error {
 			continue
 		}
 		// Ensure that all votes are precommits
-		if precommit.Type != VoteTypePrecommit {
+		if byte(precommit.Type) != VoteTypePrecommit {
 			return fmt.Errorf("Invalid commit vote. Expected precommit, got %v",
 				precommit.Type)
 		}
@@ -342,7 +330,7 @@ func (commit *Commit) ValidateBasic() error {
 				height, precommit.Height)
 		}
 		// Ensure that all rounds are the same
-		if precommit.Round != round {
+		if int(precommit.Round) != round {
 			return fmt.Errorf("Invalid commit precommit round. Expected %v, got %v",
 				round, precommit.Round)
 		}
@@ -354,7 +342,8 @@ func (commit *Commit) ValidateBasic() error {
 func (commit *Commit) Hash() []byte {
 	if commit.hash == nil {
 		bs := make([][]byte, len(commit.Precommits))
-		for i, precommit := range commit.Precommits {
+		for i, item := range commit.Precommits {
+			precommit := Vote{Vote:item}
 			bs[i] = precommit.Hash()
 		}
 		commit.hash = merkle.GetMerkleRoot(bs)
@@ -389,35 +378,27 @@ type SignedHeader struct {
 }
 
 //-----------------------------------------------------------------------------
-
+type EvidenceEnvelope struct {
+	*types.EvidenceEnvelope
+}
 // EvidenceData contains any evidence of malicious wrong-doing by validators
-type EvidenceEnvelopeList []MsgEnvelope
+type EvidenceEnvelopeList []EvidenceEnvelope
 
-func (env MsgEnvelope) Hash() []byte {
-	if v, ok := EvidenceType2Obj[env.Kind]; ok {
-		tmp := v.(Evidence).Copy()
-		err := json.Unmarshal(*env.Data, &tmp)
-		if err != nil {
-			blocklog.Error("envelop hash unmarshal failed", "error", err)
-			return nil
-		}
-		return tmp.Hash()
+func (env EvidenceEnvelope) Hash() []byte {
+	penv := env.EvidenceEnvelope
+	evidence := EvidenceEnvelope2Evidence(penv)
+	if evidence != nil {
+		return evidence.Hash()
 	}
-	blocklog.Error("envelop hash not find evidence kind", "kind", env.Kind)
 	return nil
 }
 
-func (env MsgEnvelope) String() string {
-	if v, ok := EvidenceType2Obj[env.Kind]; ok {
-		tmp := v.(Evidence).Copy()
-		err := json.Unmarshal(*env.Data, &tmp)
-		if err != nil {
-			blocklog.Error("envelop String unmarshal failed", "error", err)
-			return ""
-		}
-		return tmp.String()
+func (env EvidenceEnvelope) String() string {
+	penv := env.EvidenceEnvelope
+	evidence := EvidenceEnvelope2Evidence(penv)
+	if evidence != nil {
+		return evidence.String()
 	}
-	blocklog.Error("envelop String not find evidence kind", "kind", env.Kind)
 	return ""
 }
 
@@ -448,35 +429,37 @@ func (evl EvidenceEnvelopeList) String() string {
 // Has returns true if the evidence is in the EvidenceList.
 func (evl EvidenceEnvelopeList) Has(evidence Evidence) bool {
 	for _, ev := range evl {
-		if v, ok := EvidenceType2Obj[ev.Kind]; ok {
-			tmp := v.(Evidence).Copy()
-			err := json.Unmarshal(*ev.Data, &tmp)
-			if err != nil {
-				blocklog.Error("envelop has unmarshal failed", "error", err)
-				return false
-			}
+		penv := ev.EvidenceEnvelope
+		tmp := EvidenceEnvelope2Evidence(penv)
+		if tmp != nil {
 			if tmp.Equal(evidence) {
 				return true
 			}
-			return false
 		}
-		blocklog.Error("envelop has not find evidence kind", "kind", ev.Kind)
-		return false
 	}
 	return false
 }
 
 type EvidenceData struct {
-	Evidence EvidenceEnvelopeList `json:"evidence"`
-
-	// Volatile
+	*types.EvidenceData
 	hash []byte
 }
+
 
 // Hash returns the hash of the data.
 func (data *EvidenceData) Hash() []byte {
 	if data.hash == nil {
-		data.hash = data.Evidence.Hash()
+		if data.EvidenceData == nil {
+			return nil
+		}
+		var evidence EvidenceEnvelopeList
+		for _, item := range data.Evidence {
+			elem := EvidenceEnvelope{
+				EvidenceEnvelope:item,
+			}
+			evidence = append(evidence, elem)
+		}
+		data.hash = evidence.Hash()
 	}
 	return data.hash
 }
@@ -503,12 +486,6 @@ func (data *EvidenceData) StringIndented(indent string) string {
 }
 
 //--------------------------------------------------------------------------------
-
-// BlockID defines the unique ID of a block as its Hash and its PartSetHeader
-type BlockID struct {
-	Hash []byte `json:"hash"`
-	//PartsHeader PartSetHeader `json:"parts"`
-}
 
 // IsZero returns true if this is the BlockID for a nil-block
 func (blockID BlockID) IsZero() bool {
@@ -562,7 +539,7 @@ func (blockID BlockID) String() string {
 type EvidencePool interface {
 	PendingEvidence() []Evidence
 	AddEvidence(Evidence) error
-	Update(*Block)
+	Update(*TendermintBlock)
 }
 
 // MockMempool is an empty implementation of a Mempool, useful for testing.
@@ -572,4 +549,4 @@ type MockEvidencePool struct {
 
 func (m MockEvidencePool) PendingEvidence() []Evidence { return nil }
 func (m MockEvidencePool) AddEvidence(Evidence) error  { return nil }
-func (m MockEvidencePool) Update(*Block)               {}
+func (m MockEvidencePool) Update(*TendermintBlock)               {}

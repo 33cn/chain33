@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"sync"
 
-	"encoding/json"
-
-	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
+	ttypes "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 // EvidencePool maintains a pool of valid evidence
@@ -22,7 +21,7 @@ type EvidencePool struct {
 	state State
 
 	// never close
-	evidenceChan chan types.Evidence
+	evidenceChan chan ttypes.Evidence
 }
 
 func NewEvidencePool(stateDB *CSStateDB, state State, evidenceStore *EvidenceStore) *EvidencePool {
@@ -30,23 +29,23 @@ func NewEvidencePool(stateDB *CSStateDB, state State, evidenceStore *EvidenceSto
 		stateDB:       stateDB,
 		state:         state,
 		evidenceStore: evidenceStore,
-		evidenceChan:  make(chan types.Evidence),
+		evidenceChan:  make(chan ttypes.Evidence),
 	}
 	return evpool
 }
 
 // EvidenceChan returns an unbuffered channel on which new evidence can be received.
-func (evpool *EvidencePool) EvidenceChan() <-chan types.Evidence {
+func (evpool *EvidencePool) EvidenceChan() <-chan ttypes.Evidence {
 	return evpool.evidenceChan
 }
 
 // PriorityEvidence returns the priority evidence.
-func (evpool *EvidencePool) PriorityEvidence() []types.Evidence {
+func (evpool *EvidencePool) PriorityEvidence() []ttypes.Evidence {
 	return evpool.evidenceStore.PriorityEvidence()
 }
 
 // PendingEvidence returns all uncommitted evidence.
-func (evpool *EvidencePool) PendingEvidence() []types.Evidence {
+func (evpool *EvidencePool) PendingEvidence() []ttypes.Evidence {
 	return evpool.evidenceStore.PendingEvidence()
 }
 
@@ -58,13 +57,13 @@ func (evpool *EvidencePool) State() State {
 }
 
 // Update loads the latest
-func (evpool *EvidencePool) Update(block *types.Block) {
+func (evpool *EvidencePool) Update(block *ttypes.TendermintBlock) {
 	evpool.mtx.Lock()
 	defer evpool.mtx.Unlock()
 
 	state := evpool.stateDB.LoadState()
-	if state.LastBlockHeight != block.Height {
-		panic(fmt.Sprintf("EvidencePool.Update: loaded state with height %d when block.Height=%d", state.LastBlockHeight, block.Height))
+	if state.LastBlockHeight != block.Header.Height {
+		panic(fmt.Sprintf("EvidencePool.Update: loaded state with height %d when block.Height=%d", state.LastBlockHeight, block.Header.Height))
 	}
 	evpool.state = state
 
@@ -74,7 +73,7 @@ func (evpool *EvidencePool) Update(block *types.Block) {
 
 // AddEvidence checks the evidence is valid and adds it to the pool.
 // Blocks on the EvidenceChan.
-func (evpool *EvidencePool) AddEvidence(evidence types.Evidence) (err error) {
+func (evpool *EvidencePool) AddEvidence(evidence ttypes.Evidence) (err error) {
 
 	// TODO: check if we already have evidence for this
 	// validator at this height so we dont get spammed
@@ -103,15 +102,10 @@ func (evpool *EvidencePool) AddEvidence(evidence types.Evidence) (err error) {
 }
 
 // MarkEvidenceAsCommitted marks all the evidence as committed.
-func (evpool *EvidencePool) MarkEvidenceAsCommitted(evidence types.EvidenceEnvelopeList) {
+func (evpool *EvidencePool) MarkEvidenceAsCommitted(evidence []*types.EvidenceEnvelope) {
 	for _, ev := range evidence {
-		if v, ok := types.EvidenceType2Obj[ev.Kind]; ok {
-			tmp := v.(types.Evidence).Copy()
-			err := json.Unmarshal(*ev.Data, &tmp)
-			if err != nil {
-				tendermintlog.Error("MarkEvidenceAsCommitted envelop unmarshal failed", "error", err)
-				return
-			}
+		tmp := ttypes.EvidenceEnvelope2Evidence(ev)
+		if tmp != nil {
 			evpool.evidenceStore.MarkEvidenceAsCommitted(tmp)
 		}
 	}
@@ -119,7 +113,7 @@ func (evpool *EvidencePool) MarkEvidenceAsCommitted(evidence types.EvidenceEnvel
 
 // VerifyEvidence verifies the evidence fully by checking it is internally
 // consistent and sufficiently recent.
-func VerifyEvidence(stateDB *CSStateDB, s State, evidence types.Evidence) error {
+func VerifyEvidence(stateDB *CSStateDB, s State, evidence ttypes.Evidence) error {
 	height := s.LastBlockHeight
 
 	evidenceAge := height - evidence.Height()

@@ -1,31 +1,30 @@
 package types
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
-	gtypes "gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var bilog = log15.New("module", "tendermint-blockinfo")
 
 var ConsensusCrypto crypto.Crypto
 
-func GetBlockInfo(block *gtypes.Block) (*gtypes.TendermintBlockInfo, error) {
+func GetBlockInfo(block *types.Block) (*types.TendermintBlockInfo, error) {
 	if len(block.Txs) == 0 || block.Height == 0 {
 		return nil, nil
 	}
+	//bilog.Info("GetBlockInfo", "txs", block.Txs)
 	baseTx := block.Txs[0]
 	//判断交易类型和执行情况
-	var blockInfo gtypes.TendermintBlockInfo
-	nGet := &gtypes.NormPut{}
-	action := &gtypes.NormAction{}
-	err := gtypes.Decode(baseTx.GetPayload(), action)
+	var blockInfo types.TendermintBlockInfo
+	nGet := &types.NormPut{}
+	action := &types.NormAction{}
+	err := types.Decode(baseTx.GetPayload(), action)
 	if err != nil {
 		bilog.Error("GetBlockInfo decode payload failed", "error", err)
 		return nil, errors.New(fmt.Sprintf("GetBlockInfo decode payload failed:%v", err))
@@ -39,7 +38,7 @@ func GetBlockInfo(block *gtypes.Block) (*gtypes.TendermintBlockInfo, error) {
 		bilog.Error("GetBlockInfo get blockinfo value failed")
 		return nil, errors.New("GetBlockInfo get blockinfo value failed")
 	}
-	err = gtypes.Decode(infobytes, &blockInfo)
+	err = types.Decode(infobytes, &blockInfo)
 	if err != nil {
 		bilog.Error("GetBlockInfo decode blockinfo failed", "error", err)
 		return nil, errors.New(fmt.Sprintf("GetBlockInfo decode blockinfo failed:%v", err))
@@ -47,80 +46,8 @@ func GetBlockInfo(block *gtypes.Block) (*gtypes.TendermintBlockInfo, error) {
 	return &blockInfo, nil
 }
 
-func LoadVotes(des []*Vote, source []*gtypes.Vote) {
-	for i, item := range source {
-		if item.Height == -1 {
-			continue
-		}
-		des[i] = &Vote{}
-		des[i].BlockID = BlockID{
-			Hash: item.BlockID.Hash,
-		}
-		des[i].Height = item.Height
-		des[i].Round = int(item.Round)
-		des[i].Signature = item.Signature
-		des[i].Type = uint8(item.Type)
-		des[i].ValidatorAddress = item.ValidatorAddress
-		des[i].ValidatorIndex = int(item.ValidatorIndex)
-		des[i].Timestamp = time.Unix(0, item.Timestamp)
-		//bilog.Info("load votes", "i", i, "source", item, "des", des[i])
-	}
-}
-
-func SaveVotes(des []*gtypes.Vote, source []*Vote) {
-	for i, item := range source {
-
-		if item == nil {
-			des[i] = &gtypes.Vote{Height: -1, BlockID: &gtypes.BlockID{}}
-			bilog.Debug("SaveVotes-item=nil")
-			continue
-		}
-
-		des[i] = &gtypes.Vote{}
-		blockID := &gtypes.BlockID{}
-		blockID.Hash = item.BlockID.Hash
-		des[i].BlockID = blockID
-		des[i].Height = item.Height
-		des[i].Round = int32(item.Round)
-		des[i].Signature = item.Signature
-		des[i].Type = uint32(item.Type)
-		des[i].ValidatorAddress = item.ValidatorAddress
-		des[i].ValidatorIndex = int32(item.ValidatorIndex)
-		des[i].Timestamp = item.Timestamp.UnixNano()
-		//bilog.Info("save votes", "i", i, "source", item, "des", des[i])
-	}
-
-}
-
-func SaveCommits(lastCommitVotes *Commit, seenCommitVotes *Commit) (*gtypes.TendermintCommit, *gtypes.TendermintCommit) {
-	newLastCommitVotes := make([]*gtypes.Vote, len(lastCommitVotes.Precommits))
-	newSeenCommitVotes := make([]*gtypes.Vote, len(seenCommitVotes.Precommits))
-	if len(lastCommitVotes.Precommits) > 0 {
-		bilog.Debug("SaveCommits", "lastCommitVotes", lastCommitVotes.StringIndented("last"))
-		SaveVotes(newLastCommitVotes, lastCommitVotes.Precommits)
-	}
-	if len(seenCommitVotes.Precommits) > 0 {
-		bilog.Debug("SaveCommits", "seenCommitVotes", seenCommitVotes.StringIndented("seen"))
-		SaveVotes(newSeenCommitVotes, seenCommitVotes.Precommits)
-	}
-	lastCommit := &gtypes.TendermintCommit{
-		BlockID: &gtypes.BlockID{
-			Hash: lastCommitVotes.BlockID.Hash,
-		},
-		Precommits: newLastCommitVotes,
-	}
-	seenCommit := &gtypes.TendermintCommit{
-		BlockID: &gtypes.BlockID{
-			Hash: seenCommitVotes.BlockID.Hash,
-		},
-		Precommits: newSeenCommitVotes,
-	}
-
-	return seenCommit, lastCommit
-}
-
 func getprivkey(key string) crypto.PrivKey {
-	cr, err := crypto.New(gtypes.GetSignatureTypeName(gtypes.SECP256K1))
+	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
 	if err != nil {
 		panic(err)
 	}
@@ -135,7 +62,7 @@ func getprivkey(key string) crypto.PrivKey {
 	return priv
 }
 
-func LoadValidators(des []*Validator, source []*gtypes.Validator) {
+func LoadValidators(des []*Validator, source []*types.Validator) {
 	for i, item := range source {
 		if item.GetAddress() == nil || len(item.GetAddress()) == 0 {
 			bilog.Warn("LoadValidators get address is nil or empty")
@@ -157,7 +84,7 @@ func LoadValidators(des []*Validator, source []*gtypes.Validator) {
 	}
 }
 
-func LoadProposer(source *gtypes.Validator) (*Validator, error) {
+func LoadProposer(source *types.Validator) (*Validator, error) {
 	if source.GetAddress() == nil || len(source.GetAddress()) == 0 {
 		bilog.Warn("LoadProposer get address is nil or empty")
 		return nil, errors.New("LoadProposer get address is nil or empty")
@@ -179,22 +106,22 @@ func LoadProposer(source *gtypes.Validator) (*Validator, error) {
 	return des, nil
 }
 
-func CreateBlockInfoTx(pubkey string, lastCommit *gtypes.TendermintCommit, seenCommit *gtypes.TendermintCommit, state *gtypes.State, proposal *Proposal) *gtypes.Transaction {
-	proposalTrans := ProposalToProposalTrans(proposal)
-	propByte, _ := json.Marshal(proposalTrans)
-	blockInfo := &gtypes.TendermintBlockInfo{
+func CreateBlockInfoTx(pubkey string, lastCommit *types.TendermintCommit, seenCommit *types.TendermintCommit, state *types.State, proposal *types.Proposal) *types.Transaction {
+	proposalNoTxs := *proposal
+	proposalNoTxs.Block.Txs = make([]*types.Transaction, 0)
+	blockInfo := &types.TendermintBlockInfo{
 		SeenCommit: seenCommit,
 		LastCommit: lastCommit,
 		State:      state,
-		Proposal:   propByte,
+		Proposal:   &proposalNoTxs,
 	}
-	bilog.Debug("CreateBlockInfoTx", "validators", blockInfo.State.Validators.Validators)
+	bilog.Debug("CreateBlockInfoTx", "validators", blockInfo.State.Validators.Validators, "proposal", proposal, "proposal-notxs", proposalNoTxs)
 
-	nput := &gtypes.NormAction_Nput{&gtypes.NormPut{Key: "BlockInfo", Value: gtypes.Encode(blockInfo)}}
-	action := &gtypes.NormAction{Value: nput, Ty: gtypes.NormActionPut}
-	tx := &gtypes.Transaction{Execer: []byte("norm"), Payload: gtypes.Encode(action), Fee: fee}
+	nput := &types.NormAction_Nput{&types.NormPut{Key: "BlockInfo", Value: types.Encode(blockInfo)}}
+	action := &types.NormAction{Value: nput, Ty: types.NormActionPut}
+	tx := &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(action), Fee: fee}
 	tx.Nonce = r.Int63()
-	tx.Sign(gtypes.SECP256K1, getprivkey(pubkey))
+	tx.Sign(types.SECP256K1, getprivkey(pubkey))
 
 	return tx
 }
