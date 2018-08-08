@@ -63,14 +63,14 @@ func (c Comm) GetLocalAddr() string {
 	return strings.Split(conn.LocalAddr().String(), ":")[0]
 }
 
-func (c Comm) dialPeerWithAddress(addr *NetAddress, persistent bool, nodeinfo **NodeInfo) (*Peer, error) {
+func (c Comm) dialPeerWithAddress(addr *NetAddress, persistent bool, node *Node) (*Peer, error) {
 	log.Info("dialPeerWithAddress")
-	conn, err := addr.DialTimeout((*nodeinfo).cfg.GetVersion())
+	conn, err := addr.DialTimeout(node.nodeInfo.cfg.GetVersion())
 	if err != nil {
 		return nil, err
 	}
 
-	peer, err := c.newPeerFromConn(conn, addr, nodeinfo)
+	peer, err := c.newPeerFromConn(conn, addr, node)
 	if err != nil {
 		conn.Close()
 		return nil, err
@@ -85,23 +85,22 @@ func (c Comm) dialPeerWithAddress(addr *NetAddress, persistent bool, nodeinfo **
 	return peer, nil
 }
 
-func (c Comm) newPeerFromConn(rawConn *grpc.ClientConn, remote *NetAddress, nodeinfo **NodeInfo) (*Peer, error) {
+func (c Comm) newPeerFromConn(rawConn *grpc.ClientConn, remote *NetAddress, node *Node) (*Peer, error) {
 
 	// Key and NodeInfo are set after Handshake
-	p := NewPeer(rawConn, nodeinfo, remote)
-
+	p := NewPeer(rawConn, node, remote)
 	return p, nil
 }
 
-func (c Comm) dialPeer(addr *NetAddress, nodeinfo **NodeInfo) (*Peer, error) {
+func (c Comm) dialPeer(addr *NetAddress, node *Node) (*Peer, error) {
 	log.Debug("dialPeer", "will connect", addr.String())
 	var persistent bool
-	for _, seed := range (*nodeinfo).cfg.Seeds { //TODO待优化
+	for _, seed := range node.nodeInfo.cfg.Seeds { //TODO待优化
 		if seed == addr.String() {
 			persistent = true //种子节点要一直连接
 		}
 	}
-	peer, err := c.dialPeerWithAddress(addr, persistent, nodeinfo)
+	peer, err := c.dialPeerWithAddress(addr, persistent, node)
 	if err != nil {
 		log.Error("dialPeer", "dial peer err:", err.Error())
 		return nil, err
@@ -230,7 +229,7 @@ func (c Comm) CollectPeerStat(err error, peer *Peer) {
 func (c Comm) reportPeerStat(peer *Peer) {
 	timeout := time.NewTimer(time.Second)
 	select {
-	case (*peer.nodeInfo).monitorChan <- peer:
+	case peer.node.nodeInfo.monitorChan <- peer:
 	case <-timeout.C:
 		timeout.Stop()
 		return
