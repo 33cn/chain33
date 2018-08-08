@@ -120,7 +120,7 @@ func (biz *walletPrivacyBiz) SignTransaction(key crypto.PrivKey, req *types.ReqS
 			return
 		}
 	default:
-		bizlog.Error("PrivacyTrading signTxWithPrivacy", "Invalid action type ", action.Ty)
+		bizlog.Error("SignTransaction", "Invalid action type ", action.Ty)
 		err = types.ErrInvalidParams
 	}
 	signtxhex = common.ToHex(types.Encode(tx))
