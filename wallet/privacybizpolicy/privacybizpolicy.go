@@ -1,10 +1,9 @@
 package privacybizpolicy
 
 import (
-	"github.com/inconshreveable/log15"
-
 	"sync"
 
+	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/db"
@@ -60,18 +59,20 @@ func (biz *walletPrivacyBiz) Init(walletOperate walletoperate.WalletOperate) {
 		biz.store.setVersion()
 	}
 	// 启动定时检查超期FTXO的协程
-	walletOperate.AddWaitGroup(1)
+	walletOperate.GetWaitGroup().Add(1)
 	go biz.checkWalletStoreData()
 }
 
 func (biz *walletPrivacyBiz) OnCreateNewAccount(addr string) {
-	biz.walletOperate.AddWaitGroup(1)
-	go biz.rescanReqTxDetailByAddr(addr)
+	wg := biz.walletOperate.GetWaitGroup()
+	wg.Add(1)
+	go biz.rescanReqTxDetailByAddr(addr, wg)
 }
 
 func (biz *walletPrivacyBiz) OnImportPrivateKey(addr string) {
-	biz.walletOperate.AddWaitGroup(1)
-	go biz.rescanReqTxDetailByAddr(addr)
+	wg := biz.walletOperate.GetWaitGroup()
+	wg.Add(1)
+	go biz.rescanReqTxDetailByAddr(addr, wg)
 }
 
 func (biz *walletPrivacyBiz) OnAddBlockFinish() {

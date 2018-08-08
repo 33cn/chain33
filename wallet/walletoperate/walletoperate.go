@@ -22,6 +22,7 @@ type WalletOperate interface {
 	GetLastHeader() *types.Header
 	GetWalletAccounts() ([]*types.WalletAccountStore, error)
 	GetTxDetailByHashs(ReqHashes *types.ReqHashes)
+	GetWaitGroup() *sync.WaitGroup
 
 	IsWalletLocked() bool
 	GetRescanFlag() int32
@@ -29,6 +30,4 @@ type WalletOperate interface {
 
 	CheckWalletStatus() (bool, error)
 	Nonce() int64
-	AddWaitGroup(delta int)
-	WaitGroupDone()
 }
