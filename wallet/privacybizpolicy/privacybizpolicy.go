@@ -390,6 +390,10 @@ func (biz *walletPrivacyBiz) onEnablePrivacy(msg *queue.Message) (string, int64,
 		bizlog.Error("walletPrivacyBiz", "Invalid data type.", ok)
 		return topic, retty, nil, types.ErrInvalidParam
 	}
+	if req == nil {
+		bizlog.Error("walletPrivacyBiz request param is nil")
+		return topic, retty, nil, types.ErrInvalidParam
+	}
 	biz.walletOperate.GetMutex().Lock()
 	defer biz.walletOperate.GetMutex().Unlock()
 
