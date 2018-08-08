@@ -131,7 +131,7 @@ func totalCoins(cmd *cobra.Command, args []string) {
 		}
 
 		resp.TxCount = res2.TxCount
-		totalAmount = (3e+8+30000+30*height)*types.Coin - res2.Fee
+		totalAmount = (317340000+30*height)*types.Coin - res2.Fee
 		resp.TotalAmount = strconv.FormatFloat(float64(totalAmount)/float64(types.Coin), 'f', 4, 64)
 	} else {
 		//查询Token总量
