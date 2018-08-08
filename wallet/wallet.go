@@ -189,6 +189,10 @@ func (wallet *Wallet) GetWaitGroup() *sync.WaitGroup {
 	return wallet.wg
 }
 
+func (ws *Wallet) GetAccountByLabel(label string) (*types.WalletAccountStore, error) {
+	return ws.walletStore.GetAccountByLabel(label)
+}
+
 func (wallet *Wallet) IsRescanUtxosFlagScaning() (bool, error) {
 	if types.UtxoFlagScaning == atomic.LoadInt32(&wallet.rescanUTXOflag) {
 		return true, types.ErrRescanFlagScaning
@@ -240,6 +244,14 @@ func (wallet *Wallet) SetQueueClient(cli queue.Client) {
 	wallet.wg.Add(1)
 	go wallet.autoMining()
 
+}
+
+func (wallet *Wallet) GetAccountByAddr(addr string) (*types.WalletAccountStore, error) {
+	return wallet.walletStore.GetAccountByAddr(addr)
+}
+
+func (wallet *Wallet) SetWalletAccount(update bool, addr string, account *types.WalletAccountStore) error {
+	return wallet.walletStore.SetWalletAccount(update, addr, account)
 }
 
 func (wallet *Wallet) getPrivKeyByAddr(addr string) (crypto.PrivKey, error) {

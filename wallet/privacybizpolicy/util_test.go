@@ -3,9 +3,9 @@ package privacybizpolicy
 import (
 	"testing"
 
-	"gitlab.33.cn/chain33/chain33/types"
 	"github.com/stretchr/testify/require"
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 func Test_checkAmountValid(t *testing.T) {

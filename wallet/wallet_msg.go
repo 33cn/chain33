@@ -52,7 +52,7 @@ func (wallet *Wallet) ProcRecvMsg() {
 		// 再处理业务逻辑中的业务
 		existed := false
 		for _, policy := range wallet.policyContainer {
-			existed, err := policy.OnRecvQueueMsg(&msg)
+			existed, err = policy.OnRecvQueueMsg(&msg)
 			if existed && err != nil {
 				walletlog.Error("ProcRecvMsg", "OnRecvQueueMsg error ", err, "msg", types.GetEventName(int(msg.Ty)), "Id", msg.Id)
 			}
