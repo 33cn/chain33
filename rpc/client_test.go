@@ -14,6 +14,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 	_ "gitlab.33.cn/chain33/chain33/types/executor"
 	exec "gitlab.33.cn/chain33/chain33/types/executor"
+	evmtype "gitlab.33.cn/chain33/chain33/types/executor/evm"
 	hashlocktype "gitlab.33.cn/chain33/chain33/types/executor/hashlock"
 	retrievetype "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
 	tokentype "gitlab.33.cn/chain33/chain33/types/executor/token"
@@ -702,6 +703,29 @@ func TestChannelClient_CreateRawHashlockSendTx(t *testing.T) {
 		Fee:    1,
 	}
 	data, err = client.CreateRawHashlockSendTx(send)
+	assert.NotNil(t, data)
+	assert.Nil(t, err)
+}
+
+func TestChannelClient_CreateRawEvmCreateCallTx(t *testing.T) {
+	client := newTestChannelClient()
+	data, err := client.CreateRawEvmCreateCallTx(nil)
+	assert.NotNil(t, err)
+	assert.Nil(t, data)
+
+	createcall := &evmtype.CreateCallTx{
+		Amount:   0,
+		Code:     "12",
+		GasLimit: 0,
+		GasPrice: 0,
+		Note:     "12",
+		Alias:    "12",
+		Fee:      0,
+		Name:     "12",
+		IsCreate: true,
+	}
+
+	data, err = client.CreateRawEvmCreateCallTx(createcall)
 	assert.NotNil(t, data)
 	assert.Nil(t, err)
 }
