@@ -14,7 +14,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
-	"gitlab.33.cn/chain33/chain33/common/crypto/privacy"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	clog "gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/queue"
@@ -87,11 +86,6 @@ type txOutputInfo struct {
 	utxoGlobalIndex  *types.UTXOGlobalIndex
 	txPublicKeyR     []byte
 	onetimePublicKey []byte
-}
-
-type addrAndprivacy struct {
-	PrivacyKeyPair *privacy.Privacy
-	Addr           *string
 }
 
 func SetLogLevel(level string) {

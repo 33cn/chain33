@@ -865,6 +865,7 @@ func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 			policy.OnAddBlockTx(block, tx, int32(index), newbatch)
 		}
 
+		// TODO: 后续如果有其他的业务类型，需要重构以下代码，全部挪到策略中
 		//check whether the privacy tx belong to current wallet
 		if types.PrivacyX != string(tx.Execer) {
 			//获取from地址
@@ -905,11 +906,6 @@ func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 					needflush = true
 				}
 			}
-		} else {
-			//TODO:当前不会出现扣掉交易费，而实际的交易不执行的情况，因为如果交易费得不到保障，交易将不被执行
-			//确认隐私交易是否是ExecOk
-			// wallet.AddDelPrivacyTxsFromBlock(tx, int32(index), block, newbatch, AddTx)
-			//wallet.onAddPrivacyTxFromBlock(tx, int32(index), block, newbatch)
 		}
 	}
 	err := newbatch.Write()
@@ -960,28 +956,12 @@ func (wallet *Wallet) buildAndStoreWalletTxDetail(param *buildStoreWalletTxDetai
 
 		txdetailbyte, err := proto.Marshal(&txdetail)
 		if err != nil {
-			storelog.Error("ProcWalletAddBlock Marshal txdetail err", "Height", param.block.Block.Height, "index", param.index)
+			storelog.Error("buildAndStoreWalletTxDetail Marshal txdetail err", "Height", param.block.Block.Height, "index", param.index)
 			return
 		}
-
 		param.newbatch.Set(key, txdetailbyte)
-		if param.isprivacy {
-			//额外存储可以快速定位到接收隐私的交易
-			if sendTx == param.sendRecvFlag {
-				param.newbatch.Set(calcSendPrivacyTxKey(param.tokenname, param.senderRecver, heightstr), key)
-			} else if recvTx == param.sendRecvFlag {
-				param.newbatch.Set(calcRecvPrivacyTxKey(param.tokenname, param.senderRecver, heightstr), key)
-			}
-		}
 	} else {
 		param.newbatch.Delete(calcTxKey(heightstr))
-		if param.isprivacy {
-			if sendTx == param.sendRecvFlag {
-				param.newbatch.Delete(calcSendPrivacyTxKey(param.tokenname, param.senderRecver, heightstr))
-			} else if recvTx == param.sendRecvFlag {
-				param.newbatch.Delete(calcRecvPrivacyTxKey(param.tokenname, param.senderRecver, heightstr))
-			}
-		}
 	}
 }
 
