@@ -19,7 +19,7 @@ import (
 // Config
 
 const (
-	proposalHeartbeatIntervalSeconds = 2
+	proposalHeartbeatIntervalSeconds = 1
 )
 
 //-----------------------------------------------------------------------------
@@ -589,6 +589,11 @@ func (cs *ConsensusState) checkTxsAvailable() {
 				tendermintlog.Info("already has proposal")
 				break
 			}
+			cs.broadcastChannel <- cs.RoundStateMessage()
+			if !cs.isProposer() {
+				tendermintlog.Info("not proposer, waiting")
+				break
+			}
 			cs.txsAvailable <- height
 		}
 	}
@@ -844,8 +849,11 @@ func (cs *ConsensusState) createProposalBlock() (block *ttypes.Block) {
 		tendermintlog.Error("No new block to propose, will change Proposer", "height", cs.Height)
 		return
 	}
-	tendermintlog.Info(fmt.Sprintf("createProposalBlock BuildBlock. Current: %v/%v/%v", cs.Height, cs.Round, cs.Step), "txs-len", len(pblock.Txs), "cost", time.Since(beg))
-
+	tendermintlog.Info(fmt.Sprintf("createProposalBlock BuildBlock. Current: %v/%v/%v", cs.Height, cs.Round, cs.Step), "block-height", pblock.Height, "txs-len", len(pblock.Txs), "cost", time.Since(beg))
+	if pblock.Height != cs.Height {
+		tendermintlog.Error("pblock.Height is not equal to cs.Height")
+		return
+	}
 	block = cs.state.MakeBlock(cs.Height, pblock, commit)
 	//evidence := cs.evpool.PendingEvidence()
 	//block.AddEvidence(evidence)
@@ -1062,7 +1070,7 @@ func (cs *ConsensusState) enterPrecommitWait(height int64, round int) {
 
 // Enter: +2/3 precommits for block
 func (cs *ConsensusState) enterCommit(height int64, commitRound int) {
-	if cs.Height != height || ttypes.RoundStepCommit <= cs.Step {
+	if cs.Height != height || commitRound < cs.Round || (cs.Round == commitRound && ttypes.RoundStepCommit <= cs.Step) {
 		tendermintlog.Debug(fmt.Sprintf("enterCommit(%v/%v): Invalid args. Current step: %v/%v/%v", height, commitRound, cs.Height, cs.Round, cs.Step))
 		return
 	}
@@ -1108,7 +1116,7 @@ func (cs *ConsensusState) tryFinalizeCommit(height int64) {
 	if !ok || len(blockID.Hash) == 0 {
 		tendermintlog.Error("Attempt to finalize failed. There was no +2/3 majority, or +2/3 was for <nil>.")
 		tendermintlog.Info(fmt.Sprintf("Continue consensus. Current: %v/%v/%v", cs.Height, cs.CommitRound, cs.Step), "cost", time.Since(cs.begCons))
-		cs.enterNewRound(cs.Height, cs.CommitRound+1)
+		//cs.enterNewRound(cs.Height, cs.CommitRound+1)
 		return
 	}
 	if !cs.ProposalBlock.HashesTo(blockID.Hash) {
@@ -1243,23 +1251,26 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 //-----------------------------------------------------------------------------
 
 func (cs *ConsensusState) defaultSetProposal(proposalTrans *ttypes.ProposalTrans) error {
+	tendermintlog.Info(fmt.Sprintf("Consensus receive proposal. Current: %v/%v/%v", cs.Height, cs.Round, cs.Step),
+		"proposal", fmt.Sprintf("%v/%v", proposalTrans.Height, proposalTrans.Round))
+
+	// Already have one
+	// TODO: possibly catch double proposals
+	if cs.Proposal != nil {
+		tendermintlog.Info("defaultSetProposal: already has proposal")
+		return nil
+	}
+
 	proposal, err := ttypes.ProposalTransToProposal(proposalTrans)
 	if err != nil {
 		tendermintlog.Error("defaultSetProposal:", "msg", "ProposalTransToProposal failed", "err", err)
 		return err
 	}
-	tendermintlog.Info(fmt.Sprintf("Consensus receive proposal. Current: %v/%v/%v", cs.Height, cs.Round, cs.Step), "proposal", fmt.Sprintf("%v/%v", proposal.Height, proposal.Round))
-
-	// Already have one
-	// TODO: possibly catch double proposals
-	if cs.Proposal != nil {
-		tendermintlog.Debug("defaultSetProposal: proposal is not nil")
-		return nil
-	}
 
 	// Does not apply
 	if proposal.Height != cs.Height || proposal.Round != cs.Round {
-		tendermintlog.Error("defaultSetProposal:height is not equal or round is not equal", "proposal-height", proposal.Height, "cs-height", cs.Height, "proposal-round", proposal.Round, "cs-round", cs.Round)
+		tendermintlog.Error("defaultSetProposal:height is not equal or round is not equal", "proposal-height", proposal.Height, "cs-height", cs.Height,
+			"proposal-round", proposal.Round, "cs-round", cs.Round)
 		return nil
 	}
 
@@ -1443,8 +1454,7 @@ func (cs *ConsensusState) addVote(vote *ttypes.Vote, peerID string) (added bool,
 						}
 
 					}
-				} else if cs.Round <= vote.Round && precommits.HasAll() {
-					// workaround: need have all the votes
+				} else if cs.Round <= vote.Round && precommits.HasTwoThirdsAny() {
 					cs.enterNewRound(height, vote.Round)
 					cs.enterPrecommit(height, vote.Round)
 					cs.enterPrecommitWait(height, vote.Round)
