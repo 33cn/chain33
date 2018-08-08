@@ -7,8 +7,8 @@ import (
 
 	"encoding/json"
 
-	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
-	gtypes "gitlab.33.cn/chain33/chain33/types"
+	ttypes "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 // database keys
@@ -32,7 +32,7 @@ type State struct {
 	// LastBlockHeight=0 at genesis (ie. block(H=0) does not exist)
 	LastBlockHeight  int64
 	LastBlockTotalTx int64
-	LastBlockID      types.BlockID
+	LastBlockID      ttypes.BlockID
 	LastBlockTime    int64
 
 	// LastValidators is used to validate block.LastCommit.
@@ -40,13 +40,13 @@ type State struct {
 	// so we can query for historical validator sets.
 	// Note that if s.LastBlockHeight causes a valset change,
 	// we set s.LastHeightValidatorsChanged = s.LastBlockHeight + 1
-	Validators                  *types.ValidatorSet
-	LastValidators              *types.ValidatorSet
+	Validators                  *ttypes.ValidatorSet
+	LastValidators              *ttypes.ValidatorSet
 	LastHeightValidatorsChanged int64
 
 	// Consensus parameters used for validating blocks.
 	// Changes returned by EndBlock and updated after Commit.
-	ConsensusParams                  types.ConsensusParams
+	ConsensusParams                  ttypes.ConsensusParams
 	LastHeightConsensusParamsChanged int64
 
 	// Merkle root of the results from executing prev block
@@ -100,7 +100,7 @@ func (s State) IsEmpty() bool {
 }
 
 // GetValidators returns the last and current validator sets.
-func (s State) GetValidators() (last *types.ValidatorSet, current *types.ValidatorSet) {
+func (s State) GetValidators() (last *ttypes.ValidatorSet, current *ttypes.ValidatorSet) {
 	return s.LastValidators, s.Validators
 }
 
@@ -108,18 +108,18 @@ func (s State) GetValidators() (last *types.ValidatorSet, current *types.Validat
 // Create a block from the latest state
 
 // MakeBlock builds a block with the given txs and commit from the current state.
-func (s State) MakeBlock(height int64, pblock *gtypes.Block, commit *types.Commit) *types.Block {
+func (s State) MakeBlock(height int64, Txs []*types.Transaction, commit *types.TendermintCommit) *ttypes.TendermintBlock {
 	// build base block
-	block := types.MakeBlock(height, pblock, commit)
+	block := ttypes.MakeBlock(height, Txs, commit)
 
 	// fill header with state data
-	block.ChainID = s.ChainID
-	block.TotalTxs = s.LastBlockTotalTx + block.NumTxs
-	block.LastBlockID = s.LastBlockID
-	block.ValidatorsHash = s.Validators.Hash()
-	block.AppHash = s.AppHash
-	block.ConsensusHash = s.ConsensusParams.Hash()
-	block.LastResultsHash = s.LastResultsHash
+	block.Header.ChainID = s.ChainID
+	block.Header.TotalTxs = s.LastBlockTotalTx + block.Header.NumTxs
+	block.Header.LastBlockID = &s.LastBlockID.BlockID
+	block.Header.ValidatorsHash = s.Validators.Hash()
+	block.Header.AppHash = s.AppHash
+	block.Header.ConsensusHash = s.ConsensusParams.Hash()
+	block.Header.LastResultsHash = s.LastResultsHash
 
 	return block
 }
@@ -140,36 +140,36 @@ func MakeGenesisStateFromFile(genDocFile string) (State, error) {
 }
 
 // MakeGenesisDocFromFile reads and unmarshals genesis doc from the given file.
-func MakeGenesisDocFromFile(genDocFile string) (*types.GenesisDoc, error) {
+func MakeGenesisDocFromFile(genDocFile string) (*ttypes.GenesisDoc, error) {
 	genDocJSON, err := ioutil.ReadFile(genDocFile)
 	if err != nil {
 		return nil, fmt.Errorf("Couldn't read GenesisDoc file: %v", err)
 	}
-	genDoc, err := types.GenesisDocFromJSON(genDocJSON)
+	genDoc, err := ttypes.GenesisDocFromJSON(genDocJSON)
 	if err != nil {
 		return nil, fmt.Errorf("Error reading GenesisDoc: %v", err)
 	}
 	return genDoc, nil
 }
 
-// MakeGenesisState creates state from types.GenesisDoc.
-func MakeGenesisState(genDoc *types.GenesisDoc) (State, error) {
+// MakeGenesisState creates state from ttypes.GenesisDoc.
+func MakeGenesisState(genDoc *ttypes.GenesisDoc) (State, error) {
 	err := genDoc.ValidateAndComplete()
 	if err != nil {
 		return State{}, fmt.Errorf("Error in genesis file: %v", err)
 	}
 
 	// Make validators slice
-	validators := make([]*types.Validator, len(genDoc.Validators))
+	validators := make([]*ttypes.Validator, len(genDoc.Validators))
 	for i, val := range genDoc.Validators {
-		pubKey, err := types.PubKeyFromString(val.PubKey.Data)
+		pubKey, err := ttypes.PubKeyFromString(val.PubKey.Data)
 		if err != nil {
 			return State{}, fmt.Errorf("Error validate[i] in genesis file: %v", i, err)
 		}
 
 		// Make validator
-		validators[i] = &types.Validator{
-			Address:     types.GenAddressByPubKey(pubKey),
+		validators[i] = &ttypes.Validator{
+			Address:     ttypes.GenAddressByPubKey(pubKey),
 			PubKey:      pubKey.Bytes(),
 			VotingPower: val.Power,
 		}
@@ -180,11 +180,11 @@ func MakeGenesisState(genDoc *types.GenesisDoc) (State, error) {
 		ChainID: genDoc.ChainID,
 
 		LastBlockHeight: 0,
-		LastBlockID:     types.BlockID{},
+		LastBlockID:     ttypes.BlockID{},
 		LastBlockTime:   genDoc.GenesisTime.UnixNano(),
 
-		Validators:                  types.NewValidatorSet(validators),
-		LastValidators:              types.NewValidatorSet(nil),
+		Validators:                  ttypes.NewValidatorSet(validators),
+		LastValidators:              ttypes.NewValidatorSet(nil),
 		LastHeightValidatorsChanged: 1,
 
 		ConsensusParams:                  *genDoc.ConsensusParams,

@@ -78,30 +78,32 @@ func CanonicalProposal(proposal *Proposal) CanonicalJSONProposal {
 	return CanonicalJSONProposal{
 		//BlockBytes: proposal.BlockBytes,
 		Height:     proposal.Height,
-		Timestamp:  CanonicalTime(proposal.Timestamp),
-		POLBlockID: CanonicalBlockID(proposal.POLBlockID),
-		POLRound:   proposal.POLRound,
-		Round:      proposal.Round,
+		Timestamp:  CanonicalTime(time.Unix(0,proposal.Timestamp)),
+		POLBlockID: CanonicalJSONBlockID{
+			Hash: proposal.POLBlockID.Hash,
+		},
+		POLRound:   int(proposal.POLRound),
+		Round:      int(proposal.Round),
 	}
 }
 
 func CanonicalVote(vote *Vote) CanonicalJSONVote {
 	return CanonicalJSONVote{
-		BlockID:   CanonicalBlockID(vote.BlockID),
+		BlockID:   CanonicalJSONBlockID{Hash:vote.BlockID.Hash},
 		Height:    vote.Height,
-		Round:     vote.Round,
-		Timestamp: CanonicalTime(vote.Timestamp),
-		Type:      vote.Type,
+		Round:     int(vote.Round),
+		Timestamp: CanonicalTime(time.Unix(0,vote.Timestamp)),
+		Type:      byte(vote.Type),
 	}
 }
 
 func CanonicalHeartbeat(heartbeat *Heartbeat) CanonicalJSONHeartbeat {
 	return CanonicalJSONHeartbeat{
 		heartbeat.Height,
-		heartbeat.Round,
-		heartbeat.Sequence,
+		int(heartbeat.Round),
+		int(heartbeat.Sequence),
 		heartbeat.ValidatorAddress,
-		heartbeat.ValidatorIndex,
+		int(heartbeat.ValidatorIndex),
 	}
 }
 

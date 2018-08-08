@@ -1,0 +1,18 @@
+=============== Aug 3, 2018 (CST) ===============
+19:14:36.099495 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+19:14:36.120970 db@open opening
+19:14:36.121943 version@stat F·[] S·0B[] Sc·[]
+19:14:36.209783 db@janitor F·2 G·0
+19:14:36.209783 db@open done T·88.8126ms
+19:16:19.583956 db@close closing
+19:16:19.584931 db@close done T·975.2µs
+=============== Aug 3, 2018 (CST) ===============
+19:17:49.227090 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+19:17:49.227090 version@stat F·[] S·0B[] Sc·[]
+19:17:49.227090 db@open opening
+19:17:49.227090 journal@recovery F·1
+19:17:49.240755 journal@recovery recovering @1
+19:17:49.330678 memdb@flush created L0@2 N·1 S·189B "Wal..Key,v1":"Wal..Key,v1"
+19:17:49.332658 version@stat F·[1] S·189B[189B] Sc·[0.25]
+19:17:49.357029 db@janitor F·3 G·0
+19:17:49.357029 db@open done T·129.9399ms

@@ -5,12 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"time"
 
 	"encoding/json"
-
+	"gitlab.33.cn/chain33/chain33/types"
 	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
+	"time"
 )
 
 var (
@@ -37,13 +37,14 @@ func (err *ErrVoteConflictingVotes) Error() string {
 	return fmt.Sprintf("Conflicting votes from validator %v", addr)
 }
 
-func NewConflictingVoteError(val *Validator, voteA, voteB *Vote) *ErrVoteConflictingVotes {
+func NewConflictingVoteError(val *Validator, voteA, voteB *types.Vote) *ErrVoteConflictingVotes {
 	keyString := fmt.Sprintf("%X", val.PubKey)
 	return &ErrVoteConflictingVotes{
-		&DuplicateVoteEvidence{
+		&DuplicateVoteEvidence{&types.DuplicateVoteEvidence{
 			PubKey: keyString,
 			VoteA:  voteA,
 			VoteB:  voteB,
+			},
 		},
 	}
 }
@@ -68,14 +69,7 @@ func IsVoteTypeValid(type_ byte) bool {
 
 // Represents a prevote, precommit, or commit vote from validators for consensus.
 type Vote struct {
-	ValidatorAddress []byte    `json:"validator_address"`
-	ValidatorIndex   int       `json:"validator_index"`
-	Height           int64     `json:"height"`
-	Round            int       `json:"round"`
-	Timestamp        time.Time `json:"timestamp"`
-	Type             byte      `json:"type"`
-	BlockID          BlockID   `json:"block_id"` // zero if vote is nil.
-	Signature        []byte    `json:"signature"`
+	*types.Vote
 }
 
 func (vote *Vote) WriteSignBytes(chainID string, w io.Writer, n *int, err *error) {
@@ -108,7 +102,7 @@ func (vote *Vote) String() string {
 		return "nil-Vote"
 	}
 	var typeString string
-	switch vote.Type {
+	switch byte(vote.Type) {
 	case VoteTypePrevote:
 		typeString = "Prevote"
 	case VoteTypePrecommit:
@@ -121,7 +115,7 @@ func (vote *Vote) String() string {
 		vote.ValidatorIndex, Fingerprint(vote.ValidatorAddress),
 		vote.Height, vote.Round, vote.Type, typeString,
 		Fingerprint(vote.BlockID.Hash), vote.Signature,
-		CanonicalTime(vote.Timestamp))
+		CanonicalTime(time.Unix(0, vote.Timestamp)))
 }
 
 func (vote *Vote) Verify(chainID string, pubKey crypto.PubKey) error {

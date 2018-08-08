@@ -7,7 +7,9 @@ import (
 
 	"github.com/pkg/errors"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
-	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
+	ttypes "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
+	"gitlab.33.cn/chain33/chain33/types"
+	"reflect"
 )
 
 /*
@@ -50,7 +52,7 @@ const (
 
 )
 
-func keyLookup(evidence types.Evidence) []byte {
+func keyLookup(evidence ttypes.Evidence) []byte {
 	return keyLookupFromHeightAndHash(evidence.Height(), evidence.Hash())
 }
 
@@ -63,11 +65,11 @@ func keyLookupFromHeightAndHash(height int64, hash []byte) []byte {
 	return _key("%s/%s/%X", baseKeyLookup, bE(height), hash)
 }
 
-func keyOutqueue(evidence types.Evidence, priority int64) []byte {
+func keyOutqueue(evidence ttypes.Evidence, priority int64) []byte {
 	return _key("%s/%s/%s/%X", baseKeyOutqueue, bE(priority), bE(evidence.Height()), evidence.Hash())
 }
 
-func keyPending(evidence types.Evidence) []byte {
+func keyPending(evidence ttypes.Evidence) []byte {
 	return _key("%s/%s/%X", baseKeyPending, bE(evidence.Height()), evidence.Hash())
 }
 
@@ -83,11 +85,16 @@ type EvidenceStore struct {
 }
 
 func NewEvidenceStore(db dbm.DB) *EvidenceStore {
-	if len(types.EvidenceType2Obj) == 0 {
-		types.EvidenceType2Obj = map[string]interface{}{
-			types.DuplicateVote: &types.DuplicateVoteEvidence{},
-			types.MockGood:      &types.MockGoodEvidence{},
-			types.MockBad:       &types.MockBadEvidence{},
+	if len(ttypes.EvidenceType2Type) == 0 {
+		ttypes.EvidenceType2Type = map[string]reflect.Type{
+			ttypes.DuplicateVote: reflect.TypeOf(types.DuplicateVoteEvidence{}),
+			//ttypes.MockGood:      &ttypes.MockGoodEvidence{},
+			//ttypes.MockBad:       &ttypes.MockBadEvidence{},
+		}
+	}
+	if len(ttypes.EvidenceType2Obj) == 0 {
+		ttypes.EvidenceType2Obj = map[string]ttypes.Evidence{
+			ttypes.DuplicateVote: &ttypes.DuplicateVoteEvidence{},
 		}
 	}
 	return &EvidenceStore{
@@ -96,10 +103,10 @@ func NewEvidenceStore(db dbm.DB) *EvidenceStore {
 }
 
 // PriorityEvidence returns the evidence from the outqueue, sorted by highest priority.
-func (store *EvidenceStore) PriorityEvidence() (evidence []types.Evidence) {
+func (store *EvidenceStore) PriorityEvidence() (evidence []ttypes.Evidence) {
 	// reverse the order so highest priority is first
 	l := store.ListEvidence(baseKeyOutqueue)
-	l2 := make([]types.Evidence, len(l))
+	l2 := make([]ttypes.Evidence, len(l))
 	for i := range l {
 		l2[i] = l[len(l)-1-i]
 	}
@@ -107,13 +114,13 @@ func (store *EvidenceStore) PriorityEvidence() (evidence []types.Evidence) {
 }
 
 // PendingEvidence returns all known uncommitted evidence.
-func (store *EvidenceStore) PendingEvidence() (evidence []types.Evidence) {
+func (store *EvidenceStore) PendingEvidence() (evidence []ttypes.Evidence) {
 	return store.ListEvidence(baseKeyPending)
 }
 
 // ListEvidence lists the evidence for the given prefix key.
 // It is wrapped by PriorityEvidence and PendingEvidence for convenience.
-func (store *EvidenceStore) ListEvidence(prefixKey string) (evidence []types.Evidence) {
+func (store *EvidenceStore) ListEvidence(prefixKey string) (evidence []ttypes.Evidence) {
 	iter := store.db.Iterator([]byte(prefixKey), false)
 	for iter.Next() {
 		val := iter.Value()
@@ -150,7 +157,7 @@ func (store *EvidenceStore) GetEvidence(height int64, hash []byte) *EvidenceInfo
 
 // AddNewEvidence adds the given evidence to the database.
 // It returns false if the evidence is already stored.
-func (store *EvidenceStore) AddNewEvidence(evidence types.Evidence, priority int64) bool {
+func (store *EvidenceStore) AddNewEvidence(evidence ttypes.Evidence, priority int64) bool {
 	// check if we already have seen it
 	ei_ := store.GetEvidence(evidence.Height(), evidence.Hash())
 	if ei_ != nil && len(ei_.Evidence.Kind) == 0 {
@@ -177,14 +184,14 @@ func (store *EvidenceStore) AddNewEvidence(evidence types.Evidence, priority int
 }
 
 // MarkEvidenceAsBroadcasted removes evidence from Outqueue.
-func (store *EvidenceStore) MarkEvidenceAsBroadcasted(evidence types.Evidence) {
+func (store *EvidenceStore) MarkEvidenceAsBroadcasted(evidence ttypes.Evidence) {
 	ei := store.getEvidenceInfo(evidence)
 	key := keyOutqueue(evidence, ei.Priority)
 	store.db.Delete(key)
 }
 
 // MarkEvidenceAsPending removes evidence from pending and outqueue and sets the state to committed.
-func (store *EvidenceStore) MarkEvidenceAsCommitted(evidence types.Evidence) {
+func (store *EvidenceStore) MarkEvidenceAsCommitted(evidence ttypes.Evidence) {
 	// if its committed, its been broadcast
 	store.MarkEvidenceAsBroadcasted(evidence)
 
@@ -205,7 +212,7 @@ func (store *EvidenceStore) MarkEvidenceAsCommitted(evidence types.Evidence) {
 //---------------------------------------------------
 // utils
 
-func (store *EvidenceStore) getEvidenceInfo(evidence types.Evidence) EvidenceInfo {
+func (store *EvidenceStore) getEvidenceInfo(evidence ttypes.Evidence) EvidenceInfo {
 	key := keyLookup(evidence)
 	var ei EvidenceInfo
 	b, e := store.db.Get(key)
@@ -219,7 +226,7 @@ func (store *EvidenceStore) getEvidenceInfo(evidence types.Evidence) EvidenceInf
 	return ei
 }
 
-func EvidenceToInfoBytes(evidence types.Evidence, priority int64) ([]byte, error) {
+func EvidenceToInfoBytes(evidence ttypes.Evidence, priority int64) ([]byte, error) {
 	evi, err := json.Marshal(evidence)
 	if err != nil {
 		return nil, errors.Errorf("EvidenceToBytes marshal evidence failed:%v\n", err)
@@ -242,14 +249,14 @@ func EvidenceToInfoBytes(evidence types.Evidence, priority int64) ([]byte, error
 	return eiBytes, nil
 }
 
-func (store *EvidenceStore) EvidenceFromInfoBytes(data []byte) (types.Evidence, error) {
+func (store *EvidenceStore) EvidenceFromInfoBytes(data []byte) (ttypes.Evidence, error) {
 	vote2 := EvidenceInfo{}
 	err := json.Unmarshal(data, &vote2)
 	if err != nil {
 		return nil, errors.Errorf("BytesToEvidence Unmarshal evidence info failed:%v\n", err)
 	}
-	if v, ok := types.EvidenceType2Obj[vote2.Evidence.Kind]; ok {
-		tmp := v.(types.Evidence).Copy()
+	if v, ok := ttypes.EvidenceType2Type[vote2.Evidence.Kind]; ok {
+		tmp := v.(ttypes.Evidence).Copy()
 		err = json.Unmarshal(*vote2.Evidence.Data, &tmp)
 		if err != nil {
 			return nil, errors.Errorf("BytesToEvidence Unmarshal evidence failed:%v\n", err)

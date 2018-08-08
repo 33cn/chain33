@@ -30,9 +30,9 @@ type KeyText struct {
 
 func voteToStep(vote *Vote) int8 {
 	switch vote.Type {
-	case VoteTypePrevote:
+	case uint32(VoteTypePrevote):
 		return stepPrevote
-	case VoteTypePrecommit:
+	case uint32(VoteTypePrecommit):
 		return stepPrecommit
 	default:
 		PanicSanity("Unknown vote type")
@@ -325,7 +325,7 @@ func (privVal *PrivValidatorImp) Reset() {
 func (privVal *PrivValidatorImp) SignVote(chainID string, vote *Vote) error {
 	privVal.mtx.Lock()
 	defer privVal.mtx.Unlock()
-	signature, err := privVal.signBytesHRS(vote.Height, vote.Round, voteToStep(vote),
+	signature, err := privVal.signBytesHRS(vote.Height, int(vote.Round), voteToStep(vote),
 		SignBytes(chainID, vote), checkVotesOnlyDifferByTimestamp)
 	if err != nil {
 		return errors.New(Fmt("Error signing vote: %v", err))
@@ -339,12 +339,12 @@ func (privVal *PrivValidatorImp) SignVote(chainID string, vote *Vote) error {
 func (privVal *PrivValidatorImp) SignProposal(chainID string, proposal *Proposal) error {
 	privVal.mtx.Lock()
 	defer privVal.mtx.Unlock()
-	signature, err := privVal.signBytesHRS(proposal.Height, proposal.Round, stepPropose,
+	signature, err := privVal.signBytesHRS(proposal.Height, int(proposal.Round), stepPropose,
 		SignBytes(chainID, proposal), checkProposalsOnlyDifferByTimestamp)
 	if err != nil {
 		return fmt.Errorf("Error signing proposal: %v", err)
 	}
-	proposal.Signature = signature
+	proposal.Signature = signature.Bytes()
 	return nil
 }
 
