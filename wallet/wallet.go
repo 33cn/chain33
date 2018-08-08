@@ -195,6 +195,25 @@ func (wallet *Wallet) GetWalletDone() chan struct{} {
 	return wallet.done
 }
 
+func (wallet *Wallet) GetLastHeader() *types.Header {
+	return wallet.lastHeader
+}
+
+func (wallet *Wallet) GetRescanFlag() int32 {
+	return atomic.LoadInt32(&wallet.rescanUTXOflag)
+}
+
+func (wallet *Wallet) SetRescanFlag(flag int32) {
+	atomic.StoreInt32(&wallet.rescanUTXOflag, flag)
+}
+
+func (wallet *Wallet) IsRescanUtxosFlagScaning() (bool, error) {
+	if types.UtxoFlagScaning == atomic.LoadInt32(&wallet.rescanUTXOflag) {
+		return true, types.ErrRescanFlagScaning
+	}
+	return false, nil
+}
+
 func (wallet *Wallet) Close() {
 	//等待所有的子线程退出
 	//set close flag to isclosed == 1
@@ -247,10 +266,6 @@ func (wallet *Wallet) SetQueueClient(cli queue.Client) {
 
 	wallet.wg.Add(1)
 	go wallet.autoMining()
-
-	//开启检查FTXO的协程
-	wallet.wg.Add(1)
-	go wallet.checkWalletStoreData()
 
 }
 
@@ -412,27 +427,6 @@ func (wallet *Wallet) GetWalletStatus() *types.WalletStatus {
 
 	walletlog.Debug("GetWalletStatus", "walletstatus", s)
 	return s
-}
-
-func (wallet *Wallet) checkWalletStoreData() {
-	defer wallet.wg.Done()
-	timecount := 10
-	checkTicker := time.NewTicker(time.Duration(timecount) * time.Second)
-	for {
-		select {
-		case <-checkTicker.C:
-			newbatch := wallet.walletStore.NewBatch(true)
-			err := wallet.procInvalidTxOnTimer(newbatch)
-			if err != nil && err != dbm.ErrNotFoundInDb {
-				walletlog.Error("checkWalletStoreData", "procInvalidTxOnTimer error ", err)
-				return
-			}
-			newbatch.Write()
-		case <-wallet.done:
-			return
-		}
-	}
-
 }
 
 //output:
