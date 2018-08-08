@@ -5,20 +5,22 @@ var slash = []byte("-")
 
 const Debug = false
 const (
-	CoinsX    = "coins"
-	TicketX   = "ticket"
-	HashlockX = "hashlock"
-	RetrieveX = "retrieve"
-	NoneX     = "none"
-	TokenX    = "token"
-	TradeX    = "trade"
-	ManageX   = "manage"
-	PrivacyX  = "privacy"
-	EvmX      = "evm"
-	RelayX    = "relay"
-	Normx     = "norm"
-	UserEvmX  = "user.evm."
-	CertX     = "cert"
+	CoinsX          = "coins"
+	TicketX         = "ticket"
+	HashlockX       = "hashlock"
+	RetrieveX       = "retrieve"
+	NoneX           = "none"
+	TokenX          = "token"
+	TradeX          = "trade"
+	ManageX         = "manage"
+	PrivacyX        = "privacy"
+	ExecerEvmString = "evm"
+	EvmX            = "evm"
+	RelayX          = "relay"
+	Normx           = "norm"
+	UserEvmX        = "user.evm."
+	CertX           = "cert"
+	GameX           = "game"
 )
 
 var (
@@ -37,6 +39,7 @@ var (
 	ExecerConfig   = []byte("config")
 	ExecerCert     = []byte(CertX)
 	UserEvm        = []byte(UserEvmX)
+	ExecerGame     = []byte(GameX)
 )
 
 const (
@@ -196,6 +199,12 @@ const (
 	TyLogCallContract = 603
 	// 合约状态数据变更项日志
 	TyLogEVMStateChangeItem = 604
+
+	//log for game
+	TyLogCreateGame = 711
+	TyLogMatchGame  = 712
+	TyLogCancleGame = 713
+	TyLogCloseGame  = 714
 )
 
 //exec type
@@ -377,3 +386,11 @@ var RescanFlagMapint2string = map[int32]string{
 	UtxoFlagScaning: "UtxoFlagScaning",
 	UtxoFlagScanEnd: "UtxoFlagScanEnd",
 }
+
+//game action ty
+const (
+	GameActionCreate = iota
+	GameActionMatch
+	GameActionCancel
+	GameActionClose
+)
