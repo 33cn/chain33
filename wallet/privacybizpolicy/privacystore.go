@@ -8,12 +8,47 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
 
+	"encoding/json"
+
 	"github.com/golang/protobuf/proto"
+)
+
+const (
+	PRIVACYDBVERSION int64 = 1
 )
 
 // privacyStore 隐私交易数据库存储操作类
 type privacyStore struct {
 	db db.DB
+}
+
+func (store *privacyStore) getVersion() int64 {
+	var version int64
+	data, err := store.db.Get([]byte(PrivacyDBVersion))
+	if err != nil || data == nil {
+		bizlog.Error("getVersion", "db.Get error", err)
+		return 0
+	}
+	err = json.Unmarshal(data, &version)
+	if err != nil {
+		bizlog.Error("getVersion", "json.Unmarshal error", err)
+		return 0
+	}
+	return version
+}
+
+func (store *privacyStore) setVersion() error {
+	version := PRIVACYDBVERSION
+	data, err := json.Marshal(&version)
+	if err != nil || data == nil {
+		bizlog.Error("setVersion", "json.Marshal error", err)
+		return err
+	}
+	err = store.db.SetSync([]byte(PrivacyDBVersion), data)
+	if err != nil {
+		bizlog.Error("setVersion", "db.SetSync error", err)
+	}
+	return err
 }
 
 func (store *privacyStore) getAccountByPrefix(addr string) ([]*types.WalletAccountStore, error) {

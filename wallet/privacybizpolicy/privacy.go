@@ -17,6 +17,79 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
+func (biz *walletPrivacyBiz) rescanAllTxAddToUpdateUTXOs() {
+	accounts, err := biz.walletOperate.GetWalletAccounts()
+	if err != nil {
+		bizlog.Error("rescanAllTxToUpdateUTXOs", "walletOperate.GetWalletAccounts error", err)
+		return
+	}
+	bizlog.Debug("rescanAllTxToUpdateUTXOs begin!")
+	for _, acc := range accounts {
+		//从blockchain模块同步Account.Addr对应的所有交易详细信息
+		biz.rescanwg.Add(1)
+		go biz.rescanReqTxDetailByAddr(acc.Addr)
+	}
+	biz.rescanwg.Wait()
+
+	bizlog.Debug("rescanAllTxToUpdateUTXOs sucess!")
+}
+
+//从blockchain模块同步addr参与的所有交易详细信息
+func (biz *walletPrivacyBiz) rescanReqTxDetailByAddr(addr string) {
+	defer biz.rescanwg.Done()
+	biz.reqTxDetailByAddr(addr)
+}
+
+//从blockchain模块同步addr参与的所有交易详细信息
+func (biz *walletPrivacyBiz) reqTxDetailByAddr(addr string) {
+	if len(addr) == 0 {
+		bizlog.Error("reqTxDetailByAddr input addr is nil!")
+		return
+	}
+	var txInfo types.ReplyTxInfo
+
+	i := 0
+	for {
+		//首先从blockchain模块获取地址对应的所有交易hashs列表,从最新的交易开始获取
+		var ReqAddr types.ReqAddr
+		ReqAddr.Addr = addr
+		ReqAddr.Flag = 0
+		ReqAddr.Direction = 0
+		ReqAddr.Count = int32(MaxTxHashsPerTime)
+		if i == 0 {
+			ReqAddr.Height = -1
+			ReqAddr.Index = 0
+		} else {
+			ReqAddr.Height = txInfo.GetHeight()
+			ReqAddr.Index = txInfo.GetIndex()
+		}
+		i++
+		ReplyTxInfos, err := biz.walletOperate.GetAPI().GetTransactionByAddr(&ReqAddr)
+		if err != nil {
+			bizlog.Error("reqTxDetailByAddr", "GetTransactionByAddr error", err, "addr", addr)
+			return
+		}
+		if ReplyTxInfos == nil {
+			bizlog.Info("reqTxDetailByAddr ReplyTxInfos is nil")
+			return
+		}
+		txcount := len(ReplyTxInfos.TxInfos)
+
+		var ReqHashes types.ReqHashes
+		ReqHashes.Hashes = make([][]byte, len(ReplyTxInfos.TxInfos))
+		for index, ReplyTxInfo := range ReplyTxInfos.TxInfos {
+			ReqHashes.Hashes[index] = ReplyTxInfo.GetHash()
+			txInfo.Hash = ReplyTxInfo.GetHash()
+			txInfo.Height = ReplyTxInfo.GetHeight()
+			txInfo.Index = ReplyTxInfo.GetIndex()
+		}
+		biz.walletOperate.GetTxDetailByHashs(&ReqHashes)
+		if txcount < int(MaxTxHashsPerTime) {
+			return
+		}
+	}
+}
+
 func (biz *walletPrivacyBiz) isRescanUtxosFlagScaning() (bool, error) {
 	if types.UtxoFlagScaning == biz.walletOperate.GetRescanFlag() {
 		return true, types.ErrRescanFlagScaning

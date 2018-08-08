@@ -276,8 +276,9 @@ func (wallet *Wallet) ProcCreateNewAccount(Label *types.ReqNewAccount) (*types.W
 	walletAccount.Acc = accounts[0]
 
 	//从blockchain模块同步Account.Addr对应的所有交易详细信息
-	wallet.wg.Add(1)
-	go wallet.ReqTxDetailByAddr(addr)
+	for _, policy := range wallet.policyContainer {
+		policy.OnCreateNewAccount(addr)
+	}
 
 	return &walletAccount, nil
 }
@@ -413,10 +414,9 @@ func (wallet *Wallet) ProcImportPrivKey(PrivKey *types.ReqWalletImportPrivKey) (
 	walletaccount.Acc = accounts[0]
 	walletaccount.Label = PrivKey.Label
 
-	//从blockchain模块同步Account.Addr对应的所有交易详细信息
-	wallet.wg.Add(1)
-	go wallet.ReqTxDetailByAddr(addr)
-
+	for _, policy := range wallet.policyContainer {
+		policy.OnImportPrivateKey(addr)
+	}
 	return &walletaccount, nil
 }
 
@@ -1069,60 +1069,6 @@ func (wallet *Wallet) GetTxDetailByHashs(ReqHashes *types.ReqHashes) {
 		//walletlog.Debug("GetTxDetailByHashs", "heightstr", heightstr, "txdetail", txdetail.String())
 	}
 	newbatch.Write()
-}
-
-//从blockchain模块同步addr参与的所有交易详细信息
-func (wallet *Wallet) reqTxDetailByAddr(addr string) {
-	if len(addr) == 0 {
-		walletlog.Error("ReqTxInfosByAddr input addr is nil!")
-		return
-	}
-	var txInfo types.ReplyTxInfo
-
-	i := 0
-	for {
-		//首先从blockchain模块获取地址对应的所有交易hashs列表,从最新的交易开始获取
-		var ReqAddr types.ReqAddr
-		ReqAddr.Addr = addr
-		ReqAddr.Flag = 0
-		ReqAddr.Direction = 0
-		ReqAddr.Count = int32(MaxTxHashsPerTime)
-		if i == 0 {
-			ReqAddr.Height = -1
-			ReqAddr.Index = 0
-		} else {
-			ReqAddr.Height = txInfo.GetHeight()
-			ReqAddr.Index = txInfo.GetIndex()
-		}
-		i++
-		msg := wallet.client.NewMessage("blockchain", types.EventGetTransactionByAddr, &ReqAddr)
-		wallet.client.Send(msg, true)
-		resp, err := wallet.client.Wait(msg)
-		if err != nil {
-			walletlog.Error("ReqTxInfosByAddr EventGetTransactionByAddr", "err", err, "addr", addr)
-			return
-		}
-
-		ReplyTxInfos := resp.GetData().(*types.ReplyTxInfos)
-		if ReplyTxInfos == nil {
-			walletlog.Info("ReqTxInfosByAddr ReplyTxInfos is nil")
-			return
-		}
-		txcount := len(ReplyTxInfos.TxInfos)
-
-		var ReqHashes types.ReqHashes
-		ReqHashes.Hashes = make([][]byte, len(ReplyTxInfos.TxInfos))
-		for index, ReplyTxInfo := range ReplyTxInfos.TxInfos {
-			ReqHashes.Hashes[index] = ReplyTxInfo.GetHash()
-			txInfo.Hash = ReplyTxInfo.GetHash()
-			txInfo.Height = ReplyTxInfo.GetHeight()
-			txInfo.Index = ReplyTxInfo.GetIndex()
-		}
-		wallet.GetTxDetailByHashs(&ReqHashes)
-		if txcount < int(MaxTxHashsPerTime) {
-			return
-		}
-	}
 }
 
 //生成一个随机的seed种子, 目前支持英文单词和简体中文

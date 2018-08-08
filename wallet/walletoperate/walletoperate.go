@@ -20,6 +20,8 @@ type WalletOperate interface {
 	GetRandom() *rand.Rand
 	GetWalletDone() chan struct{}
 	GetLastHeader() *types.Header
+	GetWalletAccounts() ([]*types.WalletAccountStore, error)
+	GetTxDetailByHashs(ReqHashes *types.ReqHashes)
 
 	IsWalletLocked() bool
 	GetRescanFlag() int32
