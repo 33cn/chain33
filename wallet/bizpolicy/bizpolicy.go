@@ -33,6 +33,8 @@ type WalletBizPolicy interface {
 	// signtx 签名成功后，保存签名成功的交易字符串
 	// err 错误信息
 	SignTransaction(key crypto.PrivKey, req *types.ReqSignRawTx) (needSysSign bool, signtx string, err error)
+	OnCreateNewAccount(addr string)
+	OnImportPrivateKey(addr string)
 	OnAddBlockFinish()
 	OnDeleteBlockFinish()
 }

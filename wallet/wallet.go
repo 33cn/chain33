@@ -72,22 +72,6 @@ type Wallet struct {
 	policyContainer map[string]bizpolicy.WalletBizPolicy
 }
 
-type walletUTXO struct {
-	height  int64
-	outinfo *txOutputInfo
-}
-
-type walletUTXOs struct {
-	utxos []*walletUTXO
-}
-
-type txOutputInfo struct {
-	amount           int64
-	utxoGlobalIndex  *types.UTXOGlobalIndex
-	txPublicKeyR     []byte
-	onetimePublicKey []byte
-}
-
 func SetLogLevel(level string) {
 	clog.SetLogLevel(level)
 }
@@ -249,15 +233,6 @@ func (wallet *Wallet) SetQueueClient(cli queue.Client) {
 	wallet.wg.Add(1)
 	go wallet.ProcRecvMsg()
 
-	//获取wallet db version ,自动升级数据库首先，然后再启动钱包.
-	//和blockchain模块有消息来往所以需要先启动ProcRecvMsg任务
-	version := wallet.walletStore.GetWalletVersion()
-	walletlog.Info("wallet db", "version:", version)
-	if version == 0 {
-		wallet.RescanAllTxByAddr()
-		wallet.walletStore.SetWalletVersion(1)
-	}
-
 	wallet.wg.Add(1)
 	go wallet.autoMining()
 
@@ -308,35 +283,6 @@ func (wallet *Wallet) AddrInWallet(addr string) bool {
 		return true
 	}
 	return false
-}
-
-//从blockchain模块同步addr参与的所有交易详细信息
-func (wallet *Wallet) ReqTxDetailByAddr(addr string) {
-	defer wallet.wg.Done()
-	wallet.reqTxDetailByAddr(addr)
-}
-
-//从blockchain模块同步addr参与的所有交易详细信息
-func (wallet *Wallet) RescanReqTxDetailByAddr(addr string) {
-	defer wallet.rescanwg.Done()
-	wallet.reqTxDetailByAddr(addr)
-}
-
-//重新扫描钱包所有地址对应的交易从blockchain模块
-func (wallet *Wallet) RescanAllTxByAddr() {
-	accounts, err := wallet.GetWalletAccounts()
-	if err != nil {
-		return
-	}
-	walletlog.Debug("RescanAllTxByAddr begin!")
-	for _, acc := range accounts {
-		//从blockchain模块同步Account.Addr对应的所有交易详细信息
-		wallet.rescanwg.Add(1)
-		go wallet.RescanReqTxDetailByAddr(acc.Addr)
-	}
-	wallet.rescanwg.Wait()
-
-	walletlog.Debug("RescanAllTxByAddr sucess!")
 }
 
 //使用钱包的password对私钥进行aes cbc加密,返回加密后的privkey

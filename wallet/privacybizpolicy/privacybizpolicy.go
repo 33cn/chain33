@@ -3,6 +3,8 @@ package privacybizpolicy
 import (
 	"github.com/inconshreveable/log15"
 
+	"sync"
+
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/db"
@@ -27,14 +29,11 @@ type walletPrivacyBiz struct {
 	funcmap       queue.FuncMap
 	store         *privacyStore
 	walletOperate walletoperate.WalletOperate
+	rescanwg      *sync.WaitGroup
 }
 
-func (biz *walletPrivacyBiz) Init(walletOperate walletoperate.WalletOperate) {
-	biz.walletOperate = walletOperate
-	biz.store = &privacyStore{db: walletOperate.GetDBStore()}
-
+func (biz *walletPrivacyBiz) initFuncMap() {
 	biz.funcmap.Init()
-
 	biz.funcmap.Register(types.EventShowPrivacyPK, biz.onShowPrivacyPK)
 	biz.funcmap.Register(types.EventShowPrivacyAccountSpend, biz.onShowPrivacyAccountSpend)
 	biz.funcmap.Register(types.EventPublic2privacy, biz.onPublic2Privacy)
@@ -46,11 +45,35 @@ func (biz *walletPrivacyBiz) Init(walletOperate walletoperate.WalletOperate) {
 	biz.funcmap.Register(types.EventPrivacyTransactionList, biz.onPrivacyTransactionList)
 	biz.funcmap.Register(types.EventRescanUtxos, biz.onRescanUtxos)
 	biz.funcmap.Register(types.EventEnablePrivacy, biz.onEnablePrivacy)
+}
 
+func (biz *walletPrivacyBiz) Init(walletOperate walletoperate.WalletOperate) {
+	biz.walletOperate = walletOperate
+	biz.store = &privacyStore{db: walletOperate.GetDBStore()}
+	biz.rescanwg = &sync.WaitGroup{}
+
+	biz.initFuncMap()
+
+	version := biz.store.getVersion()
+	if version < PRIVACYDBVERSION {
+		biz.rescanAllTxAddToUpdateUTXOs()
+		biz.store.setVersion()
+	}
 	// 启动定时检查超期FTXO的协程
 	walletOperate.AddWaitGroup(1)
 	go biz.checkWalletStoreData()
 }
+
+func (biz *walletPrivacyBiz) OnCreateNewAccount(addr string) {
+	biz.walletOperate.AddWaitGroup(1)
+	go biz.rescanReqTxDetailByAddr(addr)
+}
+
+func (biz *walletPrivacyBiz) OnImportPrivateKey(addr string) {
+	biz.walletOperate.AddWaitGroup(1)
+	go biz.rescanReqTxDetailByAddr(addr)
+}
+
 func (biz *walletPrivacyBiz) OnAddBlockFinish() {
 
 }
