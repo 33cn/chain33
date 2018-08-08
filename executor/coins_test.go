@@ -38,13 +38,14 @@ func createWithdrawFromExec(priv crypto.PrivKey, execname string, amount int64) 
 }
 
 func TestCoins(t *testing.T) {
-	q, chain, s := initEnv()
+	q, chain, s, p2p := initEnv()
 	prev := types.MinFee
 	types.SetMinFee(100000)
 	defer types.SetMinFee(prev)
 	defer chain.Close()
 	defer s.Close()
 	defer q.Close()
+	defer p2p.Close()
 	block := createGenesisBlock()
 	_, _, err := ExecBlock(q.Client(), zeroHash[:], block, false, true)
 	if err != nil {
