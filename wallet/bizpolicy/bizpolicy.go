@@ -33,7 +33,9 @@ type WalletBizPolicy interface {
 	// signtx 签名成功后，保存签名成功的交易字符串
 	// err 错误信息
 	SignTransaction(key crypto.PrivKey, req *types.ReqSignRawTx) (needSysSign bool, signtx string, err error)
+	// OnCreateNewAccount 当用户在钱包中新建账户时，将调用本接口函数
 	OnCreateNewAccount(addr string)
+	// OnImportPrivateKey 当用户导入私钥时，将调用本函数
 	OnImportPrivateKey(addr string)
 	OnAddBlockFinish()
 	OnDeleteBlockFinish()
