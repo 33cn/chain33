@@ -424,12 +424,9 @@ func (biz *walletPrivacyBiz) buildInput(privacykeyParirs *privacy.Privacy, build
 			"Due to cause", err)
 		return nil, nil, nil, nil, err
 	}
-
-	bizlog.Debug("buildInput", "Before sort selectedUtxo", selectedUtxo)
 	sort.Slice(selectedUtxo, func(i, j int) bool {
 		return selectedUtxo[i].amount <= selectedUtxo[j].amount
 	})
-	bizlog.Debug("buildInput", "After sort selectedUtxo", selectedUtxo)
 
 	reqGetGlobalIndex := types.ReqUTXOGlobalIndex{
 		Tokenname: buildInfo.tokenname,
@@ -1354,7 +1351,7 @@ func (biz *walletPrivacyBiz) addDelPrivacyTxsFromBlock(tx *types.Transaction, in
 		bizlog.Error("addDelPrivacyTxsFromBlock", "txhash", txhashstr, "addDelType", addDelType, "index", index, "Decode tx.GetPayload() error", err)
 		return
 	}
-	bizlog.Info("addDelPrivacyTxsFromBlock", "Enter AddDelPrivacyTxsFromBlock txhash", txhashstr, "index", index, "addDelType", addDelType)
+	bizlog.Info("addDelPrivacyTxsFromBlock", "Enter addDelPrivacyTxsFromBlock txhash", txhashstr, "index", index, "addDelType", addDelType)
 
 	privacyOutput := privateAction.GetOutput()
 	tokenname := privateAction.GetTokenName()
