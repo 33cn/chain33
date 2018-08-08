@@ -3,11 +3,11 @@ package privacybizpolicy
 import "fmt"
 
 const (
+	PrivacyDBVersion = "PrivacyDBVersion"
 	Privacy4Addr     = "Privacy4Addr"
 	AvailUTXOs       = "UTXO"
 	FrozenUTXOs      = "FTXOs4Tx"
 	PrivacySTXO      = "STXO"
-	PrivacyTokenMap  = "PrivacyTokenMap"
 	STXOs4Tx         = "STXOs4Tx"
 	RevertSendtx     = "RevertSendtx"
 	RecvPrivacyTx    = "RecvPrivacyTx"
