@@ -918,3 +918,16 @@ func (store *privacyStore) moveSTXO2FTXO(tx *types.Transaction, txhash string, n
 	newbatch.Write()
 	return nil
 }
+
+func (store *privacyStore) moveFTXO2UTXOWhenFTXOExpire(blockheight, blocktime int64) {
+	dbbatch := store.db.NewBatch(true)
+	curFTXOTxs, keys := store.getFTXOlist()
+	for i, ftxo := range curFTXOTxs {
+		if !ftxo.IsExpire(blockheight, blocktime) {
+			continue
+		}
+		store.moveFTXO2UTXO(keys[i], dbbatch)
+		bizlog.Debug("moveFTXO2UTXOWhenFTXOExpire", "moveFTXO2UTXO key", string(keys[i]), "ftxo.IsExpire", ftxo.IsExpire(blockheight, blocktime))
+	}
+	dbbatch.Write()
+}

@@ -7,8 +7,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"bytes"
-
 	"github.com/golang/protobuf/proto"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
@@ -79,9 +77,14 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 		return "", err
 	}
 	tx.SetExpire(expire)
-	if bytes.Equal(tx.Execer, types.ExecerPrivacy) {
-		return wallet.signTxWithPrivacy(key, unsigned)
+	if policy, ok := wallet.policyContainer[string(tx.Execer)]; ok {
+		// 尝试让策略自己去完成签名
+		needSysSign, signtx, err := policy.SignTransaction(key, unsigned)
+		if !needSysSign {
+			return signtx, err
+		}
 	}
+
 	group, err := tx.GetTxGroup()
 	if err != nil {
 		return "", err
