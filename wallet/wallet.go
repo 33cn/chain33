@@ -185,6 +185,10 @@ func (wallet *Wallet) SetRescanFlag(flag int32) {
 	atomic.StoreInt32(&wallet.rescanUTXOflag, flag)
 }
 
+func (wallet *Wallet) GetWaitGroup() *sync.WaitGroup {
+	return wallet.wg
+}
+
 func (wallet *Wallet) IsRescanUtxosFlagScaning() (bool, error) {
 	if types.UtxoFlagScaning == atomic.LoadInt32(&wallet.rescanUTXOflag) {
 		return true, types.ErrRescanFlagScaning

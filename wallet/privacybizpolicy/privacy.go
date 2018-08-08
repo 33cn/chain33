@@ -8,6 +8,8 @@ import (
 	"time"
 	"unsafe"
 
+	"sync"
+
 	"github.com/golang/protobuf/proto"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
@@ -27,7 +29,7 @@ func (biz *walletPrivacyBiz) rescanAllTxAddToUpdateUTXOs() {
 	for _, acc := range accounts {
 		//从blockchain模块同步Account.Addr对应的所有交易详细信息
 		biz.rescanwg.Add(1)
-		go biz.rescanReqTxDetailByAddr(acc.Addr)
+		go biz.rescanReqTxDetailByAddr(acc.Addr, biz.rescanwg)
 	}
 	biz.rescanwg.Wait()
 
@@ -35,8 +37,8 @@ func (biz *walletPrivacyBiz) rescanAllTxAddToUpdateUTXOs() {
 }
 
 //从blockchain模块同步addr参与的所有交易详细信息
-func (biz *walletPrivacyBiz) rescanReqTxDetailByAddr(addr string) {
-	defer biz.rescanwg.Done()
+func (biz *walletPrivacyBiz) rescanReqTxDetailByAddr(addr string, wg *sync.WaitGroup) {
+	defer wg.Done()
 	biz.reqTxDetailByAddr(addr)
 }
 
@@ -800,14 +802,14 @@ func (biz *walletPrivacyBiz) rescanUTXOs(req *types.ReqRescanUtxos) (*types.RepR
 		return nil, err
 	}
 	biz.walletOperate.SetRescanFlag(types.UtxoFlagScaning)
-	biz.walletOperate.AddWaitGroup(1)
+	biz.walletOperate.GetWaitGroup().Add(1)
 	go biz.rescanReqUtxosByAddr(req.Addrs)
 	return &repRescanUtxos, nil
 }
 
 //从blockchain模块同步addr参与的所有交易详细信息
 func (biz *walletPrivacyBiz) rescanReqUtxosByAddr(addrs []string) {
-	defer biz.walletOperate.WaitGroupDone()
+	defer biz.walletOperate.GetWaitGroup().Done()
 	bizlog.Debug("RescanAllUTXO begin!")
 	biz.reqUtxosByAddr(addrs)
 	bizlog.Debug("RescanAllUTXO sucess!")
@@ -1316,7 +1318,7 @@ func (biz *walletPrivacyBiz) checkExpireFTXOOnTimer() {
 }
 
 func (biz *walletPrivacyBiz) checkWalletStoreData() {
-	defer biz.walletOperate.WaitGroupDone()
+	defer biz.walletOperate.GetWaitGroup().Done()
 	timecount := 10
 	checkTicker := time.NewTicker(time.Duration(timecount) * time.Second)
 	for {
