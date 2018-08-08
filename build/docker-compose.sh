@@ -17,12 +17,21 @@ export PATH="$PWD:$PATH"
 
 NODE3="${1}_chain33_1"
 CLI="docker exec ${NODE3} /root/chain33-cli"
+PARA_CLI="docker exec ${NODE3} /root/chain33-para-cli"
 
 NODE2="${1}_chain32_1"
 CLI2="docker exec ${NODE2} /root/chain33-cli"
+PARA_CLI2="docker exec ${NODE2} /root/chain33-para-cli"
 
 NODE1="${1}_chain31_1"
 #CLI1="docker exec ${NODE1} /root/chain33-cli"
+PARA_CLI1="docker exec ${NODE1} /root/chain33-para-cli"
+
+NODE0="${1}_chain30_1"
+PARA_CLI0="docker exec ${NODE0} /root/chain33-para-cli"
+
+NODE9="${1}_chain29_1"
+CLI9="docker exec ${NODE9} /root/chain33-cli"
 
 BTCD="${1}_btcd_1"
 BTC_CTL="docker exec ${BTCD} btcctl"
@@ -30,6 +39,8 @@ BTC_CTL="docker exec ${BTCD} btcctl"
 RELAYD="${1}_relayd_1"
 
 containers=("${NODE1}" "${NODE2}" "${NODE3}" "${BTCD}" "${RELAYD}")
+
+CLIS=("${PARA_CLI0}" "${PARA_CLI1}" "${PARA_CLI2}" "${PARA_CLI}")
 
 sedfix=""
 if [ "$(uname)" == "Darwin" ]; then
@@ -64,6 +75,9 @@ function init() {
     sed -i $sedfix 's/^pprof.*/pprof = false/g' relayd.toml
     sed -i $sedfix 's/^watch.*/watch = false/g' relayd.toml
 
+}
+
+function start() {
     # docker-compose ps
     docker-compose ps
 
@@ -71,7 +85,7 @@ function init() {
     docker-compose down
 
     # create and run docker-compose container
-    docker-compose up --build -d
+    docker-compose -f docker-compose.yml -f docker-compose-para.yml up --build -d
 
     local SLEEP=60
     echo "=========== sleep ${SLEEP}s ============="
@@ -167,6 +181,115 @@ function init() {
     ${CLI} mempool list
 }
 
+function para_set_env() {
+    echo "=========== # para chain init toml ============="
+
+    para_set_toml chain33.para33.toml
+    para_set_toml chain33.para32.toml
+    para_set_toml chain33.para31.toml
+    para_set_toml chain33.para30.toml
+
+    sed -i $sedfix 's/^authAccount=.*/authAccount="1KSBd17H7ZK8iT37aJztFB22XGwsPTdwE4"/g' chain33.para33.toml
+    sed -i $sedfix 's/^authAccount=.*/authAccount="1JRNjdEqp4LJ5fqycUBm9ayCKSeeskgMKR"/g' chain33.para32.toml
+    sed -i $sedfix 's/^authAccount=.*/authAccount="1NLHPEcbTWWxxU3dGUZBhayjrCHD3psX7k"/g' chain33.para31.toml
+    sed -i $sedfix 's/^authAccount=.*/authAccount="1MCftFynyvG2F4ED5mdHYgziDxx6vDrScs"/g' chain33.para30.toml
+}
+
+function para_set_toml() {
+    cp chain33.para.toml "${1}"
+
+    sed -i $sedfix 's/^startHeight=.*/startHeight=20/g' "${1}"
+    sed -i $sedfix 's/^emptyBlockInterval=.*/emptyBlockInterval=4/g' "${1}"
+}
+
+function para_init() {
+    echo "=========== # para chain init  ============="
+    echo "=========== # save seed to wallet ============="
+    for cli in "${CLIS[@]}"; do
+        result=$(${cli} seed save -p 1314 -s "tortoise main civil member grace happy century convince father cage beach hip maid merry rib" | jq ".isok")
+        if [ "${result}" = "false" ]; then
+            echo "save seed to wallet error seed, result: ${result}"
+            exit 1
+        fi
+    done
+
+    sleep 1
+
+    echo "=========== # unlock wallet ============="
+    for cli in "${CLIS[@]}"; do
+        result=$(${cli} wallet unlock -p 1314 -t 0 | jq ".isok")
+        if [ "${result}" = "false" ]; then
+            exit 1
+        fi
+    done
+
+    echo "=========== # import private key to PARA ============="
+    result=$(${PARA_CLI} account import_key -k 6da92a632ab7deb67d38c0f6560bcfed28167998f6496db64c258d5e8393a81b -l returnAddr | jq ".label")
+    echo "${result}"
+    if [ -z "${result}" ]; then
+        exit 1
+    fi
+    result=$(${PARA_CLI2} account import_key -k 0x19c069234f9d3e61135fefbeb7791b149cdf6af536f26bebb310d4cd22c3fee4 -l returnAddr | jq ".label")
+    echo "${result}"
+    if [ -z "${result}" ]; then
+        exit 1
+    fi
+    result=$(${PARA_CLI1} account import_key -k 0x7a80a1f75d7360c6123c32a78ecf978c1ac55636f87892df38d8b85a9aeff115 -l returnAddr | jq ".label")
+    echo "${result}"
+    if [ -z "${result}" ]; then
+        exit 1
+    fi
+    result=$(${PARA_CLI0} account import_key -k 0xcacb1f5d51700aea07fca2246ab43b0917d70405c65edea9b5063d72eb5c6b71 -l returnAddr | jq ".label")
+    echo "${result}"
+    if [ -z "${result}" ]; then
+        exit 1
+    fi
+
+    echo "=========== # close auto mining ============="
+    for cli in "${CLIS[@]}"; do
+        result=$(${cli} wallet auto_mine -f 0 | jq ".isok")
+        if [ "${result}" = "false" ]; then
+            exit 1
+        fi
+        ${cli} wallet status
+    done
+
+}
+
+function para_transfer() {
+    echo "=========== # para chain transfer ============="
+    #hash1=$(${CLI} send coins transfer -a 10 -n test -t 1Q8hGLfoGe63efeWa8fJ4Pnukhkngt6poK -k 4257D8692EF7FE13C68B65D6A52F03933DB2FA5CE8FAF210B5B8B80C721CED01)
+    para_transfer2accout "1Q8hGLfoGe63efeWa8fJ4Pnukhkngt6poK"
+    para_transfer2accout "1KSBd17H7ZK8iT37aJztFB22XGwsPTdwE4"
+    para_transfer2accout "1JRNjdEqp4LJ5fqycUBm9ayCKSeeskgMKR"
+    para_transfer2accout "1NLHPEcbTWWxxU3dGUZBhayjrCHD3psX7k"
+    para_transfer2accout "1MCftFynyvG2F4ED5mdHYgziDxx6vDrScs"
+    block_wait "${CLI}" 1
+
+    para_config "1KSBd17H7ZK8iT37aJztFB22XGwsPTdwE4"
+    para_config "1JRNjdEqp4LJ5fqycUBm9ayCKSeeskgMKR"
+    para_config "1NLHPEcbTWWxxU3dGUZBhayjrCHD3psX7k"
+    para_config "1MCftFynyvG2F4ED5mdHYgziDxx6vDrScs"
+
+}
+
+function para_transfer2accout() {
+    echo "${1}"
+    hash1=$(${CLI} send coins transfer -a 10 -n test -t "${1}" -k 4257D8692EF7FE13C68B65D6A52F03933DB2FA5CE8FAF210B5B8B80C721CED01)
+    echo "${hash1}"
+}
+
+function para_config() {
+    echo "=========== # para chain send config ============="
+    echo "${1}"
+    tx=$(${CLI} config config_tx -o add -k paracross-nodes-user.p.guodun. -v "${1}")
+    echo "${tx}"
+    sign=$(${CLI} wallet sign -k 0xc34b5d9d44ac7b754806f761d3d4d2c4fe5214f6b074c19f069c4f5c2a29c8cc -d "${tx}")
+    echo "${sign}"
+    send=$(${CLI} wallet send -d "${sign}")
+    echo "${send}"
+}
+
 function block_wait() {
     if [ "$#" -lt 2 ]; then
         echo "wrong block_wait params"
@@ -251,12 +374,12 @@ function sync_status() {
 }
 
 function sync() {
-    echo "=========== stop  ${NODE2} node========== "
-    docker stop "${NODE2}"
+    echo "=========== stop  ${NODE9} node========== "
+    docker stop "${NODE9}"
     sleep 20
 
-    echo "=========== start ${NODE2} node========== "
-    docker start "${NODE2}"
+    echo "=========== start ${NODE9} node========== "
+    docker start "${NODE9}"
 
     for i in $(seq 20); do
         sleep 1
@@ -264,7 +387,7 @@ function sync() {
         ${CLI2} block last_header
     done
 
-    sync_status "${CLI2}"
+    sync_status "${CLI9}"
 }
 
 function transfer() {
@@ -614,9 +737,14 @@ function relay() {
 function main() {
     echo "==========================================main begin========================================================"
     init
+    para_set_env
+    start
+    para_init
+    para_transfer
     sync
     transfer
-    relay "${CLI}"
+
+    #relay "${CLI}"
     # TODO other work!!!
 
     check_docker_container
