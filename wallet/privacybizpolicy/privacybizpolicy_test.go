@@ -361,3 +361,36 @@ func Test_CreateUTXOs(t *testing.T) {
 		require.Equalf(t, getErr, testCase.needError, "CreateUTXOs test case index %d", index)
 	}
 }
+
+func Test_SendPublic2PrivacyTransaction(t *testing.T) {
+	mock := &testDataMock{mockMempool: true}
+	mock.init()
+	mock.enablePrivacy()
+
+	testCases := []struct {
+		req       *types.ReqPub2Pri
+		needReply *types.Reply
+		needError error
+	}{
+		{
+			needError: types.ErrInputPara,
+		},
+		{
+			req: &types.ReqPub2Pri{
+				Tokenname:  types.BTY,
+				Amount:     10 * types.Coin,
+				Sender:     testAddrs[0],
+				Pubkeypair: testPubkeyPairs[0],
+			},
+			needReply: &types.Reply{IsOk: true},
+		},
+	}
+
+	for index, testCase := range testCases {
+		reply, getErr := mock.wallet.GetAPI().Publick2Privacy(testCase.req)
+		require.Equalf(t, getErr, testCase.needError, "Publick2Privacy test case index %d", index)
+		if testCase.needReply != nil && reply != nil {
+			require.Equal(t, reply.IsOk, testCase.needReply.IsOk)
+		}
+	}
+}
