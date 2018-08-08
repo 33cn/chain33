@@ -185,7 +185,9 @@ func (client *TendermintClient) StartConsensus() {
 		state = LoadState(csState)
 		if seenCommit := blockInfo.SeenCommit; seenCommit != nil {
 			state.LastBlockID = ttypes.BlockID{
+				BlockID:types.BlockID{
 				Hash: seenCommit.BlockID.GetHash(),
+				},
 			}
 		}
 	}
@@ -313,7 +315,8 @@ func (client *TendermintClient) ConsResult() chan<- int64 {
 }
 
 func (client *TendermintClient) BuildBlock() *types.Block {
-	txs := client.RequestTx(int(types.GetP(client.lastBlock.Height+1).MaxTxNumber)-1, nil)
+	lastHeight := client.GetCurrentHeight()
+	txs := client.RequestTx(int(types.GetP(lastHeight+1).MaxTxNumber)-1, nil)
 	//check dup
 	txs = client.CheckTxDup(txs)
 	if len(txs) == 0 {
@@ -321,25 +324,26 @@ func (client *TendermintClient) BuildBlock() *types.Block {
 	}
 
 	newblock := &types.Block{}
-	lastBlock := client.lastBlock
-	newblock.ParentHash = lastBlock.Hash()
-	newblock.TxHash = merkle.CalcMerkleRoot(txs)
-	newblock.Height = lastBlock.Height + 1
+	newblock.Height = lastHeight + 1
 	client.AddTxsToBlock(newblock, txs)
-	//挖矿固定难度
-	newblock.Difficulty = types.GetP(0).PowLimitBits
 	return newblock
 }
 
 func (client *TendermintClient) CommitBlock(propBlock *types.Block) error {
 	newblock := *propBlock
-	lastBlock := client.lastBlock
+	lastBlock, err := client.RequestBlock(newblock.Height - 1)
+	if err != nil {
+		tendermintlog.Error("RequestBlock failed", "error", err)
+		return err
+	}
+	newblock.ParentHash = lastBlock.Hash()
 	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
 	newblock.BlockTime = time.Now().Unix()
 	if lastBlock.BlockTime >= newblock.BlockTime {
 		newblock.BlockTime = lastBlock.BlockTime + 1
 	}
-	err := client.WriteBlock(lastBlock.StateHash, &newblock)
+	newblock.Difficulty =types.GetP(0).PowLimitBits
+	err = client.WriteBlock(lastBlock.StateHash, &newblock)
 	if err != nil {
 		tendermintlog.Error(fmt.Sprintf("********************CommitBlock err:%v", err.Error()))
 		return err

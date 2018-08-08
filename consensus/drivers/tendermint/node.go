@@ -13,7 +13,9 @@ import (
 	"math"
 
 	"gitlab.33.cn/chain33/chain33/common/crypto"
-	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
+	ttypes "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
+	"github.com/golang/protobuf/proto"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 const (
@@ -120,7 +122,7 @@ type Node struct {
 
 	state    *ConsensusState
 	evpool   *EvidencePool
-	broadcastChannel chan types.ReactorMsg
+	broadcastChannel chan MsgInfo
 	started uint32 // atomic
 	stopped uint32 // atomic
 	quit    chan struct{}
@@ -142,7 +144,7 @@ func NewNode(seeds []string, protocol string, lAddr string, privKey  crypto.Priv
 		ID: ID(hex.EncodeToString(address)),
 		dialing: NewMutexMap(),
 		reconnecting: NewMutexMap(),
-		broadcastChannel: make(chan types.ReactorMsg, maxSendQueueSize),
+		broadcastChannel: make(chan MsgInfo, maxSendQueueSize),
 		state:state,
 		evpool :evpool,
 		localIPs: make(map[string]net.IP),
@@ -209,7 +211,7 @@ func (node *Node) Start() {
 }
 
 func randomSleep(interval time.Duration) {
-	r := time.Duration(types.RandInt63n(dialRandomizerIntervalMilliseconds)) * time.Millisecond
+	r := time.Duration(ttypes.RandInt63n(dialRandomizerIntervalMilliseconds)) * time.Millisecond
 	time.Sleep(r + interval)
 }
 
@@ -281,7 +283,7 @@ func (node *Node) listenRoutine() {
 
 func (node *Node) StartConsensusRoutine() {
 	for {
-		if node.peerSet.Size() > 0 {
+		if node.peerSet.Size() >= 0 {
 			node.state.Start()
 			break
 		}
@@ -295,15 +297,49 @@ func (node *Node) evidenceBroadcastRoutine() {
 		select {
 		case evidence := <-node.evpool.EvidenceChan():
 			// broadcast some new evidence
-			msg := &types.EvidenceListMessage{[]types.Evidence{evidence}}
-			node.Broadcast(msg)
+			data, err := proto.Marshal(evidence.Child())
+			if err != nil {
+				msg := MsgInfo{TypeID:ttypes.EvidenceListID,
+					Msg:&types.EvidenceData{
+						Evidence:[]*types.EvidenceEnvelope{
+							&types.EvidenceEnvelope{
+							TypeName:evidence.TypeName(),
+							Data:data,
+							},
+						},
+					},
+					PeerID:node.ID, PeerIP:node.IP,
+				}
+				node.Broadcast(msg)
 
-			// TODO: Broadcast runs asynchronously, so this should wait on the successChan
-			// in another routine before marking to be proper.
-			node.evpool.evidenceStore.MarkEvidenceAsBroadcasted(evidence)
+				// TODO: Broadcast runs asynchronously, so this should wait on the successChan
+				// in another routine before marking to be proper.
+				node.evpool.evidenceStore.MarkEvidenceAsBroadcasted(evidence)
+			}
+
 		case <-ticker.C:
 			// broadcast all pending evidence
-			msg := &types.EvidenceListMessage{node.evpool.PendingEvidence()}
+			var eData types.EvidenceData
+			evidence := node.evpool.PendingEvidence()
+			for _, item := range evidence {
+				ev := item.Child()
+				if ev != nil {
+					data, err := proto.Marshal(ev)
+					if err != nil {
+						panic("AddEvidence marshal failed")
+					}
+					env := &types.EvidenceEnvelope{
+						TypeName:item.TypeName(),
+						Data:data,
+					}
+					eData.Evidence = append(eData.Evidence, env)
+				}
+			}
+			msg := MsgInfo{TypeID: ttypes.EvidenceListID,
+				Msg: &eData,
+				PeerID: node.ID,
+				PeerIP: node.IP,
+			}
 			node.Broadcast(msg)
 		case _, ok :=<-node.quit:
 			if !ok {
@@ -464,9 +500,9 @@ func (node *Node) addPeer(pc peerConn) error {
 	return nil
 }
 
-func (node *Node) Broadcast( msg types.ReactorMsg) chan bool{
+func (node *Node) Broadcast( msg MsgInfo) chan bool{
 	successChan := make(chan bool, len(node.peerSet.List()))
-	tendermintlog.Debug("Broadcast", "msgtype", msg.TypeName())
+	tendermintlog.Debug("Broadcast", "msgtype", msg.TypeID)
 	var wg sync.WaitGroup
 	for _, peer := range node.peerSet.List() {
 		wg.Add(1)

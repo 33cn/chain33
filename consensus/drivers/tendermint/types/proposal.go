@@ -9,7 +9,7 @@ import (
 	"encoding/json"
 
 	"github.com/inconshreveable/log15"
-	"gitlab.33.cn/chain33/chain33/common/crypto"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var (
@@ -25,71 +25,20 @@ var (
 // to be considered valid. It may depend on votes from a previous round,
 // a so-called Proof-of-Lock (POL) round, as noted in the POLRound and POLBlockID.
 type Proposal struct {
-	Height     int64            `json:"height"`
-	Round      int              `json:"round"`
-	Timestamp  time.Time        `json:"timestamp"`
-	POLRound   int              `json:"pol_round"`    // -1 if null.
-	POLBlockID BlockID          `json:"pol_block_id"` // zero if null.
-	Signature  crypto.Signature `json:"signature"`
-	BlockBytes []byte           `json:"block_bytes"`
-}
-
-type ProposalTrans struct {
-	Height     int64     `json:"height"`
-	Round      int       `json:"round"`
-	Timestamp  time.Time `json:"timestamp"`
-	POLRound   int       `json:"pol_round"`    // -1 if null.
-	POLBlockID BlockID   `json:"pol_block_id"` // zero if null.
-	Signature  string    `json:"signature"`
-	BlockBytes []byte    `json:"block_bytes"`
-}
-
-func ProposalToProposalTrans(proposal *Proposal) *ProposalTrans {
-	sig := fmt.Sprintf("%X", proposal.Signature.Bytes())
-	proposalTrans := &ProposalTrans{
-		POLRound:   proposal.POLRound,
-		Height:     proposal.Height,
-		Round:      proposal.Round,
-		Timestamp:  proposal.Timestamp,
-		POLBlockID: proposal.POLBlockID,
-		Signature:  sig,
-		BlockBytes: proposal.BlockBytes,
-	}
-	return proposalTrans
-}
-
-func ProposalTransToProposal(proposalTrans *ProposalTrans) (*Proposal, error) {
-	sig, err := SignatureFromString(proposalTrans.Signature)
-	if err != nil {
-		return nil, err
-	}
-	proposal := &Proposal{
-		POLRound:   proposalTrans.POLRound,
-		Height:     proposalTrans.Height,
-		Round:      proposalTrans.Round,
-		Timestamp:  proposalTrans.Timestamp,
-		POLBlockID: proposalTrans.POLBlockID,
-		Signature:  sig,
-		BlockBytes: proposalTrans.BlockBytes,
-	}
-	return proposal, nil
+	types.Proposal
 }
 
 // NewProposal returns a new Proposal.
 // If there is no POLRound, polRound should be -1.
-func NewProposal(height int64, round int, block *Block, polRound int, polBlockID BlockID) *Proposal {
-	blockByte, err := json.Marshal(block)
-	if err != nil {
-		proposallog.Error("NewProposal unmarshal failed", "error", err)
-		return nil
-	}
-	return &Proposal{
+func NewProposal(height int64, round int, block *types.TendermintBlock, polRound int, polBlockID types.BlockID) *Proposal {
+	return &Proposal{types.Proposal{
 		Height:     height,
-		Round:      round,
-		Timestamp:  time.Now().UTC(),
-		POLRound:   polRound,
-		POLBlockID: polBlockID,
-		BlockBytes: blockByte,
+		Round:      int32(round),
+		Timestamp:  time.Now().UnixNano(),
+		POLRound:   int32(polRound),
+		POLBlockID: &polBlockID,
+		Block: block,
+		},
 	}
 }
 
@@ -97,7 +46,7 @@ func NewProposal(height int64, round int, block *Block, polRound int, polBlockID
 func (p *Proposal) String() string {
 	return fmt.Sprintf("Proposal{%v/%v (%v,%v) %v @ %s}",
 		p.Height, p.Round, p.POLRound,
-		p.POLBlockID, p.Signature, CanonicalTime(p.Timestamp))
+		p.POLBlockID, p.Signature, CanonicalTime(time.Unix(0, p.Timestamp)))
 }
 
 // WriteSignBytes writes the Proposal bytes for signing

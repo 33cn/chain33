@@ -1,5 +1,6 @@
 syntax = "proto3";
 
+import "transaction.proto";
 package types;
 
 message BlockID {
@@ -31,7 +32,7 @@ message TendermintBlockInfo {
 	TendermintCommit SeenCommit = 1;
 	TendermintCommit LastCommit = 2;
 	State State = 3;
-	bytes Proposal = 4;
+	Proposal Proposal = 4;
 }
 
 message BlockSize {
@@ -75,12 +76,109 @@ message State {
     string ChainID = 1;
     int64 LastBlockHeight = 2;
     int64 LastBlockTotalTx = 3;
-    int64 LastBlockTime = 4;
-    ValidatorSet Validators = 5;
-    ValidatorSet LastValidators = 6;
-    int64 LastHeightValidatorsChanged = 7;
-    ConsensusParams ConsensusParams = 8;
-    int64 LastHeightConsensusParamsChanged = 9;
-    bytes LastResultsHash = 10;
-    bytes AppHash = 11;
+    BlockID LastBlockID = 4;
+    int64 LastBlockTime = 5;
+    ValidatorSet Validators = 6;
+    ValidatorSet LastValidators = 7;
+    int64 LastHeightValidatorsChanged = 8;
+    ConsensusParams ConsensusParams = 9;
+    int64 LastHeightConsensusParamsChanged = 10;
+    bytes LastResultsHash = 11;
+    bytes AppHash = 12;
+}
+
+message DuplicateVoteEvidence {
+    string pubKey = 1;
+    Vote voteA = 2;
+    Vote voteB = 3;
+}
+
+message EvidenceEnvelope {
+    string typeName = 1;
+    bytes data = 2;
+}
+
+message EvidenceData {
+    repeated EvidenceEnvelope evidence = 1;
+}
+
+message TendermintBlockHeader {
+    string chainID = 1;
+    int64 height = 2;
+    int64 time = 3;
+    int64 numTxs = 4;
+    BlockID lastBlockID = 5;
+    int64 totalTxs = 6;
+    bytes lastCommitHash = 7;
+    bytes validatorsHash = 8;
+    bytes consensusHash = 9;
+    bytes appHash = 10;
+    bytes lastResultsHash = 11;
+    bytes evidenceHash = 12;
+}
+
+message TendermintBlock {
+    TendermintBlockHeader header = 1;
+    repeated Transaction txs = 2;
+    EvidenceData evidence = 3;
+    TendermintCommit lastCommit = 4;
+}
+
+message Proposal {
+    int64 height = 1;
+	int32 round = 2;
+	int64 timestamp = 3;
+	int32 POLRound = 4;
+	BlockID POLBlockID = 5;
+	bytes signature = 6;
+	TendermintBlock block = 7;
+}
+
+message NewRoundStepMsg {
+    int64 height = 1;
+	int32 round = 2;
+	int32 step = 3;
+	int32 secondsSinceStartTime = 4;
+	int32 lastCommitRound = 5;
+}
+
+message CommitStepMsg {
+    int64 height = 1;
+}
+
+message ProposalPOLMsg {
+    int64 height = 1;
+    int32 proposalPOLRound = 2;
+    TendermintBitArray proposalPOL = 3;
+}
+
+message HasVoteMsg {
+    int64 height = 1;
+	int32 round = 2;
+	int32 type = 3;
+	int32 index = 4;
+}
+
+message VoteSetMaj23Msg {
+    int64 height = 1;
+	int32 round = 2;
+	int32 type = 3;
+	BlockID blockID = 4;
+}
+
+message VoteSetBitsMsg {
+    int64 height = 1;
+	int32 round = 2;
+	int32 type = 3;
+	BlockID blockID = 4;
+	TendermintBitArray votes = 5;
+}
+
+message Heartbeat {
+    bytes validatorAddress = 1;
+    int32 validatorIndex = 2;
+    int64 height = 3;
+    int32 round = 4;
+    int32 sequence = 5;
+    bytes signature = 6;
 }

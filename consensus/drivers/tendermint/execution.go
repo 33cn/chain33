@@ -2,12 +2,11 @@ package tendermint
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"sync"
 
-	"gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
+	ttypes "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
 )
 
 type ValidatorCache struct {
@@ -24,7 +23,7 @@ var (
 	validatorsCache ValidatorsCache
 )
 
-func InitValidatorsCache(vals *types.ValidatorSet) {
+func InitValidatorsCache(vals *ttypes.ValidatorSet) {
 	validatorsCache.mtx.Lock()
 	defer validatorsCache.mtx.Unlock()
 	validatorsCache.validators = make([]*ValidatorCache, len(vals.Validators))
@@ -75,13 +74,13 @@ type BlockExecutor struct {
 	//proxyApp proxy.AppConnConsensus
 
 	// update these with block results after commit
-	//mempool types.Mempool
-	evpool types.EvidencePool
+	//mempool ttypes.Mempool
+	evpool ttypes.EvidencePool
 }
 
 // NewBlockExecutor returns a new BlockExecutor with a NopEventBus.
 // Call SetEventBus to provide one.
-func NewBlockExecutor(db *CSStateDB, evpool types.EvidencePool) *BlockExecutor {
+func NewBlockExecutor(db *CSStateDB, evpool ttypes.EvidencePool) *BlockExecutor {
 	return &BlockExecutor{
 		db:     db,
 		evpool: evpool,
@@ -92,7 +91,7 @@ func NewBlockExecutor(db *CSStateDB, evpool types.EvidencePool) *BlockExecutor {
 // If the block is invalid, it returns an error.
 // Validation does not mutate state, but does require historical information from the stateDB,
 // ie. to verify evidence from a validator at an old height.
-func (blockExec *BlockExecutor) ValidateBlock(s State, block *types.Block) error {
+func (blockExec *BlockExecutor) ValidateBlock(s State, block *ttypes.TendermintBlock) error {
 	return validateBlock(blockExec.db, s, block)
 }
 
@@ -101,7 +100,7 @@ func (blockExec *BlockExecutor) ValidateBlock(s State, block *types.Block) error
 // It's the only function that needs to be called
 // from outside this package to process and commit an entire block.
 // It takes a blockID to avoid recomputing the parts hash.
-func (blockExec *BlockExecutor) ApplyBlock(s State, blockID types.BlockID, block *types.Block) (State, error) {
+func (blockExec *BlockExecutor) ApplyBlock(s State, blockID ttypes.BlockID, block *ttypes.TendermintBlock) (State, error) {
 
 	if err := blockExec.ValidateBlock(s, block); err != nil {
 		return s, ErrInvalidBlock(err)
@@ -149,7 +148,7 @@ func (blockExec *BlockExecutor) ApplyBlock(s State, blockID types.BlockID, block
 }
 
 // updateState returns a new State updated according to the header and responses.
-func updateState(s State, blockID types.BlockID, block *types.Block) (State, error) {
+func updateState(s State, blockID ttypes.BlockID, block *ttypes.TendermintBlock) (State, error) {
 
 	// copy the valset so we can apply changes from EndBlock
 	// and update s.LastValidators and s.Validators
@@ -166,7 +165,7 @@ func updateState(s State, blockID types.BlockID, block *types.Block) (State, err
 			//return s, fmt.Errorf("Error changing validator set: %v", err)
 		}
 		// change results from this height but only applies to the next height
-		lastHeightValsChanged = block.Height + 1
+		lastHeightValsChanged = block.Header.Height + 1
 	}
 	// Update validator accums and set state variables
 	nextValSet.IncrementAccum(1)
@@ -199,7 +198,7 @@ func updateState(s State, blockID types.BlockID, block *types.Block) (State, err
 // ExecCommitBlock executes and commits a block on the proxyApp without validating or mutating the state.
 // It returns the application root hash (result of abci.Commit).
 /*
-func ExecCommitBlock(appConnConsensus proxy.AppConnConsensus, block *types.Block, logger log.Logger) ([]byte, error) {
+func ExecCommitBlock(appConnConsensus proxy.AppConnConsensus, block *ttypes.Block, logger log.Logger) ([]byte, error) {
 	_, err := execBlockOnProxyApp(logger, appConnConsensus, block)
 	if err != nil {
 		logger.Error("Error executing block on proxy app", "height", block.Height, "err", err)
@@ -221,7 +220,7 @@ func ExecCommitBlock(appConnConsensus proxy.AppConnConsensus, block *types.Block
 	return res.Data, nil
 }
 */
-func updateValidators(currentSet *types.ValidatorSet, updates []*ValidatorCache) error {
+func updateValidators(currentSet *ttypes.ValidatorSet, updates []*ValidatorCache) error {
 	// If more or equal than 1/3 of total voting power changed in one block, then
 	// a light client could never prove the transition externally. See
 	// ./lite/doc.go for details on how a light client tracks validators.
@@ -234,12 +233,12 @@ func updateValidators(currentSet *types.ValidatorSet, updates []*ValidatorCache)
 	}
 
 	for _, v := range updates {
-		pubkey, err := types.ConsensusCrypto.PubKeyFromBytes(v.PubKey) // NOTE: expects go-wire encoded pubkey
+		pubkey, err := ttypes.ConsensusCrypto.PubKeyFromBytes(v.PubKey) // NOTE: expects go-wire encoded pubkey
 		if err != nil {
 			return err
 		}
 
-		address := types.GenAddressByPubKey(pubkey)
+		address := ttypes.GenAddressByPubKey(pubkey)
 		power := int64(v.Power)
 		// mind the overflow from int64
 		if power < 0 {
@@ -249,7 +248,7 @@ func updateValidators(currentSet *types.ValidatorSet, updates []*ValidatorCache)
 		_, val := currentSet.GetByAddress(address)
 		if val == nil {
 			// add val
-			added := currentSet.Add(types.NewValidator(pubkey, power))
+			added := currentSet.Add(ttypes.NewValidator(pubkey, power))
 			if !added {
 				return fmt.Errorf("Failed to add new validator %X with voting power %d", address, power)
 			}
@@ -271,17 +270,17 @@ func updateValidators(currentSet *types.ValidatorSet, updates []*ValidatorCache)
 	return nil
 }
 
-func changeInVotingPowerMoreOrEqualToOneThird(currentSet *types.ValidatorSet, updates []*ValidatorCache) (bool, error) {
+func changeInVotingPowerMoreOrEqualToOneThird(currentSet *ttypes.ValidatorSet, updates []*ValidatorCache) (bool, error) {
 	threshold := currentSet.TotalVotingPower() * 1 / 3
 	acc := int64(0)
 
 	for _, v := range updates {
-		pubkey, err := types.ConsensusCrypto.PubKeyFromBytes(v.PubKey) // NOTE: expects go-wire encoded pubkey
+		pubkey, err := ttypes.ConsensusCrypto.PubKeyFromBytes(v.PubKey) // NOTE: expects go-wire encoded pubkey
 		if err != nil {
 			return false, err
 		}
 
-		address := types.GenAddressByPubKey(pubkey)
+		address := ttypes.GenAddressByPubKey(pubkey)
 		power := int64(v.Power)
 		// mind the overflow from int64
 		if power < 0 {
@@ -307,7 +306,7 @@ func changeInVotingPowerMoreOrEqualToOneThird(currentSet *types.ValidatorSet, up
 	return false, nil
 }
 
-func validateBlock(stateDB *CSStateDB, s State, b *types.Block) error {
+func validateBlock(stateDB *CSStateDB, s State, b *ttypes.TendermintBlock) error {
 	// validate internal consistency
 	//newTxs, err := b.ValidateBasic()
 	//if err != nil {
@@ -316,11 +315,11 @@ func validateBlock(stateDB *CSStateDB, s State, b *types.Block) error {
 	newTxs := b.Header.NumTxs
 
 	// validate basic info
-	if b.ChainID != s.ChainID {
-		return fmt.Errorf("Wrong Block.Header.ChainID. Expected %v, got %v", s.ChainID, b.ChainID)
+	if b.Header.ChainID != s.ChainID {
+		return fmt.Errorf("Wrong Block.Header.ChainID. Expected %v, got %v", s.ChainID, b.Header.ChainID)
 	}
-	if b.Height != s.LastBlockHeight+1 {
-		return fmt.Errorf("Wrong Block.Header.Height. Expected %v, got %v", s.LastBlockHeight+1, b.Height)
+	if b.Header.Height != s.LastBlockHeight+1 {
+		return fmt.Errorf("Wrong Block.Header.Height. Expected %v, got %v", s.LastBlockHeight+1, b.Header.Height)
 	}
 	/*	TODO: Determine bounds for Time
 		See blockchain/reactor "stopSyncingDurationMinutes"
@@ -331,30 +330,30 @@ func validateBlock(stateDB *CSStateDB, s State, b *types.Block) error {
 	*/
 
 	// validate prev block info
-	if !b.LastBlockID.Equals(s.LastBlockID) {
-		return fmt.Errorf("Wrong Block.Header.LastBlockID.  Expected %v, got %v", s.LastBlockID, b.LastBlockID)
+	if !bytes.Equal(b.Header.LastBlockID.Hash, s.LastBlockID.Hash) {
+		return fmt.Errorf("Wrong Block.Header.LastBlockID.  Expected %v, got %v", s.LastBlockID, b.Header.LastBlockID)
 	}
 
-	if b.TotalTxs != s.LastBlockTotalTx+newTxs {
-		return fmt.Errorf("Wrong Block.Header.TotalTxs. Expected %v, got %v", s.LastBlockTotalTx+newTxs, b.TotalTxs)
+	if b.Header.TotalTxs != s.LastBlockTotalTx+newTxs {
+		return fmt.Errorf("Wrong Block.Header.TotalTxs. Expected %v, got %v", s.LastBlockTotalTx+newTxs, b.Header.TotalTxs)
 	}
 
 	// validate app info
-	if !bytes.Equal(b.AppHash, s.AppHash) {
-		return fmt.Errorf("Wrong Block.Header.AppHash.  Expected %X, got %v", s.AppHash, b.AppHash)
+	if !bytes.Equal(b.Header.AppHash, s.AppHash) {
+		return fmt.Errorf("Wrong Block.Header.AppHash.  Expected %X, got %v", s.AppHash, b.Header.AppHash)
 	}
-	if !bytes.Equal(b.ConsensusHash, s.ConsensusParams.Hash()) {
-		return fmt.Errorf("Wrong Block.Header.ConsensusHash.  Expected %X, got %v", s.ConsensusParams.Hash(), b.ConsensusHash)
+	if !bytes.Equal(b.Header.ConsensusHash, s.ConsensusParams.Hash()) {
+		return fmt.Errorf("Wrong Block.Header.ConsensusHash.  Expected %X, got %v", s.ConsensusParams.Hash(), b.Header.ConsensusHash)
 	}
-	if !bytes.Equal(b.LastResultsHash, s.LastResultsHash) {
-		return fmt.Errorf("Wrong Block.Header.LastResultsHash.  Expected %X, got %v", s.LastResultsHash, b.LastResultsHash)
+	if !bytes.Equal(b.Header.LastResultsHash, s.LastResultsHash) {
+		return fmt.Errorf("Wrong Block.Header.LastResultsHash.  Expected %X, got %v", s.LastResultsHash, b.Header.LastResultsHash)
 	}
-	if !bytes.Equal(b.ValidatorsHash, s.Validators.Hash()) {
-		return fmt.Errorf("Wrong Block.Header.ValidatorsHash.  Expected %X, got %v", s.Validators.Hash(), b.ValidatorsHash)
+	if !bytes.Equal(b.Header.ValidatorsHash, s.Validators.Hash()) {
+		return fmt.Errorf("Wrong Block.Header.ValidatorsHash.  Expected %X, got %v", s.Validators.Hash(), b.Header.ValidatorsHash)
 	}
 
 	// Validate block LastCommit.
-	if b.Height == 1 {
+	if b.Header.Height == 1 {
 		if len(b.LastCommit.Precommits) != 0 {
 			return errors.New("Block at height 1 (first block) should have no LastCommit precommits")
 		}
@@ -363,22 +362,19 @@ func validateBlock(stateDB *CSStateDB, s State, b *types.Block) error {
 			return fmt.Errorf("Invalid block commit size. Expected %v, got %v",
 				s.LastValidators.Size(), len(b.LastCommit.Precommits))
 		}
+		lastCommit := &ttypes.Commit{TendermintCommit:b.LastCommit}
 		err := s.LastValidators.VerifyCommit(
-			s.ChainID, s.LastBlockID, b.Height-1, b.LastCommit)
+			s.ChainID, s.LastBlockID, b.Header.Height-1, lastCommit)
 		if err != nil {
 			return err
 		}
 	}
 
 	for _, ev := range b.Evidence.Evidence {
-		if v, ok := types.EvidenceType2Obj[ev.Kind]; ok {
-			tmp := v.(types.Evidence).Copy()
-			err := json.Unmarshal(*ev.Data, &tmp)
-			if err != nil {
-				return fmt.Errorf("validateBlock envelop unmarshal failed:%v", err)
-			}
-			if err := VerifyEvidence(stateDB, s, tmp); err != nil {
-				return types.NewEvidenceInvalidErr(tmp, err)
+		evidence := ttypes.EvidenceEnvelope2Evidence(ev)
+		if evidence != nil {
+			if err := VerifyEvidence(stateDB, s, evidence); err != nil {
+				return ttypes.NewEvidenceInvalidErr(evidence, err)
 			}
 		}
 	}

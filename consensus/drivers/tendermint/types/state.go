@@ -3,6 +3,7 @@ package types
 import (
 	"fmt"
 	"time"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 //-----------------------------------------------------------------------------
@@ -62,39 +63,39 @@ type RoundState struct {
 	StartTime      time.Time
 	CommitTime     time.Time // Subjective time when +2/3 precommits for Block at Round were found
 	Validators     *ValidatorSet
-	Proposal       *Proposal
-	ProposalBlock  *Block
+	Proposal       *types.Proposal
+	ProposalBlock  *TendermintBlock
 	LockedRound    int
-	LockedBlock    *Block
+	LockedBlock    *TendermintBlock
 	Votes          *HeightVoteSet
 	CommitRound    int      //
 	LastCommit     *VoteSet // Last precommits at Height-1
 	LastValidators *ValidatorSet
 }
 
-func makeRoundStepMessages(rs *RoundState) (nrsMsg *NewRoundStepMessage, csMsg *CommitStepMessage) {
-	nrsMsg = &NewRoundStepMessage{
+func makeRoundStepMessages(rs *RoundState) (nrsMsg *types.NewRoundStepMsg, csMsg *types.CommitStepMsg) {
+	nrsMsg = &types.NewRoundStepMsg{
 		Height: rs.Height,
-		Round:  rs.Round,
-		Step:   rs.Step,
-		SecondsSinceStartTime: int(time.Since(rs.StartTime).Seconds()),
-		LastCommitRound:       rs.LastCommit.Round(),
+		Round:  int32(rs.Round),
+		Step:   int32(rs.Step),
+		SecondsSinceStartTime: int32(time.Since(rs.StartTime).Seconds()),
+		LastCommitRound:       int32(rs.LastCommit.Round()),
 	}
 	if rs.Step == RoundStepCommit {
-		csMsg = &CommitStepMessage{
+		csMsg = &types.CommitStepMsg{
 			Height: rs.Height,
 		}
 	}
 	return
 }
 
-func (rs *RoundState) RoundStateMessage() *NewRoundStepMessage {
-	return &NewRoundStepMessage{
+func (rs *RoundState) RoundStateMessage() *types.NewRoundStepMsg {
+	return &types.NewRoundStepMsg{
 		Height: rs.Height,
-		Round:  rs.Round,
-		Step:   rs.Step,
-		SecondsSinceStartTime: int(time.Since(rs.StartTime).Seconds()),
-		LastCommitRound:       rs.LastCommit.Round(),
+		Round:  int32(rs.Round),
+		Step:   int32(rs.Step),
+		SecondsSinceStartTime: int32(time.Since(rs.StartTime).Seconds()),
+		LastCommitRound:       int32(rs.LastCommit.Round()),
 	}
 }
 
