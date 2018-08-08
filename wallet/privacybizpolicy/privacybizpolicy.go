@@ -33,17 +33,17 @@ type walletPrivacyBiz struct {
 
 func (biz *walletPrivacyBiz) initFuncMap() {
 	biz.funcmap.Init()
+	biz.funcmap.Register(types.EventEnablePrivacy, biz.onEnablePrivacy)
 	biz.funcmap.Register(types.EventShowPrivacyPK, biz.onShowPrivacyPK)
-	biz.funcmap.Register(types.EventShowPrivacyAccountSpend, biz.onShowPrivacyAccountSpend)
+	biz.funcmap.Register(types.EventCreateUTXOs, biz.onCreateUTXOs)
 	biz.funcmap.Register(types.EventPublic2privacy, biz.onPublic2Privacy)
 	biz.funcmap.Register(types.EventPrivacy2privacy, biz.onPrivacy2Privacy)
 	biz.funcmap.Register(types.EventPrivacy2public, biz.onPrivacy2Public)
-	biz.funcmap.Register(types.EventCreateUTXOs, biz.onCreateUTXOs)
 	biz.funcmap.Register(types.EventCreateTransaction, biz.onCreateTransaction)
 	biz.funcmap.Register(types.EventPrivacyAccountInfo, biz.onPrivacyAccountInfo)
+	biz.funcmap.Register(types.EventShowPrivacyAccountSpend, biz.onShowPrivacyAccountSpend)
 	biz.funcmap.Register(types.EventPrivacyTransactionList, biz.onPrivacyTransactionList)
 	biz.funcmap.Register(types.EventRescanUtxos, biz.onRescanUtxos)
-	biz.funcmap.Register(types.EventEnablePrivacy, biz.onEnablePrivacy)
 }
 
 func (biz *walletPrivacyBiz) Init(walletOperate walletoperate.WalletOperate) {

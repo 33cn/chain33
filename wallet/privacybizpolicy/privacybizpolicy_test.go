@@ -49,7 +49,8 @@ func setLogLevel(level string) {
 
 func init() {
 	queue.DisableLog()
-	setLogLevel("err")
+	//setLogLevel("err")
+	setLogLevel("crit")
 }
 
 //使用钱包的password对私钥进行aes cbc加密,返回加密后的privkey
@@ -327,5 +328,36 @@ func Test_ShowPrivacyPK(t *testing.T) {
 		getReply, getErr := mock.wallet.GetAPI().ShowPrivacyKey(testCase.req)
 		require.Equalf(t, getErr, testCase.needError, "ShowPrivacyKey test case index %d", index)
 		require.Equal(t, getReply, testCase.needReply)
+	}
+}
+
+func Test_CreateUTXOs(t *testing.T) {
+	mock := &testDataMock{mockMempool: true}
+	mock.init()
+	mock.enablePrivacy()
+
+	testCases := []struct {
+		req       *types.ReqCreateUTXOs
+		needReply *types.Reply
+		needError error
+	}{
+		{
+			needError: types.ErrInputPara,
+		},
+		{
+			req: &types.ReqCreateUTXOs{
+				Tokenname:  types.BTY,
+				Amount:     10 * types.Coin,
+				Note:       "say something",
+				Count:      16,
+				Sender:     testAddrs[0],
+				Pubkeypair: testPubkeyPairs[0],
+			},
+		},
+	}
+
+	for index, testCase := range testCases {
+		_, getErr := mock.wallet.GetAPI().CreateUTXOs(testCase.req)
+		require.Equalf(t, getErr, testCase.needError, "CreateUTXOs test case index %d", index)
 	}
 }
