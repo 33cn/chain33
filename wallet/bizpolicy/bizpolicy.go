@@ -1,6 +1,7 @@
 package bizpolicy
 
 import (
+	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -25,6 +26,13 @@ type WalletBizPolicy interface {
 	// index: 交易信息在区块上的索引为止，从0开始计数
 	// dbbatch: 数据库批量操作接口
 	OnDeleteBlockTx(block *types.BlockDetail, tx *types.Transaction, index int32, dbbatch db.Batch)
+	// SignTransaction 针对特殊的交易，按照新的签名方式签名
+	// key 签名的私钥信息
+	// req 需要签名交易流信息
+	// needSysSign 表示是否需要继续走系统流程的签名，true表示继续，false表示已经完成签名，不需要系统处理
+	// signtx 签名成功后，保存签名成功的交易字符串
+	// err 错误信息
+	SignTransaction(key crypto.PrivKey, req *types.ReqSignRawTx) (needSysSign bool, signtx string, err error)
 	OnAddBlockFinish()
 	OnDeleteBlockFinish()
 }

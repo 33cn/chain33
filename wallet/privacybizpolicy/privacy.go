@@ -3,23 +3,22 @@ package privacybizpolicy
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"sort"
-	"sync/atomic"
 	"time"
 	"unsafe"
-
-	"fmt"
 
 	"github.com/golang/protobuf/proto"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/crypto/privacy"
+	"gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
 func (biz *walletPrivacyBiz) isRescanUtxosFlagScaning() (bool, error) {
-	if types.UtxoFlagScaning == atomic.LoadInt32(&biz.rescanUTXOflag) {
+	if types.UtxoFlagScaning == biz.walletOperate.GetRescanFlag() {
 		return true, types.ErrRescanFlagScaning
 	}
 	return false, nil
@@ -727,7 +726,7 @@ func (biz *walletPrivacyBiz) rescanUTXOs(req *types.ReqRescanUtxos) (*types.RepR
 	if err != nil {
 		return nil, err
 	}
-	atomic.StoreInt32(&biz.rescanUTXOflag, types.UtxoFlagScaning)
+	biz.walletOperate.SetRescanFlag(types.UtxoFlagScaning)
 	biz.walletOperate.AddWaitGroup(1)
 	go biz.rescanReqUtxosByAddr(req.Addrs)
 	return &repRescanUtxos, nil
@@ -822,7 +821,7 @@ func (biz *walletPrivacyBiz) reqUtxosByAddr(addrs []string) {
 		}
 	}
 	// 扫描完毕
-	atomic.StoreInt32(&biz.rescanUTXOflag, types.UtxoFlagNoScan)
+	biz.walletOperate.SetRescanFlag(types.UtxoFlagNoScan)
 	// 删除privacyInput
 	biz.deleteScanPrivacyInputUtxo()
 	biz.store.saveREscanUTXOsAddresses(storeAddrs)
@@ -1226,6 +1225,219 @@ func (biz *walletPrivacyBiz) buildAndStoreWalletTxDetail(param *buildStoreWallet
 				param.newbatch.Delete(calcSendPrivacyTxKey(param.tokenname, param.senderRecver, heightstr))
 			} else if recvTx == param.sendRecvFlag {
 				param.newbatch.Delete(calcRecvPrivacyTxKey(param.tokenname, param.senderRecver, heightstr))
+			}
+		}
+	}
+}
+
+func (biz *walletPrivacyBiz) checkExpireFTXOOnTimer() {
+	biz.walletOperate.GetMutex().Lock()
+	defer biz.walletOperate.GetMutex().Unlock()
+
+	header := biz.walletOperate.GetLastHeader()
+	if header == nil {
+		bizlog.Error("checkExpireFTXOOnTimer", "Can not get last header.")
+		return
+	}
+	biz.store.moveFTXO2UTXOWhenFTXOExpire(header.Height, header.BlockTime)
+}
+
+func (biz *walletPrivacyBiz) checkWalletStoreData() {
+	defer biz.walletOperate.WaitGroupDone()
+	timecount := 10
+	checkTicker := time.NewTicker(time.Duration(timecount) * time.Second)
+	for {
+		select {
+		case <-checkTicker.C:
+			biz.checkExpireFTXOOnTimer()
+
+			//newbatch := wallet.walletStore.NewBatch(true)
+			//err := wallet.procInvalidTxOnTimer(newbatch)
+			//if err != nil && err != dbm.ErrNotFoundInDb {
+			//	walletlog.Error("checkWalletStoreData", "procInvalidTxOnTimer error ", err)
+			//	return
+			//}
+			//newbatch.Write()
+		case <-biz.walletOperate.GetWalletDone():
+			return
+		}
+	}
+}
+
+func (biz *walletPrivacyBiz) addDelPrivacyTxsFromBlock(tx *types.Transaction, index int32, block *types.BlockDetail, newbatch db.Batch, addDelType int32) {
+	txhash := tx.Hash()
+	txhashstr := common.Bytes2Hex(txhash)
+	_, err := tx.Amount()
+	if err != nil {
+		bizlog.Error("addDelPrivacyTxsFromBlock", "txhash", txhashstr, "addDelType", addDelType, "index", index, "tx.Amount() error", err)
+		return
+	}
+
+	txExecRes := block.Receipts[index].Ty
+	var privateAction types.PrivacyAction
+	if err := types.Decode(tx.GetPayload(), &privateAction); err != nil {
+		bizlog.Error("addDelPrivacyTxsFromBlock", "txhash", txhashstr, "addDelType", addDelType, "index", index, "Decode tx.GetPayload() error", err)
+		return
+	}
+	bizlog.Info("addDelPrivacyTxsFromBlock", "Enter AddDelPrivacyTxsFromBlock txhash", txhashstr, "index", index, "addDelType", addDelType)
+
+	privacyOutput := privateAction.GetOutput()
+	tokenname := privateAction.GetTokenName()
+	RpubKey := privacyOutput.GetRpubKeytx()
+
+	totalUtxosLeft := len(privacyOutput.Keyoutput)
+	//处理output
+	if privacyInfo, err := biz.getPrivacyKeyPairs(); err == nil {
+		matchedCount := 0
+		utxoProcessed := make([]bool, len(privacyOutput.Keyoutput))
+		for _, info := range privacyInfo {
+			privacykeyParirs := info.PrivacyKeyPair
+			matched4addr := false
+			var utxos []*types.UTXO
+			for indexoutput, output := range privacyOutput.Keyoutput {
+				if utxoProcessed[indexoutput] {
+					continue
+				}
+				priv, err := privacy.RecoverOnetimePriKey(RpubKey, privacykeyParirs.ViewPrivKey, privacykeyParirs.SpendPrivKey, int64(indexoutput))
+				if err == nil {
+					recoverPub := priv.PubKey().Bytes()[:]
+					if bytes.Equal(recoverPub, output.Onetimepubkey) {
+						//为了避免匹配成功之后不必要的验证计算，需要统计匹配次数
+						//因为目前只会往一个隐私账户转账，
+						//1.一般情况下，只会匹配一次，如果是往其他钱包账户转账，
+						//2.但是如果是往本钱包的其他地址转账，因为可能存在的change，会匹配2次
+						matched4addr = true
+						totalUtxosLeft--
+						utxoProcessed[indexoutput] = true
+						//只有当该交易执行成功才进行相应的UTXO的处理
+						if types.ExecOk == txExecRes {
+							if AddTx == addDelType {
+								info2store := &types.PrivacyDBStore{
+									Txhash:           txhash,
+									Tokenname:        tokenname,
+									Amount:           output.Amount,
+									OutIndex:         int32(indexoutput),
+									TxPublicKeyR:     RpubKey,
+									OnetimePublicKey: output.Onetimepubkey,
+									Owner:            *info.Addr,
+									Height:           block.Block.Height,
+									Txindex:          index,
+									Blockhash:        block.Block.Hash(),
+								}
+
+								utxoGlobalIndex := &types.UTXOGlobalIndex{
+									Outindex: int32(indexoutput),
+									Txhash:   txhash,
+								}
+
+								utxoCreated := &types.UTXO{
+									Amount: output.Amount,
+									UtxoBasic: &types.UTXOBasic{
+										UtxoGlobalIndex: utxoGlobalIndex,
+										OnetimePubkey:   output.Onetimepubkey,
+									},
+								}
+
+								utxos = append(utxos, utxoCreated)
+								biz.store.setUTXO(info.Addr, &txhashstr, indexoutput, info2store, newbatch)
+								bizlog.Info("addDelPrivacyTxsFromBlock", "add tx txhash", txhashstr, "setUTXO addr ", *info.Addr, "indexoutput", indexoutput)
+							} else {
+								biz.store.unsetUTXO(info.Addr, &txhashstr, indexoutput, tokenname, newbatch)
+								bizlog.Info("addDelPrivacyTxsFromBlock", "delete tx txhash", txhashstr, "unsetUTXO addr ", *info.Addr, "indexoutput", indexoutput)
+							}
+						} else {
+							//对于执行失败的交易，只需要将该交易记录在钱包就行
+							bizlog.Error("addDelPrivacyTxsFromBlock", "txhash", txhashstr, "txExecRes", txExecRes)
+							break
+						}
+					}
+				} else {
+					bizlog.Error("addDelPrivacyTxsFromBlock", "txhash", txhashstr, "RecoverOnetimePriKey error", err)
+				}
+			}
+			if matched4addr {
+				matchedCount++
+				//匹配次数达到2次，不再对本钱包中的其他地址进行匹配尝试
+				bizlog.Debug("addDelPrivacyTxsFromBlock", "txhash", txhashstr, "address", *info.Addr, "totalUtxosLeft", totalUtxosLeft, "matchedCount", matchedCount)
+				param := &buildStoreWalletTxDetailParam{
+					tokenname:    tokenname,
+					block:        block,
+					tx:           tx,
+					index:        int(index),
+					newbatch:     newbatch,
+					senderRecver: *info.Addr,
+					isprivacy:    true,
+					addDelType:   addDelType,
+					sendRecvFlag: recvTx,
+					utxos:        utxos,
+				}
+				biz.buildAndStoreWalletTxDetail(param)
+				if 2 == matchedCount || 0 == totalUtxosLeft || types.ExecOk != txExecRes {
+					bizlog.Info("addDelPrivacyTxsFromBlock", "txhash", txhashstr, "Get matched privacy transfer for address address", *info.Addr, "totalUtxosLeft", totalUtxosLeft, "matchedCount", matchedCount)
+					break
+				}
+			}
+		}
+	}
+
+	//处理input,对于公对私的交易类型，只会出现在output类型处理中
+	//如果该隐私交易是本钱包中的地址发送出去的，则需要对相应的utxo进行处理
+	if AddTx == addDelType {
+		ftxos, keys := biz.store.getFTXOlist()
+		for i, ftxo := range ftxos {
+			//查询确认该交易是否为记录的支付交易
+			if ftxo.Txhash != txhashstr {
+				continue
+			}
+			if types.ExecOk == txExecRes && types.ActionPublic2Privacy != privateAction.Ty {
+				bizlog.Info("addDelPrivacyTxsFromBlock", "txhash", txhashstr, "addDelType", addDelType, "moveFTXO2STXO, key", string(keys[i]), "txExecRes", txExecRes)
+				biz.store.moveFTXO2STXO(keys[i], txhashstr, newbatch)
+			} else if types.ExecOk != txExecRes && types.ActionPublic2Privacy != privateAction.Ty {
+				//如果执行失败
+				bizlog.Info("PrivacyTrading AddDelPrivacyTxsFromBlock", "txhash", txhashstr, "addDelType", addDelType, "moveFTXO2UTXO, key", string(keys[i]), "txExecRes", txExecRes)
+				biz.store.moveFTXO2UTXO(keys[i], newbatch)
+			}
+			//该交易正常执行完毕，删除对其的关注
+			param := &buildStoreWalletTxDetailParam{
+				tokenname:    tokenname,
+				block:        block,
+				tx:           tx,
+				index:        int(index),
+				newbatch:     newbatch,
+				senderRecver: ftxo.Sender,
+				isprivacy:    true,
+				addDelType:   addDelType,
+				sendRecvFlag: sendTx,
+				utxos:        nil,
+			}
+			biz.buildAndStoreWalletTxDetail(param)
+		}
+	} else {
+		//当发生交易回撤时，从记录的STXO中查找相关的交易，并将其重置为FTXO，因为该交易大概率会在其他区块中再次执行
+		stxosInOneTx, _, _ := biz.store.getWalletFtxoStxo(STXOs4Tx)
+		for _, ftxo := range stxosInOneTx {
+			if ftxo.Txhash == txhashstr {
+				param := &buildStoreWalletTxDetailParam{
+					tokenname:    tokenname,
+					block:        block,
+					tx:           tx,
+					index:        int(index),
+					newbatch:     newbatch,
+					senderRecver: "",
+					isprivacy:    true,
+					addDelType:   addDelType,
+					sendRecvFlag: sendTx,
+					utxos:        nil,
+				}
+
+				if types.ExecOk == txExecRes && types.ActionPublic2Privacy != privateAction.Ty {
+					bizlog.Info("addDelPrivacyTxsFromBlock", "txhash", txhashstr, "addDelType", addDelType, "moveSTXO2FTXO txExecRes", txExecRes)
+					biz.store.moveSTXO2FTXO(tx, txhashstr, newbatch)
+					biz.buildAndStoreWalletTxDetail(param)
+				} else if types.ExecOk != txExecRes && types.ActionPublic2Privacy != privateAction.Ty {
+					bizlog.Info("addDelPrivacyTxsFromBlock", "txhash", txhashstr, "addDelType", addDelType)
+					biz.buildAndStoreWalletTxDetail(param)
+				}
 			}
 		}
 	}
