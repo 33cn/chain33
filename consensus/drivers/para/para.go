@@ -22,6 +22,8 @@ import (
 const (
 	AddAct int64 = 1
 	DelAct int64 = 2 //reference blockstore.go
+
+	ParaCrossTxCount = 2 //current only support 2 txs for cross
 )
 
 var (
@@ -201,10 +203,34 @@ func (client *ParaClient) ProcEvent(msg queue.Message) bool {
 	return false
 }
 
+// paracross only support txgroup count=2, and if even not cross tx, to txgroup=2 txs,if main fail, para also not exec
+// if both txs are para chain tx, return true
+func isMainTxExecOk(tx *types.Transaction, txIndex int, main *types.BlockDetail) bool {
+	var index int
+	if tx.Next != nil {
+		index = txIndex + 1
+
+	} else {
+		index = txIndex - 1
+	}
+	if bytes.Contains(main.Block.Txs[index].Execer, []byte(types.ExecNamePrefix)) {
+		return true
+	}
+	if main.Receipts[index].Ty == types.ExecOk {
+		return true
+	}
+	return false
+}
+
 func (client *ParaClient) FilterTxsForPara(main *types.BlockDetail) []*types.Transaction {
 	var txs []*types.Transaction
-	for _, tx := range main.Block.Txs {
+	for i, tx := range main.Block.Txs {
 		if bytes.Contains(tx.Execer, []byte(types.ExecNamePrefix)) {
+			if tx.GroupCount == ParaCrossTxCount {
+				if !isMainTxExecOk(tx, i, main) {
+					continue
+				}
+			}
 			txs = append(txs, tx)
 		}
 	}
