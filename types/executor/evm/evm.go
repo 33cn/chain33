@@ -224,8 +224,8 @@ func CreateRawEvmCreateCallTx(parm *CreateCallTx) (*types.Transaction, error) {
 
 	//according to cli/commands/evm.go/createEvmTx
 	tx.Fee, _ = tx.GetRealFee(types.MinFee)
-	if tx.Fee < int64(parm.Fee) {
-		tx.Fee += int64(parm.Fee)
+	if tx.Fee < parm.Fee {
+		tx.Fee += parm.Fee
 	}
 
 	return tx, nil
