@@ -88,7 +88,7 @@ type peerConn struct {
 	myState  *ConsensusState
 	myevpool *EvidencePool
 
-	state            PeerConnState
+	state            *PeerConnState
 	updateStateQueue chan MsgInfo
 	heartbeatQueue   chan proto.Message
 	//config     *PeerConfig
@@ -378,7 +378,7 @@ func (pc *peerConn) Start() error {
 		pc.sendQueue = make(chan MsgInfo, maxSendQueueSize)
 		pc.sendBuffer = make([]byte, 0, MaxMsgPacketPayloadSize)
 		pc.quit = make(chan struct{})
-		pc.state = PeerConnState{PeerRoundState: ttypes.PeerRoundState{
+		pc.state = &PeerConnState{PeerRoundState: ttypes.PeerRoundState{
 			Round:              -1,
 			ProposalPOLRound:   -1,
 			LastCommitRound:    -1,
@@ -540,8 +540,7 @@ FOR_LOOP:
 					pc.transferChannel <- MsgInfo{pkt.TypeID, realMsg.(proto.Message), pc.ID(), pc.ip.String()}
 					if pkt.TypeID == ttypes.ProposalID {
 						proposal := realMsg.(*types.Proposal)
-						tendermintlog.Info("Receiving proposal", "peerip", pc.ip.String(), "proposal-height", proposal.Height,
-							"proposal-round", proposal.Round)
+						tendermintlog.Info("Receiving proposal", "peerip", pc.ip.String())
 						pc.state.SetHasProposal(proposal)
 
 					} else if pkt.TypeID == ttypes.VoteID {
@@ -753,7 +752,7 @@ OUTER_LOOP:
 			sleeping = 0
 		}
 
-		//logger.Debug("gossipVotesRoutine", "rsHeight", rs.Height, "rsRound", rs.Round,
+		//tendermintlog.Info("gossipVotesRoutine", "rsHeight", rs.Height, "rsRound", rs.Round,
 		//	"prsHeight", prs.Height, "prsRound", prs.Round, "prsStep", prs.Step)
 
 		// If height matches, then send LastCommit, Prevotes, Precommits.
@@ -981,13 +980,15 @@ func (ps *PeerConnState) SetHasProposal(proposal *types.Proposal) {
 	ps.mtx.Lock()
 	defer ps.mtx.Unlock()
 
+	tendermintlog.Info("SetHasProposal", "peer-state", fmt.Sprintf("%v/%v/%v", ps.Height, ps.Round, ps.Step),
+		"proposal", fmt.Sprintf("%v/%v", proposal.Height, proposal.Round))
 	if ps.Height != proposal.Height || ps.Round != int(proposal.Round) {
 		return
 	}
 	if ps.Proposal {
 		return
 	}
-	tendermintlog.Info(fmt.Sprintf("Peer set proposal. Peer state: %v/%v/%v", ps.Height, ps.Round, ps.Step))
+	tendermintlog.Info("Peer set proposal")
 	ps.Proposal = true
 
 	ps.ProposalPOLRound = int(proposal.POLRound)
@@ -1162,7 +1163,10 @@ func (ps *PeerConnState) ApplyNewRoundStepMessage(msg *types.NewRoundStepMsg) {
 	ps.Round = int(msg.Round)
 	ps.Step = ttypes.RoundStepType(msg.Step)
 	ps.StartTime = startTime
+
 	if psHeight != msg.Height || psRound != int(msg.Round) {
+		tendermintlog.Info("ApplyNewRoundStepMessage", "psHeight", psHeight, "psRound", psRound,
+			"msg.Height", msg.Height, "msg.Round", msg.Round)
 		ps.Proposal = false
 		ps.ProposalPOLRound = -1
 		ps.ProposalPOL = nil
