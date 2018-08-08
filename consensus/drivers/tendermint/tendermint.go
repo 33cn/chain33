@@ -36,7 +36,6 @@ type TendermintClient struct {
 	node          *Node
 	txsAvailable  chan int64
 	consResult    chan int64
-	lastBlock     *types.Block
 }
 
 // DefaultDBProvider returns a database using the DBBackend and DBDir
@@ -102,7 +101,6 @@ func New(cfg *types.Consensus) *TendermintClient {
 		crypto:        cr,
 		txsAvailable:  make(chan int64, 1),
 		consResult:    make(chan int64, 1),
-		lastBlock:     &types.Block{},
 	}
 
 	c.SetChild(client)
@@ -281,13 +279,6 @@ func (client *TendermintClient) CreateBlock() {
 			time.Sleep(time.Second)
 		}
 
-		lastBlock, err := client.RequestLastBlock()
-		if err != nil {
-			tendermintlog.Error("RequestLastBlock fail", "err", err.Error())
-			time.Sleep(time.Second)
-			continue
-		}
-
 		txs := client.RequestTx(10, nil)
 		if len(txs) == 0 {
 			issleep = true
@@ -295,8 +286,7 @@ func (client *TendermintClient) CreateBlock() {
 		}
 		issleep = false
 
-		client.lastBlock = lastBlock
-		client.txsAvailable <- lastBlock.Height + 1
+		client.txsAvailable <- client.GetCurrentHeight() + 1
 		time.Sleep(time.Second)
 		//select {
 		//case height := <-client.consResult:
@@ -316,15 +306,18 @@ func (client *TendermintClient) ConsResult() chan<- int64 {
 func (client *TendermintClient) BuildBlock() *types.Block {
 	lastHeight := client.GetCurrentHeight()
 	txs := client.RequestTx(int(types.GetP(lastHeight+1).MaxTxNumber)-1, nil)
+
 	//check dup
 	txs = client.CheckTxDup(txs)
 	if len(txs) == 0 {
+		tendermintlog.Error("No new txs")
 		return nil
 	}
 
 	newblock := &types.Block{}
 	newblock.Height = lastHeight + 1
 	client.AddTxsToBlock(newblock, txs)
+
 	return newblock
 }
 
@@ -341,7 +334,9 @@ func (client *TendermintClient) CommitBlock(propBlock *types.Block) error {
 	if lastBlock.BlockTime >= newblock.BlockTime {
 		newblock.BlockTime = lastBlock.BlockTime + 1
 	}
+
 	newblock.Difficulty =types.GetP(0).PowLimitBits
+
 	err = client.WriteBlock(lastBlock.StateHash, &newblock)
 	if err != nil {
 		tendermintlog.Error(fmt.Sprintf("********************CommitBlock err:%v", err.Error()))

@@ -664,6 +664,12 @@ OUTER_LOOP:
 
 		// If the peer is on a previous height, help catch up.
 		if (0 < prs.Height) && (prs.Height < rs.Height) {
+			if prs.Height+1 == rs.Height && prs.Round == rs.LastCommit.Round() && prs.Step == ttypes.RoundStepCommit && prs.Proposal {
+				tendermintlog.Info("Peer is waiting for finalizeCommit finish", "peerip", pc.ip.String(),
+					"state", fmt.Sprintf("%v/%v/%v", prs.Height, prs.Round, prs.Step))
+				time.Sleep(10 * pc.myState.PeerGossipSleep())
+				continue OUTER_LOOP
+			}
 			tendermintlog.Info("help catch up", "peerip", pc.ip.String(), "selfHeight", rs.Height, "peerHeight", prs.Height)
 			proposal := pc.myState.blockStore.LoadProposal(prs.Height)
 			if proposal == nil {
@@ -679,7 +685,7 @@ OUTER_LOOP:
 			} else {
 				tendermintlog.Error("Sending catchup proposal failed")
 			}
-			time.Sleep(10 * pc.myState.PeerGossipSleep())
+			time.Sleep(20 * pc.myState.PeerGossipSleep())
 			continue OUTER_LOOP
 		}
 
