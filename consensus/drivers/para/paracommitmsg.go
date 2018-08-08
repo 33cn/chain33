@@ -18,7 +18,7 @@ const (
 )
 
 var (
-	consensusInterval int = 16
+	consensusInterval = 16
 )
 
 type CommitMsg struct {
