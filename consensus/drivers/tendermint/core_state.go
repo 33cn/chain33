@@ -854,6 +854,11 @@ func (cs *ConsensusState) createProposalBlock() (block *ttypes.TendermintBlock) 
 
 	tendermintlog.Info(fmt.Sprintf("createProposalBlock BuildBlock. Current: %v/%v/%v", cs.Height, cs.Round, cs.Step), "txs-len", len(pblock.Txs), "cost", time.Since(beg))
 
+	if pblock.Height != cs.Height {
+		tendermintlog.Error("pblock.Height is not equal to cs.Height")
+		return
+	}
+
 	block = cs.state.MakeBlock(cs.Height, pblock.Txs, commit)
 	tendermintlog.Info("createProposalBlock block", "txs-len", len(block.Txs))
 	evidence := cs.evpool.PendingEvidence()
