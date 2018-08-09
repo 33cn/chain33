@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/tjfoc/gmsm/sm2"
 	"github.com/btcsuite/btcd/btcec"
+	"github.com/tjfoc/gmsm/sm2"
 )
 
 type SM2Signature struct {
@@ -30,7 +30,7 @@ func canonicalizeInt(val *big.Int) []byte {
 func Serialize(r, s *big.Int) []byte {
 	rb := canonicalizeInt(r)
 	sb := canonicalizeInt(s)
-	
+
 	length := 6 + len(rb) + len(sb)
 	b := make([]byte, length)
 
