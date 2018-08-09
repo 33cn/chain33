@@ -305,6 +305,10 @@ func (biz *walletPrivacyBiz) onPrivacyAccountInfo(msg *queue.Message) (string, i
 		bizlog.Error("walletPrivacyBiz", "Invalid data type.", ok)
 		return topic, retty, nil, types.ErrInvalidParam
 	}
+	if req == nil {
+		bizlog.Error("walletPrivacyBiz request param is nil")
+		return topic, retty, nil, types.ErrInvalidParam
+	}
 	biz.walletOperate.GetMutex().Lock()
 	defer biz.walletOperate.GetMutex().Unlock()
 
@@ -323,7 +327,6 @@ func (biz *walletPrivacyBiz) onPrivacyTransactionList(msg *queue.Message) (strin
 		bizlog.Error("walletPrivacyBiz", "Invalid data type.", ok)
 		return topic, retty, nil, types.ErrInvalidParam
 	}
-
 	if req == nil {
 		bizlog.Error("onPrivacyTransactionList param is nil")
 		return topic, retty, nil, types.ErrInvalidParam
@@ -356,6 +359,10 @@ func (biz *walletPrivacyBiz) onRescanUtxos(msg *queue.Message) (string, int64, i
 	req, ok := msg.Data.(*types.ReqRescanUtxos)
 	if !ok {
 		bizlog.Error("walletPrivacyBiz", "Invalid data type.", ok)
+		return topic, retty, nil, types.ErrInvalidParam
+	}
+	if req == nil {
+		bizlog.Error("walletPrivacyBiz request param is nil")
 		return topic, retty, nil, types.ErrInvalidParam
 	}
 	biz.walletOperate.GetMutex().Lock()
