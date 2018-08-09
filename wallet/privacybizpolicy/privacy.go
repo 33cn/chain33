@@ -1114,7 +1114,6 @@ func (biz *walletPrivacyBiz) transPri2PriV2(privacykeyParirs *privacy.Privacy, r
 		To: address.ExecAddress(types.PrivacyX),
 	}
 	tx.SetExpire(time.Duration(reqPri2Pri.GetExpire()))
-	// TODO: 签名前对交易中的输入进行混淆
 	//完成了input和output的添加之后，即已经完成了交易基本内容的添加，
 	//这时候就需要进行交易的签名了
 	err = biz.signatureTx(tx, privacyInput, utxosInKeyInput, realkeyInputSlice)
