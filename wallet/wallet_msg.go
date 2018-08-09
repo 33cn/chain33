@@ -5,33 +5,37 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
+func (wallet *Wallet) RegisterMsgFunc(msgid int, fn queue.FN_MsgCallback) {
+	wallet.funcmap.Register(msgid, fn)
+}
+
 func (wallet *Wallet) initFuncMap() {
 	wallet.funcmap.Init()
 
-	wallet.funcmap.Register(types.EventWalletGetAccountList, wallet.onWalletGetAccountList)
-	wallet.funcmap.Register(types.EventWalletAutoMiner, wallet.onWalletAutoMiner)
-	wallet.funcmap.Register(types.EventWalletGetTickets, wallet.onWalletGetTickets)
-	wallet.funcmap.Register(types.EventNewAccount, wallet.onNewAccount)
-	wallet.funcmap.Register(types.EventWalletTransactionList, wallet.onWalletTransactionList)
-	wallet.funcmap.Register(types.EventWalletImportprivkey, wallet.onWalletImportprivkey)
-	wallet.funcmap.Register(types.EventWalletSendToAddress, wallet.onWalletSendToAddress)
-	wallet.funcmap.Register(types.EventWalletSetFee, wallet.onWalletSetFee)
-	wallet.funcmap.Register(types.EventWalletSetLabel, wallet.onWalletSetLabel)
-	wallet.funcmap.Register(types.EventWalletMergeBalance, wallet.onWalletMergeBalance)
-	wallet.funcmap.Register(types.EventWalletSetPasswd, wallet.ontWalletSetPasswd)
-	wallet.funcmap.Register(types.EventWalletLock, wallet.onWalletLock)
-	wallet.funcmap.Register(types.EventWalletUnLock, wallet.onWalletUnLock)
-	wallet.funcmap.Register(types.EventAddBlock, wallet.onAddBlock)
-	wallet.funcmap.Register(types.EventDelBlock, wallet.onDelBlock)
-	wallet.funcmap.Register(types.EventGenSeed, wallet.onGenSeed)
-	wallet.funcmap.Register(types.EventGetSeed, wallet.onGetSeed)
-	wallet.funcmap.Register(types.EventSaveSeed, wallet.onSaveSeed)
-	wallet.funcmap.Register(types.EventGetWalletStatus, wallet.onGetWalletStatus)
-	wallet.funcmap.Register(types.EventDumpPrivkey, wallet.onDumpPrivKey)
-	wallet.funcmap.Register(types.EventCloseTickets, wallet.onCloseTickets)
-	wallet.funcmap.Register(types.EventSignRawTx, wallet.onSignRawTx)
-	wallet.funcmap.Register(types.EventErrToFront, wallet.onErrToFront)
-	wallet.funcmap.Register(types.EventFatalFailure, wallet.onFatalFailure)
+	wallet.RegisterMsgFunc(types.EventWalletGetAccountList, wallet.onWalletGetAccountList)
+	wallet.RegisterMsgFunc(types.EventWalletAutoMiner, wallet.onWalletAutoMiner)
+	wallet.RegisterMsgFunc(types.EventWalletGetTickets, wallet.onWalletGetTickets)
+	wallet.RegisterMsgFunc(types.EventNewAccount, wallet.onNewAccount)
+	wallet.RegisterMsgFunc(types.EventWalletTransactionList, wallet.onWalletTransactionList)
+	wallet.RegisterMsgFunc(types.EventWalletImportprivkey, wallet.onWalletImportprivkey)
+	wallet.RegisterMsgFunc(types.EventWalletSendToAddress, wallet.onWalletSendToAddress)
+	wallet.RegisterMsgFunc(types.EventWalletSetFee, wallet.onWalletSetFee)
+	wallet.RegisterMsgFunc(types.EventWalletSetLabel, wallet.onWalletSetLabel)
+	wallet.RegisterMsgFunc(types.EventWalletMergeBalance, wallet.onWalletMergeBalance)
+	wallet.RegisterMsgFunc(types.EventWalletSetPasswd, wallet.ontWalletSetPasswd)
+	wallet.RegisterMsgFunc(types.EventWalletLock, wallet.onWalletLock)
+	wallet.RegisterMsgFunc(types.EventWalletUnLock, wallet.onWalletUnLock)
+	wallet.RegisterMsgFunc(types.EventAddBlock, wallet.onAddBlock)
+	wallet.RegisterMsgFunc(types.EventDelBlock, wallet.onDelBlock)
+	wallet.RegisterMsgFunc(types.EventGenSeed, wallet.onGenSeed)
+	wallet.RegisterMsgFunc(types.EventGetSeed, wallet.onGetSeed)
+	wallet.RegisterMsgFunc(types.EventSaveSeed, wallet.onSaveSeed)
+	wallet.RegisterMsgFunc(types.EventGetWalletStatus, wallet.onGetWalletStatus)
+	wallet.RegisterMsgFunc(types.EventDumpPrivkey, wallet.onDumpPrivKey)
+	wallet.RegisterMsgFunc(types.EventCloseTickets, wallet.onCloseTickets)
+	wallet.RegisterMsgFunc(types.EventSignRawTx, wallet.onSignRawTx)
+	wallet.RegisterMsgFunc(types.EventErrToFront, wallet.onErrToFront)
+	wallet.RegisterMsgFunc(types.EventFatalFailure, wallet.onFatalFailure)
 }
 
 func (wallet *Wallet) ProcRecvMsg() {
@@ -39,7 +43,6 @@ func (wallet *Wallet) ProcRecvMsg() {
 	for msg := range wallet.client.Recv() {
 		walletlog.Debug("wallet recv", "msg", types.GetEventName(int(msg.Ty)), "Id", msg.Id)
 
-		// 优先处理钱包中的基础业务
 		funcExisted, topic, retty, reply, err := wallet.funcmap.Process(&msg)
 		if funcExisted {
 			if err != nil {
@@ -47,20 +50,8 @@ func (wallet *Wallet) ProcRecvMsg() {
 			} else {
 				msg.Reply(wallet.api.NewMessage(topic, retty, reply))
 			}
-		}
-
-		// 再处理业务逻辑中的业务
-		existed := false
-		for _, policy := range wallet.policyContainer {
-			existed, err = policy.OnRecvQueueMsg(&msg)
-			if existed && err != nil {
-				walletlog.Error("ProcRecvMsg", "OnRecvQueueMsg error ", err, "msg", types.GetEventName(int(msg.Ty)), "Id", msg.Id)
-			}
-		}
-
-		if !funcExisted && !existed {
+		} else {
 			walletlog.Error("ProcRecvMsg", "Do not support msg", types.GetEventName(int(msg.Ty)), "Id", msg.Id)
-			continue
 		}
 		walletlog.Debug("end process", "msg.id", msg.Id)
 	}
