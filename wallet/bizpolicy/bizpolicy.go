@@ -31,9 +31,9 @@ type WalletBizPolicy interface {
 	// err 错误信息
 	SignTransaction(key crypto.PrivKey, req *types.ReqSignRawTx) (needSysSign bool, signtx string, err error)
 	// OnCreateNewAccount 当用户在钱包中新建账户时，将调用本接口函数
-	OnCreateNewAccount(addr string)
+	OnCreateNewAccount(acc *types.Account)
 	// OnImportPrivateKey 当用户导入私钥时，将调用本函数
-	OnImportPrivateKey(addr string)
+	OnImportPrivateKey(acc *types.Account)
 	OnAddBlockFinish()
 	OnDeleteBlockFinish()
 }

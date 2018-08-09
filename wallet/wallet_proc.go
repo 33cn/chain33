@@ -277,7 +277,7 @@ func (wallet *Wallet) ProcCreateNewAccount(Label *types.ReqNewAccount) (*types.W
 
 	//从blockchain模块同步Account.Addr对应的所有交易详细信息
 	for _, policy := range wallet.policyContainer {
-		policy.OnCreateNewAccount(addr)
+		policy.OnCreateNewAccount(walletAccount.Acc)
 	}
 
 	return &walletAccount, nil
@@ -415,7 +415,7 @@ func (wallet *Wallet) ProcImportPrivKey(PrivKey *types.ReqWalletImportPrivKey) (
 	walletaccount.Label = PrivKey.Label
 
 	for _, policy := range wallet.policyContainer {
-		policy.OnImportPrivateKey(addr)
+		policy.OnImportPrivateKey(accounts[0])
 	}
 	return &walletaccount, nil
 }
@@ -872,6 +872,7 @@ func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 			pubkey := block.Block.Txs[index].Signature.GetPubkey()
 			addr := address.PubKeyToAddress(pubkey)
 			param := &buildStoreWalletTxDetailParam{
+				tokenname:  "",
 				block:      block,
 				tx:         tx,
 				index:      index,

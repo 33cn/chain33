@@ -14,6 +14,7 @@ var (
 	FuncMap = queue.FuncMap{}
 )
 
+// WalletOperate 钱包对业务插件提供服务的操作接口
 type WalletOperate interface {
 	GetAPI() client.QueueProtocolAPI
 	GetMutex() *sync.Mutex
