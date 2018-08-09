@@ -45,32 +45,36 @@ func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
 	case types.CoinsX:
 		if pl, ok := tx.Payload.(*types.CoinsAction).Value.(*types.CoinsAction_Transfer); ok {
 			amt := float64(pl.Transfer.Amount) / float64(types.Coin)
+			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
 			result.Payload = &CoinsTransferCLI{
 				Cointoken: pl.Transfer.Cointoken,
-				Amount:    amt,
+				Amount:    amtResult,
 				Note:      pl.Transfer.Note,
 				To:        pl.Transfer.To,
 			}
 		} else if pl, ok := tx.Payload.(*types.CoinsAction).Value.(*types.CoinsAction_Withdraw); ok {
 			amt := float64(pl.Withdraw.Amount) / float64(types.Coin)
+			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
 			result.Payload = &CoinsWithdrawCLI{
 				Cointoken: pl.Withdraw.Cointoken,
-				Amount:    amt,
+				Amount:    amtResult,
 				Note:      pl.Withdraw.Note,
 				ExecName:  pl.Withdraw.ExecName,
 				To:        pl.Withdraw.To,
 			}
 		} else if pl, ok := tx.Payload.(*types.CoinsAction).Value.(*types.CoinsAction_Genesis); ok {
 			amt := float64(pl.Genesis.Amount) / float64(types.Coin)
+			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
 			result.Payload = &CoinsGenesisCLI{
-				Amount:        amt,
+				Amount:        amtResult,
 				ReturnAddress: pl.Genesis.ReturnAddress,
 			}
 		} else if pl, ok := tx.Payload.(*types.CoinsAction).Value.(*types.CoinsAction_TransferToExec); ok {
 			amt := float64(pl.TransferToExec.Amount) / float64(types.Coin)
+			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
 			result.Payload = &CoinsTransferToExecCLI{
 				Cointoken: pl.TransferToExec.Cointoken,
-				Amount:    amt,
+				Amount:    amtResult,
 				Note:      pl.TransferToExec.Note,
 				ExecName:  pl.TransferToExec.ExecName,
 				To:        pl.TransferToExec.To,
@@ -79,8 +83,9 @@ func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
 	case types.HashlockX:
 		if pl, ok := tx.Payload.(*types.HashlockAction).Value.(*types.HashlockAction_Hlock); ok {
 			amt := float64(pl.Hlock.Amount) / float64(types.Coin)
+			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
 			result.Payload = &HashlockLockCLI{
-				Amount:        amt,
+				Amount:        amtResult,
 				Time:          pl.Hlock.Time,
 				Hash:          pl.Hlock.Hash,
 				ToAddress:     pl.Hlock.ToAddress,
@@ -90,9 +95,10 @@ func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
 	case types.TicketX:
 		if pl, ok := tx.Payload.(*types.TicketAction).Value.(*types.TicketAction_Miner); ok {
 			amt := float64(pl.Miner.Reward) / float64(types.Coin)
+			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
 			result.Payload = &TicketMinerCLI{
 				Bits:     pl.Miner.Bits,
-				Reward:   amt,
+				Reward:   amtResult,
 				TicketId: pl.Miner.TicketId,
 				Modify:   pl.Miner.Modify,
 			}
@@ -100,42 +106,47 @@ func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
 	case types.TokenX:
 		if pl, ok := tx.Payload.(*types.TokenAction).Value.(*types.TokenAction_Tokenprecreate); ok {
 			amt := float64(pl.Tokenprecreate.Price) / float64(types.Coin)
+			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
 			result.Payload = &TokenPreCreateCLI{
 				Name:         pl.Tokenprecreate.Name,
 				Symbol:       pl.Tokenprecreate.Symbol,
 				Introduction: pl.Tokenprecreate.Introduction,
 				Total:        pl.Tokenprecreate.Total,
-				Price:        amt,
+				Price:        amtResult,
 				Owner:        pl.Tokenprecreate.Owner,
 			}
 		} else if pl, ok := tx.Payload.(*types.TokenAction).Value.(*types.TokenAction_Transfer); ok {
 			amt := float64(pl.Transfer.Amount) / float64(types.Coin)
+			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
 			result.Payload = &CoinsTransferCLI{
 				Cointoken: pl.Transfer.Cointoken,
-				Amount:    amt,
+				Amount:    amtResult,
 				Note:      pl.Transfer.Note,
 				To:        pl.Transfer.To,
 			}
 		} else if pl, ok := tx.Payload.(*types.TokenAction).Value.(*types.TokenAction_Withdraw); ok {
 			amt := float64(pl.Withdraw.Amount) / float64(types.Coin)
+			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
 			result.Payload = &CoinsWithdrawCLI{
 				Cointoken: pl.Withdraw.Cointoken,
-				Amount:    amt,
+				Amount:    amtResult,
 				Note:      pl.Withdraw.Note,
 				ExecName:  pl.Withdraw.ExecName,
 				To:        pl.Withdraw.To,
 			}
 		} else if pl, ok := tx.Payload.(*types.TokenAction).Value.(*types.TokenAction_Genesis); ok {
 			amt := float64(pl.Genesis.Amount) / float64(types.Coin)
+			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
 			result.Payload = &CoinsGenesisCLI{
-				Amount:        amt,
+				Amount:        amtResult,
 				ReturnAddress: pl.Genesis.ReturnAddress,
 			}
 		} else if pl, ok := tx.Payload.(*types.TokenAction).Value.(*types.TokenAction_TransferToExec); ok {
 			amt := float64(pl.TransferToExec.Amount) / float64(types.Coin)
+			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
 			result.Payload = &CoinsTransferToExecCLI{
 				Cointoken: pl.TransferToExec.Cointoken,
-				Amount:    amt,
+				Amount:    amtResult,
 				Note:      pl.TransferToExec.Note,
 				ExecName:  pl.TransferToExec.ExecName,
 				To:        pl.TransferToExec.To,
@@ -144,29 +155,32 @@ func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
 	case types.PrivacyX:
 		if pl, ok := tx.Payload.(*types.PrivacyAction).Value.(*types.PrivacyAction_Public2Privacy); ok {
 			amt := float64(pl.Public2Privacy.Amount) / float64(types.Coin)
+			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
 			result.Payload = &Public2PrivacyCLI{
 				Tokenname: pl.Public2Privacy.Tokenname,
-				Amount:    amt,
+				Amount:    amtResult,
 				Note:      pl.Public2Privacy.Note,
-				Output:    pl.Public2Privacy.Output,
+				Output:    decodePrivOutput(pl.Public2Privacy.Output),
 			}
 		} else if pl, ok := tx.Payload.(*types.PrivacyAction).Value.(*types.PrivacyAction_Privacy2Privacy); ok {
 			amt := float64(pl.Privacy2Privacy.Amount) / float64(types.Coin)
+			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
 			result.Payload = &Privacy2PrivacyCLI{
 				Tokenname: pl.Privacy2Privacy.Tokenname,
-				Amount:    amt,
+				Amount:    amtResult,
 				Note:      pl.Privacy2Privacy.Note,
-				Input:     pl.Privacy2Privacy.Input,
-				Output:    pl.Privacy2Privacy.Output,
+				Input:     decodePrivInput(pl.Privacy2Privacy.Input),
+				Output:    decodePrivOutput(pl.Privacy2Privacy.Output),
 			}
 		} else if pl, ok := tx.Payload.(*types.PrivacyAction).Value.(*types.PrivacyAction_Privacy2Public); ok {
 			amt := float64(pl.Privacy2Public.Amount) / float64(types.Coin)
+			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
 			result.Payload = &Privacy2PublicCLI{
 				Tokenname: pl.Privacy2Public.Tokenname,
-				Amount:    amt,
+				Amount:    amtResult,
 				Note:      pl.Privacy2Public.Note,
-				Input:     pl.Privacy2Public.Input,
-				Output:    pl.Privacy2Public.Output,
+				Input:     decodePrivInput(pl.Privacy2Public.Input),
+				Output:    decodePrivOutput(pl.Privacy2Public.Output),
 			}
 		}
 	default:
@@ -174,43 +188,77 @@ func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
 	return result
 }
 
-func decodePrivacyPayload(pub2priv interface{}) {
-	if amountVal, ok := getStrMapValue(pub2priv, "amount"); ok {
-		amount := amountVal.(float64) / float64(types.Coin)
-		getStrMapPair(pub2priv)["amount"] = strconv.FormatFloat(amount, 'f', 4, 64)
-	}
-
-	if inputVal, ok := getStrMapValue(pub2priv, "input"); ok {
-		if keyinputVals, ok := getStrMapValue(inputVal, "keyinput"); ok {
-			for _, value := range keyinputVals.([]interface{}) {
-				if amountVal, ok := getStrMapValue(value, "amount"); ok {
-					amount := amountVal.(float64) / float64(types.Coin)
-					getStrMapPair(value)["amount"] = strconv.FormatFloat(amount, 'f', 4, 64)
-				}
-			}
+func decodePrivInput(input *types.PrivacyInput) *PrivacyInput {
+	var inputResult *PrivacyInput
+	for _, value := range input.Keyinput {
+		amt := float64(value.Amount) / float64(types.Coin)
+		amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
+		var ugis []*UTXOGlobalIndex
+		for _, u := range value.UtxoGlobalIndex {
+			ugis = append(ugis, &UTXOGlobalIndex{Outindex: u.Outindex, Txhash: common.ToHex(u.Txhash)})
 		}
-	}
-
-	if outputVal, ok := getStrMapValue(pub2priv, "output"); ok {
-		if keyoutputVals, ok := getStrMapValue(outputVal, "keyoutput"); ok {
-			for _, value := range keyoutputVals.([]interface{}) {
-				if amountVal, ok := getStrMapValue(value, "amount"); ok {
-					amount := amountVal.(float64) / float64(types.Coin)
-					getStrMapPair(value)["amount"] = strconv.FormatFloat(amount, 'f', 4, 64)
-				}
-			}
+		kin := &KeyInput{
+			Amount:          amtResult,
+			KeyImage:        common.ToHex(value.KeyImage),
+			UtxoGlobalIndex: ugis,
 		}
+		inputResult.Keyinput = append(inputResult.Keyinput, kin)
 	}
+	return inputResult
 }
 
-func getStrMapPair(m interface{}) map[string]interface{} {
-	return m.(map[string]interface{})
+func decodePrivOutput(output *types.PrivacyOutput) *PrivacyOutput {
+	var outputResult *PrivacyOutput
+	for _, value := range output.Keyoutput {
+		amt := float64(value.Amount) / float64(types.Coin)
+		amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
+		kout := &KeyOutput{
+			Amount:        amtResult,
+			Onetimepubkey: common.ToHex(value.Onetimepubkey),
+		}
+		outputResult.Keyoutput = append(outputResult.Keyoutput, kout)
+	}
+	outputResult.RpubKeytx = common.ToHex(output.RpubKeytx)
+	return outputResult
 }
 
-func getStrMapValue(m interface{}, key string) (interface{}, bool) {
-	ret, ok := m.(map[string]interface{})[key]
-	return ret, ok
-}
+//func decodePrivacyPayload(pub2priv interface{}) {
+//	if amountVal, ok := getStrMapValue(pub2priv, "amount"); ok {
+//		amount := amountVal.(float64) / float64(types.Coin)
+//		getStrMapPair(pub2priv)["amount"] = strconv.FormatFloat(amount, 'f', 4, 64)
+//	}
+
+//	if inputVal, ok := getStrMapValue(pub2priv, "input"); ok {
+//		if keyinputVals, ok := getStrMapValue(inputVal, "keyinput"); ok {
+//			for _, value := range keyinputVals.([]interface{}) {
+//				if amountVal, ok := getStrMapValue(value, "amount"); ok {
+//					amount := amountVal.(float64) / float64(types.Coin)
+//					getStrMapPair(value)["amount"] = strconv.FormatFloat(amount, 'f', 4, 64)
+//				}
+//			}
+//		}
+//	}
+
+//	if outputVal, ok := getStrMapValue(pub2priv, "output"); ok {
+//		if keyoutputVals, ok := getStrMapValue(outputVal, "keyoutput"); ok {
+//			for _, value := range keyoutputVals.([]interface{}) {
+//				if amountVal, ok := getStrMapValue(value, "amount"); ok {
+//					amount := amountVal.(float64) / float64(types.Coin)
+//					getStrMapPair(value)["amount"] = strconv.FormatFloat(amount, 'f', 4, 64)
+//				}
+//			}
+//		}
+//	}
+//}
+
+//func getStrMapPair(m interface{}) map[string]interface{} {
+//	return m.(map[string]interface{})
+//}
+
+//func getStrMapValue(m interface{}, key string) (interface{}, bool) {
+//	ret, ok := m.(map[string]interface{})[key]
+//	return ret, ok
+//}
 
 func decodeAccount(acc *types.Account, precision int64) *AccountResult {
 	balanceResult := strconv.FormatFloat(float64(acc.GetBalance())/float64(precision), 'f', 4, 64)
