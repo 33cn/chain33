@@ -2,41 +2,54 @@ package sm2
 
 import (
 	"crypto/elliptic"
-	"encoding/asn1"
 	"errors"
 	"fmt"
 	"math/big"
 
 	"github.com/tjfoc/gmsm/sm2"
+	"github.com/btcsuite/btcd/btcec"
 )
 
 type SM2Signature struct {
 	R, S *big.Int
 }
 
-func MarshalSM2Signature(r, s *big.Int) ([]byte, error) {
-	return asn1.Marshal(SM2Signature{r, s})
+func canonicalizeInt(val *big.Int) []byte {
+	b := val.Bytes()
+	if len(b) == 0 {
+		b = []byte{0x00}
+	}
+	if b[0]&0x80 != 0 {
+		paddedBytes := make([]byte, len(b)+1)
+		copy(paddedBytes[1:], b)
+		b = paddedBytes
+	}
+	return b
 }
 
-func UnmarshalSM2Signature(raw []byte) (*big.Int, *big.Int, error) {
-	sig := new(SM2Signature)
-	_, err := asn1.Unmarshal(raw, sig)
+func Serialize(r, s *big.Int) []byte {
+	rb := canonicalizeInt(r)
+	sb := canonicalizeInt(s)
+	
+	length := 6 + len(rb) + len(sb)
+	b := make([]byte, length)
+
+	b[0] = 0x30
+	b[1] = byte(length - 2)
+	b[2] = 0x02
+	b[3] = byte(len(rb))
+	offset := copy(b[4:], rb) + 4
+	b[offset] = 0x02
+	b[offset+1] = byte(len(sb))
+	copy(b[offset+2:], sb)
+
+	return b
+}
+
+func Deserialize(sigStr []byte) (*big.Int, *big.Int, error) {
+	sig, err := btcec.ParseDERSignature(sigStr, sm2.P256Sm2())
 	if err != nil {
-		return nil, nil, fmt.Errorf("Failed unmashalling signature [%s]", err)
-	}
-
-	if sig.R == nil {
-		return nil, nil, errors.New("Invalid signature. R must be different from nil.")
-	}
-	if sig.S == nil {
-		return nil, nil, errors.New("Invalid signature. S must be different from nil.")
-	}
-
-	if sig.R.Sign() != 1 {
-		return nil, nil, errors.New("Invalid signature. R must be larger than zero")
-	}
-	if sig.S.Sign() != 1 {
-		return nil, nil, errors.New("Invalid signature. S must be larger than zero")
+		return nil, nil, err
 	}
 
 	return sig.R, sig.S, nil
