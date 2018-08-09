@@ -28,6 +28,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers/trade"
 
 	"gitlab.33.cn/chain33/chain33/client"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/blackwhite"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/cert"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/privacy"
 	"gitlab.33.cn/chain33/chain33/queue"
@@ -77,6 +78,7 @@ func execInit() {
 	relay.Init()
 	cert.Init()
 	privacy.Init()
+	blackwhite.Init()
 }
 
 var runonce sync.Once
