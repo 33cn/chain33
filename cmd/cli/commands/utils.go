@@ -41,37 +41,135 @@ func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
 		result.From = tx.From
 	}
 
-	payloadValue, ok := tx.Payload.(map[string]interface{})["Value"].(map[string]interface{})
-	if !ok {
-		return result
-	}
-	for _, e := range [4]string{"Transfer", "Withdraw", "Genesis", "Hlock"} {
-		if _, ok := payloadValue[e]; ok {
-			if amtValue, ok := result.Payload.(map[string]interface{})["Value"].(map[string]interface{})[e].(map[string]interface{})["amount"]; ok {
-				amt := amtValue.(float64) / float64(types.Coin)
-				amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
-				result.Payload.(map[string]interface{})["Value"].(map[string]interface{})[e].(map[string]interface{})["amount"] = amtResult
-				break
+	switch tx.Execer {
+	case types.CoinsX:
+		if pl, ok := tx.Payload.(*types.CoinsAction).Value.(*types.CoinsAction_Transfer); ok {
+			amt := float64(pl.Transfer.Amount) / float64(types.Coin)
+			result.Payload = &CoinsTransferCLI{
+				Cointoken: pl.Transfer.Cointoken,
+				Amount:    amt,
+				Note:      pl.Transfer.Note,
+				To:        pl.Transfer.To,
+			}
+		} else if pl, ok := tx.Payload.(*types.CoinsAction).Value.(*types.CoinsAction_Withdraw); ok {
+			amt := float64(pl.Withdraw.Amount) / float64(types.Coin)
+			result.Payload = &CoinsWithdrawCLI{
+				Cointoken: pl.Withdraw.Cointoken,
+				Amount:    amt,
+				Note:      pl.Withdraw.Note,
+				ExecName:  pl.Withdraw.ExecName,
+				To:        pl.Withdraw.To,
+			}
+		} else if pl, ok := tx.Payload.(*types.CoinsAction).Value.(*types.CoinsAction_Genesis); ok {
+			amt := float64(pl.Genesis.Amount) / float64(types.Coin)
+			result.Payload = &CoinsGenesisCLI{
+				Amount:        amt,
+				ReturnAddress: pl.Genesis.ReturnAddress,
+			}
+		} else if pl, ok := tx.Payload.(*types.CoinsAction).Value.(*types.CoinsAction_TransferToExec); ok {
+			amt := float64(pl.TransferToExec.Amount) / float64(types.Coin)
+			result.Payload = &CoinsTransferToExecCLI{
+				Cointoken: pl.TransferToExec.Cointoken,
+				Amount:    amt,
+				Note:      pl.TransferToExec.Note,
+				ExecName:  pl.TransferToExec.ExecName,
+				To:        pl.TransferToExec.To,
 			}
 		}
-	}
-	if _, ok := payloadValue["Miner"]; ok {
-		if rwdValue, ok := result.Payload.(map[string]interface{})["Value"].(map[string]interface{})["Miner"].(map[string]interface{})["reward"]; ok {
-			rwd := rwdValue.(float64) / float64(types.Coin)
-			rwdResult := strconv.FormatFloat(rwd, 'f', 4, 64)
-			result.Payload.(map[string]interface{})["Value"].(map[string]interface{})["Miner"].(map[string]interface{})["reward"] = rwdResult
+	case types.HashlockX:
+		if pl, ok := tx.Payload.(*types.HashlockAction).Value.(*types.HashlockAction_Hlock); ok {
+			amt := float64(pl.Hlock.Amount) / float64(types.Coin)
+			result.Payload = &HashlockLockCLI{
+				Amount:        amt,
+				Time:          pl.Hlock.Time,
+				Hash:          pl.Hlock.Hash,
+				ToAddress:     pl.Hlock.ToAddress,
+				ReturnAddress: pl.Hlock.ReturnAddress,
+			}
 		}
-	}
-
-	if types.PrivacyX == tx.Execer {
-		// 隐私交易
-		if pub2priv, ok := payloadValue["Public2Privacy"]; ok {
-			decodePrivacyPayload(pub2priv)
-		} else if priv2priv, ok := payloadValue["Privacy2Privacy"]; ok {
-			decodePrivacyPayload(priv2priv)
-		} else if priv2priv, ok := payloadValue["Privacy2Public"]; ok {
-			decodePrivacyPayload(priv2priv)
+	case types.TicketX:
+		if pl, ok := tx.Payload.(*types.TicketAction).Value.(*types.TicketAction_Miner); ok {
+			amt := float64(pl.Miner.Reward) / float64(types.Coin)
+			result.Payload = &TicketMinerCLI{
+				Bits:     pl.Miner.Bits,
+				Reward:   amt,
+				TicketId: pl.Miner.TicketId,
+				Modify:   pl.Miner.Modify,
+			}
 		}
+	case types.TokenX:
+		if pl, ok := tx.Payload.(*types.TokenAction).Value.(*types.TokenAction_Tokenprecreate); ok {
+			amt := float64(pl.Tokenprecreate.Price) / float64(types.Coin)
+			result.Payload = &TokenPreCreateCLI{
+				Name:         pl.Tokenprecreate.Name,
+				Symbol:       pl.Tokenprecreate.Symbol,
+				Introduction: pl.Tokenprecreate.Introduction,
+				Total:        pl.Tokenprecreate.Total,
+				Price:        amt,
+				Owner:        pl.Tokenprecreate.Owner,
+			}
+		} else if pl, ok := tx.Payload.(*types.TokenAction).Value.(*types.TokenAction_Transfer); ok {
+			amt := float64(pl.Transfer.Amount) / float64(types.Coin)
+			result.Payload = &CoinsTransferCLI{
+				Cointoken: pl.Transfer.Cointoken,
+				Amount:    amt,
+				Note:      pl.Transfer.Note,
+				To:        pl.Transfer.To,
+			}
+		} else if pl, ok := tx.Payload.(*types.TokenAction).Value.(*types.TokenAction_Withdraw); ok {
+			amt := float64(pl.Withdraw.Amount) / float64(types.Coin)
+			result.Payload = &CoinsWithdrawCLI{
+				Cointoken: pl.Withdraw.Cointoken,
+				Amount:    amt,
+				Note:      pl.Withdraw.Note,
+				ExecName:  pl.Withdraw.ExecName,
+				To:        pl.Withdraw.To,
+			}
+		} else if pl, ok := tx.Payload.(*types.TokenAction).Value.(*types.TokenAction_Genesis); ok {
+			amt := float64(pl.Genesis.Amount) / float64(types.Coin)
+			result.Payload = &CoinsGenesisCLI{
+				Amount:        amt,
+				ReturnAddress: pl.Genesis.ReturnAddress,
+			}
+		} else if pl, ok := tx.Payload.(*types.TokenAction).Value.(*types.TokenAction_TransferToExec); ok {
+			amt := float64(pl.TransferToExec.Amount) / float64(types.Coin)
+			result.Payload = &CoinsTransferToExecCLI{
+				Cointoken: pl.TransferToExec.Cointoken,
+				Amount:    amt,
+				Note:      pl.TransferToExec.Note,
+				ExecName:  pl.TransferToExec.ExecName,
+				To:        pl.TransferToExec.To,
+			}
+		}
+	case types.PrivacyX:
+		if pl, ok := tx.Payload.(*types.PrivacyAction).Value.(*types.PrivacyAction_Public2Privacy); ok {
+			amt := float64(pl.Public2Privacy.Amount) / float64(types.Coin)
+			result.Payload = &Public2PrivacyCLI{
+				Tokenname: pl.Public2Privacy.Tokenname,
+				Amount:    amt,
+				Note:      pl.Public2Privacy.Note,
+				Output:    pl.Public2Privacy.Output,
+			}
+		} else if pl, ok := tx.Payload.(*types.PrivacyAction).Value.(*types.PrivacyAction_Privacy2Privacy); ok {
+			amt := float64(pl.Privacy2Privacy.Amount) / float64(types.Coin)
+			result.Payload = &Privacy2PrivacyCLI{
+				Tokenname: pl.Privacy2Privacy.Tokenname,
+				Amount:    amt,
+				Note:      pl.Privacy2Privacy.Note,
+				Input:     pl.Privacy2Privacy.Input,
+				Output:    pl.Privacy2Privacy.Output,
+			}
+		} else if pl, ok := tx.Payload.(*types.PrivacyAction).Value.(*types.PrivacyAction_Privacy2Public); ok {
+			amt := float64(pl.Privacy2Public.Amount) / float64(types.Coin)
+			result.Payload = &Privacy2PublicCLI{
+				Tokenname: pl.Privacy2Public.Tokenname,
+				Amount:    amt,
+				Note:      pl.Privacy2Public.Note,
+				Input:     pl.Privacy2Public.Input,
+				Output:    pl.Privacy2Public.Output,
+			}
+		}
+	default:
 	}
 	return result
 }
