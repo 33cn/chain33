@@ -40,29 +40,27 @@ type CommitMsgClient struct {
 	quit               chan struct{}
 }
 
-type sendMsgRst struct {
-	err error
-}
-
 func (client *CommitMsgClient) handler() {
 	var isSync bool
 	var notifications []*CommitMsg
 	var sendingMsgs []*CommitMsg
 	var finishMsgs []*CommitMsg
-	readTick := time.Tick(time.Second)
-	consensusTick := time.Tick(time.Second * time.Duration(consensusInterval))
 
-	sendMsgFail := make(chan sendMsgRst, 1)
-	consensusRst := make(chan *types.ParacrossStatus, 1)
-	priKeyRst := make(chan crypto.PrivKey, 1)
-	go client.fetchPrivacyKey(priKeyRst)
+	readTick := time.Tick(time.Second)
+
+	consensusCh := make(chan *types.ParacrossStatus, 1)
+	go client.getConsensusHeight(consensusCh)
+
+	priKeyCh := make(chan crypto.PrivKey, 1)
+	go client.fetchPrivacyKey(priKeyCh)
+
+	var sendMsgCh chan *types.Transaction
+	dequeue := make(chan *types.Transaction, 1)
+	go client.sendCommitMsg(dequeue)
 
 	for {
 		select {
-		case msg, ok := <-client.commitMsgNotify:
-			if !ok {
-				continue
-			}
+		case msg := <-client.commitMsgNotify:
 			notifications = append(notifications, msg)
 		case msg := <-client.delMsgNotify:
 			var found bool
@@ -100,15 +98,15 @@ func (client *CommitMsgClient) handler() {
 				} else {
 					client.checkTxCommitTimes++
 					if client.checkTxCommitTimes > waitMainBlocks {
-						client.checkTxCommitTimes = 0
 						//需要从rawtx构建,nonce需要改，不然会认为重复交易
 						signTx, _, err := client.calcCommitMsgTxs(sendingMsgs)
 						if err != nil || signTx == nil {
 							continue
 						}
-
 						client.currentTx = signTx
-						go client.sendCommitMsgTx(signTx, sendMsgFail)
+						client.checkTxCommitTimes = 0
+						sendMsgCh = dequeue
+						//go client.sendCommitMsgTx(signTx, sendMsgFail)
 					}
 				}
 			}
@@ -124,13 +122,14 @@ func (client *CommitMsgClient) handler() {
 				client.currentTx = signTx
 				client.waitingTx = true
 				client.checkTxCommitTimes = 0
-				go client.sendCommitMsgTx(signTx, sendMsgFail)
+				sendMsgCh = dequeue
+				//go client.sendCommitMsgTx(signTx, sendMsgFail)
 			}
-		case <-consensusTick:
-			go client.getConsensusHeight(isSync, consensusRst)
+		case sendMsgCh <- client.currentTx:
+			sendMsgCh = nil
 
 		//获取正在共识的高度，也就是可能还没完成共识
-		case rsp := <-consensusRst:
+		case rsp := <-consensusCh:
 			if !isSync {
 				if len(notifications) == 0 && rsp.Height == -1 {
 					isSync = true
@@ -153,12 +152,9 @@ func (client *CommitMsgClient) handler() {
 				}
 			}
 
-		case <-sendMsgFail:
-			go client.sendCommitMsgTx(client.currentTx, sendMsgFail)
-
-		case key, ok := <-priKeyRst:
+		case key, ok := <-priKeyCh:
 			if !ok {
-				priKeyRst = nil
+				priKeyCh = nil
 				continue
 			}
 			client.privateKey = key
@@ -167,56 +163,6 @@ func (client *CommitMsgClient) handler() {
 			return
 		}
 	}
-}
-
-//only sync once, as main usually sync, here just need the first sync status after start up
-func (client *CommitMsgClient) mainSync() error {
-	req := &types.ReqNil{}
-	reply, err := client.paraClient.grpcClient.IsSync(context.Background(), req)
-	if err != nil {
-		plog.Error("Paracross main is syncing", "err", err.Error())
-		return err
-	}
-	if !reply.IsOk {
-		plog.Error("Paracross main reply not ok")
-		return err
-	}
-
-	plog.Info("Paracross main sync succ")
-	return nil
-
-}
-
-func (client *CommitMsgClient) getConsensusHeight(isSync bool, consensusRst chan *types.ParacrossStatus) {
-	if !isSync {
-		err := client.mainSync()
-		if err != nil {
-			return
-		}
-	}
-
-	payLoad := types.Encode(&types.ReqStr{
-		ReqStr: types.GetTitle(),
-	})
-	query := types.Query{
-		Execer:   types.ExecerPara,
-		FuncName: "ParacrossGetTitle",
-		Payload:  payLoad,
-	}
-	ret, err := client.paraClient.grpcClient.QueryChain(context.Background(), &query)
-	if err != nil {
-		plog.Error("getConsensusHeight ", "err", err.Error())
-		return
-	}
-	if !ret.GetIsOk() {
-		plog.Info("getConsensusHeight not OK", "error", ret.GetMsg())
-		return
-	}
-
-	var result types.ParacrossStatus
-	types.Decode(ret.Msg, &result)
-	consensusRst <- &result
-
 }
 
 func (client *CommitMsgClient) calcCommitMsgTxs(notifications []*CommitMsg) (*types.Transaction, int, error) {
@@ -324,17 +270,38 @@ func getCommitMsgTx(msg *CommitMsg) (*types.Transaction, error) {
 	return tx, nil
 }
 
-func (client *CommitMsgClient) sendCommitMsgTx(tx *types.Transaction, ch chan sendMsgRst) {
-	err := client.sendCommitMsgTxEx(tx)
-	if err != nil {
-		rst := sendMsgRst{err: err}
-		//wait 1s re-send
-		time.Sleep(time.Second * 1)
-		ch <- rst
+// 从ch收到tx有两种可能，readTick和addBlock, 如果
+// 3 input case from ch: readTick , addBlock and delMsg to readTick, readTick trigger firstly and will block until received from addBlock
+// if sendCommitMsgTx block quite long, write channel will be block in handle(), addBlock will not send new msg until rpc send over
+// if sendCommitMsgTx block quite long, if delMsg occur, after send over, ignore previous tx succ or fail, new msg will be rcv and sent
+// if sendCommitMsgTx fail, wait 1s resend the failed tx, if new tx rcv from ch, send the new one.
+func (client *CommitMsgClient) sendCommitMsg(ch chan *types.Transaction) {
+	var err error
+	var tx *types.Transaction
+	resendCh := time.After(time.Second * 1)
+	for {
+		select {
+		case tx = <-ch:
+			err = client.sendCommitMsgTx(tx)
+			if err != nil {
+				resendCh = time.After(time.Second * 1)
+			}
+		case <-resendCh:
+			if err != nil && tx != nil {
+				err = client.sendCommitMsgTx(tx)
+				if err != nil {
+					resendCh = time.After(time.Second * 1)
+				}
+			}
+		}
 	}
+
 }
 
-func (client *CommitMsgClient) sendCommitMsgTxEx(tx *types.Transaction) error {
+func (client *CommitMsgClient) sendCommitMsgTx(tx *types.Transaction) error {
+	if tx == nil {
+		return nil
+	}
 	resp, err := client.paraClient.grpcClient.SendTransaction(context.Background(), tx)
 	if err != nil {
 		plog.Error("sendCommitMsgTx send tx", "tx", tx, "err", err.Error())
@@ -363,29 +330,79 @@ func checkTxInMainBlock(targetTx *types.Transaction, detail *types.BlockDetail) 
 }
 
 func (client *CommitMsgClient) onBlockAdded(msg *CommitMsg) {
-	checkTicker := time.NewTicker(time.Second * 1)
 	select {
 	case client.commitMsgNotify <- msg:
-	case <-checkTicker.C:
 	case <-client.quit:
 	}
 }
 
 func (client *CommitMsgClient) onBlockDeleted(msg *CommitMsg) {
-	checkTicker := time.NewTicker(time.Second * 1)
 	select {
 	case client.delMsgNotify <- msg:
-	case <-checkTicker.C:
 	case <-client.quit:
 	}
 }
 
 func (client *CommitMsgClient) onMainBlockAdded(block *types.BlockDetail) {
-	checkTicker := time.NewTicker(time.Second * 1)
 	select {
 	case client.mainBlockAdd <- block:
-	case <-checkTicker.C:
 	case <-client.quit:
+	}
+}
+
+//only sync once, as main usually sync, here just need the first sync status after start up
+func (client *CommitMsgClient) mainSync() error {
+	req := &types.ReqNil{}
+	reply, err := client.paraClient.grpcClient.IsSync(context.Background(), req)
+	if err != nil {
+		plog.Error("Paracross main is syncing", "err", err.Error())
+		return err
+	}
+	if !reply.IsOk {
+		plog.Error("Paracross main reply not ok")
+		return err
+	}
+
+	plog.Info("Paracross main sync succ")
+	return nil
+
+}
+
+func (client *CommitMsgClient) getConsensusHeight(consensusRst chan *types.ParacrossStatus) {
+	consensusTick := time.Tick(time.Second * time.Duration(consensusInterval))
+	isSync := false
+
+	for range consensusTick {
+		if !isSync {
+			err := client.mainSync()
+			if err != nil {
+				continue
+			}
+			isSync = true
+		}
+
+		payLoad := types.Encode(&types.ReqStr{
+			ReqStr: types.GetTitle(),
+		})
+		query := types.Query{
+			Execer:   types.ExecerPara,
+			FuncName: "ParacrossGetTitle",
+			Payload:  payLoad,
+		}
+		ret, err := client.paraClient.grpcClient.QueryChain(context.Background(), &query)
+		if err != nil {
+			plog.Error("getConsensusHeight ", "err", err.Error())
+			continue
+		}
+		if !ret.GetIsOk() {
+			plog.Error("getConsensusHeight not OK", "error", ret.GetMsg())
+			continue
+		}
+
+		var result types.ParacrossStatus
+		types.Decode(ret.Msg, &result)
+		consensusRst <- &result
+
 	}
 }
 
@@ -402,7 +419,7 @@ func (client *CommitMsgClient) fetchPrivacyKey(priKeyRst chan crypto.PrivKey) {
 		resp, err := client.paraClient.GetQueueClient().Wait(msg)
 		if err != nil {
 			plog.Error("sendCommitMsgTx wallet", "err", err.Error())
-			time.Sleep(time.Second * 1)
+			time.Sleep(time.Second * 2)
 			continue
 		}
 		str := resp.GetData().(*types.ReplyStr).Replystr
