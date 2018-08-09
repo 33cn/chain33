@@ -12,128 +12,134 @@ var _ = proto.Marshal
 var _ = fmt.Errorf
 var _ = math.Inf
 
-type BlackwhiteStatus int32
-
-const (
-	BlackwhiteStatus_Ready   BlackwhiteStatus = 0
-	BlackwhiteStatus_Cancel  BlackwhiteStatus = 1
-	BlackwhiteStatus_Puting  BlackwhiteStatus = 2
-	BlackwhiteStatus_Puted   BlackwhiteStatus = 3
-	BlackwhiteStatus_Timeout BlackwhiteStatus = 4
-	BlackwhiteStatus_Done    BlackwhiteStatus = 5
-)
-
-var BlackwhiteStatus_name = map[int32]string{
-	0: "Ready",
-	1: "Cancel",
-	2: "Puting",
-	3: "Puted",
-	4: "Timeout",
-	5: "Done",
-}
-var BlackwhiteStatus_value = map[string]int32{
-	"Ready":   0,
-	"Cancel":  1,
-	"Puting":  2,
-	"Puted":   3,
-	"Timeout": 4,
-	"Done":    5,
+type AddressResult struct {
+	Addr    string `protobuf:"bytes,1,opt,name=addr" json:"addr,omitempty"`
+	Amount  int64  `protobuf:"varint,2,opt,name=amount" json:"amount,omitempty"`
+	IsWin   bool   `protobuf:"varint,3,opt,name=isWin" json:"isWin,omitempty"`
+	IsBlack []bool `protobuf:"varint,4,rep,packed,name=isBlack" json:"isBlack,omitempty"`
 }
 
-func (x BlackwhiteStatus) String() string {
-	return proto.EnumName(BlackwhiteStatus_name, int32(x))
+func (m *AddressResult) Reset()                    { *m = AddressResult{} }
+func (m *AddressResult) String() string            { return proto.CompactTextString(m) }
+func (*AddressResult) ProtoMessage()               {}
+func (*AddressResult) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{0} }
+
+func (m *AddressResult) GetAddr() string {
+	if m != nil {
+		return m.Addr
+	}
+	return ""
 }
-func (BlackwhiteStatus) EnumDescriptor() ([]byte, []int) { return fileDescriptor1, []int{0} }
+
+func (m *AddressResult) GetAmount() int64 {
+	if m != nil {
+		return m.Amount
+	}
+	return 0
+}
+
+func (m *AddressResult) GetIsWin() bool {
+	if m != nil {
+		return m.IsWin
+	}
+	return false
+}
+
+func (m *AddressResult) GetIsBlack() []bool {
+	if m != nil {
+		return m.IsBlack
+	}
+	return nil
+}
 
 // order
-type BlackwhiteOrder struct {
+type BlackwhiteRound struct {
 	// txhash
-	GameID         string `protobuf:"bytes,1,opt,name=gameID" json:"gameID,omitempty"`
-	Status         int32  `protobuf:"varint,2,opt,name=status" json:"status,omitempty"`
-	MaxAmount      int64  `protobuf:"varint,3,opt,name=maxAmount" json:"maxAmount,omitempty"`
-	PlayerCount    int64  `protobuf:"varint,4,opt,name=playerCount" json:"playerCount,omitempty"`
-	CurPlayerCount int64  `protobuf:"varint,5,opt,name=curPlayerCount" json:"curPlayerCount,omitempty"`
-	CreateAddr     string `protobuf:"bytes,6,opt,name=createAddr" json:"createAddr,omitempty"`
-	// 仲裁地址
-	JudgeAddr string `protobuf:"bytes,7,opt,name=judgeAddr" json:"judgeAddr,omitempty"`
-	Timeout   int64  `protobuf:"varint,8,opt,name=timeout" json:"timeout,omitempty"`
-	Height    int64  `protobuf:"varint,9,opt,name=height" json:"height,omitempty"`
-	GameName  string `protobuf:"bytes,10,opt,name=gameName" json:"gameName,omitempty"`
+	GameID         string           `protobuf:"bytes,1,opt,name=gameID" json:"gameID,omitempty"`
+	Status         int32            `protobuf:"varint,2,opt,name=status" json:"status,omitempty"`
+	MaxAmount      int64            `protobuf:"varint,3,opt,name=maxAmount" json:"maxAmount,omitempty"`
+	PlayerCount    int32            `protobuf:"varint,4,opt,name=playerCount" json:"playerCount,omitempty"`
+	CurPlayerCount int32            `protobuf:"varint,5,opt,name=curPlayerCount" json:"curPlayerCount,omitempty"`
+	CreateAddr     string           `protobuf:"bytes,6,opt,name=createAddr" json:"createAddr,omitempty"`
+	Timeout        int64            `protobuf:"varint,7,opt,name=timeout" json:"timeout,omitempty"`
+	GameName       string           `protobuf:"bytes,8,opt,name=gameName" json:"gameName,omitempty"`
+	AddrResult     []*AddressResult `protobuf:"bytes,9,rep,name=addrResult" json:"addrResult,omitempty"`
+	Winner         []string         `protobuf:"bytes,10,rep,name=winner" json:"winner,omitempty"`
 }
 
-func (m *BlackwhiteOrder) Reset()                    { *m = BlackwhiteOrder{} }
-func (m *BlackwhiteOrder) String() string            { return proto.CompactTextString(m) }
-func (*BlackwhiteOrder) ProtoMessage()               {}
-func (*BlackwhiteOrder) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{0} }
+func (m *BlackwhiteRound) Reset()                    { *m = BlackwhiteRound{} }
+func (m *BlackwhiteRound) String() string            { return proto.CompactTextString(m) }
+func (*BlackwhiteRound) ProtoMessage()               {}
+func (*BlackwhiteRound) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{1} }
 
-func (m *BlackwhiteOrder) GetGameID() string {
+func (m *BlackwhiteRound) GetGameID() string {
 	if m != nil {
 		return m.GameID
 	}
 	return ""
 }
 
-func (m *BlackwhiteOrder) GetStatus() int32 {
+func (m *BlackwhiteRound) GetStatus() int32 {
 	if m != nil {
 		return m.Status
 	}
 	return 0
 }
 
-func (m *BlackwhiteOrder) GetMaxAmount() int64 {
+func (m *BlackwhiteRound) GetMaxAmount() int64 {
 	if m != nil {
 		return m.MaxAmount
 	}
 	return 0
 }
 
-func (m *BlackwhiteOrder) GetPlayerCount() int64 {
+func (m *BlackwhiteRound) GetPlayerCount() int32 {
 	if m != nil {
 		return m.PlayerCount
 	}
 	return 0
 }
 
-func (m *BlackwhiteOrder) GetCurPlayerCount() int64 {
+func (m *BlackwhiteRound) GetCurPlayerCount() int32 {
 	if m != nil {
 		return m.CurPlayerCount
 	}
 	return 0
 }
 
-func (m *BlackwhiteOrder) GetCreateAddr() string {
+func (m *BlackwhiteRound) GetCreateAddr() string {
 	if m != nil {
 		return m.CreateAddr
 	}
 	return ""
 }
 
-func (m *BlackwhiteOrder) GetJudgeAddr() string {
-	if m != nil {
-		return m.JudgeAddr
-	}
-	return ""
-}
-
-func (m *BlackwhiteOrder) GetTimeout() int64 {
+func (m *BlackwhiteRound) GetTimeout() int64 {
 	if m != nil {
 		return m.Timeout
 	}
 	return 0
 }
 
-func (m *BlackwhiteOrder) GetHeight() int64 {
-	if m != nil {
-		return m.Height
-	}
-	return 0
-}
-
-func (m *BlackwhiteOrder) GetGameName() string {
+func (m *BlackwhiteRound) GetGameName() string {
 	if m != nil {
 		return m.GameName
 	}
 	return ""
+}
+
+func (m *BlackwhiteRound) GetAddrResult() []*AddressResult {
+	if m != nil {
+		return m.AddrResult
+	}
+	return nil
+}
+
+func (m *BlackwhiteRound) GetWinner() []string {
+	if m != nil {
+		return m.Winner
+	}
+	return nil
 }
 
 // actions
@@ -141,8 +147,8 @@ type BlackwhiteAction struct {
 	// Types that are valid to be assigned to Value:
 	//	*BlackwhiteAction_Create
 	//	*BlackwhiteAction_Cancel
-	//	*BlackwhiteAction_Put
-	//	*BlackwhiteAction_Done
+	//	*BlackwhiteAction_Play
+	//	*BlackwhiteAction_TimeoutDone
 	Value isBlackwhiteAction_Value `protobuf_oneof:"value"`
 	Ty    int32                    `protobuf:"varint,5,opt,name=ty" json:"ty,omitempty"`
 }
@@ -150,7 +156,7 @@ type BlackwhiteAction struct {
 func (m *BlackwhiteAction) Reset()                    { *m = BlackwhiteAction{} }
 func (m *BlackwhiteAction) String() string            { return proto.CompactTextString(m) }
 func (*BlackwhiteAction) ProtoMessage()               {}
-func (*BlackwhiteAction) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{1} }
+func (*BlackwhiteAction) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{2} }
 
 type isBlackwhiteAction_Value interface {
 	isBlackwhiteAction_Value()
@@ -160,19 +166,19 @@ type BlackwhiteAction_Create struct {
 	Create *BlackwhiteCreate `protobuf:"bytes,1,opt,name=create,oneof"`
 }
 type BlackwhiteAction_Cancel struct {
-	Cancel *BlackwhiteCancel `protobuf:"bytes,2,opt,name=Cancel,oneof"`
+	Cancel *BlackwhiteCancel `protobuf:"bytes,2,opt,name=cancel,oneof"`
 }
-type BlackwhiteAction_Put struct {
-	Put *BlackwhitePut `protobuf:"bytes,3,opt,name=put,oneof"`
+type BlackwhiteAction_Play struct {
+	Play *BlackwhitePlay `protobuf:"bytes,3,opt,name=play,oneof"`
 }
-type BlackwhiteAction_Done struct {
-	Done *BlackwhiteDone `protobuf:"bytes,4,opt,name=done,oneof"`
+type BlackwhiteAction_TimeoutDone struct {
+	TimeoutDone *BlackwhiteTimeoutDone `protobuf:"bytes,4,opt,name=timeoutDone,oneof"`
 }
 
-func (*BlackwhiteAction_Create) isBlackwhiteAction_Value() {}
-func (*BlackwhiteAction_Cancel) isBlackwhiteAction_Value() {}
-func (*BlackwhiteAction_Put) isBlackwhiteAction_Value()    {}
-func (*BlackwhiteAction_Done) isBlackwhiteAction_Value()   {}
+func (*BlackwhiteAction_Create) isBlackwhiteAction_Value()      {}
+func (*BlackwhiteAction_Cancel) isBlackwhiteAction_Value()      {}
+func (*BlackwhiteAction_Play) isBlackwhiteAction_Value()        {}
+func (*BlackwhiteAction_TimeoutDone) isBlackwhiteAction_Value() {}
 
 func (m *BlackwhiteAction) GetValue() isBlackwhiteAction_Value {
 	if m != nil {
@@ -195,16 +201,16 @@ func (m *BlackwhiteAction) GetCancel() *BlackwhiteCancel {
 	return nil
 }
 
-func (m *BlackwhiteAction) GetPut() *BlackwhitePut {
-	if x, ok := m.GetValue().(*BlackwhiteAction_Put); ok {
-		return x.Put
+func (m *BlackwhiteAction) GetPlay() *BlackwhitePlay {
+	if x, ok := m.GetValue().(*BlackwhiteAction_Play); ok {
+		return x.Play
 	}
 	return nil
 }
 
-func (m *BlackwhiteAction) GetDone() *BlackwhiteDone {
-	if x, ok := m.GetValue().(*BlackwhiteAction_Done); ok {
-		return x.Done
+func (m *BlackwhiteAction) GetTimeoutDone() *BlackwhiteTimeoutDone {
+	if x, ok := m.GetValue().(*BlackwhiteAction_TimeoutDone); ok {
+		return x.TimeoutDone
 	}
 	return nil
 }
@@ -221,8 +227,8 @@ func (*BlackwhiteAction) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buff
 	return _BlackwhiteAction_OneofMarshaler, _BlackwhiteAction_OneofUnmarshaler, _BlackwhiteAction_OneofSizer, []interface{}{
 		(*BlackwhiteAction_Create)(nil),
 		(*BlackwhiteAction_Cancel)(nil),
-		(*BlackwhiteAction_Put)(nil),
-		(*BlackwhiteAction_Done)(nil),
+		(*BlackwhiteAction_Play)(nil),
+		(*BlackwhiteAction_TimeoutDone)(nil),
 	}
 }
 
@@ -240,14 +246,14 @@ func _BlackwhiteAction_OneofMarshaler(msg proto.Message, b *proto.Buffer) error 
 		if err := b.EncodeMessage(x.Cancel); err != nil {
 			return err
 		}
-	case *BlackwhiteAction_Put:
+	case *BlackwhiteAction_Play:
 		b.EncodeVarint(3<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Put); err != nil {
+		if err := b.EncodeMessage(x.Play); err != nil {
 			return err
 		}
-	case *BlackwhiteAction_Done:
+	case *BlackwhiteAction_TimeoutDone:
 		b.EncodeVarint(4<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Done); err != nil {
+		if err := b.EncodeMessage(x.TimeoutDone); err != nil {
 			return err
 		}
 	case nil:
@@ -268,7 +274,7 @@ func _BlackwhiteAction_OneofUnmarshaler(msg proto.Message, tag, wire int, b *pro
 		err := b.DecodeMessage(msg)
 		m.Value = &BlackwhiteAction_Create{msg}
 		return true, err
-	case 2: // value.Cancel
+	case 2: // value.cancel
 		if wire != proto.WireBytes {
 			return true, proto.ErrInternalBadWireType
 		}
@@ -276,21 +282,21 @@ func _BlackwhiteAction_OneofUnmarshaler(msg proto.Message, tag, wire int, b *pro
 		err := b.DecodeMessage(msg)
 		m.Value = &BlackwhiteAction_Cancel{msg}
 		return true, err
-	case 3: // value.put
+	case 3: // value.play
 		if wire != proto.WireBytes {
 			return true, proto.ErrInternalBadWireType
 		}
-		msg := new(BlackwhitePut)
+		msg := new(BlackwhitePlay)
 		err := b.DecodeMessage(msg)
-		m.Value = &BlackwhiteAction_Put{msg}
+		m.Value = &BlackwhiteAction_Play{msg}
 		return true, err
-	case 4: // value.done
+	case 4: // value.timeoutDone
 		if wire != proto.WireBytes {
 			return true, proto.ErrInternalBadWireType
 		}
-		msg := new(BlackwhiteDone)
+		msg := new(BlackwhiteTimeoutDone)
 		err := b.DecodeMessage(msg)
-		m.Value = &BlackwhiteAction_Done{msg}
+		m.Value = &BlackwhiteAction_TimeoutDone{msg}
 		return true, err
 	default:
 		return false, nil
@@ -311,13 +317,13 @@ func _BlackwhiteAction_OneofSizer(msg proto.Message) (n int) {
 		n += proto.SizeVarint(2<<3 | proto.WireBytes)
 		n += proto.SizeVarint(uint64(s))
 		n += s
-	case *BlackwhiteAction_Put:
-		s := proto.Size(x.Put)
+	case *BlackwhiteAction_Play:
+		s := proto.Size(x.Play)
 		n += proto.SizeVarint(3<<3 | proto.WireBytes)
 		n += proto.SizeVarint(uint64(s))
 		n += s
-	case *BlackwhiteAction_Done:
-		s := proto.Size(x.Done)
+	case *BlackwhiteAction_TimeoutDone:
+		s := proto.Size(x.TimeoutDone)
 		n += proto.SizeVarint(4<<3 | proto.WireBytes)
 		n += proto.SizeVarint(uint64(s))
 		n += s
@@ -329,17 +335,16 @@ func _BlackwhiteAction_OneofSizer(msg proto.Message) (n int) {
 }
 
 type BlackwhiteCreate struct {
-	MaxAmount int64  `protobuf:"varint,1,opt,name=maxAmount" json:"maxAmount,omitempty"`
-	PlayerNum int64  `protobuf:"varint,2,opt,name=playerNum" json:"playerNum,omitempty"`
-	Timeout   bool   `protobuf:"varint,3,opt,name=timeout" json:"timeout,omitempty"`
-	Height    int64  `protobuf:"varint,4,opt,name=height" json:"height,omitempty"`
-	GameName  string `protobuf:"bytes,5,opt,name=gameName" json:"gameName,omitempty"`
+	MaxAmount   int64  `protobuf:"varint,1,opt,name=maxAmount" json:"maxAmount,omitempty"`
+	PlayerCount int32  `protobuf:"varint,2,opt,name=playerCount" json:"playerCount,omitempty"`
+	Timeout     int64  `protobuf:"varint,3,opt,name=timeout" json:"timeout,omitempty"`
+	GameName    string `protobuf:"bytes,4,opt,name=gameName" json:"gameName,omitempty"`
 }
 
 func (m *BlackwhiteCreate) Reset()                    { *m = BlackwhiteCreate{} }
 func (m *BlackwhiteCreate) String() string            { return proto.CompactTextString(m) }
 func (*BlackwhiteCreate) ProtoMessage()               {}
-func (*BlackwhiteCreate) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{2} }
+func (*BlackwhiteCreate) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{3} }
 
 func (m *BlackwhiteCreate) GetMaxAmount() int64 {
 	if m != nil {
@@ -348,23 +353,16 @@ func (m *BlackwhiteCreate) GetMaxAmount() int64 {
 	return 0
 }
 
-func (m *BlackwhiteCreate) GetPlayerNum() int64 {
+func (m *BlackwhiteCreate) GetPlayerCount() int32 {
 	if m != nil {
-		return m.PlayerNum
+		return m.PlayerCount
 	}
 	return 0
 }
 
-func (m *BlackwhiteCreate) GetTimeout() bool {
+func (m *BlackwhiteCreate) GetTimeout() int64 {
 	if m != nil {
 		return m.Timeout
-	}
-	return false
-}
-
-func (m *BlackwhiteCreate) GetHeight() int64 {
-	if m != nil {
-		return m.Height
 	}
 	return 0
 }
@@ -383,7 +381,7 @@ type BlackwhiteCancel struct {
 func (m *BlackwhiteCancel) Reset()                    { *m = BlackwhiteCancel{} }
 func (m *BlackwhiteCancel) String() string            { return proto.CompactTextString(m) }
 func (*BlackwhiteCancel) ProtoMessage()               {}
-func (*BlackwhiteCancel) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{3} }
+func (*BlackwhiteCancel) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{4} }
 
 func (m *BlackwhiteCancel) GetGameID() string {
 	if m != nil {
@@ -392,105 +390,151 @@ func (m *BlackwhiteCancel) GetGameID() string {
 	return ""
 }
 
-type BlackwhitePut struct {
-	Amount  int64  `protobuf:"varint,1,opt,name=amount" json:"amount,omitempty"`
-	Height  int64  `protobuf:"varint,2,opt,name=height" json:"height,omitempty"`
+type BlackwhitePlay struct {
+	GameID  string `protobuf:"bytes,1,opt,name=gameID" json:"gameID,omitempty"`
+	Amount  int64  `protobuf:"varint,2,opt,name=amount" json:"amount,omitempty"`
 	IsBlack []bool `protobuf:"varint,3,rep,packed,name=isBlack" json:"isBlack,omitempty"`
 }
 
-func (m *BlackwhitePut) Reset()                    { *m = BlackwhitePut{} }
-func (m *BlackwhitePut) String() string            { return proto.CompactTextString(m) }
-func (*BlackwhitePut) ProtoMessage()               {}
-func (*BlackwhitePut) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{4} }
+func (m *BlackwhitePlay) Reset()                    { *m = BlackwhitePlay{} }
+func (m *BlackwhitePlay) String() string            { return proto.CompactTextString(m) }
+func (*BlackwhitePlay) ProtoMessage()               {}
+func (*BlackwhitePlay) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{5} }
 
-func (m *BlackwhitePut) GetAmount() int64 {
-	if m != nil {
-		return m.Amount
-	}
-	return 0
-}
-
-func (m *BlackwhitePut) GetHeight() int64 {
-	if m != nil {
-		return m.Height
-	}
-	return 0
-}
-
-func (m *BlackwhitePut) GetIsBlack() []bool {
-	if m != nil {
-		return m.IsBlack
-	}
-	return nil
-}
-
-type BlackwhiteDone struct {
-	GameID    string `protobuf:"bytes,1,opt,name=gameID" json:"gameID,omitempty"`
-	IsTimeout bool   `protobuf:"varint,2,opt,name=isTimeout" json:"isTimeout,omitempty"`
-}
-
-func (m *BlackwhiteDone) Reset()                    { *m = BlackwhiteDone{} }
-func (m *BlackwhiteDone) String() string            { return proto.CompactTextString(m) }
-func (*BlackwhiteDone) ProtoMessage()               {}
-func (*BlackwhiteDone) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{5} }
-
-func (m *BlackwhiteDone) GetGameID() string {
+func (m *BlackwhitePlay) GetGameID() string {
 	if m != nil {
 		return m.GameID
 	}
 	return ""
 }
 
-func (m *BlackwhiteDone) GetIsTimeout() bool {
+func (m *BlackwhitePlay) GetAmount() int64 {
 	if m != nil {
-		return m.IsTimeout
+		return m.Amount
 	}
-	return false
+	return 0
+}
+
+func (m *BlackwhitePlay) GetIsBlack() []bool {
+	if m != nil {
+		return m.IsBlack
+	}
+	return nil
+}
+
+type BlackwhiteTimeoutDone struct {
+	GameID string `protobuf:"bytes,1,opt,name=gameID" json:"gameID,omitempty"`
+}
+
+func (m *BlackwhiteTimeoutDone) Reset()                    { *m = BlackwhiteTimeoutDone{} }
+func (m *BlackwhiteTimeoutDone) String() string            { return proto.CompactTextString(m) }
+func (*BlackwhiteTimeoutDone) ProtoMessage()               {}
+func (*BlackwhiteTimeoutDone) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{6} }
+
+func (m *BlackwhiteTimeoutDone) GetGameID() string {
+	if m != nil {
+		return m.GameID
+	}
+	return ""
+}
+
+// logs
+type ReceiptBlackwhite struct {
+	Round *BlackwhiteRound `protobuf:"bytes,1,opt,name=round" json:"round,omitempty"`
+}
+
+func (m *ReceiptBlackwhite) Reset()                    { *m = ReceiptBlackwhite{} }
+func (m *ReceiptBlackwhite) String() string            { return proto.CompactTextString(m) }
+func (*ReceiptBlackwhite) ProtoMessage()               {}
+func (*ReceiptBlackwhite) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{7} }
+
+func (m *ReceiptBlackwhite) GetRound() *BlackwhiteRound {
+	if m != nil {
+		return m.Round
+	}
+	return nil
+}
+
+type ReqBlackwhiteRoundInfo struct {
+	GameID string `protobuf:"bytes,1,opt,name=gameID" json:"gameID,omitempty"`
+}
+
+func (m *ReqBlackwhiteRoundInfo) Reset()                    { *m = ReqBlackwhiteRoundInfo{} }
+func (m *ReqBlackwhiteRoundInfo) String() string            { return proto.CompactTextString(m) }
+func (*ReqBlackwhiteRoundInfo) ProtoMessage()               {}
+func (*ReqBlackwhiteRoundInfo) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{8} }
+
+func (m *ReqBlackwhiteRoundInfo) GetGameID() string {
+	if m != nil {
+		return m.GameID
+	}
+	return ""
+}
+
+type ReplyBlackwhiteRoundInfo struct {
+	Round *BlackwhiteRound `protobuf:"bytes,1,opt,name=round" json:"round,omitempty"`
+}
+
+func (m *ReplyBlackwhiteRoundInfo) Reset()                    { *m = ReplyBlackwhiteRoundInfo{} }
+func (m *ReplyBlackwhiteRoundInfo) String() string            { return proto.CompactTextString(m) }
+func (*ReplyBlackwhiteRoundInfo) ProtoMessage()               {}
+func (*ReplyBlackwhiteRoundInfo) Descriptor() ([]byte, []int) { return fileDescriptor1, []int{9} }
+
+func (m *ReplyBlackwhiteRoundInfo) GetRound() *BlackwhiteRound {
+	if m != nil {
+		return m.Round
+	}
+	return nil
 }
 
 func init() {
-	proto.RegisterType((*BlackwhiteOrder)(nil), "types.BlackwhiteOrder")
+	proto.RegisterType((*AddressResult)(nil), "types.AddressResult")
+	proto.RegisterType((*BlackwhiteRound)(nil), "types.BlackwhiteRound")
 	proto.RegisterType((*BlackwhiteAction)(nil), "types.BlackwhiteAction")
 	proto.RegisterType((*BlackwhiteCreate)(nil), "types.BlackwhiteCreate")
 	proto.RegisterType((*BlackwhiteCancel)(nil), "types.BlackwhiteCancel")
-	proto.RegisterType((*BlackwhitePut)(nil), "types.BlackwhitePut")
-	proto.RegisterType((*BlackwhiteDone)(nil), "types.BlackwhiteDone")
-	proto.RegisterEnum("types.BlackwhiteStatus", BlackwhiteStatus_name, BlackwhiteStatus_value)
+	proto.RegisterType((*BlackwhitePlay)(nil), "types.BlackwhitePlay")
+	proto.RegisterType((*BlackwhiteTimeoutDone)(nil), "types.BlackwhiteTimeoutDone")
+	proto.RegisterType((*ReceiptBlackwhite)(nil), "types.ReceiptBlackwhite")
+	proto.RegisterType((*ReqBlackwhiteRoundInfo)(nil), "types.ReqBlackwhiteRoundInfo")
+	proto.RegisterType((*ReplyBlackwhiteRoundInfo)(nil), "types.ReplyBlackwhiteRoundInfo")
 }
 
 func init() { proto.RegisterFile("blackwhite.proto", fileDescriptor1) }
 
 var fileDescriptor1 = []byte{
-	// 486 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x74, 0x53, 0xdd, 0x8a, 0xd3, 0x40,
-	0x18, 0x6d, 0xfe, 0x9a, 0xe6, 0x0b, 0xd6, 0x30, 0xf8, 0x33, 0x48, 0x91, 0x90, 0x0b, 0x29, 0x2b,
-	0x14, 0xac, 0x4f, 0xd0, 0xed, 0x22, 0xeb, 0xcd, 0x5a, 0xa2, 0x20, 0x5e, 0xce, 0x26, 0x43, 0x1b,
-	0x6d, 0x7e, 0x48, 0x66, 0xd4, 0xbc, 0x8b, 0xaf, 0xe1, 0x3b, 0xf9, 0x18, 0x32, 0x5f, 0x66, 0x37,
-	0x49, 0x77, 0x7b, 0x97, 0xef, 0x9c, 0x33, 0xc3, 0x39, 0xe7, 0xcb, 0x40, 0x70, 0x7b, 0x64, 0xc9,
-	0x8f, 0x5f, 0x87, 0x4c, 0xf0, 0x55, 0x55, 0x97, 0xa2, 0x24, 0x8e, 0x68, 0x2b, 0xde, 0x44, 0x7f,
-	0x4d, 0x78, 0x7a, 0x79, 0xcf, 0x7d, 0xaa, 0x53, 0x5e, 0x93, 0x17, 0x30, 0xdd, 0xb3, 0x9c, 0x7f,
-	0xbc, 0xa2, 0x46, 0x68, 0x2c, 0xbd, 0x58, 0x4f, 0x0a, 0x6f, 0x04, 0x13, 0xb2, 0xa1, 0x66, 0x68,
-	0x2c, 0x9d, 0x58, 0x4f, 0x64, 0x01, 0x5e, 0xce, 0x7e, 0x6f, 0xf2, 0x52, 0x16, 0x82, 0x5a, 0xa1,
-	0xb1, 0xb4, 0xe2, 0x1e, 0x20, 0x21, 0xf8, 0xd5, 0x91, 0xb5, 0xbc, 0xde, 0x22, 0x6f, 0x23, 0x3f,
-	0x84, 0xc8, 0x1b, 0x98, 0x27, 0xb2, 0xde, 0x0d, 0x44, 0x0e, 0x8a, 0x4e, 0x50, 0xf2, 0x1a, 0x20,
-	0xa9, 0x39, 0x13, 0x7c, 0x93, 0xa6, 0x35, 0x9d, 0xa2, 0xb7, 0x01, 0xa2, 0x7c, 0x7c, 0x97, 0xe9,
-	0xbe, 0xa3, 0x5d, 0xa4, 0x7b, 0x80, 0x50, 0x70, 0x45, 0x96, 0xf3, 0x52, 0x0a, 0x3a, 0xc3, 0xeb,
-	0xef, 0x46, 0x95, 0xeb, 0xc0, 0xb3, 0xfd, 0x41, 0x50, 0x0f, 0x09, 0x3d, 0x91, 0x57, 0x30, 0x53,
-	0xc9, 0x6f, 0x58, 0xce, 0x29, 0xe0, 0x75, 0xf7, 0x73, 0xf4, 0xcf, 0x80, 0xa0, 0xef, 0x6d, 0x93,
-	0x88, 0xac, 0x2c, 0xc8, 0x3b, 0x98, 0x76, 0x76, 0xb0, 0x38, 0x7f, 0xfd, 0x72, 0x85, 0x25, 0xaf,
-	0x7a, 0xe1, 0x16, 0xe9, 0xeb, 0x49, 0xac, 0x85, 0xea, 0xc8, 0x96, 0x15, 0x09, 0x3f, 0x62, 0xa7,
-	0x8f, 0x1e, 0x41, 0x5a, 0x1d, 0xe9, 0xbe, 0xc8, 0x12, 0xac, 0x4a, 0x76, 0x45, 0xfb, 0xeb, 0x67,
-	0x0f, 0xf4, 0x3b, 0x29, 0xae, 0x27, 0xb1, 0x92, 0x90, 0xb7, 0x60, 0xa7, 0x65, 0xc1, 0xb1, 0x73,
-	0x7f, 0xfd, 0xfc, 0x81, 0xf4, 0xaa, 0x2c, 0x94, 0x17, 0x14, 0x91, 0x39, 0x98, 0xa2, 0xc5, 0xe6,
-	0x9d, 0xd8, 0x14, 0xed, 0xa5, 0x0b, 0xce, 0x4f, 0x76, 0x94, 0x3c, 0xfa, 0x33, 0x8a, 0xda, 0x25,
-	0x18, 0xef, 0xdc, 0x38, 0xdd, 0xf9, 0x02, 0xbc, 0x6e, 0xc1, 0x37, 0x32, 0xc7, 0x60, 0x56, 0xdc,
-	0x03, 0xc3, 0x4d, 0xa8, 0x10, 0xb3, 0xc7, 0x36, 0x61, 0x9f, 0xdd, 0x84, 0x73, 0xb2, 0x89, 0x8b,
-	0x91, 0xbb, 0xae, 0xa2, 0x33, 0x7f, 0x70, 0xf4, 0x0d, 0x9e, 0x8c, 0x8a, 0x52, 0x42, 0x36, 0xcc,
-	0xa0, 0xa7, 0x81, 0x11, 0x73, 0x64, 0x84, 0x82, 0x9b, 0x35, 0x78, 0x05, 0xb5, 0x42, 0x4b, 0x59,
-	0xd7, 0x63, 0xf4, 0x01, 0xe6, 0xe3, 0x62, 0xcf, 0x3e, 0xa3, 0x05, 0x78, 0x59, 0xf3, 0x45, 0x17,
-	0x60, 0x62, 0x01, 0x3d, 0x70, 0xf1, 0x75, 0x18, 0xe7, 0x73, 0xf7, 0xc0, 0x3c, 0x70, 0x62, 0xce,
-	0xd2, 0x36, 0x98, 0x10, 0xb8, 0xfb, 0x5f, 0x02, 0x43, 0x7d, 0xef, 0xa4, 0xc8, 0x8a, 0x7d, 0x60,
-	0x2a, 0xc9, 0x4e, 0x0a, 0x9e, 0x06, 0x16, 0xf1, 0xc1, 0xd5, 0x97, 0x05, 0x36, 0x99, 0x81, 0xad,
-	0xcc, 0x04, 0xce, 0xed, 0x14, 0xdf, 0xfd, 0xfb, 0xff, 0x01, 0x00, 0x00, 0xff, 0xff, 0x32, 0x05,
-	0xaa, 0xe5, 0x0b, 0x04, 0x00, 0x00,
+	// 522 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x54, 0x4d, 0x6f, 0xd3, 0x40,
+	0x10, 0x8d, 0xbf, 0xf2, 0x31, 0x16, 0xa1, 0xac, 0xda, 0xb0, 0x42, 0x15, 0xb2, 0x7c, 0x40, 0x16,
+	0xa0, 0x00, 0x81, 0x1f, 0x40, 0xd2, 0x1e, 0xd2, 0x0b, 0x42, 0x2b, 0x24, 0x24, 0x6e, 0x5b, 0x7b,
+	0x01, 0xab, 0xfe, 0xc2, 0x5e, 0x53, 0x7c, 0xe3, 0xc8, 0x9f, 0xe3, 0x3f, 0xa1, 0x1d, 0x6f, 0x6b,
+	0xbb, 0x49, 0x40, 0xdc, 0x3c, 0xb3, 0xf3, 0x76, 0xde, 0xbe, 0x37, 0x63, 0x38, 0xba, 0x4c, 0x78,
+	0x78, 0x75, 0xfd, 0x35, 0x96, 0x62, 0x59, 0x94, 0xb9, 0xcc, 0x89, 0x23, 0x9b, 0x42, 0x54, 0xfe,
+	0x15, 0xdc, 0x5b, 0x47, 0x51, 0x29, 0xaa, 0x8a, 0x89, 0xaa, 0x4e, 0x24, 0x21, 0x60, 0xf3, 0x28,
+	0x2a, 0xa9, 0xe1, 0x19, 0xc1, 0x8c, 0xe1, 0x37, 0x59, 0xc0, 0x98, 0xa7, 0x79, 0x9d, 0x49, 0x6a,
+	0x7a, 0x46, 0x60, 0x31, 0x1d, 0x91, 0x63, 0x70, 0xe2, 0xea, 0x63, 0x9c, 0x51, 0xcb, 0x33, 0x82,
+	0x29, 0x6b, 0x03, 0x42, 0x61, 0x12, 0x57, 0x1b, 0xd5, 0x8f, 0xda, 0x9e, 0x15, 0x4c, 0xd9, 0x4d,
+	0xe8, 0xff, 0x36, 0xe1, 0xfe, 0xe6, 0x96, 0x08, 0xcb, 0xeb, 0x2c, 0x52, 0x77, 0x7f, 0xe1, 0xa9,
+	0xb8, 0x38, 0xd7, 0x1d, 0x75, 0xa4, 0xf2, 0x95, 0xe4, 0xb2, 0xae, 0xb0, 0xa7, 0xc3, 0x74, 0x44,
+	0x4e, 0x61, 0x96, 0xf2, 0x1f, 0xeb, 0x96, 0x8e, 0x85, 0x74, 0xba, 0x04, 0xf1, 0xc0, 0x2d, 0x12,
+	0xde, 0x88, 0xf2, 0x0c, 0xcf, 0x6d, 0x84, 0xf6, 0x53, 0xe4, 0x09, 0xcc, 0xc3, 0xba, 0x7c, 0xdf,
+	0x2b, 0x72, 0xb0, 0xe8, 0x4e, 0x96, 0x3c, 0x06, 0x08, 0x4b, 0xc1, 0xa5, 0x50, 0xf2, 0xd0, 0x31,
+	0x72, 0xeb, 0x65, 0xd4, 0x2b, 0x65, 0x9c, 0x8a, 0xbc, 0x96, 0x74, 0x82, 0x2c, 0x6e, 0x42, 0xf2,
+	0x08, 0xa6, 0xea, 0x0d, 0xef, 0x78, 0x2a, 0xe8, 0x14, 0x71, 0xb7, 0x31, 0x79, 0x03, 0xa0, 0x14,
+	0x6d, 0xb5, 0xa6, 0x33, 0xcf, 0x0a, 0xdc, 0xd5, 0xf1, 0x12, 0xad, 0x58, 0x0e, 0x7c, 0x60, 0xbd,
+	0x3a, 0xa5, 0xc5, 0x75, 0x9c, 0x65, 0xa2, 0xa4, 0xe0, 0x59, 0x4a, 0xa3, 0x36, 0xf2, 0x7f, 0x9a,
+	0x70, 0xd4, 0xe9, 0xb9, 0x0e, 0x65, 0x9c, 0x67, 0xe4, 0x15, 0x8c, 0x5b, 0x9a, 0x28, 0xa8, 0xbb,
+	0x7a, 0xa8, 0xaf, 0xef, 0x0a, 0xcf, 0xf0, 0x78, 0x3b, 0x62, 0xba, 0x10, 0x21, 0x3c, 0x0b, 0x45,
+	0x82, 0x5a, 0xef, 0x85, 0xe0, 0x31, 0x42, 0xf0, 0x8b, 0x3c, 0x03, 0x5b, 0xa9, 0x8a, 0x0e, 0xb8,
+	0xab, 0x93, 0x1d, 0x80, 0x92, 0x72, 0x3b, 0x62, 0x58, 0x44, 0xde, 0x82, 0xab, 0xc5, 0x39, 0xcf,
+	0x33, 0x81, 0xae, 0xb8, 0xab, 0xd3, 0x1d, 0xcc, 0x87, 0xae, 0x66, 0x3b, 0x62, 0x7d, 0x08, 0x99,
+	0x83, 0x29, 0x1b, 0xed, 0x94, 0x29, 0x9b, 0xcd, 0x04, 0x9c, 0xef, 0x3c, 0xa9, 0x85, 0xff, 0xcb,
+	0xe8, 0x4b, 0xd0, 0xbe, 0x6c, 0x38, 0x23, 0xc6, 0x3f, 0x66, 0xc4, 0xdc, 0x9d, 0x91, 0x9e, 0xb7,
+	0xd6, 0x61, 0x6f, 0xed, 0xa1, 0xb7, 0xfe, 0xd3, 0x01, 0x93, 0x56, 0xa6, 0x03, 0xd3, 0xed, 0x7f,
+	0x82, 0xf9, 0x50, 0xab, 0xbf, 0xed, 0xc1, 0xde, 0xdd, 0xeb, 0x6d, 0x99, 0x35, 0xdc, 0xb2, 0x17,
+	0x70, 0xb2, 0x57, 0xd3, 0x83, 0x64, 0xd6, 0xf0, 0x80, 0x89, 0x50, 0xc4, 0x85, 0xec, 0x70, 0xe4,
+	0x39, 0x38, 0xa5, 0x5a, 0x50, 0x3d, 0x45, 0x8b, 0x1d, 0xb7, 0x70, 0x7d, 0x59, 0x5b, 0xe4, 0xbf,
+	0x84, 0x05, 0x13, 0xdf, 0xee, 0x1c, 0x5e, 0x64, 0x9f, 0xf3, 0x83, 0x4d, 0xb7, 0x40, 0x99, 0x28,
+	0x92, 0x66, 0x1f, 0xe6, 0xbf, 0x7a, 0x5f, 0x8e, 0xf1, 0x87, 0xf6, 0xfa, 0x4f, 0x00, 0x00, 0x00,
+	0xff, 0xff, 0x80, 0xb5, 0xba, 0xd5, 0xe4, 0x04, 0x00, 0x00,
 }

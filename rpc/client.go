@@ -574,3 +574,112 @@ func (c *channelClient) CreateRawRelaySaveBTCHeadTx(parm *RelaySaveBTCHeadTx) ([
 	data := types.Encode(tx)
 	return data, nil
 }
+
+func (c *channelClient) BlackwhiteCreateTx(parm *types.BlackwhiteCreate) ([]byte, error) {
+	if parm == nil {
+		return nil, types.ErrInvalidParam
+	}
+
+	head := &types.BlackwhiteCreate{
+		MaxAmount:   parm.MaxAmount,
+		PlayerCount: parm.PlayerCount,
+		Timeout:     parm.Timeout,
+		GameName:    parm.GameName,
+	}
+
+	val := &types.BlackwhiteAction{
+		Ty:    types.BlackwhiteActionCreate,
+		Value: &types.BlackwhiteAction_Create{head},
+	}
+	tx := &types.Transaction{
+		Execer:  types.ExecerBlackwhite,
+		Payload: types.Encode(val),
+		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
+		To:      address.ExecAddress(string(types.ExecerBlackwhite)),
+	}
+
+	tx.SetRealFee(types.MinFee)
+
+	data := types.Encode(tx)
+	return data, nil
+}
+
+func (c *channelClient) BlackwhiteCancelTx(parm *types.BlackwhiteCancel) ([]byte, error) {
+	if parm == nil {
+		return nil, types.ErrInvalidParam
+	}
+
+	head := &types.BlackwhiteCancel{
+		GameID: parm.GameID,
+	}
+
+	val := &types.BlackwhiteAction{
+		Ty:    types.BlackwhiteActionCancel,
+		Value: &types.BlackwhiteAction_Cancel{head},
+	}
+	tx := &types.Transaction{
+		Execer:  types.ExecerBlackwhite,
+		Payload: types.Encode(val),
+		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
+		To:      address.ExecAddress(string(types.ExecerBlackwhite)),
+	}
+
+	tx.SetRealFee(types.MinFee)
+
+	data := types.Encode(tx)
+	return data, nil
+}
+
+func (c *channelClient) BlackwhitePlayTx(parm *types.BlackwhitePlay) ([]byte, error) {
+	if parm == nil {
+		return nil, types.ErrInvalidParam
+	}
+
+	head := &types.BlackwhitePlay{
+		GameID:  parm.GameID,
+		Amount:  parm.Amount,
+		IsBlack: parm.IsBlack,
+	}
+
+	val := &types.BlackwhiteAction{
+		Ty:    types.BlackwhiteActionPlay,
+		Value: &types.BlackwhiteAction_Play{head},
+	}
+	tx := &types.Transaction{
+		Execer:  types.ExecerBlackwhite,
+		Payload: types.Encode(val),
+		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
+		To:      address.ExecAddress(string(types.ExecerBlackwhite)),
+	}
+
+	tx.SetRealFee(types.MinFee)
+
+	data := types.Encode(tx)
+	return data, nil
+}
+
+func (c *channelClient) BlackwhiteTimeoutDoneTx(parm *types.BlackwhiteTimeoutDone) ([]byte, error) {
+	if parm == nil {
+		return nil, types.ErrInvalidParam
+	}
+
+	head := &types.BlackwhiteTimeoutDone{
+		GameID: parm.GameID,
+	}
+
+	val := &types.BlackwhiteAction{
+		Ty:    types.BlackwhiteActionTimeoutDone,
+		Value: &types.BlackwhiteAction_TimeoutDone{head},
+	}
+	tx := &types.Transaction{
+		Execer:  types.ExecerBlackwhite,
+		Payload: types.Encode(val),
+		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
+		To:      address.ExecAddress(string(types.ExecerBlackwhite)),
+	}
+
+	tx.SetRealFee(types.MinFee)
+
+	data := types.Encode(tx)
+	return data, nil
+}

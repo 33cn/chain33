@@ -2,61 +2,69 @@ syntax = "proto3";
 
 package types;
 
-enum BlackwhiteStatus {
-    Ready    = 0;
-    Cancel   = 1;
-    Puting   = 2;
-    Puted    = 3;
-    Timeout  = 4;
-    Done     = 5;
+message AddressResult {
+    string addr = 1;
+    int64  amount = 2;
+    bool   isWin = 3;
+    repeated bool isBlack = 4;
 }
 
 // order
-message BlackwhiteOrder {
+message BlackwhiteRound {
     // txhash
     string gameID = 1;
     int32 status = 2;
     int64 maxAmount =3;
-    int64 playerCount = 4;
-    int64 curPlayerCount = 5;
+    int32 playerCount = 4;
+    int32 curPlayerCount = 5;
     string createAddr = 6;
-    // 仲裁地址
-    string judgeAddr = 7;
-    int64 timeout = 8;
-    int64 height = 9;
-    string gameName = 10;
+    int64 timeout = 7;
+    string gameName = 8;
+    repeated AddressResult addrResult = 9;
+    repeated string winner = 10;
 }
 
 // actions
 message BlackwhiteAction {
     oneof value {
         BlackwhiteCreate create = 1;
-        BlackwhiteCancel Cancel = 2;
-        BlackwhitePut put = 3;
-        BlackwhiteDone done = 4;
+        BlackwhiteCancel cancel = 2;
+        BlackwhitePlay play = 3;
+        BlackwhiteTimeoutDone timeoutDone = 4;
     }
     int32 ty = 5;
 }
 
 message BlackwhiteCreate {
     int64 maxAmount = 1;
-    int64 playerNum = 2;
-    bool timeout = 3;
-    int64 height = 4;
-    string gameName = 5;
+    int32 playerCount = 2;
+    int64 timeout = 3;
+    string gameName = 4;
 }
 
 message BlackwhiteCancel {
     string gameID = 1;
 }
 
-message BlackwhitePut {
-    int64 amount = 1;
-    int64 height = 2;
+message BlackwhitePlay {
+    string gameID = 1;
+    int64 amount = 2;
     repeated bool isBlack = 3;
 }
 
-message BlackwhiteDone {
+message BlackwhiteTimeoutDone {
     string gameID = 1;
-    bool   isTimeout = 2;
+}
+
+// logs
+message ReceiptBlackwhite {
+    BlackwhiteRound round = 1;
+}
+
+message ReqBlackwhiteRoundInfo {
+    string gameID = 1;
+}
+
+message ReplyBlackwhiteRoundInfo {
+    BlackwhiteRound round = 1;
 }

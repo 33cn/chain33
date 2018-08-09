@@ -889,4 +889,5 @@ function syn_block_timeout() {
     echo "wait block $count s"
 }
 
-optDockerfun
+#optDockerfun
+init
