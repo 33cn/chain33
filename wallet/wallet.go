@@ -120,6 +120,7 @@ func New(cfg *types.Wallet) *Wallet {
 func (wallet *Wallet) initBizPolicy() {
 	wallet.policyContainer = make(map[string]bizpolicy.WalletBizPolicy)
 	wallet.registerBizPolicy(types.PrivacyX, privacybizpolicy.New())
+
 	for _, policy := range wallet.policyContainer {
 		policy.Init(wallet)
 	}

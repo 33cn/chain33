@@ -1,13 +1,17 @@
 package walletoperate
 
 import (
-	"sync"
-
 	"math/rand"
+	"sync"
 
 	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/common/db"
+	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
+)
+
+var (
+	FuncMap = queue.FuncMap{}
 )
 
 type WalletOperate interface {
@@ -30,4 +34,5 @@ type WalletOperate interface {
 
 	CheckWalletStatus() (bool, error)
 	Nonce() int64
+	RegisterMsgFunc(msgid int, fn queue.FN_MsgCallback)
 }

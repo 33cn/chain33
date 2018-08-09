@@ -509,7 +509,7 @@ func Test_CreateTransaction(t *testing.T) {
 			req: &types.ReqCreateTransaction{
 				Tokenname:  types.BTY,
 				Type:       1,
-				Amount:     100000 * types.Coin,
+				Amount:     100 * types.Coin,
 				From:       testAddrs[0],
 				Pubkeypair: testPubkeyPairs[0],
 			},
@@ -518,7 +518,7 @@ func Test_CreateTransaction(t *testing.T) {
 			req: &types.ReqCreateTransaction{
 				Tokenname:  types.BTY,
 				Type:       2,
-				Amount:     100000 * types.Coin,
+				Amount:     10 * types.Coin,
 				From:       testAddrs[0],
 				Pubkeypair: testPubkeyPairs[0],
 			},

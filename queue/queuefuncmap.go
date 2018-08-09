@@ -2,18 +2,18 @@ package queue
 
 import "errors"
 
-type msgcallback func(*Message) (string, int64, interface{}, error)
+type FN_MsgCallback func(*Message) (string, int64, interface{}, error)
 
 // QueueFuncMap 处理queue模块消息队列灰掉函数的映射管理器
 type FuncMap struct {
-	funcmap map[int]msgcallback
+	funcmap map[int]FN_MsgCallback
 }
 
 func (qfm *FuncMap) Init() {
-	qfm.funcmap = make(map[int]msgcallback)
+	qfm.funcmap = make(map[int]FN_MsgCallback)
 }
 
-func (qfm *FuncMap) Register(msgid int, fn msgcallback) error {
+func (qfm *FuncMap) Register(msgid int, fn FN_MsgCallback) error {
 	if _, ok := qfm.funcmap[msgid]; ok {
 		return errors.New("ErrMessageIDExisted")
 	}
