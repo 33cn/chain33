@@ -1,6 +1,9 @@
 package commands
 
-import jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
+import (
+	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
+	"gitlab.33.cn/chain33/chain33/types"
+)
 
 type AccountsResult struct {
 	Wallets []*WalletResult `json:"wallets"`
@@ -278,4 +281,80 @@ type ShowPriAddrResult struct {
 
 type ShowEnablePrivacy struct {
 	Results []*ShowPriAddrResult `json:"results"`
+}
+
+// decodetx
+type CoinsTransferCLI struct {
+	Cointoken string  `json:"cointoken,omitempty"`
+	Amount    float64 `json:"amount,omitempty"`
+	Note      string  `json:"note,omitempty"`
+	To        string  `json:"to,omitempty"`
+}
+
+type CoinsWithdrawCLI struct {
+	Cointoken string  `json:"cointoken,omitempty"`
+	Amount    float64 `json:"amount,omitempty"`
+	Note      string  `json:"note,omitempty"`
+	ExecName  string  `json:"execName,omitempty"`
+	To        string  `json:"to,omitempty"`
+}
+
+type CoinsGenesisCLI struct {
+	Amount        float64 `json:"amount,omitempty"`
+	ReturnAddress string  `json:"returnAddress,omitempty"`
+}
+
+type CoinsTransferToExecCLI struct {
+	Cointoken string  `json:"cointoken,omitempty"`
+	Amount    float64 `json:"amount,omitempty"`
+	Note      string  `json:"note,omitempty"`
+	ExecName  string  `json:"execName,omitempty"`
+	To        string  `json:"to,omitempty"`
+}
+
+type HashlockLockCLI struct {
+	Amount        float64 `json:"amount,omitempty"`
+	Time          int64   `json:"time,omitempty"`
+	Hash          []byte  `json:"hash,omitempty"`
+	ToAddress     string  `json:"toAddress,omitempty"`
+	ReturnAddress string  `json:"returnAddress,omitempty"`
+}
+
+type TicketMinerCLI struct {
+	Bits     uint32  `json:"bits,omitempty"`
+	Reward   float64 `json:"reward,omitempty"`
+	TicketId string  `json:"ticketId,omitempty"`
+	Modify   []byte  `json:"modify,omitempty"`
+}
+
+type TokenPreCreateCLI struct {
+	Name         string  `json:"name,omitempty"`
+	Symbol       string  `json:"symbol,omitempty"`
+	Introduction string  `json:"introduction,omitempty"`
+	Total        int64   `json:"total,omitempty"`
+	Price        float64 `json:"price,omitempty"`
+	Owner        string  `json:"owner,omitempty"`
+}
+
+type Public2PrivacyCLI struct {
+	Tokenname string               `json:"tokenname,omitempty"`
+	Amount    float64              `json:"amount,omitempty"`
+	Note      string               `json:"note,omitempty"`
+	Output    *types.PrivacyOutput `json:"output,omitempty"`
+}
+
+type Privacy2PrivacyCLI struct {
+	Tokenname string               `json:"tokenname,omitempty"`
+	Amount    float64              `json:"amount,omitempty"`
+	Note      string               `json:"note,omitempty"`
+	Input     *types.PrivacyInput  `json:"input,omitempty"`
+	Output    *types.PrivacyOutput `json:"output,omitempty"`
+}
+
+type Privacy2PublicCLI struct {
+	Tokenname string               `json:"tokenname,omitempty"`
+	Amount    float64              `json:"amount,omitempty"`
+	Note      string               `json:"note,omitempty"`
+	Input     *types.PrivacyInput  `json:"input,omitempty"`
+	Output    *types.PrivacyOutput `json:"output,omitempty"`
 }
