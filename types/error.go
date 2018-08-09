@@ -248,6 +248,12 @@ var (
 	ErrRelayBtcHeadBitsErr     = errors.New("ErrRelayBtcHeadBitsErr")
 	ErrRelayBtcHeadNewBitsErr  = errors.New("ErrRelayBtcHeadNewBitsErr")
 
+	//game err
+	ErrGameCreateAmount = errors.New("ErrGameOpenExceeding the maximum limit")
+	ErrGameCreateAddr   = errors.New("ErrGameCreateAddr")
+	ErrGameCloseAddr    = errors.New("The game time has not yet expired,You don't have permission to call yet.")
+	ErrGameTimeOut      = errors.New("The game has expired.,You don't have permission to call.")
+
 	//authority
 	ErrValidateCertFailed  = errors.New("ErrValidateCertFailed")
 	ErrGetHistoryCertData  = errors.New("ErrGetHistoryCertData")

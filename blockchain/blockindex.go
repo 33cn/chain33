@@ -48,6 +48,21 @@ func newBlockNode(broadcast bool, block *types.Block, pid string, sequence int64
 	initBlockNode(&node, block, broadcast, pid, sequence)
 	return &node
 }
+
+//通过区块头构造blocknode节点
+func newBlockNodeByHeader(broadcast bool, header *types.Header, pid string, sequence int64) *blockNode {
+	node := &blockNode{
+		hash:       header.Hash,
+		Difficulty: difficulty.CalcWork(header.Difficulty),
+		height:     header.Height,
+		statehash:  header.GetStateHash(),
+		broadcast:  broadcast,
+		pid:        pid,
+		sequence:   sequence,
+	}
+	return node
+}
+
 func newPreGenBlockNode() *blockNode {
 	node := &blockNode{
 		hash:       common.Hash{}.Bytes(),

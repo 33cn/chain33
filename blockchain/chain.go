@@ -54,8 +54,10 @@ type BlockChain struct {
 	synBlockHeight int64
 
 	//记录peer的最新block高度,用于节点追赶active链
-	peerList            PeerInfoList
-	recvwg              *sync.WaitGroup
+	peerList PeerInfoList
+	recvwg   *sync.WaitGroup
+	tickerwg *sync.WaitGroup
+
 	synblock            chan struct{}
 	quit                chan struct{}
 	isclosed            int32
@@ -107,8 +109,10 @@ func New(cfg *types.BlockChain) *BlockChain {
 		peerList:           nil,
 		cfg:                cfg,
 		recvwg:             &sync.WaitGroup{},
-		task:               newTask(160 * time.Second),
-		forktask:           newTask(300 * time.Second),
+		tickerwg:           &sync.WaitGroup{},
+
+		task:     newTask(160 * time.Second),
+		forktask: newTask(300 * time.Second),
 
 		quit:                make(chan struct{}),
 		synblock:            make(chan struct{}, 1),
@@ -152,7 +156,12 @@ func (chain *BlockChain) Close() {
 	close(chain.quit)
 
 	//wait for recvwg quit:
+	chainlog.Info("blockchain wait for recvwg quit")
 	chain.recvwg.Wait()
+
+	//wait for tickerwg quit:
+	chainlog.Info("blockchain wait for tickerwg quit")
+	chain.tickerwg.Wait()
 
 	//退出接受数据, 在最后一个block写磁盘时addtx还需要接受数据
 	chain.client.Close()
@@ -172,11 +181,20 @@ func (chain *BlockChain) SetQueueClient(client queue.Client) {
 	stateHash := chain.getStateHash()
 	chain.query = NewQuery(blockStoreDB, chain.client, stateHash)
 
-	//获取lastblock从数据库,创建bestviewtip节点
-	chain.InitIndexAndBestView()
-
 	//startTime
 	chain.startTime = types.Now()
+
+	//recv 消息的处理，共识模块需要获取lastblock从数据库中
+	go chain.ProcRecvMsg()
+
+	//初始化blockchian模块
+	go chain.InitBlockChain()
+}
+func (chain *BlockChain) InitBlockChain() {
+	beg := types.Now()
+	//获取数据库中最新的10240个区块加载到index和bestview链中,耗时需要几分钟，需要异步处理
+	chain.InitIndexAndBestView()
+	chainlog.Info("InitIndexAndBestView", "cost", types.Since(beg))
 
 	//获取数据库中最新的区块高度，以及blockchain的数据库版本号
 	curheight := chain.GetBlockHeight()
@@ -184,8 +202,7 @@ func (chain *BlockChain) SetQueueClient(client queue.Client) {
 	if curdbver == 0 && curheight == -1 {
 		chain.blockStore.SetDbVersion(1)
 	}
-	//recv 消息的处理
-	go chain.ProcRecvMsg()
+
 	if !chain.cfg.IsParaChain {
 		// 定时检测/同步block
 		go chain.SynRoutine()
@@ -846,11 +863,12 @@ func (chain *BlockChain) InitIndexAndBestView() {
 			height = 0
 		}
 		for ; height <= curheight; height++ {
-			block, _ := chain.blockStore.LoadBlockByHeight(height)
-			if block == nil {
+			header, _ := chain.blockStore.GetBlockHeaderByHeight(height)
+			if header == nil {
 				return
 			}
-			newNode := newBlockNode(false, block.Block, "self", -1)
+
+			newNode := newBlockNodeByHeader(false, header, "self", -1)
 			newNode.parent = prevNode
 			prevNode = newNode
 
