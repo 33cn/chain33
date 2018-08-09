@@ -5,38 +5,40 @@ var slash = []byte("-")
 
 const Debug = false
 const (
-	CoinsX    = "coins"
-	TicketX   = "ticket"
-	HashlockX = "hashlock"
-	RetrieveX = "retrieve"
-	NoneX     = "none"
-	TokenX    = "token"
-	TradeX    = "trade"
-	ManageX   = "manage"
-	PrivacyX  = "privacy"
-	EvmX      = "evm"
-	RelayX    = "relay"
-	Normx     = "norm"
-	UserEvmX  = "user.evm."
-	CertX     = "cert"
+	CoinsX      = "coins"
+	TicketX     = "ticket"
+	HashlockX   = "hashlock"
+	RetrieveX   = "retrieve"
+	NoneX       = "none"
+	TokenX      = "token"
+	TradeX      = "trade"
+	ManageX     = "manage"
+	PrivacyX    = "privacy"
+	EvmX        = "evm"
+	RelayX      = "relay"
+	Normx       = "norm"
+	UserEvmX    = "user.evm."
+	CertX       = "cert"
+	BlackwhiteX = "blackwhite"
 )
 
 var (
-	ExecerCoins    = []byte(CoinsX)
-	ExecerTicket   = []byte(TicketX)
-	ExecerManage   = []byte(ManageX)
-	ExecerToken    = []byte(TokenX)
-	ExecerEvm      = []byte(EvmX)
-	ExecerPrivacy  = []byte(PrivacyX)
-	ExecerRelay    = []byte(RelayX)
-	ExecerHashlock = []byte(HashlockX)
-	ExecerRetrieve = []byte(RetrieveX)
-	ExecerNone     = []byte(NoneX)
-	ExecerTrade    = []byte(TradeX)
-	ExecerNorm     = []byte(Normx)
-	ExecerConfig   = []byte("config")
-	ExecerCert     = []byte(CertX)
-	UserEvm        = []byte(UserEvmX)
+	ExecerCoins      = []byte(CoinsX)
+	ExecerTicket     = []byte(TicketX)
+	ExecerManage     = []byte(ManageX)
+	ExecerToken      = []byte(TokenX)
+	ExecerEvm        = []byte(EvmX)
+	ExecerPrivacy    = []byte(PrivacyX)
+	ExecerRelay      = []byte(RelayX)
+	ExecerHashlock   = []byte(HashlockX)
+	ExecerRetrieve   = []byte(RetrieveX)
+	ExecerNone       = []byte(NoneX)
+	ExecerTrade      = []byte(TradeX)
+	ExecerNorm       = []byte(Normx)
+	ExecerConfig     = []byte("config")
+	ExecerCert       = []byte(CertX)
+	UserEvm          = []byte(UserEvmX)
+	ExecerBlackwhite = []byte(BlackwhiteX)
 )
 
 const (
@@ -196,6 +198,13 @@ const (
 	TyLogCallContract = 603
 	// 合约状态数据变更项日志
 	TyLogEVMStateChangeItem = 604
+
+	// log for blackwhite game
+	TyLogBlackwhiteCreate      = 700
+	TyLogBlackwhiteCancel      = 701
+	TyLogBlackwhitePlay        = 702
+	TyLogBlackwhiteTimeoutDone = 703
+	TyLogBlackwhiteDone        = 704
 )
 
 //exec type
@@ -363,6 +372,14 @@ const (
 	RelayActionVerifyTx
 	RelayActionVerifyCmdTx
 	RelayActionRcvBTCHeaders
+)
+
+// blackwhite action type
+const (
+	BlackwhiteActionCreate = iota
+	BlackwhiteActionCancel
+	BlackwhiteActionPlay
+	BlackwhiteActionTimeoutDone
 )
 
 // RescanUtxoFlag

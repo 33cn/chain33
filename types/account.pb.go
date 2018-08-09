@@ -35,12 +35,16 @@ It has these top-level messages:
 	ReplyAccountTokenAssets
 	ExecAccount
 	AllExecBalance
-	BlackwhiteOrder
+	AddressResult
+	BlackwhiteRound
 	BlackwhiteAction
 	BlackwhiteCreate
 	BlackwhiteCancel
-	BlackwhitePut
-	BlackwhiteDone
+	BlackwhitePlay
+	BlackwhiteTimeoutDone
+	ReceiptBlackwhite
+	ReqBlackwhiteRoundInfo
+	ReplyBlackwhiteRoundInfo
 	Header
 	Block
 	Blocks

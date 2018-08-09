@@ -1719,6 +1719,46 @@ func (c *Chain33) CreateRawRelaySaveBTCHeadTx(in *RelaySaveBTCHeadTx, result *in
 	return nil
 }
 
+func (c *Chain33) BlackwhiteCreateTx(in *types.BlackwhiteCreate, result *interface{}) error {
+	reply, err := c.cli.BlackwhiteCreateTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Chain33) BlackwhiteCancelTx(in *types.BlackwhiteCancel, result *interface{}) error {
+	reply, err := c.cli.BlackwhiteCancelTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Chain33) BlackwhitePlayTx(in *types.BlackwhitePlay, result *interface{}) error {
+	reply, err := c.cli.BlackwhitePlayTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Chain33) BlackwhiteTimeoutDoneTx(in *types.BlackwhiteTimeoutDone, result *interface{}) error {
+	reply, err := c.cli.BlackwhiteTimeoutDoneTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
 func (c *Chain33) convertWalletTxDetailToJson(in *types.WalletTxDetails, out *WalletTxDetails) error {
 	if in == nil || out == nil {
 		return types.ErrInvalidParams
