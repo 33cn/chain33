@@ -1,12 +1,9 @@
 package privacybizpolicy_test
 
 import (
-	"crypto/aes"
-	"crypto/cipher"
 	"fmt"
 	"testing"
 
-	"github.com/stretchr/testify/require"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/blockchain"
 	"gitlab.33.cn/chain33/chain33/common"
@@ -20,6 +17,8 @@ import (
 	"gitlab.33.cn/chain33/chain33/wallet/bizpolicy"
 	"gitlab.33.cn/chain33/chain33/wallet/privacybizpolicy"
 	"gitlab.33.cn/wallet/bipwallet"
+
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -51,27 +50,6 @@ func init() {
 	queue.DisableLog()
 	//setLogLevel("err")
 	setLogLevel("crit")
-}
-
-//使用钱包的password对私钥进行aes cbc加密,返回加密后的privkey
-func CBCEncrypterPrivkey(password []byte, privkey []byte) []byte {
-	key := make([]byte, 32)
-	Encrypted := make([]byte, len(privkey))
-	if len(password) > 32 {
-		key = password[0:32]
-	} else {
-		copy(key, password)
-	}
-
-	block, _ := aes.NewCipher(key)
-	iv := key[:block.BlockSize()]
-	//walletlog.Info("CBCEncrypterPrivkey", "password", string(key), "Privkey", common.ToHex(privkey))
-
-	encrypter := cipher.NewCBCEncrypter(block, iv)
-	encrypter.CryptBlocks(Encrypted, privkey)
-
-	//walletlog.Info("CBCEncrypterPrivkey", "Encrypted", common.ToHex(Encrypted))
-	return Encrypted
 }
 
 type testDataMock struct {
@@ -173,7 +151,7 @@ func (mock *testDataMock) importPrivateKey(PrivKey *types.ReqWalletImportPrivKey
 	}
 
 	//对私钥加密
-	Encryptered := CBCEncrypterPrivkey([]byte(wallet.Password), privkeybyte)
+	Encryptered := privacybizpolicy.CBCEncrypterPrivkey([]byte(wallet.Password), privkeybyte)
 	Encrypteredstr := common.ToHex(Encryptered)
 	//校验PrivKey对应的addr是否已经存在钱包中
 	Account, err = wallet.GetAccountByAddr(addr)

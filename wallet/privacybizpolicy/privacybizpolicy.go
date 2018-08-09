@@ -61,16 +61,16 @@ func (biz *walletPrivacyBiz) Init(walletOperate walletoperate.WalletOperate) {
 	go biz.checkWalletStoreData()
 }
 
-func (biz *walletPrivacyBiz) OnCreateNewAccount(addr string) {
+func (biz *walletPrivacyBiz) OnCreateNewAccount(acc *types.Account) {
 	wg := biz.walletOperate.GetWaitGroup()
 	wg.Add(1)
-	go biz.rescanReqTxDetailByAddr(addr, wg)
+	go biz.rescanReqTxDetailByAddr(acc.Addr, wg)
 }
 
-func (biz *walletPrivacyBiz) OnImportPrivateKey(addr string) {
+func (biz *walletPrivacyBiz) OnImportPrivateKey(acc *types.Account) {
 	wg := biz.walletOperate.GetWaitGroup()
 	wg.Add(1)
-	go biz.rescanReqTxDetailByAddr(addr, wg)
+	go biz.rescanReqTxDetailByAddr(acc.Addr, wg)
 }
 
 func (biz *walletPrivacyBiz) OnAddBlockFinish() {

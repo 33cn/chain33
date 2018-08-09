@@ -17,12 +17,10 @@ func CBCEncrypterPrivkey(password []byte, privkey []byte) []byte {
 
 	block, _ := aes.NewCipher(key)
 	iv := key[:block.BlockSize()]
-	//walletlog.Info("CBCEncrypterPrivkey", "password", string(key), "Privkey", common.ToHex(privkey))
 
 	encrypter := cipher.NewCBCEncrypter(block, iv)
 	encrypter.CryptBlocks(Encrypted, privkey)
 
-	//walletlog.Info("CBCEncrypterPrivkey", "Encrypted", common.ToHex(Encrypted))
 	return Encrypted
 }
 
