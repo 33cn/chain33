@@ -440,3 +440,45 @@ func Test_SendPrivacy2PrivacyTransaction(t *testing.T) {
 		}
 	}
 }
+
+func Test_SendPrivacy2PublicTransaction(t *testing.T) {
+	mock := &testDataMock{
+		mockMempool:    true,
+		mockBlockChain: true,
+	}
+	mock.init()
+	mock.enablePrivacy()
+	// 创建辅助对象
+	privacyMock := privacybizpolicy.PrivacyMock{}
+	privacyMock.Init(mock.wallet, mock.password)
+	// 创建几条可用UTXO
+	privacyMock.CreateUTXOs(testAddrs[0], testPubkeyPairs[0], 17*types.Coin, 10000, 5)
+	mock.setBlockChainHeight(10020)
+
+	testCases := []struct {
+		req       *types.ReqPri2Pub
+		needReply *types.Reply
+		needError error
+	}{
+		{
+			needError: types.ErrInputPara,
+		},
+		{
+			req: &types.ReqPri2Pub{
+				Tokenname: types.BTY,
+				Amount:    10 * types.Coin,
+				Sender:    testAddrs[0],
+				Receiver:  testAddrs[0],
+			},
+			needReply: &types.Reply{IsOk: true},
+		},
+	}
+
+	for index, testCase := range testCases {
+		reply, getErr := mock.wallet.GetAPI().Privacy2Public(testCase.req)
+		require.Equalf(t, getErr, testCase.needError, "Privacy2Public test case index %d", index)
+		if testCase.needReply != nil && reply != nil {
+			require.Equal(t, reply.IsOk, testCase.needReply.IsOk)
+		}
+	}
+}
