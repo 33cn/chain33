@@ -222,44 +222,6 @@ func decodePrivOutput(output *types.PrivacyOutput) *PrivacyOutput {
 	return outputResult
 }
 
-//func decodePrivacyPayload(pub2priv interface{}) {
-//	if amountVal, ok := getStrMapValue(pub2priv, "amount"); ok {
-//		amount := amountVal.(float64) / float64(types.Coin)
-//		getStrMapPair(pub2priv)["amount"] = strconv.FormatFloat(amount, 'f', 4, 64)
-//	}
-
-//	if inputVal, ok := getStrMapValue(pub2priv, "input"); ok {
-//		if keyinputVals, ok := getStrMapValue(inputVal, "keyinput"); ok {
-//			for _, value := range keyinputVals.([]interface{}) {
-//				if amountVal, ok := getStrMapValue(value, "amount"); ok {
-//					amount := amountVal.(float64) / float64(types.Coin)
-//					getStrMapPair(value)["amount"] = strconv.FormatFloat(amount, 'f', 4, 64)
-//				}
-//			}
-//		}
-//	}
-
-//	if outputVal, ok := getStrMapValue(pub2priv, "output"); ok {
-//		if keyoutputVals, ok := getStrMapValue(outputVal, "keyoutput"); ok {
-//			for _, value := range keyoutputVals.([]interface{}) {
-//				if amountVal, ok := getStrMapValue(value, "amount"); ok {
-//					amount := amountVal.(float64) / float64(types.Coin)
-//					getStrMapPair(value)["amount"] = strconv.FormatFloat(amount, 'f', 4, 64)
-//				}
-//			}
-//		}
-//	}
-//}
-
-//func getStrMapPair(m interface{}) map[string]interface{} {
-//	return m.(map[string]interface{})
-//}
-
-//func getStrMapValue(m interface{}, key string) (interface{}, bool) {
-//	ret, ok := m.(map[string]interface{})[key]
-//	return ret, ok
-//}
-
 func decodeAccount(acc *types.Account, precision int64) *AccountResult {
 	balanceResult := strconv.FormatFloat(float64(acc.GetBalance())/float64(precision), 'f', 4, 64)
 	frozenResult := strconv.FormatFloat(float64(acc.GetFrozen())/float64(precision), 'f', 4, 64)
