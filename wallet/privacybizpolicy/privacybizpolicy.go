@@ -25,25 +25,23 @@ func New() bizpolicy.WalletBizPolicy {
 }
 
 type walletPrivacyBiz struct {
-	funcmap       queue.FuncMap
 	store         *privacyStore
 	walletOperate walletoperate.WalletOperate
 	rescanwg      *sync.WaitGroup
 }
 
-func (biz *walletPrivacyBiz) initFuncMap() {
-	biz.funcmap.Init()
-	biz.funcmap.Register(types.EventEnablePrivacy, biz.onEnablePrivacy)
-	biz.funcmap.Register(types.EventShowPrivacyPK, biz.onShowPrivacyPK)
-	biz.funcmap.Register(types.EventCreateUTXOs, biz.onCreateUTXOs)
-	biz.funcmap.Register(types.EventPublic2privacy, biz.onPublic2Privacy)
-	biz.funcmap.Register(types.EventPrivacy2privacy, biz.onPrivacy2Privacy)
-	biz.funcmap.Register(types.EventPrivacy2public, biz.onPrivacy2Public)
-	biz.funcmap.Register(types.EventCreateTransaction, biz.onCreateTransaction)
-	biz.funcmap.Register(types.EventPrivacyAccountInfo, biz.onPrivacyAccountInfo)
-	biz.funcmap.Register(types.EventShowPrivacyAccountSpend, biz.onShowPrivacyAccountSpend)
-	biz.funcmap.Register(types.EventPrivacyTransactionList, biz.onPrivacyTransactionList)
-	biz.funcmap.Register(types.EventRescanUtxos, biz.onRescanUtxos)
+func (biz *walletPrivacyBiz) initFuncMap(walletOperate walletoperate.WalletOperate) {
+	walletOperate.RegisterMsgFunc(types.EventEnablePrivacy, biz.onEnablePrivacy)
+	walletOperate.RegisterMsgFunc(types.EventShowPrivacyPK, biz.onShowPrivacyPK)
+	walletOperate.RegisterMsgFunc(types.EventCreateUTXOs, biz.onCreateUTXOs)
+	walletOperate.RegisterMsgFunc(types.EventPublic2privacy, biz.onPublic2Privacy)
+	walletOperate.RegisterMsgFunc(types.EventPrivacy2privacy, biz.onPrivacy2Privacy)
+	walletOperate.RegisterMsgFunc(types.EventPrivacy2public, biz.onPrivacy2Public)
+	walletOperate.RegisterMsgFunc(types.EventCreateTransaction, biz.onCreateTransaction)
+	walletOperate.RegisterMsgFunc(types.EventPrivacyAccountInfo, biz.onPrivacyAccountInfo)
+	walletOperate.RegisterMsgFunc(types.EventShowPrivacyAccountSpend, biz.onShowPrivacyAccountSpend)
+	walletOperate.RegisterMsgFunc(types.EventPrivacyTransactionList, biz.onPrivacyTransactionList)
+	walletOperate.RegisterMsgFunc(types.EventRescanUtxos, biz.onRescanUtxos)
 }
 
 func (biz *walletPrivacyBiz) Init(walletOperate walletoperate.WalletOperate) {
@@ -51,7 +49,7 @@ func (biz *walletPrivacyBiz) Init(walletOperate walletoperate.WalletOperate) {
 	biz.store = &privacyStore{db: walletOperate.GetDBStore()}
 	biz.rescanwg = &sync.WaitGroup{}
 
-	biz.initFuncMap()
+	biz.initFuncMap(walletOperate)
 
 	version := biz.store.getVersion()
 	if version < PRIVACYDBVERSION {
@@ -146,22 +144,6 @@ func (biz *walletPrivacyBiz) OnAddBlockTx(block *types.BlockDetail, tx *types.Tr
 
 func (biz *walletPrivacyBiz) OnDeleteBlockTx(block *types.BlockDetail, tx *types.Transaction, index int32, dbbatch db.Batch) {
 	biz.addDelPrivacyTxsFromBlock(tx, index, block, dbbatch, DelTx)
-}
-
-func (biz *walletPrivacyBiz) OnRecvQueueMsg(msg *queue.Message) (bool, error) {
-	if msg == nil {
-		return false, types.ErrInvalidParams
-	}
-	existed, topic, rettype, retdata, err := biz.funcmap.Process(msg)
-	if !existed {
-		return false, nil
-	}
-	if err == nil {
-		msg.Reply(biz.walletOperate.GetAPI().NewMessage(topic, rettype, retdata))
-	} else {
-		msg.Reply(biz.walletOperate.GetAPI().NewMessage(topic, rettype, err))
-	}
-	return true, err
 }
 
 func (biz *walletPrivacyBiz) onShowPrivacyAccountSpend(msg *queue.Message) (string, int64, interface{}, error) {
