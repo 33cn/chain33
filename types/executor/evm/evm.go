@@ -2,16 +2,19 @@ package evm
 
 import (
 	"encoding/json"
+	"math/rand"
 	"strings"
+	"time"
 
+	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
-	//log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var name string
 
-//var tlog = log.New("module", name)
+var elog = log.New("module", name)
 
 func Init() {
 	// init executor type
@@ -49,9 +52,21 @@ func (evm EvmType) Amount(tx *types.Transaction) (int64, error) {
 	return 0, nil
 }
 
-// TODO 暂时不修改实现， 先完成结构的重构
 func (evm EvmType) CreateTx(action string, message json.RawMessage) (*types.Transaction, error) {
+	elog.Debug("evm.CreateTx", "action", action)
 	var tx *types.Transaction
+	if action == "CreateCall" {
+		var param CreateCallTx
+		err := json.Unmarshal(message, &param)
+		if err != nil {
+			elog.Error("CreateTx", "Error", err)
+			return nil, types.ErrInputPara
+		}
+		return CreateRawEvmCreateCallTx(&param)
+	} else {
+		return nil, types.ErrNotSupport
+	}
+
 	return tx, nil
 }
 
@@ -165,4 +180,53 @@ func (t *EvmDebug) Input(message json.RawMessage) ([]byte, error) {
 
 func (t *EvmDebug) Output(reply interface{}) (interface{}, error) {
 	return reply, nil
+}
+
+//different with other exector, the name is defined by parm
+func CreateRawEvmCreateCallTx(parm *CreateCallTx) (*types.Transaction, error) {
+	if parm == nil {
+		elog.Error("CreateRawEvmCreateCallTx", "parm", parm)
+		return nil, types.ErrInvalidParam
+	}
+
+	bCode, err := common.FromHex(parm.Code)
+	if err != nil {
+		elog.Error("CreateRawEvmCreateCallTx", "parm.Code", parm.Code)
+		return nil, err
+	}
+
+	action := &types.EVMContractAction{
+		Amount:   parm.Amount,
+		Code:     bCode,
+		GasLimit: parm.GasLimit,
+		GasPrice: parm.GasPrice,
+		Note:     parm.Note,
+		Alias:    parm.Alias,
+	}
+	tx := &types.Transaction{}
+	if parm.IsCreate {
+		tx = &types.Transaction{
+			Execer:  []byte(types.ExecName(types.EvmX)),
+			Payload: types.Encode(action),
+			//Fee:     parm.Fee,
+			Nonce: rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
+			To:    address.ExecAddress(types.ExecName(types.EvmX)),
+		}
+	} else {
+		tx = &types.Transaction{
+			Execer:  []byte(types.ExecName(parm.Name)),
+			Payload: types.Encode(action),
+			//Fee:     parm.Fee,
+			Nonce: rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
+			To:    address.ExecAddress(types.ExecName(parm.Name)),
+		}
+	}
+
+	//according to cli/commands/evm.go/createEvmTx
+	tx.Fee, _ = tx.GetRealFee(types.MinFee)
+	if tx.Fee < parm.Fee {
+		tx.Fee += parm.Fee
+	}
+
+	return tx, nil
 }
