@@ -547,11 +547,11 @@ func (biz *walletPrivacyBiz) buildInput(privacykeyParirs *privacy.Privacy, build
 
 func (biz *walletPrivacyBiz) createTransaction(req *types.ReqCreateTransaction) (*types.Transaction, error) {
 	switch req.Type {
-	case 1:
+	case types.PrivacyTypePublic2Privacy:
 		return biz.createPublic2PrivacyTx(req)
-	case 2:
+	case types.PrivacyTypePrivacy2Privacy:
 		return biz.createPrivacy2PrivacyTx(req)
-	case 3:
+	case types.PrivacyTypePrivacy2Public:
 		return biz.createPrivacy2PublicTx(req)
 	}
 	return nil, types.ErrInvalidParams

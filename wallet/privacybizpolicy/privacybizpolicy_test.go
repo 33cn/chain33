@@ -482,3 +482,50 @@ func Test_SendPrivacy2PublicTransaction(t *testing.T) {
 		}
 	}
 }
+
+func Test_CreateTransaction(t *testing.T) {
+	mock := &testDataMock{
+		mockMempool:    true,
+		mockBlockChain: true,
+	}
+	mock.init()
+	mock.enablePrivacy()
+	// 创建辅助对象
+	privacyMock := privacybizpolicy.PrivacyMock{}
+	privacyMock.Init(mock.wallet, mock.password)
+	// 创建几条可用UTXO
+	privacyMock.CreateUTXOs(testAddrs[0], testPubkeyPairs[0], 17*types.Coin, 10000, 5)
+	mock.setBlockChainHeight(10020)
+
+	testCases := []struct {
+		req       *types.ReqCreateTransaction
+		needReply *types.Transaction
+		needError error
+	}{
+		{
+			needError: types.ErrInvalidParam,
+		},
+		{ // 公对私测试
+			req: &types.ReqCreateTransaction{
+				Tokenname:  types.BTY,
+				Type:       1,
+				Amount:     100000 * types.Coin,
+				From:       testAddrs[0],
+				Pubkeypair: testPubkeyPairs[0],
+			},
+		},
+		{ // 私对私测试
+			req: &types.ReqCreateTransaction{
+				Tokenname:  types.BTY,
+				Type:       2,
+				Amount:     100000 * types.Coin,
+				From:       testAddrs[0],
+				Pubkeypair: testPubkeyPairs[0],
+			},
+		},
+	}
+	for index, testCase := range testCases {
+		_, getErr := mock.wallet.GetAPI().CreateTrasaction(testCase.req)
+		require.Equalf(t, getErr, testCase.needError, "CreateTrasaction test case index %d", index)
+	}
+}

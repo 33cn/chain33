@@ -286,6 +286,10 @@ func (biz *walletPrivacyBiz) onCreateTransaction(msg *queue.Message) (string, in
 		bizlog.Error("walletPrivacyBiz", "Invalid data type.", ok)
 		return topic, retty, nil, types.ErrInvalidParam
 	}
+	if req == nil {
+		bizlog.Error("walletPrivacyBiz request param is nil")
+		return topic, retty, nil, types.ErrInvalidParam
+	}
 	ok, err := biz.walletOperate.CheckWalletStatus()
 	if !ok {
 		bizlog.Error("createTransaction", "CheckWalletStatus cause error.", err)
