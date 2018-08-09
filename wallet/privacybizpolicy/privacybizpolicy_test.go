@@ -271,7 +271,7 @@ func Test_EnablePrivacy(t *testing.T) {
 			req: &types.ReqEnablePrivacy{Addrs: []string{testAddrs[0]}},
 			needReply: &types.RepEnablePrivacy{
 				Results: []*types.PriAddrResult{
-					&types.PriAddrResult{IsOK: true, Addr: testAddrs[0]}},
+					{IsOK: true, Addr: testAddrs[0]}},
 			},
 		},
 	}
