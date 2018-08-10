@@ -100,7 +100,7 @@ var (
 	ErrOnceRoundRepeatPlay = errors.New("ErrOnceRoundRepeatPlay")
 	ErrGameOver            = errors.New("ErrGameOver")
 	ErrNoCancel            = errors.New("ErrNoCancel")
-	ErrTimeout             = errors.New("ErrTimeout")
+	ErrNoTimeoutDone       = errors.New("ErrNoTimeoutDone")
 
 	ErrStartBigThanEnd            = errors.New("ErrStartBigThanEnd")
 	ErrToAddrNotSameToExecAddr    = errors.New("ErrToAddrNotSameToExecAddr")
