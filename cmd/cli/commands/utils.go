@@ -2,6 +2,7 @@ package commands
 
 import (
 	"encoding/hex"
+	//	"encoding/json"
 	"fmt"
 	"math"
 	"math/rand"
@@ -43,7 +44,10 @@ func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
 
 	switch tx.Execer {
 	case types.CoinsX:
-		if pl, ok := tx.Payload.(*types.CoinsAction).Value.(*types.CoinsAction_Transfer); ok {
+		var action types.CoinsAction
+		bt, _ := common.FromHex(tx.RawPayload)
+		types.Decode(bt, &action)
+		if pl, ok := action.Value.(*types.CoinsAction_Transfer); ok {
 			amt := float64(pl.Transfer.Amount) / float64(types.Coin)
 			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
 			result.Payload = &CoinsTransferCLI{
@@ -52,7 +56,7 @@ func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
 				Note:      pl.Transfer.Note,
 				To:        pl.Transfer.To,
 			}
-		} else if pl, ok := tx.Payload.(*types.CoinsAction).Value.(*types.CoinsAction_Withdraw); ok {
+		} else if pl, ok := action.Value.(*types.CoinsAction_Withdraw); ok {
 			amt := float64(pl.Withdraw.Amount) / float64(types.Coin)
 			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
 			result.Payload = &CoinsWithdrawCLI{
@@ -62,14 +66,14 @@ func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
 				ExecName:  pl.Withdraw.ExecName,
 				To:        pl.Withdraw.To,
 			}
-		} else if pl, ok := tx.Payload.(*types.CoinsAction).Value.(*types.CoinsAction_Genesis); ok {
+		} else if pl, ok := action.Value.(*types.CoinsAction_Genesis); ok {
 			amt := float64(pl.Genesis.Amount) / float64(types.Coin)
 			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
 			result.Payload = &CoinsGenesisCLI{
 				Amount:        amtResult,
 				ReturnAddress: pl.Genesis.ReturnAddress,
 			}
-		} else if pl, ok := tx.Payload.(*types.CoinsAction).Value.(*types.CoinsAction_TransferToExec); ok {
+		} else if pl, ok := action.Value.(*types.CoinsAction_TransferToExec); ok {
 			amt := float64(pl.TransferToExec.Amount) / float64(types.Coin)
 			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
 			result.Payload = &CoinsTransferToExecCLI{
@@ -81,7 +85,10 @@ func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
 			}
 		}
 	case types.HashlockX:
-		if pl, ok := tx.Payload.(*types.HashlockAction).Value.(*types.HashlockAction_Hlock); ok {
+		var action types.HashlockAction
+		bt, _ := common.FromHex(tx.RawPayload)
+		types.Decode(bt, &action)
+		if pl, ok := action.Value.(*types.HashlockAction_Hlock); ok {
 			amt := float64(pl.Hlock.Amount) / float64(types.Coin)
 			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
 			result.Payload = &HashlockLockCLI{
@@ -93,7 +100,10 @@ func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
 			}
 		}
 	case types.TicketX:
-		if pl, ok := tx.Payload.(*types.TicketAction).Value.(*types.TicketAction_Miner); ok {
+		var action types.TicketAction
+		bt, _ := common.FromHex(tx.RawPayload)
+		types.Decode(bt, &action)
+		if pl, ok := action.Value.(*types.TicketAction_Miner); ok {
 			amt := float64(pl.Miner.Reward) / float64(types.Coin)
 			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
 			result.Payload = &TicketMinerCLI{
@@ -104,7 +114,10 @@ func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
 			}
 		}
 	case types.TokenX:
-		if pl, ok := tx.Payload.(*types.TokenAction).Value.(*types.TokenAction_Tokenprecreate); ok {
+		var action types.TokenAction
+		bt, _ := common.FromHex(tx.RawPayload)
+		types.Decode(bt, &action)
+		if pl, ok := action.Value.(*types.TokenAction_Tokenprecreate); ok {
 			amt := float64(pl.Tokenprecreate.Price) / float64(types.Coin)
 			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
 			result.Payload = &TokenPreCreateCLI{
@@ -115,7 +128,7 @@ func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
 				Price:        amtResult,
 				Owner:        pl.Tokenprecreate.Owner,
 			}
-		} else if pl, ok := tx.Payload.(*types.TokenAction).Value.(*types.TokenAction_Transfer); ok {
+		} else if pl, ok := action.Value.(*types.TokenAction_Transfer); ok {
 			amt := float64(pl.Transfer.Amount) / float64(types.Coin)
 			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
 			result.Payload = &CoinsTransferCLI{
@@ -124,7 +137,7 @@ func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
 				Note:      pl.Transfer.Note,
 				To:        pl.Transfer.To,
 			}
-		} else if pl, ok := tx.Payload.(*types.TokenAction).Value.(*types.TokenAction_Withdraw); ok {
+		} else if pl, ok := action.Value.(*types.TokenAction_Withdraw); ok {
 			amt := float64(pl.Withdraw.Amount) / float64(types.Coin)
 			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
 			result.Payload = &CoinsWithdrawCLI{
@@ -134,14 +147,14 @@ func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
 				ExecName:  pl.Withdraw.ExecName,
 				To:        pl.Withdraw.To,
 			}
-		} else if pl, ok := tx.Payload.(*types.TokenAction).Value.(*types.TokenAction_Genesis); ok {
+		} else if pl, ok := action.Value.(*types.TokenAction_Genesis); ok {
 			amt := float64(pl.Genesis.Amount) / float64(types.Coin)
 			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
 			result.Payload = &CoinsGenesisCLI{
 				Amount:        amtResult,
 				ReturnAddress: pl.Genesis.ReturnAddress,
 			}
-		} else if pl, ok := tx.Payload.(*types.TokenAction).Value.(*types.TokenAction_TransferToExec); ok {
+		} else if pl, ok := action.Value.(*types.TokenAction_TransferToExec); ok {
 			amt := float64(pl.TransferToExec.Amount) / float64(types.Coin)
 			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
 			result.Payload = &CoinsTransferToExecCLI{
@@ -153,7 +166,10 @@ func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
 			}
 		}
 	case types.PrivacyX:
-		if pl, ok := tx.Payload.(*types.PrivacyAction).Value.(*types.PrivacyAction_Public2Privacy); ok {
+		var action types.PrivacyAction
+		bt, _ := common.FromHex(tx.RawPayload)
+		types.Decode(bt, &action)
+		if pl, ok := action.Value.(*types.PrivacyAction_Public2Privacy); ok {
 			amt := float64(pl.Public2Privacy.Amount) / float64(types.Coin)
 			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
 			result.Payload = &Public2PrivacyCLI{
@@ -162,7 +178,7 @@ func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
 				Note:      pl.Public2Privacy.Note,
 				Output:    decodePrivOutput(pl.Public2Privacy.Output),
 			}
-		} else if pl, ok := tx.Payload.(*types.PrivacyAction).Value.(*types.PrivacyAction_Privacy2Privacy); ok {
+		} else if pl, ok := action.Value.(*types.PrivacyAction_Privacy2Privacy); ok {
 			amt := float64(pl.Privacy2Privacy.Amount) / float64(types.Coin)
 			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
 			result.Payload = &Privacy2PrivacyCLI{
@@ -172,7 +188,7 @@ func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
 				Input:     decodePrivInput(pl.Privacy2Privacy.Input),
 				Output:    decodePrivOutput(pl.Privacy2Privacy.Output),
 			}
-		} else if pl, ok := tx.Payload.(*types.PrivacyAction).Value.(*types.PrivacyAction_Privacy2Public); ok {
+		} else if pl, ok := action.Value.(*types.PrivacyAction_Privacy2Public); ok {
 			amt := float64(pl.Privacy2Public.Amount) / float64(types.Coin)
 			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
 			result.Payload = &Privacy2PublicCLI{
