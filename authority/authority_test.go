@@ -115,9 +115,30 @@ func TestChckSign(t *testing.T) {
 }
 
 /**
-TestCase02 带证书的交易并行验签
+TestCase10 带证书的多交易验签
 */
 func TestChckSigns(t *testing.T) {
+	err := initEnv()
+	if err != nil {
+		t.Errorf("init env failed, error:%s", err)
+		return
+	}
+	prev := types.MinFee
+	types.SetMinFee(0)
+	defer types.SetMinFee(prev)
+
+	for i, tx := range txs {
+		if !tx.CheckSign() {
+			t.Error(fmt.Sprintf("error check tx[%d]", i+1))
+			return
+		}
+	}
+}
+
+/**
+TestCase02 带证书的交易并行验签
+*/
+func TestChckSignsPara(t *testing.T) {
 	err := initEnv()
 	if err != nil {
 		t.Errorf("init env failed, error:%s", err)
