@@ -107,13 +107,6 @@ const (
 	SignNameAuthSM2        = "auth_sm2"
 )
 
-// 创建隐私交易的类型定义
-const (
-	PrivacyTypePublic2Privacy = iota + 1
-	PrivacyTypePrivacy2Privacy
-	PrivacyTypePrivacy2Public
-)
-
 var MapSignType2name = map[int]string{
 	SECP256K1:         SignNameSecp256k1,
 	ED25519:           SignNameED25519,
