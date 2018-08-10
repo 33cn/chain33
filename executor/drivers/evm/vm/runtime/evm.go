@@ -3,13 +3,15 @@ package runtime
 import (
 	"math/big"
 	"sync/atomic"
-	"time"
+
+	log "github.com/inconshreveable/log15"
 
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/gas"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/model"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/params"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/state"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 type (
@@ -25,7 +27,7 @@ type (
 )
 
 // 依据合约地址判断是否为预编译合约，如果不是，则全部通过解释器解释执行
-func run(evm *EVM, contract *Contract, input []byte) ([]byte, error) {
+func run(evm *EVM, contract *Contract, input []byte) (ret []byte, err error) {
 	if contract.CodeAddr != nil {
 		// 预编译合约以拜占庭分支为初始版本，后继如有分叉，需要在此处理
 		precompiles := PrecompiledContractsByzantium
@@ -33,7 +35,13 @@ func run(evm *EVM, contract *Contract, input []byte) ([]byte, error) {
 			return RunPrecompiledContract(p, input, contract)
 		}
 	}
-	return evm.Interpreter.Run(contract, input)
+	// 在此处打印下自定义合约的错误信息
+	ret, err = evm.Interpreter.Run(contract, input)
+	if err != nil {
+		log.Error("error occurs while run evm contract", "error info", err)
+	}
+
+	return ret, err
 }
 
 // EVM操作辅助上下文
@@ -198,15 +206,20 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 	contract := NewContract(caller, to, value, gas)
 	contract.SetCallCode(&addr, evm.StateDB.GetCodeHash(addr.String()), evm.StateDB.GetCode(addr.String()))
 
-	start := time.Now()
+	start := types.Now()
 
 	// 调试模式下启用跟踪
 	if evm.VmConfig.Debug && evm.depth == 0 {
 		evm.VmConfig.Tracer.CaptureStart(caller.Address(), addr, false, input, gas, value)
 
 		defer func() {
-			evm.VmConfig.Tracer.CaptureEnd(ret, gas-contract.Gas, time.Since(start), err)
+			evm.VmConfig.Tracer.CaptureEnd(ret, gas-contract.Gas, types.Since(start), err)
 		}()
+	}
+
+	// 从ForkV20EVMState开始，状态数据存储发生变更，需要做数据迁移
+	if types.IsMatchFork(evm.BlockNumber.Int64(), types.ForkV20EVMState) {
+		evm.StateDB.TransferStateData(addr.String())
 	}
 
 	ret, err = run(evm, contract, input)
@@ -360,7 +373,7 @@ func (evm *EVM) Create(caller ContractRef, contractAddr common.Address, code []b
 	if evm.VmConfig.Debug && evm.depth == 0 {
 		evm.VmConfig.Tracer.CaptureStart(caller.Address(), contractAddr, true, code, gas, 0)
 	}
-	start := time.Now()
+	start := types.Now()
 
 	// 通过预编译指令和解释器执行合约
 	ret, err = run(evm, contract, nil)
@@ -396,7 +409,7 @@ func (evm *EVM) Create(caller ContractRef, contractAddr common.Address, code []b
 	}
 
 	if evm.VmConfig.Debug && evm.depth == 0 {
-		evm.VmConfig.Tracer.CaptureEnd(ret, gas-contract.Gas, time.Since(start), err)
+		evm.VmConfig.Tracer.CaptureEnd(ret, gas-contract.Gas, types.Since(start), err)
 	}
 
 	return ret, snapshot, contract.Gas, err

@@ -1,8 +1,6 @@
 package hashlock
 
 import (
-	"time"
-
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
@@ -29,7 +27,7 @@ func newHashlock() drivers.Driver {
 }
 
 func (h *Hashlock) GetName() string {
-	return "hashlock"
+	return types.ExecName("hashlock")
 }
 
 func (h *Hashlock) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
@@ -174,7 +172,7 @@ func (h *Hashlock) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptDat
 func (h *Hashlock) Query(funcName string, hashlockID []byte) (types.Message, error) {
 	if funcName == "GetHashlocKById" {
 		//		currentTime := n.GetBlockTime()
-		differTime := time.Now().UnixNano()/1e9 - h.GetBlockTime()
+		differTime := types.Now().UnixNano()/1e9 - h.GetBlockTime()
 		clog.Error("Query action")
 		return h.GetTxsByHashlockID(hashlockID, differTime)
 	}

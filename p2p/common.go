@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"gitlab.33.cn/chain33/chain33/common/crypto"
-	pb "gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/types"
 	"google.golang.org/grpc"
 )
 
@@ -34,15 +34,13 @@ func (Comm) AddrRouteble(addrs []string) []string {
 		}
 		conn.Close()
 		enableAddrs = append(enableAddrs, addr)
-
 	}
-
 	return enableAddrs
-
 }
+
 func (c Comm) RandStr(n int) string {
 	var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-	r := rand.New(rand.NewSource(time.Now().Unix()))
+	r := rand.New(rand.NewSource(types.Now().Unix()))
 	b := make([]rune, n)
 	for i := range b {
 
@@ -65,14 +63,14 @@ func (c Comm) GetLocalAddr() string {
 	return strings.Split(conn.LocalAddr().String(), ":")[0]
 }
 
-func (c Comm) dialPeerWithAddress(addr *NetAddress, persistent bool, nodeinfo **NodeInfo) (*Peer, error) {
+func (c Comm) dialPeerWithAddress(addr *NetAddress, persistent bool, node *Node) (*Peer, error) {
 	log.Info("dialPeerWithAddress")
-	conn, err := addr.DialTimeout((*nodeinfo).cfg.GetVersion())
+	conn, err := addr.DialTimeout(node.nodeInfo.cfg.GetVersion())
 	if err != nil {
 		return nil, err
 	}
 
-	peer, err := c.newPeerFromConn(conn, addr, nodeinfo)
+	peer, err := c.newPeerFromConn(conn, addr, node)
 	if err != nil {
 		conn.Close()
 		return nil, err
@@ -87,23 +85,22 @@ func (c Comm) dialPeerWithAddress(addr *NetAddress, persistent bool, nodeinfo **
 	return peer, nil
 }
 
-func (c Comm) newPeerFromConn(rawConn *grpc.ClientConn, remote *NetAddress, nodeinfo **NodeInfo) (*Peer, error) {
+func (c Comm) newPeerFromConn(rawConn *grpc.ClientConn, remote *NetAddress, node *Node) (*Peer, error) {
 
 	// Key and NodeInfo are set after Handshake
-	p := NewPeer(rawConn, nodeinfo, remote)
-
+	p := NewPeer(rawConn, node, remote)
 	return p, nil
 }
 
-func (c Comm) dialPeer(addr *NetAddress, nodeinfo **NodeInfo) (*Peer, error) {
+func (c Comm) dialPeer(addr *NetAddress, node *Node) (*Peer, error) {
 	log.Debug("dialPeer", "will connect", addr.String())
 	var persistent bool
-	for _, seed := range (*nodeinfo).cfg.Seeds { //TODO待优化
+	for _, seed := range node.nodeInfo.cfg.Seeds { //TODO待优化
 		if seed == addr.String() {
 			persistent = true //种子节点要一直连接
 		}
 	}
-	peer, err := c.dialPeerWithAddress(addr, persistent, nodeinfo)
+	peer, err := c.dialPeerWithAddress(addr, persistent, node)
 	if err != nil {
 		log.Error("dialPeer", "dial peer err:", err.Error())
 		return nil, err
@@ -114,7 +111,7 @@ func (c Comm) dialPeer(addr *NetAddress, nodeinfo **NodeInfo) (*Peer, error) {
 }
 
 func (c Comm) GenPrivPubkey() ([]byte, []byte, error) {
-	cr, err := crypto.New(pb.GetSignatureTypeName(pb.SECP256K1))
+	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
 	if err != nil {
 		log.Error("CryPto Error", "Error", err.Error())
 		return nil, nil, err
@@ -129,7 +126,7 @@ func (c Comm) GenPrivPubkey() ([]byte, []byte, error) {
 }
 func (c Comm) Pubkey(key string) (string, error) {
 
-	cr, err := crypto.New(pb.GetSignatureTypeName(pb.SECP256K1))
+	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
 	if err != nil {
 		log.Error("CryPto Error", "Error", err.Error())
 		return "", err
@@ -148,9 +145,9 @@ func (c Comm) Pubkey(key string) (string, error) {
 
 	return hex.EncodeToString(priv.PubKey().Bytes()), nil
 }
-func (c Comm) NewPingData(nodeInfo *NodeInfo) (*pb.P2PPing, error) {
+func (c Comm) NewPingData(nodeInfo *NodeInfo) (*types.P2PPing, error) {
 	randNonce := rand.Int31n(102040)
-	ping := &pb.P2PPing{Nonce: int64(randNonce), Addr: nodeInfo.GetExternalAddr().IP.String(), Port: int32(nodeInfo.GetExternalAddr().Port)}
+	ping := &types.P2PPing{Nonce: int64(randNonce), Addr: nodeInfo.GetExternalAddr().IP.String(), Port: int32(nodeInfo.GetExternalAddr().Port)}
 	var err error
 	p2pPrivKey, _ := nodeInfo.addrBook.GetPrivPubKey()
 	ping, err = c.Signature(p2pPrivKey, ping)
@@ -162,10 +159,10 @@ func (c Comm) NewPingData(nodeInfo *NodeInfo) (*pb.P2PPing, error) {
 
 }
 
-func (c Comm) Signature(key string, in *pb.P2PPing) (*pb.P2PPing, error) {
+func (c Comm) Signature(key string, in *types.P2PPing) (*types.P2PPing, error) {
 
-	data := pb.Encode(in)
-	cr, err := crypto.New(pb.GetSignatureTypeName(pb.SECP256K1))
+	data := types.Encode(in)
+	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
 	if err != nil {
 		log.Error("CryPto Error", "Error", err.Error())
 		return nil, err
@@ -180,14 +177,14 @@ func (c Comm) Signature(key string, in *pb.P2PPing) (*pb.P2PPing, error) {
 		log.Error("Load PrivKey", "Error", err.Error())
 		return nil, err
 	}
-	in.Sign = new(pb.Signature)
+	in.Sign = new(types.Signature)
 	in.Sign.Signature = priv.Sign(data).Bytes()
-	in.Sign.Ty = pb.SECP256K1
+	in.Sign.Ty = types.SECP256K1
 	in.Sign.Pubkey = priv.PubKey().Bytes()
 
 	return in, nil
 }
-func (c Comm) CheckSign(in *pb.P2PPing) bool {
+func (c Comm) CheckSign(in *types.P2PPing) bool {
 
 	sign := in.GetSign()
 	if sign == nil {
@@ -195,7 +192,7 @@ func (c Comm) CheckSign(in *pb.P2PPing) bool {
 		return false
 	}
 
-	cr, err := crypto.New(pb.GetSignatureTypeName(int(sign.Ty)))
+	cr, err := crypto.New(types.GetSignatureTypeName(int(sign.Ty)))
 	if err != nil {
 		log.Error("CheckSign", "crypto.New err", err.Error())
 		return false
@@ -212,7 +209,7 @@ func (c Comm) CheckSign(in *pb.P2PPing) bool {
 	}
 
 	in.Sign = nil
-	data := pb.Encode(in)
+	data := types.Encode(in)
 	if pub.VerifyBytes(data, signbytes) {
 		in.Sign = sign
 		return true
@@ -232,7 +229,7 @@ func (c Comm) CollectPeerStat(err error, peer *Peer) {
 func (c Comm) reportPeerStat(peer *Peer) {
 	timeout := time.NewTimer(time.Second)
 	select {
-	case (*peer.nodeInfo).monitorChan <- peer:
+	case peer.node.nodeInfo.monitorChan <- peer:
 	case <-timeout.C:
 		timeout.Stop()
 		return

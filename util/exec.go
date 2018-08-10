@@ -3,7 +3,6 @@ package util
 import (
 	"bytes"
 	"errors"
-	"time"
 
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common"
@@ -20,10 +19,11 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	//发送执行交易给execs模块
 	//通过consensus module 再次检查
 	ulog.Debug("ExecBlock", "height------->", block.Height, "ntx", len(block.Txs))
-	beg := time.Now()
+	beg := types.Now()
 	defer func() {
-		ulog.Info("ExecBlock", "height", block.Height, "ntx", len(block.Txs), "writebatchsync", sync, "cost", time.Since(beg))
+		ulog.Info("ExecBlock", "height", block.Height, "ntx", len(block.Txs), "writebatchsync", sync, "cost", types.Since(beg))
 	}()
+
 	if errReturn && block.Height > 0 && !block.CheckSign() {
 		//block的来源不是自己的mempool，而是别人的区块
 		return nil, nil, types.ErrSign
@@ -31,7 +31,11 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	//tx交易去重处理, 这个地方要查询数据库，需要一个更快的办法
 	cacheTxs := types.TxsToCache(block.Txs)
 	oldtxscount := len(cacheTxs)
-	cacheTxs = CheckTxDup(client, cacheTxs, block.Height)
+	var err error
+	cacheTxs, err = CheckTxDup(client, cacheTxs, block.Height)
+	if err != nil {
+		return nil, nil, err
+	}
 	newtxscount := len(cacheTxs)
 	if oldtxscount != newtxscount && errReturn {
 		return nil, nil, types.ErrTxDup
@@ -55,6 +59,7 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 			deltxlist[i] = true
 			continue
 		}
+
 		rdata = append(rdata, &types.ReceiptData{receipt.Ty, receipt.Logs})
 		//处理KV
 		kvs := receipt.KV
@@ -117,7 +122,8 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	if kvset != nil {
 		ExecKVSetCommit(client, block.StateHash)
 	}
-
+	detail.KV = kvset
+	detail.PrevStatusHash = prevStateRoot
 	//get receipts
 	//save kvset and get state hash
 	//ulog.Debug("blockdetail-->", "detail=", detail)
@@ -202,7 +208,7 @@ func CheckTxDupInner(txs []*types.TransactionCache) (ret []*types.TransactionCac
 	return ret
 }
 
-func CheckTxDup(client queue.Client, txs []*types.TransactionCache, height int64) (transactions []*types.TransactionCache) {
+func CheckTxDup(client queue.Client, txs []*types.TransactionCache, height int64) (transactions []*types.TransactionCache, err error) {
 	var checkHashList types.TxHashList
 	if height >= types.ForkV1 {
 		txs = CheckTxDupInner(txs)
@@ -213,7 +219,10 @@ func CheckTxDup(client queue.Client, txs []*types.TransactionCache, height int64
 	}
 	hashList := client.NewMessage("blockchain", types.EventTxHashList, &checkHashList)
 	client.Send(hashList, true)
-	dupTxList, _ := client.Wait(hashList)
+	dupTxList, err := client.Wait(hashList)
+	if err != nil {
+		return nil, err
+	}
 	dupTxs := dupTxList.GetData().(*types.TxHashList).Hashes
 	dupMap := make(map[string]bool)
 	for _, hash := range dupTxs {
@@ -227,7 +236,7 @@ func CheckTxDup(client queue.Client, txs []*types.TransactionCache, height int64
 		}
 		transactions = append(transactions, tx)
 	}
-	return transactions
+	return transactions, nil
 }
 
 //上报指定错误信息到指定模块，目前只支持从store，blockchain，wallet写数据库失败时上报错误信息到wallet模块，

@@ -1,6 +1,7 @@
 package consensus
 
 import (
+	"gitlab.33.cn/chain33/chain33/consensus/drivers/para"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/pbft"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/raft"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers/solo"
@@ -24,6 +25,9 @@ func New(cfg *types.Consensus) Consensus {
 	} else if consensusType == "ticket" {
 		t := ticket.New(cfg)
 		return t
+	} else if consensusType == "para" {
+		p := para.New(cfg)
+		return p
 	} else if consensusType == "tendermint" {
 		con := tendermint.New(cfg)
 		return con

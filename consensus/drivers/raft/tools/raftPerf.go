@@ -35,7 +35,7 @@ func createConn(ip string) {
 		return
 	}
 	c = types.NewGrpcserviceClient(conn)
-	r = rand.New(rand.NewSource(time.Now().UnixNano()))
+	r = rand.New(rand.NewSource(types.Now().UnixNano()))
 }
 
 func main() {
@@ -206,7 +206,7 @@ func NormPerf(size string, num string, interval string, duration string) {
 
 func RandStringBytes(n int) string {
 	b := make([]byte, n)
-	rand.Seed(time.Now().UnixNano())
+	rand.Seed(types.Now().UnixNano())
 	for i := range b {
 		b[i] = letterBytes[rand.Intn(len(letterBytes))]
 	}

@@ -12,43 +12,98 @@ type StateDB struct {
 	intx      bool
 	client    queue.Client
 	stateHash []byte
+	version   int64
+	height    int64
+	local     *db.SimpleMVCC
+	flagMVCC  int64
 }
 
-func NewStateDB(client queue.Client, stateHash []byte) db.KV {
-	return &StateDB{
+type StateDBOption struct {
+	EnableMVCC bool
+	FlagMVCC   int64
+	Height     int64
+}
+
+func NewStateDB(client queue.Client, stateHash []byte, opt *StateDBOption) db.KV {
+	if opt == nil {
+		opt = &StateDBOption{}
+	}
+	db := &StateDB{
 		cache:     make(map[string][]byte),
 		txcache:   make(map[string][]byte),
 		intx:      false,
 		client:    client,
 		stateHash: stateHash,
+		height:    opt.Height,
+		version:   -1,
+		local:     db.NewSimpleMVCC(NewLocalDB(client)),
 	}
+	if opt.EnableMVCC {
+		v, err := db.local.GetVersion(stateHash)
+		if err == nil && v >= 0 {
+			db.version = v
+		}
+		db.flagMVCC = opt.FlagMVCC
+	}
+	return db
 }
 
 func (s *StateDB) Begin() {
 	s.intx = true
-}
-
-func (s *StateDB) Rollback() {
-	s.intx = false
-	s.txcache = make(map[string][]byte)
-}
-
-func (s *StateDB) Commit() {
-	s.intx = false
-	for k, v := range s.txcache {
-		s.cache[k] = v
+	if types.IsMatchFork(s.height, types.ForkV22ExecRollback) {
+		s.txcache = nil
 	}
 }
 
+func (s *StateDB) Rollback() {
+	s.resetTx()
+}
+
+func (s *StateDB) Commit() {
+	for k, v := range s.txcache {
+		s.cache[k] = v
+	}
+	s.intx = false
+	if types.IsMatchFork(s.height, types.ForkV22ExecRollback) {
+		s.resetTx()
+	}
+}
+
+func (s *StateDB) resetTx() {
+	s.intx = false
+	s.txcache = nil
+}
+
 func (s *StateDB) Get(key []byte) ([]byte, error) {
+	v, err := s.get(key)
+	debugAccount("==get==", key, v)
+	return v, err
+}
+
+func (s *StateDB) get(key []byte) ([]byte, error) {
 	skey := string(key)
-	if s.intx {
+	if s.intx && s.txcache != nil {
 		if value, ok := s.txcache[skey]; ok {
 			return value, nil
 		}
 	}
 	if value, ok := s.cache[skey]; ok {
 		return value, nil
+	}
+	//mvcc 是有效的情况下，直接从mvcc中获取
+	if s.version >= 0 {
+		data, err := s.local.GetV(key, s.version)
+		//TODO 这里需要一个标志，数据是否是从0开始同步的
+		if s.flagMVCC == FlagFromZero {
+			return data, err
+		} else if s.flagMVCC == FlagNotFromZero {
+			if err == nil {
+				return data, nil
+			}
+		}
+	}
+	if s.client == nil {
+		return nil, types.ErrNotFound
 	}
 	query := &types.StoreGet{s.stateHash, [][]byte{key}}
 	msg := s.client.NewMessage("store", types.EventStoreGet, query)
@@ -70,14 +125,40 @@ func (s *StateDB) Get(key []byte) ([]byte, error) {
 	return value, nil
 }
 
+func debugAccount(prefix string, key []byte, value []byte) {
+	if !types.Debug {
+		return
+	}
+	var msg types.Account
+	err := types.Decode(value, &msg)
+	if err == nil {
+		elog.Info(prefix, "key", string(key), "value", msg)
+	}
+}
+
 func (s *StateDB) Set(key []byte, value []byte) error {
+	debugAccount("==set==", key, value)
 	skey := string(key)
 	if s.intx {
+		if s.txcache == nil {
+			s.txcache = make(map[string][]byte)
+		}
 		s.txcache[skey] = value
 	} else {
 		s.cache[skey] = value
 	}
 	return nil
+}
+
+func (db *StateDB) BatchGet(keys [][]byte) (values [][]byte, err error) {
+	for _, key := range keys {
+		v, err := db.Get(key)
+		if err != nil && err != types.ErrNotFound {
+			return nil, err
+		}
+		values = append(values, v)
+	}
+	return values, nil
 }
 
 type LocalDB struct {
@@ -119,6 +200,17 @@ func (l *LocalDB) Set(key []byte, value []byte) error {
 	return nil
 }
 
+func (db *LocalDB) BatchGet(keys [][]byte) (values [][]byte, err error) {
+	for _, key := range keys {
+		v, err := db.Get(key)
+		if err != nil && err != types.ErrNotFound {
+			return nil, err
+		}
+		values = append(values, v)
+	}
+	return values, nil
+}
+
 //从数据库中查询数据列表，set 中的cache 更新不会影响这个list
 func (l *LocalDB) List(prefix, key []byte, count, direction int32) ([][]byte, error) {
 	query := &types.LocalDBList{Prefix: prefix, Key: key, Count: count, Direction: direction}
@@ -134,4 +226,17 @@ func (l *LocalDB) List(prefix, key []byte, count, direction int32) ([][]byte, er
 		return nil, types.ErrNotFound
 	}
 	return values, nil
+}
+
+//从数据库中查询指定前缀的key的数量
+func (l *LocalDB) PrefixCount(prefix []byte) (count int64) {
+	query := &types.ReqKey{Key: prefix}
+	msg := l.client.NewMessage("blockchain", types.EventLocalPrefixCount, query)
+	l.client.Send(msg, true)
+	resp, err := l.client.Wait(msg)
+	if err != nil {
+		panic(err) //no happen for ever
+	}
+	count = resp.GetData().(*types.Int64).Data
+	return
 }

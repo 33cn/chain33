@@ -11,6 +11,12 @@ import (
 	"gitlab.33.cn/chain33/chain33/client/mocks"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/types"
+	_ "gitlab.33.cn/chain33/chain33/types/executor"
+	evmtype "gitlab.33.cn/chain33/chain33/types/executor/evm"
+	hashlocktype "gitlab.33.cn/chain33/chain33/types/executor/hashlock"
+	retrievetype "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
+	tokentype "gitlab.33.cn/chain33/chain33/types/executor/token"
+	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
 )
 
 func TestDecodeUserWrite(t *testing.T) {
@@ -22,14 +28,14 @@ func TestDecodeUserWrite(t *testing.T) {
 	data = decodeUserWrite(payload)
 	assert.Equal(t, data, &userWrite{Topic: "", Content: "hello#world"})
 
-	payload = []byte("123#hello#suyanlong")
+	payload = []byte("123#hello#wzw")
 	data = decodeUserWrite(payload)
 	assert.NotEqual(t, data, &userWrite{Topic: "123", Content: "hello#world"})
 }
 
 func TestDecodeTx(t *testing.T) {
 	tx := types.Transaction{
-		Execer:  []byte("coin"),
+		Execer:  []byte(types.ExecName("coin")),
 		Payload: []byte("342412abcd"),
 		Nonce:   8978167239,
 		To:      "1asd234dsf43fds",
@@ -39,13 +45,13 @@ func TestDecodeTx(t *testing.T) {
 	assert.NotNil(t, data)
 	assert.Nil(t, err)
 
-	tx.Execer = []byte("coins")
+	tx.Execer = []byte(types.ExecName(types.CoinsX))
 	data, err = DecodeTx(&tx)
-	assert.NotNil(t, err)
-	assert.Nil(t, data)
+	assert.NotNil(t, data)
+	assert.Nil(t, err)
 
 	tx = types.Transaction{
-		Execer:  []byte("hashlock"),
+		Execer:  []byte(types.ExecName(types.HashlockX)),
 		Payload: []byte("34"),
 		Nonce:   8978167239,
 		To:      "1asd234dsf43fds",
@@ -591,7 +597,7 @@ func TestDecodeLogTradeBuyMarket(t *testing.T) {
 	result, err := DecodeLog(data)
 	assert.Nil(t, err)
 	assert.NotNil(t, result)
-	assert.Equal(t, "LogTradeBuy", result.Logs[0].TyName)
+	assert.Equal(t, "LogTradeBuyMarket", result.Logs[0].TyName)
 }
 
 func TestDecodeLogTradeSellRevoke(t *testing.T) {
@@ -613,7 +619,7 @@ func TestDecodeLogTradeSellRevoke(t *testing.T) {
 	result, err := DecodeLog(data)
 	assert.Nil(t, err)
 	assert.NotNil(t, result)
-	assert.Equal(t, "LogTradeRevoke", result.Logs[0].TyName)
+	assert.Equal(t, "LogTradeSellRevoke", result.Logs[0].TyName)
 }
 
 func TestDecodeLogTradeBuyLimit(t *testing.T) {
@@ -928,7 +934,7 @@ func TestChain33_CreateRawTransaction(t *testing.T) {
 		IsWithdraw:  false,
 		IsToken:     true,
 		TokenSymbol: "CNY",
-		ExecName:    "token",
+		ExecName:    types.ExecName(types.TokenX),
 	}
 
 	err = testChain33.CreateRawTransaction(tx, &testResult)
@@ -1031,8 +1037,13 @@ func TestChain33_SendRawTransactionUnsignError(t *testing.T) {
 }
 
 func TestChain33_SendTransaction(t *testing.T) {
+	if types.IsPara() {
+		t.Skip()
+		return
+	}
 	api := new(mocks.QueueProtocolAPI)
-	api.On("SendTx", &types.Transaction{}).Return(nil, errors.New("error value"))
+	tx := &types.Transaction{}
+	api.On("SendTx", tx).Return(nil, errors.New("error value"))
 	testChain33 := newTestChain33(api)
 	var testResult interface{}
 	data := RawParm{
@@ -1088,7 +1099,7 @@ func TestChain33_QueryTransactionOk(t *testing.T) {
 	}
 	payload := types.Encode(act)
 	var tx = &types.Transaction{
-		Execer:  []byte("ticket"),
+		Execer:  []byte(types.ExecName(types.TicketX)),
 		Payload: payload,
 	}
 
@@ -1137,7 +1148,7 @@ func TestChain33_GetTxByHashesOk(t *testing.T) {
 	}
 	payload := types.Encode(act)
 	var tx = &types.Transaction{
-		Execer:  []byte("token"),
+		Execer:  []byte(types.ExecName(types.TokenX)),
 		Payload: payload,
 	}
 
@@ -1212,7 +1223,7 @@ func TestChain33_GetBlocksOk(t *testing.T) {
 	}
 	payload := types.Encode(act)
 	var tx = &types.Transaction{
-		Execer:  []byte("token"),
+		Execer:  []byte(types.ExecName(types.TokenX)),
 		Payload: payload,
 	}
 
@@ -1383,6 +1394,10 @@ func TestChain33_ImportPrivkey(t *testing.T) {
 }
 
 func TestChain33_SendToAddress(t *testing.T) {
+	if types.IsPara() {
+		t.Skip()
+		return
+	}
 	api := new(mocks.QueueProtocolAPI)
 	testChain33 := newTestChain33(api)
 
@@ -1597,7 +1612,7 @@ func TestChain33_GetLastMemPoolOk(t *testing.T) {
 	var action types.Trade
 	act := types.Encode(&action)
 	var tx = &types.Transaction{
-		Execer:  []byte("trade"),
+		Execer:  []byte(types.ExecName(types.TradeX)),
 		Payload: act,
 		To:      "to",
 	}
@@ -1796,7 +1811,7 @@ func TestChain33_CreateRawTokenPreCreateTx(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Nil(t, testResult)
 
-	token := &TokenPreCreateTx{
+	token := &tokentype.TokenPreCreateTx{
 		OwnerAddr: "asdf134",
 		Symbol:    "CNY",
 		Fee:       123,
@@ -1813,7 +1828,7 @@ func TestChain33_CreateRawTokenRevokeTx(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Nil(t, testResult)
 
-	token := &TokenRevokeTx{
+	token := &tokentype.TokenRevokeTx{
 		OwnerAddr: "asdf134",
 		Symbol:    "CNY",
 		Fee:       123,
@@ -1830,7 +1845,7 @@ func TestChain33_CreateRawTokenFinishTx(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Nil(t, testResult)
 
-	token := &TokenFinishTx{
+	token := &tokentype.TokenFinishTx{
 		OwnerAddr: "asdf134",
 		Symbol:    "CNY",
 		Fee:       123,
@@ -1847,7 +1862,7 @@ func TestChain33_CreateRawTradeSellTx(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Nil(t, testResult)
 
-	token := &TradeSellTx{
+	token := &tradetype.TradeSellTx{
 		TokenSymbol:       "CNY",
 		AmountPerBoardlot: 10,
 		MinBoardlot:       1,
@@ -1868,7 +1883,7 @@ func TestChain33_CreateRawTradeBuyTx(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Nil(t, testResult)
 
-	token := &TradeBuyTx{
+	token := &tradetype.TradeBuyTx{
 		SellID:      "sadfghjkhgfdsa",
 		BoardlotCnt: 100,
 		Fee:         1,
@@ -1886,7 +1901,7 @@ func TestChain33_CreateRawTradeRevokeTx(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Nil(t, testResult)
 
-	token := &TradeRevokeTx{
+	token := &tradetype.TradeRevokeTx{
 		SellID: "sadfghjkhgfdsa",
 		Fee:    1,
 	}
@@ -1904,7 +1919,7 @@ func TestChain33_CreateRawTradeBuyLimitTx(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Nil(t, testResult)
 
-	token := &TradeBuyLimitTx{
+	token := &tradetype.TradeBuyLimitTx{
 		TokenSymbol:       "CNY",
 		AmountPerBoardlot: 10,
 		MinBoardlot:       1,
@@ -1926,7 +1941,7 @@ func TestChain33_CreateRawTradeSellMarketTx(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Nil(t, testResult)
 
-	token := &TradeSellMarketTx{
+	token := &tradetype.TradeSellMarketTx{
 		BuyID:       "12asdfa",
 		BoardlotCnt: 100,
 		Fee:         1,
@@ -1945,7 +1960,7 @@ func TestChain33_CreateRawTradeRevokeBuyTx(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Nil(t, testResult)
 
-	token := &TradeRevokeBuyTx{
+	token := &tradetype.TradeRevokeBuyTx{
 		BuyID: "12asdfa",
 		Fee:   1,
 	}
@@ -1953,4 +1968,261 @@ func TestChain33_CreateRawTradeRevokeBuyTx(t *testing.T) {
 	err = client.CreateRawTradeRevokeBuyTx(token, &testResult)
 	assert.NotNil(t, testResult)
 	assert.Nil(t, err)
+}
+
+func TestChain33_CreateRawRetrieveBackupTx(t *testing.T) {
+	client := newTestChain33(nil)
+	var testResult interface{}
+	err := client.CreateRawRetrieveBackupTx(nil, &testResult)
+	assert.NotNil(t, err)
+	assert.Nil(t, testResult)
+
+	backup := &retrievetype.RetrieveBackupTx{
+		BackupAddr:  "12asdfa",
+		DefaultAddr: "0x3456",
+		DelayPeriod: 1,
+		Fee:         1,
+	}
+
+	err = client.CreateRawRetrieveBackupTx(backup, &testResult)
+	assert.NotNil(t, testResult)
+	assert.Nil(t, err)
+}
+
+func TestChain33_CreateRawRetrievePrepareTx(t *testing.T) {
+	client := newTestChain33(nil)
+	var testResult interface{}
+	err := client.CreateRawRetrievePrepareTx(nil, &testResult)
+	assert.NotNil(t, err)
+	assert.Nil(t, testResult)
+
+	prepare := &retrievetype.RetrievePrepareTx{
+		BackupAddr:  "12asdfa",
+		DefaultAddr: "0x3456",
+		Fee:         1,
+	}
+
+	err = client.CreateRawRetrievePrepareTx(prepare, &testResult)
+	assert.NotNil(t, testResult)
+	assert.Nil(t, err)
+}
+
+func TestChain33_CreateRawRetrievePerformTx(t *testing.T) {
+	client := newTestChain33(nil)
+	var testResult interface{}
+	err := client.CreateRawRetrievePerformTx(nil, &testResult)
+	assert.NotNil(t, err)
+	assert.Nil(t, testResult)
+
+	perform := &retrievetype.RetrievePerformTx{
+		BackupAddr:  "12asdfa",
+		DefaultAddr: "0x3456",
+		Fee:         1,
+	}
+
+	err = client.CreateRawRetrievePerformTx(perform, &testResult)
+	assert.NotNil(t, testResult)
+	assert.Nil(t, err)
+}
+
+func TestChain33_CreateRawRetrieveCancelTx(t *testing.T) {
+	client := newTestChain33(nil)
+	var testResult interface{}
+	err := client.CreateRawRetrieveCancelTx(nil, &testResult)
+	assert.NotNil(t, err)
+	assert.Nil(t, testResult)
+
+	cancel := &retrievetype.RetrieveCancelTx{
+		BackupAddr:  "12asdfa",
+		DefaultAddr: "0x3456",
+		Fee:         1,
+	}
+
+	err = client.CreateRawRetrieveCancelTx(cancel, &testResult)
+	assert.NotNil(t, testResult)
+	assert.Nil(t, err)
+}
+
+func TestChain33_CreateRawHashlockLockTx(t *testing.T) {
+	client := newTestChain33(nil)
+	var testResult interface{}
+	err := client.CreateRawHashlockLockTx(nil, &testResult)
+	assert.NotNil(t, err)
+	assert.Nil(t, testResult)
+
+	lock := &hashlocktype.HashlockLockTx{
+		Secret:     "12asdfa",
+		Amount:     100,
+		Time:       100,
+		ToAddr:     "12asdfa",
+		ReturnAddr: "0x3456",
+		Fee:        1,
+	}
+
+	err = client.CreateRawHashlockLockTx(lock, &testResult)
+	assert.NotNil(t, testResult)
+	assert.Nil(t, err)
+}
+
+func TestChain33_CreateRawHashlockUnlockTx(t *testing.T) {
+	client := newTestChain33(nil)
+	var testResult interface{}
+	err := client.CreateRawHashlockUnlockTx(nil, &testResult)
+	assert.NotNil(t, err)
+	assert.Nil(t, testResult)
+
+	unlock := &hashlocktype.HashlockUnlockTx{
+		Secret: "12asdfa",
+		Fee:    1,
+	}
+
+	err = client.CreateRawHashlockUnlockTx(unlock, &testResult)
+	assert.NotNil(t, testResult)
+	assert.Nil(t, err)
+}
+
+func TestChain33_CreateRawHashlockSendTx(t *testing.T) {
+	client := newTestChain33(nil)
+	var testResult interface{}
+	err := client.CreateRawHashlockSendTx(nil, &testResult)
+	assert.NotNil(t, err)
+	assert.Nil(t, testResult)
+
+	send := &hashlocktype.HashlockSendTx{
+		Secret: "12asdfa",
+		Fee:    1,
+	}
+
+	err = client.CreateRawHashlockSendTx(send, &testResult)
+	assert.NotNil(t, testResult)
+	assert.Nil(t, err)
+}
+
+func TestChain33_CreateRawEvmCreateCallTx(t *testing.T) {
+	client := newTestChain33(nil)
+	var testResult interface{}
+	err := client.CreateRawEvmCreateCallTx(nil, &testResult)
+	assert.NotNil(t, err)
+	assert.Nil(t, testResult)
+
+	createcall := &evmtype.CreateCallTx{
+		Amount:   0,
+		Code:     "12",
+		GasLimit: 0,
+		GasPrice: 0,
+		Note:     "12",
+		Alias:    "12",
+		Fee:      0,
+		Name:     "12",
+		IsCreate: true,
+	}
+
+	err = client.CreateRawEvmCreateCallTx(createcall, &testResult)
+	assert.NotNil(t, testResult)
+	assert.Nil(t, err)
+}
+
+func TestChain33_GetTimeStatus(t *testing.T) {
+	api := new(mocks.QueueProtocolAPI)
+	client := newTestChain33(api)
+	var result interface{}
+	err := client.GetTimeStatus(&types.ReqNil{}, &result)
+	assert.Nil(t, err)
+}
+
+func TestChain33_GetLastBlockSequence(t *testing.T) {
+	api := new(mocks.QueueProtocolAPI)
+	client := newTestChain33(api)
+	var result interface{}
+	api.On("GetLastBlockSequence", mock.Anything).Return(nil, types.ErrInputPara)
+	err := client.GetLastBlockSequence(&types.ReqNil{}, &result)
+	assert.NotNil(t, err)
+
+	api = new(mocks.QueueProtocolAPI)
+	client = newTestChain33(api)
+	var result2 interface{}
+	lastSeq := types.Int64{1}
+	api.On("GetLastBlockSequence", mock.Anything).Return(&lastSeq, nil)
+	err = client.GetLastBlockSequence(&types.ReqNil{}, &result2)
+	assert.Nil(t, err)
+	assert.Equal(t, int64(1), result2)
+}
+
+func TestChain33_GetBlockSequences(t *testing.T) {
+	api := new(mocks.QueueProtocolAPI)
+	client := newTestChain33(api)
+	var result interface{}
+	api.On("GetBlockSequences", mock.Anything).Return(nil, types.ErrInputPara)
+	err := client.GetBlockSequences(BlockParam{}, &result)
+	assert.NotNil(t, err)
+
+	api = new(mocks.QueueProtocolAPI)
+	client = newTestChain33(api)
+	var result2 interface{}
+	blocks := types.BlockSequences{}
+	blocks.Items = make([]*types.BlockSequence, 0)
+	blocks.Items = append(blocks.Items, &types.BlockSequence{[]byte("h1"), 1})
+	api.On("GetBlockSequences", mock.Anything).Return(&blocks, nil)
+	err = client.GetBlockSequences(BlockParam{}, &result2)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(result2.(*ReplyBlkSeqs).BlkSeqInfos))
+}
+
+func TestChain33_GetBlockByHashes(t *testing.T) {
+	api := new(mocks.QueueProtocolAPI)
+	client := newTestChain33(api)
+	var testResult interface{}
+	in := ReqHashes{[]string{}, false}
+	in.Hashes = append(in.Hashes, common.ToHex([]byte("h1")))
+	api.On("GetBlockByHashes", mock.Anything).Return(&types.BlockDetails{}, nil)
+	err := client.GetBlockByHashes(in, &testResult)
+	assert.Nil(t, err)
+
+	api = new(mocks.QueueProtocolAPI)
+	client = newTestChain33(api)
+	var testResult2 interface{}
+	api.On("GetBlockByHashes", mock.Anything).Return(nil, types.ErrInputPara)
+	err = client.GetBlockByHashes(in, &testResult2)
+	assert.NotNil(t, err)
+}
+
+func TestChain33_CreateTransaction(t *testing.T) {
+	client := newTestChain33(nil)
+
+	var result interface{}
+	err := client.CreateTransaction(nil, &result)
+	assert.NotNil(t, err)
+
+	in := &TransactionCreate{Execer: "notExist", ActionName: "x", Payload: []byte("x")}
+	err = client.CreateTransaction(in, &result)
+	assert.Equal(t, types.ErrExecNameNotAllow, err)
+
+	in = &TransactionCreate{Execer: types.ExecName(types.TokenX), ActionName: "notExist", Payload: []byte("x")}
+	err = client.CreateTransaction(in, &result)
+	assert.Equal(t, types.ErrNotSupport, err)
+
+	in = &TransactionCreate{
+		Execer:     types.ExecName(types.TokenX),
+		ActionName: "TokenFinish",
+		Payload:    []byte("{\"fee\" : 10000, \"symbol\": \"TOKEN\", \"ownerAddr\":\"string\"}"),
+	}
+	err = client.CreateTransaction(in, &result)
+	assert.Nil(t, err)
+}
+
+func TestChain33_PrivacyTxList(t *testing.T) {
+	api := new(mocks.QueueProtocolAPI)
+	testChain33 := newTestChain33(api)
+
+	expected := &types.ReqPrivacyTransactionList{}
+	api.On("PrivacyTransactionList", expected).Return(nil, errors.New("error value"))
+
+	var testResult interface{}
+	actual := &types.ReqPrivacyTransactionList{}
+	err := testChain33.PrivacyTxList(actual, &testResult)
+	t.Log(err)
+	assert.Equal(t, nil, testResult)
+	assert.NotNil(t, err)
+
+	mock.AssertExpectationsForObjects(t, api)
 }

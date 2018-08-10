@@ -145,6 +145,9 @@ func (d *downloadJob) restOfInvs(bchan chan *pb.BlockPid) []*pb.Inventory {
 
 	var invs []*pb.Inventory
 	for e := d.retryList.Front(); e != nil; {
+		if e.Value == nil {
+			continue
+		}
 		log.Debug("restofInvs", "inv", e.Value.(*pb.Inventory).GetHeight())
 		invs = append(invs, e.Value.(*pb.Inventory)) //把下载遗漏的区块，重新组合进行下载
 		next := e.Next()
