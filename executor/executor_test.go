@@ -465,6 +465,14 @@ func BenchmarkGenRandBlock(b *testing.B) {
 	}
 }
 
+//区块执行性能更好的一个测试
+//1. 先生成 10万个账户，每个账户转1000个币
+//2. 每个区块随机取1万比交易，然后执行
+//3. 执行1000个块，看性能曲线的变化
+//4. 排除掉网络掉影响
+//5. 先对leveldb 做一个性能的测试
+
+//区块执行新能测试
 func BenchmarkExecBlock(b *testing.B) {
 	q, chain, s, p2p := initEnv()
 	defer chain.Close()
