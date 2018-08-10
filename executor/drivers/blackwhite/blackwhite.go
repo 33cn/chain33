@@ -70,11 +70,11 @@ func (c *Blackwhite) updateInfo(receipt *types.ReceiptBlackwhite, isDel bool) []
 
 	var kv []*types.KeyValue
 	if isDel { //回退删除
-		clog.Info("****************lyh test delete key", "gameId is ", gameId)
+		clog.Info("****************test delete key", "gameId is ", gameId)
 		kv = append(kv, &types.KeyValue{key, nil})
 		kv = append(kv, &types.KeyValue{key1, nil})
 	} else {
-		clog.Info("****************lyh test add key", "gameId is ", gameId)
+		clog.Info("****************test add key", "gameId is ", gameId)
 		kv = append(kv, &types.KeyValue{key, value})
 		kv = append(kv, &types.KeyValue{key1, value1})
 	}

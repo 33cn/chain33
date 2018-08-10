@@ -37,8 +37,8 @@ func BlackwhiteCreateRawTxCmd() *cobra.Command {
 }
 
 func addBlackwhiteCreateFlags(cmd *cobra.Command) {
-	cmd.Flags().Uint64P("maxAmount", "m", 0, "max frozen amount")
-	cmd.MarkFlagRequired("maxAmount")
+	cmd.Flags().Uint64P("playAmount", "m", 0, "max frozen amount")
+	cmd.MarkFlagRequired("playAmount")
 
 	cmd.Flags().Uint32P("playerCount", "p", 0, "player count")
 	cmd.MarkFlagRequired("playerCount")
@@ -50,19 +50,19 @@ func addBlackwhiteCreateFlags(cmd *cobra.Command) {
 
 func blackwhiteCreate(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	maxAmount, _ := cmd.Flags().GetUint64("maxAmount")
+	amount, _ := cmd.Flags().GetUint64("playAmount")
 	playerCount, _ := cmd.Flags().GetUint32("playerCount")
 	timeout, _ := cmd.Flags().GetFloat64("timeout")
 	gameName, _ := cmd.Flags().GetString("gameName")
 
-	maxAmountInt64 := int64(maxAmount)
+	amountInt64 := int64(amount)
 
 	if timeout == 0 {
 		timeout = 120
 	}
 
 	params := &types.BlackwhiteCreate{
-		MaxAmount:   maxAmountInt64 * types.Coin,
+		PlayAmount:  amountInt64 * types.Coin,
 		PlayerCount: int32(playerCount),
 		Timeout:     int64(timeout),
 		GameName:    gameName,
@@ -179,8 +179,8 @@ func blackwhiteTimeoutDone(cmd *cobra.Command, args []string) {
 
 func ShowBlackwhiteRoundCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "showBlackwhite",
-		Short: "show black white round",
+		Use:   "showInfo",
+		Short: "show black white round info",
 		Run:   showBlackwhiteRound,
 	}
 	addshowBlackwhiteRoundlags(cmd)
