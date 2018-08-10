@@ -1,6 +1,7 @@
 package client
 
 import (
+	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -8,6 +9,7 @@ import (
 type QueueProtocolAPI interface {
 	Version() (*types.Reply, error)
 	Close()
+	NewMessage(topic string, msgid int64, data interface{}) queue.Message
 	// +++++++++++++++ mempool interfaces begin
 	// 同步发送交易信息到指定模块，获取应答消息 types.EventTx
 	SendTx(param *types.Transaction) (*types.Reply, error)
