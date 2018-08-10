@@ -1,0 +1,3 @@
+[monitor]
+filePath="${GOPATH}/src/gitlab.33.cn/chain33/chain33/build/logs/chain33.log"
+interval=500
