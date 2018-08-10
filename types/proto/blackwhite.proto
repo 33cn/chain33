@@ -4,8 +4,6 @@ package types;
 
 message AddressResult {
     string addr = 1;
-    int64  amount = 2;
-    bool   isWin = 3;
     repeated bool isBlack = 4;
 }
 
@@ -14,7 +12,7 @@ message BlackwhiteRound {
     // txhash
     string gameID = 1;
     int32 status = 2;
-    int64 maxAmount =3;
+    int64 playAmount =3;
     int32 playerCount = 4;
     int32 curPlayerCount = 5;
     string createAddr = 6;
@@ -36,7 +34,7 @@ message BlackwhiteAction {
 }
 
 message BlackwhiteCreate {
-    int64 maxAmount = 1;
+    int64 playAmount = 1;
     int32 playerCount = 2;
     int64 timeout = 3;
     string gameName = 4;

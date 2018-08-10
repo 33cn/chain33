@@ -13,7 +13,7 @@ const (
 	MinAmount      int64 = 1 * types.Coin
 	minPlayerCount int32 = 3
 	MaxMatchCount  int   = 10
-	lockAmount     int64 = types.Coin/100
+	lockAmount     int64 = types.Coin / 100
 )
 
 type action struct {
@@ -26,6 +26,12 @@ type action struct {
 	execaddr     string
 }
 
+type addressResultX struct {
+	Addr    string
+	IsWin   bool
+	IsBlack []bool
+}
+
 func newAction(t *Blackwhite, tx *types.Transaction) *action {
 	hash := tx.Hash()
 	fromaddr := tx.From()
@@ -34,7 +40,7 @@ func newAction(t *Blackwhite, tx *types.Transaction) *action {
 }
 
 func (a *action) Create(create *types.BlackwhiteCreate) (*types.Receipt, error) {
-	if create.MaxAmount < MinAmount || create.MaxAmount > MaxAmount {
+	if create.PlayAmount < MinAmount || create.PlayAmount > MaxAmount {
 		return nil, types.ErrInputPara
 	}
 	if create.PlayerCount < minPlayerCount {
@@ -101,7 +107,7 @@ func (a *action) Play(play *types.BlackwhitePlay) (*types.Receipt, error) {
 		}
 	}
 
-	if round.MaxAmount != play.Amount {
+	if round.PlayAmount != play.Amount {
 		clog.Error("blackwhite play ", "addr", a.fromaddr, "execaddr", a.execaddr, "have not same amount in once round",
 			play.GameID)
 		return nil, types.ErrInputPara
@@ -246,7 +252,7 @@ func (a *action) StatTransfer(round *types.BlackwhiteRound) (*types.Receipt, err
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
 
-	roundAmount := round.MaxAmount
+	roundAmount := round.PlayAmount
 
 	if len(winers) == 0 {
 		// 将所有参与人员都解冻
@@ -260,9 +266,43 @@ func (a *action) StatTransfer(round *types.BlackwhiteRound) (*types.Receipt, err
 			kv = append(kv, receipt.KV...)
 		}
 	} else {
+		Losers := a.getLoser(round.AddrResult)
+		sumAmount := roundAmount * int64(len(Losers))
+
+		var winNum int64
+		winNum = int64(len(winers))
+		averAmount := sumAmount / winNum
+
+		//先将所有loster的金额转到其中一个赢家中
+		winer := winers[0]
+		for _, Loser := range Losers {
+			receipt, err := a.coinsAccount.ExecTransferFrozen(Loser, winer, a.execaddr, roundAmount)
+			if err != nil {
+				a.coinsAccount.ExecFrozen(winer, a.execaddr, roundAmount) // rollback
+				clog.Error("StatTransfer all losers to once winer fail", "addr", winer, "execaddr", a.execaddr, "err", err)
+				return nil, err
+			}
+			logs = append(logs, receipt.Logs...)
+			kv = append(kv, receipt.KV...)
+		}
+
+		// 从其中一个赢家中转帐给它获胜用户
+		for i, winer := range winers {
+			if i != 0 {
+				receipt, err := a.coinsAccount.ExecTransfer(winers[0], winer, a.execaddr, averAmount)
+				if err != nil {
+					a.coinsAccount.ExecFrozen(winers[0], a.execaddr, roundAmount) // rollback
+					clog.Error("StatTransfer one winer to any other winers fail", "addr", winer, "execaddr", a.execaddr, "err", err)
+					return nil, err
+				}
+				logs = append(logs, receipt.Logs...)
+				kv = append(kv, receipt.KV...)
+			}
+		}
+
 		// 胜利人员都解冻
-		for _, addrRes := range winers {
-			receipt, err := a.coinsAccount.ExecActive(addrRes.Addr, a.execaddr, roundAmount)
+		for _, winer := range winers {
+			receipt, err := a.coinsAccount.ExecActive(winer, a.execaddr, roundAmount)
 			if err != nil {
 				clog.Error("StatTransfer execActive have winers", "addr", a.fromaddr, "execaddr", a.execaddr, "err", err)
 				return nil, err
@@ -270,56 +310,21 @@ func (a *action) StatTransfer(round *types.BlackwhiteRound) (*types.Receipt, err
 			logs = append(logs, receipt.Logs...)
 			kv = append(kv, receipt.KV...)
 		}
-
-		Losers := a.getLoser(round.AddrResult)
-		sumAmount := roundAmount * int64(len(Losers))
-
-		//var averAmount int64
-		var winNum int64
-		winNum = int64(len(winers))
-		averAmount := sumAmount / winNum
-
-		//先将所有loster的金额转到其中一个赢家中
-		winer := winers[0]
-		for _, addrRes := range Losers {
-			receipt, err := a.coinsAccount.ExecTransferFrozen(addrRes.Addr, winer.Addr, a.execaddr, roundAmount)
-			if err != nil {
-				a.coinsAccount.ExecFrozen(winer.Addr, a.execaddr, roundAmount) // rollback
-				clog.Error("StatTransfer all losers to once winer fail", "addr", winer.Addr, "execaddr", a.execaddr, "err", err)
-				return nil, err
-			}
-			logs = append(logs, receipt.Logs...)
-			kv = append(kv, receipt.KV...)
-		}
-
-		for i, addrRes := range winers {
-			if i != 0 {
-				receipt, err := a.coinsAccount.ExecTransferFrozen(winer.Addr, addrRes.Addr, a.execaddr, averAmount)
-				if err != nil {
-					a.coinsAccount.ExecFrozen(addrRes.Addr, a.execaddr, roundAmount) // rollback
-					clog.Error("StatTransfer one winer to any other winers fail", "addr", winer.Addr, "execaddr", a.execaddr, "err", err)
-					return nil, err
-				}
-				logs = append(logs, receipt.Logs...)
-				kv = append(kv, receipt.KV...)
-			}
-		}
 	}
 
-	for _, addrRes := range winers {
-		round.Winner = append(round.Winner, addrRes.Addr)
+	for _, winer := range winers {
+		round.Winner = append(round.Winner, winer)
 	}
 
 	// 将创建游戏者解冻
 	receipt, err := a.coinsAccount.ExecActive(round.CreateAddr, a.execaddr, lockAmount)
 	if err != nil {
-		a.coinsAccount.ExecFrozen(round.CreateAddr, a.execaddr, lockAmount)// rollback
-		clog.Error("blackwhite rollback create ExecFrozen ", "addr", round.CreateAddr, "execaddr", a.execaddr, "amount", lockAmount)
+		a.coinsAccount.ExecFrozen(round.CreateAddr, a.execaddr, lockAmount) // rollback
+		clog.Error("blackwhite ExecActive create ExecFrozen ", "addr", round.CreateAddr, "execaddr", a.execaddr, "amount", lockAmount)
 		return nil, err
 	}
 	logs = append(logs, receipt.Logs...)
 	kv = append(kv, receipt.KV...)
-
 
 	log := &types.ReceiptBlackwhite{round}
 	if gt.BlackwhiteStatusTimeoutDone == round.Status {
@@ -331,17 +336,24 @@ func (a *action) StatTransfer(round *types.BlackwhiteRound) (*types.Receipt, err
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
 }
 
-func (a *action) getWinner(addrRes []*types.AddressResult) []*types.AddressResult {
+func (a *action) getWinner(addrRes []*types.AddressResult) []string {
+
+	var addresXs []*addressResultX
 
 	for _, addres := range addrRes {
-		addres.IsWin = true
-
 		lenth := len(addres.IsBlack)
 		if lenth < MaxMatchCount {
 			for i := 0; i < (MaxMatchCount - lenth); i++ {
 				addres.IsBlack = append(addres.IsBlack, false)
 			}
 		}
+
+		addresX := &addressResultX{
+			Addr:    addres.Addr,
+			IsWin:   true,
+			IsBlack: addres.IsBlack,
+		}
+		addresXs = append(addresXs, addresX)
 	}
 
 	for index := 0; index < MaxMatchCount; index++ {
@@ -349,19 +361,19 @@ func (a *action) getWinner(addrRes []*types.AddressResult) []*types.AddressResul
 		whiteNUm := 0
 		curWinNum := 0
 
-		for _, addres := range addrRes {
+		for _, addres := range addresXs {
 			if addres.IsWin {
 				curWinNum++
 			}
 		}
 
 		if 0 == curWinNum {
-			for _, addres := range addrRes {
+			for _, addres := range addresXs {
 				addres.IsWin = true
 			}
 		}
 
-		for _, addr := range addrRes {
+		for _, addr := range addresXs {
 			if addr.IsWin {
 				if addr.IsBlack[index] {
 					blackNum++
@@ -372,7 +384,7 @@ func (a *action) getWinner(addrRes []*types.AddressResult) []*types.AddressResul
 		}
 
 		if blackNum < whiteNUm {
-			for _, addr := range addrRes {
+			for _, addr := range addresXs {
 				if addr.IsBlack[index] {
 					addr.IsWin = true
 				} else {
@@ -380,7 +392,7 @@ func (a *action) getWinner(addrRes []*types.AddressResult) []*types.AddressResul
 				}
 			}
 		} else if blackNum > whiteNUm {
-			for _, addr := range addrRes {
+			for _, addr := range addresXs {
 				if addr.IsBlack[index] {
 					addr.IsWin = false
 				} else {
@@ -390,7 +402,7 @@ func (a *action) getWinner(addrRes []*types.AddressResult) []*types.AddressResul
 		}
 
 		winNum := 0
-		for _, addr := range addrRes {
+		for _, addr := range addresXs {
 			if addr.IsWin {
 				winNum++
 			}
@@ -401,14 +413,10 @@ func (a *action) getWinner(addrRes []*types.AddressResult) []*types.AddressResul
 		}
 	}
 
-	var results []*types.AddressResult
-	for _, addr := range addrRes {
+	var results []string
+	for _, addr := range addresXs {
 		if addr.IsWin {
-			result := &types.AddressResult{
-				Addr:   addr.Addr,
-				Amount: addr.Amount,
-				IsWin:  addr.IsWin,
-			}
+			result := addr.Addr
 			results = append(results, result)
 		}
 	}
@@ -416,23 +424,19 @@ func (a *action) getWinner(addrRes []*types.AddressResult) []*types.AddressResul
 	return results
 }
 
-func (a *action) getLoser(addrRes []*types.AddressResult) []*types.AddressResult {
+func (a *action) getLoser(addrRes []*types.AddressResult) []string {
 
 	wins := a.getWinner(addrRes)
 
 	addMap := make(map[string]bool)
 	for _, win := range wins {
-		addMap[win.Addr] = true
+		addMap[win] = true
 	}
 
-	var results []*types.AddressResult
+	var results []string
 	for _, addr := range addrRes {
 		if ok := addMap[addr.Addr]; !ok {
-			result := &types.AddressResult{
-				Addr:   addr.Addr,
-				Amount: addr.Amount,
-				IsWin:  addr.IsWin,
-			}
+			result := addr.Addr
 			results = append(results, result)
 		}
 	}

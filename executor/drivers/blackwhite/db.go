@@ -28,7 +28,7 @@ func newRound(create *types.BlackwhiteCreate, creator string) *types.BlackwhiteR
 	t := &types.BlackwhiteRound{}
 
 	t.Status = gt.BlackwhiteStatusReady
-	t.MaxAmount = create.MaxAmount
+	t.PlayAmount = create.PlayAmount
 	t.PlayerCount = create.PlayerCount
 	t.CreateAddr = creator
 	t.Timeout = create.Timeout
