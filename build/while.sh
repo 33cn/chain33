@@ -1,5 +1,4 @@
 #!/bin/bash
-while :
-do
+while :; do
     ./chain33-cli net time
 done
