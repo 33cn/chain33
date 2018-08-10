@@ -3,6 +3,7 @@ package rpc
 import (
 	"encoding/hex"
 	"math/rand"
+	"time"
 
 	"encoding/json"
 
@@ -415,8 +416,8 @@ func (c *channelClient) GetTimeStatus() (*types.TimeStatus, error) {
 	if ntpTime.IsZero() {
 		return &types.TimeStatus{NtpTime: "", LocalTime: local.Format("2006-01-02 15:04:05"), Diff: 0}, nil
 	}
-	diff := local.Unix() - ntpTime.Unix()
-	return &types.TimeStatus{NtpTime: ntpTime.Format("2006-01-02 15:04:05"), LocalTime: local.Format("2006-01-02 15:04:05"), Diff: diff}, nil
+	diff := local.Sub(ntpTime) / time.Second
+	return &types.TimeStatus{NtpTime: ntpTime.Format("2006-01-02 15:04:05"), LocalTime: local.Format("2006-01-02 15:04:05"), Diff: int64(diff)}, nil
 }
 
 func (c *channelClient) CreateRawRelayOrderTx(parm *RelayOrderTx) ([]byte, error) {
