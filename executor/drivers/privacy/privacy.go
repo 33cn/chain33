@@ -30,9 +30,9 @@ import (
 var privacylog = log.New("module", "execs.privacy")
 
 func Init() {
-	// drivers.Register(newPrivacy().GetName(), newPrivacy, types.ForkV21Privacy)
+	drivers.Register(newPrivacy().GetName(), newPrivacy, types.ForkV21Privacy)
 	// 如果需要在开发环境下使用隐私交易，则需要使用下面这行代码，否则用上面的代码
-	drivers.Register(newPrivacy().GetName(), newPrivacy, 0)
+	//drivers.Register(newPrivacy().GetName(), newPrivacy, 0)
 }
 
 type privacy struct {
@@ -608,7 +608,7 @@ func (p *privacy) CheckTx(tx *types.Transaction, index int) error {
 	if !res {
 		if errIndex >= 0 && errIndex < int32(len(keyinput)) {
 			input := keyinput[errIndex]
-			privacylog.Error("PrivacyTrading CheckTx", "txhash", txhashstr, "UTXO spent already errindex", errIndex, "utxo amout", input.Amount, "utxo keyimage", common.ToHex(input.KeyImage))
+			privacylog.Error("PrivacyTrading CheckTx", "txhash", txhashstr, "UTXO spent already errindex", errIndex, "utxo amout", input.Amount/types.Coin, "utxo keyimage", common.ToHex(input.KeyImage))
 		}
 		privacylog.Error("PrivacyTrading CheckTx", "txhash", txhashstr, "checkUTXOValid failed ")
 		return types.ErrDoubleSpendOccur
