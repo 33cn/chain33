@@ -215,15 +215,15 @@ func (a *action) TimeoutDone(done *types.BlackwhiteTimeoutDone) (*types.Receipt,
 	}
 
 	// 检查当前状态
-	if gt.BlackwhiteStatusReady != round.Status {
-		err := types.ErrNoCancel
-		clog.Error("blackwhite timeout done ", "addr", a.fromaddr, "execaddr", a.execaddr, "GameID Status",
-			done.GameID, "err", err)
+	if gt.BlackwhiteStatusPlay != round.Status{
+		err := types.ErrTimeout
+		clog.Error("blackwhite timeout done ", "addr", a.fromaddr, "execaddr", a.execaddr, "GameID",
+			done.GameID, "Status", round.Status, "err", err)
 		return nil, err
 	}
 
 	if round.CreateAddr != a.fromaddr {
-		err := types.ErrNoCancel
+		err := types.ErrTimeout
 		clog.Error("blackwhite timeout done ", "addr", a.fromaddr, "execaddr", a.execaddr, "not create addr,can not cancel ",
 			done.GameID, "err", err)
 		return nil, err
