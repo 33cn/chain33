@@ -675,6 +675,7 @@ func testAutoMining(t *testing.T, wallet *Wallet) {
 	wallet.client.Send(msg, true)
 	_, err := wallet.client.Wait(msg)
 	require.NoError(t, err)
+	println("Sleep 130 second for mining")
 	time.Sleep(time.Second * 130)
 	msg = wallet.client.NewMessage("wallet", types.EventWalletAutoMiner, &types.MinerFlag{Flag: 0})
 	wallet.client.Send(msg, true)
