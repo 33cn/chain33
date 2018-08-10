@@ -7,6 +7,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	v "gitlab.33.cn/chain33/chain33/common/version"
 	pb "gitlab.33.cn/chain33/chain33/types"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -21,14 +22,14 @@ func (p *Peer) Start() {
 func (p *Peer) Close() {
 	atomic.StoreInt32(&p.isclose, 1)
 	p.mconn.Close()
-	pub.Unsub(p.taskChan, "block", "tx")
+	p.node.pubsub.Unsub(p.taskChan, "block", "tx")
 	log.Info("Peer", "closed", p.Addr())
 
 }
 
 type Peer struct {
 	mutx         sync.Mutex
-	nodeInfo     **NodeInfo
+	node         *Node
 	conn         *grpc.ClientConn // source connection
 	persistent   bool
 	isclose      int32
@@ -42,12 +43,11 @@ type Peer struct {
 	IsMaxInbouds bool
 }
 
-func NewPeer(conn *grpc.ClientConn, nodeinfo **NodeInfo, remote *NetAddress) *Peer {
+func NewPeer(conn *grpc.ClientConn, node *Node, remote *NetAddress) *Peer {
 	p := &Peer{
-		conn:     conn,
-		nodeInfo: nodeinfo,
+		conn: conn,
+		node: node,
 	}
-
 	p.peerStat = new(Stat)
 	p.version = new(Version)
 	p.version.SetSupport(true)
@@ -60,6 +60,7 @@ type Version struct {
 	version        int32
 	versionSupport bool
 }
+
 type Stat struct {
 	mtx sync.Mutex
 	ok  bool
@@ -114,12 +115,12 @@ func (p *Peer) heartBeat() {
 		if !p.GetRunning() {
 			return
 		}
-		peername, err := pcli.SendVersion(p, *p.nodeInfo)
+		peername, err := pcli.SendVersion(p, p.node.nodeInfo)
 		P2pComm.CollectPeerStat(err, p)
 		if err == nil {
 			log.Debug("sendVersion", "peer name", peername)
 			p.SetPeerName(peername) //设置连接的远程节点的节点名称
-			p.taskChan = pub.Sub("block", "tx")
+			p.taskChan = p.node.pubsub.Sub("block", "tx")
 			go p.sendStream()
 			go p.readStream()
 			break
@@ -137,7 +138,7 @@ func (p *Peer) heartBeat() {
 		}
 
 		<-ticker.C
-		err := pcli.SendPing(p, *p.nodeInfo)
+		err := pcli.SendPing(p, p.node.nodeInfo)
 		P2pComm.CollectPeerStat(err, p)
 		peernum, err := pcli.GetInPeersNum(p)
 		P2pComm.CollectPeerStat(err, p)
@@ -173,7 +174,7 @@ func (p *Peer) sendStream() {
 			continue
 		}
 		//send ping package
-		ping, err := P2pComm.NewPingData(*p.nodeInfo)
+		ping, err := P2pComm.NewPingData(p.node.nodeInfo)
 		if err != nil {
 			resp.CloseSend()
 			cancel()
@@ -190,6 +191,18 @@ func (p *Peer) sendStream() {
 			continue
 		}
 
+		//send softversion&p2pversion
+		_, peername := p.node.nodeInfo.addrBook.GetPrivPubKey()
+		p2pdata.Value = &pb.BroadCastData_Version{Version: &pb.Versions{P2Pversion: p.node.nodeInfo.cfg.GetVersion(),
+			Softversion: v.GetVersion(), Peername: peername}}
+
+		if err := resp.Send(p2pdata); err != nil {
+			resp.CloseSend()
+			cancel()
+			log.Error("sendStream", "sendping", err)
+			time.Sleep(time.Second)
+			continue
+		}
 		timeout := time.NewTimer(time.Second * 2)
 		defer timeout.Stop()
 		var hash [64]byte
@@ -210,7 +223,7 @@ func (p *Peer) sendStream() {
 					hex.Encode(hash[:], block.GetBlock().Hash())
 					blockhash := string(hash[:])
 					log.Debug("sendStream", "will send block", blockhash)
-					pinfo, err := p.GetPeerInfo((*p.nodeInfo).cfg.GetVersion())
+					pinfo, err := p.GetPeerInfo(p.node.nodeInfo.cfg.GetVersion())
 					P2pComm.CollectPeerStat(err, p)
 					if err == nil {
 						if pinfo.GetHeader().GetHeight() >= height {
@@ -235,7 +248,7 @@ func (p *Peer) sendStream() {
 				if err != nil {
 					log.Error("sendStream", "send", err)
 					if grpc.Code(err) == codes.Unimplemented { //maybe order peers delete peer to BlackList
-						(*p.nodeInfo).blacklist.Add(p.Addr(), 3600)
+						p.node.nodeInfo.blacklist.Add(p.Addr(), 3600)
 					}
 					time.Sleep(time.Second) //have a rest
 					resp.CloseSend()
@@ -269,7 +282,7 @@ func (p *Peer) readStream() {
 			log.Debug("readstream", "loop", "done")
 			return
 		}
-		ping, err := P2pComm.NewPingData(*p.nodeInfo)
+		ping, err := P2pComm.NewPingData(p.node.nodeInfo)
 		if err != nil {
 			log.Error("readStream", "err:", err.Error())
 			continue
@@ -281,6 +294,7 @@ func (p *Peer) readStream() {
 			time.Sleep(time.Second)
 			continue
 		}
+
 		log.Debug("SubStreamBlock", "Start", p.Addr())
 		var hash [64]byte
 		for {
@@ -294,7 +308,7 @@ func (p *Peer) readStream() {
 				log.Error("readStream", "recv,err:", err.Error())
 				resp.CloseSend()
 				if grpc.Code(err) == codes.Unimplemented { //maybe order peers delete peer to BlackList
-					(*p.nodeInfo).blacklist.Add(p.Addr(), 3600)
+					p.node.nodeInfo.blacklist.Add(p.Addr(), 3600)
 				}
 				//beyound max inbound num
 				if strings.Contains(err.Error(), "beyound max inbound num") {
@@ -311,15 +325,18 @@ func (p *Peer) readStream() {
 					//如果已经有登记过的消息记录，则不发送给本地blockchain
 					hex.Encode(hash[:], block.GetBlock().Hash())
 					blockhash := string(hash[:])
+					Filter.GetLock()
 					if Filter.QueryRecvData(blockhash) {
+						Filter.ReleaseLock()
 						continue
 					}
-
+					Filter.RegRecvData(blockhash)
+					Filter.ReleaseLock()
 					//判断比自己低的区块，则不发送给blockchain
 
-					height, err := pcli.GetBlockHeight((*p.nodeInfo))
+					height, err := pcli.GetBlockHeight(p.node.nodeInfo)
 					if err == nil {
-						if height >= block.GetBlock().GetHeight() {
+						if height >= block.GetBlock().GetHeight()+128 {
 							continue
 						}
 					}
@@ -327,13 +344,13 @@ func (p *Peer) readStream() {
 					log.Info("readStream", "block==+======+====+=>Height", block.GetBlock().GetHeight(), "from peer", p.Addr(),
 						"block size(KB)", float32(len(pb.Encode(block)))/1024, "block hash",
 						blockhash)
-					msg := (*p.nodeInfo).client.NewMessage("blockchain", pb.EventBroadcastAddBlock, &pb.BlockPid{p.GetPeerName(), block.GetBlock()})
-					err = (*p.nodeInfo).client.Send(msg, false)
+					msg := p.node.nodeInfo.client.NewMessage("blockchain", pb.EventBroadcastAddBlock, &pb.BlockPid{p.GetPeerName(), block.GetBlock()})
+					err = p.node.nodeInfo.client.Send(msg, false)
 					if err != nil {
 						log.Error("readStream", "send to blockchain Error", err.Error())
 						continue
 					}
-					Filter.RegRecvData(blockhash) //添加发送登记，下次通过stream 接收同样的消息的时候可以过滤
+					//Filter.RegRecvData(blockhash) //添加发送登记，下次通过stream 接收同样的消息的时候可以过滤
 				}
 
 			} else if tx := data.GetTx(); tx != nil {
@@ -342,12 +359,16 @@ func (p *Peer) readStream() {
 					hex.Encode(hash[:], tx.Tx.Hash())
 					txhash := string(hash[:])
 					log.Debug("readStream", "tx", txhash)
+					Filter.GetLock()
 					if Filter.QueryRecvData(txhash) {
+						Filter.ReleaseLock()
 						continue //处理方式同上
 					}
-					msg := (*p.nodeInfo).client.NewMessage("mempool", pb.EventTx, tx.GetTx())
-					(*p.nodeInfo).client.Send(msg, false)
-					Filter.RegRecvData(txhash) //登记
+					Filter.RegRecvData(txhash)
+					Filter.ReleaseLock()
+					msg := p.node.nodeInfo.client.NewMessage("mempool", pb.EventTx, tx.GetTx())
+					p.node.nodeInfo.client.Send(msg, false)
+					//Filter.RegRecvData(txhash) //登记
 				}
 			}
 		}

@@ -1,0 +1,64 @@
+title = "relayd"
+
+trace = false
+Tick33 =60
+TickBTC = 30
+firstBtcHeight = 10
+# 0：btcd ; 1:btcdweb
+btcdOrWeb = 0
+syncSetup = 100
+syncSetupCount = 10
+
+[auth]
+# test private key
+privateKey = "CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944"
+publicKey = ""
+address = ""
+
+[chain33]
+id = "chain33"
+host = "chain33:8802"
+user = ""
+pass = ""
+disableAutoReconnect = true
+reconnectAttempts = 10
+
+[btcd]
+id = "bitcoin"
+host = "btcd:18556"
+endpoint = "ws"
+user = "root"
+pass = "1314"
+disableTLS = false
+certPath = "/root"
+proxy = ""
+proxyUser = ""
+proxyPass = ""
+disableAutoReconnect = true
+disableConnectOnNew = false
+# exchange protocol wss and https
+HTTPPostMode = false
+enableBCInfoHacks = false
+reconnectAttempts = 10
+
+[log]
+# 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
+loglevel = "debug"
+logConsoleLevel = "debug"
+# 日志文件名，可带目录，所有生成的日志文件都放到此目录下
+logFile = "logs/relayd.log"
+# 单个日志文件的最大值（单位：兆）
+maxFileSize = 100
+# 最多保存的历史日志文件个数
+maxBackups = 50
+# 最多保存的历史日志消息（单位：天）
+maxAge = 28
+# 日志文件名是否使用本地事件（否则使用UTC时间）
+localTime = true
+# 历史日志文件是否压缩（压缩格式为gz）
+compress = true
+# 是否打印调用源文件和行号
+callerFile = false
+# 是否打印调用方法
+callerFunction = false
+

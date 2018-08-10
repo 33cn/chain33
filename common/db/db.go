@@ -3,16 +3,21 @@ package db
 import (
 	"errors"
 	"fmt"
+
+	lru "github.com/hashicorp/golang-lru"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var ErrNotFoundInDb = errors.New("ErrNotFoundInDb")
 
 type Lister interface {
 	List(prefix, key []byte, count, direction int32) ([][]byte, error)
+	PrefixCount(prefix []byte) int64
 }
 
 type KV interface {
 	Get(key []byte) ([]byte, error)
+	BatchGet(keys [][]byte) (values [][]byte, err error)
 	Set(key []byte, value []byte) (err error)
 	Begin()
 	Rollback()
@@ -36,6 +41,29 @@ type DB interface {
 	// For debugging
 	Print()
 	Stats() map[string]string
+	SetCacheSize(size int)
+	GetCache() *lru.ARCCache
+}
+
+type KVDBList struct {
+	DB
+	list *ListHelper
+}
+
+func (l *KVDBList) List(prefix, key []byte, count, direction int32) ([][]byte, error) {
+	vals := l.list.List(prefix, key, count, direction)
+	if vals == nil {
+		return nil, types.ErrNotFound
+	}
+	return vals, nil
+}
+
+func (l *KVDBList) PrefixCount(prefix []byte) int64 {
+	return l.list.PrefixCount(prefix)
+}
+
+func NewKVDB(db DB) KVDB {
+	return &KVDBList{DB: db, list: NewListHelper(db)}
 }
 
 type Batch interface {
@@ -107,4 +135,31 @@ func NewDB(name string, backend string, dir string, cache int32) DB {
 		panic("initializing DB error")
 	}
 	return db
+}
+
+type TransactionDB struct {
+	cache *lru.ARCCache
+}
+
+func (db *TransactionDB) Begin() {
+
+}
+
+func (db *TransactionDB) Rollback() {
+
+}
+
+func (db *TransactionDB) Commit() {
+
+}
+
+func (db *TransactionDB) GetCache() *lru.ARCCache {
+	return db.cache
+}
+
+func (db *TransactionDB) SetCacheSize(size int) {
+	if db.cache != nil {
+		return
+	}
+	db.cache, _ = lru.NewARC(size)
 }

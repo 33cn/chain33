@@ -87,6 +87,7 @@ func createContract(cmd *cobra.Command, args []string) {
 	alias, _ := cmd.Flags().GetString("alias")
 	fee, _ := cmd.Flags().GetFloat64("fee")
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	paraName, _ := cmd.Flags().GetString("paraName")
 
 	feeInt64 := uint64(fee*1e4) * 1e4
 
@@ -97,7 +98,7 @@ func createContract(cmd *cobra.Command, args []string) {
 	}
 	action := types.EVMContractAction{Amount: 0, Code: bCode, GasLimit: 0, GasPrice: 0, Note: note, Alias: alias}
 
-	data, err := createEvmTx(&action, "evm", caller, address.ExecAddress("evm"), expire, rpcLaddr, feeInt64)
+	data, err := createEvmTx(&action, types.ExecName(paraName+"evm"), caller, address.ExecAddress(types.ExecName(paraName+"evm")), expire, rpcLaddr, feeInt64)
 
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "create contract error:", err)
@@ -147,20 +148,23 @@ func createEvmTx(action proto.Message, execer, caller, addr, expire, rpcLaddr st
 	return res, nil
 }
 
-func createEvmTransferTx(caller, execName, expire, rpcLaddr string, amountInt64 int64, isWithdraw bool) (string, error) {
-
+func createEvmTransferTx(cmd *cobra.Command, caller, execName, expire, rpcLaddr string, amountInt64 int64, isWithdraw bool) (string, error) {
+	paraName, _ := cmd.Flags().GetString("paraName")
 	var tx *types.Transaction
 	transfer := &types.CoinsAction{}
 
 	if isWithdraw {
-		transfer.Value = &types.CoinsAction_Withdraw{Withdraw: &types.CoinsWithdraw{Amount: amountInt64, ExecName: execName}}
+		transfer.Value = &types.CoinsAction_Withdraw{Withdraw: &types.CoinsWithdraw{Amount: amountInt64, ExecName: execName, To: address.ExecAddress(execName)}}
 		transfer.Ty = types.CoinsActionWithdraw
 	} else {
-		transfer.Value = &types.CoinsAction_TransferToExec{TransferToExec: &types.CoinsTransferToExec{Amount: amountInt64, ExecName: execName}}
+		transfer.Value = &types.CoinsAction_TransferToExec{TransferToExec: &types.CoinsTransferToExec{Amount: amountInt64, ExecName: execName, To: address.ExecAddress(execName)}}
 		transfer.Ty = types.CoinsActionTransferToExec
 	}
-
-	tx = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), To: address.ExecAddress(execName)}
+	if paraName == "" {
+		tx = &types.Transaction{Execer: []byte(types.ExecName(paraName + "coins")), Payload: types.Encode(transfer), To: address.ExecAddress(execName)}
+	} else {
+		tx = &types.Transaction{Execer: []byte(types.ExecName(paraName + "coins")), Payload: types.Encode(transfer), To: address.ExecAddress(types.ExecName(paraName + "coins"))}
+	}
 
 	var err error
 	tx.Fee, err = tx.GetRealFee(types.MinFee)
@@ -228,6 +232,7 @@ func callContract(cmd *cobra.Command, args []string) {
 
 	action := types.EVMContractAction{Amount: amountInt64, Code: bCode, GasLimit: 0, GasPrice: 0, Note: note}
 
+	//name表示发给哪个执行器
 	data, err := createEvmTx(&action, name, caller, toAddr, expire, rpcLaddr, feeInt64)
 
 	if err != nil {
@@ -338,7 +343,7 @@ func checkContractAddr(cmd *cobra.Command, args []string) {
 	name, _ := cmd.Flags().GetString("exec")
 	toAddr := to
 	if len(toAddr) == 0 && len(name) > 0 {
-		if strings.HasPrefix(name, "user.evm.") {
+		if strings.Contains(name, types.UserEvmX) {
 			toAddr = address.ExecAddress(name)
 		}
 	}
@@ -423,7 +428,7 @@ func evmTransfer(cmd *cobra.Command, args []string) {
 
 	amountInt64 := int64(amount*1e4) * 1e4
 
-	data, err := createEvmTransferTx(caller, to, expire, rpcLaddr, amountInt64, false)
+	data, err := createEvmTransferTx(cmd, caller, to, expire, rpcLaddr, amountInt64, false)
 
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "create contract transfer error:", err)
@@ -471,7 +476,7 @@ func evmWithdraw(cmd *cobra.Command, args []string) {
 
 	amountInt64 := int64(amount*1e4) * 1e4
 
-	data, err := createEvmTransferTx(caller, from, expire, rpcLaddr, amountInt64, true)
+	data, err := createEvmTransferTx(cmd, caller, from, expire, rpcLaddr, amountInt64, true)
 
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "create contract transfer error:", err)

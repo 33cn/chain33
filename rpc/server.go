@@ -1,6 +1,8 @@
 package rpc
 
 import (
+	"net"
+
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 
@@ -13,6 +15,8 @@ var (
 	rpcCfg            *types.Rpc
 	jrpcFuncWhitelist = make(map[string]bool)
 	grpcFuncWhitelist = make(map[string]bool)
+	jrpcFuncBlacklist = make(map[string]bool)
+	grpcFuncBlacklist = make(map[string]bool)
 )
 
 type Chain33 struct {
@@ -39,17 +43,24 @@ func (s *JSONRPCServer) Close() {
 }
 
 func checkIpWhitelist(addr string) bool {
-
+	//回环网络直接允许
+	ip := net.ParseIP(addr)
+	if ip.IsLoopback() {
+		return true
+	}
+	ipv4 := ip.To4()
+	if ipv4 != nil {
+		addr = ipv4.String()
+	}
 	if _, ok := remoteIpWhitelist["0.0.0.0"]; ok {
 		return true
 	}
-
 	if _, ok := remoteIpWhitelist[addr]; ok {
 		return true
 	}
 	return false
 }
-func checkJrpcFuncWritelist(funcName string) bool {
+func checkJrpcFuncWhitelist(funcName string) bool {
 
 	if _, ok := jrpcFuncWhitelist["*"]; ok {
 		return true
@@ -60,7 +71,7 @@ func checkJrpcFuncWritelist(funcName string) bool {
 	}
 	return false
 }
-func checkGrpcFuncWritelist(funcName string) bool {
+func checkGrpcFuncWhitelist(funcName string) bool {
 
 	if _, ok := grpcFuncWhitelist["*"]; ok {
 		return true
@@ -71,6 +82,19 @@ func checkGrpcFuncWritelist(funcName string) bool {
 	}
 	return false
 }
+func checkJrpcFuncBlacklist(funcName string) bool {
+	if _, ok := jrpcFuncBlacklist[funcName]; ok {
+		return true
+	}
+	return false
+}
+func checkGrpcFuncBlacklist(funcName string) bool {
+	if _, ok := grpcFuncBlacklist[funcName]; ok {
+		return true
+	}
+	return false
+}
+
 func (j *Grpcserver) Close() {
 	j.grpc.cli.Close()
 
@@ -93,7 +117,10 @@ func Init(cfg *types.Rpc) {
 	InitIpWhitelist(cfg)
 	InitJrpcFuncWhitelist(cfg)
 	InitGrpcFuncWhitelist(cfg)
+	InitJrpcFuncBlacklist(cfg)
+	InitGrpcFuncBlacklist(cfg)
 }
+
 func InitIpWhitelist(cfg *types.Rpc) {
 	if len(cfg.GetWhitelist()) == 0 && len(cfg.GetWhitlist()) == 0 {
 		remoteIpWhitelist["127.0.0.1"] = true
@@ -145,5 +172,24 @@ func InitGrpcFuncWhitelist(cfg *types.Rpc) {
 	}
 	for _, funcName := range cfg.GetGrpcFuncWhitelist() {
 		grpcFuncWhitelist[funcName] = true
+	}
+}
+func InitJrpcFuncBlacklist(cfg *types.Rpc) {
+	if len(cfg.GetJrpcFuncBlacklist()) == 0 {
+		jrpcFuncBlacklist["CloseQueue"] = true
+		return
+	}
+	for _, funcName := range cfg.GetJrpcFuncBlacklist() {
+		jrpcFuncBlacklist[funcName] = true
+	}
+
+}
+func InitGrpcFuncBlacklist(cfg *types.Rpc) {
+	if len(cfg.GetGrpcFuncBlacklist()) == 0 {
+		grpcFuncBlacklist["CloseQueue"] = true
+		return
+	}
+	for _, funcName := range cfg.GetGrpcFuncBlacklist() {
+		grpcFuncBlacklist[funcName] = true
 	}
 }
