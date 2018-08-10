@@ -13,7 +13,7 @@ const (
 	MinAmount      int64 = 1 * types.Coin
 	minPlayerCount int32 = 3
 	MaxMatchCount  int   = 10
-	lockAmount     int64 = 100 * 1e8
+	lockAmount     int64 = types.Coin/100
 )
 
 type action struct {
@@ -43,7 +43,7 @@ func (a *action) Create(create *types.BlackwhiteCreate) (*types.Receipt, error) 
 
 	receipt, err := a.coinsAccount.ExecFrozen(a.fromaddr, a.execaddr, lockAmount)
 	if err != nil {
-		clog.Error("account ExecFrozen create ", "addrFrom", a.fromaddr, "execAddr", a.execaddr, "amount", lockAmount)
+		clog.Error("blackwhite create ExecFrozen ", "addr", a.fromaddr, "execaddr", a.execaddr, "amount", lockAmount)
 		return nil, err
 	}
 
@@ -101,20 +101,22 @@ func (a *action) Play(play *types.BlackwhitePlay) (*types.Receipt, error) {
 		}
 	}
 
-	if play.Amount <= 0 {
+	if round.MaxAmount != play.Amount {
+		clog.Error("blackwhite play ", "addr", a.fromaddr, "execaddr", a.execaddr, "have not same amount in once round",
+			play.GameID)
 		return nil, types.ErrInputPara
 	}
 
-	acc := a.coinsAccount.LoadExecAccount(a.fromaddr, a.execaddr)
-	if acc.Balance < play.Amount {
-		return nil, types.ErrNoBalance
-	}
+	var logs []*types.ReceiptLog
+	var kv []*types.KeyValue
 
 	receipt, err := a.coinsAccount.ExecFrozen(a.fromaddr, a.execaddr, play.Amount)
 	if err != nil {
 		clog.Error("blackwhite Play", "addr", a.fromaddr, "execaddr", a.execaddr, "amount", play.Amount)
 		return nil, err
 	}
+	logs = append(logs, receipt.Logs...)
+	kv = append(kv, receipt.KV...)
 
 	round.Status = gt.BlackwhiteStatusPlay
 	addrRes := &types.AddressResult{
@@ -124,34 +126,24 @@ func (a *action) Play(play *types.BlackwhitePlay) (*types.Receipt, error) {
 	round.AddrResult = append(round.AddrResult, addrRes)
 	round.CurPlayerCount++
 
-	var logs []*types.ReceiptLog
-	var kv []*types.KeyValue
-	logs = append(logs, receipt.Logs...)
-	kv = append(kv, receipt.KV...)
-
-	key1 := calcRoundKey(round.GameID)
-	value1 := types.Encode(&round)
-
-	kv = append(kv, &types.KeyValue{key1, value1})
-
 	if round.CurPlayerCount >= round.PlayerCount {
 		// 触发开奖
 		round.Status = gt.BlackwhiteStatusDone
 		receipt, err := a.StatTransfer(&round)
 		if err != nil {
-			clog.Error("blackwhite timeout done ", "StatTransfer err", err)
+			clog.Error("blackwhite done fail", "StatTransfer err", err)
 			return nil, err
 		}
-
-		var kv []*types.KeyValue
-		var logs []*types.ReceiptLog
-
 		logs = append(logs, receipt.Logs...)
 		kv = append(kv, receipt.KV...)
 	} else {
 		log := &types.ReceiptBlackwhite{&round}
 		logs = append(logs, &types.ReceiptLog{types.TyLogBlackwhitePlay, types.Encode(log)})
 	}
+
+	key1 := calcRoundKey(round.GameID)
+	value1 := types.Encode(&round)
+	kv = append(kv, &types.KeyValue{key1, value1})
 
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
 }
@@ -254,23 +246,25 @@ func (a *action) StatTransfer(round *types.BlackwhiteRound) (*types.Receipt, err
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
 
+	roundAmount := round.MaxAmount
+
 	if len(winers) == 0 {
+		// 将所有参与人员都解冻
 		for _, addrRes := range round.AddrResult {
-			receipt, err := a.coinsAccount.ExecActive(addrRes.Addr, a.execaddr, addrRes.Amount)
+			receipt, err := a.coinsAccount.ExecActive(addrRes.Addr, a.execaddr, roundAmount)
 			if err != nil {
-				clog.Error("guessing Revoke", "addr", a.fromaddr, "execaddr", a.execaddr, "amount", addrRes.Amount,
-					"err", err)
+				clog.Error("StatTransfer execActive no winers", "addr", a.fromaddr, "execaddr", a.execaddr, "err", err)
 				return nil, err
 			}
 			logs = append(logs, receipt.Logs...)
 			kv = append(kv, receipt.KV...)
 		}
 	} else {
+		// 胜利人员都解冻
 		for _, addrRes := range winers {
-			receipt, err := a.coinsAccount.ExecActive(addrRes.Addr, a.execaddr, addrRes.Amount)
+			receipt, err := a.coinsAccount.ExecActive(addrRes.Addr, a.execaddr, roundAmount)
 			if err != nil {
-				clog.Error("guessing Revoke", "addr", a.fromaddr, "execaddr", a.execaddr, "amount", addrRes.Amount,
-					"err", err)
+				clog.Error("StatTransfer execActive have winers", "addr", a.fromaddr, "execaddr", a.execaddr, "err", err)
 				return nil, err
 			}
 			logs = append(logs, receipt.Logs...)
@@ -278,25 +272,20 @@ func (a *action) StatTransfer(round *types.BlackwhiteRound) (*types.Receipt, err
 		}
 
 		Losers := a.getLoser(round.AddrResult)
-
-		var amount int64 = 0
-		for _, loser := range Losers {
-			amount += loser.Amount
-		}
+		sumAmount := roundAmount * int64(len(Losers))
 
 		//var averAmount int64
 		var winNum int64
 		winNum = int64(len(winers))
-		averAmount := amount / winNum
+		averAmount := sumAmount / winNum
 
 		//先将所有loster的金额转到其中一个赢家中
 		winer := winers[0]
 		for _, addrRes := range Losers {
-			receipt, err := a.coinsAccount.ExecTransferFrozen(addrRes.Addr, winer.Addr, a.execaddr, addrRes.Amount)
+			receipt, err := a.coinsAccount.ExecTransferFrozen(addrRes.Addr, winer.Addr, a.execaddr, roundAmount)
 			if err != nil {
-				a.coinsAccount.ExecFrozen(winer.Addr, a.execaddr, addrRes.Amount) // rollback
-				clog.Error("guessing Revoke", "addr", winer.Addr, "execaddr", a.execaddr, "amount", addrRes.Amount,
-					"err", err)
+				a.coinsAccount.ExecFrozen(winer.Addr, a.execaddr, roundAmount) // rollback
+				clog.Error("StatTransfer all losers to once winer fail", "addr", winer.Addr, "execaddr", a.execaddr, "err", err)
 				return nil, err
 			}
 			logs = append(logs, receipt.Logs...)
@@ -307,9 +296,8 @@ func (a *action) StatTransfer(round *types.BlackwhiteRound) (*types.Receipt, err
 			if i != 0 {
 				receipt, err := a.coinsAccount.ExecTransferFrozen(winer.Addr, addrRes.Addr, a.execaddr, averAmount)
 				if err != nil {
-					a.coinsAccount.ExecFrozen(addrRes.Addr, a.execaddr, addrRes.Amount) // rollback
-					clog.Error("guessing Revoke", "addr", winer.Addr, "execaddr", a.execaddr, "amount", addrRes.Amount,
-						"err", err)
+					a.coinsAccount.ExecFrozen(addrRes.Addr, a.execaddr, roundAmount) // rollback
+					clog.Error("StatTransfer one winer to any other winers fail", "addr", winer.Addr, "execaddr", a.execaddr, "err", err)
 					return nil, err
 				}
 				logs = append(logs, receipt.Logs...)
@@ -322,9 +310,16 @@ func (a *action) StatTransfer(round *types.BlackwhiteRound) (*types.Receipt, err
 		round.Winner = append(round.Winner, addrRes.Addr)
 	}
 
-	key1 := calcRoundKey(round.GameID)
-	value1 := types.Encode(round)
-	kv = append(kv, &types.KeyValue{key1, value1})
+	// 将创建游戏者解冻
+	receipt, err := a.coinsAccount.ExecActive(round.CreateAddr, a.execaddr, lockAmount)
+	if err != nil {
+		a.coinsAccount.ExecFrozen(round.CreateAddr, a.execaddr, lockAmount)// rollback
+		clog.Error("blackwhite rollback create ExecFrozen ", "addr", round.CreateAddr, "execaddr", a.execaddr, "amount", lockAmount)
+		return nil, err
+	}
+	logs = append(logs, receipt.Logs...)
+	kv = append(kv, receipt.KV...)
+
 
 	log := &types.ReceiptBlackwhite{round}
 	if gt.BlackwhiteStatusTimeoutDone == round.Status {
@@ -352,6 +347,20 @@ func (a *action) getWinner(addrRes []*types.AddressResult) []*types.AddressResul
 	for index := 0; index < MaxMatchCount; index++ {
 		blackNum := 0
 		whiteNUm := 0
+		curWinNum := 0
+
+		for _, addres := range addrRes {
+			if addres.IsWin {
+				curWinNum++
+			}
+		}
+
+		if 0 == curWinNum {
+			for _, addres := range addrRes {
+				addres.IsWin = true
+			}
+		}
+
 		for _, addr := range addrRes {
 			if addr.IsWin {
 				if addr.IsBlack[index] {
@@ -411,7 +420,7 @@ func (a *action) getLoser(addrRes []*types.AddressResult) []*types.AddressResult
 
 	wins := a.getWinner(addrRes)
 
-	var addMap map[string]bool
+	addMap := make(map[string]bool)
 	for _, win := range wins {
 		addMap[win.Addr] = true
 	}
