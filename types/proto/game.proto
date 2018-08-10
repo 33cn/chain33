@@ -55,7 +55,7 @@ message GameCancel {
 message GameClose {
     string gameId = 1;
     string secret = 2;
-    int32  result = 3;
+//    int32  result = 3;
 }
 
 message GameCreate {
