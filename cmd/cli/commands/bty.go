@@ -360,7 +360,7 @@ func createPub2PrivTx(cmd *cobra.Command, args []string) {
 
 	params := types.ReqCreateTransaction{
 		Tokenname:  tokenname,
-		Type:       1,
+		Type:       types.PrivacyTypePublic2Privacy,
 		Amount:     amount,
 		Note:       note,
 		Pubkeypair: pubkeypair,
@@ -419,7 +419,7 @@ func createPriv2PrivTx(cmd *cobra.Command, args []string) {
 
 	params := types.ReqCreateTransaction{
 		Tokenname:  tokenname,
-		Type:       2,
+		Type:       types.PrivacyTypePrivacy2Privacy,
 		Amount:     amount,
 		Note:       note,
 		Pubkeypair: pubkeypair,
@@ -480,7 +480,7 @@ func createPriv2PubTx(cmd *cobra.Command, args []string) {
 
 	params := types.ReqCreateTransaction{
 		Tokenname: tokenname,
-		Type:      3,
+		Type:      types.PrivacyTypePrivacy2Public,
 		Amount:    amount,
 		Note:      note,
 		From:      from,
