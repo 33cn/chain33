@@ -15,15 +15,20 @@ import (
 )
 
 type LogMonitor struct {
-	keyWord string      // 查找日志时的关键字
-	logPath string      // 日志存放路径
-	channel chan string // 用于传出匹配结果的channel
-	bRegex  bool        // 是否使用正则表达式匹配
+	keyWord string        // 查找日志时的关键字
+	logPath string        // 日志存放路径
+	channel chan *LogInfo // 用于传出匹配结果的channel
+	bRegex  bool          // 是否使用正则表达式匹配
+}
+
+type LogInfo struct {
+	text string
+	time time.Time
 }
 
 func NewLogMonitor(k string, b bool) *LogMonitor {
 	path := "/usr/local/gopath/src/gitlab.33.cn/chain33/chain33/build/logs/chain33.log"
-	return &LogMonitor{k, path, make(chan string), b}
+	return &LogMonitor{k, path, make(chan *LogInfo), b}
 }
 
 func (l *LogMonitor) GetCurrentLog() (chan<- *tail.Line, error) {
@@ -36,25 +41,26 @@ func (l *LogMonitor) GetCurrentLog() (chan<- *tail.Line, error) {
 	return d.Lines, nil
 }
 
-func (l *LogMonitor) GetCurrentKeyInfo() (chan string, error) {
+func (l *LogMonitor) GetCurrentKeyInfo() (chan *LogInfo, error) {
 	d, err := tail.TailFile(l.logPath, tail.Config{Follow: true})
 	if err != nil {
 		fmt.Println("Get current string err,", err)
 		return nil, err
 	}
 
-	for line := range d.Lines {
-		if l.bRegex {
-			if ok, _ := regexp.MatchString(line.Text, l.keyWord); ok {
-				l.channel <- line.Text
-			}
-		} else {
-			if strings.Contains(line.Text, l.keyWord) {
-				fmt.Println("****************")
-				l.channel <- line.Text
+	go func() {
+		for line := range d.Lines {
+			if l.bRegex {
+				if ok, _ := regexp.MatchString(l.keyWord, line.Text); ok {
+					l.channel <- &LogInfo{line.Text, line.Time}
+				}
+			} else {
+				if strings.Contains(line.Text, l.keyWord) {
+					l.channel <- &LogInfo{line.Text, line.Time}
+				}
 			}
 		}
-	}
+	}()
 	return l.channel, nil
 }
 
