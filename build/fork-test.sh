@@ -81,7 +81,7 @@ function init() {
 
     ${CLI} net peer_info
     peersCount=$(${CLI} net peer_info | jq '.[] | length')
-    echo "net peer count is ${peersCount}"
+    echo "${peersCount}"
     if [ "${peersCount}" -lt 2 ]; then
         echo "peers error"
         exit 1
