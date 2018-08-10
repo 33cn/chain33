@@ -806,12 +806,12 @@ function genTransactionInType4() {
     amount=17
     printf '公对私交易 高度为:%s 转账金额为:%s \n' "${height}" "${amount}"
     note="公对私120秒超时"
-    pub2priv "${name}" "$fromAddr1" "$pk1" $note $amount 120
+    pub2priv "${name}" "$fromAddr1" "$pk1" $note 12 120
     block_wait_timeout "${name}" 1 16
     note="公对私3600秒超时"
-    pub2priv "${name}" "$fromAddr1" "$pk1" "$note" $amount 3600
+    pub2priv "${name}" "$fromAddr1" "$pk1" "$note" 13 3600
     note="公对私1800秒超时"
-    pub2priv "${name}" "$fromAddr1" "$pk1" "$note" $amount 1800
+    pub2priv "${name}" "$fromAddr1" "$pk1" "$note" 17 1800
     block_wait_timeout "${name}" 5 80
 
     height=$(${name} block last_header | jq ".height")
@@ -819,9 +819,16 @@ function genTransactionInType4() {
     mixcount=0
     printf '私对私交易 高度为:%s 转账金额为:%s \n' "${height}" "${amount}"
     note="私对私120秒超时"
-    genPrivacy2PrivacyTx "${name}" "$fromAddr1" "$pk2" "$note" $amount $mixcount 120
+    genPrivacy2PrivacyTx "${name}" "$fromAddr1" "$pk2" "$note" 7 $mixcount 120
+    block_wait_timeout "${name}" 1 16
     note="私对私3600秒超时"
-    genPrivacy2PrivacyTx "${name}" "$fromAddr1" "$pk2" "$note" $amount $mixcount 3600
+    genPrivacy2PrivacyTx "${name}" "$fromAddr1" "$pk2" "$note" 9 $mixcount 3600
+    note="私对私3600秒超时"
+    genPrivacy2PrivacyTx "${name}" "$fromAddr1" "$pk2" "$note" 19 $mixcount 3600
+    block_wait_timeout "${name}" 1 16
+    note="公对私120秒超时"
+    pub2priv "${name}" "$fromAddr1" "$pk1" $note 19 120
+    block_wait_timeout "${name}" 1 16
     block_wait_timeout "${name}" 5 80
 
     height=$(${name} block last_header | jq ".height")
