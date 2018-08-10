@@ -20,5 +20,5 @@ func TestGetRealTime(t *testing.T) {
 	nettime := GetRealTimeRetry(hosts, 10)
 	local := time.Now()
 	t.Log(nettime.Sub(local))
-	assert.Equal(t, local.Unix(), nettime.Unix())
+	assert.Equal(t, int(local.Sub(nettime)/time.Second), 0)
 }
