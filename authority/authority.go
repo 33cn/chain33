@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	alog         = log.New("module", "autority")
+	alog         = log.New("module", "authority")
 	OrgName      = "Chain33"
 	cpuNum       = runtime.NumCPU()
 	Author       = &Authority{}
