@@ -1,0 +1,12 @@
+syntax = "proto2";
+
+package conf;
+
+message Cfg{
+    optional  MonitorCfg cfg = 1;
+}
+
+message MonitorCfg {
+    optional string filePath = 1;
+    optional int64 interval = 2;
+}
