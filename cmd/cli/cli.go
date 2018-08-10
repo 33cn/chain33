@@ -6,7 +6,9 @@ import (
 
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/cmd/cli/commands"
+	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/log"
+	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 )
 
 var rootCmd = &cobra.Command{
@@ -20,19 +22,39 @@ var sendCmd = &cobra.Command{
 	Run:   func(cmd *cobra.Command, args []string) {},
 }
 
+var closeCmd = &cobra.Command{
+	Use:   "close",
+	Short: "Close chain33",
+	Run: func(cmd *cobra.Command, args []string) {
+		rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+		//		rpc, _ := jsonrpc.NewJSONClient(rpcLaddr)
+		//		rpc.Call("Chain33.CloseQueue", nil, nil)
+		var res jsonrpc.Reply
+		ctx := commands.NewRpcCtx(rpcLaddr, "Chain33.CloseQueue", nil, &res)
+		ctx.Run()
+	},
+}
+
 func init() {
-	rootCmd.PersistentFlags().String("rpc_laddr", "http://localhost:8801", "http url")
+	if config.RPCAddr == "" {
+		config.RPCAddr = "http://localhost:8801"
+	}
+	rootCmd.PersistentFlags().String("rpc_laddr", config.RPCAddr, "http url")
+	rootCmd.PersistentFlags().String("paraName", config.ParaName, "parachain")
 
 	rootCmd.AddCommand(
 		commands.AccountCmd(),
 		commands.BlockCmd(),
 		commands.BTYCmd(),
+		commands.CoinsCmd(),
 		commands.ConfigCmd(),
 		commands.EvmCmd(),
 		commands.ExecCmd(),
-		commands.KeyFileCmd(),
+		commands.HashlockCmd(),
 		commands.MempoolCmd(),
 		commands.NetCmd(),
+		commands.RelayCmd(),
+		commands.RetrieveCmd(),
 		commands.SeedCmd(),
 		commands.StatCmd(),
 		commands.TicketCmd(),
@@ -40,8 +62,11 @@ func init() {
 		commands.TradeCmd(),
 		commands.TxCmd(),
 		commands.WalletCmd(),
+		commands.PrivacyCmd(),
 		commands.VersionCmd(),
-		sendCmd)
+		sendCmd,
+		closeCmd,
+	)
 }
 
 func main() {

@@ -10,10 +10,10 @@ import (
 )
 
 var (
-	maxOrphanBlocks = 2 * MaxFetchBlockNum //最大孤儿block数量，考虑到同步阶段孤儿block会很多
+	maxOrphanBlocks = 10240 //最大孤儿block数量，考虑到同步阶段孤儿block会很多
 )
 
-const orphanExpirationTime = time.Second * 300
+const orphanExpirationTime = time.Second * 600 // 孤儿过期时间设置为10分钟
 
 //孤儿节点，就是本节点的父节点未知的block
 type orphanBlock struct {
@@ -21,6 +21,7 @@ type orphanBlock struct {
 	expiration time.Time
 	broadcast  bool
 	pid        string
+	sequence   int64
 }
 
 //孤儿节点的存储以blockhash作为map的索引。hash转换成string
@@ -112,7 +113,7 @@ func (op *OrphanPool) removeOrphanBlock(orphan *orphanBlock) {
 // It also imposes a maximum limit on the number of outstanding orphan
 // blocks and will remove the oldest received orphan block if the limit is
 // exceeded.
-func (op *OrphanPool) addOrphanBlock(broadcast bool, block *types.Block, pid string) {
+func (op *OrphanPool) addOrphanBlock(broadcast bool, block *types.Block, pid string, sequence int64) {
 
 	chainlog.Debug("addOrphanBlock:", "block.height", block.Height, "block.hash", common.ToHex(block.Hash()))
 
@@ -121,7 +122,7 @@ func (op *OrphanPool) addOrphanBlock(broadcast bool, block *types.Block, pid str
 
 	// 删除过期的孤儿节点从孤儿池中
 	for _, oBlock := range op.orphans {
-		if time.Now().After(oBlock.expiration) {
+		if types.Now().After(oBlock.expiration) {
 			chainlog.Debug("addOrphanBlock:removeOrphanBlock expiration", "block.height", oBlock.block.Height, "block.hash", common.ToHex(oBlock.block.Hash()))
 
 			op.removeOrphanBlock(oBlock)
@@ -134,20 +135,21 @@ func (op *OrphanPool) addOrphanBlock(broadcast bool, block *types.Block, pid str
 	}
 
 	// 孤儿池超过最大限制时，删除最早的一个孤儿block
-	if int64(len(op.orphans)+1) > maxOrphanBlocks {
+	if (len(op.orphans) + 1) > maxOrphanBlocks {
 		op.removeOrphanBlock(op.oldestOrphan)
 		chainlog.Debug("addOrphanBlock:removeOrphanBlock maxOrphanBlocks ", "block.height", op.oldestOrphan.block.Height, "block.hash", common.ToHex(op.oldestOrphan.block.Hash()))
 
 		op.oldestOrphan = nil
 	}
 
-	// 将本孤儿节点插入孤儿池中，并启动90秒的过期定时器
-	expiration := time.Now().Add(orphanExpirationTime)
+	// 将本孤儿节点插入孤儿池中，并启动过期定时器
+	expiration := types.Now().Add(orphanExpirationTime)
 	oBlock := &orphanBlock{
 		block:      block,
 		expiration: expiration,
 		broadcast:  broadcast,
 		pid:        pid,
+		sequence:   sequence,
 	}
 	op.orphans[string(block.Hash())] = oBlock
 

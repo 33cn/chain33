@@ -5,11 +5,11 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/golang/protobuf/proto"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
+	"gitlab.33.cn/chain33/chain33/common/version"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -18,7 +18,6 @@ var (
 	WalletFeeAmount = []byte("WalletFeeAmount")
 	EncryptionFlag  = []byte("Encryption")
 	PasswordHash    = []byte("PasswordHash")
-	WalletVerKey    = []byte("WalletVerKey")
 	storelog        = walletlog.New("submodule", "store")
 )
 
@@ -28,7 +27,7 @@ type Store struct {
 
 //用于所有Account账户的输出list，需要安装时间排序
 func calcAccountKey(timestamp string, addr string) []byte {
-	//timestamp := fmt.Sprintf("%018d", time.Now().Unix())
+	//timestamp := fmt.Sprintf("%018d", types.Now().Unix())
 	return []byte(fmt.Sprintf("Account:%s:%s", timestamp, addr))
 }
 
@@ -106,7 +105,7 @@ func (ws *Store) GetAccountByte(update bool, addr string, account *types.WalletA
 		return nil, types.ErrInputPara
 	}
 
-	timestamp := fmt.Sprintf("%018d", time.Now().Unix())
+	timestamp := fmt.Sprintf("%018d", types.Now().Unix())
 	//更新时需要使用原来的Accountkey
 	if update {
 		timestamp = account.TimeStamp
@@ -215,7 +214,7 @@ func (ws *Store) GetAccountByPrefix(addr string) ([]*types.WalletAccountStore, e
 }
 
 //迭代获取从指定key：height*100000+index 开始向前或者向后查找指定count的交易
-func (ws *Store) GetTxDetailByIter(TxList *types.ReqWalletTransactionList) (*types.WalletTxDetails, error) {
+func (ws *Store) getTxDetailByIter(TxList *types.ReqWalletTransactionList) (*types.WalletTxDetails, error) {
 	var txDetails types.WalletTxDetails
 	if TxList == nil {
 		walletlog.Error("GetTxDetailByIter TxList is nil")
@@ -248,13 +247,12 @@ func (ws *Store) GetTxDetailByIter(TxList *types.ReqWalletTransactionList) (*typ
 			walletlog.Error("GetTxDetailByIter", "proto.Unmarshal err:", err)
 			return nil, types.ErrUnmarshal
 		}
-		txhash := txdetail.GetTx().Hash()
-		txdetail.Txhash = txhash
-		if txdetail.GetTx().IsWithdraw() {
+		if string(txdetail.Tx.GetExecer()) == "coins" && txdetail.Tx.ActionName() == "withdraw" {
 			//swap from and to
 			txdetail.Fromaddr, txdetail.Tx.To = txdetail.Tx.To, txdetail.Fromaddr
 		}
-
+		txhash := txdetail.GetTx().Hash()
+		txdetail.Txhash = txhash
 		txDetails.TxDetails[index] = &txdetail
 		//print
 		//walletlog.Debug("GetTxDetailByIter", "txdetail:", txdetail.String())
@@ -331,28 +329,28 @@ func (ws *Store) DelAccountByLabel(label string) {
 }
 
 //升级数据库的版本号
-func (ws *Store) SetWalletVersion(version int64) error {
-	data, err := json.Marshal(version)
+func (ws *Store) SetWalletVersion(ver int64) error {
+	data, err := json.Marshal(ver)
 	if err != nil {
 		walletlog.Error("SetWalletVerKey marshal version", "err", err)
 		return types.ErrMarshal
 	}
 
-	ws.db.SetSync(WalletVerKey, data)
+	ws.db.SetSync(version.WalletVerKey, data)
 	return nil
 }
 
 // 获取wallet数据库的版本号
 func (ws *Store) GetWalletVersion() int64 {
-	var version int64
-	data, err := ws.db.Get(WalletVerKey)
+	var ver int64
+	data, err := ws.db.Get(version.WalletVerKey)
 	if data == nil || err != nil {
 		return 0
 	}
-	err = json.Unmarshal(data, &version)
+	err = json.Unmarshal(data, &ver)
 	if err != nil {
 		walletlog.Error("GetWalletVersion unmarshal", "err", err)
 		return 0
 	}
-	return version
+	return ver
 }

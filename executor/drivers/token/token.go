@@ -27,6 +27,7 @@ const (
 
 func Init() {
 	drivers.Register(newToken().GetName(), newToken, types.ForkV2AddToken)
+	setReciptPrefix()
 }
 
 type token struct {
@@ -40,7 +41,7 @@ func newToken() drivers.Driver {
 }
 
 func (t *token) GetName() string {
-	return "token"
+	return types.ExecName("token")
 }
 
 func (c *token) CheckTx(tx *types.Transaction, index int) error {
@@ -67,6 +68,9 @@ func (t *token) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 		return action.revokeCreate(tokenAction.GetTokenrevokecreate())
 
 	case types.ActionTransfer:
+		if tokenAction.GetTransfer() == nil {
+			return nil, types.ErrInputPara
+		}
 		token := tokenAction.GetTransfer().GetCointoken()
 		db, err := account.NewAccountDB(t.GetName(), token, t.GetStateDB())
 		if err != nil {
@@ -75,6 +79,9 @@ func (t *token) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 		return t.ExecTransWithdraw(db, tx, &tokenAction, index)
 
 	case types.ActionWithdraw:
+		if tokenAction.GetWithdraw() == nil {
+			return nil, types.ErrInputPara
+		}
 		token := tokenAction.GetWithdraw().GetCointoken()
 		db, err := account.NewAccountDB(t.GetName(), token, t.GetStateDB())
 		if err != nil {
@@ -83,6 +90,9 @@ func (t *token) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 		return t.ExecTransWithdraw(db, tx, &tokenAction, index)
 
 	case types.TokenActionTransferToExec:
+		if tokenAction.GetTransferToExec() == nil {
+			return nil, types.ErrInputPara
+		}
 		token := tokenAction.GetTransferToExec().GetCointoken()
 		db, err := account.NewAccountDB(t.GetName(), token, t.GetStateDB())
 		if err != nil {
@@ -103,12 +113,15 @@ func (t *token) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 	var set *types.LocalDBSet
 	if action.Ty == types.ActionTransfer || action.Ty == types.ActionWithdraw {
 		set, err = t.ExecLocalTransWithdraw(tx, receipt, index)
+		if err != nil {
+			return nil, err
+		}
 
-		if action.Ty == types.ActionTransfer {
+		if action.Ty == types.ActionTransfer && action.GetTransfer() != nil {
 			transfer := action.GetTransfer()
 			// 添加个人资产列表
-			//tokenlog.Info("ExecLocalTransWithdraw", "addr", tx.To, "asset", transfer.Cointoken)
-			kv := AddTokenToAssets(tx.To, t.GetLocalDB(), transfer.Cointoken)
+			//tokenlog.Info("ExecLocalTransWithdraw", "addr", tx.GetRealToAddr(), "asset", transfer.Cointoken)
+			kv := AddTokenToAssets(tx.GetRealToAddr(), t.GetLocalDB(), transfer.Cointoken)
 			if kv != nil {
 				set.KV = append(set.KV, kv...)
 			}
@@ -135,7 +148,7 @@ func (t *token) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 				set.KV = append(set.KV, receiptKV...)
 
 				// 添加个人资产列表
-				if item.Ty == types.TyLogFinishCreateToken {
+				if item.Ty == types.TyLogFinishCreateToken && action.GetTokenfinishcreate() != nil {
 					kv := AddTokenToAssets(action.GetTokenfinishcreate().Owner, t.GetLocalDB(), action.GetTokenfinishcreate().Symbol)
 					if kv != nil {
 						set.KV = append(set.KV, kv...)
@@ -250,14 +263,13 @@ func (t *token) GetAccountTokenAssets(req *types.ReqAccountTokenAssets) (types.M
 		if req.Execer == "trade" {
 			execaddress := address.ExecAddress(req.Execer)
 			acc1 = acc.LoadExecAccount(req.Address, execaddress)
-		} else if req.Execer == "token" {
+		} else if req.Execer == t.GetName() {
 			acc1 = acc.LoadAccount(req.Address)
 		}
 		if acc1 == nil {
 			continue
 		}
 		tokenAsset := &types.TokenAsset{asset, acc1}
-		//tokenlog.Info("GetAccountTokenAssets", "token-asset-symbol", asset, "info", acc1)
 		reply.TokenAssets = append(reply.TokenAssets, tokenAsset)
 	}
 	return reply, nil
@@ -330,7 +342,6 @@ func (t *token) GetTokens(reqTokens *types.ReqTokens) (types.Message, error) {
 				}
 			}
 		}
-
 	} else {
 		for _, token := range reqTokens.Tokens {
 			//list := dbm.NewListHelper(querydb)

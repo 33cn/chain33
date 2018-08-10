@@ -179,6 +179,11 @@ func (db *GoBadgerDB) Iterator(prefix []byte, reserse bool) Iterator {
 	return &goBadgerDBIt{it, txn, nil, prefix, reserse}
 }
 
+func (db *GoBadgerDB) BatchGet(keys [][]byte) (value [][]byte, err error) {
+	blog.Error("BatchGet", "Need to implement")
+	return nil, nil
+}
+
 type goBadgerDBIt struct {
 	*badger.Iterator
 	txn     *badger.Txn
@@ -267,18 +272,4 @@ func (mBatch *GoBadgerDBBatch) Write() error {
 		return err
 	}
 	return nil
-}
-
-type TransactionDB struct{}
-
-func (db *TransactionDB) Begin() {
-
-}
-
-func (db *TransactionDB) Rollback() {
-
-}
-
-func (db *TransactionDB) Commit() {
-
 }

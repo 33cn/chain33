@@ -611,9 +611,10 @@ func opMload(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack 
 func opMstore(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack *mm.Stack) ([]byte, error) {
 	// 从栈中分别弹出内存偏移量和要设置的值
 	mStart, val := stack.Pop(), stack.Pop()
-	if merr := memory.Set(mStart.Uint64(), model.WordByteSize, common.PaddedBigBytes(val, model.WordByteSize)); merr != nil {
+	if merr := memory.Set32(mStart.Uint64(), val); merr != nil {
 		return nil, merr
 	}
+
 	evm.Interpreter.IntPool.Put(mStart, val)
 	return nil, nil
 }
@@ -628,9 +629,10 @@ func opMstore8(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stac
 
 // 加载合约状态数据
 func opSload(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack *mm.Stack) ([]byte, error) {
-	loc := common.BigToHash(stack.Pop())
-	val := evm.StateDB.GetState(contract.Address().String(), loc).Big()
-	stack.Push(val)
+	loc := stack.Peek()
+	val := evm.StateDB.GetState(contract.Address().String(), common.BigToHash(loc))
+	loc.SetBytes(val.Bytes())
+
 	return nil, nil
 }
 
@@ -960,7 +962,7 @@ func makeDup(size int64) ExecutionFunc {
 
 // 生成SWAP操作，将指定位置的数据和栈顶数据互换位置
 func makeSwap(size int64) ExecutionFunc {
-	size += 1
+	size++
 	return func(pc *uint64, evm *EVM, contract *Contract, memory *mm.Memory, stack *mm.Stack) ([]byte, error) {
 		stack.Swap(int(size))
 		return nil, nil

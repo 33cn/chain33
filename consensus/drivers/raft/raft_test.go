@@ -17,6 +17,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/executor"
 	"gitlab.33.cn/chain33/chain33/mempool"
+	"gitlab.33.cn/chain33/chain33/p2p"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/store"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -33,7 +34,7 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	random = rand.New(rand.NewSource(time.Now().UnixNano()))
+	random = rand.New(rand.NewSource(types.Now().UnixNano()))
 	log.SetLogLevel("info")
 }
 func TestRaftPerf(t *testing.T) {
@@ -42,17 +43,17 @@ func TestRaftPerf(t *testing.T) {
 	clearTestData()
 }
 func RaftPerf() {
-	q, chain, s, mem, exec, cs := initEnvRaft()
+	q, chain, s, mem, exec, cs, p2p := initEnvRaft()
 	defer chain.Close()
 	defer mem.Close()
 	defer exec.Close()
 	defer s.Close()
 	defer q.Close()
 	defer cs.Close()
-
+	defer p2p.Close()
 	sendReplyList(q)
 }
-func initEnvRaft() (queue.Queue, *blockchain.BlockChain, queue.Module, *mempool.Mempool, queue.Module, *RaftClient) {
+func initEnvRaft() (queue.Queue, *blockchain.BlockChain, queue.Module, *mempool.Mempool, queue.Module, *RaftClient, queue.Module) {
 	var q = queue.New("channel")
 	flag.Parse()
 	cfg := config.InitCfg("chain33.test.toml")
@@ -70,8 +71,10 @@ func initEnvRaft() (queue.Queue, *blockchain.BlockChain, queue.Module, *mempool.
 
 	mem := mempool.New(cfg.MemPool)
 	mem.SetQueueClient(q.Client())
+	network := p2p.New(cfg.P2P)
 
-	return q, chain, s, mem, exec, cs
+	network.SetQueueClient(q.Client())
+	return q, chain, s, mem, exec, cs, network
 }
 
 func generateKey(i, valI int) string {

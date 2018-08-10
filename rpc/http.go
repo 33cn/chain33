@@ -54,8 +54,15 @@ func (j *JSONRPCServer) Listen() {
 
 	// Insert the middleware
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !checkIpWhitelist(strings.Split(r.RemoteAddr, ":")[0]) {
-			writeError(w, r, 0, fmt.Sprintf(`The %s Address is not authorized!`, strings.Split(r.RemoteAddr, ":")[0]))
+		log.Debug("JSONRPCServer", "RemoteAddr", r.RemoteAddr)
+		ip, _, err := net.SplitHostPort(r.RemoteAddr)
+		if err != nil {
+			writeError(w, r, 0, fmt.Sprintf(`The %s Address is not authorized!`, ip))
+			return
+		}
+
+		if !checkIpWhitelist(ip) {
+			writeError(w, r, 0, fmt.Sprintf(`The %s Address is not authorized!`, ip))
 			return
 		}
 		if r.URL.Path == "/" {
@@ -64,15 +71,22 @@ func (j *JSONRPCServer) Listen() {
 				writeError(w, r, 0, "Can't get request body!")
 				return
 			}
+			//格式做一个检查
+			client, err := parseJsonRpcParams(data)
+			errstr := "nil"
+			if err != nil {
+				errstr = err.Error()
+			}
+			log.Debug("JSONRPCServer", "request", string(data), "err", errstr)
+			if err != nil {
+				writeError(w, r, 0, fmt.Sprintf(`parse request err %s`, err.Error()))
+				return
+			}
 			//Release local request
-			if strings.Split(r.RemoteAddr, ":")[0] != "127.0.0.1" {
-				client, err := parseJsonRpcParams(data)
-				if err != nil {
-					writeError(w, r, 0, fmt.Sprintf(`parse request err %s`, err.Error()))
-					return
-				}
+			ipaddr := net.ParseIP(ip)
+			if !ipaddr.IsLoopback() {
 				funcName := strings.Split(client.Method, ".")[len(strings.Split(client.Method, "."))-1]
-				if !checkJrpcFuncWritelist(funcName) {
+				if checkJrpcFuncBlacklist(funcName) || !checkJrpcFuncWhitelist(funcName) {
 					writeError(w, r, client.Id, fmt.Sprintf(`The %s method is not authorized!`, funcName))
 					return
 				}
@@ -135,30 +149,44 @@ func (g *Grpcserver) Listen() {
 	s.Serve(listener)
 
 }
+
+func isLoopBackAddr(addr net.Addr) bool {
+	if ipnet, ok := addr.(*net.IPNet); ok && ipnet.IP.IsLoopback() {
+		return true
+	}
+	return false
+}
+
 func auth(ctx context.Context, info *grpc.UnaryServerInfo) error {
 	getctx, ok := pr.FromContext(ctx)
 	if ok {
-		remoteaddr := strings.Split(getctx.Addr.String(), ":")[0]
-		if remoteaddr == "127.0.0.1" {
+		if isLoopBackAddr(getctx.Addr) {
 			return nil
 		}
-		if !checkIpWhitelist(remoteaddr) {
-			return fmt.Errorf("The %s Address is not authorized!", remoteaddr)
+		//remoteaddr := strings.Split(getctx.Addr.String(), ":")[0]
+		ip, _, err := net.SplitHostPort(getctx.Addr.String())
+		if err != nil {
+			return fmt.Errorf("The %s Address is not authorized!", ip)
 		}
+
+		if !checkIpWhitelist(ip) {
+			return fmt.Errorf("The %s Address is not authorized!", ip)
+		}
+
 		funcName := strings.Split(info.FullMethod, "/")[len(strings.Split(info.FullMethod, "/"))-1]
-		if !checkGrpcFuncWritelist(funcName) {
+		if checkGrpcFuncBlacklist(funcName) || !checkGrpcFuncWhitelist(funcName) {
 			return fmt.Errorf("The %s method is not authorized!", funcName)
 		}
 		return nil
 	}
 	return fmt.Errorf("Can't get remote ip!")
 }
-func parseJsonRpcParams(data []byte) (clientRequest, error) {
+
+func parseJsonRpcParams(data []byte) (*clientRequest, error) {
 	var req clientRequest
 	err := json.Unmarshal(data, &req)
 	if err != nil {
-		return req, err
+		return nil, err
 	}
-	log.Debug("request method: %v", req.Method)
-	return req, nil
+	return &req, nil
 }

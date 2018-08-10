@@ -155,6 +155,11 @@ func (db *GoLevelDB) Iterator(prefix []byte, reserve bool) Iterator {
 	return &goLevelDBIt{it, reserve, prefix}
 }
 
+func (db *GoLevelDB) BatchGet(keys [][]byte) (value [][]byte, err error) {
+	llog.Error("BatchGet", "Need to implement")
+	return nil, nil
+}
+
 type goLevelDBIt struct {
 	iterator.Iterator
 	reserve bool
@@ -183,11 +188,15 @@ func (dbit *goLevelDBIt) Value() []byte {
 	return dbit.Iterator.Value()
 }
 
-func (dbit *goLevelDBIt) ValueCopy() []byte {
-	v := dbit.Iterator.Value()
+func cloneByte(v []byte) []byte {
 	value := make([]byte, len(v))
 	copy(value, v)
 	return value
+}
+
+func (dbit *goLevelDBIt) ValueCopy() []byte {
+	v := dbit.Iterator.Value()
+	return cloneByte(v)
 }
 
 func (dbit *goLevelDBIt) Valid() bool {

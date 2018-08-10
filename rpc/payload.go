@@ -102,22 +102,60 @@ func tradePayloadType(funcname string) (proto.Message, error) {
 	return req, nil
 }
 
+func privacyPayloadType(funcname string) (proto.Message, error) {
+	var req proto.Message
+	switch funcname {
+	case "ShowAmountsOfUTXO":
+		req = &types.ReqPrivacyToken{}
+	case "ShowUTXOs4SpecifiedAmount":
+		req = &types.ReqPrivacyToken{}
+	default:
+		return nil, types.ErrInputPara
+	}
+	return req, nil
+}
+
+func relayPayloadType(funcname string) (proto.Message, error) {
+	var req proto.Message
+	switch funcname {
+	case "GetRelayOrderByStatus":
+		req = &types.ReqRelayAddrCoins{}
+	case "GetSellRelayOrder":
+		req = &types.ReqRelayAddrCoins{}
+	case "GetBuyRelayOrder":
+		req = &types.ReqRelayAddrCoins{}
+	case "GetBTCHeaderList":
+		req = &types.ReqRelayBtcHeaderHeightList{}
+	case "GetBTCHeaderMissList":
+		req = &types.ReqRelayBtcHeaderHeightList{}
+	case "GetBTCHeaderCurHeight":
+		req = &types.ReqRelayQryBTCHeadHeight{}
+	default:
+		return nil, types.ErrInputPara
+	}
+	return req, nil
+}
+
 func payloadType(execer, funcname string) (proto.Message, error) {
 	switch execer {
-	case "token":
+	case types.ExecName(types.TokenX): // D
 		return tokenPayloadType(funcname)
-	case "coins":
+	case types.ExecName(types.CoinsX): // D
 		return coinsPayloadType(funcname)
-	case "manage":
+	case types.ExecName(types.ManageX): // D
 		return managePayloadType(funcname)
-	case "retrieve":
+	case types.ExecName(types.RetrieveX): // D
 		return retrievePayloadType(funcname)
-	case "ticket":
+	case types.ExecName(types.TicketX): // D
 		return ticketPayloadType(funcname)
-	case "trade":
+	case types.ExecName(types.TradeX): // D
 		return tradePayloadType(funcname)
-	case "evm":
+	case types.ExecName(types.EvmX):
 		return evmPayloadType(funcname)
+	case types.ExecName(types.PrivacyX):
+		return privacyPayloadType(funcname)
+	case types.ExecName(types.RelayX):
+		return relayPayloadType(funcname)
 	}
 	return nil, types.ErrInputPara
 }
