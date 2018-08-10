@@ -222,7 +222,6 @@ func CreateRawGamePreCloseTx(parm *GamePreCloseTx) (*types.Transaction, error) {
 	v := &types.GameClose{
 		GameId: parm.GameId,
 		Secret: parm.Secret,
-		Result: parm.Result,
 	}
 	close := &types.GameAction{
 		Ty:    types.GameActionClose,
