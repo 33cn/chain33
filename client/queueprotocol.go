@@ -83,6 +83,10 @@ func (q *QueueProtocol) Close() {
 	q.client.Close()
 }
 
+func (q *QueueProtocol) NewMessage(topic string, msgid int64, data interface{}) queue.Message {
+	return q.client.NewMessage(topic, msgid, data)
+}
+
 func (q *QueueProtocol) setOption(option *QueueProtocolOption) {
 	if option != nil {
 		q.option = *option
@@ -1000,5 +1004,4 @@ func (q *QueueProtocol) BlockChainQuery(param *types.BlockChainQuery) (*types.Re
 	err = types.ErrTypeAsset
 	log.Error("BlockChainQuery", "Error", err.Error())
 	return nil, err
-
 }
