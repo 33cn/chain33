@@ -758,7 +758,7 @@ function genPrivacy2PrivacyTx() {
     mixcount=6
     expire=$7
     note="priv2priv_test"
-    priv2priv "${name}" "$fromaddr" "$keypair" $note $amount $mixcount $expire
+    priv2priv "${name}" "$fromaddr" "$keypair" "$note" "$amount" "$mixcount" "$expire"
     if [ "$group" -eq 1 ]; then
         priTxHashs1[$priTxindex]="$returnStr1"
         priTxindex=$((priTxindex + 1))
@@ -776,7 +776,7 @@ function genPrivacy2PublicTx() {
     amount=$5
     mixcount=$6
     expire=$7
-    priv2pub "${name}" "$from" "$to" $note $amount $mixcount $expire
+    priv2pub "${name}" "$from" "$to" "$note" "$amount" "$mixcount" "$expire"
     if [ "$group" -eq 1 ]; then
         priTxHashs1[$priTxindex]="$returnStr1"
         priTxindex=$((priTxindex + 1))
