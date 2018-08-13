@@ -286,8 +286,8 @@ func (chain *BlockChain) GetDuplicateTxHashList(txhashlist *types.TxHashList) (d
 	var dupTxHashList types.TxHashList
 
 	for _, txhash := range txhashlist.Hashes {
-		txresult, err := chain.GetTxResultFromDb(txhash)
-		if err == nil && txresult != nil {
+		has, err := chain.HasTx(txhash)
+		if err == nil && has {
 			dupTxHashList.Hashes = append(dupTxHashList.Hashes, txhash)
 		}
 	}
@@ -514,6 +514,10 @@ func (chain *BlockChain) GetTxResultFromDb(txhash []byte) (tx *types.TxResult, e
 		return nil, err
 	}
 	return txinfo, nil
+}
+
+func (chain *BlockChain) HasTx(txhash []byte) (has bool, err error) {
+	return chain.blockStore.HasTx(txhash)
 }
 
 //  获取指定txindex  在txs中的TransactionDetail ，注释：index从0开始
