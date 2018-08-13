@@ -6,6 +6,7 @@ import (
 
 	lru "github.com/hashicorp/golang-lru"
 	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/common"
 	clog "gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -361,7 +362,7 @@ func (mem *Mempool) SendTxToP2P(tx *types.Transaction) {
 	}
 	msg := mem.client.NewMessage("p2p", types.EventTxBroadcast, tx)
 	mem.client.Send(msg, false)
-	mlog.Debug("tx sent to p2p", "tx.Hash", tx.Hash())
+	mlog.Debug("tx sent to p2p", "tx.Hash", common.ToHex(tx.Hash()))
 }
 
 // Mempool.CheckExpireValid检查交易过期有效性，过期返回false，未过期返回true
