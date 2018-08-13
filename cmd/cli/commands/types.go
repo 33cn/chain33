@@ -127,22 +127,6 @@ type AddrOverviewResult struct {
 	TxCount  int64  `json:"txCount"`
 }
 
-type SellOrder2Show struct {
-	Tokensymbol       string `json:"tokensymbol"`
-	Seller            string `json:"address"`
-	Amountperboardlot string `json:"amountperboardlot"`
-	Minboardlot       int64  `json:"minboardlot"`
-	Priceperboardlot  string `json:"priceperboardlot"`
-	Totalboardlot     int64  `json:"totalboardlot"`
-	Soldboardlot      int64  `json:"soldboardlot"`
-	Starttime         int64  `json:"starttime"`
-	Stoptime          int64  `json:"stoptime"`
-	Crowdfund         bool   `json:"crowdfund"`
-	SellID            string `json:"sellid"`
-	Status            string `json:"status"`
-	Height            int64  `json:"height"`
-}
-
 type GetTotalCoinsResult struct {
 	TxCount          int64  `json:"txCount"`
 	AccountCount     int64  `json:"accountCount"`
