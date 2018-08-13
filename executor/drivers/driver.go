@@ -79,7 +79,7 @@ func (d *DriverBase) GetAddr() string {
 func (d *DriverBase) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	var set types.LocalDBSet
 	//保存：tx
-	hash, result, kv := d.GetTx(tx, receipt, index)
+	kv := d.GetTx(tx, receipt, index)
 	set.KV = append(set.KV, kv...)
 	//保存: from/to
 	txindex := d.getTxIndex(tx, receipt, index)
@@ -109,7 +109,7 @@ func (d *DriverBase) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData
 }
 
 //获取公共的信息
-func (d *DriverBase) GetTx(tx *types.Transaction, receipt *types.ReceiptData, index int) ([]byte, *types.TxResult) {
+func (d *DriverBase) GetTx(tx *types.Transaction, receipt *types.ReceiptData, index int) []*types.KeyValue {
 	txhash := tx.Hash()
 	//构造txresult 信息保存到db中
 	var txresult types.TxResult
@@ -119,7 +119,12 @@ func (d *DriverBase) GetTx(tx *types.Transaction, receipt *types.ReceiptData, in
 	txresult.Receiptdate = receipt
 	txresult.Blocktime = d.GetBlockTime()
 	txresult.ActionName = d.child.GetActionName(tx)
-	return txhash, &txresult
+	var kvlist []*types.KeyValue
+	kvlist = append(kvlist, &types.KeyValue{Key: types.CalcTxKey(txhash), Value: types.Encode(&txresult)})
+	if types.IsEnable("quickIndex") {
+		kvlist = append(kvlist, &types.KeyValue{Key: types.CalcTxShortKey(txhash), Value: []byte("1")})
+	}
+	return kvlist
 }
 
 type txIndex struct {
@@ -149,14 +154,17 @@ func (d *DriverBase) getTxIndex(tx *types.Transaction, receipt *types.ReceiptDat
 func (d *DriverBase) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	var set types.LocalDBSet
 	//del：tx
-	hash, _, kvdel := d.GetTx(tx, receipt, index)
+	kvdel := d.GetTx(tx, receipt, index)
+	for k := range kvdel {
+		kvdel[k].Value = nil
+	}
 	//del: addr index
 	txindex := d.getTxIndex(tx, receipt, index)
 	if len(txindex.from) != 0 {
 		fromkey1 := CalcTxAddrDirHashKey(txindex.from, TxIndexFrom, txindex.heightstr)
 		fromkey2 := CalcTxAddrHashKey(txindex.from, txindex.heightstr)
-		set.KV = append(set.KV, &types.KeyValue{fromkey1, nil})
-		set.KV = append(set.KV, &types.KeyValue{fromkey2, nil})
+		set.KV = append(set.KV, &types.KeyValue{Key: fromkey1, Value: nil})
+		set.KV = append(set.KV, &types.KeyValue{Key: fromkey2, Value: nil})
 		kv, err := updateAddrTxsCount(d.GetLocalDB(), txindex.from, 1, false)
 		if err == nil && kv != nil {
 			set.KV = append(set.KV, kv)
@@ -165,15 +173,12 @@ func (d *DriverBase) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptD
 	if len(txindex.to) != 0 {
 		tokey1 := CalcTxAddrDirHashKey(txindex.to, TxIndexTo, txindex.heightstr)
 		tokey2 := CalcTxAddrHashKey(txindex.to, txindex.heightstr)
-		set.KV = append(set.KV, &types.KeyValue{tokey1, nil})
-		set.KV = append(set.KV, &types.KeyValue{tokey2, nil})
+		set.KV = append(set.KV, &types.KeyValue{Key: tokey1, Value: nil})
+		set.KV = append(set.KV, &types.KeyValue{Key: tokey2, Value: nil})
 		kv, err := updateAddrTxsCount(d.GetLocalDB(), txindex.to, 1, false)
 		if err == nil && kv != nil {
 			set.KV = append(set.KV, kv)
 		}
-	}
-	for _, v := range kvdel {
-		v.Value = nil
 	}
 	set.KV = append(set.KV, kvdel...)
 	return &set, nil
