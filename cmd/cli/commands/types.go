@@ -186,8 +186,8 @@ type PrivacyAccountInfoResult struct {
 }
 
 type UTXOGlobalIndex struct {
-	Height   int64  `json:"height,omitempty"`
-	Txindex  int32  `json:"txindex,omitempty"`
+	// Height   int64  `json:"height,omitempty"`
+	// Txindex  int32  `json:"txindex,omitempty"`
 	Outindex int32  `json:"outindex,omitempty"`
 	Txhash   string `json:"txhash,omitempty"`
 }
@@ -308,4 +308,85 @@ type ReplyBuyOrdersResult struct {
 
 type ReplyTradeOrdersResult struct {
 	Orders []*TradeOrderResult `json:"orders"`
+}
+
+// decodetx
+type CoinsTransferCLI struct {
+	Cointoken string `json:"cointoken,omitempty"`
+	Amount    string `json:"amount,omitempty"`
+	Note      string `json:"note,omitempty"`
+	To        string `json:"to,omitempty"`
+}
+
+type CoinsWithdrawCLI struct {
+	Cointoken string `json:"cointoken,omitempty"`
+	Amount    string `json:"amount,omitempty"`
+	Note      string `json:"note,omitempty"`
+	ExecName  string `json:"execName,omitempty"`
+	To        string `json:"to,omitempty"`
+}
+
+type CoinsGenesisCLI struct {
+	Amount        string `json:"amount,omitempty"`
+	ReturnAddress string `json:"returnAddress,omitempty"`
+}
+
+type CoinsTransferToExecCLI struct {
+	Cointoken string `json:"cointoken,omitempty"`
+	Amount    string `json:"amount,omitempty"`
+	Note      string `json:"note,omitempty"`
+	ExecName  string `json:"execName,omitempty"`
+	To        string `json:"to,omitempty"`
+}
+
+type HashlockLockCLI struct {
+	Amount        string `json:"amount,omitempty"`
+	Time          int64  `json:"time,omitempty"`
+	Hash          []byte `json:"hash,omitempty"`
+	ToAddress     string `json:"toAddress,omitempty"`
+	ReturnAddress string `json:"returnAddress,omitempty"`
+}
+
+type TicketMinerCLI struct {
+	Bits     uint32 `json:"bits,omitempty"`
+	Reward   string `json:"reward,omitempty"`
+	TicketId string `json:"ticketId,omitempty"`
+	Modify   []byte `json:"modify,omitempty"`
+}
+
+type TokenPreCreateCLI struct {
+	Name         string `json:"name,omitempty"`
+	Symbol       string `json:"symbol,omitempty"`
+	Introduction string `json:"introduction,omitempty"`
+	Total        int64  `json:"total,omitempty"`
+	Price        string `json:"price,omitempty"`
+	Owner        string `json:"owner,omitempty"`
+}
+
+type Public2PrivacyCLI struct {
+	Tokenname string         `json:"tokenname,omitempty"`
+	Amount    string         `json:"amount,omitempty"`
+	Note      string         `json:"note,omitempty"`
+	Output    *PrivacyOutput `json:"output,omitempty"`
+}
+
+type Privacy2PrivacyCLI struct {
+	Tokenname string         `json:"tokenname,omitempty"`
+	Amount    string         `json:"amount,omitempty"`
+	Note      string         `json:"note,omitempty"`
+	Input     *PrivacyInput  `json:"input,omitempty"`
+	Output    *PrivacyOutput `json:"output,omitempty"`
+}
+
+type Privacy2PublicCLI struct {
+	Tokenname string         `json:"tokenname,omitempty"`
+	Amount    string         `json:"amount,omitempty"`
+	Note      string         `json:"note,omitempty"`
+	Input     *PrivacyInput  `json:"input,omitempty"`
+	Output    *PrivacyOutput `json:"output,omitempty"`
+}
+
+type PrivacyOutput struct {
+	RpubKeytx string       `protobuf:"bytes,1,opt,name=RpubKeytx,proto3" json:"RpubKeytx,omitempty"`
+	Keyoutput []*KeyOutput `protobuf:"bytes,2,rep,name=keyoutput" json:"keyoutput,omitempty"`
 }
