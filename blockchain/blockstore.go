@@ -103,13 +103,14 @@ func NewBlockStore(db dbm.DB, client queue.Client) *BlockStore {
 			panic(err)
 		}
 		blockStore.lastBlock = blockdetail.GetBlock()
-		isenable, err := types.GetChainConfig("quickIndex")
 		flag, err := blockStore.loadFlag(types.FlagTxQuickIndex)
 		if err != nil {
 			panic(err)
 		}
-		if err == nil && isenable.(bool) && flag == 0 {
-			blockStore.initQuickIndex(height)
+		if types.IsEnable("quickIndex") {
+			if flag == 0 {
+				blockStore.initQuickIndex(height)
+			}
 		} else {
 			if flag != 0 {
 				panic("toml config disable tx quick index, but database enable quick index")
@@ -127,7 +128,45 @@ func NewBlockStore(db dbm.DB, client queue.Client) *BlockStore {
 //3. 10000个区块 处理一次，并且打印进度
 //4. 全部处理完成了,添加quickIndex 的标记
 func (bs *BlockStore) initQuickIndex(height int64) {
-
+	batch := bs.db.NewBatch(true)
+	var isset bool
+	for i := int64(0); i <= height; i++ {
+		blockdetail, err := bs.LoadBlockByHeight(i)
+		if err != nil {
+			panic(err)
+		}
+		for _, tx := range blockdetail.Block.Txs {
+			hash := tx.Hash()
+			txresult, err := bs.db.Get(hash)
+			if err != nil {
+				panic(err)
+			}
+			isset = true
+			batch.Set(types.CalcTxKey(hash), txresult)
+			batch.Set(types.CalcTxShortKey(hash), []byte("1"))
+		}
+		if i%10000 == 0 {
+			storeLog.Info("initQuickIndex", "height", i)
+			err := batch.Write()
+			if err != nil {
+				panic(err)
+			}
+			batch = bs.db.NewBatch(true)
+			isset = false
+		}
+	}
+	if isset {
+		err := batch.Write()
+		if err != nil {
+			panic(err)
+		}
+		storeLog.Info("initQuickIndex", "height", height)
+	}
+	kv := types.FlagKV(types.FlagTxQuickIndex, 1)
+	err := bs.db.Set(kv.Key, kv.Value)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (bs *BlockStore) loadFlag(key []byte) (int64, error) {
@@ -139,10 +178,21 @@ func (bs *BlockStore) loadFlag(key []byte) (int64, error) {
 			return 0, err
 		}
 		return flag.GetData(), nil
-	} else if err == types.ErrNotFound {
+	} else if err == types.ErrNotFound || err == dbm.ErrNotFoundInDb {
 		return 0, nil
 	}
 	return 0, err
+}
+
+func (bs *BlockStore) HasTx(key []byte) (bool, error) {
+	if _, err := bs.db.Get(types.CalcTxShortKey(key)); err != nil {
+		return false, err
+	}
+	//got
+	if _, err := bs.db.Get(types.CalcTxKey(key)); err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 // 返回BlockStore保存的当前block高度
