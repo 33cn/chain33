@@ -146,6 +146,7 @@ func initConfig(cfg *types.BlockChain) {
 	isStrongConsistency = cfg.IsStrongConsistency
 	isRecordBlockSequence = cfg.IsRecordBlockSequence
 	isParaChain = cfg.IsParaChain
+	types.SetChainConfig("quickIndex", cfg.EnableTxQuickIndex)
 }
 
 func (chain *BlockChain) Close() {

@@ -79,8 +79,8 @@ func (d *DriverBase) GetAddr() string {
 func (d *DriverBase) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	var set types.LocalDBSet
 	//保存：tx
-	hash, result := d.GetTx(tx, receipt, index)
-	set.KV = append(set.KV, &types.KeyValue{hash, types.Encode(result)})
+	hash, result, kv := d.GetTx(tx, receipt, index)
+	set.KV = append(set.KV, kv...)
 	//保存: from/to
 	txindex := d.getTxIndex(tx, receipt, index)
 	txinfobyte := types.Encode(txindex.index)
@@ -149,7 +149,7 @@ func (d *DriverBase) getTxIndex(tx *types.Transaction, receipt *types.ReceiptDat
 func (d *DriverBase) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	var set types.LocalDBSet
 	//del：tx
-	hash, _ := d.GetTx(tx, receipt, index)
+	hash, _, kvdel := d.GetTx(tx, receipt, index)
 	//del: addr index
 	txindex := d.getTxIndex(tx, receipt, index)
 	if len(txindex.from) != 0 {
@@ -172,7 +172,10 @@ func (d *DriverBase) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptD
 			set.KV = append(set.KV, kv)
 		}
 	}
-	set.KV = append(set.KV, &types.KeyValue{hash, nil})
+	for _, v := range kvdel {
+		v.Value = nil
+	}
+	set.KV = append(set.KV, kvdel...)
 	return &set, nil
 }
 

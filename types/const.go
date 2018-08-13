@@ -401,3 +401,7 @@ const (
 	GameActionCancel
 	GameActionClose
 )
+
+//flag:
+var FlagTxQuickIndex = []byte("FLAG:FlagTxQuickIndex")
+var FlagKeyMVCC = []byte("FLAG:keyMVCCFlag")
