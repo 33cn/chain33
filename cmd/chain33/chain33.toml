@@ -37,6 +37,7 @@ singleMode=false
 batchsync=false
 isRecordBlockSequence=true
 isParaChain=false
+enableTxQuickIndex=false
 
 [p2p]
 seeds=[]

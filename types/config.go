@@ -2,11 +2,14 @@ package types
 
 import (
 	"strings"
+	"sync"
 	"time"
 )
 
 var chainBaseParam *ChainParam
 var chainV3Param *ChainParam
+var chainConfig map[string]interface{}
+var configMutex sync.Mutex
 
 func init() {
 	chainBaseParam = &ChainParam{}
@@ -37,6 +40,8 @@ func init() {
 	chainV3Param.MaxTxNumber = 1500
 	chainV3Param.TargetTimespan = 144 * 15 * time.Second
 	chainV3Param.TargetTimePerBlock = 15 * time.Second
+
+	chainConfig = make(map[string]interface{})
 }
 
 type ChainParam struct {
@@ -52,6 +57,22 @@ type ChainParam struct {
 	TargetTimespan           time.Duration
 	TargetTimePerBlock       time.Duration
 	RetargetAdjustmentFactor int64
+}
+
+func SetChainConfig(key string, value interface{}) {
+	configMutex.Lock()
+	chainConfig[key] = value
+	configMutex.Unlock()
+}
+
+func GetChainConfig(key string) (value interface{}, err error) {
+	configMutex.Lock()
+	if data, ok := chainConfig[key]; ok {
+		configMutex.Unlock()
+		return data, nil
+	}
+	configMutex.Unlock()
+	return nil, ErrNotFound
 }
 
 func GetP(height int64) *ChainParam {
@@ -185,4 +206,8 @@ func GetParaName() string {
 		return title
 	}
 	return ""
+}
+
+func FlagKV(key []byte, value int64) *KeyValue {
+	return &KeyValue{Key: key, Value: Encode(&Int64{Data: value})}
 }

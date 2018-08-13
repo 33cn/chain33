@@ -38,7 +38,6 @@ import (
 
 var elog = log.New("module", "execs")
 var coinsAccount = account.NewCoinsAccount()
-var keyMVCCFlag = []byte("FLAG:keyMVCCFlag")
 
 const (
 	FlagInit        = int64(0)
@@ -378,17 +377,13 @@ func (exec *Executor) procExecAddBlock(msg queue.Message) {
 	msg.Reply(exec.client.NewMessage("", types.EventAddBlock, &kvset))
 }
 
-func flagKV(key []byte, value int64) *types.KeyValue {
-	return &types.KeyValue{Key: key, Value: types.Encode(&types.Int64{Data: value})}
-}
-
 func (exec *Executor) checkMVCCFlag(execute *executor, datas *types.BlockDetail) ([]*types.KeyValue, error) {
 	//flag = 0 : init
 	//flag = 1 : start from zero
 	//flag = 2 : start from no zero
 	b := datas.Block
 	if atomic.LoadInt64(&exec.flagMVCC) == FlagInit {
-		flag, err := execute.loadFlag(keyMVCCFlag)
+		flag, err := execute.loadFlag(types.FlagKeyMVCC)
 		if err != nil {
 			panic(err)
 		}
@@ -401,7 +396,7 @@ func (exec *Executor) checkMVCCFlag(execute *executor, datas *types.BlockDetail)
 		} else {
 			//区块为0, 写入标志
 			if atomic.CompareAndSwapInt64(&exec.flagMVCC, FlagInit, FlagFromZero) {
-				kvset = append(kvset, flagKV(keyMVCCFlag, FlagFromZero))
+				kvset = append(kvset, types.FlagKV(types.FlagKeyMVCC, FlagFromZero))
 			}
 		}
 	}
@@ -428,7 +423,7 @@ func (exec *Executor) stat(execute *executor, datas *types.BlockDetail) ([]*type
 	// 初始状态置为开启状态
 	var kvset []*types.KeyValue
 	if atomic.CompareAndSwapInt64(&exec.enableStatFlag, 0, 1) {
-		kvset = append(kvset, flagKV(StatisticFlag(), 1))
+		kvset = append(kvset, types.FlagKV(StatisticFlag(), 1))
 	}
 	kvs, err := countInfo(execute, datas)
 	if err != nil {
