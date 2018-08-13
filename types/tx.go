@@ -522,3 +522,13 @@ func (tx *Transaction) IsWithdraw() bool {
 	}
 	return false
 }
+
+//CalcTxKey local db中保存交易的方法
+func CalcTxKey(hash []byte) []byte {
+	isenable, err := GetChainConfig("quickIndex")
+	if err == nil && isenable.(bool) {
+		txhash := []byte("TX:")
+		return append(txhash, hash...)
+	}
+	return hash
+}

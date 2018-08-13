@@ -103,8 +103,46 @@ func NewBlockStore(db dbm.DB, client queue.Client) *BlockStore {
 			panic(err)
 		}
 		blockStore.lastBlock = blockdetail.GetBlock()
+		isenable, err := types.GetChainConfig("quickIndex")
+		flag, err := blockStore.loadFlag(types.FlagTxQuickIndex)
+		if err != nil {
+			panic(err)
+		}
+		if err == nil && isenable.(bool) && flag == 0 {
+			blockStore.initQuickIndex(height)
+		} else {
+			if flag != 0 {
+				panic("toml config disable tx quick index, but database enable quick index")
+			}
+		}
 	}
 	return blockStore
+}
+
+//步骤:
+//检查数据库是否已经进行quickIndex改造
+//如果没有，那么进行下面的步骤
+//1. 先把hash 都给改成 TX:hash
+//2. 把所有的 Tx:hash 都加一个 8字节的index
+//3. 10000个区块 处理一次，并且打印进度
+//4. 全部处理完成了,添加quickIndex 的标记
+func (bs *BlockStore) initQuickIndex(height int64) {
+
+}
+
+func (bs *BlockStore) loadFlag(key []byte) (int64, error) {
+	flag := &types.Int64{}
+	flagBytes, err := bs.db.Get(key)
+	if err == nil {
+		err = types.Decode(flagBytes, flag)
+		if err != nil {
+			return 0, err
+		}
+		return flag.GetData(), nil
+	} else if err == types.ErrNotFound {
+		return 0, nil
+	}
+	return 0, err
 }
 
 // 返回BlockStore保存的当前block高度
@@ -340,8 +378,7 @@ func (bs *BlockStore) GetTx(hash []byte) (*types.TxResult, error) {
 		err := errors.New("input hash is null")
 		return nil, err
 	}
-
-	rawBytes, err := bs.db.Get(hash)
+	rawBytes, err := bs.db.Get(types.CalcTxKey(hash))
 	if rawBytes == nil || err != nil {
 		if err != dbm.ErrNotFoundInDb {
 			storeLog.Error("GetTx", "hash", common.ToHex(hash), "err", err)

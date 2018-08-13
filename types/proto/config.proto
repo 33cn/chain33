@@ -99,6 +99,7 @@ message BlockChain {
     bool   batchsync             = 10;
     bool   isRecordBlockSequence = 11;
     bool   isParaChain           = 12;
+    bool   enableTxQuickIndex    = 13;
 }
 
 message P2P {

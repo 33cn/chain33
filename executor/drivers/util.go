@@ -31,9 +31,9 @@ func calcAddrTxsCountKey(addr string) []byte {
 }
 
 func getAddrTxsCountKV(addr string, count int64) *types.KeyValue {
-	counts := &types.Int64{count}
+	counts := &types.Int64{Data: count}
 	countbytes := types.Encode(counts)
-	kv := &types.KeyValue{calcAddrTxsCountKey(addr), countbytes}
+	kv := &types.KeyValue{Key: calcAddrTxsCountKey(addr), Value: countbytes}
 	return kv
 }
 
