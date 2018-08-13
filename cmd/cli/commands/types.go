@@ -127,22 +127,6 @@ type AddrOverviewResult struct {
 	TxCount  int64  `json:"txCount"`
 }
 
-type SellOrder2Show struct {
-	Tokensymbol       string `json:"tokensymbol"`
-	Seller            string `json:"address"`
-	Amountperboardlot string `json:"amountperboardlot"`
-	Minboardlot       int64  `json:"minboardlot"`
-	Priceperboardlot  string `json:"priceperboardlot"`
-	Totalboardlot     int64  `json:"totalboardlot"`
-	Soldboardlot      int64  `json:"soldboardlot"`
-	Starttime         int64  `json:"starttime"`
-	Stoptime          int64  `json:"stoptime"`
-	Crowdfund         bool   `json:"crowdfund"`
-	SellID            string `json:"sellid"`
-	Status            string `json:"status"`
-	Height            int64  `json:"height"`
-}
-
 type GetTotalCoinsResult struct {
 	TxCount          int64  `json:"txCount"`
 	AccountCount     int64  `json:"accountCount"`
@@ -278,6 +262,36 @@ type ShowPriAddrResult struct {
 
 type ShowEnablePrivacy struct {
 	Results []*ShowPriAddrResult `json:"results"`
+}
+
+type TradeOrderResult struct {
+	TokenSymbol       string `json:"tokenSymbol"`
+	Owner             string `json:"owner"`
+	AmountPerBoardlot string `json:"amountPerBoardlot"`
+	MinBoardlot       int64  `json:"minBoardlot"`
+	PricePerBoardlot  string `json:"pricePerBoardlot"`
+	TotalBoardlot     int64  `json:"totalBoardlot"`
+	TradedBoardlot    int64  `json:"tradedBoardlot"`
+	BuyID             string `json:"buyID"`
+	Status            int32  `json:"status"`
+	SellID            string `json:"sellID"`
+	TxHash            string `json:"txHash"`
+	Height            int64  `json:"height"`
+	Key               string `json:"key"`
+	BlockTime         int64  `json:"blockTime"`
+	IsSellOrder       bool   `json:"isSellOrder"`
+}
+
+type ReplySellOrdersResult struct {
+	SellOrders []*TradeOrderResult `json:"sellOrders"`
+}
+
+type ReplyBuyOrdersResult struct {
+	BuyOrders []*TradeOrderResult `json:"buyOrders"`
+}
+
+type ReplyTradeOrdersResult struct {
+	Orders []*TradeOrderResult `json:"orders"`
 }
 
 // decodetx
