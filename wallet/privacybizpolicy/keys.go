@@ -3,17 +3,59 @@ package privacybizpolicy
 import "fmt"
 
 const (
-	PrivacyDBVersion = "PrivacyDBVersion"
-	Privacy4Addr     = "Privacy4Addr"
-	AvailUTXOs       = "UTXO"
-	FrozenUTXOs      = "FTXOs4Tx"
-	PrivacySTXO      = "STXO"
-	STXOs4Tx         = "STXOs4Tx"
-	RevertSendtx     = "RevertSendtx"
-	RecvPrivacyTx    = "RecvPrivacyTx"
-	SendPrivacyTx    = "SendPrivacyTx"
-	ScanPrivacyInput = "ScanPrivacyInput"
-	ReScanUtxosFlag  = "ReScanUtxosFlag"
+	// 隐私交易运行过程中，需要使用到钱包数据库存储的数据库版本信息的KEY值
+	PrivacyDBVersion = "Privacy-DBVersion"
+	// 存储隐私交易保存账户的隐私公钥对信息的KEY值
+	// KEY值格式为  	Privacy4Addr-账号地址
+	// VALUE值格式为 types.WalletAccountPrivacy， 存储隐私公钥对
+	Privacy4Addr = "Privacy-Addr"
+	// 当前钱包内对应地址下可用UTXO的信息索引KEY值
+	// KEY值格式为  	AvailUTXOs-tokenname-address-outtxhash-outindex 其中outtxhash是输出该UTXO的交易哈希，使用common.Byte2Hex()生成
+	// VALUE值格式为 types.PrivacyDBStore，存储当前钱包地址下可用UTXO的详细信息
+	AvailUTXOs = "Privacy-UTXO"
+	// 创建一笔隐私交易后，创建该交易使用的UTXO信息，用以记录某一笔交易，占用了某些UTXO以及该交易的一些摘要信息
+	// KEY值格式为 	UTXOsSpentInTx：costtxhash 	其中costtxhash是创建的隐私交易哈希，使用common.Byte2Hex()生成
+	// VALUE值格式为	types.FTXOsSTXOsInOneTx
+	UTXOsSpentInTx = "Privacy-UTXOsSpentInTx"
+	// 通过钱包创建交易后，会将该交易使用到的UTXO信息进行冻结，冻结信息的索引KEY值
+	// KEY值格式为  	FrozenUTXOs:tokenname-address-costtxhash 其中costtxhash是使用UTXO的交易哈希，使用common.Byte2Hex()生成
+	// VALUE值格式为	是指向UTXOsSpentInTx的KEY值的串
+	FrozenUTXOs = "Privacy-FUTXO4Tx"
+	// 通过钱包创建的交易被确认打包到区块后，可用UTXO变成已花费UTXO，用来保存已花费UTXO信息的KEY值
+	// KEY值格式为	PrivacySTXO-tokenname-address-costtxhash	其中costtxhash是使用UTXO的交易哈希，使用common.Byte2Hex()生成
+	// VALUE值格式为	是指向UTXOsSpentInTx的KEY值的串
+	PrivacySTXO = "Privacy-SUTXO"
+	// 保存花费了UTXO的交易索引的KEY值
+	// KEY值格式为	STXOs4Tx：costtxhash	其中costtxhash是使用UTXO的交易哈希，使用common.Byte2Hex()生成
+	// VALUE值格式为	是指向UTXOsSpentInTx的KEY值的串
+	STXOs4Tx = "Privacy-SUTXO4Tx"
+	// 缓存因为区块发生回退时作为花费输出的UTXO信息
+	// KEY值格式为	RevertSendtx:tokenname-address-costtxhash	其中costtxhash是使用UTXO的交易哈希，使用common.Byte2Hex()生成
+	// VALUE值格式为	是指向UTXOsSpentInTx的KEY值的串
+	RevertSendtx = "Privacy-RevertSendtx"
+	// 记录本钱包收到的发送给钱包内地址的交易信息KEY值
+	// KEY值格式为	RecvPrivacyTx:tokenname-address-heighstr	其中heighstr是区块高度乘以types.MaxTxsPerBlock加上当前交易在该区块上的位置index
+	// VALUE值格式为	指向PrivacyTX定义的KEY串
+	RecvPrivacyTx = "Privacy-RecvTX"
+	// 记录从本钱包花费出去的的交易信息KEY值
+	// KEY值格式为	SendPrivacyTx:tokenname-address-heighstr	其中heighstr是区块高度乘以types.MaxTxsPerBlock加上当前交易在该区块上的位置index
+	// VALUE值格式为	指向PrivacyTX定义的KEY串
+	SendPrivacyTx = "Privacy-SendTX"
+	// 用以保存钱包收到的所有隐私交易具体信息的索引KEY值
+	// KEY值格式为	PrivacyTX:heighstr	其中heighstr是区块高度乘以types.MaxTxsPerBlock加上当前交易在该区块上的位置index
+	// VALUE值格式为	types.WalletTxDetail
+	PrivacyTX = "Privacy-TX"
+	// 通过扫描全链表，保存隐私交易中所有给当前钱包地址的交易的输入UTXO信息
+	// KEY值格式为	ScanPrivacyInput-outtxhash-outindex	其中outtxhash是输出该UTXO的交易哈希，使用common.Byte2Hex()生成
+	// VALUE值格式为	types.UTXOGlobalIndex
+	ScanPrivacyInput = "Privacy-ScaneInput"
+	// 存储是否处于重新扫描UTXO信息的标识
+	// KEY值格式为	ReScanUtxosFlag
+	// VALUE值格式为	types.Int64，具体含义
+	//		UtxoFlagNoScan  int32 = 0
+	//		UtxoFlagScaning int32 = 1
+	//		UtxoFlagScanEnd int32 = 2
+	ReScanUtxosFlag = "Privacy-RescanFlag"
 )
 
 // calcUTXOKey 计算可用UTXO的健值,为输出交易哈希+输出索引位置
@@ -32,7 +74,7 @@ func calcUTXOKey(txhash string, index int) []byte {
 }
 
 func calcKey4UTXOsSpentInTx(key string) []byte {
-	return []byte(fmt.Sprintf("UTXOsSpentInTx:%s", key))
+	return []byte(fmt.Sprintf("%s:%s", UTXOsSpentInTx, key))
 }
 
 // calcPrivacyAddrKey 获取隐私账户私钥对保存在钱包中的索引串
@@ -106,7 +148,7 @@ func calcSTXOTokenAddrTxKey(token, addr, txhash string) []byte {
 }
 
 func calcSTXOPrefix4Addr(token, addr string) []byte {
-	return []byte(fmt.Sprintf("%s-%s-%s", PrivacySTXO, token, addr))
+	return []byte(fmt.Sprintf("%s-%s-%s-", PrivacySTXO, token, addr))
 }
 
 // calcRevertSendTxKey 交易因为区块回退而将已经花费的UTXO移动到冻结UTXO队列的健值
@@ -117,5 +159,5 @@ func calcRevertSendTxKey(tokenname, addr, txhash string) []byte {
 //通过height*100000+index 查询Tx交易信息
 //key:Tx:height*100000+index
 func calcTxKey(key string) []byte {
-	return []byte(fmt.Sprintf("Tx:%s", key))
+	return []byte(fmt.Sprintf("%s:%s", PrivacyTX, key))
 }

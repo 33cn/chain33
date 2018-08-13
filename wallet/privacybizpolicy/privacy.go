@@ -900,11 +900,11 @@ func (biz *walletPrivacyBiz) reqUtxosByAddr(addrs []string) {
 }
 
 func (biz *walletPrivacyBiz) deleteScanPrivacyInputUtxo() {
-	MaxUtxosPerTime := 1000
+	maxUTXOsPerTime := 1000
 	for {
-		utxoGlobalIndexs := biz.store.setScanPrivacyInputUTXO(int32(MaxUtxosPerTime))
+		utxoGlobalIndexs := biz.store.setScanPrivacyInputUTXO(int32(maxUTXOsPerTime))
 		biz.store.updateScanInputUTXOs(utxoGlobalIndexs)
-		if len(utxoGlobalIndexs) < MaxUtxosPerTime {
+		if len(utxoGlobalIndexs) < maxUTXOsPerTime {
 			break
 		}
 	}
