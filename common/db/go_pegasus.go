@@ -3,18 +3,20 @@ package db
 import (
 	"bytes"
 	"context"
+	"fmt"
+	"strings"
+	"time"
+
 	"github.com/XiaoMi/pegasus-go-client/pegasus"
 	log "github.com/inconshreveable/log15"
 	"github.com/syndtr/goleveldb/leveldb/util"
 	"gitlab.33.cn/chain33/chain33/types"
-	"strings"
-	"time"
 )
 
 var slog = log.New("module", "db.pegasus")
 var bm = &SsdbBench{}
-var hashKey = []byte("hash")
-var mgetOpts = pegasus.MultiGetOptions{StartInclusive: true, StopInclusive: true}
+var HashKeyLen = 24
+var mgetOpts = &pegasus.MultiGetOptions{StartInclusive: true, StopInclusive: true}
 
 func init() {
 	dbCreator := func(name string, dir string, cache int) (DB, error) {
@@ -66,7 +68,7 @@ func parsePegasusNodes(url string) *pegasus.Config {
 
 func (db *PegasusDB) Get(key []byte) ([]byte, error) {
 	start := time.Now()
-
+	hashKey := getHashKey(key)
 	value, err := db.table.Get(context.Background(), hashKey, key)
 	if err != nil {
 		//slog.Error("Get value error", "error", err, "key", key, "keyhex", hex.EncodeToString(key), "keystr", string(key))
@@ -82,12 +84,56 @@ func (db *PegasusDB) Get(key []byte) ([]byte, error) {
 
 func (db *PegasusDB) BatchGet(keys [][]byte) (values [][]byte, err error) {
 	start := time.Now()
-	var keylist = []string{}
-	for _, v := range keys {
-		keylist = append(keylist, string(v))
+	defer bm.read(len(keys), time.Since(start))
+
+	var (
+		keyMap  map[int][]byte
+		hashMap map[string][][]byte
+		valMap  map[string][]byte
+		hashKey []byte
+	)
+	keyMap = make(map[int][]byte, len(keys))
+	hashMap = make(map[string][][]byte, len(keys))
+	valMap = make(map[string][]byte, len(keys))
+
+	// 这里其实也需要对hashKey进行分别计算，然后分组查询，最后汇总结果
+
+	// 首先，记录查询key的顺序，并对keys进行哈希分组
+	for i, v := range keys {
+		keyMap[i] = v
+		hashKey = getHashKey(v)
+		if value, ok := hashMap[string(hashKey)]; ok {
+			hashMap[string(hashKey)] = append(value, v)
+		} else {
+			hashMap[string(hashKey)] = [][]byte{v}
+		}
 	}
 
-	vals, err := db.table.MultiGet(context.Background(), hashKey, keys, mgetOpts)
+	// 然后，使用hashKey进行分组查询
+	for k, v := range hashMap {
+		vals, err := db.batchGet([]byte(k), v)
+		if err != nil {
+			return nil, err
+		}
+		for i := 0; i < len(v); i++ {
+			valMap[string(v[i])] = vals[i]
+		}
+	}
+
+	// 最后，按照查询顺序，从新组装结果
+	for i := 0; i < len(keys); i++ {
+		if v, ok := valMap[string(keyMap[i])]; ok {
+			values = append(values, v)
+		} else {
+			return nil, ErrNotFoundInDb
+		}
+	}
+
+	return values, nil
+}
+
+func (db *PegasusDB) batchGet(hashKey []byte, keys [][]byte) (values [][]byte, err error) {
+	vals, _, err := db.table.MultiGetOpt(context.Background(), hashKey, keys, mgetOpts)
 	if err != nil {
 		//slog.Error("Get value error", "error", err, "key", key, "keyhex", hex.EncodeToString(key), "keystr", string(key))
 		return nil, err
@@ -95,16 +141,15 @@ func (db *PegasusDB) BatchGet(keys [][]byte) (values [][]byte, err error) {
 	if vals == nil {
 		return nil, ErrNotFoundInDb
 	}
-
 	for _, v := range vals {
 		values = append(values, v.Value)
 	}
-	bm.read(1, time.Since(start))
 	return values, nil
 }
 
 func (db *PegasusDB) Set(key []byte, value []byte) error {
 	start := time.Now()
+	hashKey := getHashKey(key)
 	err := db.table.Set(context.Background(), hashKey, key, value)
 	if err != nil {
 		slog.Error("Set", "error", err)
@@ -120,6 +165,7 @@ func (db *PegasusDB) SetSync(key []byte, value []byte) error {
 
 func (db *PegasusDB) Delete(key []byte) error {
 	start := time.Now()
+	hashKey := getHashKey(key)
 	err := db.table.Del(context.Background(), hashKey, key)
 	if err != nil {
 		slog.Error("Delete", "error", err)
@@ -148,46 +194,48 @@ func (db *PegasusDB) Stats() map[string]string {
 
 func (db *PegasusDB) Iterator(prefix []byte, reverse bool) Iterator {
 	var (
-		err  error
-		vals []pegasus.KeyValue
+		err   error
+		vals  []*pegasus.KeyValue
+		start []byte
+		over  []byte
 	)
 
 	limit := util.BytesPrefix(prefix)
+	hashKey := getHashKey(prefix)
 
-	it := &PegasusIt{reverse: reverse, index: -1, table: db.table, begin: prefix, end: limit.Limit}
-
-	opts := pegasus.MultiGetOptions{StartInclusive: true, StopInclusive: false, MaxFetchCount: IteratorPageSize}
 	if reverse {
-		//TODO reverse
-		vals, err = db.table.MultiGetRange(context.Background(), hashKey, prefix, limit.Limit, opts)
+		start = prefix
+		over = limit.Limit
 	} else {
-		vals, err = db.table.MultiGetRange(context.Background(), hashKey, prefix, limit.Limit, opts)
+		start = limit.Limit
+		over = prefix
 	}
-
+	dbit := &PegasusIt{reverse: reverse, index: -1, table: db.table, begin: start, end: over}
+	opts := &pegasus.MultiGetOptions{StartInclusive: false, StopInclusive: false, MaxFetchCount: IteratorPageSize, Reverse: dbit.reverse}
+	vals, _, err = db.table.MultiGetRangeOpt(context.Background(), hashKey, prefix, limit.Limit, opts)
 	if err != nil {
 		slog.Error("create iterator error!")
 		return nil
 	}
 
 	if len(vals) > 0 {
-		it.vals = vals
+		dbit.vals = vals
 
 		// 如果返回的数据大小刚好满足分页，则假设下一页还有数据
-		if len(it.vals) == IteratorPageSize {
-			it.nextPage = true
-			it.tmpEnd = it.vals[IteratorPageSize-1].SortKey
+		if len(dbit.vals) == IteratorPageSize {
+			dbit.nextPage = true
+
+			// 下一页数据的开始，等于本页数据的结束，不过在下次查询时需要设置StartInclusiv=false，因为本条数据已经包含
+			dbit.tmpEnd = dbit.vals[IteratorPageSize-1].SortKey
 		}
 	}
 
-	if len(vals) == 10240 {
-		it.nextPage = true
-	}
-	return it
+	return dbit
 }
 
 type PegasusIt struct {
 	table    pegasus.TableConnector
-	vals     []pegasus.KeyValue
+	vals     []*pegasus.KeyValue
 	index    int
 	reverse  bool
 	nextPage bool
@@ -220,18 +268,14 @@ func (dbit *PegasusIt) Next() bool {
 
 func (dbit *PegasusIt) initPage(begin, end []byte) bool {
 	var (
-		vals []pegasus.KeyValue
+		vals []*pegasus.KeyValue
 		err  error
 	)
 
-	opts := pegasus.MultiGetOptions{StartInclusive: false, StopInclusive: false, MaxFetchCount: IteratorPageSize}
+	opts := &pegasus.MultiGetOptions{StartInclusive: false, StopInclusive: false, MaxFetchCount: IteratorPageSize, Reverse: dbit.reverse}
+	hashKey := getHashKey(begin)
+	vals, _, err = dbit.table.MultiGetRangeOpt(context.Background(), hashKey, begin, end, opts)
 
-	if dbit.reverse {
-		//TODO reverse
-		vals, err = dbit.table.MultiGetRange(context.Background(), hashKey, begin, end, opts)
-	} else {
-		vals, err = dbit.table.MultiGetRange(context.Background(), hashKey, begin, end, opts)
-	}
 	if err != nil {
 		slog.Error("get iterator next page error", "error", err, "begin", begin, "end", dbit.end, "reverse", dbit.reverse)
 		return false
@@ -255,8 +299,18 @@ func (dbit *PegasusIt) initPage(begin, end []byte) bool {
 }
 
 // 获取下一页的数据
-func (dbit *PegasusIt) cacheNextPage(begin []byte) bool {
-	if dbit.initPage(begin, dbit.end) {
+func (dbit *PegasusIt) cacheNextPage(flag []byte) bool {
+	var (
+		over []byte
+	)
+	// 如果是逆序，则取从开始到flag的数据
+	if dbit.reverse {
+		over = dbit.begin
+	} else {
+		over = dbit.end
+	}
+	// 如果是正序，则取从flag到结束的数据
+	if dbit.initPage(flag, over) {
 		dbit.index = 0
 		dbit.pageNo++
 		return true
@@ -265,13 +319,20 @@ func (dbit *PegasusIt) cacheNextPage(begin []byte) bool {
 	}
 }
 
+func (dbit *PegasusIt) checkKeyCmp(key1, key2 []byte, reverse bool) bool {
+	if reverse {
+		return bytes.Compare(key1, key2) < 0
+	}
+	return bytes.Compare(key1, key2) > 0
+}
+
 func (dbit *PegasusIt) findInPage(key []byte) int {
 	pos := -1
 	for i, v := range dbit.vals {
 		if i < dbit.index {
 			continue
 		}
-		if bytes.Compare(key, v.SortKey) < 0 {
+		if dbit.checkKeyCmp(key, v.SortKey, dbit.reverse) {
 			continue
 		} else {
 			pos = i
@@ -383,32 +444,80 @@ func (db *PegasusBatch) Delete(key []byte) {
 func (db *PegasusBatch) Write() error {
 	start := time.Now()
 
+	// 这里其实也需要对hashKey进行分别计算，然后分组查询，最后汇总结果
 	if len(db.batchset) > 0 {
-		var keys [][]byte
-		var values [][]byte
+		var (
+			keysMap map[string][][]byte
+			valsMap map[string][][]byte
+			hashKey []byte
+			byteKey []byte
+			keys    [][]byte
+			values  [][]byte
+		)
+		keysMap = make(map[string][][]byte, len(keys))
+		valsMap = make(map[string][][]byte, len(keys))
+
+		// 首先，使用hashKey进行数据分组
 		for k, v := range db.batchset {
-			keys = append(keys, []byte(k))
-			values = append(values, v)
+			byteKey = []byte(k)
+			hashKey = getHashKey(byteKey)
+			if value, ok := keysMap[string(hashKey)]; ok {
+				keysMap[string(hashKey)] = append(value, byteKey)
+				valsMap[string(hashKey)] = append(valsMap[string(hashKey)], v)
+			} else {
+				keysMap[string(hashKey)] = [][]byte{byteKey}
+				valsMap[string(hashKey)] = [][]byte{v}
+			}
 		}
-		err := db.table.MultiSet(context.Background(), hashKey, keys, values, 0)
-		if err != nil {
-			slog.Error("Write (multi_set)", "error", err)
-			return err
+		// 然后，再分别提交修改
+		for k, v := range keysMap {
+			keys = v
+			values = valsMap[k]
+
+			err := db.table.MultiSet(context.Background(), []byte(k), keys, values)
+			if err != nil {
+				slog.Error("Write (multi_set)", "error", err)
+				return err
+			}
 		}
 	}
 
 	if len(db.batchdel) > 0 {
-		var dkeys [][]byte
+		var (
+			keysMap map[string][][]byte
+			hashKey []byte
+			byteKey []byte
+			keys    [][]byte
+		)
+		keysMap = make(map[string][][]byte, len(keys))
+
+		// 首先，使用hashKey进行数据分组
 		for _, v := range db.batchdel {
-			dkeys = append(dkeys, v)
+			hashKey = getHashKey(v)
+			if value, ok := keysMap[string(hashKey)]; ok {
+				keysMap[string(hashKey)] = append(value, byteKey)
+			} else {
+				keysMap[string(hashKey)] = [][]byte{byteKey}
+			}
 		}
-		err := db.table.MultiDel(context.Background(), hashKey, dkeys)
-		if err != nil {
-			slog.Error("Write (multi_del)", "error", err)
-			return err
+
+		// 然后，再分别提交删除
+		for k, v := range keysMap {
+			err := db.table.MultiDel(context.Background(), []byte(k), v)
+			if err != nil {
+				slog.Error("Write (multi_del)", "error", err)
+				return err
+			}
 		}
 	}
 
 	benchmark.write(len(db.batchset)+len(db.batchdel), time.Since(start))
 	return nil
+}
+
+func getHashKey(key []byte) []byte {
+	if len(key) < HashKeyLen {
+		panic(fmt.Errorf("data key is too short! key=%v", key))
+	}
+	return key[:HashKeyLen]
 }
