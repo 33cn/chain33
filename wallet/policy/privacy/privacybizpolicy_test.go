@@ -151,7 +151,7 @@ func (mock *testDataMock) importPrivateKey(PrivKey *types.ReqWalletImportPrivKey
 	}
 
 	//对私钥加密
-	Encryptered := privacy.CBCEncrypterPrivkey([]byte(wallet.Password), privkeybyte)
+	Encryptered := wcom.CBCEncrypterPrivkey([]byte(wallet.Password), privkeybyte)
 	Encrypteredstr := common.ToHex(Encryptered)
 	//校验PrivKey对应的addr是否已经存在钱包中
 	Account, err = wallet.GetAccountByAddr(addr)
