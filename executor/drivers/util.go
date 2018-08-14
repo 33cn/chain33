@@ -60,8 +60,8 @@ func setAddrTxsCount(db dbm.KVDB, addr string, count int64) error {
 
 func updateAddrTxsCount(cachedb dbm.KVDB, addr string, amount int64, isadd bool) (*types.KeyValue, error) {
 	//blockchaindb 数据库0版本不支持此功能
-	blockchaindbver := getBlockChainDbVersion(cachedb)
-	if blockchaindbver == 0 {
+	ver := types.GetChainConfig("dbversion").(int64)
+	if ver == 0 {
 		return nil, types.ErrNotFound
 	}
 	txscount, err := getAddrTxsCount(cachedb, addr)
@@ -76,20 +76,4 @@ func updateAddrTxsCount(cachedb dbm.KVDB, addr string, amount int64, isadd bool)
 	setAddrTxsCount(cachedb, addr, txscount)
 	//keyvalue
 	return getAddrTxsCountKV(addr, txscount), nil
-}
-
-func getBlockChainDbVersion(db dbm.KVDB) int64 {
-	ver := types.Int64{}
-	version, err := db.Get(version.BlockChainVerKey)
-	if err != nil && err != types.ErrNotFound {
-		return 0
-	}
-	if len(version) == 0 {
-		return 0
-	}
-	err = types.Decode(version, &ver)
-	if err != nil {
-		return 0
-	}
-	return ver.Data
 }
