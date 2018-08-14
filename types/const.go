@@ -349,6 +349,12 @@ var MapSellOrderStatusStr2Int = map[string]int32{
 	"revoked": TradeOrderStatusRevoked,
 }
 
+var MapBuyOrderStatusStr2Int = map[string]int32{
+	"onbuy":      TradeOrderStatusOnBuy,
+	"boughtout":  TradeOrderStatusBoughtOut,
+	"buyrevoked": TradeOrderStatusBuyRevoked,
+}
+
 // relay
 const (
 	RelayRevokeCreate = iota

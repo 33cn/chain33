@@ -900,11 +900,11 @@ func (biz *walletPrivacyBiz) reqUtxosByAddr(addrs []string) {
 }
 
 func (biz *walletPrivacyBiz) deleteScanPrivacyInputUtxo() {
-	MaxUtxosPerTime := 1000
+	maxUTXOsPerTime := 1000
 	for {
-		utxoGlobalIndexs := biz.store.setScanPrivacyInputUTXO(int32(MaxUtxosPerTime))
+		utxoGlobalIndexs := biz.store.setScanPrivacyInputUTXO(int32(maxUTXOsPerTime))
 		biz.store.updateScanInputUTXOs(utxoGlobalIndexs)
-		if len(utxoGlobalIndexs) < MaxUtxosPerTime {
+		if len(utxoGlobalIndexs) < maxUTXOsPerTime {
 			break
 		}
 	}
@@ -1307,7 +1307,7 @@ func (biz *walletPrivacyBiz) checkExpireFTXOOnTimer() {
 
 	header := biz.walletOperate.GetLastHeader()
 	if header == nil {
-		bizlog.Error("checkExpireFTXOOnTimer", "Can not get last header.")
+		bizlog.Error("checkExpireFTXOOnTimer Can not get last header.")
 		return
 	}
 	biz.store.moveFTXO2UTXOWhenFTXOExpire(header.Height, header.BlockTime)

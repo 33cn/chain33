@@ -14,6 +14,7 @@ import (
 )
 
 const (
+	// 隐私交易数据库版本号
 	PRIVACYDBVERSION int64 = 1
 )
 
@@ -424,8 +425,8 @@ func (store *privacyStore) setScanPrivacyInputUTXO(count int32) []*types.UTXOGlo
 	values := list.List(prefix, nil, count, 0)
 	var utxoGlobalIndexs []*types.UTXOGlobalIndex
 	if len(values) != 0 {
+		var utxoGlobalIndex types.UTXOGlobalIndex
 		for _, value := range values {
-			var utxoGlobalIndex types.UTXOGlobalIndex
 			err := types.Decode(value, &utxoGlobalIndex)
 			if err == nil {
 				utxoGlobalIndexs = append(utxoGlobalIndexs, &utxoGlobalIndex)
