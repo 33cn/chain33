@@ -19,7 +19,7 @@ SRC_RELAYD := gitlab.33.cn/chain33/chain33/cmd/relayd
 LDFLAGS := -ldflags "-w -s"
 PKG_LIST := `go list ./... | grep -v "vendor" | grep -v "chain33/test" | grep -v "mocks" | grep -v "pbft"`
 BUILD_FLAGS = -ldflags "-X gitlab.33.cn/chain33/chain33/common/version.GitCommit=`git rev-parse --short=8 HEAD`"
-.PHONY: default dep all build release cli linter race test fmt vet bench msan coverage coverhtml docker docker-compose protobuf clean help
+.PHONY: default dep all build release cli para-cli linter race test fmt vet bench msan coverage coverhtml docker docker-compose protobuf clean help
 
 default: build cli relayd para-cli
 
@@ -75,6 +75,7 @@ miner:
 
 build_ci: relayd ## Build the binary file for CI
 	@go build -race -v -i -o $(CLI) $(SRC_CLI)
+	@go build -v -o $(PARACLI) -ldflags "-X gitlab.33.cn/chain33/chain33/common/config.ParaName=user.p.$(PARANAME). -X gitlab.33.cn/chain33/chain33/common/config.RPCAddr=http://localhost:8901" $(SRC_CLI)
 	@go build  $(BUILD_FLAGS)-race -v -o $(APP) $(SRC)
 	@cp cmd/chain33/chain33.toml build/
 	@cp cmd/chain33/chain33.para.toml build/
