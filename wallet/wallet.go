@@ -14,11 +14,12 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
-	"gitlab.33.cn/chain33/chain33/common/crypto/privacy"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	clog "gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/wallet/bizpolicy"
+	"gitlab.33.cn/chain33/chain33/wallet/privacybizpolicy"
 )
 
 var (
@@ -66,27 +67,9 @@ type Wallet struct {
 	rescanwg         *sync.WaitGroup
 	rescanUTXOflag   int32
 	lastHeader       *types.Header
-}
 
-type walletUTXO struct {
-	height  int64
-	outinfo *txOutputInfo
-}
-
-type walletUTXOs struct {
-	utxos []*walletUTXO
-}
-
-type txOutputInfo struct {
-	amount           int64
-	utxoGlobalIndex  *types.UTXOGlobalIndex
-	txPublicKeyR     []byte
-	onetimePublicKey []byte
-}
-
-type addrAndprivacy struct {
-	PrivacyKeyPair *privacy.Privacy
-	Addr           *string
+	funcmap         queue.FuncMap
+	policyContainer map[string]bizpolicy.WalletBizPolicy
 }
 
 func SetLogLevel(level string) {
@@ -134,6 +117,90 @@ func New(cfg *types.Wallet) *Wallet {
 	return wallet
 }
 
+func (wallet *Wallet) initBizPolicy() {
+	wallet.policyContainer = make(map[string]bizpolicy.WalletBizPolicy)
+	wallet.registerBizPolicy(types.PrivacyX, privacybizpolicy.New())
+
+	for _, policy := range wallet.policyContainer {
+		policy.Init(wallet)
+	}
+}
+
+func (wallet *Wallet) registerBizPolicy(key string, policy bizpolicy.WalletBizPolicy) {
+	wallet.policyContainer[key] = policy
+}
+
+func (wallet *Wallet) GetAPI() client.QueueProtocolAPI {
+	return wallet.api
+}
+
+func (wallet *Wallet) GetMutex() *sync.Mutex {
+	return &wallet.mtx
+}
+
+func (wallet *Wallet) GetDBStore() dbm.DB {
+	return wallet.walletStore.db
+}
+
+func (wallet *Wallet) GetSignType() int {
+	return SignType
+}
+
+func (wallet *Wallet) GetPassword() string {
+	return wallet.Password
+}
+
+func (wallet *Wallet) Nonce() int64 {
+	return wallet.random.Int63()
+}
+
+func (wallet *Wallet) AddWaitGroup(delta int) {
+	wallet.wg.Add(delta)
+}
+
+func (wallet *Wallet) WaitGroupDone() {
+	wallet.wg.Done()
+}
+
+func (wallet *Wallet) GetBlockHeight() int64 {
+	return wallet.GetHeight()
+}
+
+func (wallet *Wallet) GetRandom() *rand.Rand {
+	return wallet.random
+}
+
+func (wallet *Wallet) GetWalletDone() chan struct{} {
+	return wallet.done
+}
+
+func (wallet *Wallet) GetLastHeader() *types.Header {
+	return wallet.lastHeader
+}
+
+func (wallet *Wallet) GetRescanFlag() int32 {
+	return atomic.LoadInt32(&wallet.rescanUTXOflag)
+}
+
+func (wallet *Wallet) SetRescanFlag(flag int32) {
+	atomic.StoreInt32(&wallet.rescanUTXOflag, flag)
+}
+
+func (wallet *Wallet) GetWaitGroup() *sync.WaitGroup {
+	return wallet.wg
+}
+
+func (ws *Wallet) GetAccountByLabel(label string) (*types.WalletAccountStore, error) {
+	return ws.walletStore.GetAccountByLabel(label)
+}
+
+func (wallet *Wallet) IsRescanUtxosFlagScaning() (bool, error) {
+	if types.UtxoFlagScaning == atomic.LoadInt32(&wallet.rescanUTXOflag) {
+		return true, types.ErrRescanFlagScaning
+	}
+	return false, nil
+}
+
 func (wallet *Wallet) Close() {
 	//等待所有的子线程退出
 	//set close flag to isclosed == 1
@@ -169,25 +236,23 @@ func (wallet *Wallet) SetQueueClient(cli queue.Client) {
 	wallet.client = cli
 	wallet.client.Sub("wallet")
 	wallet.api, _ = client.New(cli, nil)
+	wallet.initFuncMap()
+	wallet.initBizPolicy()
+
 	wallet.wg.Add(1)
 	go wallet.ProcRecvMsg()
-
-	//获取wallet db version ,自动升级数据库首先，然后再启动钱包.
-	//和blockchain模块有消息来往所以需要先启动ProcRecvMsg任务
-	version := wallet.walletStore.GetWalletVersion()
-	walletlog.Info("wallet db", "version:", version)
-	if version == 0 {
-		wallet.RescanAllTxByAddr()
-		wallet.walletStore.SetWalletVersion(1)
-	}
 
 	wallet.wg.Add(1)
 	go wallet.autoMining()
 
-	//开启检查FTXO的协程
-	wallet.wg.Add(1)
-	go wallet.checkWalletStoreData()
+}
 
+func (wallet *Wallet) GetAccountByAddr(addr string) (*types.WalletAccountStore, error) {
+	return wallet.walletStore.GetAccountByAddr(addr)
+}
+
+func (wallet *Wallet) SetWalletAccount(update bool, addr string, account *types.WalletAccountStore) error {
+	return wallet.walletStore.SetWalletAccount(update, addr, account)
 }
 
 func (wallet *Wallet) getPrivKeyByAddr(addr string) (crypto.PrivKey, error) {
@@ -235,35 +300,6 @@ func (wallet *Wallet) AddrInWallet(addr string) bool {
 		return true
 	}
 	return false
-}
-
-//从blockchain模块同步addr参与的所有交易详细信息
-func (wallet *Wallet) ReqTxDetailByAddr(addr string) {
-	defer wallet.wg.Done()
-	wallet.reqTxDetailByAddr(addr)
-}
-
-//从blockchain模块同步addr参与的所有交易详细信息
-func (wallet *Wallet) RescanReqTxDetailByAddr(addr string) {
-	defer wallet.rescanwg.Done()
-	wallet.reqTxDetailByAddr(addr)
-}
-
-//重新扫描钱包所有地址对应的交易从blockchain模块
-func (wallet *Wallet) RescanAllTxByAddr() {
-	accounts, err := wallet.GetWalletAccounts()
-	if err != nil {
-		return
-	}
-	walletlog.Debug("RescanAllTxByAddr begin!")
-	for _, acc := range accounts {
-		//从blockchain模块同步Account.Addr对应的所有交易详细信息
-		wallet.rescanwg.Add(1)
-		go wallet.RescanReqTxDetailByAddr(acc.Addr)
-	}
-	wallet.rescanwg.Wait()
-
-	walletlog.Debug("RescanAllTxByAddr sucess!")
 }
 
 //使用钱包的password对私钥进行aes cbc加密,返回加密后的privkey
@@ -348,27 +384,6 @@ func (wallet *Wallet) GetWalletStatus() *types.WalletStatus {
 
 	walletlog.Debug("GetWalletStatus", "walletstatus", s)
 	return s
-}
-
-func (wallet *Wallet) checkWalletStoreData() {
-	defer wallet.wg.Done()
-	timecount := 10
-	checkTicker := time.NewTicker(time.Duration(timecount) * time.Second)
-	for {
-		select {
-		case <-checkTicker.C:
-			newbatch := wallet.walletStore.NewBatch(true)
-			err := wallet.procInvalidTxOnTimer(newbatch)
-			if err != nil && err != dbm.ErrNotFoundInDb {
-				walletlog.Error("checkWalletStoreData", "procInvalidTxOnTimer error ", err)
-				return
-			}
-			newbatch.Write()
-		case <-wallet.done:
-			return
-		}
-	}
-
 }
 
 //output:

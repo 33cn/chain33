@@ -6,6 +6,7 @@ import (
 	"time"
 
 	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -108,7 +109,6 @@ func (coins CoinsType) CreateTx(action string, message json.RawMessage) (*types.
 		tlog.Error("CreateTx", "Error", err)
 		return nil, types.ErrInputPara
 	}
-
 	if param.ExecName != "" && !types.IsAllowExecName(param.ExecName) {
 		tlog.Error("CreateTx", "Error", types.ErrExecNameNotMatch)
 		return nil, types.ErrExecNameNotMatch
@@ -142,23 +142,30 @@ func (coins CoinsType) CreateTx(action string, message json.RawMessage) (*types.
 
 func CreateCoinsTransfer(param *types.CreateTx) *types.Transaction {
 	transfer := &types.CoinsAction{}
+	to := ""
+	if types.IsPara() {
+		to = param.GetTo()
+	}
 	if !param.IsWithdraw {
 		if param.ExecName != "" {
 			v := &types.CoinsAction_TransferToExec{TransferToExec: &types.CoinsTransferToExec{
-				Amount: param.Amount, Note: param.GetNote(), ExecName: param.GetExecName()}}
+				Amount: param.Amount, Note: param.GetNote(), ExecName: param.GetExecName(), To: to}}
 			transfer.Value = v
 			transfer.Ty = types.CoinsActionTransferToExec
 		} else {
 			v := &types.CoinsAction_Transfer{Transfer: &types.CoinsTransfer{
-				Amount: param.Amount, Note: param.GetNote()}}
+				Amount: param.Amount, Note: param.GetNote(), To: to}}
 			transfer.Value = v
 			transfer.Ty = types.CoinsActionTransfer
 		}
 	} else {
 		v := &types.CoinsAction_Withdraw{Withdraw: &types.CoinsWithdraw{
-			Amount: param.Amount, Note: param.GetNote()}}
+			Amount: param.Amount, Note: param.GetNote(), ExecName: param.GetExecName(), To: to}}
 		transfer.Value = v
 		transfer.Ty = types.CoinsActionWithdraw
+	}
+	if types.IsPara() {
+		return &types.Transaction{Execer: []byte(name), Payload: types.Encode(transfer), To: address.ExecAddress(name)}
 	}
 	return &types.Transaction{Execer: []byte(name), Payload: types.Encode(transfer), To: param.GetTo()}
 }

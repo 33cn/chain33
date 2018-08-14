@@ -5,39 +5,42 @@ var slash = []byte("-")
 
 const Debug = false
 const (
-	CoinsX      = "coins"
-	TicketX     = "ticket"
-	HashlockX   = "hashlock"
-	RetrieveX   = "retrieve"
-	NoneX       = "none"
-	TokenX      = "token"
-	TradeX      = "trade"
-	ManageX     = "manage"
-	PrivacyX    = "privacy"
-	EvmX        = "evm"
-	RelayX      = "relay"
-	Normx       = "norm"
-	UserEvmX    = "user.evm."
-	CertX       = "cert"
-	BlackwhiteX = "blackwhite"
+	CoinsX          = "coins"
+	TicketX         = "ticket"
+	HashlockX       = "hashlock"
+	RetrieveX       = "retrieve"
+	NoneX           = "none"
+	TokenX          = "token"
+	TradeX          = "trade"
+	ManageX         = "manage"
+	PrivacyX        = "privacy"
+	ExecerEvmString = "evm"
+	EvmX            = "evm"
+	RelayX          = "relay"
+	Normx           = "norm"
+	UserEvmX        = "user.evm."
+	CertX           = "cert"
+	GameX           = "game"
+	BlackwhiteX     = "blackwhite"
 )
 
 var (
-	ExecerCoins      = []byte(CoinsX)
-	ExecerTicket     = []byte(TicketX)
-	ExecerManage     = []byte(ManageX)
-	ExecerToken      = []byte(TokenX)
-	ExecerEvm        = []byte(EvmX)
-	ExecerPrivacy    = []byte(PrivacyX)
-	ExecerRelay      = []byte(RelayX)
-	ExecerHashlock   = []byte(HashlockX)
-	ExecerRetrieve   = []byte(RetrieveX)
-	ExecerNone       = []byte(NoneX)
-	ExecerTrade      = []byte(TradeX)
-	ExecerNorm       = []byte(Normx)
-	ExecerConfig     = []byte("config")
-	ExecerCert       = []byte(CertX)
-	UserEvm          = []byte(UserEvmX)
+	ExecerCoins    = []byte(CoinsX)
+	ExecerTicket   = []byte(TicketX)
+	ExecerManage   = []byte(ManageX)
+	ExecerToken    = []byte(TokenX)
+	ExecerEvm      = []byte(EvmX)
+	ExecerPrivacy  = []byte(PrivacyX)
+	ExecerRelay    = []byte(RelayX)
+	ExecerHashlock = []byte(HashlockX)
+	ExecerRetrieve = []byte(RetrieveX)
+	ExecerNone     = []byte(NoneX)
+	ExecerTrade    = []byte(TradeX)
+	ExecerNorm     = []byte(Normx)
+	ExecerConfig   = []byte("config")
+	ExecerCert     = []byte(CertX)
+	UserEvm        = []byte(UserEvmX)
+	ExecerGame     = []byte(GameX)
 	ExecerBlackwhite = []byte(BlackwhiteX)
 )
 
@@ -104,6 +107,13 @@ const (
 	SignNameRing           = "RingSignatue"
 	SignNameAuthECDSA      = "auth_ecdsa"
 	SignNameAuthSM2        = "auth_sm2"
+)
+
+// 创建隐私交易的类型定义
+const (
+	PrivacyTypePublic2Privacy = iota + 1
+	PrivacyTypePrivacy2Privacy
+	PrivacyTypePrivacy2Public
 )
 
 var MapSignType2name = map[int]string{
@@ -198,6 +208,12 @@ const (
 	TyLogCallContract = 603
 	// 合约状态数据变更项日志
 	TyLogEVMStateChangeItem = 604
+
+	//log for game
+	TyLogCreateGame = 711
+	TyLogMatchGame  = 712
+	TyLogCancleGame = 713
+	TyLogCloseGame  = 714
 
 	// log for blackwhite game
 	TyLogBlackwhiteCreate      = 700
@@ -394,3 +410,11 @@ var RescanFlagMapint2string = map[int32]string{
 	UtxoFlagScaning: "UtxoFlagScaning",
 	UtxoFlagScanEnd: "UtxoFlagScanEnd",
 }
+
+//game action ty
+const (
+	GameActionCreate = iota
+	GameActionMatch
+	GameActionCancel
+	GameActionClose
+)

@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 type JSONClient struct {
@@ -52,7 +54,7 @@ func (client *JSONClient) Call(method string, params, resp interface{}) error {
 	if err != nil {
 		return err
 	}
-	if cresp.Error != nil || cresp.Result == nil {
+	if cresp.Error != nil /*|| cresp.Result == nil*/ {
 		x, ok := cresp.Error.(string)
 		if !ok {
 			return fmt.Errorf("invalid error %v", cresp.Error)
@@ -62,5 +64,9 @@ func (client *JSONClient) Call(method string, params, resp interface{}) error {
 		}
 		return fmt.Errorf(x)
 	}
-	return json.Unmarshal(*cresp.Result, resp)
+	if cresp.Result == nil {
+		return types.ErrEmpty
+	} else {
+		return json.Unmarshal(*cresp.Result, resp)
+	}
 }

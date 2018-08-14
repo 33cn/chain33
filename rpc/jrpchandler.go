@@ -10,6 +10,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/version"
 	"gitlab.33.cn/chain33/chain33/types"
+	evmtype "gitlab.33.cn/chain33/chain33/types/executor/evm"
 	hashlocktype "gitlab.33.cn/chain33/chain33/types/executor/hashlock"
 	retrievetype "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
 	tokentype "gitlab.33.cn/chain33/chain33/types/executor/token"
@@ -1353,6 +1354,16 @@ func (c *Chain33) CreateRawHashlockUnlockTx(in *hashlocktype.HashlockUnlockTx, r
 
 func (c *Chain33) CreateRawHashlockSendTx(in *hashlocktype.HashlockSendTx, result *interface{}) error {
 	reply, err := c.cli.CreateRawHashlockSendTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Chain33) CreateRawEvmCreateCallTx(in *evmtype.CreateCallTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawEvmCreateCallTx(in)
 	if err != nil {
 		return err
 	}

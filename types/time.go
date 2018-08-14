@@ -12,7 +12,7 @@ var NtpHosts = []string{
 	"ntp.ubuntu.com:123",
 	"pool.ntp.org:123",
 	"cn.pool.ntp.org:123",
-	"time.asia.apple.com:123",
+	"time.apple.com:123",
 }
 
 func SetFixTime(openTimeCalibration bool) {

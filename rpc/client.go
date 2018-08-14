@@ -3,6 +3,7 @@ package rpc
 import (
 	"encoding/hex"
 	"math/rand"
+	"time"
 
 	"encoding/json"
 
@@ -14,6 +15,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
+	evmtype "gitlab.33.cn/chain33/chain33/types/executor/evm"
 	hashlocktype "gitlab.33.cn/chain33/chain33/types/executor/hashlock"
 	retrievetype "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
 	tokentype "gitlab.33.cn/chain33/chain33/types/executor/token"
@@ -366,6 +368,10 @@ func (c *channelClient) CreateRawHashlockSendTx(parm *hashlocktype.HashlockSendT
 	return callExecNewTx(types.ExecName(types.HashlockX), "HashlockSend", parm)
 }
 
+func (c *channelClient) CreateRawEvmCreateCallTx(parm *evmtype.CreateCallTx) ([]byte, error) {
+	return callExecNewTx(types.ExecName(types.EvmX), "CreateCall", parm)
+}
+
 func (c *channelClient) BindMiner(param *types.ReqBindMiner) (*types.ReplyBindMiner, error) {
 	ta := &types.TicketAction{}
 	tBind := &types.TicketBind{
@@ -410,8 +416,8 @@ func (c *channelClient) GetTimeStatus() (*types.TimeStatus, error) {
 	if ntpTime.IsZero() {
 		return &types.TimeStatus{NtpTime: "", LocalTime: local.Format("2006-01-02 15:04:05"), Diff: 0}, nil
 	}
-	diff := local.Unix() - ntpTime.Unix()
-	return &types.TimeStatus{NtpTime: ntpTime.Format("2006-01-02 15:04:05"), LocalTime: local.Format("2006-01-02 15:04:05"), Diff: diff}, nil
+	diff := local.Sub(ntpTime) / time.Second
+	return &types.TimeStatus{NtpTime: ntpTime.Format("2006-01-02 15:04:05"), LocalTime: local.Format("2006-01-02 15:04:05"), Diff: int64(diff)}, nil
 }
 
 func (c *channelClient) CreateRawRelayOrderTx(parm *RelayOrderTx) ([]byte, error) {

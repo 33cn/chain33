@@ -40,6 +40,10 @@ func calcHashToBlockHeaderKey(hash []byte) []byte {
 	//return []byte(fmt.Sprintf("Header:%v", hash))
 }
 
+func calcHeightToBlockHeaderKey(height int64) []byte {
+	return []byte(fmt.Sprintf("HH:%012d", height))
+}
+
 //存储block hash对应的block height
 func calcHashToHeightKey(hash []byte) []byte {
 	hashPerfix := []byte("Hash:")
@@ -276,6 +280,7 @@ func (bs *BlockStore) SaveBlock(storeBatch dbm.Batch, blockdetail *types.BlockDe
 	}
 
 	storeBatch.Set(calcHashToBlockHeaderKey(hash), header)
+	storeBatch.Set(calcHeightToBlockHeaderKey(height), header)
 
 	//更新最新的block 高度
 	heightbytes := types.Encode(&types.Int64{height})
@@ -314,6 +319,7 @@ func (bs *BlockStore) DelBlock(storeBatch dbm.Batch, blockdetail *types.BlockDet
 
 	//删除block height和block hash的对应关系，便于通过height查询block
 	storeBatch.Delete(calcHeightToHashKey(height))
+	storeBatch.Delete(calcHeightToBlockHeaderKey(height))
 
 	if isRecordBlockSequence || isParaChain {
 		//存储记录block序列执行的type del
@@ -433,30 +439,39 @@ func (bs *BlockStore) GetBlockHashByHeight(height int64) ([]byte, error) {
 
 //通过blockheight获取blockheader
 func (bs *BlockStore) GetBlockHeaderByHeight(height int64) (*types.Header, error) {
-
-	//首先通过height获取block hash从db中
-	hash, err := bs.GetBlockHashByHeight(height)
+	//从最新版本的key里面获取header，找不到找老版本的数据库
+	blockheader, err := bs.db.Get(calcHeightToBlockHeaderKey(height))
+	var flagFoundInOldDB bool
 	if err != nil {
-		return nil, err
+		//首先通过height获取block hash从db中
+		var hash []byte
+		hash, err = bs.GetBlockHashByHeight(height)
+		if err != nil {
+			return nil, err
+		}
+		blockheader, err = bs.db.Get(calcHashToBlockHeaderKey(hash))
+		flagFoundInOldDB = true
 	}
-	var header types.Header
-	blockheader, err := bs.db.Get(calcHashToBlockHeaderKey(hash))
 	if blockheader == nil || err != nil {
 		if err != dbm.ErrNotFoundInDb {
 			storeLog.Error("GetBlockHeaderByHeight calcHashToBlockHeaderKey", "error", err)
 		}
 		return nil, types.ErrHashNotExist
 	}
+	var header types.Header
 	err = proto.Unmarshal(blockheader, &header)
 	if err != nil {
 		storeLog.Error("GetBlockHerderByHeight", "Could not unmarshal blockheader:", blockheader)
 		return nil, err
 	}
+	if flagFoundInOldDB {
+		bs.db.Set(calcHeightToBlockHeaderKey(height), blockheader)
+	}
 	return &header, nil
 }
 
 //通过blockhash获取blockheader
-func (bs *BlockStore) GetBlockHerderByHash(hash []byte) (*types.Header, error) {
+func (bs *BlockStore) GetBlockHeaderByHash(hash []byte) (*types.Header, error) {
 
 	var header types.Header
 	blockheader, err := bs.db.Get(calcHashToBlockHeaderKey(hash))
