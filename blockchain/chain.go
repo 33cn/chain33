@@ -205,9 +205,10 @@ func (chain *BlockChain) InitBlockChain() {
 	curheight := chain.GetBlockHeight()
 	curdbver := chain.blockStore.GetDbVersion()
 	if curdbver == 0 && curheight == -1 {
-		chain.blockStore.SetDbVersion(1)
+		curdbver = 1
+		chain.blockStore.SetDbVersion(curdbver)
 	}
-
+	types.SetChainConfig("dbversion", curdbver)
 	if !chain.cfg.IsParaChain {
 		// 定时检测/同步block
 		go chain.SynRoutine()
