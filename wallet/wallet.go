@@ -1,8 +1,6 @@
 package wallet
 
 import (
-	"crypto/aes"
-	"crypto/cipher"
 	"math/rand"
 	"sync"
 	"sync/atomic"
@@ -261,7 +259,7 @@ func (wallet *Wallet) getPrivKeyByAddr(addr string) (crypto.PrivKey, error) {
 		return nil, err
 	}
 
-	privkey := CBCDecrypterPrivkey([]byte(wallet.Password), prikeybyte)
+	privkey := wcom.CBCDecrypterPrivkey([]byte(wallet.Password), prikeybyte)
 	//通过privkey生成一个pubkey然后换算成对应的addr
 	cr, err := crypto.New(types.GetSignatureTypeName(SignType))
 	if err != nil {
@@ -293,45 +291,6 @@ func (wallet *Wallet) AddrInWallet(addr string) bool {
 	return false
 }
 
-//使用钱包的password对私钥进行aes cbc加密,返回加密后的privkey
-func CBCEncrypterPrivkey(password []byte, privkey []byte) []byte {
-	key := make([]byte, 32)
-	Encrypted := make([]byte, len(privkey))
-	if len(password) > 32 {
-		key = password[0:32]
-	} else {
-		copy(key, password)
-	}
-
-	block, _ := aes.NewCipher(key)
-	iv := key[:block.BlockSize()]
-	//walletlog.Info("CBCEncrypterPrivkey", "password", string(key), "Privkey", common.ToHex(privkey))
-
-	encrypter := cipher.NewCBCEncrypter(block, iv)
-	encrypter.CryptBlocks(Encrypted, privkey)
-
-	//walletlog.Info("CBCEncrypterPrivkey", "Encrypted", common.ToHex(Encrypted))
-	return Encrypted
-}
-
-//使用钱包的password对私钥进行aes cbc解密,返回解密后的privkey
-func CBCDecrypterPrivkey(password []byte, privkey []byte) []byte {
-	key := make([]byte, 32)
-	if len(password) > 32 {
-		key = password[0:32]
-	} else {
-		copy(key, password)
-	}
-
-	block, _ := aes.NewCipher(key)
-	iv := key[:block.BlockSize()]
-	decryptered := make([]byte, len(privkey))
-	decrypter := cipher.NewCBCDecrypter(block, iv)
-	decrypter.CryptBlocks(decryptered, privkey)
-	//walletlog.Info("CBCDecrypterPrivkey", "password", string(key), "Encrypted", common.ToHex(privkey), "decryptered", common.ToHex(decryptered))
-	return decryptered
-}
-
 //检测钱包是否允许转账到指定地址，判断钱包锁和是否有seed以及挖矿锁
 func (wallet *Wallet) IsTransfer(addr string) (bool, error) {
 
@@ -342,7 +301,7 @@ func (wallet *Wallet) IsTransfer(addr string) (bool, error) {
 	}
 	//钱包已经锁定，挖矿锁已经解锁,需要判断addr是否是挖矿合约地址
 	if !wallet.IsTicketLocked() {
-		if addr == address.ExecAddress("ticket") {
+		if addr == address.ExecAddress(types.TicketX) {
 			return true, nil
 		}
 	}

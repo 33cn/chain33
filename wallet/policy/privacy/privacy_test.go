@@ -47,7 +47,7 @@ func (mock *PrivacyMock) getPrivKeyByAddr(addr string) (crypto.PrivKey, error) {
 	}
 
 	password := []byte(mock.password)
-	privkey := CBCDecrypterPrivkey(password, prikeybyte)
+	privkey := wcom.CBCDecrypterPrivkey(password, prikeybyte)
 	//通过privkey生成一个pubkey然后换算成对应的addr
 	cr, err := crypto.New(types.GetSignatureTypeName(mock.walletOp.GetSignType()))
 	if err != nil {
@@ -66,10 +66,10 @@ func (mock *PrivacyMock) getPrivacykeyPair(addr string) (*privacy.Privacy, error
 	if accPrivacy, _ := mock.store.getWalletAccountPrivacy(addr); accPrivacy != nil {
 		privacyInfo := &privacy.Privacy{}
 		copy(privacyInfo.ViewPubkey[:], accPrivacy.ViewPubkey)
-		decrypteredView := CBCDecrypterPrivkey([]byte(mock.password), accPrivacy.ViewPrivKey)
+		decrypteredView := wcom.CBCDecrypterPrivkey([]byte(mock.password), accPrivacy.ViewPrivKey)
 		copy(privacyInfo.ViewPrivKey[:], decrypteredView)
 		copy(privacyInfo.SpendPubkey[:], accPrivacy.SpendPubkey)
-		decrypteredSpend := CBCDecrypterPrivkey([]byte(mock.password), accPrivacy.SpendPrivKey)
+		decrypteredSpend := wcom.CBCDecrypterPrivkey([]byte(mock.password), accPrivacy.SpendPrivKey)
 		copy(privacyInfo.SpendPrivKey[:], decrypteredSpend)
 
 		return privacyInfo, nil
