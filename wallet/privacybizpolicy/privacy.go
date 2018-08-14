@@ -1307,7 +1307,7 @@ func (biz *walletPrivacyBiz) checkExpireFTXOOnTimer() {
 
 	header := biz.walletOperate.GetLastHeader()
 	if header == nil {
-		bizlog.Error("checkExpireFTXOOnTimer", "Can not get last header.")
+		bizlog.Error("checkExpireFTXOOnTimer Can not get last header.")
 		return
 	}
 	biz.store.moveFTXO2UTXOWhenFTXOExpire(header.Height, header.BlockTime)
