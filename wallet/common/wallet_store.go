@@ -64,6 +64,7 @@ func (ws *WalletStore) GetWalletPassword() string {
 	return string(passwordbytes)
 }
 
+// SetFeeAmount 设置钱包的手续费，本函数需要跟钱包中的费率一起改变，否则会有问题
 func (ws *WalletStore) SetFeeAmount(FeeAmount int64) error {
 	FeeAmountbytes, err := json.Marshal(FeeAmount)
 	if err != nil {
