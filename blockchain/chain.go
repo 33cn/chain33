@@ -195,9 +195,11 @@ func (chain *BlockChain) InitBlockChain() {
 	//获取数据库中最新的10240个区块加载到index和bestview链中,耗时需要几分钟，需要异步处理
 	chain.InitIndexAndBestView()
 	chainlog.Info("InitIndexAndBestView", "cost", types.Since(beg))
-
 	//获取数据库中最新的区块高度，以及blockchain的数据库版本号
 	curheight := chain.GetBlockHeight()
+	if types.EnableTxHeight {
+		chain.InitCache(curheight)
+	}
 	curdbver := chain.blockStore.GetDbVersion()
 	if curdbver == 0 && curheight == -1 {
 		curdbver = 1
@@ -806,6 +808,22 @@ func (chain *BlockChain) SendDelBlockEvent(block *types.BlockDetail) (err error)
 	chain.client.Send(msg, false)
 
 	return nil
+}
+
+func (chain *BlockChain) InitCache(height int64) {
+	if height < 0 {
+		return
+	}
+	for i := height - DefCacheSize; i <= height; i++ {
+		if i < 0 {
+			i = 0
+		}
+		blockdetail, err := chain.GetBlock(i)
+		if err != nil {
+			panic(err)
+		}
+		chain.cache.cacheBlock(blockdetail)
+	}
 }
 
 // 第一次启动之后需要将数据库中最新的128个block的node添加到index和bestchain中
