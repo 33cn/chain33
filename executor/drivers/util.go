@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
-	"gitlab.33.cn/chain33/chain33/common/version"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
