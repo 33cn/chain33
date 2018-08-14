@@ -195,9 +195,6 @@ func (client *RaftClient) CreateBlock() {
 		issleep = false
 		count = 0
 		rlog.Debug("==================start create new block!=====================")
-		//check dup
-		txs = client.CheckTxDup(txs)
-		rlog.Debug(fmt.Sprintf("the len txs is: %v", len(txs)))
 		var newblock types.Block
 		newblock.ParentHash = lastBlock.Hash()
 		newblock.Height = lastBlock.Height + 1

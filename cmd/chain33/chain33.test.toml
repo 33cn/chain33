@@ -22,7 +22,7 @@ callerFile = true
 callerFunction = true
 
 [blockchain]
-defCacheSize=512
+defCacheSize=128
 maxFetchBlockNum=128
 timeoutSeconds=5
 batchBlockNum=128
@@ -35,6 +35,7 @@ batchsync=false
 isRecordBlockSequence=true
 isParaChain=false
 enableTxQuickIndex=false
+
 
 [p2p]
 seeds=["47.104.125.151:13802","47.104.125.97:13802","47.104.125.177:13802"]
@@ -60,6 +61,7 @@ grpcFuncWhitelist=["*"]
 [mempool]
 poolCacheSize=10240
 minTxFee=1000000
+maxTxNumPerAccount=10000
 
 [consensus]
 name="solo"
