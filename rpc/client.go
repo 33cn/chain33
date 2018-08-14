@@ -589,7 +589,6 @@ func (c *channelClient) BlackwhiteCreateTx(parm *types.BlackwhiteCreate) ([]byte
 	head := &types.BlackwhiteCreate{
 		PlayAmount:  parm.PlayAmount,
 		PlayerCount: parm.PlayerCount,
-		Timeout:     parm.Timeout,
 		GameName:    parm.GameName,
 	}
 
@@ -610,18 +609,19 @@ func (c *channelClient) BlackwhiteCreateTx(parm *types.BlackwhiteCreate) ([]byte
 	return data, nil
 }
 
-func (c *channelClient) BlackwhiteCancelTx(parm *types.BlackwhiteCancel) ([]byte, error) {
+func (c *channelClient) BlackwhiteShowTx(parm *types.BlackwhiteShow) ([]byte, error) {
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}
 
-	head := &types.BlackwhiteCancel{
+	head := &types.BlackwhiteShow{
 		GameID: parm.GameID,
+		Secret: parm.Secret,
 	}
 
 	val := &types.BlackwhiteAction{
-		Ty:    types.BlackwhiteActionCancel,
-		Value: &types.BlackwhiteAction_Cancel{head},
+		Ty:    types.BlackwhiteActionShow,
+		Value: &types.BlackwhiteAction_Show{head},
 	}
 	tx := &types.Transaction{
 		Execer:  types.ExecerBlackwhite,

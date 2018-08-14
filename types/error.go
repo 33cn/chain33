@@ -101,6 +101,8 @@ var (
 	ErrGameOver            = errors.New("ErrGameOver")
 	ErrNoCancel            = errors.New("ErrNoCancel")
 	ErrNoTimeoutDone       = errors.New("ErrNoTimeoutDone")
+	ErrNoShowNonce         = errors.New("ErrNoShowNonce")
+	ErrNoExistAddr         = errors.New("ErrNoExistAddr")
 
 	ErrStartBigThanEnd            = errors.New("ErrStartBigThanEnd")
 	ErrToAddrNotSameToExecAddr    = errors.New("ErrToAddrNotSameToExecAddr")

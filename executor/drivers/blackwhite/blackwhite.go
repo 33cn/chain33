@@ -2,12 +2,15 @@ package blackwhite
 
 import (
 	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/types"
 	bw "gitlab.33.cn/chain33/chain33/types/executor/blackwhite"
 )
 
 var clog = log.New("module", "execs.blackwhite")
+
+var blackwhiteAddr = address.ExecAddress(types.BlackwhiteX)
 
 type Blackwhite struct {
 	drivers.DriverBase
@@ -43,13 +46,12 @@ func (c *Blackwhite) Exec(tx *types.Transaction, index int) (*types.Receipt, err
 		create := payload.GetCreate()
 		action := newAction(c, tx)
 		return action.Create(create)
-	} else if payload.Ty == types.BlackwhiteActionCancel && payload.GetCancel() != nil {
-		action := newAction(c, tx)
-		cancel := payload.GetCancel()
-		return action.Cancel(cancel)
 	} else if payload.Ty == types.BlackwhiteActionPlay && payload.GetPlay() != nil {
 		action := newAction(c, tx)
 		return action.Play(payload.GetPlay())
+	} else if payload.Ty == types.BlackwhiteActionShow && payload.GetShow() != nil {
+		action := newAction(c, tx)
+		return action.Show(payload.GetShow())
 	} else if payload.Ty == types.BlackwhiteActionTimeoutDone && payload.GetTimeoutDone() != nil {
 		action := newAction(c, tx)
 		return action.TimeoutDone(payload.GetTimeoutDone())
@@ -101,8 +103,8 @@ func (c *Blackwhite) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData
 	for _, log := range receipt.Logs {
 		switch log.Ty {
 		case types.TyLogBlackwhiteCreate,
-			types.TyLogBlackwhiteCancel,
 			types.TyLogBlackwhitePlay,
+			types.TyLogBlackwhiteShow,
 			types.TyLogBlackwhiteTimeoutDone,
 			types.TyLogBlackwhiteDone:
 			var receipt types.ReceiptBlackwhite
@@ -137,8 +139,8 @@ func (c *Blackwhite) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptD
 	for _, log := range receipt.Logs {
 		switch log.Ty {
 		case types.TyLogBlackwhiteCreate,
-			types.TyLogBlackwhiteCancel,
 			types.TyLogBlackwhitePlay,
+			types.TyLogBlackwhiteShow,
 			types.TyLogBlackwhiteTimeoutDone,
 			types.TyLogBlackwhiteDone:
 			var receipt types.ReceiptBlackwhite

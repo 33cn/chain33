@@ -17,8 +17,8 @@ func BlackwhiteCmd() *cobra.Command {
 
 	cmd.AddCommand(
 		BlackwhiteCreateRawTxCmd(),
-		BlackwhiteCancelRawTxCmd(),
 		BlackwhitePlayRawTxCmd(),
+		BlackwhiteShowRawTxCmd(),
 		BlackwhiteTimeoutDoneTxCmd(),
 		ShowBlackwhiteRoundCmd(),
 	)
@@ -43,8 +43,6 @@ func addBlackwhiteCreateFlags(cmd *cobra.Command) {
 	cmd.Flags().Uint32P("playerCount", "p", 0, "player count")
 	cmd.MarkFlagRequired("playerCount")
 
-	cmd.Flags().Float64P("timeout", "t", 0, "timeout(s),default:120s")
-
 	cmd.Flags().StringP("gameName", "g", "", "game name")
 }
 
@@ -52,51 +50,18 @@ func blackwhiteCreate(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	amount, _ := cmd.Flags().GetUint64("playAmount")
 	playerCount, _ := cmd.Flags().GetUint32("playerCount")
-	timeout, _ := cmd.Flags().GetFloat64("timeout")
 	gameName, _ := cmd.Flags().GetString("gameName")
 
 	amountInt64 := int64(amount)
 
-	if timeout == 0 {
-		timeout = 120
-	}
-
 	params := &types.BlackwhiteCreate{
 		PlayAmount:  amountInt64 * types.Coin,
 		PlayerCount: int32(playerCount),
-		Timeout:     int64(timeout),
 		GameName:    gameName,
 	}
 
 	var res string
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.BlackwhiteCreateTx", params, &res)
-	ctx.RunWithoutMarshal()
-}
-
-func BlackwhiteCancelRawTxCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "cancel",
-		Short: "Cancel a no start blackwhite game",
-		Run:   blackwhiteCancel,
-	}
-	addBlackwhiteCancelFlags(cmd)
-	return cmd
-}
-
-func addBlackwhiteCancelFlags(cmd *cobra.Command) {
-	cmd.Flags().StringP("gameID", "g", "", "game ID")
-	cmd.MarkFlagRequired("gameID")
-}
-
-func blackwhiteCancel(cmd *cobra.Command, args []string) {
-	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	gameID, _ := cmd.Flags().GetString("gameID")
-
-	params := &types.BlackwhiteCancel{
-		GameID: gameID,
-	}
-	var res string
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.BlackwhiteCancelTx", params, &res)
 	ctx.RunWithoutMarshal()
 }
 
@@ -147,6 +112,33 @@ func blackwhitePlay(cmd *cobra.Command, args []string) {
 	}
 	var res string
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.BlackwhitePlayTx", params, &res)
+	ctx.RunWithoutMarshal()
+}
+
+func BlackwhiteShowRawTxCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "show",
+		Short: "show secret key",
+		Run:   blackwhiteShow,
+	}
+	addBlackwhiteShowFlags(cmd)
+	return cmd
+}
+
+func addBlackwhiteShowFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("gameID", "g", "", "game ID")
+	cmd.MarkFlagRequired("gameID")
+}
+
+func blackwhiteShow(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	gameID, _ := cmd.Flags().GetString("gameID")
+
+	params := &types.BlackwhiteCancel{
+		GameID: gameID,
+	}
+	var res string
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.BlackwhiteShowTx", params, &res)
 	ctx.RunWithoutMarshal()
 }
 
