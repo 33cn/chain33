@@ -216,7 +216,6 @@ const (
 	// 这个交易就不参与共识, 只做记录
 	TyLogParacrossRecord = 703
 
-
 	//log for game
 	TyLogCreateGame = 711
 	TyLogMatchGame  = 712
