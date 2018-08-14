@@ -427,6 +427,13 @@ func (tx *Transaction) isExpire(height, blocktime int64) bool {
 			return true
 		}
 	} else {
+		//EnableTxHeight 选项开启, 并且符合条件
+		if EnableTxHeight && valid > TxHeightFlag {
+			txHeight := valid - TxHeightFlag
+			if txHeight-LowAllowPackHeight <= height && height <= txHeight+HighAllowPackHeight {
+
+			}
+		}
 		// Expire大于1e9，为blockTime
 		if valid > blocktime { // 未过期
 			return false

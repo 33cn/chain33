@@ -411,3 +411,23 @@ const (
 //flag:
 var FlagTxQuickIndex = []byte("FLAG:FlagTxQuickIndex")
 var FlagKeyMVCC = []byte("FLAG:keyMVCCFlag")
+
+//TxHeight 选项
+
+//标记是一个时间还是一个 TxHeight
+var TxHeightFlag = 1 << 62
+
+//是否开启TxHeight选项
+var EnableTxHeight = false
+
+//eg: current Height is 10000
+//TxHeight is  10010
+//=> Height <= TxHeight + HighAllowPackHeight
+//=> Height >= TxHeight - LowAllowPackHeight
+//那么交易可以打包的范围是: 10010 - 100 = 9910 , 10010 + 200 =  10210 (9910,10210)
+//可以合法的打包交易
+//关于交易去重复:
+//也就是说，另外一笔相同的交易，只能被打包在这个区间。
+//那么检查交易重复的时候，我只要检查 9910 - currentHeight 这个区间的交易不要重复就好了
+var HighAllowPackHeight = 200
+var LowAllowPackHeight = 100
