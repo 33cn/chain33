@@ -2,6 +2,7 @@ package commands
 
 import (
 	"encoding/hex"
+	//	"encoding/json"
 	"fmt"
 	"math"
 	"math/rand"
@@ -41,77 +42,200 @@ func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
 		result.From = tx.From
 	}
 
-	payloadValue, ok := tx.Payload.(map[string]interface{})["Value"].(map[string]interface{})
-	if !ok {
-		return result
-	}
-	for _, e := range [4]string{"Transfer", "Withdraw", "Genesis", "Hlock"} {
-		if _, ok := payloadValue[e]; ok {
-			if amtValue, ok := result.Payload.(map[string]interface{})["Value"].(map[string]interface{})[e].(map[string]interface{})["amount"]; ok {
-				amt := amtValue.(float64) / float64(types.Coin)
-				amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
-				result.Payload.(map[string]interface{})["Value"].(map[string]interface{})[e].(map[string]interface{})["amount"] = amtResult
-				break
+	switch tx.Execer {
+	case types.CoinsX:
+		var action types.CoinsAction
+		bt, _ := common.FromHex(tx.RawPayload)
+		types.Decode(bt, &action)
+		if pl, ok := action.Value.(*types.CoinsAction_Transfer); ok {
+			amt := float64(pl.Transfer.Amount) / float64(types.Coin)
+			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
+			result.Payload = &CoinsTransferCLI{
+				Cointoken: pl.Transfer.Cointoken,
+				Amount:    amtResult,
+				Note:      pl.Transfer.Note,
+				To:        pl.Transfer.To,
+			}
+		} else if pl, ok := action.Value.(*types.CoinsAction_Withdraw); ok {
+			amt := float64(pl.Withdraw.Amount) / float64(types.Coin)
+			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
+			result.Payload = &CoinsWithdrawCLI{
+				Cointoken: pl.Withdraw.Cointoken,
+				Amount:    amtResult,
+				Note:      pl.Withdraw.Note,
+				ExecName:  pl.Withdraw.ExecName,
+				To:        pl.Withdraw.To,
+			}
+		} else if pl, ok := action.Value.(*types.CoinsAction_Genesis); ok {
+			amt := float64(pl.Genesis.Amount) / float64(types.Coin)
+			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
+			result.Payload = &CoinsGenesisCLI{
+				Amount:        amtResult,
+				ReturnAddress: pl.Genesis.ReturnAddress,
+			}
+		} else if pl, ok := action.Value.(*types.CoinsAction_TransferToExec); ok {
+			amt := float64(pl.TransferToExec.Amount) / float64(types.Coin)
+			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
+			result.Payload = &CoinsTransferToExecCLI{
+				Cointoken: pl.TransferToExec.Cointoken,
+				Amount:    amtResult,
+				Note:      pl.TransferToExec.Note,
+				ExecName:  pl.TransferToExec.ExecName,
+				To:        pl.TransferToExec.To,
 			}
 		}
-	}
-	if _, ok := payloadValue["Miner"]; ok {
-		if rwdValue, ok := result.Payload.(map[string]interface{})["Value"].(map[string]interface{})["Miner"].(map[string]interface{})["reward"]; ok {
-			rwd := rwdValue.(float64) / float64(types.Coin)
-			rwdResult := strconv.FormatFloat(rwd, 'f', 4, 64)
-			result.Payload.(map[string]interface{})["Value"].(map[string]interface{})["Miner"].(map[string]interface{})["reward"] = rwdResult
+	case types.HashlockX:
+		var action types.HashlockAction
+		bt, _ := common.FromHex(tx.RawPayload)
+		types.Decode(bt, &action)
+		if pl, ok := action.Value.(*types.HashlockAction_Hlock); ok {
+			amt := float64(pl.Hlock.Amount) / float64(types.Coin)
+			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
+			result.Payload = &HashlockLockCLI{
+				Amount:        amtResult,
+				Time:          pl.Hlock.Time,
+				Hash:          pl.Hlock.Hash,
+				ToAddress:     pl.Hlock.ToAddress,
+				ReturnAddress: pl.Hlock.ReturnAddress,
+			}
 		}
-	}
-
-	if types.PrivacyX == tx.Execer {
-		// 隐私交易
-		if pub2priv, ok := payloadValue["Public2Privacy"]; ok {
-			decodePrivacyPayload(pub2priv)
-		} else if priv2priv, ok := payloadValue["Privacy2Privacy"]; ok {
-			decodePrivacyPayload(priv2priv)
-		} else if priv2priv, ok := payloadValue["Privacy2Public"]; ok {
-			decodePrivacyPayload(priv2priv)
+	case types.TicketX:
+		var action types.TicketAction
+		bt, _ := common.FromHex(tx.RawPayload)
+		types.Decode(bt, &action)
+		if pl, ok := action.Value.(*types.TicketAction_Miner); ok {
+			amt := float64(pl.Miner.Reward) / float64(types.Coin)
+			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
+			result.Payload = &TicketMinerCLI{
+				Bits:     pl.Miner.Bits,
+				Reward:   amtResult,
+				TicketId: pl.Miner.TicketId,
+				Modify:   pl.Miner.Modify,
+			}
 		}
+	case types.TokenX:
+		var action types.TokenAction
+		bt, _ := common.FromHex(tx.RawPayload)
+		types.Decode(bt, &action)
+		if pl, ok := action.Value.(*types.TokenAction_Tokenprecreate); ok {
+			amt := float64(pl.Tokenprecreate.Price) / float64(types.Coin)
+			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
+			result.Payload = &TokenPreCreateCLI{
+				Name:         pl.Tokenprecreate.Name,
+				Symbol:       pl.Tokenprecreate.Symbol,
+				Introduction: pl.Tokenprecreate.Introduction,
+				Total:        pl.Tokenprecreate.Total,
+				Price:        amtResult,
+				Owner:        pl.Tokenprecreate.Owner,
+			}
+		} else if pl, ok := action.Value.(*types.TokenAction_Transfer); ok {
+			amt := float64(pl.Transfer.Amount) / float64(types.Coin)
+			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
+			result.Payload = &CoinsTransferCLI{
+				Cointoken: pl.Transfer.Cointoken,
+				Amount:    amtResult,
+				Note:      pl.Transfer.Note,
+				To:        pl.Transfer.To,
+			}
+		} else if pl, ok := action.Value.(*types.TokenAction_Withdraw); ok {
+			amt := float64(pl.Withdraw.Amount) / float64(types.Coin)
+			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
+			result.Payload = &CoinsWithdrawCLI{
+				Cointoken: pl.Withdraw.Cointoken,
+				Amount:    amtResult,
+				Note:      pl.Withdraw.Note,
+				ExecName:  pl.Withdraw.ExecName,
+				To:        pl.Withdraw.To,
+			}
+		} else if pl, ok := action.Value.(*types.TokenAction_Genesis); ok {
+			amt := float64(pl.Genesis.Amount) / float64(types.Coin)
+			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
+			result.Payload = &CoinsGenesisCLI{
+				Amount:        amtResult,
+				ReturnAddress: pl.Genesis.ReturnAddress,
+			}
+		} else if pl, ok := action.Value.(*types.TokenAction_TransferToExec); ok {
+			amt := float64(pl.TransferToExec.Amount) / float64(types.Coin)
+			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
+			result.Payload = &CoinsTransferToExecCLI{
+				Cointoken: pl.TransferToExec.Cointoken,
+				Amount:    amtResult,
+				Note:      pl.TransferToExec.Note,
+				ExecName:  pl.TransferToExec.ExecName,
+				To:        pl.TransferToExec.To,
+			}
+		}
+	case types.PrivacyX:
+		var action types.PrivacyAction
+		bt, _ := common.FromHex(tx.RawPayload)
+		types.Decode(bt, &action)
+		if pl, ok := action.Value.(*types.PrivacyAction_Public2Privacy); ok {
+			amt := float64(pl.Public2Privacy.Amount) / float64(types.Coin)
+			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
+			result.Payload = &Public2PrivacyCLI{
+				Tokenname: pl.Public2Privacy.Tokenname,
+				Amount:    amtResult,
+				Note:      pl.Public2Privacy.Note,
+				Output:    decodePrivOutput(pl.Public2Privacy.Output),
+			}
+		} else if pl, ok := action.Value.(*types.PrivacyAction_Privacy2Privacy); ok {
+			amt := float64(pl.Privacy2Privacy.Amount) / float64(types.Coin)
+			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
+			result.Payload = &Privacy2PrivacyCLI{
+				Tokenname: pl.Privacy2Privacy.Tokenname,
+				Amount:    amtResult,
+				Note:      pl.Privacy2Privacy.Note,
+				Input:     decodePrivInput(pl.Privacy2Privacy.Input),
+				Output:    decodePrivOutput(pl.Privacy2Privacy.Output),
+			}
+		} else if pl, ok := action.Value.(*types.PrivacyAction_Privacy2Public); ok {
+			amt := float64(pl.Privacy2Public.Amount) / float64(types.Coin)
+			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
+			result.Payload = &Privacy2PublicCLI{
+				Tokenname: pl.Privacy2Public.Tokenname,
+				Amount:    amtResult,
+				Note:      pl.Privacy2Public.Note,
+				Input:     decodePrivInput(pl.Privacy2Public.Input),
+				Output:    decodePrivOutput(pl.Privacy2Public.Output),
+			}
+		}
+	default:
 	}
 	return result
 }
 
-func decodePrivacyPayload(pub2priv interface{}) {
-	if amountVal, ok := getStrMapValue(pub2priv, "amount"); ok {
-		amount := amountVal.(float64) / float64(types.Coin)
-		getStrMapPair(pub2priv)["amount"] = strconv.FormatFloat(amount, 'f', 4, 64)
-	}
-
-	if inputVal, ok := getStrMapValue(pub2priv, "input"); ok {
-		if keyinputVals, ok := getStrMapValue(inputVal, "keyinput"); ok {
-			for _, value := range keyinputVals.([]interface{}) {
-				if amountVal, ok := getStrMapValue(value, "amount"); ok {
-					amount := amountVal.(float64) / float64(types.Coin)
-					getStrMapPair(value)["amount"] = strconv.FormatFloat(amount, 'f', 4, 64)
-				}
-			}
+func decodePrivInput(input *types.PrivacyInput) *PrivacyInput {
+	var inputResult *PrivacyInput
+	for _, value := range input.Keyinput {
+		amt := float64(value.Amount) / float64(types.Coin)
+		amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
+		var ugis []*UTXOGlobalIndex
+		for _, u := range value.UtxoGlobalIndex {
+			ugis = append(ugis, &UTXOGlobalIndex{Outindex: u.Outindex, Txhash: common.ToHex(u.Txhash)})
 		}
-	}
-
-	if outputVal, ok := getStrMapValue(pub2priv, "output"); ok {
-		if keyoutputVals, ok := getStrMapValue(outputVal, "keyoutput"); ok {
-			for _, value := range keyoutputVals.([]interface{}) {
-				if amountVal, ok := getStrMapValue(value, "amount"); ok {
-					amount := amountVal.(float64) / float64(types.Coin)
-					getStrMapPair(value)["amount"] = strconv.FormatFloat(amount, 'f', 4, 64)
-				}
-			}
+		kin := &KeyInput{
+			Amount:          amtResult,
+			KeyImage:        common.ToHex(value.KeyImage),
+			UtxoGlobalIndex: ugis,
 		}
+		inputResult.Keyinput = append(inputResult.Keyinput, kin)
 	}
+	return inputResult
 }
 
-func getStrMapPair(m interface{}) map[string]interface{} {
-	return m.(map[string]interface{})
-}
-
-func getStrMapValue(m interface{}, key string) (interface{}, bool) {
-	ret, ok := m.(map[string]interface{})[key]
-	return ret, ok
+func decodePrivOutput(output *types.PrivacyOutput) *PrivacyOutput {
+	var outputResult *PrivacyOutput
+	for _, value := range output.Keyoutput {
+		amt := float64(value.Amount) / float64(types.Coin)
+		amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
+		kout := &KeyOutput{
+			Amount:        amtResult,
+			Onetimepubkey: common.ToHex(value.Onetimepubkey),
+		}
+		outputResult.Keyoutput = append(outputResult.Keyoutput, kout)
+	}
+	outputResult.RpubKeytx = common.ToHex(output.RpubKeytx)
+	return outputResult
 }
 
 func decodeAccount(acc *types.Account, precision int64) *AccountResult {
