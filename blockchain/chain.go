@@ -131,7 +131,7 @@ func initConfig(cfg *types.BlockChain) {
 		DefCacheSize = cfg.DefCacheSize
 	}
 
-	if types.EnableTxHeight && DefCacheSize <= types.LowAllowPackHeight {
+	if types.EnableTxHeight && DefCacheSize <= (types.LowAllowPackHeight+types.HighAllowPackHeight+1) {
 		panic("when Enable TxHeight DefCacheSize must big than types.LowAllowPackHeight")
 	}
 
