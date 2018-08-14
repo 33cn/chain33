@@ -325,13 +325,20 @@ func (dbit *ssDBIt) Next() bool {
 	}
 }
 
+func (dbit *ssDBIt) checkKeyCmp(key1, key2 string, reverse bool) bool {
+	if reverse {
+		return strings.Compare(key1, key2) < 0
+	}
+	return strings.Compare(key1, key2) > 0
+}
+
 func (dbit *ssDBIt) findInPage(key string) int {
 	pos := -1
 	for i, v := range dbit.keys {
 		if i < dbit.index {
 			continue
 		}
-		if strings.Compare(key, v) < 0 {
+		if dbit.checkKeyCmp(key, v, dbit.reverse) {
 			continue
 		} else {
 			pos = i
