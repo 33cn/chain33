@@ -802,9 +802,12 @@ func (chain *BlockChain) ProcGetAddrOverview(addr *types.ReqAddr) (*types.AddrOv
 		addrOverview.Reciver = amount.(*types.Int64).GetData()
 	}
 	beg := types.Now()
-	curdbver := types.GetChainConfig("dbversion").(int64)
+	curdbver, err := types.GetChainConfig("dbversion")
+	if err != nil {
+		return nil, err
+	}
 	var reqkey types.ReqKey
-	if curdbver == 0 {
+	if curdbver.(int64) == 0 {
 		//旧的数据库获取地址对应的交易count，使用前缀查找的方式获取
 		//前缀和util.go 文件中的CalcTxAddrHashKey保持一致
 		reqkey.Key = []byte(fmt.Sprintf("TxAddrHash:%s:%s", addr.Addr, ""))
