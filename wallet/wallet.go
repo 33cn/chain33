@@ -18,8 +18,9 @@ import (
 	clog "gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/wallet/bizpolicy"
-	"gitlab.33.cn/chain33/chain33/wallet/privacybizpolicy"
+	wcom "gitlab.33.cn/chain33/chain33/wallet/common"
+
+	_ "gitlab.33.cn/chain33/chain33/wallet/policy/privacy"
 )
 
 var (
@@ -67,9 +68,6 @@ type Wallet struct {
 	rescanwg         *sync.WaitGroup
 	rescanUTXOflag   int32
 	lastHeader       *types.Header
-
-	funcmap         queue.FuncMap
-	policyContainer map[string]bizpolicy.WalletBizPolicy
 }
 
 func SetLogLevel(level string) {
@@ -118,16 +116,9 @@ func New(cfg *types.Wallet) *Wallet {
 }
 
 func (wallet *Wallet) initBizPolicy() {
-	wallet.policyContainer = make(map[string]bizpolicy.WalletBizPolicy)
-	wallet.registerBizPolicy(types.PrivacyX, privacybizpolicy.New())
-
-	for _, policy := range wallet.policyContainer {
+	for _, policy := range wcom.PolicyContainer {
 		policy.Init(wallet)
 	}
-}
-
-func (wallet *Wallet) registerBizPolicy(key string, policy bizpolicy.WalletBizPolicy) {
-	wallet.policyContainer[key] = policy
 }
 
 func (wallet *Wallet) GetAPI() client.QueueProtocolAPI {

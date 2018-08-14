@@ -13,6 +13,10 @@ func (qfm *FuncMap) Init() {
 	qfm.funcmap = make(map[int]FN_MsgCallback)
 }
 
+func (qfm *FuncMap) IsInited() bool {
+	return qfm.funcmap != nil
+}
+
 func (qfm *FuncMap) Register(msgid int, fn FN_MsgCallback) error {
 	if _, ok := qfm.funcmap[msgid]; ok {
 		return errors.New("ErrMessageIDExisted")

@@ -1,4 +1,4 @@
-package privacybizpolicy
+package privacy
 
 import (
 	"bytes"
@@ -17,6 +17,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/crypto/privacy"
 	"gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
+	wcom "gitlab.33.cn/chain33/chain33/wallet/common"
 )
 
 func (biz *walletPrivacyBiz) rescanAllTxAddToUpdateUTXOs() {
@@ -199,7 +200,7 @@ func (biz *walletPrivacyBiz) getPrivKeyByAddr(addr string) (crypto.PrivKey, erro
 	}
 
 	password := []byte(biz.walletOperate.GetPassword())
-	privkey := CBCDecrypterPrivkey(password, prikeybyte)
+	privkey := wcom.CBCDecrypterPrivkey(password, prikeybyte)
 	//通过privkey生成一个pubkey然后换算成对应的addr
 	cr, err := crypto.New(types.GetSignatureTypeName(biz.walletOperate.GetSignType()))
 	if err != nil {
@@ -219,10 +220,10 @@ func (biz *walletPrivacyBiz) getPrivacykeyPair(addr string) (*privacy.Privacy, e
 		privacyInfo := &privacy.Privacy{}
 		password := []byte(biz.walletOperate.GetPassword())
 		copy(privacyInfo.ViewPubkey[:], accPrivacy.ViewPubkey)
-		decrypteredView := CBCDecrypterPrivkey(password, accPrivacy.ViewPrivKey)
+		decrypteredView := wcom.CBCDecrypterPrivkey(password, accPrivacy.ViewPrivKey)
 		copy(privacyInfo.ViewPrivKey[:], decrypteredView)
 		copy(privacyInfo.SpendPubkey[:], accPrivacy.SpendPubkey)
-		decrypteredSpend := CBCDecrypterPrivkey(password, accPrivacy.SpendPrivKey)
+		decrypteredSpend := wcom.CBCDecrypterPrivkey(password, accPrivacy.SpendPrivKey)
 		copy(privacyInfo.SpendPrivKey[:], decrypteredSpend)
 
 		return privacyInfo, nil
@@ -247,8 +248,8 @@ func (biz *walletPrivacyBiz) savePrivacykeyPair(addr string) (*privacy.Privacy, 
 	}
 
 	password := []byte(biz.walletOperate.GetPassword())
-	encrypteredView := CBCEncrypterPrivkey(password, newPrivacy.ViewPrivKey.Bytes())
-	encrypteredSpend := CBCEncrypterPrivkey(password, newPrivacy.SpendPrivKey.Bytes())
+	encrypteredView := wcom.CBCEncrypterPrivkey(password, newPrivacy.ViewPrivKey.Bytes())
+	encrypteredSpend := wcom.CBCEncrypterPrivkey(password, newPrivacy.SpendPrivKey.Bytes())
 	walletPrivacy := &types.WalletAccountPrivacy{
 		ViewPubkey:   newPrivacy.ViewPubkey[:],
 		ViewPrivKey:  encrypteredView,

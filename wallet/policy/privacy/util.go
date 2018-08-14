@@ -1,4 +1,4 @@
-package privacybizpolicy
+package privacy
 
 import (
 	"unsafe"
