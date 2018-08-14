@@ -59,13 +59,13 @@ type Wallet struct {
 	EncryptFlag      int64
 	miningTicket     *time.Ticker
 	wg               *sync.WaitGroup
-	walletStore      *Store
-	random           *rand.Rand
-	cfg              *types.Wallet
-	done             chan struct{}
-	rescanwg         *sync.WaitGroup
-	rescanUTXOflag   int32
-	lastHeader       *types.Header
+	walletStore    *wcom.WalletStore
+	random         *rand.Rand
+	cfg            *types.Wallet
+	done           chan struct{}
+	rescanwg       *sync.WaitGroup
+	rescanUTXOflag int32
+	lastHeader     *types.Header
 }
 
 func SetLogLevel(level string) {
@@ -74,14 +74,14 @@ func SetLogLevel(level string) {
 
 func DisableLog() {
 	walletlog.SetHandler(log.DiscardHandler())
-	storelog.SetHandler(log.DiscardHandler())
 }
 
 func New(cfg *types.Wallet) *Wallet {
 	//walletStore
 	accountdb = account.NewCoinsAccount()
 	walletStoreDB := dbm.NewDB("wallet", cfg.Driver, cfg.DbPath, cfg.DbCache)
-	walletStore := NewStore(walletStoreDB)
+	//walletStore := NewStore(walletStoreDB)
+	walletStore := wcom.NewStore(walletStoreDB)
 	minFee = cfg.MinFee
 	signType, exist := types.MapSignName2Type[cfg.SignType]
 	if !exist {
@@ -96,7 +96,7 @@ func New(cfg *types.Wallet) *Wallet {
 		autoMinerFlag:    0,
 		fatalFailureFlag: 0,
 		wg:               &sync.WaitGroup{},
-		FeeAmount:        walletStore.GetFeeAmount(),
+		FeeAmount:        walletStore.GetFeeAmount(minFee),
 		EncryptFlag:      walletStore.GetEncryptionFlag(),
 		miningTicket:     time.NewTicker(2 * time.Minute),
 		done:             make(chan struct{}),
@@ -104,10 +104,7 @@ func New(cfg *types.Wallet) *Wallet {
 		rescanwg:         &sync.WaitGroup{},
 		rescanUTXOflag:   types.UtxoFlagNoScan,
 	}
-	value, _ := walletStore.db.Get([]byte("WalletAutoMiner"))
-	if value != nil && string(value) == "1" {
-		wallet.autoMinerFlag = 1
-	}
+	wallet.autoMinerFlag = walletStore.GetAutoMinerFlag()
 	wallet.random = rand.New(rand.NewSource(types.Now().UnixNano()))
 	InitMinerWhiteList(cfg)
 	return wallet
@@ -128,7 +125,7 @@ func (wallet *Wallet) GetMutex() *sync.Mutex {
 }
 
 func (wallet *Wallet) GetDBStore() dbm.DB {
-	return wallet.walletStore.db
+	return wallet.walletStore.GetDB()
 }
 
 func (wallet *Wallet) GetSignType() int {
@@ -199,7 +196,7 @@ func (wallet *Wallet) Close() {
 	wallet.client.Close()
 	wallet.wg.Wait()
 	//关闭数据库
-	wallet.walletStore.db.Close()
+	wallet.walletStore.Close()
 	walletlog.Info("wallet module closed")
 }
 
@@ -318,7 +315,7 @@ func (wallet *Wallet) CheckWalletStatus() (bool, error) {
 	}
 
 	//判断钱包是否已保存seed
-	has, _ := HasSeed(wallet.walletStore.db)
+	has, _ := wallet.walletStore.HasSeed()
 	if !has {
 		return false, types.ErrSaveSeedFirst
 	}
@@ -328,7 +325,7 @@ func (wallet *Wallet) CheckWalletStatus() (bool, error) {
 func (wallet *Wallet) GetWalletStatus() *types.WalletStatus {
 	s := &types.WalletStatus{}
 	s.IsWalletLock = wallet.IsWalletLocked()
-	s.IsHasSeed, _ = HasSeed(wallet.walletStore.db)
+	s.IsHasSeed, _ = wallet.walletStore.HasSeed()
 	s.IsAutoMining = wallet.isAutoMining()
 	s.IsTicketLock = wallet.IsTicketLocked()
 
