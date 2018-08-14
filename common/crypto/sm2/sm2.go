@@ -81,8 +81,7 @@ func (privKey PrivKeySM2) Sign(msg []byte) crypto.Signature {
 
 	//sm2不需要LowS转换
 	//s = ToLowS(pub, s)
-	sm2SigByte, _ := MarshalSM2Signature(r, s)
-	return SignatureSM2(sm2SigByte)
+	return SignatureSM2(Serialize(r, s))
 }
 
 func (privKey PrivKeySM2) PubKey() crypto.PubKey {
@@ -129,7 +128,7 @@ func (pubKey PubKeySM2) VerifyBytes(msg []byte, sig crypto.Signature) bool {
 		return false
 	}
 
-	r, s, err := UnmarshalSM2Signature(sigSM2)
+	r, s, err := Deserialize(sigSM2)
 	if err != nil {
 		fmt.Printf("unmarshal sign failed")
 		return false
