@@ -12,14 +12,19 @@ var chainConfig map[string]interface{}
 var configMutex sync.Mutex
 
 func init() {
+	initChainBase()
+	initChainBityuanV3()
+
+	chainConfig = make(map[string]interface{})
+}
+
+func initChainBase() {
 	chainBaseParam = &ChainParam{}
 	chainBaseParam.CoinReward = 18 * Coin  //用户回报
 	chainBaseParam.CoinDevFund = 12 * Coin //发展基金回报
 	chainBaseParam.TicketPrice = 10000 * Coin
 	chainBaseParam.PowLimitBits = uint32(0x1f00ffff)
-
 	chainBaseParam.RetargetAdjustmentFactor = 4
-
 	chainBaseParam.FutureBlockTime = 16
 	chainBaseParam.TicketFrozenTime = 5    //5s only for test
 	chainBaseParam.TicketWithdrawTime = 10 //10s only for test
@@ -27,7 +32,9 @@ func init() {
 	chainBaseParam.MaxTxNumber = 1600      //160
 	chainBaseParam.TargetTimespan = 144 * 16 * time.Second
 	chainBaseParam.TargetTimePerBlock = 16 * time.Second
+}
 
+func initChainBityuanV3() {
 	chainV3Param = &ChainParam{}
 	tmp := *chainBaseParam
 	//copy base param
@@ -40,8 +47,10 @@ func init() {
 	chainV3Param.MaxTxNumber = 1500
 	chainV3Param.TargetTimespan = 144 * 15 * time.Second
 	chainV3Param.TargetTimePerBlock = 15 * time.Second
+}
 
-	chainConfig = make(map[string]interface{})
+func initChainTestNet() {
+	chainV3Param.MaxTxNumber = 10000
 }
 
 type ChainParam struct {
@@ -132,6 +141,7 @@ func SetTitle(t string) {
 	}
 	if IsLocal() {
 		SetForkToOne()
+		initChainTestNet()
 		return
 	}
 	if IsPara() {

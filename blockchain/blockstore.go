@@ -96,6 +96,9 @@ func NewBlockStore(db dbm.DB, client queue.Client) *BlockStore {
 	}
 	if height == -1 {
 		chainlog.Info("load block height error, may be init database", "height", height)
+		if types.IsEnable("quickIndex") {
+			blockStore.saveQuickIndexFlag()
+		}
 	} else {
 		blockdetail, err := blockStore.LoadBlockByHeight(height)
 		if err != nil {
@@ -162,6 +165,10 @@ func (bs *BlockStore) initQuickIndex(height int64) {
 		}
 		storeLog.Info("initQuickIndex", "height", height)
 	}
+	bs.saveQuickIndexFlag()
+}
+
+func (bs *BlockStore) saveQuickIndexFlag() {
 	kv := types.FlagKV(types.FlagTxQuickIndex, 1)
 	err := bs.db.Set(kv.Key, kv.Value)
 	if err != nil {
@@ -207,6 +214,11 @@ func (bs *BlockStore) UpdateHeight() {
 	storeLog.Debug("UpdateHeight", "curblockheight", height)
 }
 
+func (bs *BlockStore) UpdateHeight2(height int64) {
+	atomic.StoreInt64(&bs.height, height)
+	storeLog.Debug("UpdateHeight2", "curblockheight", height)
+}
+
 // 返回BlockStore保存的当前blockheader
 func (bs *BlockStore) LastHeader() *types.Header {
 	lastheaderlock.Lock()
@@ -243,6 +255,13 @@ func (bs *BlockStore) UpdateLastBlock(hash []byte) {
 		bs.lastBlock = blockdetail.Block
 	}
 	storeLog.Debug("UpdateLastBlock", "UpdateLastBlock", blockdetail.Block.Height, "LastHederhash", common.ToHex(blockdetail.Block.Hash()))
+}
+
+func (bs *BlockStore) UpdateLastBlock2(block *types.Block) {
+	lastheaderlock.Lock()
+	defer lastheaderlock.Unlock()
+	bs.lastBlock = block
+	storeLog.Debug("UpdateLastBlock", "UpdateLastBlock", block.Height, "LastHederhash", common.ToHex(block.Hash()))
 }
 
 //获取最新的block信息
