@@ -763,6 +763,7 @@ func (wallet *Wallet) ProcWalletSetPasswd(Passwd *types.ReqWalletSetPasswd) erro
 
 	newBatch.Write()
 	wallet.Password = Passwd.NewPass
+	wallet.EncryptFlag = 1
 	return nil
 }
 
