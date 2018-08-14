@@ -24,7 +24,7 @@ callerFunction = false
 
 
 [blockchain]
-defCacheSize=512
+defCacheSize=128
 maxFetchBlockNum=128
 timeoutSeconds=5
 batchBlockNum=128
@@ -36,6 +36,7 @@ singleMode=true
 batchsync=false
 isRecordBlockSequence=false
 isParaChain = true
+enableTxQuickIndex=false
 
 [p2p]
 seeds=[]
@@ -64,6 +65,7 @@ mainnetJrpcAddr= "http://localhost:8801"
 [mempool]
 poolCacheSize=10240
 minTxFee=100000
+maxTxNumPerAccount=10000
 
 [consensus]
 name="para"
