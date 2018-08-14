@@ -347,3 +347,7 @@ type ExecAccount struct {
 	Execer  string   `json:"execer"`
 	Account *Account `json:"account"`
 }
+
+type ExecNameParm struct {
+	ExecName string `json:"execname"`
+}
