@@ -5,6 +5,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/types/executor/blackwhite"
 	"gitlab.33.cn/chain33/chain33/types/executor/coins"
 	"gitlab.33.cn/chain33/chain33/types/executor/evm"
+	"gitlab.33.cn/chain33/chain33/types/executor/game"
 	"gitlab.33.cn/chain33/chain33/types/executor/hashlock"
 	"gitlab.33.cn/chain33/chain33/types/executor/manage"
 	"gitlab.33.cn/chain33/chain33/types/executor/none"
@@ -51,6 +52,8 @@ func Init() {
 	ticket.Init()
 	token.Init()
 	trade.Init()
+	game.Init()
+
 	blackwhite.Init()
 
 }
