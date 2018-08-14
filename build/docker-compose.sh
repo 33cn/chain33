@@ -40,6 +40,7 @@ RELAYD="${1}_relayd_1"
 
 containers=("${NODE1}" "${NODE2}" "${NODE3}" "${BTCD}" "${RELAYD}")
 
+PARANAME="para"
 CLIS=("${PARA_CLI0}" "${PARA_CLI1}" "${PARA_CLI2}" "${PARA_CLI}")
 
 sedfix=""
@@ -198,8 +199,15 @@ function para_set_env() {
 function para_set_toml() {
     cp chain33.para.toml "${1}"
 
+    sed -i $sedfix 's/^Title.*/Title="user.p.'''$PARANAME'''."/g' "${1}"
+    sed -i $sedfix 's/^# TestNet=.*/TestNet=true/g' "${1}"
     sed -i $sedfix 's/^startHeight=.*/startHeight=20/g' "${1}"
     sed -i $sedfix 's/^emptyBlockInterval=.*/emptyBlockInterval=4/g' "${1}"
+
+    # rpc
+    sed -i $sedfix 's/^jrpcBindAddr=.*/jrpcBindAddr="0.0.0.0:8901"/g' "${1}"
+    sed -i $sedfix 's/^grpcBindAddr=.*/grpcBindAddr="0.0.0.0:8902"/g' "${1}"
+    sed -i $sedfix 's/^whitelist=.*/whitelist=["localhost","127.0.0.1","0.0.0.0"]/g' "${1}"
 }
 
 function para_init() {
@@ -266,10 +274,13 @@ function para_transfer() {
     para_transfer2accout "1MCftFynyvG2F4ED5mdHYgziDxx6vDrScs"
     block_wait "${CLI}" 1
 
-    para_config "1KSBd17H7ZK8iT37aJztFB22XGwsPTdwE4"
-    para_config "1JRNjdEqp4LJ5fqycUBm9ayCKSeeskgMKR"
-    para_config "1NLHPEcbTWWxxU3dGUZBhayjrCHD3psX7k"
-    para_config "1MCftFynyvG2F4ED5mdHYgziDxx6vDrScs"
+    para_config "${CLI}" "paracross-nodes-user.p.${PARANAME}." "1KSBd17H7ZK8iT37aJztFB22XGwsPTdwE4"
+    para_config "${CLI}" "paracross-nodes-user.p.${PARANAME}." "1JRNjdEqp4LJ5fqycUBm9ayCKSeeskgMKR"
+    para_config "${CLI}" "paracross-nodes-user.p.${PARANAME}." "1NLHPEcbTWWxxU3dGUZBhayjrCHD3psX7k"
+    para_config "${CLI}" "paracross-nodes-user.p.${PARANAME}." "1MCftFynyvG2F4ED5mdHYgziDxx6vDrScs"
+    para_config "${CLI}" "paracross-nodes-user.p.${PARANAME}." "1MCftFynyvG2F4ED5mdHYgziDxx6vDrScs"
+
+    para_config "${PARA_CLI}" "token-blacklist" "BTY"
 
 }
 
@@ -281,8 +292,8 @@ function para_transfer2accout() {
 
 function para_config() {
     echo "=========== # para chain send config ============="
-    echo "${1}"
-    tx=$(${CLI} config config_tx -o add -k paracross-nodes-user.p.guodun. -v "${1}")
+    echo "${3}"
+    tx=$(${1} config config_tx -o add -k "${2}" -v "${3}")
     echo "${tx}"
     sign=$(${CLI} wallet sign -k 0xc34b5d9d44ac7b754806f761d3d4d2c4fe5214f6b074c19f069c4f5c2a29c8cc -d "${tx}")
     echo "${sign}"
@@ -734,6 +745,29 @@ function relay() {
 
 }
 
+function para() {
+    echo "=========== # para chain test ============="
+    hash=$(${1} send token precreate -f 0.001 -i test -n guodunjifen -a 1KSBd17H7ZK8iT37aJztFB22XGwsPTdwE4 -p 0 -s GD -t 10000 -k 1KSBd17H7ZK8iT37aJztFB22XGwsPTdwE4)
+    echo "${hash}"
+    block_wait "${1}" 2
+
+    owner=$(${1} tx query -s "${hash}" | jq -r ".receipt.logs[0].log.owner")
+    if [ "${owner}" != "1KSBd17H7ZK8iT37aJztFB22XGwsPTdwE4" ]; then
+        echo "wrong pre create owner"
+        exit 1
+    fi
+
+    hash=$(${1} send token finish -f 0.001 -a 1KSBd17H7ZK8iT37aJztFB22XGwsPTdwE4 -s GD -k 0xc34b5d9d44ac7b754806f761d3d4d2c4fe5214f6b074c19f069c4f5c2a29c8cc)
+    echo "${hash}"
+    block_wait "${1}" 2
+
+    owner=$(${1} tx query -s "${hash}" | jq -r ".receipt.logs[1].log.owner")
+    if [ "${owner}" != "1KSBd17H7ZK8iT37aJztFB22XGwsPTdwE4" ]; then
+        echo "wrong finish create owner"
+        exit 1
+    fi
+}
+
 function main() {
     echo "==========================================main begin========================================================"
     init
@@ -744,7 +778,8 @@ function main() {
     sync
     transfer
 
-    #relay "${CLI}"
+    para "${PARA_CLI}"
+    relay "${CLI}"
     # TODO other work!!!
 
     check_docker_container

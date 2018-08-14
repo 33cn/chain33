@@ -9,7 +9,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 	"gitlab.33.cn/chain33/chain33/types"
 	pt "gitlab.33.cn/chain33/chain33/types/executor/paracross"
-	"gitlab.33.cn/chain33/chain33/util"
 )
 
 type action struct {
@@ -80,10 +79,6 @@ func checkCommitInfo(commit *types.ParacrossCommitAction) error {
 	if len(commit.Status.MainBlockHash) == 0 || len(commit.Status.Title) == 0 || commit.Status.Height < 0 ||
 		len(commit.Status.PreBlockHash) == 0 || len(commit.Status.BlockHash) == 0 ||
 		len(commit.Status.StateHash) == 0 || len(commit.Status.PreStateHash) == 0 {
-		return types.ErrInputPara
-	}
-
-	if !util.ValidBitMap(commit.Status.TxResult, int(commit.Status.TxCounts)) {
 		return types.ErrInputPara
 	}
 

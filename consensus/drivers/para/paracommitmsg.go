@@ -45,8 +45,7 @@ func (client *CommitMsgClient) handler() {
 	var notifications []*CommitMsg
 	var sendingMsgs []*CommitMsg
 	var finishMsgs []*CommitMsg
-
-	readTick := time.Tick(time.Second)
+	var readTick <-chan time.Time
 
 	consensusCh := make(chan *types.ParacrossStatus, 1)
 	go client.getConsensusHeight(consensusCh)
@@ -106,13 +105,12 @@ func (client *CommitMsgClient) handler() {
 						client.currentTx = signTx
 						client.checkTxCommitTimes = 0
 						sendMsgCh = dequeue
-						//go client.sendCommitMsgTx(signTx, sendMsgFail)
 					}
 				}
 			}
 
 		case <-readTick:
-			if len(notifications) != 0 && !client.waitingTx && isSync && client.privateKey != nil {
+			if len(notifications) != 0 && !client.waitingTx && isSync {
 				signTx, count, err := client.calcCommitMsgTxs(notifications)
 				if err != nil || signTx == nil {
 					continue
@@ -123,19 +121,20 @@ func (client *CommitMsgClient) handler() {
 				client.waitingTx = true
 				client.checkTxCommitTimes = 0
 				sendMsgCh = dequeue
-				//go client.sendCommitMsgTx(signTx, sendMsgFail)
 			}
 		case sendMsgCh <- client.currentTx:
 			sendMsgCh = nil
 
-		//获取正在共识的高度，也就是可能还没完成共识
+		//获取正在共识的高度，同步有两层意思，一个是主链跟其他节点完成了同步，另一个是当前平行链节点的高度追赶上了共识高度
 		case rsp := <-consensusCh:
 			if !isSync {
+				//所有节点还没有共识场景
 				if len(notifications) == 0 && rsp.Height == -1 {
 					isSync = true
+					continue
 				}
 				//如果是节点重启过，未共识过的小于当前共识高度的区块，可以不参与共识
-				//如果是新节点，一直等到同步的区块达到了共识高度，才参与共识
+				//如果是新节点，一直等到同步的区块达到了共识高度，才设置同步参与共识
 				for i, msg := range notifications {
 					if msg.blockDetail.Block.Height >= rsp.Height {
 						isSync = true
@@ -158,6 +157,7 @@ func (client *CommitMsgClient) handler() {
 				continue
 			}
 			client.privateKey = key
+			readTick = time.Tick(time.Second * 2)
 
 		case <-client.quit:
 			return
@@ -258,7 +258,7 @@ func getCommitMsgTx(msg *CommitMsg) (*types.Transaction, error) {
 		curTxsHash = append(curTxsHash, tx.Hash())
 	}
 
-	status.TxResult = util.CalcByteBitMap(msg.initTxHashs, curTxsHash, msg.blockDetail.Receipts)
+	status.TxResult = util.CalcBitMap(msg.initTxHashs, curTxsHash, msg.blockDetail.Receipts)
 	status.TxCounts = uint32(len(msg.initTxHashs))
 
 	tx, err := paracross.CreateRawCommitTx4MainChain(status, types.ParaX, 0)
