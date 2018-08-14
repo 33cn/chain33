@@ -124,6 +124,7 @@ message ReplyTxList {
 message TxHashList {
     repeated bytes hashes = 1;
     int64          count  = 2;
+    repeated int64 expire = 3;
 }
 
 message ReplyTxInfos {

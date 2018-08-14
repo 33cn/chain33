@@ -305,7 +305,7 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 		return err
 	}
 	//cache new add block
-	b.cacheBlock(blockdetail)
+	b.cache.cacheBlock(blockdetail)
 
 	//保存block的总难度到db中
 	difficulty := difficulty.CalcWork(block.Difficulty)
@@ -410,7 +410,7 @@ func (b *BlockChain) disconnectBlock(node *blockNode, blockdetail *types.BlockDe
 	newtipnode := b.bestChain.Tip()
 
 	//删除缓存中的block信息
-	b.delBlockFromCache(blockdetail.Block.Height)
+	b.cache.delBlockFromCache(blockdetail.Block.Height)
 
 	if newtipnode != node.parent {
 		chainlog.Error("disconnectBlock newtipnode err:", "newtipnode.height", newtipnode.height, "node.parent.height", node.parent.height)
@@ -446,7 +446,7 @@ func (b *BlockChain) getReorganizeNodes(node *blockNode) (*list.List, *list.List
 }
 
 func (b *BlockChain) LoadBlockByHash(hash []byte) (block *types.BlockDetail, err error) {
-	block = b.GetCacheBlock(hash)
+	block = b.cache.GetCacheBlock(hash)
 	if block == nil {
 		block, err = b.blockStore.LoadBlockByHash(hash)
 	}
