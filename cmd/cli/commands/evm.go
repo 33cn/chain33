@@ -71,18 +71,17 @@ func addEvmAddressFlags(cmd *cobra.Command) {
 func transferAddress(cmd *cobra.Command, args []string) {
 	eth, _ := cmd.Flags().GetString("eth")
 	local, _ := cmd.Flags().GetString("local")
-	if len(eth) > 0 {
+	if len(eth) == 40 || len(eth) == 42 {
 		data, err := common.FromHex(eth)
 		if err != nil {
-			fmt.Errorf("ethereum address is invalid: %v", eth)
-			cmd.Help()
+			fmt.Println(fmt.Errorf("ethereum address is invalid: %v", eth))
 			return
 		}
 		fmt.Println(fmt.Sprintf("Ethereum Address: %v", eth))
 		fmt.Println(fmt.Sprintf("Local Address: %v", common2.BytesToAddress(data).String()))
 		return
 	}
-	if len(local) > 0 {
+	if len(local) >= 34 {
 		var addr common2.Address
 		if strings.HasPrefix(local, types.UserEvmX) {
 			addr = common2.ExecAddress(local)
@@ -91,8 +90,7 @@ func transferAddress(cmd *cobra.Command, args []string) {
 		} else {
 			addrP := common2.StringToAddress(local)
 			if addrP == nil {
-				fmt.Errorf("Local address is invalid: %v", local)
-				cmd.Help()
+				fmt.Println(fmt.Errorf("Local address is invalid: %v", local))
 				return
 			}
 			addr = *addrP
@@ -102,7 +100,7 @@ func transferAddress(cmd *cobra.Command, args []string) {
 
 		return
 	}
-	cmd.Help()
+	fmt.Fprintln(os.Stderr, "address is invalid!")
 }
 
 // get balance of an execer
