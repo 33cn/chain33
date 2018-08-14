@@ -251,7 +251,7 @@ func (wallet *Wallet) ProcCreateNewAccount(Label *types.ReqNewAccount) (*types.W
 	walletAccount.Label = Label.GetLabel()
 
 	//使用钱包的password对私钥加密 aes cbc
-	Encrypted := CBCEncrypterPrivkey([]byte(wallet.Password), privkeybyte)
+	Encrypted := wcom.CBCEncrypterPrivkey([]byte(wallet.Password), privkeybyte)
 	WalletAccStore.Privkey = common.ToHex(Encrypted)
 	WalletAccStore.Label = Label.GetLabel()
 	WalletAccStore.Addr = addr
@@ -374,7 +374,7 @@ func (wallet *Wallet) ProcImportPrivKey(PrivKey *types.ReqWalletImportPrivKey) (
 	}
 
 	//对私钥加密
-	Encryptered := CBCEncrypterPrivkey([]byte(wallet.Password), privkeybyte)
+	Encryptered := wcom.CBCEncrypterPrivkey([]byte(wallet.Password), privkeybyte)
 	Encrypteredstr := common.ToHex(Encryptered)
 	//校验PrivKey对应的addr是否已经存在钱包中
 	Account, err = wallet.walletStore.GetAccountByAddr(addr)
@@ -632,7 +632,7 @@ func (wallet *Wallet) ProcMergeBalance(MergeBalance *types.ReqWalletMergeBalance
 			continue
 		}
 
-		privkey := CBCDecrypterPrivkey([]byte(wallet.Password), prikeybyte)
+		privkey := wcom.CBCDecrypterPrivkey([]byte(wallet.Password), prikeybyte)
 		priv, err := cr.PrivKeyFromBytes(privkey)
 		if err != nil {
 			walletlog.Error("ProcMergeBalance", "PrivKeyFromBytes err", err, "index", index)
@@ -750,10 +750,10 @@ func (wallet *Wallet) ProcWalletSetPasswd(Passwd *types.ReqWalletSetPasswd) erro
 			walletlog.Info("ProcWalletSetPasswd", "addr", AccStore.Addr, "FromHex err", err)
 			continue
 		}
-		Decrypter := CBCDecrypterPrivkey([]byte(Passwd.OldPass), storekey)
+		Decrypter := wcom.CBCDecrypterPrivkey([]byte(Passwd.OldPass), storekey)
 
 		//使用新的密码重新加密私钥
-		Encrypter := CBCEncrypterPrivkey([]byte(Passwd.NewPass), Decrypter)
+		Encrypter := wcom.CBCEncrypterPrivkey([]byte(Passwd.NewPass), Decrypter)
 		AccStore.Privkey = common.ToHex(Encrypter)
 		err = wallet.walletStore.SetWalletAccountInBatch(true, AccStore.Addr, AccStore, newBatch)
 		if err != nil {
