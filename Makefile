@@ -77,6 +77,7 @@ build_ci: relayd ## Build the binary file for CI
 	@go build -race -v -i -o $(CLI) $(SRC_CLI)
 	@go build  $(BUILD_FLAGS)-race -v -o $(APP) $(SRC)
 	@cp cmd/chain33/chain33.toml build/
+	@cp cmd/chain33/chain33.para.toml build/
 
 relayd: ## Build relay deamon binary
 	@go build -race -i -v -o $(RELAYD) $(SRC_RELAYD)
