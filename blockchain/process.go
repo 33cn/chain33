@@ -91,14 +91,13 @@ func (b *BlockChain) blockExists(hash []byte) bool {
 	if b.index.HaveBlock(hash) {
 		return true
 	}
-
-	// 检测数据库中是否存在，通过hash获取blcok，并通过hash获取height
-	block, _ := b.blockStore.LoadBlockByHash(hash)
-	if block == nil {
-		return false
-	}
 	height, _ := b.blockStore.GetHeightByBlockHash(hash)
-	return height != -1
+	if height != -1 {
+		return true
+	}
+	// 检测数据库中是否存在，通过hash获取blcok，并通过hash获取height
+	block, _ := b.blockStore.GetBlockHeaderByHash(hash)
+	return block != nil
 }
 
 //孤儿链的处理,将本hash对应的子block插入chain中
@@ -305,6 +304,8 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 		chainlog.Error("connectBlock SaveBlock:", "height", block.Height, "err", err)
 		return err
 	}
+	//cache new add block
+	b.cacheBlock(blockdetail)
 
 	//保存block的总难度到db中
 	difficulty := difficulty.CalcWork(block.Difficulty)
@@ -336,8 +337,8 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 	chainlog.Debug("connectBlock write db", "height", block.Height, "batchsync", sync, "cost", types.Since(beg))
 
 	// 更新最新的高度和header
-	b.blockStore.UpdateHeight()
-	b.blockStore.UpdateLastBlock(blockdetail.Block.Hash())
+	b.blockStore.UpdateHeight2(blockdetail.GetBlock().GetHeight())
+	b.blockStore.UpdateLastBlock2(blockdetail.Block)
 
 	// 更新 best chain的tip节点
 	b.bestChain.SetTip(node)
@@ -409,7 +410,7 @@ func (b *BlockChain) disconnectBlock(node *blockNode, blockdetail *types.BlockDe
 	newtipnode := b.bestChain.Tip()
 
 	//删除缓存中的block信息
-	b.DelBlockFromCache(blockdetail.Block.Height)
+	b.delBlockFromCache(blockdetail.Block.Height)
 
 	if newtipnode != node.parent {
 		chainlog.Error("disconnectBlock newtipnode err:", "newtipnode.height", newtipnode.height, "node.parent.height", node.parent.height)
@@ -444,6 +445,14 @@ func (b *BlockChain) getReorganizeNodes(node *blockNode) (*list.List, *list.List
 	return detachNodes, attachNodes
 }
 
+func (b *BlockChain) LoadBlockByHash(hash []byte) (block *types.BlockDetail, err error) {
+	block = b.GetCacheBlock(hash)
+	if block == nil {
+		block, err = b.blockStore.LoadBlockByHash(hash)
+	}
+	return block, err
+}
+
 //重组blockchain
 func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error {
 	detachBlocks := make([]*types.BlockDetail, 0, detachNodes.Len())
@@ -453,7 +462,7 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 	for e := detachNodes.Front(); e != nil; e = e.Next() {
 		n := e.Value.(*blockNode)
 		var block *types.BlockDetail
-		block, _ = b.blockStore.LoadBlockByHash(n.hash)
+		block, _ = b.LoadBlockByHash(n.hash)
 
 		// 需要删除的blocks
 		detachBlocks = append(detachBlocks, block)
@@ -463,7 +472,7 @@ func (b *BlockChain) reorganizeChain(detachNodes, attachNodes *list.List) error 
 	for e := attachNodes.Front(); e != nil; e = e.Next() {
 		n := e.Value.(*blockNode)
 		var block *types.BlockDetail
-		block, _ = b.blockStore.LoadBlockByHash(n.hash)
+		block, _ = b.LoadBlockByHash(n.hash)
 
 		// 需要加载到db的blocks
 		attachBlocks = append(attachBlocks, block)
