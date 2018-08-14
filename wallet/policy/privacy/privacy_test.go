@@ -1,4 +1,4 @@
-package privacybizpolicy
+package privacy
 
 import (
 	"bytes"
@@ -10,18 +10,18 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/crypto/privacy"
 	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/wallet/walletoperate"
+	wcom "gitlab.33.cn/chain33/chain33/wallet/common"
 )
 
 type PrivacyMock struct {
-	walletOp  walletoperate.WalletOperate
+	walletOp  wcom.WalletOperate
 	store     *privacyStore
 	policy    *walletPrivacyBiz
 	tokenName string
 	password  string
 }
 
-func (mock *PrivacyMock) Init(walletOp walletoperate.WalletOperate, password string) {
+func (mock *PrivacyMock) Init(walletOp wcom.WalletOperate, password string) {
 	mock.policy = &walletPrivacyBiz{}
 
 	mock.tokenName = types.BTY

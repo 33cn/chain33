@@ -1,9 +1,10 @@
-package walletoperate
+package common
 
 import (
 	"math/rand"
 	"sync"
 
+	"github.com/pkg/errors"
 	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/queue"
@@ -11,8 +12,24 @@ import (
 )
 
 var (
-	FuncMap = queue.FuncMap{}
+	FuncMap         = queue.FuncMap{}
+	PolicyContainer = map[string]WalletBizPolicy{}
 )
+
+func RegisterPolicy(key string, policy WalletBizPolicy) error {
+	if _, existed := PolicyContainer[key]; existed {
+		return errors.New("PolicyTypeExisted")
+	}
+	PolicyContainer[key] = policy
+	return nil
+}
+
+func RegisterMsgFunc(msgid int, fn queue.FN_MsgCallback) {
+	if !FuncMap.IsInited() {
+		FuncMap.Init()
+	}
+	FuncMap.Register(msgid, fn)
+}
 
 // WalletOperate 钱包对业务插件提供服务的操作接口
 type WalletOperate interface {
@@ -35,5 +52,4 @@ type WalletOperate interface {
 
 	CheckWalletStatus() (bool, error)
 	Nonce() int64
-	RegisterMsgFunc(msgid int, fn queue.FN_MsgCallback)
 }

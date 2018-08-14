@@ -1,4 +1,4 @@
-package privacybizpolicy
+package privacy
 
 import (
 	"sync"
@@ -9,8 +9,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/wallet/bizpolicy"
-	"gitlab.33.cn/chain33/chain33/wallet/walletoperate"
+	wcom "gitlab.33.cn/chain33/chain33/wallet/common"
 )
 
 var (
@@ -20,31 +19,35 @@ var (
 	maxTxNumPerBlock  int64 = types.MaxTxsPerBlock
 )
 
-func New() bizpolicy.WalletBizPolicy {
+func init() {
+	wcom.RegisterPolicy(types.PrivacyX, New())
+}
+
+func New() wcom.WalletBizPolicy {
 	return &walletPrivacyBiz{}
 }
 
 type walletPrivacyBiz struct {
 	store         *privacyStore
-	walletOperate walletoperate.WalletOperate
+	walletOperate wcom.WalletOperate
 	rescanwg      *sync.WaitGroup
 }
 
-func (biz *walletPrivacyBiz) initFuncMap(walletOperate walletoperate.WalletOperate) {
-	walletOperate.RegisterMsgFunc(types.EventEnablePrivacy, biz.onEnablePrivacy)
-	walletOperate.RegisterMsgFunc(types.EventShowPrivacyPK, biz.onShowPrivacyPK)
-	walletOperate.RegisterMsgFunc(types.EventCreateUTXOs, biz.onCreateUTXOs)
-	walletOperate.RegisterMsgFunc(types.EventPublic2privacy, biz.onPublic2Privacy)
-	walletOperate.RegisterMsgFunc(types.EventPrivacy2privacy, biz.onPrivacy2Privacy)
-	walletOperate.RegisterMsgFunc(types.EventPrivacy2public, biz.onPrivacy2Public)
-	walletOperate.RegisterMsgFunc(types.EventCreateTransaction, biz.onCreateTransaction)
-	walletOperate.RegisterMsgFunc(types.EventPrivacyAccountInfo, biz.onPrivacyAccountInfo)
-	walletOperate.RegisterMsgFunc(types.EventShowPrivacyAccountSpend, biz.onShowPrivacyAccountSpend)
-	walletOperate.RegisterMsgFunc(types.EventPrivacyTransactionList, biz.onPrivacyTransactionList)
-	walletOperate.RegisterMsgFunc(types.EventRescanUtxos, biz.onRescanUtxos)
+func (biz *walletPrivacyBiz) initFuncMap(walletOperate wcom.WalletOperate) {
+	wcom.RegisterMsgFunc(types.EventEnablePrivacy, biz.onEnablePrivacy)
+	wcom.RegisterMsgFunc(types.EventShowPrivacyPK, biz.onShowPrivacyPK)
+	wcom.RegisterMsgFunc(types.EventCreateUTXOs, biz.onCreateUTXOs)
+	wcom.RegisterMsgFunc(types.EventPublic2privacy, biz.onPublic2Privacy)
+	wcom.RegisterMsgFunc(types.EventPrivacy2privacy, biz.onPrivacy2Privacy)
+	wcom.RegisterMsgFunc(types.EventPrivacy2public, biz.onPrivacy2Public)
+	wcom.RegisterMsgFunc(types.EventCreateTransaction, biz.onCreateTransaction)
+	wcom.RegisterMsgFunc(types.EventPrivacyAccountInfo, biz.onPrivacyAccountInfo)
+	wcom.RegisterMsgFunc(types.EventShowPrivacyAccountSpend, biz.onShowPrivacyAccountSpend)
+	wcom.RegisterMsgFunc(types.EventPrivacyTransactionList, biz.onPrivacyTransactionList)
+	wcom.RegisterMsgFunc(types.EventRescanUtxos, biz.onRescanUtxos)
 }
 
-func (biz *walletPrivacyBiz) Init(walletOperate walletoperate.WalletOperate) {
+func (biz *walletPrivacyBiz) Init(walletOperate wcom.WalletOperate) {
 	biz.walletOperate = walletOperate
 	biz.store = &privacyStore{db: walletOperate.GetDBStore()}
 	biz.rescanwg = &sync.WaitGroup{}

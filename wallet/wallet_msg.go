@@ -3,39 +3,34 @@ package wallet
 import (
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
+	wcom "gitlab.33.cn/chain33/chain33/wallet/common"
 )
 
-func (wallet *Wallet) RegisterMsgFunc(msgid int, fn queue.FN_MsgCallback) {
-	wallet.funcmap.Register(msgid, fn)
-}
-
 func (wallet *Wallet) initFuncMap() {
-	wallet.funcmap.Init()
-
-	wallet.RegisterMsgFunc(types.EventWalletGetAccountList, wallet.onWalletGetAccountList)
-	wallet.RegisterMsgFunc(types.EventWalletAutoMiner, wallet.onWalletAutoMiner)
-	wallet.RegisterMsgFunc(types.EventWalletGetTickets, wallet.onWalletGetTickets)
-	wallet.RegisterMsgFunc(types.EventNewAccount, wallet.onNewAccount)
-	wallet.RegisterMsgFunc(types.EventWalletTransactionList, wallet.onWalletTransactionList)
-	wallet.RegisterMsgFunc(types.EventWalletImportprivkey, wallet.onWalletImportprivkey)
-	wallet.RegisterMsgFunc(types.EventWalletSendToAddress, wallet.onWalletSendToAddress)
-	wallet.RegisterMsgFunc(types.EventWalletSetFee, wallet.onWalletSetFee)
-	wallet.RegisterMsgFunc(types.EventWalletSetLabel, wallet.onWalletSetLabel)
-	wallet.RegisterMsgFunc(types.EventWalletMergeBalance, wallet.onWalletMergeBalance)
-	wallet.RegisterMsgFunc(types.EventWalletSetPasswd, wallet.ontWalletSetPasswd)
-	wallet.RegisterMsgFunc(types.EventWalletLock, wallet.onWalletLock)
-	wallet.RegisterMsgFunc(types.EventWalletUnLock, wallet.onWalletUnLock)
-	wallet.RegisterMsgFunc(types.EventAddBlock, wallet.onAddBlock)
-	wallet.RegisterMsgFunc(types.EventDelBlock, wallet.onDelBlock)
-	wallet.RegisterMsgFunc(types.EventGenSeed, wallet.onGenSeed)
-	wallet.RegisterMsgFunc(types.EventGetSeed, wallet.onGetSeed)
-	wallet.RegisterMsgFunc(types.EventSaveSeed, wallet.onSaveSeed)
-	wallet.RegisterMsgFunc(types.EventGetWalletStatus, wallet.onGetWalletStatus)
-	wallet.RegisterMsgFunc(types.EventDumpPrivkey, wallet.onDumpPrivKey)
-	wallet.RegisterMsgFunc(types.EventCloseTickets, wallet.onCloseTickets)
-	wallet.RegisterMsgFunc(types.EventSignRawTx, wallet.onSignRawTx)
-	wallet.RegisterMsgFunc(types.EventErrToFront, wallet.onErrToFront)
-	wallet.RegisterMsgFunc(types.EventFatalFailure, wallet.onFatalFailure)
+	wcom.RegisterMsgFunc(types.EventWalletGetAccountList, wallet.onWalletGetAccountList)
+	wcom.RegisterMsgFunc(types.EventWalletAutoMiner, wallet.onWalletAutoMiner)
+	wcom.RegisterMsgFunc(types.EventWalletGetTickets, wallet.onWalletGetTickets)
+	wcom.RegisterMsgFunc(types.EventNewAccount, wallet.onNewAccount)
+	wcom.RegisterMsgFunc(types.EventWalletTransactionList, wallet.onWalletTransactionList)
+	wcom.RegisterMsgFunc(types.EventWalletImportprivkey, wallet.onWalletImportprivkey)
+	wcom.RegisterMsgFunc(types.EventWalletSendToAddress, wallet.onWalletSendToAddress)
+	wcom.RegisterMsgFunc(types.EventWalletSetFee, wallet.onWalletSetFee)
+	wcom.RegisterMsgFunc(types.EventWalletSetLabel, wallet.onWalletSetLabel)
+	wcom.RegisterMsgFunc(types.EventWalletMergeBalance, wallet.onWalletMergeBalance)
+	wcom.RegisterMsgFunc(types.EventWalletSetPasswd, wallet.ontWalletSetPasswd)
+	wcom.RegisterMsgFunc(types.EventWalletLock, wallet.onWalletLock)
+	wcom.RegisterMsgFunc(types.EventWalletUnLock, wallet.onWalletUnLock)
+	wcom.RegisterMsgFunc(types.EventAddBlock, wallet.onAddBlock)
+	wcom.RegisterMsgFunc(types.EventDelBlock, wallet.onDelBlock)
+	wcom.RegisterMsgFunc(types.EventGenSeed, wallet.onGenSeed)
+	wcom.RegisterMsgFunc(types.EventGetSeed, wallet.onGetSeed)
+	wcom.RegisterMsgFunc(types.EventSaveSeed, wallet.onSaveSeed)
+	wcom.RegisterMsgFunc(types.EventGetWalletStatus, wallet.onGetWalletStatus)
+	wcom.RegisterMsgFunc(types.EventDumpPrivkey, wallet.onDumpPrivKey)
+	wcom.RegisterMsgFunc(types.EventCloseTickets, wallet.onCloseTickets)
+	wcom.RegisterMsgFunc(types.EventSignRawTx, wallet.onSignRawTx)
+	wcom.RegisterMsgFunc(types.EventErrToFront, wallet.onErrToFront)
+	wcom.RegisterMsgFunc(types.EventFatalFailure, wallet.onFatalFailure)
 }
 
 func (wallet *Wallet) ProcRecvMsg() {
@@ -43,7 +38,7 @@ func (wallet *Wallet) ProcRecvMsg() {
 	for msg := range wallet.client.Recv() {
 		walletlog.Debug("wallet recv", "msg", types.GetEventName(int(msg.Ty)), "Id", msg.Id)
 
-		funcExisted, topic, retty, reply, err := wallet.funcmap.Process(&msg)
+		funcExisted, topic, retty, reply, err := wcom.FuncMap.Process(&msg)
 		if funcExisted {
 			if err != nil {
 				msg.Reply(wallet.api.NewMessage(topic, retty, err))
@@ -280,7 +275,6 @@ func (wallet *Wallet) onAddBlock(msg *queue.Message) (string, int64, interface{}
 	return topic, retty, nil, nil
 }
 
-// TODO: 区块删除涉及到的逻辑比较多，还需要进行重构
 func (wallet *Wallet) onDelBlock(msg *queue.Message) (string, int64, interface{}, error) {
 	topic := "rpc"
 	retty := int64(types.EventDelBlock)

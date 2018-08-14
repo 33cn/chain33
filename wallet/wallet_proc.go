@@ -14,6 +14,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
+	wcom "gitlab.33.cn/chain33/chain33/wallet/common"
 	"gitlab.33.cn/wallet/bipwallet"
 )
 
@@ -77,7 +78,7 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 		return "", err
 	}
 	tx.SetExpire(expire)
-	if policy, ok := wallet.policyContainer[string(tx.Execer)]; ok {
+	if policy, ok := wcom.PolicyContainer[string(tx.Execer)]; ok {
 		// 尝试让策略自己去完成签名
 		needSysSign, signtx, err := policy.SignTransaction(key, unsigned)
 		if !needSysSign {
@@ -276,7 +277,7 @@ func (wallet *Wallet) ProcCreateNewAccount(Label *types.ReqNewAccount) (*types.W
 	walletAccount.Acc = accounts[0]
 
 	//从blockchain模块同步Account.Addr对应的所有交易详细信息
-	for _, policy := range wallet.policyContainer {
+	for _, policy := range wcom.PolicyContainer {
 		policy.OnCreateNewAccount(walletAccount.Acc)
 	}
 
@@ -414,7 +415,7 @@ func (wallet *Wallet) ProcImportPrivKey(PrivKey *types.ReqWalletImportPrivKey) (
 	walletaccount.Acc = accounts[0]
 	walletaccount.Label = PrivKey.Label
 
-	for _, policy := range wallet.policyContainer {
+	for _, policy := range wcom.PolicyContainer {
 		policy.OnImportPrivateKey(accounts[0])
 	}
 	return &walletaccount, nil
@@ -861,7 +862,7 @@ func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 
 		execer := string(tx.Execer)
 		// 执行钱包业务逻辑策略
-		if policy, ok := wallet.policyContainer[execer]; ok {
+		if policy, ok := wcom.PolicyContainer[execer]; ok {
 			policy.OnAddBlockTx(block, tx, int32(index), newbatch)
 		}
 
@@ -918,7 +919,7 @@ func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 		//wallet.flushTicket()
 	}
 
-	for _, policy := range wallet.policyContainer {
+	for _, policy := range wcom.PolicyContainer {
 		policy.OnAddBlockFinish()
 	}
 }
@@ -984,7 +985,7 @@ func (wallet *Wallet) ProcWalletDelBlock(block *types.BlockDetail) {
 
 		execer := string(tx.Execer)
 		// 执行钱包业务逻辑策略
-		if policy, ok := wallet.policyContainer[execer]; ok {
+		if policy, ok := wcom.PolicyContainer[execer]; ok {
 			policy.OnDeleteBlockTx(block, tx, int32(index), newbatch)
 		}
 
@@ -1016,7 +1017,7 @@ func (wallet *Wallet) ProcWalletDelBlock(block *types.BlockDetail) {
 		wallet.flushTicket()
 	}
 
-	for _, policy := range wallet.policyContainer {
+	for _, policy := range wcom.PolicyContainer {
 		policy.OnDeleteBlockFinish()
 	}
 }
