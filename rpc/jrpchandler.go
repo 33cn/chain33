@@ -1740,8 +1740,8 @@ func (c *Chain33) BlackwhiteCreateTx(in *types.BlackwhiteCreate, result *interfa
 	return nil
 }
 
-func (c *Chain33) BlackwhiteCancelTx(in *types.BlackwhiteCancel, result *interface{}) error {
-	reply, err := c.cli.BlackwhiteCancelTx(in)
+func (c *Chain33) BlackwhiteShowTx(in *types.BlackwhiteShow, result *interface{}) error {
+	reply, err := c.cli.BlackwhiteShowTx(in)
 	if err != nil {
 		return err
 	}

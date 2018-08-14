@@ -25,22 +25,22 @@ const (
 )
 
 var (
-	ExecerCoins    = []byte(CoinsX)
-	ExecerTicket   = []byte(TicketX)
-	ExecerManage   = []byte(ManageX)
-	ExecerToken    = []byte(TokenX)
-	ExecerEvm      = []byte(EvmX)
-	ExecerPrivacy  = []byte(PrivacyX)
-	ExecerRelay    = []byte(RelayX)
-	ExecerHashlock = []byte(HashlockX)
-	ExecerRetrieve = []byte(RetrieveX)
-	ExecerNone     = []byte(NoneX)
-	ExecerTrade    = []byte(TradeX)
-	ExecerNorm     = []byte(Normx)
-	ExecerConfig   = []byte("config")
-	ExecerCert     = []byte(CertX)
-	UserEvm        = []byte(UserEvmX)
-	ExecerGame     = []byte(GameX)
+	ExecerCoins      = []byte(CoinsX)
+	ExecerTicket     = []byte(TicketX)
+	ExecerManage     = []byte(ManageX)
+	ExecerToken      = []byte(TokenX)
+	ExecerEvm        = []byte(EvmX)
+	ExecerPrivacy    = []byte(PrivacyX)
+	ExecerRelay      = []byte(RelayX)
+	ExecerHashlock   = []byte(HashlockX)
+	ExecerRetrieve   = []byte(RetrieveX)
+	ExecerNone       = []byte(NoneX)
+	ExecerTrade      = []byte(TradeX)
+	ExecerNorm       = []byte(Normx)
+	ExecerConfig     = []byte("config")
+	ExecerCert       = []byte(CertX)
+	UserEvm          = []byte(UserEvmX)
+	ExecerGame       = []byte(GameX)
 	ExecerBlackwhite = []byte(BlackwhiteX)
 )
 
@@ -217,8 +217,8 @@ const (
 
 	// log for blackwhite game
 	TyLogBlackwhiteCreate      = 700
-	TyLogBlackwhiteCancel      = 701
-	TyLogBlackwhitePlay        = 702
+	TyLogBlackwhitePlay        = 701
+	TyLogBlackwhiteShow        = 702
 	TyLogBlackwhiteTimeoutDone = 703
 	TyLogBlackwhiteDone        = 704
 )
@@ -393,8 +393,8 @@ const (
 // blackwhite action type
 const (
 	BlackwhiteActionCreate = iota
-	BlackwhiteActionCancel
 	BlackwhiteActionPlay
+	BlackwhiteActionShow
 	BlackwhiteActionTimeoutDone
 )
 

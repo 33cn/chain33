@@ -27,11 +27,11 @@ func calcRoundKey4Addr(addr, ID string) []byte {
 func newRound(create *types.BlackwhiteCreate, creator string) *types.BlackwhiteRound {
 	t := &types.BlackwhiteRound{}
 
-	t.Status = gt.BlackwhiteStatusReady
+	t.Status = gt.BlackwhiteStatusCreate
 	t.PlayAmount = create.PlayAmount
 	t.PlayerCount = create.PlayerCount
+	t.Loop = calcloopNumByPlayer(create.PlayerCount)
 	t.CreateAddr = creator
-	t.Timeout = create.Timeout
 	t.GameName = create.GameName
 	return t
 }
