@@ -1796,3 +1796,8 @@ func (c *Chain33) EnablePrivacy(in types.ReqEnablePrivacy, result *interface{}) 
 	*result = reply
 	return nil
 }
+
+func (c *Chain33) ConvertExectoAddr(in ExecNameParm, result *string) error {
+	*result = address.ExecAddress(in.ExecName)
+	return nil
+}
