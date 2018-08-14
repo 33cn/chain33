@@ -220,7 +220,7 @@ func (wallet *Wallet) ProcCreateNewAccount(Label *types.ReqNewAccount) (*types.W
 		walletlog.Error("ProcCreateNewAccount", "getSeed err", err)
 		return nil, err
 	}
-	privkeyhex, err := GetPrivkeyBySeed(wallet.walletStore.db, seed)
+	privkeyhex, err := GetPrivkeyBySeed(wallet.walletStore.GetDB(), seed)
 	if err != nil {
 		walletlog.Error("ProcCreateNewAccount", "GetPrivkeyBySeed err", err)
 		return nil, err
@@ -309,7 +309,7 @@ func (wallet *Wallet) ProcWalletTxList(TxList *types.ReqWalletTransactionList) (
 		walletlog.Error("ProcWalletTxList Direction err!")
 		return nil, types.ErrInputPara
 	}
-	WalletTxDetails, err := wallet.walletStore.getTxDetailByIter(TxList)
+	WalletTxDetails, err := wallet.walletStore.GetTxDetailByIter(TxList)
 	if err != nil {
 		walletlog.Error("ProcWalletTxList", "GetTxDetailByIter err", err)
 		return nil, err
@@ -713,7 +713,7 @@ func (wallet *Wallet) ProcWalletSetPasswd(Passwd *types.ReqWalletSetPasswd) erro
 	}
 
 	//使用新的密码生成passwdhash用于下次密码的验证
-	newBatch := wallet.walletStore.db.NewBatch(true)
+	newBatch := wallet.walletStore.NewBatch(true)
 	err = wallet.walletStore.SetPasswordHash(Passwd.NewPass, newBatch)
 	if err != nil {
 		walletlog.Error("ProcWalletSetPasswd", "SetPasswordHash err", err)
@@ -731,7 +731,7 @@ func (wallet *Wallet) ProcWalletSetPasswd(Passwd *types.ReqWalletSetPasswd) erro
 		walletlog.Error("ProcWalletSetPasswd", "getSeed err", err)
 		return err
 	}
-	ok, err := SaveSeedInBatch(wallet.walletStore.db, seed, Passwd.NewPass, newBatch)
+	ok, err := SaveSeedInBatch(wallet.walletStore.GetDB(), seed, Passwd.NewPass, newBatch)
 	if !ok {
 		walletlog.Error("ProcWalletSetPasswd", "SaveSeed err", err)
 		return err
@@ -769,7 +769,7 @@ func (wallet *Wallet) ProcWalletSetPasswd(Passwd *types.ReqWalletSetPasswd) erro
 //锁定钱包
 func (wallet *Wallet) ProcWalletLock() error {
 	//判断钱包是否已保存seed
-	has, _ := HasSeed(wallet.walletStore.db)
+	has, _ := wallet.walletStore.HasSeed()
 	if !has {
 		return types.ErrSaveSeedFirst
 	}
@@ -786,7 +786,7 @@ func (wallet *Wallet) ProcWalletLock() error {
 //解锁钱包Timeout时间，超时后继续锁住
 func (wallet *Wallet) ProcWalletUnLock(WalletUnLock *types.WalletUnLock) error {
 	//判断钱包是否已保存seed
-	has, _ := HasSeed(wallet.walletStore.db)
+	has, _ := wallet.walletStore.HasSeed()
 	if !has {
 		return types.ErrSaveSeedFirst
 	}
@@ -944,7 +944,7 @@ func (wallet *Wallet) buildAndStoreWalletTxDetail(param *buildStoreWalletTxDetai
 	walletlog.Debug("buildAndStoreWalletTxDetail", "heightstr", heightstr, "addDelType", param.addDelType)
 	if AddTx == param.addDelType {
 		var txdetail types.WalletTxDetail
-		key := calcTxKey(heightstr)
+		key := wcom.CalcTxKey(heightstr)
 		txdetail.Tx = param.tx
 		txdetail.Height = param.block.Block.Height
 		txdetail.Index = int64(param.index)
@@ -958,12 +958,12 @@ func (wallet *Wallet) buildAndStoreWalletTxDetail(param *buildStoreWalletTxDetai
 
 		txdetailbyte, err := proto.Marshal(&txdetail)
 		if err != nil {
-			storelog.Error("buildAndStoreWalletTxDetail Marshal txdetail err", "Height", param.block.Block.Height, "index", param.index)
+			walletlog.Error("buildAndStoreWalletTxDetail Marshal txdetail err", "Height", param.block.Block.Height, "index", param.index)
 			return
 		}
 		param.newbatch.Set(key, txdetailbyte)
 	} else {
-		param.newbatch.Delete(calcTxKey(heightstr))
+		param.newbatch.Delete(wcom.CalcTxKey(heightstr))
 	}
 }
 
@@ -1002,13 +1002,13 @@ func (wallet *Wallet) ProcWalletDelBlock(block *types.BlockDetail) {
 			addr := address.PubKeyToAddress(pubkey)
 			fromaddress := addr.String()
 			if len(fromaddress) != 0 && wallet.AddrInWallet(fromaddress) {
-				newbatch.Delete(calcTxKey(heightstr))
+				newbatch.Delete(wcom.CalcTxKey(heightstr))
 				continue
 			}
 			//toaddr
 			toaddr := tx.GetTo()
 			if len(toaddr) != 0 && wallet.AddrInWallet(toaddr) {
-				newbatch.Delete(calcTxKey(heightstr))
+				newbatch.Delete(wcom.CalcTxKey(heightstr))
 			}
 		}
 	}
@@ -1064,11 +1064,10 @@ func (wallet *Wallet) GetTxDetailByHashs(ReqHashes *types.ReqHashes) {
 
 		txdetailbyte, err := proto.Marshal(&txdetail)
 		if err != nil {
-			storelog.Error("GetTxDetailByHashs Marshal txdetail err", "Height", height, "index", txindex)
+			walletlog.Error("GetTxDetailByHashs Marshal txdetail err", "Height", height, "index", txindex)
 			return
 		}
-		newbatch.Set(calcTxKey(heightstr), txdetailbyte)
-		//walletlog.Debug("GetTxDetailByHashs", "heightstr", heightstr, "txdetail", txdetail.String())
+		newbatch.Set(wcom.CalcTxKey(heightstr), txdetailbyte)
 	}
 	newbatch.Write()
 }
@@ -1096,7 +1095,7 @@ func (wallet *Wallet) getSeed(password string) (string, error) {
 		return "", err
 	}
 
-	seed, err := GetSeed(wallet.walletStore.db, password)
+	seed, err := GetSeed(wallet.walletStore.GetDB(), password)
 	if err != nil {
 		walletlog.Error("getSeed", "GetSeed err", err)
 		return "", err
@@ -1112,7 +1111,7 @@ func (wallet *Wallet) SaveSeed(password string, seed string) (bool, error) {
 func (wallet *Wallet) saveSeed(password string, seed string) (bool, error) {
 
 	//首先需要判断钱包是否已经设置seed，如果已经设置提示不需要再设置，一个钱包只能保存一个seed
-	exit, err := HasSeed(wallet.walletStore.db)
+	exit, err := wallet.walletStore.HasSeed()
 	if exit {
 		return false, types.ErrSeedExist
 	}
@@ -1144,7 +1143,7 @@ func (wallet *Wallet) saveSeed(password string, seed string) (bool, error) {
 		return false, types.ErrSeedWord
 	}
 
-	ok, err := SaveSeed(wallet.walletStore.db, newseed, password)
+	ok, err := SaveSeed(wallet.walletStore.GetDB(), newseed, password)
 	//seed保存成功需要更新钱包密码
 	if ok {
 		var ReqWalletSetPasswd types.ReqWalletSetPasswd

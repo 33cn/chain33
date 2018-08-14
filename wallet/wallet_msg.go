@@ -71,11 +71,7 @@ func (wallet *Wallet) onWalletAutoMiner(msg *queue.Message) (string, int64, inte
 		walletlog.Error("onWalletAutoMiner", "Invalid data type.", ok)
 		return topic, retty, nil, types.ErrInvalidParam
 	}
-	if req.Flag == 1 {
-		wallet.walletStore.db.Set([]byte("WalletAutoMiner"), []byte("1"))
-	} else {
-		wallet.walletStore.db.Set([]byte("WalletAutoMiner"), []byte("0"))
-	}
+	wallet.walletStore.SetAutoMinerFlag(req.Flag)
 	wallet.setAutoMining(req.Flag)
 	wallet.flushTicket()
 	return topic, retty, &types.Reply{IsOk: true}, nil

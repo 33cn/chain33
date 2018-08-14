@@ -16,6 +16,10 @@ const (
 	ReScanUtxosFlag  = "ReScanUtxosFlag"
 )
 
+func calcPrivacyDBVersion() []byte {
+	return []byte(PrivacyDBVersion)
+}
+
 // calcUTXOKey 计算可用UTXO的健值,为输出交易哈希+输出索引位置
 //key and prefix for privacy
 //types.PrivacyDBStore的数据存储由calcUTXOKey生成key，

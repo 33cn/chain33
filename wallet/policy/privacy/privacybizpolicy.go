@@ -49,7 +49,7 @@ func (biz *walletPrivacyBiz) initFuncMap(walletOperate wcom.WalletOperate) {
 
 func (biz *walletPrivacyBiz) Init(walletOperate wcom.WalletOperate) {
 	biz.walletOperate = walletOperate
-	biz.store = &privacyStore{db: walletOperate.GetDBStore()}
+	biz.store = NewStore(walletOperate.GetDBStore())
 	biz.rescanwg = &sync.WaitGroup{}
 
 	biz.initFuncMap(walletOperate)
