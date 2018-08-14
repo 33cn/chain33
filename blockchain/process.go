@@ -97,10 +97,7 @@ func (b *BlockChain) blockExists(hash []byte) bool {
 	}
 	// 检测数据库中是否存在，通过hash获取blcok，并通过hash获取height
 	block, _ := b.blockStore.GetBlockHeaderByHash(hash)
-	if block != nil {
-		return true
-	}
-	return false
+	return block != nil
 }
 
 //孤儿链的处理,将本hash对应的子block插入chain中
