@@ -802,9 +802,8 @@ func (chain *BlockChain) ProcGetAddrOverview(addr *types.ReqAddr) (*types.AddrOv
 		addrOverview.Reciver = amount.(*types.Int64).GetData()
 	}
 	beg := types.Now()
-	curdbver := chain.blockStore.GetDbVersion()
+	curdbver := types.GetChainConfig("dbversion").(int64)
 	var reqkey types.ReqKey
-
 	if curdbver == 0 {
 		//旧的数据库获取地址对应的交易count，使用前缀查找的方式获取
 		//前缀和util.go 文件中的CalcTxAddrHashKey保持一致
