@@ -12,9 +12,9 @@ import (
 
 // status
 const (
-	BlackwhiteStatusReady = iota
-	BlackwhiteStatusCancel
+	BlackwhiteStatusCreate = iota
 	BlackwhiteStatusPlay
+	BlackwhiteStatusShow
 	BlackwhiteStatusTimeoutDone
 	BlackwhiteStatusDone
 )
@@ -33,8 +33,8 @@ func Init() {
 
 	// init log
 	types.RegistorLog(types.TyLogBlackwhiteCreate, &BlackwhiteCreateLog{})
-	types.RegistorLog(types.TyLogBlackwhiteCancel, &BlackwhiteCancelLog{})
 	types.RegistorLog(types.TyLogBlackwhitePlay, &BlackwhitePlayLog{})
+	types.RegistorLog(types.TyLogBlackwhiteShow, &BlackwhiteShowLog{})
 	types.RegistorLog(types.TyLogBlackwhiteTimeoutDone, &BlackwhiteTimeoutDoneLog{})
 
 	// init query rpc
@@ -53,8 +53,8 @@ func (m BlackwhiteType) ActionName(tx *types.Transaction) string {
 	}
 	if g.Ty == types.BlackwhiteActionCreate && g.GetCreate() != nil {
 		return "BlackwhiteCreate"
-	} else if g.Ty == types.BlackwhiteActionCancel && g.GetCancel() != nil {
-		return "BlackwhiteCancel"
+	} else if g.Ty == types.BlackwhiteActionShow && g.GetCancel() != nil {
+		return "BlackwhiteShow"
 	} else if g.Ty == types.BlackwhiteActionPlay && g.GetPlay() != nil {
 		return "BlackwhitePlay"
 	} else if g.Ty == types.BlackwhiteActionTimeoutDone && g.GetTimeoutDone() != nil {
@@ -105,14 +105,14 @@ func (l BlackwhiteTimeoutDoneLog) Decode(msg []byte) (interface{}, error) {
 	return logTmp, err
 }
 
-type BlackwhiteCancelLog struct {
+type BlackwhiteShowLog struct {
 }
 
-func (l BlackwhiteCancelLog) Name() string {
-	return "LogBlackwhiteCancel"
+func (l BlackwhiteShowLog) Name() string {
+	return "LogBlackwhiteShow"
 }
 
-func (l BlackwhiteCancelLog) Decode(msg []byte) (interface{}, error) {
+func (l BlackwhiteShowLog) Decode(msg []byte) (interface{}, error) {
 	var logTmp types.ReceiptBlackwhite
 	err := types.Decode(msg, &logTmp)
 	if err != nil {

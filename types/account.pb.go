@@ -41,6 +41,7 @@ It has these top-level messages:
 	BlackwhiteCreate
 	BlackwhiteCancel
 	BlackwhitePlay
+	BlackwhiteShow
 	BlackwhiteTimeoutDone
 	ReceiptBlackwhite
 	ReqBlackwhiteRoundInfo
