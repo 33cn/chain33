@@ -360,7 +360,11 @@ func testGetTxHashList(t *testing.T, blockchain *BlockChain) {
 		chainlog.Info("testGetTxHashList", "height", i, "count", j, "txhash", txhash)
 		txhashlist.Hashes = append(txhashlist.Hashes, txhash[:])
 	}
-	duptxhashlist := blockchain.GetDuplicateTxHashList(&txhashlist)
+	duptxhashlist, err := blockchain.GetDuplicateTxHashList(&txhashlist)
+	if err != nil {
+		t.Error(err)
+		return
+	}
 	if duptxhashlist != nil {
 		for _, duptxhash := range duptxhashlist.Hashes {
 			if duptxhash != nil {
