@@ -26,27 +26,32 @@ func TestCalcByteBitMap(t *testing.T) {
 	d5 := &types.ReceiptData{Ty: types.ExecOk}
 	data := []*types.ReceiptData{d0, d1, d2, d3, d4, d5}
 
-	//     {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17}
-	//rst:  0,0,0,1,0,0,0,0,1,0,0, 1, 0, 0, 0, 1, 0, 1
-	//      16              145                   64
-	rst := CalcByteBitMap(ori, cur, data)
-	t.Log(rst)
-	check := []byte{16, 145, 64}
+	//     {17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0}
+	//rst:  1, 0, 1, 0, 0, 0, 1, 0, 0,1,0,0,0,0,1,0,0,0
+	//      2     0x89                  8
+	rst := CalcBitMap(ori, cur, data)
+	//t.Log(rst)
+	check := []byte{0x2, 0x89, 0x8}
 	assert.Equal(t, check, rst)
 }
 
 func TestDecodeByteBitMap(t *testing.T) {
 	var i uint32
-	rst := []byte{16, 145, 64}
+	rst := []byte{0x2, 0x89, 0x8}
 	i = 2
-	ret := DecodeByteBitMap(rst, i)
+	ret := BitMapBit(rst, i)
 	assert.False(t, ret)
 
 	i = 3
-	ret = DecodeByteBitMap(rst, i)
+	ret = BitMapBit(rst, i)
 	assert.True(t, ret)
 
 	i = 8
-	ret = DecodeByteBitMap(rst, i)
+	ret = BitMapBit(rst, i)
 	assert.True(t, ret)
+
+	//test for beyond array
+	i = 100
+	ret = BitMapBit(rst, i)
+	assert.False(t, ret)
 }

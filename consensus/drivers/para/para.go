@@ -203,8 +203,8 @@ func (client *ParaClient) ProcEvent(msg queue.Message) bool {
 	return false
 }
 
-// paracross only support txgroup count=2, and if even not cross tx, to txgroup=2 txs,if main fail, para also not exec
-// if both txs are para chain tx, return true
+// paracross only support txgroup count=2 currently,if main tx fail, para tx also not exec
+// if another txs is para chain tx too, return true
 func isMainTxExecOk(tx *types.Transaction, txIndex int, main *types.BlockDetail) bool {
 	var index int
 	if tx.Next != nil {
