@@ -18,7 +18,7 @@ import (
 
 var (
 	//cache 存贮的block个数
-	DefCacheSize        int64 = 512
+	DefCacheSize        int64 = 128
 	cachelock           sync.Mutex
 	zeroHash            [32]byte
 	InitBlockNum        int64 = 10240 //节点刚启动时从db向index和bestchain缓存中添加的blocknode数，和blockNodeCacheLimit保持一致
@@ -39,6 +39,8 @@ type BlockChain struct {
 	blockStore *BlockStore
 	//cache  缓存block方便快速查询
 	cache      map[int64]*list.Element
+	cacheHash  map[string]*list.Element
+	cacheTxs   map[string]bool
 	cacheSize  int64
 	cacheQueue *list.List
 	cfg        *types.BlockChain
@@ -102,6 +104,8 @@ func New(cfg *types.BlockChain) *BlockChain {
 
 	blockchain := &BlockChain{
 		cache:              make(map[int64]*list.Element),
+		cacheHash:          make(map[string]*list.Element),
+		cacheTxs:           make(map[string]bool),
 		cacheSize:          DefCacheSize,
 		cacheQueue:         list.New(),
 		rcvLastBlockHeight: -1,
@@ -282,11 +286,13 @@ func (chain *BlockChain) ProcQueryTxMsg(txhash []byte) (proof *types.Transaction
 }
 
 func (chain *BlockChain) GetDuplicateTxHashList(txhashlist *types.TxHashList) (duptxhashlist *types.TxHashList) {
-
 	var dupTxHashList types.TxHashList
-
+	onlyquerycache := false
+	if txhashlist.Count == -1 {
+		onlyquerycache = true
+	}
 	for _, txhash := range txhashlist.Hashes {
-		has, err := chain.HasTx(txhash)
+		has, err := chain.HasTx(txhash, onlyquerycache)
 		if err == nil && has {
 			dupTxHashList.Hashes = append(dupTxHashList.Hashes, txhash)
 		}
@@ -444,7 +450,6 @@ func (chain *BlockChain) GetBlock(height int64) (block *types.BlockDetail, err e
 			if len(blockinfo.Receipts) == 0 && len(blockinfo.Block.Txs) != 0 {
 				chainlog.Debug("GetBlock  LoadBlock Receipts ==0", "height", height)
 			}
-			chain.cacheBlock(blockinfo)
 			return blockinfo, nil
 		}
 		return nil, err
@@ -465,6 +470,24 @@ func (chain *BlockChain) CheckcacheBlock(height int64) (block *types.BlockDetail
 	return nil
 }
 
+//不做移动，cache最后的 128个区块
+func (chain *BlockChain) GetCacheBlock(hash []byte) (block *types.BlockDetail) {
+	cachelock.Lock()
+	defer cachelock.Unlock()
+	elem, ok := chain.cacheHash[string(hash)]
+	if ok {
+		return elem.Value.(*types.BlockDetail)
+	}
+	return nil
+}
+
+func (chain *BlockChain) HasCacheTx(hash []byte) bool {
+	cachelock.Lock()
+	defer cachelock.Unlock()
+	_, ok := chain.cacheTxs[string(hash)]
+	return ok
+}
+
 //添加block到cache中，方便快速查询
 func (chain *BlockChain) cacheBlock(blockdetail *types.BlockDetail) {
 	cachelock.Lock()
@@ -473,29 +496,41 @@ func (chain *BlockChain) cacheBlock(blockdetail *types.BlockDetail) {
 	if len(blockdetail.Receipts) == 0 && len(blockdetail.Block.Txs) != 0 {
 		chainlog.Debug("cacheBlock  Receipts ==0", "height", blockdetail.Block.GetHeight())
 	}
-
-	// Create entry in cache and append to cacheQueue.
-	elem := chain.cacheQueue.PushBack(blockdetail)
-	chain.cache[blockdetail.Block.Height] = elem
+	chain.addCacheBlock(blockdetail)
 
 	// Maybe expire an item.
 	if int64(chain.cacheQueue.Len()) > chain.cacheSize {
-		height := chain.cacheQueue.Remove(chain.cacheQueue.Front()).(*types.BlockDetail).Block.Height
-		delete(chain.cache, height)
+		blockdetail := chain.cacheQueue.Remove(chain.cacheQueue.Front()).(*types.BlockDetail)
+		chain.delCacheBlock(blockdetail)
+	}
+}
+
+func (chain *BlockChain) addCacheBlock(blockdetail *types.BlockDetail) {
+	// Create entry in cache and append to cacheQueue.
+	elem := chain.cacheQueue.PushBack(blockdetail)
+	chain.cache[blockdetail.Block.Height] = elem
+	chain.cacheHash[string(blockdetail.Block.Hash())] = elem
+	for _, tx := range blockdetail.Block.Txs {
+		chain.cacheTxs[string(tx.Hash())] = true
+	}
+}
+
+func (chain *BlockChain) delCacheBlock(blockdetail *types.BlockDetail) {
+	delete(chain.cache, blockdetail.Block.Height)
+	delete(chain.cacheHash, string(blockdetail.Block.Hash()))
+	for _, tx := range blockdetail.Block.Txs {
+		delete(chain.cacheTxs, string(tx.Hash()))
 	}
 }
 
 //添加block到cache中，方便快速查询
-func (chain *BlockChain) DelBlockFromCache(height int64) {
+func (chain *BlockChain) delBlockFromCache(height int64) {
 	cachelock.Lock()
 	defer cachelock.Unlock()
 	elem, ok := chain.cache[height]
 	if ok {
-		delheight := chain.cacheQueue.Remove(elem).(*types.BlockDetail).Block.Height
-		if delheight != height {
-			chainlog.Error("DelBlockFromCache height err ", "height", height, "delheight", delheight)
-		}
-		delete(chain.cache, height)
+		blockdetail := chain.cacheQueue.Remove(elem).(*types.BlockDetail)
+		chain.delCacheBlock(blockdetail)
 	}
 }
 
@@ -516,7 +551,14 @@ func (chain *BlockChain) GetTxResultFromDb(txhash []byte) (tx *types.TxResult, e
 	return txinfo, nil
 }
 
-func (chain *BlockChain) HasTx(txhash []byte) (has bool, err error) {
+func (chain *BlockChain) HasTx(txhash []byte, onlyquerycache bool) (has bool, err error) {
+	has = chain.HasCacheTx(txhash)
+	if has {
+		return true, nil
+	}
+	if onlyquerycache {
+		return has, nil
+	}
 	return chain.blockStore.HasTx(txhash)
 }
 
@@ -605,11 +647,7 @@ func (chain *BlockChain) ProcGetLastBlockMsg() (respblock *types.Block, err erro
 }
 
 func (chain *BlockChain) ProcGetBlockByHashMsg(hash []byte) (respblock *types.BlockDetail, err error) {
-	blockhight, err := chain.blockStore.GetHeightByBlockHash(hash)
-	if err != nil {
-		return nil, err
-	}
-	blockdetail, err := chain.GetBlock(blockhight)
+	blockdetail, err := chain.LoadBlockByHash(hash)
 	if err != nil {
 		return nil, err
 	}
@@ -705,15 +743,9 @@ func (chain *BlockChain) ProcGetBlockOverview(ReqHash *types.ReqHash) (*types.Bl
 		chainlog.Error("ProcGetBlockOverview input err!")
 		return nil, types.ErrInputPara
 	}
-	//通过blockhash获取blockheight
-	height, err := chain.blockStore.GetHeightByBlockHash(ReqHash.Hash)
-	if err != nil {
-		chainlog.Error("ProcGetBlockOverview:GetHeightByBlockHash err")
-		return nil, err
-	}
 	var blockOverview types.BlockOverview
 	//通过height获取block
-	block, err := chain.GetBlock(height)
+	block, err := chain.LoadBlockByHash(ReqHash.Hash)
 	if err != nil || block == nil {
 		chainlog.Error("ProcGetBlockOverview", "GetBlock err ", err)
 		return nil, err
@@ -926,7 +958,7 @@ func (chain *BlockChain) ProcFutureBlocks() {
 func (chain *BlockChain) GetBlockByHashes(hashes [][]byte) (respblocks *types.BlockDetails, err error) {
 	var blocks types.BlockDetails
 	for _, hash := range hashes {
-		block, err := chain.blockStore.LoadBlockByHash(hash)
+		block, err := chain.LoadBlockByHash(hash)
 		if err == nil && block != nil {
 			blocks.Items = append(blocks.Items, block)
 		} else {

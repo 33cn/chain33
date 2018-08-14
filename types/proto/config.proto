@@ -44,6 +44,7 @@ message MemPool {
     int64 poolCacheSize = 1;
     int64 minTxFee      = 2;
     bool  forceAccept   = 3;
+    int64 maxTxNumPerAccount = 4;
 }
 
 message Consensus {
