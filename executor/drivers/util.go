@@ -59,8 +59,11 @@ func setAddrTxsCount(db dbm.KVDB, addr string, count int64) error {
 
 func updateAddrTxsCount(cachedb dbm.KVDB, addr string, amount int64, isadd bool) (*types.KeyValue, error) {
 	//blockchaindb 数据库0版本不支持此功能
-	ver := types.GetChainConfig("dbversion").(int64)
-	if ver == 0 {
+	ver, err := types.GetChainConfig("dbversion")
+	if err != nil {
+		return nil, err
+	}
+	if ver.(int64) == 0 {
 		return nil, types.ErrNotFound
 	}
 	txscount, err := getAddrTxsCount(cachedb, addr)
