@@ -87,7 +87,6 @@ func NewBlockStore(db dbm.DB, client queue.Client) *BlockStore {
 		if err != types.ErrHeightNotExist {
 			panic(err)
 		}
-
 	}
 	blockStore := &BlockStore{
 		height: height,

@@ -134,7 +134,7 @@ func (client *RaftClient) CreateBlock() {
 	count := 0
 
 	//打包区块前先同步到最大高度
-	time.Sleep(5 * time.Second)
+	time.Sleep(1 * time.Second)
 	for {
 		if client.IsCaughtUp() {
 			rlog.Info("Leader has caught up the max height")

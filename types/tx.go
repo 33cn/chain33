@@ -428,11 +428,11 @@ func (tx *Transaction) isExpire(height, blocktime int64) bool {
 		}
 	} else {
 		//EnableTxHeight 选项开启, 并且符合条件
-		if EnableTxHeight && valid > TxHeightFlag {
-			txHeight := valid - TxHeightFlag
+		if txHeight := GetTxHeight(valid); txHeight > 0 {
 			if txHeight-LowAllowPackHeight <= height && height <= txHeight+HighAllowPackHeight {
-
+				return false
 			}
+			return true
 		}
 		// Expire大于1e9，为blockTime
 		if valid > blocktime { // 未过期
@@ -441,6 +441,13 @@ func (tx *Transaction) isExpire(height, blocktime int64) bool {
 			return true
 		}
 	}
+}
+
+func GetTxHeight(valid int64) int64 {
+	if EnableTxHeight && valid > TxHeightFlag {
+		return valid - TxHeightFlag
+	}
+	return -1
 }
 
 func (tx *Transaction) Json() string {

@@ -135,7 +135,12 @@ func (chain *BlockChain) getBlockHeight(msg queue.Message) {
 
 func (chain *BlockChain) txHashList(msg queue.Message) {
 	txhashlist := (msg.Data).(*types.TxHashList)
-	duptxhashlist := chain.GetDuplicateTxHashList(txhashlist)
+	duptxhashlist, err := chain.GetDuplicateTxHashList(txhashlist)
+	if err != nil {
+		chainlog.Error("txHashList", "err", err.Error())
+		msg.Reply(chain.client.NewMessage("consensus", types.EventTxHashListReply, err))
+		return
+	}
 	//chainlog.Debug("EventTxHashList", "success", "ok")
 	msg.Reply(chain.client.NewMessage("consensus", types.EventTxHashListReply, duptxhashlist))
 }
