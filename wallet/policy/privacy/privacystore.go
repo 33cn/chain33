@@ -18,12 +18,12 @@ const (
 )
 
 func NewStore(db db.DB) *privacyStore {
-	return &privacyStore{WalletStore: wcom.NewStore(db)}
+	return &privacyStore{Store: wcom.NewStore(db)}
 }
 
 // privacyStore 隐私交易数据库存储操作类
 type privacyStore struct {
-	*wcom.WalletStore
+	*wcom.Store
 }
 
 func (store *privacyStore) getVersion() int64 {

@@ -90,6 +90,10 @@ func (wallet *Wallet) GetTickets(status int32) ([]*types.Ticket, [][]byte, error
 	return tickets, privs, nil
 }
 
+func (wallet *Wallet) GetAllPrivKeys() ([]crypto.PrivKey, error) {
+	return wallet.getAllPrivKeys()
+}
+
 func (wallet *Wallet) getAllPrivKeys() ([]crypto.PrivKey, error) {
 	accounts, err := wallet.GetWalletAccounts()
 	if err != nil {
@@ -393,6 +397,10 @@ func (wallet *Wallet) sendTransactionWait(payload types.Message, execer []byte, 
 		return errors.New("sendTransactionWait error")
 	}
 	return nil
+}
+
+func (wallet *Wallet) SendTransaction(payload types.Message, execer []byte, priv crypto.PrivKey, to string) (hash []byte, err error) {
+	return wallet.sendTransaction(payload, execer, priv, to)
 }
 
 func (wallet *Wallet) sendTransaction(payload types.Message, execer []byte, priv crypto.PrivKey, to string) (hash []byte, err error) {

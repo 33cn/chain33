@@ -3,7 +3,6 @@ package wallet
 import (
 	"sync/atomic"
 
-	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -177,15 +176,6 @@ func (wallet *Wallet) flushTicket() {
 	walletlog.Info("wallet FLUSH TICKET")
 	hashList := wallet.client.NewMessage("consensus", types.EventFlushTicket, nil)
 	wallet.client.Send(hashList, false)
-}
-
-func (wallet *Wallet) needFlushTicket(tx *types.Transaction, receipt *types.ReceiptData) bool {
-	if receipt.Ty != types.ExecOk || string(tx.Execer) != "ticket" {
-		return false
-	}
-	pubkey := tx.Signature.GetPubkey()
-	addr := address.PubKeyToAddress(pubkey)
-	return wallet.AddrInWallet(addr.String())
 }
 
 func InitMinerWhiteList(cfg *types.Wallet) {
