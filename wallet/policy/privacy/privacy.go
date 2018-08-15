@@ -52,6 +52,7 @@ func (policy *privacyPolicy) reqTxDetailByAddr(addr string) {
 	var txInfo types.ReplyTxInfo
 
 	i := 0
+	operater := policy.getWalletOperate()
 	for {
 		//首先从blockchain模块获取地址对应的所有交易hashs列表,从最新的交易开始获取
 		var ReqAddr types.ReqAddr
@@ -67,7 +68,7 @@ func (policy *privacyPolicy) reqTxDetailByAddr(addr string) {
 			ReqAddr.Index = txInfo.GetIndex()
 		}
 		i++
-		ReplyTxInfos, err := policy.getWalletOperate().GetAPI().GetTransactionByAddr(&ReqAddr)
+		ReplyTxInfos, err := operater.GetAPI().GetTransactionByAddr(&ReqAddr)
 		if err != nil {
 			bizlog.Error("reqTxDetailByAddr", "GetTransactionByAddr error", err, "addr", addr)
 			return
@@ -86,7 +87,7 @@ func (policy *privacyPolicy) reqTxDetailByAddr(addr string) {
 			txInfo.Height = ReplyTxInfo.GetHeight()
 			txInfo.Index = ReplyTxInfo.GetIndex()
 		}
-		policy.getWalletOperate().GetTxDetailByHashs(&ReqHashes)
+		operater.GetTxDetailByHashs(&ReqHashes)
 		if txcount < int(MaxTxHashsPerTime) {
 			return
 		}
@@ -144,7 +145,7 @@ func (policy *privacyPolicy) createUTXOsByPub2Priv(priv crypto.PrivKey, reqCreat
 		bizlog.Error("createUTXOsByPub2Priv", "parseViewSpendPubKeyPair error.", err)
 		return nil, err
 	}
-
+	operater := policy.getWalletOperate()
 	viewPublic := (*[32]byte)(unsafe.Pointer(&viewPubSlice[0]))
 	spendPublic := (*[32]byte)(unsafe.Pointer(&spendPubSlice[0]))
 	//因为此时是pub2priv的交易，此时不需要构造找零的输出，同时设置fee为0，也是为了简化计算
@@ -168,15 +169,15 @@ func (policy *privacyPolicy) createUTXOsByPub2Priv(priv crypto.PrivKey, reqCreat
 	tx := &types.Transaction{
 		Execer:  []byte("privacy"),
 		Payload: types.Encode(action),
-		Nonce:   policy.getWalletOperate().Nonce(),
+		Nonce:   operater.Nonce(),
 		To:      address.ExecAddress(types.PrivacyX),
 	}
 	txSize := types.Size(tx) + types.SignatureSize
 	realFee := int64((txSize+1023)>>types.Size_1K_shiftlen) * types.FeePerKB
 	tx.Fee = realFee
-	tx.Sign(int32(policy.getWalletOperate().GetSignType()), priv)
+	tx.Sign(int32(operater.GetSignType()), priv)
 
-	reply, err := policy.getWalletOperate().GetAPI().SendTx(tx)
+	reply, err := operater.GetAPI().SendTx(tx)
 	if err != nil {
 		bizlog.Error("transPub2PriV2", "Send err", err)
 		return nil, err
@@ -198,11 +199,11 @@ func (policy *privacyPolicy) getPrivKeyByAddr(addr string) (crypto.PrivKey, erro
 		bizlog.Error("ProcSendToAddress", "FromHex err", err)
 		return nil, err
 	}
-
-	password := []byte(policy.getWalletOperate().GetPassword())
+	operater := policy.getWalletOperate()
+	password := []byte(operater.GetPassword())
 	privkey := wcom.CBCDecrypterPrivkey(password, prikeybyte)
 	//通过privkey生成一个pubkey然后换算成对应的addr
-	cr, err := crypto.New(types.GetSignatureTypeName(policy.getWalletOperate().GetSignType()))
+	cr, err := crypto.New(types.GetSignatureTypeName(operater.GetSignType()))
 	if err != nil {
 		bizlog.Error("ProcSendToAddress", "err", err)
 		return nil, err
@@ -367,7 +368,8 @@ func (policy *privacyPolicy) selectUTXO(token, addr string, amount int64) ([]*tx
 	if err != nil {
 		return nil, types.ErrInsufficientBalance
 	}
-	curBlockHeight := policy.getWalletOperate().GetBlockHeight()
+	operater := policy.getWalletOperate()
+	curBlockHeight := operater.GetBlockHeight()
 	var confirmUTXOs, unconfirmUTXOs []*walletUTXO
 	var balance int64
 	for _, wutxo := range wutxos.utxos {
@@ -401,7 +403,7 @@ func (policy *privacyPolicy) selectUTXO(token, addr string, amount int64) ([]*tx
 	balance = 0
 	var selectedOuts []*txOutputInfo
 	for balance < amount {
-		index := policy.getWalletOperate().GetRandom().Intn(len(confirmUTXOs))
+		index := operater.GetRandom().Intn(len(confirmUTXOs))
 		selectedOuts = append(selectedOuts, confirmUTXOs[index].outinfo)
 		balance += confirmUTXOs[index].outinfo.amount
 		// remove selected utxo
@@ -418,6 +420,7 @@ buildInput 构建隐私交易的输入信息
 	3.通过公式 x=Hs(aR)+b，计算出一个整数，因为 xG = Hs(ar)G+bG = Hs(aR)G+B，所以可以继续使用这笔交易
 */
 func (policy *privacyPolicy) buildInput(privacykeyParirs *privacy.Privacy, buildInfo *buildInputInfo) (*types.PrivacyInput, []*types.UTXOBasics, []*types.RealKeyInput, []*txOutputInfo, error) {
+	operater := policy.getWalletOperate()
 	//挑选满足额度的utxo
 	selectedUtxo, err := policy.selectUTXO(buildInfo.tokenname, buildInfo.sender, buildInfo.amount)
 	if err != nil {
@@ -449,7 +452,7 @@ func (policy *privacyPolicy) buildInput(privacykeyParirs *privacy.Privacy, build
 			Param:    types.Encode(&reqGetGlobalIndex),
 		}
 		//向blockchain请求相同额度的不同utxo用于相同额度的混淆作用
-		resUTXOGlobalIndex, err = policy.getWalletOperate().GetAPI().BlockChainQuery(query)
+		resUTXOGlobalIndex, err = operater.GetAPI().BlockChainQuery(query)
 		if err != nil {
 			bizlog.Error("buildInput BlockChainQuery", "err", err)
 			return nil, nil, nil, nil, err
@@ -504,7 +507,7 @@ func (policy *privacyPolicy) buildInput(privacykeyParirs *privacy.Privacy, build
 		}
 		//将真实的utxo添加到最后一个
 		utxoIndex4Amount.Utxos = append(utxoIndex4Amount.Utxos, utxo)
-		positions := policy.getWalletOperate().GetRandom().Perm(len(utxoIndex4Amount.Utxos))
+		positions := operater.GetRandom().Perm(len(utxoIndex4Amount.Utxos))
 		utxos := make([]*types.UTXOBasic, len(utxoIndex4Amount.Utxos))
 		for k, position := range positions {
 			utxos[position] = utxoIndex4Amount.Utxos[k]
@@ -789,7 +792,8 @@ func (policy *privacyPolicy) rescanUTXOs(req *types.ReqRescanUtxos) (*types.RepR
 	var repRescanUtxos types.RepRescanUtxos
 	repRescanUtxos.Flag = req.Flag
 
-	if policy.getWalletOperate().IsWalletLocked() {
+	operater := policy.getWalletOperate()
+	if operater.IsWalletLocked() {
 		return nil, types.ErrWalletIsLocked
 	}
 	if ok, err := policy.isRescanUtxosFlagScaning(); ok {
@@ -799,8 +803,8 @@ func (policy *privacyPolicy) rescanUTXOs(req *types.ReqRescanUtxos) (*types.RepR
 	if err != nil {
 		return nil, err
 	}
-	policy.getWalletOperate().SetRescanFlag(types.UtxoFlagScaning)
-	policy.getWalletOperate().GetWaitGroup().Add(1)
+	operater.SetRescanFlag(types.UtxoFlagScaning)
+	operater.GetWaitGroup().Add(1)
 	go policy.rescanReqUtxosByAddr(req.Addrs)
 	return &repRescanUtxos, nil
 }
@@ -833,9 +837,10 @@ func (policy *privacyPolicy) reqUtxosByAddr(addrs []string) {
 	reqAddr := address.ExecAddress(types.PrivacyX)
 	var txInfo types.ReplyTxInfo
 	i := 0
+	operater := policy.getWalletOperate()
 	for {
 		select {
-		case <-policy.getWalletOperate().GetWalletDone():
+		case <-operater.GetWalletDone():
 			return
 		default:
 		}
@@ -860,7 +865,7 @@ func (policy *privacyPolicy) reqUtxosByAddr(addrs []string) {
 		i++
 
 		//请求交易信息
-		msg, err := policy.getWalletOperate().GetAPI().Query(&types.Query{
+		msg, err := operater.GetAPI().Query(&types.Query{
 			Execer:   types.ExecerPrivacy,
 			FuncName: "GetTxsByAddr",
 			Payload:  types.Encode(&ReqAddr),
@@ -894,7 +899,7 @@ func (policy *privacyPolicy) reqUtxosByAddr(addrs []string) {
 		}
 	}
 	// 扫描完毕
-	policy.getWalletOperate().SetRescanFlag(types.UtxoFlagNoScan)
+	operater.SetRescanFlag(types.UtxoFlagNoScan)
 	// 删除privacyInput
 	policy.deleteScanPrivacyInputUtxo()
 	policy.store.saveREscanUTXOsAddresses(storeAddrs)
@@ -998,6 +1003,7 @@ func (policy *privacyPolicy) transPub2PriV2(priv crypto.PrivKey, reqPub2Pri *typ
 		return nil, err
 	}
 
+	operater := policy.getWalletOperate()
 	value := &types.Public2Privacy{
 		Tokenname: reqPub2Pri.Tokenname,
 		Amount:    reqPub2Pri.Amount,
@@ -1011,7 +1017,7 @@ func (policy *privacyPolicy) transPub2PriV2(priv crypto.PrivKey, reqPub2Pri *typ
 	tx := &types.Transaction{
 		Execer:  []byte("privacy"),
 		Payload: types.Encode(action),
-		Nonce:   policy.getWalletOperate().Nonce(),
+		Nonce:   operater.Nonce(),
 		// TODO: 采用隐私合约地址来设定目标合约接收的目标地址,让验证通过
 		To: address.ExecAddress(types.PrivacyX),
 	}
@@ -1019,9 +1025,9 @@ func (policy *privacyPolicy) transPub2PriV2(priv crypto.PrivKey, reqPub2Pri *typ
 	txSize := types.Size(tx) + types.SignatureSize
 	realFee := int64((txSize+1023)>>types.Size_1K_shiftlen) * types.FeePerKB
 	tx.Fee = realFee
-	tx.Sign(int32(policy.getWalletOperate().GetSignType()), priv)
+	tx.Sign(int32(operater.GetSignType()), priv)
 
-	reply, err := policy.getWalletOperate().GetAPI().SendTx(tx)
+	reply, err := operater.GetAPI().SendTx(tx)
 	if err != nil {
 		bizlog.Error("transPub2PriV2", "Send err", err)
 		return nil, err
@@ -1094,6 +1100,7 @@ func (policy *privacyPolicy) transPri2PriV2(privacykeyParirs *privacy.Privacy, r
 		return nil, err
 	}
 
+	operater := policy.getWalletOperate()
 	value := &types.Privacy2Privacy{
 		Tokenname: reqPri2Pri.Tokenname,
 		Amount:    reqPri2Pri.Amount,
@@ -1110,7 +1117,7 @@ func (policy *privacyPolicy) transPri2PriV2(privacykeyParirs *privacy.Privacy, r
 		Execer:  []byte(types.PrivacyX),
 		Payload: types.Encode(action),
 		Fee:     types.PrivacyTxFee,
-		Nonce:   policy.getWalletOperate().Nonce(),
+		Nonce:   operater.Nonce(),
 		// TODO: 采用隐私合约地址来设定目标合约接收的目标地址,让验证通过
 		To: address.ExecAddress(types.PrivacyX),
 	}
@@ -1121,7 +1128,7 @@ func (policy *privacyPolicy) transPri2PriV2(privacykeyParirs *privacy.Privacy, r
 	if err != nil {
 		return nil, err
 	}
-	reply, err := policy.getWalletOperate().GetAPI().SendTx(tx)
+	reply, err := operater.GetAPI().SendTx(tx)
 	if err != nil {
 		bizlog.Error("transPub2Pri", "SendTx  ", err)
 		return nil, err
@@ -1219,6 +1226,7 @@ func (policy *privacyPolicy) transPri2PubV2(privacykeyParirs *privacy.Privacy, r
 		return nil, err
 	}
 
+	operater := policy.getWalletOperate()
 	value := &types.Privacy2Public{
 		Tokenname: reqPri2Pub.Tokenname,
 		Amount:    reqPri2Pub.Amount,
@@ -1235,7 +1243,7 @@ func (policy *privacyPolicy) transPri2PubV2(privacykeyParirs *privacy.Privacy, r
 		Execer:  []byte(types.PrivacyX),
 		Payload: types.Encode(action),
 		Fee:     types.PrivacyTxFee,
-		Nonce:   policy.getWalletOperate().Nonce(),
+		Nonce:   operater.Nonce(),
 		To:      reqPri2Pub.Receiver,
 	}
 	tx.SetExpire(time.Duration(reqPri2Pub.GetExpire()))
@@ -1246,7 +1254,7 @@ func (policy *privacyPolicy) transPri2PubV2(privacykeyParirs *privacy.Privacy, r
 		return nil, err
 	}
 
-	reply, err := policy.getWalletOperate().GetAPI().SendTx(tx)
+	reply, err := operater.GetAPI().SendTx(tx)
 	if err != nil {
 		bizlog.Error("transPri2PubV2", "SendTx error", err)
 		return nil, err
@@ -1303,10 +1311,11 @@ func (policy *privacyPolicy) buildAndStoreWalletTxDetail(param *buildStoreWallet
 }
 
 func (policy *privacyPolicy) checkExpireFTXOOnTimer() {
-	policy.getWalletOperate().GetMutex().Lock()
-	defer policy.getWalletOperate().GetMutex().Unlock()
+	operater := policy.getWalletOperate()
+	operater.GetMutex().Lock()
+	defer operater.GetMutex().Unlock()
 
-	header := policy.getWalletOperate().GetLastHeader()
+	header := operater.GetLastHeader()
 	if header == nil {
 		bizlog.Error("checkExpireFTXOOnTimer", "Can not get last header.")
 		return
@@ -1315,7 +1324,8 @@ func (policy *privacyPolicy) checkExpireFTXOOnTimer() {
 }
 
 func (policy *privacyPolicy) checkWalletStoreData() {
-	defer policy.getWalletOperate().GetWaitGroup().Done()
+	operater := policy.getWalletOperate()
+	defer operater.GetWaitGroup().Done()
 	timecount := 10
 	checkTicker := time.NewTicker(time.Duration(timecount) * time.Second)
 	for {
@@ -1330,7 +1340,7 @@ func (policy *privacyPolicy) checkWalletStoreData() {
 			//	return
 			//}
 			//newbatch.Write()
-		case <-policy.getWalletOperate().GetWalletDone():
+		case <-operater.GetWalletDone():
 			return
 		}
 	}
