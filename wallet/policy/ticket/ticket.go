@@ -52,6 +52,7 @@ func (policy *ticketPolicy) Init(walletBiz wcom.WalletOperate) {
 	policy.store = NewStore(walletBiz.GetDBStore())
 	policy.needFlush = false
 	policy.autoMinerFlag = policy.store.GetAutoMinerFlag()
+	policy.miningTicket = time.NewTicker(2 * time.Minute)
 
 	walletBiz.RegisterMineStatusReporter(policy)
 	policy.initFuncMap(walletBiz)
