@@ -181,10 +181,11 @@ func main() {
 		japi.Close()
 		log.Info("begin close grpc module")
 		gapi.Close()
-		log.Info("begin close queue module")
-		q.Close()
 		log.Info("begin close wallet module")
 		walletm.Close()
+		log.Info("begin close queue module")
+		q.Close()
+
 	}()
 	q.Start()
 }
