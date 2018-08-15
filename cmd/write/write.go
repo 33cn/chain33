@@ -118,7 +118,11 @@ func scanWrite() {
 				fmt.Fprintln(os.Stderr, "not a transfer action")
 				continue
 			}
-			note := trans.(map[string]interface{})["note"].(string)
+			note, ok := trans.(map[string]interface{})["note"].(string)
+			if !ok {
+				fmt.Fprintln(os.Stderr, "no note found")
+				continue
+			}
 			var noteTx types.Transaction
 			txBytes, err := common.FromHex(note)
 			if err != nil {
