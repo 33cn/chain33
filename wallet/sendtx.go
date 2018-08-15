@@ -127,6 +127,10 @@ func (wallet *Wallet) sendTx(tx *types.Transaction) (*types.Reply, error) {
 	return resp.GetData().(*types.Reply), nil
 }
 
+func (wallet *Wallet) WaitTx(hash []byte) *types.TransactionDetail {
+	return wallet.waitTx(hash)
+}
+
 func (wallet *Wallet) waitTx(hash []byte) *types.TransactionDetail {
 	i := 0
 	for {
@@ -146,6 +150,10 @@ func (wallet *Wallet) waitTx(hash []byte) *types.TransactionDetail {
 			return res
 		}
 	}
+}
+
+func (wallet *Wallet) WaitTxs(hashes [][]byte) (ret []*types.TransactionDetail) {
+	return wallet.waitTxs(hashes)
 }
 
 func (wallet *Wallet) waitTxs(hashes [][]byte) (ret []*types.TransactionDetail) {

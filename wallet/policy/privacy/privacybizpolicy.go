@@ -414,8 +414,9 @@ func (policy *privacyPolicy) onEnablePrivacy(msg *queue.Message) (string, int64,
 		bizlog.Error("privacyPolicy request param is nil")
 		return topic, retty, nil, types.ErrInvalidParam
 	}
-	policy.getWalletOperate().GetMutex().Lock()
-	defer policy.getWalletOperate().GetMutex().Unlock()
+	operater := policy.getWalletOperate()
+	operater.GetMutex().Lock()
+	defer operater.GetMutex().Unlock()
 
 	reply, err := policy.enablePrivacy(req)
 	if err != nil {
