@@ -20,8 +20,12 @@ func calcRoundKey(ID string) []byte {
 	return []byte(fmt.Sprintf(roundPrefix+"%s", ID))
 }
 
-func calcRoundKey4Addr(addr, ID string) []byte {
-	return []byte(fmt.Sprintf(roundPrefix+"%s-"+"%s", addr, ID))
+func calcRoundKey4StatusAddr(status int32, addr, ID string) []byte {
+	return []byte(fmt.Sprintf(roundPrefix+"%d-","%s-"+"%s", status, addr, ID))
+}
+
+func calcRoundKey4StatusAddrPrefix(status int32, addr string) []byte {
+	return []byte(fmt.Sprintf(roundPrefix+"%d-","%s-"+"%s", status, addr))
 }
 
 func newRound(create *types.BlackwhiteCreate, creator string) *types.BlackwhiteRound {
@@ -30,6 +34,7 @@ func newRound(create *types.BlackwhiteCreate, creator string) *types.BlackwhiteR
 	t.Status = gt.BlackwhiteStatusCreate
 	t.PlayAmount = create.PlayAmount
 	t.PlayerCount = create.PlayerCount
+	t.Timeout = create.Timeout
 	t.Loop = calcloopNumByPlayer(create.PlayerCount)
 	t.CreateAddr = creator
 	t.GameName = create.GameName

@@ -44,8 +44,11 @@ It has these top-level messages:
 	BlackwhiteShow
 	BlackwhiteTimeoutDone
 	ReceiptBlackwhite
+	ReceiptBlackwhiteStatus
 	ReqBlackwhiteRoundInfo
 	ReplyBlackwhiteRoundInfo
+	ReqBlackwhiteRoundList
+	ReplyBlackwhiteRoundList
 	Header
 	Block
 	Blocks
