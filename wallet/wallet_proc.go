@@ -777,6 +777,9 @@ func (wallet *Wallet) ProcWalletLock() error {
 
 	atomic.CompareAndSwapInt32(&wallet.isWalletLocked, 0, 1)
 	atomic.CompareAndSwapInt32(&wallet.isTicketLocked, 0, 1)
+	for _, policy := range wcom.PolicyContainer {
+		policy.OnWalletLocked()
+	}
 	return nil
 }
 
@@ -819,6 +822,9 @@ func (wallet *Wallet) ProcWalletUnLock(WalletUnLock *types.WalletUnLock) error {
 	}
 	if WalletUnLock.Timeout != 0 {
 		wallet.resetTimeout(WalletUnLock.WalletOrTicket, WalletUnLock.Timeout)
+	}
+	for _, policy := range wcom.PolicyContainer {
+		policy.OnWalletUnlocked()
 	}
 	return nil
 

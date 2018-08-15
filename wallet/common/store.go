@@ -310,27 +310,6 @@ func (store *Store) GetWalletVersion() int64 {
 	return ver
 }
 
-func (store *Store) GetAutoMinerFlag() int32 {
-	flag := int32(0)
-	value, err := store.Get(CalcWalletAutoMiner())
-	if err != nil {
-		storelog.Error("GetAutoMinerFlag", "Get error", err)
-		return flag
-	}
-	if value != nil && string(value) == "1" {
-		flag = 1
-	}
-	return flag
-}
-
-func (store *Store) SetAutoMinerFlag(flag int32) {
-	if flag == 1 {
-		store.Set(CalcWalletAutoMiner(), []byte("1"))
-	} else {
-		store.Set(CalcWalletAutoMiner(), []byte("0"))
-	}
-}
-
 //判断钱包是否已经保存seed
 func (store *Store) HasSeed() (bool, error) {
 	seed, err := store.Get(CalcWalletSeed())
