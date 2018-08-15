@@ -45,27 +45,27 @@ const (
 type Wallet struct {
 	client queue.Client
 	// 模块间通信的操作接口,建议用api代替client调用
-	api              client.QueueProtocolAPI
-	mtx              sync.Mutex
-	timeout          *time.Timer
-	minertimeout     *time.Timer
-	isclosed         int32
-	isWalletLocked   int32
-	isTicketLocked   int32
-	lastHeight       int64
-	autoMinerFlag    int32
-	fatalFailureFlag int32
-	Password         string
-	FeeAmount        int64
-	EncryptFlag      int64
-	wg               *sync.WaitGroup
-	walletStore      *walletStore
-	random           *rand.Rand
-	cfg              *types.Wallet
-	done             chan struct{}
-	rescanwg         *sync.WaitGroup
-	rescanUTXOflag   int32
-	lastHeader       *types.Header
+	api                client.QueueProtocolAPI
+	mtx                sync.Mutex
+	timeout            *time.Timer
+	minertimeout       *time.Timer
+	mineStatusReporter wcom.MineStatusReport
+	isclosed           int32
+	isWalletLocked     int32
+	isTicketLocked     int32
+	lastHeight         int64
+	fatalFailureFlag   int32
+	Password           string
+	FeeAmount          int64
+	EncryptFlag        int64
+	wg                 *sync.WaitGroup
+	walletStore        *walletStore
+	random             *rand.Rand
+	cfg                *types.Wallet
+	done               chan struct{}
+	rescanwg           *sync.WaitGroup
+	rescanUTXOflag     int32
+	lastHeader         *types.Header
 }
 
 func SetLogLevel(level string) {
@@ -94,20 +94,16 @@ func New(cfg *types.Wallet) *Wallet {
 		walletStore:      walletStore,
 		isWalletLocked:   1,
 		isTicketLocked:   1,
-		autoMinerFlag:    0,
 		fatalFailureFlag: 0,
 		wg:               &sync.WaitGroup{},
 		FeeAmount:        walletStore.GetFeeAmount(minFee),
 		EncryptFlag:      walletStore.GetEncryptionFlag(),
-		miningTicket:     time.NewTicker(2 * time.Minute),
 		done:             make(chan struct{}),
 		cfg:              cfg,
 		rescanwg:         &sync.WaitGroup{},
 		rescanUTXOflag:   types.UtxoFlagNoScan,
 	}
-	wallet.autoMinerFlag = walletStore.GetAutoMinerFlag()
 	wallet.random = rand.New(rand.NewSource(types.Now().UnixNano()))
-	InitMinerWhiteList(cfg)
 	return wallet
 }
 
@@ -115,6 +111,10 @@ func (wallet *Wallet) initBizPolicy() {
 	for _, policy := range wcom.PolicyContainer {
 		policy.Init(wallet)
 	}
+}
+
+func (wallet *Wallet) RegisterMineStatusReporter(reporter wcom.MineStatusReport) {
+	wallet.mineStatusReporter = reporter
 }
 
 func (wallet *Wallet) GetConfig() *types.Wallet {
@@ -238,10 +238,6 @@ func (wallet *Wallet) SetQueueClient(cli queue.Client) {
 
 	wallet.wg.Add(1)
 	go wallet.ProcRecvMsg()
-
-	wallet.wg.Add(1)
-	go wallet.autoMining()
-
 }
 
 func (wallet *Wallet) GetAccountByAddr(addr string) (*types.WalletAccountStore, error) {
@@ -341,7 +337,9 @@ func (wallet *Wallet) GetWalletStatus() *types.WalletStatus {
 	s := &types.WalletStatus{}
 	s.IsWalletLock = wallet.IsWalletLocked()
 	s.IsHasSeed, _ = wallet.walletStore.HasSeed()
-	s.IsAutoMining = wallet.isAutoMining()
+	if wallet.mineStatusReporter != nil {
+		s.IsAutoMining = wallet.mineStatusReporter.IsAutoMining()
+	}
 	s.IsTicketLock = wallet.IsTicketLocked()
 
 	walletlog.Debug("GetWalletStatus", "walletstatus", s)
