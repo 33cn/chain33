@@ -20,7 +20,8 @@ const (
 )
 
 const (
-	GetBlackwhiteRoundInfo = "GetBlackwhiteRoundInfo"
+	GetBlackwhiteRoundInfo       = "GetBlackwhiteRoundInfo"
+	GetBlackwhiteByStatusAndAddr = "GetBlackwhiteByStatusAndAddr"
 )
 
 const name = types.BlackwhiteX

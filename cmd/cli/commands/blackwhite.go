@@ -6,6 +6,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 	bw "gitlab.33.cn/chain33/chain33/types/executor/blackwhite"
 	"strings"
+	"time"
 )
 
 func BlackwhiteCmd() *cobra.Command {
@@ -43,6 +44,8 @@ func addBlackwhiteCreateFlags(cmd *cobra.Command) {
 	cmd.Flags().Uint32P("playerCount", "p", 0, "player count")
 	cmd.MarkFlagRequired("playerCount")
 
+	cmd.Flags().Int64P("timeout", "t", 0, "timeout(s),default:10min")
+
 	cmd.Flags().StringP("gameName", "g", "", "game name")
 }
 
@@ -50,13 +53,20 @@ func blackwhiteCreate(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	amount, _ := cmd.Flags().GetUint64("playAmount")
 	playerCount, _ := cmd.Flags().GetUint32("playerCount")
+	timeout, _ := cmd.Flags().GetInt64("timeout")
 	gameName, _ := cmd.Flags().GetString("gameName")
 
 	amountInt64 := int64(amount)
 
+	if timeout == 0 {
+		timeout = 10
+	}
+	timeout = int64(time.Minute) * timeout
+
 	params := &types.BlackwhiteCreate{
 		PlayAmount:  amountInt64 * types.Coin,
 		PlayerCount: int32(playerCount),
+		Timeout:     timeout,
 		GameName:    gameName,
 	}
 
