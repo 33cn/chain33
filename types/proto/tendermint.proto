@@ -1,6 +1,7 @@
 syntax = "proto3";
 
 import "transaction.proto";
+import "executor.proto";
 package types;
 
 message BlockID {
@@ -181,4 +182,8 @@ message Heartbeat {
     int32 round = 4;
     int32 sequence = 5;
     bytes signature = 6;
+}
+
+message ValNodes {
+    repeated ValNode nodes = 1;
 }

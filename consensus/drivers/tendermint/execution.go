@@ -4,61 +4,10 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"sync"
 
 	ttypes "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
+	types "gitlab.33.cn/chain33/chain33/types"
 )
-
-type ValidatorCache struct {
-	PubKey []byte
-	Power  int64
-}
-
-type ValidatorsCache struct {
-	mtx        sync.Mutex
-	validators []*ValidatorCache
-}
-
-var (
-	validatorsCache ValidatorsCache
-)
-
-func InitValidatorsCache(vals *ttypes.ValidatorSet) {
-	validatorsCache.mtx.Lock()
-	defer validatorsCache.mtx.Unlock()
-	validatorsCache.validators = make([]*ValidatorCache, len(vals.Validators))
-	for i, item := range vals.Validators {
-		validatorsCache.validators[i] = &ValidatorCache{
-			PubKey: item.PubKey,
-			Power:  item.VotingPower,
-		}
-	}
-}
-
-func GetValidatorsCache() []*ValidatorCache {
-	validatorsCache.mtx.Lock()
-	defer validatorsCache.mtx.Unlock()
-	validators := make([]*ValidatorCache, len(validatorsCache.validators))
-	for i, item := range validatorsCache.validators {
-		validators[i] = &ValidatorCache{
-			PubKey: item.PubKey,
-			Power:  item.Power,
-		}
-	}
-	return validators
-}
-
-func UpdateValidator2Cache(val ValidatorCache) {
-	validatorsCache.mtx.Lock()
-	defer validatorsCache.mtx.Unlock()
-	for _, item := range validatorsCache.validators {
-		if bytes.Equal(item.PubKey, val.PubKey) {
-			item.Power = val.Power
-			return
-		}
-	}
-	validatorsCache.validators = append(validatorsCache.validators, &val)
-}
 
 //-----------------------------------------------------------------------------
 // BlockExecutor handles block execution and state updates.
@@ -157,7 +106,7 @@ func updateState(s State, blockID ttypes.BlockID, block *ttypes.TendermintBlock)
 
 	// update the validator set with the latest abciResponses
 	lastHeightValsChanged := s.LastHeightValidatorsChanged
-	validatorUpdates := GetValidatorsCache()
+/*	validatorUpdates := GetValidatorsCache()
 	if len(validatorUpdates) > 0 {
 		err := updateValidators(nextValSet, validatorUpdates)
 		if err != nil {
@@ -167,6 +116,7 @@ func updateState(s State, blockID ttypes.BlockID, block *ttypes.TendermintBlock)
 		// change results from this height but only applies to the next height
 		lastHeightValsChanged = block.Header.Height + 1
 	}
+*/
 	// Update validator accums and set state variables
 	nextValSet.IncrementAccum(1)
 
@@ -220,7 +170,7 @@ func ExecCommitBlock(appConnConsensus proxy.AppConnConsensus, block *ttypes.Bloc
 	return res.Data, nil
 }
 */
-func updateValidators(currentSet *ttypes.ValidatorSet, updates []*ValidatorCache) error {
+func updateValidators(currentSet *ttypes.ValidatorSet, updates []*types.ValNode) error {
 	// If more or equal than 1/3 of total voting power changed in one block, then
 	// a light client could never prove the transition externally. See
 	// ./lite/doc.go for details on how a light client tracks validators.
@@ -270,7 +220,7 @@ func updateValidators(currentSet *ttypes.ValidatorSet, updates []*ValidatorCache
 	return nil
 }
 
-func changeInVotingPowerMoreOrEqualToOneThird(currentSet *ttypes.ValidatorSet, updates []*ValidatorCache) (bool, error) {
+func changeInVotingPowerMoreOrEqualToOneThird(currentSet *ttypes.ValidatorSet, updates []*types.ValNode) (bool, error) {
 	threshold := currentSet.TotalVotingPower() * 1 / 3
 	acc := int64(0)
 
