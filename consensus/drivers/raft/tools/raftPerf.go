@@ -214,7 +214,7 @@ func RandStringBytes(n int) string {
 }
 
 func NormPut(privkey string, key string, value string) {
-	fmt.Println(key, "=", value)
+	//fmt.Println(key, "=", value)
 	nput := &types.NormAction_Nput{&types.NormPut{Key: key, Value: []byte(value)}}
 	action := &types.NormAction{Value: nput, Ty: types.NormActionPut}
 	tx := &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(action), Fee: fee}

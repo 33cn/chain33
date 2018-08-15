@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
 	"encoding/hex"
 
 	"github.com/stretchr/testify/require"
@@ -196,6 +198,15 @@ func addTx() (string, error) {
 		return hash, errors.New("sendtx unknow error")
 	}
 	return hash, nil
+}
+
+func TestcalcHeightToBlockHeaderKey(t *testing.T) {
+	key := calcHeightToBlockHeaderKey(1)
+	assert.Equal(t, key, []byte("000000000001"))
+	key = calcHeightToBlockHeaderKey(0)
+	assert.Equal(t, key, []byte("000000000000"))
+	key = calcHeightToBlockHeaderKey(10)
+	assert.Equal(t, key, []byte("000000000010"))
 }
 
 func TestBlockChain(t *testing.T) {
@@ -588,7 +599,7 @@ func testGetBlockHerderByHash(t *testing.T, blockchain *BlockChain) {
 	if !bytes.Equal(blockhash, block.Block.ParentHash) {
 		fmt.Println("block.ParentHash != prehash: nextParentHash", blockhash, block.Block.ParentHash)
 	}
-	header, err := blockchain.blockStore.GetBlockHerderByHash(block.Block.Hash())
+	header, err := blockchain.blockStore.GetBlockHeaderByHash(block.Block.Hash())
 	require.NoError(t, err)
 	PrintHeaderInfo(header)
 	chainlog.Info("testGetBlockHerderByHash end --------------------")

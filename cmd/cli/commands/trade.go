@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"strconv"
@@ -21,14 +20,19 @@ func TradeCmd() *cobra.Command {
 	}
 
 	cmd.AddCommand(
-		ShowOnesSellOrdersCmd(),
-		ShowTokenSellOrderCmd(),
-		ShowSellOrderWithStatusCmd(),
-		ShowOnesBuyOrderCmd(),
-		ShowOnesBuyTokenOrderCmd(),
 		CreateRawTradeSellTxCmd(),
 		CreateRawTradeBuyTxCmd(),
 		CreateRawTradeRevokeTxCmd(),
+
+		ShowOnesSellOrdersCmd(),
+		ShowOnesSellOrdersStatusCmd(),
+		ShowTokenSellOrdersStatusCmd(),
+
+		ShowOnesBuyOrderCmd(),
+		ShowOnesBuyOrdersStatusCmd(),
+		ShowTokenBuyOrdersStatusCmd(),
+
+		ShowOnesOrdersStatusCmd(),
 	)
 
 	return cmd
@@ -48,9 +52,7 @@ func ShowOnesSellOrdersCmd() *cobra.Command {
 func addShowOnesSellOrdersFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("seller", "s", "", "token seller")
 	cmd.MarkFlagRequired("seller")
-
-	cmd.Flags().StringP("token", "t", "", "tokens, separated by space")
-	cmd.MarkFlagRequired("token")
+	cmd.Flags().StringP("token", "t", "", "tokens, separated by space (not required)")
 }
 
 func showOnesSellOrders(cmd *cobra.Command, args []string) {
@@ -59,7 +61,7 @@ func showOnesSellOrders(cmd *cobra.Command, args []string) {
 	token, _ := cmd.Flags().GetString("token")
 	tokens := strings.Split(token, " ")
 	var reqAddrtokens types.ReqAddrTokens
-	reqAddrtokens.Status = types.TradeOrderStatusOnSale
+	//reqAddrtokens.Status = types.TradeOrderStatusOnSale
 	reqAddrtokens.Addr = seller
 	if 0 != len(tokens) {
 		reqAddrtokens.Token = append(reqAddrtokens.Token, tokens...)
@@ -69,53 +71,88 @@ func showOnesSellOrders(cmd *cobra.Command, args []string) {
 		FuncName: "GetOnesSellOrder",
 		Payload:  reqAddrtokens,
 	}
-	rpc, err := jsonrpc.NewJSONClient(rpcLaddr)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-
-	var res tradetype.RpcReplyTradeOrders
-	err = rpc.Call("Chain33.Query", params, &res)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-
-	parseSellOrders(res)
+	var res tradetype.RpcReplySellOrders
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
+	ctx.SetResultCb(parseSellOrders)
+	ctx.Run()
 }
 
-// show sell order of a token
-func ShowTokenSellOrderCmd() *cobra.Command {
+// show one's sell order with status
+func ShowOnesSellOrdersStatusCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "token_order",
-		Short: "Show selling orders of a token",
-		Run:   showTokenSellOrders,
+		Use:   "status_sell_order",
+		Short: "Show selling orders of the status",
+		Run:   showOnesSellOrdersStatus,
 	}
-	addShowTokenSellOrdersFlags(cmd)
+	addShowOnesSellOrdersStatusFlags(cmd)
 	return cmd
 }
 
-func addShowTokenSellOrdersFlags(cmd *cobra.Command) {
-	cmd.Flags().StringP("token", "t", "", "token name")
-	cmd.MarkFlagRequired("token")
-
-	cmd.Flags().Int32P("count", "c", 0, "order count")
-	cmd.MarkFlagRequired("count")
-
-	cmd.Flags().Int32P("direction", "d", 1, "direction must be 0 (previous-page) or 1(next-page)")
-	cmd.MarkFlagRequired("direction")
-
-	cmd.Flags().StringP("from", "f", "", "start from sell id (not required)")
-	cmd.MarkFlagRequired("from")
+func addShowOnesSellOrdersStatusFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("status", "s", "", "sell order status (onsale, soldout or revoked)")
+	cmd.MarkFlagRequired("status")
+	cmd.Flags().StringP("address", "a", "", "seller address")
+	cmd.MarkFlagRequired("address")
 }
 
-func showTokenSellOrders(cmd *cobra.Command, args []string) {
+func showOnesSellOrdersStatus(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	addr, _ := cmd.Flags().GetString("address")
+	status, _ := cmd.Flags().GetString("status")
+	statusInt, ok := types.MapSellOrderStatusStr2Int[status]
+	if !ok {
+		fmt.Fprintln(os.Stderr, types.ErrInvalidParam)
+		return
+	}
+	var reqAddrtokens types.ReqAddrTokens
+	reqAddrtokens.Status = statusInt
+	reqAddrtokens.Addr = addr
+
+	var params jsonrpc.Query4Cli
+	params.Execer = "trade"
+	params.FuncName = "GetOnesSellOrderWithStatus"
+	params.Payload = reqAddrtokens
+	var res tradetype.RpcReplySellOrders
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
+	ctx.SetResultCb(parseSellOrders)
+	ctx.Run()
+}
+
+// show token sell order with status
+func ShowTokenSellOrdersStatusCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "status_token_sell_order",
+		Short: "Show token selling orders of a status",
+		Run:   showTokenSellOrdersStatus,
+	}
+	addShowTokenSellOrdersStatusFlags(cmd)
+	return cmd
+}
+
+func addShowTokenSellOrdersStatusFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("token", "t", "", "token name")
+	cmd.MarkFlagRequired("token")
+	cmd.Flags().Int32P("count", "c", 0, "order count")
+	cmd.MarkFlagRequired("count")
+	cmd.Flags().Int32P("direction", "d", 1, "direction must be 0 (previous-page) or 1(next-page)")
+	cmd.MarkFlagRequired("direction")
+	cmd.Flags().StringP("from", "f", "", "start from sell id (not required)")
+	cmd.Flags().StringP("status", "s", "", "sell order status (onsale, soldout or revoked)")
+	cmd.MarkFlagRequired("status")
+}
+
+func showTokenSellOrdersStatus(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	token, _ := cmd.Flags().GetString("token")
 	count, _ := cmd.Flags().GetInt32("count")
 	dir, _ := cmd.Flags().GetInt32("direction")
 	from, _ := cmd.Flags().GetString("from")
+	status, _ := cmd.Flags().GetString("status")
+	statusInt, ok := types.MapSellOrderStatusStr2Int[status]
+	if !ok {
+		fmt.Fprintln(os.Stderr, types.ErrInvalidParam)
+		return
+	}
 	if dir != 0 && dir != 1 {
 		fmt.Fprintln(os.Stderr, "direction must be 0 (previous-page) or 1(next-page)")
 		return
@@ -125,94 +162,41 @@ func showTokenSellOrders(cmd *cobra.Command, args []string) {
 	req.Count = count
 	req.Direction = dir
 	req.FromKey = from
+	req.Status = statusInt
 	var params jsonrpc.Query4Cli
 	params.Execer = "trade"
 	params.FuncName = "GetTokenSellOrderByStatus"
 	params.Payload = req
-	rpc, err := jsonrpc.NewJSONClient(rpcLaddr)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-	var res tradetype.RpcReplyTradeOrders
-	err = rpc.Call("Chain33.Query", params, &res)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-
-	parseSellOrders(res)
+	var res tradetype.RpcReplySellOrders
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
+	ctx.SetResultCb(parseSellOrders)
+	ctx.Run()
 }
 
-// show sell order of a status
-func ShowSellOrderWithStatusCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "status_sell_order",
-		Short: "Show selling orders of the status",
-		Run:   showSellOrderWithStatus,
-	}
-	addShowSellOrderWithStatusFlags(cmd)
-	return cmd
-}
-
-func addShowSellOrderWithStatusFlags(cmd *cobra.Command) {
-	cmd.Flags().StringP("status", "s", "", "sell order status (onsale, soldout or revoked)")
-	cmd.MarkFlagRequired("status")
-}
-
-func showSellOrderWithStatus(cmd *cobra.Command, args []string) {
-	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	status, _ := cmd.Flags().GetString("status")
-	statusInt, ok := types.MapSellOrderStatusStr2Int[status]
-	if !ok {
-		fmt.Fprintln(os.Stderr, types.ErrInvalidParam)
-		return
-	}
-	var reqAddrtokens types.ReqAddrTokens
-	reqAddrtokens.Status = statusInt
-
-	var params jsonrpc.Query4Cli
-	params.Execer = "trade"
-	params.FuncName = "GetAllSellOrdersWithStatus"
-	params.Payload = reqAddrtokens
-	rpc, err := jsonrpc.NewJSONClient(rpcLaddr)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-
-	var res tradetype.RpcReplyTradeOrders
-	err = rpc.Call("Chain33.Query", params, &res)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-
-	parseSellOrders(res)
-}
-
-func parseSellOrders(res tradetype.RpcReplyTradeOrders) {
-	for i, sellorder := range res.Orders {
-		var sellOrders2show SellOrder2Show
-		sellOrders2show.Tokensymbol = sellorder.TokenSymbol
-		sellOrders2show.Seller = sellorder.Owner
-		sellOrders2show.Amountperboardlot = strconv.FormatFloat(float64(sellorder.AmountPerBoardlot)/float64(types.TokenPrecision), 'f', 4, 64)
-		sellOrders2show.Minboardlot = sellorder.MinBoardlot
-		sellOrders2show.Priceperboardlot = strconv.FormatFloat(float64(sellorder.PricePerBoardlot)/float64(types.Coin), 'f', 8, 64)
-		sellOrders2show.Totalboardlot = sellorder.TotalBoardlot
-		sellOrders2show.Soldboardlot = sellorder.TradedBoardlot
-		sellOrders2show.SellID = sellorder.SellID
-		sellOrders2show.Status = types.SellOrderStatus[sellorder.Status]
-		sellOrders2show.Height = sellorder.Height
-
-		data, err := json.MarshalIndent(sellOrders2show, "", "    ")
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			return
+func parseSellOrders(arg interface{}) (interface{}, error) {
+	res := arg.(*tradetype.RpcReplySellOrders)
+	var result ReplySellOrdersResult
+	for _, o := range res.SellOrders {
+		order := &TradeOrderResult{
+			TokenSymbol:    o.TokenSymbol,
+			Owner:          o.Owner,
+			BuyID:          o.BuyID,
+			Status:         o.Status,
+			SellID:         o.SellID,
+			TxHash:         o.TxHash,
+			Height:         o.Height,
+			Key:            o.Key,
+			BlockTime:      o.BlockTime,
+			IsSellOrder:    o.IsSellOrder,
+			MinBoardlot:    o.MinBoardlot,
+			TotalBoardlot:  o.TotalBoardlot,
+			TradedBoardlot: o.TradedBoardlot,
 		}
-		fmt.Printf("---The %dth sellorder is below--------------------\n", i)
-		fmt.Println(string(data))
+		order.AmountPerBoardlot = strconv.FormatFloat(float64(o.AmountPerBoardlot)/float64(types.Coin), 'f', 4, 64)
+		order.PricePerBoardlot = strconv.FormatFloat(float64(o.PricePerBoardlot)/float64(types.Coin), 'f', 4, 64)
+		result.SellOrders = append(result.SellOrders, order)
 	}
+	return result, nil
 }
 
 // show one's buy order
@@ -227,63 +211,229 @@ func ShowOnesBuyOrderCmd() *cobra.Command {
 }
 
 func addShowBuyOrdersFlags(cmd *cobra.Command) {
-	cmd.Flags().StringP("buyer", "b", "", "token buyer")
+	cmd.Flags().StringP("buyer", "b", "", "buyer address")
 	cmd.MarkFlagRequired("buyer")
-}
-
-// show one's buy order of tokens
-func ShowOnesBuyTokenOrderCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "buy_token_order",
-		Short: "Show one's buying orders of tokens",
-		Run:   showOnesBuyOrders,
-	}
-	addShowBuyTokenOrdersFlags(cmd)
-	return cmd
-}
-
-func addShowBuyTokenOrdersFlags(cmd *cobra.Command) {
-	cmd.Flags().StringP("buyer", "b", "", "token buyer")
-	cmd.MarkFlagRequired("buyer")
-
-	cmd.Flags().StringP("token", "t", "", "tokens, separated by space")
+	cmd.Flags().StringP("token", "t", "", "tokens, separated by space (not required)")
 }
 
 func showOnesBuyOrders(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	token, _ := cmd.Flags().GetString("token")
 	buyer, _ := cmd.Flags().GetString("buyer")
+	token, _ := cmd.Flags().GetString("token")
 	tokens := strings.Split(token, " ")
 	var reqAddrtokens types.ReqAddrTokens
 	reqAddrtokens.Addr = buyer
-	reqAddrtokens.Token = tokens
-
+	if 0 != len(tokens) {
+		reqAddrtokens.Token = append(reqAddrtokens.Token, tokens...)
+	}
 	var params jsonrpc.Query4Cli
 	params.Execer = "trade"
 	params.FuncName = "GetOnesBuyOrder"
 	params.Payload = reqAddrtokens
-	rpc, err := jsonrpc.NewJSONClient(rpcLaddr)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-	var res tradetype.RpcReplyTradeOrders
-	err = rpc.Call("Chain33.Query", params, &res)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-
-	for i, buy := range res.Orders {
-		data, err := json.MarshalIndent(buy, "", "    ")
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			return
-		}
-		fmt.Printf("---The %dth buyorder is below--------------------\n", i)
-		fmt.Println(string(data))
-	}
+	var res tradetype.RpcReplyBuyOrders
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
+	ctx.SetResultCb(parseBuyOrders)
+	ctx.Run()
 }
+
+// show one's buy order with status
+func ShowOnesBuyOrdersStatusCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "status_buy_order",
+		Short: "Show one's buying orders of tokens",
+		Run:   showOnesBuyOrdersStatus,
+	}
+	addShowOnesBuyTokenOrdersStatusFlags(cmd)
+	return cmd
+}
+
+func addShowOnesBuyTokenOrdersStatusFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("buyer", "b", "", "buyer address")
+	cmd.MarkFlagRequired("buyer")
+	cmd.Flags().StringP("status", "s", "", "buy order status (onbuy, boughtout or buyrevoked)")
+	cmd.MarkFlagRequired("status")
+}
+
+func showOnesBuyOrdersStatus(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	buyer, _ := cmd.Flags().GetString("buyer")
+	status, _ := cmd.Flags().GetString("status")
+	statusInt, ok := types.MapBuyOrderStatusStr2Int[status]
+	if !ok {
+		fmt.Fprintln(os.Stderr, types.ErrInvalidParam)
+		return
+	}
+	var reqAddrtokens types.ReqAddrTokens
+	reqAddrtokens.Addr = buyer
+	reqAddrtokens.Status = statusInt
+	var params jsonrpc.Query4Cli
+	params.Execer = "trade"
+	params.FuncName = "GetOnesBuyOrderWithStatus"
+	params.Payload = reqAddrtokens
+	var res tradetype.RpcReplyBuyOrders
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
+	ctx.SetResultCb(parseBuyOrders)
+	ctx.Run()
+}
+
+// show token buy order with status
+func ShowTokenBuyOrdersStatusCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "status_token_buy_order",
+		Short: "Show token buying orders of a status",
+		Run:   showTokenBuyOrdersStatus,
+	}
+	addShowBuyTokenOrdersStatusFlags(cmd)
+	return cmd
+}
+
+func addShowBuyTokenOrdersStatusFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("token", "t", "", "token name")
+	cmd.MarkFlagRequired("token")
+	cmd.Flags().Int32P("count", "c", 0, "order count")
+	cmd.MarkFlagRequired("count")
+	cmd.Flags().Int32P("direction", "d", 1, "direction must be 0 (previous-page) or 1(next-page)")
+	cmd.MarkFlagRequired("direction")
+	cmd.Flags().StringP("from", "f", "", "start from sell id (not required)")
+	cmd.Flags().StringP("status", "s", "", "buy order status (onbuy, boughtout or buyrevoked)")
+	cmd.MarkFlagRequired("status")
+}
+
+func showTokenBuyOrdersStatus(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	token, _ := cmd.Flags().GetString("token")
+	count, _ := cmd.Flags().GetInt32("count")
+	dir, _ := cmd.Flags().GetInt32("direction")
+	from, _ := cmd.Flags().GetString("from")
+	status, _ := cmd.Flags().GetString("status")
+	statusInt, ok := types.MapBuyOrderStatusStr2Int[status]
+	if !ok {
+		fmt.Fprintln(os.Stderr, types.ErrInvalidParam)
+		return
+	}
+	if dir != 0 && dir != 1 {
+		fmt.Fprintln(os.Stderr, "direction must be 0 (previous-page) or 1(next-page)")
+		return
+	}
+	var req types.ReqTokenBuyOrder
+	req.TokenSymbol = token
+	req.Count = count
+	req.Direction = dir
+	req.FromKey = from
+	req.Status = statusInt
+	var params jsonrpc.Query4Cli
+	params.Execer = "trade"
+	params.FuncName = "GetTokenBuyOrderByStatus"
+	params.Payload = req
+	var res tradetype.RpcReplyBuyOrders
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
+	ctx.SetResultCb(parseBuyOrders)
+	ctx.Run()
+}
+
+func parseBuyOrders(arg interface{}) (interface{}, error) {
+	res := arg.(*tradetype.RpcReplyBuyOrders)
+	var result ReplyBuyOrdersResult
+	for _, o := range res.BuyOrders {
+		order := &TradeOrderResult{
+			TokenSymbol:    o.TokenSymbol,
+			Owner:          o.Owner,
+			BuyID:          o.BuyID,
+			Status:         o.Status,
+			SellID:         o.SellID,
+			TxHash:         o.TxHash,
+			Height:         o.Height,
+			Key:            o.Key,
+			BlockTime:      o.BlockTime,
+			IsSellOrder:    o.IsSellOrder,
+			MinBoardlot:    o.MinBoardlot,
+			TotalBoardlot:  o.TotalBoardlot,
+			TradedBoardlot: o.TradedBoardlot,
+		}
+		order.AmountPerBoardlot = strconv.FormatFloat(float64(o.AmountPerBoardlot)/float64(types.Coin), 'f', 4, 64)
+		order.PricePerBoardlot = strconv.FormatFloat(float64(o.PricePerBoardlot)/float64(types.Coin), 'f', 4, 64)
+		result.BuyOrders = append(result.BuyOrders, order)
+	}
+	return result, nil
+}
+
+//
+func ShowOnesOrdersStatusCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "status_order",
+		Short: "Show one's orders with status",
+		Run:   showOnesOrdersStatus,
+	}
+	addShowOnesOrdersStatusFlags(cmd)
+	return cmd
+}
+
+func addShowOnesOrdersStatusFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("address", "a", "", "user address")
+	cmd.MarkFlagRequired("address")
+	cmd.Flags().Int32P("count", "c", 0, "order count")
+	cmd.MarkFlagRequired("count")
+	cmd.Flags().Int32P("direction", "d", 1, "direction must be 0 (previous-page) or 1(next-page)")
+	cmd.MarkFlagRequired("direction")
+	cmd.Flags().StringP("from", "f", "", "start from sell id (not required)")
+	cmd.Flags().Int32P("status", "s", 0, "order status (1: on, 2: done, 3: revoke)")
+	cmd.MarkFlagRequired("status")
+}
+
+func showOnesOrdersStatus(cmd *cobra.Command, args []string) {
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	addr, _ := cmd.Flags().GetString("address")
+	count, _ := cmd.Flags().GetInt32("count")
+	dir, _ := cmd.Flags().GetInt32("direction")
+	from, _ := cmd.Flags().GetString("from")
+	status, _ := cmd.Flags().GetInt32("status")
+	if status < 1 || status > 3 {
+		fmt.Fprintln(os.Stderr, types.ErrInputPara)
+		return
+	}
+	var reqAddrtokens types.ReqAddrTokens
+	reqAddrtokens.Addr = addr
+	reqAddrtokens.Count = count
+	reqAddrtokens.Direction = dir
+	reqAddrtokens.FromKey = from
+	reqAddrtokens.Status = status
+	var params jsonrpc.Query4Cli
+	params.Execer = "trade"
+	params.FuncName = "GetOnesOrderWithStatus"
+	params.Payload = reqAddrtokens
+	var res types.ReplyTradeOrders
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
+	ctx.SetResultCb(parseTradeOrders)
+	ctx.Run()
+}
+
+func parseTradeOrders(arg interface{}) (interface{}, error) {
+	res := arg.(*types.ReplyTradeOrders)
+	var result ReplyTradeOrdersResult
+	for _, o := range res.Orders {
+		order := &TradeOrderResult{
+			TokenSymbol:    o.TokenSymbol,
+			Owner:          o.Owner,
+			BuyID:          o.BuyID,
+			Status:         o.Status,
+			SellID:         o.SellID,
+			TxHash:         o.TxHash,
+			Height:         o.Height,
+			Key:            o.Key,
+			BlockTime:      o.BlockTime,
+			IsSellOrder:    o.IsSellOrder,
+			MinBoardlot:    o.MinBoardlot,
+			TotalBoardlot:  o.TotalBoardlot,
+			TradedBoardlot: o.TradedBoardlot,
+		}
+		order.AmountPerBoardlot = strconv.FormatFloat(float64(o.AmountPerBoardlot)/float64(types.Coin), 'f', 4, 64)
+		order.PricePerBoardlot = strconv.FormatFloat(float64(o.PricePerBoardlot)/float64(types.Coin), 'f', 4, 64)
+		result.Orders = append(result.Orders, order)
+	}
+	return result, nil
+}
+
+/************* create trade transactions *************/
 
 // create raw sell token transaction
 func CreateRawTradeSellTxCmd() *cobra.Command {
