@@ -9,7 +9,6 @@ import (
 func (wallet *Wallet) initFuncMap() {
 	wcom.RegisterMsgFunc(types.EventWalletGetAccountList, wallet.onWalletGetAccountList)
 	wcom.RegisterMsgFunc(types.EventWalletAutoMiner, wallet.onWalletAutoMiner)
-	wcom.RegisterMsgFunc(types.EventWalletGetTickets, wallet.onWalletGetTickets)
 	wcom.RegisterMsgFunc(types.EventNewAccount, wallet.onNewAccount)
 	wcom.RegisterMsgFunc(types.EventWalletTransactionList, wallet.onWalletTransactionList)
 	wcom.RegisterMsgFunc(types.EventWalletImportprivkey, wallet.onWalletImportprivkey)
@@ -74,15 +73,6 @@ func (wallet *Wallet) onWalletAutoMiner(msg *queue.Message) (string, int64, inte
 	wallet.setAutoMining(req.Flag)
 	wallet.flushTicket()
 	return topic, retty, &types.Reply{IsOk: true}, nil
-}
-
-func (wallet *Wallet) onWalletGetTickets(msg *queue.Message) (string, int64, interface{}, error) {
-	topic := "rpc"
-	retty := int64(types.EventWalletTickets)
-
-	tickets, privs, err := wallet.GetTickets(1)
-	tks := &types.ReplyWalletTickets{tickets, privs}
-	return topic, retty, tks, err
 }
 
 func (wallet *Wallet) onNewAccount(msg *queue.Message) (string, int64, interface{}, error) {
