@@ -616,7 +616,7 @@ message PrivacyAction4Print {
 }
 
 message ValNode {
-    bytes pubkey = 1;
+    bytes pubKey = 1;
     int64 power = 2;
 }
 

@@ -14,6 +14,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/util"
+	"encoding/binary"
 )
 
 var (
@@ -22,6 +23,8 @@ var (
 )
 
 const tendermint_version = "0.1.0"
+
+var zeroHash [32]byte
 
 type TendermintClient struct {
 	//config
@@ -148,6 +151,7 @@ OuterLoop:
 				tendermintlog.Info("This node has caught up max height")
 				break OuterLoop
 			}
+			time.Sleep(time.Second)
 		}
 	}
 	hint.Stop()
@@ -193,7 +197,25 @@ OuterLoop:
 		}
 	}
 
-	tendermintlog.Info("load state finish", "state", state)
+	tendermintlog.Info("load state finish", "state", state, "validators", state.Validators)
+	valNodes, err := client.QueryValidatorsByHeight(block.Height)
+	if err == nil && valNodes != nil {
+		if len(valNodes.Nodes) > 0 {
+			prevValSet := state.LastValidators.Copy()
+			nextValSet := prevValSet.Copy()
+			err := updateValidators(nextValSet, valNodes.Nodes)
+			if err != nil {
+				tendermintlog.Error("Error changing validator set", "error", err)
+				//return s, fmt.Errorf("Error changing validator set: %v", err)
+			}
+			// change results from this height but only applies to the next height
+			state.LastHeightValidatorsChanged = block.Height + 1
+			nextValSet.IncrementAccum(1)
+			state.Validators = nextValSet
+			tendermintlog.Info("StartConsensus validators updated", "update-valnodes", valNodes)
+		}
+	}
+	tendermintlog.Info("StartConsensus", "real validators", state.Validators)
 	// Log whether this node is a validator or an observer
 	if state.Validators.HasAddress(client.privValidator.GetAddress()) {
 		tendermintlog.Info("This node is a validator")
@@ -370,4 +392,20 @@ func (client *TendermintClient) CheckCommit(height int64) (bool, error) {
 		return false, nil
 	}
 	return false, errors.New("sync block fail")
+}
+
+func (client *TendermintClient) QueryValidatorsByHeight(height int64) (*types.ValNodes, error){
+	if height <= 0 {
+		return nil, types.ErrInvalidParam
+	}
+	var param [10]byte
+	n := binary.PutVarint(param[:], height)
+	msg := client.GetQueueClient().NewMessage("execs", types.EventBlockChainQuery, &types.BlockChainQuery{"valnode", "GetValNodeByHeight", zeroHash[:], param[0:n]})
+	client.GetQueueClient().Send(msg, true)
+	msg, err := client.GetQueueClient().Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+
+	return msg.GetData().(types.Message).(*types.ValNodes), nil
 }
