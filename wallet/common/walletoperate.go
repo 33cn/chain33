@@ -48,10 +48,12 @@ type WalletOperate interface {
 	GetAllPrivKeys() ([]crypto.PrivKey, error)
 	GetWalletAccounts() ([]*types.WalletAccountStore, error)
 	GetPrivKeyByAddr(addr string) (crypto.PrivKey, error)
+	GetConfig() *types.Wallet
 
 	IsWalletLocked() bool
 	IsTicketLocked() bool
 	IsClose() bool
+	IsCaughtUp() bool
 	GetRescanFlag() int32
 	SetRescanFlag(flag int32)
 
