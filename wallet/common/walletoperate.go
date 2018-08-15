@@ -6,6 +6,7 @@ import (
 
 	"github.com/pkg/errors"
 	"gitlab.33.cn/chain33/chain33/client"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -45,11 +46,15 @@ type WalletOperate interface {
 	GetWalletAccounts() ([]*types.WalletAccountStore, error)
 	GetTxDetailByHashs(ReqHashes *types.ReqHashes)
 	GetWaitGroup() *sync.WaitGroup
+	GetAllPrivKeys() ([]crypto.PrivKey, error)
 
 	IsWalletLocked() bool
+	IsClose() bool
 	GetRescanFlag() int32
 	SetRescanFlag(flag int32)
 
 	CheckWalletStatus() (bool, error)
 	Nonce() int64
+
+	SendTransaction(payload types.Message, execer []byte, priv crypto.PrivKey, to string) (hash []byte, err error)
 }

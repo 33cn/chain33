@@ -857,7 +857,6 @@ func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 	//walletlog.Error("ProcWalletAddBlock", "height", block.GetBlock().GetHeight())
 	txlen := len(block.Block.GetTxs())
 	newbatch := wallet.walletStore.NewBatch(true)
-	needflush := false
 	for index := 0; index < txlen; index++ {
 		tx := block.Block.Txs[index]
 
@@ -865,11 +864,7 @@ func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 		// 执行钱包业务逻辑策略
 		if policy, ok := wcom.PolicyContainer[execer]; ok {
 			policy.OnAddBlockTx(block, tx, int32(index), newbatch)
-		}
-
-		// TODO: 后续如果有其他的业务类型，需要重构以下代码，全部挪到策略中
-		//check whether the privacy tx belong to current wallet
-		if types.PrivacyX != string(tx.Execer) {
+		} else { // 默认的执行器类型处理
 			//获取from地址
 			pubkey := block.Block.Txs[index].Signature.GetPubkey()
 			addr := address.PubKeyToAddress(pubkey)
@@ -883,7 +878,6 @@ func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 				addDelType: AddTx,
 				utxos:      nil,
 			}
-
 			//from addr
 			fromaddress := addr.String()
 			param.senderRecver = fromaddress
@@ -901,27 +895,63 @@ func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 				walletlog.Debug("ProcWalletAddBlock", "toaddr", toaddr)
 				continue
 			}
-
-			if "ticket" == string(block.Block.Txs[index].Execer) {
-				tx := block.Block.Txs[index]
-				receipt := block.Receipts[index]
-				if wallet.needFlushTicket(tx, receipt) {
-					needflush = true
-				}
-			}
 		}
+
+		// TODO: 后续如果有其他的业务类型，需要重构以下代码，全部挪到策略中
+		//check whether the privacy tx belong to current wallet
+		//if types.PrivacyX != string(tx.Execer) {
+		//	//获取from地址
+		//	pubkey := block.Block.Txs[index].Signature.GetPubkey()
+		//	addr := address.PubKeyToAddress(pubkey)
+		//	param := &buildStoreWalletTxDetailParam{
+		//		tokenname:  "",
+		//		block:      block,
+		//		tx:         tx,
+		//		index:      index,
+		//		newbatch:   newbatch,
+		//		isprivacy:  false,
+		//		addDelType: AddTx,
+		//		utxos:      nil,
+		//	}
+		//
+		//	//from addr
+		//	fromaddress := addr.String()
+		//	param.senderRecver = fromaddress
+		//	if len(fromaddress) != 0 && wallet.AddrInWallet(fromaddress) {
+		//		param.sendRecvFlag = sendTx
+		//		wallet.buildAndStoreWalletTxDetail(param)
+		//		walletlog.Debug("ProcWalletAddBlock", "fromaddress", fromaddress)
+		//		continue
+		//	}
+		//	//toaddr
+		//	toaddr := tx.GetTo()
+		//	if len(toaddr) != 0 && wallet.AddrInWallet(toaddr) {
+		//		param.sendRecvFlag = recvTx
+		//		wallet.buildAndStoreWalletTxDetail(param)
+		//		walletlog.Debug("ProcWalletAddBlock", "toaddr", toaddr)
+		//		continue
+		//	}
+		//
+		//	if "ticket" == string(block.Block.Txs[index].Execer) {
+		//		tx := block.Block.Txs[index]
+		//		receipt := block.Receipts[index]
+		//		if wallet.needFlushTicket(tx, receipt) {
+		//			needflush = true
+		//		}
+		//	}
+		//}
 	}
 	err := newbatch.Write()
 	if err != nil {
 		walletlog.Error("ProcWalletAddBlock newbatch.Write", "err", err)
 		atomic.CompareAndSwapInt32(&wallet.fatalFailureFlag, 0, 1)
 	}
-	if needflush {
-		//wallet.flushTicket()
-	}
+	//if needflush {
+	//	//wallet.flushTicket()
+	//}
 
 	for _, policy := range wcom.PolicyContainer {
-		policy.OnAddBlockFinish()
+		policy.OnAddBlockFinish(block)
 	}
 }
 
@@ -978,7 +1008,6 @@ func (wallet *Wallet) ProcWalletDelBlock(block *types.BlockDetail) {
 
 	txlen := len(block.Block.GetTxs())
 	newbatch := wallet.walletStore.NewBatch(true)
-	needflush := false
 	for index := txlen - 1; index >= 0; index-- {
 		blockheight := block.Block.Height*maxTxNumPerBlock + int64(index)
 		heightstr := fmt.Sprintf("%018d", blockheight)
@@ -988,16 +1017,7 @@ func (wallet *Wallet) ProcWalletDelBlock(block *types.BlockDetail) {
 		// 执行钱包业务逻辑策略
 		if policy, ok := wcom.PolicyContainer[execer]; ok {
 			policy.OnDeleteBlockTx(block, tx, int32(index), newbatch)
-		}
-
-		if "ticket" == string(tx.Execer) {
-			receipt := block.Receipts[index]
-			if wallet.needFlushTicket(tx, receipt) {
-				needflush = true
-			}
-		}
-
-		if types.PrivacyX != string(tx.Execer) {
+		} else { // 默认的合约处理流程
 			//获取from地址
 			pubkey := tx.Signature.GetPubkey()
 			addr := address.PubKeyToAddress(pubkey)
@@ -1012,14 +1032,36 @@ func (wallet *Wallet) ProcWalletDelBlock(block *types.BlockDetail) {
 				newbatch.Delete(wcom.CalcTxKey(heightstr))
 			}
 		}
+		//if "ticket" == string(tx.Execer) {
+		//	receipt := block.Receipts[index]
+		//	if wallet.needFlushTicket(tx, receipt) {
+		//		needflush = true
+		//	}
+		//}
+		//
+		//if types.PrivacyX != string(tx.Execer) {
+		//	//获取from地址
+		//	pubkey := tx.Signature.GetPubkey()
+		//	addr := address.PubKeyToAddress(pubkey)
+		//	fromaddress := addr.String()
+		//	if len(fromaddress) != 0 && wallet.AddrInWallet(fromaddress) {
+		//		newbatch.Delete(wcom.CalcTxKey(heightstr))
+		//		continue
+		//	}
+		//	//toaddr
+		//	toaddr := tx.GetTo()
+		//	if len(toaddr) != 0 && wallet.AddrInWallet(toaddr) {
+		//		newbatch.Delete(wcom.CalcTxKey(heightstr))
+		//	}
+		//}
 	}
 	newbatch.Write()
-	if needflush {
-		wallet.flushTicket()
-	}
+	//if needflush {
+	//	wallet.flushTicket()
+	//}
 
 	for _, policy := range wcom.PolicyContainer {
-		policy.OnDeleteBlockFinish()
+		policy.OnDeleteBlockFinish(block)
 	}
 }
 

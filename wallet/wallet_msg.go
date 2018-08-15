@@ -27,7 +27,6 @@ func (wallet *Wallet) initFuncMap() {
 	wcom.RegisterMsgFunc(types.EventSaveSeed, wallet.onSaveSeed)
 	wcom.RegisterMsgFunc(types.EventGetWalletStatus, wallet.onGetWalletStatus)
 	wcom.RegisterMsgFunc(types.EventDumpPrivkey, wallet.onDumpPrivKey)
-	wcom.RegisterMsgFunc(types.EventCloseTickets, wallet.onCloseTickets)
 	wcom.RegisterMsgFunc(types.EventSignRawTx, wallet.onSignRawTx)
 	wcom.RegisterMsgFunc(types.EventErrToFront, wallet.onErrToFront)
 	wcom.RegisterMsgFunc(types.EventFatalFailure, wallet.onFatalFailure)
@@ -358,24 +357,6 @@ func (wallet *Wallet) onDumpPrivKey(msg *queue.Message) (string, int64, interfac
 		walletlog.Error("ProcDumpPrivkey", "err", err.Error())
 	} else {
 		reply.Replystr = privkey
-	}
-	return topic, retty, reply, err
-}
-
-func (wallet *Wallet) onCloseTickets(msg *queue.Message) (string, int64, interface{}, error) {
-	topic := "rpc"
-	retty := int64(types.EventReplyHashes)
-
-	reply, err := wallet.forceCloseTicket(wallet.GetHeight() + 1)
-	if err != nil {
-		walletlog.Error("ProcDumpPrivkey", "err", err.Error())
-	} else {
-		go func() {
-			if len(reply.Hashes) > 0 {
-				wallet.waitTxs(reply.Hashes)
-				wallet.flushTicket()
-			}
-		}()
 	}
 	return topic, retty, reply, err
 }
