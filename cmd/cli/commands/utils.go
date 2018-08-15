@@ -205,7 +205,7 @@ func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
 }
 
 func decodePrivInput(input *types.PrivacyInput) *PrivacyInput {
-	var inputResult *PrivacyInput
+	inputResult := &PrivacyInput{}
 	for _, value := range input.Keyinput {
 		amt := float64(value.Amount) / float64(types.Coin)
 		amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
@@ -224,7 +224,7 @@ func decodePrivInput(input *types.PrivacyInput) *PrivacyInput {
 }
 
 func decodePrivOutput(output *types.PrivacyOutput) *PrivacyOutput {
-	var outputResult *PrivacyOutput
+	outputResult := &PrivacyOutput{RpubKeytx: common.ToHex(output.RpubKeytx)}
 	for _, value := range output.Keyoutput {
 		amt := float64(value.Amount) / float64(types.Coin)
 		amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
@@ -234,7 +234,6 @@ func decodePrivOutput(output *types.PrivacyOutput) *PrivacyOutput {
 		}
 		outputResult.Keyoutput = append(outputResult.Keyoutput, kout)
 	}
-	outputResult.RpubKeytx = common.ToHex(output.RpubKeytx)
 	return outputResult
 }
 
