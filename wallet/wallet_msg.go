@@ -8,7 +8,6 @@ import (
 
 func (wallet *Wallet) initFuncMap() {
 	wcom.RegisterMsgFunc(types.EventWalletGetAccountList, wallet.onWalletGetAccountList)
-	wcom.RegisterMsgFunc(types.EventWalletAutoMiner, wallet.onWalletAutoMiner)
 	wcom.RegisterMsgFunc(types.EventNewAccount, wallet.onNewAccount)
 	wcom.RegisterMsgFunc(types.EventWalletTransactionList, wallet.onWalletTransactionList)
 	wcom.RegisterMsgFunc(types.EventWalletImportprivkey, wallet.onWalletImportprivkey)
@@ -61,20 +60,6 @@ func (wallet *Wallet) onWalletGetAccountList(msg *queue.Message) (string, int64,
 	return topic, retty, reply, err
 }
 
-func (wallet *Wallet) onWalletAutoMiner(msg *queue.Message) (string, int64, interface{}, error) {
-	topic := "rpc"
-	retty := int64(types.EventWalletAutoMiner)
-	req, ok := msg.Data.(*types.MinerFlag)
-	if !ok {
-		walletlog.Error("onWalletAutoMiner", "Invalid data type.", ok)
-		return topic, retty, nil, types.ErrInvalidParam
-	}
-	wallet.walletStore.SetAutoMinerFlag(req.Flag)
-	wallet.setAutoMining(req.Flag)
-	wallet.flushTicket()
-	return topic, retty, &types.Reply{IsOk: true}, nil
-}
-
 func (wallet *Wallet) onNewAccount(msg *queue.Message) (string, int64, interface{}, error) {
 	topic := "rpc"
 	retty := int64(types.EventWalletAccount)
@@ -117,8 +102,6 @@ func (wallet *Wallet) onWalletImportprivkey(msg *queue.Message) (string, int64, 
 	if err != nil {
 		walletlog.Error("ProcImportPrivKey", "err", err.Error())
 	}
-	// TODO: 导入成功才需要刷新吧
-	wallet.flushTicket()
 	return topic, retty, reply, err
 }
 
@@ -241,8 +224,6 @@ func (wallet *Wallet) onWalletUnLock(msg *queue.Message) (string, int64, interfa
 		reply.IsOk = false
 		reply.Msg = []byte(err.Error())
 	}
-	// TODO: 这里应该是解锁成功才需要通知挖矿
-	wallet.flushTicket()
 	return topic, retty, reply, nil
 }
 

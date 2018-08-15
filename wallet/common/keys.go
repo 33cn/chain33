@@ -43,10 +43,6 @@ func CalcPasswordHash() []byte {
 	return []byte(keyPasswordHash)
 }
 
-func CalcWalletAutoMiner() []byte {
-	return []byte(keyWalletAutoMiner)
-}
-
 func CalcWalletSeed() []byte {
 	return []byte(keyWalletSeed)
 }

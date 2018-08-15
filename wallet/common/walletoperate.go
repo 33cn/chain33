@@ -34,6 +34,8 @@ func RegisterMsgFunc(msgid int, fn queue.FN_MsgCallback) {
 
 // WalletOperate 钱包对业务插件提供服务的操作接口
 type WalletOperate interface {
+	RegisterMineStatusReporter(reporter MineStatusReport)
+
 	GetAPI() client.QueueProtocolAPI
 	GetMutex() *sync.Mutex
 	GetDBStore() db.DB
@@ -49,6 +51,7 @@ type WalletOperate interface {
 	GetWalletAccounts() ([]*types.WalletAccountStore, error)
 	GetPrivKeyByAddr(addr string) (crypto.PrivKey, error)
 	GetConfig() *types.Wallet
+	GetBalance(addr string, execer string) (*types.Account, error)
 
 	IsWalletLocked() bool
 	IsTicketLocked() bool
@@ -61,4 +64,5 @@ type WalletOperate interface {
 	Nonce() int64
 
 	SendTransaction(payload types.Message, execer []byte, priv crypto.PrivKey, to string) (hash []byte, err error)
+	SendToAddress(priv crypto.PrivKey, addrto string, amount int64, note string, Istoken bool, tokenSymbol string) (*types.ReplyHash, error)
 }
