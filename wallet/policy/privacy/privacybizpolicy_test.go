@@ -72,7 +72,7 @@ func (mock *testDataMock) init() {
 
 func (mock *testDataMock) initMember() {
 	var q = queue.New("channel")
-	cfg := config.InitCfg("../../cmd/chain33/chain33.test.toml")
+	cfg := config.InitCfg("../../../cmd/chain33/chain33.test.toml")
 
 	wallet := wallet.New(cfg.Wallet)
 	wallet.SetQueueClient(q.Client())

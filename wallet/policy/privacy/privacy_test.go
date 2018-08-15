@@ -16,13 +16,13 @@ import (
 type PrivacyMock struct {
 	walletOp  wcom.WalletOperate
 	store     *privacyStore
-	policy    *walletPrivacyBiz
+	policy    *privacyPolicy
 	tokenName string
 	password  string
 }
 
 func (mock *PrivacyMock) Init(walletOp wcom.WalletOperate, password string) {
-	mock.policy = &walletPrivacyBiz{}
+	mock.policy = &privacyPolicy{}
 
 	mock.tokenName = types.BTY
 	mock.walletOp = walletOp
@@ -110,7 +110,7 @@ func (mock *PrivacyMock) getPrivacyKeyPairsOfWallet() ([]addrAndprivacy, error) 
 
 func (mock *PrivacyMock) CreateUTXOs(sender string, pubkeypair string, amount int64, height int64, count int) {
 	privacyInfo, _ := mock.policy.getPrivacyKeyPairs()
-	dbbatch := mock.store.db.NewBatch(true)
+	dbbatch := mock.store.NewBatch(true)
 	for n := 0; n < count; n++ {
 		tx := mock.createPublic2PrivacyTx(&types.ReqCreateTransaction{
 			Tokenname:  mock.tokenName,
