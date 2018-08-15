@@ -91,7 +91,7 @@ func (policy *privacyPolicy) OnClose() {
 func (policy *privacyPolicy) OnWalletLocked() {
 }
 
-func (policy *privacyPolicy) OnWalletUnlocked() {
+func (policy *privacyPolicy) OnWalletUnlocked(WalletUnLock *types.WalletUnLock) {
 }
 
 func (policy *privacyPolicy) SignTransaction(key crypto.PrivKey, req *types.ReqSignRawTx) (needSysSign bool, signtxhex string, err error) {

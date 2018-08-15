@@ -48,11 +48,9 @@ type Wallet struct {
 	api                client.QueueProtocolAPI
 	mtx                sync.Mutex
 	timeout            *time.Timer
-	minertimeout       *time.Timer
 	mineStatusReporter wcom.MineStatusReport
 	isclosed           int32
 	isWalletLocked     int32
-	isTicketLocked     int32
 	lastHeight         int64
 	fatalFailureFlag   int32
 	Password           string
@@ -93,7 +91,6 @@ func New(cfg *types.Wallet) *Wallet {
 	wallet := &Wallet{
 		walletStore:      walletStore,
 		isWalletLocked:   1,
-		isTicketLocked:   1,
 		fatalFailureFlag: 0,
 		wg:               &sync.WaitGroup{},
 		FeeAmount:        walletStore.GetFeeAmount(minFee),
@@ -220,15 +217,6 @@ func (wallet *Wallet) IsWalletLocked() bool {
 	}
 }
 
-//返回挖矿买票锁的状态
-func (wallet *Wallet) IsTicketLocked() bool {
-	if atomic.LoadInt32(&wallet.isTicketLocked) == 0 {
-		return false
-	} else {
-		return true
-	}
-}
-
 func (wallet *Wallet) SetQueueClient(cli queue.Client) {
 	wallet.client = cli
 	wallet.client.Sub("wallet")
@@ -308,7 +296,7 @@ func (wallet *Wallet) IsTransfer(addr string) (bool, error) {
 		return ok, err
 	}
 	//钱包已经锁定，挖矿锁已经解锁,需要判断addr是否是挖矿合约地址
-	if !wallet.IsTicketLocked() {
+	if !wallet.isTicketLocked() {
 		if addr == address.ExecAddress(types.TicketX) {
 			return true, nil
 		}
@@ -319,7 +307,7 @@ func (wallet *Wallet) IsTransfer(addr string) (bool, error) {
 //钱包状态检测函数,解锁状态，seed是否已保存
 func (wallet *Wallet) CheckWalletStatus() (bool, error) {
 	// 钱包锁定，ticket已经解锁，返回只解锁了ticket的错误
-	if wallet.IsWalletLocked() && !wallet.IsTicketLocked() {
+	if wallet.IsWalletLocked() && !wallet.isTicketLocked() {
 		return false, types.ErrOnlyTicketUnLocked
 	} else if wallet.IsWalletLocked() {
 		return false, types.ErrWalletIsLocked
@@ -333,6 +321,14 @@ func (wallet *Wallet) CheckWalletStatus() (bool, error) {
 	return true, nil
 }
 
+func (wallet *Wallet) isTicketLocked() bool {
+	locked := true
+	if wallet.mineStatusReporter != nil {
+		locked = wallet.mineStatusReporter.IsTicketLocked()
+	}
+	return locked
+}
+
 func (wallet *Wallet) GetWalletStatus() *types.WalletStatus {
 	s := &types.WalletStatus{}
 	s.IsWalletLock = wallet.IsWalletLocked()
@@ -340,7 +336,7 @@ func (wallet *Wallet) GetWalletStatus() *types.WalletStatus {
 	if wallet.mineStatusReporter != nil {
 		s.IsAutoMining = wallet.mineStatusReporter.IsAutoMining()
 	}
-	s.IsTicketLock = wallet.IsTicketLocked()
+	s.IsTicketLock = wallet.isTicketLocked()
 
 	walletlog.Debug("GetWalletStatus", "walletstatus", s)
 	return s

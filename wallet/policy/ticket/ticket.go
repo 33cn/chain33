@@ -30,11 +30,13 @@ func New() wcom.WalletBizPolicy {
 }
 
 type ticketPolicy struct {
-	walletOperate wcom.WalletOperate
-	store         *ticketStore
-	needFlush     bool
-	miningTicket  *time.Ticker
-	autoMinerFlag int32
+	walletOperate  wcom.WalletOperate
+	store          *ticketStore
+	needFlush      bool
+	miningTicket   *time.Ticker
+	autoMinerFlag  int32
+	isTicketLocked int32
+	minertimeout   *time.Timer
 }
 
 func (policy *ticketPolicy) initFuncMap(walletOperate wcom.WalletOperate) {
@@ -47,10 +49,15 @@ func (policy *ticketPolicy) IsAutoMining() bool {
 	return policy.isAutoMining()
 }
 
+func (policy *ticketPolicy) IsTicketLocked() bool {
+	return atomic.LoadInt32(&policy.isTicketLocked) != 0
+}
+
 func (policy *ticketPolicy) Init(walletBiz wcom.WalletOperate) {
 	policy.walletOperate = walletBiz
 	policy.store = NewStore(walletBiz.GetDBStore())
 	policy.needFlush = false
+	policy.isTicketLocked = 1
 	policy.autoMinerFlag = policy.store.GetAutoMinerFlag()
 	policy.miningTicket = time.NewTicker(2 * time.Minute)
 
@@ -84,9 +91,29 @@ func (policy *ticketPolicy) SignTransaction(key crypto.PrivKey, req *types.ReqSi
 }
 
 func (policy *ticketPolicy) OnWalletLocked() {
+	// 钱包锁住时，不允许挖矿
+	atomic.CompareAndSwapInt32(&policy.isTicketLocked, 0, 1)
 }
 
-func (policy *ticketPolicy) OnWalletUnlocked() {
+//解锁超时处理，需要区分整个钱包的解锁或者只挖矿的解锁
+func (policy *ticketPolicy) resetTimeout(Timeout int64) {
+	if policy.minertimeout == nil {
+		policy.minertimeout = time.AfterFunc(time.Second*time.Duration(Timeout), func() {
+			//wallet.isTicketLocked = true
+			atomic.CompareAndSwapInt32(&policy.isTicketLocked, 0, 1)
+		})
+	} else {
+		policy.minertimeout.Reset(time.Second * time.Duration(Timeout))
+	}
+}
+
+func (policy *ticketPolicy) OnWalletUnlocked(param *types.WalletUnLock) {
+	if param.WalletOrTicket {
+		atomic.CompareAndSwapInt32(&policy.isTicketLocked, 1, 0)
+		if param.Timeout != 0 {
+			policy.resetTimeout(param.Timeout)
+		}
+	}
 	// 钱包解锁时，需要刷新，通知挖矿
 	policy.flushTicket()
 }
