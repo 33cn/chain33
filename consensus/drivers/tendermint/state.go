@@ -108,9 +108,9 @@ func (s State) GetValidators() (last *ttypes.ValidatorSet, current *ttypes.Valid
 // Create a block from the latest state
 
 // MakeBlock builds a block with the given txs and commit from the current state.
-func (s State) MakeBlock(height int64, Txs []*types.Transaction, commit *types.TendermintCommit) *ttypes.TendermintBlock {
+func (s State) MakeBlock(height int64, round int64, Txs []*types.Transaction, commit *types.TendermintCommit) *ttypes.TendermintBlock {
 	// build base block
-	block := ttypes.MakeBlock(height, Txs, commit)
+	block := ttypes.MakeBlock(height, round, Txs, commit)
 
 	// fill header with state data
 	block.Header.ChainID = s.ChainID
