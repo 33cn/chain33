@@ -58,7 +58,6 @@ type Wallet struct {
 	Password         string
 	FeeAmount        int64
 	EncryptFlag      int64
-	miningTicket     *time.Ticker
 	wg               *sync.WaitGroup
 	walletStore      *walletStore
 	random           *rand.Rand
@@ -116,6 +115,10 @@ func (wallet *Wallet) initBizPolicy() {
 	for _, policy := range wcom.PolicyContainer {
 		policy.Init(wallet)
 	}
+}
+
+func (wallet *Wallet) GetConfig() *types.Wallet {
+	return wallet.cfg
 }
 
 func (wallet *Wallet) GetAPI() client.QueueProtocolAPI {
@@ -193,7 +196,9 @@ func (wallet *Wallet) Close() {
 	//等待所有的子线程退出
 	//set close flag to isclosed == 1
 	atomic.StoreInt32(&wallet.isclosed, 1)
-	wallet.miningTicket.Stop()
+	for _, policy := range wcom.PolicyContainer {
+		policy.OnClose()
+	}
 	close(wallet.done)
 	wallet.client.Close()
 	wallet.wg.Wait()

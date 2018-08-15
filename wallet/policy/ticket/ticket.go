@@ -30,6 +30,7 @@ type ticketPolicy struct {
 	walletOperate wcom.WalletOperate
 	store         *ticketStore
 	needFlush     bool
+	miningTicket     *time.Ticker
 }
 
 func (policy *ticketPolicy) initFuncMap(walletOperate wcom.WalletOperate) {
@@ -42,6 +43,13 @@ func (policy *ticketPolicy) Init(walletBiz wcom.WalletOperate) {
 	policy.store = NewStore(walletBiz.GetDBStore())
 	policy.needFlush = false
 	policy.initFuncMap(walletBiz)
+	// 启动自动挖矿
+	walletBiz.GetWaitGroup().Add(1)
+	go policy.autoMining()
+}
+
+func (policy *ticketPolicy) OnClose() {
+	policy.miningTicket.Stop()
 }
 
 func (policy *ticketPolicy) OnAddBlockTx(block *types.BlockDetail, tx *types.Transaction, index int32, dbbatch db.Batch) {
@@ -287,4 +295,86 @@ func (policy *ticketPolicy) onWalletGetTickets(msg *queue.Message) (string, int6
 	tickets, privs, err := policy.getTicketsByStatus(1)
 	tks := &types.ReplyWalletTickets{tickets, privs}
 	return topic, retty, tks, err
+}
+
+//检查周期 --> 10分
+//开启挖矿：
+//1. 自动把成熟的ticket关闭
+//2. 查找超过1万余额的账户，自动购买ticket
+//3. 查找mineraddress 和他对应的 账户的余额（不在1中），余额超过1万的自动购买ticket 挖矿
+//
+//停止挖矿：
+//1. 自动把成熟的ticket关闭
+//2. 查找ticket 可取的余额
+//3. 取出ticket 里面的钱
+func (policy *ticketPolicy) autoMining() {
+	defer policy.walletOperate.GetWaitGroup().Done()
+	cfg := policy.walletOperate.GetConfig()
+	for {
+		select {
+		case <-policy.miningTicket.C:
+			if cfg.GetMinerdisable() {
+				break
+			}
+			if !(policy.walletOperate.IsCaughtUp() || cfg.GetForceMining()) {
+				bizlog.Error("wallet IsCaughtUp false")
+				break
+			}
+			//判断高度是否增长
+			height := policy.walletOperate.GetBlockHeight()
+			if height <= wallet.lastHeight {
+				walletlog.Error("wallet Height not inc")
+				break
+			}
+			wallet.lastHeight = height
+			walletlog.Info("BEG miningTicket")
+			if wallet.isAutoMining() {
+				n1, err := wallet.closeTicket(wallet.lastHeight + 1)
+				if err != nil {
+					walletlog.Error("closeTicket", "err", err)
+				}
+				err = wallet.processFees()
+				if err != nil {
+					walletlog.Error("processFees", "err", err)
+				}
+				hashes1, n2, err := wallet.buyTicket(wallet.lastHeight + 1)
+				if err != nil {
+					walletlog.Error("buyTicket", "err", err)
+				}
+				hashes2, n3, err := wallet.buyMinerAddrTicket(wallet.lastHeight + 1)
+				if err != nil {
+					walletlog.Error("buyMinerAddrTicket", "err", err)
+				}
+				hashes := append(hashes1, hashes2...)
+				if len(hashes) > 0 {
+					wallet.waitTxs(hashes)
+				}
+				if n1+n2+n3 > 0 {
+					wallet.flushTicket()
+				}
+			} else {
+				n1, err := wallet.closeTicket(wallet.lastHeight + 1)
+				if err != nil {
+					walletlog.Error("closeTicket", "err", err)
+				}
+				err = wallet.processFees()
+				if err != nil {
+					walletlog.Error("processFees", "err", err)
+				}
+				hashes, err := wallet.withdrawFromTicket()
+				if err != nil {
+					walletlog.Error("withdrawFromTicket", "err", err)
+				}
+				if len(hashes) > 0 {
+					wallet.waitTxs(hashes)
+				}
+				if n1 > 0 {
+					wallet.flushTicket()
+				}
+			}
+			walletlog.Info("END miningTicket")
+		case <-wallet.done:
+			return
+		}
+	}
 }

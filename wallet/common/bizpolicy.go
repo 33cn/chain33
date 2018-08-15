@@ -35,4 +35,5 @@ type WalletBizPolicy interface {
 	OnImportPrivateKey(acc *types.Account)
 	OnAddBlockFinish(block *types.BlockDetail)
 	OnDeleteBlockFinish(block *types.BlockDetail)
+	OnClose()
 }
