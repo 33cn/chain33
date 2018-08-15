@@ -41,48 +41,18 @@ func (c *Blackwhite) Exec(tx *types.Transaction, index int) (*types.Receipt, err
 	if err != nil {
 		return nil, err
 	}
-
+	action := newAction(c, tx)
 	if payload.Ty == types.BlackwhiteActionCreate && payload.GetCreate() != nil {
-		create := payload.GetCreate()
-		action := newAction(c, tx)
-		return action.Create(create)
+		return action.Create(payload.GetCreate())
 	} else if payload.Ty == types.BlackwhiteActionPlay && payload.GetPlay() != nil {
-		action := newAction(c, tx)
 		return action.Play(payload.GetPlay())
 	} else if payload.Ty == types.BlackwhiteActionShow && payload.GetShow() != nil {
-		action := newAction(c, tx)
 		return action.Show(payload.GetShow())
 	} else if payload.Ty == types.BlackwhiteActionTimeoutDone && payload.GetTimeoutDone() != nil {
-		action := newAction(c, tx)
 		return action.TimeoutDone(payload.GetTimeoutDone())
 	}
-
 	return nil, types.ErrActionNotSupport
 }
-
-//func (c *Blackwhite) updateInfo(receipt *types.ReceiptBlackwhite, isDel bool) []*types.KeyValue {
-//	gameId := receipt.Round.GameID
-//	addr := receipt.Round.CreateAddr
-//
-//	key := calcRoundKey(gameId)
-//	value := types.Encode(receipt)
-//
-//	key1 := calcRoundKey4StatusAndAddr(addr, gameId)
-//	value1 := key
-//
-//	var kv []*types.KeyValue
-//	if isDel { //回退删除
-//		clog.Info("****************test delete key", "gameId is ", gameId)
-//		kv = append(kv, &types.KeyValue{key, nil})
-//		kv = append(kv, &types.KeyValue{key1, nil})
-//	} else {
-//		clog.Info("****************test add key", "gameId is ", gameId)
-//		kv = append(kv, &types.KeyValue{key, value})
-//		kv = append(kv, &types.KeyValue{key1, value1})
-//	}
-//
-//	return kv
-//}
 
 func (c *Blackwhite) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	set, err := c.DriverBase.ExecLocal(tx, receipt, index)
@@ -105,19 +75,31 @@ func (c *Blackwhite) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData
 		case types.TyLogBlackwhiteCreate,
 			types.TyLogBlackwhitePlay,
 			types.TyLogBlackwhiteShow,
-			types.TyLogBlackwhiteTimeoutDone,
+			types.TyLogBlackwhiteTimeout,
 			types.TyLogBlackwhiteDone:
-
-			var receipt types.ReceiptBlackwhiteStatus
-			err := types.Decode(log.Log, &receipt)
-			if err != nil {
-				panic(err) //数据错误了，已经被修改了
+				{
+					var receipt types.ReceiptBlackwhiteStatus
+					err := types.Decode(log.Log, &receipt)
+					if err != nil {
+						panic(err) //数据错误了，已经被修改了
+					}
+					kv := c.saveGame(&receipt)
+					set.KV = append(set.KV, kv...)
+					break
+				}
+		case types.TyLogBlackwhiteLoopInfo:
+			{
+				var res types.ReplyLoopResults
+				err := types.Decode(log.Log, &res)
+				if err != nil {
+					panic(err) //数据错误了，已经被修改了
+				}
+				kv := c.saveLoopResult(&res)
+				set.KV = append(set.KV, kv...)
+				break
 			}
-			kv := c.saveGame(&receipt)
-			set.KV = append(set.KV, kv...)
-
 		default:
-
+			break
 		}
 	}
 	return set, nil
@@ -153,7 +135,7 @@ func (c *Blackwhite) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptD
 			}
 		case types.TyLogBlackwhitePlay:
 		case types.TyLogBlackwhiteShow:
-		case types.TyLogBlackwhiteTimeoutDone:
+		case types.TyLogBlackwhiteTimeout:
 		case types.TyLogBlackwhiteDone:
 			{
 				var receipt types.ReceiptBlackwhiteStatus
@@ -161,7 +143,7 @@ func (c *Blackwhite) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptD
 				if err != nil {
 					panic(err) //数据错误了，已经被修改了
 				}
-				//这三种Action才有上个prevStatus,回滚即可
+				//这几种Action才有上个prevStatus,回滚即可
 				prevLog := &types.ReceiptBlackwhiteStatus{
 					GameID: receipt.GetGameID(),
 					Status: receipt.GetPrevStatus(),
@@ -175,8 +157,19 @@ func (c *Blackwhite) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptD
 				set.KV = append(set.KV, kv...)
 				break
 			}
+		case types.TyLogBlackwhiteLoopInfo:
+			{
+				var res types.ReplyLoopResults
+				err := types.Decode(log.Log, &res)
+				if err != nil {
+					panic(err) //数据错误了，已经被修改了
+				}
+				kv := c.delLoopResult(&res)
+				set.KV = append(set.KV, kv...)
+				break
+			}
 		default:
-
+			break
 		}
 	}
 	return set, nil
@@ -195,6 +188,22 @@ func (c *Blackwhite) delGame(gamelog *types.ReceiptBlackwhiteStatus) (kvs []*typ
 	return kvs
 }
 
+func (c *Blackwhite) saveLoopResult(res *types.ReplyLoopResults) (kvs []*types.KeyValue) {
+	kv := &types.KeyValue{}
+	kv.Key = calcRoundKey4LoopResult(res.GetGameID())
+	kv.Value = types.Encode(res)
+	kvs = append(kvs, kv)
+	return kvs
+}
+
+func (c *Blackwhite) delLoopResult(res *types.ReplyLoopResults) (kvs []*types.KeyValue) {
+	kv := &types.KeyValue{}
+	kv.Key = calcRoundKey4LoopResult(res.GetGameID())
+	kv.Value = nil
+	kvs = append(kvs, kv)
+	return kvs
+}
+
 
 func (c *Blackwhite) Query(funcName string, params []byte) (types.Message, error) {
 	if funcName == bw.GetBlackwhiteRoundInfo {
@@ -205,12 +214,19 @@ func (c *Blackwhite) Query(funcName string, params []byte) (types.Message, error
 		}
 		return c.GetBlackwhiteRoundInfo(&in)
 	}else if funcName == bw.GetBlackwhiteByStatusAndAddr {
-		var q types.ReqBlackwhiteRoundList
-		err := types.Decode(params, &q)
+		var in types.ReqBlackwhiteRoundList
+		err := types.Decode(params, &in)
 		if err != nil {
 			return nil, err
 		}
-		return c.GetBwRoundListInfo(&q)
+		return c.GetBwRoundListInfo(&in)
+	}else if funcName == bw.GetBlackwhiteloopResult {
+		var in types.ReqLoopResult
+		err := types.Decode(params, &in)
+		if err != nil {
+			return nil, err
+		}
+		return c.GetBwRoundLoopResult(&in)
 	}
 	return nil, types.ErrActionNotSupport
 }
@@ -238,9 +254,8 @@ func (c *Blackwhite) GetBwRoundListInfo(req *types.ReqBlackwhiteRoundList) (type
 		return nil, err
 	}
 	if len(values) == 0 {
-		return &types.ReplyGameList{}, nil
+		return nil, types.ErrNotFound
 	}
-
 	storeDb := c.GetStateDB()
 	var rep types.ReplyBlackwhiteRoundList
 	for _, value := range values {
@@ -248,7 +263,6 @@ func (c *Blackwhite) GetBwRoundListInfo(req *types.ReqBlackwhiteRoundList) (type
 		if nil != err {
 			return nil, err
 		}
-
 		var round types.BlackwhiteRound
 		err = types.Decode(v, &round)
 		if err != nil {
@@ -257,6 +271,39 @@ func (c *Blackwhite) GetBwRoundListInfo(req *types.ReqBlackwhiteRoundList) (type
 		rep.Round = append(rep.Round, &round)
 	}
 	return &rep, nil
+}
+
+func (c *Blackwhite) GetBwRoundLoopResult(req *types.ReqLoopResult) (types.Message, error) {
+	localDb := c.GetLocalDB()
+	values, err := localDb.Get(calcRoundKey4LoopResult(req.GameID))
+	if err != nil {
+		return nil, err
+	}
+	if len(values) == 0 {
+		return nil, types.ErrNotFound
+	}
+
+	var result types.ReplyLoopResults
+	err = types.Decode(values, &result)
+	if err != nil {
+		return nil, err
+	}
+
+	if req.LoopSeq > 0  {//取出具体一轮
+		if len(result.Results) < int(req.LoopSeq) {
+			return nil, types.ErrNoLoopSeq
+		}
+		res := &types.ReplyLoopResults {
+			GameID: result.GameID,
+		}
+		index := int(req.LoopSeq)
+		perRes := &types.PerLoopResult {}
+		perRes.Winers = append(perRes.Winers, res.Results[index - 1].Winers...)
+		perRes.Losers = append(perRes.Losers, res.Results[index - 1].Losers...)
+		res.Results   = append(res.Results, perRes)
+		return res, nil
+	}
+	return &result, nil //将所有轮数取出
 }
 
 func addGame(status int32, addr, gameId string) *types.KeyValue {

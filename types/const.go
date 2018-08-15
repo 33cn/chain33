@@ -219,8 +219,9 @@ const (
 	TyLogBlackwhiteCreate      = 700
 	TyLogBlackwhitePlay        = 701
 	TyLogBlackwhiteShow        = 702
-	TyLogBlackwhiteTimeoutDone = 703
+	TyLogBlackwhiteTimeout     = 703
 	TyLogBlackwhiteDone        = 704
+	TyLogBlackwhiteLoopInfo    = 705
 )
 
 //exec type

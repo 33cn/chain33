@@ -6,7 +6,7 @@ message AddressResult {
     string addr = 1;
     int64  amount = 2;
     repeated bytes hashValues = 3;
-    repeated bool isBlack = 4;
+    //repeated bool isBlack = 4;
     string showSecret = 5;
 }
 
@@ -14,7 +14,7 @@ message AddressResult {
 message BlackwhiteRound {
     // txhash
     string gameID = 1;
-    // create -> play -> show -> done(timeout done)
+    // create -> play(timeout) -> show -> done
     int32 status = 2;
     // 游戏押金可大于
     int64 playAmount =3;
@@ -46,10 +46,9 @@ message BlackwhiteRound {
 message BlackwhiteAction {
     oneof value {
         BlackwhiteCreate create = 1;
-        BlackwhiteCancel cancel = 2;
-        BlackwhitePlay play = 3;
-        BlackwhiteShow show = 4;
-        BlackwhiteTimeoutDone timeoutDone = 5;
+        BlackwhitePlay play = 2;
+        BlackwhiteShow show = 3;
+        BlackwhiteTimeoutDone timeoutDone = 4;
     }
     int32 ty = 6;
 }
@@ -61,14 +60,10 @@ message BlackwhiteCreate {
     string gameName = 4;
 }
 
-message BlackwhiteCancel {
-    string gameID = 1;
-}
-
 message BlackwhitePlay {
     string gameID = 1;
     int64 amount = 2;
-    repeated bool isBlack = 3;
+    repeated bytes hashValues = 3;
 }
 
 message BlackwhiteShow {
@@ -110,4 +105,19 @@ message ReqBlackwhiteRoundList {
 
 message ReplyBlackwhiteRoundList {
     repeated BlackwhiteRound round = 1;
+}
+
+message ReqLoopResult {
+    string gameID = 1;
+    int32 loopSeq = 2;
+}
+
+message perLoopResult {
+    repeated string winers = 1;
+    repeated string losers = 2;
+}
+
+message ReplyLoopResults {
+    string gameID = 1;
+    repeated perLoopResult results = 2;
 }

@@ -4,6 +4,7 @@ import (
 	"github.com/spf13/cobra"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/common"
 	bw "gitlab.33.cn/chain33/chain33/types/executor/blackwhite"
 	"strings"
 	"time"
@@ -21,7 +22,7 @@ func BlackwhiteCmd() *cobra.Command {
 		BlackwhitePlayRawTxCmd(),
 		BlackwhiteShowRawTxCmd(),
 		BlackwhiteTimeoutDoneTxCmd(),
-		ShowBlackwhiteRoundCmd(),
+		ShowBlackwhiteInfoCmd(),
 	)
 
 	return cmd
@@ -92,8 +93,11 @@ func addBlackwhitePlayFlags(cmd *cobra.Command) {
 	cmd.Flags().Uint64P("amount", "m", 0, "frozen amount")
 	cmd.MarkFlagRequired("amount")
 
-	cmd.Flags().StringP("isBlackStr", "i", "", "[0-1-1-1-1-1-0-0-1-1] (0:black,1:white,once round need 10 time)")
+	cmd.Flags().StringP("isBlackStr", "i", "", "[0-1-1-1-1-1-0-0-1-1] (1:black,0:white,once round need 10 time)")
 	cmd.MarkFlagRequired("isBlackStr")
+
+	cmd.Flags().StringP("secret", "s", "", "secret key")
+	cmd.MarkFlagRequired("secret")
 
 }
 
@@ -102,23 +106,25 @@ func blackwhitePlay(cmd *cobra.Command, args []string) {
 	gameID, _ := cmd.Flags().GetString("gameID")
 	amount, _ := cmd.Flags().GetUint64("amount")
 	isBlackStr, _ := cmd.Flags().GetString("isBlackStr")
+	secret, _ := cmd.Flags().GetString("secret")
 
 	blacks := strings.Split(isBlackStr, "-")
-	var isBlack []bool
+
+	var hashValues [][]byte
 	for _, black := range blacks {
-		if black == "0" {
-			isBlack = append(isBlack, false)
+		if black == "1" {
+			hashValues =append(hashValues, common.Sha256([]byte(secret+black)))
 		} else {
-			isBlack = append(isBlack, true)
+			white := "0"
+			hashValues =append(hashValues, common.Sha256([]byte(secret+white)))
 		}
 	}
 
 	amountInt64 := int64(amount)
-
 	params := &types.BlackwhitePlay{
 		GameID:  gameID,
 		Amount:  amountInt64 * types.Coin,
-		IsBlack: isBlack,
+		HashValues: hashValues,
 	}
 	var res string
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.BlackwhitePlayTx", params, &res)
@@ -138,14 +144,20 @@ func BlackwhiteShowRawTxCmd() *cobra.Command {
 func addBlackwhiteShowFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("gameID", "g", "", "game ID")
 	cmd.MarkFlagRequired("gameID")
+
+	cmd.Flags().StringP("secret", "s", "", "secret key")
+	cmd.MarkFlagRequired("secret")
+
 }
 
 func blackwhiteShow(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	gameID, _ := cmd.Flags().GetString("gameID")
+	Secret, _ := cmd.Flags().GetString("Secret")
 
-	params := &types.BlackwhiteCancel{
+	params := &types.BlackwhiteShow{
 		GameID: gameID,
+		Secret: Secret,
 	}
 	var res string
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.BlackwhiteShowTx", params, &res)
@@ -171,7 +183,7 @@ func blackwhiteTimeoutDone(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	gameID, _ := cmd.Flags().GetString("gameID")
 
-	params := &types.BlackwhiteCancel{
+	params := &types.BlackwhiteTimeoutDone{
 		GameID: gameID,
 	}
 	var res string
@@ -179,7 +191,7 @@ func blackwhiteTimeoutDone(cmd *cobra.Command, args []string) {
 	ctx.RunWithoutMarshal()
 }
 
-func ShowBlackwhiteRoundCmd() *cobra.Command {
+func ShowBlackwhiteInfoCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "showInfo",
 		Short: "show black white round info",
