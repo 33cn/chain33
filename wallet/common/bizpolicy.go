@@ -34,7 +34,7 @@ type WalletBizPolicy interface {
 	// OnImportPrivateKey 当用户导入私钥时，将调用本函数
 	OnImportPrivateKey(acc *types.Account)
 	OnWalletLocked()
-	OnWalletUnlocked()
+	OnWalletUnlocked(WalletUnLock *types.WalletUnLock)
 	OnAddBlockFinish(block *types.BlockDetail)
 	OnDeleteBlockFinish(block *types.BlockDetail)
 	OnClose()

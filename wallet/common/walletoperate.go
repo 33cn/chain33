@@ -54,7 +54,6 @@ type WalletOperate interface {
 	GetBalance(addr string, execer string) (*types.Account, error)
 
 	IsWalletLocked() bool
-	IsTicketLocked() bool
 	IsClose() bool
 	IsCaughtUp() bool
 	GetRescanFlag() int32

@@ -776,7 +776,6 @@ func (wallet *Wallet) ProcWalletLock() error {
 	}
 
 	atomic.CompareAndSwapInt32(&wallet.isWalletLocked, 0, 1)
-	atomic.CompareAndSwapInt32(&wallet.isTicketLocked, 0, 1)
 	for _, policy := range wcom.PolicyContainer {
 		policy.OnWalletLocked()
 	}
@@ -810,47 +809,30 @@ func (wallet *Wallet) ProcWalletUnLock(WalletUnLock *types.WalletUnLock) error {
 	//本钱包没有设置密码加密过,只需要解锁不需要记录解锁密码
 	wallet.Password = WalletUnLock.Passwd
 
-	//walletlog.Error("ProcWalletUnLock !", "WalletOrTicket", WalletUnLock.WalletOrTicket)
-
 	//只解锁挖矿转账
-	if WalletUnLock.WalletOrTicket {
+	if !WalletUnLock.WalletOrTicket {
 		//wallet.isTicketLocked = false
-		atomic.CompareAndSwapInt32(&wallet.isTicketLocked, 1, 0)
-	} else {
-		//wallet.isWalletLocked = false
 		atomic.CompareAndSwapInt32(&wallet.isWalletLocked, 1, 0)
-	}
-	if WalletUnLock.Timeout != 0 {
-		wallet.resetTimeout(WalletUnLock.WalletOrTicket, WalletUnLock.Timeout)
+		if WalletUnLock.Timeout != 0 {
+			wallet.resetTimeout(WalletUnLock.Timeout)
+		}
 	}
 	for _, policy := range wcom.PolicyContainer {
-		policy.OnWalletUnlocked()
+		policy.OnWalletUnlocked(WalletUnLock)
 	}
 	return nil
 
 }
 
 //解锁超时处理，需要区分整个钱包的解锁或者只挖矿的解锁
-func (wallet *Wallet) resetTimeout(IsTicket bool, Timeout int64) {
-	//只挖矿的解锁超时
-	if IsTicket {
-		if wallet.minertimeout == nil {
-			wallet.minertimeout = time.AfterFunc(time.Second*time.Duration(Timeout), func() {
-				//wallet.isTicketLocked = true
-				atomic.CompareAndSwapInt32(&wallet.isTicketLocked, 0, 1)
-			})
-		} else {
-			wallet.minertimeout.Reset(time.Second * time.Duration(Timeout))
-		}
-	} else { //整个钱包的解锁超时
-		if wallet.timeout == nil {
-			wallet.timeout = time.AfterFunc(time.Second*time.Duration(Timeout), func() {
-				//wallet.isWalletLocked = true
-				atomic.CompareAndSwapInt32(&wallet.isWalletLocked, 0, 1)
-			})
-		} else {
-			wallet.timeout.Reset(time.Second * time.Duration(Timeout))
-		}
+func (wallet *Wallet) resetTimeout(Timeout int64) {
+	if wallet.timeout == nil {
+		wallet.timeout = time.AfterFunc(time.Second*time.Duration(Timeout), func() {
+			//wallet.isWalletLocked = true
+			atomic.CompareAndSwapInt32(&wallet.isWalletLocked, 0, 1)
+		})
+	} else {
+		wallet.timeout.Reset(time.Second * time.Duration(Timeout))
 	}
 }
 
