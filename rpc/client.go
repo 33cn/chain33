@@ -645,7 +645,7 @@ func (c *channelClient) BlackwhitePlayTx(parm *types.BlackwhitePlay) ([]byte, er
 	head := &types.BlackwhitePlay{
 		GameID:  parm.GameID,
 		Amount:  parm.Amount,
-		IsBlack: parm.IsBlack,
+		HashValues: parm.HashValues,
 	}
 
 	val := &types.BlackwhiteAction{

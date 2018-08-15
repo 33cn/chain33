@@ -7,13 +7,13 @@ import (
 )
 
 var (
-	roundPrefix         string
-	guessingTimesPrefix string
+	roundPrefix      string
+	loopResultPrefix string
 )
 
 func setReciptPrefix() {
 	roundPrefix = "mavl-" + types.ExecName("blackwhite") + "-"
-	guessingTimesPrefix = types.ExecName("blackwhite") + "-times-"
+	loopResultPrefix = types.ExecName("blackwhite") + "-loop-"
 }
 
 func calcRoundKey(ID string) []byte {
@@ -25,7 +25,11 @@ func calcRoundKey4StatusAddr(status int32, addr, ID string) []byte {
 }
 
 func calcRoundKey4StatusAddrPrefix(status int32, addr string) []byte {
-	return []byte(fmt.Sprintf(roundPrefix+"%d-","%s-"+"%s", status, addr))
+	return []byte(fmt.Sprintf(roundPrefix+"%d-","%s-", status, addr))
+}
+
+func calcRoundKey4LoopResult(ID string) []byte {
+	return []byte(fmt.Sprintf(loopResultPrefix+"%s", ID))
 }
 
 func newRound(create *types.BlackwhiteCreate, creator string) *types.BlackwhiteRound {
@@ -40,7 +44,3 @@ func newRound(create *types.BlackwhiteCreate, creator string) *types.BlackwhiteR
 	t.GameName = create.GameName
 	return t
 }
-
-//func (o *order) save(db dbm.KV, key, value []byte) {
-//	db.Set([]byte(key), value)
-//}

@@ -39,7 +39,6 @@ It has these top-level messages:
 	BlackwhiteRound
 	BlackwhiteAction
 	BlackwhiteCreate
-	BlackwhiteCancel
 	BlackwhitePlay
 	BlackwhiteShow
 	BlackwhiteTimeoutDone
@@ -49,6 +48,9 @@ It has these top-level messages:
 	ReplyBlackwhiteRoundInfo
 	ReqBlackwhiteRoundList
 	ReplyBlackwhiteRoundList
+	ReqLoopResult
+	PerLoopResult
+	ReplyLoopResults
 	Header
 	Block
 	Blocks

@@ -99,10 +99,10 @@ var (
 	// err for blackwhite game
 	ErrOnceRoundRepeatPlay = errors.New("ErrOnceRoundRepeatPlay")
 	ErrGameOver            = errors.New("ErrGameOver")
-	ErrNoCancel            = errors.New("ErrNoCancel")
 	ErrNoTimeoutDone       = errors.New("ErrNoTimeoutDone")
 	ErrNoShowNonce         = errors.New("ErrNoShowNonce")
 	ErrNoExistAddr         = errors.New("ErrNoExistAddr")
+	ErrNoLoopSeq           = errors.New("ErrBlackwhiteFinalloopLessThanSeq")
 
 	ErrStartBigThanEnd            = errors.New("ErrStartBigThanEnd")
 	ErrToAddrNotSameToExecAddr    = errors.New("ErrToAddrNotSameToExecAddr")
