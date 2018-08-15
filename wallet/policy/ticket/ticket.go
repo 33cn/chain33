@@ -47,6 +47,17 @@ func (policy *ticketPolicy) initFuncMap(walletOperate wcom.WalletOperate) {
 	wcom.RegisterMsgFunc(types.EventWalletAutoMiner, policy.onWalletAutoMiner)
 }
 
+func (policy *ticketPolicy) initMingTicket() {
+	policy.mtx.Lock()
+	defer policy.mtx.Unlock()
+	policy.miningTicket = time.NewTicker(2 * time.Minute)
+}
+func (policy *ticketPolicy) getMingTicket() *time.Ticker {
+	policy.mtx.Lock()
+	defer policy.mtx.Unlock()
+	return policy.miningTicket
+}
+
 func (policy *ticketPolicy) setWalletOperate(walletBiz wcom.WalletOperate) {
 	policy.mtx.Lock()
 	defer policy.mtx.Unlock()
@@ -80,7 +91,7 @@ func (policy *ticketPolicy) Init(walletBiz wcom.WalletOperate) {
 	policy.needFlush = false
 	policy.isTicketLocked = 1
 	policy.autoMinerFlag = policy.store.GetAutoMinerFlag()
-	policy.miningTicket = time.NewTicker(2 * time.Minute)
+	policy.initMingTicket()
 
 	walletBiz.RegisterMineStatusReporter(policy)
 	policy.initFuncMap(walletBiz)
@@ -92,7 +103,7 @@ func (policy *ticketPolicy) Init(walletBiz wcom.WalletOperate) {
 }
 
 func (policy *ticketPolicy) OnClose() {
-	policy.miningTicket.Stop()
+	policy.getMingTicket().Stop()
 }
 
 func (policy *ticketPolicy) OnAddBlockTx(block *types.BlockDetail, tx *types.Transaction, index int32, dbbatch db.Batch) {
@@ -683,9 +694,10 @@ func (policy *ticketPolicy) autoMining() {
 	defer operater.GetWaitGroup().Done()
 	cfg := operater.GetConfig()
 	lastHeight := int64(0)
+	miningTicket := policy.getMingTicket()
 	for {
 		select {
-		case <-policy.miningTicket.C:
+		case <-miningTicket.C:
 			if cfg.GetMinerdisable() {
 				break
 			}
