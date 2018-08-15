@@ -84,6 +84,10 @@ func (policy *privacyPolicy) OnDeleteBlockFinish(block *types.BlockDetail) {
 
 }
 
+func (policy *privacyPolicy) OnClose() {
+
+}
+
 func (policy *privacyPolicy) SignTransaction(key crypto.PrivKey, req *types.ReqSignRawTx) (needSysSign bool, signtxhex string, err error) {
 	needSysSign = false
 	bytes, err := common.FromHex(req.GetTxHex())
