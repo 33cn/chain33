@@ -1173,6 +1173,7 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 		"height", block.Header.Height, "hash", block.Hash(), "root", block.Header.AppHash)
 
 	stateCopy := cs.state.Copy()
+	tendermintlog.Info("finalizeCommit validators of statecopy", "validators", stateCopy.Validators)
 	// NOTE: the block.AppHash wont reflect these txs until the next block
 	var err error
 	stateCopy, err = cs.blockExec.ApplyBlock(stateCopy, ttypes.BlockID{BlockID:types.BlockID{Hash:block.Hash()}}, block)
@@ -1233,7 +1234,26 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 	}
 
 	//fail.Fail() // XXX
+	valNodes, err := cs.client.QueryValidatorsByHeight(block.Header.Height)
+	if err == nil && valNodes != nil {
+		if len(valNodes.Nodes) > 0 {
+			prevValSet := stateCopy.LastValidators.Copy()
+			nextValSet := prevValSet.Copy()
+			err := updateValidators(nextValSet, valNodes.Nodes)
+			if err != nil {
+				tendermintlog.Error("Error changing validator set", "error", err)
+				//return s, fmt.Errorf("Error changing validator set: %v", err)
+			}
+			// change results from this height but only applies to the next height
+			stateCopy.LastHeightValidatorsChanged = block.Header.Height + 1
+			nextValSet.IncrementAccum(1)
+			stateCopy.Validators = nextValSet
+			tendermintlog.Info("finalizeCommit validators of statecopy updated", "update-valnodes", valNodes)
+		}
+		// Update validator accums and set state variables
 
+	}
+	tendermintlog.Info("finalizeCommit real validators of statecopy", "validators", stateCopy.Validators)
 	// NewHeightStep!
 	cs.updateToState(stateCopy)
 
