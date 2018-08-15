@@ -9,11 +9,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/golang/protobuf/proto"
+	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 	"gitlab.33.cn/chain33/chain33/types"
-	"github.com/golang/protobuf/proto"
-	"github.com/inconshreveable/log15"
 )
 
 var (
@@ -30,17 +30,17 @@ type BlockID struct {
 
 // MakeBlock returns a new block with an empty header, except what can be computed from itself.
 // It populates the same set of fields validated by ValidateBasic
-func MakeBlock(height int64, Txs []*types.Transaction, commit *types.TendermintCommit) *TendermintBlock {
+func MakeBlock(height int64, round int64, Txs []*types.Transaction, commit *types.TendermintCommit) *TendermintBlock {
 	block := &TendermintBlock{&types.TendermintBlock{
 		Header: &types.TendermintBlockHeader{
 			Height: height,
+			Round:  round,
 			Time:   time.Now().UnixNano(),
 			NumTxs: int64(len(Txs)),
 		},
-		Txs:     Txs,
-
+		Txs:        Txs,
 		LastCommit: commit,
-		Evidence: &types.EvidenceData{Evidence:make([]*types.EvidenceEnvelope, 0)},
+		Evidence:   &types.EvidenceData{Evidence: make([]*types.EvidenceEnvelope, 0)},
 	},
 	}
 	block.FillHeader()
@@ -58,8 +58,8 @@ func (b *TendermintBlock) AddEvidence(evidence []Evidence) {
 				panic("AddEvidence marshal failed")
 			}
 			env := &types.EvidenceEnvelope{
-				TypeName:item.TypeName(),
-				Data:data,
+				TypeName: item.TypeName(),
+				Data:     data,
 			}
 			b.Evidence.Evidence = append(b.Evidence.Evidence, env)
 		}
@@ -75,7 +75,7 @@ func (b *TendermintBlock) ValidateBasic() (int64, error) {
 		return 0, fmt.Errorf("Wrong Block.Header.NumTxs. Expected %v, got %v", newTxs, b.Header.NumTxs)
 	}
 	lastCommit := Commit{
-		TendermintCommit:b.LastCommit,
+		TendermintCommit: b.LastCommit,
 	}
 	if !bytes.Equal(b.Header.LastCommitHash, lastCommit.Hash()) {
 		return 0, fmt.Errorf("Wrong Block.Header.LastCommitHash.  Expected %v, got %v", b.Header.LastCommitHash, lastCommit.Hash())
@@ -85,13 +85,13 @@ func (b *TendermintBlock) ValidateBasic() (int64, error) {
 			return 0, err
 		}
 	}
-/*
-	calHash := merkle.CalcMerkleRoot(b.Txs)
-	if !bytes.Equal(b.TxHash, calHash) {
-		return 0, fmt.Errorf("Wrong Block.Header.DataHash.  Expected %v, got %v", b.TxHash, calHash)
-	}
-*/
-	evidence := &EvidenceData{EvidenceData:b.Evidence}
+	/*
+		calHash := merkle.CalcMerkleRoot(b.Txs)
+		if !bytes.Equal(b.TxHash, calHash) {
+			return 0, fmt.Errorf("Wrong Block.Header.DataHash.  Expected %v, got %v", b.TxHash, calHash)
+		}
+	*/
+	evidence := &EvidenceData{EvidenceData: b.Evidence}
 	if !bytes.Equal(b.Header.EvidenceHash, evidence.Hash()) {
 		return 0, errors.New(fmt.Sprintf("Wrong Block.Header.EvidenceHash.  Expected %v, got %v", b.Header.EvidenceHash, evidence.Hash()))
 	}
@@ -102,12 +102,12 @@ func (b *TendermintBlock) ValidateBasic() (int64, error) {
 func (b *TendermintBlock) FillHeader() {
 	if b.Header.LastCommitHash == nil {
 		lastCommit := &Commit{
-			TendermintCommit:b.LastCommit,
+			TendermintCommit: b.LastCommit,
 		}
 		b.Header.LastCommitHash = lastCommit.Hash()
 	}
 	if b.Header.EvidenceHash == nil {
-		evidence := &EvidenceData{EvidenceData:b.Evidence}
+		evidence := &EvidenceData{EvidenceData: b.Evidence}
 		b.Header.EvidenceHash = evidence.Hash()
 	}
 }
@@ -119,7 +119,7 @@ func (b *TendermintBlock) Hash() []byte {
 		return nil
 	}
 	b.FillHeader()
-	header := &Header{TendermintBlockHeader:b.Header}
+	header := &Header{TendermintBlockHeader: b.Header}
 	return header.Hash()
 }
 
@@ -145,8 +145,8 @@ func (b *TendermintBlock) StringIndented(indent string) string {
 	if b == nil {
 		return "nil-Block"
 	}
-	header := &Header{TendermintBlockHeader:b.Header}
-	lastCommit := &Commit{TendermintCommit:b.LastCommit}
+	header := &Header{TendermintBlockHeader: b.Header}
+	lastCommit := &Commit{TendermintCommit: b.LastCommit}
 	return fmt.Sprintf(`Block{
 %s  %v
 %s  %v
@@ -242,7 +242,7 @@ func (commit *Commit) FirstPrecommit() *types.Vote {
 		return commit.firstPrecommit
 	}
 	for _, precommit := range commit.Precommits {
-		if precommit != nil && len(precommit.Signature) > 0{
+		if precommit != nil && len(precommit.Signature) > 0 {
 			commit.firstPrecommit = precommit
 			return precommit
 		}
@@ -294,7 +294,7 @@ func (commit *Commit) BitArray() *BitArray {
 
 // GetByIndex returns the vote corresponding to a given validator index
 func (commit *Commit) GetByIndex(index int) *Vote {
-	return &Vote{Vote:commit.Precommits[index]}
+	return &Vote{Vote: commit.Precommits[index]}
 }
 
 // IsCommit returns true if there is at least one vote
@@ -304,7 +304,7 @@ func (commit *Commit) IsCommit() bool {
 
 // ValidateBasic performs basic validation that doesn't involve state data.
 func (commit *Commit) ValidateBasic() error {
-	blockID := &BlockID{BlockID:*commit.BlockID}
+	blockID := &BlockID{BlockID: *commit.BlockID}
 	if blockID.IsZero() {
 		return errors.New("Commit cannot be for nil block")
 	}
@@ -343,7 +343,7 @@ func (commit *Commit) Hash() []byte {
 	if commit.hash == nil {
 		bs := make([][]byte, len(commit.Precommits))
 		for i, item := range commit.Precommits {
-			precommit := Vote{Vote:item}
+			precommit := Vote{Vote: item}
 			bs[i] = precommit.Hash()
 		}
 		commit.hash = merkle.GetMerkleRoot(bs)
@@ -381,6 +381,7 @@ type SignedHeader struct {
 type EvidenceEnvelope struct {
 	*types.EvidenceEnvelope
 }
+
 // EvidenceData contains any evidence of malicious wrong-doing by validators
 type EvidenceEnvelopeList []EvidenceEnvelope
 
@@ -445,7 +446,6 @@ type EvidenceData struct {
 	hash []byte
 }
 
-
 // Hash returns the hash of the data.
 func (data *EvidenceData) Hash() []byte {
 	if data.hash == nil {
@@ -455,7 +455,7 @@ func (data *EvidenceData) Hash() []byte {
 		var evidence EvidenceEnvelopeList
 		for _, item := range data.Evidence {
 			elem := EvidenceEnvelope{
-				EvidenceEnvelope:item,
+				EvidenceEnvelope: item,
 			}
 			evidence = append(evidence, elem)
 		}
@@ -549,4 +549,4 @@ type MockEvidencePool struct {
 
 func (m MockEvidencePool) PendingEvidence() []Evidence { return nil }
 func (m MockEvidencePool) AddEvidence(Evidence) error  { return nil }
-func (m MockEvidencePool) Update(*TendermintBlock)               {}
+func (m MockEvidencePool) Update(*TendermintBlock)     {}

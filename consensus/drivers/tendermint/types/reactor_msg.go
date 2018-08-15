@@ -2,9 +2,10 @@ package types
 
 import (
 	"fmt"
-	"time"
-	"gitlab.33.cn/chain33/chain33/types"
 	"reflect"
+	"time"
+
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var (
@@ -12,7 +13,6 @@ var (
 )
 
 const (
-
 	EvidenceListID = byte(0x01)
 
 	NewRoundStepID      = byte(0x02)
@@ -24,6 +24,7 @@ const (
 	VoteSetMaj23ID      = byte(0X08)
 	VoteSetBitsID       = byte(0x09)
 	ProposalHeartbeatID = byte(0x0a)
+	ProposalBlockID     = byte(0x0b)
 
 	PacketTypePing = byte(0xff)
 	PacketTypePong = byte(0xfe)
@@ -35,6 +36,7 @@ type PeerRoundState struct {
 	Step               RoundStepType // Step peer is at
 	StartTime          time.Time     // Estimated start of round 0 at this height
 	Proposal           bool          // True if peer has proposal for this round
+	ProposalBlock      bool          // True if peer has proposal block for this round
 	ProposalPOLRound   int           // Proposal's POL round. -1 if none.
 	ProposalPOL        *BitArray     // nil until ProposalPOLMessage received.
 	Prevotes           *BitArray     // All votes peer has for this round
@@ -55,6 +57,7 @@ func (prs PeerRoundState) StringIndented(indent string) string {
 	return fmt.Sprintf(`PeerRoundState{
 %s  %v/%v/%v @%v
 %s  Proposal %v
+%s  ProposalBlock %v
 %s  POL      %v (round %v)
 %s  Prevotes   %v
 %s  Precommits %v
@@ -63,6 +66,7 @@ func (prs PeerRoundState) StringIndented(indent string) string {
 %s}`,
 		indent, prs.Height, prs.Round, prs.Step, prs.StartTime,
 		indent, prs.Proposal,
+		indent, prs.ProposalBlock,
 		indent, prs.ProposalPOL, prs.ProposalPOLRound,
 		indent, prs.Prevotes,
 		indent, prs.Precommits,
@@ -83,5 +87,6 @@ func InitMessageMap() {
 		VoteSetMaj23ID:      reflect.TypeOf(types.VoteSetMaj23Msg{}),
 		VoteSetBitsID:       reflect.TypeOf(types.VoteSetBitsMsg{}),
 		ProposalHeartbeatID: reflect.TypeOf(types.Heartbeat{}),
+		ProposalBlockID:     reflect.TypeOf(types.TendermintBlock{}),
 	}
 }

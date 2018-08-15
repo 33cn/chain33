@@ -1360,11 +1360,11 @@ func (m *ReceiptTicketBind) GetReturnAddress() string {
 }
 
 type ExecTxList struct {
-	StateHash  []byte                `protobuf:"bytes,1,opt,name=stateHash,proto3" json:"stateHash,omitempty"`
+	StateHash  []byte         `protobuf:"bytes,1,opt,name=stateHash,proto3" json:"stateHash,omitempty"`
 	Txs        []*Transaction `protobuf:"bytes,2,rep,name=txs" json:"txs,omitempty"`
-	BlockTime  int64                 `protobuf:"varint,3,opt,name=blockTime" json:"blockTime,omitempty"`
-	Height     int64                 `protobuf:"varint,4,opt,name=height" json:"height,omitempty"`
-	Difficulty uint64                `protobuf:"varint,5,opt,name=difficulty" json:"difficulty,omitempty"`
+	BlockTime  int64          `protobuf:"varint,3,opt,name=blockTime" json:"blockTime,omitempty"`
+	Height     int64          `protobuf:"varint,4,opt,name=height" json:"height,omitempty"`
+	Difficulty uint64         `protobuf:"varint,5,opt,name=difficulty" json:"difficulty,omitempty"`
 }
 
 func (m *ExecTxList) Reset()                    { *m = ExecTxList{} }

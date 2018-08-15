@@ -34,6 +34,7 @@ message TendermintBlockInfo {
 	TendermintCommit LastCommit = 2;
 	State State = 3;
 	Proposal Proposal = 4;
+	TendermintBlock block = 5;
 }
 
 message BlockSize {
@@ -106,16 +107,17 @@ message EvidenceData {
 message TendermintBlockHeader {
     string chainID = 1;
     int64 height = 2;
-    int64 time = 3;
-    int64 numTxs = 4;
-    BlockID lastBlockID = 5;
-    int64 totalTxs = 6;
-    bytes lastCommitHash = 7;
-    bytes validatorsHash = 8;
-    bytes consensusHash = 9;
-    bytes appHash = 10;
-    bytes lastResultsHash = 11;
-    bytes evidenceHash = 12;
+	int64 round = 3;
+    int64 time = 4;
+    int64 numTxs = 5;
+    BlockID lastBlockID = 6;
+    int64 totalTxs = 7;
+    bytes lastCommitHash = 8;
+    bytes validatorsHash = 9;
+    bytes consensusHash = 10;
+    bytes appHash = 11;
+    bytes lastResultsHash = 12;
+    bytes evidenceHash = 13;
 }
 
 message TendermintBlock {
@@ -123,6 +125,7 @@ message TendermintBlock {
     repeated Transaction txs = 2;
     EvidenceData evidence = 3;
     TendermintCommit lastCommit = 4;
+	bytes proposerAddr = 5;
 }
 
 message Proposal {
@@ -132,7 +135,7 @@ message Proposal {
 	int32 POLRound = 4;
 	BlockID POLBlockID = 5;
 	bytes signature = 6;
-	TendermintBlock block = 7;
+	bytes blockhash = 7;
 }
 
 message NewRoundStepMsg {

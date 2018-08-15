@@ -1,7 +1,6 @@
 package tendermint
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
@@ -122,7 +121,7 @@ func (client *TendermintClient) GenesisDoc() *ttypes.GenesisDoc {
 }
 
 func (client *TendermintClient) Close() {
-	tendermintlog.Info("TendermintClientClose", "consensus tendermint closed")
+	tendermintlog.Info("consensus tendermint closed")
 }
 
 func (client *TendermintClient) SetQueueClient(q queue.Client) {
@@ -190,8 +189,8 @@ OuterLoop:
 		state = LoadState(csState)
 		if seenCommit := blockInfo.SeenCommit; seenCommit != nil {
 			state.LastBlockID = ttypes.BlockID{
-				BlockID:types.BlockID{
-				Hash: seenCommit.BlockID.GetHash(),
+				BlockID: types.BlockID{
+					Hash: seenCommit.BlockID.GetHash(),
 				},
 			}
 		}
@@ -347,7 +346,7 @@ func (client *TendermintClient) CommitBlock(propBlock *types.Block) error {
 	newblock := *propBlock
 	lastBlock, err := client.RequestBlock(newblock.Height - 1)
 	if err != nil {
-		tendermintlog.Error("RequestBlock failed", "error", err)
+		tendermintlog.Error("RequestBlock fail", "err", err)
 		return err
 	}
 	newblock.ParentHash = lastBlock.Hash()
@@ -357,41 +356,36 @@ func (client *TendermintClient) CommitBlock(propBlock *types.Block) error {
 		newblock.BlockTime = lastBlock.BlockTime + 1
 	}
 
-	newblock.Difficulty =types.GetP(0).PowLimitBits
+	newblock.Difficulty = types.GetP(0).PowLimitBits
 
 	err = client.WriteBlock(lastBlock.StateHash, &newblock)
 	if err != nil {
 		tendermintlog.Error(fmt.Sprintf("********************CommitBlock err:%v", err.Error()))
 		return err
 	}
-	tendermintlog.Info("Commit block complete", "height", newblock.Height, "CurrentHeight", client.GetCurrentHeight())
+	tendermintlog.Info("Commit block success", "height", newblock.Height, "CurrentHeight", client.GetCurrentHeight())
 	if client.GetCurrentHeight() != newblock.Height {
-		tendermintlog.Warn("Encounter problem in commit block")
+		tendermintlog.Warn("Commit block fail", "height", newblock.Height, "CurrentHeight", client.GetCurrentHeight())
 	}
 	return nil
 }
 
-func (client *TendermintClient) CheckCommit(height int64) (bool, error) {
+func (client *TendermintClient) CheckCommit(height int64) bool {
 	retry := 0
 	newHeight := int64(1)
 	for {
 		newHeight = client.GetCurrentHeight()
 		if newHeight >= height {
 			tendermintlog.Info("Sync block success", "height", height, "CurrentHeight", newHeight)
-			return true, nil
+			return true
 		}
 		retry++
 		time.Sleep(100 * time.Millisecond)
 		if retry >= 600 {
-			tendermintlog.Error("Sync block fail", "height", height, "CurrentHeight", newHeight)
-			break
+			tendermintlog.Warn("Sync block fail", "height", height, "CurrentHeight", newHeight)
+			return false
 		}
 	}
-	if client.IsCaughtUp() {
-		tendermintlog.Info("Tendermint consensus not reached at", "height", height)
-		return false, nil
-	}
-	return false, errors.New("sync block fail")
 }
 
 func (client *TendermintClient) QueryValidatorsByHeight(height int64) (*types.ValNodes, error){
