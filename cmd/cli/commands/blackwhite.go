@@ -90,7 +90,7 @@ func addBlackwhitePlayFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("gameID", "g", "", "game ID")
 	cmd.MarkFlagRequired("gameID")
 
-	cmd.Flags().Uint64P("amount", "m", 0, "frozen amount")
+	cmd.Flags().Uint64P("amount", "a", 0, "frozen amount")
 	cmd.MarkFlagRequired("amount")
 
 	cmd.Flags().StringP("isBlackStr", "i", "", "[0-1-1-1-1-1-0-0-1-1] (1:black,0:white,once round need 10 time)")
@@ -195,32 +195,63 @@ func ShowBlackwhiteInfoCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "showInfo",
 		Short: "show black white round info",
-		Run:   showBlackwhiteRound,
+		Run:   showBlackwhiteInfo,
 	}
-	addshowBlackwhiteRoundlags(cmd)
+	addshowBlackwhiteInfoflags(cmd)
 	return cmd
 }
 
-func addshowBlackwhiteRoundlags(cmd *cobra.Command) {
+func addshowBlackwhiteInfoflags(cmd *cobra.Command) {
+	cmd.Flags().Uint32P("type", "t", 0, "type")
+	cmd.MarkFlagRequired("type")
+
 	cmd.Flags().StringP("gameID", "g", "", "game ID")
-	cmd.MarkFlagRequired("gameID")
+	cmd.Flags().Uint32P("status", "s", 0, "status")
+	cmd.Flags().StringP("addr", "a", "", "addr")
+	cmd.Flags().Uint32P("loopSeq", "l", 0, "loopSeq")
+
+
 }
 
-func showBlackwhiteRound(cmd *cobra.Command, args []string) {
+func showBlackwhiteInfo(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	gameID, _ := cmd.Flags().GetString("gameID")
+	typ, _ := cmd.Flags().GetUint32("type")
+	status, _ := cmd.Flags().GetUint32("status")
+	addr, _ := cmd.Flags().GetString("addr")
+	loopSeq, _ := cmd.Flags().GetUint32("loopSeq")
 
-	var reqRoundInfo types.ReqBlackwhiteRoundInfo
-	reqRoundInfo.GameID = gameID
+	var params jsonrpc.Query4Cli
 
-	params := jsonrpc.Query4Cli{
-		Execer:   types.BlackwhiteX,
-		FuncName: bw.GetBlackwhiteRoundInfo,
-		Payload:  reqRoundInfo,
+	var  rep interface{}
+
+	params.Execer = types.BlackwhiteX
+	if 0 == typ {
+		req := types.ReqBlackwhiteRoundInfo{
+			GameID: gameID,
+		}
+		params.FuncName = bw.GetBlackwhiteRoundInfo
+		params.Payload  = req
+		rep = &types.ReplyBlackwhiteRoundInfo {}
+	}else if 1 == typ {
+		req := types.ReqBlackwhiteRoundList{
+			Status: int32(status),
+			Address: addr,
+		}
+		params.FuncName = bw.GetBlackwhiteByStatusAndAddr
+		params.Payload  = req
+		rep = &types.ReplyBlackwhiteRoundList {}
+	}else if 2 == typ {
+		req := types.ReqLoopResult{
+			GameID: gameID,
+			LoopSeq: int32(loopSeq),
+		}
+		params.FuncName = bw.GetBlackwhiteloopResult
+		params.Payload  = req
+		rep = &types.ReplyLoopResults {}
 	}
 
-	var res types.ReplyBlackwhiteRoundInfo
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
+	ctx := NewRpcCtx(rpcLaddr, "Chain33.Query", params, rep)
 	//ctx.SetResultCb(parseBlackwhiteRound)
 	ctx.Run()
 }
