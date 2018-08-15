@@ -247,6 +247,10 @@ func (wallet *Wallet) SetWalletAccount(update bool, addr string, account *types.
 	return wallet.walletStore.SetWalletAccount(update, addr, account)
 }
 
+func (wallet *Wallet) GetPrivKeyByAddr(addr string) (crypto.PrivKey, error) {
+	return wallet.getPrivKeyByAddr(addr)
+}
+
 func (wallet *Wallet) getPrivKeyByAddr(addr string) (crypto.PrivKey, error) {
 	//获取指定地址在钱包里的账户信息
 	Accountstor, err := wallet.walletStore.GetAccountByAddr(addr)

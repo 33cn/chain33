@@ -43,12 +43,14 @@ type WalletOperate interface {
 	GetRandom() *rand.Rand
 	GetWalletDone() chan struct{}
 	GetLastHeader() *types.Header
-	GetWalletAccounts() ([]*types.WalletAccountStore, error)
 	GetTxDetailByHashs(ReqHashes *types.ReqHashes)
 	GetWaitGroup() *sync.WaitGroup
 	GetAllPrivKeys() ([]crypto.PrivKey, error)
+	GetWalletAccounts() ([]*types.WalletAccountStore, error)
+	GetPrivKeyByAddr(addr string) (crypto.PrivKey, error)
 
 	IsWalletLocked() bool
+	IsTicketLocked() bool
 	IsClose() bool
 	GetRescanFlag() int32
 	SetRescanFlag(flag int32)
