@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/common/merkle"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers"
 	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/common/merkle"
 )
 
 var bslog = log15.New("module", "tendermint-blockstore")
@@ -85,11 +85,6 @@ func (bs *BlockStore) LoadProposal(height int64) *types.Proposal {
 		return nil
 	}
 	proposal := blockInfo.GetProposal()
-	if proposal != nil {
-		proposal.Block.Txs = append(proposal.Block.Txs, block.Txs[1:]...)
-		txHash := merkle.CalcMerkleRoot(proposal.Block.Txs)
-		bslog.Info("LoadProposal get hash of txs of proposal", "height", proposal.Block.Header.Height, "hash", txHash)
-	}
 	return proposal
 	//blockByte := proposalTrans.BlockBytes
 	//var propBlock gtypes.Block
@@ -100,6 +95,30 @@ func (bs *BlockStore) LoadProposal(height int64) *types.Proposal {
 	//	propBlock.Txs = block.Txs[1:]
 	//	propBlockByte, _ := proto.Marshal(&propBlock)
 	//	proposalTrans.BlockBytes = propBlockByte
+}
+
+func (bs *BlockStore) LoadProposalBlock(height int64) *types.TendermintBlock {
+	block, err := bs.client.RequestBlock(height)
+	if err != nil {
+		bslog.Error("LoadProposal by height failed", "curHeight", bs.client.GetCurrentHeight(), "requestHeight", height, "error", err)
+		return nil
+	}
+	blockInfo, err := GetBlockInfo(block)
+	if err != nil {
+		panic(fmt.Sprintf("LoadProposal GetBlockInfo failed:%v", err))
+	}
+	if blockInfo == nil {
+		bslog.Error("LoadProposal get nil block info")
+		return nil
+	}
+
+	proposalBlock := blockInfo.GetBlock()
+	if proposalBlock != nil {
+		proposalBlock.Txs = append(proposalBlock.Txs, block.Txs[1:]...)
+		txHash := merkle.CalcMerkleRoot(proposalBlock.Txs)
+		bslog.Info("LoadProposalBlock txs hash", "height", proposalBlock.Header.Height, "tx-hash", fmt.Sprintf("%X", txHash))
+	}
+	return proposalBlock
 }
 
 func (bs *BlockStore) Height() int64 {

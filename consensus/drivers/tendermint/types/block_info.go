@@ -106,16 +106,17 @@ func LoadProposer(source *types.Validator) (*Validator, error) {
 	return des, nil
 }
 
-func CreateBlockInfoTx(pubkey string, lastCommit *types.TendermintCommit, seenCommit *types.TendermintCommit, state *types.State, proposal *types.Proposal) *types.Transaction {
-	proposalNoTxs := *proposal
-	proposalNoTxs.Block.Txs = make([]*types.Transaction, 0)
+func CreateBlockInfoTx(pubkey string, lastCommit *types.TendermintCommit, seenCommit *types.TendermintCommit, state *types.State, proposal *types.Proposal, block *types.TendermintBlock) *types.Transaction {
+	blockNoTxs := *block
+	blockNoTxs.Txs = make([]*types.Transaction, 0)
 	blockInfo := &types.TendermintBlockInfo{
 		SeenCommit: seenCommit,
 		LastCommit: lastCommit,
 		State:      state,
-		Proposal:   &proposalNoTxs,
+		Proposal:   proposal,
+		Block:      &blockNoTxs,
 	}
-	bilog.Debug("CreateBlockInfoTx", "validators", blockInfo.State.Validators.Validators, "proposal", proposal, "proposal-notxs", proposalNoTxs)
+	bilog.Debug("CreateBlockInfoTx", "validators", blockInfo.State.Validators.Validators, "block", block, "block-notxs", blockNoTxs)
 
 	nput := &types.NormAction_Nput{&types.NormPut{Key: "BlockInfo", Value: types.Encode(blockInfo)}}
 	action := &types.NormAction{Value: nput, Ty: types.NormActionPut}

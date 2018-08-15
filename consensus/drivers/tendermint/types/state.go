@@ -3,6 +3,7 @@ package types
 import (
 	"fmt"
 	"time"
+
 	"gitlab.33.cn/chain33/chain33/types"
 )
 

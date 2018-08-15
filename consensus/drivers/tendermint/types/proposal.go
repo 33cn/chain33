@@ -30,23 +30,23 @@ type Proposal struct {
 
 // NewProposal returns a new Proposal.
 // If there is no POLRound, polRound should be -1.
-func NewProposal(height int64, round int, block *types.TendermintBlock, polRound int, polBlockID types.BlockID) *Proposal {
+func NewProposal(height int64, round int, blockhash []byte, polRound int, polBlockID types.BlockID) *Proposal {
 	return &Proposal{types.Proposal{
 		Height:     height,
 		Round:      int32(round),
 		Timestamp:  time.Now().UnixNano(),
 		POLRound:   int32(polRound),
 		POLBlockID: &polBlockID,
-		Block: block,
-		},
+		Blockhash:  blockhash,
+	},
 	}
 }
 
 // String returns a string representation of the Proposal.
 func (p *Proposal) String() string {
-	return fmt.Sprintf("Proposal{%v/%v (%v,%v) %v @ %s}",
-		p.Height, p.Round, p.POLRound,
-		p.POLBlockID, p.Signature, CanonicalTime(time.Unix(0, p.Timestamp)))
+	return fmt.Sprintf("Proposal{%v/%v (%v,%v) %X %v @ %s}",
+		p.Height, p.Round, p.POLRound, p.POLBlockID,
+		p.Blockhash, p.Signature, CanonicalTime(time.Unix(0, p.Timestamp)))
 }
 
 // WriteSignBytes writes the Proposal bytes for signing
