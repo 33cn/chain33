@@ -28,9 +28,22 @@ func New() wcom.WalletBizPolicy {
 }
 
 type privacyPolicy struct {
+	mtx           *sync.Mutex
 	store         *privacyStore
 	walletOperate wcom.WalletOperate
 	rescanwg      *sync.WaitGroup
+}
+
+func (policy *privacyPolicy) setWalletOperate(walletBiz wcom.WalletOperate) {
+	policy.mtx.Lock()
+	defer policy.mtx.Unlock()
+	policy.walletOperate = walletBiz
+}
+
+func (policy *privacyPolicy) getWalletOperate() wcom.WalletOperate {
+	policy.mtx.Lock()
+	defer policy.mtx.Unlock()
+	return policy.walletOperate
 }
 
 func (policy *privacyPolicy) initFuncMap(walletOperate wcom.WalletOperate) {
@@ -48,7 +61,8 @@ func (policy *privacyPolicy) initFuncMap(walletOperate wcom.WalletOperate) {
 }
 
 func (policy *privacyPolicy) Init(walletOperate wcom.WalletOperate) {
-	policy.walletOperate = walletOperate
+	policy.mtx = &sync.Mutex{}
+	policy.setWalletOperate(walletOperate)
 	policy.store = NewStore(walletOperate.GetDBStore())
 	policy.rescanwg = &sync.WaitGroup{}
 
@@ -65,13 +79,13 @@ func (policy *privacyPolicy) Init(walletOperate wcom.WalletOperate) {
 }
 
 func (policy *privacyPolicy) OnCreateNewAccount(acc *types.Account) {
-	wg := policy.walletOperate.GetWaitGroup()
+	wg := policy.getWalletOperate().GetWaitGroup()
 	wg.Add(1)
 	go policy.rescanReqTxDetailByAddr(acc.Addr, wg)
 }
 
 func (policy *privacyPolicy) OnImportPrivateKey(acc *types.Account) {
-	wg := policy.walletOperate.GetWaitGroup()
+	wg := policy.getWalletOperate().GetWaitGroup()
 	wg.Add(1)
 	go policy.rescanReqTxDetailByAddr(acc.Addr, wg)
 }
@@ -123,7 +137,7 @@ func (policy *privacyPolicy) SignTransaction(key crypto.PrivKey, req *types.ReqS
 	switch action.Ty {
 	case types.ActionPublic2Privacy:
 		// 隐私交易的公对私动作，不存在交易组的操作
-		tx.Sign(int32(policy.walletOperate.GetSignType()), key)
+		tx.Sign(int32(policy.getWalletOperate().GetSignType()), key)
 
 	case types.ActionPrivacy2Privacy, types.ActionPrivacy2Public:
 		// 隐私交易的私对私、私对公需要进行特殊签名
@@ -169,8 +183,8 @@ func (policy *privacyPolicy) onShowPrivacyAccountSpend(msg *queue.Message) (stri
 		return topic, retty, nil, types.ErrInvalidParam
 	}
 
-	policy.walletOperate.GetMutex().Lock()
-	defer policy.walletOperate.GetMutex().Unlock()
+	policy.getWalletOperate().GetMutex().Lock()
+	defer policy.getWalletOperate().GetMutex().Unlock()
 	reply, err := policy.showPrivacyAccountsSpend(req)
 	if err != nil {
 		bizlog.Error("showPrivacyAccountsSpend", "err", err.Error())
@@ -188,8 +202,8 @@ func (policy *privacyPolicy) onShowPrivacyPK(msg *queue.Message) (string, int64,
 		return topic, retty, nil, types.ErrInvalidParam
 	}
 
-	policy.walletOperate.GetMutex().Lock()
-	defer policy.walletOperate.GetMutex().Unlock()
+	policy.getWalletOperate().GetMutex().Lock()
+	defer policy.getWalletOperate().GetMutex().Unlock()
 	reply, err := policy.showPrivacyKeyPair(req)
 	if err != nil {
 		bizlog.Error("showPrivacyKeyPair", "err", err.Error())
@@ -207,8 +221,8 @@ func (policy *privacyPolicy) onPublic2Privacy(msg *queue.Message) (string, int64
 		return topic, retty, nil, types.ErrInvalidParam
 	}
 
-	policy.walletOperate.GetMutex().Lock()
-	defer policy.walletOperate.GetMutex().Unlock()
+	policy.getWalletOperate().GetMutex().Lock()
+	defer policy.getWalletOperate().GetMutex().Unlock()
 	reply, err := policy.sendPublic2PrivacyTransaction(req)
 	if err != nil {
 		bizlog.Error("sendPublic2PrivacyTransaction", "err", err.Error())
@@ -226,8 +240,8 @@ func (policy *privacyPolicy) onPrivacy2Privacy(msg *queue.Message) (string, int6
 		return topic, retty, nil, types.ErrInvalidParam
 	}
 
-	policy.walletOperate.GetMutex().Lock()
-	defer policy.walletOperate.GetMutex().Unlock()
+	policy.getWalletOperate().GetMutex().Lock()
+	defer policy.getWalletOperate().GetMutex().Unlock()
 	reply, err := policy.sendPrivacy2PrivacyTransaction(req)
 	if err != nil {
 		bizlog.Error("sendPrivacy2PrivacyTransaction", "err", err.Error())
@@ -245,8 +259,8 @@ func (policy *privacyPolicy) onPrivacy2Public(msg *queue.Message) (string, int64
 		return topic, retty, nil, types.ErrInvalidParam
 	}
 
-	policy.walletOperate.GetMutex().Lock()
-	defer policy.walletOperate.GetMutex().Unlock()
+	policy.getWalletOperate().GetMutex().Lock()
+	defer policy.getWalletOperate().GetMutex().Unlock()
 	reply, err := policy.sendPrivacy2PublicTransaction(req)
 	if err != nil {
 		bizlog.Error("sendPrivacy2PublicTransaction", "err", err.Error())
@@ -264,8 +278,8 @@ func (policy *privacyPolicy) onCreateUTXOs(msg *queue.Message) (string, int64, i
 		return topic, retty, nil, types.ErrInvalidParam
 	}
 
-	policy.walletOperate.GetMutex().Lock()
-	defer policy.walletOperate.GetMutex().Unlock()
+	policy.getWalletOperate().GetMutex().Lock()
+	defer policy.getWalletOperate().GetMutex().Unlock()
 	reply, err := policy.createUTXOs(req)
 	if err != nil {
 		bizlog.Error("createUTXOs", "err", err.Error())
@@ -285,7 +299,7 @@ func (policy *privacyPolicy) onCreateTransaction(msg *queue.Message) (string, in
 		bizlog.Error("privacyPolicy request param is nil")
 		return topic, retty, nil, types.ErrInvalidParam
 	}
-	ok, err := policy.walletOperate.CheckWalletStatus()
+	ok, err := policy.getWalletOperate().CheckWalletStatus()
 	if !ok {
 		bizlog.Error("createTransaction", "CheckWalletStatus cause error.", err)
 		return topic, retty, nil, err
@@ -300,8 +314,8 @@ func (policy *privacyPolicy) onCreateTransaction(msg *queue.Message) (string, in
 		return topic, retty, nil, err
 	}
 
-	policy.walletOperate.GetMutex().Lock()
-	defer policy.walletOperate.GetMutex().Unlock()
+	policy.getWalletOperate().GetMutex().Lock()
+	defer policy.getWalletOperate().GetMutex().Unlock()
 
 	reply, err := policy.createTransaction(req)
 	if err != nil {
@@ -322,8 +336,8 @@ func (policy *privacyPolicy) onPrivacyAccountInfo(msg *queue.Message) (string, i
 		bizlog.Error("privacyPolicy request param is nil")
 		return topic, retty, nil, types.ErrInvalidParam
 	}
-	policy.walletOperate.GetMutex().Lock()
-	defer policy.walletOperate.GetMutex().Unlock()
+	policy.getWalletOperate().GetMutex().Lock()
+	defer policy.getWalletOperate().GetMutex().Unlock()
 
 	reply, err := policy.getPrivacyAccountInfo(req)
 	if err != nil {
@@ -356,8 +370,8 @@ func (policy *privacyPolicy) onPrivacyTransactionList(msg *queue.Message) (strin
 	}
 	req.SendRecvFlag = sendRecvFlag
 
-	policy.walletOperate.GetMutex().Lock()
-	defer policy.walletOperate.GetMutex().Unlock()
+	policy.getWalletOperate().GetMutex().Lock()
+	defer policy.getWalletOperate().GetMutex().Unlock()
 
 	reply, err := policy.store.getWalletPrivacyTxDetails(req)
 	if err != nil {
@@ -378,8 +392,8 @@ func (policy *privacyPolicy) onRescanUtxos(msg *queue.Message) (string, int64, i
 		bizlog.Error("privacyPolicy request param is nil")
 		return topic, retty, nil, types.ErrInvalidParam
 	}
-	policy.walletOperate.GetMutex().Lock()
-	defer policy.walletOperate.GetMutex().Unlock()
+	policy.getWalletOperate().GetMutex().Lock()
+	defer policy.getWalletOperate().GetMutex().Unlock()
 
 	reply, err := policy.rescanUTXOs(req)
 	if err != nil {
@@ -400,8 +414,8 @@ func (policy *privacyPolicy) onEnablePrivacy(msg *queue.Message) (string, int64,
 		bizlog.Error("privacyPolicy request param is nil")
 		return topic, retty, nil, types.ErrInvalidParam
 	}
-	policy.walletOperate.GetMutex().Lock()
-	defer policy.walletOperate.GetMutex().Unlock()
+	policy.getWalletOperate().GetMutex().Lock()
+	defer policy.getWalletOperate().GetMutex().Unlock()
 
 	reply, err := policy.enablePrivacy(req)
 	if err != nil {

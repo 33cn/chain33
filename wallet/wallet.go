@@ -1,6 +1,7 @@
 package wallet
 
 import (
+	"errors"
 	"math/rand"
 	"sync"
 	"sync/atomic"
@@ -110,8 +111,15 @@ func (wallet *Wallet) initBizPolicy() {
 	}
 }
 
-func (wallet *Wallet) RegisterMineStatusReporter(reporter wcom.MineStatusReport) {
+func (wallet *Wallet) RegisterMineStatusReporter(reporter wcom.MineStatusReport) error {
+	if reporter == nil {
+		return types.ErrInvalidParam
+	}
+	if wallet.mineStatusReporter != nil {
+		return errors.New("ReporterIsExisted")
+	}
 	wallet.mineStatusReporter = reporter
+	return nil
 }
 
 func (wallet *Wallet) GetConfig() *types.Wallet {

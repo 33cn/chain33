@@ -34,7 +34,7 @@ func RegisterMsgFunc(msgid int, fn queue.FN_MsgCallback) {
 
 // WalletOperate 钱包对业务插件提供服务的操作接口
 type WalletOperate interface {
-	RegisterMineStatusReporter(reporter MineStatusReport)
+	RegisterMineStatusReporter(reporter MineStatusReport) error
 
 	GetAPI() client.QueueProtocolAPI
 	GetMutex() *sync.Mutex
