@@ -19,6 +19,7 @@ import (
 	wcom "gitlab.33.cn/chain33/chain33/wallet/common"
 
 	_ "gitlab.33.cn/chain33/chain33/wallet/policy/privacy"
+	_ "gitlab.33.cn/chain33/chain33/wallet/policy/ticket"
 )
 
 var (
@@ -59,13 +60,13 @@ type Wallet struct {
 	EncryptFlag      int64
 	miningTicket     *time.Ticker
 	wg               *sync.WaitGroup
-	walletStore    *wcom.WalletStore
-	random         *rand.Rand
-	cfg            *types.Wallet
-	done           chan struct{}
-	rescanwg       *sync.WaitGroup
-	rescanUTXOflag int32
-	lastHeader     *types.Header
+	walletStore      *walletStore
+	random           *rand.Rand
+	cfg              *types.Wallet
+	done             chan struct{}
+	rescanwg         *sync.WaitGroup
+	rescanUTXOflag   int32
+	lastHeader       *types.Header
 }
 
 func SetLogLevel(level string) {
@@ -74,6 +75,7 @@ func SetLogLevel(level string) {
 
 func DisableLog() {
 	walletlog.SetHandler(log.DiscardHandler())
+	storelog.SetHandler(log.DiscardHandler())
 }
 
 func New(cfg *types.Wallet) *Wallet {
@@ -81,7 +83,7 @@ func New(cfg *types.Wallet) *Wallet {
 	accountdb = account.NewCoinsAccount()
 	walletStoreDB := dbm.NewDB("wallet", cfg.Driver, cfg.DbPath, cfg.DbCache)
 	//walletStore := NewStore(walletStoreDB)
-	walletStore := wcom.NewStore(walletStoreDB)
+	walletStore := NewStore(walletStoreDB)
 	minFee = cfg.MinFee
 	signType, exist := types.MapSignName2Type[cfg.SignType]
 	if !exist {
@@ -198,6 +200,10 @@ func (wallet *Wallet) Close() {
 	//关闭数据库
 	wallet.walletStore.Close()
 	walletlog.Info("wallet module closed")
+}
+
+func (wallet *Wallet) IsClose() bool {
+	return atomic.LoadInt32(&wallet.isclosed) == 1
 }
 
 //返回钱包锁的状态

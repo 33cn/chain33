@@ -18,80 +18,40 @@ var (
 	storelog = log15.New("wallet", "store")
 )
 
-func NewStore(db db.DB) *WalletStore {
-	return &WalletStore{db: db}
+func NewStore(db db.DB) *Store {
+	return &Store{db: db}
 }
 
 // 钱包通用数据库存储类，实现对钱包账户数据库操作的基本实现
-type WalletStore struct {
+type Store struct {
 	db db.DB
 }
 
-func (ws *WalletStore) Close() {
-	ws.db.Close()
+func (store *Store) Close() {
+	store.db.Close()
 }
 
-func (ws *WalletStore) GetDB() db.DB {
-	return ws.db
+func (store *Store) GetDB() db.DB {
+	return store.db
 }
 
-func (ws *WalletStore) NewBatch(sync bool) db.Batch {
-	return ws.db.NewBatch(sync)
+func (store *Store) NewBatch(sync bool) db.Batch {
+	return store.db.NewBatch(sync)
 }
 
-func (ws *WalletStore) Get(key []byte) ([]byte, error) {
-	return ws.db.Get(key)
+func (store *Store) Get(key []byte) ([]byte, error) {
+	return store.db.Get(key)
 }
 
-func (ws *WalletStore) Set(key []byte, value []byte) (err error) {
-	return ws.db.Set(key, value)
+func (store *Store) Set(key []byte, value []byte) (err error) {
+	return store.db.Set(key, value)
 }
 
-func (ws *WalletStore) NewListHelper() *db.ListHelper {
-	return db.NewListHelper(ws.db)
+func (store *Store) NewListHelper() *db.ListHelper {
+	return db.NewListHelper(store.db)
 }
 
-func (ws *WalletStore) SetWalletPassword(newpass string) {
-	ws.GetDB().SetSync(CalcWalletPassKey(), []byte(newpass))
-}
-
-func (ws *WalletStore) GetWalletPassword() string {
-	passwordbytes, err := ws.Get(CalcWalletPassKey())
-	if passwordbytes == nil || err != nil {
-		storelog.Error("GetWalletPassword", "Get from db error", err)
-		return ""
-	}
-	return string(passwordbytes)
-}
-
-// SetFeeAmount 设置钱包的手续费，本函数需要跟钱包中的费率一起改变，否则会有问题
-func (ws *WalletStore) SetFeeAmount(FeeAmount int64) error {
-	FeeAmountbytes, err := json.Marshal(FeeAmount)
-	if err != nil {
-		storelog.Error("SetFeeAmount", "marshal FeeAmount error", err)
-		return types.ErrMarshal
-	}
-
-	ws.GetDB().SetSync(CalcWalletPassKey(), FeeAmountbytes)
-	return nil
-}
-
-func (ws *WalletStore) GetFeeAmount(minFee int64) int64 {
-	FeeAmountbytes, err := ws.Get(CalcWalletPassKey())
-	if FeeAmountbytes == nil || err != nil {
-		storelog.Error("GetFeeAmount", "Get from db error", err)
-		return minFee
-	}
-	var FeeAmount int64
-	err = json.Unmarshal(FeeAmountbytes, &FeeAmount)
-	if err != nil {
-		storelog.Error("GetFeeAmount", "json unmarshal error", err)
-		return minFee
-	}
-	return FeeAmount
-}
-
-func (ws *WalletStore) GetAccountByte(update bool, addr string, account *types.WalletAccountStore) ([]byte, error) {
+func (store *Store) GetAccountByte(update bool, addr string, account *types.WalletAccountStore) ([]byte, error) {
 	if len(addr) == 0 {
 		storelog.Error("GetAccountByte addr is nil")
 		return nil, types.ErrInputPara
@@ -116,14 +76,14 @@ func (ws *WalletStore) GetAccountByte(update bool, addr string, account *types.W
 	return accountbyte, nil
 }
 
-func (ws *WalletStore) SetWalletAccount(update bool, addr string, account *types.WalletAccountStore) error {
-	accountbyte, err := ws.GetAccountByte(update, addr, account)
+func (store *Store) SetWalletAccount(update bool, addr string, account *types.WalletAccountStore) error {
+	accountbyte, err := store.GetAccountByte(update, addr, account)
 	if err != nil {
 		storelog.Error("SetWalletAccount", "GetAccountByte error", err)
 		return err
 	}
 	//需要同时修改三个表，Account，Addr，Label，批量处理
-	newbatch := ws.NewBatch(true)
+	newbatch := store.NewBatch(true)
 	newbatch.Set(CalcAccountKey(account.TimeStamp, addr), accountbyte)
 	newbatch.Set(CalcAddrKey(addr), accountbyte)
 	newbatch.Set(CalcLabelKey(account.GetLabel()), accountbyte)
@@ -131,8 +91,8 @@ func (ws *WalletStore) SetWalletAccount(update bool, addr string, account *types
 	return nil
 }
 
-func (ws *WalletStore) SetWalletAccountInBatch(update bool, addr string, account *types.WalletAccountStore, newbatch db.Batch) error {
-	accountbyte, err := ws.GetAccountByte(update, addr, account)
+func (store *Store) SetWalletAccountInBatch(update bool, addr string, account *types.WalletAccountStore, newbatch db.Batch) error {
+	accountbyte, err := store.GetAccountByte(update, addr, account)
 	if err != nil {
 		storelog.Error("SetWalletAccount", "GetAccountByte error", err)
 		return err
@@ -144,13 +104,13 @@ func (ws *WalletStore) SetWalletAccountInBatch(update bool, addr string, account
 	return nil
 }
 
-func (ws *WalletStore) GetAccountByAddr(addr string) (*types.WalletAccountStore, error) {
+func (store *Store) GetAccountByAddr(addr string) (*types.WalletAccountStore, error) {
 	var account types.WalletAccountStore
 	if len(addr) == 0 {
 		storelog.Error("GetAccountByAddr addr is empty")
 		return nil, types.ErrInputPara
 	}
-	data, err := ws.Get(CalcAddrKey(addr))
+	data, err := store.Get(CalcAddrKey(addr))
 	if data == nil || err != nil {
 		if err != db.ErrNotFoundInDb {
 			storelog.Debug("GetAccountByAddr addr", "err", err)
@@ -165,13 +125,13 @@ func (ws *WalletStore) GetAccountByAddr(addr string) (*types.WalletAccountStore,
 	return &account, nil
 }
 
-func (ws *WalletStore) GetAccountByLabel(label string) (*types.WalletAccountStore, error) {
+func (store *Store) GetAccountByLabel(label string) (*types.WalletAccountStore, error) {
 	var account types.WalletAccountStore
 	if len(label) == 0 {
 		storelog.Error("GetAccountByLabel label is empty")
 		return nil, types.ErrInputPara
 	}
-	data, err := ws.Get(CalcLabelKey(label))
+	data, err := store.Get(CalcLabelKey(label))
 	if data == nil || err != nil {
 		if err != db.ErrNotFoundInDb {
 			storelog.Error("GetAccountByLabel label", "err", err)
@@ -186,12 +146,12 @@ func (ws *WalletStore) GetAccountByLabel(label string) (*types.WalletAccountStor
 	return &account, nil
 }
 
-func (ws *WalletStore) GetAccountByPrefix(addr string) ([]*types.WalletAccountStore, error) {
+func (store *Store) GetAccountByPrefix(addr string) ([]*types.WalletAccountStore, error) {
 	if len(addr) == 0 {
 		storelog.Error("GetAccountByPrefix addr is nil")
 		return nil, types.ErrInputPara
 	}
-	list := ws.NewListHelper()
+	list := store.NewListHelper()
 	accbytes := list.PrefixScan([]byte(addr))
 	if len(accbytes) == 0 {
 		storelog.Error("GetAccountByPrefix addr not exist")
@@ -211,7 +171,7 @@ func (ws *WalletStore) GetAccountByPrefix(addr string) ([]*types.WalletAccountSt
 }
 
 //迭代获取从指定key：height*100000+index 开始向前或者向后查找指定count的交易
-func (ws *WalletStore) GetTxDetailByIter(TxList *types.ReqWalletTransactionList) (*types.WalletTxDetails, error) {
+func (store *Store) GetTxDetailByIter(TxList *types.ReqWalletTransactionList) (*types.WalletTxDetails, error) {
 	var txDetails types.WalletTxDetails
 	if TxList == nil {
 		storelog.Error("GetTxDetailByIter TxList is nil")
@@ -221,14 +181,14 @@ func (ws *WalletStore) GetTxDetailByIter(TxList *types.ReqWalletTransactionList)
 	var txbytes [][]byte
 	//FromTx是空字符串时。默认从最新的交易开始取count个
 	if len(TxList.FromTx) == 0 {
-		list := ws.NewListHelper()
+		list := store.NewListHelper()
 		txbytes = list.IteratorScanFromLast(CalcTxKey(""), TxList.Count)
 		if len(txbytes) == 0 {
 			storelog.Error("GetTxDetailByIter IteratorScanFromLast does not exist tx!")
 			return nil, types.ErrTxNotExist
 		}
 	} else {
-		list := ws.NewListHelper()
+		list := store.NewListHelper()
 		txbytes = list.IteratorScan([]byte("Tx:"), CalcTxKey(string(TxList.FromTx)), TxList.Count, TxList.Direction)
 		if len(txbytes) == 0 {
 			storelog.Error("GetTxDetailByIter IteratorScan does not exist tx!")
@@ -255,7 +215,7 @@ func (ws *WalletStore) GetTxDetailByIter(TxList *types.ReqWalletTransactionList)
 	return &txDetails, nil
 }
 
-func (ws *WalletStore) SetEncryptionFlag(batch db.Batch) error {
+func (store *Store) SetEncryptionFlag(batch db.Batch) error {
 	var flag int64 = 1
 	data, err := json.Marshal(flag)
 	if err != nil {
@@ -267,9 +227,9 @@ func (ws *WalletStore) SetEncryptionFlag(batch db.Batch) error {
 	return nil
 }
 
-func (ws *WalletStore) GetEncryptionFlag() int64 {
+func (store *Store) GetEncryptionFlag() int64 {
 	var flag int64
-	data, err := ws.Get(CalcEncryptionFlag())
+	data, err := store.Get(CalcEncryptionFlag())
 	if data == nil || err != nil {
 		return 0
 	}
@@ -281,7 +241,7 @@ func (ws *WalletStore) GetEncryptionFlag() int64 {
 	return flag
 }
 
-func (ws *WalletStore) SetPasswordHash(password string, batch db.Batch) error {
+func (store *Store) SetPasswordHash(password string, batch db.Batch) error {
 	var WalletPwHash types.WalletPwHash
 	//获取一个随机字符串
 	randstr := fmt.Sprintf("fuzamei:$@%s", crypto.CRandHex(16))
@@ -301,9 +261,9 @@ func (ws *WalletStore) SetPasswordHash(password string, batch db.Batch) error {
 	return nil
 }
 
-func (ws *WalletStore) VerifyPasswordHash(password string) bool {
+func (store *Store) VerifyPasswordHash(password string) bool {
 	var WalletPwHash types.WalletPwHash
-	pwhashbytes, err := ws.Get(CalcPasswordHash())
+	pwhashbytes, err := store.Get(CalcPasswordHash())
 	if pwhashbytes == nil || err != nil {
 		return false
 	}
@@ -319,26 +279,26 @@ func (ws *WalletStore) VerifyPasswordHash(password string) bool {
 	return bytes.Equal(WalletPwHash.GetPwHash(), Pwhash)
 }
 
-func (ws *WalletStore) DelAccountByLabel(label string) {
-	ws.GetDB().DeleteSync(CalcLabelKey(label))
+func (store *Store) DelAccountByLabel(label string) {
+	store.GetDB().DeleteSync(CalcLabelKey(label))
 }
 
 //升级数据库的版本号
-func (ws *WalletStore) SetWalletVersion(ver int64) error {
+func (store *Store) SetWalletVersion(ver int64) error {
 	data, err := json.Marshal(ver)
 	if err != nil {
 		storelog.Error("SetWalletVerKey marshal version", "err", err)
 		return types.ErrMarshal
 	}
 
-	ws.GetDB().SetSync(version.WalletVerKey, data)
+	store.GetDB().SetSync(version.WalletVerKey, data)
 	return nil
 }
 
 // 获取wallet数据库的版本号
-func (ws *WalletStore) GetWalletVersion() int64 {
+func (store *Store) GetWalletVersion() int64 {
 	var ver int64
-	data, err := ws.Get(version.WalletVerKey)
+	data, err := store.Get(version.WalletVerKey)
 	if data == nil || err != nil {
 		return 0
 	}
@@ -350,9 +310,9 @@ func (ws *WalletStore) GetWalletVersion() int64 {
 	return ver
 }
 
-func (ws *WalletStore) GetAutoMinerFlag() int32 {
+func (store *Store) GetAutoMinerFlag() int32 {
 	flag := int32(0)
-	value, err := ws.Get(CalcWalletAutoMiner())
+	value, err := store.Get(CalcWalletAutoMiner())
 	if err != nil {
 		storelog.Error("GetAutoMinerFlag", "Get error", err)
 		return flag
@@ -363,17 +323,17 @@ func (ws *WalletStore) GetAutoMinerFlag() int32 {
 	return flag
 }
 
-func (ws *WalletStore) SetAutoMinerFlag(flag int32) {
+func (store *Store) SetAutoMinerFlag(flag int32) {
 	if flag == 1 {
-		ws.Set(CalcWalletAutoMiner(), []byte("1"))
+		store.Set(CalcWalletAutoMiner(), []byte("1"))
 	} else {
-		ws.Set(CalcWalletAutoMiner(), []byte("0"))
+		store.Set(CalcWalletAutoMiner(), []byte("0"))
 	}
 }
 
 //判断钱包是否已经保存seed
-func (ws *WalletStore) HasSeed() (bool, error) {
-	seed, err := ws.Get(CalcWalletSeed())
+func (store *Store) HasSeed() (bool, error) {
+	seed, err := store.Get(CalcWalletSeed())
 	if len(seed) == 0 || err != nil {
 		return false, types.ErrSeedExist
 	}

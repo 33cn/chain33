@@ -7,7 +7,6 @@ const (
 	keyAddr            = "Addr"
 	keyLabel           = "Label"
 	keyTx              = "Tx"
-	keyWalletPassKey   = "WalletPassKey"
 	keyWalletFeeAmount = "WalletFeeAmount"
 	keyWalletAutoMiner = "WalletAutoMiner"
 	keyEncryptionFlag  = "EncryptionFlag"
@@ -34,10 +33,6 @@ func CalcLabelKey(label string) []byte {
 //key:Tx:height*100000+index
 func CalcTxKey(key string) []byte {
 	return []byte(fmt.Sprintf("%s:%s", keyTx, key))
-}
-
-func CalcWalletPassKey() []byte {
-	return []byte(keyWalletPassKey)
 }
 
 func CalcEncryptionFlag() []byte {
