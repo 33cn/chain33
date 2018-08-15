@@ -589,6 +589,7 @@ func (c *channelClient) BlackwhiteCreateTx(parm *types.BlackwhiteCreate) ([]byte
 	head := &types.BlackwhiteCreate{
 		PlayAmount:  parm.PlayAmount,
 		PlayerCount: parm.PlayerCount,
+		Timeout:     parm.Timeout,
 		GameName:    parm.GameName,
 	}
 
