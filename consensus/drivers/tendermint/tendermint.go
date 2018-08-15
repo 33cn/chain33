@@ -1,6 +1,7 @@
 package tendermint
 
 import (
+	"encoding/binary"
 	"fmt"
 	"time"
 
@@ -13,7 +14,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/util"
-	"encoding/binary"
 )
 
 var (
@@ -388,7 +388,7 @@ func (client *TendermintClient) CheckCommit(height int64) bool {
 	}
 }
 
-func (client *TendermintClient) QueryValidatorsByHeight(height int64) (*types.ValNodes, error){
+func (client *TendermintClient) QueryValidatorsByHeight(height int64) (*types.ValNodes, error) {
 	if height <= 0 {
 		return nil, types.ErrInvalidParam
 	}

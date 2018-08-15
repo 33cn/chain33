@@ -78,22 +78,6 @@ func (n *Norm) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	return receipt, nil
 }
 
-func (n *Norm) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	var set types.LocalDBSet
-	//save tx
-	hash, result := n.GetTx(tx, receipt, index)
-	set.KV = append(set.KV, &types.KeyValue{hash, types.Encode(result)})
-	return &set, nil
-}
-
-func (n *Norm) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	var set types.LocalDBSet
-	//del tx
-	hash, _ := n.GetTx(tx, receipt, index)
-	set.KV = append(set.KV, &types.KeyValue{hash, nil})
-	return &set, nil
-}
-
 func (n *Norm) Query(funcname string, params []byte) (types.Message, error) {
 	str := string(params)
 	if funcname == "NormGet" {
