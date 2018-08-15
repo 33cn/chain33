@@ -15,13 +15,14 @@ const (
 	BlackwhiteStatusCreate = iota
 	BlackwhiteStatusPlay
 	BlackwhiteStatusShow
-	BlackwhiteStatusTimeoutDone
+	BlackwhiteStatusTimeout
 	BlackwhiteStatusDone
 )
 
 const (
 	GetBlackwhiteRoundInfo       = "GetBlackwhiteRoundInfo"
 	GetBlackwhiteByStatusAndAddr = "GetBlackwhiteByStatusAndAddr"
+	GetBlackwhiteloopResult      = "GetBlackwhiteloopResult"
 )
 
 const name = types.BlackwhiteX
@@ -36,10 +37,14 @@ func Init() {
 	types.RegistorLog(types.TyLogBlackwhiteCreate, &BlackwhiteCreateLog{})
 	types.RegistorLog(types.TyLogBlackwhitePlay, &BlackwhitePlayLog{})
 	types.RegistorLog(types.TyLogBlackwhiteShow, &BlackwhiteShowLog{})
-	types.RegistorLog(types.TyLogBlackwhiteTimeoutDone, &BlackwhiteTimeoutDoneLog{})
+	types.RegistorLog(types.TyLogBlackwhiteTimeout, &BlackwhiteTimeoutDoneLog{})
+	types.RegistorLog(types.TyLogBlackwhiteDone, &BlackwhiteDoneLog{})
+	types.RegistorLog(types.TyLogBlackwhiteLoopInfo, &BlackwhiteLoopInfoLog{})
 
 	// init query rpc
 	types.RegistorRpcType(GetBlackwhiteRoundInfo, &BlackwhiteRoundInfo{})
+	types.RegistorRpcType(GetBlackwhiteByStatusAndAddr, &BlackwhiteByStatusAndAddr{})
+	types.RegistorRpcType(GetBlackwhiteloopResult, &BlackwhiteloopResult{})
 }
 
 type BlackwhiteType struct {
@@ -54,7 +59,7 @@ func (m BlackwhiteType) ActionName(tx *types.Transaction) string {
 	}
 	if g.Ty == types.BlackwhiteActionCreate && g.GetCreate() != nil {
 		return "BlackwhiteCreate"
-	} else if g.Ty == types.BlackwhiteActionShow && g.GetCancel() != nil {
+	} else if g.Ty == types.BlackwhiteActionShow && g.GetShow() != nil {
 		return "BlackwhiteShow"
 	} else if g.Ty == types.BlackwhiteActionPlay && g.GetPlay() != nil {
 		return "BlackwhitePlay"
@@ -74,14 +79,14 @@ func (m BlackwhiteType) CreateTx(action string, message json.RawMessage) (*types
 	return tx, nil
 }
 
-type BlackwhitePlayLog struct {
+type BlackwhiteCreateLog struct {
 }
 
-func (l BlackwhitePlayLog) Name() string {
-	return "LogBlackwhitePlay"
+func (l BlackwhiteCreateLog) Name() string {
+	return "LogBlackwhiteCreate"
 }
 
-func (l BlackwhitePlayLog) Decode(msg []byte) (interface{}, error) {
+func (l BlackwhiteCreateLog) Decode(msg []byte) (interface{}, error) {
 	var logTmp types.ReceiptBlackwhite
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
@@ -90,14 +95,14 @@ func (l BlackwhitePlayLog) Decode(msg []byte) (interface{}, error) {
 	return logTmp, err
 }
 
-type BlackwhiteTimeoutDoneLog struct {
+type BlackwhitePlayLog struct {
 }
 
-func (l BlackwhiteTimeoutDoneLog) Name() string {
-	return "LogBlackwhiteTimeoutDone"
+func (l BlackwhitePlayLog) Name() string {
+	return "LogBlackwhitePlay"
 }
 
-func (l BlackwhiteTimeoutDoneLog) Decode(msg []byte) (interface{}, error) {
+func (l BlackwhitePlayLog) Decode(msg []byte) (interface{}, error) {
 	var logTmp types.ReceiptBlackwhite
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
@@ -122,15 +127,47 @@ func (l BlackwhiteShowLog) Decode(msg []byte) (interface{}, error) {
 	return logTmp, err
 }
 
-type BlackwhiteCreateLog struct {
+type BlackwhiteTimeoutDoneLog struct {
 }
 
-func (l BlackwhiteCreateLog) Name() string {
-	return "LogBlackwhiteCreate"
+func (l BlackwhiteTimeoutDoneLog) Name() string {
+	return "LogBlackwhiteTimeoutDone"
 }
 
-func (l BlackwhiteCreateLog) Decode(msg []byte) (interface{}, error) {
+func (l BlackwhiteTimeoutDoneLog) Decode(msg []byte) (interface{}, error) {
 	var logTmp types.ReceiptBlackwhite
+	err := types.Decode(msg, &logTmp)
+	if err != nil {
+		return nil, err
+	}
+	return logTmp, err
+}
+
+type BlackwhiteDoneLog struct {
+}
+
+func (l BlackwhiteDoneLog) Name() string {
+	return "LogBlackwhiteDone"
+}
+
+func (l BlackwhiteDoneLog) Decode(msg []byte) (interface{}, error) {
+	var logTmp types.ReceiptBlackwhite
+	err := types.Decode(msg, &logTmp)
+	if err != nil {
+		return nil, err
+	}
+	return logTmp, err
+}
+
+type BlackwhiteLoopInfoLog struct {
+}
+
+func (l BlackwhiteLoopInfoLog) Name() string {
+	return "LogBlackwhiteLoopInfo"
+}
+
+func (l BlackwhiteLoopInfoLog) Decode(msg []byte) (interface{}, error) {
+	var logTmp types.ReplyLoopResults
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
 		return nil, err
@@ -153,3 +190,37 @@ func (t *BlackwhiteRoundInfo) Input(message json.RawMessage) ([]byte, error) {
 func (t *BlackwhiteRoundInfo) Output(reply interface{}) (interface{}, error) {
 	return reply, nil
 }
+
+type BlackwhiteByStatusAndAddr struct {
+}
+
+func (t *BlackwhiteByStatusAndAddr) Input(message json.RawMessage) ([]byte, error) {
+	var req types.ReqBlackwhiteRoundList
+	err := json.Unmarshal(message, &req)
+	if err != nil {
+		return nil, err
+	}
+	return types.Encode(&req), nil
+}
+
+func (t *BlackwhiteByStatusAndAddr) Output(reply interface{}) (interface{}, error) {
+	return reply, nil
+}
+
+type BlackwhiteloopResult struct {
+}
+
+func (t *BlackwhiteloopResult) Input(message json.RawMessage) ([]byte, error) {
+	var req types.ReqLoopResult
+	err := json.Unmarshal(message, &req)
+	if err != nil {
+		return nil, err
+	}
+	return types.Encode(&req), nil
+}
+
+func (t *BlackwhiteloopResult) Output(reply interface{}) (interface{}, error) {
+	return reply, nil
+}
+
+

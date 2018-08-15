@@ -52,7 +52,7 @@ func Test_getWinnerAndLoser(t *testing.T) {
 
 	round.AddrResult = addrRes
 
-	winers := a.getWinner(round)
+	winers, _ := a.getWinner(round)
 	require.Equal(t, "3", winers[0].addr)
 	losers := a.getLoser(round)
 	require.Equal(t, "1", losers[0].addr)
@@ -82,10 +82,10 @@ func Test_getWinnerAndLoser(t *testing.T) {
 
 	round.AddrResult = addrRes
 
-	winers = a.getWinner(round)
-	require.Equal(t, 0, len(winers))
+	winers, _ = a.getWinner(round)
+	require.Equal(t, 2, len(winers))
 	losers = a.getLoser(round)
-	require.Equal(t, 5, len(losers))
+	require.Equal(t, 3, len(losers))
 	//t.Logf("winers2 is %v", winers)
 	//t.Logf("losers2 is %v", losers)
 
@@ -94,7 +94,7 @@ func Test_getWinnerAndLoser(t *testing.T) {
 		HashValues: [][]byte{common.Sha256([]byte(showSecret + string(black))),
 			common.Sha256([]byte(showSecret + string(white))),
 			common.Sha256([]byte(showSecret + string(black))),
-			common.Sha256([]byte(showSecret + string(white))),
+			common.Sha256([]byte(showSecret + string(black))),
 			common.Sha256([]byte(showSecret + string(black))),
 			common.Sha256([]byte(showSecret + string(white))),
 			common.Sha256([]byte(showSecret + string(black))),
@@ -105,7 +105,7 @@ func Test_getWinnerAndLoser(t *testing.T) {
 
 	round.AddrResult = addrRes
 
-	winers = a.getWinner(round)
+	winers, _ = a.getWinner(round)
 	require.Equal(t, "6", winers[0].addr)
 	losers = a.getLoser(round)
 	require.Equal(t, 5, len(losers))
