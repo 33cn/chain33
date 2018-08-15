@@ -956,7 +956,6 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		if err != nil {
 			unkownPl["unkownpayload"] = string(tx.GetPayload())
 			pl = unkownPl
-			fmt.Println(pl)
 		} else {
 			pl = &action
 		}
@@ -1010,6 +1009,15 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		}
 	} else if types.ExecName(types.RetrieveX) == string(tx.Execer) {
 		var action types.RetrieveAction
+		err := types.Decode(tx.GetPayload(), &action)
+		if err != nil {
+			unkownPl["unkownpayload"] = string(tx.GetPayload())
+			pl = unkownPl
+		} else {
+			pl = &action
+		}
+	} else if types.ExecName(types.GameX) == string(tx.Execer) {
+		var action types.GameAction
 		err := types.Decode(tx.GetPayload(), &action)
 		if err != nil {
 			unkownPl["unkownpayload"] = string(tx.GetPayload())
