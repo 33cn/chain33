@@ -227,7 +227,6 @@ func (wallet *Wallet) onWalletUnLock(msg *queue.Message) (string, int64, interfa
 	return topic, retty, reply, nil
 }
 
-// TODO: 区块增加涉及到的逻辑比较多，还需要进行重构
 func (wallet *Wallet) onAddBlock(msg *queue.Message) (string, int64, interface{}, error) {
 	topic := "rpc"
 	retty := int64(types.EventAddBlock)
