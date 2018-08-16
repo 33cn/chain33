@@ -4,14 +4,75 @@ PARA_CLI="docker exec ${NODE3} /root/chain33-para-cli"
 
 PARA_CLI2="docker exec ${NODE2} /root/chain33-para-cli"
 PARA_CLI1="docker exec ${NODE1} /root/chain33-para-cli"
-PARA_CLI0="docker exec ${NODE0} /root/chain33-para-cli"
+PARA_CLI4="docker exec ${NODE4} /root/chain33-para-cli"
+
+PARANAME="para"
+
+function para_init() {
+    echo "=========== # para chain init toml ============="
+    local isedfix=$1
+    para_set_toml chain33.para33.toml "${1}"
+    para_set_toml chain33.para32.toml "${1}"
+    para_set_toml chain33.para31.toml "${1}"
+    para_set_toml chain33.para30.toml "${1}"
+
+    sed "${isedfix[@]}" 's/^authAccount=.*/authAccount="1KSBd17H7ZK8iT37aJztFB22XGwsPTdwE4"/g' chain33.para33.toml
+    sed "${isedfix[@]}" 's/^authAccount=.*/authAccount="1JRNjdEqp4LJ5fqycUBm9ayCKSeeskgMKR"/g' chain33.para32.toml
+    sed "${isedfix[@]}" 's/^authAccount=.*/authAccount="1NLHPEcbTWWxxU3dGUZBhayjrCHD3psX7k"/g' chain33.para31.toml
+    sed "${isedfix[@]}" 's/^authAccount=.*/authAccount="1MCftFynyvG2F4ED5mdHYgziDxx6vDrScs"/g' chain33.para30.toml
+}
+
+function para_set_toml() {
+    cp chain33.para.toml "${1}"
+
+    local isedfix=$2
+    sed "${isedfix[@]}" 's/^Title.*/Title="user.p.'''$PARANAME'''."/g' "${1}"
+    sed "${isedfix[@]}" 's/^# TestNet=.*/TestNet=true/g' "${1}"
+    sed "${isedfix[@]}" 's/^startHeight=.*/startHeight=20/g' "${1}"
+    sed "${isedfix[@]}" 's/^emptyBlockInterval=.*/emptyBlockInterval=4/g' "${1}"
+
+    # rpc
+    sed "${isedfix[@]}" 's/^jrpcBindAddr=.*/jrpcBindAddr="0.0.0.0:8901"/g' "${1}"
+    sed "${isedfix[@]}" 's/^grpcBindAddr=.*/grpcBindAddr="0.0.0.0:8902"/g' "${1}"
+    sed "${isedfix[@]}" 's/^whitelist=.*/whitelist=["localhost","127.0.0.1","0.0.0.0"]/g' "${1}"
+}
 
 function para_set_wallet() {
     echo "=========== # para set wallet ============="
-    import_key "${PARA_CLI}" "0x6da92a632ab7deb67d38c0f6560bcfed28167998f6496db64c258d5e8393a81b"
-    import_key "${PARA_CLI2}" "0x19c069234f9d3e61135fefbeb7791b149cdf6af536f26bebb310d4cd22c3fee4"
-    import_key "${PARA_CLI1}" "0x7a80a1f75d7360c6123c32a78ecf978c1ac55636f87892df38d8b85a9aeff115"
-    import_key "${PARA_CLI0}" "0xcacb1f5d51700aea07fca2246ab43b0917d70405c65edea9b5063d72eb5c6b71"
+    para_import_key "${PARA_CLI}" "0x6da92a632ab7deb67d38c0f6560bcfed28167998f6496db64c258d5e8393a81b"
+    para_import_key "${PARA_CLI2}" "0x19c069234f9d3e61135fefbeb7791b149cdf6af536f26bebb310d4cd22c3fee4"
+    para_import_key "${PARA_CLI1}" "0x7a80a1f75d7360c6123c32a78ecf978c1ac55636f87892df38d8b85a9aeff115"
+    para_import_key "${PARA_CLI4}" "0xcacb1f5d51700aea07fca2246ab43b0917d70405c65edea9b5063d72eb5c6b71"
+}
+
+function para_import_key() {
+    echo "=========== # save seed to wallet ============="
+    result=$(${1} seed save -p 1314 -s "tortoise main civil member grace happy century convince father cage beach hip maid merry rib" | jq ".isok")
+    if [ "${result}" = "false" ]; then
+        echo "save seed to wallet error seed, result: ${result}"
+        exit 1
+    fi
+
+    echo "=========== # unlock wallet ============="
+    result=$(${1} wallet unlock -p 1314 -t 0 | jq ".isok")
+    if [ "${result}" = "false" ]; then
+        exit 1
+    fi
+
+    echo "=========== # import private key ============="
+    echo "key: ${2}"
+    result=$(${1} account import_key -k "${2}" -l returnAddr | jq ".label")
+    if [ -z "${result}" ]; then
+        exit 1
+    fi
+
+    echo "=========== # close auto mining ============="
+    result=$(${1} wallet auto_mine -f 0 | jq ".isok")
+    if [ "${result}" = "false" ]; then
+        exit 1
+    fi
+    echo "=========== # wallet status ============="
+    ${1} wallet status
 }
 
 function para_transfer() {

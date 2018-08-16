@@ -221,7 +221,8 @@ func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, er
 	if titleStatus.Height+1 == commit.Status.Height && commit.Status.Height > 0 {
 		if !bytes.Equal(titleStatus.BlockHash, commit.Status.PreBlockHash) {
 			clog.Error("paracross.Commit", "check PreBlockHash", common.Bytes2Hex(titleStatus.BlockHash),
-				"commit tx", common.Bytes2Hex(commit.Status.PreBlockHash))
+				"commit tx", common.Bytes2Hex(commit.Status.PreBlockHash), "commitheit", commit.Status.Height,
+				"from", a.fromaddr)
 			return nil, types.ErrParaBlockHashNoMatch
 		}
 	}
@@ -238,7 +239,8 @@ func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, er
 	}
 	if !bytes.Equal(blockHash.Hash, commit.Status.MainBlockHash) && commit.Status.Height > 0 {
 		clog.Error("paracross.Commit blockHash not match", "db", common.Bytes2Hex(blockHash.Hash),
-			"commit tx", common.Bytes2Hex(commit.Status.MainBlockHash))
+			"commit tx", common.Bytes2Hex(commit.Status.MainBlockHash), "commitheit", commit.Status.Height,
+			"from", a.fromaddr)
 		return nil, types.ErrBlockHashNoMatch
 	}
 
