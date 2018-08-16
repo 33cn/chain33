@@ -22,18 +22,16 @@ NODE2="${1}_chain32_1"
 
 NODE1="${1}_chain31_1"
 
-NODE0="${1}_chain30_1"
+NODE4="${1}_chain30_1"
 
-NODE9="${1}_chain29_1"
-CLI9="docker exec ${NODE9} /root/chain33-cli"
+NODE5="${1}_chain29_1"
+CLI5="docker exec ${NODE5} /root/chain33-cli"
 
 BTCD="${1}_btcd_1"
 
 RELAYD="${1}_relayd_1"
 
-containers=("${NODE0}" "${NODE1}" "${NODE2}" "${NODE3}" "${BTCD}" "${RELAYD}")
-
-PARANAME="para"
+containers=("${NODE1}" "${NODE2}" "${NODE3}" "${NODE4}" "${BTCD}" "${RELAYD}")
 
 # shellcheck disable=SC1091
 source ci-para-test.sh
@@ -41,8 +39,10 @@ source ci-para-test.sh
 source ci-relay-test.sh
 
 sedfix=""
+xsedfix=(-i)
 if [ "$(uname)" == "Darwin" ]; then
     sedfix=".bak"
+    xsedfix=(-i ".bak")
 fi
 
 function init() {
@@ -73,34 +73,6 @@ function init() {
     sed -i $sedfix 's/^pprof.*/pprof = false/g' relayd.toml
     sed -i $sedfix 's/^watch.*/watch = false/g' relayd.toml
 
-}
-
-function para_init() {
-    echo "=========== # para chain init toml ============="
-
-    para_set_toml chain33.para33.toml
-    para_set_toml chain33.para32.toml
-    para_set_toml chain33.para31.toml
-    para_set_toml chain33.para30.toml
-
-    sed -i $sedfix 's/^authAccount=.*/authAccount="1KSBd17H7ZK8iT37aJztFB22XGwsPTdwE4"/g' chain33.para33.toml
-    sed -i $sedfix 's/^authAccount=.*/authAccount="1JRNjdEqp4LJ5fqycUBm9ayCKSeeskgMKR"/g' chain33.para32.toml
-    sed -i $sedfix 's/^authAccount=.*/authAccount="1NLHPEcbTWWxxU3dGUZBhayjrCHD3psX7k"/g' chain33.para31.toml
-    sed -i $sedfix 's/^authAccount=.*/authAccount="1MCftFynyvG2F4ED5mdHYgziDxx6vDrScs"/g' chain33.para30.toml
-}
-
-function para_set_toml() {
-    cp chain33.para.toml "${1}"
-
-    sed -i $sedfix 's/^Title.*/Title="user.p.'''$PARANAME'''."/g' "${1}"
-    sed -i $sedfix 's/^# TestNet=.*/TestNet=true/g' "${1}"
-    sed -i $sedfix 's/^startHeight=.*/startHeight=20/g' "${1}"
-    sed -i $sedfix 's/^emptyBlockInterval=.*/emptyBlockInterval=4/g' "${1}"
-
-    # rpc
-    sed -i $sedfix 's/^jrpcBindAddr=.*/jrpcBindAddr="0.0.0.0:8901"/g' "${1}"
-    sed -i $sedfix 's/^grpcBindAddr=.*/grpcBindAddr="0.0.0.0:8902"/g' "${1}"
-    sed -i $sedfix 's/^whitelist=.*/whitelist=["localhost","127.0.0.1","0.0.0.0"]/g' "${1}"
 }
 
 function start() {
@@ -207,36 +179,6 @@ function start() {
     ${CLI} mempool list
 }
 
-function import_key() {
-    echo "=========== # save seed to wallet ============="
-    result=$(${1} seed save -p 1314 -s "tortoise main civil member grace happy century convince father cage beach hip maid merry rib" | jq ".isok")
-    if [ "${result}" = "false" ]; then
-        echo "save seed to wallet error seed, result: ${result}"
-        exit 1
-    fi
-
-    echo "=========== # unlock wallet ============="
-    result=$(${1} wallet unlock -p 1314 -t 0 | jq ".isok")
-    if [ "${result}" = "false" ]; then
-        exit 1
-    fi
-
-    echo "=========== # import private key ============="
-    echo "key: ${2}"
-    result=$(${1} account import_key -k "${2}" -l returnAddr | jq ".label")
-    if [ -z "${result}" ]; then
-        exit 1
-    fi
-
-    echo "=========== # close auto mining ============="
-    result=$(${1} wallet auto_mine -f 0 | jq ".isok")
-    if [ "${result}" = "false" ]; then
-        exit 1
-    fi
-    echo "=========== # wallet status ============="
-    ${1} wallet status
-}
-
 function block_wait() {
     if [ "$#" -lt 2 ]; then
         echo "wrong block_wait params"
@@ -312,15 +254,15 @@ function sync_status() {
 }
 
 function sync() {
-    echo "=========== stop  ${NODE9} node========== "
-    docker stop "${NODE9}"
+    echo "=========== stop  ${NODE5} node========== "
+    docker stop "${NODE5}"
     sleep 20
 
-    echo "=========== start ${NODE9} node========== "
-    docker start "${NODE9}"
+    echo "=========== start ${NODE5} node========== "
+    docker start "${NODE5}"
 
     sleep 1
-    sync_status "${CLI9}"
+    sync_status "${CLI5}"
 }
 
 function transfer() {
@@ -368,7 +310,7 @@ function transfer() {
 function main() {
     echo "==========================================main begin========================================================"
     init
-    para_init
+    para_init "${xsedfix[*]}"
     start
     para_transfer
     para_set_wallet
