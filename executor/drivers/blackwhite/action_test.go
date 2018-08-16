@@ -8,6 +8,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 	"errors"
 	"fmt"
+	"strconv"
 )
 
 
@@ -15,7 +16,7 @@ func newAddressResult(Addr string, blackwhite []int) *types.AddressResult{
 	showSecret := "1234"
 	var HashValues [][]byte
 	for _, v:= range blackwhite {
-		HashValues = append(HashValues, common.Sha256([]byte(showSecret + string(v))))
+		HashValues = append(HashValues, common.Sha256([]byte(showSecret + strconv.Itoa(v))))
 	}
 
 	return &types.AddressResult{
@@ -71,6 +72,7 @@ func Test_getWinnerLoser(t *testing.T) {
 	_, err := newGameRound(7, inputRet,5)
 	if err != nil {
 		fmt.Println(err)
+		require.Error(t, err)
 	}
 }
 
@@ -88,30 +90,30 @@ func Test_getWinnerAndLoser(t *testing.T) {
 
 	addres := &types.AddressResult{
 		Addr: "1",
-		HashValues: [][]byte{common.Sha256([]byte(showSecret + string(black))),
-			common.Sha256([]byte(showSecret + string(white))),
-			common.Sha256([]byte(showSecret + string(black))),
-			common.Sha256([]byte(showSecret + string(white)))},
+		HashValues: [][]byte{common.Sha256([]byte(showSecret + black)),
+			common.Sha256([]byte(showSecret + white)),
+			common.Sha256([]byte(showSecret + black)),
+			common.Sha256([]byte(showSecret + white))},
 		ShowSecret: showSecret,
 	}
 	addrRes = append(addrRes, addres)
 
 	addres = &types.AddressResult{
 		Addr: "2",
-		HashValues: [][]byte{common.Sha256([]byte(showSecret + string(black))),
-			common.Sha256([]byte(showSecret + string(white))),
-			common.Sha256([]byte(showSecret + string(black))),
-			common.Sha256([]byte(showSecret + string(white)))},
+		HashValues: [][]byte{common.Sha256([]byte(showSecret + black)),
+			common.Sha256([]byte(showSecret + white)),
+			common.Sha256([]byte(showSecret + black)),
+			common.Sha256([]byte(showSecret + white))},
 		ShowSecret: showSecret,
 	}
 	addrRes = append(addrRes, addres)
 
 	addres = &types.AddressResult{
 		Addr: "3",
-		HashValues: [][]byte{common.Sha256([]byte(showSecret + string(black))),
-			common.Sha256([]byte(showSecret + string(white))),
-			common.Sha256([]byte(showSecret + string(black))),
-			common.Sha256([]byte(showSecret + string(black)))},
+		HashValues: [][]byte{common.Sha256([]byte(showSecret + black)),
+			common.Sha256([]byte(showSecret + white)),
+			common.Sha256([]byte(showSecret + black)),
+			common.Sha256([]byte(showSecret + black))},
 		ShowSecret: showSecret,
 	}
 	addrRes = append(addrRes, addres)
@@ -128,20 +130,20 @@ func Test_getWinnerAndLoser(t *testing.T) {
 
 	addres = &types.AddressResult{
 		Addr: "4",
-		HashValues: [][]byte{common.Sha256([]byte(showSecret + string(black))),
-			common.Sha256([]byte(showSecret + string(white))),
-			common.Sha256([]byte(showSecret + string(black))),
-			common.Sha256([]byte(showSecret + string(black)))},
+		HashValues: [][]byte{common.Sha256([]byte(showSecret + black)),
+			common.Sha256([]byte(showSecret + white)),
+			common.Sha256([]byte(showSecret + black)),
+			common.Sha256([]byte(showSecret + black))},
 		ShowSecret: showSecret,
 	}
 	addrRes = append(addrRes, addres)
 
 	addres = &types.AddressResult{
 		Addr: "5",
-		HashValues: [][]byte{common.Sha256([]byte(showSecret + string(black))),
-			common.Sha256([]byte(showSecret + string(white))),
-			common.Sha256([]byte(showSecret + string(black))),
-			common.Sha256([]byte(showSecret + string(white)))},
+		HashValues: [][]byte{common.Sha256([]byte(showSecret + black)),
+			common.Sha256([]byte(showSecret + white)),
+			common.Sha256([]byte(showSecret + black)),
+			common.Sha256([]byte(showSecret + white))},
 		ShowSecret: showSecret,
 	}
 	addrRes = append(addrRes, addres)
@@ -157,14 +159,14 @@ func Test_getWinnerAndLoser(t *testing.T) {
 
 	addres = &types.AddressResult{
 		Addr: "6",
-		HashValues: [][]byte{common.Sha256([]byte(showSecret + string(black))),
-			common.Sha256([]byte(showSecret + string(white))),
-			common.Sha256([]byte(showSecret + string(black))),
-			common.Sha256([]byte(showSecret + string(black))),
-			common.Sha256([]byte(showSecret + string(black))),
-			common.Sha256([]byte(showSecret + string(white))),
-			common.Sha256([]byte(showSecret + string(black))),
-			common.Sha256([]byte(showSecret + string(white)))},
+		HashValues: [][]byte{common.Sha256([]byte(showSecret + black)),
+			common.Sha256([]byte(showSecret + white)),
+			common.Sha256([]byte(showSecret + black)),
+			common.Sha256([]byte(showSecret + black)),
+			common.Sha256([]byte(showSecret + black)),
+			common.Sha256([]byte(showSecret + white)),
+			common.Sha256([]byte(showSecret + black)),
+			common.Sha256([]byte(showSecret + white))},
 		ShowSecret: showSecret,
 	}
 	addrRes = append(addrRes, addres)

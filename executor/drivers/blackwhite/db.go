@@ -21,11 +21,13 @@ func calcRoundKey(ID string) []byte {
 }
 
 func calcRoundKey4StatusAddr(status int32, addr, ID string) []byte {
-	return []byte(fmt.Sprintf(roundPrefix+"%d-","%s-"+"%s", status, addr, ID))
+	key := fmt.Sprintf(roundPrefix+"%d-"+"%s-"+"%s", status, addr, ID)
+	return []byte(key)
 }
 
 func calcRoundKey4StatusAddrPrefix(status int32, addr string) []byte {
-	return []byte(fmt.Sprintf(roundPrefix+"%d-","%s-", status, addr))
+	key := fmt.Sprintf(roundPrefix+"%d-"+"%s-", status, addr)
+	return []byte(key)
 }
 
 func calcRoundKey4LoopResult(ID string) []byte {
