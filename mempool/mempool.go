@@ -60,6 +60,9 @@ func initConfig(cfg *types.MemPool) {
 	if cfg.PoolCacheSize > 0 {
 		poolCacheSize = cfg.PoolCacheSize
 	}
+	if cfg.MaxTxNumPerAccount > 0 {
+		maxTxNumPerAccount = cfg.MaxTxNumPerAccount
+	}
 }
 
 // Mempool.Resize设置Mempool容量
