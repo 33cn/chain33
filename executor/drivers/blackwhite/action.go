@@ -8,7 +8,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 	gt "gitlab.33.cn/chain33/chain33/types/executor/blackwhite"
 	"math"
-	"time"
 )
 
 const (
@@ -17,12 +16,12 @@ const (
 	MinPlayerCount int32 = 3
 	MaxPlayerCount int32 = 100000
 	lockAmount     int64 = types.Coin / 100        //创建者锁定金额
-	showTimeout    int64 = int64(time.Minute) * 5  // 公布密钥超时时间
-	MaxPlayTimeout int64 = int64(time.Hour) * 24   // 创建交易之后最大超时时间
-	MinPlayTimeout int64 = int64(time.Minute) * 10 // 创建交易之后最小超时时间
+	showTimeout    int64 = 60 * 5                  // 公布密钥超时时间
+	MaxPlayTimeout int64 = 60 * 60 * 24            // 创建交易之后最大超时时间
+	MinPlayTimeout int64 = 60 * 10                 // 创建交易之后最小超时时间
 
-	white = 0
-	black = 1
+	white = "0"
+	black = "1"
 )
 
 type action struct {
@@ -86,9 +85,6 @@ func (a *action) Create(create *types.BlackwhiteCreate) (*types.Receipt, error) 
 
 	kv = append(kv, &types.KeyValue{key, value})
 
-	//log := &types.ReceiptBlackwhite{round}
-	//logs = append(logs, &types.ReceiptLog{types.TyLogBlackwhiteCreate, types.Encode(log)})
-
 	receiptLog := a.GetReceiptLog(round)
 	logs = append(logs, receiptLog)
 
@@ -113,8 +109,8 @@ func (a *action) Play(play *types.BlackwhitePlay) (*types.Receipt, error) {
 
 	// 检查当前状态
 	if gt.BlackwhiteStatusPlay != round.Status && gt.BlackwhiteStatusCreate != round.Status {
-		err := types.ErrGameOver
-		clog.Error("blackwhite play ", "addr", a.fromaddr, "round status", round.Status, "status is not match GameID ",
+		err := types.ErrIncorrectStatus
+		clog.Error("blackwhite play ", "addr", a.fromaddr, "round status", round.Status, "status is not match, GameID ",
 			play.GameID, "err", err)
 		return nil, err
 	}
@@ -122,7 +118,7 @@ func (a *action) Play(play *types.BlackwhitePlay) (*types.Receipt, error) {
 	// 检查是否有重复
 	for _, addrResult := range round.AddrResult {
 		if addrResult.Addr == a.fromaddr {
-			err := types.ErrOnceRoundRepeatPlay
+			err := types.ErrRepeatPlayerAddr
 			clog.Error("blackwhite play ", "addr", a.fromaddr, "execaddr", a.execaddr, "repeat address GameID",
 				play.GameID, "err", err)
 			return nil, err
@@ -160,17 +156,11 @@ func (a *action) Play(play *types.BlackwhitePlay) (*types.Receipt, error) {
 		// 触发进入到公布阶段
 		round.ShowTime = a.blocktime
 		round.Status = gt.BlackwhiteStatusShow
-		//tyLog = types.TyLogBlackwhiteShow
-	} else {
-		//tyLog = types.TyLogBlackwhitePlay
 	}
 
 	key1 := calcRoundKey(round.GameID)
 	value1 := types.Encode(&round)
 	kv = append(kv, &types.KeyValue{key1, value1})
-
-	//log := &types.ReceiptBlackwhite{&round}
-	//logs = append(logs, &types.ReceiptLog{int32(tyLog), types.Encode(log)})
 
 	receiptLog := a.GetReceiptLog(&round)
 	logs = append(logs, receiptLog)
@@ -195,8 +185,8 @@ func (a *action) Show(show *types.BlackwhiteShow) (*types.Receipt, error) {
 	}
 	// 检查当前状态
 	if gt.BlackwhiteStatusShow != round.Status {
-		err := types.ErrNoShowNonce
-		clog.Error("blackwhite show ", "addr", a.fromaddr, "round status", round.Status, "status is not match GameID ",
+		err := types.ErrIncorrectStatus
+		clog.Error("blackwhite show ", "addr", a.fromaddr, "round status", round.Status, "status is not match, GameID ",
 			show.GameID, "err", err)
 		return nil, err
 	}
@@ -218,9 +208,11 @@ func (a *action) Show(show *types.BlackwhiteShow) (*types.Receipt, error) {
 		return nil, err
 	}
 	//更新信息
+	if 0 == len(round.AddrResult[index].ShowSecret) {
+		round.CurShowCount++ //重复show不累加，但是可以修改私钥
+	}
 	round.Status = gt.BlackwhiteStatusShow
 	round.AddrResult[index].ShowSecret = show.Secret
-	round.CurShowCount++
 
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
@@ -236,17 +228,11 @@ func (a *action) Show(show *types.BlackwhiteShow) (*types.Receipt, error) {
 		}
 		logs = append(logs, receipt.Logs...)
 		kv = append(kv, receipt.KV...)
-		//tyLog = types.TyLogBlackwhiteDone
-	} else {
-		//tyLog = types.TyLogBlackwhiteShow
 	}
 
 	key1 := calcRoundKey(round.GameID)
 	value1 := types.Encode(&round)
 	kv = append(kv, &types.KeyValue{key1, value1})
-
-	//log := &types.ReceiptBlackwhite{&round}
-	//logs = append(logs, &types.ReceiptLog{int32(tyLog), types.Encode(log)})
 
 	receiptLog := a.GetReceiptLog(&round)
 	logs = append(logs, receiptLog)
@@ -272,7 +258,6 @@ func (a *action) TimeoutDone(done *types.BlackwhiteTimeoutDone) (*types.Receipt,
 
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
-	//tyLog := 0
 
 	// 检查当前状态
 	if gt.BlackwhiteStatusPlay == round.Status {
@@ -326,7 +311,6 @@ func (a *action) TimeoutDone(done *types.BlackwhiteTimeoutDone) (*types.Receipt,
 			}
 			logs = append(logs, receipt.Logs...)
 			kv = append(kv, receipt.KV...)
-			//tyLog = types.TyLogBlackwhiteDone
 
 		} else {
 			err := types.ErrNoTimeoutDone
@@ -335,7 +319,7 @@ func (a *action) TimeoutDone(done *types.BlackwhiteTimeoutDone) (*types.Receipt,
 			return nil, err
 		}
 	} else {
-		err := types.ErrNoTimeoutDone
+		err := types.ErrIncorrectStatus
 		clog.Error("blackwhite timeout done ", "addr", a.fromaddr, "execaddr", a.execaddr, "status is not match GameID",
 			done.GameID, "status", round.Status, "err", err)
 		return nil, err
@@ -344,9 +328,6 @@ func (a *action) TimeoutDone(done *types.BlackwhiteTimeoutDone) (*types.Receipt,
 	key1 := calcRoundKey(round.GameID)
 	value1 := types.Encode(&round)
 	kv = append(kv, &types.KeyValue{key1, value1})
-
-	//log := &types.ReceiptBlackwhite{&round}
-	//logs = append(logs, &types.ReceiptLog{int32(tyLog), types.Encode(log)})
 
 	receiptLog := a.GetReceiptLog(&round)
 	logs = append(logs, receiptLog)
@@ -363,7 +344,7 @@ func (a *action) StatTransfer(round *types.BlackwhiteRound) (*types.Receipt, err
 	Losers := a.getLoser(round)
 	var averAmount int64
 
-	if len(winers) == 0 {
+	if len(winers) == 0 || len(Losers) == 0 {
 		// 将所有参与人员都解冻
 		for i, addrRes := range round.AddrResult {
 			receipt, err := a.coinsAccount.ExecActive(addrRes.Addr, a.execaddr, addrRes.Amount)
@@ -508,7 +489,7 @@ func (a *action) getWinner(round *types.BlackwhiteRound) ([]*addrResult, *types.
 		if len(addres.ShowSecret) > 0 && len(addres.HashValues) == loop {
 			var isBlack []bool
 			for _, hash := range addres.HashValues {
-				if bytes.Equal(common.Sha256([]byte(addres.ShowSecret+string(black))), hash) {
+				if bytes.Equal(common.Sha256([]byte(addres.ShowSecret+black)), hash) {
 					isBlack = append(isBlack, true)
 				} else {
 					isBlack = append(isBlack, false)
@@ -539,30 +520,14 @@ func (a *action) getWinner(round *types.BlackwhiteRound) ([]*addrResult, *types.
 
 		if blackNum < whiteNum {
 			for _, addr := range addresXs {
-				if addr.IsWin {
-					if 0 == blackNum {
-						if addr.IsBlack[index] {
-							addr.IsWin = false
-						}
-					} else {
-						if false == addr.IsBlack[index] {
-							addr.IsWin = false
-						}
-					}
+				if addr.IsWin && 0 != blackNum && !addr.IsBlack[index] {
+					addr.IsWin = false
 				}
 			}
 		} else if blackNum > whiteNum {
 			for _, addr := range addresXs {
-				if addr.IsWin {
-					if 0 == whiteNum {
-						if false == addr.IsBlack[index] {
-							addr.IsWin = false
-						}
-					} else {
-						if addr.IsBlack[index] {
-							addr.IsWin = false
-						}
-					}
+				if addr.IsWin && 0 != whiteNum && addr.IsBlack[index] {
+					addr.IsWin = false
 				}
 			}
 		}
@@ -626,12 +591,9 @@ func (a *action) getLoser(round *types.BlackwhiteRound) []*addrResult {
 // staus == BlackwhiteStatusCreate  (创建，开始游戏）
 // status == BlackwhiteStatusPlay (参与)
 // status == BlackwhiteStatusShow (展示密钥)
-// status == BlackwhiteStatusTimeout (超时退出情况)
+// status == BlackwhiteStatusTime (超时退出情况)
 // status == BlackwhiteStatusDone (结束情况)
 
-//list 索引保存的方法:
-//key=status:addr:gameId
-//value=gameId
 func (action *action) GetReceiptLog(round *types.BlackwhiteRound) *types.ReceiptLog {
 	log := &types.ReceiptLog{}
 	r := &types.ReceiptBlackwhiteStatus{}
