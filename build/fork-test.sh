@@ -5,21 +5,27 @@ set +e
 PWD=$(cd "$(dirname "$0")" && pwd)
 export PATH="$PWD:$PATH"
 
+SERV3="chain33"
 NODE3="${1}_chain33_1"
 CLI="docker exec ${NODE3} /root/chain33-cli"
 
+SERV2="chain32"
 NODE2="${1}_chain32_1"
 CLI2="docker exec ${NODE2} /root/chain33-cli"
 
+SERV1="chain31"
 NODE1="${1}_chain31_1"
 CLI3="docker exec ${NODE1} /root/chain33-cli"
 
+SERV4="chain30"
 NODE4="${1}_chain30_1"
 CLI4="docker exec ${NODE4} /root/chain33-cli"
 
+SERV5="chain29"
 NODE5="${1}_chain29_1"
 CLI5="docker exec ${NODE5} /root/chain33-cli"
 
+SERV6="chain28"
 NODE6="${1}_chain28_1"
 CLI6="docker exec ${NODE6} /root/chain33-cli"
 
@@ -34,9 +40,14 @@ source privacy-fork-test.sh
 # shellcheck disable=SC1091
 source coins-fork-test.sh
 
+# shellcheck disable=SC1091
+source ci-para-test.sh
+
 sedfix=""
+xsedfix=(-i)
 if [ "$(uname)" == "Darwin" ]; then
     sedfix=".bak"
+    xsedfix=(-i ".bak")
 fi
 
 function init() {
@@ -59,6 +70,8 @@ function init() {
     # wallet
     sed -i $sedfix 's/^minerdisable=.*/minerdisable=false/g' chain33.toml
 
+    para_init "${xsedfix[*]}"
+
     # docker-compose ps
     docker-compose ps
 
@@ -66,7 +79,8 @@ function init() {
     docker-compose down
 
     # create and run docker-compose container
-    docker-compose up --build -d
+    #docker-compose up --build -d
+    docker-compose -f docker-compose.yml -f docker-compose-para.yml up --build -d
 
     local SLEEP=60
     echo "=========== sleep ${SLEEP}s ============="
@@ -193,6 +207,9 @@ function init() {
     if [ "${result}" -lt 1 ]; then
         exit 1
     fi
+
+    para_transfer
+    para_set_wallet
 
     ${CLI} wallet status
     ${CLI} account list
@@ -391,16 +408,18 @@ function optDockerPart3() {
     echo "======================================="
 
     echo "======停止第一组docker======"
-    docker stop "${NODE1}" "${NODE2}" "${NODE3}"
+    #docker stop "${NODE1}" "${NODE2}" "${NODE3}"
+    docker-compose pause "${SERV1}" "${SERV2}" "${SERV3}"
 
     echo "======sleep 5s======"
     sleep 5
 
     echo "======启动第二组docker======"
-    docker start "${NODE4}" "${NODE5}" "${NODE6}"
+    #docker start "${NODE4}" "${NODE5}" "${NODE6}"
+    docker-compose unpause "${SERV4}" "${SERV5}" "${SERV6}"
 
     echo "======sleep 20s======"
-    sleep 20
+    sleep 5
     result=$($CLI4 wallet unlock -p 1314 -t 0 | jq ".isok")
     if [ "${result}" = "false" ]; then
         echo "wallet1 unlock fail"
@@ -447,10 +466,11 @@ function optDockerPart4() {
     echo "======================================="
 
     echo "======启动第一组docker======"
-    docker start "${NODE1}" "${NODE2}" "${NODE3}"
+    #docker start "${NODE1}" "${NODE2}" "${NODE3}"
+    docker-compose unpause "${SERV1}" "${SERV2}" "${SERV3}"
 
     echo "======sleep 20s======"
-    sleep 20
+    sleep 5
     result=$($CLI wallet unlock -p 1314 -t 0 | jq ".isok")
     if [ "${result}" = "false" ]; then
         echo "wallet2 unlock fail"
@@ -504,7 +524,8 @@ function type2_optDockerPart2() {
     echo "==================================="
 
     echo "======停止第二组docker ======"
-    docker stop "${NODE4}" "${NODE5}" "${NODE6}"
+    #docker stop "${NODE4}" "${NODE5}" "${NODE6}"
+    docker-compose pause "${SERV4}" "${SERV5}" "${SERV6}"
 
     echo "======开启第一组docker节点挖矿======"
     sleep 3
@@ -843,6 +864,25 @@ function syn_block_timeout() {
 
     done
     echo "wait block $count s"
+}
+
+function block_wait() {
+    if [ "$#" -lt 2 ]; then
+        echo "wrong block_wait params"
+        exit 1
+    fi
+    cur_height=$(${1} block last_header | jq ".height")
+    expect=$((cur_height + ${2}))
+    count=0
+    while true; do
+        new_height=$(${1} block last_header | jq ".height")
+        if [ "${new_height}" -ge "${expect}" ]; then
+            break
+        fi
+        count=$((count + 1))
+        sleep 1
+    done
+    echo "wait new block $count s"
 }
 
 optDockerfun
