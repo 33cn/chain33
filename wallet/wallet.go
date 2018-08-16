@@ -52,7 +52,6 @@ type Wallet struct {
 	mineStatusReporter wcom.MineStatusReport
 	isclosed           int32
 	isWalletLocked     int32
-	lastHeight         int64
 	fatalFailureFlag   int32
 	Password           string
 	FeeAmount          int64

@@ -3,15 +3,13 @@ package common
 import "fmt"
 
 const (
-	keyAccount         = "Account"
-	keyAddr            = "Addr"
-	keyLabel           = "Label"
-	keyTx              = "Tx"
-	keyWalletFeeAmount = "WalletFeeAmount"
-	keyWalletAutoMiner = "WalletAutoMiner"
-	keyEncryptionFlag  = "EncryptionFlag"
-	keyPasswordHash    = "PasswordHash"
-	keyWalletSeed      = "walletseed"
+	keyAccount        = "Account"
+	keyAddr           = "Addr"
+	keyLabel          = "Label"
+	keyTx             = "Tx"
+	keyEncryptionFlag = "EncryptionFlag"
+	keyPasswordHash   = "PasswordHash"
+	keyWalletSeed     = "walletseed"
 )
 
 //用于所有Account账户的输出list，需要安装时间排序

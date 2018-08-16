@@ -114,7 +114,10 @@ func (policy *ticketPolicy) OnAddBlockTx(block *types.BlockDetail, tx *types.Tra
 }
 
 func (policy *ticketPolicy) OnDeleteBlockTx(block *types.BlockDetail, tx *types.Transaction, index int32, dbbatch db.Batch) {
-
+	receipt := block.Receipts[index]
+	if policy.checkNeedFlushTicket(tx, receipt) {
+		policy.needFlush = true
+	}
 }
 
 func (policy *ticketPolicy) SignTransaction(key crypto.PrivKey, req *types.ReqSignRawTx) (needSysSign bool, signtx string, err error) {
@@ -160,6 +163,7 @@ func (policy *ticketPolicy) OnImportPrivateKey(acc *types.Account) {
 
 func (policy *ticketPolicy) OnAddBlockFinish(block *types.BlockDetail) {
 	if policy.needFlush {
+		// 新增区块，由于ticket具有锁定期，所以这里不需要刷新
 		//policy.flushTicket()
 	}
 	policy.needFlush = false
@@ -298,7 +302,7 @@ func (policy *ticketPolicy) closeTickets(priv crypto.PrivKey, ids []string) ([]b
 	tclose := &types.TicketClose{ids[0:end]}
 	ta.Value = &types.TicketAction_Tclose{tclose}
 	ta.Ty = types.TicketActionClose
-	return policy.getWalletOperate().SendTransaction(ta, []byte("ticket"), priv, "")
+	return policy.getWalletOperate().SendTransaction(ta, types.ExecerTicket, priv, "")
 }
 
 func (policy *ticketPolicy) getTicketsByStatus(status int32) ([]*types.Ticket, [][]byte, error) {
@@ -435,11 +439,11 @@ func (policy *ticketPolicy) processFee(priv crypto.PrivKey) error {
 	if err != nil {
 		return err
 	}
-	acc2, err := operater.GetBalance(addr, "ticket")
+	acc2, err := operater.GetBalance(addr, types.TicketX)
 	if err != nil {
 		return err
 	}
-	toaddr := address.ExecAddress("ticket")
+	toaddr := address.ExecAddress(types.TicketX)
 	//如果acc2 的余额足够，那题withdraw 部分钱做手续费
 	if (acc1.Balance < (types.Coin / 2)) && (acc2.Balance > types.Coin) {
 		_, err := operater.SendToAddress(priv, toaddr, -types.Coin, "ticket->coins", false, "")
@@ -468,12 +472,12 @@ func (policy *ticketPolicy) processFees() error {
 func (policy *ticketPolicy) withdrawFromTicketOne(priv crypto.PrivKey) ([]byte, error) {
 	addr := address.PubKeyToAddress(priv.PubKey().Bytes()).String()
 	operater := policy.getWalletOperate()
-	acc, err := operater.GetBalance(addr, "ticket")
+	acc, err := operater.GetBalance(addr, types.TicketX)
 	if err != nil {
 		return nil, err
 	}
 	if acc.Balance > 0 {
-		hash, err := operater.SendToAddress(priv, address.ExecAddress("ticket"), -acc.Balance, "autominer->withdraw", false, "")
+		hash, err := operater.SendToAddress(priv, address.ExecAddress(types.TicketX), -acc.Balance, "autominer->withdraw", false, "")
 		if err != nil {
 			return nil, err
 		}
@@ -488,7 +492,7 @@ func (policy *ticketPolicy) openticket(mineraddr, returnaddr string, priv crypto
 	topen := &types.TicketOpen{MinerAddress: mineraddr, ReturnAddress: returnaddr, Count: count}
 	ta.Value = &types.TicketAction_Topen{topen}
 	ta.Ty = types.TicketActionOpen
-	return policy.walletOperate.SendTransaction(ta, []byte("ticket"), priv, "")
+	return policy.walletOperate.SendTransaction(ta, types.ExecerTicket, priv, "")
 }
 
 func (policy *ticketPolicy) buyTicketOne(height int64, priv crypto.PrivKey) ([]byte, int, error) {
@@ -499,7 +503,7 @@ func (policy *ticketPolicy) buyTicketOne(height int64, priv crypto.PrivKey) ([]b
 	if err != nil {
 		return nil, 0, err
 	}
-	acc2, err := operater.GetBalance(addr, "ticket")
+	acc2, err := operater.GetBalance(addr, types.TicketX)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -510,7 +514,7 @@ func (policy *ticketPolicy) buyTicketOne(height int64, priv crypto.PrivKey) ([]b
 		// 如果可用余额+冻结余额，可以凑成新票，则转币到冻结余额
 		if (acc1.Balance+acc2.Balance-2*fee)/types.GetP(height).TicketPrice > acc2.Balance/types.GetP(height).TicketPrice {
 			//第一步。转移币到 ticket
-			toaddr := address.ExecAddress("ticket")
+			toaddr := address.ExecAddress(types.TicketX)
 			amount := acc1.Balance - 2*fee
 			//必须大于0，才需要转移币
 			var hash *types.ReplyHash
@@ -525,7 +529,7 @@ func (policy *ticketPolicy) buyTicketOne(height int64, priv crypto.PrivKey) ([]b
 			}
 		}
 
-		acc, err := operater.GetBalance(addr, "ticket")
+		acc, err := operater.GetBalance(addr, types.TicketX)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -563,7 +567,7 @@ func (policy *ticketPolicy) buyTicket(height int64) ([][]byte, int, error) {
 func (policy *ticketPolicy) getMinerColdAddr(addr string) ([]string, error) {
 	reqaddr := &types.ReqString{addr}
 	var req types.Query
-	req.Execer = []byte("ticket")
+	req.Execer = types.ExecerTicket
 	req.FuncName = "MinerSourceList"
 	req.Payload = types.Encode(reqaddr)
 	api := policy.walletOperate.GetAPI()
@@ -617,7 +621,7 @@ func (policy *ticketPolicy) buyMinerAddrTicketOne(height int64, priv crypto.Priv
 			bizlog.Info("buyMinerAddrTicketOne Cold Addr not in MinerWhiteList", "addr", addrs[i])
 			continue
 		}
-		acc, err := policy.getWalletOperate().GetBalance(addrs[i], "ticket")
+		acc, err := policy.getWalletOperate().GetBalance(addrs[i], types.TicketX)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -690,6 +694,8 @@ func (policy *ticketPolicy) withdrawFromTicket() (hashes [][]byte, err error) {
 //2. 查找ticket 可取的余额
 //3. 取出ticket 里面的钱
 func (policy *ticketPolicy) autoMining() {
+	bizlog.Info("Begin auto mining")
+	defer bizlog.Info("End auto mining")
 	operater := policy.getWalletOperate()
 	defer operater.GetWaitGroup().Done()
 	cfg := operater.GetConfig()
@@ -699,6 +705,7 @@ func (policy *ticketPolicy) autoMining() {
 		select {
 		case <-miningTicket.C:
 			if cfg.GetMinerdisable() {
+				bizlog.Info("autoMining, GetMinerdisable() is true, exit autoMining()")
 				break
 			}
 			if !(operater.IsCaughtUp() || cfg.GetForceMining()) {
