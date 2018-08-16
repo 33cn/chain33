@@ -20,14 +20,14 @@ func newAddressResult(Addr string, blackwhite []int) *types.AddressResult{
 	}
 
 	return &types.AddressResult{
-		Addr: Addr,
+		Addr:       Addr,
 		HashValues: HashValues,
 		ShowSecret: showSecret,
 	}
 }
 
 // 参数: 比对次数， 参加的数字， 那几个人赢了
-func newGameRound(loop int32, blackwhite [][]int, win... int32) ([]*addrResult, error){
+func newGameRound(name string, loop int32, blackwhite [][]int, win ...int32) ([]*addrResult, error) {
 	a := action{}
 	var addrRes []*types.AddressResult
 	round := &types.BlackwhiteRound{
@@ -41,35 +41,158 @@ func newGameRound(loop int32, blackwhite [][]int, win... int32) ([]*addrResult, 
 	round.AddrResult = addrRes
 	winers, _ := a.getWinner(round)
 	if len(win) != len(winers) {
-		return winers, errors.New(fmt.Sprintln("len err: ", len(win), " not equal", len(winers)))
+		return winers, errors.New(fmt.Sprintln(name, " len err: ", len(win), " not equal", len(winers)))
 	}
 
 	if winers[0].addr != fmt.Sprintf("%d", win[0]) {
-		return winers, errors.New(fmt.Sprintln("win err: ", win[0], " not equal", winers[0].addr))
+		return winers, errors.New(fmt.Sprintln(name, " win err: ", win[0], " not equal", winers[0].addr))
 	}
 
 	if len(winers) == 2 {
 		if winers[1].addr != fmt.Sprintf("%d", win[1]) {
-			return winers, errors.New(fmt.Sprintln("win err: ", win[1], " not equal", winers[1].addr))
+			return winers, errors.New(fmt.Sprintln(name, " win err: ", win[1], " not equal", winers[1].addr))
 		}
 	}
-
-	fmt.Println("ok")
 	return winers, nil
 }
 
 func Test_getWinnerLoser(t *testing.T) {
+	test1(t)
+	test2(t)
+	test3(t)
+	test4(t)
+	test5(t)
+}
+
+func test1(t *testing.T) {
 	var inputRet [][]int
+	inputRet = append(inputRet, []int{1, 0, 0, 0, 1, 1, 1})
+	inputRet = append(inputRet, []int{0, 1, 1, 0, 1, 1, 1})
+	inputRet = append(inputRet, []int{1, 1, 0, 0, 1, 1, 0})
+	inputRet = append(inputRet, []int{0, 1, 1, 0, 1, 1, 1})
+	inputRet = append(inputRet, []int{1, 0, 0, 0, 1, 1, 1})
+	inputRet = append(inputRet, []int{0, 1, 0, 0, 1, 1, 0}) // in 3 loop win
+	inputRet = append(inputRet, []int{1, 0, 0, 0, 1, 1, 1})
 
-	inputRet = append(inputRet, []int{1,0,0,0,1,1,1})
-	inputRet = append(inputRet, []int{0,1,1,0,1,1,1})
-	inputRet = append(inputRet, []int{1,1,0,0,1,1,0})
-	inputRet = append(inputRet, []int{0,1,1,0,1,1,1})
-	inputRet = append(inputRet, []int{1,0,0,0,1,1,1})
-	inputRet = append(inputRet, []int{0,1,0,0,1,1,0})
-	inputRet = append(inputRet, []int{1,0,0,0,1,1,1})
+	_, err := newGameRound("第 1 次游戏", 7, inputRet, 5)
+	if err != nil {
+		fmt.Println(err)
+		require.Error(t, err)
+	}
+}
 
-	_, err := newGameRound(7, inputRet,5)
+func test2(t *testing.T) {
+	var inputRet [][]int
+	inputRet = append(inputRet, []int{1, 1, 0, 0, 1, 0, 1}) // in 6 loop win
+	inputRet = append(inputRet, []int{1, 1, 1, 0, 1, 0, 0}) // in 6 loop win
+	inputRet = append(inputRet, []int{1, 1, 0, 0, 1, 1, 0})
+	inputRet = append(inputRet, []int{1, 0, 1, 0, 1, 1, 1})
+	inputRet = append(inputRet, []int{1, 0, 1, 0, 1, 1, 1})
+	inputRet = append(inputRet, []int{1, 0, 0, 0, 1, 1, 1})
+	inputRet = append(inputRet, []int{0, 1, 0, 0, 1, 1, 0})
+	inputRet = append(inputRet, []int{0, 0, 0, 0, 1, 1, 1})
+	inputRet = append(inputRet, []int{0, 1, 0, 0, 1, 1, 0})
+	inputRet = append(inputRet, []int{0, 0, 0, 0, 1, 1, 1})
+	inputRet = append(inputRet, []int{0, 1, 0, 0, 1, 1, 0})
+	inputRet = append(inputRet, []int{0, 0, 0, 0, 1, 1, 1})
+	inputRet = append(inputRet, []int{0, 0, 0, 0, 1, 1, 1})
+
+	_, err := newGameRound("第 2 次游戏", 7, inputRet, 0, 1)
+	if err != nil {
+		fmt.Println(err)
+		require.Error(t, err)
+	}
+}
+
+func test3(t *testing.T) {
+	var inputRet [][]int
+	inputRet = append(inputRet, []int{1, 1, 0, 0, 1, 0, 1, 0, 1, 0})
+	inputRet = append(inputRet, []int{1, 1, 1, 0, 1, 0, 0, 0, 1, 0})
+	inputRet = append(inputRet, []int{1, 1, 0, 0, 1, 1, 0, 0, 1, 1}) // in 10 loop win
+	inputRet = append(inputRet, []int{1, 1, 1, 0, 1, 1, 1, 0, 1, 0})
+	inputRet = append(inputRet, []int{1, 0, 1, 0, 1, 1, 1, 0, 1, 0})
+	inputRet = append(inputRet, []int{1, 0, 0, 0, 1, 1, 1, 0, 1, 0})
+	inputRet = append(inputRet, []int{1, 0, 1, 0, 1, 1, 1, 0, 1, 0})
+	inputRet = append(inputRet, []int{1, 0, 0, 0, 1, 1, 1, 0, 1, 0})
+	inputRet = append(inputRet, []int{1, 0, 0, 0, 1, 1, 1, 0, 1, 0})
+	inputRet = append(inputRet, []int{1, 0, 0, 0, 1, 1, 1, 0, 1, 0})
+	inputRet = append(inputRet, []int{0, 1, 0, 0, 1, 1, 0, 0, 1, 0})
+	inputRet = append(inputRet, []int{0, 0, 0, 0, 1, 1, 1, 0, 1, 0})
+	inputRet = append(inputRet, []int{0, 1, 0, 0, 1, 1, 0, 0, 1, 0})
+	inputRet = append(inputRet, []int{0, 0, 0, 0, 1, 1, 1, 0, 1, 0})
+	inputRet = append(inputRet, []int{0, 1, 0, 0, 1, 1, 0, 0, 1, 0})
+	inputRet = append(inputRet, []int{0, 0, 0, 0, 1, 1, 1, 0, 1, 0})
+	inputRet = append(inputRet, []int{0, 0, 0, 0, 1, 1, 1, 0, 1, 0})
+	inputRet = append(inputRet, []int{0, 1, 0, 0, 1, 1, 0, 0, 1, 0})
+	inputRet = append(inputRet, []int{0, 0, 0, 0, 1, 1, 1, 0, 1, 0})
+	inputRet = append(inputRet, []int{0, 0, 0, 0, 1, 1, 1, 0, 1, 0})
+	inputRet = append(inputRet, []int{0, 0, 0, 0, 1, 1, 1, 0, 1, 0})
+
+	_, err := newGameRound("第 3 次游戏", 10, inputRet, 2)
+	if err != nil {
+		fmt.Println(err)
+		require.Error(t, err)
+	}
+}
+
+func test4(t *testing.T) {
+	var inputRet [][]int
+	inputRet = append(inputRet, []int{0, 0, 0, 0, 1, 1, 0, 0, 1, 0}) // in 10 loop win
+	inputRet = append(inputRet, []int{0, 0, 0, 0, 1, 1, 0, 0, 1, 0}) // in 10 loop win
+	inputRet = append(inputRet, []int{1, 1, 0, 0, 1, 0, 1, 0, 1, 0})
+	inputRet = append(inputRet, []int{1, 1, 1, 0, 1, 0, 0, 0, 1, 0})
+	inputRet = append(inputRet, []int{1, 1, 0, 0, 1, 1, 0, 0, 1, 1})
+	inputRet = append(inputRet, []int{1, 1, 1, 0, 1, 1, 1, 0, 1, 0})
+	inputRet = append(inputRet, []int{1, 0, 1, 0, 1, 1, 1, 0, 1, 0})
+	inputRet = append(inputRet, []int{1, 0, 0, 0, 1, 1, 1, 0, 1, 0})
+	inputRet = append(inputRet, []int{1, 0, 1, 0, 1, 1, 1, 0, 1, 0})
+	inputRet = append(inputRet, []int{1, 0, 0, 0, 1, 1, 1, 0, 1, 0})
+	inputRet = append(inputRet, []int{1, 0, 0, 0, 1, 1, 1, 0, 1, 0})
+	inputRet = append(inputRet, []int{1, 0, 0, 0, 1, 1, 1, 0, 1, 0})
+	inputRet = append(inputRet, []int{1, 0, 0, 0, 1, 1, 1, 0, 1, 0})
+	inputRet = append(inputRet, []int{1, 0, 0, 0, 1, 1, 1, 0, 1, 0})
+	inputRet = append(inputRet, []int{1, 0, 0, 0, 1, 1, 1, 0, 1, 0})
+	inputRet = append(inputRet, []int{0, 1, 0, 0, 1, 1, 0, 0, 1, 0})
+	inputRet = append(inputRet, []int{0, 1, 0, 0, 1, 1, 1, 0, 1, 0})
+	inputRet = append(inputRet, []int{0, 1, 0, 0, 1, 1, 0, 0, 1, 0})
+	inputRet = append(inputRet, []int{0, 1, 0, 0, 1, 1, 1, 0, 1, 0})
+	inputRet = append(inputRet, []int{0, 1, 0, 0, 1, 1, 0, 0, 1, 0})
+	inputRet = append(inputRet, []int{0, 1, 0, 0, 1, 1, 1, 0, 1, 0})
+	inputRet = append(inputRet, []int{0, 0, 0, 0, 1, 1, 1, 0, 1, 0})
+	inputRet = append(inputRet, []int{0, 0, 0, 0, 1, 1, 1, 0, 1, 0})
+	inputRet = append(inputRet, []int{0, 0, 0, 0, 1, 1, 1, 0, 1, 0})
+
+	_, err := newGameRound("第 4 次游戏", 10, inputRet, 0, 1)
+	if err != nil {
+		fmt.Println(err)
+		require.Error(t, err)
+	}
+}
+
+func test5(t *testing.T) {
+	var inputRet [][]int
+	inputRet = append(inputRet, []int{1, 1, 0, 0, 1, 0, 1, 0, 1, 1})
+	inputRet = append(inputRet, []int{1, 1, 0, 0, 1, 0, 1, 0, 1, 0}) // in 10 loop win
+	inputRet = append(inputRet, []int{1, 1, 0, 0, 1, 0, 1, 0, 1, 0}) // in 10 loop win
+	inputRet = append(inputRet, []int{1, 1, 0, 0, 1, 0, 1, 0, 1, 0}) // in 10 loop win
+	inputRet = append(inputRet, []int{1, 1, 0, 0, 1, 0, 1, 0, 1, 1})
+	inputRet = append(inputRet, []int{1, 1, 0, 0, 1, 0, 1, 0, 1, 1})
+	inputRet = append(inputRet, []int{1, 1, 0, 0, 1, 0, 1, 0, 1, 1})
+	inputRet = append(inputRet, []int{1, 1, 0, 0, 1, 0, 1, 0, 1, 1})
+	inputRet = append(inputRet, []int{1, 1, 0, 0, 1, 0, 1, 0, 1, 1})
+	inputRet = append(inputRet, []int{0, 1, 0, 0, 1, 1, 0, 0, 1, 1})
+	inputRet = append(inputRet, []int{0, 1, 0, 0, 1, 1, 1, 0, 1, 1})
+	inputRet = append(inputRet, []int{0, 1, 0, 0, 1, 1, 0, 0, 1, 0})
+	inputRet = append(inputRet, []int{0, 1, 0, 0, 1, 1, 1, 0, 1, 0})
+	inputRet = append(inputRet, []int{0, 1, 0, 0, 1, 1, 0, 0, 1, 0})
+	inputRet = append(inputRet, []int{0, 1, 0, 0, 1, 1, 1, 0, 1, 0})
+	inputRet = append(inputRet, []int{0, 0, 0, 0, 1, 1, 1, 0, 1, 0})
+	inputRet = append(inputRet, []int{0, 0, 0, 0, 1, 1, 1, 0, 1, 0})
+	inputRet = append(inputRet, []int{0, 0, 0, 0, 1, 1, 1, 0, 1, 0})
+	inputRet = append(inputRet, []int{0, 0, 0, 0, 1, 1, 0, 0, 1, 0})
+	inputRet = append(inputRet, []int{0, 0, 0, 0, 1, 1, 0, 0, 1, 0})
+
+	_, err := newGameRound("第 5 次游戏", 10, inputRet, 1, 2, 3)
 	if err != nil {
 		fmt.Println(err)
 		require.Error(t, err)
