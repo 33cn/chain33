@@ -433,7 +433,8 @@ func (db *PegasusBatch) Set(key, value []byte) {
 }
 
 func (db *PegasusBatch) Delete(key []byte) {
-	db.batchset[string(key)] = []byte{}
+	//db.batchset[string(key)] = []byte{}
+	delete(db.batchset, string(key))
 	db.batchdel[string(key)] = key
 }
 
@@ -517,7 +518,8 @@ func (db *PegasusBatch) Write() error {
 
 func getHashKey(key []byte) []byte {
 	if len(key) < HashKeyLen {
-		panic(fmt.Errorf("data key is too short! key=%v", key))
+		fmt.Println(fmt.Errorf("data key is too short! key=%v", key))
+		return key
 	}
 	return key[:HashKeyLen]
 }
