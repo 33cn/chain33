@@ -49,8 +49,14 @@ func initChainBityuanV3() {
 	chainV3Param.TargetTimePerBlock = 15 * time.Second
 }
 
+//title is local
 func initChainTestNet() {
 	chainV3Param.MaxTxNumber = 10000
+	chainV3Param.TicketFrozenTime = 5                   //5s only for test
+	chainV3Param.TicketWithdrawTime = 10                //10s only for test
+	chainV3Param.TicketMinerWaitTime = 2                // 2s only for test
+	chainV3Param.TargetTimespan = 144 * 2 * time.Second //only for test
+	chainV3Param.TargetTimePerBlock = 2 * time.Second   //only for test
 }
 
 type ChainParam struct {
