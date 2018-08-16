@@ -83,7 +83,7 @@ func Test_getWinnerAndLoser(t *testing.T) {
 	var addrRes []*types.AddressResult
 
 	round := &types.BlackwhiteRound{
-		Loop: 7,
+		Loop: 4,
 	}
 
 	addres := &types.AddressResult{
@@ -172,9 +172,9 @@ func Test_getWinnerAndLoser(t *testing.T) {
 	round.AddrResult = addrRes
 
 	winers, _ = a.getWinner(round)
-	require.Equal(t, "6", winers[0].addr)
+	require.Equal(t, "3", winers[0].addr)
 	losers = a.getLoser(round)
-	require.Equal(t, 5, len(losers))
+	require.Equal(t, 4, len(losers))
 	//t.Logf("winers3 is %v", winers)
 	//t.Logf("losers3 is %v", losers)
 
