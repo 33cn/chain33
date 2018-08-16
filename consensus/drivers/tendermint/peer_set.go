@@ -335,17 +335,12 @@ func (pc *peerConn) Send(msg MsgInfo) bool {
 	if !pc.IsRunning() {
 		return false
 	}
-	timeout := make(chan bool, 1)
-	go func() {
-		time.Sleep(1 * time.Minute) // 等待1分钟
-		timeout <- true
-	}()
 	select {
 	case pc.sendQueue <- msg:
 		atomic.AddInt32(&pc.sendQueueSize, 1)
 		return true
-	case <-timeout:
-		tendermintlog.Error("send 1 minute timeout")
+	case <-time.After(defaultSendTimeout):
+		tendermintlog.Error("send msg timeout", "peerip", msg.PeerIP, "msg", msg.Msg)
 		return false
 	}
 }
