@@ -906,11 +906,11 @@ func (policy *privacyPolicy) reqUtxosByAddr(addrs []string) {
 }
 
 func (policy *privacyPolicy) deleteScanPrivacyInputUtxo() {
-	MaxUtxosPerTime := 1000
+	maxUTXOsPerTime := 1000
 	for {
-		utxoGlobalIndexs := policy.store.setScanPrivacyInputUTXO(int32(MaxUtxosPerTime))
+		utxoGlobalIndexs := policy.store.setScanPrivacyInputUTXO(int32(maxUTXOsPerTime))
 		policy.store.updateScanInputUTXOs(utxoGlobalIndexs)
-		if len(utxoGlobalIndexs) < MaxUtxosPerTime {
+		if len(utxoGlobalIndexs) < maxUTXOsPerTime {
 			break
 		}
 	}
@@ -1317,7 +1317,7 @@ func (policy *privacyPolicy) checkExpireFTXOOnTimer() {
 
 	header := operater.GetLastHeader()
 	if header == nil {
-		bizlog.Error("checkExpireFTXOOnTimer", "Can not get last header.")
+		bizlog.Error("checkExpireFTXOOnTimer Can not get last header.")
 		return
 	}
 	policy.store.moveFTXO2UTXOWhenFTXOExpire(header.Height, header.BlockTime)
