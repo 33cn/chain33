@@ -239,11 +239,14 @@ func (c *Blackwhite) GetBlackwhiteRoundInfo(req *types.ReqBlackwhiteRoundInfo) (
 		return nil, err
 	}
 
-	var receipt types.ReceiptBlackwhite
-	err = types.Decode(values, &receipt)
+
+	var round types.BlackwhiteRound
+	err = types.Decode(values, &round)
 	if err != nil {
 		return nil, err
 	}
+	var receipt types.ReceiptBlackwhite
+	receipt.Round = &round
 	return &receipt, nil
 }
 

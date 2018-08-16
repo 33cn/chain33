@@ -7,7 +7,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	bw "gitlab.33.cn/chain33/chain33/types/executor/blackwhite"
 	"strings"
-	"time"
 )
 
 func BlackwhiteCmd() *cobra.Command {
@@ -39,20 +38,20 @@ func BlackwhiteCreateRawTxCmd() *cobra.Command {
 }
 
 func addBlackwhiteCreateFlags(cmd *cobra.Command) {
-	cmd.Flags().Uint64P("playAmount", "m", 0, "max frozen amount")
-	cmd.MarkFlagRequired("playAmount")
+	cmd.Flags().Uint64P("amount", "a", 0, "amount")
+	cmd.MarkFlagRequired("amount")
 
 	cmd.Flags().Uint32P("playerCount", "p", 0, "player count")
 	cmd.MarkFlagRequired("playerCount")
 
-	cmd.Flags().Int64P("timeout", "t", 0, "timeout(s),default:10min")
+	cmd.Flags().Int64P("timeout", "t", 0, "timeout(min),default:10min")
 
 	cmd.Flags().StringP("gameName", "g", "", "game name")
 }
 
 func blackwhiteCreate(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	amount, _ := cmd.Flags().GetUint64("playAmount")
+	amount, _ := cmd.Flags().GetUint64("amount")
 	playerCount, _ := cmd.Flags().GetUint32("playerCount")
 	timeout, _ := cmd.Flags().GetInt64("timeout")
 	gameName, _ := cmd.Flags().GetString("gameName")
@@ -62,7 +61,7 @@ func blackwhiteCreate(cmd *cobra.Command, args []string) {
 	if timeout == 0 {
 		timeout = 10
 	}
-	timeout = int64(time.Minute) * timeout
+	timeout = 60 * timeout
 
 	params := &types.BlackwhiteCreate{
 		PlayAmount:  amountInt64 * types.Coin,
@@ -90,10 +89,10 @@ func addBlackwhitePlayFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("gameID", "g", "", "game ID")
 	cmd.MarkFlagRequired("gameID")
 
-	cmd.Flags().Uint64P("amount", "a", 0, "frozen amount")
+	cmd.Flags().Uint64P("amount", "a", 0, "amount")
 	cmd.MarkFlagRequired("amount")
 
-	cmd.Flags().StringP("isBlackStr", "i", "", "[0-1-1-1-1-1-0-0-1-1] (1:black,0:white,once round need 10 time)")
+	cmd.Flags().StringP("isBlackStr", "i", "", "[0-1-1-1-1-1-0-0-1-1] (1:black,0:white)")
 	cmd.MarkFlagRequired("isBlackStr")
 
 	cmd.Flags().StringP("secret", "s", "", "secret key")
@@ -119,6 +118,7 @@ func blackwhitePlay(cmd *cobra.Command, args []string) {
 			hashValues =append(hashValues, common.Sha256([]byte(secret+white)))
 		}
 	}
+
 
 	amountInt64 := int64(amount)
 	params := &types.BlackwhitePlay{
@@ -153,11 +153,11 @@ func addBlackwhiteShowFlags(cmd *cobra.Command) {
 func blackwhiteShow(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	gameID, _ := cmd.Flags().GetString("gameID")
-	Secret, _ := cmd.Flags().GetString("Secret")
+	secret, _ := cmd.Flags().GetString("secret")
 
 	params := &types.BlackwhiteShow{
 		GameID: gameID,
-		Secret: Secret,
+		Secret: secret,
 	}
 	var res string
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.BlackwhiteShowTx", params, &res)
