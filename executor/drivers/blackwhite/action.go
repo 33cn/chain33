@@ -285,7 +285,7 @@ func (a *action) TimeoutDone(done *types.BlackwhiteTimeoutDone) (*types.Receipt,
 					for j, addrR := range round.AddrResult {
 						if j < i {
 							a.coinsAccount.ExecFrozen(addrR.Addr, a.execaddr, addrR.Amount)
-						}else {
+						} else {
 							break
 						}
 					}
@@ -372,7 +372,7 @@ func (a *action) StatTransfer(round *types.BlackwhiteRound) (*types.Receipt, err
 				for j, addrR := range round.AddrResult {
 					if j < i {
 						a.coinsAccount.ExecFrozen(addrR.Addr, a.execaddr, addrR.Amount)
-					}else {
+					} else {
 						break
 					}
 				}
@@ -395,7 +395,7 @@ func (a *action) StatTransfer(round *types.BlackwhiteRound) (*types.Receipt, err
 					if j < i {
 						a.coinsAccount.ExecTransfer(blackwhiteAddr, addrR.addr, a.execaddr, addrR.amount)
 						a.coinsAccount.ExecFrozen(addrR.addr, a.execaddr, addrR.amount)
-					}else {
+					} else {
 						break
 					}
 				}
@@ -417,7 +417,7 @@ func (a *action) StatTransfer(round *types.BlackwhiteRound) (*types.Receipt, err
 				for j, winer := range winers {
 					if j < i {
 						a.coinsAccount.ExecTransfer(winer.addr, blackwhiteAddr, a.execaddr, averAmount)
-					}else {
+					} else {
 						break
 					}
 				}
@@ -440,7 +440,7 @@ func (a *action) StatTransfer(round *types.BlackwhiteRound) (*types.Receipt, err
 				for j, winer := range winers {
 					if j < i {
 						a.coinsAccount.ExecFrozen(winer.addr, a.execaddr, winer.amount)
-					}else {
+					} else {
 						break
 					}
 				}
@@ -471,7 +471,7 @@ func (a *action) StatTransfer(round *types.BlackwhiteRound) (*types.Receipt, err
 			for _, addrR := range round.AddrResult {
 				a.coinsAccount.ExecFrozen(addrR.Addr, a.execaddr, addrR.Amount)
 			}
-		}else {
+		} else {
 			for _, winer := range winers {
 				a.coinsAccount.ExecFrozen(winer.addr, a.execaddr, winer.amount)
 			}
@@ -539,7 +539,7 @@ func (a *action) getWinner(round *types.BlackwhiteRound) ([]*addrResult, *types.
 
 		if blackNum < whiteNum {
 			for _, addr := range addresXs {
-				if addr.IsWin {
+				/*	if addr.IsWin {
 					if 0 == blackNum {
 						if addr.IsBlack[index] {
 							addr.IsWin = false
@@ -549,11 +549,14 @@ func (a *action) getWinner(round *types.BlackwhiteRound) ([]*addrResult, *types.
 							addr.IsWin = false
 						}
 					}
+				}*/
+				if addr.IsWin && 0 != blackNum && !addr.IsBlack[index] {
+					addr.IsWin = false
 				}
 			}
 		} else if blackNum > whiteNum {
 			for _, addr := range addresXs {
-				if addr.IsWin {
+				/*	if addr.IsWin {
 					if 0 == whiteNum {
 						if false == addr.IsBlack[index] {
 							addr.IsWin = false
@@ -563,6 +566,9 @@ func (a *action) getWinner(round *types.BlackwhiteRound) ([]*addrResult, *types.
 							addr.IsWin = false
 						}
 					}
+				}*/
+				if addr.IsWin && 0 != whiteNum && addr.IsBlack[index] {
+					addr.IsWin = false
 				}
 			}
 		}
