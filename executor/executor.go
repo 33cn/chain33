@@ -29,6 +29,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers/trade"
 
 	"gitlab.33.cn/chain33/chain33/client"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/blackwhite"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/cert"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/privacy"
 	"gitlab.33.cn/chain33/chain33/queue"
@@ -78,6 +79,7 @@ func execInit() {
 	cert.Init()
 	privacy.Init()
 	game.Init()
+	blackwhite.Init()
 }
 
 var runonce sync.Once
