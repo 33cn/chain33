@@ -144,8 +144,8 @@ func (s *suiteRelay) TestExec_1() {
 
 	s.orderId = log.OrderId
 
-	s.testExecLocal(tx, receipt)
-	s.testExecDelLocal(tx, receipt)
+	//s.testExecLocal(tx, receipt)
+	//s.testExecDelLocal(tx, receipt)
 
 }
 
