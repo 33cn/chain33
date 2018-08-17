@@ -15,6 +15,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
+	bw "gitlab.33.cn/chain33/chain33/types/executor/blackwhite"
 	evmtype "gitlab.33.cn/chain33/chain33/types/executor/evm"
 	hashlocktype "gitlab.33.cn/chain33/chain33/types/executor/hashlock"
 	retrievetype "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
@@ -581,7 +582,7 @@ func (c *channelClient) CreateRawRelaySaveBTCHeadTx(parm *RelaySaveBTCHeadTx) ([
 	return data, nil
 }
 
-func (c *channelClient) BlackwhiteCreateTx(parm *types.BlackwhiteCreate) ([]byte, error) {
+func (c *channelClient) BlackwhiteCreateTx(parm *bw.BlackwhiteCreateTx) ([]byte, error) {
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}
@@ -600,6 +601,7 @@ func (c *channelClient) BlackwhiteCreateTx(parm *types.BlackwhiteCreate) ([]byte
 	tx := &types.Transaction{
 		Execer:  types.ExecerBlackwhite,
 		Payload: types.Encode(val),
+		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
 		To:      address.ExecAddress(string(types.ExecerBlackwhite)),
 	}
@@ -610,7 +612,7 @@ func (c *channelClient) BlackwhiteCreateTx(parm *types.BlackwhiteCreate) ([]byte
 	return data, nil
 }
 
-func (c *channelClient) BlackwhiteShowTx(parm *types.BlackwhiteShow) ([]byte, error) {
+func (c *channelClient) BlackwhiteShowTx(parm *bw.BlackwhiteShowTx) ([]byte, error) {
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}
@@ -627,6 +629,7 @@ func (c *channelClient) BlackwhiteShowTx(parm *types.BlackwhiteShow) ([]byte, er
 	tx := &types.Transaction{
 		Execer:  types.ExecerBlackwhite,
 		Payload: types.Encode(val),
+		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
 		To:      address.ExecAddress(string(types.ExecerBlackwhite)),
 	}
@@ -637,14 +640,14 @@ func (c *channelClient) BlackwhiteShowTx(parm *types.BlackwhiteShow) ([]byte, er
 	return data, nil
 }
 
-func (c *channelClient) BlackwhitePlayTx(parm *types.BlackwhitePlay) ([]byte, error) {
+func (c *channelClient) BlackwhitePlayTx(parm *bw.BlackwhitePlayTx) ([]byte, error) {
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}
 
 	head := &types.BlackwhitePlay{
-		GameID:  parm.GameID,
-		Amount:  parm.Amount,
+		GameID:     parm.GameID,
+		Amount:     parm.Amount,
 		HashValues: parm.HashValues,
 	}
 
@@ -655,6 +658,7 @@ func (c *channelClient) BlackwhitePlayTx(parm *types.BlackwhitePlay) ([]byte, er
 	tx := &types.Transaction{
 		Execer:  types.ExecerBlackwhite,
 		Payload: types.Encode(val),
+		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
 		To:      address.ExecAddress(string(types.ExecerBlackwhite)),
 	}
@@ -665,7 +669,7 @@ func (c *channelClient) BlackwhitePlayTx(parm *types.BlackwhitePlay) ([]byte, er
 	return data, nil
 }
 
-func (c *channelClient) BlackwhiteTimeoutDoneTx(parm *types.BlackwhiteTimeoutDone) ([]byte, error) {
+func (c *channelClient) BlackwhiteTimeoutDoneTx(parm *bw.BlackwhiteTimeoutDoneTx) ([]byte, error) {
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}
@@ -681,6 +685,7 @@ func (c *channelClient) BlackwhiteTimeoutDoneTx(parm *types.BlackwhiteTimeoutDon
 	tx := &types.Transaction{
 		Execer:  types.ExecerBlackwhite,
 		Payload: types.Encode(val),
+		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
 		To:      address.ExecAddress(string(types.ExecerBlackwhite)),
 	}
