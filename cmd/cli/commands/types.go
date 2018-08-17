@@ -127,22 +127,6 @@ type AddrOverviewResult struct {
 	TxCount  int64  `json:"txCount"`
 }
 
-type SellOrder2Show struct {
-	Tokensymbol       string `json:"tokensymbol"`
-	Seller            string `json:"address"`
-	Amountperboardlot string `json:"amountperboardlot"`
-	Minboardlot       int64  `json:"minboardlot"`
-	Priceperboardlot  string `json:"priceperboardlot"`
-	Totalboardlot     int64  `json:"totalboardlot"`
-	Soldboardlot      int64  `json:"soldboardlot"`
-	Starttime         int64  `json:"starttime"`
-	Stoptime          int64  `json:"stoptime"`
-	Crowdfund         bool   `json:"crowdfund"`
-	SellID            string `json:"sellid"`
-	Status            string `json:"status"`
-	Height            int64  `json:"height"`
-}
-
 type GetTotalCoinsResult struct {
 	TxCount          int64  `json:"txCount"`
 	AccountCount     int64  `json:"accountCount"`
@@ -186,8 +170,8 @@ type PrivacyAccountInfoResult struct {
 }
 
 type UTXOGlobalIndex struct {
-	Height   int64  `json:"height,omitempty"`
-	Txindex  int32  `json:"txindex,omitempty"`
+	// Height   int64  `json:"height,omitempty"`
+	// Txindex  int32  `json:"txindex,omitempty"`
 	Outindex int32  `json:"outindex,omitempty"`
 	Txhash   string `json:"txhash,omitempty"`
 }
@@ -278,4 +262,115 @@ type ShowPriAddrResult struct {
 
 type ShowEnablePrivacy struct {
 	Results []*ShowPriAddrResult `json:"results"`
+}
+
+type TradeOrderResult struct {
+	TokenSymbol       string `json:"tokenSymbol"`
+	Owner             string `json:"owner"`
+	AmountPerBoardlot string `json:"amountPerBoardlot"`
+	MinBoardlot       int64  `json:"minBoardlot"`
+	PricePerBoardlot  string `json:"pricePerBoardlot"`
+	TotalBoardlot     int64  `json:"totalBoardlot"`
+	TradedBoardlot    int64  `json:"tradedBoardlot"`
+	BuyID             string `json:"buyID"`
+	Status            int32  `json:"status"`
+	SellID            string `json:"sellID"`
+	TxHash            string `json:"txHash"`
+	Height            int64  `json:"height"`
+	Key               string `json:"key"`
+	BlockTime         int64  `json:"blockTime"`
+	IsSellOrder       bool   `json:"isSellOrder"`
+}
+
+type ReplySellOrdersResult struct {
+	SellOrders []*TradeOrderResult `json:"sellOrders"`
+}
+
+type ReplyBuyOrdersResult struct {
+	BuyOrders []*TradeOrderResult `json:"buyOrders"`
+}
+
+type ReplyTradeOrdersResult struct {
+	Orders []*TradeOrderResult `json:"orders"`
+}
+
+// decodetx
+type CoinsTransferCLI struct {
+	Cointoken string `json:"cointoken,omitempty"`
+	Amount    string `json:"amount,omitempty"`
+	Note      string `json:"note,omitempty"`
+	To        string `json:"to,omitempty"`
+}
+
+type CoinsWithdrawCLI struct {
+	Cointoken string `json:"cointoken,omitempty"`
+	Amount    string `json:"amount,omitempty"`
+	Note      string `json:"note,omitempty"`
+	ExecName  string `json:"execName,omitempty"`
+	To        string `json:"to,omitempty"`
+}
+
+type CoinsGenesisCLI struct {
+	Amount        string `json:"amount,omitempty"`
+	ReturnAddress string `json:"returnAddress,omitempty"`
+}
+
+type CoinsTransferToExecCLI struct {
+	Cointoken string `json:"cointoken,omitempty"`
+	Amount    string `json:"amount,omitempty"`
+	Note      string `json:"note,omitempty"`
+	ExecName  string `json:"execName,omitempty"`
+	To        string `json:"to,omitempty"`
+}
+
+type HashlockLockCLI struct {
+	Amount        string `json:"amount,omitempty"`
+	Time          int64  `json:"time,omitempty"`
+	Hash          []byte `json:"hash,omitempty"`
+	ToAddress     string `json:"toAddress,omitempty"`
+	ReturnAddress string `json:"returnAddress,omitempty"`
+}
+
+type TicketMinerCLI struct {
+	Bits     uint32 `json:"bits,omitempty"`
+	Reward   string `json:"reward,omitempty"`
+	TicketId string `json:"ticketId,omitempty"`
+	Modify   []byte `json:"modify,omitempty"`
+}
+
+type TokenPreCreateCLI struct {
+	Name         string `json:"name,omitempty"`
+	Symbol       string `json:"symbol,omitempty"`
+	Introduction string `json:"introduction,omitempty"`
+	Total        int64  `json:"total,omitempty"`
+	Price        string `json:"price,omitempty"`
+	Owner        string `json:"owner,omitempty"`
+}
+
+type Public2PrivacyCLI struct {
+	Tokenname string         `json:"tokenname,omitempty"`
+	Amount    string         `json:"amount,omitempty"`
+	Note      string         `json:"note,omitempty"`
+	Output    *PrivacyOutput `json:"output,omitempty"`
+}
+
+type Privacy2PrivacyCLI struct {
+	Tokenname string         `json:"tokenname,omitempty"`
+	Amount    string         `json:"amount,omitempty"`
+	Note      string         `json:"note,omitempty"`
+	Input     *PrivacyInput  `json:"input,omitempty"`
+	Output    *PrivacyOutput `json:"output,omitempty"`
+}
+
+type Privacy2PublicCLI struct {
+	Tokenname string         `json:"tokenname,omitempty"`
+	Amount    string         `json:"amount,omitempty"`
+	Note      string         `json:"note,omitempty"`
+	Input     *PrivacyInput  `json:"input,omitempty"`
+	Output    *PrivacyOutput `json:"output,omitempty"`
+}
+
+type PrivacyOutput struct {
+	RpubKeytx string       `protobuf:"bytes,1,opt,name=RpubKeytx,proto3" json:"RpubKeytx,omitempty"`
+	Keyoutput []*KeyOutput `protobuf:"bytes,2,rep,name=keyoutput" json:"keyoutput,omitempty"`
 }
