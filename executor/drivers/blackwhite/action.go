@@ -2,12 +2,13 @@ package blackwhite
 
 import (
 	"bytes"
+	"math"
+
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
 	gt "gitlab.33.cn/chain33/chain33/types/executor/blackwhite"
-	"math"
 )
 
 const (
@@ -15,10 +16,10 @@ const (
 	MinAmount      int64 = 1 * types.Coin
 	MinPlayerCount int32 = 3
 	MaxPlayerCount int32 = 100000
-	lockAmount     int64 = types.Coin / 100        //创建者锁定金额
-	showTimeout    int64 = 60 * 5                  // 公布密钥超时时间
-	MaxPlayTimeout int64 = 60 * 60 * 24            // 创建交易之后最大超时时间
-	MinPlayTimeout int64 = 60 * 10                 // 创建交易之后最小超时时间
+	lockAmount     int64 = types.Coin / 100 //创建者锁定金额
+	showTimeout    int64 = 60 * 5           // 公布密钥超时时间
+	MaxPlayTimeout int64 = 60 * 60 * 24     // 创建交易之后最大超时时间
+	MinPlayTimeout int64 = 60 * 10          // 创建交易之后最小超时时间
 
 	white = "0"
 	black = "1"
@@ -201,7 +202,7 @@ func (a *action) Show(show *types.BlackwhiteShow) (*types.Receipt, error) {
 			break
 		}
 	}
-	if false == bIsExist {
+	if !bIsExist {
 		err := types.ErrNoExistAddr
 		clog.Error("blackwhite show ", "addr", a.fromaddr, "execaddr", a.execaddr, "this addr is play in GameID",
 			show.GameID, "err", err)
@@ -270,7 +271,7 @@ func (a *action) TimeoutDone(done *types.BlackwhiteTimeoutDone) (*types.Receipt,
 					for j, addrR := range round.AddrResult {
 						if j < i {
 							a.coinsAccount.ExecFrozen(addrR.Addr, a.execaddr, addrR.Amount)
-						}else {
+						} else {
 							break
 						}
 					}
@@ -353,7 +354,7 @@ func (a *action) StatTransfer(round *types.BlackwhiteRound) (*types.Receipt, err
 				for j, addrR := range round.AddrResult {
 					if j < i {
 						a.coinsAccount.ExecFrozen(addrR.Addr, a.execaddr, addrR.Amount)
-					}else {
+					} else {
 						break
 					}
 				}
@@ -376,7 +377,7 @@ func (a *action) StatTransfer(round *types.BlackwhiteRound) (*types.Receipt, err
 					if j < i {
 						a.coinsAccount.ExecTransfer(blackwhiteAddr, addrR.addr, a.execaddr, addrR.amount)
 						a.coinsAccount.ExecFrozen(addrR.addr, a.execaddr, addrR.amount)
-					}else {
+					} else {
 						break
 					}
 				}
@@ -387,8 +388,7 @@ func (a *action) StatTransfer(round *types.BlackwhiteRound) (*types.Receipt, err
 			kv = append(kv, receipt.KV...)
 		}
 
-		var winNum int64
-		winNum = int64(len(winers))
+		winNum := int64(len(winers))
 		averAmount = sumAmount / winNum
 		// 从公共账户转帐给它获胜用户
 		for i, winer := range winers {
@@ -398,7 +398,7 @@ func (a *action) StatTransfer(round *types.BlackwhiteRound) (*types.Receipt, err
 				for j, winer := range winers {
 					if j < i {
 						a.coinsAccount.ExecTransfer(winer.addr, blackwhiteAddr, a.execaddr, averAmount)
-					}else {
+					} else {
 						break
 					}
 				}
@@ -421,7 +421,7 @@ func (a *action) StatTransfer(round *types.BlackwhiteRound) (*types.Receipt, err
 				for j, winer := range winers {
 					if j < i {
 						a.coinsAccount.ExecFrozen(winer.addr, a.execaddr, winer.amount)
-					}else {
+					} else {
 						break
 					}
 				}
@@ -452,7 +452,7 @@ func (a *action) StatTransfer(round *types.BlackwhiteRound) (*types.Receipt, err
 			for _, addrR := range round.AddrResult {
 				a.coinsAccount.ExecFrozen(addrR.Addr, a.execaddr, addrR.Amount)
 			}
-		}else {
+		} else {
 			for _, winer := range winers {
 				a.coinsAccount.ExecFrozen(winer.addr, a.execaddr, winer.amount)
 			}
@@ -491,6 +491,8 @@ func (a *action) getWinner(round *types.BlackwhiteRound) ([]*addrResult, *types.
 			for _, hash := range addres.HashValues {
 				if bytes.Equal(common.Sha256([]byte(addres.ShowSecret+black)), hash) {
 					isBlack = append(isBlack, true)
+				} else if bytes.Equal(common.Sha256([]byte(addres.ShowSecret+white)), hash) {
+					isBlack = append(isBlack, false)
 				} else {
 					isBlack = append(isBlack, false)
 				}

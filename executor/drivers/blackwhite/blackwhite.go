@@ -17,7 +17,7 @@ type Blackwhite struct {
 }
 
 func Init() {
-	drivers.Register(newBlackwhite().GetName(), newBlackwhite, types.ForkV23Blackwhite)
+	drivers.Register(newBlackwhite().GetName(), newBlackwhite, 0)
 	setReciptPrefix()
 }
 
@@ -77,16 +77,16 @@ func (c *Blackwhite) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData
 			types.TyLogBlackwhiteShow,
 			types.TyLogBlackwhiteTimeout,
 			types.TyLogBlackwhiteDone:
-				{
-					var receipt types.ReceiptBlackwhiteStatus
-					err := types.Decode(log.Log, &receipt)
-					if err != nil {
-						panic(err) //数据错误了，已经被修改了
-					}
-					kv := c.saveGame(&receipt)
-					set.KV = append(set.KV, kv...)
-					break
+			{
+				var receipt types.ReceiptBlackwhiteStatus
+				err := types.Decode(log.Log, &receipt)
+				if err != nil {
+					panic(err) //数据错误了，已经被修改了
 				}
+				kv := c.saveGame(&receipt)
+				set.KV = append(set.KV, kv...)
+				break
+			}
 		case types.TyLogBlackwhiteLoopInfo:
 			{
 				var res types.ReplyLoopResults
@@ -204,7 +204,6 @@ func (c *Blackwhite) delLoopResult(res *types.ReplyLoopResults) (kvs []*types.Ke
 	return kvs
 }
 
-
 func (c *Blackwhite) Query(funcName string, params []byte) (types.Message, error) {
 	if funcName == bw.GetBlackwhiteRoundInfo {
 		var in types.ReqBlackwhiteRoundInfo
@@ -213,14 +212,14 @@ func (c *Blackwhite) Query(funcName string, params []byte) (types.Message, error
 			return nil, err
 		}
 		return c.GetBlackwhiteRoundInfo(&in)
-	}else if funcName == bw.GetBlackwhiteByStatusAndAddr {
+	} else if funcName == bw.GetBlackwhiteByStatusAndAddr {
 		var in types.ReqBlackwhiteRoundList
 		err := types.Decode(params, &in)
 		if err != nil {
 			return nil, err
 		}
 		return c.GetBwRoundListInfo(&in)
-	}else if funcName == bw.GetBlackwhiteloopResult {
+	} else if funcName == bw.GetBlackwhiteloopResult {
 		var in types.ReqLoopResult
 		err := types.Decode(params, &in)
 		if err != nil {
@@ -239,11 +238,14 @@ func (c *Blackwhite) GetBlackwhiteRoundInfo(req *types.ReqBlackwhiteRoundInfo) (
 		return nil, err
 	}
 
-
 	var round types.BlackwhiteRound
 	err = types.Decode(values, &round)
 	if err != nil {
 		return nil, err
+	}
+	//密钥不显示
+	for _, addRes := range round.AddrResult {
+		addRes.ShowSecret = ""
 	}
 	var receipt types.ReceiptBlackwhite
 	receipt.Round = &round
@@ -271,6 +273,10 @@ func (c *Blackwhite) GetBwRoundListInfo(req *types.ReqBlackwhiteRoundList) (type
 		if err != nil {
 			return nil, err
 		}
+		//密钥不显示
+		for _, addRes := range round.AddrResult {
+			addRes.ShowSecret = ""
+		}
 		rep.Round = append(rep.Round, &round)
 	}
 	return &rep, nil
@@ -292,18 +298,18 @@ func (c *Blackwhite) GetBwRoundLoopResult(req *types.ReqLoopResult) (types.Messa
 		return nil, err
 	}
 
-	if req.LoopSeq > 0  {//取出具体一轮
+	if req.LoopSeq > 0 { //取出具体一轮
 		if len(result.Results) < int(req.LoopSeq) {
 			return nil, types.ErrNoLoopSeq
 		}
-		res := &types.ReplyLoopResults {
+		res := &types.ReplyLoopResults{
 			GameID: result.GameID,
 		}
 		index := int(req.LoopSeq)
-		perRes := &types.PerLoopResult {}
-		perRes.Winers = append(perRes.Winers, res.Results[index - 1].Winers...)
-		perRes.Losers = append(perRes.Losers, res.Results[index - 1].Losers...)
-		res.Results   = append(res.Results, perRes)
+		perRes := &types.PerLoopResult{}
+		perRes.Winers = append(perRes.Winers, res.Results[index-1].Winers...)
+		perRes.Losers = append(perRes.Losers, res.Results[index-1].Losers...)
+		res.Results = append(res.Results, perRes)
 		return res, nil
 	}
 	return &result, nil //将所有轮数取出

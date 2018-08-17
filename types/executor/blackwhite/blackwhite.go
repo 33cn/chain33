@@ -75,6 +75,7 @@ func (m BlackwhiteType) Amount(tx *types.Transaction) (int64, error) {
 
 // TODO 暂时不修改实现， 先完成结构的重构
 func (m BlackwhiteType) CreateTx(action string, message json.RawMessage) (*types.Transaction, error) {
+	glog.Debug("Blackwhite.CreateTx", "action", action)
 	var tx *types.Transaction
 	return tx, nil
 }
@@ -222,5 +223,3 @@ func (t *BlackwhiteloopResult) Input(message json.RawMessage) ([]byte, error) {
 func (t *BlackwhiteloopResult) Output(reply interface{}) (interface{}, error) {
 	return reply, nil
 }
-
-
