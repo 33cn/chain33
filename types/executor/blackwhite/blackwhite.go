@@ -222,5 +222,3 @@ func (t *BlackwhiteloopResult) Input(message json.RawMessage) ([]byte, error) {
 func (t *BlackwhiteloopResult) Output(reply interface{}) (interface{}, error) {
 	return reply, nil
 }
-
-

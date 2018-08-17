@@ -3,20 +3,20 @@ package blackwhite
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
-	"gitlab.33.cn/chain33/chain33/common"
-	"gitlab.33.cn/chain33/chain33/types"
 	"errors"
 	"fmt"
 	"strconv"
+
+	"github.com/stretchr/testify/require"
+	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
-
-func newAddressResult(Addr string, blackwhite []int) *types.AddressResult{
+func newAddressResult(Addr string, blackwhite []int) *types.AddressResult {
 	showSecret := "1234"
 	var HashValues [][]byte
-	for _, v:= range blackwhite {
-		HashValues = append(HashValues, common.Sha256([]byte(showSecret + strconv.Itoa(v))))
+	for _, v := range blackwhite {
+		HashValues = append(HashValues, common.Sha256([]byte(showSecret+strconv.Itoa(v))))
 	}
 
 	return &types.AddressResult{
@@ -326,4 +326,3 @@ func Test_caclloopNumByPlayer(t *testing.T) {
 	loop = calcloopNumByPlayer(player)
 	require.Equal(t, 18, int(loop))
 }
-
