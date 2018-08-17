@@ -232,7 +232,7 @@ func (bc *BaseClient) RequestTx(listSize int, txHashList [][]byte) []*types.Tran
 	if bc.client == nil {
 		panic("bc not bind message queue.")
 	}
-	msg := bc.client.NewMessage("mempool", types.EventTxList, &types.TxHashList{txHashList, int64(listSize)})
+	msg := bc.client.NewMessage("mempool", types.EventTxList, &types.TxHashList{Hashes: txHashList, Count: int64(listSize)})
 	bc.client.Send(msg, true)
 	resp, err := bc.client.Wait(msg)
 	if err != nil {
