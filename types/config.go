@@ -148,6 +148,8 @@ func SetTitle(t string) {
 	if IsLocal() {
 		SetForkToOne()
 		initChainTestNet()
+		EnableTxHeight = true
+		Debug = true
 		return
 	}
 	if IsPara() {

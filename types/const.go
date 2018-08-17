@@ -2,8 +2,8 @@ package types
 
 var userKey = []byte("user.")
 var slash = []byte("-")
+var Debug = false
 
-const Debug = false
 const (
 	CoinsX          = "coins"
 	TicketX         = "ticket"
@@ -429,3 +429,27 @@ const (
 //flag:
 var FlagTxQuickIndex = []byte("FLAG:FlagTxQuickIndex")
 var FlagKeyMVCC = []byte("FLAG:keyMVCCFlag")
+
+//TxHeight 选项
+//设计思路:
+//提供一种可以快速查重的交易类型，和原来的交易完全兼容
+//并且可以通过开关控制是否开启这样的交易
+
+//标记是一个时间还是一个 TxHeight
+var TxHeightFlag int64 = 1 << 62
+
+//是否开启TxHeight选项
+var EnableTxHeight = false
+
+//eg: current Height is 10000
+//TxHeight is  10010
+//=> Height <= TxHeight + HighAllowPackHeight
+//=> Height >= TxHeight - LowAllowPackHeight
+//那么交易可以打包的范围是: 10010 - 100 = 9910 , 10010 + 200 =  10210 (9910,10210)
+//可以合法的打包交易
+//注意，这两个条件必须同时满足.
+//关于交易去重复:
+//也就是说，另外一笔相同的交易，只能被打包在这个区间(9910,10210)。
+//那么检查交易重复的时候，我只要检查 9910 - currentHeight 这个区间的交易不要重复就好了
+var HighAllowPackHeight int64 = 90
+var LowAllowPackHeight int64 = 30
