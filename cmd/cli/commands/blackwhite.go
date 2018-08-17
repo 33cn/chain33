@@ -1,12 +1,13 @@
 package commands
 
 import (
+	"strings"
+
 	"github.com/spf13/cobra"
+	"gitlab.33.cn/chain33/chain33/common"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/common"
 	bw "gitlab.33.cn/chain33/chain33/types/executor/blackwhite"
-	"strings"
 )
 
 func BlackwhiteCmd() *cobra.Command {
@@ -112,18 +113,17 @@ func blackwhitePlay(cmd *cobra.Command, args []string) {
 	var hashValues [][]byte
 	for _, black := range blacks {
 		if black == "1" {
-			hashValues =append(hashValues, common.Sha256([]byte(secret+black)))
+			hashValues = append(hashValues, common.Sha256([]byte(secret+black)))
 		} else {
 			white := "0"
-			hashValues =append(hashValues, common.Sha256([]byte(secret+white)))
+			hashValues = append(hashValues, common.Sha256([]byte(secret+white)))
 		}
 	}
 
-
 	amountInt64 := int64(amount)
 	params := &types.BlackwhitePlay{
-		GameID:  gameID,
-		Amount:  amountInt64 * types.Coin,
+		GameID:     gameID,
+		Amount:     amountInt64 * types.Coin,
 		HashValues: hashValues,
 	}
 	var res string
@@ -210,7 +210,6 @@ func addshowBlackwhiteInfoflags(cmd *cobra.Command) {
 	cmd.Flags().StringP("addr", "a", "", "addr")
 	cmd.Flags().Uint32P("loopSeq", "l", 0, "loopSeq")
 
-
 }
 
 func showBlackwhiteInfo(cmd *cobra.Command, args []string) {
@@ -223,7 +222,7 @@ func showBlackwhiteInfo(cmd *cobra.Command, args []string) {
 
 	var params jsonrpc.Query4Cli
 
-	var  rep interface{}
+	var rep interface{}
 
 	params.Execer = types.BlackwhiteX
 	if 0 == typ {
@@ -231,24 +230,24 @@ func showBlackwhiteInfo(cmd *cobra.Command, args []string) {
 			GameID: gameID,
 		}
 		params.FuncName = bw.GetBlackwhiteRoundInfo
-		params.Payload  = req
-		rep = &types.ReplyBlackwhiteRoundInfo {}
-	}else if 1 == typ {
+		params.Payload = req
+		rep = &types.ReplyBlackwhiteRoundInfo{}
+	} else if 1 == typ {
 		req := types.ReqBlackwhiteRoundList{
-			Status: int32(status),
+			Status:  int32(status),
 			Address: addr,
 		}
 		params.FuncName = bw.GetBlackwhiteByStatusAndAddr
-		params.Payload  = req
-		rep = &types.ReplyBlackwhiteRoundList {}
-	}else if 2 == typ {
+		params.Payload = req
+		rep = &types.ReplyBlackwhiteRoundList{}
+	} else if 2 == typ {
 		req := types.ReqLoopResult{
-			GameID: gameID,
+			GameID:  gameID,
 			LoopSeq: int32(loopSeq),
 		}
 		params.FuncName = bw.GetBlackwhiteloopResult
-		params.Payload  = req
-		rep = &types.ReplyLoopResults {}
+		params.Payload = req
+		rep = &types.ReplyLoopResults{}
 	}
 
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.Query", params, rep)
