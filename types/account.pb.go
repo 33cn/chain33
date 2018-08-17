@@ -6,6 +6,7 @@ Package types is a generated protocol buffer package.
 
 It is generated from these files:
 	account.proto
+	blackwhite.proto
 	blockchain.proto
 	common.proto
 	config.proto
@@ -34,6 +35,22 @@ It has these top-level messages:
 	ReplyAccountTokenAssets
 	ExecAccount
 	AllExecBalance
+	AddressResult
+	BlackwhiteRound
+	BlackwhiteAction
+	BlackwhiteCreate
+	BlackwhitePlay
+	BlackwhiteShow
+	BlackwhiteTimeoutDone
+	ReceiptBlackwhite
+	ReceiptBlackwhiteStatus
+	ReqBlackwhiteRoundInfo
+	ReplyBlackwhiteRoundInfo
+	ReqBlackwhiteRoundList
+	ReplyBlackwhiteRoundList
+	ReqLoopResult
+	PerLoopResult
+	ReplyLoopResults
 	Header
 	Block
 	Blocks
