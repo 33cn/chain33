@@ -28,6 +28,11 @@ const (
 	IsTimeOut = 3
 	//从有matcher参与游戏开始计算本局游戏开奖的有效时间，单位为天
 	Active_Time = 1
+
+	ListDESC    = int32(0)
+	ListASC     = int32(1)
+	DefultCount = int32(20)  //默认一次取多少条记录
+	MaxCount    = int32(100) //最多取100条
 )
 
 var (
@@ -47,27 +52,31 @@ var (
 func (action *Action) GetReceiptLog(game *types.Game) *types.ReceiptLog {
 	log := &types.ReceiptLog{}
 	r := &types.ReceiptGame{}
+	//TODO 记录这个action由哪个地址触发的
+	r.Addr = action.fromaddr
 	if game.Status == types.GameActionCreate {
 		log.Ty = types.TyLogCreateGame
 		r.PrevStatus = -1
+		r.PrevActionTime = -1
 	} else if game.Status == types.GameActionCancel {
 		log.Ty = types.TyLogCancleGame
 		r.PrevStatus = types.GameActionCreate
+		r.PrevActionTime = game.GetCreateTime()
 	} else if game.Status == types.GameActionMatch {
 		log.Ty = types.TyLogMatchGame
 		r.PrevStatus = types.GameActionCreate
+		r.PrevActionTime = game.GetCreateTime()
 	} else if game.Status == types.GameActionClose {
 		log.Ty = types.TyLogCloseGame
 		r.PrevStatus = types.GameActionMatch
+		r.PrevActionTime = game.GetMatchTime()
+		r.Addr = game.GetCreateAddress()
 	}
 	r.GameId = game.GameId
 	r.Status = game.Status
-	//TODO 记录这个action由哪个地址触发的
-	if action.fromaddr != game.GetCreateAddress() && game.GetCreateAddress() != "" {
-		r.Addr = game.GetCreateAddress()
-	} else {
-		r.Addr = action.fromaddr
-	}
+	r.CreateAddr = game.GetCreateAddress()
+	r.MatchAddr = game.GetMatchAddress()
+	r.ActionTime = action.blocktime
 	log.Log = types.Encode(r)
 	return log
 }
@@ -157,8 +166,13 @@ func (action *Action) GameMatch(match *types.GameMatch) (*types.Receipt, error) 
 	}
 	if game.GetStatus() != types.GameActionCreate {
 		glog.Error("GameMatch", "addr", action.fromaddr, "execaddr", action.execaddr, "id",
-			match.GetGameId(), "err", "can't join the game, the game has started or finished!")
-		return nil, types.ErrInputPara
+			match.GetGameId(), "err", types.ErrGameMatchStatus)
+		return nil, types.ErrGameMatchStatus
+	}
+	if game.GetCreateAddress() == action.fromaddr {
+		glog.Error("GameMatch", "addr", action.fromaddr, "execaddr", action.execaddr, "id",
+			match.GetGameId(), "err", types.ErrGameMatch)
+		return nil, types.ErrGameMatch
 	}
 	if !action.CheckExecAccountBalance(action.fromaddr, game.GetValue()/2, 0) {
 		glog.Error("GameMatch", "addr", action.fromaddr, "execaddr", action.execaddr, "id",
@@ -196,13 +210,13 @@ func (action *Action) GameCancel(cancel *types.GameCancel) (*types.Receipt, erro
 	}
 	if game.GetCreateAddress() != action.fromaddr {
 		glog.Error("GameCancel ", "addr", action.fromaddr, "execaddr", action.execaddr, "id",
-			cancel.GetGameId(), "err", "not creator")
-		return nil, types.ErrInputPara
+			cancel.GetGameId(), "err", types.ErrGameCancleAddr)
+		return nil, types.ErrGameCancleAddr
 	}
 	if game.GetStatus() != types.GameActionCreate {
 		glog.Error("GameCancel ", "addr", action.fromaddr, "execaddr", action.execaddr, "id",
-			cancel.GetGameId(), "err", "can't cancel game, the game has started or finished!")
-		return nil, types.ErrInputPara
+			cancel.GetGameId(), "err", types.ErrGameCancleStatus)
+		return nil, types.ErrGameCancleStatus
 	}
 	if !action.CheckExecAccountBalance(action.fromaddr, 0, game.GetValue()) {
 		glog.Error("GameCancel", "addr", action.fromaddr, "execaddr", action.execaddr, "id",
@@ -215,6 +229,7 @@ func (action *Action) GameCancel(cancel *types.GameCancel) (*types.Receipt, erro
 			cancel.GetGameId(), "amount", game.GetValue(), "err", err)
 		return nil, err
 	}
+	game.Closetime = action.blocktime
 	game.Status = types.GameActionCancel
 	action.saveGameToStateDB(game)
 	var logs []*types.ReceiptLog
@@ -249,8 +264,8 @@ func (action *Action) GameClose(close *types.GameClose) (*types.Receipt, error) 
 		return nil, types.ErrGameTimeOut
 	}
 	if game.GetStatus() != types.GameActionMatch {
-		glog.Error("the game status is not match.")
-		return nil, types.ErrInputPara
+		glog.Error(types.ErrGameCloseStatus.Error())
+		return nil, types.ErrGameCloseStatus
 	}
 	//各自冻结余额检查
 	if !action.CheckExecAccountBalance(game.GetCreateAddress(), 0, 2*game.GetValue()/3) {
@@ -433,16 +448,23 @@ func (action *Action) readGame(id string) (*types.Game, error) {
 
 //TODO:这块可能需要做个分页，防止数据过大?这里需要做补强
 func List(db dbm.Lister, stateDB dbm.KV, glist *types.QueryGameListByStatusAndAddr) (types.Message, error) {
-	values, err := db.List(calcGamePrefix(glist.GetStatus(), glist.GetAddress()), nil, 0, 0)
+	//无论前台传来什么值，要确保direction为0或者1
+	direction := ListDESC
+	if glist.GetDirection() == ListASC {
+		direction = ListASC
+	}
+	count := DefultCount
+	if 0 < glist.GetCount() && glist.GetCount() <= MaxCount {
+		count = glist.GetCount()
+	}
+	values, err := db.List(calcGamePrefix(glist.GetStatus(), glist.GetAddress()), nil, count, direction)
 	if err != nil {
 		return nil, err
 	}
 	if len(values) == 0 {
 		return &types.ReplyGameList{}, nil
 	}
-	queryGameInfo := &types.QueryGameInfos{CheckGameIdDup(values)}
-	//return Infos(stateDB, queryGameInfo)
-	return BatchGetGameList(stateDB, queryGameInfo)
+	return GetGameList(stateDB, CheckGameIdDup(values, glist))
 }
 
 func readGame(db dbm.KV, id string) (*types.Game, error) {
@@ -472,30 +494,25 @@ func Infos(db dbm.KV, infos *types.QueryGameInfos) (types.Message, error) {
 	return &types.ReplyGameList{Games: games}, nil
 }
 
-//批量查询接口
-func BatchGetGameList(db dbm.KV, infos *types.QueryGameInfos) (types.Message, error) {
+//安全批量查询方式,防止因为脏数据导致查询接口奔溃
+func GetGameList(db dbm.KV, values [][]byte) (types.Message, error) {
 	var games []*types.Game
-	var keys [][]byte
-	for _, gameId := range infos.GameIds {
-		keys = append(keys, Key(gameId))
-	}
-	values, err := db.BatchGet(keys)
-	if err != nil {
-		return nil, err
-	}
 	for _, value := range values {
-		var game types.Game
-		err = types.Decode(value, &game)
+		game, err := readGame(db, string(value))
 		if err != nil {
-			return nil, err
+			continue
 		}
-		games = append(games, &game)
+		games = append(games, game)
 	}
-
 	return &types.ReplyGameList{Games: games}, nil
 }
 
-func CheckGameIdDup(values [][]byte) []string {
+//当state为1,2,3 ,addr为空时，存在重复key 因此要去重
+func CheckGameIdDup(values [][]byte, query *types.QueryGameListByStatusAndAddr) [][]byte {
+	//如果地址不为空，则不需要过滤
+	if query.GetAddress() != "" {
+		return values
+	}
 	//根据别人测试总结，使用最节省时间的去重方式
 	if len(values) < 1024 {
 		// 切片长度小于1024的时候，循环来过滤
@@ -505,8 +522,8 @@ func CheckGameIdDup(values [][]byte) []string {
 		return removeDupByMap(values)
 	}
 }
-func removeDupByMap(values [][]byte) []string {
-	var result []string
+func removeDupByMap(values [][]byte) [][]byte {
+	var result [][]byte
 	//利用map 中的key去覆盖，过滤
 	var tempMap map[string]byte
 	for _, value := range values {
@@ -517,13 +534,13 @@ func removeDupByMap(values [][]byte) []string {
 		lenth := len(tempMap)
 		tempMap[string(value)] = 0
 		if len(tempMap) != lenth {
-			result = append(result, string(value))
+			result = append(result, value)
 		}
 	}
 	return result
 }
-func removeDupByLoop(values [][]byte) []string {
-	var result []string
+func removeDupByLoop(values [][]byte) [][]byte {
+	var result [][]byte
 	for i := range values {
 		//过滤空值
 		if bytes.Equal(values[i], types.EmptyValue) {
@@ -535,13 +552,13 @@ func removeDupByLoop(values [][]byte) []string {
 			if bytes.Equal(values[i], types.EmptyValue) {
 				continue
 			}
-			if string(values[i]) == result[j] {
+			if bytes.Equal(values[i], result[j]) {
 				flag = false // 存在重复元素，标识为false
 				break
 			}
 		}
 		if flag { // 标识为false，不添加进结果
-			result = append(result, string(values[i]))
+			result = append(result, values[i])
 		}
 	}
 	return result
@@ -571,6 +588,12 @@ func SortGameByMatchTimeAsc(games []*types.Game) {
 func SortGameByMatchTimeDesc(games []*types.Game) {
 	SortGame(games, func(p, q *types.Game) bool {
 		return p.GetMatchTime() > q.GetMatchTime()
+	})
+}
+
+func SortGameByCloseTimeDesc(games []*types.Game) {
+	SortGame(games, func(p, q *types.Game) bool {
+		return p.GetClosetime() > q.GetClosetime()
 	})
 }
 

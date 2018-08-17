@@ -5,7 +5,7 @@ package types;
 message Game {
     //默认是由创建这局游戏的txHash作为gameId
     string gameId = 1;
-    // create 1 -> Match 2 -> Cancel 3 -> Close 4
+    // create 0 -> Match 1 -> Cancel 2 -> Close 3
     int32 status = 2;
     //创建时间
     int64 createTime = 3;
@@ -74,6 +74,10 @@ message QueryGameListByStatusAndAddr {
     int32 status = 1;
     //二级搜索，如果要查询一个地址下的所有game信息，可以根据status，分多次查询，这样规避存储数据时的臃余情况
     string address = 2;
+    //0降序，1升序，默认降序
+    int32  direction = 3;
+    //一次返回多少条记录，默认返回20条，单次最多返回100条
+    int32  count = 4;
 }
 
 message QueryGameInfo {
@@ -96,6 +100,10 @@ message ReceiptGame {
     string gameId = 1;
     int32  status = 2;
     //记录上一次状态
-    int32  prevStatus = 4;
-    string addr       = 5;
+    int32  prevStatus = 3;
+    string addr       = 4;
+    string createAddr = 5;
+    string matchAddr  = 6;
+    int64  actionTime = 7;
+    int64  prevActionTime = 8;
 }

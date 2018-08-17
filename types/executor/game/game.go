@@ -319,6 +319,30 @@ func (g *GameGetList) Input(message json.RawMessage) ([]byte, error) {
 }
 
 func (t *GameGetList) Output(reply interface{}) (interface{}, error) {
+	if replyData, ok := reply.(*types.Message); ok {
+		if replyGameList, ok := (*replyData).(*types.ReplyGameList); ok {
+			var gameList []*Game
+			for _, game := range replyGameList.GetGames() {
+				g := &Game{
+					GameId:        game.GetGameId(),
+					Status:        game.GetStatus(),
+					CreateAddress: game.GetCreateAddress(),
+					MatchAddress:  game.GetMatchAddress(),
+					CreateTime:    game.GetCreateTime(),
+					MatchTime:     game.GetMatchTime(),
+					Closetime:     game.GetClosetime(),
+					Value:         game.GetValue(),
+					HashType:      game.GetHashType(),
+					HashValue:     game.GetHashValue(),
+					Secret:        game.GetSecret(),
+					Result:        game.GetResult(),
+					Guess:         game.GetGuess(),
+				}
+				gameList = append(gameList, g)
+			}
+			return gameList, nil
+		}
+	}
 	return reply, nil
 }
 
@@ -335,6 +359,27 @@ func (g *GameGetInfo) Input(message json.RawMessage) ([]byte, error) {
 }
 
 func (g *GameGetInfo) Output(reply interface{}) (interface{}, error) {
+	if replyData, ok := reply.(*types.Message); ok {
+		if replyGame, ok := (*replyData).(*types.ReplyGame); ok {
+			game := replyGame.GetGame()
+			g := &Game{
+				GameId:        game.GetGameId(),
+				Status:        game.GetStatus(),
+				CreateAddress: game.GetCreateAddress(),
+				MatchAddress:  game.GetMatchAddress(),
+				CreateTime:    game.GetCreateTime(),
+				MatchTime:     game.GetMatchTime(),
+				Closetime:     game.GetClosetime(),
+				Value:         game.GetValue(),
+				HashType:      game.GetHashType(),
+				HashValue:     game.GetHashValue(),
+				Secret:        game.GetSecret(),
+				Result:        game.GetResult(),
+				Guess:         game.GetGuess(),
+			}
+			return g, nil
+		}
+	}
 	return reply, nil
 }
 
@@ -351,5 +396,29 @@ func (g *GameQueryList) Input(message json.RawMessage) ([]byte, error) {
 }
 
 func (g *GameQueryList) Output(reply interface{}) (interface{}, error) {
+	if replyData, ok := reply.(*types.Message); ok {
+		if replyGameList, ok := (*replyData).(*types.ReplyGameList); ok {
+			var gameList []*Game
+			for _, game := range replyGameList.GetGames() {
+				g := &Game{
+					GameId:        game.GetGameId(),
+					Status:        game.GetStatus(),
+					CreateAddress: game.GetCreateAddress(),
+					MatchAddress:  game.GetMatchAddress(),
+					CreateTime:    game.GetCreateTime(),
+					MatchTime:     game.GetMatchTime(),
+					Closetime:     game.GetClosetime(),
+					Value:         game.GetValue(),
+					HashType:      game.GetHashType(),
+					HashValue:     game.GetHashValue(),
+					Secret:        game.GetSecret(),
+					Result:        game.GetResult(),
+					Guess:         game.GetGuess(),
+				}
+				gameList = append(gameList, g)
+			}
+			return gameList, nil
+		}
+	}
 	return reply, nil
 }
