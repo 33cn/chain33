@@ -31,17 +31,16 @@ driver="leveldb"
 dbPath="datadir"
 dbCache=64
 isStrongConsistency=true
-singleMode=false
+singleMode=true
 batchsync=false
-isRecordBlockSequence=false
 
 [p2p]
-seeds=["192.168.3.102:13802","192.168.3.13:13802"]
+seeds=["127.0.0.1:13802"]
 enable=true
 isSeed=true
 serverStart=true
-innerSeedEnable=true
-useGithub=true
+innerSeedEnable=false
+useGithub=false
 innerBounds=300
 msgCacheSize=10240
 driver="leveldb"
@@ -80,12 +79,12 @@ timeoutCommit=1000
 skipTimeoutCommit=false
 createEmptyBlocks=false
 createEmptyBlocksInterval=0
-seeds=["192.168.3.102:46656","192.168.3.13:46656"]
+seeds=["127.0.0.1:46656"]
 
 [store]
-name="mavl"
+name="kvdb"
 driver="leveldb"
-dbPath="datadir/mavltree"
+dbPath="datadir/kvdb"
 dbCache=128
 
 [wallet]
@@ -97,6 +96,5 @@ signType="secp256k1"
 minerdisable=false
 
 [exec]
-isFree=false
-minExecFee=100000
-enableStat=false
+isFree=true
+minExecFee=0
