@@ -106,7 +106,7 @@ func createTxWithTxHeight(priv crypto.PrivKey, to string, amount, expire int64) 
 
 	v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
 	transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
-	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1e6, To: to, Expire: expire+TxHeightOffset+types.TxHeightFlag}
+	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1e6, To: to, Expire: expire + TxHeightOffset + types.TxHeightFlag}
 	tx.Nonce = random.Int63()
 	tx.To = address.ExecAddress("none")
 	tx.Sign(types.SECP256K1, priv)
@@ -416,7 +416,7 @@ func testGetTxHashList(t *testing.T, blockchain *BlockChain) {
 	chainlog.Info("TestGetTxHashList end --------------------")
 }
 
-func checkDupTx(blockchain *BlockChain) (*types.TxHashList,error) {
+func checkDupTx(blockchain *BlockChain) (*types.TxHashList, error) {
 	var txhashlist types.TxHashList
 	i := blockchain.GetBlockHeight()
 	for j, tx := range cacheTxs {
@@ -429,10 +429,10 @@ func checkDupTx(blockchain *BlockChain) (*types.TxHashList,error) {
 		return nil, err
 	}
 
-	return duptxhashlist,nil
+	return duptxhashlist, nil
 }
 
-func checkDupTxHeight(blockchain *BlockChain) (*types.TxHashList,error) {
+func checkDupTxHeight(blockchain *BlockChain) (*types.TxHashList, error) {
 	var txhashlist types.TxHashList
 	i := blockchain.GetBlockHeight()
 	for j, tx := range cacheTxsTxHeigt {
@@ -446,7 +446,7 @@ func checkDupTxHeight(blockchain *BlockChain) (*types.TxHashList,error) {
 		return nil, err
 	}
 
-	return duptxhashlist,nil
+	return duptxhashlist, nil
 }
 
 func initCache() {
@@ -487,7 +487,7 @@ func TestCheckDupTxHashList01(t *testing.T) {
 	}
 
 	//重复交易
-	duptxhashlist,err := checkDupTx(blockchain)
+	duptxhashlist, err := checkDupTx(blockchain)
 	if err != nil {
 		t.Error(err)
 		return
@@ -500,7 +500,7 @@ func TestCheckDupTxHashList01(t *testing.T) {
 	//非重复交易
 	initCache()
 	genTxs(50)
-	duptxhashlist,err = checkDupTx(blockchain)
+	duptxhashlist, err = checkDupTx(blockchain)
 	if err != nil {
 		t.Error(err)
 		return
@@ -511,7 +511,7 @@ func TestCheckDupTxHashList01(t *testing.T) {
 	}
 
 	genTxsTxHeigt(50)
-	duptxhashlist,err = checkDupTxHeight(blockchain)
+	duptxhashlist, err = checkDupTxHeight(blockchain)
 	if err != nil {
 		t.Error(err)
 		return
@@ -556,7 +556,7 @@ func TestCheckDupTxHashList02(t *testing.T) {
 	}
 
 	//重复交易
-	duptxhashlist,err := checkDupTxHeight(blockchain)
+	duptxhashlist, err := checkDupTxHeight(blockchain)
 	if err != nil {
 		t.Error(err)
 		return
@@ -569,7 +569,7 @@ func TestCheckDupTxHashList02(t *testing.T) {
 	//非重复交易
 	initCache()
 	genTxs(50)
-	duptxhashlist,err = checkDupTxHeight(blockchain)
+	duptxhashlist, err = checkDupTxHeight(blockchain)
 	if err != nil {
 		t.Error(err)
 		return
@@ -580,7 +580,7 @@ func TestCheckDupTxHashList02(t *testing.T) {
 	}
 
 	genTxsTxHeigt(50)
-	duptxhashlist,err = checkDupTxHeight(blockchain)
+	duptxhashlist, err = checkDupTxHeight(blockchain)
 	if err != nil {
 		t.Error(err)
 		return
@@ -624,7 +624,7 @@ func TestCheckDupTxHashList03(t *testing.T) {
 	}
 
 	//重复交易
-	duptxhashlist,err := checkDupTx(blockchain)
+	duptxhashlist, err := checkDupTx(blockchain)
 	if err != nil {
 		t.Error(err)
 		return
@@ -637,7 +637,7 @@ func TestCheckDupTxHashList03(t *testing.T) {
 	//非重复交易
 	initCache()
 	genTxs(50)
-	duptxhashlist,err = checkDupTx(blockchain)
+	duptxhashlist, err = checkDupTx(blockchain)
 	if err != nil {
 		t.Error(err)
 		return
@@ -648,7 +648,7 @@ func TestCheckDupTxHashList03(t *testing.T) {
 	}
 
 	genTxsTxHeigt(50)
-	duptxhashlist,err = checkDupTxHeight(blockchain)
+	duptxhashlist, err = checkDupTxHeight(blockchain)
 	if err != nil {
 		t.Error(err)
 		return
@@ -693,12 +693,12 @@ func TestCheckDupTxHashList04(t *testing.T) {
 	}
 
 	//重复交易
-	duptxhashlist,err := checkDupTxHeight(blockchain)
+	duptxhashlist, err := checkDupTxHeight(blockchain)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	if len(duptxhashlist.Hashes) != len(cacheTxsTxHeigt)  {
+	if len(duptxhashlist.Hashes) != len(cacheTxsTxHeigt) {
 		t.Error("CheckDupCacheFailed")
 		return
 	}
@@ -706,7 +706,7 @@ func TestCheckDupTxHashList04(t *testing.T) {
 	//非重复交易
 	initCache()
 	genTxs(50)
-	duptxhashlist,err = checkDupTxHeight(blockchain)
+	duptxhashlist, err = checkDupTxHeight(blockchain)
 	if err != nil {
 		t.Error(err)
 		return
@@ -717,7 +717,7 @@ func TestCheckDupTxHashList04(t *testing.T) {
 	}
 
 	genTxsTxHeigt(50)
-	duptxhashlist,err = checkDupTxHeight(blockchain)
+	duptxhashlist, err = checkDupTxHeight(blockchain)
 	if err != nil {
 		t.Error(err)
 		return
