@@ -96,6 +96,13 @@ var (
 	ErrWrongKey     = errors.New("ErrWrongKey")
 	ErrInvalidOrder = errors.New("ErrInvalidOrder")
 
+	// err for blackwhite game
+	ErrIncorrectStatus  = errors.New("ErrIncorrectStatus")
+	ErrRepeatPlayerAddr = errors.New("ErrRepeatPlayerAddress")
+	ErrNoTimeoutDone    = errors.New("ErrNoTimeoutDone")
+	ErrNoExistAddr      = errors.New("ErrNoExistAddress")
+	ErrNoLoopSeq        = errors.New("ErrBlackwhiteFinalloopLessThanSeq")
+
 	ErrStartBigThanEnd            = errors.New("ErrStartBigThanEnd")
 	ErrToAddrNotSameToExecAddr    = errors.New("ErrToAddrNotSameToExecAddr")
 	ErrTypeAsset                  = errors.New("ErrTypeAsset")

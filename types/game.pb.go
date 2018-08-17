@@ -44,7 +44,7 @@ type Game struct {
 func (m *Game) Reset()                    { *m = Game{} }
 func (m *Game) String() string            { return proto.CompactTextString(m) }
 func (*Game) ProtoMessage()               {}
-func (*Game) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{0} }
+func (*Game) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{0} }
 
 func (m *Game) GetGameId() string {
 	if m != nil {
@@ -151,7 +151,7 @@ type GameAction struct {
 func (m *GameAction) Reset()                    { *m = GameAction{} }
 func (m *GameAction) String() string            { return proto.CompactTextString(m) }
 func (*GameAction) ProtoMessage()               {}
-func (*GameAction) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{1} }
+func (*GameAction) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{1} }
 
 type isGameAction_Value interface {
 	isGameAction_Value()
@@ -337,7 +337,7 @@ type GameMatch struct {
 func (m *GameMatch) Reset()                    { *m = GameMatch{} }
 func (m *GameMatch) String() string            { return proto.CompactTextString(m) }
 func (*GameMatch) ProtoMessage()               {}
-func (*GameMatch) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{2} }
+func (*GameMatch) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{2} }
 
 func (m *GameMatch) GetGameId() string {
 	if m != nil {
@@ -360,7 +360,7 @@ type GameCancel struct {
 func (m *GameCancel) Reset()                    { *m = GameCancel{} }
 func (m *GameCancel) String() string            { return proto.CompactTextString(m) }
 func (*GameCancel) ProtoMessage()               {}
-func (*GameCancel) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{3} }
+func (*GameCancel) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{3} }
 
 func (m *GameCancel) GetGameId() string {
 	if m != nil {
@@ -377,7 +377,7 @@ type GameClose struct {
 func (m *GameClose) Reset()                    { *m = GameClose{} }
 func (m *GameClose) String() string            { return proto.CompactTextString(m) }
 func (*GameClose) ProtoMessage()               {}
-func (*GameClose) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{4} }
+func (*GameClose) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{4} }
 
 func (m *GameClose) GetGameId() string {
 	if m != nil {
@@ -404,7 +404,7 @@ type GameCreate struct {
 func (m *GameCreate) Reset()                    { *m = GameCreate{} }
 func (m *GameCreate) String() string            { return proto.CompactTextString(m) }
 func (*GameCreate) ProtoMessage()               {}
-func (*GameCreate) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{5} }
+func (*GameCreate) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{5} }
 
 func (m *GameCreate) GetValue() int64 {
 	if m != nil {
@@ -438,7 +438,7 @@ type QueryGameListByStatusAndAddr struct {
 func (m *QueryGameListByStatusAndAddr) Reset()                    { *m = QueryGameListByStatusAndAddr{} }
 func (m *QueryGameListByStatusAndAddr) String() string            { return proto.CompactTextString(m) }
 func (*QueryGameListByStatusAndAddr) ProtoMessage()               {}
-func (*QueryGameListByStatusAndAddr) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{6} }
+func (*QueryGameListByStatusAndAddr) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{6} }
 
 func (m *QueryGameListByStatusAndAddr) GetStatus() int32 {
 	if m != nil {
@@ -461,7 +461,7 @@ type QueryGameInfo struct {
 func (m *QueryGameInfo) Reset()                    { *m = QueryGameInfo{} }
 func (m *QueryGameInfo) String() string            { return proto.CompactTextString(m) }
 func (*QueryGameInfo) ProtoMessage()               {}
-func (*QueryGameInfo) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{7} }
+func (*QueryGameInfo) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{7} }
 
 func (m *QueryGameInfo) GetGameId() string {
 	if m != nil {
@@ -477,7 +477,7 @@ type QueryGameInfos struct {
 func (m *QueryGameInfos) Reset()                    { *m = QueryGameInfos{} }
 func (m *QueryGameInfos) String() string            { return proto.CompactTextString(m) }
 func (*QueryGameInfos) ProtoMessage()               {}
-func (*QueryGameInfos) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{8} }
+func (*QueryGameInfos) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{8} }
 
 func (m *QueryGameInfos) GetGameIds() []string {
 	if m != nil {
@@ -493,7 +493,7 @@ type ReplyGameList struct {
 func (m *ReplyGameList) Reset()                    { *m = ReplyGameList{} }
 func (m *ReplyGameList) String() string            { return proto.CompactTextString(m) }
 func (*ReplyGameList) ProtoMessage()               {}
-func (*ReplyGameList) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{9} }
+func (*ReplyGameList) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{9} }
 
 func (m *ReplyGameList) GetGames() []*Game {
 	if m != nil {
@@ -509,7 +509,7 @@ type ReplyGame struct {
 func (m *ReplyGame) Reset()                    { *m = ReplyGame{} }
 func (m *ReplyGame) String() string            { return proto.CompactTextString(m) }
 func (*ReplyGame) ProtoMessage()               {}
-func (*ReplyGame) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{10} }
+func (*ReplyGame) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{10} }
 
 func (m *ReplyGame) GetGame() *Game {
 	if m != nil {
@@ -529,7 +529,7 @@ type ReceiptGame struct {
 func (m *ReceiptGame) Reset()                    { *m = ReceiptGame{} }
 func (m *ReceiptGame) String() string            { return proto.CompactTextString(m) }
 func (*ReceiptGame) ProtoMessage()               {}
-func (*ReceiptGame) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{11} }
+func (*ReceiptGame) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{11} }
 
 func (m *ReceiptGame) GetGameId() string {
 	if m != nil {
@@ -574,9 +574,9 @@ func init() {
 	proto.RegisterType((*ReceiptGame)(nil), "types.ReceiptGame")
 }
 
-func init() { proto.RegisterFile("game.proto", fileDescriptor8) }
+func init() { proto.RegisterFile("game.proto", fileDescriptor9) }
 
-var fileDescriptor8 = []byte{
+var fileDescriptor9 = []byte{
 	// 533 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0x54, 0xc1, 0x6e, 0xd3, 0x40,
 	0x10, 0xad, 0x9d, 0x38, 0xa9, 0xc7, 0x49, 0x05, 0x2b, 0x84, 0x2c, 0x54, 0x41, 0x58, 0x55, 0xc2,
