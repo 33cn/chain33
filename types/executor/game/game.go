@@ -15,6 +15,7 @@ const (
 	//FuncName_QueryGameListByStatus = "QueryGameListByStatus"
 	FuncName_QueryGameListByStatusAndAddr = "QueryGameListByStatusAndAddr"
 	FuncName_QueryGameById                = "QueryGameById"
+	FuncName_QueryGameListCount           = "QueryGameListCount"
 
 	Action_CreateGame = "createGame"
 	Action_MatchGame  = "matchGame"
@@ -49,6 +50,7 @@ func Init() {
 	types.RegistorRpcType(FuncName_QueryGameListByIds, &GameGetList{})
 	types.RegistorRpcType(FuncName_QueryGameById, &GameGetInfo{})
 	types.RegistorRpcType(FuncName_QueryGameListByStatusAndAddr, &GameQueryList{})
+	types.RegistorRpcType(FuncName_QueryGameListCount, &GameQueryListCount{})
 }
 
 // exec
@@ -341,6 +343,28 @@ func (t *GameGetList) Output(reply interface{}) (interface{}, error) {
 				gameList = append(gameList, g)
 			}
 			return gameList, nil
+		}
+	}
+	return reply, nil
+}
+
+type GameQueryListCount struct {
+}
+
+func (g *GameQueryListCount) Input(message json.RawMessage) ([]byte, error) {
+	var req types.QueryGameListCount
+	err := json.Unmarshal(message, &req)
+	if err != nil {
+		return nil, err
+	}
+	return types.Encode(&req), nil
+}
+
+func (g *GameQueryListCount) Output(reply interface{}) (interface{}, error) {
+	if replyData, ok := reply.(*types.Message); ok {
+		if replyCount, ok := (*replyData).(*types.ReplyGameListCount); ok {
+			count := replyCount.GetCount()
+			return count, nil
 		}
 	}
 	return reply, nil
