@@ -13,8 +13,9 @@ var glog = log.New("module", "execs.game")
 const (
 	MaxGameAmount = 100 * types.Coin
 	//查询方法名
-	FuncName_QueryGameListByIds = "QueryGameListByIds"
-	//FuncName_QueryGameListByStatus = "QueryGameListByStatus"
+	FuncName_QueryGameListByIds           = "QueryGameListByIds"
+	//FuncName_QueryGameListByPage          = "QueryGameListByPage"
+	FuncName_QueryGameListCount          = "QueryGameListCount"
 	FuncName_QueryGameListByStatusAndAddr = "QueryGameListByStatusAndAddr"
 	FuncName_QueryGameById                = "QueryGameById"
 )
@@ -111,36 +112,60 @@ func (g *Game) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, i
 	return set, nil
 }
 
+func (g * Game)updateCloseOrCancelGameIndex(log *types.ReceiptGame)(kvs []*types.KeyValue){
+	if log.GetStatus()==types.GameActionCancel||log.GetStatus()==types.GameActionClose{
+		kvs = append(kvs,addGameIdIndex(log.GameId,log.Status,log.CreateAddr,log.CreateHeight))
+		kvs = append(kvs,addGameIdIndex(log.GameId,log.Status,log.MatchAddr,log.MatchHeight))
+	}
+	return kvs
+}
+func (g * Game)rollbackCloseOrCancelGameIndex(log *types.ReceiptGame)(kvs []*types.KeyValue){
+	if log.GetStatus()==types.GameActionCancel||log.GetStatus()==types.GameActionClose{
+		kvs = append(kvs,delGameIdIndex(log.GameId,log.Status,log.CreateAddr,log.CreateHeight))
+		kvs = append(kvs,delGameIdIndex(log.GameId,log.Status,log.MatchAddr,log.MatchHeight))
+	}
+	return kvs
+}
 //更新索引
-func (g *Game) updateGame(gamelog *types.ReceiptGame) (kvs []*types.KeyValue) {
+func (g *Game) updateGame(log *types.ReceiptGame) (kvs []*types.KeyValue) {
 	//先保存本次Action产生的索引
-	kvs = append(kvs, addGame(gamelog.GameId, gamelog.Status, gamelog.Addr, gamelog.ActionTime))
-	if gamelog.Status < types.GameActionClose {
-		kvs = append(kvs, delGame(gamelog.GetGameId(), gamelog.GetPrevStatus(), gamelog.GetCreateAddr(), gamelog.PrevActionTime))
+	if log.GetStatus()<=types.GameActionMatch{
+		//不定状态用actionTime创建索引
+		kvs = append(kvs, addGameActionTimeIndex(log.GameId, log.Status, log.Addr, log.ActionTime))
 	}
-	if gamelog.Status == types.GameActionMatch {
-		kvs = append(kvs, addGame(gamelog.GetGameId(), gamelog.Status, gamelog.GetCreateAddr(), gamelog.ActionTime))
-	} else if gamelog.Status == types.GameActionClose {
-		kvs = append(kvs, delGame(gamelog.GetGameId(), gamelog.GetPrevStatus(), gamelog.GetMatchAddr(), gamelog.PrevActionTime))
-		kvs = append(kvs, addGame(gamelog.GetGameId(), gamelog.Status, gamelog.GetMatchAddr(), gamelog.ActionTime))
+	if log.GetStatus()>types.GameActionCreate{
+		kvs = append(kvs, delGameActionTimeIndex(log.GetGameId(), log.GetPrevStatus(), log.GetCreateAddr(), log.PrevActionTime))
 	}
+	if log.GetStatus()==types.GameActionMatch{
+		//match状态还要更新创建者的关联索引
+		kvs = append(kvs, addGameActionTimeIndex(log.GetGameId(), log.Status, log.GetCreateAddr(), log.ActionTime))
+	}
+	if log.GetStatus()==types.GameActionClose{
+		//删除上次状态匹配者的索引
+		kvs = append(kvs, delGameActionTimeIndex(log.GetGameId(), log.GetPrevStatus(), log.GetMatchAddr(), log.PrevActionTime))
+	}
+	kvs = append(kvs,g.updateCloseOrCancelGameIndex(log)...)
 	return kvs
 }
 
 //回滚索引
-func (g *Game) rollbackGame(gamelog *types.ReceiptGame) (kvs []*types.KeyValue) {
+func (g *Game) rollbackGame(log *types.ReceiptGame) (kvs []*types.KeyValue) {
 	//先删除本次Action产生的索引
-	kvs = append(kvs, delGame(gamelog.GameId, gamelog.Status, gamelog.Addr, gamelog.ActionTime))
-	if gamelog.PrevStatus > types.GameActionCreate {
-		kvs = append(kvs, addGame(gamelog.GetGameId(), gamelog.GetPrevStatus(), gamelog.GetCreateAddr(), gamelog.PrevActionTime))
+	if log.GetStatus()<=types.GameActionMatch{
+		//不定状态用actionTime创建索引
+		kvs = append(kvs, delGameActionTimeIndex(log.GameId, log.Status, log.Addr, log.ActionTime))
 	}
-	if gamelog.PrevStatus == types.GameActionCreate {
-		kvs = append(kvs, delGame(gamelog.GetGameId(), gamelog.GetStatus(), gamelog.GetCreateAddr(), gamelog.ActionTime))
-	} else if gamelog.PrevStatus == types.GameActionMatch {
-		//需要同时更新create,match状态索引
-		kvs = append(kvs, delGame(gamelog.GetGameId(), gamelog.GetStatus(), gamelog.GetMatchAddr(), gamelog.ActionTime))
-		kvs = append(kvs, addGame(gamelog.GetGameId(), gamelog.GetPrevStatus(), gamelog.GetMatchAddr(), gamelog.PrevActionTime))
+	if log.GetStatus()>types.GameActionCreate{
+		kvs = append(kvs, addGameActionTimeIndex(log.GetGameId(), log.GetPrevStatus(), log.GetCreateAddr(), log.PrevActionTime))
 	}
+	if log.GetStatus()==types.GameActionMatch{
+		kvs = append(kvs, delGameActionTimeIndex(log.GetGameId(), log.Status, log.GetCreateAddr(), log.ActionTime))
+	}
+	if log.GetStatus()==types.GameActionClose{
+		//恢复上次状态匹配者的索引
+		kvs = append(kvs, addGameActionTimeIndex(log.GetGameId(), log.GetPrevStatus(), log.GetMatchAddr(), log.PrevActionTime))
+	}
+	kvs = append(kvs,g.rollbackCloseOrCancelGameIndex(log)...)
 	return kvs
 }
 
@@ -170,11 +195,18 @@ func (g *Game) Query(funcName string, params []byte) (types.Message, error) {
 			return nil, err
 		}
 		return List(g.GetLocalDB(), g.GetStateDB(), &q)
+	}else if funcName == FuncName_QueryGameListCount{
+		var q types.QueryGameListCount
+		err := types.Decode(params, &q)
+		if err != nil {
+			return nil, err
+		}
+		return QueryGameListCount(g.GetLocalDB(),g.GetStateDB(),&q)
 	}
 	return nil, types.ErrActionNotSupport
 }
 
-func calcGameKey(gameId string, status int32, addr string, actionTime int64) []byte {
+func calcGameActionTimeKey(gameId string, status int32, addr string, actionTime int64) []byte {
 	key := fmt.Sprintf("game-gl:%d:%s:%d:%s", status, addr, actionTime, gameId)
 	return []byte(key)
 }
@@ -184,16 +216,39 @@ func calcGamePrefix(status int32, addr string) []byte {
 	return []byte(key)
 }
 
-func addGame(gameId string, status int32, addr string, actionTime int64) *types.KeyValue {
+func addGameActionTimeIndex(gameId string, status int32, addr string, actionTime int64) *types.KeyValue {
 	kv := &types.KeyValue{}
-	kv.Key = calcGameKey(gameId, status, addr, actionTime)
+	kv.Key = calcGameActionTimeKey(gameId, status, addr, actionTime)
 	kv.Value = []byte(gameId)
 	return kv
 }
 
-func delGame(gameId string, status int32, addr string, actionTime int64) *types.KeyValue {
+func delGameActionTimeIndex(gameId string, status int32, addr string, actionTime int64) *types.KeyValue {
 	kv := &types.KeyValue{}
-	kv.Key = calcGameKey(gameId, status, addr, actionTime)
+	kv.Key = calcGameActionTimeKey(gameId, status, addr, actionTime)
+	//value置nil,提交时，会自动执行删除操作
+	kv.Value = nil
+	return kv
+}
+//height 递增
+func calcGameIdKey(status int32, addr string, height int64) []byte {
+	key := fmt.Sprintf("game-Id:%d:%s:%d", status, addr, InitHeight+height)
+	return []byte(key)
+}
+
+func calcGameIdPrefix(status int32, addr string) []byte {
+	key := fmt.Sprintf("game-Id:%d:%s:", status, addr)
+	return []byte(key)
+}
+func addGameIdIndex(gameId string, status int32, addr string, height int64) *types.KeyValue {
+	kv := &types.KeyValue{}
+	kv.Key = calcGameIdKey( status, addr, height)
+	kv.Value = []byte(gameId)
+	return kv
+}
+func delGameIdIndex(gameId string, status int32, addr string, height int64) *types.KeyValue {
+	kv := &types.KeyValue{}
+	kv.Key = calcGameIdKey(status, addr, height)
 	//value置nil,提交时，会自动执行删除操作
 	kv.Value = nil
 	return kv
