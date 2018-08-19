@@ -74,10 +74,31 @@ message QueryGameListByStatusAndAddr {
     int32 status = 1;
     //二级搜索，如果要查询一个地址下的所有game信息，可以根据status，分多次查询，这样规避存储数据时的臃余情况
     string address = 2;
-    // 0降序，1升序，默认降序
-    int32 direction = 3;
-    //一次返回多少条记录，默认返回20条，单次最多返回100条
+    // 查询第几页
+    int32 pageNum = 3;
+    //单页返回多少条记录，默认返回20条，单次最多返回100条
     int32 count = 4;
+    // 0降序，1升序，默认降序
+    int32 direction = 5;
+}
+
+//// queryByAddr 和 queryByStatus共用同一个结构体
+//message QueryGameListByPage {
+//    //优先根据status查询,status不可为空
+//    int32 status = 1;
+//    //二级搜索，如果要查询一个地址下的所有game信息，可以根据status，分多次查询，这样规避存储数据时的臃余情况
+//    string address = 2;
+//    // 查询第几页
+//    int32 pageNum = 3;
+//    //一页的容量，默认返回10条，单次最多返回40条
+//    int32 count = 4;
+//}
+// 统计数量
+message QueryGameListCount {
+    //优先根据status查询,status不可为空
+    int32 status = 1;
+    //二级搜索，如果要查询一个地址下的所有game信息，可以根据status，分多次查询，这样规避存储数据时的臃余情况
+    string address = 2;
 }
 
 message QueryGameInfo {
@@ -90,6 +111,10 @@ message QueryGameInfos {
 
 message ReplyGameList {
     repeated Game games = 1;
+}
+
+message ReplyGameListCount {
+    int64 count = 1;
 }
 
 message ReplyGame {
@@ -106,4 +131,6 @@ message ReceiptGame {
     string matchAddr      = 6;
     int64  actionTime     = 7;
     int64  prevActionTime = 8;
+    int64  createHeight   = 9;
+    int64  matchHeight    = 10;
 }

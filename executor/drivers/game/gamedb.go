@@ -3,8 +3,9 @@ package game
 //database opeartion for executor game
 import (
 	"bytes"
-	"sort"
+	"strconv"
 
+	"fmt"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
@@ -31,13 +32,16 @@ const (
 
 	ListDESC    = int32(0)
 	ListASC     = int32(1)
-	DefultCount = int32(20)  //默认一次取多少条记录
-	MaxCount    = int32(100) //最多取100条
-)
+	ListSeek    = int32(2)
+	DefultCount = int32(20)         //默认一次取多少条记录
+	MaxCount    = int32(100)        //最多取100条
+	InitHeight  = int64(1000000000) //每个地址的初始索引高度,占位，在ASCII中数字的排序在字符之前
 
-var (
-	//游戏状态
-	GameStatus = []int32{types.GameActionCreate, types.GameActionMatch, types.GameActionCancel, types.GameActionClose}
+	LastHeight  = "LastHeight" //用于表示每个地址对应的高度是多少，用于记录个人成功完成多少局游戏
+	CloseCount  = "CloseCount" //用于统计整个合约目前总共成功结束了多少场游戏。
+	CreateCount = "CreateCount"
+	MatchCount  = "MatchCount"
+	CancelCount = "CancelCount"
 )
 
 //game 的状态变化：
@@ -45,10 +49,42 @@ var (
 // status == 1 (匹配，参与)
 // status == 2 (取消)
 // status == 3 (Close的情况)
+/*
+  在石头剪刀布游戏中，一局游戏的生命周期只有四种状态，其中创建者参与了整个的生命周期，因此当一局游戏 发生状态变更时，
+ 都需要及时建立相应的索引与之关联，同时还要删除老状态时的索引，以免形成脏数据。
+ 同样匹配者在游戏中与之相关的状态只有1和3，即匹配和开奖，只要基于这个出发点建立相应的索引即可。
 
-//list 索引保存的方法:
-//key=status:addr:gameId
-//value=gameId
+ 分页查询接口的实现：
+  1.状态数据库中每个用户各自建立两条记录用户分别对应最终的close,cancel两种状态的高度
+  2.状态数据库中建立四个Key,分别用于保存历史相应状态的count总数
+  3.索引建立规则;
+     create,match 状态索引建立： key= status:addr:blocktime:gameId
+     cancel,close 状态索引建立：key= status:addr:Height  //height 为自增长
+     value=gameId
+    创建者：每次Action之后，都将对应的status, height 传入到createHeight中，更新信的状态索引，删除旧索引
+     问题关键：1.对于create，match 状态的 game会存在旧索引，如何删除呢？
+		这里的解决方法是，利用game中存储了ationTime,也就是打包时间戳,来解决排序，和删除旧的索引
+       create---------->match-------->close
+        \
+      cancel
+        当游戏变为cancel,close 这样最终状态时，就可以利用key= status:addr:Height去建立索引
+         因为这种状态属于只进不出，不用删除，所以可能构造指定的索引去查询。
+
+              2.有删就有回滚，localDB中的数据如何实现回滚呢？
+                还是通过log,能根据log去建索引，反之也可以根据它来删除索引。
+    这样做的优点：
+                1.对cancel,close状态的游戏来讲，index高度是从1，自增长的，且中间不会出现index被删除状态
+                   故所有close 状态的游戏，都可以通过分页接口进行准确查找，无论数据量有多大，也不影响
+                   查找精度，因为index始终是准确的。
+
+		不足之处：
+                1.对于create,match 状态的游戏来讲，index 是不准确的，因为create,match 状态不是最终状态
+                  随时会产生变化，且变化先后不可测，一次create和matcher 状态的数据这里用了比较粗笨的方法
+                  去处理，当上下翻页超过1000条记录时，考虑数据库性能问题，就不让继续往下查找了，不过还好
+                  create,match 只是临时状态，会不断地被处理
+    匹配者：
+*/
+
 func (action *Action) GetReceiptLog(game *types.Game) *types.ReceiptLog {
 	log := &types.ReceiptLog{}
 	r := &types.ReceiptGame{}
@@ -62,6 +98,9 @@ func (action *Action) GetReceiptLog(game *types.Game) *types.ReceiptLog {
 		log.Ty = types.TyLogCancleGame
 		r.PrevStatus = types.GameActionCreate
 		r.PrevActionTime = game.GetCreateTime()
+		//只有close,cancel 操作时，才涉及最终状态高度变更
+		r.CreateHeight = action.GetLastHeight(game.Status, game.CreateAddress)
+		r.MatchHeight = action.GetLastHeight(game.Status, game.MatchAddress)
 	} else if game.Status == types.GameActionMatch {
 		log.Ty = types.TyLogMatchGame
 		r.PrevStatus = types.GameActionCreate
@@ -70,6 +109,9 @@ func (action *Action) GetReceiptLog(game *types.Game) *types.ReceiptLog {
 		log.Ty = types.TyLogCloseGame
 		r.PrevStatus = types.GameActionMatch
 		r.PrevActionTime = game.GetMatchTime()
+		//只有close,cancel 操作时，才涉及最终状态高度变更
+		r.CreateHeight = action.GetLastHeight(game.Status, game.CreateAddress)
+		r.MatchHeight = action.GetLastHeight(game.Status, game.MatchAddress)
 		r.Addr = game.GetCreateAddress()
 	}
 	r.GameId = game.GameId
@@ -79,6 +121,13 @@ func (action *Action) GetReceiptLog(game *types.Game) *types.ReceiptLog {
 	r.ActionTime = action.blocktime
 	log.Log = types.Encode(r)
 	return log
+}
+func (action *Action) GetLastHeight(status int32, addr string) int64 {
+	height, err := queryHeightByStatusAndHeightType(action.db, status, addr, LastHeight)
+	if err != nil {
+		return 0
+	}
+	return height
 }
 
 func (action *Action) GetKVSet(game *types.Game) (kvset []*types.KeyValue) {
@@ -91,6 +140,16 @@ func (action *Action) GetKVSet(game *types.Game) (kvset []*types.KeyValue) {
 func Key(id string) (key []byte) {
 	key = append(key, []byte("mavl-"+types.ExecName(types.GameX)+"-")...)
 	key = append(key, []byte(id)...)
+	return key
+}
+func CalcKeyByHeight(status int32, addr string, heightType string) (key []byte) {
+	key = append(key, []byte("mavl-"+types.ExecName(types.GameX)+"-")...)
+	key = append(key, []byte(fmt.Sprintf("%d:%s:%s", status, addr, heightType))...)
+	return key
+}
+func CalcCountKey(status int32, countType string) (key []byte) {
+	key = append(key, []byte("mavl-"+types.ExecName(types.GameX)+"-")...)
+	key = append(key, []byte(fmt.Sprintf("%d:%s", status, countType))...)
 	return key
 }
 
@@ -114,7 +173,20 @@ func (action *Action) saveGameToStateDB(game *types.Game) {
 	value := types.Encode(game)
 	action.db.Set(Key(game.GetGameId()), value)
 }
-
+func (action *Action) saveHeight(status int32, addr, heightType string, height int64) {
+	action.db.Set(CalcKeyByHeight(status, addr, heightType), []byte(strconv.FormatInt(height, 10)))
+}
+func (action *Action) updateHeight(addr string, status int32) {
+	height, _ := queryHeightByStatusAndHeightType(action.db, status, addr, LastHeight)
+	action.saveHeight(status, addr, LastHeight, height+1)
+}
+func (action *Action) saveCount(status int32, countType string, height int64) {
+	action.db.Set(CalcCountKey(status, countType), []byte(strconv.FormatInt(height, 10)))
+}
+func (action *Action) updateCount(status int32, countType string) {
+	count, _ := queryCountByStatusAndCountType(action.db, status, countType)
+	action.saveCount(status, countType, count+1)
+}
 func (action *Action) CheckExecAccountBalance(fromAddr string, ToFrozen, ToActive int64) bool {
 	acc := action.coinsAccount.LoadExecAccount(fromAddr, action.execaddr)
 	if acc.GetBalance() >= ToFrozen && acc.GetFrozen() >= ToActive {
@@ -147,6 +219,7 @@ func (action *Action) GameCreate(create *types.GameCreate) (*types.Receipt, erro
 		Status:        types.GameActionCreate,
 	}
 	action.saveGameToStateDB(game)
+	action.updateCount(types.GameActionCreate, CreateCount)
 	receiptLog := action.GetReceiptLog(game)
 	logs = append(logs, receiptLog)
 	kv = append(kv, action.GetKVSet(game)...)
@@ -191,6 +264,7 @@ func (action *Action) GameMatch(match *types.GameMatch) (*types.Receipt, error) 
 	game.MatchTime = action.blocktime
 	game.Guess = match.GetGuess()
 	action.saveGameToStateDB(game)
+	action.updateCount(types.GameActionMatch, MatchCount)
 	var logs []*types.ReceiptLog
 	var kvs []*types.KeyValue
 	receiptLog := action.GetReceiptLog(game)
@@ -232,6 +306,8 @@ func (action *Action) GameCancel(cancel *types.GameCancel) (*types.Receipt, erro
 	game.Closetime = action.blocktime
 	game.Status = types.GameActionCancel
 	action.saveGameToStateDB(game)
+	action.updateHeight(action.fromaddr, types.GameActionCancel)
+	action.updateCount(types.GameActionCancel, CancelCount)
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
 	logs = append(logs, receipt.Logs...)
@@ -373,6 +449,10 @@ func (action *Action) GameClose(close *types.GameClose) (*types.Receipt, error) 
 	game.Secret = close.GetSecret()
 	game.Result = int32(result)
 	action.saveGameToStateDB(game)
+	//更新状态数据库中处于close状态的数据高度
+	action.updateHeight(game.GetCreateAddress(), types.GameActionClose)
+	action.updateHeight(game.MatchAddress, types.GameActionClose)
+	action.updateCount(types.GameActionClose, CloseCount)
 	receiptLog := action.GetReceiptLog(game)
 	logs = append(logs, receiptLog)
 	kvs := action.GetKVSet(game)
@@ -446,36 +526,193 @@ func (action *Action) readGame(id string) (*types.Game, error) {
 	return &game, nil
 }
 
-//TODO:这块可能需要做个分页，防止数据过大?这里需要做补强
-func List(db dbm.Lister, stateDB dbm.KV, glist *types.QueryGameListByStatusAndAddr) (types.Message, error) {
+//TODO:前序，后序段首查询，再修改一下可以根据某个时间端来查询信息
+func List(db dbm.Lister, stateDB dbm.KV, param *types.QueryGameListByStatusAndAddr) (types.Message, error) {
+	return QueryGameListByPage(db, stateDB, param)
+}
+
+//分页查询,pageNum从0开始，为了兼容以前接口接受默认值为0，按第一页处理
+func QueryGameListByPage(db dbm.Lister, stateDB dbm.KV, param *types.QueryGameListByStatusAndAddr) (types.Message, error) {
 	//无论前台传来什么值，要确保direction为0或者1
 	direction := ListDESC
-	if glist.GetDirection() == ListASC {
+	if param.GetDirection() == ListASC {
 		direction = ListASC
 	}
 	count := DefultCount
-	if 0 < glist.GetCount() && glist.GetCount() <= MaxCount {
-		count = glist.GetCount()
+	if 0 < param.GetCount() && param.GetCount() <= MaxCount {
+		count = param.GetCount()
 	}
-	values, err := db.List(calcGamePrefix(glist.GetStatus(), glist.GetAddress()), nil, count, direction)
+	if param.GetPageNum() < 0 {
+		return nil, fmt.Errorf("Number of bad pages!")
+	}
+	pageNum := param.GetPageNum() + 1
+	switch param.GetStatus() {
+	case types.GameActionCancel, types.GameActionClose:
+		//查询cancel,close 状态必须地址，不携带支持禁止调用接口
+		if param.GetAddress() == "" {
+			return nil, fmt.Errorf("The address cannot be empty!")
+		}
+		Height, err := queryHeightByStatusAndHeightType(stateDB, param.Status, param.Address, LastHeight)
+		if err != nil {
+			return nil, err
+		}
+		var values [][]byte
+		var height int64
+		if direction == ListDESC {
+			height = Height - int64(count*(pageNum-1))
+			if height <= 0 {
+				return nil, fmt.Errorf("The index of crossing the line.")
+			}
+			for i := height; i > 0; i-- {
+				value, err := db.List(calcGameIdPrefix(param.GetStatus(), param.GetAddress()), calcGameIdKey(param.Status, param.Address, height), count, direction)
+				if err != nil {
+					continue
+				}
+				values = append(values, value...)
+			}
+		}
+		if direction == ListASC {
+			if int64(count*(pageNum-1)) > Height {
+				return nil, fmt.Errorf("The index of crossing the line.")
+			}
+			height = int64(count * (pageNum - 1))
+			for i := height; i <= Height; i++ {
+				value, err := db.List(calcGameIdPrefix(param.GetStatus(), param.GetAddress()), calcGameIdKey(param.Status, param.Address, height), count, direction)
+				if err != nil {
+					continue
+				}
+				values = append(values, value...)
+			}
+		}
+		//TODO:这样一次性把整页查出来数据返回是否合理？
+		if len(values) == 0 {
+			return &types.ReplyGameList{}, nil
+		}
+		return GetGameList(stateDB, values)
+	case types.GameActionCreate, types.GameActionMatch:
+		//此刻没有准确的索引，需要根据单页返回的count值来处理
+		if pageNum*count <= MaxCount*5 { //这里正序和反序取逻辑一样
+			values, err := db.List(calcGamePrefix(param.GetStatus(), param.GetAddress()), nil, pageNum*count, direction)
+			if err != nil {
+				return nil, err
+			}
+			if len(values) <= int(pageNum*count) && len(values) > int((pageNum-1)*count) {
+				return GetGameList(stateDB, CheckGameIdDup(values[(pageNum-1)*count-1:], param))
+			}
+			return nil, fmt.Errorf("The index of crossing the line.")
+		}
+
+		if pageNum*count > MaxCount*5 { //超过500条，需要查询总数
+			if int64(pageNum*count) > 1000 { //限制最多让其向上向下探查1000条记录
+				return nil, fmt.Errorf("Your search is so deep, please choose the game before it.")
+			}
+			total := db.PrefixCount(calcGamePrefix(param.GetStatus(), param.GetAddress()))
+			//TODO create,match 状态都可能随时发生变化，状态不断地被消退，对于用户而言，处于
+			// 这两个状态的数据应该不会太多,因此这样处理一般没有大的问题。
+			if total < int64(pageNum*count) {
+				return nil, fmt.Errorf("The index of crossing the line.")
+			}
+			values, err := db.List(calcGamePrefix(param.GetStatus(), param.GetAddress()), nil, pageNum*count, direction)
+			if err != nil {
+				return nil, err
+			}
+			if len(values) <= int(pageNum*count) && len(values) > int((pageNum-1)*count) {
+				return GetGameList(stateDB, CheckGameIdDup(values[(pageNum-1)*count-1:], param))
+			}
+			return nil, fmt.Errorf("The index of crossing the line.")
+
+		}
+	}
+	return nil, fmt.Errorf("the status only fill in 0,1,2,3!")
+}
+
+//count数查询
+func QueryGameListCount(db dbm.Lister, stateDB dbm.KV, param *types.QueryGameListCount) (types.Message, error) {
+	if param.Status < 0 || param.Status > 3 {
+		return nil, fmt.Errorf("the status only fill in 0,1,2,3!")
+	}
+	if param.GetAddress() == "" {
+		//直接从状态数据库中取
+		createCount := QueryCountByStatus(stateDB, types.GameActionCreate)
+		closeCount := QueryCountByStatus(stateDB, types.GameActionClose)
+		cancleCount := QueryCountByStatus(stateDB, types.GameActionCancel)
+		matchCount := QueryCountByStatus(stateDB, types.GameActionMatch)
+		switch param.GetStatus() {
+		case types.GameActionCreate:
+			return &types.ReplyGameListCount{createCount - matchCount - cancleCount}, nil
+		case types.GameActionMatch:
+			return &types.ReplyGameListCount{matchCount - closeCount}, nil
+		case types.GameActionCancel:
+			return &types.ReplyGameListCount{cancleCount}, nil
+		case types.GameActionClose:
+			return &types.ReplyGameListCount{closeCount}, nil
+		}
+	}
+	if param.GetStatus() == types.GameActionCancel || param.GetStatus() == types.GameActionClose {
+		//直接查询状态数据库中的height,即为总数
+		height, err := queryHeightByStatusAndHeightType(stateDB, param.Status, param.Address, LastHeight)
+		if err != nil {
+			return nil, err
+		}
+		return &types.ReplyGameListCount{height}, nil
+	}
+	return &types.ReplyGameListCount{db.PrefixCount(calcGamePrefix(param.GetStatus(), param.GetAddress()))}, nil
+}
+func QueryCountByStatus(stateDB dbm.KV, status int32) int64 {
+	switch status {
+	case types.GameActionCreate:
+		count, _ := queryCountByStatusAndCountType(stateDB, status, CreateCount)
+		return count
+	case types.GameActionMatch:
+		count, _ := queryCountByStatusAndCountType(stateDB, status, MatchCount)
+		return count
+	case types.GameActionCancel:
+		count, _ := queryCountByStatusAndCountType(stateDB, status, CancelCount)
+		return count
+	case types.GameActionClose:
+		count, _ := queryCountByStatusAndCountType(stateDB, status, CloseCount)
+		return count
+	}
+	return 0
+}
+func queryCountByStatusAndCountType(stateDB dbm.KV, status int32, countType string) (int64, error) {
+	data, err := stateDB.Get(CalcCountKey(status, countType))
 	if err != nil {
-		return nil, err
+		glog.Error("query data have err:", err.Error())
+		return 0, err
 	}
-	if len(values) == 0 {
-		return &types.ReplyGameList{}, nil
+	count, err := strconv.ParseInt(string(data), 10, 64)
+	if err != nil {
+		glog.Error("Type conversion error:", err.Error())
+		return 0, err
 	}
-	return GetGameList(stateDB, CheckGameIdDup(values, glist))
+	return count, nil
+}
+func queryHeightByStatusAndHeightType(stateDB dbm.KV, status int32, addr, heightType string) (int64, error) {
+	data, err := stateDB.Get(CalcKeyByHeight(status, addr, heightType))
+	if err != nil {
+		glog.Error("query data have err:", err.Error())
+		return 0, err
+	}
+	height, err := strconv.ParseInt(string(data), 10, 64)
+	if err != nil {
+		glog.Error("Type conversion error:", err.Error())
+		return 0, err
+	}
+	return height, nil
 }
 
 func readGame(db dbm.KV, id string) (*types.Game, error) {
 	data, err := db.Get(Key(id))
 	if err != nil {
+		glog.Error("query data have err:", err.Error())
 		return nil, err
 	}
 	var game types.Game
 	//decode
 	err = types.Decode(data, &game)
 	if err != nil {
+		glog.Error("decode data have err:", err.Error())
 		return nil, err
 	}
 	return &game, nil
@@ -562,58 +799,4 @@ func removeDupByLoop(values [][]byte) [][]byte {
 		}
 	}
 	return result
-}
-
-//TODO:复写sort方法，后面可以根据业务需求调整相关接口，进行升降排序
-//根据createTime递增排序
-func SortGameByCreateTimeAsc(games []*types.Game) {
-	SortGame(games, func(p, q *types.Game) bool {
-		return p.GetCreateTime() < q.GetCreateTime()
-	})
-}
-
-//降序
-func SortGameByCreateTimeDesc(games []*types.Game) {
-	SortGame(games, func(p, q *types.Game) bool {
-		return p.GetCreateTime() > q.GetCreateTime()
-	})
-}
-
-//根据matchTime递增排序
-func SortGameByMatchTimeAsc(games []*types.Game) {
-	SortGame(games, func(p, q *types.Game) bool {
-		return p.GetMatchTime() < q.GetMatchTime()
-	})
-}
-func SortGameByMatchTimeDesc(games []*types.Game) {
-	SortGame(games, func(p, q *types.Game) bool {
-		return p.GetMatchTime() > q.GetMatchTime()
-	})
-}
-
-func SortGameByCloseTimeDesc(games []*types.Game) {
-	SortGame(games, func(p, q *types.Game) bool {
-		return p.GetClosetime() > q.GetClosetime()
-	})
-}
-
-type GameWrapper struct {
-	Games []*types.Game
-	by    func(p, q *types.Game) bool
-}
-type SortBy func(p, q *types.Game) bool
-
-func (gw GameWrapper) Len() int { // 重写 Len() 方法
-	return len(gw.Games)
-}
-func (gw GameWrapper) Swap(i, j int) { // 重写 Swap() 方法
-	gw.Games[i], gw.Games[j] = gw.Games[j], gw.Games[i]
-}
-func (gw GameWrapper) Less(i, j int) bool { // 重写 Less() 方法
-	return gw.by(gw.Games[i], gw.Games[j])
-}
-
-// 封装成 SortGame 方法
-func SortGame(games []*types.Game, by SortBy) {
-	sort.Sort(GameWrapper{games, by})
 }
