@@ -83,7 +83,7 @@ message QueryGameListByStatusAndAddr {
 }
 
 //// queryByAddr 和 queryByStatus共用同一个结构体
-//message QueryGameListByPage {
+// message QueryGameListByPage {
 //    //优先根据status查询,status不可为空
 //    int32 status = 1;
 //    //二级搜索，如果要查询一个地址下的所有game信息，可以根据status，分多次查询，这样规避存储数据时的臃余情况
