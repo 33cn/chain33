@@ -256,9 +256,11 @@ It has these top-level messages:
 	GameClose
 	GameCreate
 	QueryGameListByStatusAndAddr
+	QueryGameListCount
 	QueryGameInfo
 	QueryGameInfos
 	ReplyGameList
+	ReplyGameListCount
 	ReplyGame
 	ReceiptGame
 	P2PGetPeerInfo
