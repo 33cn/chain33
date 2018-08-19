@@ -43,6 +43,9 @@ func NewStateDB(client queue.Client, stateHash []byte, opt *StateDBOption) db.KV
 		if err == nil && v >= 0 {
 			db.version = v
 		}
+		if db.height != 0 {
+			panic("mvcc get version error")
+		}
 		db.flagMVCC = opt.FlagMVCC
 	}
 	return db

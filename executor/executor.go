@@ -382,7 +382,7 @@ func (exec *Executor) procExecAddBlock(msg queue.Message) {
 func (exec *Executor) checkMVCCFlag(execute *executor, datas *types.BlockDetail) ([]*types.KeyValue, error) {
 	//flag = 0 : init
 	//flag = 1 : start from zero
-	//flag = 2 : start from no zero
+	//flag = 2 : start from no zero //不允许flag = 2的情况
 	b := datas.Block
 	if atomic.LoadInt64(&exec.flagMVCC) == FlagInit {
 		flag, err := execute.loadFlag(types.FlagKeyMVCC)
@@ -564,7 +564,6 @@ func (e *executor) processFee(tx *types.Transaction) (*types.Receipt, error) {
 		e.coinsAccount.SaveAccount(accFrom)
 		return e.cutFeeReceipt(accFrom, receiptBalance), nil
 	}
-
 	return nil, types.ErrNoBalance
 }
 
