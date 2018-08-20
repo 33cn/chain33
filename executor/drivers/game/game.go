@@ -200,7 +200,7 @@ func (g *Game) queryIndex(txHash string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("%018d", d.GetHeight()*types.MaxTxsPerBlock+int64(d.GetIndex())), nil
+	return fmt.Sprintf("%018d", d.GetHeight()*types.MaxTxsPerBlock+d.GetIndex()), nil
 }
 func (g *Game) Query(funcName string, params []byte) (types.Message, error) {
 	if funcName == FuncName_QueryGameListByIds {
@@ -263,7 +263,7 @@ func addGameStatusIndex(status int32, gameId, index string) *types.KeyValue {
 		GameId: gameId,
 		Index:  index,
 	}
-	kv.Value = []byte(types.Encode(record))
+	kv.Value = types.Encode(record)
 	return kv
 }
 func addGameAddrIndex(status int32, gameId, addr, index string) *types.KeyValue {
@@ -273,7 +273,7 @@ func addGameAddrIndex(status int32, gameId, addr, index string) *types.KeyValue 
 		GameId: gameId,
 		Index:  index,
 	}
-	kv.Value = []byte(types.Encode(record))
+	kv.Value = types.Encode(record)
 	return kv
 }
 func delGameStatusIndex(status int32, index string) *types.KeyValue {
