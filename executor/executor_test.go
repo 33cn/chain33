@@ -423,7 +423,7 @@ func TestExecBlock2(t *testing.T) {
 }
 
 func printAccount(t *testing.T, qclient queue.Client, stateHash []byte, addr string) {
-	statedb := NewStateDB(qclient, stateHash, nil)
+	statedb := NewStateDB(qclient, stateHash, nil, nil)
 	acc := account.NewCoinsAccount()
 	acc.SetDB(statedb)
 	t.Log(acc.LoadAccount(addr))
