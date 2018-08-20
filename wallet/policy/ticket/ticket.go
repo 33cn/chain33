@@ -213,8 +213,6 @@ func (policy *ticketPolicy) OnCreateNewAccount(acc *types.Account) {
 }
 
 func (policy *ticketPolicy) OnImportPrivateKey(acc *types.Account) {
-	// 账号导入时，需要刷新，通知挖矿
-	policy.flushTicket()
 }
 
 func (policy *ticketPolicy) OnAddBlockFinish(block *types.BlockDetail) {
