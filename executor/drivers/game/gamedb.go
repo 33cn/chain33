@@ -481,7 +481,7 @@ func (action *Action) readGame(id string) (*types.Game, error) {
 	return &game, nil
 }
 
-func List(db dbm.KVDB, stateDB dbm.KV, param *types.QueryGameListByStatusAndAddr) (types.Message, error) {
+func List(db dbm.Lister, stateDB dbm.KV, param *types.QueryGameListByStatusAndAddr) (types.Message, error) {
 	return QueryGameListByPage(db, stateDB, param)
 }
 
@@ -568,7 +568,7 @@ func queryGameListByStatusAndAddr(db dbm.Lister, stateDB dbm.KV, param *types.Qu
 			return &types.ReplyGameListPage{games, "", index}, nil
 
 		}
-		return &types.ReplyGameListPage{games, param.GetIndex(), index}, nil
+		return &types.ReplyGameListPage{games[1:], param.GetIndex(), index}, nil
 	}
 }
 
