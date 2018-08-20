@@ -60,14 +60,14 @@ func NewNode(rpcAddr string, options ...func(*Node)) *Node {
 		fmt.Println("New JsonClient", "err", err)
 	}
 	n := &Node{
-		rpcAddr:                  rpcAddr,
-		rpcClient:                rpcClient,
-		Name:                     rpcAddr,
-		Online:                   false,
-		BlockTime:                0,
-		StateHash:                "",
-		TxCount:                  0,
-		quit:                     make(chan struct{}),
+		rpcAddr:   rpcAddr,
+		rpcClient: rpcClient,
+		Name:      rpcAddr,
+		Online:    false,
+		BlockTime: 0,
+		StateHash: "",
+		TxCount:   0,
+		quit:      make(chan struct{}),
 		checkIsValidatorInterval: 5 * time.Second,
 		MemInfo:                  &MemStatus{},
 		logger:                   log.NewNopLogger(),

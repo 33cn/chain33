@@ -5,27 +5,57 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
+	"math/rand"
 	"strings"
 	"time"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
+	"gitlab.33.cn/chain33/chain33/consensus/drivers"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
+const fee = 1e6
+
 var (
-	blocklog = log15.New("module", "tendermint-block")
+	blocklog        = log15.New("module", "tendermint-block")
+	r               *rand.Rand
+	ConsensusCrypto crypto.Crypto
 )
 
-type TendermintBlock struct {
-	*types.TendermintBlock
-}
-
+//-----------------------------------------------------------------------------
+//BlockID
 type BlockID struct {
 	types.BlockID
+}
+
+// IsZero returns true if this is the BlockID for a nil-block
+func (blockID BlockID) IsZero() bool {
+	return len(blockID.Hash) == 0
+}
+
+// Equals returns true if the BlockID matches the given BlockID
+func (blockID BlockID) Equals(other BlockID) bool {
+	return bytes.Equal(blockID.Hash, other.Hash)
+}
+
+// Key returns a machine-readable string representation of the BlockID
+func (blockID BlockID) Key() string {
+	return string(blockID.Hash)
+}
+
+// String returns a human readable string representation of the BlockID
+func (blockID BlockID) String() string {
+	return Fmt(`%v`, blockID.Hash)
+}
+
+//-----------------------------------------------------------------------------
+//TendermintBlock
+type TendermintBlock struct {
+	*types.TendermintBlock
 }
 
 // MakeBlock returns a new block with an empty header, except what can be computed from itself.
@@ -85,15 +115,10 @@ func (b *TendermintBlock) ValidateBasic() (int64, error) {
 			return 0, err
 		}
 	}
-	/*
-		calHash := merkle.CalcMerkleRoot(b.Txs)
-		if !bytes.Equal(b.TxHash, calHash) {
-			return 0, fmt.Errorf("Wrong Block.Header.DataHash.  Expected %v, got %v", b.TxHash, calHash)
-		}
-	*/
+
 	evidence := &EvidenceData{EvidenceData: b.Evidence}
 	if !bytes.Equal(b.Header.EvidenceHash, evidence.Hash()) {
-		return 0, errors.New(fmt.Sprintf("Wrong Block.Header.EvidenceHash.  Expected %v, got %v", b.Header.EvidenceHash, evidence.Hash()))
+		return 0, errors.New(Fmt("Wrong Block.Header.EvidenceHash.  Expected %v, got %v", b.Header.EvidenceHash, evidence.Hash()))
 	}
 	return newTxs, nil
 }
@@ -147,7 +172,7 @@ func (b *TendermintBlock) StringIndented(indent string) string {
 	}
 	header := &Header{TendermintBlockHeader: b.Header}
 	lastCommit := &Commit{TendermintCommit: b.LastCommit}
-	return fmt.Sprintf(`Block{
+	return Fmt(`Block{
 %s  %v
 %s  %v
 %s  %v
@@ -163,12 +188,11 @@ func (b *TendermintBlock) StringShort() string {
 	if b == nil {
 		return "nil-Block"
 	} else {
-		return fmt.Sprintf("Block#%v", b.Hash())
+		return Fmt("Block#%v", b.Hash())
 	}
 }
 
 //-----------------------------------------------------------------------------
-
 // Header defines the structure of a Tendermint block header
 // TODO: limit header size
 // NOTE: changes to the Header should be duplicated in the abci Header
@@ -195,7 +219,7 @@ func (h *Header) StringIndented(indent string) string {
 	if h == nil {
 		return "nil-Header"
 	}
-	return fmt.Sprintf(`Header{
+	return Fmt(`Header{
 %s  ChainID:        %v
 %s  Height:         %v
 %s  Time:           %v
@@ -224,7 +248,8 @@ func (h *Header) StringIndented(indent string) string {
 		indent, h.Hash())
 }
 
-//-------------------------------------
+//-----------------------------------------------------------------------------
+//Commit
 type Commit struct {
 	*types.TendermintCommit
 
@@ -360,7 +385,7 @@ func (commit *Commit) StringIndented(indent string) string {
 	for i, precommit := range commit.Precommits {
 		precommitStrings[i] = precommit.String()
 	}
-	return fmt.Sprintf(`Commit{
+	return Fmt(`Commit{
 %s  BlockID:    %v
 %s  Precommits: %v
 %s}#%v`,
@@ -370,7 +395,6 @@ func (commit *Commit) StringIndented(indent string) string {
 }
 
 //-----------------------------------------------------------------------------
-
 // SignedHeader is a header along with the commits that prove it
 type SignedHeader struct {
 	Header *Header `json:"header"`
@@ -422,7 +446,7 @@ func (evl EvidenceEnvelopeList) Hash() []byte {
 func (evl EvidenceEnvelopeList) String() string {
 	s := ""
 	for _, e := range evl {
-		s += fmt.Sprintf("%s\t\t", e)
+		s += Fmt("%s\t\t", e)
 	}
 	return s
 }
@@ -472,12 +496,12 @@ func (data *EvidenceData) StringIndented(indent string) string {
 	evStrings := make([]string, MinInt(len(data.Evidence), 21))
 	for i, ev := range data.Evidence {
 		if i == 20 {
-			evStrings[i] = fmt.Sprintf("... (%v total)", len(data.Evidence))
+			evStrings[i] = Fmt("... (%v total)", len(data.Evidence))
 			break
 		}
-		evStrings[i] = fmt.Sprintf("Evidence:%v", ev)
+		evStrings[i] = Fmt("Evidence:%v", ev)
 	}
-	return fmt.Sprintf(`Data{
+	return Fmt(`Data{
 %s  %v
 %s}#%v`,
 		indent, strings.Join(evStrings, "\n"+indent+"  "),
@@ -485,68 +509,212 @@ func (data *EvidenceData) StringIndented(indent string) string {
 	return ""
 }
 
-//--------------------------------------------------------------------------------
-
-// IsZero returns true if this is the BlockID for a nil-block
-func (blockID BlockID) IsZero() bool {
-	return len(blockID.Hash) == 0
+//---------------------------------BlockStore---------------------------------------------
+type BlockStore struct {
+	client *drivers.BaseClient
+	pubkey string
 }
 
-// Equals returns true if the BlockID matches the given BlockID
-func (blockID BlockID) Equals(other BlockID) bool {
-	return bytes.Equal(blockID.Hash, other.Hash)
-}
-
-// Key returns a machine-readable string representation of the BlockID
-func (blockID BlockID) Key() string {
-	return string(blockID.Hash)
-}
-
-// WriteSignBytes writes the canonical bytes of the BlockID to the given writer for digital signing
-func (blockID BlockID) WriteSignBytes(w io.Writer, n *int, err *error) {
-	if *err != nil {
-		return
+func NewBlockStore(client *drivers.BaseClient, pubkey string) *BlockStore {
+	r = rand.New(rand.NewSource(time.Now().UnixNano()))
+	return &BlockStore{
+		client: client,
+		pubkey: pubkey,
 	}
-	if blockID.IsZero() {
-		n_, err_ := w.Write([]byte("null"))
-		*n = n_
-		*err = err_
-		return
-	} else {
-		canonical := CanonicalBlockID(blockID)
-		byteBlockID, e := json.Marshal(&canonical)
-		if e != nil {
-			*err = e
-			return
+}
+
+func (bs *BlockStore) LoadSeenCommit(height int64) *types.TendermintCommit {
+	oldBlock, err := bs.client.RequestBlock(height)
+	if err != nil {
+		blocklog.Error("LoadSeenCommit by height failed", "curHeight", bs.client.GetCurrentHeight(), "requestHeight", height, "error", err)
+		return nil
+	}
+	blockInfo, err := GetBlockInfo(oldBlock)
+	if err != nil {
+		panic(Fmt("LoadSeenCommit GetBlockInfo failed:%v", err))
+	}
+	if blockInfo == nil {
+		blocklog.Error("LoadSeenCommit get nil block info")
+		return nil
+	}
+	return blockInfo.GetSeenCommit()
+}
+
+func (bs *BlockStore) LoadBlockCommit(height int64) *types.TendermintCommit {
+	oldBlock, err := bs.client.RequestBlock(height)
+	if err != nil {
+		blocklog.Error("LoadBlockCommit by height failed", "curHeight", bs.client.GetCurrentHeight(), "requestHeight", height, "error", err)
+		return nil
+	}
+	blockInfo, err := GetBlockInfo(oldBlock)
+	if err != nil {
+		panic(Fmt("LoadBlockCommit GetBlockInfo failed:%v", err))
+	}
+	if blockInfo == nil {
+		blocklog.Error("LoadBlockCommit get nil block info")
+		return nil
+	}
+	return blockInfo.GetLastCommit()
+}
+
+func (bs *BlockStore) LoadProposal(height int64) *types.Proposal {
+	block, err := bs.client.RequestBlock(height)
+	if err != nil {
+		blocklog.Error("LoadProposal by height failed", "curHeight", bs.client.GetCurrentHeight(), "requestHeight", height, "error", err)
+		return nil
+	}
+	blockInfo, err := GetBlockInfo(block)
+	if err != nil {
+		panic(Fmt("LoadProposal GetBlockInfo failed:%v", err))
+	}
+	if blockInfo == nil {
+		blocklog.Error("LoadProposal get nil block info")
+		return nil
+	}
+	proposal := blockInfo.GetProposal()
+	return proposal
+}
+
+func (bs *BlockStore) LoadProposalBlock(height int64) *types.TendermintBlock {
+	block, err := bs.client.RequestBlock(height)
+	if err != nil {
+		blocklog.Error("LoadProposal by height failed", "curHeight", bs.client.GetCurrentHeight(), "requestHeight", height, "error", err)
+		return nil
+	}
+	blockInfo, err := GetBlockInfo(block)
+	if err != nil {
+		panic(Fmt("LoadProposal GetBlockInfo failed:%v", err))
+	}
+	if blockInfo == nil {
+		blocklog.Error("LoadProposal get nil block info")
+		return nil
+	}
+
+	proposalBlock := blockInfo.GetBlock()
+	if proposalBlock != nil {
+		proposalBlock.Txs = append(proposalBlock.Txs, block.Txs[1:]...)
+		txHash := merkle.CalcMerkleRoot(proposalBlock.Txs)
+		blocklog.Info("LoadProposalBlock txs hash", "height", proposalBlock.Header.Height, "tx-hash", Fmt("%X", txHash))
+	}
+	return proposalBlock
+}
+
+func (bs *BlockStore) Height() int64 {
+	return bs.client.GetCurrentHeight()
+}
+
+func (bs *BlockStore) GetPubkey() string {
+	return bs.pubkey
+}
+
+func GetBlockInfo(block *types.Block) (*types.TendermintBlockInfo, error) {
+	if len(block.Txs) == 0 || block.Height == 0 {
+		return nil, nil
+	}
+	baseTx := block.Txs[0]
+	//判断交易类型和执行情况
+	var blockInfo types.TendermintBlockInfo
+	nGet := &types.NormPut{}
+	action := &types.NormAction{}
+	err := types.Decode(baseTx.GetPayload(), action)
+	if err != nil {
+		blocklog.Error("GetBlockInfo decode payload failed", "error", err)
+		return nil, errors.New(Fmt("GetBlockInfo decode payload failed:%v", err))
+	}
+	if nGet = action.GetNput(); nGet == nil {
+		blocklog.Error("GetBlockInfo get nput failed")
+		return nil, errors.New("GetBlockInfo get nput failed")
+	}
+	infobytes := nGet.GetValue()
+	if infobytes == nil {
+		blocklog.Error("GetBlockInfo get blockinfo value failed")
+		return nil, errors.New("GetBlockInfo get blockinfo value failed")
+	}
+	err = types.Decode(infobytes, &blockInfo)
+	if err != nil {
+		blocklog.Error("GetBlockInfo decode blockinfo failed", "error", err)
+		return nil, errors.New(Fmt("GetBlockInfo decode blockinfo failed:%v", err))
+	}
+	return &blockInfo, nil
+}
+
+func getprivkey(key string) crypto.PrivKey {
+	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	if err != nil {
+		panic(err)
+	}
+	bkey, err := common.FromHex(key)
+	if err != nil {
+		panic(err)
+	}
+	priv, err := cr.PrivKeyFromBytes(bkey)
+	if err != nil {
+		panic(err)
+	}
+	return priv
+}
+
+func LoadValidators(des []*Validator, source []*types.Validator) {
+	for i, item := range source {
+		if item.GetAddress() == nil || len(item.GetAddress()) == 0 {
+			blocklog.Warn("LoadValidators get address is nil or empty")
+			continue
+		} else if item.GetPubKey() == nil || len(item.GetPubKey()) == 0 {
+			blocklog.Warn("LoadValidators get pubkey is nil or empty")
+			continue
 		}
-		n_, err_ := w.Write(byteBlockID)
-		*n = n_
-		*err = err_
-		return
+		des[i] = &Validator{}
+		des[i].Address = item.GetAddress()
+		pub := item.GetPubKey()
+		if pub == nil {
+			blocklog.Error("LoadValidators get validator pubkey is nil", "item", i)
+		} else {
+			des[i].PubKey = pub
+		}
+		des[i].VotingPower = item.VotingPower
+		des[i].Accum = item.Accum
 	}
 }
 
-// String returns a human readable string representation of the BlockID
-func (blockID BlockID) String() string {
-	return fmt.Sprintf(`%v`, blockID.Hash)
+func LoadProposer(source *types.Validator) (*Validator, error) {
+	if source.GetAddress() == nil || len(source.GetAddress()) == 0 {
+		blocklog.Warn("LoadProposer get address is nil or empty")
+		return nil, errors.New("LoadProposer get address is nil or empty")
+	} else if source.GetPubKey() == nil || len(source.GetPubKey()) == 0 {
+		blocklog.Warn("LoadProposer get pubkey is nil or empty")
+		return nil, errors.New("LoadProposer get pubkey is nil or empty")
+	}
+
+	des := &Validator{}
+	des.Address = source.GetAddress()
+	pub := source.GetPubKey()
+	if pub == nil {
+		blocklog.Error("LoadProposer get pubkey is nil")
+	} else {
+		des.PubKey = pub
+	}
+	des.VotingPower = source.VotingPower
+	des.Accum = source.Accum
+	return des, nil
 }
 
-//------------------------------------------------------
-// evidence pool
+func CreateBlockInfoTx(pubkey string, lastCommit *types.TendermintCommit, seenCommit *types.TendermintCommit, state *types.State, proposal *types.Proposal, block *types.TendermintBlock) *types.Transaction {
+	blockNoTxs := *block
+	blockNoTxs.Txs = make([]*types.Transaction, 0)
+	blockInfo := &types.TendermintBlockInfo{
+		SeenCommit: seenCommit,
+		LastCommit: lastCommit,
+		State:      state,
+		Proposal:   proposal,
+		Block:      &blockNoTxs,
+	}
+	blocklog.Debug("CreateBlockInfoTx", "validators", blockInfo.State.Validators.Validators, "block", block, "block-notxs", blockNoTxs)
 
-// EvidencePool defines the EvidencePool interface used by the ConsensusState.
-// UNSTABLE
-type EvidencePool interface {
-	PendingEvidence() []Evidence
-	AddEvidence(Evidence) error
-	Update(*TendermintBlock)
+	nput := &types.NormAction_Nput{&types.NormPut{Key: "BlockInfo", Value: types.Encode(blockInfo)}}
+	action := &types.NormAction{Value: nput, Ty: types.NormActionPut}
+	tx := &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(action), Fee: fee}
+	tx.Nonce = r.Int63()
+	tx.Sign(types.SECP256K1, getprivkey(pubkey))
+
+	return tx
 }
-
-// MockMempool is an empty implementation of a Mempool, useful for testing.
-// UNSTABLE
-type MockEvidencePool struct {
-}
-
-func (m MockEvidencePool) PendingEvidence() []Evidence { return nil }
-func (m MockEvidencePool) AddEvidence(Evidence) error  { return nil }
-func (m MockEvidencePool) Update(*TendermintBlock)     {}

@@ -2,21 +2,16 @@ package tendermint
 
 import (
 	"bytes"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
+	"sync"
 
-	"encoding/json"
-
+	"gitlab.33.cn/chain33/chain33/consensus/drivers"
 	ttypes "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
-
-// database keys
-var (
-	stateKey = []byte("stateKey")
-)
-
-//-----------------------------------------------------------------------------
 
 // State is a short description of the latest committed block of the Tendermint consensus.
 // It keeps all information necessary to validate new blocks,
@@ -192,4 +187,193 @@ func MakeGenesisState(genDoc *ttypes.GenesisDoc) (State, error) {
 
 		AppHash: genDoc.AppHash,
 	}, nil
+}
+
+//-------------------stateDB------------------------
+type CSStateDB struct {
+	client *drivers.BaseClient
+	state  State
+	mtx    sync.Mutex
+}
+
+func NewStateDB(client *drivers.BaseClient, state State) *CSStateDB {
+	return &CSStateDB{
+		client: client,
+		state:  state,
+	}
+}
+
+func LoadState(state *types.State) State {
+	stateTmp := State{
+		ChainID:                          state.GetChainID(),
+		LastBlockHeight:                  state.GetLastBlockHeight(),
+		LastBlockTotalTx:                 state.GetLastBlockTotalTx(),
+		LastBlockTime:                    state.LastBlockTime,
+		Validators:                       nil,
+		LastValidators:                   nil,
+		LastHeightValidatorsChanged:      state.LastHeightValidatorsChanged,
+		ConsensusParams:                  ttypes.ConsensusParams{BlockSize: ttypes.BlockSize{}, TxSize: ttypes.TxSize{}, BlockGossip: ttypes.BlockGossip{}, EvidenceParams: ttypes.EvidenceParams{}},
+		LastHeightConsensusParamsChanged: state.LastHeightConsensusParamsChanged,
+		LastResultsHash:                  state.LastResultsHash,
+		AppHash:                          state.AppHash,
+	}
+	if validators := state.GetValidators(); validators != nil {
+		if array := validators.GetValidators(); array != nil {
+			targetArray := make([]*ttypes.Validator, len(array))
+			ttypes.LoadValidators(targetArray, array)
+			stateTmp.Validators = &ttypes.ValidatorSet{Validators: targetArray, Proposer: nil}
+		}
+		if proposer := validators.GetProposer(); proposer != nil {
+			if stateTmp.Validators == nil {
+				tendermintlog.Error("LoadState validator is nil but proposer")
+			} else {
+				if val, err := ttypes.LoadProposer(proposer); err == nil {
+					stateTmp.Validators.Proposer = val
+				}
+			}
+		}
+	}
+	if lastValidators := state.GetLastValidators(); lastValidators != nil {
+		if array := lastValidators.GetValidators(); array != nil {
+			targetArray := make([]*ttypes.Validator, len(array))
+			ttypes.LoadValidators(targetArray, array)
+			stateTmp.LastValidators = &ttypes.ValidatorSet{Validators: targetArray, Proposer: nil}
+		}
+		if proposer := lastValidators.GetProposer(); proposer != nil {
+			if stateTmp.LastValidators == nil {
+				tendermintlog.Error("LoadState last validator is nil but proposer")
+			} else {
+				if val, err := ttypes.LoadProposer(proposer); err == nil {
+					stateTmp.LastValidators.Proposer = val
+				}
+			}
+		}
+	}
+	if consensusParams := state.GetConsensusParams(); consensusParams != nil {
+		if consensusParams.GetBlockSize() != nil {
+			stateTmp.ConsensusParams.BlockSize.MaxBytes = int(consensusParams.BlockSize.MaxBytes)
+			stateTmp.ConsensusParams.BlockSize.MaxGas = consensusParams.BlockSize.MaxGas
+			stateTmp.ConsensusParams.BlockSize.MaxTxs = int(consensusParams.BlockSize.MaxTxs)
+		}
+		if consensusParams.GetTxSize() != nil {
+			stateTmp.ConsensusParams.TxSize.MaxGas = consensusParams.TxSize.MaxGas
+			stateTmp.ConsensusParams.TxSize.MaxBytes = int(consensusParams.TxSize.MaxBytes)
+		}
+		if consensusParams.GetBlockGossip() != nil {
+			stateTmp.ConsensusParams.BlockGossip.BlockPartSizeBytes = int(consensusParams.BlockGossip.BlockPartSizeBytes)
+		}
+		if consensusParams.GetEvidenceParams() != nil {
+			stateTmp.ConsensusParams.EvidenceParams.MaxAge = consensusParams.EvidenceParams.MaxAge
+		}
+	}
+
+	return stateTmp
+}
+
+func (csdb *CSStateDB) SaveState(state State) {
+	csdb.mtx.Lock()
+	defer csdb.mtx.Unlock()
+	csdb.state = state.Copy()
+}
+
+func (csdb *CSStateDB) LoadState() State {
+	csdb.mtx.Lock()
+	defer csdb.mtx.Unlock()
+	return csdb.state
+}
+
+func (csdb *CSStateDB) LoadValidators(height int64) (*ttypes.ValidatorSet, error) {
+	if height == 0 {
+		return nil, nil
+	}
+	if csdb.state.LastBlockHeight+1 == height {
+		return csdb.state.Validators, nil
+	}
+	curHeight := csdb.client.GetCurrentHeight()
+	block, err := csdb.client.RequestBlock(height)
+	if err != nil {
+		tendermintlog.Error(fmt.Sprintf("LoadValidators : Couldn't find block at height %d as current height %d", height, curHeight))
+		return nil, nil
+	}
+	blockInfo, err := ttypes.GetBlockInfo(block)
+	if err != nil {
+		tendermintlog.Error("LoadValidators GetBlockInfo failed", "error", err)
+		panic(fmt.Sprintf("LoadValidators GetBlockInfo failed:%v", err))
+	}
+
+	var state State
+	if blockInfo == nil {
+		tendermintlog.Error("LoadValidators", "msg", "block height is not 0 but blockinfo is nil")
+		panic(fmt.Sprintf("LoadValidators block height is %v but block info is nil", block.Height))
+	} else {
+		csState := blockInfo.GetState()
+		if csState == nil {
+			tendermintlog.Error("LoadValidators", "msg", "blockInfo.GetState is nil")
+			return nil, errors.New(fmt.Sprintf("LoadValidators get state from block info is nil"))
+		}
+		state = LoadState(csState)
+	}
+	return state.Validators.Copy(), nil
+}
+
+func saveConsensusParams(dest *types.ConsensusParams, source ttypes.ConsensusParams) {
+	dest.BlockSize.MaxBytes = int32(source.BlockSize.MaxBytes)
+	dest.BlockSize.MaxTxs = int32(source.BlockSize.MaxTxs)
+	dest.BlockSize.MaxGas = source.BlockSize.MaxGas
+	dest.TxSize.MaxGas = source.TxSize.MaxGas
+	dest.TxSize.MaxBytes = int32(source.TxSize.MaxBytes)
+	dest.BlockGossip.BlockPartSizeBytes = int32(source.BlockGossip.BlockPartSizeBytes)
+	dest.EvidenceParams.MaxAge = source.EvidenceParams.MaxAge
+}
+
+func saveValidators(dest []*types.Validator, source []*ttypes.Validator) []*types.Validator {
+	for _, item := range source {
+		if item == nil {
+			dest = append(dest, &types.Validator{})
+		} else {
+			validator := &types.Validator{
+				Address:     item.Address,
+				PubKey:      item.PubKey,
+				VotingPower: item.VotingPower,
+				Accum:       item.Accum,
+			}
+			dest = append(dest, validator)
+		}
+	}
+	return dest
+}
+
+func saveProposer(dest *types.Validator, source *ttypes.Validator) {
+	if source != nil {
+		dest.Address = source.Address
+		dest.PubKey = source.PubKey
+		dest.VotingPower = source.VotingPower
+		dest.Accum = source.Accum
+	}
+}
+
+func SaveState(state State) *types.State {
+	newState := types.State{
+		ChainID:                          state.ChainID,
+		LastBlockHeight:                  state.LastBlockHeight,
+		LastBlockTotalTx:                 state.LastBlockTotalTx,
+		LastBlockTime:                    state.LastBlockTime,
+		Validators:                       &types.ValidatorSet{Validators: make([]*types.Validator, 0), Proposer: &types.Validator{}},
+		LastValidators:                   &types.ValidatorSet{Validators: make([]*types.Validator, 0), Proposer: &types.Validator{}},
+		LastHeightValidatorsChanged:      state.LastHeightValidatorsChanged,
+		ConsensusParams:                  &types.ConsensusParams{BlockSize: &types.BlockSize{}, TxSize: &types.TxSize{}, BlockGossip: &types.BlockGossip{}, EvidenceParams: &types.EvidenceParams{}},
+		LastHeightConsensusParamsChanged: state.LastHeightConsensusParamsChanged,
+		LastResultsHash:                  state.LastResultsHash,
+		AppHash:                          state.AppHash,
+	}
+	if state.Validators != nil {
+		newState.Validators.Validators = saveValidators(newState.Validators.Validators, state.Validators.Validators)
+		saveProposer(newState.Validators.Proposer, state.Validators.Proposer)
+	}
+	if state.LastValidators != nil {
+		newState.LastValidators.Validators = saveValidators(newState.LastValidators.Validators, state.LastValidators.Validators)
+		saveProposer(newState.LastValidators.Proposer, state.LastValidators.Proposer)
+	}
+	saveConsensusParams(newState.ConsensusParams, state.ConsensusParams)
+	return &newState
 }

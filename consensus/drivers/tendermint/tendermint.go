@@ -309,10 +309,6 @@ func (client *TendermintClient) CreateBlock() {
 
 		client.txsAvailable <- client.GetCurrentHeight() + 1
 		time.Sleep(time.Second)
-		//select {
-		//case height := <-client.consResult:
-		//	tendermintlog.Info("Tendermint consensus reached at", "height", height)
-		//}
 	}
 }
 
