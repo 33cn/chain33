@@ -336,13 +336,19 @@ func (wallet *Wallet) isTicketLocked() bool {
 	return locked
 }
 
+func (wallet *Wallet) isAutoMinning() bool {
+	autoMining := false
+	if wallet.mineStatusReporter != nil {
+		autoMining = wallet.mineStatusReporter.IsAutoMining()
+	}
+	return autoMining
+}
+
 func (wallet *Wallet) GetWalletStatus() *types.WalletStatus {
 	s := &types.WalletStatus{}
 	s.IsWalletLock = wallet.IsWalletLocked()
 	s.IsHasSeed, _ = wallet.walletStore.HasSeed()
-	if wallet.mineStatusReporter != nil {
-		s.IsAutoMining = wallet.mineStatusReporter.IsAutoMining()
-	}
+	s.IsAutoMining = wallet.isAutoMinning()
 	s.IsTicketLock = wallet.isTicketLocked()
 
 	walletlog.Debug("GetWalletStatus", "walletstatus", s)
