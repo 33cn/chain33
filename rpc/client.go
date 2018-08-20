@@ -80,6 +80,33 @@ func (c *channelClient) CreateRawTransaction(param *types.CreateTx) ([]byte, err
 	}
 }
 
+func (c *channelClient) CreateRawTxGroup(param *types.CreateTransactionGroup) ([]byte, error) {
+	var transactions []*types.Transaction
+	for _, t := range param.Txs {
+		txByte, err := hex.DecodeString(t)
+		if err != nil {
+			return nil, err
+		}
+		var transaction types.Transaction
+		err = types.Decode(txByte, &transaction)
+		if err != nil {
+			return nil, err
+		}
+		transactions = append(transactions, &transaction)
+	}
+	group, err := types.CreateTxGroup(transactions)
+	if err != nil {
+		return nil, err
+	}
+	err = group.Check(types.MinFee)
+	if err != nil {
+		return nil, err
+	}
+	txGroup := group.Tx()
+	txHex := types.Encode(txGroup)
+	return txHex, nil
+}
+
 func (c *channelClient) CreateNoBalanceTransaction(in *types.NoBalanceTx) (*types.Transaction, error) {
 	txNone := &types.Transaction{Execer: []byte(types.ExecName(types.NoneX)), Payload: []byte("no-fee-transaction")}
 	txNone.To = address.ExecAddress(string(txNone.Execer))

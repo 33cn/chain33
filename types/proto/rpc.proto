@@ -18,6 +18,7 @@ service grpcservice {
     rpc GetLastHeader(ReqNil) returns (Header) {}
     //交易接口
     rpc CreateRawTransaction(CreateTx) returns (UnsignTx) {}
+    rpc CreateRawTxGroup(CreateTransactionGroup) returns (UnsignTx) {}
     //发送签名后交易
     rpc SendRawTransaction(SignedTx) returns (Reply) {}
     // 根据哈希查询交易
