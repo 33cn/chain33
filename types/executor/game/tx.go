@@ -72,6 +72,7 @@ type ReplyGameList struct {
 type ReplyGame struct {
 	Game *Game `json:"game"`
 }
+
 // 分页返回结构体
 type ReplyGameListPage struct {
 	Games     []*Game `json:"games"`
