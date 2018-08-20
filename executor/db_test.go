@@ -9,7 +9,7 @@ import (
 )
 
 func newStateDbForTest(height int64) db.KV {
-	return NewStateDB(nil, nil, &StateDBOption{Height: height})
+	return NewStateDB(nil, nil, nil, &StateDBOption{Height: height})
 }
 func TestStateDBGet(t *testing.T) {
 	db := newStateDbForTest(0)
