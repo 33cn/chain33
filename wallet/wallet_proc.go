@@ -1005,6 +1005,21 @@ func (wallet *Wallet) ProcWalletDelBlock(block *types.BlockDetail) {
 		// 执行钱包业务逻辑策略
 		if policy, ok := wcom.PolicyContainer[execer]; ok {
 			policy.OnDeleteBlockTx(block, tx, int32(index), newbatch)
+
+			// 删除保存的合约信息
+			pubkey := tx.Signature.GetPubkey()
+			addr := address.PubKeyToAddress(pubkey)
+			fromaddress := addr.String()
+			if len(fromaddress) != 0 && wallet.AddrInWallet(fromaddress) {
+				newbatch.Delete(wcom.CalcTxKey(heightstr))
+				continue
+			}
+			//toaddr
+			toaddr := tx.GetTo()
+			if len(toaddr) != 0 && wallet.AddrInWallet(toaddr) {
+				newbatch.Delete(wcom.CalcTxKey(heightstr))
+			}
+
 		} else { // 默认的合约处理流程
 			//获取from地址
 			pubkey := tx.Signature.GetPubkey()
@@ -1020,34 +1035,8 @@ func (wallet *Wallet) ProcWalletDelBlock(block *types.BlockDetail) {
 				newbatch.Delete(wcom.CalcTxKey(heightstr))
 			}
 		}
-		//if "ticket" == string(tx.Execer) {
-		//	receipt := block.Receipts[index]
-		//	if wallet.needFlushTicket(tx, receipt) {
-		//		needflush = true
-		//	}
-		//}
-		//
-		//if types.PrivacyX != string(tx.Execer) {
-		//	//获取from地址
-		//	pubkey := tx.Signature.GetPubkey()
-		//	addr := address.PubKeyToAddress(pubkey)
-		//	fromaddress := addr.String()
-		//	if len(fromaddress) != 0 && wallet.AddrInWallet(fromaddress) {
-		//		newbatch.Delete(wcom.CalcTxKey(heightstr))
-		//		continue
-		//	}
-		//	//toaddr
-		//	toaddr := tx.GetTo()
-		//	if len(toaddr) != 0 && wallet.AddrInWallet(toaddr) {
-		//		newbatch.Delete(wcom.CalcTxKey(heightstr))
-		//	}
-		//}
 	}
 	newbatch.Write()
-	//if needflush {
-	//	wallet.flushTicket()
-	//}
-
 	for _, policy := range wcom.PolicyContainer {
 		policy.OnDeleteBlockFinish(block)
 	}
