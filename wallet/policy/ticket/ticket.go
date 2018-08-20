@@ -106,18 +106,74 @@ func (policy *ticketPolicy) OnClose() {
 	policy.getMingTicket().Stop()
 }
 
-func (policy *ticketPolicy) OnAddBlockTx(block *types.BlockDetail, tx *types.Transaction, index int32, dbbatch db.Batch) {
+func (policy *ticketPolicy) OnAddBlockTx(block *types.BlockDetail, tx *types.Transaction, index int32, dbbatch db.Batch) *types.WalletTxDetail {
 	receipt := block.Receipts[index]
+	amount, _ := tx.Amount()
+	wtxdetail := &types.WalletTxDetail{
+		Tx:         tx,
+		Height:     block.Block.Height,
+		Index:      int64(index),
+		Receipt:    receipt,
+		Blocktime:  block.Block.BlockTime,
+		ActionName: tx.ActionName(),
+		Amount:     amount,
+		Spendrecv:  nil,
+	}
+	if len(wtxdetail.Fromaddr) <= 0 {
+		pubkey := tx.Signature.GetPubkey()
+		address := address.PubKeyToAddress(pubkey)
+		//from addr
+		fromaddress := address.String()
+		if len(fromaddress) != 0 && policy.walletOperate.AddrInWallet(fromaddress) {
+			wtxdetail.Fromaddr = fromaddress
+		}
+	}
+	if len(wtxdetail.Fromaddr) <= 0 {
+		toaddr := tx.GetTo()
+		if len(toaddr) != 0 && policy.walletOperate.AddrInWallet(toaddr) {
+			wtxdetail.Fromaddr = toaddr
+		}
+	}
+
 	if policy.checkNeedFlushTicket(tx, receipt) {
 		policy.needFlush = true
 	}
+	return wtxdetail
 }
 
-func (policy *ticketPolicy) OnDeleteBlockTx(block *types.BlockDetail, tx *types.Transaction, index int32, dbbatch db.Batch) {
+func (policy *ticketPolicy) OnDeleteBlockTx(block *types.BlockDetail, tx *types.Transaction, index int32, dbbatch db.Batch) *types.WalletTxDetail {
 	receipt := block.Receipts[index]
+	amount, _ := tx.Amount()
+	wtxdetail := &types.WalletTxDetail{
+		Tx:         tx,
+		Height:     block.Block.Height,
+		Index:      int64(index),
+		Receipt:    receipt,
+		Blocktime:  block.Block.BlockTime,
+		ActionName: tx.ActionName(),
+		Amount:     amount,
+		Spendrecv:  nil,
+	}
+	if len(wtxdetail.Fromaddr) <= 0 {
+		pubkey := tx.Signature.GetPubkey()
+		address := address.PubKeyToAddress(pubkey)
+		//from addr
+		fromaddress := address.String()
+		if len(fromaddress) != 0 && policy.walletOperate.AddrInWallet(fromaddress) {
+			wtxdetail.Fromaddr = fromaddress
+		}
+	}
+	if len(wtxdetail.Fromaddr) <= 0 {
+		toaddr := tx.GetTo()
+		if len(toaddr) != 0 && policy.walletOperate.AddrInWallet(toaddr) {
+			wtxdetail.Fromaddr = toaddr
+		}
+	}
+
 	if policy.checkNeedFlushTicket(tx, receipt) {
 		policy.needFlush = true
 	}
+	return wtxdetail
 }
 
 func (policy *ticketPolicy) SignTransaction(key crypto.PrivKey, req *types.ReqSignRawTx) (needSysSign bool, signtx string, err error) {

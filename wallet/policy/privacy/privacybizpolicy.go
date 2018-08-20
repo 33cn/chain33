@@ -165,12 +165,16 @@ type buildStoreWalletTxDetailParam struct {
 	utxos        []*types.UTXO
 }
 
-func (policy *privacyPolicy) OnAddBlockTx(block *types.BlockDetail, tx *types.Transaction, index int32, dbbatch db.Batch) {
+func (policy *privacyPolicy) OnAddBlockTx(block *types.BlockDetail, tx *types.Transaction, index int32, dbbatch db.Batch) *types.WalletTxDetail {
 	policy.addDelPrivacyTxsFromBlock(tx, index, block, dbbatch, AddTx)
+	// 自己处理掉所有事务，部需要外部处理了
+	return nil
 }
 
-func (policy *privacyPolicy) OnDeleteBlockTx(block *types.BlockDetail, tx *types.Transaction, index int32, dbbatch db.Batch) {
+func (policy *privacyPolicy) OnDeleteBlockTx(block *types.BlockDetail, tx *types.Transaction, index int32, dbbatch db.Batch) *types.WalletTxDetail {
 	policy.addDelPrivacyTxsFromBlock(tx, index, block, dbbatch, DelTx)
+	// 自己处理掉所有事务，部需要外部处理了
+	return nil
 }
 
 func (policy *privacyPolicy) onShowPrivacyAccountSpend(msg *queue.Message) (string, int64, interface{}, error) {

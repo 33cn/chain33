@@ -15,13 +15,15 @@ type WalletBizPolicy interface {
 	// tx: 区块增加的交易信息
 	// index: 交易信息在区块上的索引为止，从0开始计数
 	// dbbatch: 数据库批量操作接口
-	OnAddBlockTx(block *types.BlockDetail, tx *types.Transaction, index int32, dbbatch db.Batch)
+	// 返回值为提供给外部快速检索的钱包详细信息，如果内部已经处理，不需要外部处理的情况下，可以返回nil
+	OnAddBlockTx(block *types.BlockDetail, tx *types.Transaction, index int32, dbbatch db.Batch) *types.WalletTxDetail
 	// OnDeleteBlockTx 当区块被回退删除时调用本函数
 	// block： 被回退的区块详细信息
 	// tx: 区块回退的交易信息
 	// index: 交易信息在区块上的索引为止，从0开始计数
 	// dbbatch: 数据库批量操作接口
-	OnDeleteBlockTx(block *types.BlockDetail, tx *types.Transaction, index int32, dbbatch db.Batch)
+	// 返回值为提供给外部快速检索的钱包详细信息，如果内部已经处理，不需要外部处理的情况下，可以返回nil
+	OnDeleteBlockTx(block *types.BlockDetail, tx *types.Transaction, index int32, dbbatch db.Batch) *types.WalletTxDetail
 	// SignTransaction 针对特殊的交易，按照新的签名方式签名
 	// key 签名的私钥信息
 	// req 需要签名交易流信息
