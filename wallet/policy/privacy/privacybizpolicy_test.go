@@ -1,4 +1,4 @@
-package privacybizpolicy_test
+package privacy_test
 
 import (
 	"fmt"
@@ -14,11 +14,11 @@ import (
 	"gitlab.33.cn/chain33/chain33/store"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/wallet"
-	"gitlab.33.cn/chain33/chain33/wallet/bizpolicy"
-	"gitlab.33.cn/chain33/chain33/wallet/privacybizpolicy"
+	wcom "gitlab.33.cn/chain33/chain33/wallet/common"
 	"gitlab.33.cn/wallet/bipwallet"
 
 	"github.com/stretchr/testify/require"
+	"gitlab.33.cn/chain33/chain33/wallet/policy/privacy"
 )
 
 var (
@@ -53,7 +53,7 @@ func init() {
 }
 
 type testDataMock struct {
-	policy bizpolicy.WalletBizPolicy
+	policy wcom.WalletBizPolicy
 
 	wallet  *wallet.Wallet
 	modules []queue.Module
@@ -72,7 +72,7 @@ func (mock *testDataMock) init() {
 
 func (mock *testDataMock) initMember() {
 	var q = queue.New("channel")
-	cfg := config.InitCfg("../../cmd/chain33/chain33.test.toml")
+	cfg := config.InitCfg("../../../cmd/chain33/chain33.test.toml")
 
 	wallet := wallet.New(cfg.Wallet)
 	wallet.SetQueueClient(q.Client())
@@ -101,7 +101,7 @@ func (mock *testDataMock) initMember() {
 	}
 
 	mock.accdb = account.NewCoinsAccount()
-	mock.policy = privacybizpolicy.New()
+	mock.policy = privacy.New()
 	mock.policy.Init(wallet)
 	mock.password = "123456"
 }
@@ -151,7 +151,7 @@ func (mock *testDataMock) importPrivateKey(PrivKey *types.ReqWalletImportPrivKey
 	}
 
 	//对私钥加密
-	Encryptered := privacybizpolicy.CBCEncrypterPrivkey([]byte(wallet.Password), privkeybyte)
+	Encryptered := wcom.CBCEncrypterPrivkey([]byte(wallet.Password), privkeybyte)
 	Encrypteredstr := common.ToHex(Encryptered)
 	//校验PrivKey对应的addr是否已经存在钱包中
 	Account, err = wallet.GetAccountByAddr(addr)
@@ -385,7 +385,7 @@ func Test_SendPrivacy2PrivacyTransaction(t *testing.T) {
 	mock.init()
 	mock.enablePrivacy()
 	// 创建辅助对象
-	privacyMock := privacybizpolicy.PrivacyMock{}
+	privacyMock := privacy.PrivacyMock{}
 	privacyMock.Init(mock.wallet, mock.password)
 	// 创建几条可用UTXO
 	privacyMock.CreateUTXOs(testAddrs[0], testPubkeyPairs[0], 17*types.Coin, 10000, 5)
@@ -427,7 +427,7 @@ func Test_SendPrivacy2PublicTransaction(t *testing.T) {
 	mock.init()
 	mock.enablePrivacy()
 	// 创建辅助对象
-	privacyMock := privacybizpolicy.PrivacyMock{}
+	privacyMock := privacy.PrivacyMock{}
 	privacyMock.Init(mock.wallet, mock.password)
 	// 创建几条可用UTXO
 	privacyMock.CreateUTXOs(testAddrs[0], testPubkeyPairs[0], 17*types.Coin, 10000, 5)
@@ -469,7 +469,7 @@ func Test_CreateTransaction(t *testing.T) {
 	mock.init()
 	mock.enablePrivacy()
 	// 创建辅助对象
-	privacyMock := privacybizpolicy.PrivacyMock{}
+	privacyMock := privacy.PrivacyMock{}
 	privacyMock.Init(mock.wallet, mock.password)
 	// 创建几条可用UTXO
 	privacyMock.CreateUTXOs(testAddrs[0], testPubkeyPairs[0], 17*types.Coin, 10000, 5)
