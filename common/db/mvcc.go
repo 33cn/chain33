@@ -196,7 +196,7 @@ func (m *SimpleMVCC) GetMaxVersion() (int64, error) {
 
 //GetSaveKV only export set key and value with version
 func (m *SimpleMVCC) GetSaveKV(key []byte, value []byte, version int64) (*types.KeyValue, error) {
-	k, err := getKey(key, version)
+	k, err := GetKey(key, version)
 	if err != nil {
 		return nil, err
 	}
@@ -205,7 +205,7 @@ func (m *SimpleMVCC) GetSaveKV(key []byte, value []byte, version int64) (*types.
 
 //GetDelKV only export del key and value with version
 func (m *SimpleMVCC) GetDelKV(key []byte, version int64) (*types.KeyValue, error) {
-	k, err := getKey(key, version)
+	k, err := GetKey(key, version)
 	if err != nil {
 		return nil, err
 	}
@@ -249,8 +249,8 @@ func (m *SimpleMVCC) SetV(key []byte, value []byte, version int64) error {
 
 //GetV get key with version
 func (m *SimpleMVCC) GetV(key []byte, version int64) ([]byte, error) {
-	prefix := getKeyPerfix(key)
-	search, err := getKey(key, version)
+	prefix := GetKeyPerfix(key)
+	search, err := GetKey(key, version)
 	if err != nil {
 		return nil, err
 	}
@@ -372,13 +372,13 @@ func pad(version int64) []byte {
 	return []byte(s)
 }
 
-func getKeyPerfix(key []byte) []byte {
+func GetKeyPerfix(key []byte) []byte {
 	newkey := append(mvccData, key...)
 	newkey = append(newkey, []byte(".")...)
 	return newkey
 }
 
-func getKey(key []byte, version int64) ([]byte, error) {
-	newkey := append(getKeyPerfix(key), pad(version)...)
+func GetKey(key []byte, version int64) ([]byte, error) {
+	newkey := append(GetKeyPerfix(key), pad(version)...)
 	return newkey, nil
 }
