@@ -847,12 +847,27 @@ func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 	newbatch := wallet.walletStore.NewBatch(true)
 	for index := 0; index < txlen; index++ {
 		tx := block.Block.Txs[index]
-
 		execer := string(tx.Execer)
 		// 执行钱包业务逻辑策略
 		if policy, ok := wcom.PolicyContainer[execer]; ok {
-			policy.OnAddBlockTx(block, tx, int32(index), newbatch)
+			wtxdetail := policy.OnAddBlockTx(block, tx, int32(index), newbatch)
+			if wtxdetail == nil {
+				continue
+			}
+			if len(wtxdetail.Fromaddr) > 0 {
+				txdetailbyte, err := proto.Marshal(wtxdetail)
+				if err != nil {
+					walletlog.Error("ProcWalletAddBlock", "Marshal txdetail error", err, "Height", block.Block.Height, "index", index)
+					continue
+				}
+				blockheight := block.Block.Height*maxTxNumPerBlock + int64(index)
+				heightstr := fmt.Sprintf("%018d", blockheight)
+				key := wcom.CalcTxKey(heightstr)
+				newbatch.Set(key, txdetailbyte)
+			}
+
 		} else { // 默认的执行器类型处理
+			// TODO: 钱包基础功能模块，将会重新建立一个处理策略，将钱包变成一个容器
 			//获取from地址
 			pubkey := block.Block.Txs[index].Signature.GetPubkey()
 			addr := address.PubKeyToAddress(pubkey)
@@ -884,59 +899,12 @@ func (wallet *Wallet) ProcWalletAddBlock(block *types.BlockDetail) {
 				continue
 			}
 		}
-
-		// TODO: 后续如果有其他的业务类型，需要重构以下代码，全部挪到策略中
-		//check whether the privacy tx belong to current wallet
-		//if types.PrivacyX != string(tx.Execer) {
-		//	//获取from地址
-		//	pubkey := block.Block.Txs[index].Signature.GetPubkey()
-		//	addr := address.PubKeyToAddress(pubkey)
-		//	param := &buildStoreWalletTxDetailParam{
-		//		tokenname:  "",
-		//		block:      block,
-		//		tx:         tx,
-		//		index:      index,
-		//		newbatch:   newbatch,
-		//		isprivacy:  false,
-		//		addDelType: AddTx,
-		//		utxos:      nil,
-		//	}
-		//
-		//	//from addr
-		//	fromaddress := addr.String()
-		//	param.senderRecver = fromaddress
-		//	if len(fromaddress) != 0 && wallet.AddrInWallet(fromaddress) {
-		//		param.sendRecvFlag = sendTx
-		//		wallet.buildAndStoreWalletTxDetail(param)
-		//		walletlog.Debug("ProcWalletAddBlock", "fromaddress", fromaddress)
-		//		continue
-		//	}
-		//	//toaddr
-		//	toaddr := tx.GetTo()
-		//	if len(toaddr) != 0 && wallet.AddrInWallet(toaddr) {
-		//		param.sendRecvFlag = recvTx
-		//		wallet.buildAndStoreWalletTxDetail(param)
-		//		walletlog.Debug("ProcWalletAddBlock", "toaddr", toaddr)
-		//		continue
-		//	}
-		//
-		//	if "ticket" == string(block.Block.Txs[index].Execer) {
-		//		tx := block.Block.Txs[index]
-		//		receipt := block.Receipts[index]
-		//		if wallet.needFlushTicket(tx, receipt) {
-		//			needflush = true
-		//		}
-		//	}
-		//}
 	}
 	err := newbatch.Write()
 	if err != nil {
 		walletlog.Error("ProcWalletAddBlock newbatch.Write", "err", err)
 		atomic.CompareAndSwapInt32(&wallet.fatalFailureFlag, 0, 1)
 	}
-	//if needflush {
-	//	//wallet.flushTicket()
-	//}
 
 	for _, policy := range wcom.PolicyContainer {
 		policy.OnAddBlockFinish(block)
@@ -1004,23 +972,16 @@ func (wallet *Wallet) ProcWalletDelBlock(block *types.BlockDetail) {
 		execer := string(tx.Execer)
 		// 执行钱包业务逻辑策略
 		if policy, ok := wcom.PolicyContainer[execer]; ok {
-			policy.OnDeleteBlockTx(block, tx, int32(index), newbatch)
-
-			// 删除保存的合约信息
-			pubkey := tx.Signature.GetPubkey()
-			addr := address.PubKeyToAddress(pubkey)
-			fromaddress := addr.String()
-			if len(fromaddress) != 0 && wallet.AddrInWallet(fromaddress) {
-				newbatch.Delete(wcom.CalcTxKey(heightstr))
+			wtxdetail := policy.OnDeleteBlockTx(block, tx, int32(index), newbatch)
+			if wtxdetail == nil {
 				continue
 			}
-			//toaddr
-			toaddr := tx.GetTo()
-			if len(toaddr) != 0 && wallet.AddrInWallet(toaddr) {
+			if len(wtxdetail.Fromaddr) > 0 {
 				newbatch.Delete(wcom.CalcTxKey(heightstr))
 			}
 
 		} else { // 默认的合约处理流程
+			// TODO:将钱包基础功能移动到专属钱包基础业务的模块中，将钱包模块变成容器
 			//获取from地址
 			pubkey := tx.Signature.GetPubkey()
 			addr := address.PubKeyToAddress(pubkey)
