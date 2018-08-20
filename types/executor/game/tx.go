@@ -55,6 +55,14 @@ type Game struct {
 	Result int32 `json:"result"`
 	// matcher 出拳结果
 	Guess int32 `json:"guess"`
+	// create txHash
+	CreateTxHash string `json:"createTxHash"`
+	// matche交易hash
+	MatchTxHash string `json:"matchTxHash"`
+	// close txhash
+	CloseTxHash string `json:"closeTxHash"`
+	// cancel txhash
+	CancelTxHash string `json:"cancelTxHash"`
 }
 
 type ReplyGameList struct {
@@ -63,4 +71,10 @@ type ReplyGameList struct {
 
 type ReplyGame struct {
 	Game *Game `json:"game"`
+}
+// 分页返回结构体
+type ReplyGameListPage struct {
+	Games     []*Game `json:"games"`
+	PrevIndex string  `json:"prevIndex"`
+	NextIndex string  `json:"nextIndex"`
 }
