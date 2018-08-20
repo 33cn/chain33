@@ -5,8 +5,6 @@ import (
 	"io/ioutil"
 	"time"
 
-	"fmt"
-
 	"github.com/pkg/errors"
 )
 
@@ -44,11 +42,11 @@ func (genDoc *GenesisDoc) ValidatorHash() []byte {
 	vals := make([]*Validator, len(genDoc.Validators))
 	for i, v := range genDoc.Validators {
 		if len(v.PubKey.Data) == 0 {
-			panic(fmt.Sprintf("ValidatorHash pubkey of validator[%v] in gendoc is empty", i))
+			panic(Fmt("ValidatorHash pubkey of validator[%v] in gendoc is empty", i))
 		}
 		pubkey, err := PubKeyFromString(v.PubKey.Data)
 		if err != nil {
-			panic(fmt.Sprintf("ValidatorHash PubKeyFromBytes failed:%v", err))
+			panic(Fmt("ValidatorHash PubKeyFromBytes failed:%v", err))
 		}
 		vals[i] = NewValidator(pubkey, v.Power)
 	}

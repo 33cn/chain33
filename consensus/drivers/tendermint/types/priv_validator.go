@@ -140,12 +140,12 @@ func GenAddressByPubKey(pubkey crypto.PubKey) []byte {
 func PubKeyFromString(pubkeystring string) (crypto.PubKey, error) {
 	pub, err := hex.DecodeString(pubkeystring)
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("PubKeyFromString:DecodeString:%v failed,err:%v", pubkeystring, err))
+		return nil, errors.New(Fmt("PubKeyFromString:DecodeString:%v failed,err:%v", pubkeystring, err))
 	}
 
 	pubkey, err := ConsensusCrypto.PubKeyFromBytes(pub)
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("PubKeyFromString:PubKeyFromBytes:%v failed,err:%v", pub, err))
+		return nil, errors.New(Fmt("PubKeyFromString:PubKeyFromBytes:%v failed,err:%v", pub, err))
 	}
 	return pubkey, nil
 }
@@ -153,11 +153,11 @@ func PubKeyFromString(pubkeystring string) (crypto.PubKey, error) {
 func SignatureFromString(sigString string) (crypto.Signature, error) {
 	sigbyte, err := hex.DecodeString(sigString)
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("PubKeyFromString:DecodeString:%v failed,err:%v", sigString, err))
+		return nil, errors.New(Fmt("PubKeyFromString:DecodeString:%v failed,err:%v", sigString, err))
 	}
 	sig, err := ConsensusCrypto.SignatureFromBytes(sigbyte)
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("PubKeyFromString:SignatureFromBytes:%v failed,err:%v", sigbyte, err))
+		return nil, errors.New(Fmt("PubKeyFromString:SignatureFromBytes:%v failed,err:%v", sigbyte, err))
 	}
 	return sig, nil
 }
@@ -167,7 +167,7 @@ func SignatureFromString(sigString string) (crypto.Signature, error) {
 func GenPrivValidatorImp(filePath string) *PrivValidatorImp {
 	privKey, err := ConsensusCrypto.GenKey()
 	if err != nil {
-		panic(fmt.Sprintf("GenPrivValidatorImp: GenKey failed:%v", err))
+		panic(Fmt("GenPrivValidatorImp: GenKey failed:%v", err))
 	}
 	return &PrivValidatorImp{
 		Address:  GenAddressByPubKey(privKey.PubKey()),
@@ -278,7 +278,7 @@ func (privVal *PrivValidatorImp) save() {
 	if privVal.filePath == "" {
 		PanicSanity("Cannot save PrivValidator: filePath not set")
 	}
-	addr := fmt.Sprintf("%X", privVal.Address[:])
+	addr := Fmt("%X", privVal.Address[:])
 
 	privValFS := &PrivValidatorFS{
 		Address:       addr,
@@ -287,14 +287,14 @@ func (privVal *PrivValidatorImp) save() {
 		LastStep:      privVal.LastStep,
 		LastSignature: nil,
 	}
-	privValFS.PrivKey = KeyText{Kind: "ed25519", Data: fmt.Sprintf("%X", privVal.PrivKey.Bytes()[:])}
+	privValFS.PrivKey = KeyText{Kind: "ed25519", Data: Fmt("%X", privVal.PrivKey.Bytes()[:])}
 	privValFS.PubKey = KeyText{Kind: "ed25519", Data: privVal.PubKey.KeyString()}
 	if len(privVal.LastSignBytes) != 0 {
-		tmp := fmt.Sprintf("%X", privVal.LastSignBytes[:])
+		tmp := Fmt("%X", privVal.LastSignBytes[:])
 		privValFS.LastSignBytes = tmp
 	}
 	if privVal.LastSignature != nil {
-		sig := fmt.Sprintf("%X", privVal.LastSignature.Bytes()[:])
+		sig := Fmt("%X", privVal.LastSignature.Bytes()[:])
 		privValFS.LastSignature = &KeyText{Kind: "ed25519", Data: sig}
 	}
 	jsonBytes, err := json.Marshal(privValFS)
@@ -431,7 +431,7 @@ func (privVal *PrivValidatorImp) SignHeartbeat(chainID string, heartbeat *Heartb
 
 // String returns a string representation of the PrivValidatorImp.
 func (privVal *PrivValidatorImp) String() string {
-	return fmt.Sprintf("PrivValidator{%v LH:%v, LR:%v, LS:%v}", privVal.GetAddress(), privVal.LastHeight, privVal.LastRound, privVal.LastStep)
+	return Fmt("PrivValidator{%v LH:%v, LR:%v, LS:%v}", privVal.GetAddress(), privVal.LastHeight, privVal.LastRound, privVal.LastStep)
 }
 
 func (privVal *PrivValidatorImp) GetLastHeight() int64 {
@@ -478,10 +478,10 @@ type checkOnlyDifferByTimestamp func([]byte, []byte) bool
 func checkVotesOnlyDifferByTimestamp(lastSignBytes, newSignBytes []byte) bool {
 	var lastVote, newVote CanonicalJSONOnceVote
 	if err := json.Unmarshal(lastSignBytes, &lastVote); err != nil {
-		panic(fmt.Sprintf("LastSignBytes cannot be unmarshalled into vote: %v", err))
+		panic(Fmt("LastSignBytes cannot be unmarshalled into vote: %v", err))
 	}
 	if err := json.Unmarshal(newSignBytes, &newVote); err != nil {
-		panic(fmt.Sprintf("signBytes cannot be unmarshalled into vote: %v", err))
+		panic(Fmt("signBytes cannot be unmarshalled into vote: %v", err))
 	}
 
 	// set the times to the same value and check equality
@@ -498,10 +498,10 @@ func checkVotesOnlyDifferByTimestamp(lastSignBytes, newSignBytes []byte) bool {
 func checkProposalsOnlyDifferByTimestamp(lastSignBytes, newSignBytes []byte) bool {
 	var lastProposal, newProposal CanonicalJSONOnceProposal
 	if err := json.Unmarshal(lastSignBytes, &lastProposal); err != nil {
-		panic(fmt.Sprintf("LastSignBytes cannot be unmarshalled into proposal: %v", err))
+		panic(Fmt("LastSignBytes cannot be unmarshalled into proposal: %v", err))
 	}
 	if err := json.Unmarshal(newSignBytes, &newProposal); err != nil {
-		panic(fmt.Sprintf("signBytes cannot be unmarshalled into proposal: %v", err))
+		panic(Fmt("signBytes cannot be unmarshalled into proposal: %v", err))
 	}
 
 	// set the times to the same value and check equality

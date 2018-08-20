@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/gogo/protobuf/proto"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 	"gitlab.33.cn/chain33/chain33/types"
-	"github.com/gogo/protobuf/proto"
 	"reflect"
 )
 
@@ -24,7 +24,7 @@ func NewEvidenceInvalidErr(ev Evidence, err error) *ErrEvidenceInvalid {
 
 // Error returns a string representation of the error.
 func (err *ErrEvidenceInvalid) Error() string {
-	return fmt.Sprintf("Invalid evidence: %v. Evidence: %v", err.ErrorValue, err.Evidence)
+	return Fmt("Invalid evidence: %v. Evidence: %v", err.ErrorValue, err.Evidence)
 }
 
 //-------------------------------------------
@@ -77,7 +77,7 @@ func (evl EvidenceList) Hash() []byte {
 func (evl EvidenceList) String() string {
 	s := ""
 	for _, e := range evl {
-		s += fmt.Sprintf("%s\t\t", e)
+		s += Fmt("%s\t\t", e)
 	}
 	return s
 }
@@ -101,7 +101,7 @@ type DuplicateVoteEvidence struct {
 
 // String returns a string representation of the evidence.
 func (dve *DuplicateVoteEvidence) String() string {
-	return fmt.Sprintf("VoteA: %v; VoteB: %v", dve.VoteA, dve.VoteB)
+	return Fmt("VoteA: %v; VoteB: %v", dve.VoteA, dve.VoteB)
 
 }
 
@@ -220,7 +220,7 @@ func SimpleHashFromBinary(item *DuplicateVoteEvidence) []byte {
 	bytes, e := json.Marshal(item)
 	if e != nil {
 		//commonlog.Error("SimpleHashFromBinary marshal failed", "type", item, "error", e)
-		panic(fmt.Sprintf("SimpleHashFromBinary marshal failed, err:%v", e))
+		panic(Fmt("SimpleHashFromBinary marshal failed, err:%v", e))
 	}
 	return crypto.Ripemd160(bytes)
 
@@ -231,7 +231,7 @@ func EvidenceEnvelope2Evidence(envelope *types.EvidenceEnvelope) Evidence {
 		realMsg2 := reflect.New(v).Interface()
 		err := proto.Unmarshal(envelope.Data, realMsg2.(proto.Message))
 		if err != nil {
-			panic(fmt.Sprintf("Evidence is not valid", "evidenceType", envelope.TypeName, "err", err))
+			panic(Fmt("Evidence is not valid", "evidenceType", envelope.TypeName, "err", err))
 		}
 		if evidence, ok2 := EvidenceType2Obj[envelope.TypeName]; ok2 {
 			evidence = evidence.Copy()
@@ -241,6 +241,7 @@ func EvidenceEnvelope2Evidence(envelope *types.EvidenceEnvelope) Evidence {
 	}
 	return nil
 }
+
 //-----------------------------------------------------------------
 
 // UNSTABLE
@@ -259,7 +260,7 @@ func (e MockGoodEvidence) Height() int64   { return e.Height_ }
 func (e MockGoodEvidence) Address() []byte { return e.Address_ }
 func (e MockGoodEvidence) Index() int      { return e.Index_ }
 func (e MockGoodEvidence) Hash() []byte {
-	return []byte(fmt.Sprintf("%d-%d", e.Height_, e.Index_))
+	return []byte(Fmt("%d-%d", e.Height_, e.Index_))
 }
 func (e MockGoodEvidence) Verify(chainID string) error { return nil }
 func (e MockGoodEvidence) Equal(ev Evidence) bool {
@@ -269,7 +270,7 @@ func (e MockGoodEvidence) Equal(ev Evidence) bool {
 		e.Index_ == e2.Index_
 }
 func (e MockGoodEvidence) String() string {
-	return fmt.Sprintf("GoodEvidence: %d/%s/%d", e.Height_, e.Address_, e.Index_)
+	return Fmt("GoodEvidence: %d/%s/%d", e.Height_, e.Address_, e.Index_)
 }
 func (e MockGoodEvidence) TypeName() string {
 	return MockGood
@@ -295,7 +296,7 @@ func (e MockBadEvidence) Equal(ev Evidence) bool {
 		e.Index_ == e2.Index_
 }
 func (e MockBadEvidence) String() string {
-	return fmt.Sprintf("BadEvidence: %d/%s/%d", e.Height_, e.Address_, e.Index_)
+	return Fmt("BadEvidence: %d/%s/%d", e.Height_, e.Address_, e.Index_)
 }
 func (e MockBadEvidence) TypeName() string {
 	return MockBad
@@ -303,7 +304,27 @@ func (e MockBadEvidence) TypeName() string {
 func (e MockBadEvidence) Copy() Evidence {
 	return &MockBadEvidence{}
 }
-func (e MockBadEvidence) SetChild(proto.Message){}
+func (e MockBadEvidence) SetChild(proto.Message) {}
 func (e MockBadEvidence) Child() proto.Message {
 	return nil
 }
+
+//------------------------------------------------------
+// evidence pool
+
+// EvidencePool defines the EvidencePool interface used by the ConsensusState.
+// UNSTABLE
+type EvidencePool interface {
+	PendingEvidence() []Evidence
+	AddEvidence(Evidence) error
+	Update(*TendermintBlock)
+}
+
+// MockMempool is an empty implementation of a Mempool, useful for testing.
+// UNSTABLE
+type MockEvidencePool struct {
+}
+
+func (m MockEvidencePool) PendingEvidence() []Evidence { return nil }
+func (m MockEvidencePool) AddEvidence(Evidence) error  { return nil }
+func (m MockEvidencePool) Update(*TendermintBlock)     {}
