@@ -2,7 +2,6 @@ package types
 
 import (
 	"bytes"
-	"fmt"
 	"strings"
 	"sync"
 
@@ -53,11 +52,11 @@ type VoteSet struct {
 	mtx           sync.Mutex
 	valSet        *ValidatorSet
 	votesBitArray *BitArray
-	votes         []*Vote                // Primary votes to share
-	sum           int64                  // Sum of voting power for seen votes, discounting conflicts
-	maj23         *types.BlockID               // First 2/3 majority seen
-	votesByBlock  map[string]*blockVotes // string(blockHash|blockParts) -> blockVotes
-	peerMaj23s    map[string]*types.BlockID     // Maj23 for each peer
+	votes         []*Vote                   // Primary votes to share
+	sum           int64                     // Sum of voting power for seen votes, discounting conflicts
+	maj23         *types.BlockID            // First 2/3 majority seen
+	votesByBlock  map[string]*blockVotes    // string(blockHash|blockParts) -> blockVotes
+	peerMaj23s    map[string]*types.BlockID // Maj23 for each peer
 }
 
 // Constructs a new VoteSet struct used to accumulate votes for given height/round.
@@ -142,7 +141,7 @@ func (voteSet *VoteSet) addVote(vote *Vote) (added bool, err error) {
 	}
 	valIndex := int(vote.ValidatorIndex)
 	valAddr := vote.ValidatorAddress
-	blockKey := BlockID{BlockID:*vote.BlockID}.Key()
+	blockKey := BlockID{BlockID: *vote.BlockID}.Key()
 
 	// Ensure that validator index was set
 	if valIndex < 0 {
@@ -439,7 +438,7 @@ func (voteSet *VoteSet) StringIndented(indent string) string {
 			voteStrings[i] = vote.String()
 		}
 	}
-	return fmt.Sprintf(`VoteSet{
+	return Fmt(`VoteSet{
 %s  H:%v R:%v T:%v
 %s  %v
 %s  %v
@@ -458,7 +457,7 @@ func (voteSet *VoteSet) StringShort() string {
 	}
 	voteSet.mtx.Lock()
 	defer voteSet.mtx.Unlock()
-	return fmt.Sprintf(`VoteSet{H:%v R:%v T:%v +2/3:%v %v %v}`,
+	return Fmt(`VoteSet{H:%v R:%v T:%v +2/3:%v %v %v}`,
 		voteSet.height, voteSet.round, voteSet.type_, voteSet.maj23, voteSet.votesBitArray, voteSet.peerMaj23s)
 }
 

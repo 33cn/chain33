@@ -92,8 +92,6 @@ type peerConn struct {
 	state            *PeerConnState
 	updateStateQueue chan MsgInfo
 	heartbeatQueue   chan proto.Message
-	//config     *PeerConfig
-	//Data     *cmn.CMap // User data.
 }
 
 type PeerSet struct {
@@ -448,8 +446,7 @@ FOR_LOOP:
 				pc.stopForError(err)
 				break FOR_LOOP
 			}
-			//context := json.RawMessage(bytes)
-			//msg=typeId(1 byte)+msglen(4 bytes)+msgbody(msglen bytes)
+
 			len := len(bytes)
 			bytelen := make([]byte, 4)
 			binary.BigEndian.PutUint32(bytelen, uint32(len))
@@ -468,7 +465,6 @@ FOR_LOOP:
 				break FOR_LOOP
 			}
 			pc.bufWriter.Flush()
-			//tendermintlog.Info("write msg finish", "peer", pc.ip.String(), "msg", msg, "n", n)
 		case _, ok := <-pc.pongChannel:
 			if ok {
 				tendermintlog.Debug("Send Pong")
@@ -484,11 +480,6 @@ FOR_LOOP:
 				pc.pongChannel = nil
 			}
 		}
-
-		//if !pc.IsRunning() {
-		//	break FOR_LOOP
-		//}
-
 	}
 }
 
@@ -518,7 +509,6 @@ FOR_LOOP:
 			pkt.Bytes = buf2
 		}
 
-		//tendermintlog.Info("received", "msgType", pkt.TypeID, "peerip", pc.ip.String())
 		if pkt.TypeID == ttypes.PacketTypePong {
 			tendermintlog.Debug("Receive Pong")
 		} else if pkt.TypeID == ttypes.PacketTypePing {
@@ -538,7 +528,6 @@ FOR_LOOP:
 						proposal := realMsg.(*types.Proposal)
 						tendermintlog.Info("Receiving proposal", "peerip", pc.ip.String())
 						pc.state.SetHasProposal(proposal)
-
 					} else if pkt.TypeID == ttypes.VoteID {
 						vote := &ttypes.Vote{Vote: realMsg.(*types.Vote)}
 						pc.state.SetHasVote(vote)
@@ -547,7 +536,6 @@ FOR_LOOP:
 						tendermintlog.Info("Receiving proposal block", "peerip", pc.ip.String())
 						pc.state.SetHasProposalBlock(block)
 					}
-
 				} else if pkt.TypeID == ttypes.ProposalHeartbeatID {
 					pc.heartbeatQueue <- realMsg.(*types.Heartbeat)
 				} else if pkt.TypeID == ttypes.EvidenceListID {
@@ -691,7 +679,6 @@ OUTER_LOOP:
 
 		// If height and round don't match, sleep.
 		if (rs.Height != prs.Height) || (rs.Round != prs.Round) {
-			//tendermintlog.Debug("Peer Height|Round mismatch, sleeping", "selfHeight", rs.Height, "selfRound", rs.Round, "peerHeight", prs.Height, "peerRound", prs.Round)
 			time.Sleep(pc.myState.PeerGossipSleep())
 			continue OUTER_LOOP
 		}

@@ -1,10 +1,9 @@
 package types
 
 import (
-	"fmt"
+	"gitlab.33.cn/chain33/chain33/types"
 	"strings"
 	"sync"
-	"gitlab.33.cn/chain33/chain33/types"
 )
 
 type RoundVoteSet struct {
@@ -75,7 +74,7 @@ func (hvs *HeightVoteSet) SetRound(round int) {
 	hvs.mtx.Lock()
 	defer hvs.mtx.Unlock()
 	if hvs.round != 0 && (round < hvs.round+1) {
-		panic(fmt.Sprintf("Panicked on a Sanity Check: %v", "SetRound() must increment hvs.round"))
+		panic(Fmt("Panicked on a Sanity Check: %v", "SetRound() must increment hvs.round"))
 	}
 	for r := hvs.round + 1; r <= round; r++ {
 		if _, ok := hvs.roundVoteSets[r]; ok {
@@ -88,7 +87,7 @@ func (hvs *HeightVoteSet) SetRound(round int) {
 
 func (hvs *HeightVoteSet) addRound(round int) {
 	if _, ok := hvs.roundVoteSets[round]; ok {
-		panic(fmt.Sprintf("Panicked on a Sanity Check: %v", "addRound() for an existing round"))
+		panic(Fmt("Panicked on a Sanity Check: %v", "addRound() for an existing round"))
 	}
 	// log.Debug("addRound(round)", "round", round)
 	prevotes := NewVoteSet(hvs.chainID, hvs.height, round, VoteTypePrevote, hvs.valSet)
@@ -164,7 +163,7 @@ func (hvs *HeightVoteSet) getVoteSet(round int, type_ byte) *VoteSet {
 	case VoteTypePrecommit:
 		return rvs.Precommits
 	default:
-		panic(fmt.Sprintf("Panicked on a Sanity Check: %v", fmt.Sprintf("Unexpected vote type %X", type_)))
+		panic(Fmt("Panicked on a Sanity Check: %v", Fmt("Unexpected vote type %X", type_)))
 		return nil
 	}
 }
@@ -194,7 +193,7 @@ func (hvs *HeightVoteSet) StringIndented(indent string) string {
 		voteSetString = roundVoteSet.Precommits.StringShort()
 		vsStrings = append(vsStrings, voteSetString)
 	}
-	return fmt.Sprintf(`HeightVoteSet{H:%v R:0~%v
+	return Fmt(`HeightVoteSet{H:%v R:0~%v
 %s  %v
 %s}`,
 		hvs.height, hvs.round,

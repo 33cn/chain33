@@ -211,11 +211,6 @@ func (node *Node) Start() {
 	}
 }
 
-func randomSleep(interval time.Duration) {
-	r := time.Duration(ttypes.RandInt63n(dialRandomizerIntervalMilliseconds)) * time.Millisecond
-	time.Sleep(r + interval)
-}
-
 func (node *Node) DialPeerWithAddress(addr string) error {
 	ip, _ := splitHostPort(addr)
 	node.dialing.Set(ip, addr)
@@ -620,8 +615,11 @@ func (node *Node) reconnectToPeer(addr string) {
 }
 
 //---------------------------------------------------------------------
+func randomSleep(interval time.Duration) {
+	r := time.Duration(ttypes.RandInt63n(dialRandomizerIntervalMilliseconds)) * time.Millisecond
+	time.Sleep(r + interval)
+}
 
-//---------------------------------------------------------------------
 func isIpv6(ip net.IP) bool {
 	v4 := ip.To4()
 	if v4 != nil {

@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	ttypes "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
-	types "gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 //-----------------------------------------------------------------------------
@@ -17,13 +17,7 @@ import (
 // BlockExecutor provides the context and accessories for properly executing a block.
 type BlockExecutor struct {
 	// save state, validators, consensus params, abci responses here
-	db *CSStateDB
-
-	// execute the app against this
-	//proxyApp proxy.AppConnConsensus
-
-	// update these with block results after commit
-	//mempool ttypes.Mempool
+	db     *CSStateDB
 	evpool ttypes.EvidencePool
 }
 
@@ -50,22 +44,9 @@ func (blockExec *BlockExecutor) ValidateBlock(s State, block *ttypes.TendermintB
 // from outside this package to process and commit an entire block.
 // It takes a blockID to avoid recomputing the parts hash.
 func (blockExec *BlockExecutor) ApplyBlock(s State, blockID ttypes.BlockID, block *ttypes.TendermintBlock) (State, error) {
-
 	if err := blockExec.ValidateBlock(s, block); err != nil {
-		return s, ErrInvalidBlock(err)
+		return s, fmt.Errorf("Commit failed for invalid block: %v", err)
 	}
-	/*
-		abciResponses, err := execBlockOnProxyApp(blockExec.logger, blockExec.proxyApp, block)
-		if err != nil {
-			return s, ErrProxyAppConn(err)
-		}
-	*/
-	//fail.Fail() // XXX
-
-	// save the results before we commit
-	//saveABCIResponses(blockExec.db, block.Height, abciResponses)
-
-	//fail.Fail() // XXX
 
 	// update the state with the block and responses
 	s, err := updateState(s, blockID, block)
@@ -73,20 +54,7 @@ func (blockExec *BlockExecutor) ApplyBlock(s State, blockID ttypes.BlockID, bloc
 		return s, fmt.Errorf("Commit failed for application: %v", err)
 	}
 
-	// lock mempool, commit state, update mempoool
-	/*
-		appHash, err := blockExec.Commit(block)
-		if err != nil {
-			return s, fmt.Errorf("Commit failed for application: %v", err)
-		}
-	*/
-	//fail.Fail() // XXX
-
-	// update the app hash and save the state
-	//s.AppHash = appHash
 	blockExec.db.SaveState(s)
-
-	//fail.Fail() // XXX
 
 	// Update evpool now that state is saved
 	// TODO: handle the crash/recover scenario
@@ -106,17 +74,7 @@ func updateState(s State, blockID ttypes.BlockID, block *ttypes.TendermintBlock)
 
 	// update the validator set with the latest abciResponses
 	lastHeightValsChanged := s.LastHeightValidatorsChanged
-/*	validatorUpdates := GetValidatorsCache()
-	if len(validatorUpdates) > 0 {
-		err := updateValidators(nextValSet, validatorUpdates)
-		if err != nil {
-			tendermintlog.Error("Error changing validator set", "error", err)
-			//return s, fmt.Errorf("Error changing validator set: %v", err)
-		}
-		// change results from this height but only applies to the next height
-		lastHeightValsChanged = block.Header.Height + 1
-	}
-*/
+
 	// Update validator accums and set state variables
 	nextValSet.IncrementAccum(1)
 
@@ -142,34 +100,6 @@ func updateState(s State, blockID ttypes.BlockID, block *ttypes.TendermintBlock)
 	}, nil
 }
 
-//----------------------------------------------------------------------------------------------------
-// Execute block without state. TODO: eliminate
-
-// ExecCommitBlock executes and commits a block on the proxyApp without validating or mutating the state.
-// It returns the application root hash (result of abci.Commit).
-/*
-func ExecCommitBlock(appConnConsensus proxy.AppConnConsensus, block *ttypes.Block, logger log.Logger) ([]byte, error) {
-	_, err := execBlockOnProxyApp(logger, appConnConsensus, block)
-	if err != nil {
-		logger.Error("Error executing block on proxy app", "height", block.Height, "err", err)
-		return nil, err
-	}
-	// Commit block, get hash back
-	res, err := appConnConsensus.CommitSync()
-	if err != nil {
-		logger.Error("Client error during proxyAppConn.CommitSync", "err", res)
-		return nil, err
-	}
-	if res.IsErr() {
-		logger.Error("Error in proxyAppConn.CommitSync", "err", res)
-		return nil, res
-	}
-	if res.Log != "" {
-		logger.Info("Commit.Log: " + res.Log)
-	}
-	return res.Data, nil
-}
-*/
 func updateValidators(currentSet *ttypes.ValidatorSet, updates []*types.ValNode) error {
 	// If more or equal than 1/3 of total voting power changed in one block, then
 	// a light client could never prove the transition externally. See
@@ -257,11 +187,6 @@ func changeInVotingPowerMoreOrEqualToOneThird(currentSet *ttypes.ValidatorSet, u
 }
 
 func validateBlock(stateDB *CSStateDB, s State, b *ttypes.TendermintBlock) error {
-	// validate internal consistency
-	//newTxs, err := b.ValidateBasic()
-	//if err != nil {
-	//	return err
-	//}
 	newTxs := b.Header.NumTxs
 
 	// validate basic info
@@ -271,13 +196,6 @@ func validateBlock(stateDB *CSStateDB, s State, b *ttypes.TendermintBlock) error
 	if b.Header.Height != s.LastBlockHeight+1 {
 		return fmt.Errorf("Wrong Block.Header.Height. Expected %v, got %v", s.LastBlockHeight+1, b.Header.Height)
 	}
-	/*	TODO: Determine bounds for Time
-		See blockchain/reactor "stopSyncingDurationMinutes"
-
-		if !b.Time.After(lastBlockTime) {
-			return errors.New("Invalid Block.Header.Time")
-		}
-	*/
 
 	// validate prev block info
 	if !bytes.Equal(b.Header.LastBlockID.Hash, s.LastBlockID.Hash) {
@@ -312,7 +230,7 @@ func validateBlock(stateDB *CSStateDB, s State, b *ttypes.TendermintBlock) error
 			return fmt.Errorf("Invalid block commit size. Expected %v, got %v",
 				s.LastValidators.Size(), len(b.LastCommit.Precommits))
 		}
-		lastCommit := &ttypes.Commit{TendermintCommit:b.LastCommit}
+		lastCommit := &ttypes.Commit{TendermintCommit: b.LastCommit}
 		err := s.LastValidators.VerifyCommit(
 			s.ChainID, s.LastBlockID, b.Header.Height-1, lastCommit)
 		if err != nil {
@@ -328,6 +246,5 @@ func validateBlock(stateDB *CSStateDB, s State, b *ttypes.TendermintBlock) error
 			}
 		}
 	}
-
 	return nil
 }

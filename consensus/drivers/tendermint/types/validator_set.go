@@ -2,16 +2,86 @@ package types
 
 import (
 	"bytes"
+	"encoding/binary"
 	"fmt"
 	"sort"
 	"strings"
 
-	"github.com/pkg/errors"
-	"gitlab.33.cn/chain33/chain33/common/merkle"
 	"github.com/inconshreveable/log15"
+	"github.com/pkg/errors"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
+	"gitlab.33.cn/chain33/chain33/common/merkle"
 )
 
 var validatorsetlog = log15.New("module", "tendermint-val")
+
+type Validator struct {
+	Address     []byte `json:"address"`
+	PubKey      []byte `json:"pub_key"`
+	VotingPower int64  `json:"voting_power"`
+
+	Accum int64 `json:"accum"`
+}
+
+func NewValidator(pubKey crypto.PubKey, votingPower int64) *Validator {
+	return &Validator{
+		Address:     GenAddressByPubKey(pubKey),
+		PubKey:      pubKey.Bytes(),
+		VotingPower: votingPower,
+		Accum:       0,
+	}
+}
+
+// Creates a new copy of the validator so we can mutate accum.
+// Panics if the validator is nil.
+func (v *Validator) Copy() *Validator {
+	vCopy := *v
+	return &vCopy
+}
+
+// Returns the one with higher Accum.
+func (v *Validator) CompareAccum(other *Validator) *Validator {
+	if v == nil {
+		return other
+	}
+	if v.Accum > other.Accum {
+		return v
+	} else if v.Accum < other.Accum {
+		return other
+	} else {
+		if bytes.Compare(v.Address, other.Address) < 0 {
+			return v
+		} else if bytes.Compare(v.Address, other.Address) > 0 {
+			return other
+		} else {
+			PanicSanity("Cannot compare identical validators")
+			return nil
+		}
+	}
+}
+
+func (v *Validator) String() string {
+	if v == nil {
+		return "nil-Validator"
+	}
+	return Fmt("Validator{%v %v VP:%v A:%v}",
+		v.Address,
+		v.PubKey,
+		v.VotingPower,
+		v.Accum)
+}
+
+// Hash computes the unique ID of a validator with a given voting power.
+// It excludes the Accum value, which changes with every round.
+func (v *Validator) Hash() []byte {
+	hashBytes := v.Address
+	hashBytes = append(hashBytes, v.PubKey...)
+	bPowder := make([]byte, 8)
+	binary.BigEndian.PutUint64(bPowder, uint64(v.VotingPower))
+	hashBytes = append(hashBytes, bPowder...)
+	return crypto.Ripemd160(hashBytes)
+}
+
 // ValidatorSet represent a set of *Validator at a given height.
 // The validators can be fetched by address or index.
 // The index is in order of .Address, so the indices are fixed
@@ -239,10 +309,10 @@ func (valSet *ValidatorSet) VerifyCommit(chainID string, blockID BlockID, height
 
 	for idx, item := range commit.Precommits {
 		// may be nil if validator skipped.
-		if item == nil || len(item.Signature) == 0{
+		if item == nil || len(item.Signature) == 0 {
 			continue
 		}
-		precommit := &Vote{Vote:item}
+		precommit := &Vote{Vote: item}
 		if precommit.Height != height {
 			return fmt.Errorf("VerifyCommit 2 Invalid commit -- wrong height: %v vs %v", height, precommit.Height)
 		}
@@ -312,10 +382,10 @@ func (valSet *ValidatorSet) VerifyCommitAny(newSet *ValidatorSet, chainID string
 
 	for idx, item := range commit.Precommits {
 		// first check as in VerifyCommit
-		if item == nil || len(item.Signature) == 0{
+		if item == nil || len(item.Signature) == 0 {
 			continue
 		}
-		precommit := &Vote{Vote:item}
+		precommit := &Vote{Vote: item}
 		if precommit.Height != height {
 			// return certerr.ErrHeightMismatch(height, precommit.Height)
 			return errors.Errorf("Blocks don't match - %d vs %d", round, precommit.Round)
@@ -388,7 +458,7 @@ func (valSet *ValidatorSet) StringIndented(indent string) string {
 		valStrings = append(valStrings, val.String())
 		return false
 	})
-	return fmt.Sprintf(`ValidatorSet{
+	return Fmt(`ValidatorSet{
 %s  Proposer: %v
 %s  Validators:
 %s    %v
@@ -431,23 +501,4 @@ func (ac accumComparable) Less(o interface{}) bool {
 	other := o.(accumComparable).Validator
 	larger := ac.CompareAccum(other)
 	return bytes.Equal(larger.Address, ac.Address)
-}
-
-//----------------------------------------
-// For testing
-
-// RandValidatorSet returns a randomized validator set, useful for testing.
-// NOTE: PrivValidator are in order.
-// UNSTABLE
-func RandValidatorSet(numValidators int, votingPower int64) (*ValidatorSet, []*PrivValidatorImp) {
-	vals := make([]*Validator, numValidators)
-	privValidators := make([]*PrivValidatorImp, numValidators)
-	for i := 0; i < numValidators; i++ {
-		val, privValidator := RandValidator(false, votingPower)
-		vals[i] = val
-		privValidators[i] = privValidator
-	}
-	valSet := NewValidatorSet(vals)
-	sort.Sort(PrivValidatorsByAddress(privValidators))
-	return valSet, privValidators
 }
