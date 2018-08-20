@@ -1,14 +1,14 @@
-package privacybizpolicy
+package privacy
 
 import (
 	"bytes"
+	"encoding/json"
 
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto/privacy"
 	"gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
-
-	"encoding/json"
+	wcom "gitlab.33.cn/chain33/chain33/wallet/common"
 
 	"github.com/golang/protobuf/proto"
 )
@@ -18,14 +18,18 @@ const (
 	PRIVACYDBVERSION int64 = 1
 )
 
+func NewStore(db db.DB) *privacyStore {
+	return &privacyStore{Store: wcom.NewStore(db)}
+}
+
 // privacyStore 隐私交易数据库存储操作类
 type privacyStore struct {
-	db db.DB
+	*wcom.Store
 }
 
 func (store *privacyStore) getVersion() int64 {
 	var version int64
-	data, err := store.db.Get([]byte(PrivacyDBVersion))
+	data, err := store.Get(calcPrivacyDBVersion())
 	if err != nil || data == nil {
 		bizlog.Error("getVersion", "db.Get error", err)
 		return 0
@@ -45,7 +49,7 @@ func (store *privacyStore) setVersion() error {
 		bizlog.Error("setVersion", "json.Marshal error", err)
 		return err
 	}
-	err = store.db.SetSync([]byte(PrivacyDBVersion), data)
+	err = store.GetDB().SetSync(calcPrivacyDBVersion(), data)
 	if err != nil {
 		bizlog.Error("setVersion", "db.SetSync error", err)
 	}
@@ -57,7 +61,7 @@ func (store *privacyStore) getAccountByPrefix(addr string) ([]*types.WalletAccou
 		bizlog.Error("getAccountByPrefix addr is nil")
 		return nil, types.ErrInputPara
 	}
-	list := db.NewListHelper(store.db)
+	list := store.NewListHelper()
 	accbytes := list.PrefixScan([]byte(addr))
 	if len(accbytes) == 0 {
 		bizlog.Error("getAccountByPrefix addr not exist")
@@ -82,7 +86,7 @@ func (store *privacyStore) getWalletAccountPrivacy(addr string) (*types.WalletAc
 		return nil, types.ErrInputPara
 	}
 
-	privacyByte, err := store.db.Get(calcPrivacyAddrKey(addr))
+	privacyByte, err := store.Get(calcPrivacyAddrKey(addr))
 	if err != nil {
 		bizlog.Error("GetWalletAccountPrivacy", "db Get error ", err)
 		return nil, err
@@ -105,7 +109,7 @@ func (store *privacyStore) getAccountByAddr(addr string) (*types.WalletAccountSt
 		bizlog.Error("GetAccountByAddr addr is nil")
 		return nil, types.ErrInputPara
 	}
-	data, err := store.db.Get(calcAddrKey(addr))
+	data, err := store.Get(calcAddrKey(addr))
 	if data == nil || err != nil {
 		if err != db.ErrNotFoundInDb {
 			bizlog.Debug("GetAccountByAddr addr", "err", err)
@@ -136,8 +140,8 @@ func (store *privacyStore) setWalletAccountPrivacy(addr string, privacy *types.W
 		return types.ErrMarshal
 	}
 
-	newbatch := store.db.NewBatch(true)
-	store.db.Set(calcPrivacyAddrKey(addr), privacybyte)
+	newbatch := store.NewBatch(true)
+	newbatch.Set(calcPrivacyAddrKey(addr), privacybyte)
 	newbatch.Write()
 
 	return nil
@@ -148,7 +152,7 @@ func (store *privacyStore) listAvailableUTXOs(token, addr string) ([]*types.Priv
 		return nil, types.ErrInputPara
 	}
 
-	list := db.NewListHelper(store.db)
+	list := store.NewListHelper()
 	onetimeAccbytes := list.PrefixScan(calcPrivacyUTXOPrefix4Addr(token, addr))
 	if len(onetimeAccbytes) == 0 {
 		bizlog.Error("listWalletPrivacyAccount ", "addr not exist", addr)
@@ -158,7 +162,7 @@ func (store *privacyStore) listAvailableUTXOs(token, addr string) ([]*types.Priv
 	privacyDBStoreSlice := make([]*types.PrivacyDBStore, len(onetimeAccbytes))
 	for index, acckeyByte := range onetimeAccbytes {
 		var accPrivacy types.PrivacyDBStore
-		accByte, err := store.db.Get(acckeyByte)
+		accByte, err := store.Get(acckeyByte)
 		if err != nil {
 			bizlog.Error("listWalletPrivacyAccount", "db Get err:", err)
 			return nil, err
@@ -178,7 +182,7 @@ func (store *privacyStore) listFrozenUTXOs(token, addr string) ([]*types.FTXOsST
 		bizlog.Error("listFrozenUTXOs addr is nil")
 		return nil, types.ErrInputPara
 	}
-	list := db.NewListHelper(store.db)
+	list := store.NewListHelper()
 	values := list.List(calcFTXOsKeyPrefix(token, addr), nil, 0, 0)
 	if len(values) == 0 {
 		bizlog.Error("listFrozenUTXOs ", "addr not exist", addr)
@@ -188,7 +192,7 @@ func (store *privacyStore) listFrozenUTXOs(token, addr string) ([]*types.FTXOsST
 	ftxoslice := make([]*types.FTXOsSTXOsInOneTx, 0)
 	for _, acckeyByte := range values {
 		var ftxotx types.FTXOsSTXOsInOneTx
-		accByte, err := store.db.Get(acckeyByte)
+		accByte, err := store.Get(acckeyByte)
 		if err != nil {
 			bizlog.Error("listFrozenUTXOs", "db Get err:", err)
 			return nil, err
@@ -214,7 +218,7 @@ func (store *privacyStore) getWalletPrivacyTxDetails(param *types.ReqPrivacyTran
 		return nil, types.ErrInvalidParams
 	}
 	var txbytes [][]byte
-	list := db.NewListHelper(store.db)
+	list := store.NewListHelper()
 	if len(param.Seedtxhash) == 0 {
 		var keyPrefix []byte
 		if param.SendRecvFlag == sendTx {
@@ -224,7 +228,7 @@ func (store *privacyStore) getWalletPrivacyTxDetails(param *types.ReqPrivacyTran
 		}
 		txkeybytes := list.IteratorScanFromLast(keyPrefix, param.Count)
 		for _, keybyte := range txkeybytes {
-			value, err := store.db.Get(keybyte)
+			value, err := store.Get(keybyte)
 			if err != nil {
 				bizlog.Error("getWalletPrivacyTxDetails", "db Get error", err)
 				continue
@@ -240,7 +244,7 @@ func (store *privacyStore) getWalletPrivacyTxDetails(param *types.ReqPrivacyTran
 		}
 
 	} else {
-		list := db.NewListHelper(store.db)
+		list := store.NewListHelper()
 		var txkeybytes [][]byte
 		if param.SendRecvFlag == sendTx {
 			txkeybytes = list.IteratorScan([]byte(SendPrivacyTx), calcSendPrivacyTxKey(param.Tokenname, param.Address, string(param.Seedtxhash)), param.Count, param.Direction)
@@ -248,7 +252,7 @@ func (store *privacyStore) getWalletPrivacyTxDetails(param *types.ReqPrivacyTran
 			txkeybytes = list.IteratorScan([]byte(RecvPrivacyTx), calcRecvPrivacyTxKey(param.Tokenname, param.Address, string(param.Seedtxhash)), param.Count, param.Direction)
 		}
 		for _, keybyte := range txkeybytes {
-			value, err := store.db.Get(keybyte)
+			value, err := store.Get(keybyte)
 			if err != nil {
 				bizlog.Error("getWalletPrivacyTxDetails", "db Get error", err)
 				continue
@@ -288,7 +292,7 @@ func (store *privacyStore) getWalletPrivacyTxDetails(param *types.ReqPrivacyTran
 }
 
 func (store *privacyStore) getPrivacyTokenUTXOs(token, addr string) (*walletUTXOs, error) {
-	list := db.NewListHelper(store.db)
+	list := store.NewListHelper()
 	prefix := calcPrivacyUTXOPrefix4Addr(token, addr)
 	values := list.List(prefix, nil, 0, 0)
 	wutxos := new(walletUTXOs)
@@ -299,7 +303,7 @@ func (store *privacyStore) getPrivacyTokenUTXOs(token, addr string) (*walletUTXO
 		if len(value) == 0 {
 			continue
 		}
-		accByte, err := store.db.Get(value)
+		accByte, err := store.Get(value)
 		if err != nil {
 			return nil, types.ErrDataBaseDamage
 		}
@@ -332,7 +336,7 @@ func (store *privacyStore) getPrivacyTokenUTXOs(token, addr string) (*walletUTXO
 //状态转移，将utxo转移至ftxo，同时记录该生成tx的花费的utxo，这样在确认执行成功之后就可以快速将相应的FTXO转换成STXO
 func (store *privacyStore) moveUTXO2FTXO(tx *types.Transaction, token, sender, txhash string, selectedUtxos []*txOutputInfo) {
 	FTXOsInOneTx := &types.FTXOsSTXOsInOneTx{}
-	newbatch := store.db.NewBatch(true)
+	newbatch := store.NewBatch(true)
 	for _, txOutputInfo := range selectedUtxos {
 		key := calcUTXOKey4TokenAddr(token, sender, common.Bytes2Hex(txOutputInfo.utxoGlobalIndex.Txhash), int(txOutputInfo.utxoGlobalIndex.Outindex))
 		newbatch.Delete(key)
@@ -379,7 +383,7 @@ func (store *privacyStore) getRescanUtxosFlag4Addr(req *types.ReqRescanUtxos) (*
 
 	var repRescanUtxos types.RepRescanUtxos
 	for _, addr := range storeAddrs {
-		value, err := store.db.Get(calcRescanUtxosFlagKey(addr))
+		value, err := store.Get(calcRescanUtxosFlagKey(addr))
 		if err != nil {
 			continue
 			bizlog.Error("getRescanUtxosFlag4Addr", "Failed to get calcRescanUtxosFlagKey(addr) for value", addr)
@@ -408,7 +412,7 @@ func (store *privacyStore) getRescanUtxosFlag4Addr(req *types.ReqRescanUtxos) (*
 }
 
 func (store *privacyStore) saveREscanUTXOsAddresses(addrs []string) {
-	newbatch := store.db.NewBatch(true)
+	newbatch := store.NewBatch(true)
 	for _, addr := range addrs {
 		data := &types.Int64{
 			Data: int64(types.UtxoFlagNoScan),
@@ -421,7 +425,7 @@ func (store *privacyStore) saveREscanUTXOsAddresses(addrs []string) {
 
 func (store *privacyStore) setScanPrivacyInputUTXO(count int32) []*types.UTXOGlobalIndex {
 	prefix := []byte(ScanPrivacyInput)
-	list := db.NewListHelper(store.db)
+	list := store.NewListHelper()
 	values := list.List(prefix, nil, count, 0)
 	var utxoGlobalIndexs []*types.UTXOGlobalIndex
 	if len(values) != 0 {
@@ -437,7 +441,7 @@ func (store *privacyStore) setScanPrivacyInputUTXO(count int32) []*types.UTXOGlo
 }
 
 func (store *privacyStore) isUTXOExist(txhash string, outindex int) (*types.PrivacyDBStore, error) {
-	value1, err := store.db.Get(calcUTXOKey(txhash, outindex))
+	value1, err := store.Get(calcUTXOKey(txhash, outindex))
 	if err != nil {
 		bizlog.Error("IsUTXOExist", "Get calcUTXOKey error:", err)
 		return nil, err
@@ -455,7 +459,7 @@ func (store *privacyStore) updateScanInputUTXOs(utxoGlobalIndexs []*types.UTXOGl
 	if len(utxoGlobalIndexs) <= 0 {
 		return
 	}
-	newbatch := store.db.NewBatch(true)
+	newbatch := store.NewBatch(true)
 	var utxos []*types.UTXO
 	var owner string
 	var token string
@@ -523,7 +527,7 @@ func (store *privacyStore) moveUTXO2STXO(owner, token, txhash string, utxos []*t
 }
 
 func (store *privacyStore) selectPrivacyTransactionToWallet(txDetals *types.TransactionDetails, privacyInfo []addrAndprivacy) {
-	newbatch := store.db.NewBatch(true)
+	newbatch := store.NewBatch(true)
 	for _, txdetal := range txDetals.Txs {
 		if !bytes.Equal(types.ExecerPrivacy, txdetal.Tx.Execer) {
 			continue
@@ -703,7 +707,7 @@ func (store *privacyStore) listSpendUTXOs(token, addr string) (*types.UTXOHaveTx
 		return nil, types.ErrInputPara
 	}
 	prefix := calcSTXOPrefix4Addr(token, addr)
-	list := db.NewListHelper(store.db)
+	list := store.NewListHelper()
 	Key4FTXOsInTxs := list.PrefixScan(prefix)
 	if len(Key4FTXOsInTxs) == 0 {
 		bizlog.Error("listSpendUTXOs ", "addr not exist", addr)
@@ -713,7 +717,7 @@ func (store *privacyStore) listSpendUTXOs(token, addr string) (*types.UTXOHaveTx
 	var utxoHaveTxHashs types.UTXOHaveTxHashs
 	utxoHaveTxHashs.UtxoHaveTxHashs = make([]*types.UTXOHaveTxHash, 0)
 	for _, Key4FTXOsInTx := range Key4FTXOsInTxs {
-		value, err := store.db.Get(Key4FTXOsInTx)
+		value, err := store.Get(Key4FTXOsInTx)
 		if err != nil {
 			continue
 		}
@@ -726,7 +730,7 @@ func (store *privacyStore) listSpendUTXOs(token, addr string) (*types.UTXOHaveTx
 
 		for _, ftxo := range ftxosInOneTx.Utxos {
 			utxohash := common.Bytes2Hex(ftxo.UtxoBasic.UtxoGlobalIndex.Txhash)
-			value1, err := store.db.Get(calcUTXOKey(utxohash, int(ftxo.UtxoBasic.UtxoGlobalIndex.Outindex)))
+			value1, err := store.Get(calcUTXOKey(utxohash, int(ftxo.UtxoBasic.UtxoGlobalIndex.Outindex)))
 			if err != nil {
 				continue
 			}
@@ -757,12 +761,12 @@ func (store *privacyStore) listSpendUTXOs(token, addr string) (*types.UTXOHaveTx
 }
 
 func (store *privacyStore) getWalletFtxoStxo(prefix string) ([]*types.FTXOsSTXOsInOneTx, []string, error) {
-	list := db.NewListHelper(store.db)
+	list := store.NewListHelper()
 	values := list.List([]byte(prefix), nil, 0, 0)
 	var Ftxoes []*types.FTXOsSTXOsInOneTx
 	var key []string
 	for _, value := range values {
-		value1, err := store.db.Get(value)
+		value1, err := store.Get(value)
 		if err != nil {
 			continue
 		}
@@ -799,7 +803,7 @@ func (store *privacyStore) getFTXOlist() ([]*types.FTXOsSTXOsInOneTx, [][]byte) 
 //切换types.FTXOsSTXOsInOneTx的状态
 func (store *privacyStore) moveFTXO2STXO(key1 []byte, txhash string, newbatch db.Batch) error {
 	//设置在该交易中花费的UTXO
-	value1, err := store.db.Get(key1)
+	value1, err := store.Get(key1)
 	if err != nil {
 		bizlog.Error("moveFTXO2STXO", "Get(key1) error ", err, "key1", string(key1))
 		return err
@@ -817,7 +821,7 @@ func (store *privacyStore) moveFTXO2STXO(key1 []byte, txhash string, newbatch db
 
 	// 在此处加入stxo-token-addr-txhash 作为key，便于查找花费出去交易
 	key := value2
-	value, err := store.db.Get(key)
+	value, err := store.Get(key)
 	if err != nil {
 		bizlog.Error("moveFTXO2STXO", "db Get(key) error ", err, "key", key)
 	}
@@ -839,7 +843,7 @@ func (store *privacyStore) moveFTXO2STXO(key1 []byte, txhash string, newbatch db
 // 由于交易回退可能会因为UTXO对应的交易过期,未被打入区块等情况,导致UTXO不可用,所以需要检查UTXO对应的交易是否有效
 func (store *privacyStore) moveFTXO2UTXO(key1 []byte, newbatch db.Batch) {
 	//设置ftxo的key，使其能够方便地获取到对应的交易花费的utxo
-	value1, err := store.db.Get(key1)
+	value1, err := store.Get(key1)
 	if err != nil {
 		bizlog.Error("moveFTXO2UTXO", "db Get(key1) error ", err)
 		return
@@ -852,7 +856,7 @@ func (store *privacyStore) moveFTXO2UTXO(key1 []byte, newbatch db.Batch) {
 	newbatch.Delete(key1)
 
 	key2 := value1
-	value2, err := store.db.Get(key2)
+	value2, err := store.Get(key2)
 	if err != nil {
 		bizlog.Error("moveFTXO2UTXO", "db Get(key2) error ", err)
 		return
@@ -914,7 +918,7 @@ func (store *privacyStore) unsetUTXO(addr, txhash *string, outindex int, token s
 func (store *privacyStore) moveSTXO2FTXO(tx *types.Transaction, txhash string, newbatch db.Batch) error {
 	//设置ftxo的key，使其能够方便地获取到对应的交易花费的utxo
 	key2 := calcKey4STXOsInTx(txhash)
-	value2, err := store.db.Get(key2)
+	value2, err := store.Get(key2)
 	if err != nil {
 		bizlog.Error("moveSTXO2FTXO", "Get(key2) error ", err)
 		return err
@@ -926,7 +930,7 @@ func (store *privacyStore) moveSTXO2FTXO(tx *types.Transaction, txhash string, n
 	newbatch.Delete(key2)
 
 	key := value2
-	value, err := store.db.Get(key)
+	value, err := store.Get(key)
 	if err != nil {
 		bizlog.Error("moveSTXO2FTXO", "db Get(key) error ", err)
 	}
@@ -956,7 +960,7 @@ func (store *privacyStore) moveSTXO2FTXO(tx *types.Transaction, txhash string, n
 }
 
 func (store *privacyStore) moveFTXO2UTXOWhenFTXOExpire(blockheight, blocktime int64) {
-	dbbatch := store.db.NewBatch(true)
+	dbbatch := store.NewBatch(true)
 	curFTXOTxs, keys := store.getFTXOlist()
 	for i, ftxo := range curFTXOTxs {
 		if !ftxo.IsExpire(blockheight, blocktime) {
