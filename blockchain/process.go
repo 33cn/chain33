@@ -91,13 +91,15 @@ func (b *BlockChain) blockExists(hash []byte) bool {
 	if b.index.HaveBlock(hash) {
 		return true
 	}
-	height, _ := b.blockStore.GetHeightByBlockHash(hash)
-	if height != -1 {
-		return true
+
+	// 检测数据库中是否存在，通过hash获取blockheader，不存在就返回false。
+	blockheader, _ := b.blockStore.GetBlockHeaderByHash(hash)
+	if blockheader == nil {
+		return false
 	}
-	// 检测数据库中是否存在，通过hash获取blcok，并通过hash获取height
-	block, _ := b.blockStore.GetBlockHeaderByHash(hash)
-	return block != nil
+	//block存在数据库中时，需要确认是否在主链上。不在主链上返回false
+	height, _ := b.blockStore.GetHeightByBlockHash(hash)
+	return height != -1
 }
 
 //孤儿链的处理,将本hash对应的子block插入chain中
