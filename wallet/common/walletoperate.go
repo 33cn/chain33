@@ -56,6 +56,7 @@ type WalletOperate interface {
 	IsWalletLocked() bool
 	IsClose() bool
 	IsCaughtUp() bool
+	AddrInWallet(addr string) bool
 	GetRescanFlag() int32
 	SetRescanFlag(flag int32)
 
