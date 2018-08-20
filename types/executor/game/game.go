@@ -421,7 +421,7 @@ func (g *GameQueryList) Input(message json.RawMessage) ([]byte, error) {
 
 func (g *GameQueryList) Output(reply interface{}) (interface{}, error) {
 	if replyData, ok := reply.(*types.Message); ok {
-		if replyGameList, ok := (*replyData).(*types.ReplyGameList); ok {
+		if replyGameList, ok := (*replyData).(*types.ReplyGameListPage); ok {
 			var gameList []*Game
 			for _, game := range replyGameList.GetGames() {
 				g := &Game{
@@ -438,10 +438,14 @@ func (g *GameQueryList) Output(reply interface{}) (interface{}, error) {
 					Secret:        game.GetSecret(),
 					Result:        game.GetResult(),
 					Guess:         game.GetGuess(),
+					CreateTxHash:  game.GetCreateTxHash(),
+					CancelTxHash:  game.GetCancelTxHash(),
+					MatchTxHash:   game.GetMatchTxHash(),
+					CloseTxHash:   game.GetCloseTxHash(),
 				}
 				gameList = append(gameList, g)
 			}
-			return gameList, nil
+			return &ReplyGameListPage{gameList, replyGameList.GetPrevIndex(), replyGameList.GetNextIndex()}, nil
 		}
 	}
 	return reply, nil
