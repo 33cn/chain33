@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -45,7 +46,7 @@ func (g *Game) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 		return nil, err
 	}
 	glog.Debug("exec Game tx=", "tx=", action)
-	actiondb := NewAction(g, tx)
+	actiondb := NewAction(g, tx, index)
 	if action.Ty == types.GameActionCreate && action.GetCreate() != nil {
 		create := action.GetCreate()
 		if create.GetValue() > MaxGameAmount {
@@ -81,7 +82,7 @@ func (g *Game) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, inde
 			if err != nil {
 				panic(err) //数据错误了，已经被修改了
 			}
-			kv := g.updateGame(&Gamelog)
+			kv := g.updateIndex(&Gamelog)
 			set.KV = append(set.KV, kv...)
 		}
 	}
@@ -105,71 +106,102 @@ func (g *Game) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, i
 				panic(err) //数据错误了，已经被修改了
 			}
 			//状态数据库由于默克尔树特性，之前生成的索引无效，故不需要回滚，只回滚localDB
-			kv := g.rollbackGame(&Gamelog)
+			kv := g.rollbackIndex(&Gamelog)
 			set.KV = append(set.KV, kv...)
 		}
 	}
 	return set, nil
 }
 
-func (g *Game) updateCloseOrCancelGameIndex(log *types.ReceiptGame) (kvs []*types.KeyValue) {
-	if log.GetStatus() == types.GameActionCancel || log.GetStatus() == types.GameActionClose {
-		kvs = append(kvs, addGameIdIndex(log.GameId, log.Status, log.CreateAddr, log.CreateHeight))
-		kvs = append(kvs, addGameIdIndex(log.GameId, log.Status, log.MatchAddr, log.MatchHeight))
-	}
-	return kvs
-}
-func (g *Game) rollbackCloseOrCancelGameIndex(log *types.ReceiptGame) (kvs []*types.KeyValue) {
-	if log.GetStatus() == types.GameActionCancel || log.GetStatus() == types.GameActionClose {
-		kvs = append(kvs, delGameIdIndex(log.GameId, log.Status, log.CreateAddr, log.CreateHeight))
-		kvs = append(kvs, delGameIdIndex(log.GameId, log.Status, log.MatchAddr, log.MatchHeight))
-	}
-	return kvs
-}
-
 //更新索引
-func (g *Game) updateGame(log *types.ReceiptGame) (kvs []*types.KeyValue) {
+func (g *Game) updateIndex(log *types.ReceiptGame) (kvs []*types.KeyValue) {
 	//先保存本次Action产生的索引
-	if log.GetStatus() <= types.GameActionMatch {
-		//不定状态用actionTime创建索引
-		kvs = append(kvs, addGameActionTimeIndex(log.GameId, log.Status, log.Addr, log.ActionTime))
+	kvs = append(kvs, addGameAddrIndex(log.Status, log.GameId, log.Addr, log.Index))
+	kvs = append(kvs, addGameStatusIndex(log.Status, log.GameId, log.Index))
+	if log.Status == types.GameActionMatch {
+		kvs = append(kvs, addGameAddrIndex(log.Status, log.GameId, log.CreateAddr, log.Index))
+		prevIndex, err := g.queryIndex(log.GetGameId())
+		if err != nil {
+			panic(err) //数据损毁
+		}
+		kvs = append(kvs, delGameAddrIndex(types.GameActionCreate, log.CreateAddr, prevIndex))
+		kvs = append(kvs, delGameStatusIndex(types.GameActionCreate, prevIndex))
 	}
-	if log.GetStatus() > types.GameActionCreate {
-		kvs = append(kvs, delGameActionTimeIndex(log.GetGameId(), log.GetPrevStatus(), log.GetCreateAddr(), log.PrevActionTime))
+	if log.Status == types.GameActionCancel {
+		prevIndex, err := g.queryIndex(log.GetGameId())
+		if err != nil {
+			panic(err) //数据损毁
+		}
+		kvs = append(kvs, delGameAddrIndex(types.GameActionCreate, log.CreateAddr, prevIndex))
+		kvs = append(kvs, delGameStatusIndex(types.GameActionCreate, prevIndex))
 	}
-	if log.GetStatus() == types.GameActionMatch {
-		//match状态还要更新创建者的关联索引
-		kvs = append(kvs, addGameActionTimeIndex(log.GetGameId(), log.Status, log.GetCreateAddr(), log.ActionTime))
+
+	if log.Status == types.GameActionClose {
+		kvs = append(kvs, addGameAddrIndex(log.Status, log.GameId, log.MatchAddr, log.Index))
+		prevIndex, err := g.queryIndex(log.GetMatchTxHash())
+		if err != nil {
+			panic(err) //数据损毁
+		}
+		kvs = append(kvs, delGameAddrIndex(types.GameActionMatch, log.MatchAddr, prevIndex))
+		kvs = append(kvs, delGameAddrIndex(types.GameActionMatch, log.CreateAddr, prevIndex))
+		kvs = append(kvs, delGameStatusIndex(types.GameActionMatch, prevIndex))
 	}
-	if log.GetStatus() == types.GameActionClose {
-		//删除上次状态匹配者的索引
-		kvs = append(kvs, delGameActionTimeIndex(log.GetGameId(), log.GetPrevStatus(), log.GetMatchAddr(), log.PrevActionTime))
-	}
-	kvs = append(kvs, g.updateCloseOrCancelGameIndex(log)...)
 	return kvs
 }
 
 //回滚索引
-func (g *Game) rollbackGame(log *types.ReceiptGame) (kvs []*types.KeyValue) {
+func (g *Game) rollbackIndex(log *types.ReceiptGame) (kvs []*types.KeyValue) {
 	//先删除本次Action产生的索引
-	if log.GetStatus() <= types.GameActionMatch {
-		//不定状态用actionTime创建索引
-		kvs = append(kvs, delGameActionTimeIndex(log.GameId, log.Status, log.Addr, log.ActionTime))
+	kvs = append(kvs, delGameAddrIndex(log.Status, log.Addr, log.Index))
+	kvs = append(kvs, delGameStatusIndex(log.Status, log.Index))
+
+	if log.Status == types.GameActionMatch {
+		kvs = append(kvs, delGameAddrIndex(log.Status, log.CreateAddr, log.Index))
+
+		prevIndex, err := g.queryIndex(log.GetGameId())
+		if err != nil {
+			panic(err) //数据损毁
+		}
+		kvs = append(kvs, addGameAddrIndex(types.GameActionCreate, log.GameId, log.CreateAddr, prevIndex))
+		kvs = append(kvs, addGameStatusIndex(types.GameActionCreate, log.GameId, prevIndex))
 	}
-	if log.GetStatus() > types.GameActionCreate {
-		kvs = append(kvs, addGameActionTimeIndex(log.GetGameId(), log.GetPrevStatus(), log.GetCreateAddr(), log.PrevActionTime))
+	if log.Status == types.GameActionCancel {
+		prevIndex, err := g.queryIndex(log.GetGameId())
+		if err != nil {
+			panic(err) //数据损毁
+		}
+		kvs = append(kvs, addGameAddrIndex(types.GameActionCreate, log.GameId, log.CreateAddr, prevIndex))
+		kvs = append(kvs, addGameStatusIndex(types.GameActionCreate, log.GameId, prevIndex))
 	}
-	if log.GetStatus() == types.GameActionMatch {
-		kvs = append(kvs, delGameActionTimeIndex(log.GetGameId(), log.Status, log.GetCreateAddr(), log.ActionTime))
+
+	if log.Status == types.GameActionClose {
+		kvs = append(kvs, delGameAddrIndex(log.Status, log.MatchAddr, log.Index))
+
+		prevIndex, err := g.queryIndex(log.GetMatchTxHash())
+		if err != nil {
+			panic(err) //数据损毁
+		}
+		kvs = append(kvs, addGameAddrIndex(types.GameActionMatch, log.GameId, log.MatchAddr, prevIndex))
+		kvs = append(kvs, addGameAddrIndex(types.GameActionMatch, log.GameId, log.CreateAddr, prevIndex))
+		kvs = append(kvs, addGameStatusIndex(types.GameActionMatch, log.GameId, prevIndex))
 	}
-	if log.GetStatus() == types.GameActionClose {
-		//恢复上次状态匹配者的索引
-		kvs = append(kvs, addGameActionTimeIndex(log.GetGameId(), log.GetPrevStatus(), log.GetMatchAddr(), log.PrevActionTime))
-	}
-	kvs = append(kvs, g.rollbackCloseOrCancelGameIndex(log)...)
 	return kvs
 }
 
+//根据txhash查询 index
+func (g *Game) queryIndex(txHash string) (string, error) {
+	var data types.ReqHash
+	hash, err := common.FromHex(txHash)
+	if err != nil {
+		return "", err
+	}
+	data.Hash = hash
+	d, err := g.GetApi().QueryTx(&data)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%018d", d.GetHeight()*types.MaxTxsPerBlock+int64(d.GetIndex())), nil
+}
 func (g *Game) Query(funcName string, params []byte) (types.Message, error) {
 	if funcName == FuncName_QueryGameListByIds {
 		var info types.QueryGameInfos
@@ -207,50 +239,52 @@ func (g *Game) Query(funcName string, params []byte) (types.Message, error) {
 	return nil, types.ErrActionNotSupport
 }
 
-func calcGameActionTimeKey(gameId string, status int32, addr string, actionTime int64) []byte {
-	key := fmt.Sprintf("game-gl:%d:%s:%d:%s", status, addr, actionTime, gameId)
+func calcGameStatusIndexKey(status int32, index string) []byte {
+	key := fmt.Sprintf("game-status:%d:%s", status, index)
 	return []byte(key)
 }
 
-func calcGamePrefix(status int32, addr string) []byte {
-	key := fmt.Sprintf("game-gl:%d:%s", status, addr)
+func calcGameStatusIndexPrefix(status int32) []byte {
+	key := fmt.Sprintf("game-status:%d:%s", status)
 	return []byte(key)
 }
-
-func addGameActionTimeIndex(gameId string, status int32, addr string, actionTime int64) *types.KeyValue {
+func calcGameAddrIndexKey(status int32, addr, index string) []byte {
+	key := fmt.Sprintf("game-addr:%d:%s:%s", status, addr, index)
+	return []byte(key)
+}
+func calcGameAddrIndexPrefix(status int32, addr string) []byte {
+	key := fmt.Sprintf("game-addr:%d:%s", status, addr)
+	return []byte(key)
+}
+func addGameStatusIndex(status int32, gameId, index string) *types.KeyValue {
 	kv := &types.KeyValue{}
-	kv.Key = calcGameActionTimeKey(gameId, status, addr, actionTime)
-	kv.Value = []byte(gameId)
+	kv.Key = calcGameStatusIndexKey(status, index)
+	record := &types.GameRecord{
+		GameId: gameId,
+		Index:  index,
+	}
+	kv.Value = []byte(types.Encode(record))
 	return kv
 }
-
-func delGameActionTimeIndex(gameId string, status int32, addr string, actionTime int64) *types.KeyValue {
+func addGameAddrIndex(status int32, gameId, addr, index string) *types.KeyValue {
 	kv := &types.KeyValue{}
-	kv.Key = calcGameActionTimeKey(gameId, status, addr, actionTime)
-	//value置nil,提交时，会自动执行删除操作
+	kv.Key = calcGameAddrIndexKey(status, addr, index)
+	record := &types.GameRecord{
+		GameId: gameId,
+		Index:  index,
+	}
+	kv.Value = []byte(types.Encode(record))
+	return kv
+}
+func delGameStatusIndex(status int32, index string) *types.KeyValue {
+	kv := &types.KeyValue{}
+	kv.Key = calcGameStatusIndexKey(status, index)
 	kv.Value = nil
 	return kv
 }
-
-//height 递增
-func calcGameIdKey(status int32, addr string, height int64) []byte {
-	key := fmt.Sprintf("game-Id:%d:%s:%d", status, addr, InitHeight+height)
-	return []byte(key)
-}
-
-func calcGameIdPrefix(status int32, addr string) []byte {
-	key := fmt.Sprintf("game-Id:%d:%s:", status, addr)
-	return []byte(key)
-}
-func addGameIdIndex(gameId string, status int32, addr string, height int64) *types.KeyValue {
+func delGameAddrIndex(status int32, addr, index string) *types.KeyValue {
 	kv := &types.KeyValue{}
-	kv.Key = calcGameIdKey(status, addr, height)
-	kv.Value = []byte(gameId)
-	return kv
-}
-func delGameIdIndex(gameId string, status int32, addr string, height int64) *types.KeyValue {
-	kv := &types.KeyValue{}
-	kv.Key = calcGameIdKey(status, addr, height)
+	kv.Key = calcGameAddrIndexKey(status, addr, index)
 	//value置nil,提交时，会自动执行删除操作
 	kv.Value = nil
 	return kv

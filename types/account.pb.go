@@ -257,9 +257,11 @@ It has these top-level messages:
 	GameCreate
 	QueryGameListByStatusAndAddr
 	QueryGameListCount
+	GameRecord
 	QueryGameInfo
 	QueryGameInfos
 	ReplyGameList
+	ReplyGameListPage
 	ReplyGameListCount
 	ReplyGame
 	ReceiptGame
