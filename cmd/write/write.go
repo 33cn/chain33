@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/hex"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -10,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/BurntSushi/toml"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/log"
@@ -18,6 +20,7 @@ import (
 )
 
 var (
+	configPath          = flag.String("f", "write.toml", "configfile")
 	receiveAddr         = "1MHkgR4uUg1ksssR5NFzU6zkzyCqxqjg2Z"
 	rpcAddr             = "http://localhost:8801"
 	currentHeight int64 = 0
@@ -25,7 +28,32 @@ var (
 	heightFile          = "height.txt"
 )
 
+type Config struct {
+	UserWriteConf *UserWriteConf
+}
+
+type UserWriteConf struct {
+	ReceiveAddr   string
+	CurrentHeight int64
+	CurrentIndex  int64
+	HeightFile    string
+}
+
+func initWrite() *Config {
+	var cfg Config
+	if _, err := toml.DecodeFile(*configPath, &cfg); err != nil {
+		fmt.Println(err)
+		os.Exit(0)
+	}
+	return &cfg
+}
+
 func main() {
+	cfg := initWrite()
+	receiveAddr = cfg.UserWriteConf.ReceiveAddr
+	currentHeight = cfg.UserWriteConf.CurrentHeight
+	currentIndex = cfg.UserWriteConf.CurrentIndex
+	heightFile = cfg.UserWriteConf.HeightFile
 	log.SetLogLevel("error")
 	err := ioHeightAndIndex()
 	if err != nil {
@@ -118,7 +146,11 @@ func scanWrite() {
 				fmt.Fprintln(os.Stderr, "not a transfer action")
 				continue
 			}
-			note := trans.(map[string]interface{})["note"].(string)
+			note, ok := trans.(map[string]interface{})["note"].(string)
+			if !ok {
+				fmt.Fprintln(os.Stderr, "no note found")
+				continue
+			}
 			var noteTx types.Transaction
 			txBytes, err := common.FromHex(note)
 			if err != nil {

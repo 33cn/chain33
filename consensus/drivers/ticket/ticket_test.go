@@ -48,28 +48,19 @@ func init() {
 
 // 执行： go test -cover
 func TestTicket(t *testing.T) {
-	q, chain, mem, s, cs, w, qApi, p2p := initEnvTicket()
-
-	defer chain.Close()
-	defer s.Close()
-	defer mem.Close()
-	defer cs.Close()
-	defer w.Close()
-	defer qApi.Close()
-	defer q.Close()
-	defer p2p.Close()
-
-	for {
-		header, err := qApi.GetLastHeader()
-		if err != nil {
-			panic(err)
-		}
-		// 区块 0 产生后开始下面的运作
-		if header.Height >= 0 {
-			break
-		}
-		time.Sleep(time.Second)
-	}
+	q, chain, mem, s, cs, w, qApi, p2p, exec := initEnvTicket()
+	defer func() {
+		chain.Close()
+		mem.Close()
+		p2p.Close()
+		exec.Close()
+		s.Close()
+		cs.Close()
+		qApi.Close()
+		w.Close()
+		q.Close()
+	}()
+	sleepWait(qApi, 0)
 
 	// 自动设置票列表测试 coverage: 57.2%
 	setTicketListRealize(qApi, cs)
@@ -77,20 +68,23 @@ func TestTicket(t *testing.T) {
 	// 创建钱包测试 coverage: 62.5%
 	// newWalletRealize(qApi, w, cs)
 
+	sleepWait(qApi, 2)
+}
+
+func sleepWait(qApi client.QueueProtocolAPI, height int64) {
 	for {
 		header, err := qApi.GetLastHeader()
 		if err != nil {
 			panic(err)
 		}
 		// 区块 0 产生后开始下面的运作
-		if header.Height >= 2 {
+		if header.Height >= height {
 			break
 		}
 		time.Sleep(time.Second)
 	}
 }
-
-func initEnvTicket() (queue.Queue, *blockchain.BlockChain, *mempool.Mempool, queue.Module, *Client, *wallet.Wallet, client.QueueProtocolAPI, queue.Module) {
+func initEnvTicket() (queue.Queue, *blockchain.BlockChain, *mempool.Mempool, queue.Module, *Client, *wallet.Wallet, client.QueueProtocolAPI, queue.Module, *executor.Executor) {
 	q := queue.New("channel")
 	flag.Parse()
 	cfg := config.InitCfg("../../../cmd/chain33/chain33.test.toml")
@@ -124,7 +118,7 @@ func initEnvTicket() (queue.Queue, *blockchain.BlockChain, *mempool.Mempool, que
 
 	qApi, _ := client.New(q.Client(), nil)
 
-	return q, chain, mem, s, cs, w, qApi, network
+	return q, chain, mem, s, cs, w, qApi, network, exec
 }
 
 // 获取票的列表
