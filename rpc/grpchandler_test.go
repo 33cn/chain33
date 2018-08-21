@@ -1080,3 +1080,21 @@ func TestQueryTransaction(t *testing.T) {
 //func TestGetTokenBalance(t *testing.T) {
 //	testGetTokenBalanceReject(t)
 //}
+
+//func testCreateTxGroupOk(t *testing.T) {
+//	txHex1 := "0a05636f696e73122c18010a281080c2d72f222131477444795771577233553637656a7663776d333867396e7a6e7a434b58434b7120a08d0630a696c0b3f78dd9ec083a2131477444795771577233553637656a7663776d333867396e7a6e7a434b58434b71"
+//	txHex2 := "0a05636f696e73122d18010a29108084af5f222231484c53426e7437486e486a7857797a636a6f573863663259745550663337594d6320a08d0630dbc4cbf6fbc4e1d0533a2231484c53426e7437486e486a7857797a636a6f573863663259745550663337594d63"
+//	txs := &types.CreateTransactionGroup{
+//		Txs: []string{txHex1, txHex2},
+//	}
+
+//	reply := []byte("reply")
+
+//	qapi.On("CreateRawTxGroup", txs).Return(reply, nil)
+//	data, _ := g.CreateRawTxGroup(getOkCtx(), txs)
+//	assert.Equal(t, reply, data.Data, "return correct reply data")
+//}
+
+//func Test_CreateTxGroup(t *testing.T) {
+//	testCreateTxGroupOk(t)
+//}

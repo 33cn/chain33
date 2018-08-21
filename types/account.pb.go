@@ -52,6 +52,7 @@ It has these top-level messages:
 	ReqLoopResult
 	PerLoopResult
 	ReplyLoopResults
+	BlackwhiteRoundResult
 	Header
 	Block
 	Blocks
@@ -257,9 +258,13 @@ It has these top-level messages:
 	GameClose
 	GameCreate
 	QueryGameListByStatusAndAddr
+	QueryGameListCount
+	GameRecord
 	QueryGameInfo
 	QueryGameInfos
 	ReplyGameList
+	ReplyGameListPage
+	ReplyGameListCount
 	ReplyGame
 	ReceiptGame
 	P2PGetPeerInfo
@@ -350,6 +355,7 @@ It has these top-level messages:
 	TicketStatistic
 	TicketMinerInfo
 	CreateTx
+	CreateTransactionGroup
 	UnsignTx
 	NoBalanceTx
 	SignedTx
