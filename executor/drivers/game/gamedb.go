@@ -492,12 +492,10 @@ func List(db dbm.Lister, stateDB dbm.KV, param *types.QueryGameListByStatusAndAd
 
 //分页查询
 func QueryGameListByPage(db dbm.Lister, stateDB dbm.KV, param *types.QueryGameListByStatusAndAddr) (types.Message, error) {
-
 	switch param.GetStatus() {
 	case types.GameActionCreate, types.GameActionMatch, types.GameActionClose, types.GameActionCancel:
-		queryGameListByStatusAndAddr(db, stateDB, param)
+		return queryGameListByStatusAndAddr(db, stateDB, param)
 	}
-
 	return nil, fmt.Errorf("the status only fill in 1,2,3,4!")
 }
 
