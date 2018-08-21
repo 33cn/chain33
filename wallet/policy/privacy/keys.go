@@ -1,4 +1,4 @@
-package privacybizpolicy
+package privacy
 
 import "fmt"
 
@@ -57,6 +57,10 @@ const (
 	//		UtxoFlagScanEnd int32 = 2
 	ReScanUtxosFlag = "Privacy-RescanFlag"
 )
+
+func calcPrivacyDBVersion() []byte {
+	return []byte(PrivacyDBVersion)
+}
 
 // calcUTXOKey 计算可用UTXO的健值,为输出交易哈希+输出索引位置
 //key and prefix for privacy

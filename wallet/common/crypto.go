@@ -1,4 +1,4 @@
-package privacybizpolicy
+package common
 
 import (
 	"crypto/aes"
@@ -38,6 +38,5 @@ func CBCDecrypterPrivkey(password []byte, privkey []byte) []byte {
 	decryptered := make([]byte, len(privkey))
 	decrypter := cipher.NewCBCDecrypter(block, iv)
 	decrypter.CryptBlocks(decryptered, privkey)
-	//walletlog.Info("CBCDecrypterPrivkey", "password", string(key), "Encrypted", common.ToHex(privkey), "decryptered", common.ToHex(decryptered))
 	return decryptered
 }
