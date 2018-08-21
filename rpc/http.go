@@ -54,7 +54,7 @@ func (j *JSONRPCServer) Listen() {
 
 	// Insert the middleware
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Info("JSONRPCServer", "RemoteAddr", r.RemoteAddr)
+		log.Debug("JSONRPCServer", "RemoteAddr", r.RemoteAddr)
 		ip, _, err := net.SplitHostPort(r.RemoteAddr)
 		if err != nil {
 			writeError(w, r, 0, fmt.Sprintf(`The %s Address is not authorized!`, ip))

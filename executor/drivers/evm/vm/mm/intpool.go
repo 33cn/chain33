@@ -2,6 +2,7 @@ package mm
 
 import (
 	"math/big"
+	"sync"
 )
 
 // 整数池允许的最大长度
@@ -39,4 +40,40 @@ func (p *IntPool) GetZero() *big.Int {
 		return p.pool.Pop().SetUint64(0)
 	}
 	return new(big.Int)
+}
+
+// 默认容量
+const poolDefaultCap = 25
+
+// 用于管理IntPool的Pool
+type IntPoolPool struct {
+	pools []*IntPool
+	lock  sync.Mutex
+}
+
+var PoolOfIntPools = &IntPoolPool{
+	pools: make([]*IntPool, 0, poolDefaultCap),
+}
+
+// get is looking for an available pool to return.
+func (ipp *IntPoolPool) Get() *IntPool {
+	ipp.lock.Lock()
+	defer ipp.lock.Unlock()
+
+	if len(PoolOfIntPools.pools) > 0 {
+		ip := ipp.pools[len(ipp.pools)-1]
+		ipp.pools = ipp.pools[:len(ipp.pools)-1]
+		return ip
+	}
+	return NewIntPool()
+}
+
+// put a pool that has been allocated with get.
+func (ipp *IntPoolPool) Put(ip *IntPool) {
+	ipp.lock.Lock()
+	defer ipp.lock.Unlock()
+
+	if len(ipp.pools) < cap(ipp.pools) {
+		ipp.pools = append(ipp.pools, ip)
+	}
 }

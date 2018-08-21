@@ -13,8 +13,25 @@ func (g *Grpc) SendTransaction(ctx context.Context, in *pb.Transaction) (*pb.Rep
 	return g.cli.SendTx(in)
 }
 
+func (g *Grpc) CreateNoBalanceTransaction(ctx context.Context, in *pb.NoBalanceTx) (*pb.ReplySignRawTx, error) {
+	reply, err := g.cli.CreateNoBalanceTransaction(in)
+	if err != nil {
+		return nil, err
+	}
+	tx := pb.Encode(reply)
+	return &pb.ReplySignRawTx{TxHex: hex.EncodeToString(tx)}, nil
+}
+
 func (g *Grpc) CreateRawTransaction(ctx context.Context, in *pb.CreateTx) (*pb.UnsignTx, error) {
 	reply, err := g.cli.CreateRawTransaction(in)
+	if err != nil {
+		return nil, err
+	}
+	return &pb.UnsignTx{Data: reply}, nil
+}
+
+func (g *Grpc) CreateRawTxGroup(ctx context.Context, in *pb.CreateTransactionGroup) (*pb.UnsignTx, error) {
+	reply, err := g.cli.CreateRawTxGroup(in)
 	if err != nil {
 		return nil, err
 	}
@@ -236,7 +253,7 @@ func (g *Grpc) CloseQueue(ctx context.Context, in *pb.ReqNil) (*pb.Reply, error)
 		g.cli.CloseQueue()
 	}()
 
-	return &pb.Reply{IsOk: true, Msg: []byte("Ok")}, nil
+	return &pb.Reply{IsOk: true}, nil
 }
 
 func (g *Grpc) GetLastBlockSequence(ctx context.Context, in *pb.ReqNil) (*pb.Int64, error) {
@@ -273,6 +290,16 @@ func (g *Grpc) MakeTxPrivacy2Privacy(ctx context.Context, in *pb.ReqPri2Pri) (*p
 // 将资产从隐私到公开进行转移
 func (g *Grpc) MakeTxPrivacy2Public(ctx context.Context, in *pb.ReqPri2Pub) (*pb.Reply, error) {
 	return g.cli.Privacy2Public(in)
+}
+
+// 扫描UTXO以及获取扫描UTXO后的状态
+func (g *Grpc) RescanUtxos(ctx context.Context, in *pb.ReqRescanUtxos) (*pb.RepRescanUtxos, error) {
+	return g.cli.RescanUtxos(in)
+}
+
+// 使能隐私账户
+func (g *Grpc) EnablePrivacy(ctx context.Context, in *pb.ReqEnablePrivacy) (*pb.RepEnablePrivacy, error) {
+	return g.cli.EnablePrivacy(in)
 }
 
 // 创建绑定挖矿

@@ -167,14 +167,14 @@ const (
 	EventReplyCreateUTXOs
 	EventCreateTransaction
 	EventReplyCreateTransaction
-	EventSendTxHashToWallet
-	EventReplySendTxHashToWallet
-	EventQueryCacheTransaction
-	EventReplyQueryCacheTransaction
-	EventDeleteCacheTransaction
-	EventReplyDeleteCacheTransaction
 	EventPrivacyAccountInfo
 	EventReplyPrivacyAccountInfo
+	EventPrivacyTransactionList
+	EventReplyPrivacyTransactionList
+	EventRescanUtxos
+	EventReplyRescanUtxos
+	EventEnablePrivacy
+	EventReplyEnablePrivacy
 )
 
 var eventName = map[int]string{
@@ -322,8 +322,12 @@ var eventName = map[int]string{
 	EventReplyShowPrivacyAccountSpend: "EventReplyShowPrivacyAccountSpend",
 	EventCreateUTXOs:                  "EventCreateUTXOs",
 	EventReplyCreateUTXOs:             "EventReplyCreateUTXOs",
-	EventQueryCacheTransaction:        "EventQueryCacheTransaction",
-	EventDeleteCacheTransaction:       "EventDeleteCacheTransaction",
 	EventPrivacyAccountInfo:           "EventPrivacyAccountInfo",
 	EventReplyPrivacyAccountInfo:      "EventReplyPrivacyAccountInfo",
+	EventPrivacyTransactionList:       "EventPrivacyTransactionList",
+	EventReplyPrivacyTransactionList:  "EventReplyPrivacyTransactionList",
+	EventRescanUtxos:                  "EventRescanUtxos",
+	EventReplyRescanUtxos:             "EventReplyRescanUtxos",
+	EventEnablePrivacy:                "EventEnablePrivacy",
+	EventReplyEnablePrivacy:           "EventReplyEnablePrivacy",
 }

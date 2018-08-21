@@ -9,9 +9,9 @@ const (
 	WordByteSize = WordBitSize / 8
 
 	// 本执行器前缀
-	EvmPrefix = types.UserEvmString
+	EvmPrefix = types.UserEvmX
 	// 本执行器名称
-	ExecutorName = types.ExecerEvmString
+	ExecutorName = types.EvmX
 
 	// 最大Gas消耗上限
 	MaxGasLimit = 10000000

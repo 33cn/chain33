@@ -2,7 +2,6 @@ package db
 
 import (
 	"bytes"
-	//"encoding/binary"
 	"fmt"
 	"io/ioutil"
 	"testing"

@@ -40,6 +40,10 @@ func calcHashToBlockHeaderKey(hash []byte) []byte {
 	//return []byte(fmt.Sprintf("Header:%v", hash))
 }
 
+func calcHeightToBlockHeaderKey(height int64) []byte {
+	return []byte(fmt.Sprintf("HH:%012d", height))
+}
+
 //存储block hash对应的block height
 func calcHashToHeightKey(hash []byte) []byte {
 	hashPerfix := []byte("Hash:")
@@ -83,7 +87,6 @@ func NewBlockStore(db dbm.DB, client queue.Client) *BlockStore {
 		if err != types.ErrHeightNotExist {
 			panic(err)
 		}
-
 	}
 	blockStore := &BlockStore{
 		height: height,
@@ -92,6 +95,9 @@ func NewBlockStore(db dbm.DB, client queue.Client) *BlockStore {
 	}
 	if height == -1 {
 		chainlog.Info("load block height error, may be init database", "height", height)
+		if types.IsEnable("quickIndex") {
+			blockStore.saveQuickIndexFlag()
+		}
 	} else {
 		blockdetail, err := blockStore.LoadBlockByHeight(height)
 		if err != nil {
@@ -99,8 +105,100 @@ func NewBlockStore(db dbm.DB, client queue.Client) *BlockStore {
 			panic(err)
 		}
 		blockStore.lastBlock = blockdetail.GetBlock()
+		flag, err := blockStore.loadFlag(types.FlagTxQuickIndex)
+		if err != nil {
+			panic(err)
+		}
+		if types.IsEnable("quickIndex") {
+			if flag == 0 {
+				blockStore.initQuickIndex(height)
+			}
+		} else {
+			if flag != 0 {
+				panic("toml config disable tx quick index, but database enable quick index")
+			}
+		}
 	}
 	return blockStore
+}
+
+//步骤:
+//检查数据库是否已经进行quickIndex改造
+//如果没有，那么进行下面的步骤
+//1. 先把hash 都给改成 TX:hash
+//2. 把所有的 Tx:hash 都加一个 8字节的index
+//3. 10000个区块 处理一次，并且打印进度
+//4. 全部处理完成了,添加quickIndex 的标记
+func (bs *BlockStore) initQuickIndex(height int64) {
+	batch := bs.db.NewBatch(true)
+	var count int
+	for i := int64(0); i <= height; i++ {
+		blockdetail, err := bs.LoadBlockByHeight(i)
+		if err != nil {
+			panic(err)
+		}
+		for _, tx := range blockdetail.Block.Txs {
+			hash := tx.Hash()
+			txresult, err := bs.db.Get(hash)
+			if err != nil {
+				panic(err)
+			}
+			count++
+			batch.Set(types.CalcTxKey(hash), txresult)
+			batch.Set(types.CalcTxShortKey(hash), []byte("1"))
+		}
+		if count > 100000 {
+			storeLog.Info("initQuickIndex", "height", i)
+			err := batch.Write()
+			if err != nil {
+				panic(err)
+			}
+			batch = bs.db.NewBatch(true)
+			count = 0
+		}
+	}
+	if count > 0 {
+		err := batch.Write()
+		if err != nil {
+			panic(err)
+		}
+		storeLog.Info("initQuickIndex", "height", height)
+	}
+	bs.saveQuickIndexFlag()
+}
+
+func (bs *BlockStore) saveQuickIndexFlag() {
+	kv := types.FlagKV(types.FlagTxQuickIndex, 1)
+	err := bs.db.Set(kv.Key, kv.Value)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func (bs *BlockStore) loadFlag(key []byte) (int64, error) {
+	flag := &types.Int64{}
+	flagBytes, err := bs.db.Get(key)
+	if err == nil {
+		err = types.Decode(flagBytes, flag)
+		if err != nil {
+			return 0, err
+		}
+		return flag.GetData(), nil
+	} else if err == types.ErrNotFound || err == dbm.ErrNotFoundInDb {
+		return 0, nil
+	}
+	return 0, err
+}
+
+func (bs *BlockStore) HasTx(key []byte) (bool, error) {
+	if _, err := bs.db.Get(types.CalcTxShortKey(key)); err != nil {
+		return false, err
+	}
+	//got
+	if _, err := bs.db.Get(types.CalcTxKey(key)); err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 // 返回BlockStore保存的当前block高度
@@ -113,6 +211,11 @@ func (bs *BlockStore) UpdateHeight() {
 	height, _ := LoadBlockStoreHeight(bs.db)
 	atomic.StoreInt64(&bs.height, height)
 	storeLog.Debug("UpdateHeight", "curblockheight", height)
+}
+
+func (bs *BlockStore) UpdateHeight2(height int64) {
+	atomic.StoreInt64(&bs.height, height)
+	storeLog.Debug("UpdateHeight2", "curblockheight", height)
 }
 
 // 返回BlockStore保存的当前blockheader
@@ -151,6 +254,13 @@ func (bs *BlockStore) UpdateLastBlock(hash []byte) {
 		bs.lastBlock = blockdetail.Block
 	}
 	storeLog.Debug("UpdateLastBlock", "UpdateLastBlock", blockdetail.Block.Height, "LastHederhash", common.ToHex(blockdetail.Block.Hash()))
+}
+
+func (bs *BlockStore) UpdateLastBlock2(block *types.Block) {
+	lastheaderlock.Lock()
+	defer lastheaderlock.Unlock()
+	bs.lastBlock = block
+	storeLog.Debug("UpdateLastBlock", "UpdateLastBlock", block.Height, "LastHederhash", common.ToHex(block.Hash()))
 }
 
 //获取最新的block信息
@@ -276,6 +386,7 @@ func (bs *BlockStore) SaveBlock(storeBatch dbm.Batch, blockdetail *types.BlockDe
 	}
 
 	storeBatch.Set(calcHashToBlockHeaderKey(hash), header)
+	storeBatch.Set(calcHeightToBlockHeaderKey(height), header)
 
 	//更新最新的block 高度
 	heightbytes := types.Encode(&types.Int64{height})
@@ -314,6 +425,7 @@ func (bs *BlockStore) DelBlock(storeBatch dbm.Batch, blockdetail *types.BlockDet
 
 	//删除block height和block hash的对应关系，便于通过height查询block
 	storeBatch.Delete(calcHeightToHashKey(height))
+	storeBatch.Delete(calcHeightToBlockHeaderKey(height))
 
 	if isRecordBlockSequence || isParaChain {
 		//存储记录block序列执行的type del
@@ -334,8 +446,7 @@ func (bs *BlockStore) GetTx(hash []byte) (*types.TxResult, error) {
 		err := errors.New("input hash is null")
 		return nil, err
 	}
-
-	rawBytes, err := bs.db.Get(hash)
+	rawBytes, err := bs.db.Get(types.CalcTxKey(hash))
 	if rawBytes == nil || err != nil {
 		if err != dbm.ErrNotFoundInDb {
 			storeLog.Error("GetTx", "hash", common.ToHex(hash), "err", err)
@@ -433,30 +544,39 @@ func (bs *BlockStore) GetBlockHashByHeight(height int64) ([]byte, error) {
 
 //通过blockheight获取blockheader
 func (bs *BlockStore) GetBlockHeaderByHeight(height int64) (*types.Header, error) {
-
-	//首先通过height获取block hash从db中
-	hash, err := bs.GetBlockHashByHeight(height)
+	//从最新版本的key里面获取header，找不到找老版本的数据库
+	blockheader, err := bs.db.Get(calcHeightToBlockHeaderKey(height))
+	var flagFoundInOldDB bool
 	if err != nil {
-		return nil, err
+		//首先通过height获取block hash从db中
+		var hash []byte
+		hash, err = bs.GetBlockHashByHeight(height)
+		if err != nil {
+			return nil, err
+		}
+		blockheader, err = bs.db.Get(calcHashToBlockHeaderKey(hash))
+		flagFoundInOldDB = true
 	}
-	var header types.Header
-	blockheader, err := bs.db.Get(calcHashToBlockHeaderKey(hash))
 	if blockheader == nil || err != nil {
 		if err != dbm.ErrNotFoundInDb {
 			storeLog.Error("GetBlockHeaderByHeight calcHashToBlockHeaderKey", "error", err)
 		}
 		return nil, types.ErrHashNotExist
 	}
+	var header types.Header
 	err = proto.Unmarshal(blockheader, &header)
 	if err != nil {
 		storeLog.Error("GetBlockHerderByHeight", "Could not unmarshal blockheader:", blockheader)
 		return nil, err
 	}
+	if flagFoundInOldDB {
+		bs.db.Set(calcHeightToBlockHeaderKey(height), blockheader)
+	}
 	return &header, nil
 }
 
 //通过blockhash获取blockheader
-func (bs *BlockStore) GetBlockHerderByHash(hash []byte) (*types.Header, error) {
+func (bs *BlockStore) GetBlockHeaderByHash(hash []byte) (*types.Header, error) {
 
 	var header types.Header
 	blockheader, err := bs.db.Get(calcHashToBlockHeaderKey(hash))
@@ -746,7 +866,7 @@ func (bs *BlockStore) GetDbVersion() int64 {
 		storeLog.Info("GetDbVersion", "types.Decode err", err)
 		return 0
 	}
-	storeLog.Info("GetDbVersion", "blcokchain db version", ver.Data)
+	storeLog.Info("GetDbVersion", "blockchain db version", ver.Data)
 	return ver.Data
 }
 

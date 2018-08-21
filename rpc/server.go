@@ -120,6 +120,7 @@ func Init(cfg *types.Rpc) {
 	InitJrpcFuncBlacklist(cfg)
 	InitGrpcFuncBlacklist(cfg)
 }
+
 func InitIpWhitelist(cfg *types.Rpc) {
 	if len(cfg.GetWhitelist()) == 0 && len(cfg.GetWhitlist()) == 0 {
 		remoteIpWhitelist["127.0.0.1"] = true

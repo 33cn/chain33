@@ -21,6 +21,7 @@ type Node struct {
 	persisted bool
 }
 
+//保存数据的是叶子节点
 func NewNode(key []byte, value []byte) *Node {
 	return &Node{
 		key:    key,
@@ -86,15 +87,6 @@ func (node *Node) has(t *Tree, key []byte) (has bool) {
 		} else {
 			return node.getRightNode(t).has(t, key)
 		}
-	}
-}
-
-func (node *Node) loadCache(t *Tree, stopHeight int) {
-	if node.height == 0 || stopHeight <= 0 {
-		return
-	} else {
-		node.getLeftNode(t).loadCache(t, stopHeight-1)
-		node.getRightNode(t).loadCache(t, stopHeight-1)
 	}
 }
 

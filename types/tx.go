@@ -308,7 +308,11 @@ func (tx *Transaction) Sign(ty int32, priv crypto.PrivKey) {
 	data := Encode(tx)
 	pub := priv.PubKey()
 	sign := priv.Sign(data)
-	tx.Signature = &Signature{ty, pub.Bytes(), sign.Bytes()}
+	tx.Signature = &Signature{
+		Ty:        ty,
+		Pubkey:    pub.Bytes(),
+		Signature: sign.Bytes(),
+	}
 }
 
 //tx 有些时候是一个交易组
@@ -383,6 +387,17 @@ func (tx *Transaction) GetRealFee(minFee int64) (int64, error) {
 	return realFee, nil
 }
 
+func (tx *Transaction) SetRealFee(minFee int64) error {
+	if tx.Fee == 0 {
+		fee, err := tx.GetRealFee(minFee)
+		if err != nil {
+			return err
+		}
+		tx.Fee = fee
+	}
+	return nil
+}
+
 var expireBound int64 = 1000000000 // 交易过期分界线，小于expireBound比较height，大于expireBound比较blockTime
 
 func (tx *Transaction) IsExpire(height, blocktime int64) bool {
@@ -412,6 +427,13 @@ func (tx *Transaction) isExpire(height, blocktime int64) bool {
 			return true
 		}
 	} else {
+		//EnableTxHeight 选项开启, 并且符合条件
+		if txHeight := GetTxHeight(valid); txHeight > 0 {
+			if txHeight-LowAllowPackHeight <= height && height <= txHeight+HighAllowPackHeight {
+				return false
+			}
+			return true
+		}
 		// Expire大于1e9，为blockTime
 		if valid > blocktime { // 未过期
 			return false
@@ -419,6 +441,13 @@ func (tx *Transaction) isExpire(height, blocktime int64) bool {
 			return true
 		}
 	}
+}
+
+func GetTxHeight(valid int64) int64 {
+	if EnableTxHeight && valid > TxHeightFlag {
+		return valid - TxHeightFlag
+	}
+	return -1
 }
 
 func (tx *Transaction) Json() string {
@@ -504,6 +533,28 @@ func (tx *Transaction) IsWithdraw() bool {
 		if tx.ActionName() == withdraw {
 			return true
 		}
+	}
+	return false
+}
+
+//CalcTxKey local db中保存交易的方法
+func CalcTxKey(hash []byte) []byte {
+	if IsEnable("quickIndex") {
+		txhash := []byte("TX:")
+		return append(txhash, hash...)
+	}
+	return hash
+}
+
+func CalcTxShortKey(hash []byte) []byte {
+	txhash := []byte("STX:")
+	return append(txhash, hash[0:8]...)
+}
+
+func IsEnable(name string) bool {
+	isenable, err := GetChainConfig(name)
+	if err == nil && isenable.(bool) {
+		return true
 	}
 	return false
 }

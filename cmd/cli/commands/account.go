@@ -107,13 +107,14 @@ func addBalanceFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("addr", "a", "", "account addr")
 	cmd.MarkFlagRequired("addr")
 	cmd.Flags().StringP("exec", "e", "", getExecuterNameString())
+	cmd.Flags().IntP("height", "", -1, "block height")
 }
 
 func balance(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	addr, _ := cmd.Flags().GetString("addr")
 	execer, _ := cmd.Flags().GetString("exec")
-
+	height, _ := cmd.Flags().GetInt("height")
 	err := address.CheckAddress(addr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, types.ErrInvalidAddress)
@@ -131,14 +132,31 @@ func balance(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, types.ErrExecNameNotAllow)
 		return
 	}
+	stateHash := ""
+	if height >= 0 {
+		params := types.ReqBlocks{
+			Start:    int64(height),
+			End:      int64(height),
+			IsDetail: false,
+		}
+		var res jsonrpc.Headers
+		ctx := NewRpcCtx(rpcLaddr, "Chain33.GetHeaders", params, &res)
+		_, err := ctx.run()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		h := res.Items[0]
+		stateHash = h.StateHash
+	}
 
 	var addrs []string
 	addrs = append(addrs, addr)
 	params := types.ReqBalance{
 		Addresses: addrs,
 		Execer:    execer,
+		StateHash: stateHash,
 	}
-
 	var res []*jsonrpc.Account
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetBalance", params, &res)
 	ctx.SetResultCb(parseGetBalanceRes)
