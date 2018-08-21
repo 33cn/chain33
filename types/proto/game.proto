@@ -37,6 +37,8 @@ message Game {
     string closeTxHash = 16;
     // cancel txhash
     string cancelTxHash = 17;
+    string index = 18;
+    string prevIndex = 19;
 }
 
 // message for execs.game
@@ -132,8 +134,6 @@ message ReceiptGame {
     string addr         = 4;
     string createAddr   = 5;
     string matchAddr    = 6;
-    string matchTxHash  = 7;
-    string cancelTxHash = 8;
-    string closeTxHash  = 9;
-    string Index        = 10;
+    string index        = 7;
+    string prevIndex    = 8;
 }
