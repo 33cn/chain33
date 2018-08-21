@@ -15,6 +15,10 @@ message CreateTx {
     string execName    = 8;
 }
 
+message CreateTransactionGroup {
+    repeated string txs = 1;
+}
+
 message UnsignTx {
     bytes data = 1;
 }
