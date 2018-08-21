@@ -21,13 +21,13 @@ func calcRoundKey(ID string) []byte {
 	return []byte(fmt.Sprintf(roundPrefix+"%s", ID))
 }
 
-func calcRoundKey4StatusAddr(status int32, addr, ID string) []byte {
-	key := fmt.Sprintf(roundPrefix+"%d-"+"%s-"+"%s", status, addr, ID)
+func calcRoundKey4AddrHeight(addr, heightindex string) []byte {
+	key := fmt.Sprintf(roundPrefix+"%s-"+"%s", addr, heightindex)
 	return []byte(key)
 }
 
-func calcRoundKey4StatusAddrPrefix(status int32, addr string) []byte {
-	key := fmt.Sprintf(roundPrefix+"%d-"+"%s-", status, addr)
+func calcRoundKey4StatusAddrHeight(status int32, addr, heightindex string) []byte {
+	key := fmt.Sprintf(roundPrefix+"%d-"+"%s-"+"%s", status, addr, heightindex)
 	return []byte(key)
 }
 
