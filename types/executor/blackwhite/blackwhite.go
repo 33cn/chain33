@@ -12,7 +12,7 @@ import (
 
 // status
 const (
-	BlackwhiteStatusCreate = iota
+	BlackwhiteStatusCreate = iota + 1
 	BlackwhiteStatusPlay
 	BlackwhiteStatusShow
 	BlackwhiteStatusTimeout

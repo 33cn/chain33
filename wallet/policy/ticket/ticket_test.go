@@ -71,10 +71,10 @@ func (mock *walletMock) init(cfg *types.Wallet) {
 	wcom.RegisterMsgFunc(types.EventWalletGetTickets, mock.onWalletGetTickets)
 }
 
-func (mock *walletMock) processMessage(funcMap *queue.FuncMap) {
+func (mock *walletMock) processMessage() {
 	defer mock.wg.Done()
 	for msg := range mock.client.Recv() {
-		funcExisted, topic, retty, reply, err := funcMap.Process(&msg)
+		funcExisted, topic, retty, reply, err := wcom.ProcessFuncMap(&msg)
 		if funcExisted {
 			if err != nil {
 				msg.Reply(mock.api.NewMessage(topic, retty, err))
@@ -148,7 +148,7 @@ func (mock *walletMock) SetQueueClient(cli queue.Client) {
 	mock.api, _ = client.New(cli, nil)
 
 	mock.wg.Add(1)
-	go mock.processMessage(&wcom.FuncMap)
+	go mock.processMessage()
 }
 
 func (mock *walletMock) Close() {

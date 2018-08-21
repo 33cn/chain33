@@ -35,7 +35,7 @@ func (wallet *Wallet) ProcRecvMsg() {
 	for msg := range wallet.client.Recv() {
 		walletlog.Debug("wallet recv", "msg", types.GetEventName(int(msg.Ty)), "Id", msg.Id)
 
-		funcExisted, topic, retty, reply, err := wcom.FuncMap.Process(&msg)
+		funcExisted, topic, retty, reply, err := wcom.ProcessFuncMap(&msg)
 		if funcExisted {
 			if err != nil {
 				msg.Reply(wallet.api.NewMessage(topic, retty, err))
