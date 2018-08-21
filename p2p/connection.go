@@ -6,7 +6,7 @@ import (
 )
 
 type MConnection struct {
-	nodeInfo      **NodeInfo
+	node          *Node
 	gconn         *grpc.ClientConn
 	gcli          pb.P2PgserviceClient // source connection
 	remoteAddress *NetAddress          //peer 的地址
@@ -39,9 +39,8 @@ func NewMConnection(conn *grpc.ClientConn, remote *NetAddress, peer *Peer) *MCon
 		gcli:  pb.NewP2PgserviceClient(conn),
 		peer:  peer,
 	}
-	mconn.nodeInfo = peer.nodeInfo
+	mconn.node = peer.node
 	mconn.remoteAddress = remote
-
 	return mconn
 }
 

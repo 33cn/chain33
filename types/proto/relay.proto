@@ -30,6 +30,7 @@ message RelayCreate {
     uint64 amount    = 3;
     string addr      = 4;
     uint64 btyAmount = 5;
+    uint32 coinWaits = 6; // the coin blocks to wait
 }
 
 message RelayOrder {
@@ -51,11 +52,13 @@ message RelayOrder {
     string           finishTxHash  = 16;
     int64            height        = 17;
     uint64           coinHeight    = 18;
+    uint32           coinWaits     = 19;
 }
 
 message RelayAccept {
-    string orderId  = 1;
-    string coinAddr = 2; // for sell coin case needed
+    string orderId   = 1;
+    string coinAddr  = 2; // for sell coin case needed
+    uint32 coinWaits = 3;
 }
 
 message RelayRevoke {
@@ -133,8 +136,17 @@ message BtcSpv {
     repeated bytes branchProof = 6;
 }
 
+message RelayLastRcvBtcHeader {
+    BtcHeader Header     = 1;
+    uint64    baseHeight = 2;
+}
+
 message ReceiptRelayRcvBTCHeaders {
-    BtcHeader base = 1;
+    repeated BtcHeader headers        = 1;
+    uint64             lastHeight     = 2; // last height is the last btc Tx's last height
+    uint64             newHeight      = 3;
+    uint64             lastBaseHeight = 4; // last base height means ever base height
+    uint64             newBaseHeight  = 5;
 }
 
 message ReceiptRelayLog {
@@ -155,6 +167,7 @@ message ReceiptRelayLog {
     int64  finishTime    = 15;
     string finishTxHash  = 16;
     uint64 coinHeight    = 17;
+    uint32 coinWaits     = 18;
 }
 
 message ReqRelayAddrCoins {

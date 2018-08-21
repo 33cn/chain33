@@ -1,6 +1,7 @@
 package client
 
 import (
+	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -8,6 +9,8 @@ import (
 type QueueProtocolAPI interface {
 	Version() (*types.Reply, error)
 	Close()
+	NewMessage(topic string, msgid int64, data interface{}) queue.Message
+	Notify(topic string, ty int64, data interface{}) (queue.Message, error)
 	// +++++++++++++++ mempool interfaces begin
 	// 同步发送交易信息到指定模块，获取应答消息 types.EventTx
 	SendTx(param *types.Transaction) (*types.Reply, error)
@@ -20,6 +23,11 @@ type QueueProtocolAPI interface {
 	// types.EventQuery
 	Query(param *types.Query) (*types.Message, error)
 	// --------------- mempool interfaces end
+
+	// +++++++++++++++ execs interfaces begin
+	// types.EventBlockChainQuery
+	BlockChainQuery(param *types.BlockChainQuery) (*types.ResUTXOGlobalIndex, error)
+	// --------------- execs interfaces end
 
 	// +++++++++++++++ p2p interfaces begin
 	// types.EventPeerInfo
@@ -91,15 +99,15 @@ type QueueProtocolAPI interface {
 	// types.EventCreateUTXOs
 	CreateUTXOs(param *types.ReqCreateUTXOs) (*types.Reply, error)
 	// types.EventCreateTransaction 由服务器协助创建一个交易
-	CreateTrasaction(param *types.ReqCreateTransaction) (*types.Reply, error)
-	// types.EventSendTxHashToWallet
-	SendTxHashToWallet(param *types.ReqCreateCacheTxKey) (*types.Reply, error)
-	// types.EventQueryCacheTransaction 查询当前未发送的隐私交易列表
-	QueryCacheTransaction(param *types.ReqCacheTxList) (*types.ReplyCacheTxList, error)
-	// types.EventDeleteCacheTransaction 根据指定的哈希值删除未发送的隐私交易
-	DeleteCacheTransaction(param *types.ReqCreateCacheTxKey) (*types.Reply, error)
+	CreateTrasaction(param *types.ReqCreateTransaction) (*types.Transaction, error)
 	// types.EventPrivacyAccountInfo
 	ShowPrivacyAccountInfo(param *types.ReqPPrivacyAccount) (*types.ReplyPrivacyAccount, error)
+	// types.EventPrivacyTransactionList
+	PrivacyTransactionList(param *types.ReqPrivacyTransactionList) (*types.WalletTxDetails, error)
+	// types.EventRescanUtxos
+	RescanUtxos(param *types.ReqRescanUtxos) (*types.RepRescanUtxos, error)
+	// types.EventEnablePrivacy
+	EnablePrivacy(param *types.ReqEnablePrivacy) (*types.RepEnablePrivacy, error)
 	// Privacy End
 	// --------------- wallet interfaces end
 

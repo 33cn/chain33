@@ -5,6 +5,8 @@ import (
 )
 
 var (
+	ErrCanOnlyDelTopVersion    = errors.New("ErrCanOnlyDelTopVersion")
+	ErrPrevVersion             = errors.New("ErrPrevVersion")
 	ErrNoExecerInMavlKey       = errors.New("ErrNoExecerInMavlKey")
 	ErrMavlKeyNotStartWithMavl = errors.New("ErrMavlKeyNotStartWithMavl")
 	ErrNotFound                = errors.New("ErrNotFound")
@@ -94,6 +96,13 @@ var (
 	ErrWrongKey     = errors.New("ErrWrongKey")
 	ErrInvalidOrder = errors.New("ErrInvalidOrder")
 
+	// err for blackwhite game
+	ErrIncorrectStatus  = errors.New("ErrIncorrectStatus")
+	ErrRepeatPlayerAddr = errors.New("ErrRepeatPlayerAddress")
+	ErrNoTimeoutDone    = errors.New("ErrNoTimeoutDone")
+	ErrNoExistAddr      = errors.New("ErrNoExistAddress")
+	ErrNoLoopSeq        = errors.New("ErrBlackwhiteFinalloopLessThanSeq")
+
 	ErrStartBigThanEnd            = errors.New("ErrStartBigThanEnd")
 	ErrToAddrNotSameToExecAddr    = errors.New("ErrToAddrNotSameToExecAddr")
 	ErrTypeAsset                  = errors.New("ErrTypeAsset")
@@ -152,11 +161,11 @@ var (
 	ErrNoUTXORec4Amount       = errors.New("ErrNoUTXORec4Amount")
 	ErrNotEnoughUTXOs         = errors.New("ErrNotEnoughUTXOs")
 	ErrNoSuchPrivacyTX        = errors.New("ErrNoSuchPrivacyTX")
-	ErrDoubeSpendOccur        = errors.New("ErrDoubeSpendOccur")
+	ErrDoubleSpendOccur       = errors.New("ErrDoubleSpendOccur")
 	ErrOutputIndex            = errors.New("ErrOutputIndex")
 	ErrPubkeysOfUTXO          = errors.New("ErrPubkeysOfUTXO")
 	ErrRecoverUTXO            = errors.New("ErrRecoverUTXO")
-
+	ErrPeerInfoIsNil          = errors.New("ErrPeerInfoIsNil")
 	//wallet
 	ErrInputPara            = errors.New("ErrInputPara")
 	ErrWalletIsLocked       = errors.New("ErrWalletIsLocked")
@@ -179,6 +188,7 @@ var (
 	ErrNotSupport           = errors.New("ErrNotSupport")
 	ErrSeedWordNum          = errors.New("ErrSeedWordNum")
 	ErrPubKeyLen            = errors.New("ErrPublicKeyLen")
+	ErrPrivateKeyLen        = errors.New("ErrPrivateKeyLen")
 	ErrSeedWord             = errors.New("ErrSeedWord")
 	ErrNoPrivKeyOrAddr      = errors.New("ErrNoPrivKeyOrAddr")
 	ErrNewWalletFromSeed    = errors.New("ErrNewWalletFromSeed")
@@ -190,8 +200,9 @@ var (
 	ErrFromHex               = errors.New("ErrFromHex")
 	ErrPrivKeyFromBytes      = errors.New("ErrFromHex")
 	ErrParentHash            = errors.New("ErrParentHash")
-	ErrPrivacyNotExist       = errors.New("ErrPrivacyNotExist")
+	ErrPrivacyNotEnabled     = errors.New("ErrPrivacyNotEnabled")
 	ErrPrivacyTxFeeNotEnough = errors.New("ErrPrivacyTxFeeNotEnough")
+	ErrRescanFlagScaning     = errors.New("ErrRescanFlagScaning")
 
 	// manage
 	ErrNoPrivilege    = errors.New("ErrNoPrivilege")
@@ -227,6 +238,7 @@ var (
 	ErrRelayBalanceNotEnough   = errors.New("ErrRelaySellBalanceNotEnough")
 	ErrRelayOrderNotExist      = errors.New("ErrRelayOrderNotExist")
 	ErrRelayOrderOnSell        = errors.New("ErrRelayOrderOnSell")
+	ErrRelayOrderStatusErr     = errors.New("ErrRelayOrderStatusErr")
 	ErrRelayOrderParamErr      = errors.New("ErrRelayOrderParamErr")
 	ErrRelayOrderSoldout       = errors.New("ErrRelayOrderSoldout")
 	ErrRelayOrderRevoked       = errors.New("ErrRelayOrderRevoked")
@@ -241,4 +253,19 @@ var (
 	ErrRelayBtcHeadSequenceErr = errors.New("ErrRelayBtcHeadSequenceErr")
 	ErrRelayBtcHeadHashErr     = errors.New("ErrRelayBtcHeadHashErr")
 	ErrRelayBtcHeadBitsErr     = errors.New("ErrRelayBtcHeadBitsErr")
+	ErrRelayBtcHeadNewBitsErr  = errors.New("ErrRelayBtcHeadNewBitsErr")
+
+	//game err
+	ErrGameCreateAmount = errors.New("ErrGameOpenExceeding the maximum limit")
+	ErrGameCreateAddr   = errors.New("ErrGameCreateAddr")
+	ErrGameCloseAddr    = errors.New("The game time has not yet expired,You don't have permission to call yet.")
+	ErrGameTimeOut      = errors.New("The game has expired.,You don't have permission to call.")
+
+	//authority
+	ErrValidateCertFailed  = errors.New("ErrValidateCertFailed")
+	ErrGetHistoryCertData  = errors.New("ErrGetHistoryCertData")
+	ErrUnknowAuthSignType  = errors.New("ErrUnknowAuthSignType")
+	ErrInitializeAuthority = errors.New("ErrInitializeAuthority")
+	//rpc
+	ErrInvalidMainnetRpcAddr = errors.New("ErrInvalidMainnetRpcAddr")
 )

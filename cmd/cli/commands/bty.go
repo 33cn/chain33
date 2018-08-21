@@ -13,16 +13,17 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
+const (
+	defaultPrivacyMixCount = 16
+)
+
 func BTYCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "bty",
 		Short: "Construct BTY transactions",
 		Args:  cobra.MinimumNArgs(1),
 	}
-
 	cmd.AddCommand(
-		//TransferCmd(),
-		//WithdrawFromExecCmd(),
 		CreateRawTransferCmd(),
 		CreateRawWithdrawCmd(),
 		CreateRawSendToExecCmd(),
@@ -31,7 +32,24 @@ func BTYCmd() *cobra.Command {
 		CreatePriv2PrivTxCmd(),
 		CreatePriv2PubTxCmd(),
 	)
+	return cmd
+}
 
+func CoinsCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "coins",
+		Short: "Construct system coins transactions",
+		Args:  cobra.MinimumNArgs(1),
+	}
+	cmd.AddCommand(
+		CreateRawTransferCmd(),
+		CreateRawWithdrawCmd(),
+		CreateRawSendToExecCmd(),
+		CreateTxGroupCmd(),
+		CreatePub2PrivTxCmd(),
+		CreatePriv2PrivTxCmd(),
+		CreatePriv2PubTxCmd(),
+	)
 	return cmd
 }
 
@@ -60,7 +78,7 @@ func createTransfer(cmd *cobra.Command, args []string) {
 	toAddr, _ := cmd.Flags().GetString("to")
 	amount, _ := cmd.Flags().GetFloat64("amount")
 	note, _ := cmd.Flags().GetString("note")
-	txHex, err := CreateRawTx(toAddr, amount, note, false, false, "", "", "")
+	txHex, err := CreateRawTx(cmd, toAddr, amount, note, false, false, "", "")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -98,7 +116,7 @@ func createWithdraw(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	txHex, err := CreateRawTx(execAddr, amount, note, true, false, "", exec, "")
+	txHex, err := CreateRawTx(cmd, execAddr, amount, note, true, false, "", exec)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -136,7 +154,7 @@ func sendToExec(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	txHex, err := CreateRawTx(execAddr, amount, note, false, false, "", exec, "")
+	txHex, err := CreateRawTx(cmd, execAddr, amount, note, false, false, "", exec)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -311,11 +329,11 @@ func createPub2PrivTxFlags(cmd *cobra.Command) {
 	cmd.MarkFlagRequired("pubkeypair")
 	cmd.Flags().Float64P("amount", "a", 0.0, "transfer amount, at most 4 decimal places")
 	cmd.MarkFlagRequired("amount")
-	cmd.Flags().StringP("sender", "s", "", "account address")
-	cmd.MarkFlagRequired("sender")
 
-	cmd.Flags().StringP("tokenname", "t", "BTY", "token name")
+	cmd.Flags().StringP("tokenname", "", "BTY", "token name")
 	cmd.Flags().StringP("note", "n", "", "note for transaction")
+	cmd.Flags().Int64P("expire", "", 0, "transfer expire, default one hour")
+	cmd.Flags().IntP("expiretype", "", 1, "0: height  1: time default is 1")
 }
 
 func createPub2PrivTx(cmd *cobra.Command, args []string) {
@@ -324,16 +342,29 @@ func createPub2PrivTx(cmd *cobra.Command, args []string) {
 	amount := GetAmountValue(cmd, "amount")
 	tokenname, _ := cmd.Flags().GetString("tokenname")
 	note, _ := cmd.Flags().GetString("note")
-	sender, _ := cmd.Flags().GetString("sender")
+	expire, _ := cmd.Flags().GetInt64("expire")
+	expiretype, _ := cmd.Flags().GetInt("expiretype")
+	if expiretype == 0 {
+		if expire <= 0 {
+			fmt.Println("Invalid expire. expire must large than 0 in expiretype==0, expire", expire)
+			return
+		}
+	} else if expiretype == 1 {
+		if expire <= 0 {
+			expire = int64(time.Hour / time.Second)
+		}
+	} else {
+		fmt.Println("Invalid expiretype", expiretype)
+		return
+	}
 
 	params := types.ReqCreateTransaction{
 		Tokenname:  tokenname,
-		Type:       1,
+		Type:       types.PrivacyTypePublic2Privacy,
 		Amount:     amount,
 		Note:       note,
 		Pubkeypair: pubkeypair,
-		From:       sender,
-		Expire:     int64(time.Hour),
+		Expire:     expire,
 	}
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateTrasaction", params, nil)
 	ctx.RunWithoutMarshal()
@@ -359,6 +390,8 @@ func createPriv2PrivTxFlags(cmd *cobra.Command) {
 
 	cmd.Flags().StringP("tokenname", "t", "BTY", "token name")
 	cmd.Flags().StringP("note", "n", "", "note for transaction")
+	cmd.Flags().Int64P("expire", "", 0, "transfer expire, default one hour")
+	cmd.Flags().IntP("expiretype", "", 1, "0: height  1: time default is 1")
 }
 
 func createPriv2PrivTx(cmd *cobra.Command, args []string) {
@@ -368,16 +401,31 @@ func createPriv2PrivTx(cmd *cobra.Command, args []string) {
 	tokenname, _ := cmd.Flags().GetString("tokenname")
 	note, _ := cmd.Flags().GetString("note")
 	sender, _ := cmd.Flags().GetString("sender")
+	expire, _ := cmd.Flags().GetInt64("expire")
+	expiretype, _ := cmd.Flags().GetInt("expiretype")
+	if expiretype == 0 {
+		if expire <= 0 {
+			fmt.Println("Invalid expire. expire must large than 0 in expiretype==0, expire", expire)
+			return
+		}
+	} else if expiretype == 1 {
+		if expire <= 0 {
+			expire = int64(time.Hour / time.Second)
+		}
+	} else {
+		fmt.Println("Invalid expiretype", expiretype)
+		return
+	}
 
 	params := types.ReqCreateTransaction{
 		Tokenname:  tokenname,
-		Type:       2,
+		Type:       types.PrivacyTypePrivacy2Privacy,
 		Amount:     amount,
 		Note:       note,
 		Pubkeypair: pubkeypair,
 		From:       sender,
-		Mixcount:   16,
-		Expire:     int64(time.Hour),
+		Mixcount:   defaultPrivacyMixCount,
+		Expire:     expire,
 	}
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateTrasaction", params, nil)
 	ctx.RunWithoutMarshal()
@@ -403,6 +451,8 @@ func createPriv2PubTxFlags(cmd *cobra.Command) {
 
 	cmd.Flags().StringP("tokenname", "t", "BTY", "token name")
 	cmd.Flags().StringP("note", "n", "", "note for transaction")
+	cmd.Flags().Int64P("expire", "", 0, "transfer expire, default one hour")
+	cmd.Flags().IntP("expiretype", "", 1, "0: height  1: time default is 1")
 }
 
 func createPriv2PubTx(cmd *cobra.Command, args []string) {
@@ -412,16 +462,31 @@ func createPriv2PubTx(cmd *cobra.Command, args []string) {
 	from, _ := cmd.Flags().GetString("from")
 	to, _ := cmd.Flags().GetString("to")
 	note, _ := cmd.Flags().GetString("note")
+	expire, _ := cmd.Flags().GetInt64("expire")
+	expiretype, _ := cmd.Flags().GetInt("expiretype")
+	if expiretype == 0 {
+		if expire <= 0 {
+			fmt.Println("Invalid expire. expire must large than 0 in expiretype==0, expire", expire)
+			return
+		}
+	} else if expiretype == 1 {
+		if expire <= 0 {
+			expire = int64(time.Hour / time.Second)
+		}
+	} else {
+		fmt.Println("Invalid expiretype", expiretype)
+		return
+	}
 
 	params := types.ReqCreateTransaction{
 		Tokenname: tokenname,
-		Type:      3,
+		Type:      types.PrivacyTypePrivacy2Public,
 		Amount:    amount,
 		Note:      note,
 		From:      from,
 		To:        to,
-		Mixcount:  16,
-		Expire:    int64(time.Hour),
+		Mixcount:  defaultPrivacyMixCount,
+		Expire:    expire,
 	}
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateTrasaction", params, nil)
 	ctx.RunWithoutMarshal()

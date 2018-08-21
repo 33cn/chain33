@@ -45,6 +45,8 @@ const (
 	SignNameSM2            = "sm2"
 	SignNameOnetimeED25519 = "onetimeed25519"
 	SignNameRing           = "RingSignatue"
+	SignNameAuthECDSA      = "auth_ecdsa"
+	SignNameAuthSM2        = "auth_sm2"
 )
 
 func Register(name string, driver Crypto) {
@@ -69,4 +71,9 @@ func New(name string) (c Crypto, err error) {
 	}
 
 	return c, nil
+}
+
+type CertSignature struct {
+	Signature []byte
+	Cert      []byte
 }

@@ -206,7 +206,7 @@ func testSeed(t *testing.T, wallet *Wallet) {
 	wallet.client.Send(msgSave, true)
 	wallet.client.Wait(msgSave)
 
-	seedstr, err := GetSeed(wallet.walletStore.db, password)
+	seedstr, err := GetSeed(wallet.walletStore.GetDB(), password)
 	require.NoError(t, err)
 
 	if seed != seedstr {
@@ -378,10 +378,9 @@ func testProcImportPrivKey(t *testing.T, wallet *Wallet) {
 func testProcWalletTxList(t *testing.T, wallet *Wallet) {
 	println("TestProcWalletTxList begin")
 	txList := &types.ReqWalletTransactionList{
-		Count:           3,
-		Direction:       1,
-		FromTx:          []byte(""),
-		SendRecvPrivacy: sendTx,
+		Count:     3,
+		Direction: 1,
+		FromTx:    []byte(""),
 	}
 	msg := wallet.client.NewMessage("wallet", types.EventWalletTransactionList, txList)
 	wallet.client.Send(msg, true)
@@ -676,6 +675,7 @@ func testAutoMining(t *testing.T, wallet *Wallet) {
 	wallet.client.Send(msg, true)
 	_, err := wallet.client.Wait(msg)
 	require.NoError(t, err)
+	println("Sleep 130 second for mining")
 	time.Sleep(time.Second * 130)
 	msg = wallet.client.NewMessage("wallet", types.EventWalletAutoMiner, &types.MinerFlag{Flag: 0})
 	wallet.client.Send(msg, true)

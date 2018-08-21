@@ -2,21 +2,29 @@ package types
 
 import (
 	"strings"
+	"sync"
 	"time"
 )
 
 var chainBaseParam *ChainParam
 var chainV3Param *ChainParam
+var chainConfig map[string]interface{}
+var configMutex sync.Mutex
 
 func init() {
+	initChainBase()
+	initChainBityuanV3()
+
+	chainConfig = make(map[string]interface{})
+}
+
+func initChainBase() {
 	chainBaseParam = &ChainParam{}
 	chainBaseParam.CoinReward = 18 * Coin  //用户回报
 	chainBaseParam.CoinDevFund = 12 * Coin //发展基金回报
 	chainBaseParam.TicketPrice = 10000 * Coin
 	chainBaseParam.PowLimitBits = uint32(0x1f00ffff)
-
 	chainBaseParam.RetargetAdjustmentFactor = 4
-
 	chainBaseParam.FutureBlockTime = 16
 	chainBaseParam.TicketFrozenTime = 5    //5s only for test
 	chainBaseParam.TicketWithdrawTime = 10 //10s only for test
@@ -24,7 +32,9 @@ func init() {
 	chainBaseParam.MaxTxNumber = 1600      //160
 	chainBaseParam.TargetTimespan = 144 * 16 * time.Second
 	chainBaseParam.TargetTimePerBlock = 16 * time.Second
+}
 
+func initChainBityuanV3() {
 	chainV3Param = &ChainParam{}
 	tmp := *chainBaseParam
 	//copy base param
@@ -37,6 +47,16 @@ func init() {
 	chainV3Param.MaxTxNumber = 1500
 	chainV3Param.TargetTimespan = 144 * 15 * time.Second
 	chainV3Param.TargetTimePerBlock = 15 * time.Second
+}
+
+//title is local
+func initChainTestNet() {
+	chainV3Param.MaxTxNumber = 10000
+	chainV3Param.TicketFrozenTime = 5                   //5s only for test
+	chainV3Param.TicketWithdrawTime = 10                //10s only for test
+	chainV3Param.TicketMinerWaitTime = 2                // 2s only for test
+	chainV3Param.TargetTimespan = 144 * 2 * time.Second //only for test
+	chainV3Param.TargetTimePerBlock = 2 * time.Second   //only for test
 }
 
 type ChainParam struct {
@@ -54,6 +74,22 @@ type ChainParam struct {
 	RetargetAdjustmentFactor int64
 }
 
+func SetChainConfig(key string, value interface{}) {
+	configMutex.Lock()
+	chainConfig[key] = value
+	configMutex.Unlock()
+}
+
+func GetChainConfig(key string) (value interface{}, err error) {
+	configMutex.Lock()
+	if data, ok := chainConfig[key]; ok {
+		configMutex.Unlock()
+		return data, nil
+	}
+	configMutex.Unlock()
+	return nil, ErrNotFound
+}
+
 func GetP(height int64) *ChainParam {
 	if height < ForkV3 {
 		return chainBaseParam
@@ -66,7 +102,7 @@ var (
 	AllowDepositExec = [][]byte{ExecerTicket}
 	AllowUserExec    = [][]byte{ExecerCoins, ExecerTicket, ExecerNorm, ExecerHashlock,
 		ExecerRetrieve, ExecerNone, ExecerToken, ExecerTrade, ExecerManage,
-		ExecerEvm, ExecerRelay, ExecerPrivacy}
+		ExecerEvm, ExecerRelay, ExecerPrivacy, ExecerCert, ExecerBlackwhite}
 
 	GenesisAddr              = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 	GenesisBlockTime   int64 = 1526486816
@@ -111,12 +147,15 @@ func SetTitle(t string) {
 	}
 	if IsLocal() {
 		SetForkToOne()
+		initChainTestNet()
+		EnableTxHeight = true
+		Debug = true
 		return
 	}
 	if IsPara() {
+		//keep superManager same with mainnet
 		ExecNamePrefix = title
-		SetForkToOne()
-		SuperManager = []string{"1BjLtd6Eqeo19URRVQzvBFbx1X2TSoPabp"}
+		SetForkForPara(title)
 	}
 }
 
@@ -135,6 +174,11 @@ func IsYcc() bool {
 func IsPara() bool {
 	return strings.HasPrefix(title, "user.p.")
 }
+
+func IsParaExecName(name string) bool {
+	return strings.HasPrefix(name, "user.p.")
+}
+
 func IsPublicChain() bool {
 	return IsBityuan() || IsYcc()
 }
@@ -173,4 +217,15 @@ func SetMinFee(fee int64) {
 	}
 	MinFee = fee
 	MinBalanceTransfer = fee * 10
+}
+
+func GetParaName() string {
+	if IsPara() {
+		return title
+	}
+	return ""
+}
+
+func FlagKV(key []byte, value int64) *KeyValue {
+	return &KeyValue{Key: key, Value: Encode(&Int64{Data: value})}
 }

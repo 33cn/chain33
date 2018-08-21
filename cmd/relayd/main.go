@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"net/http"
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
@@ -14,8 +13,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/cmd/relayd/relayd"
 	"gitlab.33.cn/chain33/chain33/common/limits"
 	clog "gitlab.33.cn/chain33/chain33/common/log"
-	"golang.org/x/net/trace"
-	"google.golang.org/grpc"
 )
 
 var (
@@ -51,21 +48,6 @@ func main() {
 		}()
 	}
 
-	if cfg.Watch {
-		// set pprof
-		log.Info("pprof localhost:6068")
-		go func() {
-			http.ListenAndServe("localhost:6068", nil)
-		}()
-	}
-
-	if cfg.Trace {
-		// set trace
-		log.Info("listen on localhost:50055")
-		grpc.EnableTracing = true
-		go startTrace()
-	}
-
 	r := relayd.NewRelayd(cfg)
 	go r.Start()
 
@@ -75,13 +57,6 @@ func main() {
 	log.Warn("Got signal:", "signal", s)
 
 	r.Close()
-}
-
-func startTrace() {
-	trace.AuthRequest = func(req *http.Request) (any, sensitive bool) {
-		return true, true
-	}
-	go http.ListenAndServe("localhost:50055", nil)
 }
 
 func watching() {

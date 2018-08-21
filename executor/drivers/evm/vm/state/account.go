@@ -66,7 +66,7 @@ func (self *ContractAccount) GetState(key common.Hash) common.Hash {
 		// 如果缓存中取不到数据，则只能到本地数据库中查询
 		val, err := self.mdb.LocalDB.Get([]byte(keyStr))
 		if err != nil {
-			log15.Error("GetState error!", "key", key, "error", err)
+			log15.Debug("GetState error!", "key", key, "error", err)
 			return common.Hash{}
 		}
 		valHash := common.BytesToHash(val)
@@ -271,15 +271,15 @@ func (self *ContractAccount) BuildStateLog() (log *types.ReceiptLog) {
 }
 
 func (self *ContractAccount) GetDataKey() []byte {
-	return []byte(ContractDataPrefix + self.Addr)
+	return []byte("mavl-" + types.ExecName(types.EvmX) + "-data: " + self.Addr)
 }
 
 func (self *ContractAccount) GetStateKey() []byte {
-	return []byte(ContractStatePrefix + self.Addr)
+	return []byte("mavl-" + types.ExecName(types.EvmX) + "-state: " + self.Addr)
 }
 
 func getStateItemKey(addr, key string) string {
-	return fmt.Sprintf(ContractStateItemKey, addr, key)
+	return fmt.Sprintf("mavl-"+types.ExecName(types.EvmX)+"-state:%v:%v", addr, key)
 }
 
 func (self *ContractAccount) Suicide() bool {

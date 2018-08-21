@@ -6,16 +6,20 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/rand"
-	"runtime"
 	"sort"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
 	. "gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/db"
+	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/types"
 )
+
+func init() {
+	log.SetLogLevel("error")
+}
 
 const (
 	strChars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz" // 62 characters
@@ -54,10 +58,9 @@ func RandInt32() uint32 {
 }
 
 func i2b(i int32) []byte {
-
 	bbuf := bytes.NewBuffer([]byte{})
 	binary.Write(bbuf, binary.BigEndian, i)
-	return bbuf.Bytes()
+	return Sha256(bbuf.Bytes())
 }
 
 func b2i(bz []byte) int {
@@ -148,7 +151,6 @@ func TestBasic(t *testing.T) {
 		}
 	}
 }
-
 func TestTreeHeightAndSize(t *testing.T) {
 	dir, err := ioutil.TempDir("", "datastore")
 	require.NoError(t, err)
@@ -631,70 +633,135 @@ func TestIterateRange(t *testing.T) {
 	require.Equal(t, trav.Values, []string{"low", "good"})
 }
 
-func BenchmarkSetMerkleAvlTree(b *testing.B) {
+func TestIAVLPrint(t *testing.T) {
 	dir, err := ioutil.TempDir("", "datastore")
-	require.NoError(b, err)
-	b.Log(dir)
-
-	b.StopTimer()
-	db := db.NewDB("test", "leveldb", dir, 100)
-	t := NewTree(db, true)
-
-	for i := 0; i < 10000; i++ {
-		key := i2b(int32(RandInt32()))
-		t.Set(key, nil)
-		if i%1000 == 999 {
-			t.Save()
-			t.ndb.batch = db.NewBatch(true)
-		}
+	require.NoError(t, err)
+	t.Log(dir)
+	dbm := db.NewDB("test", "leveldb", dir, 100)
+	prevHash := make([]byte, 32)
+	tree := NewTree(dbm, true)
+	tree.Load(prevHash)
+	PrintNode(tree.root)
+	kvs := genKVShort(0, 10)
+	for i, kv := range kvs {
+		tree.Set(kv.Key, kv.Value)
+		println("insert", i)
+		PrintNode(tree.root)
+		tree.Hash()
+		//println("insert.hash", i)
+		//PrintNode(tree.root)
 	}
-	t.Save()
-	t.ndb.batch = db.NewBatch(true)
-	fmt.Println("BenchmarkSetMerkleAvlTree, starting")
-
-	runtime.GC()
-
-	b.StartTimer()
-	for i := 0; i < b.N; i++ {
-		ri := i2b(int32(RandInt32()))
-		t.Set(ri, nil)
-		if i%1000 == 999 {
-			t.Save()
-			t.ndb.batch = db.NewBatch(true)
-		}
-	}
-	t.Save()
-	db.Close()
 }
 
-func BenchmarkGetMerkleAvlTree(b *testing.B) {
+func BenchmarkDBSet(b *testing.B) {
 	dir, err := ioutil.TempDir("", "datastore")
 	require.NoError(b, err)
 	b.Log(dir)
-
-	b.StopTimer()
 	db := db.NewDB("test", "leveldb", dir, 100)
-	t := NewTree(db, true)
-	var key []byte
-	for i := 0; i < 10000; i++ {
-		key = i2b(int32(i))
-		t.Set(key, nil)
-		if i%100 == 99 {
-			t.Save()
-			t.ndb.batch = db.NewBatch(true)
-		}
-	}
-	t.Save()
-	fmt.Println("BenchmarkGetMerkleAvlTree, starting")
-
-	runtime.GC()
-
-	b.StartTimer()
+	prevHash := make([]byte, 32)
 	for i := 0; i < b.N; i++ {
-		_, _, exit := t.Get(i2b(int32(i % 10000)))
-		if !exit {
-			fmt.Println("BenchmarkGetMerkleAvlTree no exit!")
+		prevHash, err = saveBlock(db, int64(i), prevHash, 1000, false)
+		assert.Nil(b, err)
+	}
+}
+
+func BenchmarkDBSetMVCC(b *testing.B) {
+	dir, err := ioutil.TempDir("", "datastore")
+	require.NoError(b, err)
+	b.Log(dir)
+	db := db.NewDB("test", "leveldb", dir, 100)
+	prevHash := make([]byte, 32)
+	for i := 0; i < b.N; i++ {
+		prevHash, err = saveBlock(db, int64(i), prevHash, 1000, true)
+		assert.Nil(b, err)
+	}
+}
+
+func BenchmarkDBGet(b *testing.B) {
+	dir, err := ioutil.TempDir("", "datastore")
+	require.NoError(b, err)
+	b.Log(dir)
+	db := db.NewDB("test", "leveldb", dir, 100)
+	prevHash := make([]byte, 32)
+	for i := 0; i < b.N; i++ {
+		prevHash, err = saveBlock(db, int64(i), prevHash, 1000, false)
+		assert.Nil(b, err)
+	}
+	b.ResetTimer()
+	t := NewTree(db, true)
+	t.Load(prevHash)
+	for i := 0; i < b.N*1000; i++ {
+		key := i2b(int32(i))
+		value := Sha256(key)
+		_, v, exist := t.Get(key)
+		assert.Equal(b, exist, true)
+		assert.Equal(b, value, v)
+	}
+}
+
+func BenchmarkDBGetMVCC(b *testing.B) {
+	dir, err := ioutil.TempDir("", "datastore")
+	require.NoError(b, err)
+	b.Log(dir)
+	ldb := db.NewDB("test", "leveldb", dir, 100)
+	prevHash := make([]byte, 32)
+	for i := 0; i < b.N; i++ {
+		prevHash, err = saveBlock(ldb, int64(i), prevHash, 1000, true)
+		assert.Nil(b, err)
+	}
+	b.ResetTimer()
+	mvccdb := db.NewMVCC(ldb)
+	for i := 0; i < b.N*1000; i++ {
+		key := i2b(int32(i))
+		value := Sha256(key)
+		v, err := mvccdb.GetV(key, int64(b.N-1))
+		assert.Nil(b, err)
+		assert.Equal(b, value, v)
+	}
+}
+
+func genKVShort(height int64, txN int64) (kvs []*types.KeyValue) {
+	for i := int64(0); i < txN; i++ {
+		n := height*1000 + i
+		key := []byte(fmt.Sprintf("k:%d", n))
+		value := []byte(fmt.Sprintf("v:%d", n))
+		kvs = append(kvs, &types.KeyValue{Key: key, Value: value})
+	}
+	return kvs
+}
+
+func genKV(height int64, txN int64) (kvs []*types.KeyValue) {
+	for i := int64(0); i < txN; i++ {
+		n := height*1000 + i
+		key := i2b(int32(n))
+		value := Sha256(key)
+		kvs = append(kvs, &types.KeyValue{Key: key, Value: value})
+	}
+	return kvs
+}
+
+func saveBlock(dbm db.DB, height int64, hash []byte, txN int64, mvcc bool) (newHash []byte, err error) {
+	t := NewTree(dbm, true)
+	t.Load(hash)
+	kvs := genKV(height, txN)
+	for _, kv := range kvs {
+		t.Set(kv.Key, kv.Value)
+	}
+	newHash = t.Save()
+	if mvcc {
+		mvccdb := db.NewMVCC(dbm)
+		newkvs, err := mvccdb.AddMVCC(kvs, newHash, hash, height)
+		if err != nil {
+			return nil, err
+		}
+		batch := dbm.NewBatch(true)
+		for _, kv := range newkvs {
+			batch.Set(kv.Key, kv.Value)
+		}
+		err = batch.Write()
+		if err != nil {
+			return nil, err
 		}
 	}
-	db.Close()
+	return newHash, nil
 }

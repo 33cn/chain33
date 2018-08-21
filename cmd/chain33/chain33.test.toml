@@ -22,7 +22,7 @@ callerFile = true
 callerFunction = true
 
 [blockchain]
-defCacheSize=512
+defCacheSize=128
 maxFetchBlockNum=128
 timeoutSeconds=5
 batchBlockNum=128
@@ -34,6 +34,8 @@ singleMode=true
 batchsync=false
 isRecordBlockSequence=true
 isParaChain=false
+enableTxQuickIndex=false
+
 
 [p2p]
 seeds=["47.104.125.151:13802","47.104.125.97:13802","47.104.125.177:13802"]
@@ -59,6 +61,7 @@ grpcFuncWhitelist=["*"]
 [mempool]
 poolCacheSize=10240
 minTxFee=1000000
+maxTxNumPerAccount=10000
 
 [consensus]
 name="solo"
@@ -85,3 +88,12 @@ minerwhitelist=["*"]
 isFree=false
 minExecFee=100000
 enableStat=false
+enableMVCC=false
+
+[auth]
+# 是否启用证书验证和签名
+enable=false
+# 加密文件路径
+cryptoPath="authdir/crypto"
+# 带证书签名类型，支持"auth_ecdsa", "auth_sm2"
+signType="auth_ecdsa"

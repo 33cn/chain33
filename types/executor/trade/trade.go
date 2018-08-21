@@ -10,11 +10,12 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-const name = "trade"
+var name string
 
 var tlog = log.New("module", name)
 
 func Init() {
+	name = types.ExecName("trade")
 	// init executor type
 	types.RegistorExecutor(name, &tradeType{})
 
@@ -163,6 +164,8 @@ func CreateRawTradeSellTx(parm *TradeSellTx) (*types.Transaction, error) {
 		To:      address.ExecAddress(name),
 	}
 
+	tx.SetRealFee(types.MinFee)
+
 	return tx, nil
 }
 
@@ -182,6 +185,8 @@ func CreateRawTradeBuyTx(parm *TradeBuyTx) (*types.Transaction, error) {
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
 		To:      address.ExecAddress(name),
 	}
+
+	tx.SetRealFee(types.MinFee)
 
 	return tx, nil
 }
@@ -203,6 +208,8 @@ func CreateRawTradeRevokeTx(parm *TradeRevokeTx) (*types.Transaction, error) {
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
 		To:      address.ExecAddress(name),
 	}
+
+	tx.SetRealFee(types.MinFee)
 
 	return tx, nil
 }
@@ -230,6 +237,8 @@ func CreateRawTradeBuyLimitTx(parm *TradeBuyLimitTx) (*types.Transaction, error)
 		To:      address.ExecAddress(name),
 	}
 
+	tx.SetRealFee(types.MinFee)
+
 	return tx, nil
 }
 
@@ -249,6 +258,8 @@ func CreateRawTradeSellMarketTx(parm *TradeSellMarketTx) (*types.Transaction, er
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
 		To:      address.ExecAddress(name),
 	}
+
+	tx.SetRealFee(types.MinFee)
 
 	return tx, nil
 }
@@ -270,6 +281,8 @@ func CreateRawTradeRevokeBuyTx(parm *TradeRevokeBuyTx) (*types.Transaction, erro
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
 		To:      address.ExecAddress(name),
 	}
+
+	tx.SetRealFee(types.MinFee)
 
 	return tx, nil
 }

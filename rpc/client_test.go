@@ -9,13 +9,22 @@ import (
 	"github.com/stretchr/testify/mock"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/client/mocks"
+	slog "gitlab.33.cn/chain33/chain33/common/log"
 	qmock "gitlab.33.cn/chain33/chain33/queue/mocks"
 	"gitlab.33.cn/chain33/chain33/types"
 	_ "gitlab.33.cn/chain33/chain33/types/executor"
 	exec "gitlab.33.cn/chain33/chain33/types/executor"
+	evmtype "gitlab.33.cn/chain33/chain33/types/executor/evm"
+	hashlocktype "gitlab.33.cn/chain33/chain33/types/executor/hashlock"
+	retrievetype "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
 	tokentype "gitlab.33.cn/chain33/chain33/types/executor/token"
 	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
 )
+
+func init() {
+	slog.SetLogLevel("error")
+	types.SetTitle("user.p.guodun.")
+}
 
 func newTestChannelClient() *channelClient {
 	return &channelClient{
@@ -45,7 +54,7 @@ func testCreateRawTransactionExecNameErr(t *testing.T) {
 }
 
 func testCreateRawTransactionAmoutErr(t *testing.T) {
-	tx := types.CreateTx{ExecName: "coins", Amount: -1, To: "1MY4pMgjpS2vWiaSDZasRhN47pcwEire32"}
+	tx := types.CreateTx{ExecName: types.ExecName(types.CoinsX), Amount: -1, To: "1MY4pMgjpS2vWiaSDZasRhN47pcwEire32"}
 
 	client := newTestChannelClient()
 	_, err := client.CreateRawTransaction(&tx)
@@ -84,7 +93,7 @@ func testCreateRawTransactionCoinTransfer(t *testing.T) {
 	assert.Nil(t, err)
 	var tx types.Transaction
 	types.Decode(txHex, &tx)
-	assert.Equal(t, []byte("coins"), tx.Execer)
+	assert.Equal(t, []byte(types.ExecName(types.CoinsX)), tx.Execer)
 
 	var transfer types.CoinsAction
 	types.Decode(tx.Payload, &transfer)
@@ -93,7 +102,7 @@ func testCreateRawTransactionCoinTransfer(t *testing.T) {
 
 func testCreateRawTransactionCoinTransferExec(t *testing.T) {
 	ctx := types.CreateTx{
-		ExecName:   "ticket",
+		ExecName:   types.ExecName(types.TicketX),
 		Amount:     10,
 		IsToken:    false,
 		IsWithdraw: false,
@@ -106,7 +115,7 @@ func testCreateRawTransactionCoinTransferExec(t *testing.T) {
 	assert.Nil(t, err)
 	var tx types.Transaction
 	types.Decode(txHex, &tx)
-	assert.Equal(t, []byte("coins"), tx.Execer)
+	assert.Equal(t, []byte(types.ExecName(types.CoinsX)), tx.Execer)
 
 	var transfer types.CoinsAction
 	types.Decode(tx.Payload, &transfer)
@@ -115,7 +124,7 @@ func testCreateRawTransactionCoinTransferExec(t *testing.T) {
 
 func testCreateRawTransactionCoinWithdraw(t *testing.T) {
 	ctx := types.CreateTx{
-		ExecName:   "ticket",
+		ExecName:   types.ExecName(types.TicketX),
 		Amount:     10,
 		IsToken:    false,
 		IsWithdraw: true,
@@ -128,7 +137,7 @@ func testCreateRawTransactionCoinWithdraw(t *testing.T) {
 	assert.Nil(t, err)
 	var tx types.Transaction
 	types.Decode(txHex, &tx)
-	assert.Equal(t, []byte("coins"), tx.Execer)
+	assert.Equal(t, []byte(types.ExecName(types.CoinsX)), tx.Execer)
 
 	var transfer types.CoinsAction
 	types.Decode(tx.Payload, &transfer)
@@ -137,7 +146,7 @@ func testCreateRawTransactionCoinWithdraw(t *testing.T) {
 
 func testCreateRawTransactionTokenTransfer(t *testing.T) {
 	ctx := types.CreateTx{
-		ExecName:   "token",
+		ExecName:   types.ExecName(types.TokenX),
 		Amount:     10,
 		IsToken:    true,
 		IsWithdraw: false,
@@ -150,7 +159,7 @@ func testCreateRawTransactionTokenTransfer(t *testing.T) {
 	assert.Nil(t, err)
 	var tx types.Transaction
 	types.Decode(txHex, &tx)
-	assert.Equal(t, []byte("token"), tx.Execer)
+	assert.Equal(t, []byte(types.ExecName(types.TokenX)), tx.Execer)
 
 	var transfer types.TokenAction
 	types.Decode(tx.Payload, &transfer)
@@ -159,7 +168,7 @@ func testCreateRawTransactionTokenTransfer(t *testing.T) {
 
 func testCreateRawTransactionTokenWithdraw(t *testing.T) {
 	ctx := types.CreateTx{
-		ExecName:   "token",
+		ExecName:   types.ExecName(types.TokenX),
 		Amount:     10,
 		IsToken:    true,
 		IsWithdraw: true,
@@ -172,7 +181,7 @@ func testCreateRawTransactionTokenWithdraw(t *testing.T) {
 	assert.Nil(t, err)
 	var tx types.Transaction
 	types.Decode(txHex, &tx)
-	assert.Equal(t, []byte("token"), tx.Execer)
+	assert.Equal(t, []byte(types.ExecName(types.TokenX)), tx.Execer)
 
 	var transfer types.TokenAction
 	types.Decode(tx.Payload, &transfer)
@@ -213,7 +222,7 @@ func testSendRawTransactionErr(t *testing.T) {
 
 func testSendRawTransactionOk(t *testing.T) {
 	transfer := &types.Transaction{
-		Execer: []byte("ticket"),
+		Execer: []byte(types.ExecName(types.TicketX)),
 	}
 	payload := types.Encode(transfer)
 
@@ -355,7 +364,7 @@ func testChannelClient_GetBalanceOther(t *testing.T) {
 	var addrs = make([]string, 1)
 	addrs = append(addrs, "1Jn2qu84Z1SUUosWjySggBS9pKWdAP3tZt")
 	var in = &types.ReqBalance{
-		Execer:    "ticket",
+		Execer:    types.ExecName(types.TicketX),
 		Addresses: addrs,
 	}
 	data, err := client.GetBalance(in)
@@ -390,7 +399,7 @@ func testChannelClient_GetTokenBalanceToken(t *testing.T) {
 	var addrs = make([]string, 1)
 	addrs = append(addrs, "1Jn2qu84Z1SUUosWjySggBS9pKWdAP3tZt")
 	var in = &types.ReqTokenBalance{
-		Execer:      "token",
+		Execer:      types.ExecName(types.TokenX),
 		Addresses:   addrs,
 		TokenSymbol: "xxx",
 	}
@@ -420,7 +429,7 @@ func testChannelClient_GetTokenBalanceOther(t *testing.T) {
 	var addrs = make([]string, 1)
 	addrs = append(addrs, "1Jn2qu84Z1SUUosWjySggBS9pKWdAP3tZt")
 	var in = &types.ReqTokenBalance{
-		Execer:      "trade",
+		Execer:      types.ExecName(types.TradeX),
 		Addresses:   addrs,
 		TokenSymbol: "xxx",
 	}
@@ -580,6 +589,143 @@ func TestChannelClient_CreateRawTradeRevokeBuyTx(t *testing.T) {
 		Fee:   1,
 	}
 	data, err = client.CreateRawTradeRevokeBuyTx(token)
+	assert.NotNil(t, data)
+	assert.Nil(t, err)
+}
+
+func TestChannelClient_CreateRawRetrieveBackupTx(t *testing.T) {
+	client := newTestChannelClient()
+	data, err := client.CreateRawRetrieveBackupTx(nil)
+	assert.NotNil(t, err)
+	assert.Nil(t, data)
+
+	backup := &retrievetype.RetrieveBackupTx{
+		BackupAddr:  "12asdfa",
+		DefaultAddr: "0x3456",
+		DelayPeriod: 1,
+		Fee:         1,
+	}
+	data, err = client.CreateRawRetrieveBackupTx(backup)
+	assert.NotNil(t, data)
+	assert.Nil(t, err)
+}
+
+func TestChannelClient_CreateRawRetrievePrepareTx(t *testing.T) {
+	client := newTestChannelClient()
+	data, err := client.CreateRawRetrievePrepareTx(nil)
+	assert.NotNil(t, err)
+	assert.Nil(t, data)
+
+	prepare := &retrievetype.RetrievePrepareTx{
+		BackupAddr:  "12asdfa",
+		DefaultAddr: "0x3456",
+		Fee:         1,
+	}
+	data, err = client.CreateRawRetrievePrepareTx(prepare)
+	assert.NotNil(t, data)
+	assert.Nil(t, err)
+}
+
+func TestChannelClient_CreateRawRetrievePerformTx(t *testing.T) {
+	client := newTestChannelClient()
+	data, err := client.CreateRawRetrievePerformTx(nil)
+	assert.NotNil(t, err)
+	assert.Nil(t, data)
+
+	perform := &retrievetype.RetrievePerformTx{
+		BackupAddr:  "12asdfa",
+		DefaultAddr: "0x3456",
+		Fee:         1,
+	}
+	data, err = client.CreateRawRetrievePerformTx(perform)
+	assert.NotNil(t, data)
+	assert.Nil(t, err)
+}
+
+func TestChannelClient_CreateRawRetrieveCancelTx(t *testing.T) {
+	client := newTestChannelClient()
+	data, err := client.CreateRawRetrieveCancelTx(nil)
+	assert.NotNil(t, err)
+	assert.Nil(t, data)
+
+	cancel := &retrievetype.RetrieveCancelTx{
+		BackupAddr:  "12asdfa",
+		DefaultAddr: "0x3456",
+		Fee:         1,
+	}
+	data, err = client.CreateRawRetrieveCancelTx(cancel)
+	assert.NotNil(t, data)
+	assert.Nil(t, err)
+}
+
+func TestChannelClient_CreateRawHashlockLockTx(t *testing.T) {
+	client := newTestChannelClient()
+	data, err := client.CreateRawHashlockLockTx(nil)
+	assert.NotNil(t, err)
+	assert.Nil(t, data)
+
+	lock := &hashlocktype.HashlockLockTx{
+		Secret:     "12asdfa",
+		Amount:     100,
+		Time:       100,
+		ToAddr:     "12asdfa",
+		ReturnAddr: "0x3456",
+		Fee:        1,
+	}
+	data, err = client.CreateRawHashlockLockTx(lock)
+	assert.NotNil(t, data)
+	assert.Nil(t, err)
+}
+
+func TestChannelClient_CreateRawHashlockUnlockTx(t *testing.T) {
+	client := newTestChannelClient()
+	data, err := client.CreateRawHashlockUnlockTx(nil)
+	assert.NotNil(t, err)
+	assert.Nil(t, data)
+
+	unlock := &hashlocktype.HashlockUnlockTx{
+		Secret: "12asdfa",
+		Fee:    1,
+	}
+	data, err = client.CreateRawHashlockUnlockTx(unlock)
+	assert.NotNil(t, data)
+	assert.Nil(t, err)
+}
+
+func TestChannelClient_CreateRawHashlockSendTx(t *testing.T) {
+	client := newTestChannelClient()
+	data, err := client.CreateRawHashlockSendTx(nil)
+	assert.NotNil(t, err)
+	assert.Nil(t, data)
+
+	send := &hashlocktype.HashlockSendTx{
+		Secret: "12asdfa",
+		Fee:    1,
+	}
+	data, err = client.CreateRawHashlockSendTx(send)
+	assert.NotNil(t, data)
+	assert.Nil(t, err)
+}
+
+func TestChannelClient_CreateRawEvmCreateCallTx(t *testing.T) {
+	client := newTestChannelClient()
+	data, err := client.CreateRawEvmCreateCallTx(nil)
+	assert.NotNil(t, err)
+	assert.Nil(t, data)
+
+	createcall := &evmtype.CreateCallTx{
+		Amount:   0,
+		Code:     "12",
+		GasLimit: 0,
+		GasPrice: 0,
+		Note:     "12",
+		Alias:    "12",
+		Fee:      0,
+		Name:     "12",
+		IsCreate: true,
+	}
+
+	data, err = client.CreateRawEvmCreateCallTx(createcall)
 	assert.NotNil(t, data)
 	assert.Nil(t, err)
 }

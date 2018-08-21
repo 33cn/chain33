@@ -33,37 +33,40 @@ func (c *RpcCtx) SetResultCb(cb Callback) {
 	c.cb = cb
 }
 
-func (c *RpcCtx) Run() {
+func (c *RpcCtx) run() (interface{}, error) {
 	rpc, err := jsonrpc.NewJSONClient(c.Addr)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
+		return nil, err
 	}
 
 	err = rpc.Call(c.Method, c.Params, c.Res)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
+		return nil, err
 	}
-
 	// maybe format rpc result
 	var result interface{}
 	if c.cb != nil {
 		result, err = c.cb(c.Res)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			return
+			return nil, err
 		}
 	} else {
 		result = c.Res
 	}
+	return result, nil
+}
 
+func (c *RpcCtx) Run() {
+	result, err := c.run()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
 	data, err := json.MarshalIndent(result, "", "    ")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-
 	fmt.Println(string(data))
 }
 

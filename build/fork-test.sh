@@ -215,31 +215,34 @@ function optDockerfun() {
     # 最后启动全部节点共同挖矿
     #############################################
     forkType2
-
 }
 
 function forkType1() {
+    echo "=========== 开始进行类型1分叉测试 ========== "
     init
+    resetPrivacyGlobalData
 
     optDockerPart1
     #############################################
     #此处根据具体需求加入；如从钱包中转入某个具体合约账户
     #1 初始化交易余额
-    #initPriAccount
+    initPriAccount
 
     #############################################
     optDockerPart2
     #############################################
     #此处根据具体需求加入在一条测试链中发送测试数据
     #2 构造第一条链中交易
-    #genFirstChainPritx
+    genFirstChainPritx
+    genFirstChainPritxType4
 
     #############################################
     optDockerPart3
     #############################################
     #此处根据具体需求加入在第二条测试链中发送测试数据
     #3 构造第二条链中交易
-    #genSecondChainPritx
+    genSecondChainPritx
+    genSecondChainPritxType4
 
     #############################################
     optDockerPart4
@@ -248,13 +251,16 @@ function forkType1() {
     #############################################
     #此处根据具体需求加入结果检查
     #4 检查交易结果
-    #checkPriResult
+    checkPriResult
 
     #############################################
+    echo "=========== 类型1分叉测试结束 ========== "
 }
 
 function forkType2() {
+    echo "=========== 开始进行类型2分叉测试 ========== "
     init
+    resetPrivacyGlobalData
 
     optDockerPart1
     #############################################
@@ -268,6 +274,7 @@ function forkType2() {
     #此处根据具体需求加入在一条测试链中发送测试数据
     #2 构造第一条链中交易
     genFirstChainCoinstx
+    genFirstChainPritxType4
 
     #############################################
     type2_optDockerPart3
@@ -276,6 +283,7 @@ function forkType2() {
     #3 构造第二条链中交易
 
     genSecondChainCoinstx
+    genSecondChainPritxType4
 
     #############################################
     type2_optDockerPart4
@@ -288,7 +296,7 @@ function forkType2() {
     checkCoinsResult
 
     #############################################
-
+    echo "=========== 类型2分叉测试结束 ========== "
 }
 
 function optDockerPart1() {
@@ -596,8 +604,8 @@ function type2_optDockerPart3() {
 
     names[0]="${NODE3}"
     names[1]="${NODE4}"
-    names[3]="${NODE5}"
-    names[4]="${NODE6}"
+    names[2]="${NODE5}"
+    names[3]="${NODE6}"
     syn_block_timeout "${CLI}" 2 100 "${names[@]}"
 
 }
