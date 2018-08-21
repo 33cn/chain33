@@ -15,15 +15,13 @@ import (
 )
 
 var dlog = log.New("module", "db.ssdb")
-var benchmark = &SsdbBench{}
+var sdbBench = &SsdbBench{}
 
 func init() {
 	dbCreator := func(name string, dir string, cache int) (DB, error) {
 		return NewGoSSDB(name, dir, cache)
 	}
 	registerDBCreator(ssDBBackendStr, dbCreator, false)
-
-	go printSsdbBenchmark()
 }
 
 type SsdbBench struct {
@@ -65,10 +63,10 @@ func (bench *SsdbBench) String() string {
 }
 
 func printSsdbBenchmark() {
-	tick := time.Tick(time.Minute)
+	tick := time.Tick(time.Minute * 5)
 	for {
 		<-tick
-		dlog.Info(benchmark.String())
+		dlog.Info(sdbBench.String())
 	}
 }
 
@@ -97,7 +95,6 @@ func parseSsdbNode(url string) (nodes []*SsdbNode) {
 }
 
 func NewGoSSDB(name string, dir string, cache int) (*GoSSDB, error) {
-
 	database := &GoSSDB{}
 	database.nodes = parseSsdbNode(dir)
 
@@ -111,6 +108,9 @@ func NewGoSSDB(name string, dir string, cache int) (*GoSSDB, error) {
 		dlog.Error("connect to ssdb error!", "ssdb", database.nodes[0])
 		return nil, types.ErrDataBaseDamage
 	}
+
+	go printSsdbBenchmark()
+
 	return database, nil
 }
 
@@ -126,7 +126,7 @@ func (db *GoSSDB) Get(key []byte) ([]byte, error) {
 		return nil, ErrNotFoundInDb
 	}
 
-	benchmark.read(1, time.Since(start))
+	sdbBench.read(1, time.Since(start))
 	return value.Bytes(), nil
 }
 
@@ -148,7 +148,7 @@ func (db *GoSSDB) BatchGet(keys [][]byte) (values [][]byte, err error) {
 	for _, v := range vals {
 		values = append(values, v.Bytes())
 	}
-	benchmark.read(1, time.Since(start))
+	sdbBench.read(1, time.Since(start))
 	return values, nil
 }
 
@@ -160,7 +160,7 @@ func (db *GoSSDB) Set(key []byte, value []byte) error {
 		dlog.Error("Set", "error", err)
 		return err
 	}
-	benchmark.write(1, time.Since(start))
+	sdbBench.write(1, time.Since(start))
 	return nil
 }
 
@@ -176,7 +176,7 @@ func (db *GoSSDB) Delete(key []byte) error {
 		dlog.Error("Delete", "error", err)
 		return err
 	}
-	benchmark.write(1, time.Since(start))
+	sdbBench.write(1, time.Since(start))
 	return nil
 }
 
@@ -189,7 +189,6 @@ func (db *GoSSDB) Close() {
 }
 
 func (db *GoSSDB) Print() {
-	//dlog.Info(db.pool.Info())
 }
 
 func (db *GoSSDB) Stats() map[string]string {
@@ -232,7 +231,7 @@ func (db *GoSSDB) Iterator(prefix []byte, reverse bool) Iterator {
 		}
 	}
 
-	benchmark.read(len(keys), time.Since(start))
+	sdbBench.read(len(keys), time.Since(start))
 	return it
 }
 
@@ -325,13 +324,20 @@ func (dbit *ssDBIt) Next() bool {
 	}
 }
 
+func (dbit *ssDBIt) checkKeyCmp(key1, key2 string, reverse bool) bool {
+	if reverse {
+		return strings.Compare(key1, key2) < 0
+	}
+	return strings.Compare(key1, key2) > 0
+}
+
 func (dbit *ssDBIt) findInPage(key string) int {
 	pos := -1
 	for i, v := range dbit.keys {
 		if i < dbit.index {
 			continue
 		}
-		if strings.Compare(key, v) < 0 {
+		if dbit.checkKeyCmp(key, v, dbit.reverse) {
 			continue
 		} else {
 			pos = i
@@ -415,7 +421,7 @@ func (dbit *ssDBIt) Valid() bool {
 		return false
 	}
 	key := dbit.keys[dbit.index]
-	benchmark.read(1, time.Since(start))
+	sdbBench.read(1, time.Since(start))
 	return bytes.HasPrefix([]byte(key), dbit.prefix)
 }
 
@@ -436,6 +442,7 @@ func (db *ssDBBatch) Set(key, value []byte) {
 
 func (db *ssDBBatch) Delete(key []byte) {
 	db.batchset[string(key)] = []byte{}
+	delete(db.batchset, string(key))
 	db.batchdel[string(key)] = true
 }
 
@@ -466,6 +473,6 @@ func (db *ssDBBatch) Write() error {
 		}
 	}
 
-	benchmark.write(len(db.batchset)+len(db.batchdel), time.Since(start))
+	sdbBench.write(len(db.batchset)+len(db.batchdel), time.Since(start))
 	return nil
 }
