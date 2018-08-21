@@ -37,8 +37,8 @@ message Game {
     string closeTxHash = 16;
     // cancel txhash
     string cancelTxHash = 17;
-    string index = 18;
-    string prevIndex = 19;
+    string index        = 18;
+    string prevIndex    = 19;
 }
 
 // message for execs.game
@@ -130,10 +130,10 @@ message ReceiptGame {
     string gameId = 1;
     int32  status = 2;
     //记录上一次状态
-    int32  prevStatus   = 3;
-    string addr         = 4;
-    string createAddr   = 5;
-    string matchAddr    = 6;
-    string index        = 7;
-    string prevIndex    = 8;
+    int32  prevStatus = 3;
+    string addr       = 4;
+    string createAddr = 5;
+    string matchAddr  = 6;
+    string index      = 7;
+    string prevIndex  = 8;
 }
