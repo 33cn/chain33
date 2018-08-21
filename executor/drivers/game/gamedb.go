@@ -564,8 +564,11 @@ func queryGameListByStatusAndAddr(db dbm.Lister, stateDB dbm.KV, param *types.Qu
 			}
 		}
 		games := GetGameList(stateDB, gameIds)
+		if len(games) <= 1 {
+			return &types.ReplyGameListPage{nil, param.GetIndex(), ""}, nil
+		}
 		if len(games) <= int(count) {
-			return &types.ReplyGameListPage{games, "", index}, nil
+			return &types.ReplyGameListPage{games[1:], "", index}, nil
 
 		}
 		return &types.ReplyGameListPage{games[1:], param.GetIndex(), index}, nil
