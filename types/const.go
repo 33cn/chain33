@@ -420,7 +420,7 @@ var RescanFlagMapint2string = map[int32]string{
 
 //game action ty
 const (
-	GameActionCreate = iota
+	GameActionCreate = iota + 1
 	GameActionMatch
 	GameActionCancel
 	GameActionClose
