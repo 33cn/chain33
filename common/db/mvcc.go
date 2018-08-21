@@ -13,6 +13,7 @@ var mvccPrefix = []byte(".-mvcc-.")
 var mvccMeta = append(mvccPrefix, []byte("m.")...)
 var mvccData = append(mvccPrefix, []byte("d.")...)
 var mvccMetaVersion = append(mvccMeta, []byte("version.")...)
+var mvccMetaVersionKeyList = append(mvccMeta, []byte("versionkl.")...)
 
 //MVCC mvcc interface
 type MVCC interface {
@@ -154,7 +155,7 @@ func NewSimpleMVCC(db KVDB) *SimpleMVCC {
 
 //GetVersion get stateHash and version map
 func (m *SimpleMVCC) GetVersion(hash []byte) (int64, error) {
-	key := append(mvccMeta, hash...)
+	key := getVersionKey(hash)
 	value, err := m.kvdb.Get(key)
 	if err != nil {
 		if err == ErrNotFoundInDb {
@@ -210,6 +211,20 @@ func (m *SimpleMVCC) GetDelKV(key []byte, version int64) (*types.KeyValue, error
 		return nil, err
 	}
 	return &types.KeyValue{Key: k}, nil
+}
+
+func (m *SimpleMVCC) GetDelKVList(version int64) ([]*types.KeyValue, error) {
+	k := getVersionKeyListKey(version)
+	data, err := m.kvdb.Get(k)
+	if err != nil {
+		return nil, err
+	}
+	var kvlist types.LocalDBSet
+	err = types.Decode(data, &kvlist)
+	if err != nil {
+		return nil, err
+	}
+	return kvlist.KV, nil
 }
 
 //SetVersionKV only export SetVersionKV key and value
@@ -293,13 +308,16 @@ func (m *SimpleMVCC) AddMVCC(kvs []*types.KeyValue, hash []byte, prevHash []byte
 	}
 	var kvlist []*types.KeyValue
 	kvlist = append(kvlist, versionlist...)
+	delkeys := &types.LocalDBSet{}
 	for i := 0; i < len(kvs); i++ {
 		kv, err := m.GetSaveKV(kvs[i].Key, kvs[i].Value, version)
 		if err != nil {
 			return nil, err
 		}
 		kvlist = append(kvlist, kv)
+		delkeys.KV = append(delkeys.KV, &types.KeyValue{Key: kv.Key})
 	}
+	kvlist = append(kvlist, &types.KeyValue{Key: getVersionKeyListKey(version), Value: types.Encode(delkeys)})
 	return kvlist, nil
 }
 
@@ -307,7 +325,7 @@ func (m *SimpleMVCC) AddMVCC(kvs []*types.KeyValue, hash []byte, prevHash []byte
 //我们目前规定删除的方法:
 //1 -> 1-2-3-4-5,6 version 必须连续的增长
 //2 -> del 也必须从尾部开始删除
-func (m *SimpleMVCC) DelMVCC(kvs []*types.KeyValue, hash []byte, version int64) ([]*types.KeyValue, error) {
+func (m *SimpleMVCC) DelMVCC(hash []byte, version int64) ([]*types.KeyValue, error) {
 	maxv, err := m.GetMaxVersion()
 	if err != nil {
 		return nil, err
@@ -329,13 +347,11 @@ func (m *SimpleMVCC) DelMVCC(kvs []*types.KeyValue, hash []byte, version int64) 
 	}
 	var kvlist []*types.KeyValue
 	kvlist = append(kvlist, kv...)
-	for i := 0; i < len(kvs); i++ {
-		kv, err := m.GetDelKV(kvs[i].Key, version)
-		if err != nil {
-			return nil, err
-		}
-		kvlist = append(kvlist, kv)
+	kvs, err := m.GetDelKVList(version)
+	if err != nil {
+		return nil, err
 	}
+	kvlist = append(kvlist, kvs...)
 	return kvlist, nil
 }
 
@@ -381,4 +397,19 @@ func GetKeyPerfix(key []byte) []byte {
 func GetKey(key []byte, version int64) ([]byte, error) {
 	newkey := append(GetKeyPerfix(key), pad(version)...)
 	return newkey, nil
+}
+
+func getVersionKey(hash []byte) []byte {
+	key := append(mvccMeta, hash...)
+	return key
+}
+
+func getVersionHashKey(version int64) []byte {
+	key := append(mvccMetaVersion, pad(version)...)
+	return key
+}
+
+func getVersionKeyListKey(version int64) []byte {
+	key := append(mvccMetaVersionKeyList, pad(version)...)
+	return key
 }
