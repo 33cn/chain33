@@ -12,13 +12,15 @@
       共识高度之前的区块，不发送共识,从当前共识节点开始发送共识消息,进入sync状态，参与共识
 
 ## 新节点增加（包括空块）
-   维护了三个slice， notification，sending,finished, 新的tx追加到notification里面，正在发送的放到sending，完成的放到finished
-   随着共识height的增加，finished也会把小的height删除
+   维护了三个slice， notification，sending,(finished暂时不需要), 
+   notification: 新的tx追加到notification里面，如果因为比如共识一直不成功，节点重连，导致本节点和主链节点都落后很多，需要大量同步，这样
+   notification slice就会缓存很多数据，缓存太大容易让系统内存崩溃，所有达到比如100时候就要阻塞从主链接受数据。
+   sending: 定时器轮询到notification有数据要发，小于20个msg转移到sending来发送。
    sending的tx有可能是一个块的交易，也可能是多个块的交易组，sending的tx成功被打包到主链且执行成功才算正常上链，若在两个新块里面没有上链会重发当前
    的交易，一直当前的上链才会发后面的tx，如果发生了分叉回滚且分叉节点在sending tx里面，会取消发送。
-   打包成功的tx会移到finish里面。
-   finish的最初目的主要是考虑未达成共识，且本节点没有发交易，需要重发，所有在finish里面放了缓存，但是考虑到finish的交易都是被主链上链了的交易，
-   也就是本节点已经发送过了的交易，应该不需要重新发的场景。如果完成了的交易分叉了，应该会有同样高度的新交易发送而不会停止。
+   finished：打包成功的tx会移到finish里面。finish的最初目的主要是考虑未达成共识，且本节点没有发交易，需要重发，所有在finish里面放了缓存，
+   但是考虑到finish的交易都是被主链上链了的交易，也就是本节点已经发送过了的交易，应该不需要重新发的场景。如果完成了的交易分叉了，应该会有同样高度
+   的新交易发送而不会停止。所有暂时不需要
    *异常场景：
    1. 如果通过grpc发送失败，通知一个channel重发
 

@@ -39,10 +39,8 @@ source ci-para-test.sh
 source ci-relay-test.sh
 
 sedfix=""
-xsedfix=(-i)
 if [ "$(uname)" == "Darwin" ]; then
     sedfix=".bak"
-    xsedfix=(-i ".bak")
 fi
 
 function init() {
@@ -310,7 +308,7 @@ function transfer() {
 function main() {
     echo "==========================================main begin========================================================"
     init
-    para_init "${xsedfix[*]}"
+    para_init
     start
     para_transfer
     para_set_wallet

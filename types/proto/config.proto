@@ -68,6 +68,7 @@ message Consensus {
     int64  startHeight          = 23;
     int64  emptyBlockInterval   = 24;
     string authAccount          = 25;
+    int32  waitBlocks4CommitMsg = 26;
 }
 
 message Wallet {

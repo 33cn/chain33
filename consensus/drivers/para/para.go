@@ -42,10 +42,10 @@ type ParaClient struct {
 	*drivers.BaseClient
 	conn            *grpc.ClientConn
 	grpcClient      types.GrpcserviceClient
-	lock            sync.RWMutex
 	isCatchingUp    bool
 	commitMsgClient *CommitMsgClient
 	authAccount     string
+	wg              sync.WaitGroup
 }
 
 func New(cfg *types.Consensus) *ParaClient {
@@ -74,9 +74,19 @@ func New(cfg *types.Consensus) *ParaClient {
 	}
 	grpcClient := types.NewGrpcserviceClient(conn)
 
-	para := &ParaClient{c, conn, grpcClient, sync.RWMutex{}, false, nil, cfg.AuthAccount}
+	para := &ParaClient{
+		BaseClient:  c,
+		conn:        conn,
+		grpcClient:  grpcClient,
+		authAccount: cfg.AuthAccount,
+	}
+
+	if cfg.WaitBlocks4CommitMsg < 2 {
+		panic("config WaitBlocks4CommitMsg should not less 2")
+	}
 	para.commitMsgClient = &CommitMsgClient{
 		paraClient:      para,
+		waitMainBlocks:  cfg.WaitBlocks4CommitMsg,
 		commitMsgNotify: make(chan *CommitMsg, 1),
 		delMsgNotify:    make(chan *CommitMsg, 1),
 		mainBlockAdd:    make(chan *types.BlockDetail, 1),
@@ -120,6 +130,7 @@ func (client *ParaClient) ExecBlock(prevHash []byte, block *types.Block) (*types
 func (client *ParaClient) Close() {
 	client.BaseClient.Close()
 	close(client.commitMsgClient.quit)
+	client.wg.Wait()
 	client.conn.Close()
 	plog.Info("consensus para closed")
 }
@@ -131,6 +142,8 @@ func (client *ParaClient) SetQueueClient(c queue.Client) {
 	})
 	go client.EventLoop()
 	go client.CreateBlock()
+
+	client.wg.Add(1)
 	go client.commitMsgClient.handler()
 }
 
@@ -457,7 +470,7 @@ func (client *ParaClient) createBlock(lastBlock *types.Block, txs []*types.Trans
 
 // 向blockchain写区块
 func (client *ParaClient) WriteBlock(prev []byte, paraBlock *types.Block, mainBlock *types.Block, seq int64) error {
-	plog.Debug("write block in parachain")
+	plog.Debug("write block in parachain", "height", paraBlock.Height)
 	var oriTxHashs [][]byte
 	for _, tx := range paraBlock.Txs {
 		oriTxHashs = append(oriTxHashs, tx.Hash())
@@ -480,6 +493,7 @@ func (client *ParaClient) WriteBlock(prev []byte, paraBlock *types.Block, mainBl
 
 	if resp.GetData().(*types.Reply).IsOk {
 		client.SetCurrentBlock(paraBlock)
+
 		if client.authAccount != "" {
 			commitMsg := &CommitMsg{
 				initTxHashs: oriTxHashs,
