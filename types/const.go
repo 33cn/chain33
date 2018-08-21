@@ -216,13 +216,12 @@ const (
 	TyLogCloseGame  = 714
 
 	// log for blackwhite game
-	TyLogBlackwhiteCreate      = 750
-	TyLogBlackwhitePlay        = 751
-	TyLogBlackwhiteShow        = 752
-	TyLogBlackwhiteTimeout     = 753
-	TyLogBlackwhiteDone        = 754
-	TyLogBlackwhiteLoopInfo    = 755
-	TyLogBlackwhiteHeightIndex = 756
+	TyLogBlackwhiteCreate   = 750
+	TyLogBlackwhitePlay     = 751
+	TyLogBlackwhiteShow     = 752
+	TyLogBlackwhiteTimeout  = 753
+	TyLogBlackwhiteDone     = 754
+	TyLogBlackwhiteLoopInfo = 755
 )
 
 //exec type

@@ -91,18 +91,6 @@ func (a *action) Create(create *types.BlackwhiteCreate) (*types.Receipt, error) 
 	receiptLog := a.GetReceiptLog(round, round.GetCreateAddr())
 	logs = append(logs, receiptLog)
 
-	//gHeightIndex := &types.GameID4HeightIndex {
-	//	GameID: round.GameID,
-	//	Addr:   round.CreateAddr,
-	//	Height: a.height,
-	//	Index:  int32(index),
-	//}
-	//gHeightIndexlog := &types.ReceiptLog{
-	//	Ty: types.TyLogBlackwhiteHeightIndex,
-	//	Log: types.Encode(gHeightIndex),
-	//}
-	//logs = append(logs, gHeightIndexlog)
-
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
 }
 
