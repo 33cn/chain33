@@ -3,7 +3,6 @@ package db
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"strings"
 	"time"
 
@@ -14,7 +13,7 @@ import (
 )
 
 var slog = log.New("module", "db.pegasus")
-var bm = &SsdbBench{}
+var pdbBench = &SsdbBench{}
 var HashKeyLen = 24
 var mgetOpts = &pegasus.MultiGetOptions{StartInclusive: true, StopInclusive: true}
 
@@ -34,6 +33,14 @@ type PegasusDB struct {
 	table  pegasus.TableConnector
 }
 
+func printPegasusBenchmark() {
+	tick := time.Tick(time.Minute * 5)
+	for {
+		<-tick
+		slog.Info(pdbBench.String())
+	}
+}
+
 func NewPegasusDB(name string, dir string, cache int) (*PegasusDB, error) {
 	database := &PegasusDB{name: name}
 	database.cfg = parsePegasusNodes(dir)
@@ -51,6 +58,8 @@ func NewPegasusDB(name string, dir string, cache int) (*PegasusDB, error) {
 		return nil, types.ErrDataBaseDamage
 	}
 	database.table = tb
+
+	go printPegasusBenchmark()
 	return database, nil
 }
 
@@ -78,13 +87,13 @@ func (db *PegasusDB) Get(key []byte) ([]byte, error) {
 		return nil, ErrNotFoundInDb
 	}
 
-	bm.read(1, time.Since(start))
+	pdbBench.read(1, time.Since(start))
 	return value, nil
 }
 
 func (db *PegasusDB) BatchGet(keys [][]byte) (values [][]byte, err error) {
 	start := time.Now()
-	defer bm.read(len(keys), time.Since(start))
+	defer pdbBench.read(len(keys), time.Since(start))
 
 	var (
 		keyMap  map[int][]byte
@@ -155,7 +164,7 @@ func (db *PegasusDB) Set(key []byte, value []byte) error {
 		slog.Error("Set", "error", err)
 		return err
 	}
-	bm.write(1, time.Since(start))
+	pdbBench.write(1, time.Since(start))
 	return nil
 }
 
@@ -165,13 +174,13 @@ func (db *PegasusDB) SetSync(key []byte, value []byte) error {
 
 func (db *PegasusDB) Delete(key []byte) error {
 	start := time.Now()
+	defer pdbBench.write(1, time.Since(start))
 	hashKey := getHashKey(key)
 	err := db.table.Del(context.Background(), hashKey, key)
 	if err != nil {
 		slog.Error("Delete", "error", err)
 		return err
 	}
-	bm.write(1, time.Since(start))
 	return nil
 }
 
@@ -185,11 +194,10 @@ func (db *PegasusDB) Close() {
 }
 
 func (db *PegasusDB) Print() {
-	//slog.Info(db.pool.Info())
 }
 
 func (db *PegasusDB) Stats() map[string]string {
-	return make(map[string]string)
+	return nil
 }
 
 func (db *PegasusDB) Iterator(prefix []byte, reverse bool) Iterator {
@@ -413,7 +421,7 @@ func (dbit *PegasusIt) Valid() bool {
 		return false
 	}
 	key := dbit.vals[dbit.index].SortKey
-	benchmark.read(1, time.Since(start))
+	pdbBench.read(1, time.Since(start))
 	return bytes.HasPrefix(key, dbit.begin)
 }
 
@@ -433,7 +441,7 @@ func (db *PegasusBatch) Set(key, value []byte) {
 }
 
 func (db *PegasusBatch) Delete(key []byte) {
-	//db.batchset[string(key)] = []byte{}
+	db.batchset[string(key)] = []byte{}
 	delete(db.batchset, string(key))
 	db.batchdel[string(key)] = key
 }
@@ -512,13 +520,12 @@ func (db *PegasusBatch) Write() error {
 		}
 	}
 
-	benchmark.write(len(db.batchset)+len(db.batchdel), time.Since(start))
+	pdbBench.write(len(db.batchset)+len(db.batchdel), time.Since(start))
 	return nil
 }
 
 func getHashKey(key []byte) []byte {
-	if len(key) < HashKeyLen {
-		fmt.Println(fmt.Errorf("data key is too short! key=%v", key))
+	if len(key) <= HashKeyLen {
 		return key
 	}
 	return key[:HashKeyLen]
