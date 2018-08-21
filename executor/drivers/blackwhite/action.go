@@ -81,8 +81,7 @@ func (a *action) Create(create *types.BlackwhiteCreate) (*types.Receipt, error) 
 	round := newRound(create, a.fromaddr)
 	round.GameID = common.ToHex(a.txhash)
 	round.CreateTime = a.blocktime
-	round.Height = a.height
-	round.Index = a.index
+	round.Index = heightIndexToIndex(a.height, a.index)
 
 	key := calcRoundKey(round.GameID)
 	value := types.Encode(round)
@@ -644,7 +643,6 @@ func (action *action) GetReceiptLog(round *types.BlackwhiteRound, addr string) *
 	r.GameID = round.GameID
 	r.Status = round.Status
 	r.Addr = addr
-	r.Height = round.Height
 	r.Index = round.Index
 
 	log.Log = types.Encode(r)
