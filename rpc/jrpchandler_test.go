@@ -955,9 +955,17 @@ func TestChain33_CreateTxGroup(t *testing.T) {
 	txs := &types.CreateTransactionGroup{
 		Txs: []string{txHex1, txHex2},
 	}
-
 	err = testChain33.CreateRawTxGroup(txs, &testResult)
-	assert.NotNil(t, testResult)
+	assert.Nil(t, err)
+	tx, err := decodeTx(testResult.(string))
+	assert.Nil(t, err)
+	tg, err := tx.GetTxGroup()
+	assert.Nil(t, err)
+	if len(tg.GetTxs()) != 2 {
+		t.Error("Test createtxgroup failed")
+		return
+	}
+	err = tx.Check(types.MinFee)
 	assert.Nil(t, err)
 }
 
