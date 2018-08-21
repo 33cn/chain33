@@ -13,7 +13,8 @@ import (
 )
 
 var (
-	FuncMap         = queue.FuncMap{}
+	funcMapMtx      = sync.RWMutex{}
+	funcMap         = queue.FuncMap{}
 	PolicyContainer = map[string]WalletBizPolicy{}
 )
 
@@ -26,10 +27,20 @@ func RegisterPolicy(key string, policy WalletBizPolicy) error {
 }
 
 func RegisterMsgFunc(msgid int, fn queue.FN_MsgCallback) {
-	if !FuncMap.IsInited() {
-		FuncMap.Init()
+	funcMapMtx.Lock()
+	defer funcMapMtx.Unlock()
+
+	if !funcMap.IsInited() {
+		funcMap.Init()
 	}
-	FuncMap.Register(msgid, fn)
+	funcMap.Register(msgid, fn)
+}
+
+func ProcessFuncMap(msg *queue.Message) (bool, string, int64, interface{}, error) {
+	funcMapMtx.RLock()
+	defer funcMapMtx.RUnlock()
+
+	return funcMap.Process(msg)
 }
 
 // WalletOperate 钱包对业务插件提供服务的操作接口
