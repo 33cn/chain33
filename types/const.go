@@ -223,12 +223,12 @@ const (
 	TyLogCloseGame  = 714
 
 	// log for blackwhite game
-	TyLogBlackwhiteCreate   = 700
-	TyLogBlackwhitePlay     = 701
-	TyLogBlackwhiteShow     = 702
-	TyLogBlackwhiteTimeout  = 703
-	TyLogBlackwhiteDone     = 704
-	TyLogBlackwhiteLoopInfo = 705
+	TyLogBlackwhiteCreate   = 750
+	TyLogBlackwhitePlay     = 751
+	TyLogBlackwhiteShow     = 752
+	TyLogBlackwhiteTimeout  = 753
+	TyLogBlackwhiteDone     = 754
+	TyLogBlackwhiteLoopInfo = 755
 )
 
 //exec type
@@ -427,7 +427,7 @@ var RescanFlagMapint2string = map[int32]string{
 
 //game action ty
 const (
-	GameActionCreate = iota
+	GameActionCreate = iota + 1
 	GameActionMatch
 	GameActionCancel
 	GameActionClose
