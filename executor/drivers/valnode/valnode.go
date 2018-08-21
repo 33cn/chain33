@@ -3,11 +3,11 @@ package valnode
 import (
 	"fmt"
 
+	"encoding/binary"
 	log "github.com/inconshreveable/log15"
 	"github.com/pkg/errors"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/types"
-	"encoding/binary"
 )
 
 var clog = log.New("module", "execs.valnode")
@@ -131,7 +131,7 @@ func (val *ValNode) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptDa
 func (val *ValNode) Query(funcName string, params []byte) (types.Message, error) {
 	if funcName == "GetValNodeByHeight" {
 		height, size := binary.Varint(params)
-		if size <=0 || height <= 0 {
+		if size <= 0 || height <= 0 {
 			return nil, types.ErrInvalidParam
 		}
 		key := CalcValNodeUpdateHeightKey(height)

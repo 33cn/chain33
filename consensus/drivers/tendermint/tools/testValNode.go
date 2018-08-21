@@ -305,7 +305,7 @@ func ValNode(pubkey string, power string) {
 	}
 	_, priv := genaddress()
 	privkey := common.ToHex(priv.Bytes())
-	nput := &types.ValNodeAction_Node{Node: &types.ValNode{Pubkey: pubkeybyte, Power: int64(powerInt)}}
+	nput := &types.ValNodeAction_Node{Node: &types.ValNode{PubKey: pubkeybyte, Power: int64(powerInt)}}
 	action := &types.ValNodeAction{Value: nput, Ty: types.ValNodeActionUpdate}
 	tx := &types.Transaction{Execer: []byte("valnode"), Payload: types.Encode(action), Fee: fee}
 	tx.To = address.ExecAddress("valnode")
