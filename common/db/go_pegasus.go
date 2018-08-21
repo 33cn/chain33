@@ -101,9 +101,9 @@ func (db *PegasusDB) BatchGet(keys [][]byte) (values [][]byte, err error) {
 		valMap  map[string][]byte
 		hashKey []byte
 	)
-	keyMap = make(map[int][]byte, len(keys))
-	hashMap = make(map[string][][]byte, len(keys))
-	valMap = make(map[string][]byte, len(keys))
+	keyMap = make(map[int][]byte)
+	hashMap = make(map[string][][]byte)
+	valMap = make(map[string][]byte)
 
 	// 这里其实也需要对hashKey进行分别计算，然后分组查询，最后汇总结果
 
@@ -142,7 +142,7 @@ func (db *PegasusDB) BatchGet(keys [][]byte) (values [][]byte, err error) {
 }
 
 func (db *PegasusDB) batchGet(hashKey []byte, keys [][]byte) (values [][]byte, err error) {
-	vals, _, err := db.table.MultiGetOpt(context.Background(), hashKey, keys, mgetOpts)
+	vals, _, err := db.table.MultiGet(context.Background(), hashKey, keys)
 	if err != nil {
 		//slog.Error("Get value error", "error", err, "key", key, "keyhex", hex.EncodeToString(key), "keystr", string(key))
 		return nil, err
@@ -441,7 +441,7 @@ func (db *PegasusBatch) Set(key, value []byte) {
 }
 
 func (db *PegasusBatch) Delete(key []byte) {
-	db.batchset[string(key)] = []byte{}
+	db.batchset[string(key)] = []byte("")
 	delete(db.batchset, string(key))
 	db.batchdel[string(key)] = key
 }
@@ -463,8 +463,8 @@ func (db *PegasusBatch) Write() error {
 			keys    [][]byte
 			values  [][]byte
 		)
-		keysMap = make(map[string][][]byte, len(keys))
-		valsMap = make(map[string][][]byte, len(keys))
+		keysMap = make(map[string][][]byte)
+		valsMap = make(map[string][][]byte)
 
 		// 首先，使用hashKey进行数据分组
 		for k, v := range db.batchset {
@@ -496,13 +496,13 @@ func (db *PegasusBatch) Write() error {
 			keysMap map[string][][]byte
 			hashKey []byte
 			byteKey []byte
-			keys    [][]byte
 		)
-		keysMap = make(map[string][][]byte, len(keys))
+		keysMap = make(map[string][][]byte)
 
 		// 首先，使用hashKey进行数据分组
-		for _, v := range db.batchdel {
-			hashKey = getHashKey(v)
+		for k, _ := range db.batchdel {
+			byteKey = []byte(k)
+			hashKey = getHashKey(byteKey)
 			if value, ok := keysMap[string(hashKey)]; ok {
 				keysMap[string(hashKey)] = append(value, byteKey)
 			} else {
