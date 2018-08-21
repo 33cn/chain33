@@ -13,8 +13,7 @@ import (
 )
 
 var (
-	funcMapMtx      = sync.RWMutex{}
-	funcMap         = queue.FuncMap{}
+	funcMap         = queue.NewFuncMap()
 	PolicyContainer = map[string]WalletBizPolicy{}
 )
 
@@ -27,19 +26,10 @@ func RegisterPolicy(key string, policy WalletBizPolicy) error {
 }
 
 func RegisterMsgFunc(msgid int, fn queue.FN_MsgCallback) {
-	funcMapMtx.Lock()
-	defer funcMapMtx.Unlock()
-
-	if !funcMap.IsInited() {
-		funcMap.Init()
-	}
 	funcMap.Register(msgid, fn)
 }
 
 func ProcessFuncMap(msg *queue.Message) (bool, string, int64, interface{}, error) {
-	funcMapMtx.RLock()
-	defer funcMapMtx.RUnlock()
-
 	return funcMap.Process(msg)
 }
 
