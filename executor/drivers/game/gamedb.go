@@ -107,7 +107,7 @@ func Key(id string) (key []byte) {
 }
 func CalcCountKey(countType string) (key []byte) {
 	key = append(key, []byte("mavl-"+types.ExecName(types.GameX)+"-")...)
-	key = append(key, []byte(fmt.Sprintf("%s", countType))...)
+	key = append(key, []byte(countType)...)
 	return key
 }
 
