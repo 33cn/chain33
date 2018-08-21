@@ -101,10 +101,7 @@ func (c *channelClient) CreateRawTxGroup(param *types.CreateTransactionGroup) ([
 	if err != nil {
 		return nil, err
 	}
-	err = group.Check(types.MinFee)
-	if err != nil {
-		return nil, err
-	}
+
 	txGroup := group.Tx()
 	txHex := types.Encode(txGroup)
 	return txHex, nil
