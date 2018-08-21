@@ -382,7 +382,8 @@ func (chain *BlockChain) delParaChainBlockDetail(msg queue.Message) {
 
 	chainlog.Debug("delParaChainBlockDetail", "height", parablockDetail.Blockdetail.Block.Height, "hash", common.HashHex(parablockDetail.Blockdetail.Block.Hash()))
 
-	err := chain.ProcDelParaChainBlockMsg(true, parablockDetail, "self")
+	// 平行链上P2P模块关闭，不用广播区块
+	err := chain.ProcDelParaChainBlockMsg(false, parablockDetail, "self")
 	if err != nil {
 		chainlog.Error("ProcDelParaChainBlockMsg", "err", err.Error())
 		reply.IsOk = false
@@ -400,8 +401,8 @@ func (chain *BlockChain) addParaChainBlockDetail(msg queue.Message) {
 	parablockDetail = msg.Data.(*types.ParaChainBlockDetail)
 
 	chainlog.Debug("EventAddParaChainBlockDetail", "height", parablockDetail.Blockdetail.Block.Height, "hash", common.HashHex(parablockDetail.Blockdetail.Block.Hash()))
-
-	err := chain.ProcAddParaChainBlockMsg(true, parablockDetail, "self")
+	// 平行链上P2P模块关闭，不用广播区块
+	err := chain.ProcAddParaChainBlockMsg(false, parablockDetail, "self")
 	if err != nil {
 		chainlog.Error("ProcAddParaChainBlockMsg", "err", err.Error())
 		reply.IsOk = false

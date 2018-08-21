@@ -341,6 +341,7 @@ It has these top-level messages:
 	TicketStatistic
 	TicketMinerInfo
 	CreateTx
+	CreateTransactionGroup
 	UnsignTx
 	NoBalanceTx
 	SignedTx
