@@ -493,7 +493,7 @@ func QueryGameListByPage(db dbm.Lister, stateDB dbm.KV, param *types.QueryGameLi
 		queryGameListByStatusAndAddr(db, stateDB, param)
 	}
 
-	return nil, fmt.Errorf("the status only fill in 0,1,2,3!")
+	return nil, fmt.Errorf("the status only fill in 1,2,3,4!")
 }
 
 func queryGameListByStatusAndAddr(db dbm.Lister, stateDB dbm.KV, param *types.QueryGameListByStatusAndAddr) (types.Message, error) {
@@ -540,7 +540,7 @@ func queryGameListByStatusAndAddr(db dbm.Lister, stateDB dbm.KV, param *types.Qu
 		return &types.ReplyGameListPage{games, "", index}, nil
 
 	} else {
-		values, err := db.List(prefix, key, count+1, direction)
+		values, err := db.List(prefix, key, count, direction)
 		if err != nil {
 			return nil, err
 		}
@@ -558,21 +558,21 @@ func queryGameListByStatusAndAddr(db dbm.Lister, stateDB dbm.KV, param *types.Qu
 			}
 		}
 		games := GetGameList(stateDB, gameIds)
-		if len(games) <= 1 {
+		if len(games) == 0 {
 			return &types.ReplyGameListPage{nil, param.GetIndex(), ""}, nil
 		}
-		if len(games) <= int(count) {
-			return &types.ReplyGameListPage{games[1:], param.GetIndex(), ""}, nil
+		if len(games) < int(count) {
+			return &types.ReplyGameListPage{games, param.GetIndex(), ""}, nil
 
 		}
-		return &types.ReplyGameListPage{games[1:], param.GetIndex(), index}, nil
+		return &types.ReplyGameListPage{games, param.GetIndex(), index}, nil
 	}
 }
 
 //count数查询
 func QueryGameListCount(db dbm.Lister, stateDB dbm.KV, param *types.QueryGameListCount) (types.Message, error) {
-	if param.Status < 0 || param.Status > 3 {
-		return nil, fmt.Errorf("the status only fill in 0,1,2,3!")
+	if param.Status < 1 || param.Status > 4 {
+		return nil, fmt.Errorf("the status only fill in 1,2,3,4!")
 	}
 	if param.GetAddress() == "" {
 		//直接从状态数据库中取
