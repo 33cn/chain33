@@ -10,6 +10,8 @@ SRC_SIGNATORY := gitlab.33.cn/chain33/chain33/cmd/signatory-server
 SRC_MINER := gitlab.33.cn/chain33/chain33/cmd/miner_accounts
 APP := build/chain33
 CLI := build/chain33-cli
+PARACLI := build/chain33-para-cli
+PARANAME := para
 SIGNATORY := build/signatory-server
 MINER := build/miner_accounts
 RELAYD := build/relayd
@@ -17,9 +19,9 @@ SRC_RELAYD := gitlab.33.cn/chain33/chain33/cmd/relayd
 LDFLAGS := -ldflags "-w -s"
 PKG_LIST := `go list ./... | grep -v "vendor" | grep -v "chain33/test" | grep -v "mocks" | grep -v "pbft"`
 BUILD_FLAGS = -ldflags "-X gitlab.33.cn/chain33/chain33/common/version.GitCommit=`git rev-parse --short=8 HEAD`"
-.PHONY: default dep all build release cli linter race test fmt vet bench msan coverage coverhtml docker docker-compose protobuf clean help
+.PHONY: default dep all build release cli para-cli linter race test fmt vet bench msan coverage coverhtml docker docker-compose protobuf clean help
 
-default: build cli relayd
+default: build cli relayd para-cli
 
 dep: ## Get the dependencies
 	@go get -u gopkg.in/alecthomas/gometalinter.v2
@@ -56,6 +58,11 @@ execblock: ## Build cli binary
 para:
 	@go build -v -o build/$(NAME) -ldflags "-X gitlab.33.cn/chain33/chain33/common/config.ParaName=user.p.$(NAME). -X gitlab.33.cn/chain33/chain33/common/config.RPCAddr=http://localhost:8901" $(SRC_CLI)
 
+para-cli:
+	@go build -v -o $(PARACLI) -ldflags "-X gitlab.33.cn/chain33/chain33/common/config.ParaName=user.p.$(PARANAME). -X gitlab.33.cn/chain33/chain33/common/config.RPCAddr=http://localhost:8901" $(SRC_CLI)
+
+
+
 signatory:
 	@cd cmd/signatory-server/signatory && bash ./create_protobuf.sh && cd ../.../..
 	@go build -v -o $(SIGNATORY) $(SRC_SIGNATORY)
@@ -68,8 +75,10 @@ miner:
 
 build_ci: relayd ## Build the binary file for CI
 	@go build -race -v -i -o $(CLI) $(SRC_CLI)
+	@go build -v -o $(PARACLI) -ldflags "-X gitlab.33.cn/chain33/chain33/common/config.ParaName=user.p.$(PARANAME). -X gitlab.33.cn/chain33/chain33/common/config.RPCAddr=http://localhost:8901" $(SRC_CLI)
 	@go build  $(BUILD_FLAGS)-race -v -o $(APP) $(SRC)
 	@cp cmd/chain33/chain33.toml build/
+	@cp cmd/chain33/chain33.para.toml build/
 
 relayd: ## Build relay deamon binary
 	@go build -race -i -v -o $(RELAYD) $(SRC_RELAYD)
@@ -185,6 +194,7 @@ mock:
 	@cd queue && mockery -name=Client && mv mocks/Client.go mocks/client.go && cd -
 	@cd common/db && mockery -name=KV && mv mocks/KV.go mocks/kv.go && cd -
 	@cd common/db && mockery -name=KVDB && mv mocks/KVDB.go mocks/kvdb.go && cd -
+	@cd types/ && mockery -name=GrpcserviceClient && mv mocks/GrpcserviceClient.go mocks/grpcserviceclient.go && cd -
 
 
 .PHONY: auto_ci_before auto_ci_after auto_ci
