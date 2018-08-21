@@ -13,12 +13,10 @@ type FuncMap struct {
 	funcmap map[int]FN_MsgCallback
 }
 
-func (qfm *FuncMap) Init() {
+func NewFuncMap() *FuncMap {
+	qfm := &FuncMap{}
 	qfm.funcmap = make(map[int]FN_MsgCallback)
-}
-
-func (qfm *FuncMap) IsInited() bool {
-	return qfm.funcmap != nil
+	return qfm
 }
 
 func (qfm *FuncMap) Register(msgid int, fn FN_MsgCallback) error {
