@@ -155,7 +155,7 @@ func NewSimpleMVCC(db KVDB) *SimpleMVCC {
 
 //GetVersion get stateHash and version map
 func (m *SimpleMVCC) GetVersion(hash []byte) (int64, error) {
-	key := getVersionKey(hash)
+	key := getVersionHashKey(hash)
 	value, err := m.kvdb.Get(key)
 	if err != nil {
 		if err == ErrNotFoundInDb {
@@ -175,7 +175,7 @@ func (m *SimpleMVCC) GetVersion(hash []byte) (int64, error) {
 }
 
 func (m *SimpleMVCC) GetVersionHash(version int64) ([]byte, error) {
-	key := append(mvccMetaVersion, pad(version)...)
+	key := getVersionKey(version)
 	value, err := m.kvdb.Get(key)
 	if err != nil {
 		if err == ErrNotFoundInDb {
@@ -399,12 +399,12 @@ func GetKey(key []byte, version int64) ([]byte, error) {
 	return newkey, nil
 }
 
-func getVersionKey(hash []byte) []byte {
+func getVersionHashKey(hash []byte) []byte {
 	key := append(mvccMeta, hash...)
 	return key
 }
 
-func getVersionHashKey(version int64) []byte {
+func getVersionKey(version int64) []byte {
 	key := append(mvccMetaVersion, pad(version)...)
 	return key
 }
