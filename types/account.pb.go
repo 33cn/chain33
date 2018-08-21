@@ -51,6 +51,7 @@ It has these top-level messages:
 	ReqLoopResult
 	PerLoopResult
 	ReplyLoopResults
+	GameID4HeightIndex
 	Header
 	Block
 	Blocks

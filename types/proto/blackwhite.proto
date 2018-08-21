@@ -6,8 +6,7 @@ message AddressResult {
     string   addr             = 1;
     int64    amount           = 2;
     repeated bytes hashValues = 3;
-    // repeated bool isBlack = 4;
-    string showSecret = 5;
+    string         showSecret = 4;
 }
 
 // order
@@ -31,15 +30,19 @@ message BlackwhiteRound {
     // 出示密钥开始时间
     int64 showTime = 9;
     // 超时时间
-    int64 timeout = 14;
+    int64 timeout = 10;
     // 创建游戏地址
-    string createAddr = 10;
+    string createAddr = 11;
     // 游戏名称
-    string gameName = 11;
+    string gameName = 12;
     // 游戏加密结果
-    repeated AddressResult addrResult = 12;
+    repeated AddressResult addrResult = 13;
     // 游戏赢家
-    repeated string winner = 13;
+    repeated string winner = 14;
+    // block高度
+    int64 height = 15;
+    // index
+    int32 index = 16;
 }
 
 // actions
@@ -84,8 +87,10 @@ message ReceiptBlackwhiteStatus {
     string gameID = 1;
     int32  status = 2;
     //记录上一次状态
-    int32  prevStatus = 4;
-    string addr       = 5;
+    int32  prevStatus = 3;
+    string addr       = 4;
+    int64  height     = 5;
+    int32  index      = 6;
 }
 
 message ReqBlackwhiteRoundInfo {
@@ -100,7 +105,11 @@ message ReqBlackwhiteRoundList {
     //优先根据status查询,status不可为空
     int32 status = 1;
     //二级搜索，如果要查询一个地址下的所有game信息，可以根据status，分多次查询，这样规避存储数据时的臃余情况
-    string address = 2;
+    string address   = 2;
+    int32  count     = 3;
+    int32  direction = 4;
+    int64  height    = 5;
+    int32  index     = 6;
 }
 
 message ReplyBlackwhiteRoundList {
@@ -120,4 +129,11 @@ message perLoopResult {
 message ReplyLoopResults {
     string   gameID                = 1;
     repeated perLoopResult results = 2;
+}
+
+message GameID4HeightIndex {
+    string gameID = 1;
+    string addr   = 2;
+    int64  height = 3;
+    int32  index  = 4;
 }

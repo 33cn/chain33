@@ -32,6 +32,7 @@ type action struct {
 	fromaddr     string
 	blocktime    int64
 	height       int64
+	index        int32
 	execaddr     string
 }
 
@@ -47,11 +48,11 @@ type addrResult struct {
 	amount int64
 }
 
-func newAction(t *Blackwhite, tx *types.Transaction) *action {
+func newAction(t *Blackwhite, tx *types.Transaction, index int32) *action {
 	hash := tx.Hash()
 	fromaddr := tx.From()
 	return &action{t.GetCoinsAccount(), t.GetStateDB(), hash, fromaddr,
-		t.GetBlockTime(), t.GetHeight(), t.GetAddr()}
+		t.GetBlockTime(), t.GetHeight(), index, t.GetAddr()}
 }
 
 func (a *action) Create(create *types.BlackwhiteCreate) (*types.Receipt, error) {
@@ -80,14 +81,27 @@ func (a *action) Create(create *types.BlackwhiteCreate) (*types.Receipt, error) 
 	round := newRound(create, a.fromaddr)
 	round.GameID = common.ToHex(a.txhash)
 	round.CreateTime = a.blocktime
+	round.Height = a.height
+	round.Index = a.index
 
 	key := calcRoundKey(round.GameID)
 	value := types.Encode(round)
-
 	kv = append(kv, &types.KeyValue{key, value})
 
-	receiptLog := a.GetReceiptLog(round)
+	receiptLog := a.GetReceiptLog(round, round.GetCreateAddr())
 	logs = append(logs, receiptLog)
+
+	//gHeightIndex := &types.GameID4HeightIndex {
+	//	GameID: round.GameID,
+	//	Addr:   round.CreateAddr,
+	//	Height: a.height,
+	//	Index:  int32(index),
+	//}
+	//gHeightIndexlog := &types.ReceiptLog{
+	//	Ty: types.TyLogBlackwhiteHeightIndex,
+	//	Log: types.Encode(gHeightIndex),
+	//}
+	//logs = append(logs, gHeightIndexlog)
 
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
 }
@@ -152,19 +166,27 @@ func (a *action) Play(play *types.BlackwhitePlay) (*types.Receipt, error) {
 	round.AddrResult = append(round.AddrResult, addrRes)
 	round.CurPlayerCount++
 
-	//tyLog := 0
 	if round.CurPlayerCount >= round.PlayerCount {
 		// 触发进入到公布阶段
 		round.ShowTime = a.blocktime
 		round.Status = gt.BlackwhiteStatusShow
+		// 需要更新全部地址状态
+		for _, addr := range round.AddrResult {
+			if addr.Addr != round.CreateAddr { //对创建者地址单独进行设置
+				receiptLog := a.GetReceiptLog(&round, addr.Addr)
+				logs = append(logs, receiptLog)
+			}
+		}
+		receiptLog := a.GetReceiptLog(&round, round.CreateAddr)
+		logs = append(logs, receiptLog)
+	} else {
+		receiptLog := a.GetReceiptLog(&round, a.fromaddr)
+		logs = append(logs, receiptLog)
 	}
 
 	key1 := calcRoundKey(round.GameID)
 	value1 := types.Encode(&round)
 	kv = append(kv, &types.KeyValue{key1, value1})
-
-	receiptLog := a.GetReceiptLog(&round)
-	logs = append(logs, receiptLog)
 
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
 }
@@ -217,7 +239,6 @@ func (a *action) Show(show *types.BlackwhiteShow) (*types.Receipt, error) {
 
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
-	//tyLog := 0
 
 	if round.CurShowCount >= round.PlayerCount {
 		// 已经集齐有所有密钥
@@ -229,14 +250,23 @@ func (a *action) Show(show *types.BlackwhiteShow) (*types.Receipt, error) {
 		}
 		logs = append(logs, receipt.Logs...)
 		kv = append(kv, receipt.KV...)
+		// 需要更新全部地址状态
+		for _, addr := range round.AddrResult {
+			if addr.Addr != round.CreateAddr { //对创建者地址单独进行设置
+				receiptLog := a.GetReceiptLog(&round, addr.Addr)
+				logs = append(logs, receiptLog)
+			}
+		}
+		receiptLog := a.GetReceiptLog(&round, round.CreateAddr)
+		logs = append(logs, receiptLog)
+	} else {
+		receiptLog := a.GetReceiptLog(&round, a.fromaddr)
+		logs = append(logs, receiptLog)
 	}
 
 	key1 := calcRoundKey(round.GameID)
 	value1 := types.Encode(&round)
 	kv = append(kv, &types.KeyValue{key1, value1})
-
-	receiptLog := a.GetReceiptLog(&round)
-	logs = append(logs, receiptLog)
 
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
 }
@@ -330,7 +360,14 @@ func (a *action) TimeoutDone(done *types.BlackwhiteTimeoutDone) (*types.Receipt,
 	value1 := types.Encode(&round)
 	kv = append(kv, &types.KeyValue{key1, value1})
 
-	receiptLog := a.GetReceiptLog(&round)
+	// 需要更新全部地址状态
+	for _, addr := range round.AddrResult {
+		if addr.Addr != round.CreateAddr { //对创建者地址单独进行设置
+			receiptLog := a.GetReceiptLog(&round, addr.Addr)
+			logs = append(logs, receiptLog)
+		}
+	}
+	receiptLog := a.GetReceiptLog(&round, round.CreateAddr)
 	logs = append(logs, receiptLog)
 
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
@@ -596,7 +633,7 @@ func (a *action) getLoser(round *types.BlackwhiteRound) []*addrResult {
 // status == BlackwhiteStatusTime (超时退出情况)
 // status == BlackwhiteStatusDone (结束情况)
 
-func (action *action) GetReceiptLog(round *types.BlackwhiteRound) *types.ReceiptLog {
+func (action *action) GetReceiptLog(round *types.BlackwhiteRound, addr string) *types.ReceiptLog {
 	log := &types.ReceiptLog{}
 	r := &types.ReceiptBlackwhiteStatus{}
 	if round.Status == gt.BlackwhiteStatusCreate {
@@ -618,7 +655,9 @@ func (action *action) GetReceiptLog(round *types.BlackwhiteRound) *types.Receipt
 
 	r.GameID = round.GameID
 	r.Status = round.Status
-	r.Addr = round.CreateAddr
+	r.Addr = addr
+	r.Height = round.Height
+	r.Index = round.Index
 
 	log.Log = types.Encode(r)
 	return log
