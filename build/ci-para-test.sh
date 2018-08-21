@@ -6,35 +6,40 @@ PARA_CLI2="docker exec ${NODE2} /root/chain33-para-cli"
 PARA_CLI1="docker exec ${NODE1} /root/chain33-para-cli"
 PARA_CLI4="docker exec ${NODE4} /root/chain33-para-cli"
 
+forkParaContainers=("${PARA_CLI}" "${PARA_CLI2}" "${PARA_CLI1}" "${PARA_CLI4}")
+
 PARANAME="para"
+
+xsedfix=""
+if [ "$(uname)" == "Darwin" ]; then
+    xsedfix=".bak"
+fi
 
 function para_init() {
     echo "=========== # para chain init toml ============="
-    local isedfix=$1
-    para_set_toml chain33.para33.toml "${1}"
-    para_set_toml chain33.para32.toml "${1}"
-    para_set_toml chain33.para31.toml "${1}"
-    para_set_toml chain33.para30.toml "${1}"
+    para_set_toml chain33.para33.toml
+    para_set_toml chain33.para32.toml
+    para_set_toml chain33.para31.toml
+    para_set_toml chain33.para30.toml
 
-    sed "${isedfix[@]}" 's/^authAccount=.*/authAccount="1KSBd17H7ZK8iT37aJztFB22XGwsPTdwE4"/g' chain33.para33.toml
-    sed "${isedfix[@]}" 's/^authAccount=.*/authAccount="1JRNjdEqp4LJ5fqycUBm9ayCKSeeskgMKR"/g' chain33.para32.toml
-    sed "${isedfix[@]}" 's/^authAccount=.*/authAccount="1NLHPEcbTWWxxU3dGUZBhayjrCHD3psX7k"/g' chain33.para31.toml
-    sed "${isedfix[@]}" 's/^authAccount=.*/authAccount="1MCftFynyvG2F4ED5mdHYgziDxx6vDrScs"/g' chain33.para30.toml
+    sed -i $xsedfix 's/^authAccount=.*/authAccount="1KSBd17H7ZK8iT37aJztFB22XGwsPTdwE4"/g' chain33.para33.toml
+    sed -i $xsedfix 's/^authAccount=.*/authAccount="1JRNjdEqp4LJ5fqycUBm9ayCKSeeskgMKR"/g' chain33.para32.toml
+    sed -i $xsedfix 's/^authAccount=.*/authAccount="1NLHPEcbTWWxxU3dGUZBhayjrCHD3psX7k"/g' chain33.para31.toml
+    sed -i $xsedfix 's/^authAccount=.*/authAccount="1MCftFynyvG2F4ED5mdHYgziDxx6vDrScs"/g' chain33.para30.toml
 }
 
 function para_set_toml() {
     cp chain33.para.toml "${1}"
 
-    local isedfix=$2
-    sed "${isedfix[@]}" 's/^Title.*/Title="user.p.'''$PARANAME'''."/g' "${1}"
-    sed "${isedfix[@]}" 's/^# TestNet=.*/TestNet=true/g' "${1}"
-    sed "${isedfix[@]}" 's/^startHeight=.*/startHeight=20/g' "${1}"
-    sed "${isedfix[@]}" 's/^emptyBlockInterval=.*/emptyBlockInterval=4/g' "${1}"
+    sed -i $xsedfix 's/^Title.*/Title="user.p.'''$PARANAME'''."/g' "${1}"
+    sed -i $xsedfix 's/^# TestNet=.*/TestNet=true/g' "${1}"
+    sed -i $xsedfix 's/^startHeight=.*/startHeight=20/g' "${1}"
+    sed -i $xsedfix 's/^emptyBlockInterval=.*/emptyBlockInterval=4/g' "${1}"
 
     # rpc
-    sed "${isedfix[@]}" 's/^jrpcBindAddr=.*/jrpcBindAddr="0.0.0.0:8901"/g' "${1}"
-    sed "${isedfix[@]}" 's/^grpcBindAddr=.*/grpcBindAddr="0.0.0.0:8902"/g' "${1}"
-    sed "${isedfix[@]}" 's/^whitelist=.*/whitelist=["localhost","127.0.0.1","0.0.0.0"]/g' "${1}"
+    sed -i $xsedfix 's/^jrpcBindAddr=.*/jrpcBindAddr="0.0.0.0:8901"/g' "${1}"
+    sed -i $xsedfix 's/^grpcBindAddr=.*/grpcBindAddr="0.0.0.0:8902"/g' "${1}"
+    sed -i $xsedfix 's/^whitelist=.*/whitelist=["localhost","127.0.0.1","0.0.0.0"]/g' "${1}"
 }
 
 function para_set_wallet() {
@@ -136,4 +141,60 @@ function token_create() {
 function para() {
     echo "=========== # para chain test ============="
     token_create "${PARA_CLI}"
+}
+
+#================fork-test============================
+function checkParaBlockHashfun() {
+    echo "====== syn para blockchain ======"
+
+    height=0
+    hash=""
+    height1=$($PARA_CLI block last_header | jq ".height")
+    sleep 1
+    height2=$($PARA_CLI4 block last_header | jq ".height")
+
+    if [ "${height2}" -ge "${height1}" ]; then
+        height=$height2
+        printf "主链为 $PARA_CLI 当前最大高度 %d \\n" "${height}"
+        sleep 1
+        hash=$($CLI block hash -t "${height}" | jq ".hash")
+    else
+        height=$height1
+        printf "主链为 $PARA_CLI4 当前最大高度 %d \\n" "${height}"
+        sleep 1
+        hash=$($CLI4 block hash -t "${height}" | jq ".hash")
+    fi
+
+    for ((j = 0; j < $1; j++)); do
+        for ((k = 0; k < ${#forkParaContainers[*]}; k++)); do
+            sleep 1
+            height0[$k]=$(${forkParaContainers[$k]} block last_header | jq ".height")
+            if [ "${height0[$k]}" -ge "${height}" ]; then
+                sleep 1
+                hash0[$k]=$(${forkParaContainers[$k]} block hash -t "${height}" | jq ".hash")
+            else
+                hash0[$k]="${forkParaContainers[$k]}"
+            fi
+        done
+
+        if [ "${hash0[0]}" = "${hash}" ] && [ "${hash0[1]}" = "${hash}" ] && [ "${hash0[2]}" = "${hash}" ] && [ "${hash0[3]}" = "${hash}" ]; then
+            echo "syn para blockchain success break"
+            break
+        else
+            if [ "${hash0[1]}" = "${hash0[0]}" ] && [ "${hash0[2]}" = "${hash0[0]}" ] && [ "${hash0[3]}" = "${hash0[0]}" ]; then
+                echo "syn para blockchain success break"
+                break
+            fi
+        fi
+
+        printf '第 %d 次，10s后查询\n' $j
+        sleep 10
+        #检查是否超过了最大检测次数
+        var=$(($1 - 1))
+        if [ $j -ge "${var}" ]; then
+            echo "====== syn para blockchain fail======"
+            exit 1
+        fi
+    done
+    echo "====== syn para blockchain success======"
 }

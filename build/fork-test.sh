@@ -265,6 +265,7 @@ function forkType1() {
     optDockerPart4
     loopCount=30 #循环次数，每次循环休眠时间100s
     checkBlockHashfun $loopCount
+    checkParaBlockHashfun $loopCount
     #############################################
     #此处根据具体需求加入结果检查
     #4 检查交易结果
@@ -306,6 +307,7 @@ function forkType2() {
     type2_optDockerPart4
     loopCount=30 #循环次数，每次循环休眠时间100s
     checkBlockHashfun $loopCount
+    checkParaBlockHashfun $loopCount
     #############################################
     #此处根据具体需求加入结果检查
     #4 检查交易结果
@@ -364,7 +366,8 @@ function optDockerPart2() {
     echo "==================================="
 
     echo "======停止第二组docker ======"
-    docker stop "${NODE4}" "${NODE5}" "${NODE6}"
+    #docker stop "${NODE4}" "${NODE5}" "${NODE6}"
+    docker-compose pause "${SERV4}" "${SERV5}" "${SERV6}"
 
     echo "======开启第一组docker节点挖矿======"
     sleep 3

@@ -26,6 +26,7 @@ func (s *suiteParaCommitMsg) SetupSuite() {
 		ParaRemoteGrpcClient: "127.0.0.1:8106",
 		StartHeight:          345850,
 		AuthAccount:          "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt",
+		WaitBlocks4CommitMsg: 2,
 	}
 	s.para = New(cfg)
 	s.grpcCli = &typesmocks.GrpcserviceClient{}
@@ -39,6 +40,7 @@ func (s *suiteParaCommitMsg) SetupSuite() {
 	reply := &types.ReplyStr{Replystr: "CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944"}
 	msg2 := queue.Message{Data: reply}
 	s.qClient.On("Wait", msg).Return(msg2, nil).Once()
+	s.para.wg.Add(1)
 	go s.para.commitMsgClient.handler()
 
 }
