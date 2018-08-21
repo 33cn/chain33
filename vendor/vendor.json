@@ -9,6 +9,55 @@
 			"revisionTime": "2017-06-26T11:06:00Z"
 		},
 		{
+			"checksumSHA1": "GoT5qkT0VAVMtdwC/W7EM1dPsfw=",
+			"path": "github.com/XiaoMi/pegasus-go-client/idl/base",
+			"revision": "95e7fd7b8d6355fe8d3c5a5f79daa152e86e6d4b",
+			"revisionTime": "2018-08-16T08:17:32Z"
+		},
+		{
+			"checksumSHA1": "L3fFJW7HWCmEWiV2l5kFvhFjlgQ=",
+			"path": "github.com/XiaoMi/pegasus-go-client/idl/replication",
+			"revision": "95e7fd7b8d6355fe8d3c5a5f79daa152e86e6d4b",
+			"revisionTime": "2018-08-16T08:17:32Z"
+		},
+		{
+			"checksumSHA1": "Xi6wkG0b+QRTsMgCCobjb1CvyOI=",
+			"path": "github.com/XiaoMi/pegasus-go-client/idl/rrdb",
+			"revision": "95e7fd7b8d6355fe8d3c5a5f79daa152e86e6d4b",
+			"revisionTime": "2018-08-16T08:17:32Z"
+		},
+		{
+			"checksumSHA1": "WPYef0b8s6+TekRB2tgnSlb35mk=",
+			"path": "github.com/XiaoMi/pegasus-go-client/pegalog",
+			"revision": "95e7fd7b8d6355fe8d3c5a5f79daa152e86e6d4b",
+			"revisionTime": "2018-08-16T08:17:32Z"
+		},
+		{
+			"checksumSHA1": "TlaTLK2/fxvaI3niHNDu5/9F87E=",
+			"path": "github.com/XiaoMi/pegasus-go-client/pegasus",
+			"revision": "95e7fd7b8d6355fe8d3c5a5f79daa152e86e6d4b",
+			"revisionTime": "2018-08-16T08:17:32Z"
+		},
+		{
+			"checksumSHA1": "4uSiHlniP4sHnKJDz5mV/lwq/TY=",
+			"path": "github.com/XiaoMi/pegasus-go-client/rpc",
+			"revision": "95e7fd7b8d6355fe8d3c5a5f79daa152e86e6d4b",
+			"revisionTime": "2018-08-16T08:17:32Z"
+		},
+		{
+			"checksumSHA1": "ahWbC2H4syT72meHc5B/QzEZyjU=",
+			"path": "github.com/XiaoMi/pegasus-go-client/session",
+			"revision": "95e7fd7b8d6355fe8d3c5a5f79daa152e86e6d4b",
+			"revisionTime": "2018-08-16T08:17:32Z"
+		},
+		{
+			"checksumSHA1": "FlbciMVEDOIua4DgIdVR1xZfkgc=",
+			"origin": "github.com/XiaoMi/pegasus-go-client/vendor/github.com/apache/thrift/lib/go/thrift",
+			"path": "github.com/apache/thrift/lib/go/thrift",
+			"revision": "95e7fd7b8d6355fe8d3c5a5f79daa152e86e6d4b",
+			"revisionTime": "2018-08-16T08:17:32Z"
+		},
+		{
 			"checksumSHA1": "lPcTak2cIrUzxysFsqkPiCGUo6w=",
 			"path": "github.com/btcsuite/btcd/btcec",
 			"revision": "8cea3866d0f7fb12d567a20744942c0d078c7d15",
@@ -833,6 +882,12 @@
 			"path": "gopkg.in/natefinch/lumberjack.v2",
 			"revision": "a96e63847dc3c67d17befa69c303767e2f84e54f",
 			"revisionTime": "2017-05-31T16:03:50Z"
+		},
+		{
+			"checksumSHA1": "t95/FNK2nGCx3e6IARbO7OrcCuY=",
+			"path": "gopkg.in/tomb.v2",
+			"revision": "d5d1b5820637886def9eef33e03a27a9f166942c",
+			"revisionTime": "2016-12-08T15:16:19Z"
 		},
 		{
 			"checksumSHA1": "ZSWoOPUNRr5+3dhkLK3C4cZAQPk=",
