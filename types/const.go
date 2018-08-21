@@ -209,6 +209,13 @@ const (
 	// 合约状态数据变更项日志
 	TyLogEVMStateChangeItem = 604
 
+	// paracross 执行器的日志类型
+	TyLogParacrossCommit = 650
+	TyLogParacrossDone   = 651
+	// record 和 commit 不一样， 对应高度完成共识后收到commit 交易
+	// 这个交易就不参与共识, 只做记录
+	TyLogParacrossRecord = 652
+
 	//log for game
 	TyLogCreateGame = 711
 	TyLogMatchGame  = 712

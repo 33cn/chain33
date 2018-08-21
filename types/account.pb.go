@@ -16,6 +16,7 @@ It is generated from these files:
 	executorTrade.proto
 	game.proto
 	p2p.proto
+	paracross.proto
 	pbft.proto
 	relay.proto
 	rpc.proto
@@ -294,6 +295,18 @@ It has these top-level messages:
 	NodeNetInfo
 	PeersReply
 	PeersInfo
+	ParacrossStatusDetails
+	ParacrossHeightStatus
+	ParacrossStatus
+	ParacrossNodeStatus
+	ParacrossCommitAction
+	ParacrossAction
+	ReceiptParacrossCommit
+	ReceiptParacrossDone
+	ReceiptParacrossRecord
+	ParacrossTx
+	ReqParacrossTitleHeight
+	RespParacrossTitles
 	Operation
 	Checkpoint
 	Entry
