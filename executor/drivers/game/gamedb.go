@@ -489,13 +489,7 @@ func List(db dbm.Lister, stateDB dbm.KV, param *types.QueryGameListByStatusAndAd
 func QueryGameListByPage(db dbm.Lister, stateDB dbm.KV, param *types.QueryGameListByStatusAndAddr) (types.Message, error) {
 
 	switch param.GetStatus() {
-	case types.GameActionCreate:
-		queryGameListByStatusAndAddr(db, stateDB, param)
-	case types.GameActionMatch, types.GameActionClose, types.GameActionCancel:
-		if param.GetAddress() == "" {
-			//当查询match,cancel,close状态数据时，必须传入相应的addr，否则禁止调用
-			return nil, fmt.Errorf("The address cannot be empty!")
-		}
+	case types.GameActionCreate, types.GameActionMatch, types.GameActionClose, types.GameActionCancel:
 		queryGameListByStatusAndAddr(db, stateDB, param)
 	}
 
@@ -568,7 +562,7 @@ func queryGameListByStatusAndAddr(db dbm.Lister, stateDB dbm.KV, param *types.Qu
 			return &types.ReplyGameListPage{nil, param.GetIndex(), ""}, nil
 		}
 		if len(games) <= int(count) {
-			return &types.ReplyGameListPage{games[1:], "", index}, nil
+			return &types.ReplyGameListPage{games[1:], param.GetIndex(), ""}, nil
 
 		}
 		return &types.ReplyGameListPage{games[1:], param.GetIndex(), index}, nil
