@@ -227,8 +227,7 @@ func addshowBlackwhiteInfoflags(cmd *cobra.Command) {
 	cmd.Flags().StringP("addr", "a", "", "addr")
 	cmd.Flags().Int32P("count", "c", 0, "count")
 	cmd.Flags().Int32P("direction", "d", 0, "direction")
-	cmd.Flags().Int64P("height", "v", 0, "height")
-	cmd.Flags().Int32P("index", "i", 0, "index")
+	cmd.Flags().Int64P("index", "i", 0, "index")
 
 	cmd.Flags().Uint32P("loopSeq", "l", 0, "loopSeq")
 }
@@ -243,8 +242,7 @@ func showBlackwhiteInfo(cmd *cobra.Command, args []string) {
 	addr, _ := cmd.Flags().GetString("addr")
 	count, _ := cmd.Flags().GetInt32("count")
 	direction, _ := cmd.Flags().GetInt32("direction")
-	height, _ := cmd.Flags().GetInt64("height")
-	index, _ := cmd.Flags().GetInt32("index")
+	index, _ := cmd.Flags().GetInt64("index")
 
 	loopSeq, _ := cmd.Flags().GetUint32("loopSeq")
 
@@ -266,7 +264,6 @@ func showBlackwhiteInfo(cmd *cobra.Command, args []string) {
 			Address:   addr,
 			Count:     count,
 			Direction: direction,
-			Height:    height,
 			Index:     index,
 		}
 		params.FuncName = bw.GetBlackwhiteByStatusAndAddr

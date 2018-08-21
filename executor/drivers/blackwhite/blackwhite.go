@@ -188,7 +188,7 @@ func (c *Blackwhite) delLoopResult(res *types.ReplyLoopResults) (kvs []*types.Ke
 }
 
 func (c *Blackwhite) saveHeightIndex(res *types.ReceiptBlackwhiteStatus) (kvs []*types.KeyValue) {
-	heightstr := genHeightIndexStr(res.GetHeight(), res.GetIndex())
+	heightstr := genHeightIndexStr(res.GetIndex())
 	kv := &types.KeyValue{}
 	kv.Key = calcRoundKey4AddrHeight(res.GetAddr(), heightstr)
 	kv.Value = []byte(res.GetGameID())
@@ -209,7 +209,7 @@ func (c *Blackwhite) saveHeightIndex(res *types.ReceiptBlackwhiteStatus) (kvs []
 }
 
 func (c *Blackwhite) saveRollHeightIndex(res *types.ReceiptBlackwhiteStatus) (kvs []*types.KeyValue) {
-	heightstr := genHeightIndexStr(res.GetHeight(), res.GetIndex())
+	heightstr := genHeightIndexStr(res.GetIndex())
 	kv := &types.KeyValue{}
 	kv.Key = calcRoundKey4AddrHeight(res.GetAddr(), heightstr)
 	kv.Value = []byte(res.GetGameID())
@@ -224,7 +224,7 @@ func (c *Blackwhite) saveRollHeightIndex(res *types.ReceiptBlackwhiteStatus) (kv
 }
 
 func (c *Blackwhite) delHeightIndex(res *types.ReceiptBlackwhiteStatus) (kvs []*types.KeyValue) {
-	heightstr := genHeightIndexStr(res.GetHeight(), res.GetIndex())
+	heightstr := genHeightIndexStr(res.GetIndex())
 	kv := &types.KeyValue{}
 	kv.Key = calcRoundKey4AddrHeight(res.GetAddr(), heightstr)
 	kv.Value = nil
@@ -280,9 +280,26 @@ func (c *Blackwhite) GetBlackwhiteRoundInfo(req *types.ReqBlackwhiteRoundInfo) (
 	for _, addRes := range round.AddrResult {
 		addRes.ShowSecret = ""
 	}
-	var receipt types.ReceiptBlackwhite
-	receipt.Round = &round
-	return &receipt, nil
+	roundRes := &types.BlackwhiteRoundResult{
+		GameID:         round.GameID,
+		Status:         round.Status,
+		PlayAmount:     round.PlayAmount,
+		PlayerCount:    round.PlayerCount,
+		CurPlayerCount: round.CurPlayerCount,
+		Loop:           round.Loop,
+		CurShowCount:   round.CurShowCount,
+		CreateTime:     round.CreateTime,
+		ShowTime:       round.ShowTime,
+		Timeout:        round.Timeout,
+		CreateAddr:     round.CreateAddr,
+		GameName:       round.GameName,
+		AddrResult:     round.AddrResult,
+		Winner:         round.Winner,
+		Index:          round.Index,
+	}
+	var rep types.ReplyBlackwhiteRoundInfo
+	rep.Round = roundRes
+	return &rep, nil
 }
 
 func (c *Blackwhite) GetBwRoundListInfo(req *types.ReqBlackwhiteRoundList) (types.Message, error) {
@@ -297,7 +314,7 @@ func (c *Blackwhite) GetBwRoundListInfo(req *types.ReqBlackwhiteRoundList) (type
 		prefix = calcRoundKey4StatusAddrHeight(req.Status, req.Address, "")
 	}
 	localDb := c.GetLocalDB()
-	if req.GetHeight() == -1 {
+	if req.GetIndex() == -1 {
 		values, err = localDb.List(prefix, nil, req.Count, req.GetDirection())
 		if err != nil {
 			return nil, err
@@ -306,7 +323,7 @@ func (c *Blackwhite) GetBwRoundListInfo(req *types.ReqBlackwhiteRoundList) (type
 			return nil, types.ErrNotFound
 		}
 	} else { //翻页查找指定的txhash列表
-		heightstr := genHeightIndexStr(req.GetHeight(), req.GetIndex())
+		heightstr := genHeightIndexStr(req.GetIndex())
 		if 0 == req.Status {
 			key = calcRoundKey4AddrHeight(req.Address, heightstr)
 		} else {
@@ -340,7 +357,24 @@ func (c *Blackwhite) GetBwRoundListInfo(req *types.ReqBlackwhiteRoundList) (type
 		for _, addRes := range round.AddrResult {
 			addRes.ShowSecret = ""
 		}
-		rep.Round = append(rep.Round, &round)
+		roundRes := &types.BlackwhiteRoundResult{
+			GameID:         round.GameID,
+			Status:         round.Status,
+			PlayAmount:     round.PlayAmount,
+			PlayerCount:    round.PlayerCount,
+			CurPlayerCount: round.CurPlayerCount,
+			Loop:           round.Loop,
+			CurShowCount:   round.CurShowCount,
+			CreateTime:     round.CreateTime,
+			ShowTime:       round.ShowTime,
+			Timeout:        round.Timeout,
+			CreateAddr:     round.CreateAddr,
+			GameName:       round.GameName,
+			AddrResult:     round.AddrResult,
+			Winner:         round.Winner,
+			Index:          round.Index,
+		}
+		rep.Round = append(rep.Round, roundRes)
 	}
 	return &rep, nil
 }
@@ -378,6 +412,10 @@ func (c *Blackwhite) GetBwRoundLoopResult(req *types.ReqLoopResult) (types.Messa
 	return &result, nil //将所有轮数取出
 }
 
-func genHeightIndexStr(height int64, index int32) string {
-	return fmt.Sprintf("%018d", height*types.MaxTxsPerBlock+int64(index))
+func genHeightIndexStr(index int64) string {
+	return fmt.Sprintf("%018d", index)
+}
+
+func heightIndexToIndex(height int64, index int32) int64 {
+	return height*types.MaxTxsPerBlock + int64(index)
 }
