@@ -116,7 +116,7 @@ func (chain *BlockChain) addBlock(msg queue.Message) {
 	blockpid := msg.Data.(*types.BlockPid)
 	err := chain.ProcAddBlockMsg(false, &types.BlockDetail{Block: blockpid.Block}, blockpid.Pid)
 	if err != nil {
-		chainlog.Error("ProcAddBlockMsg", "err", err.Error())
+		chainlog.Error("ProcAddBlockMsg", "height", blockpid.Block.Height, "err", err.Error())
 		reply.IsOk = false
 		reply.Msg = []byte(err.Error())
 	} else {
@@ -135,7 +135,12 @@ func (chain *BlockChain) getBlockHeight(msg queue.Message) {
 
 func (chain *BlockChain) txHashList(msg queue.Message) {
 	txhashlist := (msg.Data).(*types.TxHashList)
-	duptxhashlist := chain.GetDuplicateTxHashList(txhashlist)
+	duptxhashlist, err := chain.GetDuplicateTxHashList(txhashlist)
+	if err != nil {
+		chainlog.Error("txHashList", "err", err.Error())
+		msg.Reply(chain.client.NewMessage("consensus", types.EventTxHashListReply, err))
+		return
+	}
 	//chainlog.Debug("EventTxHashList", "success", "ok")
 	msg.Reply(chain.client.NewMessage("consensus", types.EventTxHashListReply, duptxhashlist))
 }
@@ -166,7 +171,6 @@ func (chain *BlockChain) getLastHeader(msg queue.Message) {
 		//chainlog.Debug("EventGetLastHeader", "success", "ok")
 		msg.Reply(chain.client.NewMessage("account", types.EventHeader, header))
 	}
-	//本节点共识模块发送过来的blockdetail，需要广播到全网
 }
 
 func (chain *BlockChain) addBlockDetail(msg queue.Message) {
@@ -182,14 +186,9 @@ func (chain *BlockChain) addBlockDetail(msg queue.Message) {
 		chainlog.Error("ProcAddBlockMsg", "err", err.Error())
 		reply.IsOk = false
 		reply.Msg = []byte(err.Error())
-	} else {
-		//chain.wg.Add(1)
-		//chain.SynBlockToDbOneByOne()
 	}
 	chainlog.Debug("EventAddBlockDetail", "success", "ok")
 	msg.Reply(chain.client.NewMessage("p2p", types.EventReply, &reply))
-
-	//收到p2p广播过来的block，如果刚好是我们期望的就添加到db并广播到全网
 }
 
 func (chain *BlockChain) broadcastAddBlock(msg queue.Message) {
@@ -211,8 +210,6 @@ func (chain *BlockChain) broadcastAddBlock(msg queue.Message) {
 		chainlog.Error("ProcAddBlockMsg", "err", err.Error())
 		reply.IsOk = false
 		reply.Msg = []byte(err.Error())
-	} else {
-		//chain.notifySync()
 	}
 	chainlog.Debug("EventBroadcastAddBlock", "height", blockwithpid.Block.Height, "hash", common.ToHex(blockwithpid.Block.Hash()), "pid", blockwithpid.Pid, "success", "ok")
 
@@ -221,7 +218,7 @@ func (chain *BlockChain) broadcastAddBlock(msg queue.Message) {
 
 func (chain *BlockChain) getTransactionByAddr(msg queue.Message) {
 	addr := (msg.Data).(*types.ReqAddr)
-	chainlog.Warn("EventGetTransactionByAddr", "req", addr)
+	//chainlog.Warn("EventGetTransactionByAddr", "req", addr)
 	replyTxInfos, err := chain.ProcGetTransactionByAddr(addr)
 	if err != nil {
 		chainlog.Error("ProcGetTransactionByAddr", "err", err.Error())
@@ -234,7 +231,7 @@ func (chain *BlockChain) getTransactionByAddr(msg queue.Message) {
 
 func (chain *BlockChain) getTransactionByHashes(msg queue.Message) {
 	txhashs := (msg.Data).(*types.ReqHashes)
-	chainlog.Info("EventGetTransactionByHash", "hash", txhashs)
+	//chainlog.Info("EventGetTransactionByHash", "hash", txhashs)
 	TransactionDetails, err := chain.ProcGetTransactionByHashes(txhashs.Hashes)
 	if err != nil {
 		chainlog.Error("ProcGetTransactionByHashes", "err", err.Error())
@@ -385,7 +382,8 @@ func (chain *BlockChain) delParaChainBlockDetail(msg queue.Message) {
 
 	chainlog.Debug("delParaChainBlockDetail", "height", parablockDetail.Blockdetail.Block.Height, "hash", common.HashHex(parablockDetail.Blockdetail.Block.Hash()))
 
-	err := chain.ProcDelParaChainBlockMsg(true, parablockDetail, "self")
+	// 平行链上P2P模块关闭，不用广播区块
+	err := chain.ProcDelParaChainBlockMsg(false, parablockDetail, "self")
 	if err != nil {
 		chainlog.Error("ProcDelParaChainBlockMsg", "err", err.Error())
 		reply.IsOk = false
@@ -403,8 +401,8 @@ func (chain *BlockChain) addParaChainBlockDetail(msg queue.Message) {
 	parablockDetail = msg.Data.(*types.ParaChainBlockDetail)
 
 	chainlog.Debug("EventAddParaChainBlockDetail", "height", parablockDetail.Blockdetail.Block.Height, "hash", common.HashHex(parablockDetail.Blockdetail.Block.Hash()))
-
-	err := chain.ProcAddParaChainBlockMsg(true, parablockDetail, "self")
+	// 平行链上P2P模块关闭，不用广播区块
+	err := chain.ProcAddParaChainBlockMsg(false, parablockDetail, "self")
 	if err != nil {
 		chainlog.Error("ProcAddParaChainBlockMsg", "err", err.Error())
 		reply.IsOk = false

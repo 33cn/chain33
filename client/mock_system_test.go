@@ -45,6 +45,7 @@ type mockSystem struct {
 	p2p       *mockP2P
 	consensus *mockConsensus
 	store     *mockStore
+	execs     *mockExecs
 }
 
 type mockClient struct {
@@ -135,6 +136,8 @@ func (mock *mockSystem) startup(size int) client.QueueProtocolAPI {
 	consensus.SetQueueClient(q)
 	store := &mockStore{}
 	store.SetQueueClient(q)
+	execs := new(mockExecs)
+	execs.SetQueueClient(q)
 
 	mock.q = queue
 	mock.chain = chain
@@ -143,6 +146,7 @@ func (mock *mockSystem) startup(size int) client.QueueProtocolAPI {
 	mock.p2p = p2p
 	mock.consensus = consensus
 	mock.store = store
+	mock.execs = execs
 	if mock.grpcMock != nil {
 		mock.grpcMock.OnStartup(mock)
 	}
@@ -165,6 +169,7 @@ func (mock *mockSystem) stop() {
 	mock.p2p.Close()
 	mock.consensus.Close()
 	mock.store.Close()
+	mock.execs.Close()
 	mock.q.Close()
 }
 

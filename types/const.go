@@ -1,21 +1,8 @@
 package types
 
-// 注释掉系统中没有用到的枚举项
-// 与AllowUserExec中驱动名称的顺序一致
-const (
-	ExecTypeCoins    = 0
-	ExecTypeTicket   = 1
-	ExecTypeHashLock = 2
-	ExecTypeNorm     = 3
-	ExecTypeRetrieve = 4
-	ExecTypeNone     = 5
-	ExecTypeToken    = 6
-	ExecTypeTrade    = 7
-	ExecTypeManage   = 8
-)
-
 var userKey = []byte("user.")
 var slash = []byte("-")
+var Debug = false
 
 const (
 	CoinsX          = "coins"
@@ -28,46 +15,54 @@ const (
 	ManageX         = "manage"
 	PrivacyX        = "privacy"
 	ExecerEvmString = "evm"
+	EvmX            = "evm"
 	RelayX          = "relay"
 	Normx           = "norm"
-	UserEvmString   = "user.evm."
+	UserEvmX        = "user.evm."
+	CertX           = "cert"
+	GameX           = "game"
+	BlackwhiteX     = "blackwhite"
 )
 
 var (
-	ExecerCoins    = []byte(CoinsX)
-	ExecerTicket   = []byte(TicketX)
-	ExecerManage   = []byte(ManageX)
-	ExecerToken    = []byte(TokenX)
-	ExecerEvm      = []byte(ExecerEvmString)
-	ExecerPrivacy  = []byte(PrivacyX)
-	ExecerRelay    = []byte(RelayX)
-	ExecerHashlock = []byte(HashlockX)
-	ExecerRetrieve = []byte(RetrieveX)
-	ExecerNone     = []byte(NoneX)
-	ExecerTrade    = []byte(TradeX)
-	ExecerNorm     = []byte(Normx)
-	ExecerConfig   = []byte("config")
-	UserEvm        = []byte(UserEvmString)
+	ExecerCoins      = []byte(CoinsX)
+	ExecerTicket     = []byte(TicketX)
+	ExecerManage     = []byte(ManageX)
+	ExecerToken      = []byte(TokenX)
+	ExecerEvm        = []byte(EvmX)
+	ExecerPrivacy    = []byte(PrivacyX)
+	ExecerRelay      = []byte(RelayX)
+	ExecerHashlock   = []byte(HashlockX)
+	ExecerRetrieve   = []byte(RetrieveX)
+	ExecerNone       = []byte(NoneX)
+	ExecerTrade      = []byte(TradeX)
+	ExecerNorm       = []byte(Normx)
+	ExecerConfig     = []byte("config")
+	ExecerCert       = []byte(CertX)
+	UserEvm          = []byte(UserEvmX)
+	ExecerGame       = []byte(GameX)
+	ExecerBlackwhite = []byte(BlackwhiteX)
 )
 
 const (
-	InputPrecision      float64 = 1e4
-	Multiple1E4         int64   = 1e4
-	TokenNameLenLimit           = 128
-	TokenSymbolLenLimit         = 16
-	TokenIntroLenLimit          = 1024
-	InvalidStartTime            = 0
-	InvalidStopTime             = 0
-	BlockDurPerSecCnt           = 15
-	BTY                         = "BTY"
-	BTYDustThreshold            = Coin
-	ConfirmedHeight             = 12
-	UTXOCacheCount              = 256
-	M_1_TIMES                   = 1
-	M_2_TIMES                   = 2
-	M_5_TIMES                   = 5
-	M_10_TIMES                  = 10
-	SignatureSize               = (4 + 33 + 65)
+	InputPrecision        float64 = 1e4
+	Multiple1E4           int64   = 1e4
+	TokenNameLenLimit             = 128
+	TokenSymbolLenLimit           = 16
+	TokenIntroLenLimit            = 1024
+	InvalidStartTime              = 0
+	InvalidStopTime               = 0
+	BlockDurPerSecCnt             = 15
+	BTY                           = "BTY"
+	BTYDustThreshold              = Coin
+	ConfirmedHeight               = 12
+	UTXOCacheCount                = 256
+	M_1_TIMES                     = 1
+	M_2_TIMES                     = 2
+	M_5_TIMES                     = 5
+	M_10_TIMES                    = 10
+	SignatureSize                 = (4 + 33 + 65)
+	PrivacyMaturityDegree         = 12
 )
 
 var (
@@ -82,6 +77,8 @@ var (
 //ty = 3 -> sm2
 //ty = 4 -> onetimeed25519
 //ty = 5 -> RingBaseonED25519
+//ty = 1+offset(1<<8) ->auth_ecdsa
+//ty = 2+offset(1<<8) -> auth_sm2
 const (
 	Invalid           = 0
 	SECP256K1         = 1
@@ -89,6 +86,8 @@ const (
 	SM2               = 3
 	OnetimeED25519    = 4
 	RingBaseonED25519 = 5
+	AUTH_ECDSA        = 257
+	AUTH_SM2          = 258
 )
 
 //const (
@@ -106,6 +105,15 @@ const (
 	SignNameSM2            = "sm2"
 	SignNameOnetimeED25519 = "onetimeed25519"
 	SignNameRing           = "RingSignatue"
+	SignNameAuthECDSA      = "auth_ecdsa"
+	SignNameAuthSM2        = "auth_sm2"
+)
+
+// 创建隐私交易的类型定义
+const (
+	PrivacyTypePublic2Privacy = iota + 1
+	PrivacyTypePrivacy2Privacy
+	PrivacyTypePrivacy2Public
 )
 
 var MapSignType2name = map[int]string{
@@ -114,6 +122,8 @@ var MapSignType2name = map[int]string{
 	SM2:               SignNameSM2,
 	OnetimeED25519:    SignNameOnetimeED25519,
 	RingBaseonED25519: SignNameRing,
+	AUTH_ECDSA:        SignNameAuthECDSA,
+	AUTH_SM2:          SignNameAuthSM2,
 }
 
 var MapSignName2Type = map[string]int{
@@ -122,6 +132,8 @@ var MapSignName2Type = map[string]int{
 	SignNameSM2:            SM2,
 	SignNameOnetimeED25519: OnetimeED25519,
 	SignNameRing:           RingBaseonED25519,
+	SignNameAuthECDSA:      AUTH_ECDSA,
+	SignNameAuthSM2:        AUTH_SM2,
 }
 
 //log type
@@ -196,6 +208,20 @@ const (
 	TyLogCallContract = 603
 	// 合约状态数据变更项日志
 	TyLogEVMStateChangeItem = 604
+
+	//log for game
+	TyLogCreateGame = 711
+	TyLogMatchGame  = 712
+	TyLogCancleGame = 713
+	TyLogCloseGame  = 714
+
+	// log for blackwhite game
+	TyLogBlackwhiteCreate   = 700
+	TyLogBlackwhitePlay     = 701
+	TyLogBlackwhiteShow     = 702
+	TyLogBlackwhiteTimeout  = 703
+	TyLogBlackwhiteDone     = 704
+	TyLogBlackwhiteLoopInfo = 705
 )
 
 //exec type
@@ -247,6 +273,13 @@ const (
 //norm
 const (
 	NormActionPut = 1
+)
+
+//cert
+const (
+	CertActionNew    = 1
+	CertActionUpdate = 2
+	CertActionNormal = 3
 )
 
 // retrieve op
@@ -326,6 +359,12 @@ var MapSellOrderStatusStr2Int = map[string]int32{
 	"revoked": TradeOrderStatusRevoked,
 }
 
+var MapBuyOrderStatusStr2Int = map[string]int32{
+	"onbuy":      TradeOrderStatusOnBuy,
+	"boughtout":  TradeOrderStatusBoughtOut,
+	"buyrevoked": TradeOrderStatusBuyRevoked,
+}
+
 // relay
 const (
 	RelayRevokeCreate = iota
@@ -357,3 +396,60 @@ const (
 	RelayActionVerifyCmdTx
 	RelayActionRcvBTCHeaders
 )
+
+// blackwhite action type
+const (
+	BlackwhiteActionCreate = iota
+	BlackwhiteActionPlay
+	BlackwhiteActionShow
+	BlackwhiteActionTimeoutDone
+)
+
+// RescanUtxoFlag
+const (
+	UtxoFlagNoScan  int32 = 0
+	UtxoFlagScaning int32 = 1
+	UtxoFlagScanEnd int32 = 2
+)
+
+var RescanFlagMapint2string = map[int32]string{
+	UtxoFlagNoScan:  "UtxoFlagNoScan",
+	UtxoFlagScaning: "UtxoFlagScaning",
+	UtxoFlagScanEnd: "UtxoFlagScanEnd",
+}
+
+//game action ty
+const (
+	GameActionCreate = iota
+	GameActionMatch
+	GameActionCancel
+	GameActionClose
+)
+
+//flag:
+var FlagTxQuickIndex = []byte("FLAG:FlagTxQuickIndex")
+var FlagKeyMVCC = []byte("FLAG:keyMVCCFlag")
+
+//TxHeight 选项
+//设计思路:
+//提供一种可以快速查重的交易类型，和原来的交易完全兼容
+//并且可以通过开关控制是否开启这样的交易
+
+//标记是一个时间还是一个 TxHeight
+var TxHeightFlag int64 = 1 << 62
+
+//是否开启TxHeight选项
+var EnableTxHeight = false
+
+//eg: current Height is 10000
+//TxHeight is  10010
+//=> Height <= TxHeight + HighAllowPackHeight
+//=> Height >= TxHeight - LowAllowPackHeight
+//那么交易可以打包的范围是: 10010 - 100 = 9910 , 10010 + 200 =  10210 (9910,10210)
+//可以合法的打包交易
+//注意，这两个条件必须同时满足.
+//关于交易去重复:
+//也就是说，另外一笔相同的交易，只能被打包在这个区间(9910,10210)。
+//那么检查交易重复的时候，我只要检查 9910 - currentHeight 这个区间的交易不要重复就好了
+var HighAllowPackHeight int64 = 90
+var LowAllowPackHeight int64 = 30

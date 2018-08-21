@@ -32,7 +32,7 @@ func ConfigCmd() *cobra.Command {
 func ConfigTxCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "config_tx",
-		Short: "Set transaction fee",
+		Short: "set system config",
 		Run:   configTx,
 	}
 	addConfigTxFlags(cmd)

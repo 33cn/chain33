@@ -134,7 +134,7 @@ func (client *RaftClient) CreateBlock() {
 	count := 0
 
 	//打包区块前先同步到最大高度
-	time.Sleep(5 * time.Second)
+	time.Sleep(1 * time.Second)
 	for {
 		if client.IsCaughtUp() {
 			rlog.Info("Leader has caught up the max height")
@@ -195,9 +195,6 @@ func (client *RaftClient) CreateBlock() {
 		issleep = false
 		count = 0
 		rlog.Debug("==================start create new block!=====================")
-		//check dup
-		//txs = client.CheckTxDup(txs)
-		rlog.Debug(fmt.Sprintf("the len txs is: %v", len(txs)))
 		var newblock types.Block
 		newblock.ParentHash = lastBlock.Hash()
 		newblock.Height = lastBlock.Height + 1

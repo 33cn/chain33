@@ -23,11 +23,12 @@ var (
 	evmDebug = false
 
 	// 本合约地址
-	EvmAddress = address.ExecAddress(model.ExecutorName)
+	EvmAddress = address.ExecAddress(types.ExecName(model.ExecutorName))
 )
 
 func Init() {
-	drivers.Register(model.ExecutorName, newEVMDriver, types.ForkV17EVM)
+	drivers.Register(types.ExecName(model.ExecutorName), newEVMDriver, types.ForkV17EVM)
+	EvmAddress = address.ExecAddress(types.ExecName(model.ExecutorName))
 
 	// 初始化硬分叉数据
 	state.InitForkData()
@@ -57,7 +58,7 @@ func NewEVMExecutor() *EVMExecutor {
 }
 
 func (evm *EVMExecutor) GetName() string {
-	return model.ExecutorName
+	return types.ExecName(model.ExecutorName)
 }
 
 func (evm *EVMExecutor) CheckInit() {
@@ -90,8 +91,8 @@ func (evm *EVMExecutor) Exec(tx *types.Transaction, index int) (*types.Receipt, 
 	env := runtime.NewEVM(context, evm.mStateDB, *evm.vmCfg)
 
 	// 目标地址为空，或者为Evm合约的固定地址时，认为新增合约
-	isCreate := strings.Compare(msg.To().String(), EvmAddress) == 0
 
+	isCreate := strings.Compare(msg.To().String(), EvmAddress) == 0
 	var (
 		ret          = []byte("")
 		vmerr        error
@@ -110,7 +111,7 @@ func (evm *EVMExecutor) Exec(tx *types.Transaction, index int) (*types.Receipt, 
 		}
 
 		// 只有新创建的合约才能生成合约名称
-		execName = fmt.Sprintf("%s%s", model.EvmPrefix, common.BytesToHash(tx.Hash()).Hex())
+		execName = fmt.Sprintf("%s%s", types.ExecName(model.EvmPrefix), common.BytesToHash(tx.Hash()).Hex())
 	} else {
 		contractAddr = *msg.To()
 	}
@@ -194,8 +195,8 @@ func (evm *EVMExecutor) collectEvmTxLog(tx *types.Transaction, cr *types.Receipt
 
 //获取运行状态名
 func (evm *EVMExecutor) GetActionName(tx *types.Transaction) string {
-	if bytes.Equal(tx.Execer, []byte(model.ExecutorName)) {
-		return model.ExecutorName
+	if bytes.Equal(tx.Execer, []byte(types.ExecName(model.ExecutorName))) {
+		return types.ExecName(model.ExecutorName)
 	}
 	return tx.ActionName()
 }
@@ -297,7 +298,7 @@ func (evm *EVMExecutor) CheckAddrExists(req *types.CheckEVMAddrReq) (types.Messa
 
 	var addr common.Address
 	// 合约名称
-	if strings.HasPrefix(addrStr, model.EvmPrefix) {
+	if strings.HasPrefix(addrStr, types.ExecName(model.EvmPrefix)) {
 		addr = common.ExecAddress(addrStr)
 	} else {
 		// 合约地址
@@ -335,7 +336,7 @@ func (evm *EVMExecutor) EstimateGas(req *types.EstimateEVMGasReq) (types.Message
 			caller = *callAddr
 		}
 	} else {
-		caller = common.ExecAddress(model.ExecutorName)
+		caller = common.ExecAddress(types.ExecName(model.ExecutorName))
 	}
 
 	isCreate := strings.EqualFold(req.To, EvmAddress)
@@ -357,7 +358,7 @@ func (evm *EVMExecutor) EstimateGas(req *types.EstimateEVMGasReq) (types.Message
 	if isCreate {
 		txHash := common.BigToHash(big.NewInt(model.MaxGasLimit)).Bytes()
 		contractAddr = evm.getNewAddr(txHash)
-		execName = fmt.Sprintf("%s%s", model.EvmPrefix, common.BytesToHash(txHash).Hex())
+		execName = fmt.Sprintf("%s%s", types.ExecName(model.EvmPrefix), common.BytesToHash(txHash).Hex())
 		_, _, leftOverGas, vmerr = env.Create(runtime.AccountRef(msg.From()), contractAddr, msg.Data(), context.GasLimit, execName, "estimateGas")
 	} else {
 		to = common.StringToAddress(req.To)

@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"gitlab.33.cn/chain33/chain33/common/pubsub"
 	"gitlab.33.cn/chain33/chain33/p2p/nat"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -59,6 +60,7 @@ type Node struct {
 	outBound   map[string]*Peer
 	listener   Listener
 	closed     int32
+	pubsub     *pubsub.PubSub
 }
 
 func (n *Node) SetQueueClient(client queue.Client) {
@@ -70,6 +72,7 @@ func NewNode(cfg *types.P2P) (*Node, error) {
 	node := &Node{
 		outBound:   make(map[string]*Peer),
 		cacheBound: make(map[string]*Peer),
+		pubsub:     pubsub.NewPubSub(10200),
 	}
 	if cfg.GetInnerSeedEnable() {
 		if types.IsTestNet() {

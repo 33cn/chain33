@@ -77,7 +77,7 @@ func (n *Node) getAddrFromGithub() {
 			if n.Has(addr) || n.nodeInfo.blacklist.Has(addr) {
 				return
 			}
-			pub.FIFOPub(addr, "addr")
+			n.pubsub.FIFOPub(addr, "addr")
 
 		}
 	}
@@ -114,7 +114,7 @@ func (n *Node) getAddrFromOnline() {
 				//先把seed 排除在外
 				rangeCount++
 				if rangeCount < maxOutBoundNum {
-					pub.FIFOPub(addr, "addr")
+					n.pubsub.FIFOPub(addr, "addr")
 				}
 
 			}
@@ -178,11 +178,11 @@ func (n *Node) getAddrFromOnline() {
 						//如果连接了其他节点，优先不连接种子节点
 						if _, ok := seedsMap[addr]; !ok {
 							//先把seed 排除在外
-							pub.FIFOPub(addr, "addr")
+							n.pubsub.FIFOPub(addr, "addr")
 
 						}
 					} else {
-						pub.FIFOPub(addr, "addr")
+						n.pubsub.FIFOPub(addr, "addr")
 					}
 
 				}
@@ -221,7 +221,7 @@ func (n *Node) getAddrFromAddrBook() {
 				log.Debug("GetAddrFromOffline", "Add addr", addr.String())
 
 				if n.needMore() || n.CacheBoundsSize() < maxOutBoundNum {
-					pub.FIFOPub(addr.String(), "addr")
+					n.pubsub.FIFOPub(addr.String(), "addr")
 
 				}
 			}
@@ -361,7 +361,7 @@ func (n *Node) monitorPeers() {
 
 					for addr := range addrMap {
 						if !n.Has(addr) && !n.nodeInfo.blacklist.Has(addr) {
-							pub.FIFOPub(addr, "addr")
+							n.pubsub.FIFOPub(addr, "addr")
 						}
 					}
 
@@ -403,7 +403,7 @@ func (n *Node) monitorPeerInfo() {
 //并发连接节点地址
 func (n *Node) monitorDialPeers() {
 	var dialCount int
-	addrChan := pub.Sub("addr")
+	addrChan := n.pubsub.Sub("addr")
 	p2pcli := NewNormalP2PCli()
 	for addr := range addrChan {
 
@@ -433,7 +433,7 @@ func (n *Node) monitorDialPeers() {
 
 		//注册的节点超过最大节点数暂不连接
 		if !n.needMore() && n.CacheBoundsSize() >= maxOutBoundNum {
-			pub.FIFOPub(addr, "addr")
+			n.pubsub.FIFOPub(addr, "addr")
 			time.Sleep(time.Second * 10)
 			continue
 		}
@@ -441,7 +441,7 @@ func (n *Node) monitorDialPeers() {
 		log.Info("DialPeers", "peer", netAddr.String())
 		//并发连接节点，增加连接效率
 		if dialCount >= maxOutBoundNum*2 {
-			pub.FIFOPub(addr, "addr")
+			n.pubsub.FIFOPub(addr, "addr")
 			time.Sleep(time.Second * 10)
 			dialCount = len(n.GetRegisterPeers()) + n.CacheBoundsSize()
 			continue
@@ -452,7 +452,7 @@ func (n *Node) monitorDialPeers() {
 		log.Info("monitorDialPeer", "dialCount", dialCount)
 		go func(netAddr *NetAddress) {
 			defer Filter.RemoveRecvData(netAddr.String())
-			peer, err := P2pComm.dialPeer(netAddr, &n.nodeInfo)
+			peer, err := P2pComm.dialPeer(netAddr, n)
 			if err != nil {
 				//连接失败后
 				n.nodeInfo.addrBook.RemoveAddr(netAddr.String())

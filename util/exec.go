@@ -31,7 +31,11 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	//tx交易去重处理, 这个地方要查询数据库，需要一个更快的办法
 	cacheTxs := types.TxsToCache(block.Txs)
 	oldtxscount := len(cacheTxs)
-	//cacheTxs = CheckTxDup(client, cacheTxs, block.Height)
+	var err error
+	cacheTxs, err = CheckTxDup(client, cacheTxs, block.Height)
+	if err != nil {
+		return nil, nil, err
+	}
 	newtxscount := len(cacheTxs)
 	if oldtxscount != newtxscount && errReturn {
 		return nil, nil, types.ErrTxDup
@@ -118,7 +122,8 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	if kvset != nil {
 		ExecKVSetCommit(client, block.StateHash)
 	}
-
+	detail.KV = kvset
+	detail.PrevStatusHash = prevStateRoot
 	//get receipts
 	//save kvset and get state hash
 	//ulog.Debug("blockdetail-->", "detail=", detail)
@@ -203,18 +208,22 @@ func CheckTxDupInner(txs []*types.TransactionCache) (ret []*types.TransactionCac
 	return ret
 }
 
-func CheckTxDup(client queue.Client, txs []*types.TransactionCache, height int64) (transactions []*types.TransactionCache) {
+func CheckTxDup(client queue.Client, txs []*types.TransactionCache, height int64) (transactions []*types.TransactionCache, err error) {
 	var checkHashList types.TxHashList
 	if height >= types.ForkV1 {
 		txs = CheckTxDupInner(txs)
 	}
 	for _, tx := range txs {
-		hash := tx.Hash()
-		checkHashList.Hashes = append(checkHashList.Hashes, hash)
+		checkHashList.Hashes = append(checkHashList.Hashes, tx.Hash())
+		checkHashList.Expire = append(checkHashList.Expire, tx.GetExpire())
 	}
+	checkHashList.Count = height
 	hashList := client.NewMessage("blockchain", types.EventTxHashList, &checkHashList)
 	client.Send(hashList, true)
-	dupTxList, _ := client.Wait(hashList)
+	dupTxList, err := client.Wait(hashList)
+	if err != nil {
+		return nil, err
+	}
 	dupTxs := dupTxList.GetData().(*types.TxHashList).Hashes
 	dupMap := make(map[string]bool)
 	for _, hash := range dupTxs {
@@ -228,7 +237,7 @@ func CheckTxDup(client queue.Client, txs []*types.TransactionCache, height int64
 		}
 		transactions = append(transactions, tx)
 	}
-	return transactions
+	return transactions, nil
 }
 
 //上报指定错误信息到指定模块，目前只支持从store，blockchain，wallet写数据库失败时上报错误信息到wallet模块，

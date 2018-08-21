@@ -6,14 +6,15 @@ import (
 	"time"
 
 	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-const name = "coins"
-
+var name string
 var tlog = log.New("module", name)
 
 func Init() {
+	name = types.ExecName("coins")
 	// init executor type
 	types.RegistorExecutor(name, &CoinsType{})
 
@@ -42,7 +43,7 @@ type CoinsType struct {
 }
 
 func (coins CoinsType) GetRealToAddr(tx *types.Transaction) string {
-	if string(tx.Execer) == name {
+	if string(tx.Execer) == "coins" {
 		return tx.To
 	}
 	var action types.CoinsAction
@@ -52,6 +53,10 @@ func (coins CoinsType) GetRealToAddr(tx *types.Transaction) string {
 	}
 	if action.Ty == types.CoinsActionTransfer && action.GetTransfer() != nil {
 		return action.GetTransfer().GetTo()
+	} else if action.Ty == types.CoinsActionTransferToExec && action.GetTransferToExec() != nil {
+		return action.GetTransferToExec().GetTo()
+	} else if action.Ty == types.CoinsActionWithdraw && action.GetWithdraw() != nil {
+		return action.GetWithdraw().GetTo()
 	}
 	return tx.To
 }
@@ -104,7 +109,6 @@ func (coins CoinsType) CreateTx(action string, message json.RawMessage) (*types.
 		tlog.Error("CreateTx", "Error", err)
 		return nil, types.ErrInputPara
 	}
-
 	if param.ExecName != "" && !types.IsAllowExecName(param.ExecName) {
 		tlog.Error("CreateTx", "Error", types.ErrExecNameNotMatch)
 		return nil, types.ErrExecNameNotMatch
@@ -138,23 +142,30 @@ func (coins CoinsType) CreateTx(action string, message json.RawMessage) (*types.
 
 func CreateCoinsTransfer(param *types.CreateTx) *types.Transaction {
 	transfer := &types.CoinsAction{}
+	to := ""
+	if types.IsPara() {
+		to = param.GetTo()
+	}
 	if !param.IsWithdraw {
 		if param.ExecName != "" {
 			v := &types.CoinsAction_TransferToExec{TransferToExec: &types.CoinsTransferToExec{
-				Amount: param.Amount, Note: param.GetNote(), ExecName: param.GetExecName()}}
+				Amount: param.Amount, Note: param.GetNote(), ExecName: param.GetExecName(), To: to}}
 			transfer.Value = v
 			transfer.Ty = types.CoinsActionTransferToExec
 		} else {
 			v := &types.CoinsAction_Transfer{Transfer: &types.CoinsTransfer{
-				Amount: param.Amount, Note: param.GetNote()}}
+				Amount: param.Amount, Note: param.GetNote(), To: to}}
 			transfer.Value = v
 			transfer.Ty = types.CoinsActionTransfer
 		}
 	} else {
 		v := &types.CoinsAction_Withdraw{Withdraw: &types.CoinsWithdraw{
-			Amount: param.Amount, Note: param.GetNote()}}
+			Amount: param.Amount, Note: param.GetNote(), ExecName: param.GetExecName(), To: to}}
 		transfer.Value = v
 		transfer.Ty = types.CoinsActionWithdraw
+	}
+	if types.IsPara() {
+		return &types.Transaction{Execer: []byte(name), Payload: types.Encode(transfer), To: address.ExecAddress(name)}
 	}
 	return &types.Transaction{Execer: []byte(name), Payload: types.Encode(transfer), To: param.GetTo()}
 }

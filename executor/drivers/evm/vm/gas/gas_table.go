@@ -137,11 +137,11 @@ func GasSStore(gt GasTable, evm *params.EVMParam, contractGas *params.GasParam, 
 	)
 
 	// 三种场景消耗的Gas是不一样的
-	if common.EmptyHash(val) && !common.EmptyHash(common.BigToHash(y)) {
+	if val == (common.Hash{}) && y.Sign() != 0 {
 		// 从零值地址到非零值地址存储， 赋值的情况
 		// 0 => non 0
 		return params.SstoreSetGas, nil
-	} else if !common.EmptyHash(val) && common.EmptyHash(common.BigToHash(y)) {
+	} else if val != (common.Hash{}) && y.Sign() == 0 {
 		// 从非零值地址到零值地址存储， 删除值的情况
 		// non 0 => 0
 		evm.StateDB.AddRefund(params.SstoreRefundGas)

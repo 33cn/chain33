@@ -6,6 +6,7 @@ Package types is a generated protocol buffer package.
 
 It is generated from these files:
 	account.proto
+	blackwhite.proto
 	blockchain.proto
 	common.proto
 	config.proto
@@ -34,6 +35,22 @@ It has these top-level messages:
 	ReplyAccountTokenAssets
 	ExecAccount
 	AllExecBalance
+	AddressResult
+	BlackwhiteRound
+	BlackwhiteAction
+	BlackwhiteCreate
+	BlackwhitePlay
+	BlackwhiteShow
+	BlackwhiteTimeoutDone
+	ReceiptBlackwhite
+	ReceiptBlackwhiteStatus
+	ReqBlackwhiteRoundInfo
+	ReplyBlackwhiteRoundInfo
+	ReqBlackwhiteRoundList
+	ReplyBlackwhiteRoundList
+	ReqLoopResult
+	PerLoopResult
+	ReplyLoopResults
 	Header
 	Block
 	Blocks
@@ -84,6 +101,7 @@ It has these top-level messages:
 	P2P
 	Rpc
 	Exec
+	Authority
 	Pprof
 	LeafNode
 	InnerNode
@@ -143,6 +161,9 @@ It has these top-level messages:
 	Norm
 	NormAction
 	NormPut
+	Cert
+	CertAction
+	CertPut
 	RetrievePara
 	Retrieve
 	RetrieveAction
@@ -170,6 +191,7 @@ It has these top-level messages:
 	ManageAction
 	ReceiptConfig
 	ReplyConfig
+	HistoryCertStore
 	PrivacyAction
 	Public2Privacy
 	Privacy2Privacy
@@ -192,6 +214,15 @@ It has these top-level messages:
 	ReceiptPrivacyOutput
 	AmountsOfUTXO
 	TokenNamesOfUTXO
+	UTXOGlobalIndex4Print
+	KeyInput4Print
+	KeyOutput4Print
+	PrivacyInput4Print
+	PrivacyOutput4Print
+	Public2Privacy4Print
+	Privacy2Privacy4Print
+	Privacy2Public4Print
+	PrivacyAction4Print
 	Trade
 	TradeForSell
 	TradeForBuy
@@ -223,10 +254,12 @@ It has these top-level messages:
 	GameMatch
 	GameCancel
 	GameClose
-	GameOpen
-	GameList
-	GameInfos
+	GameCreate
+	QueryGameListByStatusAndAddr
+	QueryGameInfo
+	QueryGameInfos
 	ReplyGameList
+	ReplyGame
 	ReceiptGame
 	P2PGetPeerInfo
 	P2PPeerInfo
@@ -286,6 +319,7 @@ It has these top-level messages:
 	Vin
 	Vout
 	BtcSpv
+	RelayLastRcvBtcHeader
 	ReceiptRelayRcvBTCHeaders
 	ReceiptRelayLog
 	ReqRelayAddrCoins
@@ -303,7 +337,9 @@ It has these top-level messages:
 	TicketStatistic
 	TicketMinerInfo
 	CreateTx
+	CreateTransactionGroup
 	UnsignTx
+	NoBalanceTx
 	SignedTx
 	Transaction
 	Transactions
@@ -391,6 +427,14 @@ It has these top-level messages:
 	ReqCreateCacheTxKey
 	ReqBindMiner
 	ReplyBindMiner
+	ReqPrivacyTransactionList
+	ReqRescanUtxos
+	RepRescanResult
+	RepRescanUtxos
+	ReqEnablePrivacy
+	PriAddrResult
+	RepEnablePrivacy
+	PrivacySignatureParam
 */
 package types
 

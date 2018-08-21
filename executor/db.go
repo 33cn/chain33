@@ -1,6 +1,8 @@
 package executor
 
 import (
+	"encoding/hex"
+
 	"gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -12,43 +14,101 @@ type StateDB struct {
 	intx      bool
 	client    queue.Client
 	stateHash []byte
+	version   int64
+	height    int64
+	local     *db.SimpleMVCC
+	flagMVCC  int64
+	opt       *StateDBOption
 }
 
-func NewStateDB(client queue.Client, stateHash []byte) db.KV {
-	return &StateDB{
+type StateDBOption struct {
+	EnableMVCC bool
+	FlagMVCC   int64
+	Height     int64
+}
+
+func NewStateDB(client queue.Client, stateHash []byte, localdb db.KVDB, opt *StateDBOption) db.KV {
+	if opt == nil {
+		opt = &StateDBOption{}
+	}
+	db := &StateDB{
 		cache:     make(map[string][]byte),
 		txcache:   make(map[string][]byte),
 		intx:      false,
 		client:    client,
 		stateHash: stateHash,
+		height:    opt.Height,
+		version:   -1,
+		local:     db.NewSimpleMVCC(localdb),
+		opt:       opt,
+	}
+	return db
+}
+
+func (s *StateDB) enableMVCC() {
+	opt := s.opt
+	if opt.EnableMVCC {
+		v, err := s.local.GetVersion(s.stateHash)
+		if err == nil && v >= 0 {
+			s.version = v
+		} else if s.height > 0 {
+			println("init state db", "height", s.height, "err", err.Error(), "v", v, "stateHash", hex.EncodeToString(s.stateHash))
+			panic("mvcc get version error,config set enableMVCC=true, it must be synchronized from 0 height")
+		}
+		s.flagMVCC = opt.FlagMVCC
 	}
 }
 
 func (s *StateDB) Begin() {
 	s.intx = true
-}
-
-func (s *StateDB) Rollback() {
-	s.intx = false
-	s.txcache = make(map[string][]byte)
-}
-
-func (s *StateDB) Commit() {
-	s.intx = false
-	for k, v := range s.txcache {
-		s.cache[k] = v
+	if types.IsMatchFork(s.height, types.ForkV22ExecRollback) {
+		s.txcache = nil
 	}
 }
 
+func (s *StateDB) Rollback() {
+	s.resetTx()
+}
+
+func (s *StateDB) Commit() {
+	for k, v := range s.txcache {
+		s.cache[k] = v
+	}
+	s.intx = false
+	if types.IsMatchFork(s.height, types.ForkV22ExecRollback) {
+		s.resetTx()
+	}
+}
+
+func (s *StateDB) resetTx() {
+	s.intx = false
+	s.txcache = nil
+}
+
 func (s *StateDB) Get(key []byte) ([]byte, error) {
+	v, err := s.get(key)
+	debugAccount("==get==", key, v)
+	return v, err
+}
+
+func (s *StateDB) get(key []byte) ([]byte, error) {
 	skey := string(key)
-	if s.intx {
+	if s.intx && s.txcache != nil {
 		if value, ok := s.txcache[skey]; ok {
 			return value, nil
 		}
 	}
 	if value, ok := s.cache[skey]; ok {
 		return value, nil
+	}
+	//mvcc 是有效的情况下，直接从mvcc中获取
+	if s.version >= 0 {
+		data, err := s.local.GetV(key, s.version)
+		//TODO 这里需要一个标志，数据是否是从0开始同步的
+		return data, err
+	}
+	if s.client == nil {
+		return nil, types.ErrNotFound
 	}
 	query := &types.StoreGet{s.stateHash, [][]byte{key}}
 	msg := s.client.NewMessage("store", types.EventStoreGet, query)
@@ -70,29 +130,49 @@ func (s *StateDB) Get(key []byte) ([]byte, error) {
 	return value, nil
 }
 
+func debugAccount(prefix string, key []byte, value []byte) {
+	//println(prefix, string(key), value)
+	if !types.Debug {
+		return
+	}
+	var msg types.Account
+	err := types.Decode(value, &msg)
+	if err == nil {
+		elog.Info(prefix, "key", string(key), "value", msg)
+	}
+}
+
 func (s *StateDB) Set(key []byte, value []byte) error {
+	debugAccount("==set==", key, value)
 	skey := string(key)
 	if s.intx {
-		s.txcache[skey] = value
+		if s.txcache == nil {
+			s.txcache = make(map[string][]byte)
+		}
+		setmap(s.txcache, skey, value)
 	} else {
-		s.cache[skey] = value
+		setmap(s.cache, skey, value)
 	}
 	return nil
 }
 
-func (db *StateDB) BatchGet(keys [][]byte) (value [][]byte, err error) {
-	query := &types.StoreGet{db.stateHash, keys}
-	msg := db.client.NewMessage("store", types.EventStoreGet, query)
-	db.client.Send(msg, true)
-	resp, err := db.client.Wait(msg)
-	if err != nil {
-		panic(err) //no happen for ever
-	}
-	value = resp.GetData().(*types.StoreReplyValue).Values
+func setmap(data map[string][]byte, key string, value []byte) {
 	if value == nil {
-		return nil, types.ErrNotFound
+		delete(data, key)
+		return
 	}
-	return value, nil
+	data[key] = value
+}
+
+func (db *StateDB) BatchGet(keys [][]byte) (values [][]byte, err error) {
+	for _, key := range keys {
+		v, err := db.Get(key)
+		if err != nil && err != types.ErrNotFound {
+			return nil, err
+		}
+		values = append(values, v)
+	}
+	return values, nil
 }
 
 type LocalDB struct {
@@ -106,6 +186,12 @@ func NewLocalDB(client queue.Client) db.KVDB {
 }
 
 func (l *LocalDB) Get(key []byte) ([]byte, error) {
+	value, err := l.get(key)
+	debugAccount("==lget==", key, value)
+	return value, err
+}
+
+func (l *LocalDB) get(key []byte) ([]byte, error) {
 	if value, ok := l.cache[string(key)]; ok {
 		return value, nil
 	}
@@ -130,22 +216,18 @@ func (l *LocalDB) Get(key []byte) ([]byte, error) {
 }
 
 func (l *LocalDB) Set(key []byte, value []byte) error {
-	l.cache[string(key)] = value
+	debugAccount("==lset==", key, value)
+	setmap(l.cache, string(key), value)
 	return nil
 }
 
 func (db *LocalDB) BatchGet(keys [][]byte) (values [][]byte, err error) {
-	query := &types.LocalDBGet{keys}
-	msg := db.client.NewMessage("blockchain", types.EventLocalGet, query)
-	db.client.Send(msg, true)
-	resp, err := db.client.Wait(msg)
-	if err != nil {
-		panic(err) //no happen for ever
-	}
-	values = resp.GetData().(*types.LocalReplyValue).Values
-	if values == nil {
-		//panic(string(key))
-		return nil, types.ErrNotFound
+	for _, key := range keys {
+		v, err := db.Get(key)
+		if err != nil && err != types.ErrNotFound {
+			return nil, err
+		}
+		values = append(values, v)
 	}
 	return values, nil
 }

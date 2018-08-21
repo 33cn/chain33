@@ -13,6 +13,8 @@ import (
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
+	"gitlab.33.cn/chain33/chain33/common/crypto/sha3"
+	common2 "gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 	"gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -33,9 +35,72 @@ func EvmCmd() *cobra.Command {
 		EvmTransferCmd(),
 		EvmWithdrawCmd(),
 		GetEvmBalanceCmd(),
+		EvmToolsCmd(),
 	)
 
 	return cmd
+}
+
+// some tools for evm op
+func EvmToolsCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "tool",
+		Short: "Some tools for evm op",
+	}
+	cmd.AddCommand(EvmToolsAddressCmd())
+	return cmd
+}
+
+// transfer address format between ethereum and chain33
+func EvmToolsAddressCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "address",
+		Short: "Transfer address format between ethereum and local (you should input one address of them)",
+		Run:   transferAddress,
+	}
+	addEvmAddressFlags(cmd)
+	return cmd
+}
+
+func addEvmAddressFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("eth", "e", "", "ethereum address")
+
+	cmd.Flags().StringP("local", "l", "", "evm contract address (like user.evm.xxx or plain address)")
+}
+
+func transferAddress(cmd *cobra.Command, args []string) {
+	eth, _ := cmd.Flags().GetString("eth")
+	local, _ := cmd.Flags().GetString("local")
+	if len(eth) == 40 || len(eth) == 42 {
+		data, err := common.FromHex(eth)
+		if err != nil {
+			fmt.Println(fmt.Errorf("ethereum address is invalid: %v", eth))
+			return
+		}
+		fmt.Println(fmt.Sprintf("Ethereum Address: %v", eth))
+		fmt.Println(fmt.Sprintf("Local Address: %v", common2.BytesToAddress(data).String()))
+		return
+	}
+	if len(local) >= 34 {
+		var addr common2.Address
+		if strings.HasPrefix(local, types.UserEvmX) {
+			addr = common2.ExecAddress(local)
+			fmt.Println(fmt.Sprintf("Local Contract Name: %v", local))
+			fmt.Println(fmt.Sprintf("Local Address: %v", addr.String()))
+		} else {
+			addrP := common2.StringToAddress(local)
+			if addrP == nil {
+				fmt.Println(fmt.Errorf("Local address is invalid: %v", local))
+				return
+			}
+			addr = *addrP
+			fmt.Println(fmt.Sprintf("Local Address: %v", local))
+		}
+		fmt.Println(fmt.Sprintf("Ethereum Address: %v", ChecksumAddr(addr.Bytes())))
+
+		return
+	}
+	fmt.Fprintln(os.Stderr, "address is invalid!")
 }
 
 // get balance of an execer
@@ -87,6 +152,7 @@ func createContract(cmd *cobra.Command, args []string) {
 	alias, _ := cmd.Flags().GetString("alias")
 	fee, _ := cmd.Flags().GetFloat64("fee")
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	paraName, _ := cmd.Flags().GetString("paraName")
 
 	feeInt64 := uint64(fee*1e4) * 1e4
 
@@ -97,7 +163,7 @@ func createContract(cmd *cobra.Command, args []string) {
 	}
 	action := types.EVMContractAction{Amount: 0, Code: bCode, GasLimit: 0, GasPrice: 0, Note: note, Alias: alias}
 
-	data, err := createEvmTx(&action, "evm", caller, address.ExecAddress("evm"), expire, rpcLaddr, feeInt64)
+	data, err := createEvmTx(&action, types.ExecName(paraName+"evm"), caller, address.ExecAddress(types.ExecName(paraName+"evm")), expire, rpcLaddr, feeInt64)
 
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "create contract error:", err)
@@ -147,20 +213,23 @@ func createEvmTx(action proto.Message, execer, caller, addr, expire, rpcLaddr st
 	return res, nil
 }
 
-func createEvmTransferTx(caller, execName, expire, rpcLaddr string, amountInt64 int64, isWithdraw bool) (string, error) {
-
+func createEvmTransferTx(cmd *cobra.Command, caller, execName, expire, rpcLaddr string, amountInt64 int64, isWithdraw bool) (string, error) {
+	paraName, _ := cmd.Flags().GetString("paraName")
 	var tx *types.Transaction
 	transfer := &types.CoinsAction{}
 
 	if isWithdraw {
-		transfer.Value = &types.CoinsAction_Withdraw{Withdraw: &types.CoinsWithdraw{Amount: amountInt64, ExecName: execName}}
+		transfer.Value = &types.CoinsAction_Withdraw{Withdraw: &types.CoinsWithdraw{Amount: amountInt64, ExecName: execName, To: address.ExecAddress(execName)}}
 		transfer.Ty = types.CoinsActionWithdraw
 	} else {
-		transfer.Value = &types.CoinsAction_TransferToExec{TransferToExec: &types.CoinsTransferToExec{Amount: amountInt64, ExecName: execName}}
+		transfer.Value = &types.CoinsAction_TransferToExec{TransferToExec: &types.CoinsTransferToExec{Amount: amountInt64, ExecName: execName, To: address.ExecAddress(execName)}}
 		transfer.Ty = types.CoinsActionTransferToExec
 	}
-
-	tx = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), To: address.ExecAddress(execName)}
+	if paraName == "" {
+		tx = &types.Transaction{Execer: []byte(types.ExecName(paraName + "coins")), Payload: types.Encode(transfer), To: address.ExecAddress(execName)}
+	} else {
+		tx = &types.Transaction{Execer: []byte(types.ExecName(paraName + "coins")), Payload: types.Encode(transfer), To: address.ExecAddress(types.ExecName(paraName + "coins"))}
+	}
 
 	var err error
 	tx.Fee, err = tx.GetRealFee(types.MinFee)
@@ -228,6 +297,7 @@ func callContract(cmd *cobra.Command, args []string) {
 
 	action := types.EVMContractAction{Amount: amountInt64, Code: bCode, GasLimit: 0, GasPrice: 0, Note: note}
 
+	//name表示发给哪个执行器
 	data, err := createEvmTx(&action, name, caller, toAddr, expire, rpcLaddr, feeInt64)
 
 	if err != nil {
@@ -338,7 +408,7 @@ func checkContractAddr(cmd *cobra.Command, args []string) {
 	name, _ := cmd.Flags().GetString("exec")
 	toAddr := to
 	if len(toAddr) == 0 && len(name) > 0 {
-		if strings.HasPrefix(name, "user.evm.") {
+		if strings.Contains(name, types.UserEvmX) {
 			toAddr = address.ExecAddress(name)
 		}
 	}
@@ -364,21 +434,51 @@ func checkContractAddr(cmd *cobra.Command, args []string) {
 func EvmDebugCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "debug",
-		Short: "Query current debug status (default) or set debug flag ( -s flag)",
-		Run:   evmDebug,
+		Short: "Query or set evm debug status",
 	}
-	addEvmDebugFlags(cmd)
+	cmd.AddCommand(
+		EvmDebugQueryCmd(),
+		EvmDebugSetCmd(),
+		EvmDebugClearCmd())
+
 	return cmd
 }
 
-func addEvmDebugFlags(cmd *cobra.Command) {
-	cmd.Flags().IntP("set", "s", 0, "set debug flag (>0 to true, <0 to false optional)")
+func EvmDebugQueryCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "query",
+		Short: "Query evm debug status",
+		Run:   evmDebugQuery,
+	}
+}
+func EvmDebugSetCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "set",
+		Short: "Set evm debug to ON",
+		Run:   evmDebugSet,
+	}
+}
+func EvmDebugClearCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "clear",
+		Short: "Set evm debug to OFF",
+		Run:   evmDebugClear,
+	}
 }
 
-func evmDebug(cmd *cobra.Command, args []string) {
-	debug, _ := cmd.Flags().GetInt("set")
+func evmDebugQuery(cmd *cobra.Command, args []string) {
+	evmDebugRpc(cmd, 0)
+}
 
-	var debugReq = types.EvmDebugReq{Optype: int32(debug)}
+func evmDebugSet(cmd *cobra.Command, args []string) {
+	evmDebugRpc(cmd, 1)
+}
+
+func evmDebugClear(cmd *cobra.Command, args []string) {
+	evmDebugRpc(cmd, -1)
+}
+func evmDebugRpc(cmd *cobra.Command, flag int32) {
+	var debugReq = types.EvmDebugReq{Optype: flag}
 	var debugResp types.EvmDebugResp
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	query := sendQuery(rpcLaddr, "EvmDebug", debugReq, &debugResp)
@@ -423,7 +523,7 @@ func evmTransfer(cmd *cobra.Command, args []string) {
 
 	amountInt64 := int64(amount*1e4) * 1e4
 
-	data, err := createEvmTransferTx(caller, to, expire, rpcLaddr, amountInt64, false)
+	data, err := createEvmTransferTx(cmd, caller, to, expire, rpcLaddr, amountInt64, false)
 
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "create contract transfer error:", err)
@@ -471,7 +571,7 @@ func evmWithdraw(cmd *cobra.Command, args []string) {
 
 	amountInt64 := int64(amount*1e4) * 1e4
 
-	data, err := createEvmTransferTx(caller, from, expire, rpcLaddr, amountInt64, true)
+	data, err := createEvmTransferTx(cmd, caller, from, expire, rpcLaddr, amountInt64, true)
 
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "create contract transfer error:", err)
@@ -505,4 +605,26 @@ func sendQuery(rpcAddr, funcName string, request, result interface{}) bool {
 		return false
 	}
 	return true
+}
+
+// 这里实现 EIP55中提及的以太坊地址表示方式（增加Checksum）
+func ChecksumAddr(address []byte) string {
+	unchecksummed := hex.EncodeToString(address[:])
+	sha := sha3.NewKeccak256()
+	sha.Write([]byte(unchecksummed))
+	hash := sha.Sum(nil)
+
+	result := []byte(unchecksummed)
+	for i := 0; i < len(result); i++ {
+		hashByte := hash[i/2]
+		if i%2 == 0 {
+			hashByte = hashByte >> 4
+		} else {
+			hashByte &= 0xf
+		}
+		if result[i] > '9' && hashByte > 7 {
+			result[i] -= 32
+		}
+	}
+	return "0x" + string(result)
 }

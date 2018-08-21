@@ -22,16 +22,35 @@ func NewMemory() *Memory {
 
 // 设置内存中的值， value => offset:offset + size
 func (m *Memory) Set(offset, size uint64, value []byte) (err error) {
-	// 偏移量+大小一定不会大于内存长度
-	if size > uint64(len(m.Store)) {
-		err = fmt.Errorf("INVALID memory access, memory size:%v, offset:%v, size:%v", len(m.Store), offset, size)
-		log15.Crit(err.Error())
-		return err
-	}
-
 	if size > 0 {
+		// 偏移量+大小一定不会大于内存长度
+		if offset+size > uint64(len(m.Store)) {
+			err = fmt.Errorf("INVALID memory access, memory size:%v, offset:%v, size:%v", len(m.Store), offset, size)
+			log15.Crit(err.Error())
+			//panic("invalid memory: store empty")
+			return err
+		}
 		copy(m.Store[offset:offset+size], value)
 	}
+	return nil
+}
+
+// 从offset开始设置32个字节的内存值，如果值长度不足32个字节，左零值填充
+func (m *Memory) Set32(offset uint64, val *big.Int) (err error) {
+
+	// 确保长度足够设置值
+	if offset+32 > uint64(len(m.Store)) {
+		err = fmt.Errorf("INVALID memory access, memory size:%v, offset:%v, size:%v", len(m.Store), offset, 32)
+		log15.Crit(err.Error())
+		//panic("invalid memory: store empty")
+		return err
+	}
+	// 先填充零值
+	copy(m.Store[offset:offset+32], []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
+
+	// 再设置值
+	common.ReadBits(val, m.Store[offset:offset+32])
+
 	return nil
 }
 

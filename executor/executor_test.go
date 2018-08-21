@@ -17,6 +17,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
+	"gitlab.33.cn/chain33/chain33/p2p"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/store"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -57,7 +58,7 @@ func getprivkey(key string) crypto.PrivKey {
 	return priv
 }
 
-func initEnv() (queue.Queue, queue.Module, queue.Module) {
+func initEnv() (queue.Queue, queue.Module, queue.Module, queue.Module) {
 	var q = queue.New("channel")
 	cfg = config.InitCfg("../cmd/chain33/chain33.test.toml")
 	cfg.Consensus.Minerstart = false
@@ -68,7 +69,10 @@ func initEnv() (queue.Queue, queue.Module, queue.Module) {
 	types.SetMinFee(0)
 	s := store.New(cfg.Store)
 	s.SetQueueClient(q.Client())
-	return q, chain, s
+	network := p2p.New(cfg.P2P)
+	network.SetQueueClient(q.Client())
+
+	return q, chain, s, network
 }
 
 func createTx(priv crypto.PrivKey, to string, amount int64) *types.Transaction {
@@ -165,10 +169,11 @@ func createGenesisBlock() *types.Block {
 }
 
 func TestExecGenesisBlock(t *testing.T) {
-	q, chain, s := initEnv()
+	q, chain, s, p2p := initEnv()
 	defer chain.Close()
 	defer s.Close()
 	defer q.Close()
+	defer p2p.Close()
 	block := createGenesisBlock()
 	_, _, err := ExecBlock(q.Client(), zeroHash[:], block, false, true)
 	if err != nil {
@@ -176,13 +181,14 @@ func TestExecGenesisBlock(t *testing.T) {
 	}
 }
 func TestTxGroup(t *testing.T) {
-	q, chain, s := initEnv()
+	q, chain, s, p2p := initEnv()
 	prev := types.MinFee
 	types.SetMinFee(100000)
 	defer types.SetMinFee(prev)
 	defer chain.Close()
 	defer s.Close()
 	defer q.Close()
+	defer p2p.Close()
 	block := createGenesisBlock()
 	_, _, err := ExecBlock(q.Client(), zeroHash[:], block, false, true)
 	if err != nil {
@@ -267,7 +273,7 @@ func TestTxGroup(t *testing.T) {
 }
 
 func TestExecAllow(t *testing.T) {
-	q, chain, s := initEnv()
+	q, chain, s, p2p := initEnv()
 	prev := types.MinFee
 	types.SetMinFee(100000)
 	defer types.SetMinFee(prev)
@@ -275,6 +281,7 @@ func TestExecAllow(t *testing.T) {
 	defer chain.Close()
 	defer s.Close()
 	defer q.Close()
+	defer p2p.Close()
 	block := createGenesisBlock()
 	_, _, err := ExecBlock(q.Client(), zeroHash[:], block, false, true)
 	if err != nil {
@@ -366,11 +373,11 @@ func execAndCheckBlockCB(t *testing.T, qclient queue.Client,
 }
 
 func TestExecBlock2(t *testing.T) {
-	q, chain, s := initEnv()
+	q, chain, s, p2p := initEnv()
 	defer chain.Close()
 	defer s.Close()
 	defer q.Close()
-
+	defer p2p.Close()
 	block := createGenesisBlock()
 	detail, _, err := ExecBlock(q.Client(), zeroHash[:], block, false, true)
 	if err != nil {
@@ -416,7 +423,7 @@ func TestExecBlock2(t *testing.T) {
 }
 
 func printAccount(t *testing.T, qclient queue.Client, stateHash []byte, addr string) {
-	statedb := NewStateDB(qclient, stateHash)
+	statedb := NewStateDB(qclient, stateHash, nil, nil)
 	acc := account.NewCoinsAccount()
 	acc.SetDB(statedb)
 	t.Log(acc.LoadAccount(addr))
@@ -442,10 +449,11 @@ func createNewBlock(t *testing.T, parent *types.Block, txs []*types.Transaction)
 }
 
 func TestExecBlock(t *testing.T) {
-	q, chain, s := initEnv()
+	q, chain, s, p2p := initEnv()
 	defer chain.Close()
 	defer s.Close()
 	defer q.Close()
+	defer p2p.Close()
 	block := createBlock(10)
 	ExecBlock(q.Client(), zeroHash[:], block, false, true)
 }
@@ -457,11 +465,20 @@ func BenchmarkGenRandBlock(b *testing.B) {
 	}
 }
 
+//区块执行性能更好的一个测试
+//1. 先生成 10万个账户，每个账户转1000个币
+//2. 每个区块随机取1万比交易，然后执行
+//3. 执行1000个块，看性能曲线的变化
+//4. 排除掉网络掉影响
+//5. 先对leveldb 做一个性能的测试
+
+//区块执行新能测试
 func BenchmarkExecBlock(b *testing.B) {
-	q, chain, s := initEnv()
+	q, chain, s, p2p := initEnv()
 	defer chain.Close()
 	defer s.Close()
 	defer q.Close()
+	defer p2p.Close()
 	block := createBlock(10000)
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
@@ -504,7 +521,11 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	//tx交易去重处理, 这个地方要查询数据库，需要一个更快的办法
 	cacheTxs := types.TxsToCache(block.Txs)
 	oldtxscount := len(cacheTxs)
-	cacheTxs = util.CheckTxDup(client, cacheTxs, block.Height)
+	var err error
+	cacheTxs, err = util.CheckTxDup(client, cacheTxs, block.Height)
+	if err != nil {
+		return nil, nil, err
+	}
 	newtxscount := len(cacheTxs)
 	if oldtxscount != newtxscount && errReturn {
 		return nil, nil, types.ErrTxDup
