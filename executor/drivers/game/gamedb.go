@@ -105,9 +105,9 @@ func Key(id string) (key []byte) {
 	key = append(key, []byte(id)...)
 	return key
 }
-func CalcCountKey(status int32, countType string) (key []byte) {
+func CalcCountKey(countType string) (key []byte) {
 	key = append(key, []byte("mavl-"+types.ExecName(types.GameX)+"-")...)
-	key = append(key, []byte(fmt.Sprintf("%d:%s", status, countType))...)
+	key = append(key, []byte(fmt.Sprintf("%s", countType))...)
 	return key
 }
 
@@ -133,12 +133,15 @@ func (action *Action) saveGameToStateDB(game *types.Game) {
 	value := types.Encode(game)
 	action.db.Set(Key(game.GetGameId()), value)
 }
-func (action *Action) saveCount(status int32, countType string, height int64) {
-	action.db.Set(CalcCountKey(status, countType), []byte(strconv.FormatInt(height, 10)))
+func (action *Action) saveCount(countType string, height int64) {
+	action.db.Set(CalcCountKey(countType), []byte(strconv.FormatInt(height, 10)))
 }
-func (action *Action) updateCount(status int32, countType string) {
-	count, _ := queryCountByStatusAndCountType(action.db, status, countType)
-	action.saveCount(status, countType, count+1)
+func (action *Action) updateCount(countType string) {
+	count, err := queryCountByStatusAndCountType(action.db, countType)
+	if err != nil {
+		glog.Error("Query count have err:", err.Error())
+	}
+	action.saveCount(countType, count+1)
 }
 func (action *Action) CheckExecAccountBalance(fromAddr string, ToFrozen, ToActive int64) bool {
 	acc := action.coinsAccount.LoadExecAccount(fromAddr, action.execaddr)
@@ -174,7 +177,7 @@ func (action *Action) GameCreate(create *types.GameCreate) (*types.Receipt, erro
 	}
 	game.Index = action.GetIndex(game)
 	action.saveGameToStateDB(game)
-	action.updateCount(types.GameActionCreate, CreateCount)
+	action.updateCount(CreateCount)
 	receiptLog := action.GetReceiptLog(game)
 	logs = append(logs, receiptLog)
 	kv = append(kv, action.GetKVSet(game)...)
@@ -222,7 +225,7 @@ func (action *Action) GameMatch(match *types.GameMatch) (*types.Receipt, error) 
 	game.PrevIndex = game.GetIndex()
 	game.Index = action.GetIndex(game)
 	action.saveGameToStateDB(game)
-	action.updateCount(types.GameActionMatch, MatchCount)
+	action.updateCount(MatchCount)
 	var logs []*types.ReceiptLog
 	var kvs []*types.KeyValue
 	receiptLog := action.GetReceiptLog(game)
@@ -267,7 +270,7 @@ func (action *Action) GameCancel(cancel *types.GameCancel) (*types.Receipt, erro
 	game.PrevIndex = game.GetIndex()
 	game.Index = action.GetIndex(game)
 	action.saveGameToStateDB(game)
-	action.updateCount(types.GameActionCancel, CancelCount)
+	action.updateCount(CancelCount)
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
 	logs = append(logs, receipt.Logs...)
@@ -412,7 +415,7 @@ func (action *Action) GameClose(close *types.GameClose) (*types.Receipt, error) 
 	game.PrevIndex = game.GetIndex()
 	game.Index = action.GetIndex(game)
 	action.saveGameToStateDB(game)
-	action.updateCount(types.GameActionClose, CloseCount)
+	action.updateCount(CloseCount)
 	receiptLog := action.GetReceiptLog(game)
 	logs = append(logs, receiptLog)
 	kvs := action.GetKVSet(game)
@@ -593,24 +596,25 @@ func QueryGameListCount(db dbm.Lister, stateDB dbm.KV, param *types.QueryGameLis
 func QueryCountByStatus(stateDB dbm.KV, status int32) int64 {
 	switch status {
 	case types.GameActionCreate:
-		count, _ := queryCountByStatusAndCountType(stateDB, status, CreateCount)
+		count, _ := queryCountByStatusAndCountType(stateDB, CreateCount)
 		return count
 	case types.GameActionMatch:
-		count, _ := queryCountByStatusAndCountType(stateDB, status, MatchCount)
+		count, _ := queryCountByStatusAndCountType(stateDB, MatchCount)
 		return count
 	case types.GameActionCancel:
-		count, _ := queryCountByStatusAndCountType(stateDB, status, CancelCount)
+		count, _ := queryCountByStatusAndCountType(stateDB, CancelCount)
 		return count
 	case types.GameActionClose:
-		count, _ := queryCountByStatusAndCountType(stateDB, status, CloseCount)
+		count, _ := queryCountByStatusAndCountType(stateDB, CloseCount)
 		return count
 	}
+	glog.Error("the status only fill in 1,2,3,4!")
 	return 0
 }
-func queryCountByStatusAndCountType(stateDB dbm.KV, status int32, countType string) (int64, error) {
-	data, err := stateDB.Get(CalcCountKey(status, countType))
+func queryCountByStatusAndCountType(stateDB dbm.KV, countType string) (int64, error) {
+	data, err := stateDB.Get(CalcCountKey(countType))
 	if err != nil {
-		glog.Error("query data have err:", err.Error())
+		glog.Error("query count have err:", err.Error())
 		return 0, err
 	}
 	count, err := strconv.ParseInt(string(data), 10, 64)
