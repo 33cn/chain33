@@ -81,6 +81,9 @@ func (c *channelClient) CreateRawTransaction(param *types.CreateTx) ([]byte, err
 }
 
 func (c *channelClient) CreateRawTxGroup(param *types.CreateTransactionGroup) ([]byte, error) {
+	if param == nil || len(param.Txs) <= 1 {
+		return nil, types.ErrTxGroupCountLessThanTwo
+	}
 	var transactions []*types.Transaction
 	for _, t := range param.Txs {
 		txByte, err := hex.DecodeString(t)
