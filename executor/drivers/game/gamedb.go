@@ -129,19 +129,16 @@ func NewAction(g *Game, tx *types.Transaction, index int) *Action {
 	return &Action{g.GetCoinsAccount(), g.GetStateDB(), hash, fromaddr, g.GetBlockTime(), g.GetHeight(), g.GetAddr(), g.GetLocalDB(), index}
 }
 
-func (action *Action) saveGameToStateDB(game *types.Game) {
-	value := types.Encode(game)
-	action.db.Set(Key(game.GetGameId()), value)
-}
 func (action *Action) saveCount(countType string, height int64) {
 	action.db.Set(CalcCountKey(countType), []byte(strconv.FormatInt(height, 10)))
 }
-func (action *Action) updateCount(countType string) {
+func (action *Action) updateCount(countType string) (kvset []*types.KeyValue) {
 	count, err := queryCountByStatusAndCountType(action.db, countType)
 	if err != nil {
 		glog.Error("Query count have err:", err.Error())
 	}
-	action.saveCount(countType, count+1)
+	kvset = append(kvset, &types.KeyValue{CalcCountKey(countType), []byte(strconv.FormatInt(count+1, 10))})
+	return kvset
 }
 func (action *Action) CheckExecAccountBalance(fromAddr string, ToFrozen, ToActive int64) bool {
 	acc := action.coinsAccount.LoadExecAccount(fromAddr, action.execaddr)
@@ -176,11 +173,10 @@ func (action *Action) GameCreate(create *types.GameCreate) (*types.Receipt, erro
 		CreateTxHash:  gameId,
 	}
 	game.Index = action.GetIndex(game)
-	action.saveGameToStateDB(game)
-	action.updateCount(CreateCount)
 	receiptLog := action.GetReceiptLog(game)
 	logs = append(logs, receiptLog)
 	kv = append(kv, action.GetKVSet(game)...)
+	kv = append(kv, action.updateCount(CreateCount)...)
 	logs = append(logs, receipt.Logs...)
 	kv = append(kv, receipt.KV...)
 	receipt = &types.Receipt{types.ExecOk, kv, logs}
@@ -224,13 +220,13 @@ func (action *Action) GameMatch(match *types.GameMatch) (*types.Receipt, error) 
 	game.MatchTxHash = common.ToHex(action.txhash)
 	game.PrevIndex = game.GetIndex()
 	game.Index = action.GetIndex(game)
-	action.saveGameToStateDB(game)
-	action.updateCount(MatchCount)
+
 	var logs []*types.ReceiptLog
 	var kvs []*types.KeyValue
 	receiptLog := action.GetReceiptLog(game)
 	logs = append(logs, receiptLog)
 	kvs = append(kvs, action.GetKVSet(game)...)
+	kvs = append(kvs, action.updateCount(MatchCount)...)
 	logs = append(logs, receipt.Logs...)
 	kvs = append(kvs, receipt.KV...)
 	receipts := &types.Receipt{types.ExecOk, kvs, logs}
@@ -269,8 +265,6 @@ func (action *Action) GameCancel(cancel *types.GameCancel) (*types.Receipt, erro
 	game.CancelTxHash = common.ToHex(action.txhash)
 	game.PrevIndex = game.GetIndex()
 	game.Index = action.GetIndex(game)
-	action.saveGameToStateDB(game)
-	action.updateCount(CancelCount)
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
 	logs = append(logs, receipt.Logs...)
@@ -279,6 +273,7 @@ func (action *Action) GameCancel(cancel *types.GameCancel) (*types.Receipt, erro
 	kvs := action.GetKVSet(game)
 	kv = append(kv, receipt.KV...)
 	kv = append(kv, kvs...)
+	kv = append(kvs, action.updateCount(CancelCount)...)
 
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
 }
@@ -414,12 +409,11 @@ func (action *Action) GameClose(close *types.GameClose) (*types.Receipt, error) 
 	game.CloseTxHash = common.ToHex(action.txhash)
 	game.PrevIndex = game.GetIndex()
 	game.Index = action.GetIndex(game)
-	action.saveGameToStateDB(game)
-	action.updateCount(CloseCount)
 	receiptLog := action.GetReceiptLog(game)
 	logs = append(logs, receiptLog)
 	kvs := action.GetKVSet(game)
 	kv = append(kv, kvs...)
+	kv = append(kv, action.updateCount(CloseCount)...)
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
 }
 
