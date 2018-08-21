@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	log "github.com/inconshreveable/log15"
-	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -120,31 +119,19 @@ func (g *Game) updateIndex(log *types.ReceiptGame) (kvs []*types.KeyValue) {
 	kvs = append(kvs, addGameStatusIndex(log.Status, log.GameId, log.Index))
 	if log.Status == types.GameActionMatch {
 		kvs = append(kvs, addGameAddrIndex(log.Status, log.GameId, log.CreateAddr, log.Index))
-		prevIndex, err := g.queryIndex(log.GetGameId())
-		if err != nil {
-			panic(err) //数据损毁
-		}
-		kvs = append(kvs, delGameAddrIndex(types.GameActionCreate, log.CreateAddr, prevIndex))
-		kvs = append(kvs, delGameStatusIndex(types.GameActionCreate, prevIndex))
+		kvs = append(kvs, delGameAddrIndex(types.GameActionCreate, log.CreateAddr, log.PrevIndex))
+		kvs = append(kvs, delGameStatusIndex(types.GameActionCreate, log.PrevIndex))
 	}
 	if log.Status == types.GameActionCancel {
-		prevIndex, err := g.queryIndex(log.GetGameId())
-		if err != nil {
-			panic(err) //数据损毁
-		}
-		kvs = append(kvs, delGameAddrIndex(types.GameActionCreate, log.CreateAddr, prevIndex))
-		kvs = append(kvs, delGameStatusIndex(types.GameActionCreate, prevIndex))
+		kvs = append(kvs, delGameAddrIndex(types.GameActionCreate, log.CreateAddr, log.PrevIndex))
+		kvs = append(kvs, delGameStatusIndex(types.GameActionCreate, log.PrevIndex))
 	}
 
 	if log.Status == types.GameActionClose {
 		kvs = append(kvs, addGameAddrIndex(log.Status, log.GameId, log.MatchAddr, log.Index))
-		prevIndex, err := g.queryIndex(log.GetMatchTxHash())
-		if err != nil {
-			panic(err) //数据损毁
-		}
-		kvs = append(kvs, delGameAddrIndex(types.GameActionMatch, log.MatchAddr, prevIndex))
-		kvs = append(kvs, delGameAddrIndex(types.GameActionMatch, log.CreateAddr, prevIndex))
-		kvs = append(kvs, delGameStatusIndex(types.GameActionMatch, prevIndex))
+		kvs = append(kvs, delGameAddrIndex(types.GameActionMatch, log.MatchAddr, log.PrevIndex))
+		kvs = append(kvs, delGameAddrIndex(types.GameActionMatch, log.CreateAddr, log.PrevIndex))
+		kvs = append(kvs, delGameStatusIndex(types.GameActionMatch, log.PrevIndex))
 	}
 	return kvs
 }
@@ -157,51 +144,38 @@ func (g *Game) rollbackIndex(log *types.ReceiptGame) (kvs []*types.KeyValue) {
 
 	if log.Status == types.GameActionMatch {
 		kvs = append(kvs, delGameAddrIndex(log.Status, log.CreateAddr, log.Index))
-
-		prevIndex, err := g.queryIndex(log.GetGameId())
-		if err != nil {
-			panic(err) //数据损毁
-		}
-		kvs = append(kvs, addGameAddrIndex(types.GameActionCreate, log.GameId, log.CreateAddr, prevIndex))
-		kvs = append(kvs, addGameStatusIndex(types.GameActionCreate, log.GameId, prevIndex))
+		kvs = append(kvs, addGameAddrIndex(types.GameActionCreate, log.GameId, log.CreateAddr, log.PrevIndex))
+		kvs = append(kvs, addGameStatusIndex(types.GameActionCreate, log.GameId, log.PrevIndex))
 	}
+
 	if log.Status == types.GameActionCancel {
-		prevIndex, err := g.queryIndex(log.GetGameId())
-		if err != nil {
-			panic(err) //数据损毁
-		}
-		kvs = append(kvs, addGameAddrIndex(types.GameActionCreate, log.GameId, log.CreateAddr, prevIndex))
-		kvs = append(kvs, addGameStatusIndex(types.GameActionCreate, log.GameId, prevIndex))
+		kvs = append(kvs, addGameAddrIndex(types.GameActionCreate, log.GameId, log.CreateAddr, log.PrevIndex))
+		kvs = append(kvs, addGameStatusIndex(types.GameActionCreate, log.GameId, log.PrevIndex))
 	}
 
 	if log.Status == types.GameActionClose {
 		kvs = append(kvs, delGameAddrIndex(log.Status, log.MatchAddr, log.Index))
-
-		prevIndex, err := g.queryIndex(log.GetMatchTxHash())
-		if err != nil {
-			panic(err) //数据损毁
-		}
-		kvs = append(kvs, addGameAddrIndex(types.GameActionMatch, log.GameId, log.MatchAddr, prevIndex))
-		kvs = append(kvs, addGameAddrIndex(types.GameActionMatch, log.GameId, log.CreateAddr, prevIndex))
-		kvs = append(kvs, addGameStatusIndex(types.GameActionMatch, log.GameId, prevIndex))
+		kvs = append(kvs, addGameAddrIndex(types.GameActionMatch, log.GameId, log.MatchAddr, log.PrevIndex))
+		kvs = append(kvs, addGameAddrIndex(types.GameActionMatch, log.GameId, log.CreateAddr, log.PrevIndex))
+		kvs = append(kvs, addGameStatusIndex(types.GameActionMatch, log.GameId, log.PrevIndex))
 	}
 	return kvs
 }
 
 //根据txhash查询 index
-func (g *Game) queryIndex(txHash string) (string, error) {
-	var data types.ReqHash
-	hash, err := common.FromHex(txHash)
-	if err != nil {
-		return "", err
-	}
-	data.Hash = hash
-	d, err := g.GetApi().QueryTx(&data)
-	if err != nil {
-		return "", err
-	}
-	return fmt.Sprintf("%018d", d.GetHeight()*types.MaxTxsPerBlock+d.GetIndex()), nil
-}
+//func (g *Game) queryIndex(txHash string) (string, error) {
+//	var data types.ReqHash
+//	hash, err := common.FromHex(txHash)
+//	if err != nil {
+//		return "", err
+//	}
+//	data.Hash = hash
+//	d, err := g.GetApi().QueryTx(&data)
+//	if err != nil {
+//		return "", err
+//	}
+//	return fmt.Sprintf("%018d", d.GetHeight()*types.MaxTxsPerBlock+d.GetIndex()), nil
+//}
 func (g *Game) Query(funcName string, params []byte) (types.Message, error) {
 	if funcName == FuncName_QueryGameListByIds {
 		var info types.QueryGameInfos

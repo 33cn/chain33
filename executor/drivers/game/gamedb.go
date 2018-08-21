@@ -85,10 +85,8 @@ func (action *Action) GetReceiptLog(game *types.Game) *types.ReceiptLog {
 	r.Status = game.Status
 	r.CreateAddr = game.GetCreateAddress()
 	r.MatchAddr = game.GetMatchAddress()
-	r.MatchTxHash = game.GetMatchTxHash()
-	r.CancelTxHash = game.GetCancelTxHash()
-	r.CloseTxHash = game.GetCloseTxHash()
-	r.Index = action.GetIndex(game)
+	r.Index = game.GetIndex()
+	r.PrevIndex = game.GetPrevIndex()
 	log.Log = types.Encode(r)
 	return log
 }
@@ -174,6 +172,7 @@ func (action *Action) GameCreate(create *types.GameCreate) (*types.Receipt, erro
 		Status:        types.GameActionCreate,
 		CreateTxHash:  gameId,
 	}
+	game.Index = action.GetIndex(game)
 	action.saveGameToStateDB(game)
 	action.updateCount(types.GameActionCreate, CreateCount)
 	receiptLog := action.GetReceiptLog(game)
@@ -220,6 +219,8 @@ func (action *Action) GameMatch(match *types.GameMatch) (*types.Receipt, error) 
 	game.MatchTime = action.blocktime
 	game.Guess = match.GetGuess()
 	game.MatchTxHash = common.ToHex(action.txhash)
+	game.PrevIndex = game.GetIndex()
+	game.Index = action.GetIndex(game)
 	action.saveGameToStateDB(game)
 	action.updateCount(types.GameActionMatch, MatchCount)
 	var logs []*types.ReceiptLog
@@ -263,6 +264,8 @@ func (action *Action) GameCancel(cancel *types.GameCancel) (*types.Receipt, erro
 	game.Closetime = action.blocktime
 	game.Status = types.GameActionCancel
 	game.CancelTxHash = common.ToHex(action.txhash)
+	game.PrevIndex = game.GetIndex()
+	game.Index = action.GetIndex(game)
 	action.saveGameToStateDB(game)
 	action.updateCount(types.GameActionCancel, CancelCount)
 	var logs []*types.ReceiptLog
@@ -406,6 +409,8 @@ func (action *Action) GameClose(close *types.GameClose) (*types.Receipt, error) 
 	game.Secret = close.GetSecret()
 	game.Result = int32(result)
 	game.CloseTxHash = common.ToHex(action.txhash)
+	game.PrevIndex = game.GetIndex()
+	game.Index = action.GetIndex(game)
 	action.saveGameToStateDB(game)
 	action.updateCount(types.GameActionClose, CloseCount)
 	receiptLog := action.GetReceiptLog(game)
@@ -521,19 +526,16 @@ func queryGameListByStatusAndAddr(db dbm.Lister, stateDB dbm.KV, param *types.Qu
 			return nil, err
 		}
 		var gameIds []string
-		var index string
-		for i, value := range values {
+		for _, value := range values {
 			var record types.GameRecord
 			err := types.Decode(value, &record)
 			if err != nil {
 				continue
 			}
 			gameIds = append(gameIds, record.GetGameId())
-			if i == len(values)-1 {
-				index = record.GetIndex()
-			}
 		}
 		games := GetGameList(stateDB, gameIds)
+		index := games[len(games)-1].GetIndex()
 		if len(games) < int(count) {
 			return &types.ReplyGameListPage{games, "", ""}, nil
 		}
@@ -545,19 +547,16 @@ func queryGameListByStatusAndAddr(db dbm.Lister, stateDB dbm.KV, param *types.Qu
 			return nil, err
 		}
 		var gameIds []string
-		var index string
-		for i, value := range values {
+		for _, value := range values {
 			var record types.GameRecord
 			err := types.Decode(value, &record)
 			if err != nil {
 				continue
 			}
 			gameIds = append(gameIds, record.GetGameId())
-			if i+1 == len(values) {
-				index = record.GetIndex()
-			}
 		}
 		games := GetGameList(stateDB, gameIds)
+		index := games[len(games)-1].GetIndex()
 		if len(games) == 0 {
 			return &types.ReplyGameListPage{nil, param.GetIndex(), ""}, nil
 		}
