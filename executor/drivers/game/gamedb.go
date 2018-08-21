@@ -529,7 +529,7 @@ func queryGameListByStatusAndAddr(db dbm.Lister, stateDB dbm.KV, param *types.Qu
 				continue
 			}
 			gameIds = append(gameIds, record.GetGameId())
-			if i == len(values) {
+			if i == len(values)-1 {
 				index = record.GetIndex()
 			}
 		}
