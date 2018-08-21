@@ -1,4 +1,4 @@
-package privacybizpolicy
+package privacy
 
 import (
 	"bytes"
@@ -10,19 +10,19 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/crypto/privacy"
 	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/wallet/walletoperate"
+	wcom "gitlab.33.cn/chain33/chain33/wallet/common"
 )
 
 type PrivacyMock struct {
-	walletOp  walletoperate.WalletOperate
+	walletOp  wcom.WalletOperate
 	store     *privacyStore
-	policy    *walletPrivacyBiz
+	policy    *privacyPolicy
 	tokenName string
 	password  string
 }
 
-func (mock *PrivacyMock) Init(walletOp walletoperate.WalletOperate, password string) {
-	mock.policy = &walletPrivacyBiz{}
+func (mock *PrivacyMock) Init(walletOp wcom.WalletOperate, password string) {
+	mock.policy = &privacyPolicy{}
 
 	mock.tokenName = types.BTY
 	mock.walletOp = walletOp
@@ -47,7 +47,7 @@ func (mock *PrivacyMock) getPrivKeyByAddr(addr string) (crypto.PrivKey, error) {
 	}
 
 	password := []byte(mock.password)
-	privkey := CBCDecrypterPrivkey(password, prikeybyte)
+	privkey := wcom.CBCDecrypterPrivkey(password, prikeybyte)
 	//通过privkey生成一个pubkey然后换算成对应的addr
 	cr, err := crypto.New(types.GetSignatureTypeName(mock.walletOp.GetSignType()))
 	if err != nil {
@@ -66,10 +66,10 @@ func (mock *PrivacyMock) getPrivacykeyPair(addr string) (*privacy.Privacy, error
 	if accPrivacy, _ := mock.store.getWalletAccountPrivacy(addr); accPrivacy != nil {
 		privacyInfo := &privacy.Privacy{}
 		copy(privacyInfo.ViewPubkey[:], accPrivacy.ViewPubkey)
-		decrypteredView := CBCDecrypterPrivkey([]byte(mock.password), accPrivacy.ViewPrivKey)
+		decrypteredView := wcom.CBCDecrypterPrivkey([]byte(mock.password), accPrivacy.ViewPrivKey)
 		copy(privacyInfo.ViewPrivKey[:], decrypteredView)
 		copy(privacyInfo.SpendPubkey[:], accPrivacy.SpendPubkey)
-		decrypteredSpend := CBCDecrypterPrivkey([]byte(mock.password), accPrivacy.SpendPrivKey)
+		decrypteredSpend := wcom.CBCDecrypterPrivkey([]byte(mock.password), accPrivacy.SpendPrivKey)
 		copy(privacyInfo.SpendPrivKey[:], decrypteredSpend)
 
 		return privacyInfo, nil
@@ -110,7 +110,7 @@ func (mock *PrivacyMock) getPrivacyKeyPairsOfWallet() ([]addrAndprivacy, error) 
 
 func (mock *PrivacyMock) CreateUTXOs(sender string, pubkeypair string, amount int64, height int64, count int) {
 	privacyInfo, _ := mock.policy.getPrivacyKeyPairs()
-	dbbatch := mock.store.db.NewBatch(true)
+	dbbatch := mock.store.NewBatch(true)
 	for n := 0; n < count; n++ {
 		tx := mock.createPublic2PrivacyTx(&types.ReqCreateTransaction{
 			Tokenname:  mock.tokenName,
