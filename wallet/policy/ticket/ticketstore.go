@@ -20,7 +20,6 @@ func (store *ticketStore) checkAddrIsInWallet(addr string) bool {
 	}
 	acc, err := store.GetAccountByAddr(addr)
 	if err != nil || acc == nil {
-		bizlog.Error("checkAddrIsInWallet", "GetAccountByAddr error", err)
 		return false
 	}
 	return true

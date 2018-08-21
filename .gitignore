@@ -16,7 +16,7 @@ build/*.log
 build/fzm
 build/guodun
 build/main.sh
-build/main/
+build/main*
 build/para.sh
 common/mavl/datastore
 .DS_Store
