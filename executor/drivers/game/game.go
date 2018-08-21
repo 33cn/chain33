@@ -245,7 +245,7 @@ func calcGameStatusIndexKey(status int32, index string) []byte {
 }
 
 func calcGameStatusIndexPrefix(status int32) []byte {
-	key := fmt.Sprintf("game-status:%d:%s", status)
+	key := fmt.Sprintf("game-status:%d:", status)
 	return []byte(key)
 }
 func calcGameAddrIndexKey(status int32, addr, index string) []byte {
@@ -253,7 +253,7 @@ func calcGameAddrIndexKey(status int32, addr, index string) []byte {
 	return []byte(key)
 }
 func calcGameAddrIndexPrefix(status int32, addr string) []byte {
-	key := fmt.Sprintf("game-addr:%d:%s", status, addr)
+	key := fmt.Sprintf("game-addr:%d:%s:", status, addr)
 	return []byte(key)
 }
 func addGameStatusIndex(status int32, gameId, index string) *types.KeyValue {
