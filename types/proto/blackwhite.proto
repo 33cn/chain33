@@ -39,10 +39,8 @@ message BlackwhiteRound {
     repeated AddressResult addrResult = 13;
     // 游戏赢家
     repeated string winner = 14;
-    // block高度
-    int64 height = 15;
-    // index
-    int32 index = 16;
+    // block高度以及索引值
+    int64 index = 15;
 }
 
 // actions
@@ -89,8 +87,7 @@ message ReceiptBlackwhiteStatus {
     //记录上一次状态
     int32  prevStatus = 3;
     string addr       = 4;
-    int64  height     = 5;
-    int32  index      = 6;
+    int64  index      = 5;
 }
 
 message ReqBlackwhiteRoundInfo {
@@ -98,7 +95,7 @@ message ReqBlackwhiteRoundInfo {
 }
 
 message ReplyBlackwhiteRoundInfo {
-    BlackwhiteRound round = 1;
+    BlackwhiteRoundResult round = 1;
 }
 
 message ReqBlackwhiteRoundList {
@@ -108,12 +105,11 @@ message ReqBlackwhiteRoundList {
     string address   = 2;
     int32  count     = 3;
     int32  direction = 4;
-    int64  height    = 5;
-    int32  index     = 6;
+    int64  index     = 5;
 }
 
 message ReplyBlackwhiteRoundList {
-    repeated BlackwhiteRound round = 1;
+    repeated BlackwhiteRoundResult round = 1;
 }
 
 message ReqLoopResult {
@@ -131,9 +127,35 @@ message ReplyLoopResults {
     repeated perLoopResult results = 2;
 }
 
-message GameID4HeightIndex {
+message BlackwhiteRoundResult {
+    // txhash
     string gameID = 1;
-    string addr   = 2;
-    int64  height = 3;
-    int32  index  = 4;
+    // create -> play(timeout) -> show -> done
+    int32 status = 2;
+    // 游戏押金可大于
+    int64 playAmount = 3;
+    // 游戏人数
+    int32 playerCount = 4;
+    // 当前游戏人数
+    int32 curPlayerCount = 5;
+    // 游戏需要比对次数
+    int32 loop = 6;
+    // 当前出示密钥人数
+    int32 curShowCount = 7;
+    // 创建游戏时间
+    int64 createTime = 8;
+    // 出示密钥开始时间
+    int64 showTime = 9;
+    // 超时时间
+    int64 timeout = 10;
+    // 创建游戏地址
+    string createAddr = 11;
+    // 游戏名称
+    string gameName = 12;
+    // 游戏加密结果
+    repeated AddressResult addrResult = 13;
+    // 游戏赢家
+    repeated string winner = 14;
+    // block高度以及索引值
+    int64 index = 15;
 }
