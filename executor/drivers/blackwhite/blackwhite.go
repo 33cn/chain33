@@ -1,6 +1,8 @@
 package blackwhite
 
 import (
+	"fmt"
+
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
@@ -41,7 +43,7 @@ func (c *Blackwhite) Exec(tx *types.Transaction, index int) (*types.Receipt, err
 	if err != nil {
 		return nil, err
 	}
-	action := newAction(c, tx)
+	action := newAction(c, tx, int32(index))
 	if payload.Ty == types.BlackwhiteActionCreate && payload.GetCreate() != nil {
 		return action.Create(payload.GetCreate())
 	} else if payload.Ty == types.BlackwhiteActionPlay && payload.GetPlay() != nil {
@@ -83,7 +85,7 @@ func (c *Blackwhite) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData
 				if err != nil {
 					panic(err) //数据错误了，已经被修改了
 				}
-				kv := c.saveGame(&receipt)
+				kv := c.saveHeightIndex(&receipt)
 				set.KV = append(set.KV, kv...)
 				break
 			}
@@ -129,7 +131,7 @@ func (c *Blackwhite) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptD
 				if err != nil {
 					panic(err) //数据错误了，已经被修改了
 				}
-				kv := c.delGame(&receipt)
+				kv := c.delHeightIndex(&receipt)
 				set.KV = append(set.KV, kv...)
 				break
 			}
@@ -143,17 +145,11 @@ func (c *Blackwhite) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptD
 				if err != nil {
 					panic(err) //数据错误了，已经被修改了
 				}
-				//这几种Action才有上个prevStatus,回滚即可
-				prevLog := &types.ReceiptBlackwhiteStatus{
-					GameID: receipt.GetGameID(),
-					Status: receipt.GetPrevStatus(),
-					Addr:   receipt.GetAddr(),
-				}
 				//状态数据库由于默克尔树特性，之前生成的索引无效，故不需要回滚，只回滚localDB
-				kv := c.saveGame(prevLog)
+				kv := c.delHeightIndex(&receipt)
 				set.KV = append(set.KV, kv...)
 
-				kv = c.delGame(&receipt)
+				kv = c.saveRollHeightIndex(&receipt)
 				set.KV = append(set.KV, kv...)
 				break
 			}
@@ -175,19 +171,6 @@ func (c *Blackwhite) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptD
 	return set, nil
 }
 
-func (c *Blackwhite) saveGame(gamelog *types.ReceiptBlackwhiteStatus) (kvs []*types.KeyValue) {
-	kvs = append(kvs, addGame(gamelog.Status, gamelog.Addr, gamelog.GameID))
-	if gamelog.GetPrevStatus() >= 0 {
-		kvs = append(kvs, delGame(gamelog.GetPrevStatus(), gamelog.GetAddr(), gamelog.GameID))
-	}
-	return kvs
-}
-
-func (c *Blackwhite) delGame(gamelog *types.ReceiptBlackwhiteStatus) (kvs []*types.KeyValue) {
-	kvs = append(kvs, delGame(gamelog.Status, gamelog.Addr, gamelog.GameID))
-	return kvs
-}
-
 func (c *Blackwhite) saveLoopResult(res *types.ReplyLoopResults) (kvs []*types.KeyValue) {
 	kv := &types.KeyValue{}
 	kv.Key = calcRoundKey4LoopResult(res.GetGameID())
@@ -201,6 +184,56 @@ func (c *Blackwhite) delLoopResult(res *types.ReplyLoopResults) (kvs []*types.Ke
 	kv.Key = calcRoundKey4LoopResult(res.GetGameID())
 	kv.Value = nil
 	kvs = append(kvs, kv)
+	return kvs
+}
+
+func (c *Blackwhite) saveHeightIndex(res *types.ReceiptBlackwhiteStatus) (kvs []*types.KeyValue) {
+	heightstr := genHeightIndexStr(res.GetHeight(), res.GetIndex())
+	kv := &types.KeyValue{}
+	kv.Key = calcRoundKey4AddrHeight(res.GetAddr(), heightstr)
+	kv.Value = []byte(res.GetGameID())
+	kvs = append(kvs, kv)
+
+	kv1 := &types.KeyValue{}
+	kv1.Key = calcRoundKey4StatusAddrHeight(res.GetStatus(), res.GetAddr(), heightstr)
+	kv1.Value = []byte(res.GetGameID())
+	kvs = append(kvs, kv1)
+
+	if res.GetStatus() >= 1 {
+		kv := &types.KeyValue{}
+		kv.Key = calcRoundKey4StatusAddrHeight(res.GetPrevStatus(), res.GetAddr(), heightstr)
+		kv.Value = nil
+		kvs = append(kvs, kv)
+	}
+	return kvs
+}
+
+func (c *Blackwhite) saveRollHeightIndex(res *types.ReceiptBlackwhiteStatus) (kvs []*types.KeyValue) {
+	heightstr := genHeightIndexStr(res.GetHeight(), res.GetIndex())
+	kv := &types.KeyValue{}
+	kv.Key = calcRoundKey4AddrHeight(res.GetAddr(), heightstr)
+	kv.Value = []byte(res.GetGameID())
+	kvs = append(kvs, kv)
+
+	kv1 := &types.KeyValue{}
+	kv1.Key = calcRoundKey4StatusAddrHeight(res.GetPrevStatus(), res.GetAddr(), heightstr)
+	kv1.Value = []byte(res.GetGameID())
+	kvs = append(kvs, kv1)
+
+	return kvs
+}
+
+func (c *Blackwhite) delHeightIndex(res *types.ReceiptBlackwhiteStatus) (kvs []*types.KeyValue) {
+	heightstr := genHeightIndexStr(res.GetHeight(), res.GetIndex())
+	kv := &types.KeyValue{}
+	kv.Key = calcRoundKey4AddrHeight(res.GetAddr(), heightstr)
+	kv.Value = nil
+	kvs = append(kvs, kv)
+
+	kv1 := &types.KeyValue{}
+	kv1.Key = calcRoundKey4StatusAddrHeight(res.GetStatus(), res.GetAddr(), heightstr)
+	kv1.Value = nil
+	kvs = append(kvs, kv1)
 	return kvs
 }
 
@@ -253,11 +286,41 @@ func (c *Blackwhite) GetBlackwhiteRoundInfo(req *types.ReqBlackwhiteRoundInfo) (
 }
 
 func (c *Blackwhite) GetBwRoundListInfo(req *types.ReqBlackwhiteRoundList) (types.Message, error) {
-	localDb := c.GetLocalDB()
-	values, err := localDb.List(calcRoundKey4StatusAddrPrefix(req.GetStatus(), req.GetAddress()), nil, 0, 0)
-	if err != nil {
-		return nil, err
+	var key []byte
+	var values [][]byte
+	var err error
+	var prefix []byte
+
+	if 0 == req.Status {
+		prefix = calcRoundKey4AddrHeight(req.Address, "")
+	} else {
+		prefix = calcRoundKey4StatusAddrHeight(req.Status, req.Address, "")
 	}
+	localDb := c.GetLocalDB()
+	if req.GetHeight() == -1 {
+		values, err = localDb.List(prefix, nil, req.Count, req.GetDirection())
+		if err != nil {
+			return nil, err
+		}
+		if len(values) == 0 {
+			return nil, types.ErrNotFound
+		}
+	} else { //翻页查找指定的txhash列表
+		heightstr := genHeightIndexStr(req.GetHeight(), req.GetIndex())
+		if 0 == req.Status {
+			key = calcRoundKey4AddrHeight(req.Address, heightstr)
+		} else {
+			key = calcRoundKey4StatusAddrHeight(req.Status, req.Address, heightstr)
+		}
+		values, err = localDb.List(prefix, key, req.Count, req.Direction)
+		if err != nil {
+			return nil, err
+		}
+		if len(values) == 0 {
+			return nil, types.ErrNotFound
+		}
+	}
+
 	if len(values) == 0 {
 		return nil, types.ErrNotFound
 	}
@@ -315,16 +378,6 @@ func (c *Blackwhite) GetBwRoundLoopResult(req *types.ReqLoopResult) (types.Messa
 	return &result, nil //将所有轮数取出
 }
 
-func addGame(status int32, addr, gameId string) *types.KeyValue {
-	kv := &types.KeyValue{}
-	kv.Key = calcRoundKey4StatusAddr(status, addr, gameId)
-	kv.Value = []byte(gameId)
-	return kv
-}
-
-func delGame(status int32, addr, gameId string) *types.KeyValue {
-	kv := &types.KeyValue{}
-	kv.Key = calcRoundKey4StatusAddr(status, addr, gameId)
-	kv.Value = nil
-	return kv
+func genHeightIndexStr(height int64, index int32) string {
+	return fmt.Sprintf("%018d", height*types.MaxTxsPerBlock+int64(index))
 }
