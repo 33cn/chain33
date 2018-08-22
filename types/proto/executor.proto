@@ -1,6 +1,7 @@
 syntax = "proto3";
 
 import "transaction.proto";
+import "tendermint.proto";
 
 package types;
 
@@ -620,9 +621,15 @@ message ValNode {
     int64 power = 2;
 }
 
+
+message ValNodes {
+    repeated ValNode nodes = 1;
+}
+
 message ValNodeAction {
     oneof value {
         ValNode node = 1;
+        TendermintBlockInfo blockInfo = 2;
     }
-    int32 Ty = 2;
+    int32 Ty = 3;
 }

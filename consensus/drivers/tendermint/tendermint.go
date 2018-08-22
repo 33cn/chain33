@@ -31,8 +31,8 @@ type TendermintClient struct {
 	genesisDoc    *ttypes.GenesisDoc // initial validator set
 	privValidator ttypes.PrivValidator
 	privKey       crypto.PrivKey // local node's p2p key
+	pubKey		  string
 	csState       *ConsensusState
-	blockStore    *ttypes.BlockStore
 	evidenceDB    dbm.DB
 	crypto        crypto.Crypto
 	node          *Node
@@ -91,14 +91,12 @@ func New(cfg *types.Consensus) *TendermintClient {
 
 	c := drivers.NewBaseClient(cfg)
 
-	blockStore := ttypes.NewBlockStore(c, pubkey)
-
 	client := &TendermintClient{
 		BaseClient:    c,
 		genesisDoc:    genDoc,
 		privValidator: privValidator,
 		privKey:       priv,
-		blockStore:    blockStore,
+		pubKey:        pubkey,
 		evidenceDB:    evidenceDB,
 		crypto:        cr,
 		txsAvailable:  make(chan int64, 1),
@@ -155,23 +153,18 @@ OuterLoop:
 	}
 	hint.Stop()
 
-	block := client.GetCurrentBlock()
-	if block == nil {
-		tendermintlog.Error("StartConsensus failed for current block is nil")
-		panic("StartConsensus failed for current block is nil")
-	}
-
-	blockInfo, err := ttypes.GetBlockInfo(block)
-	if err != nil {
+	curHeight := client.GetCurrentHeight()
+	blockInfo, err := client.QueryBlockInfoByHeight(curHeight)
+	if curHeight != 0 && err != nil {
 		tendermintlog.Error("StartConsensus GetBlockInfo failed", "error", err)
 		panic(fmt.Sprintf("StartConsensus GetBlockInfo failed:%v", err))
 	}
 
 	var state State
 	if blockInfo == nil {
-		if block.Height != 0 {
+		if curHeight != 0 {
 			tendermintlog.Error("StartConsensus", "msg", "block height is not 0 but blockinfo is nil")
-			panic(fmt.Sprintf("StartConsensus block height is %v but block info is nil", block.Height))
+			panic(fmt.Sprintf("StartConsensus block height is %v but block info is nil", curHeight))
 		}
 		statetmp, err := MakeGenesisState(client.genesisDoc)
 		if err != nil {
@@ -197,7 +190,7 @@ OuterLoop:
 	}
 
 	tendermintlog.Info("load state finish", "state", state, "validators", state.Validators)
-	valNodes, err := client.QueryValidatorsByHeight(block.Height)
+	valNodes, err := client.QueryValidatorsByHeight(curHeight)
 	if err == nil && valNodes != nil {
 		if len(valNodes.Nodes) > 0 {
 			prevValSet := state.LastValidators.Copy()
@@ -208,7 +201,7 @@ OuterLoop:
 				//return s, fmt.Errorf("Error changing validator set: %v", err)
 			}
 			// change results from this height but only applies to the next height
-			state.LastHeightValidatorsChanged = block.Height + 1
+			state.LastHeightValidatorsChanged = curHeight + 1
 			nextValSet.IncrementAccum(1)
 			state.Validators = nextValSet
 			tendermintlog.Info("StartConsensus validators updated", "update-valnodes", valNodes)
@@ -222,7 +215,7 @@ OuterLoop:
 		tendermintlog.Info("This node is not a validator")
 	}
 
-	stateDB := NewStateDB(client.BaseClient, state)
+	stateDB := NewStateDB(client, state)
 
 	//make evidenceReactor
 	evidenceStore := NewEvidenceStore(client.evidenceDB)
@@ -232,7 +225,7 @@ OuterLoop:
 	blockExec := NewBlockExecutor(stateDB, evidencePool)
 
 	// Make ConsensusReactor
-	csState := NewConsensusState(client, client.blockStore, state, blockExec, evidencePool)
+	csState := NewConsensusState(client, state, blockExec, evidencePool)
 	// reset height, round, state begin at newheigt,0,0
 	client.privValidator.ResetLastHeight(state.LastBlockHeight)
 	csState.SetPrivValidator(client.privValidator)
@@ -398,4 +391,20 @@ func (client *TendermintClient) QueryValidatorsByHeight(height int64) (*types.Va
 	}
 
 	return msg.GetData().(types.Message).(*types.ValNodes), nil
+}
+
+func (client *TendermintClient) QueryBlockInfoByHeight(height int64) (*types.TendermintBlockInfo, error) {
+	if height <= 0 {
+		return nil, types.ErrInvalidParam
+	}
+	var param [10]byte
+	n := binary.PutVarint(param[:], height)
+	msg := client.GetQueueClient().NewMessage("execs", types.EventBlockChainQuery, &types.BlockChainQuery{"valnode", "GetBlockInfoByHeight", zeroHash[:], param[0:n]})
+	client.GetQueueClient().Send(msg, true)
+	msg, err := client.GetQueueClient().Wait(msg)
+	if err != nil {
+		return nil, err
+	}
+
+	return msg.GetData().(types.Message).(*types.TendermintBlockInfo), nil
 }

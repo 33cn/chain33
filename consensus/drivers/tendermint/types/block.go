@@ -5,24 +5,20 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"math/rand"
 	"strings"
 	"time"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/inconshreveable/log15"
-	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
-	"gitlab.33.cn/chain33/chain33/consensus/drivers"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-const fee = 1e6
+
 
 var (
 	blocklog        = log15.New("module", "tendermint-block")
-	r               *rand.Rand
 	ConsensusCrypto crypto.Crypto
 )
 
@@ -507,214 +503,4 @@ func (data *EvidenceData) StringIndented(indent string) string {
 		indent, strings.Join(evStrings, "\n"+indent+"  "),
 		indent, data.hash)
 	return ""
-}
-
-//---------------------------------BlockStore---------------------------------------------
-type BlockStore struct {
-	client *drivers.BaseClient
-	pubkey string
-}
-
-func NewBlockStore(client *drivers.BaseClient, pubkey string) *BlockStore {
-	r = rand.New(rand.NewSource(time.Now().UnixNano()))
-	return &BlockStore{
-		client: client,
-		pubkey: pubkey,
-	}
-}
-
-func (bs *BlockStore) LoadSeenCommit(height int64) *types.TendermintCommit {
-	oldBlock, err := bs.client.RequestBlock(height)
-	if err != nil {
-		blocklog.Error("LoadSeenCommit by height failed", "curHeight", bs.client.GetCurrentHeight(), "requestHeight", height, "error", err)
-		return nil
-	}
-	blockInfo, err := GetBlockInfo(oldBlock)
-	if err != nil {
-		panic(Fmt("LoadSeenCommit GetBlockInfo failed:%v", err))
-	}
-	if blockInfo == nil {
-		blocklog.Error("LoadSeenCommit get nil block info")
-		return nil
-	}
-	return blockInfo.GetSeenCommit()
-}
-
-func (bs *BlockStore) LoadBlockCommit(height int64) *types.TendermintCommit {
-	oldBlock, err := bs.client.RequestBlock(height)
-	if err != nil {
-		blocklog.Error("LoadBlockCommit by height failed", "curHeight", bs.client.GetCurrentHeight(), "requestHeight", height, "error", err)
-		return nil
-	}
-	blockInfo, err := GetBlockInfo(oldBlock)
-	if err != nil {
-		panic(Fmt("LoadBlockCommit GetBlockInfo failed:%v", err))
-	}
-	if blockInfo == nil {
-		blocklog.Error("LoadBlockCommit get nil block info")
-		return nil
-	}
-	return blockInfo.GetLastCommit()
-}
-
-func (bs *BlockStore) LoadProposal(height int64) *types.Proposal {
-	block, err := bs.client.RequestBlock(height)
-	if err != nil {
-		blocklog.Error("LoadProposal by height failed", "curHeight", bs.client.GetCurrentHeight(), "requestHeight", height, "error", err)
-		return nil
-	}
-	blockInfo, err := GetBlockInfo(block)
-	if err != nil {
-		panic(Fmt("LoadProposal GetBlockInfo failed:%v", err))
-	}
-	if blockInfo == nil {
-		blocklog.Error("LoadProposal get nil block info")
-		return nil
-	}
-	proposal := blockInfo.GetProposal()
-	return proposal
-}
-
-func (bs *BlockStore) LoadProposalBlock(height int64) *types.TendermintBlock {
-	block, err := bs.client.RequestBlock(height)
-	if err != nil {
-		blocklog.Error("LoadProposal by height failed", "curHeight", bs.client.GetCurrentHeight(), "requestHeight", height, "error", err)
-		return nil
-	}
-	blockInfo, err := GetBlockInfo(block)
-	if err != nil {
-		panic(Fmt("LoadProposal GetBlockInfo failed:%v", err))
-	}
-	if blockInfo == nil {
-		blocklog.Error("LoadProposal get nil block info")
-		return nil
-	}
-
-	proposalBlock := blockInfo.GetBlock()
-	if proposalBlock != nil {
-		proposalBlock.Txs = append(proposalBlock.Txs, block.Txs[1:]...)
-		txHash := merkle.CalcMerkleRoot(proposalBlock.Txs)
-		blocklog.Info("LoadProposalBlock txs hash", "height", proposalBlock.Header.Height, "tx-hash", Fmt("%X", txHash))
-	}
-	return proposalBlock
-}
-
-func (bs *BlockStore) Height() int64 {
-	return bs.client.GetCurrentHeight()
-}
-
-func (bs *BlockStore) GetPubkey() string {
-	return bs.pubkey
-}
-
-func GetBlockInfo(block *types.Block) (*types.TendermintBlockInfo, error) {
-	if len(block.Txs) == 0 || block.Height == 0 {
-		return nil, nil
-	}
-	baseTx := block.Txs[0]
-	//判断交易类型和执行情况
-	var blockInfo types.TendermintBlockInfo
-	nGet := &types.NormPut{}
-	action := &types.NormAction{}
-	err := types.Decode(baseTx.GetPayload(), action)
-	if err != nil {
-		blocklog.Error("GetBlockInfo decode payload failed", "error", err)
-		return nil, errors.New(Fmt("GetBlockInfo decode payload failed:%v", err))
-	}
-	if nGet = action.GetNput(); nGet == nil {
-		blocklog.Error("GetBlockInfo get nput failed")
-		return nil, errors.New("GetBlockInfo get nput failed")
-	}
-	infobytes := nGet.GetValue()
-	if infobytes == nil {
-		blocklog.Error("GetBlockInfo get blockinfo value failed")
-		return nil, errors.New("GetBlockInfo get blockinfo value failed")
-	}
-	err = types.Decode(infobytes, &blockInfo)
-	if err != nil {
-		blocklog.Error("GetBlockInfo decode blockinfo failed", "error", err)
-		return nil, errors.New(Fmt("GetBlockInfo decode blockinfo failed:%v", err))
-	}
-	return &blockInfo, nil
-}
-
-func getprivkey(key string) crypto.PrivKey {
-	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
-	if err != nil {
-		panic(err)
-	}
-	bkey, err := common.FromHex(key)
-	if err != nil {
-		panic(err)
-	}
-	priv, err := cr.PrivKeyFromBytes(bkey)
-	if err != nil {
-		panic(err)
-	}
-	return priv
-}
-
-func LoadValidators(des []*Validator, source []*types.Validator) {
-	for i, item := range source {
-		if item.GetAddress() == nil || len(item.GetAddress()) == 0 {
-			blocklog.Warn("LoadValidators get address is nil or empty")
-			continue
-		} else if item.GetPubKey() == nil || len(item.GetPubKey()) == 0 {
-			blocklog.Warn("LoadValidators get pubkey is nil or empty")
-			continue
-		}
-		des[i] = &Validator{}
-		des[i].Address = item.GetAddress()
-		pub := item.GetPubKey()
-		if pub == nil {
-			blocklog.Error("LoadValidators get validator pubkey is nil", "item", i)
-		} else {
-			des[i].PubKey = pub
-		}
-		des[i].VotingPower = item.VotingPower
-		des[i].Accum = item.Accum
-	}
-}
-
-func LoadProposer(source *types.Validator) (*Validator, error) {
-	if source.GetAddress() == nil || len(source.GetAddress()) == 0 {
-		blocklog.Warn("LoadProposer get address is nil or empty")
-		return nil, errors.New("LoadProposer get address is nil or empty")
-	} else if source.GetPubKey() == nil || len(source.GetPubKey()) == 0 {
-		blocklog.Warn("LoadProposer get pubkey is nil or empty")
-		return nil, errors.New("LoadProposer get pubkey is nil or empty")
-	}
-
-	des := &Validator{}
-	des.Address = source.GetAddress()
-	pub := source.GetPubKey()
-	if pub == nil {
-		blocklog.Error("LoadProposer get pubkey is nil")
-	} else {
-		des.PubKey = pub
-	}
-	des.VotingPower = source.VotingPower
-	des.Accum = source.Accum
-	return des, nil
-}
-
-func CreateBlockInfoTx(pubkey string, lastCommit *types.TendermintCommit, seenCommit *types.TendermintCommit, state *types.State, proposal *types.Proposal, block *types.TendermintBlock) *types.Transaction {
-	blockNoTxs := *block
-	blockNoTxs.Txs = make([]*types.Transaction, 0)
-	blockInfo := &types.TendermintBlockInfo{
-		SeenCommit: seenCommit,
-		LastCommit: lastCommit,
-		State:      state,
-		Proposal:   proposal,
-		Block:      &blockNoTxs,
-	}
-	blocklog.Debug("CreateBlockInfoTx", "validators", blockInfo.State.Validators.Validators, "block", block, "block-notxs", blockNoTxs)
-
-	nput := &types.NormAction_Nput{&types.NormPut{Key: "BlockInfo", Value: types.Encode(blockInfo)}}
-	action := &types.NormAction{Value: nput, Ty: types.NormActionPut}
-	tx := &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(action), Fee: fee}
-	tx.Nonce = r.Int63()
-	tx.Sign(types.SECP256K1, getprivkey(pubkey))
-
-	return tx
 }
