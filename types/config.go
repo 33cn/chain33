@@ -159,6 +159,10 @@ func SetTitle(t string) {
 	}
 }
 
+func GetTitle() string {
+	return title
+}
+
 func IsBityuan() bool {
 	return title == "bityuan"
 }
