@@ -22,6 +22,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers/manage"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/none"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/norm"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/paracross"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/relay"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/retrieve"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/ticket"
@@ -70,6 +71,7 @@ func execInit() {
 	manage.Init()
 	none.Init()
 	norm.Init()
+	paracross.Init()
 	retrieve.Init()
 	ticket.Init()
 	token.Init()
@@ -561,10 +563,9 @@ func AddMVCC(db dbm.KVDB, detail *types.BlockDetail) (kvlist []*types.KeyValue) 
 }
 
 func DelMVCC(db dbm.KVDB, detail *types.BlockDetail) (kvlist []*types.KeyValue) {
-	kvs := detail.KV
 	hash := detail.Block.StateHash
 	mvcc := dbm.NewSimpleMVCC(db)
-	kvlist, err := mvcc.DelMVCC(kvs, hash, detail.Block.Height)
+	kvlist, err := mvcc.DelMVCC(hash, detail.Block.Height)
 	if err != nil {
 		panic(err)
 	}
