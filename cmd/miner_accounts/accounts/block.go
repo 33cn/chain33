@@ -17,7 +17,7 @@ type chain33 struct {
 	Height2Ts map[int64]int64
 	// new only cache ticket for miner
 	accountCache map[int64]*types.Accounts
-	Host string
+	Host         string
 }
 
 func (b chain33) findBlock(ts int64) (int64, *chain33rpc.Header) {
