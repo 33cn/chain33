@@ -15,7 +15,40 @@ import (
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/wallet/bipwallet"
+	"errors"
+	"strconv"
 )
+
+func parseExpire(expire string) (int64, error) {
+	if len(expire) == 0 {
+		return 0, errors.New("Expire string should not be empty.")
+	}
+
+	if expire[0] == 'H' && expire[1] == ':' {
+		txHeight,err := strconv.ParseInt(expire[2:], 10, 64)
+		if err != nil {
+			return 0, err
+		}
+		if txHeight <= 0 {
+			fmt.Printf("txHeight should be grate to 0")
+			return 0, errors.New("txHeight should be grate to 0")
+		}
+
+		return txHeight + types.TxHeightFlag, nil
+	}
+
+	blockHeight,err := strconv.ParseInt(expire, 10, 64)
+	if err == nil {
+		return blockHeight, nil
+	}
+
+	expireTime, err := time.ParseDuration(expire)
+	if err == nil {
+		return int64(expireTime), nil
+	}
+
+	return 0, err
+}
 
 //input:
 //type ReqSignRawTx struct {
@@ -72,11 +105,11 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 	if err != nil {
 		return "", err
 	}
-	expire, err := time.ParseDuration(unsigned.GetExpire())
+	expire, err := parseExpire(unsigned.GetExpire())
 	if err != nil {
 		return "", err
 	}
-	tx.SetExpire(expire)
+	tx.SetExpire(time.Duration(expire))
 	if policy, ok := wallet.policyContainer[string(tx.Execer)]; ok {
 		// 尝试让策略自己去完成签名
 		needSysSign, signtx, err := policy.SignTransaction(key, unsigned)
