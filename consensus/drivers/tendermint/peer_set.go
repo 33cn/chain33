@@ -659,9 +659,9 @@ OUTER_LOOP:
 				continue OUTER_LOOP
 			}
 			tendermintlog.Info("help catch up", "peerip", pc.ip.String(), "selfHeight", rs.Height, "peerHeight", prs.Height)
-			proposalBlock := pc.myState.blockStore.LoadProposalBlock(prs.Height)
+			proposalBlock := pc.myState.client.LoadProposalBlock(prs.Height)
 			if proposalBlock == nil {
-				tendermintlog.Error("Failed to load propsal block", "selfHeight", rs.Height, "blockstoreHeight", pc.myState.blockStore.Height())
+				tendermintlog.Error("Failed to load propsal block", "selfHeight", rs.Height, "blockstoreHeight", pc.myState.client.GetCurrentHeight())
 				time.Sleep(10 * pc.myState.PeerGossipSleep())
 				continue OUTER_LOOP
 			}
@@ -784,7 +784,7 @@ OUTER_LOOP:
 		if prs.Height != 0 && rs.Height >= prs.Height+2 {
 			// Load the block commit for prs.Height,
 			// which contains precommit signatures for prs.Height.
-			commit := pc.myState.blockStore.LoadBlockCommit(prs.Height + 1)
+			commit := pc.myState.client.LoadBlockCommit(prs.Height + 1)
 			commitObj := &ttypes.Commit{TendermintCommit: commit}
 			if vote, ok := pc.state.PickVoteToSend(commitObj); ok {
 				msg := MsgInfo{TypeID: ttypes.VoteID, Msg: vote.Vote, PeerID: pc.id, PeerIP: pc.ip.String()}
@@ -927,7 +927,7 @@ OUTER_LOOP:
 		// Maybe send Height/CatchupCommitRound/CatchupCommit.
 		{
 			prs := pc.state.GetRoundState()
-			if prs.CatchupCommitRound != -1 && 0 < prs.Height && prs.Height <= pc.myState.blockStore.Height() {
+			if prs.CatchupCommitRound != -1 && 0 < prs.Height && prs.Height <= pc.myState.client.GetCurrentHeight() {
 				commit := pc.myState.LoadCommit(prs.Height)
 				commitTmp := ttypes.Commit{TendermintCommit: commit}
 				msg := MsgInfo{TypeID: ttypes.VoteSetMaj23ID, Msg: &types.VoteSetMaj23Msg{
