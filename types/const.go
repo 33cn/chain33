@@ -22,6 +22,7 @@ const (
 	CertX           = "cert"
 	GameX           = "game"
 	BlackwhiteX     = "blackwhite"
+	ParaX           = "paracross"
 )
 
 var (
@@ -42,6 +43,7 @@ var (
 	UserEvm          = []byte(UserEvmX)
 	ExecerGame       = []byte(GameX)
 	ExecerBlackwhite = []byte(BlackwhiteX)
+	ExecerPara       = []byte(ParaX)
 )
 
 const (
@@ -63,6 +65,7 @@ const (
 	M_10_TIMES                    = 10
 	SignatureSize                 = (4 + 33 + 65)
 	PrivacyMaturityDegree         = 12
+	TxGroupMaxCount               = 20
 )
 
 var (
@@ -209,6 +212,13 @@ const (
 	// 合约状态数据变更项日志
 	TyLogEVMStateChangeItem = 604
 
+	// paracross 执行器的日志类型
+	TyLogParacrossCommit = 650
+	TyLogParacrossDone   = 651
+	// record 和 commit 不一样， 对应高度完成共识后收到commit 交易
+	// 这个交易就不参与共识, 只做记录
+	TyLogParacrossRecord = 652
+
 	//log for game
 	TyLogCreateGame = 711
 	TyLogMatchGame  = 712
@@ -216,12 +226,12 @@ const (
 	TyLogCloseGame  = 714
 
 	// log for blackwhite game
-	TyLogBlackwhiteCreate   = 700
-	TyLogBlackwhitePlay     = 701
-	TyLogBlackwhiteShow     = 702
-	TyLogBlackwhiteTimeout  = 703
-	TyLogBlackwhiteDone     = 704
-	TyLogBlackwhiteLoopInfo = 705
+	TyLogBlackwhiteCreate   = 750
+	TyLogBlackwhitePlay     = 751
+	TyLogBlackwhiteShow     = 752
+	TyLogBlackwhiteTimeout  = 753
+	TyLogBlackwhiteDone     = 754
+	TyLogBlackwhiteLoopInfo = 755
 )
 
 //exec type
@@ -420,7 +430,7 @@ var RescanFlagMapint2string = map[int32]string{
 
 //game action ty
 const (
-	GameActionCreate = iota
+	GameActionCreate = iota + 1
 	GameActionMatch
 	GameActionCancel
 	GameActionClose

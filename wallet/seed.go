@@ -124,15 +124,6 @@ func GetSeed(db dbm.DB, password string) (string, error) {
 	return string(seed), nil
 }
 
-//判断钱包是否已经保存seed
-func HasSeed(db dbm.DB) (bool, error) {
-	Encryptedseed, err := db.Get(WalletSeed)
-	if len(Encryptedseed) == 0 || err != nil {
-		return false, types.ErrSeedNotExist
-	}
-	return true, nil
-}
-
 //通过seed生成子私钥十六进制字符串
 func GetPrivkeyBySeed(db dbm.DB, seed string) (string, error) {
 	var backupindex uint32

@@ -677,78 +677,6 @@ function checkPriResult() {
     sleep 1
 }
 
-# 使用三步发送交易的模式
-# $1 name
-# $2 fromAddr1  发起者的地址,以及私对公的接收者
-# $3 pk1        公对私的接收者
-# $4 pk2        私对私的接收者
-# $5 group      1表示Docker分组1,2表示Docker分组2
-function makeTransactionIn3Step() {
-    name=$1
-    fromAddr1=$2
-    pk1=$3
-    pk2=$4
-    group=$5
-    echo "当前操作的链节点为：${name}, 分组类型为${group}"
-    priTxindex=0
-    expire=120
-
-    height=$(${name} block last_header | jq ".height")
-    amount=17
-    printf '公对私交易 高度为:%s 转账金额为:%s \n' "${height}" "${amount}"
-    note="pub2priv_test"
-    pub2priv "${name}" "$fromAddr1" "$pk1" $note $amount $expire
-    block_wait_timeout "${name}" 5 80
-
-    height=$(${name} block last_header | jq ".height")
-    amount=7
-    mixcount=0
-    printf '私对私交易 高度为:%s 转账金额为:%s \n' "${height}" "${amount}"
-    note="priv2priv_test"
-    priv2priv "${name}" "$fromAddr1" "$pk2" $note $amount $mixcount $expire
-    if [ "$group" -eq 1 ]; then
-        priTxHashs1[$priTxindex]="$returnStr1"
-        priTxindex=$((priTxindex + 1))
-    else
-        priTxHashs2[$priTxindex]="$returnStr1"
-        priTxindex=$((priTxindex + 1))
-    fi
-    block_wait_timeout "${name}" 5 80
-
-    height=$(${name} block last_header | jq ".height")
-    amount=7
-    from=$fromAddr1
-    to=$fromAddr1
-    note="priv2pub_test"
-    mixcount=0
-    printf '私对公交易 高度为:%s 转账金额为:%s \n' "${height}" "${amount}"
-    priv2pub "${name}" "$from" "$to" $note $amount $mixcount $expire
-    if [ "$group" -eq 1 ]; then
-        priTxHashs1[$priTxindex]="$returnStr1"
-        priTxindex=$((priTxindex + 1))
-    else
-        priTxHashs2[$priTxindex]="$returnStr1"
-        priTxindex=$((priTxindex + 1))
-    fi
-    block_wait_timeout "${name}" 5 80
-}
-
-function genFirstChainPritxType3() {
-    makeTransactionIn3Step "${CLI}" $CLIfromAddr1 $CLIprivKey1 $CLIprivKey2 1
-
-    echo "=============查询当前隐私余额============="
-    showPrivacyBalance "${name}" $CLIfromAddr1
-    showPrivacyBalance "${name}" $CLIfromAddr2
-}
-
-function genSecondChainPritxType3() {
-    makeTransactionIn3Step "${CLI4}" $CLI4fromAddr1 $CLI4privKey11 $CLI4privKey12 2
-
-    echo "=============查询当前隐私余额============="
-    showPrivacyBalance "${name}" $CLI4fromAddr1
-    showPrivacyBalance "${name}" $CLI4fromAddr2
-}
-
 function genPrivacy2PrivacyTx() {
     name=$1
     fromaddr=$2
@@ -799,7 +727,6 @@ function genTransactionInType4() {
     pk2=$4
     group=$5
     echo "当前操作的链节点为：${name}, 分组类型为${group}"
-    priTxindex=0
     expire=120
 
     height=$(${name} block last_header | jq ".height")
