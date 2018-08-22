@@ -35,7 +35,8 @@ var random *rand.Rand
 //poolRoutine函数中，以及ProcAddBlockMsg函数中
 func init() {
 	//queue.DisableLog()
-	log.SetLogLevel("info")
+	random = rand.New(rand.NewSource(types.Now().UnixNano()))
+	log.SetLogLevel("error")
 }
 
 var q queue.Queue
@@ -90,25 +91,21 @@ func initEnv() (*BlockChain, queue.Module, queue.Module, queue.Module, queue.Mod
 }
 
 func createTx(priv crypto.PrivKey, to string, amount int64) *types.Transaction {
-	random = rand.New(rand.NewSource(types.Now().UnixNano()))
-
 	v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
 	transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
 	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1e6, To: to, Expire: 0}
 	tx.Nonce = random.Int63()
-	tx.To = address.ExecAddress("none")
+	tx.To = to
 	tx.Sign(types.SECP256K1, priv)
 	return tx
 }
 
 func createTxWithTxHeight(priv crypto.PrivKey, to string, amount, expire int64) *types.Transaction {
-	random = rand.New(rand.NewSource(types.Now().UnixNano()))
-
 	v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
 	transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
 	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1e6, To: to, Expire: expire + TxHeightOffset + types.TxHeightFlag}
 	tx.Nonce = random.Int63()
-	tx.To = address.ExecAddress("none")
+	tx.To = to
 	tx.Sign(types.SECP256K1, priv)
 	return tx
 }
@@ -215,7 +212,6 @@ func PrintSequenceInfo(Sequence *types.BlockSequence) {
 }
 func addTx() (string, error) {
 	txs, _, _ := genTxs(1)
-	fmt.Println("addTx: ", txs[0])
 	hash := common.Bytes2Hex(txs[0].Hash())
 	reply, err := api.SendTx(txs[0])
 	if err != nil {
@@ -229,7 +225,6 @@ func addTx() (string, error) {
 
 func addTxTxHeigt() (string, error) {
 	txs, _, _ := genTxsTxHeigt(1)
-	fmt.Println("addTx: ", txs[0])
 	hash := common.Bytes2Hex(txs[0].Hash())
 	reply, err := api.SendTx(txs[0])
 	if err != nil {
@@ -439,7 +434,7 @@ func checkDupTxHeight(blockchain *BlockChain) (*types.TxHashList, error) {
 		txhash := tx.Hash()
 		chainlog.Info("checkDupTxHeight", "height", i, "count", j, "txhash", txhash)
 		txhashlist.Hashes = append(txhashlist.Hashes, txhash[:])
-		txhashlist.Expire = append(txhashlist.Expire, types.TxHeightFlag+20)
+		txhashlist.Expire = append(txhashlist.Expire, tx.Expire)
 	}
 	duptxhashlist, err := blockchain.GetDuplicateTxHashList(&txhashlist)
 	if err != nil {
@@ -452,6 +447,36 @@ func checkDupTxHeight(blockchain *BlockChain) (*types.TxHashList, error) {
 func initCache() {
 	cacheTxs = make([]*types.Transaction, 0)
 	cacheTxsTxHeigt = make([]*types.Transaction, 0)
+}
+
+func TestCheckDupTxHashListOne(t *testing.T) {
+	blockchain, exec, cons, s, mem, p2p := initEnv()
+	defer func() {
+		blockchain.Close()
+		exec.Close()
+		cons.Close()
+		s.Close()
+		mem.Close()
+		p2p.Close()
+		types.EnableTxHeight = false
+	}()
+	chainlog.Info("TestCheckDupTxHashListOne begin --------------------")
+	initCache()
+	types.EnableTxHeight = true
+	curheight := blockchain.GetBlockHeight()
+	addblockheight := curheight + 1
+	for {
+		_, err := addTx()
+		require.NoError(t, err)
+		chainlog.Info("testCheckDupTxHashListOne", "addblockheight", addblockheight)
+		_, err = blockchain.GetBlock(curheight)
+		require.NoError(t, err)
+		time.Sleep(time.Second)
+		curheight := blockchain.GetBlockHeight()
+		if curheight >= addblockheight {
+			break
+		}
+	}
 }
 
 //构造10个区块，10笔交易不带TxHeight，缓存size128
@@ -493,7 +518,7 @@ func TestCheckDupTxHashList01(t *testing.T) {
 		return
 	}
 	if len(duptxhashlist.Hashes) != len(cacheTxs) {
-		t.Error("CheckDupCacheFailed")
+		t.Error("CheckDupCacheFailed-01")
 		return
 	}
 
@@ -506,7 +531,7 @@ func TestCheckDupTxHashList01(t *testing.T) {
 		return
 	}
 	if len(duptxhashlist.Hashes) != 0 {
-		t.Error("CheckDupCacheFailed")
+		t.Error("CheckDupCacheFailed-02")
 		return
 	}
 
@@ -517,7 +542,7 @@ func TestCheckDupTxHashList01(t *testing.T) {
 		return
 	}
 	if len(duptxhashlist.Hashes) != 0 {
-		t.Error("CheckDupCacheFailed")
+		t.Error("CheckDupCacheFailed - 03")
 		return
 	}
 	chainlog.Info("TestCheckDupTxHashList01 end --------------------")
@@ -610,8 +635,10 @@ func TestCheckDupTxHashList03(t *testing.T) {
 	types.EnableTxHeight = true
 	curheight := blockchain.GetBlockHeight()
 	addblockheight := curheight + 130
+	i := 0
 	for {
 		_, err := addTx()
+		i++
 		require.NoError(t, err)
 		curheight := blockchain.GetBlockHeight()
 		chainlog.Info("testCheckDupTxHashList03", "curheight", curheight, "addblockheight", addblockheight)
@@ -629,8 +656,8 @@ func TestCheckDupTxHashList03(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	if len(duptxhashlist.Hashes) != int(DefCacheSize) {
-		t.Error("CheckDupCacheFailed")
+	if len(duptxhashlist.Hashes) != i {
+		t.Error("CheckDupCacheFailed - 01")
 		return
 	}
 
@@ -643,7 +670,7 @@ func TestCheckDupTxHashList03(t *testing.T) {
 		return
 	}
 	if len(duptxhashlist.Hashes) != 0 {
-		t.Error("CheckDupCacheFailed")
+		t.Error("CheckDupCacheFailed - 02")
 		return
 	}
 
@@ -654,7 +681,7 @@ func TestCheckDupTxHashList03(t *testing.T) {
 		return
 	}
 	if len(duptxhashlist.Hashes) != 0 {
-		t.Error("CheckDupCacheFailed")
+		t.Error("CheckDupCacheFailed - 03")
 		return
 	}
 

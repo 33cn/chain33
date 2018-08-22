@@ -302,10 +302,12 @@ func (chain *BlockChain) GetDuplicateTxHashList(txhashlist *types.TxHashList) (d
 		if txHeight > 0 {
 			onlyquerycache = true
 		}
+		chainlog.Error("hasTx", "txhash", common.Bytes2Hex(txhash), "onlyquerycache", onlyquerycache, "count", txhashlist.Count)
 		has, err := chain.HasTx(txhash, onlyquerycache)
 		if err == nil && has {
 			dupTxHashList.Hashes = append(dupTxHashList.Hashes, txhash)
 		}
+		chainlog.Error("hasTx", "has", has, "err", err)
 	}
 	return &dupTxHashList, nil
 }
