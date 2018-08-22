@@ -135,12 +135,13 @@ func genTxs(n int64) (txs []*types.Transaction, fromaddr string, to string) {
 	return txs, fromaddr, to
 }
 
-func genTxsTxHeigt(n int64) (txs []*types.Transaction, fromaddr string, to string) {
+func genTxsTxHeigt(n, height int64) (txs []*types.Transaction, fromaddr string, to string) {
 	to, _ = genaddress()
 	for i := 0; i < int(n); i++ {
-		tx := createTxWithTxHeight(priv, to, types.Coin*(n+1), n+1)
+		tx := createTxWithTxHeight(priv, to, types.Coin*(n+1), 20+height)
 		txs = append(txs, tx)
 		cacheTxsTxHeigt = append(cacheTxsTxHeigt, tx)
+		time.Sleep(time.Millisecond)
 	}
 	return txs, fromaddr, to
 }
@@ -226,8 +227,8 @@ func addTx() (string, error) {
 	return hash, nil
 }
 
-func addTxTxHeigt() (string, error) {
-	txs, _, _ := genTxsTxHeigt(1)
+func addTxTxHeigt(height int64) (string, error) {
+	txs, _, _ := genTxsTxHeigt(1, height)
 	hash := common.Bytes2Hex(txs[0].Hash())
 	reply, err := api.SendTx(txs[0])
 	if err != nil {
@@ -509,6 +510,7 @@ func TestCheckDupTxHashList01(t *testing.T) {
 			break
 		}
 	}
+	time.Sleep(time.Second)
 
 	//重复交易
 	duptxhashlist, err := checkDupTx(blockchain)
@@ -517,7 +519,7 @@ func TestCheckDupTxHashList01(t *testing.T) {
 		return
 	}
 	if len(duptxhashlist.Hashes) != len(cacheTxs) {
-		t.Error("CheckDupCacheFailed-01")
+		t.Error(fmt.Sprintf("CheckDupCacheFailed. [duplen:%d, cachelen:%d]", len(duptxhashlist.Hashes),len(cacheTxs)))
 		return
 	}
 
@@ -530,18 +532,18 @@ func TestCheckDupTxHashList01(t *testing.T) {
 		return
 	}
 	if len(duptxhashlist.Hashes) != 0 {
-		t.Error("CheckDupCacheFailed-02")
+		t.Error(fmt.Sprintf("CheckDupCacheFailed. [duplen:%d, should be 0]", len(duptxhashlist.Hashes)))
 		return
 	}
 
-	genTxsTxHeigt(50)
+	genTxsTxHeigt(50, 10)
 	duptxhashlist, err = checkDupTxHeight(blockchain)
 	if err != nil {
 		t.Error(err)
 		return
 	}
 	if len(duptxhashlist.Hashes) != 0 {
-		t.Error("CheckDupCacheFailed - 03")
+		t.Error("CheckDupCacheFailed. [duplen:%d, should be 0]", len(duptxhashlist.Hashes))
 		return
 	}
 	chainlog.Info("TestCheckDupTxHashList01 end --------------------")
@@ -567,7 +569,7 @@ func TestCheckDupTxHashList02(t *testing.T) {
 	curheight := blockchain.GetBlockHeight()
 	addblockheight := curheight + 10
 	for {
-		_, err := addTxTxHeigt()
+		_, err := addTxTxHeigt(int64(curheight))
 		require.NoError(t, err)
 		curheight := blockchain.GetBlockHeight()
 		chainlog.Info("testCheckDupTxHashList02", "curheight", curheight, "addblockheight", addblockheight)
@@ -578,6 +580,7 @@ func TestCheckDupTxHashList02(t *testing.T) {
 			break
 		}
 	}
+	time.Sleep(time.Second)
 
 	//重复交易
 	duptxhashlist, err := checkDupTxHeight(blockchain)
@@ -586,7 +589,7 @@ func TestCheckDupTxHashList02(t *testing.T) {
 		return
 	}
 	if len(duptxhashlist.Hashes) != len(cacheTxsTxHeigt) {
-		t.Error("CheckDupCacheFailed")
+		t.Error(fmt.Sprintf("CheckDupCacheFailed. [duplen:%d, cachelen:%d]", len(duptxhashlist.Hashes),len(cacheTxsTxHeigt)))
 		return
 	}
 
@@ -599,24 +602,24 @@ func TestCheckDupTxHashList02(t *testing.T) {
 		return
 	}
 	if len(duptxhashlist.Hashes) != 0 {
-		t.Error("CheckDupCacheFailed")
+		t.Error(fmt.Sprintf("CheckDupCacheFailed. [duplen:%d, should be 0]", len(duptxhashlist.Hashes)))
 		return
 	}
 
-	genTxsTxHeigt(50)
+	genTxsTxHeigt(50, 10)
 	duptxhashlist, err = checkDupTxHeight(blockchain)
 	if err != nil {
 		t.Error(err)
 		return
 	}
 	if len(duptxhashlist.Hashes) != 0 {
-		t.Error("CheckDupCacheFailed")
+		t.Error(fmt.Sprintf("CheckDupCacheFailed. [duplen:%d, should be 0]", len(duptxhashlist.Hashes)))
 		return
 	}
 	chainlog.Info("TestCheckDupTxHashList02 end --------------------")
 }
 
-//构造130个区块，130笔交易不带TxHeight，缓存size128
+//构造130个区块，130笔交易不带TxHeight，缓存满
 func TestCheckDupTxHashList03(t *testing.T) {
 	blockchain, exec, cons, s, mem, p2p := initEnv()
 	defer func() {
@@ -634,10 +637,8 @@ func TestCheckDupTxHashList03(t *testing.T) {
 	types.EnableTxHeight = true
 	curheight := blockchain.GetBlockHeight()
 	addblockheight := curheight + 130
-	i := 0
 	for {
 		_, err := addTx()
-		i++
 		require.NoError(t, err)
 		curheight := blockchain.GetBlockHeight()
 		chainlog.Info("testCheckDupTxHashList03", "curheight", curheight, "addblockheight", addblockheight)
@@ -648,15 +649,16 @@ func TestCheckDupTxHashList03(t *testing.T) {
 			break
 		}
 	}
+	time.Sleep(time.Second)
 
-	//重复交易
+	//重复交易,不带TxHeight，cache没有会检查db
 	duptxhashlist, err := checkDupTx(blockchain)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	if len(duptxhashlist.Hashes) != i {
-		t.Error("CheckDupCacheFailed - 01")
+	if len(duptxhashlist.Hashes) != len(cacheTxs) {
+		t.Error(fmt.Sprintf("CheckDupCacheFailed. [duplen:%d, cachelen:%d]", len(duptxhashlist.Hashes), len(cacheTxs)))
 		return
 	}
 
@@ -669,25 +671,25 @@ func TestCheckDupTxHashList03(t *testing.T) {
 		return
 	}
 	if len(duptxhashlist.Hashes) != 0 {
-		t.Error("CheckDupCacheFailed - 02")
+		t.Error(fmt.Sprintf("CheckDupCacheFailed. [duplen:%d, should be 0]", len(duptxhashlist.Hashes)))
 		return
 	}
 
-	genTxsTxHeigt(50)
+	genTxsTxHeigt(50, 10)
 	duptxhashlist, err = checkDupTxHeight(blockchain)
 	if err != nil {
 		t.Error(err)
 		return
 	}
 	if len(duptxhashlist.Hashes) != 0 {
-		t.Error("CheckDupCacheFailed - 03")
+		t.Error(fmt.Sprintf("CheckDupCacheFailed. [duplen:%d, should be 0]", len(duptxhashlist.Hashes)))
 		return
 	}
 
 	chainlog.Info("TestCheckDupTxHashList03 end --------------------")
 }
 
-//构造10个区块，10笔交易带TxHeight，缓存已满 size128
+//构造130个区块，130笔交易带TxHeight，缓存满
 func TestCheckDupTxHashList04(t *testing.T) {
 	blockchain, exec, cons, s, mem, p2p := initEnv()
 	defer func() {
@@ -704,54 +706,57 @@ func TestCheckDupTxHashList04(t *testing.T) {
 	initCache()
 	types.EnableTxHeight = true
 	curheight := blockchain.GetBlockHeight()
-	addblockheight := curheight + 10
+	addblockheight := curheight + 130
+	curheightForExpire := curheight
 	for {
-		_, err := addTxTxHeigt()
+		_, err := addTxTxHeigt(int64(curheightForExpire))
 		require.NoError(t, err)
-		curheight := blockchain.GetBlockHeight()
-		chainlog.Info("testCheckDupTxHashList04", "curheight", curheight, "addblockheight", addblockheight)
-		_, err = blockchain.GetBlock(curheight)
+		curheightForExpire = blockchain.GetBlockHeight()
+		chainlog.Info("testCheckDupTxHashList04", "curheight", curheightForExpire, "addblockheight", addblockheight)
+		_, err = blockchain.GetBlock(curheightForExpire)
 		require.NoError(t, err)
 		time.Sleep(time.Second)
-		if curheight >= addblockheight {
+		if curheightForExpire >= addblockheight {
 			break
 		}
 	}
+	time.Sleep(time.Second)
 
-	//重复交易
+	//重复交易,不带TxHeight，cache没有会检查db
 	duptxhashlist, err := checkDupTxHeight(blockchain)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	if len(duptxhashlist.Hashes) != len(cacheTxsTxHeigt) {
-		t.Error("CheckDupCacheFailed")
+	if len(duptxhashlist.Hashes) != int(DefCacheSize) {
+		t.Error(fmt.Sprintf("CheckDupCacheFailed. [duplen:%d, cachelen:%d]", len(duptxhashlist.Hashes), int(DefCacheSize)))
 		return
 	}
 
 	//非重复交易
 	initCache()
 	genTxs(50)
-	duptxhashlist, err = checkDupTxHeight(blockchain)
+	duptxhashlist, err = checkDupTx(blockchain)
 	if err != nil {
 		t.Error(err)
 		return
 	}
 	if len(duptxhashlist.Hashes) != 0 {
-		t.Error("CheckDupCacheFailed")
+		t.Error(fmt.Sprintf("CheckDupCacheFailed. [duplen:%d, should be 0]", len(duptxhashlist.Hashes)))
 		return
 	}
 
-	genTxsTxHeigt(50)
+	genTxsTxHeigt(50, 10)
 	duptxhashlist, err = checkDupTxHeight(blockchain)
 	if err != nil {
 		t.Error(err)
 		return
 	}
 	if len(duptxhashlist.Hashes) != 0 {
-		t.Error("CheckDupCacheFailed")
+		t.Error(fmt.Sprintf("CheckDupCacheFailed. [duplen:%d, should be 0]", len(duptxhashlist.Hashes)))
 		return
 	}
+
 	chainlog.Info("TestCheckDupTxHashList04 end --------------------")
 }
 
@@ -774,7 +779,7 @@ func TestCheckDupTxHashList05(t *testing.T) {
 	TxHeightOffset = 60
 	types.EnableTxHeight = true
 	for i := 0; i < 10; i++ {
-		_, err := addTxTxHeigt()
+		_, err := addTxTxHeigt(int64(i))
 		require.EqualError(t, err, "ErrTxExpire")
 		time.Sleep(time.Second)
 	}
