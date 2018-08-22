@@ -147,6 +147,7 @@ func genTxsTxHeigt(n int64) (txs []*types.Transaction, fromaddr string, to strin
 
 // 打印block的信息
 func PrintBlockInfo(block *types.BlockDetail) {
+	return
 	if block == nil {
 		return
 	}
@@ -179,6 +180,7 @@ func PrintBlockInfo(block *types.BlockDetail) {
 
 // 打印header的信息
 func PrintHeaderInfo(header *types.Header) {
+	return
 	if header == nil {
 		return
 	}
@@ -203,6 +205,7 @@ func PrintHeaderInfo(header *types.Header) {
 
 // 打印block的信息
 func PrintSequenceInfo(Sequence *types.BlockSequence) {
+	return
 	if Sequence == nil {
 		return
 	}
@@ -362,13 +365,9 @@ func testGetTx(t *testing.T, blockchain *BlockChain) {
 
 	chainlog.Info("testGetTx :", "curheight", curheight)
 	txResult, err := blockchain.GetTxResultFromDb(block.Block.Txs[0].Hash())
-	if err == nil && txResult != nil {
-		fmt.Println("testGetTx info:.")
-		fmt.Println("txResult.Index:", txResult.Index)
-		fmt.Println("txResult.Height:", txResult.Height)
-		fmt.Println("tx.Payload:", string(txResult.Tx.Payload))
-		fmt.Println("tx.Signature:", txResult.Tx.Signature.String())
-		fmt.Println("tx.Receiptdate:", txResult.Receiptdate.String())
+	if err != nil || txResult == nil {
+		t.Error("testGetTx")
+		return
 	}
 	chainlog.Info("TestGetTx end --------------------")
 }
@@ -794,12 +793,10 @@ func testProcQueryTxMsg(t *testing.T, blockchain *BlockChain) {
 
 	if err == nil {
 		merkleroothash = block.Block.TxHash
-		fmt.Println("block.TxHash:", block.Block.TxHash)
-
-		fmt.Println("txs len:", len(block.Block.Txs))
+		//fmt.Println("block.TxHash:", block.Block.TxHash)
 		for index, transaction := range block.Block.Txs {
-			fmt.Println("tx.Payload:", string(transaction.Payload))
-			fmt.Println("tx.Signature:", transaction.Signature.String())
+			//fmt.Println("tx.Payload:", string(transaction.Payload))
+			//fmt.Println("tx.Signature:", transaction.Signature.String())
 			txhash = transaction.Hash()
 			txindex = index
 		}
@@ -848,16 +845,9 @@ func testProcGetHeadersMsg(t *testing.T, blockchain *BlockChain) {
 	reqBlock.End = curheight
 
 	blockheaders, err := blockchain.ProcGetHeadersMsg(&reqBlock)
-	if err == nil && blockheaders != nil {
-		for _, head := range blockheaders.Items {
-			fmt.Println("TestProcGetHeadersMsg info:.")
-			fmt.Println("head.ParentHash:", head.ParentHash)
-			fmt.Println("head.TxHash:", head.TxHash)
-			fmt.Println("head.BlockTime:", head.BlockTime)
-			fmt.Println("head.Height:", head.Height)
-			fmt.Println("head.Version:", head.Version)
-			fmt.Println("head.StateHash:", head.StateHash)
-		}
+	if err != nil || blockheaders == nil {
+		t.Error("testProcGetHeadersMsg")
+		return
 	}
 	chainlog.Info("TestProcGetHeadersMsg end --------------------")
 }
@@ -866,14 +856,8 @@ func testProcGetLastHeaderMsg(t *testing.T, blockchain *BlockChain) {
 	chainlog.Info("TestProcGetLastHeaderMsg begin --------------------")
 
 	blockheader, err := blockchain.ProcGetLastHeaderMsg()
-	if err == nil && blockheader != nil {
-		fmt.Println("TestProcGetLastHeaderMsg info:.")
-		fmt.Println("head.ParentHash:", blockheader.ParentHash)
-		fmt.Println("head.TxHash:", blockheader.TxHash)
-		fmt.Println("head.BlockTime:", blockheader.BlockTime)
-		fmt.Println("head.Height:", blockheader.Height)
-		fmt.Println("head.Version:", blockheader.Version)
-		fmt.Println("head.StateHash:", blockheader.StateHash)
+	if err != nil || blockheader == nil {
+		t.Error("ProcGetLastHeaderMsg")
 	}
 	chainlog.Info("TestProcGetLastHeaderMsg end --------------------")
 }
@@ -902,11 +886,11 @@ func testGetBlockByHash(t *testing.T, blockchain *BlockChain) {
 func testProcGetLastSequence(t *testing.T, blockchain *BlockChain) {
 	chainlog.Info("testProcGetLastSequence begin --------------------")
 
-	lastSequence, err := blockchain.blockStore.LoadBlockLastSequence()
+	_, err := blockchain.blockStore.LoadBlockLastSequence()
 
-	if err == nil {
-		fmt.Println("testProcGetLastSequence info:.")
-		fmt.Println("lastSequence:", lastSequence)
+	if err != nil {
+		t.Error(err)
+		return
 	}
 	chainlog.Info("testProcGetLastSequence end --------------------")
 }
@@ -983,8 +967,7 @@ func testPrefixCount(t *testing.T, blockchain *BlockChain) {
 	blockchain.client.Send(msgGen, true)
 	Res, _ := blockchain.client.Wait(msgGen)
 	count := Res.GetData().(*types.Int64).Data
-	fmt.Println("count: ", count)
-	chainlog.Info("testPrefixCount end --------------------")
+	chainlog.Info("testPrefixCount end --------------------", "count", count)
 }
 
 func testAddrTxCount(t *testing.T, blockchain *BlockChain) {
@@ -1019,28 +1002,19 @@ func testGetBlockHerderByHash(t *testing.T, blockchain *BlockChain) {
 func testProcGetTransactionByAddr(t *testing.T, blockchain *BlockChain) {
 	chainlog.Info("testProcGetTransactionByAddr begin --------------------")
 	parm := &types.ReqAddr{
-		Addr:   "1DzTdTLa5JPpLdNNP2PrV1a6JCtULA7GsT",
+		Addr:   "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt",
 		Height: -1,
 	}
 	txinfos, err := blockchain.ProcGetTransactionByAddr(parm)
 	require.NoError(t, err)
-
-	if txinfos != nil {
-		fmt.Println("PrintTxinfos Receipts!")
-		for index, receipt := range txinfos.TxInfos {
-			fmt.Println("PrintTxinfos Receipts!", "txindex", index)
-			fmt.Println("PrintTxinfos Receipts!", "Hash", receipt.Hash)
-			fmt.Println("PrintTxinfos Receipts!", "Height", receipt.Height)
-			fmt.Println("PrintTxinfos Receipts!", "Index", receipt.Index)
-		}
-	}
+	require.NotNil(t, txinfos)
 	chainlog.Info("testProcGetTransactionByAddr end --------------------")
 }
 
 func textProcGetTransactionByHashes(t *testing.T, blockchain *BlockChain) {
 	chainlog.Info("textProcGetTransactionByHashes begin --------------------")
 	parm := &types.ReqAddr{
-		Addr:   "1DzTdTLa5JPpLdNNP2PrV1a6JCtULA7GsT",
+		Addr:   "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt",
 		Height: -1,
 	}
 	txinfos, err := blockchain.ProcGetTransactionByAddr(parm)
@@ -1056,13 +1030,7 @@ func textProcGetTransactionByHashes(t *testing.T, blockchain *BlockChain) {
 	TxDetails, err := blockchain.ProcGetTransactionByHashes(Hashes)
 	require.NoError(t, err)
 
-	if TxDetails != nil {
-		for _, tx := range TxDetails.Txs {
-			if tx.Tx != nil {
-				fmt.Println("PrintTxDetails Receipts!", "tx.Tx.Payload", tx.Tx.Payload)
-			}
-		}
-	}
+	require.NotNil(t, TxDetails)
 
 	chainlog.Info("textProcGetTransactionByHashes end --------------------")
 }
@@ -1073,7 +1041,7 @@ func textProcGetBlockOverview(t *testing.T, blockchain *BlockChain) {
 	block, err := blockchain.GetBlock(curheight - 5)
 	require.NoError(t, err)
 
-	fmt.Println("Print block.Block.Hash(): ", block.Block.Hash())
+	//fmt.Println("Print block.Block.Hash(): ", block.Block.Hash())
 	parm := &types.ReqHash{
 		Hash: block.Block.Hash(),
 	}
@@ -1081,10 +1049,10 @@ func textProcGetBlockOverview(t *testing.T, blockchain *BlockChain) {
 	require.NoError(t, err)
 
 	if blockOverview != nil {
-		fmt.Println("PrintaddrOverview Receipts!")
-		fmt.Println("Print blockOverview.Head.Hash: ", hex.EncodeToString(blockOverview.Head.Hash))
-		fmt.Println("Print blockOverview.TxCount: ", blockOverview.TxCount)
-		fmt.Println("Print blockOverview.TxHashes: ", blockOverview.TxHashes)
+		//fmt.Println("PrintaddrOverview Receipts!")
+		//fmt.Println("Print blockOverview.Head.Hash: ", hex.EncodeToString(blockOverview.Head.Hash))
+		//fmt.Println("Print blockOverview.TxCount: ", blockOverview.TxCount)
+		//fmt.Println("Print blockOverview.TxHashes: ", blockOverview.TxHashes)
 	}
 	chainlog.Info("textProcGetBlockOverview end --------------------")
 }
@@ -1101,7 +1069,7 @@ func testProcGetAddrOverview(t *testing.T, blockchain *BlockChain) {
 	require.NoError(t, err)
 
 	if !bytes.Equal(blockhash, block.Block.ParentHash) {
-		fmt.Println("block.ParentHash != prehash: nextParentHash", blockhash, block.Block.ParentHash)
+		//fmt.Println("block.ParentHash != prehash: nextParentHash", blockhash, block.Block.ParentHash)
 	}
 
 	parm := &types.ReqAddr{
@@ -1111,10 +1079,10 @@ func testProcGetAddrOverview(t *testing.T, blockchain *BlockChain) {
 	require.NoError(t, err)
 
 	if addrOverview != nil {
-		fmt.Println("PrintaddrOverview Receipts!")
-		fmt.Println("Print addrOverview.Reciver: ", addrOverview.Reciver)
-		fmt.Println("Print addrOverview.Balance: ", addrOverview.Balance)
-		fmt.Println("Print addrOverview.TxCount: ", addrOverview.TxCount)
+		//fmt.Println("PrintaddrOverview Receipts!")
+		//fmt.Println("Print addrOverview.Reciver: ", addrOverview.Reciver)
+		//fmt.Println("Print addrOverview.Balance: ", addrOverview.Balance)
+		//fmt.Println("Print addrOverview.TxCount: ", addrOverview.TxCount)
 	}
 	chainlog.Info("testProcGetAddrOverview end --------------------")
 }
