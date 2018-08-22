@@ -49,7 +49,7 @@ func main() {
 		panic(err)
 	}
 
-	go accounts.SyncBlock()
+	go accounts.SyncBlock(cfg.Chain33Host)
 
 	shower := accounts.ShowMinerAccount{DataDir: cfg.DataDir, Addrs: cfg.MinerAddr}
 	server := rpc.NewServer()
