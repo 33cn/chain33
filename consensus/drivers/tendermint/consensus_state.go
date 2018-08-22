@@ -89,7 +89,7 @@ type ConsensusState struct {
 	doPrevote      func(height int64, round int)
 	setProposal    func(proposal *types.Proposal) error
 
-	blockStore       *ttypes.BlockStore
+	blockStore       *BlockStore
 	broadcastChannel chan<- MsgInfo
 	ourId            ID
 	started          uint32 // atomic
@@ -102,7 +102,7 @@ type ConsensusState struct {
 }
 
 // NewConsensusState returns a new ConsensusState.
-func NewConsensusState(client *TendermintClient, blockStore *ttypes.BlockStore, state State, blockExec *BlockExecutor, evpool ttypes.EvidencePool) *ConsensusState {
+func NewConsensusState(client *TendermintClient, state State, blockExec *BlockExecutor, evpool ttypes.EvidencePool) *ConsensusState {
 	cs := &ConsensusState{
 		client:           client,
 		blockExec:        blockExec,
@@ -111,7 +111,7 @@ func NewConsensusState(client *TendermintClient, blockStore *ttypes.BlockStore, 
 		timeoutTicker:    NewTimeoutTicker(),
 		evpool:           evpool,
 
-		blockStore:   blockStore,
+		blockStore:   NewBlockStore(client),
 		Quit:         make(chan struct{}),
 		txsAvailable: make(chan int64, 1),
 		begCons:      time.Time{},
@@ -1072,7 +1072,7 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 		commitBlock.Txs = make([]*types.Transaction, 1, len(block.Txs)+1)
 		commitBlock.Txs = append(commitBlock.Txs, block.Txs...)
 
-		tx0 := ttypes.CreateBlockInfoTx(cs.blockStore.GetPubkey(), lastCommit, seenCommit, newState, newProposal, cs.ProposalBlock.TendermintBlock)
+		tx0 := CreateBlockInfoTx(cs.blockStore.GetPubkey(), lastCommit, seenCommit, newState, newProposal, cs.ProposalBlock.TendermintBlock)
 		commitBlock.Txs[0] = tx0
 		err = cs.client.CommitBlock(commitBlock)
 		if err != nil {

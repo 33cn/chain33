@@ -89,8 +89,6 @@ func NewEvidenceStore(db dbm.DB) *EvidenceStore {
 	if len(ttypes.EvidenceType2Type) == 0 {
 		ttypes.EvidenceType2Type = map[string]reflect.Type{
 			ttypes.DuplicateVote: reflect.TypeOf(types.DuplicateVoteEvidence{}),
-			//ttypes.MockGood:      &ttypes.MockGoodEvidence{},
-			//ttypes.MockBad:       &ttypes.MockBadEvidence{},
 		}
 	}
 	if len(ttypes.EvidenceType2Obj) == 0 {

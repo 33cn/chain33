@@ -416,4 +416,5 @@ var FlagKeyMVCC = []byte("FLAG:keyMVCCFlag")
 
 const (
 	ValNodeActionUpdate = 1
+	ValNodeActionBlockInfo = 2
 )

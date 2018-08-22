@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"sync"
 
-	"gitlab.33.cn/chain33/chain33/consensus/drivers"
 	ttypes "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -191,12 +190,12 @@ func MakeGenesisState(genDoc *ttypes.GenesisDoc) (State, error) {
 
 //-------------------stateDB------------------------
 type CSStateDB struct {
-	client *drivers.BaseClient
+	client *TendermintClient
 	state  State
 	mtx    sync.Mutex
 }
 
-func NewStateDB(client *drivers.BaseClient, state State) *CSStateDB {
+func NewStateDB(client *TendermintClient, state State) *CSStateDB {
 	return &CSStateDB{
 		client: client,
 		state:  state,
@@ -220,14 +219,14 @@ func LoadState(state *types.State) State {
 	if validators := state.GetValidators(); validators != nil {
 		if array := validators.GetValidators(); array != nil {
 			targetArray := make([]*ttypes.Validator, len(array))
-			ttypes.LoadValidators(targetArray, array)
+			LoadValidators(targetArray, array)
 			stateTmp.Validators = &ttypes.ValidatorSet{Validators: targetArray, Proposer: nil}
 		}
 		if proposer := validators.GetProposer(); proposer != nil {
 			if stateTmp.Validators == nil {
 				tendermintlog.Error("LoadState validator is nil but proposer")
 			} else {
-				if val, err := ttypes.LoadProposer(proposer); err == nil {
+				if val, err := LoadProposer(proposer); err == nil {
 					stateTmp.Validators.Proposer = val
 				}
 			}
@@ -236,14 +235,14 @@ func LoadState(state *types.State) State {
 	if lastValidators := state.GetLastValidators(); lastValidators != nil {
 		if array := lastValidators.GetValidators(); array != nil {
 			targetArray := make([]*ttypes.Validator, len(array))
-			ttypes.LoadValidators(targetArray, array)
+			LoadValidators(targetArray, array)
 			stateTmp.LastValidators = &ttypes.ValidatorSet{Validators: targetArray, Proposer: nil}
 		}
 		if proposer := lastValidators.GetProposer(); proposer != nil {
 			if stateTmp.LastValidators == nil {
 				tendermintlog.Error("LoadState last validator is nil but proposer")
 			} else {
-				if val, err := ttypes.LoadProposer(proposer); err == nil {
+				if val, err := LoadProposer(proposer); err == nil {
 					stateTmp.LastValidators.Proposer = val
 				}
 			}
@@ -289,13 +288,8 @@ func (csdb *CSStateDB) LoadValidators(height int64) (*ttypes.ValidatorSet, error
 	if csdb.state.LastBlockHeight+1 == height {
 		return csdb.state.Validators, nil
 	}
-	curHeight := csdb.client.GetCurrentHeight()
-	block, err := csdb.client.RequestBlock(height)
-	if err != nil {
-		tendermintlog.Error(fmt.Sprintf("LoadValidators : Couldn't find block at height %d as current height %d", height, curHeight))
-		return nil, nil
-	}
-	blockInfo, err := ttypes.GetBlockInfo(block)
+
+	blockInfo, err := csdb.client.QueryBlockInfoByHeight(height)
 	if err != nil {
 		tendermintlog.Error("LoadValidators GetBlockInfo failed", "error", err)
 		panic(fmt.Sprintf("LoadValidators GetBlockInfo failed:%v", err))
@@ -304,7 +298,7 @@ func (csdb *CSStateDB) LoadValidators(height int64) (*ttypes.ValidatorSet, error
 	var state State
 	if blockInfo == nil {
 		tendermintlog.Error("LoadValidators", "msg", "block height is not 0 but blockinfo is nil")
-		panic(fmt.Sprintf("LoadValidators block height is %v but block info is nil", block.Height))
+		panic(fmt.Sprintf("LoadValidators block height is %v but block info is nil", height))
 	} else {
 		csState := blockInfo.GetState()
 		if csState == nil {

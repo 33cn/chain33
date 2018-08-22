@@ -20,6 +20,11 @@ func CalcValNodeUpdateHeightKey(height int64) []byte {
 	return []byte(fmt.Sprintf("ValNodeUpdate:%18d:", height))
 }
 
+func CalcValNodeBlockInfoHeightKey(height int64) []byte {
+	return []byte(fmt.Sprintf("ValNodeBlockInfo:%18d:", height))
+}
+
+
 func Init() {
 	drivers.Register(newValNode().GetName(), newValNode, 0)
 }
@@ -67,6 +72,9 @@ func (val *ValNode) GetActionName(tx *types.Transaction) string {
 	if action.Ty == types.ValNodeActionUpdate && action.GetNode() != nil {
 		return "upadate"
 	}
+	if action.Ty == types.ValNodeActionBlockInfo && action.GetBlockInfo() != nil {
+		return "blockInfo"
+	}
 	return "unknow"
 }
 
@@ -85,7 +93,7 @@ func (val *ValNode) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData,
 	if err != nil {
 		return nil, err
 	}
-	clog.Debug("exec valnode tx", "tx=", action)
+	clog.Debug("ExecLocal valnode tx", "tx=", action)
 
 	if action.Ty == types.ValNodeActionUpdate && action.GetNode() != nil {
 		if len(action.GetNode().PubKey) == 0 {
@@ -96,6 +104,9 @@ func (val *ValNode) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData,
 		}
 		key := CalcValNodeUpdateHeightIndexKey(val.GetHeight(), index)
 		set.KV = append(set.KV, &types.KeyValue{Key: key, Value: types.Encode(action.GetNode())})
+	} else if action.Ty == types.ValNodeActionBlockInfo && action.GetBlockInfo() != nil {
+		key := CalcValNodeBlockInfoHeightKey(val.GetHeight())
+		set.KV = append(set.KV, &types.KeyValue{Key: key, Value: types.Encode(action.GetBlockInfo())})
 	}
 	return set, nil
 }
@@ -113,7 +124,7 @@ func (val *ValNode) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptDa
 	if err != nil {
 		return nil, err
 	}
-	clog.Debug("exec valnode tx", "tx=", action)
+	clog.Debug("ExecDelLocal valnode tx", "tx=", action)
 
 	if action.Ty == types.ValNodeActionUpdate && action.GetNode() != nil {
 		if len(action.GetNode().PubKey) == 0 {
@@ -124,6 +135,9 @@ func (val *ValNode) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptDa
 		}
 		key := CalcValNodeUpdateHeightIndexKey(val.GetHeight(), index)
 		set.KV = append(set.KV, &types.KeyValue{Key: key, Value: types.Encode(action.GetNode())})
+	} else if action.Ty == types.ValNodeActionBlockInfo && action.GetBlockInfo() != nil {
+		key := CalcValNodeBlockInfoHeightKey(val.GetHeight())
+		set.KV = append(set.KV, &types.KeyValue{Key: key, Value: types.Encode(action.GetBlockInfo())})
 	}
 	return set, nil
 }
@@ -152,6 +166,28 @@ func (val *ValNode) Query(funcName string, params []byte) (types.Message, error)
 			}
 			reply.Nodes = append(reply.Nodes, &valnode)
 		}
+		return reply, nil
+	}
+	if funcName == "GetBlockInfoByHeight" {
+		height, size := binary.Varint(params)
+		if size <= 0 || height <= 0 {
+			return nil, types.ErrInvalidParam
+		}
+		key := CalcValNodeBlockInfoHeightKey(height)
+		value, err := val.GetLocalDB().Get(key)
+		if err != nil {
+			return nil, err
+		}
+		if len(value) == 0 {
+			return nil, types.ErrNotFound
+		}
+		reply := &types.TendermintBlockInfo{}
+		err = types.Decode(value, reply)
+		if err != nil {
+			clog.Error("GetBlockInfoByHeight proto.Unmarshal!", "err:", err)
+			return nil, err
+		}
+
 		return reply, nil
 	}
 	return nil, types.ErrActionNotSupport
