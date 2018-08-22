@@ -208,7 +208,7 @@ func (g *Game) Query(funcName string, params []byte) (types.Message, error) {
 		if err != nil {
 			return nil, err
 		}
-		return QueryGameListCount(g.GetLocalDB(), g.GetStateDB(), &q)
+		return QueryGameListCount(g.GetStateDB(), &q)
 	}
 	return nil, types.ErrActionNotSupport
 }
