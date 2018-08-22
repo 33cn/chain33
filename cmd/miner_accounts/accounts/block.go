@@ -17,7 +17,7 @@ type chain33 struct {
 	Height2Ts map[int64]int64
 	// new only cache ticket for miner
 	accountCache map[int64]*types.Accounts
-	Host string
+	Host         string
 }
 
 func (b chain33) findBlock(ts int64) (int64, *chain33rpc.Header) {
@@ -39,7 +39,7 @@ func (b chain33) findBlock(ts int64) (int64, *chain33rpc.Header) {
 	return 0, nil
 }
 func (b chain33) getBalance(addrs []string, exec string, timeNear int64) (*chain33rpc.Header, []*chain33rpc.Account, error) {
-	rpcCli, err := chain33rpc.NewJSONClient("http://127.0.0.1:8801")
+	rpcCli, err := chain33rpc.NewJSONClient(b.Host)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return nil, nil, err
