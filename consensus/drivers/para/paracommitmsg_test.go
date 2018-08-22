@@ -132,36 +132,34 @@ func (s *suiteParaCommitMsg) mainBlockAdd() {
 }
 
 func (s *suiteParaCommitMsg) addMsg_1() {
-	commitMsg := s.calcMsg(int64(1))
-	s.para.commitMsgClient.onBlockAdded(commitMsg)
+	detail, oriTxHash := s.calcMsg(int64(1))
+	s.para.commitMsgClient.onBlockAdded(nil, detail, oriTxHash)
 }
 
 func (s *suiteParaCommitMsg) addMsg_2() {
-	commitMsg := s.calcMsg(int64(2))
-	s.para.commitMsgClient.onBlockAdded(commitMsg)
+	detail, oriTxHash := s.calcMsg(int64(2))
+	s.para.commitMsgClient.onBlockAdded(nil, detail, oriTxHash)
 }
 
 func (s *suiteParaCommitMsg) addMsg_3() {
-	commitMsg := s.calcMsg(int64(3))
-	s.para.commitMsgClient.onBlockAdded(commitMsg)
+	detail, oriTxHash := s.calcMsg(int64(3))
+	s.para.commitMsgClient.onBlockAdded(nil, detail, oriTxHash)
 }
 
 func (s *suiteParaCommitMsg) addMsg_4() {
-	commitMsg := s.calcMsg(int64(4))
-	s.para.commitMsgClient.onBlockAdded(commitMsg)
+	detail, oriTxHash := s.calcMsg(int64(4))
+	s.para.commitMsgClient.onBlockAdded(nil, detail, oriTxHash)
 }
 
 func (s *suiteParaCommitMsg) delMsg_1() {
-	commitMsg := s.calcMsg(int64(1))
-	s.para.commitMsgClient.onBlockDeleted(commitMsg)
+	s.para.commitMsgClient.onBlockDeleted(1)
 }
 
 func (s *suiteParaCommitMsg) delMsg_4() {
-	commitMsg := s.calcMsg(int64(4))
-	s.para.commitMsgClient.onBlockDeleted(commitMsg)
+	s.para.commitMsgClient.onBlockDeleted(4)
 }
 
-func (s *suiteParaCommitMsg) calcMsg(height int64) *CommitMsg {
+func (s *suiteParaCommitMsg) calcMsg(height int64) (*types.BlockDetail, [][]byte) {
 	tx1 := types.Transaction{
 		Execer:  []byte("user.p.guodun.token"),
 		Payload: []byte{1, 2},
@@ -189,16 +187,12 @@ func (s *suiteParaCommitMsg) calcMsg(height int64) *CommitMsg {
 	recep2 := &types.ReceiptData{
 		Ty: types.ExecOk,
 	}
-	blockDetail := &types.BlockDetail{
+	para := &types.BlockDetail{
 		Block:          block,
 		Receipts:       []*types.ReceiptData{recep1, recep2},
 		PrevStatusHash: []byte("1234"),
 	}
 
-	return &CommitMsg{
-		initTxHashs:   oriTxHashs,
-		mainBlockHash: []byte("1234"),
-		blockDetail:   blockDetail,
-	}
+	return para, oriTxHashs
 
 }
