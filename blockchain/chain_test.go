@@ -1026,12 +1026,9 @@ func textProcGetTransactionByHashes(t *testing.T, blockchain *BlockChain) {
 			Hashes = append(Hashes, receipt.Hash)
 		}
 	}
-
 	TxDetails, err := blockchain.ProcGetTransactionByHashes(Hashes)
 	require.NoError(t, err)
-
 	require.NotNil(t, TxDetails)
-
 	chainlog.Info("textProcGetTransactionByHashes end --------------------")
 }
 
