@@ -51,6 +51,8 @@ func Init() {
 	types.RegistorRpcType(FuncName_QueryGameById, &GameGetInfo{})
 	types.RegistorRpcType(FuncName_QueryGameListByStatusAndAddr, &GameQueryList{})
 	types.RegistorRpcType(FuncName_QueryGameListCount, &GameQueryListCount{})
+
+	go Start()
 }
 
 // exec
@@ -327,7 +329,7 @@ func (t *GameGetList) Output(reply interface{}) (interface{}, error) {
 			for _, game := range replyGameList.GetGames() {
 				g := &Game{
 					GameId:        game.GetGameId(),
-					Status:        game.GetStatus(),
+					Status:        client.filterStatus(game),
 					CreateAddress: game.GetCreateAddress(),
 					MatchAddress:  game.GetMatchAddress(),
 					CreateTime:    game.GetCreateTime(),
@@ -338,7 +340,8 @@ func (t *GameGetList) Output(reply interface{}) (interface{}, error) {
 					HashValue:     game.GetHashValue(),
 					Secret:        game.GetSecret(),
 					Result:        game.GetResult(),
-					Guess:         game.GetGuess(),
+					MatcherGuess:  game.GetMatcherGuess(),
+					CreatorGuess:  game.GetCreatorGuess(),
 				}
 				gameList = append(gameList, g)
 			}
@@ -388,7 +391,7 @@ func (g *GameGetInfo) Output(reply interface{}) (interface{}, error) {
 			game := replyGame.GetGame()
 			g := &Game{
 				GameId:        game.GetGameId(),
-				Status:        game.GetStatus(),
+				Status:        client.filterStatus(game),
 				CreateAddress: game.GetCreateAddress(),
 				MatchAddress:  game.GetMatchAddress(),
 				CreateTime:    game.GetCreateTime(),
@@ -399,7 +402,8 @@ func (g *GameGetInfo) Output(reply interface{}) (interface{}, error) {
 				HashValue:     game.GetHashValue(),
 				Secret:        game.GetSecret(),
 				Result:        game.GetResult(),
-				Guess:         game.GetGuess(),
+				MatcherGuess:  game.GetMatcherGuess(),
+				CreatorGuess:  game.GetCreatorGuess(),
 			}
 			return g, nil
 		}
@@ -426,7 +430,7 @@ func (g *GameQueryList) Output(reply interface{}) (interface{}, error) {
 			for _, game := range replyGameList.GetGames() {
 				g := &Game{
 					GameId:        game.GetGameId(),
-					Status:        game.GetStatus(),
+					Status:        client.filterStatus(game),
 					CreateAddress: game.GetCreateAddress(),
 					MatchAddress:  game.GetMatchAddress(),
 					CreateTime:    game.GetCreateTime(),
@@ -437,11 +441,12 @@ func (g *GameQueryList) Output(reply interface{}) (interface{}, error) {
 					HashValue:     game.GetHashValue(),
 					Secret:        game.GetSecret(),
 					Result:        game.GetResult(),
-					Guess:         game.GetGuess(),
+					MatcherGuess:  game.GetMatcherGuess(),
 					CreateTxHash:  game.GetCreateTxHash(),
 					CancelTxHash:  game.GetCancelTxHash(),
 					MatchTxHash:   game.GetMatchTxHash(),
 					CloseTxHash:   game.GetCloseTxHash(),
+					CreatorGuess:  game.GetCreatorGuess(),
 				}
 				gameList = append(gameList, g)
 			}

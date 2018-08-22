@@ -28,7 +28,7 @@ message Game {
     // 1 平局，2 庄家获胜，3 matcher获胜，4 庄家开奖超时，matcher获胜，并获得本局所有赌资
     int32 result = 12;
     // matcher 出拳结果
-    int32 guess = 13;
+    int32 matcherGuess = 13;
     // create txHash
     string createTxHash = 14;
     // matche交易hash
@@ -39,6 +39,7 @@ message Game {
     string cancelTxHash = 17;
     string index        = 18;
     string prevIndex    = 19;
+    int32  creatorGuess = 20;
 }
 
 // message for execs.game
