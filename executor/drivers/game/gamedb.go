@@ -4,6 +4,7 @@ package game
 import (
 	"bytes"
 	"fmt"
+	"strconv"
 
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
@@ -35,6 +36,9 @@ const (
 	ListASC     = int32(1)
 	DefultCount = int32(20)  //默认一次取多少条记录
 	MaxCount    = int32(100) //最多取100条
+
+	GameCount = "GameCount" //根据状态，地址统计整个合约目前总共成功执行了多少场游戏。
+
 )
 
 //game 的状态变化：
@@ -92,6 +96,19 @@ func (action *Action) GetKVSet(game *types.Game) (kvset []*types.KeyValue) {
 	value := types.Encode(game)
 	kvset = append(kvset, &types.KeyValue{Key(game.GameId), value})
 	return kvset
+}
+func (action *Action) updateCount(status int32, addr string) (kvset []*types.KeyValue) {
+	count, err := queryCountByStatusAndAddr(action.db, status, addr)
+	if err != nil {
+		glog.Error("Query count have err:", err.Error())
+	}
+	kvset = append(kvset, &types.KeyValue{CalcCountKey(status, addr), []byte(strconv.FormatInt(count+1, 10))})
+	return kvset
+}
+func CalcCountKey(status int32, addr string) (key []byte) {
+	key = append(key, []byte("mavl-"+types.ExecName(types.GameX)+"-")...)
+	key = append(key, []byte(fmt.Sprintf("%s:%d:%s", GameCount, status, addr))...)
+	return key
 }
 
 //gameId to save key
@@ -156,6 +173,8 @@ func (action *Action) GameCreate(create *types.GameCreate) (*types.Receipt, erro
 	kv = append(kv, action.GetKVSet(game)...)
 	logs = append(logs, receipt.Logs...)
 	kv = append(kv, receipt.KV...)
+	kv = append(kv, action.updateCount(game.GetStatus(), "")...)
+	kv = append(kv, action.updateCount(game.GetStatus(), game.GetCreateAddress())...)
 	receipt = &types.Receipt{types.ExecOk, kv, logs}
 	return receipt, nil
 }
@@ -205,6 +224,9 @@ func (action *Action) GameMatch(match *types.GameMatch) (*types.Receipt, error) 
 	kvs = append(kvs, action.GetKVSet(game)...)
 	logs = append(logs, receipt.Logs...)
 	kvs = append(kvs, receipt.KV...)
+	kvs = append(kvs, action.updateCount(game.GetStatus(), "")...)
+	kvs = append(kvs, action.updateCount(game.GetStatus(), game.GetCreateAddress())...)
+	kvs = append(kvs, action.updateCount(game.GetStatus(), game.GetMatchAddress())...)
 	receipts := &types.Receipt{types.ExecOk, kvs, logs}
 	return receipts, nil
 }
@@ -249,6 +271,8 @@ func (action *Action) GameCancel(cancel *types.GameCancel) (*types.Receipt, erro
 	kvs := action.GetKVSet(game)
 	kv = append(kv, receipt.KV...)
 	kv = append(kv, kvs...)
+	kv = append(kv, action.updateCount(game.GetStatus(), "")...)
+	kv = append(kv, action.updateCount(game.GetStatus(), game.GetCreateAddress())...)
 
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
 }
@@ -389,6 +413,9 @@ func (action *Action) GameClose(close *types.GameClose) (*types.Receipt, error) 
 	logs = append(logs, receiptLog)
 	kvs := action.GetKVSet(game)
 	kv = append(kv, kvs...)
+	kv = append(kv, action.updateCount(game.GetStatus(), "")...)
+	kv = append(kv, action.updateCount(game.GetStatus(), game.GetCreateAddress())...)
+	kv = append(kv, action.updateCount(game.GetStatus(), game.GetMatchAddress())...)
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
 }
 
@@ -539,15 +566,35 @@ func queryGameListByStatusAndAddr(db dbm.Lister, stateDB dbm.KV, param *types.Qu
 }
 
 //count数查询
-func QueryGameListCount(db dbm.Lister, stateDB dbm.KV, param *types.QueryGameListCount) (types.Message, error) {
+func QueryGameListCount(stateDB dbm.KV, param *types.QueryGameListCount) (types.Message, error) {
 	if param.Status < 1 || param.Status > 4 {
 		return nil, fmt.Errorf("the status only fill in 1,2,3,4!")
 	}
-	if param.GetAddress() == "" {
-		return &types.ReplyGameListCount{db.PrefixCount(calcGameStatusIndexPrefix(param.Status))}, nil
-	}
-	return &types.ReplyGameListCount{db.PrefixCount(calcGameAddrIndexPrefix(param.Status, param.Address))}, nil
+	return &types.ReplyGameListCount{QueryCountByStatusAndAddr(stateDB, param.GetStatus(), param.GetAddress())}, nil
 }
+func QueryCountByStatusAndAddr(stateDB dbm.KV, status int32, addr string) int64 {
+	switch status {
+	case types.GameActionCreate, types.GameActionMatch, types.GameActionCancel, types.GameActionClose:
+		count, _ := queryCountByStatusAndAddr(stateDB, status, addr)
+		return count
+	}
+	glog.Error("the status only fill in 1,2,3,4!")
+	return 0
+}
+func queryCountByStatusAndAddr(stateDB dbm.KV, status int32, addr string) (int64, error) {
+	data, err := stateDB.Get(CalcCountKey(status, addr))
+	if err != nil {
+		glog.Error("query count have err:", err.Error())
+		return 0, err
+	}
+	count, err := strconv.ParseInt(string(data), 10, 64)
+	if err != nil {
+		glog.Error("Type conversion error:", err.Error())
+		return 0, err
+	}
+	return count, nil
+}
+
 func readGame(db dbm.KV, id string) (*types.Game, error) {
 	data, err := db.Get(Key(id))
 	if err != nil {
