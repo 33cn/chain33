@@ -127,7 +127,8 @@ func (bc *BaseClient) CheckTxDup(txs []*types.Transaction) (transactions []*type
 		checkHashList.Hashes = append(checkHashList.Hashes, hash)
 	}
 	//count = -1, 表示只从最近的cache中去除重复的交易
-	checkHashList.Count = -1
+	//为了安全起见，每次还是查一下重复
+	checkHashList.Count = 0
 
 	// 发送Hash过后的交易列表给blockchain模块
 	//beg := types.Now()

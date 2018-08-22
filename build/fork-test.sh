@@ -5,27 +5,21 @@ set +e
 PWD=$(cd "$(dirname "$0")" && pwd)
 export PATH="$PWD:$PATH"
 
-SERV3="chain33"
 NODE3="${1}_chain33_1"
 CLI="docker exec ${NODE3} /root/chain33-cli"
 
-SERV2="chain32"
 NODE2="${1}_chain32_1"
 CLI2="docker exec ${NODE2} /root/chain33-cli"
 
-SERV1="chain31"
 NODE1="${1}_chain31_1"
 CLI3="docker exec ${NODE1} /root/chain33-cli"
 
-SERV4="chain30"
 NODE4="${1}_chain30_1"
 CLI4="docker exec ${NODE4} /root/chain33-cli"
 
-SERV5="chain29"
 NODE5="${1}_chain29_1"
 CLI5="docker exec ${NODE5} /root/chain33-cli"
 
-SERV6="chain28"
 NODE6="${1}_chain28_1"
 CLI6="docker exec ${NODE6} /root/chain33-cli"
 
@@ -44,10 +38,8 @@ source coins-fork-test.sh
 source ci-para-test.sh
 
 sedfix=""
-xsedfix=(-i)
 if [ "$(uname)" == "Darwin" ]; then
     sedfix=".bak"
-    xsedfix=(-i ".bak")
 fi
 
 function init() {
@@ -70,7 +62,7 @@ function init() {
     # wallet
     sed -i $sedfix 's/^minerdisable=.*/minerdisable=false/g' chain33.toml
 
-    para_init "${xsedfix[*]}"
+    para_init
 
     # docker-compose ps
     docker-compose ps
@@ -366,8 +358,7 @@ function optDockerPart2() {
     echo "==================================="
 
     echo "======停止第二组docker ======"
-    #docker stop "${NODE4}" "${NODE5}" "${NODE6}"
-    docker-compose pause "${SERV4}" "${SERV5}" "${SERV6}"
+    docker pause "${NODE4}" "${NODE5}" "${NODE6}"
 
     echo "======开启第一组docker节点挖矿======"
     sleep 3
@@ -411,15 +402,13 @@ function optDockerPart3() {
     echo "======================================="
 
     echo "======停止第一组docker======"
-    #docker stop "${NODE1}" "${NODE2}" "${NODE3}"
-    docker-compose pause "${SERV1}" "${SERV2}" "${SERV3}"
+    docker pause "${NODE1}" "${NODE2}" "${NODE3}"
 
     echo "======sleep 5s======"
     sleep 5
 
     echo "======启动第二组docker======"
-    #docker start "${NODE4}" "${NODE5}" "${NODE6}"
-    docker-compose unpause "${SERV4}" "${SERV5}" "${SERV6}"
+    docker unpause "${NODE4}" "${NODE5}" "${NODE6}"
 
     echo "======sleep 20s======"
     sleep 5
@@ -469,8 +458,7 @@ function optDockerPart4() {
     echo "======================================="
 
     echo "======启动第一组docker======"
-    #docker start "${NODE1}" "${NODE2}" "${NODE3}"
-    docker-compose unpause "${SERV1}" "${SERV2}" "${SERV3}"
+    docker unpause "${NODE1}" "${NODE2}" "${NODE3}"
 
     echo "======sleep 20s======"
     sleep 5
@@ -527,8 +515,7 @@ function type2_optDockerPart2() {
     echo "==================================="
 
     echo "======停止第二组docker ======"
-    #docker stop "${NODE4}" "${NODE5}" "${NODE6}"
-    docker-compose pause "${SERV4}" "${SERV5}" "${SERV6}"
+    docker pause "${NODE4}" "${NODE5}" "${NODE6}"
 
     echo "======开启第一组docker节点挖矿======"
     sleep 3
@@ -572,17 +559,17 @@ function type2_optDockerPart3() {
     echo "======================================="
 
     echo "======停止第一组中除公共节点的docker======"
-    docker stop "${NODE1}" "${NODE2}"
+    docker pause "${NODE1}" "${NODE2}"
 
     echo "=============== 恢复公共节点数据 =============="
     restoreData
-    docker stop "${NODE3}"
+    docker pause "${NODE3}"
 
     echo "======sleep 5s======"
     sleep 5
 
     echo "======启动第二组docker======"
-    docker start "${NODE3}" "${NODE4}" "${NODE5}" "${NODE6}"
+    docker unpause "${NODE3}" "${NODE4}" "${NODE5}" "${NODE6}"
 
     name="${CLI}"
     time=60
@@ -649,7 +636,7 @@ function type2_optDockerPart4() {
     echo "======================================="
 
     echo "======启动第一组docker======"
-    docker start "${NODE1}" "${NODE2}"
+    docker unpause "${NODE1}" "${NODE2}"
 
     echo "======两组docker节点共同挖矿中======"
     block_wait_timeout "${CLI}" 5 100
