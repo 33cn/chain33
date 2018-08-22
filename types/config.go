@@ -135,7 +135,8 @@ var (
 	FeePerKB     = MinFee
 	PrivacyTxFee = Coin
 	//used in Getname for exec driver
-	ExecNamePrefix string
+	ExecNamePrefix       string
+	ParaRemoteGrpcClient string
 )
 
 func SetTitle(t string) {
@@ -228,4 +229,17 @@ func GetParaName() string {
 
 func FlagKV(key []byte, value int64) *KeyValue {
 	return &KeyValue{Key: key, Value: Encode(&Int64{Data: value})}
+}
+
+func SetParaRemoteGrpcClient(grpc string) {
+	if IsPara() {
+		ParaRemoteGrpcClient = grpc
+	}
+}
+
+func GetParaRemoteGrpcClient() string {
+	if IsPara() {
+		return ParaRemoteGrpcClient
+	}
+	return ""
 }

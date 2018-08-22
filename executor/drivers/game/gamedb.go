@@ -13,21 +13,23 @@ import (
 
 const (
 	//剪刀
-	Scissor = 1
+	Scissor = int32(1)
 	//石头
-	Rock = 2
+	Rock = int32(2)
 	//布
-	Paper = 3
+	Paper = int32(3)
+	//未知结果
+	Unknown = int32(4)
 
 	//游戏结果
 	//平局
-	IsDraw       = 1
-	IsCreatorWin = 2
-	IsMatcherWin = 3
+	IsDraw       = int32(1)
+	IsCreatorWin = int32(2)
+	IsMatcherWin = int32(3)
 	//开奖超时
-	IsTimeOut = 4
+	IsTimeOut = int32(4)
 	//从有matcher参与游戏开始计算本局游戏开奖的有效时间，单位为天
-	Active_Time = 1
+	Active_Time = int32(1)
 
 	ListDESC    = int32(0)
 	ListASC     = int32(1)
@@ -191,7 +193,7 @@ func (action *Action) GameMatch(match *types.GameMatch) (*types.Receipt, error) 
 	game.Value = game.GetValue()/2 + game.GetValue()
 	game.MatchAddress = action.fromaddr
 	game.MatchTime = action.blocktime
-	game.Guess = match.GetGuess()
+	game.MatcherGuess = match.GetGuess()
 	game.MatchTxHash = common.ToHex(action.txhash)
 	game.PrevIndex = game.GetIndex()
 	game.Index = action.GetIndex(game)
@@ -285,7 +287,7 @@ func (action *Action) GameClose(close *types.GameClose) (*types.Receipt, error) 
 			game.GetGameId(), "err", types.ErrNoBalance)
 		return nil, types.ErrNoBalance
 	}
-	result := action.checkGameResult(game, close)
+	result, creatorGuess := action.checkGameResult(game, close)
 	if result == IsCreatorWin {
 		//如果是庄家赢了，则解冻所有钱,并将对赌者相应冻结的钱转移到庄家的合约账户中
 		//TODO:账户amount 使用int64,而不是float64，可能存在精度问题
@@ -378,10 +380,11 @@ func (action *Action) GameClose(close *types.GameClose) (*types.Receipt, error) 
 	game.Closetime = action.blocktime
 	game.Status = types.GameActionClose
 	game.Secret = close.GetSecret()
-	game.Result = int32(result)
+	game.Result = result
 	game.CloseTxHash = common.ToHex(action.txhash)
 	game.PrevIndex = game.GetIndex()
 	game.Index = action.GetIndex(game)
+	game.CreatorGuess = creatorGuess
 	receiptLog := action.GetReceiptLog(game)
 	logs = append(logs, receiptLog)
 	kvs := action.GetKVSet(game)
@@ -397,48 +400,48 @@ func (action *Action) checkGameIsTimeOut(game *types.Game) bool {
 }
 
 //根据传入密钥，揭晓游戏结果
-func (action *Action) checkGameResult(game *types.Game, close *types.GameClose) int {
+func (action *Action) checkGameResult(game *types.Game, close *types.GameClose) (int32, int32) {
 	//如果超时，直接走超时开奖逻辑
 	if action.checkGameIsTimeOut(game) {
-		return IsTimeOut
+		return IsTimeOut, Unknown
 	}
 	if bytes.Equal(common.Sha256([]byte(close.GetSecret()+string(Rock))), game.GetHashValue()) {
 		//此刻庄家出的是石头
-		if game.GetGuess() == Rock {
-			return IsDraw
-		} else if game.GetGuess() == Scissor {
-			return IsCreatorWin
-		} else if game.GetGuess() == Paper {
-			return IsMatcherWin
+		if game.GetMatcherGuess() == Rock {
+			return IsDraw, Rock
+		} else if game.GetMatcherGuess() == Scissor {
+			return IsCreatorWin, Rock
+		} else if game.GetMatcherGuess() == Paper {
+			return IsMatcherWin, Rock
 		} else {
 			//其他情况说明matcher 使坏，填了其他值，当做作弊处理
-			return IsCreatorWin
+			return IsCreatorWin, Rock
 		}
 	} else if bytes.Equal(common.Sha256([]byte(close.GetSecret()+string(Scissor))), game.GetHashValue()) {
 		//此刻庄家出的剪刀
-		if game.GetGuess() == Rock {
-			return IsMatcherWin
-		} else if game.GetGuess() == Scissor {
-			return IsDraw
-		} else if game.GetGuess() == Paper {
-			return IsCreatorWin
+		if game.GetMatcherGuess() == Rock {
+			return IsMatcherWin, Scissor
+		} else if game.GetMatcherGuess() == Scissor {
+			return IsDraw, Scissor
+		} else if game.GetMatcherGuess() == Paper {
+			return IsCreatorWin, Scissor
 		} else {
-			return IsCreatorWin
+			return IsCreatorWin, Scissor
 		}
 	} else if bytes.Equal(common.Sha256([]byte(close.GetSecret()+string(Paper))), game.GetHashValue()) {
 		//此刻庄家出的是布
-		if game.GetGuess() == Rock {
-			return IsCreatorWin
-		} else if game.GetGuess() == Scissor {
-			return IsMatcherWin
-		} else if game.GetGuess() == Paper {
-			return IsDraw
+		if game.GetMatcherGuess() == Rock {
+			return IsCreatorWin, Paper
+		} else if game.GetMatcherGuess() == Scissor {
+			return IsMatcherWin, Paper
+		} else if game.GetMatcherGuess() == Paper {
+			return IsDraw, Paper
 		} else {
-			return IsCreatorWin
+			return IsCreatorWin, Paper
 		}
 	}
 	//其他情况默认是matcher win
-	return IsMatcherWin
+	return IsMatcherWin, Unknown
 }
 
 func (action *Action) readGame(id string) (*types.Game, error) {
