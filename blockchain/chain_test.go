@@ -519,7 +519,7 @@ func TestCheckDupTxHashList01(t *testing.T) {
 		return
 	}
 	if len(duptxhashlist.Hashes) != len(cacheTxs) {
-		t.Error(fmt.Sprintf("CheckDupCacheFailed. [duplen:%d, cachelen:%d]", len(duptxhashlist.Hashes),len(cacheTxs)))
+		t.Error(fmt.Sprintf("CheckDupCacheFailed. [duplen:%d, cachelen:%d]", len(duptxhashlist.Hashes), len(cacheTxs)))
 		return
 	}
 
@@ -589,7 +589,7 @@ func TestCheckDupTxHashList02(t *testing.T) {
 		return
 	}
 	if len(duptxhashlist.Hashes) != len(cacheTxsTxHeigt) {
-		t.Error(fmt.Sprintf("CheckDupCacheFailed. [duplen:%d, cachelen:%d]", len(duptxhashlist.Hashes),len(cacheTxsTxHeigt)))
+		t.Error(fmt.Sprintf("CheckDupCacheFailed. [duplen:%d, cachelen:%d]", len(duptxhashlist.Hashes), len(cacheTxsTxHeigt)))
 		return
 	}
 
