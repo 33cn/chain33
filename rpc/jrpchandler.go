@@ -1052,7 +1052,7 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		Fee:        tx.Fee,
 		Expire:     tx.Expire,
 		Nonce:      tx.Nonce,
-		To:         tx.To,
+		To:         tx.GetRealToAddr(),
 		From:       tx.From(),
 		GroupCount: tx.GroupCount,
 		Header:     common.ToHex(tx.Header),
