@@ -87,8 +87,8 @@ func New(cfg *types.Consensus) *ParaClient {
 	para.commitMsgClient = &CommitMsgClient{
 		paraClient:      para,
 		waitMainBlocks:  cfg.WaitBlocks4CommitMsg,
-		commitMsgNotify: make(chan *CommitMsg, 1),
-		delMsgNotify:    make(chan *CommitMsg, 1),
+		commitMsgNotify: make(chan *types.ParacrossNodeStatus, 1),
+		delMsgNotify:    make(chan int64, 1),
 		mainBlockAdd:    make(chan *types.BlockDetail, 1),
 		quit:            make(chan struct{}),
 	}
@@ -218,7 +218,7 @@ func (client *ParaClient) ProcEvent(msg queue.Message) bool {
 
 // paracross only support txgroup count=2 currently,if main tx fail, para tx also not exec
 // if another txs is para chain tx too, return true
-func isMainTxExecOk(tx *types.Transaction, txIndex int, main *types.BlockDetail) bool {
+func isMainTxExecOk(tx *types.Transaction, txIndex int, main *types.BlockDetail) []*types.Transaction {
 	var index int
 	if tx.Next != nil {
 		index = txIndex + 1
@@ -227,22 +227,27 @@ func isMainTxExecOk(tx *types.Transaction, txIndex int, main *types.BlockDetail)
 		index = txIndex - 1
 	}
 	if bytes.Contains(main.Block.Txs[index].Execer, []byte(types.ExecNamePrefix)) {
-		return true
+		return []*types.Transaction{tx}
 	}
 	if main.Receipts[index].Ty == types.ExecOk {
-		return true
+		if index < txIndex {
+			return []*types.Transaction{main.Block.Txs[index], tx}
+		}
+		return []*types.Transaction{tx, main.Block.Txs[index]}
 	}
-	return false
+	return nil
 }
 
+//如果交易组交易数超过2个，如果都是平行链交易，没问题，如果混合了主链交易，这里不会把主链tx 抽取出来，交易组执行失败
+//当前认为跨链的交易必须是2个，超过2个就是错误的交易，平行链这边可以执行失败
 func (client *ParaClient) FilterTxsForPara(main *types.BlockDetail) []*types.Transaction {
 	var txs []*types.Transaction
 	for i, tx := range main.Block.Txs {
 		if bytes.Contains(tx.Execer, []byte(types.ExecNamePrefix)) {
 			if tx.GroupCount == ParaCrossTxCount {
-				if !isMainTxExecOk(tx, i, main) {
-					continue
-				}
+				mainTxs := isMainTxExecOk(tx, i, main)
+				txs = append(txs, mainTxs...)
+				continue
 			}
 			txs = append(txs, tx)
 		}
@@ -351,7 +356,9 @@ func (client *ParaClient) RequestTx(currSeq int64) ([]*types.Transaction, *types
 		txs := client.FilterTxsForPara(blockDetail)
 		plog.Info("GetCurrentSeq", "Len of txs", len(txs), "seqTy", seqTy)
 
-		client.commitMsgClient.onMainBlockAdded(blockDetail)
+		if client.authAccount != "" {
+			client.commitMsgClient.onMainBlockAdded(blockDetail)
+		}
 
 		return txs, blockDetail.Block, seqTy, nil
 	}
@@ -473,7 +480,10 @@ func (client *ParaClient) WriteBlock(prev []byte, paraBlock *types.Block, mainBl
 	plog.Debug("write block in parachain", "height", paraBlock.Height)
 	var oriTxHashs [][]byte
 	for _, tx := range paraBlock.Txs {
-		oriTxHashs = append(oriTxHashs, tx.Hash())
+		//跨链交易包含了主链交易，需要过滤出来
+		if bytes.Contains(tx.Execer, []byte(types.ExecNamePrefix)) {
+			oriTxHashs = append(oriTxHashs, tx.Hash())
+		}
 	}
 
 	blockDetail, deltx, err := client.ExecBlock(prev, paraBlock)
@@ -495,16 +505,7 @@ func (client *ParaClient) WriteBlock(prev []byte, paraBlock *types.Block, mainBl
 		client.SetCurrentBlock(paraBlock)
 
 		if client.authAccount != "" {
-			commitMsg := &CommitMsg{
-				initTxHashs: oriTxHashs,
-				blockDetail: blockDetail,
-			}
-			if mainBlock != nil {
-				commitMsg.mainBlockHash = mainBlock.Hash()
-				commitMsg.mainHeight = mainBlock.Height
-			}
-			client.commitMsgClient.onBlockAdded(commitMsg)
-
+			client.commitMsgClient.onBlockAdded(mainBlock, blockDetail, oriTxHashs)
 		}
 
 	} else {
@@ -539,10 +540,7 @@ func (client *ParaClient) DelBlock(block *types.Block, seq int64) error {
 
 	if resp.GetData().(*types.Reply).IsOk {
 		if client.authAccount != "" {
-			commitMsg := &CommitMsg{
-				blockDetail: blocks.Items[0],
-			}
-			client.commitMsgClient.onBlockDeleted(commitMsg)
+			client.commitMsgClient.onBlockDeleted(blocks.Items[0].Block.Height)
 		}
 	} else {
 		reply := resp.GetData().(*types.Reply)

@@ -22,6 +22,7 @@ const (
 	CertX           = "cert"
 	GameX           = "game"
 	BlackwhiteX     = "blackwhite"
+	ParaX           = "paracross"
 )
 
 var (
@@ -42,6 +43,7 @@ var (
 	UserEvm          = []byte(UserEvmX)
 	ExecerGame       = []byte(GameX)
 	ExecerBlackwhite = []byte(BlackwhiteX)
+	ExecerPara       = []byte(ParaX)
 )
 
 const (
@@ -63,6 +65,7 @@ const (
 	M_10_TIMES                    = 10
 	SignatureSize                 = (4 + 33 + 65)
 	PrivacyMaturityDegree         = 12
+	TxGroupMaxCount               = 20
 )
 
 var (
