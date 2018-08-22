@@ -43,7 +43,7 @@
  1. grpc链路失败，会1s超时重发，一直失败一直发，如果期间tx两个块没发现重发，重发的tx也会更新为新的tx，为了防止mempool当做重复交易，tx的nonce会变
  1. 交易费不够，交易失败
  1. paracross执行器，commit preBlockHash和当前共识高度记录的blockHash不一致，交易失败
- 1. paracross执行器，commit MainBlockHash和commit main height的blockHash不一致，交易失败
+ 1. paracross执行器，commit MainBlockHash和main对应 height的blockHash不一致，交易失败
  1. 后两种场景都是分叉导致的，这样分叉的交易会重发，共识高度不增加，一直等到主链回滚后重新加入共识。
 
 ## 发送失败策略 
