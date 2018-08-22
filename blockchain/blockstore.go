@@ -193,12 +193,17 @@ func (bs *BlockStore) loadFlag(key []byte) (int64, error) {
 func (bs *BlockStore) HasTx(key []byte) (bool, error) {
 	if types.IsEnable("quickIndex") {
 		if _, err := bs.db.Get(types.CalcTxShortKey(key)); err != nil {
+			if err == dbm.ErrNotFoundInDb {
+				return false, nil
+			}
 			return false, err
-		} else {
-			return true, nil
 		}
+		return true, nil
 	}
 	if _, err := bs.db.Get(types.CalcTxKey(key)); err != nil {
+		if err == dbm.ErrNotFoundInDb {
+			return false, nil
+		}
 		return false, err
 	}
 	return true, nil
