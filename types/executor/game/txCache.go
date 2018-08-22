@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	clog = log.New("module", "txCache")
+	clog            = log.New("module", "txCache")
 	grpcRecSize int = 30 * 1024 * 1024 //the size should be limited in server
 
 	client *CacheClient
@@ -31,7 +31,7 @@ type CacheClient struct {
 }
 
 func NewClient() *CacheClient {
-	log.Debug("New Cache client")
+	clog.Debug("New Cache client")
 
 	msgRecvOp := grpc.WithMaxMsgSize(grpcRecSize)
 	conn, err := grpc.Dial(types.GetParaRemoteGrpcClient(), grpc.WithInsecure(), msgRecvOp)
@@ -54,23 +54,27 @@ func Start() {
 		client = NewClient()
 		client.wg.Add(1)
 		go func() {
+			tick := time.Tick(time.Second)
 			for {
-				clog.Error(" =============Update Cache GameId List============")
-				client.UpdateGameList()
-				time.Sleep(time.Second)
+				<-tick
+				clog.Debug(" =============Update Cache GameId List============")
+				err := client.UpdateGameList()
+				if err != nil {
+					clog.Error("******Update Cache have err:", err.Error())
+				}
 			}
 			client.wg.Done()
 		}()
 		client.wg.Wait()
 	}
 }
-func (client *CacheClient) UpdateGameList() {
+func (client *CacheClient) UpdateGameList() error {
 	client.Lock()
 	defer client.Unlock()
 	replyTxList, err := client.grpcClient.GetLastMemPool(context.Background(), &types.ReqNil{})
 	if err != nil {
 		clog.Error("GetLastMemPool have err:", err.Error())
-		return
+		return err
 	}
 	var matchGameIds []string
 	for _, tx := range replyTxList.GetTxs() {
@@ -87,7 +91,7 @@ func (client *CacheClient) UpdateGameList() {
 		}
 	}
 	client.CacheGameIds = matchGameIds
-
+	return nil
 }
 func (client *CacheClient) filterStatus(game *types.Game) int32 {
 	for _, id := range client.CacheGameIds {
