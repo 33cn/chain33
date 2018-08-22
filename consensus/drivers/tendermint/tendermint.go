@@ -408,3 +408,51 @@ func (client *TendermintClient) QueryBlockInfoByHeight(height int64) (*types.Ten
 
 	return msg.GetData().(types.Message).(*types.TendermintBlockInfo), nil
 }
+
+func (client *TendermintClient) LoadSeenCommit(height int64) *types.TendermintCommit {
+	blockInfo, err := client.QueryBlockInfoByHeight(height)
+	if err != nil {
+		panic(fmt.Sprintf("LoadSeenCommit GetBlockInfo failed:%v", err))
+	}
+	if blockInfo == nil {
+		tendermintlog.Error("LoadSeenCommit get nil block info")
+		return nil
+	}
+	return blockInfo.GetSeenCommit()
+}
+
+func (client *TendermintClient) LoadBlockCommit(height int64) *types.TendermintCommit {
+	blockInfo, err := client.QueryBlockInfoByHeight(height)
+	if err != nil {
+		panic(fmt.Sprintf("LoadBlockCommit GetBlockInfo failed:%v", err))
+	}
+	if blockInfo == nil {
+		tendermintlog.Error("LoadBlockCommit get nil block info")
+		return nil
+	}
+	return blockInfo.GetLastCommit()
+}
+
+func (client *TendermintClient) LoadProposalBlock(height int64) *types.TendermintBlock {
+	block, err := client.RequestBlock(height)
+	if err != nil {
+		tendermintlog.Error("LoadProposal by height failed", "curHeight", client.GetCurrentHeight(), "requestHeight", height, "error", err)
+		return nil
+	}
+	blockInfo, err := client.QueryBlockInfoByHeight(height)
+	if err != nil {
+		panic(fmt.Sprintf("LoadProposal GetBlockInfo failed:%v", err))
+	}
+	if blockInfo == nil {
+		tendermintlog.Error("LoadProposal get nil block info")
+		return nil
+	}
+
+	proposalBlock := blockInfo.GetBlock()
+	if proposalBlock != nil {
+		proposalBlock.Txs = append(proposalBlock.Txs, block.Txs[1:]...)
+		txHash := merkle.CalcMerkleRoot(proposalBlock.Txs)
+		tendermintlog.Info("LoadProposalBlock txs hash", "height", proposalBlock.Header.Height, "tx-hash", fmt.Sprintf("%X", txHash))
+	}
+	return proposalBlock
+}

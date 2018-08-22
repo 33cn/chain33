@@ -89,7 +89,6 @@ type ConsensusState struct {
 	doPrevote      func(height int64, round int)
 	setProposal    func(proposal *types.Proposal) error
 
-	blockStore       *BlockStore
 	broadcastChannel chan<- MsgInfo
 	ourId            ID
 	started          uint32 // atomic
@@ -111,7 +110,6 @@ func NewConsensusState(client *TendermintClient, state State, blockExec *BlockEx
 		timeoutTicker:    NewTimeoutTicker(),
 		evpool:           evpool,
 
-		blockStore:   NewBlockStore(client),
 		Quit:         make(chan struct{}),
 		txsAvailable: make(chan int64, 1),
 		begCons:      time.Time{},
@@ -192,10 +190,10 @@ func (cs *ConsensusState) SetTimeoutTicker(timeoutTicker TimeoutTicker) {
 func (cs *ConsensusState) LoadCommit(height int64) *types.TendermintCommit {
 	cs.mtx.Lock()
 	defer cs.mtx.Unlock()
-	if height == cs.blockStore.Height() {
-		return cs.blockStore.LoadSeenCommit(height)
+	if height == cs.client.GetCurrentHeight() {
+		return cs.client.LoadSeenCommit(height)
 	}
-	return cs.blockStore.LoadBlockCommit(height)
+	return cs.client.LoadBlockCommit(height)
 }
 
 // OnStart implements cmn.Service.
@@ -266,7 +264,7 @@ func (cs *ConsensusState) reconstructLastCommit(state State) {
 	if state.LastBlockHeight == 0 {
 		return
 	}
-	seenCommit := cs.blockStore.LoadSeenCommit(state.LastBlockHeight)
+	seenCommit := cs.client.LoadSeenCommit(state.LastBlockHeight)
 	seenCommitC := ttypes.Commit{TendermintCommit: seenCommit}
 	lastPrecommits := ttypes.NewVoteSet(state.ChainID, state.LastBlockHeight, seenCommitC.Round(), ttypes.VoteTypePrecommit, state.LastValidators)
 	for _, item := range seenCommit.Precommits {
@@ -1072,7 +1070,7 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 		commitBlock.Txs = make([]*types.Transaction, 1, len(block.Txs)+1)
 		commitBlock.Txs = append(commitBlock.Txs, block.Txs...)
 
-		tx0 := CreateBlockInfoTx(cs.blockStore.GetPubkey(), lastCommit, seenCommit, newState, newProposal, cs.ProposalBlock.TendermintBlock)
+		tx0 := CreateBlockInfoTx(cs.client.pubKey, lastCommit, seenCommit, newState, newProposal, cs.ProposalBlock.TendermintBlock)
 		commitBlock.Txs[0] = tx0
 		err = cs.client.CommitBlock(commitBlock)
 		if err != nil {
