@@ -238,12 +238,12 @@ func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, er
 	blockHash, err := getBlockHash(a.api, commit.Status.MainBlockHeight)
 	if err != nil {
 		clog.Error("paracross.Commit getBlockHash", "err", err,
-			"commit tx Main.height", commit.Status.MainBlockHeight)
+			"commit tx Main.height", commit.Status.MainBlockHeight, "from", a.fromaddr)
 		return nil, err
 	}
 	if !bytes.Equal(blockHash.Hash, commit.Status.MainBlockHash) && commit.Status.Height > 0 {
 		clog.Error("paracross.Commit blockHash not match", "db", common.Bytes2Hex(blockHash.Hash),
-			"commit tx", common.Bytes2Hex(commit.Status.MainBlockHash), "commitheit", commit.Status.Height,
+			"commit tx", common.Bytes2Hex(commit.Status.MainBlockHash), "commitHeight", commit.Status.Height,
 			"from", a.fromaddr)
 		return nil, types.ErrBlockHashNoMatch
 	}

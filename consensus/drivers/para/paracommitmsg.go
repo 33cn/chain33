@@ -121,6 +121,11 @@ out:
 					continue
 				}
 				sendingMsgs = notifications[:count]
+				for i, msg := range sendingMsgs {
+					plog.Debug("paracommitmsg sending", "idx", i, "height", msg.Height, "mainheight", msg.MainBlockHeight,
+						"blockhash", common.HashHex(msg.BlockHash), "mainHash", common.HashHex(msg.MainBlockHash),
+						"from", client.paraClient.authAccount)
+				}
 				notifications = notifications[count:]
 				client.currentTx = signTx
 				client.checkTxCommitTimes = 0
@@ -129,6 +134,8 @@ out:
 
 		//获取正在共识的高度，同步有两层意思，一个是主链跟其他节点完成了同步，另一个是当前平行链节点的高度追赶上了共识高度
 		case rsp := <-consensusCh:
+			plog.Debug("para consensus rcv", "notify", len(notifications), "sending", len(sendingMsgs),
+				"consens heigt", rsp.Height, "consens blockhash", common.HashHex(rsp.BlockHash), "sync", isSync)
 			//所有节点还没有共识场景
 			if rsp.Height == -1 {
 				isSync = true
