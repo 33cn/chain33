@@ -20,7 +20,7 @@ import (
 	"strconv"
 )
 
-func parseExpire(expire string) (int64, error) {
+func (wallet *Wallet) parseExpire(expire string) (int64, error) {
 	if len(expire) == 0 {
 		return 0, errors.New("Expire string should not be empty.")
 	}
@@ -106,7 +106,7 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 	if err != nil {
 		return "", err
 	}
-	expire, err := parseExpire(unsigned.GetExpire())
+	expire, err := wallet.parseExpire(unsigned.GetExpire())
 	if err != nil {
 		return "", err
 	}
