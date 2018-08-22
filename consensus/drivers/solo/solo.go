@@ -84,7 +84,7 @@ func (client *Client) CreateBlock() {
 		}
 		issleep = false
 		//check dup
-		//txs = client.CheckTxDup(txs)
+		txs = client.CheckTxDup(txs)
 		var newblock types.Block
 		newblock.ParentHash = lastBlock.Hash()
 		newblock.Height = lastBlock.Height + 1
