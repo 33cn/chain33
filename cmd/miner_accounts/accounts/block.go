@@ -17,6 +17,7 @@ type chain33 struct {
 	Height2Ts map[int64]int64
 	// new only cache ticket for miner
 	accountCache map[int64]*types.Accounts
+	Host string
 }
 
 func (b chain33) findBlock(ts int64) (int64, *chain33rpc.Header) {
@@ -93,8 +94,8 @@ func getBalanceAt(cli *chain33rpc.JSONClient, addrs []string, exec, stateHash st
 	return res, err
 }
 
-func syncHeaders() {
-	rpcCli, err := chain33rpc.NewJSONClient("http://127.0.0.1:8801")
+func syncHeaders(host string) {
+	rpcCli, err := chain33rpc.NewJSONClient(host)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -130,13 +131,13 @@ func syncHeaders() {
 	fmt.Fprintln(os.Stderr, err, cache.lastHeader.Height)
 }
 
-func SyncBlock() {
-	syncHeaders()
+func SyncBlock(host string) {
+	cache.Host = host
+	syncHeaders(host)
 
 	timeout := time.NewTicker(time.Minute)
 	for {
 		<-timeout.C
-		syncHeaders()
-
+		syncHeaders(host)
 	}
 }

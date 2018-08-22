@@ -65,6 +65,7 @@ func (show *ShowMinerAccount) Get(in *TimeAt, out *interface{}) error {
 	//for i := int64(0); i < 200; i++ {
 	header, curAcc, err := cache.getBalance(addrs, "ticket", seconds)
 	if err != nil {
+		log.Error("getBalance failed", err, "ts", seconds)
 		return nil
 	}
 
@@ -80,6 +81,7 @@ func (show *ShowMinerAccount) Get(in *TimeAt, out *interface{}) error {
 	log.Info("show", "monitor Interval", monitorInterval)
 	lastHourHeader, lastAcc, err := cache.getBalance(addrs, "ticket", header.BlockTime-monitorInterval)
 	if err != nil {
+		log.Error("getBalance failed", err, "ts", header.BlockTime-monitorInterval)
 		return nil
 	}
 	fmt.Print(curAcc, lastAcc)
