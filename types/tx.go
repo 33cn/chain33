@@ -434,7 +434,7 @@ func (tx *Transaction) isExpire(height, blocktime int64) bool {
 		}
 	} else {
 		//EnableTxHeight 选项开启, 并且符合条件
-		if txHeight := GetTxHeight(valid); txHeight > 0 {
+		if txHeight := GetTxHeight(valid, height); txHeight > 0 {
 			if txHeight-LowAllowPackHeight <= height && height <= txHeight+HighAllowPackHeight {
 				return false
 			}
@@ -449,8 +449,8 @@ func (tx *Transaction) isExpire(height, blocktime int64) bool {
 	}
 }
 
-func GetTxHeight(valid int64) int64 {
-	if EnableTxHeight && valid > TxHeightFlag {
+func GetTxHeight(valid int64, height int64) int64 {
+	if IsEnableFork(height, ForkV23TxHeight, EnableTxHeight) && valid > TxHeightFlag {
 		return valid - TxHeightFlag
 	}
 	return -1
