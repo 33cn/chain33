@@ -32,6 +32,7 @@ import (
 var random *rand.Rand
 
 func init() {
+	types.SetTitle("local")
 	random = rand.New(rand.NewSource(types.Now().UnixNano()))
 	log.SetLogLevel("error")
 }
@@ -66,7 +67,6 @@ func initConfigFile() *types.Config {
 
 func initEnv(cfg *types.Config) (*BlockChain, queue.Module, queue.Module, queue.Module, queue.Module, queue.Module) {
 	var q = queue.New("channel")
-	types.SetTitle(cfg.Title)
 	api, _ = client.New(q.Client(), nil)
 
 	blockchain := New(cfg.BlockChain)
@@ -389,7 +389,6 @@ func initCache() {
 func TestCheckDupTxHashList01(t *testing.T) {
 	types.EnableTxHeight = true
 	cfg := initConfigFile()
-	cfg.Title = "local"
 	blockchain, exec, cons, s, mem, p2p := initEnv(cfg)
 	defer func() {
 		blockchain.Close()
@@ -461,7 +460,6 @@ func TestCheckDupTxHashList01(t *testing.T) {
 func TestCheckDupTxHashList02(t *testing.T) {
 	types.EnableTxHeight = true
 	cfg := initConfigFile()
-	cfg.Title = "local"
 	blockchain, exec, cons, s, mem, p2p := initEnv(cfg)
 	defer func() {
 		blockchain.Close()
@@ -533,7 +531,7 @@ func TestCheckDupTxHashList02(t *testing.T) {
 func TestCheckDupTxHashList03(t *testing.T) {
 	types.EnableTxHeight = true
 	cfg := initConfigFile()
-	cfg.Title = "local"
+
 	blockchain, exec, cons, s, mem, p2p := initEnv(cfg)
 	defer func() {
 		blockchain.Close()
@@ -605,7 +603,7 @@ func TestCheckDupTxHashList03(t *testing.T) {
 func TestCheckDupTxHashList04(t *testing.T) {
 	types.EnableTxHeight = true
 	cfg := initConfigFile()
-	cfg.Title = "local"
+
 	blockchain, exec, cons, s, mem, p2p := initEnv(cfg)
 	defer func() {
 		blockchain.Close()
@@ -678,7 +676,7 @@ func TestCheckDupTxHashList04(t *testing.T) {
 func TestCheckDupTxHashList05(t *testing.T) {
 	types.EnableTxHeight = true
 	cfg := initConfigFile()
-	cfg.Title = "local"
+
 	blockchain, exec, cons, s, mem, p2p := initEnv(cfg)
 	defer func() {
 		blockchain.Close()
