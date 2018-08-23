@@ -6,10 +6,11 @@ import (
 	"strconv"
 	"time"
 
+	"errors"
+
 	"github.com/spf13/cobra"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
-	"errors"
 )
 
 func WalletCmd() *cobra.Command {
@@ -339,7 +340,7 @@ func parseTxHeight(expire string) error {
 	}
 
 	if expire[0] == 'H' && expire[1] == ':' {
-		txHeight,err := strconv.Atoi(expire[2:])
+		txHeight, err := strconv.Atoi(expire[2:])
 		if err != nil {
 			return err
 		}
@@ -367,7 +368,7 @@ func parseExpireOpt(expire string) (string, error) {
 	}
 
 	//区块高度格式，123
-	blockInt,err := strconv.Atoi(expire)
+	blockInt, err := strconv.Atoi(expire)
 	if err == nil {
 		if blockInt <= 0 {
 			fmt.Printf("block height should be grate to 0")
@@ -378,7 +379,7 @@ func parseExpireOpt(expire string) (string, error) {
 
 	//Txheight格式，H:123
 	err = parseTxHeight(expire)
-	if err!= nil {
+	if err != nil {
 		return "", err
 	}
 

@@ -7,6 +7,9 @@ import (
 	"sync/atomic"
 	"time"
 
+	"errors"
+	"strconv"
+
 	"github.com/golang/protobuf/proto"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
@@ -16,8 +19,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 	wcom "gitlab.33.cn/chain33/chain33/wallet/common"
 	"gitlab.33.cn/wallet/bipwallet"
-	"errors"
-	"strconv"
 )
 
 func (wallet *Wallet) parseExpire(expire string) (int64, error) {
@@ -26,7 +27,7 @@ func (wallet *Wallet) parseExpire(expire string) (int64, error) {
 	}
 
 	if expire[0] == 'H' && expire[1] == ':' {
-		txHeight,err := strconv.ParseInt(expire[2:], 10, 64)
+		txHeight, err := strconv.ParseInt(expire[2:], 10, 64)
 		if err != nil {
 			return 0, err
 		}
@@ -38,7 +39,7 @@ func (wallet *Wallet) parseExpire(expire string) (int64, error) {
 		return txHeight + types.TxHeightFlag, nil
 	}
 
-	blockHeight,err := strconv.ParseInt(expire, 10, 64)
+	blockHeight, err := strconv.ParseInt(expire, 10, 64)
 	if err == nil {
 		return blockHeight, nil
 	}
