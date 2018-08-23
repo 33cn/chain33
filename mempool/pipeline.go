@@ -46,7 +46,3 @@ func merge(done <-chan struct{}, cs []<-chan queue.Message) <-chan queue.Message
 	}()
 	return out
 }
-
-func mergeList(done <-chan struct{}, cs ...<-chan queue.Message) <-chan queue.Message {
-	return merge(done, cs)
-}
