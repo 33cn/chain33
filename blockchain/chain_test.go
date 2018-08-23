@@ -371,6 +371,7 @@ func checkDupTxHeight(blockchain *BlockChain) (*types.TxHashList, error) {
 		txhashlist.Hashes = append(txhashlist.Hashes, txhash[:])
 		txhashlist.Expire = append(txhashlist.Expire, tx.Expire)
 	}
+	txhashlist.Count = i
 	duptxhashlist, err := blockchain.GetDuplicateTxHashList(&txhashlist)
 	if err != nil {
 		return nil, err
@@ -386,7 +387,7 @@ func initCache() {
 
 //构造10个区块，10笔交易不带TxHeight，缓存size128
 func TestCheckDupTxHashList01(t *testing.T) {
-    types.EnableTxHeight = true
+	types.EnableTxHeight = true
 	cfg := initConfigFile()
 	cfg.Title = "local"
 	blockchain, exec, cons, s, mem, p2p := initEnv(cfg)
@@ -458,7 +459,7 @@ func TestCheckDupTxHashList01(t *testing.T) {
 
 //构造10个区块，10笔交易带TxHeight，缓存size128
 func TestCheckDupTxHashList02(t *testing.T) {
-    types.EnableTxHeight = true
+	types.EnableTxHeight = true
 	cfg := initConfigFile()
 	cfg.Title = "local"
 	blockchain, exec, cons, s, mem, p2p := initEnv(cfg)
@@ -530,7 +531,7 @@ func TestCheckDupTxHashList02(t *testing.T) {
 
 //构造130个区块，130笔交易不带TxHeight，缓存满
 func TestCheckDupTxHashList03(t *testing.T) {
-    types.EnableTxHeight = true
+	types.EnableTxHeight = true
 	cfg := initConfigFile()
 	cfg.Title = "local"
 	blockchain, exec, cons, s, mem, p2p := initEnv(cfg)
@@ -602,7 +603,7 @@ func TestCheckDupTxHashList03(t *testing.T) {
 
 //构造130个区块，130笔交易带TxHeight，缓存满
 func TestCheckDupTxHashList04(t *testing.T) {
-    types.EnableTxHeight = true
+	types.EnableTxHeight = true
 	cfg := initConfigFile()
 	cfg.Title = "local"
 	blockchain, exec, cons, s, mem, p2p := initEnv(cfg)
@@ -675,7 +676,7 @@ func TestCheckDupTxHashList04(t *testing.T) {
 
 //异常：构造10个区块，10笔交易带TxHeight，TxHeight不满足条件 size128
 func TestCheckDupTxHashList05(t *testing.T) {
-    types.EnableTxHeight = true
+	types.EnableTxHeight = true
 	cfg := initConfigFile()
 	cfg.Title = "local"
 	blockchain, exec, cons, s, mem, p2p := initEnv(cfg)
