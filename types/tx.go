@@ -362,6 +362,12 @@ func (tx *Transaction) check(minfee int64) error {
 }
 
 func (tx *Transaction) SetExpire(expire time.Duration) {
+	//Txheight处理
+	if EnableTxHeight && int64(expire) > TxHeightFlag {
+		tx.Expire = int64(expire)
+		return
+	}
+
 	if int64(expire) > expireBound {
 		if expire < time.Second*120 {
 			expire = time.Second * 120
