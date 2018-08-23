@@ -13,6 +13,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	ttypes "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
 	"gitlab.33.cn/chain33/chain33/types"
+	"time"
 )
 
 const fee = 1e6
@@ -205,6 +206,7 @@ type CSStateDB struct {
 }
 
 func NewStateDB(client *TendermintClient, state State) *CSStateDB {
+	r = rand.New(rand.NewSource(time.Now().UnixNano()))
 	return &CSStateDB{
 		client: client,
 		state:  state,
