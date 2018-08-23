@@ -409,6 +409,7 @@ func TestCheckDupTxHashListOne(t *testing.T) {
 
 //构造10个区块，10笔交易不带TxHeight，缓存size128
 func TestCheckDupTxHashList01(t *testing.T) {
+	types.EnableTxHeight = true
 	blockchain, exec, cons, s, mem, p2p := initEnv()
 	defer func() {
 		blockchain.Close()
@@ -423,7 +424,6 @@ func TestCheckDupTxHashList01(t *testing.T) {
 	chainlog.Info("TestCheckDupTxHashList01 begin --------------------")
 
 	initCache()
-	types.EnableTxHeight = true
 	curheight := blockchain.GetBlockHeight()
 	addblockheight := curheight + 10
 	for {
@@ -479,6 +479,7 @@ func TestCheckDupTxHashList01(t *testing.T) {
 
 //构造10个区块，10笔交易带TxHeight，缓存size128
 func TestCheckDupTxHashList02(t *testing.T) {
+	types.EnableTxHeight = true
 	blockchain, exec, cons, s, mem, p2p := initEnv()
 	defer func() {
 		blockchain.Close()
@@ -493,7 +494,6 @@ func TestCheckDupTxHashList02(t *testing.T) {
 	chainlog.Info("TestCheckDupTxHashList02 begin --------------------")
 
 	initCache()
-	types.EnableTxHeight = true
 	curheight := blockchain.GetBlockHeight()
 	addblockheight := curheight + 10
 	for {
@@ -549,6 +549,7 @@ func TestCheckDupTxHashList02(t *testing.T) {
 
 //构造130个区块，130笔交易不带TxHeight，缓存满
 func TestCheckDupTxHashList03(t *testing.T) {
+	types.EnableTxHeight = true
 	blockchain, exec, cons, s, mem, p2p := initEnv()
 	defer func() {
 		blockchain.Close()
@@ -562,7 +563,6 @@ func TestCheckDupTxHashList03(t *testing.T) {
 	chainlog.Info("TestCheckDupTxHashList03 begin --------------------")
 
 	initCache()
-	types.EnableTxHeight = true
 	curheight := blockchain.GetBlockHeight()
 	addblockheight := curheight + 130
 	for {
@@ -619,6 +619,7 @@ func TestCheckDupTxHashList03(t *testing.T) {
 
 //构造130个区块，130笔交易带TxHeight，缓存满
 func TestCheckDupTxHashList04(t *testing.T) {
+	types.EnableTxHeight = true
 	blockchain, exec, cons, s, mem, p2p := initEnv()
 	defer func() {
 		blockchain.Close()
@@ -632,7 +633,6 @@ func TestCheckDupTxHashList04(t *testing.T) {
 	chainlog.Info("TestCheckDupTxHashList04 begin --------------------")
 
 	initCache()
-	types.EnableTxHeight = true
 	curheight := blockchain.GetBlockHeight()
 	addblockheight := curheight + 130
 	curheightForExpire := curheight
@@ -690,6 +690,7 @@ func TestCheckDupTxHashList04(t *testing.T) {
 
 //异常：构造10个区块，10笔交易带TxHeight，TxHeight不满足条件 size128
 func TestCheckDupTxHashList05(t *testing.T) {
+	types.EnableTxHeight = true
 	blockchain, exec, cons, s, mem, p2p := initEnv()
 	defer func() {
 		blockchain.Close()
@@ -702,10 +703,8 @@ func TestCheckDupTxHashList05(t *testing.T) {
 		types.EnableTxHeight = false
 	}()
 	chainlog.Info("TestCheckDupTxHashList05 begin --------------------")
-
 	initCache()
 	TxHeightOffset = 60
-	types.EnableTxHeight = true
 	for i := 0; i < 10; i++ {
 		_, err := addTxTxHeigt(int64(i))
 		require.EqualError(t, err, "ErrTxExpire")
