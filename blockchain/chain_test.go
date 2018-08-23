@@ -698,7 +698,7 @@ func TestCheckDupTxHashList05(t *testing.T) {
 
 	//发送带TxHeight交易且TxHeight不满足条件
 	for i := 1; i < 10; i++ {
-		_,err := addTxTxHeigt(int64(i))
+		_, err := addTxTxHeigt(int64(i))
 		require.EqualError(t, err, "ErrTxExpire")
 		time.Sleep(time.Second)
 	}
