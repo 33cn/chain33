@@ -691,8 +691,14 @@ func TestCheckDupTxHashList05(t *testing.T) {
 	chainlog.Info("TestCheckDupTxHashList05 begin --------------------")
 	initCache()
 	TxHeightOffset = 60
-	for i := 0; i < 10; i++ {
-		_, err := addTxTxHeigt(int64(i))
+
+	//发送不带TxHeight交易生成创世区块
+	addTx()
+	time.Sleep(time.Second)
+
+	//发送带TxHeight交易且TxHeight不满足条件
+	for i := 1; i < 10; i++ {
+		_,err := addTxTxHeigt(int64(i))
 		require.EqualError(t, err, "ErrTxExpire")
 		time.Sleep(time.Second)
 	}
