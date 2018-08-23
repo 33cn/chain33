@@ -2,6 +2,8 @@ package blockchain
 
 //message callback
 import (
+	"sync/atomic"
+
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/queue"
@@ -12,6 +14,9 @@ import (
 func (chain *BlockChain) ProcRecvMsg() {
 	reqnum := make(chan struct{}, 1000)
 	for msg := range chain.client.Recv() {
+		if atomic.LoadInt32(&chain.isclosed) == 1 {
+			break
+		}
 		chainlog.Debug("blockchain recv", "msg", types.GetEventName(int(msg.Ty)), "id", msg.Id, "cap", len(reqnum))
 		msgtype := msg.Ty
 		reqnum <- struct{}{}
