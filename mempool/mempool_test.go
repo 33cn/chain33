@@ -58,6 +58,10 @@ var blk = &types.Block{
 	Txs:        []*types.Transaction{tx3, tx5},
 }
 
+func mergeList(done <-chan struct{}, cs ...<-chan queue.Message) <-chan queue.Message {
+	return merge(done, cs)
+}
+
 func init() {
 	err := limits.SetLimits()
 	if err != nil {
