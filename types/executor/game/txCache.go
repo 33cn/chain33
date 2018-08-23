@@ -19,13 +19,17 @@ var (
 )
 
 const (
-	Pending = int32(5)
+	MatchPending  = int32(5)
+	CancelPending = int32(6)
+	ClosePending  = int32(7)
 )
 
 type CacheClient struct {
-	conn         *grpc.ClientConn
-	grpcClient   types.GrpcserviceClient
-	CacheGameIds []string
+	conn          *grpc.ClientConn
+	grpcClient    types.GrpcserviceClient
+	matchGameIds  []string
+	cancelGameIds []string
+	closeGameIds  []string
 	sync.Mutex
 	wg sync.WaitGroup
 }
@@ -43,6 +47,8 @@ func NewClient() *CacheClient {
 	client := CacheClient{
 		conn,
 		grpcClient,
+		[]string{},
+		[]string{},
 		[]string{},
 		sync.Mutex{},
 		sync.WaitGroup{},
@@ -77,6 +83,8 @@ func (client *CacheClient) UpdateGameList() error {
 		return err
 	}
 	var matchGameIds []string
+	var cancelGameIds []string
+	var closeGameIds []string
 	for _, tx := range replyTxList.GetTxs() {
 		if bytes.Equal(tx.Execer, []byte(types.GetParaName()+types.GameX)) {
 			var action types.GameAction
@@ -87,17 +95,50 @@ func (client *CacheClient) UpdateGameList() error {
 			clog.Debug("exec Game tx=", "tx=", action)
 			if action.GetTy() == types.GameActionMatch && action.GetMatch() != nil {
 				matchGameIds = append(matchGameIds, action.GetMatch().GetGameId())
+				continue
 			}
+			if action.GetTy() == types.GameActionClose && action.GetClose() != nil {
+				closeGameIds = append(closeGameIds, action.GetClose().GetGameId())
+				continue
+			}
+			if action.GetTy() == types.GameActionCancel && action.GetCancel() != nil {
+				cancelGameIds = append(cancelGameIds, action.GetCancel().GetGameId())
+			}
+
 		}
 	}
-	client.CacheGameIds = matchGameIds
+	client.matchGameIds = matchGameIds
+	client.cancelGameIds = cancelGameIds
+	client.closeGameIds = closeGameIds
 	return nil
 }
 func (client *CacheClient) filterStatus(game *types.Game) int32 {
-	for _, id := range client.CacheGameIds {
-		if game.GetGameId() == id {
-			return Pending
+	if game.GetStatus() == types.GameActionCreate {
+		return game.GetStatus()
+	}
+	if game.GetStatus() == types.GameActionMatch {
+		for _, id := range client.matchGameIds {
+			if game.GetGameId() == id {
+				return MatchPending
+			}
 		}
+		return game.GetStatus()
+	}
+	if game.GetStatus() == types.GameActionCancel {
+		for _, id := range client.cancelGameIds {
+			if game.GetGameId() == id {
+				return CancelPending
+			}
+		}
+		return game.GetStatus()
+	}
+	if game.GetStatus() == types.GameActionClose {
+		for _, id := range client.closeGameIds {
+			if game.GetGameId() == id {
+				return ClosePending
+			}
+		}
+		return game.GetStatus()
 	}
 	return game.GetStatus()
 }
