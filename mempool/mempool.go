@@ -2,6 +2,7 @@ package mempool
 
 import (
 	"sync"
+	"sync/atomic"
 	"time"
 
 	lru "github.com/hashicorp/golang-lru"
@@ -38,6 +39,8 @@ type Mempool struct {
 	sync       bool
 	cfg        *types.MemPool
 	poolHeader chan struct{}
+	isclose    int32
+	wg         sync.WaitGroup
 }
 
 func New(cfg *types.MemPool) *Mempool {
@@ -70,6 +73,13 @@ func (mem *Mempool) Resize(size int) {
 	mem.proxyMtx.Lock()
 	mem.cache.SetSize(size)
 	mem.proxyMtx.Unlock()
+}
+
+func (mem *Mempool) isClose() bool {
+	if atomic.LoadInt32(&mem.isclose) == 1 {
+		return true
+	}
+	return false
 }
 
 // Mempool.SetMinFee设置最小交易费用
@@ -395,6 +405,8 @@ func (mem *Mempool) checkExpireValid(tx *types.Transaction) bool {
 
 // Mempool.Close关闭Mempool
 func (mem *Mempool) Close() {
+	atomic.StoreInt32(&mem.isclose, 1)
+	mem.wg.Wait()
 	mlog.Debug("mempool module closed")
 }
 
@@ -493,12 +505,15 @@ func (mem *Mempool) getSync() {
 func (mem *Mempool) SetQueueClient(client queue.Client) {
 	mem.client = client
 	mem.client.Sub("mempool")
-
+	mem.wg.Add(1)
 	go mem.pollLastHeader()
+	mem.wg.Add(1)
 	go mem.getSync()
 	//	go mem.ReTrySend()
 	// 从badChan读取坏消息，并回复错误信息
+	mem.wg.Add(1)
 	go func() {
+		defer mem.wg.Done()
 		for m := range mem.badChan {
 			m.Reply(mem.client.NewMessage("rpc", types.EventReply,
 				&types.Reply{false, []byte(m.Err().Error())}))
@@ -506,18 +521,21 @@ func (mem *Mempool) SetQueueClient(client queue.Client) {
 	}()
 
 	// 从goodChan读取好消息，并回复正确信息
+	mem.wg.Add(1)
 	go func() {
+		defer mem.wg.Done()
 		for m := range mem.goodChan {
 			mem.SendTxToP2P(m.GetData().(types.TxGroup).Tx())
 			m.Reply(mem.client.NewMessage("rpc", types.EventReply, &types.Reply{true, nil}))
 		}
 	}()
-
+	mem.wg.Add(3)
 	go mem.CheckSignList()
 	go mem.CheckTxList()
 	go mem.RemoveBlockedTxs()
-
+	mem.wg.Add(1)
 	go func() {
+		defer mem.wg.Done()
 		for msg := range mem.client.Recv() {
 			mlog.Debug("mempool recv", "msgid", msg.Id, "msg", types.GetEventName(int(msg.Ty)))
 			beg := types.Now()
