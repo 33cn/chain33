@@ -68,7 +68,7 @@ func init() {
 	DisableLog() // 不输出任何log
 	//	SetLogLevel("debug") // 输出DBUG(含)以下log
 	//	SetLogLevel("info") // 输出INFO(含)以下log
-	SetLogLevel("error") // 输出WARN(含)以下log
+	SetLogLevel("info") // 输出WARN(含)以下log
 	//	SetLogLevel("eror") // 输出EROR(含)以下log
 	//	SetLogLevel("crit") // 输出CRIT(含)以下log
 	//	SetLogLevel("") // 输出所有log
