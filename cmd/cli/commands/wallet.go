@@ -355,6 +355,7 @@ func parseTxHeight(expire string) error {
 }
 
 func parseExpireOpt(expire string) (string, error) {
+	//时间格式123s/1m/1h
 	expireTime, err := time.ParseDuration(expire)
 	if err == nil {
 		if expireTime < time.Minute*2 && expireTime != time.Second*0 {
@@ -365,17 +366,20 @@ func parseExpireOpt(expire string) (string, error) {
 		return expire, nil
 	}
 
+	//区块高度格式，123
 	blockInt,err := strconv.Atoi(expire)
 	if err == nil {
 		if blockInt <= 0 {
 			fmt.Printf("block height should be grate to 0")
 			return "", errors.New("block height should be grate to 0")
 		}
-	} else {
-		err = parseTxHeight(expire)
-		if err!= nil {
-			return "", err
-		}
+		return expire, nil
+	}
+
+	//Txheight格式，H:123
+	err = parseTxHeight(expire)
+	if err!= nil {
+		return "", err
 	}
 
 	return expire, err
