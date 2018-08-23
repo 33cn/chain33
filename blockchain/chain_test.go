@@ -66,7 +66,7 @@ func initConfigFile() *types.Config {
 
 func initEnv(cfg *types.Config) (*BlockChain, queue.Module, queue.Module, queue.Module, queue.Module, queue.Module) {
 	var q = queue.New("channel")
-
+	types.SetTitle(cfg.Title)
 	api, _ = client.New(q.Client(), nil)
 
 	blockchain := New(cfg.BlockChain)
