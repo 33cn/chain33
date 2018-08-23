@@ -74,10 +74,7 @@ func (mem *Mempool) Resize(size int) {
 }
 
 func (mem *Mempool) isClose() bool {
-	if atomic.LoadInt32(&mem.isclose) == 1 {
-		return true
-	}
-	return false
+	return atomic.LoadInt32(&mem.isclose) == 1
 }
 
 // Mempool.SetMinFee设置最小交易费用
