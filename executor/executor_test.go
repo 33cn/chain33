@@ -6,7 +6,9 @@ import (
 	"errors"
 	"math/rand"
 	"testing"
+	"time"
 
+	"github.com/stretchr/testify/assert"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/blockchain"
 	"gitlab.33.cn/chain33/chain33/common"
@@ -180,6 +182,50 @@ func TestExecGenesisBlock(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+func TestExecutorGetTxGroup(t *testing.T) {
+	exec := &Executor{}
+	execInit()
+	var txs []*types.Transaction
+	addr2, priv2 := genaddress()
+	addr3, priv3 := genaddress()
+	addr4, _ := genaddress()
+	txs = append(txs, createTx2(genkey, addr2, types.Coin))
+	txs = append(txs, createTx2(priv2, addr3, types.Coin))
+	txs = append(txs, createTx2(priv3, addr4, types.Coin))
+	//执行三笔交易: 全部正确
+	txgroup, err := types.CreateTxGroup(txs)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	//重新签名
+	txgroup.SignN(0, types.SECP256K1, genkey)
+	txgroup.SignN(1, types.SECP256K1, priv2)
+	txgroup.SignN(2, types.SECP256K1, priv3)
+	txs = txgroup.GetTxs()
+	execute := newExecutor(nil, exec, 1, time.Now().Unix(), 1, txs)
+	e := execute.loadDriverForExec(types.ExecName("coins"), execute.height)
+	execute.setEnv(e)
+	txs2 := e.GetTxs()
+	assert.Equal(t, txs2, txgroup.GetTxs())
+	for i := 0; i < len(txs); i++ {
+		txg, err := e.GetTxGroup(i)
+		assert.Nil(t, err)
+		assert.Equal(t, txg, txgroup.GetTxs())
+	}
+	_, err = e.GetTxGroup(len(txs))
+	assert.Equal(t, err, types.ErrTxGroupIndex)
+
+	//err tx group list
+	txs[0].Header = nil
+	execute = newExecutor(nil, exec, 1, time.Now().Unix(), 1, txs)
+	e = execute.loadDriverForExec(types.ExecName("coins"), execute.height)
+	execute.setEnv(e)
+	_, err = e.GetTxGroup(len(txs) - 1)
+	assert.Equal(t, err, types.ErrTxGroupFormat)
+}
+
 func TestTxGroup(t *testing.T) {
 	q, chain, s, p2p := initEnv()
 	prev := types.MinFee
