@@ -58,6 +58,7 @@ type BlockChain struct {
 	synblock            chan struct{}
 	quit                chan struct{}
 	isclosed            int32
+	runcount            int32
 	isbatchsync         int32
 	firstcheckbestchain int32 //节点启动之后首次检测最优链的标志
 
@@ -155,6 +156,11 @@ func (chain *BlockChain) Close() {
 	//退出线程
 	close(chain.quit)
 
+	//等待执行完成
+	for atomic.LoadInt32(&chain.runcount) > 0 {
+		time.Sleep(time.Microsecond)
+	}
+	chain.client.Close()
 	//wait for recvwg quit:
 	chainlog.Info("blockchain wait for recvwg quit")
 	chain.recvwg.Wait()
@@ -162,9 +168,6 @@ func (chain *BlockChain) Close() {
 	//wait for tickerwg quit:
 	chainlog.Info("blockchain wait for tickerwg quit")
 	chain.tickerwg.Wait()
-
-	//退出接受数据, 在最后一个block写磁盘时addtx还需要接受数据
-	chain.client.Close()
 
 	//关闭数据库
 	chain.blockStore.db.Close()
@@ -185,6 +188,7 @@ func (chain *BlockChain) SetQueueClient(client queue.Client) {
 	chain.startTime = types.Now()
 
 	//recv 消息的处理，共识模块需要获取lastblock从数据库中
+	chain.recvwg.Add(1)
 	go chain.ProcRecvMsg()
 
 	//初始化blockchian模块
