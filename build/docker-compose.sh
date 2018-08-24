@@ -183,19 +183,21 @@ function start() {
 function wait_btcd_up() {
     count=20
     while [ $count -gt 0 ]; do
-        docker-compose restart btcd
-        docker-compose ps
         status=$(docker-compose ps | grep btcd | awk '{print $5}')
         if [ "${status}" == "Up" ]; then
             break
         fi
         docker-compose logs btcd
-        echo "==============btcd fail (20-$count) times ================="
+        docker-compose restart btcd
+        docker-compose ps
+        echo "==============btcd fail $count  ================="
         ((count--))
         if [ $count == 0 ]; then
             echo "wait btcd up 20 times"
             exit 1
         fi
+        #btcd restart need wait 30s
+        sleep 30
     done
 }
 
