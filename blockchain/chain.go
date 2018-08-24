@@ -297,7 +297,7 @@ func (chain *BlockChain) GetDuplicateTxHashList(txhashlist *types.TxHashList) (d
 		if txhashlist.Expire != nil {
 			expire = txhashlist.Expire[i]
 		}
-		txHeight := types.GetTxHeight(expire)
+		txHeight := types.GetTxHeight(expire, txhashlist.Count)
 		//在txHeight > 0 的情况下，可以安全的查询cache
 		if txHeight > 0 {
 			onlyquerycache = true
