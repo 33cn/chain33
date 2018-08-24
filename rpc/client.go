@@ -17,6 +17,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 	evmtype "gitlab.33.cn/chain33/chain33/types/executor/evm"
 	hashlocktype "gitlab.33.cn/chain33/chain33/types/executor/hashlock"
+	lotterytype "gitlab.33.cn/chain33/chain33/types/executor/lottery"
 	retrievetype "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
 	tokentype "gitlab.33.cn/chain33/chain33/types/executor/token"
 	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
@@ -370,6 +371,26 @@ func (c *channelClient) CreateRawHashlockSendTx(parm *hashlocktype.HashlockSendT
 
 func (c *channelClient) CreateRawEvmCreateCallTx(parm *evmtype.CreateCallTx) ([]byte, error) {
 	return callExecNewTx(types.ExecName(types.EvmX), "CreateCall", parm)
+}
+
+func (c *channelClient) CreateRawLotteryCreateTx(parm *lotterytype.LotteryCreateTx) ([]byte, error) {
+	return callExecNewTx(types.ExecName(types.LotteryX), "LotteryCreate", parm)
+}
+
+func (c *channelClient) CreateRawLotteryBuyTx(parm *lotterytype.LotteryBuyTx) ([]byte, error) {
+	return callExecNewTx(types.ExecName(types.LotteryX), "LotteryBuy", parm)
+}
+
+func (c *channelClient) CreateRawLotteryShowTx(parm *lotterytype.LotteryShowTx) ([]byte, error) {
+	return callExecNewTx(types.ExecName(types.LotteryX), "LotteryShow", parm)
+}
+
+func (c *channelClient) CreateRawLotteryDrawTx(parm *lotterytype.LotteryDrawTx) ([]byte, error) {
+	return callExecNewTx(types.ExecName(types.LotteryX), "LotteryDraw", parm)
+}
+
+func (c *channelClient) CreateRawLotteryCloseTx(parm *lotterytype.LotteryCloseTx) ([]byte, error) {
+	return callExecNewTx(types.ExecName(types.LotteryX), "LotteryClose", parm)
 }
 
 func (c *channelClient) BindMiner(param *types.ReqBindMiner) (*types.ReplyBindMiner, error) {

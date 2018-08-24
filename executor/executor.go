@@ -19,6 +19,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/game"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/hashlock"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/lottery"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/manage"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/none"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/norm"
@@ -79,6 +80,7 @@ func execInit() {
 	cert.Init()
 	privacy.Init()
 	game.Init()
+	lottery.Init()
 }
 
 var runonce sync.Once
