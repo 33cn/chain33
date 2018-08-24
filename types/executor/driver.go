@@ -6,6 +6,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/types/executor/evm"
 	"gitlab.33.cn/chain33/chain33/types/executor/game"
 	"gitlab.33.cn/chain33/chain33/types/executor/hashlock"
+	"gitlab.33.cn/chain33/chain33/types/executor/lottery"
 	"gitlab.33.cn/chain33/chain33/types/executor/manage"
 	"gitlab.33.cn/chain33/chain33/types/executor/none"
 	"gitlab.33.cn/chain33/chain33/types/executor/privacy"
@@ -52,6 +53,7 @@ func Init() {
 	token.Init()
 	trade.Init()
 	game.Init()
+	lottery.Init()
 
 }
 
