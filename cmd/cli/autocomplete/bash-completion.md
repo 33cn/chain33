@@ -1,6 +1,6 @@
 # 命令行自动补全
 
-  目前在ubuntu下用git 等软件你会发现按tab键有提示或补全的功能， 这个功能依赖一个软件包， 叫bash-completion。bask-comletion 提供的能力是bash shell 的可编程补全。而chain33-cli 功能也越来越多，每加一步都看下帮助， 效率不高。 把这个能力加到chain33-cli里， 应该能提高不少效率。
+  目前在ubuntu下用git 等软件你会发现按tab键有提示或补全的功能， 这个功能依赖一个软件包， 叫bash-completion。bash-completion 提供的能力是bash shell 的可编程补全。而chain33-cli 功能也越来越多，每加一步都看下帮助， 效率不高。 把这个能力加到chain33-cli里， 应该能提高不少效率。
 
 ## bash-completion
 
