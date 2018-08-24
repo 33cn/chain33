@@ -261,4 +261,20 @@ var (
 	ErrInitializeAuthority = errors.New("ErrInitializeAuthority")
 	//rpc
 	ErrInvalidMainnetRpcAddr = errors.New("ErrInvalidMainnetRpcAddr")
+
+	//lottery
+	ErrLotteryStatus            = errors.New("ErrLotteryStatus")
+	ErrLotteryDrawActionInvalid = errors.New("ErrLotteryDrawActionInvalid")
+	ErrLotteryFundNotEnough     = errors.New("ErrLotteryFundNotEnough")
+	ErrLotteryCreatorBuy        = errors.New("ErrLotteryCreatorBuy")
+	ErrLotteryBuyAmount         = errors.New("ErrLotteryBuyAmount")
+	ErrLotteryRepeatHash        = errors.New("ErrLotteryRepeatHash")
+	ErrLotteryPurPeriodLimit    = errors.New("ErrLotteryPurPeriodLimit")
+	ErrLotteryShowPeriodLimit   = errors.New("ErrLotteryShowPeriodLimit")
+	ErrLotteryShowNumber        = errors.New("ErrLotteryShowNumber")
+	ErrLotteryShowRepeated      = errors.New("ErrLotteryShowRepeated")
+	ErrLotteryShowError         = errors.New("ErrLotteryShowError")
+	ErrLotteryErrLuckyNum       = errors.New("ErrLotteryErrLuckyNum")
+	ErrLotteryErrCloser         = errors.New("ErrLotteryErrCloser")
+	ErrLotteryErrUnableClose    = errors.New("ErrLotteryErrUnableClose")
 )
