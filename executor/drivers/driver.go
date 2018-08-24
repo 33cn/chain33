@@ -34,6 +34,10 @@ type Driver interface {
 	IsFree() bool
 	SetApi(client.QueueProtocolAPI)
 	SetTxs(txs []*types.Transaction)
+
+	//GetTxs and TxGroup
+	GetTxs() []*types.Transaction
+	GetTxGroup(index int) ([]*types.Transaction, error)
 }
 
 type DriverBase struct {
