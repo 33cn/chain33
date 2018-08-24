@@ -159,7 +159,7 @@ func (exec *Executor) procExecQuery(msg queue.Message) {
 
 func (exec *Executor) procExecCheckTx(msg queue.Message) {
 	datas := msg.GetData().(*types.ExecTxList)
-	execute := newExecutor(datas.StateHash, exec, datas.Height, datas.BlockTime, datas.Difficulty)
+	execute := newExecutor(datas.StateHash, exec, datas.Height, datas.BlockTime, datas.Difficulty, datas.Txs)
 	execute.enableMVCC()
 	execute.api = exec.qclient
 	//返回一个列表表示成功还是失败
@@ -180,7 +180,7 @@ var commonPrefix = []byte("mavl-")
 
 func (exec *Executor) procExecTxList(msg queue.Message) {
 	datas := msg.GetData().(*types.ExecTxList)
-	execute := newExecutor(datas.StateHash, exec, datas.Height, datas.BlockTime, datas.Difficulty)
+	execute := newExecutor(datas.StateHash, exec, datas.Height, datas.BlockTime, datas.Difficulty, datas.Txs)
 	execute.enableMVCC()
 	execute.api = exec.qclient
 	var receipts []*types.Receipt
@@ -328,7 +328,7 @@ func findExecer(key []byte) (execer []byte, err error) {
 func (exec *Executor) procExecAddBlock(msg queue.Message) {
 	datas := msg.GetData().(*types.BlockDetail)
 	b := datas.Block
-	execute := newExecutor(b.StateHash, exec, b.Height, b.BlockTime, uint64(b.Difficulty))
+	execute := newExecutor(b.StateHash, exec, b.Height, b.BlockTime, uint64(b.Difficulty), b.Txs)
 	execute.api = exec.qclient
 	var totalFee types.TotalFee
 	var kvset types.LocalDBSet
@@ -451,7 +451,7 @@ func (exec *Executor) stat(execute *executor, datas *types.BlockDetail) ([]*type
 func (exec *Executor) procExecDelBlock(msg queue.Message) {
 	datas := msg.GetData().(*types.BlockDetail)
 	b := datas.Block
-	execute := newExecutor(b.StateHash, exec, b.Height, b.BlockTime, uint64(b.Difficulty))
+	execute := newExecutor(b.StateHash, exec, b.Height, b.BlockTime, uint64(b.Difficulty), b.Txs)
 	execute.enableMVCC()
 	execute.api = exec.qclient
 	var kvset types.LocalDBSet
@@ -524,11 +524,11 @@ type executor struct {
 
 	// 增加区块的难度值，后面的执行器逻辑需要这些属性
 	difficulty uint64
-
-	api client.QueueProtocolAPI
+	txs        []*types.Transaction
+	api        client.QueueProtocolAPI
 }
 
-func newExecutor(stateHash []byte, exec *Executor, height, blocktime int64, difficulty uint64) *executor {
+func newExecutor(stateHash []byte, exec *Executor, height, blocktime int64, difficulty uint64, txs []*types.Transaction) *executor {
 	client := exec.client
 	enableMVCC := exec.enableMVCC
 	flagMVCC := exec.flagMVCC
@@ -541,6 +541,7 @@ func newExecutor(stateHash []byte, exec *Executor, height, blocktime int64, diff
 		height:       height,
 		blocktime:    blocktime,
 		difficulty:   difficulty,
+		txs:          txs,
 	}
 	e.coinsAccount.SetDB(e.stateDB)
 	return e
@@ -609,6 +610,7 @@ func (e *executor) setEnv(exec drivers.Driver) {
 	exec.SetLocalDB(e.localDB)
 	exec.SetEnv(e.height, e.blocktime, e.difficulty)
 	exec.SetApi(e.api)
+	exec.SetTxs(e.txs)
 }
 
 func (e *executor) checkTxGroup(txgroup *types.Transactions, index int) error {
