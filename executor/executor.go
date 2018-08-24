@@ -598,10 +598,9 @@ func (e *executor) checkTx(tx *types.Transaction, index int) error {
 		//如果已经过期
 		return types.ErrTxExpire
 	}
-	if err := tx.Check(types.MinFee); err != nil {
+	if err := tx.Check(e.height, types.MinFee); err != nil {
 		return err
 	}
-
 	return nil
 }
 
@@ -617,7 +616,7 @@ func (e *executor) checkTxGroup(txgroup *types.Transactions, index int) error {
 		//如果已经过期
 		return types.ErrTxExpire
 	}
-	if err := txgroup.Check(types.MinFee); err != nil {
+	if err := txgroup.Check(e.height, types.MinFee); err != nil {
 		return err
 	}
 	return nil

@@ -277,4 +277,5 @@ var (
 	ErrTitleNotExist        = errors.New("ErrTitleNotExist")
 	ErrNodeNotForTheTitle   = errors.New("ErrNodeNotForTheTitle")
 	ErrParaBlockHashNoMatch = errors.New("ErrParaBlockHashNoMatch")
+	ErrTxGroupParaCount     = errors.New("ErrTxGroupParaCount")
 )
