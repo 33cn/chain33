@@ -57,10 +57,11 @@ func (mem *Mempool) CheckTxs(msg queue.Message) queue.Message {
 		msg.Data = types.ErrEmptyTx
 		return msg
 	}
+	header := mem.GetHeader()
 	txmsg := msg.GetData().(*types.Transaction)
 	//普通的交易
 	tx := types.NewTransactionCache(txmsg)
-	err := tx.Check(mem.minFee)
+	err := tx.Check(header.GetHeight(), mem.minFee)
 	if err != nil {
 		msg.Data = err
 		return msg
