@@ -21,6 +21,7 @@ const (
 	UserEvmX        = "user.evm."
 	CertX           = "cert"
 	GameX           = "game"
+	LotteryX        = "lottery"
 )
 
 var (
@@ -40,6 +41,7 @@ var (
 	ExecerCert     = []byte(CertX)
 	UserEvm        = []byte(UserEvmX)
 	ExecerGame     = []byte(GameX)
+	ExecerLottery  = []byte(LotteryX)
 )
 
 const (
@@ -212,6 +214,13 @@ const (
 	TyLogMatchGame  = 712
 	TyLogCancleGame = 713
 	TyLogCloseGame  = 714
+
+	//log for lottery
+	TyLogLotteryCreate = 801
+	TyLogLotteryBuy    = 802
+	TyLogLotteryShow   = 803
+	TyLogLotteryDraw   = 804
+	TyLogLotteryClose  = 805
 )
 
 //exec type
@@ -406,4 +415,21 @@ const (
 	GameActionMatch
 	GameActionCancel
 	GameActionClose
+)
+
+//Lottery op
+const (
+	LotteryActionCreate = 1 + iota
+	LotteryActionBuy
+	LotteryActionShow
+	LotteryActionDraw
+	LotteryActionClose
+)
+
+//Lottery status
+const (
+	LotteryCreated = 1 + iota
+	LotteryPurchase
+	LotteryShowing
+	LotteryClosed
 )

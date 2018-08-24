@@ -14,6 +14,7 @@ It is generated from these files:
 	executor.proto
 	executorTrade.proto
 	game.proto
+	lottery.proto
 	p2p.proto
 	pbft.proto
 	relay.proto
@@ -244,6 +245,20 @@ It has these top-level messages:
 	ReplyGameList
 	ReplyGame
 	ReceiptGame
+	PurchaseRecord
+	PurchaseRecords
+	Lottery
+	LotteryAction
+	LotteryCreate
+	LotteryBuy
+	LotteryShow
+	LotteryDraw
+	LotteryClose
+	ReceiptLottery
+	ReqLotteryInfo
+	ReplyLotteryNormalInfo
+	ReplyLotteryCurrentInfo
+	ReplyLotteryHistoryLuckyNumber
 	P2PGetPeerInfo
 	P2PPeerInfo
 	P2PVersion
