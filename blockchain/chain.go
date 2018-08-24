@@ -58,6 +58,7 @@ type BlockChain struct {
 	synblock            chan struct{}
 	quit                chan struct{}
 	isclosed            int32
+	runcount            int32
 	isbatchsync         int32
 	firstcheckbestchain int32 //节点启动之后首次检测最优链的标志
 
@@ -155,6 +156,11 @@ func (chain *BlockChain) Close() {
 	//退出线程
 	close(chain.quit)
 
+	//等待执行完成
+	for atomic.LoadInt32(&chain.runcount) > 0 {
+		time.Sleep(time.Microsecond)
+	}
+	chain.client.Close()
 	//wait for recvwg quit:
 	chainlog.Info("blockchain wait for recvwg quit")
 	chain.recvwg.Wait()
