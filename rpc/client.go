@@ -122,7 +122,7 @@ func (c *channelClient) CreateNoBalanceTransaction(in *types.NoBalanceTx) (*type
 	if err != nil {
 		return nil, err
 	}
-	err = group.Check(types.MinFee)
+	err = group.Check(0, types.MinFee)
 	if err != nil {
 		return nil, err
 	}

@@ -203,7 +203,7 @@ func (client *CommitMsgClient) getTxsGroup(txsArr *types.Transactions) (*types.T
 		plog.Error("para CreateTxGroup", "err", err.Error())
 		return nil, err
 	}
-	err = group.Check(types.MinFee)
+	err = group.Check(0, types.MinFee)
 	if err != nil {
 		plog.Error("para CheckTxGroup", "err", err.Error())
 		return nil, err
@@ -231,7 +231,6 @@ func (client *CommitMsgClient) batchCalcTxGroup(notifications []*types.Paracross
 			return nil, 0, err
 		}
 		rawTxs.Txs = append(rawTxs.Txs, tx)
-
 	}
 
 	txs, err := client.getTxsGroup(&rawTxs)

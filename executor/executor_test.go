@@ -270,6 +270,25 @@ func TestTxGroup(t *testing.T) {
 	txgroup.SignN(2, types.SECP256K1, priv2)
 
 	block = execAndCheckBlock(t, q.Client(), block, txgroup.GetTxs(), types.ExecPack)
+
+	//执行三笔交易：其中有一笔是user.xxx的执行器
+	txs = nil
+	txs = append(txs, createTx2(genkey, addr2, types.Coin))
+	txs = append(txs, createTx2(genkey, addr4, types.Coin))
+	txs = append(txs, createTx2(priv2, addr4, 10*types.Coin))
+	txs[2].Execer = []byte("user.xxx")
+	txs[2].To = address.ExecAddress("user.xxx")
+	txgroup, err = types.CreateTxGroup(txs)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	//重新签名
+	txgroup.SignN(0, types.SECP256K1, genkey)
+	txgroup.SignN(1, types.SECP256K1, genkey)
+	txgroup.SignN(2, types.SECP256K1, priv2)
+
+	block = execAndCheckBlock2(t, q.Client(), block, txgroup.GetTxs(), []int{2, 2, 1})
 }
 
 func TestExecAllow(t *testing.T) {
@@ -332,6 +351,22 @@ func execAndCheckBlock(t *testing.T, qclient queue.Client,
 	for i := 0; i < len(detail.Block.Txs); i++ {
 		if detail.Receipts[i].GetTy() != int32(result) {
 			t.Errorf("exec expect all is %d, but now %d, index %d", result, detail.Receipts[i].GetTy(), i)
+		}
+	}
+	return detail.Block
+}
+
+func execAndCheckBlock2(t *testing.T, qclient queue.Client,
+	block *types.Block, txs []*types.Transaction, result []int) *types.Block {
+	block2 := createNewBlock(t, block, txs)
+	detail, _, err := ExecBlock(qclient, block.StateHash, block2, false, true)
+	if err != nil {
+		t.Error(err)
+		return nil
+	}
+	for i := 0; i < len(detail.Block.Txs); i++ {
+		if detail.Receipts[i].GetTy() != int32(result[i]) {
+			t.Errorf("exec expect all is %d, but now %d, index %d", result[i], detail.Receipts[i].GetTy(), i)
 		}
 	}
 	return detail.Block
