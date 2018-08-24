@@ -196,6 +196,14 @@ function wait_btcd_up() {
             echo "wait btcd up 20 times"
             exit 1
         fi
+        mod=$((count % 4))
+        if [ $mod == 0 ]; then
+            docker-compose down
+            sleep 5
+            docker-compose -f docker-compose.yml -f docker-compose-para.yml up --build -d
+            sleep 60
+            continue
+        fi
         #btcd restart need wait 30s
         sleep 30
     done
