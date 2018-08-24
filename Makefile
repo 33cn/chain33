@@ -66,7 +66,6 @@ para-cli:
 
 auto-test:## build auto-test binary
 	@go build -v -i -o $(AUTO_TEST) $(SRC_AUTO_TEST)
-	@cp cmd/autotest/*.toml build/tools/autotest/
 
 signatory:
 	@cd cmd/signatory-server/signatory && bash ./create_protobuf.sh && cd ../.../..
@@ -164,7 +163,7 @@ clean: ## Remove previous build
 	@rm -rf build/relayd*
 	@rm -rf build/*.log
 	@rm -rf build/logs
-	@rm -rf build/tools/autotest/*
+	@rm -rf build/tools/autotest/autotest
 	@go clean
 
 protobuf: ## Generate protbuf file of types package
