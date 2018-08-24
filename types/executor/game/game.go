@@ -345,7 +345,7 @@ func (t *GameGetList) Output(reply interface{}) (interface{}, error) {
 				}
 				gameList = append(gameList, g)
 			}
-			return gameList, nil
+			return &ReplyGameList{gameList}, nil
 		}
 	}
 	return reply, nil
