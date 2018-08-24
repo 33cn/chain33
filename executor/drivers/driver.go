@@ -5,6 +5,7 @@ package drivers
 //nofee transaction will not pack into block
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 
@@ -32,6 +33,7 @@ type Driver interface {
 	Query(funcName string, params []byte) (types.Message, error)
 	IsFree() bool
 	SetApi(client.QueueProtocolAPI)
+	SetTxs(txs []*types.Transaction)
 }
 
 type DriverBase struct {
@@ -44,6 +46,7 @@ type DriverBase struct {
 	isFree       bool
 	difficulty   uint64
 	api          client.QueueProtocolAPI
+	txs          []*types.Transaction
 }
 
 func (d *DriverBase) SetApi(api client.QueueProtocolAPI) {
@@ -230,6 +233,36 @@ func (d *DriverBase) GetCoinsAccount() *account.DB {
 		d.coinsaccount.SetDB(d.statedb)
 	}
 	return d.coinsaccount
+}
+
+func (d *DriverBase) GetTxs() []*types.Transaction {
+	return d.txs
+}
+
+func (d *DriverBase) SetTxs(txs []*types.Transaction) {
+	d.txs = txs
+}
+
+func (d *DriverBase) GetTxGroup(index int) ([]*types.Transaction, error) {
+	if len(d.txs) <= index {
+		return nil, types.ErrTxGroupIndex
+	}
+	tx := d.txs[index]
+	c := int(tx.GroupCount)
+	if c <= 0 || c > int(types.MaxTxGroupSize) {
+		return nil, types.ErrTxGroupCount
+	}
+	for i := index; i >= 0 && i >= index-c; i-- {
+		if bytes.Equal(d.txs[i].Header, d.txs[i].Hash()) { //find header
+			txgroup := types.Transactions{Txs: d.txs[i : i+c]}
+			err := txgroup.Check(d.GetHeight(), types.MinFee)
+			if err != nil {
+				return nil, err
+			}
+			return txgroup.Txs, nil
+		}
+	}
+	return nil, types.ErrTxGroupFormat
 }
 
 func (d *DriverBase) GetStateDB() dbm.KV {
