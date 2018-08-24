@@ -18,6 +18,7 @@ func (chain *BlockChain) ProcRecvMsg() {
 		chainlog.Debug("blockchain recv", "msg", types.GetEventName(int(msg.Ty)), "id", msg.Id, "cap", len(reqnum))
 		msgtype := msg.Ty
 		reqnum <- struct{}{}
+		atomic.AddInt32(&chain.runcount, 1)
 		switch msgtype {
 		case types.EventLocalGet:
 			go chain.processMsg(msg, reqnum, chain.localGet)
@@ -342,9 +343,7 @@ func (chain *BlockChain) processMsg(msg queue.Message, reqnum chan struct{}, cb 
 	beg := types.Now()
 	defer func() {
 		<-reqnum
-		if atomic.LoadInt32(&chain.isclosed) == 1 && len(reqnum) == 0 {
-			chain.client.Close()
-		}
+		atomic.AddInt32(&chain.runcount, -1)
 		chainlog.Debug("process", "cost", types.Since(beg), "msg", types.GetEventName(int(msg.Ty)))
 	}()
 	cb(msg)
