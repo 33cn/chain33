@@ -362,6 +362,12 @@ func (tx *Transaction) check(minfee int64) error {
 }
 
 func (tx *Transaction) SetExpire(expire time.Duration) {
+	//Txheight处理
+	if EnableTxHeight && int64(expire) > TxHeightFlag {
+		tx.Expire = int64(expire)
+		return
+	}
+
 	if int64(expire) > expireBound {
 		if expire < time.Second*120 {
 			expire = time.Second * 120
@@ -428,7 +434,7 @@ func (tx *Transaction) isExpire(height, blocktime int64) bool {
 		}
 	} else {
 		//EnableTxHeight 选项开启, 并且符合条件
-		if txHeight := GetTxHeight(valid); txHeight > 0 {
+		if txHeight := GetTxHeight(valid, height); txHeight > 0 {
 			if txHeight-LowAllowPackHeight <= height && height <= txHeight+HighAllowPackHeight {
 				return false
 			}
@@ -443,8 +449,8 @@ func (tx *Transaction) isExpire(height, blocktime int64) bool {
 	}
 }
 
-func GetTxHeight(valid int64) int64 {
-	if EnableTxHeight && valid > TxHeightFlag {
+func GetTxHeight(valid int64, height int64) int64 {
+	if IsEnableFork(height, ForkV23TxHeight, EnableTxHeight) && valid > TxHeightFlag {
 		return valid - TxHeightFlag
 	}
 	return -1

@@ -1,6 +1,6 @@
 Title="bityuan"
 TestNet=false
-FixTime= false
+FixTime=false
 
 [log]
 # 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
@@ -25,17 +25,18 @@ callerFunction = false
 
 
 [blockchain]
-defCacheSize=512
+defCacheSize=128
 maxFetchBlockNum=128
 timeoutSeconds=5
 batchBlockNum=128
 driver="leveldb"
 dbPath="datadir"
-dbCache=64
+dbCache=512
 isStrongConsistency=false
 singleMode=false
 batchsync=false
 isRecordBlockSequence=false
+enableTxQuickIndex=false
 
 [p2p]
 seeds=[]
@@ -60,8 +61,9 @@ jrpcFuncWhitelist=["*"]
 grpcFuncWhitelist=["*"]
 
 [mempool]
-poolCacheSize=10240
+poolCacheSize=102400
 minTxFee=100000
+maxTxNumPerAccount=10000
 
 [consensus]
 name="ticket"
@@ -71,7 +73,7 @@ minerstart=true
 name="mavl"
 driver="leveldb"
 dbPath="datadir/mavltree"
-dbCache=128
+dbCache=512
 
 [wallet]
 minFee=100000
@@ -86,3 +88,4 @@ minerwhitelist=["*"]
 isFree=false
 minExecFee=100000
 enableStat=false
+enableMVCC=true
