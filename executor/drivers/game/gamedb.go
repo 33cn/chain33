@@ -113,7 +113,9 @@ func (action *Action) updateStateDBCache(status int32, addr string) {
 	}
 	action.db.Set(CalcCountKey(status, addr), []byte(strconv.FormatInt(count+1, 10)))
 }
-
+func (action *Action) saveStateDB(game *types.Game) {
+	action.db.Set(Key(game.GetGameId()), types.Encode(game))
+}
 func CalcCountKey(status int32, addr string) (key []byte) {
 	key = append(key, []byte("mavl-"+types.ExecName(types.GameX)+"-")...)
 	key = append(key, []byte(fmt.Sprintf("%s:%d:%s", GameCount, status, addr))...)
@@ -183,6 +185,7 @@ func (action *Action) GameCreate(create *types.GameCreate) (*types.Receipt, erro
 	action.updateStateDBCache(game.GetStatus(), "")
 	action.updateStateDBCache(game.GetStatus(), game.GetCreateAddress())
 	game.Index = action.GetIndex(game)
+	action.saveStateDB(game)
 	receiptLog := action.GetReceiptLog(game)
 	logs = append(logs, receiptLog)
 	kv = append(kv, action.GetKVSet(game)...)
@@ -231,6 +234,7 @@ func (action *Action) GameMatch(match *types.GameMatch) (*types.Receipt, error) 
 	game.MatchTxHash = common.ToHex(action.txhash)
 	game.PrevIndex = game.GetIndex()
 	game.Index = action.GetIndex(game)
+	action.saveStateDB(game)
 	action.updateStateDBCache(game.GetStatus(), "")
 	action.updateStateDBCache(game.GetStatus(), game.GetCreateAddress())
 	action.updateStateDBCache(game.GetStatus(), game.GetMatchAddress())
@@ -280,6 +284,7 @@ func (action *Action) GameCancel(cancel *types.GameCancel) (*types.Receipt, erro
 	game.CancelTxHash = common.ToHex(action.txhash)
 	game.PrevIndex = game.GetIndex()
 	game.Index = action.GetIndex(game)
+	action.saveStateDB(game)
 	action.updateStateDBCache(game.GetStatus(), "")
 	action.updateStateDBCache(game.GetStatus(), game.GetCreateAddress())
 	var logs []*types.ReceiptLog
@@ -428,6 +433,7 @@ func (action *Action) GameClose(close *types.GameClose) (*types.Receipt, error) 
 	game.PrevIndex = game.GetIndex()
 	game.Index = action.GetIndex(game)
 	game.CreatorGuess = creatorGuess
+	action.saveStateDB(game)
 	action.updateStateDBCache(game.GetStatus(), "")
 	action.updateStateDBCache(game.GetStatus(), game.GetCreateAddress())
 	action.updateStateDBCache(game.GetStatus(), game.GetMatchAddress())
