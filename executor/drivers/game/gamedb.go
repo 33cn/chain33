@@ -155,6 +155,9 @@ func (action *Action) GameCreate(create *types.GameCreate) (*types.Receipt, erro
 	gameId := common.ToHex(action.txhash)
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
+	if create.GetValue()<2e8{
+		return nil,fmt.Errorf("The amount you participate in cannot be less than 2 and must be an even number.")
+	}
 	if !action.CheckExecAccountBalance(action.fromaddr, create.GetValue(), 0) {
 		glog.Error("GameCreate", "addr", action.fromaddr, "execaddr", action.execaddr, "id",
 			gameId, "err", types.ErrNoBalance)
