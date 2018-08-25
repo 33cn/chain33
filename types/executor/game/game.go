@@ -403,6 +403,10 @@ func (g *GameGetInfo) Output(reply interface{}) (interface{}, error) {
 				Secret:        game.GetSecret(),
 				Result:        game.GetResult(),
 				MatcherGuess:  game.GetMatcherGuess(),
+				CreateTxHash:  game.GetCreateTxHash(),
+				CancelTxHash:  game.GetCancelTxHash(),
+				MatchTxHash:   game.GetMatchTxHash(),
+				CloseTxHash:   game.GetCloseTxHash(),
 				CreatorGuess:  game.GetCreatorGuess(),
 			}
 			return g, nil
