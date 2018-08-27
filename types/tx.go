@@ -98,11 +98,13 @@ func (txgroup *Transactions) IsExpire(height, blocktime int64) bool {
 	return false
 }
 
-func (txgroup *Transactions) Check(minfee int64) error {
+//height == 0 的时候，不做检查
+func (txgroup *Transactions) Check(height int64, minfee int64) error {
 	txs := txgroup.Txs
 	if len(txs) < 2 {
 		return ErrTxGroupCountLessThanTwo
 	}
+	para := make(map[string]bool)
 	for i := 0; i < len(txs); i++ {
 		if txs[i] == nil {
 			return ErrTxGroupEmpty
@@ -110,6 +112,17 @@ func (txgroup *Transactions) Check(minfee int64) error {
 		err := txs[i].check(0)
 		if err != nil {
 			return err
+		}
+		name := string(txs[i].Execer)
+		if IsParaExecName(name) {
+			para[name] = true
+		}
+	}
+	//txgroup 只允许一条平行链的交易
+	if IsEnableFork(height, ForkV24TxGroupPara, EnableTxGroupParaFork) {
+		if len(para) > 1 {
+			tlog.Info("txgroup has multi para transaction")
+			return ErrTxGroupParaCount
 		}
 	}
 	for i := 1; i < len(txs); i++ {
@@ -194,7 +207,7 @@ func (tx *TransactionCache) Tx() *Transaction {
 	return tx.Transaction
 }
 
-func (tx *TransactionCache) Check(minfee int64) error {
+func (tx *TransactionCache) Check(height, minfee int64) error {
 	if !tx.checked {
 		tx.checked = true
 		txs, err := tx.GetTxGroup()
@@ -205,7 +218,7 @@ func (tx *TransactionCache) Check(minfee int64) error {
 		if txs == nil {
 			tx.checkok = tx.check(minfee)
 		} else {
-			tx.checkok = txs.Check(minfee)
+			tx.checkok = txs.Check(height, minfee)
 		}
 	}
 	return tx.checkok
@@ -331,7 +344,7 @@ func (tx *Transaction) checkSign() bool {
 	return CheckSign(data, tx.GetSignature())
 }
 
-func (tx *Transaction) Check(minfee int64) error {
+func (tx *Transaction) Check(height, minfee int64) error {
 	group, err := tx.GetTxGroup()
 	if err != nil {
 		return err
@@ -339,7 +352,7 @@ func (tx *Transaction) Check(minfee int64) error {
 	if group == nil {
 		return tx.check(minfee)
 	}
-	return group.Check(minfee)
+	return group.Check(height, minfee)
 }
 
 func (tx *Transaction) check(minfee int64) error {

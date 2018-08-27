@@ -211,7 +211,7 @@ func (mem *Mempool) DelBlock(block *types.Block) {
 		return
 	}
 	blkTxs := block.Txs
-
+	header := mem.GetHeader()
 	for i := 0; i < len(blkTxs); i++ {
 		tx := blkTxs[i]
 		if "ticket" == string(tx.Execer) {
@@ -230,7 +230,7 @@ func (mem *Mempool) DelBlock(block *types.Block) {
 			tx = group.Tx()
 			i = i + groupCount - 1
 		}
-		err := tx.Check(mem.minFee)
+		err := tx.Check(header.GetHeight(), mem.minFee)
 		if err != nil {
 			continue
 		}

@@ -216,6 +216,8 @@ var (
 	ErrPeerStop   = errors.New("ErrPeerStop")
 
 	ErrBlockSize                  = errors.New("ErrBlockSize")
+	ErrTxGroupIndex               = errors.New("ErrTxGroupIndex")
+	ErrTxGroupFormat              = errors.New("ErrTxGroupFormat")
 	ErrTxGroupCountLessThanTwo    = errors.New("ErrTxGroupCountLessThanTwo")
 	ErrTxGroupHeader              = errors.New("ErrTxGroupHeader")
 	ErrTxGroupNext                = errors.New("ErrTxGroupNext")
@@ -277,4 +279,5 @@ var (
 	ErrTitleNotExist        = errors.New("ErrTitleNotExist")
 	ErrNodeNotForTheTitle   = errors.New("ErrNodeNotForTheTitle")
 	ErrParaBlockHashNoMatch = errors.New("ErrParaBlockHashNoMatch")
+	ErrTxGroupParaCount     = errors.New("ErrTxGroupParaCount")
 )
