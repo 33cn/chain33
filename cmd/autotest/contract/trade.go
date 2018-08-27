@@ -2,22 +2,18 @@ package contract
 
 import (
 	"sync"
+
 	"github.com/BurntSushi/toml"
 	"gitlab.33.cn/chain33/chain33/cmd/autotest/testcase"
 )
 
-type TestTradeConfig struct{
-
-	TransferCaseArr []testcase.TransferCase `toml:"TransferCase,omitempty"`
-	SellCaseArr []testcase.SellCase `toml:"SellCase,omitempty"`
+type TestTradeConfig struct {
+	TransferCaseArr  []testcase.TransferCase  `toml:"TransferCase,omitempty"`
+	SellCaseArr      []testcase.SellCase      `toml:"SellCase,omitempty"`
 	DependBuyCaseArr []testcase.DependBuyCase `toml:"DependBuyCase,omitempty"`
 }
 
-
-
-
-func (caseConf* TestTradeConfig)RunTest(caseFile string, wg *sync.WaitGroup) {
-
+func (caseConf *TestTradeConfig) RunTest(caseFile string, wg *sync.WaitGroup) {
 
 	defer wg.Done()
 
@@ -29,12 +25,10 @@ func (caseConf* TestTradeConfig)RunTest(caseFile string, wg *sync.WaitGroup) {
 		return
 	}
 
-
 	tester := testcase.NewTestOperator(fLog, tLog)
 	go tester.HandleDependency()
 	go tester.RunSendFlow()
 	go tester.RunCheckFlow()
-
 
 	for i := range caseConf.TransferCaseArr {
 
@@ -50,7 +44,6 @@ func (caseConf* TestTradeConfig)RunTest(caseFile string, wg *sync.WaitGroup) {
 
 		tester.AddCase(&caseConf.DependBuyCaseArr[i])
 	}
-
 
 	tester.WaitTest()
 

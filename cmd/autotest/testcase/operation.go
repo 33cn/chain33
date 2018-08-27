@@ -1,27 +1,24 @@
 package testcase
 
 import (
-	"time"
 	"container/list"
-	"sync"
-	"github.com/inconshreveable/log15"
 	"fmt"
 	"strings"
+	"sync"
+	"time"
+
+	"github.com/inconshreveable/log15"
 )
 
-
-
-
 type TestOperator struct {
-
-	addDone chan bool
-	sendDone chan bool
-	checkDone chan bool
-	depEmpty chan bool
-	sendBuf chan CaseFunc
-	checkBuf chan PackFunc
-	addDepBuf chan CaseFunc
-	delDepBuf chan PackFunc
+	addDone    chan bool
+	sendDone   chan bool
+	checkDone  chan bool
+	depEmpty   chan bool
+	sendBuf    chan CaseFunc
+	checkBuf   chan PackFunc
+	addDepBuf  chan CaseFunc
+	delDepBuf  chan PackFunc
 	depCaseMap map[string][]CaseFunc
 
 	fLog log15.Logger
@@ -29,26 +26,22 @@ type TestOperator struct {
 
 	totalCase int
 	totalFail int
-	failID []string
-
+	failID    []string
 }
 
-
-
-func (tester *TestOperator)HandleDependency(){
+func (tester *TestOperator) HandleDependency() {
 
 	keepLoop := true
 	addDoneFlag := false
 	for keepLoop {
 		select {
 
-		case testCase := <- tester.addDepBuf:
-
+		case testCase := <-tester.addDepBuf:
 
 			depArr := append(tester.depCaseMap[testCase.getDep()], testCase)
 			tester.depCaseMap[testCase.getDep()] = depArr
 
-		case testPack := <- tester.delDepBuf:
+		case testPack := <-tester.delDepBuf:
 
 			id := testPack.getPackID()
 			testArr, isExist := tester.depCaseMap[id]
@@ -61,10 +54,10 @@ func (tester *TestOperator)HandleDependency(){
 				}
 				delete(tester.depCaseMap, id)
 			}
-		case <- tester.addDone:
+		case <-tester.addDone:
 			addDoneFlag = true
 
-		case <- time.After(2 * time.Second):
+		case <-time.After(2 * time.Second):
 
 			if addDoneFlag && len(tester.depCaseMap) == 0 {
 
@@ -75,17 +68,13 @@ func (tester *TestOperator)HandleDependency(){
 		}
 	}
 
-
 	//each case will send to delDepBuf after checking
-	for{
-		<- tester.delDepBuf
+	for {
+		<-tester.delDepBuf
 	}
 }
 
-
-
-
-func (tester *TestOperator)RunSendFlow() {
+func (tester *TestOperator) RunSendFlow() {
 
 	depEmpty := false
 	keepLoop := true
@@ -94,14 +83,14 @@ func (tester *TestOperator)RunSendFlow() {
 	for keepLoop {
 		select {
 
-		case testCase := <- tester.sendBuf:
+		case testCase := <-tester.sendBuf:
 
 			sendWg.Add(1)
-			go func(testCase CaseFunc, wg* sync.WaitGroup){
+			go func(testCase CaseFunc, wg *sync.WaitGroup) {
 
 				defer wg.Done()
 				repeat := testCase.getRepeat()
-				if repeat <= 0 {	//default val if empty in tomlFile
+				if repeat <= 0 { //default val if empty in tomlFile
 					repeat = 1
 				}
 
@@ -109,13 +98,13 @@ func (tester *TestOperator)RunSendFlow() {
 				testID := testCase.getID()
 				packID := testID
 
-				for i := 1; i <= repeat; i++{
+				for i := 1; i <= repeat; i++ {
 
 					tester.fLog.Info("CommandExec", "TestID", packID, "CMD", testCase.getCmd())
 					pack, err := testCase.doSendCommand(packID)
 
-					if err != nil{
-						tester.tLog.Error("TestCaseResult",  "TestID", packID, "Failed", "ErrInfo", err.Error())
+					if err != nil {
+						tester.tLog.Error("TestCaseResult", "TestID", packID, "Failed", "ErrInfo", err.Error())
 						tester.fLog.Info("CommandResult", "TestID", packID, "Result", err.Error())
 						tester.delDepBuf <- &BaseCasePack{packID: packID}
 						continue
@@ -128,13 +117,12 @@ func (tester *TestOperator)RunSendFlow() {
 					packID = fmt.Sprintf("%s_%d", testID, i)
 				}
 
-
 			}(testCase, sendWg)
 
-		case <- tester.depEmpty:
+		case <-tester.depEmpty:
 			depEmpty = true
 
-		case <- time.After(2 * time.Second):
+		case <-time.After(2 * time.Second):
 
 			if depEmpty {
 
@@ -148,9 +136,7 @@ func (tester *TestOperator)RunSendFlow() {
 	tester.sendDone <- true
 }
 
-
-
-func (tester *TestOperator)RunCheckFlow() {
+func (tester *TestOperator) RunCheckFlow() {
 
 	checkList := (*list.List)(nil)
 	sendDoneFlag := false
@@ -161,7 +147,7 @@ func (tester *TestOperator)RunCheckFlow() {
 
 		select {
 
-		case casePack := <- tester.checkBuf:
+		case casePack := <-tester.checkBuf:
 
 			if checkList == nil {
 				checkList = list.New()
@@ -169,15 +155,15 @@ func (tester *TestOperator)RunCheckFlow() {
 
 			checkList.PushBack(casePack)
 
-		case <- tester.sendDone:
+		case <-tester.sendDone:
 			sendDoneFlag = true
 
-		case <- time.After(2 * time.Second):	//do check operation with an dependent check list
+		case <-time.After(2 * time.Second): //do check operation with an dependent check list
 
 			if checkList == nil {
 
-				if sendDoneFlag{
-					keepLoop = false	//no more case from send flow
+				if sendDoneFlag {
+					keepLoop = false //no more case from send flow
 				}
 				break
 			}
@@ -205,11 +191,11 @@ func (tester *TestOperator)RunCheckFlow() {
 							depBuf <- casePack
 							isFailCase := strings.Contains(casePack.getPackID(), "fail")
 
-							if (bSuccess && !isFailCase) || (!bSuccess && isFailCase) {	//some logs
+							if (bSuccess && !isFailCase) || (!bSuccess && isFailCase) { //some logs
 
 								tester.tLog.Info("TestCaseResult", "TestID", casePack.getPackID(), "Result", "Succeed")
 
-							}else{
+							} else {
 
 								tester.totalFail++
 								tester.failID = append(tester.failID, casePack.getPackID())
@@ -218,17 +204,17 @@ func (tester *TestOperator)RunCheckFlow() {
 						}
 					}
 
-					if c.Len() > 0{
+					if c.Len() > 0 {
 
-						tester.tLog.Info("CheckRoutineSleep", "SleepTime", CheckSleepTime * time.Second, "WaitCheckNum", c.Len())
-						time.Sleep(CheckSleepTime* time.Second)
+						tester.tLog.Info("CheckRoutineSleep", "SleepTime", CheckSleepTime*time.Second, "WaitCheckNum", c.Len())
+						time.Sleep(CheckSleepTime * time.Second)
 					}
 
 				}
 
 			}(checkList, checkWg, tester.delDepBuf)
 
-			checkList = nil	 //always set nil for new list
+			checkList = nil //always set nil for new list
 		}
 	}
 
@@ -236,8 +222,7 @@ func (tester *TestOperator)RunCheckFlow() {
 	tester.checkDone <- true
 }
 
-
-func (tester *TestOperator)AddCase(testCase CaseFunc){
+func (tester *TestOperator) AddCase(testCase CaseFunc) {
 
 	if testCase.getDep() != "" {
 		//save to depend map
@@ -250,16 +235,15 @@ func (tester *TestOperator)AddCase(testCase CaseFunc){
 
 }
 
-func (tester *TestOperator)WaitTest(){
+func (tester *TestOperator) WaitTest() {
 
 	tester.addDone <- true
-	<- tester.checkDone
+	<-tester.checkDone
 	tester.tLog.Info("TestDone", "TotalCase", tester.totalCase, "TotalFail", tester.totalFail, "FailID", tester.failID)
 	tester.fLog.Info("TestDone", "TotalCase", tester.totalCase, "TotalFail", tester.totalFail, "FailID", tester.failID)
 }
 
-
-func NewTestOperator(fileLog log15.Logger, stdLog log15.Logger) (tester *TestOperator){
+func NewTestOperator(fileLog log15.Logger, stdLog log15.Logger) (tester *TestOperator) {
 
 	tester = new(TestOperator)
 

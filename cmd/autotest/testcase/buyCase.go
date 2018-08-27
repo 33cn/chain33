@@ -1,40 +1,31 @@
 package testcase
 
 import (
-	"strconv"
 	"errors"
 	"fmt"
+	"strconv"
 )
 
 type BuyCase struct {
-
 	BaseCase
-	From string `toml:"from"`
-	To string `toml:"to"`
+	From        string `toml:"from"`
+	To          string `toml:"to"`
 	TokenAmount string `toml:"tokenAmount"`
-	BtyAmount string `toml:"btyAmount"`
+	BtyAmount   string `toml:"btyAmount"`
 }
 
-
-type BuyPack struct{
-
+type BuyPack struct {
 	BaseCasePack
 }
 
-
-type DependBuyCase struct{
-
+type DependBuyCase struct {
 	BuyCase
 }
 
-
-
-func (testCase * BuyCase)doSendCommand(packID string) (PackFunc, error){
-
-
+func (testCase *BuyCase) doSendCommand(packID string) (PackFunc, error) {
 
 	txHash, bSuccess := sendTxCommand(testCase.Command)
-	if !bSuccess{
+	if !bSuccess {
 		return nil, errors.New(txHash)
 	}
 	pack := BuyPack{}
@@ -46,18 +37,15 @@ func (testCase * BuyCase)doSendCommand(packID string) (PackFunc, error){
 	return &pack, nil
 }
 
+func (testCase *DependBuyCase) setDependData(depData interface{}) {
 
-func (testCase * DependBuyCase)setDependData(depData interface{}) {
-
-	if depData != nil{
+	if depData != nil {
 		orderInfo := depData.(*SellOrderInfo)
 		testCase.Command = fmt.Sprintf("%s -s %s", testCase.Command, orderInfo.sellID)
 	}
 }
 
-
-
-func (pack *BuyPack)getCheckHandlerMap() CheckHandlerMap{
+func (pack *BuyPack) getCheckHandlerMap() CheckHandlerMap {
 
 	funcMap := make(map[string]CheckHandlerFunc, 2)
 	funcMap["frozen"] = pack.checkFrozen
@@ -66,11 +54,7 @@ func (pack *BuyPack)getCheckHandlerMap() CheckHandlerMap{
 	return funcMap
 }
 
-
-
-
-func (pack *BuyPack)checkBalance(txInfo map[string]interface{}) (bool){
-
+func (pack *BuyPack) checkBalance(txInfo map[string]interface{}) bool {
 
 	/*fromAddr := txInfo["tx"].(map[string]interface{})["from"].(string)
 	toAddr := txInfo["tx"].(map[string]interface{})["to"].(string)*/
@@ -96,19 +80,14 @@ func (pack *BuyPack)checkBalance(txInfo map[string]interface{}) (bool){
 		"BuyerTokenPrev", logBuyToken["prev"].(map[string]interface{})["balance"].(string),
 		"BuyerTokenCurr", logBuyToken["current"].(map[string]interface{})["balance"].(string))
 
-
-	return 	checkBalanceDeltaWithAddr(logFee, interCase.From, -fee) &&
+	return checkBalanceDeltaWithAddr(logFee, interCase.From, -fee) &&
 		checkBalanceDeltaWithAddr(logBuyBty, interCase.From, -btyAmount) &&
 		checkBalanceDeltaWithAddr(logSellBty, interCase.To, btyAmount) &&
 		checkBalanceDeltaWithAddr(logBuyToken, interCase.From, tokenAmount)
 
-
 }
 
-
-
-func (pack *BuyPack)checkFrozen(txInfo map[string]interface{}) (bool){
-
+func (pack *BuyPack) checkFrozen(txInfo map[string]interface{}) bool {
 
 	logArr := txInfo["receipt"].(map[string]interface{})["logs"].([]interface{})
 	interCase := pack.tCase.(*BuyCase)
