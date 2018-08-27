@@ -2,18 +2,16 @@ package contract
 
 import (
 	"sync"
-	"github.com/inconshreveable/log15"
+
 	"github.com/BurntSushi/toml"
+	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/cmd/autotest/testcase"
 )
 
-
 var (
-
 	fileLog = log15.New()
-	stdLog = log15.New()
+	stdLog  = log15.New()
 )
-
 
 //contract type
 /*
@@ -21,44 +19,31 @@ bty,
 token,
 trade,
 
- */
+*/
 
-type TestCaseFile struct{
-
+type TestCaseFile struct {
 	Contract string `toml:"contract"`
 	Filename string `toml:"filename"`
 }
 
-
-
 type TestCaseConfig struct {
-
-	CliCommand string `toml:"cliCmd"`
-	CheckSleepTime int `toml:"checkSleepTime"`
-	CheckTimeout int `toml:"checkTimeout"`
+	CliCommand      string         `toml:"cliCmd"`
+	CheckSleepTime  int            `toml:"checkSleepTime"`
+	CheckTimeout    int            `toml:"checkTimeout"`
 	TestCaseFileArr []TestCaseFile `toml:"TestCaseFile"`
 }
 
-
-
-
 type TestRunner interface {
-
 	RunTest(tomlFile string, wg *sync.WaitGroup)
 }
 
-
-
-
-func InitConfig(logfile string){
+func InitConfig(logfile string) {
 
 	fileLog.SetHandler(log15.Must.FileHandler(logfile, log15.LogfmtFormat()))
 
 }
 
-
-
-func DoTestOperation(configFile string){
+func DoTestOperation(configFile string) {
 
 	var wg sync.WaitGroup
 	var configConf TestCaseConfig
@@ -84,7 +69,6 @@ func DoTestOperation(configFile string){
 
 			//init需要优先进行处理, 阻塞等待完成
 			new(TestInitConfig).RunTest(filename, &wg)
-			break
 
 		case "bty":
 

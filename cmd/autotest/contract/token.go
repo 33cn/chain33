@@ -2,23 +2,19 @@ package contract
 
 import (
 	"sync"
+
 	"github.com/BurntSushi/toml"
 	"gitlab.33.cn/chain33/chain33/cmd/autotest/testcase"
 )
 
-type TestTokenConfig struct{
-
-	TransferCaseArr []testcase.TransferCase `toml:"TransferCase,omitempty"`
-	WithdrawCaseArr []testcase.WithdrawCase `toml:"WithdrawCase,omitempty"`
-	TokenPreCreateCaseArr []testcase.TokenPreCreateCase `toml:"TokenPreCreateCase,omitempty"`
+type TestTokenConfig struct {
+	TransferCaseArr          []testcase.TransferCase          `toml:"TransferCase,omitempty"`
+	WithdrawCaseArr          []testcase.WithdrawCase          `toml:"WithdrawCase,omitempty"`
+	TokenPreCreateCaseArr    []testcase.TokenPreCreateCase    `toml:"TokenPreCreateCase,omitempty"`
 	TokenFinishCreateCaseArr []testcase.TokenFinishCreateCase `toml:"TokenFinishCreateCase,omitempty"`
 }
 
-
-
-
-func (caseConf* TestTokenConfig)RunTest(caseFile string, wg *sync.WaitGroup) {
-
+func (caseConf *TestTokenConfig) RunTest(caseFile string, wg *sync.WaitGroup) {
 
 	defer wg.Done()
 
@@ -30,12 +26,10 @@ func (caseConf* TestTokenConfig)RunTest(caseFile string, wg *sync.WaitGroup) {
 		return
 	}
 
-
 	tester := testcase.NewTestOperator(fLog, tLog)
 	go tester.HandleDependency()
 	go tester.RunSendFlow()
 	go tester.RunCheckFlow()
-
 
 	for i := range caseConf.TransferCaseArr {
 
@@ -51,7 +45,6 @@ func (caseConf* TestTokenConfig)RunTest(caseFile string, wg *sync.WaitGroup) {
 
 		tester.AddCase(&caseConf.TokenPreCreateCaseArr[i])
 	}
-
 
 	for i := range caseConf.TokenFinishCreateCaseArr {
 
