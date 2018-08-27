@@ -21,7 +21,7 @@ const (
 var (
 	MaxGameAmount = 100 * types.Coin
 	MinGameAmount = 2 * types.Coin
-	DefultCount   = int32(20)  //默认一次取多少条记录
+	DefaultCount  = int32(20)  //默认一次取多少条记录
 	MaxCount      = int32(100) //最多取100条
 	//从有matcher参与游戏开始计算本局游戏开奖的有效时间，单位为天
 	ActiveTime = int32(24)
@@ -52,10 +52,10 @@ func setGameCfgValue(cfg *types.Exec) {
 	if cfg.GetGame().GetActiveTime() > 0 {
 		ActiveTime = cfg.GetGame().GetActiveTime()
 	}
-	if cfg.GetGame().GetDefultCount() > 0 {
-		DefultCount = cfg.GetGame().GetDefultCount()
+	if cfg.GetGame().GetDefaultCount() > 0 {
+		DefaultCount = cfg.GetGame().GetDefaultCount()
 	}
-	if DefultCount <= cfg.GetGame().GetMaxCount() {
+	if DefaultCount <= cfg.GetGame().GetMaxCount() {
 		MaxCount = cfg.GetGame().GetMaxCount()
 	}
 }
