@@ -31,7 +31,7 @@ type TendermintClient struct {
 	genesisDoc    *ttypes.GenesisDoc // initial validator set
 	privValidator ttypes.PrivValidator
 	privKey       crypto.PrivKey // local node's p2p key
-	pubKey		  string
+	pubKey        string
 	csState       *ConsensusState
 	evidenceDB    dbm.DB
 	crypto        crypto.Crypto
@@ -132,7 +132,7 @@ func (client *TendermintClient) SetQueueClient(q queue.Client) {
 	go client.StartConsensus()
 }
 
-const DEBUG_CATCHUP = false
+const DEBUG_CATCHUP = true
 
 func (client *TendermintClient) StartConsensus() {
 	//进入共识前先同步到最大高度
@@ -452,7 +452,7 @@ func (client *TendermintClient) LoadProposalBlock(height int64) *types.Tendermin
 	if proposalBlock != nil {
 		proposalBlock.Txs = append(proposalBlock.Txs, block.Txs[1:]...)
 		txHash := merkle.CalcMerkleRoot(proposalBlock.Txs)
-		tendermintlog.Info("LoadProposalBlock txs hash", "height", proposalBlock.Header.Height, "tx-hash", fmt.Sprintf("%X", txHash))
+		tendermintlog.Debug("LoadProposalBlock txs hash", "height", proposalBlock.Header.Height, "tx-hash", fmt.Sprintf("%X", txHash))
 	}
 	return proposalBlock
 }
