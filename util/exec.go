@@ -214,9 +214,10 @@ func CheckTxDup(client queue.Client, txs []*types.TransactionCache, height int64
 		txs = CheckTxDupInner(txs)
 	}
 	for _, tx := range txs {
-		hash := tx.Hash()
-		checkHashList.Hashes = append(checkHashList.Hashes, hash)
+		checkHashList.Hashes = append(checkHashList.Hashes, tx.Hash())
+		checkHashList.Expire = append(checkHashList.Expire, tx.GetExpire())
 	}
+	checkHashList.Count = height
 	hashList := client.NewMessage("blockchain", types.EventTxHashList, &checkHashList)
 	client.Send(hashList, true)
 	dupTxList, err := client.Wait(hashList)

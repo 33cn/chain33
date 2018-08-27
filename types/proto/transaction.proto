@@ -15,6 +15,10 @@ message CreateTx {
     string execName    = 8;
 }
 
+message CreateTransactionGroup {
+    repeated string txs = 1;
+}
+
 message UnsignTx {
     bytes data = 1;
 }
@@ -124,6 +128,7 @@ message ReplyTxList {
 message TxHashList {
     repeated bytes hashes = 1;
     int64          count  = 2;
+    repeated int64 expire = 3;
 }
 
 message ReplyTxInfos {

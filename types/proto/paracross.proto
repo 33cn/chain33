@@ -1,0 +1,88 @@
+syntax = "proto3";
+
+package types;
+
+// stateDB
+message ParacrossStatusDetails {
+    repeated string addrs    = 1;
+    repeated bytes blockHash = 2;
+}
+
+message ParacrossHeightStatus {
+    // ing, done
+    int32                  status  = 1;
+    string                 title   = 2;
+    int64                  height  = 3;
+    ParacrossStatusDetails details = 4;
+}
+
+message ParacrossStatus {
+    string title     = 1;
+    int64  height    = 2;
+    bytes  blockHash = 3;
+}
+
+// action
+message ParacrossNodeStatus {
+    bytes  mainBlockHash   = 1;
+    int64  mainBlockHeight = 2;
+    string title           = 3;
+    int64  height          = 4;
+    bytes  preBlockHash    = 5;
+    bytes  blockHash       = 6;
+    bytes  preStateHash    = 7;
+    bytes  stateHash       = 8;
+    uint32 txCounts        = 9;
+    bytes  txResult        = 10;
+}
+
+message ParacrossCommitAction {
+    ParacrossNodeStatus status = 1;
+}
+
+message ParacrossAction {
+    oneof value {
+        ParacrossCommitAction commit = 1;
+    }
+    int32 ty = 2;
+}
+
+// logs
+message ReceiptParacrossCommit {
+    string                addr    = 1;
+    ParacrossNodeStatus   status  = 2;
+    ParacrossHeightStatus prev    = 3;
+    ParacrossHeightStatus current = 4;
+}
+
+message ReceiptParacrossDone {
+    int32  totalNodes     = 1;
+    int32  totalCommit    = 2;
+    int32  mostSameCommit = 3;
+    string title          = 4;
+    int64  height         = 5;
+    bytes  stateHash      = 6;
+    uint32 txCounts       = 7;
+    bytes  txResult       = 8;
+}
+
+message ReceiptParacrossRecord {
+    string              addr   = 1;
+    ParacrossNodeStatus status = 2;
+}
+
+// LocalDB
+// title-height-addr : txHash
+message ParacrossTx {
+    string txHash = 1;
+}
+
+// query
+message ReqParacrossTitleHeight {
+    string title  = 1;
+    int64  height = 2;
+}
+
+message RespParacrossTitles {
+    repeated ReceiptParacrossDone titles = 1;
+}

@@ -1,6 +1,8 @@
 package executor
 
 import (
+	"encoding/hex"
+
 	"gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -16,6 +18,7 @@ type StateDB struct {
 	height    int64
 	local     *db.SimpleMVCC
 	flagMVCC  int64
+	opt       *StateDBOption
 }
 
 type StateDBOption struct {
@@ -24,7 +27,7 @@ type StateDBOption struct {
 	Height     int64
 }
 
-func NewStateDB(client queue.Client, stateHash []byte, opt *StateDBOption) db.KV {
+func NewStateDB(client queue.Client, stateHash []byte, localdb db.KVDB, opt *StateDBOption) db.KV {
 	if opt == nil {
 		opt = &StateDBOption{}
 	}
@@ -36,16 +39,24 @@ func NewStateDB(client queue.Client, stateHash []byte, opt *StateDBOption) db.KV
 		stateHash: stateHash,
 		height:    opt.Height,
 		version:   -1,
-		local:     db.NewSimpleMVCC(NewLocalDB(client)),
-	}
-	if opt.EnableMVCC {
-		v, err := db.local.GetVersion(stateHash)
-		if err == nil && v >= 0 {
-			db.version = v
-		}
-		db.flagMVCC = opt.FlagMVCC
+		local:     db.NewSimpleMVCC(localdb),
+		opt:       opt,
 	}
 	return db
+}
+
+func (s *StateDB) enableMVCC() {
+	opt := s.opt
+	if opt.EnableMVCC {
+		v, err := s.local.GetVersion(s.stateHash)
+		if err == nil && v >= 0 {
+			s.version = v
+		} else if s.height > 0 {
+			println("init state db", "height", s.height, "err", err.Error(), "v", v, "stateHash", hex.EncodeToString(s.stateHash))
+			panic("mvcc get version error,config set enableMVCC=true, it must be synchronized from 0 height")
+		}
+		s.flagMVCC = opt.FlagMVCC
+	}
 }
 
 func (s *StateDB) Begin() {
@@ -94,13 +105,7 @@ func (s *StateDB) get(key []byte) ([]byte, error) {
 	if s.version >= 0 {
 		data, err := s.local.GetV(key, s.version)
 		//TODO 这里需要一个标志，数据是否是从0开始同步的
-		if s.flagMVCC == FlagFromZero {
-			return data, err
-		} else if s.flagMVCC == FlagNotFromZero {
-			if err == nil {
-				return data, nil
-			}
-		}
+		return data, err
 	}
 	if s.client == nil {
 		return nil, types.ErrNotFound
@@ -126,6 +131,7 @@ func (s *StateDB) get(key []byte) ([]byte, error) {
 }
 
 func debugAccount(prefix string, key []byte, value []byte) {
+	//println(prefix, string(key), value)
 	if !types.Debug {
 		return
 	}
@@ -143,11 +149,19 @@ func (s *StateDB) Set(key []byte, value []byte) error {
 		if s.txcache == nil {
 			s.txcache = make(map[string][]byte)
 		}
-		s.txcache[skey] = value
+		setmap(s.txcache, skey, value)
 	} else {
-		s.cache[skey] = value
+		setmap(s.cache, skey, value)
 	}
 	return nil
+}
+
+func setmap(data map[string][]byte, key string, value []byte) {
+	if value == nil {
+		delete(data, key)
+		return
+	}
+	data[key] = value
 }
 
 func (db *StateDB) BatchGet(keys [][]byte) (values [][]byte, err error) {
@@ -172,6 +186,12 @@ func NewLocalDB(client queue.Client) db.KVDB {
 }
 
 func (l *LocalDB) Get(key []byte) ([]byte, error) {
+	value, err := l.get(key)
+	debugAccount("==lget==", key, value)
+	return value, err
+}
+
+func (l *LocalDB) get(key []byte) ([]byte, error) {
 	if value, ok := l.cache[string(key)]; ok {
 		return value, nil
 	}
@@ -196,7 +216,8 @@ func (l *LocalDB) Get(key []byte) ([]byte, error) {
 }
 
 func (l *LocalDB) Set(key []byte, value []byte) error {
-	l.cache[string(key)] = value
+	debugAccount("==lset==", key, value)
+	setmap(l.cache, string(key), value)
 	return nil
 }
 

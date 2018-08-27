@@ -1,8 +1,7 @@
 package wallet
 
 import (
-	"crypto/aes"
-	"crypto/cipher"
+	"errors"
 	"math/rand"
 	"sync"
 	"sync/atomic"
@@ -18,8 +17,10 @@ import (
 	clog "gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/wallet/bizpolicy"
-	"gitlab.33.cn/chain33/chain33/wallet/privacybizpolicy"
+	wcom "gitlab.33.cn/chain33/chain33/wallet/common"
+
+	_ "gitlab.33.cn/chain33/chain33/wallet/policy/privacy"
+	_ "gitlab.33.cn/chain33/chain33/wallet/policy/ticket"
 )
 
 var (
@@ -45,31 +46,24 @@ const (
 type Wallet struct {
 	client queue.Client
 	// 模块间通信的操作接口,建议用api代替client调用
-	api              client.QueueProtocolAPI
-	mtx              sync.Mutex
-	timeout          *time.Timer
-	minertimeout     *time.Timer
-	isclosed         int32
-	isWalletLocked   int32
-	isTicketLocked   int32
-	lastHeight       int64
-	autoMinerFlag    int32
-	fatalFailureFlag int32
-	Password         string
-	FeeAmount        int64
-	EncryptFlag      int64
-	miningTicket     *time.Ticker
-	wg               *sync.WaitGroup
-	walletStore      *Store
-	random           *rand.Rand
-	cfg              *types.Wallet
-	done             chan struct{}
-	rescanwg         *sync.WaitGroup
-	rescanUTXOflag   int32
-	lastHeader       *types.Header
-
-	funcmap         queue.FuncMap
-	policyContainer map[string]bizpolicy.WalletBizPolicy
+	api                client.QueueProtocolAPI
+	mtx                sync.Mutex
+	timeout            *time.Timer
+	mineStatusReporter wcom.MineStatusReport
+	isclosed           int32
+	isWalletLocked     int32
+	fatalFailureFlag   int32
+	Password           string
+	FeeAmount          int64
+	EncryptFlag        int64
+	wg                 *sync.WaitGroup
+	walletStore        *walletStore
+	random             *rand.Rand
+	cfg                *types.Wallet
+	done               chan struct{}
+	rescanwg           *sync.WaitGroup
+	rescanUTXOflag     int32
+	lastHeader         *types.Header
 }
 
 func SetLogLevel(level string) {
@@ -85,6 +79,7 @@ func New(cfg *types.Wallet) *Wallet {
 	//walletStore
 	accountdb = account.NewCoinsAccount()
 	walletStoreDB := dbm.NewDB("wallet", cfg.Driver, cfg.DbPath, cfg.DbCache)
+	//walletStore := NewStore(walletStoreDB)
 	walletStore := NewStore(walletStoreDB)
 	minFee = cfg.MinFee
 	signType, exist := types.MapSignName2Type[cfg.SignType]
@@ -96,38 +91,38 @@ func New(cfg *types.Wallet) *Wallet {
 	wallet := &Wallet{
 		walletStore:      walletStore,
 		isWalletLocked:   1,
-		isTicketLocked:   1,
-		autoMinerFlag:    0,
 		fatalFailureFlag: 0,
 		wg:               &sync.WaitGroup{},
-		FeeAmount:        walletStore.GetFeeAmount(),
+		FeeAmount:        walletStore.GetFeeAmount(minFee),
 		EncryptFlag:      walletStore.GetEncryptionFlag(),
-		miningTicket:     time.NewTicker(2 * time.Minute),
 		done:             make(chan struct{}),
 		cfg:              cfg,
 		rescanwg:         &sync.WaitGroup{},
 		rescanUTXOflag:   types.UtxoFlagNoScan,
 	}
-	value, _ := walletStore.db.Get([]byte("WalletAutoMiner"))
-	if value != nil && string(value) == "1" {
-		wallet.autoMinerFlag = 1
-	}
 	wallet.random = rand.New(rand.NewSource(types.Now().UnixNano()))
-	InitMinerWhiteList(cfg)
 	return wallet
 }
 
 func (wallet *Wallet) initBizPolicy() {
-	wallet.policyContainer = make(map[string]bizpolicy.WalletBizPolicy)
-	wallet.registerBizPolicy(types.PrivacyX, privacybizpolicy.New())
-
-	for _, policy := range wallet.policyContainer {
+	for _, policy := range wcom.PolicyContainer {
 		policy.Init(wallet)
 	}
 }
 
-func (wallet *Wallet) registerBizPolicy(key string, policy bizpolicy.WalletBizPolicy) {
-	wallet.policyContainer[key] = policy
+func (wallet *Wallet) RegisterMineStatusReporter(reporter wcom.MineStatusReport) error {
+	if reporter == nil {
+		return types.ErrInvalidParam
+	}
+	if wallet.mineStatusReporter != nil {
+		return errors.New("ReporterIsExisted")
+	}
+	wallet.mineStatusReporter = reporter
+	return nil
+}
+
+func (wallet *Wallet) GetConfig() *types.Wallet {
+	return wallet.cfg
 }
 
 func (wallet *Wallet) GetAPI() client.QueueProtocolAPI {
@@ -139,7 +134,7 @@ func (wallet *Wallet) GetMutex() *sync.Mutex {
 }
 
 func (wallet *Wallet) GetDBStore() dbm.DB {
-	return wallet.walletStore.db
+	return wallet.walletStore.GetDB()
 }
 
 func (wallet *Wallet) GetSignType() int {
@@ -205,27 +200,24 @@ func (wallet *Wallet) Close() {
 	//等待所有的子线程退出
 	//set close flag to isclosed == 1
 	atomic.StoreInt32(&wallet.isclosed, 1)
-	wallet.miningTicket.Stop()
+	for _, policy := range wcom.PolicyContainer {
+		policy.OnClose()
+	}
 	close(wallet.done)
 	wallet.client.Close()
 	wallet.wg.Wait()
 	//关闭数据库
-	wallet.walletStore.db.Close()
+	wallet.walletStore.Close()
 	walletlog.Info("wallet module closed")
+}
+
+func (wallet *Wallet) IsClose() bool {
+	return atomic.LoadInt32(&wallet.isclosed) == 1
 }
 
 //返回钱包锁的状态
 func (wallet *Wallet) IsWalletLocked() bool {
 	if atomic.LoadInt32(&wallet.isWalletLocked) == 0 {
-		return false
-	} else {
-		return true
-	}
-}
-
-//返回挖矿买票锁的状态
-func (wallet *Wallet) IsTicketLocked() bool {
-	if atomic.LoadInt32(&wallet.isTicketLocked) == 0 {
 		return false
 	} else {
 		return true
@@ -241,10 +233,6 @@ func (wallet *Wallet) SetQueueClient(cli queue.Client) {
 
 	wallet.wg.Add(1)
 	go wallet.ProcRecvMsg()
-
-	wallet.wg.Add(1)
-	go wallet.autoMining()
-
 }
 
 func (wallet *Wallet) GetAccountByAddr(addr string) (*types.WalletAccountStore, error) {
@@ -253,6 +241,10 @@ func (wallet *Wallet) GetAccountByAddr(addr string) (*types.WalletAccountStore, 
 
 func (wallet *Wallet) SetWalletAccount(update bool, addr string, account *types.WalletAccountStore) error {
 	return wallet.walletStore.SetWalletAccount(update, addr, account)
+}
+
+func (wallet *Wallet) GetPrivKeyByAddr(addr string) (crypto.PrivKey, error) {
+	return wallet.getPrivKeyByAddr(addr)
 }
 
 func (wallet *Wallet) getPrivKeyByAddr(addr string) (crypto.PrivKey, error) {
@@ -270,7 +262,7 @@ func (wallet *Wallet) getPrivKeyByAddr(addr string) (crypto.PrivKey, error) {
 		return nil, err
 	}
 
-	privkey := CBCDecrypterPrivkey([]byte(wallet.Password), prikeybyte)
+	privkey := wcom.CBCDecrypterPrivkey([]byte(wallet.Password), prikeybyte)
 	//通过privkey生成一个pubkey然后换算成对应的addr
 	cr, err := crypto.New(types.GetSignatureTypeName(SignType))
 	if err != nil {
@@ -302,45 +294,6 @@ func (wallet *Wallet) AddrInWallet(addr string) bool {
 	return false
 }
 
-//使用钱包的password对私钥进行aes cbc加密,返回加密后的privkey
-func CBCEncrypterPrivkey(password []byte, privkey []byte) []byte {
-	key := make([]byte, 32)
-	Encrypted := make([]byte, len(privkey))
-	if len(password) > 32 {
-		key = password[0:32]
-	} else {
-		copy(key, password)
-	}
-
-	block, _ := aes.NewCipher(key)
-	iv := key[:block.BlockSize()]
-	//walletlog.Info("CBCEncrypterPrivkey", "password", string(key), "Privkey", common.ToHex(privkey))
-
-	encrypter := cipher.NewCBCEncrypter(block, iv)
-	encrypter.CryptBlocks(Encrypted, privkey)
-
-	//walletlog.Info("CBCEncrypterPrivkey", "Encrypted", common.ToHex(Encrypted))
-	return Encrypted
-}
-
-//使用钱包的password对私钥进行aes cbc解密,返回解密后的privkey
-func CBCDecrypterPrivkey(password []byte, privkey []byte) []byte {
-	key := make([]byte, 32)
-	if len(password) > 32 {
-		key = password[0:32]
-	} else {
-		copy(key, password)
-	}
-
-	block, _ := aes.NewCipher(key)
-	iv := key[:block.BlockSize()]
-	decryptered := make([]byte, len(privkey))
-	decrypter := cipher.NewCBCDecrypter(block, iv)
-	decrypter.CryptBlocks(decryptered, privkey)
-	//walletlog.Info("CBCDecrypterPrivkey", "password", string(key), "Encrypted", common.ToHex(privkey), "decryptered", common.ToHex(decryptered))
-	return decryptered
-}
-
 //检测钱包是否允许转账到指定地址，判断钱包锁和是否有seed以及挖矿锁
 func (wallet *Wallet) IsTransfer(addr string) (bool, error) {
 
@@ -350,8 +303,8 @@ func (wallet *Wallet) IsTransfer(addr string) (bool, error) {
 		return ok, err
 	}
 	//钱包已经锁定，挖矿锁已经解锁,需要判断addr是否是挖矿合约地址
-	if !wallet.IsTicketLocked() {
-		if addr == address.ExecAddress("ticket") {
+	if !wallet.isTicketLocked() {
+		if addr == address.ExecAddress(types.TicketX) {
 			return true, nil
 		}
 	}
@@ -361,26 +314,42 @@ func (wallet *Wallet) IsTransfer(addr string) (bool, error) {
 //钱包状态检测函数,解锁状态，seed是否已保存
 func (wallet *Wallet) CheckWalletStatus() (bool, error) {
 	// 钱包锁定，ticket已经解锁，返回只解锁了ticket的错误
-	if wallet.IsWalletLocked() && !wallet.IsTicketLocked() {
+	if wallet.IsWalletLocked() && !wallet.isTicketLocked() {
 		return false, types.ErrOnlyTicketUnLocked
 	} else if wallet.IsWalletLocked() {
 		return false, types.ErrWalletIsLocked
 	}
 
 	//判断钱包是否已保存seed
-	has, _ := HasSeed(wallet.walletStore.db)
+	has, _ := wallet.walletStore.HasSeed()
 	if !has {
 		return false, types.ErrSaveSeedFirst
 	}
 	return true, nil
 }
 
+func (wallet *Wallet) isTicketLocked() bool {
+	locked := true
+	if wallet.mineStatusReporter != nil {
+		locked = wallet.mineStatusReporter.IsTicketLocked()
+	}
+	return locked
+}
+
+func (wallet *Wallet) isAutoMinning() bool {
+	autoMining := false
+	if wallet.mineStatusReporter != nil {
+		autoMining = wallet.mineStatusReporter.IsAutoMining()
+	}
+	return autoMining
+}
+
 func (wallet *Wallet) GetWalletStatus() *types.WalletStatus {
 	s := &types.WalletStatus{}
 	s.IsWalletLock = wallet.IsWalletLocked()
-	s.IsHasSeed, _ = HasSeed(wallet.walletStore.db)
-	s.IsAutoMining = wallet.isAutoMining()
-	s.IsTicketLock = wallet.IsTicketLocked()
+	s.IsHasSeed, _ = wallet.walletStore.HasSeed()
+	s.IsAutoMining = wallet.isAutoMinning()
+	s.IsTicketLock = wallet.isTicketLocked()
 
 	walletlog.Debug("GetWalletStatus", "walletstatus", s)
 	return s
