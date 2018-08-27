@@ -79,6 +79,10 @@ func (q *QueueProtocol) notify(topic string, ty int64, data interface{}) (queue.
 	return msg, err
 }
 
+func (q *QueueProtocol) Notify(topic string, ty int64, data interface{}) (queue.Message, error) {
+	return q.notify(topic, ty, data)
+}
+
 func (q *QueueProtocol) Close() {
 	q.client.Close()
 }

@@ -49,8 +49,14 @@ func initChainBityuanV3() {
 	chainV3Param.TargetTimePerBlock = 15 * time.Second
 }
 
+//title is local
 func initChainTestNet() {
 	chainV3Param.MaxTxNumber = 10000
+	chainV3Param.TicketFrozenTime = 5                   //5s only for test
+	chainV3Param.TicketWithdrawTime = 10                //10s only for test
+	chainV3Param.TicketMinerWaitTime = 2                // 2s only for test
+	chainV3Param.TargetTimespan = 144 * 2 * time.Second //only for test
+	chainV3Param.TargetTimePerBlock = 2 * time.Second   //only for test
 }
 
 type ChainParam struct {
@@ -96,7 +102,7 @@ var (
 	AllowDepositExec = [][]byte{ExecerTicket}
 	AllowUserExec    = [][]byte{ExecerCoins, ExecerTicket, ExecerNorm, ExecerHashlock,
 		ExecerRetrieve, ExecerNone, ExecerToken, ExecerTrade, ExecerManage,
-		ExecerEvm, ExecerRelay, ExecerPrivacy, ExecerCert, ExecerValNode}
+		ExecerEvm, ExecerRelay, ExecerPrivacy, ExecerCert, ExecerBlackwhite, ExecerPara, ExecerValNode}
 
 	GenesisAddr              = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 	GenesisBlockTime   int64 = 1526486816
@@ -142,6 +148,8 @@ func SetTitle(t string) {
 	if IsLocal() {
 		SetForkToOne()
 		initChainTestNet()
+		EnableTxHeight = true
+		Debug = true
 		return
 	}
 	if IsPara() {
@@ -149,6 +157,10 @@ func SetTitle(t string) {
 		ExecNamePrefix = title
 		SetForkForPara(title)
 	}
+}
+
+func GetTitle() string {
+	return title
 }
 
 func IsBityuan() bool {

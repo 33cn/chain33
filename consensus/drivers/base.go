@@ -127,7 +127,8 @@ func (bc *BaseClient) CheckTxDup(txs []*types.Transaction) (transactions []*type
 		checkHashList.Hashes = append(checkHashList.Hashes, hash)
 	}
 	//count = -1, 表示只从最近的cache中去除重复的交易
-	checkHashList.Count = -1
+	//为了安全起见，每次还是查一下重复
+	checkHashList.Count = 0
 
 	// 发送Hash过后的交易列表给blockchain模块
 	//beg := types.Now()
@@ -233,7 +234,7 @@ func (bc *BaseClient) RequestTx(listSize int, txHashList [][]byte) []*types.Tran
 	if bc.client == nil {
 		panic("bc not bind message queue.")
 	}
-	msg := bc.client.NewMessage("mempool", types.EventTxList, &types.TxHashList{txHashList, int64(listSize)})
+	msg := bc.client.NewMessage("mempool", types.EventTxList, &types.TxHashList{Hashes: txHashList, Count: int64(listSize)})
 	bc.client.Send(msg, true)
 	resp, err := bc.client.Wait(msg)
 	if err != nil {

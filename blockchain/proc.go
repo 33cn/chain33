@@ -2,6 +2,8 @@ package blockchain
 
 //message callback
 import (
+	"sync/atomic"
+
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/queue"
@@ -10,12 +12,13 @@ import (
 
 //blockchain模块的消息接收处理
 func (chain *BlockChain) ProcRecvMsg() {
+	defer chain.recvwg.Done()
 	reqnum := make(chan struct{}, 1000)
 	for msg := range chain.client.Recv() {
 		chainlog.Debug("blockchain recv", "msg", types.GetEventName(int(msg.Ty)), "id", msg.Id, "cap", len(reqnum))
 		msgtype := msg.Ty
 		reqnum <- struct{}{}
-		chain.recvwg.Add(1)
+		atomic.AddInt32(&chain.runcount, 1)
 		switch msgtype {
 		case types.EventLocalGet:
 			go chain.processMsg(msg, reqnum, chain.localGet)
@@ -79,10 +82,13 @@ func (chain *BlockChain) ProcRecvMsg() {
 		case types.EventLocalPrefixCount:
 			go chain.processMsg(msg, reqnum, chain.localPrefixCount)
 		default:
-			<-reqnum
-			chainlog.Warn("ProcRecvMsg unknow msg", "msgtype", msgtype)
+			go chain.processMsg(msg, reqnum, chain.unknowMsg)
 		}
 	}
+}
+
+func (chain *BlockChain) unknowMsg(msg queue.Message) {
+	chainlog.Warn("ProcRecvMsg unknow msg", "msgtype", msg.Ty)
 }
 
 func (chain *BlockChain) queryTx(msg queue.Message) {
@@ -135,7 +141,12 @@ func (chain *BlockChain) getBlockHeight(msg queue.Message) {
 
 func (chain *BlockChain) txHashList(msg queue.Message) {
 	txhashlist := (msg.Data).(*types.TxHashList)
-	duptxhashlist := chain.GetDuplicateTxHashList(txhashlist)
+	duptxhashlist, err := chain.GetDuplicateTxHashList(txhashlist)
+	if err != nil {
+		chainlog.Error("txHashList", "err", err.Error())
+		msg.Reply(chain.client.NewMessage("consensus", types.EventTxHashListReply, err))
+		return
+	}
 	//chainlog.Debug("EventTxHashList", "success", "ok")
 	msg.Reply(chain.client.NewMessage("consensus", types.EventTxHashListReply, duptxhashlist))
 }
@@ -332,8 +343,8 @@ func (chain *BlockChain) processMsg(msg queue.Message, reqnum chan struct{}, cb 
 	beg := types.Now()
 	defer func() {
 		<-reqnum
-		chain.recvwg.Done()
-		chainlog.Info("process", "cost", types.Since(beg), "msg", types.GetEventName(int(msg.Ty)))
+		atomic.AddInt32(&chain.runcount, -1)
+		chainlog.Debug("process", "cost", types.Since(beg), "msg", types.GetEventName(int(msg.Ty)))
 	}()
 	cb(msg)
 }
@@ -377,7 +388,8 @@ func (chain *BlockChain) delParaChainBlockDetail(msg queue.Message) {
 
 	chainlog.Debug("delParaChainBlockDetail", "height", parablockDetail.Blockdetail.Block.Height, "hash", common.HashHex(parablockDetail.Blockdetail.Block.Hash()))
 
-	err := chain.ProcDelParaChainBlockMsg(true, parablockDetail, "self")
+	// 平行链上P2P模块关闭，不用广播区块
+	err := chain.ProcDelParaChainBlockMsg(false, parablockDetail, "self")
 	if err != nil {
 		chainlog.Error("ProcDelParaChainBlockMsg", "err", err.Error())
 		reply.IsOk = false
@@ -395,8 +407,8 @@ func (chain *BlockChain) addParaChainBlockDetail(msg queue.Message) {
 	parablockDetail = msg.Data.(*types.ParaChainBlockDetail)
 
 	chainlog.Debug("EventAddParaChainBlockDetail", "height", parablockDetail.Blockdetail.Block.Height, "hash", common.HashHex(parablockDetail.Blockdetail.Block.Hash()))
-
-	err := chain.ProcAddParaChainBlockMsg(true, parablockDetail, "self")
+	// 平行链上P2P模块关闭，不用广播区块
+	err := chain.ProcAddParaChainBlockMsg(false, parablockDetail, "self")
 	if err != nil {
 		chainlog.Error("ProcAddParaChainBlockMsg", "err", err.Error())
 		reply.IsOk = false
