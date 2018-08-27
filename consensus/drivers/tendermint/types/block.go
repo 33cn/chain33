@@ -15,8 +15,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-
-
 var (
 	blocklog        = log15.New("module", "tendermint-block")
 	ConsensusCrypto crypto.Crypto
