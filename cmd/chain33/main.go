@@ -69,7 +69,7 @@ func main() {
 	}
 	//set config: bityuan 用 bityuan.toml 这个配置文件
 	cfg := config.InitCfg(*configPath)
-	cfg.Exec.Game=cfg.GetGame()
+	cfg.Exec.Game = cfg.GetGame()
 	if *datadir != "" {
 		resetDatadir(cfg, *datadir)
 	}
