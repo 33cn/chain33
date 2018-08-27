@@ -103,7 +103,7 @@ enableStat=false
 [pprof]
 listenAddr = "localhost:6061"
 
-[gameExec]
+[game]
  #游戏超时时间，以小时计
  activeTime=24
  #单页查询默认返回多少条记录
