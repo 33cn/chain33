@@ -527,7 +527,7 @@ func queryGameListByStatusAndAddr(db dbm.Lister, stateDB dbm.KV, param *types.Qu
 	if param.GetDirection() == ListASC {
 		direction = ListASC
 	}
-	count := DefultCount
+	count := DefaultCount
 	if 0 < param.GetCount() && param.GetCount() <= MaxCount {
 		count = param.GetCount()
 	}
