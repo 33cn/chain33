@@ -11,16 +11,24 @@ import (
 var glog = log.New("module", "execs.game")
 
 const (
-	MaxGameAmount = 100 * types.Coin
 	//查询方法名
-	FuncName_QueryGameListByIds = "QueryGameListByIds"
-	//FuncName_QueryGameListByPage          = "QueryGameListByPage"
+	FuncName_QueryGameListByIds           = "QueryGameListByIds"
 	FuncName_QueryGameListCount           = "QueryGameListCount"
 	FuncName_QueryGameListByStatusAndAddr = "QueryGameListByStatusAndAddr"
 	FuncName_QueryGameById                = "QueryGameById"
 )
 
-func Init() {
+var (
+	MaxGameAmount = 100 * types.Coin
+	MinGameAmount = 2 * types.Coin
+	DefultCount   = int32(20)  //默认一次取多少条记录
+	MaxCount      = int32(100) //最多取100条
+	//从有matcher参与游戏开始计算本局游戏开奖的有效时间，单位为天
+	ActiveTime = int32(24)
+)
+
+func Init(cfg *types.Exec) {
+	setGameCfgValue(cfg)
 	drivers.Register(newGame().GetName(), newGame, 0)
 }
 
@@ -34,6 +42,23 @@ func newGame() drivers.Driver {
 	return t
 }
 
+func setGameCfgValue(cfg *types.Exec) {
+	if cfg.GetGame().GetMinGameAmount() >= 2 {
+		MinGameAmount = cfg.GetGame().GetMinGameAmount()
+	}
+	if MinGameAmount <= cfg.GetGame().GetMaxGameAmount() {
+		MaxGameAmount = cfg.GetGame().GetMaxGameAmount()
+	}
+	if cfg.GetGame().GetActiveTime() > 0 {
+		ActiveTime = cfg.GetGame().GetActiveTime()
+	}
+	if cfg.GetGame().GetDefultCount() > 0 {
+		DefultCount = cfg.GetGame().GetDefultCount()
+	}
+	if DefultCount <= cfg.GetGame().GetMaxCount() {
+		MaxCount = cfg.GetGame().GetMaxCount()
+	}
+}
 func (g *Game) GetName() string {
 	return types.ExecName(types.GameX)
 }
