@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"encoding/binary"
+
 	log "github.com/inconshreveable/log15"
 	"github.com/pkg/errors"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
@@ -23,7 +24,6 @@ func CalcValNodeUpdateHeightKey(height int64) []byte {
 func CalcValNodeBlockInfoHeightKey(height int64) []byte {
 	return []byte(fmt.Sprintf("ValNodeBlockInfo:%18d:", height))
 }
-
 
 func Init() {
 	drivers.Register(newValNode().GetName(), newValNode, 0)
@@ -79,7 +79,6 @@ func (val *ValNode) GetActionName(tx *types.Transaction) string {
 }
 
 func (val *ValNode) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	clog.Error("ExecLocal action")
 	set, err := val.DriverBase.ExecLocal(tx, receipt, index)
 	if err != nil {
 		clog.Error("ExecLocal")
