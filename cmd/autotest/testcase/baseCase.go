@@ -1,15 +1,13 @@
 package testcase
 
 import (
-	"github.com/inconshreveable/log15"
 	"encoding/json"
+
+	"github.com/inconshreveable/log15"
 )
-
-
 
 //interface for testCase
 type CaseFunc interface {
-
 	getID() string
 	getCmd() string
 	getDep() string
@@ -17,12 +15,10 @@ type CaseFunc interface {
 	getBaseCase() *BaseCase
 	setDependData(interface{})
 	doSendCommand(id string) (PackFunc, error)
-
 }
 
 //interface for check testCase result
 type PackFunc interface {
-
 	getPackID() string
 	getTxHash() string
 	setLogger(fLog log15.Logger, tLog log15.Logger)
@@ -31,15 +27,13 @@ type PackFunc interface {
 	doCheckResult(CheckHandlerMap) (bool, bool)
 }
 
-
 //base test case
-type BaseCase struct{
-
-	ID string `toml:"id"`
-	Command string `toml:"command"`
-	Dep string `toml:"dep,omitempty"`
+type BaseCase struct {
+	ID        string   `toml:"id"`
+	Command   string   `toml:"command"`
+	Dep       string   `toml:"dep,omitempty"`
 	CheckItem []string `toml:"checkItem,omitempty"`
-	Repeat int `toml:"repeat,omitempty"`
+	Repeat    int      `toml:"repeat,omitempty"`
 }
 
 //check item handler
@@ -47,96 +41,85 @@ type CheckHandlerFunc func(map[string]interface{}) bool
 type CheckHandlerMap map[string]CheckHandlerFunc
 
 //pack testCase with some check info
-type BaseCasePack struct{
-
-	tCase CaseFunc
+type BaseCasePack struct {
+	tCase      CaseFunc
 	checkTimes int
-	txHash string
-	packID string
-	fLog log15.Logger
-	tLog log15.Logger
+	txHash     string
+	packID     string
+	fLog       log15.Logger
+	tLog       log15.Logger
 }
-
-
 
 //interface CaseFunc implementing by BaseCase
 
-func (t *BaseCase)doSendCommand(id string) (PackFunc, error){
+func (t *BaseCase) doSendCommand(id string) (PackFunc, error) {
 
 	return nil, nil
 }
 
-func (t *BaseCase)getID() string{
+func (t *BaseCase) getID() string {
 
 	return t.ID
 }
 
-func (t *BaseCase)getCmd() string{
+func (t *BaseCase) getCmd() string {
 
 	return t.Command
 }
 
-func (t *BaseCase)getDep() string{
+func (t *BaseCase) getDep() string {
 
 	return t.Dep
 }
 
-func (t *BaseCase)getRepeat() int{
+func (t *BaseCase) getRepeat() int {
 
 	return t.Repeat
 }
 
-func (t *BaseCase)getBaseCase() *BaseCase{
+func (t *BaseCase) getBaseCase() *BaseCase {
 
 	return t
 }
 
-func (t *BaseCase)setDependData(interface{}) {
+func (t *BaseCase) setDependData(interface{}) {
 
 }
 
-
-
 //interface PackFunc implementing by BaseCasePack
 
-func (pack *BaseCasePack)getPackID() string{
+func (pack *BaseCasePack) getPackID() string {
 
 	return pack.packID
 }
 
-func (pack *BaseCasePack)getTxHash() string{
+func (pack *BaseCasePack) getTxHash() string {
 
 	return pack.txHash
 }
 
-
-func (pack *BaseCasePack)setLogger(fLog log15.Logger, tLog log15.Logger) {
+func (pack *BaseCasePack) setLogger(fLog log15.Logger, tLog log15.Logger) {
 
 	pack.fLog = fLog
 	pack.tLog = tLog
 }
 
-func (pack *BaseCasePack)getBasePack() *BaseCasePack{
+func (pack *BaseCasePack) getBasePack() *BaseCasePack {
 
 	return pack
 }
 
-func (pack *BaseCasePack)getDependData() interface{}{
+func (pack *BaseCasePack) getDependData() interface{} {
 
 	return nil
 }
 
-
-func (pack *BaseCasePack)getCheckHandlerMap() CheckHandlerMap{
+func (pack *BaseCasePack) getCheckHandlerMap() CheckHandlerMap {
 
 	return make(map[string]CheckHandlerFunc, 1)
 }
 
-
-
-
-func (pack *BaseCasePack)doCheckResult(handlerMap CheckHandlerMap) (bCheck bool, bSuccess bool){
-
+func (pack *BaseCasePack) doCheckResult(handlerMap CheckHandlerMap) (bCheck bool, bSuccess bool) {
 
 	bCheck = false
 	bSuccess = false
@@ -144,12 +127,11 @@ func (pack *BaseCasePack)doCheckResult(handlerMap CheckHandlerMap) (bCheck bool,
 	tCase := pack.tCase.getBaseCase()
 	txInfo, bReady := getTxInfo(pack.txHash)
 
-	if !bReady && (txInfo != "tx not exist\n" || pack.checkTimes >= CheckTimeout){
+	if !bReady && (txInfo != "tx not exist\n" || pack.checkTimes >= CheckTimeout) {
 
 		pack.fLog.Error("CheckTimeOut", "TestID", pack.packID, "ErrInfo", txInfo)
 		return true, false
 	}
-
 
 	if bReady {
 
@@ -158,7 +140,7 @@ func (pack *BaseCasePack)doCheckResult(handlerMap CheckHandlerMap) (bCheck bool,
 		var jsonMap map[string]interface{}
 		err := json.Unmarshal([]byte(txInfo), &jsonMap)
 
-		if err != nil{
+		if err != nil {
 
 			pack.fLog.Error("UnMarshalFailed", "TestID", pack.packID, "ErrInfo", err.Error())
 			return true, false
@@ -168,7 +150,7 @@ func (pack *BaseCasePack)doCheckResult(handlerMap CheckHandlerMap) (bCheck bool,
 		tyname, bSuccess = getTxRecpTyname(jsonMap)
 		pack.fLog.Info("CheckItemResult", "TestID", pack.packID, "tyname", tyname)
 
-		if !bSuccess{
+		if !bSuccess {
 
 			logArr := jsonMap["receipt"].(map[string]interface{})["logs"].([]interface{})
 			for _, log := range logArr {
@@ -182,14 +164,14 @@ func (pack *BaseCasePack)doCheckResult(handlerMap CheckHandlerMap) (bCheck bool,
 					break
 				}
 			}
-		}else {
+		} else {
 
 			for _, item := range tCase.CheckItem {
 
 				checkHandler, ok := handlerMap[item]
 				if ok {
 
-					itemRes :=  checkHandler(jsonMap)
+					itemRes := checkHandler(jsonMap)
 					bSuccess = bSuccess && itemRes
 					pack.fLog.Info("CheckItemResult", "TestID", pack.packID, "Item", item, "Passed", itemRes)
 				}
@@ -200,4 +182,3 @@ func (pack *BaseCasePack)doCheckResult(handlerMap CheckHandlerMap) (bCheck bool,
 	pack.checkTimes++
 	return bCheck, bSuccess
 }
-

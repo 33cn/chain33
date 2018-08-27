@@ -1,32 +1,25 @@
 package testcase
 
 import (
-	"strconv"
 	"errors"
+	"strconv"
 )
 
 type TransferCase struct {
-
 	BaseCase
-	From string `toml:"from"`
-	To string `toml:"to"`
+	From   string `toml:"from"`
+	To     string `toml:"to"`
 	Amount string `toml:"amount"`
 }
 
-
-type TransferPack struct{
-
+type TransferPack struct {
 	BaseCasePack
-
 }
 
-
-func (testCase * TransferCase)doSendCommand(packID string) (PackFunc, error){
-
-
+func (testCase *TransferCase) doSendCommand(packID string) (PackFunc, error) {
 
 	txHash, bSuccess := sendTxCommand(testCase.Command)
-	if !bSuccess{
+	if !bSuccess {
 		return nil, errors.New(txHash)
 	}
 	pack := TransferPack{}
@@ -37,7 +30,7 @@ func (testCase * TransferCase)doSendCommand(packID string) (PackFunc, error){
 	return &pack, nil
 }
 
-func (pack *TransferPack)getCheckHandlerMap() CheckHandlerMap{
+func (pack *TransferPack) getCheckHandlerMap() CheckHandlerMap {
 
 	funcMap := make(map[string]CheckHandlerFunc, 2)
 	funcMap["balance"] = pack.checkBalance
@@ -45,10 +38,7 @@ func (pack *TransferPack)getCheckHandlerMap() CheckHandlerMap{
 	return funcMap
 }
 
-
-
-func (pack *TransferPack)checkBalance(txInfo map[string]interface{}) (bool){
-
+func (pack *TransferPack) checkBalance(txInfo map[string]interface{}) bool {
 
 	/*fromAddr := txInfo["tx"].(map[string]interface{})["from"].(string)
 	toAddr := txInfo["tx"].(map[string]interface{})["to"].(string)*/
@@ -68,9 +58,7 @@ func (pack *TransferPack)checkBalance(txInfo map[string]interface{}) (bool){
 		"ToPrev", logRecv["prev"].(map[string]interface{})["balance"].(string),
 		"ToCurr", logRecv["current"].(map[string]interface{})["balance"].(string))
 
-
-	return 	checkBalanceDeltaWithAddr(logFee, interCase.From, -fee) &&
+	return checkBalanceDeltaWithAddr(logFee, interCase.From, -fee) &&
 		checkBalanceDeltaWithAddr(logSend, interCase.From, -Amount) &&
 		checkBalanceDeltaWithAddr(logRecv, interCase.To, Amount)
 }
-

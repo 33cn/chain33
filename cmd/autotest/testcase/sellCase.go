@@ -1,40 +1,29 @@
 package testcase
 
 import (
-
-	"strconv"
 	"errors"
+	"strconv"
 )
 
 type SellCase struct {
-
 	BaseCase
-	From string `toml:"from"`
+	From   string `toml:"from"`
 	Amount string `toml:"amount"`
 }
 
-
-type SellPack struct{
-
+type SellPack struct {
 	BaseCasePack
 	orderInfo *SellOrderInfo
-
 }
 
-type SellOrderInfo struct{
-
+type SellOrderInfo struct {
 	sellID string
-
 }
 
-
-
-
-func (testCase * SellCase)doSendCommand(packID string) (PackFunc, error){
-
+func (testCase *SellCase) doSendCommand(packID string) (PackFunc, error) {
 
 	txHash, bSuccess := sendTxCommand(testCase.Command)
-	if !bSuccess{
+	if !bSuccess {
 		return nil, errors.New(txHash)
 	}
 	pack := SellPack{}
@@ -47,9 +36,7 @@ func (testCase * SellCase)doSendCommand(packID string) (PackFunc, error){
 	return &pack, nil
 }
 
-
-
-func (pack *SellPack)getCheckHandlerMap() CheckHandlerMap{
+func (pack *SellPack) getCheckHandlerMap() CheckHandlerMap {
 
 	funcMap := make(map[string]CheckHandlerFunc, 2)
 	funcMap["frozen"] = pack.checkFrozen
@@ -58,17 +45,12 @@ func (pack *SellPack)getCheckHandlerMap() CheckHandlerMap{
 	return funcMap
 }
 
-
-func (pack *SellPack)getDependData() interface{}{
+func (pack *SellPack) getDependData() interface{} {
 
 	return pack.orderInfo
 }
 
-
-
-
-func (pack *SellPack)checkBalance(txInfo map[string]interface{}) (bool){
-
+func (pack *SellPack) checkBalance(txInfo map[string]interface{}) bool {
 
 	/*fromAddr := txInfo["tx"].(map[string]interface{})["from"].(string)
 	toAddr := txInfo["tx"].(map[string]interface{})["to"].(string)*/
@@ -85,21 +67,16 @@ func (pack *SellPack)checkBalance(txInfo map[string]interface{}) (bool){
 		"SellerBalancePrev", logSend["prev"].(map[string]interface{})["balance"].(string),
 		"SellerBalanceCurr", logSend["current"].(map[string]interface{})["balance"].(string))
 
-
-
 	//save sell order info
 	sellOrderInfo := logArr[2].(map[string]interface{})["log"].(map[string]interface{})["base"].(map[string]interface{})
 	pack.orderInfo.sellID = sellOrderInfo["sellID"].(string)
 
-
-	return 	checkBalanceDeltaWithAddr(logFee, interCase.From, -fee) &&
+	return checkBalanceDeltaWithAddr(logFee, interCase.From, -fee) &&
 		checkBalanceDeltaWithAddr(logSend, interCase.From, -amount)
-
 
 }
 
-
-func (pack *SellPack)checkFrozen(txInfo map[string]interface{}) (bool) {
+func (pack *SellPack) checkFrozen(txInfo map[string]interface{}) bool {
 
 	logArr := txInfo["receipt"].(map[string]interface{})["logs"].([]interface{})
 	interCase := pack.tCase.(*SellCase)
@@ -110,7 +87,6 @@ func (pack *SellPack)checkFrozen(txInfo map[string]interface{}) (bool) {
 		"SellAmount", interCase.Amount,
 		"SellerFrozenPrev", logSend["prev"].(map[string]interface{})["frozen"].(string),
 		"SellerFrozenCurr", logSend["current"].(map[string]interface{})["frozen"].(string))
-
 
 	return checkFrozenDeltaWithAddr(logSend, interCase.From, amount)
 
