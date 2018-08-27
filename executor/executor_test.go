@@ -185,7 +185,7 @@ func TestExecGenesisBlock(t *testing.T) {
 
 func TestExecutorGetTxGroup(t *testing.T) {
 	exec := &Executor{}
-	execInit()
+	execInit(cfg.Exec)
 	var txs []*types.Transaction
 	addr2, priv2 := genaddress()
 	addr3, priv3 := genaddress()
