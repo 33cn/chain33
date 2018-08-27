@@ -4,6 +4,7 @@ package game
 import (
 	"bytes"
 	"fmt"
+	"math"
 	"strconv"
 
 	"gitlab.33.cn/chain33/chain33/account"
@@ -29,16 +30,11 @@ const (
 	IsMatcherWin = int32(3)
 	//开奖超时
 	IsTimeOut = int32(4)
-	//从有matcher参与游戏开始计算本局游戏开奖的有效时间，单位为天
-	Active_Time = int32(1)
 
-	ListDESC    = int32(0)
-	ListASC     = int32(1)
-	DefultCount = int32(20)  //默认一次取多少条记录
-	MaxCount    = int32(100) //最多取100条
+	ListDESC = int32(0)
+	ListASC  = int32(1)
 
 	GameCount = "GameCount" //根据状态，地址统计整个合约目前总共成功执行了多少场游戏。
-
 )
 
 //game 的状态变化：
@@ -157,8 +153,8 @@ func (action *Action) GameCreate(create *types.GameCreate) (*types.Receipt, erro
 	gameId := common.ToHex(action.txhash)
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
-	if create.GetValue()<2e8{
-		return nil,fmt.Errorf("The amount you participate in cannot be less than 2 and must be an even number.")
+	if create.GetValue() < MinGameAmount || math.Remainder(float64(create.GetValue()), 2) != 0 {
+		return nil, fmt.Errorf("The amount you participate in cannot be less than 2 and must be an even number.")
 	}
 	if !action.CheckExecAccountBalance(action.fromaddr, create.GetValue(), 0) {
 		glog.Error("GameCreate", "addr", action.fromaddr, "execaddr", action.execaddr, "id",
@@ -450,7 +446,7 @@ func (action *Action) GameClose(close *types.GameClose) (*types.Receipt, error) 
 // 检查开奖是否超时，若超过一天，则不让庄家开奖，但其他人可以开奖，
 // 若没有一天，则其他人没有开奖权限，只有庄家有开奖权限
 func (action *Action) checkGameIsTimeOut(game *types.Game) bool {
-	DurTime := 60 * 60 * 24 * Active_Time
+	DurTime := 60 * 60 * ActiveTime
 	return action.blocktime > (game.GetMatchTime() + int64(DurTime))
 }
 
