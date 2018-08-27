@@ -12,15 +12,13 @@ import (
 
 //blockchain模块的消息接收处理
 func (chain *BlockChain) ProcRecvMsg() {
+	defer chain.recvwg.Done()
 	reqnum := make(chan struct{}, 1000)
 	for msg := range chain.client.Recv() {
-		if atomic.LoadInt32(&chain.isclosed) == 1 {
-			break
-		}
 		chainlog.Debug("blockchain recv", "msg", types.GetEventName(int(msg.Ty)), "id", msg.Id, "cap", len(reqnum))
 		msgtype := msg.Ty
 		reqnum <- struct{}{}
-		chain.recvwg.Add(1)
+		atomic.AddInt32(&chain.runcount, 1)
 		switch msgtype {
 		case types.EventLocalGet:
 			go chain.processMsg(msg, reqnum, chain.localGet)
@@ -84,10 +82,13 @@ func (chain *BlockChain) ProcRecvMsg() {
 		case types.EventLocalPrefixCount:
 			go chain.processMsg(msg, reqnum, chain.localPrefixCount)
 		default:
-			<-reqnum
-			chainlog.Warn("ProcRecvMsg unknow msg", "msgtype", msgtype)
+			go chain.processMsg(msg, reqnum, chain.unknowMsg)
 		}
 	}
+}
+
+func (chain *BlockChain) unknowMsg(msg queue.Message) {
+	chainlog.Warn("ProcRecvMsg unknow msg", "msgtype", msg.Ty)
 }
 
 func (chain *BlockChain) queryTx(msg queue.Message) {
@@ -342,7 +343,7 @@ func (chain *BlockChain) processMsg(msg queue.Message, reqnum chan struct{}, cb 
 	beg := types.Now()
 	defer func() {
 		<-reqnum
-		chain.recvwg.Done()
+		atomic.AddInt32(&chain.runcount, -1)
 		chainlog.Debug("process", "cost", types.Since(beg), "msg", types.GetEventName(int(msg.Ty)))
 	}()
 	cb(msg)
