@@ -86,7 +86,7 @@ func (token TokenType) ActionName(tx *types.Transaction) string {
 	} else if action.Ty == types.ActionTransfer && action.GetTransfer() != nil {
 		return "transferToken"
 	} else if action.Ty == types.ActionWithdraw && action.GetWithdraw() != nil {
-		return "withdrawToken"
+		return "withdraw"
 	}
 	return "unknow"
 }
