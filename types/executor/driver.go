@@ -2,12 +2,14 @@ package executor
 
 import (
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/types/executor/blackwhite"
 	"gitlab.33.cn/chain33/chain33/types/executor/coins"
 	"gitlab.33.cn/chain33/chain33/types/executor/evm"
 	"gitlab.33.cn/chain33/chain33/types/executor/game"
 	"gitlab.33.cn/chain33/chain33/types/executor/hashlock"
 	"gitlab.33.cn/chain33/chain33/types/executor/manage"
 	"gitlab.33.cn/chain33/chain33/types/executor/none"
+	"gitlab.33.cn/chain33/chain33/types/executor/paracross"
 	"gitlab.33.cn/chain33/chain33/types/executor/privacy"
 	"gitlab.33.cn/chain33/chain33/types/executor/relay"
 	"gitlab.33.cn/chain33/chain33/types/executor/retrieve"
@@ -45,6 +47,7 @@ func Init() {
 	hashlock.Init()
 	manage.Init()
 	none.Init()
+	paracross.Init()
 	privacy.Init()
 	relay.Init()
 	retrieve.Init()
@@ -52,6 +55,8 @@ func Init() {
 	token.Init()
 	trade.Init()
 	game.Init()
+
+	blackwhite.Init()
 
 }
 

@@ -2,8 +2,8 @@ package types
 
 var userKey = []byte("user.")
 var slash = []byte("-")
+var Debug = false
 
-const Debug = false
 const (
 	CoinsX          = "coins"
 	TicketX         = "ticket"
@@ -21,27 +21,31 @@ const (
 	UserEvmX        = "user.evm."
 	CertX           = "cert"
 	GameX           = "game"
+	BlackwhiteX     = "blackwhite"
+	ParaX           = "paracross"
 	ValNodeX        = "valnode"
 )
 
 var (
-	ExecerCoins    = []byte(CoinsX)
-	ExecerTicket   = []byte(TicketX)
-	ExecerManage   = []byte(ManageX)
-	ExecerToken    = []byte(TokenX)
-	ExecerEvm      = []byte(EvmX)
-	ExecerPrivacy  = []byte(PrivacyX)
-	ExecerRelay    = []byte(RelayX)
-	ExecerHashlock = []byte(HashlockX)
-	ExecerRetrieve = []byte(RetrieveX)
-	ExecerNone     = []byte(NoneX)
-	ExecerTrade    = []byte(TradeX)
-	ExecerNorm     = []byte(Normx)
-	ExecerConfig   = []byte("config")
-	ExecerCert     = []byte(CertX)
-	UserEvm        = []byte(UserEvmX)
-	ExecerGame     = []byte(GameX)
-	ExecerValNode  = []byte(ValNodeX)
+	ExecerCoins      = []byte(CoinsX)
+	ExecerTicket     = []byte(TicketX)
+	ExecerManage     = []byte(ManageX)
+	ExecerToken      = []byte(TokenX)
+	ExecerEvm        = []byte(EvmX)
+	ExecerPrivacy    = []byte(PrivacyX)
+	ExecerRelay      = []byte(RelayX)
+	ExecerHashlock   = []byte(HashlockX)
+	ExecerRetrieve   = []byte(RetrieveX)
+	ExecerNone       = []byte(NoneX)
+	ExecerTrade      = []byte(TradeX)
+	ExecerNorm       = []byte(Normx)
+	ExecerConfig     = []byte("config")
+	ExecerCert       = []byte(CertX)
+	UserEvm          = []byte(UserEvmX)
+	ExecerGame       = []byte(GameX)
+	ExecerBlackwhite = []byte(BlackwhiteX)
+	ExecerPara       = []byte(ParaX)
+	ExecerValNode    = []byte(ValNodeX)
 )
 
 const (
@@ -63,6 +67,7 @@ const (
 	M_10_TIMES                    = 10
 	SignatureSize                 = (4 + 33 + 65)
 	PrivacyMaturityDegree         = 12
+	TxGroupMaxCount               = 20
 )
 
 var (
@@ -209,11 +214,26 @@ const (
 	// 合约状态数据变更项日志
 	TyLogEVMStateChangeItem = 604
 
+	// paracross 执行器的日志类型
+	TyLogParacrossCommit = 650
+	TyLogParacrossDone   = 651
+	// record 和 commit 不一样， 对应高度完成共识后收到commit 交易
+	// 这个交易就不参与共识, 只做记录
+	TyLogParacrossRecord = 652
+
 	//log for game
 	TyLogCreateGame = 711
 	TyLogMatchGame  = 712
 	TyLogCancleGame = 713
 	TyLogCloseGame  = 714
+
+	// log for blackwhite game
+	TyLogBlackwhiteCreate   = 750
+	TyLogBlackwhitePlay     = 751
+	TyLogBlackwhiteShow     = 752
+	TyLogBlackwhiteTimeout  = 753
+	TyLogBlackwhiteDone     = 754
+	TyLogBlackwhiteLoopInfo = 755
 )
 
 //exec type
@@ -389,6 +409,14 @@ const (
 	RelayActionRcvBTCHeaders
 )
 
+// blackwhite action type
+const (
+	BlackwhiteActionCreate = iota
+	BlackwhiteActionPlay
+	BlackwhiteActionShow
+	BlackwhiteActionTimeoutDone
+)
+
 // RescanUtxoFlag
 const (
 	UtxoFlagNoScan  int32 = 0
@@ -404,7 +432,7 @@ var RescanFlagMapint2string = map[int32]string{
 
 //game action ty
 const (
-	GameActionCreate = iota
+	GameActionCreate = iota + 1
 	GameActionMatch
 	GameActionCancel
 	GameActionClose
@@ -414,7 +442,34 @@ const (
 var FlagTxQuickIndex = []byte("FLAG:FlagTxQuickIndex")
 var FlagKeyMVCC = []byte("FLAG:keyMVCCFlag")
 
+//TxHeight 选项
+//设计思路:
+//提供一种可以快速查重的交易类型，和原来的交易完全兼容
+//并且可以通过开关控制是否开启这样的交易
+
+//标记是一个时间还是一个 TxHeight
+var TxHeightFlag int64 = 1 << 62
+
+//是否开启TxHeight选项
+var EnableTxHeight = false
+
+//eg: current Height is 10000
+//TxHeight is  10010
+//=> Height <= TxHeight + HighAllowPackHeight
+//=> Height >= TxHeight - LowAllowPackHeight
+//那么交易可以打包的范围是: 10010 - 100 = 9910 , 10010 + 200 =  10210 (9910,10210)
+//可以合法的打包交易
+//注意，这两个条件必须同时满足.
+//关于交易去重复:
+//也就是说，另外一笔相同的交易，只能被打包在这个区间(9910,10210)。
+//那么检查交易重复的时候，我只要检查 9910 - currentHeight 这个区间的交易不要重复就好了
+var HighAllowPackHeight int64 = 90
+var LowAllowPackHeight int64 = 30
+
+//默认情况下不开启fork
+var EnableTxGroupParaFork = false
+
 const (
-	ValNodeActionUpdate = 1
+	ValNodeActionUpdate    = 1
 	ValNodeActionBlockInfo = 2
 )

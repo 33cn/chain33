@@ -1,7 +1,6 @@
 package blockchain
 
 import (
-	"container/list"
 	"fmt"
 	"sync"
 	"sync/atomic"
@@ -35,17 +34,13 @@ const maxFutureBlocks = 256
 
 type BlockChain struct {
 	client queue.Client
+	cache  *BlockCache
 	// 永久存储数据到db中
 	blockStore *BlockStore
 	//cache  缓存block方便快速查询
-	cache      map[int64]*list.Element
-	cacheHash  map[string]*list.Element
-	cacheTxs   map[string]bool
-	cacheSize  int64
-	cacheQueue *list.List
-	cfg        *types.BlockChain
-	task       *Task
-	forktask   *Task
+	cfg      *types.BlockChain
+	task     *Task
+	forktask *Task
 
 	query *Query
 
@@ -63,6 +58,7 @@ type BlockChain struct {
 	synblock            chan struct{}
 	quit                chan struct{}
 	isclosed            int32
+	runcount            int32
 	isbatchsync         int32
 	firstcheckbestchain int32 //节点启动之后首次检测最优链的标志
 
@@ -103,11 +99,7 @@ func New(cfg *types.BlockChain) *BlockChain {
 	futureBlocks, _ := lru.New(maxFutureBlocks)
 
 	blockchain := &BlockChain{
-		cache:              make(map[int64]*list.Element),
-		cacheHash:          make(map[string]*list.Element),
-		cacheTxs:           make(map[string]bool),
-		cacheSize:          DefCacheSize,
-		cacheQueue:         list.New(),
+		cache:              NewBlockCache(DefCacheSize),
 		rcvLastBlockHeight: -1,
 		synBlockHeight:     -1,
 		peerList:           nil,
@@ -140,6 +132,10 @@ func initConfig(cfg *types.BlockChain) {
 		DefCacheSize = cfg.DefCacheSize
 	}
 
+	if types.EnableTxHeight && DefCacheSize <= (types.LowAllowPackHeight+types.HighAllowPackHeight+1) {
+		panic("when Enable TxHeight DefCacheSize must big than types.LowAllowPackHeight")
+	}
+
 	if cfg.MaxFetchBlockNum > 0 {
 		MaxFetchBlockNum = cfg.MaxFetchBlockNum
 	}
@@ -160,6 +156,11 @@ func (chain *BlockChain) Close() {
 	//退出线程
 	close(chain.quit)
 
+	//等待执行完成
+	for atomic.LoadInt32(&chain.runcount) > 0 {
+		time.Sleep(time.Microsecond)
+	}
+	chain.client.Close()
 	//wait for recvwg quit:
 	chainlog.Info("blockchain wait for recvwg quit")
 	chain.recvwg.Wait()
@@ -167,9 +168,6 @@ func (chain *BlockChain) Close() {
 	//wait for tickerwg quit:
 	chainlog.Info("blockchain wait for tickerwg quit")
 	chain.tickerwg.Wait()
-
-	//退出接受数据, 在最后一个block写磁盘时addtx还需要接受数据
-	chain.client.Close()
 
 	//关闭数据库
 	chain.blockStore.db.Close()
@@ -190,6 +188,7 @@ func (chain *BlockChain) SetQueueClient(client queue.Client) {
 	chain.startTime = types.Now()
 
 	//recv 消息的处理，共识模块需要获取lastblock从数据库中
+	chain.recvwg.Add(1)
 	go chain.ProcRecvMsg()
 
 	//初始化blockchian模块
@@ -200,9 +199,11 @@ func (chain *BlockChain) InitBlockChain() {
 	//获取数据库中最新的10240个区块加载到index和bestview链中,耗时需要几分钟，需要异步处理
 	chain.InitIndexAndBestView()
 	chainlog.Info("InitIndexAndBestView", "cost", types.Since(beg))
-
 	//获取数据库中最新的区块高度，以及blockchain的数据库版本号
 	curheight := chain.GetBlockHeight()
+	if types.EnableTxHeight {
+		chain.InitCache(curheight)
+	}
 	curdbver := chain.blockStore.GetDbVersion()
 	if curdbver == 0 && curheight == -1 {
 		curdbver = 1
@@ -286,19 +287,31 @@ func (chain *BlockChain) ProcQueryTxMsg(txhash []byte) (proof *types.Transaction
 	return &TransactionDetail, nil
 }
 
-func (chain *BlockChain) GetDuplicateTxHashList(txhashlist *types.TxHashList) (duptxhashlist *types.TxHashList) {
+func (chain *BlockChain) GetDuplicateTxHashList(txhashlist *types.TxHashList) (duptxhashlist *types.TxHashList, err error) {
 	var dupTxHashList types.TxHashList
 	onlyquerycache := false
 	if txhashlist.Count == -1 {
 		onlyquerycache = true
 	}
-	for _, txhash := range txhashlist.Hashes {
+	if txhashlist.Expire != nil && len(txhashlist.Expire) != len(txhashlist.Hashes) {
+		return nil, types.ErrInputPara
+	}
+	for i, txhash := range txhashlist.Hashes {
+		expire := int64(0)
+		if txhashlist.Expire != nil {
+			expire = txhashlist.Expire[i]
+		}
+		txHeight := types.GetTxHeight(expire, txhashlist.Count)
+		//在txHeight > 0 的情况下，可以安全的查询cache
+		if txHeight > 0 {
+			onlyquerycache = true
+		}
 		has, err := chain.HasTx(txhash, onlyquerycache)
 		if err == nil && has {
 			dupTxHashList.Hashes = append(dupTxHashList.Hashes, txhash)
 		}
 	}
-	return &dupTxHashList
+	return &dupTxHashList, nil
 }
 
 /*
@@ -438,7 +451,7 @@ func (chain *BlockChain) GetBlockHeight() int64 {
 
 //用于获取指定高度的block，首先在缓存中获取，如果不存在就从db中获取
 func (chain *BlockChain) GetBlock(height int64) (block *types.BlockDetail, err error) {
-	blockdetail := chain.CheckcacheBlock(height)
+	blockdetail := chain.cache.CheckcacheBlock(height)
 	if blockdetail != nil {
 		if len(blockdetail.Receipts) == 0 && len(blockdetail.Block.Txs) != 0 {
 			chainlog.Debug("GetBlock  CheckcacheBlock Receipts ==0", "height", height)
@@ -457,84 +470,6 @@ func (chain *BlockChain) GetBlock(height int64) (block *types.BlockDetail, err e
 	}
 }
 
-//从cache缓存中获取block信息
-func (chain *BlockChain) CheckcacheBlock(height int64) (block *types.BlockDetail) {
-	cachelock.Lock()
-	defer cachelock.Unlock()
-
-	elem, ok := chain.cache[height]
-	if ok {
-		// Already exists. Move to back of cacheQueue.
-		chain.cacheQueue.MoveToBack(elem)
-		return elem.Value.(*types.BlockDetail)
-	}
-	return nil
-}
-
-//不做移动，cache最后的 128个区块
-func (chain *BlockChain) GetCacheBlock(hash []byte) (block *types.BlockDetail) {
-	cachelock.Lock()
-	defer cachelock.Unlock()
-	elem, ok := chain.cacheHash[string(hash)]
-	if ok {
-		return elem.Value.(*types.BlockDetail)
-	}
-	return nil
-}
-
-func (chain *BlockChain) HasCacheTx(hash []byte) bool {
-	cachelock.Lock()
-	defer cachelock.Unlock()
-	_, ok := chain.cacheTxs[string(hash)]
-	return ok
-}
-
-//添加block到cache中，方便快速查询
-func (chain *BlockChain) cacheBlock(blockdetail *types.BlockDetail) {
-	cachelock.Lock()
-	defer cachelock.Unlock()
-
-	if len(blockdetail.Receipts) == 0 && len(blockdetail.Block.Txs) != 0 {
-		chainlog.Debug("cacheBlock  Receipts ==0", "height", blockdetail.Block.GetHeight())
-	}
-	chain.addCacheBlock(blockdetail)
-
-	// Maybe expire an item.
-	if int64(chain.cacheQueue.Len()) > chain.cacheSize {
-		blockdetail := chain.cacheQueue.Remove(chain.cacheQueue.Front()).(*types.BlockDetail)
-		chain.delCacheBlock(blockdetail)
-	}
-}
-
-func (chain *BlockChain) addCacheBlock(blockdetail *types.BlockDetail) {
-	// Create entry in cache and append to cacheQueue.
-	elem := chain.cacheQueue.PushBack(blockdetail)
-	chain.cache[blockdetail.Block.Height] = elem
-	chain.cacheHash[string(blockdetail.Block.Hash())] = elem
-	for _, tx := range blockdetail.Block.Txs {
-		chain.cacheTxs[string(tx.Hash())] = true
-	}
-}
-
-func (chain *BlockChain) delCacheBlock(blockdetail *types.BlockDetail) {
-	delete(chain.cache, blockdetail.Block.Height)
-	delete(chain.cacheHash, string(blockdetail.Block.Hash()))
-	for _, tx := range blockdetail.Block.Txs {
-		delete(chain.cacheTxs, string(tx.Hash()))
-	}
-}
-
-//添加block到cache中，方便快速查询
-func (chain *BlockChain) delBlockFromCache(height int64) {
-	cachelock.Lock()
-	defer cachelock.Unlock()
-	elem, ok := chain.cache[height]
-	if ok {
-		blockdetail := chain.cacheQueue.Remove(elem).(*types.BlockDetail)
-		chain.delCacheBlock(blockdetail)
-	}
-}
-
 //通过txhash 从txindex db中获取tx信息
 //type TxResult struct {
 //	Height int64
@@ -542,9 +477,7 @@ func (chain *BlockChain) delBlockFromCache(height int64) {
 //	Tx     *types.Transaction
 //  Receiptdate *ReceiptData
 //}
-
 func (chain *BlockChain) GetTxResultFromDb(txhash []byte) (tx *types.TxResult, err error) {
-
 	txinfo, err := chain.blockStore.GetTx(txhash)
 	if err != nil {
 		return nil, err
@@ -553,7 +486,7 @@ func (chain *BlockChain) GetTxResultFromDb(txhash []byte) (tx *types.TxResult, e
 }
 
 func (chain *BlockChain) HasTx(txhash []byte, onlyquerycache bool) (has bool, err error) {
-	has = chain.HasCacheTx(txhash)
+	has = chain.cache.HasCacheTx(txhash)
 	if has {
 		return true, nil
 	}
@@ -879,6 +812,22 @@ func (chain *BlockChain) SendDelBlockEvent(block *types.BlockDetail) (err error)
 	chain.client.Send(msg, false)
 
 	return nil
+}
+
+func (chain *BlockChain) InitCache(height int64) {
+	if height < 0 {
+		return
+	}
+	for i := height - DefCacheSize; i <= height; i++ {
+		if i < 0 {
+			i = 0
+		}
+		blockdetail, err := chain.GetBlock(i)
+		if err != nil {
+			panic(err)
+		}
+		chain.cache.cacheBlock(blockdetail)
+	}
 }
 
 // 第一次启动之后需要将数据库中最新的128个block的node添加到index和bestchain中

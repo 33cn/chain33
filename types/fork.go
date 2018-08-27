@@ -1,5 +1,7 @@
 package types
 
+const MaxHeight = 10000000000000000
+
 //default hard fork block height for bityuan real network
 var (
 	ForkV1               int64 = 1
@@ -22,8 +24,10 @@ var (
 	ForkV18Relay         int64 = 500000
 	ForkV19TokenPrice    int64 = 300000
 	ForkV20EVMState      int64 = 350000
-	ForkV21Privacy       int64 = 10000000
+	ForkV21Privacy       int64 = MaxHeight
 	ForkV22ExecRollback  int64 = 450000
+	ForkV23TxHeight      int64 = MaxHeight
+	ForkV24TxGroupPara   int64 = MaxHeight
 )
 
 //bityuan test net fork
@@ -50,6 +54,8 @@ func SetTestNetFork() {
 	ForkV20EVMState = 650000
 	ForkV21Privacy = 10000000
 	ForkV22ExecRollback = 706531
+	ForkV23TxHeight = 806578
+	ForkV24TxGroupPara = 806578
 }
 
 func SetForkToOne() {
@@ -74,6 +80,9 @@ func SetForkToOne() {
 	ForkV19TokenPrice = 1
 	ForkV20EVMState = 1
 	ForkV21Privacy = 1
+	ForkV22ExecRollback = 1
+	ForkV23TxHeight = 1
+	ForkV24TxGroupPara = 1
 }
 
 //paraName not used currently
@@ -99,9 +108,22 @@ func SetForkForPara(paraName string) {
 	ForkV19TokenPrice = 1
 	ForkV20EVMState = 1
 	ForkV21Privacy = 1
+	ForkV22ExecRollback = 1
+	ForkV23TxHeight = 1
+	ForkV24TxGroupPara = 1
 }
 
 func IsMatchFork(height int64, fork int64) bool {
+	if height == -1 || height >= fork {
+		return true
+	}
+	return false
+}
+
+func IsEnableFork(height int64, fork int64, enable bool) bool {
+	if !enable {
+		return false
+	}
 	if height == -1 || height >= fork {
 		return true
 	}

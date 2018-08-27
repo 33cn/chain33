@@ -6,6 +6,7 @@ Package types is a generated protocol buffer package.
 
 It is generated from these files:
 	account.proto
+	blackwhite.proto
 	blockchain.proto
 	common.proto
 	config.proto
@@ -15,6 +16,7 @@ It is generated from these files:
 	executorTrade.proto
 	game.proto
 	p2p.proto
+	paracross.proto
 	pbft.proto
 	relay.proto
 	rpc.proto
@@ -35,6 +37,23 @@ It has these top-level messages:
 	ReplyAccountTokenAssets
 	ExecAccount
 	AllExecBalance
+	AddressResult
+	BlackwhiteRound
+	BlackwhiteAction
+	BlackwhiteCreate
+	BlackwhitePlay
+	BlackwhiteShow
+	BlackwhiteTimeoutDone
+	ReceiptBlackwhite
+	ReceiptBlackwhiteStatus
+	ReqBlackwhiteRoundInfo
+	ReplyBlackwhiteRoundInfo
+	ReqBlackwhiteRoundList
+	ReplyBlackwhiteRoundList
+	ReqLoopResult
+	PerLoopResult
+	ReplyLoopResults
+	BlackwhiteRoundResult
 	Header
 	Block
 	Blocks
@@ -208,6 +227,7 @@ It has these top-level messages:
 	Privacy2Public4Print
 	PrivacyAction4Print
 	ValNode
+	ValNodes
 	ValNodeAction
 	Trade
 	TradeForSell
@@ -242,9 +262,13 @@ It has these top-level messages:
 	GameClose
 	GameCreate
 	QueryGameListByStatusAndAddr
+	QueryGameListCount
+	GameRecord
 	QueryGameInfo
 	QueryGameInfos
 	ReplyGameList
+	ReplyGameListPage
+	ReplyGameListCount
 	ReplyGame
 	ReceiptGame
 	P2PGetPeerInfo
@@ -275,6 +299,18 @@ It has these top-level messages:
 	NodeNetInfo
 	PeersReply
 	PeersInfo
+	ParacrossStatusDetails
+	ParacrossHeightStatus
+	ParacrossStatus
+	ParacrossNodeStatus
+	ParacrossCommitAction
+	ParacrossAction
+	ReceiptParacrossCommit
+	ReceiptParacrossDone
+	ReceiptParacrossRecord
+	ParacrossTx
+	ReqParacrossTitleHeight
+	RespParacrossTitles
 	Operation
 	Checkpoint
 	Entry
@@ -348,8 +384,8 @@ It has these top-level messages:
 	VoteSetMaj23Msg
 	VoteSetBitsMsg
 	Heartbeat
-	ValNodes
 	CreateTx
+	CreateTransactionGroup
 	UnsignTx
 	NoBalanceTx
 	SignedTx

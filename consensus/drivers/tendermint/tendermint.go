@@ -132,7 +132,7 @@ func (client *TendermintClient) SetQueueClient(q queue.Client) {
 	go client.StartConsensus()
 }
 
-const DEBUG_CATCHUP = true
+const DEBUG_CATCHUP = false
 
 func (client *TendermintClient) StartConsensus() {
 	//进入共识前先同步到最大高度

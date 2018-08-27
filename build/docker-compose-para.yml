@@ -1,0 +1,22 @@
+version: '3'
+
+services:
+  chain33:
+    entrypoint: /root/entrypoint.sh
+    environment:
+      PARAFILE: "/root/chain33.para33.toml"
+
+  chain32:
+    entrypoint: /root/entrypoint.sh
+    environment:
+      PARAFILE: "/root/chain33.para32.toml"
+
+  chain31:
+    entrypoint: /root/entrypoint.sh
+    environment:
+      PARAFILE: "/root/chain33.para31.toml"
+
+  chain30:
+    entrypoint: /root/entrypoint.sh
+    environment:
+      PARAFILE: "/root/chain33.para30.toml"
