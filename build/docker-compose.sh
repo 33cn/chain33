@@ -89,6 +89,7 @@ function start() {
 
     docker-compose ps
 
+    wait_btcd_up
     run_relayd_with_btcd
     ping_btcd
 
@@ -175,6 +176,37 @@ function start() {
     ${CLI} wallet status
     ${CLI} account list
     ${CLI} mempool list
+}
+
+#some times btcwallet bin 18554 server port fail in btcd docker, restart btcd will be ok
+# [WRN] BTCW: Can't listen on [::1]:18554: listen tcp6 [::1]:18554: bind: cannot assign requested address
+function wait_btcd_up() {
+    count=20
+    while [ $count -gt 0 ]; do
+        status=$(docker-compose ps | grep btcd | awk '{print $5}')
+        if [ "${status}" == "Up" ]; then
+            break
+        fi
+        docker-compose logs btcd
+        docker-compose restart btcd
+        docker-compose ps
+        echo "==============btcd fail $count  ================="
+        ((count--))
+        if [ $count == 0 ]; then
+            echo "wait btcd up 20 times"
+            exit 1
+        fi
+        mod=$((count % 4))
+        if [ $mod == 0 ]; then
+            docker-compose down
+            sleep 5
+            docker-compose -f docker-compose.yml -f docker-compose-para.yml up --build -d
+            sleep 60
+            continue
+        fi
+        #btcd restart need wait 30s
+        sleep 30
+    done
 }
 
 function block_wait() {

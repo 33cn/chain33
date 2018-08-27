@@ -463,3 +463,6 @@ var EnableTxHeight = false
 //那么检查交易重复的时候，我只要检查 9910 - currentHeight 这个区间的交易不要重复就好了
 var HighAllowPackHeight int64 = 90
 var LowAllowPackHeight int64 = 30
+
+//默认情况下不开启fork
+var EnableTxGroupParaFork = false

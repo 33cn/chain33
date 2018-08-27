@@ -965,7 +965,7 @@ func TestChain33_CreateTxGroup(t *testing.T) {
 		t.Error("Test createtxgroup failed")
 		return
 	}
-	err = tx.Check(types.MinFee)
+	err = tx.Check(0, types.MinFee)
 	assert.Nil(t, err)
 }
 

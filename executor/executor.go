@@ -15,6 +15,9 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 
 	// register drivers
+	"gitlab.33.cn/chain33/chain33/client"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/blackwhite"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/cert"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/coins"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/game"
@@ -23,16 +26,12 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers/none"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/norm"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/paracross"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/privacy"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/relay"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/retrieve"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/ticket"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/token"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/trade"
-
-	"gitlab.33.cn/chain33/chain33/client"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/blackwhite"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/cert"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/privacy"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 	exectype "gitlab.33.cn/chain33/chain33/types/executor"
@@ -64,7 +63,13 @@ type Executor struct {
 	flagMVCC       int64
 }
 
+var once sync.Once
+
 func execInit() {
+	once.Do(execInit2)
+}
+
+func execInit2() {
 	exectype.Init()
 	coins.Init()
 	hashlock.Init()
@@ -159,7 +164,7 @@ func (exec *Executor) procExecQuery(msg queue.Message) {
 
 func (exec *Executor) procExecCheckTx(msg queue.Message) {
 	datas := msg.GetData().(*types.ExecTxList)
-	execute := newExecutor(datas.StateHash, exec, datas.Height, datas.BlockTime, datas.Difficulty)
+	execute := newExecutor(datas.StateHash, exec, datas.Height, datas.BlockTime, datas.Difficulty, datas.Txs)
 	execute.enableMVCC()
 	execute.api = exec.qclient
 	//返回一个列表表示成功还是失败
@@ -180,7 +185,7 @@ var commonPrefix = []byte("mavl-")
 
 func (exec *Executor) procExecTxList(msg queue.Message) {
 	datas := msg.GetData().(*types.ExecTxList)
-	execute := newExecutor(datas.StateHash, exec, datas.Height, datas.BlockTime, datas.Difficulty)
+	execute := newExecutor(datas.StateHash, exec, datas.Height, datas.BlockTime, datas.Difficulty, datas.Txs)
 	execute.enableMVCC()
 	execute.api = exec.qclient
 	var receipts []*types.Receipt
@@ -328,7 +333,7 @@ func findExecer(key []byte) (execer []byte, err error) {
 func (exec *Executor) procExecAddBlock(msg queue.Message) {
 	datas := msg.GetData().(*types.BlockDetail)
 	b := datas.Block
-	execute := newExecutor(b.StateHash, exec, b.Height, b.BlockTime, uint64(b.Difficulty))
+	execute := newExecutor(b.StateHash, exec, b.Height, b.BlockTime, uint64(b.Difficulty), b.Txs)
 	execute.api = exec.qclient
 	var totalFee types.TotalFee
 	var kvset types.LocalDBSet
@@ -451,7 +456,7 @@ func (exec *Executor) stat(execute *executor, datas *types.BlockDetail) ([]*type
 func (exec *Executor) procExecDelBlock(msg queue.Message) {
 	datas := msg.GetData().(*types.BlockDetail)
 	b := datas.Block
-	execute := newExecutor(b.StateHash, exec, b.Height, b.BlockTime, uint64(b.Difficulty))
+	execute := newExecutor(b.StateHash, exec, b.Height, b.BlockTime, uint64(b.Difficulty), b.Txs)
 	execute.enableMVCC()
 	execute.api = exec.qclient
 	var kvset types.LocalDBSet
@@ -524,11 +529,11 @@ type executor struct {
 
 	// 增加区块的难度值，后面的执行器逻辑需要这些属性
 	difficulty uint64
-
-	api client.QueueProtocolAPI
+	txs        []*types.Transaction
+	api        client.QueueProtocolAPI
 }
 
-func newExecutor(stateHash []byte, exec *Executor, height, blocktime int64, difficulty uint64) *executor {
+func newExecutor(stateHash []byte, exec *Executor, height, blocktime int64, difficulty uint64, txs []*types.Transaction) *executor {
 	client := exec.client
 	enableMVCC := exec.enableMVCC
 	flagMVCC := exec.flagMVCC
@@ -541,6 +546,7 @@ func newExecutor(stateHash []byte, exec *Executor, height, blocktime int64, diff
 		height:       height,
 		blocktime:    blocktime,
 		difficulty:   difficulty,
+		txs:          txs,
 	}
 	e.coinsAccount.SetDB(e.stateDB)
 	return e
@@ -598,10 +604,9 @@ func (e *executor) checkTx(tx *types.Transaction, index int) error {
 		//如果已经过期
 		return types.ErrTxExpire
 	}
-	if err := tx.Check(types.MinFee); err != nil {
+	if err := tx.Check(e.height, types.MinFee); err != nil {
 		return err
 	}
-
 	return nil
 }
 
@@ -610,6 +615,7 @@ func (e *executor) setEnv(exec drivers.Driver) {
 	exec.SetLocalDB(e.localDB)
 	exec.SetEnv(e.height, e.blocktime, e.difficulty)
 	exec.SetApi(e.api)
+	exec.SetTxs(e.txs)
 }
 
 func (e *executor) checkTxGroup(txgroup *types.Transactions, index int) error {
@@ -617,7 +623,7 @@ func (e *executor) checkTxGroup(txgroup *types.Transactions, index int) error {
 		//如果已经过期
 		return types.ErrTxExpire
 	}
-	if err := txgroup.Check(types.MinFee); err != nil {
+	if err := txgroup.Check(e.height, types.MinFee); err != nil {
 		return err
 	}
 	return nil
