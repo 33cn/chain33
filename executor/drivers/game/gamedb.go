@@ -311,10 +311,6 @@ func (action *Action) GameClose(close *types.GameClose) (*types.Receipt, error) 
 		//如果不是游戏创建者开奖，则检查是否超时
 		glog.Error(types.ErrGameCloseAddr.Error())
 		return nil, types.ErrGameCloseAddr
-	} else if action.fromaddr == game.GetCreateAddress() && action.checkGameIsTimeOut(game) {
-		//当超过游戏开奖时间，此时，禁止游戏创建者去开奖，只能由其他人开奖
-		glog.Error(types.ErrGameTimeOut.Error())
-		return nil, types.ErrGameTimeOut
 	}
 	if game.GetStatus() != types.GameActionMatch {
 		glog.Error(types.ErrGameCloseStatus.Error())
