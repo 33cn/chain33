@@ -10,6 +10,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/version"
 	"gitlab.33.cn/chain33/chain33/types"
+	bw "gitlab.33.cn/chain33/chain33/types/executor/blackwhite"
 	evmtype "gitlab.33.cn/chain33/chain33/types/executor/evm"
 	hashlocktype "gitlab.33.cn/chain33/chain33/types/executor/hashlock"
 	lotterytype "gitlab.33.cn/chain33/chain33/types/executor/lottery"
@@ -26,7 +27,16 @@ func (c *Chain33) CreateRawTransaction(in *types.CreateTx, result *interface{}) 
 
 	*result = hex.EncodeToString(reply)
 	return nil
+}
 
+func (c *Chain33) CreateRawTxGroup(in *types.CreateTransactionGroup, result *interface{}) error {
+	reply, err := c.cli.CreateRawTxGroup(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
 }
 
 func (c *Chain33) CreateNoBalanceTransaction(in *types.NoBalanceTx, result *string) error {
@@ -957,7 +967,6 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		if err != nil {
 			unkownPl["unkownpayload"] = string(tx.GetPayload())
 			pl = unkownPl
-			fmt.Println(pl)
 		} else {
 			pl = &action
 		}
@@ -1018,6 +1027,15 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		} else {
 			pl = &action
 		}
+	} else if types.ExecName(types.GameX) == string(tx.Execer) {
+		var action types.GameAction
+		err := types.Decode(tx.GetPayload(), &action)
+		if err != nil {
+			unkownPl["unkownpayload"] = string(tx.GetPayload())
+			pl = unkownPl
+		} else {
+			pl = &action
+		}
 	} else if "user.write" == string(tx.Execer) {
 		pl = decodeUserWrite(tx.GetPayload())
 	} else {
@@ -1035,7 +1053,7 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		Fee:        tx.Fee,
 		Expire:     tx.Expire,
 		Nonce:      tx.Nonce,
-		To:         tx.To,
+		To:         tx.GetRealToAddr(),
 		From:       tx.From(),
 		GroupCount: tx.GroupCount,
 		Header:     common.ToHex(tx.Header),
@@ -1781,6 +1799,46 @@ func (c *Chain33) CreateRawRelaySaveBTCHeadTx(in *RelaySaveBTCHeadTx, result *in
 	return nil
 }
 
+func (c *Chain33) BlackwhiteCreateTx(in *bw.BlackwhiteCreateTx, result *interface{}) error {
+	reply, err := c.cli.BlackwhiteCreateTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Chain33) BlackwhiteShowTx(in *bw.BlackwhiteShowTx, result *interface{}) error {
+	reply, err := c.cli.BlackwhiteShowTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Chain33) BlackwhitePlayTx(in *bw.BlackwhitePlayTx, result *interface{}) error {
+	reply, err := c.cli.BlackwhitePlayTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Chain33) BlackwhiteTimeoutDoneTx(in *bw.BlackwhiteTimeoutDoneTx, result *interface{}) error {
+	reply, err := c.cli.BlackwhiteTimeoutDoneTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
 func (c *Chain33) convertWalletTxDetailToJson(in *types.WalletTxDetails, out *WalletTxDetails) error {
 	if in == nil || out == nil {
 		return types.ErrInvalidParams
@@ -1845,5 +1903,10 @@ func (c *Chain33) EnablePrivacy(in types.ReqEnablePrivacy, result *interface{}) 
 		return err
 	}
 	*result = reply
+	return nil
+}
+
+func (c *Chain33) ConvertExectoAddr(in ExecNameParm, result *string) error {
+	*result = address.ExecAddress(in.ExecName)
 	return nil
 }

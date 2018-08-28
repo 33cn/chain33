@@ -206,7 +206,7 @@ func testSeed(t *testing.T, wallet *Wallet) {
 	wallet.client.Send(msgSave, true)
 	wallet.client.Wait(msgSave)
 
-	seedstr, err := GetSeed(wallet.walletStore.db, password)
+	seedstr, err := GetSeed(wallet.walletStore.GetDB(), password)
 	require.NoError(t, err)
 
 	if seed != seedstr {

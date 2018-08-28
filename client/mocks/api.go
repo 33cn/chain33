@@ -765,6 +765,27 @@ func (_m *QueueProtocolAPI) NewMessage(topic string, msgid int64, data interface
 	return r0
 }
 
+// Notify provides a mock function with given fields: topic, ty, data
+func (_m *QueueProtocolAPI) Notify(topic string, ty int64, data interface{}) (queue.Message, error) {
+	ret := _m.Called(topic, ty, data)
+
+	var r0 queue.Message
+	if rf, ok := ret.Get(0).(func(string, int64, interface{}) queue.Message); ok {
+		r0 = rf(topic, ty, data)
+	} else {
+		r0 = ret.Get(0).(queue.Message)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string, int64, interface{}) error); ok {
+		r1 = rf(topic, ty, data)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // PeerInfo provides a mock function with given fields:
 func (_m *QueueProtocolAPI) PeerInfo() (*types.PeerList, error) {
 	ret := _m.Called()

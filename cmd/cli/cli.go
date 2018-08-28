@@ -63,6 +63,7 @@ func init() {
 		commands.TxCmd(),
 		commands.WalletCmd(),
 		commands.PrivacyCmd(),
+		commands.BlackwhiteCmd(),
 		commands.VersionCmd(),
 		sendCmd,
 		closeCmd,
