@@ -74,7 +74,7 @@ func (token TokenType) ActionName(tx *types.Transaction) string {
 	var action types.TokenAction
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
-		return "unknow-err"
+		return "unknown-err"
 	}
 
 	if action.Ty == types.TokenActionPreCreate && action.GetTokenprecreate() != nil {
@@ -88,7 +88,7 @@ func (token TokenType) ActionName(tx *types.Transaction) string {
 	} else if action.Ty == types.ActionWithdraw && action.GetWithdraw() != nil {
 		return "withdraw"
 	}
-	return "unknow"
+	return "unknown"
 }
 
 func (token TokenType) Amount(tx *types.Transaction) (int64, error) {
