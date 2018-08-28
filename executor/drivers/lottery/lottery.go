@@ -160,7 +160,15 @@ func (lott *Lottery) Query(funcName string, params []byte) (types.Message, error
 			return nil, err
 		}
 		reply := &types.ReplyLotteryHistoryLuckyNumber{}
-		reply.LuckyNumber = append(reply.LuckyNumber, lottery.LuckyNumber...)
+		if lottery.Round > 1 {
+			reply.LuckyNumber = make([]int64, lottery.Round-1)
+			for i := 0; i < int(lottery.Round-1); i++ {
+				llog.Error("query", "i", i, "luckynumber", lottery.LuckyNumber[i])
+				reply.LuckyNumber[i] = lottery.LuckyNumber[i]
+			}
+		}
+
+		//reply.LuckyNumber = append(reply.LuckyNumber, lottery.LuckyNumber[0:lottery.Round]...)
 		return reply, nil
 	}
 
