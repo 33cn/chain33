@@ -155,6 +155,8 @@ const (
 	TyLogExecActive      = 10
 	TyLogGenesisTransfer = 11
 	TyLogGenesisDeposit  = 12
+	TyLogParaAssetTransfer = 13
+	TyLogParaAssetWithdraw = 13
 
 	//log for ticket
 	TyLogNewTicket   = 111
@@ -184,6 +186,8 @@ const (
 	TyLogTradeSellMarket      = 330
 	TyLogTradeBuyLimit        = 331
 	TyLogTradeBuyRevoke       = 332
+	TyLogParaTokenAssetTransfer = 333
+	TyLogParaTokenAssetWithdraw = 334
 
 	//log for relay
 	TyLogRelayCreate       = 350
