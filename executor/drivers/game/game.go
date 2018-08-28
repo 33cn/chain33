@@ -44,10 +44,10 @@ func newGame() drivers.Driver {
 
 func setGameCfgValue(cfg *types.Exec) {
 	if cfg.GetGame().GetMinGameAmount() >= 2 {
-		MinGameAmount = cfg.GetGame().GetMinGameAmount()
+		MinGameAmount = cfg.GetGame().GetMinGameAmount() * types.Coin
 	}
 	if MinGameAmount <= cfg.GetGame().GetMaxGameAmount() {
-		MaxGameAmount = cfg.GetGame().GetMaxGameAmount()
+		MaxGameAmount = cfg.GetGame().GetMaxGameAmount() * types.Coin
 	}
 	if cfg.GetGame().GetActiveTime() > 0 {
 		ActiveTime = cfg.GetGame().GetActiveTime()
