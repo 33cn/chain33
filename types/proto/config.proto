@@ -41,9 +41,10 @@ message Log {
     bool callerFunction = 10;
 }
 message MemPool {
-    int64 poolCacheSize = 1;
-    int64 minTxFee      = 2;
-    bool  forceAccept   = 3;
+    int64 poolCacheSize      = 1;
+    int64 minTxFee           = 2;
+    bool  forceAccept        = 3;
+    int64 maxTxNumPerAccount = 4;
 }
 
 message Consensus {
@@ -66,6 +67,8 @@ message Consensus {
     string paraRemoteGrpcClient = 22;
     int64  startHeight          = 23;
     int64  emptyBlockInterval   = 24;
+    string authAccount          = 25;
+    int32  waitBlocks4CommitMsg = 26;
 }
 
 message Wallet {
@@ -99,6 +102,7 @@ message BlockChain {
     bool   batchsync             = 10;
     bool   isRecordBlockSequence = 11;
     bool   isParaChain           = 12;
+    bool   enableTxQuickIndex    = 13;
 }
 
 message P2P {

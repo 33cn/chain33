@@ -25,7 +25,7 @@ callerFunction = false
 
 
 [blockchain]
-defCacheSize=512
+defCacheSize=128
 maxFetchBlockNum=128
 timeoutSeconds=5
 batchBlockNum=128
@@ -36,6 +36,7 @@ isStrongConsistency=false
 singleMode=false
 batchsync=false
 isRecordBlockSequence=false
+enableTxQuickIndex=false
 
 [p2p]
 seeds=[]
@@ -51,7 +52,6 @@ dbPath="datadir/addrbook"
 dbCache=4
 grpcLogFile="grpc33.log"
 
-
 [rpc]
 jrpcBindAddr="localhost:8801"
 grpcBindAddr="localhost:8802"
@@ -60,8 +60,9 @@ jrpcFuncWhitelist=["*"]
 grpcFuncWhitelist=["*"]
 
 [mempool]
-poolCacheSize=10240
+poolCacheSize=102400
 minTxFee=100000
+maxTxNumPerAccount=10000
 
 [consensus]
 name="ticket"
