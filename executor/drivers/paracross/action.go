@@ -5,6 +5,7 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/client"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -21,13 +22,14 @@ type action struct {
 	height       int64
 	execaddr     string
 	api          client.QueueProtocolAPI
+	tx           *types.Transaction
 }
 
 func newAction(t *Paracross, tx *types.Transaction) *action {
 	hash := tx.Hash()
 	fromaddr := tx.From()
 	return &action{t.GetCoinsAccount(), t.GetStateDB(), t.GetLocalDB(), hash, fromaddr,
-		t.GetBlockTime(), t.GetHeight(), t.GetAddr(), t.GetApi()}
+		t.GetBlockTime(), t.GetHeight(), t.GetAddr(), t.GetApi(), tx}
 }
 
 func getNodes(db dbm.KV, title string) ([]string, error) {
@@ -316,4 +318,60 @@ func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, er
 		// TODO 需要生成本地db 用原交易组查询执行结果
 	}
 	return receipt, nil
+}
+
+func (a *action) assetTransferCoins(transfer *types.CoinsTransfer) (*types.Receipt, error) {
+	accDB := account.NewCoinsAccount()
+	accDB.SetDB(a.db)
+
+	isPara := types.IsPara()
+	if !isPara {
+		fromAcc := accDB.LoadExecAccount(a.fromaddr, types.ParaX)
+		if fromAcc.Balance < transfer.Amount {
+			return nil, types.ErrNoBalance
+		}
+		toAddr := address.ExecAddress(string(a.tx.Execer))
+		execAddr := address.ExecAddress(types.ParaX)
+		return accDB.ExecTransfer(a.fromaddr, toAddr, execAddr, transfer.Amount)
+	} else {
+		execAddr := address.ExecAddress(string(a.tx.Execer))
+		return accDB.ParaAssetTransfer(transfer.To, transfer.Amount, execAddr)
+	}
+}
+
+func (a *action) AssetTransfer(transfer *types.CoinsTransfer) (*types.Receipt, error) {
+	if transfer.Cointoken == "" {
+		return a.assetTransferCoins(transfer)
+	}
+
+	// token not support
+	return nil, types.ErrNotSupport
+}
+
+func (a *action) assetWithdrawCoins(withdraw *types.CoinsWithdraw) (*types.Receipt, error) {
+	accDB := account.NewCoinsAccount()
+	accDB.SetDB(a.db)
+
+	isPara := types.IsPara()
+	if !isPara {
+		fromAddr := address.ExecAddress(string(a.tx.Execer))
+		execAddr := address.ExecAddress(types.ParaX)
+		return accDB.ExecTransfer(fromAddr, withdraw.To, execAddr, withdraw.Amount)
+	} else {
+		execAddr := address.ExecAddress(string(a.tx.Execer))
+		return accDB.ParaAssetWithdraw(a.fromaddr, withdraw.Amount, execAddr)
+	}
+}
+
+func (a *action) AssetWithdraw(withdraw *types.CoinsWithdraw) (*types.Receipt, error) {
+	if withdraw.Cointoken != "" {
+		return nil, types.ErrNotSupport
+	}
+
+	isPara := types.IsPara()
+	if !isPara {
+		// 需要平行链先执行， 达成共识时，继续执行
+		return nil, nil
+	}
+	return a.assetWithdrawCoins(withdraw)
 }
