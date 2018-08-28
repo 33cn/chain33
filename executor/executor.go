@@ -15,6 +15,9 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 
 	// register drivers
+	"gitlab.33.cn/chain33/chain33/client"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/blackwhite"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/cert"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/coins"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/game"
@@ -23,15 +26,13 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers/manage"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/none"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/norm"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/paracross"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/privacy"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/relay"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/retrieve"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/ticket"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/token"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/trade"
-
-	"gitlab.33.cn/chain33/chain33/client"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/cert"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/privacy"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 	exectype "gitlab.33.cn/chain33/chain33/types/executor"
@@ -39,7 +40,6 @@ import (
 
 var elog = log.New("module", "execs")
 var coinsAccount = account.NewCoinsAccount()
-var keyMVCCFlag = []byte("FLAG:keyMVCCFlag")
 
 const (
 	FlagInit        = int64(0)
@@ -64,13 +64,20 @@ type Executor struct {
 	flagMVCC       int64
 }
 
+var once sync.Once
+
 func execInit() {
+	once.Do(execInit2)
+}
+
+func execInit2() {
 	exectype.Init()
 	coins.Init()
 	hashlock.Init()
 	manage.Init()
 	none.Init()
 	norm.Init()
+	paracross.Init()
 	retrieve.Init()
 	ticket.Init()
 	token.Init()
@@ -80,6 +87,7 @@ func execInit() {
 	cert.Init()
 	privacy.Init()
 	game.Init()
+	blackwhite.Init()
 	lottery.Init()
 }
 
@@ -144,9 +152,10 @@ func (exec *Executor) procExecQuery(msg queue.Message) {
 		msg.Reply(exec.client.NewMessage("", types.EventBlockChainQuery, err))
 		return
 	}
-	driver.SetLocalDB(NewLocalDB(exec.client))
+	localdb := NewLocalDB(exec.client)
+	driver.SetLocalDB(localdb)
 	opt := &StateDBOption{EnableMVCC: exec.enableMVCC, FlagMVCC: exec.flagMVCC, Height: header.GetHeight()}
-	driver.SetStateDB(NewStateDB(exec.client, data.StateHash, opt))
+	driver.SetStateDB(NewStateDB(exec.client, data.StateHash, localdb, opt))
 	ret, err := driver.Query(data.FuncName, data.Param)
 	if err != nil {
 		msg.Reply(exec.client.NewMessage("", types.EventBlockChainQuery, err))
@@ -157,7 +166,8 @@ func (exec *Executor) procExecQuery(msg queue.Message) {
 
 func (exec *Executor) procExecCheckTx(msg queue.Message) {
 	datas := msg.GetData().(*types.ExecTxList)
-	execute := newExecutor(datas.StateHash, exec, datas.Height, datas.BlockTime, datas.Difficulty)
+	execute := newExecutor(datas.StateHash, exec, datas.Height, datas.BlockTime, datas.Difficulty, datas.Txs)
+	execute.enableMVCC()
 	execute.api = exec.qclient
 	//返回一个列表表示成功还是失败
 	result := &types.ReceiptCheckTxList{}
@@ -177,7 +187,8 @@ var commonPrefix = []byte("mavl-")
 
 func (exec *Executor) procExecTxList(msg queue.Message) {
 	datas := msg.GetData().(*types.ExecTxList)
-	execute := newExecutor(datas.StateHash, exec, datas.Height, datas.BlockTime, datas.Difficulty)
+	execute := newExecutor(datas.StateHash, exec, datas.Height, datas.BlockTime, datas.Difficulty, datas.Txs)
+	execute.enableMVCC()
 	execute.api = exec.qclient
 	var receipts []*types.Receipt
 	index := 0
@@ -324,22 +335,30 @@ func findExecer(key []byte) (execer []byte, err error) {
 func (exec *Executor) procExecAddBlock(msg queue.Message) {
 	datas := msg.GetData().(*types.BlockDetail)
 	b := datas.Block
-	execute := newExecutor(b.StateHash, exec, b.Height, b.BlockTime, uint64(b.Difficulty))
+	execute := newExecutor(b.StateHash, exec, b.Height, b.BlockTime, uint64(b.Difficulty), b.Txs)
 	execute.api = exec.qclient
 	var totalFee types.TotalFee
 	var kvset types.LocalDBSet
 	//打开MVCC之后中途关闭，可能会发生致命的错误
+	//println("procExecAddBlock addmvcc", b.Height, hex.EncodeToString(b.StateHash))
+	for _, kv := range datas.KV {
+		execute.stateDB.Set(kv.Key, kv.Value)
+	}
 	if exec.enableMVCC {
-		kvs, err := exec.checkMVCCFlag(execute, datas)
+		kvs, err := exec.checkMVCCFlag(execute.localDB, datas)
 		if err != nil {
 			panic(err)
 		}
 		kvset.KV = append(kvset.KV, kvs...)
-		kvs = execute.AddMVCC(datas)
+		kvs = AddMVCC(execute.localDB, datas)
 		if kvs != nil {
 			kvset.KV = append(kvset.KV, kvs...)
 		}
+		for _, kv := range kvset.KV {
+			execute.localDB.Set(kv.Key, kv.Value)
+		}
 	}
+	execute.enableMVCC()
 	for i := 0; i < len(b.Txs); i++ {
 		tx := b.Txs[i]
 		totalFee.Fee += tx.Fee
@@ -380,17 +399,13 @@ func (exec *Executor) procExecAddBlock(msg queue.Message) {
 	msg.Reply(exec.client.NewMessage("", types.EventAddBlock, &kvset))
 }
 
-func flagKV(key []byte, value int64) *types.KeyValue {
-	return &types.KeyValue{Key: key, Value: types.Encode(&types.Int64{Data: value})}
-}
-
-func (exec *Executor) checkMVCCFlag(execute *executor, datas *types.BlockDetail) ([]*types.KeyValue, error) {
+func (exec *Executor) checkMVCCFlag(db dbm.KVDB, datas *types.BlockDetail) ([]*types.KeyValue, error) {
 	//flag = 0 : init
 	//flag = 1 : start from zero
-	//flag = 2 : start from no zero
+	//flag = 2 : start from no zero //不允许flag = 2的情况
 	b := datas.Block
 	if atomic.LoadInt64(&exec.flagMVCC) == FlagInit {
-		flag, err := execute.loadFlag(keyMVCCFlag)
+		flag, err := loadFlag(db, types.FlagKeyMVCC)
 		if err != nil {
 			panic(err)
 		}
@@ -403,7 +418,7 @@ func (exec *Executor) checkMVCCFlag(execute *executor, datas *types.BlockDetail)
 		} else {
 			//区块为0, 写入标志
 			if atomic.CompareAndSwapInt64(&exec.flagMVCC, FlagInit, FlagFromZero) {
-				kvset = append(kvset, flagKV(keyMVCCFlag, FlagFromZero))
+				kvset = append(kvset, types.FlagKV(types.FlagKeyMVCC, FlagFromZero))
 			}
 		}
 	}
@@ -417,7 +432,7 @@ func (exec *Executor) stat(execute *executor, datas *types.BlockDetail) ([]*type
 	// 开启数据统计，需要从0开始同步数据
 	b := datas.Block
 	if atomic.LoadInt64(&exec.enableStatFlag) == 0 {
-		flag, err := execute.loadFlag(StatisticFlag())
+		flag, err := loadFlag(execute.localDB, StatisticFlag())
 		if err != nil {
 			panic(err)
 		}
@@ -430,7 +445,7 @@ func (exec *Executor) stat(execute *executor, datas *types.BlockDetail) ([]*type
 	// 初始状态置为开启状态
 	var kvset []*types.KeyValue
 	if atomic.CompareAndSwapInt64(&exec.enableStatFlag, 0, 1) {
-		kvset = append(kvset, flagKV(StatisticFlag(), 1))
+		kvset = append(kvset, types.FlagKV(StatisticFlag(), 1))
 	}
 	kvs, err := countInfo(execute, datas)
 	if err != nil {
@@ -443,11 +458,15 @@ func (exec *Executor) stat(execute *executor, datas *types.BlockDetail) ([]*type
 func (exec *Executor) procExecDelBlock(msg queue.Message) {
 	datas := msg.GetData().(*types.BlockDetail)
 	b := datas.Block
-	execute := newExecutor(b.StateHash, exec, b.Height, b.BlockTime, uint64(b.Difficulty))
+	execute := newExecutor(b.StateHash, exec, b.Height, b.BlockTime, uint64(b.Difficulty), b.Txs)
+	execute.enableMVCC()
 	execute.api = exec.qclient
 	var kvset types.LocalDBSet
+	for _, kv := range datas.KV {
+		execute.stateDB.Set(kv.Key, kv.Value)
+	}
 	if exec.enableMVCC {
-		kvs := execute.DelMVCC(datas)
+		kvs := DelMVCC(execute.localDB, datas)
 		if kvs != nil {
 			kvset.KV = append(kvset.KV, kvs...)
 		}
@@ -512,31 +531,37 @@ type executor struct {
 
 	// 增加区块的难度值，后面的执行器逻辑需要这些属性
 	difficulty uint64
-
-	api client.QueueProtocolAPI
+	txs        []*types.Transaction
+	api        client.QueueProtocolAPI
 }
 
-func newExecutor(stateHash []byte, exec *Executor, height, blocktime int64, difficulty uint64) *executor {
+func newExecutor(stateHash []byte, exec *Executor, height, blocktime int64, difficulty uint64, txs []*types.Transaction) *executor {
 	client := exec.client
 	enableMVCC := exec.enableMVCC
 	flagMVCC := exec.flagMVCC
 	opt := &StateDBOption{EnableMVCC: enableMVCC, FlagMVCC: flagMVCC, Height: height}
+	localdb := NewLocalDB(client)
 	e := &executor{
-		stateDB:      NewStateDB(client, stateHash, opt),
-		localDB:      NewLocalDB(client),
+		stateDB:      NewStateDB(client, stateHash, localdb, opt),
+		localDB:      localdb,
 		coinsAccount: account.NewCoinsAccount(),
 		height:       height,
 		blocktime:    blocktime,
 		difficulty:   difficulty,
+		txs:          txs,
 	}
 	e.coinsAccount.SetDB(e.stateDB)
 	return e
 }
 
-func (e *executor) AddMVCC(detail *types.BlockDetail) (kvlist []*types.KeyValue) {
+func (e *executor) enableMVCC() {
+	e.stateDB.(*StateDB).enableMVCC()
+}
+
+func AddMVCC(db dbm.KVDB, detail *types.BlockDetail) (kvlist []*types.KeyValue) {
 	kvs := detail.KV
 	hash := detail.Block.StateHash
-	mvcc := dbm.NewSimpleMVCC(e.localDB)
+	mvcc := dbm.NewSimpleMVCC(db)
 	//检查版本号是否是连续的
 	kvlist, err := mvcc.AddMVCC(kvs, hash, detail.PrevStatusHash, detail.Block.Height)
 	if err != nil {
@@ -545,11 +570,10 @@ func (e *executor) AddMVCC(detail *types.BlockDetail) (kvlist []*types.KeyValue)
 	return kvlist
 }
 
-func (e *executor) DelMVCC(detail *types.BlockDetail) (kvlist []*types.KeyValue) {
-	kvs := detail.KV
+func DelMVCC(db dbm.KVDB, detail *types.BlockDetail) (kvlist []*types.KeyValue) {
 	hash := detail.Block.StateHash
-	mvcc := dbm.NewSimpleMVCC(e.localDB)
-	kvlist, err := mvcc.DelMVCC(kvs, hash, detail.Block.Height)
+	mvcc := dbm.NewSimpleMVCC(db)
+	kvlist, err := mvcc.DelMVCC(hash, detail.Block.Height)
 	if err != nil {
 		panic(err)
 	}
@@ -569,7 +593,6 @@ func (e *executor) processFee(tx *types.Transaction) (*types.Receipt, error) {
 		e.coinsAccount.SaveAccount(accFrom)
 		return e.cutFeeReceipt(accFrom, receiptBalance), nil
 	}
-
 	return nil, types.ErrNoBalance
 }
 
@@ -583,10 +606,9 @@ func (e *executor) checkTx(tx *types.Transaction, index int) error {
 		//如果已经过期
 		return types.ErrTxExpire
 	}
-	if err := tx.Check(types.MinFee); err != nil {
+	if err := tx.Check(e.height, types.MinFee); err != nil {
 		return err
 	}
-
 	return nil
 }
 
@@ -595,6 +617,7 @@ func (e *executor) setEnv(exec drivers.Driver) {
 	exec.SetLocalDB(e.localDB)
 	exec.SetEnv(e.height, e.blocktime, e.difficulty)
 	exec.SetApi(e.api)
+	exec.SetTxs(e.txs)
 }
 
 func (e *executor) checkTxGroup(txgroup *types.Transactions, index int) error {
@@ -602,7 +625,7 @@ func (e *executor) checkTxGroup(txgroup *types.Transactions, index int) error {
 		//如果已经过期
 		return types.ErrTxExpire
 	}
-	if err := txgroup.Check(types.MinFee); err != nil {
+	if err := txgroup.Check(e.height, types.MinFee); err != nil {
 		return err
 	}
 	return nil
@@ -827,6 +850,21 @@ func (execute *executor) execTx(tx *types.Transaction, index int) (*types.Receip
 	}
 	elog.Debug("exec tx = ", "index", index, "execer", string(tx.Execer), "err", err)
 	return feelog, nil
+}
+
+func loadFlag(localDB dbm.KVDB, key []byte) (int64, error) {
+	flag := &types.Int64{}
+	flagBytes, err := localDB.Get(key)
+	if err == nil {
+		err = types.Decode(flagBytes, flag)
+		if err != nil {
+			return 0, err
+		}
+		return flag.GetData(), nil
+	} else if err == types.ErrNotFound {
+		return 0, nil
+	}
+	return 0, err
 }
 
 func totalFeeKey(hash []byte) []byte {

@@ -1,0 +1,5 @@
+[userWriteConf]
+receiveAddr = "1KcdP2GJeeob69hjg5kzR2mSwXTkXF5Kgv"
+CurrentHeight = 0
+CurrentIndex = 0
+heightFile = "height.txt"

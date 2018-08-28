@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"time"
 
+	"errors"
+
 	"github.com/spf13/cobra"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -332,6 +334,58 @@ func noBalanceTx(cmd *cobra.Command, args []string) {
 	ctx.RunWithoutMarshal()
 }
 
+func parseTxHeight(expire string) error {
+	if len(expire) == 0 {
+		return errors.New("Expire string should not be empty.")
+	}
+
+	if expire[0] == 'H' && expire[1] == ':' {
+		txHeight, err := strconv.Atoi(expire[2:])
+		if err != nil {
+			return err
+		}
+		if txHeight <= 0 {
+			fmt.Printf("txHeight should be grate to 0")
+			return errors.New("txHeight should be grate to 0")
+		}
+
+		return nil
+	}
+
+	return errors.New("Invalid expire format. Should be one of {time:\"3600s/1min/1h\" block:\"123\" txHeight:\"H:123\"}")
+}
+
+func parseExpireOpt(expire string) (string, error) {
+	//时间格式123s/1m/1h
+	expireTime, err := time.ParseDuration(expire)
+	if err == nil {
+		if expireTime < time.Minute*2 && expireTime != time.Second*0 {
+			expire = "120s"
+			fmt.Println("expire time must longer than 2 minutes, changed expire time into 2 minutes")
+		}
+
+		return expire, nil
+	}
+
+	//区块高度格式，123
+	blockInt, err := strconv.Atoi(expire)
+	if err == nil {
+		if blockInt <= 0 {
+			fmt.Printf("block height should be grate to 0")
+			return "", errors.New("block height should be grate to 0")
+		}
+		return expire, nil
+	}
+
+	//Txheight格式，H:123
+	err = parseTxHeight(expire)
+	if err != nil {
+		return "", err
+	}
+
+	return expire, err
+}
+
 func signRawTx(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	data, _ := cmd.Flags().GetString("data")
@@ -339,15 +393,12 @@ func signRawTx(cmd *cobra.Command, args []string) {
 	addr, _ := cmd.Flags().GetString("addr")
 	index, _ := cmd.Flags().GetInt32("index")
 	expire, _ := cmd.Flags().GetString("expire")
-	expireTime, err := time.ParseDuration(expire)
+	expire, err := parseExpireOpt(expire)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	if expireTime < time.Minute*2 && expireTime != time.Second*0 {
-		expire = "120s"
-		fmt.Println("expire time must longer than 2 minutes, changed expire time into 2 minutes")
-	}
+
 	params := types.ReqSignRawTx{
 		Addr:    addr,
 		Privkey: key,

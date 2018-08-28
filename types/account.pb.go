@@ -6,6 +6,7 @@ Package types is a generated protocol buffer package.
 
 It is generated from these files:
 	account.proto
+	blackwhite.proto
 	blockchain.proto
 	common.proto
 	config.proto
@@ -16,6 +17,7 @@ It is generated from these files:
 	game.proto
 	lottery.proto
 	p2p.proto
+	paracross.proto
 	pbft.proto
 	relay.proto
 	rpc.proto
@@ -35,6 +37,23 @@ It has these top-level messages:
 	ReplyAccountTokenAssets
 	ExecAccount
 	AllExecBalance
+	AddressResult
+	BlackwhiteRound
+	BlackwhiteAction
+	BlackwhiteCreate
+	BlackwhitePlay
+	BlackwhiteShow
+	BlackwhiteTimeoutDone
+	ReceiptBlackwhite
+	ReceiptBlackwhiteStatus
+	ReqBlackwhiteRoundInfo
+	ReplyBlackwhiteRoundInfo
+	ReqBlackwhiteRoundList
+	ReplyBlackwhiteRoundList
+	ReqLoopResult
+	PerLoopResult
+	ReplyLoopResults
+	BlackwhiteRoundResult
 	Header
 	Block
 	Blocks
@@ -240,9 +259,13 @@ It has these top-level messages:
 	GameClose
 	GameCreate
 	QueryGameListByStatusAndAddr
+	QueryGameListCount
+	GameRecord
 	QueryGameInfo
 	QueryGameInfos
 	ReplyGameList
+	ReplyGameListPage
+	ReplyGameListCount
 	ReplyGame
 	ReceiptGame
 	PurchaseRecord
@@ -287,6 +310,18 @@ It has these top-level messages:
 	NodeNetInfo
 	PeersReply
 	PeersInfo
+	ParacrossStatusDetails
+	ParacrossHeightStatus
+	ParacrossStatus
+	ParacrossNodeStatus
+	ParacrossCommitAction
+	ParacrossAction
+	ReceiptParacrossCommit
+	ReceiptParacrossDone
+	ReceiptParacrossRecord
+	ParacrossTx
+	ReqParacrossTitleHeight
+	RespParacrossTitles
 	Operation
 	Checkpoint
 	Entry
@@ -335,6 +370,7 @@ It has these top-level messages:
 	TicketStatistic
 	TicketMinerInfo
 	CreateTx
+	CreateTransactionGroup
 	UnsignTx
 	NoBalanceTx
 	SignedTx
