@@ -21,7 +21,7 @@ type ParacrossStatusDetails struct {
 func (m *ParacrossStatusDetails) Reset()                    { *m = ParacrossStatusDetails{} }
 func (m *ParacrossStatusDetails) String() string            { return proto.CompactTextString(m) }
 func (*ParacrossStatusDetails) ProtoMessage()               {}
-func (*ParacrossStatusDetails) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{0} }
+func (*ParacrossStatusDetails) Descriptor() ([]byte, []int) { return fileDescriptor12, []int{0} }
 
 func (m *ParacrossStatusDetails) GetAddrs() []string {
 	if m != nil {
@@ -48,7 +48,7 @@ type ParacrossHeightStatus struct {
 func (m *ParacrossHeightStatus) Reset()                    { *m = ParacrossHeightStatus{} }
 func (m *ParacrossHeightStatus) String() string            { return proto.CompactTextString(m) }
 func (*ParacrossHeightStatus) ProtoMessage()               {}
-func (*ParacrossHeightStatus) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{1} }
+func (*ParacrossHeightStatus) Descriptor() ([]byte, []int) { return fileDescriptor12, []int{1} }
 
 func (m *ParacrossHeightStatus) GetStatus() int32 {
 	if m != nil {
@@ -87,7 +87,7 @@ type ParacrossStatus struct {
 func (m *ParacrossStatus) Reset()                    { *m = ParacrossStatus{} }
 func (m *ParacrossStatus) String() string            { return proto.CompactTextString(m) }
 func (*ParacrossStatus) ProtoMessage()               {}
-func (*ParacrossStatus) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{2} }
+func (*ParacrossStatus) Descriptor() ([]byte, []int) { return fileDescriptor12, []int{2} }
 
 func (m *ParacrossStatus) GetTitle() string {
 	if m != nil {
@@ -127,7 +127,7 @@ type ParacrossNodeStatus struct {
 func (m *ParacrossNodeStatus) Reset()                    { *m = ParacrossNodeStatus{} }
 func (m *ParacrossNodeStatus) String() string            { return proto.CompactTextString(m) }
 func (*ParacrossNodeStatus) ProtoMessage()               {}
-func (*ParacrossNodeStatus) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{3} }
+func (*ParacrossNodeStatus) Descriptor() ([]byte, []int) { return fileDescriptor12, []int{3} }
 
 func (m *ParacrossNodeStatus) GetMainBlockHash() []byte {
 	if m != nil {
@@ -206,7 +206,7 @@ type ParacrossCommitAction struct {
 func (m *ParacrossCommitAction) Reset()                    { *m = ParacrossCommitAction{} }
 func (m *ParacrossCommitAction) String() string            { return proto.CompactTextString(m) }
 func (*ParacrossCommitAction) ProtoMessage()               {}
-func (*ParacrossCommitAction) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{4} }
+func (*ParacrossCommitAction) Descriptor() ([]byte, []int) { return fileDescriptor12, []int{4} }
 
 func (m *ParacrossCommitAction) GetStatus() *ParacrossNodeStatus {
 	if m != nil {
@@ -225,7 +225,7 @@ type ParacrossAction struct {
 func (m *ParacrossAction) Reset()                    { *m = ParacrossAction{} }
 func (m *ParacrossAction) String() string            { return proto.CompactTextString(m) }
 func (*ParacrossAction) ProtoMessage()               {}
-func (*ParacrossAction) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{5} }
+func (*ParacrossAction) Descriptor() ([]byte, []int) { return fileDescriptor12, []int{5} }
 
 type isParacrossAction_Value interface {
 	isParacrossAction_Value()
@@ -324,7 +324,7 @@ type ReceiptParacrossCommit struct {
 func (m *ReceiptParacrossCommit) Reset()                    { *m = ReceiptParacrossCommit{} }
 func (m *ReceiptParacrossCommit) String() string            { return proto.CompactTextString(m) }
 func (*ReceiptParacrossCommit) ProtoMessage()               {}
-func (*ReceiptParacrossCommit) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{6} }
+func (*ReceiptParacrossCommit) Descriptor() ([]byte, []int) { return fileDescriptor12, []int{6} }
 
 func (m *ReceiptParacrossCommit) GetAddr() string {
 	if m != nil {
@@ -368,7 +368,7 @@ type ReceiptParacrossDone struct {
 func (m *ReceiptParacrossDone) Reset()                    { *m = ReceiptParacrossDone{} }
 func (m *ReceiptParacrossDone) String() string            { return proto.CompactTextString(m) }
 func (*ReceiptParacrossDone) ProtoMessage()               {}
-func (*ReceiptParacrossDone) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{7} }
+func (*ReceiptParacrossDone) Descriptor() ([]byte, []int) { return fileDescriptor12, []int{7} }
 
 func (m *ReceiptParacrossDone) GetTotalNodes() int32 {
 	if m != nil {
@@ -434,7 +434,7 @@ type ReceiptParacrossRecord struct {
 func (m *ReceiptParacrossRecord) Reset()                    { *m = ReceiptParacrossRecord{} }
 func (m *ReceiptParacrossRecord) String() string            { return proto.CompactTextString(m) }
 func (*ReceiptParacrossRecord) ProtoMessage()               {}
-func (*ReceiptParacrossRecord) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{8} }
+func (*ReceiptParacrossRecord) Descriptor() ([]byte, []int) { return fileDescriptor12, []int{8} }
 
 func (m *ReceiptParacrossRecord) GetAddr() string {
 	if m != nil {
@@ -459,7 +459,7 @@ type ParacrossTx struct {
 func (m *ParacrossTx) Reset()                    { *m = ParacrossTx{} }
 func (m *ParacrossTx) String() string            { return proto.CompactTextString(m) }
 func (*ParacrossTx) ProtoMessage()               {}
-func (*ParacrossTx) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{9} }
+func (*ParacrossTx) Descriptor() ([]byte, []int) { return fileDescriptor12, []int{9} }
 
 func (m *ParacrossTx) GetTxHash() string {
 	if m != nil {
@@ -477,7 +477,7 @@ type ReqParacrossTitleHeight struct {
 func (m *ReqParacrossTitleHeight) Reset()                    { *m = ReqParacrossTitleHeight{} }
 func (m *ReqParacrossTitleHeight) String() string            { return proto.CompactTextString(m) }
 func (*ReqParacrossTitleHeight) ProtoMessage()               {}
-func (*ReqParacrossTitleHeight) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{10} }
+func (*ReqParacrossTitleHeight) Descriptor() ([]byte, []int) { return fileDescriptor12, []int{10} }
 
 func (m *ReqParacrossTitleHeight) GetTitle() string {
 	if m != nil {
@@ -500,7 +500,7 @@ type RespParacrossTitles struct {
 func (m *RespParacrossTitles) Reset()                    { *m = RespParacrossTitles{} }
 func (m *RespParacrossTitles) String() string            { return proto.CompactTextString(m) }
 func (*RespParacrossTitles) ProtoMessage()               {}
-func (*RespParacrossTitles) Descriptor() ([]byte, []int) { return fileDescriptor11, []int{11} }
+func (*RespParacrossTitles) Descriptor() ([]byte, []int) { return fileDescriptor12, []int{11} }
 
 func (m *RespParacrossTitles) GetTitles() []*ReceiptParacrossDone {
 	if m != nil {
@@ -524,9 +524,9 @@ func init() {
 	proto.RegisterType((*RespParacrossTitles)(nil), "types.RespParacrossTitles")
 }
 
-func init() { proto.RegisterFile("paracross.proto", fileDescriptor11) }
+func init() { proto.RegisterFile("paracross.proto", fileDescriptor12) }
 
-var fileDescriptor11 = []byte{
+var fileDescriptor12 = []byte{
 	// 597 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x55, 0x5f, 0x6f, 0xd3, 0x3e,
 	0x14, 0xfd, 0x39, 0x69, 0xd2, 0xf5, 0x76, 0x7f, 0x24, 0x6f, 0xbf, 0x12, 0x8d, 0x81, 0x22, 0x0b,
