@@ -78,5 +78,3 @@ func (acc *DB) ParaAssetWithdrawReceipt(accFrom *types.Account, receiptTo proto.
 		Logs: []*types.ReceiptLog{log2},
 	}
 }
-
-
