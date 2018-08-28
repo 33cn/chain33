@@ -145,16 +145,16 @@ const (
 	TyLogErr      = 1
 	TyLogFee      = 2
 	//coins
-	TyLogTransfer        = 3
-	TyLogGenesis         = 4
-	TyLogDeposit         = 5
-	TyLogExecTransfer    = 6
-	TyLogExecWithdraw    = 7
-	TyLogExecDeposit     = 8
-	TyLogExecFrozen      = 9
-	TyLogExecActive      = 10
-	TyLogGenesisTransfer = 11
-	TyLogGenesisDeposit  = 12
+	TyLogTransfer          = 3
+	TyLogGenesis           = 4
+	TyLogDeposit           = 5
+	TyLogExecTransfer      = 6
+	TyLogExecWithdraw      = 7
+	TyLogExecDeposit       = 8
+	TyLogExecFrozen        = 9
+	TyLogExecActive        = 10
+	TyLogGenesisTransfer   = 11
+	TyLogGenesisDeposit    = 12
 	TyLogParaAssetTransfer = 13
 	TyLogParaAssetWithdraw = 13
 
@@ -170,22 +170,22 @@ const (
 	TyLogRevokeCreateToken = 213
 
 	//log for trade
-	TyLogTradeSellLimit       = 310
-	TyLogTradeBuyMarket       = 311
-	TyLogTradeSellRevoke      = 312
-	TyLogTokenTransfer        = 313
-	TyLogTokenGenesis         = 314
-	TyLogTokenDeposit         = 315
-	TyLogTokenExecTransfer    = 316
-	TyLogTokenExecWithdraw    = 317
-	TyLogTokenExecDeposit     = 318
-	TyLogTokenExecFrozen      = 319
-	TyLogTokenExecActive      = 320
-	TyLogTokenGenesisTransfer = 321
-	TyLogTokenGenesisDeposit  = 322
-	TyLogTradeSellMarket      = 330
-	TyLogTradeBuyLimit        = 331
-	TyLogTradeBuyRevoke       = 332
+	TyLogTradeSellLimit         = 310
+	TyLogTradeBuyMarket         = 311
+	TyLogTradeSellRevoke        = 312
+	TyLogTokenTransfer          = 313
+	TyLogTokenGenesis           = 314
+	TyLogTokenDeposit           = 315
+	TyLogTokenExecTransfer      = 316
+	TyLogTokenExecWithdraw      = 317
+	TyLogTokenExecDeposit       = 318
+	TyLogTokenExecFrozen        = 319
+	TyLogTokenExecActive        = 320
+	TyLogTokenGenesisTransfer   = 321
+	TyLogTokenGenesisDeposit    = 322
+	TyLogTradeSellMarket        = 330
+	TyLogTradeBuyLimit          = 331
+	TyLogTradeBuyRevoke         = 332
 	TyLogParaTokenAssetTransfer = 333
 	TyLogParaTokenAssetWithdraw = 334
 
