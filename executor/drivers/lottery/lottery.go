@@ -170,28 +170,119 @@ func (lott *Lottery) Query(funcName string, params []byte) (types.Message, error
 
 		//reply.LuckyNumber = append(reply.LuckyNumber, lottery.LuckyNumber[0:lottery.Round]...)
 		return reply, nil
-	}
+	} else if funcName == "GetLotteryShowInfo" {
+		var info types.ReqLotteryShowInfo
+		err := types.Decode(params, &info)
+		if err != nil {
+			return nil, err
+		}
+		key := calcLotteryShowKey(info.LotteryId, info.Addr, info.Round)
+		records, err := lott.findLotteryShowRecords(key)
+		if err != nil {
+			return nil, err
+		}
+		if records != nil {
+			reply := &types.ReplyLotteryShowInfo{}
+			reply.Records = append(reply.Records, records.Records...)
+			return reply, nil
+		} else {
+			return nil, types.ErrNotFound
+		}
 
+	}
 	return nil, types.ErrActionNotSupport
 }
 
-func calcLotteryShowKey(lotteryId string, addr string, round int64, number int64, amount int64) []byte {
-	key := fmt.Sprintf("lottery-show:%s:%s:%d:%d", addr, lotteryId, round, amount)
+func calcLotteryShowKey(lotteryId string, addr string, round int64) []byte {
+	key := fmt.Sprintf("lottery-show:%s:%s:%d", lotteryId, addr, round)
 	return []byte(key)
 }
 
+func (lott *Lottery) findLotteryShowRecords(key []byte) (*types.LotteryShowRecords, error) {
+	value, err := lott.GetLocalDB().Get(key)
+	if err != nil && err != types.ErrNotFound {
+		llog.Error("findLotteryShowRecords", "err", err)
+		return nil, err
+	}
+	if err == types.ErrNotFound {
+		return nil, nil
+	}
+	var records types.LotteryShowRecords
+
+	err = types.Decode(value, &records)
+	if err != nil {
+		llog.Error("findLotteryShowRecords", "err", err)
+		return nil, err
+	}
+	return &records, nil
+}
+
 func (lott *Lottery) saveLotteryShow(lotterylog *types.ReceiptLottery) (kvs []*types.KeyValue) {
+	key := calcLotteryShowKey(lotterylog.LotteryId, lotterylog.Addr, lotterylog.Round)
+	records, err := lott.findLotteryShowRecords(key)
 	kv := &types.KeyValue{}
-	kv.Key = calcLotteryShowKey(lotterylog.LotteryId, lotterylog.Addr, lotterylog.Round, lotterylog.Number, lotterylog.Amount)
-	kv.Value = []byte(lotterylog.LotteryId)
+	if err != nil {
+		return nil
+	}
+	if records == nil {
+		record := &types.LotteryShowRecord{lotterylog.Number, lotterylog.Amount}
+		var newRecords = &types.LotteryShowRecords{}
+		newRecords.Records = append(newRecords.Records, record)
+		kv = &types.KeyValue{key, types.Encode(newRecords)}
+	} else {
+		var modify bool = false
+		for index, _ := range records.Records {
+			if records.Records[index].Number == lotterylog.Number {
+				records.Records[index].Amount += lotterylog.Amount
+				modify = true
+			}
+		}
+		if !modify {
+			record := &types.LotteryShowRecord{lotterylog.Number, lotterylog.Amount}
+			records.Records = append(records.Records, record)
+		}
+		kv = &types.KeyValue{key, types.Encode(records)}
+	}
+
 	kvs = append(kvs, kv)
 	return kvs
 }
 
 func (lott *Lottery) deleteLotteryShow(lotterylog *types.ReceiptLottery) (kvs []*types.KeyValue) {
+	key := calcLotteryShowKey(lotterylog.LotteryId, lotterylog.Addr, lotterylog.Round)
+	records, err := lott.findLotteryShowRecords(key)
 	kv := &types.KeyValue{}
-	kv.Key = calcLotteryShowKey(lotterylog.LotteryId, lotterylog.Addr, lotterylog.Round, lotterylog.Number, lotterylog.Amount)
-	kv.Value = nil
+	if err != nil {
+		return nil
+	}
+	if records == nil {
+		//err
+		return nil
+	} else {
+		var modify bool = false
+		tempIndex := 0
+		for index, _ := range records.Records {
+			if records.Records[index].Number == lotterylog.Number {
+				records.Records[index].Amount -= lotterylog.Amount
+				if records.Records[index].Amount == 0 {
+					modify = true
+					tempIndex = index
+					break
+				}
+			}
+		}
+		kv = &types.KeyValue{key, types.Encode(records)}
+
+		if modify {
+			records.Records = append(records.Records[:tempIndex], records.Records[tempIndex+1:]...)
+			if len(records.Records) == 0 {
+				kv = &types.KeyValue{key, nil}
+			} else {
+				kv = &types.KeyValue{key, types.Encode(records)}
+			}
+		}
+	}
+
 	kvs = append(kvs, kv)
 	return kvs
 }
