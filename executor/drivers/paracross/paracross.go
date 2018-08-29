@@ -43,6 +43,12 @@ func (c *Paracross) Exec(tx *types.Transaction, index int) (*types.Receipt, erro
 		commit := payload.GetCommit()
 		a := newAction(c, tx)
 		return a.Commit(commit)
+	} else if payload.Ty == pt.ParacrossActionTransfer && payload.GetAssetTransfer() != nil {
+		a := newAction(c, tx)
+		return a.AssetTransfer(payload.GetAssetTransfer())
+	} else if payload.Ty == pt.ParacrossActionWithdraw && payload.GetAssetWithdraw() != nil {
+		a := newAction(c, tx)
+		return a.AssetWithdraw(payload.GetAssetWithdraw())
 	}
 
 	return nil, types.ErrActionNotSupport
