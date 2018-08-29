@@ -539,9 +539,13 @@ func (tx *Transaction) ActionName() string {
 	if bytes.HasPrefix(tx.Execer, []byte("user.evm.")) {
 		execName = "evm"
 	}
+	if strings.HasPrefix(execName, "user.p.") {
+		execSplit := strings.Split(execName, ".")
+		execName = execSplit[len(execSplit)-1]
+	}
 	exec := LoadExecutor(execName)
 	if exec == nil {
-		return "unknow"
+		return "unknown"
 	}
 	return exec.ActionName(tx)
 }
