@@ -102,15 +102,3 @@ enableStat=false
 
 [pprof]
 listenAddr = "localhost:6061"
-
-[game]
- #游戏超时时间，以小时计
- activeTime=24
- #单页查询默认返回多少条记录
- defultCount=20
- #单次最大返回多少条记录
- maxCount=100
- #单局游戏最大可压游戏币数
- maxGameAmount=100
- #最少压的游戏币数
- minGameAmount=2
