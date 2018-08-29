@@ -82,3 +82,21 @@ func isNotFound(err error) bool {
 	}
 	return false
 }
+
+func GetTx(api client.QueueProtocolAPI, txHash []byte) (*types.TransactionDetail, error) {
+	txs, err := api.GetTransactionByHash(&types.ReqHashes{[][]byte{txHash}})
+	if err != nil {
+		clog.Error("paracross.Commit GetTx", "db", err,
+			"commit tx hash", common.Bytes2Hex(txHash))
+		return nil, err
+	}
+	if len(txs.Txs) != 1 {
+		clog.Error("paracross.Commit GetTx", "len in not 1", len(txs.Txs))
+		return nil, types.ErrParaBlockHashNoMatch
+	}
+	if txs.Txs == nil {
+		clog.Error("paracross.Commit GetTx", "commit tx hash net found", common.Bytes2Hex(txHash))
+		return nil, types.ErrParaBlockHashNoMatch
+	}
+	return txs.Txs[0], nil
+}
