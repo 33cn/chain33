@@ -57,7 +57,7 @@ func SetTestNetFork() {
 	ForkV22ExecRollback = 706531
 	ForkV23TxHeight = 806578
 	ForkV24TxGroupPara = 806578
-	ForkV25BlackWhite  = MaxHeight
+	ForkV25BlackWhite  = 850000
 }
 
 func SetForkToOne() {
@@ -85,7 +85,7 @@ func SetForkToOne() {
 	ForkV22ExecRollback = 1
 	ForkV23TxHeight = 1
 	ForkV24TxGroupPara = 1
-	ForkV25BlackWhite  = MaxHeight
+	ForkV25BlackWhite  = 1
 }
 
 //paraName not used currently
