@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package types;
 
+import "executor.proto";
+
 // stateDB
 message ParacrossStatusDetails {
     repeated string addrs    = 1;
@@ -49,8 +51,10 @@ message ParacrossVoteAction {
 
 message ParacrossAction {
     oneof value {
-        ParacrossCommitAction commit = 1;
-        ParacrossVoteAction   vote   = 3;
+        ParacrossCommitAction commit        = 1;
+        ParacrossVoteAction   vote          = 3;
+        CoinsTransfer         assetTransfer = 4;
+        CoinsWithdraw         assetWithdraw = 5;
     }
     int32 ty = 2;
 }
