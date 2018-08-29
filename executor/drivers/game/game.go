@@ -18,17 +18,7 @@ const (
 	FuncName_QueryGameById                = "QueryGameById"
 )
 
-var (
-	MaxGameAmount = 100 * types.Coin
-	MinGameAmount = 2 * types.Coin
-	DefaultCount  = int32(20)  //默认一次取多少条记录
-	MaxCount      = int32(100) //最多取100条
-	//从有matcher参与游戏开始计算本局游戏开奖的有效时间，单位为天
-	ActiveTime = int32(24)
-)
-
-func Init(cfg *types.Exec) {
-	setGameCfgValue(cfg)
+func Init() {
 	drivers.Register(newGame().GetName(), newGame, 0)
 }
 
@@ -42,23 +32,6 @@ func newGame() drivers.Driver {
 	return t
 }
 
-func setGameCfgValue(cfg *types.Exec) {
-	if cfg.GetGame().GetMinGameAmount() >= 2 {
-		MinGameAmount = cfg.GetGame().GetMinGameAmount() * types.Coin
-	}
-	if MinGameAmount <= cfg.GetGame().GetMaxGameAmount() {
-		MaxGameAmount = cfg.GetGame().GetMaxGameAmount() * types.Coin
-	}
-	if cfg.GetGame().GetActiveTime() > 0 {
-		ActiveTime = cfg.GetGame().GetActiveTime()
-	}
-	if cfg.GetGame().GetDefaultCount() > 0 {
-		DefaultCount = cfg.GetGame().GetDefaultCount()
-	}
-	if DefaultCount <= cfg.GetGame().GetMaxCount() {
-		MaxCount = cfg.GetGame().GetMaxCount()
-	}
-}
 func (g *Game) GetName() string {
 	return types.ExecName(types.GameX)
 }
@@ -72,12 +45,7 @@ func (g *Game) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	glog.Debug("exec Game tx=", "tx=", action)
 	actiondb := NewAction(g, tx, index)
 	if action.Ty == types.GameActionCreate && action.GetCreate() != nil {
-		create := action.GetCreate()
-		if create.GetValue() > MaxGameAmount {
-			glog.Error("Create the game, the deposit is too big  ", "value", create.GetValue())
-			return nil, types.ErrGameCreateAmount
-		}
-		return actiondb.GameCreate(create)
+		return actiondb.GameCreate(action.GetCreate())
 	} else if action.Ty == types.GameActionCancel && action.GetCancel() != nil {
 		return actiondb.GameCancel(action.GetCancel())
 	} else if action.Ty == types.GameActionClose && action.GetClose() != nil {
@@ -85,7 +53,6 @@ func (g *Game) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	} else if action.Ty == types.GameActionMatch && action.GetMatch() != nil {
 		return actiondb.GameMatch(action.GetMatch())
 	}
-	//return error
 	return nil, types.ErrActionNotSupport
 }
 

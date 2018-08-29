@@ -65,13 +65,11 @@ type Executor struct {
 
 var once sync.Once
 
-func execInit(cfg *types.Exec) {
-	once.Do(func() {
-		execInit2(cfg)
-	})
+func execInit() {
+	once.Do(execInit2)
 }
 
-func execInit2(cfg *types.Exec) {
+func execInit2() {
 	exectype.Init()
 	coins.Init()
 	hashlock.Init()
@@ -87,7 +85,7 @@ func execInit2(cfg *types.Exec) {
 	relay.Init()
 	cert.Init()
 	privacy.Init()
-	game.Init(cfg)
+	game.Init()
 	blackwhite.Init()
 }
 
@@ -96,7 +94,7 @@ var runonce sync.Once
 func New(cfg *types.Exec) *Executor {
 	// init executor
 	runonce.Do(func() {
-		execInit(cfg)
+		execInit()
 	})
 	//设置区块链的MinFee，低于Mempool和Wallet设置的MinFee
 	//在cfg.MinExecFee == 0 的情况下，必须 cfg.IsFree == true 才会起效果
