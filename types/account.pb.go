@@ -300,8 +300,10 @@ It has these top-level messages:
 	ParacrossStatus
 	ParacrossNodeStatus
 	ParacrossCommitAction
+	ParacrossVoteAction
 	ParacrossAction
 	ReceiptParacrossCommit
+	ReceiptParacrossVote
 	ReceiptParacrossDone
 	ReceiptParacrossRecord
 	ParacrossTx
