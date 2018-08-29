@@ -10,6 +10,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
 	"gitlab.33.cn/chain33/chain33/types"
 	pt "gitlab.33.cn/chain33/chain33/types/executor/paracross"
+	"gitlab.33.cn/chain33/chain33/util"
 )
 
 type action struct {
@@ -312,10 +313,54 @@ func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, er
 	clog.Info("paracross.Commit commit", "commitDone", titleStatus)
 
 	if commit.Status.Height > 0 {
-		// 联调发现平行链创世区块的交易没有发送过来
-		// TODO 触发交易组跨链交易
-		print(blockHash)
-		// TODO 需要生成本地db 用原交易组查询执行结果
+		crossTxReceipt, err := a.execCrossTx(commit)
+		if err != nil {
+			return nil, err
+		}
+		receipt.KV = append(receipt.KV, crossTxReceipt.KV...)
+		receipt.Logs = append(receipt.Logs, crossTxReceipt.Logs...)
+	}
+	return receipt, nil
+}
+
+func (a *action) execCrossTx(commit *types.ParacrossCommitAction) (*types.Receipt, error) {
+	var receipt *types.Receipt
+	for i := 0; i < len(commit.Status.CrossTxHashs); i++ {
+		if util.BitMapBit(commit.Status.CrossTxResult, uint32(i)) {
+			tx, err := GetTx(a.api, commit.Status.CrossTxHashs[i])
+			if err != nil {
+				clog.Crit("paracross.Commit Load Tx failed", "para title", commit.Status.Title,
+					"para height", commit.Status.Height, "para tx index", i, "error", err, "txHash",
+					common.Bytes2Hex(commit.Status.CrossTxHashs[i]))
+				return nil, err
+			}
+			if tx.ActionName == pt.ParacrossActionWithdrawStr {
+				var payload types.ParacrossAction
+				err = types.Decode(tx.Tx.Payload, &payload)
+				if err != nil {
+					clog.Crit("paracross.Commit Decode Tx failed", "para title", commit.Status.Title,
+						"para height", commit.Status.Height, "para tx index", i, "error", err, "txHash",
+						common.Bytes2Hex(commit.Status.CrossTxHashs[i]))
+					return nil, err
+				}
+
+				receiptWithdraw, err := a.assetWithdrawCoins(payload.GetAssetWithdraw(), tx.Tx)
+				if err != nil {
+					clog.Crit("paracross.Commit Decode Tx failed", "para title", commit.Status.Title,
+						"para height", commit.Status.Height, "para tx index", i, "error", err, "txHash",
+						common.Bytes2Hex(commit.Status.CrossTxHashs[i]))
+					return nil, err
+				}
+
+				receipt.KV = append(receipt.KV, receiptWithdraw.KV...)
+				receipt.Logs = append(receipt.Logs, receiptWithdraw.Logs...)
+				clog.Info("paracross.Commit WithdrawCoins", "para title", commit.Status.Title,
+					"para height", commit.Status.Height, "para tx index", i, "error", err, "txHash",
+					common.Bytes2Hex(commit.Status.CrossTxHashs[i]))
+			} else if tx.ActionName == pt.ParacrossActionTransferStr {
+				continue
+			}
+		}
 	}
 	return receipt, nil
 }
@@ -348,17 +393,17 @@ func (a *action) AssetTransfer(transfer *types.CoinsTransfer) (*types.Receipt, e
 	return nil, types.ErrNotSupport
 }
 
-func (a *action) assetWithdrawCoins(withdraw *types.CoinsWithdraw) (*types.Receipt, error) {
+func (a *action) assetWithdrawCoins(withdraw *types.CoinsWithdraw, tx *types.Transaction) (*types.Receipt, error) {
 	accDB := account.NewCoinsAccount()
 	accDB.SetDB(a.db)
 
 	isPara := types.IsPara()
 	if !isPara {
-		fromAddr := address.ExecAddress(string(a.tx.Execer))
+		fromAddr := address.ExecAddress(string(tx.Execer))
 		execAddr := address.ExecAddress(types.ParaX)
 		return accDB.ExecTransfer(fromAddr, withdraw.To, execAddr, withdraw.Amount)
 	} else {
-		execAddr := address.ExecAddress(string(a.tx.Execer))
+		execAddr := address.ExecAddress(string(tx.Execer))
 		return accDB.ParaAssetWithdraw(a.fromaddr, withdraw.Amount, execAddr)
 	}
 }
@@ -373,5 +418,5 @@ func (a *action) AssetWithdraw(withdraw *types.CoinsWithdraw) (*types.Receipt, e
 		// 需要平行链先执行， 达成共识时，继续执行
 		return nil, nil
 	}
-	return a.assetWithdrawCoins(withdraw)
+	return a.assetWithdrawCoins(withdraw, a.tx)
 }
