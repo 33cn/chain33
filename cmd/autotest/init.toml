@@ -21,7 +21,6 @@ id = "import2"
 command = "account import_key -k 0xa0c6f46de8d275ce21e935afa5363e9b8a087fe604e05f7a9eef1258dc781c3a -l test_addr2"
 
 
-
 #send to token for precreate
 [[TransferCase]]
 id = "trans1"
@@ -31,17 +30,4 @@ to = "12hpJBHybh1mSyCijQ2MQJPk7z7kZ7jnQa"
 amount = "10"
 checkItem = ["balance"]
 dep = "import2"
-
-
-
-[[TokenPreCreateCase]]
-id = "tokenPre"
-command = "send token precreate -f 0.01 -i testToken -n testToken -s TC -a 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv -t 100000 -p 1 -k 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
-dep = "trans1"
-
-
-[[TokenFinishCreateCase]]
-id = "tokenFinish"
-command = "send token finish -a 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv -f 0.01 -s TC -k 0xc34b5d9d44ac7b754806f761d3d4d2c4fe5214f6b074c19f069c4f5c2a29c8cc"
-dep = "tokenPre"
 

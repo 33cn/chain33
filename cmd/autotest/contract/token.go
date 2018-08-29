@@ -8,10 +8,10 @@ import (
 )
 
 type TestTokenConfig struct {
-	TransferCaseArr          []testcase.TransferCase          `toml:"TransferCase,omitempty"`
-	WithdrawCaseArr          []testcase.WithdrawCase          `toml:"WithdrawCase,omitempty"`
 	TokenPreCreateCaseArr    []testcase.TokenPreCreateCase    `toml:"TokenPreCreateCase,omitempty"`
 	TokenFinishCreateCaseArr []testcase.TokenFinishCreateCase `toml:"TokenFinishCreateCase,omitempty"`
+	TransferCaseArr          []testcase.TransferCase          `toml:"TransferCase,omitempty"`
+	WithdrawCaseArr          []testcase.WithdrawCase          `toml:"WithdrawCase,omitempty"`
 }
 
 func (caseConf *TestTokenConfig) RunTest(caseFile string, wg *sync.WaitGroup) {
@@ -31,6 +31,16 @@ func (caseConf *TestTokenConfig) RunTest(caseFile string, wg *sync.WaitGroup) {
 	go tester.RunSendFlow()
 	go tester.RunCheckFlow()
 
+	for i := range caseConf.TokenPreCreateCaseArr {
+
+		tester.AddCase(&caseConf.TokenPreCreateCaseArr[i])
+	}
+
+	for i := range caseConf.TokenFinishCreateCaseArr {
+
+		tester.AddCase(&caseConf.TokenFinishCreateCaseArr[i])
+	}
+
 	for i := range caseConf.TransferCaseArr {
 
 		tester.AddCase(&caseConf.TransferCaseArr[i])
@@ -41,15 +51,6 @@ func (caseConf *TestTokenConfig) RunTest(caseFile string, wg *sync.WaitGroup) {
 		tester.AddCase(&caseConf.WithdrawCaseArr[i])
 	}
 
-	for i := range caseConf.TokenPreCreateCaseArr {
-
-		tester.AddCase(&caseConf.TokenPreCreateCaseArr[i])
-	}
-
-	for i := range caseConf.TokenFinishCreateCaseArr {
-
-		tester.AddCase(&caseConf.TokenFinishCreateCaseArr[i])
-	}
 
 	tester.WaitTest()
 
