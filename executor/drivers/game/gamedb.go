@@ -43,7 +43,7 @@ const (
 	//从有matcher参与游戏开始计算本局游戏开奖的有效时间，单位为天
 	ActiveTime = int64(24)
 
-	ConfName_ActionTime    = types.GameX + ":" + "actionTime"
+	ConfName_ActiveTime    = types.GameX + ":" + "activeTime"
 	ConfName_DefaultCount  = types.GameX + ":" + "defaultCount"
 	ConfName_MaxCount      = types.GameX + ":" + "maxCount"
 	ConfName_MaxGameAmount = types.GameX + ":" + "maxGameAmount"
@@ -467,7 +467,7 @@ func (action *Action) GameClose(close *types.GameClose) (*types.Receipt, error) 
 // 检查开奖是否超时，若超过一天，则不让庄家开奖，但其他人可以开奖，
 // 若没有一天，则其他人没有开奖权限，只有庄家有开奖权限
 func (action *Action) checkGameIsTimeOut(game *types.Game) bool {
-	activeTime, err := GetConfValue(ConfName_ActionTime, action.db)
+	activeTime, err := GetConfValue(ConfName_ActiveTime, action.db)
 	if err != nil {
 		activeTime = ActiveTime
 	}
@@ -723,7 +723,7 @@ func getManageKey(key string, db dbm.KV) ([]byte, error) {
 	manageKey := types.ManageKey(key)
 	value, err := db.Get([]byte(manageKey))
 	if err != nil {
-		glog.Info("gamedb", "get db key", "not found")
+		glog.Debug("gamedb", "get db key", "not found")
 		return getConfigKey(key, db)
 	}
 	return value, nil
@@ -733,7 +733,7 @@ func getConfigKey(key string, db dbm.KV) ([]byte, error) {
 	configKey := types.ConfigKey(key)
 	value, err := db.Get([]byte(configKey))
 	if err != nil {
-		glog.Info("gamedb", "get db key", "not found")
+		glog.Debug("gamedb", "get db key", "not found")
 		return nil, err
 	}
 	return value, nil
