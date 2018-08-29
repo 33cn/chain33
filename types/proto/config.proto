@@ -17,7 +17,6 @@ message Config {
     bool       fixTime    = 13;
     Pprof      pprof      = 14;
     Authority  auth       = 15;
-    GameExec   game       = 16;
 }
 
 message Log {
@@ -142,7 +141,6 @@ message Exec {
     bool     isFree     = 2;
     bool     enableStat = 3;
     bool     enableMVCC = 4;
-    GameExec game       = 5;
 }
 
 message Authority {
@@ -153,12 +151,4 @@ message Authority {
 
 message Pprof {
     string listenAddr = 1;
-}
-
-message GameExec {
-    int32 activeTime    = 1; //游戏超时时间 以小时为单位
-    int32 defaultCount  = 2; //默认单页查询返回多少条数据
-    int32 maxCount      = 3; //单次最多取多少条数据
-    int64 maxGameAmount = 4; //剪刀石头布游戏单次最多压多少个游戏币
-    int64 minGameAmount = 5; //最少压多少游戏币
 }
