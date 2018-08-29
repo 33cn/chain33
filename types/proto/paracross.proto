@@ -24,25 +24,33 @@ message ParacrossStatus {
 
 // action
 message ParacrossNodeStatus {
-    bytes  mainBlockHash   = 1;
-    int64  mainBlockHeight = 2;
-    string title           = 3;
-    int64  height          = 4;
-    bytes  preBlockHash    = 5;
-    bytes  blockHash       = 6;
-    bytes  preStateHash    = 7;
-    bytes  stateHash       = 8;
-    uint32 txCounts        = 9;
-    bytes  txResult        = 10;
+    bytes    mainBlockHash       = 1;
+    int64    mainBlockHeight     = 2;
+    string   title               = 3;
+    int64    height              = 4;
+    bytes    preBlockHash        = 5;
+    bytes    blockHash           = 6;
+    bytes    preStateHash        = 7;
+    bytes    stateHash           = 8;
+    uint32   txCounts            = 9;
+    bytes    txResult            = 10;
+    repeated bytes txHashs       = 11;
+    bytes          crossTxResult = 12;
+    repeated bytes crossTxHashs  = 13;
 }
 
 message ParacrossCommitAction {
     ParacrossNodeStatus status = 1;
 }
 
+message ParacrossVoteAction {
+    ParacrossNodeStatus status = 1;
+}
+
 message ParacrossAction {
     oneof value {
         ParacrossCommitAction commit = 1;
+        ParacrossVoteAction   vote   = 3;
     }
     int32 ty = 2;
 }
@@ -53,6 +61,10 @@ message ReceiptParacrossCommit {
     ParacrossNodeStatus   status  = 2;
     ParacrossHeightStatus prev    = 3;
     ParacrossHeightStatus current = 4;
+}
+
+message ReceiptParacrossVote {
+    ParacrossNodeStatus status = 1;
 }
 
 message ReceiptParacrossDone {
