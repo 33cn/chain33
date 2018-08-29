@@ -8,6 +8,8 @@ import (
 )
 
 type TestTradeConfig struct {
+	TokenPreCreateCaseArr    []testcase.TokenPreCreateCase    `toml:"TokenPreCreateCase,omitempty"`
+	TokenFinishCreateCaseArr []testcase.TokenFinishCreateCase `toml:"TokenFinishCreateCase,omitempty"`
 	TransferCaseArr  []testcase.TransferCase  `toml:"TransferCase,omitempty"`
 	SellCaseArr      []testcase.SellCase      `toml:"SellCase,omitempty"`
 	DependBuyCaseArr []testcase.DependBuyCase `toml:"DependBuyCase,omitempty"`
@@ -29,6 +31,16 @@ func (caseConf *TestTradeConfig) RunTest(caseFile string, wg *sync.WaitGroup) {
 	go tester.HandleDependency()
 	go tester.RunSendFlow()
 	go tester.RunCheckFlow()
+
+	for i := range caseConf.TokenPreCreateCaseArr {
+
+		tester.AddCase(&caseConf.TokenPreCreateCaseArr[i])
+	}
+
+	for i := range caseConf.TokenFinishCreateCaseArr {
+
+		tester.AddCase(&caseConf.TokenFinishCreateCaseArr[i])
+	}
 
 	for i := range caseConf.TransferCaseArr {
 
