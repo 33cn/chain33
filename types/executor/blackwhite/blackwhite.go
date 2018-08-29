@@ -25,11 +25,11 @@ const (
 	GetBlackwhiteloopResult      = "GetBlackwhiteloopResult"
 )
 
-const name = types.BlackwhiteX
-
-var glog = log.New("module", name)
+var glog = log.New("module", types.BlackwhiteX)
+var name string
 
 func Init() {
+	name = types.ExecName(types.BlackwhiteX)
 	// init executor type
 	types.RegistorExecutor(name, &BlackwhiteType{})
 
