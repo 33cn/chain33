@@ -105,7 +105,6 @@ It has these top-level messages:
 	Exec
 	Authority
 	Pprof
-	GameExec
 	LeafNode
 	InnerNode
 	MAVLProof

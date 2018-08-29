@@ -35,6 +35,19 @@ const (
 	ListASC  = int32(1)
 
 	GameCount = "GameCount" //根据状态，地址统计整个合约目前总共成功执行了多少场游戏。
+
+	MaxGameAmount = 100 * types.Coin
+	MinGameAmount = 2 * types.Coin
+	DefaultCount  = int32(20)  //默认一次取多少条记录
+	MaxCount      = int32(100) //最多取100条
+	//从有matcher参与游戏开始计算本局游戏开奖的有效时间，单位为天
+	ActiveTime = int64(24)
+
+	ConfName_ActionTime    = types.GameX + ":" + "actionTime"
+	ConfName_DefaultCount  = types.GameX + ":" + "defaultCount"
+	ConfName_MaxCount      = types.GameX + ":" + "maxCount"
+	ConfName_MaxGameAmount = types.GameX + ":" + "maxGameAmount"
+	ConfName_MinGameAmount = types.GameX + ":" + "minGameAmount"
 )
 
 //game 的状态变化：
@@ -153,7 +166,19 @@ func (action *Action) GameCreate(create *types.GameCreate) (*types.Receipt, erro
 	gameId := common.ToHex(action.txhash)
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
-	if create.GetValue() < MinGameAmount || math.Remainder(float64(create.GetValue()), 2) != 0 {
+	maxGameAmount, err := GetConfValue(ConfName_MaxGameAmount, action.db)
+	if err != nil {
+		maxGameAmount = MaxGameAmount
+	}
+	if create.GetValue() > maxGameAmount {
+		glog.Error("Create the game, the deposit is too big  ", "value", create.GetValue())
+		return nil, types.ErrGameCreateAmount
+	}
+	minGameAmount, err := GetConfValue(ConfName_MinGameAmount, action.db)
+	if err != nil {
+		minGameAmount = MinGameAmount
+	}
+	if create.GetValue() < minGameAmount || math.Remainder(float64(create.GetValue()), 2) != 0 {
 		return nil, fmt.Errorf("The amount you participate in cannot be less than 2 and must be an even number.")
 	}
 	if !action.CheckExecAccountBalance(action.fromaddr, create.GetValue(), 0) {
@@ -442,8 +467,12 @@ func (action *Action) GameClose(close *types.GameClose) (*types.Receipt, error) 
 // 检查开奖是否超时，若超过一天，则不让庄家开奖，但其他人可以开奖，
 // 若没有一天，则其他人没有开奖权限，只有庄家有开奖权限
 func (action *Action) checkGameIsTimeOut(game *types.Game) bool {
-	DurTime := 60 * 60 * ActiveTime
-	return action.blocktime > (game.GetMatchTime() + int64(DurTime))
+	activeTime, err := GetConfValue(ConfName_ActionTime, action.db)
+	if err != nil {
+		activeTime = ActiveTime
+	}
+	DurTime := 60 * 60 * activeTime
+	return action.blocktime > (game.GetMatchTime() + DurTime)
 }
 
 //根据传入密钥，揭晓游戏结果
@@ -523,8 +552,17 @@ func queryGameListByStatusAndAddr(db dbm.Lister, stateDB dbm.KV, param *types.Qu
 	if param.GetDirection() == ListASC {
 		direction = ListASC
 	}
-	count := DefaultCount
-	if 0 < param.GetCount() && param.GetCount() <= MaxCount {
+	defaultCount, err := GetConfValue(ConfName_DefaultCount, stateDB)
+	count := int32(defaultCount)
+	if err != nil {
+		count = DefaultCount
+	}
+	maxcount, err := GetConfValue(ConfName_MaxCount, stateDB)
+	maxCount := int32(maxcount)
+	if err != nil {
+		maxCount = DefaultCount
+	}
+	if 0 < param.GetCount() && param.GetCount() <= maxCount {
 		count = param.GetCount()
 	}
 	var prefix []byte
@@ -655,4 +693,48 @@ func GetGameList(db dbm.KV, values []string) []*types.Game {
 		games = append(games, game)
 	}
 	return games
+}
+func GetConfValue(key string, db dbm.KV) (int64, error) {
+	var item types.ConfigItem
+	value, err := getManageKey(key, db)
+	if err != nil {
+		return 0, err
+	}
+	if value != nil {
+		err = types.Decode(value, &item)
+		if err != nil {
+			glog.Error("GetConfValue", "decode db key", key)
+			return 0, err // types.ErrBadConfigValue
+		}
+	}
+	values := item.GetArr().GetValue()
+	if len(values) == 0 {
+		return 0, fmt.Errorf("can't get value!")
+	}
+	//取数组最后一位，作为最新配置项的值
+	v, err := strconv.ParseInt(values[len(values)-1], 10, 64)
+	if err != nil {
+		glog.Error("Type conversion error:", err.Error())
+		return 0, err
+	}
+	return v, nil
+}
+func getManageKey(key string, db dbm.KV) ([]byte, error) {
+	manageKey := types.ManageKey(key)
+	value, err := db.Get([]byte(manageKey))
+	if err != nil {
+		glog.Info("gamedb", "get db key", "not found")
+		return getConfigKey(key, db)
+	}
+	return value, nil
+}
+
+func getConfigKey(key string, db dbm.KV) ([]byte, error) {
+	configKey := types.ConfigKey(key)
+	value, err := db.Get([]byte(configKey))
+	if err != nil {
+		glog.Info("gamedb", "get db key", "not found")
+		return nil, err
+	}
+	return value, nil
 }
