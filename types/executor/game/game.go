@@ -74,7 +74,7 @@ func (game GameType) ActionName(tx *types.Transaction) string {
 	var action types.GameAction
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
-		return "unknow-err"
+		return "unknown-err"
 	}
 
 	if action.Ty == types.GameActionCreate && action.GetCreate() != nil {
@@ -86,7 +86,7 @@ func (game GameType) ActionName(tx *types.Transaction) string {
 	} else if action.Ty == types.GameActionClose && action.GetClose() != nil {
 		return Action_CloseGame
 	}
-	return "unknow"
+	return "unknown"
 }
 func (game GameType) Amount(tx *types.Transaction) (int64, error) {
 	return 0, nil
