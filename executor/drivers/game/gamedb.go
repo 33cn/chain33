@@ -36,8 +36,8 @@ const (
 
 	GameCount = "GameCount" //根据状态，地址统计整个合约目前总共成功执行了多少场游戏。
 
-	MaxGameAmount = 100 * types.Coin
-	MinGameAmount = 2 * types.Coin
+	MaxGameAmount = 100 //单位为types.Coin  1e8
+	MinGameAmount = 2
 	DefaultCount  = int32(20)  //默认一次取多少条记录
 	MaxCount      = int32(100) //最多取100条
 	//从有matcher参与游戏开始计算本局游戏开奖的有效时间，单位为天
@@ -170,7 +170,7 @@ func (action *Action) GameCreate(create *types.GameCreate) (*types.Receipt, erro
 	if err != nil {
 		maxGameAmount = MaxGameAmount
 	}
-	if create.GetValue() > maxGameAmount {
+	if create.GetValue() > maxGameAmount*types.Coin {
 		glog.Error("Create the game, the deposit is too big  ", "value", create.GetValue())
 		return nil, types.ErrGameCreateAmount
 	}
@@ -178,7 +178,7 @@ func (action *Action) GameCreate(create *types.GameCreate) (*types.Receipt, erro
 	if err != nil {
 		minGameAmount = MinGameAmount
 	}
-	if create.GetValue() < minGameAmount || math.Remainder(float64(create.GetValue()), 2) != 0 {
+	if create.GetValue() < minGameAmount*types.Coin || math.Remainder(float64(create.GetValue()), 2) != 0 {
 		return nil, fmt.Errorf("The amount you participate in cannot be less than 2 and must be an even number.")
 	}
 	if !action.CheckExecAccountBalance(action.fromaddr, create.GetValue(), 0) {
@@ -355,7 +355,6 @@ func (action *Action) GameClose(close *types.GameClose) (*types.Receipt, error) 
 	result, creatorGuess := action.checkGameResult(game, close)
 	if result == IsCreatorWin {
 		//如果是庄家赢了，则解冻所有钱,并将对赌者相应冻结的钱转移到庄家的合约账户中
-		//TODO:账户amount 使用int64,而不是float64，可能存在精度问题
 		receipt, err := action.coinsAccount.ExecActive(game.GetCreateAddress(), action.execaddr, 2*game.GetValue()/3)
 		if err != nil {
 			glog.Error("GameClose.execActive", "addr", game.GetCreateAddress(), "execaddr", action.execaddr, "amount", 2*game.GetValue()/3,
