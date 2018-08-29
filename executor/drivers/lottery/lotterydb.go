@@ -108,6 +108,7 @@ func (action *Action) GetReceiptLog(lottery *types.Lottery, preStatus int32, log
 		l.Round = round
 		l.Number = number
 		l.Amount = amount
+		l.Addr = action.fromaddr
 	}
 
 	log.Log = types.Encode(l)
@@ -144,7 +145,7 @@ func (action *Action) LotteryCreate(create *types.LotteryCreate) (*types.Receipt
 	lott := NewLotteryDB(lotteryId, create.PurchasePeriod,
 		create.ShowPeriod, create.MaxPurchaseNum, action.blocktime, action.fromaddr)
 
-	llog.Error("LotteryCreate created", "lotteryId", lotteryId)
+	llog.Debug("LotteryCreate created", "lotteryId", lotteryId)
 
 	//lott.Records[action.fromaddr] = &types.PurchaseRecords{}
 
@@ -188,18 +189,18 @@ func (action *Action) LotteryBuy(buy *types.LotteryBuy) (*types.Receipt, error) 
 	}
 
 	if lott.Records == nil {
-		llog.Error("LotteryBuy records init")
+		llog.Debug("LotteryBuy records init")
 		lott.Records = make(map[string]*types.PurchaseRecords)
 	}
 
 	if lott.Status != types.LotteryPurchase {
-		llog.Error("LotteryBuy switch to purchasestate")
+		llog.Debug("LotteryBuy switch to purchasestate")
 		lott.LastTransToPurState = action.blocktime
 		lott.Status = types.LotteryPurchase
 	}
 
 	newRecord := &types.PurchaseRecord{buy.GetHashValue(), buy.GetAmount(), common.ToHex(action.txhash), false, 0}
-	llog.Error("LotteryBuy", "Purhash", buy.GetHashValue(), "amount", buy.GetAmount(), "txhash", common.ToHex(action.txhash))
+	llog.Debug("LotteryBuy", "Purhash", buy.GetHashValue(), "amount", buy.GetAmount(), "txhash", common.ToHex(action.txhash))
 	/**********
 	Once ExecTransfer succeed, ExecFrozen succeed, no roolback needed
 	**********/
@@ -237,7 +238,7 @@ func (action *Action) LotteryBuy(buy *types.LotteryBuy) (*types.Receipt, error) 
 
 	//state auto switch
 	if action.blocktime-lott.GetLastTransToPurState() > lott.GetPurchasePeriod() {
-		llog.Error("LotteryBuy switch to showstate/auto switch")
+		llog.Debug("LotteryBuy switch to showstate/auto switch")
 		lott.Status = types.LotteryShowing
 		lott.LastTransToShowState = action.blocktime
 	}
@@ -280,7 +281,7 @@ func (action *Action) LotteryShow(show *types.LotteryShow) (*types.Receipt, erro
 			if action.blocktime-lott.GetLastTransToPurState() < lott.GetPurchasePeriod() {
 				return nil, types.ErrLotteryStatus
 			} else {
-				llog.Error("LotteryShow switch to showStatus")
+				llog.Debug("LotteryShow switch to showStatus")
 				lott.Status = types.LotteryShowing
 				lott.LastTransToShowState = action.blocktime
 			}
@@ -289,16 +290,16 @@ func (action *Action) LotteryShow(show *types.LotteryShow) (*types.Receipt, erro
 
 	//for convenience
 	tempNumStr := fmt.Sprintf("%05d", show.Number)
-	llog.Error("LotteryShow", "Secret", show.Secret, "txhash", show.TxHash, "number", show.Number, "tempNumStr", tempNumStr)
+	llog.Debug("LotteryShow", "Secret", show.Secret, "txhash", show.TxHash, "number", show.Number, "tempNumStr", tempNumStr)
 
 	if record, ok := lott.Records[action.fromaddr]; ok {
-		llog.Error("LotteryShow find map")
+		llog.Debug("LotteryShow find map")
 		for index, rec := range record.Record {
-			llog.Error("LotteryShow find one record")
+			//llog.Debug("LotteryShow find one record")
 			if rec.TxHash == show.TxHash {
-				llog.Error("LotteryShow find txhash")
+				//llog.Debug("LotteryShow find txhash")
 				if common.ToHex(common.Sha256([]byte(show.GetSecret()+tempNumStr))) == rec.HashValue {
-					llog.Error("LotteryShow find the value")
+					llog.Debug("LotteryShow find the value")
 					showSuccess = true
 					if record.Record[index].IsShowed {
 						return nil, types.ErrLotteryShowRepeated
@@ -317,9 +318,9 @@ func (action *Action) LotteryShow(show *types.LotteryShow) (*types.Receipt, erro
 	if !showSuccess {
 		return nil, types.ErrLotteryShowError
 	}
-
+	tempRound := lott.Round
 	if lott.TotalShowedNum == lott.TotalPurchasedTxNum {
-		llog.Error("LotteryShow auto draw")
+		llog.Debug("LotteryShow auto draw")
 		//auto switch
 		rec, err := action.checkDraw(lott)
 		if err != nil {
@@ -332,7 +333,7 @@ func (action *Action) LotteryShow(show *types.LotteryShow) (*types.Receipt, erro
 	lott.Save(action.db)
 	kv = append(kv, lott.GetKVSet()...)
 
-	receiptLog := action.GetReceiptLog(&lott.Lottery, preStatus, types.TyLogLotteryShow, lott.Round, show.Number, tempAmount)
+	receiptLog := action.GetReceiptLog(&lott.Lottery, preStatus, types.TyLogLotteryShow, tempRound, show.Number, tempAmount)
 	logs = append(logs, receiptLog)
 
 	receipt = &types.Receipt{types.ExecOk, kv, logs}
@@ -419,7 +420,7 @@ func (action *Action) LotteryClose(draw *types.LotteryClose) (*types.Receipt, er
 		addrkeys[i] = addr
 		i++
 	}
-	llog.Error("LotteryClose", "totalReturn", totalReturn)
+	llog.Debug("LotteryClose", "totalReturn", totalReturn)
 
 	if totalReturn > 0 {
 
@@ -451,7 +452,7 @@ func (action *Action) LotteryClose(draw *types.LotteryClose) (*types.Receipt, er
 	lott.LastTransToPurState = action.blocktime
 	lott.TotalShowedNum = 0
 	lott.TotalPurchasedTxNum = 0
-	llog.Error("LotteryClose switch to closestate")
+	llog.Debug("LotteryClose switch to closestate")
 	lott.Status = types.LotteryClosed
 
 	lott.Save(action.db)
@@ -472,10 +473,10 @@ func (action *Action) findLuckyNum(isSolo bool) int64 {
 		num = random.Int63() % luckyNumMol
 		num = 12345
 	} else {
-		llog.Error("findLuckyNum", "height", action.height, "diffculty", action.difficulty)
+		llog.Debug("findLuckyNum", "height", action.height, "diffculty", action.difficulty)
 		baseNum := action.difficulty % luckyNumMol
 
-		llog.Error("findLuckyNum", "baseNum", baseNum)
+		llog.Debug("findLuckyNum", "baseNum", baseNum)
 		relationNum := baseNum%randMolNum + 1
 		var i int64 = 0
 		for {
@@ -497,7 +498,7 @@ func (action *Action) findLuckyNum(isSolo bool) int64 {
 				llog.Error("findLuckyNum", "err", err)
 				return -1
 			}
-			llog.Error("findLuckyNum", "hashNum", hashNum)
+			//llog.Debug("findLuckyNum", "hashNum", hashNum)
 			baseNum += hashNum
 			relationNum -= 1
 			i += 1
@@ -526,14 +527,14 @@ func checkFundAmount(luckynum int64, guessnum int64) int64 {
 }
 
 func (action *Action) checkDraw(lott *LotteryDB) (*types.Receipt, error) {
-	llog.Error("checkDraw")
+	llog.Debug("checkDraw")
 
 	luckynum := action.findLuckyNum(false)
 	if luckynum < 0 || luckynum >= luckyNumMol {
 		return nil, types.ErrLotteryErrLuckyNum
 	}
 
-	llog.Error("checkDraw", "luckynum", luckynum)
+	llog.Debug("checkDraw", "luckynum", luckynum)
 
 	//var receipt *types.Receipt
 	var logs []*types.ReceiptLog
@@ -558,7 +559,7 @@ func (action *Action) checkDraw(lott *LotteryDB) (*types.Receipt, error) {
 	}
 	var factor float64 = 0
 	if totalFund > lott.GetFund()/2 {
-		llog.Error("checkDraw ajust fund", "lott.Fund", lott.Fund, "totalFund", totalFund)
+		llog.Debug("checkDraw ajust fund", "lott.Fund", lott.Fund, "totalFund", totalFund)
 		factor = (float64)(lott.GetFund()) / 2 / (float64)(totalFund)
 		lott.Fund = lott.Fund / 2
 	} else {
@@ -566,7 +567,7 @@ func (action *Action) checkDraw(lott *LotteryDB) (*types.Receipt, error) {
 		lott.Fund -= totalFund
 	}
 
-	llog.Error("checkDraw", "factor", factor, "totalFund", totalFund)
+	llog.Debug("checkDraw", "factor", factor, "totalFund", totalFund)
 
 	//protection for rollback
 	if factor == 1.0 {
@@ -583,7 +584,7 @@ func (action *Action) checkDraw(lott *LotteryDB) (*types.Receipt, error) {
 
 	for _, addr := range addrkeys {
 		fund := (lott.Records[addr].FundWin * int64(factor*exciting)) * bty / exciting //any problem when too little?
-		llog.Error("checkDraw", "fund", fund)
+		llog.Debug("checkDraw", "fund", fund)
 		if fund > 0 {
 			receipt, err := action.coinsAccount.ExecTransferFrozen(lott.CreateAddr, addr, action.execaddr, fund)
 			if err != nil {
@@ -600,7 +601,7 @@ func (action *Action) checkDraw(lott *LotteryDB) (*types.Receipt, error) {
 		delete(lott.Records, addr)
 	}
 
-	llog.Error("checkDraw lottery switch to createStatus")
+	llog.Debug("checkDraw lottery switch to createStatus")
 	//lott.LastTransToPurState = action.blocktime
 	lott.Status = types.LotteryCreated
 	lott.TotalShowedNum = 0

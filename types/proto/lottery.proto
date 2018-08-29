@@ -83,11 +83,16 @@ message ReceiptLottery{
 	int64 round = 5;
 	int64 number = 6;
 	int64 amount = 7;
-
 }
 
 message ReqLotteryInfo {
     string lotteryId = 1;
+}
+
+message ReqLotteryShowInfo{
+	string lotteryId = 1;
+	string addr = 2;
+	int64 round =3;
 }
 
 message ReplyLotteryNormalInfo {  
@@ -112,3 +117,16 @@ message ReplyLotteryHistoryLuckyNumber{
 	repeated int64 luckyNumber = 1;
 }
 
+message ReplyLotteryShowInfo{
+	repeated LotteryShowRecord records = 1;
+}
+
+//used for execlocal for show
+message LotteryShowRecord{
+	int64 number = 1;
+	int64 amount = 2;
+}
+
+message LotteryShowRecords{
+	repeated LotteryShowRecord records = 1;
+}

@@ -30,6 +30,7 @@ func Init() {
 	types.RegistorRpcType("GetLotteryNormalInfo", &LotteryGetInfo{})
 	types.RegistorRpcType("GetLotteryCurrentInfo", &LotteryGetInfo{})
 	types.RegistorRpcType("GetLotteryHistoryLuckyNumber", &LotteryGetInfo{})
+	types.RegistorRpcType("GetLotteryShowInfo", &LotteryShowInfo{})
 	//游戏的状态,根据游戏ID来查
 	//我的投注，我的中奖，期数
 }
@@ -205,6 +206,22 @@ func (t *LotteryGetInfo) Input(message json.RawMessage) ([]byte, error) {
 }
 
 func (t *LotteryGetInfo) Output(reply interface{}) (interface{}, error) {
+	return reply, nil
+}
+
+type LotteryShowInfo struct {
+}
+
+func (t *LotteryShowInfo) Input(message json.RawMessage) ([]byte, error) {
+	var req types.ReqLotteryShowInfo
+	err := json.Unmarshal(message, &req)
+	if err != nil {
+		return nil, err
+	}
+	return types.Encode(&req), nil
+}
+
+func (t *LotteryShowInfo) Output(reply interface{}) (interface{}, error) {
 	return reply, nil
 }
 

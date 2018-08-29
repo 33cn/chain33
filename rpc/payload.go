@@ -145,6 +145,8 @@ func lotteryPayloadType(funcname string) (proto.Message, error) {
 		req = &types.ReqLotteryInfo{}
 	case "GetLotteryHistoryLuckyNumber":
 		req = &types.ReqLotteryInfo{}
+	case "GetLotteryShowInfo":
+		req = &types.ReqLotteryShowInfo{}
 	default:
 		return nil, types.ErrInputPara
 	}
