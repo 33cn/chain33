@@ -14,12 +14,20 @@ import (
 // action type
 const (
 	ParacrossActionCommit = iota
+	ParacrossActionTransfer
+	ParacrossActionWithdraw
 )
 
 // status
 const (
 	ParacrossStatusCommiting = iota
 	ParacrossStatusCommitDone
+)
+
+var (
+	ParacrossActionCommitStr   = string("Commit")
+	ParacrossActionTransferStr = string("Transfer")
+	ParacrossActionWithdrawStr = string("Withdraw")
 )
 
 const orgName = "paracross"
@@ -54,7 +62,11 @@ func (m ParacrossType) ActionName(tx *types.Transaction) string {
 		return "unkown-paracross-action-err"
 	}
 	if g.Ty == ParacrossActionCommit && g.GetCommit() != nil {
-		return "ParacrossCommit"
+		return ParacrossActionCommitStr
+	} else if g.Ty == ParacrossActionTransfer && g.GetTransfer() != nil {
+		return ParacrossActionTransferStr
+	} else if g.Ty == ParacrossActionWithdraw && g.GetWithdraw() != nil {
+		return ParacrossActionWithdrawStr
 	}
 	return "unkown"
 }
