@@ -338,11 +338,16 @@ func (t *GameGetList) Output(reply interface{}) (interface{}, error) {
 					HashValue:     game.GetHashValue(),
 					Secret:        game.GetSecret(),
 					Result:        game.GetResult(),
-					Guess:         game.GetGuess(),
+					MatcherGuess:  game.GetMatcherGuess(),
+					CreateTxHash:  game.GetCreateTxHash(),
+					CancelTxHash:  game.GetCancelTxHash(),
+					MatchTxHash:   game.GetMatchTxHash(),
+					CloseTxHash:   game.GetCloseTxHash(),
+					CreatorGuess:  game.GetCreatorGuess(),
 				}
 				gameList = append(gameList, g)
 			}
-			return gameList, nil
+			return &ReplyGameList{gameList}, nil
 		}
 	}
 	return reply, nil
@@ -399,7 +404,12 @@ func (g *GameGetInfo) Output(reply interface{}) (interface{}, error) {
 				HashValue:     game.GetHashValue(),
 				Secret:        game.GetSecret(),
 				Result:        game.GetResult(),
-				Guess:         game.GetGuess(),
+				MatcherGuess:  game.GetMatcherGuess(),
+				CreateTxHash:  game.GetCreateTxHash(),
+				CancelTxHash:  game.GetCancelTxHash(),
+				MatchTxHash:   game.GetMatchTxHash(),
+				CloseTxHash:   game.GetCloseTxHash(),
+				CreatorGuess:  game.GetCreatorGuess(),
 			}
 			return g, nil
 		}
@@ -437,11 +447,12 @@ func (g *GameQueryList) Output(reply interface{}) (interface{}, error) {
 					HashValue:     game.GetHashValue(),
 					Secret:        game.GetSecret(),
 					Result:        game.GetResult(),
-					Guess:         game.GetGuess(),
+					MatcherGuess:  game.GetMatcherGuess(),
 					CreateTxHash:  game.GetCreateTxHash(),
 					CancelTxHash:  game.GetCancelTxHash(),
 					MatchTxHash:   game.GetMatchTxHash(),
 					CloseTxHash:   game.GetCloseTxHash(),
+					CreatorGuess:  game.GetCreatorGuess(),
 				}
 				gameList = append(gameList, g)
 			}

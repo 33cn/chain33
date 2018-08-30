@@ -11,10 +11,8 @@ import (
 var glog = log.New("module", "execs.game")
 
 const (
-	MaxGameAmount = 100 * types.Coin
 	//查询方法名
-	FuncName_QueryGameListByIds = "QueryGameListByIds"
-	//FuncName_QueryGameListByPage          = "QueryGameListByPage"
+	FuncName_QueryGameListByIds           = "QueryGameListByIds"
 	FuncName_QueryGameListCount           = "QueryGameListCount"
 	FuncName_QueryGameListByStatusAndAddr = "QueryGameListByStatusAndAddr"
 	FuncName_QueryGameById                = "QueryGameById"
@@ -47,12 +45,7 @@ func (g *Game) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	glog.Debug("exec Game tx=", "tx=", action)
 	actiondb := NewAction(g, tx, index)
 	if action.Ty == types.GameActionCreate && action.GetCreate() != nil {
-		create := action.GetCreate()
-		if create.GetValue() > MaxGameAmount {
-			glog.Error("Create the game, the deposit is too big  ", "value", create.GetValue())
-			return nil, types.ErrGameCreateAmount
-		}
-		return actiondb.GameCreate(create)
+		return actiondb.GameCreate(action.GetCreate())
 	} else if action.Ty == types.GameActionCancel && action.GetCancel() != nil {
 		return actiondb.GameCancel(action.GetCancel())
 	} else if action.Ty == types.GameActionClose && action.GetClose() != nil {
@@ -60,7 +53,6 @@ func (g *Game) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	} else if action.Ty == types.GameActionMatch && action.GetMatch() != nil {
 		return actiondb.GameMatch(action.GetMatch())
 	}
-	//return error
 	return nil, types.ErrActionNotSupport
 }
 
@@ -208,7 +200,7 @@ func (g *Game) Query(funcName string, params []byte) (types.Message, error) {
 		if err != nil {
 			return nil, err
 		}
-		return QueryGameListCount(g.GetLocalDB(), g.GetStateDB(), &q)
+		return QueryGameListCount(g.GetStateDB(), &q)
 	}
 	return nil, types.ErrActionNotSupport
 }
