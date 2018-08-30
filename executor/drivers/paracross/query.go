@@ -48,6 +48,28 @@ func loadLocalTitle(db dbm.KV, title string, height int64) (types.Message, error
 	}
 	return &resp, nil
 }
+
 func (c *Paracross) ParacrossGetTitleHeight(title string, height int64) (types.Message, error) {
 	return loadLocalTitle(c.GetLocalDB(), title, height)
 }
+
+func (c *Paracross) ParacrossGetAssetTxResult(hash []byte) (types.Message, error) {
+	if len(hash) == 0 {
+		return nil, types.ErrInputPara
+	}
+
+	key := calcLocalAssetKey(hash)
+	value, err := c.GetLocalDB().Get(key)
+	if err != nil {
+		return nil, err
+	}
+
+	var result types.ParacrossAsset
+	err = types.Decode(value, &result)
+	if err != nil {
+		return nil, err
+	}
+
+	return &result, nil
+}
+
