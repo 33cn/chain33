@@ -51,7 +51,6 @@ func (caseConf *TestTokenConfig) RunTest(caseFile string, wg *sync.WaitGroup) {
 		tester.AddCase(&caseConf.WithdrawCaseArr[i])
 	}
 
-
 	tester.WaitTest()
 
 }
