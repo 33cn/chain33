@@ -35,7 +35,7 @@ func (hashlock HashlockType) ActionName(tx *types.Transaction) string {
 	var action types.HashlockAction
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
-		return "unknow-err"
+		return "unknown-err"
 	}
 	if action.Ty == types.HashlockActionLock && action.GetHlock() != nil {
 		return "lock"
@@ -44,7 +44,7 @@ func (hashlock HashlockType) ActionName(tx *types.Transaction) string {
 	} else if action.Ty == types.HashlockActionSend && action.GetHsend() != nil {
 		return "send"
 	}
-	return "unknow"
+	return "unknown"
 }
 
 func (t HashlockType) Amount(tx *types.Transaction) (int64, error) {
