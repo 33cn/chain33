@@ -354,6 +354,14 @@ func (c *Paracross) Query(funcName string, params []byte) (types.Message, error)
 			return nil, err
 		}
 		return c.ParacrossGetTitleHeight(in.Title, in.Height)
+	} else if funcName == "ParacrossGetAssetTxResult" {
+		var in types.ReqHash
+		err := types.Decode(params, &in)
+		if err != nil {
+			return nil, err
+		}
+		return c.ParacrossGetAssetTxResult(in.Hash)
 	}
+
 	return nil, types.ErrActionNotSupport
 }
