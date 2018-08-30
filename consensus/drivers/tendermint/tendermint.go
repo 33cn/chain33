@@ -292,9 +292,7 @@ func (client *TendermintClient) CreateBlock() {
 		if issleep {
 			time.Sleep(time.Second)
 		}
-
-		txs := client.RequestTx(10, nil)
-		if len(txs) == 0 {
+		if !client.CheckTxsAvailable() {
 			issleep = true
 			continue
 		}
@@ -309,8 +307,12 @@ func (client *TendermintClient) TxsAvailable() <-chan int64 {
 	return client.txsAvailable
 }
 
-func (client *TendermintClient) ConsResult() chan<- int64 {
-	return client.consResult
+func (client *TendermintClient) CheckTxsAvailable() bool {
+	txs := client.RequestTx(10, nil)
+	if len(txs) == 0 {
+		return false
+	}
+	return true
 }
 
 func (client *TendermintClient) BuildBlock() *types.Block {
