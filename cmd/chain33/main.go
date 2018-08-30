@@ -79,6 +79,7 @@ func main() {
 	types.SetTestNet(cfg.TestNet)
 	types.SetTitle(cfg.Title)
 	types.SetFixTime(cfg.FixTime)
+	types.SetParaRemoteGrpcClient(cfg.GetConsensus().GetParaRemoteGrpcClient())
 	if cfg.FixTime {
 		go fixtimeRoutine()
 	}
