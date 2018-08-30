@@ -11,6 +11,7 @@ import (
 	clog "gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/types/executor/paracross"
 )
 
 func SetLogLevel(level string) {
@@ -221,6 +222,16 @@ func (mem *Mempool) DelBlock(block *types.Block) {
 				continue
 			}
 			if action.Ty == types.TicketActionMiner && action.GetMiner() != nil {
+				continue
+			}
+		}
+		if paracross.GetExecName() == string(tx.Execer) {
+			var action types.ParacrossAction
+			err := types.Decode(tx.Payload, &action)
+			if err != nil {
+				continue
+			}
+			if action.Ty == paracross.ParacrossActionVote && action.GetVote() != nil {
 				continue
 			}
 		}

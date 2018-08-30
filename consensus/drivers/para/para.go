@@ -15,6 +15,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/consensus/drivers"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/types/executor/paracross"
 	"gitlab.33.cn/chain33/chain33/util"
 	"google.golang.org/grpc"
 )
@@ -141,10 +142,10 @@ func (client *ParaClient) SetQueueClient(c queue.Client) {
 		client.InitBlock()
 	})
 	go client.EventLoop()
-	go client.CreateBlock()
 
 	client.wg.Add(1)
 	go client.commitMsgClient.handler()
+	go client.CreateBlock()
 }
 
 func (client *ParaClient) InitBlock() {
@@ -216,40 +217,47 @@ func (client *ParaClient) ProcEvent(msg queue.Message) bool {
 	return false
 }
 
-// paracross only support txgroup count=2 currently,if main tx fail, para tx also not exec
-// if another txs is para chain tx too, return true
-func isMainTxExecOk(tx *types.Transaction, txIndex int, main *types.BlockDetail) []*types.Transaction {
-	var index int
-	if tx.Next != nil {
-		index = txIndex + 1
+func calcParaCrossTxGroup(tx *types.Transaction, main *types.BlockDetail) ([]*types.Transaction, int32) {
+	var headIdx, paraTxCount int32
 
-	} else {
-		index = txIndex - 1
-	}
-	if bytes.Contains(main.Block.Txs[index].Execer, []byte(types.ExecNamePrefix)) {
-		return []*types.Transaction{tx}
-	}
-	if main.Receipts[index].Ty == types.ExecOk {
-		if index < txIndex {
-			return []*types.Transaction{main.Block.Txs[index], tx}
+	for i, tx := range main.Block.Txs {
+		if bytes.Equal(tx.Header, tx.Hash()) {
+			headIdx = int32(i)
 		}
-		return []*types.Transaction{tx, main.Block.Txs[index]}
 	}
-	return nil
+	endIdx := headIdx + tx.GroupCount
+	for i := headIdx; i < headIdx+tx.GroupCount; i++ {
+		if bytes.Contains(main.Block.Txs[i].Execer, []byte(types.ExecNamePrefix)) {
+			paraTxCount++
+			continue
+		}
+		if main.Receipts[i].Ty == types.ExecOk {
+			return main.Block.Txs[headIdx : headIdx+tx.GroupCount], endIdx
+		}
+	}
+	//全部是平行链交易
+	if paraTxCount == tx.GroupCount {
+		return main.Block.Txs[headIdx : headIdx+tx.GroupCount], endIdx
+	}
+
+	return nil, endIdx
 }
 
 //如果交易组交易数超过2个，如果都是平行链交易，没问题，如果混合了主链交易，这里不会把主链tx 抽取出来，交易组执行失败
 //当前认为跨链的交易必须是2个，超过2个就是错误的交易，平行链这边可以执行失败
 func (client *ParaClient) FilterTxsForPara(main *types.BlockDetail) []*types.Transaction {
-	var txs []*types.Transaction
+	var txs, mainTxs []*types.Transaction
+	var endIdx int32
 	for i, tx := range main.Block.Txs {
 		if bytes.Contains(tx.Execer, []byte(types.ExecNamePrefix)) {
-			if tx.GroupCount == ParaCrossTxCount {
-				mainTxs := isMainTxExecOk(tx, i, main)
+			if tx.GroupCount >= ParaCrossTxCount {
+				mainTxs, endIdx = calcParaCrossTxGroup(tx, main)
 				txs = append(txs, mainTxs...)
 				continue
 			}
-			txs = append(txs, tx)
+			if i >= int(endIdx) {
+				txs = append(txs, tx)
+			}
 		}
 	}
 	return txs
@@ -456,6 +464,30 @@ func (client *ParaClient) CreateBlock() {
 	}
 }
 
+// vote tx need all para node create, but not all node has auth account, here just not sign to keep align
+func (client *ParaClient) addVoteTx(preStateHash []byte, para *types.Block, main *types.Block) error {
+	status := &types.ParacrossNodeStatus{
+		Title:        types.GetTitle(),
+		Height:       para.Height,
+		PreBlockHash: para.ParentHash,
+		PreStateHash: preStateHash,
+	}
+	if main != nil {
+		status.MainBlockHash = main.Hash()
+		status.MainBlockHeight = main.Height
+	}
+
+	tx, err := paracross.CreateRawVoteTx(status)
+	if err != nil {
+		return err
+	}
+	//tx.Sign(types.SECP256K1, client.privateKey)
+
+	para.Txs = append([]*types.Transaction{tx}, para.Txs...)
+	return nil
+
+}
+
 func (client *ParaClient) createBlock(lastBlock *types.Block, txs []*types.Transaction, seq int64, mainBlock *types.Block) error {
 	var newblock types.Block
 	plog.Debug(fmt.Sprintf("the len txs is: %v", len(txs)))
@@ -466,30 +498,39 @@ func (client *ParaClient) createBlock(lastBlock *types.Block, txs []*types.Trans
 	newblock.Difficulty = types.GetP(0).PowLimitBits
 	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
 	newblock.BlockTime = mainBlock.BlockTime
-	err := client.WriteBlock(lastBlock.StateHash, &newblock, mainBlock, seq)
+
+	err := client.addVoteTx(lastBlock.StateHash, &newblock, mainBlock)
+	if err != nil {
+		return err
+	}
+
+	err = client.WriteBlock(lastBlock.StateHash, &newblock, mainBlock, seq)
+
 	plog.Debug("para create new Block", "newblock.ParentHash", common.ToHex(newblock.ParentHash),
-		"newblock.Height", newblock.Height,
-		"newblock.TxHash", common.ToHex(newblock.TxHash),
-		"newblock.BlockTime", newblock.BlockTime,
-		"sequence", seq)
+		"newblock.Height", newblock.Height, "newblock.TxHash", common.ToHex(newblock.TxHash),
+		"newblock.BlockTime", newblock.BlockTime, "sequence", seq)
 	return err
+}
+
+//TODO
+func (client *ParaClient) checkVoteTx() error {
+	return nil
 }
 
 // 向blockchain写区块
 func (client *ParaClient) WriteBlock(prev []byte, paraBlock *types.Block, mainBlock *types.Block, seq int64) error {
-	plog.Debug("write block in parachain", "height", paraBlock.Height)
-	var oriTxHashs [][]byte
-	for _, tx := range paraBlock.Txs {
-		//跨链交易包含了主链交易，需要过滤出来
-		if bytes.Contains(tx.Execer, []byte(types.ExecNamePrefix)) {
-			oriTxHashs = append(oriTxHashs, tx.Hash())
-		}
-	}
+	plog.Info("write block in parachain", "height", paraBlock.Height)
 
 	blockDetail, deltx, err := client.ExecBlock(prev, paraBlock)
 	if len(deltx) > 0 {
 		plog.Warn("parachain receive invalid txs")
 	}
+	if err != nil {
+		plog.Error("parachain exec fail", "err", err.Error())
+		return err
+	}
+
+	err = client.checkVoteTx()
 	if err != nil {
 		return err
 	}
@@ -501,17 +542,17 @@ func (client *ParaClient) WriteBlock(prev []byte, paraBlock *types.Block, mainBl
 		return err
 	}
 
-	if resp.GetData().(*types.Reply).IsOk {
-		client.SetCurrentBlock(paraBlock)
-
-		if client.authAccount != "" {
-			client.commitMsgClient.onBlockAdded(mainBlock, blockDetail, oriTxHashs)
-		}
-
-	} else {
+	if !resp.GetData().(*types.Reply).IsOk {
 		reply := resp.GetData().(*types.Reply)
 		return errors.New(string(reply.GetMsg()))
 	}
+
+	client.SetCurrentBlock(paraBlock)
+
+	if client.authAccount != "" {
+		client.commitMsgClient.onBlockAdded(blockDetail)
+	}
+
 	return nil
 }
 

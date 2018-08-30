@@ -9,7 +9,8 @@ import (
 
 //big-end mode,    that is bytes [0]      [1]
 // 				   tx index:     fedcba98 76543210
-//cur is subset of ori, if the tx ty is OK in cur, find the tx in ori and set the index to 1
+//cur is subset of ori, receipts are align with cur txs,
+// if the tx ty is OK in cur, find the tx in ori and set the index to 1, this function return ori's bitmap
 //if all tx failed, the setBit will normalize result and just return nil slice
 func CalcBitMap(ori, cur [][]byte, data []*types.ReceiptData) []byte {
 	rst := big.NewInt(0)
@@ -19,6 +20,24 @@ func CalcBitMap(ori, cur [][]byte, data []*types.ReceiptData) []byte {
 			if bytes.Equal(ori, curHash) {
 				if data[i].Ty == types.ExecOk {
 					rst.SetBit(rst, index, 1)
+				}
+			}
+		}
+	}
+
+	return rst.Bytes()
+}
+
+//cur is subset of ori, data are align with ori, this function return cur's bitmap
+//if all tx failed, the setBit will normalize result and just return nil slice
+func CalcCurBitMap(ori, cur [][]byte, data []*types.ReceiptData) []byte {
+	rst := big.NewInt(0)
+
+	for i, curHash := range cur {
+		for index, ori := range ori {
+			if bytes.Equal(ori, curHash) {
+				if data[index].Ty == types.ExecOk {
+					rst.SetBit(rst, i, 1)
 				}
 			}
 		}
