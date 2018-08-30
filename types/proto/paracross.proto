@@ -102,3 +102,19 @@ message ReqParacrossTitleHeight {
 message RespParacrossTitles {
     repeated ReceiptParacrossDone titles = 1;
 }
+
+// 跨链转账相关
+message ParacrossAsset {
+    // input
+    string from       = 1;
+    string to         = 2;
+    bool   isWithdraw = 3;
+    bytes  txHash     = 4;
+    int64  amount     = 5;
+    // 主链部分
+    int64 height = 10;
+    // 平行链部分
+    int64 commitDoneHeight = 21;
+    int64 paraHeight       = 22;
+    bool  success          = 23;
+}
