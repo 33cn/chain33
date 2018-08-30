@@ -10,7 +10,7 @@ set -o pipefail
 # sudo apt-get install jq
 # sudo apt-get install shellcheck, in order to static check shell script
 # sudo apt-get install parallel
-# ./docker-compose.sh build
+# ./run-autotest.sh build
 
 PWD=$(cd "$(dirname "$0")" && pwd)
 export PATH="$PWD:$PATH"
@@ -23,12 +23,10 @@ CLI="docker exec ${NODE3} /root/chain33-cli"
 NODE2="${1}_chain32_1"
 CLI2="docker exec ${NODE2} /root/chain33-cli"
 
-
 sedfix=""
 if [ "$(uname)" == "Darwin" ]; then
     sedfix=".bak"
 fi
-
 
 function init() {
     # update test environment
@@ -200,24 +198,23 @@ function sync_status() {
 }
 
 function sync() {
-    echo "=========== stop  ${NODE5} node========== "
-    docker stop "${NODE5}"
+    echo "=========== stop  ${NODE2} node========== "
+    docker stop "${NODE2}"
     sleep 20
 
-    echo "=========== start ${NODE5} node========== "
-    docker start "${NODE5}"
+    echo "=========== start ${NODE2} node========== "
+    docker start "${NODE2}"
 
     sleep 1
-    sync_status "${CLI5}"
+    sync_status "${CLI2}"
 }
 
-
 function auto_test() {
-    
+
     echo "=========== #run auto test ============="
     echo "=========== #transfer to token amdin ============="
     hash=$(${CLI} send coins transfer -a 10 -n test -t 1Q8hGLfoGe63efeWa8fJ4Pnukhkngt6poK -k 4257D8692EF7FE13C68B65D6A52F03933DB2FA5CE8FAF210B5B8B80C721CED01)
-    
+
     block_wait "${CLI}" 2
     txs=$(${CLI} tx query_hash -s "${hash}" | jq ".txs")
     if [ "${txs}" == "null" ]; then
@@ -230,15 +227,15 @@ function auto_test() {
     signData=$(${CLI} wallet sign -d "${rawData}" -k 0xc34b5d9d44ac7b754806f761d3d4d2c4fe5214f6b074c19f069c4f5c2a29c8cc)
     hash=$(${CLI} wallet send -d "${signData}")
     block_wait "${CLI}" 2
-    
+
     echo "=========== #start auto-test program ============="
-    docker exec ${NODE3} /root/autotest
+    docker exec "${NODE3}" /root/autotest
 }
 
-function stop(){
+function stop() {
 
     echo "=========== #stop docker-compose ============="
-    docker cp ${NODE3}:/root/autotest.log ./
+    docker cp "${NODE3}":/root/autotest.log ./
     docker-compose down
     rm ./chain33*
 }
@@ -252,5 +249,10 @@ function main() {
     echo "==========================================main end========================================================="
 }
 
+# check args
+if [ "$#" -ne 1 ]; then
+    echo "Suggest Usage: $0 build"
+    exit 1
+fi
 # run script
 main
