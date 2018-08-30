@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"strings"
 	"time"
 
 	"gitlab.33.cn/chain33/chain33/common"
@@ -960,7 +961,7 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 	}
 	var pl interface{}
 	unkownPl := make(map[string]interface{})
-	if types.ExecName(types.CoinsX) == string(tx.Execer) {
+	if types.CoinsX == realExec(string(tx.Execer)) {
 		var action types.CoinsAction
 		err := types.Decode(tx.GetPayload(), &action)
 		if err != nil {
@@ -969,7 +970,7 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		} else {
 			pl = &action
 		}
-	} else if types.ExecName(types.TicketX) == string(tx.Execer) {
+	} else if types.TicketX == realExec(string(tx.Execer)) {
 		var action types.TicketAction
 		err := types.Decode(tx.GetPayload(), &action)
 		if err != nil {
@@ -978,7 +979,7 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		} else {
 			pl = &action
 		}
-	} else if types.ExecName(types.HashlockX) == string(tx.Execer) {
+	} else if types.HashlockX == realExec(string(tx.Execer)) {
 		var action types.HashlockAction
 		err := types.Decode(tx.GetPayload(), &action)
 		if err != nil {
@@ -987,7 +988,7 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		} else {
 			pl = &action
 		}
-	} else if types.ExecName(types.TokenX) == string(tx.Execer) {
+	} else if types.TokenX == realExec(string(tx.Execer)) {
 		var action types.TokenAction
 		err := types.Decode(tx.GetPayload(), &action)
 		if err != nil {
@@ -996,7 +997,7 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		} else {
 			pl = &action
 		}
-	} else if types.ExecName(types.TradeX) == string(tx.Execer) {
+	} else if types.TradeX == realExec(string(tx.Execer)) {
 		var action types.Trade
 		err := types.Decode(tx.GetPayload(), &action)
 		if err != nil {
@@ -1006,9 +1007,9 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 			pl = &action
 		}
 		pl = &action
-	} else if types.ExecName(types.PrivacyX) == string(tx.Execer) {
+	} else if types.PrivacyX == realExec(string(tx.Execer)) {
 		pl = decodePrivacyAction(tx.GetPayload())
-	} else if types.ExecName(types.EvmX) == string(tx.Execer) {
+	} else if types.EvmX == realExec(string(tx.Execer)) {
 		var action types.EVMContractAction
 		err := types.Decode(tx.GetPayload(), &action)
 		if err != nil {
@@ -1017,7 +1018,7 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		} else {
 			pl = &action
 		}
-	} else if types.ExecName(types.RetrieveX) == string(tx.Execer) {
+	} else if types.RetrieveX == realExec(string(tx.Execer)) {
 		var action types.RetrieveAction
 		err := types.Decode(tx.GetPayload(), &action)
 		if err != nil {
@@ -1026,7 +1027,7 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		} else {
 			pl = &action
 		}
-	} else if types.ExecName(types.GameX) == string(tx.Execer) {
+	} else if types.GameX == realExec(string(tx.Execer)) {
 		var action types.GameAction
 		err := types.Decode(tx.GetPayload(), &action)
 		if err != nil {
@@ -1059,6 +1060,14 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		Next:       common.ToHex(tx.Next),
 	}
 	return result, nil
+}
+
+func realExec(txExec string) string {
+	if strings.HasPrefix(txExec, "user.p.") {
+		execSplit := strings.Split(txExec, ".")
+		return execSplit[len(execSplit)-1]
+	}
+	return txExec
 }
 
 func convertToPrivacyInput4Print(privacyInput *types.PrivacyInput) *types.PrivacyInput4Print {
