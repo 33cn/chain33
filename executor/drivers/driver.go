@@ -38,6 +38,8 @@ type Driver interface {
 	//GetTxs and TxGroup
 	GetTxs() []*types.Transaction
 	GetTxGroup(index int) ([]*types.Transaction, error)
+
+	SetReceipt(receipts []*types.ReceiptData)
 }
 
 type DriverBase struct {
@@ -51,6 +53,7 @@ type DriverBase struct {
 	difficulty   uint64
 	api          client.QueueProtocolAPI
 	txs          []*types.Transaction
+	receipts     []*types.ReceiptData
 }
 
 func (d *DriverBase) SetApi(api client.QueueProtocolAPI) {
@@ -267,6 +270,14 @@ func (d *DriverBase) GetTxGroup(index int) ([]*types.Transaction, error) {
 		}
 	}
 	return nil, types.ErrTxGroupFormat
+}
+
+func (d *DriverBase) GetReceipt() []*types.ReceiptData {
+	return d.receipts
+}
+
+func (d *DriverBase) SetReceipt(receipts []*types.ReceiptData) {
+	d.receipts = receipts
 }
 
 func (d *DriverBase) GetStateDB() dbm.KV {

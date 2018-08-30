@@ -16,7 +16,6 @@ if [ "$(uname)" == "Darwin" ]; then
 fi
 
 function para_init() {
-    echo "=========== # para chain init toml ============="
     para_set_toml chain33.para33.toml
     para_set_toml chain33.para32.toml
     para_set_toml chain33.para31.toml

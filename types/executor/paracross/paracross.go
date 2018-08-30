@@ -6,6 +6,8 @@ import (
 	"math/rand"
 	"time"
 
+	"fmt"
+
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -16,6 +18,7 @@ const (
 	ParacrossActionCommit = iota
 	ParacrossActionTransfer
 	ParacrossActionWithdraw
+	ParacrossActionVote
 )
 
 // status
@@ -33,6 +36,7 @@ var (
 const orgName = "paracross"
 
 var name string
+var paraVoteHeightKey string
 
 var glog = log.New("module", orgName)
 
@@ -53,6 +57,16 @@ func Init() {
 	types.RegistorRpcType("ParacrossListTitles", &ParacrossListTitles{})
 	types.RegistorRpcType("ParacrossGetTitleHeight", &ParacrossGetTitleHeight{})
 	types.RegistorRpcType("ParacrossGetAssetTxResult", &ParacrossGetAssetTxResult{})
+
+	paraVoteHeightKey = types.ExecName("paracross") + "-titleVoteHeight-"
+}
+
+func CalcVoteHeightKey(title string, height int64) []byte {
+	return []byte(fmt.Sprintf(paraVoteHeightKey+"%s-%012d", title, height))
+}
+
+func GetExecName() string {
+	return name
 }
 
 type ParacrossType struct {
@@ -128,6 +142,29 @@ func createRawCommitTx(status *types.ParacrossNodeStatus, name string, fee int64
 		Payload: types.Encode(action),
 		Fee:     fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
+		To:      address.ExecAddress(name),
+	}
+
+	err := tx.SetRealFee(types.MinFee)
+	if err != nil {
+		return nil, err
+	}
+
+	return tx, nil
+}
+
+func CreateRawVoteTx(status *types.ParacrossNodeStatus) (*types.Transaction, error) {
+	v := &types.ParacrossVoteAction{
+		Status: status,
+	}
+	action := &types.ParacrossAction{
+		Ty:    ParacrossActionVote,
+		Value: &types.ParacrossAction_Vote{v},
+	}
+	tx := &types.Transaction{
+		Execer:  []byte(name),
+		Payload: types.Encode(action),
+		Nonce:   0, //for consensus purpose, block hash need same, different auth node need keep totally same vote tx
 		To:      address.ExecAddress(name),
 	}
 

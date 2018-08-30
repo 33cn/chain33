@@ -1,6 +1,8 @@
 package paracross
 
 import (
+	"bytes"
+
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
@@ -64,6 +66,12 @@ func (c *Paracross) Exec(tx *types.Transaction, index int) (*types.Receipt, erro
 		}
 		a := newAction(c, tx)
 		return a.AssetWithdraw(payload.GetAssetWithdraw())
+	} else if payload.Ty == pt.ParacrossActionVote && payload.GetVote() != nil {
+		if index != 0 {
+			return nil, types.ErrParaVoteBaseIndex
+		}
+		a := newAction(c, tx)
+		return a.Vote(payload.GetVote())
 	}
 
 	return nil, types.ErrActionNotSupport
@@ -126,6 +134,28 @@ func (c *Paracross) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData,
 			var r types.ParacrossTx
 			r.TxHash = string(tx.Hash())
 			set.KV = append(set.KV, &types.KeyValue{calcLocalTxKey(g.Status.Title, g.Status.Height, tx.From()), types.Encode(&r)})
+		} else if log.Ty == types.TyLogParacrossVote {
+			var g types.ReceiptParacrossVote
+			types.Decode(log.Log, &g)
+
+			var mixTxHashs, paraTxHashs, crossTxHashs [][]byte
+			for _, tx := range c.GetTxs() {
+				mixTxHashs = append(mixTxHashs, tx.Hash())
+				//跨链交易包含了主链交易，需要过滤出来
+				if bytes.Contains(tx.Execer, []byte(types.ExecNamePrefix)) {
+					paraTxHashs = append(paraTxHashs, tx.Hash())
+					if tx.GroupCount > 1 {
+						crossTxHashs = append(crossTxHashs, tx.Hash())
+					}
+				}
+			}
+			g.Status.TxHashs = paraTxHashs
+			g.Status.TxResult = util.CalcCurBitMap(mixTxHashs, paraTxHashs, c.GetReceipt())
+			g.Status.CrossTxHashs = crossTxHashs
+			g.Status.CrossTxResult = util.CalcCurBitMap(mixTxHashs, crossTxHashs, c.GetReceipt())
+
+			set.KV = append(set.KV, &types.KeyValue{pt.CalcVoteHeightKey(g.Status.Title, g.Status.Height), types.Encode(g.Status)})
+
 		} else if log.Ty == types.TyLogParaAssetWithdraw {
 			// TODO
 		} else if log.Ty == types.TyLogParaAssetTransfer {
@@ -343,6 +373,12 @@ func (c *Paracross) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptDa
 			var r types.ParacrossTx
 			r.TxHash = string(tx.Hash())
 			set.KV = append(set.KV, &types.KeyValue{calcLocalTxKey(g.Status.Title, g.Status.Height, tx.From()), nil})
+		} else if log.Ty == types.TyLogParacrossVote {
+			var g types.ReceiptParacrossVote
+			types.Decode(log.Log, &g)
+
+			set.KV = append(set.KV, &types.KeyValue{pt.CalcVoteHeightKey(g.Status.Title, g.Status.Height), nil})
+
 		} else if log.Ty == types.TyLogParaAssetWithdraw {
 			// TODO
 		} else if log.Ty == types.TyLogParaAssetTransfer {
