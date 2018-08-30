@@ -145,8 +145,10 @@ func (pack *BaseCasePack) doCheckResult(handlerMap CheckHandlerMap) (bCheck bool
 			pack.fLog.Error("UnMarshalFailed", "TestID", pack.packID, "ErrInfo", err.Error())
 			return true, false
 		}
-		pack.fLog.Info("TxInfo", "TestID", pack.packID, "TxJson", jsonMap)
 
+		pack.fLog.Info("TxJsonInfo", "TestID", pack.packID)
+		//tricky, for pretty json log
+		pack.fLog.Info("PrettyJsonLogFormat", "TxJson", []byte(txInfo))
 		tyname, bSuccess = getTxRecpTyname(jsonMap)
 		pack.fLog.Info("CheckItemResult", "TestID", pack.packID, "tyname", tyname)
 
