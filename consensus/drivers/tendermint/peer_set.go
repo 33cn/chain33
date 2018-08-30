@@ -654,7 +654,7 @@ OUTER_LOOP:
 		// If the peer is on a previous height, help catch up.
 		if (0 < prs.Height) && (prs.Height < rs.Height) {
 			if prs.Height+1 == rs.Height && prs.Round == rs.LastCommit.Round() && prs.Step == ttypes.RoundStepCommit && prs.ProposalBlock {
-				tendermintlog.Info("Peer is waiting for finalizeCommit finish", "peerip", pc.ip.String(),
+				tendermintlog.Debug("Peer is waiting for finalizeCommit finish", "peerip", pc.ip.String(),
 					"state", fmt.Sprintf("%v/%v/%v", prs.Height, prs.Round, prs.Step))
 				time.Sleep(10 * pc.myState.PeerGossipSleep())
 				continue OUTER_LOOP
@@ -692,7 +692,7 @@ OUTER_LOOP:
 			// Proposal: share the proposal metadata with peer.
 			{
 				msg := MsgInfo{TypeID: ttypes.ProposalID, Msg: rs.Proposal, PeerID: pc.id, PeerIP: pc.ip.String()}
-				tendermintlog.Info(fmt.Sprintf("Sending proposal. Self state: %v/%v/%v", rs.Height, rs.Round, rs.Step),
+				tendermintlog.Debug(fmt.Sprintf("Sending proposal. Self state: %v/%v/%v", rs.Height, rs.Round, rs.Step),
 					"peerip", pc.ip.String(), "proposal-height", rs.Proposal.Height, "proposal-round", rs.Proposal.Round)
 				if pc.Send(msg) {
 					prs.SetHasProposal(rs.Proposal)
@@ -718,7 +718,7 @@ OUTER_LOOP:
 		// Send proposal block
 		if rs.ProposalBlock != nil && !prs.ProposalBlock {
 			msg := MsgInfo{TypeID: ttypes.ProposalBlockID, Msg: rs.ProposalBlock.TendermintBlock, PeerID: pc.id, PeerIP: pc.ip.String()}
-			tendermintlog.Info(fmt.Sprintf("Sending proposal block. Self state: %v/%v/%v", rs.Height, rs.Round, rs.Step),
+			tendermintlog.Debug(fmt.Sprintf("Sending proposal block. Self state: %v/%v/%v", rs.Height, rs.Round, rs.Step),
 				"peerip", pc.ip.String(), "block-height", rs.ProposalBlock.Header.Height, "block-round", rs.ProposalBlock.Header.Round)
 			if pc.Send(msg) {
 				prs.SetHasProposalBlock(rs.ProposalBlock)

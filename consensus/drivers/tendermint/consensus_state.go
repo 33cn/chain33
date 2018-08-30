@@ -98,6 +98,7 @@ type ConsensusState struct {
 	txsAvailable      chan int64
 	begCons           time.Time
 	ProposalBlockHash []byte
+	needRecover       bool
 }
 
 // NewConsensusState returns a new ConsensusState.
@@ -113,6 +114,7 @@ func NewConsensusState(client *TendermintClient, state State, blockExec *BlockEx
 		Quit:         make(chan struct{}),
 		txsAvailable: make(chan int64, 1),
 		begCons:      time.Time{},
+		needRecover:  false,
 	}
 	// set function defaults (may be overwritten before calling Start)
 	cs.decideProposal = cs.defaultDecideProposal
@@ -483,13 +485,13 @@ func (cs *ConsensusState) checkTxsAvailable() {
 	for {
 		select {
 		case height := <-cs.client.TxsAvailable():
-			tendermintlog.Info(fmt.Sprintf("checkTxsAvailable. Current: %v/%v/%v", cs.Height, cs.Round, cs.Step), "height", height)
+			tendermintlog.Debug(fmt.Sprintf("checkTxsAvailable. Current: %v/%v/%v", cs.Height, cs.Round, cs.Step), "height", height)
 			if cs.Height != height {
-				tendermintlog.Warn("blockchain and consensus are not sync")
+				tendermintlog.Warn(fmt.Sprintf("blockchain(H: %v) and consensus(H: %v) are not sync", height, cs.Height))
 				break
 			}
 			if cs.isProposalComplete() {
-				tendermintlog.Info("already has proposal")
+				tendermintlog.Debug("already has proposal")
 				break
 			}
 			cs.txsAvailable <- height
@@ -500,6 +502,13 @@ func (cs *ConsensusState) checkTxsAvailable() {
 func (cs *ConsensusState) handleTxsAvailable(height int64) {
 	cs.mtx.Lock()
 	defer cs.mtx.Unlock()
+
+	if cs.needRecover {
+		cs.needRecover = false
+		tendermintlog.Info("Consensus recover from no txs", "H/R", fmt.Sprintf("%v/%v", height, cs.Round))
+		cs.enterPropose(height, cs.Round)
+		return
+	}
 	// we only need to do this for round 0
 	cs.enterPropose(height, 0)
 }
@@ -565,6 +574,13 @@ func (cs *ConsensusState) enterNewRound(height int64, round int) {
 		}
 		go cs.proposalHeartbeat(height, round)
 	} else {
+		if !cs.client.CheckTxsAvailable() {
+			cs.begCons = time.Time{}
+			cs.needRecover = true
+			tendermintlog.Warn("Consensus hangup due to no txs", "H/R", fmt.Sprintf("%v/%v", height, round))
+			go cs.proposalHeartbeat(height, round)
+			return
+		}
 		cs.enterPropose(height, round)
 	}
 }
@@ -1046,12 +1062,8 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 	var err error
 	stateCopy, err = cs.blockExec.ApplyBlock(stateCopy, ttypes.BlockID{BlockID: types.BlockID{Hash: block.Hash()}}, block)
 	if err != nil {
-		tendermintlog.Error("Error on ApplyBlock. Did the application crash? Please restart tendermint", "err", err)
-		//windows not support
-		err := ttypes.Kill()
-		if err != nil {
-			tendermintlog.Error("Failed to kill this process - please do so manually", "err", err)
-		}
+		tendermintlog.Error("Error on ApplyBlock", "err", err)
+		cs.enterNewRound(cs.Height, cs.CommitRound+1)
 		return
 	}
 
@@ -1137,7 +1149,7 @@ func (cs *ConsensusState) defaultSetProposal(proposal *types.Proposal) error {
 	// Already have one
 	// TODO: possibly catch double proposals
 	if cs.Proposal != nil {
-		tendermintlog.Info("defaultSetProposal: already has proposal")
+		tendermintlog.Debug("defaultSetProposal: already has proposal")
 		return nil
 	}
 
@@ -1208,6 +1220,12 @@ func (cs *ConsensusState) addProposalBlock(proposalBlock *types.TendermintBlock)
 		// then receive parts from the previous round - not necessarily a bad peer.
 		tendermintlog.Debug("Received block when we're not expecting any", "ProposalBlockHash", fmt.Sprintf("%X", cs.ProposalBlockHash),
 			"height", height, "round", round, "hash", fmt.Sprintf("%X", block.Hash()))
+		return nil
+	}
+
+	// Already have expected proposal block
+	if block.HashesTo(cs.ProposalBlock.Hash()) {
+		tendermintlog.Debug("addProposalBlock: already has proposal block")
 		return nil
 	}
 
