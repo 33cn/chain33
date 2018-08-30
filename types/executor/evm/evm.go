@@ -45,7 +45,7 @@ func (evm EvmType) ActionName(tx *types.Transaction) string {
 	} else {
 		return "callEvmContract"
 	}
-	return "unknow"
+	return "unknown"
 }
 
 func (evm EvmType) Amount(tx *types.Transaction) (int64, error) {

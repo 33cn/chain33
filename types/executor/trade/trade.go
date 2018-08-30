@@ -45,7 +45,7 @@ func (trade tradeType) ActionName(tx *types.Transaction) string {
 	var action types.Trade
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
-		return "unknow-err"
+		return "unknown-err"
 	}
 	if action.Ty == types.TradeSellLimit && action.GetTokensell() != nil {
 		return "selltoken"
@@ -60,7 +60,7 @@ func (trade tradeType) ActionName(tx *types.Transaction) string {
 	} else if action.Ty == types.CoinsActionTransferToExec && action.GetTokenrevokebuy() != nil {
 		return "revokebuytoken"
 	}
-	return "unknow"
+	return "unknown"
 }
 
 func (t tradeType) Amount(tx *types.Transaction) (int64, error) {
