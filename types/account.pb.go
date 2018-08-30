@@ -309,6 +309,7 @@ It has these top-level messages:
 	ParacrossTx
 	ReqParacrossTitleHeight
 	RespParacrossTitles
+	ParacrossAsset
 	Operation
 	Checkpoint
 	Entry
