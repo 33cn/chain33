@@ -36,10 +36,10 @@ const (
 
 	GameCount = "GameCount" //根据状态，地址统计整个合约目前总共成功执行了多少场游戏。
 
-	MaxGameAmount = 100 //单位为types.Coin  1e8
-	MinGameAmount = 2
-	DefaultCount  = int32(20)  //默认一次取多少条记录
-	MaxCount      = int32(100) //最多取100条
+	MaxGameAmount = int64(100) //单位为types.Coin  1e8
+	MinGameAmount = int64(2)
+	DefaultCount  = int64(20)  //默认一次取多少条记录
+	MaxCount      = int64(100) //最多取100条
 	//从有matcher参与游戏开始计算本局游戏开奖的有效时间，单位为天
 	ActiveTime = int64(24)
 
@@ -166,18 +166,12 @@ func (action *Action) GameCreate(create *types.GameCreate) (*types.Receipt, erro
 	gameId := common.ToHex(action.txhash)
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
-	maxGameAmount, err := GetConfValue(ConfName_MaxGameAmount, action.db)
-	if err != nil {
-		maxGameAmount = MaxGameAmount
-	}
+	maxGameAmount := GetConfValue(action.db, ConfName_MaxGameAmount, MaxGameAmount)
 	if create.GetValue() > maxGameAmount*types.Coin {
 		glog.Error("Create the game, the deposit is too big  ", "value", create.GetValue())
 		return nil, types.ErrGameCreateAmount
 	}
-	minGameAmount, err := GetConfValue(ConfName_MinGameAmount, action.db)
-	if err != nil {
-		minGameAmount = MinGameAmount
-	}
+	minGameAmount := GetConfValue(action.db, ConfName_MinGameAmount, MinGameAmount)
 	if create.GetValue() < minGameAmount*types.Coin || math.Remainder(float64(create.GetValue()), 2) != 0 {
 		return nil, fmt.Errorf("The amount you participate in cannot be less than 2 and must be an even number.")
 	}
@@ -466,10 +460,7 @@ func (action *Action) GameClose(close *types.GameClose) (*types.Receipt, error) 
 // 检查开奖是否超时，若超过一天，则不让庄家开奖，但其他人可以开奖，
 // 若没有一天，则其他人没有开奖权限，只有庄家有开奖权限
 func (action *Action) checkGameIsTimeOut(game *types.Game) bool {
-	activeTime, err := GetConfValue(ConfName_ActiveTime, action.db)
-	if err != nil {
-		activeTime = ActiveTime
-	}
+	activeTime := GetConfValue(action.db, ConfName_ActiveTime, ActiveTime)
 	DurTime := 60 * 60 * activeTime
 	return action.blocktime > (game.GetMatchTime() + DurTime)
 }
@@ -551,16 +542,8 @@ func queryGameListByStatusAndAddr(db dbm.Lister, stateDB dbm.KV, param *types.Qu
 	if param.GetDirection() == ListASC {
 		direction = ListASC
 	}
-	defaultCount, err := GetConfValue(ConfName_DefaultCount, stateDB)
-	count := int32(defaultCount)
-	if err != nil {
-		count = DefaultCount
-	}
-	maxcount, err := GetConfValue(ConfName_MaxCount, stateDB)
-	maxCount := int32(maxcount)
-	if err != nil {
-		maxCount = DefaultCount
-	}
+	count := int32(GetConfValue(stateDB, ConfName_DefaultCount, DefaultCount))
+	maxCount := int32(GetConfValue(stateDB, ConfName_MaxCount, MaxCount))
 	if 0 < param.GetCount() && param.GetCount() <= maxCount {
 		count = param.GetCount()
 	}
@@ -662,7 +645,7 @@ func readGame(db dbm.KV, id string) (*types.Game, error) {
 	//decode
 	err = types.Decode(data, &game)
 	if err != nil {
-		glog.Error("decode data have err:", err.Error())
+		glog.Error("decode game have err:", err.Error())
 		return nil, err
 	}
 	return &game, nil
@@ -693,35 +676,40 @@ func GetGameList(db dbm.KV, values []string) []*types.Game {
 	}
 	return games
 }
-func GetConfValue(key string, db dbm.KV) (int64, error) {
+func GetConfValue(db dbm.KV, key string, default_value int64) int64 {
 	var item types.ConfigItem
 	value, err := getManageKey(key, db)
 	if err != nil {
-		return 0, err
+		return default_value
 	}
 	if value != nil {
 		err = types.Decode(value, &item)
 		if err != nil {
-			glog.Error("GetConfValue", "decode db key", key)
-			return 0, err // types.ErrBadConfigValue
+			glog.Error("gamedb GetConfValue", "decode db key:", key, err.Error())
+			return default_value
 		}
 	}
 	values := item.GetArr().GetValue()
 	if len(values) == 0 {
-		return 0, fmt.Errorf("can't get value!")
+		glog.Error("gamedb GetConfValue", "can't get value from values arr. key:", key)
+		return default_value
 	}
 	//取数组最后一位，作为最新配置项的值
 	v, err := strconv.ParseInt(values[len(values)-1], 10, 64)
 	if err != nil {
-		glog.Error("Type conversion error:", err.Error())
-		return 0, err
+		glog.Error("gamedb GetConfValue", "Type conversion error:", err.Error())
+		return default_value
 	}
-	return v, nil
+	return v
 }
 func getManageKey(key string, db dbm.KV) ([]byte, error) {
 	manageKey := types.ManageKey(key)
 	value, err := db.Get([]byte(manageKey))
 	if err != nil {
+		if types.IsPara() { //平行链只有一种存储方式
+			glog.Error("gamedb getManage", "can't get value from db,key:", key, err.Error())
+			return nil, err
+		}
 		glog.Debug("gamedb", "get db key", "not found")
 		return getConfigKey(key, db)
 	}
@@ -732,7 +720,7 @@ func getConfigKey(key string, db dbm.KV) ([]byte, error) {
 	configKey := types.ConfigKey(key)
 	value, err := db.Get([]byte(configKey))
 	if err != nil {
-		glog.Debug("gamedb", "get db key", "not found")
+		glog.Error("gamedb getConfigKey", "can't get value from db,key:", key, err.Error())
 		return nil, err
 	}
 	return value, nil
