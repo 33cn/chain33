@@ -10,9 +10,9 @@ import (
 type TestTradeConfig struct {
 	TokenPreCreateCaseArr    []testcase.TokenPreCreateCase    `toml:"TokenPreCreateCase,omitempty"`
 	TokenFinishCreateCaseArr []testcase.TokenFinishCreateCase `toml:"TokenFinishCreateCase,omitempty"`
-	TransferCaseArr  []testcase.TransferCase  `toml:"TransferCase,omitempty"`
-	SellCaseArr      []testcase.SellCase      `toml:"SellCase,omitempty"`
-	DependBuyCaseArr []testcase.DependBuyCase `toml:"DependBuyCase,omitempty"`
+	TransferCaseArr          []testcase.TransferCase          `toml:"TransferCase,omitempty"`
+	SellCaseArr              []testcase.SellCase              `toml:"SellCase,omitempty"`
+	DependBuyCaseArr         []testcase.DependBuyCase         `toml:"DependBuyCase,omitempty"`
 }
 
 func (caseConf *TestTradeConfig) RunTest(caseFile string, wg *sync.WaitGroup) {

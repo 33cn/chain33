@@ -2,11 +2,12 @@ package testcase
 
 import (
 	"fmt"
-	"github.com/inconshreveable/log15"
 	"os/exec"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/inconshreveable/log15"
 )
 
 const FloatDiff = 0.00001
@@ -27,12 +28,11 @@ func Init(cliCmd string, checkSleep int, checkTimeout int) {
 //customize log15 log format
 func AutoTestLogFormat() log15.Format {
 
-
 	logfmt := log15.LogfmtFormat()
 
 	return log15.FormatFunc(func(r *log15.Record) []byte {
 
-		if r.Msg == "PrettyJsonLogFormat" && len(r.Ctx) == 4{
+		if r.Msg == "PrettyJsonLogFormat" && len(r.Ctx) == 4 {
 
 			b, ok := r.Ctx[3].([]byte)
 			if ok {
