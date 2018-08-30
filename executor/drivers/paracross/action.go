@@ -362,6 +362,7 @@ func (a *action) execCrossTx(commit *types.ParacrossCommitAction) (*types.Receip
 			}
 		}
 	}
+
 	return receipt, nil
 }
 
@@ -377,9 +378,13 @@ func (a *action) assetTransferCoins(transfer *types.CoinsTransfer) (*types.Recei
 		}
 		toAddr := address.ExecAddress(string(a.tx.Execer))
 		execAddr := address.ExecAddress(types.ParaX)
+		clog.Debug("paracross.AssetWithdraw not isPara", "execer", string(a.tx.Execer),
+			"txHash", common.Bytes2Hex(a.tx.Hash()))
 		return accDB.ExecTransfer(a.fromaddr, toAddr, execAddr, transfer.Amount)
 	} else {
 		execAddr := address.ExecAddress(string(a.tx.Execer))
+		clog.Debug("paracross.AssetWithdraw isPara", "execer", string(a.tx.Execer),
+			"txHash", common.Bytes2Hex(a.tx.Hash()))
 		return accDB.ParaAssetTransfer(transfer.To, transfer.Amount, execAddr)
 	}
 }
@@ -418,5 +423,7 @@ func (a *action) AssetWithdraw(withdraw *types.CoinsWithdraw) (*types.Receipt, e
 		// 需要平行链先执行， 达成共识时，继续执行
 		return nil, nil
 	}
+	clog.Debug("paracross.AssetWithdraw isPara", "execer", string(a.tx.Execer),
+		"txHash", common.Bytes2Hex(a.tx.Hash()))
 	return a.assetWithdrawCoins(withdraw, a.tx)
 }
