@@ -39,7 +39,7 @@ type TestRunner interface {
 
 func InitConfig(logfile string) {
 
-	fileLog.SetHandler(log15.Must.FileHandler(logfile, log15.LogfmtFormat()))
+	fileLog.SetHandler(log15.Must.FileHandler(logfile, testcase.AutoTestLogFormat()))
 
 }
 

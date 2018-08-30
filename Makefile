@@ -21,9 +21,9 @@ SRC_AUTO_TEST := gitlab.33.cn/chain33/chain33/cmd/autotest
 LDFLAGS := -ldflags "-w -s"
 PKG_LIST := `go list ./... | grep -v "vendor" | grep -v "chain33/test" | grep -v "mocks" | grep -v "pbft"`
 BUILD_FLAGS = -ldflags "-X gitlab.33.cn/chain33/chain33/common/version.GitCommit=`git rev-parse --short=8 HEAD`"
-.PHONY: default dep all build release cli para-cli linter race test fmt vet bench msan coverage coverhtml docker docker-compose protobuf clean help auto-test
+.PHONY: default dep all build release cli para-cli linter race test fmt vet bench msan coverage coverhtml docker docker-compose protobuf clean help autotest
 
-default: build cli relayd para-cli auto-test
+default: build cli relayd para-cli autotest
 
 dep: ## Get the dependencies
 	@go get -u gopkg.in/alecthomas/gometalinter.v2
@@ -64,7 +64,7 @@ para-cli:
 	@go build -v -o $(PARACLI) -ldflags "-X gitlab.33.cn/chain33/chain33/common/config.ParaName=user.p.$(PARANAME). -X gitlab.33.cn/chain33/chain33/common/config.RPCAddr=http://localhost:8901" $(SRC_CLI)
 
 
-auto-test:## build auto-test binary
+autotest:## build autotest binary
 	@go build -v -i -o $(AUTO_TEST) $(SRC_AUTO_TEST)
 	@cp cmd/autotest/*.toml build/tools/autotest/
 
