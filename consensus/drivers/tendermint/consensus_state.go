@@ -1278,32 +1278,6 @@ func (cs *ConsensusState) addVote(vote *ttypes.Vote, peerID string, peerIP strin
 	tendermintlog.Debug(fmt.Sprintf("Consensus receive vote. Current: %v/%v/%v", cs.Height, cs.Round, cs.Step),
 		"vote", fmt.Sprintf("{%v:%X %v/%02d/%v}", vote.ValidatorIndex, ttypes.Fingerprint(vote.ValidatorAddress), vote.Height, vote.Round, vote.Type), "peerip", peerIP)
 
-	// A precommit for the previous height?
-	// These come in while we wait timeoutCommit
-	if vote.Height+1 == cs.Height {
-		// here not handle this case
-		return
-		if !(cs.Step == ttypes.RoundStepNewHeight && vote.Type == uint32(ttypes.VoteTypePrecommit)) {
-			// TODO: give the reason ..
-			// fmt.Errorf("tryAddVote: Wrong height, not a LastCommit straggler commit.")
-			return added, ErrVoteHeightMismatch
-		}
-		added, err = cs.LastCommit.AddVote(vote)
-		if !added {
-			return added, err
-		}
-
-		cs.broadcastChannel <- MsgInfo{TypeID: ttypes.VoteID, Msg: vote.Vote, PeerID: cs.ourId, PeerIP: ""}
-
-		// if we can skip timeoutCommit and have all the votes now,
-		if cs.client.Cfg.SkipTimeoutCommit && cs.LastCommit.HasAll() {
-			// go straight to new round (skip timeout commit)
-			// cs.scheduleTimeout(time.Duration(0), cs.Height, 0, ttypes.RoundStepNewHeight)
-			cs.enterNewRound(cs.Height, 0)
-		}
-		return
-	}
-
 	// A prevote/precommit for this height?
 	if vote.Height == cs.Height {
 		if cs.begCons.IsZero() {
