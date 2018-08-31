@@ -72,4 +72,3 @@ func (c *Paracross) ParacrossGetAssetTxResult(hash []byte) (types.Message, error
 
 	return &result, nil
 }
-
