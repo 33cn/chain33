@@ -959,87 +959,22 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 	if tx == nil {
 		return nil, types.ErrEmpty
 	}
+
+	execStr := string(tx.Execer)
+	if !types.IsPara() {
+		execStr = realExec(string(tx.Execer))
+	}
+
 	var pl interface{}
-	unkownPl := make(map[string]interface{})
-	if types.CoinsX == realExec(string(tx.Execer)) {
-		var action types.CoinsAction
-		err := types.Decode(tx.GetPayload(), &action)
-		if err != nil {
-			unkownPl["unkownpayload"] = string(tx.GetPayload())
-			pl = unkownPl
+	plType := loadPayload(execStr)
+	if plType == nil {
+		if "user.write" == string(tx.Execer) {
+			pl = decodeUserWrite(tx.GetPayload())
 		} else {
-			pl = &action
+			pl = map[string]interface{}{"rawlog": common.ToHex(tx.GetPayload())}
 		}
-	} else if types.TicketX == realExec(string(tx.Execer)) {
-		var action types.TicketAction
-		err := types.Decode(tx.GetPayload(), &action)
-		if err != nil {
-			unkownPl["unkownpayload"] = string(tx.GetPayload())
-			pl = unkownPl
-		} else {
-			pl = &action
-		}
-	} else if types.HashlockX == realExec(string(tx.Execer)) {
-		var action types.HashlockAction
-		err := types.Decode(tx.GetPayload(), &action)
-		if err != nil {
-			unkownPl["unkownpayload"] = string(tx.GetPayload())
-			pl = unkownPl
-		} else {
-			pl = &action
-		}
-	} else if types.TokenX == realExec(string(tx.Execer)) {
-		var action types.TokenAction
-		err := types.Decode(tx.GetPayload(), &action)
-		if err != nil {
-			unkownPl["unkownpayload"] = string(tx.GetPayload())
-			pl = unkownPl
-		} else {
-			pl = &action
-		}
-	} else if types.TradeX == realExec(string(tx.Execer)) {
-		var action types.Trade
-		err := types.Decode(tx.GetPayload(), &action)
-		if err != nil {
-			unkownPl["unkownpayload"] = string(tx.GetPayload())
-			pl = unkownPl
-		} else {
-			pl = &action
-		}
-		pl = &action
-	} else if types.PrivacyX == realExec(string(tx.Execer)) {
-		pl = decodePrivacyAction(tx.GetPayload())
-	} else if types.EvmX == realExec(string(tx.Execer)) {
-		var action types.EVMContractAction
-		err := types.Decode(tx.GetPayload(), &action)
-		if err != nil {
-			unkownPl["unkownpayload"] = string(tx.GetPayload())
-			pl = unkownPl
-		} else {
-			pl = &action
-		}
-	} else if types.RetrieveX == realExec(string(tx.Execer)) {
-		var action types.RetrieveAction
-		err := types.Decode(tx.GetPayload(), &action)
-		if err != nil {
-			unkownPl["unkownpayload"] = string(tx.GetPayload())
-			pl = unkownPl
-		} else {
-			pl = &action
-		}
-	} else if types.GameX == realExec(string(tx.Execer)) {
-		var action types.GameAction
-		err := types.Decode(tx.GetPayload(), &action)
-		if err != nil {
-			unkownPl["unkownpayload"] = string(tx.GetPayload())
-			pl = unkownPl
-		} else {
-			pl = &action
-		}
-	} else if "user.write" == string(tx.Execer) {
-		pl = decodeUserWrite(tx.GetPayload())
 	} else {
-		pl = map[string]interface{}{"rawlog": common.ToHex(tx.GetPayload())}
+		pl, _ = plType.Decode(tx.Execer)
 	}
 	result := &Transaction{
 		Execer:     string(tx.Execer),

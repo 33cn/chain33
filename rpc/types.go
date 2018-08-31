@@ -7,6 +7,38 @@ import (
 )
 
 var log = l.New("module", "rpc")
+var decodePayloadMap = map[string]rpcPayloadType{}
+
+type rpcPayloadType interface {
+	Decode([]byte) (interface{}, error)
+}
+
+type coinsPayload struct {
+}
+
+type ticketPayload struct {
+}
+
+type hashlockPayload struct {
+}
+
+type tokenPayload struct {
+}
+
+type tradePayload struct {
+}
+
+type privacyPayload struct {
+}
+
+type evmPayload struct {
+}
+
+type retrievePayload struct {
+}
+
+type gamePayload struct {
+}
 
 type userWrite struct {
 	Topic   string `json:"topic"`
