@@ -103,13 +103,15 @@ func (action *Action) GetReceiptLog(game *types.Game) *types.ReceiptLog {
 func (action *Action) GetIndex(game *types.Game) int64 {
 	return action.height*types.MaxTxsPerBlock + int64(action.index)
 }
-func (action *Action) saveStateDBCache(game *types.Game) (kvset []*types.KeyValue) {
+
+//saveStateDBCache
+func (action *Action) saveGame(game *types.Game) (kvset []*types.KeyValue) {
 	value := types.Encode(game)
 	action.db.Set(Key(game.GetGameId()), value)
 	kvset = append(kvset, &types.KeyValue{Key(game.GameId), value})
 	return kvset
 }
-func (action *Action) updateStateDBCache(status int32, addr string) (kvset []*types.KeyValue) {
+func (action *Action) updateCount(status int32, addr string) (kvset []*types.KeyValue) {
 	count, err := queryCountByStatusAndAddr(action.db, status, addr)
 	if err != nil {
 		glog.Error("Query count have err:", err.Error())
@@ -194,11 +196,11 @@ func (action *Action) GameCreate(create *types.GameCreate) (*types.Receipt, erro
 	game.Index = action.GetIndex(game)
 	receiptLog := action.GetReceiptLog(game)
 	logs = append(logs, receiptLog)
-	kv = append(kv, action.saveStateDBCache(game)...)
+	kv = append(kv, action.saveGame(game)...)
 	logs = append(logs, receipt.Logs...)
 	kv = append(kv, receipt.KV...)
-	kv = append(kv, action.updateStateDBCache(game.GetStatus(), "")...) //更新stateDB缓存，用于计数
-	kv = append(kv, action.updateStateDBCache(game.GetStatus(), game.GetCreateAddress())...)
+	kv = append(kv, action.updateCount(game.GetStatus(), "")...) //更新stateDB缓存，用于计数
+	kv = append(kv, action.updateCount(game.GetStatus(), game.GetCreateAddress())...)
 	receipt = &types.Receipt{types.ExecOk, kv, logs}
 	return receipt, nil
 }
@@ -246,10 +248,10 @@ func (action *Action) GameMatch(match *types.GameMatch) (*types.Receipt, error) 
 	logs = append(logs, receiptLog)
 	logs = append(logs, receipt.Logs...)
 	kvs = append(kvs, receipt.KV...)
-	kvs = append(kvs, action.saveStateDBCache(game)...)
-	kvs = append(kvs, action.updateStateDBCache(game.GetStatus(), "")...)
-	kvs = append(kvs, action.updateStateDBCache(game.GetStatus(), game.GetCreateAddress())...)
-	kvs = append(kvs, action.updateStateDBCache(game.GetStatus(), game.GetMatchAddress())...)
+	kvs = append(kvs, action.saveGame(game)...)
+	kvs = append(kvs, action.updateCount(game.GetStatus(), "")...)
+	kvs = append(kvs, action.updateCount(game.GetStatus(), game.GetCreateAddress())...)
+	kvs = append(kvs, action.updateCount(game.GetStatus(), game.GetMatchAddress())...)
 	receipts := &types.Receipt{types.ExecOk, kvs, logs}
 	return receipts, nil
 }
@@ -292,9 +294,9 @@ func (action *Action) GameCancel(cancel *types.GameCancel) (*types.Receipt, erro
 	receiptLog := action.GetReceiptLog(game)
 	logs = append(logs, receiptLog)
 	kv = append(kv, receipt.KV...)
-	kv = append(kv, action.saveStateDBCache(game)...)
-	kv = append(kv, action.updateStateDBCache(game.GetStatus(), "")...)
-	kv = append(kv, action.updateStateDBCache(game.GetStatus(), game.GetCreateAddress())...)
+	kv = append(kv, action.saveGame(game)...)
+	kv = append(kv, action.updateCount(game.GetStatus(), "")...)
+	kv = append(kv, action.updateCount(game.GetStatus(), game.GetCreateAddress())...)
 
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
 }
@@ -428,10 +430,10 @@ func (action *Action) GameClose(close *types.GameClose) (*types.Receipt, error) 
 	game.CreatorGuess = creatorGuess
 	receiptLog := action.GetReceiptLog(game)
 	logs = append(logs, receiptLog)
-	kv = append(kv, action.saveStateDBCache(game)...)
-	kv = append(kv, action.updateStateDBCache(game.GetStatus(), "")...)
-	kv = append(kv, action.updateStateDBCache(game.GetStatus(), game.GetCreateAddress())...)
-	kv = append(kv, action.updateStateDBCache(game.GetStatus(), game.GetMatchAddress())...)
+	kv = append(kv, action.saveGame(game)...)
+	kv = append(kv, action.updateCount(game.GetStatus(), "")...)
+	kv = append(kv, action.updateCount(game.GetStatus(), game.GetCreateAddress())...)
+	kv = append(kv, action.updateCount(game.GetStatus(), game.GetMatchAddress())...)
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
 }
 
