@@ -344,10 +344,11 @@ func (t *GameGetList) Output(reply interface{}) (interface{}, error) {
 					MatchTxHash:   game.GetMatchTxHash(),
 					CloseTxHash:   game.GetCloseTxHash(),
 					CreatorGuess:  game.GetCreatorGuess(),
+					Index:         game.GetIndex(),
 				}
 				gameList = append(gameList, g)
 			}
-			return &ReplyGameList{gameList}, nil
+			return gameList, nil
 		}
 	}
 	return reply, nil
@@ -410,6 +411,7 @@ func (g *GameGetInfo) Output(reply interface{}) (interface{}, error) {
 				MatchTxHash:   game.GetMatchTxHash(),
 				CloseTxHash:   game.GetCloseTxHash(),
 				CreatorGuess:  game.GetCreatorGuess(),
+				Index:         game.GetIndex(),
 			}
 			return g, nil
 		}
@@ -431,7 +433,7 @@ func (g *GameQueryList) Input(message json.RawMessage) ([]byte, error) {
 
 func (g *GameQueryList) Output(reply interface{}) (interface{}, error) {
 	if replyData, ok := reply.(*types.Message); ok {
-		if replyGameList, ok := (*replyData).(*types.ReplyGameListPage); ok {
+		if replyGameList, ok := (*replyData).(*types.ReplyGameList); ok {
 			var gameList []*Game
 			for _, game := range replyGameList.GetGames() {
 				g := &Game{
@@ -453,10 +455,11 @@ func (g *GameQueryList) Output(reply interface{}) (interface{}, error) {
 					MatchTxHash:   game.GetMatchTxHash(),
 					CloseTxHash:   game.GetCloseTxHash(),
 					CreatorGuess:  game.GetCreatorGuess(),
+					Index:         game.GetIndex(),
 				}
 				gameList = append(gameList, g)
 			}
-			return &ReplyGameListPage{gameList, replyGameList.GetPrevIndex(), replyGameList.GetNextIndex()}, nil
+			return gameList, nil
 		}
 	}
 	return reply, nil

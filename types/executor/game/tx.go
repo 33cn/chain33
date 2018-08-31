@@ -64,6 +64,7 @@ type Game struct {
 	// cancel txhash
 	CancelTxHash string `json:"cancelTxHash"`
 	CreatorGuess int32  `json:"creatorGuess"`
+	Index        int64  `json:"index"`
 }
 
 type ReplyGameList struct {
@@ -72,11 +73,4 @@ type ReplyGameList struct {
 
 type ReplyGame struct {
 	Game *Game `json:"game"`
-}
-
-// 分页返回结构体
-type ReplyGameListPage struct {
-	Games     []*Game `json:"games"`
-	PrevIndex string  `json:"prevIndex"`
-	NextIndex string  `json:"nextIndex"`
 }
