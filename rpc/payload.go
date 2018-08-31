@@ -286,6 +286,23 @@ func (p gamePayload) Decode(payload []byte) (interface{}, error) {
 	return &action, nil
 }
 
+func decodeUserWrite(payload []byte) *userWrite {
+	var article userWrite
+	if len(payload) != 0 {
+		if payload[0] == '#' {
+			data := bytes.SplitN(payload[1:], []byte("#"), 2)
+			if len(data) == 2 {
+				article.Topic = string(data[0])
+				article.Content = string(data[1])
+				return &article
+			}
+		}
+	}
+	article.Topic = ""
+	article.Content = string(payload)
+	return &article
+}
+
 func registorPayload(exec string, payload rpcPayloadType) {
 	if _, exist := decodePayloadMap[exec]; exist {
 		panic("DupExecutorType")
