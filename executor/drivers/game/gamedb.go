@@ -103,30 +103,23 @@ func (action *Action) GetReceiptLog(game *types.Game) *types.ReceiptLog {
 func (action *Action) GetIndex(game *types.Game) int64 {
 	return action.height*types.MaxTxsPerBlock + int64(action.index)
 }
-func (action *Action) GetKVSet(game *types.Game) (kvset []*types.KeyValue) {
+func (action *Action) saveStateDBCache(game *types.Game) (kvset []*types.KeyValue) {
 	value := types.Encode(game)
+	action.db.Set(Key(game.GetGameId()), value)
 	kvset = append(kvset, &types.KeyValue{Key(game.GameId), value})
 	return kvset
 }
-func (action *Action) updateCount(status int32, addr string) (kvset []*types.KeyValue) {
+func (action *Action) updateStateDBCache(status int32, addr string) (kvset []*types.KeyValue) {
 	count, err := queryCountByStatusAndAddr(action.db, status, addr)
 	if err != nil {
 		glog.Error("Query count have err:", err.Error())
 	}
+	glog.Debug("updateStateDBCache", fmt.Sprintf("status:%v,addr:%v,count:===>%v", status, addr, count))
+	action.db.Set(CalcCountKey(status, addr), []byte(strconv.FormatInt(count+1, 10)))
 	kvset = append(kvset, &types.KeyValue{CalcCountKey(status, addr), []byte(strconv.FormatInt(count+1, 10))})
 	return kvset
 }
 
-func (action *Action) updateStateDBCache(status int32, addr string) {
-	count, err := queryCountByStatusAndAddr(action.db, status, addr)
-	if err != nil {
-		glog.Error("Query count have err:", err.Error())
-	}
-	action.db.Set(CalcCountKey(status, addr), []byte(strconv.FormatInt(count+1, 10)))
-}
-func (action *Action) saveStateDB(game *types.Game) {
-	action.db.Set(Key(game.GetGameId()), types.Encode(game))
-}
 func CalcCountKey(status int32, addr string) (key []byte) {
 	key = append(key, []byte("mavl-"+types.ExecName(types.GameX)+"-")...)
 	key = append(key, []byte(fmt.Sprintf("%s:%d:%s", GameCount, status, addr))...)
@@ -198,18 +191,14 @@ func (action *Action) GameCreate(create *types.GameCreate) (*types.Receipt, erro
 		Status:        types.GameActionCreate,
 		CreateTxHash:  gameId,
 	}
-	//更新stateDB缓存，用于计数
-	action.updateStateDBCache(game.GetStatus(), "")
-	action.updateStateDBCache(game.GetStatus(), game.GetCreateAddress())
 	game.Index = action.GetIndex(game)
-	action.saveStateDB(game)
 	receiptLog := action.GetReceiptLog(game)
 	logs = append(logs, receiptLog)
-	kv = append(kv, action.GetKVSet(game)...)
+	kv = append(kv, action.saveStateDBCache(game)...)
 	logs = append(logs, receipt.Logs...)
 	kv = append(kv, receipt.KV...)
-	kv = append(kv, action.updateCount(game.GetStatus(), "")...)
-	kv = append(kv, action.updateCount(game.GetStatus(), game.GetCreateAddress())...)
+	kv = append(kv, action.updateStateDBCache(game.GetStatus(), "")...) //更新stateDB缓存，用于计数
+	kv = append(kv, action.updateStateDBCache(game.GetStatus(), game.GetCreateAddress())...)
 	receipt = &types.Receipt{types.ExecOk, kv, logs}
 	return receipt, nil
 }
@@ -251,20 +240,16 @@ func (action *Action) GameMatch(match *types.GameMatch) (*types.Receipt, error) 
 	game.MatchTxHash = common.ToHex(action.txhash)
 	game.PrevIndex = game.GetIndex()
 	game.Index = action.GetIndex(game)
-	action.saveStateDB(game)
-	action.updateStateDBCache(game.GetStatus(), "")
-	action.updateStateDBCache(game.GetStatus(), game.GetCreateAddress())
-	action.updateStateDBCache(game.GetStatus(), game.GetMatchAddress())
 	var logs []*types.ReceiptLog
 	var kvs []*types.KeyValue
 	receiptLog := action.GetReceiptLog(game)
 	logs = append(logs, receiptLog)
-	kvs = append(kvs, action.GetKVSet(game)...)
+	kvs = append(kvs, action.saveStateDBCache(game)...)
 	logs = append(logs, receipt.Logs...)
 	kvs = append(kvs, receipt.KV...)
-	kvs = append(kvs, action.updateCount(game.GetStatus(), "")...)
-	kvs = append(kvs, action.updateCount(game.GetStatus(), game.GetCreateAddress())...)
-	kvs = append(kvs, action.updateCount(game.GetStatus(), game.GetMatchAddress())...)
+	kvs = append(kvs, action.updateStateDBCache(game.GetStatus(), "")...)
+	kvs = append(kvs, action.updateStateDBCache(game.GetStatus(), game.GetCreateAddress())...)
+	kvs = append(kvs, action.updateStateDBCache(game.GetStatus(), game.GetMatchAddress())...)
 	receipts := &types.Receipt{types.ExecOk, kvs, logs}
 	return receipts, nil
 }
@@ -301,19 +286,15 @@ func (action *Action) GameCancel(cancel *types.GameCancel) (*types.Receipt, erro
 	game.CancelTxHash = common.ToHex(action.txhash)
 	game.PrevIndex = game.GetIndex()
 	game.Index = action.GetIndex(game)
-	action.saveStateDB(game)
-	action.updateStateDBCache(game.GetStatus(), "")
-	action.updateStateDBCache(game.GetStatus(), game.GetCreateAddress())
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
 	logs = append(logs, receipt.Logs...)
 	receiptLog := action.GetReceiptLog(game)
 	logs = append(logs, receiptLog)
-	kvs := action.GetKVSet(game)
 	kv = append(kv, receipt.KV...)
-	kv = append(kv, kvs...)
-	kv = append(kv, action.updateCount(game.GetStatus(), "")...)
-	kv = append(kv, action.updateCount(game.GetStatus(), game.GetCreateAddress())...)
+	kv = append(kv, action.saveStateDBCache(game)...)
+	kv = append(kv, action.updateStateDBCache(game.GetStatus(), "")...)
+	kv = append(kv, action.updateStateDBCache(game.GetStatus(), game.GetCreateAddress())...)
 
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
 }
@@ -445,17 +426,12 @@ func (action *Action) GameClose(close *types.GameClose) (*types.Receipt, error) 
 	game.PrevIndex = game.GetIndex()
 	game.Index = action.GetIndex(game)
 	game.CreatorGuess = creatorGuess
-	action.saveStateDB(game)
-	action.updateStateDBCache(game.GetStatus(), "")
-	action.updateStateDBCache(game.GetStatus(), game.GetCreateAddress())
-	action.updateStateDBCache(game.GetStatus(), game.GetMatchAddress())
 	receiptLog := action.GetReceiptLog(game)
 	logs = append(logs, receiptLog)
-	kvs := action.GetKVSet(game)
-	kv = append(kv, kvs...)
-	kv = append(kv, action.updateCount(game.GetStatus(), "")...)
-	kv = append(kv, action.updateCount(game.GetStatus(), game.GetCreateAddress())...)
-	kv = append(kv, action.updateCount(game.GetStatus(), game.GetMatchAddress())...)
+	kv = append(kv, action.saveStateDBCache(game)...)
+	kv = append(kv, action.updateStateDBCache(game.GetStatus(), "")...)
+	kv = append(kv, action.updateStateDBCache(game.GetStatus(), game.GetCreateAddress())...)
+	kv = append(kv, action.updateStateDBCache(game.GetStatus(), game.GetMatchAddress())...)
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
 }
 
