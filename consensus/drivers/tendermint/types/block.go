@@ -305,7 +305,7 @@ func (commit *Commit) BitArray() *BitArray {
 		for i, precommit := range commit.Precommits {
 			// TODO: need to check the BlockID otherwise we could be counting conflicts,
 			// not just the one with +2/3 !
-			commit.bitArray.SetIndex(i, precommit != nil)
+			commit.bitArray.SetIndex(i, precommit.ValidatorAddress != nil)
 		}
 	}
 	return commit.bitArray

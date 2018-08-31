@@ -788,7 +788,8 @@ OUTER_LOOP:
 			if vote, ok := pc.state.PickVoteToSend(commitObj); ok {
 				msg := MsgInfo{TypeID: ttypes.VoteID, Msg: vote.Vote, PeerID: pc.id, PeerIP: pc.ip.String()}
 				pc.Send(msg)
-				tendermintlog.Info("Picked Catchup commit to send", "peerip", pc.ip.String(), "height", prs.Height, "vote.Height", vote.Height)
+				tendermintlog.Info("Picked Catchup commit to send", "BitArray", commitObj.BitArray().String(), "valIndex", vote.ValidatorIndex,
+					"peerip", pc.ip.String(), "height", prs.Height, "vote.Height", vote.Height)
 			} else {
 				continue OUTER_LOOP
 			}
@@ -1047,7 +1048,8 @@ func (ps *PeerConnState) PickVoteToSend(votes ttypes.VoteSetReader) (vote *ttype
 	}
 
 	if index, ok := votes.BitArray().Sub(psVotes).PickRandom(); ok {
-		tendermintlog.Debug("PickVoteToSend", "height", height, "index", index, "type", type_, "selfVotes", votes.BitArray().String(), "peerVotes", psVotes.String(), "peerip", ps.ip.String())
+		tendermintlog.Debug("PickVoteToSend", "height", height, "index", index, "type", type_, "selfVotes", votes.BitArray().String(),
+			"peerVotes", psVotes.String(), "peerip", ps.ip.String())
 		ps.setHasVote(height, round, type_, index)
 		return votes.GetByIndex(index), true
 	}
