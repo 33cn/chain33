@@ -10,7 +10,10 @@ import (
 
 	log "github.com/inconshreveable/log15"
 	//"gitlab.33.cn/chain33/chain33/common"
+	"encoding/hex"
+
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 	"gitlab.33.cn/chain33/chain33/consensus/drivers"
 	"gitlab.33.cn/chain33/chain33/queue"
@@ -37,6 +40,8 @@ var (
 	emptyBlockInterval int64 = 4 //write empty block every interval blocks in mainchain
 	zeroHash           [32]byte
 	grpcRecSize        int = 30 * 1024 * 1024 //the size should be limited in server
+	//current vote tx take any privatekey for unify all nodes sign purpose, and para chain is free
+	votePrivateKey string = "6da92a632ab7deb67d38c0f6560bcfed28167998f6496db64c258d5e8393a81b"
 )
 
 type ParaClient struct {
@@ -46,6 +51,7 @@ type ParaClient struct {
 	isCatchingUp    bool
 	commitMsgClient *CommitMsgClient
 	authAccount     string
+	privateKey      crypto.PrivKey
 	wg              sync.WaitGroup
 }
 
@@ -65,6 +71,19 @@ func New(cfg *types.Consensus) *ParaClient {
 		emptyBlockInterval = cfg.EmptyBlockInterval
 	}
 
+	pk, err := hex.DecodeString(votePrivateKey)
+	if err != nil {
+		panic(err)
+	}
+	secp, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	if err != nil {
+		panic(err)
+	}
+	priKey, err := secp.PrivKeyFromBytes(pk)
+	if err != nil {
+		panic(err)
+	}
+
 	plog.Debug("New Para consensus client")
 
 	msgRecvOp := grpc.WithMaxMsgSize(grpcRecSize)
@@ -80,6 +99,7 @@ func New(cfg *types.Consensus) *ParaClient {
 		conn:        conn,
 		grpcClient:  grpcClient,
 		authAccount: cfg.AuthAccount,
+		privateKey:  priKey,
 	}
 
 	if cfg.WaitBlocks4CommitMsg < 2 {
@@ -120,6 +140,7 @@ func (client *ParaClient) ExecBlock(prevHash []byte, block *types.Block) (*types
 	}
 	blockdetail, deltx, err := util.ExecBlock(client.GetQueueClient(), prevHash, block, false, true)
 	if err != nil { //never happen
+		panic(err)
 		return nil, deltx, err
 	}
 	//if len(blockdetail.Block.Txs) == 0 {

@@ -24,7 +24,6 @@ type CommitMsgClient struct {
 	delMsgNotify       chan int64
 	mainBlockAdd       chan *types.BlockDetail
 	currentTx          *types.Transaction
-	finishedHeight     int64
 	checkTxCommitTimes int32
 	privateKey         crypto.PrivKey
 	quit               chan struct{}
@@ -32,6 +31,7 @@ type CommitMsgClient struct {
 
 func (client *CommitMsgClient) handler() {
 	var isSync bool
+	var finishedHeight []int64 //记录每次系统重启后finished min max height
 	var notifications []*types.ParacrossNodeStatus
 	var sendingMsgs []*types.ParacrossNodeStatus
 	var readTick <-chan time.Time
@@ -57,7 +57,7 @@ out:
 			notifications = append(notifications, msg)
 			plog.Info("paracommitmsg notify-----------", "height", msg.Height, "mainheight", msg.MainBlockHeight,
 				"blockhash", common.HashHex(msg.BlockHash), "mainHash", common.HashHex(msg.MainBlockHash),
-				"from", client.paraClient.authAccount, "title", msg.Title)
+				"from", client.paraClient.authAccount)
 			//防止突然很多消息过来，内存撑爆
 			if len(notifications) >= notifyBuffCount {
 				enqueue = nil
@@ -66,49 +66,40 @@ out:
 					"end", msg.Height)
 			}
 		case height := <-client.delMsgNotify:
-			if len(notifications) > 0 {
-				if notifications[len(notifications)-1].Height != height {
-					plog.Error("para del msg notify", "end height", notifications[len(notifications)-1].Height,
-						"msg", height)
-					if types.IsLocal() {
-						panic("para delete block msg not continuous with notification")
-					}
-					continue
-				}
+			// 高度不想等有可能是共识空洞填进来的，不处理
+			if len(notifications) > 0 && notifications[len(notifications)-1].Height == height {
 				notifications = notifications[:len(notifications)-1]
-				continue
 			}
 
-			if len(sendingMsgs) > 0 {
-				if sendingMsgs[len(sendingMsgs)-1].Height != height {
-					plog.Error("para del msg sending", "end height", sendingMsgs[len(sendingMsgs)-1].Height,
-						"msg", height)
-					if types.IsLocal() {
-						panic("para delete block msg not continuous with sending")
-					}
-					continue
-				}
-				notifications = sendingMsgs[:len(sendingMsgs)-1]
+			if len(sendingMsgs) > 0 && sendingMsgs[len(sendingMsgs)-1].Height == height {
+				notifications = append(sendingMsgs[:len(sendingMsgs)-1], notifications...)
 				sendingMsgs = nil
 				client.currentTx = nil
 			}
 
 		case block := <-client.mainBlockAdd:
-			if client.currentTx != nil {
+			if client.currentTx != nil && !client.paraClient.isCatchingUp {
 				exist, err := checkTxInMainBlock(client.currentTx, block)
 				if err != nil {
 					continue
 				}
 				if exist {
-					client.finishedHeight = sendingMsgs[len(sendingMsgs)-1].Height
+					start := sendingMsgs[0].Height
+					end := sendingMsgs[len(sendingMsgs)-1].Height
+					if finishedHeight == nil {
+						finishedHeight = append(finishedHeight, start)
+						finishedHeight = append(finishedHeight, end)
+					} else {
+						if start < finishedHeight[0] {
+							finishedHeight[0] = start
+						}
+						if end > finishedHeight[1] {
+							finishedHeight[1] = end
+						}
+					}
 					sendingMsgs = nil
 					client.currentTx = nil
 				} else {
-					for i, msg := range sendingMsgs {
-						plog.Info("paracommitmsg sending-----------", "idx", i, "height", msg.Height, "mainheight", msg.MainBlockHeight,
-							"blockhash", common.HashHex(msg.BlockHash), "mainHash", common.HashHex(msg.MainBlockHash),
-							"from", client.paraClient.authAccount, "title", msg.Title)
-					}
 					client.checkTxCommitTimes++
 					if client.checkTxCommitTimes > client.waitMainBlocks {
 						//需要从rawtx构建,nonce需要改，不然会认为重复交易
@@ -124,7 +115,7 @@ out:
 			}
 
 		case <-readTick:
-			if len(notifications) > 0 && client.currentTx == nil && isSync {
+			if len(notifications) > 0 && client.currentTx == nil && isSync && !client.paraClient.isCatchingUp {
 				signTx, count, err := client.calcCommitMsgTxs(notifications)
 				if err != nil || signTx == nil {
 					continue
@@ -149,11 +140,6 @@ out:
 			//所有节点还没有共识场景
 			if consensusHeight == -1 {
 				isSync = true
-				if client.finishedHeight > 0 {
-					client.getGenesisNodeStatus()
-
-				}
-				continue
 			}
 			//未共识过的小于当前共识高度的区块，可以不参与共识
 			//如果是新节点，一直等到同步的区块达到了共识高度，才设置同步参与共识
@@ -167,34 +153,30 @@ out:
 			if len(notifications) > 0 && notifications[len(notifications)-1].Height > consensusHeight {
 				isSync = true
 			}
-
 			if enqueue == nil && len(notifications) < notifyBuffCount {
 				enqueue = client.commitMsgNotify
 				plog.Info("para commit msg notify buffer restore", "consensus height", consensusHeight,
 					"len notify", len(notifications))
 			}
 
-			if len(sendingMsgs) > 0 {
-				//如果正在发送的共识高度小于已经共识的高度，则取消发送，主要考虑节点重启落后很多不断发交易的场景
-				if sendingMsgs[len(sendingMsgs)-1].Height <= consensusHeight {
-					sendingMsgs = nil
-					client.currentTx = nil
-					continue
-				}
-				//如果因为共识空洞重新获取了空洞的高度数据重新发送，正在发送时候不需要重新获取空洞数据
-				if consensusHeight+1 == sendingMsgs[0].Height {
-					continue
-				}
-			} else if len(notifications) > 0 && consensusHeight+1 == notifications[0].Height {
+			//如果正在发送的共识高度小于已经共识的高度，则取消发送，主要考虑节点重启落后很多不断发交易的场景
+			if len(sendingMsgs) > 0 && sendingMsgs[len(sendingMsgs)-1].Height <= consensusHeight {
+				sendingMsgs = nil
+				client.currentTx = nil
 				continue
 			}
-			//共识高度和发送的高度产生空洞的场景，比如系统已经新生成块但是对应高度的共识未达成，系统重启后将不会重新发送
-			if consensusHeight+1 < client.finishedHeight {
-				var req types.ReqBlocks
-				req.Start = consensusHeight + 1
-				req.End = client.finishedHeight
 
-				lostStatus, err := client.getNodeStatus(&req)
+			//系统每次重启都有检查一次共识，如果共识高度落后于系统起来后完成的第一个高度或最小高度，说明可能有共识空洞，需要把从当前共识高度到完成的
+			//最大高度重发一遍，直到确认收到，发过的最小到最大高度也要重发是因为之前空洞原因共识不连续，即便满足2/3节点也不会增长，需要重发来触发commit
+			//确认收到后finishedHeight[0]会被更新为nextConsensHeight，这样在本次允许时候再不会重复发送
+			//此处也整合了当前consensus height=-1 场景
+			nextConsensHeight := consensusHeight + 1
+			if (len(sendingMsgs) > 0 && nextConsensHeight == sendingMsgs[0].Height) ||
+				(len(notifications) > 0 && nextConsensHeight == notifications[0].Height) {
+				continue
+			}
+			if len(finishedHeight) > 0 && nextConsensHeight < finishedHeight[0] {
+				lostStatus, err := client.getNodeStatus(nextConsensHeight, finishedHeight[1])
 				if err != nil || lostStatus == nil {
 					continue
 				}
@@ -361,13 +343,27 @@ func checkTxInMainBlock(targetTx *types.Transaction, detail *types.BlockDetail) 
 
 //当前未考虑获取key非常多失败的场景， 如果获取height非常多，block模块会比较大，但是使用完了就释放了
 //如果有必要也可以考虑每次最多取20个一个txgroup，发送共识部分循环获取发送也没问题
-func (client *CommitMsgClient) getNodeStatus(req *types.ReqBlocks) ([]*types.ParacrossNodeStatus, error) {
-	if req.End < req.Start {
+func (client *CommitMsgClient) getNodeStatus(start, end int64) ([]*types.ParacrossNodeStatus, error) {
+	if end < start {
 		return nil, types.ErrEndLessThanStartHeight
 	}
 
+	var ret []*types.ParacrossNodeStatus
+	if start == 0 {
+		geneStatus, err := client.getGenesisNodeStatus()
+		if err != nil {
+			return nil, err
+		}
+		ret = append(ret, geneStatus)
+		start++
+	}
+	if end < start {
+		return ret, nil
+	}
+
+	req := types.ReqBlocks{Start: start, End: end}
 	count := req.End - req.Start + 1
-	nodeList := make(map[int64]*types.ParacrossNodeStatus, count)
+	nodeList := make(map[int64]*types.ParacrossNodeStatus, count+1)
 	keys := &types.LocalDBGet{}
 	for i := 0; i < int(count); i++ {
 		key := paracross.CalcVoteHeightKey(types.GetTitle(), req.Start+int64(i))
@@ -382,6 +378,10 @@ func (client *CommitMsgClient) getNodeStatus(req *types.ReqBlocks) ([]*types.Par
 	}
 
 	r := resp.GetData().(*types.LocalReplyValue)
+	if count != int64(len(r.Values)) {
+		plog.Error("paracommitmsg get node status key", "expect count", count, "actual count", len(r.Values))
+		return nil, err
+	}
 	for _, val := range r.Values {
 		status := &types.ParacrossNodeStatus{}
 		err = types.Decode(val, status)
@@ -398,6 +398,10 @@ func (client *CommitMsgClient) getNodeStatus(req *types.ReqBlocks) ([]*types.Par
 		return nil, err
 	}
 	v := resp.GetData().(*types.BlockDetails)
+	if count != int64(len(v.Items)) {
+		plog.Error("paracommitmsg get node status block", "expect count", count, "actual count", len(v.Items))
+		return nil, err
+	}
 	for _, block := range v.Items {
 		if nodeList[block.Block.Height] != nil {
 			nodeList[block.Block.Height].BlockHash = block.Block.Hash()
@@ -405,11 +409,7 @@ func (client *CommitMsgClient) getNodeStatus(req *types.ReqBlocks) ([]*types.Par
 		}
 	}
 
-	var ret []*types.ParacrossNodeStatus
 	for i := 0; i < int(count); i++ {
-		if nodeList[req.Start+int64(i)] == nil {
-			return ret, nil
-		}
 		ret = append(ret, nodeList[req.Start+int64(i)])
 	}
 	return ret, nil
@@ -427,13 +427,15 @@ func (client *CommitMsgClient) getGenesisNodeStatus() (*types.ParacrossNodeStatu
 	}
 	v := resp.GetData().(*types.BlockDetails)
 	block := v.Items[0].Block
+	if block.Height != 0 {
+		return nil, errors.New("block chain not return 0 height block")
+	}
 	status.Title = types.GetTitle()
 	status.Height = block.Height
 	status.PreBlockHash = block.ParentHash
 	status.BlockHash = block.Hash()
-	status.PreStateHash = nil
+	status.PreStateHash = zeroHash[:]
 	status.StateHash = block.StateHash
-
 	return &status, nil
 }
 
@@ -454,6 +456,10 @@ func (client *CommitMsgClient) onBlockAdded(block *types.BlockDetail) error {
 		err = types.Decode(v.Values[0], &status)
 		if err != nil {
 			return err
+		}
+		if status.Height != block.Block.Height {
+			plog.Error("paracommitmsg get node key", "expect height", block.Block.Height, "actual height", status.Height)
+			return errors.New("block chain not return expect height status")
 		}
 		status.BlockHash = block.Block.Hash()
 		status.StateHash = block.Block.StateHash
