@@ -1,7 +1,6 @@
 package rpc
 
 import (
-	"bytes"
 	"encoding/hex"
 	"fmt"
 	"strings"

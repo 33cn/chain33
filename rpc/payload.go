@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"bytes"
 	"encoding/json"
 
 	"github.com/golang/protobuf/proto"
