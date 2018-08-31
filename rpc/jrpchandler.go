@@ -1039,69 +1039,6 @@ func convertToPrivacyOutput4Print(privacyOutput *types.PrivacyOutput) *types.Pri
 	return output4print
 }
 
-func decodePrivacyAction(payload []byte) interface{} {
-	fromAction := &types.PrivacyAction{}
-	err := types.Decode(payload, fromAction)
-	if err != nil {
-		return nil
-	}
-	retAction := &types.PrivacyAction4Print{}
-	retAction.Ty = fromAction.Ty
-	if fromAction.GetPublic2Privacy() != nil {
-		fromValue := fromAction.GetPublic2Privacy()
-		value := &types.Public2Privacy4Print{}
-
-		value.Tokenname = fromValue.Tokenname
-		value.Amount = fromValue.Amount
-		value.Note = fromValue.Note
-		value.Output = convertToPrivacyOutput4Print(fromValue.Output)
-
-		retAction.Value = &types.PrivacyAction4Print_Public2Privacy{Public2Privacy: value}
-	} else if fromAction.GetPrivacy2Privacy() != nil {
-		fromValue := fromAction.GetPrivacy2Privacy()
-		value := &types.Privacy2Privacy4Print{}
-
-		value.Tokenname = fromValue.Tokenname
-		value.Amount = fromValue.Amount
-		value.Note = fromValue.Note
-
-		value.Input = convertToPrivacyInput4Print(fromValue.Input)
-		value.Output = convertToPrivacyOutput4Print(fromValue.Output)
-
-		retAction.Value = &types.PrivacyAction4Print_Privacy2Privacy{Privacy2Privacy: value}
-	} else if fromAction.GetPrivacy2Public() != nil {
-		fromValue := fromAction.GetPrivacy2Public()
-		value := &types.Privacy2Public4Print{}
-
-		value.Tokenname = fromValue.Tokenname
-		value.Amount = fromValue.Amount
-		value.Note = fromValue.Note
-
-		value.Input = convertToPrivacyInput4Print(fromValue.Input)
-		value.Output = convertToPrivacyOutput4Print(fromValue.Output)
-
-		retAction.Value = &types.PrivacyAction4Print_Privacy2Public{Privacy2Public: value}
-	}
-	return retAction
-}
-
-func decodeUserWrite(payload []byte) *userWrite {
-	var article userWrite
-	if len(payload) != 0 {
-		if payload[0] == '#' {
-			data := bytes.SplitN(payload[1:], []byte("#"), 2)
-			if len(data) == 2 {
-				article.Topic = string(data[0])
-				article.Content = string(data[1])
-				return &article
-			}
-		}
-	}
-	article.Topic = ""
-	article.Content = string(payload)
-	return &article
-}
-
 func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
 	var rTy string
 	switch rlog.Ty {
