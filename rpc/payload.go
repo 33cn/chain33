@@ -175,3 +175,131 @@ func protoPayload(execer, funcname string, payload *json.RawMessage) ([]byte, er
 	}
 	return types.Encode(req), nil
 }
+
+func (p coinsPayload) Decode(payload []byte) (interface{}, error) {
+	var action types.CoinsAction
+	err := types.Decode(payload, &action)
+	if err != nil {
+		return map[string]interface{}{"unkownpayload": string(payload)}, err
+	}
+	return &action, nil
+}
+
+func (p ticketPayload) Decode(payload []byte) (interface{}, error) {
+	var action types.TicketAction
+	err := types.Decode(payload, &action)
+	if err != nil {
+		return map[string]interface{}{"unkownpayload": string(payload)}, err
+	}
+	return &action, nil
+}
+
+func (p hashlockPayload) Decode(payload []byte) (interface{}, error) {
+	var action types.HashlockAction
+	err := types.Decode(payload, &action)
+	if err != nil {
+		return map[string]interface{}{"unkownpayload": string(payload)}, err
+	}
+	return &action, nil
+}
+
+func (p tokenPayload) Decode(payload []byte) (interface{}, error) {
+	var action types.TokenAction
+	err := types.Decode(payload, &action)
+	if err != nil {
+		return map[string]interface{}{"unkownpayload": string(payload)}, err
+	}
+	return &action, nil
+}
+
+func (p tradePayload) Decode(payload []byte) (interface{}, error) {
+	var action types.Trade
+	err := types.Decode(payload, &action)
+	if err != nil {
+		return map[string]interface{}{"unkownpayload": string(payload)}, err
+	}
+	return &action, nil
+}
+
+func (p evmPayload) Decode(payload []byte) (interface{}, error) {
+	var action types.EVMContractAction
+	err := types.Decode(payload, &action)
+	if err != nil {
+		return map[string]interface{}{"unkownpayload": string(payload)}, err
+	}
+	return &action, nil
+}
+
+func (p privacyPayload) Decode(payload []byte) (interface{}, error) {
+	fromAction := &types.PrivacyAction{}
+	err := types.Decode(payload, fromAction)
+	if err != nil {
+		return nil, err
+	}
+	retAction := &types.PrivacyAction4Print{}
+	retAction.Ty = fromAction.Ty
+	if fromAction.GetPublic2Privacy() != nil {
+		fromValue := fromAction.GetPublic2Privacy()
+		value := &types.Public2Privacy4Print{}
+		value.Tokenname = fromValue.Tokenname
+		value.Amount = fromValue.Amount
+		value.Note = fromValue.Note
+		value.Output = convertToPrivacyOutput4Print(fromValue.Output)
+		retAction.Value = &types.PrivacyAction4Print_Public2Privacy{Public2Privacy: value}
+	} else if fromAction.GetPrivacy2Privacy() != nil {
+		fromValue := fromAction.GetPrivacy2Privacy()
+		value := &types.Privacy2Privacy4Print{}
+		value.Tokenname = fromValue.Tokenname
+		value.Amount = fromValue.Amount
+		value.Note = fromValue.Note
+		value.Input = convertToPrivacyInput4Print(fromValue.Input)
+		value.Output = convertToPrivacyOutput4Print(fromValue.Output)
+		retAction.Value = &types.PrivacyAction4Print_Privacy2Privacy{Privacy2Privacy: value}
+	} else if fromAction.GetPrivacy2Public() != nil {
+		fromValue := fromAction.GetPrivacy2Public()
+		value := &types.Privacy2Public4Print{}
+		value.Tokenname = fromValue.Tokenname
+		value.Amount = fromValue.Amount
+		value.Note = fromValue.Note
+		value.Input = convertToPrivacyInput4Print(fromValue.Input)
+		value.Output = convertToPrivacyOutput4Print(fromValue.Output)
+		retAction.Value = &types.PrivacyAction4Print_Privacy2Public{Privacy2Public: value}
+	}
+	return retAction, nil
+}
+
+func (p retrievePayload) Decode(payload []byte) (interface{}, error) {
+	var action types.RetrieveAction
+	err := types.Decode(payload, &action)
+	if err != nil {
+		return map[string]interface{}{"unkownpayload": string(payload)}, err
+	}
+	return &action, nil
+}
+
+func (p gamePayload) Decode(payload []byte) (interface{}, error) {
+	var action types.GameAction
+	err := types.Decode(payload, &action)
+	if err != nil {
+		return map[string]interface{}{"unkownpayload": string(payload)}, err
+	}
+	return &action, nil
+}
+
+func registorPayload(exec string, payload rpcPayloadType) {
+	if _, exist := decodePayloadMap[exec]; exist {
+		panic("DupExecutorType")
+	} else {
+		decodePayloadMap[exec] = payload
+	}
+}
+
+func loadPayload(exec string) rpcPayloadType {
+	if payload, exist := decodePayloadMap[exec]; exist {
+		return payload
+	}
+	return nil
+}
+
+//	} else if "user.write" == string(tx.Execer) {
+//		pl = decodeUserWrite(tx.GetPayload())

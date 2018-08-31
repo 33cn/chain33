@@ -119,6 +119,16 @@ func Init(cfg *types.Rpc) {
 	InitGrpcFuncWhitelist(cfg)
 	InitJrpcFuncBlacklist(cfg)
 	InitGrpcFuncBlacklist(cfg)
+
+	registorPayload(types.CoinsX, &coinsPayload{})
+	registorPayload(types.TicketX, &ticketPayload{})
+	registorPayload(types.HashlockX, &hashlockPayload{})
+	registorPayload(types.TokenX, &tokenPayload{})
+	registorPayload(types.TradeX, &tradePayload{})
+	registorPayload(types.PrivacyX, &privacyPayload{})
+	registorPayload(types.EvmX, &evmPayload{})
+	registorPayload(types.RetrieveX, &retrievePayload{})
+	registorPayload(types.GameX, &gamePayload{})
 }
 
 func InitIpWhitelist(cfg *types.Rpc) {
