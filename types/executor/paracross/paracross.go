@@ -48,11 +48,11 @@ func Init() {
 	types.RegistorLog(types.TyLogParaAssetWithdraw, &ParacrossAssetWithdrawLog{})
 	types.RegistorLog(types.TyLogParaAssetTransfer, &ParacrossAssetTransferLog{})
 
-
 	// init query rpc
 	types.RegistorRpcType("ParacrossGetTitle", &ParacrossGetTitle{})
 	types.RegistorRpcType("ParacrossListTitles", &ParacrossListTitles{})
 	types.RegistorRpcType("ParacrossGetTitleHeight", &ParacrossGetTitleHeight{})
+	types.RegistorRpcType("ParacrossGetAssetTxResult", &ParacrossGetAssetTxResult{})
 }
 
 type ParacrossType struct {
@@ -162,7 +162,6 @@ func (l ParacrossDoneLog) Decode(msg []byte) (interface{}, error) {
 	return logTmp, err
 }
 
-
 type ParacrossCommitRecordLog struct {
 }
 
@@ -178,7 +177,6 @@ func (l ParacrossCommitRecordLog) Decode(msg []byte) (interface{}, error) {
 	}
 	return logTmp, err
 }
-
 
 type ParacrossAssetWithdrawLog struct {
 }
@@ -253,5 +251,21 @@ func (t *ParacrossGetTitleHeight) Input(message json.RawMessage) ([]byte, error)
 }
 
 func (t *ParacrossGetTitleHeight) Output(reply interface{}) (interface{}, error) {
+	return reply, nil
+}
+
+type ParacrossGetAssetTxResult struct {
+}
+
+func (t *ParacrossGetAssetTxResult) Input(message json.RawMessage) ([]byte, error) {
+	var req types.ReqHash
+	err := json.Unmarshal(message, &req)
+	if err != nil {
+		return nil, err
+	}
+	return types.Encode(&req), nil
+}
+
+func (t *ParacrossGetAssetTxResult) Output(reply interface{}) (interface{}, error) {
 	return reply, nil
 }
