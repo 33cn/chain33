@@ -124,7 +124,7 @@ func makeRecordReceipt(addr string, commit *types.ParacrossCommitAction) *types.
 		KV: nil,
 		Logs: []*types.ReceiptLog{
 			{
-				Ty:  types.TyLogParacrossRecord,
+				Ty:  types.TyLogParacrossCommitRecord,
 				Log: types.Encode(log),
 			},
 		},
@@ -157,7 +157,7 @@ func makeDoneReceipt(addr string, commit *types.ParacrossCommitAction, current *
 		},
 		Logs: []*types.ReceiptLog{
 			{
-				Ty:  types.TyLogParacrossDone,
+				Ty:  types.TyLogParacrossCommitDone,
 				Log: types.Encode(log),
 			},
 		},

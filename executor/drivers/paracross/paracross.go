@@ -79,7 +79,7 @@ func (c *Paracross) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData,
 			var r types.ParacrossTx
 			r.TxHash = string(tx.Hash())
 			set.KV = append(set.KV, &types.KeyValue{calcLocalTxKey(g.Status.Title, g.Status.Height, tx.From()), types.Encode(&r)})
-		} else if log.Ty == types.TyLogParacrossDone {
+		} else if log.Ty == types.TyLogParacrossCommitDone {
 			var g types.ReceiptParacrossDone
 			types.Decode(log.Log, &g)
 
@@ -94,7 +94,7 @@ func (c *Paracross) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData,
 				return nil, err
 			}
 			set.KV = append(set.KV, r.KV...)
-		} else if log.Ty == types.TyLogParacrossRecord {
+		} else if log.Ty == types.TyLogParacrossCommitRecord {
 			var g types.ReceiptParacrossRecord
 			types.Decode(log.Log, &g)
 
@@ -288,14 +288,14 @@ func (c *Paracross) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptDa
 	}
 
 	for _, log := range receipt.Logs {
-		if log.Ty == types.TyLogParacrossCommit { //} || log.Ty == types.TyLogParacrossRecord {
+		if log.Ty == types.TyLogParacrossCommit { //} || log.Ty == types.TyLogParacrossCommitRecord {
 			var g types.ReceiptParacrossCommit
 			types.Decode(log.Log, &g)
 
 			var r types.ParacrossTx
 			r.TxHash = string(tx.Hash())
 			set.KV = append(set.KV, &types.KeyValue{calcLocalTxKey(g.Status.Title, g.Status.Height, tx.From()), nil})
-		} else if log.Ty == types.TyLogParacrossDone {
+		} else if log.Ty == types.TyLogParacrossCommitDone {
 			var g types.ReceiptParacrossDone
 			types.Decode(log.Log, &g)
 			g.Height = g.Height - 1
@@ -311,7 +311,7 @@ func (c *Paracross) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptDa
 				return nil, err
 			}
 			set.KV = append(set.KV, r.KV...)
-		} else if log.Ty == types.TyLogParacrossRecord {
+		} else if log.Ty == types.TyLogParacrossCommitRecord {
 			var g types.ReceiptParacrossRecord
 			types.Decode(log.Log, &g)
 

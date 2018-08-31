@@ -155,8 +155,6 @@ const (
 	TyLogExecActive        = 10
 	TyLogGenesisTransfer   = 11
 	TyLogGenesisDeposit    = 12
-	TyLogParaAssetTransfer = 13
-	TyLogParaAssetWithdraw = 13
 
 	//log for ticket
 	TyLogNewTicket   = 111
@@ -217,11 +215,13 @@ const (
 	TyLogEVMStateChangeItem = 604
 
 	// paracross 执行器的日志类型
-	TyLogParacrossCommit = 650
-	TyLogParacrossDone   = 651
+	TyLogParacrossCommit     = 650
+	TyLogParacrossCommitDone = 651
 	// record 和 commit 不一样， 对应高度完成共识后收到commit 交易
 	// 这个交易就不参与共识, 只做记录
-	TyLogParacrossRecord = 652
+	TyLogParacrossCommitRecord = 652
+	TyLogParaAssetTransfer = 653
+	TyLogParaAssetWithdraw = 654
 
 	//log for game
 	TyLogCreateGame = 711
