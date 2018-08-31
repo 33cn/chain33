@@ -120,7 +120,7 @@ func Init(cfg *types.Rpc) {
 	InitJrpcFuncBlacklist(cfg)
 	InitGrpcFuncBlacklist(cfg)
 
-	decodePayloadMap = make(map[string]rpcPayloadType{})
+	decodePayloadMap = map[string]rpcPayloadType{}
 	registorPayload(types.CoinsX, &coinsPayload{})
 	registorPayload(types.TicketX, &ticketPayload{})
 	registorPayload(types.HashlockX, &hashlockPayload{})
