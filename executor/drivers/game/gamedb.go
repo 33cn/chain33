@@ -98,8 +98,10 @@ func (action *Action) GetReceiptLog(game *types.Game) *types.ReceiptLog {
 	log.Log = types.Encode(r)
 	return log
 }
-func (action *Action) GetIndex(game *types.Game) string {
-	return fmt.Sprintf("%018d", action.height*types.MaxTxsPerBlock+int64(action.index))
+
+//fmt.Sprintf("%018d", action.height*types.MaxTxsPerBlock+int64(action.index))
+func (action *Action) GetIndex(game *types.Game) int64 {
+	return action.height*types.MaxTxsPerBlock + int64(action.index)
 }
 func (action *Action) GetKVSet(game *types.Game) (kvset []*types.KeyValue) {
 	value := types.Encode(game)
@@ -556,53 +558,26 @@ func queryGameListByStatusAndAddr(db dbm.Lister, stateDB dbm.KV, param *types.Qu
 		prefix = calcGameAddrIndexPrefix(param.Status, param.GetAddress())
 		key = calcGameAddrIndexKey(param.Status, param.GetAddress(), param.GetIndex())
 	}
-
-	if param.GetIndex() == "" { //第一次查询
-		values, err := db.List(prefix, nil, count, direction)
-		if err != nil {
-			return nil, err
-		}
-		var gameIds []string
-		for _, value := range values {
-			var record types.GameRecord
-			err := types.Decode(value, &record)
-			if err != nil {
-				continue
-			}
-			gameIds = append(gameIds, record.GetGameId())
-		}
-		games := GetGameList(stateDB, gameIds)
-		index := games[len(games)-1].GetIndex()
-		if len(games) < int(count) {
-			return &types.ReplyGameListPage{games, "", ""}, nil
-		}
-		return &types.ReplyGameListPage{games, "", index}, nil
-
+	var values [][]byte
+	var err error
+	if param.GetIndex() == 0 { //第一次查询
+		values, err = db.List(prefix, nil, count, direction)
 	} else {
-		values, err := db.List(prefix, key, count, direction)
-		if err != nil {
-			return nil, err
-		}
-		var gameIds []string
-		for _, value := range values {
-			var record types.GameRecord
-			err := types.Decode(value, &record)
-			if err != nil {
-				continue
-			}
-			gameIds = append(gameIds, record.GetGameId())
-		}
-		games := GetGameList(stateDB, gameIds)
-		index := games[len(games)-1].GetIndex()
-		if len(games) == 0 {
-			return &types.ReplyGameListPage{nil, param.GetIndex(), ""}, nil
-		}
-		if len(games) < int(count) {
-			return &types.ReplyGameListPage{games, param.GetIndex(), ""}, nil
-
-		}
-		return &types.ReplyGameListPage{games, param.GetIndex(), index}, nil
+		values, err = db.List(prefix, key, count, direction)
 	}
+	if err != nil {
+		return nil, err
+	}
+	var gameIds []string
+	for _, value := range values {
+		var record types.GameRecord
+		err := types.Decode(value, &record)
+		if err != nil {
+			continue
+		}
+		gameIds = append(gameIds, record.GetGameId())
+	}
+	return &types.ReplyGameList{GetGameList(stateDB, gameIds)}, nil
 }
 
 //count数查询
