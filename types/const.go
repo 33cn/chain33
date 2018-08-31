@@ -145,16 +145,16 @@ const (
 	TyLogErr      = 1
 	TyLogFee      = 2
 	//coins
-	TyLogTransfer          = 3
-	TyLogGenesis           = 4
-	TyLogDeposit           = 5
-	TyLogExecTransfer      = 6
-	TyLogExecWithdraw      = 7
-	TyLogExecDeposit       = 8
-	TyLogExecFrozen        = 9
-	TyLogExecActive        = 10
-	TyLogGenesisTransfer   = 11
-	TyLogGenesisDeposit    = 12
+	TyLogTransfer        = 3
+	TyLogGenesis         = 4
+	TyLogDeposit         = 5
+	TyLogExecTransfer    = 6
+	TyLogExecWithdraw    = 7
+	TyLogExecDeposit     = 8
+	TyLogExecFrozen      = 9
+	TyLogExecActive      = 10
+	TyLogGenesisTransfer = 11
+	TyLogGenesisDeposit  = 12
 
 	//log for ticket
 	TyLogNewTicket   = 111
@@ -220,8 +220,8 @@ const (
 	// record 和 commit 不一样， 对应高度完成共识后收到commit 交易
 	// 这个交易就不参与共识, 只做记录
 	TyLogParacrossCommitRecord = 652
-	TyLogParaAssetTransfer = 653
-	TyLogParaAssetWithdraw = 654
+	TyLogParaAssetTransfer     = 653
+	TyLogParaAssetWithdraw     = 654
 
 	//log for game
 	TyLogCreateGame = 711
