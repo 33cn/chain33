@@ -300,6 +300,3 @@ func loadPayload(exec string) rpcPayloadType {
 	}
 	return nil
 }
-
-//	} else if "user.write" == string(tx.Execer) {
-//		pl = decodeUserWrite(tx.GetPayload())
