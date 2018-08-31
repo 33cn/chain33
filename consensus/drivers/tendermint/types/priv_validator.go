@@ -403,7 +403,7 @@ func (privVal *PrivValidatorImp) signBytesHRS(height int64, round int, step int8
 	if err != nil {
 		return nil, err
 	}
-	privVal.saveSigned(height, round, step, signBytes, sig)
+	//privVal.saveSigned(height, round, step, signBytes, sig)
 	return sig, nil
 }
 
