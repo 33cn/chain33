@@ -31,12 +31,13 @@ type CommitMsgClient struct {
 
 func (client *CommitMsgClient) handler() {
 	var isSync bool
-	var finishedHeight []int64 //记录每次系统重启后finished min max height
+	var startupHeight []int64 //记录每次系统重启后 min and current height
 	var notifications []*types.ParacrossNodeStatus
 	var sendingMsgs []*types.ParacrossNodeStatus
 	var readTick <-chan time.Time
 
 	var enqueue chan *types.ParacrossNodeStatus
+	enqueue = client.commitMsgNotify
 
 	client.paraClient.wg.Add(1)
 	consensusCh := make(chan *types.ParacrossStatus, 1)
@@ -55,6 +56,16 @@ out:
 		select {
 		case msg := <-enqueue:
 			notifications = append(notifications, msg)
+			if startupHeight == nil {
+				startupHeight = append(startupHeight, msg.Height)
+				startupHeight = append(startupHeight, msg.Height)
+			} else {
+				//[0] need update to min value if any, [1] always get current height, for fork case, the height may lower than before
+				if msg.Height < startupHeight[0] {
+					startupHeight[0] = msg.Height
+				}
+				startupHeight[1] = msg.Height
+			}
 			plog.Info("paracommitmsg notify-----------", "height", msg.Height, "mainheight", msg.MainBlockHeight,
 				"blockhash", common.HashHex(msg.BlockHash), "mainHash", common.HashHex(msg.MainBlockHash),
 				"from", client.paraClient.authAccount)
@@ -84,19 +95,6 @@ out:
 					continue
 				}
 				if exist {
-					start := sendingMsgs[0].Height
-					end := sendingMsgs[len(sendingMsgs)-1].Height
-					if finishedHeight == nil {
-						finishedHeight = append(finishedHeight, start)
-						finishedHeight = append(finishedHeight, end)
-					} else {
-						if start < finishedHeight[0] {
-							finishedHeight[0] = start
-						}
-						if end > finishedHeight[1] {
-							finishedHeight[1] = end
-						}
-					}
 					sendingMsgs = nil
 					client.currentTx = nil
 				} else {
@@ -115,7 +113,7 @@ out:
 			}
 
 		case <-readTick:
-			if len(notifications) > 0 && client.currentTx == nil && isSync && !client.paraClient.isCatchingUp {
+			if len(notifications) > 0 && client.currentTx == nil && isSync {
 				signTx, count, err := client.calcCommitMsgTxs(notifications)
 				if err != nil || signTx == nil {
 					continue
@@ -175,13 +173,12 @@ out:
 				(len(notifications) > 0 && nextConsensHeight == notifications[0].Height) {
 				continue
 			}
-			if len(finishedHeight) > 0 && nextConsensHeight < finishedHeight[0] {
-				lostStatus, err := client.getNodeStatus(nextConsensHeight, finishedHeight[1])
+			if len(startupHeight) > 0 && nextConsensHeight < startupHeight[0] {
+				lostStatus, err := client.getNodeStatus(nextConsensHeight, startupHeight[1])
 				if err != nil || lostStatus == nil {
 					continue
 				}
-				notifications = append(sendingMsgs, notifications...)
-				notifications = append(lostStatus, notifications...)
+				notifications = lostStatus[:]
 				sendingMsgs = nil
 				client.currentTx = nil
 			}
@@ -193,7 +190,7 @@ out:
 			}
 			client.privateKey = key
 			readTick = time.Tick(time.Second * 2)
-			enqueue = client.commitMsgNotify
+
 
 		case <-client.quit:
 			break out
@@ -344,6 +341,7 @@ func checkTxInMainBlock(targetTx *types.Transaction, detail *types.BlockDetail) 
 //当前未考虑获取key非常多失败的场景， 如果获取height非常多，block模块会比较大，但是使用完了就释放了
 //如果有必要也可以考虑每次最多取20个一个txgroup，发送共识部分循环获取发送也没问题
 func (client *CommitMsgClient) getNodeStatus(start, end int64) ([]*types.ParacrossNodeStatus, error) {
+	plog.Debug("paracommitmsg get node status--------", "start", start, "end", end)
 	if end < start {
 		return nil, types.ErrEndLessThanStartHeight
 	}
@@ -361,7 +359,7 @@ func (client *CommitMsgClient) getNodeStatus(start, end int64) ([]*types.Paracro
 		return ret, nil
 	}
 
-	req := types.ReqBlocks{Start: start, End: end}
+	req := &types.ReqBlocks{Start: start, End: end}
 	count := req.End - req.Start + 1
 	nodeList := make(map[int64]*types.ParacrossNodeStatus, count+1)
 	keys := &types.LocalDBGet{}
