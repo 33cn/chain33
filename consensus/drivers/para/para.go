@@ -540,8 +540,6 @@ func (client *ParaClient) checkVoteTx() error {
 
 // 向blockchain写区块
 func (client *ParaClient) WriteBlock(prev []byte, paraBlock *types.Block, mainBlock *types.Block, seq int64) error {
-	plog.Info("write block in parachain", "height", paraBlock.Height)
-
 	blockDetail, deltx, err := client.ExecBlock(prev, paraBlock)
 	if len(deltx) > 0 {
 		plog.Warn("parachain receive invalid txs")
