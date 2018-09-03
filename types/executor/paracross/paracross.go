@@ -210,6 +210,33 @@ func CreateRawTransferTx(param *types.CreateTx) (*types.Transaction, error) {
 	return tx, nil
 }
 
+func CheckVoteTx(current *types.BlockDetail) error {
+	//检查第一个笔交易的execs, 以及执行状态
+	if len(current.Block.Txs) == 0 {
+		return types.ErrEmptyTx
+	}
+	baseTx := current.Block.Txs[0]
+	//判断交易类型和执行情况
+	var action types.ParacrossAction
+	err := types.Decode(baseTx.GetPayload(), &action)
+	if err != nil {
+		return err
+	}
+	if action.GetTy() != ParacrossActionVote {
+		return types.ErrParaVoteTxType
+	}
+	//判断交易执行是否OK
+	if action.GetVote() == nil {
+		return types.ErrEmptyMinerTx
+	}
+
+	//判断exec 是否成功
+	if current.Receipts[0].Ty != types.ExecOk {
+		return types.ErrParaVoteExecErr
+	}
+	return nil
+}
+
 type ParacrossCommitLog struct {
 }
 
