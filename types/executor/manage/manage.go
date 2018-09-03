@@ -35,7 +35,7 @@ func (manage ManageType) DecodePayload(tx *types.Transaction) (interface{}, erro
 	var action types.ManageAction
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
-		return map[string]interface{}{"unkownpayload": string(tx.Payload)}, err
+		return nil, err
 	}
 	return &action, nil
 }
