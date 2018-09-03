@@ -17,10 +17,10 @@ export PATH="$PWD:$PATH"
 
 PROJECT_NAME="${1}"
 
-NODE3="${1}_chain33_1"
+NODE3="autotest-chain33"
 CLI="docker exec ${NODE3} /root/chain33-cli"
 
-NODE2="${1}_chain32_1"
+NODE2="autotest-chain32"
 CLI2="docker exec ${NODE2} /root/chain33-cli"
 
 sedfix=""
@@ -55,11 +55,9 @@ function init() {
 }
 
 function start() {
-    # docker-compose ps
-    docker-compose ps
 
     # remove exsit container
-    docker-compose down
+    docker-compose -p "${PROJECT_NAME}" -f compose-autotest.yml down
 
     # create and run docker-compose container
     docker-compose -p "${PROJECT_NAME}" -f compose-autotest.yml up --build -d
@@ -68,7 +66,8 @@ function start() {
     echo "=========== sleep ${SLEEP}s ============="
     sleep ${SLEEP}
 
-    docker-compose ps
+    # docker-compose ps
+    docker-compose -p "${PROJECT_NAME}" -f compose-autotest.yml ps
 
     # query node run status
     ${CLI} block last_header
@@ -236,8 +235,7 @@ function stop() {
 
     echo "=========== #stop docker-compose ============="
     docker cp "${NODE3}":/root/autotest.log ./
-    docker-compose down
-    rm ./chain33*
+    docker-compose -p "${PROJECT_NAME}" -f compose-autotest.yml down && rm ./chain33* && rm ./*.toml
 }
 
 function main() {
