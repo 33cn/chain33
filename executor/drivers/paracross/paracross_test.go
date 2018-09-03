@@ -88,6 +88,7 @@ func (suite *ExecTestSuite) SetupSuite() {
 	suite.exec.SetStateDB(suite.stateDB)
 	suite.exec.SetEnv(0, 0, 0)
 	suite.exec.SetApi(suite.api)
+	enableParacrossTransfer = false
 
 	// TODO, more fields
 	// setup block
@@ -146,6 +147,9 @@ func commitOnce(suite *ExecTestSuite, privkeyStr string) (receipt *types.Receipt
 		[]byte("state-hash-10"),
 		10,
 		[]byte("abc"),
+		[][]byte{},
+		[]byte("abc"),
+		[][]byte{},
 	}
 	tx, err := pt.CreateRawCommitTx4MainChain(&st1, types.ParaX, 0)
 	if err != nil {
