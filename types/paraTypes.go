@@ -6,6 +6,9 @@ import (
 
 var (
 	ErrParaVoteBaseIndex = errors.New("ErrParaVoteBaseIndex")
+	ErrParaVoteTxType    = errors.New("ErrParaVoteTxType")
+	ErrEmptyVoteTx       = errors.New("ErrEmptyVoteTx")
+	ErrParaVoteExecErr   = errors.New("ErrParaVoteExecErr")
 )
 
 const (
