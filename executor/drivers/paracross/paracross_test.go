@@ -15,6 +15,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/log"
 	pt "gitlab.33.cn/chain33/chain33/types/executor/paracross"
+	"bytes"
 )
 
 // 构造一个4个节点的平行链数据， 进行测试
@@ -26,7 +27,7 @@ var (
 	MainBlockHash10 = []byte("main block hash 10")
 	MainBlockHeight = int64(10)
 	CurHeight       = int64(10)
-	Title           = string("test")
+	Title           = string("test.")
 	TitleHeight     = int64(10)
 	PerBlock        = []byte("block-hash-9")
 	CurBlock        = []byte("block-hash-10")
@@ -43,9 +44,12 @@ var (
 		[]byte("1NLHPEcbTWWxxU3dGUZBhayjrCHD3psX7k"),
 		[]byte("1MCftFynyvG2F4ED5mdHYgziDxx6vDrScs"),
 	}
+
+	TokenSymbol                = "X"
+	MainBlockHeightForTransfer = int64(9)
 )
 
-type ExecTestSuite struct {
+type CommitTestSuite struct {
 	suite.Suite
 	stateDB dbm.KV
 	localDB *dbmock.KVDB
@@ -54,7 +58,7 @@ type ExecTestSuite struct {
 	exec *Paracross
 }
 
-func makeNodeInfo(key, addr string) *types.ConfigItem {
+func makeNodeInfo(key, addr string, cnt int) *types.ConfigItem {
 	var item types.ConfigItem
 	item.Key = key
 	item.Addr = addr
@@ -62,21 +66,24 @@ func makeNodeInfo(key, addr string) *types.ConfigItem {
 	emptyValue := &types.ArrayConfig{make([]string, 0)}
 	arr := types.ConfigItem_Arr{emptyValue}
 	item.Value = &arr
-	for _, n := range Nodes {
+	for i, n := range Nodes {
+		if i >= cnt {
+			break
+		}
 		item.GetArr().Value = append(item.GetArr().Value, string(n))
 	}
 	return &item
 }
 
 func init() {
-
-}
-
-func (suite *ExecTestSuite) SetupSuite() {
 	log.SetFileLog(nil)
 	log.SetLogLevel("debug")
 
 	Init()
+}
+
+func (suite *CommitTestSuite) SetupSuite() {
+
 	suite.stateDB, _ = dbm.NewGoMemDB("state", "state", 1024)
 	// memdb 不支持KVDB接口， 等测试完Exec ， 再扩展 memdb
 	//suite.localDB, _ = dbm.NewGoMemDB("local", "local", 1024)
@@ -99,7 +106,7 @@ func (suite *ExecTestSuite) SetupSuite() {
 
 	// setup title nodes : len = 4
 	nodeConfigKey := calcConfigNodesKey(Title)
-	nodeValue := makeNodeInfo(Title, Title)
+	nodeValue := makeNodeInfo(Title, Title, 4)
 	suite.stateDB.Set(nodeConfigKey, types.Encode(nodeValue))
 	value, err := suite.stateDB.Get(nodeConfigKey)
 	if err != nil {
@@ -125,7 +132,7 @@ func (suite *ExecTestSuite) SetupSuite() {
 		&types.ReplyHash{MainBlockHash10}, nil)
 }
 
-func (suite *ExecTestSuite) TestSetup() {
+func (suite *CommitTestSuite) TestSetup() {
 	nodeConfigKey := calcConfigNodesKey(Title)
 	suite.T().Log(string(nodeConfigKey))
 	_, err := suite.stateDB.Get(nodeConfigKey)
@@ -135,7 +142,7 @@ func (suite *ExecTestSuite) TestSetup() {
 	}
 }
 
-func commitOnce(suite *ExecTestSuite, privkeyStr string) (receipt *types.Receipt) {
+func fillRawCommitTx(suite suite.Suite) (*types.Transaction, error) {
 	st1 := types.ParacrossNodeStatus{
 		MainBlockHash10,
 		MainBlockHeight,
@@ -148,34 +155,50 @@ func commitOnce(suite *ExecTestSuite, privkeyStr string) (receipt *types.Receipt
 		10,
 		[]byte("abc"),
 		[][]byte{},
-		[]byte("abc"),
-		[][]byte{},
+ 		[]byte("abc"),
+ 		[][]byte{},
 	}
 	tx, err := pt.CreateRawCommitTx4MainChain(&st1, types.ParaX, 0)
 	if err != nil {
 		suite.T().Error("TestExec", "create tx failed", err)
-		return
+	}
+	return tx, err
+}
+
+func signTx(s suite.Suite, tx *types.Transaction, hexPrivKey string) (*types.Transaction, error) {
+	signType := types.SECP256K1
+	c, err := crypto.New(types.GetSignatureTypeName(signType))
+	if err != nil {
+		s.T().Error("TestExec", "new crypto failed", err)
+		return tx, err
 	}
 
-	cr, err := crypto.New(types.GetSignatureTypeName(SignedType))
+	bytes, err := common.FromHex(hexPrivKey[:])
 	if err != nil {
-		suite.T().Error("TestExec", "new crypto failed", err)
-		return
+		s.T().Error("TestExec", "Hex2Bytes privkey faiiled", err)
+		return tx, err
 	}
-	privBits, err := common.Hex2Bytes(privkeyStr[2:])
+
+	privKey, err := c.PrivKeyFromBytes(bytes)
 	if err != nil {
-		suite.T().Error("TestExec", "Hex2Bytes privkey faiiled", err)
-		return
+		s.T().Error("TestExec", "PrivKeyFromBytes failed", err)
+		return tx, err
 	}
-	privkey, err := cr.PrivKeyFromBytes(privBits)
-	if err != nil {
-		suite.T().Error("TestExec", "PrivKeyFromBytes failed", err)
-		return
-	}
-	// make priv
-	tx.Sign(types.SECP256K1, privkey)
+
+	tx.Sign(int32(signType), privKey)
+	return tx, nil
+}
+
+func commitOnce(suite *CommitTestSuite, privkeyStr string) (receipt *types.Receipt) {
+	return commitOnceImpl(suite.Suite, suite.exec, privkeyStr)
+}
+
+func commitOnceImpl(suite suite.Suite, exec *Paracross, privkeyStr string) (receipt *types.Receipt) {
+	tx, err := fillRawCommitTx(suite)
+	tx, err = signTx(suite, tx, privkeyStr)
+
 	suite.T().Log(tx.From())
-	receipt, err = suite.exec.Exec(tx, 0)
+	receipt, err = exec.Exec(tx, 0)
 	suite.T().Log(receipt)
 	assert.NotNil(suite.T(), receipt)
 	assert.Nil(suite.T(), err)
@@ -183,7 +206,7 @@ func commitOnce(suite *ExecTestSuite, privkeyStr string) (receipt *types.Receipt
 	return
 }
 
-func checkCommitReceipt(suite *ExecTestSuite, receipt *types.Receipt, commitCnt int) {
+func checkCommitReceipt(suite *CommitTestSuite, receipt *types.Receipt, commitCnt int) {
 	assert.Equal(suite.T(), receipt.Ty, int32(types.ExecOk))
 	assert.Len(suite.T(), receipt.KV, 1)
 	assert.Len(suite.T(), receipt.Logs, 1)
@@ -203,7 +226,7 @@ func checkCommitReceipt(suite *ExecTestSuite, receipt *types.Receipt, commitCnt 
 	assert.Equal(suite.T(), commitCnt, len(titleHeight.Details.Addrs))
 }
 
-func checkDoneReceipt(suite *ExecTestSuite, receipt *types.Receipt, commitCnt int) {
+func checkDoneReceipt(suite suite.Suite, receipt *types.Receipt, commitCnt int) {
 	assert.Equal(suite.T(), receipt.Ty, int32(types.ExecOk))
 	assert.Len(suite.T(), receipt.KV, 2)
 	assert.Len(suite.T(), receipt.Logs, 2)
@@ -223,7 +246,7 @@ func checkDoneReceipt(suite *ExecTestSuite, receipt *types.Receipt, commitCnt in
 	assert.Equal(suite.T(), commitCnt, len(titleHeight.Details.Addrs))
 
 	keyTitle := calcTitleKey(Title)
-	suite.T().Log("title key", string(keyTitle))
+	suite.T().Log("title key", string(keyTitle), "receipt key", len(receipt.KV))
 	assert.Equal(suite.T(), keyTitle, receipt.KV[1].Key,
 		"receipt not match", string(keyTitle), string(receipt.KV[1].Key))
 
@@ -237,7 +260,7 @@ func checkDoneReceipt(suite *ExecTestSuite, receipt *types.Receipt, commitCnt in
 	assert.Equal(suite.T(), CurBlock, titleStat.BlockHash)
 }
 
-func checkRecordReceipt(suite *ExecTestSuite, receipt *types.Receipt, commitCnt int) {
+func checkRecordReceipt(suite *CommitTestSuite, receipt *types.Receipt, commitCnt int) {
 	assert.Equal(suite.T(), receipt.Ty, int32(types.ExecOk))
 	assert.Len(suite.T(), receipt.KV, 0)
 	assert.Len(suite.T(), receipt.Logs, 1)
@@ -252,7 +275,7 @@ func checkRecordReceipt(suite *ExecTestSuite, receipt *types.Receipt, commitCnt 
 	assert.Equal(suite.T(), CurBlock, record.Status.BlockHash)
 }
 
-func (suite *ExecTestSuite) TestExec() {
+func (suite *CommitTestSuite) TestExec() {
 	receipt := commitOnce(suite, PrivKeyA)
 	checkCommitReceipt(suite, receipt, 1)
 
@@ -266,7 +289,7 @@ func (suite *ExecTestSuite) TestExec() {
 	checkCommitReceipt(suite, receipt, 2)
 
 	receipt = commitOnce(suite, PrivKeyC)
-	checkDoneReceipt(suite, receipt, 3)
+	checkDoneReceipt(suite.Suite, receipt, 3)
 
 	receipt = commitOnce(suite, PrivKeyC)
 	checkRecordReceipt(suite, receipt, 3)
@@ -275,6 +298,26 @@ func (suite *ExecTestSuite) TestExec() {
 	checkRecordReceipt(suite, receipt, 4)
 }
 
-func TestExecSuite(t *testing.T) {
-	suite.Run(t, new(ExecTestSuite))
+func TestCommitSuite(t *testing.T) {
+	suite.Run(t, new(CommitTestSuite))
+}
+
+func getTitleFrom(exec []byte) ([]byte, error) {
+        last := bytes.LastIndex(exec, []byte("."))
+        if last == -1 {
+                return nil, types.ErrNotFound
+        }
+        // 现在配置是包含 .的， 所有取title 是也把 `.` 取出来
+        return exec[:last+1], nil
+}
+
+func TestGetTitle(t *testing.T) {
+	exec := "p.user.guodun.token"
+	titleExpect := []byte("p.user.guodun.")
+	title, err := getTitleFrom([]byte(exec))
+	if err != nil {
+		t.Error("getTitleFrom", "failed", err)
+		return
+	}
+	assert.Equal(t, titleExpect, title)
 }
