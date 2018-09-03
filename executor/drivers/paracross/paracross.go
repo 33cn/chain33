@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	clog = log.New("module", "execs.paracross")
+	clog                    = log.New("module", "execs.paracross")
 	enableParacrossTransfer = true
 )
 
