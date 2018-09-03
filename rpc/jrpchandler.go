@@ -973,6 +973,7 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 			pl = map[string]interface{}{"rawlog": common.ToHex(tx.GetPayload())}
 		}
 	} else {
+		var err error
 		pl, err = plType.DecodePayload(tx)
 		if err != nil {
 			log.Info("decode payload err", err)
