@@ -48,6 +48,15 @@ func (r RetrieveType) ActionName(tx *types.Transaction) string {
 	return "unknown"
 }
 
+func (retrieve RetrieveType) DecodePayload(tx *types.Transaction) (interface{}, error) {
+	var action types.RetrieveAction
+	err := types.Decode(tx.Payload, &action)
+	if err != nil {
+		return map[string]interface{}{"unkownpayload": string(tx.Payload)}, err
+	}
+	return &action, nil
+}
+
 func (r RetrieveType) Amount(tx *types.Transaction) (int64, error) {
 	return 0, nil
 }

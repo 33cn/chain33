@@ -10,6 +10,7 @@ type ExecutorType interface {
 	ActionName(tx *Transaction) string
 	CreateTx(action string, message json.RawMessage) (*Transaction, error)
 	Amount(tx *Transaction) (int64, error)
+	DecodePayload(tx *Transaction) (interface{}, error)
 }
 
 type LogType interface {
