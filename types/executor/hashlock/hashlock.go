@@ -47,6 +47,15 @@ func (hashlock HashlockType) ActionName(tx *types.Transaction) string {
 	return "unknown"
 }
 
+func (hashlock HashlockType) DecodePayload(tx *types.Transaction) (interface{}, error) {
+	var action types.HashlockAction
+	err := types.Decode(tx.Payload, &action)
+	if err != nil {
+		return map[string]interface{}{"unkownpayload": string(tx.Payload)}, err
+	}
+	return &action, nil
+}
+
 func (t HashlockType) Amount(tx *types.Transaction) (int64, error) {
 	return 0, nil
 }

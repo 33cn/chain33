@@ -79,6 +79,15 @@ func (coins CoinsType) ActionName(tx *types.Transaction) string {
 	return "unknown"
 }
 
+func (coins CoinsType) DecodePayload(tx *types.Transaction) (interface{}, error) {
+	var action types.CoinsAction
+	err := types.Decode(tx.Payload, &action)
+	if err != nil {
+		return map[string]interface{}{"unkownpayload": string(tx.Payload)}, err
+	}
+	return &action, nil
+}
+
 func (t CoinsType) Amount(tx *types.Transaction) (int64, error) {
 	var action types.CoinsAction
 	err := types.Decode(tx.GetPayload(), &action)

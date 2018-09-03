@@ -965,7 +965,7 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 	}
 
 	var pl interface{}
-	plType := loadPayload(execStr)
+	plType := types.LoadExecutor(execStr)
 	if plType == nil {
 		if "user.write" == string(tx.Execer) {
 			pl = decodeUserWrite(tx.GetPayload())
@@ -973,7 +973,7 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 			pl = map[string]interface{}{"rawlog": common.ToHex(tx.GetPayload())}
 		}
 	} else {
-		pl, _ = plType.Decode(tx.Execer)
+		pl, _ = plType.DecodePayload(tx)
 	}
 	result := &Transaction{
 		Execer:     string(tx.Execer),
@@ -1002,40 +1002,6 @@ func realExec(txExec string) string {
 		return execSplit[len(execSplit)-1]
 	}
 	return txExec
-}
-
-func convertToPrivacyInput4Print(privacyInput *types.PrivacyInput) *types.PrivacyInput4Print {
-	input4print := &types.PrivacyInput4Print{}
-	for _, fromKeyInput := range privacyInput.Keyinput {
-		keyinput := &types.KeyInput4Print{
-			Amount:   fromKeyInput.Amount,
-			KeyImage: common.Bytes2Hex(fromKeyInput.KeyImage),
-		}
-		for _, fromUTXOGl := range fromKeyInput.UtxoGlobalIndex {
-			utxogl := &types.UTXOGlobalIndex4Print{
-				Txhash:   common.Bytes2Hex(fromUTXOGl.Txhash),
-				Outindex: fromUTXOGl.Outindex,
-			}
-			keyinput.UtxoGlobalIndex = append(keyinput.UtxoGlobalIndex, utxogl)
-		}
-
-		input4print.Keyinput = append(input4print.Keyinput, keyinput)
-	}
-	return input4print
-}
-
-func convertToPrivacyOutput4Print(privacyOutput *types.PrivacyOutput) *types.PrivacyOutput4Print {
-	output4print := &types.PrivacyOutput4Print{
-		RpubKeytx: common.Bytes2Hex(privacyOutput.RpubKeytx),
-	}
-	for _, fromoutput := range privacyOutput.Keyoutput {
-		output := &types.KeyOutput4Print{
-			Amount:        fromoutput.Amount,
-			Onetimepubkey: common.Bytes2Hex(fromoutput.Onetimepubkey),
-		}
-		output4print.Keyoutput = append(output4print.Keyoutput, output)
-	}
-	return output4print
 }
 
 func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
