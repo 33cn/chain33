@@ -372,12 +372,12 @@ func (a *action) assetTransferCoins(transfer *types.CoinsTransfer) (*types.Recei
 
 	isPara := types.IsPara()
 	if !isPara {
-		fromAcc := accDB.LoadExecAccount(a.fromaddr, types.ParaX)
+		execAddr := address.ExecAddress(types.ParaX)
+		fromAcc := accDB.LoadExecAccount(a.fromaddr, execAddr)
 		if fromAcc.Balance < transfer.Amount {
 			return nil, types.ErrNoBalance
 		}
 		toAddr := address.ExecAddress(string(a.tx.Execer))
-		execAddr := address.ExecAddress(types.ParaX)
 		clog.Debug("paracross.AssetWithdraw not isPara", "execer", string(a.tx.Execer),
 			"txHash", common.Bytes2Hex(a.tx.Hash()))
 		return accDB.ExecTransfer(a.fromaddr, toAddr, execAddr, transfer.Amount)
