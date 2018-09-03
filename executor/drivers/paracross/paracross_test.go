@@ -12,10 +12,11 @@ import (
 	dbmock "gitlab.33.cn/chain33/chain33/common/db/mocks"
 	"gitlab.33.cn/chain33/chain33/types"
 
+	"bytes"
+
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/log"
 	pt "gitlab.33.cn/chain33/chain33/types/executor/paracross"
-	"bytes"
 )
 
 // 构造一个4个节点的平行链数据， 进行测试
@@ -155,8 +156,8 @@ func fillRawCommitTx(suite suite.Suite) (*types.Transaction, error) {
 		10,
 		[]byte("abc"),
 		[][]byte{},
- 		[]byte("abc"),
- 		[][]byte{},
+		[]byte("abc"),
+		[][]byte{},
 	}
 	tx, err := pt.CreateRawCommitTx4MainChain(&st1, types.ParaX, 0)
 	if err != nil {
@@ -303,12 +304,12 @@ func TestCommitSuite(t *testing.T) {
 }
 
 func getTitleFrom(exec []byte) ([]byte, error) {
-        last := bytes.LastIndex(exec, []byte("."))
-        if last == -1 {
-                return nil, types.ErrNotFound
-        }
-        // 现在配置是包含 .的， 所有取title 是也把 `.` 取出来
-        return exec[:last+1], nil
+	last := bytes.LastIndex(exec, []byte("."))
+	if last == -1 {
+		return nil, types.ErrNotFound
+	}
+	// 现在配置是包含 .的， 所有取title 是也把 `.` 取出来
+	return exec[:last+1], nil
 }
 
 func TestGetTitle(t *testing.T) {
