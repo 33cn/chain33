@@ -67,7 +67,7 @@ func (t tradeType) DecodePayload(tx *types.Transaction) (interface{}, error) {
 	var action types.Trade
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
-		return map[string]interface{}{"unkownpayload": string(tx.Payload)}, err
+		return nil, err
 	}
 	return &action, nil
 }
