@@ -108,7 +108,7 @@ func New(cfg *types.Consensus) *ParaClient {
 	para.commitMsgClient = &CommitMsgClient{
 		paraClient:      para,
 		waitMainBlocks:  cfg.WaitBlocks4CommitMsg,
-		commitMsgNotify: make(chan *types.ParacrossNodeStatus, 1),
+		commitMsgNotify: make(chan int64, 1),
 		delMsgNotify:    make(chan int64, 1),
 		mainBlockAdd:    make(chan *types.BlockDetail, 1),
 		quit:            make(chan struct{}),
@@ -130,6 +130,10 @@ func calcSearchseq(height int64) (seq int64) {
 
 //para 不检查任何的交易
 func (client *ParaClient) CheckBlock(parent *types.Block, current *types.BlockDetail) error {
+	err := paracross.CheckVoteTx(current)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -137,6 +141,9 @@ func (client *ParaClient) ExecBlock(prevHash []byte, block *types.Block) (*types
 	//exec block
 	if block.Height == 0 {
 		block.Difficulty = types.GetP(0).PowLimitBits
+	}
+	if block.Height > 0 && !block.CheckSign() {
+		panic(types.ErrSign)
 	}
 	blockdetail, deltx, err := util.ExecBlock(client.GetQueueClient(), prevHash, block, false, true)
 	if err != nil { //never happen
@@ -486,25 +493,23 @@ func (client *ParaClient) CreateBlock() {
 }
 
 // vote tx need all para node create, but not all node has auth account, here just not sign to keep align
-func (client *ParaClient) addVoteTx(preStateHash []byte, para *types.Block, main *types.Block) error {
+func (client *ParaClient) addVoteTx(preStateHash []byte, block *types.Block, main *types.Block) error {
 	status := &types.ParacrossNodeStatus{
 		Title:        types.GetTitle(),
-		Height:       para.Height,
-		PreBlockHash: para.ParentHash,
+		Height:       block.Height,
+		PreBlockHash: block.ParentHash,
 		PreStateHash: preStateHash,
-	}
-	if main != nil {
-		status.MainBlockHash = main.Hash()
-		status.MainBlockHeight = main.Height
+		MainBlockHash:main.Hash(),
+		MainBlockHeight:main.Height,
 	}
 
 	tx, err := paracross.CreateRawVoteTx(status)
 	if err != nil {
 		return err
 	}
-	//tx.Sign(types.SECP256K1, client.privateKey)
+	tx.Sign(types.SECP256K1, client.privateKey)
 
-	para.Txs = append([]*types.Transaction{tx}, para.Txs...)
+	block.Txs = append([]*types.Transaction{tx}, block.Txs...)
 	return nil
 
 }
@@ -533,10 +538,6 @@ func (client *ParaClient) createBlock(lastBlock *types.Block, txs []*types.Trans
 	return err
 }
 
-//TODO
-func (client *ParaClient) checkVoteTx() error {
-	return nil
-}
 
 // 向blockchain写区块
 func (client *ParaClient) WriteBlock(prev []byte, paraBlock *types.Block, mainBlock *types.Block, seq int64) error {
@@ -549,10 +550,6 @@ func (client *ParaClient) WriteBlock(prev []byte, paraBlock *types.Block, mainBl
 		return err
 	}
 
-	err = client.checkVoteTx()
-	if err != nil {
-		return err
-	}
 	parablockDetail := &types.ParaChainBlockDetail{blockDetail, seq}
 	msg := client.GetQueueClient().NewMessage("blockchain", types.EventAddParaChainBlockDetail, parablockDetail)
 	client.GetQueueClient().Send(msg, true)
@@ -569,7 +566,7 @@ func (client *ParaClient) WriteBlock(prev []byte, paraBlock *types.Block, mainBl
 	client.SetCurrentBlock(paraBlock)
 
 	if client.authAccount != "" {
-		client.commitMsgClient.onBlockAdded(blockDetail)
+		client.commitMsgClient.onBlockAdded(blockDetail.Block.Height)
 	}
 
 	return nil
