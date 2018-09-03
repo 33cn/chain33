@@ -63,6 +63,15 @@ func (trade tradeType) ActionName(tx *types.Transaction) string {
 	return "unknown"
 }
 
+func (t tradeType) DecodePayload(tx *types.Transaction) (interface{}, error) {
+	var action types.Trade
+	err := types.Decode(tx.Payload, &action)
+	if err != nil {
+		return nil, err
+	}
+	return &action, nil
+}
+
 func (t tradeType) Amount(tx *types.Transaction) (int64, error) {
 	//TODO: 补充和完善token和trade分支的amount的计算, added by hzj
 	var trade types.Trade
