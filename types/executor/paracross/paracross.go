@@ -59,6 +59,15 @@ func (m ParacrossType) ActionName(tx *types.Transaction) string {
 	return "unkown"
 }
 
+func (m ParacrossType) DecodePayload(tx *types.Transaction) (interface{}, error) {
+	var action types.ParacrossAction
+	err := types.Decode(tx.Payload, &action)
+	if err != nil {
+		return map[string]interface{}{"unkownpayload": string(tx.Payload)}, err
+	}
+	return &action, nil
+}
+
 func (m ParacrossType) Amount(tx *types.Transaction) (int64, error) {
 	return 0, nil
 }
