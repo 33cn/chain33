@@ -57,7 +57,7 @@ func (ticket TicketType) DecodePayload(tx *types.Transaction) (interface{}, erro
 	var action types.TicketAction
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
-		return map[string]interface{}{"unkownpayload": string(tx.Payload)}, err
+		return nil, err
 	}
 	return &action, nil
 }

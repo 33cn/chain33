@@ -973,7 +973,11 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 			pl = map[string]interface{}{"rawlog": common.ToHex(tx.GetPayload())}
 		}
 	} else {
-		pl, _ = plType.DecodePayload(tx)
+		pl, err = plType.DecodePayload(tx)
+		if err != nil {
+			log.Info("decode payload err", err)
+			pl = map[string]interface{}{"unkownpayload": string(tx.Payload)}
+		}
 	}
 	result := &Transaction{
 		Execer:     string(tx.Execer),
