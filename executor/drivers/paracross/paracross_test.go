@@ -27,7 +27,7 @@ var (
 	MainBlockHash10 = []byte("main block hash 10")
 	MainBlockHeight = int64(10)
 	CurHeight       = int64(10)
-	Title           = string("test.")
+	Title           = string("user.p.test.")
 	TitleHeight     = int64(10)
 	PerBlock        = []byte("block-hash-9")
 	CurBlock        = []byte("block-hash-10")
