@@ -9,7 +9,10 @@ import (
 	"gitlab.33.cn/chain33/chain33/util"
 )
 
-var clog = log.New("module", "execs.paracross")
+var (
+	clog = log.New("module", "execs.paracross")
+	enableParacrossTransfer = true
+)
 
 type Paracross struct {
 	drivers.DriverBase
