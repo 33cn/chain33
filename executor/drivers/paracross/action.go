@@ -312,7 +312,7 @@ func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, er
 	saveTitle(a.db, calcTitleKey(commit.Status.Title), titleStatus)
 	clog.Info("paracross.Commit commit", "commitDone", titleStatus)
 
-	if commit.Status.Height > 0 {
+	if enableParacrossTransfer && commit.Status.Height > 0 && len(commit.Status.CrossTxHashs) > 0 {
 		crossTxReceipt, err := a.execCrossTx(commit)
 		if err != nil {
 			return nil, err
