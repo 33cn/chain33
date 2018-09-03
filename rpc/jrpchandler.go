@@ -1,7 +1,6 @@
 package rpc
 
 import (
-	"bytes"
 	"encoding/hex"
 	"fmt"
 	"strings"
@@ -959,87 +958,27 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 	if tx == nil {
 		return nil, types.ErrEmpty
 	}
+
+	execStr := string(tx.Execer)
+	if !types.IsPara() {
+		execStr = realExec(string(tx.Execer))
+	}
+
 	var pl interface{}
-	unkownPl := make(map[string]interface{})
-	if types.CoinsX == realExec(string(tx.Execer)) {
-		var action types.CoinsAction
-		err := types.Decode(tx.GetPayload(), &action)
-		if err != nil {
-			unkownPl["unkownpayload"] = string(tx.GetPayload())
-			pl = unkownPl
+	plType := types.LoadExecutor(execStr)
+	if plType == nil {
+		if "user.write" == string(tx.Execer) {
+			pl = decodeUserWrite(tx.GetPayload())
 		} else {
-			pl = &action
+			pl = map[string]interface{}{"rawlog": common.ToHex(tx.GetPayload())}
 		}
-	} else if types.TicketX == realExec(string(tx.Execer)) {
-		var action types.TicketAction
-		err := types.Decode(tx.GetPayload(), &action)
-		if err != nil {
-			unkownPl["unkownpayload"] = string(tx.GetPayload())
-			pl = unkownPl
-		} else {
-			pl = &action
-		}
-	} else if types.HashlockX == realExec(string(tx.Execer)) {
-		var action types.HashlockAction
-		err := types.Decode(tx.GetPayload(), &action)
-		if err != nil {
-			unkownPl["unkownpayload"] = string(tx.GetPayload())
-			pl = unkownPl
-		} else {
-			pl = &action
-		}
-	} else if types.TokenX == realExec(string(tx.Execer)) {
-		var action types.TokenAction
-		err := types.Decode(tx.GetPayload(), &action)
-		if err != nil {
-			unkownPl["unkownpayload"] = string(tx.GetPayload())
-			pl = unkownPl
-		} else {
-			pl = &action
-		}
-	} else if types.TradeX == realExec(string(tx.Execer)) {
-		var action types.Trade
-		err := types.Decode(tx.GetPayload(), &action)
-		if err != nil {
-			unkownPl["unkownpayload"] = string(tx.GetPayload())
-			pl = unkownPl
-		} else {
-			pl = &action
-		}
-		pl = &action
-	} else if types.PrivacyX == realExec(string(tx.Execer)) {
-		pl = decodePrivacyAction(tx.GetPayload())
-	} else if types.EvmX == realExec(string(tx.Execer)) {
-		var action types.EVMContractAction
-		err := types.Decode(tx.GetPayload(), &action)
-		if err != nil {
-			unkownPl["unkownpayload"] = string(tx.GetPayload())
-			pl = unkownPl
-		} else {
-			pl = &action
-		}
-	} else if types.RetrieveX == realExec(string(tx.Execer)) {
-		var action types.RetrieveAction
-		err := types.Decode(tx.GetPayload(), &action)
-		if err != nil {
-			unkownPl["unkownpayload"] = string(tx.GetPayload())
-			pl = unkownPl
-		} else {
-			pl = &action
-		}
-	} else if types.GameX == realExec(string(tx.Execer)) {
-		var action types.GameAction
-		err := types.Decode(tx.GetPayload(), &action)
-		if err != nil {
-			unkownPl["unkownpayload"] = string(tx.GetPayload())
-			pl = unkownPl
-		} else {
-			pl = &action
-		}
-	} else if "user.write" == string(tx.Execer) {
-		pl = decodeUserWrite(tx.GetPayload())
 	} else {
-		pl = map[string]interface{}{"rawlog": common.ToHex(tx.GetPayload())}
+		var err error
+		pl, err = plType.DecodePayload(tx)
+		if err != nil {
+			log.Info("decode payload err", err)
+			pl = map[string]interface{}{"unkownpayload": string(tx.Payload)}
+		}
 	}
 	result := &Transaction{
 		Execer:     string(tx.Execer),
@@ -1068,103 +1007,6 @@ func realExec(txExec string) string {
 		return execSplit[len(execSplit)-1]
 	}
 	return txExec
-}
-
-func convertToPrivacyInput4Print(privacyInput *types.PrivacyInput) *types.PrivacyInput4Print {
-	input4print := &types.PrivacyInput4Print{}
-	for _, fromKeyInput := range privacyInput.Keyinput {
-		keyinput := &types.KeyInput4Print{
-			Amount:   fromKeyInput.Amount,
-			KeyImage: common.Bytes2Hex(fromKeyInput.KeyImage),
-		}
-		for _, fromUTXOGl := range fromKeyInput.UtxoGlobalIndex {
-			utxogl := &types.UTXOGlobalIndex4Print{
-				Txhash:   common.Bytes2Hex(fromUTXOGl.Txhash),
-				Outindex: fromUTXOGl.Outindex,
-			}
-			keyinput.UtxoGlobalIndex = append(keyinput.UtxoGlobalIndex, utxogl)
-		}
-
-		input4print.Keyinput = append(input4print.Keyinput, keyinput)
-	}
-	return input4print
-}
-
-func convertToPrivacyOutput4Print(privacyOutput *types.PrivacyOutput) *types.PrivacyOutput4Print {
-	output4print := &types.PrivacyOutput4Print{
-		RpubKeytx: common.Bytes2Hex(privacyOutput.RpubKeytx),
-	}
-	for _, fromoutput := range privacyOutput.Keyoutput {
-		output := &types.KeyOutput4Print{
-			Amount:        fromoutput.Amount,
-			Onetimepubkey: common.Bytes2Hex(fromoutput.Onetimepubkey),
-		}
-		output4print.Keyoutput = append(output4print.Keyoutput, output)
-	}
-	return output4print
-}
-
-func decodePrivacyAction(payload []byte) interface{} {
-	fromAction := &types.PrivacyAction{}
-	err := types.Decode(payload, fromAction)
-	if err != nil {
-		return nil
-	}
-	retAction := &types.PrivacyAction4Print{}
-	retAction.Ty = fromAction.Ty
-	if fromAction.GetPublic2Privacy() != nil {
-		fromValue := fromAction.GetPublic2Privacy()
-		value := &types.Public2Privacy4Print{}
-
-		value.Tokenname = fromValue.Tokenname
-		value.Amount = fromValue.Amount
-		value.Note = fromValue.Note
-		value.Output = convertToPrivacyOutput4Print(fromValue.Output)
-
-		retAction.Value = &types.PrivacyAction4Print_Public2Privacy{Public2Privacy: value}
-	} else if fromAction.GetPrivacy2Privacy() != nil {
-		fromValue := fromAction.GetPrivacy2Privacy()
-		value := &types.Privacy2Privacy4Print{}
-
-		value.Tokenname = fromValue.Tokenname
-		value.Amount = fromValue.Amount
-		value.Note = fromValue.Note
-
-		value.Input = convertToPrivacyInput4Print(fromValue.Input)
-		value.Output = convertToPrivacyOutput4Print(fromValue.Output)
-
-		retAction.Value = &types.PrivacyAction4Print_Privacy2Privacy{Privacy2Privacy: value}
-	} else if fromAction.GetPrivacy2Public() != nil {
-		fromValue := fromAction.GetPrivacy2Public()
-		value := &types.Privacy2Public4Print{}
-
-		value.Tokenname = fromValue.Tokenname
-		value.Amount = fromValue.Amount
-		value.Note = fromValue.Note
-
-		value.Input = convertToPrivacyInput4Print(fromValue.Input)
-		value.Output = convertToPrivacyOutput4Print(fromValue.Output)
-
-		retAction.Value = &types.PrivacyAction4Print_Privacy2Public{Privacy2Public: value}
-	}
-	return retAction
-}
-
-func decodeUserWrite(payload []byte) *userWrite {
-	var article userWrite
-	if len(payload) != 0 {
-		if payload[0] == '#' {
-			data := bytes.SplitN(payload[1:], []byte("#"), 2)
-			if len(data) == 2 {
-				article.Topic = string(data[0])
-				article.Content = string(data[1])
-				return &article
-			}
-		}
-	}
-	article.Topic = ""
-	article.Content = string(payload)
-	return &article
 }
 
 func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {

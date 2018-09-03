@@ -88,6 +88,16 @@ func (game GameType) ActionName(tx *types.Transaction) string {
 	}
 	return "unknown"
 }
+
+func (game GameType) DecodePayload(tx *types.Transaction) (interface{}, error) {
+	var action types.GameAction
+	err := types.Decode(tx.Payload, &action)
+	if err != nil {
+		return nil, err
+	}
+	return &action, nil
+}
+
 func (game GameType) Amount(tx *types.Transaction) (int64, error) {
 	return 0, nil
 }
