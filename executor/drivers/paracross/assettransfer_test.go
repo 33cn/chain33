@@ -16,13 +16,15 @@ import (
 	pt "gitlab.33.cn/chain33/chain33/types/executor/paracross"
 )
 
+// para-exec addr on main 1HPkPopVe3ERfvaAgedDtJQ792taZFEHCe
+// para-exec addr on para 16zsMh7mvNDKPG6E9NVrPhw6zL93gWsTpR
+
 var (
 	Amount = int64(1 * types.Coin)
 )
 
 // 构建跨链交易, 用1个节点即可， 不测试共识
-// 流程模拟
-//   Height 10 有 assetTransfer
+//    assetTransfer
 //	 分别测试在主链和平行链的情况
 
 type AssetTransferTestSuite struct {
@@ -119,7 +121,7 @@ func (suite *AssetTransferTestSuite) TestExecTransfer() {
 	acc := account.NewCoinsAccount()
 	acc.SetDB(suite.stateDB)
 	addrMain := address.ExecAddress(types.ParaX)
-	addrTest := address.ExecAddress(Title + types.ParaX)
+	addrPara := address.ExecAddress(Title + types.ParaX)
 
 	acc.SaveExecAccount(addrMain, &accountA)
 
@@ -143,7 +145,10 @@ func (suite *AssetTransferTestSuite) TestExecTransfer() {
 		}
 		suite.T().Log(string(kv.Key), v)
 	}
-	accTest := acc.LoadExecAccount(addrTest, addrMain)
+	suite.T().Log("para-exec addr on main", addrMain)
+	suite.T().Log("para-exec addr on para", addrPara)
+	suite.T().Log("para-exec addr for A account", accountA.Addr)
+	accTest := acc.LoadExecAccount(addrPara, addrMain)
 	assert.Equal(suite.T(), Amount, accTest.Balance)
 
 	resultA := acc.LoadExecAccount(string(Nodes[0]), addrMain)
