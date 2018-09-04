@@ -140,19 +140,20 @@ func (c *Paracross) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData,
 
 			var mixTxHashs, paraTxHashs, crossTxHashs [][]byte
 			for _, tx := range c.GetTxs() {
-				mixTxHashs = append(mixTxHashs, tx.Hash())
+				hash := tx.Hash()
+				mixTxHashs = append(mixTxHashs, hash)
 				//跨链交易包含了主链交易，需要过滤出来
 				if bytes.Contains(tx.Execer, []byte(types.ExecNamePrefix)) {
-					paraTxHashs = append(paraTxHashs, tx.Hash())
+					paraTxHashs = append(paraTxHashs, hash)
 					if tx.GroupCount > 1 {
-						crossTxHashs = append(crossTxHashs, tx.Hash())
+						crossTxHashs = append(crossTxHashs, hash)
 					}
 				}
 			}
 			g.Status.TxHashs = paraTxHashs
-			g.Status.TxResult = util.CalcCurBitMap(mixTxHashs, paraTxHashs, c.GetReceipt())
+			g.Status.TxResult = util.CalcSubBitMap(mixTxHashs, paraTxHashs, c.GetReceipt())
 			g.Status.CrossTxHashs = crossTxHashs
-			g.Status.CrossTxResult = util.CalcCurBitMap(mixTxHashs, crossTxHashs, c.GetReceipt())
+			g.Status.CrossTxResult = util.CalcSubBitMap(mixTxHashs, crossTxHashs, c.GetReceipt())
 
 			set.KV = append(set.KV, &types.KeyValue{pt.CalcVoteHeightKey(g.Status.Title, g.Status.Height), types.Encode(g.Status)})
 

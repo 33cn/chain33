@@ -204,7 +204,7 @@ func TestExecutorGetTxGroup(t *testing.T) {
 	txgroup.SignN(1, types.SECP256K1, priv2)
 	txgroup.SignN(2, types.SECP256K1, priv3)
 	txs = txgroup.GetTxs()
-	execute := newExecutor(nil, exec, 1, time.Now().Unix(), 1, txs)
+	execute := newExecutor(nil, exec, 1, time.Now().Unix(), 1, txs, nil)
 	e := execute.loadDriverForExec(types.ExecName("coins"), execute.height)
 	execute.setEnv(e)
 	txs2 := e.GetTxs()
@@ -219,7 +219,7 @@ func TestExecutorGetTxGroup(t *testing.T) {
 
 	//err tx group list
 	txs[0].Header = nil
-	execute = newExecutor(nil, exec, 1, time.Now().Unix(), 1, txs)
+	execute = newExecutor(nil, exec, 1, time.Now().Unix(), 1, txs, nil)
 	e = execute.loadDriverForExec(types.ExecName("coins"), execute.height)
 	execute.setEnv(e)
 	_, err = e.GetTxGroup(len(txs) - 1)
