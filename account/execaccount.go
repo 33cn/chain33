@@ -293,6 +293,10 @@ func (acc *DB) ExecWithdraw(execaddr, addr string, amount int64) (*types.Receipt
 	if !types.CheckAmount(amount) {
 		return nil, types.ErrAmount
 	}
+	accExec := acc.LoadAccount(execaddr)
+	if accExec.Balance-amount < 0 {
+		return nil, types.ErrNoBalance
+	}
 	acc1 := acc.LoadExecAccount(addr, execaddr)
 	if acc1.Balance-amount < 0 {
 		return nil, types.ErrNoBalance
