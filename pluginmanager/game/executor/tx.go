@@ -1,4 +1,4 @@
-package game
+package executor
 
 type GamePreCreateTx struct {
 	//Secret     string `json:"secret"`
@@ -28,7 +28,7 @@ type GamePreCloseTx struct {
 	Fee    int64  `json:"fee"`
 }
 
-type Game struct {
+type GameData struct {
 	// 默认是由创建这局游戏的txHash作为gameId
 	GameId string `json:"gameId"`
 	// create 1 -> Match 2 -> Cancel 3 -> Close 4    Pending 5  //表示有人参与游戏，但还未打包

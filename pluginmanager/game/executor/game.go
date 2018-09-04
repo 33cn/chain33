@@ -1,25 +1,19 @@
-package game
+package executor
 
 import (
 	"fmt"
 
+	"gitlab.33.cn/chain33/chain33/pluginmanager/manager"
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/types"
+	gt "gitlab.33.cn/chain33/chain33/pluginmanager/game/types"
 )
 
 var glog = log.New("module", "execs.game")
 
-const (
-	//查询方法名
-	FuncName_QueryGameListByIds           = "QueryGameListByIds"
-	FuncName_QueryGameListCount           = "QueryGameListCount"
-	FuncName_QueryGameListByStatusAndAddr = "QueryGameListByStatusAndAddr"
-	FuncName_QueryGameById                = "QueryGameById"
-)
-
-func Init() {
-	drivers.Register(newGame().GetName(), newGame, 0)
+func init() {
+	manager.RegisterExecutor(newGame().GetName(), newGame, 0)
 }
 
 type Game struct {
@@ -37,20 +31,20 @@ func (g *Game) GetName() string {
 }
 
 func (g *Game) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
-	var action types.GameAction
+	var action gt.GameAction
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
 		return nil, err
 	}
 	glog.Debug("exec Game tx=", "tx=", action)
 	actiondb := NewAction(g, tx, index)
-	if action.Ty == types.GameActionCreate && action.GetCreate() != nil {
+	if action.Ty == gt.GameActionCreate && action.GetCreate() != nil {
 		return actiondb.GameCreate(action.GetCreate())
-	} else if action.Ty == types.GameActionCancel && action.GetCancel() != nil {
+	} else if action.Ty == gt.GameActionCancel && action.GetCancel() != nil {
 		return actiondb.GameCancel(action.GetCancel())
-	} else if action.Ty == types.GameActionClose && action.GetClose() != nil {
+	} else if action.Ty == gt.GameActionClose && action.GetClose() != nil {
 		return actiondb.GameClose(action.GetClose())
-	} else if action.Ty == types.GameActionMatch && action.GetMatch() != nil {
+	} else if action.Ty == gt.GameActionMatch && action.GetMatch() != nil {
 		return actiondb.GameMatch(action.GetMatch())
 	}
 	return nil, types.ErrActionNotSupport
@@ -68,7 +62,7 @@ func (g *Game) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, inde
 		item := receipt.Logs[i]
 		//这四个是Game 的log
 		if item.Ty == types.TyLogCreateGame || item.Ty == types.TyLogMatchGame || item.Ty == types.TyLogCloseGame || item.Ty == types.TyLogCancleGame {
-			var Gamelog types.ReceiptGame
+			var Gamelog gt.ReceiptGame
 			err := types.Decode(item.Log, &Gamelog)
 			if err != nil {
 				panic(err) //数据错误了，已经被修改了
@@ -91,7 +85,7 @@ func (g *Game) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, i
 	for i := 0; i < len(receipt.Logs); i++ {
 		item := receipt.Logs[i]
 		if item.Ty == types.TyLogCreateGame || item.Ty == types.TyLogMatchGame || item.Ty == types.TyLogCloseGame || item.Ty == types.TyLogCancleGame {
-			var Gamelog types.ReceiptGame
+			var Gamelog gt.ReceiptGame
 			err := types.Decode(item.Log, &Gamelog)
 			if err != nil {
 				panic(err) //数据错误了，已经被修改了
@@ -105,64 +99,64 @@ func (g *Game) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, i
 }
 
 //更新索引
-func (g *Game) updateIndex(log *types.ReceiptGame) (kvs []*types.KeyValue) {
+func (g *Game) updateIndex(log *gt.ReceiptGame) (kvs []*types.KeyValue) {
 	//先保存本次Action产生的索引
 	kvs = append(kvs, addGameAddrIndex(log.Status, log.GameId, log.Addr, log.Index))
 	kvs = append(kvs, addGameStatusIndex(log.Status, log.GameId, log.Index))
-	if log.Status == types.GameActionMatch {
+	if log.Status == gt.GameActionMatch {
 		kvs = append(kvs, addGameAddrIndex(log.Status, log.GameId, log.CreateAddr, log.Index))
-		kvs = append(kvs, delGameAddrIndex(types.GameActionCreate, log.CreateAddr, log.PrevIndex))
-		kvs = append(kvs, delGameStatusIndex(types.GameActionCreate, log.PrevIndex))
+		kvs = append(kvs, delGameAddrIndex(gt.GameActionCreate, log.CreateAddr, log.PrevIndex))
+		kvs = append(kvs, delGameStatusIndex(gt.GameActionCreate, log.PrevIndex))
 	}
-	if log.Status == types.GameActionCancel {
-		kvs = append(kvs, delGameAddrIndex(types.GameActionCreate, log.CreateAddr, log.PrevIndex))
-		kvs = append(kvs, delGameStatusIndex(types.GameActionCreate, log.PrevIndex))
+	if log.Status == gt.GameActionCancel {
+		kvs = append(kvs, delGameAddrIndex(gt.GameActionCreate, log.CreateAddr, log.PrevIndex))
+		kvs = append(kvs, delGameStatusIndex(gt.GameActionCreate, log.PrevIndex))
 	}
 
-	if log.Status == types.GameActionClose {
+	if log.Status == gt.GameActionClose {
 		kvs = append(kvs, addGameAddrIndex(log.Status, log.GameId, log.MatchAddr, log.Index))
-		kvs = append(kvs, delGameAddrIndex(types.GameActionMatch, log.MatchAddr, log.PrevIndex))
-		kvs = append(kvs, delGameAddrIndex(types.GameActionMatch, log.CreateAddr, log.PrevIndex))
-		kvs = append(kvs, delGameStatusIndex(types.GameActionMatch, log.PrevIndex))
+		kvs = append(kvs, delGameAddrIndex(gt.GameActionMatch, log.MatchAddr, log.PrevIndex))
+		kvs = append(kvs, delGameAddrIndex(gt.GameActionMatch, log.CreateAddr, log.PrevIndex))
+		kvs = append(kvs, delGameStatusIndex(gt.GameActionMatch, log.PrevIndex))
 	}
 	return kvs
 }
 
 //回滚索引
-func (g *Game) rollbackIndex(log *types.ReceiptGame) (kvs []*types.KeyValue) {
+func (g *Game) rollbackIndex(log *gt.ReceiptGame) (kvs []*types.KeyValue) {
 	//先删除本次Action产生的索引
 	kvs = append(kvs, delGameAddrIndex(log.Status, log.Addr, log.Index))
 	kvs = append(kvs, delGameStatusIndex(log.Status, log.Index))
 
-	if log.Status == types.GameActionMatch {
+	if log.Status == gt.GameActionMatch {
 		kvs = append(kvs, delGameAddrIndex(log.Status, log.CreateAddr, log.Index))
-		kvs = append(kvs, addGameAddrIndex(types.GameActionCreate, log.GameId, log.CreateAddr, log.PrevIndex))
-		kvs = append(kvs, addGameStatusIndex(types.GameActionCreate, log.GameId, log.PrevIndex))
+		kvs = append(kvs, addGameAddrIndex(gt.GameActionCreate, log.GameId, log.CreateAddr, log.PrevIndex))
+		kvs = append(kvs, addGameStatusIndex(gt.GameActionCreate, log.GameId, log.PrevIndex))
 	}
 
-	if log.Status == types.GameActionCancel {
-		kvs = append(kvs, addGameAddrIndex(types.GameActionCreate, log.GameId, log.CreateAddr, log.PrevIndex))
-		kvs = append(kvs, addGameStatusIndex(types.GameActionCreate, log.GameId, log.PrevIndex))
+	if log.Status == gt.GameActionCancel {
+		kvs = append(kvs, addGameAddrIndex(gt.GameActionCreate, log.GameId, log.CreateAddr, log.PrevIndex))
+		kvs = append(kvs, addGameStatusIndex(gt.GameActionCreate, log.GameId, log.PrevIndex))
 	}
 
-	if log.Status == types.GameActionClose {
+	if log.Status == gt.GameActionClose {
 		kvs = append(kvs, delGameAddrIndex(log.Status, log.MatchAddr, log.Index))
-		kvs = append(kvs, addGameAddrIndex(types.GameActionMatch, log.GameId, log.MatchAddr, log.PrevIndex))
-		kvs = append(kvs, addGameAddrIndex(types.GameActionMatch, log.GameId, log.CreateAddr, log.PrevIndex))
-		kvs = append(kvs, addGameStatusIndex(types.GameActionMatch, log.GameId, log.PrevIndex))
+		kvs = append(kvs, addGameAddrIndex(gt.GameActionMatch, log.GameId, log.MatchAddr, log.PrevIndex))
+		kvs = append(kvs, addGameAddrIndex(gt.GameActionMatch, log.GameId, log.CreateAddr, log.PrevIndex))
+		kvs = append(kvs, addGameStatusIndex(gt.GameActionMatch, log.GameId, log.PrevIndex))
 	}
 	return kvs
 }
 func (g *Game) Query(funcName string, params []byte) (types.Message, error) {
 	if funcName == FuncName_QueryGameListByIds {
-		var info types.QueryGameInfos
+		var info gt.QueryGameInfos
 		err := types.Decode(params, &info)
 		if err != nil {
 			return nil, err
 		}
 		return Infos(g.GetStateDB(), &info)
 	} else if funcName == FuncName_QueryGameById {
-		var gameInfo types.QueryGameInfo
+		var gameInfo gt.QueryGameInfo
 		err := types.Decode(params, &gameInfo)
 		if err != nil {
 			return nil, err
@@ -171,16 +165,16 @@ func (g *Game) Query(funcName string, params []byte) (types.Message, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &types.ReplyGame{game}, nil
+		return &gt.ReplyGame{game}, nil
 	} else if funcName == FuncName_QueryGameListByStatusAndAddr {
-		var q types.QueryGameListByStatusAndAddr
+		var q gt.QueryGameListByStatusAndAddr
 		err := types.Decode(params, &q)
 		if err != nil {
 			return nil, err
 		}
 		return List(g.GetLocalDB(), g.GetStateDB(), &q)
 	} else if funcName == FuncName_QueryGameListCount {
-		var q types.QueryGameListCount
+		var q gt.QueryGameListCount
 		err := types.Decode(params, &q)
 		if err != nil {
 			return nil, err
@@ -210,7 +204,7 @@ func calcGameAddrIndexPrefix(status int32, addr string) []byte {
 func addGameStatusIndex(status int32, gameId string, index int64) *types.KeyValue {
 	kv := &types.KeyValue{}
 	kv.Key = calcGameStatusIndexKey(status, index)
-	record := &types.GameRecord{
+	record := &gt.GameRecord{
 		GameId: gameId,
 		Index:  index,
 	}
@@ -220,7 +214,7 @@ func addGameStatusIndex(status int32, gameId string, index int64) *types.KeyValu
 func addGameAddrIndex(status int32, gameId, addr string, index int64) *types.KeyValue {
 	kv := &types.KeyValue{}
 	kv.Key = calcGameAddrIndexKey(status, addr, index)
-	record := &types.GameRecord{
+	record := &gt.GameRecord{
 		GameId: gameId,
 		Index:  index,
 	}

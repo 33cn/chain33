@@ -1,4 +1,4 @@
-package game
+package executor
 
 //database opeartion for executor game
 import (
@@ -11,6 +11,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
+	gt "gitlab.33.cn/chain33/chain33/pluginmanager/game/types"
 )
 
 const (
@@ -70,23 +71,24 @@ const (
 
 */
 
-func (action *Action) GetReceiptLog(game *types.Game) *types.ReceiptLog {
+func (action *Action) GetReceiptLog(game *gt.Game) *types.ReceiptLog {
 	log := &types.ReceiptLog{}
-	r := &types.ReceiptGame{}
+	r := &gt.ReceiptGame{}
 	//TODO 记录这个action由哪个地址触发的
 	r.Addr = action.fromaddr
-	if game.Status == types.GameActionCreate {
+	if game.Status == gt.GameActionCreate {
+		// TODO: 这里需要将游戏相关的类型从系统核心代码中移除
 		log.Ty = types.TyLogCreateGame
 		r.PrevStatus = -1
-	} else if game.Status == types.GameActionCancel {
+	} else if game.Status == gt.GameActionCancel {
 		log.Ty = types.TyLogCancleGame
-		r.PrevStatus = types.GameActionCreate
-	} else if game.Status == types.GameActionMatch {
+		r.PrevStatus = gt.GameActionCreate
+	} else if game.Status == gt.GameActionMatch {
 		log.Ty = types.TyLogMatchGame
-		r.PrevStatus = types.GameActionCreate
-	} else if game.Status == types.GameActionClose {
+		r.PrevStatus = gt.GameActionCreate
+	} else if game.Status == gt.GameActionClose {
 		log.Ty = types.TyLogCloseGame
-		r.PrevStatus = types.GameActionMatch
+		r.PrevStatus = gt.GameActionMatch
 		r.Addr = game.GetCreateAddress()
 	}
 	r.GameId = game.GameId
@@ -100,10 +102,10 @@ func (action *Action) GetReceiptLog(game *types.Game) *types.ReceiptLog {
 }
 
 //fmt.Sprintf("%018d", action.height*types.MaxTxsPerBlock+int64(action.index))
-func (action *Action) GetIndex(game *types.Game) int64 {
+func (action *Action) GetIndex(game *gt.Game) int64 {
 	return action.height*types.MaxTxsPerBlock + int64(action.index)
 }
-func (action *Action) GetKVSet(game *types.Game) (kvset []*types.KeyValue) {
+func (action *Action) GetKVSet(game *gt.Game) (kvset []*types.KeyValue) {
 	value := types.Encode(game)
 	kvset = append(kvset, &types.KeyValue{Key(game.GameId), value})
 	return kvset
@@ -124,7 +126,7 @@ func (action *Action) updateStateDBCache(status int32, addr string) {
 	}
 	action.db.Set(CalcCountKey(status, addr), []byte(strconv.FormatInt(count+1, 10)))
 }
-func (action *Action) saveStateDB(game *types.Game) {
+func (action *Action) saveStateDB(game *gt.Game) {
 	action.db.Set(Key(game.GetGameId()), types.Encode(game))
 }
 func CalcCountKey(status int32, addr string) (key []byte) {
@@ -164,7 +166,7 @@ func (action *Action) CheckExecAccountBalance(fromAddr string, ToFrozen, ToActiv
 	}
 	return false
 }
-func (action *Action) GameCreate(create *types.GameCreate) (*types.Receipt, error) {
+func (action *Action) GameCreate(create *gt.GameCreate) (*types.Receipt, error) {
 	gameId := common.ToHex(action.txhash)
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
@@ -188,14 +190,14 @@ func (action *Action) GameCreate(create *types.GameCreate) (*types.Receipt, erro
 		glog.Error("GameCreate.ExecFrozen", "addr", action.fromaddr, "execaddr", action.execaddr, "amount", create.GetValue(), "err", err.Error())
 		return nil, err
 	}
-	game := &types.Game{
+	game := &gt.Game{
 		GameId:        gameId,
 		Value:         create.GetValue(),
 		HashType:      create.GetHashType(),
 		HashValue:     create.GetHashValue(),
 		CreateTime:    action.blocktime,
 		CreateAddress: action.fromaddr,
-		Status:        types.GameActionCreate,
+		Status:        gt.GameActionCreate,
 		CreateTxHash:  gameId,
 	}
 	//更新stateDB缓存，用于计数
@@ -215,14 +217,14 @@ func (action *Action) GameCreate(create *types.GameCreate) (*types.Receipt, erro
 }
 
 //match game
-func (action *Action) GameMatch(match *types.GameMatch) (*types.Receipt, error) {
+func (action *Action) GameMatch(match *gt.GameMatch) (*types.Receipt, error) {
 	game, err := action.readGame(match.GetGameId())
 	if err != nil {
 		glog.Error("GameMatch", "addr", action.fromaddr, "execaddr", action.execaddr, "get game failed",
 			match.GetGameId(), "err", err)
 		return nil, err
 	}
-	if game.GetStatus() != types.GameActionCreate {
+	if game.GetStatus() != gt.GameActionCreate {
 		glog.Error("GameMatch", "addr", action.fromaddr, "execaddr", action.execaddr, "id",
 			match.GetGameId(), "err", types.ErrGameMatchStatus)
 		return nil, types.ErrGameMatchStatus
@@ -243,7 +245,7 @@ func (action *Action) GameMatch(match *types.GameMatch) (*types.Receipt, error) 
 		glog.Error("GameMatch.ExecFrozen", "addr", action.fromaddr, "execaddr", action.execaddr, "amount", game.GetValue()/2, "err", err.Error())
 		return nil, err
 	}
-	game.Status = types.GameActionMatch
+	game.Status = gt.GameActionMatch
 	game.Value = game.GetValue()/2 + game.GetValue()
 	game.MatchAddress = action.fromaddr
 	game.MatchTime = action.blocktime
@@ -268,7 +270,7 @@ func (action *Action) GameMatch(match *types.GameMatch) (*types.Receipt, error) 
 	receipts := &types.Receipt{types.ExecOk, kvs, logs}
 	return receipts, nil
 }
-func (action *Action) GameCancel(cancel *types.GameCancel) (*types.Receipt, error) {
+func (action *Action) GameCancel(cancel *gt.GameCancel) (*types.Receipt, error) {
 	game, err := action.readGame(cancel.GetGameId())
 	if err != nil {
 		glog.Error("GameCancel ", "addr", action.fromaddr, "execaddr", action.execaddr, "get game failed",
@@ -280,7 +282,7 @@ func (action *Action) GameCancel(cancel *types.GameCancel) (*types.Receipt, erro
 			cancel.GetGameId(), "err", types.ErrGameCancleAddr)
 		return nil, types.ErrGameCancleAddr
 	}
-	if game.GetStatus() != types.GameActionCreate {
+	if game.GetStatus() != gt.GameActionCreate {
 		glog.Error("GameCancel ", "addr", action.fromaddr, "execaddr", action.execaddr, "id",
 			cancel.GetGameId(), "err", types.ErrGameCancleStatus)
 		return nil, types.ErrGameCancleStatus
@@ -297,7 +299,7 @@ func (action *Action) GameCancel(cancel *types.GameCancel) (*types.Receipt, erro
 		return nil, err
 	}
 	game.Closetime = action.blocktime
-	game.Status = types.GameActionCancel
+	game.Status = gt.GameActionCancel
 	game.CancelTxHash = common.ToHex(action.txhash)
 	game.PrevIndex = game.GetIndex()
 	game.Index = action.GetIndex(game)
@@ -318,7 +320,7 @@ func (action *Action) GameCancel(cancel *types.GameCancel) (*types.Receipt, erro
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
 }
 
-func (action *Action) GameClose(close *types.GameClose) (*types.Receipt, error) {
+func (action *Action) GameClose(close *gt.GameClose) (*types.Receipt, error) {
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
 	game, err := action.readGame(close.GetGameId())
@@ -333,7 +335,7 @@ func (action *Action) GameClose(close *types.GameClose) (*types.Receipt, error) 
 		glog.Error(types.ErrGameCloseAddr.Error())
 		return nil, types.ErrGameCloseAddr
 	}
-	if game.GetStatus() != types.GameActionMatch {
+	if game.GetStatus() != gt.GameActionMatch {
 		glog.Error(types.ErrGameCloseStatus.Error())
 		return nil, types.ErrGameCloseStatus
 	}
@@ -438,7 +440,7 @@ func (action *Action) GameClose(close *types.GameClose) (*types.Receipt, error) 
 		kv = append(kv, receipt.KV...)
 	}
 	game.Closetime = action.blocktime
-	game.Status = types.GameActionClose
+	game.Status = gt.GameActionClose
 	game.Secret = close.GetSecret()
 	game.Result = result
 	game.CloseTxHash = common.ToHex(action.txhash)
@@ -461,14 +463,14 @@ func (action *Action) GameClose(close *types.GameClose) (*types.Receipt, error) 
 
 // 检查开奖是否超时，若超过一天，则不让庄家开奖，但其他人可以开奖，
 // 若没有一天，则其他人没有开奖权限，只有庄家有开奖权限
-func (action *Action) checkGameIsTimeOut(game *types.Game) bool {
+func (action *Action) checkGameIsTimeOut(game *gt.Game) bool {
 	activeTime := GetConfValue(action.db, ConfName_ActiveTime, ActiveTime)
 	DurTime := 60 * 60 * activeTime
 	return action.blocktime > (game.GetMatchTime() + DurTime)
 }
 
 //根据传入密钥，揭晓游戏结果
-func (action *Action) checkGameResult(game *types.Game, close *types.GameClose) (int32, int32) {
+func (action *Action) checkGameResult(game *gt.Game, close *gt.GameClose) (int32, int32) {
 	//如果超时，直接走超时开奖逻辑
 	if action.checkGameIsTimeOut(game) {
 		return IsTimeOut, Unknown
@@ -512,12 +514,12 @@ func (action *Action) checkGameResult(game *types.Game, close *types.GameClose) 
 	return IsMatcherWin, Unknown
 }
 
-func (action *Action) readGame(id string) (*types.Game, error) {
+func (action *Action) readGame(id string) (*gt.Game, error) {
 	data, err := action.db.Get(Key(id))
 	if err != nil {
 		return nil, err
 	}
-	var game types.Game
+	var game gt.Game
 	//decode
 	err = types.Decode(data, &game)
 	if err != nil {
@@ -526,20 +528,20 @@ func (action *Action) readGame(id string) (*types.Game, error) {
 	return &game, nil
 }
 
-func List(db dbm.Lister, stateDB dbm.KV, param *types.QueryGameListByStatusAndAddr) (types.Message, error) {
+func List(db dbm.Lister, stateDB dbm.KV, param *gt.QueryGameListByStatusAndAddr) (types.Message, error) {
 	return QueryGameListByPage(db, stateDB, param)
 }
 
 //分页查询
-func QueryGameListByPage(db dbm.Lister, stateDB dbm.KV, param *types.QueryGameListByStatusAndAddr) (types.Message, error) {
+func QueryGameListByPage(db dbm.Lister, stateDB dbm.KV, param *gt.QueryGameListByStatusAndAddr) (types.Message, error) {
 	switch param.GetStatus() {
-	case types.GameActionCreate, types.GameActionMatch, types.GameActionClose, types.GameActionCancel:
+	case gt.GameActionCreate, gt.GameActionMatch, gt.GameActionClose, gt.GameActionCancel:
 		return queryGameListByStatusAndAddr(db, stateDB, param)
 	}
 	return nil, fmt.Errorf("the status only fill in 1,2,3,4!")
 }
 
-func queryGameListByStatusAndAddr(db dbm.Lister, stateDB dbm.KV, param *types.QueryGameListByStatusAndAddr) (types.Message, error) {
+func queryGameListByStatusAndAddr(db dbm.Lister, stateDB dbm.KV, param *gt.QueryGameListByStatusAndAddr) (types.Message, error) {
 	direction := ListDESC
 	if param.GetDirection() == ListASC {
 		direction = ListASC
@@ -570,26 +572,26 @@ func queryGameListByStatusAndAddr(db dbm.Lister, stateDB dbm.KV, param *types.Qu
 	}
 	var gameIds []string
 	for _, value := range values {
-		var record types.GameRecord
+		var record gt.GameRecord
 		err := types.Decode(value, &record)
 		if err != nil {
 			continue
 		}
 		gameIds = append(gameIds, record.GetGameId())
 	}
-	return &types.ReplyGameList{GetGameList(stateDB, gameIds)}, nil
+	return &gt.ReplyGameList{GetGameList(stateDB, gameIds)}, nil
 }
 
 //count数查询
-func QueryGameListCount(stateDB dbm.KV, param *types.QueryGameListCount) (types.Message, error) {
+func QueryGameListCount(stateDB dbm.KV, param *gt.QueryGameListCount) (types.Message, error) {
 	if param.Status < 1 || param.Status > 4 {
 		return nil, fmt.Errorf("the status only fill in 1,2,3,4!")
 	}
-	return &types.ReplyGameListCount{QueryCountByStatusAndAddr(stateDB, param.GetStatus(), param.GetAddress())}, nil
+	return &gt.ReplyGameListCount{QueryCountByStatusAndAddr(stateDB, param.GetStatus(), param.GetAddress())}, nil
 }
 func QueryCountByStatusAndAddr(stateDB dbm.KV, status int32, addr string) int64 {
 	switch status {
-	case types.GameActionCreate, types.GameActionMatch, types.GameActionCancel, types.GameActionClose:
+	case gt.GameActionCreate, gt.GameActionMatch, gt.GameActionCancel, gt.GameActionClose:
 		count, _ := queryCountByStatusAndAddr(stateDB, status, addr)
 		return count
 	}
@@ -610,13 +612,13 @@ func queryCountByStatusAndAddr(stateDB dbm.KV, status int32, addr string) (int64
 	return count, nil
 }
 
-func readGame(db dbm.KV, id string) (*types.Game, error) {
+func readGame(db dbm.KV, id string) (*gt.Game, error) {
 	data, err := db.Get(Key(id))
 	if err != nil {
 		glog.Error("query data have err:", err.Error())
 		return nil, err
 	}
-	var game types.Game
+	var game gt.Game
 	//decode
 	err = types.Decode(data, &game)
 	if err != nil {
@@ -626,8 +628,8 @@ func readGame(db dbm.KV, id string) (*types.Game, error) {
 	return &game, nil
 }
 
-func Infos(db dbm.KV, infos *types.QueryGameInfos) (types.Message, error) {
-	var games []*types.Game
+func Infos(db dbm.KV, infos *gt.QueryGameInfos) (types.Message, error) {
+	var games []*gt.Game
 	for i := 0; i < len(infos.GameIds); i++ {
 		id := infos.GameIds[i]
 		game, err := readGame(db, id)
@@ -636,12 +638,12 @@ func Infos(db dbm.KV, infos *types.QueryGameInfos) (types.Message, error) {
 		}
 		games = append(games, game)
 	}
-	return &types.ReplyGameList{Games: games}, nil
+	return &gt.ReplyGameList{Games: games}, nil
 }
 
 //安全批量查询方式,防止因为脏数据导致查询接口奔溃
-func GetGameList(db dbm.KV, values []string) []*types.Game {
-	var games []*types.Game
+func GetGameList(db dbm.KV, values []string) []*gt.Game {
+	var games []*gt.Game
 	for _, value := range values {
 		game, err := readGame(db, value)
 		if err != nil {

@@ -428,13 +428,6 @@ var RescanFlagMapint2string = map[int32]string{
 	UtxoFlagScanEnd: "UtxoFlagScanEnd",
 }
 
-//game action ty
-const (
-	GameActionCreate = iota + 1
-	GameActionMatch
-	GameActionCancel
-	GameActionClose
-)
 
 //flag:
 var FlagTxQuickIndex = []byte("FLAG:FlagTxQuickIndex")

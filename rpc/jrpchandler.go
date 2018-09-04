@@ -17,6 +17,8 @@ import (
 	retrievetype "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
 	tokentype "gitlab.33.cn/chain33/chain33/types/executor/token"
 	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
+
+	"gitlab.33.cn/chain33/chain33/pluginmanager"
 )
 
 func (c *Chain33) CreateRawTransaction(in *types.CreateTx, result *interface{}) error {
@@ -1027,20 +1029,16 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		} else {
 			pl = &action
 		}
-	} else if types.GameX == realExec(string(tx.Execer)) {
-		var action types.GameAction
-		err := types.Decode(tx.GetPayload(), &action)
-		if err != nil {
-			unkownPl["unkownpayload"] = string(tx.GetPayload())
-			pl = unkownPl
-		} else {
-			pl = &action
-		}
 	} else if "user.write" == string(tx.Execer) {
 		pl = decodeUserWrite(tx.GetPayload())
 	} else {
+		pl = pluginmanager.DecodeTx(tx)
+	}
+
+	if pl == nil {
 		pl = map[string]interface{}{"rawlog": common.ToHex(tx.GetPayload())}
 	}
+
 	result := &Transaction{
 		Execer:     string(tx.Execer),
 		Payload:    pl,

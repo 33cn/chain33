@@ -20,7 +20,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers/cert"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/coins"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/game"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/hashlock"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/manage"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/none"
@@ -35,6 +34,8 @@ import (
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 	exectype "gitlab.33.cn/chain33/chain33/types/executor"
+
+	"gitlab.33.cn/chain33/chain33/pluginmanager"
 )
 
 var elog = log.New("module", "execs")
@@ -85,8 +86,9 @@ func execInit2() {
 	relay.Init()
 	cert.Init()
 	privacy.Init()
-	game.Init()
 	blackwhite.Init()
+
+	pluginmanager.InitExecutor()
 }
 
 var runonce sync.Once
