@@ -443,7 +443,6 @@ func (a *action) AssetWithdraw(withdraw *types.CoinsWithdraw) (*types.Receipt, e
 
 func (a *action) Vote(vote *types.ParacrossVoteAction) (*types.Receipt, error) {
 	var logs []*types.ReceiptLog
-	var kv []*types.KeyValue
 	var receipt = &types.ReceiptParacrossVote{}
 
 	log := &types.ReceiptLog{}
@@ -452,10 +451,9 @@ func (a *action) Vote(vote *types.ParacrossVoteAction) (*types.Receipt, error) {
 
 	log.Log = types.Encode(receipt)
 	logs = append(logs, log)
-	return &types.Receipt{types.ExecOk, kv, logs}, nil
+	return &types.Receipt{types.ExecOk, nil, logs}, nil
 
 }
-
 
 /*
 func (a *Paracross) CrossLimits(tx *types.Transaction, index int) bool {

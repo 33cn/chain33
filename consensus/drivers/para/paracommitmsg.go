@@ -36,9 +36,6 @@ func (client *CommitMsgClient) handler() {
 	var sendingMsgs []*types.ParacrossNodeStatus
 	var readTick <-chan time.Time
 
-	var enqueue chan int64
-	enqueue = client.commitMsgNotify
-
 	client.paraClient.wg.Add(1)
 	consensusCh := make(chan *types.ParacrossStatus, 1)
 	go client.getConsensusHeight(consensusCh)
@@ -54,7 +51,7 @@ func (client *CommitMsgClient) handler() {
 out:
 	for {
 		select {
-		case height := <-enqueue:
+		case height := <-client.commitMsgNotify:
 			if notification == nil {
 				notification = append(notification, height)
 				notification = append(notification, height)
@@ -70,7 +67,6 @@ out:
 					finishHeight = notification[1] - 1
 				}
 			}
-			plog.Info("paracommitmsg notify-----------", "height", height, "from", client.paraClient.authAccount)
 
 		case height := <-client.delMsgNotify:
 			if len(notification) > 0 && height <= notification[1] {
@@ -111,7 +107,7 @@ out:
 				}
 				status, err := client.getNodeStatus(finishHeight+1, finishHeight+count)
 				if err != nil {
-					plog.Error("para commit msg read tick", "err",err.Error())
+					plog.Error("para commit msg read tick", "err", err.Error())
 					continue
 				}
 
@@ -121,11 +117,6 @@ out:
 				}
 				sendingHeight = finishHeight + count
 				sendingMsgs = status[:count]
-				for i, msg := range sendingMsgs {
-					plog.Info("paracommitmsg sending", "idx", i, "height", msg.Height, "mainheight", msg.MainBlockHeight,
-						"blockhash", common.HashHex(msg.BlockHash), "mainHash", common.HashHex(msg.MainBlockHash),
-						"from", client.paraClient.authAccount)
-				}
 				client.currentTx = signTx
 				client.checkTxCommitTimes = 0
 				sendMsgCh <- client.currentTx
@@ -134,7 +125,7 @@ out:
 		//获取正在共识的高度，同步有两层意思，一个是主链跟其他节点完成了同步，另一个是当前平行链节点的高度追赶上了共识高度
 		case rsp := <-consensusCh:
 			consensusHeight := rsp.Height
-			plog.Info("para consensus rcv", "notify", notification, "sending", len(sendingMsgs),
+			plog.Debug("para consensus rcv", "notify", notification, "sending", len(sendingMsgs),
 				"consens heigt", rsp.Height, "consens blockhash", common.HashHex(rsp.BlockHash), "sync", isSync)
 
 			//所有节点还没有共识场景或新节点catchingUp场景，要等到收到区块高度大于共识高度时候发送
@@ -303,7 +294,7 @@ func (client *CommitMsgClient) sendCommitMsgTx(tx *types.Transaction) error {
 
 }
 
-func checkTxInMainBlock(targetTx *types.Transaction, detail *types.BlockDetail) (bool) {
+func checkTxInMainBlock(targetTx *types.Transaction, detail *types.BlockDetail) bool {
 	targetHash := targetTx.Hash()
 
 	for i, tx := range detail.Block.Txs {
@@ -318,7 +309,6 @@ func checkTxInMainBlock(targetTx *types.Transaction, detail *types.BlockDetail) 
 //当前未考虑获取key非常多失败的场景， 如果获取height非常多，block模块会比较大，但是使用完了就释放了
 //如果有必要也可以考虑每次最多取20个一个txgroup，发送共识部分循环获取发送也没问题
 func (client *CommitMsgClient) getNodeStatus(start, end int64) ([]*types.ParacrossNodeStatus, error) {
-	plog.Debug("paracommitmsg get node status--------", "start", start, "end", end)
 	var ret []*types.ParacrossNodeStatus
 	if start == 0 {
 		geneStatus, err := client.getGenesisNodeStatus()

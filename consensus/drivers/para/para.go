@@ -131,10 +131,7 @@ func calcSearchseq(height int64) (seq int64) {
 //para 不检查任何的交易
 func (client *ParaClient) CheckBlock(parent *types.Block, current *types.BlockDetail) error {
 	err := paracross.CheckVoteTx(current)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func (client *ParaClient) ExecBlock(prevHash []byte, block *types.Block) (*types.BlockDetail, []*types.Transaction, error) {
@@ -495,12 +492,12 @@ func (client *ParaClient) CreateBlock() {
 // vote tx need all para node create, but not all node has auth account, here just not sign to keep align
 func (client *ParaClient) addVoteTx(preStateHash []byte, block *types.Block, main *types.Block) error {
 	status := &types.ParacrossNodeStatus{
-		Title:        types.GetTitle(),
-		Height:       block.Height,
-		PreBlockHash: block.ParentHash,
-		PreStateHash: preStateHash,
-		MainBlockHash:main.Hash(),
-		MainBlockHeight:main.Height,
+		Title:           types.GetTitle(),
+		Height:          block.Height,
+		PreBlockHash:    block.ParentHash,
+		PreStateHash:    preStateHash,
+		MainBlockHash:   main.Hash(),
+		MainBlockHeight: main.Height,
 	}
 
 	tx, err := paracross.CreateRawVoteTx(status)
@@ -537,7 +534,6 @@ func (client *ParaClient) createBlock(lastBlock *types.Block, txs []*types.Trans
 		"newblock.BlockTime", newblock.BlockTime, "sequence", seq)
 	return err
 }
-
 
 // 向blockchain写区块
 func (client *ParaClient) WriteBlock(prev []byte, paraBlock *types.Block, mainBlock *types.Block, seq int64) error {

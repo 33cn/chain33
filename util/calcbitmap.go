@@ -30,12 +30,12 @@ func CalcBitMap(ori, cur [][]byte, data []*types.ReceiptData) []byte {
 
 //cur is subset of ori, data are align with ori, this function return cur's bitmap
 //if all tx failed, the setBit will normalize result and just return nil slice
-func CalcCurBitMap(ori, cur [][]byte, data []*types.ReceiptData) []byte {
+func CalcSubBitMap(ori, sub [][]byte, data []*types.ReceiptData) []byte {
 	rst := big.NewInt(0)
 
-	for i, curHash := range cur {
+	for i, subHash := range sub {
 		for index, ori := range ori {
-			if bytes.Equal(ori, curHash) {
+			if bytes.Equal(ori, subHash) {
 				if data[index].Ty == types.ExecOk {
 					rst.SetBit(rst, i, 1)
 				}
