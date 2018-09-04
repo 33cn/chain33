@@ -153,7 +153,11 @@ func (exec *Executor) procExecQuery(msg queue.Message) {
 	localdb := NewLocalDB(exec.client)
 	driver.SetLocalDB(localdb)
 	opt := &StateDBOption{EnableMVCC: exec.enableMVCC, FlagMVCC: exec.flagMVCC, Height: header.GetHeight()}
-	driver.SetStateDB(NewStateDB(exec.client, data.StateHash, localdb, opt))
+
+	db := NewStateDB(exec.client, data.StateHash, localdb, opt)
+	db.(*StateDB).enableMVCC()
+	driver.SetStateDB(db)
+
 	ret, err := driver.Query(data.FuncName, data.Param)
 	if err != nil {
 		msg.Reply(exec.client.NewMessage("", types.EventBlockChainQuery, err))
