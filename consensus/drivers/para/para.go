@@ -192,7 +192,7 @@ func (client *ParaClient) InitBlock() {
 		tx := client.CreateGenesisTx()
 		newblock.Txs = tx
 		newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
-		client.WriteBlock(zeroHash[:], newblock, nil, startSeq-int64(1))
+		client.WriteBlock(zeroHash[:], newblock, startSeq-int64(1))
 	} else {
 		client.SetCurrentBlock(block)
 	}
@@ -242,41 +242,46 @@ func (client *ParaClient) ProcEvent(msg queue.Message) bool {
 	return false
 }
 
-func calcParaCrossTxGroup(tx *types.Transaction, main *types.BlockDetail) ([]*types.Transaction, int32) {
-	var headIdx, paraTxCount int32
+//1. 如果涉及跨链合约，如果有超过两条平行链的交易被判定为失败，交易组会执行不成功。（这样的情况下，主链交易一定会执行不成功）
+//2. 如果不涉及跨链合约，那么交易组没有任何规定，可以是20比，10条链。 如果主链交易有失败，平行链也不会执行
+//3. 如果交易组有一个ExecOk,主链上的交易都是ok的，可以全部打包
+//4. 如果全部是ExecPack，有两种情况，一是交易组所有交易都是平行链交易，另一是主链有交易失败而打包了的交易，需要检查LogErr，如果有错，全部不打包
+func calcParaCrossTxGroup(tx *types.Transaction, main *types.BlockDetail, index int) ([]*types.Transaction, int32) {
+	var headIdx int32
 
-	for i, tx := range main.Block.Txs {
-		if bytes.Equal(tx.Header, tx.Hash()) {
+	for i := index; i >= 0; i-- {
+		if bytes.Equal(tx.Header, main.Block.Txs[i].Hash()) {
 			headIdx = int32(i)
 		}
 	}
+
 	endIdx := headIdx + tx.GroupCount
 	for i := headIdx; i < headIdx+tx.GroupCount; i++ {
 		if bytes.Contains(main.Block.Txs[i].Execer, []byte(types.ExecNamePrefix)) {
-			paraTxCount++
 			continue
 		}
 		if main.Receipts[i].Ty == types.ExecOk {
-			return main.Block.Txs[headIdx : headIdx+tx.GroupCount], endIdx
+			return main.Block.Txs[headIdx:endIdx], endIdx
+		} else {
+			for _, log := range main.Receipts[i].Logs {
+				if log.Ty == types.TyLogErr {
+					return nil, endIdx
+				}
+			}
 		}
 	}
-	//全部是平行链交易
-	if paraTxCount == tx.GroupCount {
-		return main.Block.Txs[headIdx : headIdx+tx.GroupCount], endIdx
-	}
 
-	return nil, endIdx
+	//全部是平行链交易 或主链执行非失败的tx
+	return main.Block.Txs[headIdx:endIdx], endIdx
 }
 
-//如果交易组交易数超过2个，如果都是平行链交易，没问题，如果混合了主链交易，这里不会把主链tx 抽取出来，交易组执行失败
-//当前认为跨链的交易必须是2个，超过2个就是错误的交易，平行链这边可以执行失败
 func (client *ParaClient) FilterTxsForPara(main *types.BlockDetail) []*types.Transaction {
 	var txs, mainTxs []*types.Transaction
 	var endIdx int32
 	for i, tx := range main.Block.Txs {
 		if bytes.Contains(tx.Execer, []byte(types.ExecNamePrefix)) {
 			if tx.GroupCount >= ParaCrossTxCount {
-				mainTxs, endIdx = calcParaCrossTxGroup(tx, main)
+				mainTxs, endIdx = calcParaCrossTxGroup(tx, main, i)
 				txs = append(txs, mainTxs...)
 				continue
 			}
@@ -527,7 +532,7 @@ func (client *ParaClient) createBlock(lastBlock *types.Block, txs []*types.Trans
 		return err
 	}
 
-	err = client.WriteBlock(lastBlock.StateHash, &newblock, mainBlock, seq)
+	err = client.WriteBlock(lastBlock.StateHash, &newblock, seq)
 
 	plog.Debug("para create new Block", "newblock.ParentHash", common.ToHex(newblock.ParentHash),
 		"newblock.Height", newblock.Height, "newblock.TxHash", common.ToHex(newblock.TxHash),
@@ -536,8 +541,8 @@ func (client *ParaClient) createBlock(lastBlock *types.Block, txs []*types.Trans
 }
 
 // 向blockchain写区块
-func (client *ParaClient) WriteBlock(prev []byte, paraBlock *types.Block, mainBlock *types.Block, seq int64) error {
-	blockDetail, deltx, err := client.ExecBlock(prev, paraBlock)
+func (client *ParaClient) WriteBlock(prev []byte, block *types.Block, seq int64) error {
+	blockDetail, deltx, err := client.ExecBlock(prev, block)
 	if len(deltx) > 0 {
 		plog.Warn("parachain receive invalid txs")
 	}
@@ -559,7 +564,7 @@ func (client *ParaClient) WriteBlock(prev []byte, paraBlock *types.Block, mainBl
 		return errors.New(string(reply.GetMsg()))
 	}
 
-	client.SetCurrentBlock(paraBlock)
+	client.SetCurrentBlock(block)
 
 	if client.authAccount != "" {
 		client.commitMsgClient.onBlockAdded(blockDetail.Block.Height)

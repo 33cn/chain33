@@ -120,6 +120,12 @@ out:
 				client.currentTx = signTx
 				client.checkTxCommitTimes = 0
 				sendMsgCh <- client.currentTx
+
+				for i, msg := range sendingMsgs {
+					plog.Debug("paracommitmsg sending", "idx", i, "height", msg.Height, "mainheight", msg.MainBlockHeight,
+						"blockhash", common.HashHex(msg.BlockHash), "mainHash", common.HashHex(msg.MainBlockHash),
+						"from", client.paraClient.authAccount)
+				}
 			}
 
 		//获取正在共识的高度，同步有两层意思，一个是主链跟其他节点完成了同步，另一个是当前平行链节点的高度追赶上了共识高度
