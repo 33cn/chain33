@@ -24,22 +24,22 @@ const (
 )
 
 var (
-	ExecerCoins      = []byte(CoinsX)
-	ExecerTicket     = []byte(TicketX)
-	ExecerManage     = []byte(ManageX)
-	ExecerToken      = []byte(TokenX)
-	ExecerEvm        = []byte(EvmX)
-	ExecerPrivacy    = []byte(PrivacyX)
-	ExecerRelay      = []byte(RelayX)
-	ExecerHashlock   = []byte(HashlockX)
-	ExecerRetrieve   = []byte(RetrieveX)
-	ExecerNone       = []byte(NoneX)
-	ExecerTrade      = []byte(TradeX)
-	ExecerNorm       = []byte(Normx)
-	ExecerConfig     = []byte("config")
-	ExecerCert       = []byte(CertX)
-	UserEvm          = []byte(UserEvmX)
-	ExecerPara       = []byte(ParaX)
+	ExecerCoins    = []byte(CoinsX)
+	ExecerTicket   = []byte(TicketX)
+	ExecerManage   = []byte(ManageX)
+	ExecerToken    = []byte(TokenX)
+	ExecerEvm      = []byte(EvmX)
+	ExecerPrivacy  = []byte(PrivacyX)
+	ExecerRelay    = []byte(RelayX)
+	ExecerHashlock = []byte(HashlockX)
+	ExecerRetrieve = []byte(RetrieveX)
+	ExecerNone     = []byte(NoneX)
+	ExecerTrade    = []byte(TradeX)
+	ExecerNorm     = []byte(Normx)
+	ExecerConfig   = []byte("config")
+	ExecerCert     = []byte(CertX)
+	UserEvm        = []byte(UserEvmX)
+	ExecerPara     = []byte(ParaX)
 )
 
 const (
@@ -403,7 +403,6 @@ const (
 	RelayActionRcvBTCHeaders
 )
 
-
 // RescanUtxoFlag
 const (
 	UtxoFlagNoScan  int32 = 0
@@ -416,7 +415,6 @@ var RescanFlagMapint2string = map[int32]string{
 	UtxoFlagScaning: "UtxoFlagScaning",
 	UtxoFlagScanEnd: "UtxoFlagScanEnd",
 }
-
 
 //flag:
 var FlagTxQuickIndex = []byte("FLAG:FlagTxQuickIndex")

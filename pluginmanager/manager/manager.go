@@ -9,14 +9,6 @@ func InitExecutor() {
 	pluginMgr.initExecutor()
 }
 
-func InitConsensus() {
-
-}
-
-func InitStore() {
-
-}
-
 func DecodeTx(tx *types.Transaction) interface{} {
 	return pluginMgr.decodeTx(tx)
 }
