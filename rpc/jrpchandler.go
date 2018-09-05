@@ -18,7 +18,7 @@ import (
 	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
 
 	"gitlab.33.cn/chain33/chain33/pluginmanager"
-	bw "gitlab.33.cn/chain33/chain33/pluginmanager/blackwhite/executor"
+	bw "gitlab.33.cn/chain33/chain33/pluginmanager/plugins/blackwhite/executor"
 )
 
 func (c *Chain33) CreateRawTransaction(in *types.CreateTx, result *interface{}) error {
