@@ -8,8 +8,8 @@ import (
 	"github.com/coreos/etcd/snap"
 	"github.com/golang/protobuf/proto"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
-	"gitlab.33.cn/chain33/chain33/consensus/drivers"
 	"gitlab.33.cn/chain33/chain33/queue"
+	drivers "gitlab.33.cn/chain33/chain33/system/consensus"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/util"
 )
@@ -17,6 +17,10 @@ import (
 var (
 	zeroHash [32]byte
 )
+
+func init() {
+	drivers.Reg("raft", NewRaftCluster)
+}
 
 type RaftClient struct {
 	*drivers.BaseClient

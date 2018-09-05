@@ -13,9 +13,9 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/difficulty"
-	"gitlab.33.cn/chain33/chain33/consensus/drivers"
 	driver "gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/queue"
+	drivers "gitlab.33.cn/chain33/chain33/system/consensus"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/util"
 )
@@ -24,6 +24,10 @@ var (
 	tlog          = log15.New("module", "ticket")
 	defaultModify = []byte("modify")
 )
+
+func init() {
+	drivers.Reg("ticket", New)
+}
 
 type Client struct {
 	*drivers.BaseClient
@@ -34,7 +38,7 @@ type Client struct {
 	done     chan struct{}
 }
 
-func New(cfg *types.Consensus) *Client {
+func New(cfg *types.Consensus) queue.Module {
 	c := drivers.NewBaseClient(cfg)
 	t := &Client{c, &types.ReplyTicketList{}, nil, sync.Mutex{}, make(chan struct{})}
 	c.SetChild(t)

@@ -5,6 +5,7 @@ import (
 
 	"github.com/coreos/etcd/raft/raftpb"
 	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -21,7 +22,7 @@ var (
 	confChangeC             chan raftpb.ConfChange
 )
 
-func NewRaftCluster(cfg *types.Consensus) *RaftClient {
+func NewRaftCluster(cfg *types.Consensus) queue.Module {
 	if cfg.Genesis != "" {
 		genesisAddr = cfg.Genesis
 	}

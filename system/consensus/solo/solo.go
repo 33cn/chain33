@@ -5,8 +5,8 @@ import (
 
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
-	"gitlab.33.cn/chain33/chain33/consensus/drivers"
 	"gitlab.33.cn/chain33/chain33/queue"
+	drivers "gitlab.33.cn/chain33/chain33/system/consensus"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/util"
 )
@@ -17,8 +17,11 @@ type Client struct {
 	*drivers.BaseClient
 }
 
-func New(cfg *types.Consensus) *Client {
+func init() {
+	drivers.Reg("solo", New)
+}
 
+func New(cfg *types.Consensus) queue.Module {
 	c := drivers.NewBaseClient(cfg)
 	solo := &Client{c}
 	c.SetChild(solo)
