@@ -31,7 +31,7 @@ type GamePreCloseTx struct {
 type Game struct {
 	// 默认是由创建这局游戏的txHash作为gameId
 	GameId string `json:"gameId"`
-	// create 1 -> Match 2 -> Cancel 3 -> Close 4
+	// create 1 -> Match 2 -> Cancel 3 -> Close 4    Pending 5  //表示有人参与游戏，但还未打包
 	Status int32 `json:"status"`
 	// 创建时间
 	CreateTime int64 `json:"createTime"`
@@ -51,10 +51,10 @@ type Game struct {
 	HashValue []byte `json:"hashValue"`
 	// 用来公布庄家出拳结果的私钥
 	Secret string `json:"secret"`
-	// 0 平局，1 庄家获胜，2 matcher获胜，3 庄家开奖超时，matcher获胜，并获得本局所有赌资
+	// 1平局，2 庄家获胜，3 matcher获胜，4 庄家开奖超时，matcher获胜，并获得本局所有赌资
 	Result int32 `json:"result"`
 	// matcher 出拳结果
-	Guess int32 `json:"guess"`
+	MatcherGuess int32 `json:"matcherGuess"`
 	// create txHash
 	CreateTxHash string `json:"createTxHash"`
 	// matche交易hash
@@ -63,6 +63,8 @@ type Game struct {
 	CloseTxHash string `json:"closeTxHash"`
 	// cancel txhash
 	CancelTxHash string `json:"cancelTxHash"`
+	CreatorGuess int32  `json:"creatorGuess"`
+	Index        int64  `json:"index"`
 }
 
 type ReplyGameList struct {
@@ -71,11 +73,4 @@ type ReplyGameList struct {
 
 type ReplyGame struct {
 	Game *Game `json:"game"`
-}
-
-// 分页返回结构体
-type ReplyGameListPage struct {
-	Games     []*Game `json:"games"`
-	PrevIndex string  `json:"prevIndex"`
-	NextIndex string  `json:"nextIndex"`
 }

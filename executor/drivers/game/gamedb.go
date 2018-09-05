@@ -4,6 +4,8 @@ package game
 import (
 	"bytes"
 	"fmt"
+	"math"
+	"strconv"
 
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
@@ -13,26 +15,39 @@ import (
 
 const (
 	//剪刀
-	Scissor = 1
+	Scissor = int32(1)
 	//石头
-	Rock = 2
+	Rock = int32(2)
 	//布
-	Paper = 3
+	Paper = int32(3)
+	//未知结果
+	Unknown = int32(4)
 
 	//游戏结果
 	//平局
-	IsDraw       = 1
-	IsCreatorWin = 2
-	IsMatcherWin = 3
+	IsDraw       = int32(1)
+	IsCreatorWin = int32(2)
+	IsMatcherWin = int32(3)
 	//开奖超时
-	IsTimeOut = 4
-	//从有matcher参与游戏开始计算本局游戏开奖的有效时间，单位为天
-	Active_Time = 1
+	IsTimeOut = int32(4)
 
-	ListDESC    = int32(0)
-	ListASC     = int32(1)
-	DefultCount = int32(20)  //默认一次取多少条记录
-	MaxCount    = int32(100) //最多取100条
+	ListDESC = int32(0)
+	ListASC  = int32(1)
+
+	GameCount = "GameCount" //根据状态，地址统计整个合约目前总共成功执行了多少场游戏。
+
+	MaxGameAmount = int64(100) //单位为types.Coin  1e8
+	MinGameAmount = int64(2)
+	DefaultCount  = int64(20)  //默认一次取多少条记录
+	MaxCount      = int64(100) //最多取100条
+	//从有matcher参与游戏开始计算本局游戏开奖的有效时间，单位为天
+	ActiveTime = int64(24)
+
+	ConfName_ActiveTime    = types.GameX + ":" + "activeTime"
+	ConfName_DefaultCount  = types.GameX + ":" + "defaultCount"
+	ConfName_MaxCount      = types.GameX + ":" + "maxCount"
+	ConfName_MaxGameAmount = types.GameX + ":" + "maxGameAmount"
+	ConfName_MinGameAmount = types.GameX + ":" + "minGameAmount"
 )
 
 //game 的状态变化：
@@ -83,13 +98,34 @@ func (action *Action) GetReceiptLog(game *types.Game) *types.ReceiptLog {
 	log.Log = types.Encode(r)
 	return log
 }
-func (action *Action) GetIndex(game *types.Game) string {
-	return fmt.Sprintf("%018d", action.height*types.MaxTxsPerBlock+int64(action.index))
+
+//fmt.Sprintf("%018d", action.height*types.MaxTxsPerBlock+int64(action.index))
+func (action *Action) GetIndex(game *types.Game) int64 {
+	return action.height*types.MaxTxsPerBlock + int64(action.index)
 }
-func (action *Action) GetKVSet(game *types.Game) (kvset []*types.KeyValue) {
+
+//saveStateDBCache
+func (action *Action) saveGame(game *types.Game) (kvset []*types.KeyValue) {
 	value := types.Encode(game)
+	action.db.Set(Key(game.GetGameId()), value)
 	kvset = append(kvset, &types.KeyValue{Key(game.GameId), value})
 	return kvset
+}
+func (action *Action) updateCount(status int32, addr string) (kvset []*types.KeyValue) {
+	count, err := queryCountByStatusAndAddr(action.db, status, addr)
+	if err != nil {
+		glog.Error("Query count have err:", err.Error())
+	}
+	glog.Debug("updateStateDBCache", fmt.Sprintf("status:%v,addr:%v,count:===>%v", status, addr, count))
+	action.db.Set(CalcCountKey(status, addr), []byte(strconv.FormatInt(count+1, 10)))
+	kvset = append(kvset, &types.KeyValue{CalcCountKey(status, addr), []byte(strconv.FormatInt(count+1, 10))})
+	return kvset
+}
+
+func CalcCountKey(status int32, addr string) (key []byte) {
+	key = append(key, []byte("mavl-"+types.ExecName(types.GameX)+"-")...)
+	key = append(key, []byte(fmt.Sprintf("%s:%d:%s", GameCount, status, addr))...)
+	return key
 }
 
 //gameId to save key
@@ -127,6 +163,15 @@ func (action *Action) GameCreate(create *types.GameCreate) (*types.Receipt, erro
 	gameId := common.ToHex(action.txhash)
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
+	maxGameAmount := GetConfValue(action.db, ConfName_MaxGameAmount, MaxGameAmount)
+	if create.GetValue() > maxGameAmount*types.Coin {
+		glog.Error("Create the game, the deposit is too big  ", "value", create.GetValue())
+		return nil, types.ErrGameCreateAmount
+	}
+	minGameAmount := GetConfValue(action.db, ConfName_MinGameAmount, MinGameAmount)
+	if create.GetValue() < minGameAmount*types.Coin || math.Remainder(float64(create.GetValue()), 2) != 0 {
+		return nil, fmt.Errorf("The amount you participate in cannot be less than 2 and must be an even number.")
+	}
 	if !action.CheckExecAccountBalance(action.fromaddr, create.GetValue(), 0) {
 		glog.Error("GameCreate", "addr", action.fromaddr, "execaddr", action.execaddr, "id",
 			gameId, "err", types.ErrNoBalance)
@@ -151,9 +196,11 @@ func (action *Action) GameCreate(create *types.GameCreate) (*types.Receipt, erro
 	game.Index = action.GetIndex(game)
 	receiptLog := action.GetReceiptLog(game)
 	logs = append(logs, receiptLog)
-	kv = append(kv, action.GetKVSet(game)...)
+	kv = append(kv, action.saveGame(game)...)
 	logs = append(logs, receipt.Logs...)
 	kv = append(kv, receipt.KV...)
+	kv = append(kv, action.updateCount(game.GetStatus(), "")...) //更新stateDB缓存，用于计数
+	kv = append(kv, action.updateCount(game.GetStatus(), game.GetCreateAddress())...)
 	receipt = &types.Receipt{types.ExecOk, kv, logs}
 	return receipt, nil
 }
@@ -191,18 +238,20 @@ func (action *Action) GameMatch(match *types.GameMatch) (*types.Receipt, error) 
 	game.Value = game.GetValue()/2 + game.GetValue()
 	game.MatchAddress = action.fromaddr
 	game.MatchTime = action.blocktime
-	game.Guess = match.GetGuess()
+	game.MatcherGuess = match.GetGuess()
 	game.MatchTxHash = common.ToHex(action.txhash)
 	game.PrevIndex = game.GetIndex()
 	game.Index = action.GetIndex(game)
-
 	var logs []*types.ReceiptLog
 	var kvs []*types.KeyValue
 	receiptLog := action.GetReceiptLog(game)
 	logs = append(logs, receiptLog)
-	kvs = append(kvs, action.GetKVSet(game)...)
 	logs = append(logs, receipt.Logs...)
 	kvs = append(kvs, receipt.KV...)
+	kvs = append(kvs, action.saveGame(game)...)
+	kvs = append(kvs, action.updateCount(game.GetStatus(), "")...)
+	kvs = append(kvs, action.updateCount(game.GetStatus(), game.GetCreateAddress())...)
+	kvs = append(kvs, action.updateCount(game.GetStatus(), game.GetMatchAddress())...)
 	receipts := &types.Receipt{types.ExecOk, kvs, logs}
 	return receipts, nil
 }
@@ -244,9 +293,10 @@ func (action *Action) GameCancel(cancel *types.GameCancel) (*types.Receipt, erro
 	logs = append(logs, receipt.Logs...)
 	receiptLog := action.GetReceiptLog(game)
 	logs = append(logs, receiptLog)
-	kvs := action.GetKVSet(game)
 	kv = append(kv, receipt.KV...)
-	kv = append(kv, kvs...)
+	kv = append(kv, action.saveGame(game)...)
+	kv = append(kv, action.updateCount(game.GetStatus(), "")...)
+	kv = append(kv, action.updateCount(game.GetStatus(), game.GetCreateAddress())...)
 
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
 }
@@ -265,10 +315,6 @@ func (action *Action) GameClose(close *types.GameClose) (*types.Receipt, error) 
 		//如果不是游戏创建者开奖，则检查是否超时
 		glog.Error(types.ErrGameCloseAddr.Error())
 		return nil, types.ErrGameCloseAddr
-	} else if action.fromaddr == game.GetCreateAddress() && action.checkGameIsTimeOut(game) {
-		//当超过游戏开奖时间，此时，禁止游戏创建者去开奖，只能由其他人开奖
-		glog.Error(types.ErrGameTimeOut.Error())
-		return nil, types.ErrGameTimeOut
 	}
 	if game.GetStatus() != types.GameActionMatch {
 		glog.Error(types.ErrGameCloseStatus.Error())
@@ -285,10 +331,9 @@ func (action *Action) GameClose(close *types.GameClose) (*types.Receipt, error) 
 			game.GetGameId(), "err", types.ErrNoBalance)
 		return nil, types.ErrNoBalance
 	}
-	result := action.checkGameResult(game, close)
+	result, creatorGuess := action.checkGameResult(game, close)
 	if result == IsCreatorWin {
 		//如果是庄家赢了，则解冻所有钱,并将对赌者相应冻结的钱转移到庄家的合约账户中
-		//TODO:账户amount 使用int64,而不是float64，可能存在精度问题
 		receipt, err := action.coinsAccount.ExecActive(game.GetCreateAddress(), action.execaddr, 2*game.GetValue()/3)
 		if err != nil {
 			glog.Error("GameClose.execActive", "addr", game.GetCreateAddress(), "execaddr", action.execaddr, "amount", 2*game.GetValue()/3,
@@ -378,67 +423,71 @@ func (action *Action) GameClose(close *types.GameClose) (*types.Receipt, error) 
 	game.Closetime = action.blocktime
 	game.Status = types.GameActionClose
 	game.Secret = close.GetSecret()
-	game.Result = int32(result)
+	game.Result = result
 	game.CloseTxHash = common.ToHex(action.txhash)
 	game.PrevIndex = game.GetIndex()
 	game.Index = action.GetIndex(game)
+	game.CreatorGuess = creatorGuess
 	receiptLog := action.GetReceiptLog(game)
 	logs = append(logs, receiptLog)
-	kvs := action.GetKVSet(game)
-	kv = append(kv, kvs...)
+	kv = append(kv, action.saveGame(game)...)
+	kv = append(kv, action.updateCount(game.GetStatus(), "")...)
+	kv = append(kv, action.updateCount(game.GetStatus(), game.GetCreateAddress())...)
+	kv = append(kv, action.updateCount(game.GetStatus(), game.GetMatchAddress())...)
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
 }
 
 // 检查开奖是否超时，若超过一天，则不让庄家开奖，但其他人可以开奖，
 // 若没有一天，则其他人没有开奖权限，只有庄家有开奖权限
 func (action *Action) checkGameIsTimeOut(game *types.Game) bool {
-	DurTime := 60 * 60 * 24 * Active_Time
-	return action.blocktime > (game.GetMatchTime() + int64(DurTime))
+	activeTime := GetConfValue(action.db, ConfName_ActiveTime, ActiveTime)
+	DurTime := 60 * 60 * activeTime
+	return action.blocktime > (game.GetMatchTime() + DurTime)
 }
 
 //根据传入密钥，揭晓游戏结果
-func (action *Action) checkGameResult(game *types.Game, close *types.GameClose) int {
+func (action *Action) checkGameResult(game *types.Game, close *types.GameClose) (int32, int32) {
 	//如果超时，直接走超时开奖逻辑
 	if action.checkGameIsTimeOut(game) {
-		return IsTimeOut
+		return IsTimeOut, Unknown
 	}
 	if bytes.Equal(common.Sha256([]byte(close.GetSecret()+string(Rock))), game.GetHashValue()) {
 		//此刻庄家出的是石头
-		if game.GetGuess() == Rock {
-			return IsDraw
-		} else if game.GetGuess() == Scissor {
-			return IsCreatorWin
-		} else if game.GetGuess() == Paper {
-			return IsMatcherWin
+		if game.GetMatcherGuess() == Rock {
+			return IsDraw, Rock
+		} else if game.GetMatcherGuess() == Scissor {
+			return IsCreatorWin, Rock
+		} else if game.GetMatcherGuess() == Paper {
+			return IsMatcherWin, Rock
 		} else {
 			//其他情况说明matcher 使坏，填了其他值，当做作弊处理
-			return IsCreatorWin
+			return IsCreatorWin, Rock
 		}
 	} else if bytes.Equal(common.Sha256([]byte(close.GetSecret()+string(Scissor))), game.GetHashValue()) {
 		//此刻庄家出的剪刀
-		if game.GetGuess() == Rock {
-			return IsMatcherWin
-		} else if game.GetGuess() == Scissor {
-			return IsDraw
-		} else if game.GetGuess() == Paper {
-			return IsCreatorWin
+		if game.GetMatcherGuess() == Rock {
+			return IsMatcherWin, Scissor
+		} else if game.GetMatcherGuess() == Scissor {
+			return IsDraw, Scissor
+		} else if game.GetMatcherGuess() == Paper {
+			return IsCreatorWin, Scissor
 		} else {
-			return IsCreatorWin
+			return IsCreatorWin, Scissor
 		}
 	} else if bytes.Equal(common.Sha256([]byte(close.GetSecret()+string(Paper))), game.GetHashValue()) {
 		//此刻庄家出的是布
-		if game.GetGuess() == Rock {
-			return IsCreatorWin
-		} else if game.GetGuess() == Scissor {
-			return IsMatcherWin
-		} else if game.GetGuess() == Paper {
-			return IsDraw
+		if game.GetMatcherGuess() == Rock {
+			return IsCreatorWin, Paper
+		} else if game.GetMatcherGuess() == Scissor {
+			return IsMatcherWin, Paper
+		} else if game.GetMatcherGuess() == Paper {
+			return IsDraw, Paper
 		} else {
-			return IsCreatorWin
+			return IsCreatorWin, Paper
 		}
 	}
 	//其他情况默认是matcher win
-	return IsMatcherWin
+	return IsMatcherWin, Unknown
 }
 
 func (action *Action) readGame(id string) (*types.Game, error) {
@@ -473,8 +522,9 @@ func queryGameListByStatusAndAddr(db dbm.Lister, stateDB dbm.KV, param *types.Qu
 	if param.GetDirection() == ListASC {
 		direction = ListASC
 	}
-	count := DefultCount
-	if 0 < param.GetCount() && param.GetCount() <= MaxCount {
+	count := int32(GetConfValue(stateDB, ConfName_DefaultCount, DefaultCount))
+	maxCount := int32(GetConfValue(stateDB, ConfName_MaxCount, MaxCount))
+	if 0 < param.GetCount() && param.GetCount() <= maxCount {
 		count = param.GetCount()
 	}
 	var prefix []byte
@@ -486,65 +536,58 @@ func queryGameListByStatusAndAddr(db dbm.Lister, stateDB dbm.KV, param *types.Qu
 		prefix = calcGameAddrIndexPrefix(param.Status, param.GetAddress())
 		key = calcGameAddrIndexKey(param.Status, param.GetAddress(), param.GetIndex())
 	}
-
-	if param.GetIndex() == "" { //第一次查询
-		values, err := db.List(prefix, nil, count, direction)
-		if err != nil {
-			return nil, err
-		}
-		var gameIds []string
-		for _, value := range values {
-			var record types.GameRecord
-			err := types.Decode(value, &record)
-			if err != nil {
-				continue
-			}
-			gameIds = append(gameIds, record.GetGameId())
-		}
-		games := GetGameList(stateDB, gameIds)
-		index := games[len(games)-1].GetIndex()
-		if len(games) < int(count) {
-			return &types.ReplyGameListPage{games, "", ""}, nil
-		}
-		return &types.ReplyGameListPage{games, "", index}, nil
-
+	var values [][]byte
+	var err error
+	if param.GetIndex() == 0 { //第一次查询
+		values, err = db.List(prefix, nil, count, direction)
 	} else {
-		values, err := db.List(prefix, key, count, direction)
-		if err != nil {
-			return nil, err
-		}
-		var gameIds []string
-		for _, value := range values {
-			var record types.GameRecord
-			err := types.Decode(value, &record)
-			if err != nil {
-				continue
-			}
-			gameIds = append(gameIds, record.GetGameId())
-		}
-		games := GetGameList(stateDB, gameIds)
-		index := games[len(games)-1].GetIndex()
-		if len(games) == 0 {
-			return &types.ReplyGameListPage{nil, param.GetIndex(), ""}, nil
-		}
-		if len(games) < int(count) {
-			return &types.ReplyGameListPage{games, param.GetIndex(), ""}, nil
-
-		}
-		return &types.ReplyGameListPage{games, param.GetIndex(), index}, nil
+		values, err = db.List(prefix, key, count, direction)
 	}
+	if err != nil {
+		return nil, err
+	}
+	var gameIds []string
+	for _, value := range values {
+		var record types.GameRecord
+		err := types.Decode(value, &record)
+		if err != nil {
+			continue
+		}
+		gameIds = append(gameIds, record.GetGameId())
+	}
+	return &types.ReplyGameList{GetGameList(stateDB, gameIds)}, nil
 }
 
 //count数查询
-func QueryGameListCount(db dbm.Lister, stateDB dbm.KV, param *types.QueryGameListCount) (types.Message, error) {
+func QueryGameListCount(stateDB dbm.KV, param *types.QueryGameListCount) (types.Message, error) {
 	if param.Status < 1 || param.Status > 4 {
 		return nil, fmt.Errorf("the status only fill in 1,2,3,4!")
 	}
-	if param.GetAddress() == "" {
-		return &types.ReplyGameListCount{db.PrefixCount(calcGameStatusIndexPrefix(param.Status))}, nil
-	}
-	return &types.ReplyGameListCount{db.PrefixCount(calcGameAddrIndexPrefix(param.Status, param.Address))}, nil
+	return &types.ReplyGameListCount{QueryCountByStatusAndAddr(stateDB, param.GetStatus(), param.GetAddress())}, nil
 }
+func QueryCountByStatusAndAddr(stateDB dbm.KV, status int32, addr string) int64 {
+	switch status {
+	case types.GameActionCreate, types.GameActionMatch, types.GameActionCancel, types.GameActionClose:
+		count, _ := queryCountByStatusAndAddr(stateDB, status, addr)
+		return count
+	}
+	glog.Error("the status only fill in 1,2,3,4!")
+	return 0
+}
+func queryCountByStatusAndAddr(stateDB dbm.KV, status int32, addr string) (int64, error) {
+	data, err := stateDB.Get(CalcCountKey(status, addr))
+	if err != nil {
+		glog.Error("query count have err:", err.Error())
+		return 0, err
+	}
+	count, err := strconv.ParseInt(string(data), 10, 64)
+	if err != nil {
+		glog.Error("Type conversion error:", err.Error())
+		return 0, err
+	}
+	return count, nil
+}
+
 func readGame(db dbm.KV, id string) (*types.Game, error) {
 	data, err := db.Get(Key(id))
 	if err != nil {
@@ -555,7 +598,7 @@ func readGame(db dbm.KV, id string) (*types.Game, error) {
 	//decode
 	err = types.Decode(data, &game)
 	if err != nil {
-		glog.Error("decode data have err:", err.Error())
+		glog.Error("decode game have err:", err.Error())
 		return nil, err
 	}
 	return &game, nil
@@ -585,4 +628,53 @@ func GetGameList(db dbm.KV, values []string) []*types.Game {
 		games = append(games, game)
 	}
 	return games
+}
+func GetConfValue(db dbm.KV, key string, default_value int64) int64 {
+	var item types.ConfigItem
+	value, err := getManageKey(key, db)
+	if err != nil {
+		return default_value
+	}
+	if value != nil {
+		err = types.Decode(value, &item)
+		if err != nil {
+			glog.Error("gamedb GetConfValue", "decode db key:", key, err.Error())
+			return default_value
+		}
+	}
+	values := item.GetArr().GetValue()
+	if len(values) == 0 {
+		glog.Error("gamedb GetConfValue", "can't get value from values arr. key:", key)
+		return default_value
+	}
+	//取数组最后一位，作为最新配置项的值
+	v, err := strconv.ParseInt(values[len(values)-1], 10, 64)
+	if err != nil {
+		glog.Error("gamedb GetConfValue", "Type conversion error:", err.Error())
+		return default_value
+	}
+	return v
+}
+func getManageKey(key string, db dbm.KV) ([]byte, error) {
+	manageKey := types.ManageKey(key)
+	value, err := db.Get([]byte(manageKey))
+	if err != nil {
+		if types.IsPara() { //平行链只有一种存储方式
+			glog.Error("gamedb getManage", "can't get value from db,key:", key, err.Error())
+			return nil, err
+		}
+		glog.Debug("gamedb", "get db key", "not found")
+		return getConfigKey(key, db)
+	}
+	return value, nil
+}
+
+func getConfigKey(key string, db dbm.KV) ([]byte, error) {
+	configKey := types.ConfigKey(key)
+	value, err := db.Get([]byte(configKey))
+	if err != nil {
+		glog.Error("gamedb getConfigKey", "can't get value from db,key:", key, err.Error())
+		return nil, err
+	}
+	return value, nil
 }

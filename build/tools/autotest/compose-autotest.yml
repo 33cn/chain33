@@ -1,0 +1,16 @@
+version: '3'
+
+services:
+  chain33:
+    build:
+      context: .
+      dockerfile: Dockerfile-autotest
+    container_name: autotest-chain33
+
+  chain32:
+    build:
+      context: .
+      dockerfile: Dockerfile-autotest
+    container_name: autotest-chain32
+
+
