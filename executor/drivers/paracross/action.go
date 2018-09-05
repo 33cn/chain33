@@ -24,13 +24,14 @@ type action struct {
 	execaddr     string
 	api          client.QueueProtocolAPI
 	tx           *types.Transaction
+	exec 		*Paracross
 }
 
 func newAction(t *Paracross, tx *types.Transaction) *action {
 	hash := tx.Hash()
 	fromaddr := tx.From()
 	return &action{t.GetCoinsAccount(), t.GetStateDB(), t.GetLocalDB(), hash, fromaddr,
-		t.GetBlockTime(), t.GetHeight(), t.GetAddr(), t.GetApi(), tx}
+		t.GetBlockTime(), t.GetHeight(), t.GetAddr(), t.GetApi(), tx, t}
 }
 
 func getNodes(db dbm.KV, title string) ([]string, error) {
@@ -439,19 +440,19 @@ func (a *action) AssetWithdraw(withdraw *types.CoinsWithdraw) (*types.Receipt, e
 	return a.assetWithdrawCoins(withdraw, a.tx)
 }
 
-func (a *action) crossLimits(tx *types.Transaction) bool {
+func (a *action) crossLimits(tx *types.Transaction, index int) bool {
 	if tx.GroupCount < 2 {
 		return true
 	}
 
-	tg, err := tx.GetTxGroup()
+	txs, err := a.exec.GetTxGroup(index)
 	if err != nil {
 		clog.Error("crossLimits", "get tx group failed", err, "hash", common.Bytes2Hex(tx.Hash()))
 		return false
 	}
 
 	titles := make(map[string] struct{})
-	for _, txTmp := range tg.Txs {
+	for _, txTmp := range txs {
 		title, err := getTitleFrom(txTmp.Execer)
 		if err == nil {
 			titles[string(title)] = struct{}{}
