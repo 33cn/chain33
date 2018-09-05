@@ -238,9 +238,8 @@ const (
 	//log for lottery
 	TyLogLotteryCreate = 801
 	TyLogLotteryBuy    = 802
-	TyLogLotteryShow   = 803
-	TyLogLotteryDraw   = 804
-	TyLogLotteryClose  = 805
+	TyLogLotteryDraw   = 803
+	TyLogLotteryClose  = 804
 )
 
 //exec type
@@ -489,6 +488,6 @@ const (
 const (
 	LotteryCreated = 1 + iota
 	LotteryPurchase
-	LotteryShowing
+	LotteryDrawed
 	LotteryClosed
 )

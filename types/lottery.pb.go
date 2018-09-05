@@ -13,11 +13,8 @@ var _ = fmt.Errorf
 var _ = math.Inf
 
 type PurchaseRecord struct {
-	HashValue string `protobuf:"bytes,1,opt,name=hashValue" json:"hashValue,omitempty"`
-	Amount    int64  `protobuf:"varint,2,opt,name=amount" json:"amount,omitempty"`
-	TxHash    string `protobuf:"bytes,3,opt,name=txHash" json:"txHash,omitempty"`
-	IsShowed  bool   `protobuf:"varint,4,opt,name=isShowed" json:"isShowed,omitempty"`
-	Number    int64  `protobuf:"varint,5,opt,name=number" json:"number,omitempty"`
+	Amount int64 `protobuf:"varint,1,opt,name=amount" json:"amount,omitempty"`
+	Number int64 `protobuf:"varint,2,opt,name=number" json:"number,omitempty"`
 }
 
 func (m *PurchaseRecord) Reset()                    { *m = PurchaseRecord{} }
@@ -25,32 +22,11 @@ func (m *PurchaseRecord) String() string            { return proto.CompactTextSt
 func (*PurchaseRecord) ProtoMessage()               {}
 func (*PurchaseRecord) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{0} }
 
-func (m *PurchaseRecord) GetHashValue() string {
-	if m != nil {
-		return m.HashValue
-	}
-	return ""
-}
-
 func (m *PurchaseRecord) GetAmount() int64 {
 	if m != nil {
 		return m.Amount
 	}
 	return 0
-}
-
-func (m *PurchaseRecord) GetTxHash() string {
-	if m != nil {
-		return m.TxHash
-	}
-	return ""
-}
-
-func (m *PurchaseRecord) GetIsShowed() bool {
-	if m != nil {
-		return m.IsShowed
-	}
-	return false
 }
 
 func (m *PurchaseRecord) GetNumber() int64 {
@@ -95,20 +71,17 @@ func (m *PurchaseRecords) GetAmountOneRound() int64 {
 type Lottery struct {
 	LotteryId            string                      `protobuf:"bytes,1,opt,name=lotteryId" json:"lotteryId,omitempty"`
 	Status               int32                       `protobuf:"varint,2,opt,name=status" json:"status,omitempty"`
-	CreateTime           int64                       `protobuf:"varint,3,opt,name=createTime" json:"createTime,omitempty"`
-	MatchTime            int64                       `protobuf:"varint,4,opt,name=matchTime" json:"matchTime,omitempty"`
-	Fund                 int64                       `protobuf:"varint,5,opt,name=fund" json:"fund,omitempty"`
-	PurchasePeriod       int64                       `protobuf:"varint,6,opt,name=purchasePeriod" json:"purchasePeriod,omitempty"`
-	ShowPeriod           int64                       `protobuf:"varint,7,opt,name=showPeriod" json:"showPeriod,omitempty"`
-	MaxPurchaseNum       int64                       `protobuf:"varint,8,opt,name=maxPurchaseNum" json:"maxPurchaseNum,omitempty"`
-	LastTransToPurState  int64                       `protobuf:"varint,9,opt,name=lastTransToPurState" json:"lastTransToPurState,omitempty"`
-	LastTransToShowState int64                       `protobuf:"varint,10,opt,name=lastTransToShowState" json:"lastTransToShowState,omitempty"`
-	Records              map[string]*PurchaseRecords `protobuf:"bytes,11,rep,name=records" json:"records,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	TotalPurchasedTxNum  int64                       `protobuf:"varint,12,opt,name=totalPurchasedTxNum" json:"totalPurchasedTxNum,omitempty"`
-	TotalShowedNum       int64                       `protobuf:"varint,13,opt,name=totalShowedNum" json:"totalShowedNum,omitempty"`
-	CreateAddr           string                      `protobuf:"bytes,14,opt,name=createAddr" json:"createAddr,omitempty"`
-	Round                int64                       `protobuf:"varint,15,opt,name=round" json:"round,omitempty"`
-	LuckyNumber          []int64                     `protobuf:"varint,16,rep,packed,name=luckyNumber" json:"luckyNumber,omitempty"`
+	CreateHeight         int64                       `protobuf:"varint,3,opt,name=createHeight" json:"createHeight,omitempty"`
+	Fund                 int64                       `protobuf:"varint,4,opt,name=fund" json:"fund,omitempty"`
+	PurBlockNum          int64                       `protobuf:"varint,5,opt,name=purBlockNum" json:"purBlockNum,omitempty"`
+	DrawBlockNum         int64                       `protobuf:"varint,6,opt,name=drawBlockNum" json:"drawBlockNum,omitempty"`
+	LastTransToPurState  int64                       `protobuf:"varint,7,opt,name=lastTransToPurState" json:"lastTransToPurState,omitempty"`
+	LastTransToDrawState int64                       `protobuf:"varint,8,opt,name=lastTransToDrawState" json:"lastTransToDrawState,omitempty"`
+	Records              map[string]*PurchaseRecords `protobuf:"bytes,9,rep,name=records" json:"records,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	TotalPurchasedTxNum  int64                       `protobuf:"varint,10,opt,name=totalPurchasedTxNum" json:"totalPurchasedTxNum,omitempty"`
+	CreateAddr           string                      `protobuf:"bytes,11,opt,name=createAddr" json:"createAddr,omitempty"`
+	Round                int64                       `protobuf:"varint,12,opt,name=round" json:"round,omitempty"`
+	LuckyNumber          int64                       `protobuf:"varint,13,opt,name=luckyNumber" json:"luckyNumber,omitempty"`
 }
 
 func (m *Lottery) Reset()                    { *m = Lottery{} }
@@ -130,16 +103,9 @@ func (m *Lottery) GetStatus() int32 {
 	return 0
 }
 
-func (m *Lottery) GetCreateTime() int64 {
+func (m *Lottery) GetCreateHeight() int64 {
 	if m != nil {
-		return m.CreateTime
-	}
-	return 0
-}
-
-func (m *Lottery) GetMatchTime() int64 {
-	if m != nil {
-		return m.MatchTime
+		return m.CreateHeight
 	}
 	return 0
 }
@@ -151,23 +117,16 @@ func (m *Lottery) GetFund() int64 {
 	return 0
 }
 
-func (m *Lottery) GetPurchasePeriod() int64 {
+func (m *Lottery) GetPurBlockNum() int64 {
 	if m != nil {
-		return m.PurchasePeriod
+		return m.PurBlockNum
 	}
 	return 0
 }
 
-func (m *Lottery) GetShowPeriod() int64 {
+func (m *Lottery) GetDrawBlockNum() int64 {
 	if m != nil {
-		return m.ShowPeriod
-	}
-	return 0
-}
-
-func (m *Lottery) GetMaxPurchaseNum() int64 {
-	if m != nil {
-		return m.MaxPurchaseNum
+		return m.DrawBlockNum
 	}
 	return 0
 }
@@ -179,9 +138,9 @@ func (m *Lottery) GetLastTransToPurState() int64 {
 	return 0
 }
 
-func (m *Lottery) GetLastTransToShowState() int64 {
+func (m *Lottery) GetLastTransToDrawState() int64 {
 	if m != nil {
-		return m.LastTransToShowState
+		return m.LastTransToDrawState
 	}
 	return 0
 }
@@ -200,13 +159,6 @@ func (m *Lottery) GetTotalPurchasedTxNum() int64 {
 	return 0
 }
 
-func (m *Lottery) GetTotalShowedNum() int64 {
-	if m != nil {
-		return m.TotalShowedNum
-	}
-	return 0
-}
-
 func (m *Lottery) GetCreateAddr() string {
 	if m != nil {
 		return m.CreateAddr
@@ -221,11 +173,11 @@ func (m *Lottery) GetRound() int64 {
 	return 0
 }
 
-func (m *Lottery) GetLuckyNumber() []int64 {
+func (m *Lottery) GetLuckyNumber() int64 {
 	if m != nil {
 		return m.LuckyNumber
 	}
-	return nil
+	return 0
 }
 
 // message for execs.game
@@ -233,7 +185,6 @@ type LotteryAction struct {
 	// Types that are valid to be assigned to Value:
 	//	*LotteryAction_Create
 	//	*LotteryAction_Buy
-	//	*LotteryAction_Show
 	//	*LotteryAction_Draw
 	//	*LotteryAction_Close
 	Value isLotteryAction_Value `protobuf_oneof:"value"`
@@ -255,19 +206,15 @@ type LotteryAction_Create struct {
 type LotteryAction_Buy struct {
 	Buy *LotteryBuy `protobuf:"bytes,2,opt,name=buy,oneof"`
 }
-type LotteryAction_Show struct {
-	Show *LotteryShow `protobuf:"bytes,3,opt,name=show,oneof"`
-}
 type LotteryAction_Draw struct {
-	Draw *LotteryDraw `protobuf:"bytes,4,opt,name=draw,oneof"`
+	Draw *LotteryDraw `protobuf:"bytes,3,opt,name=draw,oneof"`
 }
 type LotteryAction_Close struct {
-	Close *LotteryClose `protobuf:"bytes,5,opt,name=close,oneof"`
+	Close *LotteryClose `protobuf:"bytes,4,opt,name=close,oneof"`
 }
 
 func (*LotteryAction_Create) isLotteryAction_Value() {}
 func (*LotteryAction_Buy) isLotteryAction_Value()    {}
-func (*LotteryAction_Show) isLotteryAction_Value()   {}
 func (*LotteryAction_Draw) isLotteryAction_Value()   {}
 func (*LotteryAction_Close) isLotteryAction_Value()  {}
 
@@ -288,13 +235,6 @@ func (m *LotteryAction) GetCreate() *LotteryCreate {
 func (m *LotteryAction) GetBuy() *LotteryBuy {
 	if x, ok := m.GetValue().(*LotteryAction_Buy); ok {
 		return x.Buy
-	}
-	return nil
-}
-
-func (m *LotteryAction) GetShow() *LotteryShow {
-	if x, ok := m.GetValue().(*LotteryAction_Show); ok {
-		return x.Show
 	}
 	return nil
 }
@@ -325,7 +265,6 @@ func (*LotteryAction) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer)
 	return _LotteryAction_OneofMarshaler, _LotteryAction_OneofUnmarshaler, _LotteryAction_OneofSizer, []interface{}{
 		(*LotteryAction_Create)(nil),
 		(*LotteryAction_Buy)(nil),
-		(*LotteryAction_Show)(nil),
 		(*LotteryAction_Draw)(nil),
 		(*LotteryAction_Close)(nil),
 	}
@@ -345,18 +284,13 @@ func _LotteryAction_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
 		if err := b.EncodeMessage(x.Buy); err != nil {
 			return err
 		}
-	case *LotteryAction_Show:
-		b.EncodeVarint(3<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Show); err != nil {
-			return err
-		}
 	case *LotteryAction_Draw:
-		b.EncodeVarint(4<<3 | proto.WireBytes)
+		b.EncodeVarint(3<<3 | proto.WireBytes)
 		if err := b.EncodeMessage(x.Draw); err != nil {
 			return err
 		}
 	case *LotteryAction_Close:
-		b.EncodeVarint(5<<3 | proto.WireBytes)
+		b.EncodeVarint(4<<3 | proto.WireBytes)
 		if err := b.EncodeMessage(x.Close); err != nil {
 			return err
 		}
@@ -386,15 +320,7 @@ func _LotteryAction_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.
 		err := b.DecodeMessage(msg)
 		m.Value = &LotteryAction_Buy{msg}
 		return true, err
-	case 3: // value.show
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(LotteryShow)
-		err := b.DecodeMessage(msg)
-		m.Value = &LotteryAction_Show{msg}
-		return true, err
-	case 4: // value.draw
+	case 3: // value.draw
 		if wire != proto.WireBytes {
 			return true, proto.ErrInternalBadWireType
 		}
@@ -402,7 +328,7 @@ func _LotteryAction_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.
 		err := b.DecodeMessage(msg)
 		m.Value = &LotteryAction_Draw{msg}
 		return true, err
-	case 5: // value.close
+	case 4: // value.close
 		if wire != proto.WireBytes {
 			return true, proto.ErrInternalBadWireType
 		}
@@ -429,19 +355,14 @@ func _LotteryAction_OneofSizer(msg proto.Message) (n int) {
 		n += proto.SizeVarint(2<<3 | proto.WireBytes)
 		n += proto.SizeVarint(uint64(s))
 		n += s
-	case *LotteryAction_Show:
-		s := proto.Size(x.Show)
-		n += proto.SizeVarint(3<<3 | proto.WireBytes)
-		n += proto.SizeVarint(uint64(s))
-		n += s
 	case *LotteryAction_Draw:
 		s := proto.Size(x.Draw)
-		n += proto.SizeVarint(4<<3 | proto.WireBytes)
+		n += proto.SizeVarint(3<<3 | proto.WireBytes)
 		n += proto.SizeVarint(uint64(s))
 		n += s
 	case *LotteryAction_Close:
 		s := proto.Size(x.Close)
-		n += proto.SizeVarint(5<<3 | proto.WireBytes)
+		n += proto.SizeVarint(4<<3 | proto.WireBytes)
 		n += proto.SizeVarint(uint64(s))
 		n += s
 	case nil:
@@ -452,9 +373,8 @@ func _LotteryAction_OneofSizer(msg proto.Message) (n int) {
 }
 
 type LotteryCreate struct {
-	PurchasePeriod int64 `protobuf:"varint,1,opt,name=purchasePeriod" json:"purchasePeriod,omitempty"`
-	ShowPeriod     int64 `protobuf:"varint,2,opt,name=showPeriod" json:"showPeriod,omitempty"`
-	MaxPurchaseNum int64 `protobuf:"varint,3,opt,name=maxPurchaseNum" json:"maxPurchaseNum,omitempty"`
+	PurBlockNum  int64 `protobuf:"varint,1,opt,name=purBlockNum" json:"purBlockNum,omitempty"`
+	DrawBlockNum int64 `protobuf:"varint,2,opt,name=drawBlockNum" json:"drawBlockNum,omitempty"`
 }
 
 func (m *LotteryCreate) Reset()                    { *m = LotteryCreate{} }
@@ -462,23 +382,16 @@ func (m *LotteryCreate) String() string            { return proto.CompactTextStr
 func (*LotteryCreate) ProtoMessage()               {}
 func (*LotteryCreate) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{4} }
 
-func (m *LotteryCreate) GetPurchasePeriod() int64 {
+func (m *LotteryCreate) GetPurBlockNum() int64 {
 	if m != nil {
-		return m.PurchasePeriod
+		return m.PurBlockNum
 	}
 	return 0
 }
 
-func (m *LotteryCreate) GetShowPeriod() int64 {
+func (m *LotteryCreate) GetDrawBlockNum() int64 {
 	if m != nil {
-		return m.ShowPeriod
-	}
-	return 0
-}
-
-func (m *LotteryCreate) GetMaxPurchaseNum() int64 {
-	if m != nil {
-		return m.MaxPurchaseNum
+		return m.DrawBlockNum
 	}
 	return 0
 }
@@ -486,8 +399,7 @@ func (m *LotteryCreate) GetMaxPurchaseNum() int64 {
 type LotteryBuy struct {
 	LotteryId string `protobuf:"bytes,1,opt,name=lotteryId" json:"lotteryId,omitempty"`
 	Amount    int64  `protobuf:"varint,2,opt,name=amount" json:"amount,omitempty"`
-	HashValue string `protobuf:"bytes,3,opt,name=hashValue" json:"hashValue,omitempty"`
-	Way       int64  `protobuf:"varint,4,opt,name=way" json:"way,omitempty"`
+	Number    int64  `protobuf:"varint,3,opt,name=number" json:"number,omitempty"`
 }
 
 func (m *LotteryBuy) Reset()                    { *m = LotteryBuy{} }
@@ -509,54 +421,7 @@ func (m *LotteryBuy) GetAmount() int64 {
 	return 0
 }
 
-func (m *LotteryBuy) GetHashValue() string {
-	if m != nil {
-		return m.HashValue
-	}
-	return ""
-}
-
-func (m *LotteryBuy) GetWay() int64 {
-	if m != nil {
-		return m.Way
-	}
-	return 0
-}
-
-type LotteryShow struct {
-	LotteryId string `protobuf:"bytes,1,opt,name=lotteryId" json:"lotteryId,omitempty"`
-	Secret    string `protobuf:"bytes,2,opt,name=secret" json:"secret,omitempty"`
-	TxHash    string `protobuf:"bytes,3,opt,name=txHash" json:"txHash,omitempty"`
-	Number    int64  `protobuf:"varint,4,opt,name=number" json:"number,omitempty"`
-}
-
-func (m *LotteryShow) Reset()                    { *m = LotteryShow{} }
-func (m *LotteryShow) String() string            { return proto.CompactTextString(m) }
-func (*LotteryShow) ProtoMessage()               {}
-func (*LotteryShow) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{6} }
-
-func (m *LotteryShow) GetLotteryId() string {
-	if m != nil {
-		return m.LotteryId
-	}
-	return ""
-}
-
-func (m *LotteryShow) GetSecret() string {
-	if m != nil {
-		return m.Secret
-	}
-	return ""
-}
-
-func (m *LotteryShow) GetTxHash() string {
-	if m != nil {
-		return m.TxHash
-	}
-	return ""
-}
-
-func (m *LotteryShow) GetNumber() int64 {
+func (m *LotteryBuy) GetNumber() int64 {
 	if m != nil {
 		return m.Number
 	}
@@ -570,7 +435,7 @@ type LotteryDraw struct {
 func (m *LotteryDraw) Reset()                    { *m = LotteryDraw{} }
 func (m *LotteryDraw) String() string            { return proto.CompactTextString(m) }
 func (*LotteryDraw) ProtoMessage()               {}
-func (*LotteryDraw) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{7} }
+func (*LotteryDraw) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{6} }
 
 func (m *LotteryDraw) GetLotteryId() string {
 	if m != nil {
@@ -586,7 +451,7 @@ type LotteryClose struct {
 func (m *LotteryClose) Reset()                    { *m = LotteryClose{} }
 func (m *LotteryClose) String() string            { return proto.CompactTextString(m) }
 func (*LotteryClose) ProtoMessage()               {}
-func (*LotteryClose) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{8} }
+func (*LotteryClose) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{7} }
 
 func (m *LotteryClose) GetLotteryId() string {
 	if m != nil {
@@ -596,19 +461,20 @@ func (m *LotteryClose) GetLotteryId() string {
 }
 
 type ReceiptLottery struct {
-	LotteryId  string `protobuf:"bytes,1,opt,name=lotteryId" json:"lotteryId,omitempty"`
-	Status     int32  `protobuf:"varint,2,opt,name=status" json:"status,omitempty"`
-	PrevStatus int32  `protobuf:"varint,3,opt,name=prevStatus" json:"prevStatus,omitempty"`
-	Addr       string `protobuf:"bytes,4,opt,name=addr" json:"addr,omitempty"`
-	Round      int64  `protobuf:"varint,5,opt,name=round" json:"round,omitempty"`
-	Number     int64  `protobuf:"varint,6,opt,name=number" json:"number,omitempty"`
-	Amount     int64  `protobuf:"varint,7,opt,name=amount" json:"amount,omitempty"`
+	LotteryId   string `protobuf:"bytes,1,opt,name=lotteryId" json:"lotteryId,omitempty"`
+	Status      int32  `protobuf:"varint,2,opt,name=status" json:"status,omitempty"`
+	PrevStatus  int32  `protobuf:"varint,3,opt,name=prevStatus" json:"prevStatus,omitempty"`
+	Addr        string `protobuf:"bytes,4,opt,name=addr" json:"addr,omitempty"`
+	Round       int64  `protobuf:"varint,5,opt,name=round" json:"round,omitempty"`
+	Number      int64  `protobuf:"varint,6,opt,name=number" json:"number,omitempty"`
+	Amount      int64  `protobuf:"varint,7,opt,name=amount" json:"amount,omitempty"`
+	LuckyNumber int64  `protobuf:"varint,8,opt,name=luckyNumber" json:"luckyNumber,omitempty"`
 }
 
 func (m *ReceiptLottery) Reset()                    { *m = ReceiptLottery{} }
 func (m *ReceiptLottery) String() string            { return proto.CompactTextString(m) }
 func (*ReceiptLottery) ProtoMessage()               {}
-func (*ReceiptLottery) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{9} }
+func (*ReceiptLottery) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{8} }
 
 func (m *ReceiptLottery) GetLotteryId() string {
 	if m != nil {
@@ -659,6 +525,13 @@ func (m *ReceiptLottery) GetAmount() int64 {
 	return 0
 }
 
+func (m *ReceiptLottery) GetLuckyNumber() int64 {
+	if m != nil {
+		return m.LuckyNumber
+	}
+	return 0
+}
+
 type ReqLotteryInfo struct {
 	LotteryId string `protobuf:"bytes,1,opt,name=lotteryId" json:"lotteryId,omitempty"`
 }
@@ -666,7 +539,7 @@ type ReqLotteryInfo struct {
 func (m *ReqLotteryInfo) Reset()                    { *m = ReqLotteryInfo{} }
 func (m *ReqLotteryInfo) String() string            { return proto.CompactTextString(m) }
 func (*ReqLotteryInfo) ProtoMessage()               {}
-func (*ReqLotteryInfo) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{10} }
+func (*ReqLotteryInfo) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{9} }
 
 func (m *ReqLotteryInfo) GetLotteryId() string {
 	if m != nil {
@@ -675,75 +548,179 @@ func (m *ReqLotteryInfo) GetLotteryId() string {
 	return ""
 }
 
-type ReqLotteryShowInfo struct {
+type ReqLotteryBuyInfo struct {
 	LotteryId string `protobuf:"bytes,1,opt,name=lotteryId" json:"lotteryId,omitempty"`
 	Addr      string `protobuf:"bytes,2,opt,name=addr" json:"addr,omitempty"`
 	Round     int64  `protobuf:"varint,3,opt,name=round" json:"round,omitempty"`
 }
 
-func (m *ReqLotteryShowInfo) Reset()                    { *m = ReqLotteryShowInfo{} }
-func (m *ReqLotteryShowInfo) String() string            { return proto.CompactTextString(m) }
-func (*ReqLotteryShowInfo) ProtoMessage()               {}
-func (*ReqLotteryShowInfo) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{11} }
+func (m *ReqLotteryBuyInfo) Reset()                    { *m = ReqLotteryBuyInfo{} }
+func (m *ReqLotteryBuyInfo) String() string            { return proto.CompactTextString(m) }
+func (*ReqLotteryBuyInfo) ProtoMessage()               {}
+func (*ReqLotteryBuyInfo) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{10} }
 
-func (m *ReqLotteryShowInfo) GetLotteryId() string {
+func (m *ReqLotteryBuyInfo) GetLotteryId() string {
 	if m != nil {
 		return m.LotteryId
 	}
 	return ""
 }
 
-func (m *ReqLotteryShowInfo) GetAddr() string {
+func (m *ReqLotteryBuyInfo) GetAddr() string {
 	if m != nil {
 		return m.Addr
 	}
 	return ""
 }
 
-func (m *ReqLotteryShowInfo) GetRound() int64 {
+func (m *ReqLotteryBuyInfo) GetRound() int64 {
 	if m != nil {
 		return m.Round
 	}
 	return 0
 }
 
+type ReqLotteryBuyHistory struct {
+	LotteryId string `protobuf:"bytes,1,opt,name=lotteryId" json:"lotteryId,omitempty"`
+	Addr      string `protobuf:"bytes,2,opt,name=addr" json:"addr,omitempty"`
+	Round     int64  `protobuf:"varint,3,opt,name=round" json:"round,omitempty"`
+	Count     int32  `protobuf:"varint,4,opt,name=count" json:"count,omitempty"`
+	Direction int32  `protobuf:"varint,5,opt,name=direction" json:"direction,omitempty"`
+}
+
+func (m *ReqLotteryBuyHistory) Reset()                    { *m = ReqLotteryBuyHistory{} }
+func (m *ReqLotteryBuyHistory) String() string            { return proto.CompactTextString(m) }
+func (*ReqLotteryBuyHistory) ProtoMessage()               {}
+func (*ReqLotteryBuyHistory) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{11} }
+
+func (m *ReqLotteryBuyHistory) GetLotteryId() string {
+	if m != nil {
+		return m.LotteryId
+	}
+	return ""
+}
+
+func (m *ReqLotteryBuyHistory) GetAddr() string {
+	if m != nil {
+		return m.Addr
+	}
+	return ""
+}
+
+func (m *ReqLotteryBuyHistory) GetRound() int64 {
+	if m != nil {
+		return m.Round
+	}
+	return 0
+}
+
+func (m *ReqLotteryBuyHistory) GetCount() int32 {
+	if m != nil {
+		return m.Count
+	}
+	return 0
+}
+
+func (m *ReqLotteryBuyHistory) GetDirection() int32 {
+	if m != nil {
+		return m.Direction
+	}
+	return 0
+}
+
+type ReqLotteryLuckyInfo struct {
+	LotteryId string `protobuf:"bytes,1,opt,name=lotteryId" json:"lotteryId,omitempty"`
+	Round     int64  `protobuf:"varint,2,opt,name=round" json:"round,omitempty"`
+}
+
+func (m *ReqLotteryLuckyInfo) Reset()                    { *m = ReqLotteryLuckyInfo{} }
+func (m *ReqLotteryLuckyInfo) String() string            { return proto.CompactTextString(m) }
+func (*ReqLotteryLuckyInfo) ProtoMessage()               {}
+func (*ReqLotteryLuckyInfo) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{12} }
+
+func (m *ReqLotteryLuckyInfo) GetLotteryId() string {
+	if m != nil {
+		return m.LotteryId
+	}
+	return ""
+}
+
+func (m *ReqLotteryLuckyInfo) GetRound() int64 {
+	if m != nil {
+		return m.Round
+	}
+	return 0
+}
+
+type ReqLotteryLuckyHistory struct {
+	LotteryId string `protobuf:"bytes,1,opt,name=lotteryId" json:"lotteryId,omitempty"`
+	Round     int64  `protobuf:"varint,2,opt,name=round" json:"round,omitempty"`
+	Count     int32  `protobuf:"varint,3,opt,name=count" json:"count,omitempty"`
+	Direction int32  `protobuf:"varint,4,opt,name=direction" json:"direction,omitempty"`
+}
+
+func (m *ReqLotteryLuckyHistory) Reset()                    { *m = ReqLotteryLuckyHistory{} }
+func (m *ReqLotteryLuckyHistory) String() string            { return proto.CompactTextString(m) }
+func (*ReqLotteryLuckyHistory) ProtoMessage()               {}
+func (*ReqLotteryLuckyHistory) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{13} }
+
+func (m *ReqLotteryLuckyHistory) GetLotteryId() string {
+	if m != nil {
+		return m.LotteryId
+	}
+	return ""
+}
+
+func (m *ReqLotteryLuckyHistory) GetRound() int64 {
+	if m != nil {
+		return m.Round
+	}
+	return 0
+}
+
+func (m *ReqLotteryLuckyHistory) GetCount() int32 {
+	if m != nil {
+		return m.Count
+	}
+	return 0
+}
+
+func (m *ReqLotteryLuckyHistory) GetDirection() int32 {
+	if m != nil {
+		return m.Direction
+	}
+	return 0
+}
+
 type ReplyLotteryNormalInfo struct {
-	CreateTime     int64  `protobuf:"varint,1,opt,name=createTime" json:"createTime,omitempty"`
-	PurchasePeriod int64  `protobuf:"varint,2,opt,name=purchasePeriod" json:"purchasePeriod,omitempty"`
-	ShowPeriod     int64  `protobuf:"varint,3,opt,name=showPeriod" json:"showPeriod,omitempty"`
-	MaxPurchaseNum int64  `protobuf:"varint,4,opt,name=maxPurchaseNum" json:"maxPurchaseNum,omitempty"`
-	CreateAddr     string `protobuf:"bytes,5,opt,name=createAddr" json:"createAddr,omitempty"`
+	CreateHeight int64  `protobuf:"varint,1,opt,name=createHeight" json:"createHeight,omitempty"`
+	PurBlockNum  int64  `protobuf:"varint,2,opt,name=purBlockNum" json:"purBlockNum,omitempty"`
+	DrawBlockNum int64  `protobuf:"varint,3,opt,name=drawBlockNum" json:"drawBlockNum,omitempty"`
+	CreateAddr   string `protobuf:"bytes,4,opt,name=createAddr" json:"createAddr,omitempty"`
 }
 
 func (m *ReplyLotteryNormalInfo) Reset()                    { *m = ReplyLotteryNormalInfo{} }
 func (m *ReplyLotteryNormalInfo) String() string            { return proto.CompactTextString(m) }
 func (*ReplyLotteryNormalInfo) ProtoMessage()               {}
-func (*ReplyLotteryNormalInfo) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{12} }
+func (*ReplyLotteryNormalInfo) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{14} }
 
-func (m *ReplyLotteryNormalInfo) GetCreateTime() int64 {
+func (m *ReplyLotteryNormalInfo) GetCreateHeight() int64 {
 	if m != nil {
-		return m.CreateTime
+		return m.CreateHeight
 	}
 	return 0
 }
 
-func (m *ReplyLotteryNormalInfo) GetPurchasePeriod() int64 {
+func (m *ReplyLotteryNormalInfo) GetPurBlockNum() int64 {
 	if m != nil {
-		return m.PurchasePeriod
+		return m.PurBlockNum
 	}
 	return 0
 }
 
-func (m *ReplyLotteryNormalInfo) GetShowPeriod() int64 {
+func (m *ReplyLotteryNormalInfo) GetDrawBlockNum() int64 {
 	if m != nil {
-		return m.ShowPeriod
-	}
-	return 0
-}
-
-func (m *ReplyLotteryNormalInfo) GetMaxPurchaseNum() int64 {
-	if m != nil {
-		return m.MaxPurchaseNum
+		return m.DrawBlockNum
 	}
 	return 0
 }
@@ -759,16 +736,16 @@ type ReplyLotteryCurrentInfo struct {
 	Status               int32 `protobuf:"varint,1,opt,name=status" json:"status,omitempty"`
 	Fund                 int64 `protobuf:"varint,2,opt,name=fund" json:"fund,omitempty"`
 	LastTransToPurState  int64 `protobuf:"varint,3,opt,name=lastTransToPurState" json:"lastTransToPurState,omitempty"`
-	LastTransToShowState int64 `protobuf:"varint,4,opt,name=lastTransToShowState" json:"lastTransToShowState,omitempty"`
+	LastTransToDrawState int64 `protobuf:"varint,4,opt,name=lastTransToDrawState" json:"lastTransToDrawState,omitempty"`
 	TotalPurchasedTxNum  int64 `protobuf:"varint,5,opt,name=totalPurchasedTxNum" json:"totalPurchasedTxNum,omitempty"`
-	TotalShowedNum       int64 `protobuf:"varint,6,opt,name=totalShowedNum" json:"totalShowedNum,omitempty"`
-	Round                int64 `protobuf:"varint,7,opt,name=round" json:"round,omitempty"`
+	Round                int64 `protobuf:"varint,6,opt,name=round" json:"round,omitempty"`
+	LuckyNumber          int64 `protobuf:"varint,7,opt,name=luckyNumber" json:"luckyNumber,omitempty"`
 }
 
 func (m *ReplyLotteryCurrentInfo) Reset()                    { *m = ReplyLotteryCurrentInfo{} }
 func (m *ReplyLotteryCurrentInfo) String() string            { return proto.CompactTextString(m) }
 func (*ReplyLotteryCurrentInfo) ProtoMessage()               {}
-func (*ReplyLotteryCurrentInfo) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{13} }
+func (*ReplyLotteryCurrentInfo) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{15} }
 
 func (m *ReplyLotteryCurrentInfo) GetStatus() int32 {
 	if m != nil {
@@ -791,9 +768,9 @@ func (m *ReplyLotteryCurrentInfo) GetLastTransToPurState() int64 {
 	return 0
 }
 
-func (m *ReplyLotteryCurrentInfo) GetLastTransToShowState() int64 {
+func (m *ReplyLotteryCurrentInfo) GetLastTransToDrawState() int64 {
 	if m != nil {
-		return m.LastTransToShowState
+		return m.LastTransToDrawState
 	}
 	return 0
 }
@@ -805,16 +782,16 @@ func (m *ReplyLotteryCurrentInfo) GetTotalPurchasedTxNum() int64 {
 	return 0
 }
 
-func (m *ReplyLotteryCurrentInfo) GetTotalShowedNum() int64 {
+func (m *ReplyLotteryCurrentInfo) GetRound() int64 {
 	if m != nil {
-		return m.TotalShowedNum
+		return m.Round
 	}
 	return 0
 }
 
-func (m *ReplyLotteryCurrentInfo) GetRound() int64 {
+func (m *ReplyLotteryCurrentInfo) GetLuckyNumber() int64 {
 	if m != nil {
-		return m.Round
+		return m.LuckyNumber
 	}
 	return 0
 }
@@ -827,7 +804,7 @@ func (m *ReplyLotteryHistoryLuckyNumber) Reset()         { *m = ReplyLotteryHist
 func (m *ReplyLotteryHistoryLuckyNumber) String() string { return proto.CompactTextString(m) }
 func (*ReplyLotteryHistoryLuckyNumber) ProtoMessage()    {}
 func (*ReplyLotteryHistoryLuckyNumber) Descriptor() ([]byte, []int) {
-	return fileDescriptor10, []int{14}
+	return fileDescriptor10, []int{16}
 }
 
 func (m *ReplyLotteryHistoryLuckyNumber) GetLuckyNumber() []int64 {
@@ -838,56 +815,120 @@ func (m *ReplyLotteryHistoryLuckyNumber) GetLuckyNumber() []int64 {
 }
 
 type ReplyLotteryShowInfo struct {
-	Records []*LotteryShowRecord `protobuf:"bytes,1,rep,name=records" json:"records,omitempty"`
+	Records []*LotteryBuyRecord `protobuf:"bytes,1,rep,name=records" json:"records,omitempty"`
 }
 
 func (m *ReplyLotteryShowInfo) Reset()                    { *m = ReplyLotteryShowInfo{} }
 func (m *ReplyLotteryShowInfo) String() string            { return proto.CompactTextString(m) }
 func (*ReplyLotteryShowInfo) ProtoMessage()               {}
-func (*ReplyLotteryShowInfo) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{15} }
+func (*ReplyLotteryShowInfo) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{17} }
 
-func (m *ReplyLotteryShowInfo) GetRecords() []*LotteryShowRecord {
+func (m *ReplyLotteryShowInfo) GetRecords() []*LotteryBuyRecord {
 	if m != nil {
 		return m.Records
 	}
 	return nil
 }
 
-// used for execlocal for show
-type LotteryShowRecord struct {
+type LotteryNumberRecord struct {
 	Number int64 `protobuf:"varint,1,opt,name=number" json:"number,omitempty"`
 	Amount int64 `protobuf:"varint,2,opt,name=amount" json:"amount,omitempty"`
 }
 
-func (m *LotteryShowRecord) Reset()                    { *m = LotteryShowRecord{} }
-func (m *LotteryShowRecord) String() string            { return proto.CompactTextString(m) }
-func (*LotteryShowRecord) ProtoMessage()               {}
-func (*LotteryShowRecord) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{16} }
+func (m *LotteryNumberRecord) Reset()                    { *m = LotteryNumberRecord{} }
+func (m *LotteryNumberRecord) String() string            { return proto.CompactTextString(m) }
+func (*LotteryNumberRecord) ProtoMessage()               {}
+func (*LotteryNumberRecord) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{18} }
 
-func (m *LotteryShowRecord) GetNumber() int64 {
+func (m *LotteryNumberRecord) GetNumber() int64 {
 	if m != nil {
 		return m.Number
 	}
 	return 0
 }
 
-func (m *LotteryShowRecord) GetAmount() int64 {
+func (m *LotteryNumberRecord) GetAmount() int64 {
 	if m != nil {
 		return m.Amount
 	}
 	return 0
 }
 
-type LotteryShowRecords struct {
-	Records []*LotteryShowRecord `protobuf:"bytes,1,rep,name=records" json:"records,omitempty"`
+// used for execlocal
+type LotteryBuyRecord struct {
+	Records []*LotteryNumberRecord `protobuf:"bytes,1,rep,name=records" json:"records,omitempty"`
+	Round   int64                  `protobuf:"varint,2,opt,name=round" json:"round,omitempty"`
 }
 
-func (m *LotteryShowRecords) Reset()                    { *m = LotteryShowRecords{} }
-func (m *LotteryShowRecords) String() string            { return proto.CompactTextString(m) }
-func (*LotteryShowRecords) ProtoMessage()               {}
-func (*LotteryShowRecords) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{17} }
+func (m *LotteryBuyRecord) Reset()                    { *m = LotteryBuyRecord{} }
+func (m *LotteryBuyRecord) String() string            { return proto.CompactTextString(m) }
+func (*LotteryBuyRecord) ProtoMessage()               {}
+func (*LotteryBuyRecord) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{19} }
 
-func (m *LotteryShowRecords) GetRecords() []*LotteryShowRecord {
+func (m *LotteryBuyRecord) GetRecords() []*LotteryNumberRecord {
+	if m != nil {
+		return m.Records
+	}
+	return nil
+}
+
+func (m *LotteryBuyRecord) GetRound() int64 {
+	if m != nil {
+		return m.Round
+	}
+	return 0
+}
+
+type LotteryBuyRecords struct {
+	Records []*LotteryBuyRecord `protobuf:"bytes,1,rep,name=records" json:"records,omitempty"`
+}
+
+func (m *LotteryBuyRecords) Reset()                    { *m = LotteryBuyRecords{} }
+func (m *LotteryBuyRecords) String() string            { return proto.CompactTextString(m) }
+func (*LotteryBuyRecords) ProtoMessage()               {}
+func (*LotteryBuyRecords) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{20} }
+
+func (m *LotteryBuyRecords) GetRecords() []*LotteryBuyRecord {
+	if m != nil {
+		return m.Records
+	}
+	return nil
+}
+
+type LotteryDrawRecord struct {
+	Number int64 `protobuf:"varint,1,opt,name=number" json:"number,omitempty"`
+	Round  int64 `protobuf:"varint,2,opt,name=round" json:"round,omitempty"`
+}
+
+func (m *LotteryDrawRecord) Reset()                    { *m = LotteryDrawRecord{} }
+func (m *LotteryDrawRecord) String() string            { return proto.CompactTextString(m) }
+func (*LotteryDrawRecord) ProtoMessage()               {}
+func (*LotteryDrawRecord) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{21} }
+
+func (m *LotteryDrawRecord) GetNumber() int64 {
+	if m != nil {
+		return m.Number
+	}
+	return 0
+}
+
+func (m *LotteryDrawRecord) GetRound() int64 {
+	if m != nil {
+		return m.Round
+	}
+	return 0
+}
+
+type LotteryDrawRecords struct {
+	Records []*LotteryDrawRecord `protobuf:"bytes,1,rep,name=records" json:"records,omitempty"`
+}
+
+func (m *LotteryDrawRecords) Reset()                    { *m = LotteryDrawRecords{} }
+func (m *LotteryDrawRecords) String() string            { return proto.CompactTextString(m) }
+func (*LotteryDrawRecords) ProtoMessage()               {}
+func (*LotteryDrawRecords) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{22} }
+
+func (m *LotteryDrawRecords) GetRecords() []*LotteryDrawRecord {
 	if m != nil {
 		return m.Records
 	}
@@ -901,81 +942,86 @@ func init() {
 	proto.RegisterType((*LotteryAction)(nil), "types.LotteryAction")
 	proto.RegisterType((*LotteryCreate)(nil), "types.LotteryCreate")
 	proto.RegisterType((*LotteryBuy)(nil), "types.LotteryBuy")
-	proto.RegisterType((*LotteryShow)(nil), "types.LotteryShow")
 	proto.RegisterType((*LotteryDraw)(nil), "types.LotteryDraw")
 	proto.RegisterType((*LotteryClose)(nil), "types.LotteryClose")
 	proto.RegisterType((*ReceiptLottery)(nil), "types.ReceiptLottery")
 	proto.RegisterType((*ReqLotteryInfo)(nil), "types.ReqLotteryInfo")
-	proto.RegisterType((*ReqLotteryShowInfo)(nil), "types.ReqLotteryShowInfo")
+	proto.RegisterType((*ReqLotteryBuyInfo)(nil), "types.ReqLotteryBuyInfo")
+	proto.RegisterType((*ReqLotteryBuyHistory)(nil), "types.ReqLotteryBuyHistory")
+	proto.RegisterType((*ReqLotteryLuckyInfo)(nil), "types.ReqLotteryLuckyInfo")
+	proto.RegisterType((*ReqLotteryLuckyHistory)(nil), "types.ReqLotteryLuckyHistory")
 	proto.RegisterType((*ReplyLotteryNormalInfo)(nil), "types.ReplyLotteryNormalInfo")
 	proto.RegisterType((*ReplyLotteryCurrentInfo)(nil), "types.ReplyLotteryCurrentInfo")
 	proto.RegisterType((*ReplyLotteryHistoryLuckyNumber)(nil), "types.ReplyLotteryHistoryLuckyNumber")
 	proto.RegisterType((*ReplyLotteryShowInfo)(nil), "types.ReplyLotteryShowInfo")
-	proto.RegisterType((*LotteryShowRecord)(nil), "types.LotteryShowRecord")
-	proto.RegisterType((*LotteryShowRecords)(nil), "types.LotteryShowRecords")
+	proto.RegisterType((*LotteryNumberRecord)(nil), "types.LotteryNumberRecord")
+	proto.RegisterType((*LotteryBuyRecord)(nil), "types.LotteryBuyRecord")
+	proto.RegisterType((*LotteryBuyRecords)(nil), "types.LotteryBuyRecords")
+	proto.RegisterType((*LotteryDrawRecord)(nil), "types.LotteryDrawRecord")
+	proto.RegisterType((*LotteryDrawRecords)(nil), "types.LotteryDrawRecords")
 }
 
 func init() { proto.RegisterFile("lottery.proto", fileDescriptor10) }
 
 var fileDescriptor10 = []byte{
-	// 942 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xa4, 0x56, 0x4f, 0x6f, 0xe3, 0x44,
-	0x14, 0xaf, 0xed, 0x38, 0x69, 0x9f, 0xdb, 0x6c, 0x77, 0xb6, 0x14, 0x6b, 0x41, 0xab, 0xc8, 0x12,
-	0x28, 0xd2, 0x2e, 0x11, 0x0a, 0x42, 0x42, 0xdc, 0xb6, 0x05, 0x29, 0x8b, 0x56, 0xa5, 0x9a, 0x56,
-	0x70, 0xe1, 0x32, 0xb5, 0x67, 0x95, 0x68, 0x1d, 0x4f, 0x98, 0x19, 0x6f, 0xeb, 0x13, 0x88, 0x8f,
-	0xc0, 0x95, 0x2b, 0x1f, 0x84, 0x23, 0x1f, 0x0b, 0xcd, 0x9f, 0xc4, 0xe3, 0xc4, 0xdd, 0xa4, 0xec,
-	0xcd, 0xf3, 0xde, 0x6f, 0xe6, 0xbd, 0xf7, 0x7b, 0xff, 0x0c, 0x47, 0x39, 0x93, 0x92, 0xf2, 0x6a,
-	0xb4, 0xe0, 0x4c, 0x32, 0x14, 0xca, 0x6a, 0x41, 0x45, 0xf2, 0xa7, 0x07, 0xfd, 0xcb, 0x92, 0xa7,
-	0x53, 0x22, 0x28, 0xa6, 0x29, 0xe3, 0x19, 0xfa, 0x14, 0x0e, 0xa6, 0x44, 0x4c, 0x7f, 0x22, 0x79,
-	0x49, 0x63, 0x6f, 0xe0, 0x0d, 0x0f, 0x70, 0x2d, 0x40, 0xa7, 0xd0, 0x25, 0x73, 0x56, 0x16, 0x32,
-	0xf6, 0x07, 0xde, 0x30, 0xc0, 0xf6, 0xa4, 0xe4, 0xf2, 0x6e, 0x42, 0xc4, 0x34, 0x0e, 0xf4, 0x15,
-	0x7b, 0x42, 0x4f, 0x61, 0x7f, 0x26, 0xae, 0xa6, 0xec, 0x96, 0x66, 0x71, 0x67, 0xe0, 0x0d, 0xf7,
-	0xf1, 0xea, 0xac, 0xee, 0x14, 0xe5, 0xfc, 0x86, 0xf2, 0x38, 0x34, 0x6f, 0x99, 0x53, 0xf2, 0x87,
-	0x07, 0x8f, 0x9a, 0x4e, 0x09, 0xf4, 0x05, 0x74, 0xb9, 0xfe, 0x8c, 0xbd, 0x41, 0x30, 0x8c, 0xc6,
-	0x1f, 0x8d, 0x74, 0x00, 0xa3, 0x26, 0x0e, 0x5b, 0x10, 0x8a, 0xa1, 0xf7, 0xa6, 0x2c, 0xb2, 0x9f,
-	0x67, 0x85, 0xf5, 0x73, 0x79, 0x44, 0x9f, 0x43, 0xdf, 0xb8, 0xfc, 0x63, 0x41, 0x31, 0x2b, 0x8b,
-	0x4c, 0x3b, 0x1c, 0xe0, 0x35, 0x69, 0xf2, 0x77, 0x08, 0xbd, 0xd7, 0x86, 0x32, 0x45, 0x89, 0x65,
-	0xef, 0x55, 0xb6, 0xa4, 0x64, 0x25, 0x50, 0x61, 0x08, 0x49, 0x64, 0x29, 0xb4, 0xa9, 0x10, 0xdb,
-	0x13, 0x7a, 0x06, 0x90, 0x72, 0x4a, 0x24, 0xbd, 0x9e, 0xcd, 0xa9, 0xb5, 0xe2, 0x48, 0xd4, 0xab,
-	0x73, 0x22, 0xd3, 0xa9, 0x56, 0x77, 0xb4, 0xba, 0x16, 0x20, 0x04, 0x1d, 0xe5, 0xb2, 0xa5, 0x46,
-	0x7f, 0x2b, 0xdf, 0x17, 0x36, 0xde, 0x4b, 0xca, 0x67, 0x2c, 0x8b, 0xbb, 0xc6, 0xf7, 0xa6, 0x54,
-	0x59, 0x16, 0x53, 0x76, 0x6b, 0x31, 0x3d, 0x63, 0xb9, 0x96, 0xa8, 0x77, 0xe6, 0xe4, 0x6e, 0x49,
-	0xdd, 0x45, 0x39, 0x8f, 0xf7, 0xcd, 0x3b, 0x4d, 0x29, 0xfa, 0x12, 0x9e, 0xe4, 0x44, 0xc8, 0x6b,
-	0x4e, 0x0a, 0x71, 0xcd, 0x2e, 0x4b, 0x7e, 0x25, 0x89, 0xa4, 0xf1, 0x81, 0x06, 0xb7, 0xa9, 0xd0,
-	0x18, 0x4e, 0x1c, 0xb1, 0xca, 0xb3, 0xb9, 0x02, 0xfa, 0x4a, 0xab, 0x0e, 0x7d, 0x0d, 0x3d, 0x93,
-	0x35, 0x11, 0x47, 0x3a, 0xb7, 0x9f, 0xd8, 0xdc, 0x5a, 0xfa, 0x47, 0xb6, 0x06, 0xbe, 0x2f, 0x24,
-	0xaf, 0xf0, 0x12, 0xab, 0x9c, 0x93, 0x4c, 0x92, 0x7c, 0xe9, 0x70, 0x76, 0x7d, 0xa7, 0x22, 0x39,
-	0x34, 0xce, 0xb5, 0xa8, 0x54, 0xd8, 0x5a, 0x6c, 0xca, 0x4f, 0x81, 0x8f, 0x4c, 0xd8, 0x4d, 0x69,
-	0x9d, 0xb8, 0x97, 0x59, 0xc6, 0xe3, 0xbe, 0xce, 0xb7, 0x23, 0x41, 0x27, 0x10, 0x72, 0x5d, 0x39,
-	0x8f, 0xf4, 0x75, 0x73, 0x40, 0x03, 0x88, 0xf2, 0x32, 0x7d, 0x5b, 0x5d, 0x98, 0x92, 0x3e, 0x1e,
-	0x04, 0xc3, 0x00, 0xbb, 0xa2, 0xa7, 0x18, 0x0e, 0xdd, 0x50, 0xd0, 0x31, 0x04, 0x6f, 0x69, 0x65,
-	0x0b, 0x4a, 0x7d, 0xa2, 0x17, 0x10, 0xbe, 0xd3, 0x7d, 0xa7, 0x2a, 0x29, 0x1a, 0x9f, 0xb6, 0x16,
-	0xb9, 0xc0, 0x06, 0xf4, 0xad, 0xff, 0x8d, 0x97, 0xfc, 0xee, 0xc3, 0x91, 0xe5, 0xe9, 0x65, 0x2a,
-	0x67, 0xac, 0x40, 0x23, 0xe8, 0x1a, 0x5f, 0xf5, 0xc3, 0xd1, 0xf8, 0xa4, 0xc9, 0xe6, 0xb9, 0xd6,
-	0x4d, 0xf6, 0xb0, 0x45, 0xa1, 0xcf, 0x20, 0xb8, 0x29, 0x2b, 0x6b, 0xf1, 0x71, 0x13, 0x7c, 0x56,
-	0x56, 0x93, 0x3d, 0xac, 0xf4, 0x68, 0x08, 0x1d, 0x55, 0x41, 0xba, 0x8e, 0xa3, 0x31, 0x6a, 0xe2,
-	0x14, 0x77, 0x93, 0x3d, 0xac, 0x11, 0x0a, 0x99, 0x71, 0x72, 0xab, 0x4b, 0x7a, 0x03, 0xf9, 0x1d,
-	0x27, 0x1a, 0xa9, 0x10, 0xe8, 0x39, 0x84, 0x69, 0xce, 0x04, 0xd5, 0x45, 0x1e, 0x8d, 0x9f, 0xac,
-	0x79, 0xaa, 0x54, 0x93, 0x3d, 0x6c, 0x30, 0xa8, 0x0f, 0xbe, 0xac, 0x74, 0x21, 0x85, 0xd8, 0x97,
-	0xd5, 0x59, 0xcf, 0x72, 0x95, 0xfc, 0xb6, 0x62, 0xc0, 0xc4, 0xd6, 0xd2, 0x26, 0xde, 0x0e, 0x6d,
-	0xe2, 0xef, 0xd0, 0x26, 0x41, 0x5b, 0x9b, 0x24, 0x1c, 0xa0, 0xe6, 0x6b, 0xfb, 0xb0, 0x68, 0x9d,
-	0x9f, 0x8d, 0xa9, 0x1b, 0xac, 0x4f, 0xdd, 0x63, 0x08, 0x6e, 0x49, 0x65, 0x87, 0x84, 0xfa, 0x4c,
-	0x04, 0x44, 0x0e, 0xf7, 0x3b, 0x4c, 0x28, 0x9a, 0x72, 0x6a, 0x8c, 0x1e, 0x60, 0x7b, 0xba, 0x77,
-	0x68, 0xd7, 0x83, 0xb9, 0xd3, 0x18, 0xcc, 0xcf, 0x57, 0x46, 0x55, 0x1a, 0xdf, 0x6f, 0x34, 0x79,
-	0x01, 0x87, 0x6e, 0x22, 0xb7, 0xa0, 0xff, 0xf1, 0xa0, 0x8f, 0x69, 0x4a, 0x67, 0x0b, 0xf9, 0xc1,
-	0x53, 0x77, 0xc1, 0xe9, 0xbb, 0x2b, 0xa3, 0x0b, 0xb4, 0xce, 0x91, 0xa8, 0xb9, 0x4a, 0x54, 0x5b,
-	0x77, 0xf4, 0x83, 0xfa, 0xbb, 0x6e, 0xe8, 0xd0, 0x6d, 0xe8, 0x9a, 0x85, 0xae, 0xcb, 0x82, 0x93,
-	0xc2, 0x9e, 0x9b, 0xc2, 0x64, 0xa4, 0x22, 0xf8, 0xd5, 0x7a, 0xff, 0xaa, 0x78, 0xc3, 0xb6, 0x84,
-	0xfc, 0x0b, 0xa0, 0x1a, 0xaf, 0xb2, 0xb8, 0xfd, 0xce, 0xca, 0x7b, 0xbf, 0xcd, 0xfb, 0xc0, 0xf1,
-	0x3e, 0xf9, 0xd7, 0x83, 0x53, 0x4c, 0x17, 0x79, 0x65, 0x0d, 0x5c, 0x30, 0x3e, 0x27, 0xb9, 0x36,
-	0xd1, 0x5c, 0x4c, 0xde, 0xc6, 0x62, 0xda, 0xec, 0x1f, 0x7f, 0x87, 0xfe, 0x09, 0x76, 0xe8, 0x9f,
-	0x4e, 0xeb, 0x9a, 0x69, 0xce, 0xdb, 0x70, 0x7d, 0xde, 0x26, 0x7f, 0xf9, 0xf0, 0xb1, 0x1b, 0xca,
-	0x79, 0xc9, 0x39, 0x2d, 0xa4, 0x8e, 0xa5, 0x2e, 0x03, 0xaf, 0x51, 0x06, 0xcb, 0xf5, 0xe9, 0x3b,
-	0xeb, 0xf3, 0x9e, 0x75, 0x16, 0x3c, 0x7c, 0x9d, 0x75, 0xde, 0xb3, 0xce, 0xee, 0xd9, 0x4b, 0xe1,
-	0x43, 0xf6, 0x52, 0xb7, 0x75, 0x2f, 0xad, 0x12, 0xdd, 0x73, 0x13, 0x7d, 0x06, 0xcf, 0x5c, 0x72,
-	0x26, 0x33, 0x21, 0x19, 0xaf, 0x5e, 0xd7, 0x7b, 0x67, 0x7d, 0x33, 0x79, 0x1b, 0x9b, 0x29, 0xf9,
-	0x01, 0x4e, 0xdc, 0x37, 0x56, 0xc5, 0x38, 0xae, 0x57, 0xb3, 0xf9, 0xed, 0x8a, 0x37, 0xe7, 0xbe,
-	0xfd, 0xf3, 0x5a, 0x02, 0x93, 0x73, 0x78, 0xbc, 0xa1, 0x75, 0x7a, 0xc9, 0xbb, 0xa7, 0x97, 0x1a,
-	0xe3, 0x30, 0x99, 0x00, 0xda, 0x78, 0x44, 0xfc, 0x1f, 0x77, 0x6e, 0xba, 0xfa, 0x7f, 0xf7, 0xab,
-	0xff, 0x02, 0x00, 0x00, 0xff, 0xff, 0xf8, 0x16, 0x17, 0xcb, 0x00, 0x0b, 0x00, 0x00,
+	// 937 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xa4, 0x56, 0xef, 0x6e, 0xe3, 0x44,
+	0x10, 0xaf, 0xff, 0x25, 0xd7, 0x49, 0x5b, 0xae, 0xdb, 0xd2, 0xb3, 0x0e, 0x54, 0x55, 0x96, 0x40,
+	0x95, 0xee, 0x88, 0x20, 0x80, 0x84, 0xf8, 0x44, 0x73, 0x1c, 0x4a, 0xa5, 0xaa, 0x9c, 0xb6, 0x45,
+	0x48, 0x20, 0x21, 0xb9, 0xf6, 0x1e, 0x8d, 0xea, 0xda, 0x61, 0xbd, 0xbe, 0xe2, 0x6f, 0x88, 0x47,
+	0x40, 0xe2, 0x05, 0x78, 0x0a, 0x9e, 0x84, 0x07, 0xe0, 0x49, 0xd0, 0xce, 0x6e, 0xe2, 0xf5, 0xc6,
+	0x69, 0x0a, 0x7c, 0xf3, 0xce, 0x8e, 0x67, 0xe6, 0xf7, 0x9b, 0x7f, 0x0b, 0xdb, 0x59, 0x21, 0x04,
+	0xe3, 0xf5, 0x70, 0xc6, 0x0b, 0x51, 0x90, 0x40, 0xd4, 0x33, 0x56, 0x46, 0x5f, 0xc0, 0xce, 0xab,
+	0x8a, 0x27, 0xd7, 0x71, 0xc9, 0x28, 0x4b, 0x0a, 0x9e, 0x92, 0x03, 0xe8, 0xc5, 0xb7, 0x45, 0x95,
+	0x8b, 0xd0, 0x39, 0x72, 0x8e, 0x3d, 0xaa, 0x4f, 0x52, 0x9e, 0x57, 0xb7, 0x57, 0x8c, 0x87, 0xae,
+	0x92, 0xab, 0x53, 0xf4, 0xab, 0x03, 0x6f, 0xb5, 0x4d, 0x94, 0xe4, 0x03, 0xe8, 0x71, 0xfc, 0x0c,
+	0x9d, 0x23, 0xef, 0x78, 0x30, 0x7a, 0x7b, 0x88, 0xde, 0x86, 0x6d, 0x3d, 0xaa, 0x95, 0x48, 0x08,
+	0xfd, 0xd7, 0x55, 0x9e, 0x7e, 0x3b, 0xcd, 0xb5, 0xed, 0xf9, 0x91, 0xbc, 0x0f, 0x3b, 0xca, 0xfd,
+	0xd7, 0x39, 0xa3, 0x45, 0x95, 0xa7, 0xa1, 0x87, 0x0a, 0x96, 0x34, 0xfa, 0xd3, 0x87, 0xfe, 0x99,
+	0xc2, 0x47, 0xde, 0x85, 0x4d, 0x0d, 0xf5, 0x34, 0x45, 0x0c, 0x9b, 0xb4, 0x11, 0x48, 0x18, 0xa5,
+	0x88, 0x45, 0x55, 0xa2, 0xab, 0x80, 0xea, 0x13, 0x89, 0x60, 0x2b, 0xe1, 0x2c, 0x16, 0x6c, 0xc2,
+	0xa6, 0x3f, 0x5e, 0x0b, 0xed, 0xa7, 0x25, 0x23, 0x04, 0x7c, 0x19, 0x58, 0xe8, 0xe3, 0x1d, 0x7e,
+	0x93, 0x23, 0x18, 0xcc, 0x2a, 0x3e, 0xce, 0x8a, 0xe4, 0xe6, 0xbc, 0xba, 0x0d, 0x03, 0xbc, 0x32,
+	0x45, 0xd2, 0x72, 0xca, 0xe3, 0xbb, 0x85, 0x4a, 0x4f, 0x59, 0x36, 0x65, 0xe4, 0x43, 0xd8, 0xcb,
+	0xe2, 0x52, 0x5c, 0xf2, 0x38, 0x2f, 0x2f, 0x8b, 0x57, 0x15, 0xbf, 0x10, 0xb1, 0x60, 0x61, 0x1f,
+	0x55, 0xbb, 0xae, 0xc8, 0x08, 0xf6, 0x0d, 0xf1, 0x97, 0x3c, 0xbe, 0x53, 0xbf, 0x3c, 0xc2, 0x5f,
+	0x3a, 0xef, 0xc8, 0xa7, 0xd0, 0x57, 0x8c, 0x97, 0xe1, 0x26, 0xe6, 0xe5, 0x1d, 0x9d, 0x17, 0x4d,
+	0xdd, 0x50, 0xe7, 0xef, 0x65, 0x2e, 0x78, 0x4d, 0xe7, 0xba, 0x32, 0x38, 0x51, 0x88, 0x38, 0x9b,
+	0x67, 0x2f, 0xbd, 0xfc, 0x59, 0xe2, 0x00, 0x15, 0x5c, 0xc7, 0x15, 0x39, 0x04, 0x50, 0xc4, 0x9d,
+	0xa4, 0x29, 0x0f, 0x07, 0x98, 0x03, 0x43, 0x42, 0xf6, 0x21, 0xe0, 0x98, 0xcd, 0x2d, 0xb4, 0xa1,
+	0x0e, 0x92, 0xca, 0xac, 0x4a, 0x6e, 0xea, 0x73, 0x55, 0x66, 0xdb, 0x8a, 0x4a, 0x43, 0xf4, 0x94,
+	0xc2, 0x96, 0x19, 0x22, 0x79, 0x0c, 0xde, 0x0d, 0xab, 0x75, 0x92, 0xe5, 0x27, 0x79, 0x0e, 0xc1,
+	0x9b, 0x38, 0xab, 0x18, 0x66, 0x77, 0x30, 0x3a, 0xe8, 0x2c, 0xbc, 0x92, 0x2a, 0xa5, 0xcf, 0xdd,
+	0xcf, 0x9c, 0xe8, 0x2f, 0x07, 0xb6, 0x35, 0xfe, 0x93, 0x44, 0x4c, 0x8b, 0x9c, 0x0c, 0xa1, 0xa7,
+	0x62, 0x45, 0xc3, 0x83, 0xd1, 0x7e, 0x9b, 0xa5, 0x17, 0xaa, 0x24, 0x36, 0xa8, 0xd6, 0x22, 0xef,
+	0x81, 0x77, 0x55, 0xd5, 0xda, 0xe3, 0x6e, 0x5b, 0x79, 0x5c, 0xd5, 0x93, 0x0d, 0x2a, 0xef, 0xc9,
+	0x31, 0xf8, 0x32, 0xe7, 0x58, 0x59, 0x83, 0x11, 0x69, 0xeb, 0xc9, 0x24, 0x4d, 0x36, 0x28, 0x6a,
+	0x90, 0x67, 0x10, 0x24, 0x59, 0x51, 0x32, 0x2c, 0xb4, 0xc1, 0x68, 0xcf, 0xf2, 0x2f, 0xaf, 0x26,
+	0x1b, 0x54, 0xe9, 0x90, 0x1d, 0x70, 0x45, 0x8d, 0xc9, 0x08, 0xa8, 0x2b, 0xea, 0x71, 0x5f, 0x33,
+	0x10, 0x7d, 0xb3, 0xc0, 0xa5, 0x22, 0xb6, 0x4b, 0xd5, 0x59, 0x5f, 0xaa, 0xee, 0x72, 0xa9, 0x46,
+	0xdf, 0x01, 0x34, 0xd8, 0xd6, 0x37, 0x9b, 0x9e, 0x25, 0xee, 0x8a, 0x59, 0xe2, 0xb5, 0x66, 0xc9,
+	0x33, 0x18, 0x18, 0x7c, 0xdc, 0x6f, 0x3c, 0x7a, 0x0e, 0x5b, 0x26, 0x23, 0x6b, 0xb4, 0xff, 0x76,
+	0x60, 0x87, 0xb2, 0x84, 0x4d, 0x67, 0xe2, 0xff, 0x0d, 0x8a, 0x43, 0x80, 0x19, 0x67, 0x6f, 0x2e,
+	0xd4, 0x9d, 0x87, 0x77, 0x86, 0x44, 0x0e, 0x89, 0x58, 0x56, 0xbd, 0x8f, 0x06, 0xf1, 0xbb, 0xa9,
+	0xf7, 0xc0, 0xac, 0xf7, 0x86, 0x85, 0x9e, 0xc9, 0x82, 0xc1, 0x5a, 0xbf, 0xc5, 0x9a, 0xd5, 0x1f,
+	0x8f, 0x96, 0xfa, 0x23, 0x1a, 0x4a, 0x8c, 0x3f, 0x69, 0x7c, 0xa7, 0xf9, 0xeb, 0x62, 0x0d, 0x29,
+	0xdf, 0xc3, 0x6e, 0xa3, 0x3f, 0xae, 0x1e, 0xf0, 0xcb, 0x02, 0x9e, 0xdb, 0x05, 0xcf, 0x33, 0xe0,
+	0x45, 0xbf, 0x39, 0xb0, 0xdf, 0xb2, 0x3e, 0x99, 0x96, 0xa2, 0x58, 0xcb, 0xfb, 0x83, 0x1d, 0x48,
+	0x69, 0x82, 0x34, 0xf9, 0x98, 0x04, 0x75, 0x90, 0xd6, 0xd3, 0x29, 0x67, 0xd8, 0xca, 0xc8, 0x77,
+	0x40, 0x1b, 0x41, 0x74, 0x0a, 0x7b, 0x4d, 0x4c, 0x67, 0x92, 0xba, 0x07, 0x60, 0x5e, 0xb8, 0x77,
+	0x4d, 0x7c, 0xbf, 0x38, 0x70, 0x60, 0xd9, 0x7a, 0x18, 0xc2, 0x4e, 0x73, 0x0d, 0x1a, 0x6f, 0x25,
+	0x1a, 0xdf, 0x46, 0xf3, 0x07, 0x86, 0x30, 0xcb, 0x6a, 0x1d, 0xc4, 0x79, 0xc1, 0x6f, 0xe3, 0x0c,
+	0x11, 0xd9, 0xfb, 0xcc, 0xe9, 0xd8, 0x67, 0xd6, 0x40, 0x70, 0xd7, 0x0f, 0x04, 0xaf, 0x63, 0x77,
+	0xb5, 0x87, 0xbd, 0x6f, 0x0f, 0xfb, 0xe8, 0x77, 0x17, 0x9e, 0x98, 0x41, 0xbe, 0xa8, 0x38, 0x67,
+	0xb9, 0xc0, 0x28, 0x9b, 0x26, 0x73, 0x5a, 0x4d, 0x36, 0xdf, 0xb4, 0xae, 0xb1, 0x69, 0x57, 0xec,
+	0x48, 0xef, 0xdf, 0xef, 0x48, 0xff, 0x9e, 0x1d, 0xb9, 0x62, 0xd9, 0x05, 0xab, 0x97, 0xdd, 0x22,
+	0x9d, 0xbd, 0x7b, 0x96, 0x59, 0x7f, 0xb9, 0x59, 0xc7, 0x70, 0x68, 0xd2, 0xa2, 0x6b, 0xe7, 0xac,
+	0xd1, 0xb0, 0x6d, 0xc8, 0xb7, 0x94, 0x65, 0xe3, 0x54, 0xb6, 0x58, 0x63, 0xe3, 0xe2, 0xba, 0xb8,
+	0x43, 0x5e, 0x3f, 0x6a, 0x36, 0xbd, 0x7a, 0x81, 0x3d, 0x59, 0x5a, 0x4b, 0xfa, 0x0d, 0x36, 0xd7,
+	0x8b, 0x5e, 0xc2, 0xde, 0xbc, 0x8a, 0xd0, 0x76, 0xf3, 0x1c, 0xcc, 0xe7, 0xee, 0xbb, 0x87, 0x54,
+	0x6b, 0xb4, 0x47, 0x3f, 0xc0, 0x63, 0xdb, 0x07, 0xf9, 0xc4, 0x8e, 0xe6, 0x69, 0x3b, 0x1a, 0xd3,
+	0x61, 0xf3, 0xec, 0xe8, 0xee, 0xba, 0xaf, 0x60, 0xd7, 0xb6, 0x5f, 0xfe, 0x17, 0xb8, 0x27, 0x0b,
+	0x3b, 0x32, 0xf7, 0x6b, 0xc0, 0x76, 0x87, 0x32, 0x01, 0xb2, 0x64, 0xa2, 0x24, 0x23, 0x3b, 0x96,
+	0x70, 0x79, 0xd3, 0x5b, 0xc1, 0x5c, 0xf5, 0xf0, 0x4d, 0xfe, 0xf1, 0x3f, 0x01, 0x00, 0x00, 0xff,
+	0xff, 0xfa, 0x81, 0xe9, 0xfd, 0xa4, 0x0b, 0x00, 0x00,
 }

@@ -22,7 +22,6 @@ func Init() {
 	// init log
 	types.RegistorLog(types.TyLogLotteryCreate, &LotteryCreateLog{})
 	types.RegistorLog(types.TyLogLotteryBuy, &LotteryBuyLog{})
-	types.RegistorLog(types.TyLogLotteryShow, &LotteryShowLog{})
 	types.RegistorLog(types.TyLogLotteryDraw, &LotteryDrawLog{})
 	types.RegistorLog(types.TyLogLotteryClose, &LotteryCloseLog{})
 
@@ -30,9 +29,10 @@ func Init() {
 	types.RegistorRpcType("GetLotteryNormalInfo", &LotteryGetInfo{})
 	types.RegistorRpcType("GetLotteryCurrentInfo", &LotteryGetInfo{})
 	types.RegistorRpcType("GetLotteryHistoryLuckyNumber", &LotteryGetInfo{})
-	types.RegistorRpcType("GetLotteryShowInfo", &LotteryShowInfo{})
-	//游戏的状态,根据游戏ID来查
-	//我的投注，我的中奖，期数
+	types.RegistorRpcType("GetLotteryRoundLuckyNumber", &LotteryLuckyRoundInfo{})
+	types.RegistorRpcType("GetLotteryHistoryBuyInfo", &LotteryBuyInfo{})
+	types.RegistorRpcType("GetLotteryBuyRoundInfo", &LotteryBuyRoundInfo{})
+
 }
 
 type LotteryType struct {
@@ -49,8 +49,6 @@ func (r LotteryType) ActionName(tx *types.Transaction) string {
 		return "create"
 	} else if action.Ty == types.LotteryActionBuy && action.GetBuy() != nil {
 		return "buy"
-	} else if action.Ty == types.LotteryActionShow && action.GetShow() != nil {
-		return "show"
 	} else if action.Ty == types.LotteryActionDraw && action.GetDraw() != nil {
 		return "draw"
 	} else if action.Ty == types.LotteryActionClose && action.GetClose() != nil {
@@ -82,14 +80,6 @@ func (lottery LotteryType) CreateTx(action string, message json.RawMessage) (*ty
 			return nil, types.ErrInputPara
 		}
 		return CreateRawLotteryBuyTx(&param)
-	} else if action == "LotteryShow" {
-		var param LotteryShowTx
-		err := json.Unmarshal(message, &param)
-		if err != nil {
-			llog.Error("CreateTx", "Error", err)
-			return nil, types.ErrInputPara
-		}
-		return CreateRawLotteryShowTx(&param)
 	} else if action == "LotteryDraw" {
 		var param LotteryDrawTx
 		err := json.Unmarshal(message, &param)
@@ -137,22 +127,6 @@ func (l LotteryBuyLog) Name() string {
 }
 
 func (l LotteryBuyLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp types.ReceiptLottery
-	err := types.Decode(msg, &logTmp)
-	if err != nil {
-		return nil, err
-	}
-	return logTmp, err
-}
-
-type LotteryShowLog struct {
-}
-
-func (l LotteryShowLog) Name() string {
-	return "LogLotteryShow"
-}
-
-func (l LotteryShowLog) Decode(msg []byte) (interface{}, error) {
 	var logTmp types.ReceiptLottery
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
@@ -209,11 +183,11 @@ func (t *LotteryGetInfo) Output(reply interface{}) (interface{}, error) {
 	return reply, nil
 }
 
-type LotteryShowInfo struct {
+type LotteryLuckyRoundInfo struct {
 }
 
-func (t *LotteryShowInfo) Input(message json.RawMessage) ([]byte, error) {
-	var req types.ReqLotteryShowInfo
+func (t *LotteryLuckyRoundInfo) Input(message json.RawMessage) ([]byte, error) {
+	var req types.ReqLotteryLuckyInfo
 	err := json.Unmarshal(message, &req)
 	if err != nil {
 		return nil, err
@@ -221,7 +195,39 @@ func (t *LotteryShowInfo) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *LotteryShowInfo) Output(reply interface{}) (interface{}, error) {
+func (t *LotteryLuckyRoundInfo) Output(reply interface{}) (interface{}, error) {
+	return reply, nil
+}
+
+type LotteryBuyInfo struct {
+}
+
+func (t *LotteryBuyInfo) Input(message json.RawMessage) ([]byte, error) {
+	var req types.ReqLotteryBuyHistory
+	err := json.Unmarshal(message, &req)
+	if err != nil {
+		return nil, err
+	}
+	return types.Encode(&req), nil
+}
+
+func (t *LotteryBuyInfo) Output(reply interface{}) (interface{}, error) {
+	return reply, nil
+}
+
+type LotteryBuyRoundInfo struct {
+}
+
+func (t *LotteryBuyRoundInfo) Input(message json.RawMessage) ([]byte, error) {
+	var req types.ReqLotteryBuyInfo
+	err := json.Unmarshal(message, &req)
+	if err != nil {
+		return nil, err
+	}
+	return types.Encode(&req), nil
+}
+
+func (t *LotteryBuyRoundInfo) Output(reply interface{}) (interface{}, error) {
 	return reply, nil
 }
 
@@ -232,9 +238,8 @@ func CreateRawLotteryCreateTx(parm *LotteryCreateTx) (*types.Transaction, error)
 	}
 
 	v := &types.LotteryCreate{
-		PurchasePeriod: parm.PurchasePeriod,
-		ShowPeriod:     parm.ShowPeriod,
-		MaxPurchaseNum: parm.MaxPurchaseNum,
+		PurBlockNum:  parm.PurBlockNum,
+		DrawBlockNum: parm.DrawBlockNum,
 	}
 	create := &types.LotteryAction{
 		Ty:    types.LotteryActionCreate,
@@ -265,8 +270,7 @@ func CreateRawLotteryBuyTx(parm *LotteryBuyTx) (*types.Transaction, error) {
 	v := &types.LotteryBuy{
 		LotteryId: parm.LotteryId,
 		Amount:    parm.Amount,
-		HashValue: parm.HashValue,
-		Way:       parm.Way,
+		Number:    parm.Number,
 	}
 	buy := &types.LotteryAction{
 		Ty:    types.LotteryActionBuy,
@@ -275,38 +279,6 @@ func CreateRawLotteryBuyTx(parm *LotteryBuyTx) (*types.Transaction, error) {
 	tx := &types.Transaction{
 		Execer:  []byte(name),
 		Payload: types.Encode(buy),
-		Fee:     parm.Fee,
-		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(name),
-	}
-
-	err := tx.SetRealFee(types.MinFee)
-	if err != nil {
-		return nil, err
-	}
-
-	return tx, nil
-}
-
-func CreateRawLotteryShowTx(parm *LotteryShowTx) (*types.Transaction, error) {
-	if parm == nil {
-		llog.Error("CreateRawLotteryShowTx", "parm", parm)
-		return nil, types.ErrInvalidParam
-	}
-
-	v := &types.LotteryShow{
-		LotteryId: parm.LotteryId,
-		Secret:    parm.Secret,
-		TxHash:    parm.TxHash,
-		Number:    parm.Number,
-	}
-	show := &types.LotteryAction{
-		Ty:    types.LotteryActionShow,
-		Value: &types.LotteryAction_Show{v},
-	}
-	tx := &types.Transaction{
-		Execer:  []byte(name),
-		Payload: types.Encode(show),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
 		To:      address.ExecAddress(name),
