@@ -7,7 +7,7 @@ import (
 	clog "gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/common/mavl"
 	"gitlab.33.cn/chain33/chain33/queue"
-	"gitlab.33.cn/chain33/chain33/store/drivers"
+	drivers "gitlab.33.cn/chain33/chain33/system/store"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -27,7 +27,11 @@ type Store struct {
 	cache *lru.Cache
 }
 
-func New(cfg *types.Store) *Store {
+func init() {
+	drivers.Reg("mavl", New)
+}
+
+func New(cfg *types.Store) queue.Module {
 	bs := drivers.NewBaseStore(cfg)
 	mavls := &Store{bs, make(map[string]*mavl.Tree), nil}
 	mavls.cache, _ = lru.New(10)
