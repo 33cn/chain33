@@ -21,8 +21,8 @@ import (
 	tokentype "gitlab.33.cn/chain33/chain33/types/executor/token"
 	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
 	// TODO: 这部分代码，需要重构，不能出现与插件相关的路径包含
-	gt "gitlab.33.cn/chain33/chain33/pluginmanager/blackwhite/types"
-	bw "gitlab.33.cn/chain33/chain33/pluginmanager/blackwhite/executor"
+	gt "gitlab.33.cn/chain33/chain33/pluginmanager/plugins/blackwhite/types"
+	bw "gitlab.33.cn/chain33/chain33/pluginmanager/plugins/blackwhite/executor"
 )
 
 //提供系统rpc接口
