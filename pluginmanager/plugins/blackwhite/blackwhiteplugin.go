@@ -1,9 +1,11 @@
 package blackwhite
 
 import (
+	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/pluginmanager/manager"
 	"gitlab.33.cn/chain33/chain33/pluginmanager/plugin"
+	"gitlab.33.cn/chain33/chain33/pluginmanager/plugins/blackwhite/commands"
 	"gitlab.33.cn/chain33/chain33/pluginmanager/plugins/blackwhite/executor"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -20,7 +22,7 @@ type blackwhitePlugin struct {
 }
 
 func (p *blackwhitePlugin) GetPackageName() string {
-	return "gitlab.33.cn"
+	return "gitlab.33.cn.blackwhite"
 }
 
 func (p *blackwhitePlugin) GetExecutorName() string {
@@ -33,4 +35,8 @@ func (p *blackwhitePlugin) InitExecutor() {
 	executor.SetReciptPrefix()
 
 	drivers.Register(executor.GetName(), executor.NewBlackwhite, types.ForkV25BlackWhite)
+}
+
+func (p *blackwhitePlugin) AddCustomCommand(rootCmd *cobra.Command) {
+	rootCmd.AddCommand(commands.BlackwhiteCmd())
 }

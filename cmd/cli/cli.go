@@ -9,6 +9,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/log"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
+	"gitlab.33.cn/chain33/chain33/pluginmanager"
 )
 
 var rootCmd = &cobra.Command{
@@ -63,11 +64,12 @@ func init() {
 		commands.TxCmd(),
 		commands.WalletCmd(),
 		commands.PrivacyCmd(),
-		commands.BlackwhiteCmd(),
 		commands.VersionCmd(),
 		sendCmd,
 		closeCmd,
 	)
+
+	pluginmanager.AddCustomCommand(rootCmd)
 }
 
 func main() {
