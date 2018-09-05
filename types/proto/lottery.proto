@@ -3,36 +3,30 @@ syntax = "proto3";
 package types;
 
 message PurchaseRecord {
-	string hashValue = 1; //用户购买的数字加密后的结果
-	int64 amount = 2; //能买多少钱的（多少注）
-	string txHash = 3; //用于同一个地址，公开不同的彩票
-	bool isShowed = 4;
-	int64 number = 5;
+    int64 amount = 1;
+    int64 number = 2;
 }
 
 message PurchaseRecords {
-	repeated PurchaseRecord record = 1;
-	int64 fundWin = 2;
-	int64 amountOneRound = 3;
+    repeated PurchaseRecord record         = 1;
+    int64                   fundWin        = 2;
+    int64                   amountOneRound = 3;
 }
 
 message Lottery {    
-    string lotteryId = 1;//默认是由创建这局游戏的txHash作为LotteryId    
-    int32 status = 2;    
-    int64 createTime = 3; //创建时间   
-    int64 matchTime = 4; //匹配时间(何时参与对赌）
-	int64 fund = 5; //奖池金额
-	int64 purchasePeriod = 6;
-	int64 showPeriod = 7;
-	int64 maxPurchaseNum = 8;
-	int64 lastTransToPurState = 9;	
-	int64 lastTransToShowState = 10;	
-	map<string, PurchaseRecords> records = 11;
-	int64 totalPurchasedTxNum = 12;
-	int64 totalShowedNum = 13;
-	string createAddr = 14;
-	int64 round = 15;//期数
-	repeated int64 luckyNumber = 16;
+    string                       lotteryId            = 1;//txHash作为LotteryId
+    int32                        status               = 2;
+    int64                        createHeight         = 3; //创建时间
+    int64                        fund                 = 4; //奖池金额
+    int64                        purBlockNum          = 5;
+    int64                        drawBlockNum         = 6;
+    int64                        lastTransToPurState  = 7;
+    int64                        lastTransToDrawState = 8;
+    map<string, PurchaseRecords> records              = 9;
+    int64                        totalPurchasedTxNum  = 10;
+    string                       createAddr           = 11;
+    int64                        round                = 12;//期数
+    int64                        luckyNumber          = 13;//当期中奖号码
 }
 
 // message for execs.game
@@ -40,93 +34,117 @@ message LotteryAction {
     oneof value {
         LotteryCreate create = 1;
         LotteryBuy    buy    = 2;
-        LotteryShow   show   = 3;
-        LotteryDraw   draw   = 4;
-		LotteryClose  close  = 5;
+        LotteryDraw   draw   = 3;
+        LotteryClose  close  = 4;
     }
     int32 ty = 10;
 }
 
 message LotteryCreate {
-    int64 purchasePeriod = 1;//购买阶段时间    
-    int64 showPeriod = 2;//出示秘密阶段时间    
-	int64 maxPurchaseNum = 3;//在购买阶段，共允许多少单买入	
+    int64 purBlockNum  = 1;//购买阶段，持续多少个块，默认40
+    int64 drawBlockNum = 2;//多少个块以后，可以开奖
 }
 
 message LotteryBuy{
-	string lotteryId = 1;
-	int64 amount = 2; //买多少钱（多少注）
-	string hashValue = 3; //下注（加密后数据）	
-	int64 way = 4; //玩法，当前仅支持直选
-}
-
-message LotteryShow{
-	string lotteryId = 1;
-	string secret = 2; //玩家押注的秘密	
-	string txHash = 3; //之前给这笔交易返回的hash
-	int64 number =4; //之前出的数
+    string lotteryId = 1;
+    int64  amount    = 2;
+    int64  number    = 3;
 }
 
 message LotteryDraw{
-	string lotteryId = 1; //理论上任何人均可开奖
+    string lotteryId = 1;
 }
 
 message LotteryClose{
-	string lotteryId = 1; //管理员可以关闭
+    string lotteryId = 1;
 }
 
 message ReceiptLottery{
-	string lotteryId = 1;
-    int32  status    = 2;
-    int32  prevStatus = 3;
-	string addr = 4;
-	int64 round = 5;
-	int64 number = 6;
-	int64 amount = 7;
+    string lotteryId   = 1;
+    int32  status      = 2;
+    int32  prevStatus  = 3;
+    string addr        = 4;
+    int64  round       = 5;
+    int64  number      = 6;
+    int64  amount      = 7;
+    int64  luckyNumber = 8;
 }
 
 message ReqLotteryInfo {
     string lotteryId = 1;
 }
 
-message ReqLotteryShowInfo{
-	string lotteryId = 1;
-	string addr = 2;
-	int64 round =3;
+message ReqLotteryBuyInfo{
+    string lotteryId = 1;
+    string addr      = 2;
+    int64  round     = 3;
+}
+
+message ReqLotteryBuyHistory{
+    string lotteryId = 1;
+    string addr      = 2;
+    int64  round     = 3;
+    int32  count     = 4;
+    int32  direction = 5;
+}
+
+message ReqLotteryLuckyInfo{
+    string lotteryId = 1;
+    int64  round     = 2;
+}
+
+message ReqLotteryLuckyHistory{
+    string lotteryId = 1;
+    int64  round     = 2;
+    int32  count     = 3;
+    int32  direction = 4;
 }
 
 message ReplyLotteryNormalInfo {  
-    int64 createTime = 1; //创建时间   
-	int64 purchasePeriod = 2;
-	int64 showPeriod = 3;
-	int64 maxPurchaseNum = 4;
-	string createAddr = 5;
+    int64  createHeight = 1;
+    int64  purBlockNum  = 2;
+    int64  drawBlockNum = 3;
+    string createAddr   = 4;
 }
 
 message ReplyLotteryCurrentInfo{
-    int32 status = 1;    
-	int64 fund = 2; //奖池金额
-	int64 lastTransToPurState = 3;	
-	int64 lastTransToShowState = 4;	
-	int64 totalPurchasedTxNum = 5;
-	int64 totalShowedNum = 6;
-	int64 round = 7;//期数
+    int32 status               = 1;
+    int64 fund                 = 2; //奖池金额
+    int64 lastTransToPurState  = 3;
+    int64 lastTransToDrawState = 4;
+    int64 totalPurchasedTxNum  = 5;
+    int64 round                = 6;//期数
+    int64 luckyNumber          = 7;
 }
 
 message ReplyLotteryHistoryLuckyNumber{
-	repeated int64 luckyNumber = 1;
+    repeated int64 luckyNumber = 1;
 }
 
 message ReplyLotteryShowInfo{
-	repeated LotteryShowRecord records = 1;
+    repeated LotteryBuyRecord records = 1;
 }
 
-//used for execlocal for show
-message LotteryShowRecord{
-	int64 number = 1;
-	int64 amount = 2;
+message LotteryNumberRecord{
+    int64 number = 1;
+    int64 amount = 2;
 }
 
-message LotteryShowRecords{
-	repeated LotteryShowRecord records = 1;
+//used for execlocal
+message LotteryBuyRecord{
+    repeated LotteryNumberRecord records = 1;
+    int64                        round   = 2;
+}
+
+message LotteryBuyRecords{
+    repeated LotteryBuyRecord records = 1;
+}
+
+message LotteryDrawRecord{
+    int64 number = 1;
+    int64 round  = 2;
+}
+
+message LotteryDrawRecords{
+    repeated LotteryDrawRecord records = 1;
 }

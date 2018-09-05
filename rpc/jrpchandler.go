@@ -1411,16 +1411,6 @@ func (c *Chain33) CreateRawLotteryBuyTx(in *lotterytype.LotteryBuyTx, result *in
 	return nil
 }
 
-func (c *Chain33) CreateRawLotteryShowTx(in *lotterytype.LotteryShowTx, result *interface{}) error {
-	reply, err := c.cli.CreateRawLotteryShowTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
-	return nil
-}
-
 func (c *Chain33) CreateRawLotteryDrawTx(in *lotterytype.LotteryDrawTx, result *interface{}) error {
 	reply, err := c.cli.CreateRawLotteryDrawTx(in)
 	if err != nil {

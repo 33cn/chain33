@@ -289,8 +289,7 @@ func decodeLog(rlog jsonrpc.ReceiptDataResult) *ReceiptData {
 			types.TyLogRelayRcvBTCHead, types.TyLogRelayConfirmTx, types.TyLogRelayFinishTx,
 			types.TyLogBlackwhiteCreate, types.TyLogBlackwhiteShow, types.TyLogBlackwhitePlay,
 			types.TyLogBlackwhiteTimeout, types.TyLogBlackwhiteDone, types.TyLogBlackwhiteLoopInfo,
-			types.TyLogLotteryCreate, types.TyLogLotteryBuy, types.TyLogLotteryShow, types.TyLogLotteryDraw,
-			types.TyLogLotteryClose:
+			types.TyLogLotteryCreate, types.TyLogLotteryBuy, types.TyLogLotteryDraw, types.TyLogLotteryClose:
 
 			rl.Log = l.Log
 		//case 2, 3, 5, 11:
