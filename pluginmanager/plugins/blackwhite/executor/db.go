@@ -12,7 +12,7 @@ var (
 	loopResultPrefix string
 )
 
-func setReciptPrefix() {
+func SetReciptPrefix() {
 	roundPrefix = "mavl-" + types.ExecName("blackwhite") + "-"
 	loopResultPrefix = types.ExecName("blackwhite") + "-loop-"
 }

@@ -20,7 +20,6 @@ const (
 	Normx           = "norm"
 	UserEvmX        = "user.evm."
 	CertX           = "cert"
-	BlackwhiteX     = "blackwhite"
 	ParaX           = "paracross"
 )
 
@@ -40,7 +39,6 @@ var (
 	ExecerConfig     = []byte("config")
 	ExecerCert       = []byte(CertX)
 	UserEvm          = []byte(UserEvmX)
-	ExecerBlackwhite = []byte(BlackwhiteX)
 	ExecerPara       = []byte(ParaX)
 )
 

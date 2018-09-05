@@ -53,28 +53,9 @@ func (mgr *pluginManager) registerPlugin(p plugin.Plugin) bool {
 	return true
 }
 
-func (mgr *pluginManager) registerExecutor(name string, creator drivers.DriverCreate, height int64) bool {
-	mgrlog.Info("Register Executor ", "name", name, "forkheight", height)
-	if len(name) == 0 || creator == nil || height < 0 {
-		mgrlog.Error("invalidate params")
-		return false
-	}
-	if _, ok := mgr.execPluginItems[name]; ok {
-		mgrlog.Error("execute plugin item is existed.", "name", name)
-		return false
-	}
-	mgr.execPluginItems[name] = &executorPluginItem{
-		name:    name,
-		creator: creator,
-		height:  height,
-	}
-	// TODO: 需要初始化类型相关的事件，类似在exectype.Init()中的实现
-	return true
-}
-
 func (mgr *pluginManager) initExecutor() {
-	for _, item := range mgr.execPluginItems {
-		drivers.Register(item.name, item.creator, item.height)
+	for _, item := range mgr.pluginItems {
+		item.InitExecutor()
 	}
 }
 

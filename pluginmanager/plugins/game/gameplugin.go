@@ -1,17 +1,18 @@
 package game
 
 import (
+	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/pluginmanager/manager"
 	"gitlab.33.cn/chain33/chain33/pluginmanager/plugin"
-	"gitlab.33.cn/chain33/chain33/types"
-	gt "gitlab.33.cn/chain33/chain33/pluginmanager/plugins/game/types"
+	"gitlab.33.cn/chain33/chain33/pluginmanager/plugins/game/types"
+
+	"gitlab.33.cn/chain33/chain33/pluginmanager/plugins/game/executor"
 )
 
 var gGamePlugin *gamePlugin
 
 func init()  {
 	gGamePlugin = &gamePlugin{}
-
 	manager.RegisterPlugin(gGamePlugin)
 }
 
@@ -20,13 +21,15 @@ type gamePlugin struct {
 }
 
 func (p *gamePlugin) GetPackageName() string {
-	return gt.PackageName
+	return types.PackageName
 }
 
 func (p *gamePlugin) GetExecutorName() string {
-	return types.ExecName(gt.GameX)
+	return executor.GetName()
 }
 
-func (p *gamePlugin) Init() {
+func (p *gamePlugin) InitExecutor() {
+	executor.Init()
 
+	drivers.Register(executor.GetName(), executor.NewGame, 0)
 }

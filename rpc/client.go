@@ -628,11 +628,11 @@ func (c *channelClient) BlackwhiteCreateTx(parm *bw.BlackwhiteCreateTx) ([]byte,
 		Value: &gt.BlackwhiteAction_Create{head},
 	}
 	tx := &types.Transaction{
-		Execer:  types.ExecerBlackwhite,
+		Execer:  gt.ExecerBlackwhite,
 		Payload: types.Encode(val),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(string(types.ExecerBlackwhite)),
+		To:      address.ExecAddress(string(gt.ExecerBlackwhite)),
 	}
 
 	tx.SetRealFee(types.MinFee)
@@ -656,11 +656,11 @@ func (c *channelClient) BlackwhiteShowTx(parm *bw.BlackwhiteShowTx) ([]byte, err
 		Value: &gt.BlackwhiteAction_Show{head},
 	}
 	tx := &types.Transaction{
-		Execer:  types.ExecerBlackwhite,
+		Execer:  gt.ExecerBlackwhite,
 		Payload: types.Encode(val),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(string(types.ExecerBlackwhite)),
+		To:      address.ExecAddress(string(gt.ExecerBlackwhite)),
 	}
 
 	tx.SetRealFee(types.MinFee)
@@ -685,11 +685,11 @@ func (c *channelClient) BlackwhitePlayTx(parm *bw.BlackwhitePlayTx) ([]byte, err
 		Value: &gt.BlackwhiteAction_Play{head},
 	}
 	tx := &types.Transaction{
-		Execer:  types.ExecerBlackwhite,
+		Execer:  gt.ExecerBlackwhite,
 		Payload: types.Encode(val),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(string(types.ExecerBlackwhite)),
+		To:      address.ExecAddress(string(gt.ExecerBlackwhite)),
 	}
 
 	tx.SetRealFee(types.MinFee)
@@ -712,11 +712,11 @@ func (c *channelClient) BlackwhiteTimeoutDoneTx(parm *bw.BlackwhiteTimeoutDoneTx
 		Value: &gt.BlackwhiteAction_TimeoutDone{head},
 	}
 	tx := &types.Transaction{
-		Execer:  types.ExecerBlackwhite,
+		Execer:  gt.ExecerBlackwhite,
 		Payload: types.Encode(val),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(string(types.ExecerBlackwhite)),
+		To:      address.ExecAddress(string(gt.ExecerBlackwhite)),
 	}
 
 	tx.SetRealFee(types.MinFee)
