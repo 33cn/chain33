@@ -24,8 +24,10 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor"
 	"gitlab.33.cn/chain33/chain33/mempool"
 	"gitlab.33.cn/chain33/chain33/p2p"
+	_ "gitlab.33.cn/chain33/chain33/plugin"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/store"
+	_ "gitlab.33.cn/chain33/chain33/system"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
