@@ -5,6 +5,7 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/blockchain"
 	"gitlab.33.cn/chain33/chain33/queue"
+
 	//"gitlab.33.cn/chain33/chain33/store"
 	//"gitlab.33.cn/chain33/chain33/p2p"
 	"flag"
@@ -15,6 +16,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/mempool"
 	"gitlab.33.cn/chain33/chain33/types"
+
 	//"time"
 	//"gitlab.33.cn/chain33/chain33/execs"
 	//"os/exec"
@@ -61,7 +63,7 @@ func TestPbft(t *testing.T) {
 
 }
 
-func initEnvPbft() (queue.Queue, *blockchain.BlockChain, *p2p.P2p, queue.Module, *mempool.Mempool, queue.Module, *PbftClient, queue.Module) {
+func initEnvPbft() (queue.Queue, *blockchain.BlockChain, *p2p.P2p, queue.Module, *mempool.Mempool, queue.Module, queue.Module, queue.Module) {
 	var q = queue.New("channel")
 	flag.Parse()
 	cfg := config.InitCfg("chain33.test.toml")
