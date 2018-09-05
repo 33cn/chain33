@@ -15,12 +15,14 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
-	bw "gitlab.33.cn/chain33/chain33/types/executor/blackwhite"
 	evmtype "gitlab.33.cn/chain33/chain33/types/executor/evm"
 	hashlocktype "gitlab.33.cn/chain33/chain33/types/executor/hashlock"
 	retrievetype "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
 	tokentype "gitlab.33.cn/chain33/chain33/types/executor/token"
 	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
+	// TODO: 这部分代码，需要重构，不能出现与插件相关的路径包含
+	gt "gitlab.33.cn/chain33/chain33/pluginmanager/blackwhite/types"
+	bw "gitlab.33.cn/chain33/chain33/pluginmanager/blackwhite/executor"
 )
 
 //提供系统rpc接口
@@ -614,16 +616,16 @@ func (c *channelClient) BlackwhiteCreateTx(parm *bw.BlackwhiteCreateTx) ([]byte,
 		return nil, types.ErrInvalidParam
 	}
 
-	head := &types.BlackwhiteCreate{
+	head := &gt.BlackwhiteCreate{
 		PlayAmount:  parm.PlayAmount,
 		PlayerCount: parm.PlayerCount,
 		Timeout:     parm.Timeout,
 		GameName:    parm.GameName,
 	}
 
-	val := &types.BlackwhiteAction{
-		Ty:    types.BlackwhiteActionCreate,
-		Value: &types.BlackwhiteAction_Create{head},
+	val := &gt.BlackwhiteAction{
+		Ty:    gt.BlackwhiteActionCreate,
+		Value: &gt.BlackwhiteAction_Create{head},
 	}
 	tx := &types.Transaction{
 		Execer:  types.ExecerBlackwhite,
@@ -644,14 +646,14 @@ func (c *channelClient) BlackwhiteShowTx(parm *bw.BlackwhiteShowTx) ([]byte, err
 		return nil, types.ErrInvalidParam
 	}
 
-	head := &types.BlackwhiteShow{
+	head := &gt.BlackwhiteShow{
 		GameID: parm.GameID,
 		Secret: parm.Secret,
 	}
 
-	val := &types.BlackwhiteAction{
-		Ty:    types.BlackwhiteActionShow,
-		Value: &types.BlackwhiteAction_Show{head},
+	val := &gt.BlackwhiteAction{
+		Ty:    gt.BlackwhiteActionShow,
+		Value: &gt.BlackwhiteAction_Show{head},
 	}
 	tx := &types.Transaction{
 		Execer:  types.ExecerBlackwhite,
@@ -672,15 +674,15 @@ func (c *channelClient) BlackwhitePlayTx(parm *bw.BlackwhitePlayTx) ([]byte, err
 		return nil, types.ErrInvalidParam
 	}
 
-	head := &types.BlackwhitePlay{
+	head := &gt.BlackwhitePlay{
 		GameID:     parm.GameID,
 		Amount:     parm.Amount,
 		HashValues: parm.HashValues,
 	}
 
-	val := &types.BlackwhiteAction{
-		Ty:    types.BlackwhiteActionPlay,
-		Value: &types.BlackwhiteAction_Play{head},
+	val := &gt.BlackwhiteAction{
+		Ty:    gt.BlackwhiteActionPlay,
+		Value: &gt.BlackwhiteAction_Play{head},
 	}
 	tx := &types.Transaction{
 		Execer:  types.ExecerBlackwhite,
@@ -701,13 +703,13 @@ func (c *channelClient) BlackwhiteTimeoutDoneTx(parm *bw.BlackwhiteTimeoutDoneTx
 		return nil, types.ErrInvalidParam
 	}
 
-	head := &types.BlackwhiteTimeoutDone{
+	head := &gt.BlackwhiteTimeoutDone{
 		GameID: parm.GameID,
 	}
 
-	val := &types.BlackwhiteAction{
-		Ty:    types.BlackwhiteActionTimeoutDone,
-		Value: &types.BlackwhiteAction_TimeoutDone{head},
+	val := &gt.BlackwhiteAction{
+		Ty:    gt.BlackwhiteActionTimeoutDone,
+		Value: &gt.BlackwhiteAction_TimeoutDone{head},
 	}
 	tx := &types.Transaction{
 		Execer:  types.ExecerBlackwhite,

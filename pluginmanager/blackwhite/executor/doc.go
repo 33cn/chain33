@@ -1,4 +1,4 @@
-package blackwhite
+package executor
 
 /*
 第一个区块链的游戏：黑白配
