@@ -1,6 +1,5 @@
 package executor
 
-
 const (
 	FuncName_QueryGameListByIds           = "QueryGameListByIds"
 	FuncName_QueryGameListCount           = "QueryGameListCount"

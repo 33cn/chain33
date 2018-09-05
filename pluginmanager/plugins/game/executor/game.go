@@ -2,6 +2,7 @@ package executor
 
 import (
 	"fmt"
+
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	gt "gitlab.33.cn/chain33/chain33/pluginmanager/plugins/game/types"

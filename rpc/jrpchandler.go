@@ -17,7 +17,7 @@ import (
 	tokentype "gitlab.33.cn/chain33/chain33/types/executor/token"
 	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
 
-	"gitlab.33.cn/chain33/chain33/pluginmanager"
+	"gitlab.33.cn/chain33/chain33/pluginmanager/manager"
 	bw "gitlab.33.cn/chain33/chain33/pluginmanager/plugins/blackwhite/executor"
 )
 
@@ -1032,7 +1032,7 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 	} else if "user.write" == string(tx.Execer) {
 		pl = decodeUserWrite(tx.GetPayload())
 	} else {
-		pl = pluginmanager.DecodeTx(tx)
+		pl = manager.DecodeTx(tx)
 	}
 
 	if pl == nil {

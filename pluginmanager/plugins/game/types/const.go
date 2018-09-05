@@ -9,11 +9,10 @@ const (
 )
 
 const (
-	PackageName		= "gitlab.33.cn/game"
-	GameX           = "game"
-
+	PackageName = "gitlab.33.cn"
+	GameX       = "game"
 )
 
 var (
-	ExecerGame       = []byte(GameX)
+	ExecerGame = []byte(GameX)
 )
