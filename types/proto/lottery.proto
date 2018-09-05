@@ -148,3 +148,4 @@ message LotteryDrawRecord{
 message LotteryDrawRecords{
     repeated LotteryDrawRecord records = 1;
 }
+

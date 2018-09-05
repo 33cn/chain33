@@ -279,9 +279,13 @@ It has these top-level messages:
 	LotteryClose
 	ReceiptLottery
 	ReqLotteryInfo
+	ReqLotteryShowInfo
 	ReplyLotteryNormalInfo
 	ReplyLotteryCurrentInfo
 	ReplyLotteryHistoryLuckyNumber
+	ReplyLotteryShowInfo
+	LotteryShowRecord
+	LotteryShowRecords
 	P2PGetPeerInfo
 	P2PPeerInfo
 	P2PVersion
