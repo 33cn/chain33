@@ -29,5 +29,5 @@ from = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
 to = "12hpJBHybh1mSyCijQ2MQJPk7z7kZ7jnQa"
 amount = "10"
 checkItem = ["balance"]
-dep = "import2"
+dep = ["import2"]
 
