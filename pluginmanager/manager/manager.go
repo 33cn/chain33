@@ -1,7 +1,6 @@
 package manager
 
 import (
-	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/pluginmanager/plugin"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -24,16 +23,4 @@ func DecodeTx(tx *types.Transaction) interface{} {
 
 func RegisterPlugin(p plugin.Plugin) bool {
 	return pluginMgr.registerPlugin(p)
-}
-
-func RegisterExecutor(name string, creator drivers.DriverCreate, height int64) bool {
-	return pluginMgr.registerExecutor(name, creator, height)
-}
-
-func RegisterConsensus() {
-
-}
-
-func RegisterStore() {
-
 }

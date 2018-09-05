@@ -2,8 +2,6 @@ package executor
 
 import (
 	"fmt"
-	"gitlab.33.cn/chain33/chain33/pluginmanager/manager"
-
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	gt "gitlab.33.cn/chain33/chain33/pluginmanager/plugins/game/types"
@@ -13,21 +11,25 @@ import (
 var glog = log.New("module", "execs.game")
 
 func init() {
-	manager.RegisterExecutor(newGame().GetName(), newGame, 0)
+	//manager.RegisterExecutor(newGame().GetName(), newGame, 0)
 }
 
 type Game struct {
 	drivers.DriverBase
 }
 
-func newGame() drivers.Driver {
+func NewGame() drivers.Driver {
 	t := &Game{}
 	t.SetChild(t)
 	return t
 }
 
-func (g *Game) GetName() string {
+func GetName() string {
 	return types.ExecName(gt.GameX)
+}
+
+func (g *Game) GetName() string {
+	return GetName()
 }
 
 func (g *Game) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
