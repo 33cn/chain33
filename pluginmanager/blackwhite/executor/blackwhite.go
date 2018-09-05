@@ -1,4 +1,4 @@
-package blackwhite
+package executor
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/types"
-	bw "gitlab.33.cn/chain33/chain33/types/executor/blackwhite"
+	gt "gitlab.33.cn/chain33/chain33/pluginmanager/blackwhite/types"
 )
 
 var clog = log.New("module", "execs.blackwhite")
@@ -38,19 +38,19 @@ func (c *Blackwhite) Exec(tx *types.Transaction, index int) (*types.Receipt, err
 	if err != nil {
 		return nil, err
 	}
-	var payload types.BlackwhiteAction
+	var payload gt.BlackwhiteAction
 	err = types.Decode(tx.Payload, &payload)
 	if err != nil {
 		return nil, err
 	}
 	action := newAction(c, tx, int32(index))
-	if payload.Ty == types.BlackwhiteActionCreate && payload.GetCreate() != nil {
+	if payload.Ty == gt.BlackwhiteActionCreate && payload.GetCreate() != nil {
 		return action.Create(payload.GetCreate())
-	} else if payload.Ty == types.BlackwhiteActionPlay && payload.GetPlay() != nil {
+	} else if payload.Ty == gt.BlackwhiteActionPlay && payload.GetPlay() != nil {
 		return action.Play(payload.GetPlay())
-	} else if payload.Ty == types.BlackwhiteActionShow && payload.GetShow() != nil {
+	} else if payload.Ty == gt.BlackwhiteActionShow && payload.GetShow() != nil {
 		return action.Show(payload.GetShow())
-	} else if payload.Ty == types.BlackwhiteActionTimeoutDone && payload.GetTimeoutDone() != nil {
+	} else if payload.Ty == gt.BlackwhiteActionTimeoutDone && payload.GetTimeoutDone() != nil {
 		return action.TimeoutDone(payload.GetTimeoutDone())
 	}
 	return nil, types.ErrActionNotSupport
@@ -66,7 +66,7 @@ func (c *Blackwhite) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData
 	}
 
 	//执行成功
-	var payload types.BlackwhiteAction
+	var payload gt.BlackwhiteAction
 	err = types.Decode(tx.Payload, &payload)
 	if err != nil {
 		return nil, err
@@ -80,7 +80,7 @@ func (c *Blackwhite) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData
 			types.TyLogBlackwhiteTimeout,
 			types.TyLogBlackwhiteDone:
 			{
-				var receipt types.ReceiptBlackwhiteStatus
+				var receipt gt.ReceiptBlackwhiteStatus
 				err := types.Decode(log.Log, &receipt)
 				if err != nil {
 					panic(err) //数据错误了，已经被修改了
@@ -91,7 +91,7 @@ func (c *Blackwhite) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData
 			}
 		case types.TyLogBlackwhiteLoopInfo:
 			{
-				var res types.ReplyLoopResults
+				var res gt.ReplyLoopResults
 				err := types.Decode(log.Log, &res)
 				if err != nil {
 					panic(err) //数据错误了，已经被修改了
@@ -116,7 +116,7 @@ func (c *Blackwhite) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptD
 		return set, nil
 	}
 	//执行成功
-	var payload types.BlackwhiteAction
+	var payload gt.BlackwhiteAction
 	err = types.Decode(tx.Payload, &payload)
 	if err != nil {
 		return nil, err
@@ -126,7 +126,7 @@ func (c *Blackwhite) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptD
 		switch log.Ty {
 		case types.TyLogBlackwhiteCreate:
 			{
-				var receipt types.ReceiptBlackwhiteStatus
+				var receipt gt.ReceiptBlackwhiteStatus
 				err := types.Decode(log.Log, &receipt)
 				if err != nil {
 					panic(err) //数据错误了，已经被修改了
@@ -140,7 +140,7 @@ func (c *Blackwhite) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptD
 		case types.TyLogBlackwhiteTimeout:
 		case types.TyLogBlackwhiteDone:
 			{
-				var receipt types.ReceiptBlackwhiteStatus
+				var receipt gt.ReceiptBlackwhiteStatus
 				err := types.Decode(log.Log, &receipt)
 				if err != nil {
 					panic(err) //数据错误了，已经被修改了
@@ -155,7 +155,7 @@ func (c *Blackwhite) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptD
 			}
 		case types.TyLogBlackwhiteLoopInfo:
 			{
-				var res types.ReplyLoopResults
+				var res gt.ReplyLoopResults
 				err := types.Decode(log.Log, &res)
 				if err != nil {
 					panic(err) //数据错误了，已经被修改了
@@ -171,7 +171,7 @@ func (c *Blackwhite) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptD
 	return set, nil
 }
 
-func (c *Blackwhite) saveLoopResult(res *types.ReplyLoopResults) (kvs []*types.KeyValue) {
+func (c *Blackwhite) saveLoopResult(res *gt.ReplyLoopResults) (kvs []*types.KeyValue) {
 	kv := &types.KeyValue{}
 	kv.Key = calcRoundKey4LoopResult(res.GetGameID())
 	kv.Value = types.Encode(res)
@@ -179,7 +179,7 @@ func (c *Blackwhite) saveLoopResult(res *types.ReplyLoopResults) (kvs []*types.K
 	return kvs
 }
 
-func (c *Blackwhite) delLoopResult(res *types.ReplyLoopResults) (kvs []*types.KeyValue) {
+func (c *Blackwhite) delLoopResult(res *gt.ReplyLoopResults) (kvs []*types.KeyValue) {
 	kv := &types.KeyValue{}
 	kv.Key = calcRoundKey4LoopResult(res.GetGameID())
 	kv.Value = nil
@@ -187,7 +187,7 @@ func (c *Blackwhite) delLoopResult(res *types.ReplyLoopResults) (kvs []*types.Ke
 	return kvs
 }
 
-func (c *Blackwhite) saveHeightIndex(res *types.ReceiptBlackwhiteStatus) (kvs []*types.KeyValue) {
+func (c *Blackwhite) saveHeightIndex(res *gt.ReceiptBlackwhiteStatus) (kvs []*types.KeyValue) {
 	heightstr := genHeightIndexStr(res.GetIndex())
 	kv := &types.KeyValue{}
 	kv.Key = calcRoundKey4AddrHeight(res.GetAddr(), heightstr)
@@ -208,7 +208,7 @@ func (c *Blackwhite) saveHeightIndex(res *types.ReceiptBlackwhiteStatus) (kvs []
 	return kvs
 }
 
-func (c *Blackwhite) saveRollHeightIndex(res *types.ReceiptBlackwhiteStatus) (kvs []*types.KeyValue) {
+func (c *Blackwhite) saveRollHeightIndex(res *gt.ReceiptBlackwhiteStatus) (kvs []*types.KeyValue) {
 	heightstr := genHeightIndexStr(res.GetIndex())
 	kv := &types.KeyValue{}
 	kv.Key = calcRoundKey4AddrHeight(res.GetAddr(), heightstr)
@@ -223,7 +223,7 @@ func (c *Blackwhite) saveRollHeightIndex(res *types.ReceiptBlackwhiteStatus) (kv
 	return kvs
 }
 
-func (c *Blackwhite) delHeightIndex(res *types.ReceiptBlackwhiteStatus) (kvs []*types.KeyValue) {
+func (c *Blackwhite) delHeightIndex(res *gt.ReceiptBlackwhiteStatus) (kvs []*types.KeyValue) {
 	heightstr := genHeightIndexStr(res.GetIndex())
 	kv := &types.KeyValue{}
 	kv.Key = calcRoundKey4AddrHeight(res.GetAddr(), heightstr)
@@ -238,22 +238,22 @@ func (c *Blackwhite) delHeightIndex(res *types.ReceiptBlackwhiteStatus) (kvs []*
 }
 
 func (c *Blackwhite) Query(funcName string, params []byte) (types.Message, error) {
-	if funcName == bw.GetBlackwhiteRoundInfo {
-		var in types.ReqBlackwhiteRoundInfo
+	if funcName == gt.GetBlackwhiteRoundInfo {
+		var in gt.ReqBlackwhiteRoundInfo
 		err := types.Decode(params, &in)
 		if err != nil {
 			return nil, err
 		}
 		return c.GetBlackwhiteRoundInfo(&in)
-	} else if funcName == bw.GetBlackwhiteByStatusAndAddr {
-		var in types.ReqBlackwhiteRoundList
+	} else if funcName == gt.GetBlackwhiteByStatusAndAddr {
+		var in gt.ReqBlackwhiteRoundList
 		err := types.Decode(params, &in)
 		if err != nil {
 			return nil, err
 		}
 		return c.GetBwRoundListInfo(&in)
-	} else if funcName == bw.GetBlackwhiteloopResult {
-		var in types.ReqLoopResult
+	} else if funcName == gt.GetBlackwhiteloopResult {
+		var in gt.ReqLoopResult
 		err := types.Decode(params, &in)
 		if err != nil {
 			return nil, err
@@ -263,7 +263,7 @@ func (c *Blackwhite) Query(funcName string, params []byte) (types.Message, error
 	return nil, types.ErrActionNotSupport
 }
 
-func (c *Blackwhite) GetBlackwhiteRoundInfo(req *types.ReqBlackwhiteRoundInfo) (types.Message, error) {
+func (c *Blackwhite) GetBlackwhiteRoundInfo(req *gt.ReqBlackwhiteRoundInfo) (types.Message, error) {
 	gameId := req.GameID
 	key := calcRoundKey(gameId)
 	values, err := c.GetStateDB().Get(key)
@@ -271,7 +271,7 @@ func (c *Blackwhite) GetBlackwhiteRoundInfo(req *types.ReqBlackwhiteRoundInfo) (
 		return nil, err
 	}
 
-	var round types.BlackwhiteRound
+	var round gt.BlackwhiteRound
 	err = types.Decode(values, &round)
 	if err != nil {
 		return nil, err
@@ -280,7 +280,7 @@ func (c *Blackwhite) GetBlackwhiteRoundInfo(req *types.ReqBlackwhiteRoundInfo) (
 	for _, addRes := range round.AddrResult {
 		addRes.ShowSecret = ""
 	}
-	roundRes := &types.BlackwhiteRoundResult{
+	roundRes := &gt.BlackwhiteRoundResult{
 		GameID:         round.GameID,
 		Status:         round.Status,
 		PlayAmount:     round.PlayAmount,
@@ -297,12 +297,12 @@ func (c *Blackwhite) GetBlackwhiteRoundInfo(req *types.ReqBlackwhiteRoundInfo) (
 		Winner:         round.Winner,
 		Index:          round.Index,
 	}
-	var rep types.ReplyBlackwhiteRoundInfo
+	var rep gt.ReplyBlackwhiteRoundInfo
 	rep.Round = roundRes
 	return &rep, nil
 }
 
-func (c *Blackwhite) GetBwRoundListInfo(req *types.ReqBlackwhiteRoundList) (types.Message, error) {
+func (c *Blackwhite) GetBwRoundListInfo(req *gt.ReqBlackwhiteRoundList) (types.Message, error) {
 	var key []byte
 	var values [][]byte
 	var err error
@@ -342,13 +342,13 @@ func (c *Blackwhite) GetBwRoundListInfo(req *types.ReqBlackwhiteRoundList) (type
 		return nil, types.ErrNotFound
 	}
 	storeDb := c.GetStateDB()
-	var rep types.ReplyBlackwhiteRoundList
+	var rep gt.ReplyBlackwhiteRoundList
 	for _, value := range values {
 		v, err := storeDb.Get(calcRoundKey(string(value)))
 		if nil != err {
 			return nil, err
 		}
-		var round types.BlackwhiteRound
+		var round gt.BlackwhiteRound
 		err = types.Decode(v, &round)
 		if err != nil {
 			return nil, err
@@ -357,7 +357,7 @@ func (c *Blackwhite) GetBwRoundListInfo(req *types.ReqBlackwhiteRoundList) (type
 		for _, addRes := range round.AddrResult {
 			addRes.ShowSecret = ""
 		}
-		roundRes := &types.BlackwhiteRoundResult{
+		roundRes := &gt.BlackwhiteRoundResult{
 			GameID:         round.GameID,
 			Status:         round.Status,
 			PlayAmount:     round.PlayAmount,
@@ -379,7 +379,7 @@ func (c *Blackwhite) GetBwRoundListInfo(req *types.ReqBlackwhiteRoundList) (type
 	return &rep, nil
 }
 
-func (c *Blackwhite) GetBwRoundLoopResult(req *types.ReqLoopResult) (types.Message, error) {
+func (c *Blackwhite) GetBwRoundLoopResult(req *gt.ReqLoopResult) (types.Message, error) {
 	localDb := c.GetLocalDB()
 	values, err := localDb.Get(calcRoundKey4LoopResult(req.GameID))
 	if err != nil {
@@ -389,7 +389,7 @@ func (c *Blackwhite) GetBwRoundLoopResult(req *types.ReqLoopResult) (types.Messa
 		return nil, types.ErrNotFound
 	}
 
-	var result types.ReplyLoopResults
+	var result gt.ReplyLoopResults
 	err = types.Decode(values, &result)
 	if err != nil {
 		return nil, err
@@ -399,11 +399,11 @@ func (c *Blackwhite) GetBwRoundLoopResult(req *types.ReqLoopResult) (types.Messa
 		if len(result.Results) < int(req.LoopSeq) {
 			return nil, types.ErrNoLoopSeq
 		}
-		res := &types.ReplyLoopResults{
+		res := &gt.ReplyLoopResults{
 			GameID: result.GameID,
 		}
 		index := int(req.LoopSeq)
-		perRes := &types.PerLoopResult{}
+		perRes := &gt.PerLoopResult{}
 		perRes.Winers = append(perRes.Winers, res.Results[index-1].Winers...)
 		perRes.Losers = append(perRes.Losers, res.Results[index-1].Losers...)
 		res.Results = append(res.Results, perRes)

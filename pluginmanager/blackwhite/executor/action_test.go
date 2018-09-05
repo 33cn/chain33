@@ -1,4 +1,4 @@
-package blackwhite
+package executor
 
 import (
 	"testing"

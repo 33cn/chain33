@@ -407,13 +407,6 @@ const (
 	RelayActionRcvBTCHeaders
 )
 
-// blackwhite action type
-const (
-	BlackwhiteActionCreate = iota
-	BlackwhiteActionPlay
-	BlackwhiteActionShow
-	BlackwhiteActionTimeoutDone
-)
 
 // RescanUtxoFlag
 const (

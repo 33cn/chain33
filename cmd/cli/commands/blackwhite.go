@@ -7,7 +7,10 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
-	bw "gitlab.33.cn/chain33/chain33/types/executor/blackwhite"
+
+	// TODO: 这部分代码需要屏蔽到插件中
+	bw "gitlab.33.cn/chain33/chain33/pluginmanager/blackwhite/executor"
+	gt "gitlab.33.cn/chain33/chain33/pluginmanager/blackwhite/types"
 )
 
 func BlackwhiteCmd() *cobra.Command {
@@ -252,31 +255,31 @@ func showBlackwhiteInfo(cmd *cobra.Command, args []string) {
 
 	params.Execer = types.BlackwhiteX
 	if 0 == typ {
-		req := types.ReqBlackwhiteRoundInfo{
+		req := gt.ReqBlackwhiteRoundInfo{
 			GameID: gameID,
 		}
-		params.FuncName = bw.GetBlackwhiteRoundInfo
+		params.FuncName = gt.GetBlackwhiteRoundInfo
 		params.Payload = req
-		rep = &types.ReplyBlackwhiteRoundInfo{}
+		rep = &gt.ReplyBlackwhiteRoundInfo{}
 	} else if 1 == typ {
-		req := types.ReqBlackwhiteRoundList{
+		req := gt.ReqBlackwhiteRoundList{
 			Status:    int32(status),
 			Address:   addr,
 			Count:     count,
 			Direction: direction,
 			Index:     index,
 		}
-		params.FuncName = bw.GetBlackwhiteByStatusAndAddr
+		params.FuncName = gt.GetBlackwhiteByStatusAndAddr
 		params.Payload = req
-		rep = &types.ReplyBlackwhiteRoundList{}
+		rep = &gt.ReplyBlackwhiteRoundList{}
 	} else if 2 == typ {
-		req := types.ReqLoopResult{
+		req := gt.ReqLoopResult{
 			GameID:  gameID,
 			LoopSeq: int32(loopSeq),
 		}
-		params.FuncName = bw.GetBlackwhiteloopResult
+		params.FuncName = gt.GetBlackwhiteloopResult
 		params.Payload = req
-		rep = &types.ReplyLoopResults{}
+		rep = &gt.ReplyLoopResults{}
 	}
 
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.Query", params, rep)

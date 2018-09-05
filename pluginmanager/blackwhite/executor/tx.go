@@ -1,4 +1,4 @@
-package blackwhite
+package executor
 
 type BlackwhiteCreateTx struct {
 	PlayAmount  int64  `json:"amount"`

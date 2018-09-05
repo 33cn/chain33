@@ -45,6 +45,7 @@ func (mgr *pluginManager) registerExecutor(name string, creator drivers.DriverCr
 		creator: creator,
 		height:  height,
 	}
+	// TODO: 需要初始化类型相关的事件，类似在exectype.Init()中的实现
 	return true
 }
 

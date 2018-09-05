@@ -16,7 +16,6 @@ import (
 
 	// register drivers
 	"gitlab.33.cn/chain33/chain33/client"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/blackwhite"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/cert"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/coins"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm"
@@ -86,7 +85,6 @@ func execInit2() {
 	relay.Init()
 	cert.Init()
 	privacy.Init()
-	blackwhite.Init()
 
 	pluginmanager.InitExecutor()
 }

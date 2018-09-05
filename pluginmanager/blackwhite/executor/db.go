@@ -1,10 +1,10 @@
-package blackwhite
+package executor
 
 import (
 	"fmt"
 
 	"gitlab.33.cn/chain33/chain33/types"
-	gt "gitlab.33.cn/chain33/chain33/types/executor/blackwhite"
+	gt "gitlab.33.cn/chain33/chain33/pluginmanager/blackwhite/types"
 )
 
 var (
@@ -35,8 +35,8 @@ func calcRoundKey4LoopResult(ID string) []byte {
 	return []byte(fmt.Sprintf(loopResultPrefix+"%s", ID))
 }
 
-func newRound(create *types.BlackwhiteCreate, creator string) *types.BlackwhiteRound {
-	t := &types.BlackwhiteRound{}
+func newRound(create *gt.BlackwhiteCreate, creator string) *gt.BlackwhiteRound {
+	t := &gt.BlackwhiteRound{}
 
 	t.Status = gt.BlackwhiteStatusCreate
 	t.PlayAmount = create.PlayAmount

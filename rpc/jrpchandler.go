@@ -11,7 +11,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/version"
 	"gitlab.33.cn/chain33/chain33/types"
-	bw "gitlab.33.cn/chain33/chain33/types/executor/blackwhite"
 	evmtype "gitlab.33.cn/chain33/chain33/types/executor/evm"
 	hashlocktype "gitlab.33.cn/chain33/chain33/types/executor/hashlock"
 	retrievetype "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
@@ -19,6 +18,7 @@ import (
 	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
 
 	"gitlab.33.cn/chain33/chain33/pluginmanager"
+	bw "gitlab.33.cn/chain33/chain33/pluginmanager/blackwhite/executor"
 )
 
 func (c *Chain33) CreateRawTransaction(in *types.CreateTx, result *interface{}) error {
