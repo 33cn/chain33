@@ -4,13 +4,13 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/pluginmanager/manager"
 	"gitlab.33.cn/chain33/chain33/pluginmanager/plugin"
-	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/pluginmanager/plugins/blackwhite/executor"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var gblackwhitePlugin *blackwhitePlugin
 
-func init()  {
+func init() {
 	gblackwhitePlugin = &blackwhitePlugin{}
 	manager.RegisterPlugin(gblackwhitePlugin)
 }
@@ -20,7 +20,7 @@ type blackwhitePlugin struct {
 }
 
 func (p *blackwhitePlugin) GetPackageName() string {
-	return "gitlab.33.cn/blackwhite"
+	return "gitlab.33.cn"
 }
 
 func (p *blackwhitePlugin) GetExecutorName() string {

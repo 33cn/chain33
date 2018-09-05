@@ -1,6 +1,5 @@
 package types
 
-
 // status
 const (
 	BlackwhiteStatusCreate = iota + 1
@@ -25,7 +24,7 @@ const (
 )
 
 const (
-	BlackwhiteX     = "blackwhite"
+	BlackwhiteX = "blackwhite"
 )
 
 var (

@@ -3,8 +3,8 @@ package executor
 import (
 	"fmt"
 
-	"gitlab.33.cn/chain33/chain33/types"
 	gt "gitlab.33.cn/chain33/chain33/pluginmanager/plugins/blackwhite/types"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var (

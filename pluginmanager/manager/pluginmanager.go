@@ -1,11 +1,12 @@
 package manager
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/inconshreveable/log15"
-	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/pluginmanager/plugin"
 	"gitlab.33.cn/chain33/chain33/types"
-	"strings"
 )
 
 var (
@@ -13,26 +14,16 @@ var (
 	pluginMgr = &pluginManager{}
 )
 
-func init()  {
+func init() {
 	pluginMgr.init()
-}
-
-type executorPluginItem struct {
-	name    string
-	creator drivers.DriverCreate
-	height  int64
 }
 
 type pluginManager struct {
 	pluginItems map[string]plugin.Plugin
-
-	execPluginItems map[string]*executorPluginItem
 }
 
 func (mgr *pluginManager) init() {
 	mgr.pluginItems = make(map[string]plugin.Plugin, 0)
-
-	mgr.execPluginItems = make(map[string]*executorPluginItem, 0)
 }
 
 func (mgr *pluginManager) registerPlugin(p plugin.Plugin) bool {
@@ -67,11 +58,19 @@ func realExec(txExec string) string {
 	return txExec
 }
 
+func getRealExecuteName(packageName, exectorName string) string {
+	// TODO: 需要实现兼容老系统，并且又能照顾新规则的执行器名称处理功能
+	return fmt.Sprintf("%s.%s", packageName, exectorName)
+}
+
 func (mgr *pluginManager) decodeTx(tx *types.Transaction) interface{} {
-	key := realExec(string(tx.Execer))
-	if _, ok := mgr.execPluginItems[key]; ok {
-		// TODO: 通过插件接口，调用插件内部的功能
+	execName := string(tx.Execer)
+	for _, item := range mgr.pluginItems {
+		if getRealExecuteName(item.GetPackageName(), item.GetExecutorName()) != execName {
+			continue
+		}
+		return item.DecodeTx(tx)
 	}
-	
+
 	return nil
 }
