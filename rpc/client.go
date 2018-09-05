@@ -409,10 +409,6 @@ func (c *channelClient) CreateRawLotteryBuyTx(parm *lotterytype.LotteryBuyTx) ([
 	return callExecNewTx(types.ExecName(types.LotteryX), "LotteryBuy", parm)
 }
 
-func (c *channelClient) CreateRawLotteryShowTx(parm *lotterytype.LotteryShowTx) ([]byte, error) {
-	return callExecNewTx(types.ExecName(types.LotteryX), "LotteryShow", parm)
-}
-
 func (c *channelClient) CreateRawLotteryDrawTx(parm *lotterytype.LotteryDrawTx) ([]byte, error) {
 	return callExecNewTx(types.ExecName(types.LotteryX), "LotteryDraw", parm)
 }
