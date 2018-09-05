@@ -24,6 +24,11 @@ func getRealExecName(paraName string) string {
 	return types.ExecName(paraName + gt.GameX)
 }
 
+// exec
+type GameType struct {
+	types.ExecTypeBase
+}
+
 func Init() {
 	name = types.ExecName(gt.GameX)
 	// init executor type
@@ -40,11 +45,6 @@ func Init() {
 	types.RegistorRpcType(FuncName_QueryGameById, &GameGetInfo{})
 	types.RegistorRpcType(FuncName_QueryGameListByStatusAndAddr, &GameQueryList{})
 	types.RegistorRpcType(FuncName_QueryGameListCount, &GameQueryListCount{})
-}
-
-// exec
-type GameType struct {
-	types.ExecTypeBase
 }
 
 func (game GameType) GetRealToAddr(tx *types.Transaction) string {

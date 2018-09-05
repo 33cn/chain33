@@ -7,7 +7,7 @@ type Plugin interface {
 	// 获取插件中执行器名
 	GetExecutorName() string
 
-	Init()
+	InitExecutor()
 
 
 }

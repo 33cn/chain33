@@ -253,7 +253,7 @@ func showBlackwhiteInfo(cmd *cobra.Command, args []string) {
 
 	var rep interface{}
 
-	params.Execer = types.BlackwhiteX
+	params.Execer = gt.BlackwhiteX
 	if 0 == typ {
 		req := gt.ReqBlackwhiteRoundInfo{
 			GameID: gameID,

@@ -12,5 +12,5 @@ func (p *PluginBase) GetExecutorName() string {
 	return ""
 }
 
-func (p *PluginBase) Init()  {
+func (p *PluginBase) InitExecutor()  {
 }

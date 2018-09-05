@@ -23,3 +23,11 @@ const (
 	BlackwhiteActionShow
 	BlackwhiteActionTimeoutDone
 )
+
+const (
+	BlackwhiteX     = "blackwhite"
+)
+
+var (
+	ExecerBlackwhite = []byte(BlackwhiteX)
+)

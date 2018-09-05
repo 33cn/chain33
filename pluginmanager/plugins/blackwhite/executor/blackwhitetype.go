@@ -9,12 +9,11 @@ import (
 )
 
 
-var glog = log.New("module", types.BlackwhiteX)
+var glog = log.New("module", gt.BlackwhiteX)
 var name string
 
-// TODO: 需要在插件初始化时，调用
 func InitTypes() {
-	name = types.ExecName(types.BlackwhiteX)
+	name = types.ExecName(gt.BlackwhiteX)
 	// init executor type
 	types.RegistorExecutor(name, &BlackwhiteType{})
 
