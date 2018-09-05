@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"gitlab.33.cn/chain33/chain33/util"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -77,7 +78,7 @@ func blackwhiteCreate(cmd *cobra.Command, args []string) {
 	}
 
 	var res string
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.BlackwhiteCreateTx", params, &res)
+	ctx := util.NewRpcCtx(rpcLaddr, "Chain33.BlackwhiteCreateTx", params, &res)
 	ctx.RunWithoutMarshal()
 }
 
@@ -136,7 +137,7 @@ func blackwhitePlay(cmd *cobra.Command, args []string) {
 		Fee:        feeInt64,
 	}
 	var res string
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.BlackwhitePlayTx", params, &res)
+	ctx := util.NewRpcCtx(rpcLaddr, "Chain33.BlackwhitePlayTx", params, &res)
 	ctx.RunWithoutMarshal()
 }
 
@@ -174,7 +175,7 @@ func blackwhiteShow(cmd *cobra.Command, args []string) {
 		Fee:    feeInt64,
 	}
 	var res string
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.BlackwhiteShowTx", params, &res)
+	ctx := util.NewRpcCtx(rpcLaddr, "Chain33.BlackwhiteShowTx", params, &res)
 	ctx.RunWithoutMarshal()
 }
 
@@ -206,7 +207,7 @@ func blackwhiteTimeoutDone(cmd *cobra.Command, args []string) {
 		Fee:    feeInt64,
 	}
 	var res string
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.BlackwhiteTimeoutDoneTx", params, &res)
+	ctx := util.NewRpcCtx(rpcLaddr, "Chain33.BlackwhiteTimeoutDoneTx", params, &res)
 	ctx.RunWithoutMarshal()
 }
 
@@ -282,7 +283,7 @@ func showBlackwhiteInfo(cmd *cobra.Command, args []string) {
 		rep = &gt.ReplyLoopResults{}
 	}
 
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.Query", params, rep)
+	ctx := util.NewRpcCtx(rpcLaddr, "Chain33.Query", params, rep)
 	//ctx.SetResultCb(parseBlackwhiteRound)
 	ctx.Run()
 }

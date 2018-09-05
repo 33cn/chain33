@@ -1,6 +1,9 @@
 package plugin
 
-import "gitlab.33.cn/chain33/chain33/types"
+import (
+	"github.com/spf13/cobra"
+	"gitlab.33.cn/chain33/chain33/types"
+)
 
 //
 type Plugin interface {
@@ -10,4 +13,5 @@ type Plugin interface {
 	GetExecutorName() string
 	InitExecutor()
 	DecodeTx(tx *types.Transaction) interface{}
+ AddCustomCommand(rootCmd *cobra.Command)
 }

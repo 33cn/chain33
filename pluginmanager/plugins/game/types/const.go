@@ -9,7 +9,7 @@ const (
 )
 
 const (
-	PackageName = "gitlab.33.cn"
+	PackageName = "gitlab.33.cn.game"
 	GameX       = "game"
 )
 
