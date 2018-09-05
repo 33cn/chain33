@@ -6,4 +6,3 @@ import (
 	_ "gitlab.33.cn/chain33/chain33/plugin/consensus/raft"
 	_ "gitlab.33.cn/chain33/chain33/plugin/consensus/ticket"
 )
-
