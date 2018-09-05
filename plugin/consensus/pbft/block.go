@@ -3,16 +3,16 @@ package pbft
 import (
 	"time"
 
-	"gitlab.33.cn/chain33/chain33/consensus/drivers"
-	"gitlab.33.cn/chain33/chain33/queue"
-	pb "gitlab.33.cn/chain33/chain33/types"
-	// pb "github.com/zballs/goPBFT/types"
-	//log "github.com/inconshreveable/log15"
-
 	"gitlab.33.cn/chain33/chain33/common/merkle"
-
+	"gitlab.33.cn/chain33/chain33/queue"
+	drivers "gitlab.33.cn/chain33/chain33/system/consensus"
+	pb "gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/util"
 )
+
+func init() {
+	drivers.Reg("pbft", NewPbft)
+}
 
 type PbftClient struct {
 	*drivers.BaseClient

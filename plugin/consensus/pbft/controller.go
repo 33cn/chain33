@@ -4,12 +4,13 @@ import (
 	"strings"
 
 	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/queue"
 	pb "gitlab.33.cn/chain33/chain33/types"
 )
 
 var plog = log.New("module", "Pbft")
 
-func NewPbft(cfg *pb.Consensus) *PbftClient {
+func NewPbft(cfg *pb.Consensus) queue.Module {
 	plog.Info("start to creat pbft node")
 	if int(cfg.NodeId) == 0 || strings.Compare(cfg.PeersURL, "") == 0 {
 		plog.Error("nodeid or ip error")

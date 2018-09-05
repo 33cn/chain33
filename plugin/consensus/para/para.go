@@ -12,8 +12,8 @@ import (
 	//"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
-	"gitlab.33.cn/chain33/chain33/consensus/drivers"
 	"gitlab.33.cn/chain33/chain33/queue"
+	drivers "gitlab.33.cn/chain33/chain33/system/consensus"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/util"
 	"google.golang.org/grpc"
@@ -38,6 +38,10 @@ var (
 	grpcRecSize        int = 30 * 1024 * 1024 //the size should be limited in server
 )
 
+func init() {
+	drivers.Reg("para", New)
+}
+
 type ParaClient struct {
 	*drivers.BaseClient
 	conn            *grpc.ClientConn
@@ -48,7 +52,7 @@ type ParaClient struct {
 	wg              sync.WaitGroup
 }
 
-func New(cfg *types.Consensus) *ParaClient {
+func New(cfg *types.Consensus) queue.Module {
 	c := drivers.NewBaseClient(cfg)
 	if cfg.ParaRemoteGrpcClient != "" {
 		grpcSite = cfg.ParaRemoteGrpcClient
