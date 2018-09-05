@@ -3,6 +3,7 @@ package testcase
 import (
 	"container/list"
 	"fmt"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -19,7 +20,8 @@ type TestOperator struct {
 	checkBuf   chan PackFunc
 	addDepBuf  chan CaseFunc
 	delDepBuf  chan PackFunc
-	depCaseMap map[string][]CaseFunc
+	depCaseMap map[string][]CaseFunc		//key:TestID, val: array of testCases depending on the key
+	depCountMap map[string]int				//key:TestID, val: dependency count
 
 	fLog log15.Logger
 	tLog log15.Logger
@@ -27,6 +29,38 @@ type TestOperator struct {
 	totalCase int
 	totalFail int
 	failID    []string
+}
+
+func (tester *TestOperator) AddCaseArray(caseArrayList ...interface{}) {
+
+
+	for i := range caseArrayList {
+
+		caseArray := reflect.ValueOf(caseArrayList[i])
+
+		if caseArray.Kind() != reflect.Slice {
+			continue
+		}
+
+		for j := 0; j < caseArray.Len(); j++ {
+
+			testCase := caseArray.Index(j).Addr().Interface().(CaseFunc)
+			baseCase := testCase.getBaseCase()
+
+			if len(baseCase.Dep) > 0 {
+
+				tester.addDepBuf <- testCase
+			}else{
+
+				tester.sendBuf <- testCase
+			}
+
+			tester.depCountMap[baseCase.ID] = len(baseCase.Dep)
+		}
+	}
+
+	tester.addDone <- true
+
 }
 
 func (tester *TestOperator) HandleDependency() {
@@ -38,26 +72,51 @@ func (tester *TestOperator) HandleDependency() {
 
 		case testCase := <-tester.addDepBuf:
 
-			depArr := append(tester.depCaseMap[testCase.getDep()], testCase)
-			tester.depCaseMap[testCase.getDep()] = depArr
+			baseCase := testCase.getBaseCase()
+
+			for _, depID := range baseCase.Dep {
+
+				testArr := append(tester.depCaseMap[depID], testCase)
+				tester.depCaseMap[depID] = testArr
+			}
 
 		case testPack := <-tester.delDepBuf:
 
-			id := testPack.getPackID()
-			testArr, isExist := tester.depCaseMap[id]
-			if isExist {
+			packID := testPack.getPackID()
+			caseArr, exist := tester.depCaseMap[packID]
+			if exist {
 
-				for _, testCase := range testArr {
+				for i := range caseArr {
 
-					testCase.setDependData(testPack.getDependData())
-					tester.sendBuf <- testCase
+					baseCase := caseArr[i].getBaseCase()
+					tester.depCountMap[baseCase.ID]--
+					if tester.depCountMap[baseCase.ID] == 0 {
+
+						caseArr[i].setDependData(testPack.getDependData())
+						tester.sendBuf <- caseArr[i]
+						delete(tester.depCountMap, baseCase.ID)
+					}
 				}
-				delete(tester.depCaseMap, id)
+				delete(tester.depCaseMap, packID)
 			}
 		case <-tester.addDone:
-			addDoneFlag = true
 
-		case <-time.After(2 * time.Second):
+			addDoneFlag = true
+			//check dependency validity
+
+			for depID := range tester.depCaseMap {
+
+				_, exist := tester.depCountMap[depID]
+				if !exist {
+					//depending testCase not exist
+					for i := range tester.depCaseMap[depID] {
+						tester.tLog.Error("InvalidDependency", "TestIDs", tester.depCaseMap[depID][i].getID())
+					}
+					delete(tester.depCaseMap, depID)
+				}
+			}
+
+		case <-time.After(time.Second):
 
 			if addDoneFlag && len(tester.depCaseMap) == 0 {
 
@@ -79,56 +138,73 @@ func (tester *TestOperator) RunSendFlow() {
 	depEmpty := false
 	keepLoop := true
 	sendWg := &sync.WaitGroup{}
+	sendList := (*list.List)(nil)
 
 	for keepLoop {
 		select {
 
 		case testCase := <-tester.sendBuf:
 
-			sendWg.Add(1)
-			go func(testCase CaseFunc, wg *sync.WaitGroup) {
-
-				defer wg.Done()
-				repeat := testCase.getRepeat()
-				if repeat <= 0 { //default val if empty in tomlFile
-					repeat = 1
-				}
-
-				tester.totalCase += repeat
-				testID := testCase.getID()
-				packID := testID
-
-				for i := 1; i <= repeat; i++ {
-
-					tester.fLog.Info("CommandExec", "TestID", packID, "CMD", testCase.getCmd())
-					pack, err := testCase.doSendCommand(packID)
-
-					if err != nil {
-						tester.tLog.Error("TestCaseResult", "TestID", packID, "Failed", "ErrInfo", err.Error())
-						tester.fLog.Info("CommandResult", "TestID", packID, "Result", err.Error())
-						tester.delDepBuf <- &BaseCasePack{packID: packID}
-						continue
-					}
-
-					pack.setLogger(tester.fLog, tester.tLog)
-					tester.checkBuf <- pack
-					tester.fLog.Info("CommandResult", "TestID", packID, "Result", pack.getTxHash())
-					//distinguish with different packID, format: [TestID_RepeatOrder]
-					packID = fmt.Sprintf("%s_%d", testID, i)
-				}
-
-			}(testCase, sendWg)
+			if sendList == nil {
+				sendList = list.New()
+			}
+			sendList.PushBack(testCase)
 
 		case <-tester.depEmpty:
 			depEmpty = true
 
-		case <-time.After(2 * time.Second):
+		case <-time.After(time.Second):
 
 			if depEmpty {
-
 				keepLoop = false
+			}
+
+			if sendList == nil {
 				break
 			}
+
+			sendWg.Add(1)
+			go func(c *list.List, wg *sync.WaitGroup) {
+
+				defer wg.Done()
+				var n *list.Element
+				for e := c.Front(); e != nil; e = n {
+
+					n = e.Next()
+					testCase := e.Value.(CaseFunc)
+					c.Remove(e)
+					baseCase := testCase.getBaseCase()
+
+					repeat := baseCase.Repeat
+					if repeat <= 0 { //default val if empty in tomlFile
+						repeat = 1
+					}
+
+					tester.totalCase += repeat
+					packID := baseCase.ID
+
+					for i := 1; i <= repeat; i++ {
+
+						tester.fLog.Info("CommandExec", "TestID", packID, "CMD", baseCase.Command)
+						pack, err := testCase.doSendCommand(packID)
+
+						if err != nil {
+							tester.tLog.Error("TestCaseResult", "TestID", packID, "Failed", "ErrInfo", err.Error())
+							tester.fLog.Info("CommandResult", "TestID", packID, "Result", err.Error())
+							tester.delDepBuf <- &BaseCasePack{packID: packID}
+							continue
+						}
+
+						pack.setLogger(tester.fLog, tester.tLog)
+						tester.checkBuf <- pack
+						tester.fLog.Info("CommandResult", "TestID", packID, "Result", pack.getTxHash())
+						//distinguish with different packID, format: [TestID_RepeatOrder]
+						packID = fmt.Sprintf("%s_%d", baseCase.ID, i)
+					}
+				}
+			}(sendList, sendWg)
+
+			sendList = nil
 		}
 	}
 
@@ -158,7 +234,7 @@ func (tester *TestOperator) RunCheckFlow() {
 		case <-tester.sendDone:
 			sendDoneFlag = true
 
-		case <-time.After(2 * time.Second): //do check operation with an dependent check list
+		case <-time.After(time.Second): //do check operation with an dependent check list
 
 			if checkList == nil {
 
@@ -224,7 +300,7 @@ func (tester *TestOperator) RunCheckFlow() {
 
 func (tester *TestOperator) AddCase(testCase CaseFunc) {
 
-	if testCase.getDep() != "" {
+	if len(testCase.getDep()) > 0 {
 		//save to depend map
 		tester.addDepBuf <- testCase
 
@@ -239,8 +315,15 @@ func (tester *TestOperator) WaitTest() {
 
 	tester.addDone <- true
 	<-tester.checkDone
-	tester.tLog.Info("TestDone", "TotalCase", tester.totalCase, "TotalFail", tester.totalFail, "FailID", tester.failID)
-	tester.fLog.Info("TestDone", "TotalCase", tester.totalCase, "TotalFail", tester.totalFail, "FailID", tester.failID)
+	if tester.totalFail > 0{
+
+		tester.tLog.Error("TestDone", "TotalCase", tester.totalCase, "TotalFail", tester.totalFail, "FailID", tester.failID)
+		tester.fLog.Error("TestDone", "TotalCase", tester.totalCase, "TotalFail", tester.totalFail, "FailID", tester.failID)
+	}else {
+
+		tester.tLog.Info("TestDone", "TotalCase", tester.totalCase, "TotalFail", tester.totalFail)
+		tester.fLog.Info("TestDone", "TotalCase", tester.totalCase, "TotalFail", tester.totalFail)
+	}
 }
 
 func NewTestOperator(fileLog log15.Logger, stdLog log15.Logger) (tester *TestOperator) {
@@ -256,6 +339,7 @@ func NewTestOperator(fileLog log15.Logger, stdLog log15.Logger) (tester *TestOpe
 	tester.sendBuf = make(chan CaseFunc, 1)
 	tester.checkBuf = make(chan PackFunc, 1)
 	tester.depCaseMap = make(map[string][]CaseFunc)
+	tester.depCountMap = make(map[string]int)
 	tester.fLog = fileLog
 	tester.tLog = stdLog
 	tester.totalCase = 0
