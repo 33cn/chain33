@@ -28,7 +28,7 @@ message Game {
     // 1 平局，2 庄家获胜，3 matcher获胜，4 庄家开奖超时，matcher获胜，并获得本局所有赌资
     int32 result = 12;
     // matcher 出拳结果
-    int32 guess = 13;
+    int32 matcherGuess = 13;
     // create txHash
     string createTxHash = 14;
     // matche交易hash
@@ -37,8 +37,9 @@ message Game {
     string closeTxHash = 16;
     // cancel txhash
     string cancelTxHash = 17;
-    string index        = 18;
-    string prevIndex    = 19;
+    int64  index        = 18;
+    int64  prevIndex    = 19;
+    int32  creatorGuess = 20;
 }
 
 // message for execs.game
@@ -81,7 +82,7 @@ message QueryGameListByStatusAndAddr {
     //二级搜索，如果要查询一个地址下的所有game信息，可以根据status，分多次查询，这样规避存储数据时的臃余情况
     string address = 2;
     // 索引值
-    string index = 3;
+    int64 index = 3;
     //单页返回多少条记录，默认返回20条，单次最多返回100条
     int32 count = 4;
     // 0降序，1升序，默认降序
@@ -97,7 +98,7 @@ message QueryGameListCount {
 // 索引value值
 message GameRecord {
     string gameId = 1;
-    string index  = 2;
+    int64  index  = 2;
 }
 
 message QueryGameInfo {
@@ -110,12 +111,6 @@ message QueryGameInfos {
 
 message ReplyGameList {
     repeated Game games = 1;
-}
-//分页返回结构体
-message ReplyGameListPage {
-    repeated Game games     = 1;
-    string        prevIndex = 2;
-    string        nextIndex = 3;
 }
 
 message ReplyGameListCount {
@@ -134,6 +129,6 @@ message ReceiptGame {
     string addr       = 4;
     string createAddr = 5;
     string matchAddr  = 6;
-    string index      = 7;
-    string prevIndex  = 8;
+    int64  index      = 7;
+    int64  prevIndex  = 8;
 }

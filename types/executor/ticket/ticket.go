@@ -37,7 +37,7 @@ func (ticket TicketType) ActionName(tx *types.Transaction) string {
 	var action types.TicketAction
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
-		return "unknow-err"
+		return "unknown-err"
 	}
 	if action.Ty == types.TicketActionGenesis && action.GetGenesis() != nil {
 		return "genesis"
@@ -50,7 +50,16 @@ func (ticket TicketType) ActionName(tx *types.Transaction) string {
 	} else if action.Ty == types.TicketActionBind && action.GetTbind() != nil {
 		return "bindminer"
 	}
-	return "unknow"
+	return "unknown"
+}
+
+func (ticket TicketType) DecodePayload(tx *types.Transaction) (interface{}, error) {
+	var action types.TicketAction
+	err := types.Decode(tx.Payload, &action)
+	if err != nil {
+		return nil, err
+	}
+	return &action, nil
 }
 
 func (ticket TicketType) Amount(tx *types.Transaction) (int64, error) {
