@@ -23,7 +23,7 @@ func TestKvdbNewClose(t *testing.T) {
 
 func TestKvddbSetGet(t *testing.T) {
 	os.RemoveAll(store_cfg1.DbPath)
-	store := New(store_cfg1)
+	store := New(store_cfg1).(*KVStore)
 	assert.NotNil(t, store)
 
 	keys0 := [][]byte{[]byte("mk1"), []byte("mk2")}
@@ -65,7 +65,7 @@ func TestKvddbSetGet(t *testing.T) {
 
 func TestKvdbMemSet(t *testing.T) {
 	os.RemoveAll(store_cfg2.DbPath)
-	store := New(store_cfg2)
+	store := New(store_cfg2).(*KVStore)
 	assert.NotNil(t, store)
 
 	var kv []*types.KeyValue
@@ -92,7 +92,7 @@ func TestKvdbMemSet(t *testing.T) {
 
 func TestKvdbRollback(t *testing.T) {
 	os.RemoveAll(store_cfg3.DbPath)
-	store := New(store_cfg3)
+	store := New(store_cfg3).(*KVStore)
 	assert.NotNil(t, store)
 
 	var kv []*types.KeyValue

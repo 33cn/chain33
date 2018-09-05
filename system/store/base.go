@@ -1,4 +1,4 @@
-package drivers
+package store
 
 //store package store the world - state data
 import (

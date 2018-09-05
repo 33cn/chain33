@@ -6,7 +6,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	clog "gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/queue"
-	"gitlab.33.cn/chain33/chain33/store/drivers"
+	drivers "gitlab.33.cn/chain33/chain33/system/store"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -20,12 +20,16 @@ func DisableLog() {
 	klog.SetHandler(log.DiscardHandler())
 }
 
+func init() {
+	drivers.Reg("kvdb", New)
+}
+
 type KVStore struct {
 	*drivers.BaseStore
 	cache map[string]map[string]*types.KeyValue
 }
 
-func New(cfg *types.Store) *KVStore {
+func New(cfg *types.Store) queue.Module {
 	bs := drivers.NewBaseStore(cfg)
 	kvs := &KVStore{bs, make(map[string]map[string]*types.KeyValue)}
 	bs.SetChild(kvs)

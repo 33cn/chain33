@@ -1,4 +1,4 @@
-package drivers
+package store
 
 import (
 	"testing"
