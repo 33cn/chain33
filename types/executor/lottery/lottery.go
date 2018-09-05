@@ -39,7 +39,7 @@ type LotteryType struct {
 	types.ExecTypeBase
 }
 
-func (r LotteryType) ActionName(tx *types.Transaction) string {
+func (lottery LotteryType) ActionName(tx *types.Transaction) string {
 	var action types.LotteryAction
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
@@ -57,7 +57,16 @@ func (r LotteryType) ActionName(tx *types.Transaction) string {
 	return "unknow"
 }
 
-func (r LotteryType) Amount(tx *types.Transaction) (int64, error) {
+func (lottery LotteryType) DecodePayload(tx *types.Transaction) (interface{}, error) {
+	var action types.LotteryAction
+	err := types.Decode(tx.Payload, &action)
+	if err != nil {
+		return nil, err
+	}
+	return &action, nil
+}
+
+func (lottery LotteryType) Amount(tx *types.Transaction) (int64, error) {
 	return 0, nil
 }
 
