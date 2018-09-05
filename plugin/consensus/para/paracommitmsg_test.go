@@ -28,7 +28,7 @@ func (s *suiteParaCommitMsg) SetupSuite() {
 		AuthAccount:          "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt",
 		WaitBlocks4CommitMsg: 2,
 	}
-	s.para = New(cfg)
+	s.para = New(cfg).(*ParaClient)
 	s.grpcCli = &typesmocks.GrpcserviceClient{}
 	s.para.grpcClient = s.grpcCli
 	s.qClient = &qmocks.Client{}

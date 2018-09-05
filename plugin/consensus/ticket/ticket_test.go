@@ -118,7 +118,7 @@ func initEnvTicket() (queue.Queue, *blockchain.BlockChain, *mempool.Mempool, que
 
 	qApi, _ := client.New(q.Client(), nil)
 
-	return q, chain, mem, s, cs, w, qApi, network, exec
+	return q, chain, mem, s, cs.(*Client), w, qApi, network, exec
 }
 
 // 获取票的列表
