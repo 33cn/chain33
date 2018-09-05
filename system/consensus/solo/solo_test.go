@@ -18,6 +18,9 @@ import (
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/store"
 	"gitlab.33.cn/chain33/chain33/types"
+
+	//加载系统内置store, 不要依赖plugin
+	_ "gitlab.33.cn/chain33/chain33/system/store/mavl"
 )
 
 var (
