@@ -11,10 +11,8 @@ import (
 var glog = log.New("module", "execs.game")
 
 const (
-	MaxGameAmount = 100 * types.Coin
 	//查询方法名
-	FuncName_QueryGameListByIds = "QueryGameListByIds"
-	//FuncName_QueryGameListByPage          = "QueryGameListByPage"
+	FuncName_QueryGameListByIds           = "QueryGameListByIds"
 	FuncName_QueryGameListCount           = "QueryGameListCount"
 	FuncName_QueryGameListByStatusAndAddr = "QueryGameListByStatusAndAddr"
 	FuncName_QueryGameById                = "QueryGameById"
@@ -47,12 +45,7 @@ func (g *Game) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	glog.Debug("exec Game tx=", "tx=", action)
 	actiondb := NewAction(g, tx, index)
 	if action.Ty == types.GameActionCreate && action.GetCreate() != nil {
-		create := action.GetCreate()
-		if create.GetValue() > MaxGameAmount {
-			glog.Error("Create the game, the deposit is too big  ", "value", create.GetValue())
-			return nil, types.ErrGameCreateAmount
-		}
-		return actiondb.GameCreate(create)
+		return actiondb.GameCreate(action.GetCreate())
 	} else if action.Ty == types.GameActionCancel && action.GetCancel() != nil {
 		return actiondb.GameCancel(action.GetCancel())
 	} else if action.Ty == types.GameActionClose && action.GetClose() != nil {
@@ -60,7 +53,6 @@ func (g *Game) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	} else if action.Ty == types.GameActionMatch && action.GetMatch() != nil {
 		return actiondb.GameMatch(action.GetMatch())
 	}
-	//return error
 	return nil, types.ErrActionNotSupport
 }
 
@@ -161,21 +153,6 @@ func (g *Game) rollbackIndex(log *types.ReceiptGame) (kvs []*types.KeyValue) {
 	}
 	return kvs
 }
-
-//根据txhash查询 index
-//func (g *Game) queryIndex(txHash string) (string, error) {
-//	var data types.ReqHash
-//	hash, err := common.FromHex(txHash)
-//	if err != nil {
-//		return "", err
-//	}
-//	data.Hash = hash
-//	d, err := g.GetApi().QueryTx(&data)
-//	if err != nil {
-//		return "", err
-//	}
-//	return fmt.Sprintf("%018d", d.GetHeight()*types.MaxTxsPerBlock+d.GetIndex()), nil
-//}
 func (g *Game) Query(funcName string, params []byte) (types.Message, error) {
 	if funcName == FuncName_QueryGameListByIds {
 		var info types.QueryGameInfos
@@ -208,13 +185,13 @@ func (g *Game) Query(funcName string, params []byte) (types.Message, error) {
 		if err != nil {
 			return nil, err
 		}
-		return QueryGameListCount(g.GetLocalDB(), g.GetStateDB(), &q)
+		return QueryGameListCount(g.GetStateDB(), &q)
 	}
 	return nil, types.ErrActionNotSupport
 }
 
-func calcGameStatusIndexKey(status int32, index string) []byte {
-	key := fmt.Sprintf("game-status:%d:%s", status, index)
+func calcGameStatusIndexKey(status int32, index int64) []byte {
+	key := fmt.Sprintf("game-status:%d:%018d", status, index)
 	return []byte(key)
 }
 
@@ -222,15 +199,15 @@ func calcGameStatusIndexPrefix(status int32) []byte {
 	key := fmt.Sprintf("game-status:%d:", status)
 	return []byte(key)
 }
-func calcGameAddrIndexKey(status int32, addr, index string) []byte {
-	key := fmt.Sprintf("game-addr:%d:%s:%s", status, addr, index)
+func calcGameAddrIndexKey(status int32, addr string, index int64) []byte {
+	key := fmt.Sprintf("game-addr:%d:%s:%018d", status, addr, index)
 	return []byte(key)
 }
 func calcGameAddrIndexPrefix(status int32, addr string) []byte {
 	key := fmt.Sprintf("game-addr:%d:%s:", status, addr)
 	return []byte(key)
 }
-func addGameStatusIndex(status int32, gameId, index string) *types.KeyValue {
+func addGameStatusIndex(status int32, gameId string, index int64) *types.KeyValue {
 	kv := &types.KeyValue{}
 	kv.Key = calcGameStatusIndexKey(status, index)
 	record := &types.GameRecord{
@@ -240,7 +217,7 @@ func addGameStatusIndex(status int32, gameId, index string) *types.KeyValue {
 	kv.Value = types.Encode(record)
 	return kv
 }
-func addGameAddrIndex(status int32, gameId, addr, index string) *types.KeyValue {
+func addGameAddrIndex(status int32, gameId, addr string, index int64) *types.KeyValue {
 	kv := &types.KeyValue{}
 	kv.Key = calcGameAddrIndexKey(status, addr, index)
 	record := &types.GameRecord{
@@ -250,13 +227,13 @@ func addGameAddrIndex(status int32, gameId, addr, index string) *types.KeyValue 
 	kv.Value = types.Encode(record)
 	return kv
 }
-func delGameStatusIndex(status int32, index string) *types.KeyValue {
+func delGameStatusIndex(status int32, index int64) *types.KeyValue {
 	kv := &types.KeyValue{}
 	kv.Key = calcGameStatusIndexKey(status, index)
 	kv.Value = nil
 	return kv
 }
-func delGameAddrIndex(status int32, addr, index string) *types.KeyValue {
+func delGameAddrIndex(status int32, addr string, index int64) *types.KeyValue {
 	kv := &types.KeyValue{}
 	kv.Key = calcGameAddrIndexKey(status, addr, index)
 	//value置nil,提交时，会自动执行删除操作

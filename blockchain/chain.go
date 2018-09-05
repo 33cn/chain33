@@ -107,7 +107,7 @@ func New(cfg *types.BlockChain) *BlockChain {
 		recvwg:             &sync.WaitGroup{},
 		tickerwg:           &sync.WaitGroup{},
 
-		task:     newTask(160 * time.Second),
+		task:     newTask(300 * time.Second), //考虑到区块交易多时执行耗时，需要延长task任务的超时时间
 		forktask: newTask(300 * time.Second),
 
 		quit:                make(chan struct{}),
