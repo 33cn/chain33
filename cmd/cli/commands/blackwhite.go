@@ -9,8 +9,8 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 
 	// TODO: 这部分代码需要屏蔽到插件中
-	bw "gitlab.33.cn/chain33/chain33/pluginmanager/blackwhite/executor"
-	gt "gitlab.33.cn/chain33/chain33/pluginmanager/blackwhite/types"
+	bw "gitlab.33.cn/chain33/chain33/pluginmanager/plugins/blackwhite/executor"
+	gt "gitlab.33.cn/chain33/chain33/pluginmanager/plugins/blackwhite/types"
 )
 
 func BlackwhiteCmd() *cobra.Command {
