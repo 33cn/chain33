@@ -18,6 +18,8 @@ build/guodun
 build/main.sh
 build/main*
 build/para.sh
+build/tools/autotest/autotest
+build/tools/autotest/*.toml
 common/mavl/datastore
 .DS_Store
 common/.DS_Store
