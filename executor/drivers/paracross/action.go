@@ -438,3 +438,33 @@ func (a *action) AssetWithdraw(withdraw *types.CoinsWithdraw) (*types.Receipt, e
 		"txHash", common.Bytes2Hex(a.tx.Hash()))
 	return a.assetWithdrawCoins(withdraw, a.tx)
 }
+
+func (a *action) crossLimits(tx *types.Transaction) bool {
+	if tx.GroupCount < 2 {
+		return true
+	}
+
+	tg, err := tx.GetTxGroup()
+	if err != nil {
+		clog.Error("crossLimits", "get tx group failed", err, "hash", common.Bytes2Hex(tx.Hash()))
+		return false
+	}
+
+	titles := make(map[string] struct{})
+	for _, txTmp := range tg.Txs {
+		title, err := getTitleFrom(txTmp.Execer)
+		if err == nil {
+			titles[string(title)] = struct{}{}
+		}
+	}
+	return len(titles) <= 1
+}
+
+func getTitleFrom(exec []byte) ([]byte, error) {
+	last := bytes.LastIndex(exec, []byte("."))
+	if last == -1 {
+		return nil, types.ErrNotFound
+	}
+	// 现在配置是包含 .的， 所有取title 是也把 `.` 取出来
+	return exec[:last+1], nil
+}
