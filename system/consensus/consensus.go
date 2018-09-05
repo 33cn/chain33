@@ -17,7 +17,6 @@ func Reg(name string, create ConsensusCreate) {
 		panic("Consensus: Register called twice for driver " + name)
 	}
 	regConsensus[name] = create
-	return
 }
 
 func Load(name string) (create ConsensusCreate, err error) {
