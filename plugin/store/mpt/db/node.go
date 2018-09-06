@@ -22,7 +22,7 @@ import (
 	"strings"
 
 	"gitlab.33.cn/chain33/chain33/common"
-	"gitlab.33.cn/chain33/chain33/common/mpt/rlp"
+	"gitlab.33.cn/chain33/chain33/plugin/store/mpt/db/rlp"
 )
 
 var indices = []string{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "f", "[17]"}

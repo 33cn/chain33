@@ -22,7 +22,7 @@ import (
 	"errors"
 
 	"gitlab.33.cn/chain33/chain33/common"
-	"gitlab.33.cn/chain33/chain33/common/mpt/rlp"
+	"gitlab.33.cn/chain33/chain33/plugin/store/mpt/db/rlp"
 )
 
 // Iterator is a key-value trie iterator that traverses a Trie.
