@@ -24,7 +24,7 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
-	"gitlab.33.cn/chain33/chain33/common/mpt/rlp"
+	"gitlab.33.cn/chain33/chain33/plugin/store/mpt/db/rlp"
 )
 
 // secureKeyPrefix is the database key prefix used to store trie node preimages.
