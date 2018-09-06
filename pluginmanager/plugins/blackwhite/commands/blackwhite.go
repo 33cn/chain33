@@ -1,15 +1,14 @@
 package commands
 
 import (
+	"strconv"
 	"strings"
 
 	"gitlab.33.cn/chain33/chain33/util"
-
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/common"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
-
 	gt "gitlab.33.cn/chain33/chain33/pluginmanager/plugins/blackwhite/types"
 )
 
@@ -77,7 +76,6 @@ func blackwhiteCreate(cmd *cobra.Command, args []string) {
 	}
 
 	var res string
-	//ctx := util.NewRpcCtx(rpcLaddr, "Chain33.BlackwhiteCreateTx", params, &res)
 	ctx := util.NewRpcCtx(rpcLaddr, "Chain33.Query", jsonrpc.Query4Cli{
 		Execer:   gt.BlackwhiteX,
 		FuncName: gt.BlackwhiteCreateTx,
@@ -123,12 +121,12 @@ func blackwhitePlay(cmd *cobra.Command, args []string) {
 	blacks := strings.Split(isBlackStr, "-")
 
 	var hashValues [][]byte
-	for _, black := range blacks {
+	for i, black := range blacks {
 		if black == "1" {
-			hashValues = append(hashValues, common.Sha256([]byte(secret+black)))
+			hashValues = append(hashValues, common.Sha256([]byte(strconv.Itoa(i)+secret+black)))
 		} else {
 			white := "0"
-			hashValues = append(hashValues, common.Sha256([]byte(secret+white)))
+			hashValues = append(hashValues, common.Sha256([]byte(strconv.Itoa(i)+secret+white)))
 		}
 	}
 
@@ -141,7 +139,6 @@ func blackwhitePlay(cmd *cobra.Command, args []string) {
 		Fee:        feeInt64,
 	}
 	var res string
-	//ctx := util.NewRpcCtx(rpcLaddr, "Chain33.BlackwhitePlayTx", params, &res)
 	ctx := util.NewRpcCtx(rpcLaddr, "Chain33.Query", jsonrpc.Query4Cli{
 		Execer:   gt.BlackwhiteX,
 		FuncName: gt.BlackwhitePlayTx,
@@ -184,7 +181,6 @@ func blackwhiteShow(cmd *cobra.Command, args []string) {
 		Fee:    feeInt64,
 	}
 	var res string
-	//ctx := util.NewRpcCtx(rpcLaddr, "Chain33.BlackwhiteShowTx", params, &res)
 	ctx := util.NewRpcCtx(rpcLaddr, "Chain33.Query", jsonrpc.Query4Cli{
 		Execer:   gt.BlackwhiteX,
 		FuncName: gt.BlackwhiteShowTx,
