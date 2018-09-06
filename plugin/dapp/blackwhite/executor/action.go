@@ -1,4 +1,4 @@
-package blackwhite
+package executor
 
 import (
 	"bytes"
@@ -9,8 +9,8 @@ import (
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
+	gt "gitlab.33.cn/chain33/chain33/plugin/dapp/blackwhite/types"
 	"gitlab.33.cn/chain33/chain33/types"
-	gt "gitlab.33.cn/chain33/chain33/types/executor/blackwhite"
 )
 
 const (
@@ -57,7 +57,7 @@ func newAction(t *Blackwhite, tx *types.Transaction, index int32) *action {
 		t.GetBlockTime(), t.GetHeight(), index, t.GetAddr()}
 }
 
-func (a *action) Create(create *types.BlackwhiteCreate) (*types.Receipt, error) {
+func (a *action) Create(create *gt.BlackwhiteCreate) (*types.Receipt, error) {
 	if create.PlayAmount < MinAmount || create.PlayAmount > MaxAmount {
 		return nil, types.ErrInputPara
 	}
@@ -95,7 +95,7 @@ func (a *action) Create(create *types.BlackwhiteCreate) (*types.Receipt, error) 
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
 }
 
-func (a *action) Play(play *types.BlackwhitePlay) (*types.Receipt, error) {
+func (a *action) Play(play *gt.BlackwhitePlay) (*types.Receipt, error) {
 	// 获取GameID
 	value, err := a.db.Get(calcRoundKey(play.GameID))
 	if err != nil {
@@ -103,7 +103,7 @@ func (a *action) Play(play *types.BlackwhitePlay) (*types.Receipt, error) {
 			play.GameID, "err", err)
 		return nil, err
 	}
-	var round types.BlackwhiteRound
+	var round gt.BlackwhiteRound
 	err = types.Decode(value, &round)
 	if err != nil {
 		clog.Error("blackwhite play ", "addr", a.fromaddr, "execaddr", a.execaddr, "decode round failed",
@@ -147,7 +147,7 @@ func (a *action) Play(play *types.BlackwhitePlay) (*types.Receipt, error) {
 	kv = append(kv, receipt.KV...)
 
 	round.Status = gt.BlackwhiteStatusPlay
-	addrRes := &types.AddressResult{
+	addrRes := &gt.AddressResult{
 		Addr:       a.fromaddr,
 		Amount:     play.Amount,
 		HashValues: play.HashValues,
@@ -182,7 +182,7 @@ func (a *action) Play(play *types.BlackwhitePlay) (*types.Receipt, error) {
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
 }
 
-func (a *action) Show(show *types.BlackwhiteShow) (*types.Receipt, error) {
+func (a *action) Show(show *gt.BlackwhiteShow) (*types.Receipt, error) {
 	// 获取GameID
 	value, err := a.db.Get(calcRoundKey(show.GameID))
 	if err != nil {
@@ -190,7 +190,7 @@ func (a *action) Show(show *types.BlackwhiteShow) (*types.Receipt, error) {
 			show.GameID, "err", err)
 		return nil, err
 	}
-	var round types.BlackwhiteRound
+	var round gt.BlackwhiteRound
 	err = types.Decode(value, &round)
 	if err != nil {
 		clog.Error("blackwhite show ", "addr", a.fromaddr, "execaddr", a.execaddr, "decode round failed",
@@ -264,7 +264,7 @@ func (a *action) Show(show *types.BlackwhiteShow) (*types.Receipt, error) {
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
 }
 
-func (a *action) TimeoutDone(done *types.BlackwhiteTimeoutDone) (*types.Receipt, error) {
+func (a *action) TimeoutDone(done *gt.BlackwhiteTimeoutDone) (*types.Receipt, error) {
 	value, err := a.db.Get(calcRoundKey(done.GameID))
 	if err != nil {
 		clog.Error("blackwhite timeout done ", "addr", a.fromaddr, "execaddr", a.execaddr, "get round failed",
@@ -272,7 +272,7 @@ func (a *action) TimeoutDone(done *types.BlackwhiteTimeoutDone) (*types.Receipt,
 		return nil, err
 	}
 
-	var round types.BlackwhiteRound
+	var round gt.BlackwhiteRound
 	err = types.Decode(value, &round)
 	if err != nil {
 		clog.Error("blackwhite timeout done ", "addr", a.fromaddr, "execaddr", a.execaddr, "decode round failed",
@@ -369,7 +369,7 @@ func (a *action) TimeoutDone(done *types.BlackwhiteTimeoutDone) (*types.Receipt,
 
 }
 
-func (a *action) StatTransfer(round *types.BlackwhiteRound) (*types.Receipt, error) {
+func (a *action) StatTransfer(round *gt.BlackwhiteRound) (*types.Receipt, error) {
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
 
@@ -509,8 +509,8 @@ func (a *action) StatTransfer(round *types.BlackwhiteRound) (*types.Receipt, err
 
 }
 
-func (a *action) getWinner(round *types.BlackwhiteRound) ([]*addrResult, *types.ReplyLoopResults) {
-	var loopRes types.ReplyLoopResults
+func (a *action) getWinner(round *gt.BlackwhiteRound) ([]*addrResult, *gt.ReplyLoopResults) {
+	var loopRes gt.ReplyLoopResults
 	var addresXs []*resultCalc
 
 	loopRes.GameID = round.GetGameID()
@@ -567,7 +567,7 @@ func (a *action) getWinner(round *types.BlackwhiteRound) ([]*addrResult, *types.
 		}
 
 		winNum := 0
-		var perRes types.PerLoopResult // 每一轮获胜者
+		var perRes gt.PerLoopResult // 每一轮获胜者
 		for _, addr := range addresXs {
 			if addr.IsWin {
 				winNum++
@@ -598,7 +598,7 @@ func (a *action) getWinner(round *types.BlackwhiteRound) ([]*addrResult, *types.
 	return results, &loopRes
 }
 
-func (a *action) getLoser(round *types.BlackwhiteRound) []*addrResult {
+func (a *action) getLoser(round *gt.BlackwhiteRound) []*addrResult {
 	addrRes := round.AddrResult
 	wins, _ := a.getWinner(round)
 
@@ -628,9 +628,9 @@ func (a *action) getLoser(round *types.BlackwhiteRound) []*addrResult {
 // status == BlackwhiteStatusTime (超时退出情况)
 // status == BlackwhiteStatusDone (结束情况)
 
-func (action *action) GetReceiptLog(round *types.BlackwhiteRound, addr string) *types.ReceiptLog {
+func (action *action) GetReceiptLog(round *gt.BlackwhiteRound, addr string) *types.ReceiptLog {
 	log := &types.ReceiptLog{}
-	r := &types.ReceiptBlackwhiteStatus{}
+	r := &gt.ReceiptBlackwhiteStatus{}
 	if round.Status == gt.BlackwhiteStatusCreate {
 		log.Ty = types.TyLogBlackwhiteCreate
 		r.PrevStatus = -1
