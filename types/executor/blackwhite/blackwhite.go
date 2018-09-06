@@ -25,11 +25,11 @@ const (
 	GetBlackwhiteloopResult      = "GetBlackwhiteloopResult"
 )
 
-const name = types.BlackwhiteX
-
-var glog = log.New("module", name)
+var glog = log.New("module", types.BlackwhiteX)
+var name string
 
 func Init() {
+	name = types.ExecName(types.BlackwhiteX)
 	// init executor type
 	types.RegistorExecutor(name, &BlackwhiteType{})
 
@@ -67,6 +67,15 @@ func (m BlackwhiteType) ActionName(tx *types.Transaction) string {
 		return "BlackwhiteTimeoutDone"
 	}
 	return "unkown"
+}
+
+func (blackwhite BlackwhiteType) DecodePayload(tx *types.Transaction) (interface{}, error) {
+	var action types.BlackwhiteAction
+	err := types.Decode(tx.Payload, &action)
+	if err != nil {
+		return nil, err
+	}
+	return &action, nil
 }
 
 func (m BlackwhiteType) Amount(tx *types.Transaction) (int64, error) {
