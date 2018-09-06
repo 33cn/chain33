@@ -15,7 +15,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/log"
 	pt "gitlab.33.cn/chain33/chain33/types/executor/paracross"
-
 )
 
 // 构造一个4个节点的平行链数据， 进行测试
