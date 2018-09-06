@@ -4,12 +4,12 @@ import (
 	"strconv"
 	"strings"
 
-	"gitlab.33.cn/chain33/chain33/util"
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/common"
+	gt "gitlab.33.cn/chain33/chain33/plugin/dapp/blackwhite/types"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
-	gt "gitlab.33.cn/chain33/chain33/pluginmanager/plugins/blackwhite/types"
+	"gitlab.33.cn/chain33/chain33/util"
 )
 
 func BlackwhiteCmd() *cobra.Command {
