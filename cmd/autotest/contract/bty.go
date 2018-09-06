@@ -25,19 +25,11 @@ func (caseConf *TestBtyConfig) RunTest(caseFile string, wg *sync.WaitGroup) {
 	}
 
 	tester := testcase.NewTestOperator(fLog, tLog)
+
+	go tester.AddCaseArray(caseConf.TransferCaseArr, caseConf.WithdrawCaseArr)
 	go tester.HandleDependency()
 	go tester.RunSendFlow()
 	go tester.RunCheckFlow()
-
-	for i := range caseConf.TransferCaseArr {
-
-		tester.AddCase(&caseConf.TransferCaseArr[i])
-	}
-
-	for i := range caseConf.WithdrawCaseArr {
-
-		tester.AddCase(&caseConf.WithdrawCaseArr[i])
-	}
-
 	tester.WaitTest()
+
 }
