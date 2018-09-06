@@ -128,11 +128,11 @@ autotest:
     script:
         - if [ -n "${onceEveryday}" ]; then
         - make build_ci
-        - make auto-test
-        - cd build/tools/autotest
-        - ./run-autotest.sh build
-        - cd ../../../
+        - make autotest
+        - cd build/tools/autotest && ./run-autotest.sh build
+        - cd $GO_PROJECT_PATH
         - fi
+    when: always
     only:
         - develop
 

@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"bytes"
 	"encoding/json"
 
 	"github.com/golang/protobuf/proto"
@@ -174,4 +175,21 @@ func protoPayload(execer, funcname string, payload *json.RawMessage) ([]byte, er
 		return nil, types.ErrInputPara
 	}
 	return types.Encode(req), nil
+}
+
+func decodeUserWrite(payload []byte) *userWrite {
+	var article userWrite
+	if len(payload) != 0 {
+		if payload[0] == '#' {
+			data := bytes.SplitN(payload[1:], []byte("#"), 2)
+			if len(data) == 2 {
+				article.Topic = string(data[0])
+				article.Content = string(data[1])
+				return &article
+			}
+		}
+	}
+	article.Topic = ""
+	article.Content = string(payload)
+	return &article
 }
