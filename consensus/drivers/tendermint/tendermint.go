@@ -17,8 +17,9 @@ import (
 )
 
 var (
-	tendermintlog = log15.New("module", "tendermint")
-	genesisDocKey = []byte("genesisDoc")
+	tendermintlog       = log15.New("module", "tendermint")
+	genesisDocKey       = []byte("genesisDoc")
+	blockSec      int64 = 1000 //write block interval, millisecond
 )
 
 const tendermint_version = "0.1.0"
@@ -49,6 +50,9 @@ func DefaultDBProvider(ID string) (dbm.DB, error) {
 func New(cfg *types.Consensus) *TendermintClient {
 	tendermintlog.Info("Start to create tendermint client")
 
+	if cfg.WriteBlockSeconds > 0 {
+		blockSec = cfg.WriteBlockSeconds
+	}
 	//init rand
 	ttypes.Init()
 
@@ -299,7 +303,7 @@ func (client *TendermintClient) CreateBlock() {
 		issleep = false
 
 		client.txsAvailable <- client.GetCurrentHeight() + 1
-		time.Sleep(time.Second)
+		time.Sleep(time.Duration(blockSec) * time.Millisecond)
 	}
 }
 
@@ -309,10 +313,34 @@ func (client *TendermintClient) TxsAvailable() <-chan int64 {
 
 func (client *TendermintClient) CheckTxsAvailable() bool {
 	txs := client.RequestTx(10, nil)
+	txs = client.CheckTxDup(txs, client.GetCurrentHeight())
 	if len(txs) == 0 {
 		return false
 	}
 	return true
+}
+
+func (client *TendermintClient) CheckTxDup(txs []*types.Transaction, height int64) (transactions []*types.Transaction) {
+	var checkHashList types.TxHashList
+	txMap := make(map[string]*types.Transaction)
+	for _, tx := range txs {
+		hash := tx.Hash()
+		txMap[string(hash)] = tx
+		checkHashList.Hashes = append(checkHashList.Hashes, hash)
+		checkHashList.Expire = append(checkHashList.Expire, tx.GetExpire())
+	}
+	checkHashList.Count = height
+	hashList := client.GetQueueClient().NewMessage("blockchain", types.EventTxHashList, &checkHashList)
+	client.GetQueueClient().Send(hashList, true)
+	dupTxList, _ := client.GetQueueClient().Wait(hashList)
+	dupTxs := dupTxList.GetData().(*types.TxHashList).Hashes
+	for _, hash := range dupTxs {
+		delete(txMap, string(hash))
+	}
+	for _, tx := range txMap {
+		transactions = append(transactions, tx)
+	}
+	return transactions
 }
 
 func (client *TendermintClient) BuildBlock() *types.Block {
@@ -320,7 +348,7 @@ func (client *TendermintClient) BuildBlock() *types.Block {
 	txs := client.RequestTx(int(types.GetP(lastHeight+1).MaxTxNumber)-1, nil)
 
 	//check dup
-	txs = client.CheckTxDup(txs)
+	txs = client.CheckTxDup(txs, lastHeight)
 	if len(txs) == 0 {
 		tendermintlog.Error("No new txs")
 		return nil
@@ -329,7 +357,6 @@ func (client *TendermintClient) BuildBlock() *types.Block {
 	newblock := &types.Block{}
 	newblock.Height = lastHeight + 1
 	client.AddTxsToBlock(newblock, txs)
-
 	return newblock
 }
 
@@ -346,7 +373,6 @@ func (client *TendermintClient) CommitBlock(propBlock *types.Block) error {
 	if lastBlock.BlockTime >= newblock.BlockTime {
 		newblock.BlockTime = lastBlock.BlockTime + 1
 	}
-
 	newblock.Difficulty = types.GetP(0).PowLimitBits
 
 	err = client.WriteBlock(lastBlock.StateHash, &newblock)
@@ -391,7 +417,6 @@ func (client *TendermintClient) QueryValidatorsByHeight(height int64) (*types.Va
 	if err != nil {
 		return nil, err
 	}
-
 	return msg.GetData().(types.Message).(*types.ValNodes), nil
 }
 
@@ -407,7 +432,6 @@ func (client *TendermintClient) QueryBlockInfoByHeight(height int64) (*types.Ten
 	if err != nil {
 		return nil, err
 	}
-
 	return msg.GetData().(types.Message).(*types.TendermintBlockInfo), nil
 }
 
