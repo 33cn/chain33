@@ -41,7 +41,7 @@ var (
 	ExecerCert     = []byte(CertX)
 	UserEvm        = []byte(UserEvmX)
 	ExecerPara     = []byte(ParaX)
-    ExecerLottery    = []byte(LotteryX)
+	ExecerLottery  = []byte(LotteryX)
 )
 
 const (

@@ -86,7 +86,7 @@ func execInit2() {
 	relay.Init()
 	cert.Init()
 	privacy.Init()
-    lottery.Init()
+	lottery.Init()
 	pluginmanager.InitExecutor()
 }
 
