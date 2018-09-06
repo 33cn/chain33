@@ -7,7 +7,7 @@ command = "send token precreate -f 0.01 -i testToken -n testToken -s TS -a 12qyo
 [[TokenFinishCreateCase]]
 id = "tokenFinish"
 command = "send token finish -a 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv -f 0.01 -s TS -k 0xc34b5d9d44ac7b754806f761d3d4d2c4fe5214f6b074c19f069c4f5c2a29c8cc"
-dep = "tokenPre"
+dep = ["tokenPre"]
 
 
 
@@ -19,7 +19,7 @@ from = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
 to = "1D9xKRnLvV2zMtSxSx33ow1GF4pcbLcNRt"
 amount = "100"
 checkItem = ["balance"]
-dep = "tokenFinish"
+dep = ["tokenFinish"]
 
 
 [[TransferCase]]
@@ -29,7 +29,7 @@ from = "1D9xKRnLvV2zMtSxSx33ow1GF4pcbLcNRt"
 to = "1BXvgjmBw1aBgmGn1hjfGyRkmN3krWpFP4"
 amount = "50"
 checkItem = ["balance"]
-dep = "tokenTrans"
+dep = ["tokenTrans"]
 
 
 #prepare bty for trade buy
@@ -49,7 +49,7 @@ from = "17UZr5eJVxDRW1gs7rausQwaSUPtvcpxGT"
 to = "1BXvgjmBw1aBgmGn1hjfGyRkmN3krWpFP4"
 amount = "7"
 checkItem = ["balance"]
-dep = "btyTrans"
+dep = ["btyTrans"]
 
 
 #token sell case
@@ -59,7 +59,7 @@ command = "send trade sell -f 0.01 -m 100 -p 0.01 -t 10 -s TS -k 1D9xKRnLvV2zMtS
 from = "1D9xKRnLvV2zMtSxSx33ow1GF4pcbLcNRt"
 amount = "10"
 checkItem = ["balance", "frozen"]
-dep = "tokenToTrade"
+dep = ["tokenToTrade"]
 
 
 [[SellCase]]
@@ -68,7 +68,7 @@ command = "send trade sell -f 0.01 -m 100 -p 0.01 -t 1 -s TS -k 1D9xKRnLvV2zMtSx
 from = "1D9xKRnLvV2zMtSxSx33ow1GF4pcbLcNRt"
 amount = "1"
 checkItem = ["balance", "frozen"]
-dep = "tokenToTrade"
+dep = ["tokenToTrade"]
 
 
 [[SellCase]]
@@ -77,7 +77,7 @@ command = "send trade sell -f 0.01 -m 100 -p 0.01 -t 10 -s TS -k 1D9xKRnLvV2zMtS
 from = "1D9xKRnLvV2zMtSxSx33ow1GF4pcbLcNRt"
 amount = "10"
 checkItem = ["balance", "frozen"]
-dep = "tokenToTrade"
+dep = ["tokenToTrade"]
 
 
 #no balance
@@ -98,7 +98,7 @@ to = "1D9xKRnLvV2zMtSxSx33ow1GF4pcbLcNRt"
 btyAmount = "1"
 tokenAmount = "1"
 checkItem = ["balance", "frozen"]
-dep = "tokenSell1"
+dep = ["tokenSell1"]
 repeat = 5
 
 
@@ -112,7 +112,7 @@ to = "1D9xKRnLvV2zMtSxSx33ow1GF4pcbLcNRt"
 btyAmount = "0.9"
 tokenAmount = "0.9"
 checkItem = ["balance", "frozen"]
-dep = "tokenSell1"
+dep = ["tokenSell1"]
 
 
 #剩余正在sell的不够
@@ -124,7 +124,7 @@ to = "1D9xKRnLvV2zMtSxSx33ow1GF4pcbLcNRt"
 btyAmount = "2"
 tokenAmount = "2"
 checkItem = ["balance", "frozen"]
-dep = "tokenSell2"
+dep = ["tokenSell2"]
 
 
 
@@ -139,4 +139,5 @@ to = "1D9xKRnLvV2zMtSxSx33ow1GF4pcbLcNRt"
 btyAmount = "8"
 tokenAmount = "8"
 checkItem = ["balance", "frozen"]
-dep = "tokenSell3"
+dep = ["tokenSell3"]
+

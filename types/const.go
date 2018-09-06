@@ -20,32 +20,28 @@ const (
 	Normx           = "norm"
 	UserEvmX        = "user.evm."
 	CertX           = "cert"
-	GameX           = "game"
-	BlackwhiteX     = "blackwhite"
 	ParaX           = "paracross"
 	LotteryX        = "lottery"
 )
 
 var (
-	ExecerCoins      = []byte(CoinsX)
-	ExecerTicket     = []byte(TicketX)
-	ExecerManage     = []byte(ManageX)
-	ExecerToken      = []byte(TokenX)
-	ExecerEvm        = []byte(EvmX)
-	ExecerPrivacy    = []byte(PrivacyX)
-	ExecerRelay      = []byte(RelayX)
-	ExecerHashlock   = []byte(HashlockX)
-	ExecerRetrieve   = []byte(RetrieveX)
-	ExecerNone       = []byte(NoneX)
-	ExecerTrade      = []byte(TradeX)
-	ExecerNorm       = []byte(Normx)
-	ExecerConfig     = []byte("config")
-	ExecerCert       = []byte(CertX)
-	UserEvm          = []byte(UserEvmX)
-	ExecerGame       = []byte(GameX)
-	ExecerBlackwhite = []byte(BlackwhiteX)
-	ExecerPara       = []byte(ParaX)
-	ExecerLottery    = []byte(LotteryX)
+	ExecerCoins    = []byte(CoinsX)
+	ExecerTicket   = []byte(TicketX)
+	ExecerManage   = []byte(ManageX)
+	ExecerToken    = []byte(TokenX)
+	ExecerEvm      = []byte(EvmX)
+	ExecerPrivacy  = []byte(PrivacyX)
+	ExecerRelay    = []byte(RelayX)
+	ExecerHashlock = []byte(HashlockX)
+	ExecerRetrieve = []byte(RetrieveX)
+	ExecerNone     = []byte(NoneX)
+	ExecerTrade    = []byte(TradeX)
+	ExecerNorm     = []byte(Normx)
+	ExecerConfig   = []byte("config")
+	ExecerCert     = []byte(CertX)
+	UserEvm        = []byte(UserEvmX)
+	ExecerPara     = []byte(ParaX)
+    ExecerLottery    = []byte(LotteryX)
 )
 
 const (
@@ -415,14 +411,6 @@ const (
 	RelayActionRcvBTCHeaders
 )
 
-// blackwhite action type
-const (
-	BlackwhiteActionCreate = iota
-	BlackwhiteActionPlay
-	BlackwhiteActionShow
-	BlackwhiteActionTimeoutDone
-)
-
 // RescanUtxoFlag
 const (
 	UtxoFlagNoScan  int32 = 0
@@ -435,14 +423,6 @@ var RescanFlagMapint2string = map[int32]string{
 	UtxoFlagScaning: "UtxoFlagScaning",
 	UtxoFlagScanEnd: "UtxoFlagScanEnd",
 }
-
-//game action ty
-const (
-	GameActionCreate = iota + 1
-	GameActionMatch
-	GameActionCancel
-	GameActionClose
-)
 
 //flag:
 var FlagTxQuickIndex = []byte("FLAG:FlagTxQuickIndex")

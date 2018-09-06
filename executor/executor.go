@@ -16,11 +16,9 @@ import (
 
 	// register drivers
 	"gitlab.33.cn/chain33/chain33/client"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/blackwhite"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/cert"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/coins"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/game"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/hashlock"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/lottery"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/manage"
@@ -36,6 +34,8 @@ import (
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 	exectype "gitlab.33.cn/chain33/chain33/types/executor"
+
+	"gitlab.33.cn/chain33/chain33/pluginmanager"
 )
 
 var elog = log.New("module", "execs")
@@ -86,9 +86,8 @@ func execInit2() {
 	relay.Init()
 	cert.Init()
 	privacy.Init()
-	game.Init()
-	blackwhite.Init()
-	lottery.Init()
+    lottery.Init()
+	pluginmanager.InitExecutor()
 }
 
 var runonce sync.Once
@@ -787,6 +786,7 @@ func copyReceipt(feelog *types.Receipt) *types.Receipt {
 
 func (execute *executor) execTxOne(feelog *types.Receipt, tx *types.Transaction, index int) (*types.Receipt, error) {
 	//只有到pack级别的，才会增加index
+	execute.stateDB.(*StateDB).StartTx()
 	receipt, err := execute.Exec(tx, index)
 	if err != nil {
 		elog.Error("exec tx error = ", "err", err, "exec", string(tx.Execer), "action", tx.ActionName())
@@ -796,21 +796,55 @@ func (execute *executor) execTxOne(feelog *types.Receipt, tx *types.Transaction,
 		return feelog, err
 	}
 	//合并两个receipt，如果执行不返回错误，那么就认为成功
+	//需要检查两个东西:
+	//1. statedb 中 Set的 key 必须是 在 receipt.GetKV() 这个集合中
+	//2. receipt.GetKV() 中的 key, 必须符合权限控制要求
+	memkvset := execute.stateDB.(*StateDB).GetSetKeys()
+	feelog, err = execute.checkKV(feelog, memkvset, receipt.GetKV())
+	if err != nil {
+		return feelog, err
+	}
+	feelog, err = execute.checkKeyAllow(feelog, tx, receipt.GetKV())
+	if err != nil {
+		return feelog, err
+	}
 	if receipt != nil {
-		for _, kv := range receipt.GetKV() {
-			k := kv.GetKey()
-			if !isAllowExec(k, tx.GetExecer(), tx.To, execute.height) {
-				elog.Error("err receipt key", "key", string(k), "tx.exec", string(tx.GetExecer()),
-					"tx.action", tx.ActionName())
-				//非法的receipt，交易执行失败
-				errlog := &types.ReceiptLog{types.TyLogErr, []byte(types.ErrNotAllowKey.Error())}
-				feelog.Logs = append(feelog.Logs, errlog)
-				return feelog, types.ErrNotAllowKey
-			}
-		}
 		feelog.KV = append(feelog.KV, receipt.KV...)
 		feelog.Logs = append(feelog.Logs, receipt.Logs...)
 		feelog.Ty = receipt.Ty
+	}
+	return feelog, nil
+}
+
+func (execute *executor) checkKV(feelog *types.Receipt, memset []string, kvs []*types.KeyValue) (*types.Receipt, error) {
+	keys := make(map[string]bool)
+	for _, kv := range kvs {
+		k := kv.GetKey()
+		keys[string(k)] = true
+	}
+	for _, key := range memset {
+		if _, ok := keys[key]; !ok {
+			elog.Error("err memset key", "key", key)
+			//非法的receipt，交易执行失败
+			errlog := &types.ReceiptLog{types.TyLogErr, []byte(types.ErrNotAllowMemSetKey.Error())}
+			feelog.Logs = append(feelog.Logs, errlog)
+			return feelog, types.ErrNotAllowMemSetKey
+		}
+	}
+	return feelog, nil
+}
+
+func (execute *executor) checkKeyAllow(feelog *types.Receipt, tx *types.Transaction, kvs []*types.KeyValue) (*types.Receipt, error) {
+	for _, kv := range kvs {
+		k := kv.GetKey()
+		if !isAllowExec(k, tx.GetExecer(), tx.To, execute.height) {
+			elog.Error("err receipt key", "key", string(k), "tx.exec", string(tx.GetExecer()),
+				"tx.action", tx.ActionName())
+			//非法的receipt，交易执行失败
+			errlog := &types.ReceiptLog{types.TyLogErr, []byte(types.ErrNotAllowKey.Error())}
+			feelog.Logs = append(feelog.Logs, errlog)
+			return feelog, types.ErrNotAllowKey
+		}
 	}
 	return feelog, nil
 }

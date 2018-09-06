@@ -128,8 +128,10 @@ func (bi *blockIndex) AddNode(node *blockNode) {
 
 	// Maybe expire an item.
 	if int64(bi.cacheQueue.Len()) > indexCacheLimit {
-		hash := bi.cacheQueue.Remove(bi.cacheQueue.Front()).(*blockNode).hash
-		delete(bi.index, string(hash))
+		delnode := bi.cacheQueue.Remove(bi.cacheQueue.Front()).(*blockNode)
+		//将删除节点的parent指针设置成空，用于释放parent节点
+		delnode.parent = nil
+		delete(bi.index, string(delnode.hash))
 	}
 }
 
@@ -140,7 +142,8 @@ func (bi *blockIndex) DelNode(hash []byte) {
 
 	elem, ok := bi.index[string(hash)]
 	if ok {
-		bi.cacheQueue.Remove(elem)
+		delnode := bi.cacheQueue.Remove(elem).(*blockNode)
+		delnode.parent = nil
 		delete(bi.index, string(hash))
 	}
 }

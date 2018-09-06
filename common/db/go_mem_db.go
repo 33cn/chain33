@@ -160,10 +160,10 @@ func (dbit *goMemDBIt) Next() bool {
 
 	if dbit.reserve { // 反向
 		dbit.index-- //将当前key值指向前一个
-		return true
+		return dbit.Valid()
 	} else { // 正向
 		dbit.index++ //将当前key值指向后一个
-		return true
+		return dbit.Valid()
 	}
 }
 
@@ -223,7 +223,7 @@ type kv struct{ k, v []byte }
 type memBatch struct {
 	db     *GoMemDB
 	writes []kv
-	//size   int
+	size   int
 }
 
 func (db *GoMemDB) NewBatch(sync bool) Batch {
@@ -232,10 +232,12 @@ func (db *GoMemDB) NewBatch(sync bool) Batch {
 
 func (b *memBatch) Set(key, value []byte) {
 	b.writes = append(b.writes, kv{CopyBytes(key), CopyBytes(value)})
+	b.size += len(value)
 }
 
 func (b *memBatch) Delete(key []byte) {
 	b.writes = append(b.writes, kv{CopyBytes(key), CopyBytes(nil)})
+	b.size += 1
 }
 
 func (b *memBatch) Write() error {
@@ -250,4 +252,13 @@ func (b *memBatch) Write() error {
 		}
 	}
 	return nil
+}
+
+func (b *memBatch) ValueSize() int {
+	return b.size
+}
+
+func (b *memBatch) Reset() {
+	b.writes = b.writes[:0]
+	b.size = 0
 }

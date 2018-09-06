@@ -21,6 +21,9 @@ import (
 
 	"time"
 
+	_ "gitlab.33.cn/chain33/chain33/plugin"
+	_ "gitlab.33.cn/chain33/chain33/system"
+
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/authority"
 	"gitlab.33.cn/chain33/chain33/blockchain"
@@ -229,6 +232,7 @@ func watching() {
 	runtime.ReadMemStats(&m)
 	log.Info("info:", "NumGoroutine:", runtime.NumGoroutine())
 	log.Info("info:", "Mem:", m.Sys/(1024*1024))
+	log.Info("info:", "HeapAlloc:", m.HeapAlloc/(1024*1024))
 }
 
 func pwd() string {
