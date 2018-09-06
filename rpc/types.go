@@ -244,6 +244,12 @@ type Query4Jrpc struct {
 	Payload  json.RawMessage `json:"payload"`
 }
 
+type Exec4JRPC struct {
+	Execer   string          `json:"execer"`
+	FuncName string          `json:"funcName"`
+	Payload  json.RawMessage `json:"payload"`
+}
+
 type WalletStatus struct {
 	IsWalletLock bool `json:"isWalletLock"`
 	IsAutoMining bool `json:"isAutoMining"`

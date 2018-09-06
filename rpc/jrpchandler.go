@@ -10,12 +10,14 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/version"
 	"gitlab.33.cn/chain33/chain33/types"
-	bw "gitlab.33.cn/chain33/chain33/types/executor/blackwhite"
 	evmtype "gitlab.33.cn/chain33/chain33/types/executor/evm"
 	hashlocktype "gitlab.33.cn/chain33/chain33/types/executor/hashlock"
 	retrievetype "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
 	tokentype "gitlab.33.cn/chain33/chain33/types/executor/token"
 	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
+
+	// TODO: 需要将插件管理器移动到封闭统一的地方进行管理
+	"gitlab.33.cn/chain33/chain33/pluginmanager/manager"
 )
 
 func (c *Chain33) CreateRawTransaction(in *types.CreateTx, result *interface{}) error {
@@ -964,9 +966,9 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		execStr = realExec(string(tx.Execer))
 	}
 
-	var pl interface{}
+	pl := manager.DecodeTx(tx)
 	plType := types.LoadExecutor(execStr)
-	if plType == nil {
+	if plType == nil && pl == nil {
 		if "user.write" == string(tx.Execer) {
 			pl = decodeUserWrite(tx.GetPayload())
 		} else {
@@ -980,6 +982,7 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 			pl = map[string]interface{}{"unkownpayload": string(tx.Payload)}
 		}
 	}
+
 	result := &Transaction{
 		Execer:     string(tx.Execer),
 		Payload:    pl,
@@ -1596,46 +1599,6 @@ func (c *Chain33) CreateRawRelaySaveBTCHeadTx(in *RelaySaveBTCHeadTx, result *in
 
 	*result = hex.EncodeToString(reply)
 
-	return nil
-}
-
-func (c *Chain33) BlackwhiteCreateTx(in *bw.BlackwhiteCreateTx, result *interface{}) error {
-	reply, err := c.cli.BlackwhiteCreateTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
-	return nil
-}
-
-func (c *Chain33) BlackwhiteShowTx(in *bw.BlackwhiteShowTx, result *interface{}) error {
-	reply, err := c.cli.BlackwhiteShowTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
-	return nil
-}
-
-func (c *Chain33) BlackwhitePlayTx(in *bw.BlackwhitePlayTx, result *interface{}) error {
-	reply, err := c.cli.BlackwhitePlayTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
-	return nil
-}
-
-func (c *Chain33) BlackwhiteTimeoutDoneTx(in *bw.BlackwhiteTimeoutDoneTx, result *interface{}) error {
-	reply, err := c.cli.BlackwhiteTimeoutDoneTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
 	return nil
 }
 

@@ -1,4 +1,4 @@
-package game
+package executor
 
 import (
 	"encoding/json"
@@ -7,20 +7,8 @@ import (
 
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common/address"
+	gt "gitlab.33.cn/chain33/chain33/plugin/dapp/game/types"
 	"gitlab.33.cn/chain33/chain33/types"
-)
-
-const (
-	FuncName_QueryGameListByIds = "QueryGameListByIds"
-	//FuncName_QueryGameListByStatus = "QueryGameListByStatus"
-	FuncName_QueryGameListByStatusAndAddr = "QueryGameListByStatusAndAddr"
-	FuncName_QueryGameById                = "QueryGameById"
-	FuncName_QueryGameListCount           = "QueryGameListCount"
-
-	Action_CreateGame = "createGame"
-	Action_MatchGame  = "matchGame"
-	Action_CancelGame = "cancelGame"
-	Action_CloseGame  = "closeGame"
 )
 
 var name string
@@ -32,11 +20,16 @@ var tlog = log.New("module", name)
 //如果设置了paraName , 那么强制用paraName
 //也就是说，我们可以构造其他平行链的交易
 func getRealExecName(paraName string) string {
-	return types.ExecName(paraName + types.GameX)
+	return types.ExecName(paraName + gt.GameX)
+}
+
+// exec
+type GameType struct {
+	types.ExecTypeBase
 }
 
 func Init() {
-	name = types.ExecName(types.GameX)
+	name = types.ExecName(gt.GameX)
 	// init executor type
 	types.RegistorExecutor(types.ExecName(name), &GameType{})
 
@@ -53,16 +46,11 @@ func Init() {
 	types.RegistorRpcType(FuncName_QueryGameListCount, &GameQueryListCount{})
 }
 
-// exec
-type GameType struct {
-	types.ExecTypeBase
-}
-
 func (game GameType) GetRealToAddr(tx *types.Transaction) string {
-	if string(tx.Execer) == types.GameX {
+	if string(tx.Execer) == gt.GameX {
 		return tx.To
 	}
-	var action types.GameAction
+	var action gt.GameAction
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
 		return tx.To
@@ -71,26 +59,26 @@ func (game GameType) GetRealToAddr(tx *types.Transaction) string {
 }
 
 func (game GameType) ActionName(tx *types.Transaction) string {
-	var action types.GameAction
+	var action gt.GameAction
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
 		return "unknown-err"
 	}
 
-	if action.Ty == types.GameActionCreate && action.GetCreate() != nil {
+	if action.Ty == gt.GameActionCreate && action.GetCreate() != nil {
 		return Action_CreateGame
-	} else if action.Ty == types.GameActionMatch && action.GetMatch() != nil {
+	} else if action.Ty == gt.GameActionMatch && action.GetMatch() != nil {
 		return Action_MatchGame
-	} else if action.Ty == types.GameActionCancel && action.GetCancel() != nil {
+	} else if action.Ty == gt.GameActionCancel && action.GetCancel() != nil {
 		return Action_CancelGame
-	} else if action.Ty == types.GameActionClose && action.GetClose() != nil {
+	} else if action.Ty == gt.GameActionClose && action.GetClose() != nil {
 		return Action_CloseGame
 	}
 	return "unknown"
 }
 
 func (game GameType) DecodePayload(tx *types.Transaction) (interface{}, error) {
-	var action types.GameAction
+	var action gt.GameAction
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
 		return nil, err
@@ -154,14 +142,14 @@ func CreateRawGamePreCreateTx(parm *GamePreCreateTx) (*types.Transaction, error)
 		tlog.Error("CreateRawGamePreCreateTx", "parm", parm)
 		return nil, types.ErrInvalidParam
 	}
-	v := &types.GameCreate{
+	v := &gt.GameCreate{
 		Value:     parm.Amount,
 		HashType:  parm.HashType,
 		HashValue: parm.HashValue,
 	}
-	precreate := &types.GameAction{
-		Ty:    types.GameActionCreate,
-		Value: &types.GameAction_Create{v},
+	precreate := &gt.GameAction{
+		Ty:    gt.GameActionCreate,
+		Value: &gt.GameAction_Create{v},
 	}
 	tx := &types.Transaction{
 		Execer:  []byte(getRealExecName(types.GetParaName())),
@@ -181,13 +169,13 @@ func CreateRawGamePreMatchTx(parm *GamePreMatchTx) (*types.Transaction, error) {
 		return nil, types.ErrInvalidParam
 	}
 
-	v := &types.GameMatch{
+	v := &gt.GameMatch{
 		GameId: parm.GameId,
 		Guess:  parm.Guess,
 	}
-	game := &types.GameAction{
-		Ty:    types.GameActionMatch,
-		Value: &types.GameAction_Match{v},
+	game := &gt.GameAction{
+		Ty:    gt.GameActionMatch,
+		Value: &gt.GameAction_Match{v},
 	}
 	tx := &types.Transaction{
 		Execer:  []byte(getRealExecName(types.GetParaName())),
@@ -206,12 +194,12 @@ func CreateRawGamePreCancelTx(parm *GamePreCancelTx) (*types.Transaction, error)
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}
-	v := &types.GameCancel{
+	v := &gt.GameCancel{
 		GameId: parm.GameId,
 	}
-	cancel := &types.GameAction{
-		Ty:    types.GameActionCancel,
-		Value: &types.GameAction_Cancel{v},
+	cancel := &gt.GameAction{
+		Ty:    gt.GameActionCancel,
+		Value: &gt.GameAction_Cancel{v},
 	}
 	tx := &types.Transaction{
 		Execer:  []byte(getRealExecName(types.GetParaName())),
@@ -231,13 +219,13 @@ func CreateRawGamePreCloseTx(parm *GamePreCloseTx) (*types.Transaction, error) {
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}
-	v := &types.GameClose{
+	v := &gt.GameClose{
 		GameId: parm.GameId,
 		Secret: parm.Secret,
 	}
-	close := &types.GameAction{
-		Ty:    types.GameActionClose,
-		Value: &types.GameAction_Close{v},
+	close := &gt.GameAction{
+		Ty:    gt.GameActionClose,
+		Value: &gt.GameAction_Close{v},
 	}
 	tx := &types.Transaction{
 		Execer:  []byte(getRealExecName(types.GetParaName())),
@@ -261,7 +249,7 @@ func (l CreateGameLog) Name() string {
 }
 
 func (l CreateGameLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp types.ReceiptGame
+	var logTmp gt.ReceiptGame
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
 		return nil, err
@@ -277,7 +265,7 @@ func (l MatchGameLog) Name() string {
 }
 
 func (l MatchGameLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp types.ReceiptGame
+	var logTmp gt.ReceiptGame
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
 		return nil, err
@@ -293,7 +281,7 @@ func (l CancelGameLog) Name() string {
 }
 
 func (l CancelGameLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp types.ReceiptGame
+	var logTmp gt.ReceiptGame
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
 		return nil, err
@@ -309,7 +297,7 @@ func (l CloseGameLog) Name() string {
 }
 
 func (l CloseGameLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp types.ReceiptGame
+	var logTmp gt.ReceiptGame
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
 		return nil, err
@@ -322,7 +310,7 @@ type GameGetList struct {
 }
 
 func (g *GameGetList) Input(message json.RawMessage) ([]byte, error) {
-	var req types.QueryGameInfos
+	var req gt.QueryGameInfos
 	err := json.Unmarshal(message, &req)
 	if err != nil {
 		return nil, err
@@ -332,10 +320,10 @@ func (g *GameGetList) Input(message json.RawMessage) ([]byte, error) {
 
 func (t *GameGetList) Output(reply interface{}) (interface{}, error) {
 	if replyData, ok := reply.(*types.Message); ok {
-		if replyGameList, ok := (*replyData).(*types.ReplyGameList); ok {
-			var gameList []*Game
+		if replyGameList, ok := (*replyData).(*gt.ReplyGameList); ok {
+			var gameList []*GameData
 			for _, game := range replyGameList.GetGames() {
-				g := &Game{
+				g := &GameData{
 					GameId:        game.GetGameId(),
 					Status:        game.GetStatus(),
 					CreateAddress: game.GetCreateAddress(),
@@ -368,7 +356,7 @@ type GameQueryListCount struct {
 }
 
 func (g *GameQueryListCount) Input(message json.RawMessage) ([]byte, error) {
-	var req types.QueryGameListCount
+	var req gt.QueryGameListCount
 	err := json.Unmarshal(message, &req)
 	if err != nil {
 		return nil, err
@@ -378,7 +366,7 @@ func (g *GameQueryListCount) Input(message json.RawMessage) ([]byte, error) {
 
 func (g *GameQueryListCount) Output(reply interface{}) (interface{}, error) {
 	if replyData, ok := reply.(*types.Message); ok {
-		if replyCount, ok := (*replyData).(*types.ReplyGameListCount); ok {
+		if replyCount, ok := (*replyData).(*gt.ReplyGameListCount); ok {
 			count := replyCount.GetCount()
 			return count, nil
 		}
@@ -390,7 +378,7 @@ type GameGetInfo struct {
 }
 
 func (g *GameGetInfo) Input(message json.RawMessage) ([]byte, error) {
-	var req types.QueryGameInfo
+	var req gt.QueryGameInfo
 	err := json.Unmarshal(message, &req)
 	if err != nil {
 		return nil, err
@@ -400,9 +388,9 @@ func (g *GameGetInfo) Input(message json.RawMessage) ([]byte, error) {
 
 func (g *GameGetInfo) Output(reply interface{}) (interface{}, error) {
 	if replyData, ok := reply.(*types.Message); ok {
-		if replyGame, ok := (*replyData).(*types.ReplyGame); ok {
+		if replyGame, ok := (*replyData).(*gt.ReplyGame); ok {
 			game := replyGame.GetGame()
-			g := &Game{
+			g := &GameData{
 				GameId:        game.GetGameId(),
 				Status:        game.GetStatus(),
 				CreateAddress: game.GetCreateAddress(),
@@ -433,7 +421,7 @@ type GameQueryList struct {
 }
 
 func (g *GameQueryList) Input(message json.RawMessage) ([]byte, error) {
-	var req types.QueryGameListByStatusAndAddr
+	var req gt.QueryGameListByStatusAndAddr
 	err := json.Unmarshal(message, &req)
 	if err != nil {
 		return nil, err
@@ -443,10 +431,10 @@ func (g *GameQueryList) Input(message json.RawMessage) ([]byte, error) {
 
 func (g *GameQueryList) Output(reply interface{}) (interface{}, error) {
 	if replyData, ok := reply.(*types.Message); ok {
-		if replyGameList, ok := (*replyData).(*types.ReplyGameList); ok {
-			var gameList []*Game
+		if replyGameList, ok := (*replyData).(*gt.ReplyGameList); ok {
+			var gameList []*GameData
 			for _, game := range replyGameList.GetGames() {
-				g := &Game{
+				g := &GameData{
 					GameId:        game.GetGameId(),
 					Status:        game.GetStatus(),
 					CreateAddress: game.GetCreateAddress(),

@@ -1,35 +1,19 @@
-package blackwhite
+package executor
 
 import (
+	"encoding/hex"
 	"encoding/json"
 
 	log "github.com/inconshreveable/log15"
+	gt "gitlab.33.cn/chain33/chain33/plugin/dapp/blackwhite/types"
 	"gitlab.33.cn/chain33/chain33/types"
-	//"time"
-	//"math/rand"
-	//"gitlab.33.cn/chain33/chain33/common/address"
 )
 
-// status
-const (
-	BlackwhiteStatusCreate = iota + 1
-	BlackwhiteStatusPlay
-	BlackwhiteStatusShow
-	BlackwhiteStatusTimeout
-	BlackwhiteStatusDone
-)
-
-const (
-	GetBlackwhiteRoundInfo       = "GetBlackwhiteRoundInfo"
-	GetBlackwhiteByStatusAndAddr = "GetBlackwhiteByStatusAndAddr"
-	GetBlackwhiteloopResult      = "GetBlackwhiteloopResult"
-)
-
-var glog = log.New("module", types.BlackwhiteX)
+var glog = log.New("module", gt.BlackwhiteX)
 var name string
 
-func Init() {
-	name = types.ExecName(types.BlackwhiteX)
+func InitTypes() {
+	name = types.ExecName(gt.BlackwhiteX)
 	// init executor type
 	types.RegistorExecutor(name, &BlackwhiteType{})
 
@@ -42,9 +26,13 @@ func Init() {
 	types.RegistorLog(types.TyLogBlackwhiteLoopInfo, &BlackwhiteLoopInfoLog{})
 
 	// init query rpc
-	types.RegistorRpcType(GetBlackwhiteRoundInfo, &BlackwhiteRoundInfo{})
-	types.RegistorRpcType(GetBlackwhiteByStatusAndAddr, &BlackwhiteByStatusAndAddr{})
-	types.RegistorRpcType(GetBlackwhiteloopResult, &BlackwhiteloopResult{})
+	types.RegistorRpcType(gt.GetBlackwhiteRoundInfo, &BlackwhiteRoundInfo{})
+	types.RegistorRpcType(gt.GetBlackwhiteByStatusAndAddr, &BlackwhiteByStatusAndAddr{})
+	types.RegistorRpcType(gt.GetBlackwhiteloopResult, &BlackwhiteloopResult{})
+	types.RegistorRpcType(gt.BlackwhiteCreateTx, &BlackwhiteCreateTxRPC{})
+	types.RegistorRpcType(gt.BlackwhitePlayTx, &BlackwhitePlayTxRPC{})
+	types.RegistorRpcType(gt.BlackwhiteShowTx, &BlackwhiteShowTxRPC{})
+	types.RegistorRpcType(gt.BlackwhiteTimeoutDoneTx, &BlackwhiteTimeoutDoneTxRPC{})
 }
 
 type BlackwhiteType struct {
@@ -52,25 +40,25 @@ type BlackwhiteType struct {
 }
 
 func (m BlackwhiteType) ActionName(tx *types.Transaction) string {
-	var g types.BlackwhiteAction
+	var g gt.BlackwhiteAction
 	err := types.Decode(tx.Payload, &g)
 	if err != nil {
 		return "unkown-Blackwhite-action-err"
 	}
-	if g.Ty == types.BlackwhiteActionCreate && g.GetCreate() != nil {
+	if g.Ty == gt.BlackwhiteActionCreate && g.GetCreate() != nil {
 		return "BlackwhiteCreate"
-	} else if g.Ty == types.BlackwhiteActionShow && g.GetShow() != nil {
+	} else if g.Ty == gt.BlackwhiteActionShow && g.GetShow() != nil {
 		return "BlackwhiteShow"
-	} else if g.Ty == types.BlackwhiteActionPlay && g.GetPlay() != nil {
+	} else if g.Ty == gt.BlackwhiteActionPlay && g.GetPlay() != nil {
 		return "BlackwhitePlay"
-	} else if g.Ty == types.BlackwhiteActionTimeoutDone && g.GetTimeoutDone() != nil {
+	} else if g.Ty == gt.BlackwhiteActionTimeoutDone && g.GetTimeoutDone() != nil {
 		return "BlackwhiteTimeoutDone"
 	}
 	return "unkown"
 }
 
 func (blackwhite BlackwhiteType) DecodePayload(tx *types.Transaction) (interface{}, error) {
-	var action types.BlackwhiteAction
+	var action gt.BlackwhiteAction
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
 		return nil, err
@@ -97,7 +85,7 @@ func (l BlackwhiteCreateLog) Name() string {
 }
 
 func (l BlackwhiteCreateLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp types.ReceiptBlackwhite
+	var logTmp gt.ReceiptBlackwhite
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
 		return nil, err
@@ -113,7 +101,7 @@ func (l BlackwhitePlayLog) Name() string {
 }
 
 func (l BlackwhitePlayLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp types.ReceiptBlackwhite
+	var logTmp gt.ReceiptBlackwhite
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
 		return nil, err
@@ -129,7 +117,7 @@ func (l BlackwhiteShowLog) Name() string {
 }
 
 func (l BlackwhiteShowLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp types.ReceiptBlackwhite
+	var logTmp gt.ReceiptBlackwhite
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
 		return nil, err
@@ -145,7 +133,7 @@ func (l BlackwhiteTimeoutDoneLog) Name() string {
 }
 
 func (l BlackwhiteTimeoutDoneLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp types.ReceiptBlackwhite
+	var logTmp gt.ReceiptBlackwhite
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
 		return nil, err
@@ -161,7 +149,7 @@ func (l BlackwhiteDoneLog) Name() string {
 }
 
 func (l BlackwhiteDoneLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp types.ReceiptBlackwhite
+	var logTmp gt.ReceiptBlackwhite
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
 		return nil, err
@@ -177,7 +165,7 @@ func (l BlackwhiteLoopInfoLog) Name() string {
 }
 
 func (l BlackwhiteLoopInfoLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp types.ReplyLoopResults
+	var logTmp gt.ReplyLoopResults
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
 		return nil, err
@@ -189,7 +177,7 @@ type BlackwhiteRoundInfo struct {
 }
 
 func (t *BlackwhiteRoundInfo) Input(message json.RawMessage) ([]byte, error) {
-	var req types.ReqBlackwhiteRoundInfo
+	var req gt.ReqBlackwhiteRoundInfo
 	err := json.Unmarshal(message, &req)
 	if err != nil {
 		return nil, err
@@ -205,7 +193,7 @@ type BlackwhiteByStatusAndAddr struct {
 }
 
 func (t *BlackwhiteByStatusAndAddr) Input(message json.RawMessage) ([]byte, error) {
-	var req types.ReqBlackwhiteRoundList
+	var req gt.ReqBlackwhiteRoundList
 	err := json.Unmarshal(message, &req)
 	if err != nil {
 		return nil, err
@@ -221,7 +209,7 @@ type BlackwhiteloopResult struct {
 }
 
 func (t *BlackwhiteloopResult) Input(message json.RawMessage) ([]byte, error) {
-	var req types.ReqLoopResult
+	var req gt.ReqLoopResult
 	err := json.Unmarshal(message, &req)
 	if err != nil {
 		return nil, err
@@ -231,4 +219,91 @@ func (t *BlackwhiteloopResult) Input(message json.RawMessage) ([]byte, error) {
 
 func (t *BlackwhiteloopResult) Output(reply interface{}) (interface{}, error) {
 	return reply, nil
+}
+
+type BlackwhiteCreateTxRPC struct{}
+
+func (t *BlackwhiteCreateTxRPC) Input(message json.RawMessage) ([]byte, error) {
+	var req gt.BlackwhiteCreateTxReq
+	err := json.Unmarshal(message, &req)
+	if err != nil {
+		return nil, err
+	}
+	return types.Encode(&req), nil
+}
+
+func (t *BlackwhiteCreateTxRPC) Output(reply interface{}) (interface{}, error) {
+	if replyData, ok := reply.(*types.Message); ok {
+		if tx, ok := (*replyData).(*types.Transaction); ok {
+			data := types.Encode(tx)
+			return hex.EncodeToString(data), nil
+		}
+	}
+	return nil, types.ErrTypeAsset
+}
+
+type BlackwhitePlayTxRPC struct {
+}
+
+func (t *BlackwhitePlayTxRPC) Input(message json.RawMessage) ([]byte, error) {
+	var req gt.BlackwhitePlayTxReq
+	err := json.Unmarshal(message, &req)
+	if err != nil {
+		return nil, err
+	}
+	return types.Encode(&req), nil
+}
+
+func (t *BlackwhitePlayTxRPC) Output(reply interface{}) (interface{}, error) {
+	if replyData, ok := reply.(*types.Message); ok {
+		if tx, ok := (*replyData).(*types.Transaction); ok {
+			data := types.Encode(tx)
+			return hex.EncodeToString(data), nil
+		}
+	}
+	return nil, types.ErrTypeAsset
+}
+
+type BlackwhiteShowTxRPC struct {
+}
+
+func (t *BlackwhiteShowTxRPC) Input(message json.RawMessage) ([]byte, error) {
+	var req gt.BlackwhiteShowTxReq
+	err := json.Unmarshal(message, &req)
+	if err != nil {
+		return nil, err
+	}
+	return types.Encode(&req), nil
+}
+
+func (t *BlackwhiteShowTxRPC) Output(reply interface{}) (interface{}, error) {
+	if replyData, ok := reply.(*types.Message); ok {
+		if tx, ok := (*replyData).(*types.Transaction); ok {
+			data := types.Encode(tx)
+			return hex.EncodeToString(data), nil
+		}
+	}
+	return nil, types.ErrTypeAsset
+}
+
+type BlackwhiteTimeoutDoneTxRPC struct {
+}
+
+func (t *BlackwhiteTimeoutDoneTxRPC) Input(message json.RawMessage) ([]byte, error) {
+	var req gt.BlackwhiteTimeoutDoneTxReq
+	err := json.Unmarshal(message, &req)
+	if err != nil {
+		return nil, err
+	}
+	return types.Encode(&req), nil
+}
+
+func (t *BlackwhiteTimeoutDoneTxRPC) Output(reply interface{}) (interface{}, error) {
+	if replyData, ok := reply.(*types.Message); ok {
+		if tx, ok := (*replyData).(*types.Transaction); ok {
+			data := types.Encode(tx)
+			return hex.EncodeToString(data), nil
+		}
+	}
+	return nil, types.ErrTypeAsset
 }

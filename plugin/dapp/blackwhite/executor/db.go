@@ -1,10 +1,10 @@
-package blackwhite
+package executor
 
 import (
 	"fmt"
 
+	gt "gitlab.33.cn/chain33/chain33/plugin/dapp/blackwhite/types"
 	"gitlab.33.cn/chain33/chain33/types"
-	gt "gitlab.33.cn/chain33/chain33/types/executor/blackwhite"
 )
 
 var (
@@ -12,7 +12,7 @@ var (
 	loopResultPrefix string
 )
 
-func setReciptPrefix() {
+func SetReciptPrefix() {
 	roundPrefix = "mavl-" + types.ExecName("blackwhite") + "-"
 	loopResultPrefix = types.ExecName("blackwhite") + "-loop-"
 }
@@ -35,8 +35,8 @@ func calcRoundKey4LoopResult(ID string) []byte {
 	return []byte(fmt.Sprintf(loopResultPrefix+"%s", ID))
 }
 
-func newRound(create *types.BlackwhiteCreate, creator string) *types.BlackwhiteRound {
-	t := &types.BlackwhiteRound{}
+func newRound(create *gt.BlackwhiteCreate, creator string) *gt.BlackwhiteRound {
+	t := &gt.BlackwhiteRound{}
 
 	t.Status = gt.BlackwhiteStatusCreate
 	t.PlayAmount = create.PlayAmount

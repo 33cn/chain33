@@ -15,7 +15,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
-	bw "gitlab.33.cn/chain33/chain33/types/executor/blackwhite"
 	evmtype "gitlab.33.cn/chain33/chain33/types/executor/evm"
 	hashlocktype "gitlab.33.cn/chain33/chain33/types/executor/hashlock"
 	retrievetype "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
@@ -601,120 +600,6 @@ func (c *channelClient) CreateRawRelaySaveBTCHeadTx(parm *RelaySaveBTCHeadTx) ([
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
 		To:      address.ExecAddress(string(types.ExecerRelay)),
-	}
-
-	tx.SetRealFee(types.MinFee)
-
-	data := types.Encode(tx)
-	return data, nil
-}
-
-func (c *channelClient) BlackwhiteCreateTx(parm *bw.BlackwhiteCreateTx) ([]byte, error) {
-	if parm == nil {
-		return nil, types.ErrInvalidParam
-	}
-
-	head := &types.BlackwhiteCreate{
-		PlayAmount:  parm.PlayAmount,
-		PlayerCount: parm.PlayerCount,
-		Timeout:     parm.Timeout,
-		GameName:    parm.GameName,
-	}
-
-	val := &types.BlackwhiteAction{
-		Ty:    types.BlackwhiteActionCreate,
-		Value: &types.BlackwhiteAction_Create{head},
-	}
-	tx := &types.Transaction{
-		Execer:  types.ExecerBlackwhite,
-		Payload: types.Encode(val),
-		Fee:     parm.Fee,
-		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(string(types.ExecerBlackwhite)),
-	}
-
-	tx.SetRealFee(types.MinFee)
-
-	data := types.Encode(tx)
-	return data, nil
-}
-
-func (c *channelClient) BlackwhiteShowTx(parm *bw.BlackwhiteShowTx) ([]byte, error) {
-	if parm == nil {
-		return nil, types.ErrInvalidParam
-	}
-
-	head := &types.BlackwhiteShow{
-		GameID: parm.GameID,
-		Secret: parm.Secret,
-	}
-
-	val := &types.BlackwhiteAction{
-		Ty:    types.BlackwhiteActionShow,
-		Value: &types.BlackwhiteAction_Show{head},
-	}
-	tx := &types.Transaction{
-		Execer:  types.ExecerBlackwhite,
-		Payload: types.Encode(val),
-		Fee:     parm.Fee,
-		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(string(types.ExecerBlackwhite)),
-	}
-
-	tx.SetRealFee(types.MinFee)
-
-	data := types.Encode(tx)
-	return data, nil
-}
-
-func (c *channelClient) BlackwhitePlayTx(parm *bw.BlackwhitePlayTx) ([]byte, error) {
-	if parm == nil {
-		return nil, types.ErrInvalidParam
-	}
-
-	head := &types.BlackwhitePlay{
-		GameID:     parm.GameID,
-		Amount:     parm.Amount,
-		HashValues: parm.HashValues,
-	}
-
-	val := &types.BlackwhiteAction{
-		Ty:    types.BlackwhiteActionPlay,
-		Value: &types.BlackwhiteAction_Play{head},
-	}
-	tx := &types.Transaction{
-		Execer:  types.ExecerBlackwhite,
-		Payload: types.Encode(val),
-		Fee:     parm.Fee,
-		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(string(types.ExecerBlackwhite)),
-	}
-
-	tx.SetRealFee(types.MinFee)
-
-	data := types.Encode(tx)
-	return data, nil
-}
-
-func (c *channelClient) BlackwhiteTimeoutDoneTx(parm *bw.BlackwhiteTimeoutDoneTx) ([]byte, error) {
-	if parm == nil {
-		return nil, types.ErrInvalidParam
-	}
-
-	head := &types.BlackwhiteTimeoutDone{
-		GameID: parm.GameID,
-	}
-
-	val := &types.BlackwhiteAction{
-		Ty:    types.BlackwhiteActionTimeoutDone,
-		Value: &types.BlackwhiteAction_TimeoutDone{head},
-	}
-	tx := &types.Transaction{
-		Execer:  types.ExecerBlackwhite,
-		Payload: types.Encode(val),
-		Fee:     parm.Fee,
-		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(string(types.ExecerBlackwhite)),
 	}
 
 	tx.SetRealFee(types.MinFee)
