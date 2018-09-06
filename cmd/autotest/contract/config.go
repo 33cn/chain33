@@ -85,6 +85,11 @@ func DoTestOperation(configFile string) {
 			wg.Add(1)
 			go new(TestTradeConfig).RunTest(filename, &wg)
 
+		case "privacy":
+
+			wg.Add(1)
+			go new(TestPrivacyConfig).RunTest(filename, &wg)
+
 		}
 
 	}
