@@ -13,6 +13,7 @@ import (
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	clog "gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
+	"gitlab.33.cn/chain33/chain33/pluginmgr"
 
 	// register drivers
 	"gitlab.33.cn/chain33/chain33/client"
@@ -33,8 +34,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 	exectype "gitlab.33.cn/chain33/chain33/types/executor"
-
-	"gitlab.33.cn/chain33/chain33/pluginmanager"
 )
 
 var elog = log.New("module", "execs")
@@ -86,7 +85,7 @@ func execInit2() {
 	cert.Init()
 	privacy.Init()
 
-	pluginmanager.InitExecutor()
+	pluginmgr.Init()
 }
 
 var runonce sync.Once
