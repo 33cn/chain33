@@ -17,6 +17,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/log"
 	pt "gitlab.33.cn/chain33/chain33/types/executor/paracross"
+	"os/exec"
 )
 
 // 构造一个4个节点的平行链数据， 进行测试
@@ -313,3 +314,23 @@ func TestGetTitle(t *testing.T) {
 	}
 	assert.Equal(t, titleExpect, title)
 }
+
+/*
+func TestCrossLimits(t *testing.T) {
+	stateDB, _ := dbm.NewGoMemDB("state", "state", 1024)
+	localDB := new(dbmock.KVDB)
+	api := new(apimock.QueueProtocolAPI)
+
+	exec := newParacross().(*Paracross)
+	exec.SetLocalDB(localDB)
+	exec.SetStateDB(stateDB)
+	exec.SetEnv(0, 0, 0)
+	exec.SetApi(api)
+
+
+	tx := &types.Transaction{Execer: []byte("p.user.test.paracross")}
+	res := exec.CrossLimits(tx, 1)
+	assert.True(t, res)
+
+}
+*/

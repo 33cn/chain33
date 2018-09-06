@@ -440,12 +440,13 @@ func (a *action) AssetWithdraw(withdraw *types.CoinsWithdraw) (*types.Receipt, e
 	return a.assetWithdrawCoins(withdraw, a.tx)
 }
 
-func (a *action) crossLimits(tx *types.Transaction, index int) bool {
+/*
+func (a *Paracross) CrossLimits(tx *types.Transaction, index int) bool {
 	if tx.GroupCount < 2 {
 		return true
 	}
 
-	txs, err := a.exec.GetTxGroup(index)
+	txs, err := a.GetTxGroup(index)
 	if err != nil {
 		clog.Error("crossLimits", "get tx group failed", err, "hash", common.Bytes2Hex(tx.Hash()))
 		return false
@@ -460,6 +461,7 @@ func (a *action) crossLimits(tx *types.Transaction, index int) bool {
 	}
 	return len(titles) <= 1
 }
+*/
 
 func getTitleFrom(exec []byte) ([]byte, error) {
 	last := bytes.LastIndex(exec, []byte("."))
