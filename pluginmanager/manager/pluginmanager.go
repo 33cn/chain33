@@ -2,7 +2,6 @@ package manager
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -25,7 +24,7 @@ type pluginManager struct {
 }
 
 func (mgr *pluginManager) init() {
-	mgr.pluginItems = make(map[string]plugin.Plugin, 0)
+	mgr.pluginItems = make(map[string]plugin.Plugin)
 }
 
 func (mgr *pluginManager) registerPlugin(p plugin.Plugin) bool {
@@ -52,13 +51,13 @@ func (mgr *pluginManager) initExecutor() {
 	}
 }
 
-func realExec(txExec string) string {
-	if strings.HasPrefix(txExec, "user.p.") {
-		execSplit := strings.Split(txExec, ".")
-		return execSplit[len(execSplit)-1]
-	}
-	return txExec
-}
+//func realExec(txExec string) string {
+//	if strings.HasPrefix(txExec, "user.p.") {
+//		execSplit := strings.Split(txExec, ".")
+//		return execSplit[len(execSplit)-1]
+//	}
+//	return txExec
+//}
 
 func getRealExecuteName(packageName, exectorName string) string {
 	// TODO: 需要实现兼容老系统，并且又能照顾新规则的执行器名称处理功能
