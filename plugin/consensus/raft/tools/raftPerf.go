@@ -22,7 +22,7 @@ const fee = 1e6
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 var conn *grpc.ClientConn
-var c types.GrpcserviceClient
+var c types.Chain33Client
 var r *rand.Rand
 
 func createConn(ip string) {
@@ -34,7 +34,7 @@ func createConn(ip string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	c = types.NewGrpcserviceClient(conn)
+	c = types.NewChain33Client(conn)
 	r = rand.New(rand.NewSource(types.Now().UnixNano()))
 }
 
