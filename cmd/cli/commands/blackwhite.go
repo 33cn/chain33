@@ -3,6 +3,8 @@ package commands
 import (
 	"strings"
 
+	"strconv"
+
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/common"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
@@ -115,12 +117,12 @@ func blackwhitePlay(cmd *cobra.Command, args []string) {
 	blacks := strings.Split(isBlackStr, "-")
 
 	var hashValues [][]byte
-	for _, black := range blacks {
+	for i, black := range blacks {
 		if black == "1" {
-			hashValues = append(hashValues, common.Sha256([]byte(secret+black)))
+			hashValues = append(hashValues, common.Sha256([]byte(strconv.Itoa(i)+secret+black)))
 		} else {
 			white := "0"
-			hashValues = append(hashValues, common.Sha256([]byte(secret+white)))
+			hashValues = append(hashValues, common.Sha256([]byte(strconv.Itoa(i)+secret+white)))
 		}
 	}
 
