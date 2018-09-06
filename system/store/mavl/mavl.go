@@ -5,9 +5,9 @@ import (
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common"
 	clog "gitlab.33.cn/chain33/chain33/common/log"
-	mavl "gitlab.33.cn/chain33/chain33/system/store/mavl/db"
 	"gitlab.33.cn/chain33/chain33/queue"
 	drivers "gitlab.33.cn/chain33/chain33/system/store"
+	mavl "gitlab.33.cn/chain33/chain33/system/store/mavl/db"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
