@@ -1,6 +1,7 @@
 package executor
 
 import (
+	"encoding/hex"
 	"encoding/json"
 
 	log "github.com/inconshreveable/log15"
@@ -28,6 +29,10 @@ func InitTypes() {
 	types.RegistorRpcType(gt.GetBlackwhiteRoundInfo, &BlackwhiteRoundInfo{})
 	types.RegistorRpcType(gt.GetBlackwhiteByStatusAndAddr, &BlackwhiteByStatusAndAddr{})
 	types.RegistorRpcType(gt.GetBlackwhiteloopResult, &BlackwhiteloopResult{})
+	types.RegistorRpcType(gt.BlackwhiteCreateTx, &BlackwhiteCreateTxRPC{})
+	types.RegistorRpcType(gt.BlackwhitePlayTx, &BlackwhitePlayTxRPC{})
+	types.RegistorRpcType(gt.BlackwhiteShowTx, &BlackwhiteShowTxRPC{})
+	types.RegistorRpcType(gt.BlackwhiteTimeoutDoneTx, &BlackwhiteTimeoutDoneTxRPC{})
 }
 
 type BlackwhiteType struct {
@@ -205,4 +210,91 @@ func (t *BlackwhiteloopResult) Input(message json.RawMessage) ([]byte, error) {
 
 func (t *BlackwhiteloopResult) Output(reply interface{}) (interface{}, error) {
 	return reply, nil
+}
+
+type BlackwhiteCreateTxRPC struct{}
+
+func (t *BlackwhiteCreateTxRPC) Input(message json.RawMessage) ([]byte, error) {
+	var req gt.BlackwhiteCreateTxReq
+	err := json.Unmarshal(message, &req)
+	if err != nil {
+		return nil, err
+	}
+	return types.Encode(&req), nil
+}
+
+func (t *BlackwhiteCreateTxRPC) Output(reply interface{}) (interface{}, error) {
+	if replyData, ok := reply.(*types.Message); ok {
+		if tx, ok := (*replyData).(*types.Transaction); ok {
+			data := types.Encode(tx)
+			return hex.EncodeToString(data), nil
+		}
+	}
+	return nil, types.ErrTypeAsset
+}
+
+type BlackwhitePlayTxRPC struct {
+}
+
+func (t *BlackwhitePlayTxRPC) Input(message json.RawMessage) ([]byte, error) {
+	var req gt.BlackwhitePlayTxReq
+	err := json.Unmarshal(message, &req)
+	if err != nil {
+		return nil, err
+	}
+	return types.Encode(&req), nil
+}
+
+func (t *BlackwhitePlayTxRPC) Output(reply interface{}) (interface{}, error) {
+	if replyData, ok := reply.(*types.Message); ok {
+		if tx, ok := (*replyData).(*types.Transaction); ok {
+			data := types.Encode(tx)
+			return hex.EncodeToString(data), nil
+		}
+	}
+	return nil, types.ErrTypeAsset
+}
+
+type BlackwhiteShowTxRPC struct {
+}
+
+func (t *BlackwhiteShowTxRPC) Input(message json.RawMessage) ([]byte, error) {
+	var req gt.BlackwhiteShowTxReq
+	err := json.Unmarshal(message, &req)
+	if err != nil {
+		return nil, err
+	}
+	return types.Encode(&req), nil
+}
+
+func (t *BlackwhiteShowTxRPC) Output(reply interface{}) (interface{}, error) {
+	if replyData, ok := reply.(*types.Message); ok {
+		if tx, ok := (*replyData).(*types.Transaction); ok {
+			data := types.Encode(tx)
+			return hex.EncodeToString(data), nil
+		}
+	}
+	return nil, types.ErrTypeAsset
+}
+
+type BlackwhiteTimeoutDoneTxRPC struct {
+}
+
+func (t *BlackwhiteTimeoutDoneTxRPC) Input(message json.RawMessage) ([]byte, error) {
+	var req gt.BlackwhiteTimeoutDoneTxReq
+	err := json.Unmarshal(message, &req)
+	if err != nil {
+		return nil, err
+	}
+	return types.Encode(&req), nil
+}
+
+func (t *BlackwhiteTimeoutDoneTxRPC) Output(reply interface{}) (interface{}, error) {
+	if replyData, ok := reply.(*types.Message); ok {
+		if tx, ok := (*replyData).(*types.Transaction); ok {
+			data := types.Encode(tx)
+			return hex.EncodeToString(data), nil
+		}
+	}
+	return nil, types.ErrTypeAsset
 }

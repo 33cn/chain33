@@ -17,8 +17,8 @@ import (
 	tokentype "gitlab.33.cn/chain33/chain33/types/executor/token"
 	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
 
+	// TODO: 需要将插件管理器移动到封闭统一的地方进行管理
 	"gitlab.33.cn/chain33/chain33/pluginmanager/manager"
-	bw "gitlab.33.cn/chain33/chain33/pluginmanager/plugins/blackwhite/executor"
 )
 
 func (c *Chain33) CreateRawTransaction(in *types.CreateTx, result *interface{}) error {
@@ -1752,46 +1752,6 @@ func (c *Chain33) CreateRawRelaySaveBTCHeadTx(in *RelaySaveBTCHeadTx, result *in
 
 	*result = hex.EncodeToString(reply)
 
-	return nil
-}
-
-func (c *Chain33) BlackwhiteCreateTx(in *bw.BlackwhiteCreateTx, result *interface{}) error {
-	reply, err := c.cli.BlackwhiteCreateTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
-	return nil
-}
-
-func (c *Chain33) BlackwhiteShowTx(in *bw.BlackwhiteShowTx, result *interface{}) error {
-	reply, err := c.cli.BlackwhiteShowTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
-	return nil
-}
-
-func (c *Chain33) BlackwhitePlayTx(in *bw.BlackwhitePlayTx, result *interface{}) error {
-	reply, err := c.cli.BlackwhitePlayTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
-	return nil
-}
-
-func (c *Chain33) BlackwhiteTimeoutDoneTx(in *bw.BlackwhiteTimeoutDoneTx, result *interface{}) error {
-	reply, err := c.cli.BlackwhiteTimeoutDoneTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
 	return nil
 }
 

@@ -1,16 +1,15 @@
 package commands
 
 import (
-	"gitlab.33.cn/chain33/chain33/util"
 	"strings"
+
+	"gitlab.33.cn/chain33/chain33/util"
 
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/common"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
 
-	// TODO: 这部分代码需要屏蔽到插件中
-	bw "gitlab.33.cn/chain33/chain33/pluginmanager/plugins/blackwhite/executor"
 	gt "gitlab.33.cn/chain33/chain33/pluginmanager/plugins/blackwhite/types"
 )
 
@@ -69,7 +68,7 @@ func blackwhiteCreate(cmd *cobra.Command, args []string) {
 	}
 	timeout = 60 * timeout
 
-	params := &bw.BlackwhiteCreateTx{
+	params := &gt.BlackwhiteCreateTxReq{
 		PlayAmount:  amountInt64 * types.Coin,
 		PlayerCount: int32(playerCount),
 		Timeout:     timeout,
@@ -78,7 +77,12 @@ func blackwhiteCreate(cmd *cobra.Command, args []string) {
 	}
 
 	var res string
-	ctx := util.NewRpcCtx(rpcLaddr, "Chain33.BlackwhiteCreateTx", params, &res)
+	//ctx := util.NewRpcCtx(rpcLaddr, "Chain33.BlackwhiteCreateTx", params, &res)
+	ctx := util.NewRpcCtx(rpcLaddr, "Chain33.Query", jsonrpc.Query4Cli{
+		Execer:   gt.BlackwhiteX,
+		FuncName: gt.BlackwhiteCreateTx,
+		Payload:  params,
+	}, &res)
 	ctx.RunWithoutMarshal()
 }
 
@@ -130,14 +134,19 @@ func blackwhitePlay(cmd *cobra.Command, args []string) {
 
 	feeInt64 := int64(fee * 1e4)
 	amountInt64 := int64(amount)
-	params := &bw.BlackwhitePlayTx{
+	params := &gt.BlackwhitePlayTxReq{
 		GameID:     gameID,
 		Amount:     amountInt64 * types.Coin,
 		HashValues: hashValues,
 		Fee:        feeInt64,
 	}
 	var res string
-	ctx := util.NewRpcCtx(rpcLaddr, "Chain33.BlackwhitePlayTx", params, &res)
+	//ctx := util.NewRpcCtx(rpcLaddr, "Chain33.BlackwhitePlayTx", params, &res)
+	ctx := util.NewRpcCtx(rpcLaddr, "Chain33.Query", jsonrpc.Query4Cli{
+		Execer:   gt.BlackwhiteX,
+		FuncName: gt.BlackwhitePlayTx,
+		Payload:  params,
+	}, &res)
 	ctx.RunWithoutMarshal()
 }
 
@@ -169,13 +178,18 @@ func blackwhiteShow(cmd *cobra.Command, args []string) {
 
 	feeInt64 := int64(fee * 1e4)
 
-	params := &bw.BlackwhiteShowTx{
+	params := &gt.BlackwhiteShowTxReq{
 		GameID: gameID,
 		Secret: secret,
 		Fee:    feeInt64,
 	}
 	var res string
-	ctx := util.NewRpcCtx(rpcLaddr, "Chain33.BlackwhiteShowTx", params, &res)
+	//ctx := util.NewRpcCtx(rpcLaddr, "Chain33.BlackwhiteShowTx", params, &res)
+	ctx := util.NewRpcCtx(rpcLaddr, "Chain33.Query", jsonrpc.Query4Cli{
+		Execer:   gt.BlackwhiteX,
+		FuncName: gt.BlackwhiteShowTx,
+		Payload:  params,
+	}, &res)
 	ctx.RunWithoutMarshal()
 }
 
@@ -202,12 +216,16 @@ func blackwhiteTimeoutDone(cmd *cobra.Command, args []string) {
 
 	feeInt64 := int64(fee * 1e4)
 
-	params := &bw.BlackwhiteTimeoutDoneTx{
+	params := &gt.BlackwhiteTimeoutDoneTxReq{
 		GameID: gameID,
 		Fee:    feeInt64,
 	}
 	var res string
-	ctx := util.NewRpcCtx(rpcLaddr, "Chain33.BlackwhiteTimeoutDoneTx", params, &res)
+	ctx := util.NewRpcCtx(rpcLaddr, "Chain33.Query", jsonrpc.Query4Cli{
+		Execer:   gt.BlackwhiteX,
+		FuncName: gt.BlackwhiteTimeoutDoneTx,
+		Payload:  params,
+	}, &res)
 	ctx.RunWithoutMarshal()
 }
 
@@ -284,6 +302,5 @@ func showBlackwhiteInfo(cmd *cobra.Command, args []string) {
 	}
 
 	ctx := util.NewRpcCtx(rpcLaddr, "Chain33.Query", params, rep)
-	//ctx.SetResultCb(parseBlackwhiteRound)
 	ctx.Run()
 }

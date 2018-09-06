@@ -7,12 +7,14 @@ import (
 	"gitlab.33.cn/chain33/chain33/pluginmanager/plugin"
 	"gitlab.33.cn/chain33/chain33/pluginmanager/plugins/blackwhite/commands"
 	"gitlab.33.cn/chain33/chain33/pluginmanager/plugins/blackwhite/executor"
+	gt "gitlab.33.cn/chain33/chain33/pluginmanager/plugins/blackwhite/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var gblackwhitePlugin *blackwhitePlugin
 
 func init() {
+	types.AllowUserExec = append(types.AllowUserExec, gt.ExecerBlackwhite)
 	gblackwhitePlugin = &blackwhitePlugin{}
 	manager.RegisterPlugin(gblackwhitePlugin)
 }

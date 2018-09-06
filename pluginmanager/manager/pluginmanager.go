@@ -2,8 +2,9 @@ package manager
 
 import (
 	"fmt"
-	"github.com/spf13/cobra"
 	"strings"
+
+	"github.com/spf13/cobra"
 
 	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/pluginmanager/plugin"
@@ -76,7 +77,7 @@ func (mgr *pluginManager) decodeTx(tx *types.Transaction) interface{} {
 	return nil
 }
 
-func (mgr *pluginManager) addCustomCommand(rootCmd *cobra.Command)  {
+func (mgr *pluginManager) addCustomCommand(rootCmd *cobra.Command) {
 	for _, item := range mgr.pluginItems {
 		item.AddCustomCommand(rootCmd)
 	}

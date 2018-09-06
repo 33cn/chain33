@@ -8,8 +8,8 @@ import (
 	"gitlab.33.cn/chain33/chain33/cmd/cli/commands"
 	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/log"
-	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/pluginmanager"
+	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 )
 
 var rootCmd = &cobra.Command{
