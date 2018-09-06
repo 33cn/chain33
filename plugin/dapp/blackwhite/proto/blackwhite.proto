@@ -159,3 +159,29 @@ message BlackwhiteRoundResult {
     // block高度以及索引值
     int64 index = 15;
 }
+
+message BlackwhiteCreateTxReq {
+    int64  PlayAmount  = 1;
+    int32  PlayerCount = 2;
+    int64  Timeout     = 3;
+    string GameName    = 4;
+    int64  Fee         = 5;
+}
+
+message BlackwhitePlayTxReq {
+    string   GameID           = 1;
+    int64    Amount           = 2;
+    repeated bytes HashValues = 3;
+    int64          Fee        = 4;
+}
+
+message BlackwhiteShowTxReq {
+    string GameID = 1;
+    string Secret = 2;
+    int64  Fee    = 3;
+}
+
+message BlackwhiteTimeoutDoneTxReq {
+    string GameID = 1;
+    int64  Fee    = 2;
+}
