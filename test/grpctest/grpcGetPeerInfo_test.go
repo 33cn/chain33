@@ -17,7 +17,7 @@ func TestGrpcGetPeerInfo(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	c := types.NewGrpcserviceClient(conn)
+	c := types.NewChain33Client(conn)
 	resp, err := c.GetPeerInfo(context.Background(), &types.ReqNil{})
 	if err != nil {
 		log.Fatalln("err:", err.Error())
@@ -33,7 +33,7 @@ func TestCompressSupport(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	c := types.NewGrpcserviceClient(conn)
+	c := types.NewChain33Client(conn)
 	_, err = c.IsSync(context.Background(), &types.ReqNil{})
 	if err != nil {
 		if grpc.Code(err) == codes.Unimplemented && grpc.ErrorDesc(err) == errstr {
