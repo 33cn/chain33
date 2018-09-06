@@ -1,11 +1,14 @@
 package testcase
 
 import (
+	"encoding/json"
 	"fmt"
 	"os/exec"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/inconshreveable/log15"
 )
@@ -83,6 +86,34 @@ func sendTxCommand(cmd string) (string, bool) {
 	return output, bSuccess
 }
 
+//隐私交易执行回执哈希为json格式，需要解析
+func sendPrivacyTxCommand(cmd string) (string, bool) {
+
+	//construct tx by send command
+	if strings.HasPrefix(cmd, "send") {
+		return sendTxCommand(cmd)
+	}
+
+	output, err := runChain33Cli(strings.Fields(cmd))
+
+	if err != nil {
+		return err.Error(), false
+	}
+
+	if strings.Contains(output, "Err") {
+		return output, false
+	}
+
+	var jsonMap map[string]interface{}
+	err = json.Unmarshal([]byte(output), &jsonMap)
+	if err != nil {
+		return "JsonUnmarshalPrivacyTxHashFailed", false
+	}
+	output = jsonMap["hash"].(string)
+
+	return output, true
+}
+
 //get tx query -s txHash
 func getTxRecpTyname(txInfo map[string]interface{}) (tyname string, bSuccess bool) {
 
@@ -135,4 +166,98 @@ func checkFrozenDeltaWithAddr(log map[string]interface{}, addr string, delta flo
 	logDelta := curr - prev
 
 	return (logAddr == addr) && (isBalanceEqualFloat(logDelta, delta))
+}
+
+//calculate total amount in tx in/out utxo set, key = ["keyinput" | "keyoutput"]
+func calcTxUtxoAmount(log map[string]interface{}, key string) float64 {
+
+	if log[key] == nil {
+		return 0
+	}
+
+	utxoArr := log[key].([]interface{})
+	var totalAmount float64 = 0.0
+
+	for i := range utxoArr {
+
+		temp, _ := strconv.ParseFloat(utxoArr[i].(map[string]interface{})["amount"].(string), 64)
+		totalAmount += temp
+	}
+
+	return totalAmount
+}
+
+//calculate available utxo with specific addr and txHash
+func calcUtxoAvailAmount(addr string, txHash string) (float64, error) {
+
+	outStr, err := runChain33Cli(strings.Fields(fmt.Sprintf("privacy showpai -d 1 -a %s", addr)))
+
+	if err != nil {
+		return 0, err
+	}
+	var jsonMap map[string]interface{}
+	err = json.Unmarshal([]byte(outStr), &jsonMap)
+
+	if err != nil {
+		return 0, err
+	}
+
+	var totalAmount float64 = 0
+	if jsonMap["AvailableDetail"] == nil {
+		return 0, nil
+	}
+
+	availArr := jsonMap["AvailableDetail"].([]interface{})
+
+	for i := range availArr {
+
+		if availArr[i].(map[string]interface{})["Txhash"].(string) == txHash {
+
+			temp, _ := strconv.ParseFloat(availArr[i].(map[string]interface{})["Amount"].(string), 64)
+			totalAmount += temp
+		}
+	}
+
+	return totalAmount, nil
+}
+
+//calculate spend utxo with specific addr and txHash
+func calcUtxoSpendAmount(addr string, txHash string) (float64, error) {
+
+	outStr, err := runChain33Cli(strings.Fields(fmt.Sprintf("privacy showpas -a %s", addr)))
+
+	if strings.Contains(outStr, "Err") {
+		return 0, errors.New(outStr)
+	}
+
+	idx := strings.Index(outStr, "\n") + 1
+
+	if err != nil {
+		return 0, err
+	}
+	var jsonArr []interface{}
+	err = json.Unmarshal([]byte(outStr[idx:]), &jsonArr)
+
+	if err != nil {
+		return 0, err
+	}
+
+	var totalAmount float64 = 0
+
+	for i := range jsonArr {
+
+		if jsonArr[i].(map[string]interface{})["Txhash"].(string) == txHash[2:] {
+
+			spendArr := jsonArr[i].(map[string]interface{})["Spend"].([]interface{})
+			for i := range spendArr {
+
+				temp, _ := strconv.ParseFloat(spendArr[i].(map[string]interface{})["Amount"].(string), 64)
+				totalAmount += temp
+			}
+
+			break
+		}
+	}
+
+	return totalAmount, nil
 }
