@@ -966,9 +966,7 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		execStr = realExec(string(tx.Execer))
 	}
 
-	var pl interface{}
-	// 先让插件处理下交易解码信息
-	pl = manager.DecodeTx(tx)
+	pl := manager.DecodeTx(tx)
 	plType := types.LoadExecutor(execStr)
 	if plType == nil && pl == nil {
 		if "user.write" == string(tx.Execer) {
