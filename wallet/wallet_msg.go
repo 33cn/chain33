@@ -34,7 +34,7 @@ func (wallet *Wallet) ProcRecvMsg() {
 	defer wallet.wg.Done()
 	for msg := range wallet.client.Recv() {
 		walletlog.Debug("wallet recv", "msg", types.GetEventName(int(msg.Ty)), "Id", msg.Id)
-
+		beg := types.Now()
 		funcExisted, topic, retty, reply, err := wcom.ProcessFuncMap(&msg)
 		if funcExisted {
 			if err != nil {
@@ -45,7 +45,7 @@ func (wallet *Wallet) ProcRecvMsg() {
 		} else {
 			walletlog.Error("ProcRecvMsg", "Do not support msg", types.GetEventName(int(msg.Ty)), "Id", msg.Id)
 		}
-		walletlog.Debug("end process", "msg.id", msg.Id)
+		walletlog.Debug("end process", "msg.id", msg.Id, "cost", types.Since(beg))
 	}
 }
 
