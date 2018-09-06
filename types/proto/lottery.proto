@@ -132,8 +132,9 @@ message LotteryNumberRecord{
 
 //used for execlocal
 message LotteryBuyRecord{
-    repeated LotteryNumberRecord records = 1;
-    int64                        round   = 2;
+    int64 number = 1;
+    int64 amount = 2;
+    int64 round  = 3;
 }
 
 message LotteryBuyRecords{
