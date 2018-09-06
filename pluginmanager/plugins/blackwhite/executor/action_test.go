@@ -9,17 +9,17 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"gitlab.33.cn/chain33/chain33/common"
-	"gitlab.33.cn/chain33/chain33/types"
+	gt "gitlab.33.cn/chain33/chain33/pluginmanager/plugins/blackwhite/types"
 )
 
-func newAddressResult(Addr string, blackwhite []int) *types.AddressResult {
+func newAddressResult(Addr string, blackwhite []int) *gt.AddressResult {
 	showSecret := "1234"
 	var HashValues [][]byte
 	for _, v := range blackwhite {
 		HashValues = append(HashValues, common.Sha256([]byte(showSecret+strconv.Itoa(v))))
 	}
 
-	return &types.AddressResult{
+	return &gt.AddressResult{
 		Addr:       Addr,
 		HashValues: HashValues,
 		ShowSecret: showSecret,
@@ -29,8 +29,8 @@ func newAddressResult(Addr string, blackwhite []int) *types.AddressResult {
 // 参数: 比对次数， 参加的数字， 那几个人赢了
 func newGameRound(name string, loop int32, blackwhite [][]int, win ...int32) ([]*addrResult, error) {
 	a := action{}
-	var addrRes []*types.AddressResult
-	round := &types.BlackwhiteRound{
+	var addrRes []*gt.AddressResult
+	round := &gt.BlackwhiteRound{
 		Loop: loop,
 	}
 
@@ -205,13 +205,13 @@ func Test_getWinnerAndLoser(t *testing.T) {
 
 	showSecret := "123456789012345678901234567890"
 
-	var addrRes []*types.AddressResult
+	var addrRes []*gt.AddressResult
 
-	round := &types.BlackwhiteRound{
+	round := &gt.BlackwhiteRound{
 		Loop: 4,
 	}
 
-	addres := &types.AddressResult{
+	addres := &gt.AddressResult{
 		Addr: "1",
 		HashValues: [][]byte{common.Sha256([]byte(showSecret + black)),
 			common.Sha256([]byte(showSecret + white)),
@@ -221,7 +221,7 @@ func Test_getWinnerAndLoser(t *testing.T) {
 	}
 	addrRes = append(addrRes, addres)
 
-	addres = &types.AddressResult{
+	addres = &gt.AddressResult{
 		Addr: "2",
 		HashValues: [][]byte{common.Sha256([]byte(showSecret + black)),
 			common.Sha256([]byte(showSecret + white)),
@@ -231,7 +231,7 @@ func Test_getWinnerAndLoser(t *testing.T) {
 	}
 	addrRes = append(addrRes, addres)
 
-	addres = &types.AddressResult{
+	addres = &gt.AddressResult{
 		Addr: "3",
 		HashValues: [][]byte{common.Sha256([]byte(showSecret + black)),
 			common.Sha256([]byte(showSecret + white)),
@@ -251,7 +251,7 @@ func Test_getWinnerAndLoser(t *testing.T) {
 	//t.Logf("winers1 is %v", winers)
 	//t.Logf("losers1 is %v", losers)
 
-	addres = &types.AddressResult{
+	addres = &gt.AddressResult{
 		Addr: "4",
 		HashValues: [][]byte{common.Sha256([]byte(showSecret + black)),
 			common.Sha256([]byte(showSecret + white)),
@@ -261,7 +261,7 @@ func Test_getWinnerAndLoser(t *testing.T) {
 	}
 	addrRes = append(addrRes, addres)
 
-	addres = &types.AddressResult{
+	addres = &gt.AddressResult{
 		Addr: "5",
 		HashValues: [][]byte{common.Sha256([]byte(showSecret + black)),
 			common.Sha256([]byte(showSecret + white)),
@@ -280,7 +280,7 @@ func Test_getWinnerAndLoser(t *testing.T) {
 	//t.Logf("winers2 is %v", winers)
 	//t.Logf("losers2 is %v", losers)
 
-	addres = &types.AddressResult{
+	addres = &gt.AddressResult{
 		Addr: "6",
 		HashValues: [][]byte{common.Sha256([]byte(showSecret + black)),
 			common.Sha256([]byte(showSecret + white)),

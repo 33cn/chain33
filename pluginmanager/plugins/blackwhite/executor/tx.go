@@ -1,6 +1,6 @@
 package executor
 
-type BlackwhiteCreateTx struct {
+type BlackwhiteCreateTxReq struct {
 	PlayAmount  int64  `json:"amount"`
 	PlayerCount int32  `json:"playerCount"`
 	Timeout     int64  `json:"timeout"`
