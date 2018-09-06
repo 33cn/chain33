@@ -53,6 +53,8 @@ func LoadDriver(name string, height int64) (driver Driver, err error) {
 	//user.evm 的交易，使用evm执行器
 	if strings.HasPrefix(name, types.ExecName(types.UserEvmX)) {
 		name = types.ExecName(types.EvmX)
+	} else if !types.IsPara() && strings.HasPrefix(name, "p.user.") && strings.HasSuffix(name, types.ParaX) {
+		name = types.ParaX
 	}
 	c, ok := registedExecDriver[name]
 	if !ok {
