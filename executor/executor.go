@@ -823,7 +823,7 @@ func (execute *executor) checkKV(feelog *types.Receipt, memset []string, kvs []*
 	}
 	for _, key := range memset {
 		if _, ok := keys[key]; !ok {
-			elog.Error("err memset key", "key", string(key))
+			elog.Error("err memset key", "key", key)
 			//非法的receipt，交易执行失败
 			errlog := &types.ReceiptLog{types.TyLogErr, []byte(types.ErrNotAllowMemSetKey.Error())}
 			feelog.Logs = append(feelog.Logs, errlog)
