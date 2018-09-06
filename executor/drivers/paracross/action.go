@@ -440,7 +440,6 @@ func (a *action) AssetWithdraw(withdraw *types.CoinsWithdraw) (*types.Receipt, e
 	return a.assetWithdrawCoins(withdraw, a.tx)
 }
 
-
 func (a *action) Vote(vote *types.ParacrossVoteAction) (*types.Receipt, error) {
 	var logs []*types.ReceiptLog
 	var receipt = &types.ReceiptParacrossVote{}
