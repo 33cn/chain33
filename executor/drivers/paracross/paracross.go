@@ -49,9 +49,19 @@ func (c *Paracross) Exec(tx *types.Transaction, index int) (*types.Receipt, erro
 		a := newAction(c, tx)
 		return a.Commit(commit)
 	} else if payload.Ty == pt.ParacrossActionTransfer && payload.GetAssetTransfer() != nil {
+		_, err := c.GetTxGroup(index)
+		if err != nil {
+			clog.Error("ParacrossActionTransfer", "get tx group failed", err, "hash", common.Bytes2Hex(tx.Hash()))
+			return nil, err
+		}
 		a := newAction(c, tx)
 		return a.AssetTransfer(payload.GetAssetTransfer())
 	} else if payload.Ty == pt.ParacrossActionWithdraw && payload.GetAssetWithdraw() != nil {
+		_, err := c.GetTxGroup(index)
+		if err != nil {
+			clog.Error("ParacrossActionWithdraw", "get tx group failed", err, "hash", common.Bytes2Hex(tx.Hash()))
+			return nil, err
+		}
 		a := newAction(c, tx)
 		return a.AssetWithdraw(payload.GetAssetWithdraw())
 	}
