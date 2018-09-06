@@ -93,7 +93,8 @@ type Action struct {
 func NewLotteryAction(l *Lottery, tx *types.Transaction) *Action {
 	hash := tx.Hash()
 	fromaddr := tx.From()
-	return &Action{l.GetCoinsAccount(), l.GetStateDB(), hash, fromaddr, l.GetBlockTime(), l.GetHeight(), l.GetAddr(), l.GetDifficulty(), l.GetApi()}
+	return &Action{l.GetCoinsAccount(), l.GetStateDB(), hash, fromaddr, l.GetBlockTime(),
+		l.GetHeight(), l.GetAddr(), l.GetDifficulty(), l.GetApi()}
 }
 
 func (action *Action) GetReceiptLog(lottery *types.Lottery, preStatus int32, logTy int32,
@@ -353,7 +354,7 @@ func (action *Action) LotteryClose(draw *types.LotteryClose) (*types.Receipt, er
 	addrkeys := make([]string, len(lott.Records))
 	i := 0
 	var totalReturn int64 = 0
-	for addr, _ := range lott.Records {
+	for addr, record := range lott.Records {
 		totalReturn += lott.Records[addr].AmountOneRound
 		addrkeys[i] = addr
 		i++
@@ -382,7 +383,7 @@ func (action *Action) LotteryClose(draw *types.LotteryClose) (*types.Receipt, er
 		}
 	}
 
-	for addr, _ := range lott.Records {
+	for addr, record := range lott.Records {
 		lott.Records[addr].Record = lott.Records[addr].Record[0:0]
 		delete(lott.Records, addr)
 	}
@@ -517,7 +518,7 @@ func (action *Action) checkDraw(lott *LotteryDB) (*types.Receipt, error) {
 	var totalFund int64 = 0
 	addrkeys := make([]string, len(lott.Records))
 	i := 0
-	for addr, _ := range lott.Records {
+	for addr, record := range lott.Records {
 		addrkeys[i] = addr
 		i++
 		for _, rec := range lott.Records[addr].Record {
@@ -566,7 +567,7 @@ func (action *Action) checkDraw(lott *LotteryDB) (*types.Receipt, error) {
 		}
 	}
 
-	for addr, _ := range lott.Records {
+	for addr, record := range lott.Records {
 		lott.Records[addr].Record = lott.Records[addr].Record[0:0]
 		delete(lott.Records, addr)
 	}
