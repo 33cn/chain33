@@ -230,6 +230,7 @@ var (
 	ErrSymbolNameNotAllow         = errors.New("ErrSymbolNameNotAllow")
 	ErrTxGroupNotSupport          = errors.New("ErrTxGroupNotSupport")
 	ErrNotAllowKey                = errors.New("ErrNotAllowKey")
+	ErrNotAllowMemSetKey          = errors.New("ErrNotAllowMemSetKey")
 	ErrDataBaseDamage             = errors.New("ErrDataBaseDamage")
 	ErrIndex                      = errors.New("ErrIndex")
 	// ring signature
