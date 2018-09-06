@@ -43,7 +43,9 @@ const (
 	MaxCount      = int64(100) //最多取100条
 	//从有matcher参与游戏开始计算本局游戏开奖的有效时间，单位为天
 	ActiveTime = int64(24)
+)
 
+var (
 	ConfName_ActiveTime    = gt.GameX + ":" + "activeTime"
 	ConfName_DefaultCount  = gt.GameX + ":" + "defaultCount"
 	ConfName_MaxCount      = gt.GameX + ":" + "maxCount"

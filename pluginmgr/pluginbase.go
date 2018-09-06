@@ -1,4 +1,4 @@
-package plugin
+package pluginmgr
 
 import (
 	"github.com/spf13/cobra"
@@ -8,7 +8,7 @@ import (
 type PluginBase struct {
 }
 
-func (p *PluginBase) GetPackageName() string {
+func (p *PluginBase) GetName() string {
 	return ""
 }
 
@@ -16,13 +16,13 @@ func (p *PluginBase) GetExecutorName() string {
 	return ""
 }
 
-func (p *PluginBase) InitExecutor() {
+func (p *PluginBase) Init() {
 }
 
 func (p *PluginBase) DecodeTx(tx *types.Transaction) interface{} {
 	return nil
 }
 
-func (p *PluginBase) AddCustomCommand(rootCmd *cobra.Command) {
+func (p *PluginBase) AddCmd(rootCmd *cobra.Command) {
 
 }
