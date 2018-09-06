@@ -18,6 +18,6 @@ func RegisterPlugin(p plugin.Plugin) bool {
 	return pluginMgr.registerPlugin(p)
 }
 
-func AddCustomCommand(rootCmd *cobra.Command)  {
+func AddCustomCommand(rootCmd *cobra.Command) {
 	pluginMgr.addCustomCommand(rootCmd)
 }

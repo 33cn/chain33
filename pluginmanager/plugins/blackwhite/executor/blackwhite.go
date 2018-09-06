@@ -2,6 +2,7 @@ package executor
 
 import (
 	"fmt"
+	"math/rand"
 
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common/address"
@@ -258,8 +259,142 @@ func (c *Blackwhite) Query(funcName string, params []byte) (types.Message, error
 			return nil, err
 		}
 		return c.GetBwRoundLoopResult(&in)
+	} else if funcName == gt.BlackwhiteCreateTx {
+		in := &gt.BlackwhiteCreateTxReq{}
+		err := types.Decode(params, in)
+		if err != nil {
+			return nil, err
+		}
+		return c.createTx(in)
+	} else if funcName == gt.BlackwhitePlayTx {
+		in := &gt.BlackwhitePlayTxReq{}
+		err := types.Decode(params, in)
+		if err != nil {
+			return nil, err
+		}
+		return c.playTx(in)
+	} else if funcName == gt.BlackwhiteShowTx {
+		in := &gt.BlackwhiteShowTxReq{}
+		err := types.Decode(params, in)
+		if err != nil {
+			return nil, err
+		}
+		return c.showTx(in)
+	} else if funcName == gt.BlackwhiteTimeoutDoneTx {
+		in := &gt.BlackwhiteTimeoutDoneTxReq{}
+		err := types.Decode(params, in)
+		if err != nil {
+			return nil, err
+		}
+		return c.timeoutDoneTx(in)
 	}
 	return nil, types.ErrActionNotSupport
+}
+
+func (c *Blackwhite) timeoutDoneTx(parm *gt.BlackwhiteTimeoutDoneTxReq) (types.Message, error) {
+	if parm == nil {
+		return nil, types.ErrInvalidParam
+	}
+
+	head := &gt.BlackwhiteTimeoutDone{
+		GameID: parm.GameID,
+	}
+
+	val := &gt.BlackwhiteAction{
+		Ty:    gt.BlackwhiteActionTimeoutDone,
+		Value: &gt.BlackwhiteAction_TimeoutDone{head},
+	}
+	tx := &types.Transaction{
+		Execer:  gt.ExecerBlackwhite,
+		Payload: types.Encode(val),
+		Fee:     parm.Fee,
+		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
+		To:      address.ExecAddress(string(gt.ExecerBlackwhite)),
+	}
+
+	tx.SetRealFee(types.MinFee)
+	return tx, nil
+}
+
+func (c *Blackwhite) showTx(parm *gt.BlackwhiteShowTxReq) (types.Message, error) {
+	if parm == nil {
+		return nil, types.ErrInvalidParam
+	}
+
+	head := &gt.BlackwhiteShow{
+		GameID: parm.GameID,
+		Secret: parm.Secret,
+	}
+
+	val := &gt.BlackwhiteAction{
+		Ty:    gt.BlackwhiteActionShow,
+		Value: &gt.BlackwhiteAction_Show{head},
+	}
+	tx := &types.Transaction{
+		Execer:  gt.ExecerBlackwhite,
+		Payload: types.Encode(val),
+		Fee:     parm.Fee,
+		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
+		To:      address.ExecAddress(string(gt.ExecerBlackwhite)),
+	}
+
+	tx.SetRealFee(types.MinFee)
+	return tx, nil
+}
+
+func (c *Blackwhite) playTx(parm *gt.BlackwhitePlayTxReq) (types.Message, error) {
+	if parm == nil {
+		return nil, types.ErrInvalidParam
+	}
+
+	head := &gt.BlackwhitePlay{
+		GameID:     parm.GameID,
+		Amount:     parm.Amount,
+		HashValues: parm.HashValues,
+	}
+
+	val := &gt.BlackwhiteAction{
+		Ty:    gt.BlackwhiteActionPlay,
+		Value: &gt.BlackwhiteAction_Play{head},
+	}
+	tx := &types.Transaction{
+		Execer:  gt.ExecerBlackwhite,
+		Payload: types.Encode(val),
+		Fee:     parm.Fee,
+		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
+		To:      address.ExecAddress(string(gt.ExecerBlackwhite)),
+	}
+
+	tx.SetRealFee(types.MinFee)
+	return tx, nil
+}
+
+func (c *Blackwhite) createTx(parm *gt.BlackwhiteCreateTxReq) (types.Message, error) {
+	if parm == nil {
+		return nil, types.ErrInvalidParam
+	}
+
+	head := &gt.BlackwhiteCreate{
+		PlayAmount:  parm.PlayAmount,
+		PlayerCount: parm.PlayerCount,
+		Timeout:     parm.Timeout,
+		GameName:    parm.GameName,
+	}
+
+	val := &gt.BlackwhiteAction{
+		Ty:    gt.BlackwhiteActionCreate,
+		Value: &gt.BlackwhiteAction_Create{head},
+	}
+	tx := &types.Transaction{
+		Execer:  gt.ExecerBlackwhite,
+		Payload: types.Encode(val),
+		Fee:     parm.Fee,
+		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
+		To:      address.ExecAddress(string(gt.ExecerBlackwhite)),
+	}
+
+	tx.SetRealFee(types.MinFee)
+	return tx, nil
 }
 
 func (c *Blackwhite) GetBlackwhiteRoundInfo(req *gt.ReqBlackwhiteRoundInfo) (types.Message, error) {

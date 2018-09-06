@@ -14,6 +14,6 @@ func DecodeTx(tx *types.Transaction) interface{} {
 	return manager.DecodeTx(tx)
 }
 
-func AddCustomCommand(rootCmd *cobra.Command)  {
+func AddCustomCommand(rootCmd *cobra.Command) {
 	manager.AddCustomCommand(rootCmd)
 }
