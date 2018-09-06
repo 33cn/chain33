@@ -24,7 +24,7 @@ type action struct {
 	execaddr     string
 	api          client.QueueProtocolAPI
 	tx           *types.Transaction
-	exec 		*Paracross
+	exec         *Paracross
 }
 
 func newAction(t *Paracross, tx *types.Transaction) *action {
