@@ -57,6 +57,15 @@ func (m BlackwhiteType) ActionName(tx *types.Transaction) string {
 	return "unkown"
 }
 
+func (blackwhite BlackwhiteType) DecodePayload(tx *types.Transaction) (interface{}, error) {
+	var action types.BlackwhiteAction
+	err := types.Decode(tx.Payload, &action)
+	if err != nil {
+		return nil, err
+	}
+	return &action, nil
+}
+
 func (m BlackwhiteType) Amount(tx *types.Transaction) (int64, error) {
 	return 0, nil
 }

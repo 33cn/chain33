@@ -31,6 +31,10 @@ func (none NoneType) ActionName(tx *types.Transaction) string {
 	return "none"
 }
 
+func (none NoneType) DecodePayload(tx *types.Transaction) (interface{}, error) {
+	return nil, nil
+}
+
 func (none NoneType) Amount(tx *types.Transaction) (int64, error) {
 	return 0, nil
 }
