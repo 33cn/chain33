@@ -49,7 +49,7 @@ func (c *Paracross) Exec(tx *types.Transaction, index int) (*types.Receipt, erro
 		a := newAction(c, tx)
 		return a.Commit(commit)
 	} else if payload.Ty == pt.ParacrossActionTransfer && payload.GetAssetTransfer() != nil {
-		_, err := c.GetTxGroup(index)
+		_, err := c.checkTxGroup(tx, index)
 		if err != nil {
 			clog.Error("ParacrossActionTransfer", "get tx group failed", err, "hash", common.Bytes2Hex(tx.Hash()))
 			return nil, err
@@ -57,7 +57,7 @@ func (c *Paracross) Exec(tx *types.Transaction, index int) (*types.Receipt, erro
 		a := newAction(c, tx)
 		return a.AssetTransfer(payload.GetAssetTransfer())
 	} else if payload.Ty == pt.ParacrossActionWithdraw && payload.GetAssetWithdraw() != nil {
-		_, err := c.GetTxGroup(index)
+		_, err := c.checkTxGroup(tx, index)
 		if err != nil {
 			clog.Error("ParacrossActionWithdraw", "get tx group failed", err, "hash", common.Bytes2Hex(tx.Hash()))
 			return nil, err
@@ -67,6 +67,18 @@ func (c *Paracross) Exec(tx *types.Transaction, index int) (*types.Receipt, erro
 	}
 
 	return nil, types.ErrActionNotSupport
+}
+
+func (c *Paracross) checkTxGroup(tx *types.Transaction, index int) ([]*types.Transaction, error) {
+	if tx.GroupCount >= 2 {
+		txs, err := c.GetTxGroup(index)
+		if err != nil {
+			clog.Error("ParacrossActionTransfer", "get tx group failed", err, "hash", common.Bytes2Hex(tx.Hash()))
+			return nil, err
+		}
+		return txs, nil
+	}
+	return nil, nil
 }
 
 func (c *Paracross) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
