@@ -56,15 +56,13 @@ func TestCalcSubBitMap(t *testing.T) {
 	d7 := &types.ReceiptData{Ty: types.ExecOk}
 	d8 := &types.ReceiptData{Ty: types.ExecPack}
 	d9 := &types.ReceiptData{Ty: types.ExecPack}
-	data := []*types.ReceiptData{d0, d1, d2, d3, d4, d5,d6, d7, d8, d9}
-
+	data := []*types.ReceiptData{d0, d1, d2, d3, d4, d5, d6, d7, d8, d9}
 
 	rst := CalcSubBitMap(ori, sub, data)
 	//t.Log(rst)
 	check := []byte{0x17}
 	assert.Equal(t, check, rst)
 }
-
 
 func TestDecodeByteBitMap(t *testing.T) {
 	var i uint32
