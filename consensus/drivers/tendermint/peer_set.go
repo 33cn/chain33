@@ -663,7 +663,7 @@ OUTER_LOOP:
 			proposalBlock := pc.myState.client.LoadProposalBlock(prs.Height)
 			if proposalBlock == nil {
 				tendermintlog.Error("Failed to load propsal block", "selfHeight", rs.Height, "blockstoreHeight", pc.myState.client.GetCurrentHeight())
-				time.Sleep(10 * pc.myState.PeerGossipSleep())
+				time.Sleep(pc.myState.PeerGossipSleep())
 				continue OUTER_LOOP
 			}
 			msg := MsgInfo{TypeID: ttypes.ProposalBlockID, Msg: proposalBlock, PeerID: pc.id, PeerIP: pc.ip.String()}
@@ -672,7 +672,7 @@ OUTER_LOOP:
 			if pc.Send(msg) {
 				//prs.SetHasProposalBlock(rs.ProposalBlock)
 			}
-			time.Sleep(20 * pc.myState.PeerGossipSleep())
+			time.Sleep(10 * pc.myState.PeerGossipSleep())
 			continue OUTER_LOOP
 		}
 
@@ -711,7 +711,6 @@ OUTER_LOOP:
 				tendermintlog.Debug("Sending POL", "height", prs.Height, "round", prs.Round)
 				pc.Send(msg)
 			}
-			time.Sleep(pc.myState.PeerGossipSleep())
 			continue OUTER_LOOP
 		}
 
@@ -723,7 +722,6 @@ OUTER_LOOP:
 			if pc.Send(msg) {
 				prs.SetHasProposalBlock(rs.ProposalBlock)
 			}
-			time.Sleep(pc.myState.PeerGossipSleep())
 			continue OUTER_LOOP
 		}
 
@@ -1199,10 +1197,6 @@ func (ps *PeerConnState) ApplyNewRoundStepMessage(msg *types.NewRoundStepMsg) {
 	ps.Round = int(msg.Round)
 	ps.Step = ttypes.RoundStepType(msg.Step)
 	ps.StartTime = startTime
-
-	if ps.Step >= ttypes.RoundStepPrevote {
-		tendermintlog.Debug(fmt.Sprintf("Peer enter %v", ps.Step.String()), "peerip", ps.ip.String())
-	}
 
 	if psHeight != msg.Height || psRound != int(msg.Round) {
 		tendermintlog.Debug("Reset Proposal, Prevotes, Precommits", "peerip", ps.ip.String(), "peer(H/R)", fmt.Sprintf("%v/%v", psHeight, psRound),
