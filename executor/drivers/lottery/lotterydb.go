@@ -708,7 +708,7 @@ func ListLotteryBuyRecords(db dbm.Lister, stateDB dbm.KV, param *types.ReqLotter
 	var err error
 
 	prefix = calcLotteryBuyPrefix(param.LotteryId, param.Addr)
-	key = calcLotteryBuyKey(param.LotteryId, param.Addr, param.GetRound())
+	key = calcLotteryBuyRoundPrefix(param.LotteryId, param.Addr, param.GetRound())
 
 	if param.GetRound() == 0 { //第一次查询
 		values, err = db.List(prefix, nil, count, direction)
