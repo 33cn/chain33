@@ -10,6 +10,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/util"
 )
 
 var tlog = log.New("module", "consensus")
@@ -118,36 +119,15 @@ func (bc *BaseClient) Close() {
 	log.Info("consensus base closed")
 }
 
+//为了不引起交易检查时候产生的无序
 func (bc *BaseClient) CheckTxDup(txs []*types.Transaction) (transactions []*types.Transaction) {
-	var checkHashList types.TxHashList
-	txMap := make(map[string]*types.Transaction)
-	for _, tx := range txs {
-		hash := tx.Hash()
-		txMap[string(hash)] = tx
-		checkHashList.Hashes = append(checkHashList.Hashes, hash)
+	cacheTxs := types.TxsToCache(txs)
+	var err error
+	cacheTxs, err = util.CheckTxDup(bc.client, cacheTxs, 0)
+	if err != nil {
+		return txs
 	}
-	//count = -1, 表示只从最近的cache中去除重复的交易
-	//为了安全起见，每次还是查一下重复
-	checkHashList.Count = 0
-
-	// 发送Hash过后的交易列表给blockchain模块
-	//beg := types.Now()
-	//log.Error("----EventTxHashList----->[beg]", "time", beg)
-	hashList := bc.client.NewMessage("blockchain", types.EventTxHashList, &checkHashList)
-	bc.client.Send(hashList, true)
-	dupTxList, _ := bc.client.Wait(hashList)
-	//log.Error("----EventTxHashList----->[end]", "time", types.Now().Sub(beg))
-	// 取出blockchain返回的重复交易列表
-	dupTxs := dupTxList.GetData().(*types.TxHashList).Hashes
-
-	for _, hash := range dupTxs {
-		delete(txMap, string(hash))
-	}
-
-	for _, tx := range txMap {
-		transactions = append(transactions, tx)
-	}
-	return transactions
+	return types.CacheToTxs(cacheTxs)
 }
 
 func (bc *BaseClient) IsMining() bool {
