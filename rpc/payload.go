@@ -137,6 +137,27 @@ func relayPayloadType(funcname string) (proto.Message, error) {
 	return req, nil
 }
 
+func lotteryPayloadType(funcname string) (proto.Message, error) {
+	var req proto.Message
+	switch funcname {
+	case "GetLotteryNormalInfo":
+		req = &types.ReqLotteryInfo{}
+	case "GetLotteryCurrentInfo":
+		req = &types.ReqLotteryInfo{}
+	case "GetLotteryHistoryLuckyNumber":
+		req = &types.ReqLotteryInfo{}
+	case "GetLotteryRoundLuckyNumber":
+		req = &types.ReqLotteryLuckyInfo{}
+	case "GetLotteryHistoryBuyInfo":
+		req = &types.ReqLotteryBuyHistory{}
+	case "GetLotteryBuyRoundInfo":
+		req = &types.ReqLotteryBuyInfo{}
+	default:
+		return nil, types.ErrInputPara
+	}
+	return req, nil
+}
+
 func payloadType(execer, funcname string) (proto.Message, error) {
 	switch execer {
 	case types.ExecName(types.TokenX): // D
@@ -157,6 +178,8 @@ func payloadType(execer, funcname string) (proto.Message, error) {
 		return privacyPayloadType(funcname)
 	case types.ExecName(types.RelayX):
 		return relayPayloadType(funcname)
+	case types.ExecName(types.LotteryX):
+		return lotteryPayloadType(funcname)
 	}
 	return nil, types.ErrInputPara
 }

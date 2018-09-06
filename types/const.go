@@ -21,6 +21,7 @@ const (
 	UserEvmX        = "user.evm."
 	CertX           = "cert"
 	ParaX           = "paracross"
+	LotteryX        = "lottery"
 )
 
 var (
@@ -40,6 +41,7 @@ var (
 	ExecerCert     = []byte(CertX)
 	UserEvm        = []byte(UserEvmX)
 	ExecerPara     = []byte(ParaX)
+	ExecerLottery  = []byte(LotteryX)
 )
 
 const (
@@ -228,6 +230,12 @@ const (
 	TyLogBlackwhiteTimeout  = 753
 	TyLogBlackwhiteDone     = 754
 	TyLogBlackwhiteLoopInfo = 755
+
+	//log for lottery
+	TyLogLotteryCreate = 801
+	TyLogLotteryBuy    = 802
+	TyLogLotteryDraw   = 803
+	TyLogLotteryClose  = 804
 )
 
 //exec type
@@ -446,3 +454,20 @@ var LowAllowPackHeight int64 = 30
 
 //默认情况下不开启fork
 var EnableTxGroupParaFork = false
+
+//Lottery op
+const (
+	LotteryActionCreate = 1 + iota
+	LotteryActionBuy
+	LotteryActionShow
+	LotteryActionDraw
+	LotteryActionClose
+)
+
+//Lottery status
+const (
+	LotteryCreated = 1 + iota
+	LotteryPurchase
+	LotteryDrawed
+	LotteryClosed
+)
