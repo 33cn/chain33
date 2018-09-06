@@ -615,6 +615,7 @@ func (cs *ConsensusState) proposalHeartbeat(height int64, round int) {
 		heartbeatMsg := &ttypes.Heartbeat{Heartbeat: heartbeat}
 		cs.privValidator.SignHeartbeat(chainID, heartbeatMsg)
 		cs.broadcastChannel <- MsgInfo{TypeID: ttypes.ProposalHeartbeatID, Msg: heartbeat, PeerID: cs.ourId, PeerIP: ""}
+		cs.broadcastChannel <- MsgInfo{TypeID: ttypes.NewRoundStepID, Msg: cs.RoundStateMessage(), PeerID: cs.ourId, PeerIP: ""}
 		counter++
 		time.Sleep(proposalHeartbeatIntervalSeconds * time.Second)
 	}
@@ -1053,9 +1054,6 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 		panic(fmt.Sprintf("Panicked on a Sanity Check: %v", fmt.Sprintf("+2/3 committed an invalid block: %v", err)))
 	}
 
-	tendermintlog.Debug("performance: Finalizing commit of block ", "tx_number", block.Header.NumTxs,
-		"height", block.Header.Height, "hash", block.Hash(), "root", block.Header.AppHash)
-
 	stateCopy := cs.state.Copy()
 	tendermintlog.Debug("finalizeCommit validators of statecopy", "validators", stateCopy.Validators)
 	// NOTE: the block.AppHash wont reflect these txs until the next block
@@ -1374,7 +1372,7 @@ func (cs *ConsensusState) addVote(vote *ttypes.Vote, peerID string, peerIP strin
 	}
 
 	// Height mismatch, bad peer?
-	tendermintlog.Info("Vote ignored and not added", "voteType", vote.Type, "voteHeight", vote.Height, "csHeight", cs.Height, "err", err)
+	tendermintlog.Debug("Vote ignored and not added", "voteType", vote.Type, "voteHeight", vote.Height, "csHeight", cs.Height, "err", err)
 	return
 }
 
