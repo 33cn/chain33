@@ -30,8 +30,8 @@ var (
 var (
 	mainNetgrpcAddr = "localhost:8802"
 	ParaNetgrpcAddr = "localhost:8902"
-	mainClient      types.GrpcserviceClient
-	paraClient      types.GrpcserviceClient
+	mainClient      types.Chain33Client
+	paraClient      types.Chain33Client
 	r               *rand.Rand
 
 	ErrTest = errors.New("ErrTest")
@@ -82,13 +82,13 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	mainClient = types.NewGrpcserviceClient(conn)
+	mainClient = types.NewChain33Client(conn)
 
 	conn, err = grpc.Dial(ParaNetgrpcAddr, grpc.WithInsecure())
 	if err != nil {
 		panic(err)
 	}
-	paraClient = types.NewGrpcserviceClient(conn)
+	paraClient = types.NewChain33Client(conn)
 
 	r = rand.New(rand.NewSource(time.Now().UnixNano()))
 	addrexec = address.ExecAddress("user.p.guodun.token")
@@ -398,7 +398,7 @@ func TestQueryAsset(t *testing.T) {
 //***************************************************
 //**************common actions for Test**************
 //***************************************************
-func sendtoaddress(c types.GrpcserviceClient, priv crypto.PrivKey, to string, amount int64) ([]byte, error) {
+func sendtoaddress(c types.Chain33Client, priv crypto.PrivKey, to string, amount int64) ([]byte, error) {
 	v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
 	transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
 	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: fee, To: to}

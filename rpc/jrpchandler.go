@@ -9,6 +9,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/version"
+	"gitlab.33.cn/chain33/chain33/pluginmgr"
 	"gitlab.33.cn/chain33/chain33/types"
 	evmtype "gitlab.33.cn/chain33/chain33/types/executor/evm"
 	hashlocktype "gitlab.33.cn/chain33/chain33/types/executor/hashlock"
@@ -16,9 +17,7 @@ import (
 	retrievetype "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
 	tokentype "gitlab.33.cn/chain33/chain33/types/executor/token"
 	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
-
 	// TODO: 需要将插件管理器移动到封闭统一的地方进行管理
-	"gitlab.33.cn/chain33/chain33/pluginmanager/manager"
 )
 
 func (c *Chain33) CreateRawTransaction(in *types.CreateTx, result *interface{}) error {
@@ -967,7 +966,7 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		execStr = realExec(string(tx.Execer))
 	}
 
-	pl := manager.DecodeTx(tx)
+	pl := pluginmgr.DecodeTx(tx)
 	plType := types.LoadExecutor(execStr)
 	if plType == nil && pl == nil {
 		if "user.write" == string(tx.Execer) {

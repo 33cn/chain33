@@ -22,7 +22,7 @@ import (
 var (
 	conn         *grpc.ClientConn
 	r            *rand.Rand
-	c            types.GrpcserviceClient
+	c            types.Chain33Client
 	ErrTest      = errors.New("ErrTest")
 	secret       []byte
 	wrongsecret  []byte
@@ -70,7 +70,7 @@ func init() {
 		panic(err)
 	}
 	r = rand.New(rand.NewSource(types.Now().UnixNano()))
-	c = types.NewGrpcserviceClient(conn)
+	c = types.NewChain33Client(conn)
 	secret = make([]byte, secretLen)
 	wrongsecret = make([]byte, secretLen)
 	anothersec = make([]byte, secretLen)
@@ -434,7 +434,7 @@ func send(secret []byte) error {
 	return nil
 }
 
-func showOrCheckAcc(c types.GrpcserviceClient, addr string, sorc int, balance int64) bool {
+func showOrCheckAcc(c types.Chain33Client, addr string, sorc int, balance int64) bool {
 	req := &types.ReqNil{}
 	accs, err := c.GetAccounts(context.Background(), req)
 	if err != nil {
@@ -462,7 +462,7 @@ func showOrCheckAcc(c types.GrpcserviceClient, addr string, sorc int, balance in
 	}
 }
 
-func showAccount(c types.GrpcserviceClient, addr string) {
+func showAccount(c types.Chain33Client, addr string) {
 	req := &types.ReqNil{}
 	accs, err := c.GetAccounts(context.Background(), req)
 	if err != nil {
@@ -510,7 +510,7 @@ func getprivkey(key string) crypto.PrivKey {
 	return priv
 }
 
-func sendtoaddress(c types.GrpcserviceClient, priv crypto.PrivKey, to string, amount int64) error {
+func sendtoaddress(c types.Chain33Client, priv crypto.PrivKey, to string, amount int64) error {
 	//defer conn.Close()
 	//fmt.Println("sign key privkey: ", common.ToHex(priv.Bytes()))
 	if amount > 0 {
@@ -551,13 +551,13 @@ func sendtoaddress(c types.GrpcserviceClient, priv crypto.PrivKey, to string, am
 }
 
 func getAccounts() (*types.WalletAccounts, error) {
-	c := types.NewGrpcserviceClient(conn)
+	c := types.NewChain33Client(conn)
 	v := &types.ReqNil{}
 	return c.GetAccounts(context.Background(), v)
 }
 
 func getlastheader() (*types.Header, error) {
-	c := types.NewGrpcserviceClient(conn)
+	c := types.NewChain33Client(conn)
 	v := &types.ReqNil{}
 	return c.GetLastHeader(context.Background(), v)
 }

@@ -49,7 +49,7 @@ func (j *JSONRPCServer) Listen() {
 	}
 	server := rpc.NewServer()
 
-	server.Register(&j.jrpc)
+	server.RegisterName("Chain33", &j.jrpc)
 	co := cors.New(cors.Options{})
 
 	// Insert the middleware
@@ -145,9 +145,8 @@ func (g *Grpcserver) Listen() {
 	}
 	opts = append(opts, grpc.UnaryInterceptor(interceptor))
 	s := grpc.NewServer(opts...)
-	pb.RegisterGrpcserviceServer(s, &g.grpc)
+	pb.RegisterChain33Server(s, &g.grpc)
 	s.Serve(listener)
-
 }
 
 func isLoopBackAddr(addr net.Addr) bool {
