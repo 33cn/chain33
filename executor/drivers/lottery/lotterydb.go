@@ -35,7 +35,7 @@ const (
 	MaxCount    = int32(100) //最多取100条
 )
 
-const defaultAddrPurTimes = 10
+//const defaultAddrPurTimes = 10
 const luckyNumMol = 100000
 const decimal = 100000000 //1e8
 const randMolNum = 5
@@ -354,7 +354,7 @@ func (action *Action) LotteryClose(draw *types.LotteryClose) (*types.Receipt, er
 	addrkeys := make([]string, len(lott.Records))
 	i := 0
 	var totalReturn int64 = 0
-	for addr, record := range lott.Records {
+	for addr := range lott.Records {
 		totalReturn += lott.Records[addr].AmountOneRound
 		addrkeys[i] = addr
 		i++
@@ -383,7 +383,7 @@ func (action *Action) LotteryClose(draw *types.LotteryClose) (*types.Receipt, er
 		}
 	}
 
-	for addr, record := range lott.Records {
+	for addr := range lott.Records {
 		lott.Records[addr].Record = lott.Records[addr].Record[0:0]
 		delete(lott.Records, addr)
 	}
@@ -518,7 +518,7 @@ func (action *Action) checkDraw(lott *LotteryDB) (*types.Receipt, error) {
 	var totalFund int64 = 0
 	addrkeys := make([]string, len(lott.Records))
 	i := 0
-	for addr, record := range lott.Records {
+	for addr := range lott.Records {
 		addrkeys[i] = addr
 		i++
 		for _, rec := range lott.Records[addr].Record {
@@ -567,7 +567,7 @@ func (action *Action) checkDraw(lott *LotteryDB) (*types.Receipt, error) {
 		}
 	}
 
-	for addr, record := range lott.Records {
+	for addr := range lott.Records {
 		lott.Records[addr].Record = lott.Records[addr].Record[0:0]
 		delete(lott.Records, addr)
 	}
