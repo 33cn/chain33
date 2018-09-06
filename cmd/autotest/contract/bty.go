@@ -32,14 +32,4 @@ func (caseConf *TestBtyConfig) RunTest(caseFile string, wg *sync.WaitGroup) {
 	go tester.RunCheckFlow()
 	tester.WaitTest()
 
-	//for i := range caseConf.TransferCaseArr {
-	//
-	//	tester.AddCase(&caseConf.TransferCaseArr[i])
-	//}
-	//
-	//for i := range caseConf.WithdrawCaseArr {
-	//
-	//	tester.AddCase(&caseConf.WithdrawCaseArr[i])
-	//}
-
 }

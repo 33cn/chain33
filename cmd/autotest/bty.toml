@@ -62,3 +62,4 @@ command = "send bty withdraw -a 1.1 -e token -k 17UZr5eJVxDRW1gs7rausQwaSUPtvcpx
 addr = "17UZr5eJVxDRW1gs7rausQwaSUPtvcpxGT"
 amount = "1.1"
 checkItem = ["balance"]
+
