@@ -90,7 +90,7 @@ func (c *GrpcCtx) Run() (err error) {
 	}
 	defer conn.Close()
 
-	rpc := types.NewGrpcserviceClient(conn)
+	rpc := types.NewChain33Client(conn)
 	switch c.Method {
 	case "GetBlocks":
 		reply, err := rpc.GetBlocks(context.Background(), c.Params.(*types.ReqBlocks))

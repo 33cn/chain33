@@ -154,7 +154,7 @@ func TestGrpc_Call(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, c)
 
-	client := types.NewGrpcserviceClient(c)
+	client := types.NewChain33Client(c)
 	result, err := client.IsSync(ctx, &types.ReqNil{})
 
 	assert.Nil(t, err)

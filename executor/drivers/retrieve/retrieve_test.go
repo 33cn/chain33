@@ -20,7 +20,7 @@ import (
 var (
 	conn        *grpc.ClientConn
 	r           *rand.Rand
-	c           types.GrpcserviceClient
+	c           types.Chain33Client
 	ErrTest     = errors.New("ErrTest")
 	addrexec    string
 	delayLevel1 = minPeriod + 10
@@ -63,7 +63,7 @@ func init() {
 		panic(err)
 	}
 	r = rand.New(rand.NewSource(types.Now().UnixNano()))
-	c = types.NewGrpcserviceClient(conn)
+	c = types.NewChain33Client(conn)
 
 	addrexec = address.ExecAddress("retrieve")
 }
@@ -512,7 +512,7 @@ func cancel(backupaddrindex int, defaultaddrindex int, privkeyindex int) ([]byte
 	return tx.Hash(), nil
 }
 
-func checkexecAcc(c types.GrpcserviceClient, addr string, sorc int, balance int64) bool {
+func checkexecAcc(c types.Chain33Client, addr string, sorc int, balance int64) bool {
 	var addrs []string
 	addrs = append(addrs, addr)
 	reqbalance := &types.ReqBalance{Addresses: addrs, Execer: "retrieve"}
@@ -549,7 +549,7 @@ func checkexecAcc(c types.GrpcserviceClient, addr string, sorc int, balance int6
 	return true
 }
 
-func showOrCheckAcc(c types.GrpcserviceClient, addr string, sorc int, balance int64) bool {
+func showOrCheckAcc(c types.Chain33Client, addr string, sorc int, balance int64) bool {
 	req := &types.ReqNil{}
 	accs, err := c.GetAccounts(context.Background(), req)
 	if err != nil {
@@ -606,7 +606,7 @@ func getprivkey(key string) crypto.PrivKey {
 	return priv
 }
 
-func sendtoaddress(c types.GrpcserviceClient, priv crypto.PrivKey, to string, amount int64) ([]byte, error) {
+func sendtoaddress(c types.Chain33Client, priv crypto.PrivKey, to string, amount int64) ([]byte, error) {
 	//defer conn.Close()
 	//fmt.Println("sign key privkey: ", common.ToHex(priv.Bytes()))
 	if amount > 0 {
@@ -647,13 +647,13 @@ func sendtoaddress(c types.GrpcserviceClient, priv crypto.PrivKey, to string, am
 }
 
 func getAccounts() (*types.WalletAccounts, error) {
-	c := types.NewGrpcserviceClient(conn)
+	c := types.NewChain33Client(conn)
 	v := &types.ReqNil{}
 	return c.GetAccounts(context.Background(), v)
 }
 
 func getlastheader() (*types.Header, error) {
-	c := types.NewGrpcserviceClient(conn)
+	c := types.NewChain33Client(conn)
 	v := &types.ReqNil{}
 	return c.GetLastHeader(context.Background(), v)
 }
@@ -666,7 +666,7 @@ func waitTx(hash []byte) bool {
 			fmt.Println("wait transaction timeout")
 			return false
 		}
-		c := types.NewGrpcserviceClient(conn)
+		c := types.NewChain33Client(conn)
 		var reqHash types.ReqHash
 		reqHash.Hash = hash
 		res, err := c.QueryTransaction(context.Background(), &reqHash)
