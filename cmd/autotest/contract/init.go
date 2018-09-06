@@ -8,8 +8,8 @@ import (
 )
 
 type TestInitConfig struct {
-	SimpleCaseArr            []testcase.SimpleCase            `toml:"SimpleCase,omitempty"`
-	TransferCaseArr          []testcase.TransferCase          `toml:"TransferCase,omitempty"`
+	SimpleCaseArr   []testcase.SimpleCase   `toml:"SimpleCase,omitempty"`
+	TransferCaseArr []testcase.TransferCase `toml:"TransferCase,omitempty"`
 }
 
 func (caseConf *TestInitConfig) RunTest(caseFile string, wg *sync.WaitGroup) {
@@ -28,26 +28,5 @@ func (caseConf *TestInitConfig) RunTest(caseFile string, wg *sync.WaitGroup) {
 	go tester.HandleDependency()
 	go tester.RunSendFlow()
 	go tester.RunCheckFlow()
-
-	/*for i := range caseConf.SimpleCaseArr {
-
-		tester.AddCase(&caseConf.SimpleCaseArr[i])
-	}
-
-	for i := range caseConf.TransferCaseArr {
-
-		tester.AddCase(&caseConf.TransferCaseArr[i])
-	}
-
-	for i := range caseConf.TokenPreCreateCaseArr {
-
-		tester.AddCase(&caseConf.TokenPreCreateCaseArr[i])
-	}
-
-	for i := range caseConf.TokenFinishCreateCaseArr {
-
-		tester.AddCase(&caseConf.TokenFinishCreateCaseArr[i])
-	}*/
-
 	tester.WaitTest()
 }

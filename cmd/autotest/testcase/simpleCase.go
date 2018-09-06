@@ -35,7 +35,7 @@ func (pack *SimplePack) doCheckResult(handlerMap CheckHandlerMap) (bCheck bool, 
 
 	bCheck = true
 	bSuccess = true
-	if strings.Contains(pack.txHash, "Err") || strings.Contains(pack.txHash, "connection refused"){
+	if strings.Contains(pack.txHash, "Err") || strings.Contains(pack.txHash, "connection refused") {
 
 		bSuccess = false
 	}

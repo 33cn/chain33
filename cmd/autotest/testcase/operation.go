@@ -12,16 +12,16 @@ import (
 )
 
 type TestOperator struct {
-	addDone    chan bool
-	sendDone   chan bool
-	checkDone  chan bool
-	depEmpty   chan bool
-	sendBuf    chan CaseFunc
-	checkBuf   chan PackFunc
-	addDepBuf  chan CaseFunc
-	delDepBuf  chan PackFunc
-	depCaseMap map[string][]CaseFunc		//key:TestID, val: array of testCases depending on the key
-	depCountMap map[string]int				//key:TestID, val: dependency count
+	addDone     chan bool
+	sendDone    chan bool
+	checkDone   chan bool
+	depEmpty    chan bool
+	sendBuf     chan CaseFunc
+	checkBuf    chan PackFunc
+	addDepBuf   chan CaseFunc
+	delDepBuf   chan PackFunc
+	depCaseMap  map[string][]CaseFunc //key:TestID, val: array of testCases depending on the key
+	depCountMap map[string]int        //key:TestID, val: dependency count
 
 	fLog log15.Logger
 	tLog log15.Logger
@@ -32,7 +32,6 @@ type TestOperator struct {
 }
 
 func (tester *TestOperator) AddCaseArray(caseArrayList ...interface{}) {
-
 
 	for i := range caseArrayList {
 
@@ -50,7 +49,7 @@ func (tester *TestOperator) AddCaseArray(caseArrayList ...interface{}) {
 			if len(baseCase.Dep) > 0 {
 
 				tester.addDepBuf <- testCase
-			}else{
+			} else {
 
 				tester.sendBuf <- testCase
 			}
@@ -189,9 +188,11 @@ func (tester *TestOperator) RunSendFlow() {
 						pack, err := testCase.doSendCommand(packID)
 
 						if err != nil {
-							tester.tLog.Error("TestCaseResult", "TestID", packID, "Failed", "ErrInfo", err.Error())
+							tester.tLog.Error("TestCaseResult", "TestID", packID, "Result", "Failed", "ErrInfo", err.Error())
 							tester.fLog.Info("CommandResult", "TestID", packID, "Result", err.Error())
 							tester.delDepBuf <- &BaseCasePack{packID: packID}
+							tester.totalFail++
+							tester.failID = append(tester.failID, packID)
 							continue
 						}
 
@@ -315,11 +316,11 @@ func (tester *TestOperator) WaitTest() {
 
 	tester.addDone <- true
 	<-tester.checkDone
-	if tester.totalFail > 0{
+	if tester.totalFail > 0 {
 
 		tester.tLog.Error("TestDone", "TotalCase", tester.totalCase, "TotalFail", tester.totalFail, "FailID", tester.failID)
 		tester.fLog.Error("TestDone", "TotalCase", tester.totalCase, "TotalFail", tester.totalFail, "FailID", tester.failID)
-	}else {
+	} else {
 
 		tester.tLog.Info("TestDone", "TotalCase", tester.totalCase, "TotalFail", tester.totalFail)
 		tester.fLog.Info("TestDone", "TotalCase", tester.totalCase, "TotalFail", tester.totalFail)
