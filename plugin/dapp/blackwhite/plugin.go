@@ -6,8 +6,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/plugin/dapp/blackwhite/commands"
 	"gitlab.33.cn/chain33/chain33/plugin/dapp/blackwhite/executor"
 	gt "gitlab.33.cn/chain33/chain33/plugin/dapp/blackwhite/types"
-	"gitlab.33.cn/chain33/chain33/pluginmanager/manager"
-	"gitlab.33.cn/chain33/chain33/pluginmanager/plugin"
+	"gitlab.33.cn/chain33/chain33/pluginmgr"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -16,29 +15,28 @@ var gblackwhitePlugin *blackwhitePlugin
 func init() {
 	types.AllowUserExec = append(types.AllowUserExec, gt.ExecerBlackwhite)
 	gblackwhitePlugin = &blackwhitePlugin{}
-	manager.RegisterPlugin(gblackwhitePlugin)
+	pluginmgr.RegisterPlugin(gblackwhitePlugin)
 }
 
 type blackwhitePlugin struct {
-	plugin.PluginBase
+	pluginmgr.PluginBase
 }
 
-func (p *blackwhitePlugin) GetPackageName() string {
-	return "gitlab.33.cn.blackwhite"
+func (p *blackwhitePlugin) GetName() string {
+	return "gitlab.33.cn/chain33/chain33/plugin/dapp/blackwhite"
 }
 
 func (p *blackwhitePlugin) GetExecutorName() string {
 	return executor.GetName()
 }
 
-func (p *blackwhitePlugin) InitExecutor() {
+func (p *blackwhitePlugin) Init() {
 	// TODO: 这里应该将初始化的内容统一放在一个初始化的地方
 	executor.InitTypes()
 	executor.SetReciptPrefix()
-
 	drivers.Register(executor.GetName(), executor.NewBlackwhite, types.ForkV25BlackWhite)
 }
 
-func (p *blackwhitePlugin) AddCustomCommand(rootCmd *cobra.Command) {
+func (p *blackwhitePlugin) AddCmd(rootCmd *cobra.Command) {
 	rootCmd.AddCommand(commands.BlackwhiteCmd())
 }

@@ -1,4 +1,4 @@
-package manager
+package pluginmgr
 
 import (
 	"fmt"
@@ -6,33 +6,35 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/inconshreveable/log15"
-	"gitlab.33.cn/chain33/chain33/pluginmanager/plugin"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var (
 	mgrlog    = log15.New("plugin", "plugin.manager")
-	pluginMgr = &pluginManager{}
+	pluginMgr *pluginManager
 )
 
 func init() {
-	pluginMgr.init()
+	pluginMgr = newMgr()
 }
 
 type pluginManager struct {
-	pluginItems map[string]plugin.Plugin
+	pluginItems map[string]Plugin
 }
 
-func (mgr *pluginManager) init() {
-	mgr.pluginItems = make(map[string]plugin.Plugin)
+//New new pluginManager
+func newMgr() *pluginManager {
+	mgr := &pluginManager{}
+	mgr.pluginItems = make(map[string]Plugin)
+	return mgr
 }
 
-func (mgr *pluginManager) registerPlugin(p plugin.Plugin) bool {
+func (mgr *pluginManager) registerPlugin(p Plugin) bool {
 	if p == nil {
 		mgrlog.Error("plugin param is nil")
 		return false
 	}
-	packageName := p.GetPackageName()
+	packageName := p.GetName()
 	if len(packageName) == 0 {
 		mgrlog.Error("plugin package name is empty")
 		return false
@@ -45,19 +47,11 @@ func (mgr *pluginManager) registerPlugin(p plugin.Plugin) bool {
 	return true
 }
 
-func (mgr *pluginManager) initExecutor() {
+func (mgr *pluginManager) init() {
 	for _, item := range mgr.pluginItems {
-		item.InitExecutor()
+		item.Init()
 	}
 }
-
-//func realExec(txExec string) string {
-//	if strings.HasPrefix(txExec, "user.p.") {
-//		execSplit := strings.Split(txExec, ".")
-//		return execSplit[len(execSplit)-1]
-//	}
-//	return txExec
-//}
 
 func getRealExecuteName(packageName, exectorName string) string {
 	// TODO: 需要实现兼容老系统，并且又能照顾新规则的执行器名称处理功能
@@ -67,7 +61,7 @@ func getRealExecuteName(packageName, exectorName string) string {
 func (mgr *pluginManager) decodeTx(tx *types.Transaction) interface{} {
 	execName := string(tx.Execer)
 	for _, item := range mgr.pluginItems {
-		if getRealExecuteName(item.GetPackageName(), item.GetExecutorName()) != execName {
+		if getRealExecuteName(item.GetName(), item.GetExecutorName()) != execName {
 			continue
 		}
 		return item.DecodeTx(tx)
@@ -76,8 +70,8 @@ func (mgr *pluginManager) decodeTx(tx *types.Transaction) interface{} {
 	return nil
 }
 
-func (mgr *pluginManager) addCustomCommand(rootCmd *cobra.Command) {
+func (mgr *pluginManager) addCmd(rootCmd *cobra.Command) {
 	for _, item := range mgr.pluginItems {
-		item.AddCustomCommand(rootCmd)
+		item.AddCmd(rootCmd)
 	}
 }
