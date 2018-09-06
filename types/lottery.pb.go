@@ -20,7 +20,7 @@ type PurchaseRecord struct {
 func (m *PurchaseRecord) Reset()                    { *m = PurchaseRecord{} }
 func (m *PurchaseRecord) String() string            { return proto.CompactTextString(m) }
 func (*PurchaseRecord) ProtoMessage()               {}
-func (*PurchaseRecord) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{0} }
+func (*PurchaseRecord) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{0} }
 
 func (m *PurchaseRecord) GetAmount() int64 {
 	if m != nil {
@@ -45,7 +45,7 @@ type PurchaseRecords struct {
 func (m *PurchaseRecords) Reset()                    { *m = PurchaseRecords{} }
 func (m *PurchaseRecords) String() string            { return proto.CompactTextString(m) }
 func (*PurchaseRecords) ProtoMessage()               {}
-func (*PurchaseRecords) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{1} }
+func (*PurchaseRecords) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{1} }
 
 func (m *PurchaseRecords) GetRecord() []*PurchaseRecord {
 	if m != nil {
@@ -87,7 +87,7 @@ type Lottery struct {
 func (m *Lottery) Reset()                    { *m = Lottery{} }
 func (m *Lottery) String() string            { return proto.CompactTextString(m) }
 func (*Lottery) ProtoMessage()               {}
-func (*Lottery) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{2} }
+func (*Lottery) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{2} }
 
 func (m *Lottery) GetLotteryId() string {
 	if m != nil {
@@ -194,7 +194,7 @@ type LotteryAction struct {
 func (m *LotteryAction) Reset()                    { *m = LotteryAction{} }
 func (m *LotteryAction) String() string            { return proto.CompactTextString(m) }
 func (*LotteryAction) ProtoMessage()               {}
-func (*LotteryAction) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{3} }
+func (*LotteryAction) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{3} }
 
 type isLotteryAction_Value interface {
 	isLotteryAction_Value()
@@ -380,7 +380,7 @@ type LotteryCreate struct {
 func (m *LotteryCreate) Reset()                    { *m = LotteryCreate{} }
 func (m *LotteryCreate) String() string            { return proto.CompactTextString(m) }
 func (*LotteryCreate) ProtoMessage()               {}
-func (*LotteryCreate) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{4} }
+func (*LotteryCreate) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{4} }
 
 func (m *LotteryCreate) GetPurBlockNum() int64 {
 	if m != nil {
@@ -405,7 +405,7 @@ type LotteryBuy struct {
 func (m *LotteryBuy) Reset()                    { *m = LotteryBuy{} }
 func (m *LotteryBuy) String() string            { return proto.CompactTextString(m) }
 func (*LotteryBuy) ProtoMessage()               {}
-func (*LotteryBuy) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{5} }
+func (*LotteryBuy) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{5} }
 
 func (m *LotteryBuy) GetLotteryId() string {
 	if m != nil {
@@ -435,7 +435,7 @@ type LotteryDraw struct {
 func (m *LotteryDraw) Reset()                    { *m = LotteryDraw{} }
 func (m *LotteryDraw) String() string            { return proto.CompactTextString(m) }
 func (*LotteryDraw) ProtoMessage()               {}
-func (*LotteryDraw) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{6} }
+func (*LotteryDraw) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{6} }
 
 func (m *LotteryDraw) GetLotteryId() string {
 	if m != nil {
@@ -451,7 +451,7 @@ type LotteryClose struct {
 func (m *LotteryClose) Reset()                    { *m = LotteryClose{} }
 func (m *LotteryClose) String() string            { return proto.CompactTextString(m) }
 func (*LotteryClose) ProtoMessage()               {}
-func (*LotteryClose) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{7} }
+func (*LotteryClose) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{7} }
 
 func (m *LotteryClose) GetLotteryId() string {
 	if m != nil {
@@ -474,7 +474,7 @@ type ReceiptLottery struct {
 func (m *ReceiptLottery) Reset()                    { *m = ReceiptLottery{} }
 func (m *ReceiptLottery) String() string            { return proto.CompactTextString(m) }
 func (*ReceiptLottery) ProtoMessage()               {}
-func (*ReceiptLottery) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{8} }
+func (*ReceiptLottery) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{8} }
 
 func (m *ReceiptLottery) GetLotteryId() string {
 	if m != nil {
@@ -539,7 +539,7 @@ type ReqLotteryInfo struct {
 func (m *ReqLotteryInfo) Reset()                    { *m = ReqLotteryInfo{} }
 func (m *ReqLotteryInfo) String() string            { return proto.CompactTextString(m) }
 func (*ReqLotteryInfo) ProtoMessage()               {}
-func (*ReqLotteryInfo) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{9} }
+func (*ReqLotteryInfo) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{9} }
 
 func (m *ReqLotteryInfo) GetLotteryId() string {
 	if m != nil {
@@ -557,7 +557,7 @@ type ReqLotteryBuyInfo struct {
 func (m *ReqLotteryBuyInfo) Reset()                    { *m = ReqLotteryBuyInfo{} }
 func (m *ReqLotteryBuyInfo) String() string            { return proto.CompactTextString(m) }
 func (*ReqLotteryBuyInfo) ProtoMessage()               {}
-func (*ReqLotteryBuyInfo) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{10} }
+func (*ReqLotteryBuyInfo) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{10} }
 
 func (m *ReqLotteryBuyInfo) GetLotteryId() string {
 	if m != nil {
@@ -591,7 +591,7 @@ type ReqLotteryBuyHistory struct {
 func (m *ReqLotteryBuyHistory) Reset()                    { *m = ReqLotteryBuyHistory{} }
 func (m *ReqLotteryBuyHistory) String() string            { return proto.CompactTextString(m) }
 func (*ReqLotteryBuyHistory) ProtoMessage()               {}
-func (*ReqLotteryBuyHistory) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{11} }
+func (*ReqLotteryBuyHistory) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{11} }
 
 func (m *ReqLotteryBuyHistory) GetLotteryId() string {
 	if m != nil {
@@ -636,7 +636,7 @@ type ReqLotteryLuckyInfo struct {
 func (m *ReqLotteryLuckyInfo) Reset()                    { *m = ReqLotteryLuckyInfo{} }
 func (m *ReqLotteryLuckyInfo) String() string            { return proto.CompactTextString(m) }
 func (*ReqLotteryLuckyInfo) ProtoMessage()               {}
-func (*ReqLotteryLuckyInfo) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{12} }
+func (*ReqLotteryLuckyInfo) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{12} }
 
 func (m *ReqLotteryLuckyInfo) GetLotteryId() string {
 	if m != nil {
@@ -662,7 +662,7 @@ type ReqLotteryLuckyHistory struct {
 func (m *ReqLotteryLuckyHistory) Reset()                    { *m = ReqLotteryLuckyHistory{} }
 func (m *ReqLotteryLuckyHistory) String() string            { return proto.CompactTextString(m) }
 func (*ReqLotteryLuckyHistory) ProtoMessage()               {}
-func (*ReqLotteryLuckyHistory) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{13} }
+func (*ReqLotteryLuckyHistory) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{13} }
 
 func (m *ReqLotteryLuckyHistory) GetLotteryId() string {
 	if m != nil {
@@ -702,7 +702,7 @@ type ReplyLotteryNormalInfo struct {
 func (m *ReplyLotteryNormalInfo) Reset()                    { *m = ReplyLotteryNormalInfo{} }
 func (m *ReplyLotteryNormalInfo) String() string            { return proto.CompactTextString(m) }
 func (*ReplyLotteryNormalInfo) ProtoMessage()               {}
-func (*ReplyLotteryNormalInfo) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{14} }
+func (*ReplyLotteryNormalInfo) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{14} }
 
 func (m *ReplyLotteryNormalInfo) GetCreateHeight() int64 {
 	if m != nil {
@@ -745,7 +745,7 @@ type ReplyLotteryCurrentInfo struct {
 func (m *ReplyLotteryCurrentInfo) Reset()                    { *m = ReplyLotteryCurrentInfo{} }
 func (m *ReplyLotteryCurrentInfo) String() string            { return proto.CompactTextString(m) }
 func (*ReplyLotteryCurrentInfo) ProtoMessage()               {}
-func (*ReplyLotteryCurrentInfo) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{15} }
+func (*ReplyLotteryCurrentInfo) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{15} }
 
 func (m *ReplyLotteryCurrentInfo) GetStatus() int32 {
 	if m != nil {
@@ -800,12 +800,10 @@ type ReplyLotteryHistoryLuckyNumber struct {
 	LuckyNumber []int64 `protobuf:"varint,1,rep,packed,name=luckyNumber" json:"luckyNumber,omitempty"`
 }
 
-func (m *ReplyLotteryHistoryLuckyNumber) Reset()         { *m = ReplyLotteryHistoryLuckyNumber{} }
-func (m *ReplyLotteryHistoryLuckyNumber) String() string { return proto.CompactTextString(m) }
-func (*ReplyLotteryHistoryLuckyNumber) ProtoMessage()    {}
-func (*ReplyLotteryHistoryLuckyNumber) Descriptor() ([]byte, []int) {
-	return fileDescriptor10, []int{16}
-}
+func (m *ReplyLotteryHistoryLuckyNumber) Reset()                    { *m = ReplyLotteryHistoryLuckyNumber{} }
+func (m *ReplyLotteryHistoryLuckyNumber) String() string            { return proto.CompactTextString(m) }
+func (*ReplyLotteryHistoryLuckyNumber) ProtoMessage()               {}
+func (*ReplyLotteryHistoryLuckyNumber) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{16} }
 
 func (m *ReplyLotteryHistoryLuckyNumber) GetLuckyNumber() []int64 {
 	if m != nil {
@@ -821,7 +819,7 @@ type ReplyLotteryShowInfo struct {
 func (m *ReplyLotteryShowInfo) Reset()                    { *m = ReplyLotteryShowInfo{} }
 func (m *ReplyLotteryShowInfo) String() string            { return proto.CompactTextString(m) }
 func (*ReplyLotteryShowInfo) ProtoMessage()               {}
-func (*ReplyLotteryShowInfo) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{17} }
+func (*ReplyLotteryShowInfo) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{17} }
 
 func (m *ReplyLotteryShowInfo) GetRecords() []*LotteryBuyRecord {
 	if m != nil {
@@ -838,7 +836,7 @@ type LotteryNumberRecord struct {
 func (m *LotteryNumberRecord) Reset()                    { *m = LotteryNumberRecord{} }
 func (m *LotteryNumberRecord) String() string            { return proto.CompactTextString(m) }
 func (*LotteryNumberRecord) ProtoMessage()               {}
-func (*LotteryNumberRecord) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{18} }
+func (*LotteryNumberRecord) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{18} }
 
 func (m *LotteryNumberRecord) GetNumber() int64 {
 	if m != nil {
@@ -864,7 +862,7 @@ type LotteryBuyRecord struct {
 func (m *LotteryBuyRecord) Reset()                    { *m = LotteryBuyRecord{} }
 func (m *LotteryBuyRecord) String() string            { return proto.CompactTextString(m) }
 func (*LotteryBuyRecord) ProtoMessage()               {}
-func (*LotteryBuyRecord) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{19} }
+func (*LotteryBuyRecord) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{19} }
 
 func (m *LotteryBuyRecord) GetNumber() int64 {
 	if m != nil {
@@ -894,7 +892,7 @@ type LotteryBuyRecords struct {
 func (m *LotteryBuyRecords) Reset()                    { *m = LotteryBuyRecords{} }
 func (m *LotteryBuyRecords) String() string            { return proto.CompactTextString(m) }
 func (*LotteryBuyRecords) ProtoMessage()               {}
-func (*LotteryBuyRecords) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{20} }
+func (*LotteryBuyRecords) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{20} }
 
 func (m *LotteryBuyRecords) GetRecords() []*LotteryBuyRecord {
 	if m != nil {
@@ -911,7 +909,7 @@ type LotteryDrawRecord struct {
 func (m *LotteryDrawRecord) Reset()                    { *m = LotteryDrawRecord{} }
 func (m *LotteryDrawRecord) String() string            { return proto.CompactTextString(m) }
 func (*LotteryDrawRecord) ProtoMessage()               {}
-func (*LotteryDrawRecord) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{21} }
+func (*LotteryDrawRecord) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{21} }
 
 func (m *LotteryDrawRecord) GetNumber() int64 {
 	if m != nil {
@@ -934,7 +932,7 @@ type LotteryDrawRecords struct {
 func (m *LotteryDrawRecords) Reset()                    { *m = LotteryDrawRecords{} }
 func (m *LotteryDrawRecords) String() string            { return proto.CompactTextString(m) }
 func (*LotteryDrawRecords) ProtoMessage()               {}
-func (*LotteryDrawRecords) Descriptor() ([]byte, []int) { return fileDescriptor10, []int{22} }
+func (*LotteryDrawRecords) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{22} }
 
 func (m *LotteryDrawRecords) GetRecords() []*LotteryDrawRecord {
 	if m != nil {
@@ -969,9 +967,9 @@ func init() {
 	proto.RegisterType((*LotteryDrawRecords)(nil), "types.LotteryDrawRecords")
 }
 
-func init() { proto.RegisterFile("lottery.proto", fileDescriptor10) }
+func init() { proto.RegisterFile("lottery.proto", fileDescriptor8) }
 
-var fileDescriptor10 = []byte{
+var fileDescriptor8 = []byte{
 	// 929 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xa4, 0x56, 0xef, 0x6e, 0xe3, 0x44,
 	0x10, 0xaf, 0xff, 0x25, 0xd7, 0x71, 0x5b, 0xae, 0xdb, 0xd2, 0xb3, 0x00, 0x55, 0x95, 0x25, 0x50,
