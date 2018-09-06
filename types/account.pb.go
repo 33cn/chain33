@@ -6,7 +6,6 @@ Package types is a generated protocol buffer package.
 
 It is generated from these files:
 	account.proto
-	blackwhite.proto
 	blockchain.proto
 	common.proto
 	config.proto
@@ -14,7 +13,6 @@ It is generated from these files:
 	evmcontract.proto
 	executor.proto
 	executorTrade.proto
-	game.proto
 	p2p.proto
 	paracross.proto
 	pbft.proto
@@ -36,23 +34,6 @@ It has these top-level messages:
 	ReplyAccountTokenAssets
 	ExecAccount
 	AllExecBalance
-	AddressResult
-	BlackwhiteRound
-	BlackwhiteAction
-	BlackwhiteCreate
-	BlackwhitePlay
-	BlackwhiteShow
-	BlackwhiteTimeoutDone
-	ReceiptBlackwhite
-	ReceiptBlackwhiteStatus
-	ReqBlackwhiteRoundInfo
-	ReplyBlackwhiteRoundInfo
-	ReqBlackwhiteRoundList
-	ReplyBlackwhiteRoundList
-	ReqLoopResult
-	PerLoopResult
-	ReplyLoopResults
-	BlackwhiteRoundResult
 	Header
 	Block
 	Blocks
@@ -251,21 +232,6 @@ It has these top-level messages:
 	ReplyBuyOrders
 	ReplyTradeOrder
 	ReplyTradeOrders
-	Game
-	GameAction
-	GameMatch
-	GameCancel
-	GameClose
-	GameCreate
-	QueryGameListByStatusAndAddr
-	QueryGameListCount
-	GameRecord
-	QueryGameInfo
-	QueryGameInfos
-	ReplyGameList
-	ReplyGameListCount
-	ReplyGame
-	ReceiptGame
 	P2PGetPeerInfo
 	P2PPeerInfo
 	P2PVersion
