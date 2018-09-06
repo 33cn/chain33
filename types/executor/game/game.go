@@ -74,7 +74,7 @@ func (game GameType) ActionName(tx *types.Transaction) string {
 	var action types.GameAction
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
-		return "unknow-err"
+		return "unknown-err"
 	}
 
 	if action.Ty == types.GameActionCreate && action.GetCreate() != nil {
@@ -86,8 +86,18 @@ func (game GameType) ActionName(tx *types.Transaction) string {
 	} else if action.Ty == types.GameActionClose && action.GetClose() != nil {
 		return Action_CloseGame
 	}
-	return "unknow"
+	return "unknown"
 }
+
+func (game GameType) DecodePayload(tx *types.Transaction) (interface{}, error) {
+	var action types.GameAction
+	err := types.Decode(tx.Payload, &action)
+	if err != nil {
+		return nil, err
+	}
+	return &action, nil
+}
+
 func (game GameType) Amount(tx *types.Transaction) (int64, error) {
 	return 0, nil
 }
@@ -338,7 +348,13 @@ func (t *GameGetList) Output(reply interface{}) (interface{}, error) {
 					HashValue:     game.GetHashValue(),
 					Secret:        game.GetSecret(),
 					Result:        game.GetResult(),
-					Guess:         game.GetGuess(),
+					MatcherGuess:  game.GetMatcherGuess(),
+					CreateTxHash:  game.GetCreateTxHash(),
+					CancelTxHash:  game.GetCancelTxHash(),
+					MatchTxHash:   game.GetMatchTxHash(),
+					CloseTxHash:   game.GetCloseTxHash(),
+					CreatorGuess:  game.GetCreatorGuess(),
+					Index:         game.GetIndex(),
 				}
 				gameList = append(gameList, g)
 			}
@@ -399,7 +415,13 @@ func (g *GameGetInfo) Output(reply interface{}) (interface{}, error) {
 				HashValue:     game.GetHashValue(),
 				Secret:        game.GetSecret(),
 				Result:        game.GetResult(),
-				Guess:         game.GetGuess(),
+				MatcherGuess:  game.GetMatcherGuess(),
+				CreateTxHash:  game.GetCreateTxHash(),
+				CancelTxHash:  game.GetCancelTxHash(),
+				MatchTxHash:   game.GetMatchTxHash(),
+				CloseTxHash:   game.GetCloseTxHash(),
+				CreatorGuess:  game.GetCreatorGuess(),
+				Index:         game.GetIndex(),
 			}
 			return g, nil
 		}
@@ -421,7 +443,7 @@ func (g *GameQueryList) Input(message json.RawMessage) ([]byte, error) {
 
 func (g *GameQueryList) Output(reply interface{}) (interface{}, error) {
 	if replyData, ok := reply.(*types.Message); ok {
-		if replyGameList, ok := (*replyData).(*types.ReplyGameListPage); ok {
+		if replyGameList, ok := (*replyData).(*types.ReplyGameList); ok {
 			var gameList []*Game
 			for _, game := range replyGameList.GetGames() {
 				g := &Game{
@@ -437,15 +459,17 @@ func (g *GameQueryList) Output(reply interface{}) (interface{}, error) {
 					HashValue:     game.GetHashValue(),
 					Secret:        game.GetSecret(),
 					Result:        game.GetResult(),
-					Guess:         game.GetGuess(),
+					MatcherGuess:  game.GetMatcherGuess(),
 					CreateTxHash:  game.GetCreateTxHash(),
 					CancelTxHash:  game.GetCancelTxHash(),
 					MatchTxHash:   game.GetMatchTxHash(),
 					CloseTxHash:   game.GetCloseTxHash(),
+					CreatorGuess:  game.GetCreatorGuess(),
+					Index:         game.GetIndex(),
 				}
 				gameList = append(gameList, g)
 			}
-			return &ReplyGameListPage{gameList, replyGameList.GetPrevIndex(), replyGameList.GetNextIndex()}, nil
+			return gameList, nil
 		}
 	}
 	return reply, nil

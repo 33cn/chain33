@@ -21,6 +21,9 @@ import (
 
 	"time"
 
+	_ "gitlab.33.cn/chain33/chain33/plugin"
+	_ "gitlab.33.cn/chain33/chain33/system"
+
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/authority"
 	"gitlab.33.cn/chain33/chain33/blockchain"
@@ -79,6 +82,7 @@ func main() {
 	types.SetTestNet(cfg.TestNet)
 	types.SetTitle(cfg.Title)
 	types.SetFixTime(cfg.FixTime)
+	types.SetParaRemoteGrpcClient(cfg.GetConsensus().GetParaRemoteGrpcClient())
 	if cfg.FixTime {
 		go fixtimeRoutine()
 	}

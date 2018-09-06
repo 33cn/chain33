@@ -18,6 +18,7 @@ stages:
     - test
     - deploy
     - fork_test
+    - autotest
 
 go_fmt:
     stage: build
@@ -119,4 +120,19 @@ fork_test:
         - master
         - develop
         - forkTest
+
+autotest:
+    stage: autotest
+    tags:
+        - 33cn
+    script:
+        - if [ -n "${onceEveryday}" ]; then
+        - make build_ci
+        - make autotest
+        - cd build/tools/autotest && ./run-autotest.sh build
+        - cd $GO_PROJECT_PATH
+        - fi
+    when: always
+    only:
+        - develop
 

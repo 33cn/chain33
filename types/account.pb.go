@@ -267,7 +267,6 @@ It has these top-level messages:
 	QueryGameInfo
 	QueryGameInfos
 	ReplyGameList
-	ReplyGameListPage
 	ReplyGameListCount
 	ReplyGame
 	ReceiptGame
