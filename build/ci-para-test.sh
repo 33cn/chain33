@@ -118,7 +118,7 @@ function token_create() {
     echo "=========== # para token test ============="
     hash=$(${1} send token precreate -f 0.001 -i test -n guodunjifen -a 1KSBd17H7ZK8iT37aJztFB22XGwsPTdwE4 -p 0 -s GD -t 10000 -k 1KSBd17H7ZK8iT37aJztFB22XGwsPTdwE4)
     echo "${hash}"
-    block_wait "${1}" 2
+    block_wait "${1}" 3
 
     owner=$(${1} tx query -s "${hash}" | jq -r ".receipt.logs[0].log.owner")
     if [ "${owner}" != "1KSBd17H7ZK8iT37aJztFB22XGwsPTdwE4" ]; then
@@ -128,7 +128,7 @@ function token_create() {
 
     hash=$(${1} send token finish -f 0.001 -a 1KSBd17H7ZK8iT37aJztFB22XGwsPTdwE4 -s GD -k 0xc34b5d9d44ac7b754806f761d3d4d2c4fe5214f6b074c19f069c4f5c2a29c8cc)
     echo "${hash}"
-    block_wait "${1}" 2
+    block_wait "${1}" 3
 
     owner=$(${1} tx query -s "${hash}" | jq -r ".receipt.logs[1].log.owner")
     if [ "${owner}" != "1KSBd17H7ZK8iT37aJztFB22XGwsPTdwE4" ]; then
