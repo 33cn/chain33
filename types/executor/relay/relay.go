@@ -63,7 +63,16 @@ func (r RelayType) ActionName(tx *types.Transaction) string {
 	if relay.Ty == types.RelayActionRcvBTCHeaders && relay.GetBtcHeaders() != nil {
 		return "relay-receive-btc-heads"
 	}
-	return "unknow"
+	return "unknown"
+}
+
+func (r RelayType) DecodePayload(tx *types.Transaction) (interface{}, error) {
+	var action types.RelayAction
+	err := types.Decode(tx.Payload, &action)
+	if err != nil {
+		return nil, err
+	}
+	return &action, nil
 }
 
 func (r RelayType) Amount(tx *types.Transaction) (int64, error) {

@@ -19,7 +19,7 @@ type Blackwhite struct {
 }
 
 func Init() {
-	drivers.Register(newBlackwhite().GetName(), newBlackwhite, 0)
+	drivers.Register(newBlackwhite().GetName(), newBlackwhite, types.ForkV25BlackWhite)
 	setReciptPrefix()
 }
 

@@ -65,7 +65,7 @@ func (coins CoinsType) ActionName(tx *types.Transaction) string {
 	var action types.CoinsAction
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
-		return "unknow-err"
+		return "unknown-err"
 	}
 	if action.Ty == types.CoinsActionTransfer && action.GetTransfer() != nil {
 		return "transfer"
@@ -76,7 +76,16 @@ func (coins CoinsType) ActionName(tx *types.Transaction) string {
 	} else if action.Ty == types.CoinsActionTransferToExec && action.GetTransferToExec() != nil {
 		return "sendToExec"
 	}
-	return "unknow"
+	return "unknown"
+}
+
+func (coins CoinsType) DecodePayload(tx *types.Transaction) (interface{}, error) {
+	var action types.CoinsAction
+	err := types.Decode(tx.Payload, &action)
+	if err != nil {
+		return nil, err
+	}
+	return &action, nil
 }
 
 func (t CoinsType) Amount(tx *types.Transaction) (int64, error) {

@@ -45,7 +45,16 @@ func (evm EvmType) ActionName(tx *types.Transaction) string {
 	} else {
 		return "callEvmContract"
 	}
-	return "unknow"
+	return "unknown"
+}
+
+func (evm EvmType) DecodePayload(tx *types.Transaction) (interface{}, error) {
+	var action types.EVMContractAction
+	err := types.Decode(tx.Payload, &action)
+	if err != nil {
+		return nil, err
+	}
+	return &action, nil
 }
 
 func (evm EvmType) Amount(tx *types.Transaction) (int64, error) {
