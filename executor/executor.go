@@ -20,6 +20,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers/coins"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/evm"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/hashlock"
+	"gitlab.33.cn/chain33/chain33/executor/drivers/lottery"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/manage"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/none"
 	"gitlab.33.cn/chain33/chain33/executor/drivers/norm"
@@ -85,7 +86,7 @@ func execInit2() {
 	relay.Init()
 	cert.Init()
 	privacy.Init()
-
+	lottery.Init()
 	pluginmanager.InitExecutor()
 }
 
