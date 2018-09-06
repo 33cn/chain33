@@ -91,6 +91,15 @@ func (token TokenType) ActionName(tx *types.Transaction) string {
 	return "unknown"
 }
 
+func (token TokenType) DecodePayload(tx *types.Transaction) (interface{}, error) {
+	var action types.TokenAction
+	err := types.Decode(tx.Payload, &action)
+	if err != nil {
+		return nil, err
+	}
+	return &action, nil
+}
+
 func (token TokenType) Amount(tx *types.Transaction) (int64, error) {
 	//TODO: 补充和完善token和trade分支的amount的计算, added by hzj
 	var action types.TokenAction

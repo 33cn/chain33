@@ -132,10 +132,8 @@ func ShowTokenSellOrdersStatusCmd() *cobra.Command {
 func addShowTokenSellOrdersStatusFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("token", "t", "", "token name")
 	cmd.MarkFlagRequired("token")
-	cmd.Flags().Int32P("count", "c", 0, "order count")
-	cmd.MarkFlagRequired("count")
+	cmd.Flags().Int32P("count", "c", 10, "order count")
 	cmd.Flags().Int32P("direction", "d", 1, "direction must be 0 (previous-page) or 1(next-page)")
-	cmd.MarkFlagRequired("direction")
 	cmd.Flags().StringP("from", "f", "", "start from sell id (not required)")
 	cmd.Flags().StringP("status", "s", "", "sell order status (onsale, soldout or revoked)")
 	cmd.MarkFlagRequired("status")
@@ -290,10 +288,8 @@ func ShowTokenBuyOrdersStatusCmd() *cobra.Command {
 func addShowBuyTokenOrdersStatusFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("token", "t", "", "token name")
 	cmd.MarkFlagRequired("token")
-	cmd.Flags().Int32P("count", "c", 0, "order count")
-	cmd.MarkFlagRequired("count")
+	cmd.Flags().Int32P("count", "c", 10, "order count")
 	cmd.Flags().Int32P("direction", "d", 1, "direction must be 0 (previous-page) or 1(next-page)")
-	cmd.MarkFlagRequired("direction")
 	cmd.Flags().StringP("from", "f", "", "start from sell id (not required)")
 	cmd.Flags().StringP("status", "s", "", "buy order status (onbuy, boughtout or buyrevoked)")
 	cmd.MarkFlagRequired("status")
@@ -371,10 +367,8 @@ func ShowOnesOrdersStatusCmd() *cobra.Command {
 func addShowOnesOrdersStatusFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("address", "a", "", "user address")
 	cmd.MarkFlagRequired("address")
-	cmd.Flags().Int32P("count", "c", 0, "order count")
-	cmd.MarkFlagRequired("count")
+	cmd.Flags().Int32P("count", "c", 10, "order count")
 	cmd.Flags().Int32P("direction", "d", 1, "direction must be 0 (previous-page) or 1(next-page)")
-	cmd.MarkFlagRequired("direction")
 	cmd.Flags().StringP("from", "f", "", "start from sell id (not required)")
 	cmd.Flags().Int32P("status", "s", 0, "order status (1: on, 2: done, 3: revoke)")
 	cmd.MarkFlagRequired("status")
@@ -500,10 +494,8 @@ func CreateRawTradeBuyTxCmd() *cobra.Command {
 func addTokenBuyFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("sell_id", "s", "", "sell id")
 	cmd.MarkFlagRequired("sell_id")
-
 	cmd.Flags().Int64P("count", "c", 0, "count of buying (boardlot)")
 	cmd.MarkFlagRequired("count")
-
 	cmd.Flags().Float64P("fee", "f", 0, "transaction fee")
 }
 
