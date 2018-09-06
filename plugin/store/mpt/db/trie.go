@@ -25,7 +25,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto/sha3"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common/crypto"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -499,7 +498,7 @@ func (t *TrieEx) Get(key []byte) []byte {
 
 func (t *TrieEx) TryGet(key []byte) ([]byte, error) {
 	if enableSecure {
-		key = crypto.Keccak256(key)
+		key = common.ShaKeccak256(key)
 	}
 	return t.Trie.TryGet(key)
 }
@@ -512,7 +511,7 @@ func (t *TrieEx) Update(key, value []byte) {
 
 func (t *TrieEx) TryUpdate(key, value []byte) error {
 	if enableSecure {
-		key = crypto.Keccak256(key)
+		key = common.ShaKeccak256(key)
 	}
 	return t.Trie.TryUpdate(key, value)
 }
@@ -525,7 +524,7 @@ func (t *TrieEx) Delete(key []byte) {
 
 func (t *TrieEx) TryDelete(key []byte) error {
 	if enableSecure {
-		key = crypto.Keccak256(key)
+		key = common.ShaKeccak256(key)
 	}
 	return t.Trie.TryDelete(key)
 }
@@ -584,7 +583,7 @@ func GetKVPair(db dbm.DB, storeGet *types.StoreGet) [][]byte {
 
 func GetKVPairProof(db dbm.DB, roothash []byte, key []byte) []byte {
 	if enableSecure {
-		key = crypto.Keccak256(key)
+		key = common.ShaKeccak256(key)
 	}
 	value, _, err := VerifyProof(common.BytesToHash(roothash), key, db)
 	if nil != err {
@@ -625,7 +624,7 @@ func DelKVPair(db dbm.DB, storeDel *types.StoreGet) ([]byte, [][]byte) {
 
 func VerifyKVPairProof(db dbm.DB, roothash []byte, keyvalue types.KeyValue, proof []byte) bool {
 	if enableSecure {
-		keyvalue.Key = crypto.Keccak256(keyvalue.Key)
+		keyvalue.Key = common.ShaKeccak256(keyvalue.Key)
 	}
 	_, _, err := VerifyProof(common.BytesToHash(roothash), keyvalue.Key, db)
 	return nil == err

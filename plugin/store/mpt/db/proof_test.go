@@ -23,8 +23,8 @@ import (
 	"testing"
 	"time"
 
+	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common/crypto"
 )
 
 func init() {
@@ -47,7 +47,7 @@ func makeProvers(trie *Trie) []func(key []byte) *dbm.GoMemDB {
 		proof, _ := dbm.NewGoMemDB("gomemdb", "", 128)
 		if it := NewIterator(trie.NodeIterator(key)); it.Next() && bytes.Equal(key, it.Key) {
 			for _, p := range it.Prove() {
-				proof.Set(crypto.Keccak256(p), p)
+				proof.Set(common.ShaKeccak256(p), p)
 			}
 		}
 		return proof
@@ -126,7 +126,7 @@ func TestBadProof(t *testing.T) {
 			proof.Delete(key)
 
 			mutateByte(val)
-			proof.Set(crypto.Keccak256(val), val)
+			proof.Set(common.ShaKeccak256(val), val)
 
 			if _, _, err := VerifyProof(root, kv.k, proof); err == nil {
 				t.Fatalf("prover %d: expected proof to fail for key %x", i, kv.k)
