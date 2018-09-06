@@ -11,6 +11,7 @@ import (
 type StateDB struct {
 	cache     map[string][]byte
 	txcache   map[string][]byte
+	keys      []string
 	intx      bool
 	client    queue.Client
 	stateHash []byte
@@ -61,6 +62,7 @@ func (s *StateDB) enableMVCC() {
 
 func (s *StateDB) Begin() {
 	s.intx = true
+	s.keys = nil
 	if types.IsMatchFork(s.height, types.ForkV22ExecRollback) {
 		s.txcache = nil
 	}
@@ -75,6 +77,7 @@ func (s *StateDB) Commit() {
 		s.cache[k] = v
 	}
 	s.intx = false
+	s.keys = nil
 	if types.IsMatchFork(s.height, types.ForkV22ExecRollback) {
 		s.resetTx()
 	}
@@ -83,6 +86,7 @@ func (s *StateDB) Commit() {
 func (s *StateDB) resetTx() {
 	s.intx = false
 	s.txcache = nil
+	s.keys = nil
 }
 
 func (s *StateDB) Get(key []byte) ([]byte, error) {
@@ -142,14 +146,12 @@ func debugAccount(prefix string, key []byte, value []byte) {
 	}
 }
 
-func (s *StateDB) GetPrecommitKeys() (keys [][]byte) {
-	if s.txcache == nil {
-		return nil
-	}
-	for key, _ := range s.txcache {
-		keys = append(keys, []byte(key))
-	}
-	return keys
+func (s *StateDB) StartTx() {
+	s.keys = nil
+}
+
+func (s *StateDB) GetSetKeys() (keys []string) {
+	return s.keys
 }
 
 func (s *StateDB) Set(key []byte, value []byte) error {
@@ -159,6 +161,7 @@ func (s *StateDB) Set(key []byte, value []byte) error {
 		if s.txcache == nil {
 			s.txcache = make(map[string][]byte)
 		}
+		s.keys = append(s.keys, skey)
 		setmap(s.txcache, skey, value)
 	} else {
 		setmap(s.cache, skey, value)
