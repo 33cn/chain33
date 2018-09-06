@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"math"
 
+	"strconv"
+
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
@@ -12,7 +14,7 @@ import (
 )
 
 const (
-	MaxAmount      int64 = 20 * types.Coin
+	MaxAmount      int64 = 100 * types.Coin
 	MinAmount      int64 = 1 * types.Coin
 	MinPlayerCount int32 = 3
 	MaxPlayerCount int32 = 100000
@@ -173,6 +175,8 @@ func (a *action) Play(play *gt.BlackwhitePlay) (*types.Receipt, error) {
 
 	key1 := calcRoundKey(round.GameID)
 	value1 := types.Encode(&round)
+	//将当前游戏状态保存，便于同一区块中游戏参数的累加
+	a.db.Set(key1, value1)
 	kv = append(kv, &types.KeyValue{key1, value1})
 
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
@@ -253,6 +257,8 @@ func (a *action) Show(show *gt.BlackwhiteShow) (*types.Receipt, error) {
 
 	key1 := calcRoundKey(round.GameID)
 	value1 := types.Encode(&round)
+	//将当前游戏状态保存，便于同一区块中游戏参数的累加
+	a.db.Set(key1, value1)
 	kv = append(kv, &types.KeyValue{key1, value1})
 
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
@@ -345,6 +351,8 @@ func (a *action) TimeoutDone(done *gt.BlackwhiteTimeoutDone) (*types.Receipt, er
 
 	key1 := calcRoundKey(round.GameID)
 	value1 := types.Encode(&round)
+	//将当前游戏状态保存，便于同一区块中游戏参数的累加
+	a.db.Set(key1, value1)
 	kv = append(kv, &types.KeyValue{key1, value1})
 
 	// 需要更新全部地址状态
@@ -512,10 +520,10 @@ func (a *action) getWinner(round *gt.BlackwhiteRound) ([]*addrResult, *gt.ReplyL
 	for _, addres := range addrRes {
 		if len(addres.ShowSecret) > 0 && len(addres.HashValues) == loop {
 			var isBlack []bool
-			for _, hash := range addres.HashValues {
-				if bytes.Equal(common.Sha256([]byte(addres.ShowSecret+black)), hash) {
+			for i, hash := range addres.HashValues {
+				if bytes.Equal(common.Sha256([]byte(strconv.Itoa(i)+addres.ShowSecret+black)), hash) {
 					isBlack = append(isBlack, true)
-				} else if bytes.Equal(common.Sha256([]byte(addres.ShowSecret+white)), hash) {
+				} else if bytes.Equal(common.Sha256([]byte(strconv.Itoa(i)+addres.ShowSecret+white)), hash) {
 					isBlack = append(isBlack, false)
 				} else {
 					isBlack = append(isBlack, false)
