@@ -8,6 +8,7 @@ import (
 	"io"
 	"math/big"
 
+	"gitlab.33.cn/chain33/chain33/common/crypto/sha3"
 	"golang.org/x/crypto/ripemd160"
 )
 
@@ -140,6 +141,11 @@ func Bytes2Hex(d []byte) string {
 
 func Sha256(b []byte) []byte {
 	data := sha256.Sum256(b)
+	return data[:]
+}
+
+func ShaKeccak256(b []byte) []byte {
+	data := sha3.KeccakSum256(b)
 	return data[:]
 }
 
