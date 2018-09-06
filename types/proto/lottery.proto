@@ -14,10 +14,10 @@ message PurchaseRecords {
 }
 
 message Lottery {
-    string                       lotteryId            = 1; // txHash作为LotteryId
+    string                       lotteryId            = 1;
     int32                        status               = 2;
-    int64                        createHeight         = 3; //创建时间
-    int64                        fund                 = 4; //奖池金额
+    int64                        createHeight         = 3;
+    int64                        fund                 = 4;
     int64                        purBlockNum          = 5;
     int64                        drawBlockNum         = 6;
     int64                        lastTransToPurState  = 7;
@@ -25,8 +25,8 @@ message Lottery {
     map<string, PurchaseRecords> records              = 9;
     int64                        totalPurchasedTxNum  = 10;
     string                       createAddr           = 11;
-    int64                        round                = 12; //期数
-    int64                        luckyNumber          = 13; //当期中奖号码
+    int64                        round                = 12;
+    int64                        luckyNumber          = 13;
 }
 
 // message for execs.game
@@ -41,8 +41,8 @@ message LotteryAction {
 }
 
 message LotteryCreate {
-    int64 purBlockNum  = 1; //购买阶段，持续多少个块，默认40
-    int64 drawBlockNum = 2; //多少个块以后，可以开奖
+    int64 purBlockNum  = 1;
+    int64 drawBlockNum = 2;
 }
 
 message LotteryBuy {
@@ -109,11 +109,11 @@ message ReplyLotteryNormalInfo {
 
 message ReplyLotteryCurrentInfo {
     int32 status               = 1;
-    int64 fund                 = 2; //奖池金额
+    int64 fund                 = 2;
     int64 lastTransToPurState  = 3;
     int64 lastTransToDrawState = 4;
     int64 totalPurchasedTxNum  = 5;
-    int64 round                = 6; //期数
+    int64 round                = 6;
     int64 luckyNumber          = 7;
 }
 
