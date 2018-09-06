@@ -8,7 +8,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/cmd/cli/commands"
 	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/log"
-	"gitlab.33.cn/chain33/chain33/pluginmanager"
+	"gitlab.33.cn/chain33/chain33/pluginmgr"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 )
 
@@ -68,8 +68,7 @@ func init() {
 		sendCmd,
 		closeCmd,
 	)
-
-	pluginmanager.AddCustomCommand(rootCmd)
+	pluginmgr.AddCmd(rootCmd)
 }
 
 func main() {
