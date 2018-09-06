@@ -142,6 +142,16 @@ func debugAccount(prefix string, key []byte, value []byte) {
 	}
 }
 
+func (s *StateDB) GetPrecommitKeys() (keys [][]byte) {
+	if s.txcache == nil {
+		return nil
+	}
+	for key, _ := range s.txcache {
+		keys = append(keys, []byte(key))
+	}
+	return keys
+}
+
 func (s *StateDB) Set(key []byte, value []byte) error {
 	debugAccount("==set==", key, value)
 	skey := string(key)
