@@ -847,11 +847,28 @@ func (execute *executor) execTx(tx *types.Transaction, index int) (*types.Receip
 		}
 	} else {
 		if matchfork {
+			//todo: 可以做一些优化,减少内存copy
+			err := execute.checkAllowKVSet(tx, execute.stateDB.(*StateDB).GetPrecommitKeys())
+			if err != nil {
+				execute.stateDB.Rollback()
+				return nil, err
+			}
 			execute.stateDB.Commit()
 		}
 	}
 	elog.Debug("exec tx = ", "index", index, "execer", string(tx.Execer), "err", err)
 	return feelog, nil
+}
+
+func (execute *executor) checkAllowKVSet(tx *types.Transaction, keys [][]byte) error {
+	for _, k := range keys {
+		if !isAllowExec(k, tx.GetExecer(), tx.To, execute.height) {
+			elog.Error("err receipt key", "key", string(k), "tx.exec", string(tx.GetExecer()),
+				"tx.action", tx.ActionName())
+			return types.ErrNotAllowKey
+		}
+	}
+	return nil
 }
 
 func loadFlag(localDB dbm.KVDB, key []byte) (int64, error) {
