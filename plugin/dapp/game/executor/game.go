@@ -5,7 +5,7 @@ import (
 
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
-	gt "gitlab.33.cn/chain33/chain33/pluginmanager/plugins/game/types"
+	gt "gitlab.33.cn/chain33/chain33/plugin/dapp/game/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 

@@ -2,12 +2,11 @@ package game
 
 import (
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
+	"gitlab.33.cn/chain33/chain33/plugin/dapp/game/executor"
+	gt "gitlab.33.cn/chain33/chain33/plugin/dapp/game/types"
 	"gitlab.33.cn/chain33/chain33/pluginmanager/manager"
 	"gitlab.33.cn/chain33/chain33/pluginmanager/plugin"
 	"gitlab.33.cn/chain33/chain33/types"
-
-	"gitlab.33.cn/chain33/chain33/pluginmanager/plugins/game/executor"
-	gt "gitlab.33.cn/chain33/chain33/pluginmanager/plugins/game/types"
 )
 
 var gGamePlugin *gamePlugin

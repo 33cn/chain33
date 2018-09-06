@@ -9,7 +9,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"gitlab.33.cn/chain33/chain33/common"
-	gt "gitlab.33.cn/chain33/chain33/pluginmanager/plugins/blackwhite/types"
+	gt "gitlab.33.cn/chain33/chain33/plugin/executor/blackwhite"
 )
 
 func newAddressResult(Addr string, blackwhite []int) *gt.AddressResult {

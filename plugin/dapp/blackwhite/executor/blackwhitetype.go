@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 
 	log "github.com/inconshreveable/log15"
-	gt "gitlab.33.cn/chain33/chain33/pluginmanager/plugins/blackwhite/types"
+	gt "gitlab.33.cn/chain33/chain33/plugin/dapp/blackwhite/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -58,7 +58,7 @@ func (m BlackwhiteType) ActionName(tx *types.Transaction) string {
 }
 
 func (blackwhite BlackwhiteType) DecodePayload(tx *types.Transaction) (interface{}, error) {
-	var action types.BlackwhiteAction
+	var action gt.BlackwhiteAction
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
 		return nil, err
