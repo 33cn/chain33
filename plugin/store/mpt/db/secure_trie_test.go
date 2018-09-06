@@ -24,7 +24,6 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common/crypto"
 )
 
 func newEmptySecure() *SecureTrie {
@@ -98,7 +97,7 @@ func TestSecureGetKey(t *testing.T) {
 
 	key := []byte("foo")
 	value := []byte("bar")
-	seckey := crypto.Keccak256(key)
+	seckey := common.ShaKeccak256(key)
 
 	if !bytes.Equal(trie.Get(key), value) {
 		t.Errorf("Get did not return bar")

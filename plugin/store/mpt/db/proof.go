@@ -22,7 +22,6 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common/crypto"
 	"gitlab.33.cn/chain33/chain33/plugin/store/mpt/db/rlp"
 )
 
@@ -78,7 +77,7 @@ func (t *Trie) Prove(key []byte, fromLevel uint, proofDb dbm.DB) error {
 			} else {
 				enc, _ := rlp.EncodeToBytes(n)
 				if !ok {
-					hash = crypto.Keccak256(enc)
+					hash = common.ShaKeccak256(enc)
 				}
 				proofDb.Set(hash, enc)
 			}
