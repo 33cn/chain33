@@ -7,7 +7,7 @@ import (
 
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common/address"
-	gt "gitlab.33.cn/chain33/chain33/pluginmanager/plugins/game/types"
+	gt "gitlab.33.cn/chain33/chain33/plugin/dapp/game/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -78,7 +78,7 @@ func (game GameType) ActionName(tx *types.Transaction) string {
 }
 
 func (game GameType) DecodePayload(tx *types.Transaction) (interface{}, error) {
-	var action types.GameAction
+	var action gt.GameAction
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
 		return nil, err

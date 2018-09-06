@@ -3,11 +3,11 @@ package blackwhite
 import (
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/executor/drivers"
+	"gitlab.33.cn/chain33/chain33/plugin/dapp/blackwhite/commands"
+	"gitlab.33.cn/chain33/chain33/plugin/dapp/blackwhite/executor"
+	gt "gitlab.33.cn/chain33/chain33/plugin/dapp/blackwhite/types"
 	"gitlab.33.cn/chain33/chain33/pluginmanager/manager"
 	"gitlab.33.cn/chain33/chain33/pluginmanager/plugin"
-	"gitlab.33.cn/chain33/chain33/pluginmanager/plugins/blackwhite/commands"
-	"gitlab.33.cn/chain33/chain33/pluginmanager/plugins/blackwhite/executor"
-	gt "gitlab.33.cn/chain33/chain33/pluginmanager/plugins/blackwhite/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
