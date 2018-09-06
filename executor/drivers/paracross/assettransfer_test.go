@@ -204,14 +204,14 @@ func createAssetTransferTx(s suite.Suite, privFrom string, to []byte) (*types.Tr
 	tx, err := pt.CreateRawTransferTx(&param)
 	assert.Nil(s.T(), err, "create asset transfer failed")
 	if err != nil {
-		return tx, err
+		return nil, err
 	}
 
 	tx, err = signTx(s, tx, privFrom)
 	assert.Nil(s.T(), err, "sign asset transfer failed")
 	if err != nil {
-		return tx, err
+		return nil, err
 	}
 
-	return tx, err
+	return tx, nil
 }
