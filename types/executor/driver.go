@@ -53,7 +53,7 @@ func Init() {
 	ticket.Init()
 	token.Init()
 	trade.Init()
-    lottery.Init()
+	lottery.Init()
 }
 
 type ErrLog struct {
