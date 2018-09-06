@@ -273,18 +273,23 @@ It has these top-level messages:
 	LotteryAction
 	LotteryCreate
 	LotteryBuy
-	LotteryShow
 	LotteryDraw
 	LotteryClose
 	ReceiptLottery
 	ReqLotteryInfo
-	ReqLotteryShowInfo
+	ReqLotteryBuyInfo
+	ReqLotteryBuyHistory
+	ReqLotteryLuckyInfo
+	ReqLotteryLuckyHistory
 	ReplyLotteryNormalInfo
 	ReplyLotteryCurrentInfo
 	ReplyLotteryHistoryLuckyNumber
 	ReplyLotteryShowInfo
-	LotteryShowRecord
-	LotteryShowRecords
+	LotteryNumberRecord
+	LotteryBuyRecord
+	LotteryBuyRecords
+	LotteryDrawRecord
+	LotteryDrawRecords
 	P2PGetPeerInfo
 	P2PPeerInfo
 	P2PVersion

@@ -13,8 +13,8 @@ message PurchaseRecords {
     int64                   amountOneRound = 3;
 }
 
-message Lottery {    
-    string                       lotteryId            = 1;//txHash作为LotteryId
+message Lottery {
+    string                       lotteryId            = 1; // txHash作为LotteryId
     int32                        status               = 2;
     int64                        createHeight         = 3; //创建时间
     int64                        fund                 = 4; //奖池金额
@@ -25,8 +25,8 @@ message Lottery {
     map<string, PurchaseRecords> records              = 9;
     int64                        totalPurchasedTxNum  = 10;
     string                       createAddr           = 11;
-    int64                        round                = 12;//期数
-    int64                        luckyNumber          = 13;//当期中奖号码
+    int64                        round                = 12; //期数
+    int64                        luckyNumber          = 13; //当期中奖号码
 }
 
 // message for execs.game
@@ -41,25 +41,25 @@ message LotteryAction {
 }
 
 message LotteryCreate {
-    int64 purBlockNum  = 1;//购买阶段，持续多少个块，默认40
-    int64 drawBlockNum = 2;//多少个块以后，可以开奖
+    int64 purBlockNum  = 1; //购买阶段，持续多少个块，默认40
+    int64 drawBlockNum = 2; //多少个块以后，可以开奖
 }
 
-message LotteryBuy{
+message LotteryBuy {
     string lotteryId = 1;
     int64  amount    = 2;
     int64  number    = 3;
 }
 
-message LotteryDraw{
+message LotteryDraw {
     string lotteryId = 1;
 }
 
-message LotteryClose{
+message LotteryClose {
     string lotteryId = 1;
 }
 
-message ReceiptLottery{
+message ReceiptLottery {
     string lotteryId   = 1;
     int32  status      = 2;
     int32  prevStatus  = 3;
@@ -74,13 +74,13 @@ message ReqLotteryInfo {
     string lotteryId = 1;
 }
 
-message ReqLotteryBuyInfo{
+message ReqLotteryBuyInfo {
     string lotteryId = 1;
     string addr      = 2;
     int64  round     = 3;
 }
 
-message ReqLotteryBuyHistory{
+message ReqLotteryBuyHistory {
     string lotteryId = 1;
     string addr      = 2;
     int64  round     = 3;
@@ -88,65 +88,64 @@ message ReqLotteryBuyHistory{
     int32  direction = 5;
 }
 
-message ReqLotteryLuckyInfo{
+message ReqLotteryLuckyInfo {
     string lotteryId = 1;
     int64  round     = 2;
 }
 
-message ReqLotteryLuckyHistory{
+message ReqLotteryLuckyHistory {
     string lotteryId = 1;
     int64  round     = 2;
     int32  count     = 3;
     int32  direction = 4;
 }
 
-message ReplyLotteryNormalInfo {  
+message ReplyLotteryNormalInfo {
     int64  createHeight = 1;
     int64  purBlockNum  = 2;
     int64  drawBlockNum = 3;
     string createAddr   = 4;
 }
 
-message ReplyLotteryCurrentInfo{
+message ReplyLotteryCurrentInfo {
     int32 status               = 1;
     int64 fund                 = 2; //奖池金额
     int64 lastTransToPurState  = 3;
     int64 lastTransToDrawState = 4;
     int64 totalPurchasedTxNum  = 5;
-    int64 round                = 6;//期数
+    int64 round                = 6; //期数
     int64 luckyNumber          = 7;
 }
 
-message ReplyLotteryHistoryLuckyNumber{
+message ReplyLotteryHistoryLuckyNumber {
     repeated int64 luckyNumber = 1;
 }
 
-message ReplyLotteryShowInfo{
+message ReplyLotteryShowInfo {
     repeated LotteryBuyRecord records = 1;
 }
 
-message LotteryNumberRecord{
+message LotteryNumberRecord {
     int64 number = 1;
     int64 amount = 2;
 }
 
-//used for execlocal
-message LotteryBuyRecord{
+// used for execlocal
+message LotteryBuyRecord {
     int64 number = 1;
     int64 amount = 2;
     int64 round  = 3;
 }
 
-message LotteryBuyRecords{
+message LotteryBuyRecords {
     repeated LotteryBuyRecord records = 1;
 }
 
-message LotteryDrawRecord{
+message LotteryDrawRecord {
     int64 number = 1;
     int64 round  = 2;
 }
 
-message LotteryDrawRecords{
+message LotteryDrawRecords {
     repeated LotteryDrawRecord records = 1;
 }
-
