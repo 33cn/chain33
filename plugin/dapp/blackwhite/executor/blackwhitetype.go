@@ -176,7 +176,7 @@ func (l BlackwhiteLoopInfoLog) Decode(msg []byte) (interface{}, error) {
 type BlackwhiteRoundInfo struct {
 }
 
-func (t *BlackwhiteRoundInfo) Input(message json.RawMessage) ([]byte, error) {
+func (t *BlackwhiteRoundInfo) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req gt.ReqBlackwhiteRoundInfo
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -185,14 +185,14 @@ func (t *BlackwhiteRoundInfo) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *BlackwhiteRoundInfo) Output(reply interface{}) (interface{}, error) {
+func (t *BlackwhiteRoundInfo) ProtoToJson(reply interface{}) (interface{}, error) {
 	return reply, nil
 }
 
 type BlackwhiteByStatusAndAddr struct {
 }
 
-func (t *BlackwhiteByStatusAndAddr) Input(message json.RawMessage) ([]byte, error) {
+func (t *BlackwhiteByStatusAndAddr) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req gt.ReqBlackwhiteRoundList
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -201,14 +201,14 @@ func (t *BlackwhiteByStatusAndAddr) Input(message json.RawMessage) ([]byte, erro
 	return types.Encode(&req), nil
 }
 
-func (t *BlackwhiteByStatusAndAddr) Output(reply interface{}) (interface{}, error) {
+func (t *BlackwhiteByStatusAndAddr) ProtoToJson(reply interface{}) (interface{}, error) {
 	return reply, nil
 }
 
 type BlackwhiteloopResult struct {
 }
 
-func (t *BlackwhiteloopResult) Input(message json.RawMessage) ([]byte, error) {
+func (t *BlackwhiteloopResult) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req gt.ReqLoopResult
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -217,13 +217,13 @@ func (t *BlackwhiteloopResult) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *BlackwhiteloopResult) Output(reply interface{}) (interface{}, error) {
+func (t *BlackwhiteloopResult) ProtoToJson(reply interface{}) (interface{}, error) {
 	return reply, nil
 }
 
 type BlackwhiteCreateTxRPC struct{}
 
-func (t *BlackwhiteCreateTxRPC) Input(message json.RawMessage) ([]byte, error) {
+func (t *BlackwhiteCreateTxRPC) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req gt.BlackwhiteCreateTxReq
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -232,7 +232,7 @@ func (t *BlackwhiteCreateTxRPC) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *BlackwhiteCreateTxRPC) Output(reply interface{}) (interface{}, error) {
+func (t *BlackwhiteCreateTxRPC) ProtoToJson(reply interface{}) (interface{}, error) {
 	if replyData, ok := reply.(*types.Message); ok {
 		if tx, ok := (*replyData).(*types.Transaction); ok {
 			data := types.Encode(tx)
@@ -245,7 +245,7 @@ func (t *BlackwhiteCreateTxRPC) Output(reply interface{}) (interface{}, error) {
 type BlackwhitePlayTxRPC struct {
 }
 
-func (t *BlackwhitePlayTxRPC) Input(message json.RawMessage) ([]byte, error) {
+func (t *BlackwhitePlayTxRPC) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req gt.BlackwhitePlayTxReq
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -254,7 +254,7 @@ func (t *BlackwhitePlayTxRPC) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *BlackwhitePlayTxRPC) Output(reply interface{}) (interface{}, error) {
+func (t *BlackwhitePlayTxRPC) ProtoToJson(reply interface{}) (interface{}, error) {
 	if replyData, ok := reply.(*types.Message); ok {
 		if tx, ok := (*replyData).(*types.Transaction); ok {
 			data := types.Encode(tx)
@@ -267,7 +267,7 @@ func (t *BlackwhitePlayTxRPC) Output(reply interface{}) (interface{}, error) {
 type BlackwhiteShowTxRPC struct {
 }
 
-func (t *BlackwhiteShowTxRPC) Input(message json.RawMessage) ([]byte, error) {
+func (t *BlackwhiteShowTxRPC) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req gt.BlackwhiteShowTxReq
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -276,7 +276,7 @@ func (t *BlackwhiteShowTxRPC) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *BlackwhiteShowTxRPC) Output(reply interface{}) (interface{}, error) {
+func (t *BlackwhiteShowTxRPC) ProtoToJson(reply interface{}) (interface{}, error) {
 	if replyData, ok := reply.(*types.Message); ok {
 		if tx, ok := (*replyData).(*types.Transaction); ok {
 			data := types.Encode(tx)
@@ -289,7 +289,7 @@ func (t *BlackwhiteShowTxRPC) Output(reply interface{}) (interface{}, error) {
 type BlackwhiteTimeoutDoneTxRPC struct {
 }
 
-func (t *BlackwhiteTimeoutDoneTxRPC) Input(message json.RawMessage) ([]byte, error) {
+func (t *BlackwhiteTimeoutDoneTxRPC) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req gt.BlackwhiteTimeoutDoneTxReq
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -298,7 +298,7 @@ func (t *BlackwhiteTimeoutDoneTxRPC) Input(message json.RawMessage) ([]byte, err
 	return types.Encode(&req), nil
 }
 
-func (t *BlackwhiteTimeoutDoneTxRPC) Output(reply interface{}) (interface{}, error) {
+func (t *BlackwhiteTimeoutDoneTxRPC) ProtoToJson(reply interface{}) (interface{}, error) {
 	if replyData, ok := reply.(*types.Message); ok {
 		if tx, ok := (*replyData).(*types.Transaction); ok {
 			data := types.Encode(tx)

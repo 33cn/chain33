@@ -158,7 +158,7 @@ func (l ParacrossDoneLog) Decode(msg []byte) (interface{}, error) {
 type ParacrossGetTitle struct {
 }
 
-func (t *ParacrossGetTitle) Input(message json.RawMessage) ([]byte, error) {
+func (t *ParacrossGetTitle) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.ReqStr
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -167,26 +167,26 @@ func (t *ParacrossGetTitle) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *ParacrossGetTitle) Output(reply interface{}) (interface{}, error) {
+func (t *ParacrossGetTitle) ProtoToJson(reply interface{}) (interface{}, error) {
 	return reply, nil
 }
 
 type ParacrossListTitles struct {
 }
 
-func (t *ParacrossListTitles) Input(message json.RawMessage) ([]byte, error) {
+func (t *ParacrossListTitles) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.ReqNil
 	return types.Encode(&req), nil
 }
 
-func (t *ParacrossListTitles) Output(reply interface{}) (interface{}, error) {
+func (t *ParacrossListTitles) ProtoToJson(reply interface{}) (interface{}, error) {
 	return reply, nil
 }
 
 type ParacrossGetTitleHeight struct {
 }
 
-func (t *ParacrossGetTitleHeight) Input(message json.RawMessage) ([]byte, error) {
+func (t *ParacrossGetTitleHeight) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.ReqParacrossTitleHeight
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -195,6 +195,6 @@ func (t *ParacrossGetTitleHeight) Input(message json.RawMessage) ([]byte, error)
 	return types.Encode(&req), nil
 }
 
-func (t *ParacrossGetTitleHeight) Output(reply interface{}) (interface{}, error) {
+func (t *ParacrossGetTitleHeight) ProtoToJson(reply interface{}) (interface{}, error) {
 	return reply, nil
 }

@@ -319,7 +319,7 @@ func Example_sum() {
 	// Compute a 64-byte hash of buf and put it in h.
 	ShakeSum256(h, buf)
 	fmt.Printf("%x\n", h)
-	// Output: 0f65fe41fc353e52c55667bb9e2b27bfcc8476f2c413e9437d272ee3194a4e3146d05ec04a25d16b8f577c19b82d16b1424c3e022e783d2b4da98de3658d363d
+	// ProtoToJson: 0f65fe41fc353e52c55667bb9e2b27bfcc8476f2c413e9437d272ee3194a4e3146d05ec04a25d16b8f577c19b82d16b1424c3e022e783d2b4da98de3658d363d
 }
 
 func Example_mac() {
@@ -335,5 +335,5 @@ func Example_mac() {
 	// Read 32 bytes of output from the hash into h.
 	d.Read(h)
 	fmt.Printf("%x\n", h)
-	// Output: 78de2974bd2711d5549ffd32b753ef0f5fa80a0db2556db60f0987eb8a9218ff
+	// ProtoToJson: 78de2974bd2711d5549ffd32b753ef0f5fa80a0db2556db60f0987eb8a9218ff
 }

@@ -64,7 +64,7 @@ func (l CoinsDepositLog) Decode(msg []byte) (interface{}, error) {
 type CoinsGetTxsByAddr struct {
 }
 
-func (t *CoinsGetTxsByAddr) Input(message json.RawMessage) ([]byte, error) {
+func (t *CoinsGetTxsByAddr) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.ReqAddr
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -73,6 +73,6 @@ func (t *CoinsGetTxsByAddr) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *CoinsGetTxsByAddr) Output(reply interface{}) (interface{}, error) {
+func (t *CoinsGetTxsByAddr) ProtoToJson(reply interface{}) (interface{}, error) {
 	return reply, nil
 }

@@ -146,7 +146,7 @@ func (l EvmContractStateLog) Decode(msg []byte) (interface{}, error) {
 type EvmCheckAddrExists struct {
 }
 
-func (t *EvmCheckAddrExists) Input(message json.RawMessage) ([]byte, error) {
+func (t *EvmCheckAddrExists) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.CheckEVMAddrReq
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -155,14 +155,14 @@ func (t *EvmCheckAddrExists) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *EvmCheckAddrExists) Output(reply interface{}) (interface{}, error) {
+func (t *EvmCheckAddrExists) ProtoToJson(reply interface{}) (interface{}, error) {
 	return reply, nil
 }
 
 type EvmEstimateGas struct {
 }
 
-func (t *EvmEstimateGas) Input(message json.RawMessage) ([]byte, error) {
+func (t *EvmEstimateGas) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.EstimateEVMGasReq
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -171,14 +171,14 @@ func (t *EvmEstimateGas) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *EvmEstimateGas) Output(reply interface{}) (interface{}, error) {
+func (t *EvmEstimateGas) ProtoToJson(reply interface{}) (interface{}, error) {
 	return reply, nil
 }
 
 type EvmDebug struct {
 }
 
-func (t *EvmDebug) Input(message json.RawMessage) ([]byte, error) {
+func (t *EvmDebug) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.EvmDebugReq
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -187,7 +187,7 @@ func (t *EvmDebug) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *EvmDebug) Output(reply interface{}) (interface{}, error) {
+func (t *EvmDebug) ProtoToJson(reply interface{}) (interface{}, error) {
 	return reply, nil
 }
 

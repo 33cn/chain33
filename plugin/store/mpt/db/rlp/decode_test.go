@@ -707,7 +707,7 @@ func ExampleDecode() {
 	} else {
 		fmt.Printf("Decoded value: %#v\n", s)
 	}
-	// Output:
+	// ProtoToJson:
 	// Decoded value: rlp.example{A:0xa, B:0x14, String:"foobar"}
 }
 
@@ -733,7 +733,7 @@ func ExampleDecode_structTagNil() {
 	Decode(bytes.NewReader(input), &withEmptyOK)
 	fmt.Printf("with nil tag: String = %v\n", withEmptyOK.String)
 
-	// Output:
+	// ProtoToJson:
 	// normal: String = ""
 	// with nil tag: String = <nil>
 }
@@ -761,7 +761,7 @@ func ExampleStream() {
 	if err := s.ListEnd(); err != nil {
 		fmt.Printf("ListEnd error: %v\n", err)
 	}
-	// Output:
+	// ProtoToJson:
 	// Kind: List size:9
 	// 10 <nil>
 	// 20 <nil>
