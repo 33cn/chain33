@@ -122,7 +122,7 @@ func (l CoinsDepositLog) Decode(msg []byte) (interface{}, error) {
 type RetrieveGetInfo struct {
 }
 
-func (t *RetrieveGetInfo) Input(message json.RawMessage) ([]byte, error) {
+func (t *RetrieveGetInfo) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.ReqRetrieveInfo
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -131,7 +131,7 @@ func (t *RetrieveGetInfo) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *RetrieveGetInfo) Output(reply interface{}) (interface{}, error) {
+func (t *RetrieveGetInfo) ProtoToJson(reply interface{}) (interface{}, error) {
 	return reply, nil
 }
 

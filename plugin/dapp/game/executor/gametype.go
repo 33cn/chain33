@@ -309,7 +309,7 @@ func (l CloseGameLog) Decode(msg []byte) (interface{}, error) {
 type GameGetList struct {
 }
 
-func (g *GameGetList) Input(message json.RawMessage) ([]byte, error) {
+func (g *GameGetList) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req gt.QueryGameInfos
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -318,7 +318,7 @@ func (g *GameGetList) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *GameGetList) Output(reply interface{}) (interface{}, error) {
+func (t *GameGetList) ProtoToJson(reply interface{}) (interface{}, error) {
 	if replyData, ok := reply.(*types.Message); ok {
 		if replyGameList, ok := (*replyData).(*gt.ReplyGameList); ok {
 			var gameList []*GameData
@@ -355,7 +355,7 @@ func (t *GameGetList) Output(reply interface{}) (interface{}, error) {
 type GameQueryListCount struct {
 }
 
-func (g *GameQueryListCount) Input(message json.RawMessage) ([]byte, error) {
+func (g *GameQueryListCount) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req gt.QueryGameListCount
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -364,7 +364,7 @@ func (g *GameQueryListCount) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (g *GameQueryListCount) Output(reply interface{}) (interface{}, error) {
+func (g *GameQueryListCount) ProtoToJson(reply interface{}) (interface{}, error) {
 	if replyData, ok := reply.(*types.Message); ok {
 		if replyCount, ok := (*replyData).(*gt.ReplyGameListCount); ok {
 			count := replyCount.GetCount()
@@ -377,7 +377,7 @@ func (g *GameQueryListCount) Output(reply interface{}) (interface{}, error) {
 type GameGetInfo struct {
 }
 
-func (g *GameGetInfo) Input(message json.RawMessage) ([]byte, error) {
+func (g *GameGetInfo) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req gt.QueryGameInfo
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -386,7 +386,7 @@ func (g *GameGetInfo) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (g *GameGetInfo) Output(reply interface{}) (interface{}, error) {
+func (g *GameGetInfo) ProtoToJson(reply interface{}) (interface{}, error) {
 	if replyData, ok := reply.(*types.Message); ok {
 		if replyGame, ok := (*replyData).(*gt.ReplyGame); ok {
 			game := replyGame.GetGame()
@@ -420,7 +420,7 @@ func (g *GameGetInfo) Output(reply interface{}) (interface{}, error) {
 type GameQueryList struct {
 }
 
-func (g *GameQueryList) Input(message json.RawMessage) ([]byte, error) {
+func (g *GameQueryList) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req gt.QueryGameListByStatusAndAddr
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -429,7 +429,7 @@ func (g *GameQueryList) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (g *GameQueryList) Output(reply interface{}) (interface{}, error) {
+func (g *GameQueryList) ProtoToJson(reply interface{}) (interface{}, error) {
 	if replyData, ok := reply.(*types.Message); ok {
 		if replyGameList, ok := (*replyData).(*gt.ReplyGameList); ok {
 			var gameList []*GameData

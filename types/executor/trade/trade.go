@@ -401,7 +401,7 @@ type RpcReplySellOrders struct {
 type TradeQueryTokenSellOrder struct {
 }
 
-func (t *TradeQueryTokenSellOrder) Input(message json.RawMessage) ([]byte, error) {
+func (t *TradeQueryTokenSellOrder) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.ReqTokenSellOrder
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -410,7 +410,7 @@ func (t *TradeQueryTokenSellOrder) Input(message json.RawMessage) ([]byte, error
 	return types.Encode(&req), nil
 }
 
-func (t *TradeQueryTokenSellOrder) Output(reply interface{}) (interface{}, error) {
+func (t *TradeQueryTokenSellOrder) ProtoToJson(reply interface{}) (interface{}, error) {
 	orders := (*(reply.(*types.Message))).(*types.ReplyTradeOrders)
 	var rpcReply RpcReplySellOrders
 	for _, order := range orders.Orders {
@@ -422,7 +422,7 @@ func (t *TradeQueryTokenSellOrder) Output(reply interface{}) (interface{}, error
 type TradeQueryOnesSellOrder struct {
 }
 
-func (t *TradeQueryOnesSellOrder) Input(message json.RawMessage) ([]byte, error) {
+func (t *TradeQueryOnesSellOrder) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.ReqAddrTokens
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -431,7 +431,7 @@ func (t *TradeQueryOnesSellOrder) Input(message json.RawMessage) ([]byte, error)
 	return types.Encode(&req), nil
 }
 
-func (t *TradeQueryOnesSellOrder) Output(reply interface{}) (interface{}, error) {
+func (t *TradeQueryOnesSellOrder) ProtoToJson(reply interface{}) (interface{}, error) {
 	orders := (*(reply.(*types.Message))).(*types.ReplyTradeOrders)
 	var rpcReply RpcReplySellOrders
 	for _, order := range orders.Orders {
@@ -448,7 +448,7 @@ type RpcReplyBuyOrders struct {
 type TradeQueryTokenBuyOrder struct {
 }
 
-func (t *TradeQueryTokenBuyOrder) Input(message json.RawMessage) ([]byte, error) {
+func (t *TradeQueryTokenBuyOrder) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.ReqTokenBuyOrder
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -457,7 +457,7 @@ func (t *TradeQueryTokenBuyOrder) Input(message json.RawMessage) ([]byte, error)
 	return types.Encode(&req), nil
 }
 
-func (t *TradeQueryTokenBuyOrder) Output(reply interface{}) (interface{}, error) {
+func (t *TradeQueryTokenBuyOrder) ProtoToJson(reply interface{}) (interface{}, error) {
 	orders := (*(reply.(*types.Message))).(*types.ReplyTradeOrders)
 	var rpcReply RpcReplyBuyOrders
 	for _, order := range orders.Orders {
@@ -469,7 +469,7 @@ func (t *TradeQueryTokenBuyOrder) Output(reply interface{}) (interface{}, error)
 type TradeQueryOnesBuyOrder struct {
 }
 
-func (t *TradeQueryOnesBuyOrder) Input(message json.RawMessage) ([]byte, error) {
+func (t *TradeQueryOnesBuyOrder) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.ReqAddrTokens
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -478,7 +478,7 @@ func (t *TradeQueryOnesBuyOrder) Input(message json.RawMessage) ([]byte, error) 
 	return types.Encode(&req), nil
 }
 
-func (t *TradeQueryOnesBuyOrder) Output(reply interface{}) (interface{}, error) {
+func (t *TradeQueryOnesBuyOrder) ProtoToJson(reply interface{}) (interface{}, error) {
 	orders := (*(reply.(*types.Message))).(*types.ReplyTradeOrders)
 	var rpcReply RpcReplyBuyOrders
 	for _, order := range orders.Orders {
@@ -495,7 +495,7 @@ type RpcReplyTradeOrders struct {
 type TradeQueryOnesOrder struct {
 }
 
-func (t *TradeQueryOnesOrder) Input(message json.RawMessage) ([]byte, error) {
+func (t *TradeQueryOnesOrder) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.ReqAddrTokens
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -504,7 +504,7 @@ func (t *TradeQueryOnesOrder) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *TradeQueryOnesOrder) Output(reply interface{}) (interface{}, error) {
+func (t *TradeQueryOnesOrder) ProtoToJson(reply interface{}) (interface{}, error) {
 	orders := (*(reply.(*types.Message))).(*types.ReplyTradeOrders)
 	return orders, nil
 }

@@ -69,7 +69,7 @@ func (l ModifyConfigLog) Decode(msg []byte) (interface{}, error) {
 type MagageGetConfigItem struct {
 }
 
-func (t *MagageGetConfigItem) Input(message json.RawMessage) ([]byte, error) {
+func (t *MagageGetConfigItem) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.ReqString
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -78,6 +78,6 @@ func (t *MagageGetConfigItem) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *MagageGetConfigItem) Output(reply interface{}) (interface{}, error) {
+func (t *MagageGetConfigItem) ProtoToJson(reply interface{}) (interface{}, error) {
 	return reply, nil
 }

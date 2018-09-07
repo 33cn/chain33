@@ -865,7 +865,7 @@ func (c *Chain33) Query(in Query4Jrpc, result *interface{}) error {
 		log.Error("Query", "funcname", in.FuncName, "err", types.ErrNotSupport)
 		return types.ErrNotSupport
 	}
-	decodePayload, err := trans.Input(in.Payload)
+	decodePayload, err := trans.JsonToProto(in.Payload)
 	if err != nil {
 		log.Error("EventQuery", "err", err.Error())
 		return err
@@ -877,7 +877,7 @@ func (c *Chain33) Query(in Query4Jrpc, result *interface{}) error {
 		return err
 	}
 
-	*result, err = trans.(types.RpcQueryType).Output(resp)
+	*result, err = trans.(types.RpcQueryType).ProtoToJson(resp)
 	if err != nil {
 		log.Error("EventQuery", "err", err.Error())
 		return err
