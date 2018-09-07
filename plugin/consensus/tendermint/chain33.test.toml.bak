@@ -97,5 +97,5 @@ signType="secp256k1"
 minerdisable=false
 
 [exec]
-isFree=false
-minExecFee=100000
+isFree=true
+minExecFee=0
