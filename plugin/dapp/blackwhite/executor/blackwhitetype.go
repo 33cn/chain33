@@ -185,7 +185,7 @@ func (t *BlackwhiteRoundInfo) JsonToProto(message json.RawMessage) ([]byte, erro
 	return types.Encode(&req), nil
 }
 
-func (t *BlackwhiteRoundInfo) ProtoToJson(reply interface{}) (interface{}, error) {
+func (t *BlackwhiteRoundInfo) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
 
@@ -201,7 +201,7 @@ func (t *BlackwhiteByStatusAndAddr) JsonToProto(message json.RawMessage) ([]byte
 	return types.Encode(&req), nil
 }
 
-func (t *BlackwhiteByStatusAndAddr) ProtoToJson(reply interface{}) (interface{}, error) {
+func (t *BlackwhiteByStatusAndAddr) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
 
@@ -217,7 +217,7 @@ func (t *BlackwhiteloopResult) JsonToProto(message json.RawMessage) ([]byte, err
 	return types.Encode(&req), nil
 }
 
-func (t *BlackwhiteloopResult) ProtoToJson(reply interface{}) (interface{}, error) {
+func (t *BlackwhiteloopResult) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
 
@@ -232,12 +232,10 @@ func (t *BlackwhiteCreateTxRPC) JsonToProto(message json.RawMessage) ([]byte, er
 	return types.Encode(&req), nil
 }
 
-func (t *BlackwhiteCreateTxRPC) ProtoToJson(reply interface{}) (interface{}, error) {
-	if replyData, ok := reply.(*types.Message); ok {
-		if tx, ok := (*replyData).(*types.Transaction); ok {
-			data := types.Encode(tx)
-			return hex.EncodeToString(data), nil
-		}
+func (t *BlackwhiteCreateTxRPC) ProtoToJson(reply *types.Message) (interface{}, error) {
+	if tx, ok := (*reply).(*types.Transaction); ok {
+		data := types.Encode(tx)
+		return hex.EncodeToString(data), nil
 	}
 	return nil, types.ErrTypeAsset
 }
@@ -254,12 +252,10 @@ func (t *BlackwhitePlayTxRPC) JsonToProto(message json.RawMessage) ([]byte, erro
 	return types.Encode(&req), nil
 }
 
-func (t *BlackwhitePlayTxRPC) ProtoToJson(reply interface{}) (interface{}, error) {
-	if replyData, ok := reply.(*types.Message); ok {
-		if tx, ok := (*replyData).(*types.Transaction); ok {
-			data := types.Encode(tx)
-			return hex.EncodeToString(data), nil
-		}
+func (t *BlackwhitePlayTxRPC) ProtoToJson(reply *types.Message) (interface{}, error) {
+	if tx, ok := (*reply).(*types.Transaction); ok {
+		data := types.Encode(tx)
+		return hex.EncodeToString(data), nil
 	}
 	return nil, types.ErrTypeAsset
 }
@@ -276,12 +272,10 @@ func (t *BlackwhiteShowTxRPC) JsonToProto(message json.RawMessage) ([]byte, erro
 	return types.Encode(&req), nil
 }
 
-func (t *BlackwhiteShowTxRPC) ProtoToJson(reply interface{}) (interface{}, error) {
-	if replyData, ok := reply.(*types.Message); ok {
-		if tx, ok := (*replyData).(*types.Transaction); ok {
-			data := types.Encode(tx)
-			return hex.EncodeToString(data), nil
-		}
+func (t *BlackwhiteShowTxRPC) ProtoToJson(reply *types.Message) (interface{}, error) {
+	if tx, ok := (*reply).(*types.Transaction); ok {
+		data := types.Encode(tx)
+		return hex.EncodeToString(data), nil
 	}
 	return nil, types.ErrTypeAsset
 }
@@ -298,12 +292,10 @@ func (t *BlackwhiteTimeoutDoneTxRPC) JsonToProto(message json.RawMessage) ([]byt
 	return types.Encode(&req), nil
 }
 
-func (t *BlackwhiteTimeoutDoneTxRPC) ProtoToJson(reply interface{}) (interface{}, error) {
-	if replyData, ok := reply.(*types.Message); ok {
-		if tx, ok := (*replyData).(*types.Transaction); ok {
-			data := types.Encode(tx)
-			return hex.EncodeToString(data), nil
-		}
+func (t *BlackwhiteTimeoutDoneTxRPC) ProtoToJson(reply *types.Message) (interface{}, error) {
+	if tx, ok := (*reply).(*types.Transaction); ok {
+		data := types.Encode(tx)
+		return hex.EncodeToString(data), nil
 	}
 	return nil, types.ErrTypeAsset
 }

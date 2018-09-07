@@ -158,7 +158,7 @@ func (t *TicketInfos) JsonToProto(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *TicketInfos) ProtoToJson(reply interface{}) (interface{}, error) {
+func (t *TicketInfos) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
 
@@ -174,7 +174,7 @@ func (t *TicketList) JsonToProto(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *TicketList) ProtoToJson(reply interface{}) (interface{}, error) {
+func (t *TicketList) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
 
@@ -190,7 +190,7 @@ func (t *TicketMinerAddress) JsonToProto(message json.RawMessage) ([]byte, error
 	return types.Encode(&req), nil
 }
 
-func (t *TicketMinerAddress) ProtoToJson(reply interface{}) (interface{}, error) {
+func (t *TicketMinerAddress) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
 
@@ -206,6 +206,6 @@ func (t *TicketMinerSourceList) JsonToProto(message json.RawMessage) ([]byte, er
 	return types.Encode(&req), nil
 }
 
-func (t *TicketMinerSourceList) ProtoToJson(reply interface{}) (interface{}, error) {
+func (t *TicketMinerSourceList) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }

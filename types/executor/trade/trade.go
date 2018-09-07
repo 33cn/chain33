@@ -410,8 +410,8 @@ func (t *TradeQueryTokenSellOrder) JsonToProto(message json.RawMessage) ([]byte,
 	return types.Encode(&req), nil
 }
 
-func (t *TradeQueryTokenSellOrder) ProtoToJson(reply interface{}) (interface{}, error) {
-	orders := (*(reply.(*types.Message))).(*types.ReplyTradeOrders)
+func (t *TradeQueryTokenSellOrder) ProtoToJson(reply *types.Message) (interface{}, error) {
+	orders := (*reply).(*types.ReplyTradeOrders)
 	var rpcReply RpcReplySellOrders
 	for _, order := range orders.Orders {
 		rpcReply.SellOrders = append(rpcReply.SellOrders, (*types.RpcReplyTradeOrder)(order))
@@ -431,8 +431,8 @@ func (t *TradeQueryOnesSellOrder) JsonToProto(message json.RawMessage) ([]byte, 
 	return types.Encode(&req), nil
 }
 
-func (t *TradeQueryOnesSellOrder) ProtoToJson(reply interface{}) (interface{}, error) {
-	orders := (*(reply.(*types.Message))).(*types.ReplyTradeOrders)
+func (t *TradeQueryOnesSellOrder) ProtoToJson(reply *types.Message) (interface{}, error) {
+	orders := (*reply).(*types.ReplyTradeOrders)
 	var rpcReply RpcReplySellOrders
 	for _, order := range orders.Orders {
 		rpcReply.SellOrders = append(rpcReply.SellOrders, (*types.RpcReplyTradeOrder)(order))
@@ -457,8 +457,8 @@ func (t *TradeQueryTokenBuyOrder) JsonToProto(message json.RawMessage) ([]byte, 
 	return types.Encode(&req), nil
 }
 
-func (t *TradeQueryTokenBuyOrder) ProtoToJson(reply interface{}) (interface{}, error) {
-	orders := (*(reply.(*types.Message))).(*types.ReplyTradeOrders)
+func (t *TradeQueryTokenBuyOrder) ProtoToJson(reply *types.Message) (interface{}, error) {
+	orders := (*reply).(*types.ReplyTradeOrders)
 	var rpcReply RpcReplyBuyOrders
 	for _, order := range orders.Orders {
 		rpcReply.BuyOrders = append(rpcReply.BuyOrders, (*types.RpcReplyTradeOrder)(order))
@@ -478,8 +478,8 @@ func (t *TradeQueryOnesBuyOrder) JsonToProto(message json.RawMessage) ([]byte, e
 	return types.Encode(&req), nil
 }
 
-func (t *TradeQueryOnesBuyOrder) ProtoToJson(reply interface{}) (interface{}, error) {
-	orders := (*(reply.(*types.Message))).(*types.ReplyTradeOrders)
+func (t *TradeQueryOnesBuyOrder) ProtoToJson(reply *types.Message) (interface{}, error) {
+	orders := (*reply).(*types.ReplyTradeOrders)
 	var rpcReply RpcReplyBuyOrders
 	for _, order := range orders.Orders {
 		rpcReply.BuyOrders = append(rpcReply.BuyOrders, (*types.RpcReplyTradeOrder)(order))
@@ -504,7 +504,7 @@ func (t *TradeQueryOnesOrder) JsonToProto(message json.RawMessage) ([]byte, erro
 	return types.Encode(&req), nil
 }
 
-func (t *TradeQueryOnesOrder) ProtoToJson(reply interface{}) (interface{}, error) {
-	orders := (*(reply.(*types.Message))).(*types.ReplyTradeOrders)
+func (t *TradeQueryOnesOrder) ProtoToJson(reply *types.Message) (interface{}, error) {
+	orders := (*reply).(*types.ReplyTradeOrders)
 	return orders, nil
 }

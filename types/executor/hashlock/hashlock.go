@@ -122,7 +122,7 @@ func (t *CoinsGetTxsByAddr) JsonToProto(message json.RawMessage) ([]byte, error)
 	return types.Encode(&req), nil
 }
 
-func (t *CoinsGetTxsByAddr) ProtoToJson(reply interface{}) (interface{}, error) {
+func (t *CoinsGetTxsByAddr) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
 

@@ -161,7 +161,7 @@ func (t *PrivacyShowAmountsOfUTXO) JsonToProto(message json.RawMessage) ([]byte,
 	return types.Encode(&req), nil
 }
 
-func (t *PrivacyShowAmountsOfUTXO) ProtoToJson(reply interface{}) (interface{}, error) {
+func (t *PrivacyShowAmountsOfUTXO) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
 
@@ -177,7 +177,7 @@ func (t *PrivacyShowUTXOs4SpecifiedAmount) JsonToProto(message json.RawMessage) 
 	return types.Encode(&req), nil
 }
 
-func (t *PrivacyShowUTXOs4SpecifiedAmount) ProtoToJson(reply interface{}) (interface{}, error) {
+func (t *PrivacyShowUTXOs4SpecifiedAmount) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
 

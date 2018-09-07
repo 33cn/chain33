@@ -78,6 +78,6 @@ func (t *MagageGetConfigItem) JsonToProto(message json.RawMessage) ([]byte, erro
 	return types.Encode(&req), nil
 }
 
-func (t *MagageGetConfigItem) ProtoToJson(reply interface{}) (interface{}, error) {
+func (t *MagageGetConfigItem) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }

@@ -155,7 +155,7 @@ func (t *EvmCheckAddrExists) JsonToProto(message json.RawMessage) ([]byte, error
 	return types.Encode(&req), nil
 }
 
-func (t *EvmCheckAddrExists) ProtoToJson(reply interface{}) (interface{}, error) {
+func (t *EvmCheckAddrExists) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
 
@@ -171,7 +171,7 @@ func (t *EvmEstimateGas) JsonToProto(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *EvmEstimateGas) ProtoToJson(reply interface{}) (interface{}, error) {
+func (t *EvmEstimateGas) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
 
@@ -187,7 +187,7 @@ func (t *EvmDebug) JsonToProto(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *EvmDebug) ProtoToJson(reply interface{}) (interface{}, error) {
+func (t *EvmDebug) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
 

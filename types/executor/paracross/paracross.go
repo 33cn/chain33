@@ -167,7 +167,7 @@ func (t *ParacrossGetTitle) JsonToProto(message json.RawMessage) ([]byte, error)
 	return types.Encode(&req), nil
 }
 
-func (t *ParacrossGetTitle) ProtoToJson(reply interface{}) (interface{}, error) {
+func (t *ParacrossGetTitle) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
 
@@ -179,7 +179,7 @@ func (t *ParacrossListTitles) JsonToProto(message json.RawMessage) ([]byte, erro
 	return types.Encode(&req), nil
 }
 
-func (t *ParacrossListTitles) ProtoToJson(reply interface{}) (interface{}, error) {
+func (t *ParacrossListTitles) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
 
@@ -195,6 +195,6 @@ func (t *ParacrossGetTitleHeight) JsonToProto(message json.RawMessage) ([]byte, 
 	return types.Encode(&req), nil
 }
 
-func (t *ParacrossGetTitleHeight) ProtoToJson(reply interface{}) (interface{}, error) {
+func (t *ParacrossGetTitleHeight) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }

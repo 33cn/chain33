@@ -188,7 +188,7 @@ func (t *LotteryGetInfo) JsonToProto(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *LotteryGetInfo) ProtoToJson(reply interface{}) (interface{}, error) {
+func (t *LotteryGetInfo) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
 
@@ -204,7 +204,7 @@ func (t *LotteryLuckyRoundInfo) JsonToProto(message json.RawMessage) ([]byte, er
 	return types.Encode(&req), nil
 }
 
-func (t *LotteryLuckyRoundInfo) ProtoToJson(reply interface{}) (interface{}, error) {
+func (t *LotteryLuckyRoundInfo) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
 
@@ -220,7 +220,7 @@ func (t *LotteryBuyInfo) JsonToProto(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *LotteryBuyInfo) ProtoToJson(reply interface{}) (interface{}, error) {
+func (t *LotteryBuyInfo) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
 
@@ -236,7 +236,7 @@ func (t *LotteryBuyRoundInfo) JsonToProto(message json.RawMessage) ([]byte, erro
 	return types.Encode(&req), nil
 }
 
-func (t *LotteryBuyRoundInfo) ProtoToJson(reply interface{}) (interface{}, error) {
+func (t *LotteryBuyRoundInfo) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
 
