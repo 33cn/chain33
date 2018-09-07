@@ -1,4 +1,4 @@
-package executor
+package rpc
 
 import (
 	"encoding/json"
@@ -8,6 +8,7 @@ import (
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	gt "gitlab.33.cn/chain33/chain33/plugin/dapp/game/types"
+	"gitlab.33.cn/chain33/chain33/pluginmgr"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -28,7 +29,7 @@ type GameType struct {
 	types.ExecTypeBase
 }
 
-func Init() {
+func Init(s pluginmgr.RPCServer) {
 	name = types.ExecName(gt.GameX)
 	// init executor type
 	types.RegistorExecutor(types.ExecName(name), &GameType{})

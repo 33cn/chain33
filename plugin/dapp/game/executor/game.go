@@ -11,8 +11,8 @@ import (
 
 var glog = log.New("module", "execs.game")
 
-func init() {
-	//manager.RegisterExecutor(newGame().GetName(), newGame, 0)
+func Init() {
+	drivers.Register(GetName(), NewGame, 0)
 }
 
 type Game struct {

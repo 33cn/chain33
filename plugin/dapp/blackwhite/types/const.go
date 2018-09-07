@@ -1,5 +1,7 @@
 package types
 
+import "gitlab.33.cn/chain33/chain33/types"
+
 // status
 const (
 	BlackwhiteStatusCreate = iota + 1
@@ -33,3 +35,7 @@ var (
 	JRPCName         = "Chain33"
 	ExecerBlackwhite = []byte(BlackwhiteX)
 )
+
+func init() {
+	types.AllowUserExec = append(types.AllowUserExec, ExecerBlackwhite)
+}
