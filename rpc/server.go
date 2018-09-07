@@ -141,13 +141,17 @@ type RPC struct {
 	c    queue.Client
 }
 
-func New(cfg *types.Rpc) *RPC {
+func initCfg(cfg *types.Rpc) {
 	rpcCfg = cfg
 	InitIpWhitelist(cfg)
 	InitJrpcFuncWhitelist(cfg)
 	InitGrpcFuncWhitelist(cfg)
 	InitJrpcFuncBlacklist(cfg)
 	InitGrpcFuncBlacklist(cfg)
+}
+
+func New(cfg *types.Rpc) *RPC {
+	initCfg(cfg)
 	return &RPC{cfg: cfg}
 }
 
