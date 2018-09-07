@@ -1,12 +1,12 @@
 package executor
 
 import (
-	"encoding/hex"
 	"encoding/json"
 
 	log "github.com/inconshreveable/log15"
 	gt "gitlab.33.cn/chain33/chain33/plugin/dapp/blackwhite/types"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/types/convertor"
 )
 
 var glog = log.New("module", gt.BlackwhiteX)
@@ -26,13 +26,20 @@ func InitTypes() {
 	types.RegistorLog(types.TyLogBlackwhiteLoopInfo, &BlackwhiteLoopInfoLog{})
 
 	// init query rpc
-	types.RegistorRpcType(gt.GetBlackwhiteRoundInfo, &BlackwhiteRoundInfo{})
-	types.RegistorRpcType(gt.GetBlackwhiteByStatusAndAddr, &BlackwhiteByStatusAndAddr{})
-	types.RegistorRpcType(gt.GetBlackwhiteloopResult, &BlackwhiteloopResult{})
-	types.RegistorRpcType(gt.BlackwhiteCreateTx, &BlackwhiteCreateTxRPC{})
-	types.RegistorRpcType(gt.BlackwhitePlayTx, &BlackwhitePlayTxRPC{})
-	types.RegistorRpcType(gt.BlackwhiteShowTx, &BlackwhiteShowTxRPC{})
-	types.RegistorRpcType(gt.BlackwhiteTimeoutDoneTx, &BlackwhiteTimeoutDoneTxRPC{})
+	types.RegistorRpcType(gt.GetBlackwhiteRoundInfo,
+		&convertor.QueryConvertor{ProtoObj: &gt.ReqBlackwhiteRoundInfo{}})
+	types.RegistorRpcType(gt.GetBlackwhiteByStatusAndAddr,
+		&convertor.QueryConvertor{ProtoObj: &gt.ReqBlackwhiteRoundList{}})
+	types.RegistorRpcType(gt.GetBlackwhiteloopResult,
+		&convertor.QueryConvertor{ProtoObj: &gt.ReqLoopResult{}})
+	types.RegistorRpcType(gt.BlackwhiteCreateTx,
+		&convertor.QueryConvertorEncodeTx{QueryConvertor: convertor.QueryConvertor{ProtoObj: &gt.BlackwhiteCreateTxReq{}}})
+	types.RegistorRpcType(gt.BlackwhitePlayTx,
+		&convertor.QueryConvertorEncodeTx{QueryConvertor: convertor.QueryConvertor{ProtoObj: &gt.BlackwhitePlayTxReq{}}})
+	types.RegistorRpcType(gt.BlackwhiteShowTx,
+		&convertor.QueryConvertorEncodeTx{QueryConvertor: convertor.QueryConvertor{ProtoObj: &gt.BlackwhiteShowTxReq{}}})
+	types.RegistorRpcType(gt.BlackwhiteTimeoutDoneTx,
+		&convertor.QueryConvertorEncodeTx{QueryConvertor: convertor.QueryConvertor{ProtoObj: &gt.BlackwhiteTimeoutDoneTxReq{}}})
 }
 
 type BlackwhiteType struct {
@@ -171,131 +178,4 @@ func (l BlackwhiteLoopInfoLog) Decode(msg []byte) (interface{}, error) {
 		return nil, err
 	}
 	return logTmp, err
-}
-
-type BlackwhiteRoundInfo struct {
-}
-
-func (t *BlackwhiteRoundInfo) JsonToProto(message json.RawMessage) ([]byte, error) {
-	var req gt.ReqBlackwhiteRoundInfo
-	err := json.Unmarshal(message, &req)
-	if err != nil {
-		return nil, err
-	}
-	return types.Encode(&req), nil
-}
-
-func (t *BlackwhiteRoundInfo) ProtoToJson(reply *types.Message) (interface{}, error) {
-	return reply, nil
-}
-
-type BlackwhiteByStatusAndAddr struct {
-}
-
-func (t *BlackwhiteByStatusAndAddr) JsonToProto(message json.RawMessage) ([]byte, error) {
-	var req gt.ReqBlackwhiteRoundList
-	err := json.Unmarshal(message, &req)
-	if err != nil {
-		return nil, err
-	}
-	return types.Encode(&req), nil
-}
-
-func (t *BlackwhiteByStatusAndAddr) ProtoToJson(reply *types.Message) (interface{}, error) {
-	return reply, nil
-}
-
-type BlackwhiteloopResult struct {
-}
-
-func (t *BlackwhiteloopResult) JsonToProto(message json.RawMessage) ([]byte, error) {
-	var req gt.ReqLoopResult
-	err := json.Unmarshal(message, &req)
-	if err != nil {
-		return nil, err
-	}
-	return types.Encode(&req), nil
-}
-
-func (t *BlackwhiteloopResult) ProtoToJson(reply *types.Message) (interface{}, error) {
-	return reply, nil
-}
-
-type BlackwhiteCreateTxRPC struct{}
-
-func (t *BlackwhiteCreateTxRPC) JsonToProto(message json.RawMessage) ([]byte, error) {
-	var req gt.BlackwhiteCreateTxReq
-	err := json.Unmarshal(message, &req)
-	if err != nil {
-		return nil, err
-	}
-	return types.Encode(&req), nil
-}
-
-func (t *BlackwhiteCreateTxRPC) ProtoToJson(reply *types.Message) (interface{}, error) {
-	if tx, ok := (*reply).(*types.Transaction); ok {
-		data := types.Encode(tx)
-		return hex.EncodeToString(data), nil
-	}
-	return nil, types.ErrTypeAsset
-}
-
-type BlackwhitePlayTxRPC struct {
-}
-
-func (t *BlackwhitePlayTxRPC) JsonToProto(message json.RawMessage) ([]byte, error) {
-	var req gt.BlackwhitePlayTxReq
-	err := json.Unmarshal(message, &req)
-	if err != nil {
-		return nil, err
-	}
-	return types.Encode(&req), nil
-}
-
-func (t *BlackwhitePlayTxRPC) ProtoToJson(reply *types.Message) (interface{}, error) {
-	if tx, ok := (*reply).(*types.Transaction); ok {
-		data := types.Encode(tx)
-		return hex.EncodeToString(data), nil
-	}
-	return nil, types.ErrTypeAsset
-}
-
-type BlackwhiteShowTxRPC struct {
-}
-
-func (t *BlackwhiteShowTxRPC) JsonToProto(message json.RawMessage) ([]byte, error) {
-	var req gt.BlackwhiteShowTxReq
-	err := json.Unmarshal(message, &req)
-	if err != nil {
-		return nil, err
-	}
-	return types.Encode(&req), nil
-}
-
-func (t *BlackwhiteShowTxRPC) ProtoToJson(reply *types.Message) (interface{}, error) {
-	if tx, ok := (*reply).(*types.Transaction); ok {
-		data := types.Encode(tx)
-		return hex.EncodeToString(data), nil
-	}
-	return nil, types.ErrTypeAsset
-}
-
-type BlackwhiteTimeoutDoneTxRPC struct {
-}
-
-func (t *BlackwhiteTimeoutDoneTxRPC) JsonToProto(message json.RawMessage) ([]byte, error) {
-	var req gt.BlackwhiteTimeoutDoneTxReq
-	err := json.Unmarshal(message, &req)
-	if err != nil {
-		return nil, err
-	}
-	return types.Encode(&req), nil
-}
-
-func (t *BlackwhiteTimeoutDoneTxRPC) ProtoToJson(reply *types.Message) (interface{}, error) {
-	if tx, ok := (*reply).(*types.Transaction); ok {
-		data := types.Encode(tx)
-		return hex.EncodeToString(data), nil
-	}
-	return nil, types.ErrTypeAsset
 }

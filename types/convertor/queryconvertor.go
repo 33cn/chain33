@@ -1,4 +1,4 @@
-package defconverter
+package convertor
 
 import (
 	"encoding/json"
@@ -6,11 +6,11 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-type DefaultRpcQueryConverter struct {
+type QueryConvertor struct {
 	ProtoObj types.Message
 }
 
-func (converter *DefaultRpcQueryConverter) JsonToProto(message json.RawMessage) ([]byte, error) {
+func (converter *QueryConvertor) JsonToProto(message json.RawMessage) ([]byte, error) {
 	if converter.ProtoObj == nil {
 		return nil, types.ErrInvalidParams
 	}
@@ -21,6 +21,6 @@ func (converter *DefaultRpcQueryConverter) JsonToProto(message json.RawMessage) 
 	return types.Encode(converter.ProtoObj), nil
 }
 
-func (converter *DefaultRpcQueryConverter) ProtoToJson(reply types.Message) (interface{}, error) {
+func (converter *QueryConvertor) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
