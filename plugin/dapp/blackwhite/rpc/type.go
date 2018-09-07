@@ -1,19 +1,31 @@
-package executor
+package rpc
 
 import (
 	"encoding/hex"
 	"encoding/json"
 
 	log "github.com/inconshreveable/log15"
-	gt "gitlab.33.cn/chain33/chain33/plugin/dapp/blackwhite/types"
+	bw "gitlab.33.cn/chain33/chain33/plugin/dapp/blackwhite/types"
+	"gitlab.33.cn/chain33/chain33/pluginmgr"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var glog = log.New("module", gt.BlackwhiteX)
+var glog = log.New("module", bw.BlackwhiteX)
 var name string
+var jrpc = &Jrpc{}
+var grpc = &Grpc{}
 
-func InitTypes() {
-	name = types.ExecName(gt.BlackwhiteX)
+func InitRPC(s pluginmgr.RPCServer) {
+	cli := channelClient{}
+	cli.Init(s.GetQueueClient())
+	jrpc.cli = cli
+	grpc.channelClient = cli
+	s.JRPC().RegisterName(bw.JRPCName, jrpc)
+	bw.RegisterBlackwhiteServer(s.GRPC(), grpc)
+}
+
+func Init(s pluginmgr.RPCServer) {
+	name = types.ExecName(bw.BlackwhiteX)
 	// init executor type
 	types.RegistorExecutor(name, &BlackwhiteType{})
 
@@ -26,13 +38,11 @@ func InitTypes() {
 	types.RegistorLog(types.TyLogBlackwhiteLoopInfo, &BlackwhiteLoopInfoLog{})
 
 	// init query rpc
-	types.RegistorRpcType(gt.GetBlackwhiteRoundInfo, &BlackwhiteRoundInfo{})
-	types.RegistorRpcType(gt.GetBlackwhiteByStatusAndAddr, &BlackwhiteByStatusAndAddr{})
-	types.RegistorRpcType(gt.GetBlackwhiteloopResult, &BlackwhiteloopResult{})
-	types.RegistorRpcType(gt.BlackwhiteCreateTx, &BlackwhiteCreateTxRPC{})
-	types.RegistorRpcType(gt.BlackwhitePlayTx, &BlackwhitePlayTxRPC{})
-	types.RegistorRpcType(gt.BlackwhiteShowTx, &BlackwhiteShowTxRPC{})
-	types.RegistorRpcType(gt.BlackwhiteTimeoutDoneTx, &BlackwhiteTimeoutDoneTxRPC{})
+	types.RegistorRpcType(bw.GetBlackwhiteRoundInfo, &BlackwhiteRoundInfo{})
+	types.RegistorRpcType(bw.GetBlackwhiteByStatusAndAddr, &BlackwhiteByStatusAndAddr{})
+	types.RegistorRpcType(bw.GetBlackwhiteloopResult, &BlackwhiteloopResult{})
+
+	InitRPC(s)
 }
 
 type BlackwhiteType struct {
@@ -40,25 +50,25 @@ type BlackwhiteType struct {
 }
 
 func (m BlackwhiteType) ActionName(tx *types.Transaction) string {
-	var g gt.BlackwhiteAction
+	var g bw.BlackwhiteAction
 	err := types.Decode(tx.Payload, &g)
 	if err != nil {
 		return "unkown-Blackwhite-action-err"
 	}
-	if g.Ty == gt.BlackwhiteActionCreate && g.GetCreate() != nil {
+	if g.Ty == bw.BlackwhiteActionCreate && g.GetCreate() != nil {
 		return "BlackwhiteCreate"
-	} else if g.Ty == gt.BlackwhiteActionShow && g.GetShow() != nil {
+	} else if g.Ty == bw.BlackwhiteActionShow && g.GetShow() != nil {
 		return "BlackwhiteShow"
-	} else if g.Ty == gt.BlackwhiteActionPlay && g.GetPlay() != nil {
+	} else if g.Ty == bw.BlackwhiteActionPlay && g.GetPlay() != nil {
 		return "BlackwhitePlay"
-	} else if g.Ty == gt.BlackwhiteActionTimeoutDone && g.GetTimeoutDone() != nil {
+	} else if g.Ty == bw.BlackwhiteActionTimeoutDone && g.GetTimeoutDone() != nil {
 		return "BlackwhiteTimeoutDone"
 	}
 	return "unkown"
 }
 
 func (blackwhite BlackwhiteType) DecodePayload(tx *types.Transaction) (interface{}, error) {
-	var action gt.BlackwhiteAction
+	var action bw.BlackwhiteAction
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
 		return nil, err
@@ -85,7 +95,7 @@ func (l BlackwhiteCreateLog) Name() string {
 }
 
 func (l BlackwhiteCreateLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp gt.ReceiptBlackwhite
+	var logTmp bw.ReceiptBlackwhite
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
 		return nil, err
@@ -101,7 +111,7 @@ func (l BlackwhitePlayLog) Name() string {
 }
 
 func (l BlackwhitePlayLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp gt.ReceiptBlackwhite
+	var logTmp bw.ReceiptBlackwhite
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
 		return nil, err
@@ -117,7 +127,7 @@ func (l BlackwhiteShowLog) Name() string {
 }
 
 func (l BlackwhiteShowLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp gt.ReceiptBlackwhite
+	var logTmp bw.ReceiptBlackwhite
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
 		return nil, err
@@ -133,7 +143,7 @@ func (l BlackwhiteTimeoutDoneLog) Name() string {
 }
 
 func (l BlackwhiteTimeoutDoneLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp gt.ReceiptBlackwhite
+	var logTmp bw.ReceiptBlackwhite
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
 		return nil, err
@@ -149,7 +159,7 @@ func (l BlackwhiteDoneLog) Name() string {
 }
 
 func (l BlackwhiteDoneLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp gt.ReceiptBlackwhite
+	var logTmp bw.ReceiptBlackwhite
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
 		return nil, err
@@ -165,7 +175,7 @@ func (l BlackwhiteLoopInfoLog) Name() string {
 }
 
 func (l BlackwhiteLoopInfoLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp gt.ReplyLoopResults
+	var logTmp bw.ReplyLoopResults
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
 		return nil, err
@@ -177,7 +187,7 @@ type BlackwhiteRoundInfo struct {
 }
 
 func (t *BlackwhiteRoundInfo) Input(message json.RawMessage) ([]byte, error) {
-	var req gt.ReqBlackwhiteRoundInfo
+	var req bw.ReqBlackwhiteRoundInfo
 	err := json.Unmarshal(message, &req)
 	if err != nil {
 		return nil, err
@@ -193,7 +203,7 @@ type BlackwhiteByStatusAndAddr struct {
 }
 
 func (t *BlackwhiteByStatusAndAddr) Input(message json.RawMessage) ([]byte, error) {
-	var req gt.ReqBlackwhiteRoundList
+	var req bw.ReqBlackwhiteRoundList
 	err := json.Unmarshal(message, &req)
 	if err != nil {
 		return nil, err
@@ -209,7 +219,7 @@ type BlackwhiteloopResult struct {
 }
 
 func (t *BlackwhiteloopResult) Input(message json.RawMessage) ([]byte, error) {
-	var req gt.ReqLoopResult
+	var req bw.ReqLoopResult
 	err := json.Unmarshal(message, &req)
 	if err != nil {
 		return nil, err
@@ -224,7 +234,7 @@ func (t *BlackwhiteloopResult) Output(reply interface{}) (interface{}, error) {
 type BlackwhiteCreateTxRPC struct{}
 
 func (t *BlackwhiteCreateTxRPC) Input(message json.RawMessage) ([]byte, error) {
-	var req gt.BlackwhiteCreateTxReq
+	var req bw.BlackwhiteCreateTxReq
 	err := json.Unmarshal(message, &req)
 	if err != nil {
 		return nil, err
@@ -246,7 +256,7 @@ type BlackwhitePlayTxRPC struct {
 }
 
 func (t *BlackwhitePlayTxRPC) Input(message json.RawMessage) ([]byte, error) {
-	var req gt.BlackwhitePlayTxReq
+	var req bw.BlackwhitePlayTxReq
 	err := json.Unmarshal(message, &req)
 	if err != nil {
 		return nil, err
@@ -268,7 +278,7 @@ type BlackwhiteShowTxRPC struct {
 }
 
 func (t *BlackwhiteShowTxRPC) Input(message json.RawMessage) ([]byte, error) {
-	var req gt.BlackwhiteShowTxReq
+	var req bw.BlackwhiteShowTxReq
 	err := json.Unmarshal(message, &req)
 	if err != nil {
 		return nil, err
@@ -290,7 +300,7 @@ type BlackwhiteTimeoutDoneTxRPC struct {
 }
 
 func (t *BlackwhiteTimeoutDoneTxRPC) Input(message json.RawMessage) ([]byte, error) {
-	var req gt.BlackwhiteTimeoutDoneTxReq
+	var req bw.BlackwhiteTimeoutDoneTxReq
 	err := json.Unmarshal(message, &req)
 	if err != nil {
 		return nil, err
