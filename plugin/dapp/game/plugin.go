@@ -1,37 +1,19 @@
 package game
 
 import (
-	"gitlab.33.cn/chain33/chain33/executor/drivers"
+	"gitlab.33.cn/chain33/chain33/plugin/dapp/game/commands"
 	"gitlab.33.cn/chain33/chain33/plugin/dapp/game/executor"
+	"gitlab.33.cn/chain33/chain33/plugin/dapp/game/rpc"
 	gt "gitlab.33.cn/chain33/chain33/plugin/dapp/game/types"
 	"gitlab.33.cn/chain33/chain33/pluginmgr"
-	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var gGamePlugin *gamePlugin
-
 func init() {
-	gGamePlugin = &gamePlugin{}
-	pluginmgr.RegisterPlugin(gGamePlugin)
-}
-
-type gamePlugin struct {
-	pluginmgr.PluginBase
-}
-
-func (p *gamePlugin) GetName() string {
-	return gt.PackageName
-}
-
-func (p *gamePlugin) GetExecutorName() string {
-	return executor.GetName()
-}
-
-func (p *gamePlugin) Init() {
-	executor.Init()
-	drivers.Register(executor.GetName(), executor.NewGame, 0)
-}
-
-func (p *gamePlugin) DecodeTx(tx *types.Transaction) interface{} {
-	return executor.DecodeTx(tx)
+	pluginmgr.RegisterPlugin(&pluginmgr.PluginBase{
+		Name:     gt.PackageName,
+		ExecName: executor.GetName(),
+		Exec:     executor.Init,
+		Cmd:      commands.Cmd,
+		RPC:      rpc.Init,
+	})
 }

@@ -2,25 +2,38 @@ package pluginmgr
 
 import (
 	"github.com/spf13/cobra"
-	"gitlab.33.cn/chain33/chain33/types"
 )
 
-func Init() {
-	pluginMgr.init()
+var pluginItems = make(map[string]Plugin)
+
+func InitExec() {
+	for _, item := range pluginItems {
+		item.InitExec()
+	}
 }
 
-func DecodeTx(tx *types.Transaction) interface{} {
-	return pluginMgr.decodeTx(tx)
-}
-
-func RegisterPlugin(p Plugin) bool {
-	return pluginMgr.registerPlugin(p)
+func Register(p Plugin) {
+	if p == nil {
+		panic("plugin param is nil" + p.GetName())
+	}
+	packageName := p.GetName()
+	if len(packageName) == 0 {
+		panic("plugin package name is empty")
+	}
+	if _, ok := pluginItems[packageName]; ok {
+		panic("execute plugin item is existed. name = " + packageName)
+	}
+	pluginItems[packageName] = p
 }
 
 func AddCmd(rootCmd *cobra.Command) {
-	pluginMgr.addCmd(rootCmd)
+	for _, item := range pluginItems {
+		item.AddCmd(rootCmd)
+	}
 }
 
 func AddRPC(s RPCServer) {
-	pluginMgr.addRPC(s)
+	for _, item := range pluginItems {
+		item.AddRPC(s)
+	}
 }
