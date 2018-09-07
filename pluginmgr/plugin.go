@@ -4,7 +4,6 @@ import (
 	"net/rpc"
 
 	"gitlab.33.cn/chain33/chain33/queue"
-	"gitlab.33.cn/chain33/chain33/types"
 	"google.golang.org/grpc"
 
 	"github.com/spf13/cobra"
@@ -23,8 +22,7 @@ type Plugin interface {
 	// 获取插件中执行器名
 	GetExecutorName() string
 	// 初始化执行器时会调用该接口
-	Init()
-	DecodeTx(tx *types.Transaction) interface{}
+	InitExec()
 	AddCmd(rootCmd *cobra.Command)
 	AddRPC(s RPCServer)
 }
