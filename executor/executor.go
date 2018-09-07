@@ -86,7 +86,7 @@ func execInit2() {
 	cert.Init()
 	privacy.Init()
 	lottery.Init()
-	pluginmgr.Init()
+	pluginmgr.InitExec()
 }
 
 var runonce sync.Once

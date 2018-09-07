@@ -1,4 +1,4 @@
-package executor
+package rpc
 
 type GamePreCreateTx struct {
 	//Secret     string `json:"secret"`
@@ -65,12 +65,4 @@ type GameData struct {
 	CancelTxHash string `json:"cancelTxHash"`
 	CreatorGuess int32  `json:"creatorGuess"`
 	Index        int64  `json:"index"`
-}
-
-type ReplyGameList struct {
-	Games []*Game `json:"games"`
-}
-
-type ReplyGame struct {
-	Game *Game `json:"game"`
 }

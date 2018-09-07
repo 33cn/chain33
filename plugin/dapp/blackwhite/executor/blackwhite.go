@@ -15,6 +15,11 @@ var clog = log.New("module", "execs.blackwhite")
 
 var blackwhiteAddr = address.ExecAddress(gt.BlackwhiteX)
 
+func Init() {
+	SetReciptPrefix()
+	drivers.Register(GetName(), NewBlackwhite, types.ForkV25BlackWhite)
+}
+
 type Blackwhite struct {
 	drivers.DriverBase
 }
