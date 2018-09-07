@@ -27,10 +27,11 @@ const (
 	BlackwhiteActionTimeoutDone
 )
 
-const (
-	BlackwhiteX = "blackwhite"
-)
+const ()
 
 var (
+	BlackwhiteX      = "blackwhite"
+	GRPCName         = "chain33.blackwhite"
+	JRPCName         = "Chain33"
 	ExecerBlackwhite = []byte(BlackwhiteX)
 )
