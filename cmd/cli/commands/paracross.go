@@ -50,7 +50,7 @@ func addCreateAssetTransferFlags(cmd *cobra.Command) {
 }
 
 func createAssetTransfer(cmd *cobra.Command, args []string) {
-	txHex, err := createAssetTx(cmd, true)
+	txHex, err := createAssetTx(cmd, false)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -102,8 +102,8 @@ func createAssetTx(cmd *cobra.Command, isWithdraw bool) (string, error) {
 	note, _ := cmd.Flags().GetString("note")
 
 	title, _ := cmd.Flags().GetString("title")
-	if strings.HasPrefix(title, "p.user.") {
-		fmt.Fprintln(os.Stderr, "title is not right, title format like `p.user.guodun.`")
+	if !strings.HasPrefix(title, "user.p") {
+		fmt.Fprintln(os.Stderr, "title is not right, title format like `user.p.guodun.`")
 		return "", types.ErrInputPara
 	}
 	execName := title + types.ParaX
