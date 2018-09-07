@@ -179,7 +179,7 @@ func (l LotteryCloseLog) Decode(msg []byte) (interface{}, error) {
 type LotteryGetInfo struct {
 }
 
-func (t *LotteryGetInfo) Input(message json.RawMessage) ([]byte, error) {
+func (t *LotteryGetInfo) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.ReqLotteryInfo
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -188,14 +188,14 @@ func (t *LotteryGetInfo) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *LotteryGetInfo) Output(reply interface{}) (interface{}, error) {
+func (t *LotteryGetInfo) ProtoToJson(reply interface{}) (interface{}, error) {
 	return reply, nil
 }
 
 type LotteryLuckyRoundInfo struct {
 }
 
-func (t *LotteryLuckyRoundInfo) Input(message json.RawMessage) ([]byte, error) {
+func (t *LotteryLuckyRoundInfo) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.ReqLotteryLuckyInfo
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -204,14 +204,14 @@ func (t *LotteryLuckyRoundInfo) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *LotteryLuckyRoundInfo) Output(reply interface{}) (interface{}, error) {
+func (t *LotteryLuckyRoundInfo) ProtoToJson(reply interface{}) (interface{}, error) {
 	return reply, nil
 }
 
 type LotteryBuyInfo struct {
 }
 
-func (t *LotteryBuyInfo) Input(message json.RawMessage) ([]byte, error) {
+func (t *LotteryBuyInfo) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.ReqLotteryBuyHistory
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -220,14 +220,14 @@ func (t *LotteryBuyInfo) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *LotteryBuyInfo) Output(reply interface{}) (interface{}, error) {
+func (t *LotteryBuyInfo) ProtoToJson(reply interface{}) (interface{}, error) {
 	return reply, nil
 }
 
 type LotteryBuyRoundInfo struct {
 }
 
-func (t *LotteryBuyRoundInfo) Input(message json.RawMessage) ([]byte, error) {
+func (t *LotteryBuyRoundInfo) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.ReqLotteryBuyInfo
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -236,7 +236,7 @@ func (t *LotteryBuyRoundInfo) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *LotteryBuyRoundInfo) Output(reply interface{}) (interface{}, error) {
+func (t *LotteryBuyRoundInfo) ProtoToJson(reply interface{}) (interface{}, error) {
 	return reply, nil
 }
 

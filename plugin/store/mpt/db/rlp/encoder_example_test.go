@@ -48,7 +48,7 @@ func ExampleEncoder() {
 	bytes, _ = EncodeToBytes(t)
 	fmt.Printf("%v → %X\n", t, bytes)
 
-	// Output:
+	// ProtoToJson:
 	// <nil> → C28080
 	// &{foobar 5 6} → C20506
 }

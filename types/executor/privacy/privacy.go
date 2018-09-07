@@ -152,7 +152,7 @@ func (l PrivacyOutputLog) Decode(msg []byte) (interface{}, error) {
 type PrivacyShowAmountsOfUTXO struct {
 }
 
-func (t *PrivacyShowAmountsOfUTXO) Input(message json.RawMessage) ([]byte, error) {
+func (t *PrivacyShowAmountsOfUTXO) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.ReqPrivacyToken
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -161,14 +161,14 @@ func (t *PrivacyShowAmountsOfUTXO) Input(message json.RawMessage) ([]byte, error
 	return types.Encode(&req), nil
 }
 
-func (t *PrivacyShowAmountsOfUTXO) Output(reply interface{}) (interface{}, error) {
+func (t *PrivacyShowAmountsOfUTXO) ProtoToJson(reply interface{}) (interface{}, error) {
 	return reply, nil
 }
 
 type PrivacyShowUTXOs4SpecifiedAmount struct {
 }
 
-func (t *PrivacyShowUTXOs4SpecifiedAmount) Input(message json.RawMessage) ([]byte, error) {
+func (t *PrivacyShowUTXOs4SpecifiedAmount) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.ReqPrivacyToken
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -177,7 +177,7 @@ func (t *PrivacyShowUTXOs4SpecifiedAmount) Input(message json.RawMessage) ([]byt
 	return types.Encode(&req), nil
 }
 
-func (t *PrivacyShowUTXOs4SpecifiedAmount) Output(reply interface{}) (interface{}, error) {
+func (t *PrivacyShowUTXOs4SpecifiedAmount) ProtoToJson(reply interface{}) (interface{}, error) {
 	return reply, nil
 }
 

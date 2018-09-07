@@ -19,8 +19,8 @@ type LogType interface {
 }
 
 type RpcQueryType interface {
-	Input(message json.RawMessage) ([]byte, error)
-	Output(interface{}) (interface{}, error)
+	JsonToProto(message json.RawMessage) ([]byte, error)
+	ProtoToJson(interface{}) (interface{}, error)
 }
 
 var executorMap = map[string]ExecutorType{}
