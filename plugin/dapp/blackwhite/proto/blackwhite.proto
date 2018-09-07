@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+import "transaction.proto";
+
 package types;
 
 message AddressResult {
@@ -184,4 +186,15 @@ message BlackwhiteShowTxReq {
 message BlackwhiteTimeoutDoneTxReq {
     string GameID = 1;
     int64  Fee    = 2;
+}
+
+service blackwhite {
+    // blackwhite 对外提供服务的接口
+    //区块链接口
+    rpc Create(BlackwhiteCreate) returns (UnsignTx) {}
+    //获取最新的区块头
+    rpc Show(BlackwhiteShow) returns (UnsignTx) {}
+    //交易接口
+    rpc Play(BlackwhitePlay) returns (UnsignTx) {}
+    rpc TimeoutDone(BlackwhiteTimeoutDone) returns (UnsignTx) {}
 }
