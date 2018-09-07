@@ -151,14 +151,14 @@ func (g *Game) rollbackIndex(log *gt.ReceiptGame) (kvs []*types.KeyValue) {
 	return kvs
 }
 func (g *Game) Query(funcName string, params []byte) (types.Message, error) {
-	if funcName == FuncName_QueryGameListByIds {
+	if funcName == gt.FuncName_QueryGameListByIds {
 		var info gt.QueryGameInfos
 		err := types.Decode(params, &info)
 		if err != nil {
 			return nil, err
 		}
 		return Infos(g.GetStateDB(), &info)
-	} else if funcName == FuncName_QueryGameById {
+	} else if funcName == gt.FuncName_QueryGameById {
 		var gameInfo gt.QueryGameInfo
 		err := types.Decode(params, &gameInfo)
 		if err != nil {
@@ -169,14 +169,14 @@ func (g *Game) Query(funcName string, params []byte) (types.Message, error) {
 			return nil, err
 		}
 		return &gt.ReplyGame{game}, nil
-	} else if funcName == FuncName_QueryGameListByStatusAndAddr {
+	} else if funcName == gt.FuncName_QueryGameListByStatusAndAddr {
 		var q gt.QueryGameListByStatusAndAddr
 		err := types.Decode(params, &q)
 		if err != nil {
 			return nil, err
 		}
 		return List(g.GetLocalDB(), g.GetStateDB(), &q)
-	} else if funcName == FuncName_QueryGameListCount {
+	} else if funcName == gt.FuncName_QueryGameListCount {
 		var q gt.QueryGameListCount
 		err := types.Decode(params, &q)
 		if err != nil {
@@ -236,4 +236,12 @@ func delGameAddrIndex(status int32, addr string, index int64) *types.KeyValue {
 	//value置nil,提交时，会自动执行删除操作
 	kv.Value = nil
 	return kv
+}
+
+type ReplyGameList struct {
+	Games []*Game `json:"games"`
+}
+
+type ReplyGame struct {
+	Game *Game `json:"game"`
 }

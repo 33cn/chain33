@@ -41,10 +41,10 @@ func Init(s pluginmgr.RPCServer) {
 	types.RegistorLog(types.TyLogCloseGame, &CloseGameLog{})
 
 	// init query rpc
-	types.RegistorRpcType(FuncName_QueryGameListByIds, &GameGetList{})
-	types.RegistorRpcType(FuncName_QueryGameById, &GameGetInfo{})
-	types.RegistorRpcType(FuncName_QueryGameListByStatusAndAddr, &GameQueryList{})
-	types.RegistorRpcType(FuncName_QueryGameListCount, &GameQueryListCount{})
+	types.RegistorRpcType(gt.FuncName_QueryGameListByIds, &GameGetList{})
+	types.RegistorRpcType(gt.FuncName_QueryGameById, &GameGetInfo{})
+	types.RegistorRpcType(gt.FuncName_QueryGameListByStatusAndAddr, &GameQueryList{})
+	types.RegistorRpcType(gt.FuncName_QueryGameListCount, &GameQueryListCount{})
 }
 
 func (game GameType) GetRealToAddr(tx *types.Transaction) string {
@@ -67,13 +67,13 @@ func (game GameType) ActionName(tx *types.Transaction) string {
 	}
 
 	if action.Ty == gt.GameActionCreate && action.GetCreate() != nil {
-		return Action_CreateGame
+		return gt.Action_CreateGame
 	} else if action.Ty == gt.GameActionMatch && action.GetMatch() != nil {
-		return Action_MatchGame
+		return gt.Action_MatchGame
 	} else if action.Ty == gt.GameActionCancel && action.GetCancel() != nil {
-		return Action_CancelGame
+		return gt.Action_CancelGame
 	} else if action.Ty == gt.GameActionClose && action.GetClose() != nil {
-		return Action_CloseGame
+		return gt.Action_CloseGame
 	}
 	return "unknown"
 }
@@ -95,7 +95,7 @@ func (game GameType) Amount(tx *types.Transaction) (int64, error) {
 func (game GameType) CreateTx(action string, message json.RawMessage) (*types.Transaction, error) {
 	tlog.Debug("Game.CreateTx", "action", action)
 	var tx *types.Transaction
-	if action == Action_CreateGame {
+	if action == gt.Action_CreateGame {
 		var param GamePreCreateTx
 		err := json.Unmarshal(message, &param)
 		if err != nil {
@@ -104,7 +104,7 @@ func (game GameType) CreateTx(action string, message json.RawMessage) (*types.Tr
 		}
 
 		return CreateRawGamePreCreateTx(&param)
-	} else if action == Action_MatchGame {
+	} else if action == gt.Action_MatchGame {
 		var param GamePreMatchTx
 		err := json.Unmarshal(message, &param)
 		if err != nil {
@@ -113,7 +113,7 @@ func (game GameType) CreateTx(action string, message json.RawMessage) (*types.Tr
 		}
 
 		return CreateRawGamePreMatchTx(&param)
-	} else if action == Action_CancelGame {
+	} else if action == gt.Action_CancelGame {
 		var param GamePreCancelTx
 		err := json.Unmarshal(message, &param)
 		if err != nil {
@@ -122,7 +122,7 @@ func (game GameType) CreateTx(action string, message json.RawMessage) (*types.Tr
 		}
 
 		return CreateRawGamePreCancelTx(&param)
-	} else if action == Action_CloseGame {
+	} else if action == gt.Action_CloseGame {
 		var param GamePreCloseTx
 		err := json.Unmarshal(message, &param)
 		if err != nil {
