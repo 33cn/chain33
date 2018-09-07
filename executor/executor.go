@@ -158,7 +158,10 @@ func (exec *Executor) procExecQuery(msg queue.Message) {
 	db.(*StateDB).enableMVCC()
 	driver.SetStateDB(db)
 
-	ret, err := driver.Query(data.FuncName, data.Param)
+	ret, err := types.ProcessRPCQuery(data.FuncName, data.Param)
+	if err != nil {
+		ret, err = driver.Query(data.FuncName, data.Param)
+	}
 	if err != nil {
 		msg.Reply(exec.client.NewMessage("", types.EventBlockChainQuery, err))
 		return
