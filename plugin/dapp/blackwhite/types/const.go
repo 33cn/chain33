@@ -27,8 +27,6 @@ const (
 	BlackwhiteActionTimeoutDone
 )
 
-const ()
-
 var (
 	BlackwhiteX      = "blackwhite"
 	GRPCName         = "chain33.blackwhite"
