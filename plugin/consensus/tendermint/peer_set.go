@@ -114,7 +114,7 @@ func NewPeerSet() *PeerSet {
 
 // Add adds the peer to the PeerSet.
 // It returns an error carrying the reason, if the peer is already present.
-func (ps *PeerSet) Add(peer *peerConn) error {
+func (ps *PeerSet) Add(peer Peer) error {
 	ps.mtx.Lock()
 	defer ps.mtx.Unlock()
 
