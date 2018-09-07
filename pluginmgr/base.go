@@ -20,7 +20,7 @@ func (p *PluginBase) GetExecutorName() string {
 	return p.ExecName
 }
 
-func (p *PluginBase) ExecInit() {
+func (p *PluginBase) InitExec() {
 	p.Exec()
 }
 
