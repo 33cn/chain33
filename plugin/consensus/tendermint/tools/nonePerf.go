@@ -17,6 +17,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
+	"encoding/hex"
 )
 
 const fee = 1e6
@@ -54,6 +55,12 @@ func main() {
 			return
 		}
 		Get(argsWithoutProg[1], argsWithoutProg[2])
+	case "valnode":
+		if len(argsWithoutProg) != 4 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		ValNode(argsWithoutProg[1], argsWithoutProg[2], argsWithoutProg[3])
 	}
 }
 
@@ -62,6 +69,7 @@ func LoadHelp() {
 	fmt.Println("perf [ip, size, num, interval, duration] {offset}            : 写数据性能测试")
 	fmt.Println("put  [ip, size]                                              : 写数据")
 	fmt.Println("get  [ip, hash]                                              : 读数据")
+	fmt.Println("valnode [ip, pubkey, power]                                  : 增加/删除/修改tendermint节点")
 }
 
 func Perf(ip, size, num, interval, duration string) {
@@ -239,4 +247,44 @@ func RandStringBytes(n int) string {
 		b[i] = letterBytes[rand.Intn(len(letterBytes))]
 	}
 	return string(b)
+}
+
+func ValNode(ip, pubkey, power string) {
+	url := "http://" + ip + ":8801"
+
+	fmt.Println(pubkey, ":", power)
+	pubkeybyte, err := hex.DecodeString(pubkey)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	powerInt, err := strconv.Atoi(power)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	_, priv := genaddress()
+	privkey := common.ToHex(priv.Bytes())
+	nput := &types.ValNodeAction_Node{Node: &types.ValNode{PubKey: pubkeybyte, Power: int64(powerInt)}}
+	action := &types.ValNodeAction{Value: nput, Ty: types.ValNodeActionUpdate}
+	tx := &types.Transaction{Execer: []byte("valnode"), Payload: types.Encode(action), Fee: fee}
+	tx.To = address.ExecAddress("valnode")
+	tx.Nonce = r.Int63()
+	tx.Sign(types.SECP256K1, getprivkey(privkey))
+
+	poststr := fmt.Sprintf(`{"jsonrpc":"2.0","id":2,"method":"Chain33.SendTransaction","params":[{"data":"%v"}]}`,
+		common.ToHex(types.Encode(tx)))
+
+	resp, err := http.Post(url, "application/json", bytes.NewBufferString(poststr))
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer resp.Body.Close()
+	b, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Printf("returned JSON: %s\n", string(b))
 }
