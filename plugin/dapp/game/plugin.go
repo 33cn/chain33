@@ -9,7 +9,7 @@ import (
 )
 
 func init() {
-	pluginmgr.RegisterPlugin(&pluginmgr.PluginBase{
+	pluginmgr.Register(&pluginmgr.PluginBase{
 		Name:     gt.PackageName,
 		ExecName: executor.GetName(),
 		Exec:     executor.Init,

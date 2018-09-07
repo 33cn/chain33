@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	pluginmgr.RegisterPlugin(&pluginmgr.PluginBase{
+	pluginmgr.Register(&pluginmgr.PluginBase{
 		Name:     "chain33.blackwhite",
 		ExecName: executor.GetName(),
 		Exec:     executor.Init,
