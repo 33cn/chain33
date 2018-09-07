@@ -318,78 +318,10 @@ func (g *GameGetList) JsonToProto(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *GameGetList) ProtoToJson(reply interface{}) (interface{}, error) {
-	if replyData, ok := reply.(*types.Message); ok {
-		if replyGameList, ok := (*replyData).(*gt.ReplyGameList); ok {
-			var gameList []*GameData
-			for _, game := range replyGameList.GetGames() {
-				g := &GameData{
-					GameId:        game.GetGameId(),
-					Status:        game.GetStatus(),
-					CreateAddress: game.GetCreateAddress(),
-					MatchAddress:  game.GetMatchAddress(),
-					CreateTime:    game.GetCreateTime(),
-					MatchTime:     game.GetMatchTime(),
-					Closetime:     game.GetClosetime(),
-					Value:         game.GetValue(),
-					HashType:      game.GetHashType(),
-					HashValue:     game.GetHashValue(),
-					Secret:        game.GetSecret(),
-					Result:        game.GetResult(),
-					MatcherGuess:  game.GetMatcherGuess(),
-					CreateTxHash:  game.GetCreateTxHash(),
-					CancelTxHash:  game.GetCancelTxHash(),
-					MatchTxHash:   game.GetMatchTxHash(),
-					CloseTxHash:   game.GetCloseTxHash(),
-					CreatorGuess:  game.GetCreatorGuess(),
-					Index:         game.GetIndex(),
-				}
-				gameList = append(gameList, g)
-			}
-			return gameList, nil
-		}
-	}
-	return reply, nil
-}
-
-type GameQueryListCount struct {
-}
-
-func (g *GameQueryListCount) JsonToProto(message json.RawMessage) ([]byte, error) {
-	var req gt.QueryGameListCount
-	err := json.Unmarshal(message, &req)
-	if err != nil {
-		return nil, err
-	}
-	return types.Encode(&req), nil
-}
-
-func (g *GameQueryListCount) ProtoToJson(reply interface{}) (interface{}, error) {
-	if replyData, ok := reply.(*types.Message); ok {
-		if replyCount, ok := (*replyData).(*gt.ReplyGameListCount); ok {
-			count := replyCount.GetCount()
-			return count, nil
-		}
-	}
-	return reply, nil
-}
-
-type GameGetInfo struct {
-}
-
-func (g *GameGetInfo) JsonToProto(message json.RawMessage) ([]byte, error) {
-	var req gt.QueryGameInfo
-	err := json.Unmarshal(message, &req)
-	if err != nil {
-		return nil, err
-	}
-	return types.Encode(&req), nil
-}
-
-func (g *GameGetInfo) ProtoToJson(reply interface{}) (interface{}, error) {
-	if replyData, ok := reply.(*types.Message); ok {
-		if replyGame, ok := (*replyData).(*gt.ReplyGame); ok {
-			game := replyGame.GetGame()
+func (t *GameGetList) ProtoToJson(reply *types.Message) (interface{}, error) {
+	if replyGameList, ok := (*reply).(*gt.ReplyGameList); ok {
+		var gameList []*GameData
+		for _, game := range replyGameList.GetGames() {
 			g := &GameData{
 				GameId:        game.GetGameId(),
 				Status:        game.GetStatus(),
@@ -411,8 +343,70 @@ func (g *GameGetInfo) ProtoToJson(reply interface{}) (interface{}, error) {
 				CreatorGuess:  game.GetCreatorGuess(),
 				Index:         game.GetIndex(),
 			}
-			return g, nil
+			gameList = append(gameList, g)
 		}
+		return gameList, nil
+	}
+	return reply, nil
+}
+
+type GameQueryListCount struct {
+}
+
+func (g *GameQueryListCount) JsonToProto(message json.RawMessage) ([]byte, error) {
+	var req gt.QueryGameListCount
+	err := json.Unmarshal(message, &req)
+	if err != nil {
+		return nil, err
+	}
+	return types.Encode(&req), nil
+}
+
+func (g *GameQueryListCount) ProtoToJson(reply *types.Message) (interface{}, error) {
+	if replyCount, ok := (*reply).(*gt.ReplyGameListCount); ok {
+		count := replyCount.GetCount()
+		return count, nil
+	}
+	return reply, nil
+}
+
+type GameGetInfo struct {
+}
+
+func (g *GameGetInfo) JsonToProto(message json.RawMessage) ([]byte, error) {
+	var req gt.QueryGameInfo
+	err := json.Unmarshal(message, &req)
+	if err != nil {
+		return nil, err
+	}
+	return types.Encode(&req), nil
+}
+
+func (g *GameGetInfo) ProtoToJson(reply *types.Message) (interface{}, error) {
+	if replyGame, ok := (*reply).(*gt.ReplyGame); ok {
+		game := replyGame.GetGame()
+		g := &GameData{
+			GameId:        game.GetGameId(),
+			Status:        game.GetStatus(),
+			CreateAddress: game.GetCreateAddress(),
+			MatchAddress:  game.GetMatchAddress(),
+			CreateTime:    game.GetCreateTime(),
+			MatchTime:     game.GetMatchTime(),
+			Closetime:     game.GetClosetime(),
+			Value:         game.GetValue(),
+			HashType:      game.GetHashType(),
+			HashValue:     game.GetHashValue(),
+			Secret:        game.GetSecret(),
+			Result:        game.GetResult(),
+			MatcherGuess:  game.GetMatcherGuess(),
+			CreateTxHash:  game.GetCreateTxHash(),
+			CancelTxHash:  game.GetCancelTxHash(),
+			MatchTxHash:   game.GetMatchTxHash(),
+			CloseTxHash:   game.GetCloseTxHash(),
+			CreatorGuess:  game.GetCreatorGuess(),
+			Index:         game.GetIndex(),
+		}
+		return g, nil
 	}
 	return reply, nil
 }
@@ -429,36 +423,34 @@ func (g *GameQueryList) JsonToProto(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (g *GameQueryList) ProtoToJson(reply interface{}) (interface{}, error) {
-	if replyData, ok := reply.(*types.Message); ok {
-		if replyGameList, ok := (*replyData).(*gt.ReplyGameList); ok {
-			var gameList []*GameData
-			for _, game := range replyGameList.GetGames() {
-				g := &GameData{
-					GameId:        game.GetGameId(),
-					Status:        game.GetStatus(),
-					CreateAddress: game.GetCreateAddress(),
-					MatchAddress:  game.GetMatchAddress(),
-					CreateTime:    game.GetCreateTime(),
-					MatchTime:     game.GetMatchTime(),
-					Closetime:     game.GetClosetime(),
-					Value:         game.GetValue(),
-					HashType:      game.GetHashType(),
-					HashValue:     game.GetHashValue(),
-					Secret:        game.GetSecret(),
-					Result:        game.GetResult(),
-					MatcherGuess:  game.GetMatcherGuess(),
-					CreateTxHash:  game.GetCreateTxHash(),
-					CancelTxHash:  game.GetCancelTxHash(),
-					MatchTxHash:   game.GetMatchTxHash(),
-					CloseTxHash:   game.GetCloseTxHash(),
-					CreatorGuess:  game.GetCreatorGuess(),
-					Index:         game.GetIndex(),
-				}
-				gameList = append(gameList, g)
+func (g *GameQueryList) ProtoToJson(reply *types.Message) (interface{}, error) {
+	if replyGameList, ok := (*reply).(*gt.ReplyGameList); ok {
+		var gameList []*GameData
+		for _, game := range replyGameList.GetGames() {
+			g := &GameData{
+				GameId:        game.GetGameId(),
+				Status:        game.GetStatus(),
+				CreateAddress: game.GetCreateAddress(),
+				MatchAddress:  game.GetMatchAddress(),
+				CreateTime:    game.GetCreateTime(),
+				MatchTime:     game.GetMatchTime(),
+				Closetime:     game.GetClosetime(),
+				Value:         game.GetValue(),
+				HashType:      game.GetHashType(),
+				HashValue:     game.GetHashValue(),
+				Secret:        game.GetSecret(),
+				Result:        game.GetResult(),
+				MatcherGuess:  game.GetMatcherGuess(),
+				CreateTxHash:  game.GetCreateTxHash(),
+				CancelTxHash:  game.GetCancelTxHash(),
+				MatchTxHash:   game.GetMatchTxHash(),
+				CloseTxHash:   game.GetCloseTxHash(),
+				CreatorGuess:  game.GetCreatorGuess(),
+				Index:         game.GetIndex(),
 			}
-			return gameList, nil
+			gameList = append(gameList, g)
 		}
+		return gameList, nil
 	}
 	return reply, nil
 }

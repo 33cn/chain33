@@ -131,7 +131,7 @@ func (t *RetrieveGetInfo) JsonToProto(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *RetrieveGetInfo) ProtoToJson(reply interface{}) (interface{}, error) {
+func (t *RetrieveGetInfo) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
 

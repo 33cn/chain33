@@ -217,7 +217,7 @@ func (t *RelayGetRelayOrderByStatus) JsonToProto(message json.RawMessage) ([]byt
 	return types.Encode(&req), nil
 }
 
-func (t *RelayGetRelayOrderByStatus) ProtoToJson(reply interface{}) (interface{}, error) {
+func (t *RelayGetRelayOrderByStatus) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
 
@@ -233,7 +233,7 @@ func (t *RelayGetSellRelayOrder) JsonToProto(message json.RawMessage) ([]byte, e
 	return types.Encode(&req), nil
 }
 
-func (t *RelayGetSellRelayOrder) ProtoToJson(reply interface{}) (interface{}, error) {
+func (t *RelayGetSellRelayOrder) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
 
@@ -249,7 +249,7 @@ func (t *RelayGetBuyRelayOrder) JsonToProto(message json.RawMessage) ([]byte, er
 	return types.Encode(&req), nil
 }
 
-func (t *RelayGetBuyRelayOrder) ProtoToJson(reply interface{}) (interface{}, error) {
+func (t *RelayGetBuyRelayOrder) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
 
@@ -265,7 +265,7 @@ func (t *RelayGetBTCHeaderList) JsonToProto(message json.RawMessage) ([]byte, er
 	return types.Encode(&req), nil
 }
 
-func (t *RelayGetBTCHeaderList) ProtoToJson(reply interface{}) (interface{}, error) {
+func (t *RelayGetBTCHeaderList) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
 
@@ -281,7 +281,7 @@ func (t *RelayGetBTCHeaderMissList) JsonToProto(message json.RawMessage) ([]byte
 	return types.Encode(&req), nil
 }
 
-func (t *RelayGetBTCHeaderMissList) ProtoToJson(reply interface{}) (interface{}, error) {
+func (t *RelayGetBTCHeaderMissList) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
 
@@ -297,6 +297,6 @@ func (t *RelayGetBTCHeaderCurHeight) JsonToProto(message json.RawMessage) ([]byt
 	return types.Encode(&req), nil
 }
 
-func (t *RelayGetBTCHeaderCurHeight) ProtoToJson(reply interface{}) (interface{}, error) {
+func (t *RelayGetBTCHeaderCurHeight) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }

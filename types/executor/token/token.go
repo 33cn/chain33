@@ -511,7 +511,7 @@ func (t *TokenGetTokens) JsonToProto(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *TokenGetTokens) ProtoToJson(reply interface{}) (interface{}, error) {
+func (t *TokenGetTokens) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
 
@@ -527,7 +527,7 @@ func (t *TokenGetTokenInfo) JsonToProto(message json.RawMessage) ([]byte, error)
 	return types.Encode(&req), nil
 }
 
-func (t *TokenGetTokenInfo) ProtoToJson(reply interface{}) (interface{}, error) {
+func (t *TokenGetTokenInfo) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
 
@@ -543,7 +543,7 @@ func (t *TokenGetAddrReceiverforTokens) JsonToProto(message json.RawMessage) ([]
 	return types.Encode(&req), nil
 }
 
-func (t *TokenGetAddrReceiverforTokens) ProtoToJson(reply interface{}) (interface{}, error) {
+func (t *TokenGetAddrReceiverforTokens) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
 
@@ -559,6 +559,6 @@ func (t *TokenGetAccountTokenAssets) JsonToProto(message json.RawMessage) ([]byt
 	return types.Encode(&req), nil
 }
 
-func (t *TokenGetAccountTokenAssets) ProtoToJson(reply interface{}) (interface{}, error) {
+func (t *TokenGetAccountTokenAssets) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
