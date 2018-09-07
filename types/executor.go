@@ -23,9 +23,17 @@ type RpcQueryConverte interface {
 	ProtoToJson(reply *Message) (interface{}, error)
 }
 
+type FN_RPCQueryHandle func(param []byte) (Message, error)
+
+//
+type rpcTypeUtilItem struct {
+	conv    RpcQueryConverte
+	handler FN_RPCQueryHandle
+}
+
 var executorMap = map[string]ExecutorType{}
 var receiptLogMap = map[int64]LogType{}
-var rpcTypeUtilMap = map[string]RpcQueryConverte{}
+var rpcTypeUtilMap = map[string]*rpcTypeUtilItem{}
 
 func RegistorExecutor(exec string, util ExecutorType) {
 	//tlog.Debug("rpc", "t", funcName, "t", util)
@@ -59,24 +67,43 @@ func LoadLog(ty int64) LogType {
 	return nil
 }
 
-func registorRpcType(funcName string, util RpcQueryConverte) {
+func registorRpcType(funcName string, util RpcQueryConverte, handler FN_RPCQueryHandle) {
 	//tlog.Debug("rpc", "t", funcName, "t", util)
 	if _, exist := rpcTypeUtilMap[funcName]; exist {
 		panic("DupRpcTypeUtil")
 	} else {
-		rpcTypeUtilMap[funcName] = util
+		rpcTypeUtilMap[funcName] = &rpcTypeUtilItem{
+			conv:    util,
+			handler: handler,
+		}
 	}
 }
 
 func RegistorRpcType(funcName string, util RpcQueryConverte) {
-	registorRpcType(funcName, util)
+	registorRpcType(funcName, util, nil)
+}
+
+func RegistorRpcTypeV2(funcName string, util RpcQueryConverte, handler FN_RPCQueryHandle) {
+	registorRpcType(funcName, util, handler)
 }
 
 func LoadQueryType(funcName string) RpcQueryConverte {
 	if trans, ok := rpcTypeUtilMap[funcName]; ok {
-		return trans
+		return trans.conv
 	}
 	return nil
+}
+
+// 处理已经注册的RPC Query响应处理过程
+func ProcessRPCQuery(funcName string, param []byte) (Message, error) {
+	if item, ok := rpcTypeUtilMap[funcName]; ok {
+		if item.handler != nil {
+			return item.handler(param)
+		} else {
+			return nil, ErrEmpty
+		}
+	}
+	return nil, ErrNotFound
 }
 
 type ExecTypeBase struct {
