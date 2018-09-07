@@ -26,7 +26,7 @@ func init() {
 	// change rpc bind address
 	cfg.Rpc.JrpcBindAddr = jrpcaddr
 	cfg.Rpc.GrpcBindAddr = grpcaddr
-	rpc.Init(cfg.Rpc)
+	rpc.InitCfg(cfg.Rpc)
 	log.SetLogLevel("crit")
 }
 

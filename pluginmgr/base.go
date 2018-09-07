@@ -24,5 +24,7 @@ func (p *PluginBase) DecodeTx(tx *types.Transaction) interface{} {
 }
 
 func (p *PluginBase) AddCmd(rootCmd *cobra.Command) {
+}
 
+func (p *PluginBase) AddRPC(c RPCServer) {
 }

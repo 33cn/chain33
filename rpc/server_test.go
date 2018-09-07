@@ -39,7 +39,7 @@ func TestJSONClient_Call(t *testing.T) {
 	rpcCfg.Whitelist = []string{"127.0.0.1", "0.0.0.0"}
 	rpcCfg.JrpcFuncWhitelist = []string{"*"}
 	rpcCfg.GrpcFuncWhitelist = []string{"*"}
-	Init(rpcCfg)
+	InitCfg(rpcCfg)
 	server := NewJSONRPCServer(&qmocks.Client{})
 	assert.NotNil(t, server)
 
@@ -134,7 +134,7 @@ func TestGrpc_Call(t *testing.T) {
 	rpcCfg.Whitelist = []string{"127.0.0.1", "0.0.0.0"}
 	rpcCfg.JrpcFuncWhitelist = []string{"*"}
 	rpcCfg.GrpcFuncWhitelist = []string{"*"}
-	Init(rpcCfg)
+	InitCfg(rpcCfg)
 	server := NewGRpcServer(&qmocks.Client{})
 	assert.NotNil(t, server)
 
