@@ -33,7 +33,6 @@ type Grpc struct {
 
 type Grpcserver struct {
 	grpc Grpc
-	l    net.Listener
 	s    *grpc.Server
 	//addr string
 }
