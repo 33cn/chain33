@@ -39,9 +39,8 @@ func TestJSONClient_Call(t *testing.T) {
 	rpcCfg.Whitelist = []string{"127.0.0.1", "0.0.0.0"}
 	rpcCfg.JrpcFuncWhitelist = []string{"*"}
 	rpcCfg.GrpcFuncWhitelist = []string{"*"}
-	initCfg(rpcCfg)
+	InitCfg(rpcCfg)
 	server := NewJSONRPCServer(&qmocks.Client{})
-	server.s.RegisterName("Chain33", &server.jrpc)
 	assert.NotNil(t, server)
 
 	api := new(mocks.QueueProtocolAPI)
@@ -135,9 +134,8 @@ func TestGrpc_Call(t *testing.T) {
 	rpcCfg.Whitelist = []string{"127.0.0.1", "0.0.0.0"}
 	rpcCfg.JrpcFuncWhitelist = []string{"*"}
 	rpcCfg.GrpcFuncWhitelist = []string{"*"}
-	initCfg(rpcCfg)
+	InitCfg(rpcCfg)
 	server := NewGRpcServer(&qmocks.Client{})
-	types.RegisterChain33Server(server.s, &server.grpc)
 	assert.NotNil(t, server)
 
 	api := new(mocks.QueueProtocolAPI)

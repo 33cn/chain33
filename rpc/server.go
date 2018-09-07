@@ -123,6 +123,7 @@ func NewGRpcServer(c queue.Client) *Grpcserver {
 	opts = append(opts, grpc.UnaryInterceptor(interceptor))
 	server := grpc.NewServer(opts...)
 	s.s = server
+	types.RegisterChain33Server(server, &s.grpc)
 	return s
 }
 
@@ -131,6 +132,7 @@ func NewJSONRPCServer(c queue.Client) *JSONRPCServer {
 	j.jrpc.cli.Init(c)
 	server := rpc.NewServer()
 	j.s = server
+	server.RegisterName("Chain33", &j.jrpc)
 	return j
 }
 
@@ -141,7 +143,7 @@ type RPC struct {
 	c    queue.Client
 }
 
-func initCfg(cfg *types.Rpc) {
+func InitCfg(cfg *types.Rpc) {
 	rpcCfg = cfg
 	InitIpWhitelist(cfg)
 	InitJrpcFuncWhitelist(cfg)
@@ -151,7 +153,7 @@ func initCfg(cfg *types.Rpc) {
 }
 
 func New(cfg *types.Rpc) *RPC {
-	initCfg(cfg)
+	InitCfg(cfg)
 	return &RPC{cfg: cfg}
 }
 
@@ -162,8 +164,6 @@ func (r *RPC) SetQueueClient(c queue.Client) {
 	r.japi = japi
 	r.c = c
 	//注册系统rpc
-	types.RegisterChain33Server(r.GRPC(), &r.gapi.grpc)
-	r.JRPC().RegisterName("Chain33", &r.japi.jrpc)
 	pluginmgr.AddRPC(r)
 	go gapi.Listen()
 	go japi.Listen()
