@@ -4,7 +4,6 @@ import (
 	"container/heap"
 	"encoding/binary"
 	"fmt"
-	"gitlab.33.cn/chain33/chain33/types"
 	"io/ioutil"
 	"math/rand"
 	"os"
@@ -14,6 +13,8 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 const (

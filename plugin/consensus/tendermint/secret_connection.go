@@ -16,7 +16,6 @@ import (
 	"net"
 	"time"
 
-	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/plugin/consensus/tendermint/types"
 	"golang.org/x/crypto/nacl/box"
@@ -25,13 +24,13 @@ import (
 )
 
 // 2 + 1024 == 1026 total frame size
-const dataLenSize = 2 // uint16 to describe the length, is <= dataMaxSize
-const dataMaxSize = 1024
-const totalFrameSize = dataMaxSize + dataLenSize
-const sealedFrameSize = totalFrameSize + secretbox.Overhead
-const authSigMsgSize = (32) + (64) // fixed size (length prefixed) byte arrays
-
-var secret = log15.New("module", "tendermint-secret-connection")
+const (
+	dataLenSize     = 2 // uint16 to describe the length, is <= dataMaxSize
+	dataMaxSize     = 1024
+	totalFrameSize  = dataMaxSize + dataLenSize
+	sealedFrameSize = totalFrameSize + secretbox.Overhead
+	authSigMsgSize  = (32) + (64)
+) // fixed size (length prefixed) byte arrays
 
 // Implements net.Conn
 type SecretConnection struct {
@@ -200,7 +199,7 @@ func genEphKeys() (ephPub, ephPriv *[32]byte) {
 	return
 }
 
-func shareEphPubKey(conn io.ReadWriteCloser, locEphPub *[32]byte) (remEphPub *[32]byte, err error) {
+func shareEphPubKey(conn io.ReadWriter, locEphPub *[32]byte) (remEphPub *[32]byte, err error) {
 	var err1, err2 error
 
 	Parallel(
@@ -269,7 +268,7 @@ type authSigMessage struct {
 	Sig crypto.Signature
 }
 
-func shareAuthSignature(sc *SecretConnection, pubKey crypto.PubKey, signature crypto.Signature) (*authSigMessage, error) {
+func shareAuthSignature(sc io.ReadWriter, pubKey crypto.PubKey, signature crypto.Signature) (*authSigMessage, error) {
 	var recvMsg authSigMessage
 	var err1, err2 error
 

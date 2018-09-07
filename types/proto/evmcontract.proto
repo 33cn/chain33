@@ -21,10 +21,10 @@ message EVMContractData {
 
 // 存放合约变化数据
 message EVMContractState {
-    uint64             nonce       = 1;
-    bool               suicided    = 2;
-    bytes              storageHash = 3;
-    map<string, bytes> storage     = 4;
+    uint64 nonce       = 1;
+    bool   suicided    = 2;
+    bytes  storageHash = 3;
+    map<string, bytes> storage = 4;
 }
 
 // 创建/调用合约的请求结构
@@ -72,10 +72,10 @@ message EVMContractDataCmd {
 
 // 存放合约变化数据
 message EVMContractStateCmd {
-    uint64              nonce       = 1;
-    bool                suicided    = 2;
-    string              storageHash = 3;
-    map<string, string> storage     = 4;
+    uint64 nonce       = 1;
+    bool   suicided    = 2;
+    string storageHash = 3;
+    map<string, string> storage = 4;
 }
 
 // 合约创建/调用日志

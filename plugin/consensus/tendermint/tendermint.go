@@ -20,7 +20,6 @@ const tendermint_version = "0.1.0"
 
 var (
 	tendermintlog       = log15.New("module", "tendermint")
-	genesisDocKey       = []byte("genesisDoc")
 	blockSec      int64 = 1000 //write block interval, millisecond
 	zeroHash      [32]byte
 )
@@ -324,26 +323,13 @@ func (client *TendermintClient) CheckTxsAvailable() bool {
 }
 
 func (client *TendermintClient) CheckTxDup(txs []*types.Transaction, height int64) (transactions []*types.Transaction) {
-	var checkHashList types.TxHashList
-	txMap := make(map[string]*types.Transaction)
-	for _, tx := range txs {
-		hash := tx.Hash()
-		txMap[string(hash)] = tx
-		checkHashList.Hashes = append(checkHashList.Hashes, hash)
-		checkHashList.Expire = append(checkHashList.Expire, tx.GetExpire())
+	cacheTxs := types.TxsToCache(txs)
+	var err error
+	cacheTxs, err = util.CheckTxDup(client.GetQueueClient(), cacheTxs, height)
+	if err != nil {
+		return txs
 	}
-	checkHashList.Count = height
-	hashList := client.GetQueueClient().NewMessage("blockchain", types.EventTxHashList, &checkHashList)
-	client.GetQueueClient().Send(hashList, true)
-	dupTxList, _ := client.GetQueueClient().Wait(hashList)
-	dupTxs := dupTxList.GetData().(*types.TxHashList).Hashes
-	for _, hash := range dupTxs {
-		delete(txMap, string(hash))
-	}
-	for _, tx := range txMap {
-		transactions = append(transactions, tx)
-	}
-	return transactions
+	return types.CacheToTxs(cacheTxs)
 }
 
 func (client *TendermintClient) BuildBlock() *types.Block {
