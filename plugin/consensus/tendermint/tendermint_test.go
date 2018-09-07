@@ -1,6 +1,7 @@
 package tendermint
 
 import (
+	"context"
 	"encoding/binary"
 	"flag"
 	"fmt"
@@ -8,6 +9,7 @@ import (
 	"os"
 	"testing"
 	"time"
+	"errors"
 
 	"gitlab.33.cn/chain33/chain33/blockchain"
 	"gitlab.33.cn/chain33/chain33/common/config"
@@ -19,12 +21,20 @@ import (
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/store"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/rpc"
+	"google.golang.org/grpc"
+
+	_ "gitlab.33.cn/chain33/chain33/plugin/store/init"
+	_ "gitlab.33.cn/chain33/chain33/system"
+	"gitlab.33.cn/chain33/chain33/common/address"
 )
 
 var (
 	random    *rand.Rand
 	txNumber  int = 10
 	loopCount int = 10
+	conn *grpc.ClientConn
+	c types.GrpcserviceClient
 )
 
 func init() {
@@ -49,8 +59,18 @@ func RaftPerf() {
 	defer q.Close()
 	defer cs.Close()
 	defer p2p.Close()
-	sendReplyList(q)
+	err := createConn()
+	for err != nil {
+		err = createConn()
+	}
+	time.Sleep(10 * time.Second)
+	for i:=0; i<loopCount; i++ {
+		NormPut()
+		time.Sleep(time.Second)
+	}
+	time.Sleep(10 * time.Second)
 }
+
 func initEnvTendermint() (queue.Queue, *blockchain.BlockChain, queue.Module, *mempool.Mempool, queue.Module, queue.Module, queue.Module) {
 	var q = queue.New("channel")
 	flag.Parse()
@@ -72,7 +92,25 @@ func initEnvTendermint() (queue.Queue, *blockchain.BlockChain, queue.Module, *me
 	network := p2p.New(cfg.P2P)
 
 	network.SetQueueClient(q.Client())
+
+	rpc.Init(cfg.Rpc)
+	gapi := rpc.NewGRpcServer(q.Client())
+	go gapi.Listen()
 	return q, chain, s, mem, exec, cs, network
+}
+
+func createConn() error{
+	var err error
+	url := "127.0.0.1:8802"
+	fmt.Println("grpc url:", url)
+	conn, err = grpc.Dial(url, grpc.WithInsecure())
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return err
+	}
+	c = types.NewGrpcserviceClient(conn)
+	r = rand.New(rand.NewSource(types.Now().UnixNano()))
+	return nil
 }
 
 func generateKey(i, valI int) string {
@@ -95,23 +133,6 @@ func generateValue(i, valI int) string {
 	return string(value)
 }
 
-func sendReplyList(q queue.Queue) {
-	client := q.Client()
-	client.Sub("mempool")
-	var count int
-	for msg := range client.Recv() {
-		if msg.Ty == types.EventTxList {
-			count++
-			msg.Reply(client.NewMessage("consensus", types.EventReplyTxList,
-				&types.ReplyTxList{getReplyList(txNumber)}))
-			if count >= loopCount {
-				time.Sleep(4 * time.Second)
-				break
-			}
-		}
-	}
-}
-
 func prepareTxList() *types.Transaction {
 	var key string
 	var value string
@@ -122,18 +143,11 @@ func prepareTxList() *types.Transaction {
 
 	nput := &types.NormAction_Nput{&types.NormPut{Key: key, Value: []byte(value)}}
 	action := &types.NormAction{Value: nput, Ty: types.NormActionPut}
-	tx := &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(action), Fee: 0}
+	tx := &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(action), Fee: fee}
+	tx.To = address.ExecAddress("norm")
 	tx.Nonce = random.Int63()
 	tx.Sign(types.SECP256K1, getprivkey("CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944"))
 	return tx
-}
-
-func getReplyList(n int) (txs []*types.Transaction) {
-
-	for i := 0; i < int(n); i++ {
-		txs = append(txs, prepareTxList())
-	}
-	return txs
 }
 
 func clearTestData() {
@@ -142,4 +156,18 @@ func clearTestData() {
 		fmt.Println("delete datadir have a err:", err.Error())
 	}
 	fmt.Println("test data clear sucessfully!")
+}
+
+func NormPut() {
+	tx := prepareTxList()
+
+	reply, err := c.SendTransaction(context.Background(), tx)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	if !reply.IsOk {
+		fmt.Fprintln(os.Stderr, errors.New(string(reply.GetMsg())))
+		return
+	}
 }
