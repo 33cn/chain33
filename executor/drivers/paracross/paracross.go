@@ -32,7 +32,7 @@ func newParacross() drivers.Driver {
 }
 
 func (c *Paracross) GetName() string {
-	return types.ExecName("paracross")
+	return types.ExecName(types.ParaX)
 }
 
 func (c *Paracross) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
@@ -46,11 +46,13 @@ func (c *Paracross) Exec(tx *types.Transaction, index int) (*types.Receipt, erro
 		return nil, err
 	}
 
+	clog.Debug("Paracross.Exec", "payload.type", payload.Ty)
 	if payload.Ty == pt.ParacrossActionCommit && payload.GetCommit() != nil {
 		commit := payload.GetCommit()
 		a := newAction(c, tx)
 		return a.Commit(commit)
 	} else if payload.Ty == pt.ParacrossActionTransfer && payload.GetAssetTransfer() != nil {
+		clog.Debug("Paracross.Exec", "payload.type", payload.Ty, "transfer", "")
 		_, err := c.checkTxGroup(tx, index)
 		if err != nil {
 			clog.Error("ParacrossActionTransfer", "get tx group failed", err, "hash", common.Bytes2Hex(tx.Hash()))
@@ -59,6 +61,7 @@ func (c *Paracross) Exec(tx *types.Transaction, index int) (*types.Receipt, erro
 		a := newAction(c, tx)
 		return a.AssetTransfer(payload.GetAssetTransfer())
 	} else if payload.Ty == pt.ParacrossActionWithdraw && payload.GetAssetWithdraw() != nil {
+		clog.Debug("Paracross.Exec", "payload.type", payload.Ty, "withdraw", "")
 		_, err := c.checkTxGroup(tx, index)
 		if err != nil {
 			clog.Error("ParacrossActionWithdraw", "get tx group failed", err, "hash", common.Bytes2Hex(tx.Hash()))
