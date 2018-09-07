@@ -10,9 +10,7 @@ import (
 	"time"
 
 	"gitlab.33.cn/chain33/chain33/blockchain"
-	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/config"
-	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/limits"
 	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/executor"
@@ -53,7 +51,7 @@ func RaftPerf() {
 	defer p2p.Close()
 	sendReplyList(q)
 }
-func initEnvTendermint() (queue.Queue, *blockchain.BlockChain, queue.Module, *mempool.Mempool, queue.Module, *TendermintClient, queue.Module) {
+func initEnvTendermint() (queue.Queue, *blockchain.BlockChain, queue.Module, *mempool.Mempool, queue.Module, queue.Module, queue.Module) {
 	var q = queue.New("channel")
 	flag.Parse()
 	cfg := config.InitCfg("chain33.test.toml")
@@ -95,22 +93,6 @@ func generateValue(i, valI int) string {
 		os.Exit(1)
 	}
 	return string(value)
-}
-
-func getprivkey(key string) crypto.PrivKey {
-	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
-	if err != nil {
-		panic(err)
-	}
-	bkey, err := common.FromHex(key)
-	if err != nil {
-		panic(err)
-	}
-	priv, err := cr.PrivKeyFromBytes(bkey)
-	if err != nil {
-		panic(err)
-	}
-	return priv
 }
 
 func sendReplyList(q queue.Queue) {

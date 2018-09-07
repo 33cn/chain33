@@ -5,11 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"reflect"
+
 	"github.com/gogo/protobuf/proto"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 	"gitlab.33.cn/chain33/chain33/types"
-	"reflect"
 )
 
 // ErrEvidenceInvalid wraps a piece of evidence and the error denoting how or why it is invalid.

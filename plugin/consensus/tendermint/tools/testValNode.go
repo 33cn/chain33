@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"encoding/hex"
+
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"

@@ -1,15 +1,14 @@
 package commands
 
 import (
-	"github.com/inconshreveable/log15"
-	"github.com/spf13/cobra"
-	"gitlab.33.cn/chain33/chain33/common/crypto"
-	ttypes "gitlab.33.cn/chain33/chain33/consensus/drivers/tendermint/types"
 	"math/rand"
-
 	"strconv"
 	"time"
 
+	"github.com/inconshreveable/log15"
+	"github.com/spf13/cobra"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
+	ttypes "gitlab.33.cn/chain33/chain33/plugin/consensus/tendermint/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 

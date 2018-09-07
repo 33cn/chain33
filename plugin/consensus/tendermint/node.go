@@ -298,7 +298,7 @@ func (node *Node) evidenceBroadcastRoutine() {
 				msg := MsgInfo{TypeID: ttypes.EvidenceListID,
 					Msg: &types.EvidenceData{
 						Evidence: []*types.EvidenceEnvelope{
-							&types.EvidenceEnvelope{
+							{
 								TypeName: evidence.TypeName(),
 								Data:     data,
 							},

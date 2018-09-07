@@ -1,9 +1,10 @@
 package types
 
 import (
-	"gitlab.33.cn/chain33/chain33/types"
 	"strings"
 	"sync"
+
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 type RoundVoteSet struct {

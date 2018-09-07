@@ -3,8 +3,9 @@ package types
 import (
 	"time"
 
-	"gitlab.33.cn/chain33/chain33/types"
 	"reflect"
+
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 //-----------------------------------------------------------------------------
@@ -108,22 +109,6 @@ type RoundState struct {
 	CommitRound    int      //
 	LastCommit     *VoteSet // Last precommits at Height-1
 	LastValidators *ValidatorSet
-}
-
-func makeRoundStepMessages(rs *RoundState) (nrsMsg *types.NewRoundStepMsg, csMsg *types.CommitStepMsg) {
-	nrsMsg = &types.NewRoundStepMsg{
-		Height: rs.Height,
-		Round:  int32(rs.Round),
-		Step:   int32(rs.Step),
-		SecondsSinceStartTime: int32(time.Since(rs.StartTime).Seconds()),
-		LastCommitRound:       int32(rs.LastCommit.Round()),
-	}
-	if rs.Step == RoundStepCommit {
-		csMsg = &types.CommitStepMsg{
-			Height: rs.Height,
-		}
-	}
-	return
 }
 
 func (rs *RoundState) RoundStateMessage() *types.NewRoundStepMsg {
