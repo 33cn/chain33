@@ -20,3 +20,7 @@ func RegisterPlugin(p Plugin) bool {
 func AddCmd(rootCmd *cobra.Command) {
 	pluginMgr.addCmd(rootCmd)
 }
+
+func AddRPC(s RPCServer) {
+	pluginMgr.addRPC(s)
+}

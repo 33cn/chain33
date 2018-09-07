@@ -1,10 +1,20 @@
 package pluginmgr
 
 import (
+	"net/rpc"
+
+	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
+	"google.golang.org/grpc"
 
 	"github.com/spf13/cobra"
 )
+
+type RPCServer interface {
+	GetQueueClient() queue.Client
+	GRPC() *grpc.Server
+	JRPC() *rpc.Server
+}
 
 //
 type Plugin interface {
@@ -16,4 +26,5 @@ type Plugin interface {
 	Init()
 	DecodeTx(tx *types.Transaction) interface{}
 	AddCmd(rootCmd *cobra.Command)
+	AddRPC(s RPCServer)
 }
