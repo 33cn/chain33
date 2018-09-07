@@ -347,7 +347,7 @@ func (t *CoinsGetAddrReceiver) JsonToProto(message json.RawMessage) ([]byte, err
 	return types.Encode(&req), nil
 }
 
-func (t *CoinsGetAddrReceiver) ProtoToJson(reply interface{}) (interface{}, error) {
+func (t *CoinsGetAddrReceiver) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
 
@@ -363,6 +363,6 @@ func (t *CoinsGetTxsByAddr) JsonToProto(message json.RawMessage) ([]byte, error)
 	return types.Encode(&req), nil
 }
 
-func (t *CoinsGetTxsByAddr) ProtoToJson(reply interface{}) (interface{}, error) {
+func (t *CoinsGetTxsByAddr) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
