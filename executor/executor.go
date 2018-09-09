@@ -12,29 +12,13 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	clog "gitlab.33.cn/chain33/chain33/common/log"
-	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/pluginmgr"
+	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 
 	// register drivers
 	"gitlab.33.cn/chain33/chain33/client"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/cert"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/coins"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/hashlock"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/lottery"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/manage"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/none"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/norm"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/paracross"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/privacy"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/relay"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/retrieve"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/ticket"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/token"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/trade"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
-	exectype "gitlab.33.cn/chain33/chain33/types/executor"
 )
 
 var elog = log.New("module", "execs")
@@ -70,22 +54,6 @@ func execInit() {
 }
 
 func execInit2() {
-	exectype.Init()
-	coins.Init()
-	hashlock.Init()
-	manage.Init()
-	none.Init()
-	norm.Init()
-	paracross.Init()
-	retrieve.Init()
-	ticket.Init()
-	token.Init()
-	trade.Init()
-	evm.Init()
-	relay.Init()
-	cert.Init()
-	privacy.Init()
-	lottery.Init()
 	pluginmgr.InitExec()
 }
 
@@ -853,6 +821,9 @@ func (execute *executor) execTx(tx *types.Transaction, index int) (*types.Receip
 		receipt, err := execute.Exec(tx, index)
 		if err != nil {
 			panic(err)
+		}
+		if err == nil && receipt == nil {
+			panic("genesis block: executor not exist")
 		}
 		return receipt, nil
 	}
