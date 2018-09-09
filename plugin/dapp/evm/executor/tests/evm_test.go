@@ -13,11 +13,11 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common/db"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common/crypto"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/runtime"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/state"
+	evm "gitlab.33.cn/chain33/chain33/plugin/dapp/evm/executor"
+	"gitlab.33.cn/chain33/chain33/plugin/dapp/evm/executor/vm/common"
+	"gitlab.33.cn/chain33/chain33/plugin/dapp/evm/executor/vm/common/crypto"
+	"gitlab.33.cn/chain33/chain33/plugin/dapp/evm/executor/vm/runtime"
+	"gitlab.33.cn/chain33/chain33/plugin/dapp/evm/executor/vm/state"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
