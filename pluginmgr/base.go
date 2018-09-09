@@ -25,9 +25,13 @@ func (p *PluginBase) InitExec() {
 }
 
 func (p *PluginBase) AddCmd(rootCmd *cobra.Command) {
-	rootCmd.AddCommand(p.Cmd())
+	if p.Cmd != nil {
+		rootCmd.AddCommand(p.Cmd())
+	}
 }
 
 func (p *PluginBase) AddRPC(c RPCServer) {
-	p.RPC(c)
+	if p.RPC != nil {
+		p.RPC(c)
+	}
 }
