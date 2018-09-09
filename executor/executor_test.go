@@ -18,10 +18,10 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/limits"
 	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
-	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/p2p"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/store"
+	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/util"
 
