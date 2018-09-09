@@ -1,4 +1,4 @@
-package drivers
+package dapp
 
 import (
 	"fmt"
