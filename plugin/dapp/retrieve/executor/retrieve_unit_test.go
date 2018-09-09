@@ -7,7 +7,7 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/db"
-	"gitlab.33.cn/chain33/chain33/executor/drivers"
+	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
