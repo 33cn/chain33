@@ -822,6 +822,9 @@ func (execute *executor) execTx(tx *types.Transaction, index int) (*types.Receip
 		if err != nil {
 			panic(err)
 		}
+		if err == nil && receipt == nil {
+			panic("genesis block: executor not exist")
+		}
 		return receipt, nil
 	}
 	//交易检查规则：
