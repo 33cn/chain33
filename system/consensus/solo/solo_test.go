@@ -20,7 +20,8 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 
 	//加载系统内置store, 不要依赖plugin
-	_ "gitlab.33.cn/chain33/chain33/system/store/mavl"
+	_ "gitlab.33.cn/chain33/chain33/system/dapp/init"
+	_ "gitlab.33.cn/chain33/chain33/system/store/init"
 )
 
 var (
