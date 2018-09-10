@@ -155,11 +155,8 @@ func main() {
 		network.SetQueueClient(q.Client())
 	}
 	//jsonrpc, grpc, channel 三种模式
-	rpc.Init(cfg.Rpc)
-	gapi := rpc.NewGRpcServer(q.Client())
-	go gapi.Listen()
-	japi := rpc.NewJSONRPCServer(q.Client())
-	go japi.Listen()
+	rpcapi := rpc.New(cfg.Rpc)
+	rpcapi.SetQueueClient(q.Client())
 
 	log.Info("loading wallet module")
 	walletm := wallet.New(cfg.Wallet)
@@ -181,10 +178,8 @@ func main() {
 		s.Close()
 		log.Info("begin close consensus module")
 		cs.Close()
-		log.Info("begin close jsonrpc module")
-		japi.Close()
-		log.Info("begin close grpc module")
-		gapi.Close()
+		log.Info("begin close rpc module")
+		rpcapi.Close()
 		log.Info("begin close wallet module")
 		walletm.Close()
 		log.Info("begin close queue module")
