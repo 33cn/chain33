@@ -40,7 +40,7 @@ type KVMVCCStore struct {
 	kvsetmap map[string] []*types.KeyValue
 }
 
-func New(cfg *types.Store) *KVMVCCStore {
+func New(cfg *types.Store) queue.Module {
 	bs := drivers.NewBaseStore(cfg)
 	kvs := &KVMVCCStore{bs, dbm.NewSimpleMVCC(dbm.NewKVDB(bs.GetDB())), FlagInit, make(map[string]map[string]*types.KeyValue), make(map[string][]*types.KeyValue)}
 	bs.SetChild(kvs)
