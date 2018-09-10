@@ -128,6 +128,11 @@ func (mpts *Store) Rollback(req *types.ReqHash) []byte {
 	return req.Hash
 }
 
+func (mpts *Store) Del(req *types.StoreDel) []byte {
+	//not support
+	return nil
+}
+
 func (mpts *Store) IterateRangeByStateHash(statehash []byte, start []byte, end []byte, ascending bool, fn func(key, value []byte) bool) {
 	mpt.IterateRangeByStateHash(mpts.GetDB(), statehash, start, end, ascending, fn)
 }
