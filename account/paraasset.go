@@ -5,6 +5,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
+/*
 func (acc *DB) ParaAssetTransfer(addr string, amount int64, execaddr string) (*types.Receipt, error) {
 	accTo := acc.LoadAccount(execaddr)
 	copyto := *accTo
@@ -24,6 +25,11 @@ func (acc *DB) ParaAssetTransfer(addr string, amount int64, execaddr string) (*t
 	receipt = acc.mergeReceipt(receipt, receipt2)
 	return receipt, nil
 }
+*/
+func (acc *DB) ParaAssetTransfer(addr string, amount int64, execaddr string) (*types.Receipt, error) {
+	receipt2, err := acc.ExecDeposit(addr, execaddr, amount)
+	return receipt2, err
+}
 
 func (acc *DB) ParaAssetTransferReceipt(accTo *types.Account, receiptTo proto.Message) *types.Receipt {
 	ty := int32(types.TyLogParaAssetTransfer)
@@ -41,7 +47,7 @@ func (acc *DB) ParaAssetTransferReceipt(accTo *types.Account, receiptTo proto.Me
 		Logs: []*types.ReceiptLog{log2},
 	}
 }
-
+/*
 func (acc *DB) ParaAssetWithdraw(addr string, amount int64, execaddr string) (*types.Receipt, error) {
 	receipt, err := acc.ExecWithdraw(execaddr, addr, amount)
 	if err != nil {
@@ -60,6 +66,12 @@ func (acc *DB) ParaAssetWithdraw(addr string, amount int64, execaddr string) (*t
 
 	receipt = acc.mergeReceipt(receipt, receipt2)
 	return receipt, nil
+}
+*/
+
+func (acc *DB) ParaAssetWithdraw(addr string, amount int64, execaddr string) (*types.Receipt, error) {
+	receipt, err := acc.ExecWithdraw(execaddr, addr, amount)
+	return receipt, err
 }
 
 func (acc *DB) ParaAssetWithdrawReceipt(accFrom *types.Account, receiptTo proto.Message) *types.Receipt {
