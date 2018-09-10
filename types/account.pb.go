@@ -96,6 +96,7 @@ It has these top-level messages:
 	LocalDBGet
 	LocalReplyValue
 	StoreSet
+	StoreDel
 	StoreSetWithSync
 	StoreGet
 	StoreReplyValue
