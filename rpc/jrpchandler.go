@@ -9,7 +9,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/version"
-	"gitlab.33.cn/chain33/chain33/pluginmgr"
 	"gitlab.33.cn/chain33/chain33/types"
 	evmtype "gitlab.33.cn/chain33/chain33/types/executor/evm"
 	hashlocktype "gitlab.33.cn/chain33/chain33/types/executor/hashlock"
@@ -960,21 +959,13 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 	if tx == nil {
 		return nil, types.ErrEmpty
 	}
-
 	execStr := string(tx.Execer)
 	if !types.IsPara() {
 		execStr = realExec(string(tx.Execer))
 	}
-
-	pl := pluginmgr.DecodeTx(tx)
+	var pl interface{}
 	plType := types.LoadExecutor(execStr)
-	if plType == nil && pl == nil {
-		if "user.write" == string(tx.Execer) {
-			pl = decodeUserWrite(tx.GetPayload())
-		} else {
-			pl = map[string]interface{}{"rawlog": common.ToHex(tx.GetPayload())}
-		}
-	} else {
+	if plType != nil {
 		var err error
 		pl, err = plType.DecodePayload(tx)
 		if err != nil {
@@ -982,7 +973,12 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 			pl = map[string]interface{}{"unkownpayload": string(tx.Payload)}
 		}
 	}
-
+	if string(tx.Execer) == "user.write" {
+		pl = decodeUserWrite(tx.GetPayload())
+	}
+	if pl == nil {
+		pl = map[string]interface{}{"rawlog": common.ToHex(tx.GetPayload())}
+	}
 	result := &Transaction{
 		Execer:     string(tx.Execer),
 		Payload:    pl,
