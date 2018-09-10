@@ -226,7 +226,7 @@ var eventName = map[int]string{
 	45: "EventWalletSetFee",
 	46: "EventWalletSetLabel",
 	//47: "EventWalletAccount",
-	47: "EventStoreDel",
+	47:  "EventStoreDel",
 	48:  "EventWalletMergeBalance",
 	49:  "EventReplyHashes",
 	50:  "EventWalletSetPasswd",
