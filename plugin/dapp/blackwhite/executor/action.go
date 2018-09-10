@@ -59,7 +59,7 @@ func newAction(t *Blackwhite, tx *types.Transaction, index int32) *action {
 
 func (a *action) Create(create *gt.BlackwhiteCreate) (*types.Receipt, error) {
 	if create.PlayAmount < MinAmount || create.PlayAmount > MaxAmount {
-		return nil, types.ErrInputPara
+		return nil, types.ErrAmount
 	}
 	if create.PlayerCount < MinPlayerCount || create.PlayerCount > MaxPlayerCount {
 		return nil, types.ErrInputPara
