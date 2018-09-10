@@ -92,6 +92,33 @@ func (c *Paracross) checkTxGroup(tx *types.Transaction, index int) ([]*types.Tra
 	return nil, nil
 }
 
+func crossTxGroupProc(txs []*types.Transaction, index int) ([]*types.Transaction, int32) {
+	var headIdx, endIdx int32
+
+	for i := index; i >= 0; i-- {
+		if bytes.Equal(txs[index].Header, txs[i].Hash()) {
+			headIdx = int32(i)
+		}
+	}
+	endIdx = headIdx + txs[index].GroupCount
+	for i := headIdx; i < txs[index].GroupCount; i++ {
+		if bytes.HasPrefix(txs[i].Execer, []byte(types.ParaX)) {
+			return txs[headIdx:endIdx], endIdx - 1
+		}
+	}
+
+	var transfers []*types.Transaction
+	for i := headIdx; i < txs[index].GroupCount; i++ {
+		if bytes.Contains(txs[i].Execer, []byte(types.ExecNamePrefix)) &&
+			bytes.HasSuffix(txs[i].Execer, []byte(types.ParaX)) {
+			transfers = append(transfers, txs[i])
+
+		}
+	}
+	return transfers, endIdx - 1
+
+}
+
 func (c *Paracross) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	set, err := c.DriverBase.ExecLocal(tx, receipt, index)
 	if err != nil {
@@ -142,21 +169,37 @@ func (c *Paracross) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData,
 			types.Decode(log.Log, &g)
 
 			var mixTxHashs, paraTxHashs, crossTxHashs [][]byte
-			for _, tx := range c.GetTxs() {
+			txs := c.GetTxs()
+			//remove the 0 vote tx
+			for i := 1; i < len(txs); i++ {
+				tx := txs[i]
 				hash := tx.Hash()
 				mixTxHashs = append(mixTxHashs, hash)
 				//跨链交易包含了主链交易，需要过滤出来
 				if bytes.Contains(tx.Execer, []byte(types.ExecNamePrefix)) {
 					paraTxHashs = append(paraTxHashs, hash)
-					if bytes.HasSuffix(tx.Execer, []byte(types.ParaX)) {
-						crossTxHashs = append(crossTxHashs, hash)
-					}
 				}
 			}
+			for i := 1; i < len(txs); i++ {
+				tx := txs[i]
+				if tx.GroupCount >= 2 {
+					crossTxs, end := crossTxGroupProc(txs, i)
+					for _, crossTx := range crossTxs {
+						crossTxHashs = append(crossTxHashs, crossTx.Hash())
+					}
+					i = int(end)
+					continue
+				}
+				if bytes.Contains(tx.Execer, []byte(types.ExecNamePrefix)) &&
+					bytes.HasSuffix(tx.Execer, []byte(types.ParaX)) {
+					crossTxHashs = append(crossTxHashs, tx.Hash())
+				}
+			}
+
 			g.Status.TxHashs = paraTxHashs
-			g.Status.TxResult = util.CalcSubBitMap(mixTxHashs, paraTxHashs, c.GetReceipt())
+			g.Status.TxResult = util.CalcSubBitMap(mixTxHashs, paraTxHashs, c.GetReceipt()[1:])
 			g.Status.CrossTxHashs = crossTxHashs
-			g.Status.CrossTxResult = util.CalcSubBitMap(mixTxHashs, crossTxHashs, c.GetReceipt())
+			g.Status.CrossTxResult = util.CalcSubBitMap(mixTxHashs, crossTxHashs, c.GetReceipt()[1:])
 
 			set.KV = append(set.KV, &types.KeyValue{pt.CalcVoteHeightKey(g.Status.Title, g.Status.Height), types.Encode(g.Status)})
 
