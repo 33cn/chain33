@@ -148,7 +148,7 @@ func (c *Paracross) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData,
 				//跨链交易包含了主链交易，需要过滤出来
 				if bytes.Contains(tx.Execer, []byte(types.ExecNamePrefix)) {
 					paraTxHashs = append(paraTxHashs, hash)
-					if tx.GroupCount > 1 {
+					if bytes.HasSuffix(tx.Execer, []byte(types.ParaX)) {
 						crossTxHashs = append(crossTxHashs, hash)
 					}
 				}
