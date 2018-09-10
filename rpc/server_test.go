@@ -125,7 +125,6 @@ func TestJSONClient_Call(t *testing.T) {
 	server.Close()
 	mock.AssertExpectationsForObjects(t, api)
 }
-
 func TestGrpc_Call(t *testing.T) {
 	rpcCfg = new(types.Rpc)
 	rpcCfg.GrpcBindAddr = "127.0.0.1:8101"

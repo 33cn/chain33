@@ -32,6 +32,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/p2p"
 	"gitlab.33.cn/chain33/chain33/wallet"
 
+	_ "gitlab.33.cn/chain33/chain33/plugin/dapp/init"
 	_ "gitlab.33.cn/chain33/chain33/plugin/store/init"
 	_ "gitlab.33.cn/chain33/chain33/system"
 )
