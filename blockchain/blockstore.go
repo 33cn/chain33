@@ -887,6 +887,7 @@ func (bs *BlockStore) SetDbVersion(versionNo int64) error {
 
 	return bs.db.SetSync(version.BlockChainVerKey, verByte)
 }
+
 //zzh
 //删除区块在StateDB中的相关KV。删除顺序必须是区块增长顺序的逆序，比如101->102->103->103（删除)->103'->104。
 func (bs *BlockStore) DelStateKV(blockDetail *types.BlockDetail) error {

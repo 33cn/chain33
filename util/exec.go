@@ -96,11 +96,11 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	var detail types.BlockDetail
 	//zzh
 	/*
-	if kvset == nil {
-		calcHash = prevStateRoot
-	} else {
-		calcHash = ExecKVMemSet(client, prevStateRoot, kvset, sync)
-	}*/
+		if kvset == nil {
+			calcHash = prevStateRoot
+		} else {
+			calcHash = ExecKVMemSet(client, prevStateRoot, kvset, sync)
+		}*/
 	calcHash = ExecKVMemSet(client, prevStateRoot, block.Height, kvset, sync)
 	if errReturn && !bytes.Equal(block.StateHash, calcHash) {
 		ExecKVSetRollback(client, calcHash)
@@ -123,7 +123,7 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	}
 	//save to db
 	//if kvset != nil {
-		ExecKVSetCommit(client, block.StateHash)
+	ExecKVSetCommit(client, block.StateHash)
 	//}
 	detail.KV = kvset
 	detail.PrevStatusHash = prevStateRoot

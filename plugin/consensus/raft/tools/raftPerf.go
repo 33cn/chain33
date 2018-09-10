@@ -10,15 +10,16 @@ import (
 	"strconv"
 	"time"
 
+	"bufio"
+	"io"
+	"strings"
+
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	rlog "gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/types"
 	"google.golang.org/grpc"
-	"bufio"
-	"io"
-	"strings"
 )
 
 const fee = 1e6
@@ -211,7 +212,7 @@ func NormPerf(size string, num string, interval string, duration string) {
 					totalCount++
 				}
 				end := time.Now()
-				result += end.Sub(start).Nanoseconds()/1000000
+				result += end.Sub(start).Nanoseconds() / 1000000
 				time.Sleep(time.Second * time.Duration(intervalInt))
 				sec += intervalInt
 			}
@@ -223,6 +224,7 @@ func NormPerf(size string, num string, interval string, duration string) {
 		<-ch
 	}
 }
+
 //zzh
 func NormReadPerf(ty string, num string, interval string, duration string) {
 	var readType int
@@ -291,24 +293,24 @@ func NormReadPerf(ty string, num string, interval string, duration string) {
 						prefix := []byte(line)[0:index]
 						if readType == 0 {
 							NormGet(string(prefix))
-						}else {
+						} else {
 							NormHas(string(prefix))
 						}
 						cnt++
 						totalCount++
-					}else {
+					} else {
 						continue
 					}
 				}
 				end := time.Now()
-				result += end.Sub(start).Nanoseconds()/1000000
+				result += end.Sub(start).Nanoseconds() / 1000000
 				if cnt > 100 {
 					if readType == 0 {
 						fmt.Println("normal get ", cnt, "times, cost time [ms]:", result)
-					}else{
+					} else {
 						fmt.Println("normal has ", cnt, "times, cost time [ms]:", result)
 					}
-					totalTime  += result
+					totalTime += result
 					cnt = 0
 					result = 0
 				}
@@ -318,7 +320,7 @@ func NormReadPerf(ty string, num string, interval string, duration string) {
 			totalTime += result
 			if readType == 0 {
 				fmt.Println("perform get ", totalCount, " times, cost time [ms]:", totalTime)
-			}else {
+			} else {
 				fmt.Println("normal has ", totalCount, "times, cost time [ms]:", totalTime)
 			}
 			ch <- struct{}{}
