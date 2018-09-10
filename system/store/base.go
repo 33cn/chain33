@@ -37,6 +37,7 @@ type SubStore interface {
 	MemSet(datas *types.StoreSet, sync bool) []byte
 	Commit(hash *types.ReqHash) ([]byte, error)
 	Rollback(req *types.ReqHash) []byte
+	Del(req *types.StoreDel) []byte
 	IterateRangeByStateHash(statehash []byte, start []byte, end []byte, ascending bool, fn func(key, value []byte) bool)
 	ProcEvent(msg queue.Message)
 }
@@ -112,6 +113,14 @@ func (store *BaseStore) processMessage(msg queue.Message) {
 		resp.Count = req.Count
 		store.child.IterateRangeByStateHash(req.StateHash, req.Start, req.End, true, resp.IterateRangeByStateHash)
 		msg.Reply(client.NewMessage("", types.EventGetTotalCoinsReply, resp))
+	} else if msg.Ty == types.EventStoreDel {
+		req := msg.GetData().(*types.StoreDel)
+		hash := store.child.Del(req)
+		if hash == nil {
+			msg.Reply(client.NewMessage("", types.EventStoreDel, types.ErrHashNotFound))
+		} else {
+			msg.Reply(client.NewMessage("", types.EventStoreDel, &types.ReplyHash{hash}))
+		}
 	} else {
 		store.child.ProcEvent(msg)
 	}
