@@ -73,6 +73,13 @@ func (kvs *KVStore) Get(datas *types.StoreGet) [][]byte {
 }
 
 func (kvs *KVStore) MemSet(datas *types.StoreSet, sync bool) []byte {
+	if len(datas.KV) == 0 {
+		klog.Info("store kv memset,use preStateHash as stateHash for kvset is null")
+		kvmap := make(map[string]*types.KeyValue)
+		kvs.cache[string(datas.StateHash)] = kvmap
+		return datas.StateHash
+	}
+
 	hash := calcHash(datas)
 	kvmap := make(map[string]*types.KeyValue)
 	for _, kv := range datas.KV {
@@ -90,6 +97,11 @@ func (kvs *KVStore) Commit(req *types.ReqHash) ([]byte, error) {
 	if !ok {
 		klog.Error("store kvdb commit", "err", types.ErrHashNotFound)
 		return nil, types.ErrHashNotFound
+	}
+	if len(kvmap) == 0 {
+		klog.Info("store kvdb commit did nothing for kvset is nil")
+		delete(kvs.cache, string(req.Hash))
+		return req.Hash, nil
 	}
 	kvs.save(kvmap)
 	delete(kvs.cache, string(req.Hash))
@@ -114,6 +126,11 @@ func (kvs *KVStore) IterateRangeByStateHash(statehash []byte, start []byte, end 
 
 func (kvs *KVStore) ProcEvent(msg queue.Message) {
 	msg.ReplyErr("KVStore", types.ErrActionNotSupport)
+}
+
+func (kvs *KVStore) Del(req *types.StoreDel) []byte {
+	//not support
+	return nil
 }
 
 func (kvs *KVStore) save(kvmap map[string]*types.KeyValue) {
