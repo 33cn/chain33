@@ -355,7 +355,19 @@ func (client *CommitMsgClient) getNodeStatus(start, end int64) ([]*types.Paracro
 		if err != nil {
 			return nil, err
 		}
+		if !(status.Height >= req.Start && status.Height <= req.End) || status.MainBlockHash == nil {
+			plog.Error("paracommitmsg decode node status", "height", status.Height, "mainheight", status.MainBlockHeight,
+				"mainhash", common.HashHex(status.MainBlockHash), "expect start", req.Start, "end", req.End, "status", status)
+			return nil, errors.New("paracommitmsg wrong key result")
+		}
 		nodeList[status.Height] = status
+
+	}
+	for i := 0; i < int(count); i++ {
+		if nodeList[req.Start+int64(i)] == nil {
+			plog.Error("paracommitmsg get node status key nil", "height", req.Start+int64(i))
+			return nil, errors.New("paracommitmsg wrong key status result")
+		}
 	}
 
 	msg = client.paraClient.GetQueueClient().NewMessage("blockchain", types.EventGetBlocks, req)
@@ -370,10 +382,12 @@ func (client *CommitMsgClient) getNodeStatus(start, end int64) ([]*types.Paracro
 		return nil, err
 	}
 	for _, block := range v.Items {
-		if nodeList[block.Block.Height] != nil {
-			nodeList[block.Block.Height].BlockHash = block.Block.Hash()
-			nodeList[block.Block.Height].StateHash = block.Block.StateHash
+		if !(block.Block.Height >= req.Start && block.Block.Height <= req.End) {
+			plog.Error("paracommitmsg get node status block", "height", block.Block.Height, "expect start", req.Start, "end", req.End)
+			return nil, errors.New("paracommitmsg wrong block result")
 		}
+		nodeList[block.Block.Height].BlockHash = block.Block.Hash()
+		nodeList[block.Block.Height].StateHash = block.Block.StateHash
 	}
 
 	for i := 0; i < int(count); i++ {
@@ -399,7 +413,7 @@ func (client *CommitMsgClient) getGenesisNodeStatus() (*types.ParacrossNodeStatu
 	}
 	status.Title = types.GetTitle()
 	status.Height = block.Height
-	status.PreBlockHash = block.ParentHash
+	status.PreBlockHash = zeroHash[:]
 	status.BlockHash = block.Hash()
 	status.PreStateHash = zeroHash[:]
 	status.StateHash = block.StateHash
