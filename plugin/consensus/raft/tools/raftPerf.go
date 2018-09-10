@@ -16,6 +16,9 @@ import (
 	rlog "gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/types"
 	"google.golang.org/grpc"
+	"bufio"
+	"io"
+	"strings"
 )
 
 const fee = 1e6
@@ -79,6 +82,13 @@ func main() {
 			return
 		}
 		NormGet(argsWithoutProg[1])
+		//zzh
+	case "normreadperf":
+		if len(argsWithoutProg) != 5 {
+			fmt.Print(errors.New("参数错误").Error())
+			return
+		}
+		NormReadPerf(argsWithoutProg[1], argsWithoutProg[2], argsWithoutProg[3], argsWithoutProg[4])
 	}
 }
 
@@ -89,6 +99,8 @@ func LoadHelp() {
 	fmt.Println("[ip] normperf [size, num, interval, duration]                    : 常规写数据性能测试")
 	fmt.Println("[ip] normput [privkey, key, value]                               : 常规写数据")
 	fmt.Println("[ip] normget [key]                                               : 常规读数据")
+	//zzh
+	fmt.Println("[ip] normreadperf [type, num, interval, duration]                : 常规读数据性能测试")
 }
 
 func TransferPerf(from string, to string, amount string, txNum string, duration string) {
@@ -180,9 +192,13 @@ func NormPerf(size string, num string, interval string, duration string) {
 	ch := make(chan struct{}, numThread)
 	for i := 0; i < numThread; i++ {
 		go func() {
+			var result int64
+			result = 0
+			totalCount := 0
 			txCount := 0
 			_, priv := genaddress()
 			for sec := 0; durInt == 0 || sec < durInt; {
+				start := time.Now()
 				for txs := 0; txs < numInt/numThread; txs++ {
 					if txCount >= maxTxPerAcc {
 						_, priv = genaddress()
@@ -192,9 +208,118 @@ func NormPerf(size string, num string, interval string, duration string) {
 					value = RandStringBytes(sizeInt)
 					NormPut(common.ToHex(priv.Bytes()), key, value)
 					txCount++
+					totalCount++
+				}
+				end := time.Now()
+				result += end.Sub(start).Nanoseconds()/1000000
+				time.Sleep(time.Second * time.Duration(intervalInt))
+				sec += intervalInt
+			}
+			fmt.Println("perform put ", totalCount, " times, cost time [ms]:", result)
+			ch <- struct{}{}
+		}()
+	}
+	for j := 0; j < numThread; j++ {
+		<-ch
+	}
+}
+//zzh
+func NormReadPerf(ty string, num string, interval string, duration string) {
+	var readType int
+	readType, err := strconv.Atoi(ty)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+
+	var numThread int
+	numInt, err := strconv.Atoi(num)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	intervalInt, err := strconv.Atoi(interval)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	durInt, err := strconv.Atoi(duration)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	if numInt < 10 {
+		numThread = 1
+	} else if numInt > 100 {
+		numThread = 10
+	} else {
+		numThread = numInt / 10
+	}
+
+	ch := make(chan struct{}, numThread)
+	for i := 0; i < numThread; i++ {
+		go func() {
+			f, err := os.Open("normperf.log")
+			if err != nil {
+				panic("open file failed.")
+				return
+			}
+			buf := bufio.NewReader(f)
+			cnt := 0
+			var result, totalTime int64
+			result = 0
+			totalTime = 0
+			totalCount := 0
+			for sec := 0; durInt == 0 || sec < durInt; {
+				start := time.Now()
+				for txs := 0; txs < numInt/numThread; txs++ {
+					line, err := buf.ReadString('\n')
+					if err != nil {
+						if err == io.EOF {
+							f, err := os.Open("normperf.log")
+							if err != nil {
+								panic("open file failed.")
+								return
+							}
+							buf = bufio.NewReader(f)
+						}
+						continue
+					}
+					line = strings.Replace(line, " ", "", -1)
+					index := strings.IndexAny(line, "=")
+					if index > 0 {
+						prefix := []byte(line)[0:index]
+						if readType == 0 {
+							NormGet(string(prefix))
+						}else {
+							NormHas(string(prefix))
+						}
+						cnt++
+						totalCount++
+					}else {
+						continue
+					}
+				}
+				end := time.Now()
+				result += end.Sub(start).Nanoseconds()/1000000
+				if cnt > 100 {
+					if readType == 0 {
+						fmt.Println("normal get ", cnt, "times, cost time [ms]:", result)
+					}else{
+						fmt.Println("normal has ", cnt, "times, cost time [ms]:", result)
+					}
+					totalTime  += result
+					cnt = 0
+					result = 0
 				}
 				time.Sleep(time.Second * time.Duration(intervalInt))
 				sec += intervalInt
+			}
+			totalTime += result
+			if readType == 0 {
+				fmt.Println("perform get ", totalCount, " times, cost time [ms]:", totalTime)
+			}else {
+				fmt.Println("normal has ", totalCount, "times, cost time [ms]:", totalTime)
 			}
 			ch <- struct{}{}
 		}()
@@ -237,6 +362,27 @@ func NormGet(key string) {
 	var req types.Query
 	req.Execer = []byte("norm")
 	req.FuncName = "NormGet"
+	req.Payload = []byte(key)
+
+	reply, err := c.QueryChain(context.Background(), &req)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
+	if !reply.IsOk {
+		fmt.Fprintln(os.Stderr, errors.New(string(reply.GetMsg())))
+		return
+	}
+	//the first two byte is not valid
+	//QueryChain() need to change
+	//value := string(reply.Msg[2:])
+	//fmt.Println("GetValue =", value)
+}
+
+func NormHas(key string) {
+	var req types.Query
+	req.Execer = []byte("norm")
+	req.FuncName = "NormHas"
 	req.Payload = []byte(key)
 
 	reply, err := c.QueryChain(context.Background(), &req)
