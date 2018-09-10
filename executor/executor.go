@@ -257,7 +257,7 @@ func isAllowExec(key, txexecer []byte, toaddr string, height int64) bool {
 	if ok && execaddr == address.ExecAddress(string(txexecer)) {
 		return true
 	} else if bytes.HasPrefix(txexecer, []byte("user.p.")) && bytes.HasSuffix(txexecer, []byte(types.ParaX)) &&
-				!types.IsPara() && execaddr == address.ExecAddress(types.ParaX) {
+		!types.IsPara() && execaddr == address.ExecAddress(types.ParaX) {
 		// 跨链交易需要在主链和平行链都执行， 现在 txexecer 设置为 $(title) + types.ParaX
 		return true
 	}
