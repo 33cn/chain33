@@ -57,26 +57,25 @@ func (mvccs *KVMVCCStore) Set(datas *types.StoreSet, sync bool) []byte {
 	if err != nil {
 		panic(err)
 	}
-	//zzh
-	klog.Info("KVMVCCStore Set checkMVCCFlag", "checkMVCCFlag", kvset)
+	klog.Debug("KVMVCCStore Set checkMVCCFlag", "checkMVCCFlag", kvset)
 	hash := calcHash(datas)
 
 	kvlist, err := mvccs.mvcc.AddMVCC(datas.KV, hash, datas.StateHash, datas.Height)
 	if err != nil {
 		panic(err)
 	}
-	//zzh
-	klog.Info("KVMVCCStore Set AddMVCC", "hash", common.ToHex(datas.StateHash), "height", datas.Height)
+
+	klog.Debug("KVMVCCStore Set AddMVCC", "hash", common.ToHex(datas.StateHash), "height", datas.Height)
+	/*
 	for i := 0; i < len(kvlist); i++ {
-		klog.Info("KVMVCCStore Set AddMVCC", "index", i, "key", string(kvlist[i].Key),"value", string(kvlist[i].Value))
-	}
+		klog.Debug("KVMVCCStore Set AddMVCC", "index", i, "key", string(kvlist[i].Key),"value", string(kvlist[i].Value))
+	}*/
 
 	if len(kvset) > 0 {
 		kvlist = append(kvlist, kvset...)
 	}
 
-	//zzh
-	klog.Info("KVMVCCStore Set saveKVSets", "hash", common.ToHex(datas.StateHash), "height", datas.Height)
+	klog.Debug("KVMVCCStore Set saveKVSets", "hash", common.ToHex(datas.StateHash), "height", datas.Height)
 	mvccs.saveKVSets(kvlist)
 	return hash
 }
@@ -88,8 +87,7 @@ func (mvccs *KVMVCCStore) Get(datas *types.StoreGet) [][]byte {
 			kv := kvmap[string(datas.Keys[i])]
 			if kv != nil {
 				values[i] = kv.Value
-				//zzh
-				klog.Info("KVMVCCStore Get match cache", "hash", common.HashHex(datas.StateHash), "key", string(datas.Keys[i]), "value", string(values[i]))
+				klog.Debug("KVMVCCStore Get match cache", "hash", common.HashHex(datas.StateHash), "key", string(datas.Keys[i]), "value", string(values[i]))
 			}
 		}
 	} else {
@@ -98,8 +96,8 @@ func (mvccs *KVMVCCStore) Get(datas *types.StoreGet) [][]byte {
 			klog.Error("Get version by hash failed.", "hash", common.ToHex(datas.StateHash))
 			return values;
 		}
-		//zzh
-		klog.Info("KVMVCCStore Get mvcc GetVersion", "hash", common.HashHex(datas.StateHash), "version", version)
+
+		klog.Debug("KVMVCCStore Get mvcc GetVersion", "hash", common.HashHex(datas.StateHash), "version", version)
 
 		for i := 0; i < len(datas.Keys); i++ {
 			value, err :=mvccs.mvcc.GetV(datas.Keys[i], version)
@@ -107,8 +105,7 @@ func (mvccs *KVMVCCStore) Get(datas *types.StoreGet) [][]byte {
 				klog.Error("GetV by Keys failed.", "Key", string(datas.Keys[i]), "version", version)
 			}else if value != nil {
 				values[i] = value
-				//zzh
-				klog.Info("KVMVCCStore Get mvcc GetV", "index", i, "key", string(datas.Keys[i]), "value", string(value))
+				klog.Debug("KVMVCCStore Get mvcc GetV", "index", i, "key", string(datas.Keys[i]), "value", string(value))
 			}
 		}
 	}
@@ -120,22 +117,22 @@ func (mvccs *KVMVCCStore) MemSet(datas *types.StoreSet, sync bool) []byte {
 	if err != nil {
 		panic(err)
 	}
-	//zzh
-	klog.Info("KVMVCCStore MemSet checkMVCCFlag", "checkMVCCFlag", kvset,"kvset len", len(kvset))
+
+	klog.Debug("KVMVCCStore MemSet checkMVCCFlag", "checkMVCCFlag", kvset,"kvset len", len(kvset))
 	if len(kvset) > 0 {
 		mvccs.saveKVSets(kvset)
 	}
 
 	hash := calcHash(datas)
-	klog.Info("KVMVCCStore MemSet AddMVCC", "prestatehash", common.ToHex(datas.StateHash), "hash", common.ToHex(hash),"height", datas.Height)
+	klog.Debug("KVMVCCStore MemSet AddMVCC", "prestatehash", common.ToHex(datas.StateHash), "hash", common.ToHex(hash),"height", datas.Height)
 	kvlist, err := mvccs.mvcc.AddMVCC(datas.KV, hash, datas.StateHash, datas.Height)
 	if err != nil {
 		panic(err)
 	}
-	//zzh
+	/*
 	for i := 0; i < len(kvlist); i++ {
 		klog.Info("KVMVCCStore MemSet AddMVCC", "index", i, "key", string(kvlist[i].Key),"value", string(kvlist[i].Value))
-	}
+	}*/
 	mvccs.kvsetmap[string(hash)] = kvlist
 
 	kvmap := make(map[string]*types.KeyValue)
@@ -155,8 +152,7 @@ func (mvccs *KVMVCCStore) Commit(req *types.ReqHash) ([]byte, error) {
 		klog.Error("store kvmvcc commit", "err", types.ErrHashNotFound)
 		return nil, types.ErrHashNotFound
 	}
-	//zzh
-	klog.Info("KVMVCCStore Commit saveKVSets", "hash", common.ToHex(req.Hash))
+	klog.Debug("KVMVCCStore Commit saveKVSets", "hash", common.ToHex(req.Hash))
 	mvccs.saveKVSets(mvccs.kvsetmap[string(req.Hash)])
 	delete(mvccs.cache, string(req.Hash))
 	delete(mvccs.kvsetmap, string(req.Hash))
@@ -194,11 +190,11 @@ func (mvccs *KVMVCCStore) Del(req *types.StoreDel) []byte {
 		return nil
 	}
 
-	//zzh
 	klog.Info("KVMVCCStore Del", "hash", common.ToHex(req.StateHash), "height", req.Height)
+	/*
 	for i := 0; i < len(kvset); i++ {
-		klog.Info("KVMVCCStore Del AddMVCC", "index", i, "key", string(kvset[i].Key),"value", string(kvset[i].Value))
-	}
+		klog.Debug("KVMVCCStore Del AddMVCC", "index", i, "key", string(kvset[i].Key),"value", string(kvset[i].Value))
+	}*/
 	mvccs.saveKVSets(kvset)
 	return req.StateHash
 }
