@@ -75,3 +75,9 @@ func (mgr *pluginManager) addCmd(rootCmd *cobra.Command) {
 		item.AddCmd(rootCmd)
 	}
 }
+
+func (mgr *pluginManager) addRPC(s RPCServer) {
+	for _, item := range mgr.pluginItems {
+		item.AddRPC(s)
+	}
+}
