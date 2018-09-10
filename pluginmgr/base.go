@@ -26,7 +26,11 @@ func (p *PluginBase) InitExec() {
 
 func (p *PluginBase) AddCmd(rootCmd *cobra.Command) {
 	if p.Cmd != nil {
-		rootCmd.AddCommand(p.Cmd())
+		cmd := p.Cmd()
+		if cmd == nil {
+			return
+		}
+		rootCmd.AddCommand(cmd)
 	}
 }
 
