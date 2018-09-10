@@ -1,15 +1,16 @@
 package kvmvccdb
 
 import (
+	"sync/atomic"
+
 	"github.com/golang/protobuf/proto"
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common"
+	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	clog "gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/queue"
-	"gitlab.33.cn/chain33/chain33/types"
-	dbm "gitlab.33.cn/chain33/chain33/common/db"
-	"sync/atomic"
 	drivers "gitlab.33.cn/chain33/chain33/system/store"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var klog = log.New("module", "kvmvccdb")
@@ -34,10 +35,10 @@ func init() {
 
 type KVMVCCStore struct {
 	*drivers.BaseStore
-	mvcc *dbm.SimpleMVCC
+	mvcc     *dbm.SimpleMVCC
 	flagMVCC int64
-	cache map[string]map[string]*types.KeyValue
-	kvsetmap map[string] []*types.KeyValue
+	cache    map[string]map[string]*types.KeyValue
+	kvsetmap map[string][]*types.KeyValue
 }
 
 func New(cfg *types.Store) queue.Module {
@@ -53,7 +54,7 @@ func (mvccs *KVMVCCStore) Close() {
 }
 
 func (mvccs *KVMVCCStore) Set(datas *types.StoreSet, sync bool) []byte {
-	kvset,err := mvccs.checkMVCCFlag(mvccs.GetDB(), datas.Height)
+	kvset, err := mvccs.checkMVCCFlag(mvccs.GetDB(), datas.Height)
 	if err != nil {
 		panic(err)
 	}
@@ -67,9 +68,9 @@ func (mvccs *KVMVCCStore) Set(datas *types.StoreSet, sync bool) []byte {
 
 	klog.Debug("KVMVCCStore Set AddMVCC", "hash", common.ToHex(datas.StateHash), "height", datas.Height)
 	/*
-	for i := 0; i < len(kvlist); i++ {
-		klog.Debug("KVMVCCStore Set AddMVCC", "index", i, "key", string(kvlist[i].Key),"value", string(kvlist[i].Value))
-	}*/
+		for i := 0; i < len(kvlist); i++ {
+			klog.Debug("KVMVCCStore Set AddMVCC", "index", i, "key", string(kvlist[i].Key),"value", string(kvlist[i].Value))
+		}*/
 
 	if len(kvset) > 0 {
 		kvlist = append(kvlist, kvset...)
@@ -94,16 +95,16 @@ func (mvccs *KVMVCCStore) Get(datas *types.StoreGet) [][]byte {
 		version, err := mvccs.mvcc.GetVersion(datas.StateHash)
 		if err != nil {
 			klog.Error("Get version by hash failed.", "hash", common.ToHex(datas.StateHash))
-			return values;
+			return values
 		}
 
 		klog.Debug("KVMVCCStore Get mvcc GetVersion", "hash", common.HashHex(datas.StateHash), "version", version)
 
 		for i := 0; i < len(datas.Keys); i++ {
-			value, err :=mvccs.mvcc.GetV(datas.Keys[i], version)
+			value, err := mvccs.mvcc.GetV(datas.Keys[i], version)
 			if err != nil {
 				klog.Error("GetV by Keys failed.", "Key", string(datas.Keys[i]), "version", version)
-			}else if value != nil {
+			} else if value != nil {
 				values[i] = value
 				klog.Debug("KVMVCCStore Get mvcc GetV", "index", i, "key", string(datas.Keys[i]), "value", string(value))
 			}
@@ -113,26 +114,26 @@ func (mvccs *KVMVCCStore) Get(datas *types.StoreGet) [][]byte {
 }
 
 func (mvccs *KVMVCCStore) MemSet(datas *types.StoreSet, sync bool) []byte {
-	kvset,err := mvccs.checkMVCCFlag(mvccs.GetDB(), datas.Height)
+	kvset, err := mvccs.checkMVCCFlag(mvccs.GetDB(), datas.Height)
 	if err != nil {
 		panic(err)
 	}
 
-	klog.Debug("KVMVCCStore MemSet checkMVCCFlag", "checkMVCCFlag", kvset,"kvset len", len(kvset))
+	klog.Debug("KVMVCCStore MemSet checkMVCCFlag", "checkMVCCFlag", kvset, "kvset len", len(kvset))
 	if len(kvset) > 0 {
 		mvccs.saveKVSets(kvset)
 	}
 
 	hash := calcHash(datas)
-	klog.Debug("KVMVCCStore MemSet AddMVCC", "prestatehash", common.ToHex(datas.StateHash), "hash", common.ToHex(hash),"height", datas.Height)
+	klog.Debug("KVMVCCStore MemSet AddMVCC", "prestatehash", common.ToHex(datas.StateHash), "hash", common.ToHex(hash), "height", datas.Height)
 	kvlist, err := mvccs.mvcc.AddMVCC(datas.KV, hash, datas.StateHash, datas.Height)
 	if err != nil {
 		panic(err)
 	}
 	/*
-	for i := 0; i < len(kvlist); i++ {
-		klog.Info("KVMVCCStore MemSet AddMVCC", "index", i, "key", string(kvlist[i].Key),"value", string(kvlist[i].Value))
-	}*/
+		for i := 0; i < len(kvlist); i++ {
+			klog.Info("KVMVCCStore MemSet AddMVCC", "index", i, "key", string(kvlist[i].Key),"value", string(kvlist[i].Value))
+		}*/
 	mvccs.kvsetmap[string(hash)] = kvlist
 
 	kvmap := make(map[string]*types.KeyValue)
@@ -192,9 +193,9 @@ func (mvccs *KVMVCCStore) Del(req *types.StoreDel) []byte {
 
 	klog.Info("KVMVCCStore Del", "hash", common.ToHex(req.StateHash), "height", req.Height)
 	/*
-	for i := 0; i < len(kvset); i++ {
-		klog.Debug("KVMVCCStore Del AddMVCC", "index", i, "key", string(kvset[i].Key),"value", string(kvset[i].Value))
-	}*/
+		for i := 0; i < len(kvset); i++ {
+			klog.Debug("KVMVCCStore Del AddMVCC", "index", i, "key", string(kvset[i].Key),"value", string(kvset[i].Value))
+		}*/
 	mvccs.saveKVSets(kvset)
 	return req.StateHash
 }
@@ -270,7 +271,7 @@ func loadFlag(db dbm.DB, key []byte) (int64, error) {
 			return 0, err
 		}
 		return flag.GetData(), nil
-	} else if err == types.ErrNotFound || err == dbm.ErrNotFoundInDb{
+	} else if err == types.ErrNotFound || err == dbm.ErrNotFoundInDb {
 		return 0, nil
 	}
 	return 0, err
