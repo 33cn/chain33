@@ -47,6 +47,7 @@ func (acc *DB) ParaAssetTransferReceipt(accTo *types.Account, receiptTo proto.Me
 		Logs: []*types.ReceiptLog{log2},
 	}
 }
+
 /*
 func (acc *DB) ParaAssetWithdraw(addr string, amount int64, execaddr string) (*types.Receipt, error) {
 	receipt, err := acc.ExecWithdraw(execaddr, addr, amount)
