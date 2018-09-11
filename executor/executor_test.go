@@ -687,6 +687,6 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	//save to db
 	//if kvset != nil {
 		util.ExecKVSetCommit(client, block.StateHash)
-	}
+	//}
 	return &detail, deltx, nil
 }
