@@ -124,8 +124,10 @@ func main() {
 
 	//check mvcc switch，if use kvmvcc then cfg.Exec.EnableMVCC should be always false.
 	if cfg.Store.Name == "kvmvcc" {
-		cfg.Exec.EnableMVCC = false
-		log.Info("store type is kvmvcc,so the exec.enableMVCC switch is always off.")
+		if cfg.Exec.EnableMVCC == true {
+			log.Error("store type is kvmvcc but enableMVCC is configured true.")
+			panic("store type is kvmvcc, configure item enableMVCC should be false.please check it.")
+		}
 	}
 	//开始区块链模块加载
 	//channel, rabitmq 等

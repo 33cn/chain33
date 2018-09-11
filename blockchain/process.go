@@ -395,12 +395,6 @@ func (b *BlockChain) disconnectBlock(node *blockNode, blockdetail *types.BlockDe
 		go util.ReportErrEventToFront(chainlog, b.client, "blockchain", "wallet", types.ErrDataBaseDamage)
 		return err
 	}
-	//zzh
-	err = b.blockStore.DelStateKV(blockdetail)
-	if err != nil {
-		chainlog.Error("disconnectBlock del state kvs", "err", err)
-		return err
-	}
 
 	//更新最新的高度和header为上一个块
 	b.blockStore.UpdateHeight()
