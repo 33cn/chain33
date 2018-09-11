@@ -287,11 +287,11 @@ func (bc *BaseClient) WriteBlock(prev []byte, block *types.Block) error {
 	}
 	//从mempool 中删除错误的交易
 
-	if resp.GetData().(*types.Reply).IsOk {
-		bc.SetCurrentBlock(block)
+	blkdetail := resp.GetData().(*types.BlockDetail)
+	if blkdetail != nil {
+		bc.SetCurrentBlock(blkdetail.Block)
 	} else {
-		reply := resp.GetData().(*types.Reply)
-		return errors.New(string(reply.GetMsg()))
+		return errors.New("block detail is nil")
 	}
 	return nil
 }

@@ -2,6 +2,7 @@ package blockchain
 
 //message callback
 import (
+	"bytes"
 	"sync/atomic"
 
 	"gitlab.33.cn/chain33/chain33/common"
@@ -179,22 +180,36 @@ func (chain *BlockChain) getLastHeader(msg queue.Message) {
 	}
 }
 
+//共识过来的block是没有被执行的，首先判断此block的parent block是否是当前best链的tip
+//在blockchain执行时需要做tx的去重处理，所以在执行成功之后需要将最新区块详情返回给共识模块
 func (chain *BlockChain) addBlockDetail(msg queue.Message) {
 	var blockDetail *types.BlockDetail
-	var reply types.Reply
-	reply.IsOk = true
 	blockDetail = msg.Data.(*types.BlockDetail)
+	Height := blockDetail.Block.Height
+	parentHash := blockDetail.Block.GetParentHash()
 
 	chainlog.Info("EventAddBlockDetail", "height", blockDetail.Block.Height, "hash", common.HashHex(blockDetail.Block.Hash()))
 
-	err := chain.ProcAddBlockMsg(true, blockDetail, "self")
-	if err != nil {
-		chainlog.Error("ProcAddBlockMsg", "err", err.Error())
-		reply.IsOk = false
-		reply.Msg = []byte(err.Error())
+	//首先判断共识过来的block的parenthash是否是当前bestchain链的tip区块，如果不是就直接返回错误给共识模块
+	if !bytes.Equal(parentHash, chain.bestChain.Tip().hash) {
+		chainlog.Error("addBlockDetail parent hash no match", "err", types.ErrBlockHashNoMatch)
+		msg.Reply(chain.client.NewMessage("consensus", types.EventAddBlockDetail, types.ErrBlockHashNoMatch))
+	} else {
+		err := chain.ProcAddBlockMsg(true, blockDetail, "self")
+		if err != nil {
+			chainlog.Error("addBlockDetail", "err", err.Error())
+			msg.Reply(chain.client.NewMessage("consensus", types.EventAddBlockDetail, err))
+		} else {
+			//获取此高度区块执行后的区块详情blockdetail返回给共识模块
+			blkdetail, err := chain.GetBlock(Height)
+			if err != nil {
+				chainlog.Error("addBlockDetail GetBlock ", "Height", Height, "err", err.Error())
+				msg.Reply(chain.client.NewMessage("consensus", types.EventAddBlockDetail, err))
+			}
+			chainlog.Debug("addBlockDetail success ", "Height", Height, "hash", common.HashHex(blkdetail.Block.Hash()))
+			msg.Reply(chain.client.NewMessage("consensus", types.EventAddBlockDetail, blkdetail))
+		}
 	}
-	chainlog.Debug("EventAddBlockDetail", "success", "ok")
-	msg.Reply(chain.client.NewMessage("", types.EventReply, &reply))
 }
 
 func (chain *BlockChain) broadcastAddBlock(msg queue.Message) {
