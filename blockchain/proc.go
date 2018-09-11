@@ -182,8 +182,7 @@ func (chain *BlockChain) getLastHeader(msg queue.Message) {
 //共识过来的block是没有被执行的，首先判断此block的parent block是否是当前best链的tip
 //在blockchain执行时需要做tx的去重处理，所以在执行成功之后需要将最新区块详情返回给共识模块
 func (chain *BlockChain) addBlockDetail(msg queue.Message) {
-	var blockDetail *types.BlockDetail
-	blockDetail = msg.Data.(*types.BlockDetail)
+	blockDetail := msg.Data.(*types.BlockDetail)
 	Height := blockDetail.Block.Height
 	chainlog.Info("EventAddBlockDetail", "height", blockDetail.Block.Height, "hash", common.HashHex(blockDetail.Block.Hash()))
 	//首先判断共识过来的block的parenthash是否是当前bestchain链的tip区块，如果不是就直接返回错误给共识模块
