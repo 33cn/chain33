@@ -37,11 +37,7 @@ func ExecName(name string) string {
 	return ExecNamePrefix + name
 }
 
-func IsAllowExecName(name string) bool {
-	return isAllowExecName([]byte(name))
-}
-
-func isAllowExecName(name []byte) bool {
+func IsAllowExecName(name []byte, execer []byte) bool {
 	// name长度不能超过系统限制
 	if len(name) > address.MaxExecNameLength {
 		return false
@@ -50,11 +46,10 @@ func isAllowExecName(name []byte) bool {
 	if bytes.Contains(name, slash) {
 		return false
 	}
-	//vm:
-	if bytes.HasPrefix(name, UserEvm) {
-		name = ExecerEvm
+	if !bytes.Equal(name, execer) && !bytes.Equal(name, GetRealExecName(execer)) {
+		return false
 	}
-	if bytes.HasPrefix(name, userKey) {
+	if bytes.HasPrefix(name, UserKey) {
 		return true
 	}
 	for i := range AllowUserExec {
@@ -63,6 +58,40 @@ func isAllowExecName(name []byte) bool {
 		}
 	}
 	return false
+}
+
+func GetRealExecName(execer []byte) []byte {
+	//平行链执行器，获取真实执行器的规则
+	if bytes.HasPrefix(execer, ParaKey) {
+		count := 0
+		for i := 0; i < len(execer); i++ {
+			if execer[i] == '.' {
+				count++
+			}
+			if count == 3 && i < (len(execer)-1) {
+				return execer[i+1:]
+			}
+		}
+	} else if bytes.HasPrefix(execer, UserKey) {
+		//不是user.p. 的情况, 而是user. 的情况
+		count := 0
+		index := 0
+		for i := 0; i < len(execer); i++ {
+			if execer[i] == '.' {
+				count++
+			}
+			index = i
+			if count == 2 {
+				index--
+				break
+			}
+		}
+		e := execer[5 : index+1]
+		if len(e) > 0 {
+			return e
+		}
+	}
+	return execer
 }
 
 func Encode(data proto.Message) []byte {

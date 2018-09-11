@@ -24,6 +24,7 @@ type Driver interface {
 	GetCoinsAccount() *account.DB
 	SetLocalDB(dbm.KVDB)
 	GetName() string
+	GetRealExecName(execer []byte) []byte
 	GetActionName(tx *types.Transaction) string
 	SetEnv(height, blocktime int64, difficulty uint64)
 	CheckTx(tx *types.Transaction, index int) error
@@ -81,6 +82,15 @@ func (d *DriverBase) SetChild(e Driver) {
 
 func (d *DriverBase) GetAddr() string {
 	return ExecAddress(d.child.GetName())
+}
+
+func (d *DriverBase) GetRealExecName(execer []byte) []byte {
+	name := d.child.GetName()
+	if name == string(execer) {
+		return execer
+	}
+	elog.Error("GetRealExecName, execer not the same to name")
+	return []byte(name)
 }
 
 func (d *DriverBase) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
