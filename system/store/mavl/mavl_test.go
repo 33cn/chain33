@@ -53,8 +53,7 @@ func TestKvddbSetGet(t *testing.T) {
 	datas := &types.StoreSet{
 		[]byte("1st"),
 		kv,
-		0
-	}
+		0}
 	hash := store.Set(datas, true)
 
 	keys := [][]byte{[]byte("k1"), []byte("k2")}
@@ -88,8 +87,7 @@ func TestKvdbMemSet(t *testing.T) {
 	datas := &types.StoreSet{
 		[]byte("1st"),
 		kv,
-		0
-	}
+		0}
 	hash := store.MemSet(datas, true)
 
 	keys := [][]byte{[]byte("mk1"), []byte("mk2")}
@@ -116,8 +114,7 @@ func TestKvdbRollback(t *testing.T) {
 	datas := &types.StoreSet{
 		[]byte("1st"),
 		kv,
-		0
-	}
+		0}
 	hash := store.MemSet(datas, true)
 
 	keys := [][]byte{[]byte("mk1"), []byte("mk2")}
@@ -151,8 +148,7 @@ func TestKvdbIterate(t *testing.T) {
 	datas := &types.StoreSet{
 		[]byte("1st"),
 		kv,
-		0
-	}
+		0}
 	hash := store.Set(datas, true)
 
 	store.IterateRangeByStateHash(hash, []byte("mk1"), []byte("mk3"), true, checkKV)
@@ -192,8 +188,7 @@ func TestKvdbIterateTimes(t *testing.T) {
 	datas := &types.StoreSet{
 		[]byte("1st"),
 		kv,
-		0
-	}
+		0}
 	hash := store.Set(datas, true)
 	start := time.Now()
 	store.IterateRangeByStateHash(hash, nil, nil, true, checkKV)
@@ -227,8 +222,7 @@ func BenchmarkGet(b *testing.B) {
 
 	getData := &types.StoreGet{
 		hash,
-		keys,
-	}
+		keys}
 
 	start := time.Now()
 	b.ResetTimer()
@@ -258,8 +252,7 @@ func BenchmarkSet(b *testing.B) {
 	datas := &types.StoreSet{
 		[]byte("1st"),
 		kv,
-		0
-	}
+		0}
 	start := time.Now()
 	b.ResetTimer()
 	hash := store.Set(datas, true)
@@ -287,8 +280,7 @@ func BenchmarkMemSet(b *testing.B) {
 	datas := &types.StoreSet{
 		[]byte("1st"),
 		kv,
-		0
-	}
+		0}
 	start := time.Now()
 	b.ResetTimer()
 	hash := store.MemSet(datas, true)
@@ -316,8 +308,7 @@ func BenchmarkCommit(b *testing.B) {
 	datas := &types.StoreSet{
 		[]byte("1st"),
 		kv,
-		0
-	}
+		0}
 	hash := store.MemSet(datas, true)
 
 	req := &types.ReqHash{

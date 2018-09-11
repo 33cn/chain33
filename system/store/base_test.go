@@ -78,8 +78,7 @@ func TestBaseStore_Queue(t *testing.T) {
 	datas := &types.StoreSet{
 		[]byte("1st"),
 		kv,
-		0
-	}
+		0}
 	set := &types.StoreSetWithSync{datas, true}
 	msg := queueClinet.NewMessage("store", types.EventStoreSet, set)
 	err := queueClinet.Send(msg, true)
