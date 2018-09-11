@@ -132,14 +132,14 @@ func (action *Action) saveStateDB(game *gt.Game) {
 	action.db.Set(Key(game.GetGameId()), types.Encode(game))
 }
 func CalcCountKey(status int32, addr string) (key []byte) {
-	key = append(key, []byte("mavl-"+types.ExecName(gt.GameX)+"-")...)
+	key = append(key, []byte("mavl-"+gt.GameX+"-")...)
 	key = append(key, []byte(fmt.Sprintf("%s:%d:%s", GameCount, status, addr))...)
 	return key
 }
 
 //gameId to save key
 func Key(id string) (key []byte) {
-	key = append(key, []byte("mavl-"+types.ExecName(gt.GameX)+"-")...)
+	key = append(key, []byte("mavl-"+gt.GameX+"-")...)
 	key = append(key, []byte(id)...)
 	return key
 }

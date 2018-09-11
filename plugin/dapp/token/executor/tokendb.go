@@ -206,7 +206,7 @@ func (action *tokenAction) finishCreate(tokenFinish *types.TokenFinishCreate) (*
 
 	//创建token类型的账户，同时需要创建的额度存入
 
-	tokenAccount, err := account.NewAccountDB(types.ExecName("token"), tokenFinish.GetSymbol(), action.db)
+	tokenAccount, err := account.NewAccountDB("token", tokenFinish.GetSymbol(), action.db)
 	if err != nil {
 		return nil, err
 	}

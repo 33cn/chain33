@@ -8,14 +8,14 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var name string
+var nameX string
 
 //var tlog = log.New("module", name)
 
 func Init() {
-	name = types.ExecName("privacy")
+	nameX = types.ExecName("privacy")
 	// init executor type
-	types.RegistorExecutor(name, &PrivacyType{})
+	types.RegistorExecutor("privacy", &PrivacyType{})
 
 	// init log
 	types.RegistorLog(types.TyLogPrivacyFee, &PrivacyFeeLog{})

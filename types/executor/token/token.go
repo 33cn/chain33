@@ -10,12 +10,12 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var name string
+var nameX string
 
-var tlog = log.New("module", name)
+var tlog = log.New("module", types.TokenX)
 
 //getRealExecName
-//如果paraName == "", 那么自动用 types.ExecName("token")
+//如果paraName == "", 那么自动用 types.types.ExecName("token")
 //如果设置了paraName , 那么强制用paraName
 //也就是说，我们可以构造其他平行链的交易
 func getRealExecName(paraName string) string {
@@ -23,9 +23,9 @@ func getRealExecName(paraName string) string {
 }
 
 func Init() {
-	name = types.ExecName(types.TokenX)
+	nameX = types.ExecName(types.TokenX)
 	// init executor type
-	types.RegistorExecutor(types.ExecName(name), &TokenType{})
+	types.RegistorExecutor(types.TokenX, &TokenType{})
 
 	// init log
 	types.RegistorLog(types.TyLogTokenTransfer, &TokenTransferLog{})
@@ -136,7 +136,7 @@ func (coins TokenType) CreateTx(action string, message json.RawMessage) (*types.
 			return nil, types.ErrInputPara
 		}
 
-		if param.ExecName != "" && !types.IsAllowExecName(param.ExecName) {
+		if param.ExecName != "" && !types.IsAllowExecName([]byte(param.ExecName), []byte(param.ExecName)) {
 			tlog.Error("CreateTx", "Error", types.ErrExecNameNotMatch)
 			return nil, types.ErrExecNameNotMatch
 		}
@@ -227,7 +227,7 @@ func CreateTokenTransfer(param *types.CreateTx) *types.Transaction {
 		return &types.Transaction{Execer: []byte(param.GetExecName()), Payload: types.Encode(transfer), To: address.ExecAddress(param.GetExecName())}
 	}
 	//其他情况，默认构造主链交易
-	return &types.Transaction{Execer: []byte(name), Payload: types.Encode(transfer), To: param.GetTo()}
+	return &types.Transaction{Execer: []byte(nameX), Payload: types.Encode(transfer), To: param.GetTo()}
 }
 
 func CreateRawTokenPreCreateTx(parm *TokenPreCreateTx) (*types.Transaction, error) {

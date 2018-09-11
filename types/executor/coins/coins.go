@@ -10,13 +10,13 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var name string
-var tlog = log.New("module", name)
+var nameX string
+var tlog = log.New("module", "exectype.coins")
 
 func Init() {
-	name = types.ExecName("coins")
+	nameX = types.ExecName("coins")
 	// init executor type
-	types.RegistorExecutor(name, &CoinsType{})
+	types.RegistorExecutor("coins", &CoinsType{})
 
 	// init log
 	types.RegistorLog(types.TyLogDeposit, &CoinsDepositLog{})
@@ -118,7 +118,7 @@ func (coins CoinsType) CreateTx(action string, message json.RawMessage) (*types.
 		tlog.Error("CreateTx", "Error", err)
 		return nil, types.ErrInputPara
 	}
-	if param.ExecName != "" && !types.IsAllowExecName(param.ExecName) {
+	if param.ExecName != "" && !types.IsAllowExecName([]byte(param.ExecName), []byte(param.ExecName)) {
 		tlog.Error("CreateTx", "Error", types.ErrExecNameNotMatch)
 		return nil, types.ErrExecNameNotMatch
 	}
@@ -174,9 +174,9 @@ func CreateCoinsTransfer(param *types.CreateTx) *types.Transaction {
 		transfer.Ty = types.CoinsActionWithdraw
 	}
 	if types.IsPara() {
-		return &types.Transaction{Execer: []byte(name), Payload: types.Encode(transfer), To: address.ExecAddress(name)}
+		return &types.Transaction{Execer: []byte(nameX), Payload: types.Encode(transfer), To: address.ExecAddress(nameX)}
 	}
-	return &types.Transaction{Execer: []byte(name), Payload: types.Encode(transfer), To: param.GetTo()}
+	return &types.Transaction{Execer: []byte(nameX), Payload: types.Encode(transfer), To: param.GetTo()}
 }
 
 type CoinsDepositLog struct {

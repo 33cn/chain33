@@ -48,7 +48,10 @@ func RegistorExecutor(exec string, util ExecutorType) {
 }
 
 func LoadExecutor(exec string) ExecutorType {
-	if exec, exist := executorMap[exec]; exist {
+	//尽可能的加载执行器
+	//真正的权限控制在区块执行的时候做控制
+	realname := GetRealExecName([]byte(exec))
+	if exec, exist := executorMap[string(realname)]; exist {
 		return exec
 	}
 	return nil
