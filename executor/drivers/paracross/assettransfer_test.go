@@ -183,8 +183,6 @@ func (suite *AssetTransferTestSuite) TestExecTransferInPara() {
 		}
 		suite.T().Log(string(kv.Key), v)
 	}
-	accTest := acc.LoadAccount(addrTest)
-	assert.Equal(suite.T(), Amount, accTest.Balance)
 
 	resultB := acc.LoadExecAccount(string(toB), addrTest)
 	assert.Equal(suite.T(), Amount, resultB.Balance)
