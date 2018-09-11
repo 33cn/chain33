@@ -58,7 +58,14 @@ func (pack *TransferPack) checkBalance(txInfo map[string]interface{}) bool {
 		"ToPrev", logRecv["prev"].(map[string]interface{})["balance"].(string),
 		"ToCurr", logRecv["current"].(map[string]interface{})["balance"].(string))
 
+	depositCheck := true
+	//transfer to contract, deposit
+	if len(logArr) == 4 {
+		logDeposit := logArr[3].(map[string]interface{})["log"].(map[string]interface{})
+		depositCheck = checkBalanceDeltaWithAddr(logDeposit, interCase.From, Amount)
+	}
+
 	return checkBalanceDeltaWithAddr(logFee, interCase.From, -fee) &&
 		checkBalanceDeltaWithAddr(logSend, interCase.From, -Amount) &&
-		checkBalanceDeltaWithAddr(logRecv, interCase.To, Amount)
+		checkBalanceDeltaWithAddr(logRecv, interCase.To, Amount) && depositCheck
 }

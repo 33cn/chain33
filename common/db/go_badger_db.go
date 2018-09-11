@@ -249,19 +249,22 @@ type GoBadgerDBBatch struct {
 	db    *GoBadgerDB
 	batch *badger.Txn
 	//wop   *opt.WriteOptions
+	size int
 }
 
 func (db *GoBadgerDB) NewBatch(sync bool) Batch {
 	batch := db.db.NewTransaction(true)
-	return &GoBadgerDBBatch{db, batch}
+	return &GoBadgerDBBatch{db, batch, 0}
 }
 
 func (mBatch *GoBadgerDBBatch) Set(key, value []byte) {
 	mBatch.batch.Set(key, value)
+	mBatch.size += len(value)
 }
 
 func (mBatch *GoBadgerDBBatch) Delete(key []byte) {
 	mBatch.batch.Delete(key)
+	mBatch.size += 1
 }
 
 func (mBatch *GoBadgerDBBatch) Write() error {
@@ -272,4 +275,15 @@ func (mBatch *GoBadgerDBBatch) Write() error {
 		return err
 	}
 	return nil
+}
+
+func (mBatch *GoBadgerDBBatch) ValueSize() int {
+	return mBatch.size
+}
+
+func (mBatch *GoBadgerDBBatch) Reset() {
+	if nil != mBatch.db && nil != mBatch.db.db {
+		mBatch.batch = mBatch.db.db.NewTransaction(true)
+	}
+	mBatch.size = 0
 }

@@ -45,7 +45,7 @@ func init() {
 type ParaClient struct {
 	*drivers.BaseClient
 	conn            *grpc.ClientConn
-	grpcClient      types.GrpcserviceClient
+	grpcClient      types.Chain33Client
 	isCatchingUp    bool
 	commitMsgClient *CommitMsgClient
 	authAccount     string
@@ -76,7 +76,7 @@ func New(cfg *types.Consensus) queue.Module {
 	if err != nil {
 		panic(err)
 	}
-	grpcClient := types.NewGrpcserviceClient(conn)
+	grpcClient := types.NewChain33Client(conn)
 
 	para := &ParaClient{
 		BaseClient:  c,
