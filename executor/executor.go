@@ -235,7 +235,7 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 		&types.Receipts{receipts}))
 }
 
-func isAllowExec(key, txexecer []byte, toaddr string, height int64) bool {
+func isAllowExec(key, txexecer []byte, tx *types.Transaction, height int64) bool {
 	keyexecer, err := findExecer(key)
 	if err != nil {
 		elog.Error("find execer ", "err", err)
@@ -254,10 +254,11 @@ func isAllowExec(key, txexecer []byte, toaddr string, height int64) bool {
 	//每个合约中，都会开辟一个区域，这个区域是另外一个合约可以修改的区域
 	//我们把数据限制在这个位置，防止合约的其他位置被另外一个合约修改
 	execaddr, ok := getExecKey(key)
+	elog.Debug("XXX", "execaddr", execaddr, "KEY", string(key), "exec", string(txexecer),
+		"execaddr", address.ExecAddress(string(txexecer)))
 	if ok && execaddr == address.ExecAddress(string(txexecer)) {
 		return true
-	} else if bytes.HasPrefix(txexecer, []byte("user.p.")) && bytes.HasSuffix(txexecer, []byte(types.ParaX)) &&
-		!types.IsPara() && execaddr == address.ExecAddress(types.ParaX) {
+	} else if !types.IsPara() && types.IsParaCrossTransferTx(tx) && execaddr == address.ExecAddress(types.ParaX) {
 		// 跨链交易需要在主链和平行链都执行， 现在 txexecer 设置为 $(title) + types.ParaX
 		return true
 	}
@@ -802,7 +803,7 @@ func (execute *executor) execTxOne(feelog *types.Receipt, tx *types.Transaction,
 	if receipt != nil {
 		for _, kv := range receipt.GetKV() {
 			k := kv.GetKey()
-			if !isAllowExec(k, tx.GetExecer(), tx.To, execute.height) {
+			if !isAllowExec(k, tx.GetExecer(), tx, execute.height) {
 				elog.Error("err receipt key", "key", string(k), "tx.exec", string(tx.GetExecer()),
 					"tx.action", tx.ActionName())
 				//非法的receipt，交易执行失败
