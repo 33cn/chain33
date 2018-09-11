@@ -11,14 +11,14 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var name string
+var nameX string
 
-var hlog = log.New("module", name)
+var hlog = log.New("module", "exectype.hashlock")
 
 func Init() {
-	name = "hashlock"
+	nameX = types.ExecName("hashlock")
 	// init executor type
-	types.RegistorExecutor(name, &HashlockType{})
+	types.RegistorExecutor("hashlock", &HashlockType{})
 
 	// init log
 	//types.RegistorLog(types.TyLogDeposit, &CoinsDepositLog{})
@@ -144,11 +144,11 @@ func CreateRawHashlockLockTx(parm *HashlockLockTx) (*types.Transaction, error) {
 		Value: &types.HashlockAction_Hlock{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte(name),
+		Execer:  []byte(types.ExecName(nameX)),
 		Payload: types.Encode(lock),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(name),
+		To:      address.ExecAddress(types.ExecName(nameX)),
 	}
 
 	err := tx.SetRealFee(types.MinFee)
@@ -173,11 +173,11 @@ func CreateRawHashlockUnlockTx(parm *HashlockUnlockTx) (*types.Transaction, erro
 		Value: &types.HashlockAction_Hunlock{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte(name),
+		Execer:  []byte(nameX),
 		Payload: types.Encode(unlock),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(name),
+		To:      address.ExecAddress(nameX),
 	}
 
 	err := tx.SetRealFee(types.MinFee)
@@ -202,11 +202,11 @@ func CreateRawHashlockSendTx(parm *HashlockSendTx) (*types.Transaction, error) {
 		Value: &types.HashlockAction_Hsend{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte(name),
+		Execer:  []byte(nameX),
 		Payload: types.Encode(send),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(name),
+		To:      address.ExecAddress(nameX),
 	}
 
 	err := tx.SetRealFee(types.MinFee)

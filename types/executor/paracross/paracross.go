@@ -24,14 +24,14 @@ const (
 
 const orgName = "paracross"
 
-var name string
+var nameX string
 
 var glog = log.New("module", orgName)
 
 func Init() {
-	name = orgName
+	nameX = types.ExecName(orgName)
 	// init executor type
-	types.RegistorExecutor(name, &ParacrossType{})
+	types.RegistorExecutor(nameX, &ParacrossType{})
 
 	// init log
 	types.RegistorLog(types.TyLogParacrossCommit, &ParacrossCommitLog{})
@@ -92,7 +92,7 @@ func CreateRawParacrossCommitTx(parm *ParacrossCommitTx) (*types.Transaction, er
 		glog.Error("CreateRawParacrossCommitTx", "parm", parm)
 		return nil, types.ErrInvalidParam
 	}
-	return createRawCommitTx(&parm.Status, name, parm.Fee)
+	return createRawCommitTx(&parm.Status, nameX, parm.Fee)
 }
 
 func CreateRawCommitTx4MainChain(status *types.ParacrossNodeStatus, name string, fee int64) (*types.Transaction, error) {
