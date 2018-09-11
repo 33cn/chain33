@@ -2,7 +2,6 @@ package blockchain
 
 //message callback
 import (
-	"bytes"
 	"sync/atomic"
 
 	"gitlab.33.cn/chain33/chain33/common"
@@ -121,7 +120,7 @@ func (chain *BlockChain) addBlock(msg queue.Message) {
 	var reply types.Reply
 	reply.IsOk = true
 	blockpid := msg.Data.(*types.BlockPid)
-	err := chain.ProcAddBlockMsg(false, &types.BlockDetail{Block: blockpid.Block}, blockpid.Pid)
+	_, err := chain.ProcAddBlockMsg(false, &types.BlockDetail{Block: blockpid.Block}, blockpid.Pid)
 	if err != nil {
 		chainlog.Error("ProcAddBlockMsg", "height", blockpid.Block.Height, "err", err.Error())
 		reply.IsOk = false
@@ -186,30 +185,23 @@ func (chain *BlockChain) addBlockDetail(msg queue.Message) {
 	var blockDetail *types.BlockDetail
 	blockDetail = msg.Data.(*types.BlockDetail)
 	Height := blockDetail.Block.Height
-	parentHash := blockDetail.Block.GetParentHash()
-
 	chainlog.Info("EventAddBlockDetail", "height", blockDetail.Block.Height, "hash", common.HashHex(blockDetail.Block.Hash()))
-
 	//首先判断共识过来的block的parenthash是否是当前bestchain链的tip区块，如果不是就直接返回错误给共识模块
-	if !bytes.Equal(parentHash, chain.bestChain.Tip().hash) {
-		chainlog.Error("addBlockDetail parent hash no match", "err", types.ErrBlockHashNoMatch)
-		msg.Reply(chain.client.NewMessage("consensus", types.EventAddBlockDetail, types.ErrBlockHashNoMatch))
-	} else {
-		err := chain.ProcAddBlockMsg(true, blockDetail, "self")
-		if err != nil {
-			chainlog.Error("addBlockDetail", "err", err.Error())
-			msg.Reply(chain.client.NewMessage("consensus", types.EventAddBlockDetail, err))
-		} else {
-			//获取此高度区块执行后的区块详情blockdetail返回给共识模块
-			blkdetail, err := chain.GetBlock(Height)
-			if err != nil {
-				chainlog.Error("addBlockDetail GetBlock ", "Height", Height, "err", err.Error())
-				msg.Reply(chain.client.NewMessage("consensus", types.EventAddBlockDetail, err))
-			}
-			chainlog.Debug("addBlockDetail success ", "Height", Height, "hash", common.HashHex(blkdetail.Block.Hash()))
-			msg.Reply(chain.client.NewMessage("consensus", types.EventAddBlockDetail, blkdetail))
-		}
+	blockDetail, err := chain.ProcAddBlockMsg(true, blockDetail, "self")
+	if err != nil {
+		chainlog.Error("addBlockDetail", "err", err.Error())
+		msg.Reply(chain.client.NewMessage("consensus", types.EventAddBlockDetail, err))
+		return
 	}
+	if blockDetail == nil {
+		err = types.ErrExecBlockNil
+		chainlog.Error("addBlockDetail", "err", err.Error())
+		msg.Reply(chain.client.NewMessage("consensus", types.EventAddBlockDetail, err))
+		return
+	}
+	//获取此高度区块执行后的区块详情blockdetail返回给共识模块
+	chainlog.Debug("addBlockDetail success ", "Height", Height, "hash", common.HashHex(blockDetail.Block.Hash()))
+	msg.Reply(chain.client.NewMessage("consensus", types.EventAddBlockDetail, blockDetail))
 }
 
 func (chain *BlockChain) broadcastAddBlock(msg queue.Message) {
@@ -226,7 +218,7 @@ func (chain *BlockChain) broadcastAddBlock(msg queue.Message) {
 		msg.Reply(chain.client.NewMessage("", types.EventReply, &reply))
 		return
 	}
-	err := chain.ProcAddBlockMsg(true, &types.BlockDetail{Block: blockwithpid.Block}, blockwithpid.Pid)
+	_, err := chain.ProcAddBlockMsg(true, &types.BlockDetail{Block: blockwithpid.Block}, blockwithpid.Pid)
 	if err != nil {
 		chainlog.Error("ProcAddBlockMsg", "err", err.Error())
 		reply.IsOk = false

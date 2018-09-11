@@ -376,13 +376,13 @@ func (chain *BlockChain) ProcGetBlockDetailsMsg(requestblock *types.ReqBlocks) (
 }
 
 //处理从peer对端同步过来的block消息
-func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, blockdetail *types.BlockDetail, pid string) (err error) {
+func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, blockdetail *types.BlockDetail, pid string) (*types.BlockDetail, error) {
 	block := blockdetail.Block
 	if block == nil {
 		chainlog.Error("ProcAddBlockMsg input block is null")
-		return types.ErrInputPara
+		return nil, types.ErrInputPara
 	}
-	ismain, isorphan, err := chain.ProcessBlock(broadcast, blockdetail, pid, true, -1)
+	blockdetail, ismain, isorphan, err := chain.ProcessBlock(broadcast, blockdetail, pid, true, -1)
 
 	//非孤儿block或者已经存在的block
 	if chain.task.InProgress() {
@@ -402,7 +402,7 @@ func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, blockdetail *types.Bloc
 
 	chainlog.Debug("ProcAddBlockMsg result:", "height", blockdetail.Block.Height, "ismain", ismain, "isorphan", isorphan, "hash", common.ToHex(blockdetail.Block.Hash()), "err", err)
 
-	return err
+	return blockdetail, err
 }
 
 //blockchain 模块add block到db之后通知mempool 和consense模块做相应的更新
@@ -968,7 +968,7 @@ func (chain *BlockChain) ProcDelParaChainBlockMsg(broadcast bool, ParaChainblock
 	block := ParaChainblockdetail.GetBlockdetail().GetBlock()
 	sequence := ParaChainblockdetail.GetSequence()
 
-	ismain, isorphan, err := chain.ProcessBlock(broadcast, blockdetail, pid, false, sequence)
+	_, ismain, isorphan, err := chain.ProcessBlock(broadcast, blockdetail, pid, false, sequence)
 	chainlog.Debug("ProcDelParaChainBlockMsg result:", "height", block.Height, "sequence", sequence, "ismain", ismain, "isorphan", isorphan, "hash", common.ToHex(block.Hash()), "err", err)
 
 	return err
@@ -984,7 +984,7 @@ func (chain *BlockChain) ProcAddParaChainBlockMsg(broadcast bool, ParaChainblock
 	block := ParaChainblockdetail.GetBlockdetail().GetBlock()
 	sequence := ParaChainblockdetail.GetSequence()
 
-	ismain, isorphan, err := chain.ProcessBlock(broadcast, blockdetail, pid, true, sequence)
+	_, ismain, isorphan, err := chain.ProcessBlock(broadcast, blockdetail, pid, true, sequence)
 	chainlog.Debug("ProcAddParaChainBlockMsg result:", "height", block.Height, "sequence", sequence, "ismain", ismain, "isorphan", isorphan, "hash", common.ToHex(block.Hash()), "err", err)
 
 	return err

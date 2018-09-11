@@ -285,15 +285,32 @@ func (bc *BaseClient) WriteBlock(prev []byte, block *types.Block) error {
 	if err != nil {
 		return err
 	}
+	blockdetail = resp.GetData().(*types.BlockDetail)
 	//从mempool 中删除错误的交易
-
-	blkdetail := resp.GetData().(*types.BlockDetail)
-	if blkdetail != nil {
-		bc.SetCurrentBlock(blkdetail.Block)
+	deltx := diffTx(block.Txs, blockdetail.Block.Txs)
+	if len(deltx) > 0 {
+		bc.delMempoolTx(deltx)
+	}
+	if blockdetail != nil {
+		bc.SetCurrentBlock(blockdetail.Block)
 	} else {
 		return errors.New("block detail is nil")
 	}
 	return nil
+}
+
+func diffTx(tx1, tx2 []*types.Transaction) (deltx []*types.Transaction) {
+	txlist2 := make(map[string]bool)
+	for _, tx := range tx2 {
+		txlist2[string(tx.Hash())] = true
+	}
+	for _, tx := range tx1 {
+		hash := string(tx.Hash())
+		if _, ok := txlist2[hash]; !ok {
+			deltx = append(deltx, tx)
+		}
+	}
+	return deltx
 }
 
 func (bc *BaseClient) SetCurrentBlock(b *types.Block) {

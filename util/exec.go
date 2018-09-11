@@ -9,8 +9,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var ulog = log.New("module", "util")
-
 func CheckBlock(client queue.Client, block *types.BlockDetail) error {
 	req := block
 	msg := client.NewMessage("consensus", types.EventCheckBlock, req)
