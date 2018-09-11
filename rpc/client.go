@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"math/rand"
 	"reflect"
-	"sync"
 	"time"
 
 	"gitlab.33.cn/chain33/chain33/account"
@@ -14,7 +13,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/types/executor"
 	evmtype "gitlab.33.cn/chain33/chain33/types/executor/evm"
 	hashlocktype "gitlab.33.cn/chain33/chain33/types/executor/hashlock"
 	lotterytype "gitlab.33.cn/chain33/chain33/types/executor/lottery"
@@ -23,7 +21,6 @@ import (
 	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
 )
 
-var once sync.Once
 
 //提供系统rpc接口
 
@@ -35,7 +32,6 @@ type channelClient struct {
 func (c *channelClient) Init(q queue.Client) {
 	c.QueueProtocolAPI, _ = client.New(q, nil)
 	c.accountdb = account.NewCoinsAccount()
-	once.Do(executor.Init)
 }
 
 // support old rpc create transaction interface. call new imlp

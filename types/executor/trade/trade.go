@@ -28,13 +28,13 @@ func Init() {
 	types.RegistorLog(types.TyLogTradeBuyRevoke, &TradeBuyRevokeLog{})
 
 	// init query rpc
-	types.RegistorRpcType("GetTokenSellOrderByStatus", &TradeQueryTokenSellOrder{})
-	types.RegistorRpcType("GetOnesSellOrderWithStatus", &TradeQueryOnesSellOrder{})
-	types.RegistorRpcType("GetOnesSellOrder", &TradeQueryOnesSellOrder{})
-	types.RegistorRpcType("GetTokenBuyOrderByStatus", &TradeQueryTokenBuyOrder{})
-	types.RegistorRpcType("GetOnesBuyOrderWithStatus", &TradeQueryOnesBuyOrder{})
-	types.RegistorRpcType("GetOnesBuyOrder", &TradeQueryOnesBuyOrder{})
-	types.RegistorRpcType("GetOnesOrderWithStatus", &TradeQueryOnesOrder{})
+	types.RegisterRPCQueryHandle("GetTokenSellOrderByStatus", &TradeQueryTokenSellOrder{})
+	types.RegisterRPCQueryHandle("GetOnesSellOrderWithStatus", &TradeQueryOnesSellOrder{})
+	types.RegisterRPCQueryHandle("GetOnesSellOrder", &TradeQueryOnesSellOrder{})
+	types.RegisterRPCQueryHandle("GetTokenBuyOrderByStatus", &TradeQueryTokenBuyOrder{})
+	types.RegisterRPCQueryHandle("GetOnesBuyOrderWithStatus", &TradeQueryOnesBuyOrder{})
+	types.RegisterRPCQueryHandle("GetOnesBuyOrder", &TradeQueryOnesBuyOrder{})
+	types.RegisterRPCQueryHandle("GetOnesOrderWithStatus", &TradeQueryOnesOrder{})
 }
 
 type tradeType struct {

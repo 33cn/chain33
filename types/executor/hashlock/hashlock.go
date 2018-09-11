@@ -24,7 +24,7 @@ func Init() {
 	//types.RegistorLog(types.TyLogDeposit, &CoinsDepositLog{})
 
 	// init query rpc
-	//types.RegistorRpcType("q2", &CoinsGetTxsByAddr{})
+	//types.RegisterRPCQueryHandle("q2", &CoinsGetTxsByAddr{})
 }
 
 type HashlockType struct {

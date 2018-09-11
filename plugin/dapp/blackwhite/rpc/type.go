@@ -40,9 +40,9 @@ func Init(s pluginmgr.RPCServer) {
 	types.RegistorLog(types.TyLogBlackwhiteLoopInfo, &BlackwhiteLoopInfoLog{})
 
 	// init query rpc
-	types.RegistorRpcType(bw.GetBlackwhiteRoundInfo, &convertor.QueryConvertor{ProtoObj: &bw.ReqBlackwhiteRoundInfo{}})
-	types.RegistorRpcType(bw.GetBlackwhiteByStatusAndAddr, &convertor.QueryConvertor{ProtoObj: &bw.ReqBlackwhiteRoundList{}})
-	types.RegistorRpcType(bw.GetBlackwhiteloopResult, &convertor.QueryConvertor{ProtoObj: &bw.ReqLoopResult{}})
+	types.RegisterRPCQueryHandle(bw.GetBlackwhiteRoundInfo, &convertor.QueryConvertor{ProtoObj: &bw.ReqBlackwhiteRoundInfo{}})
+	types.RegisterRPCQueryHandle(bw.GetBlackwhiteByStatusAndAddr, &convertor.QueryConvertor{ProtoObj: &bw.ReqBlackwhiteRoundList{}})
+	types.RegisterRPCQueryHandle(bw.GetBlackwhiteloopResult, &convertor.QueryConvertor{ProtoObj: &bw.ReqLoopResult{}})
 
 	InitRPC(s)
 }

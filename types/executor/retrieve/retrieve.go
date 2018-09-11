@@ -23,7 +23,7 @@ func Init() {
 	//types.RegistorLog(types.TyLogDeposit, &CoinsDepositLog{})
 
 	// init query rpc
-	types.RegistorRpcType("GetRetrieveInfo", &RetrieveGetInfo{})
+	types.RegisterRPCQueryHandle("GetRetrieveInfo", &RetrieveGetInfo{})
 }
 
 type RetrieveType struct {
