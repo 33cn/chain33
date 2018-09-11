@@ -175,8 +175,10 @@ func (a *action) Play(play *gt.BlackwhitePlay) (*types.Receipt, error) {
 
 	key1 := calcRoundKey(round.GameID)
 	value1 := types.Encode(&round)
-	//将当前游戏状态保存，便于同一区块中游戏参数的累加
-	a.db.Set(key1, value1)
+	if types.IsMatchFork(a.height, types.ForkV25BlackWhiteV2) {
+		//将当前游戏状态保存，便于同一区块中游戏参数的累加
+		a.db.Set(key1, value1)
+	}
 	kv = append(kv, &types.KeyValue{key1, value1})
 
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
@@ -257,8 +259,10 @@ func (a *action) Show(show *gt.BlackwhiteShow) (*types.Receipt, error) {
 
 	key1 := calcRoundKey(round.GameID)
 	value1 := types.Encode(&round)
-	//将当前游戏状态保存，便于同一区块中游戏参数的累加
-	a.db.Set(key1, value1)
+	if types.IsMatchFork(a.height, types.ForkV25BlackWhiteV2) {
+		//将当前游戏状态保存，便于同一区块中游戏参数的累加
+		a.db.Set(key1, value1)
+	}
 	kv = append(kv, &types.KeyValue{key1, value1})
 
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
@@ -351,8 +355,10 @@ func (a *action) TimeoutDone(done *gt.BlackwhiteTimeoutDone) (*types.Receipt, er
 
 	key1 := calcRoundKey(round.GameID)
 	value1 := types.Encode(&round)
-	//将当前游戏状态保存，便于同一区块中游戏参数的累加
-	a.db.Set(key1, value1)
+	if types.IsMatchFork(a.height, types.ForkV25BlackWhiteV2) {
+		//将当前游戏状态保存，便于同一区块中游戏参数的累加
+		a.db.Set(key1, value1)
+	}
 	kv = append(kv, &types.KeyValue{key1, value1})
 
 	// 需要更新全部地址状态
@@ -522,7 +528,7 @@ func (a *action) getWinner(round *gt.BlackwhiteRound) ([]*addrResult, *gt.ReplyL
 			var isBlack []bool
 			// 加入分叉高度判断：分叉高度在ForkV25BlackWhite到ForkV25BlackWhiteV2之间的执行原来逻辑，大于ForkV25BlackWhiteV2执行新逻辑，
 			// 小于ForkV25BlackWhite则无法进入
-			if types.IsMatchFork(a.height, types.ForkV25BlackWhite) && !types.IsMatchFork(a.height, types.ForkV25BlackWhiteV2) {
+			if !types.IsMatchFork(a.height, types.ForkV25BlackWhiteV2) {
 				for _, hash := range addres.HashValues {
 					if bytes.Equal(common.Sha256([]byte(addres.ShowSecret+black)), hash) {
 						isBlack = append(isBlack, true)
