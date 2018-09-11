@@ -222,6 +222,9 @@ func (evm *EVMExecutor) collectEvmTxLog(tx *types.Transaction, cr *types.Receipt
 
 //获取运行状态名
 func (evm *EVMExecutor) GetActionName(tx *types.Transaction) string {
+	if bytes.Equal(tx.Execer, []byte(types.ExecName(model.ExecutorName))) {
+		return types.ExecName(model.ExecutorName)
+	}
 	return tx.ActionName()
 }
 
