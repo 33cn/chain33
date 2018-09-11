@@ -314,7 +314,7 @@ func (csdb *CSStateDB) LoadValidators(height int64) (*ttypes.ValidatorSet, error
 		csState := blockInfo.GetState()
 		if csState == nil {
 			tendermintlog.Error("LoadValidators", "msg", "blockInfo.GetState is nil")
-			return nil, errors.New(fmt.Sprintf("LoadValidators get state from block info is nil"))
+			return nil, fmt.Errorf("LoadValidators get state from block info is nil")
 		}
 		state = LoadState(csState)
 	}

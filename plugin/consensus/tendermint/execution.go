@@ -119,7 +119,7 @@ func updateValidators(currentSet *ttypes.ValidatorSet, updates []*types.ValNode)
 		}
 
 		address := ttypes.GenAddressByPubKey(pubkey)
-		power := int64(v.Power)
+		power := v.Power
 		// mind the overflow from int64
 		if power < 0 {
 			return fmt.Errorf("Power (%d) overflows int64", v.Power)
@@ -161,7 +161,7 @@ func changeInVotingPowerMoreOrEqualToOneThird(currentSet *ttypes.ValidatorSet, u
 		}
 
 		address := ttypes.GenAddressByPubKey(pubkey)
-		power := int64(v.Power)
+		power := v.Power
 		// mind the overflow from int64
 		if power < 0 {
 			return false, fmt.Errorf("Power (%d) overflows int64", v.Power)

@@ -46,9 +46,6 @@ func addCreateCmdFlags(cmd *cobra.Command) {
 	cmd.MarkFlagRequired("num")
 }
 
-func addCleanCmdFlags(cmd *cobra.Command) {
-}
-
 func RandStr(length int) string {
 	chars := []byte{}
 MAIN_LOOP:
@@ -119,6 +116,4 @@ func createFiles(cmd *cobra.Command, args []string) {
 		return
 	}
 	tendermintlog.Info("Generated genesis file", "path", genFile)
-
-	return
 }

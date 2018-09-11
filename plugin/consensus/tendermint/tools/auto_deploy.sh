@@ -1,4 +1,16 @@
 #!/bin/bash
+# shellcheck disable=SC1078
+# shellcheck disable=SC1079
+# shellcheck disable=SC1117
+# shellcheck disable=SC2002
+# shellcheck disable=SC2003
+# shellcheck disable=SC2086
+# shellcheck disable=SC2091
+# shellcheck disable=SC2116
+# shellcheck disable=SC2129
+# shellcheck disable=SC2140
+# shellcheck disable=SC2162
+# shellcheck disable=SC2181
 
 package="chain33_tendermint_config.tar.gz"
 log_file=".auto_deploy.log"
@@ -50,7 +62,7 @@ GetUserNamePasswdAndPath() {
 
         echo 'Please input ip list of your destination: (such as "192.168.3.143 192.168.3.144 192.168.3.145 192.168.3.146")'
         read iplist
-        set index=0
+        index=0
         CreateNewConfigFile
         for ip in $(echo ${iplist}); do
             index=$(expr $index + 1)
@@ -73,7 +85,7 @@ GetUserNamePasswdAndPath() {
         fi
     elif [ ${choice} -eq 3 ]; then
         echo "Wrong input..."
-        return -1
+        return 2
     fi
 
     ShowConfigInfo
@@ -97,12 +109,12 @@ SendFileAndDecompressFile() {
             ExpectCmd "scp  ${package} ${username}@${ip}:${remote_dir}"
             if [ $? -ne 0 ]; then
                 Log "Send file failed, this tool will stoped..."
-                return -1
+                return 1
             fi
             ExpectCmd "ssh ${username}@${ip} tar zxf ${remote_dir}/${package} -C ${remote_dir}"
             if [ $? -ne 0 ]; then
                 Log "Decompress file failed, this tool will stoped..."
-                return -2
+                return 2
             fi
         fi
     done
@@ -204,10 +216,10 @@ main() {
 
     # Send and decompress the package
     SendFileAndDecompressFile
-    if [ $? -eq -1 ]; then
+    if [ $? -eq 1 ]; then
         echo "Send file err and exit soon..."
         exit
-    elif [ $? -eq -2 ]; then
+    elif [ $? -eq 2 ]; then
         echo "Decompress file err and exit soon..."
     fi
 }

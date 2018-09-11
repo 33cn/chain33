@@ -623,17 +623,15 @@ FOR_LOOP:
 
 func (pc *peerConn) heartbeatRoutine() {
 	for {
-		select {
-		case heartbeat, ok := <-pc.heartbeatQueue:
-			if ok {
-				msg := heartbeat.(*types.Heartbeat)
-				tendermintlog.Debug("Received proposal heartbeat message",
-					"height", msg.Height, "round", msg.Round, "sequence", msg.Sequence,
-					"valIdx", msg.ValidatorIndex, "valAddr", msg.ValidatorAddress)
-			} else {
-				return
-			}
+		heartbeat, ok := <-pc.heartbeatQueue
+		if !ok {
+			tendermintlog.Debug("heartbeatQueue closed")
+			return
 		}
+		msg := heartbeat.(*types.Heartbeat)
+		tendermintlog.Debug("Received proposal heartbeat message",
+			"height", msg.Height, "round", msg.Round, "sequence", msg.Sequence,
+			"valIdx", msg.ValidatorIndex, "valAddr", msg.ValidatorAddress)
 	}
 }
 
