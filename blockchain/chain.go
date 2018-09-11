@@ -189,13 +189,14 @@ func (chain *BlockChain) SetQueueClient(client queue.Client) {
 
 	//recv 消息的处理，共识模块需要获取lastblock从数据库中
 	chain.recvwg.Add(1)
-	go chain.ProcRecvMsg()
-
 	//初始化blockchian模块
 	go chain.InitBlockChain()
+	go chain.ProcRecvMsg()
 }
-func (chain *BlockChain) InitBlockChain() {
 
+func (chain *BlockChain) InitBlockChain() {
+	chain.chainLock.Lock()
+	defer chain.chainLock.Unlock()
 	//先缓存最新的128个block信息到cache中
 	curheight := chain.GetBlockHeight()
 	if types.EnableTxHeight {
@@ -221,7 +222,6 @@ func (chain *BlockChain) InitBlockChain() {
 		// 定时处理futureblock
 		go chain.UpdateRoutine()
 	}
-
 	//初始化默认forkinfo
 	chain.DefaultForkInfo()
 }
