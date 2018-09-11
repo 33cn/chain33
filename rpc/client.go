@@ -21,7 +21,6 @@ import (
 	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
 )
 
-
 //提供系统rpc接口
 
 type channelClient struct {
