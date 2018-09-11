@@ -41,6 +41,7 @@ func Init() {
 }
 
 func initExec() {
+
 	// init common log
 	types.RegistorLog(types.TyLogErr, &ErrLog{})
 	types.RegistorLog(types.TyLogFee, &FeeLog{})
