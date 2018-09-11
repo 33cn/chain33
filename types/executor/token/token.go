@@ -44,10 +44,10 @@ func Init() {
 	types.RegistorLog(types.TyLogRevokeCreateToken, &TokenRevokeCreateLog{})
 
 	// init query rpc
-	types.RegistorRpcType("GetTokens", &TokenGetTokens{})
-	types.RegistorRpcType("GetTokenInfo", &TokenGetTokenInfo{})
-	types.RegistorRpcType("GetAddrReceiverforTokens", &TokenGetAddrReceiverforTokens{})
-	types.RegistorRpcType("GetAccountTokenAssets", &TokenGetAccountTokenAssets{})
+	types.RegisterRPCQueryHandle("GetTokens", &TokenGetTokens{})
+	types.RegisterRPCQueryHandle("GetTokenInfo", &TokenGetTokenInfo{})
+	types.RegisterRPCQueryHandle("GetAddrReceiverforTokens", &TokenGetAddrReceiverforTokens{})
+	types.RegisterRPCQueryHandle("GetAccountTokenAssets", &TokenGetAccountTokenAssets{})
 }
 
 // exec
@@ -502,7 +502,7 @@ func (l TokenRevokeCreateLog) Decode(msg []byte) (interface{}, error) {
 type TokenGetTokens struct {
 }
 
-func (t *TokenGetTokens) Input(message json.RawMessage) ([]byte, error) {
+func (t *TokenGetTokens) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.ReqTokens
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -511,14 +511,14 @@ func (t *TokenGetTokens) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *TokenGetTokens) Output(reply interface{}) (interface{}, error) {
+func (t *TokenGetTokens) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
 
 type TokenGetTokenInfo struct {
 }
 
-func (t *TokenGetTokenInfo) Input(message json.RawMessage) ([]byte, error) {
+func (t *TokenGetTokenInfo) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.ReqString
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -527,14 +527,14 @@ func (t *TokenGetTokenInfo) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *TokenGetTokenInfo) Output(reply interface{}) (interface{}, error) {
+func (t *TokenGetTokenInfo) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
 
 type TokenGetAddrReceiverforTokens struct {
 }
 
-func (t *TokenGetAddrReceiverforTokens) Input(message json.RawMessage) ([]byte, error) {
+func (t *TokenGetAddrReceiverforTokens) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.ReqAddrTokens
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -543,14 +543,14 @@ func (t *TokenGetAddrReceiverforTokens) Input(message json.RawMessage) ([]byte, 
 	return types.Encode(&req), nil
 }
 
-func (t *TokenGetAddrReceiverforTokens) Output(reply interface{}) (interface{}, error) {
+func (t *TokenGetAddrReceiverforTokens) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
 
 type TokenGetAccountTokenAssets struct {
 }
 
-func (t *TokenGetAccountTokenAssets) Input(message json.RawMessage) ([]byte, error) {
+func (t *TokenGetAccountTokenAssets) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.ReqAccountTokenAssets
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -559,6 +559,6 @@ func (t *TokenGetAccountTokenAssets) Input(message json.RawMessage) ([]byte, err
 	return types.Encode(&req), nil
 }
 
-func (t *TokenGetAccountTokenAssets) Output(reply interface{}) (interface{}, error) {
+func (t *TokenGetAccountTokenAssets) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
