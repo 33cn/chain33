@@ -275,10 +275,27 @@ var (
 	ErrInitializeAuthority = errors.New("ErrInitializeAuthority")
 	//rpc
 	ErrInvalidMainnetRpcAddr = errors.New("ErrInvalidMainnetRpcAddr")
+
 	// executor.paracross
 	ErrInvalidTitle         = errors.New("ErrInvalidTitle")
 	ErrTitleNotExist        = errors.New("ErrTitleNotExist")
 	ErrNodeNotForTheTitle   = errors.New("ErrNodeNotForTheTitle")
 	ErrParaBlockHashNoMatch = errors.New("ErrParaBlockHashNoMatch")
 	ErrTxGroupParaCount     = errors.New("ErrTxGroupParaCount")
+
+	//lottery
+	ErrLotteryStatus            = errors.New("ErrLotteryStatus")
+	ErrLotteryDrawActionInvalid = errors.New("ErrLotteryDrawActionInvalid")
+	ErrLotteryFundNotEnough     = errors.New("ErrLotteryFundNotEnough")
+	ErrLotteryCreatorBuy        = errors.New("ErrLotteryCreatorBuy")
+	ErrLotteryBuyAmount         = errors.New("ErrLotteryBuyAmount")
+	ErrLotteryRepeatHash        = errors.New("ErrLotteryRepeatHash")
+	ErrLotteryPurBlockLimit     = errors.New("ErrLotteryPurBlockLimit")
+	ErrLotteryDrawBlockLimit    = errors.New("ErrLotteryDrawBlockLimit")
+	ErrLotteryBuyNumber         = errors.New("ErrLotteryBuyNumber")
+	ErrLotteryShowRepeated      = errors.New("ErrLotteryShowRepeated")
+	ErrLotteryShowError         = errors.New("ErrLotteryShowError")
+	ErrLotteryErrLuckyNum       = errors.New("ErrLotteryErrLuckyNum")
+	ErrLotteryErrCloser         = errors.New("ErrLotteryErrCloser")
+	ErrLotteryErrUnableClose    = errors.New("ErrLotteryErrUnableClose")
 )

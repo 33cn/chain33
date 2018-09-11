@@ -7,7 +7,7 @@ command = "send token precreate -f 0.01 -i testToken -n testToken -s TC -a 12qyo
 [[TokenFinishCreateCase]]
 id = "tokenFinish"
 command = "send token finish -a 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv -f 0.01 -s TC -k 0xc34b5d9d44ac7b754806f761d3d4d2c4fe5214f6b074c19f069c4f5c2a29c8cc"
-dep = "tokenPre"
+dep = ["tokenPre"]
 
 
 
@@ -20,7 +20,7 @@ to = "1D9xKRnLvV2zMtSxSx33ow1GF4pcbLcNRt"
 amount = "10"
 checkItem = ["balance"]
 repeat = 10
-dep = "tokenFinish"
+dep = ["tokenFinish"]
 
 
 
@@ -31,7 +31,7 @@ from = "1D9xKRnLvV2zMtSxSx33ow1GF4pcbLcNRt"
 to = "17UZr5eJVxDRW1gs7rausQwaSUPtvcpxGT"
 amount = "10"
 checkItem = ["balance"]
-dep = "tokenTrans1"
+dep = ["tokenTrans1"]
 
 
 [[TransferCase]]
@@ -51,7 +51,8 @@ from = "1D9xKRnLvV2zMtSxSx33ow1GF4pcbLcNRt"
 to = "1BXvgjmBw1aBgmGn1hjfGyRkmN3krWpFP4"
 amount = "10"
 checkItem = ["balance"]
-dep = "tokenTrans1"
+dep = ["tokenTrans1"]
+
 
 [[WithdrawCase]]
 id = "tokenWithdraw"
@@ -59,7 +60,7 @@ command = "send token withdraw -a 1 -s TC -e trade -k 1D9xKRnLvV2zMtSxSx33ow1GF4
 addr = "1D9xKRnLvV2zMtSxSx33ow1GF4pcbLcNRt"
 amount = "1"
 checkItem = ["balance"]
-dep = "tokenDiposit1"
+dep = ["tokenDiposit1"]
 repeat = 4
 
 

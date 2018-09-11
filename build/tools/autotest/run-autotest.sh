@@ -57,7 +57,7 @@ function init() {
 function start() {
 
     # remove exsit container
-    docker-compose -p "${PROJECT_NAME}" -f compose-autotest.yml down
+    docker-compose -p "${PROJECT_NAME}" -f compose-autotest.yml down --remove-orphans
 
     # create and run docker-compose container
     docker-compose -p "${PROJECT_NAME}" -f compose-autotest.yml up --build -d

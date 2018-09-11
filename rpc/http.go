@@ -9,12 +9,10 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
-	"net/rpc"
 	"net/rpc/jsonrpc"
 	"strings"
 
 	"github.com/rs/cors"
-	pb "gitlab.33.cn/chain33/chain33/types"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	pr "google.golang.org/grpc/peer"
@@ -47,9 +45,7 @@ func (j *JSONRPCServer) Listen() {
 		log.Crit("listen:", "err", err)
 		panic(err)
 	}
-	server := rpc.NewServer()
 
-	server.Register(&j.jrpc)
 	co := cors.New(cors.Options{})
 
 	// Insert the middleware
@@ -97,7 +93,7 @@ func (j *JSONRPCServer) Listen() {
 				w.Header().Set("Content-Encoding", "gzip")
 			}
 			w.WriteHeader(200)
-			err = server.ServeRequest(serverCodec)
+			err = j.s.ServeRequest(serverCodec)
 			if err != nil {
 				log.Debug("Error while serving JSON request: %v", err)
 				return
@@ -133,21 +129,7 @@ func (g *Grpcserver) Listen() {
 		log.Crit("failed to listen:", "err", err)
 		panic(err)
 	}
-	var opts []grpc.ServerOption
-	//register interceptor
-	//var interceptor grpc.UnaryServerInterceptor
-	interceptor := func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
-		if err := auth(ctx, info); err != nil {
-			return nil, err
-		}
-		// Continue processing the request
-		return handler(ctx, req)
-	}
-	opts = append(opts, grpc.UnaryInterceptor(interceptor))
-	s := grpc.NewServer(opts...)
-	pb.RegisterGrpcserviceServer(s, &g.grpc)
-	s.Serve(listener)
-
+	g.s.Serve(listener)
 }
 
 func isLoopBackAddr(addr net.Addr) bool {

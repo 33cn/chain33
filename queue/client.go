@@ -140,6 +140,9 @@ func (client *client) isClose() bool {
 }
 
 func (client *client) Close() {
+	if atomic.LoadInt32(&client.isClosed) == 1 {
+		return
+	}
 	topic := client.getTopic()
 	client.q.closeTopic(topic)
 	close(client.done)

@@ -27,30 +27,12 @@ func (caseConf *TestTokenConfig) RunTest(caseFile string, wg *sync.WaitGroup) {
 	}
 
 	tester := testcase.NewTestOperator(fLog, tLog)
+
+	go tester.AddCaseArray(caseConf.TokenPreCreateCaseArr, caseConf.TokenFinishCreateCaseArr,
+		caseConf.TransferCaseArr, caseConf.WithdrawCaseArr)
 	go tester.HandleDependency()
 	go tester.RunSendFlow()
 	go tester.RunCheckFlow()
-
-	for i := range caseConf.TokenPreCreateCaseArr {
-
-		tester.AddCase(&caseConf.TokenPreCreateCaseArr[i])
-	}
-
-	for i := range caseConf.TokenFinishCreateCaseArr {
-
-		tester.AddCase(&caseConf.TokenFinishCreateCaseArr[i])
-	}
-
-	for i := range caseConf.TransferCaseArr {
-
-		tester.AddCase(&caseConf.TransferCaseArr[i])
-	}
-
-	for i := range caseConf.WithdrawCaseArr {
-
-		tester.AddCase(&caseConf.WithdrawCaseArr[i])
-	}
-
 	tester.WaitTest()
 
 }

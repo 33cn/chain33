@@ -4,6 +4,10 @@ import (
 	"os"
 	"testing"
 
+	"fmt"
+	"math/rand"
+	"time"
+
 	"github.com/stretchr/testify/assert"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -13,6 +17,13 @@ var store_cfg1 = &types.Store{"mavl_test", "leveldb", "/tmp/mavl_test1", 100}
 var store_cfg2 = &types.Store{"mavl_test", "leveldb", "/tmp/mavl_test2", 100}
 var store_cfg3 = &types.Store{"mavl_test", "leveldb", "/tmp/mavl_test3", 100}
 var store_cfg4 = &types.Store{"mavl_test", "leveldb", "/tmp/mavl_test4", 100}
+var store_cfg5 = &types.Store{"mavl_test", "leveldb", "/tmp/mavl_test5", 100}
+var store_cfg6 = &types.Store{"mavl_test", "leveldb", "/tmp/mavl_test6", 100}
+var store_cfg7 = &types.Store{"mavl_test", "leveldb", "/tmp/mavl_test7", 100}
+var store_cfg8 = &types.Store{"mavl_test", "leveldb", "/tmp/mavl_test8", 100}
+var store_cfg9 = &types.Store{"mavl_test", "leveldb", "/tmp/mavl_test9", 100}
+
+const MaxKeylenth int = 64
 
 func TestKvdbNewClose(t *testing.T) {
 	os.RemoveAll(store_cfg0.DbPath)
@@ -145,4 +156,170 @@ func TestKvdbIterate(t *testing.T) {
 	assert.Equal(t, []byte("v1"), checkKVResult[0].Value)
 	assert.Equal(t, []byte("v2"), checkKVResult[1].Value)
 
+}
+
+//生成随机字符串
+func GetRandomString(lenth int) string {
+	str := "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	bytes := []byte(str)
+	result := []byte{}
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	for i := 0; i < lenth; i++ {
+		result = append(result, bytes[r.Intn(len(bytes))])
+	}
+	return string(result)
+}
+
+func TestKvdbIterateTimes(t *testing.T) {
+	checkKVResult = checkKVResult[:0]
+	os.RemoveAll(store_cfg5.DbPath)
+	store := New(store_cfg5).(*Store)
+	assert.NotNil(t, store)
+
+	var kv []*types.KeyValue
+	var key string
+	var value string
+
+	for i := 0; i < 1000; i++ {
+		key = GetRandomString(MaxKeylenth)
+		value = fmt.Sprintf("v%d", i)
+		kv = append(kv, &types.KeyValue{[]byte(string(key)), []byte(string(value))})
+	}
+	datas := &types.StoreSet{
+		[]byte("1st"),
+		kv,
+	}
+	hash := store.Set(datas, true)
+	start := time.Now()
+	store.IterateRangeByStateHash(hash, nil, nil, true, checkKV)
+	end := time.Now()
+	fmt.Println("mavl cost time is", end.Sub(start))
+	assert.Len(t, checkKVResult, 1000)
+}
+
+func BenchmarkGet(b *testing.B) {
+	os.RemoveAll(store_cfg6.DbPath)
+	store := New(store_cfg6).(*Store)
+	assert.NotNil(b, store)
+
+	var kv []*types.KeyValue
+	var key string
+	var value string
+	var keys [][]byte
+
+	for i := 0; i < b.N; i++ {
+		key = GetRandomString(MaxKeylenth)
+		value = fmt.Sprintf("v%d", i)
+		keys = append(keys, []byte(string(key)))
+		kv = append(kv, &types.KeyValue{[]byte(string(key)), []byte(string(value))})
+	}
+	datas := &types.StoreSet{
+		[]byte("1st"),
+		kv,
+	}
+	hash := store.Set(datas, true)
+
+	getData := &types.StoreGet{
+		hash,
+		keys,
+	}
+
+	start := time.Now()
+	b.ResetTimer()
+	values := store.Get(getData)
+	end := time.Now()
+	fmt.Println("mavl BenchmarkGet cost time is", end.Sub(start), "num is", b.N)
+	assert.Len(b, values, b.N)
+	b.StopTimer()
+}
+
+func BenchmarkSet(b *testing.B) {
+	os.RemoveAll(store_cfg7.DbPath)
+	store := New(store_cfg7).(*Store)
+	assert.NotNil(b, store)
+
+	var kv []*types.KeyValue
+	var key string
+	var value string
+	var keys [][]byte
+
+	for i := 0; i < b.N; i++ {
+		key = GetRandomString(MaxKeylenth)
+		value = fmt.Sprintf("v%d", i)
+		keys = append(keys, []byte(string(key)))
+		kv = append(kv, &types.KeyValue{[]byte(string(key)), []byte(string(value))})
+	}
+	datas := &types.StoreSet{
+		[]byte("1st"),
+		kv,
+	}
+	start := time.Now()
+	b.ResetTimer()
+	hash := store.Set(datas, true)
+	assert.NotNil(b, hash)
+	end := time.Now()
+	fmt.Println("mavl BenchmarkSet cost time is", end.Sub(start), "num is", b.N)
+}
+
+func BenchmarkMemSet(b *testing.B) {
+	os.RemoveAll(store_cfg8.DbPath)
+	store := New(store_cfg8).(*Store)
+	assert.NotNil(b, store)
+
+	var kv []*types.KeyValue
+	var key string
+	var value string
+	var keys [][]byte
+
+	for i := 0; i < b.N; i++ {
+		key = GetRandomString(MaxKeylenth)
+		value = fmt.Sprintf("v%d", i)
+		keys = append(keys, []byte(string(key)))
+		kv = append(kv, &types.KeyValue{[]byte(string(key)), []byte(string(value))})
+	}
+	datas := &types.StoreSet{
+		[]byte("1st"),
+		kv,
+	}
+	start := time.Now()
+	b.ResetTimer()
+	hash := store.MemSet(datas, true)
+	assert.NotNil(b, hash)
+	end := time.Now()
+	fmt.Println("mavl BenchmarkMemSet cost time is", end.Sub(start), "num is", b.N)
+}
+
+func BenchmarkCommit(b *testing.B) {
+	os.RemoveAll(store_cfg9.DbPath)
+	store := New(store_cfg9).(*Store)
+	assert.NotNil(b, store)
+
+	var kv []*types.KeyValue
+	var key string
+	var value string
+	var keys [][]byte
+
+	for i := 0; i < b.N; i++ {
+		key = GetRandomString(MaxKeylenth)
+		value = fmt.Sprintf("v%d", i)
+		keys = append(keys, []byte(string(key)))
+		kv = append(kv, &types.KeyValue{[]byte(string(key)), []byte(string(value))})
+	}
+	datas := &types.StoreSet{
+		[]byte("1st"),
+		kv,
+	}
+	hash := store.MemSet(datas, true)
+
+	req := &types.ReqHash{
+		Hash: hash,
+	}
+
+	start := time.Now()
+	b.ResetTimer()
+	_, err := store.Commit(req)
+	assert.NoError(b, err, "NoError")
+	end := time.Now()
+	fmt.Println("mavl BenchmarkCommit cost time is", end.Sub(start), "num is", b.N)
+	b.StopTimer()
 }
