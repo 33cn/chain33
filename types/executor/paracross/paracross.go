@@ -38,9 +38,9 @@ func Init() {
 	types.RegistorLog(types.TyLogParacrossDone, &ParacrossDoneLog{})
 
 	// init query rpc
-	types.RegistorRpcType("ParacrossGetTitle", &ParacrossGetTitle{})
-	types.RegistorRpcType("ParacrossListTitles", &ParacrossListTitles{})
-	types.RegistorRpcType("ParacrossGetTitleHeight", &ParacrossGetTitleHeight{})
+	types.RegisterRPCQueryHandle("ParacrossGetTitle", &ParacrossGetTitle{})
+	types.RegisterRPCQueryHandle("ParacrossListTitles", &ParacrossListTitles{})
+	types.RegisterRPCQueryHandle("ParacrossGetTitleHeight", &ParacrossGetTitleHeight{})
 }
 
 type ParacrossType struct {

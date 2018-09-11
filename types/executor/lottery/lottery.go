@@ -26,12 +26,12 @@ func Init() {
 	types.RegistorLog(types.TyLogLotteryClose, &LotteryCloseLog{})
 
 	// init query rpc
-	types.RegistorRpcType("GetLotteryNormalInfo", &LotteryGetInfo{})
-	types.RegistorRpcType("GetLotteryCurrentInfo", &LotteryGetInfo{})
-	types.RegistorRpcType("GetLotteryHistoryLuckyNumber", &LotteryGetInfo{})
-	types.RegistorRpcType("GetLotteryRoundLuckyNumber", &LotteryLuckyRoundInfo{})
-	types.RegistorRpcType("GetLotteryHistoryBuyInfo", &LotteryBuyInfo{})
-	types.RegistorRpcType("GetLotteryBuyRoundInfo", &LotteryBuyRoundInfo{})
+	types.RegisterRPCQueryHandle("GetLotteryNormalInfo", &LotteryGetInfo{})
+	types.RegisterRPCQueryHandle("GetLotteryCurrentInfo", &LotteryGetInfo{})
+	types.RegisterRPCQueryHandle("GetLotteryHistoryLuckyNumber", &LotteryGetInfo{})
+	types.RegisterRPCQueryHandle("GetLotteryRoundLuckyNumber", &LotteryLuckyRoundInfo{})
+	types.RegisterRPCQueryHandle("GetLotteryHistoryBuyInfo", &LotteryBuyInfo{})
+	types.RegisterRPCQueryHandle("GetLotteryBuyRoundInfo", &LotteryBuyRoundInfo{})
 
 }
 

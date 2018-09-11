@@ -28,9 +28,9 @@ func Init() {
 	types.RegistorLog(types.TyLogEVMStateChangeItem, &EvmStateChangeItemLog{})
 
 	// init query rpc
-	types.RegistorRpcType("CheckAddrExists", &EvmCheckAddrExists{})
-	types.RegistorRpcType("EstimateGas", &EvmEstimateGas{})
-	types.RegistorRpcType("EvmDebug", &EvmDebug{})
+	types.RegisterRPCQueryHandle("CheckAddrExists", &EvmCheckAddrExists{})
+	types.RegisterRPCQueryHandle("EstimateGas", &EvmEstimateGas{})
+	types.RegisterRPCQueryHandle("EvmDebug", &EvmDebug{})
 }
 
 type EvmType struct {

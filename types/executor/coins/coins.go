@@ -33,9 +33,9 @@ func Init() {
 	types.RegistorLog(types.TyLogGenesisDeposit, &CoinsGenesisDepositLog{})
 
 	// init query rpc
-	types.RegistorRpcType("GetAddrReciver", &CoinsGetAddrReceiver{})
-	types.RegistorRpcType("GetAddrReceiver", &CoinsGetAddrReceiver{})
-	types.RegistorRpcType("GetTxsByAddr", &CoinsGetTxsByAddr{})
+	types.RegisterRPCQueryHandle("GetAddrReciver", &CoinsGetAddrReceiver{})
+	types.RegisterRPCQueryHandle("GetAddrReceiver", &CoinsGetAddrReceiver{})
+	types.RegisterRPCQueryHandle("GetTxsByAddr", &CoinsGetTxsByAddr{})
 }
 
 type CoinsType struct {

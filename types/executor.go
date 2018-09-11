@@ -1,6 +1,9 @@
 package types
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"fmt"
+)
 
 type ExecutorType interface {
 	//获取交易真正的to addr
@@ -54,7 +57,8 @@ func LoadExecutor(exec string) ExecutorType {
 func RegistorLog(logTy int64, util LogType) {
 	//tlog.Debug("rpc", "t", funcName, "t", util)
 	if _, exist := receiptLogMap[logTy]; exist {
-		panic("DupLogType")
+		errMsg := fmt.Sprintf("DupLogType RegistorLog type existed", "logTy", logTy)
+		panic(errMsg)
 	} else {
 		receiptLogMap[logTy] = util
 	}
@@ -67,7 +71,7 @@ func LoadLog(ty int64) LogType {
 	return nil
 }
 
-func registorRpcType(funcName string, convertor RPCQueryTypeConvert, handler FN_RPCQueryHandle) {
+func registerRPCQueryHandle(funcName string, convertor RPCQueryTypeConvert, handler FN_RPCQueryHandle) {
 	//tlog.Debug("rpc", "t", funcName, "t", util)
 	if _, exist := rpcTypeUtilMap[funcName]; exist {
 		panic("DupRpcTypeUtil")
@@ -79,13 +83,13 @@ func registorRpcType(funcName string, convertor RPCQueryTypeConvert, handler FN_
 	}
 }
 
-func RegistorRpcType(funcName string, convertor RPCQueryTypeConvert) {
-	registorRpcType(funcName, convertor, nil)
+func RegisterRPCQueryHandle(funcName string, convertor RPCQueryTypeConvert) {
+	registerRPCQueryHandle(funcName, convertor, nil)
 }
 
 // TODO: 后续将函数关联关系都在一处实现
-//func RegistorRpcTypeV2(funcName string, convertor RPCQueryTypeConvert, handler FN_RPCQueryHandle) {
-//	registorRpcType(funcName, convertor, handler)
+//func RegisterRPCQueryHandleV2(funcName string, convertor RPCQueryTypeConvert, handler FN_RPCQueryHandle) {
+//	registerRPCQueryHandle(funcName, convertor, handler)
 //}
 
 func LoadQueryType(funcName string) RPCQueryTypeConvert {

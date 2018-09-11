@@ -26,12 +26,12 @@ func Init() {
 	types.RegistorLog(types.TyLogRelayRcvBTCHead, &RelayRcvBTCHeadLog{})
 
 	// init query rpc
-	types.RegistorRpcType("GetRelayOrderByStatus", &RelayGetRelayOrderByStatus{})
-	types.RegistorRpcType("GetSellRelayOrder", &RelayGetSellRelayOrder{})
-	types.RegistorRpcType("GetBuyRelayOrder", &RelayGetBuyRelayOrder{})
-	types.RegistorRpcType("GetBTCHeaderList", &RelayGetBTCHeaderList{})
-	types.RegistorRpcType("GetBTCHeaderMissList", &RelayGetBTCHeaderMissList{})
-	types.RegistorRpcType("GetBTCHeaderCurHeight", &RelayGetBTCHeaderCurHeight{})
+	types.RegisterRPCQueryHandle("GetRelayOrderByStatus", &RelayGetRelayOrderByStatus{})
+	types.RegisterRPCQueryHandle("GetSellRelayOrder", &RelayGetSellRelayOrder{})
+	types.RegisterRPCQueryHandle("GetBuyRelayOrder", &RelayGetBuyRelayOrder{})
+	types.RegisterRPCQueryHandle("GetBTCHeaderList", &RelayGetBTCHeaderList{})
+	types.RegisterRPCQueryHandle("GetBTCHeaderMissList", &RelayGetBTCHeaderMissList{})
+	types.RegisterRPCQueryHandle("GetBTCHeaderCurHeight", &RelayGetBTCHeaderCurHeight{})
 
 }
 
