@@ -533,11 +533,29 @@ func (tx *Transaction) GetViewFromToAddr() (string, string) {
 	return exec.GetViewFromToAddr(tx)
 }
 
+func IsParaCrossTransferTx(tx *Transaction) bool {
+	if bytes.HasPrefix(tx.Execer, []byte("user.p.")) && bytes.HasSuffix(tx.Execer, []byte(ParaX)) {
+		// 跨链交易需要在主链和平行链都执行， 现在 txexecer 设置为 $(title) + types.ParaX
+		var payload ParacrossAction
+		err := Decode(tx.Payload, &payload)
+		if err != nil {
+			return false
+		}
+		if payload.Ty >= ParaCrossTransferActionTypeStart && payload.Ty < ParaCrossTransferActionTypeEnd {
+			return true
+		}
+	}
+	return false
+
+}
 //获取tx交易的Actionname
 func (tx *Transaction) ActionName() string {
 	execName := string(tx.Execer)
 	if bytes.HasPrefix(tx.Execer, []byte("user.evm.")) {
 		execName = "evm"
+	} else if !IsPara() && IsParaCrossTransferTx(tx) {
+		// 跨链交易需要在主链和平行链都执行， 现在 txexecer 设置为 $(title) + types.ParaX
+		execName = ParaX
 	}
 	exec := LoadExecutor(execName)
 	if exec == nil {
