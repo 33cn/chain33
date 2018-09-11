@@ -251,12 +251,6 @@ func decodeAccount(acc *types.Account, precision int64) *AccountResult {
 
 func constructAccFromLog(l *jsonrpc.ReceiptLogResult, key string) *types.Account {
 	var cur int32
-	if _, ok := l.Log.(map[string]interface{}); !ok {
-		return &types.Account{}
-	}
-	if _, ok := l.Log.(map[string]interface{})[key].(map[string]interface{}); !ok {
-		return &types.Account{}
-	}
 	if tmp, ok := l.Log.(map[string]interface{})[key].(map[string]interface{})["currency"]; ok {
 		cur = int32(tmp.(float32))
 	}
@@ -308,12 +302,8 @@ func decodeLog(rlog jsonrpc.ReceiptDataResult) *ReceiptData {
 		//case 6, 7, 8, 9, 10, 12:
 		case types.TyLogExecTransfer, types.TyLogExecWithdraw, types.TyLogExecDeposit, types.TyLogExecFrozen, types.TyLogExecActive, types.TyLogGenesisDeposit:
 			var execaddr string
-			if l.Log != nil {
-				if _, ok := l.Log.(map[string]interface{}); ok {
-					if tmp, ok := l.Log.(map[string]interface{})["execaddr"].(string); ok {
-						execaddr = tmp
-					}
-				}
+			if tmp, ok := l.Log.(map[string]interface{})["execaddr"].(string); ok {
+				execaddr = tmp
 			}
 			rl.Log = &ReceiptExecAccountTransfer{
 				ExecAddr: execaddr,
