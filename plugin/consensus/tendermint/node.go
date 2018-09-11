@@ -2,7 +2,6 @@ package tendermint
 
 import (
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"math"
 	"net"
@@ -77,10 +76,7 @@ func (ipp *IP2IPPort) Has(ip string) bool {
 	ipp.mutex.RLock()
 	defer ipp.mutex.RUnlock()
 	_, ok := ipp.mapList[ip]
-	if ok {
-		return true
-	}
-	return false
+	return ok
 }
 
 func (ipp *IP2IPPort) Set(ip string, ipport string) {
@@ -349,10 +345,12 @@ func (node *Node) evidenceBroadcastRoutine() {
 
 func (node *Node) BroadcastRoutine() {
 	for {
-		select {
-		case msg := <-node.broadcastChannel:
-			node.Broadcast(msg)
+		msg, ok := <-node.broadcastChannel
+		if !ok {
+			tendermintlog.Debug("broadcastChannel closed")
+			return
 		}
+		node.Broadcast(msg)
 	}
 }
 
@@ -420,7 +418,7 @@ func (node *Node) addPeer(pc peerConn) error {
 		Version: node.Version,
 	}
 	// Exchange NodeInfo on the conn
-	peerNodeInfo, err := pc.HandshakeTimeout(nodeinfo, time.Duration(HandshakeTimeout*time.Second))
+	peerNodeInfo, err := pc.HandshakeTimeout(nodeinfo, HandshakeTimeout*time.Second)
 	if err != nil {
 		return err
 	}
@@ -459,9 +457,9 @@ func (node *Node) addPeer(pc peerConn) error {
 
 	// Check for duplicate connection or peer info IP.
 	if rErr == nil && node.peerSet.HasIP(remoteIP) {
-		return errors.New(fmt.Sprintf("Duplicate peer IP %v", remoteIP))
+		return fmt.Errorf("Duplicate peer IP %v", remoteIP)
 	} else if rErr != nil {
-		return errors.New(fmt.Sprintf("get remote ip failed:%v", rErr))
+		return fmt.Errorf("get remote ip failed:%v", rErr)
 	}
 
 	// Filter peer against ID white list
@@ -730,13 +728,13 @@ func newPeerConn(
 	// Set deadline for secret handshake
 	dl := time.Now().Add(HandshakeTimeout * time.Second)
 	if err := conn.SetDeadline(dl); err != nil {
-		return pc, errors.New(fmt.Sprintf("Error setting deadline while encrypting connection:%v", err))
+		return pc, fmt.Errorf("Error setting deadline while encrypting connection:%v", err)
 	}
 
 	// Encrypt connection
 	conn, err = MakeSecretConnection(conn, ourNodePrivKey)
 	if err != nil {
-		return pc, errors.New(fmt.Sprintf("Error creating peer:%v", err))
+		return pc, fmt.Errorf("Error creating peer:%v", err)
 	}
 
 	// Only the information we already have

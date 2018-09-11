@@ -40,7 +40,7 @@ type TendermintClient struct {
 	crypto        crypto.Crypto
 	node          *Node
 	txsAvailable  chan int64
-	consResult    chan int64
+	stopC         chan struct{}
 }
 
 // DefaultDBProvider returns a database using the DBBackend and DBDir
@@ -106,7 +106,7 @@ func New(cfg *types.Consensus) queue.Module {
 		evidenceDB:    evidenceDB,
 		crypto:        cr,
 		txsAvailable:  make(chan int64, 1),
-		consResult:    make(chan int64, 1),
+		stopC:         make(chan struct{}, 1),
 	}
 
 	c.SetChild(client)
@@ -125,6 +125,7 @@ func (client *TendermintClient) GenesisDoc() *ttypes.GenesisDoc {
 }
 
 func (client *TendermintClient) Close() {
+	client.stopC <- struct{}{}
 	tendermintlog.Info("consensus tendermint closed")
 }
 
@@ -313,13 +314,14 @@ func (client *TendermintClient) TxsAvailable() <-chan int64 {
 	return client.txsAvailable
 }
 
+func (client *TendermintClient) StopC() <-chan struct{} {
+	return client.stopC
+}
+
 func (client *TendermintClient) CheckTxsAvailable() bool {
 	txs := client.RequestTx(10, nil)
 	txs = client.CheckTxDup(txs, client.GetCurrentHeight())
-	if len(txs) == 0 {
-		return false
-	}
-	return true
+	return len(txs) != 0
 }
 
 func (client *TendermintClient) CheckTxDup(txs []*types.Transaction, height int64) (transactions []*types.Transaction) {

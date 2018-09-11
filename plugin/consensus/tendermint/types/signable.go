@@ -88,7 +88,6 @@ func (p *Proposal) WriteSignBytes(chainID string, w io.Writer, n *int, err *erro
 	n_, err_ := w.Write(byteOnceProposal)
 	*n = n_
 	*err = err_
-	return
 }
 
 //-------------------heartbeat-------------------------
@@ -114,7 +113,6 @@ func (heartbeat *Heartbeat) WriteSignBytes(chainID string, w io.Writer, n *int, 
 	n_, err_ := w.Write(byteHeartbeat)
 	*n = n_
 	*err = err_
-	return
 }
 
 //----------------------vote-----------------------------
@@ -184,7 +182,6 @@ func (vote *Vote) WriteSignBytes(chainID string, w io.Writer, n *int, err *error
 	n_, err_ := w.Write(byteVote)
 	*n = n_
 	*err = err_
-	return
 }
 
 func (vote *Vote) Copy() *Vote {
