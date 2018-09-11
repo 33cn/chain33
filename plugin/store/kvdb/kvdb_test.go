@@ -41,6 +41,7 @@ func TestKvddbSetGet(t *testing.T) {
 	datas := &types.StoreSet{
 		[]byte("1st"),
 		kv,
+		0
 	}
 	hash := store.Set(datas, true)
 
@@ -74,6 +75,7 @@ func TestKvdbMemSet(t *testing.T) {
 	datas := &types.StoreSet{
 		[]byte("1st"),
 		kv,
+		0
 	}
 	hash := store.MemSet(datas, true)
 
@@ -101,6 +103,7 @@ func TestKvdbRollback(t *testing.T) {
 	datas := &types.StoreSet{
 		[]byte("1st"),
 		kv,
+		0
 	}
 	hash := store.MemSet(datas, true)
 

@@ -37,6 +37,9 @@ func (s *storeChild) Rollback(req *types.ReqHash) []byte {
 	return []byte("")
 }
 
+func (s *storeChild) Del(req *types.StoreDel) []byte{
+	return []byte("")
+}
 func (s *storeChild) IterateRangeByStateHash(statehash []byte, start []byte, end []byte, ascending bool, fn func(key, value []byte) bool) {
 
 }
@@ -75,6 +78,7 @@ func TestBaseStore_Queue(t *testing.T) {
 	datas := &types.StoreSet{
 		[]byte("1st"),
 		kv,
+		0
 	}
 	set := &types.StoreSetWithSync{datas, true}
 	msg := queueClinet.NewMessage("store", types.EventStoreSet, set)
