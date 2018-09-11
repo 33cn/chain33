@@ -10,14 +10,14 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var name string
+var nameX string
 
-var llog = log.New("module", name)
+var llog = log.New("module", "exectype."+types.LotteryX)
 
 func Init() {
-	name = types.LotteryX
+	nameX = types.ExecName(types.LotteryX)
 	// init executor type
-	types.RegistorExecutor(name, &LotteryType{})
+	types.RegistorExecutor(types.LotteryX, &LotteryType{})
 
 	// init log
 	types.RegistorLog(types.TyLogLotteryCreate, &LotteryCreateLog{})
@@ -255,11 +255,11 @@ func CreateRawLotteryCreateTx(parm *LotteryCreateTx) (*types.Transaction, error)
 		Value: &types.LotteryAction_Create{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte(name),
+		Execer:  []byte(nameX),
 		Payload: types.Encode(create),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(name),
+		To:      address.ExecAddress(nameX),
 	}
 
 	err := tx.SetRealFee(types.MinFee)
@@ -286,11 +286,11 @@ func CreateRawLotteryBuyTx(parm *LotteryBuyTx) (*types.Transaction, error) {
 		Value: &types.LotteryAction_Buy{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte(name),
+		Execer:  []byte(nameX),
 		Payload: types.Encode(buy),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(name),
+		To:      address.ExecAddress(nameX),
 	}
 
 	err := tx.SetRealFee(types.MinFee)
@@ -315,11 +315,11 @@ func CreateRawLotteryDrawTx(parm *LotteryDrawTx) (*types.Transaction, error) {
 		Value: &types.LotteryAction_Draw{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte(name),
+		Execer:  []byte(nameX),
 		Payload: types.Encode(draw),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(name),
+		To:      address.ExecAddress(nameX),
 	}
 
 	err := tx.SetRealFee(types.MinFee)
@@ -344,11 +344,11 @@ func CreateRawLotteryCloseTx(parm *LotteryCloseTx) (*types.Transaction, error) {
 		Value: &types.LotteryAction_Close{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte(name),
+		Execer:  []byte(nameX),
 		Payload: types.Encode(close),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(name),
+		To:      address.ExecAddress(nameX),
 	}
 
 	err := tx.SetRealFee(types.MinFee)
