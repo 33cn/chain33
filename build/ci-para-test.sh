@@ -137,9 +137,30 @@ function token_create() {
     fi
 
 }
+
+function para_cross_transfer_withdraw() {
+    paracrossAddr=1HPkPopVe3ERfvaAgedDtJQ792taZFEHCe
+    ${CLI}  account list
+    ${CLI}  send bty transfer   -a 10 -n test -t $paracrossAddr -k 4257D8692EF7FE13C68B65D6A52F03933DB2FA5CE8FAF210B5B8B80C721CED01
+    hash=$(${CLI}  send para transfer --title user.p.para.  -a 1.4 -n test -t 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv -k 4257D8692EF7FE13C68B65D6A52F03933DB2FA5CE8FAF210B5B8B80C721CED01)
+    echo "${hash}"
+
+    sleep 15
+    ${CLI}  send para withdraw --title user.p.para.  -a 0.7 -n test -t 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv -k 4257D8692EF7FE13C68B65D6A52F03933DB2FA5CE8FAF210B5B8B80C721CED01
+    block_wait "${CLI}" 5
+
+    acc=$(${CLI} account balance -e paracross -a 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv | jq -r ".balance")
+    echo "account balance is ${acc}, except 9.3 "
+    if [ "${acc}" != "9.3000" ]; then
+        echo "para_cross_transfer_withdraw failed"
+        exit 1
+    fi
+}
+
 function para() {
     echo "=========== # para chain test ============="
     token_create "${PARA_CLI}"
+    para_cross_transfer_withdraw
 }
 
 #================fork-test============================
