@@ -313,7 +313,10 @@ func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, er
 	saveTitle(a.db, calcTitleKey(commit.Status.Title), titleStatus)
 	clog.Info("paracross.Commit commit", "commitDone", titleStatus)
 
+	clog.Info("paracross.Commit commit", "commitDone", titleStatus, "height", commit.Status.Height,
+		"cross tx count", len(commit.Status.CrossTxHashs))
 	if enableParacrossTransfer && commit.Status.Height > 0 && len(commit.Status.CrossTxHashs) > 0 {
+		clog.Info("paracross.Commit commitDone", "do cross", "")
 		crossTxReceipt, err := a.execCrossTxs(commit)
 		if err != nil {
 			return nil, err
@@ -325,16 +328,19 @@ func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, er
 }
 
 func (a *action) execCrossTx(tx *types.TransactionDetail, commit *types.ParacrossCommitAction, i int) (*types.Receipt, error) {
-	if tx.ActionName == pt.ParacrossActionWithdrawStr {
-		var payload types.ParacrossAction
-		err := types.Decode(tx.Tx.Payload, &payload)
-		if err != nil {
-			clog.Crit("paracross.Commit Decode Tx failed", "para title", commit.Status.Title,
-				"para height", commit.Status.Height, "para tx index", i, "error", err, "txHash",
-				common.Bytes2Hex(commit.Status.CrossTxHashs[i]))
-			return nil, err
-		}
+	if !bytes.HasSuffix(tx.Tx.Execer, []byte(types.ParaX)) {
+		return nil, nil
+	}
+	var payload types.ParacrossAction
+	err := types.Decode(tx.Tx.Payload, &payload)
+	if err != nil {
+		clog.Crit("paracross.Commit Decode Tx failed", "para title", commit.Status.Title,
+			"para height", commit.Status.Height, "para tx index", i, "error", err, "txHash",
+			common.Bytes2Hex(commit.Status.CrossTxHashs[i]))
+		return nil, err
+	}
 
+	if payload.Ty == pt.ParacrossActionWithdraw {
 		receiptWithdraw, err := a.assetWithdrawCoins(payload.GetAssetWithdraw(), tx.Tx)
 		if err != nil {
 			clog.Crit("paracross.Commit Decode Tx failed", "para title", commit.Status.Title,
@@ -355,6 +361,9 @@ func (a *action) execCrossTx(tx *types.TransactionDetail, commit *types.Paracros
 func (a *action) execCrossTxs(commit *types.ParacrossCommitAction) (*types.Receipt, error) {
 	var receipt types.Receipt
 	for i := 0; i < len(commit.Status.CrossTxHashs); i++ {
+		clog.Info("paracross.Commit commitDone", "do cross number", i, "hash",
+			common.Bytes2Hex(commit.Status.CrossTxHashs[i]),
+			"res", util.BitMapBit(commit.Status.CrossTxResult, uint32(i)))
 		if util.BitMapBit(commit.Status.CrossTxResult, uint32(i)) {
 			tx, err := GetTx(a.api, commit.Status.CrossTxHashs[i])
 			if err != nil {
@@ -362,6 +371,12 @@ func (a *action) execCrossTxs(commit *types.ParacrossCommitAction) (*types.Recei
 					"para height", commit.Status.Height, "para tx index", i, "error", err, "txHash",
 					common.Bytes2Hex(commit.Status.CrossTxHashs[i]))
 				return nil, err
+			}
+			if tx == nil {
+				clog.Error("paracross.Commit Load Tx failed", "para title", commit.Status.Title,
+					"para height", commit.Status.Height, "para tx index", i, "error", err, "txHash",
+					common.Bytes2Hex(commit.Status.CrossTxHashs[i]))
+				return nil, types.ErrHashNotExist
 			}
 			receiptCross, err := a.execCrossTx(tx, commit, i)
 			if err != nil {
@@ -372,6 +387,10 @@ func (a *action) execCrossTxs(commit *types.ParacrossCommitAction) (*types.Recei
 			}
 			receipt.KV = append(receipt.KV, receiptCross.KV...)
 			receipt.Logs = append(receipt.Logs, receiptCross.Logs...)
+		} else {
+			clog.Error("paracross.Commit commitDone", "do cross number", i, "hash",
+				common.Bytes2Hex(commit.Status.CrossTxHashs[i]),
+				"para res", util.BitMapBit(commit.Status.CrossTxResult, uint32(i)))
 		}
 	}
 
@@ -390,18 +409,19 @@ func (a *action) assetTransferCoins(transfer *types.CoinsTransfer) (*types.Recei
 			return nil, types.ErrNoBalance
 		}
 		toAddr := address.ExecAddress(string(a.tx.Execer))
-		clog.Debug("paracross.AssetWithdraw not isPara", "execer", string(a.tx.Execer),
+		clog.Debug("paracross.AssetTransfer not isPara", "execer", string(a.tx.Execer),
 			"txHash", common.Bytes2Hex(a.tx.Hash()))
 		return accDB.ExecTransfer(a.fromaddr, toAddr, execAddr, transfer.Amount)
 	} else {
 		execAddr := address.ExecAddress(string(a.tx.Execer))
-		clog.Debug("paracross.AssetWithdraw isPara", "execer", string(a.tx.Execer),
+		clog.Debug("paracross.AssetTransfer isPara", "execer", string(a.tx.Execer),
 			"txHash", common.Bytes2Hex(a.tx.Hash()))
 		return accDB.ParaAssetTransfer(transfer.To, transfer.Amount, execAddr)
 	}
 }
 
 func (a *action) AssetTransfer(transfer *types.CoinsTransfer) (*types.Receipt, error) {
+	clog.Debug("Paracross.Exec", "AssetTransfer", transfer.Cointoken, "transfer", "")
 	if transfer.Cointoken == "" {
 		return a.assetTransferCoins(transfer)
 	}
@@ -410,17 +430,19 @@ func (a *action) AssetTransfer(transfer *types.CoinsTransfer) (*types.Receipt, e
 	return nil, types.ErrNotSupport
 }
 
-func (a *action) assetWithdrawCoins(withdraw *types.CoinsWithdraw, tx *types.Transaction) (*types.Receipt, error) {
+func (a *action) assetWithdrawCoins(withdraw *types.CoinsWithdraw, withdrawTx *types.Transaction) (*types.Receipt, error) {
 	accDB := account.NewCoinsAccount()
 	accDB.SetDB(a.db)
 
 	isPara := types.IsPara()
 	if !isPara {
-		fromAddr := address.ExecAddress(string(tx.Execer))
+		fromAddr := address.ExecAddress(string(withdrawTx.Execer))
 		execAddr := address.ExecAddress(types.ParaX)
+		clog.Debug("Paracross.Exec", "AssettWithdraw", withdraw.Amount, "from", fromAddr,
+			"to", withdraw.To, "exec", execAddr, "withdrawTx execor", string(withdrawTx.Execer))
 		return accDB.ExecTransfer(fromAddr, withdraw.To, execAddr, withdraw.Amount)
 	} else {
-		execAddr := address.ExecAddress(string(tx.Execer))
+		execAddr := address.ExecAddress(string(withdrawTx.Execer))
 		return accDB.ParaAssetWithdraw(a.fromaddr, withdraw.Amount, execAddr)
 	}
 }
