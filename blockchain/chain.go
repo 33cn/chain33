@@ -195,15 +195,19 @@ func (chain *BlockChain) SetQueueClient(client queue.Client) {
 	go chain.InitBlockChain()
 }
 func (chain *BlockChain) InitBlockChain() {
-	beg := types.Now()
-	//获取数据库中最新的10240个区块加载到index和bestview链中,耗时需要几分钟，需要异步处理
-	chain.InitIndexAndBestView()
-	chainlog.Info("InitIndexAndBestView", "cost", types.Since(beg))
-	//获取数据库中最新的区块高度，以及blockchain的数据库版本号
+
+	//先缓存最新的128个block信息到cache中
 	curheight := chain.GetBlockHeight()
 	if types.EnableTxHeight {
 		chain.InitCache(curheight)
 	}
+
+	//获取数据库中最新的10240个区块加载到index和bestview链中
+	beg := types.Now()
+	chain.InitIndexAndBestView()
+	chainlog.Info("InitIndexAndBestView", "cost", types.Since(beg))
+
+	//获取数据库中最新的区块高度，以及blockchain的数据库版本号
 	curdbver := chain.blockStore.GetDbVersion()
 	if curdbver == 0 && curheight == -1 {
 		curdbver = 1
