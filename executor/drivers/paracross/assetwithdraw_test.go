@@ -132,7 +132,7 @@ func (suite *AssetWithdrawTestSuite) TestExecAssetWithdrawOnParaChain() {
 		suite.T().Error("Exec Transfer", err)
 		return
 	}
-	assert.Len(suite.T(), receipt.KV, 2, "paraChain exec withdraw")
+	assert.Len(suite.T(), receipt.KV, 1, "paraChain exec withdraw")
 	for _, kv := range receipt.KV {
 		var v types.Account
 		err = types.Decode(kv.Value, &v)
