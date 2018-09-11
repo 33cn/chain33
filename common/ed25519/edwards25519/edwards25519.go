@@ -143,9 +143,9 @@ func FeToBytes(s *[32]byte, h *FieldElement) {
 	q = (h[8] + q) >> 26
 	q = (h[9] + q) >> 25
 
-	// Goal: ProtoToJson h-(2^255-19)q, which is between 0 and 2^255-20.
+	// Goal: Output h-(2^255-19)q, which is between 0 and 2^255-20.
 	h[0] += 19 * q
-	// Goal: ProtoToJson h-2^255 q, which is between 0 and 2^255-20.
+	// Goal: Output h-2^255 q, which is between 0 and 2^255-20.
 
 	carry[0] = h[0] >> 26
 	h[1] += carry[0]
