@@ -41,10 +41,10 @@ func Init(s pluginmgr.RPCServer) {
 	types.RegistorLog(types.TyLogCloseGame, &CloseGameLog{})
 
 	// init query rpc
-	types.RegistorRpcType(gt.FuncName_QueryGameListByIds, &GameGetList{})
-	types.RegistorRpcType(gt.FuncName_QueryGameById, &GameGetInfo{})
-	types.RegistorRpcType(gt.FuncName_QueryGameListByStatusAndAddr, &GameQueryList{})
-	types.RegistorRpcType(gt.FuncName_QueryGameListCount, &GameQueryListCount{})
+	types.RegisterRPCQueryHandle(gt.FuncName_QueryGameListByIds, &GameGetList{})
+	types.RegisterRPCQueryHandle(gt.FuncName_QueryGameById, &GameGetInfo{})
+	types.RegisterRPCQueryHandle(gt.FuncName_QueryGameListByStatusAndAddr, &GameQueryList{})
+	types.RegisterRPCQueryHandle(gt.FuncName_QueryGameListCount, &GameQueryListCount{})
 }
 
 func (game GameType) GetRealToAddr(tx *types.Transaction) string {

@@ -1,6 +1,8 @@
 package executor
 
 import (
+	"sync"
+
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/types/executor/coins"
 	"gitlab.33.cn/chain33/chain33/types/executor/evm"
@@ -32,8 +34,9 @@ import (
 // token:		actionName	CreateTx	log		query	Amount
 // trade:		actionName	CreateTx	log		query	Amount
 
-func Init() {
+var once sync.Once
 
+func initExecute()  {
 	// init common log
 	types.RegistorLog(types.TyLogErr, &ErrLog{})
 	types.RegistorLog(types.TyLogFee, &FeeLog{})
@@ -54,6 +57,10 @@ func Init() {
 	token.Init()
 	trade.Init()
 	lottery.Init()
+}
+
+func Init() {
+	once.Do(initExecute)
 }
 
 type ErrLog struct {

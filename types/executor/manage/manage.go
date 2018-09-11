@@ -20,7 +20,7 @@ func Init() {
 	types.RegistorLog(types.TyLogModifyConfig, &ModifyConfigLog{})
 
 	// init query rpc
-	types.RegistorRpcType("GetConfigItem", &MagageGetConfigItem{})
+	types.RegisterRPCQueryHandle("GetConfigItem", &MagageGetConfigItem{})
 }
 
 type ManageType struct {

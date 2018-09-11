@@ -44,10 +44,10 @@ func Init() {
 	types.RegistorLog(types.TyLogRevokeCreateToken, &TokenRevokeCreateLog{})
 
 	// init query rpc
-	types.RegistorRpcType("GetTokens", &TokenGetTokens{})
-	types.RegistorRpcType("GetTokenInfo", &TokenGetTokenInfo{})
-	types.RegistorRpcType("GetAddrReceiverforTokens", &TokenGetAddrReceiverforTokens{})
-	types.RegistorRpcType("GetAccountTokenAssets", &TokenGetAccountTokenAssets{})
+	types.RegisterRPCQueryHandle("GetTokens", &TokenGetTokens{})
+	types.RegisterRPCQueryHandle("GetTokenInfo", &TokenGetTokenInfo{})
+	types.RegisterRPCQueryHandle("GetAddrReceiverforTokens", &TokenGetAddrReceiverforTokens{})
+	types.RegisterRPCQueryHandle("GetAccountTokenAssets", &TokenGetAccountTokenAssets{})
 }
 
 // exec

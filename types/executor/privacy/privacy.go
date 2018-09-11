@@ -23,8 +23,8 @@ func Init() {
 	types.RegistorLog(types.TyLogPrivacyOutput, &PrivacyOutputLog{})
 
 	// init query rpc
-	types.RegistorRpcType("ShowAmountsOfUTXO", &PrivacyShowAmountsOfUTXO{})
-	types.RegistorRpcType("ShowUTXOs4SpecifiedAmount", &PrivacyShowUTXOs4SpecifiedAmount{})
+	types.RegisterRPCQueryHandle("ShowAmountsOfUTXO", &PrivacyShowAmountsOfUTXO{})
+	types.RegisterRPCQueryHandle("ShowUTXOs4SpecifiedAmount", &PrivacyShowUTXOs4SpecifiedAmount{})
 }
 
 type PrivacyType struct {
