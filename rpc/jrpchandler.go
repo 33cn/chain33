@@ -876,7 +876,7 @@ func (c *Chain33) Query(in Query4Jrpc, result *interface{}) error {
 		return err
 	}
 
-	*result, err = trans.(types.RpcQueryConverte).ProtoToJson(resp)
+	*result, err = trans.(types.RPCQueryTypeConvert).ProtoToJson(resp)
 	if err != nil {
 		log.Error("EventQuery", "err", err.Error())
 		return err
