@@ -31,7 +31,7 @@ func newHashlock() drivers.Driver {
 }
 
 func (h *Hashlock) GetName() string {
-	return types.ExecName("hashlock")
+	return "hashlock"
 }
 
 func (h *Hashlock) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {

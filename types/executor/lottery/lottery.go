@@ -15,7 +15,7 @@ var name string
 var llog = log.New("module", name)
 
 func Init() {
-	name = types.ExecName(types.LotteryX)
+	name = types.LotteryX
 	// init executor type
 	types.RegistorExecutor(name, &LotteryType{})
 

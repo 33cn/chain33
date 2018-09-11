@@ -16,7 +16,7 @@ var name string
 var hlog = log.New("module", name)
 
 func Init() {
-	name = types.ExecName("hashlock")
+	name = "hashlock"
 	// init executor type
 	types.RegistorExecutor(name, &HashlockType{})
 
