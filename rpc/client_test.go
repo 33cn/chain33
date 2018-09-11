@@ -36,7 +36,7 @@ func newTestChannelClient() *channelClient {
 func TestInit(t *testing.T) {
 	client := newTestChannelClient()
 	client.Init(&qmock.Client{})
-	once.Do(exec.Init)
+	exec.Init()
 }
 
 func testCreateRawTransactionNil(t *testing.T) {
