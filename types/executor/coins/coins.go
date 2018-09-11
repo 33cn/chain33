@@ -33,9 +33,9 @@ func Init() {
 	types.RegistorLog(types.TyLogGenesisDeposit, &CoinsGenesisDepositLog{})
 
 	// init query rpc
-	types.RegistorRpcType("GetAddrReciver", &CoinsGetAddrReceiver{})
-	types.RegistorRpcType("GetAddrReceiver", &CoinsGetAddrReceiver{})
-	types.RegistorRpcType("GetTxsByAddr", &CoinsGetTxsByAddr{})
+	types.RegisterRPCQueryHandle("GetAddrReciver", &CoinsGetAddrReceiver{})
+	types.RegisterRPCQueryHandle("GetAddrReceiver", &CoinsGetAddrReceiver{})
+	types.RegisterRPCQueryHandle("GetTxsByAddr", &CoinsGetTxsByAddr{})
 }
 
 type CoinsType struct {
@@ -338,7 +338,7 @@ func (l CoinsGenesisDepositLog) Decode(msg []byte) (interface{}, error) {
 type CoinsGetAddrReceiver struct {
 }
 
-func (t *CoinsGetAddrReceiver) Input(message json.RawMessage) ([]byte, error) {
+func (t *CoinsGetAddrReceiver) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.ReqAddr
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -347,14 +347,14 @@ func (t *CoinsGetAddrReceiver) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *CoinsGetAddrReceiver) Output(reply interface{}) (interface{}, error) {
+func (t *CoinsGetAddrReceiver) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
 
 type CoinsGetTxsByAddr struct {
 }
 
-func (t *CoinsGetTxsByAddr) Input(message json.RawMessage) ([]byte, error) {
+func (t *CoinsGetTxsByAddr) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.ReqAddr
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -363,6 +363,6 @@ func (t *CoinsGetTxsByAddr) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *CoinsGetTxsByAddr) Output(reply interface{}) (interface{}, error) {
+func (t *CoinsGetTxsByAddr) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
