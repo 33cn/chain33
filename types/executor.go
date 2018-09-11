@@ -18,7 +18,7 @@ type LogType interface {
 	Decode([]byte) (interface{}, error)
 }
 
-type RpcQueryConverte interface {
+type RPCQueryTypeConvert interface {
 	JsonToProto(message json.RawMessage) ([]byte, error)
 	ProtoToJson(reply *Message) (interface{}, error)
 }
@@ -27,8 +27,8 @@ type FN_RPCQueryHandle func(param []byte) (Message, error)
 
 //
 type rpcTypeUtilItem struct {
-	conv    RpcQueryConverte
-	handler FN_RPCQueryHandle
+	convertor RPCQueryTypeConvert
+	handler   FN_RPCQueryHandle
 }
 
 var executorMap = map[string]ExecutorType{}
@@ -67,29 +67,30 @@ func LoadLog(ty int64) LogType {
 	return nil
 }
 
-func registorRpcType(funcName string, util RpcQueryConverte, handler FN_RPCQueryHandle) {
+func registorRpcType(funcName string, convertor RPCQueryTypeConvert, handler FN_RPCQueryHandle) {
 	//tlog.Debug("rpc", "t", funcName, "t", util)
 	if _, exist := rpcTypeUtilMap[funcName]; exist {
 		panic("DupRpcTypeUtil")
 	} else {
 		rpcTypeUtilMap[funcName] = &rpcTypeUtilItem{
-			conv:    util,
-			handler: handler,
+			convertor: convertor,
+			handler:   handler,
 		}
 	}
 }
 
-func RegistorRpcType(funcName string, util RpcQueryConverte) {
-	registorRpcType(funcName, util, nil)
+func RegistorRpcType(funcName string, convertor RPCQueryTypeConvert) {
+	registorRpcType(funcName, convertor, nil)
 }
 
-func RegistorRpcTypeV2(funcName string, util RpcQueryConverte, handler FN_RPCQueryHandle) {
-	registorRpcType(funcName, util, handler)
-}
+// TODO: 后续将函数关联关系都在一处实现
+//func RegistorRpcTypeV2(funcName string, convertor RPCQueryTypeConvert, handler FN_RPCQueryHandle) {
+//	registorRpcType(funcName, convertor, handler)
+//}
 
-func LoadQueryType(funcName string) RpcQueryConverte {
+func LoadQueryType(funcName string) RPCQueryTypeConvert {
 	if trans, ok := rpcTypeUtilMap[funcName]; ok {
-		return trans.conv
+		return trans.convertor
 	}
 	return nil
 }
