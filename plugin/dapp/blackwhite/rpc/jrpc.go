@@ -16,7 +16,7 @@ type Grpc struct {
 	channelClient
 }
 
-func (c *Jrpc) BlackwhiteCreateTx(parm *BlackwhiteCreateTx, result *interface{}) error {
+func (c *Jrpc) BlackwhiteCreateTx(parm *bw.BlackwhiteCreateTxReq, result *interface{}) error {
 	if parm == nil {
 		return types.ErrInvalidParam
 	}

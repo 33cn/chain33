@@ -23,7 +23,7 @@ func Init() {
 	//types.RegistorLog(types.TyLogDeposit, &CoinsDepositLog{})
 
 	// init query rpc
-	types.RegistorRpcType("GetRetrieveInfo", &RetrieveGetInfo{})
+	types.RegisterRPCQueryHandle("GetRetrieveInfo", &RetrieveGetInfo{})
 }
 
 type RetrieveType struct {
@@ -122,7 +122,7 @@ func (l CoinsDepositLog) Decode(msg []byte) (interface{}, error) {
 type RetrieveGetInfo struct {
 }
 
-func (t *RetrieveGetInfo) Input(message json.RawMessage) ([]byte, error) {
+func (t *RetrieveGetInfo) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.ReqRetrieveInfo
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -131,7 +131,7 @@ func (t *RetrieveGetInfo) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *RetrieveGetInfo) Output(reply interface{}) (interface{}, error) {
+func (t *RetrieveGetInfo) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
 
