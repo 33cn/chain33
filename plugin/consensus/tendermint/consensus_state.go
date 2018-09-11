@@ -50,11 +50,6 @@ func (ti *timeoutInfo) String() string {
 	return fmt.Sprintf("%v ; %d/%d %v", ti.Duration, ti.Height, ti.Round, ti.Step)
 }
 
-type CommitInfo struct {
-	height int64
-	round  int
-}
-
 // ConsensusState handles execution of the consensus algorithm.
 // It processes votes and proposals, and upon reaching agreement,
 // commits blocks to the chain and executes them against the application.
@@ -158,8 +153,8 @@ func (cs *ConsensusState) GetState() State {
 // GetRoundState returns a copy of the internal consensus state.
 func (cs *ConsensusState) GetRoundState() *ttypes.RoundState {
 	// avoid deadlock in gossipVotesRoutine
-	//cs.mtx.Lock()
-	//defer cs.mtx.Unlock()
+	cs.mtx.Lock()
+	defer cs.mtx.Unlock()
 
 	rs := cs.RoundState // copy
 	return &rs
@@ -485,9 +480,10 @@ func (cs *ConsensusState) checkTxsAvailable() {
 	for {
 		select {
 		case height := <-cs.client.TxsAvailable():
-			tendermintlog.Debug(fmt.Sprintf("checkTxsAvailable. Current: %v/%v/%v", cs.Height, cs.Round, cs.Step), "height", height)
-			if cs.Height != height {
-				tendermintlog.Warn(fmt.Sprintf("blockchain(H: %v) and consensus(H: %v) are not sync", height, cs.Height))
+			rs := cs.GetRoundState()
+			tendermintlog.Debug(fmt.Sprintf("checkTxsAvailable. Current: %v/%v/%v", rs.Height, rs.Round, rs.Step), "height", height)
+			if rs.Height != height {
+				tendermintlog.Info(fmt.Sprintf("blockchain(H: %v) and consensus(H: %v) are not sync", height, rs.Height))
 				break
 			}
 			if cs.isProposalComplete() {
@@ -495,6 +491,9 @@ func (cs *ConsensusState) checkTxsAvailable() {
 				break
 			}
 			cs.txsAvailable <- height
+		case <-cs.client.StopC():
+			tendermintlog.Debug("checkTxsAvailable exit")
+			return
 		}
 	}
 }
@@ -615,7 +614,7 @@ func (cs *ConsensusState) proposalHeartbeat(height int64, round int) {
 		heartbeatMsg := &ttypes.Heartbeat{Heartbeat: heartbeat}
 		cs.privValidator.SignHeartbeat(chainID, heartbeatMsg)
 		cs.broadcastChannel <- MsgInfo{TypeID: ttypes.ProposalHeartbeatID, Msg: heartbeat, PeerID: cs.ourId, PeerIP: ""}
-		cs.broadcastChannel <- MsgInfo{TypeID: ttypes.NewRoundStepID, Msg: cs.RoundStateMessage(), PeerID: cs.ourId, PeerIP: ""}
+		cs.broadcastChannel <- MsgInfo{TypeID: ttypes.NewRoundStepID, Msg: rs.RoundStateMessage(), PeerID: cs.ourId, PeerIP: ""}
 		counter++
 		time.Sleep(proposalHeartbeatIntervalSeconds * time.Second)
 	}
@@ -669,7 +668,6 @@ func (cs *ConsensusState) enterPropose(height int64, round int) {
 	} else {
 		tendermintlog.Info("enterPropose: Not our turn to propose", "proposer", cs.Validators.GetProposer().Address, "privValidator", cs.privValidator)
 	}
-
 }
 
 func (cs *ConsensusState) isProposer() bool {
@@ -1093,7 +1091,9 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 		tendermintlog.Info(fmt.Sprintf("Proposer reach consensus. Current: %v/%v/%v", cs.Height, cs.Round, cs.Step), "CommitRound", cs.CommitRound,
 			"tx-len", len(commitBlock.Txs), "cost", types.Since(cs.begCons), "proposer-addr", fmt.Sprintf("%X", ttypes.Fingerprint(block.TendermintBlock.ProposerAddr)))
 	} else {
+		cs.mtx.Unlock()
 		reachCons := cs.client.CheckCommit(block.Header.Height)
+		cs.mtx.Lock()
 		if !reachCons {
 			cs.LockedRound = 0
 			cs.LockedBlock = nil
@@ -1177,7 +1177,7 @@ func (cs *ConsensusState) defaultSetProposal(proposal *types.Proposal) error {
 	// Verify signature
 	pubkey, err := ttypes.ConsensusCrypto.PubKeyFromBytes(cs.Validators.GetProposer().PubKey)
 	if err != nil {
-		return errors.New(fmt.Sprintf("Error pubkey from bytes:%v", err))
+		return fmt.Errorf("Error pubkey from bytes:%v", err)
 	}
 	proposalTmp := &ttypes.Proposal{Proposal: *proposal}
 	signature, err := ttypes.ConsensusCrypto.SignatureFromBytes(proposal.Signature)

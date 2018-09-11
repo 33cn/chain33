@@ -246,7 +246,7 @@ func LoadPrivValidatorFSWithSigner(filePath string, signerFunc func(PrivValidato
 	privValImp.PubKey = pubKey
 
 	if len(privVal.LastSignBytes) != 0 {
-		tmp, err = hex.DecodeString(string(privVal.LastSignBytes))
+		tmp, err = hex.DecodeString(privVal.LastSignBytes)
 		if err != nil {
 			Exit(Fmt("Error DecodeString LastSignBytes data failed: %v\n", err))
 		}

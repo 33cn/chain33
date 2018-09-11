@@ -3,15 +3,16 @@ package tendermint
 import (
 	"context"
 	"encoding/binary"
+	"errors"
 	"flag"
 	"fmt"
 	"math/rand"
 	"os"
 	"testing"
 	"time"
-	"errors"
 
 	"gitlab.33.cn/chain33/chain33/blockchain"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/limits"
 	"gitlab.33.cn/chain33/chain33/common/log"
@@ -19,22 +20,20 @@ import (
 	"gitlab.33.cn/chain33/chain33/mempool"
 	"gitlab.33.cn/chain33/chain33/p2p"
 	"gitlab.33.cn/chain33/chain33/queue"
+	"gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/store"
 	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/rpc"
 	"google.golang.org/grpc"
 
 	_ "gitlab.33.cn/chain33/chain33/plugin/store/init"
 	_ "gitlab.33.cn/chain33/chain33/system"
-	"gitlab.33.cn/chain33/chain33/common/address"
 )
 
 var (
 	random    *rand.Rand
-	txNumber  int = 10
 	loopCount int = 10
-	conn *grpc.ClientConn
-	c types.GrpcserviceClient
+	conn      *grpc.ClientConn
+	c         types.GrpcserviceClient
 )
 
 func init() {
@@ -64,7 +63,7 @@ func RaftPerf() {
 		err = createConn()
 	}
 	time.Sleep(10 * time.Second)
-	for i:=0; i<loopCount; i++ {
+	for i := 0; i < loopCount; i++ {
 		NormPut()
 		time.Sleep(time.Second)
 	}
@@ -99,7 +98,7 @@ func initEnvTendermint() (queue.Queue, *blockchain.BlockChain, queue.Module, *me
 	return q, chain, s, mem, exec, cs, network
 }
 
-func createConn() error{
+func createConn() error {
 	var err error
 	url := "127.0.0.1:8802"
 	fmt.Println("grpc url:", url)
