@@ -18,7 +18,7 @@ var elog = log.New("module", name)
 
 func Init() {
 	// init executor type
-	name = types.ExecName("evm")
+	name = "evm"
 	types.RegistorExecutor(name, &EvmType{})
 
 	// init log
