@@ -181,7 +181,7 @@ func getMineredTicketList(addr string, status int32) ([]*types.Ticket, error) {
 	req.Execer = []byte("ticket")
 	req.FuncName = "TicketList"
 	req.Payload = types.Encode(reqaddr)
-	c := types.NewGrpcserviceClient(conn)
+	c := types.NewChain33Client(conn)
 	reply, err := c.QueryChain(context.Background(), &req)
 	if err != nil {
 		return nil, err
@@ -208,7 +208,7 @@ func printAccount(addr string, execer string) {
 
 func getBalance(addr string, execer string) (*types.Account, error) {
 	reqbalance := &types.ReqBalance{Addresses: []string{addr}, Execer: execer}
-	c := types.NewGrpcserviceClient(conn)
+	c := types.NewChain33Client(conn)
 	reply, err := c.GetBalance(context.Background(), reqbalance)
 	if err != nil {
 		return nil, err
@@ -287,7 +287,7 @@ func getMinerSourceList(addr string) ([]string, error) {
 	req.FuncName = "MinerSourceList"
 	req.Payload = types.Encode(reqaddr)
 
-	c := types.NewGrpcserviceClient(conn)
+	c := types.NewChain33Client(conn)
 	reply, err := c.QueryChain(context.Background(), &req)
 	if err != nil {
 		return nil, err
@@ -317,7 +317,7 @@ func sendTransaction(payload types.Message, execer []byte, priv crypto.PrivKey, 
 	tx.Sign(types.SECP256K1, priv)
 
 	// Contact the server and print out its response.
-	c := types.NewGrpcserviceClient(conn)
+	c := types.NewChain33Client(conn)
 	reply, err := c.SendTransaction(context.Background(), tx)
 	if err != nil {
 		return nil, err
@@ -331,7 +331,7 @@ func sendTransaction(payload types.Message, execer []byte, priv crypto.PrivKey, 
 
 func setAutoMining(flag int32) (err error) {
 	req := &types.MinerFlag{Flag: flag}
-	c := types.NewGrpcserviceClient(conn)
+	c := types.NewChain33Client(conn)
 	reply, err := c.SetAutoMining(context.Background(), req)
 	if err != nil {
 		return err
@@ -343,7 +343,7 @@ func setAutoMining(flag int32) (err error) {
 }
 
 func waitTx(hash []byte) *types.TransactionDetail {
-	c := types.NewGrpcserviceClient(conn)
+	c := types.NewChain33Client(conn)
 	reqhash := &types.ReqHash{hash}
 	for {
 		res, err := c.QueryTransaction(context.Background(), reqhash)
@@ -358,7 +358,7 @@ func waitTx(hash []byte) *types.TransactionDetail {
 }
 
 func getlastheader() (*types.Header, error) {
-	c := types.NewGrpcserviceClient(conn)
+	c := types.NewChain33Client(conn)
 	v := &types.ReqNil{}
 	return c.GetLastHeader(context.Background(), v)
 }

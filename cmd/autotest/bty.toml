@@ -24,7 +24,7 @@ to = "17UZr5eJVxDRW1gs7rausQwaSUPtvcpxGT"
 amount = "1"
 checkItem = ["balance"]
 repeat = 5
-dep = "btyTrans1"
+dep = ["btyTrans1"]
 
 
 [[TransferCase]]
@@ -43,7 +43,7 @@ from = "17UZr5eJVxDRW1gs7rausQwaSUPtvcpxGT"
 to = "12hpJBHybh1mSyCijQ2MQJPk7z7kZ7jnQa"
 amount = "1"
 checkItem = ["balance"]
-dep = "btyTrans2"
+dep = ["btyTrans2"]
 
 
 [[WithdrawCase]]
@@ -53,7 +53,7 @@ addr = "17UZr5eJVxDRW1gs7rausQwaSUPtvcpxGT"
 amount = "0.1"
 checkItem = ["balance"]
 repeat = 5
-dep = "btyTrans3"
+dep = ["btyTrans3"]
 
 
 [[WithdrawCase]]
@@ -62,3 +62,4 @@ command = "send bty withdraw -a 1.1 -e token -k 17UZr5eJVxDRW1gs7rausQwaSUPtvcpx
 addr = "17UZr5eJVxDRW1gs7rausQwaSUPtvcpxGT"
 amount = "1.1"
 checkItem = ["balance"]
+

@@ -10,7 +10,7 @@ import (
 type CaseFunc interface {
 	getID() string
 	getCmd() string
-	getDep() string
+	getDep() []string
 	getRepeat() int
 	getBaseCase() *BaseCase
 	setDependData(interface{})
@@ -31,7 +31,7 @@ type PackFunc interface {
 type BaseCase struct {
 	ID        string   `toml:"id"`
 	Command   string   `toml:"command"`
-	Dep       string   `toml:"dep,omitempty"`
+	Dep       []string `toml:"dep,omitempty"`
 	CheckItem []string `toml:"checkItem,omitempty"`
 	Repeat    int      `toml:"repeat,omitempty"`
 }
@@ -67,7 +67,7 @@ func (t *BaseCase) getCmd() string {
 	return t.Command
 }
 
-func (t *BaseCase) getDep() string {
+func (t *BaseCase) getDep() []string {
 
 	return t.Dep
 }

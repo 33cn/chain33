@@ -33,7 +33,7 @@ var (
 	random    *rand.Rand
 	loopCount int = 10
 	conn      *grpc.ClientConn
-	c         types.GrpcserviceClient
+	c         types.Chain33Client
 )
 
 func init() {
@@ -92,7 +92,7 @@ func initEnvTendermint() (queue.Queue, *blockchain.BlockChain, queue.Module, *me
 
 	network.SetQueueClient(q.Client())
 
-	rpc.Init(cfg.Rpc)
+	rpc.InitCfg(cfg.Rpc)
 	gapi := rpc.NewGRpcServer(q.Client())
 	go gapi.Listen()
 	return q, chain, s, mem, exec, cs, network
@@ -107,7 +107,7 @@ func createConn() error {
 		fmt.Fprintln(os.Stderr, err)
 		return err
 	}
-	c = types.NewGrpcserviceClient(conn)
+	c = types.NewChain33Client(conn)
 	r = rand.New(rand.NewSource(types.Now().UnixNano()))
 	return nil
 }

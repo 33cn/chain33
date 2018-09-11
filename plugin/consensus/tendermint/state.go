@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	ttypes "gitlab.33.cn/chain33/chain33/plugin/consensus/tendermint/types"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -458,6 +459,7 @@ func CreateBlockInfoTx(pubkey string, lastCommit *types.TendermintCommit, seenCo
 	nput := &types.ValNodeAction_BlockInfo{BlockInfo: blockInfo}
 	action := &types.ValNodeAction{Value: nput, Ty: types.ValNodeActionBlockInfo}
 	tx := &types.Transaction{Execer: []byte("valnode"), Payload: types.Encode(action), Fee: fee}
+	tx.To = address.ExecAddress("valnode")
 	tx.Nonce = r.Int63()
 	tx.Sign(types.SECP256K1, getprivkey(pubkey))
 

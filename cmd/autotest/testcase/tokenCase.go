@@ -54,12 +54,12 @@ func (testCase *TokenFinishCreateCase) doSendCommand(packID string) (PackFunc, e
 
 func (pack *TokenPreCreatePack) getCheckHandlerMap() CheckHandlerMap {
 
-	funcMap := make(map[string]CheckHandlerFunc, 2)
+	funcMap := make(map[string]CheckHandlerFunc, 1)
 	return funcMap
 }
 
 func (pack *TokenFinishCreatePack) getCheckHandlerMap() CheckHandlerMap {
 
-	funcMap := make(map[string]CheckHandlerFunc, 2)
+	funcMap := make(map[string]CheckHandlerFunc, 1)
 	return funcMap
 }

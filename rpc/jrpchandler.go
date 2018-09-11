@@ -10,12 +10,13 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/version"
 	"gitlab.33.cn/chain33/chain33/types"
-	bw "gitlab.33.cn/chain33/chain33/types/executor/blackwhite"
 	evmtype "gitlab.33.cn/chain33/chain33/types/executor/evm"
 	hashlocktype "gitlab.33.cn/chain33/chain33/types/executor/hashlock"
+	lotterytype "gitlab.33.cn/chain33/chain33/types/executor/lottery"
 	retrievetype "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
 	tokentype "gitlab.33.cn/chain33/chain33/types/executor/token"
 	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
+	// TODO: 需要将插件管理器移动到封闭统一的地方进行管理
 )
 
 func (c *Chain33) CreateRawTransaction(in *types.CreateTx, result *interface{}) error {
@@ -958,27 +959,25 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 	if tx == nil {
 		return nil, types.ErrEmpty
 	}
-
 	execStr := string(tx.Execer)
 	if !types.IsPara() {
 		execStr = realExec(string(tx.Execer))
 	}
-
 	var pl interface{}
 	plType := types.LoadExecutor(execStr)
-	if plType == nil {
-		if "user.write" == string(tx.Execer) {
-			pl = decodeUserWrite(tx.GetPayload())
-		} else {
-			pl = map[string]interface{}{"rawlog": common.ToHex(tx.GetPayload())}
-		}
-	} else {
+	if plType != nil {
 		var err error
 		pl, err = plType.DecodePayload(tx)
 		if err != nil {
 			log.Info("decode payload err", err)
 			pl = map[string]interface{}{"unkownpayload": string(tx.Payload)}
 		}
+	}
+	if string(tx.Execer) == "user.write" {
+		pl = decodeUserWrite(tx.GetPayload())
+	}
+	if pl == nil {
+		pl = map[string]interface{}{"rawlog": common.ToHex(tx.GetPayload())}
 	}
 	result := &Transaction{
 		Execer:     string(tx.Execer),
@@ -1233,6 +1232,46 @@ func (c *Chain33) CreateRawHashlockSendTx(in *hashlocktype.HashlockSendTx, resul
 
 func (c *Chain33) CreateRawEvmCreateCallTx(in *evmtype.CreateCallTx, result *interface{}) error {
 	reply, err := c.cli.CreateRawEvmCreateCallTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Chain33) CreateRawLotteryCreateTx(in *lotterytype.LotteryCreateTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawLotteryCreateTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Chain33) CreateRawLotteryBuyTx(in *lotterytype.LotteryBuyTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawLotteryBuyTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Chain33) CreateRawLotteryDrawTx(in *lotterytype.LotteryDrawTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawLotteryDrawTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Chain33) CreateRawLotteryCloseTx(in *lotterytype.LotteryCloseTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawLotteryCloseTx(in)
 	if err != nil {
 		return err
 	}
@@ -1596,46 +1635,6 @@ func (c *Chain33) CreateRawRelaySaveBTCHeadTx(in *RelaySaveBTCHeadTx, result *in
 
 	*result = hex.EncodeToString(reply)
 
-	return nil
-}
-
-func (c *Chain33) BlackwhiteCreateTx(in *bw.BlackwhiteCreateTx, result *interface{}) error {
-	reply, err := c.cli.BlackwhiteCreateTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
-	return nil
-}
-
-func (c *Chain33) BlackwhiteShowTx(in *bw.BlackwhiteShowTx, result *interface{}) error {
-	reply, err := c.cli.BlackwhiteShowTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
-	return nil
-}
-
-func (c *Chain33) BlackwhitePlayTx(in *bw.BlackwhitePlayTx, result *interface{}) error {
-	reply, err := c.cli.BlackwhitePlayTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
-	return nil
-}
-
-func (c *Chain33) BlackwhiteTimeoutDoneTx(in *bw.BlackwhiteTimeoutDoneTx, result *interface{}) error {
-	reply, err := c.cli.BlackwhiteTimeoutDoneTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
 	return nil
 }
 
