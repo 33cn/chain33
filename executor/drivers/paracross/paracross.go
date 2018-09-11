@@ -210,8 +210,14 @@ func (c *Paracross) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData,
 		} else if log.Ty == types.TyLogExecTransfer {
 			//  主链转出记录，
 			//  转入在 commit done 时几率， 因为没有日志里没有当时tx信息
-			if tx.ActionName() == pt.ParacrossActionTransferStr {
-				c.initLocalAssetTransfer(tx, true, false)
+			var g types.ParacrossAction
+			err = types.Decode(tx.Payload, &g)
+			if g.Ty == pt.ParacrossActionTransfer {
+				r, err := c.initLocalAssetTransfer(tx, true, false)
+				if err != nil {
+					return nil, err
+				}
+				set.KV = append(set.KV, r)
 
 			} // else if tx.ActionName() == pt.ParacrossActionCommitStr {
 			//
@@ -286,6 +292,8 @@ func getCommitHeight(payload []byte) (int64, error) {
 }
 
 func (c *Paracross) initLocalAssetTransfer(tx *types.Transaction, success, isDel bool) (*types.KeyValue, error) {
+	clog.Info("para execLocal", "tx hash", common.Bytes2Hex(tx.Hash()))
+	clog.Info("para execLocal 1", "action name", tx.ActionName())
 	key := calcLocalAssetKey(tx.Hash())
 	if isDel {
 		c.GetLocalDB().Set(key, nil)
@@ -293,7 +301,7 @@ func (c *Paracross) initLocalAssetTransfer(tx *types.Transaction, success, isDel
 	}
 
 	var asset types.ParacrossAsset
-
+	clog.Info("para execLocal 2", "action name", tx.ActionName())
 	amount, err := tx.Amount()
 	if err != nil {
 		return nil, err
@@ -307,8 +315,12 @@ func (c *Paracross) initLocalAssetTransfer(tx *types.Transaction, success, isDel
 		TxHash:     tx.Hash(),
 		Height:     c.GetHeight(),
 	}
+	clog.Info("para execLocal 3", "action name", tx.ActionName())
 
-	c.GetLocalDB().Set(key, types.Encode(&asset))
+	err = c.GetLocalDB().Set(key, types.Encode(&asset))
+	if err != nil {
+		clog.Error("para execLocal", "set", common.Bytes2Hex(tx.Hash()), "failed", err)
+	}
 	return &types.KeyValue{key, types.Encode(&asset)}, nil
 }
 
@@ -341,11 +353,15 @@ func (c *Paracross) initLocalAssetWithdraw(txCommit, tx *types.Transaction, isWi
 	asset.CommitDoneHeight = c.GetHeight()
 	asset.Success = success
 
-	c.GetLocalDB().Set(key, types.Encode(&asset))
+	err = c.GetLocalDB().Set(key, types.Encode(&asset))
+	if err != nil {
+		clog.Error("para execLocal", "set", "", "failed", err)
+	}
 	return &types.KeyValue{key, types.Encode(&asset)}, nil
 }
 
 func (c *Paracross) updateLocalAssetTransfer(txCommit, tx *types.Transaction, success, isDel bool) (*types.KeyValue, error) {
+	clog.Info("para execLocal", "tx hash", common.Bytes2Hex(tx.Hash()))
 	key := calcLocalAssetKey(tx.Hash())
 
 	var asset types.ParacrossAsset
@@ -433,8 +449,14 @@ func (c *Paracross) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptDa
 		} else if log.Ty == types.TyLogExecTransfer {
 			//  主链转出记录，
 			//  转入在 commit done 时几率， 因为没有日志里没有当时tx信息
-			if tx.ActionName() == pt.ParacrossActionTransferStr {
-				c.initLocalAssetTransfer(tx, true, true)
+			var g types.ParacrossAction
+			err = types.Decode(tx.Payload, &g)
+			if g.Ty == pt.ParacrossActionTransfer {
+				r, err := c.initLocalAssetTransfer(tx, true, true)
+				if err != nil {
+					return nil, err
+				}
+				set.KV = append(set.KV, r)
 
 			} // else if tx.ActionName() == pt.ParacrossActionCommitStr {
 			//
