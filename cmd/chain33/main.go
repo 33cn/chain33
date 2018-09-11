@@ -254,7 +254,8 @@ func fixtimeRoutine() {
 		types.SetTimeDelta(int64(time.Until(t)))
 		log.Info("change time", "delta", time.Until(t), "real.now", types.Now())
 	}
-	ticket := time.NewTicker(time.Minute * 10)
+	//时间请求频繁一点:
+	ticket := time.NewTicker(time.Minute * 1)
 	for range ticket.C {
 		t = common.GetRealTimeRetry(hosts, 10)
 		if !t.IsZero() {
