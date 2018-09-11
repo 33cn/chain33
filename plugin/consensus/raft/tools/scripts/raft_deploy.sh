@@ -74,7 +74,7 @@ stopChain33() {
     userName=$3
     pemFile=$4
     deployDir=$5
-    nodeId=$6  
+    nodeId=$6
     ssh -i "$pemFile" -p "$port" "$userName"@"$hostIP" "cd $deployDir;bash run.sh stop"
     echo done!
 }
