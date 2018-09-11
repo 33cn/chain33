@@ -1,9 +1,9 @@
 package executor
 
 import (
-	"bytes"
 	"math"
 
+	"bytes"
 	"strconv"
 
 	"gitlab.33.cn/chain33/chain33/account"
@@ -520,13 +520,27 @@ func (a *action) getWinner(round *gt.BlackwhiteRound) ([]*addrResult, *gt.ReplyL
 	for _, addres := range addrRes {
 		if len(addres.ShowSecret) > 0 && len(addres.HashValues) == loop {
 			var isBlack []bool
-			for i, hash := range addres.HashValues {
-				if bytes.Equal(common.Sha256([]byte(strconv.Itoa(i)+addres.ShowSecret+black)), hash) {
-					isBlack = append(isBlack, true)
-				} else if bytes.Equal(common.Sha256([]byte(strconv.Itoa(i)+addres.ShowSecret+white)), hash) {
-					isBlack = append(isBlack, false)
-				} else {
-					isBlack = append(isBlack, false)
+			// 加入分叉高度判断：分叉高度在ForkV25BlackWhite到ForkV25BlackWhiteV2之间的执行原来逻辑，大于ForkV25BlackWhiteV2执行新逻辑，
+			// 小于ForkV25BlackWhite则无法进入
+			if types.IsMatchFork(a.height, types.ForkV25BlackWhite) && !types.IsMatchFork(a.height, types.ForkV25BlackWhiteV2) {
+				for _, hash := range addres.HashValues {
+					if bytes.Equal(common.Sha256([]byte(addres.ShowSecret+black)), hash) {
+						isBlack = append(isBlack, true)
+					} else if bytes.Equal(common.Sha256([]byte(addres.ShowSecret+white)), hash) {
+						isBlack = append(isBlack, false)
+					} else {
+						isBlack = append(isBlack, false)
+					}
+				}
+			} else {
+				for i, hash := range addres.HashValues {
+					if bytes.Equal(common.Sha256([]byte(strconv.Itoa(i)+addres.ShowSecret+black)), hash) {
+						isBlack = append(isBlack, true)
+					} else if bytes.Equal(common.Sha256([]byte(strconv.Itoa(i)+addres.ShowSecret+white)), hash) {
+						isBlack = append(isBlack, false)
+					} else {
+						isBlack = append(isBlack, false)
+					}
 				}
 			}
 			addresX := &resultCalc{
