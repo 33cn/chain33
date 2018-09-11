@@ -10,14 +10,14 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var name string
+var nameX string
 
-var rlog = log.New("module", name)
+var rlog = log.New("module", types.RetrieveX)
 
 func Init() {
-	name = "retrieve"
+	nameX = types.ExecName(types.RetrieveX)
 	// init executor type
-	types.RegistorExecutor(name, &RetrieveType{})
+	types.RegistorExecutor(types.RetrieveX, &RetrieveType{})
 
 	// init log
 	//types.RegistorLog(types.TyLogDeposit, &CoinsDepositLog{})
@@ -151,11 +151,11 @@ func CreateRawRetrieveBackupTx(parm *RetrieveBackupTx) (*types.Transaction, erro
 		Value: &types.RetrieveAction_Backup{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte(name),
+		Execer:  []byte(nameX),
 		Payload: types.Encode(backup),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(name),
+		To:      address.ExecAddress(nameX),
 	}
 
 	err := tx.SetRealFee(types.MinFee)
@@ -181,11 +181,11 @@ func CreateRawRetrievePrepareTx(parm *RetrievePrepareTx) (*types.Transaction, er
 		Value: &types.RetrieveAction_PreRet{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte(name),
+		Execer:  []byte(nameX),
 		Payload: types.Encode(prepare),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(name),
+		To:      address.ExecAddress(nameX),
 	}
 
 	err := tx.SetRealFee(types.MinFee)
@@ -211,11 +211,11 @@ func CreateRawRetrievePerformTx(parm *RetrievePerformTx) (*types.Transaction, er
 		Value: &types.RetrieveAction_PerfRet{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte(name),
+		Execer:  []byte(nameX),
 		Payload: types.Encode(perform),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(name),
+		To:      address.ExecAddress(nameX),
 	}
 
 	err := tx.SetRealFee(types.MinFee)
@@ -241,11 +241,11 @@ func CreateRawRetrieveCancelTx(parm *RetrieveCancelTx) (*types.Transaction, erro
 		Value: &types.RetrieveAction_Cancel{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte(name),
+		Execer:  []byte(nameX),
 		Payload: types.Encode(cancel),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(name),
+		To:      address.ExecAddress(nameX),
 	}
 
 	err := tx.SetRealFee(types.MinFee)

@@ -7,14 +7,14 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var name string
+var nameX string
 
 //var tlog = log.New("module", name)
 
 func Init() {
-	name = "manage"
+	nameX = types.ExecName(types.ManageX)
 	// init executor type
-	types.RegistorExecutor(name, &ManageType{})
+	types.RegistorExecutor(types.ManageX, &ManageType{})
 
 	// init log
 	types.RegistorLog(types.TyLogModifyConfig, &ModifyConfigLog{})
