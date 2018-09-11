@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	log "github.com/inconshreveable/log15"
-	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	gt "gitlab.33.cn/chain33/chain33/plugin/dapp/game/types"
+	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
