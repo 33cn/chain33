@@ -220,8 +220,7 @@ func BenchmarkGet(b *testing.B) {
 	datas := &types.StoreSet{
 		[]byte("1st"),
 		kv,
-		0
-	}
+		0}
 	hash := store.Set(datas, true)
 
 	getData := &types.StoreGet{
