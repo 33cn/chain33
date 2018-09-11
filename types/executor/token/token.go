@@ -136,7 +136,7 @@ func (coins TokenType) CreateTx(action string, message json.RawMessage) (*types.
 			return nil, types.ErrInputPara
 		}
 
-		if param.ExecName != "" && !types.IsAllowExecName(param.ExecName) {
+		if param.ExecName != "" && !types.IsAllowExecName([]byte(param.ExecName), []byte(param.ExecName)) {
 			tlog.Error("CreateTx", "Error", types.ErrExecNameNotMatch)
 			return nil, types.ErrExecNameNotMatch
 		}
