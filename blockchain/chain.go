@@ -382,8 +382,10 @@ func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, blockdetail *types.Bloc
 		chainlog.Error("ProcAddBlockMsg input block is null")
 		return nil, types.ErrInputPara
 	}
-	blockdetail, ismain, isorphan, err := chain.ProcessBlock(broadcast, blockdetail, pid, true, -1)
-
+	blockdetail2, ismain, isorphan, err := chain.ProcessBlock(broadcast, blockdetail, pid, true, -1)
+	if blockdetail2 != nil {
+		blockdetail = blockdetail2
+	}
 	//非孤儿block或者已经存在的block
 	if chain.task.InProgress() {
 		if (!isorphan && err == nil) || (err == types.ErrBlockExist) {
