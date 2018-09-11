@@ -2,12 +2,10 @@ package rpc
 
 import (
 	"encoding/hex"
-	"math/rand"
-	"time"
-
 	"encoding/json"
-
+	"math/rand"
 	"reflect"
+	"time"
 
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/client"
@@ -15,6 +13,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/types/executor"
 	evmtype "gitlab.33.cn/chain33/chain33/types/executor/evm"
 	hashlocktype "gitlab.33.cn/chain33/chain33/types/executor/hashlock"
 	lotterytype "gitlab.33.cn/chain33/chain33/types/executor/lottery"
@@ -33,6 +32,7 @@ type channelClient struct {
 func (c *channelClient) Init(q queue.Client) {
 	c.QueueProtocolAPI, _ = client.New(q, nil)
 	c.accountdb = account.NewCoinsAccount()
+	executor.Init()
 }
 
 // support old rpc create transaction interface. call new imlp
