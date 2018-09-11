@@ -12,7 +12,12 @@ import (
 	dbmock "gitlab.33.cn/chain33/chain33/common/db/mocks"
 	"gitlab.33.cn/chain33/chain33/types"
 
+	"bytes"
+	"math/rand"
+	"time"
+
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/log"
 	pt "gitlab.33.cn/chain33/chain33/types/executor/paracross"
 )
@@ -188,6 +193,29 @@ func signTx(s suite.Suite, tx *types.Transaction, hexPrivKey string) (*types.Tra
 	return tx, nil
 }
 
+func getPrivKey(s suite.Suite, hexPrivKey string) (crypto.PrivKey, error) {
+	signType := types.SECP256K1
+	c, err := crypto.New(types.GetSignatureTypeName(signType))
+	if err != nil {
+		s.T().Error("TestExec", "new crypto failed", err)
+		return nil, err
+	}
+
+	bytes, err := common.FromHex(hexPrivKey[:])
+	if err != nil {
+		s.T().Error("TestExec", "Hex2Bytes privkey faiiled", err)
+		return nil, err
+	}
+
+	privKey, err := c.PrivKeyFromBytes(bytes)
+	if err != nil {
+		s.T().Error("TestExec", "PrivKeyFromBytes failed", err)
+		return nil, err
+	}
+
+	return privKey, nil
+}
+
 func commitOnce(suite *CommitTestSuite, privkeyStr string) (receipt *types.Receipt) {
 	return commitOnceImpl(suite.Suite, suite.exec, privkeyStr)
 }
@@ -331,3 +359,175 @@ func TestCrossLimits(t *testing.T) {
 
 }
 */
+
+type VoteTestSuite struct {
+	suite.Suite
+	exec *Paracross
+}
+
+func (suite *VoteTestSuite) SetupSuite() {
+	types.SetTitle(Title)
+	suite.exec = newParacross().(*Paracross)
+}
+
+func (s *VoteTestSuite) TestVoteTx() {
+	status := &types.ParacrossNodeStatus{
+		MainBlockHash:   MainBlockHash10,
+		MainBlockHeight: MainBlockHeight,
+		Height:          CurHeight,
+		Title:           Title,
+	}
+	tx, err := s.createVoteTx(status, PrivKeyA)
+	s.Nil(err)
+	tx1, err := createAssetTransferTx(s.Suite, PrivKeyA, nil)
+	s.Nil(err)
+	tx2, err := createAssetTransferTx(s.Suite, PrivKeyB, nil)
+	s.Nil(err)
+	tx3, err := createCrossMainTx([]byte("toA"))
+	s.Nil(err)
+	tx4, err := createCrossParaTx(s.Suite, []byte("toB"))
+	s.Nil(err)
+	tx34 := []*types.Transaction{tx3, tx4}
+	txGroup34, err := createTxsGroup(s.Suite, tx34)
+	s.Nil(err)
+
+	tx5, err := createCrossParaTx(s.Suite, nil)
+	s.Nil(err)
+	tx6, err := createCrossParaTx(s.Suite, nil)
+	s.Nil(err)
+	tx56 := []*types.Transaction{tx5, tx6}
+	txGroup56, err := createTxsGroup(s.Suite, tx56)
+	s.Nil(err)
+
+	tx7, err := createAssetTransferTx(s.Suite, PrivKeyC, nil)
+	s.Nil(err)
+	txs := []*types.Transaction{tx, tx1, tx2}
+	txs = append(txs, txGroup34...)
+	txs = append(txs, txGroup56...)
+	txs = append(txs, tx7)
+	s.exec.SetTxs(txs)
+
+	//for i,tx := range txs{
+	//	s.T().Log("tx exec name","i",i,"name",string(tx.Execer))
+	//}
+
+	receipt0, err := s.exec.Exec(tx, 0)
+	s.Nil(err)
+	recpt0 := &types.ReceiptData{Ty: receipt0.Ty, Logs: receipt0.Logs}
+	recpt1 := &types.ReceiptData{Ty: types.ExecOk}
+	recpt2 := &types.ReceiptData{Ty: types.ExecErr}
+	recpt3 := &types.ReceiptData{Ty: types.ExecOk}
+	recpt4 := &types.ReceiptData{Ty: types.ExecOk}
+	recpt5 := &types.ReceiptData{Ty: types.ExecPack}
+	recpt6 := &types.ReceiptData{Ty: types.ExecPack}
+	recpt7 := &types.ReceiptData{Ty: types.ExecOk}
+	receipts := []*types.ReceiptData{recpt0, recpt1, recpt2, recpt3, recpt4, recpt5, recpt6, recpt7}
+	s.exec.SetReceipt(receipts)
+	set, err := s.exec.ExecLocal(tx, recpt0, 0)
+	s.Nil(err)
+	key := pt.CalcVoteHeightKey(status.Title, status.Height)
+	for _, kv := range set.KV {
+		//s.T().Log(string(kv.GetKey()))
+		if bytes.Equal(key, kv.Key) {
+			var rst types.ParacrossNodeStatus
+			types.Decode(kv.GetValue(), &rst)
+			s.Equal([]uint8([]byte{0x25}), rst.TxResult)
+			s.Equal([]uint8([]byte{0x4d}), rst.CrossTxResult)
+			s.Equal(6, len(rst.TxHashs))
+			s.Equal(7, len(rst.CrossTxHashs))
+			break
+		}
+	}
+}
+
+func (s *VoteTestSuite) createVoteTx(status *types.ParacrossNodeStatus, privFrom string) (*types.Transaction, error) {
+	tx, err := pt.CreateRawVoteTx(status)
+	assert.Nil(s.T(), err, "create asset transfer failed")
+	if err != nil {
+		return nil, err
+	}
+
+	tx, err = signTx(s.Suite, tx, privFrom)
+	assert.Nil(s.T(), err, "sign asset transfer failed")
+	if err != nil {
+		return nil, err
+	}
+
+	return tx, nil
+}
+
+func createCrossMainTx(to []byte) (*types.Transaction, error) {
+	param := types.CreateTx{
+		To:          string(to),
+		Amount:      Amount,
+		Fee:         0,
+		Note:        "test asset transfer",
+		IsWithdraw:  false,
+		IsToken:     false,
+		TokenSymbol: "",
+		ExecName:    types.ParaX,
+	}
+	transfer := &types.ParacrossAction{}
+	v := &types.ParacrossAction_AssetTransfer{AssetTransfer: &types.CoinsTransfer{
+		Amount: param.Amount, Note: param.GetNote(), To: param.GetTo()}}
+	transfer.Value = v
+	transfer.Ty = pt.ParacrossActionTransfer
+
+	tx := &types.Transaction{
+		Execer:  []byte(param.GetExecName()),
+		Payload: types.Encode(transfer),
+		To:      address.ExecAddress(param.GetExecName()),
+		Fee:     param.Fee,
+		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
+	}
+
+	return tx, nil
+}
+
+func createCrossParaTx(s suite.Suite, to []byte) (*types.Transaction, error) {
+	param := types.CreateTx{
+		To:          string(to),
+		Amount:      Amount,
+		Fee:         0,
+		Note:        "test asset transfer",
+		IsWithdraw:  false,
+		IsToken:     false,
+		TokenSymbol: "",
+		ExecName:    Title + types.ParaX,
+	}
+	tx, err := pt.CreateRawTransferTx(&param)
+	assert.Nil(s.T(), err, "create asset transfer failed")
+	if err != nil {
+		return nil, err
+	}
+
+	//tx, err = signTx(s, tx, privFrom)
+	//assert.Nil(s.T(), err, "sign asset transfer failed")
+	//if err != nil {
+	//	return nil, err
+	//}
+
+	return tx, nil
+}
+
+func createTxsGroup(s suite.Suite, txs []*types.Transaction) ([]*types.Transaction, error) {
+
+	group, err := types.CreateTxGroup(txs)
+	if err != nil {
+		return nil, err
+	}
+	err = group.Check(0, types.MinFee)
+	if err != nil {
+		return nil, err
+	}
+	privKey, err := getPrivKey(s, PrivKeyA)
+	for i := range group.Txs {
+		group.SignN(i, int32(types.SECP256K1), privKey)
+	}
+
+	return group.Txs, nil
+}
+
+func TestVoteSuite(t *testing.T) {
+	suite.Run(t, new(VoteTestSuite))
+}
