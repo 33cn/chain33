@@ -17,7 +17,7 @@ import (
 const (
 	ParacrossActionCommit = iota
 	ParacrossActionVote
-	ParacrossActionTransfer = 10000
+	ParacrossActionTransfer = types.ParaCrossTransferActionTypeStart
 	ParacrossActionWithdraw
 )
 

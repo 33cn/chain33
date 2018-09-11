@@ -470,3 +470,8 @@ var LowAllowPackHeight int64 = 30
 
 //默认情况下不开启fork
 var EnableTxGroupParaFork = false
+
+const (
+	ParaCrossTransferActionTypeStart = 10000
+	ParaCrossTransferActionTypeEnd   = 10100
+)
