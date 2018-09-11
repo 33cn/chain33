@@ -36,7 +36,11 @@ import (
 
 var once sync.Once
 
-func initExecute() {
+func Init() {
+	once.Do(initExec)
+}
+
+func initExec() {
 	// init common log
 	types.RegistorLog(types.TyLogErr, &ErrLog{})
 	types.RegistorLog(types.TyLogFee, &FeeLog{})
@@ -57,10 +61,6 @@ func initExecute() {
 	token.Init()
 	trade.Init()
 	lottery.Init()
-}
-
-func Init() {
-	once.Do(initExecute)
 }
 
 type ErrLog struct {
