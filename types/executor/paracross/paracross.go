@@ -16,9 +16,9 @@ import (
 // action type
 const (
 	ParacrossActionCommit = iota
-	ParacrossActionTransfer
-	ParacrossActionWithdraw
 	ParacrossActionVote
+	ParacrossActionTransfer = 10000
+	ParacrossActionWithdraw
 )
 
 // status
