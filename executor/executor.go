@@ -626,6 +626,14 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 	}
 
 	e.setEnv(exec)
+	//user.p.guodun.token -> 允许为 "token"
+	//user.token -> 允许为 token
+	//user.evm.xxxxx -> 允许为 evm
+	name := exec.GetRealExecName(tx.Execer)
+	//默认情况下返回 tx.Execer, 不做任何处理
+	if !types.IsAllowExecName(name, tx.Execer) {
+		return types.ErrExecNameNotAllow
+	}
 	return exec.CheckTx(tx, index)
 }
 
