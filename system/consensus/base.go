@@ -30,7 +30,6 @@ type Miner interface {
 	CreateBlock()
 	CheckBlock(parent *types.Block, current *types.BlockDetail) error
 	ProcEvent(msg queue.Message) bool
-	ExecBlock(prevHash []byte, block *types.Block) (*types.BlockDetail, []*types.Transaction, error)
 }
 
 type BaseClient struct {
@@ -107,6 +106,9 @@ func (bc *BaseClient) InitBlock() {
 		tx := bc.child.CreateGenesisTx()
 		newblock.Txs = tx
 		newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
+		if newblock.Height == 0 {
+			newblock.Difficulty = types.GetP(0).PowLimitBits
+		}
 		bc.WriteBlock(zeroHash[:], newblock)
 	} else {
 		bc.SetCurrentBlock(block)
@@ -276,13 +278,7 @@ func buildHashList(deltx []*types.Transaction) *types.TxHashList {
 
 // 向blockchain写区块
 func (bc *BaseClient) WriteBlock(prev []byte, block *types.Block) error {
-	blockdetail, deltx, err := bc.child.ExecBlock(prev, block)
-	if len(deltx) > 0 {
-		bc.delMempoolTx(deltx)
-	}
-	if err != nil {
-		return err
-	}
+	blockdetail := &types.BlockDetail{Block: block}
 	msg := bc.client.NewMessage("blockchain", types.EventAddBlockDetail, blockdetail)
 	bc.client.Send(msg, true)
 	resp, err := bc.client.Wait(msg)

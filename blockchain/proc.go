@@ -194,7 +194,7 @@ func (chain *BlockChain) addBlockDetail(msg queue.Message) {
 		reply.Msg = []byte(err.Error())
 	}
 	chainlog.Debug("EventAddBlockDetail", "success", "ok")
-	msg.Reply(chain.client.NewMessage("p2p", types.EventReply, &reply))
+	msg.Reply(chain.client.NewMessage("", types.EventReply, &reply))
 }
 
 func (chain *BlockChain) broadcastAddBlock(msg queue.Message) {
@@ -208,7 +208,7 @@ func (chain *BlockChain) broadcastAddBlock(msg queue.Message) {
 	//以免广播区块占用go goroutine资源
 	if blockwithpid.Block.Height > curheight+BackBlockNum {
 		chainlog.Debug("EventBroadcastAddBlock", "curheight", curheight, "castheight", castheight, "hash", common.ToHex(blockwithpid.Block.Hash()), "pid", blockwithpid.Pid, "result", "Do not handle broad cast Block in sync")
-		msg.Reply(chain.client.NewMessage("p2p", types.EventReply, &reply))
+		msg.Reply(chain.client.NewMessage("", types.EventReply, &reply))
 		return
 	}
 	err := chain.ProcAddBlockMsg(true, &types.BlockDetail{Block: blockwithpid.Block}, blockwithpid.Pid)
@@ -219,7 +219,7 @@ func (chain *BlockChain) broadcastAddBlock(msg queue.Message) {
 	}
 	chainlog.Debug("EventBroadcastAddBlock", "height", blockwithpid.Block.Height, "hash", common.ToHex(blockwithpid.Block.Hash()), "pid", blockwithpid.Pid, "success", "ok")
 
-	msg.Reply(chain.client.NewMessage("p2p", types.EventReply, &reply))
+	msg.Reply(chain.client.NewMessage("", types.EventReply, &reply))
 }
 
 func (chain *BlockChain) getTransactionByAddr(msg queue.Message) {
