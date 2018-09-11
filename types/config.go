@@ -177,11 +177,11 @@ func IsYcc() bool {
 }
 
 func IsPara() bool {
-	return strings.HasPrefix(title, "user.p.")
+	return strings.HasPrefix(title, ParaKeyX)
 }
 
 func IsParaExecName(name string) bool {
-	return strings.HasPrefix(name, "user.p.")
+	return strings.HasPrefix(name, ParaKeyX)
 }
 
 func IsPublicChain() bool {

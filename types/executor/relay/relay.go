@@ -7,14 +7,14 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var name string
+var nameX string
 
 //var tlog = log.New("module", name)
 
 func Init() {
-	name = types.ExecName("relay")
+	nameX = types.ExecName("relay")
 	// init executor type
-	types.RegistorExecutor(name, &RelayType{})
+	types.RegistorExecutor("relay", &RelayType{})
 
 	// init log
 	types.RegistorLog(types.TyLogRelayCreate, &RelayCreateLog{})

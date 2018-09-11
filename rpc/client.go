@@ -37,7 +37,6 @@ func (c *channelClient) Init(q queue.Client) {
 
 // support old rpc create transaction interface. call new imlp
 func callExecNewTx(execName, action string, param interface{}) ([]byte, error) {
-	execName = types.ExecName(execName)
 	exec := types.LoadExecutor(execName)
 	if exec == nil {
 		log.Error("callExecNewTx", "Error", "exec not found")
@@ -283,7 +282,7 @@ func (c *channelClient) GetAllExecBalance(in *types.ReqAddr) (*types.AllExecBala
 
 //TODO:和GetBalance进行泛化处理，同时LoadAccounts和LoadExecAccountQueue也需要进行泛化处理, added by hzj
 func (c *channelClient) GetTokenBalance(in *types.ReqTokenBalance) ([]*types.Account, error) {
-	accountTokendb, err := account.NewAccountDB(types.ExecName(types.TokenX), in.GetTokenSymbol(), nil)
+	accountTokendb, err := account.NewAccountDB(types.TokenX, in.GetTokenSymbol(), nil)
 	if err != nil {
 		return nil, err
 	}
