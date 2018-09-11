@@ -36,7 +36,7 @@ import (
 
 var once sync.Once
 
-func initExecute()  {
+func initExecute() {
 	// init common log
 	types.RegistorLog(types.TyLogErr, &ErrLog{})
 	types.RegistorLog(types.TyLogFee, &FeeLog{})
