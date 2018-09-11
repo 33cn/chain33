@@ -29,7 +29,7 @@ var name string
 var glog = log.New("module", orgName)
 
 func Init() {
-	name = types.ExecName(orgName)
+	name = orgName
 	// init executor type
 	types.RegistorExecutor(name, &ParacrossType{})
 

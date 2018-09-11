@@ -69,7 +69,11 @@ func GetRealExecName(execer []byte) []byte {
 				count++
 			}
 			if count == 3 && i < (len(execer)-1) {
-				return execer[i+1:]
+				newexec := execer[i+1:]
+				if bytes.HasPrefix(newexec, UserKey) && !bytes.HasPrefix(newexec, ParaKey) {
+					return GetRealExecName(newexec)
+				}
+				return newexec
 			}
 		}
 	} else if bytes.HasPrefix(execer, UserKey) {
@@ -164,7 +168,7 @@ func ConfigKey(key string) string {
 var ManagePrefix = "mavl-"
 
 func ManageKey(key string) string {
-	return fmt.Sprintf("%s-%s", ManagePrefix+ExecName("manage"), key)
+	return fmt.Sprintf("%s-%s", ManagePrefix+"manage", key)
 }
 
 func ManaeKeyWithHeigh(key string, height int64) string {

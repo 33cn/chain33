@@ -30,9 +30,9 @@ type GameType struct {
 }
 
 func Init(s pluginmgr.RPCServer) {
-	name = types.ExecName(gt.GameX)
+	name = gt.GameX
 	// init executor type
-	types.RegistorExecutor(types.ExecName(name), &GameType{})
+	types.RegistorExecutor(name, &GameType{})
 
 	// init log
 	types.RegistorLog(types.TyLogCreateGame, &CreateGameLog{})

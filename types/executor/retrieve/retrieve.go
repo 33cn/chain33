@@ -15,7 +15,7 @@ var name string
 var rlog = log.New("module", name)
 
 func Init() {
-	name = types.ExecName("retrieve")
+	name = "retrieve"
 	// init executor type
 	types.RegistorExecutor(name, &RetrieveType{})
 

@@ -27,7 +27,7 @@ func InitRPC(s pluginmgr.RPCServer) {
 }
 
 func Init(s pluginmgr.RPCServer) {
-	name = types.ExecName(bw.BlackwhiteX)
+	name = bw.BlackwhiteX
 	// init executor type
 	types.RegistorExecutor(name, &BlackwhiteType{})
 

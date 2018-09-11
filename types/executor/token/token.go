@@ -15,7 +15,7 @@ var name string
 var tlog = log.New("module", name)
 
 //getRealExecName
-//如果paraName == "", 那么自动用 types.ExecName("token")
+//如果paraName == "", 那么自动用 types.types.ExecName("token")
 //如果设置了paraName , 那么强制用paraName
 //也就是说，我们可以构造其他平行链的交易
 func getRealExecName(paraName string) string {
@@ -23,9 +23,9 @@ func getRealExecName(paraName string) string {
 }
 
 func Init() {
-	name = types.ExecName(types.TokenX)
+	name = types.TokenX
 	// init executor type
-	types.RegistorExecutor(types.ExecName(name), &TokenType{})
+	types.RegistorExecutor(name, &TokenType{})
 
 	// init log
 	types.RegistorLog(types.TyLogTokenTransfer, &TokenTransferLog{})

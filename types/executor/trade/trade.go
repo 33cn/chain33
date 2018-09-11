@@ -15,7 +15,7 @@ var name string
 var tlog = log.New("module", name)
 
 func Init() {
-	name = types.ExecName("trade")
+	name = "trade"
 	// init executor type
 	types.RegistorExecutor(name, &tradeType{})
 

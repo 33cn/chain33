@@ -12,7 +12,7 @@ var name string
 //var tlog = log.New("module", name)
 
 func Init() {
-	name = types.ExecName("relay")
+	name = "relay"
 	// init executor type
 	types.RegistorExecutor(name, &RelayType{})
 
