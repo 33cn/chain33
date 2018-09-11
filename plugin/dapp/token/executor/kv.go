@@ -2,8 +2,6 @@ package executor
 
 import (
 	"fmt"
-
-	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var (
@@ -23,11 +21,11 @@ var (
 //)
 
 func setReciptPrefix() {
-	tokenCreated = "mavl-" + types.ExecName("token") + "-"
-	tokenPreCreatedOT = "mavl-create-" + types.ExecName("token") + "-ot-"
-	tokenPreCreatedSTO = "mavl-create-" + types.ExecName("token") + "-sto-"
-	tokenPreCreatedOTNew = "mavl-" + types.ExecName("token") + "-create-ot-"
-	tokenPreCreatedSTONew = "mavl-" + types.ExecName("token") + "-create-sto-"
+	tokenCreated = "mavl-token-"
+	tokenPreCreatedOT = "mavl-create-token-ot-"
+	tokenPreCreatedSTO = "mavl-create-token-sto-"
+	tokenPreCreatedOTNew = "mavl-token-create-ot-"
+	tokenPreCreatedSTONew = "mavl-token-create-sto-"
 }
 
 func calcTokenKey(token string) (key []byte) {

@@ -12,14 +12,14 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var name string
+var nameX string
 
-var elog = log.New("module", name)
+var elog = log.New("module", "exectype.evm")
 
 func Init() {
 	// init executor type
-	name = types.ExecName("evm")
-	types.RegistorExecutor(name, &EvmType{})
+	nameX = types.ExecName("evm")
+	types.RegistorExecutor("evm", &EvmType{})
 
 	// init log
 	types.RegistorLog(types.TyLogCallContract, &EvmCallContractLog{})

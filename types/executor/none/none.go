@@ -7,14 +7,14 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var name string
+var nameX string
 
 //var tlog = log.New("module", name)
 
 func Init() {
-	name = types.ExecName("none")
+	nameX = "none"
 	// init executor type
-	types.RegistorExecutor(name, &NoneType{})
+	types.RegistorExecutor("none", &NoneType{})
 
 	// init log
 	//types.RegistorLog(types.TyLogDeposit, &CoinsDepositLog{})
