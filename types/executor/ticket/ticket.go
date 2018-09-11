@@ -23,10 +23,10 @@ func Init() {
 	types.RegistorLog(types.TyLogTicketBind, &TicketBindLog{})
 
 	// init query rpc
-	types.RegistorRpcType("TicketInfos", &TicketInfos{})
-	types.RegistorRpcType("TicketList", &TicketList{})
-	types.RegistorRpcType("MinerAddress", &TicketMinerAddress{})
-	types.RegistorRpcType("MinerSourceList", &TicketMinerSourceList{})
+	types.RegisterRPCQueryHandle("TicketInfos", &TicketInfos{})
+	types.RegisterRPCQueryHandle("TicketList", &TicketList{})
+	types.RegisterRPCQueryHandle("MinerAddress", &TicketMinerAddress{})
+	types.RegisterRPCQueryHandle("MinerSourceList", &TicketMinerSourceList{})
 }
 
 type TicketType struct {
@@ -149,7 +149,7 @@ func (l TicketBindLog) Decode(msg []byte) (interface{}, error) {
 type TicketInfos struct {
 }
 
-func (t *TicketInfos) Input(message json.RawMessage) ([]byte, error) {
+func (t *TicketInfos) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.TicketInfos
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -158,14 +158,14 @@ func (t *TicketInfos) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *TicketInfos) Output(reply interface{}) (interface{}, error) {
+func (t *TicketInfos) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
 
 type TicketList struct {
 }
 
-func (t *TicketList) Input(message json.RawMessage) ([]byte, error) {
+func (t *TicketList) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.TicketList
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -174,14 +174,14 @@ func (t *TicketList) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *TicketList) Output(reply interface{}) (interface{}, error) {
+func (t *TicketList) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
 
 type TicketMinerAddress struct {
 }
 
-func (t *TicketMinerAddress) Input(message json.RawMessage) ([]byte, error) {
+func (t *TicketMinerAddress) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.ReqString
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -190,14 +190,14 @@ func (t *TicketMinerAddress) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *TicketMinerAddress) Output(reply interface{}) (interface{}, error) {
+func (t *TicketMinerAddress) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
 
 type TicketMinerSourceList struct {
 }
 
-func (t *TicketMinerSourceList) Input(message json.RawMessage) ([]byte, error) {
+func (t *TicketMinerSourceList) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.ReqString
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -206,6 +206,6 @@ func (t *TicketMinerSourceList) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *TicketMinerSourceList) Output(reply interface{}) (interface{}, error) {
+func (t *TicketMinerSourceList) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }

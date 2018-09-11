@@ -335,5 +335,5 @@ func Example_mac() {
 	// Read 32 bytes of output from the hash into h.
 	d.Read(h)
 	fmt.Printf("%x\n", h)
-	// Output: 78de2974bd2711d5549ffd32b753ef0f5fa80a0db2556db60f0987eb8a9218ff
+	// ProtoToJson: 78de2974bd2711d5549ffd32b753ef0f5fa80a0db2556db60f0987eb8a9218ff
 }
