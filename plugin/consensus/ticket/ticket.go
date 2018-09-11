@@ -17,7 +17,6 @@ import (
 	drivers "gitlab.33.cn/chain33/chain33/system/consensus"
 	driver "gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/util"
 )
 
 var (
@@ -666,25 +665,4 @@ func getTxHashes(txs []*types.Transaction) (hashes [][]byte) {
 		hashes[i] = txs[i].Hash()
 	}
 	return hashes
-}
-
-func (client *Client) ExecBlock(prevHash []byte, block *types.Block) (*types.BlockDetail, []*types.Transaction, error) {
-	if block.Height == 0 {
-		block.Difficulty = types.GetP(0).PowLimitBits
-	}
-	blockdetail, deltx, err := util.ExecBlock(client.GetQueueClient(), prevHash, block, false, true)
-	if err != nil { //never happen
-		return nil, deltx, err
-	}
-	if len(blockdetail.Block.Txs) == 0 {
-		return nil, deltx, types.ErrNoTx
-	}
-	//判断txs[0] 是否执行OK
-	if block.Height > 0 {
-		err = client.CheckBlock(client.GetCurrentBlock(), blockdetail)
-		if err != nil {
-			return nil, deltx, err
-		}
-	}
-	return blockdetail, deltx, nil
 }
