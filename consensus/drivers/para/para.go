@@ -252,11 +252,12 @@ func calcParaCrossTxGroup(tx *types.Transaction, main *types.BlockDetail, index 
 	for i := index; i >= 0; i-- {
 		if bytes.Equal(tx.Header, main.Block.Txs[i].Hash()) {
 			headIdx = int32(i)
+			break
 		}
 	}
 
 	endIdx := headIdx + tx.GroupCount
-	for i := headIdx; i < headIdx+tx.GroupCount; i++ {
+	for i := headIdx; i < endIdx; i++ {
 		if bytes.Contains(main.Block.Txs[i].Execer, []byte(types.ExecNamePrefix)) {
 			continue
 		}
