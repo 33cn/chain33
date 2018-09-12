@@ -23,6 +23,7 @@ const (
 	CertX           = "cert"
 	ParaX           = "paracross"
 	LotteryX        = "lottery"
+	ValNodeX        = "valnode"
 )
 
 var (
@@ -45,6 +46,7 @@ var (
 	ExecerLottery  = []byte(LotteryX)
 	UserKey        = []byte(UserKeyX)
 	ParaKey        = []byte(ParaKeyX)
+	ExecerValNode  = []byte(ValNodeX)
 )
 
 const (
@@ -473,4 +475,9 @@ const (
 	LotteryPurchase
 	LotteryDrawed
 	LotteryClosed
+)
+
+const (
+	ValNodeActionUpdate    = 1
+	ValNodeActionBlockInfo = 2
 )
