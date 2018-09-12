@@ -6,6 +6,7 @@ import (
 
 var (
 	ErrExecBlockNil            = errors.New("ErrExecBlockNil")
+	ErrNotAllow                = errors.New("ErrNotAllow")
 	ErrCanOnlyDelTopVersion    = errors.New("ErrCanOnlyDelTopVersion")
 	ErrPrevVersion             = errors.New("ErrPrevVersion")
 	ErrNoExecerInMavlKey       = errors.New("ErrNoExecerInMavlKey")

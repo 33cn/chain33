@@ -46,7 +46,7 @@ func addGetAddrFlags(cmd *cobra.Command) {
 
 func getAddrByExec(cmd *cobra.Command, args []string) {
 	execer, _ := cmd.Flags().GetString("exec")
-	if ok := types.IsAllowExecName(execer); !ok {
+	if ok := types.IsAllowExecName([]byte(execer), []byte(execer)); !ok {
 		fmt.Println(types.ErrExecNameNotAllow.Error())
 		return
 	}

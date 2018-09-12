@@ -29,7 +29,7 @@ func newRelay() drivers.Driver {
 }
 
 func (r *relay) GetName() string {
-	return types.ExecName("relay")
+	return "relay"
 }
 
 func (r *relay) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
