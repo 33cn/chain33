@@ -24,10 +24,12 @@ func (b *BlockChain) ProcessBlock(broadcast bool, block *types.BlockDetail, pid 
 	if atomic.LoadInt32(&b.isclosed) == 1 {
 		return nil, false, false, types.ErrIsClosed
 	}
-	parentHash := block.Block.GetParentHash()
-	if pid == "self" && !bytes.Equal(parentHash, b.bestChain.Tip().hash) {
-		chainlog.Error("addBlockDetail parent hash no match", "err", types.ErrBlockHashNoMatch)
-		return nil, false, false, types.ErrBlockHashNoMatch
+	if block.Block.Height > 0 {
+		parentHash := block.Block.GetParentHash()
+		if pid == "self" && !bytes.Equal(parentHash, b.bestChain.Tip().hash) {
+			chainlog.Error("addBlockDetail parent hash no match", "err", types.ErrBlockHashNoMatch)
+			return nil, false, false, types.ErrBlockHashNoMatch
+		}
 	}
 	blockHash := block.Block.Hash()
 	chainlog.Debug("ProcessBlock Processing block", "height", block.Block.Height, "blockHash", common.ToHex(blockHash))
@@ -291,7 +293,14 @@ func (b *BlockChain) connectBlock(node *blockNode, blockdetail *types.BlockDetai
 		chainlog.Error("connectBlock ExecBlock is err!", "height", block.Height, "err", err)
 		return nil, err
 	}
-
+	//要更新node的信息
+	if node.pid == "self" {
+		//update node info
+		prevhash := node.hash
+		node.statehash = blockdetail.Block.GetStateHash()
+		node.hash = blockdetail.Block.Hash()
+		b.index.UpdateNode(prevhash, node)
+	}
 	beg := types.Now()
 	// 写入磁盘
 	//批量将block信息写入磁盘
