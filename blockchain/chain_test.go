@@ -1138,7 +1138,7 @@ func testProcAddParaChainBlockMsg(t *testing.T, blockchain *BlockChain) {
 
 	blockchain.client.Send(msgGen, true)
 	_, err = blockchain.client.Wait(msgGen)
-	if err != nil{
+	if err != nil {
 		t.Log(err)
 		//t.Error("testProcAddParaChainBlockMsg  only in parachain ")
 	}
