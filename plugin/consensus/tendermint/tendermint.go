@@ -271,21 +271,6 @@ func (client *TendermintClient) ProcEvent(msg queue.Message) bool {
 	return false
 }
 
-func (client *TendermintClient) ExecBlock(prevHash []byte, block *types.Block) (*types.BlockDetail, []*types.Transaction, error) {
-	//exec block
-	if block.Height == 0 {
-		block.Difficulty = types.GetP(0).PowLimitBits
-	}
-	blockdetail, deltx, err := util.ExecBlock(client.GetQueueClient(), prevHash, block, false, false)
-	if err != nil { //never happen
-		return nil, deltx, err
-	}
-	if len(blockdetail.Block.Txs) == 0 {
-		return nil, deltx, types.ErrNoTx
-	}
-	return blockdetail, deltx, nil
-}
-
 func (client *TendermintClient) CreateBlock() {
 	issleep := true
 
