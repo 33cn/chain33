@@ -34,7 +34,7 @@ func newAction(t *Paracross, tx *types.Transaction) *action {
 		t.GetBlockTime(), t.GetHeight(), t.GetAddr(), t.GetApi(), tx, t}
 }
 
-func getNodes(db dbm.KV, title string) ([]string, error) {
+func getNodes(db dbm.KV, title string) (map[string]struct{}, error) {
 	key := calcConfigNodesKey(title)
 	item, err := db.Get(key)
 	if err != nil {
@@ -49,23 +49,27 @@ func getNodes(db dbm.KV, title string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	value := config.GetArr()
 	if value == nil {
 		// 在配置地址后，发现配置错了， 删除会出现这种情况
-		return []string{}, nil
+		return map[string]struct{}{}, nil
 	}
-	return value.Value, nil
+	uniqNode := make(map[string]struct{})
+	for _, v := range value.Value {
+		uniqNode[v] = struct{}{}
+	}
+
+	return uniqNode, nil
 }
 
 func validTitle(title string) bool {
 	return len(title) > 0
 }
 
-func validNode(addr string, nodes []string) bool {
-	for _, n := range nodes {
-		if n == addr {
-			return true
-		}
+func validNode(addr string, nodes map[string]struct{}) bool {
+	if _, exist := nodes[addr]; exist {
+		return exist
 	}
 	return false
 }
@@ -89,7 +93,7 @@ func checkCommitInfo(commit *types.ParacrossCommitAction) error {
 	return nil
 }
 
-func isCommitDone(f interface{}, nodes []string, mostSameHash int) bool {
+func isCommitDone(f interface{}, nodes map[string]struct{}, mostSameHash int) bool {
 	return float32(mostSameHash) > float32(len(nodes))*float32(2)/float32(3)
 }
 
