@@ -502,12 +502,3 @@ func (a *Paracross) CrossLimits(tx *types.Transaction, index int) bool {
 	return len(titles) <= 1
 }
 */
-
-func getTitleFrom(exec []byte) ([]byte, error) {
-	last := bytes.LastIndex(exec, []byte("."))
-	if last == -1 {
-		return nil, types.ErrNotFound
-	}
-	// 现在配置是包含 .的， 所有取title 是也把 `.` 取出来
-	return exec[:last+1], nil
-}

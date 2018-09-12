@@ -242,21 +242,21 @@ func (client *ParaClient) ProcEvent(msg queue.Message) bool {
 	return false
 }
 
-//1. 如果涉及跨链合约，如果有超过两条平行链的交易被判定为失败，交易组会执行不成功。（这样的情况下，主链交易一定会执行不成功）
+//1. 如果涉及跨链合约，如果有超过两条平行链的交易被判定为失败，交易组会执行不成功,也不PACK。（这样的情况下，主链交易一定会执行不成功）
 //2. 如果不涉及跨链合约，那么交易组没有任何规定，可以是20比，10条链。 如果主链交易有失败，平行链也不会执行
 //3. 如果交易组有一个ExecOk,主链上的交易都是ok的，可以全部打包
 //4. 如果全部是ExecPack，有两种情况，一是交易组所有交易都是平行链交易，另一是主链有交易失败而打包了的交易，需要检查LogErr，如果有错，全部不打包
-func calcParaCrossTxGroup(tx *types.Transaction, main *types.BlockDetail, index int) ([]*types.Transaction, int32) {
-	var headIdx int32
+func calcParaCrossTxGroup(tx *types.Transaction, main *types.BlockDetail, index int) ([]*types.Transaction, int) {
+	var headIdx int
 
 	for i := index; i >= 0; i-- {
 		if bytes.Equal(tx.Header, main.Block.Txs[i].Hash()) {
-			headIdx = int32(i)
+			headIdx = i
 			break
 		}
 	}
 
-	endIdx := headIdx + tx.GroupCount
+	endIdx := headIdx + int(tx.GroupCount)
 	for i := headIdx; i < endIdx; i++ {
 		if bytes.Contains(main.Block.Txs[i].Execer, []byte(types.ExecNamePrefix)) {
 			continue
@@ -271,24 +271,22 @@ func calcParaCrossTxGroup(tx *types.Transaction, main *types.BlockDetail, index 
 			}
 		}
 	}
-
 	//全部是平行链交易 或主链执行非失败的tx
 	return main.Block.Txs[headIdx:endIdx], endIdx
 }
 
 func (client *ParaClient) FilterTxsForPara(main *types.BlockDetail) []*types.Transaction {
-	var txs, mainTxs []*types.Transaction
-	var endIdx int32
-	for i, tx := range main.Block.Txs {
+	var txs []*types.Transaction
+	for i := 0; i < len(main.Block.Txs); i++ {
+		tx := main.Block.Txs[i]
 		if bytes.Contains(tx.Execer, []byte(types.ExecNamePrefix)) {
 			if tx.GroupCount >= ParaCrossTxCount {
-				mainTxs, endIdx = calcParaCrossTxGroup(tx, main, i)
+				mainTxs, endIdx := calcParaCrossTxGroup(tx, main, i)
 				txs = append(txs, mainTxs...)
+				i = endIdx - 1
 				continue
 			}
-			if i >= int(endIdx) {
-				txs = append(txs, tx)
-			}
+			txs = append(txs, tx)
 		}
 	}
 	return txs

@@ -92,6 +92,7 @@ func (c *Paracross) checkTxGroup(tx *types.Transaction, index int) ([]*types.Tra
 	return nil, nil
 }
 
+//经para filter之后，交易组里面只会存在主链平行链跨链交易或全部平行链交易，全部平行链交易group里面有可能有资产转移交易
 func crossTxGroupProc(txs []*types.Transaction, index int) ([]*types.Transaction, int32) {
 	var headIdx, endIdx int32
 
@@ -101,13 +102,14 @@ func crossTxGroupProc(txs []*types.Transaction, index int) ([]*types.Transaction
 			break
 		}
 	}
+	//cross mix tx, contain main and para tx, main prefix with types.ParaX
 	endIdx = headIdx + txs[index].GroupCount
 	for i := headIdx; i < endIdx; i++ {
 		if bytes.HasPrefix(txs[i].Execer, []byte(types.ParaX)) {
-			return txs[headIdx:endIdx], endIdx - 1
+			return txs[headIdx:endIdx], endIdx
 		}
 	}
-
+	//cross asset transfer in tx group
 	var transfers []*types.Transaction
 	for i := headIdx; i < endIdx; i++ {
 		if bytes.Contains(txs[i].Execer, []byte(types.ExecNamePrefix)) &&
@@ -116,7 +118,7 @@ func crossTxGroupProc(txs []*types.Transaction, index int) ([]*types.Transaction
 
 		}
 	}
-	return transfers, endIdx - 1
+	return transfers, endIdx
 
 }
 
@@ -191,7 +193,7 @@ func (c *Paracross) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData,
 					for _, crossTx := range crossTxs {
 						crossTxHashs = append(crossTxHashs, crossTx.Hash())
 					}
-					i = int(end)
+					i = int(end) - 1
 					continue
 				}
 				if bytes.Contains(tx.Execer, []byte(types.ExecNamePrefix)) &&

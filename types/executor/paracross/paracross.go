@@ -232,7 +232,7 @@ func CheckVoteTx(current *types.BlockDetail) error {
 	}
 	//判断交易执行是否OK
 	if action.GetVote() == nil {
-		return types.ErrEmptyMinerTx
+		return types.ErrParaEmptyVoteTx
 	}
 
 	//判断exec 是否成功
