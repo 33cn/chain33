@@ -52,6 +52,7 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/proto"
+	"gitlab.33.cn/chain33/chain33/common"
 
 	stpb "github.com/golang/protobuf/ptypes/struct"
 )
@@ -513,6 +514,18 @@ func (m *Marshaler) marshalValue(out *errWriter, prop *proto.Properties, v refle
 			out.write(m.Indent)
 		}
 		out.write("]")
+		return out.err
+	}
+
+	//[]byte
+	if v.Kind() == reflect.Slice && v.Type().Elem().Kind() == reflect.Uint8 {
+		if v.IsNil() {
+			out.write("null")
+			return out.err
+		}
+		out.write(`"`)
+		out.write(common.ToHex(v.Interface().([]byte)))
+		out.write(`"`)
 		return out.err
 	}
 
@@ -1002,6 +1015,21 @@ func (u *Unmarshaler) unmarshalValue(target reflect.Value, inputValue json.RawMe
 				}
 			}
 		}
+		return nil
+	}
+
+	//decode bytes
+	if targetType.Kind() == reflect.Slice && targetType.Elem().Kind() == reflect.Uint8 {
+		var hexstr string
+		err := json.Unmarshal(inputValue, &hexstr)
+		if err != nil {
+			return err
+		}
+		b, err := common.FromHex(hexstr)
+		if err != nil {
+			return err
+		}
+		target.SetBytes(b)
 		return nil
 	}
 
