@@ -98,17 +98,18 @@ func crossTxGroupProc(txs []*types.Transaction, index int) ([]*types.Transaction
 	for i := index; i >= 0; i-- {
 		if bytes.Equal(txs[index].Header, txs[i].Hash()) {
 			headIdx = int32(i)
+			break
 		}
 	}
 	endIdx = headIdx + txs[index].GroupCount
-	for i := headIdx; i < txs[index].GroupCount; i++ {
+	for i := headIdx; i < endIdx; i++ {
 		if bytes.HasPrefix(txs[i].Execer, []byte(types.ParaX)) {
 			return txs[headIdx:endIdx], endIdx - 1
 		}
 	}
 
 	var transfers []*types.Transaction
-	for i := headIdx; i < txs[index].GroupCount; i++ {
+	for i := headIdx; i < endIdx; i++ {
 		if bytes.Contains(txs[i].Execer, []byte(types.ExecNamePrefix)) &&
 			bytes.HasSuffix(txs[i].Execer, []byte(types.ParaX)) {
 			transfers = append(transfers, txs[i])
@@ -165,6 +166,9 @@ func (c *Paracross) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData,
 			r.TxHash = string(tx.Hash())
 			set.KV = append(set.KV, &types.KeyValue{calcLocalTxKey(g.Status.Title, g.Status.Height, tx.From()), types.Encode(&r)})
 		} else if log.Ty == types.TyLogParacrossVote {
+			if index != 0 {
+				return nil, types.ErrParaVoteBaseIndex
+			}
 			var g types.ReceiptParacrossVote
 			types.Decode(log.Log, &g)
 
