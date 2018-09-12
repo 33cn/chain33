@@ -980,19 +980,19 @@ func (chain *BlockChain) ProcDelParaChainBlockMsg(broadcast bool, ParaChainblock
 }
 
 //处理共识过来的add block的消息，目前只提供给平行链使用
-func (chain *BlockChain) ProcAddParaChainBlockMsg(broadcast bool, ParaChainblockdetail *types.ParaChainBlockDetail, pid string) (err error) {
+func (chain *BlockChain) ProcAddParaChainBlockMsg(broadcast bool, ParaChainblockdetail *types.ParaChainBlockDetail, pid string) (*types.BlockDetail, error) {
 	if ParaChainblockdetail == nil || ParaChainblockdetail.GetBlockdetail() == nil || ParaChainblockdetail.GetBlockdetail().GetBlock() == nil {
 		chainlog.Error("ProcAddParaChainBlockMsg input block is null")
-		return types.ErrInputPara
+		return nil, types.ErrInputPara
 	}
 	blockdetail := ParaChainblockdetail.GetBlockdetail()
 	block := ParaChainblockdetail.GetBlockdetail().GetBlock()
 	sequence := ParaChainblockdetail.GetSequence()
 
-	_, ismain, isorphan, err := chain.ProcessBlock(broadcast, blockdetail, pid, true, sequence)
+	fullBlockDetail, ismain, isorphan, err := chain.ProcessBlock(broadcast, blockdetail, pid, true, sequence)
 	chainlog.Debug("ProcAddParaChainBlockMsg result:", "height", block.Height, "sequence", sequence, "ismain", ismain, "isorphan", isorphan, "hash", common.ToHex(block.Hash()), "err", err)
 
-	return err
+	return fullBlockDetail, err
 }
 
 //处理共识过来的通过blockhash获取seq的消息，只提供add block时的seq，用于平行链block回退
