@@ -72,6 +72,20 @@ func TestProtoToJson(t *testing.T) {
 	err = jsonpb.UnmarshalString(`{"isOk":false,"msg":"0x4f4b"}`, &dr)
 	assert.Nil(t, err)
 	assert.Equal(t, dr.Msg, []byte("OK"))
+
+	r = &Reply{Msg: []byte{}}
+	b, err = json.Marshal(r)
+	assert.Nil(t, err)
+	assert.Equal(t, b, []byte(`{}`))
+
+	encode = &jsonpb.Marshaler{EmitDefaults: true}
+	s, err = encode.MarshalToString(r)
+	assert.Nil(t, err)
+	assert.Equal(t, s, `{"isOk":false,"msg":""}`)
+
+	err = jsonpb.UnmarshalString(`{"isOk":false,"msg":""}`, &dr)
+	assert.Nil(t, err)
+	assert.Equal(t, dr.Msg, []byte{})
 }
 
 func TestHex(t *testing.T) {

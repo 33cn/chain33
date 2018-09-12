@@ -1020,6 +1020,14 @@ func (u *Unmarshaler) unmarshalValue(target reflect.Value, inputValue json.RawMe
 
 	//decode bytes
 	if targetType.Kind() == reflect.Slice && targetType.Elem().Kind() == reflect.Uint8 {
+		if string(inputValue) == "null" {
+			target.SetBytes(nil)
+			return nil
+		}
+		if string(inputValue) == "[]" {
+			target.SetBytes([]byte{})
+			return nil
+		}
 		var hexstr string
 		err := json.Unmarshal(inputValue, &hexstr)
 		if err != nil {
