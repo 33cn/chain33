@@ -6,7 +6,6 @@ package executor
 
 import (
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
-	"gitlab.33.cn/chain33/chain33/types"
 )
 
 func Init() {
@@ -28,5 +27,5 @@ func newNone() drivers.Driver {
 }
 
 func (n *None) GetName() string {
-	return types.ExecName("none")
+	return "none"
 }

@@ -7,20 +7,20 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var name string
+var nameX string
 
 //var tlog = log.New("module", name)
 
 func Init() {
-	name = types.ExecName("manage")
+	nameX = types.ExecName(types.ManageX)
 	// init executor type
-	types.RegistorExecutor(name, &ManageType{})
+	types.RegistorExecutor(types.ManageX, &ManageType{})
 
 	// init log
 	types.RegistorLog(types.TyLogModifyConfig, &ModifyConfigLog{})
 
 	// init query rpc
-	types.RegistorRpcType("GetConfigItem", &MagageGetConfigItem{})
+	types.RegisterRPCQueryHandle("GetConfigItem", &MagageGetConfigItem{})
 }
 
 type ManageType struct {
@@ -69,7 +69,7 @@ func (l ModifyConfigLog) Decode(msg []byte) (interface{}, error) {
 type MagageGetConfigItem struct {
 }
 
-func (t *MagageGetConfigItem) Input(message json.RawMessage) ([]byte, error) {
+func (t *MagageGetConfigItem) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.ReqString
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -78,6 +78,6 @@ func (t *MagageGetConfigItem) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *MagageGetConfigItem) Output(reply interface{}) (interface{}, error) {
+func (t *MagageGetConfigItem) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
