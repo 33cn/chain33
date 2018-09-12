@@ -37,7 +37,7 @@ func (s *storeChild) Rollback(req *types.ReqHash) []byte {
 	return []byte("")
 }
 
-func (s *storeChild) Del(req *types.StoreDel) []byte{
+func (s *storeChild) Del(req *types.StoreDel) []byte {
 	return []byte("")
 }
 func (s *storeChild) IterateRangeByStateHash(statehash []byte, start []byte, end []byte, ascending bool, fn func(key, value []byte) bool) {
