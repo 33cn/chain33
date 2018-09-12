@@ -1,9 +1,11 @@
 package types
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"gitlab.33.cn/chain33/chain33/types/jsonpb"
 )
 
 func TestAllowExecName(t *testing.T) {
@@ -35,4 +37,21 @@ func TestAllowExecName(t *testing.T) {
 
 	isok = IsAllowExecName([]byte("user.p.evm.user.hello"), []byte("user.p.guodun.user.p.evm.user.hello"))
 	assert.Equal(t, isok, true)
+}
+
+func TestProtoToJson(t *testing.T) {
+	r := &Reply{}
+	b, err := json.Marshal(r)
+	assert.Nil(t, err)
+	assert.Equal(t, b, []byte(`{}`))
+
+	encode := &jsonpb.Marshaler{EmitDefaults: true}
+	s, err := encode.MarshalToString(r)
+	assert.Nil(t, err)
+	assert.Equal(t, s, `{"isOk":false,"msg":null}`)
+
+	encode2 := &jsonpb.Marshaler{EmitDefaults: false}
+	s, err = encode2.MarshalToString(r)
+	assert.Nil(t, err)
+	assert.Equal(t, s, `{}`)
 }
