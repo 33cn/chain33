@@ -45,7 +45,7 @@ func newToken() drivers.Driver {
 }
 
 func (t *token) GetName() string {
-	return types.ExecName("token")
+	return "token"
 }
 
 func (c *token) CheckTx(tx *types.Transaction, index int) error {

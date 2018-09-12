@@ -10,14 +10,14 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var name string
+var nameX string
 
-var llog = log.New("module", name)
+var llog = log.New("module", "exectype."+types.LotteryX)
 
 func Init() {
-	name = types.ExecName(types.LotteryX)
+	nameX = types.ExecName(types.LotteryX)
 	// init executor type
-	types.RegistorExecutor(name, &LotteryType{})
+	types.RegistorExecutor(types.LotteryX, &LotteryType{})
 
 	// init log
 	types.RegistorLog(types.TyLogLotteryCreate, &LotteryCreateLog{})
@@ -26,12 +26,12 @@ func Init() {
 	types.RegistorLog(types.TyLogLotteryClose, &LotteryCloseLog{})
 
 	// init query rpc
-	types.RegistorRpcType("GetLotteryNormalInfo", &LotteryGetInfo{})
-	types.RegistorRpcType("GetLotteryCurrentInfo", &LotteryGetInfo{})
-	types.RegistorRpcType("GetLotteryHistoryLuckyNumber", &LotteryGetInfo{})
-	types.RegistorRpcType("GetLotteryRoundLuckyNumber", &LotteryLuckyRoundInfo{})
-	types.RegistorRpcType("GetLotteryHistoryBuyInfo", &LotteryBuyInfo{})
-	types.RegistorRpcType("GetLotteryBuyRoundInfo", &LotteryBuyRoundInfo{})
+	types.RegisterRPCQueryHandle("GetLotteryNormalInfo", &LotteryGetInfo{})
+	types.RegisterRPCQueryHandle("GetLotteryCurrentInfo", &LotteryGetInfo{})
+	types.RegisterRPCQueryHandle("GetLotteryHistoryLuckyNumber", &LotteryGetInfo{})
+	types.RegisterRPCQueryHandle("GetLotteryRoundLuckyNumber", &LotteryLuckyRoundInfo{})
+	types.RegisterRPCQueryHandle("GetLotteryHistoryBuyInfo", &LotteryBuyInfo{})
+	types.RegisterRPCQueryHandle("GetLotteryBuyRoundInfo", &LotteryBuyRoundInfo{})
 
 }
 
@@ -179,7 +179,7 @@ func (l LotteryCloseLog) Decode(msg []byte) (interface{}, error) {
 type LotteryGetInfo struct {
 }
 
-func (t *LotteryGetInfo) Input(message json.RawMessage) ([]byte, error) {
+func (t *LotteryGetInfo) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.ReqLotteryInfo
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -188,14 +188,14 @@ func (t *LotteryGetInfo) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *LotteryGetInfo) Output(reply interface{}) (interface{}, error) {
+func (t *LotteryGetInfo) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
 
 type LotteryLuckyRoundInfo struct {
 }
 
-func (t *LotteryLuckyRoundInfo) Input(message json.RawMessage) ([]byte, error) {
+func (t *LotteryLuckyRoundInfo) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.ReqLotteryLuckyInfo
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -204,14 +204,14 @@ func (t *LotteryLuckyRoundInfo) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *LotteryLuckyRoundInfo) Output(reply interface{}) (interface{}, error) {
+func (t *LotteryLuckyRoundInfo) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
 
 type LotteryBuyInfo struct {
 }
 
-func (t *LotteryBuyInfo) Input(message json.RawMessage) ([]byte, error) {
+func (t *LotteryBuyInfo) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.ReqLotteryBuyHistory
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -220,14 +220,14 @@ func (t *LotteryBuyInfo) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *LotteryBuyInfo) Output(reply interface{}) (interface{}, error) {
+func (t *LotteryBuyInfo) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
 
 type LotteryBuyRoundInfo struct {
 }
 
-func (t *LotteryBuyRoundInfo) Input(message json.RawMessage) ([]byte, error) {
+func (t *LotteryBuyRoundInfo) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.ReqLotteryBuyInfo
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -236,7 +236,7 @@ func (t *LotteryBuyRoundInfo) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *LotteryBuyRoundInfo) Output(reply interface{}) (interface{}, error) {
+func (t *LotteryBuyRoundInfo) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
 
@@ -255,11 +255,11 @@ func CreateRawLotteryCreateTx(parm *LotteryCreateTx) (*types.Transaction, error)
 		Value: &types.LotteryAction_Create{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte(name),
+		Execer:  []byte(nameX),
 		Payload: types.Encode(create),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(name),
+		To:      address.ExecAddress(nameX),
 	}
 
 	err := tx.SetRealFee(types.MinFee)
@@ -286,11 +286,11 @@ func CreateRawLotteryBuyTx(parm *LotteryBuyTx) (*types.Transaction, error) {
 		Value: &types.LotteryAction_Buy{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte(name),
+		Execer:  []byte(nameX),
 		Payload: types.Encode(buy),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(name),
+		To:      address.ExecAddress(nameX),
 	}
 
 	err := tx.SetRealFee(types.MinFee)
@@ -315,11 +315,11 @@ func CreateRawLotteryDrawTx(parm *LotteryDrawTx) (*types.Transaction, error) {
 		Value: &types.LotteryAction_Draw{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte(name),
+		Execer:  []byte(nameX),
 		Payload: types.Encode(draw),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(name),
+		To:      address.ExecAddress(nameX),
 	}
 
 	err := tx.SetRealFee(types.MinFee)
@@ -344,11 +344,11 @@ func CreateRawLotteryCloseTx(parm *LotteryCloseTx) (*types.Transaction, error) {
 		Value: &types.LotteryAction_Close{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte(name),
+		Execer:  []byte(nameX),
 		Payload: types.Encode(close),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(name),
+		To:      address.ExecAddress(nameX),
 	}
 
 	err := tx.SetRealFee(types.MinFee)

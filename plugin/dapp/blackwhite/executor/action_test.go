@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"gitlab.33.cn/chain33/chain33/common"
 	gt "gitlab.33.cn/chain33/chain33/plugin/dapp/blackwhite/types"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 func newAddressResult(Addr string, blackwhite []int) *gt.AddressResult {
@@ -202,6 +203,7 @@ func test5(t *testing.T) {
 func Test_getWinnerAndLoser(t *testing.T) {
 
 	a := action{}
+	a.height = 1 + types.ForkV25BlackWhiteV2
 
 	showSecret := "123456789012345678901234567890"
 

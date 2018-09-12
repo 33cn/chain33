@@ -4,18 +4,12 @@ import (
 	"fmt"
 
 	gt "gitlab.33.cn/chain33/chain33/plugin/dapp/blackwhite/types"
-	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var (
-	roundPrefix      string
-	loopResultPrefix string
+	roundPrefix      = "mavl-blackwhite-"
+	loopResultPrefix = "blackwhite-loop-"
 )
-
-func SetReciptPrefix() {
-	roundPrefix = "mavl-" + types.ExecName("blackwhite") + "-"
-	loopResultPrefix = types.ExecName("blackwhite") + "-loop-"
-}
 
 func calcRoundKey(ID string) []byte {
 	return []byte(fmt.Sprintf(roundPrefix+"%s", ID))

@@ -4,6 +4,8 @@ import (
 	"encoding/hex"
 	"encoding/json"
 
+	"gitlab.33.cn/chain33/chain33/types/convertor"
+
 	log "github.com/inconshreveable/log15"
 	bw "gitlab.33.cn/chain33/chain33/plugin/dapp/blackwhite/types"
 	"gitlab.33.cn/chain33/chain33/pluginmgr"
@@ -25,7 +27,7 @@ func InitRPC(s pluginmgr.RPCServer) {
 }
 
 func Init(s pluginmgr.RPCServer) {
-	name = types.ExecName(bw.BlackwhiteX)
+	name = bw.BlackwhiteX
 	// init executor type
 	types.RegistorExecutor(name, &BlackwhiteType{})
 
@@ -38,9 +40,9 @@ func Init(s pluginmgr.RPCServer) {
 	types.RegistorLog(types.TyLogBlackwhiteLoopInfo, &BlackwhiteLoopInfoLog{})
 
 	// init query rpc
-	types.RegistorRpcType(bw.GetBlackwhiteRoundInfo, &BlackwhiteRoundInfo{})
-	types.RegistorRpcType(bw.GetBlackwhiteByStatusAndAddr, &BlackwhiteByStatusAndAddr{})
-	types.RegistorRpcType(bw.GetBlackwhiteloopResult, &BlackwhiteloopResult{})
+	types.RegisterRPCQueryHandle(bw.GetBlackwhiteRoundInfo, &convertor.QueryConvertor{ProtoObj: &bw.ReqBlackwhiteRoundInfo{}})
+	types.RegisterRPCQueryHandle(bw.GetBlackwhiteByStatusAndAddr, &convertor.QueryConvertor{ProtoObj: &bw.ReqBlackwhiteRoundList{}})
+	types.RegisterRPCQueryHandle(bw.GetBlackwhiteloopResult, &convertor.QueryConvertor{ProtoObj: &bw.ReqLoopResult{}})
 
 	InitRPC(s)
 }

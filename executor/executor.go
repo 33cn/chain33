@@ -126,7 +126,12 @@ func (exec *Executor) procExecQuery(msg queue.Message) {
 	db.(*StateDB).enableMVCC()
 	driver.SetStateDB(db)
 
-	ret, err := driver.Query(data.FuncName, data.Param)
+	//查询的情况下下，执行器不做严格校验，allow，尽可能的加载执行器，并且做查询
+
+	ret, err := types.ProcessRPCQuery(data.FuncName, data.Param)
+	if err != nil {
+		ret, err = driver.Query(data.FuncName, data.Param)
+	}
 	if err != nil {
 		msg.Reply(exec.client.NewMessage("", types.EventBlockChainQuery, err))
 		return
@@ -207,7 +212,13 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 		&types.Receipts{receipts}))
 }
 
-func isAllowExec(key, txexecer []byte, toaddr string, height int64) bool {
+func (execute *executor) isAllowExec(key []byte, tx *types.Transaction, index int) bool {
+	txexecer := execute.getRealExecName(tx, index)
+	height := execute.height
+	return isAllowExec(key, txexecer, height)
+}
+
+func isAllowExec(key, txexecer []byte, height int64) bool {
 	keyexecer, err := findExecer(key)
 	if err != nil {
 		elog.Error("find execer ", "err", err)
@@ -244,16 +255,6 @@ func isAllowExec(key, txexecer []byte, toaddr string, height int64) bool {
 			}
 		}
 	}
-
-	// user.evm 的交易，使用evm执行器
-	// 这部分判断逻辑不能放到前面几步，因为它修改了txexecer，会影响别的判断逻辑
-	if bytes.HasPrefix(txexecer, []byte(types.ExecName(types.UserEvmX))) {
-		txexecer = []byte(types.ExecName(types.EvmX))
-		if bytes.Equal([]byte(types.ExecName(string(keyexecer))), txexecer) {
-			return true
-		}
-	}
-
 	return false
 }
 
@@ -571,6 +572,18 @@ func (e *executor) cutFeeReceipt(acc *types.Account, receiptBalance proto.Messag
 	return &types.Receipt{types.ExecPack, e.coinsAccount.GetKVSet(acc), []*types.ReceiptLog{feelog}}
 }
 
+func (e *executor) getRealExecName(tx *types.Transaction, index int) []byte {
+	exec := e.loadDriver(tx, index)
+	realexec := exec.GetName()
+	var execer []byte
+	if realexec != "none" {
+		execer = []byte(realexec)
+	} else {
+		execer = tx.Execer
+	}
+	return execer
+}
+
 func (e *executor) checkTx(tx *types.Transaction, index int) error {
 	if e.height > 0 && e.blocktime > 0 && tx.IsExpire(e.height, e.blocktime) {
 		//如果已经过期
@@ -578,6 +591,14 @@ func (e *executor) checkTx(tx *types.Transaction, index int) error {
 	}
 	if err := tx.Check(e.height, types.MinFee); err != nil {
 		return err
+	}
+
+	//允许重写的情况
+
+	//看重写的名字 name, 是否被允许执行
+
+	if !types.IsAllowExecName(e.getRealExecName(tx, index), tx.Execer) {
+		return types.ErrExecNameNotAllow
 	}
 	return nil
 }
@@ -612,7 +633,7 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 		return err
 	}
 	//checkInExec
-	exec := e.loadDriverForExec(string(tx.Execer), e.height)
+	exec := e.loadDriver(tx, index)
 	//手续费检查
 	if !exec.IsFree() && types.MinFee > 0 {
 		from := tx.From()
@@ -621,36 +642,37 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 			return types.ErrBalanceLessThanTenTimesFee
 		}
 	}
-
 	e.setEnv(exec)
 	return exec.CheckTx(tx, index)
 }
 
 func (e *executor) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
-	exec := e.loadDriverForExec(string(tx.Execer), e.height)
-	e.setEnv(exec)
+	exec := e.loadDriver(tx, index)
 	return exec.Exec(tx, index)
 }
 
 func (e *executor) execLocal(tx *types.Transaction, r *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	exec := e.loadDriverForExec(string(tx.Execer), e.height)
-	e.setEnv(exec)
+	exec := e.loadDriver(tx, index)
 	return exec.ExecLocal(tx, r, index)
 }
 
 func (e *executor) execDelLocal(tx *types.Transaction, r *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	exec := e.loadDriverForExec(string(tx.Execer), e.height)
-	e.setEnv(exec)
+	exec := e.loadDriver(tx, index)
 	return exec.ExecDelLocal(tx, r, index)
 }
 
-func (e *executor) loadDriverForExec(exector string, height int64) (c drivers.Driver) {
-	exec, err := drivers.LoadDriver(exector, height)
+func (e *executor) loadDriver(tx *types.Transaction, index int) (c drivers.Driver) {
+	exec, err := drivers.LoadDriver(string(tx.Execer), e.height)
+	if err == nil {
+		e.setEnv(exec)
+		err = exec.Allow(tx, index)
+	}
 	if err != nil {
-		exec, err = drivers.LoadDriver(types.ExecName("none"), height)
+		exec, err = drivers.LoadDriver("none", e.height)
 		if err != nil {
 			panic(err)
 		}
+		e.setEnv(exec)
 	}
 	return exec
 }
@@ -720,7 +742,7 @@ func (execute *executor) loadFlag(key []byte) (int64, error) {
 func (execute *executor) execFee(tx *types.Transaction, index int) (*types.Receipt, error) {
 	feelog := &types.Receipt{Ty: types.ExecPack}
 	execer := string(tx.Execer)
-	e := execute.loadDriverForExec(execer, execute.height)
+	e := execute.loadDriver(tx, index)
 	execute.setEnv(e)
 	//执行器名称 和  pubkey 相同，费用从内置的执行器中扣除,但是checkTx 中要过
 	//默认checkTx 中对这样的交易会返回
@@ -771,7 +793,7 @@ func (execute *executor) execTxOne(feelog *types.Receipt, tx *types.Transaction,
 	if err != nil {
 		return feelog, err
 	}
-	feelog, err = execute.checkKeyAllow(feelog, tx, receipt.GetKV())
+	feelog, err = execute.checkKeyAllow(feelog, tx, index, receipt.GetKV())
 	if err != nil {
 		return feelog, err
 	}
@@ -801,10 +823,10 @@ func (execute *executor) checkKV(feelog *types.Receipt, memset []string, kvs []*
 	return feelog, nil
 }
 
-func (execute *executor) checkKeyAllow(feelog *types.Receipt, tx *types.Transaction, kvs []*types.KeyValue) (*types.Receipt, error) {
+func (execute *executor) checkKeyAllow(feelog *types.Receipt, tx *types.Transaction, index int, kvs []*types.KeyValue) (*types.Receipt, error) {
 	for _, kv := range kvs {
 		k := kv.GetKey()
-		if !isAllowExec(k, tx.GetExecer(), tx.To, execute.height) {
+		if !execute.isAllowExec(k, tx, index) {
 			elog.Error("err receipt key", "key", string(k), "tx.exec", string(tx.GetExecer()),
 				"tx.action", tx.ActionName())
 			//非法的receipt，交易执行失败

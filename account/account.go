@@ -33,7 +33,7 @@ type DB struct {
 }
 
 func NewCoinsAccount() *DB {
-	prefix := "mavl-" + types.ExecName(types.CoinsX) + "-bty-"
+	prefix := "mavl-" + types.CoinsX + "-bty-"
 	return newAccountDB(prefix)
 }
 
@@ -138,7 +138,7 @@ func (acc *DB) depositBalance(execaddr string, amount int64) (*types.Receipt, er
 	ty := int32(types.TyLogDeposit)
 	ty = types.TyLogDeposit
 	//token的log做了特殊处理，其他执行器不必如此
-	if acc.execer == types.ExecName(types.TokenX) {
+	if acc.execer == types.TokenX {
 		ty = types.TyLogTokenDeposit
 	}
 	log1 := &types.ReceiptLog{
@@ -156,7 +156,7 @@ func (acc *DB) depositBalance(execaddr string, amount int64) (*types.Receipt, er
 func (acc *DB) transferReceipt(accFrom, accTo *types.Account, receiptFrom, receiptTo proto.Message) *types.Receipt {
 	ty := int32(types.TyLogTransfer)
 	//token的log做了特殊处理，其他执行器不必如此
-	if acc.execer == types.ExecName(types.TokenX) {
+	if acc.execer == types.TokenX {
 		ty = types.TyLogTokenTransfer
 	}
 	log1 := &types.ReceiptLog{
