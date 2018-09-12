@@ -438,15 +438,6 @@ func (node *Node) addPeer(pc peerConn) error {
 
 	// Avoid self
 	if node.ID == peerID {
-		//addr := peerNodeInfo.NetAddress()
-		// remove the given address from the address book
-		// and add to our addresses to avoid dialing again
-		//node.addrBook.RemoveAddress(addr)
-		//node.addrBook.AddOurAddress(addr)
-
-		if rErr == nil {
-			node.IP = remoteIP.String()
-		}
 		return fmt.Errorf("Connect to self: %v", addr)
 	}
 
