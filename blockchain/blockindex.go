@@ -135,6 +135,19 @@ func (bi *blockIndex) AddNode(node *blockNode) {
 	}
 }
 
+func (bi *blockIndex) UpdateNode(hash []byte, node *blockNode) bool {
+	bi.Lock()
+	defer bi.Unlock()
+	elem, ok := bi.index[string(hash)]
+	if !ok {
+		return false
+	}
+	elem.Value = node
+	delete(bi.index, string(hash))
+	bi.index[string(node.hash)] = elem
+	return true
+}
+
 //删除index节点
 func (bi *blockIndex) DelNode(hash []byte) {
 	bi.Lock()
