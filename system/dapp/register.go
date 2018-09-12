@@ -2,8 +2,6 @@ package dapp
 
 //store package store the world - state data
 import (
-	"strings"
-
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	clog "gitlab.33.cn/chain33/chain33/common/log"
@@ -50,10 +48,9 @@ func Register(name string, create DriverCreate, height int64) {
 }
 
 func LoadDriver(name string, height int64) (driver Driver, err error) {
-	//user.evm 的交易，使用evm执行器
-	if strings.HasPrefix(name, types.ExecName(types.UserEvmX)) {
-		name = types.ExecName(types.EvmX)
-	}
+	//user.evm.xxxx 的交易，使用evm执行器
+	//user.p.evm
+	name = string(types.GetRealExecName([]byte(name)))
 	c, ok := registedExecDriver[name]
 	if !ok {
 		return nil, types.ErrUnknowDriver

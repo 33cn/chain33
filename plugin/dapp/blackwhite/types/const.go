@@ -30,9 +30,9 @@ const (
 )
 
 var (
-	BlackwhiteX      = "blackwhite"
-	GRPCName         = "chain33.blackwhite"
-	JRPCName         = "Chain33"
+	BlackwhiteX = "blackwhite"
+	//GRPCName         = "chain33.blackwhite"
+	JRPCName         = "Blackwhite"
 	ExecerBlackwhite = []byte(BlackwhiteX)
 )
 
