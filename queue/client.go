@@ -173,6 +173,9 @@ func (client *client) isEnd(data Message, ok bool) bool {
 }
 
 func (client *client) Sub(topic string) {
+	if atomic.LoadInt32(&client.isClosed) == 1 {
+		return
+	}
 	client.wg.Add(1)
 	client.setTopic(topic)
 	sub := client.q.chanSub(topic)
