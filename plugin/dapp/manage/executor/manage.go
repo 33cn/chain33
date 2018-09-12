@@ -36,7 +36,7 @@ func newManage() drivers.Driver {
 }
 
 func (c *Manage) GetName() string {
-	return types.ExecName("manage")
+	return "manage"
 }
 
 func (c *Manage) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {

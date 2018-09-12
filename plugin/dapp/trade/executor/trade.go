@@ -41,7 +41,7 @@ func newTrade() drivers.Driver {
 }
 
 func (t *trade) GetName() string {
-	return types.ExecName("trade")
+	return "trade"
 }
 
 func (t *trade) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {

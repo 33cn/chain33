@@ -26,7 +26,7 @@ func NewGame() drivers.Driver {
 }
 
 func GetName() string {
-	return types.ExecName(gt.GameX)
+	return gt.GameX
 }
 
 func (g *Game) GetName() string {

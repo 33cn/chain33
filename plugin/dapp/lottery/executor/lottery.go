@@ -30,7 +30,7 @@ func newLottery() drivers.Driver {
 }
 
 func (l *Lottery) GetName() string {
-	return types.ExecName(types.LotteryX)
+	return types.LotteryX
 }
 
 func (lott *Lottery) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
