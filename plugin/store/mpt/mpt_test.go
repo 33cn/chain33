@@ -310,7 +310,8 @@ func BenchmarkCommit(b *testing.B) {
 	}
 	datas := &types.StoreSet{
 		[]byte("1st"),
-		kv}
+		kv,
+		0}
 	hash := store.MemSet(datas, true)
 
 	req := &types.ReqHash{
