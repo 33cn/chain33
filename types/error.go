@@ -61,6 +61,7 @@ var (
 	ErrLogType                 = errors.New("ErrLogType")
 	ErrInvalidParam            = errors.New("ErrInvalidParameters")
 	ErrInvalidAddress          = errors.New("ErrInvalidAddress")
+	ErrStateHashLost           = errors.New("ErrStateHashLost")
 	//err for token
 	ErrTokenNameLen         = errors.New("ErrTokenNameLength")
 	ErrTokenSymbolLen       = errors.New("ErrTokenSymbolLength")
