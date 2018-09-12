@@ -280,4 +280,8 @@ var (
 	ErrNodeNotForTheTitle   = errors.New("ErrNodeNotForTheTitle")
 	ErrParaBlockHashNoMatch = errors.New("ErrParaBlockHashNoMatch")
 	ErrTxGroupParaCount     = errors.New("ErrTxGroupParaCount")
+	ErrParaVoteBaseIndex    = errors.New("ErrParaVoteBaseIndex")
+	ErrParaVoteTxType       = errors.New("ErrParaVoteTxType")
+	ErrParaEmptyVoteTx      = errors.New("ErrParaEmptyVoteTx")
+	ErrParaVoteExecErr      = errors.New("ErrParaVoteExecErr")
 )
