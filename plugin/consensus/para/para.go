@@ -15,7 +15,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/queue"
 	drivers "gitlab.33.cn/chain33/chain33/system/consensus"
 	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/util"
 	"google.golang.org/grpc"
 )
 
@@ -114,21 +113,6 @@ func calcSearchseq(height int64) (seq int64) {
 //para 不检查任何的交易
 func (client *ParaClient) CheckBlock(parent *types.Block, current *types.BlockDetail) error {
 	return nil
-}
-
-func (client *ParaClient) ExecBlock(prevHash []byte, block *types.Block) (*types.BlockDetail, []*types.Transaction, error) {
-	//exec block
-	if block.Height == 0 {
-		block.Difficulty = types.GetP(0).PowLimitBits
-	}
-	blockdetail, deltx, err := util.ExecBlock(client.GetQueueClient(), prevHash, block, false, true)
-	if err != nil { //never happen
-		return nil, deltx, err
-	}
-	//if len(blockdetail.Block.Txs) == 0 {
-	//	return nil, deltx, types.ErrNoTx
-	//}
-	return blockdetail, deltx, nil
 }
 
 func (client *ParaClient) Close() {
@@ -490,13 +474,9 @@ func (client *ParaClient) WriteBlock(prev []byte, paraBlock *types.Block, mainBl
 		}
 	}
 
-	blockDetail, deltx, err := client.ExecBlock(prev, paraBlock)
-	if len(deltx) > 0 {
-		plog.Warn("parachain receive invalid txs")
-	}
-	if err != nil {
-		return err
-	}
+	//共识模块不执行block，统一由blockchain模块执行block并做去重的处理，返回执行后的blockdetail
+	blockDetail := &types.BlockDetail{Block: paraBlock}
+
 	parablockDetail := &types.ParaChainBlockDetail{blockDetail, seq}
 	msg := client.GetQueueClient().NewMessage("blockchain", types.EventAddParaChainBlockDetail, parablockDetail)
 	client.GetQueueClient().Send(msg, true)
@@ -504,17 +484,15 @@ func (client *ParaClient) WriteBlock(prev []byte, paraBlock *types.Block, mainBl
 	if err != nil {
 		return err
 	}
-
-	if resp.GetData().(*types.Reply).IsOk {
-		client.SetCurrentBlock(paraBlock)
+	blkdetail := resp.GetData().(*types.BlockDetail)
+	if blkdetail != nil {
+		client.SetCurrentBlock(blkdetail.Block)
 
 		if client.authAccount != "" {
-			client.commitMsgClient.onBlockAdded(mainBlock, blockDetail, oriTxHashs)
+			client.commitMsgClient.onBlockAdded(mainBlock, blkdetail, oriTxHashs)
 		}
-
 	} else {
-		reply := resp.GetData().(*types.Reply)
-		return errors.New(string(reply.GetMsg()))
+		return errors.New("block detail is nil")
 	}
 	return nil
 }
