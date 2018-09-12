@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"encoding/hex"
+
 	"github.com/stretchr/testify/assert"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/blockchain"
@@ -24,7 +26,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/store"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/util"
-	"encoding/hex"
 )
 
 var random *rand.Rand
@@ -586,7 +587,7 @@ func TestKeyAllow(t *testing.T) {
 	tx11, _ := hex.DecodeString(tx1)
 	var tx12 types.Transaction
 	types.Decode(tx11, &tx12)
-	if !isAllowExec(key, exec,&tx12, int64(1)) {
+	if !isAllowExec(key, exec, &tx12, int64(1)) {
 		t.Error("retrieve can modify exec")
 	}
 }
