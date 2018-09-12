@@ -190,13 +190,11 @@ func (chain *BlockChain) SetQueueClient(client queue.Client) {
 	//recv 消息的处理，共识模块需要获取lastblock从数据库中
 	chain.recvwg.Add(1)
 	//初始化blockchian模块
-	go chain.InitBlockChain()
+	chain.InitBlockChain()
 	go chain.ProcRecvMsg()
 }
 
 func (chain *BlockChain) InitBlockChain() {
-	chain.chainLock.Lock()
-	defer chain.chainLock.Unlock()
 	//先缓存最新的128个block信息到cache中
 	curheight := chain.GetBlockHeight()
 	if types.EnableTxHeight {
@@ -383,9 +381,6 @@ func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, blockdetail *types.Bloc
 		return nil, types.ErrInputPara
 	}
 	b, ismain, isorphan, err := chain.ProcessBlock(broadcast, blockdetail, pid, true, -1)
-	if b == nil && pid == "self" {
-		return nil, types.ErrExecBlockNil
-	}
 	if b != nil {
 		blockdetail = b
 	}
@@ -399,14 +394,19 @@ func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, blockdetail *types.Bloc
 	if chain.forktask.InProgress() {
 		chain.forktask.Done(blockdetail.Block.GetHeight())
 	}
-
 	//此处只更新广播block的高度
 	if broadcast {
 		chain.UpdateRcvCastBlkHeight(blockdetail.Block.Height)
 	}
-
+	if pid == "self" {
+		if err != nil {
+			return nil, err
+		}
+		if b == nil {
+			return nil, types.ErrExecBlockNil
+		}
+	}
 	chainlog.Debug("ProcAddBlockMsg result:", "height", blockdetail.Block.Height, "ismain", ismain, "isorphan", isorphan, "hash", common.ToHex(blockdetail.Block.Hash()), "err", err)
-
 	return blockdetail, err
 }
 
