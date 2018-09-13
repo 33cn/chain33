@@ -1,21 +1,22 @@
 package rpc
 
 import (
-	"bytes"
 	"encoding/hex"
 	"fmt"
+	"strings"
 	"time"
 
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/version"
 	"gitlab.33.cn/chain33/chain33/types"
-	bw "gitlab.33.cn/chain33/chain33/types/executor/blackwhite"
 	evmtype "gitlab.33.cn/chain33/chain33/types/executor/evm"
 	hashlocktype "gitlab.33.cn/chain33/chain33/types/executor/hashlock"
+	lotterytype "gitlab.33.cn/chain33/chain33/types/executor/lottery"
 	retrievetype "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
 	tokentype "gitlab.33.cn/chain33/chain33/types/executor/token"
 	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
+	// TODO: 需要将插件管理器移动到封闭统一的地方进行管理
 )
 
 func (c *Chain33) CreateRawTransaction(in *types.CreateTx, result *interface{}) error {
@@ -863,7 +864,7 @@ func (c *Chain33) Query(in Query4Jrpc, result *interface{}) error {
 		log.Error("Query", "funcname", in.FuncName, "err", types.ErrNotSupport)
 		return types.ErrNotSupport
 	}
-	decodePayload, err := trans.Input(in.Payload)
+	decodePayload, err := trans.JsonToProto(in.Payload)
 	if err != nil {
 		log.Error("EventQuery", "err", err.Error())
 		return err
@@ -875,7 +876,7 @@ func (c *Chain33) Query(in Query4Jrpc, result *interface{}) error {
 		return err
 	}
 
-	*result, err = trans.(types.RpcQueryType).Output(resp)
+	*result, err = trans.(types.RPCQueryTypeConvert).ProtoToJson(resp)
 	if err != nil {
 		log.Error("EventQuery", "err", err.Error())
 		return err
@@ -958,86 +959,24 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 	if tx == nil {
 		return nil, types.ErrEmpty
 	}
+	execStr := string(tx.Execer)
+	if !types.IsPara() {
+		execStr = realExec(string(tx.Execer))
+	}
 	var pl interface{}
-	unkownPl := make(map[string]interface{})
-	if types.ExecName(types.CoinsX) == string(tx.Execer) {
-		var action types.CoinsAction
-		err := types.Decode(tx.GetPayload(), &action)
+	plType := types.LoadExecutor(execStr)
+	if plType != nil {
+		var err error
+		pl, err = plType.DecodePayload(tx)
 		if err != nil {
-			unkownPl["unkownpayload"] = string(tx.GetPayload())
-			pl = unkownPl
-		} else {
-			pl = &action
+			log.Info("decode payload err", err)
+			pl = map[string]interface{}{"unkownpayload": string(tx.Payload)}
 		}
-	} else if types.ExecName(types.TicketX) == string(tx.Execer) {
-		var action types.TicketAction
-		err := types.Decode(tx.GetPayload(), &action)
-		if err != nil {
-			unkownPl["unkownpayload"] = string(tx.GetPayload())
-			pl = unkownPl
-		} else {
-			pl = &action
-		}
-	} else if types.ExecName(types.HashlockX) == string(tx.Execer) {
-		var action types.HashlockAction
-		err := types.Decode(tx.GetPayload(), &action)
-		if err != nil {
-			unkownPl["unkownpayload"] = string(tx.GetPayload())
-			pl = unkownPl
-		} else {
-			pl = &action
-		}
-	} else if types.ExecName(types.TokenX) == string(tx.Execer) {
-		var action types.TokenAction
-		err := types.Decode(tx.GetPayload(), &action)
-		if err != nil {
-			unkownPl["unkownpayload"] = string(tx.GetPayload())
-			pl = unkownPl
-		} else {
-			pl = &action
-		}
-	} else if types.ExecName(types.TradeX) == string(tx.Execer) {
-		var action types.Trade
-		err := types.Decode(tx.GetPayload(), &action)
-		if err != nil {
-			unkownPl["unkownpayload"] = string(tx.GetPayload())
-			pl = unkownPl
-		} else {
-			pl = &action
-		}
-		pl = &action
-	} else if types.ExecName(types.PrivacyX) == string(tx.Execer) {
-		pl = decodePrivacyAction(tx.GetPayload())
-	} else if types.ExecName(types.EvmX) == string(tx.Execer) {
-		var action types.EVMContractAction
-		err := types.Decode(tx.GetPayload(), &action)
-		if err != nil {
-			unkownPl["unkownpayload"] = string(tx.GetPayload())
-			pl = unkownPl
-		} else {
-			pl = &action
-		}
-	} else if types.ExecName(types.RetrieveX) == string(tx.Execer) {
-		var action types.RetrieveAction
-		err := types.Decode(tx.GetPayload(), &action)
-		if err != nil {
-			unkownPl["unkownpayload"] = string(tx.GetPayload())
-			pl = unkownPl
-		} else {
-			pl = &action
-		}
-	} else if types.ExecName(types.GameX) == string(tx.Execer) {
-		var action types.GameAction
-		err := types.Decode(tx.GetPayload(), &action)
-		if err != nil {
-			unkownPl["unkownpayload"] = string(tx.GetPayload())
-			pl = unkownPl
-		} else {
-			pl = &action
-		}
-	} else if "user.write" == string(tx.Execer) {
+	}
+	if string(tx.Execer) == "user.write" {
 		pl = decodeUserWrite(tx.GetPayload())
-	} else {
+	}
+	if pl == nil {
 		pl = map[string]interface{}{"rawlog": common.ToHex(tx.GetPayload())}
 	}
 	result := &Transaction{
@@ -1061,101 +1000,12 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 	return result, nil
 }
 
-func convertToPrivacyInput4Print(privacyInput *types.PrivacyInput) *types.PrivacyInput4Print {
-	input4print := &types.PrivacyInput4Print{}
-	for _, fromKeyInput := range privacyInput.Keyinput {
-		keyinput := &types.KeyInput4Print{
-			Amount:   fromKeyInput.Amount,
-			KeyImage: common.Bytes2Hex(fromKeyInput.KeyImage),
-		}
-		for _, fromUTXOGl := range fromKeyInput.UtxoGlobalIndex {
-			utxogl := &types.UTXOGlobalIndex4Print{
-				Txhash:   common.Bytes2Hex(fromUTXOGl.Txhash),
-				Outindex: fromUTXOGl.Outindex,
-			}
-			keyinput.UtxoGlobalIndex = append(keyinput.UtxoGlobalIndex, utxogl)
-		}
-
-		input4print.Keyinput = append(input4print.Keyinput, keyinput)
+func realExec(txExec string) string {
+	if strings.HasPrefix(txExec, "user.p.") {
+		execSplit := strings.Split(txExec, ".")
+		return execSplit[len(execSplit)-1]
 	}
-	return input4print
-}
-
-func convertToPrivacyOutput4Print(privacyOutput *types.PrivacyOutput) *types.PrivacyOutput4Print {
-	output4print := &types.PrivacyOutput4Print{
-		RpubKeytx: common.Bytes2Hex(privacyOutput.RpubKeytx),
-	}
-	for _, fromoutput := range privacyOutput.Keyoutput {
-		output := &types.KeyOutput4Print{
-			Amount:        fromoutput.Amount,
-			Onetimepubkey: common.Bytes2Hex(fromoutput.Onetimepubkey),
-		}
-		output4print.Keyoutput = append(output4print.Keyoutput, output)
-	}
-	return output4print
-}
-
-func decodePrivacyAction(payload []byte) interface{} {
-	fromAction := &types.PrivacyAction{}
-	err := types.Decode(payload, fromAction)
-	if err != nil {
-		return nil
-	}
-	retAction := &types.PrivacyAction4Print{}
-	retAction.Ty = fromAction.Ty
-	if fromAction.GetPublic2Privacy() != nil {
-		fromValue := fromAction.GetPublic2Privacy()
-		value := &types.Public2Privacy4Print{}
-
-		value.Tokenname = fromValue.Tokenname
-		value.Amount = fromValue.Amount
-		value.Note = fromValue.Note
-		value.Output = convertToPrivacyOutput4Print(fromValue.Output)
-
-		retAction.Value = &types.PrivacyAction4Print_Public2Privacy{Public2Privacy: value}
-	} else if fromAction.GetPrivacy2Privacy() != nil {
-		fromValue := fromAction.GetPrivacy2Privacy()
-		value := &types.Privacy2Privacy4Print{}
-
-		value.Tokenname = fromValue.Tokenname
-		value.Amount = fromValue.Amount
-		value.Note = fromValue.Note
-
-		value.Input = convertToPrivacyInput4Print(fromValue.Input)
-		value.Output = convertToPrivacyOutput4Print(fromValue.Output)
-
-		retAction.Value = &types.PrivacyAction4Print_Privacy2Privacy{Privacy2Privacy: value}
-	} else if fromAction.GetPrivacy2Public() != nil {
-		fromValue := fromAction.GetPrivacy2Public()
-		value := &types.Privacy2Public4Print{}
-
-		value.Tokenname = fromValue.Tokenname
-		value.Amount = fromValue.Amount
-		value.Note = fromValue.Note
-
-		value.Input = convertToPrivacyInput4Print(fromValue.Input)
-		value.Output = convertToPrivacyOutput4Print(fromValue.Output)
-
-		retAction.Value = &types.PrivacyAction4Print_Privacy2Public{Privacy2Public: value}
-	}
-	return retAction
-}
-
-func decodeUserWrite(payload []byte) *userWrite {
-	var article userWrite
-	if len(payload) != 0 {
-		if payload[0] == '#' {
-			data := bytes.SplitN(payload[1:], []byte("#"), 2)
-			if len(data) == 2 {
-				article.Topic = string(data[0])
-				article.Content = string(data[1])
-				return &article
-			}
-		}
-	}
-	article.Topic = ""
-	article.Content = string(payload)
-	return &article
+	return txExec
 }
 
 func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
@@ -1382,6 +1232,46 @@ func (c *Chain33) CreateRawHashlockSendTx(in *hashlocktype.HashlockSendTx, resul
 
 func (c *Chain33) CreateRawEvmCreateCallTx(in *evmtype.CreateCallTx, result *interface{}) error {
 	reply, err := c.cli.CreateRawEvmCreateCallTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Chain33) CreateRawLotteryCreateTx(in *lotterytype.LotteryCreateTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawLotteryCreateTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Chain33) CreateRawLotteryBuyTx(in *lotterytype.LotteryBuyTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawLotteryBuyTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Chain33) CreateRawLotteryDrawTx(in *lotterytype.LotteryDrawTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawLotteryDrawTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Chain33) CreateRawLotteryCloseTx(in *lotterytype.LotteryCloseTx, result *interface{}) error {
+	reply, err := c.cli.CreateRawLotteryCloseTx(in)
 	if err != nil {
 		return err
 	}
@@ -1745,46 +1635,6 @@ func (c *Chain33) CreateRawRelaySaveBTCHeadTx(in *RelaySaveBTCHeadTx, result *in
 
 	*result = hex.EncodeToString(reply)
 
-	return nil
-}
-
-func (c *Chain33) BlackwhiteCreateTx(in *bw.BlackwhiteCreateTx, result *interface{}) error {
-	reply, err := c.cli.BlackwhiteCreateTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
-	return nil
-}
-
-func (c *Chain33) BlackwhiteShowTx(in *bw.BlackwhiteShowTx, result *interface{}) error {
-	reply, err := c.cli.BlackwhiteShowTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
-	return nil
-}
-
-func (c *Chain33) BlackwhitePlayTx(in *bw.BlackwhitePlayTx, result *interface{}) error {
-	reply, err := c.cli.BlackwhitePlayTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
-	return nil
-}
-
-func (c *Chain33) BlackwhiteTimeoutDoneTx(in *bw.BlackwhiteTimeoutDoneTx, result *interface{}) error {
-	reply, err := c.cli.BlackwhiteTimeoutDoneTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
 	return nil
 }
 

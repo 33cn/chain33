@@ -288,7 +288,9 @@ func decodeLog(rlog jsonrpc.ReceiptDataResult) *ReceiptData {
 			types.TyLogRelayCreate, types.TyLogRelayRevokeCreate, types.TyLogRelayAccept, types.TyLogRelayRevokeAccept,
 			types.TyLogRelayRcvBTCHead, types.TyLogRelayConfirmTx, types.TyLogRelayFinishTx,
 			types.TyLogBlackwhiteCreate, types.TyLogBlackwhiteShow, types.TyLogBlackwhitePlay,
-			types.TyLogBlackwhiteTimeout, types.TyLogBlackwhiteDone, types.TyLogBlackwhiteLoopInfo:
+			types.TyLogBlackwhiteTimeout, types.TyLogBlackwhiteDone, types.TyLogBlackwhiteLoopInfo,
+			types.TyLogLotteryCreate, types.TyLogLotteryBuy, types.TyLogLotteryDraw, types.TyLogLotteryClose:
+
 			rl.Log = l.Log
 		//case 2, 3, 5, 11:
 		case types.TyLogFee, types.TyLogTransfer, types.TyLogDeposit, types.TyLogGenesisTransfer,
@@ -453,7 +455,7 @@ func CreateRawTx(cmd *cobra.Command, to string, amount float64, note string, isW
 	amountInt64 := int64(math.Trunc((amount+0.0000001)*1e4)) * 1e4
 	initExecName := execName
 	execName = getRealExecName(paraName, execName)
-	if execName != "" && !types.IsAllowExecName(execName) {
+	if execName != "" && !types.IsAllowExecName([]byte(execName), []byte(execName)) {
 		return "", types.ErrExecNameNotMatch
 	}
 	var tx *types.Transaction
@@ -511,7 +513,7 @@ func CreateRawTx(cmd *cobra.Command, to string, amount float64, note string, isW
 }
 
 func GetExecAddr(exec string) (string, error) {
-	if ok := types.IsAllowExecName(exec); !ok {
+	if ok := types.IsAllowExecName([]byte(exec), []byte(exec)); !ok {
 		return "", types.ErrExecNameNotAllow
 	}
 

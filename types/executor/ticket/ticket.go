@@ -7,14 +7,14 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var name string
+var nameX string
 
 //var tlog = log.New("module", name)
 
 func Init() {
-	name = types.ExecName("ticket")
+	nameX = types.ExecName("ticket")
 	// init executor type
-	types.RegistorExecutor(name, &TicketType{})
+	types.RegistorExecutor("ticket", &TicketType{})
 
 	// init log
 	types.RegistorLog(types.TyLogNewTicket, &TicketNewLog{})
@@ -23,10 +23,10 @@ func Init() {
 	types.RegistorLog(types.TyLogTicketBind, &TicketBindLog{})
 
 	// init query rpc
-	types.RegistorRpcType("TicketInfos", &TicketInfos{})
-	types.RegistorRpcType("TicketList", &TicketList{})
-	types.RegistorRpcType("MinerAddress", &TicketMinerAddress{})
-	types.RegistorRpcType("MinerSourceList", &TicketMinerSourceList{})
+	types.RegisterRPCQueryHandle("TicketInfos", &TicketInfos{})
+	types.RegisterRPCQueryHandle("TicketList", &TicketList{})
+	types.RegisterRPCQueryHandle("MinerAddress", &TicketMinerAddress{})
+	types.RegisterRPCQueryHandle("MinerSourceList", &TicketMinerSourceList{})
 }
 
 type TicketType struct {
@@ -37,7 +37,7 @@ func (ticket TicketType) ActionName(tx *types.Transaction) string {
 	var action types.TicketAction
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
-		return "unknow-err"
+		return "unknown-err"
 	}
 	if action.Ty == types.TicketActionGenesis && action.GetGenesis() != nil {
 		return "genesis"
@@ -50,7 +50,16 @@ func (ticket TicketType) ActionName(tx *types.Transaction) string {
 	} else if action.Ty == types.TicketActionBind && action.GetTbind() != nil {
 		return "bindminer"
 	}
-	return "unknow"
+	return "unknown"
+}
+
+func (ticket TicketType) DecodePayload(tx *types.Transaction) (interface{}, error) {
+	var action types.TicketAction
+	err := types.Decode(tx.Payload, &action)
+	if err != nil {
+		return nil, err
+	}
+	return &action, nil
 }
 
 func (ticket TicketType) Amount(tx *types.Transaction) (int64, error) {
@@ -140,7 +149,7 @@ func (l TicketBindLog) Decode(msg []byte) (interface{}, error) {
 type TicketInfos struct {
 }
 
-func (t *TicketInfos) Input(message json.RawMessage) ([]byte, error) {
+func (t *TicketInfos) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.TicketInfos
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -149,14 +158,14 @@ func (t *TicketInfos) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *TicketInfos) Output(reply interface{}) (interface{}, error) {
+func (t *TicketInfos) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
 
 type TicketList struct {
 }
 
-func (t *TicketList) Input(message json.RawMessage) ([]byte, error) {
+func (t *TicketList) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.TicketList
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -165,14 +174,14 @@ func (t *TicketList) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *TicketList) Output(reply interface{}) (interface{}, error) {
+func (t *TicketList) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
 
 type TicketMinerAddress struct {
 }
 
-func (t *TicketMinerAddress) Input(message json.RawMessage) ([]byte, error) {
+func (t *TicketMinerAddress) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.ReqString
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -181,14 +190,14 @@ func (t *TicketMinerAddress) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *TicketMinerAddress) Output(reply interface{}) (interface{}, error) {
+func (t *TicketMinerAddress) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
 
 type TicketMinerSourceList struct {
 }
 
-func (t *TicketMinerSourceList) Input(message json.RawMessage) ([]byte, error) {
+func (t *TicketMinerSourceList) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.ReqString
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -197,6 +206,6 @@ func (t *TicketMinerSourceList) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *TicketMinerSourceList) Output(reply interface{}) (interface{}, error) {
+func (t *TicketMinerSourceList) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }

@@ -20,12 +20,15 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/limits"
 	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
-	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/p2p"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/store"
+	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/util"
+
+	_ "gitlab.33.cn/chain33/chain33/plugin"
+	_ "gitlab.33.cn/chain33/chain33/system"
 )
 
 var random *rand.Rand
@@ -207,7 +210,7 @@ func TestExecutorGetTxGroup(t *testing.T) {
 	txgroup.SignN(2, types.SECP256K1, priv3)
 	txs = txgroup.GetTxs()
 	execute := newExecutor(nil, exec, 1, time.Now().Unix(), 1, txs, nil)
-	e := execute.loadDriverForExec(types.ExecName("coins"), execute.height)
+	e := execute.loadDriver(txs[0], 0)
 	execute.setEnv(e)
 	txs2 := e.GetTxs()
 	assert.Equal(t, txs2, txgroup.GetTxs())
@@ -222,7 +225,7 @@ func TestExecutorGetTxGroup(t *testing.T) {
 	//err tx group list
 	txs[0].Header = nil
 	execute = newExecutor(nil, exec, 1, time.Now().Unix(), 1, txs, nil)
-	e = execute.loadDriverForExec(types.ExecName("coins"), execute.height)
+	e = execute.loadDriver(txs[0], 0)
 	execute.setEnv(e)
 	_, err = e.GetTxGroup(len(txs) - 1)
 	assert.Equal(t, err, types.ErrTxGroupFormat)
@@ -428,7 +431,6 @@ func execAndCheckBlockCB(t *testing.T, qclient queue.Client,
 		t.Error(err)
 		return nil
 	}
-
 	var getIndex = func(hash []byte, txlist []*types.Transaction) int {
 		for i := 0; i < len(txlist); i++ {
 			if bytes.Equal(hash, txlist[i].Hash()) {

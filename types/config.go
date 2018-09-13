@@ -102,7 +102,7 @@ var (
 	AllowDepositExec = [][]byte{ExecerTicket}
 	AllowUserExec    = [][]byte{ExecerCoins, ExecerTicket, ExecerNorm, ExecerHashlock,
 		ExecerRetrieve, ExecerNone, ExecerToken, ExecerTrade, ExecerManage,
-		ExecerEvm, ExecerRelay, ExecerPrivacy, ExecerCert, ExecerBlackwhite, ExecerPara}
+		ExecerEvm, ExecerRelay, ExecerPrivacy, ExecerCert /*ExecerBlackwhite,*/, ExecerPara, ExecerLottery, ExecerValNode}
 
 	GenesisAddr              = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 	GenesisBlockTime   int64 = 1526486816
@@ -135,7 +135,8 @@ var (
 	FeePerKB     = MinFee
 	PrivacyTxFee = Coin
 	//used in Getname for exec driver
-	ExecNamePrefix string
+	ExecNamePrefix       string
+	ParaRemoteGrpcClient string
 )
 
 func SetTitle(t string) {
@@ -176,11 +177,11 @@ func IsYcc() bool {
 }
 
 func IsPara() bool {
-	return strings.HasPrefix(title, "user.p.")
+	return strings.HasPrefix(title, ParaKeyX)
 }
 
 func IsParaExecName(name string) bool {
-	return strings.HasPrefix(name, "user.p.")
+	return strings.HasPrefix(name, ParaKeyX)
 }
 
 func IsPublicChain() bool {
@@ -232,4 +233,17 @@ func GetParaName() string {
 
 func FlagKV(key []byte, value int64) *KeyValue {
 	return &KeyValue{Key: key, Value: Encode(&Int64{Data: value})}
+}
+
+func SetParaRemoteGrpcClient(grpc string) {
+	if IsPara() {
+		ParaRemoteGrpcClient = grpc
+	}
+}
+
+func GetParaRemoteGrpcClient() string {
+	if IsPara() {
+		return ParaRemoteGrpcClient
+	}
+	return ""
 }

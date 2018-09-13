@@ -16,12 +16,14 @@ SIGNATORY := build/signatory-server
 MINER := build/miner_accounts
 RELAYD := build/relayd
 SRC_RELAYD := gitlab.33.cn/chain33/chain33/cmd/relayd
+AUTO_TEST := build/tools/autotest/autotest
+SRC_AUTO_TEST := gitlab.33.cn/chain33/chain33/cmd/autotest
 LDFLAGS := -ldflags "-w -s"
 PKG_LIST := `go list ./... | grep -v "vendor" | grep -v "chain33/test" | grep -v "mocks" | grep -v "pbft"`
 BUILD_FLAGS = -ldflags "-X gitlab.33.cn/chain33/chain33/common/version.GitCommit=`git rev-parse --short=8 HEAD`"
-.PHONY: default dep all build release cli para-cli linter race test fmt vet bench msan coverage coverhtml docker docker-compose protobuf clean help
+.PHONY: default dep all build release cli para-cli linter race test fmt vet bench msan coverage coverhtml docker docker-compose protobuf clean help autotest
 
-default: build cli relayd para-cli
+default: build cli relayd para-cli autotest
 
 dep: ## Get the dependencies
 	@go get -u gopkg.in/alecthomas/gometalinter.v2
@@ -62,6 +64,9 @@ para-cli:
 	@go build -v -o $(PARACLI) -ldflags "-X gitlab.33.cn/chain33/chain33/common/config.ParaName=user.p.$(PARANAME). -X gitlab.33.cn/chain33/chain33/common/config.RPCAddr=http://localhost:8901" $(SRC_CLI)
 
 
+autotest:## build autotest binary
+	@go build -v -i -o $(AUTO_TEST) $(SRC_AUTO_TEST)
+	@cp cmd/autotest/*.toml build/tools/autotest/
 
 signatory:
 	@cd cmd/signatory-server/signatory && bash ./create_protobuf.sh && cd ../.../..
@@ -159,6 +164,7 @@ clean: ## Remove previous build
 	@rm -rf build/relayd*
 	@rm -rf build/*.log
 	@rm -rf build/logs
+	@rm -rf build/tools/autotest/autotest
 	@go clean
 
 protobuf: ## Generate protbuf file of types package
@@ -194,7 +200,7 @@ mock:
 	@cd queue && mockery -name=Client && mv mocks/Client.go mocks/client.go && cd -
 	@cd common/db && mockery -name=KV && mv mocks/KV.go mocks/kv.go && cd -
 	@cd common/db && mockery -name=KVDB && mv mocks/KVDB.go mocks/kvdb.go && cd -
-	@cd types/ && mockery -name=GrpcserviceClient && mv mocks/GrpcserviceClient.go mocks/grpcserviceclient.go && cd -
+	@cd types/ && mockery -name=Chain33Client && mv mocks/Chain33Client.go mocks/chain33client.go && cd -
 
 
 .PHONY: auto_ci_before auto_ci_after auto_ci
