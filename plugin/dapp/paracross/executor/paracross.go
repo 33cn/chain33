@@ -506,7 +506,6 @@ func (c *Paracross) Query(funcName string, params []byte) (types.Message, error)
 	return nil, types.ErrActionNotSupport
 }
 
-
 func (c *Paracross) Allow(tx *types.Transaction, index int) error {
 	err := c.DriverBase.Allow(tx, index)
 	if err == nil {
@@ -546,4 +545,3 @@ func (c *Paracross) allowIsParaAssetTx(execer []byte) bool {
 	}
 	return false
 }
-
