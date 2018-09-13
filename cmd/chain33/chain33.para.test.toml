@@ -1,5 +1,4 @@
 Title="user.p.para."
-TestNet=true
 
 [log]
 # 日志级别，支持debug(dbug)/info/warn/error(eror)/crit
@@ -93,15 +92,13 @@ driver="memdb"
 dbPath="paradatadir/parawallet"
 dbCache=16
 signType="secp256k1"
-minerdisable=true
+minerwhitelist=["*"]
 
 [exec]
 isFree=true
 minExecFee=100000
 enableStat=false
-
-[pprof]
-listenAddr = "localhost:6061"
+enableMVCC=false
 
 [auth]
 # 是否启用证书验证和签名
