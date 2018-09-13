@@ -10,12 +10,16 @@ import (
 	"github.com/stretchr/testify/suite"
 	"gitlab.33.cn/chain33/chain33/blockchain"
 	"gitlab.33.cn/chain33/chain33/common/config"
+	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/executor"
 	"gitlab.33.cn/chain33/chain33/mempool"
 	"gitlab.33.cn/chain33/chain33/p2p"
+	_ "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/store"
+	_ "gitlab.33.cn/chain33/chain33/system"
 	"gitlab.33.cn/chain33/chain33/types"
+	pt "gitlab.33.cn/chain33/chain33/types/executor/paracross"
 	typesmocks "gitlab.33.cn/chain33/chain33/types/mocks"
 )
 
@@ -23,8 +27,10 @@ var random *rand.Rand
 
 func init() {
 	types.SetTitle("user.p.para.")
+	pt.Init()
 	random = rand.New(rand.NewSource(types.Now().UnixNano()))
 	consensusInterval = 2
+	log.SetLogLevel("debug")
 
 }
 
@@ -32,7 +38,7 @@ type suiteParaCommitMsg struct {
 	// Include our basic suite logic.
 	suite.Suite
 	para    *ParaClient
-	grpcCli *typesmocks.GrpcserviceClient
+	grpcCli *typesmocks.Chain33Client
 	q       queue.Queue
 	block   *blockchain.BlockChain
 	exec    *executor.Executor
@@ -61,7 +67,7 @@ func (s *suiteParaCommitMsg) initEnv(cfg *types.Config) {
 	s.store.SetQueueClient(q.Client())
 
 	s.para = New(cfg.Consensus).(*ParaClient)
-	s.grpcCli = &typesmocks.GrpcserviceClient{}
+	s.grpcCli = &typesmocks.Chain33Client{}
 	//data := &types.Int64{1}
 	s.grpcCli.On("GetLastBlockSequence", mock.Anything, mock.Anything).Return(nil, errors.New("nil"))
 	reply := &types.Reply{IsOk: true}
