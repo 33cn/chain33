@@ -356,9 +356,6 @@ func (tx *Transaction) Check(height, minfee int64) error {
 }
 
 func (tx *Transaction) check(minfee int64) error {
-	if !isAllowExecName(tx.Execer) {
-		return ErrExecNameNotAllow
-	}
 	txSize := Size(tx)
 	if txSize > int(MaxTxSize) {
 		return ErrTxMsgSizeTooBig
@@ -552,15 +549,14 @@ func IsParaCrossTransferTx(tx *Transaction) bool {
 //获取tx交易的Actionname
 func (tx *Transaction) ActionName() string {
 	execName := string(tx.Execer)
-	if bytes.HasPrefix(tx.Execer, []byte("user.evm.")) {
-		execName = "evm"
-	} else if !IsPara() && IsParaCrossTransferTx(tx) {
-		// 跨链交易需要在主链和平行链都执行， 现在 txexecer 设置为 $(title) + types.ParaX
-		execName = ParaX
-	}
 	exec := LoadExecutor(execName)
 	if exec == nil {
-		return "unknow"
+		//action name 不会影响系统状态，主要是做显示使用
+		realname := GetRealExecName(tx.Execer)
+		exec = LoadExecutor(string(realname))
+		if exec == nil {
+			return "unknown"
+		}
 	}
 	return exec.ActionName(tx)
 }

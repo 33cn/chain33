@@ -21,6 +21,9 @@ import (
 
 	"time"
 
+	_ "gitlab.33.cn/chain33/chain33/plugin"
+	_ "gitlab.33.cn/chain33/chain33/system"
+
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/authority"
 	"gitlab.33.cn/chain33/chain33/blockchain"
@@ -79,6 +82,7 @@ func main() {
 	types.SetTestNet(cfg.TestNet)
 	types.SetTitle(cfg.Title)
 	types.SetFixTime(cfg.FixTime)
+	types.SetParaRemoteGrpcClient(cfg.GetConsensus().GetParaRemoteGrpcClient())
 	if cfg.FixTime {
 		go fixtimeRoutine()
 	}
@@ -151,11 +155,8 @@ func main() {
 		network.SetQueueClient(q.Client())
 	}
 	//jsonrpc, grpc, channel 三种模式
-	rpc.Init(cfg.Rpc)
-	gapi := rpc.NewGRpcServer(q.Client())
-	go gapi.Listen()
-	japi := rpc.NewJSONRPCServer(q.Client())
-	go japi.Listen()
+	rpcapi := rpc.New(cfg.Rpc)
+	rpcapi.SetQueueClient(q.Client())
 
 	log.Info("loading wallet module")
 	walletm := wallet.New(cfg.Wallet)
@@ -177,10 +178,8 @@ func main() {
 		s.Close()
 		log.Info("begin close consensus module")
 		cs.Close()
-		log.Info("begin close jsonrpc module")
-		japi.Close()
-		log.Info("begin close grpc module")
-		gapi.Close()
+		log.Info("begin close rpc module")
+		rpcapi.Close()
 		log.Info("begin close wallet module")
 		walletm.Close()
 		log.Info("begin close queue module")
@@ -228,6 +227,7 @@ func watching() {
 	runtime.ReadMemStats(&m)
 	log.Info("info:", "NumGoroutine:", runtime.NumGoroutine())
 	log.Info("info:", "Mem:", m.Sys/(1024*1024))
+	log.Info("info:", "HeapAlloc:", m.HeapAlloc/(1024*1024))
 }
 
 func pwd() string {
@@ -254,7 +254,8 @@ func fixtimeRoutine() {
 		types.SetTimeDelta(int64(time.Until(t)))
 		log.Info("change time", "delta", time.Until(t), "real.now", types.Now())
 	}
-	ticket := time.NewTicker(time.Minute * 10)
+	//时间请求频繁一点:
+	ticket := time.NewTicker(time.Minute * 1)
 	for range ticket.C {
 		t = common.GetRealTimeRetry(hosts, 10)
 		if !t.IsZero() {

@@ -14,7 +14,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto/sha3"
-	common2 "gitlab.33.cn/chain33/chain33/executor/drivers/evm/vm/common"
+	common2 "gitlab.33.cn/chain33/chain33/plugin/dapp/evm/executor/vm/common"
 	"gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
 )

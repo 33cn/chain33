@@ -1,12 +1,13 @@
 package executor
 
 import (
+	"sync"
+
 	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/types/executor/blackwhite"
 	"gitlab.33.cn/chain33/chain33/types/executor/coins"
 	"gitlab.33.cn/chain33/chain33/types/executor/evm"
-	"gitlab.33.cn/chain33/chain33/types/executor/game"
 	"gitlab.33.cn/chain33/chain33/types/executor/hashlock"
+	"gitlab.33.cn/chain33/chain33/types/executor/lottery"
 	"gitlab.33.cn/chain33/chain33/types/executor/manage"
 	"gitlab.33.cn/chain33/chain33/types/executor/none"
 	"gitlab.33.cn/chain33/chain33/types/executor/paracross"
@@ -33,7 +34,13 @@ import (
 // token:		actionName	CreateTx	log		query	Amount
 // trade:		actionName	CreateTx	log		query	Amount
 
+var once sync.Once
+
 func Init() {
+	once.Do(initExec)
+}
+
+func initExec() {
 
 	// init common log
 	types.RegistorLog(types.TyLogErr, &ErrLog{})
@@ -54,10 +61,7 @@ func Init() {
 	ticket.Init()
 	token.Init()
 	trade.Init()
-	game.Init()
-
-	blackwhite.Init()
-
+	lottery.Init()
 }
 
 type ErrLog struct {

@@ -1,0 +1,200 @@
+syntax = "proto3";
+
+import "transaction.proto";
+
+package types;
+
+message AddressResult {
+    string   addr             = 1;
+    int64    amount           = 2;
+    repeated bytes hashValues = 3;
+    string         showSecret = 4;
+}
+
+// order
+message BlackwhiteRound {
+    // txhash
+    string gameID = 1;
+    // create -> play(timeout) -> show -> done
+    int32 status = 2;
+    // 游戏押金可大于
+    int64 playAmount = 3;
+    // 游戏人数
+    int32 playerCount = 4;
+    // 当前游戏人数
+    int32 curPlayerCount = 5;
+    // 游戏需要比对次数
+    int32 loop = 6;
+    // 当前出示密钥人数
+    int32 curShowCount = 7;
+    // 创建游戏时间
+    int64 createTime = 8;
+    // 出示密钥开始时间
+    int64 showTime = 9;
+    // 超时时间
+    int64 timeout = 10;
+    // 创建游戏地址
+    string createAddr = 11;
+    // 游戏名称
+    string gameName = 12;
+    // 游戏加密结果
+    repeated AddressResult addrResult = 13;
+    // 游戏赢家
+    repeated string winner = 14;
+    // block高度以及索引值
+    int64 index = 15;
+}
+
+// actions
+message BlackwhiteAction {
+    oneof value {
+        BlackwhiteCreate      create      = 1;
+        BlackwhitePlay        play        = 2;
+        BlackwhiteShow        show        = 3;
+        BlackwhiteTimeoutDone timeoutDone = 4;
+    }
+    int32 ty = 6;
+}
+
+message BlackwhiteCreate {
+    int64  playAmount  = 1;
+    int32  playerCount = 2;
+    int64  timeout     = 3;
+    string gameName    = 4;
+}
+
+message BlackwhitePlay {
+    string   gameID           = 1;
+    int64    amount           = 2;
+    repeated bytes hashValues = 3;
+}
+
+message BlackwhiteShow {
+    string gameID = 1;
+    string secret = 2;
+}
+
+message BlackwhiteTimeoutDone {
+    string gameID = 1;
+}
+
+// logs
+message ReceiptBlackwhite {
+    BlackwhiteRound round = 1;
+}
+
+message ReceiptBlackwhiteStatus {
+    string gameID = 1;
+    int32  status = 2;
+    //记录上一次状态
+    int32  prevStatus = 3;
+    string addr       = 4;
+    int64  index      = 5;
+}
+
+message ReqBlackwhiteRoundInfo {
+    string gameID = 1;
+}
+
+message ReplyBlackwhiteRoundInfo {
+    BlackwhiteRoundResult round = 1;
+}
+
+message ReqBlackwhiteRoundList {
+    //优先根据status查询,status不可为空
+    int32 status = 1;
+    //二级搜索，如果要查询一个地址下的所有game信息，可以根据status，分多次查询，这样规避存储数据时的臃余情况
+    string address   = 2;
+    int32  count     = 3;
+    int32  direction = 4;
+    int64  index     = 5;
+}
+
+message ReplyBlackwhiteRoundList {
+    repeated BlackwhiteRoundResult round = 1;
+}
+
+message ReqLoopResult {
+    string gameID  = 1;
+    int32  loopSeq = 2;
+}
+
+message perLoopResult {
+    repeated string winers = 1;
+    repeated string losers = 2;
+}
+
+message ReplyLoopResults {
+    string   gameID                = 1;
+    repeated perLoopResult results = 2;
+}
+
+message BlackwhiteRoundResult {
+    // txhash
+    string gameID = 1;
+    // create -> play(timeout) -> show -> done
+    int32 status = 2;
+    // 游戏押金可大于
+    int64 playAmount = 3;
+    // 游戏人数
+    int32 playerCount = 4;
+    // 当前游戏人数
+    int32 curPlayerCount = 5;
+    // 游戏需要比对次数
+    int32 loop = 6;
+    // 当前出示密钥人数
+    int32 curShowCount = 7;
+    // 创建游戏时间
+    int64 createTime = 8;
+    // 出示密钥开始时间
+    int64 showTime = 9;
+    // 超时时间
+    int64 timeout = 10;
+    // 创建游戏地址
+    string createAddr = 11;
+    // 游戏名称
+    string gameName = 12;
+    // 游戏加密结果
+    repeated AddressResult addrResult = 13;
+    // 游戏赢家
+    repeated string winner = 14;
+    // block高度以及索引值
+    int64 index = 15;
+}
+
+message BlackwhiteCreateTxReq {
+    int64  PlayAmount  = 1;
+    int32  PlayerCount = 2;
+    int64  Timeout     = 3;
+    string GameName    = 4;
+    int64  Fee         = 5;
+}
+
+message BlackwhitePlayTxReq {
+    string   GameID           = 1;
+    int64    Amount           = 2;
+    repeated bytes HashValues = 3;
+    int64          Fee        = 4;
+}
+
+message BlackwhiteShowTxReq {
+    string GameID = 1;
+    string Secret = 2;
+    int64  Fee    = 3;
+}
+
+message BlackwhiteTimeoutDoneTxReq {
+    string GameID = 1;
+    int64  Fee    = 2;
+}
+
+service blackwhite {
+    // blackwhite 对外提供服务的接口
+    //区块链接口
+    rpc Create(BlackwhiteCreate) returns (UnsignTx) {}
+    //获取最新的区块头
+    rpc Show(BlackwhiteShow) returns (UnsignTx) {}
+    //交易接口
+    rpc Play(BlackwhitePlay) returns (UnsignTx) {}
+    rpc TimeoutDone(BlackwhiteTimeoutDone) returns (UnsignTx) {}
+}

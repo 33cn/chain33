@@ -17,7 +17,7 @@ type Client33 struct {
 	isSyncing  bool
 	isClosed   bool
 	lastHeight int64
-	types.GrpcserviceClient
+	types.Chain33Client
 	closer io.Closer
 }
 
@@ -27,11 +27,11 @@ func NewClient33(cfg *Chain33) *Client33 {
 		panic(err)
 	}
 
-	client := types.NewGrpcserviceClient(conn)
+	client := types.NewChain33Client(conn)
 	c := &Client33{
-		config:            cfg,
-		closer:            conn,
-		GrpcserviceClient: client,
+		config:        cfg,
+		closer:        conn,
+		Chain33Client: client,
 	}
 	return c
 }
@@ -97,9 +97,9 @@ func (c *Client33) AutoReconnect(ctx context.Context) {
 			panic(err)
 		}
 
-		client := types.NewGrpcserviceClient(conn)
+		client := types.NewChain33Client(conn)
 		c.closer = conn
-		c.GrpcserviceClient = client
+		c.Chain33Client = client
 		c.isClosed = true
 		c.Start(ctx)
 	}
@@ -109,7 +109,7 @@ func (c *Client33) SendTransaction(ctx context.Context, in *types.Transaction) (
 	if c.isSyncing {
 		return nil, errors.New("node is syncing")
 	}
-	return c.GrpcserviceClient.SendTransaction(ctx, in)
+	return c.Chain33Client.SendTransaction(ctx, in)
 }
 
 func (c *Client33) Close() error {

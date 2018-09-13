@@ -38,15 +38,15 @@ var (
 
 const orgName = "paracross"
 
-var name string
 var paraVoteHeightKey string
+var nameX string
 
 var glog = log.New("module", orgName)
 
 func Init() {
-	name = types.ExecName(orgName)
+	nameX = types.ExecName(orgName)
 	// init executor type
-	types.RegistorExecutor(name, &ParacrossType{})
+	types.RegistorExecutor(nameX, &ParacrossType{})
 
 	// init log
 	types.RegistorLog(types.TyLogParacrossCommit, &ParacrossCommitLog{})
@@ -56,10 +56,10 @@ func Init() {
 	types.RegistorLog(types.TyLogParaAssetTransfer, &ParacrossAssetTransferLog{})
 
 	// init query rpc
-	types.RegistorRpcType("ParacrossGetTitle", &ParacrossGetTitle{})
-	types.RegistorRpcType("ParacrossListTitles", &ParacrossListTitles{})
-	types.RegistorRpcType("ParacrossGetTitleHeight", &ParacrossGetTitleHeight{})
-	types.RegistorRpcType("ParacrossGetAssetTxResult", &ParacrossGetAssetTxResult{})
+	types.RegisterRPCQueryHandle("ParacrossGetTitle", &ParacrossGetTitle{})
+	types.RegisterRPCQueryHandle("ParacrossListTitles", &ParacrossListTitles{})
+	types.RegisterRPCQueryHandle("ParacrossGetTitleHeight", &ParacrossGetTitleHeight{})
+	types.RegisterRPCQueryHandle("ParacrossGetAssetTxResult", &ParacrossGetAssetTxResult{})
 
 	paraVoteHeightKey = types.ExecName("paracross") + "-titleVoteHeight-"
 }
@@ -69,7 +69,7 @@ func CalcVoteHeightKey(title string, height int64) []byte {
 }
 
 func GetExecName() string {
-	return name
+	return nameX
 }
 
 type ParacrossType struct {
@@ -92,6 +92,15 @@ func (m ParacrossType) ActionName(tx *types.Transaction) string {
 		return ParacrossActionVoteStr
 	}
 	return "unkown"
+}
+
+func (m ParacrossType) DecodePayload(tx *types.Transaction) (interface{}, error) {
+	var action types.ParacrossAction
+	err := types.Decode(tx.Payload, &action)
+	if err != nil {
+		return nil, err
+	}
+	return &action, nil
 }
 
 func (m ParacrossType) Amount(tx *types.Transaction) (int64, error) {
@@ -127,7 +136,7 @@ func CreateRawParacrossCommitTx(parm *ParacrossCommitTx) (*types.Transaction, er
 		glog.Error("CreateRawParacrossCommitTx", "parm", parm)
 		return nil, types.ErrInvalidParam
 	}
-	return createRawCommitTx(&parm.Status, name, parm.Fee)
+	return createRawCommitTx(&parm.Status, nameX, parm.Fee)
 }
 
 func CreateRawCommitTx4MainChain(status *types.ParacrossNodeStatus, name string, fee int64) (*types.Transaction, error) {
@@ -167,10 +176,10 @@ func CreateRawVoteTx(status *types.ParacrossNodeStatus) (*types.Transaction, err
 		Value: &types.ParacrossAction_Vote{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte(name),
+		Execer:  []byte(nameX),
 		Payload: types.Encode(action),
 		Nonce:   0, //for consensus purpose, block hash need same, different auth node need keep totally same vote tx
-		To:      address.ExecAddress(name),
+		To:      address.ExecAddress(nameX),
 	}
 
 	err := tx.SetRealFee(types.MinFee)
@@ -325,7 +334,7 @@ func (l ParacrossAssetTransferLog) Decode(msg []byte) (interface{}, error) {
 type ParacrossGetTitle struct {
 }
 
-func (t *ParacrossGetTitle) Input(message json.RawMessage) ([]byte, error) {
+func (t *ParacrossGetTitle) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.ReqStr
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -334,26 +343,26 @@ func (t *ParacrossGetTitle) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *ParacrossGetTitle) Output(reply interface{}) (interface{}, error) {
+func (t *ParacrossGetTitle) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
 
 type ParacrossListTitles struct {
 }
 
-func (t *ParacrossListTitles) Input(message json.RawMessage) ([]byte, error) {
+func (t *ParacrossListTitles) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.ReqNil
 	return types.Encode(&req), nil
 }
 
-func (t *ParacrossListTitles) Output(reply interface{}) (interface{}, error) {
+func (t *ParacrossListTitles) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
 
 type ParacrossGetTitleHeight struct {
 }
 
-func (t *ParacrossGetTitleHeight) Input(message json.RawMessage) ([]byte, error) {
+func (t *ParacrossGetTitleHeight) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.ReqParacrossTitleHeight
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -362,14 +371,14 @@ func (t *ParacrossGetTitleHeight) Input(message json.RawMessage) ([]byte, error)
 	return types.Encode(&req), nil
 }
 
-func (t *ParacrossGetTitleHeight) Output(reply interface{}) (interface{}, error) {
+func (t *ParacrossGetTitleHeight) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
 
 type ParacrossGetAssetTxResult struct {
 }
 
-func (t *ParacrossGetAssetTxResult) Input(message json.RawMessage) ([]byte, error) {
+func (t *ParacrossGetAssetTxResult) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.ReqHash
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -378,6 +387,6 @@ func (t *ParacrossGetAssetTxResult) Input(message json.RawMessage) ([]byte, erro
 	return types.Encode(&req), nil
 }
 
-func (t *ParacrossGetAssetTxResult) Output(reply interface{}) (interface{}, error) {
+func (t *ParacrossGetAssetTxResult) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }

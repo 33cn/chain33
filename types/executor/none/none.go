@@ -7,20 +7,20 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var name string
+var nameX string
 
 //var tlog = log.New("module", name)
 
 func Init() {
-	name = types.ExecName("none")
+	nameX = "none"
 	// init executor type
-	types.RegistorExecutor(name, &NoneType{})
+	types.RegistorExecutor("none", &NoneType{})
 
 	// init log
 	//types.RegistorLog(types.TyLogDeposit, &CoinsDepositLog{})
 
 	// init query rpc
-	//types.RegistorRpcType("q2", &CoinsGetTxsByAddr{})
+	//types.RegisterRPCQueryHandle("q2", &CoinsGetTxsByAddr{})
 }
 
 type NoneType struct {
@@ -29,6 +29,10 @@ type NoneType struct {
 
 func (none NoneType) ActionName(tx *types.Transaction) string {
 	return "none"
+}
+
+func (none NoneType) DecodePayload(tx *types.Transaction) (interface{}, error) {
+	return nil, nil
 }
 
 func (none NoneType) Amount(tx *types.Transaction) (int64, error) {
@@ -60,7 +64,7 @@ func (l CoinsDepositLog) Decode(msg []byte) (interface{}, error) {
 type CoinsGetTxsByAddr struct {
 }
 
-func (t *CoinsGetTxsByAddr) Input(message json.RawMessage) ([]byte, error) {
+func (t *CoinsGetTxsByAddr) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.ReqAddr
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -69,6 +73,6 @@ func (t *CoinsGetTxsByAddr) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *CoinsGetTxsByAddr) Output(reply interface{}) (interface{}, error) {
+func (t *CoinsGetTxsByAddr) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
