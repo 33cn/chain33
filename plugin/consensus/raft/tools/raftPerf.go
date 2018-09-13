@@ -192,8 +192,7 @@ func NormPerf(size string, num string, interval string, duration string) {
 	ch := make(chan struct{}, numThread)
 	for i := 0; i < numThread; i++ {
 		go func() {
-			var result int64
-			result = 0
+			var result int64 = 0
 			totalCount := 0
 			txCount := 0
 			_, priv := genaddress()
