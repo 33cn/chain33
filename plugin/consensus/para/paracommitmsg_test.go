@@ -14,7 +14,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor"
 	"gitlab.33.cn/chain33/chain33/mempool"
 	"gitlab.33.cn/chain33/chain33/p2p"
-	_ "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross"
+	pp "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/executor"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/store"
 	_ "gitlab.33.cn/chain33/chain33/system"
@@ -28,6 +28,7 @@ var random *rand.Rand
 func init() {
 	types.SetTitle("user.p.para.")
 	pt.Init()
+	pp.Init()
 	random = rand.New(rand.NewSource(types.Now().UnixNano()))
 	consensusInterval = 2
 	log.SetLogLevel("debug")

@@ -16,7 +16,7 @@ import (
 
 var (
 	Amount = int64(1 * types.Coin)
-	Title  = string("user.p.test.")
+	Title  = string("user.p.para.")
 )
 
 func TestFilterTxsForPara(t *testing.T) {
