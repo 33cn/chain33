@@ -16,4 +16,5 @@ import (
 	_ "gitlab.33.cn/chain33/chain33/plugin/dapp/ticket"
 	_ "gitlab.33.cn/chain33/chain33/plugin/dapp/token"
 	_ "gitlab.33.cn/chain33/chain33/plugin/dapp/trade"
+	_ "gitlab.33.cn/chain33/chain33/plugin/dapp/valnode"
 )
