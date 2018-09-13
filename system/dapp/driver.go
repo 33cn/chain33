@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 
 	log "github.com/inconshreveable/log15"
@@ -40,6 +41,8 @@ type Driver interface {
 	//GetTxs and TxGroup
 	GetTxs() []*types.Transaction
 	GetTxGroup(index int) ([]*types.Transaction, error)
+	GetActionValue() types.Message
+	GetTypeMap() map[string]int32
 }
 
 type DriverBase struct {
@@ -194,7 +197,15 @@ func (d *DriverBase) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData
 			set.KV = append(set.KV, kv)
 		}
 	}
-
+	lset, err := d.callLocal("ExecLocal_", tx, receipt, index)
+	if err != nil {
+		blog.Debug("call ExecLocal", "tx.Execer", string(tx.Execer), "err", err)
+		return &set, nil
+	}
+	//merge
+	if lset != nil && lset.KV != nil {
+		set.KV = append(set.KV, lset.KV...)
+	}
 	return &set, nil
 }
 
@@ -271,7 +282,44 @@ func (d *DriverBase) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptD
 		}
 	}
 	set.KV = append(set.KV, kvdel...)
+
+	lset, err := d.callLocal("ExecDelLocal_", tx, receipt, index)
+	if err != nil {
+		blog.Error("call ExecDelLocal", "execer", string(tx.Execer), "err", err)
+		return &set, nil
+	}
+	//merge
+	if lset != nil && lset.KV != nil {
+		set.KV = append(set.KV, lset.KV...)
+	}
 	return &set, nil
+}
+
+func (d *DriverBase) callLocal(prefix string, tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+	name, value, err := d.decodeTxAction(tx)
+	if err != nil {
+		return nil, err
+	}
+	//call action
+	funcname := prefix + name
+	call := reflect.ValueOf(d.child).MethodByName(funcname)
+	if call.IsNil() {
+		return nil, types.ErrActionNotSupport
+	}
+	valueret := call.Call([]reflect.Value{value, reflect.ValueOf(tx), reflect.ValueOf(receipt), reflect.ValueOf(index)})
+	if len(valueret) != 2 {
+		return nil, types.ErrMethodReturnType
+	}
+	set, ok := valueret[0].Interface().(*types.LocalDBSet)
+	if !ok {
+		return nil, types.ErrMethodReturnType
+	}
+
+	err, ok = valueret[1].Interface().(error)
+	if !ok {
+		return nil, types.ErrMethodReturnType
+	}
+	return set, err
 }
 
 func (d *DriverBase) checkAddress(addr string) error {
@@ -287,8 +335,47 @@ func (d *DriverBase) Exec(tx *types.Transaction, index int) (*types.Receipt, err
 	if err := d.checkAddress(tx.GetRealToAddr()); err != nil {
 		return nil, err
 	}
-	err := d.child.CheckTx(tx, index)
-	return nil, err
+	if err := d.child.CheckTx(tx, index); err != nil {
+		return nil, err
+	}
+	name, value, err := d.decodeTxAction(tx)
+	if err != nil {
+		return nil, err
+	}
+	//call action
+	call := reflect.ValueOf(d.child).MethodByName("Exec_" + name)
+	if call.IsNil() {
+		return nil, types.ErrMethodNotFound
+	}
+	valueret := call.Call([]reflect.Value{value, reflect.ValueOf(tx), reflect.ValueOf(index)})
+	if len(valueret) != 2 {
+		return nil, types.ErrMethodReturnType
+	}
+	receipt, ok := valueret[0].Interface().(*types.Receipt)
+	if !ok {
+		return nil, types.ErrMethodReturnType
+	}
+
+	err, ok = valueret[1].Interface().(error)
+	if !ok {
+		return nil, types.ErrMethodReturnType
+	}
+	return receipt, err
+}
+
+func (d *DriverBase) decodeTxAction(tx *types.Transaction) (string, reflect.Value, error) {
+	action := d.child.GetActionValue()
+	err := types.Decode(tx.Payload, action)
+	if err != nil {
+		return "", nilValue, err
+	}
+	name, ty, val := GetActionValue(action)
+	typemap := d.child.GetTypeMap()
+	//check types is ok
+	if v, ok := typemap[name]; !ok || v == ty {
+		return "", nilValue, types.ErrActionNotSupport
+	}
+	return name, val, nil
 }
 
 //默认情况下，tx.To 地址指向合约地址
