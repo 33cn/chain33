@@ -100,7 +100,6 @@ func LoadHelp() {
 	fmt.Println("[ip] normperf [size, num, interval, duration]                    : 常规写数据性能测试")
 	fmt.Println("[ip] normput [privkey, key, value]                               : 常规写数据")
 	fmt.Println("[ip] normget [key]                                               : 常规读数据")
-	//zzh
 	fmt.Println("[ip] normreadperf [type, num, interval, duration]                : 常规读数据性能测试")
 }
 

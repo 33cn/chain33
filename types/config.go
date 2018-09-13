@@ -102,7 +102,7 @@ var (
 	AllowDepositExec = [][]byte{ExecerTicket}
 	AllowUserExec    = [][]byte{ExecerCoins, ExecerTicket, ExecerNorm, ExecerHashlock,
 		ExecerRetrieve, ExecerNone, ExecerToken, ExecerTrade, ExecerManage,
-		ExecerEvm, ExecerRelay, ExecerPrivacy, ExecerCert /*ExecerBlackwhite,*/, ExecerPara, ExecerLottery}
+		ExecerEvm, ExecerRelay, ExecerPrivacy, ExecerCert /*ExecerBlackwhite,*/, ExecerPara, ExecerLottery, ExecerValNode}
 
 	GenesisAddr              = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 	GenesisBlockTime   int64 = 1526486816
@@ -177,11 +177,11 @@ func IsYcc() bool {
 }
 
 func IsPara() bool {
-	return strings.HasPrefix(title, "user.p.")
+	return strings.HasPrefix(title, ParaKeyX)
 }
 
 func IsParaExecName(name string) bool {
-	return strings.HasPrefix(name, "user.p.")
+	return strings.HasPrefix(name, ParaKeyX)
 }
 
 func IsPublicChain() bool {

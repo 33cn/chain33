@@ -1,9 +1,9 @@
 package executor
 
 import (
+	"bytes"
 	"math/big"
 
-	"bytes"
 	"fmt"
 	"os"
 	"strings"
@@ -35,7 +35,7 @@ func Init() {
 }
 
 func GetName() string {
-	return types.ExecName(model.ExecutorName)
+	return model.ExecutorName
 }
 
 func newEVMDriver() drivers.Driver {
@@ -62,7 +62,32 @@ func NewEVMExecutor() *EVMExecutor {
 }
 
 func (evm *EVMExecutor) GetName() string {
-	return types.ExecName(model.ExecutorName)
+	return model.ExecutorName
+}
+
+func (evm *EVMExecutor) Allow(tx *types.Transaction, index int) error {
+	err := evm.DriverBase.Allow(tx, index)
+	if err == nil {
+		return nil
+	}
+	//增加新的规则:
+	//主链: user.evm.xxx  执行 evm 合约
+	//平行链: user.p.guodun.user.evm.xxx 执行 evm 合约
+	if types.IsPara() && evm.allowPara(tx, index) {
+		return nil
+	}
+	if !types.IsPara() && evm.allow(tx, index) {
+		return nil
+	}
+	return types.ErrNotAllow
+}
+
+func (evm *EVMExecutor) allow(tx *types.Transaction, index int) bool {
+	return evm.AllowIsUserDot2(tx.Execer)
+}
+
+func (evm *EVMExecutor) allowPara(tx *types.Transaction, index int) bool {
+	return evm.AllowIsUserDot2Para(tx.Execer)
 }
 
 func (evm *EVMExecutor) CheckInit() {
@@ -113,7 +138,6 @@ func (evm *EVMExecutor) Exec(tx *types.Transaction, index int) (*types.Receipt, 
 		if !env.StateDB.Empty(contractAddr.String()) {
 			return nil, model.ErrContractAddressCollision
 		}
-
 		// 只有新创建的合约才能生成合约名称
 		execName = fmt.Sprintf("%s%s", types.ExecName(model.EvmPrefix), common.BytesToHash(tx.Hash()).Hex())
 	} else {

@@ -76,11 +76,7 @@ func blackwhiteCreate(cmd *cobra.Command, args []string) {
 	}
 
 	var res string
-	ctx := util.NewRpcCtx(rpcLaddr, "Chain33.Query", jsonrpc.Query4Cli{
-		Execer:   gt.BlackwhiteX,
-		FuncName: gt.BlackwhiteCreateTx,
-		Payload:  params,
-	}, &res)
+	ctx := util.NewRpcCtx(rpcLaddr, "Blackwhite.BlackwhiteCreateTx", params, &res)
 	ctx.RunWithoutMarshal()
 }
 
@@ -139,11 +135,7 @@ func blackwhitePlay(cmd *cobra.Command, args []string) {
 		Fee:        feeInt64,
 	}
 	var res string
-	ctx := util.NewRpcCtx(rpcLaddr, "Chain33.Query", jsonrpc.Query4Cli{
-		Execer:   gt.BlackwhiteX,
-		FuncName: gt.BlackwhitePlayTx,
-		Payload:  params,
-	}, &res)
+	ctx := util.NewRpcCtx(rpcLaddr, "Blackwhite.BlackwhitePlayTx", params, &res)
 	ctx.RunWithoutMarshal()
 }
 
@@ -181,11 +173,7 @@ func blackwhiteShow(cmd *cobra.Command, args []string) {
 		Fee:    feeInt64,
 	}
 	var res string
-	ctx := util.NewRpcCtx(rpcLaddr, "Chain33.Query", jsonrpc.Query4Cli{
-		Execer:   gt.BlackwhiteX,
-		FuncName: gt.BlackwhiteShowTx,
-		Payload:  params,
-	}, &res)
+	ctx := util.NewRpcCtx(rpcLaddr, "Blackwhite.BlackwhiteShowTx", params, &res)
 	ctx.RunWithoutMarshal()
 }
 
@@ -217,11 +205,7 @@ func blackwhiteTimeoutDone(cmd *cobra.Command, args []string) {
 		Fee:    feeInt64,
 	}
 	var res string
-	ctx := util.NewRpcCtx(rpcLaddr, "Chain33.Query", jsonrpc.Query4Cli{
-		Execer:   gt.BlackwhiteX,
-		FuncName: gt.BlackwhiteTimeoutDoneTx,
-		Payload:  params,
-	}, &res)
+	ctx := util.NewRpcCtx(rpcLaddr, "Blackwhite.BlackwhiteTimeoutDoneTx", params, &res)
 	ctx.RunWithoutMarshal()
 }
 

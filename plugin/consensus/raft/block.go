@@ -11,7 +11,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/queue"
 	drivers "gitlab.33.cn/chain33/chain33/system/consensus"
 	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/util"
 )
 
 var (
@@ -56,20 +55,6 @@ func (client *RaftClient) ProcEvent(msg queue.Message) bool {
 	return false
 }
 
-func (client *RaftClient) ExecBlock(prevHash []byte, block *types.Block) (*types.BlockDetail, []*types.Transaction, error) {
-	//exec block
-	if block.Height == 0 {
-		block.Difficulty = types.GetP(0).PowLimitBits
-	}
-	blockdetail, deltx, err := util.ExecBlock(client.GetQueueClient(), prevHash, block, false, true)
-	if err != nil { //never happen
-		return nil, deltx, err
-	}
-	//if len(blockdetail.Block.Txs) == 0 {
-	//return nil, deltx, types.ErrNoTx
-	//}
-	return blockdetail, deltx, nil
-}
 func (client *RaftClient) CheckBlock(parent *types.Block, current *types.BlockDetail) error {
 	return nil
 }

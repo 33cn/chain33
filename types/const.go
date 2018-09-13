@@ -1,10 +1,11 @@
 package types
 
-var userKey = []byte("user.")
 var slash = []byte("-")
 var Debug = false
 
 const (
+	UserKeyX        = "user."
+	ParaKeyX        = "user.p."
 	CoinsX          = "coins"
 	TicketX         = "ticket"
 	HashlockX       = "hashlock"
@@ -22,6 +23,7 @@ const (
 	CertX           = "cert"
 	ParaX           = "paracross"
 	LotteryX        = "lottery"
+	ValNodeX        = "valnode"
 )
 
 var (
@@ -42,6 +44,9 @@ var (
 	UserEvm        = []byte(UserEvmX)
 	ExecerPara     = []byte(ParaX)
 	ExecerLottery  = []byte(LotteryX)
+	UserKey        = []byte(UserKeyX)
+	ParaKey        = []byte(ParaKeyX)
+	ExecerValNode  = []byte(ValNodeX)
 )
 
 const (
@@ -470,4 +475,9 @@ const (
 	LotteryPurchase
 	LotteryDrawed
 	LotteryClosed
+)
+
+const (
+	ValNodeActionUpdate    = 1
+	ValNodeActionBlockInfo = 2
 )

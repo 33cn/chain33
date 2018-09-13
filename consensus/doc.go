@@ -102,7 +102,64 @@ package consensus
    PeersURL = "127.0.0.1:8890,127.0.0.1:8891"  //所有节点的ip地址，用逗号隔开，我是一台电脑所以用的本地地址只是port不同
    ClientAddr = "127.0.0.1:8890"  //当前节点的ip地址
    //TODO 动态增加或者删除节点
-  然后chain33命令启动所有节点后，再向mempool写入交易
+  然后chain33命令启动所有节点后，再向mempool写入交易validator
 
+4.tendermint:
+实现功能：
+	1  建立tendermint集群，如果要实现拜占庭容忍至少1个节点的能力，集群至少包含4个validator节点，建立成功后集群中的proposer将轮流从validator中选择，每次选中的proposer将成为提议者和写入区块者，提议(proposal)包含从mempool中取到的交易信息，所有validator节点参与对提议(proposal)投票。
+	2  投票分为两个阶段——prevote和precommit，首先每个validator对proposal进行第一阶段投票，当每个validator收到的投票结果比例大于2/3节点个数时，每个validator根据这个结果进行第二阶段投票，当每个validator根据收到的投票结果为nil的比例大于2/3节点个数时，将开始新一轮的提议，投票，
+       当收到的投票结果相同且不为nil的比例大于2/3节点个数时，进入commit阶段。该轮的proposer写区块，非proposer等待接收广播的新区块。之后进入新高度的共识。
+	3  整个共识过程中如果小于1/3的validator出现一些异常，不影响剩下validator继续共识。
+	4  动态增加，删除validator节点，修改validator节点权限，共识不受影响
+	5  仅支持创建集群时静态配置validator，不支持通过停止所有validator，修改genesis.json配置文件来增加，删除validator节点，修改validator节点权限的操作。
+
+运行方式（4个节点）:
+	运行环境： ubuntu
+	GO版本：	  go1.9.2
+	步骤：
+		//  1.编译版本
+		cd $GOPATH/src/gitlab.33.cn/chain33
+		git clone git@gitlab.33.cn:chain33/chain33.git
+		cd chain33
+		go build
+
+		//	2.从管理机上拷贝可执行文件到各个节点
+		scp chain33 ubuntu@192.168.0.117:/home/ubuntu/
+		scp chain33 ubuntu@192.168.0.119:/home/ubuntu/
+		scp chain33 ubuntu@192.168.0.120:/home/ubuntu/
+		scp chain33 ubuntu@192.168.0.121:/home/ubuntu/
+
+		// 3.在各个节点上，依次修改chain33.toml中[consensus]项
+			name="tendermint"
+			minerstart=false
+			genesis="14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
+			genesisBlockTime=1514533394
+			hotkeyAddr="12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
+			timeoutPropose=5000
+			timeoutProposeDelta=500
+			timeoutPrevote=3000
+			timeoutPrevoteDelta=500
+			timeoutPrecommit=3000
+			timeoutPrecommitDelta=500
+			timeoutCommit=3000
+			skipTimeoutCommit=false
+			createEmptyBlocks=false
+			createEmptyBlocksInterval=0
+			seeds=["192.168.0.117:46656","192.168.0.119:46656","192.168.0.120:46656","192.168.0.121:46656"]
+       // 4.然后依次启动种子节点，tendermint集群相关节点
+       ./chain33 或者写个启动脚本
+       // 5.动态增删节点
+             动态加入节点
+		    	1.）将新生成的priv_validator.json文件和其他Validator节点的genesis.json和chain33.toml拷贝到待加入集群的节点工作目录下，然后启动chain33。
+					注意：可以修改chain33.toml文件的[p2p]项和[consensus]项中的seeds参数，只要是集群节点就可以。
+		    	2.）将新节点的priv_validator.json文件中的pub_key记录下来，向集群任一节点发送交易，执行器为valnode，构建payload为ValNodeAction结构体的序列化，
+					该结构体参数Value为ValNodeAction_Node结构体地址，Ty为1，ValNodeAction_Node结构体有两个参数，PubKey为刚才记录下的字符串通过hex.DecodeString()编码生成的[]byte，
+					Power最大不能超过总power值的1/3。该笔交易执行成功即添加完成，新节点将会参与新区块的共识。
+					注意：新增节点的Power值一定不能超过总power值的1/3，否则就是该笔交易执行成功了，该节点也不能成功加入。
+			动态删除节点
+		    	1.）同加入节点一样，向任意节点发送一笔交易，交易格式与加入节点一样，其中pub_key为要删除的节点的pub_key，Power设置为0，该节点将不会参与新区块的共识。
+		    动态修改validator的Power值
+				1.）同加入节点一样，向任意节点发送一笔交易，交易格式与加入节点一样，其中pub_key为要修改的节点的pub_key,Power为要设置的值，
+                    注意：修改的Power值一定不能超过总power值的1/3，否则就是该笔交易执行成功了，该节点的Power值也不会更改。
 */
 //接口设计：
