@@ -8,8 +8,12 @@ import (
 	"gitlab.33.cn/chain33/chain33/cmd/cli/commands"
 	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/log"
-	"gitlab.33.cn/chain33/chain33/pluginmgr"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
+
+	"gitlab.33.cn/chain33/chain33/pluginmgr"
+	// 这一步是必需的，目的时让插件源码有机会进行匿名注册
+	_ "gitlab.33.cn/chain33/chain33/plugin"
+	_ "gitlab.33.cn/chain33/chain33/system"
 )
 
 var rootCmd = &cobra.Command{

@@ -10,12 +10,12 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var name string
+var nameX string
 
-var tlog = log.New("module", name)
+var tlog = log.New("module", types.TokenX)
 
 //getRealExecName
-//如果paraName == "", 那么自动用 types.ExecName("token")
+//如果paraName == "", 那么自动用 types.types.ExecName("token")
 //如果设置了paraName , 那么强制用paraName
 //也就是说，我们可以构造其他平行链的交易
 func getRealExecName(paraName string) string {
@@ -23,9 +23,9 @@ func getRealExecName(paraName string) string {
 }
 
 func Init() {
-	name = types.ExecName(types.TokenX)
+	nameX = types.ExecName(types.TokenX)
 	// init executor type
-	types.RegistorExecutor(types.ExecName(name), &TokenType{})
+	types.RegistorExecutor(types.TokenX, &TokenType{})
 
 	// init log
 	types.RegistorLog(types.TyLogTokenTransfer, &TokenTransferLog{})
@@ -44,10 +44,10 @@ func Init() {
 	types.RegistorLog(types.TyLogRevokeCreateToken, &TokenRevokeCreateLog{})
 
 	// init query rpc
-	types.RegistorRpcType("GetTokens", &TokenGetTokens{})
-	types.RegistorRpcType("GetTokenInfo", &TokenGetTokenInfo{})
-	types.RegistorRpcType("GetAddrReceiverforTokens", &TokenGetAddrReceiverforTokens{})
-	types.RegistorRpcType("GetAccountTokenAssets", &TokenGetAccountTokenAssets{})
+	types.RegisterRPCQueryHandle("GetTokens", &TokenGetTokens{})
+	types.RegisterRPCQueryHandle("GetTokenInfo", &TokenGetTokenInfo{})
+	types.RegisterRPCQueryHandle("GetAddrReceiverforTokens", &TokenGetAddrReceiverforTokens{})
+	types.RegisterRPCQueryHandle("GetAccountTokenAssets", &TokenGetAccountTokenAssets{})
 }
 
 // exec
@@ -136,7 +136,7 @@ func (coins TokenType) CreateTx(action string, message json.RawMessage) (*types.
 			return nil, types.ErrInputPara
 		}
 
-		if param.ExecName != "" && !types.IsAllowExecName(param.ExecName) {
+		if param.ExecName != "" && !types.IsAllowExecName([]byte(param.ExecName), []byte(param.ExecName)) {
 			tlog.Error("CreateTx", "Error", types.ErrExecNameNotMatch)
 			return nil, types.ErrExecNameNotMatch
 		}
@@ -227,7 +227,7 @@ func CreateTokenTransfer(param *types.CreateTx) *types.Transaction {
 		return &types.Transaction{Execer: []byte(param.GetExecName()), Payload: types.Encode(transfer), To: address.ExecAddress(param.GetExecName())}
 	}
 	//其他情况，默认构造主链交易
-	return &types.Transaction{Execer: []byte(name), Payload: types.Encode(transfer), To: param.GetTo()}
+	return &types.Transaction{Execer: []byte(nameX), Payload: types.Encode(transfer), To: param.GetTo()}
 }
 
 func CreateRawTokenPreCreateTx(parm *TokenPreCreateTx) (*types.Transaction, error) {
@@ -502,7 +502,7 @@ func (l TokenRevokeCreateLog) Decode(msg []byte) (interface{}, error) {
 type TokenGetTokens struct {
 }
 
-func (t *TokenGetTokens) Input(message json.RawMessage) ([]byte, error) {
+func (t *TokenGetTokens) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.ReqTokens
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -511,14 +511,14 @@ func (t *TokenGetTokens) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *TokenGetTokens) Output(reply interface{}) (interface{}, error) {
+func (t *TokenGetTokens) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
 
 type TokenGetTokenInfo struct {
 }
 
-func (t *TokenGetTokenInfo) Input(message json.RawMessage) ([]byte, error) {
+func (t *TokenGetTokenInfo) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.ReqString
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -527,14 +527,14 @@ func (t *TokenGetTokenInfo) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *TokenGetTokenInfo) Output(reply interface{}) (interface{}, error) {
+func (t *TokenGetTokenInfo) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
 
 type TokenGetAddrReceiverforTokens struct {
 }
 
-func (t *TokenGetAddrReceiverforTokens) Input(message json.RawMessage) ([]byte, error) {
+func (t *TokenGetAddrReceiverforTokens) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.ReqAddrTokens
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -543,14 +543,14 @@ func (t *TokenGetAddrReceiverforTokens) Input(message json.RawMessage) ([]byte, 
 	return types.Encode(&req), nil
 }
 
-func (t *TokenGetAddrReceiverforTokens) Output(reply interface{}) (interface{}, error) {
+func (t *TokenGetAddrReceiverforTokens) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
 
 type TokenGetAccountTokenAssets struct {
 }
 
-func (t *TokenGetAccountTokenAssets) Input(message json.RawMessage) ([]byte, error) {
+func (t *TokenGetAccountTokenAssets) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.ReqAccountTokenAssets
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -559,6 +559,6 @@ func (t *TokenGetAccountTokenAssets) Input(message json.RawMessage) ([]byte, err
 	return types.Encode(&req), nil
 }
 
-func (t *TokenGetAccountTokenAssets) Output(reply interface{}) (interface{}, error) {
+func (t *TokenGetAccountTokenAssets) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }

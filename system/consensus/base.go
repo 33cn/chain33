@@ -30,7 +30,6 @@ type Miner interface {
 	CreateBlock()
 	CheckBlock(parent *types.Block, current *types.BlockDetail) error
 	ProcEvent(msg queue.Message) bool
-	ExecBlock(prevHash []byte, block *types.Block) (*types.BlockDetail, []*types.Transaction, error)
 }
 
 type BaseClient struct {
@@ -107,6 +106,9 @@ func (bc *BaseClient) InitBlock() {
 		tx := bc.child.CreateGenesisTx()
 		newblock.Txs = tx
 		newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
+		if newblock.Height == 0 {
+			newblock.Difficulty = types.GetP(0).PowLimitBits
+		}
 		bc.WriteBlock(zeroHash[:], newblock)
 	} else {
 		bc.SetCurrentBlock(block)
@@ -276,28 +278,39 @@ func buildHashList(deltx []*types.Transaction) *types.TxHashList {
 
 // 向blockchain写区块
 func (bc *BaseClient) WriteBlock(prev []byte, block *types.Block) error {
-	blockdetail, deltx, err := bc.child.ExecBlock(prev, block)
-	if len(deltx) > 0 {
-		bc.delMempoolTx(deltx)
-	}
-	if err != nil {
-		return err
-	}
+	blockdetail := &types.BlockDetail{Block: block}
 	msg := bc.client.NewMessage("blockchain", types.EventAddBlockDetail, blockdetail)
 	bc.client.Send(msg, true)
 	resp, err := bc.client.Wait(msg)
 	if err != nil {
 		return err
 	}
+	blockdetail = resp.GetData().(*types.BlockDetail)
 	//从mempool 中删除错误的交易
-
-	if resp.GetData().(*types.Reply).IsOk {
-		bc.SetCurrentBlock(block)
+	deltx := diffTx(block.Txs, blockdetail.Block.Txs)
+	if len(deltx) > 0 {
+		bc.delMempoolTx(deltx)
+	}
+	if blockdetail != nil {
+		bc.SetCurrentBlock(blockdetail.Block)
 	} else {
-		reply := resp.GetData().(*types.Reply)
-		return errors.New(string(reply.GetMsg()))
+		return errors.New("block detail is nil")
 	}
 	return nil
+}
+
+func diffTx(tx1, tx2 []*types.Transaction) (deltx []*types.Transaction) {
+	txlist2 := make(map[string]bool)
+	for _, tx := range tx2 {
+		txlist2[string(tx.Hash())] = true
+	}
+	for _, tx := range tx1 {
+		hash := string(tx.Hash())
+		if _, ok := txlist2[hash]; !ok {
+			deltx = append(deltx, tx)
+		}
+	}
+	return deltx
 }
 
 func (bc *BaseClient) SetCurrentBlock(b *types.Block) {

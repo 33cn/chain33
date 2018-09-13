@@ -7,14 +7,14 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var name string
+var nameX string
 
 //var tlog = log.New("module", name)
 
 func Init() {
-	name = types.ExecName("relay")
+	nameX = types.ExecName("relay")
 	// init executor type
-	types.RegistorExecutor(name, &RelayType{})
+	types.RegistorExecutor("relay", &RelayType{})
 
 	// init log
 	types.RegistorLog(types.TyLogRelayCreate, &RelayCreateLog{})
@@ -26,12 +26,12 @@ func Init() {
 	types.RegistorLog(types.TyLogRelayRcvBTCHead, &RelayRcvBTCHeadLog{})
 
 	// init query rpc
-	types.RegistorRpcType("GetRelayOrderByStatus", &RelayGetRelayOrderByStatus{})
-	types.RegistorRpcType("GetSellRelayOrder", &RelayGetSellRelayOrder{})
-	types.RegistorRpcType("GetBuyRelayOrder", &RelayGetBuyRelayOrder{})
-	types.RegistorRpcType("GetBTCHeaderList", &RelayGetBTCHeaderList{})
-	types.RegistorRpcType("GetBTCHeaderMissList", &RelayGetBTCHeaderMissList{})
-	types.RegistorRpcType("GetBTCHeaderCurHeight", &RelayGetBTCHeaderCurHeight{})
+	types.RegisterRPCQueryHandle("GetRelayOrderByStatus", &RelayGetRelayOrderByStatus{})
+	types.RegisterRPCQueryHandle("GetSellRelayOrder", &RelayGetSellRelayOrder{})
+	types.RegisterRPCQueryHandle("GetBuyRelayOrder", &RelayGetBuyRelayOrder{})
+	types.RegisterRPCQueryHandle("GetBTCHeaderList", &RelayGetBTCHeaderList{})
+	types.RegisterRPCQueryHandle("GetBTCHeaderMissList", &RelayGetBTCHeaderMissList{})
+	types.RegisterRPCQueryHandle("GetBTCHeaderCurHeight", &RelayGetBTCHeaderCurHeight{})
 
 }
 
@@ -208,7 +208,7 @@ func (l RelayRcvBTCHeadLog) Decode(msg []byte) (interface{}, error) {
 type RelayGetRelayOrderByStatus struct {
 }
 
-func (t *RelayGetRelayOrderByStatus) Input(message json.RawMessage) ([]byte, error) {
+func (t *RelayGetRelayOrderByStatus) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.ReqRelayAddrCoins
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -217,14 +217,14 @@ func (t *RelayGetRelayOrderByStatus) Input(message json.RawMessage) ([]byte, err
 	return types.Encode(&req), nil
 }
 
-func (t *RelayGetRelayOrderByStatus) Output(reply interface{}) (interface{}, error) {
+func (t *RelayGetRelayOrderByStatus) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
 
 type RelayGetSellRelayOrder struct {
 }
 
-func (t *RelayGetSellRelayOrder) Input(message json.RawMessage) ([]byte, error) {
+func (t *RelayGetSellRelayOrder) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.ReqRelayAddrCoins
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -233,14 +233,14 @@ func (t *RelayGetSellRelayOrder) Input(message json.RawMessage) ([]byte, error) 
 	return types.Encode(&req), nil
 }
 
-func (t *RelayGetSellRelayOrder) Output(reply interface{}) (interface{}, error) {
+func (t *RelayGetSellRelayOrder) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
 
 type RelayGetBuyRelayOrder struct {
 }
 
-func (t *RelayGetBuyRelayOrder) Input(message json.RawMessage) ([]byte, error) {
+func (t *RelayGetBuyRelayOrder) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.ReqRelayAddrCoins
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -249,14 +249,14 @@ func (t *RelayGetBuyRelayOrder) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *RelayGetBuyRelayOrder) Output(reply interface{}) (interface{}, error) {
+func (t *RelayGetBuyRelayOrder) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
 
 type RelayGetBTCHeaderList struct {
 }
 
-func (t *RelayGetBTCHeaderList) Input(message json.RawMessage) ([]byte, error) {
+func (t *RelayGetBTCHeaderList) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.ReqRelayBtcHeaderHeightList
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -265,14 +265,14 @@ func (t *RelayGetBTCHeaderList) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *RelayGetBTCHeaderList) Output(reply interface{}) (interface{}, error) {
+func (t *RelayGetBTCHeaderList) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
 
 type RelayGetBTCHeaderMissList struct {
 }
 
-func (t *RelayGetBTCHeaderMissList) Input(message json.RawMessage) ([]byte, error) {
+func (t *RelayGetBTCHeaderMissList) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.ReqRelayBtcHeaderHeightList
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -281,14 +281,14 @@ func (t *RelayGetBTCHeaderMissList) Input(message json.RawMessage) ([]byte, erro
 	return types.Encode(&req), nil
 }
 
-func (t *RelayGetBTCHeaderMissList) Output(reply interface{}) (interface{}, error) {
+func (t *RelayGetBTCHeaderMissList) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
 
 type RelayGetBTCHeaderCurHeight struct {
 }
 
-func (t *RelayGetBTCHeaderCurHeight) Input(message json.RawMessage) ([]byte, error) {
+func (t *RelayGetBTCHeaderCurHeight) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.ReqRelayQryBTCHeadHeight
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -297,6 +297,6 @@ func (t *RelayGetBTCHeaderCurHeight) Input(message json.RawMessage) ([]byte, err
 	return types.Encode(&req), nil
 }
 
-func (t *RelayGetBTCHeaderCurHeight) Output(reply interface{}) (interface{}, error) {
+func (t *RelayGetBTCHeaderCurHeight) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }

@@ -7,7 +7,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/queue"
 	drivers "gitlab.33.cn/chain33/chain33/system/consensus"
 	pb "gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/util"
 )
 
 func init() {
@@ -29,21 +28,6 @@ func NewBlockstore(cfg *pb.Consensus, replyChan chan *pb.ClientReply, requestCha
 }
 func (client *PbftClient) ProcEvent(msg queue.Message) bool {
 	return false
-}
-
-func (client *PbftClient) ExecBlock(prevHash []byte, block *pb.Block) (*pb.BlockDetail, []*pb.Transaction, error) {
-	//exec block
-	if block.Height == 0 {
-		block.Difficulty = pb.GetP(0).PowLimitBits
-	}
-	blockdetail, deltx, err := util.ExecBlock(client.GetQueueClient(), prevHash, block, false, false)
-	if err != nil { //never happen
-		return nil, deltx, err
-	}
-	if len(blockdetail.Block.Txs) == 0 {
-		return nil, deltx, pb.ErrNoTx
-	}
-	return blockdetail, deltx, nil
 }
 
 func (client *PbftClient) Propose(block *pb.Block) {

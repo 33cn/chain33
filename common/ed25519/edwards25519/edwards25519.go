@@ -178,10 +178,10 @@ func FeToBytes(s *[32]byte, h *FieldElement) {
 	h[9] -= carry[9] << 25
 	// h10 = carry9
 
-	// Goal: Output h[0]+...+2^255 h10-2^255 q, which is between 0 and 2^255-20.
+	// Goal: ProtoToJson h[0]+...+2^255 h10-2^255 q, which is between 0 and 2^255-20.
 	// Have h[0]+...+2^230 h[9] between 0 and 2^255-1;
 	// evidently 2^255 h10-2^255 q = 0.
-	// Goal: Output h[0]+...+2^230 h[9].
+	// Goal: ProtoToJson h[0]+...+2^230 h[9].
 
 	s[0] = byte(h[0] >> 0)
 	s[1] = byte(h[0] >> 8)
@@ -1022,7 +1022,7 @@ func GeScalarMultBase(h *ExtendedGroupElement, a *[32]byte) {
 //   b[0]+256*b[1]+...+256^31*b[31] = b
 //   c[0]+256*c[1]+...+256^31*c[31] = c
 //
-// Output:
+// ProtoToJson:
 //   s[0]+256*s[1]+...+256^31*s[31] = (ab+c) mod l
 //   where l = 2^252 + 27742317777372353535851937790883648493.
 func ScMulAdd(s, a, b, c *[32]byte) {
@@ -1457,7 +1457,7 @@ func ScMulAdd(s, a, b, c *[32]byte) {
 //   b[0]+256*b[1]+...+256^31*b[31] = b
 //   c[0]+256*c[1]+...+256^31*c[31] = c
 //
-// Output:
+// ProtoToJson:
 //   s[0]+256*s[1]+...+256^31*s[31] = (c-ab) mod l
 //   where l = 2^252 + 27742317777372353535851937790883648493.
 func ScMulSub(s, a, b, c *[32]byte) {
@@ -1888,7 +1888,7 @@ func ScMulSub(s, a, b, c *[32]byte) {
 // Input:
 //   s[0]+256*s[1]+...+256^63*s[63] = s
 //
-// Output:
+// ProtoToJson:
 //   s[0]+256*s[1]+...+256^31*s[31] = s mod l
 //   where l = 2^252 + 27742317777372353535851937790883648493.
 func ScReduce(out *[32]byte, s *[64]byte) {
@@ -2212,7 +2212,7 @@ func ScReduce(out *[32]byte, s *[64]byte) {
 // Input:
 //   s[0]+256*s[1]+...+256^31*s[31] = a
 //   s[0]+256*s[1]+...+256^31*s[31] = b
-// Output:
+// ProtoToJson:
 //   s[0]+256*s[1]+...+256^31*s[31] = a+b mod l
 //   where l = 2^252 + 27742317777372353535851937790883648493.
 func ScAdd(out *[32]byte, a, b *[32]byte) {
@@ -2451,7 +2451,7 @@ func ScAdd(out *[32]byte, a, b *[32]byte) {
 // Input:
 //   s[0]+256*s[1]+...+256^31*s[31] = a
 //   s[0]+256*s[1]+...+256^31*s[31] = b
-// Output:
+// ProtoToJson:
 //   s[0]+256*s[1]+...+256^31*s[31] = a-b mod l
 //   where l = 2^252 + 27742317777372353535851937790883648493.
 func ScSub(out *[32]byte, a, b *[32]byte) {
