@@ -1,4 +1,4 @@
-package paracross
+package executor
 
 import (
 	"github.com/stretchr/testify/assert"
