@@ -106,18 +106,20 @@ func (suite *AssetWithdrawTestSuite) TestExecAssetWithdrawOnParaChain() {
 	acc := account.NewCoinsAccount()
 	acc.SetDB(suite.stateDB)
 
+	addrPara := address.ExecAddress(Title + types.ParaX)
+
 	total := 1000 * types.Coin
 	accountA := types.Account{
 		Balance: total,
 		Frozen:  0,
 		Addr:    string(Nodes[0]),
 	}
-	acc.SaveExecAccount(suite.exec.GetAddr(), &accountA)
+	acc.SaveExecAccount(addrPara, &accountA)
 
 	accountExec := types.Account{
 		Balance: total,
 		Frozen:  0,
-		Addr:    suite.exec.GetAddr(),
+		Addr:    addrPara,
 	}
 	acc.SaveAccount(&accountExec)
 
@@ -220,18 +222,20 @@ func (suite *AssetWithdrawTestSuite) TestExecWithdrawFailedOnPara() {
 	acc := account.NewCoinsAccount()
 	acc.SetDB(suite.stateDB)
 
+	addrPara := address.ExecAddress(Title + types.ParaX)
+
 	total := 1000 * types.Coin
 	accountA := types.Account{
 		Balance: 0,
 		Frozen:  0,
 		Addr:    string(Nodes[0]),
 	}
-	acc.SaveExecAccount(suite.exec.GetAddr(), &accountA)
+	acc.SaveExecAccount(addrPara, &accountA)
 
 	accountExec := types.Account{
 		Balance: total,
 		Frozen:  0,
-		Addr:    suite.exec.GetAddr(),
+		Addr:    addrPara,
 	}
 	acc.SaveAccount(&accountExec)
 
