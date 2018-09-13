@@ -22,6 +22,7 @@ func TestKvmvccdbNewClose(t *testing.T) {
 	assert.NotNil(t, store)
 
 	store.Close()
+	os.RemoveAll(store_cfg0.DbPath)
 }
 
 func TestKvmvccdbSetGet(t *testing.T) {
