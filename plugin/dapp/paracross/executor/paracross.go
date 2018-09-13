@@ -505,3 +505,16 @@ func (c *Paracross) Query(funcName string, params []byte) (types.Message, error)
 
 	return nil, types.ErrActionNotSupport
 }
+
+
+func (c *Paracross) Allow(tx *types.Transaction, index int) error {
+	err := c.DriverBase.Allow(tx, index)
+	if err == nil {
+		return nil
+	}
+	// 增加新的规则: 在主链带着title的 asset-transfer/asset-withdraw 交易允许执行
+	// 1. user.p.${tilte}.${paraX}
+	// 1. payload 的 actionType = t/w
+	return nil
+	
+}
