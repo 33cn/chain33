@@ -470,6 +470,7 @@ const (
 	ParaCrossTransferActionTypeStart = 10000
 	ParaCrossTransferActionTypeEnd   = 10100
 )
+
 //Lottery op
 const (
 	LotteryActionCreate = 1 + iota
