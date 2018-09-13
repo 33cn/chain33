@@ -16,7 +16,6 @@ var clog = log.New("module", "execs.blackwhite")
 var blackwhiteAddr = address.ExecAddress(gt.BlackwhiteX)
 
 func Init() {
-	SetReciptPrefix()
 	drivers.Register(GetName(), NewBlackwhite, types.ForkV25BlackWhite)
 }
 
@@ -31,7 +30,7 @@ func NewBlackwhite() drivers.Driver {
 }
 
 func GetName() string {
-	return types.ExecName(gt.BlackwhiteX)
+	return gt.BlackwhiteX
 }
 
 func (c *Blackwhite) GetName() string {

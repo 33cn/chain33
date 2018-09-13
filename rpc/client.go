@@ -2,12 +2,10 @@ package rpc
 
 import (
 	"encoding/hex"
-	"math/rand"
-	"time"
-
 	"encoding/json"
-
+	"math/rand"
 	"reflect"
+	"time"
 
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/client"
@@ -15,6 +13,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/types/executor"
 	evmtype "gitlab.33.cn/chain33/chain33/types/executor/evm"
 	hashlocktype "gitlab.33.cn/chain33/chain33/types/executor/hashlock"
 	lotterytype "gitlab.33.cn/chain33/chain33/types/executor/lottery"
@@ -33,11 +32,11 @@ type channelClient struct {
 func (c *channelClient) Init(q queue.Client) {
 	c.QueueProtocolAPI, _ = client.New(q, nil)
 	c.accountdb = account.NewCoinsAccount()
+	executor.Init()
 }
 
 // support old rpc create transaction interface. call new imlp
 func callExecNewTx(execName, action string, param interface{}) ([]byte, error) {
-	execName = types.ExecName(execName)
 	exec := types.LoadExecutor(execName)
 	if exec == nil {
 		log.Error("callExecNewTx", "Error", "exec not found")
@@ -283,7 +282,7 @@ func (c *channelClient) GetAllExecBalance(in *types.ReqAddr) (*types.AllExecBala
 
 //TODO:和GetBalance进行泛化处理，同时LoadAccounts和LoadExecAccountQueue也需要进行泛化处理, added by hzj
 func (c *channelClient) GetTokenBalance(in *types.ReqTokenBalance) ([]*types.Account, error) {
-	accountTokendb, err := account.NewAccountDB(types.ExecName(types.TokenX), in.GetTokenSymbol(), nil)
+	accountTokendb, err := account.NewAccountDB(types.TokenX, in.GetTokenSymbol(), nil)
 	if err != nil {
 		return nil, err
 	}

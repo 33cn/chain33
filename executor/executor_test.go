@@ -208,7 +208,7 @@ func TestExecutorGetTxGroup(t *testing.T) {
 	txgroup.SignN(2, types.SECP256K1, priv3)
 	txs = txgroup.GetTxs()
 	execute := newExecutor(nil, exec, 1, time.Now().Unix(), 1, txs)
-	e := execute.loadDriverForExec(types.ExecName("coins"), execute.height)
+	e := execute.loadDriver(txs[0], 0)
 	execute.setEnv(e)
 	txs2 := e.GetTxs()
 	assert.Equal(t, txs2, txgroup.GetTxs())
@@ -223,7 +223,7 @@ func TestExecutorGetTxGroup(t *testing.T) {
 	//err tx group list
 	txs[0].Header = nil
 	execute = newExecutor(nil, exec, 1, time.Now().Unix(), 1, txs)
-	e = execute.loadDriverForExec(types.ExecName("coins"), execute.height)
+	e = execute.loadDriver(txs[0], 0)
 	execute.setEnv(e)
 	_, err = e.GetTxGroup(len(txs) - 1)
 	assert.Equal(t, err, types.ErrTxGroupFormat)
@@ -429,7 +429,6 @@ func execAndCheckBlockCB(t *testing.T, qclient queue.Client,
 		t.Error(err)
 		return nil
 	}
-
 	var getIndex = func(hash []byte, txlist []*types.Transaction) int {
 		for i := 0; i < len(txlist); i++ {
 			if bytes.Equal(hash, txlist[i].Hash()) {
@@ -584,7 +583,7 @@ func TestLoadDriver(t *testing.T) {
 func TestKeyAllow(t *testing.T) {
 	key := []byte("mavl-coins-bty-exec-1wvmD6RNHzwhY4eN75WnM6JcaAvNQ4nHx:19xXg1WHzti5hzBRTUphkM8YmuX6jJkoAA")
 	exec := []byte("retrieve")
-	if !isAllowExec(key, exec, address.ExecAddress("retrieve"), int64(1)) {
+	if !isAllowExec(key, exec, int64(1)) {
 		t.Error("retrieve can modify exec")
 	}
 }

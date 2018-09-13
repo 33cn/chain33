@@ -41,7 +41,7 @@ func newTicket() drivers.Driver {
 }
 
 func (t *Ticket) GetName() string {
-	return types.ExecName("ticket")
+	return "ticket"
 }
 
 func (t *Ticket) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {

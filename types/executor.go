@@ -1,6 +1,9 @@
 package types
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"fmt"
+)
 
 type ExecutorType interface {
 	//获取交易真正的to addr
@@ -18,14 +21,22 @@ type LogType interface {
 	Decode([]byte) (interface{}, error)
 }
 
-type RpcQueryType interface {
-	Input(message json.RawMessage) ([]byte, error)
-	Output(interface{}) (interface{}, error)
+type RPCQueryTypeConvert interface {
+	JsonToProto(message json.RawMessage) ([]byte, error)
+	ProtoToJson(reply *Message) (interface{}, error)
+}
+
+type FN_RPCQueryHandle func(param []byte) (Message, error)
+
+//
+type rpcTypeUtilItem struct {
+	convertor RPCQueryTypeConvert
+	handler   FN_RPCQueryHandle
 }
 
 var executorMap = map[string]ExecutorType{}
 var receiptLogMap = map[int64]LogType{}
-var rpcTypeUtilMap = map[string]RpcQueryType{}
+var rpcTypeUtilMap = map[string]*rpcTypeUtilItem{}
 
 func RegistorExecutor(exec string, util ExecutorType) {
 	//tlog.Debug("rpc", "t", funcName, "t", util)
@@ -37,7 +48,10 @@ func RegistorExecutor(exec string, util ExecutorType) {
 }
 
 func LoadExecutor(exec string) ExecutorType {
-	if exec, exist := executorMap[exec]; exist {
+	//尽可能的加载执行器
+	//真正的权限控制在区块执行的时候做控制
+	realname := GetRealExecName([]byte(exec))
+	if exec, exist := executorMap[string(realname)]; exist {
 		return exec
 	}
 	return nil
@@ -46,7 +60,8 @@ func LoadExecutor(exec string) ExecutorType {
 func RegistorLog(logTy int64, util LogType) {
 	//tlog.Debug("rpc", "t", funcName, "t", util)
 	if _, exist := receiptLogMap[logTy]; exist {
-		panic("DupLogType")
+		errMsg := fmt.Sprintf("DupLogType RegistorLog type existed", "logTy", logTy)
+		panic(errMsg)
 	} else {
 		receiptLogMap[logTy] = util
 	}
@@ -59,24 +74,44 @@ func LoadLog(ty int64) LogType {
 	return nil
 }
 
-func registorRpcType(funcName string, util RpcQueryType) {
+func registerRPCQueryHandle(funcName string, convertor RPCQueryTypeConvert, handler FN_RPCQueryHandle) {
 	//tlog.Debug("rpc", "t", funcName, "t", util)
 	if _, exist := rpcTypeUtilMap[funcName]; exist {
 		panic("DupRpcTypeUtil")
 	} else {
-		rpcTypeUtilMap[funcName] = util
+		rpcTypeUtilMap[funcName] = &rpcTypeUtilItem{
+			convertor: convertor,
+			handler:   handler,
+		}
 	}
 }
 
-func RegistorRpcType(funcName string, util RpcQueryType) {
-	registorRpcType(funcName, util)
+func RegisterRPCQueryHandle(funcName string, convertor RPCQueryTypeConvert) {
+	registerRPCQueryHandle(funcName, convertor, nil)
 }
 
-func LoadQueryType(funcName string) RpcQueryType {
+// TODO: 后续将函数关联关系都在一处实现
+//func RegisterRPCQueryHandleV2(funcName string, convertor RPCQueryTypeConvert, handler FN_RPCQueryHandle) {
+//	registerRPCQueryHandle(funcName, convertor, handler)
+//}
+
+func LoadQueryType(funcName string) RPCQueryTypeConvert {
 	if trans, ok := rpcTypeUtilMap[funcName]; ok {
-		return trans
+		return trans.convertor
 	}
 	return nil
+}
+
+// 处理已经注册的RPC Query响应处理过程
+func ProcessRPCQuery(funcName string, param []byte) (Message, error) {
+	if item, ok := rpcTypeUtilMap[funcName]; ok {
+		if item.handler != nil {
+			return item.handler(param)
+		} else {
+			return nil, ErrEmpty
+		}
+	}
+	return nil, ErrNotFound
 }
 
 type ExecTypeBase struct {
