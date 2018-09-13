@@ -20,6 +20,7 @@ It is generated from these files:
 	relay.proto
 	rpc.proto
 	statistic.proto
+	tendermint.proto
 	transaction.proto
 	wallet.proto
 
@@ -207,6 +208,9 @@ It has these top-level messages:
 	Privacy2Privacy4Print
 	Privacy2Public4Print
 	PrivacyAction4Print
+	ValNode
+	ValNodes
+	ValNodeAction
 	Trade
 	TradeForSell
 	TradeForBuy
@@ -343,6 +347,32 @@ It has these top-level messages:
 	IterateRangeByStateHash
 	TicketStatistic
 	TicketMinerInfo
+	BlockID
+	TendermintBitArray
+	Vote
+	TendermintCommit
+	TendermintBlockInfo
+	BlockSize
+	TxSize
+	BlockGossip
+	EvidenceParams
+	ConsensusParams
+	Validator
+	ValidatorSet
+	State
+	DuplicateVoteEvidence
+	EvidenceEnvelope
+	EvidenceData
+	TendermintBlockHeader
+	TendermintBlock
+	Proposal
+	NewRoundStepMsg
+	CommitStepMsg
+	ProposalPOLMsg
+	HasVoteMsg
+	VoteSetMaj23Msg
+	VoteSetBitsMsg
+	Heartbeat
 	CreateTx
 	CreateTransactionGroup
 	UnsignTx
