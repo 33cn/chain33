@@ -4,10 +4,11 @@ import (
 	"os"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/common"
 	"fmt"
+
+	"github.com/stretchr/testify/assert"
+	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var store_cfg0 = &types.Store{"kvmvcc", "leveldb", "/tmp/kvdb_test0", 100}
@@ -154,11 +155,11 @@ func TestKvmvccdbRollbackBatch(t *testing.T) {
 	hash1 := make([]byte, len(hash))
 	copy(hash1, hash)
 	store.Commit(req)
-	for i := 1; i <= 202; i++{
+	for i := 1; i <= 202; i++ {
 		kvset = nil
 		datas1 := &types.StoreSet{hash1, datas.KV, datas.Height + int64(i)}
-		s1 := fmt.Sprintf("v1-%03d", datas.Height + int64(i))
-		s2 := fmt.Sprintf("v2-%03d", datas.Height + int64(i))
+		s1 := fmt.Sprintf("v1-%03d", datas.Height+int64(i))
+		s2 := fmt.Sprintf("v2-%03d", datas.Height+int64(i))
 		datas.KV[0].Value = []byte(s1)
 		datas.KV[1].Value = []byte(s2)
 		hash1 = calcHash(datas1)
@@ -177,10 +178,10 @@ func TestKvmvccdbRollbackBatch(t *testing.T) {
 		store.kvsetmap[string(hash1)] = kvset
 		req := &types.ReqHash{hash1}
 		store.Commit(req)
-		}
+	}
 
-	maxVersion , err := store.mvcc.GetMaxVersion()
-	assert.Equal(t, err, nil )
+	maxVersion, err := store.mvcc.GetMaxVersion()
+	assert.Equal(t, err, nil)
 	assert.Equal(t, int64(202), maxVersion)
 
 	keys := [][]byte{[]byte("mk1"), []byte("mk2")}
@@ -208,7 +209,6 @@ func TestKvmvccdbRollbackBatch(t *testing.T) {
 	assert.Len(t, values, 2)
 	assert.Equal(t, values2[0], kv2[0].Value)
 	assert.Equal(t, values2[1], kv2[1].Value)
-
 
 	datas3 := &types.StoreSet{hash, kv2, 2}
 	hash = store.MemSet(datas3, true)
