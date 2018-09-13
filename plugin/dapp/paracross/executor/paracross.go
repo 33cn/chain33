@@ -36,7 +36,7 @@ func newParacross() drivers.Driver {
 }
 
 func (c *Paracross) GetName() string {
-	return types.ExecName(types.ParaX)
+	return types.ParaX
 }
 
 func (c *Paracross) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
