@@ -124,7 +124,7 @@ func main() {
 
 	//check mvcc switch，if use kvmvcc then cfg.Exec.EnableMVCC should be always false.
 	if cfg.Store.Name == "kvmvcc" {
-		if cfg.Exec.EnableMVCC == true {
+		if cfg.Exec.EnableMVCC {
 			log.Error("store type is kvmvcc but enableMVCC is configured true.")
 			panic("store type is kvmvcc, configure item enableMVCC should be false.please check it.")
 		}
