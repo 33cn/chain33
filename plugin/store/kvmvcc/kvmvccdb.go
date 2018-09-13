@@ -168,12 +168,12 @@ func (mvccs *KVMVCCStore) saveKVSets(kvset []*types.KeyValue) {
 
 func (mvccs *KVMVCCStore) checkVersion(height int64) ([]*types.KeyValue, error) {
 	//检查新加入区块的height和现有的version的关系，来判断是否要回滚数据
-	maxVersion,err := mvccs.mvcc.GetMaxVersion()
+	maxVersion, err := mvccs.mvcc.GetMaxVersion()
 	if err != nil {
 		if err != types.ErrNotFound {
 			klog.Error("store kvmvcc checkVersion GetMaxVersion failed", "err", err)
 			panic(err)
-		}else {
+		} else {
 			maxVersion = -1
 		}
 	}
@@ -182,10 +182,10 @@ func (mvccs *KVMVCCStore) checkVersion(height int64) ([]*types.KeyValue, error) 
 	klog.Debug("store kvmvcc checkVersion ", "maxVersion", maxVersion, "currentVersion", height)
 
 	var kvset []*types.KeyValue
-	if maxVersion < height - 1 {
+	if maxVersion < height-1 {
 		klog.Error("store kvmvcc checkVersion found statehash lost", "maxVersion", maxVersion, "height", height)
 		return nil, types.ErrStateHashLost
-	} else if maxVersion == height -1 {
+	} else if maxVersion == height-1 {
 		return nil, nil
 	} else {
 		count := 1
