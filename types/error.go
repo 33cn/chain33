@@ -5,6 +5,8 @@ import (
 )
 
 var (
+	ErrExecBlockNil            = errors.New("ErrExecBlockNil")
+	ErrNotAllow                = errors.New("ErrNotAllow")
 	ErrCanOnlyDelTopVersion    = errors.New("ErrCanOnlyDelTopVersion")
 	ErrPrevVersion             = errors.New("ErrPrevVersion")
 	ErrNoExecerInMavlKey       = errors.New("ErrNoExecerInMavlKey")
@@ -230,6 +232,7 @@ var (
 	ErrSymbolNameNotAllow         = errors.New("ErrSymbolNameNotAllow")
 	ErrTxGroupNotSupport          = errors.New("ErrTxGroupNotSupport")
 	ErrNotAllowKey                = errors.New("ErrNotAllowKey")
+	ErrNotAllowMemSetKey          = errors.New("ErrNotAllowMemSetKey")
 	ErrDataBaseDamage             = errors.New("ErrDataBaseDamage")
 	ErrIndex                      = errors.New("ErrIndex")
 	// ring signature
@@ -274,6 +277,7 @@ var (
 	ErrInitializeAuthority = errors.New("ErrInitializeAuthority")
 	//rpc
 	ErrInvalidMainnetRpcAddr = errors.New("ErrInvalidMainnetRpcAddr")
+
 	// executor.paracross
 	ErrInvalidTitle         = errors.New("ErrInvalidTitle")
 	ErrTitleNotExist        = errors.New("ErrTitleNotExist")
@@ -284,4 +288,20 @@ var (
 	ErrParaVoteTxType       = errors.New("ErrParaVoteTxType")
 	ErrParaEmptyVoteTx      = errors.New("ErrParaEmptyVoteTx")
 	ErrParaVoteExecErr      = errors.New("ErrParaVoteExecErr")
+
+	//lottery
+	ErrLotteryStatus            = errors.New("ErrLotteryStatus")
+	ErrLotteryDrawActionInvalid = errors.New("ErrLotteryDrawActionInvalid")
+	ErrLotteryFundNotEnough     = errors.New("ErrLotteryFundNotEnough")
+	ErrLotteryCreatorBuy        = errors.New("ErrLotteryCreatorBuy")
+	ErrLotteryBuyAmount         = errors.New("ErrLotteryBuyAmount")
+	ErrLotteryRepeatHash        = errors.New("ErrLotteryRepeatHash")
+	ErrLotteryPurBlockLimit     = errors.New("ErrLotteryPurBlockLimit")
+	ErrLotteryDrawBlockLimit    = errors.New("ErrLotteryDrawBlockLimit")
+	ErrLotteryBuyNumber         = errors.New("ErrLotteryBuyNumber")
+	ErrLotteryShowRepeated      = errors.New("ErrLotteryShowRepeated")
+	ErrLotteryShowError         = errors.New("ErrLotteryShowError")
+	ErrLotteryErrLuckyNum       = errors.New("ErrLotteryErrLuckyNum")
+	ErrLotteryErrCloser         = errors.New("ErrLotteryErrCloser")
+	ErrLotteryErrUnableClose    = errors.New("ErrLotteryErrUnableClose")
 )

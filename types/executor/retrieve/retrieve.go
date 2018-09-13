@@ -10,20 +10,20 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var name string
+var nameX string
 
-var rlog = log.New("module", name)
+var rlog = log.New("module", types.RetrieveX)
 
 func Init() {
-	name = types.ExecName("retrieve")
+	nameX = types.ExecName(types.RetrieveX)
 	// init executor type
-	types.RegistorExecutor(name, &RetrieveType{})
+	types.RegistorExecutor(types.RetrieveX, &RetrieveType{})
 
 	// init log
 	//types.RegistorLog(types.TyLogDeposit, &CoinsDepositLog{})
 
 	// init query rpc
-	types.RegistorRpcType("GetRetrieveInfo", &RetrieveGetInfo{})
+	types.RegisterRPCQueryHandle("GetRetrieveInfo", &RetrieveGetInfo{})
 }
 
 type RetrieveType struct {
@@ -34,7 +34,7 @@ func (r RetrieveType) ActionName(tx *types.Transaction) string {
 	var action types.RetrieveAction
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
-		return "unknow-err"
+		return "unknown-err"
 	}
 	if action.Ty == types.RetrievePre && action.GetPreRet() != nil {
 		return "prepare"
@@ -45,7 +45,16 @@ func (r RetrieveType) ActionName(tx *types.Transaction) string {
 	} else if action.Ty == types.RetrieveCancel && action.GetCancel() != nil {
 		return "cancel"
 	}
-	return "unknow"
+	return "unknown"
+}
+
+func (retrieve RetrieveType) DecodePayload(tx *types.Transaction) (interface{}, error) {
+	var action types.RetrieveAction
+	err := types.Decode(tx.Payload, &action)
+	if err != nil {
+		return nil, err
+	}
+	return &action, nil
 }
 
 func (r RetrieveType) Amount(tx *types.Transaction) (int64, error) {
@@ -113,7 +122,7 @@ func (l CoinsDepositLog) Decode(msg []byte) (interface{}, error) {
 type RetrieveGetInfo struct {
 }
 
-func (t *RetrieveGetInfo) Input(message json.RawMessage) ([]byte, error) {
+func (t *RetrieveGetInfo) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.ReqRetrieveInfo
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -122,7 +131,7 @@ func (t *RetrieveGetInfo) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *RetrieveGetInfo) Output(reply interface{}) (interface{}, error) {
+func (t *RetrieveGetInfo) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
 
@@ -142,11 +151,11 @@ func CreateRawRetrieveBackupTx(parm *RetrieveBackupTx) (*types.Transaction, erro
 		Value: &types.RetrieveAction_Backup{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte(name),
+		Execer:  []byte(nameX),
 		Payload: types.Encode(backup),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(name),
+		To:      address.ExecAddress(nameX),
 	}
 
 	err := tx.SetRealFee(types.MinFee)
@@ -172,11 +181,11 @@ func CreateRawRetrievePrepareTx(parm *RetrievePrepareTx) (*types.Transaction, er
 		Value: &types.RetrieveAction_PreRet{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte(name),
+		Execer:  []byte(nameX),
 		Payload: types.Encode(prepare),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(name),
+		To:      address.ExecAddress(nameX),
 	}
 
 	err := tx.SetRealFee(types.MinFee)
@@ -202,11 +211,11 @@ func CreateRawRetrievePerformTx(parm *RetrievePerformTx) (*types.Transaction, er
 		Value: &types.RetrieveAction_PerfRet{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte(name),
+		Execer:  []byte(nameX),
 		Payload: types.Encode(perform),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(name),
+		To:      address.ExecAddress(nameX),
 	}
 
 	err := tx.SetRealFee(types.MinFee)
@@ -232,11 +241,11 @@ func CreateRawRetrieveCancelTx(parm *RetrieveCancelTx) (*types.Transaction, erro
 		Value: &types.RetrieveAction_Cancel{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte(name),
+		Execer:  []byte(nameX),
 		Payload: types.Encode(cancel),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(name),
+		To:      address.ExecAddress(nameX),
 	}
 
 	err := tx.SetRealFee(types.MinFee)

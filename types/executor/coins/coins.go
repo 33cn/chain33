@@ -10,13 +10,13 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var name string
-var tlog = log.New("module", name)
+var nameX string
+var tlog = log.New("module", "exectype.coins")
 
 func Init() {
-	name = types.ExecName("coins")
+	nameX = types.ExecName("coins")
 	// init executor type
-	types.RegistorExecutor(name, &CoinsType{})
+	types.RegistorExecutor("coins", &CoinsType{})
 
 	// init log
 	types.RegistorLog(types.TyLogDeposit, &CoinsDepositLog{})
@@ -33,9 +33,9 @@ func Init() {
 	types.RegistorLog(types.TyLogGenesisDeposit, &CoinsGenesisDepositLog{})
 
 	// init query rpc
-	types.RegistorRpcType("GetAddrReciver", &CoinsGetAddrReceiver{})
-	types.RegistorRpcType("GetAddrReceiver", &CoinsGetAddrReceiver{})
-	types.RegistorRpcType("GetTxsByAddr", &CoinsGetTxsByAddr{})
+	types.RegisterRPCQueryHandle("GetAddrReciver", &CoinsGetAddrReceiver{})
+	types.RegisterRPCQueryHandle("GetAddrReceiver", &CoinsGetAddrReceiver{})
+	types.RegisterRPCQueryHandle("GetTxsByAddr", &CoinsGetTxsByAddr{})
 }
 
 type CoinsType struct {
@@ -65,7 +65,7 @@ func (coins CoinsType) ActionName(tx *types.Transaction) string {
 	var action types.CoinsAction
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
-		return "unknow-err"
+		return "unknown-err"
 	}
 	if action.Ty == types.CoinsActionTransfer && action.GetTransfer() != nil {
 		return "transfer"
@@ -76,7 +76,16 @@ func (coins CoinsType) ActionName(tx *types.Transaction) string {
 	} else if action.Ty == types.CoinsActionTransferToExec && action.GetTransferToExec() != nil {
 		return "sendToExec"
 	}
-	return "unknow"
+	return "unknown"
+}
+
+func (coins CoinsType) DecodePayload(tx *types.Transaction) (interface{}, error) {
+	var action types.CoinsAction
+	err := types.Decode(tx.Payload, &action)
+	if err != nil {
+		return nil, err
+	}
+	return &action, nil
 }
 
 func (t CoinsType) Amount(tx *types.Transaction) (int64, error) {
@@ -109,7 +118,7 @@ func (coins CoinsType) CreateTx(action string, message json.RawMessage) (*types.
 		tlog.Error("CreateTx", "Error", err)
 		return nil, types.ErrInputPara
 	}
-	if param.ExecName != "" && !types.IsAllowExecName(param.ExecName) {
+	if param.ExecName != "" && !types.IsAllowExecName([]byte(param.ExecName), []byte(param.ExecName)) {
 		tlog.Error("CreateTx", "Error", types.ErrExecNameNotMatch)
 		return nil, types.ErrExecNameNotMatch
 	}
@@ -165,9 +174,9 @@ func CreateCoinsTransfer(param *types.CreateTx) *types.Transaction {
 		transfer.Ty = types.CoinsActionWithdraw
 	}
 	if types.IsPara() {
-		return &types.Transaction{Execer: []byte(name), Payload: types.Encode(transfer), To: address.ExecAddress(name)}
+		return &types.Transaction{Execer: []byte(nameX), Payload: types.Encode(transfer), To: address.ExecAddress(nameX)}
 	}
-	return &types.Transaction{Execer: []byte(name), Payload: types.Encode(transfer), To: param.GetTo()}
+	return &types.Transaction{Execer: []byte(nameX), Payload: types.Encode(transfer), To: param.GetTo()}
 }
 
 type CoinsDepositLog struct {
@@ -329,7 +338,7 @@ func (l CoinsGenesisDepositLog) Decode(msg []byte) (interface{}, error) {
 type CoinsGetAddrReceiver struct {
 }
 
-func (t *CoinsGetAddrReceiver) Input(message json.RawMessage) ([]byte, error) {
+func (t *CoinsGetAddrReceiver) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.ReqAddr
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -338,14 +347,14 @@ func (t *CoinsGetAddrReceiver) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *CoinsGetAddrReceiver) Output(reply interface{}) (interface{}, error) {
+func (t *CoinsGetAddrReceiver) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
 
 type CoinsGetTxsByAddr struct {
 }
 
-func (t *CoinsGetTxsByAddr) Input(message json.RawMessage) ([]byte, error) {
+func (t *CoinsGetTxsByAddr) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.ReqAddr
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -354,6 +363,6 @@ func (t *CoinsGetTxsByAddr) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *CoinsGetTxsByAddr) Output(reply interface{}) (interface{}, error) {
+func (t *CoinsGetTxsByAddr) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }

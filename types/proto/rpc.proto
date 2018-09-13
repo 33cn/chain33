@@ -9,8 +9,9 @@ import "account.proto";
 import "executor.proto";
 
 package types;
+option go_package = "gitlab.33.cn/chain33/chain33/types";
 
-service grpcservice {
+service chain33 {
     // chain33 对外提供服务的接口
     //区块链接口
     rpc GetBlocks(ReqBlocks) returns (Reply) {}

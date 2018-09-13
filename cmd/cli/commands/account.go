@@ -128,7 +128,7 @@ func balance(cmd *cobra.Command, args []string) {
 		ctx.Run()
 		return
 	}
-	if ok := types.IsAllowExecName(execer); !ok {
+	if ok := types.IsAllowExecName([]byte(execer), []byte(execer)); !ok {
 		fmt.Fprintln(os.Stderr, types.ErrExecNameNotAllow)
 		return
 	}

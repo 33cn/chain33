@@ -1,10 +1,11 @@
 package types
 
-var userKey = []byte("user.")
 var slash = []byte("-")
 var Debug = false
 
 const (
+	UserKeyX        = "user."
+	ParaKeyX        = "user.p."
 	CoinsX          = "coins"
 	TicketX         = "ticket"
 	HashlockX       = "hashlock"
@@ -20,30 +21,32 @@ const (
 	Normx           = "norm"
 	UserEvmX        = "user.evm."
 	CertX           = "cert"
-	GameX           = "game"
-	BlackwhiteX     = "blackwhite"
 	ParaX           = "paracross"
+	LotteryX        = "lottery"
+	ValNodeX        = "valnode"
 )
 
 var (
-	ExecerCoins      = []byte(CoinsX)
-	ExecerTicket     = []byte(TicketX)
-	ExecerManage     = []byte(ManageX)
-	ExecerToken      = []byte(TokenX)
-	ExecerEvm        = []byte(EvmX)
-	ExecerPrivacy    = []byte(PrivacyX)
-	ExecerRelay      = []byte(RelayX)
-	ExecerHashlock   = []byte(HashlockX)
-	ExecerRetrieve   = []byte(RetrieveX)
-	ExecerNone       = []byte(NoneX)
-	ExecerTrade      = []byte(TradeX)
-	ExecerNorm       = []byte(Normx)
-	ExecerConfig     = []byte("config")
-	ExecerCert       = []byte(CertX)
-	UserEvm          = []byte(UserEvmX)
-	ExecerGame       = []byte(GameX)
-	ExecerBlackwhite = []byte(BlackwhiteX)
-	ExecerPara       = []byte(ParaX)
+	ExecerCoins    = []byte(CoinsX)
+	ExecerTicket   = []byte(TicketX)
+	ExecerManage   = []byte(ManageX)
+	ExecerToken    = []byte(TokenX)
+	ExecerEvm      = []byte(EvmX)
+	ExecerPrivacy  = []byte(PrivacyX)
+	ExecerRelay    = []byte(RelayX)
+	ExecerHashlock = []byte(HashlockX)
+	ExecerRetrieve = []byte(RetrieveX)
+	ExecerNone     = []byte(NoneX)
+	ExecerTrade    = []byte(TradeX)
+	ExecerNorm     = []byte(Normx)
+	ExecerConfig   = []byte("config")
+	ExecerCert     = []byte(CertX)
+	UserEvm        = []byte(UserEvmX)
+	ExecerPara     = []byte(ParaX)
+	ExecerLottery  = []byte(LotteryX)
+	UserKey        = []byte(UserKeyX)
+	ParaKey        = []byte(ParaKeyX)
+	ExecerValNode  = []byte(ValNodeX)
 )
 
 const (
@@ -238,6 +241,12 @@ const (
 	TyLogBlackwhiteTimeout  = 753
 	TyLogBlackwhiteDone     = 754
 	TyLogBlackwhiteLoopInfo = 755
+
+	//log for lottery
+	TyLogLotteryCreate = 801
+	TyLogLotteryBuy    = 802
+	TyLogLotteryDraw   = 803
+	TyLogLotteryClose  = 804
 )
 
 //exec type
@@ -413,14 +422,6 @@ const (
 	RelayActionRcvBTCHeaders
 )
 
-// blackwhite action type
-const (
-	BlackwhiteActionCreate = iota
-	BlackwhiteActionPlay
-	BlackwhiteActionShow
-	BlackwhiteActionTimeoutDone
-)
-
 // RescanUtxoFlag
 const (
 	UtxoFlagNoScan  int32 = 0
@@ -433,14 +434,6 @@ var RescanFlagMapint2string = map[int32]string{
 	UtxoFlagScaning: "UtxoFlagScaning",
 	UtxoFlagScanEnd: "UtxoFlagScanEnd",
 }
-
-//game action ty
-const (
-	GameActionCreate = iota + 1
-	GameActionMatch
-	GameActionCancel
-	GameActionClose
-)
 
 //flag:
 var FlagTxQuickIndex = []byte("FLAG:FlagTxQuickIndex")
@@ -476,4 +469,25 @@ var EnableTxGroupParaFork = false
 const (
 	ParaCrossTransferActionTypeStart = 10000
 	ParaCrossTransferActionTypeEnd   = 10100
+)
+//Lottery op
+const (
+	LotteryActionCreate = 1 + iota
+	LotteryActionBuy
+	LotteryActionShow
+	LotteryActionDraw
+	LotteryActionClose
+)
+
+//Lottery status
+const (
+	LotteryCreated = 1 + iota
+	LotteryPurchase
+	LotteryDrawed
+	LotteryClosed
+)
+
+const (
+	ValNodeActionUpdate    = 1
+	ValNodeActionBlockInfo = 2
 )

@@ -39,7 +39,7 @@ func TestJSONClient_Call(t *testing.T) {
 	rpcCfg.Whitelist = []string{"127.0.0.1", "0.0.0.0"}
 	rpcCfg.JrpcFuncWhitelist = []string{"*"}
 	rpcCfg.GrpcFuncWhitelist = []string{"*"}
-	Init(rpcCfg)
+	InitCfg(rpcCfg)
 	server := NewJSONRPCServer(&qmocks.Client{})
 	assert.NotNil(t, server)
 
@@ -125,7 +125,6 @@ func TestJSONClient_Call(t *testing.T) {
 	server.Close()
 	mock.AssertExpectationsForObjects(t, api)
 }
-
 func TestGrpc_Call(t *testing.T) {
 	rpcCfg = new(types.Rpc)
 	rpcCfg.GrpcBindAddr = "127.0.0.1:8101"
@@ -134,7 +133,7 @@ func TestGrpc_Call(t *testing.T) {
 	rpcCfg.Whitelist = []string{"127.0.0.1", "0.0.0.0"}
 	rpcCfg.JrpcFuncWhitelist = []string{"*"}
 	rpcCfg.GrpcFuncWhitelist = []string{"*"}
-	Init(rpcCfg)
+	InitCfg(rpcCfg)
 	server := NewGRpcServer(&qmocks.Client{})
 	assert.NotNil(t, server)
 
@@ -154,7 +153,7 @@ func TestGrpc_Call(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, c)
 
-	client := types.NewGrpcserviceClient(c)
+	client := types.NewChain33Client(c)
 	result, err := client.IsSync(ctx, &types.ReqNil{})
 
 	assert.Nil(t, err)

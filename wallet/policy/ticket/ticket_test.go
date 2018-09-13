@@ -19,8 +19,10 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor"
 	"gitlab.33.cn/chain33/chain33/mempool"
 	"gitlab.33.cn/chain33/chain33/p2p"
+	_ "gitlab.33.cn/chain33/chain33/plugin"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/store"
+	_ "gitlab.33.cn/chain33/chain33/system"
 	"gitlab.33.cn/chain33/chain33/types"
 	wcom "gitlab.33.cn/chain33/chain33/wallet/common"
 )
@@ -291,7 +293,7 @@ type chain33Mock struct {
 	api     client.QueueProtocolAPI
 	chain   *blockchain.BlockChain
 	mem     *mempool.Mempool
-	cs      consensus.Consensus
+	cs      queue.Module
 	exec    *executor.Executor
 	wallet  queue.Module
 	network *p2p.P2p
