@@ -33,12 +33,12 @@ func (s *storeChild) Commit(hash *types.ReqHash) ([]byte, error) {
 	return []byte(""), nil
 }
 
-func (s *storeChild) Rollback(req *types.ReqHash) []byte {
-	return []byte("")
+func (s *storeChild) Rollback(req *types.ReqHash) ([]byte, error) {
+	return []byte(""), nil
 }
 
-func (s *storeChild) Del(req *types.StoreDel) []byte {
-	return []byte("")
+func (s *storeChild) Del(req *types.StoreDel) ([]byte, error) {
+	return []byte(""), nil
 }
 func (s *storeChild) IterateRangeByStateHash(statehash []byte, start []byte, end []byte, ascending bool, fn func(key, value []byte) bool) {
 
