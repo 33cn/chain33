@@ -25,6 +25,7 @@ type Driver interface {
 	GetCoinsAccount() *account.DB
 	SetLocalDB(dbm.KVDB)
 	GetName() string
+	// 不能依赖任何数据库相关，只和交易相关
 	Allow(tx *types.Transaction, index int) error
 	GetActionName(tx *types.Transaction) string
 	SetEnv(height, blocktime int64, difficulty uint64)
