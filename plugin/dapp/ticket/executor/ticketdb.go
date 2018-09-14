@@ -99,7 +99,8 @@ type Action struct {
 func NewAction(t *Ticket, tx *types.Transaction) *Action {
 	hash := tx.Hash()
 	fromaddr := tx.From()
-	return &Action{t.GetCoinsAccount(), t.GetStateDB(), hash, fromaddr, t.GetBlockTime(), t.GetHeight(), t.GetAddr()}
+	return &Action{t.GetCoinsAccount(), t.GetStateDB(), hash, fromaddr,
+	t.GetBlockTime(), t.GetHeight(), address.ExecAddress(string(tx.Execer))}
 }
 
 func (action *Action) GenesisInit(genesis *types.TicketGenesis) (*types.Receipt, error) {
