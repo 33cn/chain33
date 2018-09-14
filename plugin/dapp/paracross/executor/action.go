@@ -421,7 +421,7 @@ func (a *action) assetTransferCoins(transfer *types.CoinsTransfer) (*types.Recei
 		execAddr := address.ExecAddress(string(a.tx.Execer))
 		clog.Debug("paracross.AssetTransfer isPara", "execer", string(a.tx.Execer),
 			"txHash", common.Bytes2Hex(a.tx.Hash()))
-		return accDB.ParaAssetTransfer(transfer.To, transfer.Amount, execAddr)
+		return ParaAssetTransfer(accDB, transfer.To, transfer.Amount, execAddr)
 	}
 }
 
@@ -448,7 +448,7 @@ func (a *action) assetWithdrawCoins(withdraw *types.CoinsWithdraw, withdrawTx *t
 		return accDB.ExecTransfer(fromAddr, withdraw.To, execAddr, withdraw.Amount)
 	} else {
 		execAddr := address.ExecAddress(string(withdrawTx.Execer))
-		return accDB.ParaAssetWithdraw(a.fromaddr, withdraw.Amount, execAddr)
+		return ParaAssetWithdraw(accDB, a.fromaddr, withdraw.Amount, execAddr)
 	}
 }
 
