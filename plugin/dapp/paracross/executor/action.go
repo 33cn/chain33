@@ -9,7 +9,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/plugin/dapp/evm/executor/vm/common"
 	"gitlab.33.cn/chain33/chain33/types"
 	pt "gitlab.33.cn/chain33/chain33/types/executor/paracross"
-	"gitlab.33.cn/chain33/chain33/common/address"
+	"gitlab.33.cn/chain33/chain33/system/dapp"
 )
 
 type action struct {
@@ -28,7 +28,7 @@ func newAction(t *Paracross, tx *types.Transaction) *action {
 	hash := tx.Hash()
 	fromaddr := tx.From()
 	return &action{t.GetCoinsAccount(), t.GetStateDB(), t.GetLocalDB(), hash, fromaddr,
-		t.GetBlockTime(), t.GetHeight(), address.ExecAddress(string(tx.Execer)), t.GetApi()}
+		t.GetBlockTime(), t.GetHeight(), dapp.ExecAddress(string(tx.Execer)), t.GetApi()}
 }
 
 func getNodes(db dbm.KV, title string) ([]string, error) {
