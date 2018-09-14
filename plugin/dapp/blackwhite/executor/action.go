@@ -11,6 +11,7 @@ import (
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	gt "gitlab.33.cn/chain33/chain33/plugin/dapp/blackwhite/types"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/common/address"
 )
 
 const (
@@ -54,7 +55,7 @@ func newAction(t *Blackwhite, tx *types.Transaction, index int32) *action {
 	hash := tx.Hash()
 	fromaddr := tx.From()
 	return &action{t.GetCoinsAccount(), t.GetStateDB(), hash, fromaddr,
-		t.GetBlockTime(), t.GetHeight(), index, t.GetAddr()}
+		t.GetBlockTime(), t.GetHeight(), index, address.ExecAddress(string(tx.Execer))}
 }
 
 func (a *action) Create(create *gt.BlackwhiteCreate) (*types.Receipt, error) {

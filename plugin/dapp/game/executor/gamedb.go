@@ -12,6 +12,7 @@ import (
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	gt "gitlab.33.cn/chain33/chain33/plugin/dapp/game/types"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/common/address"
 )
 
 const (
@@ -159,7 +160,8 @@ type Action struct {
 func NewAction(g *Game, tx *types.Transaction, index int) *Action {
 	hash := tx.Hash()
 	fromaddr := tx.From()
-	return &Action{g.GetCoinsAccount(), g.GetStateDB(), hash, fromaddr, g.GetBlockTime(), g.GetHeight(), g.GetAddr(), g.GetLocalDB(), index}
+	return &Action{g.GetCoinsAccount(), g.GetStateDB(), hash, fromaddr,
+	g.GetBlockTime(), g.GetHeight(), address.ExecAddress(string(tx.Execer)), g.GetLocalDB(), index}
 }
 func (action *Action) CheckExecAccountBalance(fromAddr string, ToFrozen, ToActive int64) bool {
 	acc := action.coinsAccount.LoadExecAccount(fromAddr, action.execaddr)

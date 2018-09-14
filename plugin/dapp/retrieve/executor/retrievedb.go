@@ -87,7 +87,8 @@ type Action struct {
 func NewRetrieveAcction(r *Retrieve, tx *types.Transaction) *Action {
 	hash := tx.Hash()
 	fromaddr := tx.From()
-	return &Action{r.GetCoinsAccount(), r.GetStateDB(), hash, fromaddr, r.GetBlockTime(), r.GetHeight(), r.GetAddr()}
+	return &Action{r.GetCoinsAccount(), r.GetStateDB(), hash, fromaddr,
+	r.GetBlockTime(), r.GetHeight(), address.ExecAddress(string(tx.Execer))}
 }
 
 //wait for valuable comment
