@@ -325,14 +325,17 @@ func (m *SimpleMVCC) AddMVCC(kvs []*types.KeyValue, hash []byte, prevHash []byte
 //我们目前规定删除的方法:
 //1 -> 1-2-3-4-5,6 version 必须连续的增长
 //2 -> del 也必须从尾部开始删除
-func (m *SimpleMVCC) DelMVCC(hash []byte, version int64) ([]*types.KeyValue, error) {
-	maxv, err := m.GetMaxVersion()
-	if err != nil {
-		return nil, err
+func (m *SimpleMVCC) DelMVCC(hash []byte, version int64, strict bool) ([]*types.KeyValue, error) {
+	if strict {
+		maxv, err := m.GetMaxVersion()
+		if err != nil {
+			return nil, err
+		}
+		if maxv != version {
+			return nil, types.ErrCanOnlyDelTopVersion
+		}
 	}
-	if maxv != version {
-		return nil, types.ErrCanOnlyDelTopVersion
-	}
+
 	//check hash and version is match
 	vdb, err := m.GetVersion(hash)
 	if err != nil {
