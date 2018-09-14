@@ -89,7 +89,7 @@ func NewRetrieveAcction(r *Retrieve, tx *types.Transaction) *Action {
 	hash := tx.Hash()
 	fromaddr := tx.From()
 	return &Action{r.GetCoinsAccount(), r.GetStateDB(), hash, fromaddr,
-	r.GetBlockTime(), r.GetHeight(), dapp.ExecAddress(string(tx.Execer))}
+		r.GetBlockTime(), r.GetHeight(), dapp.ExecAddress(string(tx.Execer))}
 }
 
 //wait for valuable comment

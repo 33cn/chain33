@@ -7,9 +7,9 @@ import (
 	"gitlab.33.cn/chain33/chain33/client"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/plugin/dapp/evm/executor/vm/common"
+	"gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
 	pt "gitlab.33.cn/chain33/chain33/types/executor/paracross"
-	"gitlab.33.cn/chain33/chain33/system/dapp"
 )
 
 type action struct {
