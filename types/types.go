@@ -23,6 +23,12 @@ const Size_1K_shiftlen uint = 10
 
 type Message proto.Message
 
+type Query4Cli struct {
+	Execer   string      `json:"execer"`
+	FuncName string      `json:"funcName"`
+	Payload  interface{} `json:"payload"`
+}
+
 //交易组的接口，Transactions 和 Transaction 都符合这个接口
 type TxGroup interface {
 	Tx() *Transaction

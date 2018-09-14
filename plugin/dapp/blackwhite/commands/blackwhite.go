@@ -7,9 +7,8 @@ import (
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/common"
 	gt "gitlab.33.cn/chain33/chain33/plugin/dapp/blackwhite/types"
-	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
+	jsonrpc "gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/util"
 )
 
 func BlackwhiteCmd() *cobra.Command {
@@ -76,7 +75,7 @@ func blackwhiteCreate(cmd *cobra.Command, args []string) {
 	}
 
 	var res string
-	ctx := util.NewRpcCtx(rpcLaddr, "Blackwhite.BlackwhiteCreateTx", params, &res)
+	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "Blackwhite.BlackwhiteCreateTx", params, &res)
 	ctx.RunWithoutMarshal()
 }
 
@@ -135,7 +134,7 @@ func blackwhitePlay(cmd *cobra.Command, args []string) {
 		Fee:        feeInt64,
 	}
 	var res string
-	ctx := util.NewRpcCtx(rpcLaddr, "Blackwhite.BlackwhitePlayTx", params, &res)
+	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "Blackwhite.BlackwhitePlayTx", params, &res)
 	ctx.RunWithoutMarshal()
 }
 
@@ -173,7 +172,7 @@ func blackwhiteShow(cmd *cobra.Command, args []string) {
 		Fee:    feeInt64,
 	}
 	var res string
-	ctx := util.NewRpcCtx(rpcLaddr, "Blackwhite.BlackwhiteShowTx", params, &res)
+	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "Blackwhite.BlackwhiteShowTx", params, &res)
 	ctx.RunWithoutMarshal()
 }
 
@@ -205,7 +204,7 @@ func blackwhiteTimeoutDone(cmd *cobra.Command, args []string) {
 		Fee:    feeInt64,
 	}
 	var res string
-	ctx := util.NewRpcCtx(rpcLaddr, "Blackwhite.BlackwhiteTimeoutDoneTx", params, &res)
+	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "Blackwhite.BlackwhiteTimeoutDoneTx", params, &res)
 	ctx.RunWithoutMarshal()
 }
 
@@ -248,7 +247,7 @@ func showBlackwhiteInfo(cmd *cobra.Command, args []string) {
 
 	loopSeq, _ := cmd.Flags().GetUint32("loopSeq")
 
-	var params jsonrpc.Query4Cli
+	var params types.Query4Cli
 
 	var rep interface{}
 
@@ -281,6 +280,6 @@ func showBlackwhiteInfo(cmd *cobra.Command, args []string) {
 		rep = &gt.ReplyLoopResults{}
 	}
 
-	ctx := util.NewRpcCtx(rpcLaddr, "Chain33.Query", params, rep)
+	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "Chain33.Query", params, rep)
 	ctx.Run()
 }
