@@ -16,6 +16,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/crypto/sha3"
 	common2 "gitlab.33.cn/chain33/chain33/plugin/dapp/evm/executor/vm/common"
 	"gitlab.33.cn/chain33/chain33/rpc"
+	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -200,7 +201,7 @@ func createEvmTx(action proto.Message, execer, caller, addr, expire, rpcLaddr st
 	}
 
 	var res string
-	client, err := rpc.NewJSONClient(rpcLaddr)
+	client, err := jsonclient.NewJSONClient(rpcLaddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return "", err
@@ -251,7 +252,7 @@ func createEvmTransferTx(cmd *cobra.Command, caller, execName, expire, rpcLaddr 
 	}
 
 	var res string
-	client, err := rpc.NewJSONClient(rpcLaddr)
+	client, err := jsonclient.NewJSONClient(rpcLaddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return "", err
@@ -588,13 +589,13 @@ func evmWithdraw(cmd *cobra.Command, args []string) {
 }
 
 func sendQuery(rpcAddr, funcName string, request, result interface{}) bool {
-	params := rpc.Query4Cli{
+	params := types.Query4Cli{
 		Execer:   "evm",
 		FuncName: funcName,
 		Payload:  request,
 	}
 
-	rpc, err := rpc.NewJSONClient(rpcAddr)
+	rpc, err := jsonclient.NewJSONClient(rpcAddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return false
