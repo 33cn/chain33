@@ -115,17 +115,17 @@ func (mvccs *KVMVCCStore) Commit(req *types.ReqHash) ([]byte, error) {
 	return req.Hash, nil
 }
 
-func (mvccs *KVMVCCStore) Rollback(req *types.ReqHash) []byte {
+func (mvccs *KVMVCCStore) Rollback(req *types.ReqHash) ([]byte, error) {
 	_, ok := mvccs.kvsetmap[string(req.Hash)]
 	if !ok {
 		klog.Error("store kvmvcc rollback", "err", types.ErrHashNotFound)
-		return nil
+		return nil, types.ErrHashNotFound
 	}
 
 	klog.Debug("KVMVCCStore Rollback", "hash", common.ToHex(req.Hash))
 
 	delete(mvccs.kvsetmap, string(req.Hash))
-	return req.Hash
+	return req.Hash, nil
 }
 
 func (mvccs *KVMVCCStore) IterateRangeByStateHash(statehash []byte, start []byte, end []byte, ascending bool, fn func(key, value []byte) bool) {
@@ -137,16 +137,16 @@ func (mvccs *KVMVCCStore) ProcEvent(msg queue.Message) {
 	msg.ReplyErr("KVStore", types.ErrActionNotSupport)
 }
 
-func (mvccs *KVMVCCStore) Del(req *types.StoreDel) []byte {
-	kvset, err := mvccs.mvcc.DelMVCC(req.StateHash, req.Height)
+func (mvccs *KVMVCCStore) Del(req *types.StoreDel) ([]byte, error) {
+	kvset, err := mvccs.mvcc.DelMVCC(req.StateHash, req.Height, true)
 	if err != nil {
 		klog.Error("store kvmvcc del", "err", err)
-		return nil
+		return nil, err
 	}
 
 	klog.Info("KVMVCCStore Del", "hash", common.ToHex(req.StateHash), "height", req.Height)
 	mvccs.saveKVSets(kvset)
-	return req.StateHash
+	return req.StateHash, nil
 }
 
 func (mvccs *KVMVCCStore) saveKVSets(kvset []*types.KeyValue) {
