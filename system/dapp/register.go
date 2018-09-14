@@ -61,6 +61,20 @@ func LoadDriver(name string, height int64) (driver Driver, err error) {
 	return nil, types.ErrUnknowDriver
 }
 
+func LoadDriverAllow(tx *types.Transaction, index int, height int64) (driver Driver) {
+	exec, err := LoadDriver(string(tx.Execer), height)
+	if err == nil {
+		err = exec.Allow(tx, index)
+	}
+	if err != nil {
+		exec, err = LoadDriver("none", height)
+		if err != nil {
+			panic(err)
+		}
+	}
+	return exec
+}
+
 func IsDriverAddress(addr string, height int64) bool {
 	c, ok := execDrivers[addr]
 	if !ok {

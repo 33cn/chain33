@@ -9,6 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
+	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	"gitlab.33.cn/chain33/chain33/types"
 	tokentype "gitlab.33.cn/chain33/chain33/types/executor/token"
 )
@@ -136,11 +137,11 @@ func getPreCreatedTokens(cmd *cobra.Command, args []string) {
 	var reqtokens types.ReqTokens
 	reqtokens.Status = types.TokenStatusPreCreated
 	reqtokens.QueryAll = true
-	var params jsonrpc.Query4Cli
+	var params types.Query4Cli
 	params.Execer = getRealExecName(paraName, "token")
 	params.FuncName = "GetTokens"
 	params.Payload = reqtokens
-	rpc, err := jsonrpc.NewJSONClient(rpcLaddr)
+	rpc, err := jsonclient.NewJSONClient(rpcLaddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -183,11 +184,11 @@ func getFinishCreatedTokens(cmd *cobra.Command, args []string) {
 	var reqtokens types.ReqTokens
 	reqtokens.Status = types.TokenStatusCreated
 	reqtokens.QueryAll = true
-	var params jsonrpc.Query4Cli
+	var params types.Query4Cli
 	params.Execer = getRealExecName(paraName, "token")
 	params.FuncName = "GetTokens"
 	params.Payload = reqtokens
-	rpc, err := jsonrpc.NewJSONClient(rpcLaddr)
+	rpc, err := jsonclient.NewJSONClient(rpcLaddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -244,7 +245,7 @@ func tokenAssets(cmd *cobra.Command, args []string) {
 		Execer:  execer,
 	}
 
-	var params jsonrpc.Query4Cli
+	var params types.Query4Cli
 	params.Execer = getRealExecName(paraName, "token")
 	params.FuncName = "GetAccountTokenAssets"
 	params.Payload = req

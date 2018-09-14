@@ -9,6 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
+	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -68,12 +69,12 @@ func showBtcHeadHeightList(cmd *cobra.Command, args []string) {
 	reqList.Counts = count
 	reqList.Direction = direct
 
-	params := jsonrpc.Query4Cli{
+	params := types.Query4Cli{
 		Execer:   "relay",
 		FuncName: "GetBTCHeaderList",
 		Payload:  reqList,
 	}
-	rpc, err := jsonrpc.NewJSONClient(rpcLaddr)
+	rpc, err := jsonclient.NewJSONClient(rpcLaddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -111,12 +112,12 @@ func showBtcHeadCurHeight(cmd *cobra.Command, args []string) {
 	var reqList types.ReqRelayQryBTCHeadHeight
 	reqList.BaseHeight = base
 
-	params := jsonrpc.Query4Cli{
+	params := types.Query4Cli{
 		Execer:   "relay",
 		FuncName: "GetBTCHeaderCurHeight",
 		Payload:  reqList,
 	}
-	rpc, err := jsonrpc.NewJSONClient(rpcLaddr)
+	rpc, err := jsonclient.NewJSONClient(rpcLaddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -161,12 +162,12 @@ func showOnesRelayOrders(cmd *cobra.Command, args []string) {
 	if 0 != len(coins) {
 		reqAddrCoins.Coins = append(reqAddrCoins.Coins, coins...)
 	}
-	params := jsonrpc.Query4Cli{
+	params := types.Query4Cli{
 		Execer:   "relay",
 		FuncName: "GetSellRelayOrder",
 		Payload:  reqAddrCoins,
 	}
-	rpc, err := jsonrpc.NewJSONClient(rpcLaddr)
+	rpc, err := jsonclient.NewJSONClient(rpcLaddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -210,12 +211,12 @@ func showRelayAcceptOrders(cmd *cobra.Command, args []string) {
 	if 0 != len(coins) {
 		reqAddrCoins.Coins = append(reqAddrCoins.Coins, coins...)
 	}
-	params := jsonrpc.Query4Cli{
+	params := types.Query4Cli{
 		Execer:   "relay",
 		FuncName: "GetBuyRelayOrder",
 		Payload:  reqAddrCoins,
 	}
-	rpc, err := jsonrpc.NewJSONClient(rpcLaddr)
+	rpc, err := jsonclient.NewJSONClient(rpcLaddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -264,12 +265,12 @@ func showCoinRelayOrders(cmd *cobra.Command, args []string) {
 	if 0 != len(coins) {
 		reqAddrCoins.Coins = append(reqAddrCoins.Coins, coins...)
 	}
-	params := jsonrpc.Query4Cli{
+	params := types.Query4Cli{
 		Execer:   "relay",
 		FuncName: "GetRelayOrderByStatus",
 		Payload:  reqAddrCoins,
 	}
-	rpc, err := jsonrpc.NewJSONClient(rpcLaddr)
+	rpc, err := jsonclient.NewJSONClient(rpcLaddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
