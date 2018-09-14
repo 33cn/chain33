@@ -36,8 +36,8 @@ type SubStore interface {
 	Get(datas *types.StoreGet) [][]byte
 	MemSet(datas *types.StoreSet, sync bool) []byte
 	Commit(hash *types.ReqHash) ([]byte, error)
-	Rollback(req *types.ReqHash) []byte
-	Del(req *types.StoreDel) []byte
+	Rollback(req *types.ReqHash) ([]byte, error)
+	Del(req *types.StoreDel) ([]byte, error)
 	IterateRangeByStateHash(statehash []byte, start []byte, end []byte, ascending bool, fn func(key, value []byte) bool)
 	ProcEvent(msg queue.Message)
 }
@@ -101,8 +101,8 @@ func (store *BaseStore) processMessage(msg queue.Message) {
 		}
 	} else if msg.Ty == types.EventStoreRollback {
 		req := msg.GetData().(*types.ReqHash)
-		hash := store.child.Rollback(req)
-		if hash == nil {
+		hash, err := store.child.Rollback(req)
+		if err != nil {
 			msg.Reply(client.NewMessage("", types.EventStoreRollback, types.ErrHashNotFound))
 		} else {
 			msg.Reply(client.NewMessage("", types.EventStoreRollback, &types.ReplyHash{hash}))
@@ -115,8 +115,8 @@ func (store *BaseStore) processMessage(msg queue.Message) {
 		msg.Reply(client.NewMessage("", types.EventGetTotalCoinsReply, resp))
 	} else if msg.Ty == types.EventStoreDel {
 		req := msg.GetData().(*types.StoreDel)
-		hash := store.child.Del(req)
-		if hash == nil {
+		hash, err := store.child.Del(req)
+		if err != nil {
 			msg.Reply(client.NewMessage("", types.EventStoreDel, types.ErrHashNotFound))
 		} else {
 			msg.Reply(client.NewMessage("", types.EventStoreDel, &types.ReplyHash{hash}))

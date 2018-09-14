@@ -108,14 +108,14 @@ func (kvs *KVStore) Commit(req *types.ReqHash) ([]byte, error) {
 	return req.Hash, nil
 }
 
-func (kvs *KVStore) Rollback(req *types.ReqHash) []byte {
+func (kvs *KVStore) Rollback(req *types.ReqHash) ([]byte, error) {
 	_, ok := kvs.cache[string(req.Hash)]
 	if !ok {
 		klog.Error("store kvdb rollback", "err", types.ErrHashNotFound)
-		return nil
+		return nil, types.ErrHashNotFound
 	}
 	delete(kvs.cache, string(req.Hash))
-	return req.Hash
+	return req.Hash, nil
 }
 
 func (kvs *KVStore) IterateRangeByStateHash(statehash []byte, start []byte, end []byte, ascending bool, fn func(key, value []byte) bool) {
@@ -128,9 +128,9 @@ func (kvs *KVStore) ProcEvent(msg queue.Message) {
 	msg.ReplyErr("KVStore", types.ErrActionNotSupport)
 }
 
-func (kvs *KVStore) Del(req *types.StoreDel) []byte {
+func (kvs *KVStore) Del(req *types.StoreDel) ([]byte, error) {
 	//not support
-	return nil
+	return nil, nil
 }
 
 func (kvs *KVStore) save(kvmap map[string]*types.KeyValue) {
