@@ -355,9 +355,9 @@ func (client *CommitMsgClient) getNodeStatus(start, end int64) ([]*types.Paracro
 		if err != nil {
 			return nil, err
 		}
-		if !(status.Height >= req.Start && status.Height <= req.End) || status.MainBlockHash == nil {
-			plog.Error("paracommitmsg decode node status", "height", status.Height, "mainheight", status.MainBlockHeight,
-				"mainhash", common.HashHex(status.MainBlockHash), "expect start", req.Start, "end", req.End, "status", status)
+		if !(status.Height >= req.Start && status.Height <= req.End) {
+			plog.Error("paracommitmsg decode node status", "height", status.Height, "expect start", req.Start,
+				"end", req.End, "status", status)
 			return nil, errors.New("paracommitmsg wrong key result")
 		}
 		nodeList[status.Height] = status

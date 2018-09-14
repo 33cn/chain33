@@ -384,6 +384,7 @@ func (s *VoteTestSuite) TestVoteTx() {
 	status := &types.ParacrossNodeStatus{
 		MainBlockHash:   MainBlockHash10,
 		MainBlockHeight: MainBlockHeight,
+		PreBlockHash:    PerBlock,
 		Height:          CurHeight,
 		Title:           Title,
 	}

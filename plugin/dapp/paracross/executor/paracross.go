@@ -77,6 +77,9 @@ func (c *Paracross) Exec(tx *types.Transaction, index int) (*types.Receipt, erro
 		if index != 0 {
 			return nil, types.ErrParaVoteBaseIndex
 		}
+		if !types.IsPara() {
+			return nil, types.ErrNotSupport
+		}
 		a := newAction(c, tx)
 		return a.Vote(payload.GetVote())
 	}
