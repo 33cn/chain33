@@ -14,4 +14,3 @@ func ParaAssetWithdraw(acc *account.DB, addr string, amount int64, execaddr stri
 	receipt, err := acc.ExecWithdraw(execaddr, addr, amount)
 	return receipt, err
 }
-
