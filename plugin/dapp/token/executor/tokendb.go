@@ -8,6 +8,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/account"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/common/address"
 )
 
 type tokenDB struct {
@@ -85,7 +86,7 @@ func newTokenAction(t *token, toaddr string, tx *types.Transaction) *tokenAction
 	hash := tx.Hash()
 	fromaddr := tx.From()
 	return &tokenAction{t.GetCoinsAccount(), t.GetStateDB(), hash, fromaddr, toaddr,
-		t.GetBlockTime(), t.GetHeight(), t.GetAddr()}
+		t.GetBlockTime(), t.GetHeight(), address.ExecAddress(string(tx.Execer))}
 }
 
 func (action *tokenAction) preCreate(token *types.TokenPreCreate) (*types.Receipt, error) {

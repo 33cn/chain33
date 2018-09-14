@@ -25,6 +25,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/common/address"
 )
 
 var privacylog = log.New("module", "execs.privacy")
@@ -72,7 +73,7 @@ func (p *privacy) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 		if types.BTY == public2Privacy.Tokenname {
 			coinsAccount := p.GetCoinsAccount()
 			from := tx.From()
-			receipt, err := coinsAccount.ExecWithdraw(p.GetAddr(), from, public2Privacy.Amount)
+			receipt, err := coinsAccount.ExecWithdraw(address.ExecAddress(string(tx.Execer)), from, public2Privacy.Amount)
 			if err != nil {
 				privacylog.Error("PrivacyTrading Exec", "txhash", txhashstr, "ExecWithdraw error ", err)
 				return nil, err
@@ -154,7 +155,7 @@ func (p *privacy) Exec(tx *types.Transaction, index int) (*types.Receipt, error)
 		privacy2public := action.GetPrivacy2Public()
 		if types.BTY == privacy2public.Tokenname {
 			coinsAccount := p.GetCoinsAccount()
-			receipt, err := coinsAccount.ExecDeposit(tx.To, p.GetAddr(), privacy2public.Amount)
+			receipt, err := coinsAccount.ExecDeposit(tx.To, address.ExecAddress(string(tx.Execer)), privacy2public.Amount)
 			if err != nil {
 				privacylog.Error("PrivacyTrading Exec", "ActionPrivacy2Public txhash", txhashstr, "ExecDeposit error ", err)
 				return nil, err
