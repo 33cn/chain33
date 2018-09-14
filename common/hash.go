@@ -88,7 +88,7 @@ func ToHex(b []byte) string {
 	hex := Bytes2Hex(b)
 	// Prefer output of "0x0" instead of "0x"
 	if len(hex) == 0 {
-		hex = "0"
+		return ""
 	}
 	return "0x" + hex
 }
@@ -109,7 +109,7 @@ func FromHex(s string) ([]byte, error) {
 		}
 		return Hex2Bytes(s)
 	}
-	return nil, nil
+	return []byte{}, nil
 }
 
 // Copy bytes
