@@ -11,6 +11,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/client/mocks"
 	slog "gitlab.33.cn/chain33/chain33/common/log"
 	qmock "gitlab.33.cn/chain33/chain33/queue/mocks"
+	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
 	_ "gitlab.33.cn/chain33/chain33/types/executor"
 	exec "gitlab.33.cn/chain33/chain33/types/executor"
@@ -54,7 +55,7 @@ func testCreateRawTransactionExecNameErr(t *testing.T) {
 }
 
 func testCreateRawTransactionAmoutErr(t *testing.T) {
-	tx := types.CreateTx{ExecName: types.ExecName(types.CoinsX), Amount: -1, To: "1MY4pMgjpS2vWiaSDZasRhN47pcwEire32"}
+	tx := types.CreateTx{ExecName: types.ExecName(cty.CoinsX), Amount: -1, To: "1MY4pMgjpS2vWiaSDZasRhN47pcwEire32"}
 
 	client := newTestChannelClient()
 	_, err := client.CreateRawTransaction(&tx)
@@ -71,15 +72,15 @@ func testCreateRawTransactionCoinTransfer(t *testing.T) {
 		Note:       "note",
 	}
 
-	//v := &types.CoinsAction_Transfer{
-	//	Transfer:&types.CoinsTransfer{
+	//v := &cty.CoinsAction_Transfer{
+	//	Transfer:&cty.CoinsTransfer{
 	//		Amount:ctx.Amount,
 	//		Note:ctx.To,
 	//	},
 	//}
-	//transfer := &types.CoinsAction{
+	//transfer := &cty.CoinsAction{
 	//	Value:v,
-	//	Ty:types.CoinsActionTransfer,
+	//	Ty:cty.CoinsActionTransfer,
 	//}
 	//
 	//tx := &types.Transaction{
@@ -93,11 +94,11 @@ func testCreateRawTransactionCoinTransfer(t *testing.T) {
 	assert.Nil(t, err)
 	var tx types.Transaction
 	types.Decode(txHex, &tx)
-	assert.Equal(t, []byte(types.ExecName(types.CoinsX)), tx.Execer)
+	assert.Equal(t, []byte(types.ExecName(cty.CoinsX)), tx.Execer)
 
-	var transfer types.CoinsAction
+	var transfer cty.CoinsAction
 	types.Decode(tx.Payload, &transfer)
-	assert.Equal(t, int32(types.CoinsActionTransfer), transfer.Ty)
+	assert.Equal(t, int32(cty.CoinsActionTransfer), transfer.Ty)
 }
 
 func testCreateRawTransactionCoinTransferExec(t *testing.T) {
@@ -115,11 +116,11 @@ func testCreateRawTransactionCoinTransferExec(t *testing.T) {
 	assert.Nil(t, err)
 	var tx types.Transaction
 	types.Decode(txHex, &tx)
-	assert.Equal(t, []byte(types.ExecName(types.CoinsX)), tx.Execer)
+	assert.Equal(t, []byte(types.ExecName(cty.CoinsX)), tx.Execer)
 
-	var transfer types.CoinsAction
+	var transfer cty.CoinsAction
 	types.Decode(tx.Payload, &transfer)
-	assert.Equal(t, int32(types.CoinsActionTransferToExec), transfer.Ty)
+	assert.Equal(t, int32(cty.CoinsActionTransferToExec), transfer.Ty)
 }
 
 func testCreateRawTransactionCoinWithdraw(t *testing.T) {
@@ -137,11 +138,11 @@ func testCreateRawTransactionCoinWithdraw(t *testing.T) {
 	assert.Nil(t, err)
 	var tx types.Transaction
 	types.Decode(txHex, &tx)
-	assert.Equal(t, []byte(types.ExecName(types.CoinsX)), tx.Execer)
+	assert.Equal(t, []byte(types.ExecName(cty.CoinsX)), tx.Execer)
 
-	var transfer types.CoinsAction
+	var transfer cty.CoinsAction
 	types.Decode(tx.Payload, &transfer)
-	assert.Equal(t, int32(types.CoinsActionWithdraw), transfer.Ty)
+	assert.Equal(t, int32(cty.CoinsActionWithdraw), transfer.Ty)
 }
 
 func testCreateRawTransactionTokenTransfer(t *testing.T) {
