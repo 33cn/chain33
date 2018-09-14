@@ -8,19 +8,16 @@ import (
 
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common/address"
-	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var nameX string
 var tlog = log.New("module", "exectype.coins")
-var funclist = make(map[string]reflect.Method)
+var actionFunList = make(map[string]reflect.Method)
+var executorFunList = make(map[string]reflect.Method)
 
 func InitType() {
-	action := &cty.CoinsAction{}
-	_, _, _, f := action.XXX_OneofFuncs()
-	funclist = drivers.ListMethod(action, f)
 
 	nameX = types.ExecName("coins")
 	// init executor type

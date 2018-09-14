@@ -27,6 +27,15 @@ func Init() {
 	InitType()
 }
 
+//初始化函数列表，可以提升反射调用的速度
+func init() {
+	actionFunList = drivers.ListMethod(&cty.CoinsAction{})
+	executorFunList = drivers.ListMethod(&Coins{})
+	for k, v := range actionFunList {
+		executorFunList[k] = v
+	}
+}
+
 func GetName() string {
 	return newCoins().GetName()
 }
@@ -63,7 +72,7 @@ func (c *Coins) GetTypeMap() map[string]int32 {
 }
 
 func (c *Coins) GetFuncMap() map[string]reflect.Method {
-	return funclist
+	return executorFunList
 }
 
 func isExecAddrMatch(name string, to string) bool {

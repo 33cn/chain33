@@ -10,6 +10,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/gogo/protobuf/proto"
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/client"
@@ -53,6 +54,7 @@ type DriverBase struct {
 	height       int64
 	blocktime    int64
 	child        Driver
+	childValue   reflect.Value
 	isFree       bool
 	difficulty   uint64
 	api          client.QueueProtocolAPI
@@ -95,6 +97,7 @@ func (d *DriverBase) IsFree() bool {
 
 func (d *DriverBase) SetChild(e Driver) {
 	d.child = e
+	d.childValue = reflect.ValueOf(e)
 }
 
 func (d *DriverBase) GetAddr() string {
@@ -308,29 +311,37 @@ func (d *DriverBase) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptD
 	return &set, nil
 }
 
-func (d *DriverBase) callLocal(prefix string, tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+func (d *DriverBase) callLocal(prefix string, tx *types.Transaction, receipt *types.ReceiptData, index int) (set *types.LocalDBSet, err error) {
 	name, value, err := d.decodeTxPayload(tx)
 	if err != nil {
 		return nil, err
 	}
 	//call action
 	funcname := prefix + name
-	call := reflect.ValueOf(d.child).MethodByName(funcname)
-	if call.IsNil() {
+	funcmap := d.child.GetFuncMap()
+	if _, ok := funcmap[funcname]; !ok {
 		return nil, types.ErrActionNotSupport
 	}
-	valueret := call.Call([]reflect.Value{value, reflect.ValueOf(tx), reflect.ValueOf(receipt), reflect.ValueOf(index)})
+	valueret := funcmap[funcname].Func.Call([]reflect.Value{d.childValue, value, reflect.ValueOf(tx), reflect.ValueOf(receipt), reflect.ValueOf(index)})
 	if len(valueret) != 2 {
 		return nil, types.ErrMethodReturnType
 	}
-	set, ok := valueret[0].Interface().(*types.LocalDBSet)
-	if !ok {
-		return nil, types.ErrMethodReturnType
+	r1 := valueret[0].Interface()
+	if r1 != nil {
+		if r, ok := r1.(*types.LocalDBSet); ok {
+			set = r
+		} else {
+			return nil, types.ErrMethodReturnType
+		}
 	}
-
-	err, ok = valueret[1].Interface().(error)
-	if !ok {
-		return nil, types.ErrMethodReturnType
+	r2 := valueret[1].Interface()
+	err = nil
+	if r2 != nil {
+		if r, ok := r2.(error); ok {
+			err = r
+		} else {
+			return nil, types.ErrMethodReturnType
+		}
 	}
 	return set, err
 }
@@ -343,7 +354,7 @@ func (d *DriverBase) checkAddress(addr string) error {
 }
 
 //调用子类的CheckTx, 也可以不调用，实现自己的CheckTx
-func (d *DriverBase) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
+func (d *DriverBase) Exec(tx *types.Transaction, index int) (receipt *types.Receipt, err error) {
 	//to 必须是一个地址
 	if err := d.checkAddress(tx.GetRealToAddr()); err != nil {
 		return nil, err
@@ -351,30 +362,40 @@ func (d *DriverBase) Exec(tx *types.Transaction, index int) (*types.Receipt, err
 	if err := d.child.CheckTx(tx, index); err != nil {
 		return nil, err
 	}
+	if d.child.GetPayloadValue() == nil {
+		return nil, nil
+	}
 	name, value, err := d.decodeTxPayload(tx)
 	if err != nil {
-		if err == types.ErrDecode {
-			return nil, nil
-		}
 		return nil, err
 	}
-	//call action
-	call := reflect.ValueOf(d.child).MethodByName("Exec_" + name)
-	if call.IsNil() {
-		return nil, types.ErrMethodNotFound
+	funcmap := d.child.GetFuncMap()
+	funcname := "Exec_" + name
+	if _, ok := funcmap[funcname]; !ok {
+		return nil, types.ErrActionNotSupport
 	}
-	valueret := call.Call([]reflect.Value{value, reflect.ValueOf(tx), reflect.ValueOf(index)})
+	valueret := funcmap[funcname].Func.Call([]reflect.Value{d.childValue, value, reflect.ValueOf(tx), reflect.ValueOf(index)})
 	if len(valueret) != 2 {
 		return nil, types.ErrMethodReturnType
 	}
-	receipt, ok := valueret[0].Interface().(*types.Receipt)
-	if !ok {
-		return nil, types.ErrMethodReturnType
+	//参数1
+	r1 := valueret[0].Interface()
+	if r1 != nil {
+		if r, ok := r1.(*types.Receipt); ok {
+			receipt = r
+		} else {
+			return nil, types.ErrMethodReturnType
+		}
 	}
-
-	err, ok = valueret[1].Interface().(error)
-	if !ok {
-		return nil, types.ErrMethodReturnType
+	//参数2
+	r2 := valueret[1].Interface()
+	err = nil
+	if r2 != nil {
+		if r, ok := r2.(error); ok {
+			err = r
+		} else {
+			return nil, types.ErrMethodReturnType
+		}
 	}
 	return receipt, err
 }
@@ -391,7 +412,7 @@ func (d *DriverBase) decodeTxPayload(tx *types.Transaction) (string, reflect.Val
 	name, ty, val := GetActionValue(action, d.child.GetFuncMap())
 	typemap := d.child.GetTypeMap()
 	//check types is ok
-	if v, ok := typemap[name]; !ok || v == ty {
+	if v, ok := typemap[name]; !ok || v != ty {
 		return "", nilValue, types.ErrActionNotSupport
 	}
 	return name, val, nil
@@ -406,8 +427,53 @@ func (d *DriverBase) CheckTx(tx *types.Transaction, index int) error {
 	return nil
 }
 
-func (d *DriverBase) Query(funcname string, params []byte) (types.Message, error) {
-	return nil, types.ErrActionNotSupport
+//todo: add 解析query 的变量, 并且调用query 并返回
+func (d *DriverBase) Query(funcname string, params []byte) (msg types.Message, err error) {
+	funcmap := d.child.GetFuncMap()
+	funcname = "Query_" + funcname
+	if _, ok := funcmap[funcname]; !ok {
+		return nil, types.ErrActionNotSupport
+	}
+	ty := funcmap[funcname].Type
+	if ty.NumIn() != 1 {
+		blog.Error(funcname + " err num in param")
+		return nil, types.ErrActionNotSupport
+	}
+	p := reflect.New(ty.In(0))
+	queryin := p.Interface()
+	if in, ok := queryin.(proto.Message); ok {
+		err := types.Decode(params, in)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		blog.Error(funcname + " in param is not proto.Message")
+		return nil, types.ErrActionNotSupport
+	}
+	valueret := funcmap[funcname].Func.Call([]reflect.Value{d.childValue, reflect.ValueOf(queryin)})
+	if len(valueret) != 2 {
+		return nil, types.ErrMethodReturnType
+	}
+	//参数1
+	r1 := valueret[0].Interface()
+	if r1 != nil {
+		if r, ok := r1.(proto.Message); ok {
+			msg = r
+		} else {
+			return nil, types.ErrMethodReturnType
+		}
+	}
+	//参数2
+	r2 := valueret[1].Interface()
+	err = nil
+	if r2 != nil {
+		if r, ok := r2.(error); ok {
+			err = r
+		} else {
+			return nil, types.ErrMethodReturnType
+		}
+	}
+	return msg, err
 }
 
 func (d *DriverBase) SetStateDB(db dbm.KV) {
