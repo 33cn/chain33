@@ -10,6 +10,8 @@ import (
 )
 
 func TestAllowExecName(t *testing.T) {
+	//allow exec list
+	AllowUserExec = append(AllowUserExec, []byte("coins"))
 	isok := IsAllowExecName([]byte("a"), []byte("a"))
 	assert.Equal(t, isok, false)
 
