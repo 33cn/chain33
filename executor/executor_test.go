@@ -25,6 +25,9 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/util"
 
+	"net/http"
+	_ "net/http/pprof"
+
 	_ "gitlab.33.cn/chain33/chain33/plugin"
 	_ "gitlab.33.cn/chain33/chain33/system"
 )
@@ -35,6 +38,9 @@ var cfg *types.Config
 var genkey crypto.PrivKey
 
 func init() {
+	go func() {
+		http.ListenAndServe("localhost:6060", nil)
+	}()
 	types.SetTitle("local")
 	types.SetForkToOne()
 	types.SetTestNet(true)
@@ -481,7 +487,7 @@ func TestExecBlock2(t *testing.T) {
 		}
 	}
 
-	N := 5000
+	N := 1000
 	done := make(chan struct{}, N)
 	for i := 0; i < N; i++ {
 		go func() {
