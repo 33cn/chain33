@@ -17,6 +17,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
+	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
 	"google.golang.org/grpc"
 )
@@ -322,7 +323,7 @@ func TestTransferToken(t *testing.T) {
 	fmt.Println("TestTransferToken start")
 	defer fmt.Println("TestTransferToken end")
 
-	v := &types.TokenAction_Transfer{Transfer: &types.CoinsTransfer{Cointoken: tokenSym, Amount: transAmount, Note: "", To: transToAddr}}
+	v := &types.TokenAction_Transfer{Transfer: &types.TokenTransfer{Cointoken: tokenSym, Amount: transAmount, Note: "", To: transToAddr}}
 	transfer := &types.TokenAction{Value: v, Ty: types.ActionTransfer}
 
 	tx := &types.Transaction{Execer: []byte(execName), Payload: types.Encode(transfer), Fee: fee, To: addrexec}
@@ -399,8 +400,8 @@ func TestQueryAsset(t *testing.T) {
 //**************common actions for Test**************
 //***************************************************
 func sendtoaddress(c types.Chain33Client, priv crypto.PrivKey, to string, amount int64) ([]byte, error) {
-	v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
-	transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
+	v := &cty.CoinsAction_Transfer{&cty.CoinsTransfer{Amount: amount}}
+	transfer := &cty.CoinsAction{Value: v, Ty: cty.CoinsActionTransfer}
 	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: fee, To: to}
 	tx.Nonce = r.Int63()
 	tx.Sign(types.SECP256K1, priv)

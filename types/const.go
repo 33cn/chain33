@@ -4,9 +4,9 @@ var slash = []byte("-")
 var Debug = false
 
 const (
+	CoinsX          = "coins"
 	UserKeyX        = "user."
 	ParaKeyX        = "user.p."
-	CoinsX          = "coins"
 	TicketX         = "ticket"
 	HashlockX       = "hashlock"
 	RetrieveX       = "retrieve"
@@ -251,11 +251,7 @@ const (
 )
 
 const (
-	InvalidAction       = 0
-	CoinsActionTransfer = 1
-	CoinsActionGenesis  = 2
-	CoinsActionWithdraw = 3
-
+	InvalidAction = 0
 	//action for token
 	ActionTransfer            = 4
 	ActionGenesis             = 5
@@ -263,7 +259,6 @@ const (
 	TokenActionPreCreate      = 7
 	TokenActionFinishCreate   = 8
 	TokenActionRevokeCreate   = 9
-	CoinsActionTransferToExec = 10
 	TokenActionTransferToExec = 11
 	//action type for privacy
 	ActionPublic2Privacy = iota + 100

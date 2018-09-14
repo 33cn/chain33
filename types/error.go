@@ -5,6 +5,8 @@ import (
 )
 
 var (
+	ErrMethodReturnType        = errors.New("ErrMethodReturnType")
+	ErrMethodNotFound          = errors.New("ErrMethodNotFound")
 	ErrExecBlockNil            = errors.New("ErrExecBlockNil")
 	ErrNotAllow                = errors.New("ErrNotAllow")
 	ErrCanOnlyDelTopVersion    = errors.New("ErrCanOnlyDelTopVersion")

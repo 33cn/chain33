@@ -1,4 +1,4 @@
-package rpc
+package jsonclient
 
 import (
 	"bytes"
@@ -7,8 +7,11 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/types"
 )
+
+var log = log15.New("module", "rpc.jsonclient")
 
 type JSONClient struct {
 	url string

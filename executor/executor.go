@@ -598,6 +598,7 @@ func (e *executor) checkTx(tx *types.Transaction, index int) error {
 	//看重写的名字 name, 是否被允许执行
 
 	if !types.IsAllowExecName(e.getRealExecName(tx, index), tx.Execer) {
+		println("xxxxxxxxxx", string(e.getRealExecName(tx, index)), string(tx.Execer))
 		return types.ErrExecNameNotAllow
 	}
 	return nil
@@ -662,18 +663,8 @@ func (e *executor) execDelLocal(tx *types.Transaction, r *types.ReceiptData, ind
 }
 
 func (e *executor) loadDriver(tx *types.Transaction, index int) (c drivers.Driver) {
-	exec, err := drivers.LoadDriver(string(tx.Execer), e.height)
-	if err == nil {
-		e.setEnv(exec)
-		err = exec.Allow(tx, index)
-	}
-	if err != nil {
-		exec, err = drivers.LoadDriver("none", e.height)
-		if err != nil {
-			panic(err)
-		}
-		e.setEnv(exec)
-	}
+	exec := drivers.LoadDriverAllow(tx, index, e.height)
+	e.setEnv(exec)
 	return exec
 }
 

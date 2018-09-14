@@ -67,9 +67,8 @@ func callExecNewTx(execName, action string, param interface{}) ([]byte, error) {
 
 func (c *channelClient) CreateRawTransaction(param *types.CreateTx) ([]byte, error) {
 	if param == nil {
-		err := types.ErrInvalidParam
-		log.Error("CreateRawTransaction", "Error", err)
-		return nil, err
+		log.Error("CreateRawTransaction", "Error", types.ErrInvalidParam)
+		return nil, types.ErrInvalidParam
 	}
 
 	if param.IsToken {
