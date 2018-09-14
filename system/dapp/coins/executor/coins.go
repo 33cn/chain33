@@ -12,6 +12,8 @@ EventTransfer -> 转移资产
 //nofee transaction will not pack into block
 
 import (
+	"reflect"
+
 	"gitlab.33.cn/chain33/chain33/common/address"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
@@ -22,6 +24,7 @@ import (
 
 func Init() {
 	drivers.Register(GetName(), newCoins, 0)
+	InitType()
 }
 
 func GetName() string {
@@ -90,17 +93,21 @@ func (c *Coins) Exec_Genesis(genesis *cty.CoinsGenesis, tx *types.Transaction, i
 	}
 }
 
-func (c *Coins) GetActionValue() types.Message {
+func (c *Coins) GetPayloadValue() types.Message {
 	return &cty.CoinsAction{}
 }
 
 func (c *Coins) GetTypeMap() map[string]int32 {
-	return map[string]int64{
+	return map[string]int32{
 		"Transfer":       cty.CoinsActionTransfer,
 		"TransferToExec": cty.CoinsActionTransferToExec,
 		"Withdraw":       cty.CoinsActionWithdraw,
 		"Genesis":        cty.CoinsActionGenesis,
 	}
+}
+
+func (c *Coins) GetFuncMap() map[string]reflect.Method {
+	return funclist
 }
 
 func isExecAddrMatch(name string, to string) bool {

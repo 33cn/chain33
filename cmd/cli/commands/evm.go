@@ -16,6 +16,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/crypto/sha3"
 	common2 "gitlab.33.cn/chain33/chain33/plugin/dapp/evm/executor/vm/common"
 	"gitlab.33.cn/chain33/chain33/rpc"
+	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -216,14 +217,14 @@ func createEvmTx(action proto.Message, execer, caller, addr, expire, rpcLaddr st
 func createEvmTransferTx(cmd *cobra.Command, caller, execName, expire, rpcLaddr string, amountInt64 int64, isWithdraw bool) (string, error) {
 	paraName, _ := cmd.Flags().GetString("paraName")
 	var tx *types.Transaction
-	transfer := &types.CoinsAction{}
+	transfer := &cty.CoinsAction{}
 
 	if isWithdraw {
-		transfer.Value = &types.CoinsAction_Withdraw{Withdraw: &types.CoinsWithdraw{Amount: amountInt64, ExecName: execName, To: address.ExecAddress(execName)}}
-		transfer.Ty = types.CoinsActionWithdraw
+		transfer.Value = &cty.CoinsAction_Withdraw{Withdraw: &cty.CoinsWithdraw{Amount: amountInt64, ExecName: execName, To: address.ExecAddress(execName)}}
+		transfer.Ty = cty.CoinsActionWithdraw
 	} else {
-		transfer.Value = &types.CoinsAction_TransferToExec{TransferToExec: &types.CoinsTransferToExec{Amount: amountInt64, ExecName: execName, To: address.ExecAddress(execName)}}
-		transfer.Ty = types.CoinsActionTransferToExec
+		transfer.Value = &cty.CoinsAction_TransferToExec{TransferToExec: &cty.CoinsTransferToExec{Amount: amountInt64, ExecName: execName, To: address.ExecAddress(execName)}}
+		transfer.Ty = cty.CoinsActionTransferToExec
 	}
 	if paraName == "" {
 		tx = &types.Transaction{Execer: []byte(types.ExecName(paraName + "coins")), Payload: types.Encode(transfer), To: address.ExecAddress(execName)}
