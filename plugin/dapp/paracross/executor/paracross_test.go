@@ -436,7 +436,7 @@ func (s *VoteTestSuite) TestVoteTx() {
 	s.exec.SetReceipt(receipts)
 	set, err := s.exec.ExecLocal(tx, recpt0, 0)
 	s.Nil(err)
-	key := pt.CalcVoteHeightKey(status.Title, status.Height)
+	key := pt.CalcMinerHeightKey(status.Title, status.Height)
 	for _, kv := range set.KV {
 		//s.T().Log(string(kv.GetKey()))
 		if bytes.Equal(key, kv.Key) {
@@ -452,7 +452,7 @@ func (s *VoteTestSuite) TestVoteTx() {
 }
 
 func (s *VoteTestSuite) createVoteTx(status *types.ParacrossNodeStatus, privFrom string) (*types.Transaction, error) {
-	tx, err := pt.CreateRawVoteTx(status)
+	tx, err := pt.CreateRawMinerTx(status)
 	assert.Nil(s.T(), err, "create asset transfer failed")
 	if err != nil {
 		return nil, err

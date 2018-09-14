@@ -39,8 +39,8 @@ var (
 	emptyBlockInterval int64 = 4 //write empty block every interval blocks in mainchain
 	zeroHash           [32]byte
 	grpcRecSize        int = 30 * 1024 * 1024 //the size should be limited in server
-	//current vote tx take any privatekey for unify all nodes sign purpose, and para chain is free
-	votePrivateKey string = "6da92a632ab7deb67d38c0f6560bcfed28167998f6496db64c258d5e8393a81b"
+	//current miner tx take any privatekey for unify all nodes sign purpose, and para chain is free
+	minerPrivateKey string = "6da92a632ab7deb67d38c0f6560bcfed28167998f6496db64c258d5e8393a81b"
 )
 
 func init() {
@@ -74,7 +74,7 @@ func New(cfg *types.Consensus) queue.Module {
 		emptyBlockInterval = cfg.EmptyBlockInterval
 	}
 
-	pk, err := hex.DecodeString(votePrivateKey)
+	pk, err := hex.DecodeString(minerPrivateKey)
 	if err != nil {
 		panic(err)
 	}
@@ -133,7 +133,7 @@ func calcSearchseq(height int64) (seq int64) {
 
 //para 不检查任何的交易
 func (client *ParaClient) CheckBlock(parent *types.Block, current *types.BlockDetail) error {
-	err := paracross.CheckVoteTx(current)
+	err := paracross.CheckMinerTx(current)
 	return err
 }
 
@@ -477,8 +477,8 @@ func (client *ParaClient) CreateBlock() {
 	}
 }
 
-// vote tx need all para node create, but not all node has auth account, here just not sign to keep align
-func (client *ParaClient) addVoteTx(preStateHash []byte, block *types.Block, main *types.Block) error {
+// miner tx need all para node create, but not all node has auth account, here just not sign to keep align
+func (client *ParaClient) addMinerTx(preStateHash []byte, block *types.Block, main *types.Block) error {
 	status := &types.ParacrossNodeStatus{
 		Title:           types.GetTitle(),
 		Height:          block.Height,
@@ -488,7 +488,7 @@ func (client *ParaClient) addVoteTx(preStateHash []byte, block *types.Block, mai
 		MainBlockHeight: main.Height,
 	}
 
-	tx, err := paracross.CreateRawVoteTx(status)
+	tx, err := paracross.CreateRawMinerTx(status)
 	if err != nil {
 		return err
 	}
@@ -510,7 +510,7 @@ func (client *ParaClient) createBlock(lastBlock *types.Block, txs []*types.Trans
 	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
 	newblock.BlockTime = mainBlock.BlockTime
 
-	err := client.addVoteTx(lastBlock.StateHash, &newblock, mainBlock)
+	err := client.addMinerTx(lastBlock.StateHash, &newblock, mainBlock)
 	if err != nil {
 		return err
 	}

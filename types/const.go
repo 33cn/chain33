@@ -226,7 +226,7 @@ const (
 	TyLogParaAssetTransfer     = 653
 	TyLogParaAssetWithdraw     = 654
 	//在平行链上保存节点参与共识的数据
-	TyLogParacrossVote = 655
+	TyLogParacrossMiner = 655
 
 	//log for game
 	TyLogCreateGame = 711

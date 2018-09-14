@@ -16,7 +16,7 @@ import (
 // action type
 const (
 	ParacrossActionCommit = iota
-	ParacrossActionVote
+	ParacrossActionMiner
 )
 const (
 	ParacrossActionTransfer = iota + types.ParaCrossTransferActionTypeStart
@@ -33,7 +33,7 @@ var (
 	ParacrossActionCommitStr   = string("Commit")
 	ParacrossActionTransferStr = string("Transfer")
 	ParacrossActionWithdrawStr = string("Withdraw")
-	ParacrossActionVoteStr     = string("Vote")
+	ParacrossActionMinerStr    = string("miner")
 )
 
 const orgName = "paracross"
@@ -64,7 +64,7 @@ func Init() {
 	paraVoteHeightKey = types.ExecName("paracross") + "-titleVoteHeight-"
 }
 
-func CalcVoteHeightKey(title string, height int64) []byte {
+func CalcMinerHeightKey(title string, height int64) []byte {
 	return []byte(fmt.Sprintf(paraVoteHeightKey+"%s-%012d", title, height))
 }
 
@@ -88,8 +88,8 @@ func (m ParacrossType) ActionName(tx *types.Transaction) string {
 		return ParacrossActionTransferStr
 	} else if g.Ty == ParacrossActionWithdraw && g.GetAssetWithdraw() != nil {
 		return ParacrossActionWithdrawStr
-	} else if g.Ty == ParacrossActionVote && g.GetVote() != nil {
-		return ParacrossActionVoteStr
+	} else if g.Ty == ParacrossActionMiner && g.GetMiner() != nil {
+		return ParacrossActionMinerStr
 	}
 	return "unkown"
 }
@@ -167,13 +167,13 @@ func createRawCommitTx(status *types.ParacrossNodeStatus, name string, fee int64
 	return tx, nil
 }
 
-func CreateRawVoteTx(status *types.ParacrossNodeStatus) (*types.Transaction, error) {
-	v := &types.ParacrossVoteAction{
+func CreateRawMinerTx(status *types.ParacrossNodeStatus) (*types.Transaction, error) {
+	v := &types.ParacrossMinerAction{
 		Status: status,
 	}
 	action := &types.ParacrossAction{
-		Ty:    ParacrossActionVote,
-		Value: &types.ParacrossAction_Vote{v},
+		Ty:    ParacrossActionMiner,
+		Value: &types.ParacrossAction_Miner{v},
 	}
 	tx := &types.Transaction{
 		Execer:  []byte(nameX),
@@ -224,7 +224,7 @@ func CreateRawTransferTx(param *types.CreateTx) (*types.Transaction, error) {
 	return tx, nil
 }
 
-func CheckVoteTx(current *types.BlockDetail) error {
+func CheckMinerTx(current *types.BlockDetail) error {
 	//检查第一个笔交易的execs, 以及执行状态
 	if len(current.Block.Txs) == 0 {
 		return types.ErrEmptyTx
@@ -236,17 +236,17 @@ func CheckVoteTx(current *types.BlockDetail) error {
 	if err != nil {
 		return err
 	}
-	if action.GetTy() != ParacrossActionVote {
-		return types.ErrParaVoteTxType
+	if action.GetTy() != ParacrossActionMiner {
+		return types.ErrParaMinerTxType
 	}
 	//判断交易执行是否OK
-	if action.GetVote() == nil {
-		return types.ErrParaEmptyVoteTx
+	if action.GetMiner() == nil {
+		return types.ErrParaEmptyMinerTx
 	}
 
 	//判断exec 是否成功
 	if current.Receipts[0].Ty != types.ExecOk {
-		return types.ErrParaVoteExecErr
+		return types.ErrParaMinerExecErr
 	}
 	return nil
 }
