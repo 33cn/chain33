@@ -13,9 +13,9 @@ import (
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/client"
-	"gitlab.33.cn/chain33/chain33/common/address"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/common/address"
 )
 
 var blog = log.New("module", "execs.base")
@@ -79,10 +79,6 @@ func (d *DriverBase) IsFree() bool {
 
 func (d *DriverBase) SetChild(e Driver) {
 	d.child = e
-}
-
-func (d *DriverBase) GetAddr() string {
-	return ExecAddress(d.child.GetName())
 }
 
 func (d *DriverBase) AllowIsSame(execer []byte) bool {
