@@ -20,10 +20,10 @@ func setPrefix() {
 	title = "mavl-paracross-title-"
 	titleHeight = "mavl-paracross-titleHeight-"
 	configNodes = "paracross-nodes-"
-	localTx = types.ExecName("paracross") + "-titleHeightAddr-"
-	localTitle = types.ExecName("paracross") + "-title-"
-	localTitleHeight = types.ExecName("paracross") + "-titleHeight-"
-	localAssetKey = types.ExecName("paracross") + "-asset-"
+	localTx = "paracross-titleHeightAddr-"
+	localTitle = "paracross-title-"
+	localTitleHeight = "paracross-titleHeight-"
+	localAssetKey = "paracross-asset-"
 }
 
 func calcTitleKey(t string) []byte {
