@@ -18,7 +18,6 @@ var actionFunList = make(map[string]reflect.Method)
 var executorFunList = make(map[string]reflect.Method)
 
 func InitType() {
-
 	nameX = types.ExecName("coins")
 	// init executor type
 	types.RegistorExecutor("coins", &CoinsType{})
