@@ -41,7 +41,7 @@ func TestKvddbSetGet(t *testing.T) {
 	datas := &types.StoreSet{
 		[]byte("1st"),
 		kv,
-	}
+		0}
 	hash := store.Set(datas, true)
 
 	keys := [][]byte{[]byte("k1"), []byte("k2")}
@@ -74,7 +74,7 @@ func TestKvdbMemSet(t *testing.T) {
 	datas := &types.StoreSet{
 		[]byte("1st"),
 		kv,
-	}
+		0}
 	hash := store.MemSet(datas, true)
 
 	keys := [][]byte{[]byte("mk1"), []byte("mk2")}
@@ -101,7 +101,7 @@ func TestKvdbRollback(t *testing.T) {
 	datas := &types.StoreSet{
 		[]byte("1st"),
 		kv,
-	}
+		0}
 	hash := store.MemSet(datas, true)
 
 	keys := [][]byte{[]byte("mk1"), []byte("mk2")}
@@ -109,9 +109,9 @@ func TestKvdbRollback(t *testing.T) {
 	values := store.Get(get1)
 	assert.Len(t, values, 2)
 
-	actHash := store.Rollback(&types.ReqHash{hash})
+	actHash, _ := store.Rollback(&types.ReqHash{hash})
 	assert.Equal(t, hash, actHash)
 
-	notExistHash := store.Rollback(&types.ReqHash{[]byte("1st")})
+	notExistHash, _ := store.Rollback(&types.ReqHash{[]byte("1st")})
 	assert.Nil(t, notExistHash)
 }

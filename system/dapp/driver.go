@@ -84,10 +84,6 @@ func (d *DriverBase) SetChild(e Driver) {
 	d.child = e
 }
 
-func (d *DriverBase) GetAddr() string {
-	return ExecAddress(d.child.GetName())
-}
-
 func (d *DriverBase) AllowIsSame(execer []byte) bool {
 	return d.child.GetName() == string(execer)
 }

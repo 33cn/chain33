@@ -78,6 +78,11 @@ func (mavls *Store) Get(datas *types.StoreGet) [][]byte {
 }
 
 func (mavls *Store) MemSet(datas *types.StoreSet, sync bool) []byte {
+	if len(datas.KV) == 0 {
+		mlog.Info("store mavl memset,use preStateHash as stateHash for kvset is null")
+		mavls.trees[string(datas.StateHash)] = nil
+		return datas.StateHash
+	}
 	tree := mavl.NewTree(mavls.GetDB(), sync)
 	tree.Load(datas.StateHash)
 	for i := 0; i < len(datas.KV); i++ {
@@ -97,6 +102,13 @@ func (mavls *Store) Commit(req *types.ReqHash) ([]byte, error) {
 		mlog.Error("store mavl commit", "err", types.ErrHashNotFound)
 		return nil, types.ErrHashNotFound
 	}
+
+	if tree == nil {
+		mlog.Info("store mavl commit,do nothing for kvset is null")
+		delete(mavls.trees, string(req.Hash))
+		return req.Hash, nil
+	}
+
 	hash := tree.Save()
 	if hash == nil {
 		mlog.Error("store mavl commit", "err", types.ErrHashNotFound)
@@ -106,14 +118,14 @@ func (mavls *Store) Commit(req *types.ReqHash) ([]byte, error) {
 	return req.Hash, nil
 }
 
-func (mavls *Store) Rollback(req *types.ReqHash) []byte {
+func (mavls *Store) Rollback(req *types.ReqHash) ([]byte, error) {
 	_, ok := mavls.trees[string(req.Hash)]
 	if !ok {
 		mlog.Error("store mavl rollback", "err", types.ErrHashNotFound)
-		return nil
+		return nil, types.ErrHashNotFound
 	}
 	delete(mavls.trees, string(req.Hash))
-	return req.Hash
+	return req.Hash, nil
 }
 
 func (mavls *Store) IterateRangeByStateHash(statehash []byte, start []byte, end []byte, ascending bool, fn func(key, value []byte) bool) {
@@ -122,4 +134,9 @@ func (mavls *Store) IterateRangeByStateHash(statehash []byte, start []byte, end 
 
 func (mavls *Store) ProcEvent(msg queue.Message) {
 	msg.ReplyErr("Store", types.ErrActionNotSupport)
+}
+
+func (mavls *Store) Del(req *types.StoreDel) ([]byte, error) {
+	//not support
+	return nil, nil
 }

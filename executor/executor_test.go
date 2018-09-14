@@ -27,6 +27,9 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/util"
 
+	"net/http"
+	_ "net/http/pprof"
+
 	_ "gitlab.33.cn/chain33/chain33/plugin"
 	_ "gitlab.33.cn/chain33/chain33/system"
 )
@@ -37,6 +40,9 @@ var cfg *types.Config
 var genkey crypto.PrivKey
 
 func init() {
+	go func() {
+		http.ListenAndServe("localhost:6060", nil)
+	}()
 	types.SetTitle("local")
 	types.SetForkToOne()
 	types.SetTestNet(true)
@@ -483,7 +489,7 @@ func TestExecBlock2(t *testing.T) {
 		}
 	}
 
-	N := 5000
+	N := 1000
 	done := make(chan struct{}, N)
 	for i := 0; i < N; i++ {
 		go func() {
@@ -672,11 +678,11 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	}
 
 	var detail types.BlockDetail
-	if kvset == nil {
-		calcHash = prevStateRoot
-	} else {
-		calcHash = util.ExecKVMemSet(client, prevStateRoot, kvset, sync)
-	}
+	//if kvset == nil {
+	//	calcHash = prevStateRoot
+	//} else {
+	calcHash = util.ExecKVMemSet(client, prevStateRoot, block.Height, kvset, sync)
+	//}
 	if errReturn && !bytes.Equal(block.StateHash, calcHash) {
 		util.ExecKVSetRollback(client, calcHash)
 		if len(rdata) > 0 {
@@ -690,8 +696,8 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	detail.Block = block
 	detail.Receipts = rdata
 	//save to db
-	if kvset != nil {
-		util.ExecKVSetCommit(client, block.StateHash)
-	}
+	//if kvset != nil {
+	util.ExecKVSetCommit(client, block.StateHash)
+	//}
 	return &detail, deltx, nil
 }
