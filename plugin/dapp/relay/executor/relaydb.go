@@ -9,6 +9,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/system/dapp"
 )
 
 const (
@@ -91,7 +92,7 @@ func newRelayDB(r *relay, tx *types.Transaction) *relayDB {
 	fromAddr := tx.From()
 	btc := newBtcStore(r.GetLocalDB())
 	return &relayDB{r.GetCoinsAccount(), r.GetStateDB(), hash,
-		fromAddr, r.GetBlockTime(), r.GetHeight(), r.GetAddr(), btc}
+		fromAddr, r.GetBlockTime(), r.GetHeight(), dapp.ExecAddress(r.GetName()), btc}
 }
 
 func (action *relayDB) getOrderByID(orderId []byte) (*types.RelayOrder, error) {
