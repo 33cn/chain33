@@ -358,30 +358,6 @@ func (m *SimpleMVCC) DelMVCC(hash []byte, version int64, strict bool) ([]*types.
 	return kvlist, nil
 }
 
-//DelMVCC 删除某个版本，用于回滚多个版本的情况。此时db中的MaxVersion未被修改，但多个区块的KV需要保存在内存中用于一次性删除多个区块。
-func (m *SimpleMVCC) DelMVCC4Height(hash []byte, version int64) ([]*types.KeyValue, error) {
-	//check hash and version is match
-	vdb, err := m.GetVersion(hash)
-	if err != nil {
-		return nil, err
-	}
-	if vdb != version {
-		return nil, types.ErrVersion
-	}
-	kv, err := m.DelVersionKV(hash, version)
-	if err != nil {
-		return nil, err
-	}
-	var kvlist []*types.KeyValue
-	kvlist = append(kvlist, kv...)
-	kvs, err := m.GetDelKVList(version)
-	if err != nil {
-		return nil, err
-	}
-	kvlist = append(kvlist, kvs...)
-	return kvlist, nil
-}
-
 func getVersionString(key []byte) (string, error) {
 	for i := len(key) - 1; i >= 0; i-- {
 		if key[i] == '.' {
