@@ -89,11 +89,9 @@ func execBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	}
 
 	var detail types.BlockDetail
-	if kvset == nil {
-		calcHash = prevStateRoot
-	} else {
-		calcHash = util.ExecKVMemSet(client, prevStateRoot, kvset, sync)
-	}
+
+	calcHash = util.ExecKVMemSet(client, prevStateRoot, block.Height, kvset, sync)
+
 	if errReturn && !bytes.Equal(block.StateHash, calcHash) {
 		util.ExecKVSetRollback(client, calcHash)
 		if len(rdata) > 0 {
@@ -114,9 +112,7 @@ func execBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 		}
 	}
 	//save to db
-	if kvset != nil {
-		util.ExecKVSetCommit(client, block.StateHash)
-	}
+	util.ExecKVSetCommit(client, block.StateHash)
 	detail.KV = kvset
 	detail.PrevStatusHash = prevStateRoot
 	//get receipts

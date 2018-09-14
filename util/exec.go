@@ -36,8 +36,8 @@ func ExecTx(client queue.Client, prevStateRoot []byte, block *types.Block) *type
 	return receipts
 }
 
-func ExecKVMemSet(client queue.Client, prevStateRoot []byte, kvset []*types.KeyValue, sync bool) []byte {
-	set := &types.StoreSet{prevStateRoot, kvset}
+func ExecKVMemSet(client queue.Client, prevStateRoot []byte, height int64, kvset []*types.KeyValue, sync bool) []byte {
+	set := &types.StoreSet{prevStateRoot, kvset, height}
 	setwithsync := &types.StoreSetWithSync{set, sync}
 
 	msg := client.NewMessage("store", types.EventStoreMemSet, setwithsync)

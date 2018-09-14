@@ -559,7 +559,7 @@ func AddMVCC(db dbm.KVDB, detail *types.BlockDetail) (kvlist []*types.KeyValue) 
 func DelMVCC(db dbm.KVDB, detail *types.BlockDetail) (kvlist []*types.KeyValue) {
 	hash := detail.Block.StateHash
 	mvcc := dbm.NewSimpleMVCC(db)
-	kvlist, err := mvcc.DelMVCC(hash, detail.Block.Height)
+	kvlist, err := mvcc.DelMVCC(hash, detail.Block.Height, true)
 	if err != nil {
 		panic(err)
 	}

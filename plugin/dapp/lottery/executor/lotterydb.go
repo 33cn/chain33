@@ -9,6 +9,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
+	"gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -94,7 +95,7 @@ func NewLotteryAction(l *Lottery, tx *types.Transaction) *Action {
 	hash := tx.Hash()
 	fromaddr := tx.From()
 	return &Action{l.GetCoinsAccount(), l.GetStateDB(), hash, fromaddr, l.GetBlockTime(),
-		l.GetHeight(), l.GetAddr(), l.GetDifficulty(), l.GetApi()}
+		l.GetHeight(), dapp.ExecAddress(string(tx.Execer)), l.GetDifficulty(), l.GetApi()}
 }
 
 func (action *Action) GetReceiptLog(lottery *types.Lottery, preStatus int32, logTy int32,
