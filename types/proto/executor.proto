@@ -309,7 +309,6 @@ message TokenWithdraw {
     string to        = 5;
 }
 
-
 //创建token，支持最大精确度是6位小数,即存入数据库的实际总额需要放大1e6倍
 message TokenPreCreate {
     string name         = 1;
