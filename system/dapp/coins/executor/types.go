@@ -1,19 +1,27 @@
-package coins
+package executor
 
 import (
 	"encoding/json"
 	"math/rand"
+	"reflect"
 	"time"
 
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common/address"
+	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
+	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var nameX string
 var tlog = log.New("module", "exectype.coins")
+var funclist = make(map[string]reflect.Method)
 
-func Init() {
+func InitType() {
+	action := &cty.CoinsAction{}
+	_, _, _, f := action.XXX_OneofFuncs()
+	funclist = drivers.ListMethod(action, f)
+
 	nameX = types.ExecName("coins")
 	// init executor type
 	types.RegistorExecutor("coins", &CoinsType{})
@@ -46,41 +54,41 @@ func (coins CoinsType) GetRealToAddr(tx *types.Transaction) string {
 	if string(tx.Execer) == "coins" {
 		return tx.To
 	}
-	var action types.CoinsAction
+	var action cty.CoinsAction
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
 		return tx.To
 	}
-	if action.Ty == types.CoinsActionTransfer && action.GetTransfer() != nil {
+	if action.Ty == cty.CoinsActionTransfer && action.GetTransfer() != nil {
 		return action.GetTransfer().GetTo()
-	} else if action.Ty == types.CoinsActionTransferToExec && action.GetTransferToExec() != nil {
+	} else if action.Ty == cty.CoinsActionTransferToExec && action.GetTransferToExec() != nil {
 		return action.GetTransferToExec().GetTo()
-	} else if action.Ty == types.CoinsActionWithdraw && action.GetWithdraw() != nil {
+	} else if action.Ty == cty.CoinsActionWithdraw && action.GetWithdraw() != nil {
 		return action.GetWithdraw().GetTo()
 	}
 	return tx.To
 }
 
 func (coins CoinsType) ActionName(tx *types.Transaction) string {
-	var action types.CoinsAction
+	var action cty.CoinsAction
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
 		return "unknown-err"
 	}
-	if action.Ty == types.CoinsActionTransfer && action.GetTransfer() != nil {
+	if action.Ty == cty.CoinsActionTransfer && action.GetTransfer() != nil {
 		return "transfer"
-	} else if action.Ty == types.CoinsActionWithdraw && action.GetWithdraw() != nil {
+	} else if action.Ty == cty.CoinsActionWithdraw && action.GetWithdraw() != nil {
 		return "withdraw"
-	} else if action.Ty == types.CoinsActionGenesis && action.GetGenesis() != nil {
+	} else if action.Ty == cty.CoinsActionGenesis && action.GetGenesis() != nil {
 		return "genesis"
-	} else if action.Ty == types.CoinsActionTransferToExec && action.GetTransferToExec() != nil {
+	} else if action.Ty == cty.CoinsActionTransferToExec && action.GetTransferToExec() != nil {
 		return "sendToExec"
 	}
 	return "unknown"
 }
 
 func (coins CoinsType) DecodePayload(tx *types.Transaction) (interface{}, error) {
-	var action types.CoinsAction
+	var action cty.CoinsAction
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
 		return nil, err
@@ -89,21 +97,21 @@ func (coins CoinsType) DecodePayload(tx *types.Transaction) (interface{}, error)
 }
 
 func (t CoinsType) Amount(tx *types.Transaction) (int64, error) {
-	var action types.CoinsAction
+	var action cty.CoinsAction
 	err := types.Decode(tx.GetPayload(), &action)
 	if err != nil {
 		return 0, types.ErrDecode
 	}
-	if action.Ty == types.CoinsActionTransfer && action.GetTransfer() != nil {
+	if action.Ty == cty.CoinsActionTransfer && action.GetTransfer() != nil {
 		transfer := action.GetTransfer()
 		return transfer.Amount, nil
-	} else if action.Ty == types.CoinsActionGenesis && action.GetGenesis() != nil {
+	} else if action.Ty == cty.CoinsActionGenesis && action.GetGenesis() != nil {
 		gen := action.GetGenesis()
 		return gen.Amount, nil
-	} else if action.Ty == types.CoinsActionWithdraw && action.GetWithdraw() != nil {
+	} else if action.Ty == cty.CoinsActionWithdraw && action.GetWithdraw() != nil {
 		transfer := action.GetWithdraw()
 		return transfer.Amount, nil
-	} else if action.Ty == types.CoinsActionTransferToExec && action.GetTransferToExec() != nil {
+	} else if action.Ty == cty.CoinsActionTransferToExec && action.GetTransferToExec() != nil {
 		transfer := action.GetTransferToExec()
 		return transfer.Amount, nil
 	}
@@ -150,28 +158,28 @@ func (coins CoinsType) CreateTx(action string, message json.RawMessage) (*types.
 }
 
 func CreateCoinsTransfer(param *types.CreateTx) *types.Transaction {
-	transfer := &types.CoinsAction{}
+	transfer := &cty.CoinsAction{}
 	to := ""
 	if types.IsPara() {
 		to = param.GetTo()
 	}
 	if !param.IsWithdraw {
 		if param.ExecName != "" {
-			v := &types.CoinsAction_TransferToExec{TransferToExec: &types.CoinsTransferToExec{
+			v := &cty.CoinsAction_TransferToExec{TransferToExec: &cty.CoinsTransferToExec{
 				Amount: param.Amount, Note: param.GetNote(), ExecName: param.GetExecName(), To: to}}
 			transfer.Value = v
-			transfer.Ty = types.CoinsActionTransferToExec
+			transfer.Ty = cty.CoinsActionTransferToExec
 		} else {
-			v := &types.CoinsAction_Transfer{Transfer: &types.CoinsTransfer{
+			v := &cty.CoinsAction_Transfer{Transfer: &cty.CoinsTransfer{
 				Amount: param.Amount, Note: param.GetNote(), To: to}}
 			transfer.Value = v
-			transfer.Ty = types.CoinsActionTransfer
+			transfer.Ty = cty.CoinsActionTransfer
 		}
 	} else {
-		v := &types.CoinsAction_Withdraw{Withdraw: &types.CoinsWithdraw{
+		v := &cty.CoinsAction_Withdraw{Withdraw: &cty.CoinsWithdraw{
 			Amount: param.Amount, Note: param.GetNote(), ExecName: param.GetExecName(), To: to}}
 		transfer.Value = v
-		transfer.Ty = types.CoinsActionWithdraw
+		transfer.Ty = cty.CoinsActionWithdraw
 	}
 	if types.IsPara() {
 		return &types.Transaction{Execer: []byte(nameX), Payload: types.Encode(transfer), To: address.ExecAddress(nameX)}

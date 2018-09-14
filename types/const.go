@@ -4,6 +4,7 @@ var slash = []byte("-")
 var Debug = false
 
 const (
+	CoinsX          = "coins"
 	UserKeyX        = "user."
 	ParaKeyX        = "user.p."
 	TicketX         = "ticket"
@@ -26,6 +27,7 @@ const (
 )
 
 var (
+	ExecerCoins    = []byte(CoinsX)
 	ExecerTicket   = []byte(TicketX)
 	ExecerManage   = []byte(ManageX)
 	ExecerToken    = []byte(TokenX)
