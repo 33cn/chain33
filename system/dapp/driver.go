@@ -435,11 +435,16 @@ func (d *DriverBase) Query(funcname string, params []byte) (msg types.Message, e
 		return nil, types.ErrActionNotSupport
 	}
 	ty := funcmap[funcname].Type
-	if ty.NumIn() != 1 {
-		blog.Error(funcname + " err num in param")
+	if ty.NumIn() != 2 {
+		blog.Error(funcname+" err num in param", "num", ty.NumIn())
 		return nil, types.ErrActionNotSupport
 	}
-	p := reflect.New(ty.In(0))
+	paramin := ty.In(1)
+	if paramin.Kind() != reflect.Ptr {
+		blog.Error(funcname + "  param is not pointer")
+		return nil, types.ErrActionNotSupport
+	}
+	p := reflect.New(ty.In(1).Elem())
 	queryin := p.Interface()
 	if in, ok := queryin.(proto.Message); ok {
 		err := types.Decode(params, in)
