@@ -3,6 +3,8 @@ package dapp
 import (
 	"reflect"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 )
 
 func buildFuncList(funclist []interface{}) map[string]bool {
@@ -16,6 +18,12 @@ func buildFuncList(funclist []interface{}) map[string]bool {
 		list["Get"+datas[1]] = true
 	}
 	return list
+}
+
+// Is this an exported - upper case - name?
+func isExported(name string) bool {
+	rune, _ := utf8.DecodeRuneInString(name)
+	return unicode.IsUpper(rune)
 }
 
 func ListMethod(action interface{}, funclist []interface{}) map[string]reflect.Method {
