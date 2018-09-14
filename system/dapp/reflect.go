@@ -26,7 +26,7 @@ func isExported(name string) bool {
 	return unicode.IsUpper(rune)
 }
 
-func ListMethod(action interface{}, funclist []interface{}) map[string]reflect.Method {
+func ListActionMethod(action interface{}, funclist []interface{}) map[string]reflect.Method {
 	typ := reflect.TypeOf(action)
 	flist := buildFuncList(funclist)
 	methods := make(map[string]reflect.Method)
@@ -45,6 +45,22 @@ func ListMethod(action interface{}, funclist []interface{}) map[string]reflect.M
 		if flist[mname] {
 			methods[mname] = method
 		}
+	}
+	return methods
+}
+
+func ListMethod(action interface{}) map[string]reflect.Method {
+	typ := reflect.TypeOf(action)
+	methods := make(map[string]reflect.Method)
+	for m := 0; m < typ.NumMethod(); m++ {
+		method := typ.Method(m)
+		//mtype := method.Type
+		mname := method.Name
+		// Method must be exported.
+		if method.PkgPath != "" || !isExported(mname) {
+			continue
+		}
+		methods[mname] = method
 	}
 	return methods
 }
