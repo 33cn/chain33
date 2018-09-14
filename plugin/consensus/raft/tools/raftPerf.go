@@ -317,9 +317,9 @@ func NormReadPerf(ty string, num string, interval string, duration string) {
 			}
 			totalTime += result
 			if readType == 0 {
-				fmt.Println("perform get ", totalCount, " times, cost time [ms]:", totalTime)
+				fmt.Println("perform total get ", totalCount, " times, cost total time [ms]:", totalTime)
 			} else {
-				fmt.Println("normal has ", totalCount, "times, cost time [ms]:", totalTime)
+				fmt.Println("perform total has ", totalCount, " times, cost total time [ms]:", totalTime)
 			}
 			ch <- struct{}{}
 		}()

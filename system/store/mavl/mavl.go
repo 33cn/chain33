@@ -118,14 +118,14 @@ func (mavls *Store) Commit(req *types.ReqHash) ([]byte, error) {
 	return req.Hash, nil
 }
 
-func (mavls *Store) Rollback(req *types.ReqHash) []byte {
+func (mavls *Store) Rollback(req *types.ReqHash) ([]byte, error) {
 	_, ok := mavls.trees[string(req.Hash)]
 	if !ok {
 		mlog.Error("store mavl rollback", "err", types.ErrHashNotFound)
-		return nil
+		return nil, types.ErrHashNotFound
 	}
 	delete(mavls.trees, string(req.Hash))
-	return req.Hash
+	return req.Hash, nil
 }
 
 func (mavls *Store) IterateRangeByStateHash(statehash []byte, start []byte, end []byte, ascending bool, fn func(key, value []byte) bool) {
@@ -136,7 +136,7 @@ func (mavls *Store) ProcEvent(msg queue.Message) {
 	msg.ReplyErr("Store", types.ErrActionNotSupport)
 }
 
-func (mavls *Store) Del(req *types.StoreDel) []byte {
+func (mavls *Store) Del(req *types.StoreDel) ([]byte, error) {
 	//not support
-	return nil
+	return nil, nil
 }
