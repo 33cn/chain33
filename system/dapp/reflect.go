@@ -34,19 +34,38 @@ func isExportedOrBuiltinType(t reflect.Type) bool {
 	return isExported(t.Name()) || t.PkgPath() == ""
 }
 
-// suitableMethods returns suitable Rpc methods of typ, it will report
-// error using log if reportErr is true.
-func listMethods(typ reflect.Type) map[string]reflect.Method {
+func buildFuncList(funclist []interface{}) map[string]bool {
+	list := make(map[string]bool)
+	for i := 0; i < len(funclist); i++ {
+		tyname := reflect.TypeOf(funclist[i]).Elem().Name()
+		datas := strings.Split(tyname, "_")
+		if len(datas) != 2 {
+			continue
+		}
+		list["Get"+datas[1]] = true
+	}
+	return list
+}
+
+func ListMethod(action interface{}, funclist []interface{}) map[string]reflect.Method {
+	typ := reflect.TypeOf(action)
+	flist := buildFuncList(funclist)
 	methods := make(map[string]reflect.Method)
 	for m := 0; m < typ.NumMethod(); m++ {
 		method := typ.Method(m)
 		//mtype := method.Type
 		mname := method.Name
 		// Method must be exported.
-		if method.PkgPath != "" {
+		if method.PkgPath != "" || !isExported(mname) {
 			continue
 		}
-		methods[mname] = method
+		if mname == "GetValue" {
+			methods[mname] = method
+			continue
+		}
+		if flist[mname] {
+			methods[mname] = method
+		}
 	}
 	return methods
 }
@@ -57,30 +76,29 @@ type ExecutorAction interface {
 
 var nilValue = reflect.ValueOf(nil)
 
-func GetActionValue(action interface{}) (string, int32, reflect.Value) {
+func GetActionValue(action interface{}, funclist map[string]reflect.Method) (string, int32, reflect.Value) {
 	var ty int32
 	if a, ok := action.(ExecutorAction); ok {
 		ty = a.GetTy()
 	}
 	value := reflect.ValueOf(action)
-	getValue := value.MethodByName("GetValue")
-	if getValue.IsNil() {
+	if _, ok := funclist["GetValue"]; !ok {
 		return "", 0, nilValue
 	}
-	rcvr := getValue.Call([]reflect.Value{})
-	if len(rcvr) == 0 || rcvr[0].IsNil() {
+	rcvr := funclist["GetValue"].Func.Call([]reflect.Value{value})
+	if len(rcvr) == 0 || rcvr[0].IsNil() || rcvr[0].Kind() != reflect.Interface {
 		return "", 0, nilValue
 	}
-	sname := reflect.Indirect(reflect.ValueOf(rcvr[0].Interface())).Type().Name()
+	sname := rcvr[0].Elem().Type().String()
 	datas := strings.Split(sname, "_")
 	if len(datas) != 2 {
 		return "", 0, nilValue
 	}
-	get := value.MethodByName("Get" + datas[1])
-	if get.IsNil() {
+	funcname := "Get" + datas[1]
+	if _, ok := funclist[funcname]; !ok {
 		return "", 0, nilValue
 	}
-	val := get.Call([]reflect.Value{})
+	val := funclist[funcname].Func.Call([]reflect.Value{value})
 	if len(val) == 0 || val[0].IsNil() {
 		return "", 0, nilValue
 	}

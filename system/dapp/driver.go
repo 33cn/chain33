@@ -41,8 +41,9 @@ type Driver interface {
 	//GetTxs and TxGroup
 	GetTxs() []*types.Transaction
 	GetTxGroup(index int) ([]*types.Transaction, error)
-	GetActionValue() types.Message
+	GetPayloadValue() types.Message
 	GetTypeMap() map[string]int32
+	GetFuncMap() map[string]reflect.Method
 }
 
 type DriverBase struct {
@@ -56,6 +57,18 @@ type DriverBase struct {
 	difficulty   uint64
 	api          client.QueueProtocolAPI
 	txs          []*types.Transaction
+}
+
+func (d *DriverBase) GetPayloadValue() types.Message {
+	return nil
+}
+
+func (d *DriverBase) GetTypeMap() map[string]int32 {
+	return nil
+}
+
+func (d *DriverBase) GetFuncMap() map[string]reflect.Method {
+	return nil
 }
 
 func (d *DriverBase) SetApi(api client.QueueProtocolAPI) {
@@ -296,7 +309,7 @@ func (d *DriverBase) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptD
 }
 
 func (d *DriverBase) callLocal(prefix string, tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	name, value, err := d.decodeTxAction(tx)
+	name, value, err := d.decodeTxPayload(tx)
 	if err != nil {
 		return nil, err
 	}
@@ -338,8 +351,11 @@ func (d *DriverBase) Exec(tx *types.Transaction, index int) (*types.Receipt, err
 	if err := d.child.CheckTx(tx, index); err != nil {
 		return nil, err
 	}
-	name, value, err := d.decodeTxAction(tx)
+	name, value, err := d.decodeTxPayload(tx)
 	if err != nil {
+		if err == types.ErrDecode {
+			return nil, nil
+		}
 		return nil, err
 	}
 	//call action
@@ -363,13 +379,16 @@ func (d *DriverBase) Exec(tx *types.Transaction, index int) (*types.Receipt, err
 	return receipt, err
 }
 
-func (d *DriverBase) decodeTxAction(tx *types.Transaction) (string, reflect.Value, error) {
-	action := d.child.GetActionValue()
+func (d *DriverBase) decodeTxPayload(tx *types.Transaction) (string, reflect.Value, error) {
+	action := d.child.GetPayloadValue()
+	if action == nil {
+		return "", nilValue, types.ErrDecode
+	}
 	err := types.Decode(tx.Payload, action)
 	if err != nil {
 		return "", nilValue, err
 	}
-	name, ty, val := GetActionValue(action)
+	name, ty, val := GetActionValue(action, d.child.GetFuncMap())
 	typemap := d.child.GetTypeMap()
 	//check types is ok
 	if v, ok := typemap[name]; !ok || v == ty {
