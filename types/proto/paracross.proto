@@ -46,14 +46,14 @@ message ParacrossCommitAction {
     ParacrossNodeStatus status = 1;
 }
 
-message ParacrossVoteAction {
+message ParacrossMinerAction {
     ParacrossNodeStatus status = 1;
 }
 
 message ParacrossAction {
     oneof value {
         ParacrossCommitAction commit        = 1;
-        ParacrossVoteAction   vote          = 3;
+        ParacrossMinerAction  miner         = 3;
         CoinsTransfer         assetTransfer = 4;
         CoinsWithdraw         assetWithdraw = 5;
     }
@@ -68,7 +68,7 @@ message ReceiptParacrossCommit {
     ParacrossHeightStatus current = 4;
 }
 
-message ReceiptParacrossVote {
+message ReceiptParacrossMiner {
     ParacrossNodeStatus status = 1;
 }
 

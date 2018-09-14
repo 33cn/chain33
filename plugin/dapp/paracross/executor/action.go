@@ -467,18 +467,18 @@ func (a *action) AssetWithdraw(withdraw *types.CoinsWithdraw) (*types.Receipt, e
 	return a.assetWithdrawCoins(withdraw, a.tx)
 }
 
-//当前vote tx不需要校验上一个区块的衔接性，因为tx就是本节点发出，高度，preHash等都在本区块里面的blockchain做了校验
-func (a *action) Vote(vote *types.ParacrossVoteAction) (*types.Receipt, error) {
-	if vote.Status.Title != types.GetTitle() || vote.Status.PreBlockHash == nil || vote.Status.MainBlockHash == nil {
-		return nil, types.ErrParaVoteExecErr
+//当前miner tx不需要校验上一个区块的衔接性，因为tx就是本节点发出，高度，preHash等都在本区块里面的blockchain做了校验
+func (a *action) Miner(miner *types.ParacrossMinerAction) (*types.Receipt, error) {
+	if miner.Status.Title != types.GetTitle() || miner.Status.PreBlockHash == nil || miner.Status.MainBlockHash == nil {
+		return nil, types.ErrParaMinerExecErr
 	}
 
 	var logs []*types.ReceiptLog
-	var receipt = &types.ReceiptParacrossVote{}
+	var receipt = &types.ReceiptParacrossMiner{}
 
 	log := &types.ReceiptLog{}
-	log.Ty = types.TyLogParacrossVote
-	receipt.Status = vote.Status
+	log.Ty = types.TyLogParacrossMiner
+	receipt.Status = miner.Status
 
 	log.Log = types.Encode(receipt)
 	logs = append(logs, log)
