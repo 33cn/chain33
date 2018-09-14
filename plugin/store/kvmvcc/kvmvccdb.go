@@ -195,7 +195,7 @@ func (mvccs *KVMVCCStore) checkVersion(height int64) ([]*types.KeyValue, error) 
 				klog.Warn("store kvmvcc checkVersion GetVersionHash failed", "height", i, "maxVersion", maxVersion)
 				continue
 			}
-			kvlist, err := mvccs.mvcc.DelMVCC(hash, i,false)
+			kvlist, err := mvccs.mvcc.DelMVCC(hash, i, false)
 			if err != nil {
 				klog.Warn("store kvmvcc checkVersion DelMVCC failed", "height", i, "err", err)
 				continue
