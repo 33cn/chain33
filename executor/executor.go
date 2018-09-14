@@ -242,7 +242,7 @@ func isAllowExec(key, txexecer []byte, tx *types.Transaction, height int64) bool
 	elog.Debug("XXX", "execaddr", execaddr, "KEY", string(key), "exec", string(txexecer),
 		"execaddr", drivers.ExecAddress(string(txexecer)))
 	if ok {
-		if execaddr == drivers.ExecAddress(string(txexecer)) {
+		if execaddr == drivers.ExecAddress(string(tx.Execer)) {
 			return true
 		} else if !types.IsPara() && types.IsParaCrossTransferTx(tx) && execaddr == drivers.ExecAddress(string(tx.Execer)) {
 			// 跨链交易需要在主链和平行链都执行， 现在 txexecer 设置为 $(title) + types.ParaX
