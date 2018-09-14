@@ -662,18 +662,8 @@ func (e *executor) execDelLocal(tx *types.Transaction, r *types.ReceiptData, ind
 }
 
 func (e *executor) loadDriver(tx *types.Transaction, index int) (c drivers.Driver) {
-	exec, err := drivers.LoadDriver(string(tx.Execer), e.height)
-	if err == nil {
-		e.setEnv(exec)
-		err = exec.Allow(tx, index)
-	}
-	if err != nil {
-		exec, err = drivers.LoadDriver("none", e.height)
-		if err != nil {
-			panic(err)
-		}
-		e.setEnv(exec)
-	}
+	exec := drivers.LoadDriverAllow(tx, index, e.height)
+	e.setEnv(exec)
 	return exec
 }
 
