@@ -236,14 +236,21 @@ func isAllowExec(key, txexecer []byte, tx *types.Transaction, height int64) bool
 	}
 	//每个合约中，都会开辟一个区域，这个区域是另外一个合约可以修改的区域
 	//我们把数据限制在这个位置，防止合约的其他位置被另外一个合约修改
+
+	//  execaddr 是加了前缀生成的地址， 而参数 txexecer 是没有前缀的执行器名字
 	execaddr, ok := getExecKey(key)
 	elog.Debug("XXX", "execaddr", execaddr, "KEY", string(key), "exec", string(txexecer),
-		"execaddr", address.ExecAddress(string(txexecer)))
-	if ok && execaddr == address.ExecAddress(string(txexecer)) {
-		return true
-	} else if !types.IsPara() && types.IsParaCrossTransferTx(tx) && execaddr == address.ExecAddress(types.ParaX) {
-		// 跨链交易需要在主链和平行链都执行， 现在 txexecer 设置为 $(title) + types.ParaX
-		return true
+		"execaddr", drivers.ExecAddress(string(txexecer)))
+	if ok {
+		if types.IsPara() && execaddr == drivers.ExecAddress(string(tx.Execer)) {
+			return true
+		} else if !types.IsPara() && execaddr == drivers.ExecAddress(string(txexecer)) {
+			return true
+			// TOOD 应该也用 tx.Execer, 但 evm 需要额外处理
+		} else if !types.IsPara() && types.IsParaCrossTransferTx(tx) && execaddr == drivers.ExecAddress(string(tx.Execer)) {
+			// 跨链交易需要在主链和平行链都执行， 现在 txexecer 设置为 $(title) + types.ParaX
+			return true
+		}
 	}
 
 	// 特殊化处理一下
