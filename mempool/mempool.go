@@ -225,7 +225,7 @@ func (mem *Mempool) DelBlock(block *types.Block) {
 				continue
 			}
 		}
-		if types.IsPara() && paracross.GetExecName() == string(tx.Execer) {
+		if paracross.GetExecName() == string(tx.Execer) {
 			var action types.ParacrossAction
 			err := types.Decode(tx.Payload, &action)
 			if err != nil {
