@@ -294,10 +294,10 @@ It has these top-level messages:
 	ParacrossStatus
 	ParacrossNodeStatus
 	ParacrossCommitAction
-	ParacrossVoteAction
+	ParacrossMinerAction
 	ParacrossAction
 	ReceiptParacrossCommit
-	ReceiptParacrossVote
+	ReceiptParacrossMiner
 	ReceiptParacrossDone
 	ReceiptParacrossRecord
 	ParacrossTx
