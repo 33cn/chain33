@@ -127,11 +127,12 @@ func TestKvmvccdbRollback(t *testing.T) {
 	assert.Nil(t, values[0])
 	assert.Nil(t, values[1])
 
-	actHash := store.Rollback(&types.ReqHash{hash})
+	actHash,_ := store.Rollback(&types.ReqHash{hash})
 	assert.Equal(t, hash, actHash)
 
-	notExistHash := store.Rollback(&types.ReqHash{[]byte("1st")})
+	notExistHash, err := store.Rollback(&types.ReqHash{[]byte("1st")})
 	assert.Nil(t, notExistHash)
+	assert.Equal(t, types.ErrHashNotFound.Error(), err.Error())
 
 	os.RemoveAll(store_cfg3.DbPath)
 }
