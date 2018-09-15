@@ -4,9 +4,9 @@ var slash = []byte("-")
 var Debug = false
 
 const (
+	CoinsX          = "coins"
 	UserKeyX        = "user."
 	ParaKeyX        = "user.p."
-	CoinsX          = "coins"
 	TicketX         = "ticket"
 	HashlockX       = "hashlock"
 	RetrieveX       = "retrieve"
@@ -50,26 +50,27 @@ var (
 )
 
 const (
-	InputPrecision        float64 = 1e4
-	Multiple1E4           int64   = 1e4
-	TokenNameLenLimit             = 128
-	TokenSymbolLenLimit           = 16
-	TokenIntroLenLimit            = 1024
-	InvalidStartTime              = 0
-	InvalidStopTime               = 0
-	BlockDurPerSecCnt             = 15
-	BTY                           = "BTY"
-	BTYDustThreshold              = Coin
-	ConfirmedHeight               = 12
-	UTXOCacheCount                = 256
-	M_1_TIMES                     = 1
-	M_2_TIMES                     = 2
-	M_5_TIMES                     = 5
-	M_10_TIMES                    = 10
-	SignatureSize                 = (4 + 33 + 65)
-	PrivacyMaturityDegree         = 12
-	TxGroupMaxCount               = 20
-	MinerAction                   = "miner"
+	InputPrecision          float64 = 1e4
+	Multiple1E4             int64   = 1e4
+	TokenNameLenLimit               = 128
+	TokenSymbolLenLimit             = 16
+	TokenIntroLenLimit              = 1024
+	InvalidStartTime                = 0
+	InvalidStopTime                 = 0
+	BlockDurPerSecCnt               = 15
+	BTY                             = "BTY"
+	BTYDustThreshold                = Coin
+	ConfirmedHeight                 = 12
+	UTXOCacheCount                  = 256
+	M_1_TIMES                       = 1
+	M_2_TIMES                       = 2
+	M_5_TIMES                       = 5
+	M_10_TIMES                      = 10
+	SignatureSize                   = (4 + 33 + 65)
+	PrivacyMaturityDegree           = 12
+	TxGroupMaxCount                 = 20
+	MinerAction                     = "miner"
+	ParacrossTransferPerfix         = "crossPara."
 )
 
 var (
@@ -258,11 +259,7 @@ const (
 )
 
 const (
-	InvalidAction       = 0
-	CoinsActionTransfer = 1
-	CoinsActionGenesis  = 2
-	CoinsActionWithdraw = 3
-
+	InvalidAction = 0
 	//action for token
 	ActionTransfer            = 4
 	ActionGenesis             = 5
@@ -270,7 +267,6 @@ const (
 	TokenActionPreCreate      = 7
 	TokenActionFinishCreate   = 8
 	TokenActionRevokeCreate   = 9
-	CoinsActionTransferToExec = 10
 	TokenActionTransferToExec = 11
 	//action type for privacy
 	ActionPublic2Privacy = iota + 100

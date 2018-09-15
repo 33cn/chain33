@@ -4,10 +4,11 @@ import (
 	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
+	pt "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-func getTitle(db dbm.KV, key []byte) (*types.ParacrossStatus, error) {
+func getTitle(db dbm.KV, key []byte) (*pt.ParacrossStatus, error) {
 	val, err := db.Get(key)
 	if err != nil {
 		if !isNotFound(err) {
@@ -15,20 +16,20 @@ func getTitle(db dbm.KV, key []byte) (*types.ParacrossStatus, error) {
 		}
 		// 平行链如果是从其他链上移过来的，  需要增加配置， 对应title的平行链的起始高度
 		clog.Info("first time load title", string(key))
-		return &types.ParacrossStatus{Height: -1}, nil
+		return &pt.ParacrossStatus{Height: -1}, nil
 	}
 
-	var title types.ParacrossStatus
+	var title pt.ParacrossStatus
 	err = types.Decode(val, &title)
 	return &title, err
 }
 
-func saveTitle(db dbm.KV, key []byte, title *types.ParacrossStatus) error {
+func saveTitle(db dbm.KV, key []byte, title *pt.ParacrossStatus) error {
 	val := types.Encode(title)
 	return db.Set(key, val)
 }
 
-func getTitleHeight(db dbm.KV, key []byte) (*types.ParacrossHeightStatus, error) {
+func getTitleHeight(db dbm.KV, key []byte) (*pt.ParacrossHeightStatus, error) {
 	val, err := db.Get(key)
 	if err != nil {
 		// 对应高度第一次提交commit
@@ -37,7 +38,7 @@ func getTitleHeight(db dbm.KV, key []byte) (*types.ParacrossHeightStatus, error)
 		}
 		return nil, err
 	}
-	var heightStatus types.ParacrossHeightStatus
+	var heightStatus pt.ParacrossHeightStatus
 	err = types.Decode(val, &heightStatus)
 	return &heightStatus, err
 }

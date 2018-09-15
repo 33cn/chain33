@@ -20,7 +20,9 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/log"
-	pt "gitlab.33.cn/chain33/chain33/types/executor/paracross"
+	"gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/rpc"
+	pt "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/types"
+	coins "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 )
 
 // 构造一个4个节点的平行链数据， 进行测试
@@ -121,7 +123,7 @@ func (suite *CommitTestSuite) SetupSuite() {
 	assert.Equal(suite.T(), value, types.Encode(nodeValue))
 
 	// setup state title 'test' height is 9
-	var titleStatus types.ParacrossStatus
+	var titleStatus pt.ParacrossStatus
 	titleStatus.Title = Title
 	titleStatus.Height = CurHeight - 1
 	titleStatus.BlockHash = PerBlock
@@ -148,7 +150,7 @@ func (suite *CommitTestSuite) TestSetup() {
 }
 
 func fillRawCommitTx(suite suite.Suite) (*types.Transaction, error) {
-	st1 := types.ParacrossNodeStatus{
+	st1 := pt.ParacrossNodeStatus{
 		MainBlockHash10,
 		MainBlockHeight,
 		Title,
@@ -163,7 +165,7 @@ func fillRawCommitTx(suite suite.Suite) (*types.Transaction, error) {
 		[]byte("abc"),
 		[][]byte{},
 	}
-	tx, err := pt.CreateRawCommitTx4MainChain(&st1, types.ParaX, 0)
+	tx, err := rpc.CreateRawCommitTx4MainChain(&st1, types.ParaX, 0)
 	if err != nil {
 		suite.T().Error("TestExec", "create tx failed", err)
 	}
@@ -244,12 +246,12 @@ func checkCommitReceipt(suite *CommitTestSuite, receipt *types.Receipt, commitCn
 	assert.Equal(suite.T(), key, receipt.KV[0].Key,
 		"receipt not match", string(key), string(receipt.KV[0].Key))
 
-	var titleHeight types.ParacrossHeightStatus
+	var titleHeight pt.ParacrossHeightStatus
 	err := types.Decode(receipt.KV[0].Value, &titleHeight)
 	assert.Nil(suite.T(), err, "decode titleHeight failed")
 	suite.T().Log("titleHeight", titleHeight)
 	assert.Equal(suite.T(), int32(types.TyLogParacrossCommit), receipt.Logs[0].Ty)
-	assert.Equal(suite.T(), int32(pt.ParacrossStatusCommiting), titleHeight.Status)
+	assert.Equal(suite.T(), int32(rpc.ParacrossStatusCommiting), titleHeight.Status)
 	assert.Equal(suite.T(), Title, titleHeight.Title)
 	assert.Equal(suite.T(), commitCnt, len(titleHeight.Details.Addrs))
 }
@@ -264,12 +266,12 @@ func checkDoneReceipt(suite suite.Suite, receipt *types.Receipt, commitCnt int) 
 	assert.Equal(suite.T(), key, receipt.KV[0].Key,
 		"receipt not match", string(key), string(receipt.KV[0].Key))
 
-	var titleHeight types.ParacrossHeightStatus
+	var titleHeight pt.ParacrossHeightStatus
 	err := types.Decode(receipt.KV[0].Value, &titleHeight)
 	assert.Nil(suite.T(), err, "decode titleHeight failed")
 	suite.T().Log("titleHeight", titleHeight)
 	assert.Equal(suite.T(), int32(types.TyLogParacrossCommit), receipt.Logs[0].Ty)
-	assert.Equal(suite.T(), int32(pt.ParacrossStatusCommiting), titleHeight.Status)
+	assert.Equal(suite.T(), int32(rpc.ParacrossStatusCommiting), titleHeight.Status)
 	assert.Equal(suite.T(), Title, titleHeight.Title)
 	assert.Equal(suite.T(), commitCnt, len(titleHeight.Details.Addrs))
 
@@ -278,7 +280,7 @@ func checkDoneReceipt(suite suite.Suite, receipt *types.Receipt, commitCnt int) 
 	assert.Equal(suite.T(), keyTitle, receipt.KV[1].Key,
 		"receipt not match", string(keyTitle), string(receipt.KV[1].Key))
 
-	var titleStat types.ParacrossStatus
+	var titleStat pt.ParacrossStatus
 	err = types.Decode(receipt.KV[1].Value, &titleStat)
 	assert.Nil(suite.T(), err, "decode title failed")
 	suite.T().Log("title", titleStat)
@@ -293,7 +295,7 @@ func checkRecordReceipt(suite *CommitTestSuite, receipt *types.Receipt, commitCn
 	assert.Len(suite.T(), receipt.KV, 0)
 	assert.Len(suite.T(), receipt.Logs, 1)
 
-	var record types.ReceiptParacrossRecord
+	var record pt.ReceiptParacrossRecord
 	err := types.Decode(receipt.Logs[0].Log, &record)
 	assert.Nil(suite.T(), err)
 	suite.T().Log("record", record)
@@ -381,7 +383,7 @@ func (suite *VoteTestSuite) SetupSuite() {
 }
 
 func (s *VoteTestSuite) TestVoteTx() {
-	status := &types.ParacrossNodeStatus{
+	status := &pt.ParacrossNodeStatus{
 		MainBlockHash:   MainBlockHash10,
 		MainBlockHeight: MainBlockHeight,
 		PreBlockHash:    PerBlock,
@@ -436,11 +438,11 @@ func (s *VoteTestSuite) TestVoteTx() {
 	s.exec.SetReceipt(receipts)
 	set, err := s.exec.ExecLocal(tx, recpt0, 0)
 	s.Nil(err)
-	key := pt.CalcMinerHeightKey(status.Title, status.Height)
+	key := rpc.CalcMinerHeightKey(status.Title, status.Height)
 	for _, kv := range set.KV {
 		//s.T().Log(string(kv.GetKey()))
 		if bytes.Equal(key, kv.Key) {
-			var rst types.ParacrossNodeStatus
+			var rst pt.ParacrossNodeStatus
 			types.Decode(kv.GetValue(), &rst)
 			s.Equal([]uint8([]byte{0x25}), rst.TxResult)
 			s.Equal([]uint8([]byte{0x4d}), rst.CrossTxResult)
@@ -451,8 +453,8 @@ func (s *VoteTestSuite) TestVoteTx() {
 	}
 }
 
-func (s *VoteTestSuite) createVoteTx(status *types.ParacrossNodeStatus, privFrom string) (*types.Transaction, error) {
-	tx, err := pt.CreateRawMinerTx(status)
+func (s *VoteTestSuite) createVoteTx(status *pt.ParacrossNodeStatus, privFrom string) (*types.Transaction, error) {
+	tx, err := rpc.CreateRawMinerTx(status)
 	assert.Nil(s.T(), err, "create asset transfer failed")
 	if err != nil {
 		return nil, err
@@ -478,11 +480,11 @@ func createCrossMainTx(to []byte) (*types.Transaction, error) {
 		TokenSymbol: "",
 		ExecName:    types.ParaX,
 	}
-	transfer := &types.ParacrossAction{}
-	v := &types.ParacrossAction_AssetTransfer{AssetTransfer: &types.CoinsTransfer{
+	transfer := &pt.ParacrossAction{}
+	v := &pt.ParacrossAction_AssetTransfer{AssetTransfer: &coins.CoinsTransfer{
 		Amount: param.Amount, Note: param.GetNote(), To: param.GetTo()}}
 	transfer.Value = v
-	transfer.Ty = pt.ParacrossActionTransfer
+	transfer.Ty = rpc.ParacrossActionTransfer
 
 	tx := &types.Transaction{
 		Execer:  []byte(param.GetExecName()),
@@ -506,7 +508,7 @@ func createCrossParaTx(s suite.Suite, to []byte) (*types.Transaction, error) {
 		TokenSymbol: "",
 		ExecName:    Title + types.ParaX,
 	}
-	tx, err := pt.CreateRawTransferTx(&param)
+	tx, err := rpc.CreateRawTransferTx(&param)
 	assert.Nil(s.T(), err, "create asset transfer failed")
 	if err != nil {
 		return nil, err

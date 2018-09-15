@@ -6,10 +6,11 @@ package dapp
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 
+	"github.com/gogo/protobuf/proto"
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/client"
@@ -25,6 +26,7 @@ type Driver interface {
 	GetCoinsAccount() *account.DB
 	SetLocalDB(dbm.KVDB)
 	GetName() string
+	// 不能依赖任何数据库相关，只和交易相关
 	Allow(tx *types.Transaction, index int) error
 	GetActionName(tx *types.Transaction) string
 	SetEnv(height, blocktime int64, difficulty uint64)
@@ -36,12 +38,14 @@ type Driver interface {
 	IsFree() bool
 	SetApi(client.QueueProtocolAPI)
 	SetTxs(txs []*types.Transaction)
+	SetReceipt(receipts []*types.ReceiptData)
 
 	//GetTxs and TxGroup
 	GetTxs() []*types.Transaction
 	GetTxGroup(index int) ([]*types.Transaction, error)
-
-	SetReceipt(receipts []*types.ReceiptData)
+	GetPayloadValue() types.Message
+	GetTypeMap() map[string]int32
+	GetFuncMap() map[string]reflect.Method
 }
 
 type DriverBase struct {
@@ -51,11 +55,24 @@ type DriverBase struct {
 	height       int64
 	blocktime    int64
 	child        Driver
+	childValue   reflect.Value
 	isFree       bool
 	difficulty   uint64
 	api          client.QueueProtocolAPI
 	txs          []*types.Transaction
 	receipts     []*types.ReceiptData
+}
+
+func (d *DriverBase) GetPayloadValue() types.Message {
+	return nil
+}
+
+func (d *DriverBase) GetTypeMap() map[string]int32 {
+	return nil
+}
+
+func (d *DriverBase) GetFuncMap() map[string]reflect.Method {
+	return nil
 }
 
 func (d *DriverBase) SetApi(api client.QueueProtocolAPI) {
@@ -82,6 +99,7 @@ func (d *DriverBase) IsFree() bool {
 
 func (d *DriverBase) SetChild(e Driver) {
 	d.child = e
+	d.childValue = reflect.ValueOf(e)
 }
 
 func (d *DriverBase) AllowIsSame(execer []byte) bool {
@@ -193,7 +211,15 @@ func (d *DriverBase) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData
 			set.KV = append(set.KV, kv)
 		}
 	}
-
+	lset, err := d.callLocal("ExecLocal_", tx, receipt, index)
+	if err != nil {
+		blog.Debug("call ExecLocal", "tx.Execer", string(tx.Execer), "err", err)
+		return &set, nil
+	}
+	//merge
+	if lset != nil && lset.KV != nil {
+		set.KV = append(set.KV, lset.KV...)
+	}
 	return &set, nil
 }
 
@@ -270,7 +296,52 @@ func (d *DriverBase) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptD
 		}
 	}
 	set.KV = append(set.KV, kvdel...)
+
+	lset, err := d.callLocal("ExecDelLocal_", tx, receipt, index)
+	if err != nil {
+		blog.Error("call ExecDelLocal", "execer", string(tx.Execer), "err", err)
+		return &set, nil
+	}
+	//merge
+	if lset != nil && lset.KV != nil {
+		set.KV = append(set.KV, lset.KV...)
+	}
 	return &set, nil
+}
+
+func (d *DriverBase) callLocal(prefix string, tx *types.Transaction, receipt *types.ReceiptData, index int) (set *types.LocalDBSet, err error) {
+	name, value, err := d.decodeTxPayload(tx)
+	if err != nil {
+		return nil, err
+	}
+	//call action
+	funcname := prefix + name
+	funcmap := d.child.GetFuncMap()
+	if _, ok := funcmap[funcname]; !ok {
+		return nil, types.ErrActionNotSupport
+	}
+	valueret := funcmap[funcname].Func.Call([]reflect.Value{d.childValue, value, reflect.ValueOf(tx), reflect.ValueOf(receipt), reflect.ValueOf(index)})
+	if len(valueret) != 2 {
+		return nil, types.ErrMethodReturnType
+	}
+	r1 := valueret[0].Interface()
+	if r1 != nil {
+		if r, ok := r1.(*types.LocalDBSet); ok {
+			set = r
+		} else {
+			return nil, types.ErrMethodReturnType
+		}
+	}
+	r2 := valueret[1].Interface()
+	err = nil
+	if r2 != nil {
+		if r, ok := r2.(error); ok {
+			err = r
+		} else {
+			return nil, types.ErrMethodReturnType
+		}
+	}
+	return set, err
 }
 
 func (d *DriverBase) checkAddress(addr string) error {
@@ -281,13 +352,68 @@ func (d *DriverBase) checkAddress(addr string) error {
 }
 
 //调用子类的CheckTx, 也可以不调用，实现自己的CheckTx
-func (d *DriverBase) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
+func (d *DriverBase) Exec(tx *types.Transaction, index int) (receipt *types.Receipt, err error) {
 	//to 必须是一个地址
 	if err := d.checkAddress(tx.GetRealToAddr()); err != nil {
 		return nil, err
 	}
-	err := d.child.CheckTx(tx, index)
-	return nil, err
+	if err := d.child.CheckTx(tx, index); err != nil {
+		return nil, err
+	}
+	if d.child.GetPayloadValue() == nil {
+		return nil, nil
+	}
+	name, value, err := d.decodeTxPayload(tx)
+	if err != nil {
+		return nil, err
+	}
+	funcmap := d.child.GetFuncMap()
+	funcname := "Exec_" + name
+	if _, ok := funcmap[funcname]; !ok {
+		return nil, types.ErrActionNotSupport
+	}
+	valueret := funcmap[funcname].Func.Call([]reflect.Value{d.childValue, value, reflect.ValueOf(tx), reflect.ValueOf(index)})
+	if len(valueret) != 2 {
+		return nil, types.ErrMethodReturnType
+	}
+	//参数1
+	r1 := valueret[0].Interface()
+	if r1 != nil {
+		if r, ok := r1.(*types.Receipt); ok {
+			receipt = r
+		} else {
+			return nil, types.ErrMethodReturnType
+		}
+	}
+	//参数2
+	r2 := valueret[1].Interface()
+	err = nil
+	if r2 != nil {
+		if r, ok := r2.(error); ok {
+			err = r
+		} else {
+			return nil, types.ErrMethodReturnType
+		}
+	}
+	return receipt, err
+}
+
+func (d *DriverBase) decodeTxPayload(tx *types.Transaction) (string, reflect.Value, error) {
+	action := d.child.GetPayloadValue()
+	if action == nil {
+		return "", nilValue, types.ErrDecode
+	}
+	err := types.Decode(tx.Payload, action)
+	if err != nil {
+		return "", nilValue, err
+	}
+	name, ty, val := GetActionValue(action, d.child.GetFuncMap())
+	typemap := d.child.GetTypeMap()
+	//check types is ok
+	if v, ok := typemap[name]; !ok || v != ty {
+		return "", nilValue, types.ErrActionNotSupport
+	}
+	return name, val, nil
 }
 
 //默认情况下，tx.To 地址指向合约地址
@@ -299,8 +425,58 @@ func (d *DriverBase) CheckTx(tx *types.Transaction, index int) error {
 	return nil
 }
 
-func (d *DriverBase) Query(funcname string, params []byte) (types.Message, error) {
-	return nil, types.ErrActionNotSupport
+//todo: add 解析query 的变量, 并且调用query 并返回
+func (d *DriverBase) Query(funcname string, params []byte) (msg types.Message, err error) {
+	funcmap := d.child.GetFuncMap()
+	funcname = "Query_" + funcname
+	if _, ok := funcmap[funcname]; !ok {
+		return nil, types.ErrActionNotSupport
+	}
+	ty := funcmap[funcname].Type
+	if ty.NumIn() != 2 {
+		blog.Error(funcname+" err num in param", "num", ty.NumIn())
+		return nil, types.ErrActionNotSupport
+	}
+	paramin := ty.In(1)
+	if paramin.Kind() != reflect.Ptr {
+		blog.Error(funcname + "  param is not pointer")
+		return nil, types.ErrActionNotSupport
+	}
+	p := reflect.New(ty.In(1).Elem())
+	queryin := p.Interface()
+	if in, ok := queryin.(proto.Message); ok {
+		err := types.Decode(params, in)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		blog.Error(funcname + " in param is not proto.Message")
+		return nil, types.ErrActionNotSupport
+	}
+	valueret := funcmap[funcname].Func.Call([]reflect.Value{d.childValue, reflect.ValueOf(queryin)})
+	if len(valueret) != 2 {
+		return nil, types.ErrMethodReturnType
+	}
+	//参数1
+	r1 := valueret[0].Interface()
+	if r1 != nil {
+		if r, ok := r1.(proto.Message); ok {
+			msg = r
+		} else {
+			return nil, types.ErrMethodReturnType
+		}
+	}
+	//参数2
+	r2 := valueret[1].Interface()
+	err = nil
+	if r2 != nil {
+		if r, ok := r2.(error); ok {
+			err = r
+		} else {
+			return nil, types.ErrMethodReturnType
+		}
+	}
+	return msg, err
 }
 
 func (d *DriverBase) SetStateDB(db dbm.KV) {
@@ -393,93 +569,4 @@ func (d *DriverBase) GetActionName(tx *types.Transaction) string {
 
 func (d *DriverBase) CheckSignatureData(tx *types.Transaction, index int) bool {
 	return true
-}
-
-//通过addr前缀查找本地址参与的所有交易
-//查询交易默认放到：coins 中查询
-func (d *DriverBase) GetTxsByAddr(addr *types.ReqAddr) (types.Message, error) {
-	db := d.GetLocalDB()
-	var prefix []byte
-	var key []byte
-	var txinfos [][]byte
-	var err error
-	//取最新的交易hash列表
-	if addr.Flag == 0 { //所有的交易hash列表
-		prefix = CalcTxAddrHashKey(addr.GetAddr(), "")
-	} else if addr.Flag > 0 { //from的交易hash列表
-		prefix = CalcTxAddrDirHashKey(addr.GetAddr(), addr.Flag, "")
-	} else {
-		return nil, errors.New("flag unknown")
-	}
-	blog.Error("GetTxsByAddr", "height", addr.GetHeight())
-	if addr.GetHeight() == -1 {
-		txinfos, err = db.List(prefix, nil, addr.Count, addr.GetDirection())
-		if err != nil {
-			return nil, err
-		}
-		if len(txinfos) == 0 {
-			return nil, errors.New("tx does not exist")
-		}
-	} else { //翻页查找指定的txhash列表
-		blockheight := addr.GetHeight()*types.MaxTxsPerBlock + addr.GetIndex()
-		heightstr := fmt.Sprintf("%018d", blockheight)
-		if addr.Flag == 0 {
-			key = CalcTxAddrHashKey(addr.GetAddr(), heightstr)
-		} else if addr.Flag > 0 { //from的交易hash列表
-			key = CalcTxAddrDirHashKey(addr.GetAddr(), addr.Flag, heightstr)
-		} else {
-			return nil, errors.New("flag unknown")
-		}
-		txinfos, err = db.List(prefix, key, addr.Count, addr.Direction)
-		if err != nil {
-			return nil, err
-		}
-		if len(txinfos) == 0 {
-			return nil, errors.New("tx does not exist")
-		}
-	}
-	var replyTxInfos types.ReplyTxInfos
-	replyTxInfos.TxInfos = make([]*types.ReplyTxInfo, len(txinfos))
-	for index, txinfobyte := range txinfos {
-		var replyTxInfo types.ReplyTxInfo
-		err := types.Decode(txinfobyte, &replyTxInfo)
-		if err != nil {
-			blog.Error("GetTxsByAddr proto.Unmarshal!", "err:", err)
-			return nil, err
-		}
-		replyTxInfos.TxInfos[index] = &replyTxInfo
-	}
-	return &replyTxInfos, nil
-}
-
-//查询指定prefix的key数量，用于统计
-func (d *DriverBase) GetPrefixCount(Prefix *types.ReqKey) (types.Message, error) {
-	var counts types.Int64
-	db := d.GetLocalDB()
-	counts.Data = db.PrefixCount(Prefix.Key)
-	return &counts, nil
-}
-
-//查询指定地址参与的交易计数，用于统计
-func (d *DriverBase) GetAddrTxsCount(reqkey *types.ReqKey) (types.Message, error) {
-	var counts types.Int64
-	db := d.GetLocalDB()
-	TxsCount, err := db.Get(reqkey.Key)
-	if err != nil && err != types.ErrNotFound {
-		blog.Error("GetAddrTxsCount!", "err:", err)
-		counts.Data = 0
-		return &counts, nil
-	}
-	if len(TxsCount) == 0 {
-		blog.Error("GetAddrTxsCount TxsCount is nil!")
-		counts.Data = 0
-		return &counts, nil
-	}
-	err = types.Decode(TxsCount, &counts)
-	if err != nil {
-		blog.Error("GetAddrTxsCount!", "err:", err)
-		counts.Data = 0
-		return &counts, nil
-	}
-	return &counts, nil
 }
