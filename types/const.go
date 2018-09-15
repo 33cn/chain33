@@ -50,27 +50,26 @@ var (
 )
 
 const (
-	InputPrecision          float64 = 1e4
-	Multiple1E4             int64   = 1e4
-	TokenNameLenLimit               = 128
-	TokenSymbolLenLimit             = 16
-	TokenIntroLenLimit              = 1024
-	InvalidStartTime                = 0
-	InvalidStopTime                 = 0
-	BlockDurPerSecCnt               = 15
-	BTY                             = "BTY"
-	BTYDustThreshold                = Coin
-	ConfirmedHeight                 = 12
-	UTXOCacheCount                  = 256
-	M_1_TIMES                       = 1
-	M_2_TIMES                       = 2
-	M_5_TIMES                       = 5
-	M_10_TIMES                      = 10
-	SignatureSize                   = (4 + 33 + 65)
-	PrivacyMaturityDegree           = 12
-	TxGroupMaxCount                 = 20
-	MinerAction                     = "miner"
-	ParacrossTransferPerfix         = "crossPara."
+	InputPrecision        float64 = 1e4
+	Multiple1E4           int64   = 1e4
+	TokenNameLenLimit             = 128
+	TokenSymbolLenLimit           = 16
+	TokenIntroLenLimit            = 1024
+	InvalidStartTime              = 0
+	InvalidStopTime               = 0
+	BlockDurPerSecCnt             = 15
+	BTY                           = "BTY"
+	BTYDustThreshold              = Coin
+	ConfirmedHeight               = 12
+	UTXOCacheCount                = 256
+	M_1_TIMES                     = 1
+	M_2_TIMES                     = 2
+	M_5_TIMES                     = 5
+	M_10_TIMES                    = 10
+	SignatureSize                 = (4 + 33 + 65)
+	PrivacyMaturityDegree         = 12
+	TxGroupMaxCount               = 20
+	MinerAction                   = "miner"
 )
 
 var (
@@ -218,17 +217,6 @@ const (
 	TyLogCallContract = 603
 	// 合约状态数据变更项日志
 	TyLogEVMStateChangeItem = 604
-
-	// paracross 执行器的日志类型
-	TyLogParacrossCommit     = 650
-	TyLogParacrossCommitDone = 651
-	// record 和 commit 不一样， 对应高度完成共识后收到commit 交易
-	// 这个交易就不参与共识, 只做记录
-	TyLogParacrossCommitRecord = 652
-	TyLogParaAssetTransfer     = 653
-	TyLogParaAssetWithdraw     = 654
-	//在平行链上保存节点参与共识的数据
-	TyLogParacrossMiner = 655
 
 	//log for game
 	TyLogCreateGame = 711
