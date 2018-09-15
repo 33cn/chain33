@@ -69,6 +69,7 @@ const (
 	SignatureSize                 = (4 + 33 + 65)
 	PrivacyMaturityDegree         = 12
 	TxGroupMaxCount               = 20
+	MinerAction                   = "miner"
 )
 
 var (
