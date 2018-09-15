@@ -311,3 +311,7 @@ func (action *PrivacyAction) GetTokenName() string {
 func GetTxTimeInterval() time.Duration {
 	return time.Second * 120
 }
+
+type ParaCrossTx interface {
+	IsParaCrossTx() bool
+}

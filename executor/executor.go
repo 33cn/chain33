@@ -141,7 +141,7 @@ func (exec *Executor) procExecQuery(msg queue.Message) {
 
 func (exec *Executor) procExecCheckTx(msg queue.Message) {
 	datas := msg.GetData().(*types.ExecTxList)
-	execute := newExecutor(datas.StateHash, exec, datas.Height, datas.BlockTime, datas.Difficulty, datas.Txs)
+	execute := newExecutor(datas.StateHash, exec, datas.Height, datas.BlockTime, datas.Difficulty, datas.Txs, nil)
 	execute.enableMVCC()
 	execute.api = exec.qclient
 	//返回一个列表表示成功还是失败
@@ -162,7 +162,7 @@ var commonPrefix = []byte("mavl-")
 
 func (exec *Executor) procExecTxList(msg queue.Message) {
 	datas := msg.GetData().(*types.ExecTxList)
-	execute := newExecutor(datas.StateHash, exec, datas.Height, datas.BlockTime, datas.Difficulty, datas.Txs)
+	execute := newExecutor(datas.StateHash, exec, datas.Height, datas.BlockTime, datas.Difficulty, datas.Txs, nil)
 	execute.enableMVCC()
 	execute.api = exec.qclient
 	var receipts []*types.Receipt
@@ -215,10 +215,10 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 func (execute *executor) isAllowExec(key []byte, tx *types.Transaction, index int) bool {
 	txexecer := execute.getRealExecName(tx, index)
 	height := execute.height
-	return isAllowExec(key, txexecer, height)
+	return isAllowExec(key, txexecer, tx, height)
 }
 
-func isAllowExec(key, txexecer []byte, height int64) bool {
+func isAllowExec(key, txexecer []byte, tx *types.Transaction, height int64) bool {
 	keyexecer, err := findExecer(key)
 	if err != nil {
 		elog.Error("find execer ", "err", err)
@@ -236,9 +236,18 @@ func isAllowExec(key, txexecer []byte, height int64) bool {
 	}
 	//每个合约中，都会开辟一个区域，这个区域是另外一个合约可以修改的区域
 	//我们把数据限制在这个位置，防止合约的其他位置被另外一个合约修改
+
+	//  execaddr 是加了前缀生成的地址， 而参数 txexecer 是没有前缀的执行器名字
 	execaddr, ok := getExecKey(key)
-	if ok && execaddr == address.ExecAddress(string(txexecer)) {
-		return true
+	elog.Debug("XXX", "execaddr", execaddr, "KEY", string(key), "exec", string(txexecer),
+		"execaddr", drivers.ExecAddress(string(txexecer)))
+	if ok {
+		if execaddr == drivers.ExecAddress(string(tx.Execer)) {
+			return true
+		} else if !types.IsPara() && types.IsParaCrossTransferTx(txexecer, tx) {
+			// 跨链交易需要在主链和平行链都执行， 现在 txexecer 设置为 $(title) + types.ParaX
+			return true
+		}
 	}
 
 	// 特殊化处理一下
@@ -306,7 +315,7 @@ func findExecer(key []byte) (execer []byte, err error) {
 func (exec *Executor) procExecAddBlock(msg queue.Message) {
 	datas := msg.GetData().(*types.BlockDetail)
 	b := datas.Block
-	execute := newExecutor(b.StateHash, exec, b.Height, b.BlockTime, uint64(b.Difficulty), b.Txs)
+	execute := newExecutor(b.StateHash, exec, b.Height, b.BlockTime, uint64(b.Difficulty), b.Txs, datas.Receipts)
 	execute.api = exec.qclient
 	var totalFee types.TotalFee
 	var kvset types.LocalDBSet
@@ -429,7 +438,7 @@ func (exec *Executor) stat(execute *executor, datas *types.BlockDetail) ([]*type
 func (exec *Executor) procExecDelBlock(msg queue.Message) {
 	datas := msg.GetData().(*types.BlockDetail)
 	b := datas.Block
-	execute := newExecutor(b.StateHash, exec, b.Height, b.BlockTime, uint64(b.Difficulty), b.Txs)
+	execute := newExecutor(b.StateHash, exec, b.Height, b.BlockTime, uint64(b.Difficulty), b.Txs, nil)
 	execute.enableMVCC()
 	execute.api = exec.qclient
 	var kvset types.LocalDBSet
@@ -504,9 +513,11 @@ type executor struct {
 	difficulty uint64
 	txs        []*types.Transaction
 	api        client.QueueProtocolAPI
+	receipts   []*types.ReceiptData
 }
 
-func newExecutor(stateHash []byte, exec *Executor, height, blocktime int64, difficulty uint64, txs []*types.Transaction) *executor {
+func newExecutor(stateHash []byte, exec *Executor, height, blocktime int64, difficulty uint64,
+	txs []*types.Transaction, receipts []*types.ReceiptData) *executor {
 	client := exec.client
 	enableMVCC := exec.enableMVCC
 	flagMVCC := exec.flagMVCC
@@ -520,6 +531,7 @@ func newExecutor(stateHash []byte, exec *Executor, height, blocktime int64, diff
 		blocktime:    blocktime,
 		difficulty:   difficulty,
 		txs:          txs,
+		receipts:     receipts,
 	}
 	e.coinsAccount.SetDB(e.stateDB)
 	return e
@@ -610,6 +622,7 @@ func (e *executor) setEnv(exec drivers.Driver) {
 	exec.SetEnv(e.height, e.blocktime, e.difficulty)
 	exec.SetApi(e.api)
 	exec.SetTxs(e.txs)
+	exec.SetReceipt(e.receipts)
 }
 
 func (e *executor) checkTxGroup(txgroup *types.Transactions, index int) error {
@@ -640,6 +653,7 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 		from := tx.From()
 		accFrom := e.coinsAccount.LoadAccount(from)
 		if accFrom.GetBalance() < types.MinBalanceTransfer {
+			elog.Error("execCheckTx", "ispara", types.IsPara(), "exec", string(tx.Execer), "nonce", tx.Nonce)
 			return types.ErrBalanceLessThanTenTimesFee
 		}
 	}

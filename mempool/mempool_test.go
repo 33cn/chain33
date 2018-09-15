@@ -19,6 +19,7 @@ import (
 
 	_ "gitlab.33.cn/chain33/chain33/plugin"
 	_ "gitlab.33.cn/chain33/chain33/system"
+	"gitlab.33.cn/chain33/chain33/types/executor/ticket"
 )
 
 //----------------------------- data for testing ---------------------------------
@@ -743,6 +744,7 @@ func TestGetAddrTxs(t *testing.T) {
 }
 
 func TestDelBlock(t *testing.T) {
+	ticket.Init()
 	q, mem := initEnv(0)
 	defer q.Close()
 	defer mem.Close()
@@ -752,7 +754,8 @@ func TestDelBlock(t *testing.T) {
 	action.Value = miner
 	minerTx := &types.Transaction{Execer: []byte("ticket"), Payload: types.Encode(action), Fee: 100, Expire: 0}
 	delBlock := blk
-	delBlock.Txs = append(delBlock.Txs, minerTx)
+	txs := []*types.Transaction{minerTx}
+	delBlock.Txs = append(txs, delBlock.Txs...)
 	var blockDetail = &types.BlockDetail{Block: delBlock}
 
 	mem.setHeader(&types.Header{Height: 2, BlockTime: 1e9 + 1})
