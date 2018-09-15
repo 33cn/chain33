@@ -244,7 +244,7 @@ func isAllowExec(key, txexecer []byte, tx *types.Transaction, height int64) bool
 	if ok {
 		if execaddr == drivers.ExecAddress(string(tx.Execer)) {
 			return true
-		} else if !types.IsPara() && types.IsParaCrossTransferTx(tx) && execaddr == drivers.ExecAddress(string(tx.Execer)) {
+		} else if !types.IsPara() && types.IsParaCrossTransferTx(txexecer, tx) && execaddr == drivers.ExecAddress(string(tx.Execer)) {
 			// 跨链交易需要在主链和平行链都执行， 现在 txexecer 设置为 $(title) + types.ParaX
 			return true
 		}
@@ -610,6 +610,7 @@ func (e *executor) checkTx(tx *types.Transaction, index int) error {
 	//看重写的名字 name, 是否被允许执行
 
 	if !types.IsAllowExecName(e.getRealExecName(tx, index), tx.Execer) {
+		println("xxxxxxxxxx", string(e.getRealExecName(tx, index)), string(tx.Execer))
 		return types.ErrExecNameNotAllow
 	}
 	return nil
@@ -676,18 +677,8 @@ func (e *executor) execDelLocal(tx *types.Transaction, r *types.ReceiptData, ind
 }
 
 func (e *executor) loadDriver(tx *types.Transaction, index int) (c drivers.Driver) {
-	exec, err := drivers.LoadDriver(string(tx.Execer), e.height)
-	if err == nil {
-		e.setEnv(exec)
-		err = exec.Allow(tx, index)
-	}
-	if err != nil {
-		exec, err = drivers.LoadDriver("none", e.height)
-		if err != nil {
-			panic(err)
-		}
-		e.setEnv(exec)
-	}
+	exec := drivers.LoadDriverAllow(tx, index, e.height)
+	e.setEnv(exec)
 	return exec
 }
 

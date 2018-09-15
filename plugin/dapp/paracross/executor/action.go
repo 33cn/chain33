@@ -8,9 +8,11 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/plugin/dapp/evm/executor/vm/common"
+	"gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/rpc"
+	pt "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/types"
 	"gitlab.33.cn/chain33/chain33/system/dapp"
+	coins "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
-	pt "gitlab.33.cn/chain33/chain33/types/executor/paracross"
 	"gitlab.33.cn/chain33/chain33/util"
 )
 
@@ -75,7 +77,7 @@ func validNode(addr string, nodes map[string]struct{}) bool {
 	return false
 }
 
-func checkCommitInfo(commit *types.ParacrossCommitAction) error {
+func checkCommitInfo(commit *pt.ParacrossCommitAction) error {
 	if commit.Status == nil {
 		return types.ErrInputPara
 	}
@@ -98,9 +100,9 @@ func isCommitDone(f interface{}, nodes map[string]struct{}, mostSameHash int) bo
 	return float32(mostSameHash) > float32(len(nodes))*float32(2)/float32(3)
 }
 
-func makeCommitReceipt(addr string, commit *types.ParacrossCommitAction, prev, current *types.ParacrossHeightStatus) *types.Receipt {
+func makeCommitReceipt(addr string, commit *pt.ParacrossCommitAction, prev, current *pt.ParacrossHeightStatus) *types.Receipt {
 	key := calcTitleHeightKey(commit.Status.Title, commit.Status.Height)
-	log := &types.ReceiptParacrossCommit{
+	log := &pt.ReceiptParacrossCommit{
 		Addr:    addr,
 		Status:  commit.Status,
 		Prev:    prev,
@@ -120,8 +122,8 @@ func makeCommitReceipt(addr string, commit *types.ParacrossCommitAction, prev, c
 	}
 }
 
-func makeRecordReceipt(addr string, commit *types.ParacrossCommitAction) *types.Receipt {
-	log := &types.ReceiptParacrossRecord{
+func makeRecordReceipt(addr string, commit *pt.ParacrossCommitAction) *types.Receipt {
+	log := &pt.ReceiptParacrossRecord{
 		Addr:   addr,
 		Status: commit.Status,
 	}
@@ -137,10 +139,10 @@ func makeRecordReceipt(addr string, commit *types.ParacrossCommitAction) *types.
 	}
 }
 
-func makeDoneReceipt(addr string, commit *types.ParacrossCommitAction, current *types.ParacrossHeightStatus,
+func makeDoneReceipt(addr string, commit *pt.ParacrossCommitAction, current *pt.ParacrossHeightStatus,
 	most, commitCount, totalCount int32) *types.Receipt {
 
-	log := &types.ReceiptParacrossDone{
+	log := &pt.ReceiptParacrossDone{
 		TotalNodes:     totalCount,
 		TotalCommit:    commitCount,
 		MostSameCommit: most,
@@ -151,7 +153,7 @@ func makeDoneReceipt(addr string, commit *types.ParacrossCommitAction, current *
 		TxResult:       commit.Status.TxResult,
 	}
 	key := calcTitleKey(commit.Status.Title)
-	stat := &types.ParacrossStatus{
+	stat := &pt.ParacrossStatus{
 		Title:     commit.Status.Title,
 		Height:    commit.Status.Height,
 		BlockHash: commit.Status.BlockHash,
@@ -170,7 +172,7 @@ func makeDoneReceipt(addr string, commit *types.ParacrossCommitAction, current *
 	}
 }
 
-func getMostCommit(stat *types.ParacrossHeightStatus) (int, string) {
+func getMostCommit(stat *pt.ParacrossHeightStatus) (int, string) {
 	stats := make(map[string]int)
 	n := len(stat.Details.Addrs)
 	for i := 0; i < n; i++ {
@@ -200,7 +202,7 @@ func hasCommited(addrs []string, addr string) (bool, int) {
 	return false, 0
 }
 
-func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, error) {
+func (a *action) Commit(commit *pt.ParacrossCommitAction) (*types.Receipt, error) {
 	err := checkCommitInfo(commit)
 	if err != nil {
 		return nil, err
@@ -270,11 +272,11 @@ func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, er
 
 	var receipt *types.Receipt
 	if isNotFound(err) {
-		stat = &types.ParacrossHeightStatus{
-			Status: pt.ParacrossStatusCommiting,
+		stat = &pt.ParacrossHeightStatus{
+			Status: rpc.ParacrossStatusCommiting,
 			Title:  commit.Status.Title,
 			Height: commit.Status.Height,
-			Details: &types.ParacrossStatusDetails{
+			Details: &pt.ParacrossStatusDetails{
 				Addrs:     []string{a.fromaddr},
 				BlockHash: [][]byte{commit.Status.BlockHash},
 			},
@@ -306,7 +308,7 @@ func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, er
 		return receipt, nil
 	}
 
-	stat.Status = pt.ParacrossStatusCommitDone
+	stat.Status = rpc.ParacrossStatusCommitDone
 	receiptDone := makeDoneReceipt(a.fromaddr, commit, stat, int32(most), int32(commitCount), int32(len(nodes)))
 	receipt.KV = append(receipt.KV, receiptDone.KV...)
 	receipt.Logs = append(receipt.Logs, receiptDone.Logs...)
@@ -332,11 +334,11 @@ func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, er
 	return receipt, nil
 }
 
-func (a *action) execCrossTx(tx *types.TransactionDetail, commit *types.ParacrossCommitAction, i int) (*types.Receipt, error) {
+func (a *action) execCrossTx(tx *types.TransactionDetail, commit *pt.ParacrossCommitAction, i int) (*types.Receipt, error) {
 	if !bytes.HasSuffix(tx.Tx.Execer, []byte(types.ParaX)) {
 		return nil, nil
 	}
-	var payload types.ParacrossAction
+	var payload pt.ParacrossAction
 	err := types.Decode(tx.Tx.Payload, &payload)
 	if err != nil {
 		clog.Crit("paracross.Commit Decode Tx failed", "para title", commit.Status.Title,
@@ -345,7 +347,7 @@ func (a *action) execCrossTx(tx *types.TransactionDetail, commit *types.Paracros
 		return nil, err
 	}
 
-	if payload.Ty == pt.ParacrossActionWithdraw {
+	if payload.Ty == rpc.ParacrossActionWithdraw {
 		receiptWithdraw, err := a.assetWithdrawCoins(payload.GetAssetWithdraw(), tx.Tx)
 		if err != nil {
 			clog.Crit("paracross.Commit Decode Tx failed", "para title", commit.Status.Title,
@@ -363,7 +365,7 @@ func (a *action) execCrossTx(tx *types.TransactionDetail, commit *types.Paracros
 	//}
 }
 
-func (a *action) execCrossTxs(commit *types.ParacrossCommitAction) (*types.Receipt, error) {
+func (a *action) execCrossTxs(commit *pt.ParacrossCommitAction) (*types.Receipt, error) {
 	var receipt types.Receipt
 	for i := 0; i < len(commit.Status.CrossTxHashs); i++ {
 		clog.Info("paracross.Commit commitDone", "do cross number", i, "hash",
@@ -402,7 +404,7 @@ func (a *action) execCrossTxs(commit *types.ParacrossCommitAction) (*types.Recei
 	return &receipt, nil
 }
 
-func (a *action) assetTransferCoins(transfer *types.CoinsTransfer) (*types.Receipt, error) {
+func (a *action) assetTransferCoins(transfer *coins.CoinsTransfer) (*types.Receipt, error) {
 	accDB := account.NewCoinsAccount()
 	accDB.SetDB(a.db)
 
@@ -425,7 +427,7 @@ func (a *action) assetTransferCoins(transfer *types.CoinsTransfer) (*types.Recei
 	}
 }
 
-func (a *action) AssetTransfer(transfer *types.CoinsTransfer) (*types.Receipt, error) {
+func (a *action) AssetTransfer(transfer *coins.CoinsTransfer) (*types.Receipt, error) {
 	clog.Debug("Paracross.Exec", "AssetTransfer", transfer.Cointoken, "transfer", "")
 	if transfer.Cointoken == "" {
 		return a.assetTransferCoins(transfer)
@@ -435,7 +437,7 @@ func (a *action) AssetTransfer(transfer *types.CoinsTransfer) (*types.Receipt, e
 	return nil, types.ErrNotSupport
 }
 
-func (a *action) assetWithdrawCoins(withdraw *types.CoinsWithdraw, withdrawTx *types.Transaction) (*types.Receipt, error) {
+func (a *action) assetWithdrawCoins(withdraw *coins.CoinsWithdraw, withdrawTx *types.Transaction) (*types.Receipt, error) {
 	accDB := account.NewCoinsAccount()
 	accDB.SetDB(a.db)
 
@@ -452,7 +454,7 @@ func (a *action) assetWithdrawCoins(withdraw *types.CoinsWithdraw, withdrawTx *t
 	}
 }
 
-func (a *action) AssetWithdraw(withdraw *types.CoinsWithdraw) (*types.Receipt, error) {
+func (a *action) AssetWithdraw(withdraw *coins.CoinsWithdraw) (*types.Receipt, error) {
 	if withdraw.Cointoken != "" {
 		return nil, types.ErrNotSupport
 	}
@@ -468,13 +470,13 @@ func (a *action) AssetWithdraw(withdraw *types.CoinsWithdraw) (*types.Receipt, e
 }
 
 //当前miner tx不需要校验上一个区块的衔接性，因为tx就是本节点发出，高度，preHash等都在本区块里面的blockchain做了校验
-func (a *action) Miner(miner *types.ParacrossMinerAction) (*types.Receipt, error) {
+func (a *action) Miner(miner *pt.ParacrossMinerAction) (*types.Receipt, error) {
 	if miner.Status.Title != types.GetTitle() || miner.Status.PreBlockHash == nil || miner.Status.MainBlockHash == nil {
 		return nil, types.ErrParaMinerExecErr
 	}
 
 	var logs []*types.ReceiptLog
-	var receipt = &types.ReceiptParacrossMiner{}
+	var receipt = &pt.ReceiptParacrossMiner{}
 
 	log := &types.ReceiptLog{}
 	log.Ty = types.TyLogParacrossMiner

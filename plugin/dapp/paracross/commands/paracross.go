@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	pt "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
-	pt "gitlab.33.cn/chain33/chain33/types/executor/paracross"
 )
 
 func ParcCmd() *cobra.Command {

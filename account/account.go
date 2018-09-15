@@ -33,7 +33,7 @@ type DB struct {
 }
 
 func NewCoinsAccount() *DB {
-	prefix := "mavl-" + types.CoinsX + "-bty-"
+	prefix := "mavl-coins-bty-"
 	return newAccountDB(prefix)
 }
 
