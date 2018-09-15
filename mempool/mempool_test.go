@@ -17,7 +17,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 
 	_ "gitlab.33.cn/chain33/chain33/plugin"
-	plTicket "gitlab.33.cn/chain33/chain33/plugin/dapp/ticket/executor"
 	_ "gitlab.33.cn/chain33/chain33/system"
 	"gitlab.33.cn/chain33/chain33/types/executor/ticket"
 )
@@ -155,8 +154,6 @@ func initEnv2(size int) (queue.Queue, *Mempool) {
 }
 
 func initEnv(size int) (queue.Queue, *Mempool) {
-	ticket.Init()
-	plTicket.Init()
 	var q = queue.New("channel")
 	cfg := config.InitCfg("../cmd/chain33/chain33.test.toml")
 	blockchainProcess(q)
@@ -746,6 +743,7 @@ func TestGetAddrTxs(t *testing.T) {
 }
 
 func TestDelBlock(t *testing.T) {
+	ticket.Init()
 	q, mem := initEnv(0)
 	defer q.Close()
 	defer mem.Close()
