@@ -10,7 +10,6 @@ import (
 
 const orgName = "paracross"
 
-var paraVoteHeightKey string
 var nameX string
 
 var glog = log.New("module", orgName)
