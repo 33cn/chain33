@@ -17,7 +17,9 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 
 	_ "gitlab.33.cn/chain33/chain33/plugin"
+	plTicket "gitlab.33.cn/chain33/chain33/plugin/dapp/ticket/executor"
 	_ "gitlab.33.cn/chain33/chain33/system"
+	"gitlab.33.cn/chain33/chain33/types/executor/ticket"
 )
 
 //----------------------------- data for testing ---------------------------------
@@ -153,6 +155,8 @@ func initEnv2(size int) (queue.Queue, *Mempool) {
 }
 
 func initEnv(size int) (queue.Queue, *Mempool) {
+	ticket.Init()
+	plTicket.Init()
 	var q = queue.New("channel")
 	cfg := config.InitCfg("../cmd/chain33/chain33.test.toml")
 	blockchainProcess(q)
@@ -751,7 +755,8 @@ func TestDelBlock(t *testing.T) {
 	action.Value = miner
 	minerTx := &types.Transaction{Execer: []byte("ticket"), Payload: types.Encode(action), Fee: 100, Expire: 0}
 	delBlock := blk
-	delBlock.Txs = append(delBlock.Txs, minerTx)
+	txs := []*types.Transaction{minerTx}
+	delBlock.Txs = append(txs, delBlock.Txs...)
 	var blockDetail = &types.BlockDetail{Block: delBlock}
 
 	mem.setHeader(&types.Header{Height: 2, BlockTime: 1e9 + 1})

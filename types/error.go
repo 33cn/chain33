@@ -285,10 +285,10 @@ var (
 	ErrNodeNotForTheTitle   = errors.New("ErrNodeNotForTheTitle")
 	ErrParaBlockHashNoMatch = errors.New("ErrParaBlockHashNoMatch")
 	ErrTxGroupParaCount     = errors.New("ErrTxGroupParaCount")
-	ErrParaVoteBaseIndex    = errors.New("ErrParaVoteBaseIndex")
-	ErrParaVoteTxType       = errors.New("ErrParaVoteTxType")
-	ErrParaEmptyVoteTx      = errors.New("ErrParaEmptyVoteTx")
-	ErrParaVoteExecErr      = errors.New("ErrParaVoteExecErr")
+	ErrParaMinerBaseIndex   = errors.New("ErrParaMinerBaseIndex")
+	ErrParaMinerTxType      = errors.New("ErrParaMinerTxType")
+	ErrParaEmptyMinerTx     = errors.New("ErrParaEmptyMinerTx")
+	ErrParaMinerExecErr     = errors.New("ErrParaMinerExecErr")
 
 	//lottery
 	ErrLotteryStatus            = errors.New("ErrLotteryStatus")

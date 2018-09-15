@@ -333,7 +333,7 @@ func (client *CommitMsgClient) getNodeStatus(start, end int64) ([]*types.Paracro
 	nodeList := make(map[int64]*types.ParacrossNodeStatus, count+1)
 	keys := &types.LocalDBGet{}
 	for i := 0; i < int(count); i++ {
-		key := paracross.CalcVoteHeightKey(types.GetTitle(), req.Start+int64(i))
+		key := paracross.CalcMinerHeightKey(types.GetTitle(), req.Start+int64(i))
 		keys.Keys = append(keys.Keys, key)
 	}
 
