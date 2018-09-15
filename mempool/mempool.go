@@ -5,7 +5,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	lru "github.com/hashicorp/golang-lru"
+	"github.com/hashicorp/golang-lru"
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common"
 	clog "gitlab.33.cn/chain33/chain33/common/log"
@@ -214,15 +214,9 @@ func (mem *Mempool) DelBlock(block *types.Block) {
 	header := mem.GetHeader()
 	for i := 0; i < len(blkTxs); i++ {
 		tx := blkTxs[i]
-		if "ticket" == string(tx.Execer) {
-			var action types.TicketAction
-			err := types.Decode(tx.Payload, &action)
-			if err != nil {
-				continue
-			}
-			if action.Ty == types.TicketActionMiner && action.GetMiner() != nil {
-				continue
-			}
+		//当前包括ticket和平行链的第一笔挖矿交易，统一actionName为miner
+		if i == 0 && tx.ActionName() == types.MinerAction {
+			continue
 		}
 		groupCount := int(tx.GetGroupCount())
 		if groupCount > 1 && i+groupCount <= len(blkTxs) {
@@ -237,6 +231,7 @@ func (mem *Mempool) DelBlock(block *types.Block) {
 		if !mem.checkExpireValid(tx) {
 			continue
 		}
+
 		mem.addedTxs.Remove(string(tx.Hash()))
 		mem.PushTx(tx)
 	}

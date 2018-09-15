@@ -5,11 +5,15 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/client"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/plugin/dapp/evm/executor/vm/common"
+	"gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/rpc"
+	pt "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/types"
 	"gitlab.33.cn/chain33/chain33/system/dapp"
+	coins "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
-	pt "gitlab.33.cn/chain33/chain33/types/executor/paracross"
+	"gitlab.33.cn/chain33/chain33/util"
 )
 
 type action struct {
@@ -22,16 +26,18 @@ type action struct {
 	height       int64
 	execaddr     string
 	api          client.QueueProtocolAPI
+	tx           *types.Transaction
+	exec         *Paracross
 }
 
 func newAction(t *Paracross, tx *types.Transaction) *action {
 	hash := tx.Hash()
 	fromaddr := tx.From()
 	return &action{t.GetCoinsAccount(), t.GetStateDB(), t.GetLocalDB(), hash, fromaddr,
-		t.GetBlockTime(), t.GetHeight(), dapp.ExecAddress(string(tx.Execer)), t.GetApi()}
+		t.GetBlockTime(), t.GetHeight(), dapp.ExecAddress(string(tx.Execer)), t.GetApi(), tx, t}
 }
 
-func getNodes(db dbm.KV, title string) ([]string, error) {
+func getNodes(db dbm.KV, title string) (map[string]struct{}, error) {
 	key := calcConfigNodesKey(title)
 	item, err := db.Get(key)
 	if err != nil {
@@ -46,28 +52,32 @@ func getNodes(db dbm.KV, title string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	value := config.GetArr()
 	if value == nil {
 		// 在配置地址后，发现配置错了， 删除会出现这种情况
-		return []string{}, nil
+		return map[string]struct{}{}, nil
 	}
-	return value.Value, nil
+	uniqNode := make(map[string]struct{})
+	for _, v := range value.Value {
+		uniqNode[v] = struct{}{}
+	}
+
+	return uniqNode, nil
 }
 
 func validTitle(title string) bool {
 	return len(title) > 0
 }
 
-func validNode(addr string, nodes []string) bool {
-	for _, n := range nodes {
-		if n == addr {
-			return true
-		}
+func validNode(addr string, nodes map[string]struct{}) bool {
+	if _, exist := nodes[addr]; exist {
+		return exist
 	}
 	return false
 }
 
-func checkCommitInfo(commit *types.ParacrossCommitAction) error {
+func checkCommitInfo(commit *pt.ParacrossCommitAction) error {
 	if commit.Status == nil {
 		return types.ErrInputPara
 	}
@@ -86,13 +96,13 @@ func checkCommitInfo(commit *types.ParacrossCommitAction) error {
 	return nil
 }
 
-func isCommitDone(f interface{}, nodes []string, mostSameHash int) bool {
+func isCommitDone(f interface{}, nodes map[string]struct{}, mostSameHash int) bool {
 	return float32(mostSameHash) > float32(len(nodes))*float32(2)/float32(3)
 }
 
-func makeCommitReceipt(addr string, commit *types.ParacrossCommitAction, prev, current *types.ParacrossHeightStatus) *types.Receipt {
+func makeCommitReceipt(addr string, commit *pt.ParacrossCommitAction, prev, current *pt.ParacrossHeightStatus) *types.Receipt {
 	key := calcTitleHeightKey(commit.Status.Title, commit.Status.Height)
-	log := &types.ReceiptParacrossCommit{
+	log := &pt.ReceiptParacrossCommit{
 		Addr:    addr,
 		Status:  commit.Status,
 		Prev:    prev,
@@ -112,8 +122,8 @@ func makeCommitReceipt(addr string, commit *types.ParacrossCommitAction, prev, c
 	}
 }
 
-func makeRecordReceipt(addr string, commit *types.ParacrossCommitAction) *types.Receipt {
-	log := &types.ReceiptParacrossRecord{
+func makeRecordReceipt(addr string, commit *pt.ParacrossCommitAction) *types.Receipt {
+	log := &pt.ReceiptParacrossRecord{
 		Addr:   addr,
 		Status: commit.Status,
 	}
@@ -122,17 +132,17 @@ func makeRecordReceipt(addr string, commit *types.ParacrossCommitAction) *types.
 		KV: nil,
 		Logs: []*types.ReceiptLog{
 			{
-				Ty:  types.TyLogParacrossRecord,
+				Ty:  types.TyLogParacrossCommitRecord,
 				Log: types.Encode(log),
 			},
 		},
 	}
 }
 
-func makeDoneReceipt(addr string, commit *types.ParacrossCommitAction, current *types.ParacrossHeightStatus,
+func makeDoneReceipt(addr string, commit *pt.ParacrossCommitAction, current *pt.ParacrossHeightStatus,
 	most, commitCount, totalCount int32) *types.Receipt {
 
-	log := &types.ReceiptParacrossDone{
+	log := &pt.ReceiptParacrossDone{
 		TotalNodes:     totalCount,
 		TotalCommit:    commitCount,
 		MostSameCommit: most,
@@ -143,7 +153,7 @@ func makeDoneReceipt(addr string, commit *types.ParacrossCommitAction, current *
 		TxResult:       commit.Status.TxResult,
 	}
 	key := calcTitleKey(commit.Status.Title)
-	stat := &types.ParacrossStatus{
+	stat := &pt.ParacrossStatus{
 		Title:     commit.Status.Title,
 		Height:    commit.Status.Height,
 		BlockHash: commit.Status.BlockHash,
@@ -155,14 +165,14 @@ func makeDoneReceipt(addr string, commit *types.ParacrossCommitAction, current *
 		},
 		Logs: []*types.ReceiptLog{
 			{
-				Ty:  types.TyLogParacrossDone,
+				Ty:  types.TyLogParacrossCommitDone,
 				Log: types.Encode(log),
 			},
 		},
 	}
 }
 
-func getMostCommit(stat *types.ParacrossHeightStatus) (int, string) {
+func getMostCommit(stat *pt.ParacrossHeightStatus) (int, string) {
 	stats := make(map[string]int)
 	n := len(stat.Details.Addrs)
 	for i := 0; i < n; i++ {
@@ -192,7 +202,7 @@ func hasCommited(addrs []string, addr string) (bool, int) {
 	return false, 0
 }
 
-func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, error) {
+func (a *action) Commit(commit *pt.ParacrossCommitAction) (*types.Receipt, error) {
 	err := checkCommitInfo(commit)
 	if err != nil {
 		return nil, err
@@ -235,12 +245,12 @@ func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, er
 	blockHash, err := getBlockHash(a.api, commit.Status.MainBlockHeight)
 	if err != nil {
 		clog.Error("paracross.Commit getBlockHash", "err", err,
-			"commit tx Main.height", commit.Status.MainBlockHeight)
+			"commit tx Main.height", commit.Status.MainBlockHeight, "from", a.fromaddr)
 		return nil, err
 	}
 	if !bytes.Equal(blockHash.Hash, commit.Status.MainBlockHash) && commit.Status.Height > 0 {
 		clog.Error("paracross.Commit blockHash not match", "db", common.Bytes2Hex(blockHash.Hash),
-			"commit tx", common.Bytes2Hex(commit.Status.MainBlockHash), "commitheit", commit.Status.Height,
+			"commit tx", common.Bytes2Hex(commit.Status.MainBlockHash), "commitHeight", commit.Status.Height,
 			"from", a.fromaddr)
 		return nil, types.ErrBlockHashNoMatch
 	}
@@ -262,11 +272,11 @@ func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, er
 
 	var receipt *types.Receipt
 	if isNotFound(err) {
-		stat = &types.ParacrossHeightStatus{
-			Status: pt.ParacrossStatusCommiting,
+		stat = &pt.ParacrossHeightStatus{
+			Status: rpc.ParacrossStatusCommiting,
 			Title:  commit.Status.Title,
 			Height: commit.Status.Height,
-			Details: &types.ParacrossStatusDetails{
+			Details: &pt.ParacrossStatusDetails{
 				Addrs:     []string{a.fromaddr},
 				BlockHash: [][]byte{commit.Status.BlockHash},
 			},
@@ -298,7 +308,7 @@ func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, er
 		return receipt, nil
 	}
 
-	stat.Status = pt.ParacrossStatusCommitDone
+	stat.Status = rpc.ParacrossStatusCommitDone
 	receiptDone := makeDoneReceipt(a.fromaddr, commit, stat, int32(most), int32(commitCount), int32(len(nodes)))
 	receipt.KV = append(receipt.KV, receiptDone.KV...)
 	receipt.Logs = append(receipt.Logs, receiptDone.Logs...)
@@ -310,11 +320,193 @@ func (a *action) Commit(commit *types.ParacrossCommitAction) (*types.Receipt, er
 	saveTitle(a.db, calcTitleKey(commit.Status.Title), titleStatus)
 	clog.Info("paracross.Commit commit", "commitDone", titleStatus)
 
-	if commit.Status.Height > 0 {
-		// 联调发现平行链创世区块的交易没有发送过来
-		// TODO 触发交易组跨链交易
-		print(blockHash)
-		// TODO 需要生成本地db 用原交易组查询执行结果
+	clog.Info("paracross.Commit commit", "commitDone", titleStatus, "height", commit.Status.Height,
+		"cross tx count", len(commit.Status.CrossTxHashs))
+	if enableParacrossTransfer && commit.Status.Height > 0 && len(commit.Status.CrossTxHashs) > 0 {
+		clog.Info("paracross.Commit commitDone", "do cross", "")
+		crossTxReceipt, err := a.execCrossTxs(commit)
+		if err != nil {
+			return nil, err
+		}
+		receipt.KV = append(receipt.KV, crossTxReceipt.KV...)
+		receipt.Logs = append(receipt.Logs, crossTxReceipt.Logs...)
 	}
 	return receipt, nil
 }
+
+func (a *action) execCrossTx(tx *types.TransactionDetail, commit *pt.ParacrossCommitAction, i int) (*types.Receipt, error) {
+	if !bytes.HasSuffix(tx.Tx.Execer, []byte(types.ParaX)) {
+		return nil, nil
+	}
+	var payload pt.ParacrossAction
+	err := types.Decode(tx.Tx.Payload, &payload)
+	if err != nil {
+		clog.Crit("paracross.Commit Decode Tx failed", "para title", commit.Status.Title,
+			"para height", commit.Status.Height, "para tx index", i, "error", err, "txHash",
+			common.Bytes2Hex(commit.Status.CrossTxHashs[i]))
+		return nil, err
+	}
+
+	if payload.Ty == rpc.ParacrossActionWithdraw {
+		receiptWithdraw, err := a.assetWithdrawCoins(payload.GetAssetWithdraw(), tx.Tx)
+		if err != nil {
+			clog.Crit("paracross.Commit Decode Tx failed", "para title", commit.Status.Title,
+				"para height", commit.Status.Height, "para tx index", i, "error", err, "txHash",
+				common.Bytes2Hex(commit.Status.CrossTxHashs[i]))
+			return nil, err
+		}
+
+		clog.Info("paracross.Commit WithdrawCoins", "para title", commit.Status.Title,
+			"para height", commit.Status.Height, "para tx index", i, "error", err, "txHash",
+			common.Bytes2Hex(commit.Status.CrossTxHashs[i]))
+		return receiptWithdraw, nil
+	} //else if tx.ActionName == pt.ParacrossActionTransferStr {
+	return nil, nil
+	//}
+}
+
+func (a *action) execCrossTxs(commit *pt.ParacrossCommitAction) (*types.Receipt, error) {
+	var receipt types.Receipt
+	for i := 0; i < len(commit.Status.CrossTxHashs); i++ {
+		clog.Info("paracross.Commit commitDone", "do cross number", i, "hash",
+			common.Bytes2Hex(commit.Status.CrossTxHashs[i]),
+			"res", util.BitMapBit(commit.Status.CrossTxResult, uint32(i)))
+		if util.BitMapBit(commit.Status.CrossTxResult, uint32(i)) {
+			tx, err := GetTx(a.api, commit.Status.CrossTxHashs[i])
+			if err != nil {
+				clog.Crit("paracross.Commit Load Tx failed", "para title", commit.Status.Title,
+					"para height", commit.Status.Height, "para tx index", i, "error", err, "txHash",
+					common.Bytes2Hex(commit.Status.CrossTxHashs[i]))
+				return nil, err
+			}
+			if tx == nil {
+				clog.Error("paracross.Commit Load Tx failed", "para title", commit.Status.Title,
+					"para height", commit.Status.Height, "para tx index", i, "error", err, "txHash",
+					common.Bytes2Hex(commit.Status.CrossTxHashs[i]))
+				return nil, types.ErrHashNotExist
+			}
+			receiptCross, err := a.execCrossTx(tx, commit, i)
+			if err != nil {
+				return nil, err
+			}
+			if receiptCross == nil {
+				continue
+			}
+			receipt.KV = append(receipt.KV, receiptCross.KV...)
+			receipt.Logs = append(receipt.Logs, receiptCross.Logs...)
+		} else {
+			clog.Error("paracross.Commit commitDone", "do cross number", i, "hash",
+				common.Bytes2Hex(commit.Status.CrossTxHashs[i]),
+				"para res", util.BitMapBit(commit.Status.CrossTxResult, uint32(i)))
+		}
+	}
+
+	return &receipt, nil
+}
+
+func (a *action) assetTransferCoins(transfer *coins.CoinsTransfer) (*types.Receipt, error) {
+	accDB := account.NewCoinsAccount()
+	accDB.SetDB(a.db)
+
+	isPara := types.IsPara()
+	if !isPara {
+		execAddr := address.ExecAddress(types.ParaX)
+		fromAcc := accDB.LoadExecAccount(a.fromaddr, execAddr)
+		if fromAcc.Balance < transfer.Amount {
+			return nil, types.ErrNoBalance
+		}
+		toAddr := address.ExecAddress(string(a.tx.Execer))
+		clog.Debug("paracross.AssetTransfer not isPara", "execer", string(a.tx.Execer),
+			"txHash", common.Bytes2Hex(a.tx.Hash()))
+		return accDB.ExecTransfer(a.fromaddr, toAddr, execAddr, transfer.Amount)
+	} else {
+		execAddr := address.ExecAddress(string(a.tx.Execer))
+		clog.Debug("paracross.AssetTransfer isPara", "execer", string(a.tx.Execer),
+			"txHash", common.Bytes2Hex(a.tx.Hash()))
+		return ParaAssetTransfer(accDB, transfer.To, transfer.Amount, execAddr)
+	}
+}
+
+func (a *action) AssetTransfer(transfer *coins.CoinsTransfer) (*types.Receipt, error) {
+	clog.Debug("Paracross.Exec", "AssetTransfer", transfer.Cointoken, "transfer", "")
+	if transfer.Cointoken == "" {
+		return a.assetTransferCoins(transfer)
+	}
+
+	// token not support
+	return nil, types.ErrNotSupport
+}
+
+func (a *action) assetWithdrawCoins(withdraw *coins.CoinsWithdraw, withdrawTx *types.Transaction) (*types.Receipt, error) {
+	accDB := account.NewCoinsAccount()
+	accDB.SetDB(a.db)
+
+	isPara := types.IsPara()
+	if !isPara {
+		fromAddr := address.ExecAddress(string(withdrawTx.Execer))
+		execAddr := address.ExecAddress(types.ParaX)
+		clog.Debug("Paracross.Exec", "AssettWithdraw", withdraw.Amount, "from", fromAddr,
+			"to", withdraw.To, "exec", execAddr, "withdrawTx execor", string(withdrawTx.Execer))
+		return accDB.ExecTransfer(fromAddr, withdraw.To, execAddr, withdraw.Amount)
+	} else {
+		execAddr := address.ExecAddress(string(withdrawTx.Execer))
+		return ParaAssetWithdraw(accDB, a.fromaddr, withdraw.Amount, execAddr)
+	}
+}
+
+func (a *action) AssetWithdraw(withdraw *coins.CoinsWithdraw) (*types.Receipt, error) {
+	if withdraw.Cointoken != "" {
+		return nil, types.ErrNotSupport
+	}
+
+	isPara := types.IsPara()
+	if !isPara {
+		// 需要平行链先执行， 达成共识时，继续执行
+		return nil, nil
+	}
+	clog.Debug("paracross.AssetWithdraw isPara", "execer", string(a.tx.Execer),
+		"txHash", common.Bytes2Hex(a.tx.Hash()))
+	return a.assetWithdrawCoins(withdraw, a.tx)
+}
+
+//当前miner tx不需要校验上一个区块的衔接性，因为tx就是本节点发出，高度，preHash等都在本区块里面的blockchain做了校验
+func (a *action) Miner(miner *pt.ParacrossMinerAction) (*types.Receipt, error) {
+	if miner.Status.Title != types.GetTitle() || miner.Status.PreBlockHash == nil || miner.Status.MainBlockHash == nil {
+		return nil, types.ErrParaMinerExecErr
+	}
+
+	var logs []*types.ReceiptLog
+	var receipt = &pt.ReceiptParacrossMiner{}
+
+	log := &types.ReceiptLog{}
+	log.Ty = types.TyLogParacrossMiner
+	receipt.Status = miner.Status
+
+	log.Log = types.Encode(receipt)
+	logs = append(logs, log)
+	return &types.Receipt{types.ExecOk, nil, logs}, nil
+
+}
+
+/*
+func (a *Paracross) CrossLimits(tx *types.Transaction, index int) bool {
+	if tx.GroupCount < 2 {
+		return true
+	}
+
+	txs, err := a.GetTxGroup(index)
+	if err != nil {
+		clog.Error("crossLimits", "get tx group failed", err, "hash", common.Bytes2Hex(tx.Hash()))
+		return false
+	}
+
+	titles := make(map[string] struct{})
+	for _, txTmp := range txs {
+		title, err := getTitleFrom(txTmp.Execer)
+		if err == nil {
+			titles[string(title)] = struct{}{}
+		}
+	}
+	return len(titles) <= 1
+}
+*/
