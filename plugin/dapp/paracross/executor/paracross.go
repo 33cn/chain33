@@ -73,15 +73,15 @@ func (c *Paracross) Exec(tx *types.Transaction, index int) (*types.Receipt, erro
 		}
 		a := newAction(c, tx)
 		return a.AssetWithdraw(payload.GetAssetWithdraw())
-	} else if payload.Ty == pt.ParacrossActionVote && payload.GetVote() != nil {
+	} else if payload.Ty == pt.ParacrossActionMiner && payload.GetMiner() != nil {
 		if index != 0 {
-			return nil, types.ErrParaVoteBaseIndex
+			return nil, types.ErrParaMinerBaseIndex
 		}
 		if !types.IsPara() {
 			return nil, types.ErrNotSupport
 		}
 		a := newAction(c, tx)
-		return a.Vote(payload.GetVote())
+		return a.Miner(payload.GetMiner())
 	}
 
 	return nil, types.ErrActionNotSupport
@@ -174,11 +174,11 @@ func (c *Paracross) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData,
 			var r types.ParacrossTx
 			r.TxHash = string(tx.Hash())
 			set.KV = append(set.KV, &types.KeyValue{calcLocalTxKey(g.Status.Title, g.Status.Height, tx.From()), types.Encode(&r)})
-		} else if log.Ty == types.TyLogParacrossVote {
+		} else if log.Ty == types.TyLogParacrossMiner {
 			if index != 0 {
-				return nil, types.ErrParaVoteBaseIndex
+				return nil, types.ErrParaMinerBaseIndex
 			}
-			var g types.ReceiptParacrossVote
+			var g types.ReceiptParacrossMiner
 			types.Decode(log.Log, &g)
 
 			var mixTxHashs, paraTxHashs, crossTxHashs [][]byte
@@ -214,7 +214,7 @@ func (c *Paracross) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData,
 			g.Status.CrossTxHashs = crossTxHashs
 			g.Status.CrossTxResult = util.CalcSubBitMap(mixTxHashs, crossTxHashs, c.GetReceipt()[1:])
 
-			set.KV = append(set.KV, &types.KeyValue{pt.CalcVoteHeightKey(g.Status.Title, g.Status.Height), types.Encode(g.Status)})
+			set.KV = append(set.KV, &types.KeyValue{pt.CalcMinerHeightKey(g.Status.Title, g.Status.Height), types.Encode(g.Status)})
 
 		} else if log.Ty == types.TyLogParaAssetWithdraw {
 			// TODO
@@ -449,11 +449,11 @@ func (c *Paracross) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptDa
 			var r types.ParacrossTx
 			r.TxHash = string(tx.Hash())
 			set.KV = append(set.KV, &types.KeyValue{calcLocalTxKey(g.Status.Title, g.Status.Height, tx.From()), nil})
-		} else if log.Ty == types.TyLogParacrossVote {
-			var g types.ReceiptParacrossVote
+		} else if log.Ty == types.TyLogParacrossMiner {
+			var g types.ReceiptParacrossMiner
 			types.Decode(log.Log, &g)
 
-			set.KV = append(set.KV, &types.KeyValue{pt.CalcVoteHeightKey(g.Status.Title, g.Status.Height), nil})
+			set.KV = append(set.KV, &types.KeyValue{pt.CalcMinerHeightKey(g.Status.Title, g.Status.Height), nil})
 
 		} else if log.Ty == types.TyLogParaAssetWithdraw {
 			// TODO
