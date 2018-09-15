@@ -145,7 +145,7 @@ func (action *Action) LotteryCreate(create *types.LotteryCreate) (*types.Receipt
 
 	lotteryId := common.ToHex(action.txhash)
 
-	if !isRightCreator(action.fromaddr, action.db, true) {
+	if !isRightCreator(action.fromaddr, action.db, false) {
 		return nil, types.ErrNoPrivilege
 	}
 
