@@ -22,8 +22,12 @@ import (
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/store"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
+	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/util"
+
+	"net/http"
+	_ "net/http/pprof"
 
 	_ "gitlab.33.cn/chain33/chain33/plugin"
 	_ "gitlab.33.cn/chain33/chain33/system"
@@ -35,6 +39,9 @@ var cfg *types.Config
 var genkey crypto.PrivKey
 
 func init() {
+	go func() {
+		http.ListenAndServe("localhost:6060", nil)
+	}()
 	types.SetTitle("local")
 	types.SetForkToOne()
 	types.SetTestNet(true)
@@ -81,8 +88,8 @@ func initEnv() (queue.Queue, queue.Module, queue.Module, queue.Module) {
 }
 
 func createTx(priv crypto.PrivKey, to string, amount int64) *types.Transaction {
-	v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
-	transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
+	v := &cty.CoinsAction_Transfer{&cty.CoinsTransfer{Amount: amount}}
+	transfer := &cty.CoinsAction{Value: v, Ty: cty.CoinsActionTransfer}
 	tx := &types.Transaction{Execer: []byte("none"), Payload: types.Encode(transfer), Fee: 1e6, To: to}
 	random := rand.New(rand.NewSource(types.Now().UnixNano()))
 	tx.Nonce = random.Int63()
@@ -92,8 +99,8 @@ func createTx(priv crypto.PrivKey, to string, amount int64) *types.Transaction {
 }
 
 func createTx2(priv crypto.PrivKey, to string, amount int64) *types.Transaction {
-	v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
-	transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
+	v := &cty.CoinsAction_Transfer{&cty.CoinsTransfer{Amount: amount}}
+	transfer := &cty.CoinsAction{Value: v, Ty: cty.CoinsActionTransfer}
 	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1e6, To: to}
 	random := rand.New(rand.NewSource(types.Now().UnixNano()))
 	tx.Nonce = random.Int63()
@@ -159,10 +166,10 @@ func createGenesisBlock() *types.Block {
 	tx.Execer = []byte("coins")
 	tx.To = cfg.Consensus.Genesis
 	//gen payload
-	g := &types.CoinsAction_Genesis{}
-	g.Genesis = &types.CoinsGenesis{}
+	g := &cty.CoinsAction_Genesis{}
+	g.Genesis = &cty.CoinsGenesis{}
 	g.Genesis.Amount = 1e8 * types.Coin
-	tx.Payload = types.Encode(&types.CoinsAction{Value: g, Ty: types.CoinsActionGenesis})
+	tx.Payload = types.Encode(&cty.CoinsAction{Value: g, Ty: cty.CoinsActionGenesis})
 
 	newblock := &types.Block{}
 	newblock.Height = 0
@@ -481,7 +488,7 @@ func TestExecBlock2(t *testing.T) {
 		}
 	}
 
-	N := 5000
+	N := 1000
 	done := make(chan struct{}, N)
 	for i := 0; i < N; i++ {
 		go func() {
@@ -666,11 +673,11 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	}
 
 	var detail types.BlockDetail
-	if kvset == nil {
-		calcHash = prevStateRoot
-	} else {
-		calcHash = util.ExecKVMemSet(client, prevStateRoot, kvset, sync)
-	}
+	//if kvset == nil {
+	//	calcHash = prevStateRoot
+	//} else {
+	calcHash = util.ExecKVMemSet(client, prevStateRoot, block.Height, kvset, sync)
+	//}
 	if errReturn && !bytes.Equal(block.StateHash, calcHash) {
 		util.ExecKVSetRollback(client, calcHash)
 		if len(rdata) > 0 {
@@ -684,8 +691,8 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	detail.Block = block
 	detail.Receipts = rdata
 	//save to db
-	if kvset != nil {
-		util.ExecKVSetCommit(client, block.StateHash)
-	}
+	//if kvset != nil {
+	util.ExecKVSetCommit(client, block.StateHash)
+	//}
 	return &detail, deltx, nil
 }

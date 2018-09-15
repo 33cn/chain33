@@ -16,6 +16,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/log"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
+	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -95,7 +96,7 @@ func ioHeightAndIndex() error {
 func scanWrite() {
 	for {
 		time.Sleep(time.Second * 5)
-		rpc, err := jsonrpc.NewJSONClient(rpcAddr)
+		rpc, err := jsonclient.NewJSONClient(rpcAddr)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			return
