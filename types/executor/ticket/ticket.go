@@ -46,7 +46,7 @@ func (ticket TicketType) ActionName(tx *types.Transaction) string {
 	} else if action.Ty == types.TicketActionClose && action.GetTclose() != nil {
 		return "close"
 	} else if action.Ty == types.TicketActionMiner && action.GetMiner() != nil {
-		return "miner"
+		return types.MinerAction
 	} else if action.Ty == types.TicketActionBind && action.GetTbind() != nil {
 		return "bindminer"
 	}

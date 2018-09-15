@@ -48,8 +48,8 @@ func Register(name string, create DriverCreate, height int64) {
 }
 
 func LoadDriver(name string, height int64) (driver Driver, err error) {
-	//user.evm.xxxx 的交易，使用evm执行器
-	//user.p.evm
+	// user.evm.xxxx 的交易，使用evm执行器
+	//   user.p.evm
 	name = string(types.GetRealExecName([]byte(name)))
 	c, ok := registedExecDriver[name]
 	if !ok {

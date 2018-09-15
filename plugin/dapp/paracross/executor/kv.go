@@ -13,6 +13,7 @@ var (
 	localTx          string
 	localTitle       string
 	localTitleHeight string
+	localAssetKey    string
 )
 
 func setPrefix() {
@@ -22,6 +23,7 @@ func setPrefix() {
 	localTx = "paracross-titleHeightAddr-"
 	localTitle = "paracross-title-"
 	localTitleHeight = "paracross-titleHeight-"
+	localAssetKey = "paracross-asset-"
 }
 
 func calcTitleKey(t string) []byte {
@@ -51,4 +53,8 @@ func calcLocalTitleHeightKey(title string, height int64) []byte {
 
 func calcLocalTitlePrefix() []byte {
 	return []byte(localTitle)
+}
+
+func calcLocalAssetKey(hash []byte) []byte {
+	return []byte(fmt.Sprintf(localAssetKey+"%s", hash))
 }
