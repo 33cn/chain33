@@ -212,6 +212,15 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 		&types.Receipts{receipts}))
 }
 
+//allowExec key 行为判断放入 执行器
+/*
+权限控制规则:
+1. 默认行为:
+执行器只能修改执行器下面的 key
+或者能修改其他执行器 exec key 下面的数据
+
+2. friend 合约行为, 合约可以定义其他合约 可以修改的 key的内容
+*/
 func (execute *executor) isAllowExec(key []byte, tx *types.Transaction, index int) bool {
 	txexecer := execute.getRealExecName(tx, index)
 	height := execute.height
@@ -228,28 +237,15 @@ func isAllowExec(key, txexecer []byte, tx *types.Transaction, height int64) bool
 	if bytes.Equal(keyexecer, txexecer) {
 		return true
 	}
-	//如果是运行运行deposit的执行器，可以修改coins 的值（只有挖矿合约运行这样做）
-	for _, execer := range types.AllowDepositExec {
-		if bytes.Equal(txexecer, execer) && bytes.Equal(keyexecer, types.ExecerCoins) {
-			return true
-		}
-	}
 	//每个合约中，都会开辟一个区域，这个区域是另外一个合约可以修改的区域
 	//我们把数据限制在这个位置，防止合约的其他位置被另外一个合约修改
-
 	//  execaddr 是加了前缀生成的地址， 而参数 txexecer 是没有前缀的执行器名字
 	execaddr, ok := getExecKey(key)
 	elog.Debug("XXX", "execaddr", execaddr, "KEY", string(key), "exec", string(txexecer),
 		"execaddr", drivers.ExecAddress(string(txexecer)))
-	if ok {
-		if execaddr == drivers.ExecAddress(string(tx.Execer)) {
-			return true
-		} else if !types.IsPara() && types.IsParaCrossTransferTx(txexecer, tx) {
-			// 跨链交易需要在主链和平行链都执行， 现在 txexecer 设置为 $(title) + types.ParaX
-			return true
-		}
+	if ok && execaddr == drivers.ExecAddress(string(tx.Execer)) {
+		return true
 	}
-
 	// 特殊化处理一下
 	// manage 的key 是 config
 	// token 的部分key 是 mavl-create-token-
@@ -264,7 +260,13 @@ func isAllowExec(key, txexecer []byte, tx *types.Transaction, height int64) bool
 			}
 		}
 	}
-	return false
+	d, err := drivers.LoadDriver(string(keyexecer), height)
+	if err != nil {
+		elog.Error("load drivers error", "err", err)
+		return false
+	}
+	//交给 -> friend 来判定
+	return d.IsFriend(keyexecer, key, tx)
 }
 
 var bytesExec = []byte("exec-")
@@ -479,7 +481,6 @@ func (exec *Executor) procExecDelBlock(msg queue.Message) {
 		return
 	}
 	kvset.KV = append(kvset.KV, feekv)
-
 	//定制数据统计
 	if exec.enableStat {
 		kvs, err := delCountInfo(execute, datas)
@@ -604,13 +605,9 @@ func (e *executor) checkTx(tx *types.Transaction, index int) error {
 	if err := tx.Check(e.height, types.MinFee); err != nil {
 		return err
 	}
-
 	//允许重写的情况
-
 	//看重写的名字 name, 是否被允许执行
-
 	if !types.IsAllowExecName(e.getRealExecName(tx, index), tx.Execer) {
-		println("xxxxxxxxxx", string(e.getRealExecName(tx, index)), string(tx.Execer))
 		return types.ErrExecNameNotAllow
 	}
 	return nil
