@@ -66,10 +66,6 @@ func (d *DriverBase) GetPayloadValue() types.Message {
 	return nil
 }
 
-func (d *DriverBase) IsFriend(myexec, writekey []byte, othertx *types.Transaction) bool {
-	return false
-}
-
 func (d *DriverBase) GetTypeMap() map[string]int32 {
 	return nil
 }

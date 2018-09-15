@@ -1,10 +1,9 @@
 package rpc
 
 import (
-	"gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/types"
+	"gitlab.33.cn/chain33/chain33/pluginmgr"
 )
 
-type ParacrossCommitTx struct {
-	Fee    int64                     `json:"fee"`
-	Status types.ParacrossNodeStatus `json:"status"`
+func Init(s pluginmgr.RPCServer) {
+
 }
