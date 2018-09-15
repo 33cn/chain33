@@ -3,6 +3,7 @@ package executor
 import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+
 	//"github.com/stretchr/testify/mock"
 	"testing"
 
@@ -11,7 +12,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	dbmock "gitlab.33.cn/chain33/chain33/common/db/mocks"
-	"gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/rpc"
 	pt "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -264,7 +264,7 @@ func createAssetWithdrawTx(s suite.Suite, privFrom string, to []byte) (*types.Tr
 		TokenSymbol: "",
 		ExecName:    Title + types.ParaX,
 	}
-	tx, err := rpc.CreateRawTransferTx(&param)
+	tx, err := pt.CreateRawTransferTx(&param)
 	assert.Nil(s.T(), err, "create asset Withdraw failed")
 	if err != nil {
 		return nil, err

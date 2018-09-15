@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"gitlab.33.cn/chain33/chain33/common/address"
-	"gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/rpc"
 	pt "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/types"
 	coins "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 )
@@ -130,7 +129,7 @@ func createMainTx(exec string, to string) (*types.Transaction, error) {
 	v := &pt.ParacrossAction_AssetTransfer{AssetTransfer: &coins.CoinsTransfer{
 		Amount: param.Amount, Note: param.GetNote(), To: param.GetTo()}}
 	transfer.Value = v
-	transfer.Ty = rpc.ParacrossActionTransfer
+	transfer.Ty = pt.ParacrossActionTransfer
 
 	tx := &types.Transaction{
 		Execer:  []byte(param.GetExecName()),
@@ -158,7 +157,7 @@ func createCrossMainTx(to string) (*types.Transaction, error) {
 	v := &pt.ParacrossAction_AssetTransfer{AssetTransfer: &coins.CoinsTransfer{
 		Amount: param.Amount, Note: param.GetNote(), To: param.GetTo()}}
 	transfer.Value = v
-	transfer.Ty = rpc.ParacrossActionTransfer
+	transfer.Ty = pt.ParacrossActionTransfer
 
 	tx := &types.Transaction{
 		Execer:  []byte(param.GetExecName()),
@@ -182,7 +181,7 @@ func createCrossParaTx(to string, amount int64) (*types.Transaction, error) {
 		TokenSymbol: "",
 		ExecName:    Title + types.ParaX,
 	}
-	tx, err := rpc.CreateRawTransferTx(&param)
+	tx, err := pt.CreateRawTransferTx(&param)
 
 	return tx, err
 }
