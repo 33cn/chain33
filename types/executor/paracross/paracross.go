@@ -33,7 +33,6 @@ var (
 	ParacrossActionCommitStr   = string("Commit")
 	ParacrossActionTransferStr = string("Transfer")
 	ParacrossActionWithdrawStr = string("Withdraw")
-	ParacrossActionMinerStr    = string("miner")
 )
 
 const orgName = "paracross"
@@ -89,7 +88,7 @@ func (m ParacrossType) ActionName(tx *types.Transaction) string {
 	} else if g.Ty == ParacrossActionWithdraw && g.GetAssetWithdraw() != nil {
 		return ParacrossActionWithdrawStr
 	} else if g.Ty == ParacrossActionMiner && g.GetMiner() != nil {
-		return ParacrossActionMinerStr
+		return types.MinerAction
 	}
 	return "unkown"
 }
