@@ -1,4 +1,4 @@
-package paracross
+package rpc
 
 import (
 	"encoding/json"
@@ -10,6 +10,9 @@ import (
 
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common/address"
+	paracross "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/types"
+	"gitlab.33.cn/chain33/chain33/pluginmgr"
+	coins "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -31,8 +34,8 @@ const (
 
 var (
 	ParacrossActionCommitStr   = string("Commit")
-	ParacrossActionTransferStr = string("Transfer")
-	ParacrossActionWithdrawStr = string("Withdraw")
+	ParacrossActionTransferStr = types.ParacrossTransferPerfix + string("Transfer")
+	ParacrossActionWithdrawStr = types.ParacrossTransferPerfix + string("Withdraw")
 )
 
 const orgName = "paracross"
@@ -42,7 +45,7 @@ var nameX string
 
 var glog = log.New("module", orgName)
 
-func Init() {
+func Init(s pluginmgr.RPCServer) {
 	nameX = types.ExecName(orgName)
 	// init executor type
 	types.RegistorExecutor(nameX, &ParacrossType{})
@@ -76,7 +79,7 @@ type ParacrossType struct {
 }
 
 func (m ParacrossType) ActionName(tx *types.Transaction) string {
-	var g types.ParacrossAction
+	var g paracross.ParacrossAction
 	err := types.Decode(tx.Payload, &g)
 	if err != nil {
 		return "unkown-paracross-action-err"
@@ -94,7 +97,7 @@ func (m ParacrossType) ActionName(tx *types.Transaction) string {
 }
 
 func (m ParacrossType) DecodePayload(tx *types.Transaction) (interface{}, error) {
-	var action types.ParacrossAction
+	var action paracross.ParacrossAction
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
 		return nil, err
@@ -138,17 +141,17 @@ func CreateRawParacrossCommitTx(parm *ParacrossCommitTx) (*types.Transaction, er
 	return createRawCommitTx(&parm.Status, nameX, parm.Fee)
 }
 
-func CreateRawCommitTx4MainChain(status *types.ParacrossNodeStatus, name string, fee int64) (*types.Transaction, error) {
+func CreateRawCommitTx4MainChain(status *paracross.ParacrossNodeStatus, name string, fee int64) (*types.Transaction, error) {
 	return createRawCommitTx(status, name, fee)
 }
 
-func createRawCommitTx(status *types.ParacrossNodeStatus, name string, fee int64) (*types.Transaction, error) {
-	v := &types.ParacrossCommitAction{
+func createRawCommitTx(status *paracross.ParacrossNodeStatus, name string, fee int64) (*types.Transaction, error) {
+	v := &paracross.ParacrossCommitAction{
 		Status: status,
 	}
-	action := &types.ParacrossAction{
+	action := &paracross.ParacrossAction{
 		Ty:    ParacrossActionCommit,
-		Value: &types.ParacrossAction_Commit{v},
+		Value: &paracross.ParacrossAction_Commit{v},
 	}
 	tx := &types.Transaction{
 		Execer:  []byte(name),
@@ -166,13 +169,13 @@ func createRawCommitTx(status *types.ParacrossNodeStatus, name string, fee int64
 	return tx, nil
 }
 
-func CreateRawMinerTx(status *types.ParacrossNodeStatus) (*types.Transaction, error) {
-	v := &types.ParacrossMinerAction{
+func CreateRawMinerTx(status *paracross.ParacrossNodeStatus) (*types.Transaction, error) {
+	v := &paracross.ParacrossMinerAction{
 		Status: status,
 	}
-	action := &types.ParacrossAction{
+	action := &paracross.ParacrossAction{
 		Ty:    ParacrossActionMiner,
-		Value: &types.ParacrossAction_Miner{v},
+		Value: &paracross.ParacrossAction_Miner{v},
 	}
 	tx := &types.Transaction{
 		Execer:  []byte(nameX),
@@ -196,14 +199,14 @@ func CreateRawTransferTx(param *types.CreateTx) (*types.Transaction, error) {
 		return nil, types.ErrInputPara
 	}
 
-	transfer := &types.ParacrossAction{}
+	transfer := &paracross.ParacrossAction{}
 	if !param.IsWithdraw {
-		v := &types.ParacrossAction_AssetTransfer{AssetTransfer: &types.CoinsTransfer{
+		v := &paracross.ParacrossAction_AssetTransfer{AssetTransfer: &coins.CoinsTransfer{
 			Amount: param.Amount, Note: param.GetNote(), To: param.GetTo()}}
 		transfer.Value = v
 		transfer.Ty = ParacrossActionTransfer
 	} else {
-		v := &types.ParacrossAction_AssetWithdraw{AssetWithdraw: &types.CoinsWithdraw{
+		v := &paracross.ParacrossAction_AssetWithdraw{AssetWithdraw: &coins.CoinsWithdraw{
 			Amount: param.Amount, Note: param.GetNote(), To: param.GetTo()}}
 		transfer.Value = v
 		transfer.Ty = ParacrossActionWithdraw
@@ -230,7 +233,7 @@ func CheckMinerTx(current *types.BlockDetail) error {
 	}
 	baseTx := current.Block.Txs[0]
 	//判断交易类型和执行情况
-	var action types.ParacrossAction
+	var action paracross.ParacrossAction
 	err := types.Decode(baseTx.GetPayload(), &action)
 	if err != nil {
 		return err
@@ -258,7 +261,7 @@ func (l ParacrossCommitLog) Name() string {
 }
 
 func (l ParacrossCommitLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp types.ReceiptParacrossCommit
+	var logTmp paracross.ReceiptParacrossCommit
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
 		return nil, err
@@ -274,7 +277,7 @@ func (l ParacrossDoneLog) Name() string {
 }
 
 func (l ParacrossDoneLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp types.ReceiptParacrossDone
+	var logTmp paracross.ReceiptParacrossDone
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
 		return nil, err
@@ -290,7 +293,7 @@ func (l ParacrossCommitRecordLog) Name() string {
 }
 
 func (l ParacrossCommitRecordLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp types.ReceiptParacrossRecord
+	var logTmp paracross.ReceiptParacrossRecord
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
 		return nil, err
@@ -362,7 +365,7 @@ type ParacrossGetTitleHeight struct {
 }
 
 func (t *ParacrossGetTitleHeight) JsonToProto(message json.RawMessage) ([]byte, error) {
-	var req types.ReqParacrossTitleHeight
+	var req paracross.ReqParacrossTitleHeight
 	err := json.Unmarshal(message, &req)
 	if err != nil {
 		return nil, err

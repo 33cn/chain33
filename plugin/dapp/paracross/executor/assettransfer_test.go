@@ -12,8 +12,9 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	dbmock "gitlab.33.cn/chain33/chain33/common/db/mocks"
+	"gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/rpc"
+	pt "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/types"
 	"gitlab.33.cn/chain33/chain33/types"
-	pt "gitlab.33.cn/chain33/chain33/types/executor/paracross"
 )
 
 // para-exec addr on main 1HPkPopVe3ERfvaAgedDtJQ792taZFEHCe
@@ -41,7 +42,7 @@ func TestAssetTransfer(t *testing.T) {
 }
 
 func init() {
-	pt.Init()
+	rpc.Init(nil)
 }
 
 func (suite *AssetTransferTestSuite) SetupTest() {
@@ -76,7 +77,7 @@ func (suite *AssetTransferTestSuite) SetupTest() {
 	assert.Equal(suite.T(), value, types.Encode(nodeValue))
 
 	// setup state title 'test' height is 9
-	var titleStatus types.ParacrossStatus
+	var titleStatus pt.ParacrossStatus
 	titleStatus.Title = Title
 	titleStatus.Height = CurHeight - 1
 	titleStatus.BlockHash = PerBlock
@@ -130,7 +131,7 @@ func (suite *AssetTransferTestSuite) TestExecTransfer() {
 		suite.T().Error("TestExecTransfer", "createTxGroup", err)
 		return
 	}
-
+	suite.T().Log(string(tx.Execer))
 	receipt, err := suite.exec.Exec(tx, 1)
 	if err != nil {
 		suite.T().Error("Exec Transfer", err)
@@ -199,7 +200,7 @@ func createAssetTransferTx(s suite.Suite, privFrom string, to []byte) (*types.Tr
 		TokenSymbol: "",
 		ExecName:    Title + types.ParaX,
 	}
-	tx, err := pt.CreateRawTransferTx(&param)
+	tx, err := rpc.CreateRawTransferTx(&param)
 	assert.Nil(s.T(), err, "create asset transfer failed")
 	if err != nil {
 		return nil, err

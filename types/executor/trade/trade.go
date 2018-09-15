@@ -53,11 +53,11 @@ func (trade tradeType) ActionName(tx *types.Transaction) string {
 		return "buytoken"
 	} else if action.Ty == types.TradeRevokeSell && action.GetTokenrevokesell() != nil {
 		return "revokeselltoken"
-	} else if action.Ty == types.CoinsActionTransferToExec && action.GetTokenbuylimit() != nil {
+	} else if action.Ty == types.TradeBuyLimit && action.GetTokenbuylimit() != nil {
 		return "buylimittoken"
-	} else if action.Ty == types.CoinsActionTransferToExec && action.GetTokensellmarket() != nil {
+	} else if action.Ty == types.TradeSellMarket && action.GetTokensellmarket() != nil {
 		return "sellmarkettoken"
-	} else if action.Ty == types.CoinsActionTransferToExec && action.GetTokenrevokebuy() != nil {
+	} else if action.Ty == types.TradeRevokeBuy && action.GetTokenrevokebuy() != nil {
 		return "revokebuytoken"
 	}
 	return "unknown"

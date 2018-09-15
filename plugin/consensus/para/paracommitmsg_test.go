@@ -15,11 +15,12 @@ import (
 	"gitlab.33.cn/chain33/chain33/mempool"
 	"gitlab.33.cn/chain33/chain33/p2p"
 	pp "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/executor"
+	"gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/rpc"
+	pt "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/types"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/store"
 	_ "gitlab.33.cn/chain33/chain33/system"
 	"gitlab.33.cn/chain33/chain33/types"
-	pt "gitlab.33.cn/chain33/chain33/types/executor/paracross"
 	typesmocks "gitlab.33.cn/chain33/chain33/types/mocks"
 )
 
@@ -27,7 +28,7 @@ var random *rand.Rand
 
 func init() {
 	types.SetTitle("user.p.para.")
-	pt.Init()
+	rpc.Init(nil)
 	pp.Init()
 	random = rand.New(rand.NewSource(types.Now().UnixNano()))
 	consensusInterval = 2
@@ -73,7 +74,7 @@ func (s *suiteParaCommitMsg) initEnv(cfg *types.Config) {
 	s.grpcCli.On("GetLastBlockSequence", mock.Anything, mock.Anything).Return(nil, errors.New("nil"))
 	reply := &types.Reply{IsOk: true}
 	s.grpcCli.On("IsSync", mock.Anything, mock.Anything).Return(reply, nil)
-	result := &types.ParacrossStatus{Height: -1}
+	result := &pt.ParacrossStatus{Height: -1}
 	data := types.Encode(result)
 	ret := &types.Reply{IsOk: true, Msg: data}
 	s.grpcCli.On("QueryChain", mock.Anything, mock.Anything).Return(ret, nil).Maybe()

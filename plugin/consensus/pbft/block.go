@@ -6,6 +6,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 	"gitlab.33.cn/chain33/chain33/queue"
 	drivers "gitlab.33.cn/chain33/chain33/system/consensus"
+	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	pb "gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -94,10 +95,10 @@ func (client *PbftClient) CreateGenesisTx() (ret []*pb.Transaction) {
 	tx.Execer = []byte("coins")
 	tx.To = client.Cfg.Genesis
 	//gen payload
-	g := &pb.CoinsAction_Genesis{}
-	g.Genesis = &pb.CoinsGenesis{}
+	g := &cty.CoinsAction_Genesis{}
+	g.Genesis = &cty.CoinsGenesis{}
 	g.Genesis.Amount = 1e8 * pb.Coin
-	tx.Payload = pb.Encode(&pb.CoinsAction{Value: g, Ty: pb.CoinsActionGenesis})
+	tx.Payload = pb.Encode(&cty.CoinsAction{Value: g, Ty: cty.CoinsActionGenesis})
 	ret = append(ret, &tx)
 	return
 }

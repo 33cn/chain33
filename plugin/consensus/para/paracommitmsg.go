@@ -8,8 +8,9 @@ import (
 	"github.com/pkg/errors"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
+	paracross "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/rpc"
+	pt "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/types"
 	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/types/executor/paracross"
 )
 
 var (
@@ -33,11 +34,11 @@ func (client *CommitMsgClient) handler() {
 	var notification []int64 //记录每次系统重启后 min and current height
 	var finishHeight int64
 	var sendingHeight int64 //当前发送的最大高度
-	var sendingMsgs []*types.ParacrossNodeStatus
+	var sendingMsgs []*pt.ParacrossNodeStatus
 	var readTick <-chan time.Time
 
 	client.paraClient.wg.Add(1)
-	consensusCh := make(chan *types.ParacrossStatus, 1)
+	consensusCh := make(chan *pt.ParacrossStatus, 1)
 	go client.getConsensusHeight(consensusCh)
 
 	client.paraClient.wg.Add(1)
@@ -180,7 +181,7 @@ out:
 	client.paraClient.wg.Done()
 }
 
-func (client *CommitMsgClient) calcCommitMsgTxs(notifications []*types.ParacrossNodeStatus) (*types.Transaction, int64, error) {
+func (client *CommitMsgClient) calcCommitMsgTxs(notifications []*pt.ParacrossNodeStatus) (*types.Transaction, int64, error) {
 	txs, count, err := client.batchCalcTxGroup(notifications)
 	if err != nil {
 		txs, err = client.singleCalcTx((notifications)[0])
@@ -219,7 +220,7 @@ func (client *CommitMsgClient) getTxsGroup(txsArr *types.Transactions) (*types.T
 	return newtx, nil
 }
 
-func (client *CommitMsgClient) batchCalcTxGroup(notifications []*types.ParacrossNodeStatus) (*types.Transaction, int, error) {
+func (client *CommitMsgClient) batchCalcTxGroup(notifications []*pt.ParacrossNodeStatus) (*types.Transaction, int, error) {
 	var rawTxs types.Transactions
 	for _, status := range notifications {
 		tx, err := paracross.CreateRawCommitTx4MainChain(status, types.ParaX, 0)
@@ -237,7 +238,7 @@ func (client *CommitMsgClient) batchCalcTxGroup(notifications []*types.Paracross
 	return txs, len(notifications), nil
 }
 
-func (client *CommitMsgClient) singleCalcTx(status *types.ParacrossNodeStatus) (*types.Transaction, error) {
+func (client *CommitMsgClient) singleCalcTx(status *pt.ParacrossNodeStatus) (*types.Transaction, error) {
 	tx, err := paracross.CreateRawCommitTx4MainChain(status, types.ParaX, 0)
 	if err != nil {
 		plog.Error("para get commit tx", "block height", status.Height)
@@ -314,8 +315,8 @@ func checkTxInMainBlock(targetTx *types.Transaction, detail *types.BlockDetail) 
 
 //当前未考虑获取key非常多失败的场景， 如果获取height非常多，block模块会比较大，但是使用完了就释放了
 //如果有必要也可以考虑每次最多取20个一个txgroup，发送共识部分循环获取发送也没问题
-func (client *CommitMsgClient) getNodeStatus(start, end int64) ([]*types.ParacrossNodeStatus, error) {
-	var ret []*types.ParacrossNodeStatus
+func (client *CommitMsgClient) getNodeStatus(start, end int64) ([]*pt.ParacrossNodeStatus, error) {
+	var ret []*pt.ParacrossNodeStatus
 	if start == 0 {
 		geneStatus, err := client.getGenesisNodeStatus()
 		if err != nil {
@@ -330,7 +331,7 @@ func (client *CommitMsgClient) getNodeStatus(start, end int64) ([]*types.Paracro
 
 	req := &types.ReqBlocks{Start: start, End: end}
 	count := req.End - req.Start + 1
-	nodeList := make(map[int64]*types.ParacrossNodeStatus, count+1)
+	nodeList := make(map[int64]*pt.ParacrossNodeStatus, count+1)
 	keys := &types.LocalDBGet{}
 	for i := 0; i < int(count); i++ {
 		key := paracross.CalcMinerHeightKey(types.GetTitle(), req.Start+int64(i))
@@ -350,7 +351,7 @@ func (client *CommitMsgClient) getNodeStatus(start, end int64) ([]*types.Paracro
 		return nil, err
 	}
 	for _, val := range r.Values {
-		status := &types.ParacrossNodeStatus{}
+		status := &pt.ParacrossNodeStatus{}
 		err = types.Decode(val, status)
 		if err != nil {
 			return nil, err
@@ -397,8 +398,8 @@ func (client *CommitMsgClient) getNodeStatus(start, end int64) ([]*types.Paracro
 
 }
 
-func (client *CommitMsgClient) getGenesisNodeStatus() (*types.ParacrossNodeStatus, error) {
-	var status types.ParacrossNodeStatus
+func (client *CommitMsgClient) getGenesisNodeStatus() (*pt.ParacrossNodeStatus, error) {
+	var status pt.ParacrossNodeStatus
 	req := &types.ReqBlocks{Start: 0, End: 0}
 	msg := client.paraClient.GetQueueClient().NewMessage("blockchain", types.EventGetBlocks, req)
 	client.paraClient.GetQueueClient().Send(msg, true)
@@ -461,7 +462,7 @@ func (client *CommitMsgClient) mainSync() error {
 
 }
 
-func (client *CommitMsgClient) getConsensusHeight(consensusRst chan *types.ParacrossStatus) {
+func (client *CommitMsgClient) getConsensusHeight(consensusRst chan *pt.ParacrossStatus) {
 	ticker := time.NewTicker(time.Second * time.Duration(consensusInterval))
 	isSync := false
 	defer ticker.Stop()
@@ -498,7 +499,7 @@ out:
 				continue
 			}
 
-			var result types.ParacrossStatus
+			var result pt.ParacrossStatus
 			types.Decode(ret.Msg, &result)
 			consensusRst <- &result
 		}

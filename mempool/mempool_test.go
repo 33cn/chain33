@@ -14,6 +14,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/store"
+	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
 
 	_ "gitlab.33.cn/chain33/chain33/plugin"
@@ -31,8 +32,8 @@ var (
 	mainPriv   crypto.PrivKey
 	toAddr     = address.PubKeyToAddress(privKey.PubKey().Bytes()).String()
 	amount     = int64(1e8)
-	v          = &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
-	transfer   = &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
+	v          = &cty.CoinsAction_Transfer{&cty.CoinsTransfer{Amount: amount}}
+	transfer   = &cty.CoinsAction{Value: v, Ty: cty.CoinsActionTransfer}
 	tx1        = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1000000, Expire: 2, To: toAddr}
 	tx2        = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0, To: toAddr}
 	tx3        = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 200000000, Expire: 0, To: toAddr}
@@ -170,8 +171,8 @@ func initEnv(size int) (queue.Queue, *Mempool) {
 }
 
 func createTx(priv crypto.PrivKey, to string, amount int64) *types.Transaction {
-	v := &types.CoinsAction_Transfer{Transfer: &types.CoinsTransfer{Amount: amount}}
-	transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
+	v := &cty.CoinsAction_Transfer{Transfer: &cty.CoinsTransfer{Amount: amount}}
+	transfer := &cty.CoinsAction{Value: v, Ty: cty.CoinsActionTransfer}
 	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1e6, To: to}
 	tx.Nonce = rand.Int63()
 	tx.Sign(types.SECP256K1, priv)

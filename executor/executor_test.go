@@ -24,6 +24,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/store"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
+	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/util"
 
@@ -89,8 +90,8 @@ func initEnv() (queue.Queue, queue.Module, queue.Module, queue.Module) {
 }
 
 func createTx(priv crypto.PrivKey, to string, amount int64) *types.Transaction {
-	v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
-	transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
+	v := &cty.CoinsAction_Transfer{&cty.CoinsTransfer{Amount: amount}}
+	transfer := &cty.CoinsAction{Value: v, Ty: cty.CoinsActionTransfer}
 	tx := &types.Transaction{Execer: []byte("none"), Payload: types.Encode(transfer), Fee: 1e6, To: to}
 	random := rand.New(rand.NewSource(types.Now().UnixNano()))
 	tx.Nonce = random.Int63()
@@ -100,8 +101,8 @@ func createTx(priv crypto.PrivKey, to string, amount int64) *types.Transaction {
 }
 
 func createTx2(priv crypto.PrivKey, to string, amount int64) *types.Transaction {
-	v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
-	transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
+	v := &cty.CoinsAction_Transfer{&cty.CoinsTransfer{Amount: amount}}
+	transfer := &cty.CoinsAction{Value: v, Ty: cty.CoinsActionTransfer}
 	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1e6, To: to}
 	random := rand.New(rand.NewSource(types.Now().UnixNano()))
 	tx.Nonce = random.Int63()
@@ -167,10 +168,10 @@ func createGenesisBlock() *types.Block {
 	tx.Execer = []byte("coins")
 	tx.To = cfg.Consensus.Genesis
 	//gen payload
-	g := &types.CoinsAction_Genesis{}
-	g.Genesis = &types.CoinsGenesis{}
+	g := &cty.CoinsAction_Genesis{}
+	g.Genesis = &cty.CoinsGenesis{}
 	g.Genesis.Amount = 1e8 * types.Coin
-	tx.Payload = types.Encode(&types.CoinsAction{Value: g, Ty: types.CoinsActionGenesis})
+	tx.Payload = types.Encode(&cty.CoinsAction{Value: g, Ty: cty.CoinsActionGenesis})
 
 	newblock := &types.Block{}
 	newblock.Height = 0

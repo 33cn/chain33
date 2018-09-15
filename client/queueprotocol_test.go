@@ -4,6 +4,10 @@ import (
 	"os"
 	"testing"
 
+	_ "gitlab.33.cn/chain33/chain33/plugin"
+	"gitlab.33.cn/chain33/chain33/pluginmgr"
+	_ "gitlab.33.cn/chain33/chain33/system"
+
 	"github.com/stretchr/testify/require"
 	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/queue"
@@ -23,6 +27,7 @@ func TestMain(m *testing.M) {
 	mock.grpcMock = &grpcMock
 	mock.jrpcMock = &jrpc
 	executor.Init()
+	pluginmgr.InitExec()
 	api = mock.startup(0)
 	flag := m.Run()
 	mock.stop()

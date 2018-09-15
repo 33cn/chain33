@@ -71,7 +71,6 @@ func init() {
 		commands.VersionCmd(),
 		sendCmd,
 		closeCmd,
-		commands.ParcCmd(),
 	)
 	pluginmgr.AddCmd(rootCmd)
 }
