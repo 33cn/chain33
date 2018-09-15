@@ -215,7 +215,7 @@ func (mem *Mempool) DelBlock(block *types.Block) {
 	for i := 0; i < len(blkTxs); i++ {
 		tx := blkTxs[i]
 		//当前包括ticket和平行链的第一笔挖矿交易，统一actionName为miner
-		if i == 0 && tx.ActionName() == "miner" {
+		if i == 0 && tx.ActionName() == types.MinerAction {
 			continue
 		}
 		groupCount := int(tx.GetGroupCount())
