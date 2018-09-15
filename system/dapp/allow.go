@@ -87,3 +87,7 @@ func (d *DriverBase) Allow(tx *types.Transaction, index int) error {
 	}
 	return types.ErrNotAllow
 }
+
+func (d *DriverBase) IsFriend(myexec, writekey []byte, othertx *types.Transaction) bool {
+	return false
+}

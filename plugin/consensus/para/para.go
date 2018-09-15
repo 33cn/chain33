@@ -15,7 +15,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
-	paracross "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/rpc"
+	paracross "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/types"
 	pt "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/types"
 	"gitlab.33.cn/chain33/chain33/queue"
 	drivers "gitlab.33.cn/chain33/chain33/system/consensus"
@@ -135,7 +135,7 @@ func calcSearchseq(height int64) (seq int64) {
 
 //para 不检查任何的交易
 func (client *ParaClient) CheckBlock(parent *types.Block, current *types.BlockDetail) error {
-	err := paracross.CheckMinerTx(current)
+	err := CheckMinerTx(current)
 	return err
 }
 
