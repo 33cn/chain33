@@ -595,6 +595,7 @@ func TestKeyAllow(t *testing.T) {
 	tx11, _ := hex.DecodeString(tx1)
 	var tx12 types.Transaction
 	types.Decode(tx11, &tx12)
+	tx12.Execer = exec
 	if !isAllowExec(key, exec, &tx12, int64(1)) {
 		t.Error("retrieve can modify exec")
 	}
