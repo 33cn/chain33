@@ -55,8 +55,14 @@ message LocalReplyValue {
 }
 
 message StoreSet {
-    bytes    stateHash   = 1;
-    repeated KeyValue KV = 2;
+    bytes    stateHash       = 1;
+    repeated KeyValue KV     = 2;
+    int64             height = 3;
+}
+
+message StoreDel {
+    bytes stateHash = 1;
+    int64 height    = 2;
 }
 
 message StoreSetWithSync {

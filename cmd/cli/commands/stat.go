@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"gitlab.33.cn/chain33/chain33/common/address"
+	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 
 	"math/big"
 
@@ -60,7 +61,7 @@ func totalCoins(cmd *cobra.Command, args []string) {
 	actual, _ := cmd.Flags().GetString("actual")
 
 	if height == -1 {
-		rpc, err := jsonrpc.NewJSONClient(rpcAddr)
+		rpc, err := jsonclient.NewJSONClient(rpcAddr)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			return
@@ -81,7 +82,7 @@ func totalCoins(cmd *cobra.Command, args []string) {
 		Isdetail: false,
 	}
 
-	rpc, err := jsonrpc.NewJSONClient(rpcAddr)
+	rpc, err := jsonclient.NewJSONClient(rpcAddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -137,7 +138,7 @@ func totalCoins(cmd *cobra.Command, args []string) {
 		//查询Token总量
 		var req types.ReqString
 		req.Data = symbol
-		var params jsonrpc.Query4Cli
+		var params types.Query4Cli
 		params.Execer = "token"
 		params.FuncName = "GetTokenInfo"
 		params.Payload = req
@@ -219,7 +220,7 @@ func ticketStat(cmd *cobra.Command, args []string) {
 	rpcAddr, _ := cmd.Flags().GetString("rpc_laddr")
 	addr, _ := cmd.Flags().GetString("addr")
 
-	rpc, err := jsonrpc.NewJSONClient(rpcAddr)
+	rpc, err := jsonclient.NewJSONClient(rpcAddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -268,7 +269,7 @@ func ticketInfo(cmd *cobra.Command, args []string) {
 	rpcAddr, _ := cmd.Flags().GetString("rpc_laddr")
 	ticketId, _ := cmd.Flags().GetString("ticket_id")
 
-	rpc, err := jsonrpc.NewJSONClient(rpcAddr)
+	rpc, err := jsonclient.NewJSONClient(rpcAddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -351,7 +352,7 @@ func ticketInfoList(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	rpc, err := jsonrpc.NewJSONClient(rpcAddr)
+	rpc, err := jsonclient.NewJSONClient(rpcAddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -449,7 +450,7 @@ func minerStat(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	rpc, err := jsonrpc.NewJSONClient(rpcAddr)
+	rpc, err := jsonclient.NewJSONClient(rpcAddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return

@@ -97,6 +97,7 @@ It has these top-level messages:
 	LocalDBGet
 	LocalReplyValue
 	StoreSet
+	StoreDel
 	StoreSetWithSync
 	StoreGet
 	StoreReplyValue
@@ -116,11 +117,6 @@ It has these top-level messages:
 	EvmDebugReq
 	EvmDebugResp
 	Genesis
-	CoinsAction
-	CoinsGenesis
-	CoinsTransfer
-	CoinsTransferToExec
-	CoinsWithdraw
 	Hashlock
 	HashlockAction
 	HashlockLock
@@ -159,6 +155,10 @@ It has these top-level messages:
 	ReqRetrieveInfo
 	RetrieveQuery
 	TokenAction
+	TokenGenesis
+	TokenTransfer
+	TokenTransferToExec
+	TokenWithdraw
 	TokenPreCreate
 	TokenFinishCreate
 	TokenRevokeCreate
