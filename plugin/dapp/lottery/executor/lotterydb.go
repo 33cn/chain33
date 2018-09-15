@@ -10,7 +10,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/system/dapp"
-
 	"gitlab.33.cn/chain33/chain33/types"
 	"google.golang.org/grpc"
 )

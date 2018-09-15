@@ -12,6 +12,7 @@ import (
 	ttypes "gitlab.33.cn/chain33/chain33/plugin/consensus/tendermint/types"
 	"gitlab.33.cn/chain33/chain33/queue"
 	drivers "gitlab.33.cn/chain33/chain33/system/consensus"
+	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/util"
 )
@@ -254,10 +255,10 @@ func (client *TendermintClient) CreateGenesisTx() (ret []*types.Transaction) {
 	tx.Execer = []byte("coins")
 	tx.To = client.Cfg.Genesis
 	//gen payload
-	g := &types.CoinsAction_Genesis{}
-	g.Genesis = &types.CoinsGenesis{}
+	g := &cty.CoinsAction_Genesis{}
+	g.Genesis = &cty.CoinsGenesis{}
 	g.Genesis.Amount = 1e8 * types.Coin
-	tx.Payload = types.Encode(&types.CoinsAction{Value: g, Ty: types.CoinsActionGenesis})
+	tx.Payload = types.Encode(&cty.CoinsAction{Value: g, Ty: cty.CoinsActionGenesis})
 	ret = append(ret, &tx)
 	return
 }
@@ -269,21 +270,6 @@ func (client *TendermintClient) CheckBlock(parent *types.Block, current *types.B
 
 func (client *TendermintClient) ProcEvent(msg queue.Message) bool {
 	return false
-}
-
-func (client *TendermintClient) ExecBlock(prevHash []byte, block *types.Block) (*types.BlockDetail, []*types.Transaction, error) {
-	//exec block
-	if block.Height == 0 {
-		block.Difficulty = types.GetP(0).PowLimitBits
-	}
-	blockdetail, deltx, err := util.ExecBlock(client.GetQueueClient(), prevHash, block, false, false)
-	if err != nil { //never happen
-		return nil, deltx, err
-	}
-	if len(blockdetail.Block.Txs) == 0 {
-		return nil, deltx, types.ErrNoTx
-	}
-	return blockdetail, deltx, nil
 }
 
 func (client *TendermintClient) CreateBlock() {

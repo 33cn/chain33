@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
+	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -123,7 +124,7 @@ func closeTicket(cmd *cobra.Command, args []string) {
 	}
 
 	var res types.ReplyHashes
-	rpc, err := jsonrpc.NewJSONClient(rpcLaddr)
+	rpc, err := jsonclient.NewJSONClient(rpcLaddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -148,7 +149,7 @@ func closeTicket(cmd *cobra.Command, args []string) {
 }
 
 func getWalletStatus(rpcAddr string) (interface{}, error) {
-	rpc, err := jsonrpc.NewJSONClient(rpcAddr)
+	rpc, err := jsonclient.NewJSONClient(rpcAddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return nil, err
@@ -185,7 +186,7 @@ func coldAddressOfMiner(cmd *cobra.Command, args []string) {
 	reqaddr := &types.ReqString{
 		Data: addr,
 	}
-	var params jsonrpc.Query4Cli
+	var params types.Query4Cli
 	params.Execer = "ticket"
 	params.FuncName = "MinerSourceList"
 	params.Payload = reqaddr

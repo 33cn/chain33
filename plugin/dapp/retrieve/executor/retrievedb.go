@@ -8,6 +8,7 @@ import (
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
 	//log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/system/dapp"
 )
 
 const (
@@ -87,7 +88,8 @@ type Action struct {
 func NewRetrieveAcction(r *Retrieve, tx *types.Transaction) *Action {
 	hash := tx.Hash()
 	fromaddr := tx.From()
-	return &Action{r.GetCoinsAccount(), r.GetStateDB(), hash, fromaddr, r.GetBlockTime(), r.GetHeight(), r.GetAddr()}
+	return &Action{r.GetCoinsAccount(), r.GetStateDB(), hash, fromaddr,
+		r.GetBlockTime(), r.GetHeight(), dapp.ExecAddress(string(tx.Execer))}
 }
 
 //wait for valuable comment
