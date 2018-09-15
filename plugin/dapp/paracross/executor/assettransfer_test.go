@@ -3,6 +3,7 @@ package executor
 import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+
 	//"github.com/stretchr/testify/mock"
 	"testing"
 
@@ -200,7 +201,7 @@ func createAssetTransferTx(s suite.Suite, privFrom string, to []byte) (*types.Tr
 		TokenSymbol: "",
 		ExecName:    Title + types.ParaX,
 	}
-	tx, err := rpc.CreateRawTransferTx(&param)
+	tx, err := pt.CreateRawTransferTx(&param)
 	assert.Nil(s.T(), err, "create asset transfer failed")
 	if err != nil {
 		return nil, err
