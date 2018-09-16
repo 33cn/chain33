@@ -154,10 +154,6 @@ It has these top-level messages:
 	ReqRetrieveInfo
 	RetrieveQuery
 	TokenAction
-	TokenGenesis
-	TokenTransfer
-	TokenTransferToExec
-	TokenWithdraw
 	TokenPreCreate
 	TokenFinishCreate
 	TokenRevokeCreate
@@ -360,6 +356,10 @@ It has these top-level messages:
 	VoteSetMaj23Msg
 	VoteSetBitsMsg
 	Heartbeat
+	AssetsGenesis
+	AssetsTransferToExec
+	AssetsWithdraw
+	AssetsTransfer
 	CreateTx
 	CreateTransactionGroup
 	UnsignTx

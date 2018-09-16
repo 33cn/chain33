@@ -5,6 +5,35 @@ import "common.proto";
 package types;
 option go_package = "gitlab.33.cn/chain33/chain33/types";
 
+// assert transfer struct
+message AssetsGenesis {
+    int64  amount        = 2;
+    string returnAddress = 3;
+}
+
+message AssetsTransferToExec {
+    string cointoken = 1;
+    int64  amount    = 2;
+    string note      = 3;
+    string execName  = 4;
+    string to        = 5;
+}
+
+message AssetsWithdraw {
+    string cointoken = 1;
+    int64  amount    = 2;
+    string note      = 3;
+    string execName  = 4;
+    string to        = 5;
+}
+
+message AssetsTransfer {
+    string cointoken = 1;
+    int64  amount    = 2;
+    string note      = 3;
+    string to        = 4;
+}
+
 message CreateTx {
     string to          = 1;
     int64  amount      = 2;

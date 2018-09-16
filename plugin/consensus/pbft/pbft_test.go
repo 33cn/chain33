@@ -133,7 +133,7 @@ func createReplyList(account string) {
 	var result []*types.Transaction
 	for j := 0; j < txSize; j++ {
 		//tx := &types.Transaction{}
-		val := &cty.CoinsAction_Transfer{&cty.CoinsTransfer{Amount: 10}}
+		val := &cty.CoinsAction_Transfer{&types.AssetsTransfer{Amount: 10}}
 		action := &cty.CoinsAction{Value: val, Ty: cty.CoinsActionTransfer}
 		tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(action), Fee: 0}
 		tx.To = "14qViLJfdGaP4EeHnDyJbEGQysnCpwn1gZ"

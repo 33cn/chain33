@@ -12,7 +12,6 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/common/address"
 	pt "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/types"
-	coins "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 )
 
 var (
@@ -126,7 +125,7 @@ func createMainTx(exec string, to string) (*types.Transaction, error) {
 		ExecName:    exec,
 	}
 	transfer := &pt.ParacrossAction{}
-	v := &pt.ParacrossAction_AssetTransfer{AssetTransfer: &coins.CoinsTransfer{
+	v := &pt.ParacrossAction_AssetTransfer{AssetTransfer: &types.AssetsTransfer{
 		Amount: param.Amount, Note: param.GetNote(), To: param.GetTo()}}
 	transfer.Value = v
 	transfer.Ty = pt.ParacrossActionTransfer
@@ -154,7 +153,7 @@ func createCrossMainTx(to string) (*types.Transaction, error) {
 		ExecName:    types.ParaX,
 	}
 	transfer := &pt.ParacrossAction{}
-	v := &pt.ParacrossAction_AssetTransfer{AssetTransfer: &coins.CoinsTransfer{
+	v := &pt.ParacrossAction_AssetTransfer{AssetTransfer: &types.AssetsTransfer{
 		Amount: param.Amount, Note: param.GetNote(), To: param.GetTo()}}
 	transfer.Value = v
 	transfer.Ty = pt.ParacrossActionTransfer
