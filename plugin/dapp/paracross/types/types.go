@@ -7,7 +7,6 @@ import (
 
 	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common/address"
-	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -106,12 +105,12 @@ func CreateRawTransferTx(param *types.CreateTx) (*types.Transaction, error) {
 
 	transfer := &ParacrossAction{}
 	if !param.IsWithdraw {
-		v := &ParacrossAction_AssetTransfer{AssetTransfer: &cty.CoinsTransfer{
+		v := &ParacrossAction_AssetTransfer{AssetTransfer: &types.AssetsTransfer{
 			Amount: param.Amount, Note: param.GetNote(), To: param.GetTo()}}
 		transfer.Value = v
 		transfer.Ty = ParacrossActionTransfer
 	} else {
-		v := &ParacrossAction_AssetWithdraw{AssetWithdraw: &cty.CoinsWithdraw{
+		v := &ParacrossAction_AssetWithdraw{AssetWithdraw: &types.AssetsWithdraw{
 			Amount: param.Amount, Note: param.GetNote(), To: param.GetTo()}}
 		transfer.Value = v
 		transfer.Ty = ParacrossActionWithdraw
