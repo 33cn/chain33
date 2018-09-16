@@ -161,18 +161,18 @@ func CreateCoinsTransfer(param *types.CreateTx) *types.Transaction {
 	}
 	if !param.IsWithdraw {
 		if param.ExecName != "" {
-			v := &cty.CoinsAction_TransferToExec{TransferToExec: &cty.CoinsTransferToExec{
+			v := &cty.CoinsAction_TransferToExec{TransferToExec: &types.AssetsTransferToExec{
 				Amount: param.Amount, Note: param.GetNote(), ExecName: param.GetExecName(), To: to}}
 			transfer.Value = v
 			transfer.Ty = cty.CoinsActionTransferToExec
 		} else {
-			v := &cty.CoinsAction_Transfer{Transfer: &cty.CoinsTransfer{
+			v := &cty.CoinsAction_Transfer{Transfer: &types.AssetsTransfer{
 				Amount: param.Amount, Note: param.GetNote(), To: to}}
 			transfer.Value = v
 			transfer.Ty = cty.CoinsActionTransfer
 		}
 	} else {
-		v := &cty.CoinsAction_Withdraw{Withdraw: &cty.CoinsWithdraw{
+		v := &cty.CoinsAction_Withdraw{Withdraw: &types.AssetsWithdraw{
 			Amount: param.Amount, Note: param.GetNote(), ExecName: param.GetExecName(), To: to}}
 		transfer.Value = v
 		transfer.Ty = cty.CoinsActionWithdraw

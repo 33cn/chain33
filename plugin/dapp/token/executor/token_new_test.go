@@ -323,7 +323,7 @@ func TestTransferToken(t *testing.T) {
 	fmt.Println("TestTransferToken start")
 	defer fmt.Println("TestTransferToken end")
 
-	v := &types.TokenAction_Transfer{Transfer: &types.TokenTransfer{Cointoken: tokenSym, Amount: transAmount, Note: "", To: transToAddr}}
+	v := &types.TokenAction_Transfer{Transfer: &types.AssetsTransfer{Cointoken: tokenSym, Amount: transAmount, Note: "", To: transToAddr}}
 	transfer := &types.TokenAction{Value: v, Ty: types.ActionTransfer}
 
 	tx := &types.Transaction{Execer: []byte(execName), Payload: types.Encode(transfer), Fee: fee, To: addrexec}
@@ -400,7 +400,7 @@ func TestQueryAsset(t *testing.T) {
 //**************common actions for Test**************
 //***************************************************
 func sendtoaddress(c types.Chain33Client, priv crypto.PrivKey, to string, amount int64) ([]byte, error) {
-	v := &cty.CoinsAction_Transfer{&cty.CoinsTransfer{Amount: amount}}
+	v := &cty.CoinsAction_Transfer{&types.AssetsTransfer{Amount: amount}}
 	transfer := &cty.CoinsAction{Value: v, Ty: cty.CoinsActionTransfer}
 	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: fee, To: to}
 	tx.Nonce = r.Int63()
