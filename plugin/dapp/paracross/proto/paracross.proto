@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-import "coins.proto";
+import "transaction.proto";
 
 package types;
 
@@ -53,8 +53,8 @@ message ParacrossAction {
     oneof value {
         ParacrossCommitAction commit        = 1;
         ParacrossMinerAction  miner         = 3;
-        CoinsTransfer         assetTransfer = 4;
-        CoinsWithdraw         assetWithdraw = 5;
+        AssetsTransfer        assetTransfer = 4;
+        AssetsWithdraw        assetWithdraw = 5;
     }
     int32 ty = 2;
 }

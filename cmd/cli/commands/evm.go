@@ -221,10 +221,10 @@ func createEvmTransferTx(cmd *cobra.Command, caller, execName, expire, rpcLaddr 
 	transfer := &cty.CoinsAction{}
 
 	if isWithdraw {
-		transfer.Value = &cty.CoinsAction_Withdraw{Withdraw: &cty.CoinsWithdraw{Amount: amountInt64, ExecName: execName, To: address.ExecAddress(execName)}}
+		transfer.Value = &cty.CoinsAction_Withdraw{Withdraw: &types.AssetsWithdraw{Amount: amountInt64, ExecName: execName, To: address.ExecAddress(execName)}}
 		transfer.Ty = cty.CoinsActionWithdraw
 	} else {
-		transfer.Value = &cty.CoinsAction_TransferToExec{TransferToExec: &cty.CoinsTransferToExec{Amount: amountInt64, ExecName: execName, To: address.ExecAddress(execName)}}
+		transfer.Value = &cty.CoinsAction_TransferToExec{TransferToExec: &types.AssetsTransferToExec{Amount: amountInt64, ExecName: execName, To: address.ExecAddress(execName)}}
 		transfer.Ty = cty.CoinsActionTransferToExec
 	}
 	if paraName == "" {

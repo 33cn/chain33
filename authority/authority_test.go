@@ -33,7 +33,7 @@ var (
 	txs      = []*types.Transaction{tx1, tx2, tx3, tx4, tx5, tx6, tx7, tx8, tx9, tx10, tx11, tx12}
 
 	privRaw, _  = common.FromHex("CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944")
-	tr          = &cty.CoinsAction_Transfer{&cty.CoinsTransfer{Amount: int64(1e8)}}
+	tr          = &cty.CoinsAction_Transfer{&types.AssetsTransfer{Amount: int64(1e8)}}
 	secpp256, _ = crypto.New(types.GetSignatureTypeName(types.SECP256K1))
 	privKey, _  = secpp256.PrivKeyFromBytes(privRaw)
 	tx14        = &types.Transaction{Execer: []byte("coins"),
