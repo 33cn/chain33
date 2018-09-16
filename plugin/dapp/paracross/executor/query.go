@@ -1,8 +1,9 @@
 package executor
 
-import "gitlab.33.cn/chain33/chain33/types"
 import (
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
+	pt "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/types"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 func (c *Paracross) ParacrossGetHeight(title string) (types.Message, error) {
@@ -23,9 +24,9 @@ func listLocalTitles(db dbm.KVDB) (types.Message, error) {
 	if err != nil {
 		return nil, err
 	}
-	var resp types.RespParacrossTitles
+	var resp pt.RespParacrossTitles
 	for _, r := range res {
-		var st types.ReceiptParacrossDone
+		var st pt.ReceiptParacrossDone
 		err = types.Decode(r, &st)
 		if err != nil {
 			panic(err)
@@ -41,13 +42,34 @@ func loadLocalTitle(db dbm.KV, title string, height int64) (types.Message, error
 	if err != nil {
 		return nil, err
 	}
-	var resp types.ReceiptParacrossDone
+	var resp pt.ReceiptParacrossDone
 	err = types.Decode(res, &resp)
 	if err != nil {
 		panic(err)
 	}
 	return &resp, nil
 }
+
 func (c *Paracross) ParacrossGetTitleHeight(title string, height int64) (types.Message, error) {
 	return loadLocalTitle(c.GetLocalDB(), title, height)
+}
+
+func (c *Paracross) ParacrossGetAssetTxResult(hash []byte) (types.Message, error) {
+	if len(hash) == 0 {
+		return nil, types.ErrInputPara
+	}
+
+	key := calcLocalAssetKey(hash)
+	value, err := c.GetLocalDB().Get(key)
+	if err != nil {
+		return nil, err
+	}
+
+	var result pt.ParacrossAsset
+	err = types.Decode(value, &result)
+	if err != nil {
+		return nil, err
+	}
+
+	return &result, nil
 }
