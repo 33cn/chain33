@@ -24,6 +24,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/store"
 	_ "gitlab.33.cn/chain33/chain33/system"
 	"gitlab.33.cn/chain33/chain33/types"
+	executorty "gitlab.33.cn/chain33/chain33/types/executor"
 	wcom "gitlab.33.cn/chain33/chain33/wallet/common"
 )
 
@@ -34,7 +35,7 @@ var (
 
 func init() {
 	log.SetLogLevel("info")
-
+	executorty.Init()
 	strPrivKeys = append(strPrivKeys,
 		"4257D8692EF7FE13C68B65D6A52F03933DB2FA5CE8FAF210B5B8B80C721CED01",
 		"CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944",
