@@ -8,7 +8,7 @@ import (
 	"github.com/pkg/errors"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
-	paracross "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/rpc"
+	paracross "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/types"
 	pt "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -551,4 +551,31 @@ out:
 		}
 	}
 
+}
+
+func CheckMinerTx(current *types.BlockDetail) error {
+	//检查第一个笔交易的execs, 以及执行状态
+	if len(current.Block.Txs) == 0 {
+		return types.ErrEmptyTx
+	}
+	baseTx := current.Block.Txs[0]
+	//判断交易类型和执行情况
+	var action paracross.ParacrossAction
+	err := types.Decode(baseTx.GetPayload(), &action)
+	if err != nil {
+		return err
+	}
+	if action.GetTy() != paracross.ParacrossActionMiner {
+		return types.ErrParaMinerTxType
+	}
+	//判断交易执行是否OK
+	if action.GetMiner() == nil {
+		return types.ErrParaEmptyMinerTx
+	}
+
+	//判断exec 是否成功
+	if current.Receipts[0].Ty != types.ExecOk {
+		return types.ErrParaMinerExecErr
+	}
+	return nil
 }

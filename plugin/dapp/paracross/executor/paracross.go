@@ -9,8 +9,6 @@ import (
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/util"
-
-	"gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/rpc"
 )
 
 var (
@@ -25,6 +23,7 @@ type Paracross struct {
 func Init() {
 	drivers.Register(GetName(), newParacross, 0)
 	setPrefix()
+	InitType()
 }
 
 func GetName() string {
@@ -53,11 +52,11 @@ func (c *Paracross) Exec(tx *types.Transaction, index int) (*types.Receipt, erro
 	}
 
 	clog.Debug("Paracross.Exec", "payload.type", payload.Ty)
-	if payload.Ty == rpc.ParacrossActionCommit && payload.GetCommit() != nil {
+	if payload.Ty == pt.ParacrossActionCommit && payload.GetCommit() != nil {
 		commit := payload.GetCommit()
 		a := newAction(c, tx)
 		return a.Commit(commit)
-	} else if payload.Ty == rpc.ParacrossActionTransfer && payload.GetAssetTransfer() != nil {
+	} else if payload.Ty == pt.ParacrossActionTransfer && payload.GetAssetTransfer() != nil {
 		clog.Debug("Paracross.Exec", "payload.type", payload.Ty, "transfer", "")
 		_, err := c.checkTxGroup(tx, index)
 		if err != nil {
@@ -66,7 +65,7 @@ func (c *Paracross) Exec(tx *types.Transaction, index int) (*types.Receipt, erro
 		}
 		a := newAction(c, tx)
 		return a.AssetTransfer(payload.GetAssetTransfer())
-	} else if payload.Ty == rpc.ParacrossActionWithdraw && payload.GetAssetWithdraw() != nil {
+	} else if payload.Ty == pt.ParacrossActionWithdraw && payload.GetAssetWithdraw() != nil {
 		clog.Debug("Paracross.Exec", "payload.type", payload.Ty, "withdraw", "")
 		_, err := c.checkTxGroup(tx, index)
 		if err != nil {
@@ -75,7 +74,7 @@ func (c *Paracross) Exec(tx *types.Transaction, index int) (*types.Receipt, erro
 		}
 		a := newAction(c, tx)
 		return a.AssetWithdraw(payload.GetAssetWithdraw())
-	} else if payload.Ty == rpc.ParacrossActionMiner && payload.GetMiner() != nil {
+	} else if payload.Ty == pt.ParacrossActionMiner && payload.GetMiner() != nil {
 		if index != 0 {
 			return nil, types.ErrParaMinerBaseIndex
 		}
@@ -147,14 +146,14 @@ func (c *Paracross) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData,
 	}
 
 	for _, log := range receipt.Logs {
-		if log.Ty == types.TyLogParacrossCommit {
+		if log.Ty == pt.TyLogParacrossCommit {
 			var g pt.ReceiptParacrossCommit
 			types.Decode(log.Log, &g)
 
 			var r pt.ParacrossTx
 			r.TxHash = string(tx.Hash())
 			set.KV = append(set.KV, &types.KeyValue{calcLocalTxKey(g.Status.Title, g.Status.Height, tx.From()), types.Encode(&r)})
-		} else if log.Ty == types.TyLogParacrossCommitDone {
+		} else if log.Ty == pt.TyLogParacrossCommitDone {
 			var g pt.ReceiptParacrossDone
 			types.Decode(log.Log, &g)
 
@@ -169,14 +168,14 @@ func (c *Paracross) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData,
 				return nil, err
 			}
 			set.KV = append(set.KV, r.KV...)
-		} else if log.Ty == types.TyLogParacrossCommitRecord {
+		} else if log.Ty == pt.TyLogParacrossCommitRecord {
 			var g pt.ReceiptParacrossRecord
 			types.Decode(log.Log, &g)
 
 			var r pt.ParacrossTx
 			r.TxHash = string(tx.Hash())
 			set.KV = append(set.KV, &types.KeyValue{calcLocalTxKey(g.Status.Title, g.Status.Height, tx.From()), types.Encode(&r)})
-		} else if log.Ty == types.TyLogParacrossMiner {
+		} else if log.Ty == pt.TyLogParacrossMiner {
 			if index != 0 {
 				return nil, types.ErrParaMinerBaseIndex
 			}
@@ -216,18 +215,18 @@ func (c *Paracross) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData,
 			g.Status.CrossTxHashs = crossTxHashs
 			g.Status.CrossTxResult = util.CalcSubBitMap(mixTxHashs, crossTxHashs, c.GetReceipt()[1:])
 
-			set.KV = append(set.KV, &types.KeyValue{rpc.CalcMinerHeightKey(g.Status.Title, g.Status.Height), types.Encode(g.Status)})
+			set.KV = append(set.KV, &types.KeyValue{pt.CalcMinerHeightKey(g.Status.Title, g.Status.Height), types.Encode(g.Status)})
 
-		} else if log.Ty == types.TyLogParaAssetWithdraw {
+		} else if log.Ty == pt.TyLogParaAssetWithdraw {
 			// TODO
-		} else if log.Ty == types.TyLogParaAssetTransfer {
+		} else if log.Ty == pt.TyLogParaAssetTransfer {
 			// TODO
 		} else if log.Ty == types.TyLogExecTransfer {
 			//  主链转出记录，
 			//  转入在 commit done 时几率， 因为没有日志里没有当时tx信息
 			var g pt.ParacrossAction
 			err = types.Decode(tx.Payload, &g)
-			if g.Ty == rpc.ParacrossActionTransfer {
+			if g.Ty == pt.ParacrossActionTransfer {
 				r, err := c.initLocalAssetTransfer(tx, true, false)
 				if err != nil {
 					return nil, err
@@ -251,7 +250,7 @@ func (c *Paracross) saveLocalParaTxs(tx *types.Transaction, isDel bool) (*types.
 	if err != nil {
 		return nil, err
 	}
-	if payload.Ty != rpc.ParacrossActionCommit || payload.GetCommit() == nil {
+	if payload.Ty != pt.ParacrossActionCommit || payload.GetCommit() == nil {
 		return nil, nil
 	}
 
@@ -275,13 +274,13 @@ func (c *Paracross) saveLocalParaTxs(tx *types.Transaction, isDel bool) (*types.
 				common.Bytes2Hex(commit.Status.CrossTxHashs[i]))
 			return nil, err
 		}
-		if payload.Ty == rpc.ParacrossActionTransfer {
+		if payload.Ty == pt.ParacrossActionTransfer {
 			kv, err := c.updateLocalAssetTransfer(tx, paraTx.Tx, success, isDel)
 			if err != nil {
 				return nil, err
 			}
 			set.KV = append(set.KV, kv)
-		} else if payload.Ty == rpc.ParacrossActionWithdraw {
+		} else if payload.Ty == pt.ParacrossActionWithdraw {
 			kv, err := c.initLocalAssetWithdraw(tx, paraTx.Tx, true, success, isDel)
 			if err != nil {
 				return nil, err
@@ -421,14 +420,14 @@ func (c *Paracross) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptDa
 	}
 
 	for _, log := range receipt.Logs {
-		if log.Ty == types.TyLogParacrossCommit { //} || log.Ty == types.TyLogParacrossCommitRecord {
+		if log.Ty == pt.TyLogParacrossCommit { //} || log.Ty == types.TyLogParacrossCommitRecord {
 			var g pt.ReceiptParacrossCommit
 			types.Decode(log.Log, &g)
 
 			var r pt.ParacrossTx
 			r.TxHash = string(tx.Hash())
 			set.KV = append(set.KV, &types.KeyValue{calcLocalTxKey(g.Status.Title, g.Status.Height, tx.From()), nil})
-		} else if log.Ty == types.TyLogParacrossCommitDone {
+		} else if log.Ty == pt.TyLogParacrossCommitDone {
 			var g pt.ReceiptParacrossDone
 			types.Decode(log.Log, &g)
 			g.Height = g.Height - 1
@@ -444,29 +443,29 @@ func (c *Paracross) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptDa
 				return nil, err
 			}
 			set.KV = append(set.KV, r.KV...)
-		} else if log.Ty == types.TyLogParacrossCommitRecord {
+		} else if log.Ty == pt.TyLogParacrossCommitRecord {
 			var g pt.ReceiptParacrossRecord
 			types.Decode(log.Log, &g)
 
 			var r pt.ParacrossTx
 			r.TxHash = string(tx.Hash())
 			set.KV = append(set.KV, &types.KeyValue{calcLocalTxKey(g.Status.Title, g.Status.Height, tx.From()), nil})
-		} else if log.Ty == types.TyLogParacrossMiner {
+		} else if log.Ty == pt.TyLogParacrossMiner {
 			var g pt.ReceiptParacrossMiner
 			types.Decode(log.Log, &g)
 
-			set.KV = append(set.KV, &types.KeyValue{rpc.CalcMinerHeightKey(g.Status.Title, g.Status.Height), nil})
+			set.KV = append(set.KV, &types.KeyValue{pt.CalcMinerHeightKey(g.Status.Title, g.Status.Height), nil})
 
-		} else if log.Ty == types.TyLogParaAssetWithdraw {
+		} else if log.Ty == pt.TyLogParaAssetWithdraw {
 			// TODO
-		} else if log.Ty == types.TyLogParaAssetTransfer {
+		} else if log.Ty == pt.TyLogParaAssetTransfer {
 			// TODO
 		} else if log.Ty == types.TyLogExecTransfer {
 			//  主链转出记录，
 			//  转入在 commit done 时几率， 因为没有日志里没有当时tx信息
 			var g pt.ParacrossAction
 			err = types.Decode(tx.Payload, &g)
-			if g.Ty == rpc.ParacrossActionTransfer {
+			if g.Ty == pt.ParacrossActionTransfer {
 				r, err := c.initLocalAssetTransfer(tx, true, true)
 				if err != nil {
 					return nil, err
@@ -511,6 +510,23 @@ func (c *Paracross) Query(funcName string, params []byte) (types.Message, error)
 	return nil, types.ErrActionNotSupport
 }
 
+func (c *Paracross) IsFriend(myexec, writekey []byte, tx *types.Transaction) bool {
+	//不允许平行链
+	if types.IsPara() {
+		return false
+	}
+	//只允许写名字为主链名称的
+	if string(myexec) != c.GetName() {
+		return false
+	}
+	//只允许同系列的执行器
+	if string(types.GetRealExecName(tx.Execer)) != c.GetName() {
+		return false
+	}
+	//只允许跨链交易
+	return c.Allow(tx, 0) == nil
+}
+
 func (c *Paracross) Allow(tx *types.Transaction, index int) error {
 	err := c.DriverBase.Allow(tx, index)
 	if err == nil {
@@ -525,7 +541,7 @@ func (c *Paracross) Allow(tx *types.Transaction, index int) error {
 		if err != nil {
 			return err
 		}
-		if payload.Ty == rpc.ParacrossActionTransfer || payload.Ty == rpc.ParacrossActionWithdraw {
+		if payload.Ty == pt.ParacrossActionTransfer || payload.Ty == pt.ParacrossActionWithdraw {
 			return nil
 		}
 	}

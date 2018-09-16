@@ -8,9 +8,7 @@ import (
 	"bytes"
 	"fmt"
 	"reflect"
-	"strings"
 
-	"github.com/gogo/protobuf/proto"
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/client"
@@ -28,6 +26,7 @@ type Driver interface {
 	GetName() string
 	// 不能依赖任何数据库相关，只和交易相关
 	Allow(tx *types.Transaction, index int) error
+	IsFriend(myexec []byte, writekey []byte, othertx *types.Transaction) bool
 	GetActionName(tx *types.Transaction) string
 	SetEnv(height, blocktime int64, difficulty uint64)
 	CheckTx(tx *types.Transaction, index int) error
@@ -100,87 +99,6 @@ func (d *DriverBase) IsFree() bool {
 func (d *DriverBase) SetChild(e Driver) {
 	d.child = e
 	d.childValue = reflect.ValueOf(e)
-}
-
-func (d *DriverBase) AllowIsSame(execer []byte) bool {
-	return d.child.GetName() == string(execer)
-}
-
-func (d *DriverBase) GetPara(execer []byte) ([]byte, bool) {
-	//必须是平行链
-	if !types.IsPara() {
-		return nil, false
-	}
-	//必须是相同的平行链
-	if !strings.HasPrefix(string(execer), types.GetTitle()) {
-		return nil, false
-	}
-	return execer[len(types.GetTitle()):], true
-}
-
-func (d *DriverBase) AllowIsSamePara(execer []byte) bool {
-	exec, ok := d.GetPara(execer)
-	if !ok {
-		return false
-	}
-	return d.AllowIsSame(exec)
-}
-
-func (d *DriverBase) AllowIsUserDot1Para(execer []byte) bool {
-	exec, ok := d.GetPara(execer)
-	if !ok {
-		return false
-	}
-	return d.AllowIsUserDot1(exec)
-}
-
-func (d *DriverBase) AllowIsUserDot2Para(execer []byte) bool {
-	exec, ok := d.GetPara(execer)
-	if !ok {
-		return false
-	}
-	return d.AllowIsUserDot2(exec)
-}
-
-//user.evm
-func (d *DriverBase) AllowIsUserDot1(execer []byte) bool {
-	if !bytes.HasPrefix(execer, types.UserKey) {
-		return false
-	}
-	return d.AllowIsSame(execer[len(types.UserKey):])
-}
-
-//user.evm.xxx
-func (d *DriverBase) AllowIsUserDot2(execer []byte) bool {
-	if !bytes.HasPrefix(execer, types.UserKey) {
-		return false
-	}
-	count := 0
-	index := 0
-	s := len(types.UserKey)
-	for i := s; i < len(execer); i++ {
-		if execer[i] == '.' {
-			count++
-			index = i
-		}
-	}
-	if count == 1 && d.AllowIsSame(execer[s:index]) {
-		return true
-	}
-	return false
-}
-
-//默认行为: 名字相同 或者 是平行链
-func (d *DriverBase) Allow(tx *types.Transaction, index int) error {
-	//主链: 名字相同
-	if !types.IsPara() && d.AllowIsSame(tx.Execer) {
-		return nil
-	}
-	//平行链: 除掉title, 名字相同
-	if types.IsPara() && d.AllowIsSamePara(tx.Execer) {
-		return nil
-	}
-	return types.ErrNotAllow
 }
 
 func (d *DriverBase) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
@@ -425,60 +343,6 @@ func (d *DriverBase) CheckTx(tx *types.Transaction, index int) error {
 	return nil
 }
 
-//todo: add 解析query 的变量, 并且调用query 并返回
-func (d *DriverBase) Query(funcname string, params []byte) (msg types.Message, err error) {
-	funcmap := d.child.GetFuncMap()
-	funcname = "Query_" + funcname
-	if _, ok := funcmap[funcname]; !ok {
-		return nil, types.ErrActionNotSupport
-	}
-	ty := funcmap[funcname].Type
-	if ty.NumIn() != 2 {
-		blog.Error(funcname+" err num in param", "num", ty.NumIn())
-		return nil, types.ErrActionNotSupport
-	}
-	paramin := ty.In(1)
-	if paramin.Kind() != reflect.Ptr {
-		blog.Error(funcname + "  param is not pointer")
-		return nil, types.ErrActionNotSupport
-	}
-	p := reflect.New(ty.In(1).Elem())
-	queryin := p.Interface()
-	if in, ok := queryin.(proto.Message); ok {
-		err := types.Decode(params, in)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		blog.Error(funcname + " in param is not proto.Message")
-		return nil, types.ErrActionNotSupport
-	}
-	valueret := funcmap[funcname].Func.Call([]reflect.Value{d.childValue, reflect.ValueOf(queryin)})
-	if len(valueret) != 2 {
-		return nil, types.ErrMethodReturnType
-	}
-	//参数1
-	r1 := valueret[0].Interface()
-	if r1 != nil {
-		if r, ok := r1.(proto.Message); ok {
-			msg = r
-		} else {
-			return nil, types.ErrMethodReturnType
-		}
-	}
-	//参数2
-	r2 := valueret[1].Interface()
-	err = nil
-	if r2 != nil {
-		if r, ok := r2.(error); ok {
-			err = r
-		} else {
-			return nil, types.ErrMethodReturnType
-		}
-	}
-	return msg, err
-}
-
 func (d *DriverBase) SetStateDB(db dbm.KV) {
 	if d.coinsaccount == nil {
 		//log.Error("new CoinsAccount")
@@ -486,23 +350,6 @@ func (d *DriverBase) SetStateDB(db dbm.KV) {
 	}
 	d.statedb = db
 	d.coinsaccount.SetDB(db)
-}
-
-func (d *DriverBase) GetCoinsAccount() *account.DB {
-	if d.coinsaccount == nil {
-		//log.Error("new CoinsAccount")
-		d.coinsaccount = account.NewCoinsAccount()
-		d.coinsaccount.SetDB(d.statedb)
-	}
-	return d.coinsaccount
-}
-
-func (d *DriverBase) GetTxs() []*types.Transaction {
-	return d.txs
-}
-
-func (d *DriverBase) SetTxs(txs []*types.Transaction) {
-	d.txs = txs
 }
 
 func (d *DriverBase) GetTxGroup(index int) ([]*types.Transaction, error) {
@@ -569,4 +416,21 @@ func (d *DriverBase) GetActionName(tx *types.Transaction) string {
 
 func (d *DriverBase) CheckSignatureData(tx *types.Transaction, index int) bool {
 	return true
+}
+
+func (d *DriverBase) GetCoinsAccount() *account.DB {
+	if d.coinsaccount == nil {
+		//log.Error("new CoinsAccount")
+		d.coinsaccount = account.NewCoinsAccount()
+		d.coinsaccount.SetDB(d.statedb)
+	}
+	return d.coinsaccount
+}
+
+func (d *DriverBase) GetTxs() []*types.Transaction {
+	return d.txs
+}
+
+func (d *DriverBase) SetTxs(txs []*types.Transaction) {
+	d.txs = txs
 }

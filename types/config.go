@@ -177,7 +177,8 @@ func IsYcc() bool {
 }
 
 func IsPara() bool {
-	return strings.HasPrefix(title, ParaKeyX)
+	//user.p.guodun.
+	return strings.Count(title, ".") == 3 && strings.HasPrefix(title, ParaKeyX)
 }
 
 func IsParaExecName(name string) bool {

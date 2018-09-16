@@ -158,8 +158,6 @@ func (exec *Executor) procExecCheckTx(msg queue.Message) {
 	msg.Reply(exec.client.NewMessage("", types.EventReceiptCheckTx, result))
 }
 
-var commonPrefix = []byte("mavl-")
-
 func (exec *Executor) procExecTxList(msg queue.Message) {
 	datas := msg.GetData().(*types.ExecTxList)
 	execute := newExecutor(datas.StateHash, exec, datas.Height, datas.BlockTime, datas.Difficulty, datas.Txs, nil)
@@ -212,6 +210,15 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 		&types.Receipts{receipts}))
 }
 
+//allowExec key 行为判断放入 执行器
+/*
+权限控制规则:
+1. 默认行为:
+执行器只能修改执行器下面的 key
+或者能修改其他执行器 exec key 下面的数据
+
+2. friend 合约行为, 合约可以定义其他合约 可以修改的 key的内容
+*/
 func (execute *executor) isAllowExec(key []byte, tx *types.Transaction, index int) bool {
 	txexecer := execute.getRealExecName(tx, index)
 	height := execute.height
@@ -219,7 +226,7 @@ func (execute *executor) isAllowExec(key []byte, tx *types.Transaction, index in
 }
 
 func isAllowExec(key, txexecer []byte, tx *types.Transaction, height int64) bool {
-	keyexecer, err := findExecer(key)
+	keyexecer, err := types.FindExecer(key)
 	if err != nil {
 		elog.Error("find execer ", "err", err)
 		return false
@@ -228,33 +235,18 @@ func isAllowExec(key, txexecer []byte, tx *types.Transaction, height int64) bool
 	if bytes.Equal(keyexecer, txexecer) {
 		return true
 	}
-	//如果是运行运行deposit的执行器，可以修改coins 的值（只有挖矿合约运行这样做）
-	for _, execer := range types.AllowDepositExec {
-		if bytes.Equal(txexecer, execer) && bytes.Equal(keyexecer, types.ExecerCoins) {
-			return true
-		}
-	}
 	//每个合约中，都会开辟一个区域，这个区域是另外一个合约可以修改的区域
 	//我们把数据限制在这个位置，防止合约的其他位置被另外一个合约修改
-
 	//  execaddr 是加了前缀生成的地址， 而参数 txexecer 是没有前缀的执行器名字
-	execaddr, ok := getExecKey(key)
-	elog.Debug("XXX", "execaddr", execaddr, "KEY", string(key), "exec", string(txexecer),
-		"execaddr", drivers.ExecAddress(string(txexecer)))
-	if ok {
-		if execaddr == drivers.ExecAddress(string(tx.Execer)) {
-			return true
-		} else if !types.IsPara() && types.IsParaCrossTransferTx(txexecer, tx) {
-			// 跨链交易需要在主链和平行链都执行， 现在 txexecer 设置为 $(title) + types.ParaX
-			return true
-		}
+	execaddr, ok := types.GetExecKey(key)
+	if ok && execaddr == drivers.ExecAddress(string(tx.Execer)) {
+		return true
 	}
-
 	// 特殊化处理一下
 	// manage 的key 是 config
 	// token 的部分key 是 mavl-create-token-
 	if !types.IsMatchFork(height, types.ForkV13ExecKey) {
-		elog.Info("mavl key", "execer", keyexecer, "keyexecer", keyexecer)
+		elog.Info("mavl key", "execer", string(keyexecer), "keyexecer", string(keyexecer))
 		if bytes.Equal(txexecer, types.ExecerManage) && bytes.Equal(keyexecer, types.ExecerConfig) {
 			return true
 		}
@@ -264,52 +256,19 @@ func isAllowExec(key, txexecer []byte, tx *types.Transaction, height int64) bool
 			}
 		}
 	}
-	return false
-}
-
-var bytesExec = []byte("exec-")
-
-func getExecKey(key []byte) (string, bool) {
-	n := 0
-	start := 0
-	end := 0
-	for i := len(commonPrefix); i < len(key); i++ {
-		if key[i] == '-' {
-			n = n + 1
-			if n == 2 {
-				start = i + 1
-			}
-			if n == 3 {
-				end = i
-				break
-			}
-		}
+	//分成两种情况:
+	//是执行器余额，判断 friend
+	execdriver := keyexecer
+	if ok {
+		execdriver = txexecer
 	}
-	if start > 0 && end > 0 {
-		if bytes.Equal(key[start:end+1], bytesExec) {
-			//find addr
-			start = end + 1
-			for k := end; k < len(key); k++ {
-				if key[k] == ':' { //end+1
-					end = k
-					return string(key[start:end]), true
-				}
-			}
-		}
+	d, err := drivers.LoadDriver(string(execdriver), height)
+	if err != nil {
+		elog.Error("load drivers error", "err", err)
+		return false
 	}
-	return "", false
-}
-
-func findExecer(key []byte) (execer []byte, err error) {
-	if !bytes.HasPrefix(key, commonPrefix) {
-		return nil, types.ErrMavlKeyNotStartWithMavl
-	}
-	for i := len(commonPrefix); i < len(key); i++ {
-		if key[i] == '-' {
-			return key[len(commonPrefix):i], nil
-		}
-	}
-	return nil, types.ErrNoExecerInMavlKey
+	//交给 -> friend 来判定
+	return d.IsFriend(execdriver, key, tx)
 }
 
 func (exec *Executor) procExecAddBlock(msg queue.Message) {
@@ -479,7 +438,6 @@ func (exec *Executor) procExecDelBlock(msg queue.Message) {
 		return
 	}
 	kvset.KV = append(kvset.KV, feekv)
-
 	//定制数据统计
 	if exec.enableStat {
 		kvs, err := delCountInfo(execute, datas)
@@ -604,13 +562,9 @@ func (e *executor) checkTx(tx *types.Transaction, index int) error {
 	if err := tx.Check(e.height, types.MinFee); err != nil {
 		return err
 	}
-
 	//允许重写的情况
-
 	//看重写的名字 name, 是否被允许执行
-
 	if !types.IsAllowExecName(e.getRealExecName(tx, index), tx.Execer) {
-		println("xxxxxxxxxx", string(e.getRealExecName(tx, index)), string(tx.Execer))
 		return types.ErrExecNameNotAllow
 	}
 	return nil

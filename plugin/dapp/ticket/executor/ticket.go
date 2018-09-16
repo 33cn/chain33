@@ -296,3 +296,10 @@ func delticket(addr string, ticketID string, status int32) *types.KeyValue {
 	kv.Value = nil
 	return kv
 }
+
+func (t *Ticket) IsFriend(myexec, writekey []byte, tx *types.Transaction) bool {
+	panic("xxx")
+	clog.Error("ticket  IsFriend", "myex", string(myexec), "writekey", string(writekey))
+	//不允许平行链
+	return false
+}

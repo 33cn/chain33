@@ -20,7 +20,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/log"
-	"gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/rpc"
 	pt "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/types"
 )
 
@@ -164,7 +163,7 @@ func fillRawCommitTx(suite suite.Suite) (*types.Transaction, error) {
 		[]byte("abc"),
 		[][]byte{},
 	}
-	tx, err := rpc.CreateRawCommitTx4MainChain(&st1, types.ParaX, 0)
+	tx, err := pt.CreateRawCommitTx4MainChain(&st1, types.ParaX, 0)
 	if err != nil {
 		suite.T().Error("TestExec", "create tx failed", err)
 	}
@@ -249,8 +248,8 @@ func checkCommitReceipt(suite *CommitTestSuite, receipt *types.Receipt, commitCn
 	err := types.Decode(receipt.KV[0].Value, &titleHeight)
 	assert.Nil(suite.T(), err, "decode titleHeight failed")
 	suite.T().Log("titleHeight", titleHeight)
-	assert.Equal(suite.T(), int32(types.TyLogParacrossCommit), receipt.Logs[0].Ty)
-	assert.Equal(suite.T(), int32(rpc.ParacrossStatusCommiting), titleHeight.Status)
+	assert.Equal(suite.T(), int32(pt.TyLogParacrossCommit), receipt.Logs[0].Ty)
+	assert.Equal(suite.T(), int32(pt.ParacrossStatusCommiting), titleHeight.Status)
 	assert.Equal(suite.T(), Title, titleHeight.Title)
 	assert.Equal(suite.T(), commitCnt, len(titleHeight.Details.Addrs))
 }
@@ -269,8 +268,8 @@ func checkDoneReceipt(suite suite.Suite, receipt *types.Receipt, commitCnt int) 
 	err := types.Decode(receipt.KV[0].Value, &titleHeight)
 	assert.Nil(suite.T(), err, "decode titleHeight failed")
 	suite.T().Log("titleHeight", titleHeight)
-	assert.Equal(suite.T(), int32(types.TyLogParacrossCommit), receipt.Logs[0].Ty)
-	assert.Equal(suite.T(), int32(rpc.ParacrossStatusCommiting), titleHeight.Status)
+	assert.Equal(suite.T(), int32(pt.TyLogParacrossCommit), receipt.Logs[0].Ty)
+	assert.Equal(suite.T(), int32(pt.ParacrossStatusCommiting), titleHeight.Status)
 	assert.Equal(suite.T(), Title, titleHeight.Title)
 	assert.Equal(suite.T(), commitCnt, len(titleHeight.Details.Addrs))
 
@@ -283,7 +282,7 @@ func checkDoneReceipt(suite suite.Suite, receipt *types.Receipt, commitCnt int) 
 	err = types.Decode(receipt.KV[1].Value, &titleStat)
 	assert.Nil(suite.T(), err, "decode title failed")
 	suite.T().Log("title", titleStat)
-	assert.Equal(suite.T(), int32(types.TyLogParacrossCommitDone), receipt.Logs[1].Ty)
+	assert.Equal(suite.T(), int32(pt.TyLogParacrossCommitDone), receipt.Logs[1].Ty)
 	assert.Equal(suite.T(), int64(TitleHeight), titleStat.Height)
 	assert.Equal(suite.T(), Title, titleStat.Title)
 	assert.Equal(suite.T(), CurBlock, titleStat.BlockHash)
@@ -298,7 +297,7 @@ func checkRecordReceipt(suite *CommitTestSuite, receipt *types.Receipt, commitCn
 	err := types.Decode(receipt.Logs[0].Log, &record)
 	assert.Nil(suite.T(), err)
 	suite.T().Log("record", record)
-	assert.Equal(suite.T(), int32(types.TyLogParacrossCommitRecord), receipt.Logs[0].Ty)
+	assert.Equal(suite.T(), int32(pt.TyLogParacrossCommitRecord), receipt.Logs[0].Ty)
 	assert.Equal(suite.T(), Title, record.Status.Title)
 	assert.Equal(suite.T(), int64(TitleHeight), record.Status.Height)
 	assert.Equal(suite.T(), CurBlock, record.Status.BlockHash)
@@ -437,7 +436,7 @@ func (s *VoteTestSuite) TestVoteTx() {
 	s.exec.SetReceipt(receipts)
 	set, err := s.exec.ExecLocal(tx, recpt0, 0)
 	s.Nil(err)
-	key := rpc.CalcMinerHeightKey(status.Title, status.Height)
+	key := pt.CalcMinerHeightKey(status.Title, status.Height)
 	for _, kv := range set.KV {
 		//s.T().Log(string(kv.GetKey()))
 		if bytes.Equal(key, kv.Key) {
@@ -453,7 +452,7 @@ func (s *VoteTestSuite) TestVoteTx() {
 }
 
 func (s *VoteTestSuite) createVoteTx(status *pt.ParacrossNodeStatus, privFrom string) (*types.Transaction, error) {
-	tx, err := rpc.CreateRawMinerTx(status)
+	tx, err := pt.CreateRawMinerTx(status)
 	assert.Nil(s.T(), err, "create asset transfer failed")
 	if err != nil {
 		return nil, err
@@ -483,7 +482,7 @@ func createCrossMainTx(to []byte) (*types.Transaction, error) {
 	v := &pt.ParacrossAction_AssetTransfer{AssetTransfer: &types.AssetsTransfer{
 		Amount: param.Amount, Note: param.GetNote(), To: param.GetTo()}}
 	transfer.Value = v
-	transfer.Ty = rpc.ParacrossActionTransfer
+	transfer.Ty = pt.ParacrossActionTransfer
 
 	tx := &types.Transaction{
 		Execer:  []byte(param.GetExecName()),
@@ -507,7 +506,7 @@ func createCrossParaTx(s suite.Suite, to []byte) (*types.Transaction, error) {
 		TokenSymbol: "",
 		ExecName:    Title + types.ParaX,
 	}
-	tx, err := rpc.CreateRawTransferTx(&param)
+	tx, err := pt.CreateRawTransferTx(&param)
 	assert.Nil(s.T(), err, "create asset transfer failed")
 	if err != nil {
 		return nil, err
