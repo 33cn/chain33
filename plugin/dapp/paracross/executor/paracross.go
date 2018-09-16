@@ -519,6 +519,10 @@ func (c *Paracross) IsFriend(myexec, writekey []byte, tx *types.Transaction) boo
 	if string(myexec) != c.GetName() {
 		return false
 	}
+	//只允许同系列的执行器
+	if string(types.GetRealExecName(tx.Execer)) != c.GetName() {
+		return false
+	}
 	//只允许跨链交易
 	return c.Allow(tx, 0) == nil
 }

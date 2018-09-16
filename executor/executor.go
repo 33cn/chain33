@@ -158,8 +158,6 @@ func (exec *Executor) procExecCheckTx(msg queue.Message) {
 	msg.Reply(exec.client.NewMessage("", types.EventReceiptCheckTx, result))
 }
 
-var commonPrefix = []byte("mavl-")
-
 func (exec *Executor) procExecTxList(msg queue.Message) {
 	datas := msg.GetData().(*types.ExecTxList)
 	execute := newExecutor(datas.StateHash, exec, datas.Height, datas.BlockTime, datas.Difficulty, datas.Txs, nil)
@@ -228,7 +226,7 @@ func (execute *executor) isAllowExec(key []byte, tx *types.Transaction, index in
 }
 
 func isAllowExec(key, txexecer []byte, tx *types.Transaction, height int64) bool {
-	keyexecer, err := findExecer(key)
+	keyexecer, err := types.FindExecer(key)
 	if err != nil {
 		elog.Error("find execer ", "err", err)
 		return false
@@ -240,11 +238,8 @@ func isAllowExec(key, txexecer []byte, tx *types.Transaction, height int64) bool
 	//每个合约中，都会开辟一个区域，这个区域是另外一个合约可以修改的区域
 	//我们把数据限制在这个位置，防止合约的其他位置被另外一个合约修改
 	//  execaddr 是加了前缀生成的地址， 而参数 txexecer 是没有前缀的执行器名字
-	execaddr, ok := getExecKey(key)
-	elog.Error(string(key), "ok", ok, "keyexecer", string(keyexecer), "tx.exec", string(txexecer),
-		"execaddr", execaddr, "cacl_execaddr", drivers.ExecAddress(string(txexecer)))
+	execaddr, ok := types.GetExecKey(key)
 	if ok && execaddr == drivers.ExecAddress(string(tx.Execer)) {
-		elog.Error("--exec--")
 		return true
 	}
 	// 特殊化处理一下
@@ -261,58 +256,19 @@ func isAllowExec(key, txexecer []byte, tx *types.Transaction, height int64) bool
 			}
 		}
 	}
-	d, err := drivers.LoadDriver(string(txexecer), height)
+	//分成两种情况:
+	//是执行器余额，判断 friend
+	execdriver := keyexecer
+	if ok {
+		execdriver = txexecer
+	}
+	d, err := drivers.LoadDriver(string(execdriver), height)
 	if err != nil {
 		elog.Error("load drivers error", "err", err)
 		return false
 	}
 	//交给 -> friend 来判定
-	return d.IsFriend(txexecer, key, tx)
-}
-
-var bytesExec = []byte("exec-")
-
-func getExecKey(key []byte) (string, bool) {
-	n := 0
-	start := 0
-	end := 0
-	for i := len(commonPrefix); i < len(key); i++ {
-		if key[i] == '-' {
-			n = n + 1
-			if n == 2 {
-				start = i + 1
-			}
-			if n == 3 {
-				end = i
-				break
-			}
-		}
-	}
-	if start > 0 && end > 0 {
-		if bytes.Equal(key[start:end+1], bytesExec) {
-			//find addr
-			start = end + 1
-			for k := end; k < len(key); k++ {
-				if key[k] == ':' { //end+1
-					end = k
-					return string(key[start:end]), true
-				}
-			}
-		}
-	}
-	return "", false
-}
-
-func findExecer(key []byte) (execer []byte, err error) {
-	if !bytes.HasPrefix(key, commonPrefix) {
-		return nil, types.ErrMavlKeyNotStartWithMavl
-	}
-	for i := len(commonPrefix); i < len(key); i++ {
-		if key[i] == '-' {
-			return key[len(commonPrefix):i], nil
-		}
-	}
-	return nil, types.ErrNoExecerInMavlKey
+	return d.IsFriend(execdriver, key, tx)
 }
 
 func (exec *Executor) procExecAddBlock(msg queue.Message) {
