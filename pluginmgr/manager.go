@@ -1,15 +1,21 @@
 package pluginmgr
 
 import (
+	"sync"
+
 	"github.com/spf13/cobra"
 )
 
 var pluginItems = make(map[string]Plugin)
 
+var once = &sync.Once{}
+
 func InitExec() {
-	for _, item := range pluginItems {
-		item.InitExec()
-	}
+	once.Do(func() {
+		for _, item := range pluginItems {
+			item.InitExec()
+		}
+	})
 }
 
 func Register(p Plugin) {

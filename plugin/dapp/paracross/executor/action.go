@@ -8,7 +8,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/plugin/dapp/evm/executor/vm/common"
-	"gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/rpc"
 	pt "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/types"
 	"gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -114,7 +113,7 @@ func makeCommitReceipt(addr string, commit *pt.ParacrossCommitAction, prev, curr
 		},
 		Logs: []*types.ReceiptLog{
 			{
-				Ty:  types.TyLogParacrossCommit,
+				Ty:  pt.TyLogParacrossCommit,
 				Log: types.Encode(log),
 			},
 		},
@@ -131,7 +130,7 @@ func makeRecordReceipt(addr string, commit *pt.ParacrossCommitAction) *types.Rec
 		KV: nil,
 		Logs: []*types.ReceiptLog{
 			{
-				Ty:  types.TyLogParacrossCommitRecord,
+				Ty:  pt.TyLogParacrossCommitRecord,
 				Log: types.Encode(log),
 			},
 		},
@@ -164,7 +163,7 @@ func makeDoneReceipt(addr string, commit *pt.ParacrossCommitAction, current *pt.
 		},
 		Logs: []*types.ReceiptLog{
 			{
-				Ty:  types.TyLogParacrossCommitDone,
+				Ty:  pt.TyLogParacrossCommitDone,
 				Log: types.Encode(log),
 			},
 		},
@@ -272,7 +271,7 @@ func (a *action) Commit(commit *pt.ParacrossCommitAction) (*types.Receipt, error
 	var receipt *types.Receipt
 	if isNotFound(err) {
 		stat = &pt.ParacrossHeightStatus{
-			Status: rpc.ParacrossStatusCommiting,
+			Status: pt.ParacrossStatusCommiting,
 			Title:  commit.Status.Title,
 			Height: commit.Status.Height,
 			Details: &pt.ParacrossStatusDetails{
@@ -307,7 +306,7 @@ func (a *action) Commit(commit *pt.ParacrossCommitAction) (*types.Receipt, error
 		return receipt, nil
 	}
 
-	stat.Status = rpc.ParacrossStatusCommitDone
+	stat.Status = pt.ParacrossStatusCommitDone
 	receiptDone := makeDoneReceipt(a.fromaddr, commit, stat, int32(most), int32(commitCount), int32(len(nodes)))
 	receipt.KV = append(receipt.KV, receiptDone.KV...)
 	receipt.Logs = append(receipt.Logs, receiptDone.Logs...)
@@ -346,7 +345,7 @@ func (a *action) execCrossTx(tx *types.TransactionDetail, commit *pt.ParacrossCo
 		return nil, err
 	}
 
-	if payload.Ty == rpc.ParacrossActionWithdraw {
+	if payload.Ty == pt.ParacrossActionWithdraw {
 		receiptWithdraw, err := a.assetWithdrawCoins(payload.GetAssetWithdraw(), tx.Tx)
 		if err != nil {
 			clog.Crit("paracross.Commit Decode Tx failed", "para title", commit.Status.Title,
@@ -478,7 +477,7 @@ func (a *action) Miner(miner *pt.ParacrossMinerAction) (*types.Receipt, error) {
 	var receipt = &pt.ReceiptParacrossMiner{}
 
 	log := &types.ReceiptLog{}
-	log.Ty = types.TyLogParacrossMiner
+	log.Ty = pt.TyLogParacrossMiner
 	receipt.Status = miner.Status
 
 	log.Log = types.Encode(receipt)

@@ -6,8 +6,6 @@ import (
 	"encoding/json"
 	"time"
 
-	"strings"
-
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
@@ -530,22 +528,6 @@ func (tx *Transaction) GetViewFromToAddr() (string, string) {
 		return tx.From(), tx.To
 	}
 	return exec.GetViewFromToAddr(tx)
-}
-
-func IsParaCrossTransferTx(execName []byte, tx *Transaction) bool {
-	// 跨链交易需要在主链和平行链都执行， 现在 txexecer 设置为 $(title) + types.ParaX
-	// 所以在主链上需要特殊处理
-
-	// 判断 跨链执行器的，并且 交易为跨链操作的
-	if !(bytes.HasPrefix(tx.Execer, []byte("user.p.")) && bytes.HasSuffix(tx.Execer, []byte(ParaX))) {
-		return false
-	}
-	exec := LoadExecutor(string(execName))
-	if exec == nil {
-		return false
-	}
-	act := exec.ActionName(tx)
-	return strings.HasPrefix(act, ParacrossTransferPerfix)
 }
 
 //获取tx交易的Actionname
