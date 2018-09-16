@@ -10,7 +10,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/plugin/dapp/evm/executor/vm/common"
 	pt "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/types"
 	"gitlab.33.cn/chain33/chain33/system/dapp"
-	coins "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/util"
 )
@@ -403,7 +402,7 @@ func (a *action) execCrossTxs(commit *pt.ParacrossCommitAction) (*types.Receipt,
 	return &receipt, nil
 }
 
-func (a *action) assetTransferCoins(transfer *coins.CoinsTransfer) (*types.Receipt, error) {
+func (a *action) assetTransferCoins(transfer *types.AssetsTransfer) (*types.Receipt, error) {
 	accDB := account.NewCoinsAccount()
 	accDB.SetDB(a.db)
 
@@ -426,7 +425,7 @@ func (a *action) assetTransferCoins(transfer *coins.CoinsTransfer) (*types.Recei
 	}
 }
 
-func (a *action) AssetTransfer(transfer *coins.CoinsTransfer) (*types.Receipt, error) {
+func (a *action) AssetTransfer(transfer *types.AssetsTransfer) (*types.Receipt, error) {
 	clog.Debug("Paracross.Exec", "AssetTransfer", transfer.Cointoken, "transfer", "")
 	if transfer.Cointoken == "" {
 		return a.assetTransferCoins(transfer)
@@ -436,7 +435,7 @@ func (a *action) AssetTransfer(transfer *coins.CoinsTransfer) (*types.Receipt, e
 	return nil, types.ErrNotSupport
 }
 
-func (a *action) assetWithdrawCoins(withdraw *coins.CoinsWithdraw, withdrawTx *types.Transaction) (*types.Receipt, error) {
+func (a *action) assetWithdrawCoins(withdraw *types.AssetsWithdraw, withdrawTx *types.Transaction) (*types.Receipt, error) {
 	accDB := account.NewCoinsAccount()
 	accDB.SetDB(a.db)
 
@@ -453,7 +452,7 @@ func (a *action) assetWithdrawCoins(withdraw *coins.CoinsWithdraw, withdrawTx *t
 	}
 }
 
-func (a *action) AssetWithdraw(withdraw *coins.CoinsWithdraw) (*types.Receipt, error) {
+func (a *action) AssetWithdraw(withdraw *types.AssetsWithdraw) (*types.Receipt, error) {
 	if withdraw.Cointoken != "" {
 		return nil, types.ErrNotSupport
 	}
