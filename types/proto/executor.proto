@@ -270,43 +270,15 @@ message RetrieveQuery {
 //////////////////////////////////////////////////////////////////////////////
 message TokenAction {
     oneof value {
-        TokenPreCreate      tokenprecreate    = 1;
-        TokenFinishCreate   tokenfinishcreate = 2;
-        TokenRevokeCreate   tokenrevokecreate = 3;
-        TokenTransfer       transfer          = 4;
-        TokenWithdraw       withdraw          = 5;
-        TokenGenesis        genesis           = 6;
-        TokenTransferToExec transferToExec    = 8;
+        TokenPreCreate       tokenprecreate    = 1;
+        TokenFinishCreate    tokenfinishcreate = 2;
+        TokenRevokeCreate    tokenrevokecreate = 3;
+        AssetsTransfer       transfer          = 4;
+        AssetsWithdraw       withdraw          = 5;
+        AssetsGenesis        genesis           = 6;
+        AssetsTransferToExec transferToExec    = 8;
     }
     int32 Ty = 7;
-}
-
-message TokenGenesis {
-    int64  amount        = 2;
-    string returnAddress = 3;
-}
-
-message TokenTransfer {
-    string cointoken = 1;
-    int64  amount    = 2;
-    string note      = 3;
-    string to        = 4;
-}
-
-message TokenTransferToExec {
-    string cointoken = 1;
-    int64  amount    = 2;
-    string note      = 3;
-    string execName  = 4;
-    string to        = 5;
-}
-
-message TokenWithdraw {
-    string cointoken = 1;
-    int64  amount    = 2;
-    string note      = 3;
-    string execName  = 4;
-    string to        = 5;
 }
 
 //创建token，支持最大精确度是6位小数,即存入数据库的实际总额需要放大1e6倍

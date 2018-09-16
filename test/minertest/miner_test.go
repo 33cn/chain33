@@ -248,7 +248,7 @@ func getprivkey(key string) crypto.PrivKey {
 }
 
 func sendtoaddressWait(priv crypto.PrivKey, to string, amount int64) error {
-	v := &cty.CoinsAction_Transfer{&cty.CoinsTransfer{Amount: amount}}
+	v := &cty.CoinsAction_Transfer{&types.AssetsTransfer{Amount: amount}}
 	transfer := &cty.CoinsAction{Value: v, Ty: cty.CoinsActionTransfer}
 	hash, err := sendTransaction(transfer, []byte("coins"), priv, to)
 	if err != nil {
@@ -264,7 +264,7 @@ func sendtoaddressWait(priv crypto.PrivKey, to string, amount int64) error {
 func sendtoaddress(priv crypto.PrivKey, to string, amount int64) ([]byte, error) {
 	//defer conn.Close()
 	//fmt.Println("sign key privkey: ", common.ToHex(priv.Bytes()))
-	v := &cty.CoinsAction_Transfer{&cty.CoinsTransfer{Amount: amount}}
+	v := &cty.CoinsAction_Transfer{&types.AssetsTransfer{Amount: amount}}
 	transfer := &cty.CoinsAction{Value: v, Ty: cty.CoinsActionTransfer}
 	return sendTransaction(transfer, []byte("coins"), priv, to)
 }

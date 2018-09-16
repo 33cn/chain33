@@ -611,7 +611,7 @@ func sendtoaddress(c types.Chain33Client, priv crypto.PrivKey, to string, amount
 	//defer conn.Close()
 	//fmt.Println("sign key privkey: ", common.ToHex(priv.Bytes()))
 	if amount > 0 {
-		v := &cty.CoinsAction_Transfer{&cty.CoinsTransfer{Amount: amount}}
+		v := &cty.CoinsAction_Transfer{&types.AssetsTransfer{Amount: amount}}
 		transfer := &cty.CoinsAction{Value: v, Ty: cty.CoinsActionTransfer}
 		tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: fee, To: to}
 		tx.Nonce = r.Int63()
@@ -628,7 +628,7 @@ func sendtoaddress(c types.Chain33Client, priv crypto.PrivKey, to string, amount
 		}
 		return tx.Hash(), nil
 	} else {
-		v := &cty.CoinsAction_Withdraw{&cty.CoinsWithdraw{Amount: -amount}}
+		v := &cty.CoinsAction_Withdraw{&types.AssetsWithdraw{Amount: -amount}}
 		withdraw := &cty.CoinsAction{Value: v, Ty: cty.CoinsActionWithdraw}
 		tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(withdraw), Fee: fee, To: to}
 		tx.Nonce = r.Int63()
