@@ -270,9 +270,9 @@ message RetrieveQuery {
 //////////////////////////////////////////////////////////////////////////////
 message TokenAction {
     oneof value {
-        TokenPreCreate      tokenprecreate    = 1;
-        TokenFinishCreate   tokenfinishcreate = 2;
-        TokenRevokeCreate   tokenrevokecreate = 3;
+        TokenPreCreate       tokenprecreate    = 1;
+        TokenFinishCreate    tokenfinishcreate = 2;
+        TokenRevokeCreate    tokenrevokecreate = 3;
         AssetsTransfer       transfer          = 4;
         AssetsWithdraw       withdraw          = 5;
         AssetsGenesis        genesis           = 6;
