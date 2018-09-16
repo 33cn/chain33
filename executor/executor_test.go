@@ -32,6 +32,8 @@ import (
 	_ "net/http/pprof"
 
 	_ "gitlab.33.cn/chain33/chain33/plugin"
+	paracross "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/executor"
+	ticket "gitlab.33.cn/chain33/chain33/plugin/dapp/ticket/executor"
 	_ "gitlab.33.cn/chain33/chain33/system"
 )
 
@@ -599,6 +601,34 @@ func TestKeyAllow(t *testing.T) {
 	tx12.Execer = exec
 	if !isAllowExec(key, exec, &tx12, int64(1)) {
 		t.Error("retrieve can modify exec")
+	}
+}
+
+func TestKeyAllow_ticket(t *testing.T) {
+	ticket.Init()
+	key := []byte("mavl-coins-bty-exec-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp")
+	exec := []byte("ticket")
+	tx1 := "0a05636f696e73120e18010a0a1080c2d72f1a036f746520a08d0630f1cdebc8f7efa5e9283a22313271796f6361794e46374c7636433971573461767873324537553431664b536676"
+	tx11, _ := hex.DecodeString(tx1)
+	var tx12 types.Transaction
+	types.Decode(tx11, &tx12)
+	tx12.Execer = exec
+	if !isAllowExec(key, exec, &tx12, int64(1)) {
+		t.Error("ticket can modify exec")
+	}
+}
+
+func TestKeyAllow_paracross(t *testing.T) {
+	paracross.Init()
+	key := []byte("mavl-coins-bty-exec-1HPkPopVe3ERfvaAgedDtJQ792taZFEHCe:19xXg1WHzti5hzBRTUphkM8YmuX6jJkoAA")
+	exec := []byte("paracross")
+	tx1 := "0a15757365722e702e746573742e7061726163726f7373124310904e223e1080c2d72f1a1374657374206173736574207472616e736665722222314a524e6a64457170344c4a356671796355426d396179434b536565736b674d4b5220a08d0630f7cba7ec9e8f9bac163a2231367a734d68376d764e444b50473645394e5672506877367a4c3933675773547052"
+	tx11, _ := hex.DecodeString(tx1)
+	var tx12 types.Transaction
+	types.Decode(tx11, &tx12)
+	tx12.Execer = []byte("user.p.para.paracross")
+	if !isAllowExec(key, exec, &tx12, int64(1)) {
+		t.Error("paracross can modify exec")
 	}
 }
 
