@@ -50,25 +50,27 @@ var (
 )
 
 const (
-	InputPrecision        float64 = 1e4
-	Multiple1E4           int64   = 1e4
-	TokenNameLenLimit             = 128
-	TokenSymbolLenLimit           = 16
-	TokenIntroLenLimit            = 1024
-	InvalidStartTime              = 0
-	InvalidStopTime               = 0
-	BlockDurPerSecCnt             = 15
-	BTY                           = "BTY"
-	BTYDustThreshold              = Coin
-	ConfirmedHeight               = 12
-	UTXOCacheCount                = 256
-	M_1_TIMES                     = 1
-	M_2_TIMES                     = 2
-	M_5_TIMES                     = 5
-	M_10_TIMES                    = 10
-	SignatureSize                 = (4 + 33 + 65)
-	PrivacyMaturityDegree         = 12
-	TxGroupMaxCount               = 20
+	InputPrecision          float64 = 1e4
+	Multiple1E4             int64   = 1e4
+	TokenNameLenLimit               = 128
+	TokenSymbolLenLimit             = 16
+	TokenIntroLenLimit              = 1024
+	InvalidStartTime                = 0
+	InvalidStopTime                 = 0
+	BlockDurPerSecCnt               = 15
+	BTY                             = "BTY"
+	BTYDustThreshold                = Coin
+	ConfirmedHeight                 = 12
+	UTXOCacheCount                  = 256
+	M_1_TIMES                       = 1
+	M_2_TIMES                       = 2
+	M_5_TIMES                       = 5
+	M_10_TIMES                      = 10
+	SignatureSize                   = (4 + 33 + 65)
+	PrivacyMaturityDegree           = 12
+	TxGroupMaxCount                 = 20
+	MinerAction                     = "miner"
+	ParacrossTransferPerfix         = "crossPara."
 )
 
 var (
@@ -171,22 +173,24 @@ const (
 	TyLogRevokeCreateToken = 213
 
 	//log for trade
-	TyLogTradeSellLimit       = 310
-	TyLogTradeBuyMarket       = 311
-	TyLogTradeSellRevoke      = 312
-	TyLogTokenTransfer        = 313
-	TyLogTokenGenesis         = 314
-	TyLogTokenDeposit         = 315
-	TyLogTokenExecTransfer    = 316
-	TyLogTokenExecWithdraw    = 317
-	TyLogTokenExecDeposit     = 318
-	TyLogTokenExecFrozen      = 319
-	TyLogTokenExecActive      = 320
-	TyLogTokenGenesisTransfer = 321
-	TyLogTokenGenesisDeposit  = 322
-	TyLogTradeSellMarket      = 330
-	TyLogTradeBuyLimit        = 331
-	TyLogTradeBuyRevoke       = 332
+	TyLogTradeSellLimit         = 310
+	TyLogTradeBuyMarket         = 311
+	TyLogTradeSellRevoke        = 312
+	TyLogTokenTransfer          = 313
+	TyLogTokenGenesis           = 314
+	TyLogTokenDeposit           = 315
+	TyLogTokenExecTransfer      = 316
+	TyLogTokenExecWithdraw      = 317
+	TyLogTokenExecDeposit       = 318
+	TyLogTokenExecFrozen        = 319
+	TyLogTokenExecActive        = 320
+	TyLogTokenGenesisTransfer   = 321
+	TyLogTokenGenesisDeposit    = 322
+	TyLogTradeSellMarket        = 330
+	TyLogTradeBuyLimit          = 331
+	TyLogTradeBuyRevoke         = 332
+	TyLogParaTokenAssetTransfer = 333
+	TyLogParaTokenAssetWithdraw = 334
 
 	//log for relay
 	TyLogRelayCreate       = 350
@@ -216,11 +220,15 @@ const (
 	TyLogEVMStateChangeItem = 604
 
 	// paracross 执行器的日志类型
-	TyLogParacrossCommit = 650
-	TyLogParacrossDone   = 651
+	TyLogParacrossCommit     = 650
+	TyLogParacrossCommitDone = 651
 	// record 和 commit 不一样， 对应高度完成共识后收到commit 交易
 	// 这个交易就不参与共识, 只做记录
-	TyLogParacrossRecord = 652
+	TyLogParacrossCommitRecord = 652
+	TyLogParaAssetTransfer     = 653
+	TyLogParaAssetWithdraw     = 654
+	//在平行链上保存节点参与共识的数据
+	TyLogParacrossMiner = 655
 
 	//log for game
 	TyLogCreateGame = 711
@@ -454,6 +462,11 @@ var LowAllowPackHeight int64 = 30
 
 //默认情况下不开启fork
 var EnableTxGroupParaFork = false
+
+const (
+	ParaCrossTransferActionTypeStart = 10000
+	ParaCrossTransferActionTypeEnd   = 10100
+)
 
 //Lottery op
 const (

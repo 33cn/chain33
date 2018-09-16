@@ -10,8 +10,13 @@ import (
 
 	log "github.com/inconshreveable/log15"
 	//"gitlab.33.cn/chain33/chain33/common"
+	"encoding/hex"
+
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
+	paracross "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/rpc"
+	pt "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/types"
 	"gitlab.33.cn/chain33/chain33/queue"
 	drivers "gitlab.33.cn/chain33/chain33/system/consensus"
 	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
@@ -36,6 +41,8 @@ var (
 	emptyBlockInterval int64 = 4 //write empty block every interval blocks in mainchain
 	zeroHash           [32]byte
 	grpcRecSize        int = 30 * 1024 * 1024 //the size should be limited in server
+	//current miner tx take any privatekey for unify all nodes sign purpose, and para chain is free
+	minerPrivateKey string = "6da92a632ab7deb67d38c0f6560bcfed28167998f6496db64c258d5e8393a81b"
 )
 
 func init() {
@@ -49,6 +56,7 @@ type ParaClient struct {
 	isCatchingUp    bool
 	commitMsgClient *CommitMsgClient
 	authAccount     string
+	privateKey      crypto.PrivKey
 	wg              sync.WaitGroup
 }
 
@@ -68,6 +76,19 @@ func New(cfg *types.Consensus) queue.Module {
 		emptyBlockInterval = cfg.EmptyBlockInterval
 	}
 
+	pk, err := hex.DecodeString(minerPrivateKey)
+	if err != nil {
+		panic(err)
+	}
+	secp, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	if err != nil {
+		panic(err)
+	}
+	priKey, err := secp.PrivKeyFromBytes(pk)
+	if err != nil {
+		panic(err)
+	}
+
 	plog.Debug("New Para consensus client")
 
 	msgRecvOp := grpc.WithMaxMsgSize(grpcRecSize)
@@ -83,6 +104,7 @@ func New(cfg *types.Consensus) queue.Module {
 		conn:        conn,
 		grpcClient:  grpcClient,
 		authAccount: cfg.AuthAccount,
+		privateKey:  priKey,
 	}
 
 	if cfg.WaitBlocks4CommitMsg < 2 {
@@ -91,7 +113,7 @@ func New(cfg *types.Consensus) queue.Module {
 	para.commitMsgClient = &CommitMsgClient{
 		paraClient:      para,
 		waitMainBlocks:  cfg.WaitBlocks4CommitMsg,
-		commitMsgNotify: make(chan *types.ParacrossNodeStatus, 1),
+		commitMsgNotify: make(chan int64, 1),
 		delMsgNotify:    make(chan int64, 1),
 		mainBlockAdd:    make(chan *types.BlockDetail, 1),
 		quit:            make(chan struct{}),
@@ -113,7 +135,8 @@ func calcSearchseq(height int64) (seq int64) {
 
 //para 不检查任何的交易
 func (client *ParaClient) CheckBlock(parent *types.Block, current *types.BlockDetail) error {
-	return nil
+	err := paracross.CheckMinerTx(current)
+	return err
 }
 
 func (client *ParaClient) Close() {
@@ -130,10 +153,10 @@ func (client *ParaClient) SetQueueClient(c queue.Client) {
 		client.InitBlock()
 	})
 	go client.EventLoop()
-	go client.CreateBlock()
 
 	client.wg.Add(1)
 	go client.commitMsgClient.handler()
+	go client.CreateBlock()
 }
 
 func (client *ParaClient) InitBlock() {
@@ -155,7 +178,7 @@ func (client *ParaClient) InitBlock() {
 		tx := client.CreateGenesisTx()
 		newblock.Txs = tx
 		newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
-		client.WriteBlock(zeroHash[:], newblock, nil, startSeq-int64(1))
+		client.WriteBlock(zeroHash[:], newblock, startSeq-int64(1))
 	} else {
 		client.SetCurrentBlock(block)
 	}
@@ -205,37 +228,48 @@ func (client *ParaClient) ProcEvent(msg queue.Message) bool {
 	return false
 }
 
-// paracross only support txgroup count=2 currently,if main tx fail, para tx also not exec
-// if another txs is para chain tx too, return true
-func isMainTxExecOk(tx *types.Transaction, txIndex int, main *types.BlockDetail) []*types.Transaction {
-	var index int
-	if tx.Next != nil {
-		index = txIndex + 1
+//1. 如果涉及跨链合约，如果有超过两条平行链的交易被判定为失败，交易组会执行不成功,也不PACK。（这样的情况下，主链交易一定会执行不成功）
+//2. 如果不涉及跨链合约，那么交易组没有任何规定，可以是20比，10条链。 如果主链交易有失败，平行链也不会执行
+//3. 如果交易组有一个ExecOk,主链上的交易都是ok的，可以全部打包
+//4. 如果全部是ExecPack，有两种情况，一是交易组所有交易都是平行链交易，另一是主链有交易失败而打包了的交易，需要检查LogErr，如果有错，全部不打包
+func calcParaCrossTxGroup(tx *types.Transaction, main *types.BlockDetail, index int) ([]*types.Transaction, int) {
+	var headIdx int
 
-	} else {
-		index = txIndex - 1
-	}
-	if bytes.Contains(main.Block.Txs[index].Execer, []byte(types.ExecNamePrefix)) {
-		return []*types.Transaction{tx}
-	}
-	if main.Receipts[index].Ty == types.ExecOk {
-		if index < txIndex {
-			return []*types.Transaction{main.Block.Txs[index], tx}
+	for i := index; i >= 0; i-- {
+		if bytes.Equal(tx.Header, main.Block.Txs[i].Hash()) {
+			headIdx = i
+			break
 		}
-		return []*types.Transaction{tx, main.Block.Txs[index]}
 	}
-	return nil
+
+	endIdx := headIdx + int(tx.GroupCount)
+	for i := headIdx; i < endIdx; i++ {
+		if bytes.Contains(main.Block.Txs[i].Execer, []byte(types.ExecNamePrefix)) {
+			continue
+		}
+		if main.Receipts[i].Ty == types.ExecOk {
+			return main.Block.Txs[headIdx:endIdx], endIdx
+		} else {
+			for _, log := range main.Receipts[i].Logs {
+				if log.Ty == types.TyLogErr {
+					return nil, endIdx
+				}
+			}
+		}
+	}
+	//全部是平行链交易 或主链执行非失败的tx
+	return main.Block.Txs[headIdx:endIdx], endIdx
 }
 
-//如果交易组交易数超过2个，如果都是平行链交易，没问题，如果混合了主链交易，这里不会把主链tx 抽取出来，交易组执行失败
-//当前认为跨链的交易必须是2个，超过2个就是错误的交易，平行链这边可以执行失败
 func (client *ParaClient) FilterTxsForPara(main *types.BlockDetail) []*types.Transaction {
 	var txs []*types.Transaction
-	for i, tx := range main.Block.Txs {
+	for i := 0; i < len(main.Block.Txs); i++ {
+		tx := main.Block.Txs[i]
 		if bytes.Contains(tx.Execer, []byte(types.ExecNamePrefix)) {
-			if tx.GroupCount == ParaCrossTxCount {
-				mainTxs := isMainTxExecOk(tx, i, main)
+			if tx.GroupCount >= ParaCrossTxCount {
+				mainTxs, endIdx := calcParaCrossTxGroup(tx, main, i)
 				txs = append(txs, mainTxs...)
+				i = endIdx - 1
 				continue
 			}
 			txs = append(txs, tx)
@@ -445,6 +479,28 @@ func (client *ParaClient) CreateBlock() {
 	}
 }
 
+// miner tx need all para node create, but not all node has auth account, here just not sign to keep align
+func (client *ParaClient) addMinerTx(preStateHash []byte, block *types.Block, main *types.Block) error {
+	status := &pt.ParacrossNodeStatus{
+		Title:           types.GetTitle(),
+		Height:          block.Height,
+		PreBlockHash:    block.ParentHash,
+		PreStateHash:    preStateHash,
+		MainBlockHash:   main.Hash(),
+		MainBlockHeight: main.Height,
+	}
+
+	tx, err := paracross.CreateRawMinerTx(status)
+	if err != nil {
+		return err
+	}
+	tx.Sign(types.SECP256K1, client.privateKey)
+
+	block.Txs = append([]*types.Transaction{tx}, block.Txs...)
+	return nil
+
+}
+
 func (client *ParaClient) createBlock(lastBlock *types.Block, txs []*types.Transaction, seq int64, mainBlock *types.Block) error {
 	var newblock types.Block
 	plog.Debug(fmt.Sprintf("the len txs is: %v", len(txs)))
@@ -455,26 +511,22 @@ func (client *ParaClient) createBlock(lastBlock *types.Block, txs []*types.Trans
 	newblock.Difficulty = types.GetP(0).PowLimitBits
 	newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
 	newblock.BlockTime = mainBlock.BlockTime
-	err := client.WriteBlock(lastBlock.StateHash, &newblock, mainBlock, seq)
+
+	err := client.addMinerTx(lastBlock.StateHash, &newblock, mainBlock)
+	if err != nil {
+		return err
+	}
+
+	err = client.WriteBlock(lastBlock.StateHash, &newblock, seq)
+
 	plog.Debug("para create new Block", "newblock.ParentHash", common.ToHex(newblock.ParentHash),
-		"newblock.Height", newblock.Height,
-		"newblock.TxHash", common.ToHex(newblock.TxHash),
-		"newblock.BlockTime", newblock.BlockTime,
-		"sequence", seq)
+		"newblock.Height", newblock.Height, "newblock.TxHash", common.ToHex(newblock.TxHash),
+		"newblock.BlockTime", newblock.BlockTime, "sequence", seq)
 	return err
 }
 
 // 向blockchain写区块
-func (client *ParaClient) WriteBlock(prev []byte, paraBlock *types.Block, mainBlock *types.Block, seq int64) error {
-	plog.Debug("write block in parachain", "height", paraBlock.Height)
-	var oriTxHashs [][]byte
-	for _, tx := range paraBlock.Txs {
-		//跨链交易包含了主链交易，需要过滤出来
-		if bytes.Contains(tx.Execer, []byte(types.ExecNamePrefix)) {
-			oriTxHashs = append(oriTxHashs, tx.Hash())
-		}
-	}
-
+func (client *ParaClient) WriteBlock(prev []byte, paraBlock *types.Block, seq int64) error {
 	//共识模块不执行block，统一由blockchain模块执行block并做去重的处理，返回执行后的blockdetail
 	blockDetail := &types.BlockDetail{Block: paraBlock}
 
@@ -486,15 +538,16 @@ func (client *ParaClient) WriteBlock(prev []byte, paraBlock *types.Block, mainBl
 		return err
 	}
 	blkdetail := resp.GetData().(*types.BlockDetail)
-	if blkdetail != nil {
-		client.SetCurrentBlock(blkdetail.Block)
-
-		if client.authAccount != "" {
-			client.commitMsgClient.onBlockAdded(mainBlock, blkdetail, oriTxHashs)
-		}
-	} else {
+	if blkdetail == nil {
 		return errors.New("block detail is nil")
 	}
+
+	client.SetCurrentBlock(blkdetail.Block)
+
+	if client.authAccount != "" {
+		client.commitMsgClient.onBlockAdded(blkdetail.Block.Height)
+	}
+
 	return nil
 }
 

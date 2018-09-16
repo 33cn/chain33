@@ -1,94 +1,141 @@
 package para
 
 import (
+	"math/rand"
 	"testing"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
+	"gitlab.33.cn/chain33/chain33/blockchain"
+	"gitlab.33.cn/chain33/chain33/common/config"
+	"gitlab.33.cn/chain33/chain33/common/log"
+	"gitlab.33.cn/chain33/chain33/executor"
+	"gitlab.33.cn/chain33/chain33/mempool"
+	"gitlab.33.cn/chain33/chain33/p2p"
+	pp "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/executor"
+	"gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/rpc"
+	pt "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/types"
 	"gitlab.33.cn/chain33/chain33/queue"
-	qmocks "gitlab.33.cn/chain33/chain33/queue/mocks"
+	"gitlab.33.cn/chain33/chain33/store"
+	_ "gitlab.33.cn/chain33/chain33/system"
 	"gitlab.33.cn/chain33/chain33/types"
 	typesmocks "gitlab.33.cn/chain33/chain33/types/mocks"
 )
+
+var random *rand.Rand
+
+func init() {
+	types.SetTitle("user.p.para.")
+	rpc.Init(nil)
+	pp.Init()
+	random = rand.New(rand.NewSource(types.Now().UnixNano()))
+	consensusInterval = 2
+	log.SetLogLevel("debug")
+
+}
 
 type suiteParaCommitMsg struct {
 	// Include our basic suite logic.
 	suite.Suite
 	para    *ParaClient
-	qClient *qmocks.Client
-	grpcCli *typesmocks.GrpcserviceClient
+	grpcCli *typesmocks.Chain33Client
+	q       queue.Queue
+	block   *blockchain.BlockChain
+	exec    *executor.Executor
+	store   queue.Module
+	mem     *mempool.Mempool
+	network *p2p.P2p
+}
+
+func initConfigFile() *types.Config {
+	cfg := config.InitCfg("../../../cmd/chain33/chain33.para.test.toml")
+	return cfg
+}
+
+func (s *suiteParaCommitMsg) initEnv(cfg *types.Config) {
+	q := queue.New("channel")
+	s.q = q
+	//api, _ = client.New(q.Client(), nil)
+
+	s.block = blockchain.New(cfg.BlockChain)
+	s.block.SetQueueClient(q.Client())
+
+	s.exec = executor.New(cfg.Exec)
+	s.exec.SetQueueClient(q.Client())
+
+	s.store = store.New(cfg.Store)
+	s.store.SetQueueClient(q.Client())
+
+	s.para = New(cfg.Consensus).(*ParaClient)
+	s.grpcCli = &typesmocks.Chain33Client{}
+	//data := &types.Int64{1}
+	s.grpcCli.On("GetLastBlockSequence", mock.Anything, mock.Anything).Return(nil, errors.New("nil"))
+	reply := &types.Reply{IsOk: true}
+	s.grpcCli.On("IsSync", mock.Anything, mock.Anything).Return(reply, nil)
+	result := &pt.ParacrossStatus{Height: -1}
+	data := types.Encode(result)
+	ret := &types.Reply{IsOk: true, Msg: data}
+	s.grpcCli.On("QueryChain", mock.Anything, mock.Anything).Return(ret, nil).Maybe()
+	s.grpcCli.On("SendTransaction", mock.Anything, mock.Anything).Return(reply, nil).Maybe()
+	s.para.grpcClient = s.grpcCli
+	s.para.SetQueueClient(q.Client())
+
+	s.mem = mempool.New(cfg.MemPool)
+	s.mem.SetQueueClient(q.Client())
+	s.mem.SetSync(true)
+	s.mem.WaitPollLastHeader()
+
+	s.network = p2p.New(cfg.P2P)
+	s.network.SetQueueClient(q.Client())
+
+	s.para.wg.Add(1)
+	go walletProcess(q, s.para)
+
+}
+
+func walletProcess(q queue.Queue, para *ParaClient) {
+	defer para.wg.Done()
+
+	client := q.Client()
+	client.Sub("wallet")
+
+	for {
+		select {
+		case <-para.commitMsgClient.quit:
+			return
+		case msg := <-client.Recv():
+			if msg.Ty == types.EventDumpPrivkey {
+				msg.Reply(client.NewMessage("", types.EventHeader, &types.ReplyStr{"6da92a632ab7deb67d38c0f6560bcfed28167998f6496db64c258d5e8393a81b"}))
+			}
+		}
+	}
+
 }
 
 func (s *suiteParaCommitMsg) SetupSuite() {
-
-	cfg := &types.Consensus{
-		ParaRemoteGrpcClient: "127.0.0.1:8106",
-		StartHeight:          345850,
-		AuthAccount:          "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt",
-		WaitBlocks4CommitMsg: 2,
-	}
-	s.para = New(cfg).(*ParaClient)
-	s.grpcCli = &typesmocks.GrpcserviceClient{}
-	s.para.grpcClient = s.grpcCli
-	s.qClient = &qmocks.Client{}
-	s.para.InitClient(s.qClient, func() {
-	})
-	msg := queue.Message{}
-	s.qClient.On("NewMessage", "wallet", mock.Anything, mock.Anything).Return(msg).Once()
-	s.qClient.On("Send", msg, true).Return(nil).Once()
-	reply := &types.ReplyStr{Replystr: "CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944"}
-	msg2 := queue.Message{Data: reply}
-	s.qClient.On("Wait", msg).Return(msg2, nil).Once()
-	s.para.wg.Add(1)
-	go s.para.commitMsgClient.handler()
-
+	s.initEnv(initConfigFile())
 }
 
 func (s *suiteParaCommitMsg) TestRun_1() {
-	result := &types.ReceiptParacrossDone{
-		Height: 3,
+	//s.testGetBlock()
+	lastBlock, err := s.para.RequestLastBlock()
+	if err != nil {
+		plog.Error("para test", "err", err.Error())
 	}
-	data := types.Encode(result)
-	reply := &types.Reply{
-		IsOk: true,
-		Msg:  data,
+	plog.Info("para test---------", "last height", lastBlock.Height)
+	s.para.createBlock(lastBlock, nil, 0, getMainBlock(1))
+	lastBlock, err = s.para.RequestLastBlock()
+	if err != nil {
+		plog.Error("para test--2", "err", err.Error())
 	}
-	s.grpcCli.On("SendTransaction", mock.Anything, mock.Anything).Return(reply, nil)
-	s.grpcCli.On("IsSync", mock.Anything, mock.Anything).Return(reply, nil)
-	s.grpcCli.On("QueryChain", mock.Anything, mock.Anything).Return(nil, types.ErrNotFound).Once()
-
-	s.grpcCli.On("QueryChain", mock.Anything, mock.Anything).Return(reply, nil)
-	//to wait 1st consensus tick
-	time.Sleep(time.Second * 17)
-
-	s.addMsg_1()
-	time.Sleep(time.Second * 1)
-	s.delMsg_1()
-	time.Sleep(time.Second * 1)
-
-	//s.T().Log("currentTx",s.para.commitMsgClient.currentTx)
-	//s.NotNil(s.para.commitMsgClient.currentTx)
-	//currentTx1 := s.para.commitMsgClient.currentTx
-	// mainBlockAdd() test may cause data race, here just comment it
-	//s.mainBlockAdd()
-	//time.Sleep(time.Second * 1)
-	//s.T().Log("currentTx--main block added",s.para.commitMsgClient.currentTx)
-	s.addMsg_2()
-	s.addMsg_3()
-	s.addMsg_4()
-	time.Sleep(time.Second * 1)
-	//currentTx2 := s.para.commitMsgClient.currentTx
-	//s.NotEqual(currentTx1, currentTx2)
-	//s.T().Log("currentTx2",currentTx2)
-	//s.Assert().True(s.para.commitMsgClient.waitingTx)
-	s.delMsg_4()
-	//time.Sleep(time.Second * 1)
-	//currentTx3 := s.para.commitMsgClient.currentTx
-	//s.T().Log("currentTx3",currentTx3)
-	//s.NotEqual(currentTx3, currentTx2)
-	//s.mainBlockAdd()
-	time.Sleep(time.Second * 1)
+	plog.Info("para test---------", "last height", lastBlock.Height)
+	s.para.createBlock(lastBlock, nil, 1, getMainBlock(2))
+	time.Sleep(time.Second * 3)
+	lastBlock, err = s.para.RequestLastBlock()
+	s.para.DelBlock(lastBlock, 2)
+	time.Sleep(time.Second * 3)
 }
 
 func TestRunSuiteParaCommitMsg(t *testing.T) {
@@ -98,101 +145,18 @@ func TestRunSuiteParaCommitMsg(t *testing.T) {
 
 func (s *suiteParaCommitMsg) TearDownSuite() {
 	time.Sleep(time.Second * 5)
-	s.qClient.On("Close").Return(nil)
+	s.block.Close()
 	s.para.Close()
+	s.exec.Close()
+	s.store.Close()
+	s.mem.Close()
+	s.network.Close()
+	s.q.Close()
+
 }
 
-//the s.para.commitMsgClient.currentTx may cause data race, but tx's nonce is rand data, can not make same tx
-func (s *suiteParaCommitMsg) mainBlockAdd() {
-
-	tx2 := types.Transaction{
-		Execer:  []byte("user.p.guodun.token"),
-		Payload: []byte{4, 4},
-		Nonce:   2,
-	}
-
-	block := &types.Block{
-		Height: 4,
-		Txs:    []*types.Transaction{s.para.commitMsgClient.currentTx, &tx2},
-	}
-
-	recep1 := &types.ReceiptData{
-		Ty: types.ExecOk,
-	}
-	recep2 := &types.ReceiptData{
-		Ty: types.ExecOk,
-	}
-	blockDetail := &types.BlockDetail{
-		Block:          block,
-		Receipts:       []*types.ReceiptData{recep1, recep2},
-		PrevStatusHash: []byte("1234"),
-	}
-
-	s.para.commitMsgClient.onMainBlockAdded(blockDetail)
-}
-
-func (s *suiteParaCommitMsg) addMsg_1() {
-	detail, oriTxHash := s.calcMsg(int64(1))
-	s.para.commitMsgClient.onBlockAdded(nil, detail, oriTxHash)
-}
-
-func (s *suiteParaCommitMsg) addMsg_2() {
-	detail, oriTxHash := s.calcMsg(int64(2))
-	s.para.commitMsgClient.onBlockAdded(nil, detail, oriTxHash)
-}
-
-func (s *suiteParaCommitMsg) addMsg_3() {
-	detail, oriTxHash := s.calcMsg(int64(3))
-	s.para.commitMsgClient.onBlockAdded(nil, detail, oriTxHash)
-}
-
-func (s *suiteParaCommitMsg) addMsg_4() {
-	detail, oriTxHash := s.calcMsg(int64(4))
-	s.para.commitMsgClient.onBlockAdded(nil, detail, oriTxHash)
-}
-
-func (s *suiteParaCommitMsg) delMsg_1() {
-	s.para.commitMsgClient.onBlockDeleted(1)
-}
-
-func (s *suiteParaCommitMsg) delMsg_4() {
-	s.para.commitMsgClient.onBlockDeleted(4)
-}
-
-func (s *suiteParaCommitMsg) calcMsg(height int64) (*types.BlockDetail, [][]byte) {
-	tx1 := types.Transaction{
-		Execer:  []byte("user.p.guodun.token"),
-		Payload: []byte{1, 2},
-		Nonce:   1,
-	}
-
-	tx2 := types.Transaction{
-		Execer:  []byte("user.p.guodun.token"),
-		Payload: []byte{3, 4},
-		Nonce:   2,
-	}
-
-	block := &types.Block{
+func getMainBlock(height int64) *types.Block {
+	return &types.Block{
 		Height: height,
-		Txs:    []*types.Transaction{&tx1, &tx2},
 	}
-	var oriTxHashs [][]byte
-	for _, tx := range block.Txs {
-		oriTxHashs = append(oriTxHashs, tx.Hash())
-	}
-
-	recep1 := &types.ReceiptData{
-		Ty: types.ExecOk,
-	}
-	recep2 := &types.ReceiptData{
-		Ty: types.ExecOk,
-	}
-	para := &types.BlockDetail{
-		Block:          block,
-		Receipts:       []*types.ReceiptData{recep1, recep2},
-		PrevStatusHash: []byte("1234"),
-	}
-
-	return para, oriTxHashs
-
 }

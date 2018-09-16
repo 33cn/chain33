@@ -1,6 +1,7 @@
 syntax = "proto3";
 
 package types;
+option go_package = "gitlab.33.cn/chain33/chain33/system/dapp/coins/types";
 
 // message for execs.coins
 message CoinsAction {
