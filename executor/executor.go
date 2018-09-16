@@ -241,9 +241,10 @@ func isAllowExec(key, txexecer []byte, tx *types.Transaction, height int64) bool
 	//我们把数据限制在这个位置，防止合约的其他位置被另外一个合约修改
 	//  execaddr 是加了前缀生成的地址， 而参数 txexecer 是没有前缀的执行器名字
 	execaddr, ok := getExecKey(key)
-	elog.Error("XXX", "execaddr", execaddr, "KEY", string(key), "exec", string(txexecer),
-		"execaddr", drivers.ExecAddress(string(txexecer)), "keyexecer", string(keyexecer), "ExecerAd", drivers.ExecAddress(string(tx.Execer)))
+	elog.Error(string(key), "ok", ok, "keyexecer", string(keyexecer), "tx.exec", string(txexecer),
+		"execaddr", execaddr, "cacl_execaddr", drivers.ExecAddress(string(txexecer)))
 	if ok && execaddr == drivers.ExecAddress(string(tx.Execer)) {
+		elog.Error("--exec--")
 		return true
 	}
 	// 特殊化处理一下
