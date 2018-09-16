@@ -12,7 +12,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	paracross "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/types"
 	"gitlab.33.cn/chain33/chain33/pluginmgr"
-	coins "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -201,12 +200,12 @@ func CreateRawTransferTx(param *types.CreateTx) (*types.Transaction, error) {
 
 	transfer := &paracross.ParacrossAction{}
 	if !param.IsWithdraw {
-		v := &paracross.ParacrossAction_AssetTransfer{AssetTransfer: &coins.CoinsTransfer{
+		v := &paracross.ParacrossAction_AssetTransfer{AssetTransfer: &types.AssetsTransfer{
 			Amount: param.Amount, Note: param.GetNote(), To: param.GetTo()}}
 		transfer.Value = v
 		transfer.Ty = ParacrossActionTransfer
 	} else {
-		v := &paracross.ParacrossAction_AssetWithdraw{AssetWithdraw: &coins.CoinsWithdraw{
+		v := &paracross.ParacrossAction_AssetWithdraw{AssetWithdraw: &types.AssetsWithdraw{
 			Amount: param.Amount, Note: param.GetNote(), To: param.GetTo()}}
 		transfer.Value = v
 		transfer.Ty = ParacrossActionWithdraw

@@ -90,7 +90,7 @@ func initEnv() (queue.Queue, queue.Module, queue.Module, queue.Module) {
 }
 
 func createTx(priv crypto.PrivKey, to string, amount int64) *types.Transaction {
-	v := &cty.CoinsAction_Transfer{&cty.CoinsTransfer{Amount: amount}}
+	v := &cty.CoinsAction_Transfer{&types.AssetsTransfer{Amount: amount}}
 	transfer := &cty.CoinsAction{Value: v, Ty: cty.CoinsActionTransfer}
 	tx := &types.Transaction{Execer: []byte("none"), Payload: types.Encode(transfer), Fee: 1e6, To: to}
 	random := rand.New(rand.NewSource(types.Now().UnixNano()))
@@ -101,7 +101,7 @@ func createTx(priv crypto.PrivKey, to string, amount int64) *types.Transaction {
 }
 
 func createTx2(priv crypto.PrivKey, to string, amount int64) *types.Transaction {
-	v := &cty.CoinsAction_Transfer{&cty.CoinsTransfer{Amount: amount}}
+	v := &cty.CoinsAction_Transfer{&types.AssetsTransfer{Amount: amount}}
 	transfer := &cty.CoinsAction{Value: v, Ty: cty.CoinsActionTransfer}
 	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1e6, To: to}
 	random := rand.New(rand.NewSource(types.Now().UnixNano()))
@@ -169,7 +169,7 @@ func createGenesisBlock() *types.Block {
 	tx.To = cfg.Consensus.Genesis
 	//gen payload
 	g := &cty.CoinsAction_Genesis{}
-	g.Genesis = &cty.CoinsGenesis{}
+	g.Genesis = &types.AssetsGenesis{}
 	g.Genesis.Amount = 1e8 * types.Coin
 	tx.Payload = types.Encode(&cty.CoinsAction{Value: g, Ty: cty.CoinsActionGenesis})
 

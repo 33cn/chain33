@@ -201,19 +201,19 @@ func CreateTokenTransfer(param *types.CreateTx) *types.Transaction {
 	if !param.IsWithdraw {
 		//如果在平行链上构造，或者传入的execName是paraExecName,则加入ToAddr
 		if types.IsPara() || types.IsParaExecName(param.GetExecName()) {
-			v := &types.TokenAction_Transfer{Transfer: &types.TokenTransfer{
+			v := &types.TokenAction_Transfer{Transfer: &types.AssetsTransfer{
 				Cointoken: param.GetTokenSymbol(), Amount: param.Amount, Note: param.GetNote(), To: param.GetTo()}}
 			transfer.Value = v
 			transfer.Ty = types.ActionTransfer
 		} else {
-			v := &types.TokenAction_Transfer{Transfer: &types.TokenTransfer{
+			v := &types.TokenAction_Transfer{Transfer: &types.AssetsTransfer{
 				Cointoken: param.GetTokenSymbol(), Amount: param.Amount, Note: param.GetNote()}}
 			transfer.Value = v
 			transfer.Ty = types.ActionTransfer
 		}
 
 	} else {
-		v := &types.TokenAction_Withdraw{Withdraw: &types.TokenWithdraw{
+		v := &types.TokenAction_Withdraw{Withdraw: &types.AssetsWithdraw{
 			Cointoken: param.GetTokenSymbol(), Amount: param.Amount, Note: param.GetNote()}}
 		transfer.Value = v
 		transfer.Ty = types.ActionWithdraw

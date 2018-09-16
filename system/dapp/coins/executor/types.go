@@ -35,21 +35,21 @@ func InitType() {
 
 	types.RegistorLog(types.TyLogGenesisTransfer, &CoinsGenesisTransferLog{})
 	types.RegistorLog(types.TyLogGenesisDeposit, &CoinsGenesisDepositLog{})
-
-	// init query rpc
-	types.RegisterRPCQueryHandle("GetAddrReciver", &CoinsGetAddrReceiver{})
-	types.RegisterRPCQueryHandle("GetAddrReceiver", &CoinsGetAddrReceiver{})
-	types.RegisterRPCQueryHandle("GetTxsByAddr", &CoinsGetTxsByAddr{})
 }
 
 type CoinsType struct {
 	types.ExecTypeBase
 }
 
+//to地址因为一些历史原因，没有设计好
+//后面考虑一个选项, tx.To 默认不限制是合约地址
+//tx.To 仅仅是发送的对象地址。
 func (coins CoinsType) GetRealToAddr(tx *types.Transaction) string {
-	if string(tx.Execer) == "coins" {
+	//主链
+	if !types.IsPara() {
 		return tx.To
 	}
+	//平行链:
 	var action cty.CoinsAction
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
@@ -161,18 +161,18 @@ func CreateCoinsTransfer(param *types.CreateTx) *types.Transaction {
 	}
 	if !param.IsWithdraw {
 		if param.ExecName != "" {
-			v := &cty.CoinsAction_TransferToExec{TransferToExec: &cty.CoinsTransferToExec{
+			v := &cty.CoinsAction_TransferToExec{TransferToExec: &types.AssetsTransferToExec{
 				Amount: param.Amount, Note: param.GetNote(), ExecName: param.GetExecName(), To: to}}
 			transfer.Value = v
 			transfer.Ty = cty.CoinsActionTransferToExec
 		} else {
-			v := &cty.CoinsAction_Transfer{Transfer: &cty.CoinsTransfer{
+			v := &cty.CoinsAction_Transfer{Transfer: &types.AssetsTransfer{
 				Amount: param.Amount, Note: param.GetNote(), To: to}}
 			transfer.Value = v
 			transfer.Ty = cty.CoinsActionTransfer
 		}
 	} else {
-		v := &cty.CoinsAction_Withdraw{Withdraw: &cty.CoinsWithdraw{
+		v := &cty.CoinsAction_Withdraw{Withdraw: &types.AssetsWithdraw{
 			Amount: param.Amount, Note: param.GetNote(), ExecName: param.GetExecName(), To: to}}
 		transfer.Value = v
 		transfer.Ty = cty.CoinsActionWithdraw
@@ -336,37 +336,4 @@ func (l CoinsGenesisDepositLog) Decode(msg []byte) (interface{}, error) {
 		return nil, err
 	}
 	return logTmp, nil
-}
-
-// query
-type CoinsGetAddrReceiver struct {
-}
-
-func (t *CoinsGetAddrReceiver) JsonToProto(message json.RawMessage) ([]byte, error) {
-	var req types.ReqAddr
-	err := json.Unmarshal(message, &req)
-	if err != nil {
-		return nil, err
-	}
-	return types.Encode(&req), nil
-}
-
-func (t *CoinsGetAddrReceiver) ProtoToJson(reply *types.Message) (interface{}, error) {
-	return reply, nil
-}
-
-type CoinsGetTxsByAddr struct {
-}
-
-func (t *CoinsGetTxsByAddr) JsonToProto(message json.RawMessage) ([]byte, error) {
-	var req types.ReqAddr
-	err := json.Unmarshal(message, &req)
-	if err != nil {
-		return nil, err
-	}
-	return types.Encode(&req), nil
-}
-
-func (t *CoinsGetTxsByAddr) ProtoToJson(reply *types.Message) (interface{}, error) {
-	return reply, nil
 }
