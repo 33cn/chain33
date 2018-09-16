@@ -66,6 +66,52 @@ func IsAllowExecName(name []byte, execer []byte) bool {
 	return false
 }
 
+var bytesExec = []byte("exec-")
+var commonPrefix = []byte("mavl-")
+
+func GetExecKey(key []byte) (string, bool) {
+	n := 0
+	start := 0
+	end := 0
+	for i := len(commonPrefix); i < len(key); i++ {
+		if key[i] == '-' {
+			n = n + 1
+			if n == 2 {
+				start = i + 1
+			}
+			if n == 3 {
+				end = i
+				break
+			}
+		}
+	}
+	if start > 0 && end > 0 {
+		if bytes.Equal(key[start:end+1], bytesExec) {
+			//find addr
+			start = end + 1
+			for k := end; k < len(key); k++ {
+				if key[k] == ':' { //end+1
+					end = k
+					return string(key[start:end]), true
+				}
+			}
+		}
+	}
+	return "", false
+}
+
+func FindExecer(key []byte) (execer []byte, err error) {
+	if !bytes.HasPrefix(key, commonPrefix) {
+		return nil, ErrMavlKeyNotStartWithMavl
+	}
+	for i := len(commonPrefix); i < len(key); i++ {
+		if key[i] == '-' {
+			return key[len(commonPrefix):i], nil
+		}
+	}
+	return nil, ErrNoExecerInMavlKey
+}
+
 func GetRealExecName(execer []byte) []byte {
 	//平行链执行器，获取真实执行器的规则
 	if bytes.HasPrefix(execer, ParaKey) {
