@@ -21,11 +21,13 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 	"gitlab.33.cn/chain33/chain33/p2p"
+	"gitlab.33.cn/chain33/chain33/pluginmgr"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/store"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
+	ety "gitlab.33.cn/chain33/chain33/types/executor"
 	"gitlab.33.cn/chain33/chain33/util"
 
 	"net/http"
@@ -51,6 +53,8 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
+	ety.Init()
+	pluginmgr.InitExec()
 	random = rand.New(rand.NewSource(types.Now().UnixNano()))
 	genkey = getprivkey("CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944")
 	log.SetLogLevel("error")
@@ -599,6 +603,32 @@ func TestKeyAllow(t *testing.T) {
 	tx12.Execer = exec
 	if !isAllowExec(key, exec, &tx12, int64(1)) {
 		t.Error("retrieve can modify exec")
+	}
+}
+
+func TestKeyAllow_ticket(t *testing.T) {
+	key := []byte("mavl-coins-bty-exec-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp")
+	exec := []byte("ticket")
+	tx1 := "0a067469636b657412c701501022c20108dcaed4f1011080a4a7da061a70314556474572784d52343565577532386d6f4151616e6b34413864516635623639383a3078356161303431643363623561356230396131333336626536373539356638366461336233616564386531653733373139346561353135313562653336363933333a3030303030303030303022423078336461373533326364373839613330623037633538343564336537383433613731356630393961616566386533646161376134383765613135383135336331631a6e08011221025a317f60e6962b7ce9836a83b775373b614b290bee595f8aecee5499791831c21a473045022100850bb15cdcdaf465af7ad1ffcbc1fd6a86942a1ddec1dc112164f37297e06d2d02204aca9686fd169462be955cef1914a225726280739770ab1c0d29eb953e54c6b620a08d0630e3faecf8ead9f9e1483a22313668747663424e53454137665a6841644c4a706844775152514a61487079485470"
+	tx11, _ := hex.DecodeString(tx1)
+	var tx12 types.Transaction
+	types.Decode(tx11, &tx12)
+	tx12.Execer = exec
+	if !isAllowExec(key, exec, &tx12, int64(1)) {
+		t.Error("ticket can modify exec")
+	}
+}
+
+func TestKeyAllow_paracross(t *testing.T) {
+	key := []byte("mavl-coins-bty-exec-1HPkPopVe3ERfvaAgedDtJQ792taZFEHCe:19xXg1WHzti5hzBRTUphkM8YmuX6jJkoAA")
+	exec := []byte("paracross")
+	tx1 := "0a15757365722e702e746573742e7061726163726f7373124310904e223e1080c2d72f1a1374657374206173736574207472616e736665722222314a524e6a64457170344c4a356671796355426d396179434b536565736b674d4b5220a08d0630f7cba7ec9e8f9bac163a2231367a734d68376d764e444b50473645394e5672506877367a4c3933675773547052"
+	tx11, _ := hex.DecodeString(tx1)
+	var tx12 types.Transaction
+	types.Decode(tx11, &tx12)
+	tx12.Execer = []byte("user.p.para.paracross")
+	if !isAllowExec(key, exec, &tx12, int64(1)) {
+		t.Error("paracross can modify exec")
 	}
 }
 
