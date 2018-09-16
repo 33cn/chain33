@@ -187,11 +187,11 @@ func (wallet *Wallet) sendToAddress(priv crypto.PrivKey, addrto string, amount i
 	if !Istoken {
 		transfer := &cty.CoinsAction{}
 		if amount > 0 {
-			v := &cty.CoinsAction_Transfer{&cty.CoinsTransfer{Amount: amount, Note: note}}
+			v := &cty.CoinsAction_Transfer{&types.AssetsTransfer{Amount: amount, Note: note}}
 			transfer.Value = v
 			transfer.Ty = cty.CoinsActionTransfer
 		} else {
-			v := &cty.CoinsAction_Withdraw{&cty.CoinsWithdraw{Amount: -amount, Note: note}}
+			v := &cty.CoinsAction_Withdraw{&types.AssetsWithdraw{Amount: -amount, Note: note}}
 			transfer.Value = v
 			transfer.Ty = cty.CoinsActionWithdraw
 		}
@@ -199,11 +199,11 @@ func (wallet *Wallet) sendToAddress(priv crypto.PrivKey, addrto string, amount i
 	} else {
 		transfer := &types.TokenAction{}
 		if amount > 0 {
-			v := &types.TokenAction_Transfer{&types.TokenTransfer{Cointoken: tokenSymbol, Amount: amount, Note: note}}
+			v := &types.TokenAction_Transfer{&types.AssetsTransfer{Cointoken: tokenSymbol, Amount: amount, Note: note}}
 			transfer.Value = v
 			transfer.Ty = types.ActionTransfer
 		} else {
-			v := &types.TokenAction_Withdraw{&types.TokenWithdraw{Cointoken: tokenSymbol, Amount: -amount, Note: note}}
+			v := &types.TokenAction_Withdraw{&types.AssetsWithdraw{Cointoken: tokenSymbol, Amount: -amount, Note: note}}
 			transfer.Value = v
 			transfer.Ty = types.ActionWithdraw
 		}

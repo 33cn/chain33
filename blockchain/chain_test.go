@@ -96,7 +96,7 @@ func initEnv(cfg *types.Config) (*BlockChain, queue.Module, queue.Module, queue.
 }
 
 func createTx(priv crypto.PrivKey, to string, amount int64) *types.Transaction {
-	v := &cty.CoinsAction_Transfer{&cty.CoinsTransfer{Amount: amount}}
+	v := &cty.CoinsAction_Transfer{&types.AssetsTransfer{Amount: amount}}
 	transfer := &cty.CoinsAction{Value: v, Ty: cty.CoinsActionTransfer}
 	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1e6, To: to, Expire: 0}
 	tx.Nonce = random.Int63()
@@ -106,7 +106,7 @@ func createTx(priv crypto.PrivKey, to string, amount int64) *types.Transaction {
 }
 
 func createTxWithTxHeight(priv crypto.PrivKey, to string, amount, expire int64) *types.Transaction {
-	v := &cty.CoinsAction_Transfer{&cty.CoinsTransfer{Amount: amount}}
+	v := &cty.CoinsAction_Transfer{&types.AssetsTransfer{Amount: amount}}
 	transfer := &cty.CoinsAction{Value: v, Ty: cty.CoinsActionTransfer}
 	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1e6, To: to, Expire: expire + TxHeightOffset + types.TxHeightFlag}
 	tx.Nonce = random.Int63()
