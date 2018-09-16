@@ -30,7 +30,7 @@ func createTxEx(priv crypto.PrivKey, to string, amount int64, ty int32, execer s
 	var tx *types.Transaction
 	switch execer {
 	case "coins":
-		v := &cty.CoinsAction_Transfer{&cty.CoinsTransfer{Amount: amount}}
+		v := &cty.CoinsAction_Transfer{&types.AssetsTransfer{Amount: amount}}
 		transfer := &cty.CoinsAction{Value: v, Ty: ty}
 		tx = &types.Transaction{Execer: []byte(execer), Payload: types.Encode(transfer), Fee: 1e6, To: to}
 	case "manage":
@@ -41,7 +41,7 @@ func createTxEx(priv crypto.PrivKey, to string, amount int64, ty int32, execer s
 		}
 		tx = &types.Transaction{Execer: []byte("manage"), Payload: types.Encode(modify)}
 	case "none":
-		v := &cty.CoinsAction_Transfer{&cty.CoinsTransfer{Amount: amount}}
+		v := &cty.CoinsAction_Transfer{&types.AssetsTransfer{Amount: amount}}
 		transfer := &cty.CoinsAction{Value: v, Ty: ty}
 		tx = &types.Transaction{Execer: []byte(execer), Payload: types.Encode(transfer), Fee: 1e6, To: to}
 	case "ticket":
@@ -73,11 +73,11 @@ func createTxEx(priv crypto.PrivKey, to string, amount int64, ty int32, execer s
 	case "token":
 		transfer := &types.TokenAction{}
 		if types.ActionTransfer == ty {
-			v := &types.TokenAction_Transfer{Transfer: &types.TokenTransfer{Cointoken: "GOOD", Amount: 1e6}}
+			v := &types.TokenAction_Transfer{Transfer: &types.AssetsTransfer{Cointoken: "GOOD", Amount: 1e6}}
 			transfer.Value = v
 			transfer.Ty = ty
 		} else if types.ActionWithdraw == ty {
-			v := &types.TokenAction_Withdraw{Withdraw: &types.TokenWithdraw{Cointoken: "GOOD", Amount: 1e6}}
+			v := &types.TokenAction_Withdraw{Withdraw: &types.AssetsWithdraw{Cointoken: "GOOD", Amount: 1e6}}
 			transfer.Value = v
 			transfer.Ty = ty
 		} else if types.TokenActionPreCreate == ty {

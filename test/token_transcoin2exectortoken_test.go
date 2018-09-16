@@ -51,7 +51,7 @@ func TestTransfer2ExecAddrToken(t *testing.T) {
 	t.Log("addrto", addrto)
 	t.Log("amount", amount)
 
-	v := &cty.CoinsAction_Transfer{&cty.CoinsTransfer{Amount: amount}}
+	v := &cty.CoinsAction_Transfer{&types.AssetsTransfer{Amount: amount}}
 	transfer := &cty.CoinsAction{Value: v, Ty: cty.CoinsActionTransfer}
 	random := rand.New(rand.NewSource(types.Now().UnixNano()))
 	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1e6, Nonce: random.Int63(), To: addrto}

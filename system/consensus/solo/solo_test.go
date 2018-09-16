@@ -120,7 +120,7 @@ func genaddress() (string, crypto.PrivKey) {
 }
 
 func createTx(priv crypto.PrivKey, to string, amount int64) *types.Transaction {
-	v := &cty.CoinsAction_Transfer{&cty.CoinsTransfer{Amount: amount}}
+	v := &cty.CoinsAction_Transfer{&types.AssetsTransfer{Amount: amount}}
 	transfer := &cty.CoinsAction{Value: v, Ty: cty.CoinsActionTransfer}
 	tx := &types.Transaction{Execer: []byte("none"), Payload: types.Encode(transfer), Fee: 1e6, To: to}
 	tx.Nonce = random.Int63()
