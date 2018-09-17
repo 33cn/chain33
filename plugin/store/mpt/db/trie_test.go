@@ -33,6 +33,9 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/plugin/store/mpt/db/rlp"
+	comTy "gitlab.33.cn/chain33/chain33/types"
+	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -629,4 +632,77 @@ func updateString(trie *Trie, k, v string) {
 
 func deleteString(trie *Trie, k string) {
 	trie.Delete([]byte(k))
+}
+
+func BenchmarkDBGet(b *testing.B) {
+	dir, err := ioutil.TempDir("", "datastore")
+	require.NoError(b, err)
+	b.Log(dir)
+	db := dbm.NewDB("test", "leveldb", dir, 100)
+	prevHash := make([]byte, 32)
+	for i := 0; i < b.N; i++ {
+		prevHash, err = saveBlock(db, int64(i), prevHash, 1000, false)
+		assert.Nil(b, err)
+	}
+	b.ResetTimer()
+	t, _ := NewEx(common.BytesToHash(prevHash), NewDatabase(db))
+	for i := 0; i < b.N*1000; i++ {
+		key := i2b(int32(i))
+		value := common.Sha256(key)
+		v, err := t.TryGet(key)
+		assert.Nil(b, err)
+		assert.Equal(b, value, v)
+	}
+}
+
+func i2b(i int32) []byte {
+	bbuf := bytes.NewBuffer([]byte{})
+	binary.Write(bbuf, binary.BigEndian, i)
+	return common.Sha256(bbuf.Bytes())
+}
+
+func genKV(height int64, txN int64) (kvs []*comTy.KeyValue) {
+	for i := int64(0); i < txN; i++ {
+		n := height*1000 + i
+		key := i2b(int32(n))
+		value := common.Sha256(key)
+		kvs = append(kvs, &comTy.KeyValue{Key: key, Value: value})
+	}
+	return kvs
+}
+
+func saveBlock(dbm dbm.DB, height int64, hash []byte, txN int64, mvcc bool) (newHash []byte, err error) {
+	t, err := NewEx(common.BytesToHash(hash), NewDatabase(dbm))
+	if nil != err {
+		return nil, nil
+	}
+	kvs := genKV(height, txN)
+	for _, kv := range kvs {
+		t.Update(kv.Key, kv.Value)
+	}
+	rehash, err := t.Commit(nil)
+	if nil != err {
+		return nil, nil
+	}
+	err = t.Commit2Db(rehash, false)
+	if nil != err {
+		return nil, nil
+	}
+	newHash = rehash[:]
+	//if mvcc {
+	//	mvccdb := db.NewMVCC(dbm)
+	//	newkvs, err := mvccdb.AddMVCC(kvs, newHash, hash, height)
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//	batch := dbm.NewBatch(true)
+	//	for _, kv := range newkvs {
+	//		batch.Set(kv.Key, kv.Value)
+	//	}
+	//	err = batch.Write()
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//}
+	return newHash, nil
 }
