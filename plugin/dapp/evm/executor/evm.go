@@ -26,10 +26,12 @@ var (
 	EvmAddress = address.ExecAddress(types.ExecName(model.ExecutorName))
 )
 
-func Init() {
-	drivers.Register(GetName(), newEVMDriver, types.ForkV17EVM)
-	EvmAddress = address.ExecAddress(GetName())
+var driverName string
 
+func Init(name string) {
+	driverName = name
+	drivers.Register(driverName, newEVMDriver, types.ForkV17EVM)
+	EvmAddress = address.ExecAddress(GetName())
 	// 初始化硬分叉数据
 	state.InitForkData()
 }

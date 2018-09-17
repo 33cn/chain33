@@ -24,7 +24,7 @@ func CalcValNodeBlockInfoHeightKey(height int64) []byte {
 	return []byte(fmt.Sprintf("ValNodeBlockInfo:%18d:", height))
 }
 
-func Init() {
+func Init(name string) {
 	drivers.Register(GetName(), newValNode, 0)
 }
 

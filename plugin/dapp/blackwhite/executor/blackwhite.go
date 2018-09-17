@@ -15,8 +15,12 @@ var clog = log.New("module", "execs.blackwhite")
 
 var blackwhiteAddr = address.ExecAddress(gt.BlackwhiteX)
 
-func Init() {
-	drivers.Register(GetName(), newBlackwhite, types.ForkV25BlackWhite)
+var driverName = gt.BlackwhiteX
+
+func Init(name string) {
+	driverName = name
+	gt.BlackwhiteX = driverName
+	drivers.Register(name, newBlackwhite, types.ForkV25BlackWhite)
 }
 
 type Blackwhite struct {
@@ -34,7 +38,7 @@ func GetName() string {
 }
 
 func (c *Blackwhite) GetDriverName() string {
-	return gt.BlackwhiteX
+	return driverName
 }
 
 func (c *Blackwhite) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {

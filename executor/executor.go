@@ -3,6 +3,7 @@ package executor
 //store package store the world - state data
 import (
 	"bytes"
+	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -45,6 +46,7 @@ type Executor struct {
 	enableMVCC     bool
 	enableStatFlag int64
 	flagMVCC       int64
+	alias          map[string]string
 }
 
 var once sync.Once
@@ -76,6 +78,20 @@ func New(cfg *types.Exec) *Executor {
 	exec := &Executor{}
 	exec.enableStat = cfg.EnableStat
 	exec.enableMVCC = cfg.EnableMVCC
+	exec.alias = make(map[string]string)
+	for _, v := range cfg.Alias {
+		data := strings.Split(v, ":")
+		if len(data) != 2 {
+			panic("exec.alias config error: " + v)
+		}
+		if _, ok := exec.alias[data[0]]; ok {
+			panic("exec.alias repeat name: " + v)
+		}
+		if pluginmgr.HasExec(data[0]) {
+			panic("exec.alias repeat name with system Exec: " + v)
+		}
+		exec.alias[data[0]] = data[1]
+	}
 	return exec
 }
 
@@ -232,6 +248,7 @@ func isAllowExec(key, realExecer []byte, tx *types.Transaction, height int64) bo
 		return false
 	}
 	//平行链中 user.p.guodun.xxxx -> 实际上是 xxxx
+	//TODO: 后面 GetDriverName(), 中驱动的名字可以被配置
 	if types.IsPara() && bytes.Equal(keyExecer, realExecer) {
 		return true
 	}
@@ -246,7 +263,7 @@ func isAllowExec(key, realExecer []byte, tx *types.Transaction, height int64) bo
 	if ok && keyExecAddr == drivers.ExecAddress(string(tx.Execer)) {
 		return true
 	}
-	// 特殊化处理一下
+	// 历史原因做只针对对bityuan的fork特殊化处理一下
 	// manage 的key 是 config
 	// token 的部分key 是 mavl-create-token-
 	if !types.IsMatchFork(height, types.ForkV13ExecKey) {

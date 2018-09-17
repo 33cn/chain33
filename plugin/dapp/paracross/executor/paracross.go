@@ -20,7 +20,7 @@ type Paracross struct {
 	drivers.DriverBase
 }
 
-func Init() {
+func Init(name string) {
 	drivers.Register(GetName(), newParacross, 0)
 	setPrefix()
 	InitType()
