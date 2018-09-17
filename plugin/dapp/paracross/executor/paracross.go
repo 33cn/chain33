@@ -516,11 +516,11 @@ func (c *Paracross) IsFriend(myexec, writekey []byte, tx *types.Transaction) boo
 		return false
 	}
 	//只允许写名字为主链名称的
-	if string(myexec) != c.GetName() {
+	if string(myexec) != c.GetDriverName() {
 		return false
 	}
 	//只允许同系列的执行器
-	if string(types.GetRealExecName(tx.Execer)) != c.GetName() {
+	if string(types.GetRealExecName(tx.Execer)) != c.GetDriverName() {
 		return false
 	}
 	//只允许跨链交易
