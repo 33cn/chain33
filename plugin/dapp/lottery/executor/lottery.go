@@ -11,7 +11,7 @@ import (
 
 var llog = log.New("module", "execs.lottery")
 
-func Init() {
+func Init(name string) {
 	drivers.Register(GetName(), newLottery, 0)
 }
 
@@ -29,7 +29,7 @@ func newLottery() drivers.Driver {
 	return l
 }
 
-func (l *Lottery) GetName() string {
+func (l *Lottery) GetDriverName() string {
 	return types.LotteryX
 }
 

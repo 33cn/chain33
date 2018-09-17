@@ -3,6 +3,7 @@ package executor
 //store package store the world - state data
 import (
 	"bytes"
+	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -45,6 +46,7 @@ type Executor struct {
 	enableMVCC     bool
 	enableStatFlag int64
 	flagMVCC       int64
+	alias          map[string]string
 }
 
 var once sync.Once
@@ -76,6 +78,20 @@ func New(cfg *types.Exec) *Executor {
 	exec := &Executor{}
 	exec.enableStat = cfg.EnableStat
 	exec.enableMVCC = cfg.EnableMVCC
+	exec.alias = make(map[string]string)
+	for _, v := range cfg.Alias {
+		data := strings.Split(v, ":")
+		if len(data) != 2 {
+			panic("exec.alias config error: " + v)
+		}
+		if _, ok := exec.alias[data[0]]; ok {
+			panic("exec.alias repeat name: " + v)
+		}
+		if pluginmgr.HasExec(data[0]) {
+			panic("exec.alias repeat name with system Exec: " + v)
+		}
+		exec.alias[data[0]] = data[1]
+	}
 	return exec
 }
 
@@ -231,8 +247,13 @@ func isAllowExec(key, realExecer []byte, tx *types.Transaction, height int64) bo
 		elog.Error("find execer ", "err", err)
 		return false
 	}
-	//其他合约可以修改自己合约内部
-	if bytes.Equal(keyExecer, realExecer) {
+	//平行链中 user.p.guodun.xxxx -> 实际上是 xxxx
+	//TODO: 后面 GetDriverName(), 中驱动的名字可以被配置
+	if types.IsPara() && bytes.Equal(keyExecer, realExecer) {
+		return true
+	}
+	//其他合约可以修改自己合约内部(执行器只能修改执行器自己内部的数据)
+	if bytes.Equal(keyExecer, tx.Execer) {
 		return true
 	}
 	//每个合约中，都会开辟一个区域，这个区域是另外一个合约可以修改的区域
@@ -242,7 +263,7 @@ func isAllowExec(key, realExecer []byte, tx *types.Transaction, height int64) bo
 	if ok && keyExecAddr == drivers.ExecAddress(string(tx.Execer)) {
 		return true
 	}
-	// 特殊化处理一下
+	// 历史原因做只针对对bityuan的fork特殊化处理一下
 	// manage 的key 是 config
 	// token 的部分key 是 mavl-create-token-
 	if !types.IsMatchFork(height, types.ForkV13ExecKey) {
@@ -260,6 +281,7 @@ func isAllowExec(key, realExecer []byte, tx *types.Transaction, height int64) bo
 	//是执行器余额，判断 friend
 	execdriver := keyExecer
 	if ok {
+		//判断user.p.xxx.token 是否可以写 token 合约的内容之类的
 		execdriver = realExecer
 	}
 	d, err := drivers.LoadDriver(string(execdriver), height)
@@ -544,7 +566,7 @@ func (e *executor) cutFeeReceipt(acc *types.Account, receiptBalance proto.Messag
 
 func (e *executor) getRealExecName(tx *types.Transaction, index int) []byte {
 	exec := e.loadDriver(tx, index)
-	realexec := exec.GetName()
+	realexec := exec.GetDriverName()
 	var execer []byte
 	if realexec != "none" {
 		execer = []byte(realexec)
@@ -633,6 +655,7 @@ func (e *executor) execDelLocal(tx *types.Transaction, r *types.ReceiptData, ind
 func (e *executor) loadDriver(tx *types.Transaction, index int) (c drivers.Driver) {
 	exec := drivers.LoadDriverAllow(tx, index, e.height)
 	e.setEnv(exec)
+	exec.SetName(string(tx.Execer))
 	return exec
 }
 
