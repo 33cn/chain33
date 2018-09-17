@@ -17,7 +17,7 @@ import (
 
 var clog = log.New("module", "execs.manage")
 
-func Init() {
+func Init(name string) {
 	drivers.Register(GetName(), newManage, types.ForkV4AddManage)
 }
 
@@ -35,7 +35,7 @@ func newManage() drivers.Driver {
 	return c
 }
 
-func (c *Manage) GetName() string {
+func (c *Manage) GetDriverName() string {
 	return "manage"
 }
 
