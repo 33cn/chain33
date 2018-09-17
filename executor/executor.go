@@ -231,6 +231,7 @@ func isAllowExec(key, realExecer []byte, tx *types.Transaction, height int64) bo
 		elog.Error("find execer ", "err", err)
 		return false
 	}
+	//平行链中 user.p.guodun.xxxx -> 实际上是 xxxx
 	if types.IsPara() && bytes.Equal(keyExecer, realExecer) {
 		return true
 	}
