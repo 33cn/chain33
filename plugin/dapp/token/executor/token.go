@@ -44,7 +44,7 @@ func newToken() drivers.Driver {
 	return t
 }
 
-func (t *token) GetName() string {
+func (t *token) GetDriverName() string {
 	return "token"
 }
 

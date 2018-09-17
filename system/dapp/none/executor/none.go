@@ -26,6 +26,6 @@ func newNone() drivers.Driver {
 	return n
 }
 
-func (n *None) GetName() string {
+func (n *None) GetDriverName() string {
 	return "none"
 }

@@ -28,7 +28,7 @@ func newRelay() drivers.Driver {
 	return r
 }
 
-func (r *relay) GetName() string {
+func (r *relay) GetDriverName() string {
 	return "relay"
 }
 
