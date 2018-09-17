@@ -8,10 +8,17 @@ import (
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 )
 
-func Init() {
-	drivers.Register(GetName(), newNone, 0)
+var driverName = "none"
+
+func Init(name string) {
+	if name != driverName {
+		panic("system dapp can't be rename")
+	}
+	driverName = name
+	drivers.Register(name, newNone, 0)
 }
 
+//执行时候的名称
 func GetName() string {
 	return newNone().GetName()
 }
@@ -26,6 +33,7 @@ func newNone() drivers.Driver {
 	return n
 }
 
+//驱动注册时候的名称
 func (n *None) GetDriverName() string {
-	return "none"
+	return driverName
 }

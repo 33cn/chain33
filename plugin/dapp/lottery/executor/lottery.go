@@ -11,7 +11,7 @@ import (
 
 var llog = log.New("module", "execs.lottery")
 
-func Init() {
+func Init(name string) {
 	drivers.Register(GetName(), newLottery, 0)
 }
 

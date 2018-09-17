@@ -30,7 +30,7 @@ import (
 
 var privacylog = log.New("module", "execs.privacy")
 
-func Init() {
+func Init(name string) {
 	drivers.Register(GetName(), newPrivacy, types.ForkV21Privacy)
 	// 如果需要在开发环境下使用隐私交易，则需要使用下面这行代码，否则用上面的代码
 	//drivers.Register(newPrivacy().GetName(), newPrivacy, 0)
