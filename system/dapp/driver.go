@@ -316,24 +316,6 @@ func (d *DriverBase) Exec(tx *types.Transaction, index int) (receipt *types.Rece
 	return receipt, err
 }
 
-func (d *DriverBase) decodeTxPayload(tx *types.Transaction) (string, reflect.Value, error) {
-	action := d.child.GetPayloadValue()
-	if action == nil {
-		return "", nilValue, types.ErrDecode
-	}
-	err := types.Decode(tx.Payload, action)
-	if err != nil {
-		return "", nilValue, err
-	}
-	name, ty, val := GetActionValue(action, d.child.GetFuncMap())
-	typemap := d.child.GetTypeMap()
-	//check types is ok
-	if v, ok := typemap[name]; !ok || v != ty {
-		return "", nilValue, types.ErrActionNotSupport
-	}
-	return name, val, nil
-}
-
 //默认情况下，tx.To 地址指向合约地址
 func (d *DriverBase) CheckTx(tx *types.Transaction, index int) error {
 	execer := string(tx.Execer)

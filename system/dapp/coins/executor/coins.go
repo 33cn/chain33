@@ -24,8 +24,10 @@ import (
 
 func Init() {
 	drivers.Register(GetName(), newCoins, 0)
-	InitType()
 }
+
+var actionFunList = make(map[string]reflect.Method)
+var executorFunList = make(map[string]reflect.Method)
 
 //初始化函数列表，可以提升反射调用的速度
 func init() {
