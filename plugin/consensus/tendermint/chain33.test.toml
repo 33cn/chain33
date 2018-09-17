@@ -80,7 +80,7 @@ timeoutCommit=1000
 skipTimeoutCommit=false
 createEmptyBlocks=false
 createEmptyBlocksInterval=0
-seeds=["127.0.0.1:46656"]
+validators=["127.0.0.1:46656"]
 
 [store]
 name="kvdb"
