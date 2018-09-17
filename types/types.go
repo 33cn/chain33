@@ -10,6 +10,7 @@ import (
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
+	"gitlab.33.cn/chain33/chain33/types/jsonpb"
 
 	_ "gitlab.33.cn/chain33/chain33/common/crypto/ecdsa"
 	_ "gitlab.33.cn/chain33/chain33/common/crypto/ed25519"
@@ -360,4 +361,9 @@ func GetTxTimeInterval() time.Duration {
 
 type ParaCrossTx interface {
 	IsParaCrossTx() bool
+}
+
+func PBToJson(r Message) (string, error) {
+	encode := &jsonpb.Marshaler{EmitDefaults: true}
+	return encode.MarshalToString(r)
 }
