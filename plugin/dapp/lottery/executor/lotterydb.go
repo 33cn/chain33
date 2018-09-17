@@ -458,28 +458,6 @@ func (action *Action) LotteryClose(draw *types.LotteryClose) (*types.Receipt, er
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
 }
 
-func (action *Action) getMinerTx(current *types.Block) (*types.TicketAction, error) {
-	//检查第一个笔交易的execs, 以及执行状态
-	if len(current.Txs) == 0 {
-		return nil, types.ErrEmptyTx
-	}
-	baseTx := current.Txs[0]
-	//判断交易类型和执行情况
-	var ticketAction types.TicketAction
-	err := types.Decode(baseTx.GetPayload(), &ticketAction)
-	if err != nil {
-		return nil, err
-	}
-	if ticketAction.GetTy() != types.TicketActionMiner {
-		return nil, types.ErrCoinBaseTxType
-	}
-	//判断交易执行是否OK
-	if ticketAction.GetMiner() == nil {
-		return nil, types.ErrEmptyMinerTx
-	}
-	return &ticketAction, nil
-}
-
 func (action *Action) GetModify(beg, end int64, randMolNum int64) ([]byte, error) {
 	//通过某个区间计算modify
 	timeSource := int64(0)

@@ -2,7 +2,6 @@ package executor
 
 import (
 	"context"
-	"errors"
 
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -29,42 +28,20 @@ func (action *Action) getTxActions(height int64, blockNum int64) ([]*types.Ticke
 		}
 		return txActions, nil
 	} else {
-		//last block on paraChain
-		req := &types.ReqBlocks{height, height, false, []string{""}}
-
-		blockDetails, err := action.api.GetBlocks(req)
-		if err != nil {
-			llog.Error("getTxActions", "height", height, "blockNum", blockNum, "err", err)
-			return txActions, err
-		}
-
-		var sequences []int64
-		var blockedSeq int64
-		block := blockDetails.Items[0]
-		blockedSeq, err = action.api.GetBlockedSeq(&types.ReqHash{block.Block.Hash()})
-		if err != nil {
-			return txActions, err
-		}
-
-		for i := 0; i < int(blockNum); i++ {
-			blockedSeq -= 1
-			sequences = append(sequences, blockedSeq)
-		}
-
-		llog.Error("getTxActions", "sequences", sequences)
-		savedBlocksOnMain, err := action.GetBlockOnMainBySeq(sequences)
-		if err != nil {
-			//fatal err sometimes
+		//block height on main
+		mainHeight := action.GetMainHeightByTxHash(action.txhash)
+		if mainHeight < 0 {
+			llog.Error("LotteryCreate", "mainHeight", mainHeight)
 			panic("")
-			llog.Error("getTxActions", "err", err)
-			return txActions, err
 		}
 
-		if len(savedBlocksOnMain.Items) == 0 {
-			return txActions, errors.New("No main block")
+		blockDetails, err := action.GetBlocksOnMain(mainHeight-blockNum, mainHeight-1)
+		if err != nil {
+			llog.Error("LotteryCreate", "mainHeight", mainHeight)
+			panic("")
 		}
 
-		for _, block := range savedBlocksOnMain.Items {
+		for _, block := range blockDetails.Items {
 			ticketAction, err := action.getMinerTx(block.Block)
 			if err != nil {
 				return txActions, err
@@ -75,52 +52,6 @@ func (action *Action) getTxActions(height int64, blockNum int64) ([]*types.Ticke
 	}
 }
 
-func (action *Action) GetBlockHashFromMainChain(start int64, end int64) (*types.BlockSequences, error) {
-	req := &types.ReqBlocks{start, end, true, []string{}}
-	blockSeqs, err := action.grpcClient.GetBlockSequences(context.Background(), req)
-	if err != nil {
-		llog.Error("GetBlockHashFromMainChain", "Error", err.Error())
-		return nil, err
-	}
-	return blockSeqs, nil
-}
-
-func (action *Action) GetBlocksByHashesFromMainChain(hashes [][]byte) (*types.BlockDetails, error) {
-	req := &types.ReqHashes{hashes}
-	blocks, err := action.grpcClient.GetBlockByHashes(context.Background(), req)
-	if err != nil {
-		llog.Error("GetBlocksByHashesFromMainChain", "Error", err.Error())
-		return nil, err
-	}
-	return blocks, nil
-}
-
-//dangerous to get five blocks one time, better to select not detail, supported by main block
-func (action *Action) GetBlockOnMainBySeq(seqs []int64) (*types.BlockDetails, error) {
-	var hashes [][]byte
-	for _, seq := range seqs {
-		blockSeqs, err := action.GetBlockHashFromMainChain(seq, seq)
-		if err != nil {
-			llog.Error("Not found block hash on seq", "start", seq, "end", seq)
-			return nil, err
-		}
-
-		for _, item := range blockSeqs.Items {
-			//ADD
-			//if item.Type == 1 {
-			hashes = append(hashes, item.Hash)
-			//}
-		}
-	}
-
-	blockDetails, err := action.GetBlocksByHashesFromMainChain(hashes)
-	if err != nil {
-		return nil, err
-	}
-
-	return blockDetails, nil
-}
-
 //TransactionDetail
 func (action *Action) GetMainHeightByTxHash(txHash []byte) int64 {
 	req := &types.ReqHash{txHash}
@@ -129,4 +60,46 @@ func (action *Action) GetMainHeightByTxHash(txHash []byte) int64 {
 		return -1
 	}
 	return txDetail.GetHeight()
+}
+
+func (action *Action) GetBlocksOnMain(start int64, end int64) (*types.BlockDetails, error) {
+	req := &types.ReqBlocks{start, end, false, []string{""}}
+
+	reply, err := action.grpcClient.GetBlocks(context.Background(), req)
+	if err != nil {
+		llog.Error("GetBlocksOnMain", "start", start, "end", end, "err", err)
+		return nil, err
+	}
+
+	var blockDetails types.BlockDetails
+
+	err = types.Decode(reply.Msg, &blockDetails)
+	if err != nil {
+		llog.Error("GetBlocksOnMain", "err", err)
+		return nil, err
+	}
+
+	return &blockDetails, nil
+}
+
+func (action *Action) getMinerTx(current *types.Block) (*types.TicketAction, error) {
+	//检查第一个笔交易的execs, 以及执行状态
+	if len(current.Txs) == 0 {
+		return nil, types.ErrEmptyTx
+	}
+	baseTx := current.Txs[0]
+	//判断交易类型和执行情况
+	var ticketAction types.TicketAction
+	err := types.Decode(baseTx.GetPayload(), &ticketAction)
+	if err != nil {
+		return nil, err
+	}
+	if ticketAction.GetTy() != types.TicketActionMiner {
+		return nil, types.ErrCoinBaseTxType
+	}
+	//判断交易执行是否OK
+	if ticketAction.GetMiner() == nil {
+		return nil, types.ErrEmptyMinerTx
+	}
+	return &ticketAction, nil
 }
