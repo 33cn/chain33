@@ -431,7 +431,6 @@ func (d *DriverBase) CheckSignatureData(tx *types.Transaction, index int) bool {
 
 func (d *DriverBase) GetCoinsAccount() *account.DB {
 	if d.coinsaccount == nil {
-		//log.Error("new CoinsAccount")
 		d.coinsaccount = account.NewCoinsAccount()
 		d.coinsaccount.SetDB(d.statedb)
 	}
