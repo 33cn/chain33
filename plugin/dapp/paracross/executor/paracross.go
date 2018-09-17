@@ -36,7 +36,7 @@ func newParacross() drivers.Driver {
 	return c
 }
 
-func (c *Paracross) GetName() string {
+func (c *Paracross) GetDriverName() string {
 	return types.ParaX
 }
 
