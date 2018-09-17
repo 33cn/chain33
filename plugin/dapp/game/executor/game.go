@@ -12,25 +12,25 @@ import (
 var glog = log.New("module", "execs.game")
 
 func Init() {
-	drivers.Register(GetName(), NewGame, 0)
+	drivers.Register(GetName(), newGame, 0)
 }
 
 type Game struct {
 	drivers.DriverBase
 }
 
-func NewGame() drivers.Driver {
+func newGame() drivers.Driver {
 	t := &Game{}
 	t.SetChild(t)
 	return t
 }
 
 func GetName() string {
-	return gt.GameX
+	return newGame().GetName()
 }
 
-func (g *Game) GetName() string {
-	return GetName()
+func (g *Game) GetDriverName() string {
+	return gt.GameX
 }
 
 func (g *Game) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {

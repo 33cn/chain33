@@ -43,8 +43,8 @@ func newValNode() drivers.Driver {
 	return n
 }
 
-func (val *ValNode) GetName() string {
-	return types.ExecName("valnode")
+func (val *ValNode) GetDriverName() string {
+	return "valnode"
 }
 
 func (val *ValNode) GetActionValue(tx *types.Transaction) (*types.ValNodeAction, error) {

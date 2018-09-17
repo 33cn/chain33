@@ -35,7 +35,7 @@ func Init() {
 }
 
 func GetName() string {
-	return model.ExecutorName
+	return newEVMDriver().GetName()
 }
 
 func newEVMDriver() drivers.Driver {
@@ -61,7 +61,7 @@ func NewEVMExecutor() *EVMExecutor {
 	return exec
 }
 
-func (evm *EVMExecutor) GetName() string {
+func (evm *EVMExecutor) GetDriverName() string {
 	return model.ExecutorName
 }
 

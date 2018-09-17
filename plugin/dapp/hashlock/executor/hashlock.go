@@ -30,7 +30,7 @@ func newHashlock() drivers.Driver {
 	return h
 }
 
-func (h *Hashlock) GetName() string {
+func (h *Hashlock) GetDriverName() string {
 	return "hashlock"
 }
 

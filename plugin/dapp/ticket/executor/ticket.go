@@ -40,7 +40,7 @@ func newTicket() drivers.Driver {
 	return t
 }
 
-func (t *Ticket) GetName() string {
+func (t *Ticket) GetDriverName() string {
 	return "ticket"
 }
 

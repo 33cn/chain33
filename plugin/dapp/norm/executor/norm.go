@@ -27,7 +27,7 @@ func newNorm() drivers.Driver {
 	return n
 }
 
-func (n *Norm) GetName() string {
+func (n *Norm) GetDriverName() string {
 	return "norm"
 }
 

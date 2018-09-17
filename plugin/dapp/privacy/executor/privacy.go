@@ -50,7 +50,7 @@ func newPrivacy() drivers.Driver {
 	return t
 }
 
-func (p *privacy) GetName() string {
+func (p *privacy) GetDriverName() string {
 	return "privacy"
 }
 

@@ -31,7 +31,7 @@ func newCert() drivers.Driver {
 	return c
 }
 
-func (c *Cert) GetName() string {
+func (c *Cert) GetDriverName() string {
 	return "cert"
 }
 

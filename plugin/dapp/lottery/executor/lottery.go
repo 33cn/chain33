@@ -29,7 +29,7 @@ func newLottery() drivers.Driver {
 	return l
 }
 
-func (l *Lottery) GetName() string {
+func (l *Lottery) GetDriverName() string {
 	return types.LotteryX
 }
 

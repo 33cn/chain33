@@ -40,7 +40,7 @@ func newTrade() drivers.Driver {
 	return t
 }
 
-func (t *trade) GetName() string {
+func (t *trade) GetDriverName() string {
 	return "trade"
 }
 

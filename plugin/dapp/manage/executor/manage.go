@@ -35,7 +35,7 @@ func newManage() drivers.Driver {
 	return c
 }
 
-func (c *Manage) GetName() string {
+func (c *Manage) GetDriverName() string {
 	return "manage"
 }
 
