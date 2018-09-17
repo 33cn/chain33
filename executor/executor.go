@@ -546,7 +546,7 @@ func (e *executor) cutFeeReceipt(acc *types.Account, receiptBalance proto.Messag
 
 func (e *executor) getRealExecName(tx *types.Transaction, index int) []byte {
 	exec := e.loadDriver(tx, index)
-	realexec := exec.GetName()
+	realexec := exec.GetDriverName()
 	var execer []byte
 	if realexec != "none" {
 		execer = []byte(realexec)
