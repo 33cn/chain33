@@ -80,7 +80,7 @@ message Consensus {
     bool     skipTimeoutCommit         = 37;
     bool     createEmptyBlocks         = 38;
     int32    createEmptyBlocksInterval = 39;
-    repeated string seeds              = 40;
+    repeated string validators         = 40;
 }
 
 message Wallet {
