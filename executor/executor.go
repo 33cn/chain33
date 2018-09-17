@@ -220,37 +220,37 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 2. friend 合约行为, 合约可以定义其他合约 可以修改的 key的内容
 */
 func (execute *executor) isAllowExec(key []byte, tx *types.Transaction, index int) bool {
-	txexecer := execute.getRealExecName(tx, index)
+	realExecer := execute.getRealExecName(tx, index)
 	height := execute.height
-	return isAllowExec(key, txexecer, tx, height)
+	return isAllowExec(key, realExecer, tx, height)
 }
 
-func isAllowExec(key, txexecer []byte, tx *types.Transaction, height int64) bool {
-	keyexecer, err := types.FindExecer(key)
+func isAllowExec(key, realExecer []byte, tx *types.Transaction, height int64) bool {
+	keyExecer, err := types.FindExecer(key)
 	if err != nil {
 		elog.Error("find execer ", "err", err)
 		return false
 	}
 	//其他合约可以修改自己合约内部
-	if bytes.Equal(keyexecer, txexecer) {
+	if bytes.Equal(keyExecer, realExecer) {
 		return true
 	}
 	//每个合约中，都会开辟一个区域，这个区域是另外一个合约可以修改的区域
 	//我们把数据限制在这个位置，防止合约的其他位置被另外一个合约修改
-	//  execaddr 是加了前缀生成的地址， 而参数 txexecer 是没有前缀的执行器名字
-	execaddr, ok := types.GetExecKey(key)
-	if ok && execaddr == drivers.ExecAddress(string(tx.Execer)) {
+	//  execaddr 是加了前缀生成的地址， 而参数 realExecer 是没有前缀的执行器名字
+	keyExecAddr, ok := types.GetExecKey(key)
+	if ok && keyExecAddr == drivers.ExecAddress(string(tx.Execer)) {
 		return true
 	}
 	// 特殊化处理一下
 	// manage 的key 是 config
 	// token 的部分key 是 mavl-create-token-
 	if !types.IsMatchFork(height, types.ForkV13ExecKey) {
-		elog.Info("mavl key", "execer", string(keyexecer), "keyexecer", string(keyexecer))
-		if bytes.Equal(txexecer, types.ExecerManage) && bytes.Equal(keyexecer, types.ExecerConfig) {
+		elog.Info("mavl key", "execer", string(keyExecer), "keyExecer", string(keyExecer))
+		if bytes.Equal(realExecer, types.ExecerManage) && bytes.Equal(keyExecer, types.ExecerConfig) {
 			return true
 		}
-		if bytes.Equal(txexecer, types.ExecerToken) {
+		if bytes.Equal(realExecer, types.ExecerToken) {
 			if bytes.HasPrefix(key, []byte("mavl-create-token-")) {
 				return true
 			}
@@ -258,9 +258,9 @@ func isAllowExec(key, txexecer []byte, tx *types.Transaction, height int64) bool
 	}
 	//分成两种情况:
 	//是执行器余额，判断 friend
-	execdriver := keyexecer
+	execdriver := keyExecer
 	if ok {
-		execdriver = txexecer
+		execdriver = realExecer
 	}
 	d, err := drivers.LoadDriver(string(execdriver), height)
 	if err != nil {
