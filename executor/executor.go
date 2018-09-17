@@ -635,6 +635,7 @@ func (e *executor) execDelLocal(tx *types.Transaction, r *types.ReceiptData, ind
 func (e *executor) loadDriver(tx *types.Transaction, index int) (c drivers.Driver) {
 	exec := drivers.LoadDriverAllow(tx, index, e.height)
 	e.setEnv(exec)
+	exec.SetName(string(tx.Execer))
 	return exec
 }
 
