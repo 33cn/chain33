@@ -10,9 +10,11 @@ import (
 )
 
 var clog = log.New("module", "execs.cert")
+var driverName = "cert"
 
-func Init() {
-	drivers.Register(GetName(), newCert, 0)
+func Init(name string) {
+	driverName = name
+	drivers.Register(driverName, newCert, 0)
 }
 
 func GetName() string {
@@ -32,7 +34,7 @@ func newCert() drivers.Driver {
 }
 
 func (c *Cert) GetDriverName() string {
-	return "cert"
+	return driverName
 }
 
 func (c *Cert) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {

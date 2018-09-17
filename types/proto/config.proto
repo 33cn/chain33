@@ -153,6 +153,7 @@ message Exec {
     bool  isFree     = 2;
     bool  enableStat = 3;
     bool  enableMVCC = 4;
+    repeated string alias = 5;
 }
 
 message Authority {

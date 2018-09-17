@@ -11,7 +11,7 @@ import (
 
 var glog = log.New("module", "execs.game")
 
-func Init() {
+func Init(name string) {
 	drivers.Register(GetName(), newGame, 0)
 }
 
