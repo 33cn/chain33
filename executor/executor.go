@@ -231,7 +231,9 @@ func isAllowExec(key, realExecer []byte, tx *types.Transaction, height int64) bo
 		elog.Error("find execer ", "err", err)
 		return false
 	}
-
+	if types.IsPara() && bytes.Equal(keyExecer, realExecer) {
+		return true
+	}
 	//其他合约可以修改自己合约内部(执行器只能修改执行器自己内部的数据)
 	if bytes.Equal(keyExecer, tx.Execer) {
 		return true
