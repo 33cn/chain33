@@ -17,9 +17,11 @@ var blackwhiteAddr = address.ExecAddress(gt.BlackwhiteX)
 
 var driverName = gt.BlackwhiteX
 
+//黑白配可以被重命名执行器名称
 func Init(name string) {
 	driverName = name
 	gt.BlackwhiteX = driverName
+	gt.ExecerBlackwhite = []byte(driverName)
 	drivers.Register(name, newBlackwhite, types.ForkV25BlackWhite)
 }
 
