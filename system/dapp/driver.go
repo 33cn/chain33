@@ -23,7 +23,10 @@ type Driver interface {
 	SetStateDB(dbm.KV)
 	GetCoinsAccount() *account.DB
 	SetLocalDB(dbm.KVDB)
+	GetDriverName() string
 	GetName() string
+	//设置执行器的真实名称
+	SetName(string)
 	// 不能依赖任何数据库相关，只和交易相关
 	Allow(tx *types.Transaction, index int) error
 	IsFriend(myexec []byte, writekey []byte, othertx *types.Transaction) bool
@@ -53,6 +56,7 @@ type DriverBase struct {
 	coinsaccount *account.DB
 	height       int64
 	blocktime    int64
+	name         string
 	child        Driver
 	childValue   reflect.Value
 	isFree       bool
@@ -407,7 +411,14 @@ func (d *DriverBase) GetDifficulty() uint64 {
 }
 
 func (d *DriverBase) GetName() string {
-	return "driver"
+	if d.name == "" {
+		return d.child.GetDriverName()
+	}
+	return d.name
+}
+
+func (d *DriverBase) SetName(name string) {
+	d.name = name
 }
 
 func (d *DriverBase) GetActionName(tx *types.Transaction) string {
@@ -420,7 +431,6 @@ func (d *DriverBase) CheckSignatureData(tx *types.Transaction, index int) bool {
 
 func (d *DriverBase) GetCoinsAccount() *account.DB {
 	if d.coinsaccount == nil {
-		//log.Error("new CoinsAccount")
 		d.coinsaccount = account.NewCoinsAccount()
 		d.coinsaccount.SetDB(d.statedb)
 	}

@@ -12,7 +12,7 @@ var clog = log.New("module", "execs.hashlock")
 
 const minLockTime = 60
 
-func Init() {
+func Init(name string) {
 	drivers.Register(GetName(), newHashlock, 0)
 }
 
@@ -30,7 +30,7 @@ func newHashlock() drivers.Driver {
 	return h
 }
 
-func (h *Hashlock) GetName() string {
+func (h *Hashlock) GetDriverName() string {
 	return "hashlock"
 }
 

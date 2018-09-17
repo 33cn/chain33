@@ -3,6 +3,7 @@ package p2p
 import (
 	"fmt"
 	"math/rand"
+
 	//"strings"
 	"sync/atomic"
 
@@ -313,26 +314,25 @@ func (n *Node) detectNodeAddr() {
 	var externalIP string
 	for {
 		cfg := n.nodeInfo.cfg
-		LocalAddr = P2pComm.GetLocalAddr()
-		log.Info("DetectNodeAddr", "addr:", LocalAddr)
+		laddr := P2pComm.GetLocalAddr()
+		LocalAddr = laddr
+		log.Info("DetectNodeAddr", "addr:", laddr)
 		if len(LocalAddr) == 0 {
 			log.Error("DetectNodeAddr", "NetWork Disable p2p Disable", "Retry until Network enable")
 			time.Sleep(time.Second * 5)
 			continue
 		}
-
-		log.Info("detectNodeAddr", "LocalAddr", LocalAddr)
-
+		log.Info("detectNodeAddr", "LocalAddr", laddr)
 		if cfg.GetIsSeed() {
-			log.Info("DetectNodeAddr", "ExIp", LocalAddr)
-			externalIP = LocalAddr
+			log.Info("DetectNodeAddr", "ExIp", laddr)
+			externalIP = laddr
 			n.nodeInfo.SetNetSide(true)
 			//goto SET_ADDR
 		}
 
 		//如果nat,getSelfExternalAddr 无法发现自己的外网地址，则把localaddr 赋值给外网地址
 		if len(externalIP) == 0 {
-			externalIP = LocalAddr
+			externalIP = laddr
 		}
 
 		var externaladdr string
@@ -360,7 +360,7 @@ func (n *Node) detectNodeAddr() {
 			log.Error("DetectionNodeAddr", "error", err.Error())
 		}
 
-		if listaddr, err := NewNetAddressString(fmt.Sprintf("%v:%v", LocalAddr, defaultPort)); err == nil {
+		if listaddr, err := NewNetAddressString(fmt.Sprintf("%v:%v", laddr, defaultPort)); err == nil {
 			n.nodeInfo.SetListenAddr(listaddr)
 			n.nodeInfo.addrBook.AddOurAddress(listaddr)
 		}
