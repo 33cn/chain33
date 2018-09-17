@@ -3,6 +3,8 @@ package types
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
+	"unicode"
 )
 
 type ExecutorType interface {
@@ -14,6 +16,7 @@ type ExecutorType interface {
 	CreateTx(action string, message json.RawMessage) (*Transaction, error)
 	Amount(tx *Transaction) (int64, error)
 	DecodePayload(tx *Transaction) (interface{}, error)
+	DecodePayloadValue(tx *Transaction) (string, reflect.Value, error)
 }
 
 type LogType interface {
@@ -114,15 +117,134 @@ func ProcessRPCQuery(funcName string, param []byte) (Message, error) {
 	return nil, ErrNotFound
 }
 
+type ExecType interface {
+	//write for executor
+	GetPayload() Message
+	//exec result of receipt log
+	GetLogMap() map[int64]reflect.Type
+	//actionType -> name map
+	GetTypeMap() map[string]int32
+	//action function list map
+	GetFuncMap() map[string]reflect.Method
+}
+
+type ExecTypeGet interface {
+	GetTy() int32
+}
+
 type ExecTypeBase struct {
+	child ExecType
 }
 
 //用户看到的ToAddr
-func (base ExecTypeBase) GetRealToAddr(tx *Transaction) string {
+func (base *ExecTypeBase) GetRealToAddr(tx *Transaction) string {
+	if !IsPara() {
+		return tx.To
+	}
+	//平行链中的处理方式
+	_, v, err := base.DecodePayloadValue(tx)
+	if err != nil {
+		return tx.To
+	}
+	payload := v.Interface()
+	//四种assert的结构体
+	if ato, ok := payload.(*AssetsTransferToExec); ok {
+		return ato.GetTo()
+	}
+	if ato, ok := payload.(*AssetsTransfer); ok {
+		return ato.GetTo()
+	}
+	if ato, ok := payload.(*AssetsWithdraw); ok {
+		return ato.GetTo()
+	}
+	if ato, ok := payload.(*AssetsTransferToExec); ok {
+		return ato.GetTo()
+	}
 	return tx.To
 }
 
+func (base *ExecTypeBase) Amount(tx *Transaction) (int64, error) {
+	_, v, err := base.DecodePayloadValue(tx)
+	if err != nil {
+		return 0, err
+	}
+	payload := v.Interface()
+	//四种assert的结构体
+	if ato, ok := payload.(*AssetsTransferToExec); ok {
+		return ato.GetAmount(), nil
+	}
+	if ato, ok := payload.(*AssetsTransfer); ok {
+		return ato.GetAmount(), nil
+	}
+	if ato, ok := payload.(*AssetsWithdraw); ok {
+		return ato.GetAmount(), nil
+	}
+	if ato, ok := payload.(*AssetsTransferToExec); ok {
+		return ato.GetAmount(), nil
+	}
+	return 0, nil
+}
+
 //用户看到的FromAddr
-func (base ExecTypeBase) GetViewFromToAddr(tx *Transaction) (string, string) {
+func (base *ExecTypeBase) GetViewFromToAddr(tx *Transaction) (string, string) {
 	return tx.From(), tx.To
+}
+
+func (base *ExecTypeBase) SetChild(child ExecType) {
+	base.child = child
+}
+
+func (base *ExecTypeBase) DecodePayload(tx *Transaction) (interface{}, error) {
+	payload := base.child.GetPayload()
+	err := Decode(tx.GetPayload(), payload)
+	if err != nil {
+		return nil, err
+	}
+	return payload, nil
+}
+
+func (base *ExecTypeBase) DecodePayloadValue(tx *Transaction) (string, reflect.Value, error) {
+	action, err := base.DecodePayload(tx)
+	if err != nil {
+		return "", nilValue, err
+	}
+	name, ty, val := GetActionValue(action, base.child.GetFuncMap())
+	if val.IsNil() {
+		return "", nilValue, ErrActionNotSupport
+	}
+	typemap := base.child.GetTypeMap()
+	//check types is ok
+	if v, ok := typemap[name]; !ok || v != ty {
+		return "", nilValue, ErrActionNotSupport
+	}
+	return name, val, nil
+}
+
+func (base *ExecTypeBase) ActionName(tx *Transaction) string {
+	payload, err := base.DecodePayload(tx)
+	if err != nil {
+		return "unknown-err"
+	}
+	tm := base.child.GetTypeMap()
+	if get, ok := payload.(ExecTypeGet); ok {
+		ty := get.GetTy()
+		for k, v := range tm {
+			if v == ty {
+				return lowcaseFirst(k)
+			}
+		}
+	}
+	return "unknown"
+}
+
+func lowcaseFirst(v string) string {
+	if len(v) == 0 {
+		return ""
+	}
+	change := []rune(v)
+	if unicode.IsUpper(change[0]) {
+		change[0] = unicode.ToLower(change[0])
+		return string(change)
+	}
+	return v
 }
