@@ -231,8 +231,9 @@ func isAllowExec(key, realExecer []byte, tx *types.Transaction, height int64) bo
 		elog.Error("find execer ", "err", err)
 		return false
 	}
-	//其他合约可以修改自己合约内部
-	if bytes.Equal(keyExecer, realExecer) {
+
+	//其他合约可以修改自己合约内部(执行器只能修改执行器自己内部的数据)
+	if bytes.Equal(keyExecer, tx.Execer) {
 		return true
 	}
 	//每个合约中，都会开辟一个区域，这个区域是另外一个合约可以修改的区域
@@ -260,6 +261,7 @@ func isAllowExec(key, realExecer []byte, tx *types.Transaction, height int64) bo
 	//是执行器余额，判断 friend
 	execdriver := keyExecer
 	if ok {
+		//判断user.p.xxx.token 是否可以写 token 合约的内容之类的
 		execdriver = realExecer
 	}
 	d, err := drivers.LoadDriver(string(execdriver), height)
