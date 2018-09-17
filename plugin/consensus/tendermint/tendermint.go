@@ -242,7 +242,7 @@ OuterLoop:
 
 	// Create & add listener
 	protocol, listeningAddress := "tcp", "0.0.0.0:46656"
-	node := NewNode(client.Cfg.Seeds, protocol, listeningAddress, client.privKey, state.ChainID, tendermint_version, csState, evidencePool)
+	node := NewNode(client.Cfg.Validators, protocol, listeningAddress, client.privKey, state.ChainID, tendermint_version, csState, evidencePool)
 
 	client.node = node
 	node.Start()

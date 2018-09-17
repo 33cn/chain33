@@ -569,11 +569,17 @@ func (node *Node) reconnectToPeer(addr string) {
 			return
 		}
 
-		if node.peerSet.HasIP(net.ParseIP(host)) {
-			tendermintlog.Info("Reconnecting to peer need quit already connected to the peer", "peerip", host)
+		ips, err := net.LookupIP(host)
+		if err != nil {
+			tendermintlog.Info("LookupIP failed", "host", host)
+			continue
+		}
+		if node.peerSet.HasIP(ips[0]) {
+			tendermintlog.Info("Reconnecting to peer exit, already connect to the peer", "peer", host)
 			return
 		}
-		err := node.DialPeerWithAddress(addr)
+
+		err = node.DialPeerWithAddress(addr)
 		if err == nil {
 			return // success
 		}
