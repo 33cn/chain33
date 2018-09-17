@@ -141,8 +141,6 @@ type QueueProtocolAPI interface {
 	GetBlockSequences(param *types.ReqBlocks) (*types.BlockSequences, error)
 	//types.EventGetBlockByHashes:
 	GetBlockByHashes(param *types.ReqHashes) (*types.BlockDetails, error)
-	//types.EventGetSeqByHash:
-	GetBlockedSeq(param *types.ReqHash) (int64, error)
 
 	// --------------- blockchain interfaces end
 
