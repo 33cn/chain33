@@ -50,7 +50,7 @@ func newCoins() drivers.Driver {
 	return c
 }
 
-func (c *Coins) GetName() string {
+func (c *Coins) GetDriverName() string {
 	return "coins"
 }
 
