@@ -335,10 +335,25 @@ func (base *ExecTypeBase) callRPC(method reflect.Method, action string, msg json
 	return tx, err
 }
 
+func (base *ExecTypeBase) AssertCreate(c *CreateTx) (*Transaction, error) {
+	if c.IsWithdraw {
+		p := &AssetsWithdraw{Cointoken: c.GetTokenSymbol(), Amount: c.Amount,
+			Note: c.Note, ExecName: c.ExecName, To: c.To}
+		return base.child.CreateTransaction("Withdraw", p)
+	}
+	if c.ExecName != "" {
+		v := &AssetsTransferToExec{Cointoken: c.GetTokenSymbol(), Amount: c.Amount,
+			Note: c.Note, ExecName: c.ExecName, To: c.To}
+		return base.child.CreateTransaction("TransferToExec", v)
+	}
+	v := &AssetsTransfer{Cointoken: c.GetTokenSymbol(), Amount: c.Amount, Note: c.GetNote(), To: c.To}
+	return base.child.CreateTransaction("Transfer", v)
+}
+
 func (base *ExecTypeBase) CreateTx(action string, msg json.RawMessage) (*Transaction, error) {
 	//先判断 FuncList 中有没有符合要求的函数 RPC_{action}
 	if action == "" {
-		action = "_Default"
+		action = "Default_Process"
 	}
 	funclist := base.GetRPCFuncMap()
 	if method, ok := funclist["RPC_"+action]; ok {
