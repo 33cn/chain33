@@ -49,6 +49,15 @@ func ListActionMethod(action interface{}, funclist []interface{}) map[string]ref
 	return methods
 }
 
+func ListType(tys []interface{}) map[string]reflect.Type {
+	typelist := make(map[string]reflect.Type)
+	for _, ty := range tys {
+		typ := reflect.TypeOf(ty).Elem()
+		typelist[typ.Name()] = typ
+	}
+	return typelist
+}
+
 func ListMethod(action interface{}) map[string]reflect.Method {
 	typ := reflect.TypeOf(action)
 	methods := make(map[string]reflect.Method)
