@@ -164,7 +164,7 @@ func (base *ExecTypeBase) SetChild(child ExecType) {
 		}
 		base.actionListValueType["Value_"+data[1]] = v
 		field := v.Field(0)
-		base.actionListValueType[field.Name] = field.Type
+		base.actionListValueType[field.Name] = field.Type.Elem()
 		_, ok := v.FieldByName(data[1])
 		if !ok {
 			panic("no filed " + k)
@@ -260,15 +260,18 @@ func (base *ExecTypeBase) DecodePayload(tx *Transaction) (interface{}, error) {
 func (base *ExecTypeBase) DecodePayloadValue(tx *Transaction) (string, reflect.Value, error) {
 	action, err := base.DecodePayload(tx)
 	if err != nil {
+		tlog.Error("DecodePayload", "err", err)
 		return "", nilValue, err
 	}
 	name, ty, val := GetActionValue(action, base.child.GetFuncMap())
-	if val.IsNil() {
+	if IsNilVal(val) {
+		tlog.Error("GetActionValue is nil")
 		return "", nilValue, ErrActionNotSupport
 	}
 	typemap := base.child.GetTypeMap()
 	//check types is ok
 	if v, ok := typemap[name]; !ok || v != ty {
+		tlog.Error("GetTypeMap is not ok")
 		return "", nilValue, ErrActionNotSupport
 	}
 	return name, val, nil
@@ -344,32 +347,71 @@ func (base *ExecTypeBase) CreateTx(action string, msg json.RawMessage) (*Transac
 	typemap := base.child.GetTypeMap()
 	if _, ok := typemap[action]; ok {
 		tyvalue := reflect.New(base.actionListValueType[action])
+		if !tyvalue.CanInterface() {
+			tlog.Error(action + " tyvalue.CanInterface error")
+			return nil, ErrActionNotSupport
+		}
 		data, ok := tyvalue.Interface().(Message)
 		if !ok {
+			tlog.Error(action + " tyvalue is not Message")
 			return nil, ErrActionNotSupport
 		}
 		b, err := msg.MarshalJSON()
 		if err != nil {
+			tlog.Error(action + " MarshalJSON  error")
 			return nil, err
 		}
 		err = JsonToPB(b, data)
 		if err != nil {
+			tlog.Error(action + " jsontopb  error")
 			return nil, err
 		}
 		return base.CreateTransaction(action, data)
 	}
+	tlog.Error(action + " ErrActionNotSupport")
 	return nil, ErrActionNotSupport
 }
 
-func (base *ExecTypeBase) CreateTransaction(action string, data Message) (*Transaction, error) {
+func (base *ExecTypeBase) CreateTransaction(action string, data Message) (tx *Transaction, err error) {
+	defer func() {
+		if e := recover(); e != nil {
+			err = ErrActionNotSupport
+		}
+	}()
 	value := base.child.GetPayload()
 	v := reflect.New(base.actionListValueType["Value_"+action])
-	field := v.FieldByName(action)
+	vn := reflect.Indirect(v)
+	if vn.Kind() != reflect.Struct {
+		tlog.Error("CreateTransaction vn not struct kind", "exectutor", base.child.GetName(), "action", action)
+		return nil, ErrActionNotSupport
+	}
+	field := vn.FieldByName(action)
 	if !field.IsValid() || !field.CanSet() {
-		tlog.Error("CreateTransaction filed can't set", "exectutor", base.child.GetName(), "action", action)
+		tlog.Error("CreateTransaction vn filed can't set", "exectutor", base.child.GetName(), "action", action)
 		return nil, ErrActionNotSupport
 	}
 	field.Set(reflect.ValueOf(data))
-	base.actionFunList["SetValue"].Func.Call([]reflect.Value{reflect.ValueOf(value), v})
-	return &Transaction{Payload: Encode(value)}, nil
+	value2 := reflect.Indirect(reflect.ValueOf(value))
+	if value2.Kind() != reflect.Struct {
+		tlog.Error("CreateTransaction value2 not struct kind", "exectutor", base.child.GetName(), "action", action)
+		return nil, ErrActionNotSupport
+	}
+	field = value2.FieldByName("Value")
+	if !field.IsValid() || !field.CanSet() {
+		tlog.Error("CreateTransaction value filed can't set", "exectutor", base.child.GetName(), "action", action)
+		return nil, ErrActionNotSupport
+	}
+	field.Set(v)
+
+	field = value2.FieldByName("Ty")
+	if !field.IsValid() || !field.CanSet() {
+		tlog.Error("CreateTransaction ty filed can't set", "exectutor", base.child.GetName(), "action", action)
+		return nil, ErrActionNotSupport
+	}
+	tymap := base.child.GetTypeMap()
+	if tyid, ok := tymap[action]; ok {
+		field.Set(reflect.ValueOf(tyid))
+		return &Transaction{Payload: Encode(value)}, nil
+	}
+	return nil, ErrActionNotSupport
 }

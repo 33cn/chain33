@@ -18,9 +18,11 @@ func TestTypeReflact(t *testing.T) {
 	raw := json.RawMessage(data)
 	tx, err := ty.CreateTx("Transfer", raw)
 	assert.Nil(t, err)
-
 	name, val, err := ty.DecodePayloadValue(tx)
 	assert.Nil(t, err)
-	assert.Equal(t, name, "Transfer")
-	assert.Equal(t, val.Interface().(*types.AssetsTransfer).GetAmount(), int64(10))
+	assert.Equal(t, "Transfer", name)
+	assert.Equal(t, !types.IsNilVal(val) && val.CanInterface(), true)
+	if !types.IsNilVal(val) && val.CanInterface() {
+		assert.Equal(t, int64(10), val.Interface().(*types.AssetsTransfer).GetAmount())
+	}
 }
