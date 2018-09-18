@@ -14,7 +14,7 @@ var (
 func init() {
 
 	flag.StringVar(&configFile, "f", "autotest.toml", "-f configFile")
-	flag.StringVar(&logFile, "l", "autotest.log", "-l configFile")
+	flag.StringVar(&logFile, "l", "autotest.log", "-l logFile")
 	flag.Parse()
 }
 
