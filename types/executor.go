@@ -14,6 +14,8 @@ type ExecutorType interface {
 	//给用户显示的from 和 to
 	GetViewFromToAddr(tx *Transaction) (string, string)
 	ActionName(tx *Transaction) string
+	//新版本使用create接口，createTx 重构以后就废弃
+	Create(action string, message interface{}) (*Transaction, error)
 	CreateTx(action string, message json.RawMessage) (*Transaction, error)
 	Amount(tx *Transaction) (int64, error)
 	DecodePayload(tx *Transaction) (interface{}, error)
@@ -51,7 +53,7 @@ func RegistorExecutor(exec string, util ExecutorType) {
 	}
 }
 
-func LoadExecutor(exec string) ExecutorType {
+func LoadExecutorType(exec string) ExecutorType {
 	//尽可能的加载执行器
 	//真正的权限控制在区块执行的时候做控制
 	realname := GetRealExecName([]byte(exec))
@@ -306,7 +308,7 @@ func lowcaseFirst(v string) string {
 	return v
 }
 
-func (base *ExecTypeBase) callRPC(method reflect.Method, action string, msg json.RawMessage) (tx *Transaction, err error) {
+func (base *ExecTypeBase) callRPC(method reflect.Method, action string, msg interface{}) (tx *Transaction, err error) {
 	valueret := method.Func.Call([]reflect.Value{base.childValue, reflect.ValueOf(action), reflect.ValueOf(msg)})
 	if len(valueret) != 2 {
 		return nil, ErrMethodNotFound
@@ -350,6 +352,35 @@ func (base *ExecTypeBase) AssertCreate(c *CreateTx) (*Transaction, error) {
 	return base.child.CreateTransaction("Transfer", v)
 }
 
+func (base *ExecTypeBase) Create(action string, msg interface{}) (*Transaction, error) {
+	//先判断 FuncList 中有没有符合要求的函数 RPC_{action}
+	if msg == nil {
+		return nil, ErrInvalidParam
+	}
+	if action == "" {
+		action = "Default_Process"
+	}
+	funclist := base.GetRPCFuncMap()
+	if method, ok := funclist["RPC_"+action]; ok {
+		return base.callRPC(method, action, msg)
+	}
+	if _, ok := msg.(Message); !ok {
+		return nil, ErrInvalidParam
+	}
+	typemap := base.child.GetTypeMap()
+	if _, ok := typemap[action]; ok {
+		ty1 := base.actionListValueType[action]
+		ty2 := reflect.TypeOf(msg).Elem()
+		if ty1 != ty2 {
+			return nil, ErrInvalidParam
+		}
+		return base.CreateTransaction(action, msg.(Message))
+	}
+	tlog.Error(action + " ErrActionNotSupport")
+	return nil, ErrActionNotSupport
+}
+
+//重构完成后删除
 func (base *ExecTypeBase) CreateTx(action string, msg json.RawMessage) (*Transaction, error) {
 	//先判断 FuncList 中有没有符合要求的函数 RPC_{action}
 	if action == "" {

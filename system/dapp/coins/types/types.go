@@ -1,7 +1,6 @@
 package types
 
 import (
-	"encoding/json"
 	"reflect"
 
 	"github.com/inconshreveable/log15"
@@ -19,15 +18,7 @@ var (
 	CoinsX      = "coins"
 	ExecerCoins = []byte(CoinsX)
 	tlog        = log15.New("module", "exectype.coins")
-
-	/*
-		对应 proto type 的字段
-		//	*CoinsAction_Transfer
-		//	*CoinsAction_Withdraw
-		//	*CoinsAction_Genesis
-		//	*CoinsAction_TransferToExec
-	*/
-	actionName = map[string]int32{
+	actionName  = map[string]int32{
 		"Transfer":       CoinsActionTransfer,
 		"TransferToExec": CoinsActionTransferToExec,
 		"Withdraw":       CoinsActionWithdraw,
@@ -69,14 +60,14 @@ func (c *CoinsType) GetTypeMap() map[string]int32 {
 	return actionName
 }
 
-func (c *CoinsType) RPC_Default_Process(action string, msg json.RawMessage) (*types.Transaction, error) {
-	var create types.CreateTx
-	err := json.Unmarshal(msg, &create)
-	if err != nil {
-		return nil, err
+func (c *CoinsType) RPC_Default_Process(action string, msg interface{}) (*types.Transaction, error) {
+	var create *types.CreateTx
+	if _, ok := msg.(*types.CreateTx); !ok {
+		return nil, types.ErrInvalidParam
 	}
+	create = msg.(*types.CreateTx)
 	if create.IsToken {
 		return nil, types.ErrNotSupport
 	}
-	return c.AssertCreate(&create)
+	return c.AssertCreate(create)
 }

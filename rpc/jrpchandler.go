@@ -965,7 +965,7 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		execStr = realExec(string(tx.Execer))
 	}
 	var pl interface{}
-	plType := types.LoadExecutor(execStr)
+	plType := types.LoadExecutorType(execStr)
 	if plType != nil {
 		var err error
 		pl, err = plType.DecodePayload(tx)
@@ -1568,7 +1568,7 @@ func (c *Chain33) CreateTransaction(in *TransactionCreate, result *interface{}) 
 	if in == nil {
 		return types.ErrInputPara
 	}
-	exec := types.LoadExecutor(in.Execer)
+	exec := types.LoadExecutorType(in.Execer)
 	if exec == nil {
 		return types.ErrExecNameNotAllow
 	}
