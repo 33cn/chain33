@@ -315,10 +315,32 @@ func (t *token) GetTokenInfo(symbol string) (types.Message, error) {
 }
 
 func (t *token) GetTokens(reqTokens *types.ReqTokens) (types.Message, error) {
-	querydb := t.GetLocalDB()
 	db := t.GetStateDB()
 
 	replyTokens := &types.ReplyTokens{}
+	keys, err :=  t.listTokenKeys(reqTokens)
+	if err != nil {
+		return nil, err
+	}
+	tokenlog.Debug("token Query GetTokens", "get count", len(keys), "XXKEY", string(keys[0]))
+
+	for _, key := range keys {
+		tokenlog.Debug("token Query GetTokens", "key in string", string(key))
+		if tokenValue, err := db.Get(key); err == nil {
+			var token types.Token
+			err = types.Decode(tokenValue, &token)
+			if err == nil {
+				replyTokens.Tokens = append(replyTokens.Tokens, &token)
+			}
+		}
+	}
+	
+	//tokenlog.Info("token Query", "replyTokens", replyTokens)
+	return replyTokens, nil
+}
+
+func (t *token) listTokenKeys(reqTokens *types.ReqTokens) ([][]byte, error) {
+	querydb := t.GetLocalDB()
 	if reqTokens.QueryAll {
 		//list := dbm.NewListHelper(querydb)
 		keys, err := querydb.List(calcTokenStatusKeyNewPrefix(reqTokens.Status), nil, 0, 0)
@@ -334,54 +356,30 @@ func (t *token) GetTokens(reqTokens *types.ReqTokens) (types.Message, error) {
 			return nil, types.ErrNotFound
 		}
 		tokenlog.Debug("token Query GetTokens", "get count", len(keys))
-
-		for _, key := range keys {
-			tokenlog.Debug("token Query GetTokens", "key in string", string(key))
-			if tokenValue, err := db.Get(key); err == nil {
-				var token types.Token
-				err = types.Decode(tokenValue, &token)
-				if err == nil {
-					replyTokens.Tokens = append(replyTokens.Tokens, &token)
-				}
-			}
-		}
+		return keys, nil
 	} else {
+		var keys [][]byte
 		for _, token := range reqTokens.Tokens {
 			//list := dbm.NewListHelper(querydb)
-			keys, err := querydb.List(calcTokenStatusSymbolNewPrefix(reqTokens.Status, token), nil, 0, 0)
+			keys1, err := querydb.List(calcTokenStatusSymbolNewPrefix(reqTokens.Status, token), nil, 0, 0)
 			if err != nil && err != types.ErrNotFound {
 				return nil, err
 			}
+			keys = append(keys, keys1...)
+
 			keys2, err := querydb.List(calcTokenStatusSymbolPrefix(reqTokens.Status, token), nil, 0, 0)
 			if err != nil && err != types.ErrNotFound {
 				return nil, err
 			}
 			keys = append(keys, keys2...)
 			tokenlog.Debug("token Query GetTokens", "get count", len(keys))
-			if len(keys) == 0 {
-				continue
-			}
-
-			for _, key := range keys {
-				tokenlog.Debug("token Query GetTokens", "key in string", string(key))
-				if tokenValue, err := db.Get(key); err == nil {
-					var token types.Token
-					err = types.Decode(tokenValue, &token)
-					if err == nil {
-						replyTokens.Tokens = append(replyTokens.Tokens, &token)
-					}
-				}
-			}
 		}
-		if len(replyTokens.Tokens) == 0 {
+		if len(keys) == 0 {
 			return nil, types.ErrNotFound
 		}
+		return keys, nil
 	}
-
-	//tokenlog.Info("token Query", "replyTokens", replyTokens)
-	return replyTokens, nil
 }
-
 // value 对应 statedb 的key
 func (t *token) saveLogs(receipt *types.ReceiptToken) []*types.KeyValue {
 	var kv []*types.KeyValue
