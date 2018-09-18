@@ -64,6 +64,7 @@ type DriverBase struct {
 	api          client.QueueProtocolAPI
 	txs          []*types.Transaction
 	receipts     []*types.ReceiptData
+	ety          types.ExecutorType
 }
 
 func (d *DriverBase) GetPayloadValue() types.Message {
@@ -98,6 +99,10 @@ func (d *DriverBase) SetIsFree(isFree bool) {
 
 func (d *DriverBase) IsFree() bool {
 	return d.isFree
+}
+
+func (d *DriverBase) SetExecutorType(e types.ExecutorType) {
+	d.ety = e
 }
 
 func (d *DriverBase) SetChild(e Driver) {
@@ -232,7 +237,7 @@ func (d *DriverBase) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptD
 }
 
 func (d *DriverBase) callLocal(prefix string, tx *types.Transaction, receipt *types.ReceiptData, index int) (set *types.LocalDBSet, err error) {
-	name, value, err := d.decodeTxPayload(tx)
+	name, value, err := d.ety.DecodePayloadValue(tx)
 	if err != nil {
 		return nil, err
 	}
@@ -285,7 +290,7 @@ func (d *DriverBase) Exec(tx *types.Transaction, index int) (receipt *types.Rece
 	if d.child.GetPayloadValue() == nil {
 		return nil, nil
 	}
-	name, value, err := d.decodeTxPayload(tx)
+	name, value, err := d.ety.DecodePayloadValue(tx)
 	if err != nil {
 		return nil, err
 	}

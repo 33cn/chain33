@@ -14,9 +14,7 @@ EventTransfer -> 转移资产
 import (
 	"reflect"
 
-	"gitlab.33.cn/chain33/chain33/common/address"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
-	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -28,15 +26,14 @@ func Init(name string) {
 		panic("system dapp can't be rename")
 	}
 	drivers.Register(driverName, newCoins, 0)
-	InitType()
 }
 
-var actionFunList = make(map[string]reflect.Method)
+//初始化过程比较重量级，有很多reflact, 所以弄成全局的
 var executorFunList = make(map[string]reflect.Method)
+var executorType = NewType()
 
-//初始化函数列表，可以提升反射调用的速度
 func init() {
-	actionFunList = drivers.ListMethod(&cty.CoinsAction{})
+	actionFunList := executorType.GetFuncMap()
 	executorFunList = drivers.ListMethod(&Coins{})
 	for k, v := range actionFunList {
 		executorFunList[k] = v
@@ -54,6 +51,7 @@ type Coins struct {
 func newCoins() drivers.Driver {
 	c := &Coins{}
 	c.SetChild(c)
+	c.SetExecutorType(executorType)
 	return c
 }
 
@@ -78,24 +76,6 @@ func (c *Coins) IsFriend(myexec, writekey []byte, othertx *types.Transaction) bo
 	return false
 }
 
-func (c *Coins) GetPayloadValue() types.Message {
-	return &cty.CoinsAction{}
-}
-
-func (c *Coins) GetTypeMap() map[string]int32 {
-	return map[string]int32{
-		"Transfer":       cty.CoinsActionTransfer,
-		"TransferToExec": cty.CoinsActionTransferToExec,
-		"Withdraw":       cty.CoinsActionWithdraw,
-		"Genesis":        cty.CoinsActionGenesis,
-	}
-}
-
 func (c *Coins) GetFuncMap() map[string]reflect.Method {
 	return executorFunList
-}
-
-func isExecAddrMatch(name string, to string) bool {
-	toaddr := address.ExecAddress(name)
-	return toaddr == to
 }
