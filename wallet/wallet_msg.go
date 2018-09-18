@@ -53,7 +53,14 @@ func (wallet *Wallet) onWalletGetAccountList(msg *queue.Message) (string, int64,
 	topic := "rpc"
 	retty := int64(types.EventWalletAccountList)
 
-	reply, err := wallet.ProcGetAccountList()
+	var req *types.ReqAccountList
+	req, ok := msg.Data.(*types.ReqAccountList)
+	if !ok {
+		walletlog.Debug("onWalletGetAccountList", "get account with balance", req)
+		req = &types.ReqAccountList{WithoutBalance : false }
+	}
+
+	reply, err := wallet.ProcGetAccountList(req)
 	if err != nil {
 		walletlog.Error("onWalletGetAccountList", "err", err.Error())
 	}
