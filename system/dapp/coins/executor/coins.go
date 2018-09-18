@@ -15,6 +15,7 @@ import (
 	"reflect"
 
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
+	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -30,11 +31,11 @@ func Init(name string) {
 
 //初始化过程比较重量级，有很多reflact, 所以弄成全局的
 var executorFunList = make(map[string]reflect.Method)
-var executorType = NewType()
+var executorType = cty.NewType()
 
 func init() {
 	actionFunList := executorType.GetFuncMap()
-	executorFunList = drivers.ListMethod(&Coins{})
+	executorFunList = types.ListMethod(&Coins{})
 	for k, v := range actionFunList {
 		executorFunList[k] = v
 	}
