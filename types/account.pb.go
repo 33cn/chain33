@@ -459,6 +459,7 @@ It has these top-level messages:
 	PriAddrResult
 	RepEnablePrivacy
 	PrivacySignatureParam
+	ReqAccountList
 */
 package types
 

@@ -379,9 +379,13 @@ func (c *Chain33) GetMempool(in *types.ReqNil, result *interface{}) error {
 	return nil
 }
 
-func (c *Chain33) GetAccounts(in *types.ReqNil, result *interface{}) error {
+func (c *Chain33) GetAccountsV2(in *types.ReqNil, result *interface{}) error {
+	req := &types.ReqAccountList{WithoutBalance: false}
+	return c.GetAccounts(req, result)
+}
 
-	reply, err := c.cli.WalletGetAccountList()
+func (c *Chain33) GetAccounts(in *types.ReqAccountList, result *interface{}) error {
+	reply, err := c.cli.WalletGetAccountList(in)
 	if err != nil {
 		return err
 	}

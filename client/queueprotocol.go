@@ -224,8 +224,8 @@ func (q *QueueProtocol) GetMempool() (*types.ReplyTxList, error) {
 	return nil, types.ErrTypeAsset
 }
 
-func (q *QueueProtocol) WalletGetAccountList() (*types.WalletAccounts, error) {
-	msg, err := q.query(walletKey, types.EventWalletGetAccountList, &types.ReqNil{})
+func (q *QueueProtocol) WalletGetAccountList(req *types.ReqAccountList) (*types.WalletAccounts, error) {
+	msg, err := q.query(walletKey, types.EventWalletGetAccountList, req)
 	if err != nil {
 		log.Error("WalletGetAccountList", "Error", err.Error())
 		return nil, err
