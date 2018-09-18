@@ -121,6 +121,7 @@ func ProcessRPCQuery(funcName string, param []byte) (Message, error) {
 type ExecType interface {
 	//write for executor
 	GetPayload() Message
+	GetName() string
 	//exec result of receipt log
 	GetLogMap() map[int64]reflect.Type
 	//actionType -> name map
@@ -164,11 +165,9 @@ func (base *ExecTypeBase) SetChild(child ExecType) {
 		base.actionListValueType["Value_"+data[1]] = v
 		field := v.Field(0)
 		base.actionListValueType[field.Name] = field.Type
-		methods := ListMethodByType(v)
-		if m, ok := methods["Set"+data[1]]; ok {
-			base.actionFunList["_valueset_"+data[1]] = m
-		} else {
-			panic("not set method" + k)
+		_, ok := v.FieldByName(data[1])
+		if !ok {
+			panic("no filed " + k)
 		}
 	}
 	//check type map is all in value type list
@@ -179,9 +178,6 @@ func (base *ExecTypeBase) SetChild(child ExecType) {
 		}
 		if _, ok := base.actionListValueType["Value_"+k]; !ok {
 			panic("value type not found " + k)
-		}
-		if _, ok := base.actionFunList["_valueset_"+k]; !ok {
-			panic("value set not found " + k)
 		}
 	}
 }
@@ -368,7 +364,12 @@ func (base *ExecTypeBase) CreateTx(action string, msg json.RawMessage) (*Transac
 func (base *ExecTypeBase) CreateTransaction(action string, data Message) (*Transaction, error) {
 	value := base.child.GetPayload()
 	v := reflect.New(base.actionListValueType["Value_"+action])
-	base.actionFunList["_valueset_"+action].Func.Call([]reflect.Value{v, reflect.ValueOf(data)})
+	field := v.FieldByName(action)
+	if !field.IsValid() || !field.CanSet() {
+		tlog.Error("CreateTransaction filed can't set", "exectutor", base.child.GetName(), "action", action)
+		return nil, ErrActionNotSupport
+	}
+	field.Set(reflect.ValueOf(data))
 	base.actionFunList["SetValue"].Func.Call([]reflect.Value{reflect.ValueOf(value), v})
 	return &Transaction{Payload: Encode(value)}, nil
 }

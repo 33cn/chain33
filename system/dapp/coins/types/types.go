@@ -52,6 +52,10 @@ func NewType() *CoinsType {
 	return c
 }
 
+func (coins *CoinsType) GetName() string {
+	return CoinsX
+}
+
 func (coins *CoinsType) GetPayload() types.Message {
 	return &CoinsAction{}
 }
