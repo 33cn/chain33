@@ -243,7 +243,7 @@ func (d *DriverBase) callLocal(prefix string, tx *types.Transaction, receipt *ty
 		return nil, types.ErrActionNotSupport
 	}
 	valueret := funcmap[funcname].Func.Call([]reflect.Value{d.childValue, value, reflect.ValueOf(tx), reflect.ValueOf(receipt), reflect.ValueOf(index)})
-	if len(valueret) != 2 {
+	if !types.IsOK(valueret, 2) {
 		return nil, types.ErrMethodReturnType
 	}
 	r1 := valueret[0].Interface()
@@ -295,7 +295,7 @@ func (d *DriverBase) Exec(tx *types.Transaction, index int) (receipt *types.Rece
 		return nil, types.ErrActionNotSupport
 	}
 	valueret := funcmap[funcname].Func.Call([]reflect.Value{d.childValue, value, reflect.ValueOf(tx), reflect.ValueOf(index)})
-	if len(valueret) != 2 {
+	if !types.IsOK(valueret, 2) {
 		return nil, types.ErrMethodReturnType
 	}
 	//参数1

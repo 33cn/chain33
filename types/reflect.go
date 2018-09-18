@@ -94,7 +94,7 @@ func GetActionValue(action interface{}, funclist map[string]reflect.Method) (str
 		return "", 0, nilValue
 	}
 	rcvr := funclist["GetValue"].Func.Call([]reflect.Value{value})
-	if len(rcvr) == 0 || rcvr[0].IsNil() || rcvr[0].Kind() != reflect.Interface {
+	if !IsOK(rcvr, 1) || IsNilVal(rcvr[0]) {
 		return "", 0, nilValue
 	}
 	sname := rcvr[0].Elem().Type().String()
@@ -107,8 +107,24 @@ func GetActionValue(action interface{}, funclist map[string]reflect.Method) (str
 		return "", 0, nilValue
 	}
 	val := funclist[funcname].Func.Call([]reflect.Value{value})
-	if len(val) == 0 || val[0].IsNil() {
+	if !IsOK(val, 1) || IsNilVal(rcvr[0]) {
 		return "", 0, nilValue
 	}
 	return datas[1], ty, val[0]
+}
+
+func IsOK(list []reflect.Value, n int) bool {
+	if len(list) != n {
+		return false
+	}
+	for i := 0; i < len(list); i++ {
+		if !IsNilVal(list[i]) && !list[i].CanInterface() {
+			return false
+		}
+	}
+	return true
+}
+
+func IsNilVal(v reflect.Value) bool {
+	return !v.IsValid() || v.IsNil()
 }
