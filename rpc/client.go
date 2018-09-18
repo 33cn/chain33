@@ -35,9 +35,9 @@ func (c *channelClient) Init(q queue.Client) {
 	executor.Init()
 }
 
-// support old rpc create transaction interface. call new imlp
+// 重构完成后删除
 func callExecNewTx(execName, action string, param interface{}) ([]byte, error) {
-	exec := types.LoadExecutor(execName)
+	exec := types.LoadExecutorType(execName)
 	if exec == nil {
 		log.Error("callExecNewTx", "Error", "exec not found")
 		return nil, types.ErrNotSupport
@@ -65,6 +65,28 @@ func callExecNewTx(execName, action string, param interface{}) ([]byte, error) {
 	return txHex, nil
 }
 
+func callCreateTx(execName, action string, param interface{}) ([]byte, error) {
+	exec := types.LoadExecutorType(execName)
+	if exec == nil {
+		log.Error("callExecNewTx", "Error", "exec not found")
+		return nil, types.ErrNotSupport
+	}
+
+	// param is interface{type, var-nil}, check with nil always fail
+	if param == nil {
+		log.Error("callExecNewTx", "Error", "param in nil")
+		return nil, types.ErrInvalidParam
+	}
+	tx, err := exec.Create(action, param)
+	if err != nil {
+		log.Error("callExecNewTx", "Error", err)
+		return nil, err
+	}
+
+	txHex := types.Encode(tx)
+	return txHex, nil
+}
+
 func (c *channelClient) CreateRawTransaction(param *types.CreateTx) ([]byte, error) {
 	if param == nil {
 		log.Error("CreateRawTransaction", "Error", types.ErrInvalidParam)
@@ -74,7 +96,7 @@ func (c *channelClient) CreateRawTransaction(param *types.CreateTx) ([]byte, err
 	if param.IsToken {
 		return callExecNewTx(types.ExecName(types.TokenX), "", param)
 	} else {
-		return callExecNewTx(types.ExecName(types.CoinsX), "", param)
+		return callCreateTx(types.ExecName(types.CoinsX), "", param)
 	}
 }
 
