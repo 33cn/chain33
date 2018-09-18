@@ -1,6 +1,7 @@
 package types
 
 import (
+	"encoding/json"
 	"reflect"
 
 	"github.com/inconshreveable/log15"
@@ -66,4 +67,16 @@ func (coins *CoinsType) GetLogMap() map[int64]reflect.Type {
 
 func (c *CoinsType) GetTypeMap() map[string]int32 {
 	return actionName
+}
+
+func (c *CoinsType) RPC_Default_Process(action string, msg json.RawMessage) (*types.Transaction, error) {
+	var create types.CreateTx
+	err := json.Unmarshal(msg, &create)
+	if err != nil {
+		return nil, err
+	}
+	if create.IsToken {
+		return nil, types.ErrNotSupport
+	}
+	return c.AssertCreate(&create)
 }
