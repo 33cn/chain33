@@ -10,6 +10,7 @@ import (
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
+	"gitlab.33.cn/chain33/chain33/types/jsonpb"
 
 	_ "gitlab.33.cn/chain33/chain33/common/crypto/ecdsa"
 	_ "gitlab.33.cn/chain33/chain33/common/crypto/ed25519"
@@ -164,6 +165,10 @@ func Size(data proto.Message) int {
 
 func Decode(data []byte, msg proto.Message) error {
 	return proto.Unmarshal(data, msg)
+}
+
+func JsonToPB(data []byte, msg proto.Message) error {
+	return jsonpb.Unmarshal(bytes.NewReader(data), msg)
 }
 
 func (leafnode *LeafNode) Hash() []byte {
