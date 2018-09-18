@@ -442,6 +442,14 @@ func execAndCheckBlockCB(t *testing.T, qclient queue.Client,
 		t.Error(err)
 		return nil
 	}
+	for _, v := range deltx {
+		s, err := types.PBToJson(v)
+		if err != nil {
+			t.Error(err)
+			return nil
+		}
+		println(s)
+	}
 	var getIndex = func(hash []byte, txlist []*types.Transaction) int {
 		for i := 0; i < len(txlist); i++ {
 			if bytes.Equal(hash, txlist[i].Hash()) {
@@ -453,12 +461,12 @@ func execAndCheckBlockCB(t *testing.T, qclient queue.Client,
 	for i := 0; i < len(txs); i++ {
 		if getIndex(txs[i].Hash(), deltx) >= 0 {
 			if err := cb(i, nil); err != nil {
-				t.Error(err, "index", i)
+				t.Error(err, "i", i)
 				return nil
 			}
-		} else if getIndex(txs[i].Hash(), detail.Block.Txs) >= 0 {
-			if err := cb(i, detail.Receipts[i]); err != nil {
-				t.Error(err, "index", i)
+		} else if index := getIndex(txs[i].Hash(), detail.Block.Txs); index >= 0 {
+			if err := cb(i, detail.Receipts[index]); err != nil {
+				t.Error(err, "i", i, "index", index)
 				return nil
 			}
 		} else {
