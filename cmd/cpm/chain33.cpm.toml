@@ -1,0 +1,7 @@
+[blackwhite]
+type = "dapp"
+gitrepo = "gitlab.33.cn/sanghg/blackwhite"
+
+[game]
+type = "dapp"
+gitrepo = "gitlab.33.cn/sanghg/game"
