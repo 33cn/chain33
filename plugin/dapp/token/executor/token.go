@@ -334,15 +334,14 @@ func (t *token) GetTokens(reqTokens *types.ReqTokens) (types.Message, error) {
 			return nil, types.ErrNotFound
 		}
 		tokenlog.Debug("token Query GetTokens", "get count", len(keys))
-		if len(keys) != 0 {
-			for _, key := range keys {
-				tokenlog.Debug("token Query GetTokens", "key in string", string(key))
-				if tokenValue, err := db.Get(key); err == nil {
-					var token types.Token
-					err = types.Decode(tokenValue, &token)
-					if err == nil {
-						replyTokens.Tokens = append(replyTokens.Tokens, &token)
-					}
+
+		for _, key := range keys {
+			tokenlog.Debug("token Query GetTokens", "key in string", string(key))
+			if tokenValue, err := db.Get(key); err == nil {
+				var token types.Token
+				err = types.Decode(tokenValue, &token)
+				if err == nil {
+					replyTokens.Tokens = append(replyTokens.Tokens, &token)
 				}
 			}
 		}
