@@ -366,3 +366,8 @@ func GetTxTimeInterval() time.Duration {
 type ParaCrossTx interface {
 	IsParaCrossTx() bool
 }
+
+func PBToJson(r Message) (string, error) {
+	encode := &jsonpb.Marshaler{EmitDefaults: true}
+	return encode.MarshalToString(r)
+}

@@ -21,9 +21,14 @@ import (
 )
 
 //var clog = log.New("module", "execs.coins")
+var driverName = "coins"
 
-func Init() {
-	drivers.Register(GetName(), newCoins, 0)
+func Init(name string) {
+	if name != driverName {
+		panic("system dapp can't be rename")
+	}
+	drivers.Register(driverName, newCoins, 0)
+	InitType()
 }
 
 var actionFunList = make(map[string]reflect.Method)
@@ -52,8 +57,8 @@ func newCoins() drivers.Driver {
 	return c
 }
 
-func (c *Coins) GetName() string {
-	return "coins"
+func (c *Coins) GetDriverName() string {
+	return driverName
 }
 
 func (c *Coins) CheckTx(tx *types.Transaction, index int) error {
