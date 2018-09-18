@@ -13,4 +13,4 @@ gitrepo = "gitlab.33.cn/sanghg/blackwhite"
 version=""
 其中type字段与具体业务相关，仅支持dapp、store、consensus三个关键字
 4.在命令行执行 cpm import命令，执行成功以后会在vender目录下多出添加的插件
- */
+*/
