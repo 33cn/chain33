@@ -3,13 +3,9 @@ package types
 import (
 	"encoding/json"
 	"fmt"
-	"math/rand"
 	"reflect"
 	"strings"
-	"time"
 	"unicode"
-
-	"gitlab.33.cn/chain33/chain33/types"
 )
 
 type ExecutorType interface {
@@ -133,6 +129,7 @@ type ExecType interface {
 	//action function list map
 	GetFuncMap() map[string]reflect.Method
 	GetRPCFuncMap() map[string]reflect.Method
+	CreateTransaction(action string, data Message) (*Transaction, error)
 }
 
 type ExecTypeGet interface {
@@ -167,12 +164,24 @@ func (base *ExecTypeBase) SetChild(child ExecType) {
 		base.actionListValueType["Value_"+data[1]] = v
 		field := v.Field(0)
 		base.actionListValueType[field.Name] = field.Type
+		methods := ListMethodByType(v)
+		if m, ok := methods["Set"+data[1]]; ok {
+			base.actionFunList["_valueset_"+data[1]] = m
+		} else {
+			panic("not set method" + k)
+		}
 	}
 	//check type map is all in value type list
 	typelist := base.child.GetTypeMap()
 	for k := range typelist {
 		if _, ok := base.actionListValueType[k]; !ok {
 			panic("value type not found " + k)
+		}
+		if _, ok := base.actionListValueType["Value_"+k]; !ok {
+			panic("value type not found " + k)
+		}
+		if _, ok := base.actionFunList["_valueset_"+k]; !ok {
+			panic("value set not found " + k)
 		}
 	}
 }
@@ -301,14 +310,14 @@ func lowcaseFirst(v string) string {
 func (base *ExecTypeBase) callRPC(method reflect.Method, action string, msg json.RawMessage) (tx *Transaction, err error) {
 	valueret := method.Func.Call([]reflect.Value{base.childValue, reflect.ValueOf(action), reflect.ValueOf(msg)})
 	if len(valueret) != 2 {
-		return nil, types.ErrMethodNotFound
+		return nil, ErrMethodNotFound
 	}
 	r1 := valueret[0].Interface()
 	if r1 != nil {
-		if r, ok := r1.(*types.Transaction); ok {
+		if r, ok := r1.(*Transaction); ok {
 			tx = r
 		} else {
-			return nil, types.ErrMethodReturnType
+			return nil, ErrMethodReturnType
 		}
 	}
 	//参数2
@@ -318,95 +327,48 @@ func (base *ExecTypeBase) callRPC(method reflect.Method, action string, msg json
 		if r, ok := r2.(error); ok {
 			err = r
 		} else {
-			return nil, types.ErrMethodReturnType
+			return nil, ErrMethodReturnType
 		}
 	}
 	if tx == nil && err == nil {
-		return nil, types.ErrActionNotSupport
+		return nil, ErrActionNotSupport
 	}
 	return tx, err
 }
 
-func (base *ExecTypeBase) createRPC(action string, message json.RawMessage) (*Transaction, error) {
-	err := json.Unmarshal(message, &param)
-	if err != nil {
-		tlog.Error("CreateTx", "Error", err)
-		return nil, ErrInputPara
-	}
-	if param.ExecName != "" && !IsAllowExecName([]byte(param.ExecName), []byte(param.ExecName)) {
-		tlog.Error("CreateTx", "Error", ErrExecNameNotMatch)
-		return nil, ErrExecNameNotMatch
-	}
-
-	//to地址要么是普通用户地址，要么就是执行器地址，不能为空
-	if param.To == "" {
-		return nil, ErrAddrNotExist
-	}
-
-	var tx *Transaction
-	if param.Amount < 0 {
-		return nil, ErrAmount
-	}
-	if param.IsToken {
-		return nil, ErrNotSupport
-	} else {
-		tx = base.CreateCoinsTransfer(&param)
-	}
-
-	tx.Fee, err = tx.GetRealFee(MinFee)
-	if err != nil {
-		return nil, err
-	}
-
-	random := rand.New(rand.NewSource(time.Now().UnixNano()))
-	tx.Nonce = random.Int63()
-
-	return tx, nil
-
-}
-
-func (base *ExecTypeBase) CreateTx(action string, message json.RawMessage) (*Transaction, error) {
+func (base *ExecTypeBase) CreateTx(action string, msg json.RawMessage) (*Transaction, error) {
 	//先判断 FuncList 中有没有符合要求的函数 RPC_{action}
+	if action == "" {
+		action = "_Default"
+	}
 	funclist := base.GetRPCFuncMap()
 	if method, ok := funclist["RPC_"+action]; ok {
 		return base.callRPC(method, action, msg)
 	}
 	typemap := base.child.GetTypeMap()
 	if _, ok := typemap[action]; ok {
-		return base.createRPC(action, msg)
+		tyvalue := reflect.New(base.actionListValueType[action])
+		data, ok := tyvalue.Interface().(Message)
+		if !ok {
+			return nil, ErrActionNotSupport
+		}
+		b, err := msg.MarshalJSON()
+		if err != nil {
+			return nil, err
+		}
+		err = JsonToPB(b, data)
+		if err != nil {
+			return nil, err
+		}
+		return base.CreateTransaction(action, data)
 	}
-	return nil, types.ErrActionNotSupport
+	return nil, ErrActionNotSupport
 }
 
-func (base *ExecTypeBase) CreateCoinsTransfer(param *CreateTx) *Transaction {
-	return nil
-	/*
-		transfer := base.child.GetPayload()
-		to := ""
-		if IsPara() {
-			to = param.GetTo()
-		}
-			if !param.IsWithdraw {
-				if param.ExecName != "" {
-					v := &cty.CoinsAction_TransferToExec{TransferToExec: &AssetsTransferToExec{
-						Amount: param.Amount, Note: param.GetNote(), ExecName: param.GetExecName(), To: to}}
-					transfer.Value = v
-					transfer.Ty = cty.CoinsActionTransferToExec
-				} else {
-					v := &cty.CoinsAction_Transfer{Transfer: &AssetsTransfer{
-						Amount: param.Amount, Note: param.GetNote(), To: to}}
-					transfer.Value = v
-					transfer.Ty = cty.CoinsActionTransfer
-				}
-			} else {
-				v := &cty.CoinsAction_Withdraw{Withdraw: &AssetsWithdraw{
-					Amount: param.Amount, Note: param.GetNote(), ExecName: param.GetExecName(), To: to}}
-				transfer.Value = v
-				transfer.Ty = cty.CoinsActionWithdraw
-			}
-			if IsPara() {
-				return &Transaction{Execer: []byte(nameX), Payload: Encode(transfer), To: address.ExecAddress(nameX)}
-			}
-			return &Transaction{Execer: []byte(nameX), Payload: Encode(transfer), To: param.GetTo()}
-	*/
+func (base *ExecTypeBase) CreateTransaction(action string, data Message) (*Transaction, error) {
+	value := base.child.GetPayload()
+	v := reflect.New(base.actionListValueType["Value_"+action])
+	base.actionFunList["_valueset_"+action].Func.Call([]reflect.Value{v, reflect.ValueOf(data)})
+	base.actionFunList["SetValue"].Func.Call([]reflect.Value{reflect.ValueOf(value), v})
+	return &Transaction{Payload: Encode(value)}, nil
 }

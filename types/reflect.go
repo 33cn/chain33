@@ -60,6 +60,10 @@ func ListType(tys []interface{}) map[string]reflect.Type {
 
 func ListMethod(action interface{}) map[string]reflect.Method {
 	typ := reflect.TypeOf(action)
+	return ListMethodByType(typ)
+}
+
+func ListMethodByType(typ reflect.Type) map[string]reflect.Method {
 	methods := make(map[string]reflect.Method)
 	for m := 0; m < typ.NumMethod(); m++ {
 		method := typ.Method(m)
