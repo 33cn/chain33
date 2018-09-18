@@ -15,26 +15,32 @@ var clog = log.New("module", "execs.blackwhite")
 
 var blackwhiteAddr = address.ExecAddress(gt.BlackwhiteX)
 
-func Init() {
-	drivers.Register(GetName(), NewBlackwhite, types.ForkV25BlackWhite)
+var driverName = gt.BlackwhiteX
+
+//黑白配可以被重命名执行器名称
+func Init(name string) {
+	driverName = name
+	gt.BlackwhiteX = driverName
+	gt.ExecerBlackwhite = []byte(driverName)
+	drivers.Register(name, newBlackwhite, types.ForkV25BlackWhite)
 }
 
 type Blackwhite struct {
 	drivers.DriverBase
 }
 
-func NewBlackwhite() drivers.Driver {
+func newBlackwhite() drivers.Driver {
 	c := &Blackwhite{}
 	c.SetChild(c)
 	return c
 }
 
 func GetName() string {
-	return gt.BlackwhiteX
+	return newBlackwhite().GetName()
 }
 
-func (c *Blackwhite) GetName() string {
-	return GetName()
+func (c *Blackwhite) GetDriverName() string {
+	return driverName
 }
 
 func (c *Blackwhite) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {

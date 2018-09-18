@@ -90,6 +90,7 @@ isFree=false
 minExecFee=100000
 enableStat=false
 enableMVCC=false
+alias=["token1:token","token2:token","token3:token"]
 
 [auth]
 # 是否启用证书验证和签名
