@@ -8,14 +8,14 @@ import (
 	"gitlab.33.cn/chain33/chain33/cmd/cpm/commands"
 )
 
-func initCommand(cmd *cobra.Command)  {
+func initCommand(cmd *cobra.Command) {
 	cmd.AddCommand(commands.ImportCmd())
 }
 
-func main()  {
+func main() {
 	rootCmd := &cobra.Command{
-		Use:"cpm",
-		Short:"chain33 package manager",
+		Use:   "cpm",
+		Short: "chain33 package manager",
 	}
 	initCommand(rootCmd)
 	if err := rootCmd.Execute(); err != nil {
