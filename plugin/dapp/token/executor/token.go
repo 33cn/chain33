@@ -357,10 +357,10 @@ func (t *token) GetTokens(reqTokens *types.ReqTokens) (types.Message, error) {
 				return nil, err
 			}
 			keys = append(keys, keys2...)
-			if len(keys) == 0 {
-				return nil, types.ErrNotFound
-			}
 			tokenlog.Debug("token Query GetTokens", "get count", len(keys))
+			if len(keys) == 0 {
+				continue
+			}
 
 			for _, key := range keys {
 				tokenlog.Debug("token Query GetTokens", "key in string", string(key))
@@ -372,7 +372,9 @@ func (t *token) GetTokens(reqTokens *types.ReqTokens) (types.Message, error) {
 					}
 				}
 			}
-
+		}
+		if len(replyTokens.Tokens) == 0 {
+			return nil, types.ErrNotFound
 		}
 	}
 
