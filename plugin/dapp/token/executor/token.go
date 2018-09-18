@@ -15,6 +15,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
+	"strings"
 )
 
 var tokenlog = log.New("module", "execs.token")
@@ -315,15 +316,27 @@ func (t *token) GetTokenInfo(symbol string) (types.Message, error) {
 }
 
 func (t *token) GetTokens(reqTokens *types.ReqTokens) (types.Message, error) {
-	db := t.GetStateDB()
-
 	replyTokens := &types.ReplyTokens{}
 	keys, err :=  t.listTokenKeys(reqTokens)
 	if err != nil {
 		return nil, err
 	}
 	tokenlog.Debug("token Query GetTokens", "get count", len(keys), "XXKEY", string(keys[0]))
+	if reqTokens.SymbolOnly {
+		for _, key := range keys {
+			idx := strings.LastIndex(string(key), "-")
+			if idx < 0 || idx >= len(key) {
+				continue
+			}
+			symbol := key[idx+1:]
+			tokenlog.Debug("token Query GetTokens", "get count", len(keys), "XXSYMBOL", string(symbol))
+			token := types.Token{Symbol: string(symbol)}
+			replyTokens.Tokens = append(replyTokens.Tokens, &token)
+		}
+		return replyTokens, nil
+	}
 
+	db := t.GetStateDB()
 	for _, key := range keys {
 		tokenlog.Debug("token Query GetTokens", "key in string", string(key))
 		if tokenValue, err := db.Get(key); err == nil {
@@ -334,7 +347,7 @@ func (t *token) GetTokens(reqTokens *types.ReqTokens) (types.Message, error) {
 			}
 		}
 	}
-	
+
 	//tokenlog.Info("token Query", "replyTokens", replyTokens)
 	return replyTokens, nil
 }
