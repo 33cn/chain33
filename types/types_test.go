@@ -2,6 +2,7 @@ package types
 
 import (
 	"encoding/json"
+	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -40,6 +41,11 @@ func TestAllowExecName(t *testing.T) {
 
 	isok = IsAllowExecName([]byte("user.p.evm.user.hello"), []byte("user.p.guodun.user.p.evm.user.hello"))
 	assert.Equal(t, isok, true)
+}
+
+func TestNil(t *testing.T) {
+	v := reflect.ValueOf(nil)
+	assert.Equal(t, v.IsValid(), false)
 }
 
 func TestProtoToJson(t *testing.T) {

@@ -1,6 +1,7 @@
 package executor
 
 import (
+	"gitlab.33.cn/chain33/chain33/common/address"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -47,4 +48,9 @@ func (c *Coins) Exec_Genesis(genesis *types.AssetsGenesis, tx *types.Transaction
 	} else {
 		return nil, types.ErrReRunGenesis
 	}
+}
+
+func isExecAddrMatch(name string, to string) bool {
+	toaddr := address.ExecAddress(name)
+	return toaddr == to
 }
