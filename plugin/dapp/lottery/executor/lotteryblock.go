@@ -7,7 +7,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-const retryNum = 60
+const retryNum = 10
 
 //different impl on main chain and parachain
 func (action *Action) getTxActions(height int64, blockNum int64) ([]*types.TicketAction, error) {
