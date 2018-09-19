@@ -53,57 +53,6 @@ func (c *Blackwhite) GetDriverName() string {
 	return driverName
 }
 
-func (c *Blackwhite) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	set, err := c.DriverBase.ExecLocal(tx, receipt, index)
-	if err != nil {
-		return nil, err
-	}
-	if receipt.GetTy() != types.ExecOk {
-		return set, nil
-	}
-
-	//执行成功
-	var payload gt.BlackwhiteAction
-	err = types.Decode(tx.Payload, &payload)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, log := range receipt.Logs {
-		switch log.Ty {
-		case types.TyLogBlackwhiteCreate,
-			types.TyLogBlackwhitePlay,
-			types.TyLogBlackwhiteShow,
-			types.TyLogBlackwhiteTimeout,
-			types.TyLogBlackwhiteDone:
-			{
-				var receipt gt.ReceiptBlackwhiteStatus
-				err := types.Decode(log.Log, &receipt)
-				if err != nil {
-					panic(err) //数据错误了，已经被修改了
-				}
-				kv := c.saveHeightIndex(&receipt)
-				set.KV = append(set.KV, kv...)
-				break
-			}
-		case types.TyLogBlackwhiteLoopInfo:
-			{
-				var res gt.ReplyLoopResults
-				err := types.Decode(log.Log, &res)
-				if err != nil {
-					panic(err) //数据错误了，已经被修改了
-				}
-				kv := c.saveLoopResult(&res)
-				set.KV = append(set.KV, kv...)
-				break
-			}
-		default:
-			break
-		}
-	}
-	return set, nil
-}
-
 func (c *Blackwhite) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	set, err := c.DriverBase.ExecDelLocal(tx, receipt, index)
 	if err != nil {
