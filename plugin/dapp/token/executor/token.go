@@ -133,12 +133,13 @@ func (t *token) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 				set.KV = append(set.KV, kv...)
 			}
 		}
-
-		kvs, err := t.makeT1okenTxKvs(tx, &action, receipt, index, false)
-		if err != nil {
-			return nil, err
+		if types.GetSaveTokenTxList() {
+			kvs, err := t.makeT1okenTxKvs(tx, &action, receipt, index, false)
+			if err != nil {
+				return nil, err
+			}
+			set.KV = append(set.KV, kvs...)
 		}
-		set.KV = append(set.KV, kvs...)
 	} else {
 		set, err = t.DriverBase.ExecLocal(tx, receipt, index)
 		if err != nil {
@@ -186,11 +187,13 @@ func (t *token) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 		if err != nil {
 			return nil, err
 		}
-		kvs, err := t.makeT1okenTxKvs(tx, &action, receipt, index, true)
-		if err != nil {
-			return nil, err
+		if types.GetSaveTokenTxList() {
+			kvs, err := t.makeT1okenTxKvs(tx, &action, receipt, index, true)
+			if err != nil {
+				return nil, err
+			}
+			set.KV = append(set.KV, kvs...)
 		}
-		set.KV = append(set.KV, kvs...)
 	} else {
 		set, err = t.DriverBase.ExecDelLocal(tx, receipt, index)
 		if err != nil {

@@ -137,6 +137,7 @@ var (
 	//used in Getname for exec driver
 	ExecNamePrefix       string
 	ParaRemoteGrpcClient string
+	SaveTokenTxList  bool
 )
 
 func SetTitle(t string) {
@@ -247,4 +248,12 @@ func GetParaRemoteGrpcClient() string {
 		return ParaRemoteGrpcClient
 	}
 	return ""
+}
+
+func SetSaveTokenTxList(v bool) {
+	SaveTokenTxList = v
+}
+
+func GetSaveTokenTxList() bool {
+	return SaveTokenTxList
 }
