@@ -173,7 +173,7 @@ func (action *Action) LotteryCreate(create *types.LotteryCreate) (*types.Receipt
 		mainHeight := action.GetMainHeightByTxHash(action.txhash)
 		if mainHeight < 0 {
 			llog.Error("LotteryCreate", "mainHeight", mainHeight)
-			panic("")
+			return nil, types.ErrLotteryStatus
 		}
 		lott.CreateOnMain = mainHeight
 	}
@@ -227,7 +227,7 @@ func (action *Action) LotteryBuy(buy *types.LotteryBuy) (*types.Receipt, error) 
 			mainHeight := action.GetMainHeightByTxHash(action.txhash)
 			if mainHeight < 0 {
 				llog.Error("LotteryBuy", "mainHeight", mainHeight)
-				panic("")
+				return nil, types.ErrLotteryStatus
 			}
 			lott.LastTransToPurStateOnMain = mainHeight
 		}
@@ -238,7 +238,7 @@ func (action *Action) LotteryBuy(buy *types.LotteryBuy) (*types.Receipt, error) 
 			mainHeight := action.GetMainHeightByTxHash(action.txhash)
 			if mainHeight < 0 {
 				llog.Error("LotteryBuy", "mainHeight", mainHeight)
-				panic("")
+				return nil, types.ErrLotteryStatus
 			}
 			if mainHeight-lott.LastTransToPurStateOnMain > lott.GetPurBlockNum() {
 				llog.Error("LotteryBuy", "action.height", action.height, "mainHeight", mainHeight, "LastTransToPurStateOnMain", lott.LastTransToPurStateOnMain)
@@ -345,7 +345,7 @@ func (action *Action) LotteryDraw(draw *types.LotteryDraw) (*types.Receipt, erro
 		mainHeight := action.GetMainHeightByTxHash(action.txhash)
 		if mainHeight < 0 {
 			llog.Error("LotteryBuy", "mainHeight", mainHeight)
-			panic("")
+			return nil, types.ErrLotteryStatus
 		}
 		if mainHeight-lott.GetLastTransToPurStateOnMain() < lott.GetDrawBlockNum() {
 			llog.Error("LotteryDraw", "action.height", action.height, "mainHeight", mainHeight, "GetLastTransToPurStateOnMain", lott.GetLastTransToPurState())
@@ -488,7 +488,7 @@ func (action *Action) GetModify(beg, end int64, randMolNum int64) ([]byte, error
 	var ticketIds string
 
 	for _, ticketAction := range txActions {
-		llog.Error("GetModify", "modify", ticketAction.GetMiner().GetModify(), "bits", ticketAction.GetMiner().GetBits(), "ticketId", ticketAction.GetMiner().GetTicketId())
+		llog.Debug("GetModify", "modify", ticketAction.GetMiner().GetModify(), "bits", ticketAction.GetMiner().GetBits(), "ticketId", ticketAction.GetMiner().GetTicketId())
 		modifies = append(modifies, ticketAction.GetMiner().GetModify()...)
 		bits += ticketAction.GetMiner().GetBits()
 		ticketIds += ticketAction.GetMiner().GetTicketId()
@@ -625,7 +625,7 @@ func (action *Action) checkDraw(lott *LotteryDB) (*types.Receipt, error) {
 		mainHeight := action.GetMainHeightByTxHash(action.txhash)
 		if mainHeight < 0 {
 			llog.Error("LotteryBuy", "mainHeight", mainHeight)
-			panic("")
+			return nil, types.ErrLotteryStatus
 		}
 		lott.LastTransToDrawStateOnMain = mainHeight
 	}
