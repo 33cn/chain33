@@ -3,6 +3,7 @@ package executor
 import (
 	"fmt"
 	"math/rand"
+	"reflect"
 
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common/address"
@@ -16,6 +17,15 @@ var clog = log.New("module", "execs.blackwhite")
 var blackwhiteAddr = address.ExecAddress(gt.BlackwhiteX)
 
 var driverName = gt.BlackwhiteX
+
+func init() {
+	executorFunList = drivers.ListMethod(&Blackwhite{})
+	actionFunList = drivers.ListMethod(&gt.BlackwhiteAction{})
+	for k, v := range actionFunList {
+		executorFunList[k] = v
+	}
+
+}
 
 //黑白配可以被重命名执行器名称
 func Init(name string) {
@@ -245,60 +255,6 @@ func (c *Blackwhite) delHeightIndex(res *gt.ReceiptBlackwhiteStatus) (kvs []*typ
 	kv1.Value = nil
 	kvs = append(kvs, kv1)
 	return kvs
-}
-
-func (c *Blackwhite) Query(funcName string, params []byte) (types.Message, error) {
-	if funcName == gt.GetBlackwhiteRoundInfo {
-		var in gt.ReqBlackwhiteRoundInfo
-		err := types.Decode(params, &in)
-		if err != nil {
-			return nil, err
-		}
-		return c.GetBlackwhiteRoundInfo(&in)
-	} else if funcName == gt.GetBlackwhiteByStatusAndAddr {
-		var in gt.ReqBlackwhiteRoundList
-		err := types.Decode(params, &in)
-		if err != nil {
-			return nil, err
-		}
-		return c.GetBwRoundListInfo(&in)
-	} else if funcName == gt.GetBlackwhiteloopResult {
-		var in gt.ReqLoopResult
-		err := types.Decode(params, &in)
-		if err != nil {
-			return nil, err
-		}
-		return c.GetBwRoundLoopResult(&in)
-	} else if funcName == gt.BlackwhiteCreateTx {
-		in := &gt.BlackwhiteCreateTxReq{}
-		err := types.Decode(params, in)
-		if err != nil {
-			return nil, err
-		}
-		return c.createTx(in)
-	} else if funcName == gt.BlackwhitePlayTx {
-		in := &gt.BlackwhitePlayTxReq{}
-		err := types.Decode(params, in)
-		if err != nil {
-			return nil, err
-		}
-		return c.playTx(in)
-	} else if funcName == gt.BlackwhiteShowTx {
-		in := &gt.BlackwhiteShowTxReq{}
-		err := types.Decode(params, in)
-		if err != nil {
-			return nil, err
-		}
-		return c.showTx(in)
-	} else if funcName == gt.BlackwhiteTimeoutDoneTx {
-		in := &gt.BlackwhiteTimeoutDoneTxReq{}
-		err := types.Decode(params, in)
-		if err != nil {
-			return nil, err
-		}
-		return c.timeoutDoneTx(in)
-	}
-	return nil, types.ErrActionNotSupport
 }
 
 func (c *Blackwhite) timeoutDoneTx(parm *gt.BlackwhiteTimeoutDoneTxReq) (types.Message, error) {
@@ -562,4 +518,21 @@ func genHeightIndexStr(index int64) string {
 
 func heightIndexToIndex(height int64, index int32) int64 {
 	return height*types.MaxTxsPerBlock + int64(index)
+}
+
+func (c *Blackwhite) GetFuncMap() map[string]reflect.Method {
+	return executorFunList
+}
+
+func (c *Blackwhite) GetPayloadValue() types.Message {
+	return &gt.BlackwhiteAction{}
+}
+
+func (c *Blackwhite) GetTypeMap() map[string]int32 {
+	return map[string]int32{
+		"Create":      gt.BlackwhiteActionCreate,
+		"Play":        gt.BlackwhiteActionPlay,
+		"Show":        gt.BlackwhiteActionShow,
+		"TimeoutDone": gt.BlackwhiteActionTimeoutDone,
+	}
 }
