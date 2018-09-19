@@ -3,7 +3,6 @@ package rpc
 import (
 	"encoding/hex"
 	"fmt"
-	"strings"
 	"time"
 
 	"gitlab.33.cn/chain33/chain33/common"
@@ -996,14 +995,6 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		Next:       common.ToHex(tx.Next),
 	}
 	return result, nil
-}
-
-func realExec(txExec string) string {
-	if strings.HasPrefix(txExec, "user.p.") {
-		execSplit := strings.Split(txExec, ".")
-		return execSplit[len(execSplit)-1]
-	}
-	return txExec
 }
 
 func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
