@@ -17,7 +17,7 @@ var llog = log.New("module", "exectype."+types.LotteryX)
 func Init() {
 	nameX = types.ExecName(types.LotteryX)
 	// init executor type
-	types.RegistorExecutor(types.LotteryX, &LotteryType{})
+	types.RegistorExecutor(types.LotteryX, NewType())
 
 	// init log
 	types.RegistorLog(types.TyLogLotteryCreate, &LotteryCreateLog{})
@@ -37,6 +37,16 @@ func Init() {
 
 type LotteryType struct {
 	types.ExecTypeBase
+}
+
+func NewType() *LotteryType {
+	c := &LotteryType{}
+	c.SetChild(c)
+	return c
+}
+
+func (at *LotteryType) GetPayload() types.Message {
+	return &types.LotteryAction{}
 }
 
 func (lottery LotteryType) ActionName(tx *types.Transaction) string {
