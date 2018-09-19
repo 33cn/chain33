@@ -14,9 +14,9 @@ import (
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
+	pt "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/types"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
-	pt "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -292,7 +292,7 @@ func decodeLog(rlog jsonrpc.ReceiptDataResult) *ReceiptData {
 			types.TyLogBlackwhiteCreate, types.TyLogBlackwhiteShow, types.TyLogBlackwhitePlay,
 			types.TyLogBlackwhiteTimeout, types.TyLogBlackwhiteDone, types.TyLogBlackwhiteLoopInfo,
 			types.TyLogLotteryCreate, types.TyLogLotteryBuy, types.TyLogLotteryDraw, types.TyLogLotteryClose,
-			pt.TyLogParacrossMiner,pt.TyLogParaAssetTransfer,pt.TyLogParaAssetWithdraw,pt.TyLogParacrossCommit:
+			pt.TyLogParacrossMiner, pt.TyLogParaAssetTransfer, pt.TyLogParaAssetWithdraw, pt.TyLogParacrossCommit:
 
 			rl.Log = l.Log
 		//case 2, 3, 5, 11:
