@@ -3,7 +3,6 @@ package types
 import (
 	"reflect"
 
-	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -17,7 +16,6 @@ const (
 var (
 	CoinsX      = "coins"
 	ExecerCoins = []byte(CoinsX)
-	tlog        = log15.New("module", "exectype.coins")
 	actionName  = map[string]int32{
 		"Transfer":       CoinsActionTransfer,
 		"TransferToExec": CoinsActionTransferToExec,
