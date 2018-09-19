@@ -8,20 +8,6 @@ import (
 	"unicode"
 )
 
-type ExecutorType interface {
-	//获取交易真正的to addr
-	GetRealToAddr(tx *Transaction) string
-	//给用户显示的from 和 to
-	GetViewFromToAddr(tx *Transaction) (string, string)
-	ActionName(tx *Transaction) string
-	//新版本使用create接口，createTx 重构以后就废弃
-	Create(action string, message interface{}) (*Transaction, error)
-	CreateTx(action string, message json.RawMessage) (*Transaction, error)
-	Amount(tx *Transaction) (int64, error)
-	DecodePayload(tx *Transaction) (interface{}, error)
-	DecodePayloadValue(tx *Transaction) (string, reflect.Value, error)
-}
-
 type LogType interface {
 	Name() string
 	Decode([]byte) (interface{}, error)
@@ -120,7 +106,18 @@ func ProcessRPCQuery(funcName string, param []byte) (Message, error) {
 	return nil, ErrNotFound
 }
 
-type ExecType interface {
+type ExecutorType interface {
+	//获取交易真正的to addr
+	GetRealToAddr(tx *Transaction) string
+	//给用户显示的from 和 to
+	GetViewFromToAddr(tx *Transaction) (string, string)
+	ActionName(tx *Transaction) string
+	//新版本使用create接口，createTx 重构以后就废弃
+	Create(action string, message interface{}) (*Transaction, error)
+	CreateTx(action string, message json.RawMessage) (*Transaction, error)
+	Amount(tx *Transaction) (int64, error)
+	DecodePayload(tx *Transaction) (interface{}, error)
+	DecodePayloadValue(tx *Transaction) (string, reflect.Value, error)
 	//write for executor
 	GetPayload() Message
 	GetName() string
@@ -140,14 +137,14 @@ type ExecTypeGet interface {
 }
 
 type ExecTypeBase struct {
-	child               ExecType
+	child               ExecutorType
 	childValue          reflect.Value
 	actionFunList       map[string]reflect.Method
 	actionListValueType map[string]reflect.Type
 	rpclist             map[string]reflect.Method
 }
 
-func (base *ExecTypeBase) SetChild(child ExecType) {
+func (base *ExecTypeBase) SetChild(child ExecutorType) {
 	base.child = child
 	base.childValue = reflect.ValueOf(child)
 	base.rpclist = ListMethod(child)
@@ -186,6 +183,22 @@ func (base *ExecTypeBase) SetChild(child ExecType) {
 
 func (base *ExecTypeBase) GetRPCFuncMap() map[string]reflect.Method {
 	return base.rpclist
+}
+
+func (base *ExecTypeBase) GetLogMap() map[int64]reflect.Type {
+	return nil
+}
+
+func (base *ExecTypeBase) GetPayload() Message {
+	return nil
+}
+
+func (base *ExecTypeBase) GetTypeMap() map[string]int32 {
+	return nil
+}
+
+func (base *ExecTypeBase) GetName() string {
+	return "typedriverbase"
 }
 
 func (base *ExecTypeBase) GetValueTypeMap() map[string]reflect.Type {
