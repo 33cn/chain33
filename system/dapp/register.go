@@ -71,6 +71,8 @@ func LoadDriverAllow(tx *types.Transaction, index int, height int64) (driver Dri
 		if err != nil {
 			panic(err)
 		}
+	} else {
+		exec.SetName(string(tx.Execer))
 	}
 	return exec
 }

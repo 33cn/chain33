@@ -26,9 +26,6 @@ var (
 
 func init() {
 	types.AllowUserExec = append(types.AllowUserExec, ExecerCoins)
-}
-
-func Init() {
 	types.RegistorExecutor("coins", NewType())
 }
 
