@@ -195,6 +195,14 @@ func (evm *EVMExecutor) Exec(tx *types.Transaction, index int) (*types.Receipt, 
 	logs = append(logs, &types.ReceiptLog{types.TyLogCallContract, types.Encode(contractReceipt)})
 	logs = append(logs, evm.mStateDB.GetReceiptLogs(contractAddr.String())...)
 
+	if types.IsMatchFork(evm.GetHeight(), types.ForkV26EVMKVHash) {
+		// 将执行时生成的合约状态数据变更信息也计算哈希并保存
+		hashKV := evm.calcKVHash(contractAddr, logs)
+		if hashKV != nil {
+			data = append(data, hashKV)
+		}
+	}
+
 	receipt := &types.Receipt{Ty: types.ExecOk, KV: data, Logs: logs}
 
 	// 返回之前，把本次交易在区块中生成的合约日志集中打印出来
@@ -207,6 +215,27 @@ func (evm *EVMExecutor) Exec(tx *types.Transaction, index int) (*types.Receipt, 
 
 	evm.collectEvmTxLog(tx, contractReceipt, receipt)
 	return receipt, nil
+}
+
+func (evm *EVMExecutor) calcKVHash(addr common.Address, logs []*types.ReceiptLog) (kv *types.KeyValue) {
+	hashes := []byte{}
+	// 使用合约状态变更的数据生成哈希，保存为执行KV
+	for _, logItem := range logs {
+		if types.TyLogEVMStateChangeItem == logItem.Ty {
+			data := logItem.Log
+			hashes = append(hashes, common.ToHash(data).Bytes()...)
+		}
+	}
+
+	if len(hashes) > 0 {
+		hash := common.ToHash(hashes)
+		return &types.KeyValue{evm.GetDataHashKey(addr), hash.Bytes()}
+	}
+	return nil
+}
+
+func (evm *EVMExecutor) GetDataHashKey(addr common.Address) []byte {
+	return []byte("mavl-" + types.EvmX + "-data-hash: " + addr.String())
 }
 
 func (evm *EVMExecutor) collectEvmTxLog(tx *types.Transaction, cr *types.ReceiptEVMContract, receipt *types.Receipt) {
