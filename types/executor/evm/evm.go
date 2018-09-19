@@ -19,7 +19,7 @@ var elog = log.New("module", "exectype.evm")
 func Init() {
 	// init executor type
 	nameX = types.ExecName("evm")
-	types.RegistorExecutor("evm", &EvmType{})
+	types.RegistorExecutor("evm", NewType())
 
 	// init log
 	types.RegistorLog(types.TyLogCallContract, &EvmCallContractLog{})
@@ -35,6 +35,16 @@ func Init() {
 
 type EvmType struct {
 	types.ExecTypeBase
+}
+
+func NewType() *EvmType {
+	c := &EvmType{}
+	//c.SetChild(c)
+	return c
+}
+
+func (evm *EvmType) GetPayload() types.Message {
+	return &types.EVMContractAction{}
 }
 
 func (evm EvmType) ActionName(tx *types.Transaction) string {

@@ -1,5 +1,7 @@
 package types
 
+import "reflect"
+
 var slash = []byte("-")
 var Debug = false
 
@@ -159,7 +161,24 @@ const (
 	TyLogExecActive      = 10
 	TyLogGenesisTransfer = 11
 	TyLogGenesisDeposit  = 12
+)
 
+var SystemLog = map[int64]reflect.Type{
+	TyLogReserved:        nil,
+	TyLogErr:             nil,
+	TyLogFee:             reflect.TypeOf(ReceiptAccountTransfer{}),
+	TyLogTransfer:        reflect.TypeOf(ReceiptAccountTransfer{}),
+	TyLogDeposit:         reflect.TypeOf(ReceiptAccountTransfer{}),
+	TyLogExecTransfer:    reflect.TypeOf(ReceiptExecAccountTransfer{}),
+	TyLogExecWithdraw:    reflect.TypeOf(ReceiptExecAccountTransfer{}),
+	TyLogExecDeposit:     reflect.TypeOf(ReceiptExecAccountTransfer{}),
+	TyLogExecFrozen:      reflect.TypeOf(ReceiptExecAccountTransfer{}),
+	TyLogExecActive:      reflect.TypeOf(ReceiptAccountTransfer{}),
+	TyLogGenesisTransfer: reflect.TypeOf(ReceiptAccountTransfer{}),
+	TyLogGenesisDeposit:  reflect.TypeOf(ReceiptAccountTransfer{}),
+}
+
+const (
 	//log for ticket
 	TyLogNewTicket   = 111
 	TyLogCloseTicket = 112

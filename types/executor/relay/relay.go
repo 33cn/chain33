@@ -14,7 +14,7 @@ var nameX string
 func Init() {
 	nameX = types.ExecName("relay")
 	// init executor type
-	types.RegistorExecutor("relay", &RelayType{})
+	types.RegistorExecutor("relay", NewType())
 
 	// init log
 	types.RegistorLog(types.TyLogRelayCreate, &RelayCreateLog{})
@@ -33,6 +33,16 @@ func Init() {
 	types.RegisterRPCQueryHandle("GetBTCHeaderMissList", &RelayGetBTCHeaderMissList{})
 	types.RegisterRPCQueryHandle("GetBTCHeaderCurHeight", &RelayGetBTCHeaderCurHeight{})
 
+}
+
+func NewType() *RelayType {
+	c := &RelayType{}
+	c.SetChild(c)
+	return c
+}
+
+func (at *RelayType) GetPayload() types.Message {
+	return &types.RelayAction{}
 }
 
 type RelayType struct {
