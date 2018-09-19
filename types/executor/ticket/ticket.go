@@ -14,7 +14,7 @@ var nameX string
 func Init() {
 	nameX = types.ExecName("ticket")
 	// init executor type
-	types.RegistorExecutor("ticket", &TicketType{})
+	types.RegistorExecutor("ticket", NewType())
 
 	// init log
 	types.RegistorLog(types.TyLogNewTicket, &TicketNewLog{})
@@ -31,6 +31,16 @@ func Init() {
 
 type TicketType struct {
 	types.ExecTypeBase
+}
+
+func NewType() *TicketType {
+	c := &TicketType{}
+	c.SetChild(c)
+	return c
+}
+
+func (at *TicketType) GetPayload() types.Message {
+	return &types.TicketAction{}
 }
 
 func (ticket TicketType) ActionName(tx *types.Transaction) string {
