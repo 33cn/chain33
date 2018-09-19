@@ -2,6 +2,7 @@ package executor
 
 import (
 	"fmt"
+	"reflect"
 
 	log "github.com/inconshreveable/log15"
 	gt "gitlab.33.cn/chain33/chain33/plugin/dapp/game/types"
@@ -10,6 +11,14 @@ import (
 )
 
 var glog = log.New("module", "execs.game")
+
+func init() {
+	actionFunList = drivers.ListMethod(&gt.GameAction{})
+	executorFunList = drivers.ListMethod(&Game{})
+	for k, v := range actionFunList {
+		executorFunList[k] = v
+	}
+}
 
 func Init(name string) {
 	drivers.Register(GetName(), newGame, 0)
@@ -244,4 +253,21 @@ type ReplyGameList struct {
 
 type ReplyGame struct {
 	Game *Game `json:"game"`
+}
+
+func (c *Game) GetPayloadValue() types.Message {
+	return &gt.GameAction{}
+}
+
+func (c *Game) GetFuncMap() map[string]reflect.Method {
+	return executorFunList
+}
+
+func (c *Game) GetTypeMap() map[string]int32 {
+	return map[string]int32{
+		"Create": gt.GameActionCreate,
+		"Match":  gt.GameActionMatch,
+		"Cancel": gt.GameActionCancel,
+		"Close":  gt.GameActionClose,
+	}
 }
