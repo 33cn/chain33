@@ -30,6 +30,7 @@ var (
 	ForkV24TxGroupPara   int64 = MaxHeight
 	ForkV25BlackWhite    int64 = MaxHeight
 	ForkV25BlackWhiteV2  int64 = MaxHeight
+	ForkV26EVMKVHash     int64 = MaxHeight
 )
 
 //bityuan test net fork
@@ -60,6 +61,7 @@ func SetTestNetFork() {
 	ForkV24TxGroupPara = 806578
 	ForkV25BlackWhite = 850000
 	ForkV25BlackWhiteV2 = 900000
+	ForkV26EVMKVHash = 1000000
 }
 
 func SetForkToOne() {
@@ -89,6 +91,7 @@ func SetForkToOne() {
 	ForkV24TxGroupPara = 1
 	ForkV25BlackWhite = 1
 	ForkV25BlackWhiteV2 = 1
+	ForkV26EVMKVHash = 1
 }
 
 //paraName not used currently
@@ -119,6 +122,7 @@ func SetForkForPara(paraName string) {
 	ForkV24TxGroupPara = 1
 	ForkV25BlackWhite = 1
 	ForkV25BlackWhiteV2 = 1
+	ForkV26EVMKVHash = 1
 }
 
 func IsMatchFork(height int64, fork int64) bool {
