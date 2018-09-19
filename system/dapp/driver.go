@@ -68,7 +68,7 @@ type DriverBase struct {
 }
 
 func (d *DriverBase) GetPayloadValue() types.Message {
-	return nil
+	return d.ety.GetPayload()
 }
 
 func (d *DriverBase) GetTypeMap() map[string]int32 {
@@ -287,6 +287,7 @@ func (d *DriverBase) Exec(tx *types.Transaction, index int) (receipt *types.Rece
 	if err := d.child.CheckTx(tx, index); err != nil {
 		return nil, err
 	}
+	//为了兼容原来的系统,多加了一个判断
 	if d.child.GetPayloadValue() == nil {
 		return nil, nil
 	}
