@@ -159,42 +159,6 @@ func (g *Game) rollbackIndex(log *gt.ReceiptGame) (kvs []*types.KeyValue) {
 	}
 	return kvs
 }
-func (g *Game) Query(funcName string, params []byte) (types.Message, error) {
-	if funcName == gt.FuncName_QueryGameListByIds {
-		var info gt.QueryGameInfos
-		err := types.Decode(params, &info)
-		if err != nil {
-			return nil, err
-		}
-		return Infos(g.GetStateDB(), &info)
-	} else if funcName == gt.FuncName_QueryGameById {
-		var gameInfo gt.QueryGameInfo
-		err := types.Decode(params, &gameInfo)
-		if err != nil {
-			return nil, err
-		}
-		game, err := readGame(g.GetStateDB(), gameInfo.GetGameId())
-		if err != nil {
-			return nil, err
-		}
-		return &gt.ReplyGame{game}, nil
-	} else if funcName == gt.FuncName_QueryGameListByStatusAndAddr {
-		var q gt.QueryGameListByStatusAndAddr
-		err := types.Decode(params, &q)
-		if err != nil {
-			return nil, err
-		}
-		return List(g.GetLocalDB(), g.GetStateDB(), &q)
-	} else if funcName == gt.FuncName_QueryGameListCount {
-		var q gt.QueryGameListCount
-		err := types.Decode(params, &q)
-		if err != nil {
-			return nil, err
-		}
-		return QueryGameListCount(g.GetStateDB(), &q)
-	}
-	return nil, types.ErrActionNotSupport
-}
 
 func calcGameStatusIndexKey(status int32, index int64) []byte {
 	key := fmt.Sprintf("game-status:%d:%018d", status, index)
