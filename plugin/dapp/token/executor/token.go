@@ -16,6 +16,7 @@ import (
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
 	"strings"
+	"github.com/pkg/errors"
 )
 
 var tokenlog = log.New("module", "execs.token")
@@ -131,6 +132,12 @@ func (t *token) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 				set.KV = append(set.KV, kv...)
 			}
 		}
+
+		kvs, err := t.makeT1okenTxKvs(tx, &action, receipt, index, false)
+		if err != nil {
+			return nil, err
+		}
+		set.KV = append(set.KV, kvs...)
 	} else {
 		set, err = t.DriverBase.ExecLocal(tx, receipt, index)
 		if err != nil {
@@ -175,6 +182,14 @@ func (t *token) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 	var set *types.LocalDBSet
 	if action.Ty == types.ActionTransfer || action.Ty == types.ActionWithdraw {
 		set, err = t.ExecDelLocalLocalTransWithdraw(tx, receipt, index)
+		if err != nil {
+			return nil, err
+		}
+		kvs, err := t.makeT1okenTxKvs(tx, &action, receipt, index, true)
+		if err != nil {
+			return nil, err
+		}
+		set.KV = append(set.KV, kvs...)
 	} else {
 		set, err = t.DriverBase.ExecDelLocal(tx, receipt, index)
 		if err != nil {
@@ -233,6 +248,13 @@ func (t *token) Query(funcName string, params []byte) (types.Message, error) {
 			return nil, err
 		}
 		return t.GetAccountTokenAssets(&req)
+	case "GetTxByToken":
+		var req types.ReqTokenTx
+		err := types.Decode(params, &req) // TODO_x to test show err log
+		if err != nil {
+			return nil, errors.Wrap(err, "GetTxByToken Decode request failed")
+		}
+		return t.GetTxByToken(&req)
 	}
 	return nil, types.ErrActionNotSupport
 }
@@ -430,4 +452,26 @@ func (t *token) deleteLogs(receipt *types.ReceiptToken) []*types.KeyValue {
 		kv = append(kv, &types.KeyValue{key, value})
 	}
 	return kv
+}
+
+func (t *token) makeT1okenTxKvs(tx *types.Transaction, action *types.TokenAction, receipt *types.ReceiptData, index int, isDel bool) ([]*types.KeyValue, error) {
+	var kvs []*types.KeyValue
+	var symbol string
+	if action.Ty == types.ActionTransfer{
+		symbol = action.GetTransfer().Cointoken
+	} else if action.Ty != types.ActionWithdraw {
+		symbol = action.GetWithdraw().Cointoken
+	} else {
+		return kvs, nil
+	}
+
+	kvs, err := TokenTxKvs(tx, symbol, t.GetHeight(), int64(index), isDel)
+	return kvs, err
+}
+
+func (t *token) GetTxByToken(req *types.ReqTokenTx) (types.Message, error) {
+	// TODO_x
+	var reply = &types.ReplyAccountTokenAssets{}
+
+	return reply, nil
 }
