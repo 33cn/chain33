@@ -387,6 +387,7 @@ It has these top-level messages:
 	TransactionDetails
 	ReqAddrs
 	ReqDecodeRawTransaction
+	ReqTokenTx
 	WalletTxDetail
 	WalletTxDetails
 	WalletAccountStore
