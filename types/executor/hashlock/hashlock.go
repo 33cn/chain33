@@ -18,7 +18,7 @@ var hlog = log.New("module", "exectype.hashlock")
 func Init() {
 	nameX = types.ExecName("hashlock")
 	// init executor type
-	types.RegistorExecutor("hashlock", &HashlockType{})
+	types.RegistorExecutor("hashlock", NewType())
 
 	// init log
 	//types.RegistorLog(types.TyLogDeposit, &CoinsDepositLog{})
@@ -31,7 +31,17 @@ type HashlockType struct {
 	types.ExecTypeBase
 }
 
-func (hashlock HashlockType) ActionName(tx *types.Transaction) string {
+func NewType() *HashlockType {
+	c := &HashlockType{}
+	c.SetChild(c)
+	return c
+}
+
+func (hashlock *HashlockType) GetPayload() types.Message {
+	return &types.HashlockAction{}
+}
+
+func (hashlock *HashlockType) ActionName(tx *types.Transaction) string {
 	var action types.HashlockAction
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
@@ -47,21 +57,8 @@ func (hashlock HashlockType) ActionName(tx *types.Transaction) string {
 	return "unknown"
 }
 
-func (hashlock HashlockType) DecodePayload(tx *types.Transaction) (interface{}, error) {
-	var action types.HashlockAction
-	err := types.Decode(tx.Payload, &action)
-	if err != nil {
-		return nil, err
-	}
-	return &action, nil
-}
-
-func (t HashlockType) Amount(tx *types.Transaction) (int64, error) {
-	return 0, nil
-}
-
 // TODO 暂时不修改实现， 先完成结构的重构
-func (hashlock HashlockType) CreateTx(action string, message json.RawMessage) (*types.Transaction, error) {
+func (hashlock *HashlockType) CreateTx(action string, message json.RawMessage) (*types.Transaction, error) {
 	hlog.Debug("hashlock.CreateTx", "action", action)
 	var tx *types.Transaction
 	if action == "HashlockLock" {

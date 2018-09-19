@@ -167,6 +167,10 @@ func Decode(data []byte, msg proto.Message) error {
 	return proto.Unmarshal(data, msg)
 }
 
+func JsonToPB(data []byte, msg proto.Message) error {
+	return jsonpb.Unmarshal(bytes.NewReader(data), msg)
+}
+
 func (leafnode *LeafNode) Hash() []byte {
 	data, err := proto.Marshal(leafnode)
 	if err != nil {

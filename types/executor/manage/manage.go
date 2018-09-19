@@ -14,7 +14,7 @@ var nameX string
 func Init() {
 	nameX = types.ExecName(types.ManageX)
 	// init executor type
-	types.RegistorExecutor(types.ManageX, &ManageType{})
+	types.RegistorExecutor(types.ManageX, NewType())
 
 	// init log
 	types.RegistorLog(types.TyLogModifyConfig, &ModifyConfigLog{})
@@ -25,6 +25,16 @@ func Init() {
 
 type ManageType struct {
 	types.ExecTypeBase
+}
+
+func NewType() *ManageType {
+	c := &ManageType{}
+	c.SetChild(c)
+	return c
+}
+
+func (at *ManageType) GetPayload() types.Message {
+	return &types.ManageAction{}
 }
 
 func (m ManageType) ActionName(tx *types.Transaction) string {
