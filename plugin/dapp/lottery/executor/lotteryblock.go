@@ -2,9 +2,12 @@ package executor
 
 import (
 	"context"
+	"time"
 
 	"gitlab.33.cn/chain33/chain33/types"
 )
+
+const retryNum = 60
 
 //different impl on main chain and parachain
 func (action *Action) getTxActions(height int64, blockNum int64) ([]*types.TicketAction, error) {
@@ -32,13 +35,13 @@ func (action *Action) getTxActions(height int64, blockNum int64) ([]*types.Ticke
 		mainHeight := action.GetMainHeightByTxHash(action.txhash)
 		if mainHeight < 0 {
 			llog.Error("LotteryCreate", "mainHeight", mainHeight)
-			panic("")
+			return nil, types.ErrLotteryStatus
 		}
 
 		blockDetails, err := action.GetBlocksOnMain(mainHeight-blockNum, mainHeight-1)
 		if err != nil {
 			llog.Error("LotteryCreate", "mainHeight", mainHeight)
-			panic("")
+			return nil, types.ErrLotteryStatus
 		}
 
 		for _, block := range blockDetails.Items {
@@ -54,20 +57,37 @@ func (action *Action) getTxActions(height int64, blockNum int64) ([]*types.Ticke
 
 //TransactionDetail
 func (action *Action) GetMainHeightByTxHash(txHash []byte) int64 {
-	req := &types.ReqHash{txHash}
-	txDetail, err := action.grpcClient.QueryTransaction(context.Background(), req)
-	if err != nil {
-		return -1
+	for i := 0; i < retryNum; i++ {
+		req := &types.ReqHash{txHash}
+		txDetail, err := action.grpcClient.QueryTransaction(context.Background(), req)
+		if err != nil {
+			time.Sleep(time.Second)
+		} else {
+			return txDetail.GetHeight()
+		}
 	}
-	return txDetail.GetHeight()
+
+	return -1
 }
 
 func (action *Action) GetBlocksOnMain(start int64, end int64) (*types.BlockDetails, error) {
 	req := &types.ReqBlocks{start, end, false, []string{""}}
+	getBlockSucc := false
+	var reply *types.Reply
+	var err error
 
-	reply, err := action.grpcClient.GetBlocks(context.Background(), req)
-	if err != nil {
-		llog.Error("GetBlocksOnMain", "start", start, "end", end, "err", err)
+	for i := 0; i < retryNum; i++ {
+		reply, err = action.grpcClient.GetBlocks(context.Background(), req)
+		if err != nil {
+			llog.Error("GetBlocksOnMain", "start", start, "end", end, "err", err)
+			time.Sleep(time.Second)
+		} else {
+			getBlockSucc = true
+			break
+		}
+	}
+
+	if !getBlockSucc {
 		return nil, err
 	}
 
