@@ -64,10 +64,14 @@ type DriverBase struct {
 	api          client.QueueProtocolAPI
 	txs          []*types.Transaction
 	receipts     []*types.ReceiptData
+	ety          types.ExecutorType
 }
 
 func (d *DriverBase) GetPayloadValue() types.Message {
-	return nil
+	if d.ety == nil {
+		return nil
+	}
+	return d.ety.GetPayload()
 }
 
 func (d *DriverBase) GetTypeMap() map[string]int32 {
@@ -98,6 +102,10 @@ func (d *DriverBase) SetIsFree(isFree bool) {
 
 func (d *DriverBase) IsFree() bool {
 	return d.isFree
+}
+
+func (d *DriverBase) SetExecutorType(e types.ExecutorType) {
+	d.ety = e
 }
 
 func (d *DriverBase) SetChild(e Driver) {
@@ -232,7 +240,10 @@ func (d *DriverBase) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptD
 }
 
 func (d *DriverBase) callLocal(prefix string, tx *types.Transaction, receipt *types.ReceiptData, index int) (set *types.LocalDBSet, err error) {
-	name, value, err := d.decodeTxPayload(tx)
+	if d.ety == nil {
+		return nil, types.ErrActionNotSupport
+	}
+	name, value, err := d.ety.DecodePayloadValue(tx)
 	if err != nil {
 		return nil, err
 	}
@@ -243,7 +254,7 @@ func (d *DriverBase) callLocal(prefix string, tx *types.Transaction, receipt *ty
 		return nil, types.ErrActionNotSupport
 	}
 	valueret := funcmap[funcname].Func.Call([]reflect.Value{d.childValue, value, reflect.ValueOf(tx), reflect.ValueOf(receipt), reflect.ValueOf(index)})
-	if len(valueret) != 2 {
+	if !types.IsOK(valueret, 2) {
 		return nil, types.ErrMethodReturnType
 	}
 	r1 := valueret[0].Interface()
@@ -282,10 +293,11 @@ func (d *DriverBase) Exec(tx *types.Transaction, index int) (receipt *types.Rece
 	if err := d.child.CheckTx(tx, index); err != nil {
 		return nil, err
 	}
+	//为了兼容原来的系统,多加了一个判断
 	if d.child.GetPayloadValue() == nil {
 		return nil, nil
 	}
-	name, value, err := d.decodeTxPayload(tx)
+	name, value, err := d.ety.DecodePayloadValue(tx)
 	if err != nil {
 		return nil, err
 	}
@@ -295,7 +307,7 @@ func (d *DriverBase) Exec(tx *types.Transaction, index int) (receipt *types.Rece
 		return nil, types.ErrActionNotSupport
 	}
 	valueret := funcmap[funcname].Func.Call([]reflect.Value{d.childValue, value, reflect.ValueOf(tx), reflect.ValueOf(index)})
-	if len(valueret) != 2 {
+	if !types.IsOK(valueret, 2) {
 		return nil, types.ErrMethodReturnType
 	}
 	//参数1
@@ -318,24 +330,6 @@ func (d *DriverBase) Exec(tx *types.Transaction, index int) (receipt *types.Rece
 		}
 	}
 	return receipt, err
-}
-
-func (d *DriverBase) decodeTxPayload(tx *types.Transaction) (string, reflect.Value, error) {
-	action := d.child.GetPayloadValue()
-	if action == nil {
-		return "", nilValue, types.ErrDecode
-	}
-	err := types.Decode(tx.Payload, action)
-	if err != nil {
-		return "", nilValue, err
-	}
-	name, ty, val := GetActionValue(action, d.child.GetFuncMap())
-	typemap := d.child.GetTypeMap()
-	//check types is ok
-	if v, ok := typemap[name]; !ok || v != ty {
-		return "", nilValue, types.ErrActionNotSupport
-	}
-	return name, val, nil
 }
 
 //默认情况下，tx.To 地址指向合约地址
