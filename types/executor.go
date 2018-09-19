@@ -148,14 +148,20 @@ func (base *ExecTypeBase) SetChild(child ExecutorType) {
 	base.child = child
 	base.childValue = reflect.ValueOf(child)
 	base.rpclist = ListMethod(child)
+	base.actionListValueType = make(map[string]reflect.Type)
+	base.actionFunList = make(map[string]reflect.Method)
+
 	action := child.GetPayload()
+	if action == nil {
+		return
+	}
 	base.actionFunList = ListMethod(action)
 	retval := base.actionFunList["XXX_OneofFuncs"].Func.Call([]reflect.Value{reflect.ValueOf(action)})
 	if len(retval) != 4 {
 		panic("err XXX_OneofFuncs")
 	}
 	list := ListType(retval[3].Interface().([]interface{}))
-	base.actionListValueType = make(map[string]reflect.Type)
+
 	for k, v := range list {
 		data := strings.Split(k, "_")
 		if len(data) != 2 {
