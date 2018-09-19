@@ -92,6 +92,18 @@ func (evm *EVMExecutor) allowPara(tx *types.Transaction, index int) bool {
 	return evm.AllowIsUserDot2Para(tx.Execer)
 }
 
+func (evm *EVMExecutor) IsFriend(myexec, writekey []byte, othertx *types.Transaction) bool {
+	if othertx != nil {
+		if bytes.HasPrefix(othertx.Execer, []byte("user.evm.")) || bytes.Equal(othertx.Execer, []byte("evm")) {
+			if bytes.HasPrefix(writekey, []byte("mavl-evm-")) {
+				return true
+			}
+		}
+		return false
+	}
+	return false
+}
+
 func (evm *EVMExecutor) CheckInit() {
 	if evm.mStateDB == nil {
 		evm.mStateDB = state.NewMemoryStateDB(evm.GetStateDB(), evm.GetLocalDB(), evm.GetCoinsAccount(), evm.GetHeight())
