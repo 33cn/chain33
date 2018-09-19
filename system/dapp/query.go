@@ -2,7 +2,6 @@ package dapp
 
 import (
 	"errors"
-	"fmt"
 	"reflect"
 
 	"github.com/gogo/protobuf/proto"
