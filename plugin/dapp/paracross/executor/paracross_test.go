@@ -83,7 +83,7 @@ func makeNodeInfo(key, addr string, cnt int) *types.ConfigItem {
 func init() {
 	log.SetFileLog(nil)
 	log.SetLogLevel("debug")
-	Init(orgName)
+	Init(types.ParaX)
 }
 
 func (suite *CommitTestSuite) SetupSuite() {
