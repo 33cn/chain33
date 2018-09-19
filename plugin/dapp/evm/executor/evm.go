@@ -93,7 +93,15 @@ func (evm *EVMExecutor) allowPara(tx *types.Transaction, index int) bool {
 }
 
 func (evm *EVMExecutor) IsFriend(myexec, writekey []byte, othertx *types.Transaction) bool {
-	return bytes.HasPrefix(writekey, []byte("mavl-evm-"))
+	if othertx != nil {
+		if bytes.HasPrefix(othertx.Execer, []byte("user.evm.")) || bytes.Equal(othertx.Execer, []byte("evm")) {
+			if bytes.HasPrefix(writekey, []byte("mavl-evm-")) {
+				return true
+			}
+		}
+		return false
+	}
+	return false
 }
 
 func (evm *EVMExecutor) CheckInit() {
