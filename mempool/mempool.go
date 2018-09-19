@@ -626,7 +626,7 @@ func (mem *Mempool) SetQueueClient(client queue.Client) {
 			case types.EventAddBlock:
 				// 消息类型EventAddBlock：将添加到区块内的交易从Mempool中删除
 				block := msg.GetData().(*types.BlockDetail).Block
-				if block.Height > mem.Height() {
+				if block.Height > mem.Height() || (block.Height == 0 && mem.Height() == 0) {
 					header := &types.Header{}
 					header.BlockTime = block.BlockTime
 					header.Height = block.Height
