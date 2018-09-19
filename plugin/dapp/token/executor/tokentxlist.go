@@ -52,14 +52,23 @@ func tokenTxkeys(symbol, from, to string, height, index int64) (result [][]byte)
 
 // token transaction entities in local DB
 func CalcTokenTxKey(symbol string, height, index int64) []byte {
+	if height == -1 {
+		return []byte(fmt.Sprintf(tokenTxPrefix+"%s:%s", symbol, ""))
+	}
 	return []byte(fmt.Sprintf(tokenTxPrefix+"%s:%s", symbol, dapp.HeightIndexStr(height, index)))
 }
 
 func CalcTokenAddrTxKey(symbol, addr string, height, index int64) []byte {
+	if height == -1 {
+		return []byte(fmt.Sprintf(tokenTxAddrPrifex+"%s:%s:%s", symbol, addr, ""))
+	}
 	return []byte(fmt.Sprintf(tokenTxAddrPrifex+"%s:%s:%s", symbol, addr, dapp.HeightIndexStr(height, index)))
 }
 
 func CalcTokenAddrTxDirKey(symbol, addr string, flag int32, height, index int64) []byte {
+	if height == -1 {
+		return []byte(fmt.Sprintf(tokenTxAddrDirPrifex+"%s:%s:%d:%s", symbol, addr, flag, ""))
+	}
 	return []byte(fmt.Sprintf(tokenTxAddrDirPrifex+"%s:%s:%d:%s", symbol, addr, flag,
 		dapp.HeightIndexStr(height, index)))
 }

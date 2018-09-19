@@ -17,6 +17,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 	"strings"
 	"github.com/pkg/errors"
+	"gitlab.33.cn/chain33/chain33/system/dapp"
 )
 
 var tokenlog = log.New("module", "execs.token")
@@ -469,9 +470,51 @@ func (t *token) makeT1okenTxKvs(tx *types.Transaction, action *types.TokenAction
 	return kvs, err
 }
 
-func (t *token) GetTxByToken(req *types.ReqTokenTx) (types.Message, error) {
-	// TODO_x
-	var reply = &types.ReplyAccountTokenAssets{}
+func findTokenTxListUtil(req *types.ReqTokenTx) ([]byte, []byte) {
+	var key, prefix []byte
+	if len(req.Addr) > 0 {
+		if req.Flag == 0 {
+			prefix = CalcTokenAddrTxKey(req.Symbol, req.Addr, -1, 0)
+			key = CalcTokenAddrTxKey(req.Symbol, req.Addr, req.Height, req.Index)
+		} else {
+			prefix = CalcTokenAddrTxDirKey(req.Symbol, req.Addr, req.Flag, -1, 0)
+			key = CalcTokenAddrTxDirKey(req.Symbol, req.Addr, req.Flag, req.Height, req.Index)
+		}
+	} else {
+		prefix = CalcTokenTxKey(req.Symbol, -1, 0)
+		key = CalcTokenTxKey(req.Symbol, req.Height, req.Index)
+	}
+	if req.Height == -1 {
+		key = nil
+	}
+	return key, prefix
+}
 
-	return reply, nil
+func (t *token) GetTxByToken(req *types.ReqTokenTx) (types.Message, error) {
+	if req.Flag != 0 && req.Flag != dapp.TxIndexFrom && req.Flag != dapp.TxIndexTo {
+		err := types.ErrInputPara
+		return nil, errors.Wrap(err, "flag unknown")
+	}
+	key, prefix := findTokenTxListUtil(req)
+
+	db := t.GetLocalDB()
+	txinfos, err := db.List(prefix, key, req.Count, req.Direction)
+	if err != nil {
+		return nil, errors.Wrap(err, "db.List to find token tx list")
+	}
+	if len(txinfos) == 0 {
+		return nil, errors.New("tx does not exist")
+	}
+
+	var replyTxInfos types.ReplyTxInfos
+	replyTxInfos.TxInfos = make([]*types.ReplyTxInfo, len(txinfos))
+	for index, txinfobyte := range txinfos {
+		var replyTxInfo types.ReplyTxInfo
+		err := types.Decode(txinfobyte, &replyTxInfo)
+		if err != nil {
+			return nil, err
+		}
+		replyTxInfos.TxInfos[index] = &replyTxInfo
+	}
+	return &replyTxInfos, nil
 }
