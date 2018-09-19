@@ -10,7 +10,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-
 var tlog = log15.New("module", types.ParaX)
 
 const (
