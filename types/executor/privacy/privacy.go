@@ -15,7 +15,7 @@ var nameX string
 func Init() {
 	nameX = types.ExecName("privacy")
 	// init executor type
-	types.RegistorExecutor("privacy", &PrivacyType{})
+	types.RegistorExecutor("privacy", NewType())
 
 	// init log
 	types.RegistorLog(types.TyLogPrivacyFee, &PrivacyFeeLog{})
@@ -29,6 +29,16 @@ func Init() {
 
 type PrivacyType struct {
 	types.ExecTypeBase
+}
+
+func NewType() *PrivacyType {
+	c := &PrivacyType{}
+	c.SetChild(c)
+	return c
+}
+
+func (at *PrivacyType) GetPayload() types.Message {
+	return &types.PrivacyAction{}
 }
 
 func (coins PrivacyType) ActionName(tx *types.Transaction) string {

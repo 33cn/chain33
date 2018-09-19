@@ -264,7 +264,13 @@ func (base *ExecTypeBase) GetFuncMap() map[string]reflect.Method {
 }
 
 func (base *ExecTypeBase) DecodePayload(tx *Transaction) (interface{}, error) {
+	if base.child == nil {
+		return nil, ErrActionNotSupport
+	}
 	payload := base.child.GetPayload()
+	if payload == nil {
+		return nil, ErrActionNotSupport
+	}
 	err := Decode(tx.GetPayload(), payload)
 	if err != nil {
 		return nil, err
@@ -273,7 +279,7 @@ func (base *ExecTypeBase) DecodePayload(tx *Transaction) (interface{}, error) {
 }
 
 func (base *ExecTypeBase) DecodePayloadValue(tx *Transaction) (string, reflect.Value, error) {
-	action, err := base.DecodePayload(tx)
+	action, err := base.child.DecodePayload(tx)
 	if err != nil {
 		tlog.Error("DecodePayload", "err", err)
 		return "", nilValue, err
@@ -293,7 +299,7 @@ func (base *ExecTypeBase) DecodePayloadValue(tx *Transaction) (string, reflect.V
 }
 
 func (base *ExecTypeBase) ActionName(tx *Transaction) string {
-	payload, err := base.DecodePayload(tx)
+	payload, err := base.child.DecodePayload(tx)
 	if err != nil {
 		return "unknown-err"
 	}
@@ -351,6 +357,13 @@ func (base *ExecTypeBase) callRPC(method reflect.Method, action string, msg inte
 }
 
 func (base *ExecTypeBase) AssertCreate(c *CreateTx) (*Transaction, error) {
+	if c.ExecName != "" && !IsAllowExecName([]byte(c.ExecName), []byte(c.ExecName)) {
+		tlog.Error("CreateTx", "Error", ErrExecNameNotMatch)
+		return nil, ErrExecNameNotMatch
+	}
+	if c.Amount < 0 {
+		return nil, ErrAmount
+	}
 	if c.IsWithdraw {
 		p := &AssetsWithdraw{Cointoken: c.GetTokenSymbol(), Amount: c.Amount,
 			Note: c.Note, ExecName: c.ExecName, To: c.To}
