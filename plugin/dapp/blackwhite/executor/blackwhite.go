@@ -7,6 +7,7 @@ import (
 
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common/address"
+	"gitlab.33.cn/chain33/chain33/plugin/dapp/blackwhite/rpc"
 	gt "gitlab.33.cn/chain33/chain33/plugin/dapp/blackwhite/types"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -18,13 +19,16 @@ var blackwhiteAddr = address.ExecAddress(gt.BlackwhiteX)
 
 var driverName = gt.BlackwhiteX
 
+//初始化过程比较重量级，有很多reflact, 所以弄成全局的
+var executorFunList = make(map[string]reflect.Method)
+var executorType = rpc.NewType()
+
 func init() {
-	executorFunList = drivers.ListMethod(&Blackwhite{})
-	actionFunList = drivers.ListMethod(&gt.BlackwhiteAction{})
+	actionFunList := executorType.GetFuncMap()
+	executorFunList = types.ListMethod(&Blackwhite{})
 	for k, v := range actionFunList {
 		executorFunList[k] = v
 	}
-
 }
 
 //黑白配可以被重命名执行器名称
