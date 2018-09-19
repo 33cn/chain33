@@ -68,6 +68,9 @@ type DriverBase struct {
 }
 
 func (d *DriverBase) GetPayloadValue() types.Message {
+	if d.ety == nil {
+		return nil
+	}
 	return d.ety.GetPayload()
 }
 
@@ -237,6 +240,9 @@ func (d *DriverBase) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptD
 }
 
 func (d *DriverBase) callLocal(prefix string, tx *types.Transaction, receipt *types.ReceiptData, index int) (set *types.LocalDBSet, err error) {
+	if d.ety == nil {
+		return nil, types.ErrActionNotSupport
+	}
 	name, value, err := d.ety.DecodePayloadValue(tx)
 	if err != nil {
 		return nil, err
