@@ -9,12 +9,12 @@ func (g *Game) Query_QueryGameListByIds(in *gt.QueryGameInfos) (types.Message, e
 	return Infos(g.GetStateDB(), in)
 }
 
-func (c *Game) Query_QueryGameListCount(in *gt.QueryGameListCount) (types.Message, error) {
-	return nil, nil
+func (g *Game) Query_QueryGameListCount(in *gt.QueryGameListCount) (types.Message, error) {
+	return QueryGameListCount(g.GetStateDB(), in)
 }
 
-func (c *Game) Query_QueryGameListByStatusAndAddr(in *gt.QueryGameListByStatusAndAddr) (types.Message, error) {
-	return nil, nil
+func (g *Game) Query_QueryGameListByStatusAndAddr(in *gt.QueryGameListByStatusAndAddr) (types.Message, error) {
+	return List(g.GetLocalDB(), g.GetStateDB(), in)
 }
 
 func (g *Game) Query_QueryGameById(in *gt.QueryGameInfo) (types.Message, error) {
