@@ -961,9 +961,6 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		return nil, types.ErrEmpty
 	}
 	execStr := string(tx.Execer)
-	if !types.IsPara() {
-		execStr = realExec(string(tx.Execer))
-	}
 	var pl interface{}
 	plType := types.LoadExecutorType(execStr)
 	if plType != nil {
