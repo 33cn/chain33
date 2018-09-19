@@ -53,29 +53,6 @@ func (c *Blackwhite) GetDriverName() string {
 	return driverName
 }
 
-func (c *Blackwhite) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
-	_, err := c.DriverBase.Exec(tx, index)
-	if err != nil {
-		return nil, err
-	}
-	var payload gt.BlackwhiteAction
-	err = types.Decode(tx.Payload, &payload)
-	if err != nil {
-		return nil, err
-	}
-	action := newAction(c, tx, int32(index))
-	if payload.Ty == gt.BlackwhiteActionCreate && payload.GetCreate() != nil {
-		return action.Create(payload.GetCreate())
-	} else if payload.Ty == gt.BlackwhiteActionPlay && payload.GetPlay() != nil {
-		return action.Play(payload.GetPlay())
-	} else if payload.Ty == gt.BlackwhiteActionShow && payload.GetShow() != nil {
-		return action.Show(payload.GetShow())
-	} else if payload.Ty == gt.BlackwhiteActionTimeoutDone && payload.GetTimeoutDone() != nil {
-		return action.TimeoutDone(payload.GetTimeoutDone())
-	}
-	return nil, types.ErrActionNotSupport
-}
-
 func (c *Blackwhite) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	set, err := c.DriverBase.ExecLocal(tx, receipt, index)
 	if err != nil {
