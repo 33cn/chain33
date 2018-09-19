@@ -8,8 +8,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-
-
 var nameX string
 
 var glog = log.New("module", types.ParaX)
@@ -26,7 +24,6 @@ func InitType() {
 	types.RegistorLog(pt.TyLogParaAssetWithdraw, &ParacrossAssetWithdrawLog{})
 	types.RegistorLog(pt.TyLogParaAssetTransfer, &ParacrossAssetTransferLog{})
 	types.RegistorLog(pt.TyLogParacrossMiner, &ParacrossMinerLog{})
-
 
 	// init query rpc
 	types.RegisterRPCQueryHandle("ParacrossGetTitle", &ParacrossGetTitle{})
@@ -203,7 +200,6 @@ func (l ParacrossMinerLog) Decode(msg []byte) (interface{}, error) {
 	}
 	return logTmp, err
 }
-
 
 type ParacrossGetTitle struct {
 }
