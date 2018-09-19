@@ -17,7 +17,7 @@ var glog = log.New("module", orgName)
 func InitType() {
 	nameX = types.ExecName(orgName)
 	// init executor type
-	types.RegistorExecutor(nameX, &ParacrossType{})
+	types.RegistorExecutor(nameX, NewType())
 
 	// init log
 	types.RegistorLog(pt.TyLogParacrossCommit, &ParacrossCommitLog{})
@@ -39,6 +39,16 @@ func GetExecName() string {
 
 type ParacrossType struct {
 	types.ExecTypeBase
+}
+
+func NewType() *ParacrossType {
+	c := &ParacrossType{}
+	c.SetChild(c)
+	return c
+}
+
+func (b *ParacrossType) GetPayload() types.Message {
+	return &pt.ParacrossAction{}
 }
 
 func (m ParacrossType) ActionName(tx *types.Transaction) string {
