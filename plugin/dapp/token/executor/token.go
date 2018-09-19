@@ -321,7 +321,7 @@ func (t *token) GetTokens(reqTokens *types.ReqTokens) (types.Message, error) {
 	if err != nil {
 		return nil, err
 	}
-	tokenlog.Debug("token Query GetTokens", "get count", len(keys), "XXKEY", string(keys[0]))
+	tokenlog.Debug("token Query GetTokens", "get count", len(keys), "KEY", string(keys[0]))
 	if reqTokens.SymbolOnly {
 		for _, key := range keys {
 			idx := strings.LastIndex(string(key), "-")
@@ -329,7 +329,7 @@ func (t *token) GetTokens(reqTokens *types.ReqTokens) (types.Message, error) {
 				continue
 			}
 			symbol := key[idx+1:]
-			tokenlog.Debug("token Query GetTokens", "get count", len(keys), "XXSYMBOL", string(symbol))
+			tokenlog.Debug("token Query GetTokens", "get count", len(keys), "SYMBOL", string(symbol))
 			token := types.Token{Symbol: string(symbol)}
 			replyTokens.Tokens = append(replyTokens.Tokens, &token)
 		}
