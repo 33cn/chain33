@@ -73,6 +73,7 @@ func LoadDriverAllow(tx *types.Transaction, index int, height int64) (driver Dri
 		}
 	} else {
 		exec.SetName(string(types.GetRealExecName(tx.Execer)))
+		exec.SetCurrentExecName(string(tx.Execer))
 	}
 	return exec
 }
