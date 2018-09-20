@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"reflect"
 
+	"gitlab.33.cn/chain33/chain33/plugin/dapp/blackwhite/rpc"
+
 	log "github.com/inconshreveable/log15"
 	gt "gitlab.33.cn/chain33/chain33/plugin/dapp/game/types"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
@@ -12,9 +14,13 @@ import (
 
 var glog = log.New("module", "execs.game")
 
+//初始化过程比较重量级，有很多reflact, 所以弄成全局的
+var executorFunList = make(map[string]reflect.Method)
+var executorType = rpc.NewType()
+
 func init() {
-	actionFunList = drivers.ListMethod(&gt.GameAction{})
-	executorFunList = drivers.ListMethod(&Game{})
+	actionFunList := executorType.GetFuncMap()
+	executorFunList = types.ListMethod(&Game{})
 	for k, v := range actionFunList {
 		executorFunList[k] = v
 	}
@@ -31,6 +37,7 @@ type Game struct {
 func newGame() drivers.Driver {
 	t := &Game{}
 	t.SetChild(t)
+	t.SetExecutorType(executorType)
 	return t
 }
 
@@ -40,56 +47,6 @@ func GetName() string {
 
 func (g *Game) GetDriverName() string {
 	return gt.GameX
-}
-
-/*
-func (g *Game) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	set, err := g.DriverBase.ExecLocal(tx, receipt, index)
-	if err != nil {
-		return nil, err
-	}
-	if receipt.GetTy() != types.ExecOk {
-		return set, nil
-	}
-	for i := 0; i < len(receipt.Logs); i++ {
-		item := receipt.Logs[i]
-		//这四个是Game 的log
-		if item.Ty == types.TyLogCreateGame || item.Ty == types.TyLogMatchGame || item.Ty == types.TyLogCloseGame || item.Ty == types.TyLogCancleGame {
-			var Gamelog gt.ReceiptGame
-			err := types.Decode(item.Log, &Gamelog)
-			if err != nil {
-				panic(err) //数据错误了，已经被修改了
-			}
-			kv := g.updateIndex(&Gamelog)
-			set.KV = append(set.KV, kv...)
-		}
-	}
-	return set, nil
-}
-*/
-
-func (g *Game) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	set, err := g.DriverBase.ExecDelLocal(tx, receipt, index)
-	if err != nil {
-		return nil, err
-	}
-	if receipt.GetTy() != types.ExecOk {
-		return set, nil
-	}
-	for i := 0; i < len(receipt.Logs); i++ {
-		item := receipt.Logs[i]
-		if item.Ty == types.TyLogCreateGame || item.Ty == types.TyLogMatchGame || item.Ty == types.TyLogCloseGame || item.Ty == types.TyLogCancleGame {
-			var Gamelog gt.ReceiptGame
-			err := types.Decode(item.Log, &Gamelog)
-			if err != nil {
-				panic(err) //数据错误了，已经被修改了
-			}
-			//状态数据库由于默克尔树特性，之前生成的索引无效，故不需要回滚，只回滚localDB
-			kv := g.rollbackIndex(&Gamelog)
-			set.KV = append(set.KV, kv...)
-		}
-	}
-	return set, nil
 }
 
 //更新索引
