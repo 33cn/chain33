@@ -48,6 +48,7 @@ func Init() {
 	types.RegisterRPCQueryHandle("GetTokenInfo", &TokenGetTokenInfo{})
 	types.RegisterRPCQueryHandle("GetAddrReceiverforTokens", &TokenGetAddrReceiverforTokens{})
 	types.RegisterRPCQueryHandle("GetAccountTokenAssets", &TokenGetAccountTokenAssets{})
+	types.RegisterRPCQueryHandle("GetTxByToken", &TokenGetTxByToken{})
 }
 
 // exec
@@ -560,5 +561,21 @@ func (t *TokenGetAccountTokenAssets) JsonToProto(message json.RawMessage) ([]byt
 }
 
 func (t *TokenGetAccountTokenAssets) ProtoToJson(reply *types.Message) (interface{}, error) {
+	return reply, nil
+}
+
+type TokenGetTxByToken struct {
+}
+
+func (t *TokenGetTxByToken) JsonToProto(message json.RawMessage) ([]byte, error) {
+	var req types.ReqTokenTx
+	err := json.Unmarshal(message, &req)
+	if err != nil {
+		return nil, err
+	}
+	return types.Encode(&req), nil
+}
+
+func (t *TokenGetTxByToken) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }
