@@ -12,21 +12,9 @@ const (
 )
 
 const (
-	BlackwhiteCreateTx           = "BlackwhiteCreateTx"
-	BlackwhitePlayTx             = "BlackwhitePlayTx"
-	BlackwhiteShowTx             = "BlackwhiteShowTx"
-	BlackwhiteTimeoutDoneTx      = "BlackwhiteTimeoutDoneTx"
 	GetBlackwhiteRoundInfo       = "GetBlackwhiteRoundInfo"
 	GetBlackwhiteByStatusAndAddr = "GetBlackwhiteByStatusAndAddr"
 	GetBlackwhiteloopResult      = "GetBlackwhiteloopResult"
-)
-
-// blackwhite action type
-const (
-	BlackwhiteActionCreate = iota
-	BlackwhiteActionPlay
-	BlackwhiteActionShow
-	BlackwhiteActionTimeoutDone
 )
 
 var (
