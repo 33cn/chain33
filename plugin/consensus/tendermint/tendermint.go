@@ -12,6 +12,7 @@ import (
 	ttypes "gitlab.33.cn/chain33/chain33/plugin/consensus/tendermint/types"
 	"gitlab.33.cn/chain33/chain33/queue"
 	drivers "gitlab.33.cn/chain33/chain33/system/consensus"
+	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/util"
 )
@@ -254,10 +255,10 @@ func (client *TendermintClient) CreateGenesisTx() (ret []*types.Transaction) {
 	tx.Execer = []byte("coins")
 	tx.To = client.Cfg.Genesis
 	//gen payload
-	g := &types.CoinsAction_Genesis{}
-	g.Genesis = &types.CoinsGenesis{}
+	g := &cty.CoinsAction_Genesis{}
+	g.Genesis = &types.AssetsGenesis{}
 	g.Genesis.Amount = 1e8 * types.Coin
-	tx.Payload = types.Encode(&types.CoinsAction{Value: g, Ty: types.CoinsActionGenesis})
+	tx.Payload = types.Encode(&cty.CoinsAction{Value: g, Ty: cty.CoinsActionGenesis})
 	ret = append(ret, &tx)
 	return
 }

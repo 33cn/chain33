@@ -16,6 +16,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/queue"
 	drivers "gitlab.33.cn/chain33/chain33/system/consensus"
 	driver "gitlab.33.cn/chain33/chain33/system/dapp"
+	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -125,9 +126,9 @@ func createTicket(minerAddr, returnAddr string, count int32, height int64) (ret 
 	//给hotkey 10000 个币，作为miner的手续费
 	tx1.To = minerAddr
 	//gen payload
-	g := &types.CoinsAction_Genesis{}
-	g.Genesis = &types.CoinsGenesis{Amount: types.GetP(height).TicketPrice}
-	tx1.Payload = types.Encode(&types.CoinsAction{Value: g, Ty: types.CoinsActionGenesis})
+	g := &cty.CoinsAction_Genesis{}
+	g.Genesis = &types.AssetsGenesis{Amount: types.GetP(height).TicketPrice}
+	tx1.Payload = types.Encode(&cty.CoinsAction{Value: g, Ty: cty.CoinsActionGenesis})
 	ret = append(ret, &tx1)
 
 	tx2 := types.Transaction{}
@@ -135,9 +136,9 @@ func createTicket(minerAddr, returnAddr string, count int32, height int64) (ret 
 	tx2.Execer = []byte("coins")
 	tx2.To = driver.ExecAddress("ticket")
 	//gen payload
-	g = &types.CoinsAction_Genesis{}
-	g.Genesis = &types.CoinsGenesis{int64(count) * types.GetP(height).TicketPrice, returnAddr}
-	tx2.Payload = types.Encode(&types.CoinsAction{Value: g, Ty: types.CoinsActionGenesis})
+	g = &cty.CoinsAction_Genesis{}
+	g.Genesis = &types.AssetsGenesis{int64(count) * types.GetP(height).TicketPrice, returnAddr}
+	tx2.Payload = types.Encode(&cty.CoinsAction{Value: g, Ty: cty.CoinsActionGenesis})
 	ret = append(ret, &tx2)
 
 	tx3 := types.Transaction{}

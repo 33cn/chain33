@@ -50,6 +50,7 @@ const (
 	EventWalletSetFee        = 45
 	EventWalletSetLabel      = 46
 	//EventWalletAccount       = 47
+	EventStoreDel           = 47
 	EventWalletMergeBalance = 48
 	EventReplyHashes        = 49
 	EventWalletSetPasswd    = 50
@@ -225,6 +226,7 @@ var eventName = map[int]string{
 	45: "EventWalletSetFee",
 	46: "EventWalletSetLabel",
 	//47: "EventWalletAccount",
+	47:  "EventStoreDel",
 	48:  "EventWalletMergeBalance",
 	49:  "EventReplyHashes",
 	50:  "EventWalletSetPasswd",

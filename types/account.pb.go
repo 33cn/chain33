@@ -15,7 +15,6 @@ It is generated from these files:
 	executorTrade.proto
 	lottery.proto
 	p2p.proto
-	paracross.proto
 	pbft.proto
 	relay.proto
 	rpc.proto
@@ -97,6 +96,7 @@ It has these top-level messages:
 	LocalDBGet
 	LocalReplyValue
 	StoreSet
+	StoreDel
 	StoreSetWithSync
 	StoreGet
 	StoreReplyValue
@@ -116,11 +116,6 @@ It has these top-level messages:
 	EvmDebugReq
 	EvmDebugResp
 	Genesis
-	CoinsAction
-	CoinsGenesis
-	CoinsTransfer
-	CoinsTransferToExec
-	CoinsWithdraw
 	Hashlock
 	HashlockAction
 	HashlockLock
@@ -288,18 +283,6 @@ It has these top-level messages:
 	NodeNetInfo
 	PeersReply
 	PeersInfo
-	ParacrossStatusDetails
-	ParacrossHeightStatus
-	ParacrossStatus
-	ParacrossNodeStatus
-	ParacrossCommitAction
-	ParacrossAction
-	ReceiptParacrossCommit
-	ReceiptParacrossDone
-	ReceiptParacrossRecord
-	ParacrossTx
-	ReqParacrossTitleHeight
-	RespParacrossTitles
 	Operation
 	Checkpoint
 	Entry
@@ -373,6 +356,10 @@ It has these top-level messages:
 	VoteSetMaj23Msg
 	VoteSetBitsMsg
 	Heartbeat
+	AssetsGenesis
+	AssetsTransferToExec
+	AssetsWithdraw
+	AssetsTransfer
 	CreateTx
 	CreateTransactionGroup
 	UnsignTx

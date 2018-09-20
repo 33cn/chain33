@@ -164,6 +164,12 @@ func auth(ctx context.Context, info *grpc.UnaryServerInfo) error {
 	return fmt.Errorf("Can't get remote ip!")
 }
 
+type clientRequest struct {
+	Method string         `json:"method"`
+	Params [1]interface{} `json:"params"`
+	Id     uint64         `json:"id"`
+}
+
 func parseJsonRpcParams(data []byte) (*clientRequest, error) {
 	var req clientRequest
 	err := json.Unmarshal(data, &req)

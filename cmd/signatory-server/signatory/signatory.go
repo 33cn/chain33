@@ -9,6 +9,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
+	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -76,13 +77,13 @@ func (signatory *Signatory) SignTransfer(in *string, out *interface{}) error {
 	}
 
 	amount := 1 * types.Coin
-	v := &types.CoinsTransfer{
+	v := &types.AssetsTransfer{
 		Amount: amount,
 		Note:   "transfer 1 bty by signatory-server",
 	}
-	transfer := &types.CoinsAction{
-		Ty:    types.CoinsActionTransfer,
-		Value: &types.CoinsAction_Transfer{v},
+	transfer := &cty.CoinsAction{
+		Ty:    cty.CoinsActionTransfer,
+		Value: &cty.CoinsAction_Transfer{v},
 	}
 
 	tx := &types.Transaction{

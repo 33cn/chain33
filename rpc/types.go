@@ -232,12 +232,6 @@ type BlockOverview struct {
 	TxHashes []string `json:"txHashes"`
 }
 
-type Query4Cli struct {
-	Execer   string      `json:"execer"`
-	FuncName string      `json:"funcName"`
-	Payload  interface{} `json:"payload"`
-}
-
 type Query4Jrpc struct {
 	Execer   string          `json:"execer"`
 	FuncName string          `json:"funcName"`

@@ -48,8 +48,8 @@ func Register(name string, create DriverCreate, height int64) {
 }
 
 func LoadDriver(name string, height int64) (driver Driver, err error) {
-	//user.evm.xxxx 的交易，使用evm执行器
-	//user.p.evm
+	// user.evm.xxxx 的交易，使用evm执行器
+	//   user.p.evm
 	name = string(types.GetRealExecName([]byte(name)))
 	c, ok := registedExecDriver[name]
 	if !ok {
@@ -59,6 +59,23 @@ func LoadDriver(name string, height int64) (driver Driver, err error) {
 		return c.create(), nil
 	}
 	return nil, types.ErrUnknowDriver
+}
+
+func LoadDriverAllow(tx *types.Transaction, index int, height int64) (driver Driver) {
+	exec, err := LoadDriver(string(tx.Execer), height)
+	if err == nil {
+		err = exec.Allow(tx, index)
+	}
+	if err != nil {
+		exec, err = LoadDriver("none", height)
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		exec.SetName(string(types.GetRealExecName(tx.Execer)))
+		exec.SetCurrentExecName(string(tx.Execer))
+	}
+	return exec
 }
 
 func IsDriverAddress(addr string, height int64) bool {

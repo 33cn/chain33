@@ -16,6 +16,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
+	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
 	wcom "gitlab.33.cn/chain33/chain33/wallet/common"
 	"gitlab.33.cn/wallet/bipwallet"
@@ -682,8 +683,8 @@ func (wallet *Wallet) ProcMergeBalance(MergeBalance *types.ReqWalletMergeBalance
 			continue
 		}
 		amount = amount - wallet.FeeAmount
-		v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount, Note: note}}
-		transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
+		v := &cty.CoinsAction_Transfer{&types.AssetsTransfer{Amount: amount, Note: note}}
+		transfer := &cty.CoinsAction{Value: v, Ty: cty.CoinsActionTransfer}
 		//初始化随机数
 		tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: wallet.FeeAmount, To: addrto, Nonce: wallet.random.Int63()}
 		tx.SetExpire(time.Second * 120)

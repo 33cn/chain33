@@ -1,12 +1,14 @@
 package types
 
+import "reflect"
+
 var slash = []byte("-")
 var Debug = false
 
 const (
+	CoinsX          = "coins"
 	UserKeyX        = "user."
 	ParaKeyX        = "user.p."
-	CoinsX          = "coins"
 	TicketX         = "ticket"
 	HashlockX       = "hashlock"
 	RetrieveX       = "retrieve"
@@ -69,6 +71,7 @@ const (
 	SignatureSize                 = (4 + 33 + 65)
 	PrivacyMaturityDegree         = 12
 	TxGroupMaxCount               = 20
+	MinerAction                   = "miner"
 )
 
 var (
@@ -158,7 +161,24 @@ const (
 	TyLogExecActive      = 10
 	TyLogGenesisTransfer = 11
 	TyLogGenesisDeposit  = 12
+)
 
+var SystemLog = map[int64]reflect.Type{
+	TyLogReserved:        nil,
+	TyLogErr:             nil,
+	TyLogFee:             reflect.TypeOf(ReceiptAccountTransfer{}),
+	TyLogTransfer:        reflect.TypeOf(ReceiptAccountTransfer{}),
+	TyLogDeposit:         reflect.TypeOf(ReceiptAccountTransfer{}),
+	TyLogExecTransfer:    reflect.TypeOf(ReceiptExecAccountTransfer{}),
+	TyLogExecWithdraw:    reflect.TypeOf(ReceiptExecAccountTransfer{}),
+	TyLogExecDeposit:     reflect.TypeOf(ReceiptExecAccountTransfer{}),
+	TyLogExecFrozen:      reflect.TypeOf(ReceiptExecAccountTransfer{}),
+	TyLogExecActive:      reflect.TypeOf(ReceiptAccountTransfer{}),
+	TyLogGenesisTransfer: reflect.TypeOf(ReceiptAccountTransfer{}),
+	TyLogGenesisDeposit:  reflect.TypeOf(ReceiptAccountTransfer{}),
+}
+
+const (
 	//log for ticket
 	TyLogNewTicket   = 111
 	TyLogCloseTicket = 112
@@ -171,22 +191,24 @@ const (
 	TyLogRevokeCreateToken = 213
 
 	//log for trade
-	TyLogTradeSellLimit       = 310
-	TyLogTradeBuyMarket       = 311
-	TyLogTradeSellRevoke      = 312
-	TyLogTokenTransfer        = 313
-	TyLogTokenGenesis         = 314
-	TyLogTokenDeposit         = 315
-	TyLogTokenExecTransfer    = 316
-	TyLogTokenExecWithdraw    = 317
-	TyLogTokenExecDeposit     = 318
-	TyLogTokenExecFrozen      = 319
-	TyLogTokenExecActive      = 320
-	TyLogTokenGenesisTransfer = 321
-	TyLogTokenGenesisDeposit  = 322
-	TyLogTradeSellMarket      = 330
-	TyLogTradeBuyLimit        = 331
-	TyLogTradeBuyRevoke       = 332
+	TyLogTradeSellLimit         = 310
+	TyLogTradeBuyMarket         = 311
+	TyLogTradeSellRevoke        = 312
+	TyLogTokenTransfer          = 313
+	TyLogTokenGenesis           = 314
+	TyLogTokenDeposit           = 315
+	TyLogTokenExecTransfer      = 316
+	TyLogTokenExecWithdraw      = 317
+	TyLogTokenExecDeposit       = 318
+	TyLogTokenExecFrozen        = 319
+	TyLogTokenExecActive        = 320
+	TyLogTokenGenesisTransfer   = 321
+	TyLogTokenGenesisDeposit    = 322
+	TyLogTradeSellMarket        = 330
+	TyLogTradeBuyLimit          = 331
+	TyLogTradeBuyRevoke         = 332
+	TyLogParaTokenAssetTransfer = 333
+	TyLogParaTokenAssetWithdraw = 334
 
 	//log for relay
 	TyLogRelayCreate       = 350
@@ -214,13 +236,6 @@ const (
 	TyLogCallContract = 603
 	// 合约状态数据变更项日志
 	TyLogEVMStateChangeItem = 604
-
-	// paracross 执行器的日志类型
-	TyLogParacrossCommit = 650
-	TyLogParacrossDone   = 651
-	// record 和 commit 不一样， 对应高度完成共识后收到commit 交易
-	// 这个交易就不参与共识, 只做记录
-	TyLogParacrossRecord = 652
 
 	//log for game
 	TyLogCreateGame = 711
@@ -251,11 +266,7 @@ const (
 )
 
 const (
-	InvalidAction       = 0
-	CoinsActionTransfer = 1
-	CoinsActionGenesis  = 2
-	CoinsActionWithdraw = 3
-
+	InvalidAction = 0
 	//action for token
 	ActionTransfer            = 4
 	ActionGenesis             = 5
@@ -263,7 +274,6 @@ const (
 	TokenActionPreCreate      = 7
 	TokenActionFinishCreate   = 8
 	TokenActionRevokeCreate   = 9
-	CoinsActionTransferToExec = 10
 	TokenActionTransferToExec = 11
 	//action type for privacy
 	ActionPublic2Privacy = iota + 100
@@ -459,6 +469,11 @@ var LowAllowPackHeight int64 = 30
 
 //默认情况下不开启fork
 var EnableTxGroupParaFork = false
+
+const (
+	ParaCrossTransferActionTypeStart = 10000
+	ParaCrossTransferActionTypeEnd   = 10100
+)
 
 //Lottery op
 const (

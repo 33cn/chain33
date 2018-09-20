@@ -30,11 +30,13 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/limits"
 	"gitlab.33.cn/chain33/chain33/executor"
 	"gitlab.33.cn/chain33/chain33/p2p"
+	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/wallet"
 
 	_ "gitlab.33.cn/chain33/chain33/plugin/dapp/init"
 	_ "gitlab.33.cn/chain33/chain33/plugin/store/init"
 	_ "gitlab.33.cn/chain33/chain33/system"
+	executorty "gitlab.33.cn/chain33/chain33/types/executor"
 )
 
 var (
@@ -44,6 +46,7 @@ var (
 )
 
 func init() {
+	executorty.Init()
 	err := limits.SetLimits()
 	if err != nil {
 		panic(err)
@@ -130,8 +133,8 @@ func createReplyList(account string) {
 	var result []*types.Transaction
 	for j := 0; j < txSize; j++ {
 		//tx := &types.Transaction{}
-		val := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: 10}}
-		action := &types.CoinsAction{Value: val, Ty: types.CoinsActionTransfer}
+		val := &cty.CoinsAction_Transfer{&types.AssetsTransfer{Amount: 10}}
+		action := &cty.CoinsAction{Value: val, Ty: cty.CoinsActionTransfer}
 		tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(action), Fee: 0}
 		tx.To = "14qViLJfdGaP4EeHnDyJbEGQysnCpwn1gZ"
 
