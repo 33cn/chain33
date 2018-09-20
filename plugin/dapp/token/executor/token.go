@@ -261,6 +261,7 @@ func (t *token) Query(funcName string, params []byte) (types.Message, error) {
 		if err != nil {
 			return nil, errors.Wrap(err, "GetTxByToken Decode request failed")
 		}
+		tokenlog.Debug("query debug", "func", funcName, "req", req)
 		return t.GetTxByToken(&req)
 	}
 	return nil, types.ErrActionNotSupport
@@ -358,7 +359,6 @@ func (t *token) GetTokens(reqTokens *types.ReqTokens) (types.Message, error) {
 				continue
 			}
 			symbol := key[idx+1:]
-			tokenlog.Debug("token Query GetTokens", "get count", len(keys), "SYMBOL", string(symbol))
 			token := types.Token{Symbol: string(symbol)}
 			replyTokens.Tokens = append(replyTokens.Tokens, &token)
 		}
@@ -367,7 +367,6 @@ func (t *token) GetTokens(reqTokens *types.ReqTokens) (types.Message, error) {
 
 	db := t.GetStateDB()
 	for _, key := range keys {
-		tokenlog.Debug("token Query GetTokens", "key in string", string(key))
 		if tokenValue, err := db.Get(key); err == nil {
 			var token types.Token
 			err = types.Decode(tokenValue, &token)
@@ -502,6 +501,7 @@ func (t *token) GetTxByToken(req *types.ReqTokenTx) (types.Message, error) {
 		return nil, errors.Wrap(err, "flag unknown")
 	}
 	key, prefix := findTokenTxListUtil(req)
+	tokenlog.Debug("GetTxByToken", "key", string(key), "prefix", string(prefix))
 
 	db := t.GetLocalDB()
 	txinfos, err := db.List(prefix, key, req.Count, req.Direction)
