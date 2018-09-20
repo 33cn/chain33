@@ -25,7 +25,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 )
 
-var indices = []string{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "f", "[17]"}
+var indices = []string{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "f", "T"}
 
 type node interface {
 	fstring(string) string
@@ -77,12 +77,12 @@ func (n *fullNode) EncodeProto(w io.Writer) error {
 }
 
 func (n *fullNode) create() *Node {
-	nodes := make([]*Node, 17)
+	nodes := make([]*Node, 0)
 	for i, n := range n.Children {
 		if n != nil {
-			nodes[i] = n.create()
-		} else {
-			nodes[i] = &Node{}
+			nn := n.create()
+			nn.Index = int32(i)
+			nodes = append(nodes, nn)
 		}
 	}
 	return &Node{Ty: TyFullNode, Value: &Node_Full{Full: &FullNode{Nodes: nodes}}}
@@ -136,22 +136,33 @@ func (n valueNode) String() string  { return n.fstring("") }
 func (n *fullNode) fstring(ind string) string {
 	resp := fmt.Sprintf("[\n%s  ", ind)
 	for i, node := range &n.Children {
-		if node == nil {
-			resp += fmt.Sprintf("%s: <nil> ", indices[i])
-		} else {
+		if node != nil {
 			resp += fmt.Sprintf("%s: %v", indices[i], node.fstring(ind+"  "))
 		}
 	}
 	return resp + fmt.Sprintf("\n%s] ", ind)
 }
 func (n *shortNode) fstring(ind string) string {
-	return fmt.Sprintf("{%x: %v} ", n.Key, n.Val.fstring(ind+"  "))
+	return fmt.Sprintf("{%s: %v} ", hexToString(n.Key), n.Val.fstring(ind+"  "))
 }
 func (n hashNode) fstring(ind string) string {
 	return fmt.Sprintf("<%x> ", n.Hash)
 }
 func (n valueNode) fstring(ind string) string {
-	return fmt.Sprintf("%x ", n.Value)
+	return fmt.Sprintf("%s ", string(n.Value))
+}
+
+func hexToString(hex []byte) string {
+	s := ""
+	for i := 0; i < len(hex); i++ {
+		if hex[i] > 16 {
+			hex = compactToHex(hex)
+		}
+	}
+	for i := 0; i < len(hex); i++ {
+		s += indices[hex[i]]
+	}
+	return s
 }
 
 func mustDecodeNode(hash, buf []byte, cachegen uint16) node {
@@ -207,7 +218,7 @@ func (n *Node) decode(hash []byte, cachegen uint16) (node, error) {
 
 func decodeShort(hash []byte, sn *ShortNode, cachegen uint16) (*shortNode, error) {
 	n := &shortNode{flags: nodeFlag{hash: createHashNode(hash), gen: cachegen}}
-	n.Key = sn.Key
+	n.Key = compactToHex(sn.Key)
 	var err error
 	n.Val, err = sn.Val.decode(hash, cachegen)
 	if err != nil {
@@ -220,8 +231,9 @@ func decodeFull(hash []byte, fn *FullNode, cachegen uint16) (*fullNode, error) {
 	n := &fullNode{flags: nodeFlag{hash: createHashNode(hash), gen: cachegen}}
 	var err error
 	for i := 0; i < len(fn.Nodes); i++ {
-		if fn.Nodes[i] != nil {
-			n.Children[i], err = fn.Nodes[i].decode(hash, cachegen)
+		if fn.Nodes[i] != nil && fn.Nodes[i].Ty > 0 {
+			index := fn.Nodes[i].Index
+			n.Children[index], err = fn.Nodes[i].decode(hash, cachegen)
 			if err != nil {
 				return nil, err
 			}

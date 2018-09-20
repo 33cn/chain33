@@ -17,6 +17,7 @@
 package mpt
 
 import (
+	"encoding/hex"
 	"fmt"
 	"sync"
 	"time"
@@ -219,9 +220,9 @@ func simplifyNode(n node) node {
 	case *fullNode:
 		// Full nodes discard the flags and cascade
 		node := &fullNode{}
-		for i := 0; i < len(node.Children); i++ {
-			if node.Children[i] != nil {
-				node.Children[i] = simplifyNode(node.Children[i])
+		for i := 0; i < len(n.Children); i++ {
+			if n.Children[i] != nil {
+				node.Children[i] = simplifyNode(n.Children[i])
 			}
 		}
 		return node
@@ -535,14 +536,8 @@ func (db *Database) commit(hash common.Hash, batch dbm.Batch) error {
 			return err
 		}
 	}
+	println(hex.EncodeToString(hash[:]), len(node.proto()))
 	batch.Set(hash[:], node.proto())
-	// If we've reached an optimal batch size, commit and start over
-	if batch.ValueSize() >= IdealBatchSize {
-		if err := batch.Write(); err != nil {
-			return err
-		}
-		batch.Reset()
-	}
 	return nil
 }
 
