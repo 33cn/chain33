@@ -19,14 +19,14 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor"
 	"gitlab.33.cn/chain33/chain33/mempool"
 	"gitlab.33.cn/chain33/chain33/p2p"
+	_ "gitlab.33.cn/chain33/chain33/plugin/store/init"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/store"
-	"gitlab.33.cn/chain33/chain33/types"
-	"google.golang.org/grpc"
-
-	_ "gitlab.33.cn/chain33/chain33/plugin/store/init"
 	_ "gitlab.33.cn/chain33/chain33/system"
+	"gitlab.33.cn/chain33/chain33/types"
+	executorty "gitlab.33.cn/chain33/chain33/types/executor"
+	"google.golang.org/grpc"
 )
 
 var (
@@ -37,6 +37,7 @@ var (
 )
 
 func init() {
+	executorty.Init()
 	err := limits.SetLimits()
 	if err != nil {
 		panic(err)

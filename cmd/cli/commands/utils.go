@@ -14,7 +14,9 @@ import (
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
+	pt "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/types"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
+	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -43,11 +45,11 @@ func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
 	}
 
 	switch tx.Execer {
-	case types.CoinsX:
-		var action types.CoinsAction
+	case cty.CoinsX:
+		var action cty.CoinsAction
 		bt, _ := common.FromHex(tx.RawPayload)
 		types.Decode(bt, &action)
-		if pl, ok := action.Value.(*types.CoinsAction_Transfer); ok {
+		if pl, ok := action.Value.(*cty.CoinsAction_Transfer); ok {
 			amt := float64(pl.Transfer.Amount) / float64(types.Coin)
 			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
 			result.Payload = &CoinsTransferCLI{
@@ -56,7 +58,7 @@ func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
 				Note:      pl.Transfer.Note,
 				To:        pl.Transfer.To,
 			}
-		} else if pl, ok := action.Value.(*types.CoinsAction_Withdraw); ok {
+		} else if pl, ok := action.Value.(*cty.CoinsAction_Withdraw); ok {
 			amt := float64(pl.Withdraw.Amount) / float64(types.Coin)
 			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
 			result.Payload = &CoinsWithdrawCLI{
@@ -66,14 +68,14 @@ func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
 				ExecName:  pl.Withdraw.ExecName,
 				To:        pl.Withdraw.To,
 			}
-		} else if pl, ok := action.Value.(*types.CoinsAction_Genesis); ok {
+		} else if pl, ok := action.Value.(*cty.CoinsAction_Genesis); ok {
 			amt := float64(pl.Genesis.Amount) / float64(types.Coin)
 			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
 			result.Payload = &CoinsGenesisCLI{
 				Amount:        amtResult,
 				ReturnAddress: pl.Genesis.ReturnAddress,
 			}
-		} else if pl, ok := action.Value.(*types.CoinsAction_TransferToExec); ok {
+		} else if pl, ok := action.Value.(*cty.CoinsAction_TransferToExec); ok {
 			amt := float64(pl.TransferToExec.Amount) / float64(types.Coin)
 			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
 			result.Payload = &CoinsTransferToExecCLI{
@@ -289,7 +291,8 @@ func decodeLog(rlog jsonrpc.ReceiptDataResult) *ReceiptData {
 			types.TyLogRelayRcvBTCHead, types.TyLogRelayConfirmTx, types.TyLogRelayFinishTx,
 			types.TyLogBlackwhiteCreate, types.TyLogBlackwhiteShow, types.TyLogBlackwhitePlay,
 			types.TyLogBlackwhiteTimeout, types.TyLogBlackwhiteDone, types.TyLogBlackwhiteLoopInfo,
-			types.TyLogLotteryCreate, types.TyLogLotteryBuy, types.TyLogLotteryDraw, types.TyLogLotteryClose:
+			types.TyLogLotteryCreate, types.TyLogLotteryBuy, types.TyLogLotteryDraw, types.TyLogLotteryClose,
+			pt.TyLogParacrossMiner, pt.TyLogParaAssetTransfer, pt.TyLogParaAssetWithdraw, pt.TyLogParacrossCommit:
 
 			rl.Log = l.Log
 		//case 2, 3, 5, 11:
@@ -460,21 +463,21 @@ func CreateRawTx(cmd *cobra.Command, to string, amount float64, note string, isW
 	}
 	var tx *types.Transaction
 	if !isToken {
-		transfer := &types.CoinsAction{}
+		transfer := &cty.CoinsAction{}
 		if !isWithdraw {
 			if initExecName != "" {
-				v := &types.CoinsAction_TransferToExec{TransferToExec: &types.CoinsTransferToExec{Amount: amountInt64, Note: note, ExecName: execName}}
+				v := &cty.CoinsAction_TransferToExec{TransferToExec: &types.AssetsTransferToExec{Amount: amountInt64, Note: note, ExecName: execName}}
 				transfer.Value = v
-				transfer.Ty = types.CoinsActionTransferToExec
+				transfer.Ty = cty.CoinsActionTransferToExec
 			} else {
-				v := &types.CoinsAction_Transfer{Transfer: &types.CoinsTransfer{Amount: amountInt64, Note: note, To: to}}
+				v := &cty.CoinsAction_Transfer{Transfer: &types.AssetsTransfer{Amount: amountInt64, Note: note, To: to}}
 				transfer.Value = v
-				transfer.Ty = types.CoinsActionTransfer
+				transfer.Ty = cty.CoinsActionTransfer
 			}
 		} else {
-			v := &types.CoinsAction_Withdraw{Withdraw: &types.CoinsWithdraw{Amount: amountInt64, Note: note, ExecName: execName}}
+			v := &cty.CoinsAction_Withdraw{Withdraw: &types.AssetsWithdraw{Amount: amountInt64, Note: note, ExecName: execName}}
 			transfer.Value = v
-			transfer.Ty = types.CoinsActionWithdraw
+			transfer.Ty = cty.CoinsActionWithdraw
 		}
 		execer := []byte(getRealExecName(paraName, "coins"))
 		if paraName == "" {
@@ -485,11 +488,11 @@ func CreateRawTx(cmd *cobra.Command, to string, amount float64, note string, isW
 	} else {
 		transfer := &types.TokenAction{}
 		if !isWithdraw {
-			v := &types.TokenAction_Transfer{Transfer: &types.CoinsTransfer{Cointoken: tokenSymbol, Amount: amountInt64, Note: note, To: to}}
+			v := &types.TokenAction_Transfer{Transfer: &types.AssetsTransfer{Cointoken: tokenSymbol, Amount: amountInt64, Note: note, To: to}}
 			transfer.Value = v
 			transfer.Ty = types.ActionTransfer
 		} else {
-			v := &types.TokenAction_Withdraw{Withdraw: &types.CoinsWithdraw{Cointoken: tokenSymbol, Amount: amountInt64, Note: note}}
+			v := &types.TokenAction_Withdraw{Withdraw: &types.AssetsWithdraw{Cointoken: tokenSymbol, Amount: amountInt64, Note: note}}
 			transfer.Value = v
 			transfer.Ty = types.ActionWithdraw
 		}

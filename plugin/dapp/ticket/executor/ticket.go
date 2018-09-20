@@ -22,7 +22,7 @@ import (
 
 var clog = log.New("module", "execs.ticket")
 
-func Init() {
+func Init(name string) {
 	drivers.Register(GetName(), newTicket, 0)
 }
 
@@ -40,7 +40,7 @@ func newTicket() drivers.Driver {
 	return t
 }
 
-func (t *Ticket) GetName() string {
+func (t *Ticket) GetDriverName() string {
 	return "ticket"
 }
 
@@ -295,4 +295,11 @@ func delticket(addr string, ticketID string, status int32) *types.KeyValue {
 	kv.Key = calcTicketKey(addr, ticketID, status)
 	kv.Value = nil
 	return kv
+}
+
+func (t *Ticket) IsFriend(myexec, writekey []byte, tx *types.Transaction) bool {
+	panic("xxx")
+	clog.Error("ticket  IsFriend", "myex", string(myexec), "writekey", string(writekey))
+	//不允许平行链
+	return false
 }

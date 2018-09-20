@@ -10,47 +10,6 @@ message Genesis {
     bool isrun = 1;
 }
 
-// message for execs.coins
-message CoinsAction {
-    oneof value {
-        CoinsTransfer       transfer       = 1;
-        CoinsWithdraw       withdraw       = 4;
-        CoinsGenesis        genesis        = 2;
-        CoinsTransferToExec transferToExec = 5;
-    }
-    int32 ty = 3;
-}
-
-//给某个地址凭空打币
-//只能执行一次，不能执行第二次
-message CoinsGenesis {
-    int64  amount        = 2;
-    string returnAddress = 3;
-}
-
-message CoinsTransfer {
-    string cointoken = 1;
-    int64  amount    = 2;
-    string note      = 3;
-    string to        = 4;
-}
-
-message CoinsTransferToExec {
-    string cointoken = 1;
-    int64  amount    = 2;
-    string note      = 3;
-    string execName  = 4;
-    string to        = 5;
-}
-
-message CoinsWithdraw {
-    string cointoken = 1;
-    int64  amount    = 2;
-    string note      = 3;
-    string execName  = 4;
-    string to        = 5;
-}
-
 message Hashlock {
     bytes  hashlockId    = 1;
     int32  status        = 2;
@@ -311,13 +270,13 @@ message RetrieveQuery {
 //////////////////////////////////////////////////////////////////////////////
 message TokenAction {
     oneof value {
-        TokenPreCreate      tokenprecreate    = 1;
-        TokenFinishCreate   tokenfinishcreate = 2;
-        TokenRevokeCreate   tokenrevokecreate = 3;
-        CoinsTransfer       transfer          = 4;
-        CoinsWithdraw       withdraw          = 5;
-        CoinsGenesis        genesis           = 6;
-        CoinsTransferToExec transferToExec    = 8;
+        TokenPreCreate       tokenprecreate    = 1;
+        TokenFinishCreate    tokenfinishcreate = 2;
+        TokenRevokeCreate    tokenrevokecreate = 3;
+        AssetsTransfer       transfer          = 4;
+        AssetsWithdraw       withdraw          = 5;
+        AssetsGenesis        genesis           = 6;
+        AssetsTransferToExec transferToExec    = 8;
     }
     int32 Ty = 7;
 }

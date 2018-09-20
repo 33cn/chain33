@@ -1,7 +1,8 @@
 syntax = "proto3";
 
+import "transaction.proto";
+
 package types;
-option go_package = "gitlab.33.cn/chain33/chain33/types";
 
 // stateDB
 message ParacrossStatusDetails {
@@ -25,25 +26,35 @@ message ParacrossStatus {
 
 // action
 message ParacrossNodeStatus {
-    bytes  mainBlockHash   = 1;
-    int64  mainBlockHeight = 2;
-    string title           = 3;
-    int64  height          = 4;
-    bytes  preBlockHash    = 5;
-    bytes  blockHash       = 6;
-    bytes  preStateHash    = 7;
-    bytes  stateHash       = 8;
-    uint32 txCounts        = 9;
-    bytes  txResult        = 10;
+    bytes    mainBlockHash       = 1;
+    int64    mainBlockHeight     = 2;
+    string   title               = 3;
+    int64    height              = 4;
+    bytes    preBlockHash        = 5;
+    bytes    blockHash           = 6;
+    bytes    preStateHash        = 7;
+    bytes    stateHash           = 8;
+    uint32   txCounts            = 9;
+    bytes    txResult            = 10;
+    repeated bytes txHashs       = 11;
+    bytes          crossTxResult = 12;
+    repeated bytes crossTxHashs  = 13;
 }
 
 message ParacrossCommitAction {
     ParacrossNodeStatus status = 1;
 }
 
+message ParacrossMinerAction {
+    ParacrossNodeStatus status = 1;
+}
+
 message ParacrossAction {
     oneof value {
-        ParacrossCommitAction commit = 1;
+        ParacrossCommitAction commit        = 1;
+        ParacrossMinerAction  miner         = 3;
+        AssetsTransfer        assetTransfer = 4;
+        AssetsWithdraw        assetWithdraw = 5;
     }
     int32 ty = 2;
 }
@@ -54,6 +65,10 @@ message ReceiptParacrossCommit {
     ParacrossNodeStatus   status  = 2;
     ParacrossHeightStatus prev    = 3;
     ParacrossHeightStatus current = 4;
+}
+
+message ReceiptParacrossMiner {
+    ParacrossNodeStatus status = 1;
 }
 
 message ReceiptParacrossDone {
@@ -86,4 +101,20 @@ message ReqParacrossTitleHeight {
 
 message RespParacrossTitles {
     repeated ReceiptParacrossDone titles = 1;
+}
+
+// 跨链转账相关
+message ParacrossAsset {
+    // input
+    string from       = 1;
+    string to         = 2;
+    bool   isWithdraw = 3;
+    bytes  txHash     = 4;
+    int64  amount     = 5;
+    // 主链部分
+    int64 height = 10;
+    // 平行链部分
+    int64 commitDoneHeight = 21;
+    int64 paraHeight       = 22;
+    bool  success          = 23;
 }

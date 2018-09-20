@@ -6,7 +6,8 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 	"gitlab.33.cn/chain33/chain33/queue"
 	drivers "gitlab.33.cn/chain33/chain33/system/consensus"
-	pb "gitlab.33.cn/chain33/chain33/types"
+	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 func init() {
@@ -15,12 +16,12 @@ func init() {
 
 type PbftClient struct {
 	*drivers.BaseClient
-	replyChan   chan *pb.ClientReply
-	requestChan chan *pb.Request
+	replyChan   chan *types.ClientReply
+	requestChan chan *types.Request
 	isPrimary   bool
 }
 
-func NewBlockstore(cfg *pb.Consensus, replyChan chan *pb.ClientReply, requestChan chan *pb.Request, isPrimary bool) *PbftClient {
+func NewBlockstore(cfg *types.Consensus, replyChan chan *types.ClientReply, requestChan chan *types.Request, isPrimary bool) *PbftClient {
 	c := drivers.NewBaseClient(cfg)
 	client := &PbftClient{BaseClient: c, replyChan: replyChan, requestChan: requestChan, isPrimary: isPrimary}
 	c.SetChild(client)
@@ -30,13 +31,13 @@ func (client *PbftClient) ProcEvent(msg queue.Message) bool {
 	return false
 }
 
-func (client *PbftClient) Propose(block *pb.Block) {
-	op := &pb.Operation{block}
-	req := ToRequestClient(op, pb.Now().String(), client.BaseClient.Cfg.ClientAddr)
+func (client *PbftClient) Propose(block *types.Block) {
+	op := &types.Operation{block}
+	req := ToRequestClient(op, types.Now().String(), client.BaseClient.Cfg.ClientAddr)
 	client.requestChan <- req
 }
 
-func (client *PbftClient) CheckBlock(parent *pb.Block, current *pb.BlockDetail) error {
+func (client *PbftClient) CheckBlock(parent *types.Block, current *types.BlockDetail) error {
 	return nil
 }
 
@@ -62,7 +63,7 @@ func (client *PbftClient) CreateBlock() {
 		}
 		plog.Info("=============start get tx===============")
 		lastBlock := client.GetCurrentBlock()
-		txs := client.RequestTx(int(pb.GetP(lastBlock.Height+1).MaxTxNumber), nil)
+		txs := client.RequestTx(int(types.GetP(lastBlock.Height+1).MaxTxNumber), nil)
 		if len(txs) == 0 {
 			issleep = true
 			continue
@@ -73,12 +74,12 @@ func (client *PbftClient) CreateBlock() {
 		//txs = client.CheckTxDup(txs)
 		//fmt.Println(len(txs))
 
-		var newblock pb.Block
+		var newblock types.Block
 		newblock.ParentHash = lastBlock.Hash()
 		newblock.Height = lastBlock.Height + 1
 		newblock.Txs = txs
 		newblock.TxHash = merkle.CalcMerkleRoot(newblock.Txs)
-		newblock.BlockTime = pb.Now().Unix()
+		newblock.BlockTime = types.Now().Unix()
 		if lastBlock.BlockTime >= newblock.BlockTime {
 			newblock.BlockTime = lastBlock.BlockTime + 1
 		}
@@ -89,15 +90,15 @@ func (client *PbftClient) CreateBlock() {
 	}
 }
 
-func (client *PbftClient) CreateGenesisTx() (ret []*pb.Transaction) {
-	var tx pb.Transaction
+func (client *PbftClient) CreateGenesisTx() (ret []*types.Transaction) {
+	var tx types.Transaction
 	tx.Execer = []byte("coins")
 	tx.To = client.Cfg.Genesis
 	//gen payload
-	g := &pb.CoinsAction_Genesis{}
-	g.Genesis = &pb.CoinsGenesis{}
-	g.Genesis.Amount = 1e8 * pb.Coin
-	tx.Payload = pb.Encode(&pb.CoinsAction{Value: g, Ty: pb.CoinsActionGenesis})
+	g := &cty.CoinsAction_Genesis{}
+	g.Genesis = &types.AssetsGenesis{}
+	g.Genesis.Amount = 1e8 * types.Coin
+	tx.Payload = types.Encode(&cty.CoinsAction{Value: g, Ty: cty.CoinsActionGenesis})
 	ret = append(ret, &tx)
 	return
 }

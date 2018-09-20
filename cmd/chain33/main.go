@@ -40,7 +40,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/store"
 	"gitlab.33.cn/chain33/chain33/types"
-	_ "gitlab.33.cn/chain33/chain33/types/executor"
+	ety "gitlab.33.cn/chain33/chain33/types/executor"
 	"gitlab.33.cn/chain33/chain33/wallet"
 	"golang.org/x/net/trace"
 	"google.golang.org/grpc"
@@ -122,6 +122,14 @@ func main() {
 	//set maxprocs
 	runtime.GOMAXPROCS(cpuNum)
 
+	//check mvcc switch，if use kvmvcc then cfg.Exec.EnableMVCC should be always false.
+	if cfg.Store.Name == "kvmvcc" {
+		if cfg.Exec.EnableMVCC {
+			log.Error("store type is kvmvcc but enableMVCC is configured true.")
+			panic("store type is kvmvcc, configure item enableMVCC should be false.please check it.")
+		}
+	}
+	ety.Init()
 	//开始区块链模块加载
 	//channel, rabitmq 等
 	log.Info(cfg.Title + " " + version.GetVersion())

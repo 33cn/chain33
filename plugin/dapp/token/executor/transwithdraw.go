@@ -79,7 +79,7 @@ func (t *token) ExecLocalTransWithdraw(tx *types.Transaction, receipt *types.Rec
 		return set, nil
 	}
 	//执行成功
-	var action types.CoinsAction
+	var action types.TokenAction
 	err = types.Decode(tx.GetPayload(), &action)
 	if err != nil {
 		panic(err)
@@ -117,7 +117,7 @@ func (t *token) ExecDelLocalLocalTransWithdraw(tx *types.Transaction, receipt *t
 		return set, nil
 	}
 	//执行成功
-	var action types.CoinsAction
+	var action types.TokenAction
 	err = types.Decode(tx.GetPayload(), &action)
 	if err != nil {
 		panic(err)

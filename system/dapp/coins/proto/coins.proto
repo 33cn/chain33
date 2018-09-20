@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package types;
+
+import "transaction.proto";
+
+option go_package = "types";
+
+// message for execs.coins
+message CoinsAction {
+    oneof value {
+        AssetsTransfer       transfer       = 1;
+        AssetsWithdraw       withdraw       = 4;
+        AssetsGenesis        genesis        = 2;
+        AssetsTransferToExec transferToExec = 5;
+    }
+    int32 ty = 3;
+}

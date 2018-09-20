@@ -9,7 +9,7 @@ import (
 
 var relaylog = log.New("module", "execs.relay")
 
-func Init() {
+func Init(name string) {
 	drivers.Register(GetName(), newRelay, types.ForkV18Relay) //TODO: ForkV18Relay
 }
 
@@ -28,7 +28,7 @@ func newRelay() drivers.Driver {
 	return r
 }
 
-func (r *relay) GetName() string {
+func (r *relay) GetDriverName() string {
 	return "relay"
 }
 

@@ -26,16 +26,18 @@ var (
 	EvmAddress = address.ExecAddress(types.ExecName(model.ExecutorName))
 )
 
-func Init() {
-	drivers.Register(GetName(), newEVMDriver, types.ForkV17EVM)
-	EvmAddress = address.ExecAddress(GetName())
+var driverName string
 
+func Init(name string) {
+	driverName = name
+	drivers.Register(driverName, newEVMDriver, types.ForkV17EVM)
+	EvmAddress = address.ExecAddress(GetName())
 	// 初始化硬分叉数据
 	state.InitForkData()
 }
 
 func GetName() string {
-	return model.ExecutorName
+	return newEVMDriver().GetName()
 }
 
 func newEVMDriver() drivers.Driver {
@@ -61,7 +63,7 @@ func NewEVMExecutor() *EVMExecutor {
 	return exec
 }
 
-func (evm *EVMExecutor) GetName() string {
+func (evm *EVMExecutor) GetDriverName() string {
 	return model.ExecutorName
 }
 
@@ -88,6 +90,18 @@ func (evm *EVMExecutor) allow(tx *types.Transaction, index int) bool {
 
 func (evm *EVMExecutor) allowPara(tx *types.Transaction, index int) bool {
 	return evm.AllowIsUserDot2Para(tx.Execer)
+}
+
+func (evm *EVMExecutor) IsFriend(myexec, writekey []byte, othertx *types.Transaction) bool {
+	if othertx != nil {
+		if bytes.HasPrefix(othertx.Execer, []byte("user.evm.")) || bytes.Equal(othertx.Execer, []byte("evm")) {
+			if bytes.HasPrefix(writekey, []byte("mavl-evm-")) {
+				return true
+			}
+		}
+		return false
+	}
+	return false
 }
 
 func (evm *EVMExecutor) CheckInit() {

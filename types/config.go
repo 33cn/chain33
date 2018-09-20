@@ -100,7 +100,7 @@ func GetP(height int64) *ChainParam {
 //区块链共识相关的参数，重要参数不要随便修改
 var (
 	AllowDepositExec = [][]byte{ExecerTicket}
-	AllowUserExec    = [][]byte{ExecerCoins, ExecerTicket, ExecerNorm, ExecerHashlock,
+	AllowUserExec    = [][]byte{ExecerTicket, ExecerNorm, ExecerHashlock,
 		ExecerRetrieve, ExecerNone, ExecerToken, ExecerTrade, ExecerManage,
 		ExecerEvm, ExecerRelay, ExecerPrivacy, ExecerCert /*ExecerBlackwhite,*/, ExecerPara, ExecerLottery, ExecerValNode}
 
@@ -142,7 +142,7 @@ var (
 func SetTitle(t string) {
 	title = t
 	if IsBityuan() {
-		AllowUserExec = [][]byte{ExecerCoins, ExecerTicket, ExecerHashlock,
+		AllowUserExec = [][]byte{[]byte("coins"), ExecerTicket, ExecerHashlock,
 			ExecerRetrieve, ExecerNone, ExecerToken, ExecerTrade, ExecerManage}
 		return
 	}
@@ -177,7 +177,8 @@ func IsYcc() bool {
 }
 
 func IsPara() bool {
-	return strings.HasPrefix(title, ParaKeyX)
+	//user.p.guodun.
+	return strings.Count(title, ".") == 3 && strings.HasPrefix(title, ParaKeyX)
 }
 
 func IsParaExecName(name string) bool {

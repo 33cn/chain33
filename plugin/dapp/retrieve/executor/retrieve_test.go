@@ -13,6 +13,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
+	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
 	"google.golang.org/grpc"
 )
@@ -610,8 +611,8 @@ func sendtoaddress(c types.Chain33Client, priv crypto.PrivKey, to string, amount
 	//defer conn.Close()
 	//fmt.Println("sign key privkey: ", common.ToHex(priv.Bytes()))
 	if amount > 0 {
-		v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
-		transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
+		v := &cty.CoinsAction_Transfer{&types.AssetsTransfer{Amount: amount}}
+		transfer := &cty.CoinsAction{Value: v, Ty: cty.CoinsActionTransfer}
 		tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: fee, To: to}
 		tx.Nonce = r.Int63()
 		tx.Sign(types.SECP256K1, priv)
@@ -627,8 +628,8 @@ func sendtoaddress(c types.Chain33Client, priv crypto.PrivKey, to string, amount
 		}
 		return tx.Hash(), nil
 	} else {
-		v := &types.CoinsAction_Withdraw{&types.CoinsWithdraw{Amount: -amount}}
-		withdraw := &types.CoinsAction{Value: v, Ty: types.CoinsActionWithdraw}
+		v := &cty.CoinsAction_Withdraw{&types.AssetsWithdraw{Amount: -amount}}
+		withdraw := &cty.CoinsAction{Value: v, Ty: cty.CoinsActionWithdraw}
 		tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(withdraw), Fee: fee, To: to}
 		tx.Nonce = r.Int63()
 		tx.Sign(types.SECP256K1, priv)

@@ -3,12 +3,12 @@ package rpc
 import (
 	"encoding/hex"
 	"fmt"
-	"strings"
 	"time"
 
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/version"
+	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	"gitlab.33.cn/chain33/chain33/types"
 	evmtype "gitlab.33.cn/chain33/chain33/types/executor/evm"
 	hashlocktype "gitlab.33.cn/chain33/chain33/types/executor/hashlock"
@@ -84,7 +84,7 @@ func forwardTranToMainNet(in RawParm, result *interface{}) error {
 	if rpcCfg.GetMainnetJrpcAddr() == "" {
 		return types.ErrInvalidMainnetRpcAddr
 	}
-	rpc, err := NewJSONClient(rpcCfg.GetMainnetJrpcAddr())
+	rpc, err := jsonclient.NewJSONClient(rpcCfg.GetMainnetJrpcAddr())
 
 	if err != nil {
 		return err
@@ -960,11 +960,8 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		return nil, types.ErrEmpty
 	}
 	execStr := string(tx.Execer)
-	if !types.IsPara() {
-		execStr = realExec(string(tx.Execer))
-	}
 	var pl interface{}
-	plType := types.LoadExecutor(execStr)
+	plType := types.LoadExecutorType(execStr)
 	if plType != nil {
 		var err error
 		pl, err = plType.DecodePayload(tx)
@@ -998,14 +995,6 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		Next:       common.ToHex(tx.Next),
 	}
 	return result, nil
-}
-
-func realExec(txExec string) string {
-	if strings.HasPrefix(txExec, "user.p.") {
-		execSplit := strings.Split(txExec, ".")
-		return execSplit[len(execSplit)-1]
-	}
-	return txExec
 }
 
 func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
@@ -1567,7 +1556,7 @@ func (c *Chain33) CreateTransaction(in *TransactionCreate, result *interface{}) 
 	if in == nil {
 		return types.ErrInputPara
 	}
-	exec := types.LoadExecutor(in.Execer)
+	exec := types.LoadExecutorType(in.Execer)
 	if exec == nil {
 		return types.ErrExecNameNotAllow
 	}
