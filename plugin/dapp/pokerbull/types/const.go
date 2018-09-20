@@ -1,5 +1,7 @@
 package types
 
+import "gitlab.33.cn/chain33/chain33/types"
+
 //game action ty
 const (
 	PBGameActionStart = iota + 1
@@ -23,3 +25,7 @@ const (
 	FuncName_QueryGameListByIds           = "QueryGameListByIds"
 	FuncName_QueryGameById                = "QueryGameById"
 )
+
+func init() {
+	types.AllowUserExec = append(types.AllowUserExec, ExecerPokerBull)
+}
