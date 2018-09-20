@@ -8,7 +8,7 @@ import (
 )
 
 func (d *DriverBase) AllowIsSame(execer []byte) bool {
-	return d.child.GetName() == string(execer)
+	return d.child.GetDriverName() == string(execer)
 }
 
 func (d *DriverBase) GetPara(execer []byte) ([]byte, bool) {

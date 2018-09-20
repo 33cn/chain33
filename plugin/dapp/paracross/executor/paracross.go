@@ -20,7 +20,7 @@ type Paracross struct {
 	drivers.DriverBase
 }
 
-func Init() {
+func Init(name string) {
 	drivers.Register(GetName(), newParacross, 0)
 	setPrefix()
 	InitType()
@@ -36,7 +36,7 @@ func newParacross() drivers.Driver {
 	return c
 }
 
-func (c *Paracross) GetName() string {
+func (c *Paracross) GetDriverName() string {
 	return types.ParaX
 }
 
@@ -515,29 +515,25 @@ func (c *Paracross) IsFriend(myexec, writekey []byte, tx *types.Transaction) boo
 	if types.IsPara() {
 		return false
 	}
-	//只允许写名字为主链名称的
-	if string(myexec) != c.GetName() {
+	//friend 调用必须是自己在调用
+	if string(myexec) != c.GetDriverName() {
 		return false
 	}
-	//只允许同系列的执行器
-	if string(types.GetRealExecName(tx.Execer)) != c.GetName() {
+	//只允许同系列的执行器（tx 也必须是 paracross）
+	if string(types.GetRealExecName(tx.Execer)) != c.GetDriverName() {
 		return false
 	}
 	//只允许跨链交易
-	return c.Allow(tx, 0) == nil
+	return c.allow(tx, 0) == nil
 }
 
-func (c *Paracross) Allow(tx *types.Transaction, index int) error {
-	err := c.DriverBase.Allow(tx, index)
-	if err == nil {
-		return nil
-	}
+func (c *Paracross) allow(tx *types.Transaction, index int) error {
 	// 增加新的规则: 在主链执行器带着title的 asset-transfer/asset-withdraw 交易允许执行
 	// 1. user.p.${tilte}.${paraX}
 	// 1. payload 的 actionType = t/w
 	if !types.IsPara() && c.allowIsParaAssetTx(tx.Execer) {
 		var payload pt.ParacrossAction
-		err = types.Decode(tx.Payload, &payload)
+		err := types.Decode(tx.Payload, &payload)
 		if err != nil {
 			return err
 		}
@@ -546,6 +542,16 @@ func (c *Paracross) Allow(tx *types.Transaction, index int) error {
 		}
 	}
 	return types.ErrNotAllow
+}
+
+func (c *Paracross) Allow(tx *types.Transaction, index int) error {
+	//默认规则
+	err := c.DriverBase.Allow(tx, index)
+	if err == nil {
+		return nil
+	}
+	//paracross 添加的规则
+	return c.allow(tx, index)
 }
 
 func (c *Paracross) allowIsParaAssetTx(execer []byte) bool {

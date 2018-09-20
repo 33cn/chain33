@@ -8,16 +8,14 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-const orgName = "paracross"
-
 var nameX string
 
-var glog = log.New("module", orgName)
+var glog = log.New("module", types.ParaX)
 
 func InitType() {
-	nameX = types.ExecName(orgName)
+	nameX = types.ExecName(types.ParaX)
 	// init executor type
-	types.RegistorExecutor(nameX, &ParacrossType{})
+	types.RegistorExecutor(types.ParaX, NewType())
 
 	// init log
 	types.RegistorLog(pt.TyLogParacrossCommit, &ParacrossCommitLog{})
@@ -25,6 +23,7 @@ func InitType() {
 	types.RegistorLog(pt.TyLogParacrossCommitRecord, &ParacrossCommitRecordLog{})
 	types.RegistorLog(pt.TyLogParaAssetWithdraw, &ParacrossAssetWithdrawLog{})
 	types.RegistorLog(pt.TyLogParaAssetTransfer, &ParacrossAssetTransferLog{})
+	types.RegistorLog(pt.TyLogParacrossMiner, &ParacrossMinerLog{})
 
 	// init query rpc
 	types.RegisterRPCQueryHandle("ParacrossGetTitle", &ParacrossGetTitle{})
@@ -39,6 +38,16 @@ func GetExecName() string {
 
 type ParacrossType struct {
 	types.ExecTypeBase
+}
+
+func NewType() *ParacrossType {
+	c := &ParacrossType{}
+	c.SetChild(c)
+	return c
+}
+
+func (b *ParacrossType) GetPayload() types.Message {
+	return &pt.ParacrossAction{}
 }
 
 func (m ParacrossType) ActionName(tx *types.Transaction) string {
@@ -169,6 +178,22 @@ func (l ParacrossAssetTransferLog) Name() string {
 
 func (l ParacrossAssetTransferLog) Decode(msg []byte) (interface{}, error) {
 	var logTmp types.ReceiptExecAccountTransfer
+	err := types.Decode(msg, &logTmp)
+	if err != nil {
+		return nil, err
+	}
+	return logTmp, err
+}
+
+type ParacrossMinerLog struct {
+}
+
+func (l ParacrossMinerLog) Name() string {
+	return "LogParaMiner"
+}
+
+func (l ParacrossMinerLog) Decode(msg []byte) (interface{}, error) {
+	var logTmp pt.ReceiptParacrossMiner
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
 		return nil, err
