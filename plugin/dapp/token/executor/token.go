@@ -253,6 +253,9 @@ func (t *token) Query(funcName string, params []byte) (types.Message, error) {
 		}
 		return t.GetAccountTokenAssets(&req)
 	case "GetTxByToken":
+		if !types.GetSaveTokenTxList() {
+			return nil, types.ErrActionNotSupport
+		}
 		var req types.ReqTokenTx
 		err := types.Decode(params, &req) // TODO_x to test show err log
 		if err != nil {
