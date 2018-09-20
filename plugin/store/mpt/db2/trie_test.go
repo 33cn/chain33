@@ -19,6 +19,7 @@ package mpt
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -27,7 +28,6 @@ import (
 	"reflect"
 	"testing"
 	"testing/quick"
-	"time"
 
 	"github.com/davecgh/go-spew/spew"
 
@@ -35,6 +35,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
+	"gitlab.33.cn/chain33/chain33/plugin/store/mpt/db2/rlp"
 	comTy "gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -49,7 +50,6 @@ var (
 )
 
 func init() {
-	rand.Seed(time.Now().UnixNano())
 	spew.Config.Indent = "    "
 	spew.Config.DisableMethods = false
 }
@@ -105,13 +105,12 @@ func testMissingNode(t *testing.T, memonly bool) {
 	if !memonly {
 		triedb.Commit(root, true)
 	}
+
 	trie, _ = New(root, triedb)
-	fmt.Println(trie.root)
-	data, err := trie.TryGet([]byte("120000"))
+	_, err := trie.TryGet([]byte("120000"))
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
-	assert.Equal(t, []byte("qwerqwerqwerqwerqwerqwerqwerqwer"), data)
 	trie, _ = New(root, triedb)
 	_, err = trie.TryGet([]byte("120099"))
 	if err != nil {
@@ -133,7 +132,7 @@ func testMissingNode(t *testing.T, memonly bool) {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
-	hash := common.HexToHash("0x59777340c73fbc10a1e1badce2fe9ce8fbe1d69c8b0e9c44c24356410eec94f4")
+	hash := common.HexToHash("0xe1d943cc8f061a0c0b98162830b970395ac9315654824bf21b73b891365262f9")
 	if memonly {
 		delete(triedb.nodes, hash)
 	} else {
@@ -171,11 +170,14 @@ func TestInsert(t *testing.T) {
 	trie := newEmpty()
 
 	updateString(trie, "doe", "reindeer")
+	fmt.Println(hex.EncodeToString([]byte("doe")), trie.root)
 	updateString(trie, "dog", "puppy")
+	fmt.Println(hex.EncodeToString([]byte("dog")), trie.root)
 	updateString(trie, "dogglesworth", "cat")
-
-	exp := common.HexToHash("dd7e0bb7530eb1fb943d654f028ec4a5c42c6504be3ab2821d4bfef57362a27c")
+	fmt.Println(hex.EncodeToString([]byte("dogglesworth")), trie.root)
+	exp := common.HexToHash("8aad789dff2f538bca5d8ea56e8abe10f4c7ba3a5dea95fea4cd6e7c3a1168d3")
 	root := trie.Hash()
+	fmt.Println(trie.root)
 	if root != exp {
 		t.Errorf("exp %x got %x", exp, root)
 	}
@@ -573,16 +575,6 @@ func benchUpdate(b *testing.B, e binary.ByteOrder) *Trie {
 	return trie
 }
 
-const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-
-func randBytes2(n int) []byte {
-	b := make([]byte, n)
-	for i := range b {
-		b[i] = letterBytes[rand.Intn(len(letterBytes))]
-	}
-	return b
-}
-
 // Benchmarks the trie hashing. Since the trie caches the result of any operation,
 // we cannot use b.N as the number of hashing rouns, since all rounds apart from
 // the first one will be NOOP. As such, we'll use b.N as the number of account to
@@ -600,7 +592,13 @@ func BenchmarkHash(b *testing.B) {
 	}
 	accounts := make([][]byte, len(addresses))
 	for i := 0; i < len(accounts); i++ {
-		accounts[i] = randBytes2(128)
+		var (
+			nonce   = uint64(random.Int63())
+			balance = new(big.Int).Rand(random, new(big.Int).Exp(Big2, Big256, nil))
+			root    = emptyRoot
+			code    = common.ShaKeccak256(nil)
+		)
+		accounts[i], _ = rlp.EncodeToBytes([]interface{}{nonce, balance, root, code})
 	}
 	// Insert the accounts into the trie and hash it
 	trie := newEmpty()
