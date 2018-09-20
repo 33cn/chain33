@@ -1363,9 +1363,9 @@ func TestChain33_GetAccounts(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 	testChain33 := newTestChain33(api)
 
-	api.On("WalletGetAccountList").Return(nil, errors.New("error value"))
+	api.On("WalletGetAccountList", mock.Anything).Return(nil, errors.New("error value"))
 	var testResult interface{}
-	data := &types.ReqNil{}
+	data := &types.ReqAccountList{}
 	err := testChain33.GetAccounts(data, &testResult)
 	t.Log(err)
 	assert.Equal(t, nil, testResult)
