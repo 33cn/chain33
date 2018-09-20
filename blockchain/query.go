@@ -26,8 +26,11 @@ func (q *Query) Query(driver string, funcname string, param []byte) (types.Messa
 	if err != nil {
 		return nil, err
 	}
-
-	return msg.GetData().(types.Message), nil
+	data := msg.GetData()
+	if data == nil {
+		return nil, types.ErrEmpty
+	}
+	return data.(types.Message), nil
 }
 
 func (q *Query) updateStateHash(stateHash []byte) {

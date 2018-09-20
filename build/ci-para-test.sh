@@ -116,29 +116,51 @@ function para_config() {
 
 function token_create() {
     echo "=========== # para token test ============="
+    echo "=========== # 1.token precreate ============="
     hash=$(${1} send token precreate -f 0.001 -i test -n guodunjifen -a 1KSBd17H7ZK8iT37aJztFB22XGwsPTdwE4 -p 0 -s GD -t 10000 -k 1KSBd17H7ZK8iT37aJztFB22XGwsPTdwE4)
     echo "${hash}"
     block_wait "${1}" 3
 
+    ${1} tx query -s "${hash}"
     owner=$(${1} tx query -s "${hash}" | jq -r ".receipt.logs[0].log.owner")
     if [ "${owner}" != "1KSBd17H7ZK8iT37aJztFB22XGwsPTdwE4" ]; then
         echo "wrong pre create owner"
         exit 1
     fi
 
+    echo "=========== # 2.token finish ============="
     hash=$(${1} send token finish -f 0.001 -a 1KSBd17H7ZK8iT37aJztFB22XGwsPTdwE4 -s GD -k 0xc34b5d9d44ac7b754806f761d3d4d2c4fe5214f6b074c19f069c4f5c2a29c8cc)
     echo "${hash}"
     block_wait "${1}" 3
 
+    ${1} tx query -s "${hash}"
     owner=$(${1} tx query -s "${hash}" | jq -r ".receipt.logs[1].log.owner")
     if [ "${owner}" != "1KSBd17H7ZK8iT37aJztFB22XGwsPTdwE4" ]; then
         echo "wrong finish create owner"
         exit 1
     fi
 
+    balance=$(${1} token token_balance -a 1KSBd17H7ZK8iT37aJztFB22XGwsPTdwE4 -e token -s GD | jq -r '.[]|.balance')
+    if [ "${balance}" != "10000.0000" ]; then
+        echo "wrong para token genesis create, should be 10000.0000"
+        exit 1
+    fi
+    echo "=========== # 2.token transfer ============="
+    hash=$(${1} send token transfer -a 11 -s GD -t 1GGF8toZd96wCnfJngTwXZnWCBdWHYYvjw -k 0x6da92a632ab7deb67d38c0f6560bcfed28167998f6496db64c258d5e8393a81b)
+    echo "${hash}"
+    block_wait "${1}" 3
+
+    ${1} tx query -s "${hash}"
+    ${1} token token_balance -a 1GGF8toZd96wCnfJngTwXZnWCBdWHYYvjw -e token -s GD
+    balance=$(${1} token token_balance -a 1GGF8toZd96wCnfJngTwXZnWCBdWHYYvjw -e token -s GD | jq -r '.[]|.balance')
+    if [ "${balance}" != "11.0000" ]; then
+        echo "wrong para token transfer, should be 11.0000"
+        exit 1
+    fi
 }
 
 function para_cross_transfer_withdraw() {
+    echo "=========== # para cross transfer/withdraw test ============="
     paracrossAddr=1HPkPopVe3ERfvaAgedDtJQ792taZFEHCe
     ${CLI} account list
     ${CLI} send bty transfer -a 10 -n test -t $paracrossAddr -k 4257D8692EF7FE13C68B65D6A52F03933DB2FA5CE8FAF210B5B8B80C721CED01

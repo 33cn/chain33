@@ -3,9 +3,11 @@ package executor
 import (
 	"fmt"
 	"math/rand"
+	"reflect"
 
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common/address"
+	"gitlab.33.cn/chain33/chain33/plugin/dapp/blackwhite/rpc"
 	gt "gitlab.33.cn/chain33/chain33/plugin/dapp/blackwhite/types"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -16,6 +18,18 @@ var clog = log.New("module", "execs.blackwhite")
 var blackwhiteAddr = address.ExecAddress(gt.BlackwhiteX)
 
 var driverName = gt.BlackwhiteX
+
+//初始化过程比较重量级，有很多reflact, 所以弄成全局的
+var executorFunList = make(map[string]reflect.Method)
+var executorType = rpc.NewType()
+
+func init() {
+	actionFunList := executorType.GetFuncMap()
+	executorFunList = types.ListMethod(&Blackwhite{})
+	for k, v := range actionFunList {
+		executorFunList[k] = v
+	}
+}
 
 //黑白配可以被重命名执行器名称
 func Init(name string) {
@@ -41,144 +55,6 @@ func GetName() string {
 
 func (c *Blackwhite) GetDriverName() string {
 	return driverName
-}
-
-func (c *Blackwhite) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
-	_, err := c.DriverBase.Exec(tx, index)
-	if err != nil {
-		return nil, err
-	}
-	var payload gt.BlackwhiteAction
-	err = types.Decode(tx.Payload, &payload)
-	if err != nil {
-		return nil, err
-	}
-	action := newAction(c, tx, int32(index))
-	if payload.Ty == gt.BlackwhiteActionCreate && payload.GetCreate() != nil {
-		return action.Create(payload.GetCreate())
-	} else if payload.Ty == gt.BlackwhiteActionPlay && payload.GetPlay() != nil {
-		return action.Play(payload.GetPlay())
-	} else if payload.Ty == gt.BlackwhiteActionShow && payload.GetShow() != nil {
-		return action.Show(payload.GetShow())
-	} else if payload.Ty == gt.BlackwhiteActionTimeoutDone && payload.GetTimeoutDone() != nil {
-		return action.TimeoutDone(payload.GetTimeoutDone())
-	}
-	return nil, types.ErrActionNotSupport
-}
-
-func (c *Blackwhite) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	set, err := c.DriverBase.ExecLocal(tx, receipt, index)
-	if err != nil {
-		return nil, err
-	}
-	if receipt.GetTy() != types.ExecOk {
-		return set, nil
-	}
-
-	//执行成功
-	var payload gt.BlackwhiteAction
-	err = types.Decode(tx.Payload, &payload)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, log := range receipt.Logs {
-		switch log.Ty {
-		case types.TyLogBlackwhiteCreate,
-			types.TyLogBlackwhitePlay,
-			types.TyLogBlackwhiteShow,
-			types.TyLogBlackwhiteTimeout,
-			types.TyLogBlackwhiteDone:
-			{
-				var receipt gt.ReceiptBlackwhiteStatus
-				err := types.Decode(log.Log, &receipt)
-				if err != nil {
-					panic(err) //数据错误了，已经被修改了
-				}
-				kv := c.saveHeightIndex(&receipt)
-				set.KV = append(set.KV, kv...)
-				break
-			}
-		case types.TyLogBlackwhiteLoopInfo:
-			{
-				var res gt.ReplyLoopResults
-				err := types.Decode(log.Log, &res)
-				if err != nil {
-					panic(err) //数据错误了，已经被修改了
-				}
-				kv := c.saveLoopResult(&res)
-				set.KV = append(set.KV, kv...)
-				break
-			}
-		default:
-			break
-		}
-	}
-	return set, nil
-}
-
-func (c *Blackwhite) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	set, err := c.DriverBase.ExecDelLocal(tx, receipt, index)
-	if err != nil {
-		return nil, err
-	}
-	if receipt.GetTy() != types.ExecOk {
-		return set, nil
-	}
-	//执行成功
-	var payload gt.BlackwhiteAction
-	err = types.Decode(tx.Payload, &payload)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, log := range receipt.Logs {
-		switch log.Ty {
-		case types.TyLogBlackwhiteCreate:
-			{
-				var receipt gt.ReceiptBlackwhiteStatus
-				err := types.Decode(log.Log, &receipt)
-				if err != nil {
-					panic(err) //数据错误了，已经被修改了
-				}
-				kv := c.delHeightIndex(&receipt)
-				set.KV = append(set.KV, kv...)
-				break
-			}
-		case types.TyLogBlackwhitePlay:
-		case types.TyLogBlackwhiteShow:
-		case types.TyLogBlackwhiteTimeout:
-		case types.TyLogBlackwhiteDone:
-			{
-				var receipt gt.ReceiptBlackwhiteStatus
-				err := types.Decode(log.Log, &receipt)
-				if err != nil {
-					panic(err) //数据错误了，已经被修改了
-				}
-				//状态数据库由于默克尔树特性，之前生成的索引无效，故不需要回滚，只回滚localDB
-				kv := c.delHeightIndex(&receipt)
-				set.KV = append(set.KV, kv...)
-
-				kv = c.saveRollHeightIndex(&receipt)
-				set.KV = append(set.KV, kv...)
-				break
-			}
-		case types.TyLogBlackwhiteLoopInfo:
-			{
-				var res gt.ReplyLoopResults
-				err := types.Decode(log.Log, &res)
-				if err != nil {
-					panic(err) //数据错误了，已经被修改了
-				}
-				kv := c.delLoopResult(&res)
-				set.KV = append(set.KV, kv...)
-				break
-			}
-		default:
-			break
-		}
-	}
-	return set, nil
 }
 
 func (c *Blackwhite) saveLoopResult(res *gt.ReplyLoopResults) (kvs []*types.KeyValue) {
@@ -245,60 +121,6 @@ func (c *Blackwhite) delHeightIndex(res *gt.ReceiptBlackwhiteStatus) (kvs []*typ
 	kv1.Value = nil
 	kvs = append(kvs, kv1)
 	return kvs
-}
-
-func (c *Blackwhite) Query(funcName string, params []byte) (types.Message, error) {
-	if funcName == gt.GetBlackwhiteRoundInfo {
-		var in gt.ReqBlackwhiteRoundInfo
-		err := types.Decode(params, &in)
-		if err != nil {
-			return nil, err
-		}
-		return c.GetBlackwhiteRoundInfo(&in)
-	} else if funcName == gt.GetBlackwhiteByStatusAndAddr {
-		var in gt.ReqBlackwhiteRoundList
-		err := types.Decode(params, &in)
-		if err != nil {
-			return nil, err
-		}
-		return c.GetBwRoundListInfo(&in)
-	} else if funcName == gt.GetBlackwhiteloopResult {
-		var in gt.ReqLoopResult
-		err := types.Decode(params, &in)
-		if err != nil {
-			return nil, err
-		}
-		return c.GetBwRoundLoopResult(&in)
-	} else if funcName == gt.BlackwhiteCreateTx {
-		in := &gt.BlackwhiteCreateTxReq{}
-		err := types.Decode(params, in)
-		if err != nil {
-			return nil, err
-		}
-		return c.createTx(in)
-	} else if funcName == gt.BlackwhitePlayTx {
-		in := &gt.BlackwhitePlayTxReq{}
-		err := types.Decode(params, in)
-		if err != nil {
-			return nil, err
-		}
-		return c.playTx(in)
-	} else if funcName == gt.BlackwhiteShowTx {
-		in := &gt.BlackwhiteShowTxReq{}
-		err := types.Decode(params, in)
-		if err != nil {
-			return nil, err
-		}
-		return c.showTx(in)
-	} else if funcName == gt.BlackwhiteTimeoutDoneTx {
-		in := &gt.BlackwhiteTimeoutDoneTxReq{}
-		err := types.Decode(params, in)
-		if err != nil {
-			return nil, err
-		}
-		return c.timeoutDoneTx(in)
-	}
-	return nil, types.ErrActionNotSupport
 }
 
 func (c *Blackwhite) timeoutDoneTx(parm *gt.BlackwhiteTimeoutDoneTxReq) (types.Message, error) {
@@ -562,4 +384,21 @@ func genHeightIndexStr(index int64) string {
 
 func heightIndexToIndex(height int64, index int32) int64 {
 	return height*types.MaxTxsPerBlock + int64(index)
+}
+
+func (c *Blackwhite) GetFuncMap() map[string]reflect.Method {
+	return executorFunList
+}
+
+func (c *Blackwhite) GetPayloadValue() types.Message {
+	return &gt.BlackwhiteAction{}
+}
+
+func (c *Blackwhite) GetTypeMap() map[string]int32 {
+	return map[string]int32{
+		"Create":      gt.BlackwhiteActionCreate,
+		"Play":        gt.BlackwhiteActionPlay,
+		"Show":        gt.BlackwhiteActionShow,
+		"TimeoutDone": gt.BlackwhiteActionTimeoutDone,
+	}
 }
