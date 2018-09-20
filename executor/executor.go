@@ -280,7 +280,7 @@ func isAllowExec(key, realExecer []byte, tx *types.Transaction, height int64) bo
 	//分成两种情况:
 	//是执行器余额，判断 friend
 	execdriver := keyExecer
-	if ok {
+	if ok && keyExecAddr == drivers.ExecAddress(string(realExecer)) {
 		//判断user.p.xxx.token 是否可以写 token 合约的内容之类的
 		execdriver = realExecer
 	}
