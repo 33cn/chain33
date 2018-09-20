@@ -8,6 +8,7 @@ import (
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/common"
 )
 
 var nameX string
@@ -577,5 +578,21 @@ func (t *TokenGetTxByToken) JsonToProto(message json.RawMessage) ([]byte, error)
 }
 
 func (t *TokenGetTxByToken) ProtoToJson(reply *types.Message) (interface{}, error) {
-	return reply, nil
+	type ReplyTxInfo struct {
+		Hash   string `json:"hash"`
+		Height int64  `json:"height"`
+		Index  int64  `json:"index"`
+	}
+	type ReplyTxInfos struct {
+		TxInfos []*ReplyTxInfo `json:"txInfos"`
+	}
+
+	txInfos := (*reply).(*types.ReplyTxInfos)
+	var txinfos ReplyTxInfos
+	infos := txInfos.GetTxInfos()
+	for _, info := range infos {
+		txinfos.TxInfos = append(txinfos.TxInfos, &ReplyTxInfo{Hash: common.ToHex(info.GetHash()),
+			Height: info.GetHeight(), Index: info.GetIndex()})
+	}
+	return &txinfos, nil
 }
