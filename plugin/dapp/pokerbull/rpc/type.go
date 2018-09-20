@@ -10,7 +10,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var glog = log.New("module", pb.PokerBullX)
+var pblog = log.New("module", pb.PokerBullX)
 var name string
 var jrpc = &Jrpc{}
 var grpc = &Grpc{}
@@ -79,7 +79,7 @@ func (m PokerBullType) Amount(tx *types.Transaction) (int64, error) {
 
 // TODO 暂时不修改实现， 先完成结构的重构
 func (m PokerBullType) CreateTx(action string, message json.RawMessage) (*types.Transaction, error) {
-	glog.Debug("Pokerbull.CreateTx", "action", action)
+	pblog.Debug("Pokerbull.CreateTx", "action", action)
 	var tx *types.Transaction
 	return tx, nil
 }

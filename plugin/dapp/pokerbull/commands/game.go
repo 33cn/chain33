@@ -10,7 +10,7 @@ import (
 func PokerBullCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "pokerbull",
-		Short: "pokerbull game management",
+		Short: "poker bull game management",
 		Args:  cobra.MinimumNArgs(1),
 	}
 
