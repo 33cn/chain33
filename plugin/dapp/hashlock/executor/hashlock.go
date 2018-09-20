@@ -12,7 +12,7 @@ var clog = log.New("module", "execs.hashlock")
 
 const minLockTime = 60
 
-func Init() {
+func Init(name string) {
 	drivers.Register(GetName(), newHashlock, 0)
 }
 
@@ -30,7 +30,7 @@ func newHashlock() drivers.Driver {
 	return h
 }
 
-func (h *Hashlock) GetName() string {
+func (h *Hashlock) GetDriverName() string {
 	return "hashlock"
 }
 
@@ -42,7 +42,7 @@ func (h *Hashlock) Exec(tx *types.Transaction, index int) (*types.Receipt, error
 	}
 
 	clog.Debug("exec hashlock tx=", "tx=", action)
-	actiondb := NewAction(h, tx, h.GetAddr())
+	actiondb := NewAction(h, tx, drivers.ExecAddress(string(tx.Execer)))
 	if action.Ty == types.HashlockActionLock && action.GetHlock() != nil {
 		clog.Debug("hashlocklock action")
 		hlock := action.GetHlock()

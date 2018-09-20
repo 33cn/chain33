@@ -200,13 +200,13 @@ func TestAddDelMVCC(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, int64(1), maxv)
 
-	kvlist, err = m.DelMVCC(hashN(2), 1)
+	kvlist, err = m.DelMVCC(hashN(2), 1, true)
 	assert.Equal(t, err, types.ErrNotFound)
 
-	kvlist, err = m.DelMVCC(hashN(0), 0)
+	kvlist, err = m.DelMVCC(hashN(0), 0, true)
 	assert.Equal(t, err, types.ErrCanOnlyDelTopVersion)
 
-	kvlist, err = m.DelMVCC(hashN(1), 1)
+	kvlist, err = m.DelMVCC(hashN(1), 1, true)
 	assert.Nil(t, err)
 	m.PrintAll()
 	for _, v := range kvlist {

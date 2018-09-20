@@ -16,6 +16,8 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/crypto/sha3"
 	common2 "gitlab.33.cn/chain33/chain33/plugin/dapp/evm/executor/vm/common"
 	"gitlab.33.cn/chain33/chain33/rpc"
+	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
+	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -199,7 +201,7 @@ func createEvmTx(action proto.Message, execer, caller, addr, expire, rpcLaddr st
 	}
 
 	var res string
-	client, err := rpc.NewJSONClient(rpcLaddr)
+	client, err := jsonclient.NewJSONClient(rpcLaddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return "", err
@@ -216,14 +218,14 @@ func createEvmTx(action proto.Message, execer, caller, addr, expire, rpcLaddr st
 func createEvmTransferTx(cmd *cobra.Command, caller, execName, expire, rpcLaddr string, amountInt64 int64, isWithdraw bool) (string, error) {
 	paraName, _ := cmd.Flags().GetString("paraName")
 	var tx *types.Transaction
-	transfer := &types.CoinsAction{}
+	transfer := &cty.CoinsAction{}
 
 	if isWithdraw {
-		transfer.Value = &types.CoinsAction_Withdraw{Withdraw: &types.CoinsWithdraw{Amount: amountInt64, ExecName: execName, To: address.ExecAddress(execName)}}
-		transfer.Ty = types.CoinsActionWithdraw
+		transfer.Value = &cty.CoinsAction_Withdraw{Withdraw: &types.AssetsWithdraw{Amount: amountInt64, ExecName: execName, To: address.ExecAddress(execName)}}
+		transfer.Ty = cty.CoinsActionWithdraw
 	} else {
-		transfer.Value = &types.CoinsAction_TransferToExec{TransferToExec: &types.CoinsTransferToExec{Amount: amountInt64, ExecName: execName, To: address.ExecAddress(execName)}}
-		transfer.Ty = types.CoinsActionTransferToExec
+		transfer.Value = &cty.CoinsAction_TransferToExec{TransferToExec: &types.AssetsTransferToExec{Amount: amountInt64, ExecName: execName, To: address.ExecAddress(execName)}}
+		transfer.Ty = cty.CoinsActionTransferToExec
 	}
 	if paraName == "" {
 		tx = &types.Transaction{Execer: []byte(types.ExecName(paraName + "coins")), Payload: types.Encode(transfer), To: address.ExecAddress(execName)}
@@ -250,7 +252,7 @@ func createEvmTransferTx(cmd *cobra.Command, caller, execName, expire, rpcLaddr 
 	}
 
 	var res string
-	client, err := rpc.NewJSONClient(rpcLaddr)
+	client, err := jsonclient.NewJSONClient(rpcLaddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return "", err
@@ -587,13 +589,13 @@ func evmWithdraw(cmd *cobra.Command, args []string) {
 }
 
 func sendQuery(rpcAddr, funcName string, request, result interface{}) bool {
-	params := rpc.Query4Cli{
+	params := types.Query4Cli{
 		Execer:   "evm",
 		FuncName: funcName,
 		Payload:  request,
 	}
 
-	rpc, err := rpc.NewJSONClient(rpcAddr)
+	rpc, err := jsonclient.NewJSONClient(rpcAddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return false

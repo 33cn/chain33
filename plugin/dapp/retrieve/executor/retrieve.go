@@ -21,7 +21,7 @@ var (
 )
 
 //const maxTimeWeight = 2
-func Init() {
+func Init(name string) {
 	drivers.Register(GetName(), newRetrieve, 0)
 }
 
@@ -73,7 +73,7 @@ func (r *Retrieve) Exec(tx *types.Transaction, index int) (*types.Receipt, error
 	return nil, types.ErrActionNotSupport
 }
 
-func (r *Retrieve) GetName() string {
+func (r *Retrieve) GetDriverName() string {
 	return "retrieve"
 }
 

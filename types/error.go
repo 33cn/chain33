@@ -5,6 +5,8 @@ import (
 )
 
 var (
+	ErrMethodReturnType        = errors.New("ErrMethodReturnType")
+	ErrMethodNotFound          = errors.New("ErrMethodNotFound")
 	ErrExecBlockNil            = errors.New("ErrExecBlockNil")
 	ErrNotAllow                = errors.New("ErrNotAllow")
 	ErrCanOnlyDelTopVersion    = errors.New("ErrCanOnlyDelTopVersion")
@@ -63,6 +65,7 @@ var (
 	ErrLogType                 = errors.New("ErrLogType")
 	ErrInvalidParam            = errors.New("ErrInvalidParameters")
 	ErrInvalidAddress          = errors.New("ErrInvalidAddress")
+	ErrStateHashLost           = errors.New("ErrStateHashLost")
 	//err for token
 	ErrTokenNameLen         = errors.New("ErrTokenNameLength")
 	ErrTokenSymbolLen       = errors.New("ErrTokenSymbolLength")
@@ -284,6 +287,10 @@ var (
 	ErrNodeNotForTheTitle   = errors.New("ErrNodeNotForTheTitle")
 	ErrParaBlockHashNoMatch = errors.New("ErrParaBlockHashNoMatch")
 	ErrTxGroupParaCount     = errors.New("ErrTxGroupParaCount")
+	ErrParaMinerBaseIndex   = errors.New("ErrParaMinerBaseIndex")
+	ErrParaMinerTxType      = errors.New("ErrParaMinerTxType")
+	ErrParaEmptyMinerTx     = errors.New("ErrParaEmptyMinerTx")
+	ErrParaMinerExecErr     = errors.New("ErrParaMinerExecErr")
 
 	//lottery
 	ErrLotteryStatus            = errors.New("ErrLotteryStatus")

@@ -17,7 +17,7 @@ var tlog = log.New("module", types.TradeX)
 func Init() {
 	nameX = types.ExecName(types.TradeX)
 	// init executor type
-	types.RegistorExecutor(types.TradeX, &tradeType{})
+	types.RegistorExecutor(types.TradeX, NewType())
 
 	// init log
 	types.RegistorLog(types.TyLogTradeSellLimit, &TradeSellLimitLog{})
@@ -41,6 +41,16 @@ type tradeType struct {
 	types.ExecTypeBase
 }
 
+func NewType() *tradeType {
+	c := &tradeType{}
+	c.SetChild(c)
+	return c
+}
+
+func (at *tradeType) GetPayload() types.Message {
+	return &types.Trade{}
+}
+
 func (trade tradeType) ActionName(tx *types.Transaction) string {
 	var action types.Trade
 	err := types.Decode(tx.Payload, &action)
@@ -53,11 +63,11 @@ func (trade tradeType) ActionName(tx *types.Transaction) string {
 		return "buytoken"
 	} else if action.Ty == types.TradeRevokeSell && action.GetTokenrevokesell() != nil {
 		return "revokeselltoken"
-	} else if action.Ty == types.CoinsActionTransferToExec && action.GetTokenbuylimit() != nil {
+	} else if action.Ty == types.TradeBuyLimit && action.GetTokenbuylimit() != nil {
 		return "buylimittoken"
-	} else if action.Ty == types.CoinsActionTransferToExec && action.GetTokensellmarket() != nil {
+	} else if action.Ty == types.TradeSellMarket && action.GetTokensellmarket() != nil {
 		return "sellmarkettoken"
-	} else if action.Ty == types.CoinsActionTransferToExec && action.GetTokenrevokebuy() != nil {
+	} else if action.Ty == types.TradeRevokeBuy && action.GetTokenrevokebuy() != nil {
 		return "revokebuytoken"
 	}
 	return "unknown"

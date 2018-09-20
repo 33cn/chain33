@@ -9,7 +9,6 @@ import (
 
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/common/address"
-	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -103,7 +102,7 @@ func queryConfig(cmd *cobra.Command, args []string) {
 	req := &types.ReqString{
 		Data: key,
 	}
-	var params jsonrpc.Query4Cli
+	var params types.Query4Cli
 	params.Execer = getRealExecName(paraName, "manage")
 	params.FuncName = "GetConfigItem"
 	params.Payload = req

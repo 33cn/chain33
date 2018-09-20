@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"gitlab.33.cn/chain33/chain33/client/mocks"
 	qmocks "gitlab.33.cn/chain33/chain33/queue/mocks"
+	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	"gitlab.33.cn/chain33/chain33/types"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -60,7 +61,7 @@ func TestJSONClient_Call(t *testing.T) {
 	}
 	api.On("IsSync").Return(ret, nil)
 	api.On("Close").Return()
-	jsonClient, err := NewJSONClient("http://" + rpcCfg.JrpcBindAddr + "/root")
+	jsonClient, err := jsonclient.NewJSONClient("http://" + rpcCfg.JrpcBindAddr + "/root")
 	assert.Nil(t, err)
 	assert.NotNil(t, jsonClient)
 	var result = ""
@@ -68,7 +69,7 @@ func TestJSONClient_Call(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Empty(t, result)
 
-	jsonClient, err = NewJSONClient("http://" + rpcCfg.JrpcBindAddr)
+	jsonClient, err = jsonclient.NewJSONClient("http://" + rpcCfg.JrpcBindAddr)
 	assert.Nil(t, err)
 	assert.NotNil(t, jsonClient)
 

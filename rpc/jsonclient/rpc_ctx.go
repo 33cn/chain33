@@ -1,11 +1,9 @@
-package util
+package jsonclient
 
 import (
 	"encoding/json"
 	"fmt"
 	"os"
-
-	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 )
 
 // TODO: SetPostRunCb()
@@ -34,7 +32,7 @@ func (c *RpcCtx) SetResultCb(cb Callback) {
 }
 
 func (c *RpcCtx) run() (interface{}, error) {
-	rpc, err := jsonrpc.NewJSONClient(c.Addr)
+	rpc, err := NewJSONClient(c.Addr)
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +70,7 @@ func (c *RpcCtx) Run() {
 
 func (c *RpcCtx) RunWithoutMarshal() {
 	var res string
-	rpc, err := jsonrpc.NewJSONClient(c.Addr)
+	rpc, err := NewJSONClient(c.Addr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return

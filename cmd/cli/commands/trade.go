@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
 	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
 )
@@ -66,7 +65,7 @@ func showOnesSellOrders(cmd *cobra.Command, args []string) {
 	if 0 != len(tokens) {
 		reqAddrtokens.Token = append(reqAddrtokens.Token, tokens...)
 	}
-	params := jsonrpc.Query4Cli{
+	params := types.Query4Cli{
 		Execer:   "trade",
 		FuncName: "GetOnesSellOrder",
 		Payload:  reqAddrtokens,
@@ -108,7 +107,7 @@ func showOnesSellOrdersStatus(cmd *cobra.Command, args []string) {
 	reqAddrtokens.Status = statusInt
 	reqAddrtokens.Addr = addr
 
-	var params jsonrpc.Query4Cli
+	var params types.Query4Cli
 	params.Execer = "trade"
 	params.FuncName = "GetOnesSellOrderWithStatus"
 	params.Payload = reqAddrtokens
@@ -161,7 +160,7 @@ func showTokenSellOrdersStatus(cmd *cobra.Command, args []string) {
 	req.Direction = dir
 	req.FromKey = from
 	req.Status = statusInt
-	var params jsonrpc.Query4Cli
+	var params types.Query4Cli
 	params.Execer = "trade"
 	params.FuncName = "GetTokenSellOrderByStatus"
 	params.Payload = req
@@ -224,7 +223,7 @@ func showOnesBuyOrders(cmd *cobra.Command, args []string) {
 	if 0 != len(tokens) {
 		reqAddrtokens.Token = append(reqAddrtokens.Token, tokens...)
 	}
-	var params jsonrpc.Query4Cli
+	var params types.Query4Cli
 	params.Execer = "trade"
 	params.FuncName = "GetOnesBuyOrder"
 	params.Payload = reqAddrtokens
@@ -264,7 +263,7 @@ func showOnesBuyOrdersStatus(cmd *cobra.Command, args []string) {
 	var reqAddrtokens types.ReqAddrTokens
 	reqAddrtokens.Addr = buyer
 	reqAddrtokens.Status = statusInt
-	var params jsonrpc.Query4Cli
+	var params types.Query4Cli
 	params.Execer = "trade"
 	params.FuncName = "GetOnesBuyOrderWithStatus"
 	params.Payload = reqAddrtokens
@@ -317,7 +316,7 @@ func showTokenBuyOrdersStatus(cmd *cobra.Command, args []string) {
 	req.Direction = dir
 	req.FromKey = from
 	req.Status = statusInt
-	var params jsonrpc.Query4Cli
+	var params types.Query4Cli
 	params.Execer = "trade"
 	params.FuncName = "GetTokenBuyOrderByStatus"
 	params.Payload = req
@@ -391,7 +390,7 @@ func showOnesOrdersStatus(cmd *cobra.Command, args []string) {
 	reqAddrtokens.Direction = dir
 	reqAddrtokens.FromKey = from
 	reqAddrtokens.Status = status
-	var params jsonrpc.Query4Cli
+	var params types.Query4Cli
 	params.Execer = "trade"
 	params.FuncName = "GetOnesOrderWithStatus"
 	params.Payload = reqAddrtokens

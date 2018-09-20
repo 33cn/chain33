@@ -14,10 +14,12 @@ import (
 	"gitlab.33.cn/chain33/chain33/executor"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/store"
+	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
 
 	_ "gitlab.33.cn/chain33/chain33/plugin"
 	_ "gitlab.33.cn/chain33/chain33/system"
+	"gitlab.33.cn/chain33/chain33/types/executor/ticket"
 )
 
 //----------------------------- data for testing ---------------------------------
@@ -30,8 +32,8 @@ var (
 	mainPriv   crypto.PrivKey
 	toAddr     = address.PubKeyToAddress(privKey.PubKey().Bytes()).String()
 	amount     = int64(1e8)
-	v          = &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
-	transfer   = &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
+	v          = &cty.CoinsAction_Transfer{&types.AssetsTransfer{Amount: amount}}
+	transfer   = &cty.CoinsAction{Value: v, Ty: cty.CoinsActionTransfer}
 	tx1        = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1000000, Expire: 2, To: toAddr}
 	tx2        = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 100000000, Expire: 0, To: toAddr}
 	tx3        = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 200000000, Expire: 0, To: toAddr}
@@ -169,8 +171,8 @@ func initEnv(size int) (queue.Queue, *Mempool) {
 }
 
 func createTx(priv crypto.PrivKey, to string, amount int64) *types.Transaction {
-	v := &types.CoinsAction_Transfer{Transfer: &types.CoinsTransfer{Amount: amount}}
-	transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
+	v := &cty.CoinsAction_Transfer{Transfer: &types.AssetsTransfer{Amount: amount}}
+	transfer := &cty.CoinsAction{Value: v, Ty: cty.CoinsActionTransfer}
 	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1e6, To: to}
 	tx.Nonce = rand.Int63()
 	tx.Sign(types.SECP256K1, priv)
@@ -742,6 +744,7 @@ func TestGetAddrTxs(t *testing.T) {
 }
 
 func TestDelBlock(t *testing.T) {
+	ticket.Init()
 	q, mem := initEnv(0)
 	defer q.Close()
 	defer mem.Close()
@@ -751,7 +754,8 @@ func TestDelBlock(t *testing.T) {
 	action.Value = miner
 	minerTx := &types.Transaction{Execer: []byte("ticket"), Payload: types.Encode(action), Fee: 100, Expire: 0}
 	delBlock := blk
-	delBlock.Txs = append(delBlock.Txs, minerTx)
+	txs := []*types.Transaction{minerTx}
+	delBlock.Txs = append(txs, delBlock.Txs...)
 	var blockDetail = &types.BlockDetail{Block: delBlock}
 
 	mem.setHeader(&types.Header{Height: 2, BlockTime: 1e9 + 1})
