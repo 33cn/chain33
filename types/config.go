@@ -137,7 +137,7 @@ var (
 	//used in Getname for exec driver
 	ExecNamePrefix       string
 	ParaRemoteGrpcClient string
-	SaveTokenTxList  bool
+	SaveTokenTxList      bool
 )
 
 func SetTitle(t string) {

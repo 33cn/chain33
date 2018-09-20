@@ -6,9 +6,9 @@ import (
 	"time"
 
 	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/common"
 )
 
 var nameX string

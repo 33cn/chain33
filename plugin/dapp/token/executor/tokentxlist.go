@@ -3,13 +3,13 @@ package executor
 import (
 	"fmt"
 
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/common/address"
 )
 
 const (
-	tokenTxPrefix      = "token-txHash:"
+	tokenTxPrefix        = "token-txHash:"
 	tokenTxAddrPrifex    = "token-txAddrHash:"
 	tokenTxAddrDirPrifex = "token-txAddrDirHash:"
 )
@@ -49,7 +49,6 @@ func tokenTxkeys(symbol, from, to string, height, index int64) (result [][]byte)
 	return
 }
 
-
 // token transaction entities in local DB
 func CalcTokenTxKey(symbol string, height, index int64) []byte {
 	if height == -1 {
@@ -81,4 +80,3 @@ func makeReplyTxInfo(tx *types.Transaction, height, index int64) []byte {
 
 	return types.Encode(&info)
 }
-

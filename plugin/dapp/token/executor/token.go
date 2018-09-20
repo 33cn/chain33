@@ -10,14 +10,15 @@ token执行器支持token的创建，
 */
 
 import (
+	"strings"
+
 	log "github.com/inconshreveable/log15"
+	"github.com/pkg/errors"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common/address"
+	"gitlab.33.cn/chain33/chain33/system/dapp"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
-	"strings"
-	"github.com/pkg/errors"
-	"gitlab.33.cn/chain33/chain33/system/dapp"
 )
 
 var tokenlog = log.New("module", "execs.token")
@@ -347,7 +348,7 @@ func (t *token) GetTokenInfo(symbol string) (types.Message, error) {
 
 func (t *token) GetTokens(reqTokens *types.ReqTokens) (types.Message, error) {
 	replyTokens := &types.ReplyTokens{}
-	keys, err :=  t.listTokenKeys(reqTokens)
+	keys, err := t.listTokenKeys(reqTokens)
 	if err != nil {
 		return nil, err
 	}
@@ -421,6 +422,7 @@ func (t *token) listTokenKeys(reqTokens *types.ReqTokens) ([][]byte, error) {
 		return keys, nil
 	}
 }
+
 // value 对应 statedb 的key
 func (t *token) saveLogs(receipt *types.ReceiptToken) []*types.KeyValue {
 	var kv []*types.KeyValue
@@ -463,7 +465,7 @@ func (t *token) deleteLogs(receipt *types.ReceiptToken) []*types.KeyValue {
 func (t *token) makeTokenTxKvs(tx *types.Transaction, action *types.TokenAction, receipt *types.ReceiptData, index int, isDel bool) ([]*types.KeyValue, error) {
 	var kvs []*types.KeyValue
 	var symbol string
-	if action.Ty == types.ActionTransfer{
+	if action.Ty == types.ActionTransfer {
 		symbol = action.GetTransfer().Cointoken
 	} else if action.Ty != types.ActionWithdraw {
 		symbol = action.GetWithdraw().Cointoken

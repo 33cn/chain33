@@ -57,7 +57,7 @@ func (wallet *Wallet) onWalletGetAccountList(msg *queue.Message) (string, int64,
 	req, ok := msg.Data.(*types.ReqAccountList)
 	if !ok {
 		walletlog.Debug("onWalletGetAccountList", "get account with balance", req)
-		req = &types.ReqAccountList{WithoutBalance : false }
+		req = &types.ReqAccountList{WithoutBalance: false}
 	}
 
 	reply, err := wallet.ProcGetAccountList(req)

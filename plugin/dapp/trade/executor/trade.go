@@ -16,9 +16,9 @@ import (
 	log "github.com/inconshreveable/log15"
 
 	"gitlab.33.cn/chain33/chain33/common"
+	token "gitlab.33.cn/chain33/chain33/plugin/dapp/token/executor"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
-	token "gitlab.33.cn/chain33/chain33/plugin/dapp/token/executor"
 )
 
 var tradelog = log.New("module", "execs.trade")
