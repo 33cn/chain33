@@ -35,16 +35,16 @@ type node interface {
 
 type (
 	fullNode struct {
-		Children [17]node // Actual trie node data to encode/decode (needs custom encoder)
+		Children [17]*Node // Actual trie node data to encode/decode (needs custom encoder)
 		flags    nodeFlag
 	}
 	shortNode struct {
 		Key   []byte
-		Val   node
+		Val   *Node
 		flags nodeFlag
 	}
-	hashNode  []byte
-	valueNode []byte
+	hashNode  *HashNode
+	valueNode *ValueNode
 )
 
 // nilValueNode is used when collapsing internal trie nodes for hashing, since
@@ -52,7 +52,7 @@ type (
 var nilValueNode = valueNode(nil)
 
 // EncodeRLP encodes a full node into the consensus RLP format.
-func (n *fullNode) EncodeRLP(w io.Writer) error {
+func (n *fullNode) EncodeProto(w io.Writer) error {
 	var nodes [17]node
 
 	for i, child := range &n.Children {
@@ -62,7 +62,7 @@ func (n *fullNode) EncodeRLP(w io.Writer) error {
 			nodes[i] = nilValueNode
 		}
 	}
-	return rlp.Encode(w, nodes)
+	return EncodeProto(w, nodes)
 }
 
 func (n *fullNode) copy() *fullNode   { copy := *n; return &copy }
