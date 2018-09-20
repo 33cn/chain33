@@ -16,7 +16,12 @@
 
 package mpt
 
-import "testing"
+import (
+	"testing"
+
+	proto "github.com/golang/protobuf/proto"
+	"github.com/stretchr/testify/assert"
+)
 
 func TestCanUnload(t *testing.T) {
 	tests := []struct {
@@ -55,4 +60,11 @@ func TestCanUnload(t *testing.T) {
 			t.Errorf("%+v\n   got %t, want %t", test, got, test.want)
 		}
 	}
+}
+
+func TestNodeProto(t *testing.T) {
+	n := &Node{Value: &Node_Full{Full: &FullNode{}}}
+	d, err := proto.Marshal(n)
+	assert.Nil(t, nil, err)
+	assert.Equal(t, 0, len(d))
 }
