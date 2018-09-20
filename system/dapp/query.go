@@ -2,7 +2,6 @@ package dapp
 
 import (
 	"errors"
-	"fmt"
 	"reflect"
 
 	"github.com/gogo/protobuf/proto"
@@ -34,8 +33,7 @@ func (d *DriverBase) GetTxsByAddr(addr *types.ReqAddr) (types.Message, error) {
 			return nil, errors.New("tx does not exist")
 		}
 	} else { //翻页查找指定的txhash列表
-		blockheight := addr.GetHeight()*types.MaxTxsPerBlock + addr.GetIndex()
-		heightstr := fmt.Sprintf("%018d", blockheight)
+		heightstr := HeightIndexStr(addr.GetHeight(), addr.GetIndex())
 		if addr.Flag == 0 {
 			key = CalcTxAddrHashKey(addr.GetAddr(), heightstr)
 		} else if addr.Flag > 0 { //from的交易hash列表

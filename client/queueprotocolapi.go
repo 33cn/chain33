@@ -47,7 +47,7 @@ type QueueProtocolAPI interface {
 	// types.EventLocalList
 	LocalList(param *types.LocalDBList) (*types.LocalReplyValue, error)
 	// types.EventWalletGetAccountList
-	WalletGetAccountList() (*types.WalletAccounts, error)
+	WalletGetAccountList(req *types.ReqAccountList) (*types.WalletAccounts, error)
 	// types.EventNewAccount
 	NewAccount(param *types.ReqNewAccount) (*types.WalletAccount, error)
 	// types.EventWalletTransactionList

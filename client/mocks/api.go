@@ -1200,13 +1200,13 @@ func (_m *QueueProtocolAPI) WalletAutoMiner(param *types.MinerFlag) (*types.Repl
 	return r0, r1
 }
 
-// WalletGetAccountList provides a mock function with given fields:
-func (_m *QueueProtocolAPI) WalletGetAccountList() (*types.WalletAccounts, error) {
-	ret := _m.Called()
+// WalletGetAccountList provides a mock function with given fields: req
+func (_m *QueueProtocolAPI) WalletGetAccountList(req *types.ReqAccountList) (*types.WalletAccounts, error) {
+	ret := _m.Called(req)
 
 	var r0 *types.WalletAccounts
-	if rf, ok := ret.Get(0).(func() *types.WalletAccounts); ok {
-		r0 = rf()
+	if rf, ok := ret.Get(0).(func(*types.ReqAccountList) *types.WalletAccounts); ok {
+		r0 = rf(req)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*types.WalletAccounts)
@@ -1214,8 +1214,8 @@ func (_m *QueueProtocolAPI) WalletGetAccountList() (*types.WalletAccounts, error
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func() error); ok {
-		r1 = rf()
+	if rf, ok := ret.Get(1).(func(*types.ReqAccountList) error); ok {
+		r1 = rf(req)
 	} else {
 		r1 = ret.Error(1)
 	}
