@@ -26,7 +26,7 @@ func getRealExecName(paraName string) string {
 func Init() {
 	nameX = types.ExecName(types.TokenX)
 	// init executor type
-	types.RegistorExecutor(types.TokenX, &TokenType{})
+	types.RegistorExecutor(types.TokenX, NewType())
 
 	// init log
 	types.RegistorLog(types.TyLogTokenTransfer, &TokenTransferLog{})
@@ -55,6 +55,16 @@ func Init() {
 // exec
 type TokenType struct {
 	types.ExecTypeBase
+}
+
+func NewType() *TokenType {
+	c := &TokenType{}
+	c.SetChild(c)
+	return c
+}
+
+func (at *TokenType) GetPayload() types.Message {
+	return &types.TokenAction{}
 }
 
 func (token TokenType) GetRealToAddr(tx *types.Transaction) string {
