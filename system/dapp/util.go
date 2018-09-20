@@ -81,6 +81,6 @@ func updateAddrTxsCount(cachedb dbm.KVDB, addr string, amount int64, isadd bool)
 }
 
 func HeightIndexStr(height, index int64) string {
-	v := height * types.MaxTxsPerBlock + index
+	v := height*types.MaxTxsPerBlock + index
 	return fmt.Sprintf("%018d", v)
 }
