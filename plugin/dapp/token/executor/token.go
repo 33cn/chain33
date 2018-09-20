@@ -29,7 +29,7 @@ const (
 	blacklist         = "token-blacklist"
 )
 
-func Init() {
+func Init(name string) {
 	drivers.Register(GetName(), newToken, types.ForkV2AddToken)
 	setReciptPrefix()
 }
@@ -48,7 +48,7 @@ func newToken() drivers.Driver {
 	return t
 }
 
-func (t *token) GetName() string {
+func (t *token) GetDriverName() string {
 	return "token"
 }
 

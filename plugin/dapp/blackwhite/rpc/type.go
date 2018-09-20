@@ -29,7 +29,7 @@ func InitRPC(s pluginmgr.RPCServer) {
 func Init(s pluginmgr.RPCServer) {
 	name = bw.BlackwhiteX
 	// init executor type
-	types.RegistorExecutor(name, &BlackwhiteType{})
+	types.RegistorExecutor(name, NewType())
 
 	// init log
 	types.RegistorLog(types.TyLogBlackwhiteCreate, &BlackwhiteCreateLog{})
@@ -49,6 +49,16 @@ func Init(s pluginmgr.RPCServer) {
 
 type BlackwhiteType struct {
 	types.ExecTypeBase
+}
+
+func NewType() *BlackwhiteType {
+	c := &BlackwhiteType{}
+	c.SetChild(c)
+	return c
+}
+
+func (b *BlackwhiteType) GetPayload() types.Message {
+	return &bw.BlackwhiteAction{}
 }
 
 func (m BlackwhiteType) ActionName(tx *types.Transaction) string {

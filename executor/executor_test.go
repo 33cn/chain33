@@ -442,6 +442,14 @@ func execAndCheckBlockCB(t *testing.T, qclient queue.Client,
 		t.Error(err)
 		return nil
 	}
+	for _, v := range deltx {
+		s, err := types.PBToJson(v)
+		if err != nil {
+			t.Error(err)
+			return nil
+		}
+		println(s)
+	}
 	var getIndex = func(hash []byte, txlist []*types.Transaction) int {
 		for i := 0; i < len(txlist); i++ {
 			if bytes.Equal(hash, txlist[i].Hash()) {
@@ -453,12 +461,12 @@ func execAndCheckBlockCB(t *testing.T, qclient queue.Client,
 	for i := 0; i < len(txs); i++ {
 		if getIndex(txs[i].Hash(), deltx) >= 0 {
 			if err := cb(i, nil); err != nil {
-				t.Error(err, "index", i)
+				t.Error(err, "i", i)
 				return nil
 			}
-		} else if getIndex(txs[i].Hash(), detail.Block.Txs) >= 0 {
-			if err := cb(i, detail.Receipts[i]); err != nil {
-				t.Error(err, "index", i)
+		} else if index := getIndex(txs[i].Hash(), detail.Block.Txs); index >= 0 {
+			if err := cb(i, detail.Receipts[index]); err != nil {
+				t.Error(err, "i", i, "index", index)
 				return nil
 			}
 		} else {
@@ -603,6 +611,19 @@ func TestKeyAllow(t *testing.T) {
 	tx12.Execer = exec
 	if !isAllowExec(key, exec, &tx12, int64(1)) {
 		t.Error("retrieve can modify exec")
+	}
+}
+
+func TestKeyAllow_evm(t *testing.T) {
+	key := []byte("mavl-coins-bty-exec-1GacM93StrZveMrPjXDoz5TxajKa9LM5HG:19EJVYexvSn1kZ6MWiKcW14daXsPpdVDuF")
+	exec := []byte("user.evm.0xc79c9113a71c0a4244e20f0780e7c13552f40ee30b05998a38edb08fe617aaa5")
+	tx1 := "0a05636f696e73120e18010a0a1080c2d72f1a036f746520a08d0630f1cdebc8f7efa5e9283a22313271796f6361794e46374c7636433971573461767873324537553431664b536676"
+	tx11, _ := hex.DecodeString(tx1)
+	var tx12 types.Transaction
+	types.Decode(tx11, &tx12)
+	tx12.Execer = exec
+	if !isAllowExec(key, exec, &tx12, int64(1)) {
+		t.Error("user.evm.hash can modify exec")
 	}
 }
 

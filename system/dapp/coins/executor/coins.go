@@ -14,23 +14,28 @@ EventTransfer -> 转移资产
 import (
 	"reflect"
 
-	"gitlab.33.cn/chain33/chain33/common/address"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
 //var clog = log.New("module", "execs.coins")
+var driverName = "coins"
 
-func Init() {
-	drivers.Register(GetName(), newCoins, 0)
-	InitType()
+func Init(name string) {
+	if name != driverName {
+		panic("system dapp can't be rename")
+	}
+	drivers.Register(driverName, newCoins, 0)
 }
 
-//初始化函数列表，可以提升反射调用的速度
+//初始化过程比较重量级，有很多reflact, 所以弄成全局的
+var executorFunList = make(map[string]reflect.Method)
+var executorType = cty.NewType()
+
 func init() {
-	actionFunList = drivers.ListMethod(&cty.CoinsAction{})
-	executorFunList = drivers.ListMethod(&Coins{})
+	actionFunList := executorType.GetFuncMap()
+	executorFunList = types.ListMethod(&Coins{})
 	for k, v := range actionFunList {
 		executorFunList[k] = v
 	}
@@ -47,11 +52,12 @@ type Coins struct {
 func newCoins() drivers.Driver {
 	c := &Coins{}
 	c.SetChild(c)
+	c.SetExecutorType(executorType)
 	return c
 }
 
-func (c *Coins) GetName() string {
-	return "coins"
+func (c *Coins) GetDriverName() string {
+	return driverName
 }
 
 func (c *Coins) CheckTx(tx *types.Transaction, index int) error {
@@ -71,24 +77,6 @@ func (c *Coins) IsFriend(myexec, writekey []byte, othertx *types.Transaction) bo
 	return false
 }
 
-func (c *Coins) GetPayloadValue() types.Message {
-	return &cty.CoinsAction{}
-}
-
-func (c *Coins) GetTypeMap() map[string]int32 {
-	return map[string]int32{
-		"Transfer":       cty.CoinsActionTransfer,
-		"TransferToExec": cty.CoinsActionTransferToExec,
-		"Withdraw":       cty.CoinsActionWithdraw,
-		"Genesis":        cty.CoinsActionGenesis,
-	}
-}
-
 func (c *Coins) GetFuncMap() map[string]reflect.Method {
 	return executorFunList
-}
-
-func isExecAddrMatch(name string, to string) bool {
-	toaddr := address.ExecAddress(name)
-	return toaddr == to
 }

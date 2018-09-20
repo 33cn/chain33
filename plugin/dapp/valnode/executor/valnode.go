@@ -24,7 +24,7 @@ func CalcValNodeBlockInfoHeightKey(height int64) []byte {
 	return []byte(fmt.Sprintf("ValNodeBlockInfo:%18d:", height))
 }
 
-func Init() {
+func Init(name string) {
 	drivers.Register(GetName(), newValNode, 0)
 }
 
@@ -43,8 +43,8 @@ func newValNode() drivers.Driver {
 	return n
 }
 
-func (val *ValNode) GetName() string {
-	return types.ExecName("valnode")
+func (val *ValNode) GetDriverName() string {
+	return "valnode"
 }
 
 func (val *ValNode) GetActionValue(tx *types.Transaction) (*types.ValNodeAction, error) {
