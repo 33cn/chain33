@@ -134,7 +134,7 @@ func (t *token) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 			}
 		}
 		if types.GetSaveTokenTxList() {
-			kvs, err := t.makeT1okenTxKvs(tx, &action, receipt, index, false)
+			kvs, err := t.makeTokenTxKvs(tx, &action, receipt, index, false)
 			if err != nil {
 				return nil, err
 			}
@@ -188,7 +188,7 @@ func (t *token) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 			return nil, err
 		}
 		if types.GetSaveTokenTxList() {
-			kvs, err := t.makeT1okenTxKvs(tx, &action, receipt, index, true)
+			kvs, err := t.makeTokenTxKvs(tx, &action, receipt, index, true)
 			if err != nil {
 				return nil, err
 			}
@@ -460,7 +460,7 @@ func (t *token) deleteLogs(receipt *types.ReceiptToken) []*types.KeyValue {
 	return kv
 }
 
-func (t *token) makeT1okenTxKvs(tx *types.Transaction, action *types.TokenAction, receipt *types.ReceiptData, index int, isDel bool) ([]*types.KeyValue, error) {
+func (t *token) makeTokenTxKvs(tx *types.Transaction, action *types.TokenAction, receipt *types.ReceiptData, index int, isDel bool) ([]*types.KeyValue, error) {
 	var kvs []*types.KeyValue
 	var symbol string
 	if action.Ty == types.ActionTransfer{
