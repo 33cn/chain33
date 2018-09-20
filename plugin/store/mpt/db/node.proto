@@ -4,10 +4,10 @@ package mpt;
 
 message Node {
     oneof value {
-        FullNode  full = 2;
+        FullNode full   = 2;
         ShortNode short = 3;
-        HashNode  hash = 4;
-        ValueNode val  = 5;
+        HashNode  hash  = 4;
+        ValueNode val   = 5;
     }
     int32 Ty = 1;
     int32 index = 6;
@@ -19,7 +19,7 @@ message FullNode {
 
 message ShortNode {
     bytes key = 1;
-    Node val = 2;
+    Node  val = 2;
 }
 
 message HashNode {
