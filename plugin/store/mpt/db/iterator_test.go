@@ -18,6 +18,7 @@ package mpt
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"math/rand"
 	"testing"
@@ -361,6 +362,8 @@ func testIteratorContinueAfterError(t *testing.T, memonly bool) {
 	tr, _ := New(common.Hash{}, triedb)
 	for _, val := range testdata1 {
 		tr.Update([]byte(val.k), []byte(val.v))
+		fmt.Println("insert:", val.k, hex.EncodeToString([]byte(val.k)), val.v)
+		fmt.Println(tr.root)
 	}
 	tr.Commit(nil)
 	if !memonly {
@@ -456,7 +459,7 @@ func testIteratorContinueAfterSeekError(t *testing.T, memonly bool) {
 	if !memonly {
 		triedb.Commit(root, true)
 	}
-	barNodeHash := common.HexToHash("05041990364eb72fcb1127652ce40d8bab765f2bfe53225b1170d276cc101c2e")
+	barNodeHash := common.HexToHash("ede08118a34426168acc84393676405de612675a54e73a6a10c142636180e115")
 	var (
 		barNodeBlob []byte
 		barNodeObj  *cachedNode

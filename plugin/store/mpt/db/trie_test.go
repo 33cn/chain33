@@ -105,12 +105,13 @@ func testMissingNode(t *testing.T, memonly bool) {
 	if !memonly {
 		triedb.Commit(root, true)
 	}
-
 	trie, _ = New(root, triedb)
-	_, err := trie.TryGet([]byte("120000"))
+	fmt.Println(trie.root)
+	data, err := trie.TryGet([]byte("120000"))
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
+	assert.Equal(t, []byte("qwerqwerqwerqwerqwerqwerqwerqwer"), data)
 	trie, _ = New(root, triedb)
 	_, err = trie.TryGet([]byte("120099"))
 	if err != nil {
@@ -132,7 +133,7 @@ func testMissingNode(t *testing.T, memonly bool) {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
-	hash := common.HexToHash("0xe1d943cc8f061a0c0b98162830b970395ac9315654824bf21b73b891365262f9")
+	hash := common.HexToHash("0x59777340c73fbc10a1e1badce2fe9ce8fbe1d69c8b0e9c44c24356410eec94f4")
 	if memonly {
 		delete(triedb.nodes, hash)
 	} else {
