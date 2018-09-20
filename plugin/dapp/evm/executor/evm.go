@@ -94,7 +94,15 @@ func (evm *EVMExecutor) allowPara(tx *types.Transaction, index int) bool {
 
 func (evm *EVMExecutor) IsFriend(myexec, writekey []byte, othertx *types.Transaction) bool {
 	if othertx != nil {
-		if bytes.HasPrefix(othertx.Execer, []byte("user.evm.")) || bytes.Equal(othertx.Execer, []byte("evm")) {
+		exec := othertx.Execer
+		if types.IsPara() {
+			exec, _ = evm.GetPara(exec)
+		}
+		if exec == nil || len(bytes.TrimSpace(exec)) == 0 {
+			return false
+		}
+
+		if bytes.HasPrefix(exec, types.UserEvm) || bytes.Equal(exec, types.ExecerEvm) {
 			if bytes.HasPrefix(writekey, []byte("mavl-evm-")) {
 				return true
 			}
@@ -247,7 +255,7 @@ func (evm *EVMExecutor) calcKVHash(addr common.Address, logs []*types.ReceiptLog
 }
 
 func (evm *EVMExecutor) GetDataHashKey(addr common.Address) []byte {
-	return []byte("mavl-" + types.EvmX + "-data-hash: " + addr.String())
+	return []byte(fmt.Sprintf("mavl-%v-data-hash:%v", types.EvmX, addr))
 }
 
 func (evm *EVMExecutor) collectEvmTxLog(tx *types.Transaction, cr *types.ReceiptEVMContract, receipt *types.Receipt) {
