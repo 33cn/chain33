@@ -41,6 +41,8 @@ func (lott *Lottery) Exec(tx *types.Transaction, index int) (*types.Receipt, err
 	}
 	llog.Debug("Exec Lottery tx=", "tx=", action)
 	actiondb := NewLotteryAction(lott, tx)
+	defer actiondb.conn.Close()
+
 	if action.Ty == types.LotteryActionCreate && action.GetCreate() != nil {
 		llog.Debug("LotteryActionCreate")
 		return actiondb.LotteryCreate(action.GetCreate())
@@ -155,7 +157,9 @@ func (lott *Lottery) Query(funcName string, params []byte) (types.Message, error
 			lottery.LastTransToDrawState,
 			lottery.TotalPurchasedTxNum,
 			lottery.Round,
-			lottery.LuckyNumber}, nil
+			lottery.LuckyNumber,
+			lottery.LastTransToPurStateOnMain,
+			lottery.LastTransToDrawStateOnMain}, nil
 	} else if funcName == "GetLotteryHistoryLuckyNumber" {
 		var req types.ReqLotteryLuckyHistory
 		err := types.Decode(params, &req)
