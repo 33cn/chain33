@@ -21,8 +21,8 @@ import (
 	"container/heap"
 	"errors"
 
+	proto "github.com/golang/protobuf/proto"
 	"gitlab.33.cn/chain33/chain33/common"
-	"gitlab.33.cn/chain33/chain33/plugin/store/mpt/db/rlp"
 )
 
 // Iterator is a key-value trie iterator that traverses a Trie.
@@ -171,7 +171,7 @@ func (it *nodeIterator) LeafKey() []byte {
 func (it *nodeIterator) LeafBlob() []byte {
 	if len(it.stack) > 0 {
 		if node, ok := it.stack[len(it.stack)-1].node.(valueNode); ok {
-			return []byte(node)
+			return node.GetValue()
 		}
 	}
 	panic("not at leaf")
@@ -188,7 +188,7 @@ func (it *nodeIterator) LeafProof() [][]byte {
 				node, _, _ := hasher.hashChildren(item.node, nil)
 				hashed, _ := hasher.store(node, nil, false)
 				if _, ok := hashed.(hashNode); ok || i == 0 {
-					enc, _ := rlp.EncodeToBytes(node)
+					enc, _ := proto.Marshal(node.create())
 					proofs = append(proofs, enc)
 				}
 			}
@@ -297,7 +297,7 @@ func (st *nodeIteratorState) resolve(tr *Trie, path []byte) error {
 			return err
 		}
 		st.node = resolved
-		st.hash = common.BytesToHash(hash)
+		st.hash = common.BytesToHash(hash.GetHash())
 	}
 	return nil
 }
@@ -311,7 +311,7 @@ func (it *nodeIterator) nextChild(parent *nodeIteratorState, ancestor common.Has
 			if child != nil {
 				hash, _ := child.cache()
 				state := &nodeIteratorState{
-					hash:    common.BytesToHash(hash),
+					hash:    common.BytesToHash(hash.GetHash()),
 					node:    child,
 					parent:  ancestor,
 					index:   -1,
@@ -327,7 +327,7 @@ func (it *nodeIterator) nextChild(parent *nodeIteratorState, ancestor common.Has
 		if parent.index < 0 {
 			hash, _ := node.Val.cache()
 			state := &nodeIteratorState{
-				hash:    common.BytesToHash(hash),
+				hash:    common.BytesToHash(hash.GetHash()),
 				node:    node.Val,
 				parent:  ancestor,
 				index:   -1,

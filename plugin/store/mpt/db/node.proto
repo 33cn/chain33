@@ -1,24 +1,19 @@
 syntax = "proto3";
 
-package types;
+package mpt;
 
 message Node {
-    int32 Ty = 1;
     oneof value {
         FullNode  full = 2;
         ShortNode short = 3;
         HashNode  hash = 4;
         ValueNode val  = 5;
     }
-}
-
-message HaveChild {
-    bool have = 1;
-    Node childNode = 2;
+    int32 Ty = 1;
 }
 
 message FullNode {
-    repeated HaveChild hasChild = 1;
+    repeated Node nodes = 1;
 }
 
 message ShortNode {

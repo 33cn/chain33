@@ -27,15 +27,15 @@ import (
 	"reflect"
 	"testing"
 	"testing/quick"
+	"time"
 
 	"github.com/davecgh/go-spew/spew"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
-	"gitlab.33.cn/chain33/chain33/plugin/store/mpt/db/rlp"
 	comTy "gitlab.33.cn/chain33/chain33/types"
-	"github.com/stretchr/testify/require"
-	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -49,6 +49,7 @@ var (
 )
 
 func init() {
+	rand.Seed(time.Now().UnixNano())
 	spew.Config.Indent = "    "
 	spew.Config.DisableMethods = false
 }
@@ -571,6 +572,16 @@ func benchUpdate(b *testing.B, e binary.ByteOrder) *Trie {
 	return trie
 }
 
+const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+func randBytes2(n int) []byte {
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = letterBytes[rand.Intn(len(letterBytes))]
+	}
+	return b
+}
+
 // Benchmarks the trie hashing. Since the trie caches the result of any operation,
 // we cannot use b.N as the number of hashing rouns, since all rounds apart from
 // the first one will be NOOP. As such, we'll use b.N as the number of account to
@@ -588,13 +599,7 @@ func BenchmarkHash(b *testing.B) {
 	}
 	accounts := make([][]byte, len(addresses))
 	for i := 0; i < len(accounts); i++ {
-		var (
-			nonce   = uint64(random.Int63())
-			balance = new(big.Int).Rand(random, new(big.Int).Exp(Big2, Big256, nil))
-			root    = emptyRoot
-			code    = common.ShaKeccak256(nil)
-		)
-		accounts[i], _ = rlp.EncodeToBytes([]interface{}{nonce, balance, root, code})
+		accounts[i] = randBytes2(128)
 	}
 	// Insert the accounts into the trie and hash it
 	trie := newEmpty()
