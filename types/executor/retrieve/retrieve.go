@@ -17,7 +17,7 @@ var rlog = log.New("module", types.RetrieveX)
 func Init() {
 	nameX = types.ExecName(types.RetrieveX)
 	// init executor type
-	types.RegistorExecutor(types.RetrieveX, &RetrieveType{})
+	types.RegistorExecutor(types.RetrieveX, NewType())
 
 	// init log
 	//types.RegistorLog(types.TyLogDeposit, &CoinsDepositLog{})
@@ -28,6 +28,16 @@ func Init() {
 
 type RetrieveType struct {
 	types.ExecTypeBase
+}
+
+func NewType() *RetrieveType {
+	c := &RetrieveType{}
+	c.SetChild(c)
+	return c
+}
+
+func (at *RetrieveType) GetPayload() types.Message {
+	return &types.RetrieveAction{}
 }
 
 func (r RetrieveType) ActionName(tx *types.Transaction) string {
