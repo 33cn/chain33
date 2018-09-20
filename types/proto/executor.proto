@@ -313,10 +313,10 @@ message Token {
 }
 
 message ReqTokens {
-    bool     queryAll      = 1;
-    int32    status        = 2;
-    repeated string tokens = 3;
-    bool     symbolOnly    = 4;
+    bool     queryAll          = 1;
+    int32    status            = 2;
+    repeated string tokens     = 3;
+    bool            symbolOnly = 4;
 }
 
 message ReplyTokens {

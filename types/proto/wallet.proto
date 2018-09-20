@@ -540,5 +540,5 @@ message PrivacySignatureParam {
 }
 
 message ReqAccountList {
-    bool   withoutBalance = 1;
+    bool withoutBalance = 1;
 }
