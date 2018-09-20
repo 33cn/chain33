@@ -4,7 +4,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/account"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
-	"github.com/golang/glog"
 	"gitlab.33.cn/chain33/chain33/common"
 	pkt "gitlab.33.cn/chain33/chain33/plugin/dapp/pokerbull/types"
 	"strconv"
@@ -56,14 +55,14 @@ func Key(id string) (key []byte) {
 func readGame(db dbm.KV, id string) (*pkt.PokerBull, error) {
 	data, err := db.Get(Key(id))
 	if err != nil {
-		glog.Error("query data have err:", err.Error())
+		logger.Error("query data have err:", err.Error())
 		return nil, err
 	}
 	var game pkt.PokerBull
 	//decode
 	err = types.Decode(data, &game)
 	if err != nil {
-		glog.Error("decode game have err:", err.Error())
+		logger.Error("decode game have err:", err.Error())
 		return nil, err
 	}
 	return &game, nil
@@ -229,7 +228,7 @@ func (action *Action) gameCheckOut(game *pkt.PokerBull) ([]*types.ReceiptLog, []
 		if player.Address == result.Winner {
 			receipt, err := action.coinsAccount.ExecActive(player.GetAddress(), action.execaddr, game.GetValue())
 			if err != nil {
-				glog.Error("GameClose.execActive", "addr", player.GetAddress(), "execaddr", action.execaddr, "amount", game.GetValue(),
+				logger.Error("GameClose.execActive", "addr", player.GetAddress(), "execaddr", action.execaddr, "amount", game.GetValue(),
 					"err", err)
 				return nil, nil, err
 			}
@@ -241,7 +240,7 @@ func (action *Action) gameCheckOut(game *pkt.PokerBull) ([]*types.ReceiptLog, []
 		receipt, err := action.coinsAccount.ExecTransferFrozen(player.Address, result.Winner, action.execaddr, game.GetValue())
 		if err != nil {
 			action.coinsAccount.ExecFrozen(result.Winner, action.execaddr, game.GetValue()) // rollback
-			glog.Error("GameClose.ExecTransferFrozen", "addr", result.Winner, "execaddr", action.execaddr, "amount", game.GetValue(),
+			logger.Error("GameClose.ExecTransferFrozen", "addr", result.Winner, "execaddr", action.execaddr, "amount", game.GetValue(),
 				"err", err)
 			return nil, nil, err
 		}
@@ -363,13 +362,13 @@ func (action *Action) GameContinue(pbcontinue *pkt.PBGameContinue) (*types.Recei
 
 	game, err := action.readGame(pbcontinue.GetGameId())
 	if err != nil {
-		glog.Error("GameContinue", "addr", action.fromaddr, "execaddr", action.execaddr, "get game failed",
+		logger.Error("GameContinue", "addr", action.fromaddr, "execaddr", action.execaddr, "get game failed",
 			pbcontinue.GetGameId(), "err", err)
 		return nil, err
 	}
 
 	if game.Status != pkt.PBGameActionContinue {
-		glog.Error("GameContinue", "addr", action.fromaddr, "execaddr", action.execaddr, "Status error",
+		logger.Error("GameContinue", "addr", action.fromaddr, "execaddr", action.execaddr, "Status error",
 			pbcontinue.GetGameId())
 		return nil, err
 	}
@@ -384,7 +383,7 @@ func (action *Action) GameContinue(pbcontinue *pkt.PBGameContinue) (*types.Recei
 	// 寻找对应玩家
 	pbplayer := getPlayerFromAddress(game.Players, action.fromaddr)
 	if pbplayer == nil {
-		glog.Error("GameContinue", "addr", action.fromaddr, "execaddr", action.execaddr, "get game player failed",
+		logger.Error("GameContinue", "addr", action.fromaddr, "execaddr", action.execaddr, "get game player failed",
 			pbcontinue.GetGameId(), "err", types.ErrNotFound)
 		return nil, types.ErrNotFound
 	}
@@ -429,7 +428,7 @@ func (action *Action) GameContinue(pbcontinue *pkt.PBGameContinue) (*types.Recei
 func (action *Action) GameQuit(pbend *pkt.PBGameQuit) (*types.Receipt, error) {
 	game, err := action.readGame(pbend.GetGameId())
 	if err != nil {
-		glog.Error("GameEnd", "addr", action.fromaddr, "execaddr", action.execaddr, "get game failed",
+		logger.Error("GameEnd", "addr", action.fromaddr, "execaddr", action.execaddr, "get game failed",
 			pbend.GetGameId(), "err", err)
 		return nil, err
 	}
