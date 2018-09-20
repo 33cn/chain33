@@ -42,26 +42,7 @@ func (g *Game) GetDriverName() string {
 	return gt.GameX
 }
 
-func (g *Game) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
-	var action gt.GameAction
-	err := types.Decode(tx.Payload, &action)
-	if err != nil {
-		return nil, err
-	}
-	glog.Debug("exec Game tx=", "tx=", action)
-	actiondb := NewAction(g, tx, index)
-	if action.Ty == gt.GameActionCreate && action.GetCreate() != nil {
-		return actiondb.GameCreate(action.GetCreate())
-	} else if action.Ty == gt.GameActionCancel && action.GetCancel() != nil {
-		return actiondb.GameCancel(action.GetCancel())
-	} else if action.Ty == gt.GameActionClose && action.GetClose() != nil {
-		return actiondb.GameClose(action.GetClose())
-	} else if action.Ty == gt.GameActionMatch && action.GetMatch() != nil {
-		return actiondb.GameMatch(action.GetMatch())
-	}
-	return nil, types.ErrActionNotSupport
-}
-
+/*
 func (g *Game) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	set, err := g.DriverBase.ExecLocal(tx, receipt, index)
 	if err != nil {
@@ -85,6 +66,7 @@ func (g *Game) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, inde
 	}
 	return set, nil
 }
+*/
 
 func (g *Game) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	set, err := g.DriverBase.ExecDelLocal(tx, receipt, index)
