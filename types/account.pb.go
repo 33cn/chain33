@@ -387,6 +387,7 @@ It has these top-level messages:
 	TransactionDetails
 	ReqAddrs
 	ReqDecodeRawTransaction
+	ReqTokenTx
 	WalletTxDetail
 	WalletTxDetails
 	WalletAccountStore
@@ -459,6 +460,7 @@ It has these top-level messages:
 	PriAddrResult
 	RepEnablePrivacy
 	PrivacySignatureParam
+	ReqAccountList
 */
 package types
 
