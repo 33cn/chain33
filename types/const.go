@@ -224,6 +224,12 @@ const (
 	TyLogCancleGame = 713
 	TyLogCloseGame  = 714
 
+	//log for PBgame
+	TyLogPBGameStart = 721
+	TyLogPBGameContinue  = 722
+	TyLogPBGameQuit = 723
+	TyLogPBGameQuery = 724
+
 	// log for blackwhite game
 	TyLogBlackwhiteCreate   = 750
 	TyLogBlackwhitePlay     = 751
