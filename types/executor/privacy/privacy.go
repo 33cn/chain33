@@ -51,6 +51,16 @@ func (coins PrivacyType) ActionName(tx *types.Transaction) string {
 }
 
 func (privacy PrivacyType) DecodePayload(tx *types.Transaction) (interface{}, error) {
+	action := &types.PrivacyAction{}
+	err := types.Decode(tx.Payload, action)
+	if err != nil {
+		return nil, err
+	}
+	return action, nil
+}
+
+/*
+func (privacy PrivacyType) DecodePayload(tx *types.Transaction) (interface{}, error) {
 	fromAction := &types.PrivacyAction{}
 	err := types.Decode(tx.Payload, fromAction)
 	if err != nil {
@@ -87,6 +97,7 @@ func (privacy PrivacyType) DecodePayload(tx *types.Transaction) (interface{}, er
 	}
 	return retAction, nil
 }
+*/
 
 func (t PrivacyType) Amount(tx *types.Transaction) (int64, error) {
 	var action types.PrivacyAction
