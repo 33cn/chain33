@@ -23,11 +23,15 @@ type Driver interface {
 	SetStateDB(dbm.KV)
 	GetCoinsAccount() *account.DB
 	SetLocalDB(dbm.KVDB)
+	//当前交易执行器名称
+	GetCurrentExecName() string
+	//驱动的名字，这个名称是固定的
 	GetDriverName() string
+	//执行器的别名(一个驱动(code),允许创建多个执行器，类似evm一份代码可以创建多个合约）
 	GetName() string
 	//设置执行器的真实名称
 	SetName(string)
-	// 不能依赖任何数据库相关，只和交易相关
+	SetCurrentExecName(string)
 	Allow(tx *types.Transaction, index int) error
 	IsFriend(myexec []byte, writekey []byte, othertx *types.Transaction) bool
 	GetActionName(tx *types.Transaction) string
@@ -57,6 +61,7 @@ type DriverBase struct {
 	height       int64
 	blocktime    int64
 	name         string
+	curname      string
 	child        Driver
 	childValue   reflect.Value
 	isFree       bool
@@ -411,8 +416,19 @@ func (d *DriverBase) GetName() string {
 	return d.name
 }
 
+func (d *DriverBase) GetCurrentExecName() string {
+	if d.curname == "" {
+		return d.child.GetDriverName()
+	}
+	return d.curname
+}
+
 func (d *DriverBase) SetName(name string) {
 	d.name = name
+}
+
+func (d *DriverBase) SetCurrentExecName(name string) {
+	d.curname = name
 }
 
 func (d *DriverBase) GetActionName(tx *types.Transaction) string {
