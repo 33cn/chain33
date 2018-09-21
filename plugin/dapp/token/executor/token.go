@@ -17,7 +17,6 @@ import (
 	"github.com/pkg/errors"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common/address"
-	log "github.com/inconshreveable/log15"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
 	pty "gitlab.33.cn/chain33/chain33/types/executor/token"
