@@ -11,6 +11,16 @@ func (t *token) execDelLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 	var set *types.LocalDBSet
 	if action.Ty == types.ActionTransfer || action.Ty == types.ActionWithdraw {
 		set, err = t.ExecDelLocalLocalTransWithdraw(tx, receipt, index)
+		if err != nil {
+			return nil, err
+		}
+		if types.GetSaveTokenTxList() {
+			kvs, err := t.makeTokenTxKvs(tx, &action, receipt, index, true)
+			if err != nil {
+				return nil, err
+			}
+			set.KV = append(set.KV, kvs...)
+		}
 	} else {
 		set, err = t.DriverBase.ExecDelLocal(tx, receipt, index)
 		if err != nil {
