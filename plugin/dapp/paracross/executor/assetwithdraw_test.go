@@ -104,10 +104,7 @@ func (suite *AssetWithdrawTestSuite) TestExecAssetWithdrawOnMainChain() {
 func (suite *AssetWithdrawTestSuite) TestExecAssetWithdrawOnParaChain() {
 	types.SetTitle(Title)
 	// make coins for transfer
-	acc := account.NewCoinsAccount()
-	acc.SetDB(suite.stateDB)
 
-	addrPara := address.ExecAddress(Title + types.ParaX)
 
 	total := 1000 * types.Coin
 	accountA := types.Account{
@@ -115,14 +112,8 @@ func (suite *AssetWithdrawTestSuite) TestExecAssetWithdrawOnParaChain() {
 		Frozen:  0,
 		Addr:    string(Nodes[0]),
 	}
-	acc.SaveExecAccount(addrPara, &accountA)
-
-	accountExec := types.Account{
-		Balance: total,
-		Frozen:  0,
-		Addr:    addrPara,
-	}
-	acc.SaveAccount(&accountExec)
+	paraAcc, _ := NewParaAccount(Title, "coins", "bty", suite.stateDB)
+	paraAcc.SaveAccount(&accountA)
 
 	tx, err := createAssetWithdrawTx(suite.Suite, PrivKeyA, Nodes[1])
 	if err != nil {

@@ -161,10 +161,6 @@ func (suite *AssetTransferTestSuite) TestExecTransferInPara() {
 	types.SetTitle(Title)
 	toB := Nodes[1]
 
-	acc := account.NewCoinsAccount()
-	acc.SetDB(suite.stateDB)
-	addrTest := address.ExecAddress(Title + types.ParaX)
-
 	tx, err := createAssetTransferTx(suite.Suite, PrivKeyA, toB)
 	if err != nil {
 		suite.T().Error("TestExecTransfer", "createTxGroup", err)
@@ -186,7 +182,8 @@ func (suite *AssetTransferTestSuite) TestExecTransferInPara() {
 		suite.T().Log(string(kv.Key), v)
 	}
 
-	resultB := acc.LoadExecAccount(string(toB), addrTest)
+	acc, _ := NewParaAccount(Title, "coins", "bty", suite.stateDB)
+	resultB := acc.LoadAccount(string(toB))
 	assert.Equal(suite.T(), Amount, resultB.Balance)
 }
 
