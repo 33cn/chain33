@@ -106,7 +106,6 @@ func testMissingNode(t *testing.T, memonly bool) {
 		triedb.Commit(root, true)
 	}
 	trie, _ = New(root, triedb)
-	fmt.Println(trie.root)
 	data, err := trie.TryGet([]byte("120000"))
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -266,6 +265,8 @@ func TestEmptyValues(t *testing.T) {
 	if hash != exp {
 		t.Errorf("expected %x got %x", exp, hash)
 	}
+	_, err := trie.Commit(nil)
+	assert.Nil(t, err)
 }
 
 func TestReplication(t *testing.T) {
