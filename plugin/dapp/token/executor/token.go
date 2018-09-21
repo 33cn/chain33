@@ -12,9 +12,10 @@ token执行器支持token的创建，
 import (
 	"reflect"
 
-	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common/address"
+
+	log "github.com/inconshreveable/log15"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
 	pty "gitlab.33.cn/chain33/chain33/types/executor/token"
@@ -68,6 +69,7 @@ func (c *token) CheckTx(tx *types.Transaction, index int) error {
 	return nil
 }
 
+/*
 func (t *token) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	var tokenAction types.TokenAction
 	err := types.Decode(tx.Payload, &tokenAction)
@@ -215,6 +217,7 @@ func (t *token) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 
 	return set, nil
 }
+*/
 
 func (t *token) Query(funcName string, params []byte) (types.Message, error) {
 	switch funcName {
