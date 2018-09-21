@@ -2,6 +2,7 @@ package privacy
 
 import (
 	"encoding/json"
+	"reflect"
 
 	//log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common"
@@ -11,6 +12,13 @@ import (
 var nameX string
 
 //var tlog = log.New("module", name)
+var (
+	actionName = map[string]int32{
+		"Public2Privacy":  types.ActionPublic2Privacy,
+		"Privacy2Privacy": types.ActionPrivacy2Privacy,
+		"Privacy2Public":  types.ActionPrivacy2Public,
+	}
+)
 
 func Init() {
 	nameX = types.ExecName("privacy")
@@ -39,6 +47,18 @@ func NewType() *PrivacyType {
 
 func (at *PrivacyType) GetPayload() types.Message {
 	return &types.PrivacyAction{}
+}
+
+func (at *PrivacyType) GetName() string {
+	return "privacy"
+}
+
+func (at *PrivacyType) GetLogMap() map[int64]reflect.Type {
+	return nil
+}
+
+func (c *PrivacyType) GetTypeMap() map[string]int32 {
+	return actionName
 }
 
 func (coins PrivacyType) ActionName(tx *types.Transaction) string {

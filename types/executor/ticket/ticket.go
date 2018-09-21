@@ -2,12 +2,23 @@ package ticket
 
 import (
 	"encoding/json"
+	"reflect"
 
 	//log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var nameX string
+
+var (
+	actionName = map[string]int32{
+		"Genesis": types.TicketActionGenesis,
+		"Topen":   types.TicketActionOpen,
+		"Tbind":   types.TicketActionBind,
+		"Tclose":  types.TicketActionClose,
+		"Miner":   types.TicketActionMiner,
+	}
+)
 
 //var tlog = log.New("module", name)
 
@@ -89,6 +100,18 @@ func (ticket TicketType) Amount(tx *types.Transaction) (int64, error) {
 func (ticket TicketType) CreateTx(action string, message json.RawMessage) (*types.Transaction, error) {
 	var tx *types.Transaction
 	return tx, nil
+}
+
+func (ticket TicketType) GetName() string {
+	return "ticket"
+}
+
+func (ticket *TicketType) GetLogMap() map[int64]reflect.Type {
+	return nil
+}
+
+func (ticket *TicketType) GetTypeMap() map[string]int32 {
+	return actionName
 }
 
 type TicketNewLog struct {

@@ -3,6 +3,7 @@ package rpc
 import (
 	"encoding/hex"
 	"encoding/json"
+	"reflect"
 
 	"gitlab.33.cn/chain33/chain33/types/convertor"
 
@@ -16,6 +17,14 @@ var glog = log.New("module", bw.BlackwhiteX)
 var name string
 var jrpc = &Jrpc{}
 var grpc = &Grpc{}
+var (
+	actionName = map[string]int32{
+		"Create":      bw.BlackwhiteActionCreate,
+		"Play":        bw.BlackwhiteActionPlay,
+		"Show":        bw.BlackwhiteActionShow,
+		"TimeoutDone": bw.BlackwhiteActionTimeoutDone,
+	}
+)
 
 func InitRPC(s pluginmgr.RPCServer) {
 	cli := channelClient{}
@@ -59,6 +68,18 @@ func NewType() *BlackwhiteType {
 
 func (b *BlackwhiteType) GetPayload() types.Message {
 	return &bw.BlackwhiteAction{}
+}
+
+func (b *BlackwhiteType) GetName() string {
+	return bw.BlackwhiteX
+}
+
+func (b *BlackwhiteType) GetLogMap() map[int64]reflect.Type {
+	return nil
+}
+
+func (b *BlackwhiteType) GetTypeMap() map[string]int32 {
+	return actionName
 }
 
 func (m BlackwhiteType) ActionName(tx *types.Transaction) string {
