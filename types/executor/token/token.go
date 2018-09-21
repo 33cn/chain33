@@ -3,7 +3,6 @@ package token
 import (
 	"encoding/json"
 	"math/rand"
-	"reflect"
 	"time"
 
 	log "github.com/inconshreveable/log15"
@@ -14,18 +13,7 @@ import (
 
 var nameX string
 
-var (
-	tlog       = log.New("module", types.TokenX)
-	actionName = map[string]int32{
-		"Tokenprecreate":    types.TokenActionPreCreate,
-		"Tokenfinishcreate": types.TokenActionFinishCreate,
-		"Tokenrevokecreate": types.TokenActionRevokeCreate,
-		"Transfer":          types.ActionTransfer,
-		"Withdraw":          types.ActionWithdraw,
-		"Genesis":           types.ActionGenesis,
-		"TransferToExec":    types.TokenActionTransferToExec,
-	}
-)
+var tlog = log.New("module", types.TokenX)
 
 //getRealExecName
 //如果paraName == "", 那么自动用 types.types.ExecName("token")
@@ -77,18 +65,6 @@ func NewType() *TokenType {
 
 func (at *TokenType) GetPayload() types.Message {
 	return &types.TokenAction{}
-}
-
-func (at *TokenType) GetName() string {
-	return types.TokenX
-}
-
-func (at *TokenType) GetLogMap() map[int64]reflect.Type {
-	return nil
-}
-
-func (c *TokenType) GetTypeMap() map[string]int32 {
-	return actionName
 }
 
 func (token TokenType) GetRealToAddr(tx *types.Transaction) string {
