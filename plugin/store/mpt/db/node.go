@@ -81,7 +81,7 @@ func (n *fullNode) create() *Node {
 	for i, n := range n.Children {
 		if n != nil {
 			nn := n.create()
-			nn.Index = int32(i)
+			nn.Ty = int32(i)<<4 | nn.Ty
 			nodes = append(nodes, nn)
 		}
 	}
@@ -200,7 +200,7 @@ func (n *Node) decode(hash []byte, cachegen uint16) (node, error) {
 	if n == nil {
 		return nil, nil
 	}
-	switch n.Ty {
+	switch n.Ty & 0xF {
 	case TyShortNode:
 		n, err := decodeShort(hash, n.GetShort(), cachegen)
 		return n, wrapError(err, "short")
@@ -231,8 +231,8 @@ func decodeFull(hash []byte, fn *FullNode, cachegen uint16) (*fullNode, error) {
 	n := &fullNode{flags: nodeFlag{hash: createHashNode(hash), gen: cachegen}}
 	var err error
 	for i := 0; i < len(fn.Nodes); i++ {
-		if fn.Nodes[i] != nil && fn.Nodes[i].Ty > 0 {
-			index := fn.Nodes[i].Index
+		if fn.Nodes[i] != nil && fn.Nodes[i].Ty&0xF > 0 {
+			index := fn.Nodes[i].Ty >> 4
 			n.Children[index], err = fn.Nodes[i].decode(hash, cachegen)
 			if err != nil {
 				return nil, err

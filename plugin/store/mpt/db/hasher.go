@@ -169,19 +169,19 @@ func (h *hasher) store(n node, db *Database, force bool) (node, error) {
 		return n, nil
 	}
 	// Generate the RLP encoding of the node
-	h.tmp.Reset()
-	data, err := proto.Marshal(n.create())
+	nn := n.create()
+	size := proto.Size(nn)
+	if size < 32 && !force {
+		return n, nil // Nodes smaller than 32 bytes are stored inside their parent
+	}
+	data, err := proto.Marshal(nn)
 	if err != nil {
 		panic("encode error: " + err.Error())
-	}
-	h.tmp.Write(data)
-	if len(h.tmp) < 32 && !force {
-		return n, nil // Nodes smaller than 32 bytes are stored inside their parent
 	}
 	// Larger nodes are replaced by their hash and stored in the database.
 	hash, _ := n.cache()
 	if hash.HashNode == nil {
-		hash = h.makeHashNode(h.tmp)
+		hash = h.makeHashNode(data)
 	}
 
 	if db != nil {
@@ -189,7 +189,7 @@ func (h *hasher) store(n node, db *Database, force bool) (node, error) {
 		hash := common.BytesToHash(hash.GetHash())
 
 		db.lock.Lock()
-		db.insert(hash, h.tmp, n)
+		db.insert(hash, data, n)
 		db.lock.Unlock()
 
 		// Track external references from account->storage trie
@@ -215,6 +215,6 @@ func (h *hasher) makeHashNode(data []byte) hashNode {
 	var n = hashNode{HashNode: &HashNode{Hash: make([]byte, h.sha.Size())}}
 	h.sha.Reset()
 	h.sha.Write(data)
-	h.sha.Read(n.GetHash())
+	h.sha.Read(n.Hash)
 	return n
 }
