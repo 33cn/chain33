@@ -158,7 +158,7 @@ func (wallet *Wallet) ProcSignRawTx(unsigned *types.ReqSignRawTx) (string, error
 //	Acc   *Account
 //	Label string
 //获取钱包的地址列表
-func (wallet *Wallet) ProcGetAccountList() (*types.WalletAccounts, error) {
+func (wallet *Wallet) ProcGetAccountList(req *types.ReqAccountList) (*types.WalletAccounts, error) {
 	wallet.mtx.Lock()
 	defer wallet.mtx.Unlock()
 
@@ -167,6 +167,9 @@ func (wallet *Wallet) ProcGetAccountList() (*types.WalletAccounts, error) {
 	if err != nil || len(WalletAccStores) == 0 {
 		walletlog.Info("ProcGetAccountList", "GetAccountByPrefix:err", err)
 		return nil, err
+	}
+	if req.WithoutBalance {
+		return makeAccountWithoutBalance(WalletAccStores)
 	}
 
 	addrs := make([]string, len(WalletAccStores))
@@ -198,6 +201,23 @@ func (wallet *Wallet) ProcGetAccountList() (*types.WalletAccounts, error) {
 		}
 		WalletAccount.Acc = Account
 		WalletAccount.Label = WalletAccStores[index].GetLabel()
+		WalletAccounts.Wallets[index] = &WalletAccount
+	}
+	return &WalletAccounts, nil
+}
+
+func makeAccountWithoutBalance(accountStores []*types.WalletAccountStore) (*types.WalletAccounts, error) {
+	var WalletAccounts types.WalletAccounts
+	WalletAccounts.Wallets = make([]*types.WalletAccount, len(accountStores))
+
+	for index, account := range accountStores {
+		var WalletAccount types.WalletAccount
+		//此账户还没有参与交易所在account模块没有记录
+		if len(account.Addr) == 0 {
+			continue
+		}
+		WalletAccount.Acc = &types.Account{Addr: account.Addr}
+		WalletAccount.Label = account.GetLabel()
 		WalletAccounts.Wallets[index] = &WalletAccount
 	}
 	return &WalletAccounts, nil

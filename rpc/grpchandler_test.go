@@ -330,7 +330,7 @@ func TestGetTicketCount(t *testing.T) {
 //}
 
 func testGetAccountsOK(t *testing.T) {
-	qapi.On("WalletGetAccountList").Return(nil, nil)
+	qapi.On("WalletGetAccountList", mock.Anything).Return(nil, nil)
 	data, err := g.GetAccounts(getOkCtx(), nil)
 	assert.Nil(t, err, "the error should be nil")
 	assert.Nil(t, data)
