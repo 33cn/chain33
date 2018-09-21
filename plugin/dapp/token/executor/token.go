@@ -10,11 +10,14 @@ token执行器支持token的创建，
 */
 
 import (
+	"reflect"
+
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
+	pty "gitlab.33.cn/chain33/chain33/types/executor/token"
 )
 
 var tokenlog = log.New("module", "execs.token")
@@ -24,6 +27,18 @@ const (
 	tokenAssetsPrefix = "token-assets:"
 	blacklist         = "token-blacklist"
 )
+
+//初始化过程比较重量级，有很多reflact, 所以弄成全局的
+var executorFunList = make(map[string]reflect.Method)
+var executorType = pty.NewType()
+
+func init() {
+	actionFunList := executorType.GetFuncMap()
+	executorFunList = types.ListMethod(&token{})
+	for k, v := range actionFunList {
+		executorFunList[k] = v
+	}
+}
 
 func Init(name string) {
 	drivers.Register(GetName(), newToken, types.ForkV2AddToken)
@@ -41,6 +56,7 @@ type token struct {
 func newToken() drivers.Driver {
 	t := &token{}
 	t.SetChild(t)
+	t.SetExecutorType(executorType)
 	return t
 }
 
@@ -418,4 +434,24 @@ func (t *token) deleteLogs(receipt *types.ReceiptToken) []*types.KeyValue {
 		kv = append(kv, &types.KeyValue{key, value})
 	}
 	return kv
+}
+
+func (t *token) GetFuncMap() map[string]reflect.Method {
+	return executorFunList
+}
+
+func (t *token) GetPayloadValue() types.Message {
+	return &types.TokenAction{}
+}
+
+func (t *token) GetTypeMap() map[string]int32 {
+	return map[string]int32{
+		"Tokenprecreate":    types.TokenActionPreCreate,
+		"Tokenfinishcreate": types.TokenActionFinishCreate,
+		"Tokenrevokecreate": types.TokenActionRevokeCreate,
+		"Transfer":          types.ActionTransfer,
+		"Withdraw":          types.ActionWithdraw,
+		"Genesis":           types.ActionGenesis,
+		"TransferToExec":    types.TokenActionTransferToExec,
+	}
 }
