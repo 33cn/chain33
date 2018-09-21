@@ -9,7 +9,8 @@ message Node {
         HashNode  hash  = 4;
         ValueNode val   = 5;
     }
-    int32 Ty = 1;
+    int32 Ty    = 1;
+    int32 index = 6;
 }
 
 message FullNode {
