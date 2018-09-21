@@ -9,6 +9,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/common/address"
 )
 
 var (
@@ -189,4 +190,30 @@ func TestGetTotalCoins(t *testing.T) {
 		t.Logf("GetTotalCoins is %v", rsp)
 		require.Equal(t, int64(100000), rsp.Count)
 	}
+}
+
+func TestAccountName(t *testing.T) {
+	stroedb, _ := db.NewGoMemDB("gomemdb", "test", 128)
+
+	accCoin := NewCoinsAccount()
+	accCoin.SetDB(stroedb)
+	coinsAddr := address.ExecAddress("coins")
+	t.Log("coinsAddr:", coinsAddr)
+
+	accToken, _ := NewAccountDB("token", "test", nil)
+	accToken.SetDB(stroedb)
+	tokenAddr := address.ExecAddress("token")
+	t.Log("tokenAddr:", tokenAddr)
+
+	tradeAddr := address.ExecAddress("trade")
+	t.Log("tradeAddr:", tradeAddr)
+
+	paraAddr := address.ExecAddress(types.ParaX)
+	t.Log("paraAddr:", paraAddr)
+
+	myAddr := "13DP8mVru5Rtu6CrjXQMvLsjvve3epRR1i"
+	t.Log("paraAddr:", accToken.ExecAddress(types.ParaX))
+	t.Log("user.p.guodun.paraAddr:", accToken.ExecAddress("user.p.guodun"+types.ParaX))
+	fromAcc := accToken.LoadExecAccount(myAddr, paraAddr)
+	t.Log("myAddr of paracorss", fromAcc)
 }

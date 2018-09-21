@@ -12,6 +12,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/util"
+	"github.com/pkg/errors"
 )
 
 type action struct {
@@ -403,11 +404,10 @@ func (a *action) execCrossTxs(commit *pt.ParacrossCommitAction) (*types.Receipt,
 }
 
 func (a *action) assetTransferCoins(transfer *types.AssetsTransfer) (*types.Receipt, error) {
-	accDB := account.NewCoinsAccount()
-	accDB.SetDB(a.db)
-
 	isPara := types.IsPara()
 	if !isPara {
+		accDB := account.NewCoinsAccount()
+		accDB.SetDB(a.db)
 		execAddr := address.ExecAddress(types.ParaX)
 		fromAcc := accDB.LoadExecAccount(a.fromaddr, execAddr)
 		if fromAcc.Balance < transfer.Amount {
@@ -418,10 +418,17 @@ func (a *action) assetTransferCoins(transfer *types.AssetsTransfer) (*types.Rece
 			"txHash", common.Bytes2Hex(a.tx.Hash()))
 		return accDB.ExecTransfer(a.fromaddr, toAddr, execAddr, transfer.Amount)
 	} else {
-		execAddr := address.ExecAddress(string(a.tx.Execer))
+		paraTitle, err := getTitleFrom(a.tx.Execer)
+		if err != nil {
+			return nil, errors.Wrap(err, "assetTransferCoins call getTitleFrom failed")
+		}
+		paraAcc, err := NewParaAccount(string(paraTitle), types.CoinsX, "bty", a.db)
+		if err != nil {
+			return nil, errors.Wrap(err, "assetTransferCoins call NewParaAccount failed")
+		}
 		clog.Debug("paracross.AssetTransfer isPara", "execer", string(a.tx.Execer),
 			"txHash", common.Bytes2Hex(a.tx.Hash()))
-		return ParaAssetTransfer(accDB, transfer.To, transfer.Amount, execAddr)
+		return assetDepositBalance(paraAcc, transfer.To, transfer.Amount)
 	}
 }
 
@@ -447,8 +454,17 @@ func (a *action) assetWithdrawCoins(withdraw *types.AssetsWithdraw, withdrawTx *
 			"to", withdraw.To, "exec", execAddr, "withdrawTx execor", string(withdrawTx.Execer))
 		return accDB.ExecTransfer(fromAddr, withdraw.To, execAddr, withdraw.Amount)
 	} else {
-		execAddr := address.ExecAddress(string(withdrawTx.Execer))
-		return ParaAssetWithdraw(accDB, a.fromaddr, withdraw.Amount, execAddr)
+		paraTitle, err := getTitleFrom(a.tx.Execer)
+		if err != nil {
+			return nil, errors.Wrap(err, "assetWithdrawCoins call getTitleFrom failed")
+		}
+		paraAcc, err := NewParaAccount(string(paraTitle), types.CoinsX, "bty", a.db)
+		if err != nil {
+			return nil, errors.Wrap(err, "assetWithdrawCoins call NewParaAccount failed")
+		}
+		clog.Debug("paracross.assetWithdrawCoins isPara", "execer", string(a.tx.Execer),
+			"txHash", common.Bytes2Hex(a.tx.Hash()))
+		return assetWithdrawBalance(paraAcc, a.fromaddr, withdraw.Amount)
 	}
 }
 
@@ -484,6 +500,15 @@ func (a *action) Miner(miner *pt.ParacrossMinerAction) (*types.Receipt, error) {
 	logs = append(logs, log)
 	return &types.Receipt{types.ExecOk, nil, logs}, nil
 
+}
+
+func getTitleFrom(exec []byte) ([]byte, error) {
+	last := bytes.LastIndex(exec, []byte("."))
+	if last == -1 {
+		return nil, types.ErrNotFound
+	}
+	// 现在配置是包含 .的， 所有取title 是也把 `.` 取出来
+	return exec[:last+1], nil
 }
 
 /*
