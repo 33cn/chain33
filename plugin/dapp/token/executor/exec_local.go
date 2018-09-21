@@ -58,11 +58,11 @@ func (t *token) execLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 	return set, nil
 }
 
-func (t *token) ExecLocal_TokenPreCreate(payload *types.TokenPreCreate, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+func (t *token) ExecLocal_Tokenprecreate(payload *types.TokenPreCreate, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	return t.execLocal(tx, receiptData, index)
 }
 
-func (t *token) ExecLocal_Tokenfinishcreat(payload *types.TokenFinishCreate, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+func (t *token) ExecLocal_Tokenfinishcreate(payload *types.TokenFinishCreate, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	return t.execLocal(tx, receiptData, index)
 }
 

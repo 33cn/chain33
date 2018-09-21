@@ -37,11 +37,11 @@ func (t *token) execDelLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 	return set, nil
 }
 
-func (t *token) ExecDelLocal_TokenPreCreate(payload *types.TokenPreCreate, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+func (t *token) ExecDelLocal_Tokenprecreate(payload *types.TokenPreCreate, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	return t.execDelLocal(tx, receiptData, index)
 }
 
-func (t *token) ExecDelLocal_Tokenfinishcreat(payload *types.TokenFinishCreate, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+func (t *token) ExecDelLocal_Tokenfinishcreate(payload *types.TokenFinishCreate, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	return t.execDelLocal(tx, receiptData, index)
 }
 
