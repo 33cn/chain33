@@ -61,7 +61,7 @@ func (t *token) exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	return nil, types.ErrActionNotSupport
 }
 
-func (t *token) Exec_TokenPreCreate(payload *types.TokenPreCreate, tx *types.Transaction, index int) (*types.Receipt, error) {
+func (t *token) Exec_Tokenprecreate(payload *types.TokenPreCreate, tx *types.Transaction, index int) (*types.Receipt, error) {
 	return t.exec(tx, index)
 }
 

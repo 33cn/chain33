@@ -330,9 +330,9 @@ func (t *Ticket) GetPayloadValue() types.Message {
 func (t *Ticket) GetTypeMap() map[string]int32 {
 	return map[string]int32{
 		"Genesis": types.TicketActionGenesis,
-		"Open":    types.TicketActionOpen,
-		"Bind":    types.TicketActionBind,
-		"Close":   types.TicketActionClose,
+		"Topen":   types.TicketActionOpen,
+		"Tbind":   types.TicketActionBind,
+		"Tclose":  types.TicketActionClose,
 		"Miner":   types.TicketActionMiner,
 	}
 }
