@@ -303,7 +303,7 @@ func (d *DriverBase) Exec(tx *types.Transaction, index int) (receipt *types.Rece
 		return nil, nil
 	}
 	if d.ety == nil {
-		return nil, types.ErrActionNotSupport
+		return nil, nil
 	}
 	name, value, err := d.ety.DecodePayloadValue(tx)
 	if err != nil {
