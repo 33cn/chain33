@@ -219,6 +219,9 @@ func decodeNode(hash, buf []byte, cachegen uint16) (node, error) {
 }
 
 func createHashNode(hash []byte) (n hashNode) {
+	if hash == nil {
+		return hashNode{nil, nil}
+	}
 	n.HashNode = &HashNode{Hash: hash}
 	return n
 }
@@ -265,7 +268,7 @@ func decodeFull(hash []byte, fn *FullNode, cachegen uint16) (*fullNode, error) {
 	for i := 0; i < len(fn.Nodes); i++ {
 		if fn.Nodes[i] != nil && fn.Nodes[i].Ty&0xF > 0 {
 			index := fn.Nodes[i].Ty >> 4
-			n.Children[index], err = fn.Nodes[i].decode(hash, cachegen)
+			n.Children[index], err = fn.Nodes[i].decode(nil, cachegen)
 			if err != nil {
 				return nil, err
 			}

@@ -171,7 +171,7 @@ func (h *hasher) store(n node, db *Database, force bool) (node, error) {
 	// Generate the RLP encoding of the node
 	//这个不用非常精确，只要保持确定性就可以了
 	size := n.size()
-	if size < 512 && !force {
+	if size < 64 && !force {
 		return n, nil // Nodes smaller than 32 bytes are stored inside their parent
 	}
 	nn := n.create()
@@ -184,7 +184,6 @@ func (h *hasher) store(n node, db *Database, force bool) (node, error) {
 	if hash.HashNode == nil {
 		hash = h.makeHashNode(data)
 	}
-
 	if db != nil {
 		// We are pooling the trie nodes into an intermediate memory cache
 		hash := common.BytesToHash(hash.GetHash())
