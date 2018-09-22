@@ -27,6 +27,7 @@ import (
 	"reflect"
 	"testing"
 	"testing/quick"
+	"time"
 
 	"github.com/davecgh/go-spew/spew"
 
@@ -48,7 +49,7 @@ var (
 )
 
 func init() {
-	rand.Seed(0)
+	rand.Seed(time.Now().UnixNano())
 	spew.Config.Indent = "    "
 	spew.Config.DisableMethods = false
 }
@@ -660,6 +661,7 @@ func get10000(t assert.TestingT, root common.Hash, db dbm.DB, keys map[string]st
 	database := NewDatabase(db)
 	t1, _ := New(root, database)
 	for k, v := range keys {
+		fmt.Println(k, v)
 		value, err := t1.TryGet([]byte(k))
 		assert.Nil(t, err)
 		assert.Equal(t, string(value), v)

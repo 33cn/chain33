@@ -194,14 +194,26 @@ func TestNodeIteratorCoverage(t *testing.T) {
 type kvs struct{ k, v string }
 
 var testdata1 = []kvs{
-	{"barb", "baxxxxxxxxxxxxxxxxxxx"},
-	{"bard", "bcxxxxxxxxxxxxxxxxxxxxx"},
-	{"bars", "bbxxxxxxxxxxxxxxxxxxx"},
-	{"bar", "bxxxxxxxxxxxxxxxxx"},
+	{"barb", "ba"},
+	{"bard", "bc"},
+	{"bars", "bb"},
+	{"bar", "b"},
 	{"fab", "z"},
 	{"food", "ab"},
 	{"foos", "aa"},
 	{"foo", "a"},
+}
+
+var testdata3 = []kvs{
+	{"barb", "ba"},
+	{"bard", "bc"},
+	{"bars", "bb"},
+	{"bar", "b"},
+	{"fab", "z"},
+	{"food", "ab"},
+	{"foos", "aa"},
+	{"foo", "a"},
+	{"zoo", "axxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"},
 }
 
 var testdata2 = []kvs{
@@ -359,7 +371,7 @@ func testIteratorContinueAfterError(t *testing.T, memonly bool) {
 	triedb := NewDatabase(diskdb)
 
 	tr, _ := New(common.Hash{}, triedb)
-	for _, val := range testdata1 {
+	for _, val := range testdata3 {
 		tr.Update([]byte(val.k), []byte(val.v))
 	}
 	tr.Commit(nil)
