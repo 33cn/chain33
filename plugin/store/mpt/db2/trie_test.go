@@ -711,11 +711,11 @@ func saveBlock(dbm dbm.DB, height int64, hash []byte, txN int64, mvcc bool) (new
 	return newHash, nil
 }
 
-func set10000(t assert.TestingT, root common.Hash, db dbm.DB) (common.Hash, map[string]string) {
+func set10000(t assert.TestingT, root common.Hash, db dbm.DB, n int) (common.Hash, map[string]string) {
 	database := NewDatabase(db)
-	trie, _ := New(common.Hash{}, database)
+	trie, _ := New(root, database)
 	keys := make(map[string]string)
-	for i := 0; i < 10000; i++ {
+	for i := 0; i < n; i++ {
 		k := string(randBytes2(10)) + fmt.Sprint(i)
 		v := string(randBytes2(10)) + fmt.Sprint(i)
 		keys[k] = v
@@ -745,7 +745,7 @@ func BenchmarkInsert10000(b *testing.B) {
 	root := common.Hash{}
 	count := 0
 	for i := 0; i < b.N; i++ {
-		root, _ = set10000(b, root, db)
+		root, _ = set10000(b, root, db, 10000)
 		count += 10000
 		if count >= b.N {
 			break
@@ -759,9 +759,14 @@ func BenchmarkInsertGet10000(b *testing.B) {
 	b.Log(dir)
 	db := dbm.NewDB("test", "leveldb", dir, 100)
 	root := common.Hash{}
+	var prevkv map[string]string
 	for i := 0; i < b.N; i++ {
-		root, kv := set10000(b, root, db)
+		root, kv := set10000(b, root, db, 10000)
 		get10000(b, root, db, kv)
+		if prevkv != nil {
+			get10000(b, root, db, prevkv)
+		}
+		prevkv = kv
 	}
 }
 
@@ -775,7 +780,7 @@ func BenchmarkGet10000(b *testing.B) {
 	insertN := b.N/10000 + 1
 	for i := 0; i < insertN; i++ {
 		var kv map[string]string
-		root, kv = set10000(b, root, db)
+		root, kv = set10000(b, root, db, 10000)
 		for k, v := range kv {
 			kvs[k] = v
 		}
@@ -791,7 +796,7 @@ func BenchmarkGet10000(b *testing.B) {
 		}
 		value, err := t1.TryGet([]byte(k))
 		assert.Nil(b, err)
-		assert.Equal(b, string(value), v)
+		assert.Equal(b, v, string(value))
 	}
 }
 
@@ -801,11 +806,33 @@ func TestInsert10000(t *testing.T) {
 	t.Log(dir)
 	db := dbm.NewDB("test", "leveldb", dir, 100)
 	root := common.Hash{}
-	root, kv := set10000(t, root, db)
-	get10000(t, root, db, kv)
+	root, kv1 := set10000(t, root, db, 10000)
+	get10000(t, root, db, kv1)
 
-	root, kv = set10000(t, root, db)
-	get10000(t, root, db, kv)
+	root, kv2 := set10000(t, root, db, 10000)
+	get10000(t, root, db, kv1)
+	get10000(t, root, db, kv2)
+}
+
+func TestInsert1(t *testing.T) {
+	dir, err := ioutil.TempDir("", "datastore")
+	require.NoError(t, err)
+	t.Log(dir)
+	db := dbm.NewDB("test", "leveldb", dir, 100)
+	root := common.Hash{}
+	root, kv1 := set10000(t, root, db, 2)
+	database := NewDatabase(db)
+	t1, _ := New(root, database)
+	fmt.Println("save1 -> ", t1.root)
+	root, kv2 := set10000(t, root, db, 2)
+
+	database = NewDatabase(db)
+	t1, _ = New(root, database)
+	fmt.Println("save2 -> ", t1.root)
+
+	get10000(t, root, db, kv1)
+	get10000(t, root, db, kv2)
+	assert.NotNil(t, nil)
 }
 
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
