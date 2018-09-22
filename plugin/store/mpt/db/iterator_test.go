@@ -18,7 +18,6 @@ package mpt
 
 import (
 	"bytes"
-	"encoding/hex"
 	"fmt"
 	"math/rand"
 	"testing"
@@ -195,10 +194,10 @@ func TestNodeIteratorCoverage(t *testing.T) {
 type kvs struct{ k, v string }
 
 var testdata1 = []kvs{
-	{"barb", "ba"},
-	{"bard", "bc"},
-	{"bars", "bb"},
-	{"bar", "b"},
+	{"barb", "baxxxxxxxxxxxxxxxxxxx"},
+	{"bard", "bcxxxxxxxxxxxxxxxxxxxxx"},
+	{"bars", "bbxxxxxxxxxxxxxxxxxxx"},
+	{"bar", "bxxxxxxxxxxxxxxxxx"},
 	{"fab", "z"},
 	{"food", "ab"},
 	{"foos", "aa"},
@@ -362,15 +361,12 @@ func testIteratorContinueAfterError(t *testing.T, memonly bool) {
 	tr, _ := New(common.Hash{}, triedb)
 	for _, val := range testdata1 {
 		tr.Update([]byte(val.k), []byte(val.v))
-		fmt.Println("insert:", val.k, hex.EncodeToString([]byte(val.k)), val.v)
-		fmt.Println(tr.root)
 	}
 	tr.Commit(nil)
 	if !memonly {
 		triedb.Commit(tr.Hash(), true)
 	}
 	wantNodeCount := checkIteratorNoDups(t, tr.NodeIterator(nil), nil)
-
 	var (
 		diskKeys [][]byte
 		memKeys  []common.Hash
