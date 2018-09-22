@@ -45,6 +45,7 @@ func (n rawNode) canUnload(uint16, uint16) bool { panic("this should never end u
 func (n rawNode) cache() (hashNode, bool)       { panic("this should never end up in a live trie") }
 func (n rawNode) fstring(ind string) string     { panic("this should never end up in a live trie") }
 func (n rawNode) create() *Node                 { panic("this should never end up in a live trie") }
+func (n rawNode) size() int                     { return len(n) }
 
 // DatabaseReader wraps the Get and Has method of a backing store for the trie.
 //type DatabaseReader interface {
@@ -112,7 +113,7 @@ func expandNode(hash hashNode, n node, cachegen uint16) node {
 		// Short nodes need key and child expansion
 		return &shortNode{
 			Key: compactToHex(n.Key),
-			Val: expandNode(hashNode{nil}, n.Val, cachegen),
+			Val: expandNode(hashNode{nil, nil}, n.Val, cachegen),
 			flags: nodeFlag{
 				hash: hash,
 				gen:  cachegen,
@@ -129,7 +130,7 @@ func expandNode(hash hashNode, n node, cachegen uint16) node {
 		}
 		for i := 0; i < len(node.Children); i++ {
 			if n.Children[i] != nil {
-				node.Children[i] = expandNode(hashNode{nil}, n.Children[i], cachegen)
+				node.Children[i] = expandNode(hashNode{nil, nil}, n.Children[i], cachegen)
 			}
 		}
 		return node
@@ -245,7 +246,7 @@ func (db *Database) insert(hash common.Hash, blob []byte, node node) {
 	}
 	// Create the cached entry for this node
 	entry := &cachedNode{
-		node:      simplifyNode(node),
+		node:      node,
 		size:      uint16(len(blob)),
 		flushPrev: db.newest,
 	}

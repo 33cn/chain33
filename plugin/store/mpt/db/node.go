@@ -31,6 +31,7 @@ type node interface {
 	fstring(string) string
 	cache() (hashNode, bool)
 	create() *Node
+	size() int
 	canUnload(cachegen, cachelimit uint16) bool
 }
 
@@ -45,25 +46,29 @@ type (
 	fullNode struct {
 		Children [17]node // Actual trie node data to encode/decode (needs custom encoder)
 		flags    nodeFlag
+		ncache   *Node
 	}
 	shortNode struct {
-		Key   []byte
-		Val   node
-		flags nodeFlag
+		Key    []byte
+		Val    node
+		flags  nodeFlag
+		ncache *Node
 	}
 )
 
 type hashNode struct {
 	*HashNode
+	ncache *Node
 }
 
 type valueNode struct {
 	*ValueNode
+	ncache *Node
 }
 
 // nilValueNode is used when collapsing internal trie nodes for hashing, since
 // unset children need to serialize correctly.
-var nilValueNode = valueNode{nil}
+var nilValueNode = valueNode{nil, nil}
 
 // EncodeRLP encodes a full node into the consensus RLP format.
 func (n *fullNode) EncodeProto(w io.Writer) error {
@@ -85,7 +90,18 @@ func (n *fullNode) create() *Node {
 			nodes = append(nodes, nn)
 		}
 	}
-	return &Node{Ty: TyFullNode, Value: &Node_Full{Full: &FullNode{Nodes: nodes}}}
+	n.ncache = &Node{Ty: TyFullNode, Value: &Node_Full{Full: &FullNode{Nodes: nodes}}}
+	return n.ncache
+}
+
+func (n *fullNode) size() int {
+	k := 0
+	for _, n := range n.Children {
+		if n != nil {
+			k += n.size()
+		}
+	}
+	return k
 }
 
 func (n *fullNode) copy() *fullNode   { copy := *n; return &copy }
@@ -108,7 +124,12 @@ func (n *shortNode) canUnload(gen, limit uint16) bool { return n.flags.canUnload
 
 func (n *shortNode) create() *Node {
 	sn := &ShortNode{Key: n.Key, Val: n.Val.create()}
-	return &Node{Ty: TyShortNode, Value: &Node_Short{Short: sn}}
+	n.ncache = &Node{Ty: TyShortNode, Value: &Node_Short{Short: sn}}
+	return n.ncache
+}
+
+func (n *shortNode) size() int {
+	return len(n.Key) + n.Val.size()
 }
 
 func (n hashNode) canUnload(uint16, uint16) bool  { return false }
@@ -119,12 +140,23 @@ func (n *shortNode) cache() (hashNode, bool) { return n.flags.hash, n.flags.dirt
 func (n hashNode) cache() (hashNode, bool)   { return hashNode{}, true }
 func (n hashNode) create() *Node {
 	hn := n.HashNode
-	return &Node{Ty: TyHashNode, Value: &Node_Hash{Hash: hn}}
+	n.ncache = &Node{Ty: TyHashNode, Value: &Node_Hash{Hash: hn}}
+	return n.ncache
 }
+
+func (n hashNode) size() int {
+	return len(n.Hash)
+}
+
 func (n valueNode) cache() (hashNode, bool) { return hashNode{}, true }
 func (n valueNode) create() *Node {
 	vn := n.ValueNode
-	return &Node{Ty: TyValueNode, Value: &Node_Val{Val: vn}}
+	n.ncache = &Node{Ty: TyValueNode, Value: &Node_Val{Val: vn}}
+	return n.ncache
+}
+
+func (n valueNode) size() int {
+	return len(n.ValueNode.Value)
 }
 
 // Pretty printing.
@@ -208,9 +240,9 @@ func (n *Node) decode(hash []byte, cachegen uint16) (node, error) {
 		n, err := decodeFull(hash, n.GetFull(), cachegen)
 		return n, wrapError(err, "full")
 	case TyHashNode:
-		return hashNode{n.GetHash()}, nil
+		return hashNode{n.GetHash(), nil}, nil
 	case TyValueNode:
-		return valueNode{n.GetVal()}, nil
+		return valueNode{n.GetVal(), nil}, nil
 	default:
 		return nil, fmt.Errorf("invalid proto")
 	}
