@@ -832,7 +832,6 @@ func TestInsert1(t *testing.T) {
 
 	get10000(t, root, db, kv1)
 	get10000(t, root, db, kv2)
-	assert.NotNil(t, nil)
 }
 
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
