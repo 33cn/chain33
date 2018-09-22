@@ -169,11 +169,12 @@ func (h *hasher) store(n node, db *Database, force bool) (node, error) {
 		return n, nil
 	}
 	// Generate the RLP encoding of the node
-	nn := n.create()
-	size := proto.Size(nn)
-	if size < 32 && !force {
+	//这个不用非常精确，只要保持确定性就可以了
+	size := n.size()
+	if size < 512 && !force {
 		return n, nil // Nodes smaller than 32 bytes are stored inside their parent
 	}
+	nn := n.create()
 	data, err := proto.Marshal(nn)
 	if err != nil {
 		panic("encode error: " + err.Error())

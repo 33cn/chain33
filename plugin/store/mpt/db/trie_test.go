@@ -641,6 +641,103 @@ func deleteString(trie *Trie, k string) {
 	trie.Delete([]byte(k))
 }
 
+func set10000(t assert.TestingT, root common.Hash, db dbm.DB) (common.Hash, map[string]string) {
+	database := NewDatabase(db)
+	trie, _ := New(common.Hash{}, database)
+	keys := make(map[string]string)
+	for i := 0; i < 10000; i++ {
+		k := string(randBytes2(10)) + fmt.Sprint(i)
+		v := string(randBytes2(10)) + fmt.Sprint(i)
+		keys[k] = v
+		updateString(trie, k, v)
+	}
+	root, err := trie.Commit(nil)
+	assert.Nil(t, err)
+	trie.db.Commit(root, true)
+	return root, keys
+}
+
+func get10000(t assert.TestingT, root common.Hash, db dbm.DB, keys map[string]string) {
+	database := NewDatabase(db)
+	t1, _ := New(root, database)
+	for k, v := range keys {
+		value, err := t1.TryGet([]byte(k))
+		assert.Nil(t, err)
+		assert.Equal(t, string(value), v)
+	}
+}
+
+func BenchmarkInsert10000(b *testing.B) {
+	dir, err := ioutil.TempDir("", "datastore")
+	require.NoError(b, err)
+	b.Log(dir)
+	db := dbm.NewDB("test", "leveldb", dir, 100)
+	root := common.Hash{}
+	count := 0
+	for i := 0; i < b.N; i++ {
+		root, _ = set10000(b, root, db)
+		count += 10000
+		if count >= b.N {
+			break
+		}
+	}
+}
+
+func BenchmarkInsertGet10000(b *testing.B) {
+	dir, err := ioutil.TempDir("", "datastore")
+	require.NoError(b, err)
+	b.Log(dir)
+	db := dbm.NewDB("test", "leveldb", dir, 100)
+	root := common.Hash{}
+	for i := 0; i < b.N; i++ {
+		root, kv := set10000(b, root, db)
+		get10000(b, root, db, kv)
+	}
+}
+
+func BenchmarkGet10000(b *testing.B) {
+	dir, err := ioutil.TempDir("", "datastore")
+	require.NoError(b, err)
+	b.Log(dir)
+	db := dbm.NewDB("test", "leveldb", dir, 100)
+	root := common.Hash{}
+	kvs := make(map[string]string)
+	insertN := b.N/10000 + 1
+	for i := 0; i < insertN; i++ {
+		var kv map[string]string
+		root, kv = set10000(b, root, db)
+		for k, v := range kv {
+			kvs[k] = v
+		}
+	}
+	b.ResetTimer()
+	database := NewDatabase(db)
+	t1, _ := New(root, database)
+	i := 0
+	for k, v := range kvs {
+		i++
+		if i == b.N {
+			break
+		}
+		value, err := t1.TryGet([]byte(k))
+		assert.Nil(b, err)
+		assert.Equal(b, string(value), v)
+	}
+}
+
+func TestInsert10000(t *testing.T) {
+	dir, err := ioutil.TempDir("", "datastore")
+	require.NoError(t, err)
+	t.Log(dir)
+	db := dbm.NewDB("test", "leveldb", dir, 100)
+	root := common.Hash{}
+	root, kv := set10000(t, root, db)
+	get10000(t, root, db, kv)
+
+	root, kv = set10000(t, root, db)
+	get10000(t, root, db, kv)
+}
+
 func BenchmarkDBGet(b *testing.B) {
 	dir, err := ioutil.TempDir("", "datastore")
 	require.NoError(b, err)
