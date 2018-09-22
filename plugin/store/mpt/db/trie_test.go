@@ -663,7 +663,6 @@ func get10000(t assert.TestingT, root common.Hash, db dbm.DB, keys map[string]st
 		value, err := t1.TryGet([]byte(k))
 		assert.Nil(t, err)
 		assert.Equal(t, string(value), v)
-		fmt.Println("-------------------------")
 	}
 }
 
