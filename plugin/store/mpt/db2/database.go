@@ -17,7 +17,6 @@
 package mpt
 
 import (
-	"encoding/hex"
 	"fmt"
 	"io"
 	"sync"
@@ -687,7 +686,7 @@ func (db *Database) commit(hash common.Hash, batch dbm.Batch) error {
 	//if err := batch.Put(hash[:], node.rlp()); err != nil {
 	//	return err
 	//}
-	println(hex.EncodeToString(hash[:]), len(node.rlp()))
+	//println(hex.EncodeToString(hash[:]), len(node.rlp()))
 	batch.Set(hash[:], node.rlp())
 	// If we've reached an optimal batch size, commit and start over
 	if batch.ValueSize() >= IdealBatchSize {
