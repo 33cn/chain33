@@ -22,7 +22,6 @@ import (
 	"strings"
 
 	proto "github.com/golang/protobuf/proto"
-	"gitlab.33.cn/chain33/chain33/common"
 )
 
 var indices = []string{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "f", "T"}
@@ -65,10 +64,6 @@ type valueNode struct {
 	*ValueNode
 	ncache *Node
 }
-
-// nilValueNode is used when collapsing internal trie nodes for hashing, since
-// unset children need to serialize correctly.
-var nilValueNode = valueNode{nil, nil}
 
 // EncodeRLP encodes a full node into the consensus RLP format.
 func (n *fullNode) EncodeProto(w io.Writer) error {
@@ -276,8 +271,6 @@ func decodeFull(hash []byte, fn *FullNode, cachegen uint16) (*fullNode, error) {
 	}
 	return n, nil
 }
-
-const hashLen = len(common.Hash{})
 
 // wraps a decoding error with information about the path to the
 // invalid child node (for debugging encoding issues).
