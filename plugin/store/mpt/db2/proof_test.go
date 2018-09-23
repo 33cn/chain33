@@ -21,13 +21,14 @@ import (
 	crand "crypto/rand"
 	mrand "math/rand"
 	"testing"
+	"time"
 
 	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 )
 
 func init() {
-	mrand.Seed(0)
+	mrand.Seed(time.Now().UnixNano())
 }
 
 // makeProvers creates Merkle trie provers based on different implementations to

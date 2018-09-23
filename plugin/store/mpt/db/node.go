@@ -255,7 +255,7 @@ func decodeShort(hash []byte, sn *ShortNode, cachegen uint16) (*shortNode, error
 	n := &shortNode{flags: nodeFlag{hash: createHashNode(hash), gen: cachegen}}
 	n.Key = compactToHex(sn.Key)
 	var err error
-	n.Val, err = sn.Val.decode(hash, cachegen)
+	n.Val, err = sn.Val.decode(nil, cachegen)
 	if err != nil {
 		return nil, err
 	}
