@@ -731,6 +731,7 @@ func get10000(t assert.TestingT, root common.Hash, db dbm.DB, keys map[string]st
 	database := NewDatabase(db)
 	t1, _ := New(root, database)
 	for k, v := range keys {
+		fmt.Println(k, v)
 		value, err := t1.TryGet([]byte(k))
 		assert.Nil(t, err)
 		assert.Equal(t, string(value), v)
@@ -821,14 +822,7 @@ func TestInsert1(t *testing.T) {
 	db := dbm.NewDB("test", "leveldb", dir, 100)
 	root := common.Hash{}
 	root, kv1 := set10000(t, root, db, 2)
-	database := NewDatabase(db)
-	t1, _ := New(root, database)
-	fmt.Println("save1 -> ", t1.root)
 	root, kv2 := set10000(t, root, db, 2)
-
-	database = NewDatabase(db)
-	t1, _ = New(root, database)
-	fmt.Println("save2 -> ", t1.root)
 
 	get10000(t, root, db, kv1)
 	get10000(t, root, db, kv2)
