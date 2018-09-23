@@ -348,8 +348,10 @@ func (ndb *nodeDB) Commit() error {
 //对外接口
 func SetKVPair(db dbm.DB, storeSet *types.StoreSet, sync bool) []byte {
 	tree := NewTree(db, sync)
-	tree.Load(storeSet.StateHash)
-
+	err := tree.Load(storeSet.StateHash)
+	if err != nil {
+		panic(err)
+	}
 	for i := 0; i < len(storeSet.KV); i++ {
 		tree.Set(storeSet.KV[i].Key, storeSet.KV[i].Value)
 	}
