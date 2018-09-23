@@ -543,21 +543,19 @@ func SetKVPair(db dbm.DB, storeSet *types.StoreSet, sync bool) []byte {
 	var trie *TrieEx
 	trie, err = NewEx(common.BytesToHash(storeSet.StateHash), NewDatabase(db))
 	if err != nil {
-		trie, _ = NewEx(common.Hash{}, NewDatabase(db))
-		mptlog.Info("SetKVPair create a new trie")
+		//一般这样的情况下是数据库损坏的情况
+		panic(err)
 	}
 	for i := 0; i < len(storeSet.KV); i++ {
 		trie.Update(storeSet.KV[i].Key, storeSet.KV[i].Value)
 	}
 	root, err := trie.Commit(nil)
-	if nil != err {
-		mptlog.Error("SetKVPair Commit to memory trie fail")
-		return nil
+	if err != nil {
+		panic("SetKVPair Commit to memory trie fail")
 	}
 	err = trie.Commit2Db(root, true)
-	if nil != err {
+	if err != nil {
 		panic("SetKVPair save trie to db fail")
-		return nil
 	}
 	hashByte := root[:]
 	return hashByte
@@ -567,15 +565,14 @@ func GetKVPair(db dbm.DB, storeGet *types.StoreGet) [][]byte {
 	var err error
 	var trie *TrieEx
 	trie, err = NewEx(common.BytesToHash(storeGet.StateHash), NewDatabase(db))
+	values := make([][]byte, len(storeGet.Keys))
 	if err != nil {
-		mptlog.Info("GetKVPair can not find trie", "state hash ", string(storeGet.StateHash))
-		return nil
+		return values
 	}
-	var values [][]byte
 	for i := 0; i < len(storeGet.Keys); i++ {
 		value, err := trie.TryGet(storeGet.Keys[i])
 		if nil == err {
-			values = append(values, value)
+			values[i] = value
 		}
 	}
 	return values
@@ -586,7 +583,7 @@ func GetKVPairProof(db dbm.DB, roothash []byte, key []byte) []byte {
 		key = common.ShaKeccak256(key)
 	}
 	value, _, err := VerifyProof(common.BytesToHash(roothash), key, db)
-	if nil != err {
+	if err != nil {
 		return nil
 	}
 	return value
@@ -598,25 +595,22 @@ func DelKVPair(db dbm.DB, storeDel *types.StoreGet) ([]byte, [][]byte) {
 	var trie *TrieEx
 	trie, err = NewEx(common.BytesToHash(storeDel.StateHash), NewDatabase(db))
 	if err != nil {
-		mptlog.Info("DelKVPair have a trie")
-		return nil, nil
+		panic("DelKVPair load trie tree root error")
 	}
-	var values [][]byte
+	values := make([][]byte, len(storeDel.Keys))
 	for i := 0; i < len(storeDel.Keys); i++ {
 		err = trie.TryUpdate(storeDel.Keys[i], nil)
-		if nil == err {
-			values = append(values, storeDel.Keys[i])
+		if err == nil {
+			values[i] = storeDel.Keys[i]
 		}
 	}
 	root, err := trie.Commit(nil)
-	if nil != err {
-		mptlog.Error("DelKVPair Commit to memory trie fail")
-		return nil, nil
+	if err != nil {
+		panic("DelKVPair Commit to memory trie fail")
 	}
 	err = trie.Commit2Db(root, true)
-	if nil != err {
+	if err != nil {
 		panic("SetKVPair save trie to db fail")
-		return nil, nil
 	}
 	hashByte := root[:]
 	return hashByte, values
@@ -639,7 +633,7 @@ func IterateRangeByStateHash(db dbm.DB, statehash, start, end []byte, ascending 
 		return
 	}
 	var it *Iterator
-	if nil == start || nil == end {
+	if start == nil || end == nil {
 		it = NewIterator(trie.NodeIterator(start))
 	} else {
 		di, _ := NewDifferenceIterator(trie.NodeIterator(end), trie.NodeIterator(start))
