@@ -99,8 +99,8 @@ func testMissingNode(t *testing.T, memonly bool) {
 	triedb := NewDatabase(memdb)
 
 	trie, _ := New(common.Hash{}, triedb)
-	updateString(trie, "120000", "qwerqwerqwerqwerqwerqwerqwerqwer")
-	updateString(trie, "123456", "asdfasdfasdfasdfasdfasdfasdfasdf")
+	updateString(trie, "120000", "qwerqwerqwerqwerqwerqwerqwerqwerxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
+	updateString(trie, "123456", "asdfasdfasdfasdfasdfasdfasdfasdfxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
 	root, _ := trie.Commit(nil)
 	if !memonly {
 		triedb.Commit(root, true)
@@ -110,7 +110,7 @@ func testMissingNode(t *testing.T, memonly bool) {
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
-	assert.Equal(t, []byte("qwerqwerqwerqwerqwerqwerqwerqwer"), data)
+	assert.Equal(t, []byte("qwerqwerqwerqwerqwerqwerqwerqwerxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"), data)
 	trie, _ = New(root, triedb)
 	_, err = trie.TryGet([]byte("120099"))
 	if err != nil {
@@ -122,7 +122,7 @@ func testMissingNode(t *testing.T, memonly bool) {
 		t.Errorf("Unexpected error: %v", err)
 	}
 	trie, _ = New(root, triedb)
-	err = trie.TryUpdate([]byte("120099"), []byte("zxcvzxcvzxcvzxcvzxcvzxcvzxcvzxcv"))
+	err = trie.TryUpdate([]byte("120099"), []byte("zxcvzxcvzxcvzxcvzxcvzxcvzxcvzxcvxxxxxxxxxxxxxxxxxxxx"))
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -132,7 +132,7 @@ func testMissingNode(t *testing.T, memonly bool) {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
-	hash := common.HexToHash("0x59777340c73fbc10a1e1badce2fe9ce8fbe1d69c8b0e9c44c24356410eec94f4")
+	hash := common.HexToHash("9e2800ae476b4acbbdf630ec058098017784a876de4ca272899a32120eb0c879")
 	if memonly {
 		delete(triedb.nodes, hash)
 	} else {
@@ -173,7 +173,7 @@ func TestInsert(t *testing.T) {
 	updateString(trie, "dog", "puppy")
 	updateString(trie, "dogglesworth", "cat")
 
-	exp := common.HexToHash("dd7e0bb7530eb1fb943d654f028ec4a5c42c6504be3ab2821d4bfef57362a27c")
+	exp := common.HexToHash("3b2d78cb0319a48452b99d27825e8db84d6df5e1a9a3acf7c000b2c8a3154bed")
 	root := trie.Hash()
 	if root != exp {
 		t.Errorf("exp %x got %x", exp, root)
@@ -182,7 +182,7 @@ func TestInsert(t *testing.T) {
 	trie = newEmpty()
 	updateString(trie, "A", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 
-	exp = common.HexToHash("d23786fb4a010da3ce639d66d5e904a11dbc02746d1ce25029e53290cabf28ab")
+	exp = common.HexToHash("2ca388c689f5fb595f5d9837cb319564da9d12468763e001596ee20d109f030d")
 	root, err := trie.Commit(nil)
 	if err != nil {
 		t.Fatalf("commit error: %v", err)
@@ -237,7 +237,7 @@ func TestDelete(t *testing.T) {
 	}
 
 	hash := trie.Hash()
-	exp := common.HexToHash("5991bb8c6514148a29db676a14ac506cd2cd5775ace63c30a4fe457715e9ac84")
+	exp := common.HexToHash("29f72de68f3db599f9b170f17813438d40e83bfdacb4ba95d80dbd1d2af55304")
 	if hash != exp {
 		t.Errorf("expected %x got %x", exp, hash)
 	}
@@ -261,7 +261,7 @@ func TestEmptyValues(t *testing.T) {
 	}
 
 	hash := trie.Hash()
-	exp := common.HexToHash("f63b37345588b29a43ee6c6f604393334e6ac7868f435c675fa330e7f91411dd")
+	exp := common.HexToHash("29f72de68f3db599f9b170f17813438d40e83bfdacb4ba95d80dbd1d2af55304")
 	if hash != exp {
 		t.Errorf("expected %x got %x", exp, hash)
 	}
@@ -661,7 +661,6 @@ func get10000(t assert.TestingT, root common.Hash, db dbm.DB, keys map[string]st
 	database := NewDatabase(db)
 	t1, _ := New(root, database)
 	for k, v := range keys {
-		fmt.Println(k, v)
 		value, err := t1.TryGet([]byte(k))
 		assert.Nil(t, err)
 		assert.Equal(t, string(value), v)
