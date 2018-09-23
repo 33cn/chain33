@@ -46,6 +46,7 @@ type Blackwhite struct {
 func newBlackwhite() drivers.Driver {
 	c := &Blackwhite{}
 	c.SetChild(c)
+	c.SetExecutorType(executorType)
 	return c
 }
 
