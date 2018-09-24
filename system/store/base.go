@@ -22,6 +22,7 @@ import (
 */
 
 var slog = log.New("module", "store")
+var EmptyRoot [32]byte
 
 func SetLogLevel(level string) {
 	clog.SetLogLevel(level)
