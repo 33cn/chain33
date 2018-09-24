@@ -40,7 +40,7 @@ func TestKvddbSetGet(t *testing.T) {
 	assert.NotNil(t, store)
 
 	keys0 := [][]byte{[]byte("mk1"), []byte("mk2")}
-	get0 := &types.StoreGet{[]byte("1st"), keys0}
+	get0 := &types.StoreGet{drivers.EmptyRoot[:], keys0}
 	values0 := store.Get(get0)
 	mlog.Info("info", "info", values0)
 	// Get exist key, result nil
@@ -71,7 +71,7 @@ func TestKvddbSetGet(t *testing.T) {
 	assert.Len(t, values2, 1)
 	assert.Equal(t, []byte("v1"), values2[0])
 
-	get3 := &types.StoreGet{[]byte("1st"), keys}
+	get3 := &types.StoreGet{drivers.EmptyRoot[:], keys}
 	values3 := store.Get(get3)
 	assert.Len(t, values3, 1)
 	assert.Equal(t, []byte(nil), values3[0])
@@ -86,7 +86,7 @@ func TestKvdbMemSet(t *testing.T) {
 	kv = append(kv, &types.KeyValue{[]byte("mk1"), []byte("v1")})
 	kv = append(kv, &types.KeyValue{[]byte("mk2"), []byte("v2")})
 	datas := &types.StoreSet{
-		[]byte("1st"),
+		drivers.EmptyRoot[:],
 		kv,
 		0}
 	hash := store.MemSet(datas, true)
@@ -100,7 +100,7 @@ func TestKvdbMemSet(t *testing.T) {
 	actHash, _ := store.Commit(&types.ReqHash{hash})
 	assert.Equal(t, hash, actHash)
 
-	notExistHash, _ := store.Commit(&types.ReqHash{[]byte("1st")})
+	notExistHash, _ := store.Commit(&types.ReqHash{drivers.EmptyRoot[:]})
 	assert.Nil(t, notExistHash)
 }
 
@@ -113,7 +113,7 @@ func TestKvdbRollback(t *testing.T) {
 	kv = append(kv, &types.KeyValue{[]byte("mk1"), []byte("v1")})
 	kv = append(kv, &types.KeyValue{[]byte("mk2"), []byte("v2")})
 	datas := &types.StoreSet{
-		[]byte("1st"),
+		drivers.EmptyRoot[:],
 		kv,
 		0}
 	hash := store.MemSet(datas, true)
@@ -126,7 +126,7 @@ func TestKvdbRollback(t *testing.T) {
 	actHash, _ := store.Rollback(&types.ReqHash{hash})
 	assert.Equal(t, hash, actHash)
 
-	notExistHash, _ := store.Rollback(&types.ReqHash{[]byte("1st")})
+	notExistHash, _ := store.Rollback(&types.ReqHash{drivers.EmptyRoot[:]})
 	assert.Nil(t, notExistHash)
 }
 
@@ -215,7 +215,7 @@ func BenchmarkGet(b *testing.B) {
 		kv = append(kv, &types.KeyValue{[]byte(string(key)), []byte(string(value))})
 	}
 	datas := &types.StoreSet{
-		[]byte("1st"),
+		drivers.EmptyRoot[:],
 		kv,
 		0}
 	hash := store.Set(datas, true)
@@ -250,7 +250,7 @@ func BenchmarkSet(b *testing.B) {
 		kv = append(kv, &types.KeyValue{[]byte(string(key)), []byte(string(value))})
 	}
 	datas := &types.StoreSet{
-		[]byte("1st"),
+		drivers.EmptyRoot[:],
 		kv,
 		0}
 	start := time.Now()
@@ -278,7 +278,7 @@ func BenchmarkMemSet(b *testing.B) {
 		kv = append(kv, &types.KeyValue{[]byte(string(key)), []byte(string(value))})
 	}
 	datas := &types.StoreSet{
-		[]byte("1st"),
+		drivers.EmptyRoot[:],
 		kv,
 		0}
 	start := time.Now()
@@ -306,7 +306,7 @@ func BenchmarkCommit(b *testing.B) {
 		kv = append(kv, &types.KeyValue{[]byte(string(key)), []byte(string(value))})
 	}
 	datas := &types.StoreSet{
-		[]byte("1st"),
+		drivers.EmptyRoot[:],
 		kv,
 		0}
 	hash := store.MemSet(datas, true)
