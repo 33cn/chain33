@@ -20,9 +20,9 @@ import (
 	"hash"
 	"sync"
 
-	proto "github.com/golang/protobuf/proto"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto/sha3"
+	"gitlab.33.cn/chain33/chain33/plugin/store/mpt/db2/rlp"
 )
 
 type hasher struct {
@@ -76,7 +76,7 @@ func returnHasherToPool(h *hasher) {
 // original node initialized with the computed hash to replace the original one.
 func (h *hasher) hash(n node, db *Database, force bool) (node, node, error) {
 	// If we're not storing the node, just hashing, use available cached data
-	if hash, dirty := n.cache(); hash.HashNode != nil {
+	if hash, dirty := n.cache(); hash != nil {
 		if db == nil {
 			return hash, n, nil
 		}
@@ -169,27 +169,25 @@ func (h *hasher) store(n node, db *Database, force bool) (node, error) {
 		return n, nil
 	}
 	// Generate the RLP encoding of the node
-	//这个不用非常精确，只要保持确定性就可以了
-	size := n.size()
-	if size < 64 && !force {
-		return n, nil // Nodes smaller than 32 bytes are stored inside their parent
-	}
-	nn := n.create()
-	data, err := proto.Marshal(nn)
-	if err != nil {
+	h.tmp.Reset()
+	if err := rlp.Encode(&h.tmp, n); err != nil {
 		panic("encode error: " + err.Error())
+	}
+	if len(h.tmp) < 32 && !force {
+		return n, nil // Nodes smaller than 32 bytes are stored inside their parent
 	}
 	// Larger nodes are replaced by their hash and stored in the database.
 	hash, _ := n.cache()
-	if hash.HashNode == nil {
-		hash = h.makeHashNode(data)
+	if hash == nil {
+		hash = h.makeHashNode(h.tmp)
 	}
+
 	if db != nil {
 		// We are pooling the trie nodes into an intermediate memory cache
-		hash := common.BytesToHash(hash.GetHash())
+		hash := common.BytesToHash(hash)
 
 		db.lock.Lock()
-		db.insert(hash, data, n)
+		db.insert(hash, h.tmp, n)
 		db.lock.Unlock()
 
 		// Track external references from account->storage trie
@@ -197,12 +195,12 @@ func (h *hasher) store(n node, db *Database, force bool) (node, error) {
 			switch n := n.(type) {
 			case *shortNode:
 				if child, ok := n.Val.(valueNode); ok {
-					h.onleaf(child.GetValue(), hash)
+					h.onleaf(child, hash)
 				}
 			case *fullNode:
 				for i := 0; i < 16; i++ {
 					if child, ok := n.Children[i].(valueNode); ok {
-						h.onleaf(child.GetValue(), hash)
+						h.onleaf(child, hash)
 					}
 				}
 			}
@@ -212,9 +210,9 @@ func (h *hasher) store(n node, db *Database, force bool) (node, error) {
 }
 
 func (h *hasher) makeHashNode(data []byte) hashNode {
-	var n = hashNode{HashNode: &HashNode{Hash: make([]byte, h.sha.Size())}}
+	n := make(hashNode, h.sha.Size())
 	h.sha.Reset()
 	h.sha.Write(data)
-	h.sha.Read(n.Hash)
+	h.sha.Read(n)
 	return n
 }

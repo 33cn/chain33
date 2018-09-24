@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package mpt;
+
+message Node {
+    oneof value {
+        FullNode full   = 2;
+        ShortNode short = 3;
+        HashNode  hash  = 4;
+        ValueNode val   = 5;
+    }
+    int32 Ty    = 1;
+    int32 index = 6;
+}
+
+message FullNode {
+    repeated Node nodes = 1;
+}
+
+message ShortNode {
+    bytes key = 1;
+    Node  val = 2;
+}
+
+message HashNode {
+    bytes hash = 1;
+}
+
+message ValueNode {
+    bytes value = 1;
+}
