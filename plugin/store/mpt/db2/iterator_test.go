@@ -204,17 +204,6 @@ var testdata1 = []kvs{
 	{"foo", "a"},
 }
 
-var testdata3 = []kvs{
-	{"barb", "ba"},
-	{"bard", "bc"},
-	{"bars", "axxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"},
-	{"bar", "b"},
-	{"fab", "z"},
-	{"food", "ab"},
-	{"foos", "aa"},
-	{"foo", "a"},
-}
-
 var testdata2 = []kvs{
 	{"aardvark", "c"},
 	{"bar", "b"},
@@ -370,7 +359,7 @@ func testIteratorContinueAfterError(t *testing.T, memonly bool) {
 	triedb := NewDatabase(diskdb)
 
 	tr, _ := New(common.Hash{}, triedb)
-	for _, val := range testdata3 {
+	for _, val := range testdata1 {
 		tr.Update([]byte(val.k), []byte(val.v))
 	}
 	tr.Commit(nil)
@@ -378,6 +367,7 @@ func testIteratorContinueAfterError(t *testing.T, memonly bool) {
 		triedb.Commit(tr.Hash(), true)
 	}
 	wantNodeCount := checkIteratorNoDups(t, tr.NodeIterator(nil), nil)
+
 	var (
 		diskKeys [][]byte
 		memKeys  []common.Hash
@@ -459,14 +449,14 @@ func testIteratorContinueAfterSeekError(t *testing.T, memonly bool) {
 	triedb := NewDatabase(diskdb)
 
 	ctr, _ := New(common.Hash{}, triedb)
-	for _, val := range testdata3 {
+	for _, val := range testdata1 {
 		ctr.Update([]byte(val.k), []byte(val.v))
 	}
 	root, _ := ctr.Commit(nil)
 	if !memonly {
 		triedb.Commit(root, true)
 	}
-	barNodeHash := common.HexToHash("a8c897b35602e60d01357d388a54afba981d6a61a5119dd6b57ace682d08aef8")
+	barNodeHash := common.HexToHash("05041990364eb72fcb1127652ce40d8bab765f2bfe53225b1170d276cc101c2e")
 	var (
 		barNodeBlob []byte
 		barNodeObj  *cachedNode
@@ -495,7 +485,7 @@ func testIteratorContinueAfterSeekError(t *testing.T, memonly bool) {
 		diskdb.Set(barNodeHash[:], barNodeBlob)
 	}
 	// Check that iteration produces the right set of values.
-	if err := checkIteratorOrder(testdata3[2:], NewIterator(it)); err != nil {
+	if err := checkIteratorOrder(testdata1[2:], NewIterator(it)); err != nil {
 		t.Fatal(err)
 	}
 }

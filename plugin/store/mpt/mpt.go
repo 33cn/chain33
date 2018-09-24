@@ -44,9 +44,13 @@ func (mpts *Store) Close() {
 	mlog.Info("store mavl closed")
 }
 
-func (mpts *Store) Set(datas *types.StoreSet, sync bool) []byte {
-	hash := mpt.SetKVPair(mpts.GetDB(), datas, sync)
-	return hash
+func (mpts *Store) Set(datas *types.StoreSet, sync bool) ([]byte, error) {
+	hash, err := mpt.SetKVPair(mpts.GetDB(), datas, sync)
+	if err != nil {
+		mlog.Error("mpt store error", "err", err)
+		return nil, err
+	}
+	return hash, nil
 }
 
 func (mpts *Store) Get(datas *types.StoreGet) [][]byte {
@@ -79,28 +83,28 @@ func (mpts *Store) Get(datas *types.StoreGet) [][]byte {
 	return values
 }
 
-func (mpts *Store) MemSet(datas *types.StoreSet, sync bool) []byte {
+func (mpts *Store) MemSet(datas *types.StoreSet, sync bool) ([]byte, error) {
 	var err error
 	var tree *mpt.TrieEx
 	tree, err = mpt.NewEx(common.BytesToHash(datas.StateHash), mpt.NewDatabase(mpts.GetDB()))
 	if err != nil {
-		tree, _ = mpt.NewEx(common.Hash{}, mpt.NewDatabase(mpts.GetDB()))
-		mlog.Info("MemSet create a new trie")
+		mlog.Info("MemSet create a new trie", "err", err)
+		return nil, err
 	}
 	for i := 0; i < len(datas.KV); i++ {
 		tree.Update(datas.KV[i].Key, datas.KV[i].Value)
 	}
 	root, err := tree.Commit(nil)
-	if nil != err {
+	if err != nil {
 		mlog.Error("MemSet Commit to memory trie fail")
-		return nil
+		return nil, err
 	}
 	hash := root[:]
 	mpts.trees[string(hash)] = tree
 	if len(mpts.trees) > 1000 {
 		mlog.Error("too many trees in cache")
 	}
-	return hash
+	return hash, nil
 }
 
 func (mpts *Store) Commit(req *types.ReqHash) ([]byte, error) {

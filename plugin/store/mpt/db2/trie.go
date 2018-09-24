@@ -91,7 +91,7 @@ func New(root common.Hash, db *Database) (*Trie, error) {
 		originalRoot: root,
 	}
 	if root != (common.Hash{}) && root != emptyRoot {
-		rootnode, err := trie.resolveHash(createHashNode(root[:]), nil)
+		rootnode, err := trie.resolveHash(root[:], nil)
 		if err != nil {
 			return nil, err
 		}
@@ -133,7 +133,7 @@ func (t *Trie) tryGet(origNode node, key []byte, pos int) (value []byte, newnode
 	case nil:
 		return nil, nil, false, nil
 	case valueNode:
-		return n.GetValue(), n, false, nil
+		return n, n, false, nil
 	case *shortNode:
 		if len(key)-pos < len(n.Key) || !bytes.Equal(n.Key, key[pos:pos+len(n.Key)]) {
 			// key not found in trie
@@ -189,7 +189,7 @@ func (t *Trie) Update(key, value []byte) {
 func (t *Trie) TryUpdate(key, value []byte) error {
 	k := keybytesToHex(key)
 	if len(value) != 0 {
-		_, n, err := t.insert(t.root, nil, k, createValueNode(value))
+		_, n, err := t.insert(t.root, nil, k, valueNode(value))
 		if err != nil {
 			return err
 		}
@@ -207,7 +207,7 @@ func (t *Trie) TryUpdate(key, value []byte) error {
 func (t *Trie) insert(n node, prefix, key []byte, value node) (bool, node, error) {
 	if len(key) == 0 {
 		if v, ok := n.(valueNode); ok {
-			return !bytes.Equal(v.GetValue(), value.(valueNode).GetValue()), value, nil
+			return !bytes.Equal(v, value.(valueNode)), value, nil
 		}
 		return true, value, nil
 	}
@@ -221,7 +221,7 @@ func (t *Trie) insert(n node, prefix, key []byte, value node) (bool, node, error
 			if !dirty || err != nil {
 				return false, n, err
 			}
-			return true, &shortNode{n.Key, nn, t.newFlag(), nil}, nil
+			return true, &shortNode{n.Key, nn, t.newFlag()}, nil
 		}
 		// Otherwise branch out at the index where they differ.
 		branch := &fullNode{flags: t.newFlag()}
@@ -239,7 +239,7 @@ func (t *Trie) insert(n node, prefix, key []byte, value node) (bool, node, error
 			return true, branch, nil
 		}
 		// Otherwise, replace it with a short node leading up to the branch.
-		return true, &shortNode{key[:matchlen], branch, t.newFlag(), nil}, nil
+		return true, &shortNode{key[:matchlen], branch, t.newFlag()}, nil
 
 	case *fullNode:
 		dirty, nn, err := t.insert(n.Children[key[0]], append(prefix, key[0]), key[1:], value)
@@ -252,7 +252,7 @@ func (t *Trie) insert(n node, prefix, key []byte, value node) (bool, node, error
 		return true, n, nil
 
 	case nil:
-		return true, &shortNode{key, value, t.newFlag(), nil}, nil
+		return true, &shortNode{key, value, t.newFlag()}, nil
 
 	case hashNode:
 		// We've hit a part of the trie that isn't loaded yet. Load
@@ -321,9 +321,9 @@ func (t *Trie) delete(n node, prefix, key []byte) (bool, node, error) {
 			// always creates a new slice) instead of append to
 			// avoid modifying n.Key since it might be shared with
 			// other nodes.
-			return true, &shortNode{concat(n.Key, child.Key...), child.Val, t.newFlag(), nil}, nil
+			return true, &shortNode{concat(n.Key, child.Key...), child.Val, t.newFlag()}, nil
 		default:
-			return true, &shortNode{n.Key, child, t.newFlag(), nil}, nil
+			return true, &shortNode{n.Key, child, t.newFlag()}, nil
 		}
 
 	case *fullNode:
@@ -369,12 +369,12 @@ func (t *Trie) delete(n node, prefix, key []byte) (bool, node, error) {
 				}
 				if cnode, ok := cnode.(*shortNode); ok {
 					k := append([]byte{byte(pos)}, cnode.Key...)
-					return true, &shortNode{k, cnode.Val, t.newFlag(), nil}, nil
+					return true, &shortNode{k, cnode.Val, t.newFlag()}, nil
 				}
 			}
 			// Otherwise, n is replaced by a one-nibble short node
 			// containing the child.
-			return true, &shortNode{[]byte{byte(pos)}, n.Children[pos], t.newFlag(), nil}, nil
+			return true, &shortNode{[]byte{byte(pos)}, n.Children[pos], t.newFlag()}, nil
 		}
 		// n still contains at least two values and cannot be reduced.
 		return true, n, nil
@@ -421,7 +421,7 @@ func (t *Trie) resolve(n node, prefix []byte) (node, error) {
 func (t *Trie) resolveHash(n hashNode, prefix []byte) (node, error) {
 	//cacheMissCounter.Inc(1)
 
-	hash := common.BytesToHash(n.GetHash())
+	hash := common.BytesToHash(n)
 	if node := t.db.node(hash, t.cachegen); node != nil {
 		return node, nil
 	}
@@ -437,7 +437,7 @@ func (t *Trie) Root() []byte { return t.Hash().Bytes() }
 func (t *Trie) Hash() common.Hash {
 	hash, cached, _ := t.hashRoot(nil, nil)
 	t.root = cached
-	return common.BytesToHash(hash.(hashNode).GetHash())
+	return common.BytesToHash(hash.(hashNode))
 }
 
 // Commit writes all nodes to the trie's memory database, tracking the internal
@@ -452,12 +452,12 @@ func (t *Trie) Commit(onleaf LeafCallback) (root common.Hash, err error) {
 	}
 	t.root = cached
 	t.cachegen++
-	return common.BytesToHash(hash.(hashNode).GetHash()), nil
+	return common.BytesToHash(hash.(hashNode)), nil
 }
 
 func (t *Trie) hashRoot(db *Database, onleaf LeafCallback) (node, node, error) {
 	if t.root == nil {
-		return createHashNode(emptyRoot.Bytes()), nil, nil
+		return hashNode(emptyRoot.Bytes()), nil, nil
 	}
 	h := newHasher(t.cachegen, t.cachelimit, onleaf)
 	defer returnHasherToPool(h)
@@ -639,7 +639,7 @@ func IterateRangeByStateHash(db dbm.DB, statehash, start, end []byte, ascending 
 		return
 	}
 	var it *Iterator
-	if start == nil || end == nil {
+	if nil == start || nil == end {
 		it = NewIterator(trie.NodeIterator(start))
 	} else {
 		di, _ := NewDifferenceIterator(trie.NodeIterator(end), trie.NodeIterator(start))
