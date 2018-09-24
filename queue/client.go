@@ -146,8 +146,8 @@ func (client *client) Close() {
 	topic := client.getTopic()
 	client.q.closeTopic(topic)
 	close(client.done)
-	client.wg.Wait()
 	atomic.StoreInt32(&client.isClosed, 1)
+	client.wg.Wait()
 	close(client.Recv())
 }
 
