@@ -42,12 +42,13 @@ type Module interface {
 }
 
 type client struct {
-	q        *queue
-	recv     chan Message
-	done     chan struct{}
-	wg       *sync.WaitGroup
-	topic    string
-	isClosed int32
+	q          *queue
+	recv       chan Message
+	done       chan struct{}
+	wg         *sync.WaitGroup
+	topic      string
+	isClosed   int32
+	isCloseing int32
 }
 
 func newClient(q *queue) Client {
@@ -139,6 +140,10 @@ func (client *client) isClose() bool {
 	return atomic.LoadInt32(&client.isClosed) == 1
 }
 
+func (client *client) isInClose() bool {
+	return atomic.LoadInt32(&client.isCloseing) == 1
+}
+
 func (client *client) Close() {
 	if atomic.LoadInt32(&client.isClosed) == 1 {
 		return
@@ -146,8 +151,9 @@ func (client *client) Close() {
 	topic := client.getTopic()
 	client.q.closeTopic(topic)
 	close(client.done)
-	atomic.StoreInt32(&client.isClosed, 1)
+	atomic.StoreInt32(&client.isCloseing, 1)
 	client.wg.Wait()
+	atomic.StoreInt32(&client.isClosed, 1)
 	close(client.Recv())
 }
 
@@ -173,14 +179,17 @@ func (client *client) isEnd(data Message, ok bool) bool {
 }
 
 func (client *client) Sub(topic string) {
-	if atomic.LoadInt32(&client.isClosed) == 1 {
+	//正在关闭或者已经关闭
+	if client.isInClose() || client.isClose() {
 		return
 	}
 	client.wg.Add(1)
 	client.setTopic(topic)
 	sub := client.q.chanSub(topic)
 	go func() {
-		defer client.wg.Done()
+		defer func() {
+			client.wg.Done()
+		}()
 		for {
 			select {
 			case data, ok := <-sub.high:
