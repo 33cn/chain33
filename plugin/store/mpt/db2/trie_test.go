@@ -19,6 +19,7 @@ package mpt
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -27,7 +28,6 @@ import (
 	"reflect"
 	"testing"
 	"testing/quick"
-	"time"
 
 	"github.com/davecgh/go-spew/spew"
 
@@ -35,6 +35,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
+	"gitlab.33.cn/chain33/chain33/plugin/store/mpt/db2/rlp"
 	comTy "gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -49,7 +50,6 @@ var (
 )
 
 func init() {
-	rand.Seed(time.Now().UnixNano())
 	spew.Config.Indent = "    "
 	spew.Config.DisableMethods = false
 }
@@ -99,18 +99,18 @@ func testMissingNode(t *testing.T, memonly bool) {
 	triedb := NewDatabase(memdb)
 
 	trie, _ := New(common.Hash{}, triedb)
-	updateString(trie, "120000", "qwerqwerqwerqwerqwerqwerqwerqwerxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
-	updateString(trie, "123456", "asdfasdfasdfasdfasdfasdfasdfasdfxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
+	updateString(trie, "120000", "qwerqwerqwerqwerqwerqwerqwerqwer")
+	updateString(trie, "123456", "asdfasdfasdfasdfasdfasdfasdfasdf")
 	root, _ := trie.Commit(nil)
 	if !memonly {
 		triedb.Commit(root, true)
 	}
+
 	trie, _ = New(root, triedb)
-	data, err := trie.TryGet([]byte("120000"))
+	_, err := trie.TryGet([]byte("120000"))
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
-	assert.Equal(t, []byte("qwerqwerqwerqwerqwerqwerqwerqwerxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"), data)
 	trie, _ = New(root, triedb)
 	_, err = trie.TryGet([]byte("120099"))
 	if err != nil {
@@ -122,7 +122,7 @@ func testMissingNode(t *testing.T, memonly bool) {
 		t.Errorf("Unexpected error: %v", err)
 	}
 	trie, _ = New(root, triedb)
-	err = trie.TryUpdate([]byte("120099"), []byte("zxcvzxcvzxcvzxcvzxcvzxcvzxcvzxcvxxxxxxxxxxxxxxxxxxxx"))
+	err = trie.TryUpdate([]byte("120099"), []byte("zxcvzxcvzxcvzxcvzxcvzxcvzxcvzxcv"))
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -132,7 +132,7 @@ func testMissingNode(t *testing.T, memonly bool) {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
-	hash := common.HexToHash("9e2800ae476b4acbbdf630ec058098017784a876de4ca272899a32120eb0c879")
+	hash := common.HexToHash("0xe1d943cc8f061a0c0b98162830b970395ac9315654824bf21b73b891365262f9")
 	if memonly {
 		delete(triedb.nodes, hash)
 	} else {
@@ -170,11 +170,14 @@ func TestInsert(t *testing.T) {
 	trie := newEmpty()
 
 	updateString(trie, "doe", "reindeer")
+	fmt.Println(hex.EncodeToString([]byte("doe")), trie.root)
 	updateString(trie, "dog", "puppy")
+	fmt.Println(hex.EncodeToString([]byte("dog")), trie.root)
 	updateString(trie, "dogglesworth", "cat")
-
-	exp := common.HexToHash("3b2d78cb0319a48452b99d27825e8db84d6df5e1a9a3acf7c000b2c8a3154bed")
+	fmt.Println(hex.EncodeToString([]byte("dogglesworth")), trie.root)
+	exp := common.HexToHash("8aad789dff2f538bca5d8ea56e8abe10f4c7ba3a5dea95fea4cd6e7c3a1168d3")
 	root := trie.Hash()
+	fmt.Println(trie.root)
 	if root != exp {
 		t.Errorf("exp %x got %x", exp, root)
 	}
@@ -182,7 +185,7 @@ func TestInsert(t *testing.T) {
 	trie = newEmpty()
 	updateString(trie, "A", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 
-	exp = common.HexToHash("2ca388c689f5fb595f5d9837cb319564da9d12468763e001596ee20d109f030d")
+	exp = common.HexToHash("d23786fb4a010da3ce639d66d5e904a11dbc02746d1ce25029e53290cabf28ab")
 	root, err := trie.Commit(nil)
 	if err != nil {
 		t.Fatalf("commit error: %v", err)
@@ -237,7 +240,7 @@ func TestDelete(t *testing.T) {
 	}
 
 	hash := trie.Hash()
-	exp := common.HexToHash("29f72de68f3db599f9b170f17813438d40e83bfdacb4ba95d80dbd1d2af55304")
+	exp := common.HexToHash("5991bb8c6514148a29db676a14ac506cd2cd5775ace63c30a4fe457715e9ac84")
 	if hash != exp {
 		t.Errorf("expected %x got %x", exp, hash)
 	}
@@ -261,12 +264,10 @@ func TestEmptyValues(t *testing.T) {
 	}
 
 	hash := trie.Hash()
-	exp := common.HexToHash("29f72de68f3db599f9b170f17813438d40e83bfdacb4ba95d80dbd1d2af55304")
+	exp := common.HexToHash("5991bb8c6514148a29db676a14ac506cd2cd5775ace63c30a4fe457715e9ac84")
 	if hash != exp {
 		t.Errorf("expected %x got %x", exp, hash)
 	}
-	_, err := trie.Commit(nil)
-	assert.Nil(t, err)
 }
 
 func TestReplication(t *testing.T) {
@@ -574,16 +575,6 @@ func benchUpdate(b *testing.B, e binary.ByteOrder) *Trie {
 	return trie
 }
 
-const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-
-func randBytes2(n int) []byte {
-	b := make([]byte, n)
-	for i := range b {
-		b[i] = letterBytes[rand.Intn(len(letterBytes))]
-	}
-	return b
-}
-
 // Benchmarks the trie hashing. Since the trie caches the result of any operation,
 // we cannot use b.N as the number of hashing rouns, since all rounds apart from
 // the first one will be NOOP. As such, we'll use b.N as the number of account to
@@ -601,7 +592,13 @@ func BenchmarkHash(b *testing.B) {
 	}
 	accounts := make([][]byte, len(addresses))
 	for i := 0; i < len(accounts); i++ {
-		accounts[i] = randBytes2(128)
+		var (
+			nonce   = uint64(random.Int63())
+			balance = new(big.Int).Rand(random, new(big.Int).Exp(Big2, Big256, nil))
+			root    = emptyRoot
+			code    = common.ShaKeccak256(nil)
+		)
+		accounts[i], _ = rlp.EncodeToBytes([]interface{}{nonce, balance, root, code})
 	}
 	// Insert the accounts into the trie and hash it
 	trie := newEmpty()
@@ -641,6 +638,79 @@ func deleteString(trie *Trie, k string) {
 	trie.Delete([]byte(k))
 }
 
+func BenchmarkDBGet(b *testing.B) {
+	dir, err := ioutil.TempDir("", "datastore")
+	require.NoError(b, err)
+	b.Log(dir)
+	db := dbm.NewDB("test", "leveldb", dir, 100)
+	prevHash := make([]byte, 32)
+	for i := 0; i < b.N; i++ {
+		prevHash, err = saveBlock(db, int64(i), prevHash, 1000, false)
+		assert.Nil(b, err)
+	}
+	b.ResetTimer()
+	t, _ := NewEx(common.BytesToHash(prevHash), NewDatabase(db))
+	for i := 0; i < b.N*1000; i++ {
+		key := i2b(int32(i))
+		value := common.Sha256(key)
+		v, err := t.TryGet(key)
+		assert.Nil(b, err)
+		assert.Equal(b, value, v)
+	}
+}
+
+func i2b(i int32) []byte {
+	bbuf := bytes.NewBuffer([]byte{})
+	binary.Write(bbuf, binary.BigEndian, i)
+	return common.Sha256(bbuf.Bytes())
+}
+
+func genKV(height int64, txN int64) (kvs []*comTy.KeyValue) {
+	for i := int64(0); i < txN; i++ {
+		n := height*1000 + i
+		key := i2b(int32(n))
+		value := common.Sha256(key)
+		kvs = append(kvs, &comTy.KeyValue{Key: key, Value: value})
+	}
+	return kvs
+}
+
+func saveBlock(dbm dbm.DB, height int64, hash []byte, txN int64, mvcc bool) (newHash []byte, err error) {
+	t, err := NewEx(common.BytesToHash(hash), NewDatabase(dbm))
+	if nil != err {
+		return nil, nil
+	}
+	kvs := genKV(height, txN)
+	for _, kv := range kvs {
+		t.Update(kv.Key, kv.Value)
+	}
+	rehash, err := t.Commit(nil)
+	if nil != err {
+		return nil, nil
+	}
+	err = t.Commit2Db(rehash, false)
+	if nil != err {
+		return nil, nil
+	}
+	newHash = rehash[:]
+	//if mvcc {
+	//	mvccdb := db.NewMVCC(dbm)
+	//	newkvs, err := mvccdb.AddMVCC(kvs, newHash, hash, height)
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//	batch := dbm.NewBatch(true)
+	//	for _, kv := range newkvs {
+	//		batch.Set(kv.Key, kv.Value)
+	//	}
+	//	err = batch.Write()
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//}
+	return newHash, nil
+}
+
 func set10000(t assert.TestingT, root common.Hash, db dbm.DB, n int) (common.Hash, map[string]string) {
 	database := NewDatabase(db)
 	trie, _ := New(root, database)
@@ -661,6 +731,7 @@ func get10000(t assert.TestingT, root common.Hash, db dbm.DB, keys map[string]st
 	database := NewDatabase(db)
 	t1, _ := New(root, database)
 	for k, v := range keys {
+		fmt.Println(k, v)
 		value, err := t1.TryGet([]byte(k))
 		assert.Nil(t, err)
 		assert.Equal(t, string(value), v)
@@ -757,75 +828,12 @@ func TestInsert1(t *testing.T) {
 	get10000(t, root, db, kv2)
 }
 
-func BenchmarkDBGet(b *testing.B) {
-	dir, err := ioutil.TempDir("", "datastore")
-	require.NoError(b, err)
-	b.Log(dir)
-	db := dbm.NewDB("test", "leveldb", dir, 100)
-	prevHash := make([]byte, 32)
-	for i := 0; i < b.N; i++ {
-		prevHash, err = saveBlock(db, int64(i), prevHash, 1000, false)
-		assert.Nil(b, err)
-	}
-	b.ResetTimer()
-	t, _ := NewEx(common.BytesToHash(prevHash), NewDatabase(db))
-	for i := 0; i < b.N*1000; i++ {
-		key := i2b(int32(i))
-		value := common.Sha256(key)
-		v, err := t.TryGet(key)
-		assert.Nil(b, err)
-		assert.Equal(b, value, v)
-	}
-}
+const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
-func i2b(i int32) []byte {
-	bbuf := bytes.NewBuffer([]byte{})
-	binary.Write(bbuf, binary.BigEndian, i)
-	return common.Sha256(bbuf.Bytes())
-}
-
-func genKV(height int64, txN int64) (kvs []*comTy.KeyValue) {
-	for i := int64(0); i < txN; i++ {
-		n := height*1000 + i
-		key := i2b(int32(n))
-		value := common.Sha256(key)
-		kvs = append(kvs, &comTy.KeyValue{Key: key, Value: value})
+func randBytes2(n int) []byte {
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = letterBytes[rand.Intn(len(letterBytes))]
 	}
-	return kvs
-}
-
-func saveBlock(dbm dbm.DB, height int64, hash []byte, txN int64, mvcc bool) (newHash []byte, err error) {
-	t, err := NewEx(common.BytesToHash(hash), NewDatabase(dbm))
-	if nil != err {
-		return nil, nil
-	}
-	kvs := genKV(height, txN)
-	for _, kv := range kvs {
-		t.Update(kv.Key, kv.Value)
-	}
-	rehash, err := t.Commit(nil)
-	if nil != err {
-		return nil, nil
-	}
-	err = t.Commit2Db(rehash, false)
-	if nil != err {
-		return nil, nil
-	}
-	newHash = rehash[:]
-	//if mvcc {
-	//	mvccdb := db.NewMVCC(dbm)
-	//	newkvs, err := mvccdb.AddMVCC(kvs, newHash, hash, height)
-	//	if err != nil {
-	//		return nil, err
-	//	}
-	//	batch := dbm.NewBatch(true)
-	//	for _, kv := range newkvs {
-	//		batch.Set(kv.Key, kv.Value)
-	//	}
-	//	err = batch.Write()
-	//	if err != nil {
-	//		return nil, err
-	//	}
-	//}
-	return newHash, nil
+	return b
 }
