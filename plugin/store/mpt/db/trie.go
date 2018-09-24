@@ -538,44 +538,47 @@ func (t *TrieEx) Commit2Db(node common.Hash, report bool) error {
 }
 
 //对外接口
-func SetKVPair(db dbm.DB, storeSet *types.StoreSet, sync bool) []byte {
+func SetKVPair(db dbm.DB, storeSet *types.StoreSet, sync bool) ([]byte, error) {
 	var err error
 	var trie *TrieEx
 	trie, err = NewEx(common.BytesToHash(storeSet.StateHash), NewDatabase(db))
 	if err != nil {
-		//一般这样的情况下是数据库损坏的情况
-		panic(err)
+		mptlog.Info("SetKVPair create a new trie")
+		return nil, err
 	}
 	for i := 0; i < len(storeSet.KV); i++ {
 		trie.Update(storeSet.KV[i].Key, storeSet.KV[i].Value)
 	}
 	root, err := trie.Commit(nil)
 	if err != nil {
-		panic("SetKVPair Commit to memory trie fail")
+		mptlog.Error("SetKVPair Commit to memory trie fail")
+		return nil, err
 	}
 	err = trie.Commit2Db(root, true)
 	if err != nil {
-		panic("SetKVPair save trie to db fail")
+		mptlog.Error("SetKVPair save trie to db fail")
+		return nil, err
 	}
 	hashByte := root[:]
-	return hashByte
+	return hashByte, nil
 }
 
-func GetKVPair(db dbm.DB, storeGet *types.StoreGet) [][]byte {
+func GetKVPair(db dbm.DB, storeGet *types.StoreGet) ([][]byte, error) {
 	var err error
 	var trie *TrieEx
 	trie, err = NewEx(common.BytesToHash(storeGet.StateHash), NewDatabase(db))
-	values := make([][]byte, len(storeGet.Keys))
 	if err != nil {
-		return values
+		mptlog.Info("GetKVPair can not find trie", "state hash ", string(storeGet.StateHash))
+		return nil, err
 	}
+	var values [][]byte
 	for i := 0; i < len(storeGet.Keys); i++ {
 		value, err := trie.TryGet(storeGet.Keys[i])
 		if nil == err {
-			values[i] = value
+			values = append(values, value)
 		}
 	}
-	return values
+	return values, nil
 }
 
 func GetKVPairProof(db dbm.DB, roothash []byte, key []byte) []byte {
@@ -583,37 +586,40 @@ func GetKVPairProof(db dbm.DB, roothash []byte, key []byte) []byte {
 		key = common.ShaKeccak256(key)
 	}
 	value, _, err := VerifyProof(common.BytesToHash(roothash), key, db)
-	if err != nil {
+	if nil != err {
 		return nil
 	}
 	return value
 }
 
 //剔除key对应的节点在本次tree中，返回新的roothash和key对应的value
-func DelKVPair(db dbm.DB, storeDel *types.StoreGet) ([]byte, [][]byte) {
+func DelKVPair(db dbm.DB, storeDel *types.StoreGet) ([]byte, [][]byte, error) {
 	var err error
 	var trie *TrieEx
 	trie, err = NewEx(common.BytesToHash(storeDel.StateHash), NewDatabase(db))
 	if err != nil {
-		panic("DelKVPair load trie tree root error")
+		mptlog.Info("DelKVPair have a trie")
+		return nil, nil, err
 	}
-	values := make([][]byte, len(storeDel.Keys))
+	var values [][]byte
 	for i := 0; i < len(storeDel.Keys); i++ {
 		err = trie.TryUpdate(storeDel.Keys[i], nil)
 		if err == nil {
-			values[i] = storeDel.Keys[i]
+			values = append(values, storeDel.Keys[i])
 		}
 	}
 	root, err := trie.Commit(nil)
 	if err != nil {
-		panic("DelKVPair Commit to memory trie fail")
+		mptlog.Error("DelKVPair Commit to memory trie fail")
+		return nil, nil, err
 	}
 	err = trie.Commit2Db(root, true)
 	if err != nil {
-		panic("SetKVPair save trie to db fail")
+		mptlog.Error("SetKVPair save trie to db fail")
+		return nil, nil, err
 	}
 	hashByte := root[:]
-	return hashByte, values
+	return hashByte, values, nil
 }
 
 func VerifyKVPairProof(db dbm.DB, roothash []byte, keyvalue types.KeyValue, proof []byte) bool {
