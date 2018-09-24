@@ -45,7 +45,11 @@ func (mavls *Store) Close() {
 }
 
 func (mavls *Store) Set(datas *types.StoreSet, sync bool) []byte {
-	hash := mavl.SetKVPair(mavls.GetDB(), datas, sync)
+	hash, err := mavl.SetKVPair(mavls.GetDB(), datas, sync)
+	if err != nil {
+		mlog.Error("mavls store set error", "err", err)
+		return nil
+	}
 	return hash
 }
 
