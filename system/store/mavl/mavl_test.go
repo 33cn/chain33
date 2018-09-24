@@ -55,8 +55,8 @@ func TestKvddbSetGet(t *testing.T) {
 		drivers.EmptyRoot[:],
 		kv,
 		0}
-	hash := store.Set(datas, true)
-
+	hash, err := store.Set(datas, true)
+	assert.Nil(t, err)
 	keys := [][]byte{[]byte("k1"), []byte("k2")}
 	get1 := &types.StoreGet{hash, keys}
 
@@ -89,8 +89,8 @@ func TestKvdbMemSet(t *testing.T) {
 		drivers.EmptyRoot[:],
 		kv,
 		0}
-	hash := store.MemSet(datas, true)
-
+	hash, err := store.MemSet(datas, true)
+	assert.Nil(t, err)
 	keys := [][]byte{[]byte("mk1"), []byte("mk2")}
 	get1 := &types.StoreGet{hash, keys}
 
@@ -116,8 +116,8 @@ func TestKvdbRollback(t *testing.T) {
 		drivers.EmptyRoot[:],
 		kv,
 		0}
-	hash := store.MemSet(datas, true)
-
+	hash, err := store.MemSet(datas, true)
+	assert.Nil(t, err)
 	keys := [][]byte{[]byte("mk1"), []byte("mk2")}
 	get1 := &types.StoreGet{hash, keys}
 	values := store.Get(get1)
@@ -150,8 +150,8 @@ func TestKvdbIterate(t *testing.T) {
 		drivers.EmptyRoot[:],
 		kv,
 		0}
-	hash := store.Set(datas, true)
-
+	hash, err := store.Set(datas, true)
+	assert.Nil(t, err)
 	store.IterateRangeByStateHash(hash, []byte("mk1"), []byte("mk3"), true, checkKV)
 	assert.Len(t, checkKVResult, 2)
 	assert.Equal(t, []byte("v1"), checkKVResult[0].Value)
@@ -190,7 +190,8 @@ func TestKvdbIterateTimes(t *testing.T) {
 		drivers.EmptyRoot[:],
 		kv,
 		0}
-	hash := store.Set(datas, true)
+	hash, err := store.Set(datas, true)
+	assert.Nil(t, err)
 	start := time.Now()
 	store.IterateRangeByStateHash(hash, nil, nil, true, checkKV)
 	end := time.Now()
@@ -218,8 +219,8 @@ func BenchmarkGet(b *testing.B) {
 		drivers.EmptyRoot[:],
 		kv,
 		0}
-	hash := store.Set(datas, true)
-
+	hash, err := store.Set(datas, true)
+	assert.Nil(b, err)
 	getData := &types.StoreGet{
 		hash,
 		keys}
@@ -255,7 +256,8 @@ func BenchmarkSet(b *testing.B) {
 		0}
 	start := time.Now()
 	b.ResetTimer()
-	hash := store.Set(datas, true)
+	hash, err := store.Set(datas, true)
+	assert.Nil(b, err)
 	assert.NotNil(b, hash)
 	end := time.Now()
 	fmt.Println("mavl BenchmarkSet cost time is", end.Sub(start), "num is", b.N)
@@ -283,7 +285,8 @@ func BenchmarkMemSet(b *testing.B) {
 		0}
 	start := time.Now()
 	b.ResetTimer()
-	hash := store.MemSet(datas, true)
+	hash, err := store.MemSet(datas, true)
+	assert.Nil(b, err)
 	assert.NotNil(b, hash)
 	end := time.Now()
 	fmt.Println("mavl BenchmarkMemSet cost time is", end.Sub(start), "num is", b.N)
@@ -309,15 +312,15 @@ func BenchmarkCommit(b *testing.B) {
 		drivers.EmptyRoot[:],
 		kv,
 		0}
-	hash := store.MemSet(datas, true)
-
+	hash, err := store.MemSet(datas, true)
+	assert.Nil(b, err)
 	req := &types.ReqHash{
 		Hash: hash,
 	}
 
 	start := time.Now()
 	b.ResetTimer()
-	_, err := store.Commit(req)
+	_, err = store.Commit(req)
 	assert.NoError(b, err, "NoError")
 	end := time.Now()
 	fmt.Println("mavl BenchmarkCommit cost time is", end.Sub(start), "num is", b.N)
