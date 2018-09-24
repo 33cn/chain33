@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	drivers "gitlab.33.cn/chain33/chain33/system/store"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -51,7 +52,7 @@ func TestKvddbSetGet(t *testing.T) {
 	kv = append(kv, &types.KeyValue{[]byte("k1"), []byte("v1")})
 	kv = append(kv, &types.KeyValue{[]byte("k2"), []byte("v2")})
 	datas := &types.StoreSet{
-		[]byte("1st"),
+		drivers.EmptyRoot[:],
 		kv,
 		0}
 	hash := store.Set(datas, true)
@@ -146,7 +147,7 @@ func TestKvdbIterate(t *testing.T) {
 	kv = append(kv, &types.KeyValue{[]byte("mk1"), []byte("v1")})
 	kv = append(kv, &types.KeyValue{[]byte("mk2"), []byte("v2")})
 	datas := &types.StoreSet{
-		[]byte("1st"),
+		drivers.EmptyRoot[:],
 		kv,
 		0}
 	hash := store.Set(datas, true)
@@ -186,7 +187,7 @@ func TestKvdbIterateTimes(t *testing.T) {
 		kv = append(kv, &types.KeyValue{[]byte(string(key)), []byte(string(value))})
 	}
 	datas := &types.StoreSet{
-		[]byte("1st"),
+		drivers.EmptyRoot[:],
 		kv,
 		0}
 	hash := store.Set(datas, true)
