@@ -21,7 +21,8 @@ func Init() {
 	types.RegistorLog(types.TyLogPrivacyFee, &PrivacyFeeLog{})
 	types.RegistorLog(types.TyLogPrivacyInput, &PrivacyInputLog{})
 	types.RegistorLog(types.TyLogPrivacyOutput, &PrivacyOutputLog{})
-
+	types.RegistorLog(types.TyLogAssetWithdraw, &PrivacyAssetWithdrawLog{})
+	types.RegistorLog(types.TyLogAssetDeposit, &PrivacyAssetDepositLog{})
 	// init query rpc
 	types.RegisterRPCQueryHandle("ShowAmountsOfUTXO", &PrivacyShowAmountsOfUTXO{})
 	types.RegisterRPCQueryHandle("ShowUTXOs4SpecifiedAmount", &PrivacyShowUTXOs4SpecifiedAmount{})
@@ -151,6 +152,38 @@ func (l PrivacyOutputLog) Name() string {
 
 func (l PrivacyOutputLog) Decode(msg []byte) (interface{}, error) {
 	var logTmp types.ReceiptPrivacyOutput
+	err := types.Decode(msg, &logTmp)
+	if err != nil {
+		return nil, err
+	}
+	return logTmp, nil
+}
+
+type PrivacyAssetWithdrawLog struct {
+}
+
+func (l PrivacyAssetWithdrawLog) Name() string {
+	return "LogPrivacyAssetWithdraw"
+}
+
+func (l PrivacyAssetWithdrawLog) Decode(msg []byte) (interface{}, error) {
+	var logTmp types.ReceiptAccountTransfer
+	err := types.Decode(msg, &logTmp)
+	if err != nil {
+		return nil, err
+	}
+	return logTmp, nil
+}
+
+type PrivacyAssetDepositLog struct {
+}
+
+func (l PrivacyAssetDepositLog) Name() string {
+	return "LogPrivacyAssetDeposit"
+}
+
+func (l PrivacyAssetDepositLog) Decode(msg []byte) (interface{}, error) {
+	var logTmp types.ReceiptAccountTransfer
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
 		return nil, err
