@@ -4,6 +4,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/common/db"
+	pt "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/types"
 )
 
 // 注： 在计算帐号地址时， 平行链paracross合约地址需要带上title前缀，才能表现出和主链一致, 但是现在不带，
@@ -45,7 +46,7 @@ func assetDepositBalance(acc *account.DB, addr string, amount int64) (*types.Rec
 		Current: acc1,
 	}
 	acc.SaveAccount(acc1)
-	ty := int32(types.TyLogAssetDeposit)
+	ty := int32(pt.TyLogParaAssetDeposit)
 	log1 := &types.ReceiptLog{
 		Ty:  ty,
 		Log: types.Encode(receiptBalance),
@@ -73,7 +74,7 @@ func assetWithdrawBalance(acc *account.DB, addr string, amount int64) (*types.Re
 		Current:  acc1,
 	}
 	acc.SaveAccount(acc1)
-	ty := int32(types.TyLogAssetWithdraw)
+	ty := int32(pt.TyLogParaAssetWithdraw)
 	log1 := &types.ReceiptLog{
 		Ty:  ty,
 		Log: types.Encode(receiptBalance),
