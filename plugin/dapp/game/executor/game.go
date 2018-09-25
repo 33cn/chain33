@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"reflect"
 
-	"gitlab.33.cn/chain33/chain33/plugin/dapp/blackwhite/rpc"
-
 	log "github.com/inconshreveable/log15"
 	gt "gitlab.33.cn/chain33/chain33/plugin/dapp/game/types"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
@@ -16,7 +14,7 @@ var glog = log.New("module", "execs.game")
 
 //初始化过程比较重量级，有很多reflact, 所以弄成全局的
 var executorFunList = make(map[string]reflect.Method)
-var executorType = rpc.NewType()
+var executorType = gt.NewType()
 
 func init() {
 	actionFunList := executorType.GetFuncMap()
