@@ -7,6 +7,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/plugin/dapp/evm/executor/vm/common"
 	"gitlab.33.cn/chain33/chain33/types"
 	"github.com/pkg/errors"
+	"gitlab.33.cn/chain33/chain33/common/db"
 )
 
 func (a *action) assetTransferCoins(transfer *types.AssetsTransfer) (*types.Receipt, error) {
@@ -72,17 +73,10 @@ func (a *action) assetTransferToken(transfer *types.AssetsTransfer) (*types.Rece
 
 func (a *action) assetWithdrawCoins(withdraw *types.AssetsWithdraw, withdrawTx *types.Transaction) (*types.Receipt, error) {
 	isPara := types.IsPara()
-	var err error
 	if !isPara {
-		var accDB *account.DB
-		if withdraw.Cointoken == "" {
-			accDB = account.NewCoinsAccount()
-			accDB.SetDB(a.db)
-		} else {
-			accDB, err = account.NewAccountDB(types.TokenX, withdraw.Cointoken, a.db)
-			if err != nil {
-				return nil, errors.Wrap(err, "assetWithdrawCoins call account.NewAccountDB failed")
-			}
+		accDB, err := createAccount(a.db, withdraw.Cointoken)
+		if err != nil {
+			return nil, errors.Wrap(err, "assetWithdrawCoins call account.NewAccountDB failed")
 		}
 		fromAddr := address.ExecAddress(string(withdrawTx.Execer))
 		execAddr := address.ExecAddress(types.ParaX)
@@ -107,4 +101,16 @@ func (a *action) assetWithdrawCoins(withdraw *types.AssetsWithdraw, withdrawTx *
 			"txHash", common.Bytes2Hex(a.tx.Hash()))
 		return assetWithdrawBalance(paraAcc, a.fromaddr, withdraw.Amount)
 	}
+}
+
+func createAccount(db db.KV, symbol string) (*account.DB, error) {
+	var accDB *account.DB
+	var err error
+	if symbol == "" {
+		accDB = account.NewCoinsAccount()
+		accDB.SetDB(db)
+	} else {
+		accDB, err = account.NewAccountDB(types.TokenX, symbol, db)
+	}
+	return accDB, err
 }
