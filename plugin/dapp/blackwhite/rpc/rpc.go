@@ -1,8 +1,9 @@
 package rpc
 
 import (
-	"context"
 	"math/rand"
+
+	context "golang.org/x/net/context"
 
 	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/common/address"
