@@ -4,14 +4,11 @@ import (
 	"encoding/hex"
 	"encoding/json"
 
-	log "github.com/inconshreveable/log15"
 	bw "gitlab.33.cn/chain33/chain33/plugin/dapp/blackwhite/types"
 	"gitlab.33.cn/chain33/chain33/pluginmgr"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var glog = log.New("module", bw.BlackwhiteX)
-var name string
 var jrpc = &Jrpc{}
 var grpc = &Grpc{}
 
