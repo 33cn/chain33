@@ -11,6 +11,7 @@ import (
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
+	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/lottery/types"
 	"google.golang.org/grpc"
 )
 
@@ -45,7 +46,7 @@ const grpcRecSize int = 5 * 30 * 1024 * 1024
 const blockNum = 5
 
 type LotteryDB struct {
-	types.Lottery
+	pty.Lottery
 }
 
 func NewLotteryDB(lotteryId string, purBlock int64, drawBlock int64,
@@ -112,10 +113,10 @@ func NewLotteryAction(l *Lottery, tx *types.Transaction) *Action {
 		l.GetHeight(), dapp.ExecAddress(string(tx.Execer)), l.GetDifficulty(), l.GetApi(), conn, grpcClient}
 }
 
-func (action *Action) GetReceiptLog(lottery *types.Lottery, preStatus int32, logTy int32,
+func (action *Action) GetReceiptLog(lottery *pty.Lottery, preStatus int32, logTy int32,
 	round int64, buyNumber int64, amount int64, luckyNum int64) *types.ReceiptLog {
 	log := &types.ReceiptLog{}
-	l := &types.ReceiptLottery{}
+	l := &pty.ReceiptLottery{}
 
 	log.Ty = logTy
 
@@ -137,7 +138,7 @@ func (action *Action) GetReceiptLog(lottery *types.Lottery, preStatus int32, log
 	return log
 }
 
-func (action *Action) LotteryCreate(create *types.LotteryCreate) (*types.Receipt, error) {
+func (action *Action) LotteryCreate(create *pty.LotteryCreate) (*types.Receipt, error) {
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
 	var receipt *types.Receipt
@@ -191,7 +192,7 @@ func (action *Action) LotteryCreate(create *types.LotteryCreate) (*types.Receipt
 }
 
 //one bty for one ticket
-func (action *Action) LotteryBuy(buy *types.LotteryBuy) (*types.Receipt, error) {
+func (action *Action) LotteryBuy(buy *pty.LotteryBuy) (*types.Receipt, error) {
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
 	//var receipt *types.Receipt
