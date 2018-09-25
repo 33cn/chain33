@@ -524,6 +524,15 @@ func (db *PegasusBatch) Write() error {
 	return nil
 }
 
+func (db *PegasusBatch) ValueSize() int {
+	return len(db.batchset)
+}
+
+func (db *PegasusBatch) Reset() {
+	db.batchset = make(map[string][]byte)
+	db.batchdel = make(map[string][]byte)
+}
+
 func getHashKey(key []byte) []byte {
 	if len(key) <= HashKeyLen {
 		return key
