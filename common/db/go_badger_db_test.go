@@ -68,3 +68,30 @@ func TestBadgerDB(t *testing.T) {
 
 	require.NoError(t, err)
 }
+
+func TestBadgerBatchDB(t *testing.T) {
+	dir, err := ioutil.TempDir("", "badger121")
+	require.NoError(t, err)
+	//t.Log(dir)
+
+	badgerdb, err := NewGoBadgerDB("gobadgerdb", dir, 128)
+	require.NoError(t, err)
+	batch := badgerdb.NewBatch(true)
+
+	batch.Set([]byte("123"), []byte("121"))
+	batch.Set([]byte("124"), []byte("111"))
+	batch.Set([]byte("125"), []byte("111"))
+	batch.Write()
+
+	batch.Reset()
+
+	batch.Set([]byte("126"), []byte("111"))
+	batch.Write()
+
+	value, err := badgerdb.Get([]byte("123"))
+	require.NoError(t, err)
+	require.Equal(t, string(value), "121")
+	value, err = badgerdb.Get([]byte("126"))
+	require.NoError(t, err)
+	require.Equal(t, string(value), "111")
+}

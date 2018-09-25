@@ -2,12 +2,10 @@ package rpc
 
 import (
 	"encoding/hex"
-	"math/rand"
-	"time"
-
 	"encoding/json"
-
+	"math/rand"
 	"reflect"
+	"time"
 
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/client"
@@ -15,15 +13,17 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
-	bw "gitlab.33.cn/chain33/chain33/types/executor/blackwhite"
+	"gitlab.33.cn/chain33/chain33/types/executor"
 	evmtype "gitlab.33.cn/chain33/chain33/types/executor/evm"
 	hashlocktype "gitlab.33.cn/chain33/chain33/types/executor/hashlock"
+	lotterytype "gitlab.33.cn/chain33/chain33/types/executor/lottery"
 	retrievetype "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
 	tokentype "gitlab.33.cn/chain33/chain33/types/executor/token"
 	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
 )
 
 //提供系统rpc接口
+var random = rand.New(rand.NewSource(types.Now().UnixNano()))
 
 type channelClient struct {
 	client.QueueProtocolAPI
@@ -33,12 +33,12 @@ type channelClient struct {
 func (c *channelClient) Init(q queue.Client) {
 	c.QueueProtocolAPI, _ = client.New(q, nil)
 	c.accountdb = account.NewCoinsAccount()
+	executor.Init()
 }
 
-// support old rpc create transaction interface. call new imlp
+// 重构完成后删除
 func callExecNewTx(execName, action string, param interface{}) ([]byte, error) {
-	execName = types.ExecName(execName)
-	exec := types.LoadExecutor(execName)
+	exec := types.LoadExecutorType(execName)
 	if exec == nil {
 		log.Error("callExecNewTx", "Error", "exec not found")
 		return nil, types.ErrNotSupport
@@ -66,17 +66,51 @@ func callExecNewTx(execName, action string, param interface{}) ([]byte, error) {
 	return txHex, nil
 }
 
+func callCreateTx(execName, action string, param interface{}) ([]byte, error) {
+	exec := types.LoadExecutorType(execName)
+	if exec == nil {
+		log.Error("callExecNewTx", "Error", "exec not found")
+		return nil, types.ErrNotSupport
+	}
+
+	// param is interface{type, var-nil}, check with nil always fail
+	if param == nil {
+		log.Error("callExecNewTx", "Error", "param in nil")
+		return nil, types.ErrInvalidParam
+	}
+	tx, err := exec.Create(action, param)
+	if err != nil {
+		log.Error("callExecNewTx", "Error", err)
+		return nil, err
+	}
+	//填写nonce,execer,to, fee 等信息, 后面会增加一个修改transaction的函数，会加上execer fee 等的修改
+	tx.Nonce = random.Int63()
+	tx.Execer = []byte(execName)
+	tx.To = ""
+	newto := exec.GetRealToAddr(tx)
+	if newto == "" {
+		tx.To = address.ExecAddress(string(tx.Execer))
+	} else {
+		tx.To = newto
+	}
+	tx.Fee, err = tx.GetRealFee(types.MinFee)
+	if err != nil {
+		return nil, err
+	}
+	txHex := types.Encode(tx)
+	return txHex, nil
+}
+
 func (c *channelClient) CreateRawTransaction(param *types.CreateTx) ([]byte, error) {
 	if param == nil {
-		err := types.ErrInvalidParam
-		log.Error("CreateRawTransaction", "Error", err)
-		return nil, err
+		log.Error("CreateRawTransaction", "Error", types.ErrInvalidParam)
+		return nil, types.ErrInvalidParam
 	}
 
 	if param.IsToken {
 		return callExecNewTx(types.ExecName(types.TokenX), "", param)
 	} else {
-		return callExecNewTx(types.ExecName(types.CoinsX), "", param)
+		return callCreateTx(types.ExecName(types.CoinsX), "", param)
 	}
 }
 
@@ -111,7 +145,7 @@ func (c *channelClient) CreateNoBalanceTransaction(in *types.NoBalanceTx) (*type
 	txNone := &types.Transaction{Execer: []byte(types.ExecName(types.NoneX)), Payload: []byte("no-fee-transaction")}
 	txNone.To = address.ExecAddress(string(txNone.Execer))
 	txNone.Fee, _ = txNone.GetRealFee(types.MinFee)
-	txNone.Nonce = rand.New(rand.NewSource(types.Now().UnixNano())).Int63()
+	txNone.Nonce = random.Int63()
 
 	tx, err := decodeTx(in.TxHex)
 	if err != nil {
@@ -122,7 +156,7 @@ func (c *channelClient) CreateNoBalanceTransaction(in *types.NoBalanceTx) (*type
 	if err != nil {
 		return nil, err
 	}
-	err = group.Check(types.MinFee)
+	err = group.Check(0, types.MinFee)
 	if err != nil {
 		return nil, err
 	}
@@ -283,7 +317,7 @@ func (c *channelClient) GetAllExecBalance(in *types.ReqAddr) (*types.AllExecBala
 
 //TODO:和GetBalance进行泛化处理，同时LoadAccounts和LoadExecAccountQueue也需要进行泛化处理, added by hzj
 func (c *channelClient) GetTokenBalance(in *types.ReqTokenBalance) ([]*types.Account, error) {
-	accountTokendb, err := account.NewAccountDB(types.ExecName(types.TokenX), in.GetTokenSymbol(), nil)
+	accountTokendb, err := account.NewAccountDB(types.TokenX, in.GetTokenSymbol(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -400,6 +434,22 @@ func (c *channelClient) CreateRawEvmCreateCallTx(parm *evmtype.CreateCallTx) ([]
 	return callExecNewTx(types.ExecName(types.EvmX), "CreateCall", parm)
 }
 
+func (c *channelClient) CreateRawLotteryCreateTx(parm *lotterytype.LotteryCreateTx) ([]byte, error) {
+	return callExecNewTx(types.ExecName(types.LotteryX), "LotteryCreate", parm)
+}
+
+func (c *channelClient) CreateRawLotteryBuyTx(parm *lotterytype.LotteryBuyTx) ([]byte, error) {
+	return callExecNewTx(types.ExecName(types.LotteryX), "LotteryBuy", parm)
+}
+
+func (c *channelClient) CreateRawLotteryDrawTx(parm *lotterytype.LotteryDrawTx) ([]byte, error) {
+	return callExecNewTx(types.ExecName(types.LotteryX), "LotteryDraw", parm)
+}
+
+func (c *channelClient) CreateRawLotteryCloseTx(parm *lotterytype.LotteryCloseTx) ([]byte, error) {
+	return callExecNewTx(types.ExecName(types.LotteryX), "LotteryClose", parm)
+}
+
 func (c *channelClient) BindMiner(param *types.ReqBindMiner) (*types.ReplyBindMiner, error) {
 	ta := &types.TicketAction{}
 	tBind := &types.TicketBind{
@@ -411,7 +461,6 @@ func (c *channelClient) BindMiner(param *types.ReqBindMiner) (*types.ReplyBindMi
 	execer := []byte(types.ExecName(types.TicketX))
 	to := address.ExecAddress(string(execer))
 	txBind := &types.Transaction{Execer: execer, Payload: types.Encode(ta), To: to}
-	random := rand.New(rand.NewSource(types.Now().UnixNano()))
 	txBind.Nonce = random.Int63()
 	var err error
 	txBind.Fee, err = txBind.GetRealFee(types.MinFee)
@@ -468,7 +517,7 @@ func (c *channelClient) CreateRawRelayOrderTx(parm *RelayOrderTx) ([]byte, error
 		Execer:  types.ExecerRelay,
 		Payload: types.Encode(sell),
 		Fee:     parm.Fee,
-		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
+		Nonce:   random.Int63(),
 		To:      address.ExecAddress(string(types.ExecerRelay)),
 	}
 
@@ -491,7 +540,7 @@ func (c *channelClient) CreateRawRelayAcceptTx(parm *RelayAcceptTx) ([]byte, err
 		Execer:  types.ExecerRelay,
 		Payload: types.Encode(val),
 		Fee:     parm.Fee,
-		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
+		Nonce:   random.Int63(),
 		To:      address.ExecAddress(string(types.ExecerRelay)),
 	}
 
@@ -514,7 +563,7 @@ func (c *channelClient) CreateRawRelayRevokeTx(parm *RelayRevokeTx) ([]byte, err
 		Execer:  types.ExecerRelay,
 		Payload: types.Encode(val),
 		Fee:     parm.Fee,
-		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
+		Nonce:   random.Int63(),
 		To:      address.ExecAddress(string(types.ExecerRelay)),
 	}
 
@@ -537,7 +586,7 @@ func (c *channelClient) CreateRawRelayConfirmTx(parm *RelayConfirmTx) ([]byte, e
 		Execer:  types.ExecerRelay,
 		Payload: types.Encode(val),
 		Fee:     parm.Fee,
-		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
+		Nonce:   random.Int63(),
 		To:      address.ExecAddress(string(types.ExecerRelay)),
 	}
 
@@ -565,7 +614,7 @@ func (c *channelClient) CreateRawRelayVerifyBTCTx(parm *RelayVerifyBTCTx) ([]byt
 		Execer:  types.ExecerRelay,
 		Payload: types.Encode(val),
 		Fee:     parm.Fee,
-		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
+		Nonce:   random.Int63(),
 		To:      address.ExecAddress(string(types.ExecerRelay)),
 	}
 
@@ -599,122 +648,8 @@ func (c *channelClient) CreateRawRelaySaveBTCHeadTx(parm *RelaySaveBTCHeadTx) ([
 		Execer:  types.ExecerRelay,
 		Payload: types.Encode(val),
 		Fee:     parm.Fee,
-		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
+		Nonce:   random.Int63(),
 		To:      address.ExecAddress(string(types.ExecerRelay)),
-	}
-
-	tx.SetRealFee(types.MinFee)
-
-	data := types.Encode(tx)
-	return data, nil
-}
-
-func (c *channelClient) BlackwhiteCreateTx(parm *bw.BlackwhiteCreateTx) ([]byte, error) {
-	if parm == nil {
-		return nil, types.ErrInvalidParam
-	}
-
-	head := &types.BlackwhiteCreate{
-		PlayAmount:  parm.PlayAmount,
-		PlayerCount: parm.PlayerCount,
-		Timeout:     parm.Timeout,
-		GameName:    parm.GameName,
-	}
-
-	val := &types.BlackwhiteAction{
-		Ty:    types.BlackwhiteActionCreate,
-		Value: &types.BlackwhiteAction_Create{head},
-	}
-	tx := &types.Transaction{
-		Execer:  types.ExecerBlackwhite,
-		Payload: types.Encode(val),
-		Fee:     parm.Fee,
-		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(string(types.ExecerBlackwhite)),
-	}
-
-	tx.SetRealFee(types.MinFee)
-
-	data := types.Encode(tx)
-	return data, nil
-}
-
-func (c *channelClient) BlackwhiteShowTx(parm *bw.BlackwhiteShowTx) ([]byte, error) {
-	if parm == nil {
-		return nil, types.ErrInvalidParam
-	}
-
-	head := &types.BlackwhiteShow{
-		GameID: parm.GameID,
-		Secret: parm.Secret,
-	}
-
-	val := &types.BlackwhiteAction{
-		Ty:    types.BlackwhiteActionShow,
-		Value: &types.BlackwhiteAction_Show{head},
-	}
-	tx := &types.Transaction{
-		Execer:  types.ExecerBlackwhite,
-		Payload: types.Encode(val),
-		Fee:     parm.Fee,
-		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(string(types.ExecerBlackwhite)),
-	}
-
-	tx.SetRealFee(types.MinFee)
-
-	data := types.Encode(tx)
-	return data, nil
-}
-
-func (c *channelClient) BlackwhitePlayTx(parm *bw.BlackwhitePlayTx) ([]byte, error) {
-	if parm == nil {
-		return nil, types.ErrInvalidParam
-	}
-
-	head := &types.BlackwhitePlay{
-		GameID:     parm.GameID,
-		Amount:     parm.Amount,
-		HashValues: parm.HashValues,
-	}
-
-	val := &types.BlackwhiteAction{
-		Ty:    types.BlackwhiteActionPlay,
-		Value: &types.BlackwhiteAction_Play{head},
-	}
-	tx := &types.Transaction{
-		Execer:  types.ExecerBlackwhite,
-		Payload: types.Encode(val),
-		Fee:     parm.Fee,
-		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(string(types.ExecerBlackwhite)),
-	}
-
-	tx.SetRealFee(types.MinFee)
-
-	data := types.Encode(tx)
-	return data, nil
-}
-
-func (c *channelClient) BlackwhiteTimeoutDoneTx(parm *bw.BlackwhiteTimeoutDoneTx) ([]byte, error) {
-	if parm == nil {
-		return nil, types.ErrInvalidParam
-	}
-
-	head := &types.BlackwhiteTimeoutDone{
-		GameID: parm.GameID,
-	}
-
-	val := &types.BlackwhiteAction{
-		Ty:    types.BlackwhiteActionTimeoutDone,
-		Value: &types.BlackwhiteAction_TimeoutDone{head},
-	}
-	tx := &types.Transaction{
-		Execer:  types.ExecerBlackwhite,
-		Payload: types.Encode(val),
-		Fee:     parm.Fee,
-		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(string(types.ExecerBlackwhite)),
 	}
 
 	tx.SetRealFee(types.MinFee)

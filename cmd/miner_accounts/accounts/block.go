@@ -6,6 +6,7 @@ import (
 	"time"
 
 	chain33rpc "gitlab.33.cn/chain33/chain33/rpc"
+	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -17,6 +18,7 @@ type chain33 struct {
 	Height2Ts map[int64]int64
 	// new only cache ticket for miner
 	accountCache map[int64]*types.Accounts
+	Host         string
 }
 
 func (b chain33) findBlock(ts int64) (int64, *chain33rpc.Header) {
@@ -38,7 +40,7 @@ func (b chain33) findBlock(ts int64) (int64, *chain33rpc.Header) {
 	return 0, nil
 }
 func (b chain33) getBalance(addrs []string, exec string, timeNear int64) (*chain33rpc.Header, []*chain33rpc.Account, error) {
-	rpcCli, err := chain33rpc.NewJSONClient("http://127.0.0.1:8801")
+	rpcCli, err := jsonclient.NewJSONClient(b.Host)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return nil, nil, err
@@ -70,14 +72,14 @@ var cache = chain33{
 	accountCache: map[int64]*types.Accounts{},
 }
 
-func getLastHeader(cli *chain33rpc.JSONClient) (*chain33rpc.Header, error) {
+func getLastHeader(cli *jsonclient.JSONClient) (*chain33rpc.Header, error) {
 	method := "Chain33.GetLastHeader"
 	var res chain33rpc.Header
 	err := cli.Call(method, nil, &res)
 	return &res, err
 }
 
-func getHeaders(cli *chain33rpc.JSONClient, start, end int64) (*chain33rpc.Headers, error) {
+func getHeaders(cli *jsonclient.JSONClient, start, end int64) (*chain33rpc.Headers, error) {
 	method := "Chain33.GetHeaders"
 	params := &types.ReqBlocks{Start: start, End: end, IsDetail: false}
 	var res chain33rpc.Headers
@@ -85,7 +87,7 @@ func getHeaders(cli *chain33rpc.JSONClient, start, end int64) (*chain33rpc.Heade
 	return &res, err
 }
 
-func getBalanceAt(cli *chain33rpc.JSONClient, addrs []string, exec, stateHash string) ([]*chain33rpc.Account, error) {
+func getBalanceAt(cli *jsonclient.JSONClient, addrs []string, exec, stateHash string) ([]*chain33rpc.Account, error) {
 	method := "Chain33.GetBalance"
 	params := &types.ReqBalance{Addresses: addrs, Execer: exec, StateHash: stateHash}
 	var res []*chain33rpc.Account
@@ -93,8 +95,8 @@ func getBalanceAt(cli *chain33rpc.JSONClient, addrs []string, exec, stateHash st
 	return res, err
 }
 
-func syncHeaders() {
-	rpcCli, err := chain33rpc.NewJSONClient("http://127.0.0.1:8801")
+func syncHeaders(host string) {
+	rpcCli, err := jsonclient.NewJSONClient(host)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -130,13 +132,13 @@ func syncHeaders() {
 	fmt.Fprintln(os.Stderr, err, cache.lastHeader.Height)
 }
 
-func SyncBlock() {
-	syncHeaders()
+func SyncBlock(host string) {
+	cache.Host = host
+	syncHeaders(host)
 
 	timeout := time.NewTicker(time.Minute)
 	for {
 		<-timeout.C
-		syncHeaders()
-
+		syncHeaders(host)
 	}
 }

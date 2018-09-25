@@ -5,6 +5,10 @@ import (
 )
 
 var (
+	ErrMethodReturnType        = errors.New("ErrMethodReturnType")
+	ErrMethodNotFound          = errors.New("ErrMethodNotFound")
+	ErrExecBlockNil            = errors.New("ErrExecBlockNil")
+	ErrNotAllow                = errors.New("ErrNotAllow")
 	ErrCanOnlyDelTopVersion    = errors.New("ErrCanOnlyDelTopVersion")
 	ErrPrevVersion             = errors.New("ErrPrevVersion")
 	ErrNoExecerInMavlKey       = errors.New("ErrNoExecerInMavlKey")
@@ -61,6 +65,7 @@ var (
 	ErrLogType                 = errors.New("ErrLogType")
 	ErrInvalidParam            = errors.New("ErrInvalidParameters")
 	ErrInvalidAddress          = errors.New("ErrInvalidAddress")
+	ErrStateHashLost           = errors.New("ErrStateHashLost")
 	//err for token
 	ErrTokenNameLen         = errors.New("ErrTokenNameLength")
 	ErrTokenSymbolLen       = errors.New("ErrTokenSymbolLength")
@@ -216,6 +221,8 @@ var (
 	ErrPeerStop   = errors.New("ErrPeerStop")
 
 	ErrBlockSize                  = errors.New("ErrBlockSize")
+	ErrTxGroupIndex               = errors.New("ErrTxGroupIndex")
+	ErrTxGroupFormat              = errors.New("ErrTxGroupFormat")
 	ErrTxGroupCountLessThanTwo    = errors.New("ErrTxGroupCountLessThanTwo")
 	ErrTxGroupHeader              = errors.New("ErrTxGroupHeader")
 	ErrTxGroupNext                = errors.New("ErrTxGroupNext")
@@ -228,6 +235,7 @@ var (
 	ErrSymbolNameNotAllow         = errors.New("ErrSymbolNameNotAllow")
 	ErrTxGroupNotSupport          = errors.New("ErrTxGroupNotSupport")
 	ErrNotAllowKey                = errors.New("ErrNotAllowKey")
+	ErrNotAllowMemSetKey          = errors.New("ErrNotAllowMemSetKey")
 	ErrDataBaseDamage             = errors.New("ErrDataBaseDamage")
 	ErrIndex                      = errors.New("ErrIndex")
 	// ring signature
@@ -256,10 +264,14 @@ var (
 	ErrRelayBtcHeadNewBitsErr  = errors.New("ErrRelayBtcHeadNewBitsErr")
 
 	//game err
-	ErrGameCreateAmount = errors.New("ErrGameOpenExceeding the maximum limit")
-	ErrGameCreateAddr   = errors.New("ErrGameCreateAddr")
+	ErrGameCreateAmount = errors.New("You fill in more than the maximum number of games.")
+	ErrGameCancleAddr   = errors.New("You don't have permission to cancel someone else's game.")
 	ErrGameCloseAddr    = errors.New("The game time has not yet expired,You don't have permission to call yet.")
 	ErrGameTimeOut      = errors.New("The game has expired.,You don't have permission to call.")
+	ErrGameMatchStatus  = errors.New("can't join the game, the game has matched or finished!")
+	ErrGameMatch        = errors.New("can't join the game, You can't match the game you created!")
+	ErrGameCancleStatus = errors.New("can't cancle the game, the game has matched!")
+	ErrGameCloseStatus  = errors.New("can't close the game again, the game has  finished!")
 
 	//authority
 	ErrValidateCertFailed  = errors.New("ErrValidateCertFailed")
@@ -268,4 +280,32 @@ var (
 	ErrInitializeAuthority = errors.New("ErrInitializeAuthority")
 	//rpc
 	ErrInvalidMainnetRpcAddr = errors.New("ErrInvalidMainnetRpcAddr")
+
+	// executor.paracross
+	ErrInvalidTitle         = errors.New("ErrInvalidTitle")
+	ErrTitleNotExist        = errors.New("ErrTitleNotExist")
+	ErrNodeNotForTheTitle   = errors.New("ErrNodeNotForTheTitle")
+	ErrParaBlockHashNoMatch = errors.New("ErrParaBlockHashNoMatch")
+	ErrTxGroupParaCount     = errors.New("ErrTxGroupParaCount")
+	ErrParaMinerBaseIndex   = errors.New("ErrParaMinerBaseIndex")
+	ErrParaMinerTxType      = errors.New("ErrParaMinerTxType")
+	ErrParaEmptyMinerTx     = errors.New("ErrParaEmptyMinerTx")
+	ErrParaMinerExecErr     = errors.New("ErrParaMinerExecErr")
+
+	//lottery
+	ErrLotteryStatus            = errors.New("ErrLotteryStatus")
+	ErrLotteryDrawActionInvalid = errors.New("ErrLotteryDrawActionInvalid")
+	ErrLotteryFundNotEnough     = errors.New("ErrLotteryFundNotEnough")
+	ErrLotteryCreatorBuy        = errors.New("ErrLotteryCreatorBuy")
+	ErrLotteryBuyAmount         = errors.New("ErrLotteryBuyAmount")
+	ErrLotteryRepeatHash        = errors.New("ErrLotteryRepeatHash")
+	ErrLotteryPurBlockLimit     = errors.New("ErrLotteryPurBlockLimit")
+	ErrLotteryDrawBlockLimit    = errors.New("ErrLotteryDrawBlockLimit")
+	ErrLotteryBuyNumber         = errors.New("ErrLotteryBuyNumber")
+	ErrLotteryShowRepeated      = errors.New("ErrLotteryShowRepeated")
+	ErrLotteryShowError         = errors.New("ErrLotteryShowError")
+	ErrLotteryErrLuckyNum       = errors.New("ErrLotteryErrLuckyNum")
+	ErrLotteryErrCloser         = errors.New("ErrLotteryErrCloser")
+	ErrLotteryErrUnableClose    = errors.New("ErrLotteryErrUnableClose")
+	ErrNodeNotExist             = errors.New("ErrNodeNotExist")
 )

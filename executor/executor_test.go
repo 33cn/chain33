@@ -6,7 +6,11 @@ import (
 	"errors"
 	"math/rand"
 	"testing"
+	"time"
 
+	"encoding/hex"
+
+	"github.com/stretchr/testify/assert"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/blockchain"
 	"gitlab.33.cn/chain33/chain33/common"
@@ -16,12 +20,21 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/limits"
 	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
-	"gitlab.33.cn/chain33/chain33/executor/drivers"
 	"gitlab.33.cn/chain33/chain33/p2p"
+	"gitlab.33.cn/chain33/chain33/pluginmgr"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/store"
+	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
+	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
+	ety "gitlab.33.cn/chain33/chain33/types/executor"
 	"gitlab.33.cn/chain33/chain33/util"
+
+	"net/http"
+	_ "net/http/pprof"
+
+	_ "gitlab.33.cn/chain33/chain33/plugin"
+	_ "gitlab.33.cn/chain33/chain33/system"
 )
 
 var random *rand.Rand
@@ -30,6 +43,9 @@ var cfg *types.Config
 var genkey crypto.PrivKey
 
 func init() {
+	go func() {
+		http.ListenAndServe("localhost:6060", nil)
+	}()
 	types.SetTitle("local")
 	types.SetForkToOne()
 	types.SetTestNet(true)
@@ -37,6 +53,8 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
+	ety.Init()
+	pluginmgr.InitExec()
 	random = rand.New(rand.NewSource(types.Now().UnixNano()))
 	genkey = getprivkey("CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944")
 	log.SetLogLevel("error")
@@ -76,8 +94,8 @@ func initEnv() (queue.Queue, queue.Module, queue.Module, queue.Module) {
 }
 
 func createTx(priv crypto.PrivKey, to string, amount int64) *types.Transaction {
-	v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
-	transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
+	v := &cty.CoinsAction_Transfer{&types.AssetsTransfer{Amount: amount}}
+	transfer := &cty.CoinsAction{Value: v, Ty: cty.CoinsActionTransfer}
 	tx := &types.Transaction{Execer: []byte("none"), Payload: types.Encode(transfer), Fee: 1e6, To: to}
 	random := rand.New(rand.NewSource(types.Now().UnixNano()))
 	tx.Nonce = random.Int63()
@@ -87,8 +105,8 @@ func createTx(priv crypto.PrivKey, to string, amount int64) *types.Transaction {
 }
 
 func createTx2(priv crypto.PrivKey, to string, amount int64) *types.Transaction {
-	v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
-	transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
+	v := &cty.CoinsAction_Transfer{&types.AssetsTransfer{Amount: amount}}
+	transfer := &cty.CoinsAction{Value: v, Ty: cty.CoinsActionTransfer}
 	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1e6, To: to}
 	random := rand.New(rand.NewSource(types.Now().UnixNano()))
 	tx.Nonce = random.Int63()
@@ -154,10 +172,10 @@ func createGenesisBlock() *types.Block {
 	tx.Execer = []byte("coins")
 	tx.To = cfg.Consensus.Genesis
 	//gen payload
-	g := &types.CoinsAction_Genesis{}
-	g.Genesis = &types.CoinsGenesis{}
+	g := &cty.CoinsAction_Genesis{}
+	g.Genesis = &types.AssetsGenesis{}
 	g.Genesis.Amount = 1e8 * types.Coin
-	tx.Payload = types.Encode(&types.CoinsAction{Value: g, Ty: types.CoinsActionGenesis})
+	tx.Payload = types.Encode(&cty.CoinsAction{Value: g, Ty: cty.CoinsActionGenesis})
 
 	newblock := &types.Block{}
 	newblock.Height = 0
@@ -180,6 +198,50 @@ func TestExecGenesisBlock(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+func TestExecutorGetTxGroup(t *testing.T) {
+	exec := &Executor{}
+	execInit()
+	var txs []*types.Transaction
+	addr2, priv2 := genaddress()
+	addr3, priv3 := genaddress()
+	addr4, _ := genaddress()
+	txs = append(txs, createTx2(genkey, addr2, types.Coin))
+	txs = append(txs, createTx2(priv2, addr3, types.Coin))
+	txs = append(txs, createTx2(priv3, addr4, types.Coin))
+	//执行三笔交易: 全部正确
+	txgroup, err := types.CreateTxGroup(txs)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	//重新签名
+	txgroup.SignN(0, types.SECP256K1, genkey)
+	txgroup.SignN(1, types.SECP256K1, priv2)
+	txgroup.SignN(2, types.SECP256K1, priv3)
+	txs = txgroup.GetTxs()
+	execute := newExecutor(nil, exec, 1, time.Now().Unix(), 1, txs, nil)
+	e := execute.loadDriver(txs[0], 0)
+	execute.setEnv(e)
+	txs2 := e.GetTxs()
+	assert.Equal(t, txs2, txgroup.GetTxs())
+	for i := 0; i < len(txs); i++ {
+		txg, err := e.GetTxGroup(i)
+		assert.Nil(t, err)
+		assert.Equal(t, txg, txgroup.GetTxs())
+	}
+	_, err = e.GetTxGroup(len(txs))
+	assert.Equal(t, err, types.ErrTxGroupIndex)
+
+	//err tx group list
+	txs[0].Header = nil
+	execute = newExecutor(nil, exec, 1, time.Now().Unix(), 1, txs, nil)
+	e = execute.loadDriver(txs[0], 0)
+	execute.setEnv(e)
+	_, err = e.GetTxGroup(len(txs) - 1)
+	assert.Equal(t, err, types.ErrTxGroupFormat)
+}
+
 func TestTxGroup(t *testing.T) {
 	q, chain, s, p2p := initEnv()
 	prev := types.MinFee
@@ -270,6 +332,25 @@ func TestTxGroup(t *testing.T) {
 	txgroup.SignN(2, types.SECP256K1, priv2)
 
 	block = execAndCheckBlock(t, q.Client(), block, txgroup.GetTxs(), types.ExecPack)
+
+	//执行三笔交易：其中有一笔是user.xxx的执行器
+	txs = nil
+	txs = append(txs, createTx2(genkey, addr2, types.Coin))
+	txs = append(txs, createTx2(genkey, addr4, types.Coin))
+	txs = append(txs, createTx2(priv2, addr4, 10*types.Coin))
+	txs[2].Execer = []byte("user.xxx")
+	txs[2].To = address.ExecAddress("user.xxx")
+	txgroup, err = types.CreateTxGroup(txs)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	//重新签名
+	txgroup.SignN(0, types.SECP256K1, genkey)
+	txgroup.SignN(1, types.SECP256K1, genkey)
+	txgroup.SignN(2, types.SECP256K1, priv2)
+
+	block = execAndCheckBlock2(t, q.Client(), block, txgroup.GetTxs(), []int{2, 2, 1})
 }
 
 func TestExecAllow(t *testing.T) {
@@ -337,6 +418,22 @@ func execAndCheckBlock(t *testing.T, qclient queue.Client,
 	return detail.Block
 }
 
+func execAndCheckBlock2(t *testing.T, qclient queue.Client,
+	block *types.Block, txs []*types.Transaction, result []int) *types.Block {
+	block2 := createNewBlock(t, block, txs)
+	detail, _, err := ExecBlock(qclient, block.StateHash, block2, false, true)
+	if err != nil {
+		t.Error(err)
+		return nil
+	}
+	for i := 0; i < len(detail.Block.Txs); i++ {
+		if detail.Receipts[i].GetTy() != int32(result[i]) {
+			t.Errorf("exec expect all is %d, but now %d, index %d", result[i], detail.Receipts[i].GetTy(), i)
+		}
+	}
+	return detail.Block
+}
+
 func execAndCheckBlockCB(t *testing.T, qclient queue.Client,
 	block *types.Block, txs []*types.Transaction, cb func(int, *types.ReceiptData) error) *types.Block {
 	block2 := createNewBlock(t, block, txs)
@@ -345,7 +442,14 @@ func execAndCheckBlockCB(t *testing.T, qclient queue.Client,
 		t.Error(err)
 		return nil
 	}
-
+	for _, v := range deltx {
+		s, err := types.PBToJson(v)
+		if err != nil {
+			t.Error(err)
+			return nil
+		}
+		println(s)
+	}
 	var getIndex = func(hash []byte, txlist []*types.Transaction) int {
 		for i := 0; i < len(txlist); i++ {
 			if bytes.Equal(hash, txlist[i].Hash()) {
@@ -357,12 +461,12 @@ func execAndCheckBlockCB(t *testing.T, qclient queue.Client,
 	for i := 0; i < len(txs); i++ {
 		if getIndex(txs[i].Hash(), deltx) >= 0 {
 			if err := cb(i, nil); err != nil {
-				t.Error(err, "index", i)
+				t.Error(err, "i", i)
 				return nil
 			}
-		} else if getIndex(txs[i].Hash(), detail.Block.Txs) >= 0 {
-			if err := cb(i, detail.Receipts[i]); err != nil {
-				t.Error(err, "index", i)
+		} else if index := getIndex(txs[i].Hash(), detail.Block.Txs); index >= 0 {
+			if err := cb(i, detail.Receipts[index]); err != nil {
+				t.Error(err, "i", i, "index", index)
 				return nil
 			}
 		} else {
@@ -398,7 +502,7 @@ func TestExecBlock2(t *testing.T) {
 		}
 	}
 
-	N := 5000
+	N := 1000
 	done := make(chan struct{}, N)
 	for i := 0; i < N; i++ {
 		go func() {
@@ -500,8 +604,52 @@ func TestLoadDriver(t *testing.T) {
 func TestKeyAllow(t *testing.T) {
 	key := []byte("mavl-coins-bty-exec-1wvmD6RNHzwhY4eN75WnM6JcaAvNQ4nHx:19xXg1WHzti5hzBRTUphkM8YmuX6jJkoAA")
 	exec := []byte("retrieve")
-	if !isAllowExec(key, exec, address.ExecAddress("retrieve"), int64(1)) {
+	tx1 := "0a05636f696e73120e18010a0a1080c2d72f1a036f746520a08d0630f1cdebc8f7efa5e9283a22313271796f6361794e46374c7636433971573461767873324537553431664b536676"
+	tx11, _ := hex.DecodeString(tx1)
+	var tx12 types.Transaction
+	types.Decode(tx11, &tx12)
+	tx12.Execer = exec
+	if !isAllowExec(key, exec, &tx12, int64(1)) {
 		t.Error("retrieve can modify exec")
+	}
+}
+
+func TestKeyAllow_evm(t *testing.T) {
+	key := []byte("mavl-coins-bty-exec-1GacM93StrZveMrPjXDoz5TxajKa9LM5HG:19EJVYexvSn1kZ6MWiKcW14daXsPpdVDuF")
+	exec := []byte("user.evm.0xc79c9113a71c0a4244e20f0780e7c13552f40ee30b05998a38edb08fe617aaa5")
+	tx1 := "0a05636f696e73120e18010a0a1080c2d72f1a036f746520a08d0630f1cdebc8f7efa5e9283a22313271796f6361794e46374c7636433971573461767873324537553431664b536676"
+	tx11, _ := hex.DecodeString(tx1)
+	var tx12 types.Transaction
+	types.Decode(tx11, &tx12)
+	tx12.Execer = exec
+	if !isAllowExec(key, exec, &tx12, int64(1)) {
+		t.Error("user.evm.hash can modify exec")
+	}
+}
+
+func TestKeyAllow_ticket(t *testing.T) {
+	key := []byte("mavl-coins-bty-exec-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp")
+	exec := []byte("ticket")
+	tx1 := "0a067469636b657412c701501022c20108dcaed4f1011080a4a7da061a70314556474572784d52343565577532386d6f4151616e6b34413864516635623639383a3078356161303431643363623561356230396131333336626536373539356638366461336233616564386531653733373139346561353135313562653336363933333a3030303030303030303022423078336461373533326364373839613330623037633538343564336537383433613731356630393961616566386533646161376134383765613135383135336331631a6e08011221025a317f60e6962b7ce9836a83b775373b614b290bee595f8aecee5499791831c21a473045022100850bb15cdcdaf465af7ad1ffcbc1fd6a86942a1ddec1dc112164f37297e06d2d02204aca9686fd169462be955cef1914a225726280739770ab1c0d29eb953e54c6b620a08d0630e3faecf8ead9f9e1483a22313668747663424e53454137665a6841644c4a706844775152514a61487079485470"
+	tx11, _ := hex.DecodeString(tx1)
+	var tx12 types.Transaction
+	types.Decode(tx11, &tx12)
+	tx12.Execer = exec
+	if !isAllowExec(key, exec, &tx12, int64(1)) {
+		t.Error("ticket can modify exec")
+	}
+}
+
+func TestKeyAllow_paracross(t *testing.T) {
+	key := []byte("mavl-coins-bty-exec-1HPkPopVe3ERfvaAgedDtJQ792taZFEHCe:19xXg1WHzti5hzBRTUphkM8YmuX6jJkoAA")
+	exec := []byte("paracross")
+	tx1 := "0a15757365722e702e746573742e7061726163726f7373124310904e223e1080c2d72f1a1374657374206173736574207472616e736665722222314a524e6a64457170344c4a356671796355426d396179434b536565736b674d4b5220a08d0630f7cba7ec9e8f9bac163a2231367a734d68376d764e444b50473645394e5672506877367a4c3933675773547052"
+	tx11, _ := hex.DecodeString(tx1)
+	var tx12 types.Transaction
+	types.Decode(tx11, &tx12)
+	tx12.Execer = []byte("user.p.para.paracross")
+	if !isAllowExec(key, exec, &tx12, int64(1)) {
+		t.Error("paracross can modify exec")
 	}
 }
 
@@ -583,11 +731,11 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	}
 
 	var detail types.BlockDetail
-	if kvset == nil {
-		calcHash = prevStateRoot
-	} else {
-		calcHash = util.ExecKVMemSet(client, prevStateRoot, kvset, sync)
-	}
+	//if kvset == nil {
+	//	calcHash = prevStateRoot
+	//} else {
+	calcHash = util.ExecKVMemSet(client, prevStateRoot, block.Height, kvset, sync)
+	//}
 	if errReturn && !bytes.Equal(block.StateHash, calcHash) {
 		util.ExecKVSetRollback(client, calcHash)
 		if len(rdata) > 0 {
@@ -601,8 +749,8 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	detail.Block = block
 	detail.Receipts = rdata
 	//save to db
-	if kvset != nil {
-		util.ExecKVSetCommit(client, block.StateHash)
-	}
+	//if kvset != nil {
+	util.ExecKVSetCommit(client, block.StateHash)
+	//}
 	return &detail, deltx, nil
 }

@@ -7,28 +7,47 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var name string
+var nameX string
 
 //var tlog = log.New("module", name)
 
 func Init() {
-	name = types.ExecName("manage")
+	nameX = types.ExecName(types.ManageX)
 	// init executor type
-	types.RegistorExecutor(name, &ManageType{})
+	types.RegistorExecutor(types.ManageX, NewType())
 
 	// init log
 	types.RegistorLog(types.TyLogModifyConfig, &ModifyConfigLog{})
 
 	// init query rpc
-	types.RegistorRpcType("GetConfigItem", &MagageGetConfigItem{})
+	types.RegisterRPCQueryHandle("GetConfigItem", &MagageGetConfigItem{})
 }
 
 type ManageType struct {
 	types.ExecTypeBase
 }
 
+func NewType() *ManageType {
+	c := &ManageType{}
+	c.SetChild(c)
+	return c
+}
+
+func (at *ManageType) GetPayload() types.Message {
+	return &types.ManageAction{}
+}
+
 func (m ManageType) ActionName(tx *types.Transaction) string {
 	return "config"
+}
+
+func (manage ManageType) DecodePayload(tx *types.Transaction) (interface{}, error) {
+	var action types.ManageAction
+	err := types.Decode(tx.Payload, &action)
+	if err != nil {
+		return nil, err
+	}
+	return &action, nil
 }
 
 func (m ManageType) Amount(tx *types.Transaction) (int64, error) {
@@ -60,7 +79,7 @@ func (l ModifyConfigLog) Decode(msg []byte) (interface{}, error) {
 type MagageGetConfigItem struct {
 }
 
-func (t *MagageGetConfigItem) Input(message json.RawMessage) ([]byte, error) {
+func (t *MagageGetConfigItem) JsonToProto(message json.RawMessage) ([]byte, error) {
 	var req types.ReqString
 	err := json.Unmarshal(message, &req)
 	if err != nil {
@@ -69,6 +88,6 @@ func (t *MagageGetConfigItem) Input(message json.RawMessage) ([]byte, error) {
 	return types.Encode(&req), nil
 }
 
-func (t *MagageGetConfigItem) Output(reply interface{}) (interface{}, error) {
+func (t *MagageGetConfigItem) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
 }

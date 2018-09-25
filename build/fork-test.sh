@@ -34,6 +34,9 @@ source privacy-fork-test.sh
 # shellcheck disable=SC1091
 source coins-fork-test.sh
 
+# shellcheck disable=SC1091
+source ci-para-test.sh
+
 sedfix=""
 if [ "$(uname)" == "Darwin" ]; then
     sedfix=".bak"
@@ -59,6 +62,8 @@ function init() {
     # wallet
     sed -i $sedfix 's/^minerdisable=.*/minerdisable=false/g' chain33.toml
 
+    para_init
+
     # docker-compose ps
     docker-compose ps
 
@@ -66,7 +71,8 @@ function init() {
     docker-compose down
 
     # create and run docker-compose container
-    docker-compose up --build -d
+    #docker-compose up --build -d
+    docker-compose -f docker-compose.yml -f docker-compose-para.yml up --build -d
 
     local SLEEP=60
     echo "=========== sleep ${SLEEP}s ============="
@@ -194,6 +200,9 @@ function init() {
         exit 1
     fi
 
+    para_transfer
+    para_set_wallet
+
     ${CLI} wallet status
     ${CLI} account list
     ${CLI} mempool list
@@ -248,6 +257,7 @@ function forkType1() {
     optDockerPart4
     loopCount=30 #循环次数，每次循环休眠时间100s
     checkBlockHashfun $loopCount
+    checkParaBlockHashfun $loopCount
     #############################################
     #此处根据具体需求加入结果检查
     #4 检查交易结果
@@ -289,6 +299,7 @@ function forkType2() {
     type2_optDockerPart4
     loopCount=30 #循环次数，每次循环休眠时间100s
     checkBlockHashfun $loopCount
+    checkParaBlockHashfun $loopCount
     #############################################
     #此处根据具体需求加入结果检查
     #4 检查交易结果
@@ -347,7 +358,7 @@ function optDockerPart2() {
     echo "==================================="
 
     echo "======停止第二组docker ======"
-    docker stop "${NODE4}" "${NODE5}" "${NODE6}"
+    docker pause "${NODE4}" "${NODE5}" "${NODE6}"
 
     echo "======开启第一组docker节点挖矿======"
     sleep 3
@@ -391,16 +402,16 @@ function optDockerPart3() {
     echo "======================================="
 
     echo "======停止第一组docker======"
-    docker stop "${NODE1}" "${NODE2}" "${NODE3}"
+    docker pause "${NODE1}" "${NODE2}" "${NODE3}"
 
     echo "======sleep 5s======"
     sleep 5
 
     echo "======启动第二组docker======"
-    docker start "${NODE4}" "${NODE5}" "${NODE6}"
+    docker unpause "${NODE4}" "${NODE5}" "${NODE6}"
 
     echo "======sleep 20s======"
-    sleep 20
+    sleep 5
     result=$($CLI4 wallet unlock -p 1314 -t 0 | jq ".isok")
     if [ "${result}" = "false" ]; then
         echo "wallet1 unlock fail"
@@ -447,10 +458,10 @@ function optDockerPart4() {
     echo "======================================="
 
     echo "======启动第一组docker======"
-    docker start "${NODE1}" "${NODE2}" "${NODE3}"
+    docker unpause "${NODE1}" "${NODE2}" "${NODE3}"
 
     echo "======sleep 20s======"
-    sleep 20
+    sleep 5
     result=$($CLI wallet unlock -p 1314 -t 0 | jq ".isok")
     if [ "${result}" = "false" ]; then
         echo "wallet2 unlock fail"
@@ -504,7 +515,7 @@ function type2_optDockerPart2() {
     echo "==================================="
 
     echo "======停止第二组docker ======"
-    docker stop "${NODE4}" "${NODE5}" "${NODE6}"
+    docker pause "${NODE4}" "${NODE5}" "${NODE6}"
 
     echo "======开启第一组docker节点挖矿======"
     sleep 3
@@ -548,17 +559,17 @@ function type2_optDockerPart3() {
     echo "======================================="
 
     echo "======停止第一组中除公共节点的docker======"
-    docker stop "${NODE1}" "${NODE2}"
+    docker pause "${NODE1}" "${NODE2}"
 
     echo "=============== 恢复公共节点数据 =============="
     restoreData
-    docker stop "${NODE3}"
+    docker pause "${NODE3}"
 
     echo "======sleep 5s======"
     sleep 5
 
     echo "======启动第二组docker======"
-    docker start "${NODE3}" "${NODE4}" "${NODE5}" "${NODE6}"
+    docker unpause "${NODE3}" "${NODE4}" "${NODE5}" "${NODE6}"
 
     name="${CLI}"
     time=60
@@ -625,7 +636,7 @@ function type2_optDockerPart4() {
     echo "======================================="
 
     echo "======启动第一组docker======"
-    docker start "${NODE1}" "${NODE2}"
+    docker unpause "${NODE1}" "${NODE2}"
 
     echo "======两组docker节点共同挖矿中======"
     block_wait_timeout "${CLI}" 5 100
@@ -843,6 +854,25 @@ function syn_block_timeout() {
 
     done
     echo "wait block $count s"
+}
+
+function block_wait() {
+    if [ "$#" -lt 2 ]; then
+        echo "wrong block_wait params"
+        exit 1
+    fi
+    cur_height=$(${1} block last_header | jq ".height")
+    expect=$((cur_height + ${2}))
+    count=0
+    while true; do
+        new_height=$(${1} block last_header | jq ".height")
+        if [ "${new_height}" -ge "${expect}" ]; then
+            break
+        fi
+        count=$((count + 1))
+        sleep 1
+    done
+    echo "wait new block $count s"
 }
 
 optDockerfun

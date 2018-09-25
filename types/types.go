@@ -10,6 +10,7 @@ import (
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
+	"gitlab.33.cn/chain33/chain33/types/jsonpb"
 
 	_ "gitlab.33.cn/chain33/chain33/common/crypto/ecdsa"
 	_ "gitlab.33.cn/chain33/chain33/common/crypto/ed25519"
@@ -22,6 +23,12 @@ var tlog = log.New("module", "types")
 const Size_1K_shiftlen uint = 10
 
 type Message proto.Message
+
+type Query4Cli struct {
+	Execer   string      `json:"execer"`
+	FuncName string      `json:"funcName"`
+	Payload  interface{} `json:"payload"`
+}
 
 //交易组的接口，Transactions 和 Transaction 都符合这个接口
 type TxGroup interface {
@@ -37,11 +44,7 @@ func ExecName(name string) string {
 	return ExecNamePrefix + name
 }
 
-func IsAllowExecName(name string) bool {
-	return isAllowExecName([]byte(name))
-}
-
-func isAllowExecName(name []byte) bool {
+func IsAllowExecName(name []byte, execer []byte) bool {
 	// name长度不能超过系统限制
 	if len(name) > address.MaxExecNameLength {
 		return false
@@ -50,11 +53,10 @@ func isAllowExecName(name []byte) bool {
 	if bytes.Contains(name, slash) {
 		return false
 	}
-	//vm:
-	if bytes.HasPrefix(name, UserEvm) {
-		name = ExecerEvm
+	if !bytes.Equal(name, execer) && !bytes.Equal(name, GetRealExecName(execer)) {
+		return false
 	}
-	if bytes.HasPrefix(name, userKey) {
+	if bytes.HasPrefix(name, UserKey) {
 		return true
 	}
 	for i := range AllowUserExec {
@@ -63,6 +65,90 @@ func isAllowExecName(name []byte) bool {
 		}
 	}
 	return false
+}
+
+var bytesExec = []byte("exec-")
+var commonPrefix = []byte("mavl-")
+
+func GetExecKey(key []byte) (string, bool) {
+	n := 0
+	start := 0
+	end := 0
+	for i := len(commonPrefix); i < len(key); i++ {
+		if key[i] == '-' {
+			n = n + 1
+			if n == 2 {
+				start = i + 1
+			}
+			if n == 3 {
+				end = i
+				break
+			}
+		}
+	}
+	if start > 0 && end > 0 {
+		if bytes.Equal(key[start:end+1], bytesExec) {
+			//find addr
+			start = end + 1
+			for k := end; k < len(key); k++ {
+				if key[k] == ':' { //end+1
+					end = k
+					return string(key[start:end]), true
+				}
+			}
+		}
+	}
+	return "", false
+}
+
+func FindExecer(key []byte) (execer []byte, err error) {
+	if !bytes.HasPrefix(key, commonPrefix) {
+		return nil, ErrMavlKeyNotStartWithMavl
+	}
+	for i := len(commonPrefix); i < len(key); i++ {
+		if key[i] == '-' {
+			return key[len(commonPrefix):i], nil
+		}
+	}
+	return nil, ErrNoExecerInMavlKey
+}
+
+func GetRealExecName(execer []byte) []byte {
+	//平行链执行器，获取真实执行器的规则
+	if bytes.HasPrefix(execer, ParaKey) {
+		count := 0
+		for i := 0; i < len(execer); i++ {
+			if execer[i] == '.' {
+				count++
+			}
+			if count == 3 && i < (len(execer)-1) {
+				newexec := execer[i+1:]
+				if bytes.HasPrefix(newexec, UserKey) && !bytes.HasPrefix(newexec, ParaKey) {
+					return GetRealExecName(newexec)
+				}
+				return newexec
+			}
+		}
+	} else if bytes.HasPrefix(execer, UserKey) {
+		//不是user.p. 的情况, 而是user. 的情况
+		count := 0
+		index := 0
+		for i := 0; i < len(execer); i++ {
+			if execer[i] == '.' {
+				count++
+			}
+			index = i
+			if count == 2 {
+				index--
+				break
+			}
+		}
+		e := execer[5 : index+1]
+		if len(e) > 0 {
+			return e
+		}
+	}
+	return execer
 }
 
 func Encode(data proto.Message) []byte {
@@ -79,6 +165,10 @@ func Size(data proto.Message) int {
 
 func Decode(data []byte, msg proto.Message) error {
 	return proto.Unmarshal(data, msg)
+}
+
+func JsonToPB(data []byte, msg proto.Message) error {
+	return jsonpb.Unmarshal(bytes.NewReader(data), msg)
 }
 
 func (leafnode *LeafNode) Hash() []byte {
@@ -135,7 +225,7 @@ func ConfigKey(key string) string {
 var ManagePrefix = "mavl-"
 
 func ManageKey(key string) string {
-	return fmt.Sprintf("%s-%s", ManagePrefix+ExecName("manage"), key)
+	return fmt.Sprintf("%s-%s", ManagePrefix+"manage", key)
 }
 
 func ManaeKeyWithHeigh(key string, height int64) string {
@@ -271,4 +361,13 @@ func (action *PrivacyAction) GetTokenName() string {
 // GetTxTimeInterval 获取交易有效期
 func GetTxTimeInterval() time.Duration {
 	return time.Second * 120
+}
+
+type ParaCrossTx interface {
+	IsParaCrossTx() bool
+}
+
+func PBToJson(r Message) (string, error) {
+	encode := &jsonpb.Marshaler{EmitDefaults: true}
+	return encode.MarshalToString(r)
 }

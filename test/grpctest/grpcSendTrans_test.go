@@ -12,6 +12,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
+	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
 	"google.golang.org/grpc"
 )
@@ -122,9 +123,9 @@ func getprivkey(key string) crypto.PrivKey {
 func sendtoaddress(priv crypto.PrivKey, to string, amount int64) error {
 	//defer conn.Close()
 	//fmt.Println("sign key privkey: ", common.ToHex(priv.Bytes()))
-	c := types.NewGrpcserviceClient(conn)
-	v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
-	transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
+	c := types.NewChain33Client(conn)
+	v := &cty.CoinsAction_Transfer{&types.AssetsTransfer{Amount: amount}}
+	transfer := &cty.CoinsAction{Value: v, Ty: cty.CoinsActionTransfer}
 	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1e6, To: to}
 	tx.Nonce = rand.Int63()
 	tx.Sign(types.SECP256K1, priv)
@@ -141,7 +142,7 @@ func sendtoaddress(priv crypto.PrivKey, to string, amount int64) error {
 }
 
 func getlastheader() (*types.Header, error) {
-	c := types.NewGrpcserviceClient(conn)
+	c := types.NewChain33Client(conn)
 	v := &types.ReqNil{}
 	return c.GetLastHeader(context.Background(), v)
 }
