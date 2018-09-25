@@ -463,7 +463,7 @@ func (db *ssDBBatch) Write() error {
 
 	if len(db.batchdel) > 0 {
 		var dkeys []string
-		for k, _ := range db.batchdel {
+		for k := range db.batchdel {
 			dkeys = append(dkeys, k)
 		}
 		err := db.db.pool.get().MultiDel(dkeys...)
