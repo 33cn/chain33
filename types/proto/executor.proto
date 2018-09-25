@@ -1,52 +1,13 @@
 syntax = "proto3";
 
 import "transaction.proto";
+import "tendermint.proto";
 
 package types;
+option go_package = "gitlab.33.cn/chain33/chain33/types";
 
 message Genesis {
     bool isrun = 1;
-}
-
-// message for execs.coins
-message CoinsAction {
-    oneof value {
-        CoinsTransfer       transfer       = 1;
-        CoinsWithdraw       withdraw       = 4;
-        CoinsGenesis        genesis        = 2;
-        CoinsTransferToExec transferToExec = 5;
-    }
-    int32 ty = 3;
-}
-
-//给某个地址凭空打币
-//只能执行一次，不能执行第二次
-message CoinsGenesis {
-    int64  amount        = 2;
-    string returnAddress = 3;
-}
-
-message CoinsTransfer {
-    string cointoken = 1;
-    int64  amount    = 2;
-    string note      = 3;
-    string to        = 4;
-}
-
-message CoinsTransferToExec {
-    string cointoken = 1;
-    int64  amount    = 2;
-    string note      = 3;
-    string execName  = 4;
-    string to        = 5;
-}
-
-message CoinsWithdraw {
-    string cointoken = 1;
-    int64  amount    = 2;
-    string note      = 3;
-    string execName  = 4;
-    string to        = 5;
 }
 
 message Hashlock {
@@ -309,13 +270,13 @@ message RetrieveQuery {
 //////////////////////////////////////////////////////////////////////////////
 message TokenAction {
     oneof value {
-        TokenPreCreate      tokenprecreate    = 1;
-        TokenFinishCreate   tokenfinishcreate = 2;
-        TokenRevokeCreate   tokenrevokecreate = 3;
-        CoinsTransfer       transfer          = 4;
-        CoinsWithdraw       withdraw          = 5;
-        CoinsGenesis        genesis           = 6;
-        CoinsTransferToExec transferToExec    = 8;
+        TokenPreCreate       tokenprecreate    = 1;
+        TokenFinishCreate    tokenfinishcreate = 2;
+        TokenRevokeCreate    tokenrevokecreate = 3;
+        AssetsTransfer       transfer          = 4;
+        AssetsWithdraw       withdraw          = 5;
+        AssetsGenesis        genesis           = 6;
+        AssetsTransferToExec transferToExec    = 8;
     }
     int32 Ty = 7;
 }
@@ -352,9 +313,10 @@ message Token {
 }
 
 message ReqTokens {
-    bool     queryAll      = 1;
-    int32    status        = 2;
-    repeated string tokens = 3;
+    bool     queryAll          = 1;
+    int32    status            = 2;
+    repeated string tokens     = 3;
+    bool            symbolOnly = 4;
 }
 
 message ReplyTokens {
@@ -613,4 +575,21 @@ message PrivacyAction4Print {
         Privacy2Public4Print  privacy2public  = 3;
     }
     int32 ty = 4;
+}
+
+message ValNode {
+    bytes pubKey = 1;
+    int64 power  = 2;
+}
+
+message ValNodes {
+    repeated ValNode nodes = 1;
+}
+
+message ValNodeAction {
+    oneof value {
+        ValNode             node      = 1;
+        TendermintBlockInfo blockInfo = 2;
+    }
+    int32 Ty = 3;
 }

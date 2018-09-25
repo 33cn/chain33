@@ -1,11 +1,14 @@
 package types
 
-var userKey = []byte("user.")
+import "reflect"
+
 var slash = []byte("-")
 var Debug = false
 
 const (
 	CoinsX          = "coins"
+	UserKeyX        = "user."
+	ParaKeyX        = "user.p."
 	TicketX         = "ticket"
 	HashlockX       = "hashlock"
 	RetrieveX       = "retrieve"
@@ -20,28 +23,32 @@ const (
 	Normx           = "norm"
 	UserEvmX        = "user.evm."
 	CertX           = "cert"
-	GameX           = "game"
-	BlackwhiteX     = "blackwhite"
+	ParaX           = "paracross"
+	LotteryX        = "lottery"
+	ValNodeX        = "valnode"
 )
 
 var (
-	ExecerCoins      = []byte(CoinsX)
-	ExecerTicket     = []byte(TicketX)
-	ExecerManage     = []byte(ManageX)
-	ExecerToken      = []byte(TokenX)
-	ExecerEvm        = []byte(EvmX)
-	ExecerPrivacy    = []byte(PrivacyX)
-	ExecerRelay      = []byte(RelayX)
-	ExecerHashlock   = []byte(HashlockX)
-	ExecerRetrieve   = []byte(RetrieveX)
-	ExecerNone       = []byte(NoneX)
-	ExecerTrade      = []byte(TradeX)
-	ExecerNorm       = []byte(Normx)
-	ExecerConfig     = []byte("config")
-	ExecerCert       = []byte(CertX)
-	UserEvm          = []byte(UserEvmX)
-	ExecerGame       = []byte(GameX)
-	ExecerBlackwhite = []byte(BlackwhiteX)
+	ExecerCoins    = []byte(CoinsX)
+	ExecerTicket   = []byte(TicketX)
+	ExecerManage   = []byte(ManageX)
+	ExecerToken    = []byte(TokenX)
+	ExecerEvm      = []byte(EvmX)
+	ExecerPrivacy  = []byte(PrivacyX)
+	ExecerRelay    = []byte(RelayX)
+	ExecerHashlock = []byte(HashlockX)
+	ExecerRetrieve = []byte(RetrieveX)
+	ExecerNone     = []byte(NoneX)
+	ExecerTrade    = []byte(TradeX)
+	ExecerNorm     = []byte(Normx)
+	ExecerConfig   = []byte("config")
+	ExecerCert     = []byte(CertX)
+	UserEvm        = []byte(UserEvmX)
+	ExecerPara     = []byte(ParaX)
+	ExecerLottery  = []byte(LotteryX)
+	UserKey        = []byte(UserKeyX)
+	ParaKey        = []byte(ParaKeyX)
+	ExecerValNode  = []byte(ValNodeX)
 )
 
 const (
@@ -63,6 +70,8 @@ const (
 	M_10_TIMES                    = 10
 	SignatureSize                 = (4 + 33 + 65)
 	PrivacyMaturityDegree         = 12
+	TxGroupMaxCount               = 20
+	MinerAction                   = "miner"
 )
 
 var (
@@ -152,7 +161,24 @@ const (
 	TyLogExecActive      = 10
 	TyLogGenesisTransfer = 11
 	TyLogGenesisDeposit  = 12
+)
 
+var SystemLog = map[int64]reflect.Type{
+	TyLogReserved:        nil,
+	TyLogErr:             nil,
+	TyLogFee:             reflect.TypeOf(ReceiptAccountTransfer{}),
+	TyLogTransfer:        reflect.TypeOf(ReceiptAccountTransfer{}),
+	TyLogDeposit:         reflect.TypeOf(ReceiptAccountTransfer{}),
+	TyLogExecTransfer:    reflect.TypeOf(ReceiptExecAccountTransfer{}),
+	TyLogExecWithdraw:    reflect.TypeOf(ReceiptExecAccountTransfer{}),
+	TyLogExecDeposit:     reflect.TypeOf(ReceiptExecAccountTransfer{}),
+	TyLogExecFrozen:      reflect.TypeOf(ReceiptExecAccountTransfer{}),
+	TyLogExecActive:      reflect.TypeOf(ReceiptAccountTransfer{}),
+	TyLogGenesisTransfer: reflect.TypeOf(ReceiptAccountTransfer{}),
+	TyLogGenesisDeposit:  reflect.TypeOf(ReceiptAccountTransfer{}),
+}
+
+const (
 	//log for ticket
 	TyLogNewTicket   = 111
 	TyLogCloseTicket = 112
@@ -165,22 +191,24 @@ const (
 	TyLogRevokeCreateToken = 213
 
 	//log for trade
-	TyLogTradeSellLimit       = 310
-	TyLogTradeBuyMarket       = 311
-	TyLogTradeSellRevoke      = 312
-	TyLogTokenTransfer        = 313
-	TyLogTokenGenesis         = 314
-	TyLogTokenDeposit         = 315
-	TyLogTokenExecTransfer    = 316
-	TyLogTokenExecWithdraw    = 317
-	TyLogTokenExecDeposit     = 318
-	TyLogTokenExecFrozen      = 319
-	TyLogTokenExecActive      = 320
-	TyLogTokenGenesisTransfer = 321
-	TyLogTokenGenesisDeposit  = 322
-	TyLogTradeSellMarket      = 330
-	TyLogTradeBuyLimit        = 331
-	TyLogTradeBuyRevoke       = 332
+	TyLogTradeSellLimit         = 310
+	TyLogTradeBuyMarket         = 311
+	TyLogTradeSellRevoke        = 312
+	TyLogTokenTransfer          = 313
+	TyLogTokenGenesis           = 314
+	TyLogTokenDeposit           = 315
+	TyLogTokenExecTransfer      = 316
+	TyLogTokenExecWithdraw      = 317
+	TyLogTokenExecDeposit       = 318
+	TyLogTokenExecFrozen        = 319
+	TyLogTokenExecActive        = 320
+	TyLogTokenGenesisTransfer   = 321
+	TyLogTokenGenesisDeposit    = 322
+	TyLogTradeSellMarket        = 330
+	TyLogTradeBuyLimit          = 331
+	TyLogTradeBuyRevoke         = 332
+	TyLogParaTokenAssetTransfer = 333
+	TyLogParaTokenAssetWithdraw = 334
 
 	//log for relay
 	TyLogRelayCreate       = 350
@@ -216,12 +244,18 @@ const (
 	TyLogCloseGame  = 714
 
 	// log for blackwhite game
-	TyLogBlackwhiteCreate   = 700
-	TyLogBlackwhitePlay     = 701
-	TyLogBlackwhiteShow     = 702
-	TyLogBlackwhiteTimeout  = 703
-	TyLogBlackwhiteDone     = 704
-	TyLogBlackwhiteLoopInfo = 705
+	TyLogBlackwhiteCreate   = 750
+	TyLogBlackwhitePlay     = 751
+	TyLogBlackwhiteShow     = 752
+	TyLogBlackwhiteTimeout  = 753
+	TyLogBlackwhiteDone     = 754
+	TyLogBlackwhiteLoopInfo = 755
+
+	//log for lottery
+	TyLogLotteryCreate = 801
+	TyLogLotteryBuy    = 802
+	TyLogLotteryDraw   = 803
+	TyLogLotteryClose  = 804
 )
 
 //exec type
@@ -232,11 +266,7 @@ const (
 )
 
 const (
-	InvalidAction       = 0
-	CoinsActionTransfer = 1
-	CoinsActionGenesis  = 2
-	CoinsActionWithdraw = 3
-
+	InvalidAction = 0
 	//action for token
 	ActionTransfer            = 4
 	ActionGenesis             = 5
@@ -244,7 +274,6 @@ const (
 	TokenActionPreCreate      = 7
 	TokenActionFinishCreate   = 8
 	TokenActionRevokeCreate   = 9
-	CoinsActionTransferToExec = 10
 	TokenActionTransferToExec = 11
 	//action type for privacy
 	ActionPublic2Privacy = iota + 100
@@ -397,14 +426,6 @@ const (
 	RelayActionRcvBTCHeaders
 )
 
-// blackwhite action type
-const (
-	BlackwhiteActionCreate = iota
-	BlackwhiteActionPlay
-	BlackwhiteActionShow
-	BlackwhiteActionTimeoutDone
-)
-
 // RescanUtxoFlag
 const (
 	UtxoFlagNoScan  int32 = 0
@@ -417,14 +438,6 @@ var RescanFlagMapint2string = map[int32]string{
 	UtxoFlagScaning: "UtxoFlagScaning",
 	UtxoFlagScanEnd: "UtxoFlagScanEnd",
 }
-
-//game action ty
-const (
-	GameActionCreate = iota
-	GameActionMatch
-	GameActionCancel
-	GameActionClose
-)
 
 //flag:
 var FlagTxQuickIndex = []byte("FLAG:FlagTxQuickIndex")
@@ -453,3 +466,33 @@ var EnableTxHeight = false
 //那么检查交易重复的时候，我只要检查 9910 - currentHeight 这个区间的交易不要重复就好了
 var HighAllowPackHeight int64 = 90
 var LowAllowPackHeight int64 = 30
+
+//默认情况下不开启fork
+var EnableTxGroupParaFork = false
+
+const (
+	ParaCrossTransferActionTypeStart = 10000
+	ParaCrossTransferActionTypeEnd   = 10100
+)
+
+//Lottery op
+const (
+	LotteryActionCreate = 1 + iota
+	LotteryActionBuy
+	LotteryActionShow
+	LotteryActionDraw
+	LotteryActionClose
+)
+
+//Lottery status
+const (
+	LotteryCreated = 1 + iota
+	LotteryPurchase
+	LotteryDrawed
+	LotteryClosed
+)
+
+const (
+	ValNodeActionUpdate    = 1
+	ValNodeActionBlockInfo = 2
+)

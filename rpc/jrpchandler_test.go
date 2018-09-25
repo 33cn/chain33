@@ -6,6 +6,9 @@ import (
 
 	"encoding/hex"
 
+	_ "gitlab.33.cn/chain33/chain33/plugin"
+	_ "gitlab.33.cn/chain33/chain33/system"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"gitlab.33.cn/chain33/chain33/client/mocks"
@@ -965,7 +968,7 @@ func TestChain33_CreateTxGroup(t *testing.T) {
 		t.Error("Test createtxgroup failed")
 		return
 	}
-	err = tx.Check(types.MinFee)
+	err = tx.Check(0, types.MinFee)
 	assert.Nil(t, err)
 }
 
@@ -1086,7 +1089,7 @@ func TestChain33_SendTransaction(t *testing.T) {
 
 func TestChain33_GetHexTxByHash(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
-	api.On("QueryTx", &types.ReqHash{}).Return(nil, errors.New("error value"))
+	api.On("QueryTx", &types.ReqHash{Hash: []byte("")}).Return(nil, errors.New("error value"))
 	testChain33 := newTestChain33(api)
 	var testResult interface{}
 	data := QueryParm{
@@ -1102,7 +1105,7 @@ func TestChain33_GetHexTxByHash(t *testing.T) {
 
 func TestChain33_QueryTransaction(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
-	api.On("QueryTx", &types.ReqHash{}).Return(nil, errors.New("error value"))
+	api.On("QueryTx", &types.ReqHash{Hash: []byte("")}).Return(nil, errors.New("error value"))
 	testChain33 := newTestChain33(api)
 	var testResult interface{}
 	data := QueryParm{
@@ -1156,7 +1159,7 @@ func TestChain33_QueryTransactionOk(t *testing.T) {
 	}
 
 	api := new(mocks.QueueProtocolAPI)
-	api.On("QueryTx", &types.ReqHash{}).Return(&reply, nil)
+	api.On("QueryTx", &types.ReqHash{[]byte("")}).Return(&reply, nil)
 	testChain33 := newTestChain33(api)
 	var testResult interface{}
 
@@ -1360,9 +1363,9 @@ func TestChain33_GetAccounts(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 	testChain33 := newTestChain33(api)
 
-	api.On("WalletGetAccountList").Return(nil, errors.New("error value"))
+	api.On("WalletGetAccountList", mock.Anything).Return(nil, errors.New("error value"))
 	var testResult interface{}
-	data := &types.ReqNil{}
+	data := &types.ReqAccountList{}
 	err := testChain33.GetAccounts(data, &testResult)
 	t.Log(err)
 	assert.Equal(t, nil, testResult)
@@ -1661,7 +1664,7 @@ func TestChain33_GetBlockOverview(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 	testChain33 := newTestChain33(api)
 
-	expected := &types.ReqHash{}
+	expected := &types.ReqHash{Hash: []byte{}}
 	api.On("GetBlockOverview", expected).Return(nil, errors.New("error value"))
 
 	var testResult interface{}

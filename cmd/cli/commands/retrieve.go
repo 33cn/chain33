@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
 	retrievetype "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
 )
@@ -213,7 +212,7 @@ func queryRetrieveCmd(cmd *cobra.Command, args []string) {
 		DefaultAddress: defaultAddr,
 	}
 
-	var params jsonrpc.Query4Cli
+	var params types.Query4Cli
 	params.Execer = "retrieve"
 	params.FuncName = "GetRetrieveInfo"
 	params.Payload = req

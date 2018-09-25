@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
 	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
 )
@@ -66,7 +65,7 @@ func showOnesSellOrders(cmd *cobra.Command, args []string) {
 	if 0 != len(tokens) {
 		reqAddrtokens.Token = append(reqAddrtokens.Token, tokens...)
 	}
-	params := jsonrpc.Query4Cli{
+	params := types.Query4Cli{
 		Execer:   "trade",
 		FuncName: "GetOnesSellOrder",
 		Payload:  reqAddrtokens,
@@ -108,7 +107,7 @@ func showOnesSellOrdersStatus(cmd *cobra.Command, args []string) {
 	reqAddrtokens.Status = statusInt
 	reqAddrtokens.Addr = addr
 
-	var params jsonrpc.Query4Cli
+	var params types.Query4Cli
 	params.Execer = "trade"
 	params.FuncName = "GetOnesSellOrderWithStatus"
 	params.Payload = reqAddrtokens
@@ -132,10 +131,8 @@ func ShowTokenSellOrdersStatusCmd() *cobra.Command {
 func addShowTokenSellOrdersStatusFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("token", "t", "", "token name")
 	cmd.MarkFlagRequired("token")
-	cmd.Flags().Int32P("count", "c", 0, "order count")
-	cmd.MarkFlagRequired("count")
+	cmd.Flags().Int32P("count", "c", 10, "order count")
 	cmd.Flags().Int32P("direction", "d", 1, "direction must be 0 (previous-page) or 1(next-page)")
-	cmd.MarkFlagRequired("direction")
 	cmd.Flags().StringP("from", "f", "", "start from sell id (not required)")
 	cmd.Flags().StringP("status", "s", "", "sell order status (onsale, soldout or revoked)")
 	cmd.MarkFlagRequired("status")
@@ -163,7 +160,7 @@ func showTokenSellOrdersStatus(cmd *cobra.Command, args []string) {
 	req.Direction = dir
 	req.FromKey = from
 	req.Status = statusInt
-	var params jsonrpc.Query4Cli
+	var params types.Query4Cli
 	params.Execer = "trade"
 	params.FuncName = "GetTokenSellOrderByStatus"
 	params.Payload = req
@@ -226,7 +223,7 @@ func showOnesBuyOrders(cmd *cobra.Command, args []string) {
 	if 0 != len(tokens) {
 		reqAddrtokens.Token = append(reqAddrtokens.Token, tokens...)
 	}
-	var params jsonrpc.Query4Cli
+	var params types.Query4Cli
 	params.Execer = "trade"
 	params.FuncName = "GetOnesBuyOrder"
 	params.Payload = reqAddrtokens
@@ -266,7 +263,7 @@ func showOnesBuyOrdersStatus(cmd *cobra.Command, args []string) {
 	var reqAddrtokens types.ReqAddrTokens
 	reqAddrtokens.Addr = buyer
 	reqAddrtokens.Status = statusInt
-	var params jsonrpc.Query4Cli
+	var params types.Query4Cli
 	params.Execer = "trade"
 	params.FuncName = "GetOnesBuyOrderWithStatus"
 	params.Payload = reqAddrtokens
@@ -290,10 +287,8 @@ func ShowTokenBuyOrdersStatusCmd() *cobra.Command {
 func addShowBuyTokenOrdersStatusFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("token", "t", "", "token name")
 	cmd.MarkFlagRequired("token")
-	cmd.Flags().Int32P("count", "c", 0, "order count")
-	cmd.MarkFlagRequired("count")
+	cmd.Flags().Int32P("count", "c", 10, "order count")
 	cmd.Flags().Int32P("direction", "d", 1, "direction must be 0 (previous-page) or 1(next-page)")
-	cmd.MarkFlagRequired("direction")
 	cmd.Flags().StringP("from", "f", "", "start from sell id (not required)")
 	cmd.Flags().StringP("status", "s", "", "buy order status (onbuy, boughtout or buyrevoked)")
 	cmd.MarkFlagRequired("status")
@@ -321,7 +316,7 @@ func showTokenBuyOrdersStatus(cmd *cobra.Command, args []string) {
 	req.Direction = dir
 	req.FromKey = from
 	req.Status = statusInt
-	var params jsonrpc.Query4Cli
+	var params types.Query4Cli
 	params.Execer = "trade"
 	params.FuncName = "GetTokenBuyOrderByStatus"
 	params.Payload = req
@@ -371,10 +366,8 @@ func ShowOnesOrdersStatusCmd() *cobra.Command {
 func addShowOnesOrdersStatusFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("address", "a", "", "user address")
 	cmd.MarkFlagRequired("address")
-	cmd.Flags().Int32P("count", "c", 0, "order count")
-	cmd.MarkFlagRequired("count")
+	cmd.Flags().Int32P("count", "c", 10, "order count")
 	cmd.Flags().Int32P("direction", "d", 1, "direction must be 0 (previous-page) or 1(next-page)")
-	cmd.MarkFlagRequired("direction")
 	cmd.Flags().StringP("from", "f", "", "start from sell id (not required)")
 	cmd.Flags().Int32P("status", "s", 0, "order status (1: on, 2: done, 3: revoke)")
 	cmd.MarkFlagRequired("status")
@@ -397,7 +390,7 @@ func showOnesOrdersStatus(cmd *cobra.Command, args []string) {
 	reqAddrtokens.Direction = dir
 	reqAddrtokens.FromKey = from
 	reqAddrtokens.Status = status
-	var params jsonrpc.Query4Cli
+	var params types.Query4Cli
 	params.Execer = "trade"
 	params.FuncName = "GetOnesOrderWithStatus"
 	params.Payload = reqAddrtokens
@@ -500,10 +493,8 @@ func CreateRawTradeBuyTxCmd() *cobra.Command {
 func addTokenBuyFlags(cmd *cobra.Command) {
 	cmd.Flags().StringP("sell_id", "s", "", "sell id")
 	cmd.MarkFlagRequired("sell_id")
-
 	cmd.Flags().Int64P("count", "c", 0, "count of buying (boardlot)")
 	cmd.MarkFlagRequired("count")
-
 	cmd.Flags().Float64P("fee", "f", 0, "transaction fee")
 }
 

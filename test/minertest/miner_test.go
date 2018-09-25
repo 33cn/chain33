@@ -11,6 +11,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
+	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
 	"google.golang.org/grpc"
 )
@@ -181,7 +182,7 @@ func getMineredTicketList(addr string, status int32) ([]*types.Ticket, error) {
 	req.Execer = []byte("ticket")
 	req.FuncName = "TicketList"
 	req.Payload = types.Encode(reqaddr)
-	c := types.NewGrpcserviceClient(conn)
+	c := types.NewChain33Client(conn)
 	reply, err := c.QueryChain(context.Background(), &req)
 	if err != nil {
 		return nil, err
@@ -208,7 +209,7 @@ func printAccount(addr string, execer string) {
 
 func getBalance(addr string, execer string) (*types.Account, error) {
 	reqbalance := &types.ReqBalance{Addresses: []string{addr}, Execer: execer}
-	c := types.NewGrpcserviceClient(conn)
+	c := types.NewChain33Client(conn)
 	reply, err := c.GetBalance(context.Background(), reqbalance)
 	if err != nil {
 		return nil, err
@@ -247,8 +248,8 @@ func getprivkey(key string) crypto.PrivKey {
 }
 
 func sendtoaddressWait(priv crypto.PrivKey, to string, amount int64) error {
-	v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
-	transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
+	v := &cty.CoinsAction_Transfer{&types.AssetsTransfer{Amount: amount}}
+	transfer := &cty.CoinsAction{Value: v, Ty: cty.CoinsActionTransfer}
 	hash, err := sendTransaction(transfer, []byte("coins"), priv, to)
 	if err != nil {
 		return err
@@ -263,8 +264,8 @@ func sendtoaddressWait(priv crypto.PrivKey, to string, amount int64) error {
 func sendtoaddress(priv crypto.PrivKey, to string, amount int64) ([]byte, error) {
 	//defer conn.Close()
 	//fmt.Println("sign key privkey: ", common.ToHex(priv.Bytes()))
-	v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
-	transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
+	v := &cty.CoinsAction_Transfer{&types.AssetsTransfer{Amount: amount}}
+	transfer := &cty.CoinsAction{Value: v, Ty: cty.CoinsActionTransfer}
 	return sendTransaction(transfer, []byte("coins"), priv, to)
 }
 
@@ -287,7 +288,7 @@ func getMinerSourceList(addr string) ([]string, error) {
 	req.FuncName = "MinerSourceList"
 	req.Payload = types.Encode(reqaddr)
 
-	c := types.NewGrpcserviceClient(conn)
+	c := types.NewChain33Client(conn)
 	reply, err := c.QueryChain(context.Background(), &req)
 	if err != nil {
 		return nil, err
@@ -317,7 +318,7 @@ func sendTransaction(payload types.Message, execer []byte, priv crypto.PrivKey, 
 	tx.Sign(types.SECP256K1, priv)
 
 	// Contact the server and print out its response.
-	c := types.NewGrpcserviceClient(conn)
+	c := types.NewChain33Client(conn)
 	reply, err := c.SendTransaction(context.Background(), tx)
 	if err != nil {
 		return nil, err
@@ -331,7 +332,7 @@ func sendTransaction(payload types.Message, execer []byte, priv crypto.PrivKey, 
 
 func setAutoMining(flag int32) (err error) {
 	req := &types.MinerFlag{Flag: flag}
-	c := types.NewGrpcserviceClient(conn)
+	c := types.NewChain33Client(conn)
 	reply, err := c.SetAutoMining(context.Background(), req)
 	if err != nil {
 		return err
@@ -343,7 +344,7 @@ func setAutoMining(flag int32) (err error) {
 }
 
 func waitTx(hash []byte) *types.TransactionDetail {
-	c := types.NewGrpcserviceClient(conn)
+	c := types.NewChain33Client(conn)
 	reqhash := &types.ReqHash{hash}
 	for {
 		res, err := c.QueryTransaction(context.Background(), reqhash)
@@ -358,7 +359,7 @@ func waitTx(hash []byte) *types.TransactionDetail {
 }
 
 func getlastheader() (*types.Header, error) {
-	c := types.NewGrpcserviceClient(conn)
+	c := types.NewChain33Client(conn)
 	v := &types.ReqNil{}
 	return c.GetLastHeader(context.Background(), v)
 }

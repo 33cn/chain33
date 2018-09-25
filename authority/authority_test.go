@@ -9,7 +9,8 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
-	"gitlab.33.cn/chain33/chain33/executor/drivers"
+	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
+	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -32,11 +33,11 @@ var (
 	txs      = []*types.Transaction{tx1, tx2, tx3, tx4, tx5, tx6, tx7, tx8, tx9, tx10, tx11, tx12}
 
 	privRaw, _  = common.FromHex("CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944")
-	tr          = &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: int64(1e8)}}
+	tr          = &cty.CoinsAction_Transfer{&types.AssetsTransfer{Amount: int64(1e8)}}
 	secpp256, _ = crypto.New(types.GetSignatureTypeName(types.SECP256K1))
 	privKey, _  = secpp256.PrivKeyFromBytes(privRaw)
 	tx14        = &types.Transaction{Execer: []byte("coins"),
-		Payload: types.Encode(&types.CoinsAction{Value: tr, Ty: types.CoinsActionTransfer}),
+		Payload: types.Encode(&cty.CoinsAction{Value: tr, Ty: cty.CoinsActionTransfer}),
 		Fee:     1000000, Expire: 2, To: address.PubKeyToAddress(privKey.PubKey().Bytes()).String()}
 )
 
@@ -183,7 +184,7 @@ func TestChckSignWithSm2(t *testing.T) {
 	sm2, _ := crypto.New(types.GetSignatureTypeName(types.AUTH_SM2))
 	privKeysm2, _ := sm2.PrivKeyFromBytes(privRaw)
 	tx15 := &types.Transaction{Execer: []byte("coins"),
-		Payload: types.Encode(&types.CoinsAction{Value: tr, Ty: types.CoinsActionTransfer}),
+		Payload: types.Encode(&cty.CoinsAction{Value: tr, Ty: cty.CoinsActionTransfer}),
 		Fee:     1000000, Expire: 2, To: address.PubKeyToAddress(privKeysm2.PubKey().Bytes()).String()}
 
 	err := initEnv()
@@ -209,7 +210,7 @@ func TestChckSignWithEcdsa(t *testing.T) {
 	ecdsacrypto, _ := crypto.New(types.GetSignatureTypeName(types.AUTH_ECDSA))
 	privKeyecdsa, _ := ecdsacrypto.PrivKeyFromBytes(privRaw)
 	tx16 := &types.Transaction{Execer: []byte("coins"),
-		Payload: types.Encode(&types.CoinsAction{Value: tr, Ty: types.CoinsActionTransfer}),
+		Payload: types.Encode(&cty.CoinsAction{Value: tr, Ty: cty.CoinsActionTransfer}),
 		Fee:     1000000, Expire: 2, To: address.PubKeyToAddress(privKeyecdsa.PubKey().Bytes()).String()}
 
 	err := initEnv()

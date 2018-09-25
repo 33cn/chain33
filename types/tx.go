@@ -98,11 +98,13 @@ func (txgroup *Transactions) IsExpire(height, blocktime int64) bool {
 	return false
 }
 
-func (txgroup *Transactions) Check(minfee int64) error {
+//height == 0 的时候，不做检查
+func (txgroup *Transactions) Check(height int64, minfee int64) error {
 	txs := txgroup.Txs
 	if len(txs) < 2 {
 		return ErrTxGroupCountLessThanTwo
 	}
+	para := make(map[string]bool)
 	for i := 0; i < len(txs); i++ {
 		if txs[i] == nil {
 			return ErrTxGroupEmpty
@@ -110,6 +112,17 @@ func (txgroup *Transactions) Check(minfee int64) error {
 		err := txs[i].check(0)
 		if err != nil {
 			return err
+		}
+		name := string(txs[i].Execer)
+		if IsParaExecName(name) {
+			para[name] = true
+		}
+	}
+	//txgroup 只允许一条平行链的交易
+	if IsEnableFork(height, ForkV24TxGroupPara, EnableTxGroupParaFork) {
+		if len(para) > 1 {
+			tlog.Info("txgroup has multi para transaction")
+			return ErrTxGroupParaCount
 		}
 	}
 	for i := 1; i < len(txs); i++ {
@@ -194,7 +207,7 @@ func (tx *TransactionCache) Tx() *Transaction {
 	return tx.Transaction
 }
 
-func (tx *TransactionCache) Check(minfee int64) error {
+func (tx *TransactionCache) Check(height, minfee int64) error {
 	if !tx.checked {
 		tx.checked = true
 		txs, err := tx.GetTxGroup()
@@ -205,7 +218,7 @@ func (tx *TransactionCache) Check(minfee int64) error {
 		if txs == nil {
 			tx.checkok = tx.check(minfee)
 		} else {
-			tx.checkok = txs.Check(minfee)
+			tx.checkok = txs.Check(height, minfee)
 		}
 	}
 	return tx.checkok
@@ -331,7 +344,7 @@ func (tx *Transaction) checkSign() bool {
 	return CheckSign(data, tx.GetSignature())
 }
 
-func (tx *Transaction) Check(minfee int64) error {
+func (tx *Transaction) Check(height, minfee int64) error {
 	group, err := tx.GetTxGroup()
 	if err != nil {
 		return err
@@ -339,13 +352,10 @@ func (tx *Transaction) Check(minfee int64) error {
 	if group == nil {
 		return tx.check(minfee)
 	}
-	return group.Check(minfee)
+	return group.Check(height, minfee)
 }
 
 func (tx *Transaction) check(minfee int64) error {
-	if !isAllowExecName(tx.Execer) {
-		return ErrExecNameNotAllow
-	}
 	txSize := Size(tx)
 	if txSize > int(MaxTxSize) {
 		return ErrTxMsgSizeTooBig
@@ -362,6 +372,12 @@ func (tx *Transaction) check(minfee int64) error {
 }
 
 func (tx *Transaction) SetExpire(expire time.Duration) {
+	//Txheight处理
+	if EnableTxHeight && int64(expire) > TxHeightFlag {
+		tx.Expire = int64(expire)
+		return
+	}
+
 	if int64(expire) > expireBound {
 		if expire < time.Second*120 {
 			expire = time.Second * 120
@@ -428,7 +444,7 @@ func (tx *Transaction) isExpire(height, blocktime int64) bool {
 		}
 	} else {
 		//EnableTxHeight 选项开启, 并且符合条件
-		if txHeight := GetTxHeight(valid); txHeight > 0 {
+		if txHeight := GetTxHeight(valid, height); txHeight > 0 {
 			if txHeight-LowAllowPackHeight <= height && height <= txHeight+HighAllowPackHeight {
 				return false
 			}
@@ -443,8 +459,8 @@ func (tx *Transaction) isExpire(height, blocktime int64) bool {
 	}
 }
 
-func GetTxHeight(valid int64) int64 {
-	if EnableTxHeight && valid > TxHeightFlag {
+func GetTxHeight(valid int64, height int64) int64 {
+	if IsEnableFork(height, ForkV23TxHeight, EnableTxHeight) && valid > TxHeightFlag {
 		return valid - TxHeightFlag
 	}
 	return -1
@@ -489,7 +505,7 @@ func (tx *Transaction) Json() string {
 //解析tx的payload获取amount值
 func (tx *Transaction) Amount() (int64, error) {
 	// TODO 原来有很多执行器 在这里没有代码， 用默认 0, nil 先
-	exec := LoadExecutor(string(tx.Execer))
+	exec := LoadExecutorType(string(tx.Execer))
 	if exec == nil {
 		return 0, nil
 	}
@@ -498,7 +514,7 @@ func (tx *Transaction) Amount() (int64, error) {
 
 //解析tx的payload获取real to值
 func (tx *Transaction) GetRealToAddr() string {
-	exec := LoadExecutor(string(tx.Execer))
+	exec := LoadExecutorType(string(tx.Execer))
 	if exec == nil {
 		return tx.To
 	}
@@ -507,7 +523,7 @@ func (tx *Transaction) GetRealToAddr() string {
 
 //解析tx的payload获取view from to 值
 func (tx *Transaction) GetViewFromToAddr() (string, string) {
-	exec := LoadExecutor(string(tx.Execer))
+	exec := LoadExecutorType(string(tx.Execer))
 	if exec == nil {
 		return tx.From(), tx.To
 	}
@@ -517,12 +533,14 @@ func (tx *Transaction) GetViewFromToAddr() (string, string) {
 //获取tx交易的Actionname
 func (tx *Transaction) ActionName() string {
 	execName := string(tx.Execer)
-	if bytes.HasPrefix(tx.Execer, []byte("user.evm.")) {
-		execName = "evm"
-	}
-	exec := LoadExecutor(execName)
+	exec := LoadExecutorType(execName)
 	if exec == nil {
-		return "unknow"
+		//action name 不会影响系统状态，主要是做显示使用
+		realname := GetRealExecName(tx.Execer)
+		exec = LoadExecutorType(string(realname))
+		if exec == nil {
+			return "unknown"
+		}
 	}
 	return exec.ActionName(tx)
 }

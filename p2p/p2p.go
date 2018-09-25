@@ -8,6 +8,7 @@ import (
 	l "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
+
 	// register gzip
 	_ "google.golang.org/grpc/encoding/gzip"
 )
@@ -166,7 +167,6 @@ ReTry:
 func (network *P2p) subP2pMsg() {
 	if network.client == nil {
 		return
-
 	}
 
 	go network.showTaskCapcity()

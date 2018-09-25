@@ -100,9 +100,9 @@ func GetP(height int64) *ChainParam {
 //区块链共识相关的参数，重要参数不要随便修改
 var (
 	AllowDepositExec = [][]byte{ExecerTicket}
-	AllowUserExec    = [][]byte{ExecerCoins, ExecerTicket, ExecerNorm, ExecerHashlock,
+	AllowUserExec    = [][]byte{ExecerTicket, ExecerNorm, ExecerHashlock,
 		ExecerRetrieve, ExecerNone, ExecerToken, ExecerTrade, ExecerManage,
-		ExecerEvm, ExecerRelay, ExecerPrivacy, ExecerCert, ExecerBlackwhite}
+		ExecerEvm, ExecerRelay, ExecerPrivacy, ExecerCert /*ExecerBlackwhite,*/, ExecerPara, ExecerLottery, ExecerValNode}
 
 	GenesisAddr              = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 	GenesisBlockTime   int64 = 1526486816
@@ -135,13 +135,15 @@ var (
 	FeePerKB     = MinFee
 	PrivacyTxFee = Coin
 	//used in Getname for exec driver
-	ExecNamePrefix string
+	ExecNamePrefix       string
+	ParaRemoteGrpcClient string
+	SaveTokenTxList      bool
 )
 
 func SetTitle(t string) {
 	title = t
 	if IsBityuan() {
-		AllowUserExec = [][]byte{ExecerCoins, ExecerTicket, ExecerHashlock,
+		AllowUserExec = [][]byte{[]byte("coins"), ExecerTicket, ExecerHashlock,
 			ExecerRetrieve, ExecerNone, ExecerToken, ExecerTrade, ExecerManage}
 		return
 	}
@@ -159,6 +161,10 @@ func SetTitle(t string) {
 	}
 }
 
+func GetTitle() string {
+	return title
+}
+
 func IsBityuan() bool {
 	return title == "bityuan"
 }
@@ -172,11 +178,12 @@ func IsYcc() bool {
 }
 
 func IsPara() bool {
-	return strings.HasPrefix(title, "user.p.")
+	//user.p.guodun.
+	return strings.Count(title, ".") == 3 && strings.HasPrefix(title, ParaKeyX)
 }
 
 func IsParaExecName(name string) bool {
-	return strings.HasPrefix(name, "user.p.")
+	return strings.HasPrefix(name, ParaKeyX)
 }
 
 func IsPublicChain() bool {
@@ -228,4 +235,25 @@ func GetParaName() string {
 
 func FlagKV(key []byte, value int64) *KeyValue {
 	return &KeyValue{Key: key, Value: Encode(&Int64{Data: value})}
+}
+
+func SetParaRemoteGrpcClient(grpc string) {
+	if IsPara() {
+		ParaRemoteGrpcClient = grpc
+	}
+}
+
+func GetParaRemoteGrpcClient() string {
+	if IsPara() {
+		return ParaRemoteGrpcClient
+	}
+	return ""
+}
+
+func SetSaveTokenTxList(v bool) {
+	SaveTokenTxList = v
+}
+
+func GetSaveTokenTxList() bool {
+	return SaveTokenTxList
 }
