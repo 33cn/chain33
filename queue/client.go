@@ -159,6 +159,9 @@ func (client *client) Close() {
 
 func (client *client) CloseQueue() (*types.Reply, error) {
 	//	client.q.Close()
+	if q.isClosed() {
+		return &types.Reply{IsOk: true}, nil
+	}
 	qlog.Debug("queue", "msg", "closing chain33")
 	client.q.interupt <- struct{}{}
 	close(client.q.interupt)
