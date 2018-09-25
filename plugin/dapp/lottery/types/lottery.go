@@ -1,4 +1,4 @@
-package lottery
+package types
 
 import (
 	"encoding/json"
