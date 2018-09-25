@@ -403,11 +403,7 @@ func (a *action) execCrossTxs(commit *pt.ParacrossCommitAction) (*types.Receipt,
 
 func (a *action) AssetTransfer(transfer *types.AssetsTransfer) (*types.Receipt, error) {
 	clog.Debug("Paracross.Exec", "AssetTransfer", transfer.Cointoken, "transfer", "")
-	if transfer.Cointoken == "" {
-		return a.assetTransferCoins(transfer)
-	} else {
-		return a.assetTransferToken(transfer)
-	}
+	return a.assetTransfer(transfer)
 }
 
 func (a *action) AssetWithdraw(withdraw *types.AssetsWithdraw) (*types.Receipt, error) {
