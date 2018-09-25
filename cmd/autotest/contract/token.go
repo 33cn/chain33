@@ -12,7 +12,7 @@ type TestTokenConfig struct {
 	TokenFinishCreateCaseArr []testcase.TokenFinishCreateCase `toml:"TokenFinishCreateCase,omitempty"`
 	TransferCaseArr          []testcase.TransferCase          `toml:"TransferCase,omitempty"`
 	WithdrawCaseArr          []testcase.WithdrawCase          `toml:"WithdrawCase,omitempty"`
-        TokenrevokeCaseArr       []testcase.TokenrevokeCase       `toml:"TokenrevokeCase,omitempty"`
+	TokenrevokeCaseArr       []testcase.TokenrevokeCase       `toml:"TokenrevokeCase,omitempty"`
 }
 
 func (caseConf *TestTokenConfig) RunTest(caseFile string, wg *sync.WaitGroup) {
