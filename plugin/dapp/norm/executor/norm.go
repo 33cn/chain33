@@ -31,10 +31,6 @@ func (n *Norm) GetDriverName() string {
 	return "norm"
 }
 
-func (n *Norm) CheckTx(tx *types.Transaction, index int) error {
-	return nil
-}
-
 func (n *Norm) GetActionValue(tx *types.Transaction) (*types.NormAction, error) {
 	action := &types.NormAction{}
 	err := types.Decode(tx.Payload, action)
