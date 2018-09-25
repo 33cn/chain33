@@ -5,14 +5,12 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/client"
-	"gitlab.33.cn/chain33/chain33/common/address"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/plugin/dapp/evm/executor/vm/common"
 	pt "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/types"
 	"gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/util"
-	"github.com/pkg/errors"
 )
 
 type action struct {
@@ -403,98 +401,12 @@ func (a *action) execCrossTxs(commit *pt.ParacrossCommitAction) (*types.Receipt,
 	return &receipt, nil
 }
 
-func (a *action) assetTransferCoins(transfer *types.AssetsTransfer) (*types.Receipt, error) {
-	isPara := types.IsPara()
-	if !isPara {
-		accDB := account.NewCoinsAccount()
-		accDB.SetDB(a.db)
-		execAddr := address.ExecAddress(types.ParaX)
-		fromAcc := accDB.LoadExecAccount(a.fromaddr, execAddr)
-		if fromAcc.Balance < transfer.Amount {
-			return nil, types.ErrNoBalance
-		}
-		toAddr := address.ExecAddress(string(a.tx.Execer))
-		clog.Debug("paracross.AssetTransfer not isPara", "execer", string(a.tx.Execer),
-			"txHash", common.Bytes2Hex(a.tx.Hash()))
-		return accDB.ExecTransfer(a.fromaddr, toAddr, execAddr, transfer.Amount)
-	} else {
-		paraTitle, err := getTitleFrom(a.tx.Execer)
-		if err != nil {
-			return nil, errors.Wrap(err, "assetTransferCoins call getTitleFrom failed")
-		}
-		paraAcc, err := NewParaAccount(string(paraTitle), types.CoinsX, "bty", a.db)
-		if err != nil {
-			return nil, errors.Wrap(err, "assetTransferCoins call NewParaAccount failed")
-		}
-		clog.Debug("paracross.AssetTransfer isPara", "execer", string(a.tx.Execer),
-			"txHash", common.Bytes2Hex(a.tx.Hash()))
-		return assetDepositBalance(paraAcc, transfer.To, transfer.Amount)
-	}
-}
-
-func (a *action) assetTransferToken(transfer *types.AssetsTransfer) (*types.Receipt, error) {
-	isPara := types.IsPara()
-	if !isPara {
-		accDB, err := account.NewAccountDB(types.TokenX, transfer.Cointoken, a.db)
-		if err != nil {
-			return nil, errors.Wrap(err, "assetTransferToken call account.NewAccountDB failed")
-		}
-		execAddr := address.ExecAddress(types.ParaX)
-		fromAcc := accDB.LoadExecAccount(a.fromaddr, execAddr)
-		if fromAcc.Balance < transfer.Amount {
-			return nil, types.ErrNoBalance
-		}
-		toAddr := address.ExecAddress(string(a.tx.Execer))
-		clog.Debug("paracross.AssetTransfer not isPara", "execer", string(a.tx.Execer),
-			"txHash", common.Bytes2Hex(a.tx.Hash()))
-		return accDB.ExecTransfer(a.fromaddr, toAddr, execAddr, transfer.Amount)
-	} else {
-		paraTitle, err := getTitleFrom(a.tx.Execer)
-		if err != nil {
-			return nil, errors.Wrap(err, "assetTransferCoins call getTitleFrom failed")
-		}
-		paraAcc, err := NewParaAccount(string(paraTitle), types.TokenX, transfer.Cointoken, a.db)
-		if err != nil {
-			return nil, errors.Wrap(err, "assetTransferCoins call NewParaAccount failed")
-		}
-		clog.Debug("paracross.AssetTransfer isPara", "execer", string(a.tx.Execer),
-			"txHash", common.Bytes2Hex(a.tx.Hash()))
-		return assetDepositBalance(paraAcc, transfer.To, transfer.Amount)
-	}
-}
-
 func (a *action) AssetTransfer(transfer *types.AssetsTransfer) (*types.Receipt, error) {
 	clog.Debug("Paracross.Exec", "AssetTransfer", transfer.Cointoken, "transfer", "")
 	if transfer.Cointoken == "" {
 		return a.assetTransferCoins(transfer)
 	} else {
 		return a.assetTransferToken(transfer)
-	}
-}
-
-func (a *action) assetWithdrawCoins(withdraw *types.AssetsWithdraw, withdrawTx *types.Transaction) (*types.Receipt, error) {
-	accDB := account.NewCoinsAccount()
-	accDB.SetDB(a.db)
-
-	isPara := types.IsPara()
-	if !isPara {
-		fromAddr := address.ExecAddress(string(withdrawTx.Execer))
-		execAddr := address.ExecAddress(types.ParaX)
-		clog.Debug("Paracross.Exec", "AssettWithdraw", withdraw.Amount, "from", fromAddr,
-			"to", withdraw.To, "exec", execAddr, "withdrawTx execor", string(withdrawTx.Execer))
-		return accDB.ExecTransfer(fromAddr, withdraw.To, execAddr, withdraw.Amount)
-	} else {
-		paraTitle, err := getTitleFrom(a.tx.Execer)
-		if err != nil {
-			return nil, errors.Wrap(err, "assetWithdrawCoins call getTitleFrom failed")
-		}
-		paraAcc, err := NewParaAccount(string(paraTitle), types.CoinsX, "bty", a.db)
-		if err != nil {
-			return nil, errors.Wrap(err, "assetWithdrawCoins call NewParaAccount failed")
-		}
-		clog.Debug("paracross.assetWithdrawCoins isPara", "execer", string(a.tx.Execer),
-			"txHash", common.Bytes2Hex(a.tx.Hash()))
-		return assetWithdrawBalance(paraAcc, a.fromaddr, withdraw.Amount)
 	}
 }
 
