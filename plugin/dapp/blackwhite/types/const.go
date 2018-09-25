@@ -1,6 +1,9 @@
 package types
 
-import "gitlab.33.cn/chain33/chain33/types"
+import (
+	"github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/types"
+)
 
 // status
 const (
@@ -19,9 +22,17 @@ const (
 
 var (
 	BlackwhiteX = "blackwhite"
+	glog        = log15.New("module", BlackwhiteX)
 	//GRPCName         = "chain33.blackwhite"
 	JRPCName         = "Blackwhite"
 	ExecerBlackwhite = []byte(BlackwhiteX)
+
+	actionName = map[string]int32{
+		"Create":      BlackwhiteActionCreate,
+		"Play":        BlackwhiteActionPlay,
+		"Show":        BlackwhiteActionShow,
+		"TimeoutDone": BlackwhiteActionTimeoutDone,
+	}
 )
 
 func init() {
