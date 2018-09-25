@@ -14,7 +14,7 @@ var nameX string
 
 var llog = log.New("module", "exectype."+types.LotteryX)
 
-func Init() {
+func init() {
 	nameX = types.ExecName(types.LotteryX)
 	// init executor type
 	types.RegistorExecutor(types.LotteryX, NewType())
@@ -46,29 +46,29 @@ func NewType() *LotteryType {
 }
 
 func (at *LotteryType) GetPayload() types.Message {
-	return &types.LotteryAction{}
+	return &LotteryAction{}
 }
 
 func (lottery LotteryType) ActionName(tx *types.Transaction) string {
-	var action types.LotteryAction
+	var action LotteryAction
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
 		return "unknow-err"
 	}
-	if action.Ty == types.LotteryActionCreate && action.GetCreate() != nil {
+	if action.Ty == LotteryActionCreate && action.GetCreate() != nil {
 		return "create"
-	} else if action.Ty == types.LotteryActionBuy && action.GetBuy() != nil {
+	} else if action.Ty == LotteryActionBuy && action.GetBuy() != nil {
 		return "buy"
-	} else if action.Ty == types.LotteryActionDraw && action.GetDraw() != nil {
+	} else if action.Ty == LotteryActionDraw && action.GetDraw() != nil {
 		return "draw"
-	} else if action.Ty == types.LotteryActionClose && action.GetClose() != nil {
+	} else if action.Ty == LotteryActionClose && action.GetClose() != nil {
 		return "close"
 	}
 	return "unknow"
 }
 
 func (lottery LotteryType) DecodePayload(tx *types.Transaction) (interface{}, error) {
-	var action types.LotteryAction
+	var action LotteryAction
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
 		return nil, err
@@ -130,7 +130,7 @@ func (l LotteryCreateLog) Name() string {
 }
 
 func (l LotteryCreateLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp types.ReceiptLottery
+	var logTmp ReceiptLottery
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
 		return nil, err
@@ -146,7 +146,7 @@ func (l LotteryBuyLog) Name() string {
 }
 
 func (l LotteryBuyLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp types.ReceiptLottery
+	var logTmp ReceiptLottery
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
 		return nil, err
@@ -162,7 +162,7 @@ func (l LotteryDrawLog) Name() string {
 }
 
 func (l LotteryDrawLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp types.ReceiptLottery
+	var logTmp ReceiptLottery
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
 		return nil, err
@@ -178,7 +178,7 @@ func (l LotteryCloseLog) Name() string {
 }
 
 func (l LotteryCloseLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp types.ReceiptLottery
+	var logTmp ReceiptLottery
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
 		return nil, err
@@ -190,7 +190,7 @@ type LotteryGetInfo struct {
 }
 
 func (t *LotteryGetInfo) JsonToProto(message json.RawMessage) ([]byte, error) {
-	var req types.ReqLotteryInfo
+	var req ReqLotteryInfo
 	err := json.Unmarshal(message, &req)
 	if err != nil {
 		return nil, err
@@ -206,7 +206,7 @@ type LotteryLuckyRoundInfo struct {
 }
 
 func (t *LotteryLuckyRoundInfo) JsonToProto(message json.RawMessage) ([]byte, error) {
-	var req types.ReqLotteryLuckyInfo
+	var req ReqLotteryLuckyInfo
 	err := json.Unmarshal(message, &req)
 	if err != nil {
 		return nil, err
@@ -222,7 +222,7 @@ type LotteryBuyInfo struct {
 }
 
 func (t *LotteryBuyInfo) JsonToProto(message json.RawMessage) ([]byte, error) {
-	var req types.ReqLotteryBuyHistory
+	var req ReqLotteryBuyHistory
 	err := json.Unmarshal(message, &req)
 	if err != nil {
 		return nil, err
@@ -238,7 +238,7 @@ type LotteryBuyRoundInfo struct {
 }
 
 func (t *LotteryBuyRoundInfo) JsonToProto(message json.RawMessage) ([]byte, error) {
-	var req types.ReqLotteryBuyInfo
+	var req ReqLotteryBuyInfo
 	err := json.Unmarshal(message, &req)
 	if err != nil {
 		return nil, err
@@ -256,13 +256,13 @@ func CreateRawLotteryCreateTx(parm *LotteryCreateTx) (*types.Transaction, error)
 		return nil, types.ErrInvalidParam
 	}
 
-	v := &types.LotteryCreate{
+	v := &LotteryCreate{
 		PurBlockNum:  parm.PurBlockNum,
 		DrawBlockNum: parm.DrawBlockNum,
 	}
-	create := &types.LotteryAction{
-		Ty:    types.LotteryActionCreate,
-		Value: &types.LotteryAction_Create{v},
+	create := &LotteryAction{
+		Ty:    LotteryActionCreate,
+		Value: &LotteryAction_Create{v},
 	}
 	tx := &types.Transaction{
 		Execer:  []byte(nameX),
@@ -286,14 +286,14 @@ func CreateRawLotteryBuyTx(parm *LotteryBuyTx) (*types.Transaction, error) {
 		return nil, types.ErrInvalidParam
 	}
 
-	v := &types.LotteryBuy{
+	v := &LotteryBuy{
 		LotteryId: parm.LotteryId,
 		Amount:    parm.Amount,
 		Number:    parm.Number,
 	}
-	buy := &types.LotteryAction{
-		Ty:    types.LotteryActionBuy,
-		Value: &types.LotteryAction_Buy{v},
+	buy := &LotteryAction{
+		Ty:    LotteryActionBuy,
+		Value: &LotteryAction_Buy{v},
 	}
 	tx := &types.Transaction{
 		Execer:  []byte(nameX),
@@ -317,12 +317,12 @@ func CreateRawLotteryDrawTx(parm *LotteryDrawTx) (*types.Transaction, error) {
 		return nil, types.ErrInvalidParam
 	}
 
-	v := &types.LotteryDraw{
+	v := &LotteryDraw{
 		LotteryId: parm.LotteryId,
 	}
-	draw := &types.LotteryAction{
-		Ty:    types.LotteryActionDraw,
-		Value: &types.LotteryAction_Draw{v},
+	draw := &LotteryAction{
+		Ty:    LotteryActionDraw,
+		Value: &LotteryAction_Draw{v},
 	}
 	tx := &types.Transaction{
 		Execer:  []byte(nameX),
@@ -346,12 +346,12 @@ func CreateRawLotteryCloseTx(parm *LotteryCloseTx) (*types.Transaction, error) {
 		return nil, types.ErrInvalidParam
 	}
 
-	v := &types.LotteryClose{
+	v := &LotteryClose{
 		LotteryId: parm.LotteryId,
 	}
-	close := &types.LotteryAction{
-		Ty:    types.LotteryActionClose,
-		Value: &types.LotteryAction_Close{v},
+	close := &LotteryAction{
+		Ty:    LotteryActionClose,
+		Value: &LotteryAction_Close{v},
 	}
 	tx := &types.Transaction{
 		Execer:  []byte(nameX),
