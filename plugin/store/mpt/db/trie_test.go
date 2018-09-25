@@ -689,11 +689,17 @@ func BenchmarkInsertGet10000(b *testing.B) {
 	b.Log(dir)
 	db := dbm.NewDB("test", "leveldb", dir, 100)
 	root := common.Hash{}
+	var kv map[string]string
 	var prevkv map[string]string
 	for i := 0; i < b.N; i++ {
-		root, kv := set10000(b, root, db, 10000)
+		root, kv = set10000(b, root, db, 10000)
 		get10000(b, root, db, kv)
 		if prevkv != nil {
+			for k := range kv {
+				if _, ok := prevkv[k]; ok {
+					panic("repeat k")
+				}
+			}
 			get10000(b, root, db, prevkv)
 		}
 		prevkv = kv
