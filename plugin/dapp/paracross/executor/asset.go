@@ -71,11 +71,19 @@ func (a *action) assetTransferToken(transfer *types.AssetsTransfer) (*types.Rece
 
 
 func (a *action) assetWithdrawCoins(withdraw *types.AssetsWithdraw, withdrawTx *types.Transaction) (*types.Receipt, error) {
-	accDB := account.NewCoinsAccount()
-	accDB.SetDB(a.db)
-
 	isPara := types.IsPara()
+	var err error
 	if !isPara {
+		var accDB *account.DB
+		if withdraw.Cointoken == "" {
+			accDB = account.NewCoinsAccount()
+			accDB.SetDB(a.db)
+		} else {
+			accDB, err = account.NewAccountDB(types.TokenX, withdraw.Cointoken, a.db)
+			if err != nil {
+				return nil, errors.Wrap(err, "assetWithdrawCoins call account.NewAccountDB failed")
+			}
+		}
 		fromAddr := address.ExecAddress(string(withdrawTx.Execer))
 		execAddr := address.ExecAddress(types.ParaX)
 		clog.Debug("Paracross.Exec", "AssettWithdraw", withdraw.Amount, "from", fromAddr,
@@ -86,7 +94,12 @@ func (a *action) assetWithdrawCoins(withdraw *types.AssetsWithdraw, withdrawTx *
 		if err != nil {
 			return nil, errors.Wrap(err, "assetWithdrawCoins call getTitleFrom failed")
 		}
-		paraAcc, err := NewParaAccount(string(paraTitle), types.CoinsX, "bty", a.db)
+		var paraAcc *account.DB
+		if withdraw.Cointoken == "" {
+			paraAcc, err = NewParaAccount(string(paraTitle), types.CoinsX, "bty", a.db)
+		} else {
+			paraAcc, err = NewParaAccount(string(paraTitle), types.TokenX, withdraw.Cointoken, a.db)
+		}
 		if err != nil {
 			return nil, errors.Wrap(err, "assetWithdrawCoins call NewParaAccount failed")
 		}
