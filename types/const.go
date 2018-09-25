@@ -226,6 +226,8 @@ const (
 	TyLogPrivacyFee    = 500
 	TyLogPrivacyInput  = 501
 	TyLogPrivacyOutput = 502
+	TyLogAssetDeposit  = 503
+	TyLogAssetWithdraw = 504
 
 	// log for evm
 	// 合约代码变更日志
