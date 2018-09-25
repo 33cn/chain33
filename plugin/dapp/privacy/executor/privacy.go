@@ -24,9 +24,9 @@ import (
 
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common"
+	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/privacy/types"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
-	pty "gitlab.33.cn/chain33/chain33/types/executor/privacy"
 )
 
 var privacylog = log.New("module", "execs.privacy")

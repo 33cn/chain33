@@ -1,4 +1,4 @@
-package privacy
+package types
 
 import (
 	"encoding/json"
