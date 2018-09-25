@@ -6,7 +6,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/types/executor/evm"
 	"gitlab.33.cn/chain33/chain33/types/executor/hashlock"
-	"gitlab.33.cn/chain33/chain33/types/executor/lottery"
 	"gitlab.33.cn/chain33/chain33/types/executor/manage"
 	"gitlab.33.cn/chain33/chain33/types/executor/privacy"
 	"gitlab.33.cn/chain33/chain33/types/executor/relay"
@@ -55,7 +54,6 @@ func initExec() {
 	ticket.Init()
 	token.Init()
 	trade.Init()
-	lottery.Init()
 }
 
 type ErrLog struct {
