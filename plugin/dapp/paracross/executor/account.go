@@ -6,16 +6,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/db"
 )
 
-func ParaAssetTransfer(acc *account.DB, addr string, amount int64, execaddr string) (*types.Receipt, error) {
-	receipt2, err := acc.ExecDeposit(addr, execaddr, amount)
-	return receipt2, err
-}
-
-func ParaAssetWithdraw(acc *account.DB, addr string, amount int64, execaddr string) (*types.Receipt, error) {
-	receipt, err := acc.ExecWithdraw(execaddr, addr, amount)
-	return receipt, err
-}
-
 // 注： 在计算帐号地址时， 平行链paracross合约地址需要带上title前缀，才能表现出和主链一致, 但是现在不带，
 
 // 其中带{}, 都表示变量， 用需要用真实的地址， 符号代替
@@ -55,7 +45,7 @@ func assetDepositBalance(acc *account.DB, addr string, amount int64) (*types.Rec
 		Current: acc1,
 	}
 	acc.SaveAccount(acc1)
-	ty := int32(types.TyLogDeposit)
+	ty := int32(types.TyLogAssetDeposit)
 	log1 := &types.ReceiptLog{
 		Ty:  ty,
 		Log: types.Encode(receiptBalance),
@@ -83,7 +73,7 @@ func assetWithdrawBalance(acc *account.DB, addr string, amount int64) (*types.Re
 		Current:  acc1,
 	}
 	acc.SaveAccount(acc1)
-	ty := int32(types.TyLogDeposit) // TODO
+	ty := int32(types.TyLogAssetWithdraw)
 	log1 := &types.ReceiptLog{
 		Ty:  ty,
 		Log: types.Encode(receiptBalance),
