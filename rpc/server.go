@@ -2,11 +2,15 @@ package rpc
 
 import (
 	"net"
+	"net/rpc"
 
+	"gitlab.33.cn/chain33/chain33/pluginmgr"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
+	"golang.org/x/net/context"
 
 	// register gzip
+	"google.golang.org/grpc"
 	_ "google.golang.org/grpc/encoding/gzip"
 )
 
@@ -29,17 +33,18 @@ type Grpc struct {
 
 type Grpcserver struct {
 	grpc Grpc
+	s    *grpc.Server
 	//addr string
 }
 
 type JSONRPCServer struct {
 	jrpc Chain33
+	s    *rpc.Server
 	//addr string
 }
 
 func (s *JSONRPCServer) Close() {
 	s.jrpc.cli.Close()
-
 }
 
 func checkIpWhitelist(addr string) bool {
@@ -60,6 +65,7 @@ func checkIpWhitelist(addr string) bool {
 	}
 	return false
 }
+
 func checkJrpcFuncWhitelist(funcName string) bool {
 
 	if _, ok := jrpcFuncWhitelist["*"]; ok {
@@ -103,22 +109,80 @@ func (j *Grpcserver) Close() {
 func NewGRpcServer(c queue.Client) *Grpcserver {
 	s := &Grpcserver{}
 	s.grpc.cli.Init(c)
+	var opts []grpc.ServerOption
+	//register interceptor
+	//var interceptor grpc.UnaryServerInterceptor
+	interceptor := func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
+		if err := auth(ctx, info); err != nil {
+			return nil, err
+		}
+		// Continue processing the request
+		return handler(ctx, req)
+	}
+	opts = append(opts, grpc.UnaryInterceptor(interceptor))
+	server := grpc.NewServer(opts...)
+	s.s = server
+	types.RegisterChain33Server(server, &s.grpc)
 	return s
 }
 
 func NewJSONRPCServer(c queue.Client) *JSONRPCServer {
 	j := &JSONRPCServer{}
 	j.jrpc.cli.Init(c)
+	server := rpc.NewServer()
+	j.s = server
+	server.RegisterName("Chain33", &j.jrpc)
 	return j
 }
 
-func Init(cfg *types.Rpc) {
+type RPC struct {
+	cfg  *types.Rpc
+	gapi *Grpcserver
+	japi *JSONRPCServer
+	c    queue.Client
+}
+
+func InitCfg(cfg *types.Rpc) {
 	rpcCfg = cfg
 	InitIpWhitelist(cfg)
 	InitJrpcFuncWhitelist(cfg)
 	InitGrpcFuncWhitelist(cfg)
 	InitJrpcFuncBlacklist(cfg)
 	InitGrpcFuncBlacklist(cfg)
+}
+
+func New(cfg *types.Rpc) *RPC {
+	InitCfg(cfg)
+	return &RPC{cfg: cfg}
+}
+
+func (r *RPC) SetQueueClient(c queue.Client) {
+	gapi := NewGRpcServer(c)
+	japi := NewJSONRPCServer(c)
+	r.gapi = gapi
+	r.japi = japi
+	r.c = c
+	//注册系统rpc
+	pluginmgr.AddRPC(r)
+	go gapi.Listen()
+	go japi.Listen()
+}
+
+func (rpc *RPC) GetQueueClient() queue.Client {
+	return rpc.c
+}
+
+func (rpc *RPC) GRPC() *grpc.Server {
+	return rpc.gapi.s
+}
+
+func (rpc *RPC) JRPC() *rpc.Server {
+	return rpc.japi.s
+}
+
+func (rpc *RPC) Close() {
+	rpc.gapi.Close()
+	rpc.japi.Close()
 }
 
 func InitIpWhitelist(cfg *types.Rpc) {

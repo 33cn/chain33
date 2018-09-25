@@ -104,7 +104,7 @@ func (b *btcWeb) GetTransaction(hash string) (*types.BtcTransaction, error) {
 
 func (b *btcWeb) GetSPV(height uint64, txHash string) (*types.BtcSpv, error) {
 	block, err := b.getBlock(height)
-	if err != err {
+	if err != nil {
 		return nil, err
 	}
 	var txIndex uint32

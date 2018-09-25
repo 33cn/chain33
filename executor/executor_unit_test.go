@@ -10,6 +10,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 	"gitlab.33.cn/chain33/chain33/queue"
+	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -29,8 +30,8 @@ func createTxEx(priv crypto.PrivKey, to string, amount int64, ty int32, execer s
 	var tx *types.Transaction
 	switch execer {
 	case "coins":
-		v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
-		transfer := &types.CoinsAction{Value: v, Ty: ty}
+		v := &cty.CoinsAction_Transfer{&types.AssetsTransfer{Amount: amount}}
+		transfer := &cty.CoinsAction{Value: v, Ty: ty}
 		tx = &types.Transaction{Execer: []byte(execer), Payload: types.Encode(transfer), Fee: 1e6, To: to}
 	case "manage":
 		v := &types.ModifyConfig{}
@@ -40,8 +41,8 @@ func createTxEx(priv crypto.PrivKey, to string, amount int64, ty int32, execer s
 		}
 		tx = &types.Transaction{Execer: []byte("manage"), Payload: types.Encode(modify)}
 	case "none":
-		v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
-		transfer := &types.CoinsAction{Value: v, Ty: ty}
+		v := &cty.CoinsAction_Transfer{&types.AssetsTransfer{Amount: amount}}
+		transfer := &cty.CoinsAction{Value: v, Ty: ty}
 		tx = &types.Transaction{Execer: []byte(execer), Payload: types.Encode(transfer), Fee: 1e6, To: to}
 	case "ticket":
 		transfer := &types.TicketAction{}
@@ -72,11 +73,11 @@ func createTxEx(priv crypto.PrivKey, to string, amount int64, ty int32, execer s
 	case "token":
 		transfer := &types.TokenAction{}
 		if types.ActionTransfer == ty {
-			v := &types.TokenAction_Transfer{Transfer: &types.CoinsTransfer{Cointoken: "GOOD", Amount: 1e6}}
+			v := &types.TokenAction_Transfer{Transfer: &types.AssetsTransfer{Cointoken: "GOOD", Amount: 1e6}}
 			transfer.Value = v
 			transfer.Ty = ty
 		} else if types.ActionWithdraw == ty {
-			v := &types.TokenAction_Withdraw{Withdraw: &types.CoinsWithdraw{Cointoken: "GOOD", Amount: 1e6}}
+			v := &types.TokenAction_Withdraw{Withdraw: &types.AssetsWithdraw{Cointoken: "GOOD", Amount: 1e6}}
 			transfer.Value = v
 			transfer.Ty = ty
 		} else if types.TokenActionPreCreate == ty {
@@ -321,11 +322,11 @@ func TestQueueClient(t *testing.T) {
 	var msg queue.Message
 	var block *types.Block
 
-	execTy := [][]string{{"coins", strconv.Itoa(types.CoinsActionTransfer)},
-		{"coins", strconv.Itoa(types.CoinsActionWithdraw)},
-		{"coins", strconv.Itoa(types.CoinsActionGenesis)},
+	execTy := [][]string{{"coins", strconv.Itoa(cty.CoinsActionTransfer)},
+		{"coins", strconv.Itoa(cty.CoinsActionWithdraw)},
+		{"coins", strconv.Itoa(cty.CoinsActionGenesis)},
 		{"manage", strconv.Itoa(types.ManageActionModifyConfig)},
-		{"none", strconv.Itoa(types.CoinsActionTransfer)},
+		{"none", strconv.Itoa(cty.CoinsActionTransfer)},
 		{"ticket", strconv.Itoa(types.TicketActionGenesis)},
 		{"ticket", strconv.Itoa(types.TicketActionOpen)},
 		{"ticket", strconv.Itoa(types.TicketActionBind)},

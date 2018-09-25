@@ -2,9 +2,10 @@ package mempool
 
 import (
 	"sync"
+	"sync/atomic"
 	"time"
 
-	lru "github.com/hashicorp/golang-lru"
+	"github.com/hashicorp/golang-lru"
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common"
 	clog "gitlab.33.cn/chain33/chain33/common/log"
@@ -24,35 +25,35 @@ func DisableLog() {
 // Module Mempool
 
 type Mempool struct {
-	proxyMtx   sync.Mutex
-	cache      *txCache
-	txChan     chan queue.Message
-	signChan   chan queue.Message
-	badChan    chan queue.Message
-	balanChan  chan queue.Message
-	goodChan   chan queue.Message
-	client     queue.Client
-	header     *types.Header
-	minFee     int64
-	addedTxs   *lru.Cache
-	sync       bool
-	cfg        *types.MemPool
-	poolHeader chan struct{}
+	proxyMtx          sync.Mutex
+	cache             *txCache
+	in                chan queue.Message
+	out               <-chan queue.Message
+	client            queue.Client
+	header            *types.Header
+	minFee            int64
+	addedTxs          *lru.Cache
+	sync              bool
+	cfg               *types.MemPool
+	poolHeader        chan struct{}
+	isclose           int32
+	wg                sync.WaitGroup
+	done              chan struct{}
+	removeBlockTicket *time.Ticker
 }
 
 func New(cfg *types.MemPool) *Mempool {
 	pool := &Mempool{}
 	initConfig(cfg)
 	pool.cache = newTxCache(poolCacheSize)
-	pool.txChan = make(chan queue.Message, channelSize)
-	pool.signChan = make(chan queue.Message, channelSize)
-	pool.badChan = make(chan queue.Message, channelSize)
-	pool.balanChan = make(chan queue.Message, channelSize)
-	pool.goodChan = make(chan queue.Message, channelSize)
+	pool.in = make(chan queue.Message)
+	pool.out = make(<-chan queue.Message)
+	pool.done = make(chan struct{})
 	pool.minFee = cfg.MinTxFee
 	pool.addedTxs, _ = lru.New(mempoolAddedTxSize)
 	pool.cfg = cfg
 	pool.poolHeader = make(chan struct{}, 1)
+	pool.removeBlockTicket = time.NewTicker(time.Minute)
 	return pool
 }
 
@@ -70,6 +71,10 @@ func (mem *Mempool) Resize(size int) {
 	mem.proxyMtx.Lock()
 	mem.cache.SetSize(size)
 	mem.proxyMtx.Unlock()
+}
+
+func (mem *Mempool) isClose() bool {
+	return atomic.LoadInt32(&mem.isclose) == 1
 }
 
 // Mempool.SetMinFee设置最小交易费用
@@ -206,18 +211,12 @@ func (mem *Mempool) DelBlock(block *types.Block) {
 		return
 	}
 	blkTxs := block.Txs
-
+	header := mem.GetHeader()
 	for i := 0; i < len(blkTxs); i++ {
 		tx := blkTxs[i]
-		if "ticket" == string(tx.Execer) {
-			var action types.TicketAction
-			err := types.Decode(tx.Payload, &action)
-			if err != nil {
-				continue
-			}
-			if action.Ty == types.TicketActionMiner && action.GetMiner() != nil {
-				continue
-			}
+		//当前包括ticket和平行链的第一笔挖矿交易，统一actionName为miner
+		if i == 0 && tx.ActionName() == types.MinerAction {
+			continue
 		}
 		groupCount := int(tx.GetGroupCount())
 		if groupCount > 1 && i+groupCount <= len(blkTxs) {
@@ -225,13 +224,14 @@ func (mem *Mempool) DelBlock(block *types.Block) {
 			tx = group.Tx()
 			i = i + groupCount - 1
 		}
-		err := tx.Check(mem.minFee)
+		err := tx.Check(header.GetHeight(), mem.minFee)
 		if err != nil {
 			continue
 		}
 		if !mem.checkExpireValid(tx) {
 			continue
 		}
+
 		mem.addedTxs.Remove(string(tx.Hash()))
 		mem.PushTx(tx)
 	}
@@ -280,52 +280,61 @@ func (mem *Mempool) ReTry() {
 
 // Mempool.RemoveBlockedTxs每隔1分钟清理一次已打包的交易
 func (mem *Mempool) RemoveBlockedTxs() {
+	defer mem.wg.Done()
+	defer mlog.Info("RemoveBlockedTxs quit")
 	if mem.client == nil {
 		panic("client not bind message queue.")
 	}
 	for {
-		time.Sleep(time.Minute * 1)
-		txs := mem.RemoveExpiredAndDuplicateMempoolTxs()
-		var checkHashList types.TxHashList
+		select {
+		case <-mem.removeBlockTicket.C:
+			if mem.isClose() {
+				return
+			}
+			txs := mem.RemoveExpiredAndDuplicateMempoolTxs()
+			var checkHashList types.TxHashList
 
-		for _, tx := range txs {
-			hash := tx.Hash()
-			checkHashList.Hashes = append(checkHashList.Hashes, hash)
-		}
+			for _, tx := range txs {
+				hash := tx.Hash()
+				checkHashList.Hashes = append(checkHashList.Hashes, hash)
+			}
 
-		if len(checkHashList.Hashes) == 0 {
-			continue
-		}
+			if len(checkHashList.Hashes) == 0 {
+				continue
+			}
 
-		// 发送Hash过后的交易列表给blockchain模块
-		hashList := mem.client.NewMessage("blockchain", types.EventTxHashList, &checkHashList)
-		err := mem.client.Send(hashList, true)
-		if err != nil {
-			mlog.Error("blockchain closed", "err", err.Error())
+			// 发送Hash过后的交易列表给blockchain模块
+			hashList := mem.client.NewMessage("blockchain", types.EventTxHashList, &checkHashList)
+			err := mem.client.Send(hashList, true)
+			if err != nil {
+				mlog.Error("blockchain closed", "err", err.Error())
+				return
+			}
+			dupTxList, err := mem.client.Wait(hashList)
+			if err != nil {
+				mlog.Error("blockchain get txhashlist err", "err", err)
+				continue
+			}
+
+			// 取出blockchain返回的重复交易列表
+			dupTxs := dupTxList.GetData().(*types.TxHashList).Hashes
+
+			if len(dupTxs) == 0 {
+				continue
+			}
+
+			mem.proxyMtx.Lock()
+			for _, t := range dupTxs {
+				txValue, exists := mem.cache.txMap[string(t)]
+				if exists {
+					mem.addedTxs.Add(string(t), nil)
+					mem.cache.Remove(txValue.Value.(*Item).value.Hash())
+				}
+			}
+			mem.proxyMtx.Unlock()
+		case <-mem.done:
 			return
 		}
-		dupTxList, err := mem.client.Wait(hashList)
-		if err != nil {
-			mlog.Error("blockchain get txhashlist err", "err", err)
-			continue
-		}
-
-		// 取出blockchain返回的重复交易列表
-		dupTxs := dupTxList.GetData().(*types.TxHashList).Hashes
-
-		if len(dupTxs) == 0 {
-			continue
-		}
-
-		mem.proxyMtx.Lock()
-		for _, t := range dupTxs {
-			txValue, exists := mem.cache.txMap[string(t)]
-			if exists {
-				mem.addedTxs.Add(string(t), nil)
-				mem.cache.Remove(txValue.Value.(*Item).value.Hash())
-			}
-		}
-		mem.proxyMtx.Unlock()
 	}
 }
 
@@ -395,7 +404,14 @@ func (mem *Mempool) checkExpireValid(tx *types.Transaction) bool {
 
 // Mempool.Close关闭Mempool
 func (mem *Mempool) Close() {
-	mlog.Debug("mempool module closed")
+	atomic.StoreInt32(&mem.isclose, 1)
+	close(mem.in)
+	close(mem.done)
+	mem.client.Close()
+	mem.removeBlockTicket.Stop()
+	mlog.Info("mempool module closing")
+	mem.wg.Wait()
+	mlog.Info("mempool module closed")
 }
 
 // Mempool.checkTxListRemote发送消息给执行模块检查交易
@@ -418,7 +434,12 @@ func (mem *Mempool) checkTxListRemote(txlist *types.ExecTxList) (*types.ReceiptC
 
 // Mempool.pollLastHeader在初始化后循环获取LastHeader，直到获取成功后，返回
 func (mem *Mempool) pollLastHeader() {
+	defer mem.wg.Done()
+	defer mlog.Info("pollLastHeader quit")
 	for {
+		if mem.isClose() {
+			return
+		}
 		lastHeader, err := mem.GetLastHeader()
 		if err != nil {
 			mlog.Error(err.Error())
@@ -463,6 +484,8 @@ func (mem *Mempool) isSync() bool {
 
 // Mempool.getSync获取Mempool同步状态
 func (mem *Mempool) getSync() {
+	defer mlog.Info("getSync quit")
+	defer mem.wg.Done()
 	if mem.isSync() {
 		return
 	}
@@ -470,6 +493,9 @@ func (mem *Mempool) getSync() {
 		mem.setSync(true)
 	}
 	for {
+		if mem.isClose() {
+			return
+		}
 		if mem.client == nil {
 			panic("client not bind message queue.")
 		}
@@ -490,34 +516,76 @@ func (mem *Mempool) getSync() {
 	}
 }
 
+func (mem *Mempool) checkSign(data queue.Message) queue.Message {
+	tx, ok := data.GetData().(types.TxGroup)
+	if ok && tx.CheckSign() {
+		return data
+	} else {
+		mlog.Error("wrong tx", "err", types.ErrSign)
+		data.Data = types.ErrSign
+		return data
+	}
+}
+
+func (mem *Mempool) pipeLine() <-chan queue.Message {
+	//check sign
+	step1 := func(data queue.Message) queue.Message {
+		if data.Err() != nil {
+			return data
+		}
+		return mem.checkSign(data)
+	}
+	chs := make([]<-chan queue.Message, processNum)
+	for i := 0; i < processNum; i++ {
+		chs[i] = step(mem.done, mem.in, step1)
+	}
+	out1 := merge(mem.done, chs)
+
+	//checktx remote
+	step2 := func(data queue.Message) queue.Message {
+		if data.Err() != nil {
+			return data
+		}
+		return mem.checkTxRemote(data)
+	}
+	chs2 := make([]<-chan queue.Message, processNum)
+	for i := 0; i < processNum; i++ {
+		chs2[i] = step(mem.done, out1, step2)
+	}
+	return merge(mem.done, chs2)
+}
+
 func (mem *Mempool) SetQueueClient(client queue.Client) {
 	mem.client = client
 	mem.client.Sub("mempool")
-
+	mem.wg.Add(1)
 	go mem.pollLastHeader()
+	mem.wg.Add(1)
 	go mem.getSync()
 	//	go mem.ReTrySend()
 	// 从badChan读取坏消息，并回复错误信息
+	mem.out = mem.pipeLine()
+	mlog.Info("mempool piple line start")
+	mem.wg.Add(1)
 	go func() {
-		for m := range mem.badChan {
-			m.Reply(mem.client.NewMessage("rpc", types.EventReply,
-				&types.Reply{false, []byte(m.Err().Error())}))
+		defer mlog.Info("piple line quit")
+		defer mem.wg.Done()
+		for m := range mem.out {
+			if m.Err() != nil {
+				m.Reply(mem.client.NewMessage("rpc", types.EventReply,
+					&types.Reply{false, []byte(m.Err().Error())}))
+			} else {
+				mem.SendTxToP2P(m.GetData().(types.TxGroup).Tx())
+				m.Reply(mem.client.NewMessage("rpc", types.EventReply, &types.Reply{true, nil}))
+			}
 		}
 	}()
-
-	// 从goodChan读取好消息，并回复正确信息
-	go func() {
-		for m := range mem.goodChan {
-			mem.SendTxToP2P(m.GetData().(types.TxGroup).Tx())
-			m.Reply(mem.client.NewMessage("rpc", types.EventReply, &types.Reply{true, nil}))
-		}
-	}()
-
-	go mem.CheckSignList()
-	go mem.CheckTxList()
+	mem.wg.Add(1)
 	go mem.RemoveBlockedTxs()
-
+	mem.wg.Add(1)
 	go func() {
+		defer mlog.Info("mempool message recv quit")
+		defer mem.wg.Done()
 		for msg := range mem.client.Recv() {
 			mlog.Debug("mempool recv", "msgid", msg.Id, "msg", types.GetEventName(int(msg.Ty)))
 			beg := types.Now()
@@ -529,12 +597,7 @@ func (mem *Mempool) SetQueueClient(client queue.Client) {
 					continue
 				}
 				checkedMsg := mem.CheckTxs(msg)
-				if checkedMsg.Err() != nil {
-					mlog.Error("wrong tx", "err", checkedMsg.Err())
-					mem.badChan <- checkedMsg
-				} else {
-					mem.signChan <- checkedMsg
-				}
+				mem.in <- checkedMsg
 			case types.EventGetMempool:
 				// 消息类型EventGetMempool：获取Mempool内所有交易
 				msg.Reply(mem.client.NewMessage("rpc", types.EventReplyTxList,
@@ -563,7 +626,7 @@ func (mem *Mempool) SetQueueClient(client queue.Client) {
 			case types.EventAddBlock:
 				// 消息类型EventAddBlock：将添加到区块内的交易从Mempool中删除
 				block := msg.GetData().(*types.BlockDetail).Block
-				if block.Height > mem.Height() {
+				if block.Height > mem.Height() || (block.Height == 0 && mem.Height() == 0) {
 					header := &types.Header{}
 					header.BlockTime = block.BlockTime
 					header.Height = block.Height

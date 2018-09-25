@@ -281,7 +281,6 @@ func (m *Mock) findClosestCall(method string, arguments ...interface{}) (*Call, 
 
 	for _, call := range m.expectedCalls() {
 		if call.Method == method {
-
 			errInfo, tempDiffCount := call.Arguments.Diff(arguments)
 			if tempDiffCount < diffCount || diffCount == 0 {
 				diffCount = tempDiffCount

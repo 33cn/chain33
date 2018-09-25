@@ -58,6 +58,7 @@ type BlockChain struct {
 	synblock            chan struct{}
 	quit                chan struct{}
 	isclosed            int32
+	runcount            int32
 	isbatchsync         int32
 	firstcheckbestchain int32 //节点启动之后首次检测最优链的标志
 
@@ -106,7 +107,7 @@ func New(cfg *types.BlockChain) *BlockChain {
 		recvwg:             &sync.WaitGroup{},
 		tickerwg:           &sync.WaitGroup{},
 
-		task:     newTask(160 * time.Second),
+		task:     newTask(300 * time.Second), //考虑到区块交易多时执行耗时，需要延长task任务的超时时间
 		forktask: newTask(300 * time.Second),
 
 		quit:                make(chan struct{}),
@@ -155,6 +156,11 @@ func (chain *BlockChain) Close() {
 	//退出线程
 	close(chain.quit)
 
+	//等待执行完成
+	for atomic.LoadInt32(&chain.runcount) > 0 {
+		time.Sleep(time.Microsecond)
+	}
+	chain.client.Close()
 	//wait for recvwg quit:
 	chainlog.Info("blockchain wait for recvwg quit")
 	chain.recvwg.Wait()
@@ -162,9 +168,6 @@ func (chain *BlockChain) Close() {
 	//wait for tickerwg quit:
 	chainlog.Info("blockchain wait for tickerwg quit")
 	chain.tickerwg.Wait()
-
-	//退出接受数据, 在最后一个block写磁盘时addtx还需要接受数据
-	chain.client.Close()
 
 	//关闭数据库
 	chain.blockStore.db.Close()
@@ -185,21 +188,25 @@ func (chain *BlockChain) SetQueueClient(client queue.Client) {
 	chain.startTime = types.Now()
 
 	//recv 消息的处理，共识模块需要获取lastblock从数据库中
-	go chain.ProcRecvMsg()
-
+	chain.recvwg.Add(1)
 	//初始化blockchian模块
-	go chain.InitBlockChain()
+	chain.InitBlockChain()
+	go chain.ProcRecvMsg()
 }
+
 func (chain *BlockChain) InitBlockChain() {
-	beg := types.Now()
-	//获取数据库中最新的10240个区块加载到index和bestview链中,耗时需要几分钟，需要异步处理
-	chain.InitIndexAndBestView()
-	chainlog.Info("InitIndexAndBestView", "cost", types.Since(beg))
-	//获取数据库中最新的区块高度，以及blockchain的数据库版本号
+	//先缓存最新的128个block信息到cache中
 	curheight := chain.GetBlockHeight()
 	if types.EnableTxHeight {
 		chain.InitCache(curheight)
 	}
+
+	//获取数据库中最新的10240个区块加载到index和bestview链中
+	beg := types.Now()
+	chain.InitIndexAndBestView()
+	chainlog.Info("InitIndexAndBestView", "cost", types.Since(beg))
+
+	//获取数据库中最新的区块高度，以及blockchain的数据库版本号
 	curdbver := chain.blockStore.GetDbVersion()
 	if curdbver == 0 && curheight == -1 {
 		curdbver = 1
@@ -213,7 +220,6 @@ func (chain *BlockChain) InitBlockChain() {
 		// 定时处理futureblock
 		go chain.UpdateRoutine()
 	}
-
 	//初始化默认forkinfo
 	chain.DefaultForkInfo()
 }
@@ -297,7 +303,7 @@ func (chain *BlockChain) GetDuplicateTxHashList(txhashlist *types.TxHashList) (d
 		if txhashlist.Expire != nil {
 			expire = txhashlist.Expire[i]
 		}
-		txHeight := types.GetTxHeight(expire)
+		txHeight := types.GetTxHeight(expire, txhashlist.Count)
 		//在txHeight > 0 的情况下，可以安全的查询cache
 		if txHeight > 0 {
 			onlyquerycache = true
@@ -368,14 +374,16 @@ func (chain *BlockChain) ProcGetBlockDetailsMsg(requestblock *types.ReqBlocks) (
 }
 
 //处理从peer对端同步过来的block消息
-func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, blockdetail *types.BlockDetail, pid string) (err error) {
+func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, blockdetail *types.BlockDetail, pid string) (*types.BlockDetail, error) {
 	block := blockdetail.Block
 	if block == nil {
 		chainlog.Error("ProcAddBlockMsg input block is null")
-		return types.ErrInputPara
+		return nil, types.ErrInputPara
 	}
-	ismain, isorphan, err := chain.ProcessBlock(broadcast, blockdetail, pid, true, -1)
-
+	b, ismain, isorphan, err := chain.ProcessBlock(broadcast, blockdetail, pid, true, -1)
+	if b != nil {
+		blockdetail = b
+	}
 	//非孤儿block或者已经存在的block
 	if chain.task.InProgress() {
 		if (!isorphan && err == nil) || (err == types.ErrBlockExist) {
@@ -386,15 +394,20 @@ func (chain *BlockChain) ProcAddBlockMsg(broadcast bool, blockdetail *types.Bloc
 	if chain.forktask.InProgress() {
 		chain.forktask.Done(blockdetail.Block.GetHeight())
 	}
-
 	//此处只更新广播block的高度
 	if broadcast {
 		chain.UpdateRcvCastBlkHeight(blockdetail.Block.Height)
 	}
-
+	if pid == "self" {
+		if err != nil {
+			return nil, err
+		}
+		if b == nil {
+			return nil, types.ErrExecBlockNil
+		}
+	}
 	chainlog.Debug("ProcAddBlockMsg result:", "height", blockdetail.Block.Height, "ismain", ismain, "isorphan", isorphan, "hash", common.ToHex(blockdetail.Block.Hash()), "err", err)
-
-	return err
+	return blockdetail, err
 }
 
 //blockchain 模块add block到db之后通知mempool 和consense模块做相应的更新
@@ -960,26 +973,26 @@ func (chain *BlockChain) ProcDelParaChainBlockMsg(broadcast bool, ParaChainblock
 	block := ParaChainblockdetail.GetBlockdetail().GetBlock()
 	sequence := ParaChainblockdetail.GetSequence()
 
-	ismain, isorphan, err := chain.ProcessBlock(broadcast, blockdetail, pid, false, sequence)
+	_, ismain, isorphan, err := chain.ProcessBlock(broadcast, blockdetail, pid, false, sequence)
 	chainlog.Debug("ProcDelParaChainBlockMsg result:", "height", block.Height, "sequence", sequence, "ismain", ismain, "isorphan", isorphan, "hash", common.ToHex(block.Hash()), "err", err)
 
 	return err
 }
 
 //处理共识过来的add block的消息，目前只提供给平行链使用
-func (chain *BlockChain) ProcAddParaChainBlockMsg(broadcast bool, ParaChainblockdetail *types.ParaChainBlockDetail, pid string) (err error) {
+func (chain *BlockChain) ProcAddParaChainBlockMsg(broadcast bool, ParaChainblockdetail *types.ParaChainBlockDetail, pid string) (*types.BlockDetail, error) {
 	if ParaChainblockdetail == nil || ParaChainblockdetail.GetBlockdetail() == nil || ParaChainblockdetail.GetBlockdetail().GetBlock() == nil {
 		chainlog.Error("ProcAddParaChainBlockMsg input block is null")
-		return types.ErrInputPara
+		return nil, types.ErrInputPara
 	}
 	blockdetail := ParaChainblockdetail.GetBlockdetail()
 	block := ParaChainblockdetail.GetBlockdetail().GetBlock()
 	sequence := ParaChainblockdetail.GetSequence()
 
-	ismain, isorphan, err := chain.ProcessBlock(broadcast, blockdetail, pid, true, sequence)
+	fullBlockDetail, ismain, isorphan, err := chain.ProcessBlock(broadcast, blockdetail, pid, true, sequence)
 	chainlog.Debug("ProcAddParaChainBlockMsg result:", "height", block.Height, "sequence", sequence, "ismain", ismain, "isorphan", isorphan, "hash", common.ToHex(block.Hash()), "err", err)
 
-	return err
+	return fullBlockDetail, err
 }
 
 //处理共识过来的通过blockhash获取seq的消息，只提供add block时的seq，用于平行链block回退

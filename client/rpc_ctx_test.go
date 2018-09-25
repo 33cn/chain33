@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
-	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
+	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	"gitlab.33.cn/chain33/chain33/types"
 
 	"fmt"
@@ -22,7 +22,7 @@ type JsonRpcCtx struct {
 
 	cb Callback
 
-	jsonClient *jsonrpc.JSONClient
+	jsonClient *jsonclient.JSONClient
 }
 
 type Callback func(res interface{}) (interface{}, error)
@@ -42,7 +42,7 @@ func (c *JsonRpcCtx) SetResultCb(cb Callback) {
 
 func (c *JsonRpcCtx) Run() (err error) {
 	if c.jsonClient == nil {
-		c.jsonClient, err = jsonrpc.NewJSONClient(c.Addr)
+		c.jsonClient, err = jsonclient.NewJSONClient(c.Addr)
 		if err != nil {
 			return
 		}
@@ -90,7 +90,7 @@ func (c *GrpcCtx) Run() (err error) {
 	}
 	defer conn.Close()
 
-	rpc := types.NewGrpcserviceClient(conn)
+	rpc := types.NewChain33Client(conn)
 	switch c.Method {
 	case "GetBlocks":
 		reply, err := rpc.GetBlocks(context.Background(), c.Params.(*types.ReqBlocks))

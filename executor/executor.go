@@ -3,6 +3,7 @@ package executor
 //store package store the world - state data
 import (
 	"bytes"
+	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -12,29 +13,13 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	clog "gitlab.33.cn/chain33/chain33/common/log"
-	"gitlab.33.cn/chain33/chain33/executor/drivers"
+	"gitlab.33.cn/chain33/chain33/pluginmgr"
+	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 
 	// register drivers
-	"gitlab.33.cn/chain33/chain33/executor/drivers/coins"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/evm"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/game"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/hashlock"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/manage"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/none"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/norm"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/relay"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/retrieve"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/ticket"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/token"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/trade"
-
 	"gitlab.33.cn/chain33/chain33/client"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/blackwhite"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/cert"
-	"gitlab.33.cn/chain33/chain33/executor/drivers/privacy"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
-	exectype "gitlab.33.cn/chain33/chain33/types/executor"
 )
 
 var elog = log.New("module", "execs")
@@ -61,25 +46,17 @@ type Executor struct {
 	enableMVCC     bool
 	enableStatFlag int64
 	flagMVCC       int64
+	alias          map[string]string
 }
 
+var once sync.Once
+
 func execInit() {
-	exectype.Init()
-	coins.Init()
-	hashlock.Init()
-	manage.Init()
-	none.Init()
-	norm.Init()
-	retrieve.Init()
-	ticket.Init()
-	token.Init()
-	trade.Init()
-	evm.Init()
-	relay.Init()
-	cert.Init()
-	privacy.Init()
-	game.Init()
-	blackwhite.Init()
+	once.Do(execInit2)
+}
+
+func execInit2() {
+	pluginmgr.InitExec()
 }
 
 var runonce sync.Once
@@ -101,6 +78,20 @@ func New(cfg *types.Exec) *Executor {
 	exec := &Executor{}
 	exec.enableStat = cfg.EnableStat
 	exec.enableMVCC = cfg.EnableMVCC
+	exec.alias = make(map[string]string)
+	for _, v := range cfg.Alias {
+		data := strings.Split(v, ":")
+		if len(data) != 2 {
+			panic("exec.alias config error: " + v)
+		}
+		if _, ok := exec.alias[data[0]]; ok {
+			panic("exec.alias repeat name: " + v)
+		}
+		if pluginmgr.HasExec(data[0]) {
+			panic("exec.alias repeat name with system Exec: " + v)
+		}
+		exec.alias[data[0]] = data[1]
+	}
 	return exec
 }
 
@@ -146,8 +137,17 @@ func (exec *Executor) procExecQuery(msg queue.Message) {
 	localdb := NewLocalDB(exec.client)
 	driver.SetLocalDB(localdb)
 	opt := &StateDBOption{EnableMVCC: exec.enableMVCC, FlagMVCC: exec.flagMVCC, Height: header.GetHeight()}
-	driver.SetStateDB(NewStateDB(exec.client, data.StateHash, localdb, opt))
-	ret, err := driver.Query(data.FuncName, data.Param)
+
+	db := NewStateDB(exec.client, data.StateHash, localdb, opt)
+	db.(*StateDB).enableMVCC()
+	driver.SetStateDB(db)
+
+	//查询的情况下下，执行器不做严格校验，allow，尽可能的加载执行器，并且做查询
+
+	ret, err := types.ProcessRPCQuery(data.FuncName, data.Param)
+	if err != nil {
+		ret, err = driver.Query(data.FuncName, data.Param)
+	}
 	if err != nil {
 		msg.Reply(exec.client.NewMessage("", types.EventBlockChainQuery, err))
 		return
@@ -157,7 +157,7 @@ func (exec *Executor) procExecQuery(msg queue.Message) {
 
 func (exec *Executor) procExecCheckTx(msg queue.Message) {
 	datas := msg.GetData().(*types.ExecTxList)
-	execute := newExecutor(datas.StateHash, exec, datas.Height, datas.BlockTime, datas.Difficulty)
+	execute := newExecutor(datas.StateHash, exec, datas.Height, datas.BlockTime, datas.Difficulty, datas.Txs, nil)
 	execute.enableMVCC()
 	execute.api = exec.qclient
 	//返回一个列表表示成功还是失败
@@ -174,11 +174,9 @@ func (exec *Executor) procExecCheckTx(msg queue.Message) {
 	msg.Reply(exec.client.NewMessage("", types.EventReceiptCheckTx, result))
 }
 
-var commonPrefix = []byte("mavl-")
-
 func (exec *Executor) procExecTxList(msg queue.Message) {
 	datas := msg.GetData().(*types.ExecTxList)
-	execute := newExecutor(datas.StateHash, exec, datas.Height, datas.BlockTime, datas.Difficulty)
+	execute := newExecutor(datas.StateHash, exec, datas.Height, datas.BlockTime, datas.Difficulty, datas.Txs, nil)
 	execute.enableMVCC()
 	execute.api = exec.qclient
 	var receipts []*types.Receipt
@@ -228,105 +226,77 @@ func (exec *Executor) procExecTxList(msg queue.Message) {
 		&types.Receipts{receipts}))
 }
 
-func isAllowExec(key, txexecer []byte, toaddr string, height int64) bool {
-	keyexecer, err := findExecer(key)
+//allowExec key 行为判断放入 执行器
+/*
+权限控制规则:
+1. 默认行为:
+执行器只能修改执行器下面的 key
+或者能修改其他执行器 exec key 下面的数据
+
+2. friend 合约行为, 合约可以定义其他合约 可以修改的 key的内容
+*/
+func (execute *executor) isAllowExec(key []byte, tx *types.Transaction, index int) bool {
+	realExecer := execute.getRealExecName(tx, index)
+	height := execute.height
+	return isAllowExec(key, realExecer, tx, height)
+}
+
+func isAllowExec(key, realExecer []byte, tx *types.Transaction, height int64) bool {
+	keyExecer, err := types.FindExecer(key)
 	if err != nil {
 		elog.Error("find execer ", "err", err)
 		return false
 	}
-	//其他合约可以修改自己合约内部
-	if bytes.Equal(keyexecer, txexecer) {
+	//平行链中 user.p.guodun.xxxx -> 实际上是 xxxx
+	//TODO: 后面 GetDriverName(), 中驱动的名字可以被配置
+	if types.IsPara() && bytes.Equal(keyExecer, realExecer) {
 		return true
 	}
-	//如果是运行运行deposit的执行器，可以修改coins 的值（只有挖矿合约运行这样做）
-	for _, execer := range types.AllowDepositExec {
-		if bytes.Equal(txexecer, execer) && bytes.Equal(keyexecer, types.ExecerCoins) {
-			return true
-		}
+	//其他合约可以修改自己合约内部(执行器只能修改执行器自己内部的数据)
+	if bytes.Equal(keyExecer, tx.Execer) {
+		return true
 	}
 	//每个合约中，都会开辟一个区域，这个区域是另外一个合约可以修改的区域
 	//我们把数据限制在这个位置，防止合约的其他位置被另外一个合约修改
-	execaddr, ok := getExecKey(key)
-	if ok && execaddr == address.ExecAddress(string(txexecer)) {
+	//  execaddr 是加了前缀生成的地址， 而参数 realExecer 是没有前缀的执行器名字
+	keyExecAddr, ok := types.GetExecKey(key)
+	if ok && keyExecAddr == drivers.ExecAddress(string(tx.Execer)) {
 		return true
 	}
-
-	// 特殊化处理一下
+	// 历史原因做只针对对bityuan的fork特殊化处理一下
 	// manage 的key 是 config
 	// token 的部分key 是 mavl-create-token-
 	if !types.IsMatchFork(height, types.ForkV13ExecKey) {
-		elog.Info("mavl key", "execer", keyexecer, "keyexecer", keyexecer)
-		if bytes.Equal(txexecer, types.ExecerManage) && bytes.Equal(keyexecer, types.ExecerConfig) {
+		elog.Info("mavl key", "execer", string(keyExecer), "keyExecer", string(keyExecer))
+		if bytes.Equal(realExecer, types.ExecerManage) && bytes.Equal(keyExecer, types.ExecerConfig) {
 			return true
 		}
-		if bytes.Equal(txexecer, types.ExecerToken) {
+		if bytes.Equal(realExecer, types.ExecerToken) {
 			if bytes.HasPrefix(key, []byte("mavl-create-token-")) {
 				return true
 			}
 		}
 	}
-
-	// user.evm 的交易，使用evm执行器
-	// 这部分判断逻辑不能放到前面几步，因为它修改了txexecer，会影响别的判断逻辑
-	if bytes.HasPrefix(txexecer, []byte(types.ExecName(types.UserEvmX))) {
-		txexecer = []byte(types.ExecName(types.EvmX))
-		if bytes.Equal([]byte(types.ExecName(string(keyexecer))), txexecer) {
-			return true
-		}
+	//分成两种情况:
+	//是执行器余额，判断 friend
+	execdriver := keyExecer
+	if ok && keyExecAddr == drivers.ExecAddress(string(realExecer)) {
+		//判断user.p.xxx.token 是否可以写 token 合约的内容之类的
+		execdriver = realExecer
 	}
-
-	return false
-}
-
-var bytesExec = []byte("exec-")
-
-func getExecKey(key []byte) (string, bool) {
-	n := 0
-	start := 0
-	end := 0
-	for i := len(commonPrefix); i < len(key); i++ {
-		if key[i] == '-' {
-			n = n + 1
-			if n == 2 {
-				start = i + 1
-			}
-			if n == 3 {
-				end = i
-				break
-			}
-		}
+	d, err := drivers.LoadDriver(string(execdriver), height)
+	if err != nil {
+		elog.Error("load drivers error", "err", err)
+		return false
 	}
-	if start > 0 && end > 0 {
-		if bytes.Equal(key[start:end+1], bytesExec) {
-			//find addr
-			start = end + 1
-			for k := end; k < len(key); k++ {
-				if key[k] == ':' { //end+1
-					end = k
-					return string(key[start:end]), true
-				}
-			}
-		}
-	}
-	return "", false
-}
-
-func findExecer(key []byte) (execer []byte, err error) {
-	if !bytes.HasPrefix(key, commonPrefix) {
-		return nil, types.ErrMavlKeyNotStartWithMavl
-	}
-	for i := len(commonPrefix); i < len(key); i++ {
-		if key[i] == '-' {
-			return key[len(commonPrefix):i], nil
-		}
-	}
-	return nil, types.ErrNoExecerInMavlKey
+	//交给 -> friend 来判定
+	return d.IsFriend(execdriver, key, tx)
 }
 
 func (exec *Executor) procExecAddBlock(msg queue.Message) {
 	datas := msg.GetData().(*types.BlockDetail)
 	b := datas.Block
-	execute := newExecutor(b.StateHash, exec, b.Height, b.BlockTime, uint64(b.Difficulty))
+	execute := newExecutor(b.StateHash, exec, b.Height, b.BlockTime, uint64(b.Difficulty), b.Txs, datas.Receipts)
 	execute.api = exec.qclient
 	var totalFee types.TotalFee
 	var kvset types.LocalDBSet
@@ -449,7 +419,7 @@ func (exec *Executor) stat(execute *executor, datas *types.BlockDetail) ([]*type
 func (exec *Executor) procExecDelBlock(msg queue.Message) {
 	datas := msg.GetData().(*types.BlockDetail)
 	b := datas.Block
-	execute := newExecutor(b.StateHash, exec, b.Height, b.BlockTime, uint64(b.Difficulty))
+	execute := newExecutor(b.StateHash, exec, b.Height, b.BlockTime, uint64(b.Difficulty), b.Txs, nil)
 	execute.enableMVCC()
 	execute.api = exec.qclient
 	var kvset types.LocalDBSet
@@ -490,7 +460,6 @@ func (exec *Executor) procExecDelBlock(msg queue.Message) {
 		return
 	}
 	kvset.KV = append(kvset.KV, feekv)
-
 	//定制数据统计
 	if exec.enableStat {
 		kvs, err := delCountInfo(execute, datas)
@@ -522,11 +491,13 @@ type executor struct {
 
 	// 增加区块的难度值，后面的执行器逻辑需要这些属性
 	difficulty uint64
-
-	api client.QueueProtocolAPI
+	txs        []*types.Transaction
+	api        client.QueueProtocolAPI
+	receipts   []*types.ReceiptData
 }
 
-func newExecutor(stateHash []byte, exec *Executor, height, blocktime int64, difficulty uint64) *executor {
+func newExecutor(stateHash []byte, exec *Executor, height, blocktime int64, difficulty uint64,
+	txs []*types.Transaction, receipts []*types.ReceiptData) *executor {
 	client := exec.client
 	enableMVCC := exec.enableMVCC
 	flagMVCC := exec.flagMVCC
@@ -539,6 +510,8 @@ func newExecutor(stateHash []byte, exec *Executor, height, blocktime int64, diff
 		height:       height,
 		blocktime:    blocktime,
 		difficulty:   difficulty,
+		txs:          txs,
+		receipts:     receipts,
 	}
 	e.coinsAccount.SetDB(e.stateDB)
 	return e
@@ -563,7 +536,7 @@ func AddMVCC(db dbm.KVDB, detail *types.BlockDetail) (kvlist []*types.KeyValue) 
 func DelMVCC(db dbm.KVDB, detail *types.BlockDetail) (kvlist []*types.KeyValue) {
 	hash := detail.Block.StateHash
 	mvcc := dbm.NewSimpleMVCC(db)
-	kvlist, err := mvcc.DelMVCC(hash, detail.Block.Height)
+	kvlist, err := mvcc.DelMVCC(hash, detail.Block.Height, true)
 	if err != nil {
 		panic(err)
 	}
@@ -591,15 +564,31 @@ func (e *executor) cutFeeReceipt(acc *types.Account, receiptBalance proto.Messag
 	return &types.Receipt{types.ExecPack, e.coinsAccount.GetKVSet(acc), []*types.ReceiptLog{feelog}}
 }
 
+func (e *executor) getRealExecName(tx *types.Transaction, index int) []byte {
+	exec := e.loadDriver(tx, index)
+	realexec := exec.GetDriverName()
+	var execer []byte
+	if realexec != "none" {
+		execer = []byte(realexec)
+	} else {
+		execer = tx.Execer
+	}
+	return execer
+}
+
 func (e *executor) checkTx(tx *types.Transaction, index int) error {
 	if e.height > 0 && e.blocktime > 0 && tx.IsExpire(e.height, e.blocktime) {
 		//如果已经过期
 		return types.ErrTxExpire
 	}
-	if err := tx.Check(types.MinFee); err != nil {
+	if err := tx.Check(e.height, types.MinFee); err != nil {
 		return err
 	}
-
+	//允许重写的情况
+	//看重写的名字 name, 是否被允许执行
+	if !types.IsAllowExecName(e.getRealExecName(tx, index), tx.Execer) {
+		return types.ErrExecNameNotAllow
+	}
 	return nil
 }
 
@@ -608,6 +597,8 @@ func (e *executor) setEnv(exec drivers.Driver) {
 	exec.SetLocalDB(e.localDB)
 	exec.SetEnv(e.height, e.blocktime, e.difficulty)
 	exec.SetApi(e.api)
+	exec.SetTxs(e.txs)
+	exec.SetReceipt(e.receipts)
 }
 
 func (e *executor) checkTxGroup(txgroup *types.Transactions, index int) error {
@@ -615,7 +606,7 @@ func (e *executor) checkTxGroup(txgroup *types.Transactions, index int) error {
 		//如果已经过期
 		return types.ErrTxExpire
 	}
-	if err := txgroup.Check(types.MinFee); err != nil {
+	if err := txgroup.Check(e.height, types.MinFee); err != nil {
 		return err
 	}
 	return nil
@@ -632,46 +623,38 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 		return err
 	}
 	//checkInExec
-	exec := e.loadDriverForExec(string(tx.Execer), e.height)
+	exec := e.loadDriver(tx, index)
 	//手续费检查
 	if !exec.IsFree() && types.MinFee > 0 {
 		from := tx.From()
 		accFrom := e.coinsAccount.LoadAccount(from)
 		if accFrom.GetBalance() < types.MinBalanceTransfer {
+			elog.Error("execCheckTx", "ispara", types.IsPara(), "exec", string(tx.Execer), "nonce", tx.Nonce)
 			return types.ErrBalanceLessThanTenTimesFee
 		}
 	}
-
 	e.setEnv(exec)
 	return exec.CheckTx(tx, index)
 }
 
 func (e *executor) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
-	exec := e.loadDriverForExec(string(tx.Execer), e.height)
-	e.setEnv(exec)
+	exec := e.loadDriver(tx, index)
 	return exec.Exec(tx, index)
 }
 
 func (e *executor) execLocal(tx *types.Transaction, r *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	exec := e.loadDriverForExec(string(tx.Execer), e.height)
-	e.setEnv(exec)
+	exec := e.loadDriver(tx, index)
 	return exec.ExecLocal(tx, r, index)
 }
 
 func (e *executor) execDelLocal(tx *types.Transaction, r *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	exec := e.loadDriverForExec(string(tx.Execer), e.height)
-	e.setEnv(exec)
+	exec := e.loadDriver(tx, index)
 	return exec.ExecDelLocal(tx, r, index)
 }
 
-func (e *executor) loadDriverForExec(exector string, height int64) (c drivers.Driver) {
-	exec, err := drivers.LoadDriver(exector, height)
-	if err != nil {
-		exec, err = drivers.LoadDriver(types.ExecName("none"), height)
-		if err != nil {
-			panic(err)
-		}
-	}
+func (e *executor) loadDriver(tx *types.Transaction, index int) (c drivers.Driver) {
+	exec := drivers.LoadDriverAllow(tx, index, e.height)
+	e.setEnv(exec)
 	return exec
 }
 
@@ -740,7 +723,7 @@ func (execute *executor) loadFlag(key []byte) (int64, error) {
 func (execute *executor) execFee(tx *types.Transaction, index int) (*types.Receipt, error) {
 	feelog := &types.Receipt{Ty: types.ExecPack}
 	execer := string(tx.Execer)
-	e := execute.loadDriverForExec(execer, execute.height)
+	e := execute.loadDriver(tx, index)
 	execute.setEnv(e)
 	//执行器名称 和  pubkey 相同，费用从内置的执行器中扣除,但是checkTx 中要过
 	//默认checkTx 中对这样的交易会返回
@@ -773,6 +756,7 @@ func copyReceipt(feelog *types.Receipt) *types.Receipt {
 
 func (execute *executor) execTxOne(feelog *types.Receipt, tx *types.Transaction, index int) (*types.Receipt, error) {
 	//只有到pack级别的，才会增加index
+	execute.stateDB.(*StateDB).StartTx()
 	receipt, err := execute.Exec(tx, index)
 	if err != nil {
 		elog.Error("exec tx error = ", "err", err, "exec", string(tx.Execer), "action", tx.ActionName())
@@ -782,21 +766,55 @@ func (execute *executor) execTxOne(feelog *types.Receipt, tx *types.Transaction,
 		return feelog, err
 	}
 	//合并两个receipt，如果执行不返回错误，那么就认为成功
+	//需要检查两个东西:
+	//1. statedb 中 Set的 key 必须是 在 receipt.GetKV() 这个集合中
+	//2. receipt.GetKV() 中的 key, 必须符合权限控制要求
+	memkvset := execute.stateDB.(*StateDB).GetSetKeys()
+	feelog, err = execute.checkKV(feelog, memkvset, receipt.GetKV())
+	if err != nil {
+		return feelog, err
+	}
+	feelog, err = execute.checkKeyAllow(feelog, tx, index, receipt.GetKV())
+	if err != nil {
+		return feelog, err
+	}
 	if receipt != nil {
-		for _, kv := range receipt.GetKV() {
-			k := kv.GetKey()
-			if !isAllowExec(k, tx.GetExecer(), tx.To, execute.height) {
-				elog.Error("err receipt key", "key", string(k), "tx.exec", string(tx.GetExecer()),
-					"tx.action", tx.ActionName())
-				//非法的receipt，交易执行失败
-				errlog := &types.ReceiptLog{types.TyLogErr, []byte(types.ErrNotAllowKey.Error())}
-				feelog.Logs = append(feelog.Logs, errlog)
-				return feelog, types.ErrNotAllowKey
-			}
-		}
 		feelog.KV = append(feelog.KV, receipt.KV...)
 		feelog.Logs = append(feelog.Logs, receipt.Logs...)
 		feelog.Ty = receipt.Ty
+	}
+	return feelog, nil
+}
+
+func (execute *executor) checkKV(feelog *types.Receipt, memset []string, kvs []*types.KeyValue) (*types.Receipt, error) {
+	keys := make(map[string]bool)
+	for _, kv := range kvs {
+		k := kv.GetKey()
+		keys[string(k)] = true
+	}
+	for _, key := range memset {
+		if _, ok := keys[key]; !ok {
+			elog.Error("err memset key", "key", key)
+			//非法的receipt，交易执行失败
+			errlog := &types.ReceiptLog{types.TyLogErr, []byte(types.ErrNotAllowMemSetKey.Error())}
+			feelog.Logs = append(feelog.Logs, errlog)
+			return feelog, types.ErrNotAllowMemSetKey
+		}
+	}
+	return feelog, nil
+}
+
+func (execute *executor) checkKeyAllow(feelog *types.Receipt, tx *types.Transaction, index int, kvs []*types.KeyValue) (*types.Receipt, error) {
+	for _, kv := range kvs {
+		k := kv.GetKey()
+		if !execute.isAllowExec(k, tx, index) {
+			elog.Error("err receipt key", "key", string(k), "tx.exec", string(tx.GetExecer()),
+				"tx.action", tx.ActionName())
+			//非法的receipt，交易执行失败
+			errlog := &types.ReceiptLog{types.TyLogErr, []byte(types.ErrNotAllowKey.Error())}
+			feelog.Logs = append(feelog.Logs, errlog)
+			return feelog, types.ErrNotAllowKey
+		}
 	}
 	return feelog, nil
 }
@@ -806,6 +824,9 @@ func (execute *executor) execTx(tx *types.Transaction, index int) (*types.Receip
 		receipt, err := execute.Exec(tx, index)
 		if err != nil {
 			panic(err)
+		}
+		if err == nil && receipt == nil {
+			panic("genesis block: executor not exist")
 		}
 		return receipt, nil
 	}

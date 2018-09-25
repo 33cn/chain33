@@ -11,6 +11,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
+	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -50,8 +51,8 @@ func TestTransfer2ExecAddrToken(t *testing.T) {
 	t.Log("addrto", addrto)
 	t.Log("amount", amount)
 
-	v := &types.CoinsAction_Transfer{&types.CoinsTransfer{Amount: amount}}
-	transfer := &types.CoinsAction{Value: v, Ty: types.CoinsActionTransfer}
+	v := &cty.CoinsAction_Transfer{&types.AssetsTransfer{Amount: amount}}
+	transfer := &cty.CoinsAction{Value: v, Ty: cty.CoinsActionTransfer}
 	random := rand.New(rand.NewSource(types.Now().UnixNano()))
 	tx := &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), Fee: 1e6, Nonce: random.Int63(), To: addrto}
 	tx.Sign(types.SECP256K1, priv)
