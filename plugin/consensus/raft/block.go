@@ -237,7 +237,7 @@ func (client *RaftClient) readCommits(commitC <-chan *types.Block, errorC <-chan
 
 //轮询任务，去检测本机器是否为validator节点，如果是，则执行打包任务
 func (client *RaftClient) pollingTask(c queue.Client) {
-	ticker := time.NewTicker(5 * time.Second)
+	ticker := time.NewTicker(100 * time.Millisecond)
 	defer ticker.Stop()
 	for {
 		select {

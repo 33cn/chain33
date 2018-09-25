@@ -52,7 +52,6 @@ scpFileFromLocal() {
     echo "pemFile:$pemFile"
     scpFile=$5
     deployDir=$6
-	# shellcheck disable=SC2029
     ssh -i "$pemFile" -p "$port" "$userName"@"$hostIP" "mkdir -p $deployDir"
     echo "scp -i $pemFile -P $port $scpFile $userName@$hostIP:$deployDir"
     scp -i "$pemFile" -P "$port" "$scpFile" "$userName"@"$hostIP":"$deployDir"
@@ -66,7 +65,6 @@ startChain33() {
     pemFile=$4
     deployDir=$5
     nodeId=$6
-	# shellcheck disable=SC2029
     ssh -i "$pemFile" -p "$port" "$userName"@"$hostIP" "cd $deployDir;tar -xvf chain33.tgz;bash raft_conf.sh $nodeId;bash run.sh start"
     echo done!
 }
@@ -77,7 +75,6 @@ stopChain33() {
     pemFile=$4
     deployDir=$5
     nodeId=$6
-	# shellcheck disable=SC2029
     ssh -i "$pemFile" -p "$port" "$userName"@"$hostIP" "cd $deployDir;bash run.sh stop"
     echo done!
 }
@@ -87,7 +84,6 @@ clearChain33() {
     userName=$3
     pemFile=$4
     deployDir=$5
-	# shellcheck disable=SC2029
     ssh -i "$pemFile" -p "$port" "$userName"@"$hostIP" "cd $deployDir;bash run.sh clear"
     echo done!
 }
