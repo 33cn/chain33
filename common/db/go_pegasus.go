@@ -15,7 +15,6 @@ import (
 var slog = log.New("module", "db.pegasus")
 var pdbBench = &SsdbBench{}
 var HashKeyLen = 24
-var mgetOpts = &pegasus.MultiGetOptions{StartInclusive: true, StopInclusive: true}
 
 func init() {
 	dbCreator := func(name string, dir string, cache int) (DB, error) {
@@ -500,7 +499,7 @@ func (db *PegasusBatch) Write() error {
 		keysMap = make(map[string][][]byte)
 
 		// 首先，使用hashKey进行数据分组
-		for k, _ := range db.batchdel {
+		for k := range db.batchdel {
 			byteKey = []byte(k)
 			hashKey = getHashKey(byteKey)
 			if value, ok := keysMap[string(hashKey)]; ok {

@@ -2,19 +2,13 @@ package db
 
 import (
 	"context"
+	"testing"
+	"time"
+
 	"github.com/XiaoMi/pegasus-go-client/pegasus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"gitlab.33.cn/chain33/chain33/types"
-	"testing"
-	"time"
 )
-
-func TestNewPegasusDB(t *testing.T) {
-	db, err := NewPegasusDB("blockchain", "abc", 0)
-	assert.EqualError(t, err, types.ErrDataBaseDamage.Error())
-	assert.Nil(t, db)
-}
 
 func TestPegasusDB_Get(t *testing.T) {
 	key := []byte("my_key")
@@ -45,8 +39,8 @@ func TestPegasusDB_BatchGet(t *testing.T) {
 
 	db := new(PegasusDB)
 	tbl := new(MyTable)
-	tbl.On("MultiGet", context.Background(), getHashKey(key1), [][]byte{key1}).Return([]*pegasus.KeyValue{&pegasus.KeyValue{key1, val1}}, true, nil)
-	tbl.On("MultiGet", context.Background(), getHashKey(key2), [][]byte{key2}).Return([]*pegasus.KeyValue{&pegasus.KeyValue{key2, val2}}, true, nil)
+	tbl.On("MultiGet", context.Background(), getHashKey(key1), [][]byte{key1}).Return([]*pegasus.KeyValue{{key1, val1}}, true, nil)
+	tbl.On("MultiGet", context.Background(), getHashKey(key2), [][]byte{key2}).Return([]*pegasus.KeyValue{{key2, val2}}, true, nil)
 	db.table = tbl
 
 	db.BatchGet([][]byte{key1, key2})
