@@ -185,7 +185,7 @@ func (suite *AssetWithdrawTestSuite) TestExecAssetWithdrawAfterPara() {
 		suite.T().Error("decode payload failed", err)
 	}
 	a := newAction(suite.exec, tx)
-	receipt, err := a.assetWithdrawCoins(payload.GetAssetWithdraw(), tx)
+	receipt, err := a.assetWithdraw(payload.GetAssetWithdraw(), tx)
 	if err != nil {
 		suite.T().Error("Exec Transfer", err)
 		return

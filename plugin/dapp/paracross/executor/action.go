@@ -345,7 +345,7 @@ func (a *action) execCrossTx(tx *types.TransactionDetail, commit *pt.ParacrossCo
 	}
 
 	if payload.Ty == pt.ParacrossActionWithdraw {
-		receiptWithdraw, err := a.assetWithdrawCoins(payload.GetAssetWithdraw(), tx.Tx)
+		receiptWithdraw, err := a.assetWithdraw(payload.GetAssetWithdraw(), tx.Tx)
 		if err != nil {
 			clog.Crit("paracross.Commit Decode Tx failed", "para title", commit.Status.Title,
 				"para height", commit.Status.Height, "para tx index", i, "error", err, "txHash",
@@ -418,7 +418,7 @@ func (a *action) AssetWithdraw(withdraw *types.AssetsWithdraw) (*types.Receipt, 
 	}
 	clog.Debug("paracross.AssetWithdraw isPara", "execer", string(a.tx.Execer),
 		"txHash", common.Bytes2Hex(a.tx.Hash()))
-	return a.assetWithdrawCoins(withdraw, a.tx)
+	return a.assetWithdraw(withdraw, a.tx)
 }
 
 //当前miner tx不需要校验上一个区块的衔接性，因为tx就是本节点发出，高度，preHash等都在本区块里面的blockchain做了校验
