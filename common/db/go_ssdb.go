@@ -476,3 +476,12 @@ func (db *ssDBBatch) Write() error {
 	sdbBench.write(len(db.batchset)+len(db.batchdel), time.Since(start))
 	return nil
 }
+
+func (db *ssDBBatch) ValueSize() int {
+	return len(db.batchset)
+}
+
+func (db *ssDBBatch) Reset() {
+	db.batchset = make(map[string][]byte)
+	db.batchdel = make(map[string]bool)
+}
