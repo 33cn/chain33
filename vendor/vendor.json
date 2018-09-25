@@ -51,6 +51,12 @@
 			"revisionTime": "2018-08-16T08:17:32Z"
 		},
 		{
+			"checksumSHA1": "FlbciMVEDOIua4DgIdVR1xZfkgc=",
+			"path": "github.com/apache/thrift/lib/go/thrift",
+			"revision": "6e67faa92827ece022380b211c2caaadd6145bf5",
+			"revisionTime": "2018-08-06T21:31:38Z"
+		},
+		{
 			"checksumSHA1": "lPcTak2cIrUzxysFsqkPiCGUo6w=",
 			"path": "github.com/btcsuite/btcd/btcec",
 			"revision": "8cea3866d0f7fb12d567a20744942c0d078c7d15",
