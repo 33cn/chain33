@@ -47,6 +47,8 @@ func addCreateAssetTransferFlags(cmd *cobra.Command) {
 
 	cmd.Flags().StringP("title", "", "", "the title of para chain, like `p.user.guodun.`")
 	cmd.MarkFlagRequired("title")
+
+	cmd.Flags().StringP("symbol", "s", "", "default for bty, symbol for token")
 }
 
 func createAssetTransfer(cmd *cobra.Command, args []string) {
