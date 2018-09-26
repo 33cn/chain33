@@ -21,7 +21,7 @@ func (l *Lottery) Query_GetLotteryCurrentInfo(param *pty.ReqLotteryInfo) (types.
 	if err != nil {
 		return nil, err
 	}
-	return &types.ReplyLotteryCurrentInfo{lottery.Status,
+	return &pty.ReplyLotteryCurrentInfo{lottery.Status,
 		lottery.Fund,
 		lottery.LastTransToPurState,
 		lottery.LastTransToDrawState,
@@ -32,11 +32,11 @@ func (l *Lottery) Query_GetLotteryCurrentInfo(param *pty.ReqLotteryInfo) (types.
 		lottery.LastTransToDrawStateOnMain}, nil
 }
 
-func (l *Lottery) Query_GetLotteryHistoryLuckyNumber(param *types.ReqLotteryLuckyHistory) (types.Message, error) {
+func (l *Lottery) Query_GetLotteryHistoryLuckyNumber(param *pty.ReqLotteryLuckyHistory) (types.Message, error) {
 	return ListLotteryLuckyHistory(l.GetLocalDB(), l.GetStateDB(), param)
 }
 
-func (l *Lottery) Query_GetLotteryRoundLuckyNumber(param *types.ReqLotteryLuckyInfo) (types.Message, error) {
+func (l *Lottery) Query_GetLotteryRoundLuckyNumber(param *pty.ReqLotteryLuckyInfo) (types.Message, error) {
 	key := calcLotteryDrawKey(param.LotteryId, param.Round)
 	record, err := l.findLotteryDrawRecord(key)
 	if err != nil {
@@ -45,11 +45,11 @@ func (l *Lottery) Query_GetLotteryRoundLuckyNumber(param *types.ReqLotteryLuckyI
 	return record, nil
 }
 
-func (l *Lottery) Query_GetLotteryHistoryBuyInfo(param *types.ReqLotteryBuyHistory) (types.Message, error) {
+func (l *Lottery) Query_GetLotteryHistoryBuyInfo(param *pty.ReqLotteryBuyHistory) (types.Message, error) {
 	return ListLotteryBuyRecords(l.GetLocalDB(), l.GetStateDB(), param)
 }
 
-func (l *Lottery) Query_GetLotteryBuyRoundInfo(param *types.ReqLotteryBuyInfo) (types.Message, error) {
+func (l *Lottery) Query_GetLotteryBuyRoundInfo(param *pty.ReqLotteryBuyInfo) (types.Message, error) {
 	key := calcLotteryBuyRoundPrefix(param.LotteryId, param.Addr, param.Round)
 	record, err := l.findLotteryBuyRecord(key)
 	if err != nil {
