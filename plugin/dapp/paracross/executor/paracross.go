@@ -9,6 +9,7 @@ import (
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/util"
+	"github.com/pkg/errors"
 )
 
 var (
@@ -314,6 +315,21 @@ func (c *Paracross) initLocalAssetTransfer(tx *types.Transaction, success, isDel
 		return &types.KeyValue{key, nil}, nil
 	}
 
+	var payload pt.ParacrossAction
+	err := types.Decode(tx.Payload, &payload)
+	if err != nil {
+		return nil, err
+	}
+	if payload.GetAssetTransfer() == nil {
+		return nil, errors.New("GetAssetTransfer is nil")
+	}
+	exec := types.CoinsX
+	symbol := types.BTY
+	if payload.GetAssetTransfer().Cointoken != "" {
+		exec = types.TokenX
+		symbol = payload.GetAssetTransfer().Cointoken
+	}
+
 	var asset pt.ParacrossAsset
 	clog.Info("para execLocal 2", "action name", tx.ActionName())
 	amount, err := tx.Amount()
@@ -328,6 +344,8 @@ func (c *Paracross) initLocalAssetTransfer(tx *types.Transaction, success, isDel
 		IsWithdraw: false,
 		TxHash:     tx.Hash(),
 		Height:     c.GetHeight(),
+		Exec:       exec,
+		Symbol:     symbol,
 	}
 	clog.Info("para execLocal 3", "action name", tx.ActionName())
 
@@ -355,6 +373,22 @@ func (c *Paracross) initLocalAssetWithdraw(txCommit, tx *types.Transaction, isWi
 	if err != nil {
 		return nil, err
 	}
+
+	var payload pt.ParacrossAction
+	err = types.Decode(tx.Payload, &payload)
+	if err != nil {
+		return nil, err
+	}
+	if payload.GetAssetWithdraw() == nil {
+		return nil, errors.New("GetAssetWithdraw is nil")
+	}
+	exec := types.CoinsX
+	symbol := types.BTY
+	if payload.GetAssetWithdraw().Cointoken != "" {
+		exec = types.TokenX
+		symbol = payload.GetAssetWithdraw().Cointoken
+	}
+
 	asset = pt.ParacrossAsset{
 		From:       tx.From(),
 		To:         tx.To,
@@ -362,6 +396,8 @@ func (c *Paracross) initLocalAssetWithdraw(txCommit, tx *types.Transaction, isWi
 		IsWithdraw: isWithdraw,
 		TxHash:     tx.Hash(),
 		Height:     c.GetHeight(),
+		Exec:       exec,
+		Symbol:     symbol,
 	}
 
 	asset.CommitDoneHeight = c.GetHeight()
