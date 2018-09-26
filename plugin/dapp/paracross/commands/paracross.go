@@ -80,6 +80,8 @@ func addCreateAssetWithdrawFlags(cmd *cobra.Command) {
 
 	cmd.Flags().StringP("to", "t", "", "receiver account address")
 	cmd.MarkFlagRequired("to")
+
+	cmd.Flags().StringP("symbol", "s", "", "default for bty, symbol for token")
 }
 
 func createAssetWithdraw(cmd *cobra.Command, args []string) {
@@ -100,6 +102,7 @@ func createAssetTx(cmd *cobra.Command, isWithdraw bool) (string, error) {
 
 	toAddr, _ := cmd.Flags().GetString("to")
 	note, _ := cmd.Flags().GetString("note")
+	symbol, _ := cmd.Flags().GetString("symbol")
 
 	title, _ := cmd.Flags().GetString("title")
 	if !strings.HasPrefix(title, "user.p") {
@@ -115,7 +118,7 @@ func createAssetTx(cmd *cobra.Command, isWithdraw bool) (string, error) {
 		Note:        note,
 		IsWithdraw:  isWithdraw,
 		IsToken:     false,
-		TokenSymbol: "",
+		TokenSymbol: symbol,
 		ExecName:    execName,
 	}
 	tx, err := pt.CreateRawTransferTx(&param)
