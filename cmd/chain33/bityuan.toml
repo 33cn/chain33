@@ -73,6 +73,8 @@ name="mavl"
 driver="leveldb"
 dbPath="datadir/mavltree"
 dbCache=128
+enableMavlPrefix=false
+enableMVCC=false
 
 [wallet]
 minFee=100000

@@ -233,11 +233,11 @@ func TestHashSame(t *testing.T) {
 	hash1 := t1.Hash()
 
 	EnableMVCC(true)
-	EnableHashPrefix(true)
+	EnableMavlPrefix(true)
 	//t2 在t1的基础上再做修改
 	t2 := NewTree(dbm, true)
-	t1.Set([]byte("1"), []byte("1"))
-	t1.Set([]byte("2"), []byte("2"))
+	t2.Set([]byte("1"), []byte("1"))
+	t2.Set([]byte("2"), []byte("2"))
 	hash2 := t2.Hash()
 	assert.Equal(t, hash1, hash2)
 }

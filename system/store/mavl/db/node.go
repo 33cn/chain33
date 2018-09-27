@@ -146,8 +146,9 @@ func (node *Node) Hash(t *Tree) []byte {
 		leafnode.Value = node.value
 		node.hash = leafnode.Hash()
 
-		if enableHashPrefix {
+		if enableMavlPrefix {
 			hashKey := genPrefixHashKey(node, t.randomstr)
+			hashKey = append(hashKey, node.hash...)
 			node.hash = hashKey
 		}
 	} else {
@@ -174,10 +175,23 @@ func (node *Node) Hash(t *Tree) []byte {
 			panic("node.rightHash was nil in writeHashBytes")
 		}
 		innernode.RightHash = node.rightHash
+		//计算hash时候去除头部
+		if enableMavlPrefix {
+			if node.leftNode != nil {
+				innernode.LeftHash = bytes.TrimPrefix(innernode.LeftHash, genPrefixHashKey(node.leftNode, t.randomstr))
+			}
+			if node.rightNode != nil {
+				innernode.RightHash = bytes.TrimPrefix(innernode.RightHash, genPrefixHashKey(node.rightNode, t.randomstr))
+			}
+		}
 		node.hash = innernode.Hash()
-		if enableHashPrefix {
+		if enableMavlPrefix {
+			//还原前缀hash
+			innernode.LeftHash = node.leftHash
+			innernode.RightHash = node.rightHash
 			if node.height != t.root.height {
 				hashKey := genPrefixHashKey(node, t.randomstr)
+				hashKey = append(hashKey, node.hash...)
 				node.hash = hashKey
 			}
 		}
