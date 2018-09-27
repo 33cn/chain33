@@ -26,7 +26,7 @@ var (
 	ErrNodeNotExist  = errors.New("ErrNodeNotExist")
 	treelog          = log.New("module", "mavl")
 	emptyRoot        [32]byte
-	enableHashPrefix bool
+	enableMavlPrefix bool
 	// 是否开启MVCC
 	enableMvcc bool
 )
@@ -37,8 +37,8 @@ func init() {
 	random = rand.New(rand.NewSource(time.Now().UnixNano()))
 }
 
-func EnableHashPrefix(enable bool) {
-	enableHashPrefix = enable
+func EnableMavlPrefix(enable bool) {
+	enableMavlPrefix = enable
 }
 
 func EnableMVCC(enable bool) {
@@ -482,7 +482,6 @@ func genPrefixHashKey(node *Node, str string) (key []byte) {
 	} else {
 		key = []byte(fmt.Sprintf("%s-%s-", hashNodePrefix, str))
 	}
-	key = append(key, node.hash...)
 	return key
 }
 
