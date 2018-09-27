@@ -165,7 +165,7 @@ func createContract(cmd *cobra.Command, args []string) {
 	}
 	action := types.EVMContractAction{Amount: 0, Code: bCode, GasLimit: 0, GasPrice: 0, Note: note, Alias: alias}
 
-	data, err := createEvmTx(&action, types.ExecName(paraName+"evm"), caller, address.ExecAddress(types.ExecName(paraName+"evm")), expire, rpcLaddr, feeInt64)
+	data, err := createEvmTx(&action, types.ExecName(paraName+"evm"), caller, address.ExecAddress(types.EvmX), expire, rpcLaddr, feeInt64)
 
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "create contract error:", err)
