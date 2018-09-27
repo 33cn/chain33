@@ -229,7 +229,7 @@ func CreateRawEvmCreateCallTx(parm *CreateCallTx) (*types.Transaction, error) {
 			Payload: types.Encode(action),
 			//Fee:     parm.Fee,
 			Nonce: rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-			To:    address.ExecAddress(types.EvmX),
+			To:    address.ExecAddress(types.ExecName(types.EvmX)),
 		}
 	} else {
 		tx = &types.Transaction{
