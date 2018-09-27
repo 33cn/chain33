@@ -440,16 +440,17 @@ func TestSetAndGetKVPair(t *testing.T) {
 		i++
 	}
 	// storeSet hash is nil
-	storeSet.StateHash = nil
-	newhash := SetKVPair(db, &storeSet, true)
-
+	storeSet.StateHash = emptyRoot[:]
+	newhash, err := SetKVPair(db, &storeSet, true)
+	assert.Nil(t, err)
 	//打印指定roothash的tree
 	t.Log("TestSetAndGetKVPair newhash tree")
 	PrintTreeLeaf(db, newhash)
 
 	//删除5个节点
 	storeDel.StateHash = newhash
-	delhash, _ := DelKVPair(db, &storeDel)
+	delhash, _, err := DelKVPair(db, &storeDel)
+	assert.Nil(t, err)
 	//打印指定roothash的tree
 	t.Log("TestSetAndGetKVPair delhash tree")
 	PrintTreeLeaf(db, delhash)
@@ -481,8 +482,8 @@ func TestSetAndGetKVPair(t *testing.T) {
 	}
 	// storeSet hash is newhash
 	storeSet2.StateHash = delhash
-	newhash2 := SetKVPair(db, &storeSet2, true)
-
+	newhash2, err := SetKVPair(db, &storeSet2, true)
+	assert.Nil(t, err)
 	t.Log("TestSetAndGetKVPair newhash2 tree")
 	PrintTreeLeaf(db, newhash2)
 
@@ -525,15 +526,15 @@ func TestGetAndVerifyKVPairProof(t *testing.T) {
 		i++
 	}
 	// storeSet hash is nil
-	storeSet.StateHash = nil
-	newhash := SetKVPair(db, &storeSet, true)
-
+	storeSet.StateHash = emptyRoot[:]
+	newhash, err := SetKVPair(db, &storeSet, true)
+	assert.Nil(t, err)
 	i = 0
 	for i = 0; i < total; i++ {
 		var keyvalue types.KeyValue
 
-		proof := GetKVPairProof(db, newhash, storeGet.Keys[i])
-
+		proof, err := GetKVPairProof(db, newhash, storeGet.Keys[i])
+		assert.Nil(t, err)
 		keyvalue.Key = storeGet.Keys[i]
 		keyvalue.Value = []byte(records[string(storeGet.Keys[i])])
 		exit := VerifyKVPairProof(db, newhash, keyvalue, proof)

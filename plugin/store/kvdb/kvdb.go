@@ -41,14 +41,14 @@ func (kvs *KVStore) Close() {
 	klog.Info("store kvdb closed")
 }
 
-func (kvs *KVStore) Set(datas *types.StoreSet, sync bool) []byte {
+func (kvs *KVStore) Set(datas *types.StoreSet, sync bool) ([]byte, error) {
 	hash := calcHash(datas)
 	kvmap := make(map[string]*types.KeyValue)
 	for _, kv := range datas.KV {
 		kvmap[string(kv.Key)] = kv
 	}
 	kvs.save(kvmap)
-	return hash
+	return hash, nil
 }
 
 func (kvs *KVStore) Get(datas *types.StoreGet) [][]byte {
@@ -72,12 +72,12 @@ func (kvs *KVStore) Get(datas *types.StoreGet) [][]byte {
 	return values
 }
 
-func (kvs *KVStore) MemSet(datas *types.StoreSet, sync bool) []byte {
+func (kvs *KVStore) MemSet(datas *types.StoreSet, sync bool) ([]byte, error) {
 	if len(datas.KV) == 0 {
 		klog.Info("store kv memset,use preStateHash as stateHash for kvset is null")
 		kvmap := make(map[string]*types.KeyValue)
 		kvs.cache[string(datas.StateHash)] = kvmap
-		return datas.StateHash
+		return datas.StateHash, nil
 	}
 
 	hash := calcHash(datas)
@@ -89,7 +89,7 @@ func (kvs *KVStore) MemSet(datas *types.StoreSet, sync bool) []byte {
 	if len(kvs.cache) > 100 {
 		klog.Error("too many items in cache")
 	}
-	return hash
+	return hash, nil
 }
 
 func (kvs *KVStore) Commit(req *types.ReqHash) ([]byte, error) {
