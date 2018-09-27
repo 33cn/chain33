@@ -187,7 +187,7 @@ func (innernode *InnerNode) Hash() []byte {
 		innernode.RightHash = innernode.RightHash[len(innernode.RightHash)-hashLen:]
 	}
 	if len(innernode.LeftHash) > hashLen {
-		innernode.LeftHash =  innernode.LeftHash[len(innernode.LeftHash)-hashLen:]
+		innernode.LeftHash = innernode.LeftHash[len(innernode.LeftHash)-hashLen:]
 	}
 	data, err := proto.Marshal(innernode)
 	if err != nil {
