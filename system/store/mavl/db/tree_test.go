@@ -190,6 +190,35 @@ func TestTreeHeightAndSize(t *testing.T) {
 	db.Close()
 }
 
+//获取共享的老数据
+func TestSetAndGetOld(t *testing.T) {
+	dir, err := ioutil.TempDir("", "datastore")
+	require.NoError(t, err)
+	t.Log(dir)
+	dbm := db.NewDB("mavltree", "leveldb", dir, 100)
+	t1 := NewTree(dbm, true)
+	t1.Set([]byte("1"), []byte("1"))
+	t1.Set([]byte("2"), []byte("2"))
+
+	hash := t1.Hash()
+	t1.Save()
+
+	//t2 在t1的基础上再做修改
+	t2 := NewTree(dbm, true)
+	t2.Load(hash)
+	t2.Set([]byte("2"), []byte("22"))
+	hash = t2.Hash()
+	t2.Save()
+
+	t3 := NewTree(dbm, true)
+	t3.Load(hash)
+	_, v, _ := t3.Get([]byte("1"))
+	assert.Equal(t, []byte("1"), v)
+
+	_, v, _ = t3.Get([]byte("2"))
+	assert.Equal(t, []byte("22"), v)
+}
+
 //测试hash，save,load以及节点value值的更新功能
 func TestPersistence(t *testing.T) {
 	dir, err := ioutil.TempDir("", "datastore")
