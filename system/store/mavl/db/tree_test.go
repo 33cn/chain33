@@ -242,6 +242,38 @@ func TestHashSame(t *testing.T) {
 	assert.Equal(t, hash1, hash2)
 }
 
+func TestHashSame2(t *testing.T) {
+	dir, err := ioutil.TempDir("", "datastore")
+	require.NoError(t, err)
+	t.Log(dir)
+
+	db1 := db.NewDB("test1", "leveldb", dir, 100)
+	prevHash := make([]byte, 32)
+	strs1 := make(map[string]bool)
+	for i := 0; i < 10; i++ {
+		prevHash, err = saveBlock(db1, int64(i), prevHash, 1000, false)
+		assert.Nil(t, err)
+		str := Bytes2Hex(prevHash)
+		fmt.Println("unable", str)
+		strs1[str] = true
+	}
+
+	db2 := db.NewDB("test2", "leveldb", dir, 100)
+	prevHash = prevHash[:0]
+	EnableMVCC(true)
+	EnableMavlPrefix(true)
+	for i := 0; i < 10; i++ {
+		prevHash, err = saveBlock(db2, int64(i), prevHash, 1000, false)
+		assert.Nil(t, err)
+		str := Bytes2Hex(prevHash)
+		fmt.Println("enable", str)
+		if ok, _ := strs1[str]; !ok {
+			t.Error("enable Prefix have a different hash")
+		}
+	}
+
+}
+
 //测试hash，save,load以及节点value值的更新功能
 func TestPersistence(t *testing.T) {
 	dir, err := ioutil.TempDir("", "datastore")
@@ -782,6 +814,9 @@ func BenchmarkDBGet(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		prevHash, err = saveBlock(db, int64(i), prevHash, 1000, false)
 		assert.Nil(b, err)
+		if i % 10 == 0 {
+			fmt.Println(prevHash)
+		}
 	}
 	b.ResetTimer()
 	t := NewTree(db, true)
@@ -801,9 +836,13 @@ func BenchmarkDBGetMVCC(b *testing.B) {
 	b.Log(dir)
 	ldb := db.NewDB("test", "leveldb", dir, 100)
 	prevHash := make([]byte, 32)
+	EnableMavlPrefix(true)
 	for i := 0; i < b.N; i++ {
 		prevHash, err = saveBlock(ldb, int64(i), prevHash, 1000, true)
 		assert.Nil(b, err)
+		if i % 10 == 0 {
+			fmt.Println(prevHash)
+		}
 	}
 	b.ResetTimer()
 	mvccdb := db.NewMVCC(ldb)
@@ -828,7 +867,7 @@ func genKVShort(height int64, txN int64) (kvs []*types.KeyValue) {
 
 func genKV(height int64, txN int64) (kvs []*types.KeyValue) {
 	for i := int64(0); i < txN; i++ {
-		n := height*1000 + i
+		n := height*txN + i
 		key := i2b(int32(n))
 		value := Sha256(key)
 		kvs = append(kvs, &types.KeyValue{Key: key, Value: value})
