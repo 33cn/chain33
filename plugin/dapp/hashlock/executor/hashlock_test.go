@@ -15,6 +15,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
+	hlt "gitlab.33.cn/chain33/chain33/plugin/dapp/hashlock/types"
 	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
 	"google.golang.org/grpc"
@@ -171,7 +172,7 @@ func estHashlock(t *testing.T) {
 	value := strings.TrimSpace(string(reply.Msg))
 	fmt.Println("GetValue=", []byte(value))
 
-	var hashlockquery types.Hashlockquery
+	var hashlockquery hlt.Hashlockquery
 	err = proto.Unmarshal([]byte(value), &hashlockquery)
 	if err != nil {
 		t.Error(err)
@@ -270,7 +271,7 @@ func estHashunlock(t *testing.T) {
 	value := strings.TrimSpace(string(reply.Msg))
 	fmt.Println("GetValue=", []byte(value))
 
-	var hashlockquery types.Hashlockquery
+	var hashlockquery hlt.Hashlockquery
 	err = proto.Unmarshal([]byte(value), &hashlockquery)
 	if err != nil {
 		t.Error(err)
@@ -370,7 +371,7 @@ func estHashsend(t *testing.T) {
 	value := strings.TrimSpace(string(reply.Msg))
 	fmt.Println("GetValue=", []byte(value))
 
-	var hashlockquery types.Hashlockquery
+	var hashlockquery hlt.Hashlockquery
 	err = proto.Unmarshal([]byte(value), &hashlockquery)
 	if err != nil {
 		//		clog.Error("TestHashlockQuery Unmarshal")
@@ -382,9 +383,9 @@ func estHashsend(t *testing.T) {
 }
 
 func lock(secret []byte) error {
-	vlock := &types.HashlockAction_Hlock{&types.HashlockLock{Amount: lockAmount, Time: int64(locktime), Hash: common.Sha256(secret), ToAddress: addr[accountindexB], ReturnAddress: addr[accountindexA]}}
+	vlock := &hlt.HashlockAction_Hlock{&hlt.HashlockLock{Amount: lockAmount, Time: int64(locktime), Hash: common.Sha256(secret), ToAddress: addr[accountindexB], ReturnAddress: addr[accountindexA]}}
 	//fmt.Println(vlock)
-	transfer := &types.HashlockAction{Value: vlock, Ty: types.HashlockActionLock}
+	transfer := &hlt.HashlockAction{Value: vlock, Ty: hlt.HashlockActionLock}
 	tx := &types.Transaction{Execer: []byte("hashlock"), Payload: types.Encode(transfer), Fee: fee, To: addr[accountindexB]}
 	tx.Nonce = r.Int63()
 	tx.Sign(types.SECP256K1, privkey[accountindexA])
@@ -401,8 +402,8 @@ func lock(secret []byte) error {
 }
 func unlock(secret []byte) error {
 
-	vunlock := &types.HashlockAction_Hunlock{&types.HashlockUnlock{Secret: secret}}
-	transfer := &types.HashlockAction{Value: vunlock, Ty: types.HashlockActionUnlock}
+	vunlock := &hlt.HashlockAction_Hunlock{&hlt.HashlockUnlock{Secret: secret}}
+	transfer := &hlt.HashlockAction{Value: vunlock, Ty: hlt.HashlockActionUnlock}
 	tx := &types.Transaction{Execer: []byte("hashlock"), Payload: types.Encode(transfer), Fee: fee, To: addr[accountindexB]}
 	tx.Nonce = r.Int63()
 	tx.Sign(types.SECP256K1, privkey[accountindexA])
@@ -419,8 +420,8 @@ func unlock(secret []byte) error {
 
 func send(secret []byte) error {
 
-	vsend := &types.HashlockAction_Hsend{&types.HashlockSend{Secret: secret}}
-	transfer := &types.HashlockAction{Value: vsend, Ty: types.HashlockActionSend}
+	vsend := &hlt.HashlockAction_Hsend{&hlt.HashlockSend{Secret: secret}}
+	transfer := &hlt.HashlockAction{Value: vsend, Ty: hlt.HashlockActionSend}
 	tx := &types.Transaction{Execer: []byte("hashlock"), Payload: types.Encode(transfer), Fee: fee, To: addr[accountindexB]}
 	tx.Nonce = r.Int63()
 	tx.Sign(types.SECP256K1, privkey[accountindexB])
