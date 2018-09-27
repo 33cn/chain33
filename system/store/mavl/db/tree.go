@@ -17,10 +17,10 @@ import (
 )
 
 const (
-	hashNodePrefix = "mavl-head"
-	leafNodePrefix = "mavl-body"
+	hashNodePrefix = "_mh_"
+	leafNodePrefix = "_mb_"
 	// 是否开启添加hash节点前缀
-	enableHashPrefix = false
+	enableHashPrefix = true
 	// 是否开启MVCC
 	EnableMvcc = false
 )
@@ -316,7 +316,6 @@ func (ndb *nodeDB) SaveNode(t *Tree, node *Node) {
 	ndb.cacheNode(node)
 	delete(ndb.orphans, string(node.hash))
 	//treelog.Debug("SaveNode", "hash", node.hash, "height", node.height, "value", node.value)
-
 }
 
 //cache缓存节点
