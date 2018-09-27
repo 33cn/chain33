@@ -7,7 +7,7 @@ const (
 	keyAddr           = "Addr"
 	keyLabel          = "Label"
 	keyTx             = "Tx"
-	keyEncryptionFlag = "EncryptionFlag"
+	keyEncryptionFlag = "Encryption"
 	keyPasswordHash   = "PasswordHash"
 	keyWalletSeed     = "walletseed"
 )
