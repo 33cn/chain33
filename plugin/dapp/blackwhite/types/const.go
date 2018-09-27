@@ -38,14 +38,12 @@ var (
 	//GRPCName         = "chain33.blackwhite"
 	JRPCName         = "Blackwhite"
 	ExecerBlackwhite = []byte(BlackwhiteX)
-
-	actionName = map[string]int32{
+	actionName       = map[string]int32{
 		"Create":      BlackwhiteActionCreate,
 		"Play":        BlackwhiteActionPlay,
 		"Show":        BlackwhiteActionShow,
 		"TimeoutDone": BlackwhiteActionTimeoutDone,
 	}
-
 	logInfo = map[int64]*types.LogInfo{
 		TyLogBlackwhiteCreate:   &types.LogInfo{reflect.TypeOf(ReceiptBlackwhite{}), "LogBlackwhiteCreate"},
 		TyLogBlackwhitePlay:     &types.LogInfo{reflect.TypeOf(ReceiptBlackwhite{}), "LogBlackwhitePlay"},
