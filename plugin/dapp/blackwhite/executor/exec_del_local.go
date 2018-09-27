@@ -9,7 +9,7 @@ func (c *Blackwhite) execDelLocal(receiptData *types.ReceiptData) ([]*types.KeyV
 	retKV := make([]*types.KeyValue, 0)
 	for _, log := range receiptData.Logs {
 		switch log.Ty {
-		case types.TyLogBlackwhiteCreate:
+		case gt.TyLogBlackwhiteCreate:
 			{
 				var receipt gt.ReceiptBlackwhiteStatus
 				err := types.Decode(log.Log, &receipt)
@@ -20,10 +20,10 @@ func (c *Blackwhite) execDelLocal(receiptData *types.ReceiptData) ([]*types.KeyV
 				retKV = append(retKV, kv...)
 				break
 			}
-		case types.TyLogBlackwhitePlay:
-		case types.TyLogBlackwhiteShow:
-		case types.TyLogBlackwhiteTimeout:
-		case types.TyLogBlackwhiteDone:
+		case gt.TyLogBlackwhitePlay:
+		case gt.TyLogBlackwhiteShow:
+		case gt.TyLogBlackwhiteTimeout:
+		case gt.TyLogBlackwhiteDone:
 			{
 				var receipt gt.ReceiptBlackwhiteStatus
 				err := types.Decode(log.Log, &receipt)
@@ -38,7 +38,7 @@ func (c *Blackwhite) execDelLocal(receiptData *types.ReceiptData) ([]*types.KeyV
 				retKV = append(retKV, kv...)
 				break
 			}
-		case types.TyLogBlackwhiteLoopInfo:
+		case gt.TyLogBlackwhiteLoopInfo:
 			{
 				var res gt.ReplyLoopResults
 				err := types.Decode(log.Log, &res)
