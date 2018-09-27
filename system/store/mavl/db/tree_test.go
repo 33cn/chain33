@@ -814,7 +814,7 @@ func BenchmarkDBGet(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		prevHash, err = saveBlock(db, int64(i), prevHash, 1000, false)
 		assert.Nil(b, err)
-		if i % 10 == 0 {
+		if i%10 == 0 {
 			fmt.Println(prevHash)
 		}
 	}
@@ -840,7 +840,7 @@ func BenchmarkDBGetMVCC(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		prevHash, err = saveBlock(ldb, int64(i), prevHash, 1000, true)
 		assert.Nil(b, err)
-		if i % 10 == 0 {
+		if i%10 == 0 {
 			fmt.Println(prevHash)
 		}
 	}
