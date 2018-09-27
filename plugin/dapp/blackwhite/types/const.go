@@ -1,6 +1,8 @@
 package types
 
 import (
+	"reflect"
+
 	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -12,6 +14,16 @@ const (
 	BlackwhiteStatusShow
 	BlackwhiteStatusTimeout
 	BlackwhiteStatusDone
+)
+
+const (
+	// log for blackwhite game
+	TyLogBlackwhiteCreate   = 750
+	TyLogBlackwhitePlay     = 751
+	TyLogBlackwhiteShow     = 752
+	TyLogBlackwhiteTimeout  = 753
+	TyLogBlackwhiteDone     = 754
+	TyLogBlackwhiteLoopInfo = 755
 )
 
 const (
@@ -32,6 +44,15 @@ var (
 		"Play":        BlackwhiteActionPlay,
 		"Show":        BlackwhiteActionShow,
 		"TimeoutDone": BlackwhiteActionTimeoutDone,
+	}
+
+	logInfo = map[int64]*types.LogInfo{
+		TyLogBlackwhiteCreate:   &types.LogInfo{reflect.TypeOf(ReceiptBlackwhite{}), "LogBlackwhiteCreate"},
+		TyLogBlackwhitePlay:     &types.LogInfo{reflect.TypeOf(ReceiptBlackwhite{}), "LogBlackwhitePlay"},
+		TyLogBlackwhiteShow:     &types.LogInfo{reflect.TypeOf(ReceiptBlackwhite{}), "LogBlackwhiteShow"},
+		TyLogBlackwhiteTimeout:  &types.LogInfo{reflect.TypeOf(ReceiptBlackwhite{}), "LogBlackwhiteTimeout"},
+		TyLogBlackwhiteDone:     &types.LogInfo{reflect.TypeOf(ReceiptBlackwhite{}), "LogBlackwhiteDone"},
+		TyLogBlackwhiteLoopInfo: &types.LogInfo{reflect.TypeOf(ReplyLoopResults{}), "LogBlackwhiteLoopInfo"},
 	}
 )
 
