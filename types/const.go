@@ -251,14 +251,6 @@ const (
 	TyLogCancleGame = 713
 	TyLogCloseGame  = 714
 
-	// log for blackwhite game
-	TyLogBlackwhiteCreate   = 750
-	TyLogBlackwhitePlay     = 751
-	TyLogBlackwhiteShow     = 752
-	TyLogBlackwhiteTimeout  = 753
-	TyLogBlackwhiteDone     = 754
-	TyLogBlackwhiteLoopInfo = 755
-
 	//log for lottery
 	TyLogLotteryCreate = 801
 	TyLogLotteryBuy    = 802
