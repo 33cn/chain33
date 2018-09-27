@@ -235,9 +235,9 @@ auto_ci_after: clean fmt protobuf mock
 .PHONY: auto_ci
 auto_fmt := find . -name '*.go' -not -path './vendor/*' | xargs goimports -l -w
 auto_ci: clean fmt_proto fmt_shell protobuf mock
-	@-go fmt ./...
+	@-find . -name '*.go' -not -path './vendor/*' | xargs gofmt -l -w -s
 	@-${auto_fmt}
-	@go fmt ./...
+	@-find . -name '*.go' -not -path './vendor/*' | xargs gofmt -l -w -s
 	@${auto_fmt}
 	@git add *.go *.sh *.proto
 	@git status
