@@ -161,10 +161,6 @@ func (suite *AssetTransferTestSuite) TestExecTransferInPara() {
 	types.SetTitle(Title)
 	toB := Nodes[1]
 
-	acc := account.NewCoinsAccount()
-	acc.SetDB(suite.stateDB)
-	addrTest := address.ExecAddress(Title + types.ParaX)
-
 	tx, err := createAssetTransferTx(suite.Suite, PrivKeyA, toB)
 	if err != nil {
 		suite.T().Error("TestExecTransfer", "createTxGroup", err)
@@ -186,7 +182,8 @@ func (suite *AssetTransferTestSuite) TestExecTransferInPara() {
 		suite.T().Log(string(kv.Key), v)
 	}
 
-	resultB := acc.LoadExecAccount(string(toB), addrTest)
+	acc, _ := NewParaAccount(Title, "coins", "bty", suite.stateDB)
+	resultB := acc.LoadAccount(string(toB))
 	assert.Equal(suite.T(), Amount, resultB.Balance)
 }
 
@@ -199,6 +196,110 @@ func createAssetTransferTx(s suite.Suite, privFrom string, to []byte) (*types.Tr
 		IsWithdraw:  false,
 		IsToken:     false,
 		TokenSymbol: "",
+		ExecName:    Title + types.ParaX,
+	}
+	tx, err := pt.CreateRawTransferTx(&param)
+	assert.Nil(s.T(), err, "create asset transfer failed")
+	if err != nil {
+		return nil, err
+	}
+
+	tx, err = signTx(s, tx, privFrom)
+	assert.Nil(s.T(), err, "sign asset transfer failed")
+	if err != nil {
+		return nil, err
+	}
+
+	return tx, nil
+}
+
+const TestSymbol = "TEST"
+
+func (suite *AssetTransferTestSuite) TestExecTransferToken() {
+	types.SetTitle("test")
+	toB := Nodes[1]
+
+	total := 1000 * types.Coin
+	accountA := types.Account{
+		Balance: total,
+		Frozen:  0,
+		Addr:    string(Nodes[0]),
+	}
+	acc, _ := account.NewAccountDB(types.TokenX, TestSymbol, suite.stateDB)
+	addrMain := address.ExecAddress(types.ParaX)
+	addrPara := address.ExecAddress(Title + types.ParaX)
+
+	acc.SaveExecAccount(addrMain, &accountA)
+
+	tx, err := createAssetTransferTokenTx(suite.Suite, PrivKeyA, toB)
+	if err != nil {
+		suite.T().Error("TestExecTransfer", "createTxGroup", err)
+		return
+	}
+	suite.T().Log(string(tx.Execer))
+	receipt, err := suite.exec.Exec(tx, 1)
+	if err != nil {
+		suite.T().Error("Exec Transfer", err)
+		return
+	}
+	for _, kv := range receipt.KV {
+		var v types.Account
+		err = types.Decode(kv.Value, &v)
+		if err != nil {
+			// skip, only check frozen
+			continue
+		}
+		suite.T().Log(string(kv.Key), v)
+	}
+	suite.T().Log("para-exec addr on main", addrMain)
+	suite.T().Log("para-exec addr on para", addrPara)
+	suite.T().Log("para-exec addr for A account", accountA.Addr)
+	accTest := acc.LoadExecAccount(addrPara, addrMain)
+	assert.Equal(suite.T(), Amount, accTest.Balance)
+
+	resultA := acc.LoadExecAccount(string(Nodes[0]), addrMain)
+	assert.Equal(suite.T(), total-Amount, resultA.Balance)
+}
+
+func (suite *AssetTransferTestSuite) TestExecTransferTokenInPara() {
+	types.SetTitle(Title)
+	toB := Nodes[1]
+
+	tx, err := createAssetTransferTokenTx(suite.Suite, PrivKeyA, toB)
+	if err != nil {
+		suite.T().Error("TestExecTransfer", "createTxGroup", err)
+		return
+	}
+
+	receipt, err := suite.exec.Exec(tx, 1)
+	if err != nil {
+		suite.T().Error("Exec Transfer", err)
+		return
+	}
+	for _, kv := range receipt.KV {
+		var v types.Account
+		err = types.Decode(kv.Value, &v)
+		if err != nil {
+			// skip, only check frozen
+			continue
+		}
+		suite.T().Log(string(kv.Key), v)
+	}
+
+	acc, _ := NewParaAccount(Title, types.TokenX, TestSymbol, suite.stateDB)
+	resultB := acc.LoadAccount(string(toB))
+	assert.Equal(suite.T(), Amount, resultB.Balance)
+}
+
+func createAssetTransferTokenTx(s suite.Suite, privFrom string, to []byte) (*types.Transaction, error) {
+	param := types.CreateTx{
+		To:          string(to),
+		Amount:      Amount,
+		Fee:         0,
+		Note:        "test asset transfer",
+		IsWithdraw:  false,
+		IsToken:     false,
+		TokenSymbol: TestSymbol,
 		ExecName:    Title + types.ParaX,
 	}
 	tx, err := pt.CreateRawTransferTx(&param)

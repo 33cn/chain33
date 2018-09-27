@@ -16,7 +16,8 @@ import (
 	"gitlab.33.cn/chain33/chain33/types/executor"
 	evmtype "gitlab.33.cn/chain33/chain33/types/executor/evm"
 	hashlocktype "gitlab.33.cn/chain33/chain33/types/executor/hashlock"
-	lotterytype "gitlab.33.cn/chain33/chain33/types/executor/lottery"
+	//lotterytype "gitlab.33.cn/chain33/chain33/types/executor/lottery"
+	lotterytype "gitlab.33.cn/chain33/chain33/plugin/dapp/lottery/types"
 	retrievetype "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
 	tokentype "gitlab.33.cn/chain33/chain33/types/executor/token"
 	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
@@ -86,12 +87,9 @@ func callCreateTx(execName, action string, param interface{}) ([]byte, error) {
 	//填写nonce,execer,to, fee 等信息, 后面会增加一个修改transaction的函数，会加上execer fee 等的修改
 	tx.Nonce = random.Int63()
 	tx.Execer = []byte(execName)
-	tx.To = ""
-	newto := exec.GetRealToAddr(tx)
-	if newto == "" {
+	//平行链，所有的to地址都是合约地址
+	if types.IsPara() || tx.To == "" {
 		tx.To = address.ExecAddress(string(tx.Execer))
-	} else {
-		tx.To = newto
 	}
 	tx.Fee, err = tx.GetRealFee(types.MinFee)
 	if err != nil {
