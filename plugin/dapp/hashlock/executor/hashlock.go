@@ -51,7 +51,7 @@ func (h *Hashlock) GetDriverName() string {
 }
 
 func (h *Hashlock) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
-	var action types.HashlockAction
+	var action pty.HashlockAction
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
 		return nil, err
@@ -59,7 +59,7 @@ func (h *Hashlock) Exec(tx *types.Transaction, index int) (*types.Receipt, error
 
 	clog.Debug("exec hashlock tx=", "tx=", action)
 	actiondb := NewAction(h, tx, drivers.ExecAddress(string(tx.Execer)))
-	if action.Ty == types.HashlockActionLock && action.GetHlock() != nil {
+	if action.Ty == pty.HashlockActionLock && action.GetHlock() != nil {
 		clog.Debug("hashlocklock action")
 		hlock := action.GetHlock()
 		if hlock.Amount <= 0 {
@@ -84,12 +84,12 @@ func (h *Hashlock) Exec(tx *types.Transaction, index int) (*types.Receipt, error
 			return nil, types.ErrHashlockTime
 		}
 		return actiondb.Hashlocklock(hlock)
-	} else if action.Ty == types.HashlockActionUnlock && action.GetHunlock() != nil {
+	} else if action.Ty == pty.HashlockActionUnlock && action.GetHunlock() != nil {
 		hunlock := action.GetHunlock()
 		//unlock 有两个条件： 1. 时间已经过期 2. 密码是对的，返回原来的账户
 		clog.Debug("hashlockunlock action")
 		return actiondb.Hashlockunlock(hunlock)
-	} else if action.Ty == types.HashlockActionSend && action.GetHsend() != nil {
+	} else if action.Ty == pty.HashlockActionSend && action.GetHsend() != nil {
 		hsend := action.GetHsend()
 		//send 有两个条件：1. 时间没有过期 2. 密码是对的，币转移到 ToAddress
 		clog.Debug("hashlocksend action")
@@ -120,26 +120,26 @@ func (h *Hashlock) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 		return set, nil
 	}
 	//执行成功
-	var action types.HashlockAction
+	var action pty.HashlockAction
 	err = types.Decode(tx.GetPayload(), &action)
 	if err != nil {
 		panic(err)
 	}
 
 	var kv *types.KeyValue
-	if action.Ty == types.HashlockActionLock && action.GetHlock() != nil {
+	if action.Ty == pty.HashlockActionLock && action.GetHlock() != nil {
 		hlock := action.GetHlock()
-		info := types.Hashlockquery{hlock.Time, hashlockLocked, hlock.Amount, h.GetBlockTime(), 0}
+		info := pty.Hashlockquery{hlock.Time, hashlockLocked, hlock.Amount, h.GetBlockTime(), 0}
 		clog.Error("ExecLocal", "info", info)
 		kv, err = UpdateHashReciver(h.GetLocalDB(), hlock.Hash, info)
-	} else if action.Ty == types.HashlockActionUnlock && action.GetHunlock() != nil {
+	} else if action.Ty == pty.HashlockActionUnlock && action.GetHunlock() != nil {
 		hunlock := action.GetHunlock()
-		info := types.Hashlockquery{0, hashlockUnlocked, 0, 0, 0}
+		info := pty.Hashlockquery{0, hashlockUnlocked, 0, 0, 0}
 		clog.Error("ExecLocal", "info", info)
 		kv, err = UpdateHashReciver(h.GetLocalDB(), common.Sha256(hunlock.Secret), info)
-	} else if action.Ty == types.HashlockActionSend && action.GetHsend() != nil {
+	} else if action.Ty == pty.HashlockActionSend && action.GetHsend() != nil {
 		hsend := action.GetHsend()
-		info := types.Hashlockquery{0, hashlockSent, 0, 0, 0}
+		info := pty.Hashlockquery{0, hashlockSent, 0, 0, 0}
 		clog.Error("ExecLocal", "info", info)
 		kv, err = UpdateHashReciver(h.GetLocalDB(), common.Sha256(hsend.Secret), info)
 	}
@@ -161,23 +161,23 @@ func (h *Hashlock) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptDat
 		return set, nil
 	}
 	//执行成功
-	var action types.HashlockAction
+	var action pty.HashlockAction
 	err = types.Decode(tx.GetPayload(), &action)
 	if err != nil {
 		panic(err)
 	}
 	var kv *types.KeyValue
-	if action.Ty == types.HashlockActionLock && action.GetHlock() != nil {
+	if action.Ty == pty.HashlockActionLock && action.GetHlock() != nil {
 		hlock := action.GetHlock()
-		info := types.Hashlockquery{hlock.Time, hashlockLocked, hlock.Amount, h.GetBlockTime(), 0}
+		info := pty.Hashlockquery{hlock.Time, hashlockLocked, hlock.Amount, h.GetBlockTime(), 0}
 		kv, err = UpdateHashReciver(h.GetLocalDB(), hlock.Hash, info)
-	} else if action.Ty == types.HashlockActionUnlock && action.GetHunlock() != nil {
+	} else if action.Ty == pty.HashlockActionUnlock && action.GetHunlock() != nil {
 		hunlock := action.GetHunlock()
-		info := types.Hashlockquery{0, hashlockUnlocked, 0, 0, 0}
+		info := pty.Hashlockquery{0, hashlockUnlocked, 0, 0, 0}
 		kv, err = UpdateHashReciver(h.GetLocalDB(), common.Sha256(hunlock.Secret), info)
-	} else if action.Ty == types.HashlockActionSend && action.GetHsend() != nil {
+	} else if action.Ty == pty.HashlockActionSend && action.GetHsend() != nil {
 		hsend := action.GetHsend()
-		info := types.Hashlockquery{0, hashlockSent, 0, 0, 0}
+		info := pty.Hashlockquery{0, hashlockSent, 0, 0, 0}
 		kv, err = UpdateHashReciver(h.GetLocalDB(), common.Sha256(hsend.Secret), info)
 	}
 	if err != nil {

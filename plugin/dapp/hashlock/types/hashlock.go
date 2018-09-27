@@ -38,20 +38,20 @@ func NewType() *HashlockType {
 }
 
 func (hashlock *HashlockType) GetPayload() types.Message {
-	return &types.HashlockAction{}
+	return &HashlockAction{}
 }
 
 func (hashlock *HashlockType) ActionName(tx *types.Transaction) string {
-	var action types.HashlockAction
+	var action HashlockAction
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
 		return "unknown-err"
 	}
-	if action.Ty == types.HashlockActionLock && action.GetHlock() != nil {
+	if action.Ty == HashlockActionLock && action.GetHlock() != nil {
 		return "lock"
-	} else if action.Ty == types.HashlockActionUnlock && action.GetHunlock() != nil {
+	} else if action.Ty == HashlockActionUnlock && action.GetHunlock() != nil {
 		return "unlock"
-	} else if action.Ty == types.HashlockActionSend && action.GetHsend() != nil {
+	} else if action.Ty == HashlockActionSend && action.GetHsend() != nil {
 		return "send"
 	}
 	return "unknown"
@@ -129,16 +129,16 @@ func CreateRawHashlockLockTx(parm *HashlockLockTx) (*types.Transaction, error) {
 		return nil, types.ErrInvalidParam
 	}
 
-	v := &types.HashlockLock{
+	v := &HashlockLock{
 		Amount:        parm.Amount,
 		Time:          parm.Time,
 		Hash:          common.Sha256([]byte(parm.Secret)),
 		ToAddress:     parm.ToAddr,
 		ReturnAddress: parm.ReturnAddr,
 	}
-	lock := &types.HashlockAction{
-		Ty:    types.HashlockActionLock,
-		Value: &types.HashlockAction_Hlock{v},
+	lock := &HashlockAction{
+		Ty:    HashlockActionLock,
+		Value: &HashlockAction_Hlock{v},
 	}
 	tx := &types.Transaction{
 		Execer:  []byte(types.ExecName(nameX)),
@@ -162,12 +162,12 @@ func CreateRawHashlockUnlockTx(parm *HashlockUnlockTx) (*types.Transaction, erro
 		return nil, types.ErrInvalidParam
 	}
 
-	v := &types.HashlockUnlock{
+	v := &HashlockUnlock{
 		Secret: []byte(parm.Secret),
 	}
-	unlock := &types.HashlockAction{
-		Ty:    types.HashlockActionUnlock,
-		Value: &types.HashlockAction_Hunlock{v},
+	unlock := &HashlockAction{
+		Ty:    HashlockActionUnlock,
+		Value: &HashlockAction_Hunlock{v},
 	}
 	tx := &types.Transaction{
 		Execer:  []byte(nameX),
@@ -191,12 +191,12 @@ func CreateRawHashlockSendTx(parm *HashlockSendTx) (*types.Transaction, error) {
 		return nil, types.ErrInvalidParam
 	}
 
-	v := &types.HashlockSend{
+	v := &HashlockSend{
 		Secret: []byte(parm.Secret),
 	}
-	send := &types.HashlockAction{
-		Ty:    types.HashlockActionSend,
-		Value: &types.HashlockAction_Hsend{v},
+	send := &HashlockAction{
+		Ty:    HashlockActionSend,
+		Value: &HashlockAction_Hsend{v},
 	}
 	tx := &types.Transaction{
 		Execer:  []byte(nameX),
