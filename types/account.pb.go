@@ -115,13 +115,6 @@ It has these top-level messages:
 	EvmDebugReq
 	EvmDebugResp
 	Genesis
-	Hashlock
-	HashlockAction
-	HashlockLock
-	HashlockUnlock
-	HashlockSend
-	HashRecv
-	Hashlockquery
 	Ticket
 	TicketAction
 	TicketMiner

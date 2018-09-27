@@ -9,6 +9,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
+	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/hashlock/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -21,7 +22,7 @@ const (
 )
 
 type DB struct {
-	types.Hashlock
+	pty.Hashlock
 }
 
 func NewDB(id []byte, returnWallet string, toAddress string, blocktime int64, amount int64, time int64) *DB {
@@ -72,7 +73,7 @@ func NewAction(h *Hashlock, tx *types.Transaction, execaddr string) *Action {
 	return &Action{h.GetCoinsAccount(), h.GetStateDB(), hash, fromaddr, h.GetBlockTime(), h.GetHeight(), execaddr}
 }
 
-func (action *Action) Hashlocklock(hlock *types.HashlockLock) (*types.Receipt, error) {
+func (action *Action) Hashlocklock(hlock *pty.HashlockLock) (*types.Receipt, error) {
 
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
@@ -103,7 +104,7 @@ func (action *Action) Hashlocklock(hlock *types.HashlockLock) (*types.Receipt, e
 	return receipt, nil
 }
 
-func (action *Action) Hashlockunlock(unlock *types.HashlockUnlock) (*types.Receipt, error) {
+func (action *Action) Hashlockunlock(unlock *pty.HashlockUnlock) (*types.Receipt, error) {
 
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
@@ -148,7 +149,7 @@ func (action *Action) Hashlockunlock(unlock *types.HashlockUnlock) (*types.Recei
 	return receipt, nil
 }
 
-func (action *Action) Hashlocksend(send *types.HashlockSend) (*types.Receipt, error) {
+func (action *Action) Hashlocksend(send *pty.HashlockSend) (*types.Receipt, error) {
 
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
@@ -192,12 +193,12 @@ func (action *Action) Hashlocksend(send *types.HashlockSend) (*types.Receipt, er
 	return receipt, nil
 }
 
-func readHashlock(db dbm.KV, id []byte) (*types.Hashlock, error) {
+func readHashlock(db dbm.KV, id []byte) (*pty.Hashlock, error) {
 	data, err := db.Get(Key(id))
 	if err != nil {
 		return nil, err
 	}
-	var hashlock types.Hashlock
+	var hashlock pty.Hashlock
 	//decode
 	err = types.Decode(data, &hashlock)
 	if err != nil {
@@ -206,15 +207,15 @@ func readHashlock(db dbm.KV, id []byte) (*types.Hashlock, error) {
 	return &hashlock, nil
 }
 
-func NewHashlockquery() *types.Hashlockquery {
-	q := types.Hashlockquery{}
+func NewHashlockquery() *pty.Hashlockquery {
+	q := pty.Hashlockquery{}
 	return &q
 }
 
 //将Information转换成byte类型，使输出为kv模式
-func GeHashReciverKV(hashlockID []byte, information *types.Hashlockquery) *types.KeyValue {
+func GeHashReciverKV(hashlockID []byte, information *pty.Hashlockquery) *types.KeyValue {
 	clog.Error("GeHashReciverKV action")
-	infor := types.Hashlockquery{information.Time, information.Status, information.Amount, information.CreateTime, information.CurrentTime}
+	infor := pty.Hashlockquery{information.Time, information.Status, information.Amount, information.CreateTime, information.CurrentTime}
 	clog.Error("GeHashReciverKV action", "Status", information.Status)
 	reciver, err := json.Marshal(infor)
 	if err == nil {
@@ -229,7 +230,7 @@ func GeHashReciverKV(hashlockID []byte, information *types.Hashlockquery) *types
 }
 
 //从db里面根据key获取value,期间需要进行解码
-func GetHashReciver(db dbm.KVDB, hashlockID []byte) (*types.Hashlockquery, error) {
+func GetHashReciver(db dbm.KVDB, hashlockID []byte) (*pty.Hashlockquery, error) {
 	//reciver := types.Int64{}
 	clog.Error("GetHashReciver action", "hashlockID", hashlockID)
 	reciver := NewHashlockquery()
@@ -255,14 +256,14 @@ func GetHashReciver(db dbm.KVDB, hashlockID []byte) (*types.Hashlockquery, error
 }
 
 //将hashlockId和information都以key和value形式存入db
-func SetHashReciver(db dbm.KVDB, hashlockID []byte, information *types.Hashlockquery) error {
+func SetHashReciver(db dbm.KVDB, hashlockID []byte, information *pty.Hashlockquery) error {
 	clog.Error("SetHashReciver action")
 	kv := GeHashReciverKV(hashlockID, information)
 	return db.Set(kv.Key, kv.Value)
 }
 
 //根据状态值对db中存入的数据进行更改
-func UpdateHashReciver(cachedb dbm.KVDB, hashlockID []byte, information types.Hashlockquery) (*types.KeyValue, error) {
+func UpdateHashReciver(cachedb dbm.KVDB, hashlockID []byte, information pty.Hashlockquery) (*types.KeyValue, error) {
 	clog.Error("UpdateHashReciver", "hashlockId", hashlockID)
 	recv, err := GetHashReciver(cachedb, hashlockID)
 	if err != nil && err != types.ErrNotFound {
