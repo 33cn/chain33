@@ -1,4 +1,4 @@
-package lottery
+package types
 
 type LotteryCreateTx struct {
 	PurBlockNum  int64 `json:"purBlockNum"`

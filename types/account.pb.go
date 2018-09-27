@@ -13,7 +13,6 @@ It is generated from these files:
 	evmcontract.proto
 	executor.proto
 	executorTrade.proto
-	lottery.proto
 	p2p.proto
 	pbft.proto
 	relay.proto
@@ -232,29 +231,6 @@ It has these top-level messages:
 	ReplyBuyOrders
 	ReplyTradeOrder
 	ReplyTradeOrders
-	PurchaseRecord
-	PurchaseRecords
-	Lottery
-	LotteryAction
-	LotteryCreate
-	LotteryBuy
-	LotteryDraw
-	LotteryClose
-	ReceiptLottery
-	ReqLotteryInfo
-	ReqLotteryBuyInfo
-	ReqLotteryBuyHistory
-	ReqLotteryLuckyInfo
-	ReqLotteryLuckyHistory
-	ReplyLotteryNormalInfo
-	ReplyLotteryCurrentInfo
-	ReplyLotteryHistoryLuckyNumber
-	ReplyLotteryShowInfo
-	LotteryNumberRecord
-	LotteryBuyRecord
-	LotteryBuyRecords
-	LotteryDrawRecord
-	LotteryDrawRecords
 	P2PGetPeerInfo
 	P2PPeerInfo
 	P2PVersion
