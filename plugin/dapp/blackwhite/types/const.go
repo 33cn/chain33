@@ -45,12 +45,12 @@ var (
 		"TimeoutDone": BlackwhiteActionTimeoutDone,
 	}
 	logInfo = map[int64]*types.LogInfo{
-		TyLogBlackwhiteCreate:   &types.LogInfo{reflect.TypeOf(ReceiptBlackwhite{}), "LogBlackwhiteCreate"},
-		TyLogBlackwhitePlay:     &types.LogInfo{reflect.TypeOf(ReceiptBlackwhite{}), "LogBlackwhitePlay"},
-		TyLogBlackwhiteShow:     &types.LogInfo{reflect.TypeOf(ReceiptBlackwhite{}), "LogBlackwhiteShow"},
-		TyLogBlackwhiteTimeout:  &types.LogInfo{reflect.TypeOf(ReceiptBlackwhite{}), "LogBlackwhiteTimeout"},
-		TyLogBlackwhiteDone:     &types.LogInfo{reflect.TypeOf(ReceiptBlackwhite{}), "LogBlackwhiteDone"},
-		TyLogBlackwhiteLoopInfo: &types.LogInfo{reflect.TypeOf(ReplyLoopResults{}), "LogBlackwhiteLoopInfo"},
+		TyLogBlackwhiteCreate:   {reflect.TypeOf(ReceiptBlackwhite{}), "LogBlackwhiteCreate"},
+		TyLogBlackwhitePlay:     {reflect.TypeOf(ReceiptBlackwhite{}), "LogBlackwhitePlay"},
+		TyLogBlackwhiteShow:     {reflect.TypeOf(ReceiptBlackwhite{}), "LogBlackwhiteShow"},
+		TyLogBlackwhiteTimeout:  {reflect.TypeOf(ReceiptBlackwhite{}), "LogBlackwhiteTimeout"},
+		TyLogBlackwhiteDone:     {reflect.TypeOf(ReceiptBlackwhite{}), "LogBlackwhiteDone"},
+		TyLogBlackwhiteLoopInfo: {reflect.TypeOf(ReplyLoopResults{}), "LogBlackwhiteLoopInfo"},
 	}
 )
 
