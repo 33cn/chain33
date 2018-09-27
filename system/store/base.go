@@ -22,6 +22,7 @@ import (
 */
 
 var slog = log.New("module", "store")
+var EmptyRoot [32]byte
 
 func SetLogLevel(level string) {
 	clog.SetLogLevel(level)
@@ -32,9 +33,9 @@ func DisableLog() {
 }
 
 type SubStore interface {
-	Set(datas *types.StoreSet, sync bool) []byte
+	Set(datas *types.StoreSet, sync bool) ([]byte, error)
 	Get(datas *types.StoreGet) [][]byte
-	MemSet(datas *types.StoreSet, sync bool) []byte
+	MemSet(datas *types.StoreSet, sync bool) ([]byte, error)
 	Commit(hash *types.ReqHash) ([]byte, error)
 	Rollback(req *types.ReqHash) ([]byte, error)
 	Del(req *types.StoreDel) ([]byte, error)
@@ -78,7 +79,11 @@ func (store *BaseStore) processMessage(msg queue.Message) {
 	client := store.qclient
 	if msg.Ty == types.EventStoreSet {
 		datas := msg.GetData().(*types.StoreSetWithSync)
-		hash := store.child.Set(datas.Storeset, datas.Sync)
+		hash, err := store.child.Set(datas.Storeset, datas.Sync)
+		if err != nil {
+			msg.Reply(client.NewMessage("", types.EventStoreSetReply, err))
+			return
+		}
 		msg.Reply(client.NewMessage("", types.EventStoreSetReply, &types.ReplyHash{hash}))
 	} else if msg.Ty == types.EventStoreGet {
 		datas := msg.GetData().(*types.StoreGet)
@@ -86,7 +91,11 @@ func (store *BaseStore) processMessage(msg queue.Message) {
 		msg.Reply(client.NewMessage("", types.EventStoreGetReply, &types.StoreReplyValue{values}))
 	} else if msg.Ty == types.EventStoreMemSet { //只是在内存中set 一下，并不改变状态
 		datas := msg.GetData().(*types.StoreSetWithSync)
-		hash := store.child.MemSet(datas.Storeset, datas.Sync)
+		hash, err := store.child.MemSet(datas.Storeset, datas.Sync)
+		if err != nil {
+			msg.Reply(client.NewMessage("", types.EventStoreSetReply, err))
+			return
+		}
 		msg.Reply(client.NewMessage("", types.EventStoreSetReply, &types.ReplyHash{hash}))
 	} else if msg.Ty == types.EventStoreCommit { //把内存中set 的交易 commit
 		req := msg.GetData().(*types.ReqHash)

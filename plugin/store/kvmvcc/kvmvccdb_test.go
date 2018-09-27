@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"gitlab.33.cn/chain33/chain33/common"
+	drivers "gitlab.33.cn/chain33/chain33/system/store"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -32,7 +33,7 @@ func TestKvmvccdbSetGet(t *testing.T) {
 	assert.NotNil(t, store)
 
 	keys0 := [][]byte{[]byte("mk1"), []byte("mk2")}
-	get0 := &types.StoreGet{[]byte("1st"), keys0}
+	get0 := &types.StoreGet{drivers.EmptyRoot[:], keys0}
 	values0 := store.Get(get0)
 	//klog.Info("info", "info", values0)
 	// Get exist key, result nil
@@ -44,11 +45,11 @@ func TestKvmvccdbSetGet(t *testing.T) {
 	kv = append(kv, &types.KeyValue{[]byte("k1"), []byte("v1")})
 	kv = append(kv, &types.KeyValue{[]byte("k2"), []byte("v2")})
 	datas := &types.StoreSet{
-		[]byte("1st"),
+		drivers.EmptyRoot[:],
 		kv,
 		0}
-	hash := store.Set(datas, true)
-
+	hash, err := store.Set(datas, true)
+	assert.Nil(t, err)
 	keys := [][]byte{[]byte("k1"), []byte("k2")}
 	get1 := &types.StoreGet{hash, keys}
 
@@ -63,7 +64,7 @@ func TestKvmvccdbSetGet(t *testing.T) {
 	assert.Len(t, values2, 1)
 	assert.Equal(t, []byte("v1"), values2[0])
 
-	get3 := &types.StoreGet{[]byte("1st"), keys}
+	get3 := &types.StoreGet{drivers.EmptyRoot[:], keys}
 	values3 := store.Get(get3)
 	assert.Len(t, values3, 1)
 
@@ -79,11 +80,11 @@ func TestKvmvccdbMemSet(t *testing.T) {
 	kv = append(kv, &types.KeyValue{[]byte("mk1"), []byte("v1")})
 	kv = append(kv, &types.KeyValue{[]byte("mk2"), []byte("v2")})
 	datas := &types.StoreSet{
-		[]byte("1st"),
+		drivers.EmptyRoot[:],
 		kv,
 		0}
-	hash := store.MemSet(datas, true)
-
+	hash, err := store.MemSet(datas, true)
+	assert.Nil(t, err)
 	keys := [][]byte{[]byte("mk1"), []byte("mk2")}
 	get1 := &types.StoreGet{hash, keys}
 
@@ -95,7 +96,7 @@ func TestKvmvccdbMemSet(t *testing.T) {
 	actHash, _ := store.Commit(&types.ReqHash{hash})
 	assert.Equal(t, hash, actHash)
 
-	notExistHash, _ := store.Commit(&types.ReqHash{[]byte("1st")})
+	notExistHash, _ := store.Commit(&types.ReqHash{drivers.EmptyRoot[:]})
 	assert.Nil(t, notExistHash)
 
 	values = store.Get(get1)
@@ -115,11 +116,11 @@ func TestKvmvccdbRollback(t *testing.T) {
 	kv = append(kv, &types.KeyValue{[]byte("mk1"), []byte("v1")})
 	kv = append(kv, &types.KeyValue{[]byte("mk2"), []byte("v2")})
 	datas := &types.StoreSet{
-		[]byte("1st"),
+		drivers.EmptyRoot[:],
 		kv,
 		0}
-	hash := store.MemSet(datas, true)
-
+	hash, err := store.MemSet(datas, true)
+	assert.Nil(t, err)
 	keys := [][]byte{[]byte("mk1"), []byte("mk2")}
 	get1 := &types.StoreGet{hash, keys}
 	values := store.Get(get1)
@@ -130,7 +131,7 @@ func TestKvmvccdbRollback(t *testing.T) {
 	actHash, _ := store.Rollback(&types.ReqHash{hash})
 	assert.Equal(t, hash, actHash)
 
-	notExistHash, err := store.Rollback(&types.ReqHash{[]byte("1st")})
+	notExistHash, err := store.Rollback(&types.ReqHash{drivers.EmptyRoot[:]})
 	assert.Nil(t, notExistHash)
 	assert.Equal(t, types.ErrHashNotFound.Error(), err.Error())
 
@@ -146,11 +147,11 @@ func TestKvmvccdbRollbackBatch(t *testing.T) {
 	kv = append(kv, &types.KeyValue{[]byte("mk1"), []byte("v1")})
 	kv = append(kv, &types.KeyValue{[]byte("mk2"), []byte("v2")})
 	datas := &types.StoreSet{
-		[]byte("1st"),
+		drivers.EmptyRoot[:],
 		kv,
 		0}
-	hash := store.MemSet(datas, true)
-
+	hash, err := store.MemSet(datas, true)
+	assert.Nil(t, err)
 	var kvset []*types.KeyValue
 	req := &types.ReqHash{hash}
 	hash1 := make([]byte, len(hash))
@@ -197,7 +198,8 @@ func TestKvmvccdbRollbackBatch(t *testing.T) {
 	kv2 = append(kv2, &types.KeyValue{[]byte("mk2"), []byte("v22")})
 
 	datas2 := &types.StoreSet{hash, kv2, 1}
-	hash = store.MemSet(datas2, true)
+	hash, err = store.MemSet(datas2, true)
+	assert.Nil(t, err)
 	req = &types.ReqHash{hash}
 	store.Commit(req)
 
@@ -212,7 +214,8 @@ func TestKvmvccdbRollbackBatch(t *testing.T) {
 	assert.Equal(t, values2[1], kv2[1].Value)
 
 	datas3 := &types.StoreSet{hash, kv2, 2}
-	hash = store.MemSet(datas3, true)
+	hash, err = store.MemSet(datas3, true)
+	assert.Nil(t, err)
 	req = &types.ReqHash{hash}
 	store.Commit(req)
 

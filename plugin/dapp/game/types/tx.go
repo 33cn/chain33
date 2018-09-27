@@ -1,4 +1,4 @@
-package rpc
+package types
 
 type GamePreCreateTx struct {
 	//Secret     string `json:"secret"`
