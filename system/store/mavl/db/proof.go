@@ -3,9 +3,10 @@ package mavl
 import (
 	"bytes"
 
+	"fmt"
+
 	"github.com/golang/protobuf/proto"
 	"gitlab.33.cn/chain33/chain33/types"
-	"fmt"
 )
 
 //const proofLimit = 1 << 16 // 64 KB
@@ -25,7 +26,6 @@ func (proof *Proof) Verify(key []byte, value []byte, root []byte) bool {
 	leafNode := types.LeafNode{Key: key, Value: value, Height: 0, Size: 1}
 	leafHash := leafNode.Hash()
 
-
 	if enableHashPrefix {
 		hashKey := bytes.TrimSuffix(proof.LeafHash, leafHash)
 		hashKey = append(hashKey, leafHash...)
@@ -39,8 +39,8 @@ func (proof *Proof) Verify(key []byte, value []byte, root []byte) bool {
 	for i, branch := range proof.InnerNodes {
 		//hash = branch.ProofHash(hash)
 		hash = InnerNodeProofHash(hash, branch)
-		if enableHashPrefix && i != len(proof.InnerNodes) - 1 {
-			node := proof.InnerNodes[i + 1]
+		if enableHashPrefix && i != len(proof.InnerNodes)-1 {
+			node := proof.InnerNodes[i+1]
 			var hashKey []byte
 			if len(node.LeftHash) == 0 {
 				hashKey = node.RightHash
