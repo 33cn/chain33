@@ -20,7 +20,7 @@ func (a *action) assetTransfer(transfer *types.AssetsTransfer) (*types.Receipt, 
 		execAddr := address.ExecAddress(types.ParaX)
 		fromAcc := accDB.LoadExecAccount(a.fromaddr, execAddr)
 		if fromAcc.Balance < transfer.Amount {
-			return nil, types.ErrNoBalance
+			return nil, errors.Wrap(types.ErrNoBalance, "assetTransfer")
 		}
 		toAddr := address.ExecAddress(string(a.tx.Execer))
 		clog.Debug("paracross.AssetTransfer not isPara", "execer", string(a.tx.Execer),
