@@ -21,13 +21,6 @@ func init() {
 
 	// init executor type
 	types.RegistorExecutor(BlackwhiteX, NewType())
-	// init log
-	types.RegistorLog(types.TyLogBlackwhiteCreate, &BlackwhiteCreateLog{})
-	types.RegistorLog(types.TyLogBlackwhitePlay, &BlackwhitePlayLog{})
-	types.RegistorLog(types.TyLogBlackwhiteShow, &BlackwhiteShowLog{})
-	types.RegistorLog(types.TyLogBlackwhiteTimeout, &BlackwhiteTimeoutDoneLog{})
-	types.RegistorLog(types.TyLogBlackwhiteDone, &BlackwhiteDoneLog{})
-	types.RegistorLog(types.TyLogBlackwhiteLoopInfo, &BlackwhiteLoopInfoLog{})
 
 	// init query rpc
 	types.RegisterRPCQueryHandle(GetBlackwhiteRoundInfo, &convertor.QueryConvertor{ProtoObj: &ReqBlackwhiteRoundInfo{}})
@@ -54,7 +47,7 @@ func (b *BlackwhiteType) GetName() string {
 }
 
 func (b *BlackwhiteType) GetLogMap() map[int64]*types.LogInfo {
-	return nil
+	return logInfo
 }
 
 func (b *BlackwhiteType) GetTypeMap() map[string]int32 {
@@ -97,102 +90,6 @@ func (m BlackwhiteType) CreateTx(action string, message json.RawMessage) (*types
 	glog.Debug("Blackwhite.CreateTx", "action", action)
 	var tx *types.Transaction
 	return tx, nil
-}
-
-type BlackwhiteCreateLog struct {
-}
-
-func (l BlackwhiteCreateLog) Name() string {
-	return "LogBlackwhiteCreate"
-}
-
-func (l BlackwhiteCreateLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp ReceiptBlackwhite
-	err := types.Decode(msg, &logTmp)
-	if err != nil {
-		return nil, err
-	}
-	return logTmp, err
-}
-
-type BlackwhitePlayLog struct {
-}
-
-func (l BlackwhitePlayLog) Name() string {
-	return "LogBlackwhitePlay"
-}
-
-func (l BlackwhitePlayLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp ReceiptBlackwhite
-	err := types.Decode(msg, &logTmp)
-	if err != nil {
-		return nil, err
-	}
-	return logTmp, err
-}
-
-type BlackwhiteShowLog struct {
-}
-
-func (l BlackwhiteShowLog) Name() string {
-	return "LogBlackwhiteShow"
-}
-
-func (l BlackwhiteShowLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp ReceiptBlackwhite
-	err := types.Decode(msg, &logTmp)
-	if err != nil {
-		return nil, err
-	}
-	return logTmp, err
-}
-
-type BlackwhiteTimeoutDoneLog struct {
-}
-
-func (l BlackwhiteTimeoutDoneLog) Name() string {
-	return "LogBlackwhiteTimeoutDone"
-}
-
-func (l BlackwhiteTimeoutDoneLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp ReceiptBlackwhite
-	err := types.Decode(msg, &logTmp)
-	if err != nil {
-		return nil, err
-	}
-	return logTmp, err
-}
-
-type BlackwhiteDoneLog struct {
-}
-
-func (l BlackwhiteDoneLog) Name() string {
-	return "LogBlackwhiteDone"
-}
-
-func (l BlackwhiteDoneLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp ReceiptBlackwhite
-	err := types.Decode(msg, &logTmp)
-	if err != nil {
-		return nil, err
-	}
-	return logTmp, err
-}
-
-type BlackwhiteLoopInfoLog struct {
-}
-
-func (l BlackwhiteLoopInfoLog) Name() string {
-	return "LogBlackwhiteLoopInfo"
-}
-
-func (l BlackwhiteLoopInfoLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp ReplyLoopResults
-	err := types.Decode(msg, &logTmp)
-	if err != nil {
-		return nil, err
-	}
-	return logTmp, err
 }
 
 type BlackwhiteRoundInfo struct {
