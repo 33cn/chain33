@@ -60,19 +60,31 @@ func Deal(poker *types.PBPoker, rng int64) []int32 {
 }
 
 func Result(cards []int32) int32 {
-	temp := int32(0);
-	r := int32(-1);//是否有牛标志
+	temp := 0;
+	r := -1;//是否有牛标志
+
+	pk := newcolorCard(cards)
+
+	//花牌等于10
+	cardsC := make([]int, len(cards))
+	for i := 0; i < len(pk); i++ {
+		if pk[i].num > 10 {
+			cardsC[i] = 10
+		} else {
+			cardsC[i] = pk[i].num
+		}
+	}
 
 	//斗牛算法
-	result := make([]int32, 10)
+	result := make([]int, 10)
 	var offset = 0
 	for x := 0; x < 3; x++ {
 		for y := x + 1; y < 4; y++ {
 			for z := y + 1; z < 5; z++ {
-				if ((cards[x]+cards[y]+cards[z])%10 == 0) {
-					for j := 0; j < len(cards); j++ {
+				if ((cardsC[x]+cardsC[y]+cardsC[z])%10 == 0) {
+					for j := 0; j < len(cardsC); j++ {
 						if (j != x && j != y && j != z) {
-							temp += cards[j];
+							temp += cardsC[j];
 						}
 					}
 
@@ -93,7 +105,7 @@ func Result(cards []int32) int32 {
 		return -1
 	}
 
-	return result[0]
+	return int32(result[0])
 }
 
 type pokerCard struct{
@@ -109,11 +121,18 @@ func (p colorCardSlice) Swap(i, j int) {
 	p[i], p[j] = p[j], p[i]
 }
 func (p colorCardSlice) Less(i, j int) bool {
+	if i >= p.Len() || j >= p.Len() {
+		logger.Error("length error. slice length:", p.Len(), " compare lenth: ", i, " ", j)
+	}
+
+	if p[i] == nil || p[j] == nil {
+		logger.Error("nil pointer at ", i, " ", j)
+	}
 	return p[i].num < p[j].num
 }
 
 func newcolorCard(a []int32) colorCardSlice {
-	cardS := make([]*pokerCard, len(a))
+	var cardS []*pokerCard
 	for i := 0; i < len(a); i++ {
 		num := int(a[i]) & COLOR_BIT_MAST
 		color := int(a[i]) >> COLOR_OFFSET

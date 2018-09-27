@@ -58,7 +58,7 @@ func pokerbullStart(cmd *cobra.Command, args []string) {
 	}
 
 	var res string
-	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "PokenBull.PokerBullStartTx", params, &res)
+	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "PokerBull.PokerBullStartTx", params, &res)
 	ctx.RunWithoutMarshal()
 }
 
@@ -90,7 +90,7 @@ func pokerbullContinue(cmd *cobra.Command, args []string) {
 	}
 
 	var res string
-	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "PokenBull.PokerBullContinueTx", params, &res)
+	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "PokerBull.PokerBullContinueTx", params, &res)
 	ctx.RunWithoutMarshal()
 }
 
@@ -122,7 +122,7 @@ func pokerbullQuit(cmd *cobra.Command, args []string) {
 	}
 
 	var res string
-	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "PokenBull.PokerBullQuitTx", params, &res)
+	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "PokerBull.PokerBullQuitTx", params, &res)
 	ctx.RunWithoutMarshal()
 }
 
@@ -144,16 +144,17 @@ func addPokerbullQueryFlags(cmd *cobra.Command) {
 func pokerbullQuery(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	gameID, _ := cmd.Flags().GetString("gameID")
-	fee, _ := cmd.Flags().GetFloat64("fee")
 
-	feeInt64 := int64(fee * 1e4)
+	var params types.Query4Cli
+	params.Execer = pkt.PokerBullX
 
-	params := &pkt.PBContinueTxReq{
-		GameId:      gameID,
-		Fee:         feeInt64,
+	req := &pkt.QueryPBGameInfo{
+		GameId: gameID,
 	}
 
-	var res string
-	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "PokenBull.PokerBullQueryTx", params, &res)
-	ctx.RunWithoutMarshal()
+	params.Payload = req
+	params.FuncName = pkt.FuncName_QueryGameById
+	var res pkt.ReplyPBGame
+	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
+	ctx.Run()
 }
