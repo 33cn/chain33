@@ -2,7 +2,6 @@ package types
 
 import (
 	"encoding/json"
-	"reflect"
 
 	"gitlab.33.cn/chain33/chain33/types/convertor"
 
@@ -54,7 +53,7 @@ func (b *BlackwhiteType) GetName() string {
 	return BlackwhiteX
 }
 
-func (b *BlackwhiteType) GetLogMap() map[int64]reflect.Type {
+func (b *BlackwhiteType) GetLogMap() map[int64]*types.LogInfo {
 	return nil
 }
 
