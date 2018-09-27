@@ -228,7 +228,7 @@ func TestPersistence(t *testing.T) {
 
 	for key, value := range records {
 		//_, t2value, _ := t2.Get([]byte(key))
-		_, t2value, _ := kindsGet(t2,  mvccdb, []byte(key), 0, EnableMvcc)
+		_, t2value, _ := kindsGet(t2, mvccdb, []byte(key), 0, EnableMvcc)
 		if string(t2value) != value {
 			t.Fatalf("Invalid value. Expected %v, got %v", value, t2value)
 		}
@@ -259,7 +259,7 @@ func TestPersistence(t *testing.T) {
 	t.Log("------tree11------TestPersistence---------")
 	for key, value := range records {
 		//_, t2value, _ := t11.Get([]byte(key))
-		_, t2value, _ := kindsGet(t11,  mvccdb, []byte(key), 0, EnableMvcc)
+		_, t2value, _ := kindsGet(t11, mvccdb, []byte(key), 0, EnableMvcc)
 		if string(t2value) != value {
 			t.Fatalf("tree11 Invalid value. Expected %v, got %v", value, t2value)
 		}
@@ -272,7 +272,7 @@ func TestPersistence(t *testing.T) {
 	//有5个key对应的value值有变化
 	for key, value := range records {
 		//_, t2value, _ := t22.Get([]byte(key))
-		_, t2value, _ := kindsGet(t22,  mvccdb, []byte(key), 0, EnableMvcc)
+		_, t2value, _ := kindsGet(t22, mvccdb, []byte(key), 0, EnableMvcc)
 		if string(t2value) != value {
 			t.Log("tree22 value update.", "oldvalue", string(value), "newvalue", string(t2value), "key", string(key))
 		}
@@ -284,7 +284,7 @@ func TestPersistence(t *testing.T) {
 			break
 		}
 		//_, t2value, _ := t22.Get([]byte(key))
-		_, t2value, _ := kindsGet(t22,  mvccdb, []byte(key), 1, EnableMvcc)
+		_, t2value, _ := kindsGet(t22, mvccdb, []byte(key), 1, EnableMvcc)
 		if string(t2value) != value {
 			t.Logf("tree2222 Invalid value. Expected %v, got %v,key %v", string(value), string(t2value), string(key))
 		}
