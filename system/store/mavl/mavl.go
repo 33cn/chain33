@@ -23,10 +23,10 @@ func DisableLog() {
 
 type Store struct {
 	*drivers.BaseStore
-	trees map[string]*mavl.Tree
-	cache *lru.Cache
+	trees            map[string]*mavl.Tree
+	cache            *lru.Cache
 	enableMavlPrefix bool
-	enableMVCC bool
+	enableMVCC       bool
 }
 
 func init() {
