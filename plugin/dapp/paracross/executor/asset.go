@@ -1,13 +1,12 @@
 package executor
 
-
 import (
+	"github.com/pkg/errors"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common/address"
+	"gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/plugin/dapp/evm/executor/vm/common"
 	"gitlab.33.cn/chain33/chain33/types"
-	"github.com/pkg/errors"
-	"gitlab.33.cn/chain33/chain33/common/db"
 )
 
 func (a *action) assetTransfer(transfer *types.AssetsTransfer) (*types.Receipt, error) {
@@ -45,7 +44,6 @@ func (a *action) assetTransfer(transfer *types.AssetsTransfer) (*types.Receipt, 
 		return assetDepositBalance(paraAcc, transfer.To, transfer.Amount)
 	}
 }
-
 
 func (a *action) assetWithdraw(withdraw *types.AssetsWithdraw, withdrawTx *types.Transaction) (*types.Receipt, error) {
 	isPara := types.IsPara()
