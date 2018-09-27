@@ -147,8 +147,6 @@ func (l PrivacyOutputLog) Decode(msg []byte) (interface{}, error) {
 	return logTmp, nil
 }
 
-
-
 // query
 type PrivacyShowAmountsOfUTXO struct {
 }

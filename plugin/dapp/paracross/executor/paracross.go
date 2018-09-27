@@ -4,12 +4,12 @@ import (
 	"bytes"
 
 	log "github.com/inconshreveable/log15"
+	"github.com/pkg/errors"
 	"gitlab.33.cn/chain33/chain33/common"
 	pt "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/types"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/util"
-	"github.com/pkg/errors"
 )
 
 var (
@@ -72,7 +72,7 @@ func (c *Paracross) Exec(tx *types.Transaction, index int) (*types.Receipt, erro
 			return nil, err
 		}
 		a := newAction(c, tx)
-		receipt, err :=  a.AssetTransfer(payload.GetAssetTransfer())
+		receipt, err := a.AssetTransfer(payload.GetAssetTransfer())
 		if err != nil {
 			clog.Error("Paracross AssetTransfer failed", "error", err, "hash", common.Bytes2Hex(tx.Hash()))
 			return nil, errors.Cause(err)
