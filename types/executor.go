@@ -81,11 +81,6 @@ func RegisterRPCQueryHandle(funcName string, convertor RPCQueryTypeConvert) {
 	registerRPCQueryHandle(funcName, convertor, nil)
 }
 
-// TODO: 后续将函数关联关系都在一处实现
-//func RegisterRPCQueryHandleV2(funcName string, convertor RPCQueryTypeConvert, handler FN_RPCQueryHandle) {
-//	registerRPCQueryHandle(funcName, convertor, handler)
-//}
-
 func LoadQueryType(funcName string) RPCQueryTypeConvert {
 	if trans, ok := rpcTypeUtilMap[funcName]; ok {
 		return trans.convertor
