@@ -196,7 +196,7 @@ func TestPersistence(t *testing.T) {
 	require.NoError(t, err)
 	t.Log(dir)
 
-	db := db.NewDB("mavltree", "leveldb", dir, 100)
+	dbm := db.NewDB("mavltree", "leveldb", dir, 100)
 
 	records := make(map[string]string)
 
@@ -206,10 +206,13 @@ func TestPersistence(t *testing.T) {
 		records[randstr(20)] = randstr(20)
 	}
 
-	t1 := NewTree(db, true)
+	mvccdb := db.NewMVCC(dbm)
+
+	t1 := NewTree(dbm, true)
 
 	for key, value := range records {
-		t1.Set([]byte(key), []byte(value))
+		//t1.Set([]byte(key), []byte(value))
+		kindsSet(t1, mvccdb, []byte(key), []byte(value), 0, EnableMvcc)
 		//t.Log("TestPersistence tree1 set", "key", key, "value", value)
 		recordbaks[key] = randstr(20)
 	}
@@ -220,11 +223,12 @@ func TestPersistence(t *testing.T) {
 	t.Log("TestPersistence", "roothash1", hash)
 
 	// Load a tree
-	t2 := NewTree(db, true)
+	t2 := NewTree(dbm, true)
 	t2.Load(hash)
 
 	for key, value := range records {
-		_, t2value, _ := t2.Get([]byte(key))
+		//_, t2value, _ := t2.Get([]byte(key))
+		_, t2value, _ := kindsGet(t2,  mvccdb, []byte(key), 0, EnableMvcc)
 		if string(t2value) != value {
 			t.Fatalf("Invalid value. Expected %v, got %v", value, t2value)
 		}
@@ -237,8 +241,10 @@ func TestPersistence(t *testing.T) {
 		if count > 5 {
 			break
 		}
-		t2.Set([]byte(key), []byte(value))
+		//t2.Set([]byte(key), []byte(value))
+		kindsSet(t2, mvccdb, []byte(key), []byte(value), 1, EnableMvcc)
 		//t.Log("TestPersistence insert new node treee2", "key", string(key), "value", string(value))
+
 	}
 
 	hash2 := t2.Hash()
@@ -247,24 +253,26 @@ func TestPersistence(t *testing.T) {
 
 	// 重新加载hash
 
-	t11 := NewTree(db, true)
+	t11 := NewTree(dbm, true)
 	t11.Load(hash)
 
 	t.Log("------tree11------TestPersistence---------")
 	for key, value := range records {
-		_, t2value, _ := t11.Get([]byte(key))
+		//_, t2value, _ := t11.Get([]byte(key))
+		_, t2value, _ := kindsGet(t11,  mvccdb, []byte(key), 0, EnableMvcc)
 		if string(t2value) != value {
 			t.Fatalf("tree11 Invalid value. Expected %v, got %v", value, t2value)
 		}
 	}
 	//重新加载hash2
-	t22 := NewTree(db, true)
+	t22 := NewTree(dbm, true)
 	t22.Load(hash2)
 	t.Log("------tree22------TestPersistence---------")
 
 	//有5个key对应的value值有变化
 	for key, value := range records {
-		_, t2value, _ := t22.Get([]byte(key))
+		//_, t2value, _ := t22.Get([]byte(key))
+		_, t2value, _ := kindsGet(t22,  mvccdb, []byte(key), 0, EnableMvcc)
 		if string(t2value) != value {
 			t.Log("tree22 value update.", "oldvalue", string(value), "newvalue", string(t2value), "key", string(key))
 		}
@@ -275,12 +283,42 @@ func TestPersistence(t *testing.T) {
 		if count > 5 {
 			break
 		}
-		_, t2value, _ := t22.Get([]byte(key))
+		//_, t2value, _ := t22.Get([]byte(key))
+		_, t2value, _ := kindsGet(t22,  mvccdb, []byte(key), 1, EnableMvcc)
 		if string(t2value) != value {
 			t.Logf("tree2222 Invalid value. Expected %v, got %v,key %v", string(value), string(t2value), string(key))
 		}
 	}
-	db.Close()
+	dbm.Close()
+}
+
+func kindsGet(t *Tree, mvccdb *db.MVCCHelper, key []byte, version int64, enableMvcc bool) (index int32, value []byte, exists bool) {
+	if enableMvcc {
+		if mvccdb != nil {
+			value, err := mvccdb.GetV(key, version)
+			if err != nil {
+				return 0, nil, false
+			}
+			return 0, value, true
+		}
+	} else {
+		if t != nil {
+			return t.Get(key)
+		}
+	}
+	return 0, nil, false
+}
+
+func kindsSet(t *Tree, mvccdb *db.MVCCHelper, key []byte, value []byte, version int64, enableMvcc bool) (updated bool) {
+	if enableMvcc {
+		if mvccdb != nil {
+			err := mvccdb.SetV(key, value, version)
+			if err != nil {
+				panic(fmt.Errorf("mvccdb cant setv", err))
+			}
+		}
+	}
+	return t.Set(key, value)
 }
 
 //测试key:value对的proof证明功能
@@ -679,6 +717,10 @@ func BenchmarkDBSetMVCC(b *testing.B) {
 }
 
 func BenchmarkDBGet(b *testing.B) {
+	//开启MVCC情况下不做测试；BenchmarkDBGetMVCC进行测试
+	if EnableMvcc {
+		return
+	}
 	dir, err := ioutil.TempDir("", "datastore")
 	require.NoError(b, err)
 	b.Log(dir)
