@@ -134,6 +134,15 @@ func (t *token) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 				set.KV = append(set.KV, kv...)
 			}
 		}
+		if action.Ty == types.ActionWithdraw && action.GetWithdraw() != nil {
+			withdraw := action.GetWithdraw()
+			// 添加个人资产列表
+			kv := AddTokenToAssets(tx.From(), t.GetLocalDB(), withdraw.Cointoken)
+			if kv != nil {
+				set.KV = append(set.KV, kv...)
+			}
+		}
+
 		if types.GetSaveTokenTxList() {
 			kvs, err := t.makeTokenTxKvs(tx, &action, receipt, index, false)
 			if err != nil {
