@@ -22,7 +22,7 @@ const (
 	// 是否开启添加hash节点前缀
 	enableHashPrefix = false
 	// 是否开启MVCC
-	EnableMvcc       = false
+	EnableMvcc = false
 )
 
 var (
