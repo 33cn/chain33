@@ -1,4 +1,4 @@
-// +build go1.9 go1.10
+// +build go1.8
 
 package main
 
@@ -121,6 +121,9 @@ func main() {
 	go startTrace()
 	//set maxprocs
 	runtime.GOMAXPROCS(cpuNum)
+
+	// SaveTokenTxList
+	types.SetSaveTokenTxList(cfg.Exec.SaveTokenTxList)
 
 	//check mvcc switch，if use kvmvcc then cfg.Exec.EnableMVCC should be always false.
 	if cfg.Store.Name == "kvmvcc" {

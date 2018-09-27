@@ -18,17 +18,30 @@ privacy执行器支持隐私交易的执行，
 import (
 	"bytes"
 	"math/rand"
+	"reflect"
 	"sort"
 	"time"
 
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common"
-	"gitlab.33.cn/chain33/chain33/common/address"
+	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/privacy/types"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var privacylog = log.New("module", "execs.privacy")
+
+//初始化过程比较重量级，有很多reflact, 所以弄成全局的
+var executorFunList = make(map[string]reflect.Method)
+var executorType = pty.NewType()
+
+func init() {
+	actionFunList := executorType.GetFuncMap()
+	executorFunList = types.ListMethod(&privacy{})
+	for k, v := range actionFunList {
+		executorFunList[k] = v
+	}
+}
 
 func Init(name string) {
 	drivers.Register(GetName(), newPrivacy, types.ForkV21Privacy)
@@ -47,6 +60,7 @@ type privacy struct {
 func newPrivacy() drivers.Driver {
 	t := &privacy{}
 	t.SetChild(t)
+	t.SetExecutorType(executorType)
 	return t
 }
 
@@ -54,6 +68,7 @@ func (p *privacy) GetDriverName() string {
 	return "privacy"
 }
 
+/*
 func (p *privacy) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	txhashstr := common.Bytes2Hex(tx.Hash())
 	_, err := p.DriverBase.Exec(tx, index)
@@ -387,7 +402,7 @@ func (p *privacy) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData
 
 	return set, nil
 }
-
+*/
 func (p *privacy) Query(funcName string, params []byte) (types.Message, error) {
 	privacylog.Info("privacy Query", "name", funcName)
 	switch funcName {
@@ -690,4 +705,20 @@ func (p *privacy) checkPubKeyValid(keys [][]byte, pubkeys [][]byte) (bool, int32
 	}
 
 	return true, Invalid_index
+}
+
+func (c *privacy) GetFuncMap() map[string]reflect.Method {
+	return executorFunList
+}
+
+func (c *privacy) GetPayloadValue() types.Message {
+	return &types.PrivacyAction{}
+}
+
+func (c *privacy) GetTypeMap() map[string]int32 {
+	return map[string]int32{
+		"Public2Privacy":  types.ActionPublic2Privacy,
+		"Privacy2Privacy": types.ActionPrivacy2Privacy,
+		"Privacy2Public":  types.ActionPrivacy2Public,
+	}
 }

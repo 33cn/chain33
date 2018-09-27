@@ -481,15 +481,6 @@ const (
 	ParaCrossTransferActionTypeEnd   = 10100
 )
 
-//Lottery op
-const (
-	LotteryActionCreate = 1 + iota
-	LotteryActionBuy
-	LotteryActionShow
-	LotteryActionDraw
-	LotteryActionClose
-)
-
 //Lottery status
 const (
 	LotteryCreated = 1 + iota

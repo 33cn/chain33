@@ -20,7 +20,6 @@ type RPCQueryTypeConvert interface {
 
 type FN_RPCQueryHandle func(param []byte) (Message, error)
 
-//
 type rpcTypeUtilItem struct {
 	convertor RPCQueryTypeConvert
 	handler   FN_RPCQueryHandle
@@ -81,11 +80,6 @@ func registerRPCQueryHandle(funcName string, convertor RPCQueryTypeConvert, hand
 func RegisterRPCQueryHandle(funcName string, convertor RPCQueryTypeConvert) {
 	registerRPCQueryHandle(funcName, convertor, nil)
 }
-
-// TODO: 后续将函数关联关系都在一处实现
-//func RegisterRPCQueryHandleV2(funcName string, convertor RPCQueryTypeConvert, handler FN_RPCQueryHandle) {
-//	registerRPCQueryHandle(funcName, convertor, handler)
-//}
 
 func LoadQueryType(funcName string) RPCQueryTypeConvert {
 	if trans, ok := rpcTypeUtilMap[funcName]; ok {
@@ -222,20 +216,28 @@ func (base *ExecTypeBase) GetRealToAddr(tx *Transaction) string {
 		return tx.To
 	}
 	payload := v.Interface()
-	//四种assert的结构体
-	if ato, ok := payload.(*AssetsTransferToExec); ok {
-		return ato.GetTo()
-	}
-	if ato, ok := payload.(*AssetsTransfer); ok {
-		return ato.GetTo()
-	}
-	if ato, ok := payload.(*AssetsWithdraw); ok {
-		return ato.GetTo()
-	}
-	if ato, ok := payload.(*AssetsTransferToExec); ok {
-		return ato.GetTo()
+	if to, ok := getTo(payload); ok {
+		return to
 	}
 	return tx.To
+}
+
+//三种assert的结构体,genesis 排除
+func getTo(payload interface{}) (string, bool) {
+	if ato, ok := payload.(*AssetsTransfer); ok {
+		return ato.GetTo(), true
+	}
+	if ato, ok := payload.(*AssetsWithdraw); ok {
+		return ato.GetTo(), true
+	}
+	if ato, ok := payload.(*AssetsTransferToExec); ok {
+		return ato.GetTo(), true
+	}
+	return "", false
+}
+
+type Amounter interface {
+	GetAmount() int64
 }
 
 func (base *ExecTypeBase) Amount(tx *Transaction) (int64, error) {
@@ -245,16 +247,7 @@ func (base *ExecTypeBase) Amount(tx *Transaction) (int64, error) {
 	}
 	payload := v.Interface()
 	//四种assert的结构体
-	if ato, ok := payload.(*AssetsTransferToExec); ok {
-		return ato.GetAmount(), nil
-	}
-	if ato, ok := payload.(*AssetsTransfer); ok {
-		return ato.GetAmount(), nil
-	}
-	if ato, ok := payload.(*AssetsWithdraw); ok {
-		return ato.GetAmount(), nil
-	}
-	if ato, ok := payload.(*AssetsTransferToExec); ok {
+	if ato, ok := payload.(Amounter); ok {
 		return ato.GetAmount(), nil
 	}
 	return 0, nil

@@ -3,9 +3,9 @@ package executor
 import (
 	"bytes"
 
+	"github.com/pkg/errors"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/client"
-	"gitlab.33.cn/chain33/chain33/common/address"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/plugin/dapp/evm/executor/vm/common"
 	pt "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/types"
@@ -41,14 +41,14 @@ func getNodes(db dbm.KV, title string) (map[string]struct{}, error) {
 	if err != nil {
 		clog.Info("getNodes", "get db key", key, "failed", err)
 		if isNotFound(err) {
-			return nil, types.ErrTitleNotExist
+			err = types.ErrTitleNotExist
 		}
-		return nil, err
+		return nil, errors.Wrapf(err, "db get key:%s", string(key))
 	}
 	var config types.ConfigItem
 	err = types.Decode(item, &config)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "decode config")
 	}
 
 	value := config.GetArr()
@@ -212,19 +212,16 @@ func (a *action) Commit(commit *pt.ParacrossCommitAction) (*types.Receipt, error
 
 	nodes, err := getNodes(a.db, commit.Status.Title)
 	if err != nil {
-		clog.Error("paracross.Commit", "getNodes", err)
-		return nil, err
+		return nil, errors.Wrapf(err, "getNodes for title:%s", commit.Status.Title)
 	}
 
 	if !validNode(a.fromaddr, nodes) {
-		clog.Error("paracross.Commit", "validNode", a.fromaddr)
-		return nil, types.ErrNodeNotForTheTitle
+		return nil, errors.Wrapf(types.ErrNodeNotForTheTitle, "not validNode:%s", a.fromaddr)
 	}
 
 	titleStatus, err := getTitle(a.db, calcTitleKey(commit.Status.Title))
 	if err != nil {
-		clog.Error("paracross.Commit", "getTitle", a.fromaddr)
-		return nil, err
+		return nil, errors.Wrapf(err, "getTitle:%s", a.fromaddr)
 	}
 
 	if titleStatus.Height+1 == commit.Status.Height && commit.Status.Height > 0 {
@@ -321,7 +318,7 @@ func (a *action) Commit(commit *pt.ParacrossCommitAction) (*types.Receipt, error
 	clog.Info("paracross.Commit commit", "commitDone", titleStatus, "height", commit.Status.Height,
 		"cross tx count", len(commit.Status.CrossTxHashs))
 	if enableParacrossTransfer && commit.Status.Height > 0 && len(commit.Status.CrossTxHashs) > 0 {
-		clog.Info("paracross.Commit commitDone", "do cross", "")
+		clog.Debug("paracross.Commit commitDone", "do cross", "")
 		crossTxReceipt, err := a.execCrossTxs(commit)
 		if err != nil {
 			return nil, err
@@ -346,12 +343,12 @@ func (a *action) execCrossTx(tx *types.TransactionDetail, commit *pt.ParacrossCo
 	}
 
 	if payload.Ty == pt.ParacrossActionWithdraw {
-		receiptWithdraw, err := a.assetWithdrawCoins(payload.GetAssetWithdraw(), tx.Tx)
+		receiptWithdraw, err := a.assetWithdraw(payload.GetAssetWithdraw(), tx.Tx)
 		if err != nil {
 			clog.Crit("paracross.Commit Decode Tx failed", "para title", commit.Status.Title,
 				"para height", commit.Status.Height, "para tx index", i, "error", err, "txHash",
 				common.Bytes2Hex(commit.Status.CrossTxHashs[i]))
-			return nil, err
+			return nil, errors.Cause(err)
 		}
 
 		clog.Info("paracross.Commit WithdrawCoins", "para title", commit.Status.Title,
@@ -385,7 +382,7 @@ func (a *action) execCrossTxs(commit *pt.ParacrossCommitAction) (*types.Receipt,
 			}
 			receiptCross, err := a.execCrossTx(tx, commit, i)
 			if err != nil {
-				return nil, err
+				return nil, errors.Cause(err)
 			}
 			if receiptCross == nil {
 				continue
@@ -402,54 +399,14 @@ func (a *action) execCrossTxs(commit *pt.ParacrossCommitAction) (*types.Receipt,
 	return &receipt, nil
 }
 
-func (a *action) assetTransferCoins(transfer *types.AssetsTransfer) (*types.Receipt, error) {
-	accDB := account.NewCoinsAccount()
-	accDB.SetDB(a.db)
-
-	isPara := types.IsPara()
-	if !isPara {
-		execAddr := address.ExecAddress(types.ParaX)
-		fromAcc := accDB.LoadExecAccount(a.fromaddr, execAddr)
-		if fromAcc.Balance < transfer.Amount {
-			return nil, types.ErrNoBalance
-		}
-		toAddr := address.ExecAddress(string(a.tx.Execer))
-		clog.Debug("paracross.AssetTransfer not isPara", "execer", string(a.tx.Execer),
-			"txHash", common.Bytes2Hex(a.tx.Hash()))
-		return accDB.ExecTransfer(a.fromaddr, toAddr, execAddr, transfer.Amount)
-	} else {
-		execAddr := address.ExecAddress(string(a.tx.Execer))
-		clog.Debug("paracross.AssetTransfer isPara", "execer", string(a.tx.Execer),
-			"txHash", common.Bytes2Hex(a.tx.Hash()))
-		return ParaAssetTransfer(accDB, transfer.To, transfer.Amount, execAddr)
-	}
-}
-
 func (a *action) AssetTransfer(transfer *types.AssetsTransfer) (*types.Receipt, error) {
 	clog.Debug("Paracross.Exec", "AssetTransfer", transfer.Cointoken, "transfer", "")
-	if transfer.Cointoken == "" {
-		return a.assetTransferCoins(transfer)
+	receipt, err := a.assetTransfer(transfer)
+	if err != nil {
+		clog.Error("AssetTransfer failed", "err", err)
+		return nil, errors.Cause(err)
 	}
-
-	// token not support
-	return nil, types.ErrNotSupport
-}
-
-func (a *action) assetWithdrawCoins(withdraw *types.AssetsWithdraw, withdrawTx *types.Transaction) (*types.Receipt, error) {
-	accDB := account.NewCoinsAccount()
-	accDB.SetDB(a.db)
-
-	isPara := types.IsPara()
-	if !isPara {
-		fromAddr := address.ExecAddress(string(withdrawTx.Execer))
-		execAddr := address.ExecAddress(types.ParaX)
-		clog.Debug("Paracross.Exec", "AssettWithdraw", withdraw.Amount, "from", fromAddr,
-			"to", withdraw.To, "exec", execAddr, "withdrawTx execor", string(withdrawTx.Execer))
-		return accDB.ExecTransfer(fromAddr, withdraw.To, execAddr, withdraw.Amount)
-	} else {
-		execAddr := address.ExecAddress(string(withdrawTx.Execer))
-		return ParaAssetWithdraw(accDB, a.fromaddr, withdraw.Amount, execAddr)
-	}
+	return receipt, nil
 }
 
 func (a *action) AssetWithdraw(withdraw *types.AssetsWithdraw) (*types.Receipt, error) {
@@ -464,7 +421,12 @@ func (a *action) AssetWithdraw(withdraw *types.AssetsWithdraw) (*types.Receipt, 
 	}
 	clog.Debug("paracross.AssetWithdraw isPara", "execer", string(a.tx.Execer),
 		"txHash", common.Bytes2Hex(a.tx.Hash()))
-	return a.assetWithdrawCoins(withdraw, a.tx)
+	receipt, err := a.assetWithdraw(withdraw, a.tx)
+	if err != nil {
+		clog.Error("AssetWithdraw failed", "err", err)
+		return nil, errors.Cause(err)
+	}
+	return receipt, nil
 }
 
 //当前miner tx不需要校验上一个区块的衔接性，因为tx就是本节点发出，高度，preHash等都在本区块里面的blockchain做了校验
@@ -484,6 +446,15 @@ func (a *action) Miner(miner *pt.ParacrossMinerAction) (*types.Receipt, error) {
 	logs = append(logs, log)
 	return &types.Receipt{types.ExecOk, nil, logs}, nil
 
+}
+
+func getTitleFrom(exec []byte) ([]byte, error) {
+	last := bytes.LastIndex(exec, []byte("."))
+	if last == -1 {
+		return nil, types.ErrNotFound
+	}
+	// 现在配置是包含 .的， 所有取title 是也把 `.` 取出来
+	return exec[:last+1], nil
 }
 
 /*

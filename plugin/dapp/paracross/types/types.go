@@ -22,7 +22,8 @@ const (
 	TyLogParaAssetTransfer     = 653
 	TyLogParaAssetWithdraw     = 654
 	//在平行链上保存节点参与共识的数据
-	TyLogParacrossMiner = 655
+	TyLogParacrossMiner   = 655
+	TyLogParaAssetDeposit = 656
 )
 
 type ParacrossCommitTx struct {
@@ -104,12 +105,12 @@ func CreateRawTransferTx(param *types.CreateTx) (*types.Transaction, error) {
 	transfer := &ParacrossAction{}
 	if !param.IsWithdraw {
 		v := &ParacrossAction_AssetTransfer{AssetTransfer: &types.AssetsTransfer{
-			Amount: param.Amount, Note: param.GetNote(), To: param.GetTo()}}
+			Amount: param.Amount, Note: param.GetNote(), To: param.GetTo(), Cointoken: param.TokenSymbol}}
 		transfer.Value = v
 		transfer.Ty = ParacrossActionTransfer
 	} else {
 		v := &ParacrossAction_AssetWithdraw{AssetWithdraw: &types.AssetsWithdraw{
-			Amount: param.Amount, Note: param.GetNote(), To: param.GetTo()}}
+			Amount: param.Amount, Note: param.GetNote(), To: param.GetTo(), Cointoken: param.TokenSymbol}}
 		transfer.Value = v
 		transfer.Ty = ParacrossActionWithdraw
 	}

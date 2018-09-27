@@ -75,7 +75,15 @@ func (c *CoinsType) RPC_Default_Process(action string, msg interface{}) (*types.
 	if create.IsToken {
 		return nil, types.ErrNotSupport
 	}
-	return c.AssertCreate(create)
+	tx, err := c.AssertCreate(create)
+	if err != nil {
+		return nil, err
+	}
+	//to地址的问题,如果是主链交易，to地址就是直接是设置to
+	if !types.IsPara() {
+		tx.To = create.To
+	}
+	return tx, err
 }
 
 //重构后这部分会删除
