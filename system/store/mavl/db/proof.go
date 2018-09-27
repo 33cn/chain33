@@ -3,8 +3,6 @@ package mavl
 import (
 	"bytes"
 
-	"fmt"
-
 	"github.com/golang/protobuf/proto"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -26,34 +24,32 @@ func (proof *Proof) Verify(key []byte, value []byte, root []byte) bool {
 	leafNode := types.LeafNode{Key: key, Value: value, Height: 0, Size: 1}
 	leafHash := leafNode.Hash()
 
-	if enableHashPrefix {
-		hashKey := bytes.TrimSuffix(proof.LeafHash, leafHash)
-		hashKey = append(hashKey, leafHash...)
-		leafHash = hashKey
-	}
+	//if enableMavlPrefix {
+	//	hashKey := bytes.TrimSuffix(proof.LeafHash, leafHash)
+	//	hashKey = append(hashKey, leafHash...)
+	//	leafHash = hashKey
+	//}
 
 	if !bytes.Equal(leafHash, proof.LeafHash) {
 		return false
 	}
 	hash := leafHash
-	for i, branch := range proof.InnerNodes {
+	for _, branch := range proof.InnerNodes {
 		//hash = branch.ProofHash(hash)
-		hash = InnerNodeProofHash(hash, branch)
-		if enableHashPrefix && i != len(proof.InnerNodes)-1 {
-			node := proof.InnerNodes[i+1]
-			var hashKey []byte
-			if len(node.LeftHash) == 0 {
-				hashKey = node.RightHash
+		if enableMavlPrefix {
+			if len(branch.LeftHash) != 0 {
+				elem := bytes.Split(branch.LeftHash, []byte("-"))
+				if len(elem) >= 3 {
+					branch.LeftHash = elem[2]
+				}
 			} else {
-				hashKey = node.LeftHash
+				elem := bytes.Split(branch.RightHash, []byte("-"))
+				if len(elem) >= 3 {
+					branch.RightHash = elem[2]
+				}
 			}
-			elem := bytes.Split(hashKey, []byte("-"))
-			if len(elem) >= 3 {
-				hashKey = []byte(fmt.Sprintf("%s-%s-", hashNodePrefix, string(elem[2])))
-			}
-			hashKey = append(hashKey, hash...)
-			hash = hashKey
 		}
+		hash = InnerNodeProofHash(hash, branch)
 	}
 	return bytes.Equal(proof.RootHash, hash)
 }
