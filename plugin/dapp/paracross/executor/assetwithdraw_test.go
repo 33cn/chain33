@@ -105,7 +105,6 @@ func (suite *AssetWithdrawTestSuite) TestExecAssetWithdrawOnParaChain() {
 	types.SetTitle(Title)
 	// make coins for transfer
 
-
 	total := 1000 * types.Coin
 	accountA := types.Account{
 		Balance: total,

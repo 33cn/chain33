@@ -2,9 +2,9 @@ package executor
 
 import (
 	"gitlab.33.cn/chain33/chain33/account"
-	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/common/db"
 	pt "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/types"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 // 注： 在计算帐号地址时， 平行链paracross合约地址需要带上title前缀，才能表现出和主链一致, 但是现在不带，
@@ -20,7 +20,7 @@ func NewParaAccount(paraTitle, mainExecName, mainSymbol string, db db.KV) (*acco
 	// paraExec := paraTitle + types.ParaX
 	paraExec := types.ParaX // 现在平行链是执行器注册和算地址是不带前缀的，
 	// 如果能确保(或规定) tokne 的 symbol  和 coins 中的 symbol 不会混淆，  localExecName 可以不要
-	paraSymbol := mainExecName + "." +  mainSymbol
+	paraSymbol := mainExecName + "." + mainSymbol
 	return account.NewAccountDB(paraExec, paraSymbol, db)
 }
 
@@ -70,8 +70,8 @@ func assetWithdrawBalance(acc *account.DB, addr string, amount int64) (*types.Re
 	copyacc := *acc1
 	acc1.Balance -= amount
 	receiptBalance := &types.ReceiptAccountTransfer{
-		Prev:     &copyacc,
-		Current:  acc1,
+		Prev:    &copyacc,
+		Current: acc1,
 	}
 	acc.SaveAccount(acc1)
 	ty := int32(pt.TyLogParaAssetWithdraw)
@@ -91,7 +91,6 @@ func assetWithdrawBalance(acc *account.DB, addr string, amount int64) (*types.Re
 // mavl-token-test-exec-1HPkPopVe3ERfvaAgedDtJQ792taZFEHCe:13DP8mVru5Rtu6CrjXQMvLsjvve3epRR1i
 // mavl-conis-bty-exec-{para}1e:13DP8mVru5Rtu6CrjXQMvLsjvve3epRR1i
 
-
 // 用户
 //      mavl- `合约` - `币名称` - 地址
 
@@ -104,13 +103,11 @@ func assetWithdrawBalance(acc *account.DB, addr string, amount int64) (*types.Re
 //
 // 带title的hu
 
-
 // 平行链
 //   `合约`    paracross  ` : 主链上的    user.p.guodun.paracross`
 //    `币名称`         coins.bty
 // mavl- `合约` - `币名称` - 地址                                                              5
 //
-
 
 // transfer / withdraw
 //

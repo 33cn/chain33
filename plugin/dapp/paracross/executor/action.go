@@ -3,6 +3,7 @@ package executor
 import (
 	"bytes"
 
+	"github.com/pkg/errors"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/client"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
@@ -11,7 +12,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/util"
-	"github.com/pkg/errors"
 )
 
 type action struct {
@@ -421,7 +421,7 @@ func (a *action) AssetWithdraw(withdraw *types.AssetsWithdraw) (*types.Receipt, 
 	}
 	clog.Debug("paracross.AssetWithdraw isPara", "execer", string(a.tx.Execer),
 		"txHash", common.Bytes2Hex(a.tx.Hash()))
-	receipt, err :=  a.assetWithdraw(withdraw, a.tx)
+	receipt, err := a.assetWithdraw(withdraw, a.tx)
 	if err != nil {
 		clog.Error("AssetWithdraw failed", "err", err)
 		return nil, errors.Cause(err)

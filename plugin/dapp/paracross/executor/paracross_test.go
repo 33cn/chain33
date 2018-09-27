@@ -329,7 +329,6 @@ func TestCommitSuite(t *testing.T) {
 	suite.Run(t, new(CommitTestSuite))
 }
 
-
 func TestGetTitle(t *testing.T) {
 	exec := "p.user.guodun.token"
 	titleExpect := []byte("p.user.guodun.")
