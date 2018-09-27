@@ -161,9 +161,9 @@ message MsgWithRequired {
 }
 
 message MsgWithIndirectRequired {
-    optional MsgWithRequired     subm      = 1;
+    optional MsgWithRequired subm = 1;
     map<string, MsgWithRequired> map_field = 2;
-    repeated MsgWithRequired slice_field   = 3;
+    repeated MsgWithRequired slice_field = 3;
 }
 
 message MsgWithRequiredBytes {
