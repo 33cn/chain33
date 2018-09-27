@@ -219,6 +219,29 @@ func TestSetAndGetOld(t *testing.T) {
 	assert.Equal(t, []byte("22"), v)
 }
 
+//开启mvcc 和 prefix 要保证 hash 不变
+func TestHashSame(t *testing.T) {
+	dir, err := ioutil.TempDir("", "datastore")
+	require.NoError(t, err)
+	t.Log(dir)
+	dbm := db.NewDB("mavltree", "leveldb", dir, 100)
+
+	t1 := NewTree(dbm, true)
+	t1.Set([]byte("1"), []byte("1"))
+	t1.Set([]byte("2"), []byte("2"))
+
+	hash1 := t1.Hash()
+
+	EnableMVCC(true)
+	EnableHashPrefix(true)
+	//t2 在t1的基础上再做修改
+	t2 := NewTree(dbm, true)
+	t1.Set([]byte("1"), []byte("1"))
+	t1.Set([]byte("2"), []byte("2"))
+	hash2 := t2.Hash()
+	assert.Equal(t, hash1, hash2)
+}
+
 //测试hash，save,load以及节点value值的更新功能
 func TestPersistence(t *testing.T) {
 	dir, err := ioutil.TempDir("", "datastore")
@@ -241,7 +264,7 @@ func TestPersistence(t *testing.T) {
 
 	for key, value := range records {
 		//t1.Set([]byte(key), []byte(value))
-		kindsSet(t1, mvccdb, []byte(key), []byte(value), 0, EnableMvcc)
+		kindsSet(t1, mvccdb, []byte(key), []byte(value), 0, enableMvcc)
 		//t.Log("TestPersistence tree1 set", "key", key, "value", value)
 		recordbaks[key] = randstr(20)
 	}
@@ -257,7 +280,7 @@ func TestPersistence(t *testing.T) {
 
 	for key, value := range records {
 		//_, t2value, _ := t2.Get([]byte(key))
-		_, t2value, _ := kindsGet(t2, mvccdb, []byte(key), 0, EnableMvcc)
+		_, t2value, _ := kindsGet(t2, mvccdb, []byte(key), 0, enableMvcc)
 		if string(t2value) != value {
 			t.Fatalf("Invalid value. Expected %v, got %v", value, t2value)
 		}
@@ -271,7 +294,7 @@ func TestPersistence(t *testing.T) {
 			break
 		}
 		//t2.Set([]byte(key), []byte(value))
-		kindsSet(t2, mvccdb, []byte(key), []byte(value), 1, EnableMvcc)
+		kindsSet(t2, mvccdb, []byte(key), []byte(value), 1, enableMvcc)
 		//t.Log("TestPersistence insert new node treee2", "key", string(key), "value", string(value))
 
 	}
@@ -288,7 +311,7 @@ func TestPersistence(t *testing.T) {
 	t.Log("------tree11------TestPersistence---------")
 	for key, value := range records {
 		//_, t2value, _ := t11.Get([]byte(key))
-		_, t2value, _ := kindsGet(t11, mvccdb, []byte(key), 0, EnableMvcc)
+		_, t2value, _ := kindsGet(t11, mvccdb, []byte(key), 0, enableMvcc)
 		if string(t2value) != value {
 			t.Fatalf("tree11 Invalid value. Expected %v, got %v", value, t2value)
 		}
@@ -301,7 +324,7 @@ func TestPersistence(t *testing.T) {
 	//有5个key对应的value值有变化
 	for key, value := range records {
 		//_, t2value, _ := t22.Get([]byte(key))
-		_, t2value, _ := kindsGet(t22, mvccdb, []byte(key), 0, EnableMvcc)
+		_, t2value, _ := kindsGet(t22, mvccdb, []byte(key), 0, enableMvcc)
 		if string(t2value) != value {
 			t.Log("tree22 value update.", "oldvalue", string(value), "newvalue", string(t2value), "key", string(key))
 		}
@@ -313,7 +336,7 @@ func TestPersistence(t *testing.T) {
 			break
 		}
 		//_, t2value, _ := t22.Get([]byte(key))
-		_, t2value, _ := kindsGet(t22, mvccdb, []byte(key), 1, EnableMvcc)
+		_, t2value, _ := kindsGet(t22, mvccdb, []byte(key), 1, enableMvcc)
 		if string(t2value) != value {
 			t.Logf("tree2222 Invalid value. Expected %v, got %v,key %v", string(value), string(t2value), string(key))
 		}
@@ -747,7 +770,8 @@ func BenchmarkDBSetMVCC(b *testing.B) {
 
 func BenchmarkDBGet(b *testing.B) {
 	//开启MVCC情况下不做测试；BenchmarkDBGetMVCC进行测试
-	if EnableMvcc {
+	if enableMvcc {
+		b.Skip()
 		return
 	}
 	dir, err := ioutil.TempDir("", "datastore")
