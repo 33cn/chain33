@@ -20,16 +20,30 @@ const (
 	hashNodePrefix = "_mh_"
 	leafNodePrefix = "_mb_"
 	// 是否开启添加hash节点前缀
-	enableHashPrefix = true
-	// 是否开启MVCC
-	EnableMvcc = false
 )
 
 var (
-	ErrNodeNotExist = errors.New("ErrNodeNotExist")
-	treelog         = log.New("module", "mavl")
-	emptyRoot       [32]byte
+	ErrNodeNotExist  = errors.New("ErrNodeNotExist")
+	treelog          = log.New("module", "mavl")
+	emptyRoot        [32]byte
+	enableHashPrefix bool
+	// 是否开启MVCC
+	enableMvcc bool
 )
+
+var random *rand.Rand
+
+func init() {
+	random = rand.New(rand.NewSource(time.Now().UnixNano()))
+}
+
+func EnableHashPrefix(enable bool) {
+	enableHashPrefix = enable
+}
+
+func EnableMVCC(enable bool) {
+	enableMvcc = enable
+}
 
 //merkle avl tree
 type Tree struct {
@@ -44,14 +58,14 @@ func NewTree(db dbm.DB, sync bool) *Tree {
 	if db == nil {
 		// In-memory IAVLTree
 		return &Tree{
-			randomstr: getRandomString(16),
+			randomstr: getRandomString(5),
 		}
 	} else {
 		// Persistent IAVLTree
 		ndb := newNodeDB(db, sync)
 		return &Tree{
 			ndb:       ndb,
-			randomstr: getRandomString(16),
+			randomstr: getRandomString(5),
 		}
 	}
 }
@@ -472,13 +486,10 @@ func genPrefixHashKey(node *Node, str string) (key []byte) {
 	return key
 }
 
-func getRandomString(lenth int) string {
-	str := "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	bytes := []byte(str)
-	result := []byte{}
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	for i := 0; i < lenth; i++ {
-		result = append(result, bytes[r.Intn(len(bytes))])
+func getRandomString(length int) string {
+	result := make([]byte, length)
+	for i := 0; i < length; i++ {
+		result[i] = byte(random.Intn(255))
 	}
 	return string(result)
 }
