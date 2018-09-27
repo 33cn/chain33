@@ -1,9 +1,12 @@
 package executor
 
 import (
+	"reflect"
+
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
+	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/hashlock/types"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -11,6 +14,18 @@ import (
 var clog = log.New("module", "execs.hashlock")
 
 const minLockTime = 60
+
+//初始化过程比较重量级，有很多reflact, 所以弄成全局的
+var executorFunList = make(map[string]reflect.Method)
+var executorType = pty.NewType()
+
+func init() {
+	actionFunList := executorType.GetFuncMap()
+	executorFunList = types.ListMethod(&Hashlock{})
+	for k, v := range actionFunList {
+		executorFunList[k] = v
+	}
+}
 
 func Init(name string) {
 	drivers.Register(GetName(), newHashlock, 0)
@@ -27,6 +42,7 @@ type Hashlock struct {
 func newHashlock() drivers.Driver {
 	h := &Hashlock{}
 	h.SetChild(h)
+	h.SetExecutorType(executorType)
 	return h
 }
 
