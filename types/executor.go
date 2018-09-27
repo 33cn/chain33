@@ -25,6 +25,23 @@ type rpcTypeUtilItem struct {
 	handler   FN_RPCQueryHandle
 }
 
+type logInfoType struct {
+	ty     int64
+	execer []byte
+}
+
+func newLogType(execer []byte, ty int64) LogType {
+	return &logInfoType{ty: ty, execer: execer}
+}
+
+func (l *logInfoType) Name() string {
+	return GetLogName(l.execer, l.ty)
+}
+
+func (l *logInfoType) Decode(data []byte) (interface{}, error) {
+	return DecodeLog(l.execer, l.ty, data)
+}
+
 var executorMap = map[string]ExecutorType{}
 var receiptLogMap = map[int64]LogType{}
 var rpcTypeUtilMap = map[string]*rpcTypeUtilItem{}
@@ -58,11 +75,57 @@ func RegistorLog(logTy int64, util LogType) {
 	}
 }
 
-func LoadLog(ty int64) LogType {
+func LoadLog(execer []byte, ty int64) LogType {
 	if log, exist := receiptLogMap[ty]; exist {
 		return log
 	}
-	return nil
+	loginfo := getLogType(execer, ty)
+	if loginfo.Name == "LogReserved" {
+		return nil
+	}
+	return newLogType(execer, ty)
+}
+
+//通过反射,解析日志
+func GetLogName(execer []byte, ty int64) string {
+	t := getLogType(execer, ty)
+	return t.Name
+}
+
+func getLogType(execer []byte, ty int64) *LogInfo {
+	//首先system log
+	if logty, ok := SystemLog[ty]; ok {
+		return logty
+	}
+	ety := LoadExecutorType(string(execer))
+	if ety == nil {
+		return SystemLog[0]
+	}
+	logmap := ety.GetLogMap()
+	if logty, ok := logmap[ty]; ok {
+		return logty
+	}
+	return SystemLog[0]
+}
+
+func DecodeLog(execer []byte, ty int64, data []byte) (interface{}, error) {
+	t := getLogType(execer, ty)
+	if t.Name == "LogErr" || t.Name == "LogReserved" {
+		return data, nil
+	}
+	pdata := reflect.New(t.Ty)
+	if !pdata.CanInterface() {
+		return nil, ErrDecode
+	}
+	msg, ok := pdata.Interface().(Message)
+	if !ok {
+		return nil, ErrDecode
+	}
+	err := Decode(data, msg)
+	if err != nil {
+		return nil, err
+	}
+	return msg, nil
 }
 
 func registerRPCQueryHandle(funcName string, convertor RPCQueryTypeConvert, handler FN_RPCQueryHandle) {
@@ -116,7 +179,7 @@ type ExecutorType interface {
 	GetPayload() Message
 	GetName() string
 	//exec result of receipt log
-	GetLogMap() map[int64]reflect.Type
+	GetLogMap() map[int64]*LogInfo
 	//actionType -> name map
 	GetTypeMap() map[string]int32
 	GetValueTypeMap() map[string]reflect.Type
@@ -185,7 +248,7 @@ func (base *ExecTypeBase) GetRPCFuncMap() map[string]reflect.Method {
 	return base.rpclist
 }
 
-func (base *ExecTypeBase) GetLogMap() map[int64]reflect.Type {
+func (base *ExecTypeBase) GetLogMap() map[int64]*LogInfo {
 	return nil
 }
 

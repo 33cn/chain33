@@ -2,7 +2,6 @@ package types
 
 import (
 	"encoding/json"
-	"reflect"
 
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -51,7 +50,7 @@ func (at *PrivacyType) GetName() string {
 	return "privacy"
 }
 
-func (at *PrivacyType) GetLogMap() map[int64]reflect.Type {
+func (at *PrivacyType) GetLogMap() map[int64]*types.LogInfo {
 	return nil
 }
 
