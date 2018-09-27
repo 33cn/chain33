@@ -44,11 +44,13 @@ func (c *Paracross) GetDriverName() string {
 func (c *Paracross) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	_, err := c.DriverBase.Exec(tx, index)
 	if err != nil {
+		clog.Error("DriverBase.Exec failed", "error", err)
 		return nil, err
 	}
 	var payload pt.ParacrossAction
 	err = types.Decode(tx.Payload, &payload)
 	if err != nil {
+		clog.Error("types.Decode payload failed", "error", err)
 		return nil, err
 	}
 
