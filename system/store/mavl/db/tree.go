@@ -19,9 +19,9 @@ const (
 	hashNodePrefix = "mavl-head"
 	leafNodePrefix = "mavl-body"
 	// 是否开启添加hash节点前缀
-	enableHashPrefix = true
+	enableHashPrefix = false
 	// 是否开启MVCC
-	EnableMvcc       = true
+	EnableMvcc       = false
 )
 
 var (
