@@ -105,3 +105,13 @@ amount = "69"
 checkItem = ["balance", "utxo"]
 dep = ["priv2priv3"]
 
+
+[[PrivCreateutxosCase]]
+id = "privCreateutxos"
+command = "privacy createutxos -a 20 -f 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv -p 0a9d212b2505aefaa8da370319088bbccfac097b007f52ed71d8133456c8185823c8eac43c5e937953d7b6c8e68b0db1f4f03df4946a29f524875118960a35fb"
+from = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
+to = "12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
+amount = "20"
+checkItem = ["balance", "utxo"]
+dep = ["trans1"]
+
