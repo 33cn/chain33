@@ -163,19 +163,27 @@ const (
 	TyLogGenesisDeposit  = 12
 )
 
-var SystemLog = map[int64]reflect.Type{
-	TyLogReserved:        nil,
-	TyLogErr:             nil,
-	TyLogFee:             reflect.TypeOf(ReceiptAccountTransfer{}),
-	TyLogTransfer:        reflect.TypeOf(ReceiptAccountTransfer{}),
-	TyLogDeposit:         reflect.TypeOf(ReceiptAccountTransfer{}),
-	TyLogExecTransfer:    reflect.TypeOf(ReceiptExecAccountTransfer{}),
-	TyLogExecWithdraw:    reflect.TypeOf(ReceiptExecAccountTransfer{}),
-	TyLogExecDeposit:     reflect.TypeOf(ReceiptExecAccountTransfer{}),
-	TyLogExecFrozen:      reflect.TypeOf(ReceiptExecAccountTransfer{}),
-	TyLogExecActive:      reflect.TypeOf(ReceiptAccountTransfer{}),
-	TyLogGenesisTransfer: reflect.TypeOf(ReceiptAccountTransfer{}),
-	TyLogGenesisDeposit:  reflect.TypeOf(ReceiptAccountTransfer{}),
+type LogErr []byte
+type LogReserved []byte
+
+type LogInfo struct {
+	Ty   reflect.Type
+	Name string
+}
+
+var SystemLog = map[int64]*LogInfo{
+	TyLogReserved:        &LogInfo{reflect.TypeOf(LogReserved{}), "LogReserved"},
+	TyLogErr:             &LogInfo{reflect.TypeOf(LogErr{}), "LogErr"},
+	TyLogFee:             &LogInfo{reflect.TypeOf(ReceiptAccountTransfer{}), "LogFee"},
+	TyLogTransfer:        &LogInfo{reflect.TypeOf(ReceiptAccountTransfer{}), "LogTransfer"},
+	TyLogDeposit:         &LogInfo{reflect.TypeOf(ReceiptAccountTransfer{}), "LogDeposit"},
+	TyLogExecTransfer:    &LogInfo{reflect.TypeOf(ReceiptExecAccountTransfer{}), "LogExecTransfer"},
+	TyLogExecWithdraw:    &LogInfo{reflect.TypeOf(ReceiptExecAccountTransfer{}), "LogExecWithdraw"},
+	TyLogExecDeposit:     &LogInfo{reflect.TypeOf(ReceiptExecAccountTransfer{}), "LogExecDeposit"},
+	TyLogExecFrozen:      &LogInfo{reflect.TypeOf(ReceiptExecAccountTransfer{}), "LogExecFrozen"},
+	TyLogExecActive:      &LogInfo{reflect.TypeOf(ReceiptAccountTransfer{}), "LogExecActive"},
+	TyLogGenesisTransfer: &LogInfo{reflect.TypeOf(ReceiptAccountTransfer{}), "LogGenesisTransfer"},
+	TyLogGenesisDeposit:  &LogInfo{reflect.TypeOf(ReceiptAccountTransfer{}), "LogGenesisDeposit"},
 }
 
 const (
