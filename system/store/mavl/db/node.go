@@ -145,6 +145,11 @@ func (node *Node) Hash(t *Tree) []byte {
 		leafnode.Size = node.size
 		leafnode.Value = node.value
 		node.hash = leafnode.Hash()
+
+		if enableHashPrefix {
+			hashKey := genPrefixHashKey(node, t.randomstr)
+			node.hash = hashKey
+		}
 	} else {
 		var innernode types.InnerNode
 		innernode.Height = node.height
@@ -170,6 +175,12 @@ func (node *Node) Hash(t *Tree) []byte {
 		}
 		innernode.RightHash = node.rightHash
 		node.hash = innernode.Hash()
+		if enableHashPrefix {
+			if node.height != t.root.height {
+				hashKey := genPrefixHashKey(node, t.randomstr)
+				node.hash = hashKey
+			}
+		}
 	}
 
 	return node.hash
@@ -215,7 +226,9 @@ func (node *Node) storeNode(t *Tree) []byte {
 
 	//leafnode
 	if node.height == 0 {
-		storeNode.Value = node.value
+		if !EnableMvcc {
+			storeNode.Value = node.value
+		}
 	} else {
 		// left
 		if node.leftHash == nil {
@@ -339,8 +352,13 @@ func (node *Node) rotateLeft(t *Tree) *Node {
 
 // NOTE: mutates height and size
 func (node *Node) calcHeightAndSize(t *Tree) {
-	node.height = maxInt32(node.getLeftNode(t).height, node.getRightNode(t).height) + 1
-	node.size = node.getLeftNode(t).size + node.getRightNode(t).size
+	//node.height = maxInt32(node.getLeftNode(t).height, node.getRightNode(t).height) + 1
+	//node.size = node.getLeftNode(t).size + node.getRightNode(t).size
+
+	leftN  := node.getLeftNode(t)
+	rightN := node.getRightNode(t)
+	node.height = maxInt32(leftN.height, rightN.height) + 1
+	node.size = leftN.size + rightN.size
 }
 
 func (node *Node) calcBalance(t *Tree) int {
