@@ -7,7 +7,6 @@ import (
 
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common/address"
-	"gitlab.33.cn/chain33/chain33/plugin/dapp/blackwhite/rpc"
 	gt "gitlab.33.cn/chain33/chain33/plugin/dapp/blackwhite/types"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -21,7 +20,7 @@ var driverName = gt.BlackwhiteX
 
 //初始化过程比较重量级，有很多reflact, 所以弄成全局的
 var executorFunList = make(map[string]reflect.Method)
-var executorType = rpc.NewType()
+var executorType = gt.NewType()
 
 func init() {
 	actionFunList := executorType.GetFuncMap()
@@ -46,6 +45,7 @@ type Blackwhite struct {
 func newBlackwhite() drivers.Driver {
 	c := &Blackwhite{}
 	c.SetChild(c)
+	c.SetExecutorType(executorType)
 	return c
 }
 

@@ -44,17 +44,15 @@ func (mvccs *KVMVCCStore) Close() {
 	klog.Info("store kvdb closed")
 }
 
-func (mvccs *KVMVCCStore) Set(datas *types.StoreSet, sync bool) []byte {
+func (mvccs *KVMVCCStore) Set(datas *types.StoreSet, sync bool) ([]byte, error) {
 	hash := calcHash(datas)
-
 	kvlist, err := mvccs.mvcc.AddMVCC(datas.KV, hash, datas.StateHash, datas.Height)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-
 	klog.Info("KVMVCCStore Set saveKVSets", "hash", common.ToHex(datas.StateHash), "height", datas.Height)
 	mvccs.saveKVSets(kvlist)
-	return hash
+	return hash, nil
 }
 
 func (mvccs *KVMVCCStore) Get(datas *types.StoreGet) [][]byte {
@@ -81,26 +79,22 @@ func (mvccs *KVMVCCStore) Get(datas *types.StoreGet) [][]byte {
 	return values
 }
 
-func (mvccs *KVMVCCStore) MemSet(datas *types.StoreSet, sync bool) []byte {
+func (mvccs *KVMVCCStore) MemSet(datas *types.StoreSet, sync bool) ([]byte, error) {
 	kvset, err := mvccs.checkVersion(datas.Height)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-
 	hash := calcHash(datas)
 	klog.Debug("KVMVCCStore MemSet AddMVCC", "prestatehash", common.ToHex(datas.StateHash), "hash", common.ToHex(hash), "height", datas.Height)
 	kvlist, err := mvccs.mvcc.AddMVCC(datas.KV, hash, datas.StateHash, datas.Height)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-
 	if len(kvlist) > 0 {
 		kvset = append(kvset, kvlist...)
 	}
-
 	mvccs.kvsetmap[string(hash)] = kvset
-
-	return hash
+	return hash, nil
 }
 
 func (mvccs *KVMVCCStore) Commit(req *types.ReqHash) ([]byte, error) {
