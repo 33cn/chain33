@@ -7,10 +7,21 @@ import (
 	"sync"
 
 	"github.com/golang/protobuf/proto"
-	lru "github.com/hashicorp/golang-lru"
+	"github.com/hashicorp/golang-lru"
 	log "github.com/inconshreveable/log15"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
+	"time"
+	"math/rand"
+)
+
+const (
+	hashNodePrefix = "mavl-head"
+	leafNodePrefix = "mavl-body"
+	// 是否开启添加hash节点前缀
+	enableHashPrefix = true
+	// 是否开启MVCC
+	EnableMvcc       = true
 )
 
 var (
@@ -24,18 +35,22 @@ type Tree struct {
 	root *Node
 	ndb  *nodeDB
 	//batch *nodeBatch
+	randomstr   string
 }
 
 // 新建一个merkle avl 树
 func NewTree(db dbm.DB, sync bool) *Tree {
 	if db == nil {
 		// In-memory IAVLTree
-		return &Tree{}
+		return &Tree{
+			randomstr: getRandomString(16),
+        }
 	} else {
 		// Persistent IAVLTree
 		ndb := newNodeDB(db, sync)
 		return &Tree{
 			ndb: ndb,
+			randomstr: getRandomString(16),
 		}
 	}
 }
@@ -444,4 +459,26 @@ func IterateRangeByStateHash(db dbm.DB, statehash, start, end []byte, ascending 
 	//treelog.Debug("IterateRangeByStateHash", "statehash", hex.EncodeToString(statehash), "start", string(start), "end", string(end))
 
 	tree.IterateRange(start, end, ascending, fn)
+}
+
+func genPrefixHashKey(node *Node, str string) (key []byte) {
+	//leafnode
+	if node.height == 0 {
+		key = []byte(fmt.Sprintf("%s-%s-", leafNodePrefix, str))
+	} else {
+		key = []byte(fmt.Sprintf("%s-%s-", hashNodePrefix, str))
+	}
+	key = append(key, node.hash...)
+	return key
+}
+
+func getRandomString(lenth int) string {
+	str := "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	bytes := []byte(str)
+	result := []byte{}
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	for i := 0; i < lenth; i++ {
+		result = append(result, bytes[r.Intn(len(bytes))])
+	}
+	return string(result)
 }
