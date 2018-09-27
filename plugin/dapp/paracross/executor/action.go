@@ -11,6 +11,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/util"
+	"github.com/pkg/errors"
 )
 
 type action struct {
@@ -350,7 +351,7 @@ func (a *action) execCrossTx(tx *types.TransactionDetail, commit *pt.ParacrossCo
 			clog.Crit("paracross.Commit Decode Tx failed", "para title", commit.Status.Title,
 				"para height", commit.Status.Height, "para tx index", i, "error", err, "txHash",
 				common.Bytes2Hex(commit.Status.CrossTxHashs[i]))
-			return nil, err
+			return nil, errors.Cause(err)
 		}
 
 		clog.Info("paracross.Commit WithdrawCoins", "para title", commit.Status.Title,
@@ -384,7 +385,7 @@ func (a *action) execCrossTxs(commit *pt.ParacrossCommitAction) (*types.Receipt,
 			}
 			receiptCross, err := a.execCrossTx(tx, commit, i)
 			if err != nil {
-				return nil, err
+				return nil, errors.Cause(err)
 			}
 			if receiptCross == nil {
 				continue
@@ -403,7 +404,12 @@ func (a *action) execCrossTxs(commit *pt.ParacrossCommitAction) (*types.Receipt,
 
 func (a *action) AssetTransfer(transfer *types.AssetsTransfer) (*types.Receipt, error) {
 	clog.Debug("Paracross.Exec", "AssetTransfer", transfer.Cointoken, "transfer", "")
-	return a.assetTransfer(transfer)
+	receipt, err := a.assetTransfer(transfer)
+	if err != nil {
+		clog.Error("AssetTransfer failed", "err", err)
+		return nil, errors.Cause(err)
+	}
+	return receipt, nil
 }
 
 func (a *action) AssetWithdraw(withdraw *types.AssetsWithdraw) (*types.Receipt, error) {
@@ -418,7 +424,12 @@ func (a *action) AssetWithdraw(withdraw *types.AssetsWithdraw) (*types.Receipt, 
 	}
 	clog.Debug("paracross.AssetWithdraw isPara", "execer", string(a.tx.Execer),
 		"txHash", common.Bytes2Hex(a.tx.Hash()))
-	return a.assetWithdraw(withdraw, a.tx)
+	receipt, err :=  a.assetWithdraw(withdraw, a.tx)
+	if err != nil {
+		clog.Error("AssetWithdraw failed", "err", err)
+		return nil, errors.Cause(err)
+	}
+	return receipt, nil
 }
 
 //当前miner tx不需要校验上一个区块的衔接性，因为tx就是本节点发出，高度，preHash等都在本区块里面的blockchain做了校验
