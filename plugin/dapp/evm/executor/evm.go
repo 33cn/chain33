@@ -24,9 +24,6 @@ var (
 
 	// 本合约地址
 	EvmAddress = address.ExecAddress(types.ExecName(model.ExecutorName))
-
-	// 平行链下本合约地址（为了兼容之前的交易）
-	ParaEvmAddress = EvmAddress
 )
 
 var driverName string
@@ -34,8 +31,7 @@ var driverName string
 func Init(name string) {
 	driverName = name
 	drivers.Register(driverName, newEVMDriver, types.ForkV17EVM)
-	EvmAddress = address.ExecAddress(GetName())
-	ParaEvmAddress = address.ExecAddress(types.ExecName(GetName()))
+	EvmAddress = address.ExecAddress(types.ExecName(name))
 	// 初始化硬分叉数据
 	state.InitForkData()
 }
@@ -127,13 +123,6 @@ func (evm *EVMExecutor) getNewAddr(txHash []byte) common.Address {
 	return common.NewAddress(txHash)
 }
 
-// 判断一个交易是否为新创建合约
-func (evm *EVMExecutor) isCreate(msg *common.Message) bool {
-	isEvm := strings.Compare(msg.To().String(), EvmAddress)
-	isParaEvm := strings.Compare(msg.To().String(), ParaEvmAddress)
-	return isEvm == 0 || isParaEvm == 0
-}
-
 // 在区块上的执行操作，同一个区块内的多个交易会循环调用此方法进行处理；
 // 返回的结果types.Receipt数据，将会被统一写入到本地状态数据库中；
 // 本操作返回的ReceiptLog数据，在后面调用ExecLocal时会被传入，同样ExecLocal返回的数据将会被写入blockchain.db；
@@ -154,7 +143,7 @@ func (evm *EVMExecutor) Exec(tx *types.Transaction, index int) (*types.Receipt, 
 
 	// 目标地址为空，或者为Evm合约的固定地址时，认为新增合约
 
-	isCreate := evm.isCreate(msg)
+	isCreate := strings.Compare(msg.To().String(), EvmAddress) == 0
 	var (
 		ret          = []byte("")
 		vmerr        error
