@@ -2,7 +2,6 @@ package ticket
 
 import (
 	"encoding/json"
-	"reflect"
 
 	//log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -106,7 +105,7 @@ func (ticket TicketType) GetName() string {
 	return "ticket"
 }
 
-func (ticket *TicketType) GetLogMap() map[int64]reflect.Type {
+func (ticket *TicketType) GetLogMap() map[int64]*types.LogInfo {
 	return nil
 }
 
