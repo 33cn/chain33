@@ -41,14 +41,14 @@ func getNodes(db dbm.KV, title string) (map[string]struct{}, error) {
 	if err != nil {
 		clog.Info("getNodes", "get db key", key, "failed", err)
 		if isNotFound(err) {
-			return nil, types.ErrTitleNotExist
+			err = types.ErrTitleNotExist
 		}
-		return nil, err
+		return nil, errors.Wrapf(err, "db get key:%s", string(key))
 	}
 	var config types.ConfigItem
 	err = types.Decode(item, &config)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "decode config")
 	}
 
 	value := config.GetArr()
@@ -212,19 +212,16 @@ func (a *action) Commit(commit *pt.ParacrossCommitAction) (*types.Receipt, error
 
 	nodes, err := getNodes(a.db, commit.Status.Title)
 	if err != nil {
-		clog.Error("paracross.Commit", "getNodes", err)
-		return nil, err
+		return nil, errors.Wrapf(err, "getNodes for title:%s", commit.Status.Title)
 	}
 
 	if !validNode(a.fromaddr, nodes) {
-		clog.Error("paracross.Commit", "validNode", a.fromaddr)
-		return nil, types.ErrNodeNotForTheTitle
+		return nil, errors.Wrapf(types.ErrNodeNotForTheTitle, "not validNode:%s", a.fromaddr)
 	}
 
 	titleStatus, err := getTitle(a.db, calcTitleKey(commit.Status.Title))
 	if err != nil {
-		clog.Error("paracross.Commit", "getTitle", a.fromaddr)
-		return nil, err
+		return nil, errors.Wrapf(err, "getTitle:%s", a.fromaddr)
 	}
 
 	if titleStatus.Height+1 == commit.Status.Height && commit.Status.Height > 0 {
@@ -321,7 +318,7 @@ func (a *action) Commit(commit *pt.ParacrossCommitAction) (*types.Receipt, error
 	clog.Info("paracross.Commit commit", "commitDone", titleStatus, "height", commit.Status.Height,
 		"cross tx count", len(commit.Status.CrossTxHashs))
 	if enableParacrossTransfer && commit.Status.Height > 0 && len(commit.Status.CrossTxHashs) > 0 {
-		clog.Info("paracross.Commit commitDone", "do cross", "")
+		clog.Debug("paracross.Commit commitDone", "do cross", "")
 		crossTxReceipt, err := a.execCrossTxs(commit)
 		if err != nil {
 			return nil, err
