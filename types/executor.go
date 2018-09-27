@@ -25,6 +25,23 @@ type rpcTypeUtilItem struct {
 	handler   FN_RPCQueryHandle
 }
 
+type logInfoType struct {
+	ty     int64
+	execer []byte
+}
+
+func newLogType(execer []byte, ty int64) LogType {
+	return &logInfoType{ty: ty, execer: execer}
+}
+
+func (l *logInfoType) Name() string {
+	return GetLogName(l.execer, l.ty)
+}
+
+func (l *logInfoType) Decode(data []byte) (interface{}, error) {
+	return DecodeLog(l.execer, l.ty, data)
+}
+
 var executorMap = map[string]ExecutorType{}
 var receiptLogMap = map[int64]LogType{}
 var rpcTypeUtilMap = map[string]*rpcTypeUtilItem{}
@@ -62,7 +79,11 @@ func LoadLog(execer []byte, ty int64) LogType {
 	if log, exist := receiptLogMap[ty]; exist {
 		return log
 	}
-	return nil
+	loginfo := getLogType(execer, ty)
+	if loginfo.Name == "LogReserved" {
+		return nil
+	}
+	return newLogType(execer, ty)
 }
 
 //通过反射,解析日志
