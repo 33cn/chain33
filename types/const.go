@@ -5,6 +5,14 @@ import "reflect"
 var slash = []byte("-")
 var Debug = false
 
+type LogErr []byte
+type LogReserved []byte
+
+type LogInfo struct {
+	Ty   reflect.Type
+	Name string
+}
+
 const (
 	CoinsX          = "coins"
 	UserKeyX        = "user."
@@ -163,27 +171,19 @@ const (
 	TyLogGenesisDeposit  = 12
 )
 
-type LogErr []byte
-type LogReserved []byte
-
-type LogInfo struct {
-	Ty   reflect.Type
-	Name string
-}
-
 var SystemLog = map[int64]*LogInfo{
-	TyLogReserved:        &LogInfo{reflect.TypeOf(LogReserved{}), "LogReserved"},
-	TyLogErr:             &LogInfo{reflect.TypeOf(LogErr{}), "LogErr"},
-	TyLogFee:             &LogInfo{reflect.TypeOf(ReceiptAccountTransfer{}), "LogFee"},
-	TyLogTransfer:        &LogInfo{reflect.TypeOf(ReceiptAccountTransfer{}), "LogTransfer"},
-	TyLogDeposit:         &LogInfo{reflect.TypeOf(ReceiptAccountTransfer{}), "LogDeposit"},
-	TyLogExecTransfer:    &LogInfo{reflect.TypeOf(ReceiptExecAccountTransfer{}), "LogExecTransfer"},
-	TyLogExecWithdraw:    &LogInfo{reflect.TypeOf(ReceiptExecAccountTransfer{}), "LogExecWithdraw"},
-	TyLogExecDeposit:     &LogInfo{reflect.TypeOf(ReceiptExecAccountTransfer{}), "LogExecDeposit"},
-	TyLogExecFrozen:      &LogInfo{reflect.TypeOf(ReceiptExecAccountTransfer{}), "LogExecFrozen"},
-	TyLogExecActive:      &LogInfo{reflect.TypeOf(ReceiptAccountTransfer{}), "LogExecActive"},
-	TyLogGenesisTransfer: &LogInfo{reflect.TypeOf(ReceiptAccountTransfer{}), "LogGenesisTransfer"},
-	TyLogGenesisDeposit:  &LogInfo{reflect.TypeOf(ReceiptAccountTransfer{}), "LogGenesisDeposit"},
+	TyLogReserved:        {reflect.TypeOf(LogReserved{}), "LogReserved"},
+	TyLogErr:             {reflect.TypeOf(LogErr{}), "LogErr"},
+	TyLogFee:             {reflect.TypeOf(ReceiptAccountTransfer{}), "LogFee"},
+	TyLogTransfer:        {reflect.TypeOf(ReceiptAccountTransfer{}), "LogTransfer"},
+	TyLogDeposit:         {reflect.TypeOf(ReceiptAccountTransfer{}), "LogDeposit"},
+	TyLogExecTransfer:    {reflect.TypeOf(ReceiptExecAccountTransfer{}), "LogExecTransfer"},
+	TyLogExecWithdraw:    {reflect.TypeOf(ReceiptExecAccountTransfer{}), "LogExecWithdraw"},
+	TyLogExecDeposit:     {reflect.TypeOf(ReceiptExecAccountTransfer{}), "LogExecDeposit"},
+	TyLogExecFrozen:      {reflect.TypeOf(ReceiptExecAccountTransfer{}), "LogExecFrozen"},
+	TyLogExecActive:      {reflect.TypeOf(ReceiptAccountTransfer{}), "LogExecActive"},
+	TyLogGenesisTransfer: {reflect.TypeOf(ReceiptAccountTransfer{}), "LogGenesisTransfer"},
+	TyLogGenesisDeposit:  {reflect.TypeOf(ReceiptAccountTransfer{}), "LogGenesisDeposit"},
 }
 
 const (
