@@ -1,4 +1,4 @@
-package hashlock
+package types
 
 import (
 	"encoding/json"
@@ -15,7 +15,7 @@ var nameX string
 
 var hlog = log.New("module", "exectype.hashlock")
 
-func Init() {
+func init() {
 	nameX = types.ExecName("hashlock")
 	// init executor type
 	types.RegistorExecutor("hashlock", NewType())

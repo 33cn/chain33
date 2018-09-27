@@ -1,4 +1,4 @@
-package hashlock
+package types
 
 type HashlockLockTx struct {
 	Secret     string `json:"secret"`

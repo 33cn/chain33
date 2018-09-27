@@ -4,9 +4,9 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/hashlock/types"
 	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	"gitlab.33.cn/chain33/chain33/types"
-	hashlocktype "gitlab.33.cn/chain33/chain33/types/executor/hashlock"
 )
 
 func HashlockCmd() *cobra.Command {
@@ -67,7 +67,7 @@ func hashlockLockCmd(cmd *cobra.Command, args []string) {
 	}
 	amountInt64 := int64(amount*types.InputPrecision) * types.Multiple1E4
 	feeInt64 := int64(fee*types.InputPrecision) * types.Multiple1E4
-	params := hashlocktype.HashlockLockTx{
+	params := pty.HashlockLockTx{
 		Secret:     secret,
 		Amount:     amountInt64,
 		Time:       delay,
@@ -104,7 +104,7 @@ func hashlockUnlockCmd(cmd *cobra.Command, args []string) {
 	fee, _ := cmd.Flags().GetFloat64("fee")
 
 	feeInt64 := int64(fee*types.InputPrecision) * types.Multiple1E4
-	params := hashlocktype.HashlockUnlockTx{
+	params := pty.HashlockUnlockTx{
 		Secret: secret,
 		Fee:    feeInt64,
 	}
@@ -129,7 +129,7 @@ func hashlockSendCmd(cmd *cobra.Command, args []string) {
 	fee, _ := cmd.Flags().GetFloat64("fee")
 
 	feeInt64 := int64(fee*types.InputPrecision) * types.Multiple1E4
-	params := hashlocktype.HashlockSendTx{
+	params := pty.HashlockSendTx{
 		Secret: secret,
 		Fee:    feeInt64,
 	}
