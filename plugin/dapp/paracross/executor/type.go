@@ -23,6 +23,7 @@ func InitType() {
 	types.RegistorLog(pt.TyLogParacrossCommitRecord, &ParacrossCommitRecordLog{})
 	types.RegistorLog(pt.TyLogParaAssetWithdraw, &ParacrossAssetWithdrawLog{})
 	types.RegistorLog(pt.TyLogParaAssetTransfer, &ParacrossAssetTransferLog{})
+	types.RegistorLog(pt.TyLogParaAssetDeposit, &ParacrossAssetDepositLog{})
 	types.RegistorLog(pt.TyLogParacrossMiner, &ParacrossMinerLog{})
 
 	// init query rpc
@@ -173,11 +174,11 @@ type ParacrossAssetTransferLog struct {
 }
 
 func (l ParacrossAssetTransferLog) Name() string {
-	return "LogParacrossAssetWithdraw"
+	return "LogParacrossAssetTransfer"
 }
 
 func (l ParacrossAssetTransferLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp types.ReceiptExecAccountTransfer
+	var logTmp types.ReceiptAccountTransfer
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
 		return nil, err
@@ -199,6 +200,22 @@ func (l ParacrossMinerLog) Decode(msg []byte) (interface{}, error) {
 		return nil, err
 	}
 	return logTmp, err
+}
+
+type ParacrossAssetDepositLog struct {
+}
+
+func (l ParacrossAssetDepositLog) Name() string {
+	return "LogParacrossAssetDeposit"
+}
+
+func (l ParacrossAssetDepositLog) Decode(msg []byte) (interface{}, error) {
+	var logTmp types.ReceiptAccountTransfer
+	err := types.Decode(msg, &logTmp)
+	if err != nil {
+		return nil, err
+	}
+	return logTmp, nil
 }
 
 type ParacrossGetTitle struct {

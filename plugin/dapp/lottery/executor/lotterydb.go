@@ -9,6 +9,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
+	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/lottery/types"
 	"gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
 	"google.golang.org/grpc"
@@ -45,7 +46,7 @@ const grpcRecSize int = 5 * 30 * 1024 * 1024
 const blockNum = 5
 
 type LotteryDB struct {
-	types.Lottery
+	pty.Lottery
 }
 
 func NewLotteryDB(lotteryId string, purBlock int64, drawBlock int64,
@@ -112,10 +113,10 @@ func NewLotteryAction(l *Lottery, tx *types.Transaction) *Action {
 		l.GetHeight(), dapp.ExecAddress(string(tx.Execer)), l.GetDifficulty(), l.GetApi(), conn, grpcClient}
 }
 
-func (action *Action) GetReceiptLog(lottery *types.Lottery, preStatus int32, logTy int32,
+func (action *Action) GetReceiptLog(lottery *pty.Lottery, preStatus int32, logTy int32,
 	round int64, buyNumber int64, amount int64, luckyNum int64) *types.ReceiptLog {
 	log := &types.ReceiptLog{}
-	l := &types.ReceiptLottery{}
+	l := &pty.ReceiptLottery{}
 
 	log.Ty = logTy
 
@@ -137,7 +138,7 @@ func (action *Action) GetReceiptLog(lottery *types.Lottery, preStatus int32, log
 	return log
 }
 
-func (action *Action) LotteryCreate(create *types.LotteryCreate) (*types.Receipt, error) {
+func (action *Action) LotteryCreate(create *pty.LotteryCreate) (*types.Receipt, error) {
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
 	var receipt *types.Receipt
@@ -191,7 +192,7 @@ func (action *Action) LotteryCreate(create *types.LotteryCreate) (*types.Receipt
 }
 
 //one bty for one ticket
-func (action *Action) LotteryBuy(buy *types.LotteryBuy) (*types.Receipt, error) {
+func (action *Action) LotteryBuy(buy *pty.LotteryBuy) (*types.Receipt, error) {
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
 	//var receipt *types.Receipt
@@ -268,10 +269,10 @@ func (action *Action) LotteryBuy(buy *types.LotteryBuy) (*types.Receipt, error) 
 
 	if lott.Records == nil {
 		llog.Debug("LotteryBuy records init")
-		lott.Records = make(map[string]*types.PurchaseRecords)
+		lott.Records = make(map[string]*pty.PurchaseRecords)
 	}
 
-	newRecord := &types.PurchaseRecord{buy.GetAmount(), buy.GetNumber()}
+	newRecord := &pty.PurchaseRecord{buy.GetAmount(), buy.GetNumber()}
 	llog.Debug("LotteryBuy", "amount", buy.GetAmount(), "number", buy.GetNumber())
 
 	/**********
@@ -300,7 +301,7 @@ func (action *Action) LotteryBuy(buy *types.LotteryBuy) (*types.Receipt, error) 
 	if record, ok := lott.Records[action.fromaddr]; ok {
 		record.Record = append(record.Record, newRecord)
 	} else {
-		initrecord := &types.PurchaseRecords{}
+		initrecord := &pty.PurchaseRecords{}
 		initrecord.Record = append(initrecord.Record, newRecord)
 		initrecord.FundWin = 0
 		initrecord.AmountOneRound = 0
@@ -321,7 +322,7 @@ func (action *Action) LotteryBuy(buy *types.LotteryBuy) (*types.Receipt, error) 
 
 //1.Anyone who buy a ticket
 //2.Creator
-func (action *Action) LotteryDraw(draw *types.LotteryDraw) (*types.Receipt, error) {
+func (action *Action) LotteryDraw(draw *pty.LotteryDraw) (*types.Receipt, error) {
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
 	var receipt *types.Receipt
@@ -382,7 +383,7 @@ func (action *Action) LotteryDraw(draw *types.LotteryDraw) (*types.Receipt, erro
 	return receipt, nil
 }
 
-func (action *Action) LotteryClose(draw *types.LotteryClose) (*types.Receipt, error) {
+func (action *Action) LotteryClose(draw *pty.LotteryClose) (*types.Receipt, error) {
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
 	//var receipt *types.Receipt
@@ -676,13 +677,13 @@ func isEableToClose() bool {
 	return true
 }
 
-func findLottery(db dbm.KV, lotteryId string) (*types.Lottery, error) {
+func findLottery(db dbm.KV, lotteryId string) (*pty.Lottery, error) {
 	data, err := db.Get(Key(lotteryId))
 	if err != nil {
 		llog.Debug("findLottery", "get", err)
 		return nil, err
 	}
-	var lott types.Lottery
+	var lott pty.Lottery
 	//decode
 	err = types.Decode(data, &lott)
 	if err != nil {
@@ -707,7 +708,7 @@ func (action *Action) CheckExecAccount(addr string, amount int64, isFrozen bool)
 	return false
 }
 
-func ListLotteryLuckyHistory(db dbm.Lister, stateDB dbm.KV, param *types.ReqLotteryLuckyHistory) (types.Message, error) {
+func ListLotteryLuckyHistory(db dbm.Lister, stateDB dbm.KV, param *pty.ReqLotteryLuckyHistory) (types.Message, error) {
 	direction := ListDESC
 	if param.GetDirection() == ListASC {
 		direction = ListASC
@@ -733,9 +734,9 @@ func ListLotteryLuckyHistory(db dbm.Lister, stateDB dbm.KV, param *types.ReqLott
 		return nil, err
 	}
 
-	var records types.LotteryDrawRecords
+	var records pty.LotteryDrawRecords
 	for _, value := range values {
-		var record types.LotteryDrawRecord
+		var record pty.LotteryDrawRecord
 		err := types.Decode(value, &record)
 		if err != nil {
 			continue
@@ -746,7 +747,7 @@ func ListLotteryLuckyHistory(db dbm.Lister, stateDB dbm.KV, param *types.ReqLott
 	return &records, nil
 }
 
-func ListLotteryBuyRecords(db dbm.Lister, stateDB dbm.KV, param *types.ReqLotteryBuyHistory) (types.Message, error) {
+func ListLotteryBuyRecords(db dbm.Lister, stateDB dbm.KV, param *pty.ReqLotteryBuyHistory) (types.Message, error) {
 	direction := ListDESC
 	if param.GetDirection() == ListASC {
 		direction = ListASC
@@ -773,9 +774,9 @@ func ListLotteryBuyRecords(db dbm.Lister, stateDB dbm.KV, param *types.ReqLotter
 		return nil, err
 	}
 
-	var records types.LotteryBuyRecords
+	var records pty.LotteryBuyRecords
 	for _, value := range values {
-		var record types.LotteryBuyRecord
+		var record pty.LotteryBuyRecord
 		err := types.Decode(value, &record)
 		if err != nil {
 			continue

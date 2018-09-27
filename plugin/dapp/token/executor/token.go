@@ -134,6 +134,15 @@ func (t *token) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 				set.KV = append(set.KV, kv...)
 			}
 		}
+		if action.Ty == types.ActionWithdraw && action.GetWithdraw() != nil {
+			withdraw := action.GetWithdraw()
+			// 添加个人资产列表
+			kv := AddTokenToAssets(tx.From(), t.GetLocalDB(), withdraw.Cointoken)
+			if kv != nil {
+				set.KV = append(set.KV, kv...)
+			}
+		}
+
 		if types.GetSaveTokenTxList() {
 			kvs, err := t.makeTokenTxKvs(tx, &action, receipt, index, false)
 			if err != nil {
@@ -260,10 +269,16 @@ func (t *token) Query(funcName string, params []byte) (types.Message, error) {
 		var req types.ReqTokenTx
 		err := types.Decode(params, &req) // TODO_x to test show err log
 		if err != nil {
-			return nil, errors.Wrap(err, "GetTxByToken Decode request failed")
+			tokenlog.Error("GetTxByToken decode request failed", "error", err)
+			return nil, err
 		}
 		tokenlog.Debug("query debug", "func", funcName, "req", req)
-		return t.GetTxByToken(&req)
+		msg, err := t.GetTxByToken(&req)
+		if err != nil {
+			tokenlog.Error("GetTxByToken failed", "error", err)
+			return nil, errors.Cause(err)
+		}
+		return msg, nil
 	}
 	return nil, types.ErrActionNotSupport
 }
@@ -511,7 +526,7 @@ func (t *token) GetTxByToken(req *types.ReqTokenTx) (types.Message, error) {
 		return nil, errors.Wrap(err, "db.List to find token tx list")
 	}
 	if len(txinfos) == 0 {
-		return nil, errors.New("tx does not exist")
+		return nil, errors.Wrapf(types.ErrNotFound, "key=%s, prefix=%s", string(key), string(prefix))
 	}
 
 	var replyTxInfos types.ReplyTxInfos
