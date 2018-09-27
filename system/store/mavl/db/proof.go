@@ -24,31 +24,12 @@ func (proof *Proof) Verify(key []byte, value []byte, root []byte) bool {
 	leafNode := types.LeafNode{Key: key, Value: value, Height: 0, Size: 1}
 	leafHash := leafNode.Hash()
 
-	//if enableMavlPrefix {
-	//	hashKey := bytes.TrimSuffix(proof.LeafHash, leafHash)
-	//	hashKey = append(hashKey, leafHash...)
-	//	leafHash = hashKey
-	//}
-
 	if !bytes.Equal(leafHash, proof.LeafHash) {
 		return false
 	}
 	hash := leafHash
 	for _, branch := range proof.InnerNodes {
 		//hash = branch.ProofHash(hash)
-		if enableMavlPrefix {
-			if len(branch.LeftHash) != 0 {
-				elem := bytes.Split(branch.LeftHash, []byte("-"))
-				if len(elem) >= 3 {
-					branch.LeftHash = elem[2]
-				}
-			} else {
-				elem := bytes.Split(branch.RightHash, []byte("-"))
-				if len(elem) >= 3 {
-					branch.RightHash = elem[2]
-				}
-			}
-		}
 		hash = InnerNodeProofHash(hash, branch)
 	}
 	return bytes.Equal(proof.RootHash, hash)

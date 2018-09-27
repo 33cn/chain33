@@ -180,10 +180,21 @@ func (leafnode *LeafNode) Hash() []byte {
 }
 
 func (innernode *InnerNode) Hash() []byte {
+	rightHash := innernode.RightHash
+	leftHash := innernode.LeftHash
+	hashLen := len(common.Hash{})
+	if len(innernode.RightHash) > hashLen {
+		innernode.RightHash = innernode.RightHash[len(innernode.RightHash)-hashLen:]
+	}
+	if len(innernode.LeftHash) > hashLen {
+		innernode.LeftHash =  innernode.LeftHash[len(innernode.LeftHash)-hashLen:]
+	}
 	data, err := proto.Marshal(innernode)
 	if err != nil {
 		panic(err)
 	}
+	innernode.RightHash = rightHash
+	innernode.LeftHash = leftHash
 	return common.Sha256(data)
 }
 
