@@ -3,6 +3,9 @@
 id = "tokenPre"
 command = "send token precreate -f 0.01 -i testToken -n testToken -s TC -a 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv -t 100000 -p 1 -k 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
 
+[[TokenPreCreateCase]]
+id = "tokenPre2"
+command = "send token precreate -f 0.01 -i testToken -n testToken -s TCC -a 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv -t 100000 -p 1 -k 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
 
 [[TokenFinishCreateCase]]
 id = "tokenFinish"
@@ -75,5 +78,5 @@ checkItem = ["balance"]
 #--liugui 2018.9.19-- 
 [[tokenRevokeCase]]
 id = "tokenRevoke"
-command = "send token revoke -f 0.01 -s TCC -a 1D9xKRnLvV2zMtSxSx33ow1GF4pcbLcNRt -k 1D9xKRnLvV2zMtSxSx33ow1GF4pcbLcNRt"
+command = "send token revoke -f 0.01 -s TCC -a 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv -k 12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv"
 dep = ["tokenPre2"]
