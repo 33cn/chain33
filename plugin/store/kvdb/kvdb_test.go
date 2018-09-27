@@ -9,10 +9,10 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var store_cfg0 = &types.Store{"kvdb_test", "leveldb", "/tmp/kvdb_test0", 100}
-var store_cfg1 = &types.Store{"kvdb_test", "leveldb", "/tmp/kvdb_test1", 100}
-var store_cfg2 = &types.Store{"kvdb_test", "leveldb", "/tmp/kvdb_test2", 100}
-var store_cfg3 = &types.Store{"kvdb_test", "leveldb", "/tmp/kvdb_test3", 100}
+var store_cfg0 = &types.Store{"kvdb_test", "leveldb", "/tmp/kvdb_test0", 100, false, false}
+var store_cfg1 = &types.Store{"kvdb_test", "leveldb", "/tmp/kvdb_test1", 100, false, false}
+var store_cfg2 = &types.Store{"kvdb_test", "leveldb", "/tmp/kvdb_test2", 100, false, false}
+var store_cfg3 = &types.Store{"kvdb_test", "leveldb", "/tmp/kvdb_test3", 100, false, false}
 
 func TestKvdbNewClose(t *testing.T) {
 	os.RemoveAll(store_cfg0.DbPath)
