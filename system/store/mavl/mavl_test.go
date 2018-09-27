@@ -66,13 +66,11 @@ func TestKvddbSetGet(t *testing.T) {
 	assert.Equal(t, []byte("v1"), values[0])
 	assert.Equal(t, []byte("v2"), values[1])
 
-
 	keys = [][]byte{[]byte("k1")}
 	get2 := &types.StoreGet{hash, keys}
 	values2 := store.Get(get2)
 	assert.Len(t, values2, 1)
 	assert.Equal(t, []byte("v1"), values2[0])
-
 
 	get3 := &types.StoreGet{drivers.EmptyRoot[:], keys}
 	values3 := store.Get(get3)
