@@ -1,6 +1,7 @@
 package executor
 
 import (
+	"github.com/pkg/errors"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	pt "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/types"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -9,7 +10,7 @@ import (
 func (c *Paracross) ParacrossGetHeight(title string) (types.Message, error) {
 	ret, err := getTitle(c.GetStateDB(), calcTitleKey(title))
 	if err != nil {
-		return nil, err
+		return nil, errors.Cause(err)
 	}
 	return ret, nil
 }
