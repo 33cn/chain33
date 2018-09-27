@@ -355,7 +355,7 @@ func (node *Node) calcHeightAndSize(t *Tree) {
 	//node.height = maxInt32(node.getLeftNode(t).height, node.getRightNode(t).height) + 1
 	//node.size = node.getLeftNode(t).size + node.getRightNode(t).size
 
-	leftN  := node.getLeftNode(t)
+	leftN := node.getLeftNode(t)
 	rightN := node.getRightNode(t)
 	node.height = maxInt32(leftN.height, rightN.height) + 1
 	node.size = leftN.size + rightN.size

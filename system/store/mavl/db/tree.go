@@ -6,13 +6,14 @@ import (
 	"fmt"
 	"sync"
 
+	"math/rand"
+	"time"
+
 	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/golang-lru"
 	log "github.com/inconshreveable/log15"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
-	"time"
-	"math/rand"
 )
 
 const (
@@ -21,7 +22,7 @@ const (
 	// 是否开启添加hash节点前缀
 	enableHashPrefix = true
 	// 是否开启MVCC
-	EnableMvcc       = true
+	EnableMvcc = true
 )
 
 var (
@@ -35,7 +36,7 @@ type Tree struct {
 	root *Node
 	ndb  *nodeDB
 	//batch *nodeBatch
-	randomstr   string
+	randomstr string
 }
 
 // 新建一个merkle avl 树
@@ -44,12 +45,12 @@ func NewTree(db dbm.DB, sync bool) *Tree {
 		// In-memory IAVLTree
 		return &Tree{
 			randomstr: getRandomString(16),
-        }
+		}
 	} else {
 		// Persistent IAVLTree
 		ndb := newNodeDB(db, sync)
 		return &Tree{
-			ndb: ndb,
+			ndb:       ndb,
 			randomstr: getRandomString(16),
 		}
 	}
