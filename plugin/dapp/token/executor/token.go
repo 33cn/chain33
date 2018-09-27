@@ -10,9 +10,13 @@ token执行器支持token的创建，
 */
 
 import (
+	"strings"
+
 	log "github.com/inconshreveable/log15"
+	"github.com/pkg/errors"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common/address"
+	"gitlab.33.cn/chain33/chain33/system/dapp"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -130,6 +134,13 @@ func (t *token) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 				set.KV = append(set.KV, kv...)
 			}
 		}
+		if types.GetSaveTokenTxList() {
+			kvs, err := t.makeTokenTxKvs(tx, &action, receipt, index, false)
+			if err != nil {
+				return nil, err
+			}
+			set.KV = append(set.KV, kvs...)
+		}
 	} else {
 		set, err = t.DriverBase.ExecLocal(tx, receipt, index)
 		if err != nil {
@@ -174,6 +185,16 @@ func (t *token) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 	var set *types.LocalDBSet
 	if action.Ty == types.ActionTransfer || action.Ty == types.ActionWithdraw {
 		set, err = t.ExecDelLocalLocalTransWithdraw(tx, receipt, index)
+		if err != nil {
+			return nil, err
+		}
+		if types.GetSaveTokenTxList() {
+			kvs, err := t.makeTokenTxKvs(tx, &action, receipt, index, true)
+			if err != nil {
+				return nil, err
+			}
+			set.KV = append(set.KV, kvs...)
+		}
 	} else {
 		set, err = t.DriverBase.ExecDelLocal(tx, receipt, index)
 		if err != nil {
@@ -232,6 +253,23 @@ func (t *token) Query(funcName string, params []byte) (types.Message, error) {
 			return nil, err
 		}
 		return t.GetAccountTokenAssets(&req)
+	case "GetTxByToken":
+		if !types.GetSaveTokenTxList() {
+			return nil, types.ErrActionNotSupport
+		}
+		var req types.ReqTokenTx
+		err := types.Decode(params, &req) // TODO_x to test show err log
+		if err != nil {
+			tokenlog.Error("GetTxByToken decode request failed", "error", err)
+			return nil, err
+		}
+		tokenlog.Debug("query debug", "func", funcName, "req", req)
+		msg, err := t.GetTxByToken(&req)
+		if err != nil {
+			tokenlog.Error("GetTxByToken failed", "error", err)
+			return nil, errors.Cause(err)
+		}
+		return msg, nil
 	}
 	return nil, types.ErrActionNotSupport
 }
@@ -315,10 +353,42 @@ func (t *token) GetTokenInfo(symbol string) (types.Message, error) {
 }
 
 func (t *token) GetTokens(reqTokens *types.ReqTokens) (types.Message, error) {
-	querydb := t.GetLocalDB()
-	db := t.GetStateDB()
-
 	replyTokens := &types.ReplyTokens{}
+	keys, err := t.listTokenKeys(reqTokens)
+	if err != nil {
+		return nil, err
+	}
+	tokenlog.Debug("token Query GetTokens", "get count", len(keys), "KEY", string(keys[0]))
+	if reqTokens.SymbolOnly {
+		for _, key := range keys {
+			idx := strings.LastIndex(string(key), "-")
+			if idx < 0 || idx >= len(key) {
+				continue
+			}
+			symbol := key[idx+1:]
+			token := types.Token{Symbol: string(symbol)}
+			replyTokens.Tokens = append(replyTokens.Tokens, &token)
+		}
+		return replyTokens, nil
+	}
+
+	db := t.GetStateDB()
+	for _, key := range keys {
+		if tokenValue, err := db.Get(key); err == nil {
+			var token types.Token
+			err = types.Decode(tokenValue, &token)
+			if err == nil {
+				replyTokens.Tokens = append(replyTokens.Tokens, &token)
+			}
+		}
+	}
+
+	//tokenlog.Info("token Query", "replyTokens", replyTokens)
+	return replyTokens, nil
+}
+
+func (t *token) listTokenKeys(reqTokens *types.ReqTokens) ([][]byte, error) {
+	querydb := t.GetLocalDB()
 	if reqTokens.QueryAll {
 		//list := dbm.NewListHelper(querydb)
 		keys, err := querydb.List(calcTokenStatusKeyNewPrefix(reqTokens.Status), nil, 0, 0)
@@ -334,51 +404,29 @@ func (t *token) GetTokens(reqTokens *types.ReqTokens) (types.Message, error) {
 			return nil, types.ErrNotFound
 		}
 		tokenlog.Debug("token Query GetTokens", "get count", len(keys))
-		if len(keys) != 0 {
-			for _, key := range keys {
-				tokenlog.Debug("token Query GetTokens", "key in string", string(key))
-				if tokenValue, err := db.Get(key); err == nil {
-					var token types.Token
-					err = types.Decode(tokenValue, &token)
-					if err == nil {
-						replyTokens.Tokens = append(replyTokens.Tokens, &token)
-					}
-				}
-			}
-		}
+		return keys, nil
 	} else {
+		var keys [][]byte
 		for _, token := range reqTokens.Tokens {
 			//list := dbm.NewListHelper(querydb)
-			keys, err := querydb.List(calcTokenStatusSymbolNewPrefix(reqTokens.Status, token), nil, 0, 0)
+			keys1, err := querydb.List(calcTokenStatusSymbolNewPrefix(reqTokens.Status, token), nil, 0, 0)
 			if err != nil && err != types.ErrNotFound {
 				return nil, err
 			}
+			keys = append(keys, keys1...)
+
 			keys2, err := querydb.List(calcTokenStatusSymbolPrefix(reqTokens.Status, token), nil, 0, 0)
 			if err != nil && err != types.ErrNotFound {
 				return nil, err
 			}
 			keys = append(keys, keys2...)
-			if len(keys) == 0 {
-				return nil, types.ErrNotFound
-			}
 			tokenlog.Debug("token Query GetTokens", "get count", len(keys))
-			if len(keys) != 0 {
-				for _, key := range keys {
-					tokenlog.Debug("token Query GetTokens", "key in string", string(key))
-					if tokenValue, err := db.Get(key); err == nil {
-						var token types.Token
-						err = types.Decode(tokenValue, &token)
-						if err == nil {
-							replyTokens.Tokens = append(replyTokens.Tokens, &token)
-						}
-					}
-				}
-			}
 		}
+		if len(keys) == 0 {
+			return nil, types.ErrNotFound
+		}
+		return keys, nil
 	}
-
-	//tokenlog.Info("token Query", "replyTokens", replyTokens)
-	return replyTokens, nil
 }
 
 // value 对应 statedb 的key
@@ -418,4 +466,69 @@ func (t *token) deleteLogs(receipt *types.ReceiptToken) []*types.KeyValue {
 		kv = append(kv, &types.KeyValue{key, value})
 	}
 	return kv
+}
+
+func (t *token) makeTokenTxKvs(tx *types.Transaction, action *types.TokenAction, receipt *types.ReceiptData, index int, isDel bool) ([]*types.KeyValue, error) {
+	var kvs []*types.KeyValue
+	var symbol string
+	if action.Ty == types.ActionTransfer {
+		symbol = action.GetTransfer().Cointoken
+	} else if action.Ty != types.ActionWithdraw {
+		symbol = action.GetWithdraw().Cointoken
+	} else {
+		return kvs, nil
+	}
+
+	kvs, err := TokenTxKvs(tx, symbol, t.GetHeight(), int64(index), isDel)
+	return kvs, err
+}
+
+func findTokenTxListUtil(req *types.ReqTokenTx) ([]byte, []byte) {
+	var key, prefix []byte
+	if len(req.Addr) > 0 {
+		if req.Flag == 0 {
+			prefix = CalcTokenAddrTxKey(req.Symbol, req.Addr, -1, 0)
+			key = CalcTokenAddrTxKey(req.Symbol, req.Addr, req.Height, req.Index)
+		} else {
+			prefix = CalcTokenAddrTxDirKey(req.Symbol, req.Addr, req.Flag, -1, 0)
+			key = CalcTokenAddrTxDirKey(req.Symbol, req.Addr, req.Flag, req.Height, req.Index)
+		}
+	} else {
+		prefix = CalcTokenTxKey(req.Symbol, -1, 0)
+		key = CalcTokenTxKey(req.Symbol, req.Height, req.Index)
+	}
+	if req.Height == -1 {
+		key = nil
+	}
+	return key, prefix
+}
+
+func (t *token) GetTxByToken(req *types.ReqTokenTx) (types.Message, error) {
+	if req.Flag != 0 && req.Flag != dapp.TxIndexFrom && req.Flag != dapp.TxIndexTo {
+		err := types.ErrInputPara
+		return nil, errors.Wrap(err, "flag unknown")
+	}
+	key, prefix := findTokenTxListUtil(req)
+	tokenlog.Debug("GetTxByToken", "key", string(key), "prefix", string(prefix))
+
+	db := t.GetLocalDB()
+	txinfos, err := db.List(prefix, key, req.Count, req.Direction)
+	if err != nil {
+		return nil, errors.Wrap(err, "db.List to find token tx list")
+	}
+	if len(txinfos) == 0 {
+		return nil, errors.Wrapf(types.ErrNotFound, "key=%s, prefix=%s", string(key), string(prefix))
+	}
+
+	var replyTxInfos types.ReplyTxInfos
+	replyTxInfos.TxInfos = make([]*types.ReplyTxInfo, len(txinfos))
+	for index, txinfobyte := range txinfos {
+		var replyTxInfo types.ReplyTxInfo
+		err := types.Decode(txinfobyte, &replyTxInfo)
+		if err != nil {
+			return nil, err
+		}
+		replyTxInfos.TxInfos[index] = &replyTxInfo
+	}
+	return &replyTxInfos, nil
 }

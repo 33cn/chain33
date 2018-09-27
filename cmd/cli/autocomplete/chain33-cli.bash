@@ -22,7 +22,7 @@ function _chain33() {
 
     local commands
     #commands=($(${words[0]} 2>&1 | sed '/Available Commands/,/^$/p' -n | grep "  [a-z][a-z]*" -o | xargs))
-    IFS=" " read -r -a commands <<<"$(${words[0]} 2>&1 | sed '/Available Commands/,/^$/p' -n | grep "  [a-z][a-z]*" -o | xargs)"
+    IFS=" " read -r -a commands <<<"$(${words[0]} 2>&1 | sed '/Available Commands/,/^$/p' -n | grep "  [a-z][_a-z]*" -o | xargs)"
     #_debug "commands " ${commands[@]}
 
     local command i
@@ -43,7 +43,7 @@ function _chain33() {
     local sub_commands sub_command sub_idx
     for ((i = 0; i < ${#commands[@]} - 1; i++)); do
         if [[ ${commands[i]} == "$command" ]]; then
-            IFS=" " read -r -a sub_commands <<<"$(${words[0]} "$command" 2>&1 | sed '/Available Commands/,/^$/p' -n | grep "  [a-z][2a-z]*" -o | xargs)"
+            IFS=" " read -r -a sub_commands <<<"$(${words[0]} "$command" 2>&1 | sed '/Available Commands/,/^$/p' -n | grep "  [a-z][_2a-z]*" -o | xargs)"
             #_debug "sub_commands " ${sub_commands[@]}
 
             for ((sub_idx = 0; sub_idx < ${#words[@]} - 1; sub_idx++)); do

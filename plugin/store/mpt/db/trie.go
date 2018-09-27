@@ -91,7 +91,7 @@ func New(root common.Hash, db *Database) (*Trie, error) {
 		originalRoot: root,
 	}
 	if root != (common.Hash{}) && root != emptyRoot {
-		rootnode, err := trie.resolveHash(root[:], nil)
+		rootnode, err := trie.resolveHash(createHashNode(root[:]), nil)
 		if err != nil {
 			return nil, err
 		}
@@ -133,7 +133,7 @@ func (t *Trie) tryGet(origNode node, key []byte, pos int) (value []byte, newnode
 	case nil:
 		return nil, nil, false, nil
 	case valueNode:
-		return n, n, false, nil
+		return n.GetValue(), n, false, nil
 	case *shortNode:
 		if len(key)-pos < len(n.Key) || !bytes.Equal(n.Key, key[pos:pos+len(n.Key)]) {
 			// key not found in trie
@@ -189,7 +189,7 @@ func (t *Trie) Update(key, value []byte) {
 func (t *Trie) TryUpdate(key, value []byte) error {
 	k := keybytesToHex(key)
 	if len(value) != 0 {
-		_, n, err := t.insert(t.root, nil, k, valueNode(value))
+		_, n, err := t.insert(t.root, nil, k, createValueNode(value))
 		if err != nil {
 			return err
 		}
@@ -207,7 +207,7 @@ func (t *Trie) TryUpdate(key, value []byte) error {
 func (t *Trie) insert(n node, prefix, key []byte, value node) (bool, node, error) {
 	if len(key) == 0 {
 		if v, ok := n.(valueNode); ok {
-			return !bytes.Equal(v, value.(valueNode)), value, nil
+			return !bytes.Equal(v.GetValue(), value.(valueNode).GetValue()), value, nil
 		}
 		return true, value, nil
 	}
@@ -221,7 +221,7 @@ func (t *Trie) insert(n node, prefix, key []byte, value node) (bool, node, error
 			if !dirty || err != nil {
 				return false, n, err
 			}
-			return true, &shortNode{n.Key, nn, t.newFlag()}, nil
+			return true, &shortNode{n.Key, nn, t.newFlag(), nil}, nil
 		}
 		// Otherwise branch out at the index where they differ.
 		branch := &fullNode{flags: t.newFlag()}
@@ -239,7 +239,7 @@ func (t *Trie) insert(n node, prefix, key []byte, value node) (bool, node, error
 			return true, branch, nil
 		}
 		// Otherwise, replace it with a short node leading up to the branch.
-		return true, &shortNode{key[:matchlen], branch, t.newFlag()}, nil
+		return true, &shortNode{key[:matchlen], branch, t.newFlag(), nil}, nil
 
 	case *fullNode:
 		dirty, nn, err := t.insert(n.Children[key[0]], append(prefix, key[0]), key[1:], value)
@@ -252,7 +252,7 @@ func (t *Trie) insert(n node, prefix, key []byte, value node) (bool, node, error
 		return true, n, nil
 
 	case nil:
-		return true, &shortNode{key, value, t.newFlag()}, nil
+		return true, &shortNode{key, value, t.newFlag(), nil}, nil
 
 	case hashNode:
 		// We've hit a part of the trie that isn't loaded yet. Load
@@ -321,9 +321,9 @@ func (t *Trie) delete(n node, prefix, key []byte) (bool, node, error) {
 			// always creates a new slice) instead of append to
 			// avoid modifying n.Key since it might be shared with
 			// other nodes.
-			return true, &shortNode{concat(n.Key, child.Key...), child.Val, t.newFlag()}, nil
+			return true, &shortNode{concat(n.Key, child.Key...), child.Val, t.newFlag(), nil}, nil
 		default:
-			return true, &shortNode{n.Key, child, t.newFlag()}, nil
+			return true, &shortNode{n.Key, child, t.newFlag(), nil}, nil
 		}
 
 	case *fullNode:
@@ -369,12 +369,12 @@ func (t *Trie) delete(n node, prefix, key []byte) (bool, node, error) {
 				}
 				if cnode, ok := cnode.(*shortNode); ok {
 					k := append([]byte{byte(pos)}, cnode.Key...)
-					return true, &shortNode{k, cnode.Val, t.newFlag()}, nil
+					return true, &shortNode{k, cnode.Val, t.newFlag(), nil}, nil
 				}
 			}
 			// Otherwise, n is replaced by a one-nibble short node
 			// containing the child.
-			return true, &shortNode{[]byte{byte(pos)}, n.Children[pos], t.newFlag()}, nil
+			return true, &shortNode{[]byte{byte(pos)}, n.Children[pos], t.newFlag(), nil}, nil
 		}
 		// n still contains at least two values and cannot be reduced.
 		return true, n, nil
@@ -421,7 +421,7 @@ func (t *Trie) resolve(n node, prefix []byte) (node, error) {
 func (t *Trie) resolveHash(n hashNode, prefix []byte) (node, error) {
 	//cacheMissCounter.Inc(1)
 
-	hash := common.BytesToHash(n)
+	hash := common.BytesToHash(n.GetHash())
 	if node := t.db.node(hash, t.cachegen); node != nil {
 		return node, nil
 	}
@@ -437,7 +437,7 @@ func (t *Trie) Root() []byte { return t.Hash().Bytes() }
 func (t *Trie) Hash() common.Hash {
 	hash, cached, _ := t.hashRoot(nil, nil)
 	t.root = cached
-	return common.BytesToHash(hash.(hashNode))
+	return common.BytesToHash(hash.(hashNode).GetHash())
 }
 
 // Commit writes all nodes to the trie's memory database, tracking the internal
@@ -452,12 +452,12 @@ func (t *Trie) Commit(onleaf LeafCallback) (root common.Hash, err error) {
 	}
 	t.root = cached
 	t.cachegen++
-	return common.BytesToHash(hash.(hashNode)), nil
+	return common.BytesToHash(hash.(hashNode).GetHash()), nil
 }
 
 func (t *Trie) hashRoot(db *Database, onleaf LeafCallback) (node, node, error) {
 	if t.root == nil {
-		return hashNode(emptyRoot.Bytes()), nil, nil
+		return createHashNode(emptyRoot.Bytes()), nil, nil
 	}
 	h := newHasher(t.cachegen, t.cachelimit, onleaf)
 	defer returnHasherToPool(h)
@@ -538,38 +538,38 @@ func (t *TrieEx) Commit2Db(node common.Hash, report bool) error {
 }
 
 //对外接口
-func SetKVPair(db dbm.DB, storeSet *types.StoreSet, sync bool) []byte {
+func SetKVPair(db dbm.DB, storeSet *types.StoreSet, sync bool) ([]byte, error) {
 	var err error
 	var trie *TrieEx
 	trie, err = NewEx(common.BytesToHash(storeSet.StateHash), NewDatabase(db))
 	if err != nil {
-		trie, _ = NewEx(common.Hash{}, NewDatabase(db))
 		mptlog.Info("SetKVPair create a new trie")
+		return nil, err
 	}
 	for i := 0; i < len(storeSet.KV); i++ {
 		trie.Update(storeSet.KV[i].Key, storeSet.KV[i].Value)
 	}
 	root, err := trie.Commit(nil)
-	if nil != err {
+	if err != nil {
 		mptlog.Error("SetKVPair Commit to memory trie fail")
-		return nil
+		return nil, err
 	}
 	err = trie.Commit2Db(root, true)
-	if nil != err {
-		panic("SetKVPair save trie to db fail")
-		return nil
+	if err != nil {
+		mptlog.Error("SetKVPair save trie to db fail")
+		return nil, err
 	}
 	hashByte := root[:]
-	return hashByte
+	return hashByte, nil
 }
 
-func GetKVPair(db dbm.DB, storeGet *types.StoreGet) [][]byte {
+func GetKVPair(db dbm.DB, storeGet *types.StoreGet) ([][]byte, error) {
 	var err error
 	var trie *TrieEx
 	trie, err = NewEx(common.BytesToHash(storeGet.StateHash), NewDatabase(db))
 	if err != nil {
 		mptlog.Info("GetKVPair can not find trie", "state hash ", string(storeGet.StateHash))
-		return nil
+		return nil, err
 	}
 	var values [][]byte
 	for i := 0; i < len(storeGet.Keys); i++ {
@@ -578,7 +578,7 @@ func GetKVPair(db dbm.DB, storeGet *types.StoreGet) [][]byte {
 			values = append(values, value)
 		}
 	}
-	return values
+	return values, nil
 }
 
 func GetKVPairProof(db dbm.DB, roothash []byte, key []byte) []byte {
@@ -593,33 +593,33 @@ func GetKVPairProof(db dbm.DB, roothash []byte, key []byte) []byte {
 }
 
 //剔除key对应的节点在本次tree中，返回新的roothash和key对应的value
-func DelKVPair(db dbm.DB, storeDel *types.StoreGet) ([]byte, [][]byte) {
+func DelKVPair(db dbm.DB, storeDel *types.StoreGet) ([]byte, [][]byte, error) {
 	var err error
 	var trie *TrieEx
 	trie, err = NewEx(common.BytesToHash(storeDel.StateHash), NewDatabase(db))
 	if err != nil {
 		mptlog.Info("DelKVPair have a trie")
-		return nil, nil
+		return nil, nil, err
 	}
 	var values [][]byte
 	for i := 0; i < len(storeDel.Keys); i++ {
 		err = trie.TryUpdate(storeDel.Keys[i], nil)
-		if nil == err {
+		if err == nil {
 			values = append(values, storeDel.Keys[i])
 		}
 	}
 	root, err := trie.Commit(nil)
-	if nil != err {
+	if err != nil {
 		mptlog.Error("DelKVPair Commit to memory trie fail")
-		return nil, nil
+		return nil, nil, err
 	}
 	err = trie.Commit2Db(root, true)
-	if nil != err {
-		panic("SetKVPair save trie to db fail")
-		return nil, nil
+	if err != nil {
+		mptlog.Error("SetKVPair save trie to db fail")
+		return nil, nil, err
 	}
 	hashByte := root[:]
-	return hashByte, values
+	return hashByte, values, nil
 }
 
 func VerifyKVPairProof(db dbm.DB, roothash []byte, keyvalue types.KeyValue, proof []byte) bool {
@@ -639,7 +639,7 @@ func IterateRangeByStateHash(db dbm.DB, statehash, start, end []byte, ascending 
 		return
 	}
 	var it *Iterator
-	if nil == start || nil == end {
+	if start == nil || end == nil {
 		it = NewIterator(trie.NodeIterator(start))
 	} else {
 		di, _ := NewDifferenceIterator(trie.NodeIterator(end), trie.NodeIterator(start))

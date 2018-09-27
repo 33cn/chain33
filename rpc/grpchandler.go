@@ -86,7 +86,8 @@ func (g *Grpc) GetMemPool(ctx context.Context, in *pb.ReqNil) (*pb.ReplyTxList, 
 }
 
 func (g *Grpc) GetAccounts(ctx context.Context, in *pb.ReqNil) (*pb.WalletAccounts, error) {
-	return g.cli.WalletGetAccountList()
+	req := &pb.ReqAccountList{WithoutBalance: false}
+	return g.cli.WalletGetAccountList(req)
 }
 
 func (g *Grpc) NewAccount(ctx context.Context, in *pb.ReqNewAccount) (*pb.WalletAccount, error) {

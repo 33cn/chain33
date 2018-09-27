@@ -1364,6 +1364,10 @@ func (policy *privacyPolicy) addDelPrivacyTxsFromBlock(tx *types.Transaction, in
 	bizlog.Info("addDelPrivacyTxsFromBlock", "Enter addDelPrivacyTxsFromBlock txhash", txhashstr, "index", index, "addDelType", addDelType)
 
 	privacyOutput := privateAction.GetOutput()
+	if privacyOutput == nil {
+		bizlog.Error("addDelPrivacyTxsFromBlock", "txhash", txhashstr, "addDelType", addDelType, "index", index, "privacyOutput is", privacyOutput)
+		return
+	}
 	tokenname := privateAction.GetTokenName()
 	RpubKey := privacyOutput.GetRpubKeytx()
 
