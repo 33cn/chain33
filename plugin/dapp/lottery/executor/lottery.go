@@ -1,18 +1,34 @@
 package executor
 
 import (
-	"fmt"
+	"reflect"
 
 	log "github.com/inconshreveable/log15"
+	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/lottery/types"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
-	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/lottery/types"
 )
 
 var llog = log.New("module", "execs.lottery")
 
+//初始化过程比较重量级，有很多reflact, 所以弄成全局的
+var executorFunList = make(map[string]reflect.Method)
+var executorType = pty.NewType()
+
+func init() {
+	actionFunList := executorType.GetFuncMap()
+	executorFunList = types.ListMethod(&Lottery{})
+	for k, v := range actionFunList {
+		executorFunList[k] = v
+	}
+}
+
 func Init(name string) {
-	drivers.Register(GetName(), newLottery, 0)
+	driverName := GetName()
+	if name != driverName {
+		panic("system dapp can't be rename")
+	}
+	drivers.Register(driverName, newLottery, 0)
 }
 
 func GetName() string {
@@ -26,36 +42,12 @@ type Lottery struct {
 func newLottery() drivers.Driver {
 	l := &Lottery{}
 	l.SetChild(l)
+	l.SetExecutorType(executorType)
 	return l
 }
 
 func (l *Lottery) GetDriverName() string {
 	return types.LotteryX
-}
-
-func calcLotteryBuyPrefix(lotteryId string, addr string) []byte {
-	key := fmt.Sprintf("lottery-buy:%s:%s", lotteryId, addr)
-	return []byte(key)
-}
-
-func calcLotteryBuyRoundPrefix(lotteryId string, addr string, round int64) []byte {
-	key := fmt.Sprintf("lottery-buy:%s:%s:%10d", lotteryId, addr, round)
-	return []byte(key)
-}
-
-func calcLotteryBuyKey(lotteryId string, addr string, round int64, txId string) []byte {
-	key := fmt.Sprintf("lottery-buy:%s:%s:%10d:%s", lotteryId, addr, round, txId)
-	return []byte(key)
-}
-
-func calcLotteryDrawPrefix(lotteryId string) []byte {
-	key := fmt.Sprintf("lottery-draw:%s", lotteryId)
-	return []byte(key)
-}
-
-func calcLotteryDrawKey(lotteryId string, round int64) []byte {
-	key := fmt.Sprintf("lottery-draw:%s:%10d", lotteryId, round)
-	return []byte(key)
 }
 
 func (lott *Lottery) findLotteryBuyRecord(key []byte) (*pty.LotteryBuyRecords, error) {
@@ -152,11 +144,6 @@ func (lott *Lottery) deleteLottery(lotterylog *pty.ReceiptLottery) (kvs []*types
 	return kvs
 }
 
-func calcLotteryKey(lotteryId string, status int32) []byte {
-	key := fmt.Sprintf("lottery:%d:%s", status, lotteryId)
-	return []byte(key)
-}
-
 func addlottery(lotteryId string, status int32) *types.KeyValue {
 	kv := &types.KeyValue{}
 	kv.Key = calcLotteryKey(lotteryId, status)
@@ -169,4 +156,12 @@ func dellottery(lotteryId string, status int32) *types.KeyValue {
 	kv.Key = calcLotteryKey(lotteryId, status)
 	kv.Value = nil
 	return kv
+}
+
+func (lott *Lottery) GetFuncMap() map[string]reflect.Method {
+	return executorFunList
+}
+
+func (lott *Lottery) GetPayloadValue() types.Message {
+	return &pty.LotteryAction{}
 }

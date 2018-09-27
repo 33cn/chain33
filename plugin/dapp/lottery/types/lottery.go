@@ -10,9 +10,17 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var nameX string
+var (
+	nameX string
+	llog  = log.New("module", "exectype."+types.LotteryX)
 
-var llog = log.New("module", "exectype."+types.LotteryX)
+	actionTypeMap = map[string]int32{
+		"Create": LotteryActionCreate,
+		"Buy":    LotteryActionBuy,
+		"Draw":   LotteryActionDraw,
+		"Close":  LotteryActionClose,
+	}
+)
 
 func init() {
 	nameX = types.ExecName(types.LotteryX)
@@ -122,132 +130,8 @@ func (lottery LotteryType) CreateTx(action string, message json.RawMessage) (*ty
 	return tx, nil
 }
 
-type LotteryCreateLog struct {
-}
-
-func (l LotteryCreateLog) Name() string {
-	return "LogLotteryCreate"
-}
-
-func (l LotteryCreateLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp ReceiptLottery
-	err := types.Decode(msg, &logTmp)
-	if err != nil {
-		return nil, err
-	}
-	return logTmp, err
-}
-
-type LotteryBuyLog struct {
-}
-
-func (l LotteryBuyLog) Name() string {
-	return "LogLotteryBuy"
-}
-
-func (l LotteryBuyLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp ReceiptLottery
-	err := types.Decode(msg, &logTmp)
-	if err != nil {
-		return nil, err
-	}
-	return logTmp, err
-}
-
-type LotteryDrawLog struct {
-}
-
-func (l LotteryDrawLog) Name() string {
-	return "LogLotteryDraw"
-}
-
-func (l LotteryDrawLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp ReceiptLottery
-	err := types.Decode(msg, &logTmp)
-	if err != nil {
-		return nil, err
-	}
-	return logTmp, err
-}
-
-type LotteryCloseLog struct {
-}
-
-func (l LotteryCloseLog) Name() string {
-	return "LogLotteryClose"
-}
-
-func (l LotteryCloseLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp ReceiptLottery
-	err := types.Decode(msg, &logTmp)
-	if err != nil {
-		return nil, err
-	}
-	return logTmp, err
-}
-
-type LotteryGetInfo struct {
-}
-
-func (t *LotteryGetInfo) JsonToProto(message json.RawMessage) ([]byte, error) {
-	var req ReqLotteryInfo
-	err := json.Unmarshal(message, &req)
-	if err != nil {
-		return nil, err
-	}
-	return types.Encode(&req), nil
-}
-
-func (t *LotteryGetInfo) ProtoToJson(reply *types.Message) (interface{}, error) {
-	return reply, nil
-}
-
-type LotteryLuckyRoundInfo struct {
-}
-
-func (t *LotteryLuckyRoundInfo) JsonToProto(message json.RawMessage) ([]byte, error) {
-	var req ReqLotteryLuckyInfo
-	err := json.Unmarshal(message, &req)
-	if err != nil {
-		return nil, err
-	}
-	return types.Encode(&req), nil
-}
-
-func (t *LotteryLuckyRoundInfo) ProtoToJson(reply *types.Message) (interface{}, error) {
-	return reply, nil
-}
-
-type LotteryBuyInfo struct {
-}
-
-func (t *LotteryBuyInfo) JsonToProto(message json.RawMessage) ([]byte, error) {
-	var req ReqLotteryBuyHistory
-	err := json.Unmarshal(message, &req)
-	if err != nil {
-		return nil, err
-	}
-	return types.Encode(&req), nil
-}
-
-func (t *LotteryBuyInfo) ProtoToJson(reply *types.Message) (interface{}, error) {
-	return reply, nil
-}
-
-type LotteryBuyRoundInfo struct {
-}
-
-func (t *LotteryBuyRoundInfo) JsonToProto(message json.RawMessage) ([]byte, error) {
-	var req ReqLotteryBuyInfo
-	err := json.Unmarshal(message, &req)
-	if err != nil {
-		return nil, err
-	}
-	return types.Encode(&req), nil
-}
-
-func (t *LotteryBuyRoundInfo) ProtoToJson(reply *types.Message) (interface{}, error) {
-	return reply, nil
+func (lott LotteryType) GetTypeMap() map[string]int32 {
+	return actionTypeMap
 }
 
 func CreateRawLotteryCreateTx(parm *LotteryCreateTx) (*types.Transaction, error) {

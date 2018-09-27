@@ -475,7 +475,6 @@ const (
 	ParaCrossTransferActionTypeEnd   = 10100
 )
 
-
 //Lottery status
 const (
 	LotteryCreated = 1 + iota

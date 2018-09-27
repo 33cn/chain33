@@ -2,8 +2,8 @@ package executor
 
 import (
 	"gitlab.33.cn/chain33/chain33/common"
-	"gitlab.33.cn/chain33/chain33/types"
 	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/lottery/types"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 func (l *Lottery) execLocal(tx *types.Transaction, receipt *types.ReceiptData) (*types.LocalDBSet, error) {
