@@ -71,12 +71,15 @@ func (q *queue) Start() {
 	// Block until a signal is received.
 	select {
 	case <-q.done:
+		atomic.StoreInt32(&q.isClose, 1)
 		break
 	case <-q.interupt:
 		fmt.Println("closing chain33")
+		atomic.StoreInt32(&q.isClose, 1)
 		break
 	case s := <-c:
 		fmt.Println("Got signal:", s)
+		atomic.StoreInt32(&q.isClose, 1)
 		break
 	}
 }
