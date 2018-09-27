@@ -10,8 +10,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	drivers "gitlab.33.cn/chain33/chain33/system/store"
-	"gitlab.33.cn/chain33/chain33/types"
 	. "gitlab.33.cn/chain33/chain33/system/store/mavl/db"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var store_cfg0 = &types.Store{"mavl_test", "leveldb", "/tmp/mavl_test0", 100}
