@@ -226,7 +226,7 @@ func (node *Node) storeNode(t *Tree) []byte {
 
 	//leafnode
 	if node.height == 0 {
-		if !EnableMvcc {
+		if !enableMvcc {
 			storeNode.Value = node.value
 		}
 	} else {
