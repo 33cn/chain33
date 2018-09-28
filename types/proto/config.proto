@@ -95,10 +95,12 @@ message Wallet {
 }
 
 message Store {
-    string name    = 1;
-    string driver  = 2;
-    string dbPath  = 3;
-    int32  dbCache = 4;
+    string name             = 1;
+    string driver           = 2;
+    string dbPath           = 3;
+    int32  dbCache          = 4;
+    bool   enableMavlPrefix = 5;
+    bool   enableMVCC       = 6;
 }
 
 message BlockChain {
