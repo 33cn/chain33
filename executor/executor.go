@@ -267,7 +267,6 @@ func isAllowExec(key, realExecer []byte, tx *types.Transaction, height int64) bo
 	// manage 的key 是 config
 	// token 的部分key 是 mavl-create-token-
 	if !types.IsMatchFork(height, types.ForkV13ExecKey) {
-		elog.Info("mavl key", "execer", string(keyExecer), "keyExecer", string(keyExecer))
 		if bytes.Equal(realExecer, types.ExecerManage) && bytes.Equal(keyExecer, types.ExecerConfig) {
 			return true
 		}
