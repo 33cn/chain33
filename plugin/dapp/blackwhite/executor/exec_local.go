@@ -8,11 +8,11 @@ import (
 func (c *Blackwhite) execLocal(receiptData *types.ReceiptData) ([]*types.KeyValue, error) {
 	for _, log := range receiptData.Logs {
 		switch log.Ty {
-		case types.TyLogBlackwhiteCreate,
-			types.TyLogBlackwhitePlay,
-			types.TyLogBlackwhiteShow,
-			types.TyLogBlackwhiteTimeout,
-			types.TyLogBlackwhiteDone:
+		case gt.TyLogBlackwhiteCreate,
+			gt.TyLogBlackwhitePlay,
+			gt.TyLogBlackwhiteShow,
+			gt.TyLogBlackwhiteTimeout,
+			gt.TyLogBlackwhiteDone:
 			{
 				var receipt gt.ReceiptBlackwhiteStatus
 				err := types.Decode(log.Log, &receipt)
@@ -21,7 +21,7 @@ func (c *Blackwhite) execLocal(receiptData *types.ReceiptData) ([]*types.KeyValu
 				}
 				return c.saveHeightIndex(&receipt), nil
 			}
-		case types.TyLogBlackwhiteLoopInfo:
+		case gt.TyLogBlackwhiteLoopInfo:
 			{
 				var res gt.ReplyLoopResults
 				err := types.Decode(log.Log, &res)

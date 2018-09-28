@@ -19,8 +19,8 @@ SRC_RELAYD := gitlab.33.cn/chain33/chain33/cmd/relayd
 AUTO_TEST := build/tools/autotest/autotest
 SRC_AUTO_TEST := gitlab.33.cn/chain33/chain33/cmd/autotest
 LDFLAGS := -ldflags "-w -s"
-PKG_LIST := `go list ./... | grep -v "vendor" | grep -v "chain33/test" | grep -v "mocks"`
-PKG_LIST_Q := `go list ./... | grep -v "vendor" | grep -v "chain33/test" | grep -v "mocks" | grep -v "blockchain"`
+PKG_LIST := `go list ./... | grep -v "vendor" | grep -v "chain33/test" | grep -v "mocks" | grep -v "pbft"`
+PKG_LIST_Q := `go list ./... | grep -v "vendor" | grep -v "chain33/test" | grep -v "mocks" | grep -v "blockchain" | grep -v "pbft"`
 BUILD_FLAGS = -ldflags "-X gitlab.33.cn/chain33/chain33/common/version.GitCommit=`git rev-parse --short=8 HEAD`"
 .PHONY: default dep all build release cli para-cli linter race test fmt vet bench msan coverage coverhtml docker docker-compose protobuf clean help autotest
 
@@ -235,9 +235,9 @@ auto_ci_after: clean fmt protobuf mock
 .PHONY: auto_ci
 auto_fmt := find . -name '*.go' -not -path './vendor/*' | xargs goimports -l -w
 auto_ci: clean fmt_proto fmt_shell protobuf mock
-	@-go fmt ./...
+	@-find . -name '*.go' -not -path './vendor/*' | xargs gofmt -l -w -s
 	@-${auto_fmt}
-	@go fmt ./...
+	@-find . -name '*.go' -not -path './vendor/*' | xargs gofmt -l -w -s
 	@${auto_fmt}
 	@git add *.go *.sh *.proto
 	@git status

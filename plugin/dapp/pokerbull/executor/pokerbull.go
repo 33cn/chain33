@@ -77,7 +77,7 @@ func (g *PokerBull) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData,
 	}
 	for i := 0; i < len(receipt.Logs); i++ {
 		item := receipt.Logs[i]
-		if item.Ty == types.TyLogPBGameStart || item.Ty == types.TyLogPBGameContinue || item.Ty == types.TyLogPBGameQuit {
+		if item.Ty == pkt.TyLogPBGameStart || item.Ty == pkt.TyLogPBGameContinue || item.Ty == pkt.TyLogPBGameQuit {
 			var Gamelog pkt.ReceiptPBGame
 			err := types.Decode(item.Log, &Gamelog)
 			if err != nil {
