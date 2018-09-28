@@ -40,6 +40,7 @@ message PBPlayer {
 message PBResult {
      repeated PBHand hands = 1; //本局所有玩家的牌和结果，按牛大小升序排序
      string winner         = 2; //赢家地址
+     int32 leverage        = 3; //赢得赌注倍数
 }
 
 //扑克牌
