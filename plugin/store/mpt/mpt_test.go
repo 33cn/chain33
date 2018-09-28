@@ -13,17 +13,17 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var store_cfg0 = &types.Store{"mpt_test", "leveldb", "/tmp/mpt_test0", 100}
-var store_cfg1 = &types.Store{"mpt_test", "leveldb", "/tmp/mpt_test1", 100}
-var store_cfg2 = &types.Store{"mpt_test", "leveldb", "/tmp/mpt_test2", 100}
-var store_cfg3 = &types.Store{"mpt_test", "leveldb", "/tmp/mpt_test3", 100}
+var store_cfg0 = &types.Store{"mpt_test", "leveldb", "/tmp/mpt_test0", 100, false, false}
+var store_cfg1 = &types.Store{"mpt_test", "leveldb", "/tmp/mpt_test1", 100, false, false}
+var store_cfg2 = &types.Store{"mpt_test", "leveldb", "/tmp/mpt_test2", 100, false, false}
+var store_cfg3 = &types.Store{"mpt_test", "leveldb", "/tmp/mpt_test3", 100, false, false}
 
-//var store_cfg4 = &types.Store{"mpt_test", "leveldb", "/tmp/mpt_test4", 100}
-//var store_cfg5 = &types.Store{"mpt_test", "leveldb", "/tmp/mpt_test5", 100}
-var store_cfg6 = &types.Store{"mpt_test", "leveldb", "/tmp/mpt_test6", 100}
-var store_cfg7 = &types.Store{"mpt_test", "leveldb", "/tmp/mpt_test7", 100}
-var store_cfg8 = &types.Store{"mpt_test", "leveldb", "/tmp/mpt_test8", 100}
-var store_cfg9 = &types.Store{"mpt_test", "leveldb", "/tmp/mpt_test9", 100}
+//var store_cfg4 = &types.Store{"mpt_test", "leveldb", "/tmp/mpt_test4", 100,false, false}
+//var store_cfg5 = &types.Store{"mpt_test", "leveldb", "/tmp/mpt_test5", 100,false, false}
+var store_cfg6 = &types.Store{"mpt_test", "leveldb", "/tmp/mpt_test6", 100, false, false}
+var store_cfg7 = &types.Store{"mpt_test", "leveldb", "/tmp/mpt_test7", 100, false, false}
+var store_cfg8 = &types.Store{"mpt_test", "leveldb", "/tmp/mpt_test8", 100, false, false}
+var store_cfg9 = &types.Store{"mpt_test", "leveldb", "/tmp/mpt_test9", 100, false, false}
 
 const MaxKeylenth int = 64
 
