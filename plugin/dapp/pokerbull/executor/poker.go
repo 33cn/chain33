@@ -14,6 +14,15 @@ var COLOR_NUM = 4
 var CARD_NUM_PER_COLOR = 13
 var CARD_NUM_PER_GAME = 5
 
+const (
+	POKERBULL_RESULT_X1   = 1
+	POKERBULL_RESULT_X2   = 2
+	POKERBULL_RESULT_X3   = 3
+	POKERBULL_RESULT_X4   = 4
+	POKERBULL_RESULT_X5   = 5
+	POKERBULL_LEVERAGE_MAX = POKERBULL_RESULT_X5
+)
+
 func NewPoker() *types.PBPoker {
 	poker := new(types.PBPoker)
 	poker.Cards = make([]int32, POKER_CARD_NUM)
@@ -27,6 +36,7 @@ func NewPoker() *types.PBPoker {
 	return poker
 }
 
+// 洗牌
 func Shuffle(poker *types.PBPoker, rng int64) {
 	rndn := rand.New(rand.NewSource(rng))
 
@@ -39,6 +49,7 @@ func Shuffle(poker *types.PBPoker, rng int64) {
 	poker.Pointer = int32(POKER_CARD_NUM-1)
 }
 
+// 发牌
 func Deal(poker *types.PBPoker, rng int64) []int32 {
 	if poker.Pointer < int32(CARD_NUM_PER_GAME) {
 		logger.Error(fmt.Sprintf("Wait to be shuffled: deal cards [%d], left [%d]", CARD_NUM_PER_GAME, poker.Pointer+1))
@@ -59,6 +70,7 @@ func Deal(poker *types.PBPoker, rng int64) []int32 {
 	return res
 }
 
+// 计算斗牛结果
 func Result(cards []int32) int32 {
 	temp := 0;
 	r := -1;//是否有牛标志
@@ -106,6 +118,47 @@ func Result(cards []int32) int32 {
 	}
 
 	return int32(result[0])
+}
+
+// 计算结果倍数
+func Leverage(hand *types.PBHand) int32 {
+	result := hand.Result
+
+	// 小牛 [1, 6]
+	if result <7 {
+		return POKERBULL_RESULT_X1
+	}
+
+	// 大牛 [7, 9]
+	if result >=7 && result < 10 {
+		return POKERBULL_RESULT_X2
+	}
+
+	var flowers = 0
+	if result == 10 {
+		for _, card := range hand.Cards {
+			if (int(card) & COLOR_BIT_MAST) > 10 {
+				flowers++
+			}
+		}
+
+		// 牛牛
+		if flowers < 4 {
+			return POKERBULL_RESULT_X3
+		}
+
+		// 四花
+		if flowers == 4 {
+			return POKERBULL_RESULT_X4
+		}
+
+		// 五花
+		if flowers == 5 {
+			return POKERBULL_RESULT_X5
+		}
+	}
+
+	return POKERBULL_RESULT_X1
 }
 
 type pokerCard struct{
