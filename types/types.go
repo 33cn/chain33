@@ -249,7 +249,7 @@ type ReceiptLogResult struct {
 	RawLog string      `json:"rawlog"`
 }
 
-func (r *ReceiptData) DecodeReceiptLog() (*ReceiptDataResult, error) {
+func (r *ReceiptData) DecodeReceiptLog(execer []byte) (*ReceiptDataResult, error) {
 	result := &ReceiptDataResult{Ty: r.GetTy()}
 	switch r.Ty {
 	case 0:
@@ -271,7 +271,7 @@ func (r *ReceiptData) DecodeReceiptLog() (*ReceiptDataResult, error) {
 			return nil, err
 		}
 
-		logType := LoadLog(int64(l.Ty))
+		logType := LoadLog(execer, int64(l.Ty))
 		if logType == nil {
 			//tlog.Error("DecodeReceiptLog:", "Faile to decodeLog with type value logtype", l.Ty)
 			return nil, ErrLogType
@@ -285,8 +285,8 @@ func (r *ReceiptData) DecodeReceiptLog() (*ReceiptDataResult, error) {
 	return result, nil
 }
 
-func (r *ReceiptData) OutputReceiptDetails(logger log.Logger) {
-	rds, err := r.DecodeReceiptLog()
+func (r *ReceiptData) OutputReceiptDetails(execer []byte, logger log.Logger) {
+	rds, err := r.DecodeReceiptLog(execer)
 	if err == nil {
 		logger.Debug("receipt decode", "receipt data", rds)
 		for _, rdl := range rds.Logs {

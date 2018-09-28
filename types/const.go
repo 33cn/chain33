@@ -5,6 +5,14 @@ import "reflect"
 var slash = []byte("-")
 var Debug = false
 
+type LogErr []byte
+type LogReserved []byte
+
+type LogInfo struct {
+	Ty   reflect.Type
+	Name string
+}
+
 const (
 	CoinsX          = "coins"
 	UserKeyX        = "user."
@@ -163,19 +171,19 @@ const (
 	TyLogGenesisDeposit  = 12
 )
 
-var SystemLog = map[int64]reflect.Type{
-	TyLogReserved:        nil,
-	TyLogErr:             nil,
-	TyLogFee:             reflect.TypeOf(ReceiptAccountTransfer{}),
-	TyLogTransfer:        reflect.TypeOf(ReceiptAccountTransfer{}),
-	TyLogDeposit:         reflect.TypeOf(ReceiptAccountTransfer{}),
-	TyLogExecTransfer:    reflect.TypeOf(ReceiptExecAccountTransfer{}),
-	TyLogExecWithdraw:    reflect.TypeOf(ReceiptExecAccountTransfer{}),
-	TyLogExecDeposit:     reflect.TypeOf(ReceiptExecAccountTransfer{}),
-	TyLogExecFrozen:      reflect.TypeOf(ReceiptExecAccountTransfer{}),
-	TyLogExecActive:      reflect.TypeOf(ReceiptAccountTransfer{}),
-	TyLogGenesisTransfer: reflect.TypeOf(ReceiptAccountTransfer{}),
-	TyLogGenesisDeposit:  reflect.TypeOf(ReceiptAccountTransfer{}),
+var SystemLog = map[int64]*LogInfo{
+	TyLogReserved:        {reflect.TypeOf(LogReserved{}), "LogReserved"},
+	TyLogErr:             {reflect.TypeOf(LogErr{}), "LogErr"},
+	TyLogFee:             {reflect.TypeOf(ReceiptAccountTransfer{}), "LogFee"},
+	TyLogTransfer:        {reflect.TypeOf(ReceiptAccountTransfer{}), "LogTransfer"},
+	TyLogDeposit:         {reflect.TypeOf(ReceiptAccountTransfer{}), "LogDeposit"},
+	TyLogExecTransfer:    {reflect.TypeOf(ReceiptExecAccountTransfer{}), "LogExecTransfer"},
+	TyLogExecWithdraw:    {reflect.TypeOf(ReceiptExecAccountTransfer{}), "LogExecWithdraw"},
+	TyLogExecDeposit:     {reflect.TypeOf(ReceiptExecAccountTransfer{}), "LogExecDeposit"},
+	TyLogExecFrozen:      {reflect.TypeOf(ReceiptExecAccountTransfer{}), "LogExecFrozen"},
+	TyLogExecActive:      {reflect.TypeOf(ReceiptAccountTransfer{}), "LogExecActive"},
+	TyLogGenesisTransfer: {reflect.TypeOf(ReceiptAccountTransfer{}), "LogGenesisTransfer"},
+	TyLogGenesisDeposit:  {reflect.TypeOf(ReceiptAccountTransfer{}), "LogGenesisDeposit"},
 }
 
 const (
@@ -242,20 +250,6 @@ const (
 	TyLogMatchGame  = 712
 	TyLogCancleGame = 713
 	TyLogCloseGame  = 714
-
-	//log for PBgame
-	TyLogPBGameStart = 721
-	TyLogPBGameContinue  = 722
-	TyLogPBGameQuit = 723
-	TyLogPBGameQuery = 724
-
-	// log for blackwhite game
-	TyLogBlackwhiteCreate   = 750
-	TyLogBlackwhitePlay     = 751
-	TyLogBlackwhiteShow     = 752
-	TyLogBlackwhiteTimeout  = 753
-	TyLogBlackwhiteDone     = 754
-	TyLogBlackwhiteLoopInfo = 755
 
 	//log for lottery
 	TyLogLotteryCreate = 801
