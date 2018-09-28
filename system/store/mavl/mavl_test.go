@@ -10,19 +10,20 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	drivers "gitlab.33.cn/chain33/chain33/system/store"
+	//. "gitlab.33.cn/chain33/chain33/system/store/mavl/db"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var store_cfg0 = &types.Store{"mavl_test", "leveldb", "/tmp/mavl_test0", 100}
-var store_cfg1 = &types.Store{"mavl_test", "leveldb", "/tmp/mavl_test1", 100}
-var store_cfg2 = &types.Store{"mavl_test", "leveldb", "/tmp/mavl_test2", 100}
-var store_cfg3 = &types.Store{"mavl_test", "leveldb", "/tmp/mavl_test3", 100}
-var store_cfg4 = &types.Store{"mavl_test", "leveldb", "/tmp/mavl_test4", 100}
-var store_cfg5 = &types.Store{"mavl_test", "leveldb", "/tmp/mavl_test5", 100}
-var store_cfg6 = &types.Store{"mavl_test", "leveldb", "/tmp/mavl_test6", 100}
-var store_cfg7 = &types.Store{"mavl_test", "leveldb", "/tmp/mavl_test7", 100}
-var store_cfg8 = &types.Store{"mavl_test", "leveldb", "/tmp/mavl_test8", 100}
-var store_cfg9 = &types.Store{"mavl_test", "leveldb", "/tmp/mavl_test9", 100}
+var store_cfg0 = &types.Store{"mavl_test", "leveldb", "/tmp/mavl_test0", 100, false, false}
+var store_cfg1 = &types.Store{"mavl_test", "leveldb", "/tmp/mavl_test1", 100, false, false}
+var store_cfg2 = &types.Store{"mavl_test", "leveldb", "/tmp/mavl_test2", 100, false, false}
+var store_cfg3 = &types.Store{"mavl_test", "leveldb", "/tmp/mavl_test3", 100, false, false}
+var store_cfg4 = &types.Store{"mavl_test", "leveldb", "/tmp/mavl_test4", 100, false, false}
+var store_cfg5 = &types.Store{"mavl_test", "leveldb", "/tmp/mavl_test5", 100, false, false}
+var store_cfg6 = &types.Store{"mavl_test", "leveldb", "/tmp/mavl_test6", 100, false, false}
+var store_cfg7 = &types.Store{"mavl_test", "leveldb", "/tmp/mavl_test7", 100, false, false}
+var store_cfg8 = &types.Store{"mavl_test", "leveldb", "/tmp/mavl_test8", 100, false, false}
+var store_cfg9 = &types.Store{"mavl_test", "leveldb", "/tmp/mavl_test9", 100, false, false}
 
 const MaxKeylenth int = 64
 
