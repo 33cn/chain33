@@ -30,10 +30,10 @@ func Init(s pluginmgr.RPCServer) {
 	types.RegistorExecutor(name, &PokerBullType{})
 
 	// init log
-	types.RegistorLog(types.TyLogPBGameStart, &PokerBullStartLog{})
-	types.RegistorLog(types.TyLogPBGameContinue, &PokerBullContinueLog{})
-	types.RegistorLog(types.TyLogPBGameQuit, &PokerBullQuitLog{})
-	types.RegistorLog(types.TyLogPBGameQuery, &PokerBullQueryLog{})
+	types.RegistorLog(pb.TyLogPBGameStart, &PokerBullStartLog{})
+	types.RegistorLog(pb.TyLogPBGameContinue, &PokerBullContinueLog{})
+	types.RegistorLog(pb.TyLogPBGameQuit, &PokerBullQuitLog{})
+	types.RegistorLog(pb.TyLogPBGameQuery, &PokerBullQueryLog{})
 
 	// init query rpc
 	//types.RegisterRPCQueryHandle(pb.FuncName_QueryGameListByIds, &GameGetList{})

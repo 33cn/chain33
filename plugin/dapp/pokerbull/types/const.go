@@ -26,6 +26,14 @@ const (
 	FuncName_QueryGameById                = "QueryGameById"
 )
 
+const (
+	//log for PBgame
+	TyLogPBGameStart = 721
+	TyLogPBGameContinue  = 722
+	TyLogPBGameQuit = 723
+	TyLogPBGameQuery = 724
+)
+
 func init() {
 	types.AllowUserExec = append(types.AllowUserExec, ExecerPokerBull)
 }

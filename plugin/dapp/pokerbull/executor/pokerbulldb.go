@@ -164,11 +164,11 @@ func (action *Action) GetReceiptLog(game *pkt.PokerBull) *types.ReceiptLog {
 	r := &pkt.ReceiptPBGame{}
 	r.Addr = action.fromaddr
 	if game.Status == pkt.PBGameActionStart {
-		log.Ty = types.TyLogPBGameStart
+		log.Ty = pkt.TyLogPBGameStart
 	} else if game.Status == pkt.PBGameActionContinue {
-		log.Ty = types.TyLogPBGameContinue
+		log.Ty = pkt.TyLogPBGameContinue
 	} else if game.Status == pkt.PBGameActionQuit {
-		log.Ty = types.TyLogPBGameQuit
+		log.Ty = pkt.TyLogPBGameQuit
 	}
 
 	r.GameId = game.GameId
