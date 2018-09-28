@@ -4,6 +4,7 @@ import (
 	"bytes"
 
 	"github.com/golang/protobuf/proto"
+	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -23,6 +24,11 @@ func (proof *Proof) Verify(key []byte, value []byte, root []byte) bool {
 	}
 	leafNode := types.LeafNode{Key: key, Value: value, Height: 0, Size: 1}
 	leafHash := leafNode.Hash()
+
+	hashLen := len(common.Hash{})
+	if len(proof.LeafHash) > hashLen {
+		proof.LeafHash = proof.LeafHash[len(proof.LeafHash)-hashLen:]
+	}
 
 	if !bytes.Equal(leafHash, proof.LeafHash) {
 		return false

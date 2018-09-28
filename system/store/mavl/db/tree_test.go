@@ -250,7 +250,7 @@ func TestHashSame2(t *testing.T) {
 	db1 := db.NewDB("test1", "leveldb", dir, 100)
 	prevHash := make([]byte, 32)
 	strs1 := make(map[string]bool)
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 5; i++ {
 		prevHash, err = saveBlock(db1, int64(i), prevHash, 1000, false)
 		assert.Nil(t, err)
 		str := Bytes2Hex(prevHash)
@@ -262,7 +262,7 @@ func TestHashSame2(t *testing.T) {
 	prevHash = prevHash[:0]
 	EnableMVCC(true)
 	EnableMavlPrefix(true)
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 5; i++ {
 		prevHash, err = saveBlock(db2, int64(i), prevHash, 1000, false)
 		assert.Nil(t, err)
 		str := Bytes2Hex(prevHash)
