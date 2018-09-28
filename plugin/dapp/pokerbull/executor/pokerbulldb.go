@@ -216,12 +216,14 @@ func (action *Action) calculate(game *pkt.PokerBull) *pkt.PBResult{
 	if !sort.IsSorted(handS) {
 		sort.Sort(handS)
 	}
+	winner := handS[len(handS)-1]
 
 	// 将有序的临时切片加入到结果数组
 	result := &pkt.PBResult{}
+	result.Winner = winner.Address
+	result.Leverage = Leverage(winner)
 	result.Hands = make([]*pkt.PBHand, len(handS))
 	copy(result.Hands, handS)
-	result.Winner = handS[len(handS)-1].Address
 
 	game.Results = append(game.Results, result)
 	return result
@@ -235,7 +237,7 @@ func (action *Action) settleAccount(lastAddress string, game *pkt.PokerBull) ([]
 	for _,player := range game.Players {
 		// 最后一名玩家没有冻结
 		if player.Address != lastAddress {
-			receipt, err := action.coinsAccount.ExecActive(player.GetAddress(), action.execaddr, game.GetValue())
+			receipt, err := action.coinsAccount.ExecActive(player.GetAddress(), action.execaddr, game.GetValue() * POKERBULL_LEVERAGE_MAX)
 			if err != nil {
 				logger.Error("GameSettle.ExecActive", "addr", player.GetAddress(), "execaddr", action.execaddr, "amount", game.GetValue(),
 					"err", err)
@@ -247,7 +249,7 @@ func (action *Action) settleAccount(lastAddress string, game *pkt.PokerBull) ([]
 
 		//给赢家转账
 		if player.Address != result.Winner {
-			receipt, err := action.coinsAccount.ExecTransfer(player.Address, result.Winner, action.execaddr, game.GetValue())
+			receipt, err := action.coinsAccount.ExecTransfer(player.Address, result.Winner, action.execaddr, game.GetValue() * int64(result.Leverage))
 			if err != nil {
 				action.coinsAccount.ExecFrozen(result.Winner, action.execaddr, game.GetValue()) // rollback
 				logger.Error("GameSettle.ExecTransferFrozen", "addr", result.Winner, "execaddr", action.execaddr, "amount", game.GetValue(),
@@ -282,7 +284,7 @@ func (action *Action) GameStart(start *pkt.PBGameStart) (*types.Receipt, error) 
 	var kv []*types.KeyValue
 
 	gameId := common.ToHex(action.txhash)
-	if !action.CheckExecAccountBalance(action.fromaddr, start.GetValue(), 0) {
+	if !action.CheckExecAccountBalance(action.fromaddr, start.GetValue() * POKERBULL_LEVERAGE_MAX, 0) {
 		logger.Error("GameStart", "addr", action.fromaddr, "execaddr", action.execaddr, "id",
 			gameId, "err", types.ErrNoBalance)
 		return nil, types.ErrNoBalance
@@ -351,8 +353,7 @@ func (action *Action) GameStart(start *pkt.PBGameStart) (*types.Receipt, error) 
 
 		game.Status = pkt.PBGameActionContinue // 更新游戏状态
 	} else {
-		//冻结子账户资金, 最后一位玩家不需要冻结
-		receipt, err := action.coinsAccount.ExecFrozen(action.fromaddr, action.execaddr, start.GetValue())
+		receipt, err := action.coinsAccount.ExecFrozen(action.fromaddr, action.execaddr, start.GetValue() * POKERBULL_LEVERAGE_MAX) //冻结子账户资金, 最后一位玩家不需要冻结
 		if err != nil {
 			logger.Error("GameCreate.ExecFrozen", "addr", action.fromaddr, "execaddr", action.execaddr, "amount", start.GetValue(), "err", err.Error())
 			return nil, err
@@ -404,7 +405,7 @@ func (action *Action) GameContinue(pbcontinue *pkt.PBGameContinue) (*types.Recei
 	}
 
 	// 检查余额
-	if !action.CheckExecAccountBalance(action.fromaddr, game.GetValue(), 0) {
+	if !action.CheckExecAccountBalance(action.fromaddr, game.GetValue() * POKERBULL_LEVERAGE_MAX, 0) {
 		logger.Error("GameStart", "addr", action.fromaddr, "execaddr", action.execaddr, "id",
 			pbcontinue.GetGameId(), "err", types.ErrNoBalance)
 		return nil, types.ErrNoBalance
@@ -436,8 +437,7 @@ func (action *Action) GameContinue(pbcontinue *pkt.PBGameContinue) (*types.Recei
 		logs = append(logs, logsH...)
 		kv = append(kv, kvH...)
 	} else {
-		//冻结子账户资金,最后一位玩家不需要冻结
-		receipt, err := action.coinsAccount.ExecFrozen(action.fromaddr, action.execaddr, game.GetValue())
+		receipt, err := action.coinsAccount.ExecFrozen(action.fromaddr, action.execaddr, game.GetValue() * POKERBULL_LEVERAGE_MAX) //冻结子账户资金,最后一位玩家不需要冻结
 		if err != nil {
 			logger.Error("GameCreate.ExecFrozen", "addr", action.fromaddr, "execaddr", action.execaddr, "amount", game.GetValue(), "err", err.Error())
 			return nil, err
