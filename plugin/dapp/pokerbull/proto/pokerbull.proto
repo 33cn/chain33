@@ -15,10 +15,11 @@ message PokerBull {
     repeated PBPlayer players = 7;  //玩家历史牌和结果集
     int32  playerNum          = 8;  //玩家数
     repeated PBResult results = 9;  //游戏结果集
-    int64  index              = 10;  //索引
+    int64  index              = 10; //索引
     int64  prevIndex          = 11; //上级索引
-    int64 quitTime             = 12; //游戏结束时间
-    string quitTxHash          = 13; //游戏结束交易hash
+    int64 quitTime            = 12; //游戏结束时间
+    string quitTxHash         = 13; //游戏结束交易hash
+    string dealerAddr         = 14; //下局庄家地址
 }
 
 //一把牌
@@ -26,6 +27,8 @@ message PBHand {
      repeated int32 cards = 1; //一把牌，五张
      int32 result         = 2; //斗牛结果 (没牛：0， 牛1-9：1-9， 牛牛：10)
      string address       = 3; //玩家地址
+     bool isWin           = 4; //是否赢庄家
+     int32 leverage       = 5; //赌注倍数
 }
 
 //玩家
@@ -41,6 +44,8 @@ message PBResult {
      repeated PBHand hands = 1; //本局所有玩家的牌和结果，按牛大小升序排序
      string winner         = 2; //赢家地址
      int32 leverage        = 3; //赢得赌注倍数
+     string dealer         = 4; //庄家
+     int32 dealerLeverage  = 5; //庄家赌注倍数
 }
 
 //扑克牌

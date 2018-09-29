@@ -195,6 +195,18 @@ func newcolorCard(a []int32) colorCardSlice {
 	return cardS
 }
 
+func CompareResult(i,j *types.PBHand) bool {
+	if i.Result < j.Result {
+		return true
+	}
+
+	if i.Result == j.Result {
+		return Compare(i.Cards, j.Cards)
+	}
+
+	return false
+}
+
 func Compare(a []int32, b []int32) bool {
 	cardA := newcolorCard(a)
 	cardB := newcolorCard(b)

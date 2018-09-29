@@ -220,16 +220,131 @@ func (action *Action) calculate(game *pkt.PokerBull) *pkt.PBResult{
 
 	// 将有序的临时切片加入到结果数组
 	result := &pkt.PBResult{}
-	result.Winner = winner.Address
-	result.Leverage = Leverage(winner)
-	result.Hands = make([]*pkt.PBHand, len(handS))
+	result.Winner          = winner.Address
+	result.Leverage        = Leverage(winner)
+	result.Hands           = make([]*pkt.PBHand, len(handS))
 	copy(result.Hands, handS)
 
 	game.Results = append(game.Results, result)
 	return result
 }
 
-func (action *Action) settleAccount(lastAddress string, game *pkt.PokerBull) ([]*types.ReceiptLog, []*types.KeyValue, error) {
+func (action *Action) calculateDealer(game *pkt.PokerBull) *pkt.PBResult{
+	var handS HandSlice
+	var dealer *pkt.PBHand
+	for _, player := range game.Players {
+		hand := &pkt.PBHand{}
+		hand.Cards = Deal(game.Poker, player.TxHash) //发牌
+		hand.Result = Result(hand.Cards) //计算结果
+		hand.Address = player.Address
+
+		//存入玩家数组
+		player.Hands = append(player.Hands, hand)
+
+		//存入临时切片待比大小排序
+		handS = append(handS, hand)
+
+		//为下一个continue状态初始化player
+		player.Ready = false
+
+		//记录庄家
+		if player.Address == game.DealerAddr {
+			dealer = hand
+		}
+	}
+
+	for _, hand := range handS {
+		if hand.Address == game.DealerAddr {
+			continue
+		}
+
+		if CompareResult(hand, dealer) {
+			hand.IsWin = false
+		} else {
+			hand.IsWin = true
+			hand.Leverage = Leverage(hand)
+		}
+	}
+
+	// 将有序的临时切片加入到结果数组
+	result := &pkt.PBResult{}
+	result.Dealer          = game.DealerAddr
+	result.DealerLeverage  = Leverage(dealer)
+	result.Hands           = make([]*pkt.PBHand, len(handS))
+	copy(result.Hands, handS)
+
+	game.Results = append(game.Results, result)
+	return result
+}
+
+func (action *Action) nextDealer(game *pkt.PokerBull) string {
+	var flag = -1
+	for i, player := range game.Players {
+		if player.Address == game.DealerAddr {
+			flag = i
+		}
+	}
+	if flag == -1 {
+		logger.Error("Get next dealer failed.")
+		return game.DealerAddr
+	}
+
+	if flag == len(game.Players) -1 {
+		return game.Players[0].Address
+	}
+
+	return game.Players[flag+1].Address
+}
+
+func (action *Action) settleDealerAccount(lastAddress string, game *pkt.PokerBull) ([]*types.ReceiptLog, []*types.KeyValue, error) {
+	var logs []*types.ReceiptLog
+	var kv []*types.KeyValue
+
+	result := action.calculateDealer(game)
+	for _,hand := range result.Hands {
+		// 最后一名玩家没有冻结
+		if hand.Address != lastAddress {
+			receipt, err := action.coinsAccount.ExecActive(hand.Address, action.execaddr, game.GetValue() * POKERBULL_LEVERAGE_MAX)
+			if err != nil {
+				logger.Error("GameSettleDealer.ExecActive", "addr", hand.Address, "execaddr", action.execaddr, "amount", game.GetValue(),
+					"err", err)
+				return nil, nil, err
+			}
+			logs = append(logs, receipt.Logs...)
+			kv = append(kv, receipt.KV...)
+		}
+
+		//给赢家转账
+		var receipt *types.Receipt
+		var err error
+		if hand.Address != result.Dealer {
+			if hand.IsWin {
+				receipt, err = action.coinsAccount.ExecTransfer(result.Dealer, hand.Address, action.execaddr, game.GetValue()*int64(hand.Leverage))
+				if err != nil {
+					action.coinsAccount.ExecFrozen(hand.Address, action.execaddr, game.GetValue()) // rollback
+					logger.Error("GameSettleDealer.ExecTransfer", "addr", hand.Address, "execaddr", action.execaddr,
+						"amount", game.GetValue()*int64(hand.Leverage), "err", err)
+					return nil, nil, err
+				}
+			} else {
+				receipt, err = action.coinsAccount.ExecTransfer(hand.Address, result.Dealer, action.execaddr, game.GetValue()*int64(result.DealerLeverage))
+				if err != nil {
+					action.coinsAccount.ExecFrozen(hand.Address, action.execaddr, game.GetValue()) // rollback
+					logger.Error("GameSettleDealer.ExecTransfer", "addr", hand.Address, "execaddr", action.execaddr,
+						"amount", game.GetValue()*int64(result.DealerLeverage), "err", err)
+					return nil, nil, err
+				}
+			}
+			logs = append(logs, receipt.Logs...)
+			kv = append(kv, receipt.KV...)
+		}
+	}
+	game.DealerAddr = action.nextDealer(game)
+
+	return logs, kv, nil
+}
+
+func (action *Action) settleDefaultAccount(lastAddress string, game *pkt.PokerBull) ([]*types.ReceiptLog, []*types.KeyValue, error) {
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
 	result := action.calculate(game)
@@ -239,8 +354,8 @@ func (action *Action) settleAccount(lastAddress string, game *pkt.PokerBull) ([]
 		if player.Address != lastAddress {
 			receipt, err := action.coinsAccount.ExecActive(player.GetAddress(), action.execaddr, game.GetValue() * POKERBULL_LEVERAGE_MAX)
 			if err != nil {
-				logger.Error("GameSettle.ExecActive", "addr", player.GetAddress(), "execaddr", action.execaddr, "amount", game.GetValue(),
-					"err", err)
+				logger.Error("GameSettleDefault.ExecActive", "addr", player.GetAddress(), "execaddr", action.execaddr,
+					"amount", game.GetValue()* POKERBULL_LEVERAGE_MAX, "err", err)
 				return nil, nil, err
 			}
 			logs = append(logs, receipt.Logs...)
@@ -249,11 +364,11 @@ func (action *Action) settleAccount(lastAddress string, game *pkt.PokerBull) ([]
 
 		//给赢家转账
 		if player.Address != result.Winner {
-			receipt, err := action.coinsAccount.ExecTransfer(player.Address, result.Winner, action.execaddr, game.GetValue() * int64(result.Leverage))
+			receipt, err := action.coinsAccount.ExecTransfer(player.Address, result.Winner, action.execaddr, game.GetValue()*int64(result.Leverage))
 			if err != nil {
 				action.coinsAccount.ExecFrozen(result.Winner, action.execaddr, game.GetValue()) // rollback
-				logger.Error("GameSettle.ExecTransferFrozen", "addr", result.Winner, "execaddr", action.execaddr, "amount", game.GetValue(),
-					"err", err)
+				logger.Error("GameSettleDefault.ExecTransfer", "addr", result.Winner, "execaddr", action.execaddr,
+					"amount", game.GetValue()*int64(result.Leverage), "err", err)
 				return nil, nil, err
 			}
 			logs = append(logs, receipt.Logs...)
@@ -262,6 +377,10 @@ func (action *Action) settleAccount(lastAddress string, game *pkt.PokerBull) ([]
 	}
 
 	return logs, kv, nil
+}
+
+func (action *Action) settleAccount(lastAddress string, game *pkt.PokerBull) ([]*types.ReceiptLog, []*types.KeyValue, error) {
+	return action.settleDealerAccount(lastAddress, game)
 }
 
 func (action *Action) genTxRnd(txhash []byte) (int64,error) {
@@ -307,6 +426,7 @@ func (action *Action) GameStart(start *pkt.PBGameStart) (*types.Receipt, error) 
 			Poker:         NewPoker(),
 			PlayerNum:     start.PlayerNum,
 			Index:         action.getIndex(game),
+			DealerAddr:    action.fromaddr,
 		}
 
 		Shuffle(game.Poker, action.blocktime) //洗牌
@@ -494,13 +614,5 @@ func (h HandSlice) Less(i, j int) bool {
 		logger.Error("nil pointer at ", i, " ", j)
 	}
 
-	if h[i].Result < h[j].Result {
-		return true
-	}
-
-	if h[i].Result == h[j].Result {
-		return Compare(h[i].Cards, h[j].Cards)
-	}
-
-	return false
+	return CompareResult(h[i], h[j])
 }
