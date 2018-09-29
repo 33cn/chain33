@@ -152,6 +152,10 @@ func main() {
 	exec.SetQueueClient(q.Client())
 
 	log.Info("loading store module")
+	//是否开启MVCC不一样的话以执行器开启为准
+	if cfg.Exec.EnableMVCC != cfg.Store.EnableMVCC {
+		cfg.Store.EnableMVCC = cfg.Exec.EnableMVCC
+	}
 	s := store.New(cfg.Store)
 	s.SetQueueClient(q.Client())
 
