@@ -236,12 +236,16 @@ func TestKvmvccdbRollbackBatch(t *testing.T) {
 	assert.Equal(t, int64(2), maxVersion)
 }
 
-func GetRandomString(lenth int) string {
+func GetRandomString(length int) string {
 	str := "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	bytes := []byte(str)
 	result := []byte{}
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	for i := 0; i < lenth; i++ {
+	l := r.Intn(length)
+	if l < 20 {
+		l = 20
+	}
+	for i := 0; i < l; i++ {
 		result = append(result, bytes[r.Intn(len(bytes))])
 	}
 	return string(result)
@@ -261,7 +265,7 @@ func BenchmarkGet(b *testing.B) {
 	var hash = drivers.EmptyRoot[:]
 	for i := 0; i < b.N; i++ {
 		key := GetRandomString(MaxKeylenth)
-		value := fmt.Sprintf("v%d", i)
+		value := fmt.Sprintf("%s%d", key, i)
 		keys = append(keys, []byte(string(key)))
 		kv = append(kv, &types.KeyValue{[]byte(string(key)), []byte(string(value))})
 		if i%10000 == 0 {
