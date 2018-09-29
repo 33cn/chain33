@@ -1,6 +1,7 @@
 package mpt
 
 import (
+	"io/ioutil"
 	"os"
 	"testing"
 
@@ -13,31 +14,27 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var store_cfg0 = &types.Store{"mpt_test", "leveldb", "/tmp/mpt_test0", 100, false, false}
-var store_cfg1 = &types.Store{"mpt_test", "leveldb", "/tmp/mpt_test1", 100, false, false}
-var store_cfg2 = &types.Store{"mpt_test", "leveldb", "/tmp/mpt_test2", 100, false, false}
-var store_cfg3 = &types.Store{"mpt_test", "leveldb", "/tmp/mpt_test3", 100, false, false}
-
-//var store_cfg4 = &types.Store{"mpt_test", "leveldb", "/tmp/mpt_test4", 100,false, false}
-//var store_cfg5 = &types.Store{"mpt_test", "leveldb", "/tmp/mpt_test5", 100,false, false}
-var store_cfg6 = &types.Store{"mpt_test", "leveldb", "/tmp/mpt_test6", 100, false, false}
-var store_cfg7 = &types.Store{"mpt_test", "leveldb", "/tmp/mpt_test7", 100, false, false}
-var store_cfg8 = &types.Store{"mpt_test", "leveldb", "/tmp/mpt_test8", 100, false, false}
-var store_cfg9 = &types.Store{"mpt_test", "leveldb", "/tmp/mpt_test9", 100, false, false}
-
 const MaxKeylenth int = 64
 
 func TestKvdbNewClose(t *testing.T) {
-	os.RemoveAll(store_cfg0.DbPath) //删除已存在目录
-	store := New(store_cfg0)
-	assert.NotNil(t, store)
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(t, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+	var store_cfg = &types.Store{"mpt_test", "leveldb", dir, 100, false, false}
+	store := New(store_cfg)
 
+	assert.NotNil(t, store)
 	store.Close()
 }
 
 func TestKvddbSetGet(t *testing.T) {
-	os.RemoveAll(store_cfg1.DbPath)
-	store := New(store_cfg1).(*Store)
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(t, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+	var store_cfg = &types.Store{"mpt_test", "leveldb", dir, 100, false, false}
+	store := New(store_cfg).(*Store)
 	assert.NotNil(t, store)
 
 	keys0 := [][]byte{[]byte("mk1"), []byte("mk2")}
@@ -79,8 +76,12 @@ func TestKvddbSetGet(t *testing.T) {
 }
 
 func TestKvdbMemSet(t *testing.T) {
-	os.RemoveAll(store_cfg2.DbPath)
-	store := New(store_cfg2).(*Store)
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(t, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+	var store_cfg = &types.Store{"mpt_test", "leveldb", dir, 100, false, false}
+	store := New(store_cfg).(*Store)
 	assert.NotNil(t, store)
 
 	var kv []*types.KeyValue
@@ -106,8 +107,12 @@ func TestKvdbMemSet(t *testing.T) {
 }
 
 func TestKvdbRollback(t *testing.T) {
-	os.RemoveAll(store_cfg3.DbPath)
-	store := New(store_cfg3).(*Store)
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(t, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+	var store_cfg = &types.Store{"mpt_test", "leveldb", dir, 100, false, false}
+	store := New(store_cfg).(*Store)
 	assert.NotNil(t, store)
 
 	var kv []*types.KeyValue
@@ -141,12 +146,16 @@ func checkKV(k, v []byte) bool {
 }
 
 //生成随机字符串
-func GetRandomString(lenth int) string {
+func GetRandomString(length int) string {
 	str := "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	bytes := []byte(str)
 	result := []byte{}
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	for i := 0; i < lenth; i++ {
+	l := r.Intn(length)
+	if l == 0 {
+		l = 1
+	}
+	for i := 0; i < l; i++ {
 		result = append(result, bytes[r.Intn(len(bytes))])
 	}
 	return string(result)
@@ -154,14 +163,17 @@ func GetRandomString(lenth int) string {
 
 //目前正常情况下get 都是一个一个获取的
 func BenchmarkGet(b *testing.B) {
-	os.RemoveAll(store_cfg6.DbPath)
-	store := New(store_cfg6).(*Store)
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(b, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+	var store_cfg = &types.Store{"mpt_test", "leveldb", dir, 100, false, false}
+	store := New(store_cfg).(*Store)
 	assert.NotNil(b, store)
 
 	var kv []*types.KeyValue
 	var keys [][]byte
 	var hash = drivers.EmptyRoot[:]
-	var err error
 	for i := 0; i < b.N; i++ {
 		key := GetRandomString(MaxKeylenth)
 		value := fmt.Sprintf("v%d", i)
@@ -193,8 +205,12 @@ func BenchmarkGet(b *testing.B) {
 }
 
 func BenchmarkSet(b *testing.B) {
-	os.RemoveAll(store_cfg7.DbPath)
-	store := New(store_cfg7).(*Store)
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(b, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+	var store_cfg = &types.Store{"mpt_test", "leveldb", dir, 100, false, false}
+	store := New(store_cfg).(*Store)
 	assert.NotNil(b, store)
 
 	var kv []*types.KeyValue
@@ -222,8 +238,12 @@ func BenchmarkSet(b *testing.B) {
 }
 
 func BenchmarkMemSet(b *testing.B) {
-	os.RemoveAll(store_cfg8.DbPath)
-	store := New(store_cfg8).(*Store)
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(b, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+	var store_cfg = &types.Store{"mpt_test", "leveldb", dir, 100, false, false}
+	store := New(store_cfg).(*Store)
 	assert.NotNil(b, store)
 
 	var kv []*types.KeyValue
@@ -251,8 +271,12 @@ func BenchmarkMemSet(b *testing.B) {
 }
 
 func BenchmarkCommit(b *testing.B) {
-	os.RemoveAll(store_cfg9.DbPath)
-	store := New(store_cfg9).(*Store)
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(b, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+	var store_cfg = &types.Store{"mpt_test", "leveldb", dir, 100, false, false}
+	store := New(store_cfg).(*Store)
 	assert.NotNil(b, store)
 
 	var kv []*types.KeyValue
