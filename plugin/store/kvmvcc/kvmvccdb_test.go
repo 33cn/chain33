@@ -258,8 +258,7 @@ func BenchmarkGet(b *testing.B) {
 
 	var kv []*types.KeyValue
 	var keys [][]byte
-	var hash []byte
-	hash = drivers.EmptyRoot[:]
+	var hash = drivers.EmptyRoot[:]
 	for i := 0; i < b.N; i++ {
 		key := GetRandomString(MaxKeylenth)
 		value := fmt.Sprintf("v%d", i)
