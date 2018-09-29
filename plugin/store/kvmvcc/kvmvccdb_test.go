@@ -242,8 +242,8 @@ func GetRandomString(length int) string {
 	result := []byte{}
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	l := r.Intn(length)
-	if l == 0 {
-		l = 1
+	if l < 20 {
+		l = 20
 	}
 	for i := 0; i < l; i++ {
 		result = append(result, bytes[r.Intn(len(bytes))])
@@ -265,7 +265,7 @@ func BenchmarkGet(b *testing.B) {
 	var hash = drivers.EmptyRoot[:]
 	for i := 0; i < b.N; i++ {
 		key := GetRandomString(MaxKeylenth)
-		value := fmt.Sprintf("v%d", i)
+		value := fmt.Sprintf("%s%d", key, i)
 		keys = append(keys, []byte(string(key)))
 		kv = append(kv, &types.KeyValue{[]byte(string(key)), []byte(string(value))})
 		if i%10000 == 0 {
