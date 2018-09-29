@@ -1,8 +1,10 @@
 package kvmvccdb
 
 import (
+	"math/rand"
 	"os"
 	"testing"
+	"time"
 
 	"fmt"
 
@@ -17,6 +19,12 @@ var store_cfg1 = &types.Store{"kvmvcc", "leveldb", "/tmp/kvdb_test1", 100, false
 var store_cfg2 = &types.Store{"kvmvcc", "leveldb", "/tmp/kvdb_test2", 100, false, false}
 var store_cfg3 = &types.Store{"kvmvcc", "leveldb", "/tmp/kvdb_test3", 100, false, false}
 var store_cfg4 = &types.Store{"kvmvcc", "leveldb", "/tmp/kvdb_test4", 100, false, false}
+var store_cfg6 = &types.Store{"kvmvcc_test", "leveldb", "/tmp/mpt_test6", 100, false, false}
+var store_cfg7 = &types.Store{"kvmvcc_test", "leveldb", "/tmp/mpt_test7", 100, false, false}
+var store_cfg8 = &types.Store{"kvmvcc_test", "leveldb", "/tmp/mpt_test8", 100, false, false}
+var store_cfg9 = &types.Store{"kvmvcc_test", "leveldb", "/tmp/mpt_test9", 100, false, false}
+
+const MaxKeylenth int = 64
 
 func TestKvmvccdbNewClose(t *testing.T) {
 	os.RemoveAll(store_cfg0.DbPath)
@@ -224,6 +232,58 @@ func TestKvmvccdbRollbackBatch(t *testing.T) {
 	assert.Equal(t, int64(2), maxVersion)
 
 	os.RemoveAll(store_cfg4.DbPath)
+}
+
+func GetRandomString(lenth int) string {
+	str := "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	bytes := []byte(str)
+	result := []byte{}
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	for i := 0; i < lenth; i++ {
+		result = append(result, bytes[r.Intn(len(bytes))])
+	}
+	return string(result)
+}
+
+func BenchmarkGet(b *testing.B) {
+	os.RemoveAll(store_cfg6.DbPath)
+	store := New(store_cfg6).(*KVMVCCStore)
+	assert.NotNil(b, store)
+
+	var kv []*types.KeyValue
+	var keys [][]byte
+	var hash []byte
+	var err error
+	hash = drivers.EmptyRoot[:]
+	for i := 0; i < b.N; i++ {
+		key := GetRandomString(MaxKeylenth)
+		value := fmt.Sprintf("v%d", i)
+		keys = append(keys, []byte(string(key)))
+		kv = append(kv, &types.KeyValue{[]byte(string(key)), []byte(string(value))})
+		if i%10000 == 0 {
+			datas := &types.StoreSet{hash, kv, 0}
+			hash, err = store.Set(datas, true)
+			assert.Nil(b, err)
+			kv = nil
+		}
+	}
+	if kv != nil {
+		datas := &types.StoreSet{hash, kv, 0}
+		hash, err = store.Set(datas, true)
+		assert.Nil(b, err)
+		kv = nil
+	}
+	assert.Nil(b, err)
+	start := time.Now()
+	b.ResetTimer()
+	for _, key := range keys {
+		getData := &types.StoreGet{
+			hash,
+			[][]byte{key}}
+		store.Get(getData)
+	}
+	end := time.Now()
+	fmt.Println("kvmvcc BenchmarkGet cost time is", end.Sub(start), "num is", b.N)
 }
 
 /*
