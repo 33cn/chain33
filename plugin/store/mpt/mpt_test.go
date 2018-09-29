@@ -159,22 +159,27 @@ func BenchmarkGet(b *testing.B) {
 	assert.NotNil(b, store)
 
 	var kv []*types.KeyValue
-	var key string
-	var value string
 	var keys [][]byte
-
+	var hash = drivers.EmptyRoot[:]
+	var err error
 	for i := 0; i < b.N; i++ {
-		key = GetRandomString(MaxKeylenth)
-		value = fmt.Sprintf("v%d", i)
+		key := GetRandomString(MaxKeylenth)
+		value := fmt.Sprintf("v%d", i)
 		keys = append(keys, []byte(string(key)))
 		kv = append(kv, &types.KeyValue{[]byte(string(key)), []byte(string(value))})
+		if i%10000 == 0 {
+			datas := &types.StoreSet{hash, kv, 0}
+			hash, err = store.Set(datas, true)
+			assert.Nil(b, err)
+			kv = nil
+		}
 	}
-	datas := &types.StoreSet{
-		drivers.EmptyRoot[:],
-		kv,
-		0}
-	hash, err := store.Set(datas, true)
-	assert.Nil(b, err)
+	if kv != nil {
+		datas := &types.StoreSet{hash, kv, 0}
+		hash, err = store.Set(datas, true)
+		assert.Nil(b, err)
+		kv = nil
+	}
 	start := time.Now()
 	b.ResetTimer()
 	for _, key := range keys {
