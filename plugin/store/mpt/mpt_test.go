@@ -152,6 +152,7 @@ func GetRandomString(lenth int) string {
 	return string(result)
 }
 
+//目前正常情况下get 都是一个一个获取的
 func BenchmarkGet(b *testing.B) {
 	os.RemoveAll(store_cfg6.DbPath)
 	store := New(store_cfg6).(*Store)
@@ -174,17 +175,16 @@ func BenchmarkGet(b *testing.B) {
 		0}
 	hash, err := store.Set(datas, true)
 	assert.Nil(b, err)
-	getData := &types.StoreGet{
-		hash,
-		keys}
-
 	start := time.Now()
 	b.ResetTimer()
-	values := store.Get(getData)
+	for _, key := range keys {
+		getData := &types.StoreGet{
+			hash,
+			[][]byte{key}}
+		store.Get(getData)
+	}
 	end := time.Now()
 	fmt.Println("mpt BenchmarkGet cost time is", end.Sub(start), "num is", b.N)
-	assert.Len(b, values, b.N)
-	b.StopTimer()
 }
 
 func BenchmarkSet(b *testing.B) {
