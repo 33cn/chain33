@@ -4,6 +4,7 @@ import (
 	"testing"
 	"math/rand"
 	"fmt"
+	"gitlab.33.cn/chain33/chain33/plugin/dapp/pokerbull/types"
 )
 
 func shuffle(attr []int, src int64) []int {
@@ -73,4 +74,20 @@ func TestBlue(t *testing.T) {
 	data := []int32{12,8,6,8,11}
 
 	fmt.Println(Result(data))
+}
+
+func TestPointer(t *testing.T) {
+	var dataS []*types.PBGameQuit
+	var tmp *types.PBGameQuit
+	for i:=0; i < 5; i++ {
+		data := &types.PBGameQuit{}
+		data.GameId = fmt.Sprintf("%d", i)
+		if data.GameId == "3" {
+			tmp = data
+		}
+		dataS = append(dataS, data)
+	}
+
+	fmt.Println(tmp.GameId)
+	fmt.Println(dataS)
 }
