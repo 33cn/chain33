@@ -152,7 +152,7 @@ func (cs *ConsensusState) GetState() State {
 
 // GetRoundState returns a copy of the internal consensus state.
 func (cs *ConsensusState) GetRoundState() *ttypes.RoundState {
-	// avoid deadlock in gossipVotesRoutine
+	// need avoid deadlock in gossipVotesRoutine
 	cs.mtx.Lock()
 	defer cs.mtx.Unlock()
 
@@ -1079,7 +1079,10 @@ func (cs *ConsensusState) finalizeCommit(height int64) {
 		seenCommit := precommits.MakeCommit()
 		tx0 := CreateBlockInfoTx(cs.client.pubKey, lastCommit, seenCommit, newState, newProposal, cs.ProposalBlock.TendermintBlock)
 		commitBlock.Txs[0] = tx0
+
+		cs.mtx.Unlock()
 		err = cs.client.CommitBlock(commitBlock)
+		cs.mtx.Lock()
 		if err != nil {
 			cs.LockedRound = 0
 			cs.LockedBlock = nil
@@ -1366,7 +1369,7 @@ func (cs *ConsensusState) addVote(vote *ttypes.Vote, peerID string, peerIP strin
 			}
 		}
 		// Either duplicate, or error upon cs.Votes.AddByIndex()
-		return
+		// return
 	} else {
 		err = ErrVoteHeightMismatch
 	}
