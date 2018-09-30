@@ -29,8 +29,7 @@ const (
 	RoundStepCommit        = RoundStepType(0x08) // Entered commit state machine
 	// NOTE: RoundStepNewHeight acts as RoundStepCommitWait.
 
-	EvidenceListID = byte(0x01)
-
+	EvidenceListID      = byte(0x01)
 	NewRoundStepID      = byte(0x02)
 	CommitStepID        = byte(0x03)
 	ProposalID          = byte(0x04)
@@ -106,7 +105,7 @@ type RoundState struct {
 	LockedRound    int
 	LockedBlock    *TendermintBlock
 	Votes          *HeightVoteSet
-	CommitRound    int      //
+	CommitRound    int
 	LastCommit     *VoteSet // Last precommits at Height-1
 	LastValidators *ValidatorSet
 }
