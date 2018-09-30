@@ -6,12 +6,10 @@ import (
 	"fmt"
 	"sync"
 
-	"math/rand"
-	"time"
-
 	"github.com/golang/protobuf/proto"
 	"github.com/hashicorp/golang-lru"
 	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -30,12 +28,6 @@ var (
 	// 是否开启MVCC
 	enableMvcc bool
 )
-
-var random *rand.Rand
-
-func init() {
-	random = rand.New(rand.NewSource(time.Now().UnixNano()))
-}
 
 func EnableMavlPrefix(enable bool) {
 	enableMavlPrefix = enable
@@ -58,14 +50,14 @@ func NewTree(db dbm.DB, sync bool) *Tree {
 	if db == nil {
 		// In-memory IAVLTree
 		return &Tree{
-			randomstr: getRandomString(5),
+			randomstr: common.GetRandString(5),
 		}
 	} else {
 		// Persistent IAVLTree
 		ndb := newNodeDB(db, sync)
 		return &Tree{
 			ndb:       ndb,
-			randomstr: getRandomString(5),
+			randomstr: common.GetRandString(5),
 		}
 	}
 }
@@ -483,12 +475,4 @@ func genPrefixHashKey(node *Node, str string) (key []byte) {
 		key = []byte(fmt.Sprintf("%s-%s-", hashNodePrefix, str))
 	}
 	return key
-}
-
-func getRandomString(length int) string {
-	result := make([]byte, length)
-	for i := 0; i < length; i++ {
-		result[i] = byte(random.Intn(255))
-	}
-	return string(result)
 }

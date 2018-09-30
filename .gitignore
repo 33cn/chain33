@@ -32,3 +32,12 @@ executor/executor.test
 logs/
 build/wallet
 consensus/drivers/raft/chain33_raft*
+plugin/store/kvmvcc/1.png
+plugin/store/kvmvcc/cpu.pprof
+plugin/store/kvmvcc/kvmvcc.test
+plugin/store/mpt/1.png
+plugin/store/mpt/cpu.pprof
+plugin/store/mpt/mpt.test
+system/store/mavl/1.png
+system/store/mavl/cpu.pprof
+system/store/mavl/mavl.test
