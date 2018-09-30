@@ -323,14 +323,6 @@ func (client *TendermintClient) CheckTxDup(txs []*types.Transaction, height int6
 func (client *TendermintClient) BuildBlock() *types.Block {
 	lastHeight := client.GetCurrentHeight()
 	txs := client.RequestTx(int(types.GetP(lastHeight+1).MaxTxNumber)-1, nil)
-
-	//check dup
-	txs = client.CheckTxDup(txs, lastHeight)
-	if len(txs) == 0 {
-		tendermintlog.Error("No new txs")
-		return nil
-	}
-
 	newblock := &types.Block{}
 	newblock.Height = lastHeight + 1
 	client.AddTxsToBlock(newblock, txs)

@@ -502,12 +502,6 @@ func (cs *ConsensusState) handleTxsAvailable(height int64) {
 	cs.mtx.Lock()
 	defer cs.mtx.Unlock()
 
-	if cs.needRecover {
-		cs.needRecover = false
-		tendermintlog.Info("Consensus recover from no txs", "H/R", fmt.Sprintf("%v/%v", height, cs.Round))
-		cs.enterPropose(height, cs.Round)
-		return
-	}
 	// we only need to do this for round 0
 	cs.enterPropose(height, 0)
 }
@@ -573,13 +567,6 @@ func (cs *ConsensusState) enterNewRound(height int64, round int) {
 		}
 		go cs.proposalHeartbeat(height, round)
 	} else {
-		if !cs.client.CheckTxsAvailable() {
-			cs.begCons = time.Time{}
-			cs.needRecover = true
-			tendermintlog.Warn("Consensus hangup due to no txs", "H/R", fmt.Sprintf("%v/%v", height, round))
-			go cs.proposalHeartbeat(height, round)
-			return
-		}
 		cs.enterPropose(height, round)
 	}
 }
@@ -739,11 +726,6 @@ func (cs *ConsensusState) createProposalBlock() (block *ttypes.TendermintBlock) 
 	// Mempool validated transactions
 	beg := time.Now()
 	pblock := cs.client.BuildBlock()
-	if pblock == nil {
-		tendermintlog.Error("No new block to propose, will change Proposer", "height", cs.Height)
-		return
-	}
-
 	tendermintlog.Info(fmt.Sprintf("createProposalBlock BuildBlock. Current: %v/%v/%v", cs.Height, cs.Round, cs.Step), "txs-len", len(pblock.Txs), "cost", types.Since(beg))
 
 	if pblock.Height != cs.Height {
@@ -779,7 +761,6 @@ func (cs *ConsensusState) enterPrevote(height int64, round int) {
 
 	// fire event for how we got here
 	if cs.isProposalComplete() {
-		//only used to test hg 20180227
 		//cs.eventBus.PublishEventCompleteProposal(cs.RoundStateEvent())
 	} else {
 		// we received +2/3 prevotes for a future round
