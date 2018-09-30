@@ -1,6 +1,7 @@
 package types
 
 import (
+	"errors"
 	"strings"
 	"sync"
 
@@ -119,6 +120,7 @@ func (hvs *HeightVoteSet) AddVote(vote *Vote, peerID string) (added bool, err er
 			// for more than one round.  Bad peer!
 			// TODO punish peer.
 			// log.Warn("Deal with peer giving votes from unwanted rounds")
+			err = errors.New("Peer has sent a vote that does not match our round for more than one round")
 			return
 		}
 	}
