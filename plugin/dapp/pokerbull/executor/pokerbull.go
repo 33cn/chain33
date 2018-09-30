@@ -56,8 +56,13 @@ func (g *PokerBull) updateIndex(log *pkt.ReceiptPBGame) (kvs []*types.KeyValue) 
 	kvs = append(kvs, addPBGameStatus(log.Status, log.PlayerNum, log.Index, log.GameId))
 
 	//状态更新
+	if log.Status == pkt.PBGameActionStart {
+		kvs = append(kvs, delPBGameStatus(pkt.PBGameActionStart, log.PlayerNum, log.PrevIndex))
+	}
+
 	if log.Status == pkt.PBGameActionContinue {
 		kvs = append(kvs, delPBGameStatus(pkt.PBGameActionStart, log.PlayerNum, log.PrevIndex))
+		kvs = append(kvs, delPBGameStatus(pkt.PBGameActionContinue, log.PlayerNum, log.PrevIndex))
 	}
 
 	if log.Status == pkt.PBGameActionQuit {
