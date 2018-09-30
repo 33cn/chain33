@@ -9,6 +9,8 @@ import (
 	pb "gitlab.33.cn/chain33/chain33/plugin/dapp/pokerbull/types"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/plugin/dapp/pokerbull/executor"
+	"github.com/pkg/errors"
 )
 
 type channelClient struct {
@@ -20,6 +22,10 @@ func (c *channelClient) Init(q queue.Client) {
 }
 
 func (c *channelClient) Start(ctx context.Context, head *pb.PBGameStart) (*types.UnsignTx, error) {
+	if head.PlayerNum > executor.MAX_PLAYER_NUM {
+		return nil, errors.New("Player number should be maximum 5")
+	}
+
 	val := &pb.PBGameAction{
 		Ty:    pb.PBGameActionStart,
 		Value: &pb.PBGameAction_Start{head},
