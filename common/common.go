@@ -41,7 +41,7 @@ func GetRandString(length int) string {
 	return string(GetRandBytes(length, length))
 }
 
-var printString = []byte("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+var printString = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 func GetRandPrintString(min, max int) string {
 	l := max
