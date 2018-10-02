@@ -143,7 +143,9 @@ func GetRealTime(hosts []string) time.Time {
 			if ntptime.IsZero() {
 				ch <- time.Duration(math.MaxInt64)
 			} else {
-				ch <- time.Until(ntptime)
+				dt := time.Until(ntptime)
+				fmt.Println(host, dt)
+				ch <- dt
 			}
 		}(hosts[i])
 	}
@@ -154,18 +156,23 @@ func GetRealTime(hosts []string) time.Time {
 			continue
 		}
 		dtlist = append(dtlist, t)
+		fmt.Println(dtlist)
+		if len(dtlist) >= q {
+			calclist := make([]time.Duration, len(dtlist))
+			copy(calclist, dtlist)
+			sort.Sort(durationSlice(calclist))
+			calclist = maxSubList(calclist)
+			if len(calclist) < q {
+				continue
+			}
+			drift := time.Duration(0)
+			for i := 0; i < len(calclist); i++ {
+				drift += calclist[i]
+			}
+			return time.Now().Add(drift / time.Duration(len(calclist)))
+		}
 	}
-	fmt.Println(dtlist)
-	sort.Sort(durationSlice(dtlist))
-	dtlist = maxSubList(dtlist)
-	if len(dtlist) < q {
-		return time.Time{}
-	}
-	drift := time.Duration(0)
-	for i := 0; i < len(dtlist); i++ {
-		drift += dtlist[i]
-	}
-	return time.Now().Add(drift / time.Duration(len(dtlist)))
+	return time.Time{}
 }
 
 func abs(t time.Duration) time.Duration {

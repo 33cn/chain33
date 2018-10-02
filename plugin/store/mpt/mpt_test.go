@@ -6,10 +6,10 @@ import (
 	"testing"
 
 	"fmt"
-	"math/rand"
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"gitlab.33.cn/chain33/chain33/common"
 	drivers "gitlab.33.cn/chain33/chain33/system/store"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -145,20 +145,8 @@ func checkKV(k, v []byte) bool {
 	return false
 }
 
-//生成随机字符串
 func GetRandomString(length int) string {
-	str := "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	bytes := []byte(str)
-	result := []byte{}
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	l := r.Intn(length)
-	if l < 20 {
-		l = 20
-	}
-	for i := 0; i < l; i++ {
-		result = append(result, bytes[r.Intn(len(bytes))])
-	}
-	return string(result)
+	return common.GetRandPrintString(20, length)
 }
 
 //目前正常情况下get 都是一个一个获取的
@@ -214,25 +202,27 @@ func BenchmarkSet(b *testing.B) {
 	assert.NotNil(b, store)
 
 	var kv []*types.KeyValue
-	var key string
-	var value string
 	var keys [][]byte
-
+	var hash = drivers.EmptyRoot[:]
+	start := time.Now()
 	for i := 0; i < b.N; i++ {
-		key = GetRandomString(MaxKeylenth)
-		value = fmt.Sprintf("v%d", i)
+		key := GetRandomString(MaxKeylenth)
+		value := fmt.Sprintf("%s%d", key, i)
 		keys = append(keys, []byte(string(key)))
 		kv = append(kv, &types.KeyValue{[]byte(string(key)), []byte(string(value))})
+		if i%10000 == 0 {
+			datas := &types.StoreSet{hash, kv, 0}
+			hash, err = store.Set(datas, true)
+			assert.Nil(b, err)
+			kv = nil
+		}
 	}
-	datas := &types.StoreSet{
-		drivers.EmptyRoot[:],
-		kv,
-		0}
-	start := time.Now()
-	b.ResetTimer()
-	hash, err := store.Set(datas, true)
-	assert.Nil(b, err)
-	assert.NotNil(b, hash)
+	if kv != nil {
+		datas := &types.StoreSet{hash, kv, 0}
+		hash, err = store.Set(datas, true)
+		assert.Nil(b, err)
+		kv = nil
+	}
 	end := time.Now()
 	fmt.Println("mpt BenchmarkSet cost time is", end.Sub(start), "num is", b.N)
 }

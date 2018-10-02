@@ -6,10 +6,10 @@ import (
 	"testing"
 
 	"fmt"
-	"math/rand"
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"gitlab.33.cn/chain33/chain33/common"
 	drivers "gitlab.33.cn/chain33/chain33/system/store"
 	mavldb "gitlab.33.cn/chain33/chain33/system/store/mavl/db"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -171,18 +171,7 @@ func TestKvdbIterate(t *testing.T) {
 }
 
 func GetRandomString(length int) string {
-	str := "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	bytes := []byte(str)
-	result := []byte{}
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	l := r.Intn(length)
-	if l < 20 {
-		l = 20
-	}
-	for i := 0; i < l; i++ {
-		result = append(result, bytes[r.Intn(len(bytes))])
-	}
-	return string(result)
+	return common.GetRandPrintString(20, length)
 }
 
 func TestKvdbIterateTimes(t *testing.T) {
@@ -222,7 +211,7 @@ func BenchmarkGet(b *testing.B) {
 	assert.Nil(b, err)
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
-	var store_cfg = &types.Store{"kvmvcc_test", "leveldb", dir, 100, false, false}
+	var store_cfg = &types.Store{"mavl_test", "leveldb", dir, 100, false, false}
 	store := New(store_cfg).(*Store)
 	assert.NotNil(b, store)
 	mavldb.EnableMavlPrefix(true)
@@ -267,29 +256,32 @@ func BenchmarkSet(b *testing.B) {
 	assert.Nil(b, err)
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
-	var store_cfg = &types.Store{"kvmvcc_test", "leveldb", dir, 100, false, false}
+	var store_cfg = &types.Store{"mavl_test", "leveldb", dir, 100, false, false}
 	store := New(store_cfg).(*Store)
 	assert.NotNil(b, store)
+	mavldb.EnableMavlPrefix(true)
 	var kv []*types.KeyValue
-	var key string
-	var value string
 	var keys [][]byte
-
+	var hash = drivers.EmptyRoot[:]
+	start := time.Now()
 	for i := 0; i < b.N; i++ {
-		key = GetRandomString(MaxKeylenth)
-		value = fmt.Sprintf("v%d", i)
+		key := GetRandomString(MaxKeylenth)
+		value := fmt.Sprintf("%s%d", key, i)
 		keys = append(keys, []byte(string(key)))
 		kv = append(kv, &types.KeyValue{[]byte(string(key)), []byte(string(value))})
+		if i%10000 == 0 {
+			datas := &types.StoreSet{hash, kv, 0}
+			hash, err = store.Set(datas, true)
+			assert.Nil(b, err)
+			kv = nil
+		}
 	}
-	datas := &types.StoreSet{
-		drivers.EmptyRoot[:],
-		kv,
-		0}
-	start := time.Now()
-	b.ResetTimer()
-	hash, err := store.Set(datas, true)
-	assert.Nil(b, err)
-	assert.NotNil(b, hash)
+	if kv != nil {
+		datas := &types.StoreSet{hash, kv, 0}
+		hash, err = store.Set(datas, true)
+		assert.Nil(b, err)
+		kv = nil
+	}
 	end := time.Now()
 	fmt.Println("mavl BenchmarkSet cost time is", end.Sub(start), "num is", b.N)
 }
