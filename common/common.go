@@ -25,7 +25,7 @@ func MaxInt32(left, right int32) int32 {
 	return right
 }
 
-func GetRandBytes(min, max int) string {
+func GetRandBytes(min, max int) []byte {
 	length := max
 	if min < max {
 		length = min + random.Intn(max-min)
@@ -34,7 +34,7 @@ func GetRandBytes(min, max int) string {
 	for i := 0; i < length; i++ {
 		result[i] = byte(random.Intn(256))
 	}
-	return string(result)
+	return result
 }
 
 func GetRandString(length int) string {
