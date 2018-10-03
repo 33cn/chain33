@@ -28,13 +28,18 @@ func init() {
 
 type KVMVCCStore struct {
 	*drivers.BaseStore
-	mvcc     *dbm.SimpleMVCC
+	mvcc     dbm.MVCC
 	kvsetmap map[string][]*types.KeyValue
 }
 
 func New(cfg *types.Store) queue.Module {
 	bs := drivers.NewBaseStore(cfg)
-	kvs := &KVMVCCStore{bs, dbm.NewSimpleMVCC(dbm.NewKVDB(bs.GetDB())), make(map[string][]*types.KeyValue)}
+	var kvs *KVMVCCStore
+	if cfg.EnableMVCCIter {
+		kvs = &KVMVCCStore{bs, dbm.NewMVCCIter(bs.GetDB()), make(map[string][]*types.KeyValue)}
+	} else {
+		kvs = &KVMVCCStore{bs, dbm.NewMVCC(bs.GetDB()), make(map[string][]*types.KeyValue)}
+	}
 	bs.SetChild(kvs)
 	return kvs
 }

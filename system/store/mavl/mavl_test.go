@@ -17,12 +17,16 @@ import (
 
 const MaxKeylenth int = 64
 
+func newStoreCfg(dir string) *types.Store {
+	return &types.Store{Name: "mavl_test", Driver: "leveldb", DbPath: dir, DbCache: 100}
+}
+
 func TestKvdbNewClose(t *testing.T) {
 	dir, err := ioutil.TempDir("", "example")
 	assert.Nil(t, err)
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
-	var store_cfg = &types.Store{"kvmvcc_test", "leveldb", dir, 100, false, false}
+	var store_cfg = newStoreCfg(dir)
 	store := New(store_cfg).(*Store)
 	assert.NotNil(t, store)
 
@@ -34,7 +38,7 @@ func TestKvddbSetGet(t *testing.T) {
 	assert.Nil(t, err)
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
-	var store_cfg = &types.Store{"kvmvcc_test", "leveldb", dir, 100, false, false}
+	var store_cfg = newStoreCfg(dir)
 	store := New(store_cfg).(*Store)
 	assert.NotNil(t, store)
 
@@ -81,7 +85,7 @@ func TestKvdbMemSet(t *testing.T) {
 	assert.Nil(t, err)
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
-	var store_cfg = &types.Store{"kvmvcc_test", "leveldb", dir, 100, false, false}
+	var store_cfg = newStoreCfg(dir)
 	store := New(store_cfg).(*Store)
 	assert.NotNil(t, store)
 
@@ -112,7 +116,7 @@ func TestKvdbRollback(t *testing.T) {
 	assert.Nil(t, err)
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
-	var store_cfg = &types.Store{"kvmvcc_test", "leveldb", dir, 100, false, false}
+	var store_cfg = newStoreCfg(dir)
 	store := New(store_cfg).(*Store)
 	assert.NotNil(t, store)
 
@@ -150,7 +154,7 @@ func TestKvdbIterate(t *testing.T) {
 	assert.Nil(t, err)
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
-	var store_cfg = &types.Store{"kvmvcc_test", "leveldb", dir, 100, false, false}
+	var store_cfg = newStoreCfg(dir)
 	store := New(store_cfg).(*Store)
 	assert.NotNil(t, store)
 
@@ -180,7 +184,7 @@ func TestKvdbIterateTimes(t *testing.T) {
 	assert.Nil(t, err)
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
-	var store_cfg = &types.Store{"kvmvcc_test", "leveldb", dir, 100, false, false}
+	var store_cfg = newStoreCfg(dir)
 	store := New(store_cfg).(*Store)
 	assert.NotNil(t, store)
 
@@ -211,7 +215,7 @@ func BenchmarkGet(b *testing.B) {
 	assert.Nil(b, err)
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
-	var store_cfg = &types.Store{"mavl_test", "leveldb", dir, 100, false, false}
+	var store_cfg = newStoreCfg(dir)
 	store := New(store_cfg).(*Store)
 	assert.NotNil(b, store)
 	mavldb.EnableMavlPrefix(true)
@@ -256,7 +260,7 @@ func BenchmarkSet(b *testing.B) {
 	assert.Nil(b, err)
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
-	var store_cfg = &types.Store{"mavl_test", "leveldb", dir, 100, false, false}
+	var store_cfg = newStoreCfg(dir)
 	store := New(store_cfg).(*Store)
 	assert.NotNil(b, store)
 	mavldb.EnableMavlPrefix(true)
@@ -291,7 +295,7 @@ func BenchmarkMemSet(b *testing.B) {
 	assert.Nil(b, err)
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
-	var store_cfg = &types.Store{"kvmvcc_test", "leveldb", dir, 100, false, false}
+	var store_cfg = newStoreCfg(dir)
 	store := New(store_cfg).(*Store)
 	assert.NotNil(b, store)
 	var kv []*types.KeyValue
@@ -323,7 +327,7 @@ func BenchmarkCommit(b *testing.B) {
 	assert.Nil(b, err)
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
-	var store_cfg = &types.Store{"kvmvcc_test", "leveldb", dir, 100, false, false}
+	var store_cfg = newStoreCfg(dir)
 	store := New(store_cfg).(*Store)
 	assert.NotNil(b, store)
 

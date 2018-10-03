@@ -25,6 +25,10 @@ type MVCC interface {
 	GetV(key []byte, version int64) ([]byte, error)
 	SetV(key []byte, value []byte, version int64) error
 	DelV(key []byte, version int64) error
+	AddMVCC(kvs []*types.KeyValue, hash []byte, prevHash []byte, version int64) ([]*types.KeyValue, error)
+	DelMVCC(hash []byte, version int64, strict bool) ([]*types.KeyValue, error)
+	GetMaxVersion() (int64, error)
+	GetVersionHash(version int64) ([]byte, error)
 	//回收: 某个版本之前的所有数据
 	//1. 保证有一个最新版本
 	//2. 这个操作回遍历所有的key所以比较慢
