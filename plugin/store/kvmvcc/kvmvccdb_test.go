@@ -16,12 +16,20 @@ import (
 
 const MaxKeylenth int = 64
 
+func newStoreCfg(dir string) *types.Store {
+	return &types.Store{Name: "kvmvcc_test", Driver: "leveldb", DbPath: dir, DbCache: 100}
+}
+
+func newStoreCfgIter(dir string) *types.Store {
+	return &types.Store{Name: "kvmvcc_test", Driver: "leveldb", DbPath: dir, DbCache: 100, EnableMVCCIter: true}
+}
+
 func TestKvmvccdbNewClose(t *testing.T) {
 	dir, err := ioutil.TempDir("", "example")
 	assert.Nil(t, err)
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
-	var store_cfg = &types.Store{"kvmvcc_test", "leveldb", dir, 100, false, false}
+	var store_cfg = newStoreCfg(dir)
 	store := New(store_cfg).(*KVMVCCStore)
 	assert.NotNil(t, store)
 
@@ -33,7 +41,7 @@ func TestKvmvccdbSetGet(t *testing.T) {
 	assert.Nil(t, err)
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
-	var store_cfg = &types.Store{"kvmvcc_test", "leveldb", dir, 100, false, false}
+	var store_cfg = newStoreCfg(dir)
 	store := New(store_cfg).(*KVMVCCStore)
 	assert.NotNil(t, store)
 
@@ -79,7 +87,7 @@ func TestKvmvccdbMemSet(t *testing.T) {
 	assert.Nil(t, err)
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
-	var store_cfg = &types.Store{"kvmvcc_test", "leveldb", dir, 100, false, false}
+	var store_cfg = newStoreCfg(dir)
 	store := New(store_cfg).(*KVMVCCStore)
 	assert.NotNil(t, store)
 
@@ -117,7 +125,7 @@ func TestKvmvccdbRollback(t *testing.T) {
 	assert.Nil(t, err)
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
-	var store_cfg = &types.Store{"kvmvcc_test", "leveldb", dir, 100, false, false}
+	var store_cfg = newStoreCfg(dir)
 	store := New(store_cfg).(*KVMVCCStore)
 	assert.NotNil(t, store)
 
@@ -150,7 +158,7 @@ func TestKvmvccdbRollbackBatch(t *testing.T) {
 	assert.Nil(t, err)
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
-	var store_cfg = &types.Store{"kvmvcc_test", "leveldb", dir, 100, false, false}
+	var store_cfg = newStoreCfg(dir)
 	store := New(store_cfg).(*KVMVCCStore)
 	assert.NotNil(t, store)
 
@@ -244,7 +252,52 @@ func BenchmarkGet(b *testing.B) {
 	assert.Nil(b, err)
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
-	var store_cfg = &types.Store{"kvmvcc_test", "leveldb", dir, 100, false, false}
+
+	var store_cfg = newStoreCfg(dir)
+	store := New(store_cfg).(*KVMVCCStore)
+	assert.NotNil(b, store)
+
+	var kv []*types.KeyValue
+	var keys [][]byte
+	var hash = drivers.EmptyRoot[:]
+	for i := 0; i < b.N; i++ {
+		key := GetRandomString(MaxKeylenth)
+		value := fmt.Sprintf("%s%d", key, i)
+		keys = append(keys, []byte(string(key)))
+		kv = append(kv, &types.KeyValue{[]byte(string(key)), []byte(string(value))})
+		if i%10000 == 0 {
+			datas := &types.StoreSet{hash, kv, 0}
+			hash, err = store.Set(datas, true)
+			assert.Nil(b, err)
+			kv = nil
+		}
+	}
+	if kv != nil {
+		datas := &types.StoreSet{hash, kv, 0}
+		hash, err = store.Set(datas, true)
+		assert.Nil(b, err)
+		kv = nil
+	}
+	assert.Nil(b, err)
+	start := time.Now()
+	b.ResetTimer()
+	for _, key := range keys {
+		getData := &types.StoreGet{
+			hash,
+			[][]byte{key}}
+		store.Get(getData)
+	}
+	end := time.Now()
+	fmt.Println("kvmvcc BenchmarkGet cost time is", end.Sub(start), "num is", b.N)
+}
+
+func BenchmarkGetIter(b *testing.B) {
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(b, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+
+	var store_cfg = newStoreCfgIter(dir)
 	store := New(store_cfg).(*KVMVCCStore)
 	assert.NotNil(b, store)
 
@@ -287,7 +340,43 @@ func BenchmarkSet(b *testing.B) {
 	assert.Nil(b, err)
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
-	var store_cfg = &types.Store{"kvmvcc_test", "leveldb", dir, 100, false, false}
+	var store_cfg = newStoreCfg(dir)
+	store := New(store_cfg).(*KVMVCCStore)
+	assert.NotNil(b, store)
+	b.Log(dir)
+
+	var kv []*types.KeyValue
+	var keys [][]byte
+	var hash = drivers.EmptyRoot[:]
+	start := time.Now()
+	for i := 0; i < b.N; i++ {
+		key := GetRandomString(MaxKeylenth)
+		value := fmt.Sprintf("%s%d", key, i)
+		keys = append(keys, []byte(string(key)))
+		kv = append(kv, &types.KeyValue{[]byte(string(key)), []byte(string(value))})
+		if i%10000 == 0 {
+			datas := &types.StoreSet{hash, kv, 0}
+			hash, err = store.Set(datas, true)
+			assert.Nil(b, err)
+			kv = nil
+		}
+	}
+	if kv != nil {
+		datas := &types.StoreSet{hash, kv, 0}
+		hash, err = store.Set(datas, true)
+		assert.Nil(b, err)
+		kv = nil
+	}
+	end := time.Now()
+	fmt.Println("mpt BenchmarkSet cost time is", end.Sub(start), "num is", b.N)
+}
+
+func BenchmarkSetIter(b *testing.B) {
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(b, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+	var store_cfg = newStoreCfgIter(dir)
 	store := New(store_cfg).(*KVMVCCStore)
 	assert.NotNil(b, store)
 	b.Log(dir)
