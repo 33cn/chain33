@@ -49,10 +49,108 @@ func BenchmarkBatchWrites(b *testing.B) {
 	assert.Nil(b, err)
 	batch := db.NewBatch(true)
 	for i := 0; i < b.N; i++ {
+		b.StopTimer()
 		key := string(common.GetRandBytes(20, 64))
 		value := fmt.Sprintf("v%d", i)
+		b.StartTimer()
 		batch.Set([]byte(key), []byte(value))
 		if i > 0 && i%10000 == 0 {
+			err := batch.Write()
+			assert.Nil(b, err)
+			batch = db.NewBatch(true)
+		}
+	}
+	err = batch.Write()
+	assert.Nil(b, err)
+}
+
+func BenchmarkBatchWrites1M(b *testing.B) {
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(b, err)
+	defer os.Remove(dir)
+	os.Remove(dir)
+	db, err := NewGoLevelDB(dir, "", 100)
+	assert.Nil(b, err)
+	batch := db.NewBatch(true)
+	for i := 0; i < b.N; i++ {
+		b.StopTimer()
+		key := common.GetRandBytes(20, 64)
+		value := common.GetRandBytes(1024000, 1024000)
+		b.StartTimer()
+		batch.Set(key, value)
+		if i > 0 && i%1000 == 0 {
+			err := batch.Write()
+			assert.Nil(b, err)
+			batch = db.NewBatch(true)
+		}
+	}
+	err = batch.Write()
+	assert.Nil(b, err)
+}
+
+func BenchmarkBatchWrites1K(b *testing.B) {
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(b, err)
+	defer os.Remove(dir)
+	os.Remove(dir)
+	db, err := NewGoLevelDB(dir, "", 100)
+	assert.Nil(b, err)
+	batch := db.NewBatch(true)
+	for i := 0; i < b.N; i++ {
+		b.StopTimer()
+		key := common.GetRandBytes(20, 64)
+		value := common.GetRandBytes(1024, 1024)
+		b.StartTimer()
+		batch.Set(key, value)
+		if i > 0 && i%1000 == 0 {
+			err := batch.Write()
+			assert.Nil(b, err)
+			batch = db.NewBatch(true)
+		}
+	}
+	err = batch.Write()
+	assert.Nil(b, err)
+}
+
+func BenchmarkBatchWrites16K(b *testing.B) {
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(b, err)
+	defer os.Remove(dir)
+	os.Remove(dir)
+	db, err := NewGoLevelDB(dir, "", 100)
+	assert.Nil(b, err)
+	batch := db.NewBatch(true)
+	for i := 0; i < b.N; i++ {
+		b.StopTimer()
+		key := common.GetRandBytes(20, 64)
+		value := common.GetRandBytes(16*1024, 16*1024)
+		b.StartTimer()
+		batch.Set(key, value)
+		if i > 0 && i%1000 == 0 {
+			err := batch.Write()
+			assert.Nil(b, err)
+			batch = db.NewBatch(true)
+		}
+	}
+	err = batch.Write()
+	assert.Nil(b, err)
+}
+
+func BenchmarkBatchWrites32K(b *testing.B) {
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(b, err)
+	defer os.Remove(dir)
+	os.Remove(dir)
+	db, err := NewGoLevelDB(dir, "", 100)
+	assert.Nil(b, err)
+	batch := db.NewBatch(true)
+	for i := 0; i < b.N; i++ {
+		b.StopTimer()
+		key := common.GetRandBytes(20, 64)
+		value := common.GetRandBytes(32*1024, 32*1024)
+		b.StartTimer()
+		batch.Set(key, value)
+		if i > 0 && i%1000 == 0 {
 			err := batch.Write()
 			assert.Nil(b, err)
 			batch = db.NewBatch(true)
@@ -70,7 +168,10 @@ func BenchmarkRandomReadsWrites(b *testing.B) {
 	for i := 0; i < int(numItems); i++ {
 		internal[int64(i)] = int64(0)
 	}
-	db, err := NewGoLevelDB(fmt.Sprintf("test_%x", RandStr(12)), "", 1000)
+	dir := fmt.Sprintf("test_%x", RandStr(12))
+	defer os.Remove(dir)
+	os.Remove(dir)
+	db, err := NewGoLevelDB(dir, "", 1000)
 	if err != nil {
 		b.Fatal(err.Error())
 		return
