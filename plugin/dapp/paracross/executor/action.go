@@ -516,7 +516,7 @@ func (a *action) TransferToExec(transfer *types.AssetsTransferToExec, tx *types.
 
 	acc, err := account.NewAccountDB(types.ParaX, transfer.Cointoken, a.db)
 	if err != nil {
-		clog.Error("Transfer failed", "err", err)
+		clog.Error("TransferToExec failed", "err", err)
 	}
 	//to 是 execs 合约地址
 	if dapp.IsDriverAddress(tx.GetRealToAddr(), a.height) ||  dapp.ExecAddress(transfer.ExecName)== tx.GetRealToAddr()  {
