@@ -135,21 +135,6 @@ func queryGameListByStatusAndPlayer(db dbm.Lister, stat int32, player int32) ([]
 	return gameIds, nil
 }
 
-func queryGameList(db dbm.Lister, stateDB dbm.KV, param *pkt.QueryPBGameListByStatusAndPlayerNum) (types.Message, error) {
-	var gameIds []string
-	var err error
-	if param.PlayerNum == 0 {
-		gameIds,err = queryGameListByStatus(db, param.Status)
-	} else {
-		gameIds,err = queryGameListByStatusAndPlayer(db, param.Status, param.PlayerNum)
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	return &pkt.ReplyPBGameList{GetGameList(stateDB, gameIds)}, nil
-}
-
 func (action *Action) saveGame(game *pkt.PokerBull) (kvset []*types.KeyValue) {
 	value := types.Encode(game)
 	action.db.Set(Key(game.GetGameId()), value)
@@ -508,7 +493,7 @@ func (action *Action) GameStart(start *pkt.PBGameStart) (*types.Receipt, error) 
 func getReadyPlayerNum(players []*pkt.PBPlayer) int {
 	var readyC = 0
 	for _, player := range players {
-		if player.Ready == true {
+		if player.Ready {
 			readyC++
 		}
 	}
@@ -562,7 +547,7 @@ func (action *Action) GameContinue(pbcontinue *pkt.PBGameContinue) (*types.Recei
 	if pbplayer.Ready {
 		logger.Error("GameContinue", "addr", action.fromaddr, "execaddr", action.execaddr, "player has been ready",
 			pbcontinue.GetGameId(), "player", pbplayer.Address)
-		return nil, errors.New(fmt.Sprintf("player %s has been ready", pbplayer.Address))
+		return nil, fmt.Errorf("player %s has been ready", pbplayer.Address)
 	}
 
 	//发牌随机数取txhash
