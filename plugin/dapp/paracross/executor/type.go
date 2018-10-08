@@ -60,9 +60,9 @@ func (m ParacrossType) ActionName(tx *types.Transaction) string {
 	if g.Ty == pt.ParacrossActionCommit && g.GetCommit() != nil {
 		return pt.ParacrossActionCommitStr
 	} else if g.Ty == pt.ParacrossActionAssetTransfer && g.GetAssetTransfer() != nil {
-		return pt.ParacrossActionTransferStr
+		return pt.ParacrossActionAssetTransferStr
 	} else if g.Ty == pt.ParacrossActionAssetWithdraw && g.GetAssetWithdraw() != nil {
-		return pt.ParacrossActionWithdrawStr
+		return pt.ParacrossActionAssetWithdrawStr
 	} else if g.Ty == pt.ParacrossActionMiner && g.GetMiner() != nil {
 		return types.MinerAction
 	}

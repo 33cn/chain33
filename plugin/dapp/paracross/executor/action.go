@@ -355,7 +355,7 @@ func (a *action) execCrossTx(tx *types.TransactionDetail, commit *pt.ParacrossCo
 			"para height", commit.Status.Height, "para tx index", i, "error", err, "txHash",
 			common.Bytes2Hex(commit.Status.CrossTxHashs[i]))
 		return receiptWithdraw, nil
-	} //else if tx.ActionName == pt.ParacrossActionTransferStr {
+	} //else if tx.ActionName == pt.ParacrossActionAssetTransferStr {
 	return nil, nil
 	//}
 }
