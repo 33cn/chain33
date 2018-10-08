@@ -240,7 +240,6 @@ func createWithdraw(cmd *cobra.Command, args []string) {
 	fmt.Println(txHex)
 }
 
-// TODO
 func createTransferTx(cmd *cobra.Command, isWithdraw bool) (string, error) {
 	amount, _ := cmd.Flags().GetFloat64("amount")
 	if amount < 0 {
