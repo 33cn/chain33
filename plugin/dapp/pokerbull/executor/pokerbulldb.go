@@ -85,25 +85,6 @@ func GetGameList(db dbm.KV, values []string) []*pkt.PokerBull {
 	return games
 }
 
-func queryGameListByStatus(db dbm.Lister, stat int32) ([]string, error) {
-	values, err := db.List(calcPBGameStatusPrefix(stat), nil, DefaultCount, ListDESC)
-	if err != nil {
-		return nil, err
-	}
-
-	var gameIds []string
-	for _, value := range values {
-		var record pkt.PBGameRecord
-		err := types.Decode(value, &record)
-		if err != nil {
-			continue
-		}
-		gameIds = append(gameIds, record.GetGameId())
-	}
-
-	return gameIds, nil
-}
-
 func Infos(db dbm.KV, infos *pkt.QueryPBGameInfos) (types.Message, error) {
 	var games []*pkt.PokerBull
 	for i := 0; i < len(infos.GameIds); i++ {

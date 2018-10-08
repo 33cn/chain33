@@ -57,7 +57,7 @@ func Deal(poker *types.PBPoker, rng int64) []int32 {
 		Shuffle(poker, rng+int64(poker.Cards[0]))
 	}
 
-	rndn := rand.New(rand.NewSource(int64(rng)))
+	rndn := rand.New(rand.NewSource(rng))
 	res := make([]int32, CARD_NUM_PER_GAME)
 	for i := 0; i < CARD_NUM_PER_GAME; i++ {
 		idx := rndn.Intn(int(poker.Pointer))
