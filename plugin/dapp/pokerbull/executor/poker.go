@@ -1,9 +1,10 @@
 package executor
 
 import (
-	"math/rand"
 	"fmt"
+	"math/rand"
 	"sort"
+
 	"gitlab.33.cn/chain33/chain33/plugin/dapp/pokerbull/types"
 )
 
@@ -15,23 +16,23 @@ var CARD_NUM_PER_COLOR = 13
 var CARD_NUM_PER_GAME = 5
 
 const (
-	POKERBULL_RESULT_X1   = 1
-	POKERBULL_RESULT_X2   = 2
-	POKERBULL_RESULT_X3   = 3
-	POKERBULL_RESULT_X4   = 4
-	POKERBULL_RESULT_X5   = 5
+	POKERBULL_RESULT_X1    = 1
+	POKERBULL_RESULT_X2    = 2
+	POKERBULL_RESULT_X3    = 3
+	POKERBULL_RESULT_X4    = 4
+	POKERBULL_RESULT_X5    = 5
 	POKERBULL_LEVERAGE_MAX = POKERBULL_RESULT_X5
 )
 
 func NewPoker() *types.PBPoker {
 	poker := new(types.PBPoker)
 	poker.Cards = make([]int32, POKER_CARD_NUM)
-	poker.Pointer = int32(POKER_CARD_NUM-1)
+	poker.Pointer = int32(POKER_CARD_NUM - 1)
 
 	for i := 0; i < POKER_CARD_NUM; i++ {
-		color := i/CARD_NUM_PER_COLOR
-		num := i%CARD_NUM_PER_COLOR+1
-		poker.Cards[i] = int32(color << COLOR_OFFSET + num)
+		color := i / CARD_NUM_PER_COLOR
+		num := i%CARD_NUM_PER_COLOR + 1
+		poker.Cards[i] = int32(color<<COLOR_OFFSET + num)
 	}
 	return poker
 }
@@ -41,19 +42,19 @@ func Shuffle(poker *types.PBPoker, rng int64) {
 	rndn := rand.New(rand.NewSource(rng))
 
 	for i := 0; i < POKER_CARD_NUM; i++ {
-		idx := rndn.Intn(POKER_CARD_NUM-1)
+		idx := rndn.Intn(POKER_CARD_NUM - 1)
 		tmpV := poker.Cards[idx]
 		poker.Cards[idx] = poker.Cards[POKER_CARD_NUM-i-1]
 		poker.Cards[POKER_CARD_NUM-i-1] = tmpV
 	}
-	poker.Pointer = int32(POKER_CARD_NUM-1)
+	poker.Pointer = int32(POKER_CARD_NUM - 1)
 }
 
 // 发牌
 func Deal(poker *types.PBPoker, rng int64) []int32 {
 	if poker.Pointer < int32(CARD_NUM_PER_GAME) {
 		logger.Error(fmt.Sprintf("Wait to be shuffled: deal cards [%d], left [%d]", CARD_NUM_PER_GAME, poker.Pointer+1))
-		Shuffle(poker, rng + int64(poker.Cards[0]))
+		Shuffle(poker, rng+int64(poker.Cards[0]))
 	}
 
 	rndn := rand.New(rand.NewSource(int64(rng)))
@@ -72,8 +73,8 @@ func Deal(poker *types.PBPoker, rng int64) []int32 {
 
 // 计算斗牛结果
 func Result(cards []int32) int32 {
-	temp := 0;
-	r := -1;//是否有牛标志
+	temp := 0
+	r := -1 //是否有牛标志
 
 	pk := newcolorCard(cards)
 
@@ -93,19 +94,19 @@ func Result(cards []int32) int32 {
 	for x := 0; x < 3; x++ {
 		for y := x + 1; y < 4; y++ {
 			for z := y + 1; z < 5; z++ {
-				if ((cardsC[x]+cardsC[y]+cardsC[z])%10 == 0) {
+				if (cardsC[x]+cardsC[y]+cardsC[z])%10 == 0 {
 					for j := 0; j < len(cardsC); j++ {
-						if (j != x && j != y && j != z) {
-							temp += cardsC[j];
+						if j != x && j != y && j != z {
+							temp += cardsC[j]
 						}
 					}
 
-					if (temp%10 == 0) {
-						r = 10;        //若有牛，且剩下的两个数也是牛十
+					if temp%10 == 0 {
+						r = 10 //若有牛，且剩下的两个数也是牛十
 					} else {
-						r = temp % 10; //若有牛，剩下的不是牛十
+						r = temp % 10 //若有牛，剩下的不是牛十
 					}
-					result[offset] = r;
+					result[offset] = r
 					offset++
 				}
 			}
@@ -113,7 +114,7 @@ func Result(cards []int32) int32 {
 	}
 
 	//没有牛
-	if (r == -1) {
+	if r == -1 {
 		return -1
 	}
 
@@ -125,12 +126,12 @@ func Leverage(hand *types.PBHand) int32 {
 	result := hand.Result
 
 	// 小牛 [1, 6]
-	if result <7 {
+	if result < 7 {
 		return POKERBULL_RESULT_X1
 	}
 
 	// 大牛 [7, 9]
-	if result >=7 && result < 10 {
+	if result >= 7 && result < 10 {
 		return POKERBULL_RESULT_X2
 	}
 
@@ -161,12 +162,13 @@ func Leverage(hand *types.PBHand) int32 {
 	return POKERBULL_RESULT_X1
 }
 
-type pokerCard struct{
-	num int
+type pokerCard struct {
+	num   int
 	color int
 }
 
 type colorCardSlice []*pokerCard
+
 func (p colorCardSlice) Len() int {
 	return len(p)
 }
@@ -195,7 +197,7 @@ func newcolorCard(a []int32) colorCardSlice {
 	return cardS
 }
 
-func CompareResult(i,j *types.PBHand) bool {
+func CompareResult(i, j *types.PBHand) bool {
 	if i.Result < j.Result {
 		return true
 	}
@@ -218,8 +220,8 @@ func Compare(a []int32, b []int32) bool {
 		sort.Sort(cardB)
 	}
 
-	maxA := cardA[len(a) - 1]
-	maxB := cardB[len(b) - 1]
+	maxA := cardA[len(a)-1]
+	maxB := cardB[len(b)-1]
 	if maxA.num != maxB.num {
 		return maxA.num < maxB.num
 	}
