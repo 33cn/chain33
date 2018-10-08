@@ -6,22 +6,26 @@ import (
 	"testing"
 
 	"fmt"
-	"math/rand"
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"gitlab.33.cn/chain33/chain33/common"
 	drivers "gitlab.33.cn/chain33/chain33/system/store"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
 const MaxKeylenth int = 64
 
+func newStoreCfg(dir string) *types.Store {
+	return &types.Store{Name: "mpt_test", Driver: "leveldb", DbPath: dir, DbCache: 100}
+}
+
 func TestKvdbNewClose(t *testing.T) {
 	dir, err := ioutil.TempDir("", "example")
 	assert.Nil(t, err)
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
-	var store_cfg = &types.Store{"mpt_test", "leveldb", dir, 100, false, false}
+	var store_cfg = newStoreCfg(dir)
 	store := New(store_cfg)
 
 	assert.NotNil(t, store)
@@ -33,7 +37,7 @@ func TestKvddbSetGet(t *testing.T) {
 	assert.Nil(t, err)
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
-	var store_cfg = &types.Store{"mpt_test", "leveldb", dir, 100, false, false}
+	var store_cfg = newStoreCfg(dir)
 	store := New(store_cfg).(*Store)
 	assert.NotNil(t, store)
 
@@ -80,7 +84,7 @@ func TestKvdbMemSet(t *testing.T) {
 	assert.Nil(t, err)
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
-	var store_cfg = &types.Store{"mpt_test", "leveldb", dir, 100, false, false}
+	var store_cfg = newStoreCfg(dir)
 	store := New(store_cfg).(*Store)
 	assert.NotNil(t, store)
 
@@ -111,7 +115,7 @@ func TestKvdbRollback(t *testing.T) {
 	assert.Nil(t, err)
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
-	var store_cfg = &types.Store{"mpt_test", "leveldb", dir, 100, false, false}
+	var store_cfg = newStoreCfg(dir)
 	store := New(store_cfg).(*Store)
 	assert.NotNil(t, store)
 
@@ -145,20 +149,8 @@ func checkKV(k, v []byte) bool {
 	return false
 }
 
-//生成随机字符串
 func GetRandomString(length int) string {
-	str := "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	bytes := []byte(str)
-	result := []byte{}
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	l := r.Intn(length)
-	if l < 20 {
-		l = 20
-	}
-	for i := 0; i < l; i++ {
-		result = append(result, bytes[r.Intn(len(bytes))])
-	}
-	return string(result)
+	return common.GetRandPrintString(20, length)
 }
 
 //目前正常情况下get 都是一个一个获取的
@@ -167,7 +159,7 @@ func BenchmarkGet(b *testing.B) {
 	assert.Nil(b, err)
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
-	var store_cfg = &types.Store{"mpt_test", "leveldb", dir, 100, false, false}
+	var store_cfg = newStoreCfg(dir)
 	store := New(store_cfg).(*Store)
 	assert.NotNil(b, store)
 
@@ -209,30 +201,32 @@ func BenchmarkSet(b *testing.B) {
 	assert.Nil(b, err)
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
-	var store_cfg = &types.Store{"mpt_test", "leveldb", dir, 100, false, false}
+	var store_cfg = newStoreCfg(dir)
 	store := New(store_cfg).(*Store)
 	assert.NotNil(b, store)
 
 	var kv []*types.KeyValue
-	var key string
-	var value string
 	var keys [][]byte
-
+	var hash = drivers.EmptyRoot[:]
+	start := time.Now()
 	for i := 0; i < b.N; i++ {
-		key = GetRandomString(MaxKeylenth)
-		value = fmt.Sprintf("v%d", i)
+		key := GetRandomString(MaxKeylenth)
+		value := fmt.Sprintf("%s%d", key, i)
 		keys = append(keys, []byte(string(key)))
 		kv = append(kv, &types.KeyValue{[]byte(string(key)), []byte(string(value))})
+		if i%10000 == 0 {
+			datas := &types.StoreSet{hash, kv, 0}
+			hash, err = store.Set(datas, true)
+			assert.Nil(b, err)
+			kv = nil
+		}
 	}
-	datas := &types.StoreSet{
-		drivers.EmptyRoot[:],
-		kv,
-		0}
-	start := time.Now()
-	b.ResetTimer()
-	hash, err := store.Set(datas, true)
-	assert.Nil(b, err)
-	assert.NotNil(b, hash)
+	if kv != nil {
+		datas := &types.StoreSet{hash, kv, 0}
+		hash, err = store.Set(datas, true)
+		assert.Nil(b, err)
+		kv = nil
+	}
 	end := time.Now()
 	fmt.Println("mpt BenchmarkSet cost time is", end.Sub(start), "num is", b.N)
 }
@@ -242,7 +236,7 @@ func BenchmarkMemSet(b *testing.B) {
 	assert.Nil(b, err)
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
-	var store_cfg = &types.Store{"mpt_test", "leveldb", dir, 100, false, false}
+	var store_cfg = newStoreCfg(dir)
 	store := New(store_cfg).(*Store)
 	assert.NotNil(b, store)
 
@@ -275,7 +269,7 @@ func BenchmarkCommit(b *testing.B) {
 	assert.Nil(b, err)
 	defer os.RemoveAll(dir) // clean up
 	os.RemoveAll(dir)       //删除已存在目录
-	var store_cfg = &types.Store{"mpt_test", "leveldb", dir, 100, false, false}
+	var store_cfg = newStoreCfg(dir)
 	store := New(store_cfg).(*Store)
 	assert.NotNil(b, store)
 

@@ -9,7 +9,7 @@ import (
 
 var NtpHosts = []string{
 	"time.windows.com:123",
-	"ntp.ubuntu.com:123",
+	"tw.pool.ntp.org:123",
 	"pool.ntp.org:123",
 	"cn.pool.ntp.org:123",
 	"time.apple.com:123",
