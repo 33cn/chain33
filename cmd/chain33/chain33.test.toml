@@ -75,6 +75,8 @@ name="mavl"
 driver="memdb"
 dbPath="datadir/mavltree"
 dbCache=128
+enableMavlPrefix=false
+enableMVCC=false
 
 [wallet]
 minFee=1000000

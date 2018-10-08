@@ -1,6 +1,7 @@
 package kvdb
 
 import (
+	"io/ioutil"
 	"os"
 	"testing"
 
@@ -9,22 +10,29 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var store_cfg0 = &types.Store{"kvdb_test", "leveldb", "/tmp/kvdb_test0", 100}
-var store_cfg1 = &types.Store{"kvdb_test", "leveldb", "/tmp/kvdb_test1", 100}
-var store_cfg2 = &types.Store{"kvdb_test", "leveldb", "/tmp/kvdb_test2", 100}
-var store_cfg3 = &types.Store{"kvdb_test", "leveldb", "/tmp/kvdb_test3", 100}
+func newStoreCfg(dir string) *types.Store {
+	return &types.Store{Name: "kvdb_test", Driver: "leveldb", DbPath: dir, DbCache: 100}
+}
 
 func TestKvdbNewClose(t *testing.T) {
-	os.RemoveAll(store_cfg0.DbPath)
-	store := New(store_cfg0)
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(t, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+	var store_cfg = newStoreCfg(dir)
+	store := New(store_cfg)
 	assert.NotNil(t, store)
 
 	store.Close()
 }
 
 func TestKvddbSetGet(t *testing.T) {
-	os.RemoveAll(store_cfg1.DbPath)
-	store := New(store_cfg1).(*KVStore)
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(t, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+	var store_cfg = newStoreCfg(dir)
+	store := New(store_cfg).(*KVStore)
 	assert.NotNil(t, store)
 
 	keys0 := [][]byte{[]byte("mk1"), []byte("mk2")}
@@ -65,8 +73,12 @@ func TestKvddbSetGet(t *testing.T) {
 }
 
 func TestKvdbMemSet(t *testing.T) {
-	os.RemoveAll(store_cfg2.DbPath)
-	store := New(store_cfg2).(*KVStore)
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(t, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+	var store_cfg = newStoreCfg(dir)
+	store := New(store_cfg).(*KVStore)
 	assert.NotNil(t, store)
 
 	var kv []*types.KeyValue
@@ -92,8 +104,12 @@ func TestKvdbMemSet(t *testing.T) {
 }
 
 func TestKvdbRollback(t *testing.T) {
-	os.RemoveAll(store_cfg3.DbPath)
-	store := New(store_cfg3).(*KVStore)
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(t, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+	var store_cfg = newStoreCfg(dir)
+	store := New(store_cfg).(*KVStore)
 	assert.NotNil(t, store)
 
 	var kv []*types.KeyValue
