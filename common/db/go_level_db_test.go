@@ -160,26 +160,68 @@ func BenchmarkBatchWrites32K(b *testing.B) {
 	assert.Nil(b, err)
 }
 
+func BenchmarkRandomReadsWrites1K(b *testing.B) {
+	benchmarkRandomReadsWrites(b, 1)
+}
+
+func BenchmarkRandomReadsWrites16K(b *testing.B) {
+	benchmarkRandomReadsWrites(b, 16)
+}
+
+func BenchmarkRandomReadsWrites32K(b *testing.B) {
+	benchmarkRandomReadsWrites(b, 32)
+}
+
+func benchmarkRandomReadsWrites(b *testing.B, size int) {
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(b, err)
+	defer os.Remove(dir + ".db")
+	os.Remove(dir + ".db")
+	db, err := NewGoLevelDB(dir, "", 100)
+	assert.Nil(b, err)
+	batch := db.NewBatch(true)
+	var keys [][]byte
+	for i := 0; i < 100000; i++ {
+		key := common.GetRandBytes(20, 64)
+		value := common.GetRandBytes(size*1024, size*1024)
+		batch.Set(key, value)
+		keys = append(keys, key)
+		if i > 0 && i%1000 == 0 {
+			err := batch.Write()
+			assert.Nil(b, err)
+			batch = db.NewBatch(true)
+		}
+	}
+	err = batch.Write()
+	assert.Nil(b, err)
+	//开始rand 读取
+	db.Close()
+	db, err = NewGoLevelDB(dir, "", 1)
+	assert.Nil(b, err)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		key := keys[RandInt()%len(keys)]
+		_, err := db.Get(key)
+		assert.Nil(b, err)
+	}
+}
 func BenchmarkRandomReadsWrites(b *testing.B) {
 	b.StopTimer()
-
 	numItems := int64(1000000)
 	internal := map[int64]int64{}
 	for i := 0; i < int(numItems); i++ {
 		internal[int64(i)] = int64(0)
 	}
 	dir := fmt.Sprintf("test_%x", RandStr(12))
-	defer os.Remove(dir)
-	os.Remove(dir)
+	defer os.RemoveAll(dir + ".db")
+	os.RemoveAll(dir + ".db")
 	db, err := NewGoLevelDB(dir, "", 1000)
 	if err != nil {
 		b.Fatal(err.Error())
 		return
 	}
-
 	fmt.Println("ok, starting")
 	b.StartTimer()
-
 	for i := 0; i < b.N; i++ {
 		// Write something
 		{
