@@ -326,16 +326,6 @@ const (
 	TokenStatusCreateRevoked
 )
 
-// trade op
-const (
-	TradeSellLimit = iota
-	TradeBuyMarket
-	TradeRevokeSell
-	TradeSellMarket
-	TradeBuyLimit
-	TradeRevokeBuy
-)
-
 // 0->not start, 1->on sale, 2->sold out, 3->revoke, 4->expired
 const (
 	TradeOrderStatusNotStart = iota

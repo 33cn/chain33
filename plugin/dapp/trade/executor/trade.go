@@ -19,6 +19,7 @@ import (
 	token "gitlab.33.cn/chain33/chain33/plugin/dapp/token/executor"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
+	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/types"
 )
 
 var tradelog = log.New("module", "execs.trade")
@@ -55,25 +56,25 @@ func (t *trade) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 
 	action := newTradeAction(t, tx)
 	switch trade.GetTy() {
-	case types.TradeSellLimit:
+	case pty.TradeSellLimit:
 		if trade.GetTokensell() == nil {
 			return nil, types.ErrInputPara
 		}
 		return action.tradeSell(trade.GetTokensell())
 
-	case types.TradeBuyMarket:
+	case pty.TradeBuyMarket:
 		if trade.GetTokenbuy() == nil {
 			return nil, types.ErrInputPara
 		}
 		return action.tradeBuy(trade.GetTokenbuy())
 
-	case types.TradeRevokeSell:
+	case pty.TradeRevokeSell:
 		if trade.GetTokenrevokesell() == nil {
 			return nil, types.ErrInputPara
 		}
 		return action.tradeRevokeSell(trade.GetTokenrevokesell())
 
-	case types.TradeBuyLimit:
+	case pty.TradeBuyLimit:
 		if t.GetHeight() < types.ForkV10TradeBuyLimit {
 			return nil, types.ErrActionNotSupport
 		}
@@ -82,7 +83,7 @@ func (t *trade) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 		}
 		return action.tradeBuyLimit(trade.GetTokenbuylimit())
 
-	case types.TradeSellMarket:
+	case pty.TradeSellMarket:
 		if t.GetHeight() < types.ForkV10TradeBuyLimit {
 			return nil, types.ErrActionNotSupport
 		}
@@ -91,7 +92,7 @@ func (t *trade) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 		}
 		return action.tradeSellMarket(trade.GetTokensellmarket())
 
-	case types.TradeRevokeBuy:
+	case pty.TradeRevokeBuy:
 		if t.GetHeight() < types.ForkV10TradeBuyLimit {
 			return nil, types.ErrActionNotSupport
 		}

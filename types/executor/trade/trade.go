@@ -8,6 +8,7 @@ import (
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/types"
+	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/types"
 )
 
 var nameX string
@@ -57,17 +58,17 @@ func (trade tradeType) ActionName(tx *types.Transaction) string {
 	if err != nil {
 		return "unknown-err"
 	}
-	if action.Ty == types.TradeSellLimit && action.GetTokensell() != nil {
+	if action.Ty == pty.TradeSellLimit && action.GetTokensell() != nil {
 		return "selltoken"
-	} else if action.Ty == types.TradeBuyMarket && action.GetTokenbuy() != nil {
+	} else if action.Ty == pty.TradeBuyMarket && action.GetTokenbuy() != nil {
 		return "buytoken"
-	} else if action.Ty == types.TradeRevokeSell && action.GetTokenrevokesell() != nil {
+	} else if action.Ty == pty.TradeRevokeSell && action.GetTokenrevokesell() != nil {
 		return "revokeselltoken"
-	} else if action.Ty == types.TradeBuyLimit && action.GetTokenbuylimit() != nil {
+	} else if action.Ty == pty.TradeBuyLimit && action.GetTokenbuylimit() != nil {
 		return "buylimittoken"
-	} else if action.Ty == types.TradeSellMarket && action.GetTokensellmarket() != nil {
+	} else if action.Ty == pty.TradeSellMarket && action.GetTokensellmarket() != nil {
 		return "sellmarkettoken"
-	} else if action.Ty == types.TradeRevokeBuy && action.GetTokenrevokebuy() != nil {
+	} else if action.Ty == pty.TradeRevokeBuy && action.GetTokenrevokebuy() != nil {
 		return "revokebuytoken"
 	}
 	return "unknown"
@@ -90,11 +91,11 @@ func (t tradeType) Amount(tx *types.Transaction) (int64, error) {
 		return 0, types.ErrDecode
 	}
 
-	if types.TradeSellLimit == trade.Ty && trade.GetTokensell() != nil {
+	if pty.TradeSellLimit == trade.Ty && trade.GetTokensell() != nil {
 		return 0, nil
-	} else if types.TradeBuyMarket == trade.Ty && trade.GetTokenbuy() != nil {
+	} else if pty.TradeBuyMarket == trade.Ty && trade.GetTokenbuy() != nil {
 		return 0, nil
-	} else if types.TradeRevokeSell == trade.Ty && trade.GetTokenrevokesell() != nil {
+	} else if pty.TradeRevokeSell == trade.Ty && trade.GetTokenrevokesell() != nil {
 		return 0, nil
 	}
 	return 0, nil
@@ -172,7 +173,7 @@ func CreateRawTradeSellTx(parm *TradeSellTx) (*types.Transaction, error) {
 		Crowdfund:         false,
 	}
 	sell := &types.Trade{
-		Ty:    types.TradeSellLimit,
+		Ty:    pty.TradeSellLimit,
 		Value: &types.Trade_Tokensell{v},
 	}
 	tx := &types.Transaction{
@@ -194,7 +195,7 @@ func CreateRawTradeBuyTx(parm *TradeBuyTx) (*types.Transaction, error) {
 	}
 	v := &types.TradeForBuy{SellID: parm.SellID, BoardlotCnt: parm.BoardlotCnt}
 	buy := &types.Trade{
-		Ty:    types.TradeBuyMarket,
+		Ty:    pty.TradeBuyMarket,
 		Value: &types.Trade_Tokenbuy{v},
 	}
 	tx := &types.Transaction{
@@ -217,7 +218,7 @@ func CreateRawTradeRevokeTx(parm *TradeRevokeTx) (*types.Transaction, error) {
 
 	v := &types.TradeForRevokeSell{SellID: parm.SellID}
 	buy := &types.Trade{
-		Ty:    types.TradeRevokeSell,
+		Ty:    pty.TradeRevokeSell,
 		Value: &types.Trade_Tokenrevokesell{v},
 	}
 	tx := &types.Transaction{
@@ -245,7 +246,7 @@ func CreateRawTradeBuyLimitTx(parm *TradeBuyLimitTx) (*types.Transaction, error)
 		TotalBoardlot:     parm.TotalBoardlot,
 	}
 	buyLimit := &types.Trade{
-		Ty:    types.TradeBuyLimit,
+		Ty:    pty.TradeBuyLimit,
 		Value: &types.Trade_Tokenbuylimit{v},
 	}
 	tx := &types.Transaction{
@@ -267,7 +268,7 @@ func CreateRawTradeSellMarketTx(parm *TradeSellMarketTx) (*types.Transaction, er
 	}
 	v := &types.TradeForSellMarket{BuyID: parm.BuyID, BoardlotCnt: parm.BoardlotCnt}
 	sellMarket := &types.Trade{
-		Ty:    types.TradeSellMarket,
+		Ty:    pty.TradeSellMarket,
 		Value: &types.Trade_Tokensellmarket{v},
 	}
 	tx := &types.Transaction{
@@ -290,7 +291,7 @@ func CreateRawTradeRevokeBuyTx(parm *TradeRevokeBuyTx) (*types.Transaction, erro
 
 	v := &types.TradeForRevokeBuy{BuyID: parm.BuyID}
 	buy := &types.Trade{
-		Ty:    types.TradeRevokeBuy,
+		Ty:    pty.TradeRevokeBuy,
 		Value: &types.Trade_Tokenrevokebuy{v},
 	}
 	tx := &types.Transaction{
