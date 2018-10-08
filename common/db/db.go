@@ -90,6 +90,10 @@ type Iterator interface {
 	Close()
 }
 
+type IteratorDB interface {
+	Iterator(prefix []byte, reserver bool) Iterator
+}
+
 func bytesPrefix(prefix []byte) []byte {
 	var limit []byte
 	for i := len(prefix) - 1; i >= 0; i-- {

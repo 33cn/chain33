@@ -510,7 +510,7 @@ func (a *action) StatTransfer(round *gt.BlackwhiteRound) (*types.Receipt, error)
 	kv = append(kv, receipt.KV...)
 
 	// 将每一轮次的结果保存
-	logs = append(logs, &types.ReceiptLog{types.TyLogBlackwhiteLoopInfo, types.Encode(loopResults)})
+	logs = append(logs, &types.ReceiptLog{gt.TyLogBlackwhiteLoopInfo, types.Encode(loopResults)})
 
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
 
@@ -653,19 +653,19 @@ func (action *action) GetReceiptLog(round *gt.BlackwhiteRound, addr string) *typ
 	log := &types.ReceiptLog{}
 	r := &gt.ReceiptBlackwhiteStatus{}
 	if round.Status == gt.BlackwhiteStatusCreate {
-		log.Ty = types.TyLogBlackwhiteCreate
+		log.Ty = gt.TyLogBlackwhiteCreate
 		r.PrevStatus = -1
 	} else if round.Status == gt.BlackwhiteStatusPlay {
-		log.Ty = types.TyLogBlackwhitePlay
+		log.Ty = gt.TyLogBlackwhitePlay
 		r.PrevStatus = gt.BlackwhiteStatusCreate
 	} else if round.Status == gt.BlackwhiteStatusShow {
-		log.Ty = types.TyLogBlackwhiteShow
+		log.Ty = gt.TyLogBlackwhiteShow
 		r.PrevStatus = gt.BlackwhiteStatusPlay
 	} else if round.Status == gt.BlackwhiteStatusTimeout {
-		log.Ty = types.TyLogBlackwhiteTimeout
+		log.Ty = gt.TyLogBlackwhiteTimeout
 		r.PrevStatus = gt.BlackwhiteStatusPlay
 	} else if round.Status == gt.BlackwhiteStatusDone {
-		log.Ty = types.TyLogBlackwhiteDone
+		log.Ty = gt.TyLogBlackwhiteDone
 		r.PrevStatus = gt.BlackwhiteStatusShow
 	}
 
