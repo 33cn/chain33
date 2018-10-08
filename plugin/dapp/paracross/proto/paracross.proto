@@ -51,10 +51,13 @@ message ParacrossMinerAction {
 
 message ParacrossAction {
     oneof value {
-        ParacrossCommitAction commit        = 1;
-        ParacrossMinerAction  miner         = 3;
-        AssetsTransfer        assetTransfer = 4;
-        AssetsWithdraw        assetWithdraw = 5;
+        ParacrossCommitAction commit         = 1;
+        ParacrossMinerAction  miner          = 3;
+        AssetsTransfer        assetTransfer  = 4;
+        AssetsWithdraw        assetWithdraw  = 5;
+        AssetsTransfer        transfer       = 6;
+        AssetsWithdraw        withdraw       = 7;
+        AssetsTransferToExec  transferToExec = 8;
     }
     int32 ty = 2;
 }

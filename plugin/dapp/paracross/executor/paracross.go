@@ -102,7 +102,26 @@ func (c *Paracross) Exec(tx *types.Transaction, index int) (*types.Receipt, erro
 		}
 		a := newAction(c, tx)
 		return a.Miner(payload.GetMiner())
+	} else if payload.Ty == pt.ParacrossActionTransfer && payload.GetTransfer() != nil {
+		if !types.IsPara() {
+			return nil, types.ErrNotSupport
+		}
+		a := newAction(c, tx)
+		return a.Miner(payload.GetMiner())
+	} else if payload.Ty == pt.ParacrossActionWithdraw && payload.GetWithdraw() != nil {
+		if !types.IsPara() {
+			return nil, types.ErrNotSupport
+		}
+		a := newAction(c, tx)
+		return a.Miner(payload.GetMiner())
+	} else if payload.Ty == pt.ParacrossActionTransferToExec && payload.GetTransferToExec() != nil {
+		if !types.IsPara() {
+			return nil, types.ErrNotSupport
+		}
+		a := newAction(c, tx)
+		return a.Miner(payload.GetMiner())
 	}
+
 
 	return nil, types.ErrActionNotSupport
 }

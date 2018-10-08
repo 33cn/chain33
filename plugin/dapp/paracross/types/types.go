@@ -35,6 +35,9 @@ type ParacrossCommitTx struct {
 const (
 	ParacrossActionCommit = iota
 	ParacrossActionMiner
+	ParacrossActionTransfer
+	ParacrossActionWithdraw
+	ParacrossActionTransferToExec
 )
 const (
 	ParacrossActionAssetTransfer  = iota + types.ParaCrossTransferActionTypeStart
