@@ -28,13 +28,18 @@ func init() {
 
 type KVMVCCStore struct {
 	*drivers.BaseStore
-	mvcc     *dbm.SimpleMVCC
+	mvcc     dbm.MVCC
 	kvsetmap map[string][]*types.KeyValue
 }
 
 func New(cfg *types.Store) queue.Module {
 	bs := drivers.NewBaseStore(cfg)
-	kvs := &KVMVCCStore{bs, dbm.NewSimpleMVCC(dbm.NewKVDB(bs.GetDB())), make(map[string][]*types.KeyValue)}
+	var kvs *KVMVCCStore
+	if cfg.EnableMVCCIter {
+		kvs = &KVMVCCStore{bs, dbm.NewMVCCIter(bs.GetDB()), make(map[string][]*types.KeyValue)}
+	} else {
+		kvs = &KVMVCCStore{bs, dbm.NewMVCC(bs.GetDB()), make(map[string][]*types.KeyValue)}
+	}
 	bs.SetChild(kvs)
 	return kvs
 }
@@ -50,32 +55,25 @@ func (mvccs *KVMVCCStore) Set(datas *types.StoreSet, sync bool) ([]byte, error) 
 	if err != nil {
 		return nil, err
 	}
-	klog.Info("KVMVCCStore Set saveKVSets", "hash", common.ToHex(datas.StateHash), "height", datas.Height)
 	mvccs.saveKVSets(kvlist)
 	return hash, nil
 }
 
 func (mvccs *KVMVCCStore) Get(datas *types.StoreGet) [][]byte {
 	values := make([][]byte, len(datas.Keys))
-
 	version, err := mvccs.mvcc.GetVersion(datas.StateHash)
 	if err != nil {
 		klog.Error("Get version by hash failed.", "hash", common.ToHex(datas.StateHash))
 		return values
 	}
-
-	klog.Debug("KVMVCCStore Get mvcc GetVersion", "hash", common.HashHex(datas.StateHash), "version", version)
-
 	for i := 0; i < len(datas.Keys); i++ {
 		value, err := mvccs.mvcc.GetV(datas.Keys[i], version)
 		if err != nil {
 			klog.Error("GetV by Keys failed.", "Key", string(datas.Keys[i]), "version", version)
 		} else if value != nil {
 			values[i] = value
-			klog.Debug("KVMVCCStore Get mvcc GetV", "index", i, "key", string(datas.Keys[i]), "value", string(value))
 		}
 	}
-
 	return values
 }
 

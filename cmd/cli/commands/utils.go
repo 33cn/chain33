@@ -14,6 +14,7 @@ import (
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
+	bwty "gitlab.33.cn/chain33/chain33/plugin/dapp/blackwhite/types"
 	pt "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/types"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
@@ -278,6 +279,7 @@ func constructAccFromLog(l *jsonrpc.ReceiptLogResult, key string) *types.Account
 	}
 }
 
+//这里需要重构
 func decodeLog(rlog jsonrpc.ReceiptDataResult) *ReceiptData {
 	rd := &ReceiptData{Ty: rlog.Ty, TyName: rlog.TyName}
 
@@ -291,8 +293,8 @@ func decodeLog(rlog jsonrpc.ReceiptDataResult) *ReceiptData {
 			types.TyLogTradeBuyLimit, types.TyLogTradeSellMarket, types.TyLogTradeBuyRevoke,
 			types.TyLogRelayCreate, types.TyLogRelayRevokeCreate, types.TyLogRelayAccept, types.TyLogRelayRevokeAccept,
 			types.TyLogRelayRcvBTCHead, types.TyLogRelayConfirmTx, types.TyLogRelayFinishTx,
-			types.TyLogBlackwhiteCreate, types.TyLogBlackwhiteShow, types.TyLogBlackwhitePlay,
-			types.TyLogBlackwhiteTimeout, types.TyLogBlackwhiteDone, types.TyLogBlackwhiteLoopInfo,
+			bwty.TyLogBlackwhiteCreate, bwty.TyLogBlackwhiteShow, bwty.TyLogBlackwhitePlay,
+			bwty.TyLogBlackwhiteTimeout, bwty.TyLogBlackwhiteDone, bwty.TyLogBlackwhiteLoopInfo,
 			types.TyLogLotteryCreate, types.TyLogLotteryBuy, types.TyLogLotteryDraw, types.TyLogLotteryClose,
 			pt.TyLogParacrossMiner, pt.TyLogParaAssetTransfer, pt.TyLogParaAssetWithdraw, pt.TyLogParacrossCommit:
 

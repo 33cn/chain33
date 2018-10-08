@@ -739,8 +739,8 @@ func ExecBlock(client queue.Client, prevStateRoot []byte, block *types.Block, er
 	if errReturn && !bytes.Equal(block.StateHash, calcHash) {
 		util.ExecKVSetRollback(client, calcHash)
 		if len(rdata) > 0 {
-			for _, rd := range rdata {
-				rd.OutputReceiptDetails(ulog)
+			for i, rd := range rdata {
+				rd.OutputReceiptDetails(block.Txs[i].Execer, ulog)
 			}
 		}
 		return nil, nil, types.ErrCheckStateHash

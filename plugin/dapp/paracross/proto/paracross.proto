@@ -111,6 +111,8 @@ message ParacrossAsset {
     bool   isWithdraw = 3;
     bytes  txHash     = 4;
     int64  amount     = 5;
+    string exec       = 6;
+    string symbol     = 7;
     // 主链部分
     int64 height = 10;
     // 平行链部分
