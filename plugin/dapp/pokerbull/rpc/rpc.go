@@ -4,13 +4,13 @@ import (
 	"context"
 	"math/rand"
 
+	"github.com/pkg/errors"
 	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/common/address"
+	"gitlab.33.cn/chain33/chain33/plugin/dapp/pokerbull/executor"
 	pb "gitlab.33.cn/chain33/chain33/plugin/dapp/pokerbull/types"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/plugin/dapp/pokerbull/executor"
-	"github.com/pkg/errors"
 )
 
 type channelClient struct {
@@ -69,7 +69,7 @@ func (c *channelClient) Quit(ctx context.Context, head *pb.PBGameQuit) (*types.U
 		Payload: types.Encode(val),
 		Fee:     0,
 		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(string(pb.ExecerPokerBull,)),
+		To:      address.ExecAddress(string(pb.ExecerPokerBull)),
 	}
 	tx.SetRealFee(types.MinFee)
 	data := types.Encode(tx)
@@ -86,7 +86,7 @@ func (c *channelClient) Show(ctx context.Context, head *pb.PBGameQuery) (*types.
 		Payload: types.Encode(val),
 		Fee:     0,
 		Nonce:   rand.New(rand.NewSource(types.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(string(pb.ExecerPokerBull,)),
+		To:      address.ExecAddress(string(pb.ExecerPokerBull)),
 	}
 	tx.SetRealFee(types.MinFee)
 	data := types.Encode(tx)
