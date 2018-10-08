@@ -37,8 +37,8 @@ const (
 	ParacrossActionMiner
 )
 const (
-	ParacrossActionTransfer = iota + types.ParaCrossTransferActionTypeStart
-	ParacrossActionWithdraw
+	ParacrossActionAssetTransfer  = iota + types.ParaCrossTransferActionTypeStart
+	ParacrossActionAssetWithdraw
 )
 
 // status
@@ -107,12 +107,12 @@ func CreateRawTransferTx(param *types.CreateTx) (*types.Transaction, error) {
 		v := &ParacrossAction_AssetTransfer{AssetTransfer: &types.AssetsTransfer{
 			Amount: param.Amount, Note: param.GetNote(), To: param.GetTo(), Cointoken: param.TokenSymbol}}
 		transfer.Value = v
-		transfer.Ty = ParacrossActionTransfer
+		transfer.Ty = ParacrossActionAssetTransfer
 	} else {
 		v := &ParacrossAction_AssetWithdraw{AssetWithdraw: &types.AssetsWithdraw{
 			Amount: param.Amount, Note: param.GetNote(), To: param.GetTo(), Cointoken: param.TokenSymbol}}
 		transfer.Value = v
-		transfer.Ty = ParacrossActionWithdraw
+		transfer.Ty = ParacrossActionAssetWithdraw
 	}
 	tx := &types.Transaction{
 		Execer:  []byte(param.GetExecName()),
