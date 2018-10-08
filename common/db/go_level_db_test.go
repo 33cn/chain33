@@ -5,8 +5,12 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"testing"
 
+	"gitlab.33.cn/chain33/chain33/common"
+
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -34,6 +38,28 @@ func TestGoLevelDBBoundary(t *testing.T) {
 	defer leveldb.Close()
 
 	testDBBoundary(t, leveldb)
+}
+
+func BenchmarkBatchWrites(b *testing.B) {
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(b, err)
+	defer os.Remove(dir)
+	os.Remove(dir)
+	db, err := NewGoLevelDB(dir, "", 100)
+	assert.Nil(b, err)
+	batch := db.NewBatch(true)
+	for i := 0; i < b.N; i++ {
+		key := string(common.GetRandBytes(20, 64))
+		value := fmt.Sprintf("v%d", i)
+		batch.Set([]byte(key), []byte(value))
+		if i > 0 && i%10000 == 0 {
+			err := batch.Write()
+			assert.Nil(b, err)
+			batch = db.NewBatch(true)
+		}
+	}
+	err = batch.Write()
+	assert.Nil(b, err)
 }
 
 func BenchmarkRandomReadsWrites(b *testing.B) {
