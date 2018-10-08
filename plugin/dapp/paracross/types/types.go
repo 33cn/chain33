@@ -98,10 +98,10 @@ func createRawCommitTx(status *ParacrossNodeStatus, name string, fee int64) (*ty
 	return tx, nil
 }
 
-func CreateRawTransferTx(param *types.CreateTx) (*types.Transaction, error) {
+func CreateRawAssetTransferTx(param *types.CreateTx) (*types.Transaction, error) {
 	// 跨链交易需要在主链和平行链上执行， 所以应该可以在主链和平行链上构建
 	if !types.IsParaExecName(param.GetExecName()) {
-		tlog.Error("CreateRawTransferTx", "exec", param.GetExecName())
+		tlog.Error("CreateRawAssetTransferTx", "exec", param.GetExecName())
 		return nil, types.ErrInputPara
 	}
 

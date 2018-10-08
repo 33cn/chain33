@@ -496,7 +496,7 @@ func createCrossParaTx(s suite.Suite, to []byte) (*types.Transaction, error) {
 		TokenSymbol: "",
 		ExecName:    Title + types.ParaX,
 	}
-	tx, err := pt.CreateRawTransferTx(&param)
+	tx, err := pt.CreateRawAssetTransferTx(&param)
 	assert.Nil(s.T(), err, "create asset transfer failed")
 	if err != nil {
 		return nil, err
