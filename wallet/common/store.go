@@ -231,7 +231,10 @@ func (store *Store) GetEncryptionFlag() int64 {
 	var flag int64
 	data, err := store.Get(CalcEncryptionFlag())
 	if data == nil || err != nil {
-		return 0
+		data, err = store.Get(CalckeyEncryptionCompFlag())
+		if data == nil || err != nil {
+			return 0
+		}
 	}
 	err = json.Unmarshal(data, &flag)
 	if err != nil {
