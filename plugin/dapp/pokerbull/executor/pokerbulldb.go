@@ -342,7 +342,7 @@ func (action *Action) settleDealerAccount(lastAddress string, game *pkt.PokerBul
 		}
 	}
 	game.DealerAddr = action.nextDealer(game)
-
+	
 	return logs, kv, nil
 }
 
@@ -422,6 +422,13 @@ func (action *Action) GameStart(start *pkt.PBGameStart) (*types.Receipt, error) 
 	if err != nil || len(ids) == 0 {
 		if err != types.ErrNotFound {
 			return nil, err
+		}
+
+		//TODO 庄家检查闲家数量倍数的资金
+		if !action.CheckExecAccountBalance(action.fromaddr, start.GetValue() * POKERBULL_LEVERAGE_MAX * int64(start.PlayerNum - 1), 0) {
+			logger.Error("GameStart", "addr", action.fromaddr, "execaddr", action.execaddr, "id",
+				gameId, "err", types.ErrNoBalance)
+			return nil, types.ErrNoBalance
 		}
 
 		// 没有匹配到要求的牌局，创建一个
@@ -534,9 +541,13 @@ func (action *Action) GameContinue(pbcontinue *pkt.PBGameContinue) (*types.Recei
 		return nil, err
 	}
 
-	// 检查余额
-	if !action.CheckExecAccountBalance(action.fromaddr, game.GetValue() * POKERBULL_LEVERAGE_MAX, 0) {
-		logger.Error("GameStart", "addr", action.fromaddr, "execaddr", action.execaddr, "id",
+	// 检查余额，庄家检查闲家数量倍数的资金
+	checkValue := game.GetValue()*POKERBULL_LEVERAGE_MAX
+	if action.fromaddr == game.DealerAddr {
+		checkValue = checkValue * int64(game.PlayerNum - 1)
+	}
+	if !action.CheckExecAccountBalance(action.fromaddr, checkValue, 0) {
+		logger.Error("GameContinue", "addr", action.fromaddr, "execaddr", action.execaddr, "id",
 			pbcontinue.GetGameId(), "err", types.ErrNoBalance)
 		return nil, types.ErrNoBalance
 	}
