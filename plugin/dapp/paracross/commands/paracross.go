@@ -268,7 +268,7 @@ func createTransferTx(cmd *cobra.Command, isWithdraw bool) (string, error) {
 		TokenSymbol: symbol,
 		ExecName:    execName,
 	}
-	tx, err := pt.CreateRawAssetTransferTx(&param)
+	tx, err := pt.CreateRawTransferTx(&param)
 	if err != nil {
 		return "", err
 	}
