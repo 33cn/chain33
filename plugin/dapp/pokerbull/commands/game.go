@@ -52,9 +52,9 @@ func pokerbullStart(cmd *cobra.Command, args []string) {
 	amountInt64 := int64(value)
 
 	params := &pkt.PBStartTxReq{
-		Value:       amountInt64 * types.Coin,
-		PlayerNum:   int32(playerCount),
-		Fee:         feeInt64,
+		Value:     amountInt64 * types.Coin,
+		PlayerNum: int32(playerCount),
+		Fee:       feeInt64,
 	}
 
 	var res string
@@ -85,8 +85,8 @@ func pokerbullContinue(cmd *cobra.Command, args []string) {
 	feeInt64 := int64(fee * 1e4)
 
 	params := &pkt.PBContinueTxReq{
-		GameId:      gameID,
-		Fee:         feeInt64,
+		GameId: gameID,
+		Fee:    feeInt64,
 	}
 
 	var res string
@@ -117,8 +117,8 @@ func pokerbullQuit(cmd *cobra.Command, args []string) {
 	feeInt64 := int64(fee * 1e4)
 
 	params := &pkt.PBContinueTxReq{
-		GameId:      gameID,
-		Fee:         feeInt64,
+		GameId: gameID,
+		Fee:    feeInt64,
 	}
 
 	var res string
