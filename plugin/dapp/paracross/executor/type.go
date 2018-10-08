@@ -65,7 +65,14 @@ func (m ParacrossType) ActionName(tx *types.Transaction) string {
 		return pt.ParacrossActionAssetWithdrawStr
 	} else if g.Ty == pt.ParacrossActionMiner && g.GetMiner() != nil {
 		return types.MinerAction
+	} else if g.Ty == pt.ParacrossActionTransfer && g.GetTransfer() != nil {
+		return pt.ParacrossActionTransferStr
+	} else if g.Ty == pt.ParacrossActionTransferToExec && g.GetTransferToExec() != nil {
+		return pt.ParacrossActionTransferToExecStr
+	} else if g.Ty == pt.ParacrossActionWithdraw && g.GetWithdraw() != nil {
+		return pt.ParacrossActionWithdrawStr
 	}
+
 	return "unkown"
 }
 
@@ -92,7 +99,7 @@ func (m ParacrossType) CreateTx(action string, message json.RawMessage) (*types.
 		}
 
 		return pt.CreateRawParacrossCommitTx(&param)
-	} else if action == "ParacrossTransfer" || action == "ParacrossWithdraw" {
+	} else if action == "ParacrossAssetTransfer" || action == "ParacrossAssetWithdraw" {
 		var param types.CreateTx
 		err := json.Unmarshal(message, &param)
 		if err != nil {
@@ -100,6 +107,15 @@ func (m ParacrossType) CreateTx(action string, message json.RawMessage) (*types.
 			return nil, types.ErrInputPara
 		}
 		return pt.CreateRawAssetTransferTx(&param)
+
+	} else if action == "ParacrossTransfer" || action == "ParacrossWithdraw" || action == "ParacrossTransferToExec" {
+		var param types.CreateTx
+		err := json.Unmarshal(message, &param)
+		if err != nil {
+			glog.Error("CreateTx", "Error", err)
+			return nil, types.ErrInputPara
+		}
+		return pt.CreateRawTransferTx(&param)
 
 	}
 

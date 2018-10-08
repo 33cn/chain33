@@ -55,7 +55,9 @@ var (
 	ParacrossTransferPerfix         = "crossPara."
 	ParacrossActionAssetTransferStr = ParacrossTransferPerfix + string("AssetTransfer")
 	ParacrossActionAssetWithdrawStr = ParacrossTransferPerfix + string("AssetWithdraw")
-	gt
+	ParacrossActionTransferStr = ParacrossTransferPerfix + string("Transfer")
+	ParacrossActionTransferToExecStr = ParacrossTransferPerfix + string("TransferToExec")
+	ParacrossActionWithdrawStr = ParacrossTransferPerfix + string("Withdraw")
 )
 
 func CalcMinerHeightKey(title string, height int64) []byte {
@@ -150,6 +152,39 @@ func CreateRawMinerTx(status *ParacrossNodeStatus) (*types.Transaction, error) {
 
 	err := tx.SetRealFee(types.MinFee)
 	if err != nil {
+		return nil, err
+	}
+
+	return tx, nil
+}
+
+func CreateRawTransferTx(param *types.CreateTx) (*types.Transaction, error) {
+	if !types.IsParaExecName(param.GetExecName()) {
+		tlog.Error("CreateRawTransferTx", "exec", param.GetExecName())
+		return nil, types.ErrInputPara
+	}
+
+	transfer := &ParacrossAction{}
+	if !param.IsWithdraw {
+		v := &ParacrossAction_Transfer{Transfer: &types.AssetsTransfer{
+			Amount: param.Amount, Note: param.GetNote(), To: param.GetTo(), Cointoken: param.TokenSymbol}}
+		transfer.Value = v
+		transfer.Ty = ParacrossActionTransfer
+	} else {
+		v := &ParacrossAction_Withdraw{Withdraw: &types.AssetsWithdraw{
+			Amount: param.Amount, Note: param.GetNote(), To: param.GetTo(), Cointoken: param.TokenSymbol}}
+		transfer.Value = v
+		transfer.Ty = ParacrossActionWithdraw
+	}
+	tx := &types.Transaction{
+		Execer:  []byte(param.GetExecName()),
+		Payload: types.Encode(transfer),
+		To:      address.ExecAddress(param.GetExecName()),
+		Fee:     param.Fee,
+		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
+	}
+
+	if err := tx.SetRealFee(types.MinFee); err != nil {
 		return nil, err
 	}
 
