@@ -342,7 +342,7 @@ func (a *action) execCrossTx(tx *types.TransactionDetail, commit *pt.ParacrossCo
 		return nil, err
 	}
 
-	if payload.Ty == pt.ParacrossActionWithdraw {
+	if payload.Ty == pt.ParacrossActionAssetWithdraw {
 		receiptWithdraw, err := a.assetWithdraw(payload.GetAssetWithdraw(), tx.Tx)
 		if err != nil {
 			clog.Crit("paracross.Commit Decode Tx failed", "para title", commit.Status.Title,

@@ -149,5 +149,5 @@ func assetWithdrawBalance(acc *account.DB, addr string, amount int64) (*types.Re
   1. 某调链上的token 如 YCC
  先做成都和主币交换
 
- 在trade 里需要修改订单的结构， 即定义资产的部分。 
+ 在trade 里需要修改订单的结构， 即定义资产的部分。
 */
