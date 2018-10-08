@@ -56,3 +56,7 @@ func (h *Hashlock) GetActionName(tx *types.Transaction) string {
 func (h *Hashlock) GetFuncMap() map[string]reflect.Method {
 	return executorFunList
 }
+
+func (h *Hashlock) CheckTx(tx *types.Transaction, index int) error {
+	return nil
+}
