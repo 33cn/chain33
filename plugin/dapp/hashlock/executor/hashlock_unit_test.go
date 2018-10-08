@@ -11,6 +11,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/db"
+	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/hashlock/types"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -98,8 +99,8 @@ func ConstructLockTx() *types.Transaction {
 	var locktime int64 = 70
 	var fee int64 = 1e6
 
-	vlock := &types.HashlockAction_Hlock{&types.HashlockLock{Amount: lockAmount, Time: locktime, Hash: common.Sha256(secret), ToAddress: toAddr, ReturnAddress: returnAddr}}
-	transfer := &types.HashlockAction{Value: vlock, Ty: types.HashlockActionLock}
+	vlock := &pty.HashlockAction_Hlock{&pty.HashlockLock{Amount: lockAmount, Time: locktime, Hash: common.Sha256(secret), ToAddress: toAddr, ReturnAddress: returnAddr}}
+	transfer := &pty.HashlockAction{Value: vlock, Ty: pty.HashlockActionLock}
 	tx := &types.Transaction{Execer: []byte("hashlock"), Payload: types.Encode(transfer), Fee: fee, To: toAddr}
 	tx.Nonce = r.Int63()
 	tx.Sign(types.SECP256K1, returnPriv)
@@ -111,8 +112,8 @@ func ConstructUnlockTx() *types.Transaction {
 
 	var fee int64 = 1e6
 
-	vunlock := &types.HashlockAction_Hunlock{&types.HashlockUnlock{Secret: secret}}
-	transfer := &types.HashlockAction{Value: vunlock, Ty: types.HashlockActionUnlock}
+	vunlock := &pty.HashlockAction_Hunlock{&pty.HashlockUnlock{Secret: secret}}
+	transfer := &pty.HashlockAction{Value: vunlock, Ty: pty.HashlockActionUnlock}
 	tx := &types.Transaction{Execer: []byte("hashlock"), Payload: types.Encode(transfer), Fee: fee, To: toAddr}
 	tx.Nonce = r.Int63()
 	tx.Sign(types.SECP256K1, returnPriv)
@@ -123,8 +124,8 @@ func ConstructSendTx() *types.Transaction {
 
 	var fee int64 = 1e6
 
-	vsend := &types.HashlockAction_Hsend{&types.HashlockSend{Secret: secret}}
-	transfer := &types.HashlockAction{Value: vsend, Ty: types.HashlockActionSend}
+	vsend := &pty.HashlockAction_Hsend{&pty.HashlockSend{Secret: secret}}
+	transfer := &pty.HashlockAction{Value: vsend, Ty: pty.HashlockActionSend}
 	tx := &types.Transaction{Execer: []byte("hashlock"), Payload: types.Encode(transfer), Fee: fee, To: toAddr}
 	tx.Nonce = r.Int63()
 	tx.Sign(types.SECP256K1, toPriv)
