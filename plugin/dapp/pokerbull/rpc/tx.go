@@ -1,14 +1,14 @@
 package rpc
 
 type PokerBullStartTx struct {
-	Value     int64  `json:"value"`
-	PlayerNum int32  `json:"playerNum"`
-	Fee       int64  `json:"fee"`
+	Value     int64 `json:"value"`
+	PlayerNum int32 `json:"playerNum"`
+	Fee       int64 `json:"fee"`
 }
 
 type PBContinueTxReq struct {
-	GameId     string   `json:"gameId"`
-	Fee        int64    `json:"fee"`
+	GameId string `json:"gameId"`
+	Fee    int64  `json:"fee"`
 }
 
 type PBQuitTxReq struct {
