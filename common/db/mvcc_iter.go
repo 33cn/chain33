@@ -1,0 +1,59 @@
+package db
+
+import "gitlab.33.cn/chain33/chain33/types"
+
+//mvcc 迭代器版本
+//支持db 原生迭代器接口
+//为了支持快速迭代，我这里采用了复制数据的做法
+type MVCCIter struct {
+	*MVCCHelper
+}
+
+func NewMVCCIter(db DB) *MVCCIter {
+	return &MVCCIter{MVCCHelper: NewMVCC(db)}
+}
+
+func (m *MVCCIter) AddMVCC(kvs []*types.KeyValue, hash []byte, prevHash []byte, version int64) ([]*types.KeyValue, error) {
+	kvlist, err := m.MVCCHelper.AddMVCC(kvs, hash, prevHash, version)
+	if err != nil {
+		return nil, err
+	}
+	//添加last
+	for _, v := range kvs {
+		last := getLastKey(v.Key)
+		kv := &types.KeyValue{Key: last, Value: v.Value}
+		kvlist = append(kvlist, kv)
+	}
+	return kvlist, nil
+}
+
+func (m *MVCCIter) DelMVCC(hash []byte, version int64, strict bool) ([]*types.KeyValue, error) {
+	kvs, err := m.GetDelKVList(version)
+	if err != nil {
+		return nil, err
+	}
+	kvlist, err := m.MVCCHelper.delMVCC(kvs, hash, version, strict)
+	if err != nil {
+		return nil, err
+	}
+	//更新last, 读取上次版本的 lastv值，更新last
+	for _, v := range kvs {
+		if version > 0 {
+			lastv, err := m.GetV(v.Key, version-1)
+			if err == types.ErrNotFound {
+				kvlist = append(kvlist, &types.KeyValue{Key: getLastKey(v.Key)})
+				continue
+			}
+			if err != nil {
+				return nil, err
+			}
+			kvlist = append(kvlist, &types.KeyValue{Key: getLastKey(v.Key), Value: lastv})
+		}
+	}
+	return kvlist, nil
+}
+
+func (m *MVCCIter) Iterator(prefix []byte, reserver bool) Iterator {
+	prefix = getLastKey(prefix)
+	return m.db.Iterator(prefix, reserver)
+}

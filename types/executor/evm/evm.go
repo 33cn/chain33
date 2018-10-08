@@ -67,6 +67,18 @@ func (evm EvmType) DecodePayload(tx *types.Transaction) (interface{}, error) {
 	return &action, nil
 }
 
+func (evm EvmType) GetRealToAddr(tx *types.Transaction) string {
+	if string(tx.Execer) == types.EvmX {
+		return tx.To
+	}
+	var action types.EVMContractAction
+	err := types.Decode(tx.Payload, &action)
+	if err != nil {
+		return tx.To
+	}
+	return tx.To
+}
+
 func (evm EvmType) Amount(tx *types.Transaction) (int64, error) {
 	return 0, nil
 }
