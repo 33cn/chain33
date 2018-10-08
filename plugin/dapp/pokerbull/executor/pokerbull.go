@@ -162,11 +162,6 @@ func calcPBGameStatusKey(status int32, player int32, index int64) []byte {
 	return []byte(key)
 }
 
-func calcPBGameStatusPrefix(status int32) []byte {
-	key := fmt.Sprintf("PBgame-status:%d:", status)
-	return []byte(key)
-}
-
 func calcPBGameStatusAndPlayerPrefix(status int32, player int32) []byte {
 	key := fmt.Sprintf("PBgame-status:%d:%d:", status, player)
 	return []byte(key)
