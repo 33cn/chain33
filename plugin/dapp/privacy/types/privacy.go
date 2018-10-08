@@ -2,6 +2,7 @@ package types
 
 import (
 	"encoding/json"
+	"reflect"
 
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -9,23 +10,34 @@ import (
 var nameX string
 
 //var tlog = log.New("module", name)
+
+// log for privacy
+const (
+
+//TyLogPrivacyFee    = 500
+//TyLogPrivacyInput  = 501
+//TyLogPrivacyOutput = 502
+
+)
+
 var (
 	actionName = map[string]int32{
 		"Public2Privacy":  types.ActionPublic2Privacy,
 		"Privacy2Privacy": types.ActionPrivacy2Privacy,
 		"Privacy2Public":  types.ActionPrivacy2Public,
 	}
+
+	logInfo = map[int64]*types.LogInfo{
+		types.TyLogPrivacyFee:    {reflect.TypeOf(types.ReceiptExecAccountTransfer{}), "LogPrivacyFee"},
+		types.TyLogPrivacyInput:  {reflect.TypeOf(types.PrivacyInput{}), "LogPrivacyInput"},
+		types.TyLogPrivacyOutput: {reflect.TypeOf(types.PrivacyOutput{}), "LogPrivacyOutput"},
+	}
 )
 
-func Init() {
+func init() {
 	nameX = types.ExecName("privacy")
 	// init executor type
-	types.RegistorExecutor("privacy", NewType())
-
-	// init log
-	types.RegistorLog(types.TyLogPrivacyFee, &PrivacyFeeLog{})
-	types.RegistorLog(types.TyLogPrivacyInput, &PrivacyInputLog{})
-	types.RegistorLog(types.TyLogPrivacyOutput, &PrivacyOutputLog{})
+	types.RegistorExecutor(types.PrivacyX, NewType())
 
 	// init query rpc
 	types.RegisterRPCQueryHandle("ShowAmountsOfUTXO", &PrivacyShowAmountsOfUTXO{})
@@ -51,7 +63,7 @@ func (at *PrivacyType) GetName() string {
 }
 
 func (at *PrivacyType) GetLogMap() map[int64]*types.LogInfo {
-	return nil
+	return logInfo
 }
 
 func (c *PrivacyType) GetTypeMap() map[string]int32 {
@@ -99,51 +111,6 @@ func (t PrivacyType) CreateTx(action string, message json.RawMessage) (*types.Tr
 }
 
 type PrivacyFeeLog struct {
-}
-
-func (l PrivacyFeeLog) Name() string {
-	return "LogPrivacyFee"
-}
-
-func (l PrivacyFeeLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp types.ReceiptExecAccountTransfer
-	err := types.Decode(msg, &logTmp)
-	if err != nil {
-		return nil, err
-	}
-	return logTmp, err
-}
-
-type PrivacyInputLog struct {
-}
-
-func (l PrivacyInputLog) Name() string {
-	return "TyLogPrivacyInput"
-}
-
-func (l PrivacyInputLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp types.PrivacyInput
-	err := types.Decode(msg, &logTmp)
-	if err != nil {
-		return nil, err
-	}
-	return logTmp, err
-}
-
-type PrivacyOutputLog struct {
-}
-
-func (l PrivacyOutputLog) Name() string {
-	return "LogPrivacyOutput"
-}
-
-func (l PrivacyOutputLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp types.ReceiptPrivacyOutput
-	err := types.Decode(msg, &logTmp)
-	if err != nil {
-		return nil, err
-	}
-	return logTmp, nil
 }
 
 // query
