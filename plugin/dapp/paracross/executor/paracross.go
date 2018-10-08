@@ -64,11 +64,11 @@ func (c *Paracross) Exec(tx *types.Transaction, index int) (*types.Receipt, erro
 			return nil, errors.Cause(err)
 		}
 		return receipt, nil
-	} else if payload.Ty == pt.ParacrossActionTransfer && payload.GetAssetTransfer() != nil {
+	} else if payload.Ty == pt.ParacrossActionAssetTransfer && payload.GetAssetTransfer() != nil {
 		clog.Debug("Paracross.Exec", "payload.type", payload.Ty, "transfer", "")
 		_, err := c.checkTxGroup(tx, index)
 		if err != nil {
-			clog.Error("ParacrossActionTransfer", "get tx group failed", err, "hash", common.Bytes2Hex(tx.Hash()))
+			clog.Error("ParacrossActionAssetTransfer", "get tx group failed", err, "hash", common.Bytes2Hex(tx.Hash()))
 			return nil, err
 		}
 		a := newAction(c, tx)
@@ -78,11 +78,11 @@ func (c *Paracross) Exec(tx *types.Transaction, index int) (*types.Receipt, erro
 			return nil, errors.Cause(err)
 		}
 		return receipt, nil
-	} else if payload.Ty == pt.ParacrossActionWithdraw && payload.GetAssetWithdraw() != nil {
+	} else if payload.Ty == pt.ParacrossActionAssetWithdraw && payload.GetAssetWithdraw() != nil {
 		clog.Debug("Paracross.Exec", "payload.type", payload.Ty, "withdraw", "")
 		_, err := c.checkTxGroup(tx, index)
 		if err != nil {
-			clog.Error("ParacrossActionWithdraw", "get tx group failed", err, "hash", common.Bytes2Hex(tx.Hash()))
+			clog.Error("ParacrossActionAssetWithdraw", "get tx group failed", err, "hash", common.Bytes2Hex(tx.Hash()))
 			return nil, err
 		}
 		a := newAction(c, tx)
@@ -111,7 +111,7 @@ func (c *Paracross) checkTxGroup(tx *types.Transaction, index int) ([]*types.Tra
 	if tx.GroupCount >= 2 {
 		txs, err := c.GetTxGroup(index)
 		if err != nil {
-			clog.Error("ParacrossActionTransfer", "get tx group failed", err, "hash", common.Bytes2Hex(tx.Hash()))
+			clog.Error("ParacrossActionAssetTransfer", "get tx group failed", err, "hash", common.Bytes2Hex(tx.Hash()))
 			return nil, err
 		}
 		return txs, nil
@@ -245,7 +245,7 @@ func (c *Paracross) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData,
 			//  转入在 commit done 时几率， 因为没有日志里没有当时tx信息
 			var g pt.ParacrossAction
 			err = types.Decode(tx.Payload, &g)
-			if g.Ty == pt.ParacrossActionTransfer {
+			if g.Ty == pt.ParacrossActionAssetTransfer {
 				r, err := c.initLocalAssetTransfer(tx, true, false)
 				if err != nil {
 					return nil, err
@@ -293,13 +293,13 @@ func (c *Paracross) saveLocalParaTxs(tx *types.Transaction, isDel bool) (*types.
 				common.Bytes2Hex(commit.Status.CrossTxHashs[i]))
 			return nil, err
 		}
-		if payload.Ty == pt.ParacrossActionTransfer {
+		if payload.Ty == pt.ParacrossActionAssetTransfer {
 			kv, err := c.updateLocalAssetTransfer(tx, paraTx.Tx, success, isDel)
 			if err != nil {
 				return nil, err
 			}
 			set.KV = append(set.KV, kv)
-		} else if payload.Ty == pt.ParacrossActionWithdraw {
+		} else if payload.Ty == pt.ParacrossActionAssetWithdraw {
 			kv, err := c.initLocalAssetWithdraw(tx, paraTx.Tx, true, success, isDel)
 			if err != nil {
 				return nil, err
@@ -516,7 +516,7 @@ func (c *Paracross) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptDa
 			//  转入在 commit done 时几率， 因为没有日志里没有当时tx信息
 			var g pt.ParacrossAction
 			err = types.Decode(tx.Payload, &g)
-			if g.Ty == pt.ParacrossActionTransfer {
+			if g.Ty == pt.ParacrossActionAssetTransfer {
 				r, err := c.initLocalAssetTransfer(tx, true, true)
 				if err != nil {
 					return nil, err
@@ -588,7 +588,7 @@ func (c *Paracross) allow(tx *types.Transaction, index int) error {
 		if err != nil {
 			return err
 		}
-		if payload.Ty == pt.ParacrossActionTransfer || payload.Ty == pt.ParacrossActionWithdraw {
+		if payload.Ty == pt.ParacrossActionAssetTransfer || payload.Ty == pt.ParacrossActionAssetWithdraw {
 			return nil
 		}
 	}
