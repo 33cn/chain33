@@ -13,7 +13,15 @@ import (
 
 var nameX string
 
-var hlog = log.New("module", "exectype.hashlock")
+var (
+	hlog = log.New("module", "exectype.hashlock")
+
+	actionName = map[string]int32{
+		"Hlock":   HashlockActionLock,
+		"Hsend":   HashlockActionSend,
+		"Hunlock": HashlockActionUnlock,
+	}
+)
 
 func init() {
 	nameX = types.ExecName("hashlock")
@@ -89,6 +97,10 @@ func (hashlock *HashlockType) CreateTx(action string, message json.RawMessage) (
 		return nil, types.ErrNotSupport
 	}
 	return tx, nil
+}
+
+func (hashlock *HashlockType) GetTypeMap() map[string]int32 {
+	return actionName
 }
 
 type CoinsDepositLog struct {
