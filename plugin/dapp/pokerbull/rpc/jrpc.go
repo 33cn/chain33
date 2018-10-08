@@ -21,8 +21,8 @@ func (c *Jrpc) PokerBullStartTx(parm *pb.PBStartTxReq, result *interface{}) erro
 		return types.ErrInvalidParam
 	}
 	head := &pb.PBGameStart{
-		Value:       parm.Value,
-		PlayerNum:   parm.PlayerNum,
+		Value:     parm.Value,
+		PlayerNum: parm.PlayerNum,
 	}
 	reply, err := c.cli.Start(context.Background(), head)
 	if err != nil {
