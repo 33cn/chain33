@@ -479,3 +479,48 @@ func (a *Paracross) CrossLimits(tx *types.Transaction, index int) bool {
 	return len(titles) <= 1
 }
 */
+
+func (a *action) Transfer(transfer *types.AssetsTransfer, tx *types.Transaction, index int) (*types.Receipt, error) {
+	clog.Debug("Paracross.Exec Transfer", "symbol", transfer.Cointoken, "amount",
+		transfer.Amount, "to", tx.To)
+	from := tx.From()
+
+	acc, err := account.NewAccountDB(types.ParaX, transfer.Cointoken, a.db)
+	if err != nil {
+		clog.Error("Transfer failed", "err", err)
+	}
+	//to 是 execs 合约地址
+	if dapp.IsDriverAddress(tx.GetRealToAddr(), a.height) {
+		return acc.TransferToExec(from, tx.GetRealToAddr(), transfer.Amount)
+	}
+	return acc.Transfer(from, tx.GetRealToAddr(), transfer.Amount)
+}
+
+func (a *action) Withdraw(withdraw *types.AssetsWithdraw, tx *types.Transaction, index int) (*types.Receipt, error) {
+	clog.Debug("Paracross.Exec Withdraw", "symbol", withdraw.Cointoken, "amount",
+		withdraw.Amount, "to", tx.To)
+	acc, err := account.NewAccountDB(types.ParaX, withdraw.Cointoken, a.db)
+	if err != nil {
+		clog.Error("Withdraw failed", "err", err)
+	}
+	if dapp.IsDriverAddress(tx.GetRealToAddr(), a.height) || dapp.ExecAddress(withdraw.ExecName) == tx.GetRealToAddr() {
+		return acc.TransferWithdraw(tx.From(), tx.GetRealToAddr(), withdraw.Amount)
+	}
+	return nil, types.ErrActionNotSupport
+}
+
+func (a *action) TransferToExec(transfer *types.AssetsTransferToExec, tx *types.Transaction, index int) (*types.Receipt, error) {
+	clog.Debug("Paracross.Exec TransferToExec", "symbol", transfer.Cointoken, "amount",
+		transfer.Amount, "to", tx.To)
+	from := tx.From()
+
+	acc, err := account.NewAccountDB(types.ParaX, transfer.Cointoken, a.db)
+	if err != nil {
+		clog.Error("Transfer failed", "err", err)
+	}
+	//to 是 execs 合约地址
+	if dapp.IsDriverAddress(tx.GetRealToAddr(), a.height) ||  dapp.ExecAddress(transfer.ExecName)== tx.GetRealToAddr()  {
+		return acc.TransferToExec(from, tx.GetRealToAddr(), transfer.Amount)
+	}
+	return nil, types.ErrActionNotSupport
+}
