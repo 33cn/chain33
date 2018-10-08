@@ -99,7 +99,7 @@ func (m ParacrossType) CreateTx(action string, message json.RawMessage) (*types.
 			glog.Error("CreateTx", "Error", err)
 			return nil, types.ErrInputPara
 		}
-		return pt.CreateRawTransferTx(&param)
+		return pt.CreateRawAssetTransferTx(&param)
 
 	}
 

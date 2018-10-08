@@ -180,7 +180,7 @@ func createCrossParaTx(to string, amount int64) (*types.Transaction, error) {
 		TokenSymbol: "",
 		ExecName:    Title + types.ParaX,
 	}
-	tx, err := pt.CreateRawTransferTx(&param)
+	tx, err := pt.CreateRawAssetTransferTx(&param)
 
 	return tx, err
 }
