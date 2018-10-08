@@ -488,6 +488,7 @@ func (a *action) Transfer(transfer *types.AssetsTransfer, tx *types.Transaction,
 	acc, err := account.NewAccountDB(types.ParaX, transfer.Cointoken, a.db)
 	if err != nil {
 		clog.Error("Transfer failed", "err", err)
+		return nil, err
 	}
 	//to 是 execs 合约地址
 	if dapp.IsDriverAddress(tx.GetRealToAddr(), a.height) {
@@ -502,6 +503,7 @@ func (a *action) Withdraw(withdraw *types.AssetsWithdraw, tx *types.Transaction,
 	acc, err := account.NewAccountDB(types.ParaX, withdraw.Cointoken, a.db)
 	if err != nil {
 		clog.Error("Withdraw failed", "err", err)
+		return nil, err
 	}
 	if dapp.IsDriverAddress(tx.GetRealToAddr(), a.height) || dapp.ExecAddress(withdraw.ExecName) == tx.GetRealToAddr() {
 		return acc.TransferWithdraw(tx.From(), tx.GetRealToAddr(), withdraw.Amount)
@@ -517,6 +519,7 @@ func (a *action) TransferToExec(transfer *types.AssetsTransferToExec, tx *types.
 	acc, err := account.NewAccountDB(types.ParaX, transfer.Cointoken, a.db)
 	if err != nil {
 		clog.Error("TransferToExec failed", "err", err)
+		return nil, err
 	}
 	//to 是 execs 合约地址
 	if dapp.IsDriverAddress(tx.GetRealToAddr(), a.height) ||  dapp.ExecAddress(transfer.ExecName)== tx.GetRealToAddr()  {
