@@ -14,9 +14,13 @@ import (
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
+	bwty "gitlab.33.cn/chain33/chain33/plugin/dapp/blackwhite/types"
+	pt "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/types"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
+	// TODO: 暂时将插件中的类型引用起来，后续需要修改
+	hlt "gitlab.33.cn/chain33/chain33/plugin/dapp/hashlock/types"
 )
 
 func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
@@ -86,10 +90,10 @@ func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
 			}
 		}
 	case types.HashlockX:
-		var action types.HashlockAction
+		var action hlt.HashlockAction
 		bt, _ := common.FromHex(tx.RawPayload)
 		types.Decode(bt, &action)
-		if pl, ok := action.Value.(*types.HashlockAction_Hlock); ok {
+		if pl, ok := action.Value.(*hlt.HashlockAction_Hlock); ok {
 			amt := float64(pl.Hlock.Amount) / float64(types.Coin)
 			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
 			result.Payload = &HashlockLockCLI{
@@ -275,6 +279,7 @@ func constructAccFromLog(l *jsonrpc.ReceiptLogResult, key string) *types.Account
 	}
 }
 
+//这里需要重构
 func decodeLog(rlog jsonrpc.ReceiptDataResult) *ReceiptData {
 	rd := &ReceiptData{Ty: rlog.Ty, TyName: rlog.TyName}
 
@@ -288,9 +293,10 @@ func decodeLog(rlog jsonrpc.ReceiptDataResult) *ReceiptData {
 			types.TyLogTradeBuyLimit, types.TyLogTradeSellMarket, types.TyLogTradeBuyRevoke,
 			types.TyLogRelayCreate, types.TyLogRelayRevokeCreate, types.TyLogRelayAccept, types.TyLogRelayRevokeAccept,
 			types.TyLogRelayRcvBTCHead, types.TyLogRelayConfirmTx, types.TyLogRelayFinishTx,
-			types.TyLogBlackwhiteCreate, types.TyLogBlackwhiteShow, types.TyLogBlackwhitePlay,
-			types.TyLogBlackwhiteTimeout, types.TyLogBlackwhiteDone, types.TyLogBlackwhiteLoopInfo,
-			types.TyLogLotteryCreate, types.TyLogLotteryBuy, types.TyLogLotteryDraw, types.TyLogLotteryClose:
+			bwty.TyLogBlackwhiteCreate, bwty.TyLogBlackwhiteShow, bwty.TyLogBlackwhitePlay,
+			bwty.TyLogBlackwhiteTimeout, bwty.TyLogBlackwhiteDone, bwty.TyLogBlackwhiteLoopInfo,
+			types.TyLogLotteryCreate, types.TyLogLotteryBuy, types.TyLogLotteryDraw, types.TyLogLotteryClose,
+			pt.TyLogParacrossMiner, pt.TyLogParaAssetTransfer, pt.TyLogParaAssetWithdraw, pt.TyLogParacrossCommit:
 
 			rl.Log = l.Log
 		//case 2, 3, 5, 11:

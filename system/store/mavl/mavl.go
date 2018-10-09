@@ -23,8 +23,10 @@ func DisableLog() {
 
 type Store struct {
 	*drivers.BaseStore
-	trees map[string]*mavl.Tree
-	cache *lru.Cache
+	trees            map[string]*mavl.Tree
+	cache            *lru.Cache
+	enableMavlPrefix bool
+	enableMVCC       bool
 }
 
 func init() {
@@ -33,8 +35,11 @@ func init() {
 
 func New(cfg *types.Store) queue.Module {
 	bs := drivers.NewBaseStore(cfg)
-	mavls := &Store{bs, make(map[string]*mavl.Tree), nil}
+	mavls := &Store{bs, make(map[string]*mavl.Tree), nil, cfg.EnableMavlPrefix, cfg.EnableMVCC}
 	mavls.cache, _ = lru.New(10)
+	//使能前缀mavl以及MVCC
+	mavl.EnableMavlPrefix(mavls.enableMavlPrefix)
+	mavl.EnableMVCC(mavls.enableMVCC)
 	bs.SetChild(mavls)
 	return mavls
 }
@@ -44,9 +49,8 @@ func (mavls *Store) Close() {
 	mlog.Info("store mavl closed")
 }
 
-func (mavls *Store) Set(datas *types.StoreSet, sync bool) []byte {
-	hash := mavl.SetKVPair(mavls.GetDB(), datas, sync)
-	return hash
+func (mavls *Store) Set(datas *types.StoreSet, sync bool) ([]byte, error) {
+	return mavl.SetKVPair(mavls.GetDB(), datas, sync)
 }
 
 func (mavls *Store) Get(datas *types.StoreGet) [][]byte {
@@ -77,14 +81,17 @@ func (mavls *Store) Get(datas *types.StoreGet) [][]byte {
 	return values
 }
 
-func (mavls *Store) MemSet(datas *types.StoreSet, sync bool) []byte {
+func (mavls *Store) MemSet(datas *types.StoreSet, sync bool) ([]byte, error) {
 	if len(datas.KV) == 0 {
 		mlog.Info("store mavl memset,use preStateHash as stateHash for kvset is null")
 		mavls.trees[string(datas.StateHash)] = nil
-		return datas.StateHash
+		return datas.StateHash, nil
 	}
 	tree := mavl.NewTree(mavls.GetDB(), sync)
-	tree.Load(datas.StateHash)
+	err := tree.Load(datas.StateHash)
+	if err != nil {
+		return nil, err
+	}
 	for i := 0; i < len(datas.KV); i++ {
 		tree.Set(datas.KV[i].Key, datas.KV[i].Value)
 	}
@@ -93,7 +100,7 @@ func (mavls *Store) MemSet(datas *types.StoreSet, sync bool) []byte {
 	if len(mavls.trees) > 1000 {
 		mlog.Error("too many trees in cache")
 	}
-	return hash
+	return hash, nil
 }
 
 func (mavls *Store) Commit(req *types.ReqHash) ([]byte, error) {

@@ -1,4 +1,4 @@
-// +build go1.9 go1.10
+// +build go1.8
 
 package main
 
@@ -122,6 +122,9 @@ func main() {
 	//set maxprocs
 	runtime.GOMAXPROCS(cpuNum)
 
+	// SaveTokenTxList
+	types.SetSaveTokenTxList(cfg.Exec.SaveTokenTxList)
+
 	//check mvcc switch，if use kvmvcc then cfg.Exec.EnableMVCC should be always false.
 	if cfg.Store.Name == "kvmvcc" {
 		if cfg.Exec.EnableMVCC {
@@ -149,6 +152,10 @@ func main() {
 	exec.SetQueueClient(q.Client())
 
 	log.Info("loading store module")
+	//是否开启MVCC不一样的话以执行器开启为准
+	if cfg.Exec.EnableMVCC != cfg.Store.EnableMVCC {
+		cfg.Store.EnableMVCC = cfg.Exec.EnableMVCC
+	}
 	s := store.New(cfg.Store)
 	s.SetQueueClient(q.Client())
 

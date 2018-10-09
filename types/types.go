@@ -10,6 +10,7 @@ import (
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
+	"gitlab.33.cn/chain33/chain33/types/jsonpb"
 
 	_ "gitlab.33.cn/chain33/chain33/common/crypto/ecdsa"
 	_ "gitlab.33.cn/chain33/chain33/common/crypto/ed25519"
@@ -166,6 +167,10 @@ func Decode(data []byte, msg proto.Message) error {
 	return proto.Unmarshal(data, msg)
 }
 
+func JsonToPB(data []byte, msg proto.Message) error {
+	return jsonpb.Unmarshal(bytes.NewReader(data), msg)
+}
+
 func (leafnode *LeafNode) Hash() []byte {
 	data, err := proto.Marshal(leafnode)
 	if err != nil {
@@ -175,10 +180,21 @@ func (leafnode *LeafNode) Hash() []byte {
 }
 
 func (innernode *InnerNode) Hash() []byte {
+	rightHash := innernode.RightHash
+	leftHash := innernode.LeftHash
+	hashLen := len(common.Hash{})
+	if len(innernode.RightHash) > hashLen {
+		innernode.RightHash = innernode.RightHash[len(innernode.RightHash)-hashLen:]
+	}
+	if len(innernode.LeftHash) > hashLen {
+		innernode.LeftHash = innernode.LeftHash[len(innernode.LeftHash)-hashLen:]
+	}
 	data, err := proto.Marshal(innernode)
 	if err != nil {
 		panic(err)
 	}
+	innernode.RightHash = rightHash
+	innernode.LeftHash = leftHash
 	return common.Sha256(data)
 }
 
@@ -244,7 +260,7 @@ type ReceiptLogResult struct {
 	RawLog string      `json:"rawlog"`
 }
 
-func (r *ReceiptData) DecodeReceiptLog() (*ReceiptDataResult, error) {
+func (r *ReceiptData) DecodeReceiptLog(execer []byte) (*ReceiptDataResult, error) {
 	result := &ReceiptDataResult{Ty: r.GetTy()}
 	switch r.Ty {
 	case 0:
@@ -266,7 +282,7 @@ func (r *ReceiptData) DecodeReceiptLog() (*ReceiptDataResult, error) {
 			return nil, err
 		}
 
-		logType := LoadLog(int64(l.Ty))
+		logType := LoadLog(execer, int64(l.Ty))
 		if logType == nil {
 			//tlog.Error("DecodeReceiptLog:", "Faile to decodeLog with type value logtype", l.Ty)
 			return nil, ErrLogType
@@ -280,8 +296,8 @@ func (r *ReceiptData) DecodeReceiptLog() (*ReceiptDataResult, error) {
 	return result, nil
 }
 
-func (r *ReceiptData) OutputReceiptDetails(logger log.Logger) {
-	rds, err := r.DecodeReceiptLog()
+func (r *ReceiptData) OutputReceiptDetails(execer []byte, logger log.Logger) {
+	rds, err := r.DecodeReceiptLog(execer)
 	if err == nil {
 		logger.Debug("receipt decode", "receipt data", rds)
 		for _, rdl := range rds.Logs {
@@ -360,4 +376,9 @@ func GetTxTimeInterval() time.Duration {
 
 type ParaCrossTx interface {
 	IsParaCrossTx() bool
+}
+
+func PBToJson(r Message) (string, error) {
+	encode := &jsonpb.Marshaler{EmitDefaults: true}
+	return encode.MarshalToString(r)
 }

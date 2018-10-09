@@ -538,3 +538,7 @@ message PrivacySignatureParam {
     repeated UTXOBasics utxobasics      = 2;
     repeated RealKeyInput realKeyInputs = 3;
 }
+
+message ReqAccountList {
+    bool withoutBalance = 1;
+}

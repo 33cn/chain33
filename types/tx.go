@@ -505,7 +505,7 @@ func (tx *Transaction) Json() string {
 //解析tx的payload获取amount值
 func (tx *Transaction) Amount() (int64, error) {
 	// TODO 原来有很多执行器 在这里没有代码， 用默认 0, nil 先
-	exec := LoadExecutor(string(tx.Execer))
+	exec := LoadExecutorType(string(tx.Execer))
 	if exec == nil {
 		return 0, nil
 	}
@@ -514,7 +514,7 @@ func (tx *Transaction) Amount() (int64, error) {
 
 //解析tx的payload获取real to值
 func (tx *Transaction) GetRealToAddr() string {
-	exec := LoadExecutor(string(tx.Execer))
+	exec := LoadExecutorType(string(tx.Execer))
 	if exec == nil {
 		return tx.To
 	}
@@ -523,7 +523,7 @@ func (tx *Transaction) GetRealToAddr() string {
 
 //解析tx的payload获取view from to 值
 func (tx *Transaction) GetViewFromToAddr() (string, string) {
-	exec := LoadExecutor(string(tx.Execer))
+	exec := LoadExecutorType(string(tx.Execer))
 	if exec == nil {
 		return tx.From(), tx.To
 	}
@@ -533,11 +533,11 @@ func (tx *Transaction) GetViewFromToAddr() (string, string) {
 //获取tx交易的Actionname
 func (tx *Transaction) ActionName() string {
 	execName := string(tx.Execer)
-	exec := LoadExecutor(execName)
+	exec := LoadExecutorType(execName)
 	if exec == nil {
 		//action name 不会影响系统状态，主要是做显示使用
 		realname := GetRealExecName(tx.Execer)
-		exec = LoadExecutor(string(realname))
+		exec = LoadExecutorType(string(realname))
 		if exec == nil {
 			return "unknown"
 		}

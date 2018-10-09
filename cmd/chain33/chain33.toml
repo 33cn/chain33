@@ -75,6 +75,8 @@ name="mavl"
 driver="leveldb"
 dbPath="datadir/mavltree"
 dbCache=128
+enableMavlPrefix=false
+enableMVCC=false
 
 [wallet]
 minFee=100000
@@ -90,6 +92,8 @@ isFree=false
 minExecFee=100000
 enableStat=false
 enableMVCC=false
+alias=["token1:token","token2:token","token3:token"]
+saveTokenTxList=false
 
 [auth]
 # 是否启用证书验证和签名

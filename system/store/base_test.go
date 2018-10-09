@@ -11,38 +11,40 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var store_cfg0 = &types.Store{"base_test", "leveldb", "/tmp/base_test0", 100}
-var store_cfg1 = &types.Store{"base_test", "leveldb", "/tmp/base_test1", 100}
+var store_cfg0 = &types.Store{"base_test", "leveldb", "/tmp/base_test0", 100, false, false, false}
+var store_cfg1 = &types.Store{"base_test", "leveldb", "/tmp/base_test1", 100, false, false, false}
 
 type storeChild struct {
 }
 
-func (s *storeChild) Set(datas *types.StoreSet, sync bool) []byte {
-	return []byte("")
+func (s *storeChild) Set(datas *types.StoreSet, sync bool) ([]byte, error) {
+	return []byte{}, nil
 }
 
 func (s *storeChild) Get(datas *types.StoreGet) [][]byte {
 	return [][]byte{}
 }
 
-func (s *storeChild) MemSet(datas *types.StoreSet, sync bool) []byte {
-	return []byte("")
+func (s *storeChild) MemSet(datas *types.StoreSet, sync bool) ([]byte, error) {
+	return []byte{}, nil
 }
 
 func (s *storeChild) Commit(hash *types.ReqHash) ([]byte, error) {
-	return []byte(""), nil
+	return []byte{}, nil
 }
 
 func (s *storeChild) Rollback(req *types.ReqHash) ([]byte, error) {
-	return []byte(""), nil
+	return []byte{}, nil
 }
 
 func (s *storeChild) Del(req *types.StoreDel) ([]byte, error) {
-	return []byte(""), nil
+	return []byte{}, nil
 }
+
 func (s *storeChild) IterateRangeByStateHash(statehash []byte, start []byte, end []byte, ascending bool, fn func(key, value []byte) bool) {
 
 }
+
 func (s *storeChild) ProcEvent(msg queue.Message) {}
 
 func init() {
@@ -76,7 +78,7 @@ func TestBaseStore_Queue(t *testing.T) {
 	kv = append(kv, &types.KeyValue{[]byte("k1"), []byte("v1")})
 	kv = append(kv, &types.KeyValue{[]byte("k2"), []byte("v2")})
 	datas := &types.StoreSet{
-		[]byte("1st"),
+		EmptyRoot[:],
 		kv,
 		0}
 	set := &types.StoreSetWithSync{datas, true}
@@ -88,7 +90,7 @@ func TestBaseStore_Queue(t *testing.T) {
 	assert.NotNil(t, resp)
 	assert.Equal(t, int64(types.EventStoreSetReply), resp.Ty)
 
-	get := &types.StoreGet{[]byte("1st"), [][]byte{}}
+	get := &types.StoreGet{EmptyRoot[:], [][]byte{}}
 	msg = queueClinet.NewMessage("store", types.EventStoreGet, get)
 	err = queueClinet.Send(msg, true)
 	assert.Nil(t, err)
@@ -106,7 +108,7 @@ func TestBaseStore_Queue(t *testing.T) {
 	assert.NotNil(t, resp)
 	assert.Equal(t, int64(types.EventStoreSetReply), resp.Ty)
 
-	commit := &types.ReqHash{[]byte("1st")}
+	commit := &types.ReqHash{EmptyRoot[:]}
 	msg = queueClinet.NewMessage("store", types.EventStoreCommit, commit)
 	err = queueClinet.Send(msg, true)
 	assert.Nil(t, err)
@@ -115,7 +117,7 @@ func TestBaseStore_Queue(t *testing.T) {
 	assert.NotNil(t, resp)
 	assert.Equal(t, int64(types.EventStoreCommit), resp.Ty)
 
-	rollback := &types.ReqHash{[]byte("1st")}
+	rollback := &types.ReqHash{EmptyRoot[:]}
 	msg = queueClinet.NewMessage("store", types.EventStoreRollback, rollback)
 	err = queueClinet.Send(msg, true)
 	assert.Nil(t, err)
@@ -124,7 +126,7 @@ func TestBaseStore_Queue(t *testing.T) {
 	assert.NotNil(t, resp)
 	assert.Equal(t, int64(types.EventStoreRollback), resp.Ty)
 
-	totalCoins := &types.IterateRangeByStateHash{[]byte("1st"), []byte(""), []byte(""), 100}
+	totalCoins := &types.IterateRangeByStateHash{EmptyRoot[:], []byte(""), []byte(""), 100}
 	msg = queueClinet.NewMessage("store", types.EventStoreGetTotalCoins, totalCoins)
 	err = queueClinet.Send(msg, true)
 	assert.Nil(t, err)
