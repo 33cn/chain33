@@ -18,9 +18,9 @@ import (
 	hashlocktype "gitlab.33.cn/chain33/chain33/types/executor/hashlock"
 	//lotterytype "gitlab.33.cn/chain33/chain33/types/executor/lottery"
 	lotterytype "gitlab.33.cn/chain33/chain33/plugin/dapp/lottery/types"
+	tradetype "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/types"
 	retrievetype "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
 	tokentype "gitlab.33.cn/chain33/chain33/types/executor/token"
-	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
 )
 
 //提供系统rpc接口

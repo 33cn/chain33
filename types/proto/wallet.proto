@@ -4,7 +4,6 @@ import "transaction.proto";
 import "blockchain.proto";
 import "account.proto";
 import "executor.proto";
-import "executorTrade.proto";
 
 package types;
 option go_package = "gitlab.33.cn/chain33/chain33/types";
@@ -206,21 +205,6 @@ message ReqTokenRevokeCreate {
     string revoker_addr = 1;
     string symbol       = 2;
     string owner_addr   = 3;
-}
-
-message ReqSellToken {
-    TradeForSell sell  = 1;
-    string       owner = 2;
-}
-
-message ReqBuyToken {
-    TradeForBuy buy   = 1;
-    string      buyer = 2;
-}
-
-message ReqRevokeSell {
-    TradeForRevokeSell revoke = 1;
-    string             owner  = 2;
 }
 
 message ReqModifyConfig {
