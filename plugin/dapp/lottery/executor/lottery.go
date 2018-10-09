@@ -2,6 +2,7 @@ package executor
 
 import (
 	"reflect"
+	"sort"
 
 	log "github.com/inconshreveable/log15"
 	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/lottery/types"
@@ -95,7 +96,7 @@ func (lott *Lottery) findLotteryDrawRecord(key []byte) (*pty.LotteryDrawRecord, 
 func (lott *Lottery) saveLotteryBuy(lotterylog *pty.ReceiptLottery, txId string) (kvs []*types.KeyValue) {
 	key := calcLotteryBuyKey(lotterylog.LotteryId, lotterylog.Addr, lotterylog.Round, txId)
 	kv := &types.KeyValue{}
-	record := &pty.LotteryBuyRecord{lotterylog.Number, lotterylog.Amount, lotterylog.Round}
+	record := &pty.LotteryBuyRecord{lotterylog.Number, lotterylog.Amount, lotterylog.Round, 0}
 	kv = &types.KeyValue{key, types.Encode(record)}
 
 	kvs = append(kvs, kv)
@@ -110,10 +111,46 @@ func (lott *Lottery) deleteLotteryBuy(lotterylog *pty.ReceiptLottery, txId strin
 	return kvs
 }
 
+func (lott *Lottery) updateLotteryBuy(lotterylog *pty.ReceiptLottery, isAdd bool) (kvs []*types.KeyValue) {
+	if lotterylog.UpdateInfo != nil {
+		llog.Debug("updateLotteryBuy")
+		buyInfo := lotterylog.UpdateInfo.BuyInfo
+		//sort for map
+		addrkeys := make([]string, len(buyInfo))
+		i := 0
+
+		for addr := range buyInfo {
+			addrkeys[i] = addr
+			i++
+		}
+		sort.Strings(addrkeys)
+		//update old record
+		for _, addr := range addrkeys {
+			for _, updateRec := range buyInfo[addr].Records {
+				//find addr, txhash
+				key := calcLotteryBuyKey(lotterylog.LotteryId, addr, lotterylog.Round, updateRec.TxHash)
+				kv := &types.KeyValue{}
+				record := &pty.LotteryBuyRecord{updateRec.Number, updateRec.Amount, lotterylog.Round, 0}
+				if isAdd {
+					llog.Error("updateLotteryBuy update key")
+					record = &pty.LotteryBuyRecord{updateRec.Number, updateRec.Amount, lotterylog.Round, updateRec.Type}
+				}
+
+				kv = &types.KeyValue{key, types.Encode(record)}
+
+				kvs = append(kvs, kv)
+
+			}
+		}
+		return kvs
+	}
+	return kvs
+}
+
 func (lott *Lottery) saveLotteryDraw(lotterylog *pty.ReceiptLottery) (kvs []*types.KeyValue) {
 	key := calcLotteryDrawKey(lotterylog.LotteryId, lotterylog.Round)
 	kv := &types.KeyValue{}
-	record := &pty.LotteryDrawRecord{lotterylog.LuckyNumber, lotterylog.Round}
+	record := &pty.LotteryDrawRecord{lotterylog.LuckyNumber, lotterylog.Round, lotterylog.Time, lotterylog.TxHash}
 	kv = &types.KeyValue{key, types.Encode(record)}
 	kvs = append(kvs, kv)
 	return kvs
