@@ -51,6 +51,7 @@ func (selldb *sellDB) getSellLogs(tradeType int32, txhash string) *types.Receipt
 		"",
 		txhash,
 		selldb.Height,
+		selldb.AssetExec,
 	}
 	if types.TyLogTradeSellLimit == tradeType {
 		receiptTrade := &types.ReceiptTradeSell{base}
@@ -80,6 +81,7 @@ func (selldb *sellDB) getBuyLogs(buyerAddr string, boardlotcnt int64, txhash str
 		selldb.SellID,
 		txhash,
 		selldb.Height,
+		selldb.AssetExec,
 	}
 
 	receipt := &types.ReceiptTradeBuyMarket{base}
@@ -170,6 +172,7 @@ func (buydb *buyDB) getBuyLogs(tradeType int32, txhash string) *types.ReceiptLog
 		"",
 		txhash,
 		buydb.Height,
+		buydb.AssetExec,
 	}
 	if types.TyLogTradeBuyLimit == tradeType {
 		receiptTrade := &types.ReceiptTradeBuyLimit{base}
@@ -217,6 +220,7 @@ func (buydb *buyDB) getSellLogs(sellerAddr string, sellID string, boardlotCnt in
 		buydb.BuyID,
 		txhash,
 		buydb.Height,
+		buydb.AssetExec,
 	}
 	receiptSellMarket := &types.ReceiptSellMarket{Base: base}
 	log.Log = types.Encode(receiptSellMarket)
@@ -244,6 +248,11 @@ func newTradeAction(t *trade, tx *types.Transaction) *tradeAction {
 func (action *tradeAction) tradeSell(sell *types.TradeForSell) (*types.Receipt, error) {
 	if sell.TotalBoardlot < 0 || sell.PricePerBoardlot < 0 || sell.MinBoardlot < 0 || sell.AmountPerBoardlot < 0 {
 		return nil, types.ErrInputPara
+	}
+	if types.IsMatchFork(0, ForkSupportMorkAsset) {
+		if sell.AssetExec == "" || sell.TokenSymbol == "" {
+			return nil, types.ErrInputPara
+		}
 	}
 
 	tokenAccDB, err := account.NewAccountDB("token", sell.TokenSymbol, action.db)
@@ -274,6 +283,7 @@ func (action *tradeAction) tradeSell(sell *types.TradeForSell) (*types.Receipt, 
 		calcTokenSellID(action.txhash),
 		types.TradeOrderStatusOnSale,
 		action.height,
+		sell.AssetExec,
 	}
 
 	tokendb := newSellDB(sellOrder)
@@ -442,6 +452,7 @@ func (action *tradeAction) tradeBuyLimit(buy *types.TradeForBuyLimit) (*types.Re
 		calcTokenBuyID(action.txhash),
 		types.TradeOrderStatusOnBuy,
 		action.height,
+		buy.AssetExec,
 	}
 
 	tokendb := newBuyDB(buyOrder)
