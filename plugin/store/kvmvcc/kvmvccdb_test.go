@@ -291,6 +291,179 @@ func BenchmarkGet(b *testing.B) {
 	fmt.Println("kvmvcc BenchmarkGet cost time is", end.Sub(start), "num is", b.N)
 }
 
+
+func BenchmarkStoreGetKvs4N(b *testing.B) {
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(b, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+
+	var store_cfg = newStoreCfg(dir)
+	store := New(store_cfg).(*KVMVCCStore)
+	assert.NotNil(b, store)
+
+	var kv []*types.KeyValue
+	var key string
+	var value string
+	var keys [][]byte
+
+	kvnum := 30
+	for i := 0; i < kvnum; i++ {
+		key = GetRandomString(MaxKeylenth)
+		value = fmt.Sprintf("v%d", i)
+		keys = append(keys, []byte(string(key)))
+		kv = append(kv, &types.KeyValue{[]byte(string(key)), []byte(string(value))})
+	}
+	datas := &types.StoreSet{
+		drivers.EmptyRoot[:],
+		kv,
+		0}
+	hash, err := store.Set(datas, true)
+	assert.Nil(b, err)
+	getData := &types.StoreGet{
+		hash,
+		keys}
+
+	start := time.Now()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		values := store.Get(getData)
+		assert.Len(b, values, kvnum)
+	}
+
+	end := time.Now()
+	fmt.Println("kvmvcc BenchmarkStoreGetKvs4N cost time is", end.Sub(start), "num is", b.N)
+
+	b.StopTimer()
+}
+
+func BenchmarkStoreGetKvsForNN(b *testing.B) {
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(b, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+
+	var store_cfg = newStoreCfg(dir)
+	store := New(store_cfg).(*KVMVCCStore)
+	assert.NotNil(b, store)
+
+	var kv []*types.KeyValue
+	var key string
+	var value string
+	var keys [][]byte
+
+	for i := 0; i < 30; i++ {
+		key = GetRandomString(MaxKeylenth)
+		value = fmt.Sprintf("v%d", i)
+		keys = append(keys, []byte(string(key)))
+		kv = append(kv, &types.KeyValue{[]byte(string(key)), []byte(string(value))})
+	}
+	datas := &types.StoreSet{
+		drivers.EmptyRoot[:],
+		kv,
+		0}
+
+	var hashes [][]byte
+	for i := 0; i < b.N; i++ {
+		datas.Height = int64(i)
+		value = fmt.Sprintf("vv%d", i)
+		for j := 0; j < 30; j++ {
+			datas.KV[j].Value = []byte(value)
+		}
+		hash, err := store.MemSet(datas, true)
+		assert.Nil(b, err)
+		req := &types.ReqHash{
+			Hash: hash,
+		}
+		_, err = store.Commit(req)
+		assert.NoError(b, err, "NoError")
+		datas.StateHash = hash
+		hashes = append(hashes, hash)
+	}
+
+	start := time.Now()
+	b.ResetTimer()
+
+	getData := &types.StoreGet{
+		hashes[0],
+		keys}
+
+	for i := 0; i < b.N; i++ {
+		getData.StateHash = hashes[i]
+		store.Get(getData)
+	}
+	end := time.Now()
+	fmt.Println("kvmvcc BenchmarkStoreGetKvsForNN cost time is", end.Sub(start), "num is", b.N)
+	b.StopTimer()
+}
+
+
+func BenchmarkStoreGetKvsFor10000(b *testing.B) {
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(b, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+
+	var store_cfg = newStoreCfg(dir)
+	store := New(store_cfg).(*KVMVCCStore)
+	assert.NotNil(b, store)
+
+	var kv []*types.KeyValue
+	var key string
+	var value string
+	var keys [][]byte
+
+	for i := 0; i < 30; i++ {
+		key = GetRandomString(MaxKeylenth)
+		value = fmt.Sprintf("v%d", i)
+		keys = append(keys, []byte(string(key)))
+		kv = append(kv, &types.KeyValue{[]byte(string(key)), []byte(string(value))})
+	}
+	datas := &types.StoreSet{
+		drivers.EmptyRoot[:],
+		kv,
+		0}
+
+	var hashes [][]byte
+	blocks := 10000
+	times := 10000
+	start1 := time.Now()
+	for i := 0; i < blocks; i++ {
+		datas.Height = int64(i)
+		value = fmt.Sprintf("vv%d", i)
+		for j := 0; j < 30; j++ {
+			datas.KV[j].Value = []byte(value)
+		}
+		hash, err := store.MemSet(datas, true)
+		assert.Nil(b, err)
+		req := &types.ReqHash{
+			Hash: hash,
+		}
+		_, err = store.Commit(req)
+		assert.NoError(b, err, "NoError")
+		datas.StateHash = hash
+		hashes = append(hashes, hash)
+	}
+	end1 := time.Now()
+
+	start := time.Now()
+	b.ResetTimer()
+
+	getData := &types.StoreGet{
+		hashes[0],
+		keys}
+
+	for i := 0; i < times; i++ {
+		getData.StateHash = hashes[i]
+		store.Get(getData)
+	}
+	end := time.Now()
+	fmt.Println("kvmvcc BenchmarkStoreGetKvsFor10000 MemSet&Commit cost time is ", end1.Sub(start1), "blocks is", blocks)
+	fmt.Println("kvmvcc BenchmarkStoreGetKvsFor10000 Get cost time is", end.Sub(start), "num is ", times, ",blocks is ", blocks)
+	b.StopTimer()
+}
+
+
 func BenchmarkGetIter(b *testing.B) {
 	dir, err := ioutil.TempDir("", "example")
 	assert.Nil(b, err)
