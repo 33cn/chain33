@@ -24,7 +24,7 @@ var (
 	ForkV18Relay         int64 = 500000
 	ForkV19TokenPrice    int64 = 300000
 	ForkV20EVMState      int64 = 350000
-	ForkV21Privacy       int64 = MaxHeight
+	ForkV21Privacy       int64 = 950000
 	ForkV22ExecRollback  int64 = 450000
 	ForkV23TxHeight      int64 = MaxHeight
 	ForkV24TxGroupPara   int64 = MaxHeight
