@@ -13,11 +13,11 @@ import (
 	"github.com/stretchr/testify/mock"
 	"gitlab.33.cn/chain33/chain33/client/mocks"
 	"gitlab.33.cn/chain33/chain33/common"
+	hashlocktype "gitlab.33.cn/chain33/chain33/plugin/dapp/hashlock/types"
 	tradetype "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/types"
 	"gitlab.33.cn/chain33/chain33/types"
 	_ "gitlab.33.cn/chain33/chain33/types/executor"
 	evmtype "gitlab.33.cn/chain33/chain33/types/executor/evm"
-	hashlocktype "gitlab.33.cn/chain33/chain33/types/executor/hashlock"
 	retrievetype "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
 	tokentype "gitlab.33.cn/chain33/chain33/types/executor/token"
 )
