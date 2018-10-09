@@ -114,7 +114,7 @@ func (mvccs *KVMVCCStore) Rollback(req *types.ReqHash) ([]byte, error) {
 		return nil, types.ErrHashNotFound
 	}
 
-	klog.Debug("KVMVCCStore Rollback", "hash", common.ToHex(req.Hash))
+	//klog.Debug("KVMVCCStore Rollback", "hash", common.ToHex(req.Hash))
 
 	delete(mvccs.kvsetmap, string(req.Hash))
 	return req.Hash, nil
