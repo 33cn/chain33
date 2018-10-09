@@ -28,6 +28,8 @@ func (l *Lottery) execLocal(tx *types.Transaction, receipt *types.ReceiptData) (
 			} else if item.Ty == types.TyLogLotteryDraw {
 				kv := l.saveLotteryDraw(&lotterylog)
 				set.KV = append(set.KV, kv...)
+				kv = l.updateLotteryBuy(&lotterylog, true)
+				set.KV = append(set.KV, kv...)
 			}
 		}
 	}
