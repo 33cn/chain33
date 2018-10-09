@@ -31,6 +31,8 @@ message TradeForSell {
     int64 starttime = 6;
     int64 stoptime  = 7;
     bool  crowdfund = 8;
+    // 资产来源
+    string assetExec = 9;
 }
 
 // 购买者发起交易用来购买token持有者之前挂单出售的token
@@ -52,6 +54,7 @@ message TradeForBuyLimit {
     int64  minBoardlot       = 3;
     int64  pricePerBoardlot  = 4;
     int64  totalBoardlot     = 5;
+     string assetExec = 6;
 }
 
 // 现价卖单
@@ -84,6 +87,7 @@ message SellOrder {
     string sellID = 11;
     int32  status = 12;
     int64  height = 13;
+    string assetExec = 14;
 }
 
 // 限价买单数据库记录
@@ -98,7 +102,10 @@ message BuyLimitOrder {
     string buyID             = 8;
     int32  status            = 9;
     int64  height            = 10;
+    string assetExec = 11;
 }
+
+
 
 // 执行器日志部分
 message ReceiptBuyBase {
@@ -114,6 +121,7 @@ message ReceiptBuyBase {
     string sellID            = 10;
     string txHash            = 11;
     int64  height            = 12;
+    string assetExec         = 13;
 }
 
 message ReceiptSellBase {
@@ -137,6 +145,7 @@ message ReceiptSellBase {
     string buyID  = 13;
     string txHash = 14;
     int64  height = 15;
+    string assetExec = 16;
 }
 
 message ReceiptTradeBuyMarket {
@@ -168,6 +177,7 @@ message ReceiptTradeRevoke {
 message ReqAddrTokens {
     string   addr             = 1;
     int32    status           = 2;
+    // ??
     repeated string token     = 3;
     int32           direction = 4;
     int32           count     = 5;
@@ -208,6 +218,7 @@ message ReplyBuyOrder {
     string txHash            = 11;
     int64  height            = 12;
     string key               = 13;
+    string assetExec = 14;
 }
 
 message ReplySellOrder {
@@ -224,6 +235,7 @@ message ReplySellOrder {
     string txHash            = 11;
     int64  height            = 12;
     string key               = 13;
+    string assetExec = 14;
 }
 
 message ReplySellOrders {
@@ -250,6 +262,7 @@ message ReplyTradeOrder {
     string key               = 13;
     int64  blockTime         = 14;
     bool   isSellOrder       = 15;
+    string assetExec = 16;
 }
 
 message ReplyTradeOrders {
