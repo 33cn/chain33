@@ -292,13 +292,6 @@ const (
 	TicketActionBind    = 17
 )
 
-// hashlock status
-const (
-	HashlockActionLock   = 1
-	HashlockActionSend   = 2
-	HashlockActionUnlock = 3
-)
-
 //norm
 const (
 	NormActionPut = 1

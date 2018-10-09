@@ -19,6 +19,8 @@ import (
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
+	// TODO: 暂时将插件中的类型引用起来，后续需要修改
+	hlt "gitlab.33.cn/chain33/chain33/plugin/dapp/hashlock/types"
 )
 
 func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
@@ -88,10 +90,10 @@ func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
 			}
 		}
 	case types.HashlockX:
-		var action types.HashlockAction
+		var action hlt.HashlockAction
 		bt, _ := common.FromHex(tx.RawPayload)
 		types.Decode(bt, &action)
-		if pl, ok := action.Value.(*types.HashlockAction_Hlock); ok {
+		if pl, ok := action.Value.(*hlt.HashlockAction_Hlock); ok {
 			amt := float64(pl.Hlock.Amount) / float64(types.Coin)
 			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
 			result.Payload = &HashlockLockCLI{

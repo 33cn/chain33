@@ -91,7 +91,12 @@ func (p *privacy) Exec_Privacy2Public(payload *types.Privacy2Public, tx *types.T
 		return nil, types.ErrNotSupport
 	}
 	txhashstr := common.Bytes2Hex(tx.Hash())
-	receipt := &types.Receipt{KV: make([]*types.KeyValue, 0)}
+	coinsAccount := p.GetCoinsAccount()
+	receipt, err := coinsAccount.ExecDeposit(tx.To, address.ExecAddress(string(tx.Execer)), payload.Amount)
+	if err != nil {
+		privacylog.Error("PrivacyTrading Exec", "ActionPrivacy2Public txhash", txhashstr, "ExecDeposit error ", err)
+		return nil, err
+	}
 	privacyInput := payload.Input
 	for _, keyInput := range privacyInput.Keyinput {
 		value := []byte{KeyImageSpentAlready}
