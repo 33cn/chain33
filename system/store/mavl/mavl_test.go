@@ -298,6 +298,7 @@ func BenchmarkStoreGetKvs4N(b *testing.B) {
 
 	b.StopTimer()
 }
+
 //这个用例测试Store.Get接口，一次调用会返回一组kvs(30对kv)，数据构造模拟真实情况,N条数据、N次查询。
 func BenchmarkStoreGetKvsForNN(b *testing.B) {
 	dir, err := ioutil.TempDir("", "example")
@@ -423,7 +424,6 @@ func BenchmarkStoreGetKvsFor10000(b *testing.B) {
 	b.StopTimer()
 }
 
-
 func BenchmarkSet(b *testing.B) {
 	dir, err := ioutil.TempDir("", "example")
 	assert.Nil(b, err)
@@ -526,6 +526,7 @@ func BenchmarkMemSet(b *testing.B) {
 	end := time.Now()
 	fmt.Println("mavl BenchmarkMemSet cost time is", end.Sub(start), "num is", b.N)
 }
+
 //这个用例测试Store.MemSet接口，一次调用保存一组kvs（30对）到数据库中。
 func BenchmarkStoreMemSet(b *testing.B) {
 	dir, err := ioutil.TempDir("", "example")
@@ -648,5 +649,3 @@ func BenchmarkStoreCommit(b *testing.B) {
 	fmt.Println("mavl BenchmarkCommit cost time is", end.Sub(start), "num is", b.N)
 	b.StopTimer()
 }
-
-

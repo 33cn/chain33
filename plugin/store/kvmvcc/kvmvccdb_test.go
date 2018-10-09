@@ -292,7 +292,6 @@ func BenchmarkGet(b *testing.B) {
 	fmt.Println("kvmvcc BenchmarkGet cost time is", end.Sub(start), "num is", b.N)
 }
 
-
 func BenchmarkStoreGetKvs4N(b *testing.B) {
 	dir, err := ioutil.TempDir("", "example")
 	assert.Nil(b, err)
@@ -398,7 +397,6 @@ func BenchmarkStoreGetKvsForNN(b *testing.B) {
 	b.StopTimer()
 }
 
-
 func BenchmarkStoreGetKvsFor10000(b *testing.B) {
 	dir, err := ioutil.TempDir("", "example")
 	assert.Nil(b, err)
@@ -463,7 +461,6 @@ func BenchmarkStoreGetKvsFor10000(b *testing.B) {
 	fmt.Println("kvmvcc BenchmarkStoreGetKvsFor10000 Get cost time is", end.Sub(start), "num is ", times, ",blocks is ", blocks)
 	b.StopTimer()
 }
-
 
 func BenchmarkGetIter(b *testing.B) {
 	dir, err := ioutil.TempDir("", "example")
@@ -628,6 +625,7 @@ func isDirExists(path string) bool {
 
 	panic("not reached")
 }
+
 //一次设定多对kv，测试一次的时间/多少对kv，来算平均一对kv的耗时。
 func BenchmarkMemSet(b *testing.B) {
 	dir, err := ioutil.TempDir("", "example")
@@ -655,9 +653,9 @@ func BenchmarkMemSet(b *testing.B) {
 		0}
 	start := time.Now()
 	b.ResetTimer()
-		hash, err := store.MemSet(datas, true)
-		assert.Nil(b, err)
-		assert.NotNil(b, hash)
+	hash, err := store.MemSet(datas, true)
+	assert.Nil(b, err)
+	assert.NotNil(b, hash)
 	end := time.Now()
 	fmt.Println("kvmvcc BenchmarkMemSet cost time is", end.Sub(start), "num is", b.N)
 }
@@ -700,7 +698,6 @@ func BenchmarkStoreMemSet(b *testing.B) {
 	end := time.Now()
 	fmt.Println("kvmvcc BenchmarkStoreMemSet cost time is", end.Sub(start), "num is", b.N)
 }
-
 
 func BenchmarkCommit(b *testing.B) {
 	dir, err := ioutil.TempDir("", "example")
