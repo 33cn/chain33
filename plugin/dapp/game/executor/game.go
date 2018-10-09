@@ -2,6 +2,7 @@ package executor
 
 import (
 	"fmt"
+	"reflect"
 
 	log "github.com/inconshreveable/log15"
 	gt "gitlab.33.cn/chain33/chain33/plugin/dapp/game/types"
@@ -11,94 +12,39 @@ import (
 
 var glog = log.New("module", "execs.game")
 
-func Init() {
-	drivers.Register(GetName(), NewGame, 0)
+//初始化过程比较重量级，有很多reflact, 所以弄成全局的
+var executorFunList = make(map[string]reflect.Method)
+var executorType = gt.NewType()
+
+func init() {
+	actionFunList := executorType.GetFuncMap()
+	executorFunList = types.ListMethod(&Game{})
+	for k, v := range actionFunList {
+		executorFunList[k] = v
+	}
+}
+
+func Init(name string) {
+	drivers.Register(GetName(), newGame, 0)
 }
 
 type Game struct {
 	drivers.DriverBase
 }
 
-func NewGame() drivers.Driver {
+func newGame() drivers.Driver {
 	t := &Game{}
 	t.SetChild(t)
+	t.SetExecutorType(executorType)
 	return t
 }
 
 func GetName() string {
+	return newGame().GetName()
+}
+
+func (g *Game) GetDriverName() string {
 	return gt.GameX
-}
-
-func (g *Game) GetName() string {
-	return GetName()
-}
-
-func (g *Game) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
-	var action gt.GameAction
-	err := types.Decode(tx.Payload, &action)
-	if err != nil {
-		return nil, err
-	}
-	glog.Debug("exec Game tx=", "tx=", action)
-	actiondb := NewAction(g, tx, index)
-	if action.Ty == gt.GameActionCreate && action.GetCreate() != nil {
-		return actiondb.GameCreate(action.GetCreate())
-	} else if action.Ty == gt.GameActionCancel && action.GetCancel() != nil {
-		return actiondb.GameCancel(action.GetCancel())
-	} else if action.Ty == gt.GameActionClose && action.GetClose() != nil {
-		return actiondb.GameClose(action.GetClose())
-	} else if action.Ty == gt.GameActionMatch && action.GetMatch() != nil {
-		return actiondb.GameMatch(action.GetMatch())
-	}
-	return nil, types.ErrActionNotSupport
-}
-
-func (g *Game) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	set, err := g.DriverBase.ExecLocal(tx, receipt, index)
-	if err != nil {
-		return nil, err
-	}
-	if receipt.GetTy() != types.ExecOk {
-		return set, nil
-	}
-	for i := 0; i < len(receipt.Logs); i++ {
-		item := receipt.Logs[i]
-		//这四个是Game 的log
-		if item.Ty == types.TyLogCreateGame || item.Ty == types.TyLogMatchGame || item.Ty == types.TyLogCloseGame || item.Ty == types.TyLogCancleGame {
-			var Gamelog gt.ReceiptGame
-			err := types.Decode(item.Log, &Gamelog)
-			if err != nil {
-				panic(err) //数据错误了，已经被修改了
-			}
-			kv := g.updateIndex(&Gamelog)
-			set.KV = append(set.KV, kv...)
-		}
-	}
-	return set, nil
-}
-
-func (g *Game) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	set, err := g.DriverBase.ExecDelLocal(tx, receipt, index)
-	if err != nil {
-		return nil, err
-	}
-	if receipt.GetTy() != types.ExecOk {
-		return set, nil
-	}
-	for i := 0; i < len(receipt.Logs); i++ {
-		item := receipt.Logs[i]
-		if item.Ty == types.TyLogCreateGame || item.Ty == types.TyLogMatchGame || item.Ty == types.TyLogCloseGame || item.Ty == types.TyLogCancleGame {
-			var Gamelog gt.ReceiptGame
-			err := types.Decode(item.Log, &Gamelog)
-			if err != nil {
-				panic(err) //数据错误了，已经被修改了
-			}
-			//状态数据库由于默克尔树特性，之前生成的索引无效，故不需要回滚，只回滚localDB
-			kv := g.rollbackIndex(&Gamelog)
-			set.KV = append(set.KV, kv...)
-		}
-	}
-	return set, nil
 }
 
 //更新索引
@@ -149,42 +95,6 @@ func (g *Game) rollbackIndex(log *gt.ReceiptGame) (kvs []*types.KeyValue) {
 		kvs = append(kvs, addGameStatusIndex(gt.GameActionMatch, log.GameId, log.PrevIndex))
 	}
 	return kvs
-}
-func (g *Game) Query(funcName string, params []byte) (types.Message, error) {
-	if funcName == gt.FuncName_QueryGameListByIds {
-		var info gt.QueryGameInfos
-		err := types.Decode(params, &info)
-		if err != nil {
-			return nil, err
-		}
-		return Infos(g.GetStateDB(), &info)
-	} else if funcName == gt.FuncName_QueryGameById {
-		var gameInfo gt.QueryGameInfo
-		err := types.Decode(params, &gameInfo)
-		if err != nil {
-			return nil, err
-		}
-		game, err := readGame(g.GetStateDB(), gameInfo.GetGameId())
-		if err != nil {
-			return nil, err
-		}
-		return &gt.ReplyGame{game}, nil
-	} else if funcName == gt.FuncName_QueryGameListByStatusAndAddr {
-		var q gt.QueryGameListByStatusAndAddr
-		err := types.Decode(params, &q)
-		if err != nil {
-			return nil, err
-		}
-		return List(g.GetLocalDB(), g.GetStateDB(), &q)
-	} else if funcName == gt.FuncName_QueryGameListCount {
-		var q gt.QueryGameListCount
-		err := types.Decode(params, &q)
-		if err != nil {
-			return nil, err
-		}
-		return QueryGameListCount(g.GetStateDB(), &q)
-	}
-	return nil, types.ErrActionNotSupport
 }
 
 func calcGameStatusIndexKey(status int32, index int64) []byte {
@@ -244,4 +154,21 @@ type ReplyGameList struct {
 
 type ReplyGame struct {
 	Game *Game `json:"game"`
+}
+
+func (c *Game) GetPayloadValue() types.Message {
+	return &gt.GameAction{}
+}
+
+func (c *Game) GetFuncMap() map[string]reflect.Method {
+	return executorFunList
+}
+
+func (c *Game) GetTypeMap() map[string]int32 {
+	return map[string]int32{
+		"Create": gt.GameActionCreate,
+		"Match":  gt.GameActionMatch,
+		"Cancel": gt.GameActionCancel,
+		"Close":  gt.GameActionClose,
+	}
 }

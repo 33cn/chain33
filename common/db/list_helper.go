@@ -7,12 +7,12 @@ import (
 )
 
 type ListHelper struct {
-	db DB
+	db IteratorDB
 }
 
 var listlog = log.New("module", "db.ListHelper")
 
-func NewListHelper(db DB) *ListHelper {
+func NewListHelper(db IteratorDB) *ListHelper {
 	return &ListHelper{db}
 }
 

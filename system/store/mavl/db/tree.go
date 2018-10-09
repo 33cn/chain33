@@ -1,39 +1,63 @@
 package mavl
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"sync"
 
 	"github.com/golang/protobuf/proto"
-	lru "github.com/hashicorp/golang-lru"
+	"github.com/hashicorp/golang-lru"
 	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var (
-	ErrNodeNotExist = errors.New("ErrNodeNotExist")
-	treelog         = log.New("module", "mavl")
+const (
+	hashNodePrefix = "_mh_"
+	leafNodePrefix = "_mb_"
+	// 是否开启添加hash节点前缀
 )
+
+var (
+	ErrNodeNotExist  = errors.New("ErrNodeNotExist")
+	treelog          = log.New("module", "mavl")
+	emptyRoot        [32]byte
+	enableMavlPrefix bool
+	// 是否开启MVCC
+	enableMvcc bool
+)
+
+func EnableMavlPrefix(enable bool) {
+	enableMavlPrefix = enable
+}
+
+func EnableMVCC(enable bool) {
+	enableMvcc = enable
+}
 
 //merkle avl tree
 type Tree struct {
 	root *Node
 	ndb  *nodeDB
 	//batch *nodeBatch
+	randomstr string
 }
 
 // 新建一个merkle avl 树
 func NewTree(db dbm.DB, sync bool) *Tree {
 	if db == nil {
 		// In-memory IAVLTree
-		return &Tree{}
+		return &Tree{
+			randomstr: common.GetRandString(5),
+		}
 	} else {
 		// Persistent IAVLTree
 		ndb := newNodeDB(db, sync)
 		return &Tree{
-			ndb: ndb,
+			ndb:       ndb,
+			randomstr: common.GetRandString(5),
 		}
 	}
 }
@@ -83,7 +107,6 @@ func (t *Tree) Has(key []byte) bool {
 //设置k:v pair到tree中
 func (t *Tree) Set(key []byte, value []byte) (updated bool) {
 	//treelog.Info("IAVLTree.Set", "key", key, "value",value)
-
 	if t.root == nil {
 		t.root = NewNode(key, value)
 		return false
@@ -119,12 +142,14 @@ func (t *Tree) Save() []byte {
 
 // 从db中加载rootnode
 func (t *Tree) Load(hash []byte) (err error) {
-	if len(hash) == 0 {
-		t.root = nil
-	} else {
-		t.root, err = t.ndb.GetNode(t, hash)
+	if hash == nil {
+		return
 	}
-	return
+	if !bytes.Equal(hash, emptyRoot[:]) {
+		t.root, err = t.ndb.GetNode(t, hash)
+		return err
+	}
+	return nil
 }
 
 //通过key获取leaf节点信息
@@ -297,7 +322,6 @@ func (ndb *nodeDB) SaveNode(t *Tree, node *Node) {
 	ndb.cacheNode(node)
 	delete(ndb.orphans, string(node.hash))
 	//treelog.Debug("SaveNode", "hash", node.hash, "height", node.height, "value", node.value)
-
 }
 
 //cache缓存节点
@@ -346,22 +370,24 @@ func (ndb *nodeDB) Commit() error {
 }
 
 //对外接口
-func SetKVPair(db dbm.DB, storeSet *types.StoreSet, sync bool) []byte {
+func SetKVPair(db dbm.DB, storeSet *types.StoreSet, sync bool) ([]byte, error) {
 	tree := NewTree(db, sync)
-	tree.Load(storeSet.StateHash)
-
+	err := tree.Load(storeSet.StateHash)
+	if err != nil {
+		return nil, err
+	}
 	for i := 0; i < len(storeSet.KV); i++ {
 		tree.Set(storeSet.KV[i].Key, storeSet.KV[i].Value)
 	}
-	return tree.Save()
+	return tree.Save(), nil
 }
 
-func GetKVPair(db dbm.DB, storeGet *types.StoreGet) [][]byte {
+func GetKVPair(db dbm.DB, storeGet *types.StoreGet) ([][]byte, error) {
 	tree := NewTree(db, true)
 	err := tree.Load(storeGet.StateHash)
 	values := make([][]byte, len(storeGet.Keys))
 	if err != nil {
-		return values
+		return values, err
 	}
 	for i := 0; i < len(storeGet.Keys); i++ {
 		_, value, exit := tree.Get(storeGet.Keys[i])
@@ -369,24 +395,29 @@ func GetKVPair(db dbm.DB, storeGet *types.StoreGet) [][]byte {
 			values[i] = value
 		}
 	}
-	return values
+	return values, nil
 }
 
-func GetKVPairProof(db dbm.DB, roothash []byte, key []byte) []byte {
+func GetKVPairProof(db dbm.DB, roothash []byte, key []byte) ([]byte, error) {
 	tree := NewTree(db, true)
-	tree.Load(roothash)
+	err := tree.Load(roothash)
+	if err != nil {
+		return nil, err
+	}
 	_, proof, exit := tree.Proof(key)
 	if exit {
-		return proof
+		return proof, nil
 	}
-	return nil
+	return nil, nil
 }
 
 //剔除key对应的节点在本次tree中，返回新的roothash和key对应的value
-func DelKVPair(db dbm.DB, storeDel *types.StoreGet) ([]byte, [][]byte) {
+func DelKVPair(db dbm.DB, storeDel *types.StoreGet) ([]byte, [][]byte, error) {
 	tree := NewTree(db, true)
-	tree.Load(storeDel.StateHash)
-
+	err := tree.Load(storeDel.StateHash)
+	if err != nil {
+		return nil, nil, err
+	}
 	values := make([][]byte, len(storeDel.Keys))
 	for i := 0; i < len(storeDel.Keys); i++ {
 		value, removed := tree.Remove(storeDel.Keys[i])
@@ -394,7 +425,7 @@ func DelKVPair(db dbm.DB, storeDel *types.StoreGet) ([]byte, [][]byte) {
 			values[i] = value
 		}
 	}
-	return tree.Save(), values
+	return tree.Save(), values, nil
 }
 
 func VerifyKVPairProof(db dbm.DB, roothash []byte, keyvalue types.KeyValue, proof []byte) bool {
@@ -434,4 +465,14 @@ func IterateRangeByStateHash(db dbm.DB, statehash, start, end []byte, ascending 
 	//treelog.Debug("IterateRangeByStateHash", "statehash", hex.EncodeToString(statehash), "start", string(start), "end", string(end))
 
 	tree.IterateRange(start, end, ascending, fn)
+}
+
+func genPrefixHashKey(node *Node, str string) (key []byte) {
+	//leafnode
+	if node.height == 0 {
+		key = []byte(fmt.Sprintf("%s-%s-", leafNodePrefix, str))
+	} else {
+		key = []byte(fmt.Sprintf("%s-%s-", hashNodePrefix, str))
+	}
+	return key
 }

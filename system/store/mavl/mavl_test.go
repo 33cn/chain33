@@ -1,45 +1,49 @@
 package mavl
 
 import (
+	"io/ioutil"
 	"os"
 	"testing"
 
 	"fmt"
-	"math/rand"
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"gitlab.33.cn/chain33/chain33/common"
+	drivers "gitlab.33.cn/chain33/chain33/system/store"
+	mavldb "gitlab.33.cn/chain33/chain33/system/store/mavl/db"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var store_cfg0 = &types.Store{"mavl_test", "leveldb", "/tmp/mavl_test0", 100}
-var store_cfg1 = &types.Store{"mavl_test", "leveldb", "/tmp/mavl_test1", 100}
-var store_cfg2 = &types.Store{"mavl_test", "leveldb", "/tmp/mavl_test2", 100}
-var store_cfg3 = &types.Store{"mavl_test", "leveldb", "/tmp/mavl_test3", 100}
-var store_cfg4 = &types.Store{"mavl_test", "leveldb", "/tmp/mavl_test4", 100}
-var store_cfg5 = &types.Store{"mavl_test", "leveldb", "/tmp/mavl_test5", 100}
-var store_cfg6 = &types.Store{"mavl_test", "leveldb", "/tmp/mavl_test6", 100}
-var store_cfg7 = &types.Store{"mavl_test", "leveldb", "/tmp/mavl_test7", 100}
-var store_cfg8 = &types.Store{"mavl_test", "leveldb", "/tmp/mavl_test8", 100}
-var store_cfg9 = &types.Store{"mavl_test", "leveldb", "/tmp/mavl_test9", 100}
-
 const MaxKeylenth int = 64
 
+func newStoreCfg(dir string) *types.Store {
+	return &types.Store{Name: "mavl_test", Driver: "leveldb", DbPath: dir, DbCache: 100}
+}
+
 func TestKvdbNewClose(t *testing.T) {
-	os.RemoveAll(store_cfg0.DbPath)
-	store := New(store_cfg0).(*Store)
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(t, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+	var store_cfg = newStoreCfg(dir)
+	store := New(store_cfg).(*Store)
 	assert.NotNil(t, store)
 
 	store.Close()
 }
 
 func TestKvddbSetGet(t *testing.T) {
-	os.RemoveAll(store_cfg1.DbPath)
-	store := New(store_cfg1).(*Store)
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(t, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+	var store_cfg = newStoreCfg(dir)
+	store := New(store_cfg).(*Store)
 	assert.NotNil(t, store)
 
 	keys0 := [][]byte{[]byte("mk1"), []byte("mk2")}
-	get0 := &types.StoreGet{[]byte("1st"), keys0}
+	get0 := &types.StoreGet{drivers.EmptyRoot[:], keys0}
 	values0 := store.Get(get0)
 	mlog.Info("info", "info", values0)
 	// Get exist key, result nil
@@ -51,11 +55,11 @@ func TestKvddbSetGet(t *testing.T) {
 	kv = append(kv, &types.KeyValue{[]byte("k1"), []byte("v1")})
 	kv = append(kv, &types.KeyValue{[]byte("k2"), []byte("v2")})
 	datas := &types.StoreSet{
-		[]byte("1st"),
+		drivers.EmptyRoot[:],
 		kv,
 		0}
-	hash := store.Set(datas, true)
-
+	hash, err := store.Set(datas, true)
+	assert.Nil(t, err)
 	keys := [][]byte{[]byte("k1"), []byte("k2")}
 	get1 := &types.StoreGet{hash, keys}
 
@@ -70,26 +74,30 @@ func TestKvddbSetGet(t *testing.T) {
 	assert.Len(t, values2, 1)
 	assert.Equal(t, []byte("v1"), values2[0])
 
-	get3 := &types.StoreGet{[]byte("1st"), keys}
+	get3 := &types.StoreGet{drivers.EmptyRoot[:], keys}
 	values3 := store.Get(get3)
 	assert.Len(t, values3, 1)
 	assert.Equal(t, []byte(nil), values3[0])
 }
 
 func TestKvdbMemSet(t *testing.T) {
-	os.RemoveAll(store_cfg2.DbPath)
-	store := New(store_cfg2).(*Store)
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(t, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+	var store_cfg = newStoreCfg(dir)
+	store := New(store_cfg).(*Store)
 	assert.NotNil(t, store)
 
 	var kv []*types.KeyValue
 	kv = append(kv, &types.KeyValue{[]byte("mk1"), []byte("v1")})
 	kv = append(kv, &types.KeyValue{[]byte("mk2"), []byte("v2")})
 	datas := &types.StoreSet{
-		[]byte("1st"),
+		drivers.EmptyRoot[:],
 		kv,
 		0}
-	hash := store.MemSet(datas, true)
-
+	hash, err := store.MemSet(datas, true)
+	assert.Nil(t, err)
 	keys := [][]byte{[]byte("mk1"), []byte("mk2")}
 	get1 := &types.StoreGet{hash, keys}
 
@@ -99,24 +107,28 @@ func TestKvdbMemSet(t *testing.T) {
 	actHash, _ := store.Commit(&types.ReqHash{hash})
 	assert.Equal(t, hash, actHash)
 
-	notExistHash, _ := store.Commit(&types.ReqHash{[]byte("1st")})
+	notExistHash, _ := store.Commit(&types.ReqHash{drivers.EmptyRoot[:]})
 	assert.Nil(t, notExistHash)
 }
 
 func TestKvdbRollback(t *testing.T) {
-	os.RemoveAll(store_cfg3.DbPath)
-	store := New(store_cfg3).(*Store)
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(t, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+	var store_cfg = newStoreCfg(dir)
+	store := New(store_cfg).(*Store)
 	assert.NotNil(t, store)
 
 	var kv []*types.KeyValue
 	kv = append(kv, &types.KeyValue{[]byte("mk1"), []byte("v1")})
 	kv = append(kv, &types.KeyValue{[]byte("mk2"), []byte("v2")})
 	datas := &types.StoreSet{
-		[]byte("1st"),
+		drivers.EmptyRoot[:],
 		kv,
 		0}
-	hash := store.MemSet(datas, true)
-
+	hash, err := store.MemSet(datas, true)
+	assert.Nil(t, err)
 	keys := [][]byte{[]byte("mk1"), []byte("mk2")}
 	get1 := &types.StoreGet{hash, keys}
 	values := store.Get(get1)
@@ -125,7 +137,7 @@ func TestKvdbRollback(t *testing.T) {
 	actHash, _ := store.Rollback(&types.ReqHash{hash})
 	assert.Equal(t, hash, actHash)
 
-	notExistHash, _ := store.Rollback(&types.ReqHash{[]byte("1st")})
+	notExistHash, _ := store.Rollback(&types.ReqHash{drivers.EmptyRoot[:]})
 	assert.Nil(t, notExistHash)
 }
 
@@ -138,19 +150,23 @@ func checkKV(k, v []byte) bool {
 	return false
 }
 func TestKvdbIterate(t *testing.T) {
-	os.RemoveAll(store_cfg4.DbPath)
-	store := New(store_cfg4).(*Store)
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(t, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+	var store_cfg = newStoreCfg(dir)
+	store := New(store_cfg).(*Store)
 	assert.NotNil(t, store)
 
 	var kv []*types.KeyValue
 	kv = append(kv, &types.KeyValue{[]byte("mk1"), []byte("v1")})
 	kv = append(kv, &types.KeyValue{[]byte("mk2"), []byte("v2")})
 	datas := &types.StoreSet{
-		[]byte("1st"),
+		drivers.EmptyRoot[:],
 		kv,
 		0}
-	hash := store.Set(datas, true)
-
+	hash, err := store.Set(datas, true)
+	assert.Nil(t, err)
 	store.IterateRangeByStateHash(hash, []byte("mk1"), []byte("mk3"), true, checkKV)
 	assert.Len(t, checkKVResult, 2)
 	assert.Equal(t, []byte("v1"), checkKVResult[0].Value)
@@ -158,22 +174,18 @@ func TestKvdbIterate(t *testing.T) {
 
 }
 
-//生成随机字符串
-func GetRandomString(lenth int) string {
-	str := "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	bytes := []byte(str)
-	result := []byte{}
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	for i := 0; i < lenth; i++ {
-		result = append(result, bytes[r.Intn(len(bytes))])
-	}
-	return string(result)
+func GetRandomString(length int) string {
+	return common.GetRandPrintString(20, length)
 }
 
 func TestKvdbIterateTimes(t *testing.T) {
 	checkKVResult = checkKVResult[:0]
-	os.RemoveAll(store_cfg5.DbPath)
-	store := New(store_cfg5).(*Store)
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(t, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+	var store_cfg = newStoreCfg(dir)
+	store := New(store_cfg).(*Store)
 	assert.NotNil(t, store)
 
 	var kv []*types.KeyValue
@@ -186,10 +198,11 @@ func TestKvdbIterateTimes(t *testing.T) {
 		kv = append(kv, &types.KeyValue{[]byte(string(key)), []byte(string(value))})
 	}
 	datas := &types.StoreSet{
-		[]byte("1st"),
+		drivers.EmptyRoot[:],
 		kv,
 		0}
-	hash := store.Set(datas, true)
+	hash, err := store.Set(datas, true)
+	assert.Nil(t, err)
 	start := time.Now()
 	store.IterateRangeByStateHash(hash, nil, nil, true, checkKV)
 	end := time.Now()
@@ -198,73 +211,93 @@ func TestKvdbIterateTimes(t *testing.T) {
 }
 
 func BenchmarkGet(b *testing.B) {
-	os.RemoveAll(store_cfg6.DbPath)
-	store := New(store_cfg6).(*Store)
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(b, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+	var store_cfg = newStoreCfg(dir)
+	store := New(store_cfg).(*Store)
 	assert.NotNil(b, store)
-
+	mavldb.EnableMavlPrefix(true)
 	var kv []*types.KeyValue
-	var key string
-	var value string
 	var keys [][]byte
-
+	var hash = drivers.EmptyRoot[:]
+	fmt.Println("N = ", b.N)
 	for i := 0; i < b.N; i++ {
-		key = GetRandomString(MaxKeylenth)
-		value = fmt.Sprintf("v%d", i)
+		key := GetRandomString(MaxKeylenth)
+		value := fmt.Sprintf("%s%d", key, i)
 		keys = append(keys, []byte(string(key)))
 		kv = append(kv, &types.KeyValue{[]byte(string(key)), []byte(string(value))})
+		if i%10000 == 0 {
+			datas := &types.StoreSet{hash, kv, 0}
+			hash, err = store.Set(datas, true)
+			assert.Nil(b, err)
+			kv = nil
+		}
 	}
-	datas := &types.StoreSet{
-		[]byte("1st"),
-		kv,
-		0}
-	hash := store.Set(datas, true)
-
-	getData := &types.StoreGet{
-		hash,
-		keys}
+	if kv != nil {
+		datas := &types.StoreSet{hash, kv, 0}
+		hash, err = store.Set(datas, true)
+		assert.Nil(b, err)
+		kv = nil
+	}
 
 	start := time.Now()
 	b.ResetTimer()
-	values := store.Get(getData)
+	for _, key := range keys {
+		getData := &types.StoreGet{
+			hash,
+			[][]byte{key}}
+		store.Get(getData)
+	}
 	end := time.Now()
 	fmt.Println("mavl BenchmarkGet cost time is", end.Sub(start), "num is", b.N)
-	assert.Len(b, values, b.N)
 	b.StopTimer()
 }
 
 func BenchmarkSet(b *testing.B) {
-	os.RemoveAll(store_cfg7.DbPath)
-	store := New(store_cfg7).(*Store)
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(b, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+	var store_cfg = newStoreCfg(dir)
+	store := New(store_cfg).(*Store)
 	assert.NotNil(b, store)
-
+	mavldb.EnableMavlPrefix(true)
 	var kv []*types.KeyValue
-	var key string
-	var value string
 	var keys [][]byte
-
+	var hash = drivers.EmptyRoot[:]
+	start := time.Now()
 	for i := 0; i < b.N; i++ {
-		key = GetRandomString(MaxKeylenth)
-		value = fmt.Sprintf("v%d", i)
+		key := GetRandomString(MaxKeylenth)
+		value := fmt.Sprintf("%s%d", key, i)
 		keys = append(keys, []byte(string(key)))
 		kv = append(kv, &types.KeyValue{[]byte(string(key)), []byte(string(value))})
+		if i%10000 == 0 {
+			datas := &types.StoreSet{hash, kv, 0}
+			hash, err = store.Set(datas, true)
+			assert.Nil(b, err)
+			kv = nil
+		}
 	}
-	datas := &types.StoreSet{
-		[]byte("1st"),
-		kv,
-		0}
-	start := time.Now()
-	b.ResetTimer()
-	hash := store.Set(datas, true)
-	assert.NotNil(b, hash)
+	if kv != nil {
+		datas := &types.StoreSet{hash, kv, 0}
+		hash, err = store.Set(datas, true)
+		assert.Nil(b, err)
+		kv = nil
+	}
 	end := time.Now()
 	fmt.Println("mavl BenchmarkSet cost time is", end.Sub(start), "num is", b.N)
 }
 
 func BenchmarkMemSet(b *testing.B) {
-	os.RemoveAll(store_cfg8.DbPath)
-	store := New(store_cfg8).(*Store)
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(b, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+	var store_cfg = newStoreCfg(dir)
+	store := New(store_cfg).(*Store)
 	assert.NotNil(b, store)
-
 	var kv []*types.KeyValue
 	var key string
 	var value string
@@ -277,20 +310,25 @@ func BenchmarkMemSet(b *testing.B) {
 		kv = append(kv, &types.KeyValue{[]byte(string(key)), []byte(string(value))})
 	}
 	datas := &types.StoreSet{
-		[]byte("1st"),
+		drivers.EmptyRoot[:],
 		kv,
 		0}
 	start := time.Now()
 	b.ResetTimer()
-	hash := store.MemSet(datas, true)
+	hash, err := store.MemSet(datas, true)
+	assert.Nil(b, err)
 	assert.NotNil(b, hash)
 	end := time.Now()
 	fmt.Println("mavl BenchmarkMemSet cost time is", end.Sub(start), "num is", b.N)
 }
 
 func BenchmarkCommit(b *testing.B) {
-	os.RemoveAll(store_cfg9.DbPath)
-	store := New(store_cfg9).(*Store)
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(b, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+	var store_cfg = newStoreCfg(dir)
+	store := New(store_cfg).(*Store)
 	assert.NotNil(b, store)
 
 	var kv []*types.KeyValue
@@ -305,18 +343,18 @@ func BenchmarkCommit(b *testing.B) {
 		kv = append(kv, &types.KeyValue{[]byte(string(key)), []byte(string(value))})
 	}
 	datas := &types.StoreSet{
-		[]byte("1st"),
+		drivers.EmptyRoot[:],
 		kv,
 		0}
-	hash := store.MemSet(datas, true)
-
+	hash, err := store.MemSet(datas, true)
+	assert.Nil(b, err)
 	req := &types.ReqHash{
 		Hash: hash,
 	}
 
 	start := time.Now()
 	b.ResetTimer()
-	_, err := store.Commit(req)
+	_, err = store.Commit(req)
 	assert.NoError(b, err, "NoError")
 	end := time.Now()
 	fmt.Println("mavl BenchmarkCommit cost time is", end.Sub(start), "num is", b.N)

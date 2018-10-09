@@ -83,8 +83,7 @@ func makeNodeInfo(key, addr string, cnt int) *types.ConfigItem {
 func init() {
 	log.SetFileLog(nil)
 	log.SetLogLevel("debug")
-
-	Init()
+	Init(types.ParaX)
 }
 
 func (suite *CommitTestSuite) SetupSuite() {
@@ -328,15 +327,6 @@ func (suite *CommitTestSuite) TestExec() {
 
 func TestCommitSuite(t *testing.T) {
 	suite.Run(t, new(CommitTestSuite))
-}
-
-func getTitleFrom(exec []byte) ([]byte, error) {
-	last := bytes.LastIndex(exec, []byte("."))
-	if last == -1 {
-		return nil, types.ErrNotFound
-	}
-	// 现在配置是包含 .的， 所有取title 是也把 `.` 取出来
-	return exec[:last+1], nil
 }
 
 func TestGetTitle(t *testing.T) {

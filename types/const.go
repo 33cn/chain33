@@ -1,7 +1,17 @@
 package types
 
+import "reflect"
+
 var slash = []byte("-")
 var Debug = false
+
+type LogErr []byte
+type LogReserved []byte
+
+type LogInfo struct {
+	Ty   reflect.Type
+	Name string
+}
 
 const (
 	CoinsX          = "coins"
@@ -159,7 +169,24 @@ const (
 	TyLogExecActive      = 10
 	TyLogGenesisTransfer = 11
 	TyLogGenesisDeposit  = 12
+)
 
+var SystemLog = map[int64]*LogInfo{
+	TyLogReserved:        {reflect.TypeOf(LogReserved{}), "LogReserved"},
+	TyLogErr:             {reflect.TypeOf(LogErr{}), "LogErr"},
+	TyLogFee:             {reflect.TypeOf(ReceiptAccountTransfer{}), "LogFee"},
+	TyLogTransfer:        {reflect.TypeOf(ReceiptAccountTransfer{}), "LogTransfer"},
+	TyLogDeposit:         {reflect.TypeOf(ReceiptAccountTransfer{}), "LogDeposit"},
+	TyLogExecTransfer:    {reflect.TypeOf(ReceiptExecAccountTransfer{}), "LogExecTransfer"},
+	TyLogExecWithdraw:    {reflect.TypeOf(ReceiptExecAccountTransfer{}), "LogExecWithdraw"},
+	TyLogExecDeposit:     {reflect.TypeOf(ReceiptExecAccountTransfer{}), "LogExecDeposit"},
+	TyLogExecFrozen:      {reflect.TypeOf(ReceiptExecAccountTransfer{}), "LogExecFrozen"},
+	TyLogExecActive:      {reflect.TypeOf(ReceiptAccountTransfer{}), "LogExecActive"},
+	TyLogGenesisTransfer: {reflect.TypeOf(ReceiptAccountTransfer{}), "LogGenesisTransfer"},
+	TyLogGenesisDeposit:  {reflect.TypeOf(ReceiptAccountTransfer{}), "LogGenesisDeposit"},
+}
+
+const (
 	//log for ticket
 	TyLogNewTicket   = 111
 	TyLogCloseTicket = 112
@@ -224,14 +251,6 @@ const (
 	TyLogCancleGame = 713
 	TyLogCloseGame  = 714
 
-	// log for blackwhite game
-	TyLogBlackwhiteCreate   = 750
-	TyLogBlackwhitePlay     = 751
-	TyLogBlackwhiteShow     = 752
-	TyLogBlackwhiteTimeout  = 753
-	TyLogBlackwhiteDone     = 754
-	TyLogBlackwhiteLoopInfo = 755
-
 	//log for lottery
 	TyLogLotteryCreate = 801
 	TyLogLotteryBuy    = 802
@@ -271,13 +290,6 @@ const (
 	TicketActionInfos   = 15 //读的接口不直接经过transaction
 	TicketActionMiner   = 16
 	TicketActionBind    = 17
-)
-
-// hashlock status
-const (
-	HashlockActionLock   = 1
-	HashlockActionSend   = 2
-	HashlockActionUnlock = 3
 )
 
 //norm
@@ -454,15 +466,6 @@ var EnableTxGroupParaFork = false
 const (
 	ParaCrossTransferActionTypeStart = 10000
 	ParaCrossTransferActionTypeEnd   = 10100
-)
-
-//Lottery op
-const (
-	LotteryActionCreate = 1 + iota
-	LotteryActionBuy
-	LotteryActionShow
-	LotteryActionDraw
-	LotteryActionClose
 )
 
 //Lottery status

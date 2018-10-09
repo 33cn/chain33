@@ -16,7 +16,7 @@ import (
 // 共识模块和peer广播过来的block需要广播出去
 //共识模块过来的Receipts不为空,广播和同步过来的Receipts为空
 // 返回参数说明：是否主链，是否孤儿节点，具体err
-func (b *BlockChain) ProcessBlock(broadcast bool, block *types.BlockDetail, pid string, addOrdel bool, sequence int64) (*types.BlockDetail, bool, bool, error) {
+func (b *BlockChain) ProcessBlock(broadcast bool, block *types.BlockDetail, pid string, addBlock bool, sequence int64) (*types.BlockDetail, bool, bool, error) {
 
 	b.chainLock.Lock()
 	defer b.chainLock.Unlock()
@@ -25,9 +25,16 @@ func (b *BlockChain) ProcessBlock(broadcast bool, block *types.BlockDetail, pid 
 		return nil, false, false, types.ErrIsClosed
 	}
 	if block.Block.Height > 0 {
-		parentHash := block.Block.GetParentHash()
-		if pid == "self" && !bytes.Equal(parentHash, b.bestChain.Tip().hash) {
-			chainlog.Error("addBlockDetail parent hash no match", "err", types.ErrBlockHashNoMatch)
+		var lastBlockHash []byte
+		if addBlock {
+			lastBlockHash = block.Block.GetParentHash()
+		} else {
+			lastBlockHash = block.Block.Hash()
+		}
+		if pid == "self" && !bytes.Equal(lastBlockHash, b.bestChain.Tip().hash) {
+			chainlog.Error("addBlockDetail parent hash no match", "err", types.ErrBlockHashNoMatch,
+				"bestHash", common.ToHex(b.bestChain.Tip().hash), "blockHash", common.ToHex(lastBlockHash),
+				"addBlock", addBlock, "height", block.Block.Height)
 			return nil, false, false, types.ErrBlockHashNoMatch
 		}
 	}
@@ -35,7 +42,7 @@ func (b *BlockChain) ProcessBlock(broadcast bool, block *types.BlockDetail, pid 
 	chainlog.Debug("ProcessBlock Processing block", "height", block.Block.Height, "blockHash", common.ToHex(blockHash))
 
 	//目前只支持删除平行链的block处理
-	if !addOrdel {
+	if !addBlock {
 		return b.ProcessDelParaChainBlock(broadcast, block, pid, sequence)
 	}
 	// 判断本block是否已经存在主链或者侧链中

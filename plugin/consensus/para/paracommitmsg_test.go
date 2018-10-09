@@ -31,7 +31,7 @@ func init() {
 	executorty.Init()
 	types.SetTitle("user.p.para.")
 	rpc.Init(nil)
-	pp.Init()
+	pp.Init("paracross")
 	random = rand.New(rand.NewSource(types.Now().UnixNano()))
 	consensusInterval = 2
 	log.SetLogLevel("debug")

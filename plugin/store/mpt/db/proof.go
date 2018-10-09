@@ -20,9 +20,9 @@ import (
 	"bytes"
 	"fmt"
 
+	proto "github.com/golang/protobuf/proto"
 	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
-	"gitlab.33.cn/chain33/chain33/plugin/store/mpt/db/rlp"
 )
 
 // Prove constructs a merkle proof for key. The result contains all encoded nodes
@@ -75,11 +75,11 @@ func (t *Trie) Prove(key []byte, fromLevel uint, proofDb dbm.DB) error {
 			if fromLevel > 0 {
 				fromLevel--
 			} else {
-				enc, _ := rlp.EncodeToBytes(n)
+				enc, _ := proto.Marshal(n.create())
 				if !ok {
-					hash = common.ShaKeccak256(enc)
+					hash = createHashNode(common.ShaKeccak256(enc))
 				}
-				proofDb.Set(hash, enc)
+				proofDb.Set(hash.GetHash(), enc)
 			}
 		}
 	}
@@ -119,9 +119,9 @@ func VerifyProof(rootHash common.Hash, key []byte, proofDb dbm.DB) (value []byte
 			return nil, i, nil
 		case hashNode:
 			key = keyrest
-			copy(wantHash[:], cld)
+			copy(wantHash[:], cld.GetHash())
 		case valueNode:
-			return cld, i + 1, nil
+			return cld.GetValue(), i + 1, nil
 		}
 	}
 }

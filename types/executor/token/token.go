@@ -6,6 +6,7 @@ import (
 	"time"
 
 	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -25,7 +26,7 @@ func getRealExecName(paraName string) string {
 func Init() {
 	nameX = types.ExecName(types.TokenX)
 	// init executor type
-	types.RegistorExecutor(types.TokenX, &TokenType{})
+	types.RegistorExecutor(types.TokenX, NewType())
 
 	// init log
 	types.RegistorLog(types.TyLogTokenTransfer, &TokenTransferLog{})
@@ -48,11 +49,22 @@ func Init() {
 	types.RegisterRPCQueryHandle("GetTokenInfo", &TokenGetTokenInfo{})
 	types.RegisterRPCQueryHandle("GetAddrReceiverforTokens", &TokenGetAddrReceiverforTokens{})
 	types.RegisterRPCQueryHandle("GetAccountTokenAssets", &TokenGetAccountTokenAssets{})
+	types.RegisterRPCQueryHandle("GetTxByToken", &TokenGetTxByToken{})
 }
 
 // exec
 type TokenType struct {
 	types.ExecTypeBase
+}
+
+func NewType() *TokenType {
+	c := &TokenType{}
+	c.SetChild(c)
+	return c
+}
+
+func (at *TokenType) GetPayload() types.Message {
+	return &types.TokenAction{}
 }
 
 func (token TokenType) GetRealToAddr(tx *types.Transaction) string {
@@ -561,4 +573,36 @@ func (t *TokenGetAccountTokenAssets) JsonToProto(message json.RawMessage) ([]byt
 
 func (t *TokenGetAccountTokenAssets) ProtoToJson(reply *types.Message) (interface{}, error) {
 	return reply, nil
+}
+
+type TokenGetTxByToken struct {
+}
+
+func (t *TokenGetTxByToken) JsonToProto(message json.RawMessage) ([]byte, error) {
+	var req types.ReqTokenTx
+	err := json.Unmarshal(message, &req)
+	if err != nil {
+		return nil, err
+	}
+	return types.Encode(&req), nil
+}
+
+func (t *TokenGetTxByToken) ProtoToJson(reply *types.Message) (interface{}, error) {
+	type ReplyTxInfo struct {
+		Hash   string `json:"hash"`
+		Height int64  `json:"height"`
+		Index  int64  `json:"index"`
+	}
+	type ReplyTxInfos struct {
+		TxInfos []*ReplyTxInfo `json:"txInfos"`
+	}
+
+	txInfos := (*reply).(*types.ReplyTxInfos)
+	var txinfos ReplyTxInfos
+	infos := txInfos.GetTxInfos()
+	for _, info := range infos {
+		txinfos.TxInfos = append(txinfos.TxInfos, &ReplyTxInfo{Hash: common.ToHex(info.GetHash()),
+			Height: info.GetHeight(), Index: info.GetIndex()})
+	}
+	return &txinfos, nil
 }
