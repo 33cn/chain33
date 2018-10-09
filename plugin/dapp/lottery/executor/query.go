@@ -21,15 +21,20 @@ func (l *Lottery) Query_GetLotteryCurrentInfo(param *pty.ReqLotteryInfo) (types.
 	if err != nil {
 		return nil, err
 	}
-	return &pty.ReplyLotteryCurrentInfo{lottery.Status,
-		lottery.Fund,
-		lottery.LastTransToPurState,
-		lottery.LastTransToDrawState,
-		lottery.TotalPurchasedTxNum,
-		lottery.Round,
-		lottery.LuckyNumber,
-		lottery.LastTransToPurStateOnMain,
-		lottery.LastTransToDrawStateOnMain}, nil
+	reply := &pty.ReplyLotteryCurrentInfo{Status: lottery.Status,
+		Fund:                       lottery.Fund,
+		LastTransToPurState:        lottery.LastTransToPurState,
+		LastTransToDrawState:       lottery.LastTransToDrawState,
+		TotalPurchasedTxNum:        lottery.TotalPurchasedTxNum,
+		Round:                      lottery.Round,
+		LuckyNumber:                lottery.LuckyNumber,
+		LastTransToPurStateOnMain:  lottery.LastTransToPurStateOnMain,
+		LastTransToDrawStateOnMain: lottery.LastTransToDrawStateOnMain,
+		PurBlockNum:                lottery.PurBlockNum,
+		DrawBlockNum:               lottery.DrawBlockNum,
+		MissingRecords:             lottery.MissingRecords,
+	}
+	return reply, nil
 }
 
 func (l *Lottery) Query_GetLotteryHistoryLuckyNumber(param *pty.ReqLotteryLuckyHistory) (types.Message, error) {
@@ -37,12 +42,22 @@ func (l *Lottery) Query_GetLotteryHistoryLuckyNumber(param *pty.ReqLotteryLuckyH
 }
 
 func (l *Lottery) Query_GetLotteryRoundLuckyNumber(param *pty.ReqLotteryLuckyInfo) (types.Message, error) {
-	key := calcLotteryDrawKey(param.LotteryId, param.Round)
-	record, err := l.findLotteryDrawRecord(key)
-	if err != nil {
-		return nil, err
+	//	var req pty.ReqLotteryLuckyInfo
+	var records []*pty.LotteryDrawRecord
+	//	err := types.Decode(param, &req)
+	//if err != nil {
+	//	return nil, err
+	//}
+	for _, round := range param.Round {
+		key := calcLotteryDrawKey(param.LotteryId, round)
+		record, err := l.findLotteryDrawRecord(key)
+		if err != nil {
+			return nil, err
+		}
+		records = append(records, record)
 	}
-	return record, nil
+
+	return &pty.LotteryDrawRecords{Records: records}, nil
 }
 
 func (l *Lottery) Query_GetLotteryHistoryBuyInfo(param *pty.ReqLotteryBuyHistory) (types.Message, error) {
