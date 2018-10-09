@@ -22,7 +22,7 @@ func (action *Action) getTxActions(height int64, blockNum int64) ([]*types.Ticke
 			return txActions, err
 		}
 		for _, block := range blockDetails.Items {
-			llog.Error("getTxActions", "blockHeight", block.Block.Height, "blockhash", block.Block.Hash())
+			llog.Debug("getTxActions", "blockHeight", block.Block.Height, "blockhash", block.Block.Hash())
 			ticketAction, err := action.getMinerTx(block.Block)
 			if err != nil {
 				return txActions, err
