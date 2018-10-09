@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
+	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -147,7 +148,7 @@ func calcOnesOrderPrefixStatus(addr string, status int32) []byte {
 //	return []byte(fmt.Sprintf(buyOrderSHTAS+"%d", status))
 //}
 
-func genBuyMarketOrderKeyValue(kv []*types.KeyValue, receipt *types.ReceiptBuyBase,
+func genBuyMarketOrderKeyValue(kv []*types.KeyValue, receipt *pty.ReceiptBuyBase,
 	status int32, height int64, value []byte) []*types.KeyValue {
 
 	keyId := receipt.TxHash
@@ -184,7 +185,7 @@ func genBuyMarketOrderKeyValue(kv []*types.KeyValue, receipt *types.ReceiptBuyBa
 	return kv
 }
 
-func genSellMarketOrderKeyValue(kv []*types.KeyValue, receipt *types.ReceiptSellBase, status int32,
+func genSellMarketOrderKeyValue(kv []*types.KeyValue, receipt *pty.ReceiptSellBase, status int32,
 	height int64, value []byte) []*types.KeyValue {
 
 	keyID := receipt.TxHash
@@ -228,7 +229,7 @@ func calcPriceOfToken(priceBoardlot, AmountPerBoardlot int64) int64 {
 	return 1e8 * priceBoardlot / AmountPerBoardlot
 }
 
-func genBuyLimitOrderKeyValue(kv []*types.KeyValue, buyOrder *types.BuyLimitOrder, status int32, value []byte) []*types.KeyValue {
+func genBuyLimitOrderKeyValue(kv []*types.KeyValue, buyOrder *pty.BuyLimitOrder, status int32, value []byte) []*types.KeyValue {
 	newkey := calcTokenBuyOrderKey(buyOrder.TokenSymbol, buyOrder.Address, status, buyOrder.BuyID, buyOrder.Height)
 	kv = append(kv, &types.KeyValue{newkey, value})
 
@@ -249,7 +250,7 @@ func genBuyLimitOrderKeyValue(kv []*types.KeyValue, buyOrder *types.BuyLimitOrde
 	return kv
 }
 
-func genSellOrderKeyValue(kv []*types.KeyValue, sellorder *types.SellOrder, status int32, value []byte) []*types.KeyValue {
+func genSellOrderKeyValue(kv []*types.KeyValue, sellorder *pty.SellOrder, status int32, value []byte) []*types.KeyValue {
 	newkey := calcTokenSellOrderKey(sellorder.TokenSymbol, sellorder.Address, status, sellorder.SellID, sellorder.Height)
 	kv = append(kv, &types.KeyValue{newkey, value})
 

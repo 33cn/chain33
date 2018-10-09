@@ -3,13 +3,14 @@ package executor
 import (
 	"testing"
 
+	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
 //----------------------------- data for testing ---------------------------------
 
 var (
-	sellorderOnsale = types.SellOrder{
+	sellorderOnsale = pty.SellOrder{
 		"Tokensymbol",
 		"Address",
 		20 * 1e8,                     // Amountperboardlot int64  `protobuf:"varint,3,opt,name=amountperboardlot" json:"amountperboardlot,omitempty"`
@@ -25,7 +26,7 @@ var (
 		100, //Height            int64  `protobuf:"varint,13,opt,name=height" json:"height,omitempty"`
 	}
 
-	sellorderSoldOut = types.SellOrder{
+	sellorderSoldOut = pty.SellOrder{
 		"Tokensymbol",
 		"Address",
 		20 * 1e8,                      // Amountperboardlot int64  `protobuf:"varint,3,opt,name=amountperboardlot" json:"amountperboardlot,omitempty"`
@@ -41,7 +42,7 @@ var (
 		100, //Height            int64  `protobuf:"varint,13,opt,name=height" json:"height,omitempty"`
 	}
 
-	sellorderRevoked = types.SellOrder{
+	sellorderRevoked = pty.SellOrder{
 		"Tokensymbol",
 		"Address",
 		20 * 1e8,                      // Amountperboardlot int64  `protobuf:"varint,3,opt,name=amountperboardlot" json:"amountperboardlot,omitempty"`

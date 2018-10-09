@@ -1,4 +1,4 @@
-package trade
+package types
 
 type TradeSellTx struct {
 	TokenSymbol       string `json:"tokenSymbol"`

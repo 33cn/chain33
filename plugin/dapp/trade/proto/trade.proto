@@ -1,7 +1,6 @@
 syntax = "proto3";
 
 package types;
-option go_package = "gitlab.33.cn/chain33/chain33/types";
 
 // trade 交易部分
 //
@@ -254,4 +253,19 @@ message ReplyTradeOrder {
 
 message ReplyTradeOrders {
     repeated ReplyTradeOrder orders = 1;
+}
+
+message ReqSellToken {
+    TradeForSell sell  = 1;
+    string       owner = 2;
+}
+
+message ReqRevokeSell {
+    TradeForRevokeSell revoke = 1;
+    string             owner  = 2;
+}
+
+message ReqBuyToken {
+    TradeForBuy buy   = 1;
+    string      buyer = 2;
 }

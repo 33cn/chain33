@@ -1,15 +1,15 @@
 package executor
 
 import (
+	"strconv"
 	"strings"
 
 	"gitlab.33.cn/chain33/chain33/common"
+	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/types"
 	"gitlab.33.cn/chain33/chain33/types"
-
-	"strconv"
 )
 
-func (t *trade) GetOnesSellOrder(addrTokens *types.ReqAddrTokens) (types.Message, error) {
+func (t *trade) GetOnesSellOrder(addrTokens *pty.ReqAddrTokens) (types.Message, error) {
 	var keys [][]byte
 	if 0 == len(addrTokens.Token) {
 		values, err := t.GetLocalDB().List(calcOnesSellOrderPrefixAddr(addrTokens.Addr), nil, 0, 0)
@@ -33,7 +33,7 @@ func (t *trade) GetOnesSellOrder(addrTokens *types.ReqAddrTokens) (types.Message
 		}
 	}
 
-	var replys types.ReplyTradeOrders
+	var replys pty.ReplyTradeOrders
 	for _, key := range keys {
 		reply := t.loadOrderFromKey(key)
 		if reply == nil {
@@ -45,7 +45,7 @@ func (t *trade) GetOnesSellOrder(addrTokens *types.ReqAddrTokens) (types.Message
 	return &replys, nil
 }
 
-func (t *trade) GetOnesBuyOrder(addrTokens *types.ReqAddrTokens) (types.Message, error) {
+func (t *trade) GetOnesBuyOrder(addrTokens *pty.ReqAddrTokens) (types.Message, error) {
 	var keys [][]byte
 	if 0 == len(addrTokens.Token) {
 		values, err := t.GetLocalDB().List(calcOnesBuyOrderPrefixAddr(addrTokens.Addr), nil, 0, 0)
@@ -69,7 +69,7 @@ func (t *trade) GetOnesBuyOrder(addrTokens *types.ReqAddrTokens) (types.Message,
 		}
 	}
 
-	var replys types.ReplyTradeOrders
+	var replys pty.ReplyTradeOrders
 	for _, key := range keys {
 		reply := t.loadOrderFromKey(key)
 		if reply == nil {
@@ -82,7 +82,7 @@ func (t *trade) GetOnesBuyOrder(addrTokens *types.ReqAddrTokens) (types.Message,
 	return &replys, nil
 }
 
-func (t *trade) GetOnesSellOrdersWithStatus(req *types.ReqAddrTokens) (types.Message, error) {
+func (t *trade) GetOnesSellOrdersWithStatus(req *pty.ReqAddrTokens) (types.Message, error) {
 	var sellIDs [][]byte
 	values, err := t.GetLocalDB().List(calcOnesSellOrderPrefixStatus(req.Addr, req.Status), nil, 0, 0)
 	if err != nil {
@@ -93,7 +93,7 @@ func (t *trade) GetOnesSellOrdersWithStatus(req *types.ReqAddrTokens) (types.Mes
 		sellIDs = append(sellIDs, values...)
 	}
 
-	var replys types.ReplyTradeOrders
+	var replys pty.ReplyTradeOrders
 	for _, key := range sellIDs {
 		reply := t.loadOrderFromKey(key)
 		if reply == nil {
@@ -106,7 +106,7 @@ func (t *trade) GetOnesSellOrdersWithStatus(req *types.ReqAddrTokens) (types.Mes
 	return &replys, nil
 }
 
-func (t *trade) GetOnesBuyOrdersWithStatus(req *types.ReqAddrTokens) (types.Message, error) {
+func (t *trade) GetOnesBuyOrdersWithStatus(req *pty.ReqAddrTokens) (types.Message, error) {
 	var sellIDs [][]byte
 	values, err := t.GetLocalDB().List(calcOnesBuyOrderPrefixStatus(req.Addr, req.Status), nil, 0, 0)
 	if err != nil {
@@ -116,7 +116,7 @@ func (t *trade) GetOnesBuyOrdersWithStatus(req *types.ReqAddrTokens) (types.Mess
 		tradelog.Debug("trade Query", "get number of buy keys", len(values))
 		sellIDs = append(sellIDs, values...)
 	}
-	var replys types.ReplyTradeOrders
+	var replys pty.ReplyTradeOrders
 	for _, key := range sellIDs {
 		reply := t.loadOrderFromKey(key)
 		if reply == nil {
@@ -129,7 +129,7 @@ func (t *trade) GetOnesBuyOrdersWithStatus(req *types.ReqAddrTokens) (types.Mess
 	return &replys, nil
 }
 
-func (t *trade) GetTokenSellOrderByStatus(req *types.ReqTokenSellOrder, status int32) (types.Message, error) {
+func (t *trade) GetTokenSellOrderByStatus(req *pty.ReqTokenSellOrder, status int32) (types.Message, error) {
 	if req.Count <= 0 || (req.Direction != 1 && req.Direction != 0) {
 		return nil, types.ErrInputPara
 	}
@@ -148,7 +148,7 @@ func (t *trade) GetTokenSellOrderByStatus(req *types.ReqTokenSellOrder, status i
 	if err != nil {
 		return nil, err
 	}
-	var replys types.ReplyTradeOrders
+	var replys pty.ReplyTradeOrders
 	for _, key := range values {
 		reply := t.loadOrderFromKey(key)
 		if reply == nil {
@@ -159,7 +159,7 @@ func (t *trade) GetTokenSellOrderByStatus(req *types.ReqTokenSellOrder, status i
 	return &replys, nil
 }
 
-func (t *trade) GetTokenBuyOrderByStatus(req *types.ReqTokenBuyOrder, status int32) (types.Message, error) {
+func (t *trade) GetTokenBuyOrderByStatus(req *pty.ReqTokenBuyOrder, status int32) (types.Message, error) {
 	if req.Count <= 0 || (req.Direction != 1 && req.Direction != 0) {
 		return nil, types.ErrInputPara
 	}
@@ -182,7 +182,7 @@ func (t *trade) GetTokenBuyOrderByStatus(req *types.ReqTokenBuyOrder, status int
 	if err != nil {
 		return nil, err
 	}
-	var replys types.ReplyTradeOrders
+	var replys pty.ReplyTradeOrders
 	for _, key := range values {
 		reply := t.loadOrderFromKey(key)
 		if reply == nil {
@@ -195,7 +195,7 @@ func (t *trade) GetTokenBuyOrderByStatus(req *types.ReqTokenBuyOrder, status int
 }
 
 // query reply utils
-func (t *trade) replyReplySellOrderfromID(key []byte) *types.ReplySellOrder {
+func (t *trade) replyReplySellOrderfromID(key []byte) *pty.ReplySellOrder {
 	tradelog.Debug("trade Query", "id", string(key), "check-prefix", sellIDPrefix)
 	if strings.HasPrefix(string(key), sellIDPrefix) {
 		if sellorder, err := getSellOrderFromID(key, t.GetStateDB()); err == nil {
@@ -213,7 +213,7 @@ func (t *trade) replyReplySellOrderfromID(key []byte) *types.ReplySellOrder {
 	return nil
 }
 
-func (t *trade) replyReplyBuyOrderfromID(key []byte) *types.ReplyBuyOrder {
+func (t *trade) replyReplyBuyOrderfromID(key []byte) *pty.ReplyBuyOrder {
 	tradelog.Debug("trade Query", "id", string(key), "check-prefix", buyIDPrefix)
 	if strings.HasPrefix(string(key), buyIDPrefix) {
 		if buyOrder, err := getBuyOrderFromID(key, t.GetStateDB()); err == nil {
@@ -231,8 +231,8 @@ func (t *trade) replyReplyBuyOrderfromID(key []byte) *types.ReplyBuyOrder {
 	return nil
 }
 
-func sellOrder2reply(sellOrder *types.SellOrder) *types.ReplySellOrder {
-	reply := &types.ReplySellOrder{
+func sellOrder2reply(sellOrder *pty.SellOrder) *pty.ReplySellOrder {
+	reply := &pty.ReplySellOrder{
 		sellOrder.TokenSymbol,
 		sellOrder.Address,
 		sellOrder.AmountPerBoardlot,
@@ -250,12 +250,12 @@ func sellOrder2reply(sellOrder *types.SellOrder) *types.ReplySellOrder {
 	return reply
 }
 
-func txResult2sellOrderReply(txResult *types.TxResult) *types.ReplySellOrder {
+func txResult2sellOrderReply(txResult *types.TxResult) *pty.ReplySellOrder {
 	logs := txResult.Receiptdate.Logs
 	tradelog.Debug("txResult2sellOrderReply", "show logs", logs)
 	for _, log := range logs {
 		if log.Ty == types.TyLogTradeSellMarket {
-			var receipt types.ReceiptSellMarket
+			var receipt pty.ReceiptSellMarket
 			err := types.Decode(log.Log, &receipt)
 			if err != nil {
 				tradelog.Error("txResult2sellOrderReply", "decode receipt", err)
@@ -274,7 +274,7 @@ func txResult2sellOrderReply(txResult *types.TxResult) *types.ReplySellOrder {
 			}
 
 			txhash := common.ToHex(txResult.GetTx().Hash())
-			reply := &types.ReplySellOrder{
+			reply := &pty.ReplySellOrder{
 				receipt.Base.TokenSymbol,
 				receipt.Base.Owner,
 				int64(amount * float64(types.TokenPrecision)),
@@ -296,8 +296,8 @@ func txResult2sellOrderReply(txResult *types.TxResult) *types.ReplySellOrder {
 	return nil
 }
 
-func buyOrder2reply(buyOrder *types.BuyLimitOrder) *types.ReplyBuyOrder {
-	reply := &types.ReplyBuyOrder{
+func buyOrder2reply(buyOrder *pty.BuyLimitOrder) *pty.ReplyBuyOrder {
+	reply := &pty.ReplyBuyOrder{
 		buyOrder.TokenSymbol,
 		buyOrder.Address,
 		buyOrder.AmountPerBoardlot,
@@ -315,12 +315,12 @@ func buyOrder2reply(buyOrder *types.BuyLimitOrder) *types.ReplyBuyOrder {
 	return reply
 }
 
-func txResult2buyOrderReply(txResult *types.TxResult) *types.ReplyBuyOrder {
+func txResult2buyOrderReply(txResult *types.TxResult) *pty.ReplyBuyOrder {
 	logs := txResult.Receiptdate.Logs
 	tradelog.Debug("txResult2sellOrderReply", "show logs", logs)
 	for _, log := range logs {
 		if log.Ty == types.TyLogTradeBuyMarket {
-			var receipt types.ReceiptTradeBuyMarket
+			var receipt pty.ReceiptTradeBuyMarket
 			err := types.Decode(log.Log, &receipt)
 			if err != nil {
 				tradelog.Error("txResult2sellOrderReply", "decode receipt", err)
@@ -338,7 +338,7 @@ func txResult2buyOrderReply(txResult *types.TxResult) *types.ReplyBuyOrder {
 				return nil
 			}
 			txhash := common.ToHex(txResult.GetTx().Hash())
-			reply := &types.ReplyBuyOrder{
+			reply := &pty.ReplyBuyOrder{
 				receipt.Base.TokenSymbol,
 				receipt.Base.Owner,
 				int64(amount * float64(types.TokenPrecision)),
@@ -394,7 +394,7 @@ func fromStatus(status int32) (st, ty int32) {
 // SellMarkMarket BuyMarket 没有tradeOrder 需要调用这个函数进行转化
 // BuyRevoke, SellRevoke 也需要
 // SellLimit/BuyLimit 有order 但order 里面没有 bolcktime， 直接访问 order 还需要再次访问 block， 还不如直接访问交易
-func buyBase2Order(base *types.ReceiptBuyBase, txHash string, blockTime int64) *types.ReplyTradeOrder {
+func buyBase2Order(base *pty.ReceiptBuyBase, txHash string, blockTime int64) *pty.ReplyTradeOrder {
 	amount, err := strconv.ParseFloat(base.AmountPerBoardlot, 64)
 	if err != nil {
 		tradelog.Error("txResult2sellOrderReply", "decode receipt", err)
@@ -410,7 +410,7 @@ func buyBase2Order(base *types.ReceiptBuyBase, txHash string, blockTime int64) *
 		key = base.BuyID
 	}
 	//txhash := common.ToHex(txResult.GetTx().Hash())
-	reply := &types.ReplyTradeOrder{
+	reply := &pty.ReplyTradeOrder{
 		base.TokenSymbol,
 		base.Owner,
 		int64(amount * float64(types.TokenPrecision)),
@@ -431,7 +431,7 @@ func buyBase2Order(base *types.ReceiptBuyBase, txHash string, blockTime int64) *
 	return reply
 }
 
-func sellBase2Order(base *types.ReceiptSellBase, txHash string, blockTime int64) *types.ReplyTradeOrder {
+func sellBase2Order(base *pty.ReceiptSellBase, txHash string, blockTime int64) *pty.ReplyTradeOrder {
 	amount, err := strconv.ParseFloat(base.AmountPerBoardlot, 64)
 	if err != nil {
 		tradelog.Error("txResult2sellOrderReply", "decode receipt", err)
@@ -447,7 +447,7 @@ func sellBase2Order(base *types.ReceiptSellBase, txHash string, blockTime int64)
 	if len(base.SellID) > 0 {
 		key = base.SellID
 	}
-	reply := &types.ReplyTradeOrder{
+	reply := &pty.ReplyTradeOrder{
 		base.TokenSymbol,
 		base.Owner,
 		int64(amount * float64(types.TokenPrecision)),
@@ -468,12 +468,12 @@ func sellBase2Order(base *types.ReceiptSellBase, txHash string, blockTime int64)
 	return reply
 }
 
-func txResult2OrderReply(txResult *types.TxResult) *types.ReplyTradeOrder {
+func txResult2OrderReply(txResult *types.TxResult) *pty.ReplyTradeOrder {
 	logs := txResult.Receiptdate.Logs
 	tradelog.Debug("txResult2sellOrderReply", "show logs", logs)
 	for _, log := range logs {
 		if log.Ty == types.TyLogTradeBuyMarket {
-			var receipt types.ReceiptTradeBuyMarket
+			var receipt pty.ReceiptTradeBuyMarket
 			err := types.Decode(log.Log, &receipt)
 			if err != nil {
 				tradelog.Error("txResult2sellOrderReply", "decode receipt", err)
@@ -482,7 +482,7 @@ func txResult2OrderReply(txResult *types.TxResult) *types.ReplyTradeOrder {
 			tradelog.Debug("txResult2sellOrderReply", "show logs 1 ", receipt)
 			return buyBase2Order(receipt.Base, common.ToHex(txResult.GetTx().Hash()), txResult.Blocktime)
 		} else if log.Ty == types.TyLogTradeBuyRevoke {
-			var receipt types.ReceiptTradeBuyRevoke
+			var receipt pty.ReceiptTradeBuyRevoke
 			err := types.Decode(log.Log, &receipt)
 			if err != nil {
 				tradelog.Error("txResult2sellOrderReply", "decode receipt", err)
@@ -491,7 +491,7 @@ func txResult2OrderReply(txResult *types.TxResult) *types.ReplyTradeOrder {
 			tradelog.Debug("txResult2sellOrderReply", "show logs 1 ", receipt)
 			return buyBase2Order(receipt.Base, common.ToHex(txResult.GetTx().Hash()), txResult.Blocktime)
 		} else if log.Ty == types.TyLogTradeSellRevoke {
-			var receipt types.ReceiptTradeRevoke
+			var receipt pty.ReceiptTradeRevoke
 			err := types.Decode(log.Log, &receipt)
 			if err != nil {
 				tradelog.Error("txResult2sellOrderReply", "decode receipt", err)
@@ -500,7 +500,7 @@ func txResult2OrderReply(txResult *types.TxResult) *types.ReplyTradeOrder {
 			tradelog.Debug("txResult2sellOrderReply", "show revoke 1 ", receipt)
 			return sellBase2Order(receipt.Base, common.ToHex(txResult.GetTx().Hash()), txResult.Blocktime)
 		} else if log.Ty == types.TyLogTradeSellMarket {
-			var receipt types.ReceiptSellMarket
+			var receipt pty.ReceiptSellMarket
 			err := types.Decode(log.Log, &receipt)
 			if err != nil {
 				tradelog.Error("txResult2sellOrderReply", "decode receipt", err)
@@ -513,12 +513,12 @@ func txResult2OrderReply(txResult *types.TxResult) *types.ReplyTradeOrder {
 	return nil
 }
 
-func limitOrderTxResult2Order(txResult *types.TxResult) *types.ReplyTradeOrder {
+func limitOrderTxResult2Order(txResult *types.TxResult) *pty.ReplyTradeOrder {
 	logs := txResult.Receiptdate.Logs
 	tradelog.Debug("txResult2sellOrderReply", "show logs", logs)
 	for _, log := range logs {
 		if log.Ty == types.TyLogTradeSellLimit {
-			var receipt types.ReceiptTradeSell
+			var receipt pty.ReceiptTradeSell
 			err := types.Decode(log.Log, &receipt)
 			if err != nil {
 				tradelog.Error("txResult2sellOrderReply", "decode receipt", err)
@@ -527,7 +527,7 @@ func limitOrderTxResult2Order(txResult *types.TxResult) *types.ReplyTradeOrder {
 			tradelog.Debug("txResult2sellOrderReply", "show logs 1 ", receipt)
 			return sellBase2Order(receipt.Base, common.ToHex(txResult.GetTx().Hash()), txResult.Blocktime)
 		} else if log.Ty == types.TyLogTradeBuyLimit {
-			var receipt types.ReceiptTradeBuyLimit
+			var receipt pty.ReceiptTradeBuyLimit
 			err := types.Decode(log.Log, &receipt)
 			if err != nil {
 				tradelog.Error("txResult2sellOrderReply", "decode receipt", err)
@@ -540,7 +540,7 @@ func limitOrderTxResult2Order(txResult *types.TxResult) *types.ReplyTradeOrder {
 	return nil
 }
 
-func (t *trade) loadOrderFromKey(key []byte) *types.ReplyTradeOrder {
+func (t *trade) loadOrderFromKey(key []byte) *pty.ReplyTradeOrder {
 	tradelog.Debug("trade Query", "id", string(key), "check-prefix", sellIDPrefix)
 	if strings.HasPrefix(string(key), sellIDPrefix) {
 		txHash := strings.Replace(string(key), sellIDPrefix, "0x", 1)
@@ -584,7 +584,7 @@ func (t *trade) loadOrderFromKey(key []byte) *types.ReplyTradeOrder {
 	return nil
 }
 
-func (t *trade) GetOnesOrderWithStatus(req *types.ReqAddrTokens) (types.Message, error) {
+func (t *trade) GetOnesOrderWithStatus(req *pty.ReqAddrTokens) (types.Message, error) {
 	fromKey := []byte("")
 	if len(req.FromKey) != 0 {
 		order := t.loadOrderFromKey(fromKey)
@@ -606,7 +606,7 @@ func (t *trade) GetOnesOrderWithStatus(req *types.ReqAddrTokens) (types.Message,
 		return nil, err
 	}
 
-	var replys types.ReplyTradeOrders
+	var replys pty.ReplyTradeOrders
 	for _, key := range keys {
 		reply := t.loadOrderFromKey(key)
 		if reply != nil {
