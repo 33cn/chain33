@@ -601,7 +601,7 @@ func BenchmarkCommit(b *testing.B) {
 	b.StopTimer()
 }
 
-//模拟真实的数据提交操作，数据之间的关系也保持正确（hash计算），统计的时间包括MemSet和Commit，可以减去之前的MemSet的时间来估算Commit耗时
+//模拟真实的数据提交操作，数据之间的关系也保持正确（hash计算），统计的时间包括MemSet和Commit，可以减去之前用例中测试出来的MemSet的时间来估算Commit耗时
 func BenchmarkStoreCommit(b *testing.B) {
 	dir, err := ioutil.TempDir("", "example")
 	assert.Nil(b, err)
