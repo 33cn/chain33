@@ -31,10 +31,10 @@ message Lottery {
     int64                        createOnMain               = 14;
     int64                        lastTransToPurStateOnMain  = 15;
     int64                        lastTransToDrawStateOnMain = 16;
-    repeated MissingRecord       missingRecords             = 17;
+    repeated MissingRecord missingRecords                   = 17;
 }
 
-message MissingRecord{
+message MissingRecord {
     repeated int32 times = 1;
 }
 
@@ -100,8 +100,8 @@ message ReqLotteryBuyHistory {
 }
 
 message ReqLotteryLuckyInfo {
-    string          lotteryId = 1;
-    repeated int64  round     = 2;
+    string   lotteryId   = 1;
+    repeated int64 round = 2;
 }
 
 message ReqLotteryLuckyHistory {
@@ -119,18 +119,18 @@ message ReplyLotteryNormalInfo {
 }
 
 message ReplyLotteryCurrentInfo {
-    int32                  status                     = 1;
-    int64                  fund                       = 2;
-    int64                  lastTransToPurState        = 3;
-    int64                  lastTransToDrawState       = 4;
-    int64                  totalPurchasedTxNum        = 5;
-    int64                  round                      = 6;
-    int64                  luckyNumber                = 7;
-    int64                  lastTransToPurStateOnMain  = 8;
-    int64                  lastTransToDrawStateOnMain = 9;
-    int64                  purBlockNum                = 10;
-    int64                  drawBlockNum               = 11;
-    repeated MissingRecord missingRecords             = 12;
+    int32    status                       = 1;
+    int64    fund                         = 2;
+    int64    lastTransToPurState          = 3;
+    int64    lastTransToDrawState         = 4;
+    int64    totalPurchasedTxNum          = 5;
+    int64    round                        = 6;
+    int64    luckyNumber                  = 7;
+    int64    lastTransToPurStateOnMain    = 8;
+    int64    lastTransToDrawStateOnMain   = 9;
+    int64    purBlockNum                  = 10;
+    int64    drawBlockNum                 = 11;
+    repeated MissingRecord missingRecords = 12;
 }
 
 message ReplyLotteryHistoryLuckyNumber {
@@ -176,10 +176,10 @@ message LotteryUpdateRec {
     int64  type   = 4;
 }
 
-message LotteryUpdateRecs{
+message LotteryUpdateRecs {
     repeated LotteryUpdateRec records = 1;
 }
 
-message LotteryUpdateBuyInfo{
+message LotteryUpdateBuyInfo {
     map<string, LotteryUpdateRecs> buyInfo = 1;
 }
