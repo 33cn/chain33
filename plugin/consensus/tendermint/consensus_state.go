@@ -93,7 +93,6 @@ type ConsensusState struct {
 	txsAvailable      chan int64
 	begCons           time.Time
 	ProposalBlockHash []byte
-	needRecover       bool
 }
 
 // NewConsensusState returns a new ConsensusState.
@@ -109,7 +108,6 @@ func NewConsensusState(client *TendermintClient, state State, blockExec *BlockEx
 		Quit:         make(chan struct{}),
 		txsAvailable: make(chan int64, 1),
 		begCons:      time.Time{},
-		needRecover:  false,
 	}
 	// set function defaults (may be overwritten before calling Start)
 	cs.decideProposal = cs.defaultDecideProposal
@@ -207,7 +205,6 @@ func (cs *ConsensusState) Start() {
 		// schedule the first round!
 		// use GetRoundState so we don't race the receiveRoutine for access
 		cs.scheduleRound0(cs.GetRoundState())
-
 	}
 }
 
@@ -557,10 +554,8 @@ func (cs *ConsensusState) enterNewRound(height int64, round int) {
 	cs.broadcastChannel <- MsgInfo{TypeID: ttypes.NewRoundStepID, Msg: cs.RoundStateMessage(), PeerID: cs.ourId, PeerIP: ""}
 
 	// Wait for txs to be available in the mempool
-	// before we enterPropose in round 0. If the last block changed the app hash,
-	// we may need an empty "proof" block, and enterPropose immediately.
-
-	waitForTxs := cs.WaitForTxs() && round == 0 && !cs.needProofBlock(height)
+	// before we enterPropose in round 0.
+	waitForTxs := cs.WaitForTxs() && round == 0
 	if waitForTxs {
 		if cs.client.Cfg.CreateEmptyBlocksInterval > 0 {
 			cs.scheduleTimeout(cs.EmptyBlocksInterval(), height, round, ttypes.RoundStepNewRound)
@@ -569,15 +564,6 @@ func (cs *ConsensusState) enterNewRound(height int64, round int) {
 	} else {
 		cs.enterPropose(height, round)
 	}
-}
-
-// needProofBlock returns true on the first height (so the genesis app hash is signed right away)
-// and where the last block (height-1) caused the app hash to change
-func (cs *ConsensusState) needProofBlock(height int64) bool {
-	if height == 1 {
-		//return true
-	}
-	return false
 }
 
 func (cs *ConsensusState) proposalHeartbeat(height int64, round int) {
