@@ -17,9 +17,9 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/common"
 	token "gitlab.33.cn/chain33/chain33/plugin/dapp/token/executor"
+	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/types"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
-	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/types"
 )
 
 var tradelog = log.New("module", "execs.trade")
@@ -47,7 +47,7 @@ func (t *trade) GetDriverName() string {
 }
 
 func (t *trade) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
-	var trade types.Trade
+	var trade pty.Trade
 	err := types.Decode(tx.Payload, &trade)
 	if err != nil {
 		return nil, err
@@ -119,7 +119,7 @@ func (t *trade) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 	for i := 0; i < len(receipt.Logs); i++ {
 		item := receipt.Logs[i]
 		if item.Ty == types.TyLogTradeSellLimit || item.Ty == types.TyLogTradeSellRevoke {
-			var receipt types.ReceiptTradeSell
+			var receipt pty.ReceiptTradeSell
 			err := types.Decode(item.Log, &receipt)
 			if err != nil {
 				panic(err) //数据错误了，已经被修改了
@@ -128,7 +128,7 @@ func (t *trade) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 			set.KV = append(set.KV, kv...)
 			symbol = receipt.Base.TokenSymbol
 		} else if item.Ty == types.TyLogTradeBuyMarket {
-			var receipt types.ReceiptTradeBuyMarket
+			var receipt pty.ReceiptTradeBuyMarket
 			err := types.Decode(item.Log, &receipt)
 			if err != nil {
 				panic(err) //数据错误了，已经被修改了
@@ -146,7 +146,7 @@ func (t *trade) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 			*/
 			symbol = receipt.Base.TokenSymbol
 		} else if item.Ty == types.TyLogTradeBuyRevoke || item.Ty == types.TyLogTradeBuyLimit {
-			var receipt types.ReceiptTradeBuyLimit
+			var receipt pty.ReceiptTradeBuyLimit
 			err := types.Decode(item.Log, &receipt)
 			if err != nil {
 				panic(err) //数据错误了，已经被修改了
@@ -165,7 +165,7 @@ func (t *trade) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 			*/
 			symbol = receipt.Base.TokenSymbol
 		} else if item.Ty == types.TyLogTradeSellMarket {
-			var receipt types.ReceiptSellMarket
+			var receipt pty.ReceiptSellMarket
 			err := types.Decode(item.Log, &receipt)
 			if err != nil {
 				panic(err) //数据错误了，已经被修改了
@@ -201,7 +201,7 @@ func (t *trade) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 	for i := 0; i < len(receipt.Logs); i++ {
 		item := receipt.Logs[i]
 		if item.Ty == types.TyLogTradeSellLimit || item.Ty == types.TyLogTradeSellRevoke {
-			var receipt types.ReceiptTradeSell
+			var receipt pty.ReceiptTradeSell
 			err := types.Decode(item.Log, &receipt)
 			if err != nil {
 				panic(err) //数据错误了，已经被修改了
@@ -210,7 +210,7 @@ func (t *trade) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 			set.KV = append(set.KV, kv...)
 			symbol = receipt.Base.TokenSymbol
 		} else if item.Ty == types.TyLogTradeBuyMarket {
-			var receipt types.ReceiptTradeBuyMarket
+			var receipt pty.ReceiptTradeBuyMarket
 			err := types.Decode(item.Log, &receipt)
 			if err != nil {
 				panic(err) //数据错误了，已经被修改了
@@ -219,7 +219,7 @@ func (t *trade) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 			set.KV = append(set.KV, kv...)
 			symbol = receipt.Base.TokenSymbol
 		} else if item.Ty == types.TyLogTradeBuyRevoke || item.Ty == types.TyLogTradeBuyLimit {
-			var receipt types.ReceiptTradeBuyLimit
+			var receipt pty.ReceiptTradeBuyLimit
 			err := types.Decode(item.Log, &receipt)
 			if err != nil {
 				panic(err) //数据错误了，已经被修改了
@@ -228,7 +228,7 @@ func (t *trade) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 			set.KV = append(set.KV, kv...)
 			symbol = receipt.Base.TokenSymbol
 		} else if item.Ty == types.TyLogTradeSellMarket {
-			var receipt types.ReceiptSellMarket
+			var receipt pty.ReceiptSellMarket
 			err := types.Decode(item.Log, &receipt)
 			if err != nil {
 				panic(err) //数据错误了，已经被修改了
@@ -265,7 +265,7 @@ func (t *trade) Query(funcName string, params []byte) (types.Message, error) {
 	switch funcName {
 	// token part
 	case "GetTokenSellOrderByStatus": // 根据token 分页显示未完成成交卖单
-		var req types.ReqTokenSellOrder
+		var req pty.ReqTokenSellOrder
 		err := types.Decode(params, &req)
 		if err != nil {
 			return nil, err
@@ -275,7 +275,7 @@ func (t *trade) Query(funcName string, params []byte) (types.Message, error) {
 		}
 		return t.GetTokenSellOrderByStatus(&req, req.Status)
 	case "GetTokenBuyOrderByStatus": // 根据token 分页显示未完成成交买单
-		var req types.ReqTokenBuyOrder
+		var req pty.ReqTokenBuyOrder
 		err := types.Decode(params, &req)
 		if err != nil {
 			return nil, err
@@ -288,14 +288,14 @@ func (t *trade) Query(funcName string, params []byte) (types.Message, error) {
 	// addr part
 	// addr(-token) 的所有订单， 不分页
 	case "GetOnesSellOrder":
-		var addrTokens types.ReqAddrTokens
+		var addrTokens pty.ReqAddrTokens
 		err := types.Decode(params, &addrTokens)
 		if err != nil {
 			return nil, err
 		}
 		return t.GetOnesSellOrder(&addrTokens)
 	case "GetOnesBuyOrder":
-		var addrTokens types.ReqAddrTokens
+		var addrTokens pty.ReqAddrTokens
 		err := types.Decode(params, &addrTokens)
 		if err != nil {
 			return nil, err
@@ -304,7 +304,7 @@ func (t *trade) Query(funcName string, params []byte) (types.Message, error) {
 
 	// 按 用户状态来 addr-status
 	case "GetOnesSellOrderWithStatus":
-		var addrTokens types.ReqAddrTokens
+		var addrTokens pty.ReqAddrTokens
 		err := types.Decode(params, &addrTokens)
 		if err != nil {
 			return nil, err
@@ -312,14 +312,14 @@ func (t *trade) Query(funcName string, params []byte) (types.Message, error) {
 		return t.GetOnesSellOrdersWithStatus(&addrTokens)
 
 	case "GetOnesBuyOrderWithStatus":
-		var addrTokens types.ReqAddrTokens
+		var addrTokens pty.ReqAddrTokens
 		err := types.Decode(params, &addrTokens)
 		if err != nil {
 			return nil, err
 		}
 		return t.GetOnesBuyOrdersWithStatus(&addrTokens)
 	case "GetOnesOrderWithStatus":
-		var addrTokens types.ReqAddrTokens
+		var addrTokens pty.ReqAddrTokens
 		err := types.Decode(params, &addrTokens)
 		if err != nil {
 			return nil, err
@@ -332,17 +332,17 @@ func (t *trade) Query(funcName string, params []byte) (types.Message, error) {
 	return nil, types.ErrQueryNotSupport
 }
 
-func (t *trade) getSellOrderFromDb(sellID []byte) *types.SellOrder {
+func (t *trade) getSellOrderFromDb(sellID []byte) *pty.SellOrder {
 	value, err := t.GetStateDB().Get(sellID)
 	if err != nil {
 		panic(err)
 	}
-	var sellorder types.SellOrder
+	var sellorder pty.SellOrder
 	types.Decode(value, &sellorder)
 	return &sellorder
 }
 
-func genSaveSellKv(sellorder *types.SellOrder) []*types.KeyValue {
+func genSaveSellKv(sellorder *pty.SellOrder) []*types.KeyValue {
 	status := sellorder.Status
 	var kv []*types.KeyValue
 	kv = saveSellOrderKeyValue(kv, sellorder, status)
@@ -358,16 +358,16 @@ func (t *trade) saveSell(sellID []byte, ty int32) []*types.KeyValue {
 	return genSaveSellKv(sellorder)
 }
 
-func deleteSellOrderKeyValue(kv []*types.KeyValue, sellorder *types.SellOrder, status int32) []*types.KeyValue {
+func deleteSellOrderKeyValue(kv []*types.KeyValue, sellorder *pty.SellOrder, status int32) []*types.KeyValue {
 	return genSellOrderKeyValue(kv, sellorder, status, nil)
 }
 
-func saveSellOrderKeyValue(kv []*types.KeyValue, sellorder *types.SellOrder, status int32) []*types.KeyValue {
+func saveSellOrderKeyValue(kv []*types.KeyValue, sellorder *pty.SellOrder, status int32) []*types.KeyValue {
 	sellID := []byte(sellorder.SellID)
 	return genSellOrderKeyValue(kv, sellorder, status, sellID)
 }
 
-func genDeleteSellKv(sellorder *types.SellOrder) []*types.KeyValue {
+func genDeleteSellKv(sellorder *pty.SellOrder) []*types.KeyValue {
 	status := sellorder.Status
 	var kv []*types.KeyValue
 	kv = deleteSellOrderKeyValue(kv, sellorder, status)
@@ -383,30 +383,30 @@ func (t *trade) deleteSell(sellID []byte, ty int32) []*types.KeyValue {
 	return genDeleteSellKv(sellorder)
 }
 
-func (t *trade) saveBuy(receiptTradeBuy *types.ReceiptBuyBase) []*types.KeyValue {
+func (t *trade) saveBuy(receiptTradeBuy *pty.ReceiptBuyBase) []*types.KeyValue {
 	//tradelog.Info("save", "buy", receiptTradeBuy)
 
 	var kv []*types.KeyValue
 	return saveBuyMarketOrderKeyValue(kv, receiptTradeBuy, types.TradeOrderStatusBoughtOut, t.GetHeight())
 }
 
-func (t *trade) deleteBuy(receiptTradeBuy *types.ReceiptBuyBase) []*types.KeyValue {
+func (t *trade) deleteBuy(receiptTradeBuy *pty.ReceiptBuyBase) []*types.KeyValue {
 	var kv []*types.KeyValue
 	return deleteBuyMarketOrderKeyValue(kv, receiptTradeBuy, types.TradeOrderStatusBoughtOut, t.GetHeight())
 }
 
 // BuyLimit Local
-func (t *trade) getBuyOrderFromDb(buyID []byte) *types.BuyLimitOrder {
+func (t *trade) getBuyOrderFromDb(buyID []byte) *pty.BuyLimitOrder {
 	value, err := t.GetStateDB().Get(buyID)
 	if err != nil {
 		panic(err)
 	}
-	var buyOrder types.BuyLimitOrder
+	var buyOrder pty.BuyLimitOrder
 	types.Decode(value, &buyOrder)
 	return &buyOrder
 }
 
-func genSaveBuyLimitKv(buyOrder *types.BuyLimitOrder) []*types.KeyValue {
+func genSaveBuyLimitKv(buyOrder *pty.BuyLimitOrder) []*types.KeyValue {
 	status := buyOrder.Status
 	var kv []*types.KeyValue
 	kv = saveBuyLimitOrderKeyValue(kv, buyOrder, status)
@@ -422,16 +422,16 @@ func (t *trade) saveBuyLimit(buyID []byte, ty int32) []*types.KeyValue {
 	return genSaveBuyLimitKv(buyOrder)
 }
 
-func saveBuyLimitOrderKeyValue(kv []*types.KeyValue, buyOrder *types.BuyLimitOrder, status int32) []*types.KeyValue {
+func saveBuyLimitOrderKeyValue(kv []*types.KeyValue, buyOrder *pty.BuyLimitOrder, status int32) []*types.KeyValue {
 	buyID := []byte(buyOrder.BuyID)
 	return genBuyLimitOrderKeyValue(kv, buyOrder, status, buyID)
 }
 
-func deleteBuyLimitKeyValue(kv []*types.KeyValue, buyOrder *types.BuyLimitOrder, status int32) []*types.KeyValue {
+func deleteBuyLimitKeyValue(kv []*types.KeyValue, buyOrder *pty.BuyLimitOrder, status int32) []*types.KeyValue {
 	return genBuyLimitOrderKeyValue(kv, buyOrder, status, nil)
 }
 
-func genDeleteBuyLimitKv(buyOrder *types.BuyLimitOrder) []*types.KeyValue {
+func genDeleteBuyLimitKv(buyOrder *pty.BuyLimitOrder) []*types.KeyValue {
 	status := buyOrder.Status
 	var kv []*types.KeyValue
 	kv = deleteBuyLimitKeyValue(kv, buyOrder, status)
@@ -447,30 +447,30 @@ func (t *trade) deleteBuyLimit(buyID []byte, ty int32) []*types.KeyValue {
 	return genDeleteBuyLimitKv(buyOrder)
 }
 
-func (t *trade) saveSellMarket(receiptTradeBuy *types.ReceiptSellBase) []*types.KeyValue {
+func (t *trade) saveSellMarket(receiptTradeBuy *pty.ReceiptSellBase) []*types.KeyValue {
 	var kv []*types.KeyValue
 	return saveSellMarketOrderKeyValue(kv, receiptTradeBuy, types.TradeOrderStatusSoldOut, t.GetHeight())
 }
 
-func (t *trade) deleteSellMarket(receiptTradeBuy *types.ReceiptSellBase) []*types.KeyValue {
+func (t *trade) deleteSellMarket(receiptTradeBuy *pty.ReceiptSellBase) []*types.KeyValue {
 	var kv []*types.KeyValue
 	return deleteSellMarketOrderKeyValue(kv, receiptTradeBuy, types.TradeOrderStatusSoldOut, t.GetHeight())
 }
 
-func saveSellMarketOrderKeyValue(kv []*types.KeyValue, receipt *types.ReceiptSellBase, status int32, height int64) []*types.KeyValue {
+func saveSellMarketOrderKeyValue(kv []*types.KeyValue, receipt *pty.ReceiptSellBase, status int32, height int64) []*types.KeyValue {
 	txhash := []byte(receipt.TxHash)
 	return genSellMarketOrderKeyValue(kv, receipt, status, height, txhash)
 }
 
-func deleteSellMarketOrderKeyValue(kv []*types.KeyValue, receipt *types.ReceiptSellBase, status int32, height int64) []*types.KeyValue {
+func deleteSellMarketOrderKeyValue(kv []*types.KeyValue, receipt *pty.ReceiptSellBase, status int32, height int64) []*types.KeyValue {
 	return genSellMarketOrderKeyValue(kv, receipt, status, height, nil)
 }
 
-func saveBuyMarketOrderKeyValue(kv []*types.KeyValue, receipt *types.ReceiptBuyBase, status int32, height int64) []*types.KeyValue {
+func saveBuyMarketOrderKeyValue(kv []*types.KeyValue, receipt *pty.ReceiptBuyBase, status int32, height int64) []*types.KeyValue {
 	txhash := []byte(receipt.TxHash)
 	return genBuyMarketOrderKeyValue(kv, receipt, status, height, txhash)
 }
 
-func deleteBuyMarketOrderKeyValue(kv []*types.KeyValue, receipt *types.ReceiptBuyBase, status int32, height int64) []*types.KeyValue {
+func deleteBuyMarketOrderKeyValue(kv []*types.KeyValue, receipt *pty.ReceiptBuyBase, status int32, height int64) []*types.KeyValue {
 	return genBuyMarketOrderKeyValue(kv, receipt, status, height, nil)
 }

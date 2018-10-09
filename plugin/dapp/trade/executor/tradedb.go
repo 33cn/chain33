@@ -7,15 +7,16 @@ import (
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
+	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/types"
 	"gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
 type sellDB struct {
-	types.SellOrder
+	pty.SellOrder
 }
 
-func newSellDB(sellOrder types.SellOrder) (selldb *sellDB) {
+func newSellDB(sellOrder pty.SellOrder) (selldb *sellDB) {
 	selldb = &sellDB{sellOrder}
 	if types.InvalidStartTime != selldb.Starttime {
 		selldb.Status = types.TradeOrderStatusNotStart
@@ -35,7 +36,7 @@ func (selldb *sellDB) save(db dbm.KV) []*types.KeyValue {
 func (selldb *sellDB) getSellLogs(tradeType int32, txhash string) *types.ReceiptLog {
 	log := &types.ReceiptLog{}
 	log.Ty = tradeType
-	base := &types.ReceiptSellBase{
+	base := &pty.ReceiptSellBase{
 		selldb.TokenSymbol,
 		selldb.Address,
 		strconv.FormatFloat(float64(selldb.AmountPerBoardlot)/float64(types.TokenPrecision), 'f', 8, 64),
@@ -53,11 +54,11 @@ func (selldb *sellDB) getSellLogs(tradeType int32, txhash string) *types.Receipt
 		selldb.Height,
 	}
 	if types.TyLogTradeSellLimit == tradeType {
-		receiptTrade := &types.ReceiptTradeSell{base}
+		receiptTrade := &pty.ReceiptTradeSell{base}
 		log.Log = types.Encode(receiptTrade)
 
 	} else if types.TyLogTradeSellRevoke == tradeType {
-		receiptTrade := &types.ReceiptTradeRevoke{base}
+		receiptTrade := &pty.ReceiptTradeRevoke{base}
 		log.Log = types.Encode(receiptTrade)
 	}
 
@@ -67,7 +68,7 @@ func (selldb *sellDB) getSellLogs(tradeType int32, txhash string) *types.Receipt
 func (selldb *sellDB) getBuyLogs(buyerAddr string, boardlotcnt int64, txhash string) *types.ReceiptLog {
 	log := &types.ReceiptLog{}
 	log.Ty = types.TyLogTradeBuyMarket
-	base := &types.ReceiptBuyBase{
+	base := &pty.ReceiptBuyBase{
 		selldb.TokenSymbol,
 		buyerAddr,
 		strconv.FormatFloat(float64(selldb.AmountPerBoardlot)/float64(types.TokenPrecision), 'f', 8, 64),
@@ -82,19 +83,19 @@ func (selldb *sellDB) getBuyLogs(buyerAddr string, boardlotcnt int64, txhash str
 		selldb.Height,
 	}
 
-	receipt := &types.ReceiptTradeBuyMarket{base}
+	receipt := &pty.ReceiptTradeBuyMarket{base}
 	log.Log = types.Encode(receipt)
 	return log
 }
 
-func getSellOrderFromID(sellID []byte, db dbm.KV) (*types.SellOrder, error) {
+func getSellOrderFromID(sellID []byte, db dbm.KV) (*pty.SellOrder, error) {
 	value, err := db.Get(sellID)
 	if err != nil {
 		tradelog.Error("getSellOrderFromID", "Failed to get value from db with sellid", string(sellID))
 		return nil, err
 	}
 
-	var sellOrder types.SellOrder
+	var sellOrder pty.SellOrder
 	if err = types.Decode(value, &sellOrder); err != nil {
 		tradelog.Error("getSellOrderFromID", "Failed to decode sell order", string(sellID))
 		return nil, err
@@ -130,10 +131,10 @@ func (selldb *sellDB) getKVSet() (kvset []*types.KeyValue) {
 }
 
 type buyDB struct {
-	types.BuyLimitOrder
+	pty.BuyLimitOrder
 }
 
-func newBuyDB(sellOrder types.BuyLimitOrder) (buydb *buyDB) {
+func newBuyDB(sellOrder pty.BuyLimitOrder) (buydb *buyDB) {
 	buydb = &buyDB{sellOrder}
 	return
 }
@@ -157,7 +158,7 @@ func (buydb *buyDB) getKVSet() (kvset []*types.KeyValue) {
 func (buydb *buyDB) getBuyLogs(tradeType int32, txhash string) *types.ReceiptLog {
 	log := &types.ReceiptLog{}
 	log.Ty = tradeType
-	base := &types.ReceiptBuyBase{
+	base := &pty.ReceiptBuyBase{
 		buydb.TokenSymbol,
 		buydb.Address,
 		strconv.FormatFloat(float64(buydb.AmountPerBoardlot)/float64(types.TokenPrecision), 'f', 8, 64),
@@ -172,25 +173,25 @@ func (buydb *buyDB) getBuyLogs(tradeType int32, txhash string) *types.ReceiptLog
 		buydb.Height,
 	}
 	if types.TyLogTradeBuyLimit == tradeType {
-		receiptTrade := &types.ReceiptTradeBuyLimit{base}
+		receiptTrade := &pty.ReceiptTradeBuyLimit{base}
 		log.Log = types.Encode(receiptTrade)
 
 	} else if types.TyLogTradeBuyRevoke == tradeType {
-		receiptTrade := &types.ReceiptTradeBuyRevoke{base}
+		receiptTrade := &pty.ReceiptTradeBuyRevoke{base}
 		log.Log = types.Encode(receiptTrade)
 	}
 
 	return log
 }
 
-func getBuyOrderFromID(buyID []byte, db dbm.KV) (*types.BuyLimitOrder, error) {
+func getBuyOrderFromID(buyID []byte, db dbm.KV) (*pty.BuyLimitOrder, error) {
 	value, err := db.Get(buyID)
 	if err != nil {
 		tradelog.Error("getBuyOrderFromID", "Failed to get value from db with buyID", string(buyID))
 		return nil, err
 	}
 
-	var buy types.BuyLimitOrder
+	var buy pty.BuyLimitOrder
 	if err = types.Decode(value, &buy); err != nil {
 		tradelog.Error("getBuyOrderFromID", "Failed to decode buy order", string(buyID))
 		return nil, err
@@ -201,7 +202,7 @@ func getBuyOrderFromID(buyID []byte, db dbm.KV) (*types.BuyLimitOrder, error) {
 func (buydb *buyDB) getSellLogs(sellerAddr string, sellID string, boardlotCnt int64, txhash string) *types.ReceiptLog {
 	log := &types.ReceiptLog{}
 	log.Ty = types.TyLogTradeSellMarket
-	base := &types.ReceiptSellBase{
+	base := &pty.ReceiptSellBase{
 		buydb.TokenSymbol,
 		sellerAddr,
 		strconv.FormatFloat(float64(buydb.AmountPerBoardlot)/float64(types.TokenPrecision), 'f', 8, 64),
@@ -218,7 +219,7 @@ func (buydb *buyDB) getSellLogs(sellerAddr string, sellID string, boardlotCnt in
 		txhash,
 		buydb.Height,
 	}
-	receiptSellMarket := &types.ReceiptSellMarket{Base: base}
+	receiptSellMarket := &pty.ReceiptSellMarket{Base: base}
 	log.Log = types.Encode(receiptSellMarket)
 
 	return log
@@ -241,7 +242,7 @@ func newTradeAction(t *trade, tx *types.Transaction) *tradeAction {
 		t.GetBlockTime(), t.GetHeight(), dapp.ExecAddress(string(tx.Execer))}
 }
 
-func (action *tradeAction) tradeSell(sell *types.TradeForSell) (*types.Receipt, error) {
+func (action *tradeAction) tradeSell(sell *pty.TradeForSell) (*types.Receipt, error) {
 	if sell.TotalBoardlot < 0 || sell.PricePerBoardlot < 0 || sell.MinBoardlot < 0 || sell.AmountPerBoardlot < 0 {
 		return nil, types.ErrInputPara
 	}
@@ -260,7 +261,7 @@ func (action *tradeAction) tradeSell(sell *types.TradeForSell) (*types.Receipt, 
 
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
-	sellOrder := types.SellOrder{
+	sellOrder := pty.SellOrder{
 		sell.GetTokenSymbol(),
 		action.fromaddr,
 		sell.GetAmountPerBoardlot(),
@@ -287,7 +288,7 @@ func (action *tradeAction) tradeSell(sell *types.TradeForSell) (*types.Receipt, 
 	return receipt, nil
 }
 
-func (action *tradeAction) tradeBuy(buyOrder *types.TradeForBuy) (*types.Receipt, error) {
+func (action *tradeAction) tradeBuy(buyOrder *pty.TradeForBuy) (*types.Receipt, error) {
 	if buyOrder.BoardlotCnt < 0 {
 		return nil, types.ErrInputPara
 	}
@@ -357,7 +358,7 @@ func (action *tradeAction) tradeBuy(buyOrder *types.TradeForBuy) (*types.Receipt
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
 }
 
-func (action *tradeAction) tradeRevokeSell(revoke *types.TradeForRevokeSell) (*types.Receipt, error) {
+func (action *tradeAction) tradeRevokeSell(revoke *pty.TradeForRevokeSell) (*types.Receipt, error) {
 	sellidByte := []byte(revoke.SellID)
 	sellOrder, err := getSellOrderFromID(sellidByte, action.db)
 	if err != nil {
@@ -412,7 +413,7 @@ func checkTokenExist(token string, db dbm.KV) bool {
 	return err == nil
 }
 
-func (action *tradeAction) tradeBuyLimit(buy *types.TradeForBuyLimit) (*types.Receipt, error) {
+func (action *tradeAction) tradeBuyLimit(buy *pty.TradeForBuyLimit) (*types.Receipt, error) {
 	if buy.TotalBoardlot < 0 || buy.PricePerBoardlot < 0 || buy.MinBoardlot < 0 || buy.AmountPerBoardlot < 0 {
 		return nil, types.ErrInputPara
 	}
@@ -431,7 +432,7 @@ func (action *tradeAction) tradeBuyLimit(buy *types.TradeForBuyLimit) (*types.Re
 
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
-	buyOrder := types.BuyLimitOrder{
+	buyOrder := pty.BuyLimitOrder{
 		buy.GetTokenSymbol(),
 		action.fromaddr,
 		buy.GetAmountPerBoardlot(),
@@ -455,7 +456,7 @@ func (action *tradeAction) tradeBuyLimit(buy *types.TradeForBuyLimit) (*types.Re
 	return receipt, nil
 }
 
-func (action *tradeAction) tradeSellMarket(sellOrder *types.TradeForSellMarket) (*types.Receipt, error) {
+func (action *tradeAction) tradeSellMarket(sellOrder *pty.TradeForSellMarket) (*types.Receipt, error) {
 	if sellOrder.BoardlotCnt < 0 {
 		return nil, types.ErrInputPara
 	}
@@ -525,7 +526,7 @@ func (action *tradeAction) tradeSellMarket(sellOrder *types.TradeForSellMarket) 
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
 }
 
-func (action *tradeAction) tradeRevokeBuyLimit(revoke *types.TradeForRevokeBuy) (*types.Receipt, error) {
+func (action *tradeAction) tradeRevokeBuyLimit(revoke *pty.TradeForRevokeBuy) (*types.Receipt, error) {
 	buyIDByte := []byte(revoke.BuyID)
 	buyOrder, err := getBuyOrderFromID(buyIDByte, action.db)
 	if err != nil {

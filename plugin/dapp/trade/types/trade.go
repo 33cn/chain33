@@ -1,4 +1,4 @@
-package trade
+package types
 
 import (
 	"encoding/json"
@@ -8,14 +8,13 @@ import (
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/types"
-	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/types"
 )
 
 var nameX string
 
 var tlog = log.New("module", types.TradeX)
 
-func Init() {
+func init() {
 	nameX = types.ExecName(types.TradeX)
 	// init executor type
 	types.RegistorExecutor(types.TradeX, NewType())
@@ -49,33 +48,33 @@ func NewType() *tradeType {
 }
 
 func (at *tradeType) GetPayload() types.Message {
-	return &types.Trade{}
+	return &Trade{}
 }
 
 func (trade tradeType) ActionName(tx *types.Transaction) string {
-	var action types.Trade
+	var action Trade
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
 		return "unknown-err"
 	}
-	if action.Ty == pty.TradeSellLimit && action.GetTokensell() != nil {
+	if action.Ty == TradeSellLimit && action.GetTokensell() != nil {
 		return "selltoken"
-	} else if action.Ty == pty.TradeBuyMarket && action.GetTokenbuy() != nil {
+	} else if action.Ty == TradeBuyMarket && action.GetTokenbuy() != nil {
 		return "buytoken"
-	} else if action.Ty == pty.TradeRevokeSell && action.GetTokenrevokesell() != nil {
+	} else if action.Ty == TradeRevokeSell && action.GetTokenrevokesell() != nil {
 		return "revokeselltoken"
-	} else if action.Ty == pty.TradeBuyLimit && action.GetTokenbuylimit() != nil {
+	} else if action.Ty == TradeBuyLimit && action.GetTokenbuylimit() != nil {
 		return "buylimittoken"
-	} else if action.Ty == pty.TradeSellMarket && action.GetTokensellmarket() != nil {
+	} else if action.Ty == TradeSellMarket && action.GetTokensellmarket() != nil {
 		return "sellmarkettoken"
-	} else if action.Ty == pty.TradeRevokeBuy && action.GetTokenrevokebuy() != nil {
+	} else if action.Ty == TradeRevokeBuy && action.GetTokenrevokebuy() != nil {
 		return "revokebuytoken"
 	}
 	return "unknown"
 }
 
 func (t tradeType) DecodePayload(tx *types.Transaction) (interface{}, error) {
-	var action types.Trade
+	var action Trade
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
 		return nil, err
@@ -85,17 +84,17 @@ func (t tradeType) DecodePayload(tx *types.Transaction) (interface{}, error) {
 
 func (t tradeType) Amount(tx *types.Transaction) (int64, error) {
 	//TODO: 补充和完善token和trade分支的amount的计算, added by hzj
-	var trade types.Trade
+	var trade Trade
 	err := types.Decode(tx.GetPayload(), &trade)
 	if err != nil {
 		return 0, types.ErrDecode
 	}
 
-	if pty.TradeSellLimit == trade.Ty && trade.GetTokensell() != nil {
+	if TradeSellLimit == trade.Ty && trade.GetTokensell() != nil {
 		return 0, nil
-	} else if pty.TradeBuyMarket == trade.Ty && trade.GetTokenbuy() != nil {
+	} else if TradeBuyMarket == trade.Ty && trade.GetTokenbuy() != nil {
 		return 0, nil
-	} else if pty.TradeRevokeSell == trade.Ty && trade.GetTokenrevokesell() != nil {
+	} else if TradeRevokeSell == trade.Ty && trade.GetTokenrevokesell() != nil {
 		return 0, nil
 	}
 	return 0, nil
@@ -162,7 +161,7 @@ func CreateRawTradeSellTx(parm *TradeSellTx) (*types.Transaction, error) {
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}
-	v := &types.TradeForSell{
+	v := &TradeForSell{
 		TokenSymbol:       parm.TokenSymbol,
 		AmountPerBoardlot: parm.AmountPerBoardlot,
 		MinBoardlot:       parm.MinBoardlot,
@@ -172,9 +171,9 @@ func CreateRawTradeSellTx(parm *TradeSellTx) (*types.Transaction, error) {
 		Stoptime:          0,
 		Crowdfund:         false,
 	}
-	sell := &types.Trade{
-		Ty:    pty.TradeSellLimit,
-		Value: &types.Trade_Tokensell{v},
+	sell := &Trade{
+		Ty:    TradeSellLimit,
+		Value: &Trade_Tokensell{v},
 	}
 	tx := &types.Transaction{
 		Execer:  []byte(nameX),
@@ -193,10 +192,10 @@ func CreateRawTradeBuyTx(parm *TradeBuyTx) (*types.Transaction, error) {
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}
-	v := &types.TradeForBuy{SellID: parm.SellID, BoardlotCnt: parm.BoardlotCnt}
-	buy := &types.Trade{
-		Ty:    pty.TradeBuyMarket,
-		Value: &types.Trade_Tokenbuy{v},
+	v := &TradeForBuy{SellID: parm.SellID, BoardlotCnt: parm.BoardlotCnt}
+	buy := &Trade{
+		Ty:    TradeBuyMarket,
+		Value: &Trade_Tokenbuy{v},
 	}
 	tx := &types.Transaction{
 		Execer:  []byte(nameX),
@@ -216,10 +215,10 @@ func CreateRawTradeRevokeTx(parm *TradeRevokeTx) (*types.Transaction, error) {
 		return nil, types.ErrInvalidParam
 	}
 
-	v := &types.TradeForRevokeSell{SellID: parm.SellID}
-	buy := &types.Trade{
-		Ty:    pty.TradeRevokeSell,
-		Value: &types.Trade_Tokenrevokesell{v},
+	v := &TradeForRevokeSell{SellID: parm.SellID}
+	buy := &Trade{
+		Ty:    TradeRevokeSell,
+		Value: &Trade_Tokenrevokesell{v},
 	}
 	tx := &types.Transaction{
 		Execer:  []byte(nameX),
@@ -238,16 +237,16 @@ func CreateRawTradeBuyLimitTx(parm *TradeBuyLimitTx) (*types.Transaction, error)
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}
-	v := &types.TradeForBuyLimit{
+	v := &TradeForBuyLimit{
 		TokenSymbol:       parm.TokenSymbol,
 		AmountPerBoardlot: parm.AmountPerBoardlot,
 		MinBoardlot:       parm.MinBoardlot,
 		PricePerBoardlot:  parm.PricePerBoardlot,
 		TotalBoardlot:     parm.TotalBoardlot,
 	}
-	buyLimit := &types.Trade{
-		Ty:    pty.TradeBuyLimit,
-		Value: &types.Trade_Tokenbuylimit{v},
+	buyLimit := &Trade{
+		Ty:    TradeBuyLimit,
+		Value: &Trade_Tokenbuylimit{v},
 	}
 	tx := &types.Transaction{
 		Execer:  []byte(nameX),
@@ -266,10 +265,10 @@ func CreateRawTradeSellMarketTx(parm *TradeSellMarketTx) (*types.Transaction, er
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}
-	v := &types.TradeForSellMarket{BuyID: parm.BuyID, BoardlotCnt: parm.BoardlotCnt}
-	sellMarket := &types.Trade{
-		Ty:    pty.TradeSellMarket,
-		Value: &types.Trade_Tokensellmarket{v},
+	v := &TradeForSellMarket{BuyID: parm.BuyID, BoardlotCnt: parm.BoardlotCnt}
+	sellMarket := &Trade{
+		Ty:    TradeSellMarket,
+		Value: &Trade_Tokensellmarket{v},
 	}
 	tx := &types.Transaction{
 		Execer:  []byte(nameX),
@@ -289,10 +288,10 @@ func CreateRawTradeRevokeBuyTx(parm *TradeRevokeBuyTx) (*types.Transaction, erro
 		return nil, types.ErrInvalidParam
 	}
 
-	v := &types.TradeForRevokeBuy{BuyID: parm.BuyID}
-	buy := &types.Trade{
-		Ty:    pty.TradeRevokeBuy,
-		Value: &types.Trade_Tokenrevokebuy{v},
+	v := &TradeForRevokeBuy{BuyID: parm.BuyID}
+	buy := &Trade{
+		Ty:    TradeRevokeBuy,
+		Value: &Trade_Tokenrevokebuy{v},
 	}
 	tx := &types.Transaction{
 		Execer:  []byte(nameX),
@@ -316,7 +315,7 @@ func (l TradeSellLimitLog) Name() string {
 }
 
 func (l TradeSellLimitLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp types.ReceiptTradeSell
+	var logTmp ReceiptTradeSell
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
 		return nil, err
@@ -332,7 +331,7 @@ func (l TradeSellMarketLog) Name() string {
 }
 
 func (l TradeSellMarketLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp types.ReceiptSellMarket
+	var logTmp ReceiptSellMarket
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
 		return nil, err
@@ -348,7 +347,7 @@ func (l TradeBuyMarketLog) Name() string {
 }
 
 func (l TradeBuyMarketLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp types.ReceiptTradeBuyMarket
+	var logTmp ReceiptTradeBuyMarket
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
 		return nil, err
@@ -364,7 +363,7 @@ func (l TradeBuyLimitLog) Name() string {
 }
 
 func (l TradeBuyLimitLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp types.ReceiptTradeBuyLimit
+	var logTmp ReceiptTradeBuyLimit
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
 		return nil, err
@@ -380,7 +379,7 @@ func (l TradeBuyRevokeLog) Name() string {
 }
 
 func (l TradeBuyRevokeLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp types.ReceiptTradeBuyRevoke
+	var logTmp ReceiptTradeBuyRevoke
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
 		return nil, err
@@ -396,7 +395,7 @@ func (l TradeSellRevokeLog) Name() string {
 }
 
 func (l TradeSellRevokeLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp types.ReceiptTradeRevoke
+	var logTmp ReceiptTradeRevoke
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
 		return nil, err
@@ -406,14 +405,14 @@ func (l TradeSellRevokeLog) Decode(msg []byte) (interface{}, error) {
 
 // query
 type RpcReplySellOrders struct {
-	SellOrders []*types.RpcReplyTradeOrder `json:"sellOrders"`
+	SellOrders []*RpcReplyTradeOrder `json:"sellOrders"`
 }
 
 type TradeQueryTokenSellOrder struct {
 }
 
 func (t *TradeQueryTokenSellOrder) JsonToProto(message json.RawMessage) ([]byte, error) {
-	var req types.ReqTokenSellOrder
+	var req ReqTokenSellOrder
 	err := json.Unmarshal(message, &req)
 	if err != nil {
 		return nil, err
@@ -422,10 +421,10 @@ func (t *TradeQueryTokenSellOrder) JsonToProto(message json.RawMessage) ([]byte,
 }
 
 func (t *TradeQueryTokenSellOrder) ProtoToJson(reply *types.Message) (interface{}, error) {
-	orders := (*reply).(*types.ReplyTradeOrders)
+	orders := (*reply).(*ReplyTradeOrders)
 	var rpcReply RpcReplySellOrders
 	for _, order := range orders.Orders {
-		rpcReply.SellOrders = append(rpcReply.SellOrders, (*types.RpcReplyTradeOrder)(order))
+		rpcReply.SellOrders = append(rpcReply.SellOrders, (*RpcReplyTradeOrder)(order))
 	}
 	return &rpcReply, nil
 }
@@ -434,7 +433,7 @@ type TradeQueryOnesSellOrder struct {
 }
 
 func (t *TradeQueryOnesSellOrder) JsonToProto(message json.RawMessage) ([]byte, error) {
-	var req types.ReqAddrTokens
+	var req ReqAddrTokens
 	err := json.Unmarshal(message, &req)
 	if err != nil {
 		return nil, err
@@ -443,24 +442,24 @@ func (t *TradeQueryOnesSellOrder) JsonToProto(message json.RawMessage) ([]byte, 
 }
 
 func (t *TradeQueryOnesSellOrder) ProtoToJson(reply *types.Message) (interface{}, error) {
-	orders := (*reply).(*types.ReplyTradeOrders)
+	orders := (*reply).(*ReplyTradeOrders)
 	var rpcReply RpcReplySellOrders
 	for _, order := range orders.Orders {
-		rpcReply.SellOrders = append(rpcReply.SellOrders, (*types.RpcReplyTradeOrder)(order))
+		rpcReply.SellOrders = append(rpcReply.SellOrders, (*RpcReplyTradeOrder)(order))
 	}
 	return &rpcReply, nil
 }
 
 // rpc query trade buy order
 type RpcReplyBuyOrders struct {
-	BuyOrders []*types.RpcReplyTradeOrder `json:"buyOrders"`
+	BuyOrders []*RpcReplyTradeOrder `json:"buyOrders"`
 }
 
 type TradeQueryTokenBuyOrder struct {
 }
 
 func (t *TradeQueryTokenBuyOrder) JsonToProto(message json.RawMessage) ([]byte, error) {
-	var req types.ReqTokenBuyOrder
+	var req ReqTokenBuyOrder
 	err := json.Unmarshal(message, &req)
 	if err != nil {
 		return nil, err
@@ -469,10 +468,10 @@ func (t *TradeQueryTokenBuyOrder) JsonToProto(message json.RawMessage) ([]byte, 
 }
 
 func (t *TradeQueryTokenBuyOrder) ProtoToJson(reply *types.Message) (interface{}, error) {
-	orders := (*reply).(*types.ReplyTradeOrders)
+	orders := (*reply).(*ReplyTradeOrders)
 	var rpcReply RpcReplyBuyOrders
 	for _, order := range orders.Orders {
-		rpcReply.BuyOrders = append(rpcReply.BuyOrders, (*types.RpcReplyTradeOrder)(order))
+		rpcReply.BuyOrders = append(rpcReply.BuyOrders, (*RpcReplyTradeOrder)(order))
 	}
 	return &rpcReply, nil
 }
@@ -481,7 +480,7 @@ type TradeQueryOnesBuyOrder struct {
 }
 
 func (t *TradeQueryOnesBuyOrder) JsonToProto(message json.RawMessage) ([]byte, error) {
-	var req types.ReqAddrTokens
+	var req ReqAddrTokens
 	err := json.Unmarshal(message, &req)
 	if err != nil {
 		return nil, err
@@ -490,24 +489,24 @@ func (t *TradeQueryOnesBuyOrder) JsonToProto(message json.RawMessage) ([]byte, e
 }
 
 func (t *TradeQueryOnesBuyOrder) ProtoToJson(reply *types.Message) (interface{}, error) {
-	orders := (*reply).(*types.ReplyTradeOrders)
+	orders := (*reply).(*ReplyTradeOrders)
 	var rpcReply RpcReplyBuyOrders
 	for _, order := range orders.Orders {
-		rpcReply.BuyOrders = append(rpcReply.BuyOrders, (*types.RpcReplyTradeOrder)(order))
+		rpcReply.BuyOrders = append(rpcReply.BuyOrders, (*RpcReplyTradeOrder)(order))
 	}
 	return &rpcReply, nil
 }
 
 // trade order
 type RpcReplyTradeOrders struct {
-	Orders []*types.RpcReplyTradeOrder `protobuf:"bytes,1,rep,name=orders" json:"orders"`
+	Orders []*RpcReplyTradeOrder `protobuf:"bytes,1,rep,name=orders" json:"orders"`
 }
 
 type TradeQueryOnesOrder struct {
 }
 
 func (t *TradeQueryOnesOrder) JsonToProto(message json.RawMessage) ([]byte, error) {
-	var req types.ReqAddrTokens
+	var req ReqAddrTokens
 	err := json.Unmarshal(message, &req)
 	if err != nil {
 		return nil, err
@@ -516,6 +515,6 @@ func (t *TradeQueryOnesOrder) JsonToProto(message json.RawMessage) ([]byte, erro
 }
 
 func (t *TradeQueryOnesOrder) ProtoToJson(reply *types.Message) (interface{}, error) {
-	orders := (*reply).(*types.ReplyTradeOrders)
+	orders := (*reply).(*ReplyTradeOrders)
 	return orders, nil
 }

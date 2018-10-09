@@ -13,13 +13,13 @@ import (
 	"github.com/stretchr/testify/mock"
 	"gitlab.33.cn/chain33/chain33/client/mocks"
 	"gitlab.33.cn/chain33/chain33/common"
+	tradetype "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/types"
 	"gitlab.33.cn/chain33/chain33/types"
 	_ "gitlab.33.cn/chain33/chain33/types/executor"
 	evmtype "gitlab.33.cn/chain33/chain33/types/executor/evm"
 	hashlocktype "gitlab.33.cn/chain33/chain33/types/executor/hashlock"
 	retrievetype "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
 	tokentype "gitlab.33.cn/chain33/chain33/types/executor/token"
-	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
 )
 
 func TestDecodeUserWrite(t *testing.T) {
@@ -561,7 +561,7 @@ func TestDecodeLogRevokeCreateToken(t *testing.T) {
 }
 
 func TestDecodeLogTradeSellLimit(t *testing.T) {
-	var logTmp = &types.ReceiptTradeSell{}
+	var logTmp = &tradetype.ReceiptTradeSell{}
 	dec := types.Encode(logTmp)
 	strdec := hex.EncodeToString(dec)
 	rlog := &ReceiptLog{
@@ -583,7 +583,7 @@ func TestDecodeLogTradeSellLimit(t *testing.T) {
 }
 
 func TestDecodeLogTradeBuyMarket(t *testing.T) {
-	var logTmp = &types.ReceiptTradeBuyMarket{}
+	var logTmp = &tradetype.ReceiptTradeBuyMarket{}
 	dec := types.Encode(logTmp)
 	strdec := hex.EncodeToString(dec)
 	rlog := &ReceiptLog{
@@ -605,7 +605,7 @@ func TestDecodeLogTradeBuyMarket(t *testing.T) {
 }
 
 func TestDecodeLogTradeSellRevoke(t *testing.T) {
-	var logTmp = &types.ReceiptTradeBuyMarket{}
+	var logTmp = &tradetype.ReceiptTradeBuyMarket{}
 	dec := types.Encode(logTmp)
 	strdec := hex.EncodeToString(dec)
 	rlog := &ReceiptLog{
@@ -627,7 +627,7 @@ func TestDecodeLogTradeSellRevoke(t *testing.T) {
 }
 
 func TestDecodeLogTradeBuyLimit(t *testing.T) {
-	var logTmp = &types.ReceiptTradeBuyLimit{}
+	var logTmp = &tradetype.ReceiptTradeBuyLimit{}
 	dec := types.Encode(logTmp)
 	strdec := hex.EncodeToString(dec)
 	rlog := &ReceiptLog{
@@ -649,7 +649,7 @@ func TestDecodeLogTradeBuyLimit(t *testing.T) {
 }
 
 func TestDecodeLogTradeSellMarket(t *testing.T) {
-	var logTmp = &types.ReceiptSellMarket{}
+	var logTmp = &tradetype.ReceiptSellMarket{}
 	dec := types.Encode(logTmp)
 	strdec := hex.EncodeToString(dec)
 	rlog := &ReceiptLog{
@@ -671,7 +671,7 @@ func TestDecodeLogTradeSellMarket(t *testing.T) {
 }
 
 func TestDecodeLogTradeBuyRevoke(t *testing.T) {
-	var logTmp = &types.ReceiptTradeBuyRevoke{}
+	var logTmp = &tradetype.ReceiptTradeBuyRevoke{}
 	dec := types.Encode(logTmp)
 	strdec := hex.EncodeToString(dec)
 	rlog := &ReceiptLog{
@@ -1640,7 +1640,7 @@ func TestChain33_GetLastMemPoolOk(t *testing.T) {
 	testChain33 := newTestChain33(api)
 
 	var txlist types.ReplyTxList
-	var action types.Trade
+	var action tradetype.Trade
 	act := types.Encode(&action)
 	var tx = &types.Transaction{
 		Execer:  []byte(types.ExecName(types.TradeX)),

@@ -16,6 +16,7 @@ import (
 	"github.com/pkg/errors"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common/address"
+	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/token/types"
 	"gitlab.33.cn/chain33/chain33/system/dapp"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -249,7 +250,7 @@ func (t *token) Query(funcName string, params []byte) (types.Message, error) {
 		}
 		return t.GetTokenInfo(symbol.GetData())
 	case "GetAddrReceiverforTokens":
-		var addrTokens types.ReqAddrTokens
+		var addrTokens pty.ReqAddrTokens
 		err := types.Decode(params, &addrTokens)
 		if err != nil {
 			return nil, err
@@ -326,7 +327,7 @@ func (t *token) GetAccountTokenAssets(req *types.ReqAccountTokenAssets) (types.M
 	return reply, nil
 }
 
-func (t *token) GetAddrReceiverforTokens(addrTokens *types.ReqAddrTokens) (types.Message, error) {
+func (t *token) GetAddrReceiverforTokens(addrTokens *pty.ReqAddrTokens) (types.Message, error) {
 	var reply = &types.ReplyAddrRecvForTokens{}
 	db := t.GetLocalDB()
 	reciver := types.Int64{}

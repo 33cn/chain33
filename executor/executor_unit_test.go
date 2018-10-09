@@ -297,9 +297,9 @@ func createBlockChainQueryRq(execer string, funcName string) proto.Message {
 			case "GetTokenInfo":
 				symbol := &types.ReqString{Data: "this type ***"}
 				return symbol
-			case "GetAddrReceiverforTokens":
-				addrTokens := &types.ReqAddrTokens{}
-				return addrTokens
+			//case "GetAddrReceiverforTokens":
+			//	addrTokens := &types.ReqAddrTokens{}
+			//	return addrTokens
 			case "GetAccountTokenAssets":
 				req := &types.ReqAccountTokenAssets{}
 				return req
