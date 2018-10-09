@@ -10,11 +10,10 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/version"
 	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	"gitlab.33.cn/chain33/chain33/types"
-	evmtype "gitlab.33.cn/chain33/chain33/types/executor/evm"
-	hashlocktype "gitlab.33.cn/chain33/chain33/types/executor/hashlock"
-
-	//lotterytype "gitlab.33.cn/chain33/chain33/types/executor/lottery"
+	// TODO: 最后要把以下类型引用都移动到插件中去
+	hashlocktype "gitlab.33.cn/chain33/chain33/plugin/dapp/hashlock/types"
 	lotterytype "gitlab.33.cn/chain33/chain33/plugin/dapp/lottery/types"
+	evmtype "gitlab.33.cn/chain33/chain33/types/executor/evm"
 	tradetype "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/types"
 	retrievetype "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
 	tokentype "gitlab.33.cn/chain33/chain33/types/executor/token"
