@@ -17,7 +17,7 @@ var tlog = log.New("module", types.TradeX)
 func Init() {
 	nameX = types.ExecName(types.TradeX)
 	// init executor type
-	types.RegistorExecutor(types.TradeX, &tradeType{})
+	types.RegistorExecutor(types.TradeX, NewType())
 
 	// init log
 	types.RegistorLog(types.TyLogTradeSellLimit, &TradeSellLimitLog{})
@@ -39,6 +39,16 @@ func Init() {
 
 type tradeType struct {
 	types.ExecTypeBase
+}
+
+func NewType() *tradeType {
+	c := &tradeType{}
+	c.SetChild(c)
+	return c
+}
+
+func (at *tradeType) GetPayload() types.Message {
+	return &types.Trade{}
 }
 
 func (trade tradeType) ActionName(tx *types.Transaction) string {

@@ -10,9 +10,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-const ParaCrossX = "paracross"
-
-var tlog = log15.New("module", ParaCrossX)
+var tlog = log15.New("module", types.ParaX)
 
 const (
 	// paracross 执行器的日志类型
@@ -24,7 +22,8 @@ const (
 	TyLogParaAssetTransfer     = 653
 	TyLogParaAssetWithdraw     = 654
 	//在平行链上保存节点参与共识的数据
-	TyLogParacrossMiner = 655
+	TyLogParacrossMiner   = 655
+	TyLogParaAssetDeposit = 656
 )
 
 type ParacrossCommitTx struct {
@@ -69,7 +68,7 @@ func CreateRawParacrossCommitTx(parm *ParacrossCommitTx) (*types.Transaction, er
 		tlog.Error("CreateRawParacrossCommitTx", "parm", parm)
 		return nil, types.ErrInvalidParam
 	}
-	return createRawCommitTx(&parm.Status, types.ExecName(ParaCrossX), parm.Fee)
+	return createRawCommitTx(&parm.Status, types.ExecName(types.ParaX), parm.Fee)
 }
 
 func createRawCommitTx(status *ParacrossNodeStatus, name string, fee int64) (*types.Transaction, error) {
@@ -106,12 +105,12 @@ func CreateRawTransferTx(param *types.CreateTx) (*types.Transaction, error) {
 	transfer := &ParacrossAction{}
 	if !param.IsWithdraw {
 		v := &ParacrossAction_AssetTransfer{AssetTransfer: &types.AssetsTransfer{
-			Amount: param.Amount, Note: param.GetNote(), To: param.GetTo()}}
+			Amount: param.Amount, Note: param.GetNote(), To: param.GetTo(), Cointoken: param.TokenSymbol}}
 		transfer.Value = v
 		transfer.Ty = ParacrossActionTransfer
 	} else {
 		v := &ParacrossAction_AssetWithdraw{AssetWithdraw: &types.AssetsWithdraw{
-			Amount: param.Amount, Note: param.GetNote(), To: param.GetTo()}}
+			Amount: param.Amount, Note: param.GetNote(), To: param.GetTo(), Cointoken: param.TokenSymbol}}
 		transfer.Value = v
 		transfer.Ty = ParacrossActionWithdraw
 	}
@@ -139,10 +138,10 @@ func CreateRawMinerTx(status *ParacrossNodeStatus) (*types.Transaction, error) {
 		Value: &ParacrossAction_Miner{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte(types.ExecName(ParaCrossX)),
+		Execer:  []byte(types.ExecName(types.ParaX)),
 		Payload: types.Encode(action),
 		Nonce:   0, //for consensus purpose, block hash need same, different auth node need keep totally same vote tx
-		To:      address.ExecAddress(types.ExecName(ParaCrossX)),
+		To:      address.ExecAddress(types.ExecName(types.ParaX)),
 	}
 
 	err := tx.SetRealFee(types.MinFee)

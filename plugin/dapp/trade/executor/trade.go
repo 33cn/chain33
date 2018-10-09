@@ -16,13 +16,14 @@ import (
 	log "github.com/inconshreveable/log15"
 
 	"gitlab.33.cn/chain33/chain33/common"
+	token "gitlab.33.cn/chain33/chain33/plugin/dapp/token/executor"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var tradelog = log.New("module", "execs.trade")
 
-func Init() {
+func Init(name string) {
 	drivers.Register(GetName(), newTrade, types.ForkV2AddToken)
 }
 
@@ -40,7 +41,7 @@ func newTrade() drivers.Driver {
 	return t
 }
 
-func (t *trade) GetName() string {
+func (t *trade) GetDriverName() string {
 	return "trade"
 }
 
@@ -112,6 +113,8 @@ func (t *trade) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 	if receipt.GetTy() != types.ExecOk {
 		return set, nil
 	}
+
+	var symbol string
 	for i := 0; i < len(receipt.Logs); i++ {
 		item := receipt.Logs[i]
 		if item.Ty == types.TyLogTradeSellLimit || item.Ty == types.TyLogTradeSellRevoke {
@@ -122,6 +125,7 @@ func (t *trade) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 			}
 			kv := t.saveSell([]byte(receipt.Base.SellID), item.Ty)
 			set.KV = append(set.KV, kv...)
+			symbol = receipt.Base.TokenSymbol
 		} else if item.Ty == types.TyLogTradeBuyMarket {
 			var receipt types.ReceiptTradeBuyMarket
 			err := types.Decode(item.Log, &receipt)
@@ -139,6 +143,7 @@ func (t *trade) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 					set.KV = append(set.KV, kv...)
 				}
 			*/
+			symbol = receipt.Base.TokenSymbol
 		} else if item.Ty == types.TyLogTradeBuyRevoke || item.Ty == types.TyLogTradeBuyLimit {
 			var receipt types.ReceiptTradeBuyLimit
 			err := types.Decode(item.Log, &receipt)
@@ -157,6 +162,7 @@ func (t *trade) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 					set.KV = append(set.KV, kv...)
 				}
 			*/
+			symbol = receipt.Base.TokenSymbol
 		} else if item.Ty == types.TyLogTradeSellMarket {
 			var receipt types.ReceiptSellMarket
 			err := types.Decode(item.Log, &receipt)
@@ -166,7 +172,16 @@ func (t *trade) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 			kv := t.saveSellMarket(receipt.Base)
 			//tradelog.Info("saveSellMarket", "kv", kv)
 			set.KV = append(set.KV, kv...)
+			symbol = receipt.Base.TokenSymbol
 		}
+	}
+	if types.GetSaveTokenTxList() {
+		kvs, err := token.TokenTxKvs(tx, symbol, t.GetHeight(), int64(index), false)
+		// t.makeT1okenTxKvs(tx, &action, receipt, index, false)
+		if err != nil {
+			return nil, err
+		}
+		set.KV = append(set.KV, kvs...)
 	}
 
 	return set, nil
@@ -181,6 +196,7 @@ func (t *trade) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 		return set, nil
 	}
 
+	var symbol string
 	for i := 0; i < len(receipt.Logs); i++ {
 		item := receipt.Logs[i]
 		if item.Ty == types.TyLogTradeSellLimit || item.Ty == types.TyLogTradeSellRevoke {
@@ -191,6 +207,7 @@ func (t *trade) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 			}
 			kv := t.deleteSell([]byte(receipt.Base.SellID), item.Ty)
 			set.KV = append(set.KV, kv...)
+			symbol = receipt.Base.TokenSymbol
 		} else if item.Ty == types.TyLogTradeBuyMarket {
 			var receipt types.ReceiptTradeBuyMarket
 			err := types.Decode(item.Log, &receipt)
@@ -199,6 +216,7 @@ func (t *trade) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 			}
 			kv := t.deleteBuy(receipt.Base)
 			set.KV = append(set.KV, kv...)
+			symbol = receipt.Base.TokenSymbol
 		} else if item.Ty == types.TyLogTradeBuyRevoke || item.Ty == types.TyLogTradeBuyLimit {
 			var receipt types.ReceiptTradeBuyLimit
 			err := types.Decode(item.Log, &receipt)
@@ -207,7 +225,7 @@ func (t *trade) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 			}
 			kv := t.deleteBuyLimit([]byte(receipt.Base.BuyID), item.Ty)
 			set.KV = append(set.KV, kv...)
-
+			symbol = receipt.Base.TokenSymbol
 		} else if item.Ty == types.TyLogTradeSellMarket {
 			var receipt types.ReceiptSellMarket
 			err := types.Decode(item.Log, &receipt)
@@ -216,7 +234,16 @@ func (t *trade) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 			}
 			kv := t.deleteSellMarket(receipt.Base)
 			set.KV = append(set.KV, kv...)
+			symbol = receipt.Base.TokenSymbol
 		}
+	}
+	if types.GetSaveTokenTxList() {
+		kvs, err := token.TokenTxKvs(tx, symbol, t.GetHeight(), int64(index), true)
+		// t.makeT1okenTxKvs(tx, &action, receipt, index, false)
+		if err != nil {
+			return nil, err
+		}
+		set.KV = append(set.KV, kvs...)
 	}
 	return set, nil
 }

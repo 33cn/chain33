@@ -9,7 +9,9 @@ import (
 	"github.com/stretchr/testify/mock"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/client/mocks"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	slog "gitlab.33.cn/chain33/chain33/common/log"
+	hashlocktype "gitlab.33.cn/chain33/chain33/plugin/dapp/hashlock/types"
 	"gitlab.33.cn/chain33/chain33/pluginmgr"
 	qmock "gitlab.33.cn/chain33/chain33/queue/mocks"
 	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
@@ -17,7 +19,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/types/executor"
 	exec "gitlab.33.cn/chain33/chain33/types/executor"
 	evmtype "gitlab.33.cn/chain33/chain33/types/executor/evm"
-	hashlocktype "gitlab.33.cn/chain33/chain33/types/executor/hashlock"
 	retrievetype "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
 	tokentype "gitlab.33.cn/chain33/chain33/types/executor/token"
 	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
@@ -25,7 +26,7 @@ import (
 
 func init() {
 	slog.SetLogLevel("error")
-	types.SetTitle("user.p.guodun.")
+	types.SetTitle("local")
 	executor.Init()
 	pluginmgr.InitExec()
 }
@@ -63,6 +64,22 @@ func testCreateRawTransactionAmoutErr(t *testing.T) {
 	client := newTestChannelClient()
 	_, err := client.CreateRawTransaction(&tx)
 	assert.Equal(t, types.ErrAmount, err)
+}
+
+func testCreateRawTransactionTo(t *testing.T) {
+	name := types.ExecName(cty.CoinsX)
+	tx := types.CreateTx{ExecName: name, Amount: 1, To: "1MY4pMgjpS2vWiaSDZasRhN47pcwEire32"}
+
+	client := newTestChannelClient()
+	rawtx, err := client.CreateRawTransaction(&tx)
+	var mytx types.Transaction
+	err = types.Decode(rawtx, &mytx)
+	assert.Nil(t, err)
+	if types.IsPara() {
+		assert.Equal(t, address.ExecAddress(name), mytx.To)
+	} else {
+		assert.Equal(t, tx.To, mytx.To)
+	}
 }
 
 func testCreateRawTransactionCoinTransfer(t *testing.T) {
@@ -105,8 +122,9 @@ func testCreateRawTransactionCoinTransfer(t *testing.T) {
 }
 
 func testCreateRawTransactionCoinTransferExec(t *testing.T) {
+	name := types.ExecName(types.TicketX)
 	ctx := types.CreateTx{
-		ExecName:   types.ExecName(types.TicketX),
+		ExecName:   name,
 		Amount:     10,
 		IsToken:    false,
 		IsWithdraw: false,
@@ -124,6 +142,11 @@ func testCreateRawTransactionCoinTransferExec(t *testing.T) {
 	var transfer cty.CoinsAction
 	types.Decode(tx.Payload, &transfer)
 	assert.Equal(t, int32(cty.CoinsActionTransferToExec), transfer.Ty)
+	if types.IsPara() {
+		assert.Equal(t, address.ExecAddress(types.ExecName(cty.CoinsX)), tx.To)
+	} else {
+		assert.Equal(t, ctx.To, tx.To)
+	}
 }
 
 func testCreateRawTransactionCoinWithdraw(t *testing.T) {
@@ -146,6 +169,12 @@ func testCreateRawTransactionCoinWithdraw(t *testing.T) {
 	var transfer cty.CoinsAction
 	types.Decode(tx.Payload, &transfer)
 	assert.Equal(t, int32(cty.CoinsActionWithdraw), transfer.Ty)
+
+	if types.IsPara() {
+		assert.Equal(t, address.ExecAddress(types.ExecName(cty.CoinsX)), tx.To)
+	} else {
+		assert.Equal(t, ctx.To, tx.To)
+	}
 }
 
 func testCreateRawTransactionTokenTransfer(t *testing.T) {
@@ -196,13 +225,12 @@ func TestChannelClient_CreateRawTransaction(t *testing.T) {
 	testCreateRawTransactionNil(t)
 	testCreateRawTransactionExecNameErr(t)
 	testCreateRawTransactionAmoutErr(t)
+	testCreateRawTransactionTo(t)
 	testCreateRawTransactionCoinTransfer(t)
 	testCreateRawTransactionCoinTransferExec(t)
 	testCreateRawTransactionCoinWithdraw(t)
-
 	testCreateRawTransactionTokenTransfer(t)
 	testCreateRawTransactionTokenWithdraw(t)
-
 }
 
 func testSendRawTransactionNil(t *testing.T) {

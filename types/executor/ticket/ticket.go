@@ -9,12 +9,22 @@ import (
 
 var nameX string
 
+var (
+	actionName = map[string]int32{
+		"Genesis": types.TicketActionGenesis,
+		"Topen":   types.TicketActionOpen,
+		"Tbind":   types.TicketActionBind,
+		"Tclose":  types.TicketActionClose,
+		"Miner":   types.TicketActionMiner,
+	}
+)
+
 //var tlog = log.New("module", name)
 
 func Init() {
 	nameX = types.ExecName("ticket")
 	// init executor type
-	types.RegistorExecutor("ticket", &TicketType{})
+	types.RegistorExecutor("ticket", NewType())
 
 	// init log
 	types.RegistorLog(types.TyLogNewTicket, &TicketNewLog{})
@@ -31,6 +41,16 @@ func Init() {
 
 type TicketType struct {
 	types.ExecTypeBase
+}
+
+func NewType() *TicketType {
+	c := &TicketType{}
+	c.SetChild(c)
+	return c
+}
+
+func (at *TicketType) GetPayload() types.Message {
+	return &types.TicketAction{}
 }
 
 func (ticket TicketType) ActionName(tx *types.Transaction) string {
@@ -79,6 +99,18 @@ func (ticket TicketType) Amount(tx *types.Transaction) (int64, error) {
 func (ticket TicketType) CreateTx(action string, message json.RawMessage) (*types.Transaction, error) {
 	var tx *types.Transaction
 	return tx, nil
+}
+
+func (ticket TicketType) GetName() string {
+	return "ticket"
+}
+
+func (ticket *TicketType) GetLogMap() map[int64]*types.LogInfo {
+	return nil
+}
+
+func (ticket *TicketType) GetTypeMap() map[string]int32 {
+	return actionName
 }
 
 type TicketNewLog struct {

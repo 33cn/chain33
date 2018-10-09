@@ -18,6 +18,15 @@ func InitExec() {
 	})
 }
 
+func HasExec(name string) bool {
+	for _, item := range pluginItems {
+		if item.GetExecutorName() == name {
+			return true
+		}
+	}
+	return false
+}
+
 func Register(p Plugin) {
 	if p == nil {
 		panic("plugin param is nil" + p.GetName())

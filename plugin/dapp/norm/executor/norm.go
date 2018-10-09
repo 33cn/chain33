@@ -8,7 +8,7 @@ import (
 
 var clog = log.New("module", "execs.norm")
 
-func Init() {
+func Init(name string) {
 	drivers.Register(GetName(), newNorm, 0)
 }
 
@@ -27,7 +27,7 @@ func newNorm() drivers.Driver {
 	return n
 }
 
-func (n *Norm) GetName() string {
+func (n *Norm) GetDriverName() string {
 	return "norm"
 }
 

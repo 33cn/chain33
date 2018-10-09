@@ -3,7 +3,6 @@ package rpc
 import (
 	"encoding/hex"
 	"fmt"
-	"strings"
 	"time"
 
 	"gitlab.33.cn/chain33/chain33/common"
@@ -11,9 +10,10 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/version"
 	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	"gitlab.33.cn/chain33/chain33/types"
+	// TODO: 最后要把以下类型引用都移动到插件中去
+	hashlocktype "gitlab.33.cn/chain33/chain33/plugin/dapp/hashlock/types"
+	lotterytype "gitlab.33.cn/chain33/chain33/plugin/dapp/lottery/types"
 	evmtype "gitlab.33.cn/chain33/chain33/types/executor/evm"
-	hashlocktype "gitlab.33.cn/chain33/chain33/types/executor/hashlock"
-	lotterytype "gitlab.33.cn/chain33/chain33/types/executor/lottery"
 	retrievetype "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
 	tokentype "gitlab.33.cn/chain33/chain33/types/executor/token"
 	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
@@ -156,7 +156,7 @@ func (c *Chain33) QueryTransaction(in QueryParm, result *interface{}) error {
 				&ReceiptLog{Ty: log.GetTy(), Log: common.ToHex(log.GetLog())})
 		}
 
-		transDetail.Receipt, err = DecodeLog(receiptTmp)
+		transDetail.Receipt, err = DecodeLog([]byte(transDetail.Tx.Execer), receiptTmp)
 		if err != nil {
 			return err
 		}
@@ -194,6 +194,9 @@ func (c *Chain33) GetBlocks(in BlockParam, result *interface{}) error {
 			block.StateHash = common.ToHex(item.Block.GetStateHash())
 			block.TxHash = common.ToHex(item.Block.GetTxHash())
 			txs := item.Block.GetTxs()
+			if len(txs) != len(item.Receipts) {
+				return types.ErrDecode
+			}
 			for _, tx := range txs {
 				tran, err := DecodeTx(tx)
 				if err != nil {
@@ -203,14 +206,14 @@ func (c *Chain33) GetBlocks(in BlockParam, result *interface{}) error {
 			}
 			bdtl.Block = &block
 
-			for _, rp := range item.Receipts {
+			for i, rp := range item.Receipts {
 				var recp ReceiptData
 				recp.Ty = rp.GetTy()
 				for _, log := range rp.Logs {
 					recp.Logs = append(recp.Logs,
 						&ReceiptLog{Ty: log.Ty, Log: common.ToHex(log.GetLog())})
 				}
-				rd, err := DecodeLog(&recp)
+				rd, err := DecodeLog(txs[i].Execer, &recp)
 				if err != nil {
 					continue
 				}
@@ -318,7 +321,7 @@ func (c *Chain33) GetTxByHashes(in ReqHashes, result *interface{}) error {
 				recp.Logs = append(recp.Logs,
 					&ReceiptLog{Ty: lg.Ty, Log: common.ToHex(lg.GetLog())})
 			}
-			recpResult, err = DecodeLog(&recp)
+			recpResult, err = DecodeLog(tx.Tx.Execer, &recp)
 			if err != nil {
 				log.Error("GetTxByHashes", "Failed to DecodeLog for type", err)
 				txdetails.Txs = append(txdetails.Txs, nil)
@@ -379,9 +382,13 @@ func (c *Chain33) GetMempool(in *types.ReqNil, result *interface{}) error {
 	return nil
 }
 
-func (c *Chain33) GetAccounts(in *types.ReqNil, result *interface{}) error {
+func (c *Chain33) GetAccountsV2(in *types.ReqNil, result *interface{}) error {
+	req := &types.ReqAccountList{WithoutBalance: false}
+	return c.GetAccounts(req, result)
+}
 
-	reply, err := c.cli.WalletGetAccountList()
+func (c *Chain33) GetAccounts(in *types.ReqAccountList, result *interface{}) error {
+	reply, err := c.cli.WalletGetAccountList(in)
 	if err != nil {
 		return err
 	}
@@ -961,11 +968,8 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 		return nil, types.ErrEmpty
 	}
 	execStr := string(tx.Execer)
-	if !types.IsPara() {
-		execStr = realExec(string(tx.Execer))
-	}
 	var pl interface{}
-	plType := types.LoadExecutor(execStr)
+	plType := types.LoadExecutorType(execStr)
 	if plType != nil {
 		var err error
 		pl, err = plType.DecodePayload(tx)
@@ -1001,15 +1005,7 @@ func DecodeTx(tx *types.Transaction) (*Transaction, error) {
 	return result, nil
 }
 
-func realExec(txExec string) string {
-	if strings.HasPrefix(txExec, "user.p.") {
-		execSplit := strings.Split(txExec, ".")
-		return execSplit[len(execSplit)-1]
-	}
-	return txExec
-}
-
-func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
+func DecodeLog(execer []byte, rlog *ReceiptData) (*ReceiptDataResult, error) {
 	var rTy string
 	switch rlog.Ty {
 	case 0:
@@ -1032,7 +1028,7 @@ func DecodeLog(rlog *ReceiptData) (*ReceiptDataResult, error) {
 			return nil, err
 		}
 
-		logType := types.LoadLog(int64(l.Ty))
+		logType := types.LoadLog(execer, int64(l.Ty))
 		if logType == nil {
 			log.Error("Fail to DecodeLog", "type", l.Ty)
 			lTy = "unkownType"
@@ -1568,7 +1564,7 @@ func (c *Chain33) CreateTransaction(in *TransactionCreate, result *interface{}) 
 	if in == nil {
 		return types.ErrInputPara
 	}
-	exec := types.LoadExecutor(in.Execer)
+	exec := types.LoadExecutorType(in.Execer)
 	if exec == nil {
 		return types.ErrExecNameNotAllow
 	}
@@ -1651,7 +1647,7 @@ func (c *Chain33) convertWalletTxDetailToJson(in *types.WalletTxDetails, out *Wa
 			recp.Logs = append(recp.Logs,
 				&ReceiptLog{Ty: lg.Ty, Log: common.ToHex(lg.GetLog())})
 		}
-		rd, err := DecodeLog(&recp)
+		rd, err := DecodeLog(tx.Tx.Execer, &recp)
 		if err != nil {
 			continue
 		}

@@ -26,16 +26,18 @@ var (
 	EvmAddress = address.ExecAddress(types.ExecName(model.ExecutorName))
 )
 
-func Init() {
-	drivers.Register(GetName(), newEVMDriver, types.ForkV17EVM)
-	EvmAddress = address.ExecAddress(GetName())
+var driverName string
 
+func Init(name string) {
+	driverName = name
+	drivers.Register(driverName, newEVMDriver, types.ForkV17EVM)
+	EvmAddress = address.ExecAddress(types.ExecName(name))
 	// 初始化硬分叉数据
 	state.InitForkData()
 }
 
 func GetName() string {
-	return model.ExecutorName
+	return newEVMDriver().GetName()
 }
 
 func newEVMDriver() drivers.Driver {
@@ -61,7 +63,7 @@ func NewEVMExecutor() *EVMExecutor {
 	return exec
 }
 
-func (evm *EVMExecutor) GetName() string {
+func (evm *EVMExecutor) GetDriverName() string {
 	return model.ExecutorName
 }
 
@@ -88,6 +90,26 @@ func (evm *EVMExecutor) allow(tx *types.Transaction, index int) bool {
 
 func (evm *EVMExecutor) allowPara(tx *types.Transaction, index int) bool {
 	return evm.AllowIsUserDot2Para(tx.Execer)
+}
+
+func (evm *EVMExecutor) IsFriend(myexec, writekey []byte, othertx *types.Transaction) bool {
+	if othertx != nil {
+		exec := othertx.Execer
+		if types.IsPara() {
+			exec, _ = evm.GetPara(exec)
+		}
+		if exec == nil || len(bytes.TrimSpace(exec)) == 0 {
+			return false
+		}
+
+		if bytes.HasPrefix(exec, types.UserEvm) || bytes.Equal(exec, types.ExecerEvm) {
+			if bytes.HasPrefix(writekey, []byte("mavl-evm-")) {
+				return true
+			}
+		}
+		return false
+	}
+	return false
 }
 
 func (evm *EVMExecutor) CheckInit() {
@@ -193,6 +215,14 @@ func (evm *EVMExecutor) Exec(tx *types.Transaction, index int) (*types.Receipt, 
 	logs = append(logs, &types.ReceiptLog{types.TyLogCallContract, types.Encode(contractReceipt)})
 	logs = append(logs, evm.mStateDB.GetReceiptLogs(contractAddr.String())...)
 
+	if types.IsMatchFork(evm.GetHeight(), types.ForkV26EVMKVHash) {
+		// 将执行时生成的合约状态数据变更信息也计算哈希并保存
+		hashKV := evm.calcKVHash(contractAddr, logs)
+		if hashKV != nil {
+			data = append(data, hashKV)
+		}
+	}
+
 	receipt := &types.Receipt{Ty: types.ExecOk, KV: data, Logs: logs}
 
 	// 返回之前，把本次交易在区块中生成的合约日志集中打印出来
@@ -205,6 +235,27 @@ func (evm *EVMExecutor) Exec(tx *types.Transaction, index int) (*types.Receipt, 
 
 	evm.collectEvmTxLog(tx, contractReceipt, receipt)
 	return receipt, nil
+}
+
+func (evm *EVMExecutor) calcKVHash(addr common.Address, logs []*types.ReceiptLog) (kv *types.KeyValue) {
+	hashes := []byte{}
+	// 使用合约状态变更的数据生成哈希，保存为执行KV
+	for _, logItem := range logs {
+		if types.TyLogEVMStateChangeItem == logItem.Ty {
+			data := logItem.Log
+			hashes = append(hashes, common.ToHash(data).Bytes()...)
+		}
+	}
+
+	if len(hashes) > 0 {
+		hash := common.ToHash(hashes)
+		return &types.KeyValue{evm.GetDataHashKey(addr), hash.Bytes()}
+	}
+	return nil
+}
+
+func (evm *EVMExecutor) GetDataHashKey(addr common.Address) []byte {
+	return []byte(fmt.Sprintf("mavl-%v-data-hash:%v", types.EvmX, addr))
 }
 
 func (evm *EVMExecutor) collectEvmTxLog(tx *types.Transaction, cr *types.ReceiptEVMContract, receipt *types.Receipt) {

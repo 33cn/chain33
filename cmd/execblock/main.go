@@ -84,7 +84,7 @@ func main() {
 			fmt.Println("\tKV:", j, kv)
 		}
 		for k, l := range r.GetLogs() {
-			logType := types.LoadLog(int64(l.Ty))
+			logType := types.LoadLog(block.Txs[i].Execer, int64(l.Ty))
 			lTy := "unkownType"
 			var logIns interface{}
 			if logType != nil {
