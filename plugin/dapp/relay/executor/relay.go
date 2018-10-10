@@ -3,6 +3,7 @@ package executor
 import (
 	log "github.com/inconshreveable/log15"
 
+	rTy "gitlab.33.cn/chain33/chain33/plugin/dapp/relay/types"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -41,44 +42,44 @@ func (r *relay) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 
 	actiondb := newRelayDB(r, tx)
 	switch action.GetTy() {
-	case types.RelayActionCreate:
+	case rTy.RelayActionCreate:
 		if action.GetCreate() == nil {
 			return nil, types.ErrInputPara
 		}
 		return actiondb.relayCreate(action.GetCreate())
 
-	case types.RelayActionAccept:
+	case rTy.RelayActionAccept:
 		if action.GetAccept() == nil {
 			return nil, types.ErrInputPara
 		}
 		return actiondb.accept(action.GetAccept())
 
-	case types.RelayActionRevoke:
+	case rTy.RelayActionRevoke:
 		if action.GetRevoke() == nil {
 			return nil, types.ErrInputPara
 		}
 		return actiondb.relayRevoke(action.GetRevoke())
 
-	case types.RelayActionConfirmTx:
+	case rTy.RelayActionConfirmTx:
 		if action.GetConfirmTx() == nil {
 			return nil, types.ErrInputPara
 		}
 		return actiondb.confirmTx(action.GetConfirmTx())
 
-	case types.RelayActionVerifyTx:
+	case rTy.RelayActionVerifyTx:
 		if action.GetVerify() == nil {
 			return nil, types.ErrInputPara
 		}
 		return actiondb.verifyTx(action.GetVerify())
 
 	// OrderId, rawTx, index sibling, blockhash
-	case types.RelayActionVerifyCmdTx:
+	case rTy.RelayActionVerifyCmdTx:
 		if action.GetVerifyCli() == nil {
 			return nil, types.ErrInputPara
 		}
 		return actiondb.verifyCmdTx(action.GetVerifyCli())
 
-	case types.RelayActionRcvBTCHeaders:
+	case rTy.RelayActionRcvBTCHeaders:
 		if action.GetBtcHeaders() == nil {
 			return nil, types.ErrInputPara
 		}
@@ -106,12 +107,12 @@ func (r *relay) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 	for i := 0; i < len(receipt.Logs); i++ {
 		item := receipt.Logs[i]
 		switch item.Ty {
-		case types.TyLogRelayCreate,
-			types.TyLogRelayRevokeCreate,
-			types.TyLogRelayAccept,
-			types.TyLogRelayRevokeAccept,
-			types.TyLogRelayConfirmTx,
-			types.TyLogRelayFinishTx:
+		case rTy.TyLogRelayCreate,
+			rTy.TyLogRelayRevokeCreate,
+			rTy.TyLogRelayAccept,
+			rTy.TyLogRelayRevokeAccept,
+			rTy.TyLogRelayConfirmTx,
+			rTy.TyLogRelayFinishTx:
 			var receipt types.ReceiptRelayLog
 			err := types.Decode(item.Log, &receipt)
 			if err != nil {
@@ -119,7 +120,7 @@ func (r *relay) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, ind
 			}
 			kv := r.getOrderKv([]byte(receipt.OrderId), item.Ty)
 			set.KV = append(set.KV, kv...)
-		case types.TyLogRelayRcvBTCHead:
+		case rTy.TyLogRelayRcvBTCHead:
 			var receipt = &types.ReceiptRelayRcvBTCHeaders{}
 			err := types.Decode(item.Log, receipt)
 			if err != nil {
@@ -162,12 +163,12 @@ func (r *relay) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 	for i := 0; i < len(receipt.Logs); i++ {
 		item := receipt.Logs[i]
 		switch item.Ty {
-		case types.TyLogRelayCreate,
-			types.TyLogRelayRevokeCreate,
-			types.TyLogRelayAccept,
-			types.TyLogRelayRevokeAccept,
-			types.TyLogRelayConfirmTx,
-			types.TyLogRelayFinishTx:
+		case rTy.TyLogRelayCreate,
+			rTy.TyLogRelayRevokeCreate,
+			rTy.TyLogRelayAccept,
+			rTy.TyLogRelayRevokeAccept,
+			rTy.TyLogRelayConfirmTx,
+			rTy.TyLogRelayFinishTx:
 			var receipt types.ReceiptRelayLog
 			err := types.Decode(item.Log, &receipt)
 			if err != nil {
@@ -175,7 +176,7 @@ func (r *relay) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, 
 			}
 			kv := r.getDeleteOrderKv([]byte(receipt.OrderId), item.Ty)
 			set.KV = append(set.KV, kv...)
-		case types.TyLogRelayRcvBTCHead:
+		case rTy.TyLogRelayRcvBTCHead:
 			var receipt = &types.ReceiptRelayRcvBTCHeaders{}
 			err := types.Decode(item.Log, receipt)
 			if err != nil {

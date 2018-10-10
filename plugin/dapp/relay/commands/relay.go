@@ -8,8 +8,10 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
+	"gitlab.33.cn/chain33/chain33/plugin/dapp/relay/rpc"
+	rTy "gitlab.33.cn/chain33/chain33/plugin/dapp/relay/types"
 	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
+	jsonrpc "gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -292,7 +294,7 @@ func parseRelayOrders(res types.ReplyRelayOrders) {
 		show.OrderId = order.Id
 		show.Status = order.Status.String()
 		show.Creator = order.CreaterAddr
-		show.CoinOperation = types.RelayOrderOperation[order.CoinOperation]
+		show.CoinOperation = rTy.RelayOrderOperation[order.CoinOperation]
 		show.Amount = strconv.FormatFloat(float64(order.Amount)/float64(types.Coin), 'f', 4, 64)
 		show.Coin = order.Coin
 		show.CoinAddr = order.CoinAddr
@@ -378,7 +380,7 @@ func relayOrder(cmd *cobra.Command, args []string) {
 	btyUInt64 := uint64(btyamount * 1e4)
 	coinUInt64 := uint64(coinamount * 1e4)
 
-	params := &jsonrpc.RelayOrderTx{
+	params := &rpc.RelayOrderTx{
 		Operation: oper,
 		Amount:    coinUInt64 * 1e4,
 		Coin:      coin,
@@ -389,7 +391,7 @@ func relayOrder(cmd *cobra.Command, args []string) {
 	}
 
 	var res string
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawRelayOrderTx", params, &res)
+	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "Chain33.CreateRawRelayOrderTx", params, &res)
 	ctx.RunWithoutMarshal()
 }
 
@@ -426,14 +428,14 @@ func relayAccept(cmd *cobra.Command, args []string) {
 		coinwait = 1
 	}
 	feeInt64 := int64(fee * 1e4)
-	params := &jsonrpc.RelayAcceptTx{
+	params := &rpc.RelayAcceptTx{
 		OrderId:  orderID,
 		CoinAddr: coinaddr,
 		CoinWait: coinwait,
 		Fee:      feeInt64 * 1e4,
 	}
 	var res string
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawRelayAcceptTx", params, &res)
+	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "Chain33.CreateRawRelayAcceptTx", params, &res)
 	ctx.RunWithoutMarshal()
 }
 
@@ -468,14 +470,14 @@ func relayRevoke(cmd *cobra.Command, args []string) {
 	fee, _ := cmd.Flags().GetFloat64("fee")
 
 	feeInt64 := int64(fee * 1e4)
-	params := &jsonrpc.RelayRevokeTx{
+	params := &rpc.RelayRevokeTx{
 		OrderId: orderID,
 		Target:  target,
 		Action:  act,
 		Fee:     feeInt64 * 1e4,
 	}
 	var res string
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawRelayRevokeTx", params, &res)
+	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "Chain33.CreateRawRelayRevokeTx", params, &res)
 	ctx.RunWithoutMarshal()
 }
 
@@ -506,13 +508,13 @@ func relayConfirm(cmd *cobra.Command, args []string) {
 	fee, _ := cmd.Flags().GetFloat64("fee")
 
 	feeInt64 := int64(fee * 1e4)
-	params := &jsonrpc.RelayConfirmTx{
+	params := &rpc.RelayConfirmTx{
 		OrderId: orderId,
 		TxHash:  txHash,
 		Fee:     feeInt64 * 1e4,
 	}
 	var res string
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawRelayConfirmTx", params, &res)
+	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "Chain33.CreateRawRelayConfirmTx", params, &res)
 	ctx.RunWithoutMarshal()
 }
 
@@ -556,7 +558,7 @@ func relaySaveBtcHead(cmd *cobra.Command, args []string) {
 
 	feeInt64 := int64(fee * 1e4)
 
-	params := &jsonrpc.RelaySaveBTCHeadTx{
+	params := &rpc.RelaySaveBTCHeadTx{
 		Hash:         blockhash,
 		PreviousHash: prehash,
 		MerkleRoot:   merkleroot,
@@ -566,7 +568,7 @@ func relaySaveBtcHead(cmd *cobra.Command, args []string) {
 	}
 
 	var res string
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawRelaySaveBTCHeadTx", params, &res)
+	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "Chain33.CreateRawRelaySaveBTCHeadTx", params, &res)
 	ctx.RunWithoutMarshal()
 }
 
@@ -609,7 +611,7 @@ func relayVerifyBTC(cmd *cobra.Command, args []string) {
 	fee, _ := cmd.Flags().GetFloat64("fee")
 
 	feeInt64 := int64(fee * 1e4)
-	params := &jsonrpc.RelayVerifyBTCTx{
+	params := &rpc.RelayVerifyBTCTx{
 		OrderId:     orderid,
 		RawTx:       rawtx,
 		TxIndex:     txindex,
@@ -619,6 +621,6 @@ func relayVerifyBTC(cmd *cobra.Command, args []string) {
 	}
 
 	var res string
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawRelayVerifyBTCTx", params, &res)
+	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "Chain33.CreateRawRelayVerifyBTCTx", params, &res)
 	ctx.RunWithoutMarshal()
 }
