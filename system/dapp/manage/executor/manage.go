@@ -11,8 +11,8 @@ import (
 	"reflect"
 
 	log "github.com/inconshreveable/log15"
-	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/manage/types"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
+	pty "gitlab.33.cn/chain33/chain33/system/dapp/manage/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
