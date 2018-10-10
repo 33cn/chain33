@@ -44,6 +44,7 @@ const (
 	TwoStar   = 2
 	OneStar   = 1
 )
+
 //const defaultAddrPurTimes = 10
 const luckyNumMol = 100000
 const decimal = 100000000 //1e8
