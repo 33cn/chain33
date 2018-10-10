@@ -22,8 +22,8 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 	"gitlab.33.cn/chain33/chain33/executor"
-	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/manage/types"
 	"gitlab.33.cn/chain33/chain33/queue"
+	pty "gitlab.33.cn/chain33/chain33/system/dapp/manage/types"
 	"gitlab.33.cn/chain33/chain33/types"
 	ety "gitlab.33.cn/chain33/chain33/types/executor"
 )

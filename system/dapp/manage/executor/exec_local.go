@@ -1,7 +1,7 @@
 package executor
 
 import (
-	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/manage/types"
+	pty "gitlab.33.cn/chain33/chain33/system/dapp/manage/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
