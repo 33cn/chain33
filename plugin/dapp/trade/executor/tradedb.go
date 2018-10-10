@@ -54,11 +54,11 @@ func (selldb *sellDB) getSellLogs(tradeType int32, txhash string) *types.Receipt
 		selldb.Height,
 	}
 	if types.TyLogTradeSellLimit == tradeType {
-		receiptTrade := &pty.ReceiptTradeSell{base}
+		receiptTrade := &pty.ReceiptTradeSellLimit{base}
 		log.Log = types.Encode(receiptTrade)
 
 	} else if types.TyLogTradeSellRevoke == tradeType {
-		receiptTrade := &pty.ReceiptTradeRevoke{base}
+		receiptTrade := &pty.ReceiptTradeSellRevoke{base}
 		log.Log = types.Encode(receiptTrade)
 	}
 

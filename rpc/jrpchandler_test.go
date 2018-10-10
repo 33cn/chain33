@@ -561,7 +561,7 @@ func TestDecodeLogRevokeCreateToken(t *testing.T) {
 }
 
 func TestDecodeLogTradeSellLimit(t *testing.T) {
-	var logTmp = &tradetype.ReceiptTradeSell{}
+	var logTmp = &tradetype.ReceiptTradeSellLimit{}
 	dec := types.Encode(logTmp)
 	strdec := hex.EncodeToString(dec)
 	rlog := &ReceiptLog{
