@@ -235,16 +235,6 @@ const (
 	TyLogPrivacyInput  = 501
 	TyLogPrivacyOutput = 502
 
-	// log for evm
-	// 合约代码变更日志
-	TyLogContractData = 601
-	// 合约状态数据变更日志
-	TyLogContractState = 602
-	// 合约状态数据变更日志
-	TyLogCallContract = 603
-	// 合约状态数据变更项日志
-	TyLogEVMStateChangeItem = 604
-
 	//log for game
 	TyLogCreateGame = 711
 	TyLogMatchGame  = 712

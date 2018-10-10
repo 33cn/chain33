@@ -16,7 +16,6 @@ import (
 	hashlocktype "gitlab.33.cn/chain33/chain33/plugin/dapp/hashlock/types"
 	"gitlab.33.cn/chain33/chain33/types"
 	_ "gitlab.33.cn/chain33/chain33/types/executor"
-	evmtype "gitlab.33.cn/chain33/chain33/types/executor/evm"
 	retrievetype "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
 	tokentype "gitlab.33.cn/chain33/chain33/types/executor/token"
 	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
@@ -2125,30 +2124,6 @@ func TestChain33_CreateRawHashlockSendTx(t *testing.T) {
 	}
 
 	err = client.CreateRawHashlockSendTx(send, &testResult)
-	assert.NotNil(t, testResult)
-	assert.Nil(t, err)
-}
-
-func TestChain33_CreateRawEvmCreateCallTx(t *testing.T) {
-	client := newTestChain33(nil)
-	var testResult interface{}
-	err := client.CreateRawEvmCreateCallTx(nil, &testResult)
-	assert.NotNil(t, err)
-	assert.Nil(t, testResult)
-
-	createcall := &evmtype.CreateCallTx{
-		Amount:   0,
-		Code:     "12",
-		GasLimit: 0,
-		GasPrice: 0,
-		Note:     "12",
-		Alias:    "12",
-		Fee:      0,
-		Name:     "12",
-		IsCreate: true,
-	}
-
-	err = client.CreateRawEvmCreateCallTx(createcall, &testResult)
 	assert.NotNil(t, testResult)
 	assert.Nil(t, err)
 }

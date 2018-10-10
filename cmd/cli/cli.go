@@ -53,7 +53,6 @@ func init() {
 		commands.BTYCmd(),
 		commands.CoinsCmd(),
 		commands.ConfigCmd(),
-		commands.EvmCmd(),
 		commands.ExecCmd(),
 		commands.MempoolCmd(),
 		commands.NetCmd(),
