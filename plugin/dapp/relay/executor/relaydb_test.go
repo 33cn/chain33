@@ -10,6 +10,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/common/db/mocks"
+	rTy "gitlab.33.cn/chain33/chain33/plugin/dapp/relay/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -157,7 +158,7 @@ func (s *suiteRelayDB) SetupSuite() {
 
 func (s *suiteRelayDB) TestRelayCreate_1() {
 	order := &types.RelayCreate{
-		Operation: types.RelayOrderBuy,
+		Operation: rTy.RelayOrderBuy,
 		Coin:      "BTC",
 		Amount:    10 * 1e8,
 		Addr:      addrBtc,
@@ -193,8 +194,8 @@ func (s *suiteRelayDB) TestRelayCreate_1() {
 func (s *suiteRelayDB) TestRevokeCreate_1aUnlock() {
 	order := &types.RelayRevoke{
 		OrderId: s.orderId,
-		Target:  types.RelayRevokeCreate,
-		Action:  types.RelayUnlock,
+		Target:  rTy.RelayRevokeCreate,
+		Action:  rTy.RelayUnlock,
 	}
 
 	tx := &types.Transaction{}
@@ -214,8 +215,8 @@ func (s *suiteRelayDB) TestRevokeCreate_1aUnlock() {
 func (s *suiteRelayDB) TestRevokeCreate_1bCancel() {
 	order := &types.RelayRevoke{
 		OrderId: s.orderId,
-		Target:  types.RelayRevokeCreate,
-		Action:  types.RelayCancel,
+		Target:  rTy.RelayRevokeCreate,
+		Action:  rTy.RelayCancel,
 	}
 
 	tx := &types.Transaction{}
@@ -290,7 +291,7 @@ func (s *suiteAccept) setupAccount() {
 
 func (s *suiteAccept) setupRelayCreate() {
 	order := &types.RelayCreate{
-		Operation: types.RelayOrderBuy,
+		Operation: rTy.RelayOrderBuy,
 		Coin:      "BTC",
 		Amount:    10 * 1e8,
 		Addr:      addrBtc,
@@ -373,8 +374,8 @@ func (s *suiteAccept) TestRelayAccept() {
 func (s *suiteAccept) TestRevokeAccept_1() {
 	order := &types.RelayRevoke{
 		OrderId: s.orderId,
-		Target:  types.RelayRevokeAccept,
-		Action:  types.RelayUnlock,
+		Target:  rTy.RelayRevokeAccept,
+		Action:  rTy.RelayUnlock,
 	}
 
 	tx := &types.Transaction{}
@@ -394,8 +395,8 @@ func (s *suiteAccept) TestRevokeAccept_1() {
 func (s *suiteAccept) TestRevokeAccept_2() {
 	order := &types.RelayRevoke{
 		OrderId: s.orderId,
-		Target:  types.RelayRevokeAccept,
-		Action:  types.RelayUnlock,
+		Target:  rTy.RelayRevokeAccept,
+		Action:  rTy.RelayUnlock,
 	}
 
 	tx := &types.Transaction{}
@@ -415,8 +416,8 @@ func (s *suiteAccept) TestRevokeAccept_2() {
 func (s *suiteAccept) TestRevokeAccept_3() {
 	order := &types.RelayRevoke{
 		OrderId: s.orderId,
-		Target:  types.RelayRevokeAccept,
-		Action:  types.RelayUnlock,
+		Target:  rTy.RelayRevokeAccept,
+		Action:  rTy.RelayUnlock,
 	}
 
 	tx := &types.Transaction{}
@@ -488,7 +489,7 @@ func (s *suiteConfirm) setupAccount() {
 
 func (s *suiteConfirm) setupRelayCreate() {
 	order := &types.RelayCreate{
-		Operation: types.RelayOrderBuy,
+		Operation: rTy.RelayOrderBuy,
 		Coin:      "BTC",
 		Amount:    10 * 1e8,
 		Addr:      addrBtc,
@@ -621,8 +622,8 @@ func (s *suiteConfirm) TestConfirm_2() {
 func (s *suiteConfirm) TestRevokeConfirm_1() {
 	order := &types.RelayRevoke{
 		OrderId: s.orderId,
-		Target:  types.RelayRevokeCreate,
-		Action:  types.RelayUnlock,
+		Target:  rTy.RelayRevokeCreate,
+		Action:  rTy.RelayUnlock,
 	}
 
 	tx := &types.Transaction{}
@@ -642,8 +643,8 @@ func (s *suiteConfirm) TestRevokeConfirm_1() {
 func (s *suiteConfirm) TestRevokeConfirm_2() {
 	order := &types.RelayRevoke{
 		OrderId: s.orderId,
-		Target:  types.RelayRevokeCreate,
-		Action:  types.RelayUnlock,
+		Target:  rTy.RelayRevokeCreate,
+		Action:  rTy.RelayUnlock,
 	}
 
 	tx := &types.Transaction{}
@@ -715,7 +716,7 @@ func (s *suiteVerify) setupAccount() {
 
 func (s *suiteVerify) setupRelayCreate() {
 	order := &types.RelayCreate{
-		Operation: types.RelayOrderBuy,
+		Operation: rTy.RelayOrderBuy,
 		Coin:      "BTC",
 		Amount:    0.299 * 1e8,
 		Addr:      addrBtc,
@@ -946,7 +947,7 @@ func (s *suiteVerifyCli) setupAccount() {
 
 func (s *suiteVerifyCli) setupRelayCreate() {
 	order := &types.RelayCreate{
-		Operation: types.RelayOrderBuy,
+		Operation: rTy.RelayOrderBuy,
 		Coin:      "BTC",
 		Amount:    0.299 * 1e8,
 		Addr:      addrBtc,

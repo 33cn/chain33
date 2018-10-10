@@ -1,6 +1,5 @@
 syntax = "proto3";
 package types;
-option go_package = "gitlab.33.cn/chain33/chain33/types";
 
 enum RelayOrderStatus {
     init       = 0;

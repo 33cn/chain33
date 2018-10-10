@@ -218,15 +218,6 @@ const (
 	TyLogParaTokenAssetTransfer = 333
 	TyLogParaTokenAssetWithdraw = 334
 
-	//log for relay
-	TyLogRelayCreate       = 350
-	TyLogRelayRevokeCreate = 351
-	TyLogRelayAccept       = 352
-	TyLogRelayRevokeAccept = 353
-	TyLogRelayConfirmTx    = 354
-	TyLogRelayFinishTx     = 355
-	TyLogRelayRcvBTCHead   = 356
-
 	// log for config
 	TyLogModifyConfig = 410
 
@@ -381,38 +372,6 @@ var MapBuyOrderStatusStr2Int = map[string]int32{
 	"boughtout":  TradeOrderStatusBoughtOut,
 	"buyrevoked": TradeOrderStatusBuyRevoked,
 }
-
-// relay
-const (
-	RelayRevokeCreate = iota
-	RelayRevokeAccept
-)
-
-const (
-	RelayOrderBuy = iota
-	RelayOrderSell
-)
-
-var RelayOrderOperation = map[uint32]string{
-	RelayOrderBuy:  "buy",
-	RelayOrderSell: "sell",
-}
-
-const (
-	RelayUnlock = iota
-	RelayCancel
-)
-
-//relay action ty
-const (
-	RelayActionCreate = iota
-	RelayActionAccept
-	RelayActionRevoke
-	RelayActionConfirmTx
-	RelayActionVerifyTx
-	RelayActionVerifyCmdTx
-	RelayActionRcvBTCHeaders
-)
 
 // RescanUtxoFlag
 const (

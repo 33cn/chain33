@@ -5,7 +5,6 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/types/executor/evm"
-	"gitlab.33.cn/chain33/chain33/types/executor/relay"
 	"gitlab.33.cn/chain33/chain33/types/executor/retrieve"
 	"gitlab.33.cn/chain33/chain33/types/executor/ticket"
 	"gitlab.33.cn/chain33/chain33/types/executor/token"
@@ -43,7 +42,6 @@ func initExec() {
 
 	//avoid init for ExecPrifex
 	evm.Init()
-	relay.Init()
 	retrieve.Init()
 	ticket.Init()
 	token.Init()

@@ -1,10 +1,10 @@
-package relay
+package types
 
 import (
 	"encoding/json"
 
-	//log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/types"
+
 )
 
 var nameX string
@@ -12,18 +12,18 @@ var nameX string
 //var tlog = log.New("module", name)
 
 func Init() {
-	nameX = types.ExecName("relay")
+	nameX = types.ExecName(RelayX)
 	// init executor type
-	types.RegistorExecutor("relay", NewType())
+	types.RegistorExecutor(RelayX, NewType())
 
 	// init log
-	types.RegistorLog(types.TyLogRelayCreate, &RelayCreateLog{})
-	types.RegistorLog(types.TyLogRelayRevokeCreate, &RelayRevokeCreateLog{})
-	types.RegistorLog(types.TyLogRelayAccept, &RelayAcceptLog{})
-	types.RegistorLog(types.TyLogRelayRevokeAccept, &RelayRevokeAcceptLog{})
-	types.RegistorLog(types.TyLogRelayConfirmTx, &RelayConfirmTxLog{})
-	types.RegistorLog(types.TyLogRelayFinishTx, &RelayFinishTxLog{})
-	types.RegistorLog(types.TyLogRelayRcvBTCHead, &RelayRcvBTCHeadLog{})
+	types.RegistorLog(TyLogRelayCreate, &RelayCreateLog{})
+	types.RegistorLog(TyLogRelayRevokeCreate, &RelayRevokeCreateLog{})
+	types.RegistorLog(TyLogRelayAccept, &RelayAcceptLog{})
+	types.RegistorLog(TyLogRelayRevokeAccept, &RelayRevokeAcceptLog{})
+	types.RegistorLog(TyLogRelayConfirmTx, &RelayConfirmTxLog{})
+	types.RegistorLog(TyLogRelayFinishTx, &RelayFinishTxLog{})
+	types.RegistorLog(TyLogRelayRcvBTCHead, &RelayRcvBTCHeadLog{})
 
 	// init query rpc
 	types.RegisterRPCQueryHandle("GetRelayOrderByStatus", &RelayGetRelayOrderByStatus{})
@@ -55,22 +55,22 @@ func (r RelayType) ActionName(tx *types.Transaction) string {
 	if err != nil {
 		return "unkown-relay-action-err"
 	}
-	if relay.Ty == types.RelayActionCreate && relay.GetCreate() != nil {
+	if relay.Ty == RelayActionCreate && relay.GetCreate() != nil {
 		return "relayCreateTx"
 	}
-	if relay.Ty == types.RelayActionRevoke && relay.GetRevoke() != nil {
+	if relay.Ty == RelayActionRevoke && relay.GetRevoke() != nil {
 		return "relayRevokeTx"
 	}
-	if relay.Ty == types.RelayActionAccept && relay.GetAccept() != nil {
+	if relay.Ty == RelayActionAccept && relay.GetAccept() != nil {
 		return "relayAcceptTx"
 	}
-	if relay.Ty == types.RelayActionConfirmTx && relay.GetConfirmTx() != nil {
+	if relay.Ty == RelayActionConfirmTx && relay.GetConfirmTx() != nil {
 		return "relayConfirmTx"
 	}
-	if relay.Ty == types.RelayActionVerifyTx && relay.GetVerify() != nil {
+	if relay.Ty == RelayActionVerifyTx && relay.GetVerify() != nil {
 		return "relayVerifyTx"
 	}
-	if relay.Ty == types.RelayActionRcvBTCHeaders && relay.GetBtcHeaders() != nil {
+	if relay.Ty == RelayActionRcvBTCHeaders && relay.GetBtcHeaders() != nil {
 		return "relay-receive-btc-heads"
 	}
 	return "unknown"
@@ -91,7 +91,7 @@ func (r RelayType) Amount(tx *types.Transaction) (int64, error) {
 	if err != nil {
 		return 0, types.ErrDecode
 	}
-	if types.RelayActionCreate == relay.Ty && relay.GetCreate() != nil {
+	if RelayActionCreate == relay.Ty && relay.GetCreate() != nil {
 		return int64(relay.GetCreate().BtyAmount), nil
 	}
 	return 0, nil
