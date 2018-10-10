@@ -14,8 +14,7 @@ trade执行器支持trade的创建和交易，
 
 import (
 	log "github.com/inconshreveable/log15"
-
-	"gitlab.33.cn/chain33/chain33/common"
+	
 	token "gitlab.33.cn/chain33/chain33/plugin/dapp/token/executor"
 	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/types"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
@@ -61,66 +60,6 @@ func newTrade() drivers.Driver {
 
 func (t *trade) GetDriverName() string {
 	return "trade"
-}
-
-func (t *trade) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
-	var trade pty.Trade
-	err := types.Decode(tx.Payload, &trade)
-	if err != nil {
-		return nil, err
-	}
-	tradelog.Info("exec trade tx=", "tx hash", common.Bytes2Hex(tx.Hash()), "Ty", trade.GetTy())
-
-	action := newTradeAction(t, tx)
-	switch trade.GetTy() {
-	case pty.TradeSellLimit:
-		if trade.GetSell() == nil {
-			return nil, types.ErrInputPara
-		}
-		return action.tradeSell(trade.GetSell())
-
-	case pty.TradeBuyMarket:
-		if trade.GetBuy() == nil {
-			return nil, types.ErrInputPara
-		}
-		return action.tradeBuy(trade.GetBuy())
-
-	case pty.TradeRevokeSell:
-		if trade.GetRevokeSell() == nil {
-			return nil, types.ErrInputPara
-		}
-		return action.tradeRevokeSell(trade.GetRevokeSell())
-
-	case pty.TradeBuyLimit:
-		if t.GetHeight() < types.ForkV10TradeBuyLimit {
-			return nil, types.ErrActionNotSupport
-		}
-		if trade.GetBuyLimit() == nil {
-			return nil, types.ErrInputPara
-		}
-		return action.tradeBuyLimit(trade.GetBuyLimit())
-
-	case pty.TradeSellMarket:
-		if t.GetHeight() < types.ForkV10TradeBuyLimit {
-			return nil, types.ErrActionNotSupport
-		}
-		if trade.GetSellMarket() == nil {
-			return nil, types.ErrInputPara
-		}
-		return action.tradeSellMarket(trade.GetSellMarket())
-
-	case pty.TradeRevokeBuy:
-		if t.GetHeight() < types.ForkV10TradeBuyLimit {
-			return nil, types.ErrActionNotSupport
-		}
-		if trade.GetRevokeBuy() == nil {
-			return nil, types.ErrInputPara
-		}
-		return action.tradeRevokeBuyLimit(trade.GetRevokeBuy())
-
-	default:
-		return nil, types.ErrActionNotSupport
-	}
 }
 
 func (t *trade) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
