@@ -7,8 +7,12 @@ import (
 	"os"
 	"time"
 
+	"gitlab.33.cn/chain33/chain33/util"
+
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/common/address"
+	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/manage/types"
+	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -57,16 +61,16 @@ func configTx(cmd *cobra.Command, args []string) {
 	opAddr, _ := cmd.Flags().GetString("value")
 
 	v := &types.ModifyConfig{Key: key, Op: op, Value: opAddr, Addr: ""}
-	modify := &types.ManageAction{
-		Ty:    types.ManageActionModifyConfig,
-		Value: &types.ManageAction_Modify{Modify: v},
+	modify := &pty.ManageAction{
+		Ty:    pty.ManageActionModifyConfig,
+		Value: &pty.ManageAction_Modify{Modify: v},
 	}
-	tx := &types.Transaction{Execer: []byte(getRealExecName(paraName, "manage")), Payload: types.Encode(modify)}
+	tx := &types.Transaction{Execer: []byte(util.GetRealExecName(paraName, "manage")), Payload: types.Encode(modify)}
 
 	random := rand.New(rand.NewSource(time.Now().UnixNano()))
 	tx.Nonce = random.Int63()
 
-	tx.To = address.ExecAddress(getRealExecName(paraName, "manage"))
+	tx.To = address.ExecAddress(util.GetRealExecName(paraName, "manage"))
 
 	var err error
 	tx.Fee, err = tx.GetRealFee(types.MinFee)
@@ -103,11 +107,11 @@ func queryConfig(cmd *cobra.Command, args []string) {
 		Data: key,
 	}
 	var params types.Query4Cli
-	params.Execer = getRealExecName(paraName, "manage")
+	params.Execer = util.GetRealExecName(paraName, "manage")
 	params.FuncName = "GetConfigItem"
 	params.Payload = req
 
 	var res types.ReplyConfig
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
 	ctx.Run()
 }
