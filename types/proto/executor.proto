@@ -315,13 +315,6 @@ message ModifyConfig {
     string addr  = 4;
 }
 
-message ManageAction {
-    oneof value {
-        ModifyConfig modify = 1;
-    }
-    int32 Ty = 2;
-}
-
 message ReceiptConfig {
     ConfigItem prev    = 1;
     ConfigItem current = 2;

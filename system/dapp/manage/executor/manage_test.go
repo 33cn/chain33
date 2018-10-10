@@ -1,100 +1,134 @@
 package executor
 
 import (
+	"context"
+	"errors"
+	"fmt"
+	"math/rand"
+	"net/http"
 	"strconv"
 	"strings"
 	"testing"
+	"time"
+
+	"google.golang.org/grpc"
 
 	"github.com/golang/protobuf/proto"
+	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
+	"gitlab.33.cn/chain33/chain33/common/limits"
+	"gitlab.33.cn/chain33/chain33/common/log"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
+	"gitlab.33.cn/chain33/chain33/executor"
 	"gitlab.33.cn/chain33/chain33/queue"
-	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
+	pty "gitlab.33.cn/chain33/chain33/system/dapp/manage/types"
 	"gitlab.33.cn/chain33/chain33/types"
+	ety "gitlab.33.cn/chain33/chain33/types/executor"
 )
 
 var (
-	addr1 string
+	isManageTest       = false
+	execNameMa         = "user.p.guodun.manage"
+	feeForToken  int64 = 1e6
+	ErrTest            = errors.New("ErrTest")
+
+	addr1           string
+	mainNetgrpcAddr = "localhost:8802"
+	ParaNetgrpcAddr = "localhost:8902"
+	mainClient      types.Chain33Client
+	paraClient      types.Chain33Client
+
+	random       *rand.Rand
+	zeroHash     [32]byte
+	cfg          *types.Config
+	addr         string
+	genkey       crypto.PrivKey
+	privGenesis  crypto.PrivKey
+	privkeySuper crypto.PrivKey
 )
 
-func initUnitEnv() (queue.Queue, *Executor) {
+func init() {
+	go func() {
+		http.ListenAndServe("localhost:6060", nil)
+	}()
+	types.SetTitle("local")
+	types.SetForkToOne()
+	types.SetTestNet(true)
+	err := limits.SetLimits()
+	if err != nil {
+		panic(err)
+	}
+	ety.Init()
+	Init("manage")
+
+	conn, err := grpc.Dial(mainNetgrpcAddr, grpc.WithInsecure())
+	if err != nil {
+		panic(err)
+	}
+	mainClient = types.NewChain33Client(conn)
+
+	conn, err = grpc.Dial(ParaNetgrpcAddr, grpc.WithInsecure())
+	if err != nil {
+		panic(err)
+	}
+	paraClient = types.NewChain33Client(conn)
+
+	random = rand.New(rand.NewSource(types.Now().UnixNano()))
+	genkey = getprivkey("CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944")
+	log.SetLogLevel("error")
+	privGenesis = getprivkey("CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944")
+	privkeySuper = getprivkey("4a92f3700920dc422c8ba993020d26b54711ef9b3d74deab7c3df055218ded42")
+}
+
+func getprivkey(key string) crypto.PrivKey {
+	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	if err != nil {
+		panic(err)
+	}
+	bkey, err := common.FromHex(key)
+	if err != nil {
+		panic(err)
+	}
+	priv, err := cr.PrivKeyFromBytes(bkey)
+	if err != nil {
+		panic(err)
+	}
+	return priv
+}
+
+func initUnitEnv() (queue.Queue, *executor.Executor) {
 	var q = queue.New("channel")
-	cfg := config.InitCfg("../cmd/chain33/chain33.test.toml")
-	exec := New(cfg.Exec)
+	cfg := config.InitCfg("../../../../cmd/chain33/chain33.test.toml")
+	exec := executor.New(cfg.Exec)
 	exec.SetQueueClient(q.Client())
 	return q, exec
+}
+
+func genaddress() (string, crypto.PrivKey) {
+	cr, err := crypto.New(types.GetSignatureTypeName(types.SECP256K1))
+	if err != nil {
+		panic(err)
+	}
+	privto, err := cr.GenKey()
+	if err != nil {
+		panic(err)
+	}
+	addrto := address.PubKeyToAddress(privto.PubKey().Bytes())
+	return addrto.String(), privto
 }
 
 func createTxEx(priv crypto.PrivKey, to string, amount int64, ty int32, execer string) *types.Transaction {
 	var tx *types.Transaction
 	switch execer {
-	case "coins":
-		v := &cty.CoinsAction_Transfer{&types.AssetsTransfer{Amount: amount}}
-		transfer := &cty.CoinsAction{Value: v, Ty: ty}
-		tx = &types.Transaction{Execer: []byte(execer), Payload: types.Encode(transfer), Fee: 1e6, To: to}
-	case "none":
-		v := &cty.CoinsAction_Transfer{&types.AssetsTransfer{Amount: amount}}
-		transfer := &cty.CoinsAction{Value: v, Ty: ty}
-		tx = &types.Transaction{Execer: []byte(execer), Payload: types.Encode(transfer), Fee: 1e6, To: to}
-	case "ticket":
-		transfer := &types.TicketAction{}
-		if types.TicketActionGenesis == ty {
-			v := &types.TicketAction_Genesis{&types.TicketGenesis{}}
-			transfer.Value = v
-			transfer.Ty = ty
-		} else if types.TicketActionOpen == ty {
-			v := &types.TicketAction_Topen{&types.TicketOpen{}}
-			transfer.Value = v
-			transfer.Ty = ty
-		} else if types.TicketActionClose == ty {
-			v := &types.TicketAction_Tclose{&types.TicketClose{}}
-			transfer.Value = v
-			transfer.Ty = ty
-		} else if types.TicketActionMiner == ty {
-			v := &types.TicketAction_Miner{&types.TicketMiner{}}
-			transfer.Value = v
-			transfer.Ty = ty
-		} else if types.TicketActionBind == ty {
-			v := &types.TicketAction_Tbind{&types.TicketBind{}}
-			transfer.Value = v
-			transfer.Ty = ty
-		} else {
-			return nil
+	case "manage":
+		v := &types.ModifyConfig{}
+		modify := &pty.ManageAction{
+			Ty:    ty,
+			Value: &pty.ManageAction_Modify{Modify: v},
 		}
-		tx = &types.Transaction{Execer: []byte(execer), Payload: types.Encode(transfer), Fee: 1e6, To: to}
-	case "token":
-		transfer := &types.TokenAction{}
-		if types.ActionTransfer == ty {
-			v := &types.TokenAction_Transfer{Transfer: &types.AssetsTransfer{Cointoken: "GOOD", Amount: 1e6}}
-			transfer.Value = v
-			transfer.Ty = ty
-		} else if types.ActionWithdraw == ty {
-			v := &types.TokenAction_Withdraw{Withdraw: &types.AssetsWithdraw{Cointoken: "GOOD", Amount: 1e6}}
-			transfer.Value = v
-			transfer.Ty = ty
-		} else if types.TokenActionPreCreate == ty {
-			v := &types.TokenAction_Tokenprecreate{&types.TokenPreCreate{
-				"Yuan chain coin",
-				"GOOD",
-				"An Easy Way to Build Blockchain",
-				10000 * 10000 * 100,
-				1 * 1e8,
-				"1Lmmwzw6ywVa3UZpA4tHvCB7gR9ZKRwpom"}} // 该处指针不能为空否则会有崩溃
-			transfer.Value = v
-			transfer.Ty = ty
-		} else if types.TokenActionFinishCreate == ty {
-			v := &types.TokenAction_Tokenfinishcreate{&types.TokenFinishCreate{}}
-			transfer.Value = v
-			transfer.Ty = ty
-		} else if types.TokenActionRevokeCreate == ty {
-			v := &types.TokenAction_Tokenrevokecreate{&types.TokenRevokeCreate{}}
-			transfer.Value = v
-			transfer.Ty = ty
-		} else {
-			return nil
-		}
-		tx = &types.Transaction{Execer: []byte(execer), Payload: types.Encode(transfer), Fee: 1e6, To: to}
+		tx = &types.Transaction{Execer: []byte("manage"), Payload: types.Encode(modify)}
 	default:
 		return nil
 	}
@@ -235,60 +269,11 @@ func blockchainProcess(q queue.Queue) {
 
 func createBlockChainQueryRq(execer string, funcName string) proto.Message {
 	switch execer {
-	case "coins":
+	case "manage":
 		{
-			if funcName == "GetPrefixCount" || funcName == "GetAddrTxsCount" {
-				in := &types.ReqKey{Key: []byte("14KEKbYtKKQm4wMthSK9J4La4nAiidGozt")}
+			if funcName == "GetConfigItem" {
+				in := &types.ReqString{Data: "this type ***"}
 				return in
-			} else {
-				reqAddr := &types.ReqAddr{}
-				reqAddr.Addr, _ = genaddress()
-				reqAddr.Flag = 0
-				reqAddr.Count = 10
-				reqAddr.Direction = 0
-				reqAddr.Height = -1
-				reqAddr.Index = 0
-
-				return reqAddr
-			}
-		}
-	case "norm":
-		{
-			in := &types.ReqString{Data: "this type ***"}
-			return in
-		}
-	case "ticket":
-		{
-			if funcName == "TicketInfos" {
-				info := &types.TicketInfos{}
-				return info
-			} else if funcName == "TicketList" {
-				list := &types.TicketList{}
-				return list
-			} else if funcName == "MinerAddress" {
-				reqaddr := &types.ReqString{}
-				return reqaddr
-			} else if funcName == "MinerSourceList" {
-				reqaddr := &types.ReqString{}
-				return reqaddr
-			}
-		}
-	case "token":
-		{
-			switch funcName {
-			//GetTokens,支持所有状态下的单个token，多个token，以及所有token的信息的查询
-			case "GetTokens":
-				reqtokens := &types.ReqTokens{}
-				return reqtokens
-			case "GetTokenInfo":
-				symbol := &types.ReqString{Data: "this type ***"}
-				return symbol
-			case "GetAddrReceiverforTokens":
-				addrTokens := &types.ReqAddrTokens{}
-				return addrTokens
-			case "GetAccountTokenAssets":
-				req := &types.ReqAccountTokenAssets{}
-				return req
 			}
 		}
 	default:
@@ -308,20 +293,8 @@ func TestQueueClient(t *testing.T) {
 	var msg queue.Message
 	var block *types.Block
 
-	execTy := [][]string{{"coins", strconv.Itoa(cty.CoinsActionTransfer)},
-		{"coins", strconv.Itoa(cty.CoinsActionWithdraw)},
-		{"coins", strconv.Itoa(cty.CoinsActionGenesis)},
-		{"none", strconv.Itoa(cty.CoinsActionTransfer)},
-		{"ticket", strconv.Itoa(types.TicketActionGenesis)},
-		{"ticket", strconv.Itoa(types.TicketActionOpen)},
-		{"ticket", strconv.Itoa(types.TicketActionBind)},
-		{"ticket", strconv.Itoa(types.TicketActionClose)},
-		{"ticket", strconv.Itoa(types.TicketActionMiner)},
-		{"token", strconv.Itoa(types.TokenActionPreCreate)},
-		{"token", strconv.Itoa(types.TokenActionFinishCreate)},
-		{"token", strconv.Itoa(types.TokenActionRevokeCreate)},
-		{"token", strconv.Itoa(types.ActionTransfer)},
-		{"token", strconv.Itoa(types.ActionWithdraw)},
+	execTy := [][]string{
+		{"manage", strconv.Itoa(pty.ManageActionModifyConfig)},
 	}
 
 	for _, str := range execTy {
@@ -355,21 +328,8 @@ func TestQueueClient(t *testing.T) {
 	reqAddr.Height = -1
 	reqAddr.Index = 0
 
-	execFunName := [][]string{{"coins", "GetAddrReciver"},
-		{"coins", "GetTxsByAddr"},
+	execFunName := [][]string{
 		{"manage", "GetConfigItem"},
-		{"norm", "NormGet"},
-		{"norm", "NormHas"},
-		{"ticket", "TicketInfos"},
-		{"ticket", "TicketList"},
-		{"ticket", "MinerAddress"},
-		{"ticket", "MinerSourceList"},
-		{"token", "GetTokens"},
-		{"token", "GetTokenInfo"},
-		{"token", "GetAddrReceiverforTokens"},
-		{"token", "GetAccountTokenAssets"},
-		{"coins", "GetPrefixCount"},
-		{"coins", "GetAddrTxsCount"},
 	}
 
 	for _, str := range execFunName {
@@ -394,4 +354,108 @@ func TestQueueClient(t *testing.T) {
 		q.Close()
 	}()
 	q.Start()
+}
+
+func waitTx(hash []byte) bool {
+	i := 0
+	for {
+		i++
+		if i%100 == 0 {
+			fmt.Println("wait transaction timeout")
+			return false
+		}
+
+		var reqHash types.ReqHash
+		reqHash.Hash = hash
+		res, err := mainClient.QueryTransaction(context.Background(), &reqHash)
+		if err != nil {
+			time.Sleep(time.Second)
+		}
+		if res != nil {
+			return true
+		}
+	}
+}
+
+func TestManageForTokenBlackList(t *testing.T) {
+	if !isManageTest {
+		return
+	}
+	fmt.Println("TestManageForTokenBlackList start")
+	defer fmt.Println("TestManageForTokenBlackList end")
+
+	v := &types.ModifyConfig{Key: "token-blacklist", Op: "add", Value: "GDT", Addr: ""}
+	modify := &pty.ManageAction{
+		Ty:    pty.ManageActionModifyConfig,
+		Value: &pty.ManageAction_Modify{Modify: v},
+	}
+	tx := &types.Transaction{
+		Execer:  []byte(execNameMa),
+		Payload: types.Encode(modify),
+		Fee:     feeForToken,
+		Nonce:   random.Int63(),
+		To:      address.ExecAddress(execNameMa),
+	}
+
+	tx.Sign(types.SECP256K1, privkeySuper)
+
+	reply, err := mainClient.SendTransaction(context.Background(), tx)
+	if err != nil {
+		fmt.Println("err", err)
+		t.Error(err)
+		return
+	}
+	if !reply.IsOk {
+		fmt.Println("err = ", reply.GetMsg())
+		t.Error(ErrTest)
+		return
+	}
+
+	if !waitTx(tx.Hash()) {
+		t.Error(ErrTest)
+		return
+	}
+	time.Sleep(5 * time.Second)
+
+}
+
+func TestManageForTokenFinisher(t *testing.T) {
+	if !isManageTest {
+		return
+	}
+	fmt.Println("TestManageForTokenFinisher start")
+	defer fmt.Println("TestManageForTokenFinisher end")
+
+	v := &types.ModifyConfig{Key: "token-finisher", Op: "add", Value: addr, Addr: ""}
+	modify := &pty.ManageAction{
+		Ty:    pty.ManageActionModifyConfig,
+		Value: &pty.ManageAction_Modify{Modify: v},
+	}
+	tx := &types.Transaction{
+		Execer:  []byte(execNameMa),
+		Payload: types.Encode(modify),
+		Fee:     feeForToken,
+		Nonce:   random.Int63(),
+		To:      address.ExecAddress(execNameMa),
+	}
+
+	tx.Sign(types.SECP256K1, privkeySuper)
+
+	reply, err := mainClient.SendTransaction(context.Background(), tx)
+	if err != nil {
+		fmt.Println("err", err)
+		t.Error(err)
+		return
+	}
+	if !reply.IsOk {
+		fmt.Println("err = ", reply.GetMsg())
+		t.Error(ErrTest)
+		return
+	}
+
+	if !waitTx(tx.Hash()) {
+		t.Error(ErrTest)
+		return
+	}
+	time.Sleep(5 * time.Second)
 }
