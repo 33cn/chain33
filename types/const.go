@@ -292,11 +292,6 @@ const (
 	TicketActionBind    = 17
 )
 
-//norm
-const (
-	NormActionPut = 1
-)
-
 //cert
 const (
 	CertActionNew    = 1
