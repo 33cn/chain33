@@ -1,4 +1,4 @@
-package manage
+package types
 
 import (
 	"encoding/json"
@@ -11,7 +11,7 @@ var nameX string
 
 //var tlog = log.New("module", name)
 
-func Init() {
+func init() {
 	nameX = types.ExecName(types.ManageX)
 	// init executor type
 	types.RegistorExecutor(types.ManageX, NewType())
@@ -34,7 +34,7 @@ func NewType() *ManageType {
 }
 
 func (at *ManageType) GetPayload() types.Message {
-	return &types.ManageAction{}
+	return &ManageAction{}
 }
 
 func (m ManageType) ActionName(tx *types.Transaction) string {
@@ -42,7 +42,7 @@ func (m ManageType) ActionName(tx *types.Transaction) string {
 }
 
 func (manage ManageType) DecodePayload(tx *types.Transaction) (interface{}, error) {
-	var action types.ManageAction
+	var action ManageAction
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
 		return nil, err

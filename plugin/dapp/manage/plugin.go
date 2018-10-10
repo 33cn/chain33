@@ -1,6 +1,7 @@
 package manage
 
 import (
+	"gitlab.33.cn/chain33/chain33/plugin/dapp/manage/commands"
 	"gitlab.33.cn/chain33/chain33/plugin/dapp/manage/executor"
 	"gitlab.33.cn/chain33/chain33/pluginmgr"
 )
@@ -10,7 +11,7 @@ func init() {
 		Name:     "manage",
 		ExecName: executor.GetName(),
 		Exec:     executor.Init,
-		Cmd:      nil,
+		Cmd:      commands.ConfigCmd,
 		RPC:      nil,
 	})
 }
