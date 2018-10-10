@@ -11,6 +11,7 @@ import (
 	"fmt"
 
 	log "github.com/inconshreveable/log15"
+	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/manage/types"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -48,13 +49,13 @@ func (c *Manage) Exec(tx *types.Transaction, index int) (*types.Receipt, error) 
 		}
 	}
 	//clog.Info("manage.Exec", "start index 2", index)
-	var manageAction types.ManageAction
+	var manageAction pty.ManageAction
 	err := types.Decode(tx.Payload, &manageAction)
 	if err != nil {
 		return nil, err
 	}
 	clog.Info("manage.Exec", "ty", manageAction.Ty)
-	if manageAction.Ty == types.ManageActionModifyConfig {
+	if manageAction.Ty == pty.ManageActionModifyConfig {
 		if manageAction.GetModify() == nil {
 			return nil, types.ErrInputPara
 		}
@@ -74,7 +75,7 @@ func (c *Manage) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, in
 		return set, nil
 	}
 	//执行成功
-	var manageAction types.ManageAction
+	var manageAction pty.ManageAction
 	err = types.Decode(tx.Payload, &manageAction)
 	if err != nil {
 		return nil, err
@@ -83,7 +84,7 @@ func (c *Manage) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, in
 
 	for i := 0; i < len(receipt.Logs); i++ {
 		item := receipt.Logs[i]
-		if item.Ty == types.ManageActionModifyConfig {
+		if item.Ty == pty.ManageActionModifyConfig {
 			var receipt types.ReceiptConfig
 			err := types.Decode(item.Log, &receipt)
 			if err != nil {
@@ -106,7 +107,7 @@ func (c *Manage) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData,
 		return set, nil
 	}
 	//执行成功
-	var manageAction types.ManageAction
+	var manageAction pty.ManageAction
 	err = types.Decode(tx.Payload, &manageAction)
 	if err != nil {
 		return nil, err
@@ -115,7 +116,7 @@ func (c *Manage) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData,
 
 	for i := 0; i < len(receipt.Logs); i++ {
 		item := receipt.Logs[i]
-		if item.Ty == types.ManageActionModifyConfig {
+		if item.Ty == pty.ManageActionModifyConfig {
 			var receipt types.ReceiptConfig
 			err := types.Decode(item.Log, &receipt)
 			if err != nil {
