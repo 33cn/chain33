@@ -1,4 +1,4 @@
-package evm
+package types
 
 type CreateCallTx struct {
 	Amount   uint64 `json:"amount"`
