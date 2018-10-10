@@ -63,38 +63,6 @@ func (c *Manage) GetFuncMap() map[string]reflect.Method {
 	return executorFunList
 }
 
-func (c *Manage) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	set, err := c.DriverBase.ExecLocal(tx, receipt, index)
-	if err != nil {
-		return nil, err
-	}
-	if receipt.GetTy() != types.ExecOk {
-		return set, nil
-	}
-	//执行成功
-	var manageAction pty.ManageAction
-	err = types.Decode(tx.Payload, &manageAction)
-	if err != nil {
-		return nil, err
-	}
-	clog.Info("manage.ExecLocal", "ty", manageAction.Ty)
-
-	for i := 0; i < len(receipt.Logs); i++ {
-		item := receipt.Logs[i]
-		if item.Ty == pty.ManageActionModifyConfig {
-			var receipt types.ReceiptConfig
-			err := types.Decode(item.Log, &receipt)
-			if err != nil {
-				panic(err) //数据错误了，已经被修改了
-			}
-			key := receipt.Current.Key
-			set.KV = append(set.KV, &types.KeyValue{Key: []byte(key), Value: types.Encode(receipt.Current)})
-			clog.Debug("ExecLocal to savelogs", "config ", key, "value", receipt.Current)
-		}
-	}
-	return set, nil
-}
-
 func (c *Manage) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	set, err := c.DriverBase.ExecDelLocal(tx, receipt, index)
 	if err != nil {
