@@ -8,6 +8,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
+	rTy "gitlab.33.cn/chain33/chain33/plugin/dapp/relay/types"
 	"gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -171,7 +172,7 @@ func (action *relayDB) relayCreate(order *types.RelayCreate) (*types.Receipt, er
 
 	relayLog := newRelayLog(uOrder)
 	sellOrderKV := relayLog.save(action.db)
-	logs = append(logs, relayLog.receiptLog(types.TyLogRelayCreate))
+	logs = append(logs, relayLog.receiptLog(rTy.TyLogRelayCreate))
 	kv = append(kv, sellOrderKV...)
 
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
@@ -283,7 +284,7 @@ func (action *relayDB) revokeCreate(revoke *types.RelayRevoke) (*types.Receipt, 
 		logs = append(logs, receiptTransfer.Logs...)
 		kv = append(kv, receiptTransfer.KV...)
 	}
-	logs = append(logs, relayLog.receiptLog(types.TyLogRelayRevokeCreate))
+	logs = append(logs, relayLog.receiptLog(rTy.TyLogRelayRevokeCreate))
 	kv = append(kv, orderKV...)
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
 }
@@ -347,7 +348,7 @@ func (action *relayDB) accept(accept *types.RelayAccept) (*types.Receipt, error)
 	relayLog := newRelayLog(order)
 	sellOrderKV := relayLog.save(action.db)
 
-	logs = append(logs, relayLog.receiptLog(types.TyLogRelayAccept))
+	logs = append(logs, relayLog.receiptLog(rTy.TyLogRelayAccept))
 	kv = append(kv, sellOrderKV...)
 
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
@@ -421,7 +422,7 @@ func (action *relayDB) revokeAccept(revoke *types.RelayRevoke) (*types.Receipt, 
 	}
 	relayLog := newRelayLog(order)
 	sellOrderKV := relayLog.save(action.db)
-	logs = append(logs, relayLog.receiptLog(types.TyLogRelayRevokeAccept))
+	logs = append(logs, relayLog.receiptLog(rTy.TyLogRelayRevokeAccept))
 	kv = append(kv, sellOrderKV...)
 
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
@@ -479,7 +480,7 @@ func (action *relayDB) confirmTx(confirm *types.RelayConfirmTx) (*types.Receipt,
 
 	relayLog := newRelayLog(order)
 	sellOrderKV := relayLog.save(action.db)
-	logs = append(logs, relayLog.receiptLog(types.TyLogRelayConfirmTx))
+	logs = append(logs, relayLog.receiptLog(rTy.TyLogRelayConfirmTx))
 	kv = append(kv, sellOrderKV...)
 
 	receipt := &types.Receipt{types.ExecOk, kv, logs}
@@ -553,7 +554,7 @@ func (action *relayDB) verifyTx(verify *types.RelayVerify) (*types.Receipt, erro
 	var kv []*types.KeyValue
 	logs = append(logs, receipt.Logs...)
 	logs = append(logs, receiptTransfer.Logs...)
-	logs = append(logs, relayLog.receiptLog(types.TyLogRelayFinishTx))
+	logs = append(logs, relayLog.receiptLog(rTy.TyLogRelayFinishTx))
 	kv = append(kv, receipt.KV...)
 	kv = append(kv, receiptTransfer.KV...)
 	kv = append(kv, orderKV...)
@@ -628,7 +629,7 @@ func (action *relayDB) verifyCmdTx(verify *types.RelayVerifyCli) (*types.Receipt
 	var kv []*types.KeyValue
 	logs = append(logs, receipt.Logs...)
 	logs = append(logs, receiptTransfer.Logs...)
-	logs = append(logs, relayLog.receiptLog(types.TyLogRelayFinishTx))
+	logs = append(logs, relayLog.receiptLog(rTy.TyLogRelayFinishTx))
 	kv = append(kv, receipt.KV...)
 	kv = append(kv, receiptTransfer.KV...)
 	kv = append(kv, orderKV...)
@@ -688,7 +689,7 @@ func (action *relayDB) saveBtcHeader(headers *types.BtcHeaders, localDb dbm.KVDB
 	}
 
 	log := &types.ReceiptLog{}
-	log.Ty = types.TyLogRelayRcvBTCHead
+	log.Ty = rTy.TyLogRelayRcvBTCHead
 
 	for _, head := range headers.BtcHeader {
 		err := verifyBlockHeader(head, preHead, localDb)
