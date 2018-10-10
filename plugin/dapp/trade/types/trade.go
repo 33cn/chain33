@@ -10,9 +10,23 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var nameX string
+var (
+	nameX string
+	tlog = log.New("module", types.TradeX)
 
-var tlog = log.New("module", types.TradeX)
+	actionName = map[string] int32 {
+		"Sell": TradeSellLimit,
+		"Buy" :TradeBuyMarket,
+		"RevokeSell":TradeRevokeSell,
+		"BuyLimit":TradeBuyLimit,
+		"SellMarket":TradeSellMarket,
+		"RevokeBuy":TradeRevokeBuy,
+	}
+)
+
+func (t *tradeType) GetTypeMap() map[string]int32 {
+	return actionName
+}
 
 func init() {
 	nameX = types.ExecName(types.TradeX)
@@ -57,17 +71,17 @@ func (trade tradeType) ActionName(tx *types.Transaction) string {
 	if err != nil {
 		return "unknown-err"
 	}
-	if action.Ty == TradeSellLimit && action.GetTokensell() != nil {
+	if action.Ty == TradeSellLimit && action.GetSell() != nil {
 		return "selltoken"
-	} else if action.Ty == TradeBuyMarket && action.GetTokenbuy() != nil {
+	} else if action.Ty == TradeBuyMarket && action.GetBuy() != nil {
 		return "buytoken"
-	} else if action.Ty == TradeRevokeSell && action.GetTokenrevokesell() != nil {
+	} else if action.Ty == TradeRevokeSell && action.GetRevokeSell() != nil {
 		return "revokeselltoken"
-	} else if action.Ty == TradeBuyLimit && action.GetTokenbuylimit() != nil {
+	} else if action.Ty == TradeBuyLimit && action.GetBuyLimit() != nil {
 		return "buylimittoken"
-	} else if action.Ty == TradeSellMarket && action.GetTokensellmarket() != nil {
+	} else if action.Ty == TradeSellMarket && action.GetSellMarket() != nil {
 		return "sellmarkettoken"
-	} else if action.Ty == TradeRevokeBuy && action.GetTokenrevokebuy() != nil {
+	} else if action.Ty == TradeRevokeBuy && action.GetRevokeBuy() != nil {
 		return "revokebuytoken"
 	}
 	return "unknown"
@@ -90,11 +104,11 @@ func (t tradeType) Amount(tx *types.Transaction) (int64, error) {
 		return 0, types.ErrDecode
 	}
 
-	if TradeSellLimit == trade.Ty && trade.GetTokensell() != nil {
+	if TradeSellLimit == trade.Ty && trade.GetSell() != nil {
 		return 0, nil
-	} else if TradeBuyMarket == trade.Ty && trade.GetTokenbuy() != nil {
+	} else if TradeBuyMarket == trade.Ty && trade.GetBuy() != nil {
 		return 0, nil
-	} else if TradeRevokeSell == trade.Ty && trade.GetTokenrevokesell() != nil {
+	} else if TradeRevokeSell == trade.Ty && trade.GetRevokeSell() != nil {
 		return 0, nil
 	}
 	return 0, nil
@@ -173,7 +187,7 @@ func CreateRawTradeSellTx(parm *TradeSellTx) (*types.Transaction, error) {
 	}
 	sell := &Trade{
 		Ty:    TradeSellLimit,
-		Value: &Trade_Tokensell{v},
+		Value: &Trade_Sell{v},
 	}
 	tx := &types.Transaction{
 		Execer:  []byte(nameX),
@@ -195,7 +209,7 @@ func CreateRawTradeBuyTx(parm *TradeBuyTx) (*types.Transaction, error) {
 	v := &TradeForBuy{SellID: parm.SellID, BoardlotCnt: parm.BoardlotCnt}
 	buy := &Trade{
 		Ty:    TradeBuyMarket,
-		Value: &Trade_Tokenbuy{v},
+		Value: &Trade_Buy{v},
 	}
 	tx := &types.Transaction{
 		Execer:  []byte(nameX),
@@ -218,7 +232,7 @@ func CreateRawTradeRevokeTx(parm *TradeRevokeTx) (*types.Transaction, error) {
 	v := &TradeForRevokeSell{SellID: parm.SellID}
 	buy := &Trade{
 		Ty:    TradeRevokeSell,
-		Value: &Trade_Tokenrevokesell{v},
+		Value: &Trade_RevokeSell{v},
 	}
 	tx := &types.Transaction{
 		Execer:  []byte(nameX),
@@ -246,7 +260,7 @@ func CreateRawTradeBuyLimitTx(parm *TradeBuyLimitTx) (*types.Transaction, error)
 	}
 	buyLimit := &Trade{
 		Ty:    TradeBuyLimit,
-		Value: &Trade_Tokenbuylimit{v},
+		Value: &Trade_BuyLimit{v},
 	}
 	tx := &types.Transaction{
 		Execer:  []byte(nameX),
@@ -268,7 +282,7 @@ func CreateRawTradeSellMarketTx(parm *TradeSellMarketTx) (*types.Transaction, er
 	v := &TradeForSellMarket{BuyID: parm.BuyID, BoardlotCnt: parm.BoardlotCnt}
 	sellMarket := &Trade{
 		Ty:    TradeSellMarket,
-		Value: &Trade_Tokensellmarket{v},
+		Value: &Trade_SellMarket{v},
 	}
 	tx := &types.Transaction{
 		Execer:  []byte(nameX),
@@ -291,7 +305,7 @@ func CreateRawTradeRevokeBuyTx(parm *TradeRevokeBuyTx) (*types.Transaction, erro
 	v := &TradeForRevokeBuy{BuyID: parm.BuyID}
 	buy := &Trade{
 		Ty:    TradeRevokeBuy,
-		Value: &Trade_Tokenrevokebuy{v},
+		Value: &Trade_RevokeBuy{v},
 	}
 	tx := &types.Transaction{
 		Execer:  []byte(nameX),

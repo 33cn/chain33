@@ -6,12 +6,12 @@ package types;
 //
 message Trade {
     oneof value {
-        TradeForSell       tokensell       = 1;
-        TradeForBuy        tokenbuy        = 2;
-        TradeForRevokeSell tokenrevokesell = 3;
-        TradeForBuyLimit   tokenbuylimit   = 5;
-        TradeForSellMarket tokensellmarket = 6;
-        TradeForRevokeBuy  tokenrevokebuy  = 7;
+        TradeForSell       sell       = 1;
+        TradeForBuy        buy        = 2;
+        TradeForRevokeSell revokeSell = 3;
+        TradeForBuyLimit   buyLimit   = 5;
+        TradeForSellMarket sellMarket = 6;
+        TradeForRevokeBuy  revokeBuy  = 7;
     }
     int32 ty = 4;
 }

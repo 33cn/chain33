@@ -20,9 +20,25 @@ import (
 	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/types"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
+	"reflect"
 )
 
 var tradelog = log.New("module", "execs.trade")
+
+var executorFunList = make(map[string]reflect.Method)
+var executorType = pty.NewType()
+
+func init() {
+	actionFunList := executorType.GetFuncMap()
+	executorFunList = types.ListMethod(&trade{})
+	for k, v := range actionFunList {
+		executorFunList[k] = v
+	}
+}
+
+func (t *trade) GetFuncMap() map[string]reflect.Method {
+	return executorFunList
+}
 
 func Init(name string) {
 	drivers.Register(GetName(), newTrade, types.ForkV2AddToken)
@@ -39,6 +55,7 @@ type trade struct {
 func newTrade() drivers.Driver {
 	t := &trade{}
 	t.SetChild(t)
+	t.SetExecutorType(executorType)
 	return t
 }
 
@@ -57,49 +74,49 @@ func (t *trade) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	action := newTradeAction(t, tx)
 	switch trade.GetTy() {
 	case pty.TradeSellLimit:
-		if trade.GetTokensell() == nil {
+		if trade.GetSell() == nil {
 			return nil, types.ErrInputPara
 		}
-		return action.tradeSell(trade.GetTokensell())
+		return action.tradeSell(trade.GetSell())
 
 	case pty.TradeBuyMarket:
-		if trade.GetTokenbuy() == nil {
+		if trade.GetBuy() == nil {
 			return nil, types.ErrInputPara
 		}
-		return action.tradeBuy(trade.GetTokenbuy())
+		return action.tradeBuy(trade.GetBuy())
 
 	case pty.TradeRevokeSell:
-		if trade.GetTokenrevokesell() == nil {
+		if trade.GetRevokeSell() == nil {
 			return nil, types.ErrInputPara
 		}
-		return action.tradeRevokeSell(trade.GetTokenrevokesell())
+		return action.tradeRevokeSell(trade.GetRevokeSell())
 
 	case pty.TradeBuyLimit:
 		if t.GetHeight() < types.ForkV10TradeBuyLimit {
 			return nil, types.ErrActionNotSupport
 		}
-		if trade.GetTokenbuylimit() == nil {
+		if trade.GetBuyLimit() == nil {
 			return nil, types.ErrInputPara
 		}
-		return action.tradeBuyLimit(trade.GetTokenbuylimit())
+		return action.tradeBuyLimit(trade.GetBuyLimit())
 
 	case pty.TradeSellMarket:
 		if t.GetHeight() < types.ForkV10TradeBuyLimit {
 			return nil, types.ErrActionNotSupport
 		}
-		if trade.GetTokensellmarket() == nil {
+		if trade.GetSellMarket() == nil {
 			return nil, types.ErrInputPara
 		}
-		return action.tradeSellMarket(trade.GetTokensellmarket())
+		return action.tradeSellMarket(trade.GetSellMarket())
 
 	case pty.TradeRevokeBuy:
 		if t.GetHeight() < types.ForkV10TradeBuyLimit {
 			return nil, types.ErrActionNotSupport
 		}
-		if trade.GetTokenrevokebuy() == nil {
+		if trade.GetRevokeBuy() == nil {
 			return nil, types.ErrInputPara
 		}
-		return action.tradeRevokeBuyLimit(trade.GetTokenrevokebuy())
+		return action.tradeRevokeBuyLimit(trade.GetRevokeBuy())
 
 	default:
 		return nil, types.ErrActionNotSupport
