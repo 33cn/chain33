@@ -55,7 +55,7 @@ func SetTestNetFork() {
 	ForkV18Relay = 570000
 	ForkV19TokenPrice = 560000
 	ForkV20EVMState = 650000
-	ForkV21Privacy = 10000000
+	ForkV21Privacy = 980000
 	ForkV22ExecRollback = 706531
 	ForkV23TxHeight = 806578
 	ForkV24TxGroupPara = 806578
