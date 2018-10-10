@@ -96,7 +96,7 @@ func (lott *Lottery) findLotteryDrawRecord(key []byte) (*pty.LotteryDrawRecord, 
 func (lott *Lottery) saveLotteryBuy(lotterylog *pty.ReceiptLottery, txId string) (kvs []*types.KeyValue) {
 	key := calcLotteryBuyKey(lotterylog.LotteryId, lotterylog.Addr, lotterylog.Round, txId)
 	kv := &types.KeyValue{}
-	record := &pty.LotteryBuyRecord{lotterylog.Number, lotterylog.Amount, lotterylog.Round, 0}
+	record := &pty.LotteryBuyRecord{lotterylog.Number, lotterylog.Amount, lotterylog.Round, 0, lotterylog.Way}
 	kv = &types.KeyValue{key, types.Encode(record)}
 
 	kvs = append(kvs, kv)
@@ -130,10 +130,10 @@ func (lott *Lottery) updateLotteryBuy(lotterylog *pty.ReceiptLottery, isAdd bool
 				//find addr, txhash
 				key := calcLotteryBuyKey(lotterylog.LotteryId, addr, lotterylog.Round, updateRec.TxHash)
 				kv := &types.KeyValue{}
-				record := &pty.LotteryBuyRecord{updateRec.Number, updateRec.Amount, lotterylog.Round, 0}
+				record := &pty.LotteryBuyRecord{updateRec.Number, updateRec.Amount, lotterylog.Round, 0, updateRec.Way}
 				if isAdd {
 					llog.Error("updateLotteryBuy update key")
-					record = &pty.LotteryBuyRecord{updateRec.Number, updateRec.Amount, lotterylog.Round, updateRec.Type}
+					record = &pty.LotteryBuyRecord{updateRec.Number, updateRec.Amount, lotterylog.Round, updateRec.Type, updateRec.Way}
 				}
 
 				kv = &types.KeyValue{key, types.Encode(record)}
