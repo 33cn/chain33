@@ -6,24 +6,24 @@ import (
 )
 
 //pub2priv case
-type privCreateutxosCase struct {
+type PrivCreateutxosCase struct {
 	BaseCase
 	From   string `toml:"from"`
 	To     string `toml:"to"`
 	Amount string `toml:"amount"`
 }
 
-type privCreateutxosPack struct {
+type PrivCreateutxosPack struct {
 	BaseCasePack
 }
 
-func (testCase *privCreateutxosCase) doSendCommand(packID string) (PackFunc, error) {
+func (testCase *PrivCreateutxosCase) doSendCommand(packID string) (PackFunc, error) {
 
 	txHash, bSuccess := sendPrivacyTxCommand(testCase.Command)
 	if !bSuccess {
 		return nil, errors.New(txHash)
 	}
-	pack := privCreateutxosPack{}
+	pack := PrivCreateutxosPack{}
 	pack.txHash = txHash
 	pack.tCase = testCase
 	pack.packID = packID
@@ -31,7 +31,7 @@ func (testCase *privCreateutxosCase) doSendCommand(packID string) (PackFunc, err
 	return &pack, nil
 }
 
-func (pack *privCreateutxosPack) getCheckHandlerMap() CheckHandlerMap {
+func (pack *PrivCreateutxosPack) getCheckHandlerMap() CheckHandlerMap {
 
 	funcMap := make(map[string]CheckHandlerFunc, 2)
 	funcMap["balance"] = pack.checkBalance
@@ -39,9 +39,9 @@ func (pack *privCreateutxosPack) getCheckHandlerMap() CheckHandlerMap {
 	return funcMap
 }
 
-func (pack *privCreateutxosPack) checkBalance(txInfo map[string]interface{}) bool {
+func (pack *PrivCreateutxosPack) checkBalance(txInfo map[string]interface{}) bool {
 
-	interCase := pack.tCase.(*privCreateutxosCase)
+	interCase := pack.tCase.(*PrivCreateutxosCase)
 	feeStr := txInfo["tx"].(map[string]interface{})["fee"].(string)
 	logArr := txInfo["receipt"].(map[string]interface{})["logs"].([]interface{})
 	logFee := logArr[0].(map[string]interface{})["log"].(map[string]interface{})
@@ -50,7 +50,7 @@ func (pack *privCreateutxosPack) checkBalance(txInfo map[string]interface{}) boo
 	fee, _ := strconv.ParseFloat(feeStr, 64)
 	amount, _ := strconv.ParseFloat(interCase.Amount, 64)
 
-	pack.fLog.Info("privCreateutxosDetail", "TestID", pack.packID,
+	pack.fLog.Info("PrivCreateutxosDetail", "TestID", pack.packID,
 		"Fee", feeStr, "Amount", interCase.Amount, "FromAddr", interCase.From,
 		"FromPrev", logSend["prev"].(map[string]interface{})["balance"].(string),
 		"FromCurr", logSend["current"].(map[string]interface{})["balance"].(string))
@@ -59,9 +59,9 @@ func (pack *privCreateutxosPack) checkBalance(txInfo map[string]interface{}) boo
 		checkBalanceDeltaWithAddr(logSend, interCase.From, -amount)
 }
 
-func (pack *privCreateutxosPack) checkUtxo(txInfo map[string]interface{}) bool {
+func (pack *PrivCreateutxosPack) checkUtxo(txInfo map[string]interface{}) bool {
 
-	interCase := pack.tCase.(*privCreateutxosCase)
+	interCase := pack.tCase.(*PrivCreateutxosCase)
 	logArr := txInfo["receipt"].(map[string]interface{})["logs"].([]interface{})
 	outputLog := logArr[2].(map[string]interface{})["log"].(map[string]interface{})
 	amount, _ := strconv.ParseFloat(interCase.Amount, 64)
@@ -71,10 +71,10 @@ func (pack *privCreateutxosPack) checkUtxo(txInfo map[string]interface{}) bool {
 	totalOutput := calcTxUtxoAmount(outputLog, "keyoutput")
 	availCheck := isBalanceEqualFloat(availUtxo, amount)
 
-	pack.fLog.Info("privCreateutxosDetail", "TestID", pack.packID,
+	pack.fLog.Info("PrivCreateutxosDetail", "TestID", pack.packID,
 		"TransferAmount", interCase.Amount, "UtxoOutput", totalOutput,
 		"ToAddr", interCase.To, "UtxoAvailable", availUtxo, "CalcAvailErr", err)
 
-	return availCheck && isBalanceEqualFloat(totalOutput, amount)
+		return availCheck && isBalanceEqualFloat(totalOutput, amount)
 
 }
