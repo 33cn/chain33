@@ -8,7 +8,7 @@ manage 负责管理配置
 */
 
 import (
-	"fmt"
+	"reflect"
 
 	log "github.com/inconshreveable/log15"
 	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/manage/types"
@@ -16,7 +16,21 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var clog = log.New("module", "execs.manage")
+var (
+	clog = log.New("module", "execs.manage")
+
+	//初始化过程比较重量级，有很多reflact, 所以弄成全局的
+	executorFunList = make(map[string]reflect.Method)
+	executorType    = pty.NewType()
+)
+
+func init() {
+	actionFunList := executorType.GetFuncMap()
+	executorFunList = types.ListMethod(&Manage{})
+	for k, v := range actionFunList {
+		executorFunList[k] = v
+	}
+}
 
 func Init(name string) {
 	drivers.Register(GetName(), newManage, types.ForkV4AddManage)
@@ -33,6 +47,7 @@ type Manage struct {
 func newManage() drivers.Driver {
 	c := &Manage{}
 	c.SetChild(c)
+	c.SetExecutorType(executorType)
 	return c
 }
 
@@ -40,30 +55,12 @@ func (c *Manage) GetDriverName() string {
 	return "manage"
 }
 
-func (c *Manage) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
-	clog.Info("manage.Exec", "start index", index)
-	if c.GetHeight() > types.ForkV11ManageExec {
-		_, err := c.DriverBase.Exec(tx, index)
-		if err != nil {
-			return nil, err
-		}
-	}
-	//clog.Info("manage.Exec", "start index 2", index)
-	var manageAction pty.ManageAction
-	err := types.Decode(tx.Payload, &manageAction)
-	if err != nil {
-		return nil, err
-	}
-	clog.Info("manage.Exec", "ty", manageAction.Ty)
-	if manageAction.Ty == pty.ManageActionModifyConfig {
-		if manageAction.GetModify() == nil {
-			return nil, types.ErrInputPara
-		}
-		action := NewAction(c, tx)
-		return action.modifyConfig(manageAction.GetModify())
-	}
+func (c *Manage) CheckTx(tx *types.Transaction, index int) error {
+	return nil
+}
 
-	return nil, types.ErrActionNotSupport
+func (c *Manage) GetFuncMap() map[string]reflect.Method {
+	return executorFunList
 }
 
 func (c *Manage) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
@@ -128,49 +125,6 @@ func (c *Manage) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData,
 		}
 	}
 	return set, nil
-}
-
-func (c *Manage) Query(funcName string, params []byte) (types.Message, error) {
-	if funcName == "GetConfigItem" {
-		var in types.ReqString
-		err := types.Decode(params, &in)
-		if err != nil {
-			return nil, err
-		}
-
-		// Load config from state db
-		value, err := c.GetStateDB().Get([]byte(types.ManageKey(in.Data)))
-		if err != nil {
-			clog.Info("modifyConfig", "get db key", "not found")
-			value = nil
-		}
-		if value == nil {
-			value, err = c.GetStateDB().Get([]byte(types.ConfigKey(in.Data)))
-			if err != nil {
-				clog.Info("modifyConfig", "get db key", "not found")
-				value = nil
-			}
-		}
-
-		var reply types.ReplyConfig
-		reply.Key = in.Data
-
-		var item types.ConfigItem
-		if value != nil {
-			err = types.Decode(value, &item)
-			if err != nil {
-				clog.Error("modifyConfig", "get db key", in.Data)
-				return nil, err // types.ErrBadConfigValue
-			}
-			reply.Value = fmt.Sprint(item.GetArr().Value)
-		} else { // if config item not exist
-			reply.Value = ""
-		}
-		clog.Info("manage  Query", "key ", in.Data)
-
-		return &reply, nil
-	}
-	return nil, types.ErrActionNotSupport
 }
 
 func IsSuperManager(addr string) bool {
