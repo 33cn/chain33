@@ -11,8 +11,8 @@ import (
 
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/common/address"
-	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/manage/types"
 	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
+	pty "gitlab.33.cn/chain33/chain33/system/dapp/manage/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
