@@ -8,6 +8,7 @@ import (
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/types"
+	"reflect"
 )
 
 var (
@@ -21,6 +22,15 @@ var (
 		"BuyLimit":TradeBuyLimit,
 		"SellMarket":TradeSellMarket,
 		"RevokeBuy":TradeRevokeBuy,
+	}
+
+	logInfo = map[int64]*types.LogInfo{
+		types.TyLogTradeSellLimit:    {reflect.TypeOf(ReceiptTradeSell{}), "LogTradeSell"},
+		types.TyLogTradeBuyMarket:  {reflect.TypeOf(ReceiptTradeBuyMarket{}), "LogTradeBuyMarket"},
+		types.TyLogTradeSellRevoke: {reflect.TypeOf(ReceiptTradeRevoke{}), "LogTradeSellRevoke"},
+		types.TyLogTradeSellMarket:    {reflect.TypeOf(ReceiptSellMarket{}), "LogTradeSellMarket"},
+		types.TyLogTradeBuyLimit:  {reflect.TypeOf(ReceiptTradeBuyLimit{}), "LogTradeBuyLimit"},
+		types.TyLogTradeBuyRevoke: {reflect.TypeOf(ReceiptTradeBuyRevoke{}), "LogTradeBuyRevoke"},
 	}
 )
 
