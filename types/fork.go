@@ -24,7 +24,7 @@ var (
 	ForkV18Relay         int64 = 500000
 	ForkV19TokenPrice    int64 = 300000
 	ForkV20EVMState      int64 = 350000
-	ForkV21Privacy       int64 = 980000
+	ForkV21Privacy       int64 = MaxHeight
 	ForkV22ExecRollback  int64 = 450000
 	ForkV23TxHeight      int64 = MaxHeight
 	ForkV24TxGroupPara   int64 = MaxHeight
@@ -55,7 +55,7 @@ func SetTestNetFork() {
 	ForkV18Relay = 570000
 	ForkV19TokenPrice = 560000
 	ForkV20EVMState = 650000
-	ForkV21Privacy = 10000000
+	ForkV21Privacy = 980000
 	ForkV22ExecRollback = 706531
 	ForkV23TxHeight = 806578
 	ForkV24TxGroupPara = 806578
