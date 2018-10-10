@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 
 	"github.com/golang/protobuf/proto"
-	evmtypes "gitlab.33.cn/chain33/chain33/plugin/dapp/evm/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -68,21 +67,6 @@ func ticketPayloadType(funcname string) (proto.Message, error) {
 		req = &types.TicketList{}
 	case "MinerAddress", "MinerSourceList":
 		req = &types.ReqString{}
-	default:
-		return nil, types.ErrInputPara
-	}
-	return req, nil
-}
-
-func evmPayloadType(funcname string) (proto.Message, error) {
-	var req proto.Message
-	switch funcname {
-	case "CheckAddrExists":
-		req = &evmtypes.CheckEVMAddrReq{}
-	case "EstimateGas":
-		req = &evmtypes.EstimateEVMGasReq{}
-	case "EvmDebug":
-		req = &evmtypes.EvmDebugReq{}
 	default:
 		return nil, types.ErrInputPara
 	}
@@ -173,8 +157,6 @@ func payloadType(execer, funcname string) (proto.Message, error) {
 		return ticketPayloadType(funcname)
 	case types.ExecName(types.TradeX): // D
 		return tradePayloadType(funcname)
-	case types.ExecName(types.EvmX):
-		return evmPayloadType(funcname)
 	case types.ExecName(types.PrivacyX):
 		return privacyPayloadType(funcname)
 	case types.ExecName(types.RelayX):
