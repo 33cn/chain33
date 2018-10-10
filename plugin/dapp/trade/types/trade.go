@@ -25,9 +25,9 @@ var (
 	}
 
 	logInfo = map[int64]*types.LogInfo{
-		types.TyLogTradeSellLimit:    {reflect.TypeOf(ReceiptTradeSell{}), "LogTradeSell"},
+		types.TyLogTradeSellLimit:    {reflect.TypeOf(ReceiptTradeSellLimit{}), "LogTradeSell"},
 		types.TyLogTradeBuyMarket:  {reflect.TypeOf(ReceiptTradeBuyMarket{}), "LogTradeBuyMarket"},
-		types.TyLogTradeSellRevoke: {reflect.TypeOf(ReceiptTradeRevoke{}), "LogTradeSellRevoke"},
+		types.TyLogTradeSellRevoke: {reflect.TypeOf(ReceiptTradeSellRevoke{}), "LogTradeSellRevoke"},
 		types.TyLogTradeSellMarket:    {reflect.TypeOf(ReceiptSellMarket{}), "LogTradeSellMarket"},
 		types.TyLogTradeBuyLimit:  {reflect.TypeOf(ReceiptTradeBuyLimit{}), "LogTradeBuyLimit"},
 		types.TyLogTradeBuyRevoke: {reflect.TypeOf(ReceiptTradeBuyRevoke{}), "LogTradeBuyRevoke"},
@@ -339,7 +339,7 @@ func (l TradeSellLimitLog) Name() string {
 }
 
 func (l TradeSellLimitLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp ReceiptTradeSell
+	var logTmp ReceiptTradeSellLimit
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
 		return nil, err
@@ -419,7 +419,7 @@ func (l TradeSellRevokeLog) Name() string {
 }
 
 func (l TradeSellRevokeLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp ReceiptTradeRevoke
+	var logTmp ReceiptTradeSellRevoke
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
 		return nil, err

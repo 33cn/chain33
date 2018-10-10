@@ -150,7 +150,7 @@ message ReceiptTradeBuyRevoke {
     ReceiptBuyBase base = 1;
 }
 
-message ReceiptTradeSell {
+message ReceiptTradeSellLimit {
     ReceiptSellBase base = 1;
 }
 
@@ -158,7 +158,7 @@ message ReceiptSellMarket {
     ReceiptSellBase base = 1;
 }
 
-message ReceiptTradeRevoke {
+message ReceiptTradeSellRevoke {
     ReceiptSellBase base = 1;
 }
 

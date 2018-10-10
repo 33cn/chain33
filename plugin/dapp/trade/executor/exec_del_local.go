@@ -38,7 +38,7 @@ func (t *trade) localDelLog(tx *types.Transaction, receipt *types.ReceiptData, i
 	for i := 0; i < len(receipt.Logs); i++ {
 		item := receipt.Logs[i]
 		if item.Ty == types.TyLogTradeSellLimit || item.Ty == types.TyLogTradeSellRevoke {
-			var receipt pty.ReceiptTradeSell
+			var receipt pty.ReceiptTradeSellLimit
 			err := types.Decode(item.Log, &receipt)
 			if err != nil {
 				panic(err) //数据错误了，已经被修改了
