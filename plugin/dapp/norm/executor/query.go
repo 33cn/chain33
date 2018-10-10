@@ -12,12 +12,3 @@ func (n *Norm) Query_NormGet(in *pty.NormGetKey) (types.Message, error) {
 	}
 	return &types.ReplyString{string(value)}, nil
 }
-
-func (n *Norm) Query_NormHas(in []byte) (types.Message, error) {
-	str := string(in)
-	_, err := n.GetStateDB().Get(Key(str))
-	if err != nil {
-		return &types.ReplyString{"false"}, err
-	}
-	return &types.ReplyString{"true"}, nil
-}
