@@ -14,11 +14,7 @@ func (c *Manage) checkAddress(addr string) error {
 }
 
 func (c *Manage) checkTxToAddress(tx *types.Transaction, index int) error {
-	//to 必须是一个地址
-	if err := c.checkAddress(tx.GetRealToAddr()); err != nil {
-		return err
-	}
-	return nil
+	return c.checkAddress(tx.GetRealToAddr())
 }
 
 func (c *Manage) Exec_Modify(manageAction *types.ModifyConfig, tx *types.Transaction, index int) (*types.Receipt, error) {
