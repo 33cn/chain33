@@ -1,4 +1,4 @@
-package evm
+package types
 
 import (
 	"encoding/json"
@@ -14,23 +14,30 @@ import (
 
 var nameX string
 
-var elog = log.New("module", "exectype.evm")
+var (
+	elog = log.New("module", "exectype.evm")
 
-func Init() {
+	actionName = map[string]int32{
+		"EvmCreate": EvmCreateAction,
+		"EvmCall":   EvmCallAction,
+	}
+)
+
+func init() {
 	// init executor type
 	nameX = types.ExecName("evm")
 	types.RegistorExecutor("evm", NewType())
 
 	// init log
-	types.RegistorLog(types.TyLogCallContract, &EvmCallContractLog{})
-	types.RegistorLog(types.TyLogContractData, &EvmContractDataLog{})
-	types.RegistorLog(types.TyLogContractState, &EvmContractStateLog{})
-	types.RegistorLog(types.TyLogEVMStateChangeItem, &EvmStateChangeItemLog{})
+	types.RegistorLog(TyLogCallContract, &EvmCallContractLog{})
+	types.RegistorLog(TyLogContractData, &EvmContractDataLog{})
+	types.RegistorLog(TyLogContractState, &EvmContractStateLog{})
+	types.RegistorLog(TyLogEVMStateChangeItem, &EvmStateChangeItemLog{})
 
 	// init query rpc
-	types.RegisterRPCQueryHandle("CheckAddrExists", &EvmCheckAddrExists{})
-	types.RegisterRPCQueryHandle("EstimateGas", &EvmEstimateGas{})
-	types.RegisterRPCQueryHandle("EvmDebug", &EvmDebug{})
+	types.RegisterRPCQueryHandle(FuncCheckAddrExists, &EvmCheckAddrExists{})
+	types.RegisterRPCQueryHandle(FuncEstimateGas, &EvmEstimateGas{})
+	types.RegisterRPCQueryHandle(FuncEvmDebug, &EvmDebug{})
 }
 
 type EvmType struct {
@@ -44,7 +51,7 @@ func NewType() *EvmType {
 }
 
 func (evm *EvmType) GetPayload() types.Message {
-	return &types.EVMContractAction{}
+	return &EVMContractAction{}
 }
 
 func (evm EvmType) ActionName(tx *types.Transaction) string {
@@ -58,8 +65,12 @@ func (evm EvmType) ActionName(tx *types.Transaction) string {
 	return "unknown"
 }
 
+func (evm *EvmType) GetTypeMap() map[string]int32 {
+	return actionName
+}
+
 func (evm EvmType) DecodePayload(tx *types.Transaction) (interface{}, error) {
-	var action types.EVMContractAction
+	var action EVMContractAction
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
 		return nil, err
@@ -71,7 +82,7 @@ func (evm EvmType) GetRealToAddr(tx *types.Transaction) string {
 	if string(tx.Execer) == types.EvmX {
 		return tx.To
 	}
-	var action types.EVMContractAction
+	var action EVMContractAction
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
 		return tx.To
@@ -109,7 +120,7 @@ func (l EvmCallContractLog) Name() string {
 }
 
 func (l EvmCallContractLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp types.ReceiptEVMContract
+	var logTmp ReceiptEVMContract
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
 		return nil, err
@@ -125,7 +136,7 @@ func (l EvmContractDataLog) Name() string {
 }
 
 func (l EvmContractDataLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp types.EVMContractData
+	var logTmp EVMContractData
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
 		return nil, err
@@ -141,7 +152,7 @@ func (l EvmStateChangeItemLog) Name() string {
 }
 
 func (l EvmStateChangeItemLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp types.EVMStateChangeItem
+	var logTmp EVMStateChangeItem
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
 		return nil, err
@@ -157,7 +168,7 @@ func (l EvmContractStateLog) Name() string {
 }
 
 func (l EvmContractStateLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp types.EVMContractState
+	var logTmp EVMContractState
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
 		return nil, err
@@ -169,7 +180,7 @@ type EvmCheckAddrExists struct {
 }
 
 func (t *EvmCheckAddrExists) JsonToProto(message json.RawMessage) ([]byte, error) {
-	var req types.CheckEVMAddrReq
+	var req CheckEVMAddrReq
 	err := json.Unmarshal(message, &req)
 	if err != nil {
 		return nil, err
@@ -185,7 +196,7 @@ type EvmEstimateGas struct {
 }
 
 func (t *EvmEstimateGas) JsonToProto(message json.RawMessage) ([]byte, error) {
-	var req types.EstimateEVMGasReq
+	var req EstimateEVMGasReq
 	err := json.Unmarshal(message, &req)
 	if err != nil {
 		return nil, err
@@ -201,7 +212,7 @@ type EvmDebug struct {
 }
 
 func (t *EvmDebug) JsonToProto(message json.RawMessage) ([]byte, error) {
-	var req types.EvmDebugReq
+	var req EvmDebugReq
 	err := json.Unmarshal(message, &req)
 	if err != nil {
 		return nil, err
@@ -226,7 +237,7 @@ func CreateRawEvmCreateCallTx(parm *CreateCallTx) (*types.Transaction, error) {
 		return nil, err
 	}
 
-	action := &types.EVMContractAction{
+	action := &EVMContractAction{
 		Amount:   parm.Amount,
 		Code:     bCode,
 		GasLimit: parm.GasLimit,

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 
 	"github.com/golang/protobuf/proto"
+	evmtypes "gitlab.33.cn/chain33/chain33/plugin/dapp/evm/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -77,11 +78,11 @@ func evmPayloadType(funcname string) (proto.Message, error) {
 	var req proto.Message
 	switch funcname {
 	case "CheckAddrExists":
-		req = &types.CheckEVMAddrReq{}
+		req = &evmtypes.CheckEVMAddrReq{}
 	case "EstimateGas":
-		req = &types.EstimateEVMGasReq{}
+		req = &evmtypes.EstimateEVMGasReq{}
 	case "EvmDebug":
-		req = &types.EvmDebugReq{}
+		req = &evmtypes.EvmDebugReq{}
 	default:
 		return nil, types.ErrInputPara
 	}
