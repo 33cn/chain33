@@ -38,6 +38,10 @@ func (t *tradeType) GetTypeMap() map[string]int32 {
 	return actionName
 }
 
+func (at *tradeType) GetLogMap() map[int64]*types.LogInfo {
+	return logInfo
+}
+
 func init() {
 	nameX = types.ExecName(types.TradeX)
 	// init executor type
