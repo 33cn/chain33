@@ -5,15 +5,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-func (evm *EVMExecutor) ExecDelLocal_EvmCreate(evmAction *evmtypes.EVMContractAction, tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	return evm._execDelLocal(evmAction, tx, receipt, index)
-}
-
-func (evm *EVMExecutor) ExecDelLocal_EvmCall(evmAction *evmtypes.EVMContractAction, tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	return evm._execDelLocal(evmAction, tx, receipt, index)
-}
-
-func (evm *EVMExecutor) _execDelLocal(evmAction *evmtypes.EVMContractAction, tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+func (evm *EVMExecutor) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	set, err := evm.DriverBase.ExecDelLocal(tx, receipt, index)
 	if err != nil {
 		return nil, err

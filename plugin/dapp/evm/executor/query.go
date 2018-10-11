@@ -13,36 +13,10 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-func (evm *EVMExecutor) Query_CheckAddrExists(params []byte) (types.Message, error) {
-	var in evmtypes.CheckEVMAddrReq
-	err := types.Decode(params, &in)
-	if err != nil {
-		return nil, err
-	}
-	return evm.CheckAddrExists(&in)
-}
-
-func (evm *EVMExecutor) Query_EstimateGas(params []byte) (types.Message, error) {
-	var in evmtypes.EstimateEVMGasReq
-	err := types.Decode(params, &in)
-	if err != nil {
-		return nil, err
-	}
-	return evm.EstimateGas(&in)
-}
-
-func (evm *EVMExecutor) Query_EvmDebug(params []byte) (types.Message, error) {
-	var in evmtypes.EvmDebugReq
-	err := types.Decode(params, &in)
-	if err != nil {
-		return nil, err
-	}
-	return EvmDebug(&in)
-}
-
 // 检查合约地址是否存在，此操作不会改变任何状态，所以可以直接从statedb查询
-func (evm *EVMExecutor) CheckAddrExists(req *evmtypes.CheckEVMAddrReq) (types.Message, error) {
-	addrStr := req.Addr
+func (evm *EVMExecutor) Query_CheckAddrExists(in *evmtypes.CheckEVMAddrReq) (types.Message, error) {
+	evm.CheckInit()
+	addrStr := in.Addr
 	if len(addrStr) == 0 {
 		return nil, model.ErrAddrNotExists
 	}
@@ -74,15 +48,16 @@ func (evm *EVMExecutor) CheckAddrExists(req *evmtypes.CheckEVMAddrReq) (types.Me
 }
 
 // 此方法用来估算合约消耗的Gas，不能修改原有执行器的状态数据
-func (evm *EVMExecutor) EstimateGas(req *evmtypes.EstimateEVMGasReq) (types.Message, error) {
+func (evm *EVMExecutor) Query_EstimateGas(in *evmtypes.EstimateEVMGasReq) (types.Message, error) {
+	evm.CheckInit()
 	var (
 		caller common.Address
 		to     *common.Address
 	)
 
 	// 如果未指定调用地址，则直接使用一个虚拟的地址发起调用
-	if len(req.Caller) > 0 {
-		callAddr := common.StringToAddress(req.Caller)
+	if len(in.Caller) > 0 {
+		callAddr := common.StringToAddress(in.Caller)
 		if callAddr != nil {
 			caller = *callAddr
 		}
@@ -90,9 +65,9 @@ func (evm *EVMExecutor) EstimateGas(req *evmtypes.EstimateEVMGasReq) (types.Mess
 		caller = common.ExecAddress(types.ExecName(evmtypes.ExecutorName))
 	}
 
-	isCreate := strings.EqualFold(req.To, EvmAddress)
+	isCreate := strings.EqualFold(in.To, EvmAddress)
 
-	msg := common.NewMessage(caller, nil, 0, req.Amount, evmtypes.MaxGasLimit, 1, req.Code, "estimateGas")
+	msg := common.NewMessage(caller, nil, 0, in.Amount, evmtypes.MaxGasLimit, 1, in.Code, "estimateGas")
 	context := evm.NewEVMContext(msg)
 	// 创建EVM运行时对象
 	evm.mStateDB = state.NewMemoryStateDB(evm.GetStateDB(), evm.GetLocalDB(), evm.GetCoinsAccount(), evm.GetHeight())
@@ -112,7 +87,7 @@ func (evm *EVMExecutor) EstimateGas(req *evmtypes.EstimateEVMGasReq) (types.Mess
 		execName = fmt.Sprintf("%s%s", types.ExecName(evmtypes.EvmPrefix), common.BytesToHash(txHash).Hex())
 		_, _, leftOverGas, vmerr = env.Create(runtime.AccountRef(msg.From()), contractAddr, msg.Data(), context.GasLimit, execName, "estimateGas")
 	} else {
-		to = common.StringToAddress(req.To)
+		to = common.StringToAddress(in.To)
 		_, _, leftOverGas, vmerr = env.Call(runtime.AccountRef(msg.From()), *to, msg.Data(), context.GasLimit, msg.Value())
 	}
 
@@ -122,8 +97,9 @@ func (evm *EVMExecutor) EstimateGas(req *evmtypes.EstimateEVMGasReq) (types.Mess
 }
 
 // 此方法用来估算合约消耗的Gas，不能修改原有执行器的状态数据
-func EvmDebug(req *evmtypes.EvmDebugReq) (types.Message, error) {
-	optype := req.Optype
+func (evm *EVMExecutor) Query_EvmDebug(in *evmtypes.EvmDebugReq) (types.Message, error) {
+	evm.CheckInit()
+	optype := in.Optype
 
 	if optype < 0 {
 		evmDebug = false
