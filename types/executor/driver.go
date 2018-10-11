@@ -9,7 +9,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/types/executor/relay"
 	"gitlab.33.cn/chain33/chain33/types/executor/retrieve"
 	"gitlab.33.cn/chain33/chain33/types/executor/ticket"
-	"gitlab.33.cn/chain33/chain33/types/executor/token"
 	"gitlab.33.cn/chain33/chain33/types/executor/trade"
 )
 
@@ -48,7 +47,6 @@ func initExec() {
 	relay.Init()
 	retrieve.Init()
 	ticket.Init()
-	token.Init()
 	trade.Init()
 }
 

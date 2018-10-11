@@ -18,7 +18,7 @@ import (
 	_ "gitlab.33.cn/chain33/chain33/types/executor"
 	evmtype "gitlab.33.cn/chain33/chain33/types/executor/evm"
 	retrievetype "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
-	tokentype "gitlab.33.cn/chain33/chain33/types/executor/token"
+	tokenty "gitlab.33.cn/chain33/chain33/plugin/dapp/token/types"
 	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
 )
 
@@ -489,7 +489,7 @@ func TestDecodeLogTicketBind(t *testing.T) {
 }
 
 func TestDecodeLogPreCreateToken(t *testing.T) {
-	var logTmp = &types.ReceiptToken{}
+	var logTmp = &tokenty.ReceiptToken{}
 
 	dec := types.Encode(logTmp)
 
@@ -513,7 +513,7 @@ func TestDecodeLogPreCreateToken(t *testing.T) {
 }
 
 func TestDecodeLogFinishCreateToken(t *testing.T) {
-	var logTmp = &types.ReceiptToken{}
+	var logTmp = &tokenty.ReceiptToken{}
 
 	dec := types.Encode(logTmp)
 
@@ -537,7 +537,7 @@ func TestDecodeLogFinishCreateToken(t *testing.T) {
 }
 
 func TestDecodeLogRevokeCreateToken(t *testing.T) {
-	var logTmp = &types.ReceiptToken{}
+	var logTmp = &tokenty.ReceiptToken{}
 
 	dec := types.Encode(logTmp)
 
@@ -1174,7 +1174,7 @@ func TestChain33_QueryTransactionOk(t *testing.T) {
 }
 
 func TestChain33_GetTxByHashesOk(t *testing.T) {
-	var act = &types.TokenAction{
+	var act = &tokenty.TokenAction{
 		Ty: 1,
 	}
 	payload := types.Encode(act)
@@ -1249,7 +1249,7 @@ func TestChain33_GetBlocks(t *testing.T) {
 }
 
 func TestChain33_GetBlocksOk(t *testing.T) {
-	var act = &types.TokenAction{
+	var act = &tokenty.TokenAction{
 		Ty: 1,
 	}
 	payload := types.Encode(act)
@@ -1842,7 +1842,7 @@ func TestChain33_CreateRawTokenPreCreateTx(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Nil(t, testResult)
 
-	token := &tokentype.TokenPreCreateTx{
+	token := &tokenty.TokenPreCreateTx{
 		OwnerAddr: "asdf134",
 		Symbol:    "CNY",
 		Fee:       123,
@@ -1859,7 +1859,7 @@ func TestChain33_CreateRawTokenRevokeTx(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Nil(t, testResult)
 
-	token := &tokentype.TokenRevokeTx{
+	token := &tokenty.TokenRevokeTx{
 		OwnerAddr: "asdf134",
 		Symbol:    "CNY",
 		Fee:       123,
@@ -1876,7 +1876,7 @@ func TestChain33_CreateRawTokenFinishTx(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Nil(t, testResult)
 
-	token := &tokentype.TokenFinishTx{
+	token := &tokenty.TokenFinishTx{
 		OwnerAddr: "asdf134",
 		Symbol:    "CNY",
 		Fee:       123,

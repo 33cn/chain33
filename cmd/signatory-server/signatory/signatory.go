@@ -11,6 +11,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
+	tokenty "gitlab.33.cn/chain33/chain33/plugin/dapp/token/types"
 )
 
 var log = l.New("module", "signatory")
@@ -40,10 +41,10 @@ func (signatory *Signatory) SignApprove(in *TokenFinish, out *interface{}) error
 	if len(in.OwnerAddr) == 0 || len(in.Symbol) == 0 {
 		return types.ErrInputPara
 	}
-	v := &types.TokenFinishCreate{Symbol: in.Symbol, Owner: in.OwnerAddr}
-	finish := &types.TokenAction{
-		Ty:    types.TokenActionFinishCreate,
-		Value: &types.TokenAction_Tokenfinishcreate{v},
+	v := &tokenty.TokenFinishCreate{Symbol: in.Symbol, Owner: in.OwnerAddr}
+	finish := &tokenty.TokenAction{
+		Ty:    tokenty.TokenActionFinishCreate,
+		Value: &tokenty.TokenAction_Tokenfinishcreate{v},
 	}
 
 	tx := &types.Transaction{

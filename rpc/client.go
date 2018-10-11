@@ -19,7 +19,7 @@ import (
 	lotterytype "gitlab.33.cn/chain33/chain33/plugin/dapp/lottery/types"
 	evmtype "gitlab.33.cn/chain33/chain33/types/executor/evm"
 	retrievetype "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
-	tokentype "gitlab.33.cn/chain33/chain33/types/executor/token"
+	tokenty "gitlab.33.cn/chain33/chain33/plugin/dapp/token/types"
 	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
 )
 
@@ -314,7 +314,7 @@ func (c *channelClient) GetAllExecBalance(in *types.ReqAddr) (*types.AllExecBala
 }
 
 //TODO:和GetBalance进行泛化处理，同时LoadAccounts和LoadExecAccountQueue也需要进行泛化处理, added by hzj
-func (c *channelClient) GetTokenBalance(in *types.ReqTokenBalance) ([]*types.Account, error) {
+func (c *channelClient) GetTokenBalance(in *tokenty.ReqTokenBalance) ([]*types.Account, error) {
 	accountTokendb, err := account.NewAccountDB(types.TokenX, in.GetTokenSymbol(), nil)
 	if err != nil {
 		return nil, err
@@ -364,15 +364,15 @@ func (c *channelClient) GetTotalCoins(in *types.ReqGetTotalCoins) (*types.ReplyG
 	return resp, nil
 }
 
-func (c *channelClient) CreateRawTokenPreCreateTx(parm *tokentype.TokenPreCreateTx) ([]byte, error) {
+func (c *channelClient) CreateRawTokenPreCreateTx(parm *tokenty.TokenPreCreateTx) ([]byte, error) {
 	return callExecNewTx(types.ExecName(types.TokenX), "TokenPreCreate", parm)
 }
 
-func (c *channelClient) CreateRawTokenFinishTx(parm *tokentype.TokenFinishTx) ([]byte, error) {
+func (c *channelClient) CreateRawTokenFinishTx(parm *tokenty.TokenFinishTx) ([]byte, error) {
 	return callExecNewTx(types.ExecName(types.TokenX), "TokenFinish", parm)
 }
 
-func (c *channelClient) CreateRawTokenRevokeTx(parm *tokentype.TokenRevokeTx) ([]byte, error) {
+func (c *channelClient) CreateRawTokenRevokeTx(parm *tokenty.TokenRevokeTx) ([]byte, error) {
 	return callExecNewTx(types.ExecName(types.TokenX), "TokenRevoke", parm)
 }
 
