@@ -4,10 +4,11 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-	"gitlab.33.cn/chain33/chain33/types"
 	"fmt"
 	"os"
+
+	"github.com/stretchr/testify/assert"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 func getMVCCIter() *MVCCIter {
@@ -136,7 +137,6 @@ func TestGetAllCoinsMVCCIter(t *testing.T) {
 	assert.Equal(t, "2", string(values[1]))
 	assert.Equal(t, "4", string(values[2]))
 	assert.Equal(t, "1", string(values[3]))
-
 
 	for i := 0; i < len(values); i++ {
 		fmt.Println(string(values[i]))

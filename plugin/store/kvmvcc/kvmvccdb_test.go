@@ -9,8 +9,8 @@ import (
 	"fmt"
 
 	"github.com/stretchr/testify/assert"
-	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/account"
+	"gitlab.33.cn/chain33/chain33/common"
 	drivers "gitlab.33.cn/chain33/chain33/system/store"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -297,8 +297,8 @@ func TestIterateRangeByStateHash(t *testing.T) {
 	kv = append(kv, &types.KeyValue{set2[0].GetKey(), set2[0].GetValue()})
 	kv = append(kv, &types.KeyValue{set5[0].GetKey(), set5[0].GetValue()})
 
-	for i := 0; i <len(kv); i++ {
-		fmt.Println("key:",string( kv[i].Key), "value:", string(kv[i].Value))
+	for i := 0; i < len(kv); i++ {
+		fmt.Println("key:", string(kv[i].Key), "value:", string(kv[i].Value))
 	}
 
 	datas := &types.StoreSet{
@@ -312,7 +312,6 @@ func TestIterateRangeByStateHash(t *testing.T) {
 	hash1 := make([]byte, len(hash))
 	copy(hash1, hash)
 	store.Commit(req)
-
 
 	resp := &types.ReplyGetTotalCoins{}
 	resp.Count = 100000
@@ -331,7 +330,7 @@ func TestIterateRangeByStateHash(t *testing.T) {
 		s1 := fmt.Sprintf("%03d", 11-i)
 		addrx := addr + s1
 		account := &types.Account{
-			Balance: ((1000+int64(i)) * 1e8),
+			Balance: ((1000 + int64(i)) * 1e8),
 			Addr:    addrx,
 		}
 		set := accCoin.GetKVSet(account)
