@@ -97,20 +97,10 @@ func TestGetAllCoinsMVCCIter(t *testing.T) {
 	assert.Nil(t, err)
 	saveKVList(m.db, kvlist)
 
-	//kvlist = KeyValueList([2]string{".-mvcc-.l.mavl-coins-bty-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTu", "8"}, [2]string{".-mvcc-.l.mavl-coins-bty-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTv", "9"})
-	//kvlist = KeyValueList([2]string{".-mvcc-.l.mavl-coins-bty-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTu", "8"}, [2]string{".-mvcc-.l.mavl-coins-bty-16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTv", "9"})
-	//saveKVList(m.db, kvlist)
-
 	listhelper := NewListHelper(m)
-	fmt.Println("---case 0----")
-	values := listhelper.List(nil, nil, 100, 1)
-	for i := 0; i < len(values); i++ {
-		fmt.Println(string(values[i]))
-	}
-
 	fmt.Println("---case 1-1----")
 
-	values = listhelper.List([]byte("mavl-coins-bty-"), nil, 100, 1)
+	values := listhelper.List([]byte("mavl-coins-bty-"), nil, 100, 1)
 	assert.Equal(t, "3", string(values[0]))
 	assert.Equal(t, "2", string(values[1]))
 	assert.Equal(t, "4", string(values[2]))

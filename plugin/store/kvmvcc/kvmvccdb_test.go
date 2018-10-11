@@ -255,6 +255,7 @@ func TestIterateRangeByStateHash(t *testing.T) {
 	store := New(store_cfg).(*KVMVCCStore)
 	assert.NotNil(t, store)
 
+	execaddr := "0111vcBNSEA7fZhAdLJphDwQRQJa111"
 	addr := "06htvcBNSEA7fZhAdLJphDwQRQJaHpy"
 	addr1 := "16htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"
 	addr2 := "26htvcBNSEA7fZhAdLJphDwQRQJaHpyHTp"
@@ -286,12 +287,15 @@ func TestIterateRangeByStateHash(t *testing.T) {
 	set3 := accCoin.GetKVSet(account3)
 	set4 := accCoin.GetKVSet(account4)
 
+	set5 := accCoin.GetExecKVSet(execaddr, account4)
+
 	fmt.Println("---test case1-1 ---")
 	var kv []*types.KeyValue
 	kv = append(kv, &types.KeyValue{set4[0].GetKey(), set4[0].GetValue()})
 	kv = append(kv, &types.KeyValue{set3[0].GetKey(), set3[0].GetValue()})
 	kv = append(kv, &types.KeyValue{set1[0].GetKey(), set1[0].GetValue()})
 	kv = append(kv, &types.KeyValue{set2[0].GetKey(), set2[0].GetValue()})
+	kv = append(kv, &types.KeyValue{set5[0].GetKey(), set5[0].GetValue()})
 
 	for i := 0; i <len(kv); i++ {
 		fmt.Println("key:",string( kv[i].Key), "value:", string(kv[i].Value))
