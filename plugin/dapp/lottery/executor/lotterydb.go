@@ -107,9 +107,10 @@ type Action struct {
 	api          client.QueueProtocolAPI
 	conn         *grpc.ClientConn
 	grpcClient   types.Chain33Client
+	index        int
 }
 
-func NewLotteryAction(l *Lottery, tx *types.Transaction) *Action {
+func NewLotteryAction(l *Lottery, tx *types.Transaction, index int) *Action {
 	hash := tx.Hash()
 	fromaddr := tx.From()
 
@@ -122,7 +123,7 @@ func NewLotteryAction(l *Lottery, tx *types.Transaction) *Action {
 	grpcClient := types.NewChain33Client(conn)
 
 	return &Action{l.GetCoinsAccount(), l.GetStateDB(), hash, fromaddr, l.GetBlockTime(),
-		l.GetHeight(), dapp.ExecAddress(string(tx.Execer)), l.GetDifficulty(), l.GetApi(), conn, grpcClient}
+		l.GetHeight(), dapp.ExecAddress(string(tx.Execer)), l.GetDifficulty(), l.GetApi(), conn, grpcClient, index}
 }
 
 func (action *Action) GetReceiptLog(lottery *pty.Lottery, preStatus int32, logTy int32,
@@ -141,6 +142,7 @@ func (action *Action) GetReceiptLog(lottery *pty.Lottery, preStatus int32, logTy
 		l.Amount = amount
 		l.Addr = action.fromaddr
 		l.Way = way
+		l.Index = action.GetIndex()
 	}
 	if logTy == types.TyLogLotteryDraw {
 		l.Round = round
@@ -154,6 +156,11 @@ func (action *Action) GetReceiptLog(lottery *pty.Lottery, preStatus int32, logTy
 
 	log.Log = types.Encode(l)
 	return log
+}
+
+//fmt.Sprintf("%018d", action.height*types.MaxTxsPerBlock+int64(action.index))
+func (action *Action) GetIndex() int64 {
+	return action.height*types.MaxTxsPerBlock + int64(action.index)
 }
 
 func (action *Action) LotteryCreate(create *pty.LotteryCreate) (*types.Receipt, error) {
@@ -290,7 +297,7 @@ func (action *Action) LotteryBuy(buy *pty.LotteryBuy) (*types.Receipt, error) {
 		lott.Records = make(map[string]*pty.PurchaseRecords)
 	}
 
-	newRecord := &pty.PurchaseRecord{buy.GetAmount(), buy.GetNumber(), common.ToHex(action.txhash), buy.GetWay()}
+	newRecord := &pty.PurchaseRecord{buy.GetAmount(), buy.GetNumber(), action.GetIndex(), buy.GetWay()}
 	llog.Debug("LotteryBuy", "amount", buy.GetAmount(), "number", buy.GetNumber())
 
 	/**********
@@ -588,7 +595,7 @@ func (action *Action) checkDraw(lott *LotteryDB) (*types.Receipt, *pty.LotteryUp
 		for _, rec := range lott.Records[addr].Record {
 			fund, fundType := checkFundAmount(luckynum, rec.Number, rec.Way)
 			if fund != 0 {
-				newUpdateRec := &pty.LotteryUpdateRec{rec.TxHash, rec.Number, rec.Amount, fundType, rec.Way}
+				newUpdateRec := &pty.LotteryUpdateRec{rec.Index, rec.Number, rec.Amount, fundType, rec.Way}
 				if update, ok := updateInfo.BuyInfo[action.fromaddr]; ok {
 					update.Records = append(update.Records, newUpdateRec)
 				} else {
@@ -813,7 +820,7 @@ func ListLotteryBuyRecords(db dbm.Lister, stateDB dbm.KV, param *pty.ReqLotteryB
 	var err error
 
 	prefix = calcLotteryBuyPrefix(param.LotteryId, param.Addr)
-	key = calcLotteryBuyRoundPrefix(param.LotteryId, param.Addr, param.GetRound())
+	key = calcLotteryBuyKey(param.LotteryId, param.Addr, param.GetRound(), param.GetIndex())
 
 	if param.GetRound() == 0 { //第一次查询
 		values, err = db.List(prefix, nil, count, direction)
