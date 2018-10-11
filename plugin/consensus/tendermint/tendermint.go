@@ -1,15 +1,16 @@
 package tendermint
 
 import (
-	"encoding/binary"
 	"fmt"
 	"time"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 	ttypes "gitlab.33.cn/chain33/chain33/plugin/consensus/tendermint/types"
+	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/valnode/types"
 	"gitlab.33.cn/chain33/chain33/queue"
 	drivers "gitlab.33.cn/chain33/chain33/system/consensus"
 	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
@@ -382,30 +383,38 @@ func (client *TendermintClient) CheckCommit(height int64) bool {
 	}
 }
 
-func (client *TendermintClient) QueryValidatorsByHeight(height int64) (*types.ValNodes, error) {
+func (client *TendermintClient) QueryValidatorsByHeight(height int64) (*pty.ValNodes, error) {
 	if height <= 0 {
 		return nil, types.ErrInvalidParam
 	}
-	var param [10]byte
-	n := binary.PutVarint(param[:], height)
-	msg := client.GetQueueClient().NewMessage("execs", types.EventBlockChainQuery, &types.BlockChainQuery{"valnode", "GetValNodeByHeight", zeroHash[:], param[0:n]})
+	req := &pty.ReqNodeInfo{Height: height}
+	param, err := proto.Marshal(req)
+	if err != nil {
+		tendermintlog.Error("QueryValidatorsByHeight", "err", err)
+		return nil, types.ErrInvalidParam
+	}
+	msg := client.GetQueueClient().NewMessage("execs", types.EventBlockChainQuery, &types.BlockChainQuery{"valnode", "GetValNodeByHeight", zeroHash[:], param})
 	client.GetQueueClient().Send(msg, true)
-	msg, err := client.GetQueueClient().Wait(msg)
+	msg, err = client.GetQueueClient().Wait(msg)
 	if err != nil {
 		return nil, err
 	}
-	return msg.GetData().(types.Message).(*types.ValNodes), nil
+	return msg.GetData().(types.Message).(*pty.ValNodes), nil
 }
 
 func (client *TendermintClient) QueryBlockInfoByHeight(height int64) (*types.TendermintBlockInfo, error) {
 	if height <= 0 {
 		return nil, types.ErrInvalidParam
 	}
-	var param [10]byte
-	n := binary.PutVarint(param[:], height)
-	msg := client.GetQueueClient().NewMessage("execs", types.EventBlockChainQuery, &types.BlockChainQuery{"valnode", "GetBlockInfoByHeight", zeroHash[:], param[0:n]})
+	req := &pty.ReqBlockInfo{Height: height}
+	param, err := proto.Marshal(req)
+	if err != nil {
+		tendermintlog.Error("QueryBlockInfoByHeight", "err", err)
+		return nil, types.ErrInvalidParam
+	}
+	msg := client.GetQueueClient().NewMessage("execs", types.EventBlockChainQuery, &types.BlockChainQuery{"valnode", "GetBlockInfoByHeight", zeroHash[:], param})
 	client.GetQueueClient().Send(msg, true)
-	msg, err := client.GetQueueClient().Wait(msg)
+	msg, err = client.GetQueueClient().Wait(msg)
 	if err != nil {
 		return nil, err
 	}

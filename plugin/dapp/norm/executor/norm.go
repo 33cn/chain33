@@ -59,3 +59,9 @@ func (n *Norm) GetFuncMap() map[string]reflect.Method {
 func (n *Norm) CheckTx(tx *types.Transaction, index int) error {
 	return nil
 }
+
+func Key(str string) (key []byte) {
+	key = append(key, []byte("mavl-norm-")...)
+	key = append(key, str...)
+	return key
+}
