@@ -14,6 +14,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	ttypes "gitlab.33.cn/chain33/chain33/plugin/consensus/tendermint/types"
+	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/valnode/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -456,8 +457,8 @@ func CreateBlockInfoTx(pubkey string, lastCommit *types.TendermintCommit, seenCo
 	}
 	tendermintlog.Debug("CreateBlockInfoTx", "validators", blockInfo.State.Validators.Validators, "block", block, "block-notxs", blockNoTxs)
 
-	nput := &types.ValNodeAction_BlockInfo{BlockInfo: blockInfo}
-	action := &types.ValNodeAction{Value: nput, Ty: types.ValNodeActionBlockInfo}
+	nput := &pty.ValNodeAction_BlockInfo{BlockInfo: blockInfo}
+	action := &pty.ValNodeAction{Value: nput, Ty: pty.ValNodeActionBlockInfo}
 	tx := &types.Transaction{Execer: []byte("valnode"), Payload: types.Encode(action), Fee: fee}
 	tx.To = address.ExecAddress("valnode")
 	tx.Nonce = r.Int63()

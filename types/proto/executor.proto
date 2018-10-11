@@ -1,7 +1,6 @@
 syntax = "proto3";
 
 import "transaction.proto";
-import "tendermint.proto";
 
 package types;
 option go_package = "gitlab.33.cn/chain33/chain33/types";
@@ -505,21 +504,4 @@ message PrivacyAction4Print {
         Privacy2Public4Print  privacy2public  = 3;
     }
     int32 ty = 4;
-}
-
-message ValNode {
-    bytes pubKey = 1;
-    int64 power  = 2;
-}
-
-message ValNodes {
-    repeated ValNode nodes = 1;
-}
-
-message ValNodeAction {
-    oneof value {
-        ValNode             node      = 1;
-        TendermintBlockInfo blockInfo = 2;
-    }
-    int32 Ty = 3;
 }
