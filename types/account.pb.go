@@ -160,7 +160,6 @@ It has these top-level messages:
 	Int32Config
 	ConfigItem
 	ModifyConfig
-	ManageAction
 	ReceiptConfig
 	ReplyConfig
 	HistoryCertStore
