@@ -4,7 +4,7 @@ import (
 	"bytes"
 
 	log "github.com/inconshreveable/log15"
-	)
+)
 
 type ListHelper struct {
 	db IteratorDB
@@ -176,7 +176,7 @@ func (db *ListHelper) ListExcept(expectPrefix []byte, exceptPrefix []byte, count
 		if bytes.Compare(it.Key(), exceptPrefix) >= 0 {
 			//fmt.Println(string(it.Key()), "bigger than ", string(exceptPrefix))
 			continue
-		}else{
+		} else {
 			//fmt.Println(string(it.Key()), "less than ", string(exceptPrefix))
 		}
 		// blog.Debug("PrefixScan", "key", string(item.Key()), "value", value)
@@ -200,8 +200,8 @@ func (db *ListHelper) ListExceptAndExcute(expectPrefix []byte, exceptPrefix []by
 	var it Iterator
 	startKeyFlag := false
 	lastIndexOfDelimiter := bytes.LastIndex(expectPrefix, []byte("-"))
-	if lastIndexOfDelimiter + 1 < len(expectPrefix) {
-		it = db.db.Iterator(expectPrefix[0:lastIndexOfDelimiter + 1], reserse)
+	if lastIndexOfDelimiter+1 < len(expectPrefix) {
+		it = db.db.Iterator(expectPrefix[0:lastIndexOfDelimiter+1], reserse)
 		startKeyFlag = true
 	} else {
 		it = db.db.Iterator(expectPrefix, reserse)
@@ -221,14 +221,14 @@ func (db *ListHelper) ListExceptAndExcute(expectPrefix []byte, exceptPrefix []by
 		if bytes.Compare(it.Key(), exceptPrefix) >= 0 {
 			//fmt.Println(string(it.Key()), "bigger than ", string(exceptPrefix), " ,so exclude it.")
 			continue
-		}else{
+		} else {
 			//fmt.Println(string(it.Key()), "less than ", string(exceptPrefix))
 		}
 
 		if startKeyFlag && bytes.Compare(it.Key(), expectPrefix) < 0 {
 			//fmt.Println(string(it.Key()), "less than ", string(expectPrefix), " ,so exclude it.")
 			continue
-		}else{
+		} else {
 			//fmt.Println(string(it.Key()), "not less than ", string(expectPrefix))
 		}
 		key := make([]byte, len(it.Key()))
