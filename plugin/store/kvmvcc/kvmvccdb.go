@@ -28,8 +28,8 @@ func init() {
 
 type KVMVCCStore struct {
 	*drivers.BaseStore
-	mvcc     dbm.MVCC
-	kvsetmap map[string][]*types.KeyValue
+	mvcc           dbm.MVCC
+	kvsetmap       map[string][]*types.KeyValue
 	enableMVCCIter bool
 }
 
@@ -144,7 +144,7 @@ func (mvccs *KVMVCCStore) IterateRangeByStateHash(statehash []byte, start []byte
 		//klog.Info("KVMVCCStore do the IterateRangeByStateHash")
 		listhelper := dbm.NewListHelper(mvccs.BaseStore.GetDB())
 		listhelper.ListExceptAndExcute(dbm.GetLastKey(start), dbm.GetLastKey(end), 0, 1, fn)
-	}else {
+	} else {
 		//klog.Warn("KVMVCCStore does not support IterateRangeByStateHash when disable MVCCIter")
 	}
 }
