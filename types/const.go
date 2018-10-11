@@ -470,8 +470,3 @@ const (
 	LotteryDrawed
 	LotteryClosed
 )
-
-const (
-	ValNodeActionUpdate    = 1
-	ValNodeActionBlockInfo = 2
-)

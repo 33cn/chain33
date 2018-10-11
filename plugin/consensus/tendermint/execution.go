@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	ttypes "gitlab.33.cn/chain33/chain33/plugin/consensus/tendermint/types"
-	"gitlab.33.cn/chain33/chain33/types"
+	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/valnode/types"
 )
 
 //-----------------------------------------------------------------------------
@@ -100,7 +100,7 @@ func updateState(s State, blockID ttypes.BlockID, block *ttypes.TendermintBlock)
 	}, nil
 }
 
-func updateValidators(currentSet *ttypes.ValidatorSet, updates []*types.ValNode) error {
+func updateValidators(currentSet *ttypes.ValidatorSet, updates []*pty.ValNode) error {
 	// If more or equal than 1/3 of total voting power changed in one block, then
 	// a light client could never prove the transition externally. See
 	// ./lite/doc.go for details on how a light client tracks validators.
@@ -150,7 +150,7 @@ func updateValidators(currentSet *ttypes.ValidatorSet, updates []*types.ValNode)
 	return nil
 }
 
-func changeInVotingPowerMoreOrEqualToOneThird(currentSet *ttypes.ValidatorSet, updates []*types.ValNode) (bool, error) {
+func changeInVotingPowerMoreOrEqualToOneThird(currentSet *ttypes.ValidatorSet, updates []*pty.ValNode) (bool, error) {
 	threshold := currentSet.TotalVotingPower() * 1 / 3
 	acc := int64(0)
 
