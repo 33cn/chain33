@@ -638,6 +638,14 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 
 func (e *executor) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	exec := e.loadDriver(tx, index)
+	//to 必须是一个地址
+	if err := drivers.CheckAddress(tx.GetRealToAddr(), e.height); err != nil {
+		return nil, err
+	}
+	//第一步先检查 CheckTx
+	if err := exec.CheckTx(tx, index); err != nil {
+		return nil, err
+	}
 	return exec.Exec(tx, index)
 }
 
