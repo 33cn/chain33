@@ -450,3 +450,7 @@ func getVersionKeyListKey(version int64) []byte {
 	key := append(b, pad(version)...)
 	return key
 }
+
+func GetLastKey(key []byte) []byte {
+	return getLastKey(key)
+}
