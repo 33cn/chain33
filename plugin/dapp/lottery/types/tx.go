@@ -9,7 +9,8 @@ type LotteryCreateTx struct {
 type LotteryBuyTx struct {
 	LotteryId string `json:"lotteryId"`
 	Amount    int64  `json:"amount"`
-	Number    int64  `json:"number`
+	Number    int64  `json:"number"`
+	Way       int64  `json:"way"`
 	Fee       int64  `json:"fee"`
 }
 
