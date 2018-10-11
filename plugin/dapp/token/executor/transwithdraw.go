@@ -12,10 +12,10 @@ import (
 )
 
 func (t *token) ExecTransWithdraw(accountDB *account.DB, tx *types.Transaction, action *tokenty.TokenAction, index int) (*types.Receipt, error) {
-	_, err := t.DriverBase.Exec(tx, index)
-	if err != nil {
-		return nil, err
-	}
+	//_, err := t.DriverBase.Exec(tx, index)
+	//if err != nil {
+	//	return nil, err
+	//}
 
 	if (action.Ty == tokenty.ActionTransfer) && action.GetTransfer() != nil {
 		transfer := action.GetTransfer()
@@ -72,16 +72,17 @@ func isExecAddrMatch(name string, to string) bool {
 //2: to tx
 
 func (t *token) ExecLocalTransWithdraw(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	set, err := t.DriverBase.ExecLocal(tx, receipt, index)
-	if err != nil {
-		return nil, err
-	}
+	//set, err := t.DriverBase.ExecLocal(tx, receipt, index)
+	//if err != nil {
+	//	return nil, err
+	//}
+	set := &types.LocalDBSet{}
 	if receipt.GetTy() != types.ExecOk {
 		return set, nil
 	}
 	//执行成功
 	var action tokenty.TokenAction
-	err = types.Decode(tx.GetPayload(), &action)
+	err := types.Decode(tx.GetPayload(), &action)
 	if err != nil {
 		panic(err)
 	}
@@ -110,16 +111,17 @@ func (t *token) ExecLocalTransWithdraw(tx *types.Transaction, receipt *types.Rec
 }
 
 func (t *token) ExecDelLocalLocalTransWithdraw(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	set, err := t.DriverBase.ExecDelLocal(tx, receipt, index)
-	if err != nil {
-		return nil, err
-	}
+	//set, err := t.DriverBase.ExecDelLocal(tx, receipt, index)
+	//if err != nil {
+	//	return nil, err
+	//}
+	set := &types.LocalDBSet{}
 	if receipt.GetTy() != types.ExecOk {
 		return set, nil
 	}
 	//执行成功
 	var action tokenty.TokenAction
-	err = types.Decode(tx.GetPayload(), &action)
+	err := types.Decode(tx.GetPayload(), &action)
 	if err != nil {
 		panic(err)
 	}
