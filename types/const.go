@@ -30,7 +30,6 @@ const (
 	RelayX          = "relay"
 	Normx           = "norm"
 	UserEvmX        = "user.evm."
-	CertX           = "cert"
 	ParaX           = "paracross"
 	LotteryX        = "lottery"
 	ValNodeX        = "valnode"
@@ -50,7 +49,6 @@ var (
 	ExecerTrade    = []byte(TradeX)
 	ExecerNorm     = []byte(Normx)
 	ExecerConfig   = []byte("config")
-	ExecerCert     = []byte(CertX)
 	UserEvm        = []byte(UserEvmX)
 	ExecerPara     = []byte(ParaX)
 	ExecerLottery  = []byte(LotteryX)
@@ -295,13 +293,6 @@ const (
 //norm
 const (
 	NormActionPut = 1
-)
-
-//cert
-const (
-	CertActionNew    = 1
-	CertActionUpdate = 2
-	CertActionNormal = 3
 )
 
 // retrieve op
