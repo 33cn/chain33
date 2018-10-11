@@ -11,9 +11,20 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var nameX string
+var (
+	nameX string
+	tlog = log.New("module", types.TokenX)
+	actionName = map[string]int32{
+		"Transfer":       ActionTransfer,
+		"Genesis":        ActionGenesis,
+		"Withdraw":       ActionWithdraw,
+		"Tokenprecreate":      TokenActionPreCreate,
+		"Tokenfinishcreate":   TokenActionFinishCreate,
+		"Tokenrevokecreate":   TokenActionRevokeCreate,
+		"TransferToExec": TokenActionTransferToExec,
+	}
+)
 
-var tlog = log.New("module", types.TokenX)
 
 //getRealExecName
 //如果paraName == "", 那么自动用 types.types.ExecName("token")
@@ -26,7 +37,6 @@ func getRealExecName(paraName string) string {
 func init() {
 	nameX = types.ExecName(types.TokenX)
 	// init executor type
-	types.AllowUserExec = append(types.AllowUserExec, []byte(types.TokenX))
 	types.RegistorExecutor(types.TokenX, NewType())
 
 	// init log
@@ -207,6 +217,10 @@ func (coins TokenType) CreateTx(action string, message json.RawMessage) (*types.
 	}
 
 	return tx, nil
+}
+
+func (coins TokenType) GetTypeMap() map[string]int32 {
+	return actionName
 }
 
 func CreateTokenTransfer(param *types.CreateTx) *types.Transaction {
@@ -580,7 +594,7 @@ type TokenGetTxByToken struct {
 }
 
 func (t *TokenGetTxByToken) JsonToProto(message json.RawMessage) ([]byte, error) {
-	var req types.ReqTokenTx
+	var req ReqTokenTx
 	err := json.Unmarshal(message, &req)
 	if err != nil {
 		return nil, err
