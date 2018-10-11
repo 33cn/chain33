@@ -1,10 +1,9 @@
 package executor
 
 import (
-	"gitlab.33.cn/chain33/chain33/types"
 	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/types"
+	"gitlab.33.cn/chain33/chain33/types"
 )
-
 
 func (t *trade) Exec_Sell(sell *pty.TradeForSell, tx *types.Transaction, index int) (*types.Receipt, error) {
 	action := newTradeAction(t, tx)

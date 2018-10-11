@@ -5,32 +5,33 @@ import (
 	"math/rand"
 	"time"
 
+	"reflect"
+
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/types"
-	"reflect"
 )
 
 var (
 	nameX string
-	tlog = log.New("module", types.TradeX)
+	tlog  = log.New("module", types.TradeX)
 
-	actionName = map[string] int32 {
-		"Sell": TradeSellLimit,
-		"Buy" :TradeBuyMarket,
-		"RevokeSell":TradeRevokeSell,
-		"BuyLimit":TradeBuyLimit,
-		"SellMarket":TradeSellMarket,
-		"RevokeBuy":TradeRevokeBuy,
+	actionName = map[string]int32{
+		"Sell":       TradeSellLimit,
+		"Buy":        TradeBuyMarket,
+		"RevokeSell": TradeRevokeSell,
+		"BuyLimit":   TradeBuyLimit,
+		"SellMarket": TradeSellMarket,
+		"RevokeBuy":  TradeRevokeBuy,
 	}
 
 	logInfo = map[int64]*types.LogInfo{
-		types.TyLogTradeSellLimit:    {reflect.TypeOf(ReceiptTradeSellLimit{}), "LogTradeSell"},
+		types.TyLogTradeSellLimit:  {reflect.TypeOf(ReceiptTradeSellLimit{}), "LogTradeSell"},
 		types.TyLogTradeBuyMarket:  {reflect.TypeOf(ReceiptTradeBuyMarket{}), "LogTradeBuyMarket"},
 		types.TyLogTradeSellRevoke: {reflect.TypeOf(ReceiptTradeSellRevoke{}), "LogTradeSellRevoke"},
-		types.TyLogTradeSellMarket:    {reflect.TypeOf(ReceiptSellMarket{}), "LogTradeSellMarket"},
-		types.TyLogTradeBuyLimit:  {reflect.TypeOf(ReceiptTradeBuyLimit{}), "LogTradeBuyLimit"},
-		types.TyLogTradeBuyRevoke: {reflect.TypeOf(ReceiptTradeBuyRevoke{}), "LogTradeBuyRevoke"},
+		types.TyLogTradeSellMarket: {reflect.TypeOf(ReceiptSellMarket{}), "LogTradeSellMarket"},
+		types.TyLogTradeBuyLimit:   {reflect.TypeOf(ReceiptTradeBuyLimit{}), "LogTradeBuyLimit"},
+		types.TyLogTradeBuyRevoke:  {reflect.TypeOf(ReceiptTradeBuyRevoke{}), "LogTradeBuyRevoke"},
 	}
 )
 
