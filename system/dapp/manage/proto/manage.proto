@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+import "executor.proto";
+
+package types;
+
+message ManageAction {
+    oneof value {
+        ModifyConfig modify = 1;
+    }
+    int32 Ty = 2;
+}
