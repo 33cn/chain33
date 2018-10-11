@@ -467,10 +467,10 @@ func checkContractAddr(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	query := sendQuery(rpcLaddr, "CheckAddrExists", checkAddrReq, &checkAddrResp)
 
-	if query {
+	if query && checkAddrResp.Contract {
 		proto.MarshalText(os.Stdout, &checkAddrResp)
 	} else {
-		fmt.Fprintln(os.Stderr, "error")
+		fmt.Fprintln(os.Stderr, "not evm contract addr!")
 	}
 }
 

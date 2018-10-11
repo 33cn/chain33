@@ -69,7 +69,7 @@ func NewEVMExecutor() *EVMExecutor {
 	exec.vmCfg.Tracer = runtime.NewJSONLogger(os.Stdout)
 
 	exec.SetChild(exec)
-	exec.SetExecutorType(executorType)
+	//exec.SetExecutorType(executorType)
 	return exec
 }
 

@@ -3,6 +3,8 @@ package executor
 import (
 	"fmt"
 
+	"strings"
+
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/plugin/dapp/evm/executor/vm/common"
 	"gitlab.33.cn/chain33/chain33/plugin/dapp/evm/executor/vm/model"
@@ -12,18 +14,10 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-func (evm *EVMExecutor) Exec_EvmCreate(evmAction *evmtypes.EVMContractAction, tx *types.Transaction, index int) (*types.Receipt, error) {
-	return evm._exec(evmAction, tx, index, true)
-}
-
-func (evm *EVMExecutor) Exec_EvmCall(evmAction *evmtypes.EVMContractAction, tx *types.Transaction, index int) (*types.Receipt, error) {
-	return evm._exec(evmAction, tx, index, false)
-}
-
-func (evm *EVMExecutor) _exec(evmAction *evmtypes.EVMContractAction, tx *types.Transaction, index int, isCreate bool) (*types.Receipt, error) {
+func (evm *EVMExecutor) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	evm.CheckInit()
 	// 先转换消息
-	msg, err := evm.GetMessage(evmAction, tx)
+	msg, err := evm.GetMessage(tx)
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +27,7 @@ func (evm *EVMExecutor) _exec(evmAction *evmtypes.EVMContractAction, tx *types.T
 
 	// 创建EVM运行时对象
 	env := runtime.NewEVM(context, evm.mStateDB, *evm.vmCfg)
-
+	isCreate := strings.Compare(msg.To().String(), EvmAddress) == 0
 	var (
 		ret          = []byte("")
 		vmerr        error
@@ -134,7 +128,12 @@ func (evm *EVMExecutor) CheckInit() {
 }
 
 // 目前的交易中，如果是coins交易，金额是放在payload的，但是合约不行，需要修改Transaction结构
-func (evm *EVMExecutor) GetMessage(action *evmtypes.EVMContractAction, tx *types.Transaction) (msg *common.Message, err error) {
+func (evm *EVMExecutor) GetMessage(tx *types.Transaction) (msg *common.Message, err error) {
+	var action evmtypes.EVMContractAction
+	err = types.Decode(tx.Payload, &action)
+	if err != nil {
+		return nil, err
+	}
 	// 此处暂时不考虑消息发送签名的处理，chain33在mempool中对签名做了检查
 	from := getCaller(tx)
 	to := getReceiver(tx)

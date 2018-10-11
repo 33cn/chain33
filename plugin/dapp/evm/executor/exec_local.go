@@ -5,15 +5,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-func (evm *EVMExecutor) ExecLocal_EvmCreate(evmAction *evmtypes.EVMContractAction, tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	return evm._execLocal(evmAction, tx, receipt, index)
-}
-
-func (evm *EVMExecutor) ExecLocal_EvmCall(evmAction *evmtypes.EVMContractAction, tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	return evm._execLocal(evmAction, tx, receipt, index)
-}
-
-func (evm *EVMExecutor) _execLocal(evmAction *evmtypes.EVMContractAction, tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+func (evm *EVMExecutor) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	set, err := evm.DriverBase.ExecLocal(tx, receipt, index)
 	if err != nil {
 		return nil, err
