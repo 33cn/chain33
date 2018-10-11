@@ -4,8 +4,7 @@ import (
 	"bytes"
 
 	log "github.com/inconshreveable/log15"
-	"fmt"
-)
+	)
 
 type ListHelper struct {
 	db IteratorDB
@@ -108,7 +107,7 @@ func (db *ListHelper) IteratorScanFromFirst(prefix []byte, count int32) (values 
 			values = nil
 			return
 		}
-		 blog.Debug("PrefixScan", "key", string(it.Key()), "value", value)
+		//listlog.Debug("PrefixScan", "key", string(it.Key()), "value", value)
 		values = append(values, value)
 		i++
 		if i == count {
@@ -156,6 +155,7 @@ func (db *ListHelper) PrefixCount(prefix []byte) (count int64) {
 	return
 }
 
+//for test
 func (db *ListHelper) ListExcept(expectPrefix []byte, exceptPrefix []byte, count int32, direction int32) (values [][]byte) {
 	var reserse = false
 	if direction == 0 {
@@ -170,15 +170,14 @@ func (db *ListHelper) ListExcept(expectPrefix []byte, exceptPrefix []byte, count
 		if it.Error() != nil {
 			listlog.Error("PrefixScan it.Value()", "error", it.Error())
 			values = nil
-			fmt.Println("nil")
 			return
 		}
 
 		if bytes.Compare(it.Key(), exceptPrefix) >= 0 {
-			fmt.Println(string(it.Key()), "bigger than ", string(exceptPrefix))
+			//fmt.Println(string(it.Key()), "bigger than ", string(exceptPrefix))
 			continue
 		}else{
-			fmt.Println(string(it.Key()), "less than ", string(exceptPrefix))
+			//fmt.Println(string(it.Key()), "less than ", string(exceptPrefix))
 		}
 		// blog.Debug("PrefixScan", "key", string(item.Key()), "value", value)
 		values = append(values, value)
@@ -220,17 +219,17 @@ func (db *ListHelper) ListExceptAndExcute(expectPrefix []byte, exceptPrefix []by
 		}
 
 		if bytes.Compare(it.Key(), exceptPrefix) >= 0 {
-			fmt.Println(string(it.Key()), "bigger than ", string(exceptPrefix), " ,so exclude it.")
+			//fmt.Println(string(it.Key()), "bigger than ", string(exceptPrefix), " ,so exclude it.")
 			continue
 		}else{
-			fmt.Println(string(it.Key()), "less than ", string(exceptPrefix))
+			//fmt.Println(string(it.Key()), "less than ", string(exceptPrefix))
 		}
 
 		if startKeyFlag && bytes.Compare(it.Key(), expectPrefix) < 0 {
-			fmt.Println(string(it.Key()), "less than ", string(expectPrefix), " ,so exclude it.")
+			//fmt.Println(string(it.Key()), "less than ", string(expectPrefix), " ,so exclude it.")
 			continue
 		}else{
-			fmt.Println(string(it.Key()), "not less than ", string(expectPrefix))
+			//fmt.Println(string(it.Key()), "not less than ", string(expectPrefix))
 		}
 		key := make([]byte, len(it.Key()))
 		copy(key, it.Key())
