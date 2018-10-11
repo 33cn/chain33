@@ -1,4 +1,4 @@
-package token
+package types
 
 import (
 	"testing"
@@ -7,10 +7,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/types"
 )
-
-func init() {
-	Init()
-}
 
 func TestCreateRawTokenPreCreateTx(t *testing.T) {
 	//预创建主链上的token

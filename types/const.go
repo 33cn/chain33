@@ -267,14 +267,14 @@ const (
 
 const (
 	InvalidAction = 0
-	//action for token
-	ActionTransfer            = 4
-	ActionGenesis             = 5
-	ActionWithdraw            = 6
-	TokenActionPreCreate      = 7
-	TokenActionFinishCreate   = 8
-	TokenActionRevokeCreate   = 9
-	TokenActionTransferToExec = 11
+//	//action for token
+//	ActionTransfer            = 4
+//	ActionGenesis             = 5
+//	ActionWithdraw            = 6
+//	TokenActionPreCreate      = 7
+//	TokenActionFinishCreate   = 8
+//	TokenActionRevokeCreate   = 9
+//	TokenActionTransferToExec = 11
 	//action type for privacy
 	ActionPublic2Privacy = iota + 100
 	ActionPrivacy2Privacy
@@ -312,12 +312,12 @@ const (
 	RetrieveCancel = 4
 )
 
-// token status
-const (
-	TokenStatusPreCreated = iota
-	TokenStatusCreated
-	TokenStatusCreateRevoked
-)
+//// token status
+//const (
+//	TokenStatusPreCreated = iota
+//	TokenStatusCreated
+//	TokenStatusCreateRevoked
+//)
 
 // trade op
 const (

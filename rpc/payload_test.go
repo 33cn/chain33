@@ -6,11 +6,12 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"gitlab.33.cn/chain33/chain33/types"
+	tokenty "gitlab.33.cn/chain33/chain33/plugin/dapp/token/types"
 )
 
 func TestTokenPayloadType(t *testing.T) {
 	msg, err := tokenPayloadType("GetTokens")
-	assert.Equal(t, &types.ReqTokens{}, msg)
+	assert.Equal(t, &tokenty.ReqTokens{}, msg)
 	assert.Nil(t, err)
 
 	msg, err = tokenPayloadType("GetTokenInfo")
@@ -18,11 +19,11 @@ func TestTokenPayloadType(t *testing.T) {
 	assert.Nil(t, err)
 
 	msg, err = tokenPayloadType("GetAddrReceiverforTokens")
-	assert.Equal(t, &types.ReqAddrTokens{}, msg)
+	assert.Equal(t, &tokenty.ReqAddressToken{}, msg)
 	assert.Nil(t, err)
 
 	msg, err = tokenPayloadType("GetAccountTokenAssets")
-	assert.Equal(t, &types.ReqAccountTokenAssets{}, msg)
+	assert.Equal(t, &tokenty.ReqAccountTokenAssets{}, msg)
 	assert.Nil(t, err)
 
 	msg, err = tokenPayloadType("wzw")
@@ -118,7 +119,7 @@ func TestTradePayloadType(t *testing.T) {
 
 func TestPayloadType(t *testing.T) {
 	msg, err := payloadType(types.ExecName(types.TokenX), "GetTokens")
-	assert.Equal(t, &types.ReqTokens{}, msg)
+	assert.Equal(t, &tokenty.ReqTokens{}, msg)
 	assert.Nil(t, err)
 
 	msg, err = payloadType(types.ExecName(types.CoinsX), "GetAddrReciver")
@@ -153,7 +154,7 @@ func TestProtoPayload(t *testing.T) {
 
 	var tokens = make([]string, 1)
 	tokens[0] = "CNY"
-	var token = &types.ReqTokens{
+	var token = &tokenty.ReqTokens{
 		QueryAll: true,
 		Status:   1,
 		Tokens:   tokens,

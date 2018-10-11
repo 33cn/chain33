@@ -17,6 +17,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/difficulty"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
+	tokenty "gitlab.33.cn/chain33/chain33/plugin/dapp/token/types"
 )
 
 func StatCmd() *cobra.Command {
@@ -142,7 +143,7 @@ func totalCoins(cmd *cobra.Command, args []string) {
 		params.Execer = "token"
 		params.FuncName = "GetTokenInfo"
 		params.Payload = req
-		var res types.Token
+		var res tokenty.Token
 		err = rpc.Call("Chain33.Query", params, &res)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)

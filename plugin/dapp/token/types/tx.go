@@ -1,4 +1,4 @@
-package token
+package types
 
 type TokenPreCreateTx struct {
 	Price        int64  `json:"price"`
@@ -23,4 +23,12 @@ type TokenRevokeTx struct {
 	Symbol    string `json:"symbol"`
 	Fee       int64  `json:"fee"`
 	ParaName  string `json:"paraName"`
+}
+
+type TokenAccountResult struct {
+	Token    string `json:"Token,omitempty"`
+	Currency int32  `json:"currency,omitempty"`
+	Balance  string `json:"balance,omitempty"`
+	Frozen   string `json:"frozen,omitempty"`
+	Addr     string `json:"addr,omitempty"`
 }
