@@ -358,11 +358,6 @@ var SellOrderStatus2Int = map[string]int32{
 	"BuyRevoked": TradeOrderStatusBuyRevoked,
 }
 
-// manager action
-const (
-	ManageActionModifyConfig = iota
-)
-
 // config items
 const (
 	ConfigItemArrayConfig = iota
