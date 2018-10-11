@@ -15,7 +15,7 @@ import (
 	lotterytype "gitlab.33.cn/chain33/chain33/plugin/dapp/lottery/types"
 	evmtype "gitlab.33.cn/chain33/chain33/types/executor/evm"
 	retrievetype "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
-	tokentype "gitlab.33.cn/chain33/chain33/types/executor/token"
+	tokenty "gitlab.33.cn/chain33/chain33/plugin/dapp/token/types"
 	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
 	// TODO: 需要将插件管理器移动到封闭统一的地方进行管理
 )
@@ -827,7 +827,7 @@ func (c *Chain33) GetAllExecBalance(in types.ReqAddr, result *interface{}) error
 	return nil
 }
 
-func (c *Chain33) GetTokenBalance(in types.ReqTokenBalance, result *interface{}) error {
+func (c *Chain33) GetTokenBalance(in tokenty.ReqTokenBalance, result *interface{}) error {
 
 	balances, err := c.cli.GetTokenBalance(&in)
 	if err != nil {
@@ -1068,7 +1068,7 @@ func (c *Chain33) QueryTotalFee(in *types.LocalDBGet, result *interface{}) error
 	return nil
 }
 
-func (c *Chain33) CreateRawTokenPreCreateTx(in *tokentype.TokenPreCreateTx, result *interface{}) error {
+func (c *Chain33) CreateRawTokenPreCreateTx(in *tokenty.TokenPreCreateTx, result *interface{}) error {
 	reply, err := c.cli.CreateRawTokenPreCreateTx(in)
 	if err != nil {
 		return err
@@ -1078,7 +1078,7 @@ func (c *Chain33) CreateRawTokenPreCreateTx(in *tokentype.TokenPreCreateTx, resu
 	return nil
 }
 
-func (c *Chain33) CreateRawTokenFinishTx(in *tokentype.TokenFinishTx, result *interface{}) error {
+func (c *Chain33) CreateRawTokenFinishTx(in *tokenty.TokenFinishTx, result *interface{}) error {
 	reply, err := c.cli.CreateRawTokenFinishTx(in)
 	if err != nil {
 		return err
@@ -1087,7 +1087,7 @@ func (c *Chain33) CreateRawTokenFinishTx(in *tokentype.TokenFinishTx, result *in
 	return nil
 }
 
-func (c *Chain33) CreateRawTokenRevokeTx(in *tokentype.TokenRevokeTx, result *interface{}) error {
+func (c *Chain33) CreateRawTokenRevokeTx(in *tokenty.TokenRevokeTx, result *interface{}) error {
 	reply, err := c.cli.CreateRawTokenRevokeTx(in)
 	if err != nil {
 		return err

@@ -1,4 +1,4 @@
-package token
+package types
 
 import (
 	"encoding/json"
@@ -23,9 +23,10 @@ func getRealExecName(paraName string) string {
 	return types.ExecName(paraName + types.TokenX)
 }
 
-func Init() {
+func init() {
 	nameX = types.ExecName(types.TokenX)
 	// init executor type
+	types.AllowUserExec = append(types.AllowUserExec, []byte(types.TokenX))
 	types.RegistorExecutor(types.TokenX, NewType())
 
 	// init log
@@ -64,47 +65,47 @@ func NewType() *TokenType {
 }
 
 func (at *TokenType) GetPayload() types.Message {
-	return &types.TokenAction{}
+	return &TokenAction{}
 }
 
 func (token TokenType) GetRealToAddr(tx *types.Transaction) string {
 	if string(tx.Execer) == types.TokenX {
 		return tx.To
 	}
-	var action types.TokenAction
+	var action TokenAction
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
 		return tx.To
 	}
-	if action.Ty == types.ActionTransfer && action.GetTransfer() != nil {
+	if action.Ty == ActionTransfer && action.GetTransfer() != nil {
 		return action.GetTransfer().GetTo()
 	}
 	return tx.To
 }
 
 func (token TokenType) ActionName(tx *types.Transaction) string {
-	var action types.TokenAction
+	var action TokenAction
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
 		return "unknown-err"
 	}
 
-	if action.Ty == types.TokenActionPreCreate && action.GetTokenprecreate() != nil {
+	if action.Ty == TokenActionPreCreate && action.GetTokenprecreate() != nil {
 		return "preCreate"
-	} else if action.Ty == types.TokenActionFinishCreate && action.GetTokenfinishcreate() != nil {
+	} else if action.Ty == TokenActionFinishCreate && action.GetTokenfinishcreate() != nil {
 		return "finishCreate"
-	} else if action.Ty == types.TokenActionRevokeCreate && action.GetTokenrevokecreate() != nil {
+	} else if action.Ty == TokenActionRevokeCreate && action.GetTokenrevokecreate() != nil {
 		return "revokeCreate"
-	} else if action.Ty == types.ActionTransfer && action.GetTransfer() != nil {
+	} else if action.Ty == ActionTransfer && action.GetTransfer() != nil {
 		return "transfer"
-	} else if action.Ty == types.ActionWithdraw && action.GetWithdraw() != nil {
+	} else if action.Ty == ActionWithdraw && action.GetWithdraw() != nil {
 		return "withdraw"
 	}
 	return "unknown"
 }
 
 func (token TokenType) DecodePayload(tx *types.Transaction) (interface{}, error) {
-	var action types.TokenAction
+	var action TokenAction
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
 		return nil, err
@@ -114,22 +115,22 @@ func (token TokenType) DecodePayload(tx *types.Transaction) (interface{}, error)
 
 func (token TokenType) Amount(tx *types.Transaction) (int64, error) {
 	//TODO: 补充和完善token和trade分支的amount的计算, added by hzj
-	var action types.TokenAction
+	var action TokenAction
 	err := types.Decode(tx.GetPayload(), &action)
 	if err != nil {
 		return 0, types.ErrDecode
 	}
 
-	if types.TokenActionPreCreate == action.Ty && action.GetTokenprecreate() != nil {
+	if TokenActionPreCreate == action.Ty && action.GetTokenprecreate() != nil {
 		precreate := action.GetTokenprecreate()
 		return precreate.Price, nil
-	} else if types.TokenActionFinishCreate == action.Ty && action.GetTokenfinishcreate() != nil {
+	} else if TokenActionFinishCreate == action.Ty && action.GetTokenfinishcreate() != nil {
 		return 0, nil
-	} else if types.TokenActionRevokeCreate == action.Ty && action.GetTokenrevokecreate() != nil {
+	} else if TokenActionRevokeCreate == action.Ty && action.GetTokenrevokecreate() != nil {
 		return 0, nil
-	} else if types.ActionTransfer == action.Ty && action.GetTransfer() != nil {
+	} else if ActionTransfer == action.Ty && action.GetTransfer() != nil {
 		return 0, nil
-	} else if types.ActionWithdraw == action.Ty && action.GetWithdraw() != nil {
+	} else if ActionWithdraw == action.Ty && action.GetWithdraw() != nil {
 		return 0, nil
 	}
 	return 0, nil
@@ -209,26 +210,26 @@ func (coins TokenType) CreateTx(action string, message json.RawMessage) (*types.
 }
 
 func CreateTokenTransfer(param *types.CreateTx) *types.Transaction {
-	transfer := &types.TokenAction{}
+	transfer := &TokenAction{}
 	if !param.IsWithdraw {
 		//如果在平行链上构造，或者传入的execName是paraExecName,则加入ToAddr
 		if types.IsPara() || types.IsParaExecName(param.GetExecName()) {
-			v := &types.TokenAction_Transfer{Transfer: &types.AssetsTransfer{
+			v := &TokenAction_Transfer{Transfer: &types.AssetsTransfer{
 				Cointoken: param.GetTokenSymbol(), Amount: param.Amount, Note: param.GetNote(), To: param.GetTo()}}
 			transfer.Value = v
-			transfer.Ty = types.ActionTransfer
+			transfer.Ty = ActionTransfer
 		} else {
-			v := &types.TokenAction_Transfer{Transfer: &types.AssetsTransfer{
+			v := &TokenAction_Transfer{Transfer: &types.AssetsTransfer{
 				Cointoken: param.GetTokenSymbol(), Amount: param.Amount, Note: param.GetNote()}}
 			transfer.Value = v
-			transfer.Ty = types.ActionTransfer
+			transfer.Ty = ActionTransfer
 		}
 
 	} else {
-		v := &types.TokenAction_Withdraw{Withdraw: &types.AssetsWithdraw{
+		v := &TokenAction_Withdraw{Withdraw: &types.AssetsWithdraw{
 			Cointoken: param.GetTokenSymbol(), Amount: param.Amount, Note: param.GetNote()}}
 		transfer.Value = v
-		transfer.Ty = types.ActionWithdraw
+		transfer.Ty = ActionWithdraw
 	}
 	//在平行链上，execName=token或者没加，默认构造平行链的交易
 	if types.IsPara() && (param.GetExecName() == types.TokenX || param.GetExecName() == "") {
@@ -247,7 +248,7 @@ func CreateRawTokenPreCreateTx(parm *TokenPreCreateTx) (*types.Transaction, erro
 		tlog.Error("CreateRawTokenPreCreateTx", "parm", parm)
 		return nil, types.ErrInvalidParam
 	}
-	v := &types.TokenPreCreate{
+	v := &TokenPreCreate{
 		Name:         parm.Name,
 		Symbol:       parm.Symbol,
 		Introduction: parm.Introduction,
@@ -255,9 +256,9 @@ func CreateRawTokenPreCreateTx(parm *TokenPreCreateTx) (*types.Transaction, erro
 		Price:        parm.Price,
 		Owner:        parm.OwnerAddr,
 	}
-	precreate := &types.TokenAction{
-		Ty:    types.TokenActionPreCreate,
-		Value: &types.TokenAction_Tokenprecreate{v},
+	precreate := &TokenAction{
+		Ty:    TokenActionPreCreate,
+		Value: &TokenAction_Tokenprecreate{v},
 	}
 	tx := &types.Transaction{
 		Execer:  []byte(getRealExecName(parm.ParaName)),
@@ -277,10 +278,10 @@ func CreateRawTokenFinishTx(parm *TokenFinishTx) (*types.Transaction, error) {
 		return nil, types.ErrInvalidParam
 	}
 
-	v := &types.TokenFinishCreate{Symbol: parm.Symbol, Owner: parm.OwnerAddr}
-	finish := &types.TokenAction{
-		Ty:    types.TokenActionFinishCreate,
-		Value: &types.TokenAction_Tokenfinishcreate{v},
+	v := &TokenFinishCreate{Symbol: parm.Symbol, Owner: parm.OwnerAddr}
+	finish := &TokenAction{
+		Ty:    TokenActionFinishCreate,
+		Value: &TokenAction_Tokenfinishcreate{v},
 	}
 	tx := &types.Transaction{
 		Execer:  []byte(getRealExecName(parm.ParaName)),
@@ -299,10 +300,10 @@ func CreateRawTokenRevokeTx(parm *TokenRevokeTx) (*types.Transaction, error) {
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}
-	v := &types.TokenRevokeCreate{Symbol: parm.Symbol, Owner: parm.OwnerAddr}
-	revoke := &types.TokenAction{
-		Ty:    types.TokenActionRevokeCreate,
-		Value: &types.TokenAction_Tokenrevokecreate{v},
+	v := &TokenRevokeCreate{Symbol: parm.Symbol, Owner: parm.OwnerAddr}
+	revoke := &TokenAction{
+		Ty:    TokenActionRevokeCreate,
+		Value: &TokenAction_Tokenrevokecreate{v},
 	}
 	tx := &types.Transaction{
 		Execer:  []byte(getRealExecName(parm.ParaName)),
@@ -470,7 +471,7 @@ func (l TokenPreCreateLog) Name() string {
 }
 
 func (l TokenPreCreateLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp types.ReceiptToken
+	var logTmp ReceiptToken
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
 		return nil, err
@@ -486,7 +487,7 @@ func (l TokenFinishCreateLog) Name() string {
 }
 
 func (l TokenFinishCreateLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp types.ReceiptToken
+	var logTmp ReceiptToken
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
 		return nil, err
@@ -502,7 +503,7 @@ func (l TokenRevokeCreateLog) Name() string {
 }
 
 func (l TokenRevokeCreateLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp types.ReceiptToken
+	var logTmp ReceiptToken
 	err := types.Decode(msg, &logTmp)
 	if err != nil {
 		return nil, err
@@ -515,7 +516,7 @@ type TokenGetTokens struct {
 }
 
 func (t *TokenGetTokens) JsonToProto(message json.RawMessage) ([]byte, error) {
-	var req types.ReqTokens
+	var req ReqTokens
 	err := json.Unmarshal(message, &req)
 	if err != nil {
 		return nil, err
@@ -547,7 +548,7 @@ type TokenGetAddrReceiverforTokens struct {
 }
 
 func (t *TokenGetAddrReceiverforTokens) JsonToProto(message json.RawMessage) ([]byte, error) {
-	var req types.ReqAddrTokens
+	var req ReqAddressToken
 	err := json.Unmarshal(message, &req)
 	if err != nil {
 		return nil, err
@@ -563,7 +564,7 @@ type TokenGetAccountTokenAssets struct {
 }
 
 func (t *TokenGetAccountTokenAssets) JsonToProto(message json.RawMessage) ([]byte, error) {
-	var req types.ReqAccountTokenAssets
+	var req ReqAccountTokenAssets
 	err := json.Unmarshal(message, &req)
 	if err != nil {
 		return nil, err

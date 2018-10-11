@@ -6,6 +6,7 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/common/address"
 	pb "gitlab.33.cn/chain33/chain33/types"
+	tokenty "gitlab.33.cn/chain33/chain33/plugin/dapp/token/types"
 	"golang.org/x/net/context"
 )
 
@@ -185,7 +186,7 @@ func (g *Grpc) GetAllExecBalance(ctx context.Context, in *pb.ReqAddr) (*pb.AllEx
 	return g.cli.GetAllExecBalance(in)
 }
 
-func (g *Grpc) GetTokenBalance(ctx context.Context, in *pb.ReqTokenBalance) (*pb.Accounts, error) {
+func (g *Grpc) GetTokenBalance(ctx context.Context, in *tokenty.ReqTokenBalance) (*pb.Accounts, error) {
 	reply, err := g.cli.GetTokenBalance(in)
 	if err != nil {
 		return nil, err

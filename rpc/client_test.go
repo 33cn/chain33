@@ -20,7 +20,7 @@ import (
 	exec "gitlab.33.cn/chain33/chain33/types/executor"
 	evmtype "gitlab.33.cn/chain33/chain33/types/executor/evm"
 	retrievetype "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
-	tokentype "gitlab.33.cn/chain33/chain33/types/executor/token"
+	tokenty "gitlab.33.cn/chain33/chain33/plugin/dapp/token/types"
 	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
 )
 
@@ -194,9 +194,9 @@ func testCreateRawTransactionTokenTransfer(t *testing.T) {
 	types.Decode(txHex, &tx)
 	assert.Equal(t, []byte(types.ExecName(types.TokenX)), tx.Execer)
 
-	var transfer types.TokenAction
+	var transfer tokenty.TokenAction
 	types.Decode(tx.Payload, &transfer)
-	assert.Equal(t, int32(types.ActionTransfer), transfer.Ty)
+	assert.Equal(t, int32(tokenty.ActionTransfer), transfer.Ty)
 }
 
 func testCreateRawTransactionTokenWithdraw(t *testing.T) {
@@ -216,9 +216,9 @@ func testCreateRawTransactionTokenWithdraw(t *testing.T) {
 	types.Decode(txHex, &tx)
 	assert.Equal(t, []byte(types.ExecName(types.TokenX)), tx.Execer)
 
-	var transfer types.TokenAction
+	var transfer tokenty.TokenAction
 	types.Decode(tx.Payload, &transfer)
-	assert.Equal(t, int32(types.ActionWithdraw), transfer.Ty)
+	assert.Equal(t, int32(tokenty.ActionWithdraw), transfer.Ty)
 }
 
 func TestChannelClient_CreateRawTransaction(t *testing.T) {
@@ -430,7 +430,7 @@ func testChannelClient_GetTokenBalanceToken(t *testing.T) {
 
 	var addrs = make([]string, 1)
 	addrs = append(addrs, "1Jn2qu84Z1SUUosWjySggBS9pKWdAP3tZt")
-	var in = &types.ReqTokenBalance{
+	var in = &tokenty.ReqTokenBalance{
 		Execer:      types.ExecName(types.TokenX),
 		Addresses:   addrs,
 		TokenSymbol: "xxx",
@@ -460,7 +460,7 @@ func testChannelClient_GetTokenBalanceOther(t *testing.T) {
 
 	var addrs = make([]string, 1)
 	addrs = append(addrs, "1Jn2qu84Z1SUUosWjySggBS9pKWdAP3tZt")
-	var in = &types.ReqTokenBalance{
+	var in = &tokenty.ReqTokenBalance{
 		Execer:      types.ExecName(types.TradeX),
 		Addresses:   addrs,
 		TokenSymbol: "xxx",
@@ -483,7 +483,7 @@ func TestChannelClient_CreateRawTokenPreCreateTx(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Nil(t, data)
 
-	token := &tokentype.TokenPreCreateTx{
+	token := &tokenty.TokenPreCreateTx{
 		OwnerAddr: "asdf134",
 		Symbol:    "CNY",
 		Fee:       123,
@@ -499,7 +499,7 @@ func TestChannelClient_CreateRawTokenRevokeTx(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Nil(t, data)
 
-	token := &tokentype.TokenRevokeTx{
+	token := &tokenty.TokenRevokeTx{
 		OwnerAddr: "asdf134",
 		Symbol:    "CNY",
 		Fee:       123,
@@ -515,7 +515,7 @@ func TestChannelClient_CreateRawTokenFinishTx(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Nil(t, data)
 
-	token := &tokentype.TokenFinishTx{
+	token := &tokenty.TokenFinishTx{
 		OwnerAddr: "asdf134",
 		Symbol:    "CNY",
 		Fee:       123,

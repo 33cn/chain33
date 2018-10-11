@@ -6,19 +6,20 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"gitlab.33.cn/chain33/chain33/types"
+	tokenty "gitlab.33.cn/chain33/chain33/plugin/dapp/token/types"
 )
 
 func tokenPayloadType(funcname string) (proto.Message, error) {
 	var req proto.Message
 	switch funcname {
 	case "GetTokens":
-		req = &types.ReqTokens{}
+		req = &tokenty.ReqTokens{}
 	case "GetTokenInfo":
 		req = &types.ReqString{}
 	case "GetAddrReceiverforTokens":
-		req = &types.ReqAddrTokens{}
+		req = &tokenty.ReqAddressToken{}
 	case "GetAccountTokenAssets":
-		req = &types.ReqAccountTokenAssets{}
+		req = &tokenty.ReqAccountTokenAssets{}
 	default:
 		return nil, types.ErrInputPara
 	}
