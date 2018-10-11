@@ -16,6 +16,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
+	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/valnode/types"
 	"gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -265,8 +266,8 @@ func ValNode(ip, pubkey, power string) {
 	}
 	_, priv := genaddress()
 	privkey := common.ToHex(priv.Bytes())
-	nput := &types.ValNodeAction_Node{Node: &types.ValNode{PubKey: pubkeybyte, Power: int64(powerInt)}}
-	action := &types.ValNodeAction{Value: nput, Ty: types.ValNodeActionUpdate}
+	nput := &pty.ValNodeAction_Node{Node: &pty.ValNode{PubKey: pubkeybyte, Power: int64(powerInt)}}
+	action := &pty.ValNodeAction{Value: nput, Ty: pty.ValNodeActionUpdate}
 	tx := &types.Transaction{Execer: []byte("valnode"), Payload: types.Encode(action), Fee: fee}
 	tx.To = address.ExecAddress("valnode")
 	tx.Nonce = r.Int63()
