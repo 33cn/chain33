@@ -1,11 +1,10 @@
 package executor
 
 import (
-	"gitlab.33.cn/chain33/chain33/types"
-	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/types"
 	token "gitlab.33.cn/chain33/chain33/plugin/dapp/token/executor"
+	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/types"
+	"gitlab.33.cn/chain33/chain33/types"
 )
-
 
 func (t *trade) ExecLocal_Sell(sell *pty.TradeForSell, tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	return t.localAddLog(tx, receipt, index)

@@ -9,7 +9,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-
 // 目前设计trade 的query， 有两个部分的大分类
 // 1. 按token 分
 //    可以用于 token的挂单查询 (按价格排序)： OnBuy/OnSale
@@ -27,7 +26,7 @@ func (t *trade) Query_GetTokenSellOrderByStatus(req *pty.ReqTokenSellOrder) (typ
 }
 
 // 根据token 分页显示未完成成交买单
-func (t* trade) Query_GetTokenBuyOrderByStatus(req *pty.ReqTokenBuyOrder)  (types.Message, error) {
+func (t *trade) Query_GetTokenBuyOrderByStatus(req *pty.ReqTokenBuyOrder) (types.Message, error) {
 	if req.Status == 0 {
 		req.Status = types.TradeOrderStatusOnBuy
 	}
@@ -36,24 +35,24 @@ func (t* trade) Query_GetTokenBuyOrderByStatus(req *pty.ReqTokenBuyOrder)  (type
 
 // addr part
 // addr(-token) 的所有订单， 不分页
-func (t* trade) Query_GetOnesSellOrder(req *pty.ReqAddrTokens)  (types.Message, error) {
+func (t *trade) Query_GetOnesSellOrder(req *pty.ReqAddrTokens) (types.Message, error) {
 	return t.GetOnesSellOrder(req)
 }
 
-func (t* trade) Query_GetOnesBuyOrder(req *pty.ReqAddrTokens)  (types.Message, error) {
+func (t *trade) Query_GetOnesBuyOrder(req *pty.ReqAddrTokens) (types.Message, error) {
 	return t.GetOnesBuyOrder(req)
 }
 
 // 按 用户状态来 addr-status
-func (t* trade) Query_GetOnesSellOrderWithStatus(req *pty.ReqAddrTokens)  (types.Message, error) {
+func (t *trade) Query_GetOnesSellOrderWithStatus(req *pty.ReqAddrTokens) (types.Message, error) {
 	return t.GetOnesSellOrdersWithStatus(req)
 }
 
-func (t* trade) Query_GetOnesBuyOrderWithStatus(req *pty.ReqAddrTokens)  (types.Message, error) {
+func (t *trade) Query_GetOnesBuyOrderWithStatus(req *pty.ReqAddrTokens) (types.Message, error) {
 	return t.GetOnesBuyOrdersWithStatus(req)
 }
 
-func (t* trade) Query_GetOnesOrderWithStatus(req *pty.ReqAddrTokens)  (types.Message, error) {
+func (t *trade) Query_GetOnesOrderWithStatus(req *pty.ReqAddrTokens) (types.Message, error) {
 	return t.GetOnesOrderWithStatus(req)
 }
 
