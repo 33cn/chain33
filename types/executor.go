@@ -170,7 +170,8 @@ type ExecutorType interface {
 	GetViewFromToAddr(tx *Transaction) (string, string)
 	ActionName(tx *Transaction) string
 	//新版本使用create接口，createTx 重构以后就废弃
-	Create(action string, message interface{}) (*Transaction, error)
+	GetAction(action string) (Message, error)
+	Create(action string, message Message) (*Transaction, error)
 	CreateTx(action string, message json.RawMessage) (*Transaction, error)
 	Amount(tx *Transaction) (int64, error)
 	DecodePayload(tx *Transaction) (interface{}, error)
@@ -440,7 +441,7 @@ func (base *ExecTypeBase) AssertCreate(c *CreateTx) (*Transaction, error) {
 	return base.child.CreateTransaction("Transfer", v)
 }
 
-func (base *ExecTypeBase) Create(action string, msg interface{}) (*Transaction, error) {
+func (base *ExecTypeBase) Create(action string, msg Message) (*Transaction, error) {
 	//先判断 FuncList 中有没有符合要求的函数 RPC_{action}
 	if msg == nil {
 		return nil, ErrInvalidParam
@@ -468,16 +469,7 @@ func (base *ExecTypeBase) Create(action string, msg interface{}) (*Transaction, 
 	return nil, ErrActionNotSupport
 }
 
-//重构完成后删除
-func (base *ExecTypeBase) CreateTx(action string, msg json.RawMessage) (*Transaction, error) {
-	//先判断 FuncList 中有没有符合要求的函数 RPC_{action}
-	if action == "" {
-		action = "Default_Process"
-	}
-	funclist := base.GetRPCFuncMap()
-	if method, ok := funclist["RPC_"+action]; ok {
-		return base.callRPC(method, action, msg)
-	}
+func (base *ExecTypeBase) GetAction(action string) (Message, error) {
 	typemap := base.child.GetTypeMap()
 	if _, ok := typemap[action]; ok {
 		tyvalue := reflect.New(base.actionListValueType[action])
@@ -490,20 +482,29 @@ func (base *ExecTypeBase) CreateTx(action string, msg json.RawMessage) (*Transac
 			tlog.Error(action + " tyvalue is not Message")
 			return nil, ErrActionNotSupport
 		}
-		b, err := msg.MarshalJSON()
-		if err != nil {
-			tlog.Error(action + " MarshalJSON  error")
-			return nil, err
-		}
-		err = JsonToPB(b, data)
-		if err != nil {
-			tlog.Error(action + " jsontopb  error")
-			return nil, err
-		}
-		return base.CreateTransaction(action, data)
+		return data, nil
 	}
 	tlog.Error(action + " ErrActionNotSupport")
 	return nil, ErrActionNotSupport
+}
+
+//重构完成后删除
+func (base *ExecTypeBase) CreateTx(action string, msg json.RawMessage) (*Transaction, error) {
+	data, err := base.GetAction(action)
+	if err != nil {
+		return nil, err
+	}
+	b, err := msg.MarshalJSON()
+	if err != nil {
+		tlog.Error(action + " MarshalJSON  error")
+		return nil, err
+	}
+	err = JsonToPB(b, data)
+	if err != nil {
+		tlog.Error(action + " jsontopb  error")
+		return nil, err
+	}
+	return base.CreateTransaction(action, data)
 }
 
 func (base *ExecTypeBase) CreateTransaction(action string, data Message) (tx *Transaction, err error) {

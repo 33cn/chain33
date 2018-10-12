@@ -115,6 +115,12 @@ message Query {
     bytes  payload  = 3;
 }
 
+message CreateTxIn {
+    bytes execer = 1;
+    string actionName = 2;
+    bytes payload = 3;
+}
+
 message Norm {
     bytes  normId     = 1;
     int64  createTime = 2;
