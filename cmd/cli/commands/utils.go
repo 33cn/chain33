@@ -12,9 +12,12 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	bwty "gitlab.33.cn/chain33/chain33/plugin/dapp/blackwhite/types"
 	pt "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/types"
+	tokenty "gitlab.33.cn/chain33/chain33/plugin/dapp/token/types"
+	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
+
 	// TODO: 暂时将插件中的类型引用起来，后续需要修改
 	hlt "gitlab.33.cn/chain33/chain33/plugin/dapp/hashlock/types"
 
@@ -400,7 +403,7 @@ func SendToAddress(rpcAddr string, from string, to string, amount int64, note st
 	}
 
 	var res rpctypes.ReplyHash
-	ctx := NewRpcCtx(rpcAddr, "Chain33.SendToAddress", params, &res)
+	ctx := jsonclient.NewRpcCtx(rpcAddr, "Chain33.SendToAddress", params, &res)
 	ctx.Run()
 }
 

@@ -95,7 +95,7 @@ func CountTicketCmd() *cobra.Command {
 func countTicket(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	var res int64
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetTicketCount", nil, &res)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.GetTicketCount", nil, &res)
 	ctx.Run()
 }
 
@@ -192,6 +192,6 @@ func coldAddressOfMiner(cmd *cobra.Command, args []string) {
 	params.Payload = reqaddr
 
 	var res types.ReplyStrings
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
 	ctx.Run()
 }
