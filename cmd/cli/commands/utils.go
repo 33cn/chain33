@@ -21,6 +21,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 	// TODO: 暂时将插件中的类型引用起来，后续需要修改
 	hlt "gitlab.33.cn/chain33/chain33/plugin/dapp/hashlock/types"
+	rty "gitlab.33.cn/chain33/chain33/plugin/dapp/relay/types"
 )
 
 func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
@@ -291,8 +292,8 @@ func decodeLog(rlog jsonrpc.ReceiptDataResult) *ReceiptData {
 			types.TyLogTicketBind, types.TyLogPreCreateToken, types.TyLogFinishCreateToken, types.TyLogRevokeCreateToken,
 			types.TyLogTradeSellLimit, types.TyLogTradeBuyMarket, types.TyLogTradeSellRevoke,
 			types.TyLogTradeBuyLimit, types.TyLogTradeSellMarket, types.TyLogTradeBuyRevoke,
-			types.TyLogRelayCreate, types.TyLogRelayRevokeCreate, types.TyLogRelayAccept, types.TyLogRelayRevokeAccept,
-			types.TyLogRelayRcvBTCHead, types.TyLogRelayConfirmTx, types.TyLogRelayFinishTx,
+			rty.TyLogRelayCreate, rty.TyLogRelayRevokeCreate, rty.TyLogRelayAccept, rty.TyLogRelayRevokeAccept,
+			rty.TyLogRelayRcvBTCHead, rty.TyLogRelayConfirmTx, rty.TyLogRelayFinishTx,
 			bwty.TyLogBlackwhiteCreate, bwty.TyLogBlackwhiteShow, bwty.TyLogBlackwhitePlay,
 			bwty.TyLogBlackwhiteTimeout, bwty.TyLogBlackwhiteDone, bwty.TyLogBlackwhiteLoopInfo,
 			types.TyLogLotteryCreate, types.TyLogLotteryBuy, types.TyLogLotteryDraw, types.TyLogLotteryClose,
