@@ -192,7 +192,7 @@ func (evm *EVMExecutor) calcKVHash(addr common.Address, logs []*types.ReceiptLog
 }
 
 func getDataHashKey(addr common.Address) []byte {
-	return []byte(fmt.Sprintf("mavl-%v-data-hash:%v", types.EvmX, addr))
+	return []byte(fmt.Sprintf("mavl-%v-data-hash:%v", evmtypes.ExecutorName, addr))
 }
 
 // 从交易信息中获取交易发起人地址
