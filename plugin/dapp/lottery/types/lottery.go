@@ -175,6 +175,7 @@ func CreateRawLotteryBuyTx(parm *LotteryBuyTx) (*types.Transaction, error) {
 		LotteryId: parm.LotteryId,
 		Amount:    parm.Amount,
 		Number:    parm.Number,
+		Way:       parm.Way,
 	}
 	buy := &LotteryAction{
 		Ty:    LotteryActionBuy,
