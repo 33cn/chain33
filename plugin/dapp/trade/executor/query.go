@@ -35,28 +35,28 @@ func (t *trade) Query_GetTokenBuyOrderByStatus(req *pty.ReqTokenBuyOrder) (types
 
 // addr part
 // addr(-token) 的所有订单， 不分页
-func (t *trade) Query_GetOnesSellOrder(req *pty.ReqAddrTokens) (types.Message, error) {
+func (t *trade) Query_GetOnesSellOrder(req *pty.ReqAddrAssets) (types.Message, error) {
 	return t.GetOnesSellOrder(req)
 }
 
-func (t *trade) Query_GetOnesBuyOrder(req *pty.ReqAddrTokens) (types.Message, error) {
+func (t *trade) Query_GetOnesBuyOrder(req *pty.ReqAddrAssets) (types.Message, error) {
 	return t.GetOnesBuyOrder(req)
 }
 
 // 按 用户状态来 addr-status
-func (t *trade) Query_GetOnesSellOrderWithStatus(req *pty.ReqAddrTokens) (types.Message, error) {
+func (t *trade) Query_GetOnesSellOrderWithStatus(req *pty.ReqAddrAssets) (types.Message, error) {
 	return t.GetOnesSellOrdersWithStatus(req)
 }
 
-func (t *trade) Query_GetOnesBuyOrderWithStatus(req *pty.ReqAddrTokens) (types.Message, error) {
+func (t *trade) Query_GetOnesBuyOrderWithStatus(req *pty.ReqAddrAssets) (types.Message, error) {
 	return t.GetOnesBuyOrdersWithStatus(req)
 }
 
-func (t *trade) Query_GetOnesOrderWithStatus(req *pty.ReqAddrTokens) (types.Message, error) {
+func (t *trade) Query_GetOnesOrderWithStatus(req *pty.ReqAddrAssets) (types.Message, error) {
 	return t.GetOnesOrderWithStatus(req)
 }
 
-func (t *trade) GetOnesSellOrder(addrTokens *pty.ReqAddrTokens) (types.Message, error) {
+func (t *trade) GetOnesSellOrder(addrTokens *pty.ReqAddrAssets) (types.Message, error) {
 	var keys [][]byte
 	if 0 == len(addrTokens.Token) {
 		values, err := t.GetLocalDB().List(calcOnesSellOrderPrefixAddr(addrTokens.Addr), nil, 0, 0)
@@ -92,7 +92,7 @@ func (t *trade) GetOnesSellOrder(addrTokens *pty.ReqAddrTokens) (types.Message, 
 	return &replys, nil
 }
 
-func (t *trade) GetOnesBuyOrder(addrTokens *pty.ReqAddrTokens) (types.Message, error) {
+func (t *trade) GetOnesBuyOrder(addrTokens *pty.ReqAddrAssets) (types.Message, error) {
 	var keys [][]byte
 	if 0 == len(addrTokens.Token) {
 		values, err := t.GetLocalDB().List(calcOnesBuyOrderPrefixAddr(addrTokens.Addr), nil, 0, 0)
@@ -129,7 +129,7 @@ func (t *trade) GetOnesBuyOrder(addrTokens *pty.ReqAddrTokens) (types.Message, e
 	return &replys, nil
 }
 
-func (t *trade) GetOnesSellOrdersWithStatus(req *pty.ReqAddrTokens) (types.Message, error) {
+func (t *trade) GetOnesSellOrdersWithStatus(req *pty.ReqAddrAssets) (types.Message, error) {
 	var sellIDs [][]byte
 	values, err := t.GetLocalDB().List(calcOnesSellOrderPrefixStatus(req.Addr, req.Status), nil, 0, 0)
 	if err != nil {
@@ -153,7 +153,7 @@ func (t *trade) GetOnesSellOrdersWithStatus(req *pty.ReqAddrTokens) (types.Messa
 	return &replys, nil
 }
 
-func (t *trade) GetOnesBuyOrdersWithStatus(req *pty.ReqAddrTokens) (types.Message, error) {
+func (t *trade) GetOnesBuyOrdersWithStatus(req *pty.ReqAddrAssets) (types.Message, error) {
 	var sellIDs [][]byte
 	values, err := t.GetLocalDB().List(calcOnesBuyOrderPrefixStatus(req.Addr, req.Status), nil, 0, 0)
 	if err != nil {
@@ -631,7 +631,7 @@ func (t *trade) loadOrderFromKey(key []byte) *pty.ReplyTradeOrder {
 	return nil
 }
 
-func (t *trade) GetOnesOrderWithStatus(req *pty.ReqAddrTokens) (types.Message, error) {
+func (t *trade) GetOnesOrderWithStatus(req *pty.ReqAddrAssets) (types.Message, error) {
 	fromKey := []byte("")
 	if len(req.FromKey) != 0 {
 		order := t.loadOrderFromKey(fromKey)
