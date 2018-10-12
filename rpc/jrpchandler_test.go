@@ -1835,57 +1835,6 @@ func TestChain33_Version(t *testing.T) {
 	assert.NotNil(t, testResult)
 }
 
-func TestChain33_CreateRawTokenPreCreateTx(t *testing.T) {
-	client := newTestChain33(nil)
-	var testResult interface{}
-	err := client.CreateRawTokenPreCreateTx(nil, &testResult)
-	assert.NotNil(t, err)
-	assert.Nil(t, testResult)
-
-	token := &tokenty.TokenPreCreateTx{
-		OwnerAddr: "asdf134",
-		Symbol:    "CNY",
-		Fee:       123,
-	}
-	err = client.CreateRawTokenPreCreateTx(token, &testResult)
-	assert.NotNil(t, testResult)
-	assert.Nil(t, err)
-}
-
-func TestChain33_CreateRawTokenRevokeTx(t *testing.T) {
-	client := newTestChain33(nil)
-	var testResult interface{}
-	err := client.CreateRawTokenRevokeTx(nil, &testResult)
-	assert.NotNil(t, err)
-	assert.Nil(t, testResult)
-
-	token := &tokenty.TokenRevokeTx{
-		OwnerAddr: "asdf134",
-		Symbol:    "CNY",
-		Fee:       123,
-	}
-	err = client.CreateRawTokenRevokeTx(token, &testResult)
-	assert.NotNil(t, testResult)
-	assert.Nil(t, err)
-}
-
-func TestChain33_CreateRawTokenFinishTx(t *testing.T) {
-	client := newTestChain33(nil)
-	var testResult interface{}
-	err := client.CreateRawTokenFinishTx(nil, &testResult)
-	assert.NotNil(t, err)
-	assert.Nil(t, testResult)
-
-	token := &tokenty.TokenFinishTx{
-		OwnerAddr: "asdf134",
-		Symbol:    "CNY",
-		Fee:       123,
-	}
-	err = client.CreateRawTokenFinishTx(token, &testResult)
-	assert.NotNil(t, testResult)
-	assert.Nil(t, err)
-}
-
 func TestChain33_CreateRawTradeSellTx(t *testing.T) {
 	client := newTestChain33(nil)
 	var testResult interface{}
@@ -2200,18 +2149,18 @@ func TestChain33_CreateTransaction(t *testing.T) {
 	err := client.CreateTransaction(nil, &result)
 	assert.NotNil(t, err)
 
-	in := &rpctypes.TransactionCreate{Execer: "notExist", ActionName: "x", Payload: []byte("x")}
+	in := &rpctypes.CreateTxIn{Execer: "notExist", ActionName: "x", Payload: []byte("x")}
 	err = client.CreateTransaction(in, &result)
 	assert.Equal(t, types.ErrExecNameNotAllow, err)
 
-	in = &rpctypes.TransactionCreate{Execer: types.ExecName(types.TokenX), ActionName: "notExist", Payload: []byte("x")}
+	in = &rpctypes.CreateTxIn{Execer: types.ExecName(types.TokenX), ActionName: "notExist", Payload: []byte("x")}
 	err = client.CreateTransaction(in, &result)
-	assert.Equal(t, types.ErrNotSupport, err)
+	assert.Equal(t, types.ErrActionNotSupport, err)
 
-	in = &rpctypes.TransactionCreate{
+	in = &rpctypes.CreateTxIn{
 		Execer:     types.ExecName(types.TokenX),
-		ActionName: "TokenFinish",
-		Payload:    []byte("{\"fee\" : 10000, \"symbol\": \"TOKEN\", \"ownerAddr\":\"string\"}"),
+		ActionName: "Tokenfinishcreate",
+		Payload:    []byte("{\"symbol\": \"TOKEN\", \"owner\":\"string\"}"),
 	}
 	err = client.CreateTransaction(in, &result)
 	assert.Nil(t, err)
