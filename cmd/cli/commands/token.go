@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
+	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 	"gitlab.33.cn/chain33/chain33/types"
 	tokentype "gitlab.33.cn/chain33/chain33/types/executor/token"
 )
@@ -309,14 +309,14 @@ func tokenBalance(cmd *cobra.Command, args []string) {
 		TokenSymbol: token,
 		Execer:      execer,
 	}
-	var res []*jsonrpc.Account
+	var res []*rpctypes.Account
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetTokenBalance", params, &res)
 	ctx.SetResultCb(parseTokenBalanceRes)
 	ctx.Run()
 }
 
 func parseTokenBalanceRes(arg interface{}) (interface{}, error) {
-	res := arg.(*[]*jsonrpc.Account)
+	res := arg.(*[]*rpctypes.Account)
 	var result []*TokenAccountResult
 	for _, one := range *res {
 		balanceResult := strconv.FormatFloat(float64(one.Balance)/float64(types.TokenPrecision), 'f', 4, 64)
