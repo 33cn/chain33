@@ -25,7 +25,7 @@ func init() {
 }
 
 func Init(name string) {
-	clog.Debug("register norm execer")
+	clog.Debug("register valnode execer")
 	drivers.Register(GetName(), newValNode, 0)
 }
 
