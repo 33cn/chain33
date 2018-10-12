@@ -3,7 +3,7 @@ package commands
 import (
 	"github.com/spf13/cobra"
 
-	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
+	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 )
 
 func NetCmd() *cobra.Command {
@@ -37,7 +37,7 @@ func GetPeerInfoCmd() *cobra.Command {
 
 func peerInfo(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	var res jsonrpc.PeerList
+	var res rpctypes.PeerList
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetPeerInfo", nil, &res)
 	ctx.Run()
 }
@@ -88,7 +88,7 @@ func GetNetInfoCmd() *cobra.Command {
 
 func netInfo(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	var res jsonrpc.NodeNetinfo
+	var res rpctypes.NodeNetinfo
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetNetInfo", nil, &res)
 	ctx.Run()
 }
@@ -122,7 +122,7 @@ func GetTimeStausCmd() *cobra.Command {
 
 func timestatus(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	var res jsonrpc.TimeStatus
+	var res rpctypes.TimeStatus
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetTimeStatus", nil, &res)
 	ctx.Run()
 }

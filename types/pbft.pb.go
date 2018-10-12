@@ -20,7 +20,7 @@ type Operation struct {
 func (m *Operation) Reset()                    { *m = Operation{} }
 func (m *Operation) String() string            { return proto.CompactTextString(m) }
 func (*Operation) ProtoMessage()               {}
-func (*Operation) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{0} }
+func (*Operation) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{0} }
 
 func (m *Operation) GetValue() *Block {
 	if m != nil {
@@ -37,7 +37,7 @@ type Checkpoint struct {
 func (m *Checkpoint) Reset()                    { *m = Checkpoint{} }
 func (m *Checkpoint) String() string            { return proto.CompactTextString(m) }
 func (*Checkpoint) ProtoMessage()               {}
-func (*Checkpoint) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{1} }
+func (*Checkpoint) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{1} }
 
 func (m *Checkpoint) GetSequence() uint32 {
 	if m != nil {
@@ -62,7 +62,7 @@ type Entry struct {
 func (m *Entry) Reset()                    { *m = Entry{} }
 func (m *Entry) String() string            { return proto.CompactTextString(m) }
 func (*Entry) ProtoMessage()               {}
-func (*Entry) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{2} }
+func (*Entry) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{2} }
 
 func (m *Entry) GetSequence() uint32 {
 	if m != nil {
@@ -93,7 +93,7 @@ type ViewChange struct {
 func (m *ViewChange) Reset()                    { *m = ViewChange{} }
 func (m *ViewChange) String() string            { return proto.CompactTextString(m) }
 func (*ViewChange) ProtoMessage()               {}
-func (*ViewChange) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{3} }
+func (*ViewChange) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{3} }
 
 func (m *ViewChange) GetViewchanger() uint32 {
 	if m != nil {
@@ -117,7 +117,7 @@ type Summary struct {
 func (m *Summary) Reset()                    { *m = Summary{} }
 func (m *Summary) String() string            { return proto.CompactTextString(m) }
 func (*Summary) ProtoMessage()               {}
-func (*Summary) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{4} }
+func (*Summary) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{4} }
 
 func (m *Summary) GetSequence() uint32 {
 	if m != nil {
@@ -140,7 +140,7 @@ type Result struct {
 func (m *Result) Reset()                    { *m = Result{} }
 func (m *Result) String() string            { return proto.CompactTextString(m) }
 func (*Result) ProtoMessage()               {}
-func (*Result) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{5} }
+func (*Result) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{5} }
 
 func (m *Result) GetValue() *Block {
 	if m != nil {
@@ -165,7 +165,7 @@ type Request struct {
 func (m *Request) Reset()                    { *m = Request{} }
 func (m *Request) String() string            { return proto.CompactTextString(m) }
 func (*Request) ProtoMessage()               {}
-func (*Request) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{6} }
+func (*Request) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{6} }
 
 type isRequest_Value interface {
 	isRequest_Value()
@@ -465,7 +465,7 @@ type RequestClient struct {
 func (m *RequestClient) Reset()                    { *m = RequestClient{} }
 func (m *RequestClient) String() string            { return proto.CompactTextString(m) }
 func (*RequestClient) ProtoMessage()               {}
-func (*RequestClient) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{7} }
+func (*RequestClient) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{7} }
 
 func (m *RequestClient) GetOp() *Operation {
 	if m != nil {
@@ -498,7 +498,7 @@ type RequestPrePrepare struct {
 func (m *RequestPrePrepare) Reset()                    { *m = RequestPrePrepare{} }
 func (m *RequestPrePrepare) String() string            { return proto.CompactTextString(m) }
 func (*RequestPrePrepare) ProtoMessage()               {}
-func (*RequestPrePrepare) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{8} }
+func (*RequestPrePrepare) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{8} }
 
 func (m *RequestPrePrepare) GetView() uint32 {
 	if m != nil {
@@ -538,7 +538,7 @@ type RequestPrepare struct {
 func (m *RequestPrepare) Reset()                    { *m = RequestPrepare{} }
 func (m *RequestPrepare) String() string            { return proto.CompactTextString(m) }
 func (*RequestPrepare) ProtoMessage()               {}
-func (*RequestPrepare) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{9} }
+func (*RequestPrepare) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{9} }
 
 func (m *RequestPrepare) GetView() uint32 {
 	if m != nil {
@@ -577,7 +577,7 @@ type RequestCommit struct {
 func (m *RequestCommit) Reset()                    { *m = RequestCommit{} }
 func (m *RequestCommit) String() string            { return proto.CompactTextString(m) }
 func (*RequestCommit) ProtoMessage()               {}
-func (*RequestCommit) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{10} }
+func (*RequestCommit) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{10} }
 
 func (m *RequestCommit) GetView() uint32 {
 	if m != nil {
@@ -609,7 +609,7 @@ type RequestCheckpoint struct {
 func (m *RequestCheckpoint) Reset()                    { *m = RequestCheckpoint{} }
 func (m *RequestCheckpoint) String() string            { return proto.CompactTextString(m) }
 func (*RequestCheckpoint) ProtoMessage()               {}
-func (*RequestCheckpoint) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{11} }
+func (*RequestCheckpoint) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{11} }
 
 func (m *RequestCheckpoint) GetSequence() uint32 {
 	if m != nil {
@@ -644,7 +644,7 @@ type RequestViewChange struct {
 func (m *RequestViewChange) Reset()                    { *m = RequestViewChange{} }
 func (m *RequestViewChange) String() string            { return proto.CompactTextString(m) }
 func (*RequestViewChange) ProtoMessage()               {}
-func (*RequestViewChange) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{12} }
+func (*RequestViewChange) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{12} }
 
 func (m *RequestViewChange) GetView() uint32 {
 	if m != nil {
@@ -698,7 +698,7 @@ type RequestAck struct {
 func (m *RequestAck) Reset()                    { *m = RequestAck{} }
 func (m *RequestAck) String() string            { return proto.CompactTextString(m) }
 func (*RequestAck) ProtoMessage()               {}
-func (*RequestAck) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{13} }
+func (*RequestAck) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{13} }
 
 func (m *RequestAck) GetView() uint32 {
 	if m != nil {
@@ -738,7 +738,7 @@ type RequestNewView struct {
 func (m *RequestNewView) Reset()                    { *m = RequestNewView{} }
 func (m *RequestNewView) String() string            { return proto.CompactTextString(m) }
 func (*RequestNewView) ProtoMessage()               {}
-func (*RequestNewView) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{14} }
+func (*RequestNewView) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{14} }
 
 func (m *RequestNewView) GetView() uint32 {
 	if m != nil {
@@ -779,7 +779,7 @@ type ClientReply struct {
 func (m *ClientReply) Reset()                    { *m = ClientReply{} }
 func (m *ClientReply) String() string            { return proto.CompactTextString(m) }
 func (*ClientReply) ProtoMessage()               {}
-func (*ClientReply) Descriptor() ([]byte, []int) { return fileDescriptor9, []int{15} }
+func (*ClientReply) Descriptor() ([]byte, []int) { return fileDescriptor8, []int{15} }
 
 func (m *ClientReply) GetView() uint32 {
 	if m != nil {
@@ -835,9 +835,9 @@ func init() {
 	proto.RegisterType((*ClientReply)(nil), "types.ClientReply")
 }
 
-func init() { proto.RegisterFile("pbft.proto", fileDescriptor9) }
+func init() { proto.RegisterFile("pbft.proto", fileDescriptor8) }
 
-var fileDescriptor9 = []byte{
+var fileDescriptor8 = []byte{
 	// 676 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x09, 0x6e, 0x88, 0x02, 0xff, 0xbc, 0x56, 0xdf, 0x6a, 0xdb, 0x3e,
 	0x14, 0xae, 0xe3, 0xd8, 0x6e, 0x4e, 0x9a, 0xd2, 0x8a, 0xdf, 0x6f, 0x88, 0xb2, 0x8b, 0x60, 0x56,
