@@ -18,7 +18,6 @@ import (
 	"github.com/inconshreveable/log15"
 	hashlocktype "gitlab.33.cn/chain33/chain33/plugin/dapp/hashlock/types"
 	lotterytype "gitlab.33.cn/chain33/chain33/plugin/dapp/lottery/types"
-	tokenty "gitlab.33.cn/chain33/chain33/plugin/dapp/token/types"
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 	retrievetype "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
 	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
@@ -317,48 +316,6 @@ func (c *channelClient) GetAllExecBalance(in *types.ReqAddr) (*types.AllExecBala
 	return allBalance, nil
 }
 
-//TODO:和GetBalance进行泛化处理，同时LoadAccounts和LoadExecAccountQueue也需要进行泛化处理, added by hzj
-func (c *channelClient) GetTokenBalance(in *tokenty.ReqTokenBalance) ([]*types.Account, error) {
-	accountTokendb, err := account.NewAccountDB(types.TokenX, in.GetTokenSymbol(), nil)
-	if err != nil {
-		return nil, err
-	}
-	switch in.GetExecer() {
-	case types.ExecName(types.TokenX):
-		addrs := in.GetAddresses()
-		var queryAddrs []string
-		for _, addr := range addrs {
-			if err := address.CheckAddress(addr); err != nil {
-				addr = string(accountTokendb.AccountKey(addr))
-			}
-			queryAddrs = append(queryAddrs, addr)
-		}
-
-		accounts, err := accountTokendb.LoadAccounts(c.QueueProtocolAPI, queryAddrs)
-		if err != nil {
-			log.Error("GetTokenBalance", "err", err.Error(), "token symbol", in.GetTokenSymbol(), "address", queryAddrs)
-			return nil, err
-		}
-		return accounts, nil
-
-	default: //trade
-		execaddress := address.ExecAddress(in.GetExecer())
-		addrs := in.GetAddresses()
-		var accounts []*types.Account
-		for _, addr := range addrs {
-			acc, err := accountTokendb.LoadExecAccountQueue(c.QueueProtocolAPI, addr, execaddress)
-			if err != nil {
-				log.Error("GetTokenBalance for exector", "err", err.Error(), "token symbol", in.GetTokenSymbol(),
-					"address", addr)
-				continue
-			}
-			accounts = append(accounts, acc)
-		}
-
-		return accounts, nil
-	}
-}
-
 func (c *channelClient) GetTotalCoins(in *types.ReqGetTotalCoins) (*types.ReplyGetTotalCoins, error) {
 	//获取地址账户的余额通过account模块
 	resp, err := c.accountdb.GetTotalCoins(c.QueueProtocolAPI, in)
@@ -366,18 +323,6 @@ func (c *channelClient) GetTotalCoins(in *types.ReqGetTotalCoins) (*types.ReplyG
 		return nil, err
 	}
 	return resp, nil
-}
-
-func (c *channelClient) CreateRawTokenPreCreateTx(parm *tokenty.TokenPreCreateTx) ([]byte, error) {
-	return callExecNewTx(types.ExecName(types.TokenX), "TokenPreCreate", parm)
-}
-
-func (c *channelClient) CreateRawTokenFinishTx(parm *tokenty.TokenFinishTx) ([]byte, error) {
-	return callExecNewTx(types.ExecName(types.TokenX), "TokenFinish", parm)
-}
-
-func (c *channelClient) CreateRawTokenRevokeTx(parm *tokenty.TokenRevokeTx) ([]byte, error) {
-	return callExecNewTx(types.ExecName(types.TokenX), "TokenRevoke", parm)
 }
 
 func (c *channelClient) CreateRawTradeSellTx(parm *tradetype.TradeSellTx) ([]byte, error) {
