@@ -1,14 +1,12 @@
 package types
 
 import (
-	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var nameX string
 
 var (
-	vlog       = log.New("module", "exectype.valnode")
 	actionName = map[string]int32{
 		"Node":      ValNodeActionUpdate,
 		"BlockInfo": ValNodeActionBlockInfo,

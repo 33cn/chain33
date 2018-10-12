@@ -24,6 +24,7 @@ func init() {
 }
 
 func Init(name string) {
+	clog.Debug("register norm execer")
 	drivers.Register(GetName(), newNorm, 0)
 }
 
