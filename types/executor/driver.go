@@ -7,7 +7,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/types/executor/relay"
 	"gitlab.33.cn/chain33/chain33/types/executor/retrieve"
 	"gitlab.33.cn/chain33/chain33/types/executor/ticket"
-	"gitlab.33.cn/chain33/chain33/types/executor/trade"
+	"gitlab.33.cn/chain33/chain33/types/executor/token"
 )
 
 // 进度：
@@ -43,7 +43,7 @@ func initExec() {
 	relay.Init()
 	retrieve.Init()
 	ticket.Init()
-	trade.Init()
+	token.Init()
 }
 
 type ErrLog struct {

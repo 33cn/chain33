@@ -61,7 +61,7 @@ func init() {
 		commands.SeedCmd(),
 		commands.StatCmd(),
 		commands.TicketCmd(),
-		commands.TradeCmd(),
+		commands.TokenCmd(),
 		commands.TxCmd(),
 		commands.WalletCmd(),
 		commands.PrivacyCmd(),
