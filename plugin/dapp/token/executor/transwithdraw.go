@@ -6,17 +6,12 @@ import (
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
+	tokenty "gitlab.33.cn/chain33/chain33/plugin/dapp/token/types"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
-	tokenty "gitlab.33.cn/chain33/chain33/plugin/dapp/token/types"
 )
 
 func (t *token) ExecTransWithdraw(accountDB *account.DB, tx *types.Transaction, action *tokenty.TokenAction, index int) (*types.Receipt, error) {
-	//_, err := t.DriverBase.Exec(tx, index)
-	//if err != nil {
-	//	return nil, err
-	//}
-
 	if (action.Ty == tokenty.ActionTransfer) && action.GetTransfer() != nil {
 		transfer := action.GetTransfer()
 		from := tx.From()
@@ -72,10 +67,6 @@ func isExecAddrMatch(name string, to string) bool {
 //2: to tx
 
 func (t *token) ExecLocalTransWithdraw(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	//set, err := t.DriverBase.ExecLocal(tx, receipt, index)
-	//if err != nil {
-	//	return nil, err
-	//}
 	set := &types.LocalDBSet{}
 	if receipt.GetTy() != types.ExecOk {
 		return set, nil
@@ -111,10 +102,6 @@ func (t *token) ExecLocalTransWithdraw(tx *types.Transaction, receipt *types.Rec
 }
 
 func (t *token) ExecDelLocalLocalTransWithdraw(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	//set, err := t.DriverBase.ExecDelLocal(tx, receipt, index)
-	//if err != nil {
-	//	return nil, err
-	//}
 	set := &types.LocalDBSet{}
 	if receipt.GetTy() != types.ExecOk {
 		return set, nil

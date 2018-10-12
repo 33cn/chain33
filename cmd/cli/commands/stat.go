@@ -15,9 +15,9 @@ import (
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/difficulty"
+	tokenty "gitlab.33.cn/chain33/chain33/plugin/dapp/token/types"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/types"
-	tokenty "gitlab.33.cn/chain33/chain33/plugin/dapp/token/types"
 )
 
 func StatCmd() *cobra.Command {

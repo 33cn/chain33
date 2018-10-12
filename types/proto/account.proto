@@ -47,26 +47,6 @@ message Accounts {
     repeated Account acc = 1;
 }
 
-//message ReqTokenBalance {
-//    repeated string addresses   = 1;
-//    string          tokenSymbol = 2;
-//    string          execer      = 3;
-//}
-//
-//message ReqAccountTokenAssets {
-//    string address = 1;
-//    string execer  = 2;
-//}
-//
-//message TokenAsset {
-//    string  symbol  = 1;
-//    Account account = 2;
-//}
-
-//message ReplyAccountTokenAssets {
-//    repeated TokenAsset tokenAssets = 1;
-//}
-
 message ExecAccount {
     string  execer  = 1;
     Account account = 2;

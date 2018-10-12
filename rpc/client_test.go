@@ -12,6 +12,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	slog "gitlab.33.cn/chain33/chain33/common/log"
 	hashlocktype "gitlab.33.cn/chain33/chain33/plugin/dapp/hashlock/types"
+	tokenty "gitlab.33.cn/chain33/chain33/plugin/dapp/token/types"
 	"gitlab.33.cn/chain33/chain33/pluginmgr"
 	qmock "gitlab.33.cn/chain33/chain33/queue/mocks"
 	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
@@ -20,7 +21,6 @@ import (
 	exec "gitlab.33.cn/chain33/chain33/types/executor"
 	evmtype "gitlab.33.cn/chain33/chain33/types/executor/evm"
 	retrievetype "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
-	tokenty "gitlab.33.cn/chain33/chain33/plugin/dapp/token/types"
 	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
 )
 

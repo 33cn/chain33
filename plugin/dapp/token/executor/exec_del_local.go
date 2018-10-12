@@ -28,7 +28,7 @@ func (t *token) ExecDelLocal_Transfer(payload *types.AssetsTransfer, tx *types.T
 		return nil, err
 	}
 	if types.GetSaveTokenTxList() {
-		tokenAction := tokenty.TokenAction {
+		tokenAction := tokenty.TokenAction{
 			Ty: tokenty.ActionTransfer,
 			Value: &tokenty.TokenAction_Transfer{
 				payload,
@@ -49,7 +49,7 @@ func (t *token) ExecDelLocal_Withdraw(payload *types.AssetsWithdraw, tx *types.T
 		return nil, err
 	}
 	if types.GetSaveTokenTxList() {
-		tokenAction := tokenty.TokenAction {
+		tokenAction := tokenty.TokenAction{
 			Ty: tokenty.ActionWithdraw,
 			Value: &tokenty.TokenAction_Withdraw{
 				payload,

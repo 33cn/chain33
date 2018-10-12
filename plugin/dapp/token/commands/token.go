@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	tokenty "gitlab.33.cn/chain33/chain33/plugin/dapp/token/types"
+	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -68,7 +68,7 @@ func createTokenTransfer(cmd *cobra.Command, args []string) {
 	amount, _ := cmd.Flags().GetFloat64("amount")
 	note, _ := cmd.Flags().GetString("note")
 	symbol, _ := cmd.Flags().GetString("symbol")
-	txHex, err := CreateRawTx(cmd, toAddr, amount, note, false,  symbol, "")
+	txHex, err := CreateRawTx(cmd, toAddr, amount, note, false, symbol, "")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -112,7 +112,7 @@ func createTokenWithdraw(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	txHex, err := CreateRawTx(cmd, execAddr, amount, note, true,  symbol, exec)
+	txHex, err := CreateRawTx(cmd, execAddr, amount, note, true, symbol, exec)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return

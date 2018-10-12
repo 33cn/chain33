@@ -43,7 +43,7 @@ func (t *token) ExecLocal_Transfer(payload *types.AssetsTransfer, tx *types.Tran
 		set.KV = append(set.KV, kv...)
 	}
 	if types.GetSaveTokenTxList() {
-		tokenAction := tokenty.TokenAction {
+		tokenAction := tokenty.TokenAction{
 			Ty: tokenty.ActionTransfer,
 			Value: &tokenty.TokenAction_Transfer{
 				payload,
@@ -69,7 +69,7 @@ func (t *token) ExecLocal_Withdraw(payload *types.AssetsWithdraw, tx *types.Tran
 		set.KV = append(set.KV, kv...)
 	}
 	if types.GetSaveTokenTxList() {
-		tokenAction := tokenty.TokenAction {
+		tokenAction := tokenty.TokenAction{
 			Ty: tokenty.ActionWithdraw,
 			Value: &tokenty.TokenAction_Withdraw{
 				payload,
