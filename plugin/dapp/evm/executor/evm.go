@@ -116,7 +116,7 @@ func (evm *EVMExecutor) IsFriend(myexec, writekey []byte, othertx *types.Transac
 			return false
 		}
 
-		if bytes.HasPrefix(exec, types.UserEvm) || bytes.Equal(exec, types.ExecerEvm) {
+		if bytes.HasPrefix(exec, evmtypes.UserPrefix) || bytes.Equal(exec, evmtypes.ExecerEvm) {
 			if bytes.HasPrefix(writekey, []byte("mavl-evm-")) {
 				return true
 			}

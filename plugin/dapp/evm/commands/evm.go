@@ -88,7 +88,7 @@ func transferAddress(cmd *cobra.Command, args []string) {
 	}
 	if len(local) >= 34 {
 		var addr common2.Address
-		if strings.HasPrefix(local, types.UserEvmX) {
+		if strings.HasPrefix(local, evmtypes.EvmPrefix) {
 			addr = common2.ExecAddress(local)
 			fmt.Println(fmt.Sprintf("Local Contract Name: %v", local))
 			fmt.Println(fmt.Sprintf("Local Address: %v", addr.String()))
@@ -458,7 +458,7 @@ func checkContractAddr(cmd *cobra.Command, args []string) {
 	name, _ := cmd.Flags().GetString("exec")
 	toAddr := to
 	if len(toAddr) == 0 && len(name) > 0 {
-		if strings.Contains(name, types.UserEvmX) {
+		if strings.Contains(name, evmtypes.EvmPrefix) {
 			toAddr = address.ExecAddress(name)
 		}
 	}

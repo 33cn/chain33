@@ -14,26 +14,23 @@ type LogInfo struct {
 }
 
 const (
-	CoinsX          = "coins"
-	UserKeyX        = "user."
-	ParaKeyX        = "user.p."
-	TicketX         = "ticket"
-	HashlockX       = "hashlock"
-	RetrieveX       = "retrieve"
-	NoneX           = "none"
-	TokenX          = "token"
-	TradeX          = "trade"
-	ManageX         = "manage"
-	PrivacyX        = "privacy"
-	ExecerEvmString = "evm"
-	EvmX            = "evm"
-	RelayX          = "relay"
-	Normx           = "norm"
-	UserEvmX        = "user.evm."
-	CertX           = "cert"
-	ParaX           = "paracross"
-	LotteryX        = "lottery"
-	ValNodeX        = "valnode"
+	CoinsX    = "coins"
+	UserKeyX  = "user."
+	ParaKeyX  = "user.p."
+	TicketX   = "ticket"
+	HashlockX = "hashlock"
+	RetrieveX = "retrieve"
+	NoneX     = "none"
+	TokenX    = "token"
+	TradeX    = "trade"
+	ManageX   = "manage"
+	PrivacyX  = "privacy"
+	RelayX    = "relay"
+	Normx     = "norm"
+	CertX     = "cert"
+	ParaX     = "paracross"
+	LotteryX  = "lottery"
+	ValNodeX  = "valnode"
 )
 
 var (
@@ -41,7 +38,6 @@ var (
 	ExecerTicket   = []byte(TicketX)
 	ExecerManage   = []byte(ManageX)
 	ExecerToken    = []byte(TokenX)
-	ExecerEvm      = []byte(EvmX)
 	ExecerPrivacy  = []byte(PrivacyX)
 	ExecerRelay    = []byte(RelayX)
 	ExecerHashlock = []byte(HashlockX)
@@ -51,7 +47,6 @@ var (
 	ExecerNorm     = []byte(Normx)
 	ExecerConfig   = []byte("config")
 	ExecerCert     = []byte(CertX)
-	UserEvm        = []byte(UserEvmX)
 	ExecerPara     = []byte(ParaX)
 	ExecerLottery  = []byte(LotteryX)
 	UserKey        = []byte(UserKeyX)

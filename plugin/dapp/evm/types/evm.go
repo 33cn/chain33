@@ -10,6 +10,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/types/convertor"
 )
 
 var nameX string
@@ -24,20 +25,19 @@ var (
 )
 
 func init() {
-	// init executor type
-	nameX = types.ExecName("evm")
-	types.RegistorExecutor("evm", NewType())
+	types.AllowUserExec = append(types.AllowUserExec, ExecerEvm)
 
-	// init log
-	types.RegistorLog(TyLogCallContract, &EvmCallContractLog{})
-	types.RegistorLog(TyLogContractData, &EvmContractDataLog{})
-	types.RegistorLog(TyLogContractState, &EvmContractStateLog{})
-	types.RegistorLog(TyLogEVMStateChangeItem, &EvmStateChangeItemLog{})
+	// init executor type
+	types.RegistorExecutor(ExecutorName, NewType())
 
 	// init query rpc
-	types.RegisterRPCQueryHandle(FuncCheckAddrExists, &EvmCheckAddrExists{})
-	types.RegisterRPCQueryHandle(FuncEstimateGas, &EvmEstimateGas{})
-	types.RegisterRPCQueryHandle(FuncEvmDebug, &EvmDebug{})
+
+	types.RegisterRPCQueryHandle(FuncCheckAddrExists, &convertor.QueryConvertor{ProtoObj: &CheckEVMAddrReq{}})
+	types.RegisterRPCQueryHandle(FuncEstimateGas, &convertor.QueryConvertor{ProtoObj: &EstimateEVMGasReq{}})
+	types.RegisterRPCQueryHandle(FuncEvmDebug, &convertor.QueryConvertor{ProtoObj: &EvmDebugReq{}})
+	//types.RegisterRPCQueryHandle(FuncCheckAddrExists, &EvmCheckAddrExists{})
+	//types.RegisterRPCQueryHandle(FuncEstimateGas, &EvmEstimateGas{})
+	//types.RegisterRPCQueryHandle(FuncEvmDebug, &EvmDebug{})
 }
 
 type EvmType struct {
@@ -57,7 +57,7 @@ func (evm *EvmType) GetPayload() types.Message {
 func (evm EvmType) ActionName(tx *types.Transaction) string {
 	// 这个需要通过合约交易目标地址来判断Action
 	// 如果目标地址为空，或为evm的固定合约地址，则为创建合约，否则为调用合约
-	if strings.EqualFold(tx.To, address.ExecAddress(types.ExecName(types.EvmX))) {
+	if strings.EqualFold(tx.To, address.ExecAddress(types.ExecName(ExecutorName))) {
 		return "createEvmContract"
 	} else {
 		return "callEvmContract"
@@ -79,7 +79,7 @@ func (evm EvmType) DecodePayload(tx *types.Transaction) (interface{}, error) {
 }
 
 func (evm EvmType) GetRealToAddr(tx *types.Transaction) string {
-	if string(tx.Execer) == types.EvmX {
+	if string(tx.Execer) == ExecutorName {
 		return tx.To
 	}
 	var action EVMContractAction
@@ -112,68 +112,8 @@ func (evm EvmType) CreateTx(action string, message json.RawMessage) (*types.Tran
 	return tx, nil
 }
 
-type EvmCallContractLog struct {
-}
-
-func (l EvmCallContractLog) Name() string {
-	return "LogCallContract"
-}
-
-func (l EvmCallContractLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp ReceiptEVMContract
-	err := types.Decode(msg, &logTmp)
-	if err != nil {
-		return nil, err
-	}
-	return logTmp, err
-}
-
-type EvmContractDataLog struct {
-}
-
-func (l EvmContractDataLog) Name() string {
-	return "LogContractData"
-}
-
-func (l EvmContractDataLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp EVMContractData
-	err := types.Decode(msg, &logTmp)
-	if err != nil {
-		return nil, err
-	}
-	return logTmp, err
-}
-
-type EvmStateChangeItemLog struct {
-}
-
-func (l EvmStateChangeItemLog) Name() string {
-	return "LogEVMStateChangeItem"
-}
-
-func (l EvmStateChangeItemLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp EVMStateChangeItem
-	err := types.Decode(msg, &logTmp)
-	if err != nil {
-		return nil, err
-	}
-	return logTmp, err
-}
-
-type EvmContractStateLog struct {
-}
-
-func (l EvmContractStateLog) Name() string {
-	return "LogContractState"
-}
-
-func (l EvmContractStateLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp EVMContractState
-	err := types.Decode(msg, &logTmp)
-	if err != nil {
-		return nil, err
-	}
-	return logTmp, err
+func (evm *EvmType) GetLogMap() map[int64]*types.LogInfo {
+	return logInfo
 }
 
 type EvmCheckAddrExists struct {
@@ -248,11 +188,11 @@ func CreateRawEvmCreateCallTx(parm *CreateCallTx) (*types.Transaction, error) {
 	tx := &types.Transaction{}
 	if parm.IsCreate {
 		tx = &types.Transaction{
-			Execer:  []byte(types.ExecName(types.EvmX)),
+			Execer:  []byte(types.ExecName(ExecutorName)),
 			Payload: types.Encode(action),
 			//Fee:     parm.Fee,
 			Nonce: rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-			To:    address.ExecAddress(types.ExecName(types.EvmX)),
+			To:    address.ExecAddress(types.ExecName(ExecutorName)),
 		}
 	} else {
 		tx = &types.Transaction{
