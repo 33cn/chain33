@@ -116,9 +116,9 @@ message Query {
 }
 
 message CreateTxIn {
-    bytes execer = 1;
+    bytes  execer     = 1;
     string actionName = 2;
-    bytes payload = 3;
+    bytes  payload    = 3;
 }
 
 message Norm {
