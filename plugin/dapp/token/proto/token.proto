@@ -117,3 +117,9 @@ message ReqTokenTx {
     int64  index     = 6;
     string addr      = 7;
 }
+
+service token {
+    // token 对外提供服务的接口
+    //区块链接口
+    rpc GetTokenBalance(ReqTokenBalance) (Accounts) {}
+}
