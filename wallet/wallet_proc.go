@@ -261,6 +261,9 @@ func (wallet *Wallet) ProcCreateNewAccount(Label *types.ReqNewAccount) (*types.W
 	var walletAccount types.WalletAccount
 	var WalletAccStore types.WalletAccountStore
 	var cointype uint32
+	var addr string
+	var privkeybyte []byte
+
 	if SignType == 1 {
 		cointype = bipwallet.TypeBty
 	} else if SignType == 2 {
@@ -275,26 +278,35 @@ func (wallet *Wallet) ProcCreateNewAccount(Label *types.ReqNewAccount) (*types.W
 		walletlog.Error("ProcCreateNewAccount", "getSeed err", err)
 		return nil, err
 	}
-	privkeyhex, err := GetPrivkeyBySeed(wallet.walletStore.GetDB(), seed)
-	if err != nil {
-		walletlog.Error("ProcCreateNewAccount", "GetPrivkeyBySeed err", err)
-		return nil, err
-	}
-	privkeybyte, err := common.FromHex(privkeyhex)
-	if err != nil || len(privkeybyte) == 0 {
-		walletlog.Error("ProcCreateNewAccount", "FromHex err", err)
-		return nil, err
-	}
 
-	pub, err := bipwallet.PrivkeyToPub(cointype, privkeybyte)
-	if err != nil {
-		seedlog.Error("ProcCreateNewAccount PrivkeyToPub", "err", err)
-		return nil, types.ErrPrivkeyToPub
-	}
-	addr, err := bipwallet.PubToAddress(cointype, pub)
-	if err != nil {
-		seedlog.Error("ProcCreateNewAccount PubToAddress", "err", err)
-		return nil, types.ErrPrivkeyToPub
+	for {
+		privkeyhex, err := GetPrivkeyBySeed(wallet.walletStore.GetDB(), seed)
+		if err != nil {
+			walletlog.Error("ProcCreateNewAccount", "GetPrivkeyBySeed err", err)
+			return nil, err
+		}
+		privkeybyte, err = common.FromHex(privkeyhex)
+		if err != nil || len(privkeybyte) == 0 {
+			walletlog.Error("ProcCreateNewAccount", "FromHex err", err)
+			return nil, err
+		}
+
+		pub, err := bipwallet.PrivkeyToPub(cointype, privkeybyte)
+		if err != nil {
+			seedlog.Error("ProcCreateNewAccount PrivkeyToPub", "err", err)
+			return nil, types.ErrPrivkeyToPub
+		}
+		addr, err = bipwallet.PubToAddress(cointype, pub)
+		if err != nil {
+			seedlog.Error("ProcCreateNewAccount PubToAddress", "err", err)
+			return nil, types.ErrPrivkeyToPub
+		}
+		//通过新生成的账户地址查询钱包数据库，如果查询返回的账户信息是空，
+		//说明新生成的账户没有被使用，否则继续使用下一个index生成私钥对
+		account, err := wallet.walletStore.GetAccountByAddr(addr)
+		if account == nil {
+			break
+		}
 	}
 
 	Account.Addr = addr
