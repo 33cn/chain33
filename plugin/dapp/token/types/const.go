@@ -19,5 +19,5 @@ const (
 )
 
 var (
-//TokenX          = "token"
+	Name = "token"
 )

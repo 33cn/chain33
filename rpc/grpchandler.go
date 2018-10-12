@@ -40,7 +40,7 @@ func (g *Grpc) CreateTransaction(ctx context.Context, in *pb.CreateTxIn) (*pb.Un
 	if err != nil {
 		return nil, err
 	}
-	reply, err := callCreateTx(string(in.Execer), in.ActionName, msg)
+	reply, err := pb.CallCreateTx(string(in.Execer), in.ActionName, msg)
 	if err != nil {
 		return nil, err
 	}
