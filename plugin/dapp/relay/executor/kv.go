@@ -3,7 +3,7 @@ package executor
 import (
 	"fmt"
 
-	"gitlab.33.cn/chain33/chain33/types"
+	rTy "gitlab.33.cn/chain33/chain33/plugin/dapp/relay/types"
 )
 
 const (
@@ -40,25 +40,25 @@ func calcBtcHeaderKeyHeightList(height int64) []byte {
 	return []byte(key)
 }
 
-func calcOrderKeyStatus(order *types.RelayOrder, status int32) []byte {
+func calcOrderKeyStatus(order *rTy.RelayOrder, status int32) []byte {
 	key := fmt.Sprintf(relayOrderSCAIH+"%d:%s:%s:%s:%d",
 		status, order.Coin, order.CreaterAddr, order.Id, order.Height)
 	return []byte(key)
 }
 
-func calcOrderKeyCoin(order *types.RelayOrder, status int32) []byte {
+func calcOrderKeyCoin(order *rTy.RelayOrder, status int32) []byte {
 	key := fmt.Sprintf(relayOrderCSAIH+"%s:%d:%s:%s:%d",
 		order.Coin, status, order.CreaterAddr, order.Id, order.Height)
 	return []byte(key)
 }
 
-func calcOrderKeyAddrStatus(order *types.RelayOrder, status int32) []byte {
+func calcOrderKeyAddrStatus(order *rTy.RelayOrder, status int32) []byte {
 	key := fmt.Sprintf(relayOrderASCIH+"%s:%d:%s:%s:%d",
 		order.CreaterAddr, status, order.Coin, order.Id, order.Height)
 	return []byte(key)
 }
 
-func calcOrderKeyAddrCoin(order *types.RelayOrder, status int32) []byte {
+func calcOrderKeyAddrCoin(order *rTy.RelayOrder, status int32) []byte {
 	key := fmt.Sprintf(relayOrderACSIH+"%s:%s:%d:%s:%d",
 		order.CreaterAddr, order.Coin, status, order.Id, order.Height)
 	return []byte(key)
@@ -83,7 +83,7 @@ func calcOrderPrefixAddr(addr string) []byte {
 	return []byte(fmt.Sprintf(relayOrderACSIH+"%s", addr))
 }
 
-func calcAcceptKeyAddr(order *types.RelayOrder, status int32) []byte {
+func calcAcceptKeyAddr(order *rTy.RelayOrder, status int32) []byte {
 	if order.AcceptAddr != "" {
 		return []byte(fmt.Sprintf(relayBuyOrderACSIH+"%s:%s:%d:%s:%d",
 			order.AcceptAddr, order.Coin, status, order.Id, order.Height))

@@ -1,7 +1,7 @@
 package relayd
 
 import (
-	"gitlab.33.cn/chain33/chain33/types"
+	rTy "gitlab.33.cn/chain33/chain33/plugin/dapp/relay/types"
 )
 
 var (
@@ -36,8 +36,8 @@ type Header struct {
 	RelayedBy    string  `json:"relayed_by"`
 }
 
-func (b *Block) BtcHeader() *types.BtcHeader {
-	return &types.BtcHeader{
+func (b *Block) BtcHeader() *rTy.BtcHeader {
+	return &rTy.BtcHeader{
 		Hash:         b.Hash,
 		Height:       b.Height,
 		MerkleRoot:   b.MerkleRoot,
@@ -128,24 +128,24 @@ type Inputs struct {
 	Script   string `json:"script"`
 }
 
-func (t *TransactionResult) BtcTransaction() *types.BtcTransaction {
-	btcTx := &types.BtcTransaction{}
+func (t *TransactionResult) BtcTransaction() *rTy.BtcTransaction {
+	btcTx := &rTy.BtcTransaction{}
 	btcTx.Hash = t.Hash
 	btcTx.Time = t.Time
 	btcTx.BlockHeight = t.BlockHeight
 
-	vin := make([]*types.Vin, len(t.Inputs))
+	vin := make([]*rTy.Vin, len(t.Inputs))
 	for index, in := range t.Inputs {
-		var v types.Vin
+		var v rTy.Vin
 		v.Value = in.PrevOut.Value
 		v.Address = in.PrevOut.Address
 		vin[index] = &v
 	}
 	btcTx.Vin = vin
 
-	vout := make([]*types.Vout, len(t.Out))
+	vout := make([]*rTy.Vout, len(t.Out))
 	for index, in := range t.Out {
-		var out types.Vout
+		var out rTy.Vout
 		out.Value = in.Value
 		out.Address = in.Address
 		vout[index] = &out

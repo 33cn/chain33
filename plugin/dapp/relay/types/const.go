@@ -3,7 +3,6 @@ package types
 import (
 	"reflect"
 
-	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -50,15 +49,8 @@ const (
 	RelayCancel
 )
 
-const (
-	GetBlackwhiteRoundInfo       = "GetBlackwhiteRoundInfo"
-	GetBlackwhiteByStatusAndAddr = "GetBlackwhiteByStatusAndAddr"
-	GetBlackwhiteloopResult      = "GetBlackwhiteloopResult"
-)
-
 var (
 	RelayX      = "relay"
-	glog        = log15.New("module", RelayX)
 	JRPCName    = "Relay"
 	ExecerRelay = []byte(RelayX)
 	actionName  = map[string]int32{

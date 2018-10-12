@@ -10,7 +10,7 @@ import (
 	log "github.com/inconshreveable/log15"
 	"github.com/valyala/fasthttp"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
-	"gitlab.33.cn/chain33/chain33/types"
+	rTy "gitlab.33.cn/chain33/chain33/plugin/dapp/relay/types"
 )
 
 type btcWeb struct {
@@ -34,7 +34,7 @@ func (b *btcWeb) Stop() error {
 	return nil
 }
 
-func (b *btcWeb) GetBlockHeader(height uint64) (*types.BtcHeader, error) {
+func (b *btcWeb) GetBlockHeader(height uint64) (*rTy.BtcHeader, error) {
 	block, err := b.getBlock(height)
 	if err != nil {
 		return nil, err
@@ -88,7 +88,7 @@ func (b *btcWeb) Ping() {
 	log.Info("btcWeb ping", "latest Hash: ", hash.String(), "latest height", height)
 }
 
-func (b *btcWeb) GetTransaction(hash string) (*types.BtcTransaction, error) {
+func (b *btcWeb) GetTransaction(hash string) (*rTy.BtcTransaction, error) {
 	url := b.urlRoot + "/rawtx/" + hash
 	data, err := b.requestUrl(url)
 	if err != nil {
@@ -102,7 +102,7 @@ func (b *btcWeb) GetTransaction(hash string) (*types.BtcTransaction, error) {
 	return tx.BtcTransaction(), nil
 }
 
-func (b *btcWeb) GetSPV(height uint64, txHash string) (*types.BtcSpv, error) {
+func (b *btcWeb) GetSPV(height uint64, txHash string) (*rTy.BtcSpv, error) {
 	block, err := b.getBlock(height)
 	if err != nil {
 		return nil, err
@@ -120,7 +120,7 @@ func (b *btcWeb) GetSPV(height uint64, txHash string) (*types.BtcSpv, error) {
 		txs = append(txs, hash.CloneBytes())
 	}
 	proof := merkle.GetMerkleBranch(txs, txIndex)
-	spv := &types.BtcSpv{
+	spv := &rTy.BtcSpv{
 		Hash:        txHash,
 		Time:        block.Time,
 		Height:      block.Height,
