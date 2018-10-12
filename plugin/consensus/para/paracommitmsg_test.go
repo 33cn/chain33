@@ -30,7 +30,7 @@ var random *rand.Rand
 func init() {
 	executorty.Init()
 	types.SetTitle("user.p.para.")
-	rpc.Init(nil)
+	rpc.Init("paracross", nil)
 	pp.Init("paracross")
 	random = rand.New(rand.NewSource(types.Now().UnixNano()))
 	consensusInterval = 2
