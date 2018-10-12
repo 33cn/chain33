@@ -1,14 +1,12 @@
 package types
 
 import (
-	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var nameX string
 
 var (
-	nlog       = log.New("module", "exectype.norm")
 	actionName = map[string]int32{
 		"Nput": NormActionPut,
 	}
