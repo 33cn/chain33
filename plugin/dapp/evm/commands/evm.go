@@ -9,14 +9,17 @@ import (
 
 	"strings"
 
+	"strconv"
+
 	"github.com/golang/protobuf/proto"
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto/sha3"
 	common2 "gitlab.33.cn/chain33/chain33/plugin/dapp/evm/executor/vm/common"
-	"gitlab.33.cn/chain33/chain33/rpc"
+	evmtypes "gitlab.33.cn/chain33/chain33/plugin/dapp/evm/types"
 	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
+	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -85,7 +88,7 @@ func transferAddress(cmd *cobra.Command, args []string) {
 	}
 	if len(local) >= 34 {
 		var addr common2.Address
-		if strings.HasPrefix(local, types.UserEvmX) {
+		if strings.HasPrefix(local, evmtypes.EvmPrefix) {
 			addr = common2.ExecAddress(local)
 			fmt.Println(fmt.Sprintf("Local Contract Name: %v", local))
 			fmt.Println(fmt.Sprintf("Local Address: %v", addr.String()))
@@ -126,7 +129,52 @@ func addEvmBalanceFlags(cmd *cobra.Command) {
 
 func evmBalance(cmd *cobra.Command, args []string) {
 	// 直接复用coins的查询余额命令
-	balance(cmd, args)
+	//balance(cmd, args)
+
+	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
+	addr, _ := cmd.Flags().GetString("addr")
+	execer, _ := cmd.Flags().GetString("exec")
+	err := address.CheckAddress(addr)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, types.ErrInvalidAddress)
+		return
+	}
+	if ok := types.IsAllowExecName([]byte(execer), []byte(execer)); !ok {
+		fmt.Fprintln(os.Stderr, types.ErrExecNameNotAllow)
+		return
+	}
+
+	var addrs []string
+	addrs = append(addrs, addr)
+	params := types.ReqBalance{
+		Addresses: addrs,
+		Execer:    execer,
+		StateHash: "",
+	}
+	var res []*rpctypes.Account
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.GetBalance", params, &res)
+	ctx.SetResultCb(parseGetBalanceRes)
+	ctx.Run()
+}
+
+type AccountResult struct {
+	Currency int32  `json:"currency,omitempty"`
+	Balance  string `json:"balance,omitempty"`
+	Frozen   string `json:"frozen,omitempty"`
+	Addr     string `json:"addr,omitempty"`
+}
+
+func parseGetBalanceRes(arg interface{}) (interface{}, error) {
+	res := *arg.(*[]*rpctypes.Account)
+	balanceResult := strconv.FormatFloat(float64(res[0].Balance)/float64(types.Coin), 'f', 4, 64)
+	frozenResult := strconv.FormatFloat(float64(res[0].Frozen)/float64(types.Coin), 'f', 4, 64)
+	result := &AccountResult{
+		Addr:     res[0].Addr,
+		Currency: res[0].Currency,
+		Balance:  balanceResult,
+		Frozen:   frozenResult,
+	}
+	return result, nil
 }
 
 // 创建EVM合约
@@ -163,7 +211,7 @@ func createContract(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, "parse evm code error", err)
 		return
 	}
-	action := types.EVMContractAction{Amount: 0, Code: bCode, GasLimit: 0, GasPrice: 0, Note: note, Alias: alias}
+	action := evmtypes.EVMContractAction{Amount: 0, Code: bCode, GasLimit: 0, GasPrice: 0, Note: note, Alias: alias}
 
 	data, err := createEvmTx(&action, types.ExecName(paraName+"evm"), caller, address.ExecAddress(types.ExecName(paraName+"evm")), expire, rpcLaddr, feeInt64)
 
@@ -172,11 +220,11 @@ func createContract(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	params := rpc.RawParm{
+	params := rpctypes.RawParm{
 		Data: data,
 	}
 
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.SendTransaction", params, nil)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.SendTransaction", params, nil)
 	ctx.RunWithoutMarshal()
 }
 
@@ -297,7 +345,7 @@ func callContract(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	action := types.EVMContractAction{Amount: amountInt64, Code: bCode, GasLimit: 0, GasPrice: 0, Note: note}
+	action := evmtypes.EVMContractAction{Amount: amountInt64, Code: bCode, GasLimit: 0, GasPrice: 0, Note: note}
 
 	//name表示发给哪个执行器
 	data, err := createEvmTx(&action, name, caller, toAddr, expire, rpcLaddr, feeInt64)
@@ -307,11 +355,11 @@ func callContract(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	params := rpc.RawParm{
+	params := rpctypes.RawParm{
 		Data: data,
 	}
 
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.SendTransaction", params, nil)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.SendTransaction", params, nil)
 	ctx.RunWithoutMarshal()
 }
 
@@ -355,8 +403,8 @@ func estimateContract(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	var estGasReq = types.EstimateEVMGasReq{To: toAddr, Code: bCode, Caller: caller, Amount: amountInt64}
-	var estGasResp types.EstimateEVMGasResp
+	var estGasReq = evmtypes.EstimateEVMGasReq{To: toAddr, Code: bCode, Caller: caller, Amount: amountInt64}
+	var estGasResp evmtypes.EstimateEVMGasResp
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	query := sendQuery(rpcLaddr, "EstimateGas", estGasReq, &estGasResp)
 
@@ -410,7 +458,7 @@ func checkContractAddr(cmd *cobra.Command, args []string) {
 	name, _ := cmd.Flags().GetString("exec")
 	toAddr := to
 	if len(toAddr) == 0 && len(name) > 0 {
-		if strings.Contains(name, types.UserEvmX) {
+		if strings.Contains(name, evmtypes.EvmPrefix) {
 			toAddr = address.ExecAddress(name)
 		}
 	}
@@ -420,15 +468,15 @@ func checkContractAddr(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	var checkAddrReq = types.CheckEVMAddrReq{Addr: toAddr}
-	var checkAddrResp types.CheckEVMAddrResp
+	var checkAddrReq = evmtypes.CheckEVMAddrReq{Addr: toAddr}
+	var checkAddrResp evmtypes.CheckEVMAddrResp
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	query := sendQuery(rpcLaddr, "CheckAddrExists", checkAddrReq, &checkAddrResp)
 
-	if query {
+	if query && checkAddrResp.Contract {
 		proto.MarshalText(os.Stdout, &checkAddrResp)
 	} else {
-		fmt.Fprintln(os.Stderr, "error")
+		fmt.Fprintln(os.Stderr, "not evm contract addr!")
 	}
 }
 
@@ -480,8 +528,8 @@ func evmDebugClear(cmd *cobra.Command, args []string) {
 	evmDebugRpc(cmd, -1)
 }
 func evmDebugRpc(cmd *cobra.Command, flag int32) {
-	var debugReq = types.EvmDebugReq{Optype: flag}
-	var debugResp types.EvmDebugResp
+	var debugReq = evmtypes.EvmDebugReq{Optype: flag}
+	var debugResp evmtypes.EvmDebugResp
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	query := sendQuery(rpcLaddr, "EvmDebug", debugReq, &debugResp)
 
@@ -532,11 +580,11 @@ func evmTransfer(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	params := rpc.RawParm{
+	params := rpctypes.RawParm{
 		Data: data,
 	}
 
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.SendTransaction", params, nil)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.SendTransaction", params, nil)
 	ctx.RunWithoutMarshal()
 }
 
@@ -580,11 +628,11 @@ func evmWithdraw(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	params := rpc.RawParm{
+	params := rpctypes.RawParm{
 		Data: data,
 	}
 
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.SendTransaction", params, nil)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.SendTransaction", params, nil)
 	ctx.RunWithoutMarshal()
 }
 
@@ -595,13 +643,13 @@ func sendQuery(rpcAddr, funcName string, request, result interface{}) bool {
 		Payload:  request,
 	}
 
-	rpc, err := jsonclient.NewJSONClient(rpcAddr)
+	jsonrpc, err := jsonclient.NewJSONClient(rpcAddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return false
 	}
 
-	err = rpc.Call("Chain33.Query", params, &result)
+	err = jsonrpc.Call("Chain33.Query", params, &result)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return false
