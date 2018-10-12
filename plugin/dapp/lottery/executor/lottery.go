@@ -93,18 +93,18 @@ func (lott *Lottery) findLotteryDrawRecord(key []byte) (*pty.LotteryDrawRecord, 
 	return &record, nil
 }
 
-func (lott *Lottery) saveLotteryBuy(lotterylog *pty.ReceiptLottery, txId string) (kvs []*types.KeyValue) {
-	key := calcLotteryBuyKey(lotterylog.LotteryId, lotterylog.Addr, lotterylog.Round, txId)
+func (lott *Lottery) saveLotteryBuy(lotterylog *pty.ReceiptLottery) (kvs []*types.KeyValue) {
+	key := calcLotteryBuyKey(lotterylog.LotteryId, lotterylog.Addr, lotterylog.Round, lotterylog.Index)
 	kv := &types.KeyValue{}
-	record := &pty.LotteryBuyRecord{lotterylog.Number, lotterylog.Amount, lotterylog.Round, 0, lotterylog.Way}
+	record := &pty.LotteryBuyRecord{lotterylog.Number, lotterylog.Amount, lotterylog.Round, 0, lotterylog.Way, lotterylog.Index}
 	kv = &types.KeyValue{key, types.Encode(record)}
 
 	kvs = append(kvs, kv)
 	return kvs
 }
 
-func (lott *Lottery) deleteLotteryBuy(lotterylog *pty.ReceiptLottery, txId string) (kvs []*types.KeyValue) {
-	key := calcLotteryBuyKey(lotterylog.LotteryId, lotterylog.Addr, lotterylog.Round, txId)
+func (lott *Lottery) deleteLotteryBuy(lotterylog *pty.ReceiptLottery) (kvs []*types.KeyValue) {
+	key := calcLotteryBuyKey(lotterylog.LotteryId, lotterylog.Addr, lotterylog.Round, lotterylog.Index)
 
 	kv := &types.KeyValue{key, nil}
 	kvs = append(kvs, kv)
@@ -128,12 +128,12 @@ func (lott *Lottery) updateLotteryBuy(lotterylog *pty.ReceiptLottery, isAdd bool
 		for _, addr := range addrkeys {
 			for _, updateRec := range buyInfo[addr].Records {
 				//find addr, txhash
-				key := calcLotteryBuyKey(lotterylog.LotteryId, addr, lotterylog.Round, updateRec.TxHash)
+				key := calcLotteryBuyKey(lotterylog.LotteryId, addr, lotterylog.Round, updateRec.Index)
 				kv := &types.KeyValue{}
-				record := &pty.LotteryBuyRecord{updateRec.Number, updateRec.Amount, lotterylog.Round, 0, updateRec.Way}
+				record := &pty.LotteryBuyRecord{updateRec.Number, updateRec.Amount, lotterylog.Round, 0, updateRec.Way, updateRec.Index}
 				if isAdd {
 					llog.Error("updateLotteryBuy update key")
-					record = &pty.LotteryBuyRecord{updateRec.Number, updateRec.Amount, lotterylog.Round, updateRec.Type, updateRec.Way}
+					record = &pty.LotteryBuyRecord{updateRec.Number, updateRec.Amount, lotterylog.Round, updateRec.Type, updateRec.Way, updateRec.Index}
 				}
 
 				kv = &types.KeyValue{key, types.Encode(record)}
