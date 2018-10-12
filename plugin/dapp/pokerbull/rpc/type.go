@@ -15,16 +15,16 @@ var name string
 var jrpc = &Jrpc{}
 var grpc = &Grpc{}
 
-func InitRPC(s pluginmgr.RPCServer) {
+func InitRPC(name string, s pluginmgr.RPCServer) {
 	cli := channelClient{}
 	cli.Init(s.GetQueueClient())
 	jrpc.cli = cli
 	grpc.channelClient = cli
-	s.JRPC().RegisterName(pb.JRPCName, jrpc)
+	s.JRPC().RegisterName(name, jrpc)
 	pb.RegisterPokerbullServer(s.GRPC(), grpc)
 }
 
-func Init(s pluginmgr.RPCServer) {
+func Init(name string, s pluginmgr.RPCServer) {
 	name = pb.PokerBullX
 	// init executor type
 	types.RegistorExecutor(name, &PokerBullType{})
@@ -39,7 +39,7 @@ func Init(s pluginmgr.RPCServer) {
 	//types.RegisterRPCQueryHandle(pb.FuncName_QueryGameListByIds, &GameGetList{})
 	//types.RegisterRPCQueryHandle(pb.FuncName_QueryGameById, &GameGetInfo{})
 
-	InitRPC(s)
+	InitRPC(name, s)
 }
 
 type PokerBullType struct {

@@ -3,10 +3,15 @@ package types
 import (
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"reflect"
 	"strings"
 	"unicode"
+
+	"gitlab.33.cn/chain33/chain33/common/address"
 )
+
+var random = rand.New(rand.NewSource(Now().UnixNano()))
 
 type LogType interface {
 	Name() string
@@ -63,6 +68,67 @@ func LoadExecutorType(exec string) ExecutorType {
 		return exec
 	}
 	return nil
+}
+
+// 重构完成后删除
+func CallExecNewTx(execName, action string, param interface{}) ([]byte, error) {
+	exec := LoadExecutorType(execName)
+	if exec == nil {
+		tlog.Error("callExecNewTx", "Error", "exec not found")
+		return nil, ErrNotSupport
+	}
+	// param is interface{type, var-nil}, check with nil always fail
+	if reflect.ValueOf(param).IsNil() {
+		tlog.Error("callExecNewTx", "Error", "param in nil")
+		return nil, ErrInvalidParam
+	}
+	jsonStr, err := json.Marshal(param)
+	if err != nil {
+		tlog.Error("callExecNewTx", "Error", err)
+		return nil, err
+	}
+	tx, err := exec.CreateTx(action, json.RawMessage(jsonStr))
+	if err != nil {
+		tlog.Error("callExecNewTx", "Error", err)
+		return nil, err
+	}
+	return formatTx(execName, tx)
+}
+
+func CallCreateTx(execName, action string, param Message) ([]byte, error) {
+	exec := LoadExecutorType(execName)
+	if exec == nil {
+		tlog.Error("callExecNewTx", "Error", "exec not found")
+		return nil, ErrNotSupport
+	}
+	// param is interface{type, var-nil}, check with nil always fail
+	if param == nil {
+		tlog.Error("callExecNewTx", "Error", "param in nil")
+		return nil, ErrInvalidParam
+	}
+	tx, err := exec.Create(action, param)
+	if err != nil {
+		tlog.Error("callExecNewTx", "Error", err)
+		return nil, err
+	}
+	return formatTx(execName, tx)
+}
+
+func formatTx(execName string, tx *Transaction) ([]byte, error) {
+	//填写nonce,execer,to, fee 等信息, 后面会增加一个修改transaction的函数，会加上execer fee 等的修改
+	tx.Nonce = random.Int63()
+	tx.Execer = []byte(execName)
+	//平行链，所有的to地址都是合约地址
+	if IsPara() || tx.To == "" {
+		tx.To = address.ExecAddress(string(tx.Execer))
+	}
+	var err error
+	tx.Fee, err = tx.GetRealFee(MinFee)
+	if err != nil {
+		return nil, err
+	}
+	txbyte := Encode(tx)
+	return txbyte, nil
 }
 
 func RegistorLog(logTy int64, util LogType) {

@@ -368,28 +368,22 @@ func addTokenPrecreatedFlags(cmd *cobra.Command) {
 
 func tokenPrecreated(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	paraName, _ := cmd.Flags().GetString("paraName")
 	name, _ := cmd.Flags().GetString("name")
 	symbol, _ := cmd.Flags().GetString("symbol")
 	introduction, _ := cmd.Flags().GetString("introduction")
 	ownerAddr, _ := cmd.Flags().GetString("owner_addr")
 	price, _ := cmd.Flags().GetFloat64("price")
-	fee, _ := cmd.Flags().GetFloat64("fee")
 	total, _ := cmd.Flags().GetInt64("total")
 
 	priceInt64 := int64((price + 0.000001) * 1e4)
-	feeInt64 := int64((fee + 0.000001) * 1e4)
-	params := &tokenty.TokenPreCreateTx{
+	params := &tokenty.TokenPreCreate{
 		Price:        priceInt64 * 1e4,
 		Name:         name,
 		Symbol:       symbol,
 		Introduction: introduction,
-		OwnerAddr:    ownerAddr,
+		Owner:        ownerAddr,
 		Total:        total * types.TokenPrecision,
-		Fee:          feeInt64 * 1e4,
-		ParaName:     paraName,
 	}
-
 	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.CreateRawTokenPreCreateTx", params, nil)
 	ctx.RunWithoutMarshal()
 }
@@ -417,17 +411,11 @@ func addTokenFinishFlags(cmd *cobra.Command) {
 
 func tokenFinish(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	paraName, _ := cmd.Flags().GetString("paraName")
 	symbol, _ := cmd.Flags().GetString("symbol")
 	ownerAddr, _ := cmd.Flags().GetString("owner_addr")
-	fee, _ := cmd.Flags().GetFloat64("fee")
-
-	feeInt64 := int64(fee * 1e4)
-	params := &tokenty.TokenFinishTx{
-		Symbol:    symbol,
-		OwnerAddr: ownerAddr,
-		Fee:       feeInt64 * 1e4,
-		ParaName:  paraName,
+	params := &tokenty.TokenFinishCreate{
+		Symbol: symbol,
+		Owner:  ownerAddr,
 	}
 
 	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.CreateRawTokenFinishTx", params, nil)
@@ -457,17 +445,12 @@ func addTokenRevokeFlags(cmd *cobra.Command) {
 
 func tokenRevoke(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	paraName, _ := cmd.Flags().GetString("paraName")
 	symbol, _ := cmd.Flags().GetString("symbol")
 	ownerAddr, _ := cmd.Flags().GetString("owner_addr")
-	fee, _ := cmd.Flags().GetFloat64("fee")
 
-	feeInt64 := int64(fee * 1e4)
-	params := &tokenty.TokenRevokeTx{
-		Symbol:    symbol,
-		OwnerAddr: ownerAddr,
-		Fee:       feeInt64 * 1e4,
-		ParaName:  paraName,
+	params := &tokenty.TokenRevokeCreate{
+		Symbol: symbol,
+		Owner:  ownerAddr,
 	}
 
 	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.CreateRawTokenRevokeTx", params, nil)

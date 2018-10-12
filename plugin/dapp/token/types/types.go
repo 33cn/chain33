@@ -2,12 +2,9 @@ package types
 
 import (
 	"encoding/json"
-	"math/rand"
-	"time"
 
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common"
-	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -24,14 +21,6 @@ var (
 		"TransferToExec":    TokenActionTransferToExec,
 	}
 )
-
-//getRealExecName
-//如果paraName == "", 那么自动用 types.types.ExecName("token")
-//如果设置了paraName , 那么强制用paraName
-//也就是说，我们可以构造其他平行链的交易
-func getRealExecName(paraName string) string {
-	return types.ExecName(paraName + types.TokenX)
-}
 
 func init() {
 	nameX = types.ExecName(types.TokenX)
@@ -73,262 +62,32 @@ func NewType() *TokenType {
 	return c
 }
 
-func (at *TokenType) GetPayload() types.Message {
+func (t *TokenType) GetPayload() types.Message {
 	return &TokenAction{}
 }
 
-func (token TokenType) GetRealToAddr(tx *types.Transaction) string {
-	if string(tx.Execer) == types.TokenX {
-		return tx.To
-	}
-	var action TokenAction
-	err := types.Decode(tx.Payload, &action)
-	if err != nil {
-		return tx.To
-	}
-	if action.Ty == ActionTransfer && action.GetTransfer() != nil {
-		return action.GetTransfer().GetTo()
-	}
-	return tx.To
-}
-
-func (token TokenType) ActionName(tx *types.Transaction) string {
-	var action TokenAction
-	err := types.Decode(tx.Payload, &action)
-	if err != nil {
-		return "unknown-err"
-	}
-
-	if action.Ty == TokenActionPreCreate && action.GetTokenprecreate() != nil {
-		return "preCreate"
-	} else if action.Ty == TokenActionFinishCreate && action.GetTokenfinishcreate() != nil {
-		return "finishCreate"
-	} else if action.Ty == TokenActionRevokeCreate && action.GetTokenrevokecreate() != nil {
-		return "revokeCreate"
-	} else if action.Ty == ActionTransfer && action.GetTransfer() != nil {
-		return "transfer"
-	} else if action.Ty == ActionWithdraw && action.GetWithdraw() != nil {
-		return "withdraw"
-	}
-	return "unknown"
-}
-
-func (token TokenType) DecodePayload(tx *types.Transaction) (interface{}, error) {
-	var action TokenAction
-	err := types.Decode(tx.Payload, &action)
-	if err != nil {
-		return nil, err
-	}
-	return &action, nil
-}
-
-func (token TokenType) Amount(tx *types.Transaction) (int64, error) {
-	//TODO: 补充和完善token和trade分支的amount的计算, added by hzj
-	var action TokenAction
-	err := types.Decode(tx.GetPayload(), &action)
-	if err != nil {
-		return 0, types.ErrDecode
-	}
-
-	if TokenActionPreCreate == action.Ty && action.GetTokenprecreate() != nil {
-		precreate := action.GetTokenprecreate()
-		return precreate.Price, nil
-	} else if TokenActionFinishCreate == action.Ty && action.GetTokenfinishcreate() != nil {
-		return 0, nil
-	} else if TokenActionRevokeCreate == action.Ty && action.GetTokenrevokecreate() != nil {
-		return 0, nil
-	} else if ActionTransfer == action.Ty && action.GetTransfer() != nil {
-		return 0, nil
-	} else if ActionWithdraw == action.Ty && action.GetWithdraw() != nil {
-		return 0, nil
-	}
-	return 0, nil
-}
-
-// TODO 暂时不修改实现， 先完成结构的重构
-func (coins TokenType) CreateTx(action string, message json.RawMessage) (*types.Transaction, error) {
-	tlog.Debug("token.CreateTx", "action", action)
-	var tx *types.Transaction
-	// transfer/withdraw 原来实现混在一起， 简单的从原来的代码移进来
-	if action == "" {
-		var param types.CreateTx
-		err := json.Unmarshal(message, &param)
-		if err != nil {
-			tlog.Error("CreateTx", "Error", err)
-			return nil, types.ErrInputPara
-		}
-
-		if param.ExecName != "" && !types.IsAllowExecName([]byte(param.ExecName), []byte(param.ExecName)) {
-			tlog.Error("CreateTx", "Error", types.ErrExecNameNotMatch)
-			return nil, types.ErrExecNameNotMatch
-		}
-
-		//to地址要么是普通用户地址，要么就是执行器地址，不能为空
-		if param.To == "" {
-			return nil, types.ErrAddrNotExist
-		}
-
-		if param.Amount < 0 {
-			return nil, types.ErrAmount
-		}
-		if param.IsToken {
-			tx = CreateTokenTransfer(&param)
-		} else {
-			return nil, types.ErrNotSupport
-		}
-
-		tx.Fee, err = tx.GetRealFee(types.MinFee)
-		if err != nil {
-			return nil, err
-		}
-
-		random := rand.New(rand.NewSource(time.Now().UnixNano()))
-		tx.Nonce = random.Int63()
-	} else if action == "TokenPreCreate" {
-		var param TokenPreCreateTx
-		err := json.Unmarshal(message, &param)
-		if err != nil {
-			tlog.Error("CreateTx", "Error", err)
-			return nil, types.ErrInputPara
-		}
-
-		return CreateRawTokenPreCreateTx(&param)
-	} else if action == "TokenFinish" {
-		var param TokenFinishTx
-		err := json.Unmarshal(message, &param)
-		if err != nil {
-			tlog.Error("CreateTx", "Error", err)
-			return nil, types.ErrInputPara
-		}
-
-		return CreateRawTokenFinishTx(&param)
-	} else if action == "TokenRevoke" {
-		var param TokenRevokeTx
-		err := json.Unmarshal(message, &param)
-		if err != nil {
-			tlog.Error("CreateTx", "Error", err)
-			return nil, types.ErrInputPara
-		}
-
-		return CreateRawTokenRevokeTx(&param)
-	} else {
-		return nil, types.ErrNotSupport
-	}
-
-	return tx, nil
-}
-
-func (coins TokenType) GetTypeMap() map[string]int32 {
+func (t *TokenType) GetTypeMap() map[string]int32 {
 	return actionName
 }
 
-func CreateTokenTransfer(param *types.CreateTx) *types.Transaction {
-	transfer := &TokenAction{}
-	if !param.IsWithdraw {
-		//如果在平行链上构造，或者传入的execName是paraExecName,则加入ToAddr
-		if types.IsPara() || types.IsParaExecName(param.GetExecName()) {
-			v := &TokenAction_Transfer{Transfer: &types.AssetsTransfer{
-				Cointoken: param.GetTokenSymbol(), Amount: param.Amount, Note: param.GetNote(), To: param.GetTo()}}
-			transfer.Value = v
-			transfer.Ty = ActionTransfer
-		} else {
-			v := &TokenAction_Transfer{Transfer: &types.AssetsTransfer{
-				Cointoken: param.GetTokenSymbol(), Amount: param.Amount, Note: param.GetNote()}}
-			transfer.Value = v
-			transfer.Ty = ActionTransfer
-		}
-
-	} else {
-		v := &TokenAction_Withdraw{Withdraw: &types.AssetsWithdraw{
-			Cointoken: param.GetTokenSymbol(), Amount: param.Amount, Note: param.GetNote()}}
-		transfer.Value = v
-		transfer.Ty = ActionWithdraw
-	}
-	//在平行链上，execName=token或者没加，默认构造平行链的交易
-	if types.IsPara() && (param.GetExecName() == types.TokenX || param.GetExecName() == "") {
-		return &types.Transaction{Execer: []byte(getRealExecName(types.GetParaName())), Payload: types.Encode(transfer), To: address.ExecAddress(getRealExecName(types.GetParaName()))}
-	}
-	//如果传入 execName 是平行链的execName的话，按照传入的execName构造交易
-	if types.IsParaExecName(param.GetExecName()) {
-		return &types.Transaction{Execer: []byte(param.GetExecName()), Payload: types.Encode(transfer), To: address.ExecAddress(param.GetExecName())}
-	}
-	//其他情况，默认构造主链交易
-	return &types.Transaction{Execer: []byte(nameX), Payload: types.Encode(transfer), To: param.GetTo()}
-}
-
-func CreateRawTokenPreCreateTx(parm *TokenPreCreateTx) (*types.Transaction, error) {
-	if parm == nil {
-		tlog.Error("CreateRawTokenPreCreateTx", "parm", parm)
+func (c *TokenType) RPC_Default_Process(action string, msg interface{}) (*types.Transaction, error) {
+	var create *types.CreateTx
+	if _, ok := msg.(*types.CreateTx); !ok {
 		return nil, types.ErrInvalidParam
 	}
-	v := &TokenPreCreate{
-		Name:         parm.Name,
-		Symbol:       parm.Symbol,
-		Introduction: parm.Introduction,
-		Total:        parm.Total,
-		Price:        parm.Price,
-		Owner:        parm.OwnerAddr,
+	create = msg.(*types.CreateTx)
+	if !create.IsToken {
+		return nil, types.ErrNotSupport
 	}
-	precreate := &TokenAction{
-		Ty:    TokenActionPreCreate,
-		Value: &TokenAction_Tokenprecreate{v},
+	tx, err := c.AssertCreate(create)
+	if err != nil {
+		return nil, err
 	}
-	tx := &types.Transaction{
-		Execer:  []byte(getRealExecName(parm.ParaName)),
-		Payload: types.Encode(precreate),
-		Fee:     parm.Fee,
-		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(getRealExecName(parm.ParaName)),
+	//to地址的问题,如果是主链交易，to地址就是直接是设置to
+	if !types.IsPara() {
+		tx.To = create.To
 	}
-
-	tx.SetRealFee(types.MinFee)
-
-	return tx, nil
-}
-
-func CreateRawTokenFinishTx(parm *TokenFinishTx) (*types.Transaction, error) {
-	if parm == nil {
-		return nil, types.ErrInvalidParam
-	}
-
-	v := &TokenFinishCreate{Symbol: parm.Symbol, Owner: parm.OwnerAddr}
-	finish := &TokenAction{
-		Ty:    TokenActionFinishCreate,
-		Value: &TokenAction_Tokenfinishcreate{v},
-	}
-	tx := &types.Transaction{
-		Execer:  []byte(getRealExecName(parm.ParaName)),
-		Payload: types.Encode(finish),
-		Fee:     parm.Fee,
-		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(getRealExecName(parm.ParaName)),
-	}
-
-	tx.SetRealFee(types.MinFee)
-
-	return tx, nil
-}
-
-func CreateRawTokenRevokeTx(parm *TokenRevokeTx) (*types.Transaction, error) {
-	if parm == nil {
-		return nil, types.ErrInvalidParam
-	}
-	v := &TokenRevokeCreate{Symbol: parm.Symbol, Owner: parm.OwnerAddr}
-	revoke := &TokenAction{
-		Ty:    TokenActionRevokeCreate,
-		Value: &TokenAction_Tokenrevokecreate{v},
-	}
-	tx := &types.Transaction{
-		Execer:  []byte(getRealExecName(parm.ParaName)),
-		Payload: types.Encode(revoke),
-		Fee:     parm.Fee,
-		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(getRealExecName(parm.ParaName)),
-	}
-
-	tx.SetRealFee(types.MinFee)
-
-	return tx, nil
+	return tx, err
 }
 
 // log

@@ -1,19 +1,18 @@
 package rpc
 
 import (
-	"context"
 	"encoding/hex"
 
-	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common/address"
+	tokenty "gitlab.33.cn/chain33/chain33/plugin/dapp/token/types"
+	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 	"gitlab.33.cn/chain33/chain33/types"
+	context "golang.org/x/net/context"
 )
 
-var log = log15.New("module", "token.rpc")
-
 //TODO:和GetBalance进行泛化处理，同时LoadAccounts和LoadExecAccountQueue也需要进行泛化处理, added by hzj
-func (c *channelClient) GetTokenBalance(in *tokenty.ReqTokenBalance) ([]*types.Account, error) {
+func (c *channelClient) getTokenBalance(in *tokenty.ReqTokenBalance) ([]*types.Account, error) {
 	accountTokendb, err := account.NewAccountDB(types.TokenX, in.GetTokenSymbol(), nil)
 	if err != nil {
 		return nil, err
@@ -54,34 +53,21 @@ func (c *channelClient) GetTokenBalance(in *tokenty.ReqTokenBalance) ([]*types.A
 	}
 }
 
-func (c *channelClient) CreateRawTokenPreCreateTx(parm *tokenty.TokenPreCreateTx) ([]byte, error) {
-	return callExecNewTx(types.ExecName(types.TokenX), "TokenPreCreate", parm)
-}
-
-func (c *channelClient) CreateRawTokenFinishTx(parm *tokenty.TokenFinishTx) ([]byte, error) {
-	return callExecNewTx(types.ExecName(types.TokenX), "TokenFinish", parm)
-}
-
-func (c *channelClient) CreateRawTokenRevokeTx(parm *tokenty.TokenRevokeTx) ([]byte, error) {
-	return callExecNewTx(types.ExecName(types.TokenX), "TokenRevoke", parm)
-}
-
-func (g *Grpc) GetTokenBalance(ctx context.Context, in *tokenty.ReqTokenBalance) (*pb.Accounts, error) {
-	reply, err := g.cli.GetTokenBalance(in)
+func (c *channelClient) GetTokenBalance(ctx context.Context, in *tokenty.ReqTokenBalance) (*types.Accounts, error) {
+	reply, err := c.getTokenBalance(in)
 	if err != nil {
 		return nil, err
 	}
-	return &pb.Accounts{Acc: reply}, nil
+	return &types.Accounts{Acc: reply}, nil
 }
 
-func (c *Chain33) GetTokenBalance(in tokenty.ReqTokenBalance, result *interface{}) error {
-
-	balances, err := c.cli.GetTokenBalance(&in)
+func (c *Jrpc) GetTokenBalance(in tokenty.ReqTokenBalance, result *interface{}) error {
+	balances, err := c.cli.GetTokenBalance(context.Background(), &in)
 	if err != nil {
 		return err
 	}
 	var accounts []*rpctypes.Account
-	for _, balance := range balances {
+	for _, balance := range balances.Acc {
 		accounts = append(accounts, &rpctypes.Account{Addr: balance.GetAddr(),
 			Balance:  balance.GetBalance(),
 			Currency: balance.GetCurrency(),
@@ -91,31 +77,29 @@ func (c *Chain33) GetTokenBalance(in tokenty.ReqTokenBalance, result *interface{
 	return nil
 }
 
-func (c *Chain33) CreateRawTokenPreCreateTx(in *tokenty.TokenPreCreateTx, result *interface{}) error {
-	reply, err := c.cli.CreateRawTokenPreCreateTx(in)
+func (c *Jrpc) CreateRawTokenPreCreateTx(in *tokenty.TokenPreCreate, result *interface{}) error {
+	data, err := types.CallCreateTx(types.ExecName(tokenty.Name), "Tokenprecreate", in)
 	if err != nil {
 		return err
 	}
-
-	*result = hex.EncodeToString(reply)
+	*result = hex.EncodeToString(data)
 	return nil
 }
 
-func (c *Chain33) CreateRawTokenFinishTx(in *tokenty.TokenFinishTx, result *interface{}) error {
-	reply, err := c.cli.CreateRawTokenFinishTx(in)
+func (c *Jrpc) CreateRawTokenFinishTx(in *tokenty.TokenFinishCreate, result *interface{}) error {
+	data, err := types.CallCreateTx(types.ExecName(tokenty.Name), "Tokenfinishcreate", in)
 	if err != nil {
 		return err
 	}
-	*result = hex.EncodeToString(reply)
+	*result = hex.EncodeToString(data)
 	return nil
 }
 
-func (c *Chain33) CreateRawTokenRevokeTx(in *tokenty.TokenRevokeTx, result *interface{}) error {
-	reply, err := c.cli.CreateRawTokenRevokeTx(in)
+func (c *Jrpc) CreateRawTokenRevokeTx(in *tokenty.TokenRevokeCreate, result *interface{}) error {
+	data, err := types.CallCreateTx(types.ExecName(tokenty.Name), "Tokenrevokecreate", in)
 	if err != nil {
 		return err
 	}
-
-	*result = hex.EncodeToString(reply)
+	*result = hex.EncodeToString(data)
 	return nil
 }

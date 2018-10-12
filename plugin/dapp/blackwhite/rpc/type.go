@@ -9,20 +9,23 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var jrpc = &Jrpc{}
-var grpc = &Grpc{}
-
-func InitRPC(s pluginmgr.RPCServer) {
-	cli := channelClient{}
-	cli.Init(s.GetQueueClient())
-	jrpc.cli = cli
-	grpc.channelClient = cli
-	s.JRPC().RegisterName(bw.JRPCName, jrpc)
-	bw.RegisterBlackwhiteServer(s.GRPC(), grpc)
+type Jrpc struct {
+	cli *channelClient
 }
 
-func Init(s pluginmgr.RPCServer) {
-	InitRPC(s)
+type Grpc struct {
+	*channelClient
+}
+
+type channelClient struct {
+	pluginmgr.ChannelClient
+}
+
+func Init(name string, s pluginmgr.RPCServer) {
+	cli := &channelClient{}
+	grpc := &Grpc{channelClient: cli}
+	cli.Init(name, s, &Jrpc{cli: cli}, grpc)
+	bw.RegisterBlackwhiteServer(s.GRPC(), grpc)
 }
 
 type BlackwhiteCreateTxRPC struct{}
