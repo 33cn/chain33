@@ -16,8 +16,8 @@ func tokenPayloadType(funcname string) (proto.Message, error) {
 		req = &types.ReqTokens{}
 	case "GetTokenInfo":
 		req = &types.ReqString{}
-	case "GetAddrReceiverforTokens":
-		req = &types.ReqAddrTokens{}
+	//case "GetAddrReceiverforTokens":
+	//	req = &types.ReqAddrTokens{}
 	case "GetAccountTokenAssets":
 		req = &types.ReqAccountTokenAssets{}
 	default:
@@ -68,21 +68,6 @@ func ticketPayloadType(funcname string) (proto.Message, error) {
 		req = &types.TicketList{}
 	case "MinerAddress", "MinerSourceList":
 		req = &types.ReqString{}
-	default:
-		return nil, types.ErrInputPara
-	}
-	return req, nil
-}
-
-func tradePayloadType(funcname string) (proto.Message, error) {
-	var req proto.Message
-	switch funcname {
-	case "GetOnesSellOrder", "GetOnesBuyOrder", "GetOnesSellOrderWithStatus", "GetOnesBuyOrderWithStatus":
-		req = &types.ReqAddrTokens{}
-	case "GetTokenSellOrderByStatus":
-		req = &types.ReqTokenSellOrder{}
-	case "GetTokenBuyOrderByStatus":
-		req = &types.ReqTokenBuyOrder{}
 	default:
 		return nil, types.ErrInputPara
 	}
@@ -156,8 +141,6 @@ func payloadType(execer, funcname string) (proto.Message, error) {
 		return retrievePayloadType(funcname)
 	case types.ExecName(types.TicketX): // D
 		return ticketPayloadType(funcname)
-	case types.ExecName(types.TradeX): // D
-		return tradePayloadType(funcname)
 	case types.ExecName(types.PrivacyX):
 		return privacyPayloadType(funcname)
 	case types.ExecName(types.RelayX):

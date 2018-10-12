@@ -13,10 +13,12 @@ import (
 
 	hashlocktype "gitlab.33.cn/chain33/chain33/plugin/dapp/hashlock/types"
 	lotterytype "gitlab.33.cn/chain33/chain33/plugin/dapp/lottery/types"
+
+	tradetype "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/types"
+
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 	retrievetype "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
 	tokentype "gitlab.33.cn/chain33/chain33/types/executor/token"
-	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
 	// TODO: 需要将插件管理器移动到封闭统一的地方进行管理
 )
 
