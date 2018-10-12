@@ -9,7 +9,7 @@ import (
 	"errors"
 
 	"github.com/spf13/cobra"
-	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
+	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -49,7 +49,7 @@ func LockCmd() *cobra.Command {
 
 func lock(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	var res jsonrpc.Reply
+	var res rpctypes.Reply
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.Lock", nil, &res)
 	ctx.Run()
 }
@@ -94,7 +94,7 @@ func unLock(cmd *cobra.Command, args []string) {
 		Timeout:        timeOut,
 		WalletOrTicket: walletOrTicket,
 	}
-	var res jsonrpc.Reply
+	var res rpctypes.Reply
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.UnLock", params, &res)
 	ctx.Run()
 }
@@ -111,7 +111,7 @@ func WalletStatusCmd() *cobra.Command {
 
 func walletStatus(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	var res jsonrpc.WalletStatus
+	var res rpctypes.WalletStatus
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetWalletStatus", nil, &res)
 	ctx.Run()
 }
@@ -143,7 +143,7 @@ func setPwd(cmd *cobra.Command, args []string) {
 		OldPass: oldPwd,
 		NewPass: newPwd,
 	}
-	var res jsonrpc.Reply
+	var res rpctypes.Reply
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.SetPasswd", params, &res)
 	ctx.Run()
 }
@@ -174,19 +174,19 @@ func walletListTxs(cmd *cobra.Command, args []string) {
 	txHash, _ := cmd.Flags().GetString("from")
 	count, _ := cmd.Flags().GetInt32("count")
 	direction, _ := cmd.Flags().GetInt32("dir")
-	params := jsonrpc.ReqWalletTransactionList{
+	params := rpctypes.ReqWalletTransactionList{
 		FromTx:    txHash,
 		Count:     count,
 		Direction: direction,
 	}
-	var res jsonrpc.WalletTxDetails
+	var res rpctypes.WalletTxDetails
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.WalletTxList", params, &res)
 	ctx.SetResultCb(parseWalletTxListRes)
 	ctx.Run()
 }
 
 func parseWalletTxListRes(arg interface{}) (interface{}, error) {
-	res := arg.(*jsonrpc.WalletTxDetails)
+	res := arg.(*rpctypes.WalletTxDetails)
 	var result WalletTxDetailsResult
 	for _, v := range res.TxDetails {
 		amountResult := strconv.FormatFloat(float64(v.Amount)/float64(types.Coin), 'f', 4, 64)
@@ -228,7 +228,7 @@ func mergeBalance(cmd *cobra.Command, args []string) {
 	params := types.ReqWalletMergeBalance{
 		To: toAddr,
 	}
-	var res jsonrpc.ReplyHashes
+	var res rpctypes.ReplyHashes
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.MergeBalance", params, &res)
 	ctx.Run()
 }
@@ -260,7 +260,7 @@ func autoMine(cmd *cobra.Command, args []string) {
 		Flag: flag,
 	}
 
-	var res jsonrpc.Reply
+	var res rpctypes.Reply
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.SetAutoMining", params, &res)
 	ctx.Run()
 }
@@ -433,7 +433,7 @@ func setFee(cmd *cobra.Command, args []string) {
 	params := types.ReqWalletSetFee{
 		Amount: amountInt64 * 1e4,
 	}
-	var res jsonrpc.Reply
+	var res rpctypes.Reply
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.SetTxFee", params, &res)
 	ctx.Run()
 }
@@ -460,7 +460,7 @@ func sendTx(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	data, _ := cmd.Flags().GetString("data")
 	token, _ := cmd.Flags().GetString("token")
-	params := jsonrpc.RawParm{
+	params := rpctypes.RawParm{
 		Token: token,
 		Data:  data,
 	}

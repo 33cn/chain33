@@ -15,17 +15,17 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/types/executor"
 
-	// TODO: 最后要把以下类型引用都移动到插件中去
+	"github.com/inconshreveable/log15"
 	hashlocktype "gitlab.33.cn/chain33/chain33/plugin/dapp/hashlock/types"
 	lotterytype "gitlab.33.cn/chain33/chain33/plugin/dapp/lottery/types"
-	tokenty "gitlab.33.cn/chain33/chain33/plugin/dapp/token/types"
-	evmtype "gitlab.33.cn/chain33/chain33/types/executor/evm"
+	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 	retrievetype "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
 	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
 )
 
 //提供系统rpc接口
 var random = rand.New(rand.NewSource(types.Now().UnixNano()))
+var log = log15.New("module", "rpc")
 
 type channelClient struct {
 	client.QueueProtocolAPI
@@ -429,10 +429,6 @@ func (c *channelClient) CreateRawHashlockSendTx(parm *hashlocktype.HashlockSendT
 	return callExecNewTx(types.ExecName(types.HashlockX), "HashlockSend", parm)
 }
 
-func (c *channelClient) CreateRawEvmCreateCallTx(parm *evmtype.CreateCallTx) ([]byte, error) {
-	return callExecNewTx(types.ExecName(types.EvmX), "CreateCall", parm)
-}
-
 func (c *channelClient) CreateRawLotteryCreateTx(parm *lotterytype.LotteryCreateTx) ([]byte, error) {
 	return callExecNewTx(types.ExecName(types.LotteryX), "LotteryCreate", parm)
 }
@@ -496,7 +492,7 @@ func (c *channelClient) GetTimeStatus() (*types.TimeStatus, error) {
 	return &types.TimeStatus{NtpTime: ntpTime.Format("2006-01-02 15:04:05"), LocalTime: local.Format("2006-01-02 15:04:05"), Diff: int64(diff)}, nil
 }
 
-func (c *channelClient) CreateRawRelayOrderTx(parm *RelayOrderTx) ([]byte, error) {
+func (c *channelClient) CreateRawRelayOrderTx(parm *rpctypes.RelayOrderTx) ([]byte, error) {
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}
@@ -526,7 +522,7 @@ func (c *channelClient) CreateRawRelayOrderTx(parm *RelayOrderTx) ([]byte, error
 	return data, nil
 }
 
-func (c *channelClient) CreateRawRelayAcceptTx(parm *RelayAcceptTx) ([]byte, error) {
+func (c *channelClient) CreateRawRelayAcceptTx(parm *rpctypes.RelayAcceptTx) ([]byte, error) {
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}
@@ -549,7 +545,7 @@ func (c *channelClient) CreateRawRelayAcceptTx(parm *RelayAcceptTx) ([]byte, err
 	return data, nil
 }
 
-func (c *channelClient) CreateRawRelayRevokeTx(parm *RelayRevokeTx) ([]byte, error) {
+func (c *channelClient) CreateRawRelayRevokeTx(parm *rpctypes.RelayRevokeTx) ([]byte, error) {
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}
@@ -572,7 +568,7 @@ func (c *channelClient) CreateRawRelayRevokeTx(parm *RelayRevokeTx) ([]byte, err
 	return data, nil
 }
 
-func (c *channelClient) CreateRawRelayConfirmTx(parm *RelayConfirmTx) ([]byte, error) {
+func (c *channelClient) CreateRawRelayConfirmTx(parm *rpctypes.RelayConfirmTx) ([]byte, error) {
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}
@@ -595,7 +591,7 @@ func (c *channelClient) CreateRawRelayConfirmTx(parm *RelayConfirmTx) ([]byte, e
 	return data, nil
 }
 
-func (c *channelClient) CreateRawRelayVerifyBTCTx(parm *RelayVerifyBTCTx) ([]byte, error) {
+func (c *channelClient) CreateRawRelayVerifyBTCTx(parm *rpctypes.RelayVerifyBTCTx) ([]byte, error) {
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}
@@ -623,7 +619,7 @@ func (c *channelClient) CreateRawRelayVerifyBTCTx(parm *RelayVerifyBTCTx) ([]byt
 	return data, nil
 }
 
-func (c *channelClient) CreateRawRelaySaveBTCHeadTx(parm *RelaySaveBTCHeadTx) ([]byte, error) {
+func (c *channelClient) CreateRawRelaySaveBTCHeadTx(parm *rpctypes.RelaySaveBTCHeadTx) ([]byte, error) {
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}
