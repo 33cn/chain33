@@ -13,12 +13,12 @@ import (
 )
 
 var (
-	nameX string
+	nameX = types.ExecName(types.TradeX)
 	tlog  = log.New("module", types.TradeX)
 
 	actionName = map[string]int32{
-		"Sell":       TradeSellLimit,
-		"Buy":        TradeBuyMarket,
+		"SellLimit":  TradeSellLimit,
+		"BuyMarket":  TradeBuyMarket,
 		"RevokeSell": TradeRevokeSell,
 		"BuyLimit":   TradeBuyLimit,
 		"SellMarket": TradeSellMarket,
@@ -34,6 +34,10 @@ var (
 		types.TyLogTradeBuyRevoke:  {reflect.TypeOf(ReceiptTradeBuyRevoke{}), "LogTradeBuyRevoke"},
 	}
 )
+
+func (t *tradeType) GetName() string {
+	return nameX
+}
 
 func (t *tradeType) GetTypeMap() map[string]int32 {
 	return actionName
@@ -86,9 +90,9 @@ func (trade tradeType) ActionName(tx *types.Transaction) string {
 	if err != nil {
 		return "unknown-err"
 	}
-	if action.Ty == TradeSellLimit && action.GetSell() != nil {
+	if action.Ty == TradeSellLimit && action.GetSellLimit() != nil {
 		return "selltoken"
-	} else if action.Ty == TradeBuyMarket && action.GetBuy() != nil {
+	} else if action.Ty == TradeBuyMarket && action.GetBuyMarket() != nil {
 		return "buytoken"
 	} else if action.Ty == TradeRevokeSell && action.GetRevokeSell() != nil {
 		return "revokeselltoken"
@@ -119,9 +123,9 @@ func (t tradeType) Amount(tx *types.Transaction) (int64, error) {
 		return 0, types.ErrDecode
 	}
 
-	if TradeSellLimit == trade.Ty && trade.GetSell() != nil {
+	if TradeSellLimit == trade.Ty && trade.GetSellLimit() != nil {
 		return 0, nil
-	} else if TradeBuyMarket == trade.Ty && trade.GetBuy() != nil {
+	} else if TradeBuyMarket == trade.Ty && trade.GetBuyMarket() != nil {
 		return 0, nil
 	} else if TradeRevokeSell == trade.Ty && trade.GetRevokeSell() != nil {
 		return 0, nil
@@ -202,7 +206,7 @@ func CreateRawTradeSellTx(parm *TradeSellTx) (*types.Transaction, error) {
 	}
 	sell := &Trade{
 		Ty:    TradeSellLimit,
-		Value: &Trade_Sell{v},
+		Value: &Trade_SellLimit{v},
 	}
 	tx := &types.Transaction{
 		Execer:  []byte(nameX),
@@ -224,7 +228,7 @@ func CreateRawTradeBuyTx(parm *TradeBuyTx) (*types.Transaction, error) {
 	v := &TradeForBuy{SellID: parm.SellID, BoardlotCnt: parm.BoardlotCnt}
 	buy := &Trade{
 		Ty:    TradeBuyMarket,
-		Value: &Trade_Buy{v},
+		Value: &Trade_BuyMarket{v},
 	}
 	tx := &types.Transaction{
 		Execer:  []byte(nameX),
