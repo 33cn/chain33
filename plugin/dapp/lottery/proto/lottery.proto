@@ -3,10 +3,10 @@ syntax = "proto3";
 package types;
 
 message PurchaseRecord {
-    int64  amount = 1;
-    int64  number = 2;
-    string txHash = 3;
-    int64  way    = 4;
+    int64 amount = 1;
+    int64 number = 2;
+    int64 index  = 3;
+    int64 way    = 4;
 }
 
 message PurchaseRecords {
@@ -82,6 +82,7 @@ message ReceiptLottery {
     string               txHash      = 10;
     LotteryUpdateBuyInfo updateInfo  = 11;
     int64                way         = 12;
+    int64                index       = 13;
 }
 
 message ReqLotteryInfo {
@@ -100,6 +101,7 @@ message ReqLotteryBuyHistory {
     int64  round     = 3;
     int32  count     = 4;
     int32  direction = 5;
+    int64  index     = 6;
 }
 
 message ReqLotteryLuckyInfo {
@@ -156,6 +158,7 @@ message LotteryBuyRecord {
     int64 round  = 3;
     int64 type   = 4;
     int64 way    = 5;
+    int64 index  = 6;
 }
 
 message LotteryBuyRecords {
@@ -174,11 +177,11 @@ message LotteryDrawRecords {
 }
 
 message LotteryUpdateRec {
-    string txHash = 1;
-    int64  number = 2;
-    int64  amount = 3;
-    int64  type   = 4;
-    int64  way    = 5;
+    int64 index  = 1;
+    int64 number = 2;
+    int64 amount = 3;
+    int64 type   = 4;
+    int64 way    = 5;
 }
 
 message LotteryUpdateRecs {
