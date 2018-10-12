@@ -2,6 +2,7 @@ package types
 
 import (
 	"testing"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -23,4 +24,3 @@ func TestTradeType_GetLogMap(t *testing.T) {
 	assert.NotNil(t, l)
 	assert.NotEqual(t, 0, len(l))
 }
-
