@@ -23,6 +23,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 
 	_ "gitlab.33.cn/chain33/chain33/plugin/dapp/init"
+	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/norm/types"
 	_ "gitlab.33.cn/chain33/chain33/plugin/store/init"
 	_ "gitlab.33.cn/chain33/chain33/system"
 	executorty "gitlab.33.cn/chain33/chain33/types/executor"
@@ -144,8 +145,8 @@ func prepareTxList() *types.Transaction {
 	key = generateKey(i, 32)
 	value = generateValue(i, 180)
 
-	nput := &types.NormAction_Nput{&types.NormPut{Key: key, Value: []byte(value)}}
-	action := &types.NormAction{Value: nput, Ty: types.NormActionPut}
+	nput := &pty.NormAction_Nput{&pty.NormPut{Key: key, Value: []byte(value)}}
+	action := &pty.NormAction{Value: nput, Ty: pty.NormActionPut}
 	tx := &types.Transaction{Execer: []byte("norm"), Payload: types.Encode(action), Fee: 0}
 	tx.Nonce = random.Int63()
 	tx.Sign(types.SECP256K1, getprivkey("CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944"))
