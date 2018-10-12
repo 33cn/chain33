@@ -466,7 +466,7 @@ type TradeQueryOnesSellOrder struct {
 }
 
 func (t *TradeQueryOnesSellOrder) JsonToProto(message json.RawMessage) ([]byte, error) {
-	var req ReqAddrTokens
+	var req ReqAddrAssets
 	err := json.Unmarshal(message, &req)
 	if err != nil {
 		return nil, err
@@ -513,7 +513,7 @@ type TradeQueryOnesBuyOrder struct {
 }
 
 func (t *TradeQueryOnesBuyOrder) JsonToProto(message json.RawMessage) ([]byte, error) {
-	var req ReqAddrTokens
+	var req ReqAddrAssets
 	err := json.Unmarshal(message, &req)
 	if err != nil {
 		return nil, err
@@ -539,7 +539,7 @@ type TradeQueryOnesOrder struct {
 }
 
 func (t *TradeQueryOnesOrder) JsonToProto(message json.RawMessage) ([]byte, error) {
-	var req ReqAddrTokens
+	var req ReqAddrAssets
 	err := json.Unmarshal(message, &req)
 	if err != nil {
 		return nil, err

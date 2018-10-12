@@ -60,7 +60,7 @@ func showOnesSellOrders(cmd *cobra.Command, args []string) {
 	seller, _ := cmd.Flags().GetString("seller")
 	token, _ := cmd.Flags().GetString("token")
 	tokens := strings.Split(token, " ")
-	var reqAddrtokens pty.ReqAddrTokens
+	var reqAddrtokens pty.ReqAddrAssets
 	//reqAddrtokens.Status = types.TradeOrderStatusOnSale
 	reqAddrtokens.Addr = seller
 	if 0 != len(tokens) {
@@ -104,7 +104,7 @@ func showOnesSellOrdersStatus(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, types.ErrInvalidParam)
 		return
 	}
-	var reqAddrtokens pty.ReqAddrTokens
+	var reqAddrtokens pty.ReqAddrAssets
 	reqAddrtokens.Status = statusInt
 	reqAddrtokens.Addr = addr
 
@@ -219,7 +219,7 @@ func showOnesBuyOrders(cmd *cobra.Command, args []string) {
 	buyer, _ := cmd.Flags().GetString("buyer")
 	token, _ := cmd.Flags().GetString("token")
 	tokens := strings.Split(token, " ")
-	var reqAddrtokens pty.ReqAddrTokens
+	var reqAddrtokens pty.ReqAddrAssets
 	reqAddrtokens.Addr = buyer
 	if 0 != len(tokens) {
 		reqAddrtokens.Token = append(reqAddrtokens.Token, tokens...)
@@ -261,7 +261,7 @@ func showOnesBuyOrdersStatus(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, types.ErrInvalidParam)
 		return
 	}
-	var reqAddrtokens pty.ReqAddrTokens
+	var reqAddrtokens pty.ReqAddrAssets
 	reqAddrtokens.Addr = buyer
 	reqAddrtokens.Status = statusInt
 	var params types.Query4Cli
@@ -385,7 +385,7 @@ func showOnesOrdersStatus(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, types.ErrInputPara)
 		return
 	}
-	var reqAddrtokens pty.ReqAddrTokens
+	var reqAddrtokens pty.ReqAddrAssets
 	reqAddrtokens.Addr = addr
 	reqAddrtokens.Count = count
 	reqAddrtokens.Direction = dir
