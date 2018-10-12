@@ -4,6 +4,7 @@ import (
 	"sort"
 
 	"gitlab.33.cn/chain33/chain33/plugin/dapp/evm/executor/vm/common"
+	evmtypes "gitlab.33.cn/chain33/chain33/plugin/dapp/evm/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -250,8 +251,8 @@ func (ch storageChange) getLog(mdb *MemoryStateDB) []*types.ReceiptLog {
 		acc := mdb.accounts[ch.account]
 		if acc != nil {
 			currentVal := acc.GetState(ch.key)
-			receipt := &types.EVMStateChangeItem{Key: getStateItemKey(ch.account, ch.key.Hex()), PreValue: ch.prevalue.Bytes(), CurrentValue: currentVal.Bytes()}
-			return []*types.ReceiptLog{{Ty: types.TyLogEVMStateChangeItem, Log: types.Encode(receipt)}}
+			receipt := &evmtypes.EVMStateChangeItem{Key: getStateItemKey(ch.account, ch.key.Hex()), PreValue: ch.prevalue.Bytes(), CurrentValue: currentVal.Bytes()}
+			return []*types.ReceiptLog{{Ty: evmtypes.TyLogEVMStateChangeItem, Log: types.Encode(receipt)}}
 		}
 	}
 	return nil
