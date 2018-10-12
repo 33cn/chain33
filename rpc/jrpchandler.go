@@ -1501,7 +1501,7 @@ func (c *Chain33) CreateTransaction(in *rpctypes.CreateTxIn, result *interface{}
 	if in == nil {
 		return types.ErrInputPara
 	}
-	exec := types.LoadExecutorType(string(in.Execer))
+	exec := types.LoadExecutorType(in.Execer)
 	if exec == nil {
 		return types.ErrExecNameNotAllow
 	}
