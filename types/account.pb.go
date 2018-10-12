@@ -130,9 +130,6 @@ It has these top-level messages:
 	ReceiptTicketBind
 	ExecTxList
 	Query
-	Norm
-	NormAction
-	NormPut
 	Cert
 	CertAction
 	CertPut
@@ -194,9 +191,6 @@ It has these top-level messages:
 	Privacy2Privacy4Print
 	Privacy2Public4Print
 	PrivacyAction4Print
-	ValNode
-	ValNodes
-	ValNodeAction
 	Trade
 	TradeForSell
 	TradeForBuy

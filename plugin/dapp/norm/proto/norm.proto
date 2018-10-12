@@ -21,5 +21,5 @@ message NormPut {
 }
 
 message NormGetKey {
-	string key = 1;
+    string key = 1;
 }
