@@ -164,7 +164,7 @@ message ReceiptTradeSellRevoke {
 
 // 查询部分
 
-message ReqAddrTokens {
+message ReqAddrAssets {
     string   addr             = 1;
     int32    status           = 2;
     repeated string token     = 3;
