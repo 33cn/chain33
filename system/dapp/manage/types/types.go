@@ -1,23 +1,34 @@
-package manage
+package types
 
 import (
 	"encoding/json"
+	"reflect"
+
+	"gitlab.33.cn/chain33/chain33/common/address"
 
 	//log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var nameX string
+var (
+	nameX      string
+	actionName = map[string]int32{
+		"Modify": ManageActionModifyConfig,
+	}
+	logmap = map[int64]*types.LogInfo{
+		types.TyLogModifyConfig: {reflect.TypeOf(ModifyConfigLog{}), "LogModifyConfig"},
+	}
+)
 
 //var tlog = log.New("module", name)
 
-func Init() {
+func init() {
 	nameX = types.ExecName(types.ManageX)
 	// init executor type
 	types.RegistorExecutor(types.ManageX, NewType())
 
 	// init log
-	types.RegistorLog(types.TyLogModifyConfig, &ModifyConfigLog{})
+	//types.RegistorLog(types.TyLogModifyConfig, &ModifyConfigLog{})
 
 	// init query rpc
 	types.RegisterRPCQueryHandle("GetConfigItem", &MagageGetConfigItem{})
@@ -34,7 +45,7 @@ func NewType() *ManageType {
 }
 
 func (at *ManageType) GetPayload() types.Message {
-	return &types.ManageAction{}
+	return &ManageAction{}
 }
 
 func (m ManageType) ActionName(tx *types.Transaction) string {
@@ -42,7 +53,7 @@ func (m ManageType) ActionName(tx *types.Transaction) string {
 }
 
 func (manage ManageType) DecodePayload(tx *types.Transaction) (interface{}, error) {
-	var action types.ManageAction
+	var action ManageAction
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
 		return nil, err
@@ -58,6 +69,23 @@ func (m ManageType) Amount(tx *types.Transaction) (int64, error) {
 func (m ManageType) CreateTx(action string, message json.RawMessage) (*types.Transaction, error) {
 	var tx *types.Transaction
 	return tx, nil
+}
+
+func (m ManageType) GetLogMap() map[int64]*types.LogInfo {
+	return logmap
+}
+
+// GetRealToAddr 重载该函数主要原因是manage的协议在实现过程中，不同高度的To地址规范不一样
+func (m ManageType) GetRealToAddr(tx *types.Transaction) string {
+	if len(tx.To) == 0 {
+		// 如果To地址为空，则认为是早期低于types.ForkV11ManageExec高度的交易，直接返回合约地址
+		return address.ExecAddress(string(tx.Execer))
+	}
+	return tx.To
+}
+
+func (m ManageType) GetTypeMap() map[string]int32 {
+	return actionName
 }
 
 type ModifyConfigLog struct {

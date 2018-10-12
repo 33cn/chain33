@@ -23,8 +23,8 @@ const (
 )
 
 const (
-	minPurBlockNum  = 40 //10 minutes
-	minDrawBlockNum = 50
+	minPurBlockNum  = 30
+	minDrawBlockNum = 40
 )
 
 const (
@@ -36,6 +36,13 @@ const (
 	ListASC     = int32(1)
 	DefultCount = int32(20)  //默认一次取多少条记录
 	MaxCount    = int32(100) //最多取100条
+)
+
+const (
+	FiveStar  = 5
+	ThreeStar = 3
+	TwoStar   = 2
+	OneStar   = 1
 )
 
 //const defaultAddrPurTimes = 10
@@ -61,6 +68,11 @@ func NewLotteryDB(lotteryId string, purBlock int64, drawBlock int64,
 	lott.TotalPurchasedTxNum = 0
 	lott.CreateAddr = addr
 	lott.Round = 0
+	lott.MissingRecords = make([]*pty.MissingRecord, 5)
+	for index := range lott.MissingRecords {
+		tempTimes := make([]int32, 10)
+		lott.MissingRecords[index] = &pty.MissingRecord{tempTimes}
+	}
 	return lott
 }
 
@@ -95,9 +107,10 @@ type Action struct {
 	api          client.QueueProtocolAPI
 	conn         *grpc.ClientConn
 	grpcClient   types.Chain33Client
+	index        int
 }
 
-func NewLotteryAction(l *Lottery, tx *types.Transaction) *Action {
+func NewLotteryAction(l *Lottery, tx *types.Transaction, index int) *Action {
 	hash := tx.Hash()
 	fromaddr := tx.From()
 
@@ -110,11 +123,11 @@ func NewLotteryAction(l *Lottery, tx *types.Transaction) *Action {
 	grpcClient := types.NewChain33Client(conn)
 
 	return &Action{l.GetCoinsAccount(), l.GetStateDB(), hash, fromaddr, l.GetBlockTime(),
-		l.GetHeight(), dapp.ExecAddress(string(tx.Execer)), l.GetDifficulty(), l.GetApi(), conn, grpcClient}
+		l.GetHeight(), dapp.ExecAddress(string(tx.Execer)), l.GetDifficulty(), l.GetApi(), conn, grpcClient, index}
 }
 
 func (action *Action) GetReceiptLog(lottery *pty.Lottery, preStatus int32, logTy int32,
-	round int64, buyNumber int64, amount int64, luckyNum int64) *types.ReceiptLog {
+	round int64, buyNumber int64, amount int64, way int64, luckyNum int64, updateInfo *pty.LotteryUpdateBuyInfo) *types.ReceiptLog {
 	log := &types.ReceiptLog{}
 	l := &pty.ReceiptLottery{}
 
@@ -128,14 +141,26 @@ func (action *Action) GetReceiptLog(lottery *pty.Lottery, preStatus int32, logTy
 		l.Number = buyNumber
 		l.Amount = amount
 		l.Addr = action.fromaddr
+		l.Way = way
+		l.Index = action.GetIndex()
 	}
 	if logTy == types.TyLogLotteryDraw {
 		l.Round = round
 		l.LuckyNumber = luckyNum
+		l.Time = action.blocktime
+		l.TxHash = common.ToHex(action.txhash)
+		if len(updateInfo.BuyInfo) > 0 {
+			l.UpdateInfo = updateInfo
+		}
 	}
 
 	log.Log = types.Encode(l)
 	return log
+}
+
+//fmt.Sprintf("%018d", action.height*types.MaxTxsPerBlock+int64(action.index))
+func (action *Action) GetIndex() int64 {
+	return action.height*types.MaxTxsPerBlock + int64(action.index)
 }
 
 func (action *Action) LotteryCreate(create *pty.LotteryCreate) (*types.Receipt, error) {
@@ -184,7 +209,7 @@ func (action *Action) LotteryCreate(create *pty.LotteryCreate) (*types.Receipt, 
 	lott.Save(action.db)
 	kv = append(kv, lott.GetKVSet()...)
 
-	receiptLog := action.GetReceiptLog(&lott.Lottery, 0, types.TyLogLotteryCreate, 0, 0, 0, 0)
+	receiptLog := action.GetReceiptLog(&lott.Lottery, 0, types.TyLogLotteryCreate, 0, 0, 0, 0, 0, nil)
 	logs = append(logs, receiptLog)
 
 	receipt = &types.Receipt{types.ExecOk, kv, logs}
@@ -272,7 +297,7 @@ func (action *Action) LotteryBuy(buy *pty.LotteryBuy) (*types.Receipt, error) {
 		lott.Records = make(map[string]*pty.PurchaseRecords)
 	}
 
-	newRecord := &pty.PurchaseRecord{buy.GetAmount(), buy.GetNumber()}
+	newRecord := &pty.PurchaseRecord{buy.GetAmount(), buy.GetNumber(), action.GetIndex(), buy.GetWay()}
 	llog.Debug("LotteryBuy", "amount", buy.GetAmount(), "number", buy.GetNumber())
 
 	/**********
@@ -313,7 +338,7 @@ func (action *Action) LotteryBuy(buy *pty.LotteryBuy) (*types.Receipt, error) {
 	lott.Save(action.db)
 	kv = append(kv, lott.GetKVSet()...)
 
-	receiptLog := action.GetReceiptLog(&lott.Lottery, preStatus, types.TyLogLotteryBuy, lott.Round, buy.GetNumber(), buy.GetAmount(), 0)
+	receiptLog := action.GetReceiptLog(&lott.Lottery, preStatus, types.TyLogLotteryBuy, lott.Round, buy.GetNumber(), buy.GetAmount(), buy.GetWay(), 0, nil)
 	logs = append(logs, receiptLog)
 
 	receipt = &types.Receipt{types.ExecOk, kv, logs}
@@ -366,7 +391,7 @@ func (action *Action) LotteryDraw(draw *pty.LotteryDraw) (*types.Receipt, error)
 		}
 	}
 
-	rec, err := action.checkDraw(lott)
+	rec, updateInfo, err := action.checkDraw(lott)
 	if err != nil {
 		return nil, err
 	}
@@ -376,7 +401,7 @@ func (action *Action) LotteryDraw(draw *pty.LotteryDraw) (*types.Receipt, error)
 	lott.Save(action.db)
 	kv = append(kv, lott.GetKVSet()...)
 
-	receiptLog := action.GetReceiptLog(&lott.Lottery, preStatus, types.TyLogLotteryDraw, lott.Round, 0, 0, lott.LuckyNumber)
+	receiptLog := action.GetReceiptLog(&lott.Lottery, preStatus, types.TyLogLotteryDraw, lott.Round, 0, 0, 0, lott.LuckyNumber, updateInfo)
 	logs = append(logs, receiptLog)
 
 	receipt = &types.Receipt{types.ExecOk, kv, logs}
@@ -453,7 +478,7 @@ func (action *Action) LotteryClose(draw *pty.LotteryClose) (*types.Receipt, erro
 	lott.Save(action.db)
 	kv = append(kv, lott.GetKVSet()...)
 
-	receiptLog := action.GetReceiptLog(&lott.Lottery, preStatus, types.TyLogLotteryClose, 0, 0, 0, 0)
+	receiptLog := action.GetReceiptLog(&lott.Lottery, preStatus, types.TyLogLotteryClose, 0, 0, 0, 0, 0, nil)
 	logs = append(logs, receiptLog)
 
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
@@ -529,26 +554,26 @@ func (action *Action) findLuckyNum(isSolo bool, lott *LotteryDB) int64 {
 	return num
 }
 
-func checkFundAmount(luckynum int64, guessnum int64) int64 {
-	if luckynum == guessnum {
-		return exciting
-	} else if luckynum%1000 == guessnum%1000 {
-		return lucky
-	} else if luckynum%100 == guessnum%100 {
-		return happy
-	} else if luckynum%10 == guessnum%10 {
-		return notbad
+func checkFundAmount(luckynum int64, guessnum int64, way int64) (int64, int64) {
+	if way == FiveStar && luckynum == guessnum {
+		return exciting, FiveStar
+	} else if way == ThreeStar && luckynum%1000 == guessnum%1000 {
+		return lucky, ThreeStar
+	} else if way == TwoStar && luckynum%100 == guessnum%100 {
+		return happy, TwoStar
+	} else if way == OneStar && luckynum%10 == guessnum%10 {
+		return notbad, OneStar
 	} else {
-		return 0
+		return 0, 0
 	}
 }
 
-func (action *Action) checkDraw(lott *LotteryDB) (*types.Receipt, error) {
+func (action *Action) checkDraw(lott *LotteryDB) (*types.Receipt, *pty.LotteryUpdateBuyInfo, error) {
 	llog.Debug("checkDraw")
 
 	luckynum := action.findLuckyNum(false, lott)
 	if luckynum < 0 || luckynum >= luckyNumMol {
-		return nil, types.ErrLotteryErrLuckyNum
+		return nil, nil, types.ErrLotteryErrLuckyNum
 	}
 
 	llog.Error("checkDraw", "luckynum", luckynum)
@@ -558,6 +583,8 @@ func (action *Action) checkDraw(lott *LotteryDB) (*types.Receipt, error) {
 	var kv []*types.KeyValue
 
 	//calculate fund for all participant showed their number
+	var updateInfo pty.LotteryUpdateBuyInfo
+	updateInfo.BuyInfo = make(map[string]*pty.LotteryUpdateRecs)
 	var tempFund int64 = 0
 	var totalFund int64 = 0
 	addrkeys := make([]string, len(lott.Records))
@@ -566,12 +593,24 @@ func (action *Action) checkDraw(lott *LotteryDB) (*types.Receipt, error) {
 		addrkeys[i] = addr
 		i++
 		for _, rec := range lott.Records[addr].Record {
-			fund := checkFundAmount(luckynum, rec.Number)
+			fund, fundType := checkFundAmount(luckynum, rec.Number, rec.Way)
+			if fund != 0 {
+				newUpdateRec := &pty.LotteryUpdateRec{rec.Index, rec.Number, rec.Amount, fundType, rec.Way}
+				if update, ok := updateInfo.BuyInfo[action.fromaddr]; ok {
+					update.Records = append(update.Records, newUpdateRec)
+				} else {
+					initrecord := &pty.LotteryUpdateRecs{}
+					initrecord.Records = append(initrecord.Records, newUpdateRec)
+					updateInfo.BuyInfo[addr] = initrecord
+				}
+			}
 			tempFund = fund * rec.Amount
 			lott.Records[addr].FundWin += tempFund
 			totalFund += tempFund
 		}
 	}
+	llog.Debug("checkDraw", "lenofupdate", len(updateInfo.BuyInfo))
+	llog.Debug("checkDraw", "update", updateInfo.BuyInfo)
 	var factor float64 = 0
 	if totalFund > lott.GetFund()/2 {
 		llog.Debug("checkDraw ajust fund", "lott.Fund", lott.Fund, "totalFund", totalFund)
@@ -587,11 +626,11 @@ func (action *Action) checkDraw(lott *LotteryDB) (*types.Receipt, error) {
 	//protection for rollback
 	if factor == 1.0 {
 		if !action.CheckExecAccount(lott.CreateAddr, totalFund, true) {
-			return nil, types.ErrLotteryFundNotEnough
+			return nil, nil, types.ErrLotteryFundNotEnough
 		}
 	} else {
 		if !action.CheckExecAccount(lott.CreateAddr, decimal*lott.Fund/2+1, true) {
-			return nil, types.ErrLotteryFundNotEnough
+			return nil, nil, types.ErrLotteryFundNotEnough
 		}
 	}
 
@@ -603,7 +642,7 @@ func (action *Action) checkDraw(lott *LotteryDB) (*types.Receipt, error) {
 		if fund > 0 {
 			receipt, err := action.coinsAccount.ExecTransferFrozen(lott.CreateAddr, addr, action.execaddr, fund)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 
 			kv = append(kv, receipt.KV...)
@@ -621,17 +660,36 @@ func (action *Action) checkDraw(lott *LotteryDB) (*types.Receipt, error) {
 	lott.Status = types.LotteryDrawed
 	lott.TotalPurchasedTxNum = 0
 	lott.LuckyNumber = luckynum
+	action.recordMissing(lott)
 
 	if types.IsPara() {
 		mainHeight := action.GetMainHeightByTxHash(action.txhash)
 		if mainHeight < 0 {
 			llog.Error("LotteryBuy", "mainHeight", mainHeight)
-			return nil, types.ErrLotteryStatus
+			return nil, nil, types.ErrLotteryStatus
 		}
 		lott.LastTransToDrawStateOnMain = mainHeight
 	}
 
-	return &types.Receipt{types.ExecOk, kv, logs}, nil
+	return &types.Receipt{types.ExecOk, kv, logs}, &updateInfo, nil
+}
+func (action *Action) recordMissing(lott *LotteryDB) {
+	temp := int32(lott.LuckyNumber)
+	initNum := int32(10000)
+	sample := [10]int32{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
+	var eachNum [5]int32
+	for i := 0; i < 5; i++ {
+		eachNum[i] = temp / initNum
+		temp -= eachNum[i] * initNum
+		initNum = initNum / 10
+	}
+	for i := 0; i < 5; i++ {
+		for j := 0; j < 10; j++ {
+			if eachNum[i] != sample[j] {
+				lott.MissingRecords[i].Times[j] += 1
+			}
+		}
+	}
 }
 
 func getManageKey(key string, db dbm.KV) ([]byte, error) {
@@ -762,7 +820,7 @@ func ListLotteryBuyRecords(db dbm.Lister, stateDB dbm.KV, param *pty.ReqLotteryB
 	var err error
 
 	prefix = calcLotteryBuyPrefix(param.LotteryId, param.Addr)
-	key = calcLotteryBuyRoundPrefix(param.LotteryId, param.Addr, param.GetRound())
+	key = calcLotteryBuyKey(param.LotteryId, param.Addr, param.GetRound(), param.GetIndex())
 
 	if param.GetRound() == 0 { //第一次查询
 		values, err = db.List(prefix, nil, count, direction)
