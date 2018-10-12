@@ -241,5 +241,4 @@ func (db *ListHelper) ListExceptAndExcute(expectPrefix []byte, exceptPrefix []by
 			break
 		}
 	}
-	return
 }
