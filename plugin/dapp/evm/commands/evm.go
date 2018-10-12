@@ -13,7 +13,6 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/spf13/cobra"
-	"gitlab.33.cn/chain33/chain33/cmd/cli/commands"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto/sha3"
@@ -158,11 +157,18 @@ func evmBalance(cmd *cobra.Command, args []string) {
 	ctx.Run()
 }
 
+type AccountResult struct {
+	Currency int32  `json:"currency,omitempty"`
+	Balance  string `json:"balance,omitempty"`
+	Frozen   string `json:"frozen,omitempty"`
+	Addr     string `json:"addr,omitempty"`
+}
+
 func parseGetBalanceRes(arg interface{}) (interface{}, error) {
 	res := *arg.(*[]*rpc.Account)
 	balanceResult := strconv.FormatFloat(float64(res[0].Balance)/float64(types.Coin), 'f', 4, 64)
 	frozenResult := strconv.FormatFloat(float64(res[0].Frozen)/float64(types.Coin), 'f', 4, 64)
-	result := &commands.AccountResult{
+	result := &AccountResult{
 		Addr:     res[0].Addr,
 		Currency: res[0].Currency,
 		Balance:  balanceResult,
