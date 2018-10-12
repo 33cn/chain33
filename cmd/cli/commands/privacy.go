@@ -9,7 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/common"
-	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
+	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -131,7 +131,7 @@ func public2Privacy(cmd *cobra.Command, args []string) {
 		Expire:     expire,
 	}
 
-	var res jsonrpc.ReplyHash
+	var res rpctypes.ReplyHash
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.MakeTxPublic2privacy", params, &res)
 	ctx.Run()
 }
@@ -197,7 +197,7 @@ func privacy2Privacy(cmd *cobra.Command, args []string) {
 		Expire:     expire,
 	}
 
-	var res jsonrpc.ReplyHash
+	var res rpctypes.ReplyHash
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.MakeTxPrivacy2privacy", params, &res)
 	ctx.Run()
 }
@@ -264,7 +264,7 @@ func privacy2Public(cmd *cobra.Command, args []string) {
 		Expire:    expire,
 	}
 
-	var res jsonrpc.ReplyHash
+	var res rpctypes.ReplyHash
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.MakeTxPrivacy2public", params, &res)
 	ctx.Run()
 }
@@ -472,7 +472,7 @@ func createUTXOs(cmd *cobra.Command, args []string) {
 		Expire:     expire,
 	}
 
-	var res jsonrpc.ReplyHash
+	var res rpctypes.ReplyHash
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateUTXOs", params, &res)
 	ctx.Run()
 }
@@ -605,7 +605,7 @@ func listPrivacyTxsFlags(cmd *cobra.Command, args []string) {
 		Address:      addr,
 		Seedtxhash:   []byte(seedtxhash),
 	}
-	var res jsonrpc.WalletTxDetails
+	var res rpctypes.WalletTxDetails
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.PrivacyTxList", params, &res)
 	ctx.SetResultCb(parseWalletTxListRes)
 	ctx.Run()

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 
 	"github.com/golang/protobuf/proto"
+	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -183,8 +184,8 @@ func protoPayload(execer, funcname string, payload *json.RawMessage) ([]byte, er
 	return types.Encode(req), nil
 }
 
-func decodeUserWrite(payload []byte) *userWrite {
-	var article userWrite
+func decodeUserWrite(payload []byte) *rpctypes.UserWrite {
+	var article rpctypes.UserWrite
 	if len(payload) != 0 {
 		if payload[0] == '#' {
 			data := bytes.SplitN(payload[1:], []byte("#"), 2)
