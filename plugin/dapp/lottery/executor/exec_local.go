@@ -1,7 +1,7 @@
 package executor
 
 import (
-	"gitlab.33.cn/chain33/chain33/common"
+	//"gitlab.33.cn/chain33/chain33/common"
 	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/lottery/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -23,10 +23,12 @@ func (l *Lottery) execLocal(tx *types.Transaction, receipt *types.ReceiptData) (
 			set.KV = append(set.KV, kv...)
 
 			if item.Ty == types.TyLogLotteryBuy {
-				kv := l.saveLotteryBuy(&lotterylog, common.ToHex(tx.Hash()))
+				kv := l.saveLotteryBuy(&lotterylog)
 				set.KV = append(set.KV, kv...)
 			} else if item.Ty == types.TyLogLotteryDraw {
 				kv := l.saveLotteryDraw(&lotterylog)
+				set.KV = append(set.KV, kv...)
+				kv = l.updateLotteryBuy(&lotterylog, true)
 				set.KV = append(set.KV, kv...)
 			}
 		}
