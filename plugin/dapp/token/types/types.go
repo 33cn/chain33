@@ -3,14 +3,12 @@ package types
 import (
 	"encoding/json"
 
-	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var (
 	nameX      string
-	tlog       = log.New("module", types.TokenX)
 	actionName = map[string]int32{
 		"Transfer":          ActionTransfer,
 		"Genesis":           ActionGenesis,
