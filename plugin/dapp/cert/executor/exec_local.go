@@ -13,12 +13,6 @@ func (c *Cert) execLocal(tx *types.Transaction, receipt *types.ReceiptData, inde
 		return nil, types.ErrInitializeAuthority
 	}
 
-	var action ct.CertAction
-	err := types.Decode(tx.GetPayload(), &action)
-	if err != nil {
-		panic(err)
-	}
-
 	set, err := c.DriverBase.ExecLocal(tx, receipt, index)
 	if err != nil {
 		return nil, err
@@ -26,7 +20,7 @@ func (c *Cert) execLocal(tx *types.Transaction, receipt *types.ReceiptData, inde
 	return set, nil
 }
 
-func (c *Cert) ExecLocal_New(payload *ct.CertAction, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+func (c *Cert) ExecLocal_New(payload *ct.CertNew, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	set, err := c.execLocal(tx, receiptData, index)
 	if err != nil {
 		return nil, err
@@ -47,7 +41,7 @@ func (c *Cert) ExecLocal_New(payload *ct.CertAction, tx *types.Transaction, rece
 	return set, nil
 }
 
-func (c *Cert) ExecLocal_Update(payload *ct.CertAction, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+func (c *Cert) ExecLocal_Update(payload *ct.CertUpdate, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	set, err := c.execLocal(tx, receiptData, index)
 	if err != nil {
 		return nil, err
@@ -69,6 +63,6 @@ func (c *Cert) ExecLocal_Update(payload *ct.CertAction, tx *types.Transaction, r
 	return set, nil
 }
 
-func (c *Cert) ExecLocal_Normal(payload *ct.CertAction, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+func (c *Cert) ExecLocal_Normal(payload *ct.CertNormal, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	return c.execLocal(tx, receiptData, index)
 }

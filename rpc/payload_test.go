@@ -54,16 +54,6 @@ func TestManagePayloadType(t *testing.T) {
 	assert.Equal(t, err, types.ErrInputPara)
 }
 
-func TestRetrievePayloadType(t *testing.T) {
-	msg, err := retrievePayloadType("GetRetrieveInfo")
-	assert.Equal(t, &types.ReqRetrieveInfo{}, msg)
-	assert.Nil(t, err)
-
-	msg, err = retrievePayloadType("wzw")
-	assert.Nil(t, msg)
-	assert.Equal(t, err, types.ErrInputPara)
-}
-
 func TestTicketPayloadType(t *testing.T) {
 	msg, err := ticketPayloadType("TicketInfos")
 	assert.Equal(t, &types.TicketInfos{}, msg)
@@ -127,10 +117,6 @@ func TestPayloadType(t *testing.T) {
 
 	msg, err = payloadType(types.ExecName(types.ManageX), "GetConfigItem")
 	assert.Equal(t, &types.ReqString{}, msg)
-	assert.Nil(t, err)
-
-	msg, err = payloadType(types.ExecName(types.RetrieveX), "GetRetrieveInfo")
-	assert.Equal(t, &types.ReqRetrieveInfo{}, msg)
 	assert.Nil(t, err)
 
 	msg, err = payloadType(types.ExecName(types.TicketX), "TicketInfos")

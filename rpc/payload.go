@@ -47,17 +47,6 @@ func managePayloadType(funcname string) (proto.Message, error) {
 	return req, nil
 }
 
-func retrievePayloadType(funcname string) (proto.Message, error) {
-	var req proto.Message
-	switch funcname {
-	case "GetRetrieveInfo":
-		req = &types.ReqRetrieveInfo{}
-	default:
-		return nil, types.ErrInputPara
-	}
-	return req, nil
-}
-
 func ticketPayloadType(funcname string) (proto.Message, error) {
 	var req proto.Message
 	switch funcname {
@@ -166,8 +155,6 @@ func payloadType(execer, funcname string) (proto.Message, error) {
 		return coinsPayloadType(funcname)
 	case types.ExecName(types.ManageX): // D
 		return managePayloadType(funcname)
-	case types.ExecName(types.RetrieveX): // D
-		return retrievePayloadType(funcname)
 	case types.ExecName(types.TicketX): // D
 		return ticketPayloadType(funcname)
 	case types.ExecName(types.TradeX): // D

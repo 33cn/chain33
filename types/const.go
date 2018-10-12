@@ -19,7 +19,6 @@ const (
 	ParaKeyX        = "user.p."
 	TicketX         = "ticket"
 	HashlockX       = "hashlock"
-	RetrieveX       = "retrieve"
 	NoneX           = "none"
 	TokenX          = "token"
 	TradeX          = "trade"
@@ -44,7 +43,6 @@ var (
 	ExecerPrivacy  = []byte(PrivacyX)
 	ExecerRelay    = []byte(RelayX)
 	ExecerHashlock = []byte(HashlockX)
-	ExecerRetrieve = []byte(RetrieveX)
 	ExecerNone     = []byte(NoneX)
 	ExecerTrade    = []byte(TradeX)
 	ExecerNorm     = []byte(Normx)
@@ -293,14 +291,6 @@ const (
 //norm
 const (
 	NormActionPut = 1
-)
-
-// retrieve op
-const (
-	RetrievePre    = 1
-	RetrievePerf   = 2
-	RetrieveBackup = 3
-	RetrieveCancel = 4
 )
 
 // token status

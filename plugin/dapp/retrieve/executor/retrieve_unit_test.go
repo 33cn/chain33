@@ -9,6 +9,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/db"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
+	rt "gitlab.33.cn/chain33/chain33/plugin/dapp/retrieve/types"
 )
 
 var (
@@ -20,7 +21,7 @@ var (
 	retrieve    drivers.Driver
 )
 
-func TestInit(t *testing.T) {
+func init() {
 	backupAddr, backupPriv = genaddress()
 	defaultAddr, defaultPriv = genaddress()
 	testNormErr = errors.New("Err")
@@ -81,9 +82,9 @@ func ConstructBackupTx() *types.Transaction {
 	var delayPeriod int64 = 70
 	var fee int64 = 1e6
 
-	vbackup := &types.RetrieveAction_Backup{&types.BackupRetrieve{BackupAddress: backupAddr, DefaultAddress: defaultAddr, DelayPeriod: delayPeriod}}
+	vbackup := &rt.RetrieveAction_Backup{&rt.BackupRetrieve{BackupAddress: backupAddr, DefaultAddress: defaultAddr, DelayPeriod: delayPeriod}}
 	//fmt.Println(vlock)
-	transfer := &types.RetrieveAction{Value: vbackup, Ty: types.RetrieveBackup}
+	transfer := &rt.RetrieveAction{Value: vbackup, Ty: rt.RetrieveBackup}
 	tx := &types.Transaction{Execer: []byte("retrieve"), Payload: types.Encode(transfer), Fee: fee, To: backupAddr}
 	tx.Nonce = r.Int63()
 	tx.Sign(types.SECP256K1, defaultPriv)
@@ -92,8 +93,8 @@ func ConstructBackupTx() *types.Transaction {
 
 func ConstructPrepareTx() *types.Transaction {
 	var fee int64 = 1e6
-	vprepare := &types.RetrieveAction_PreRet{&types.PreRetrieve{BackupAddress: backupAddr, DefaultAddress: defaultAddr}}
-	transfer := &types.RetrieveAction{Value: vprepare, Ty: types.RetrievePre}
+	vprepare := &rt.RetrieveAction_Prepare{&rt.PrepareRetrieve{BackupAddress: backupAddr, DefaultAddress: defaultAddr}}
+	transfer := &rt.RetrieveAction{Value: vprepare, Ty: rt.RetrievePreapre}
 	tx := &types.Transaction{Execer: []byte("retrieve"), Payload: types.Encode(transfer), Fee: fee, To: backupAddr}
 	tx.Nonce = r.Int63()
 	tx.Sign(types.SECP256K1, backupPriv)
@@ -104,8 +105,8 @@ func ConstructPrepareTx() *types.Transaction {
 func ConstructPerformTx() *types.Transaction {
 	var fee int64 = 1e6
 
-	vperform := &types.RetrieveAction_PerfRet{&types.PerformRetrieve{BackupAddress: backupAddr, DefaultAddress: defaultAddr}}
-	transfer := &types.RetrieveAction{Value: vperform, Ty: types.RetrievePerf}
+	vperform := &rt.RetrieveAction_Perform{&rt.PerformRetrieve{BackupAddress: backupAddr, DefaultAddress: defaultAddr}}
+	transfer := &rt.RetrieveAction{Value: vperform, Ty: rt.RetrievePerform}
 	tx := &types.Transaction{Execer: []byte("retrieve"), Payload: types.Encode(transfer), Fee: fee, To: backupAddr}
 	tx.Nonce = r.Int63()
 	tx.Sign(types.SECP256K1, backupPriv)

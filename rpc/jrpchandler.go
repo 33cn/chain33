@@ -14,7 +14,6 @@ import (
 	hashlocktype "gitlab.33.cn/chain33/chain33/plugin/dapp/hashlock/types"
 	lotterytype "gitlab.33.cn/chain33/chain33/plugin/dapp/lottery/types"
 	evmtype "gitlab.33.cn/chain33/chain33/types/executor/evm"
-	retrievetype "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
 	tokentype "gitlab.33.cn/chain33/chain33/types/executor/token"
 	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
 	// TODO: 需要将插件管理器移动到封闭统一的地方进行管理
@@ -1149,46 +1148,6 @@ func (c *Chain33) CreateRawTradeSellMarketTx(in *tradetype.TradeSellMarketTx, re
 
 func (c *Chain33) CreateRawTradeRevokeBuyTx(in *tradetype.TradeRevokeBuyTx, result *interface{}) error {
 	reply, err := c.cli.CreateRawTradeRevokeBuyTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
-	return nil
-}
-
-func (c *Chain33) CreateRawRetrieveBackupTx(in *retrievetype.RetrieveBackupTx, result *interface{}) error {
-	reply, err := c.cli.CreateRawRetrieveBackupTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
-	return nil
-}
-
-func (c *Chain33) CreateRawRetrievePrepareTx(in *retrievetype.RetrievePrepareTx, result *interface{}) error {
-	reply, err := c.cli.CreateRawRetrievePrepareTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
-	return nil
-}
-
-func (c *Chain33) CreateRawRetrievePerformTx(in *retrievetype.RetrievePerformTx, result *interface{}) error {
-	reply, err := c.cli.CreateRawRetrievePerformTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
-	return nil
-}
-
-func (c *Chain33) CreateRawRetrieveCancelTx(in *retrievetype.RetrieveCancelTx, result *interface{}) error {
-	reply, err := c.cli.CreateRawRetrieveCancelTx(in)
 	if err != nil {
 		return err
 	}
