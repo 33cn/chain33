@@ -121,5 +121,5 @@ message ReqTokenTx {
 service token {
     // token 对外提供服务的接口
     //区块链接口
-    rpc GetTokenBalance(ReqTokenBalance) (Accounts) {}
+    rpc GetTokenBalance(ReqTokenBalance)(Accounts) {}
 }
