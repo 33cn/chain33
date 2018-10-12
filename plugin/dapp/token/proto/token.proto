@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package types;
+
+// 查询部分
+message ReqAddrTokens {
+    string   addr             = 1;
+    int32    status           = 2;
+    repeated string token     = 3;
+    int32           direction = 4;
+    int32           count     = 5;
+    string          fromKey   = 6;
+}

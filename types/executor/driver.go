@@ -8,7 +8,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/types/executor/retrieve"
 	"gitlab.33.cn/chain33/chain33/types/executor/ticket"
 	"gitlab.33.cn/chain33/chain33/types/executor/token"
-	"gitlab.33.cn/chain33/chain33/types/executor/trade"
 )
 
 // 进度：
@@ -45,7 +44,6 @@ func initExec() {
 	retrieve.Init()
 	ticket.Init()
 	token.Init()
-	trade.Init()
 }
 
 type ErrLog struct {

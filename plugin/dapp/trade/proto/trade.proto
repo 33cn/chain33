@@ -1,18 +1,17 @@
 syntax = "proto3";
 
 package types;
-option go_package = "gitlab.33.cn/chain33/chain33/types";
 
 // trade 交易部分
 //
 message Trade {
     oneof value {
-        TradeForSell       tokensell       = 1;
-        TradeForBuy        tokenbuy        = 2;
-        TradeForRevokeSell tokenrevokesell = 3;
-        TradeForBuyLimit   tokenbuylimit   = 5;
-        TradeForSellMarket tokensellmarket = 6;
-        TradeForRevokeBuy  tokenrevokebuy  = 7;
+        TradeForSell       sellLimit  = 1;
+        TradeForBuy        buyMarket  = 2;
+        TradeForRevokeSell revokeSell = 3;
+        TradeForBuyLimit   buyLimit   = 5;
+        TradeForSellMarket sellMarket = 6;
+        TradeForRevokeBuy  revokeBuy  = 7;
     }
     int32 ty = 4;
 }
@@ -151,7 +150,7 @@ message ReceiptTradeBuyRevoke {
     ReceiptBuyBase base = 1;
 }
 
-message ReceiptTradeSell {
+message ReceiptTradeSellLimit {
     ReceiptSellBase base = 1;
 }
 
@@ -159,13 +158,13 @@ message ReceiptSellMarket {
     ReceiptSellBase base = 1;
 }
 
-message ReceiptTradeRevoke {
+message ReceiptTradeSellRevoke {
     ReceiptSellBase base = 1;
 }
 
 // 查询部分
 
-message ReqAddrTokens {
+message ReqAddrAssets {
     string   addr             = 1;
     int32    status           = 2;
     repeated string token     = 3;
@@ -254,4 +253,19 @@ message ReplyTradeOrder {
 
 message ReplyTradeOrders {
     repeated ReplyTradeOrder orders = 1;
+}
+
+message ReqSellToken {
+    TradeForSell sell  = 1;
+    string       owner = 2;
+}
+
+message ReqRevokeSell {
+    TradeForRevokeSell revoke = 1;
+    string             owner  = 2;
+}
+
+message ReqBuyToken {
+    TradeForBuy buy   = 1;
+    string      buyer = 2;
 }
