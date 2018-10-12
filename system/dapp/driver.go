@@ -355,33 +355,17 @@ func (d *DriverBase) callLocal(prefix string, tx *types.Transaction, receipt *ty
 	return set, err
 }
 
-func (d *DriverBase) checkAddress(addr string) error {
-	if IsDriverAddress(addr, d.height) {
+func CheckAddress(addr string, height int64) error {
+	if IsDriverAddress(addr, height) {
 		return nil
 	}
 	return address.CheckAddress(addr)
 }
 
-func (d *DriverBase) execOldVersion(tx *types.Transaction, index int) (receipt *types.Receipt, err error) {
-	//to 必须是一个地址
-	if err = d.checkAddress(tx.GetRealToAddr()); err != nil {
-		return nil, err
-	}
-	err = d.child.CheckTx(tx, index)
-	return nil, err
-}
-
 //调用子类的CheckTx, 也可以不调用，实现自己的CheckTx
 func (d *DriverBase) Exec(tx *types.Transaction, index int) (receipt *types.Receipt, err error) {
 	if d.ety == nil {
-		return d.execOldVersion(tx, index)
-	}
-	//to 必须是一个地址
-	if err := d.checkAddress(tx.GetRealToAddr()); err != nil {
-		return nil, err
-	}
-	if err := d.child.CheckTx(tx, index); err != nil {
-		return nil, err
+		return nil, nil
 	}
 	//为了兼容原来的系统,多加了一个判断
 	if d.child.GetPayloadValue() == nil {
