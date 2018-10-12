@@ -6,11 +6,11 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-func (t *trade) ExecDelLocal_Sell(sell *pty.TradeForSell, tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+func (t *trade) ExecDelLocal_SellLimit(sell *pty.TradeForSell, tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	return t.localDelLog(tx, receipt, index)
 }
 
-func (t *trade) ExecDelLocal_Buy(buy *pty.TradeForBuy, tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+func (t *trade) ExecDelLocal_BuyMarket(buy *pty.TradeForBuy, tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	return t.localDelLog(tx, receipt, index)
 }
 

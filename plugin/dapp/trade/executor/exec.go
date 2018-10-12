@@ -5,12 +5,12 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-func (t *trade) Exec_Sell(sell *pty.TradeForSell, tx *types.Transaction, index int) (*types.Receipt, error) {
+func (t *trade) Exec_SellLimit(sell *pty.TradeForSell, tx *types.Transaction, index int) (*types.Receipt, error) {
 	action := newTradeAction(t, tx)
 	return action.tradeSell(sell)
 }
 
-func (t *trade) Exec_Buy(buy *pty.TradeForBuy, tx *types.Transaction, index int) (*types.Receipt, error) {
+func (t *trade) Exec_BuyMarket(buy *pty.TradeForBuy, tx *types.Transaction, index int) (*types.Receipt, error) {
 	action := newTradeAction(t, tx)
 	return action.tradeBuy(buy)
 }

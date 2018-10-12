@@ -6,8 +6,8 @@ package types;
 //
 message Trade {
     oneof value {
-        TradeForSell       sell       = 1;
-        TradeForBuy        buy        = 2;
+        TradeForSell       sellLimit  = 1;
+        TradeForBuy        buyMarket  = 2;
         TradeForRevokeSell revokeSell = 3;
         TradeForBuyLimit   buyLimit   = 5;
         TradeForSellMarket sellMarket = 6;
