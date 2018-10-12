@@ -7,6 +7,28 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
+func TestTokenPayloadType(t *testing.T) {
+	msg, err := tokenPayloadType("GetTokens")
+	assert.Equal(t, &types.ReqTokens{}, msg)
+	assert.Nil(t, err)
+
+	msg, err = tokenPayloadType("GetTokenInfo")
+	assert.Equal(t, &types.ReqString{}, msg)
+	assert.Nil(t, err)
+
+	//msg, err = tokenPayloadType("GetAddrReceiverforTokens")
+	//assert.Equal(t, &types.ReqAddrTokens{}, msg)
+	//assert.Nil(t, err)
+
+	msg, err = tokenPayloadType("GetAccountTokenAssets")
+	assert.Equal(t, &types.ReqAccountTokenAssets{}, msg)
+	assert.Nil(t, err)
+
+	msg, err = tokenPayloadType("wzw")
+	assert.Nil(t, msg)
+	assert.Equal(t, err, types.ErrInputPara)
+}
+
 func TestCoinsPayloadType(t *testing.T) {
 	msg, err := coinsPayloadType("GetAddrReciver")
 	assert.Equal(t, &types.ReqAddr{}, msg)
@@ -63,35 +85,35 @@ func TestTicketPayloadType(t *testing.T) {
 	assert.Equal(t, err, types.ErrInputPara)
 }
 
-func TestTradePayloadType(t *testing.T) {
-	msg, err := tradePayloadType("GetOnesSellOrder")
-	assert.Equal(t, &types.ReqAddrTokens{}, msg)
-	assert.Nil(t, err)
-
-	msg, err = tradePayloadType("GetOnesBuyOrder")
-	assert.Equal(t, &types.ReqAddrTokens{}, msg)
-	assert.Nil(t, err)
-
-	msg, err = tradePayloadType("GetOnesSellOrderWithStatus")
-	assert.Equal(t, &types.ReqAddrTokens{}, msg)
-	assert.Nil(t, err)
-
-	msg, err = tradePayloadType("GetOnesBuyOrderWithStatus")
-	assert.Equal(t, &types.ReqAddrTokens{}, msg)
-	assert.Nil(t, err)
-
-	msg, err = tradePayloadType("GetTokenSellOrderByStatus")
-	assert.Equal(t, &types.ReqTokenSellOrder{}, msg)
-	assert.Nil(t, err)
-
-	msg, err = tradePayloadType("GetTokenBuyOrderByStatus")
-	assert.Equal(t, &types.ReqTokenBuyOrder{}, msg)
-	assert.Nil(t, err)
-
-	msg, err = tradePayloadType("wzw")
-	assert.Nil(t, msg)
-	assert.Equal(t, err, types.ErrInputPara)
-}
+//func TestTradePayloadType(t *testing.T) {
+//	msg, err := tradePayloadType("GetOnesSellOrder")
+//	assert.Equal(t, &types.ReqAddrTokens{}, msg)
+//	assert.Nil(t, err)
+//
+//	msg, err = tradePayloadType("GetOnesBuyOrder")
+//	assert.Equal(t, &types.ReqAddrTokens{}, msg)
+//	assert.Nil(t, err)
+//
+//	msg, err = tradePayloadType("GetOnesSellOrderWithStatus")
+//	assert.Equal(t, &types.ReqAddrTokens{}, msg)
+//	assert.Nil(t, err)
+//
+//	msg, err = tradePayloadType("GetOnesBuyOrderWithStatus")
+//	assert.Equal(t, &types.ReqAddrTokens{}, msg)
+//	assert.Nil(t, err)
+//
+//	msg, err = tradePayloadType("GetTokenSellOrderByStatus")
+//	assert.Equal(t, &types.ReqTokenSellOrder{}, msg)
+//	assert.Nil(t, err)
+//
+//	msg, err = tradePayloadType("GetTokenBuyOrderByStatus")
+//	assert.Equal(t, &types.ReqTokenBuyOrder{}, msg)
+//	assert.Nil(t, err)
+//
+//	msg, err = tradePayloadType("wzw")
+//	assert.Nil(t, msg)
+//	assert.Equal(t, err, types.ErrInputPara)
+//}
 
 func TestPayloadType(t *testing.T) {
 	msg, err := payloadType(types.ExecName(types.CoinsX), "GetAddrReciver")
@@ -110,9 +132,9 @@ func TestPayloadType(t *testing.T) {
 	assert.Equal(t, &types.TicketInfos{}, msg)
 	assert.Nil(t, err)
 
-	msg, err = payloadType(types.ExecName(types.TradeX), "GetOnesSellOrder")
-	assert.Equal(t, &types.ReqAddrTokens{}, msg)
-	assert.Nil(t, err)
+	//msg, err = payloadType(types.ExecName(types.TradeX), "GetOnesSellOrder")
+	//assert.Equal(t, &types.ReqAddrTokens{}, msg)
+	//assert.Nil(t, err)
 
 	msg, err = payloadType(types.ExecName("wzw"), "wzw")
 	assert.Nil(t, msg)
