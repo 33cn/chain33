@@ -18,6 +18,7 @@ import (
 	"github.com/inconshreveable/log15"
 	hashlocktype "gitlab.33.cn/chain33/chain33/plugin/dapp/hashlock/types"
 	lotterytype "gitlab.33.cn/chain33/chain33/plugin/dapp/lottery/types"
+	tokenty "gitlab.33.cn/chain33/chain33/plugin/dapp/token/types"
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 	retrievetype "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
 	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
@@ -51,21 +52,17 @@ func callExecNewTx(execName, action string, param interface{}) ([]byte, error) {
 		log.Error("callExecNewTx", "Error", "param in nil")
 		return nil, types.ErrInvalidParam
 	}
-
 	jsonStr, err := json.Marshal(param)
 	if err != nil {
 		log.Error("callExecNewTx", "Error", err)
 		return nil, err
 	}
-
 	tx, err := exec.CreateTx(action, json.RawMessage(jsonStr))
 	if err != nil {
 		log.Error("callExecNewTx", "Error", err)
 		return nil, err
 	}
-
-	txHex := types.Encode(tx)
-	return txHex, nil
+	return formatTx(execName, tx)
 }
 
 func callCreateTx(execName, action string, param types.Message) ([]byte, error) {
@@ -85,6 +82,10 @@ func callCreateTx(execName, action string, param types.Message) ([]byte, error) 
 		log.Error("callExecNewTx", "Error", err)
 		return nil, err
 	}
+	return formatTx(execName, tx)
+}
+
+func formatTx(execName string, tx *types.Transaction) ([]byte, error) {
 	//填写nonce,execer,to, fee 等信息, 后面会增加一个修改transaction的函数，会加上execer fee 等的修改
 	tx.Nonce = random.Int63()
 	tx.Execer = []byte(execName)
@@ -92,12 +93,13 @@ func callCreateTx(execName, action string, param types.Message) ([]byte, error) 
 	if types.IsPara() || tx.To == "" {
 		tx.To = address.ExecAddress(string(tx.Execer))
 	}
+	var err error
 	tx.Fee, err = tx.GetRealFee(types.MinFee)
 	if err != nil {
 		return nil, err
 	}
-	txHex := types.Encode(tx)
-	return txHex, nil
+	txbyte := types.Encode(tx)
+	return txbyte, nil
 }
 
 func (c *channelClient) CreateRawTransaction(param *types.CreateTx) ([]byte, error) {
@@ -105,12 +107,13 @@ func (c *channelClient) CreateRawTransaction(param *types.CreateTx) ([]byte, err
 		log.Error("CreateRawTransaction", "Error", types.ErrInvalidParam)
 		return nil, types.ErrInvalidParam
 	}
-
+	//因为历史原因，这里还是有部分token 的字段，但是没有依赖token dapp
+	//未来这个调用可能会被废弃
+	execer := types.ExecName(types.CoinsX)
 	if param.IsToken {
-		return callExecNewTx(types.ExecName(types.TokenX), "", param)
-	} else {
-		return callCreateTx(types.ExecName(types.CoinsX), "", param)
+		execer = types.ExecName(types.TokenX)
 	}
+	return callCreateTx(execer, "", param)
 }
 
 func (c *channelClient) CreateRawTxGroup(param *types.CreateTransactionGroup) ([]byte, error) {
