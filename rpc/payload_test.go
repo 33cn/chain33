@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"gitlab.33.cn/chain33/chain33/types"
 	tokenty "gitlab.33.cn/chain33/chain33/plugin/dapp/token/types"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 func TestTokenPayloadType(t *testing.T) {
