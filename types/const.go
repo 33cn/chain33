@@ -319,7 +319,6 @@ const (
 	TokenStatusCreateRevoked
 )
 
-
 // manager action
 const (
 	ManageActionModifyConfig = iota
@@ -331,8 +330,6 @@ const (
 	ConfigItemIntConfig
 	ConfigItemStringConfig
 )
-
-
 
 // relay
 const (
