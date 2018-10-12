@@ -13,8 +13,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/types/convertor"
 )
 
-var nameX string
-
 var (
 	elog = log.New("module", "exectype.evm")
 
