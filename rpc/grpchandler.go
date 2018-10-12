@@ -32,7 +32,16 @@ func (g *Grpc) CreateRawTransaction(ctx context.Context, in *pb.CreateTx) (*pb.U
 }
 
 func (g *Grpc) CreateTransaction(ctx context.Context, in *pb.CreateTxIn) (*pb.UnsignTx, error) {
-	reply, err := g.cli.CreateTransaction(in)
+	exec := pb.LoadExecutorType(string(in.Execer))
+	if exec == nil {
+		log.Error("callExecNewTx", "Error", "exec not found")
+		return nil, pb.ErrNotSupport
+	}
+	msg, err := exec.GetAction(in.ActionName)
+	if err != nil {
+		return nil, err
+	}
+	reply, err := callCreateTx(string(in.Execer), in.ActionName, msg)
 	if err != nil {
 		return nil, err
 	}
