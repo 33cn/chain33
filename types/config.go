@@ -100,8 +100,7 @@ func GetP(height int64) *ChainParam {
 //区块链共识相关的参数，重要参数不要随便修改
 var (
 	AllowDepositExec = [][]byte{ExecerTicket}
-	AllowUserExec    = [][]byte{ExecerTicket, ExecerNorm, ExecerHashlock,
-		ExecerRetrieve, ExecerNone, ExecerToken, ExecerTrade, ExecerManage,
+	AllowUserExec    = [][]byte{ExecerTicket, ExecerNorm, ExecerHashlock, ExecerNone, ExecerToken, ExecerTrade, ExecerManage,
 		ExecerEvm, ExecerRelay, ExecerPrivacy/*ExecerBlackwhite,*/, ExecerPara, ExecerLottery, ExecerValNode}
 
 	GenesisAddr              = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
@@ -143,8 +142,7 @@ var (
 func SetTitle(t string) {
 	title = t
 	if IsBityuan() {
-		AllowUserExec = [][]byte{[]byte("coins"), ExecerTicket, ExecerHashlock,
-			ExecerRetrieve, ExecerNone, ExecerToken, ExecerTrade, ExecerManage}
+		AllowUserExec = [][]byte{[]byte("coins"), ExecerTicket, ExecerHashlock, ExecerNone, ExecerToken, ExecerTrade, ExecerManage}
 		return
 	}
 	if IsLocal() {

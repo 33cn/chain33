@@ -10,7 +10,9 @@ It is generated from these files:
 It has these top-level messages:
 	Cert
 	CertAction
-	CertPut
+	CertNew
+	CertUpdate
+	CertNormal
 */
 package types
 
@@ -71,9 +73,11 @@ func (m *Cert) GetValue() []byte {
 
 type CertAction struct {
 	// Types that are valid to be assigned to Value:
-	//	*CertAction_Nput
+	//	*CertAction_New
+	//	*CertAction_Update
+	//	*CertAction_Normal
 	Value isCertAction_Value `protobuf_oneof:"value"`
-	Ty    int32              `protobuf:"varint,5,opt,name=ty" json:"ty,omitempty"`
+	Ty    int32              `protobuf:"varint,4,opt,name=ty" json:"ty,omitempty"`
 }
 
 func (m *CertAction) Reset()                    { *m = CertAction{} }
@@ -85,11 +89,19 @@ type isCertAction_Value interface {
 	isCertAction_Value()
 }
 
-type CertAction_Nput struct {
-	Nput *CertPut `protobuf:"bytes,1,opt,name=nput,oneof"`
+type CertAction_New struct {
+	New *CertNew `protobuf:"bytes,1,opt,name=new,oneof"`
+}
+type CertAction_Update struct {
+	Update *CertUpdate `protobuf:"bytes,2,opt,name=update,oneof"`
+}
+type CertAction_Normal struct {
+	Normal *CertNormal `protobuf:"bytes,3,opt,name=normal,oneof"`
 }
 
-func (*CertAction_Nput) isCertAction_Value() {}
+func (*CertAction_New) isCertAction_Value()    {}
+func (*CertAction_Update) isCertAction_Value() {}
+func (*CertAction_Normal) isCertAction_Value() {}
 
 func (m *CertAction) GetValue() isCertAction_Value {
 	if m != nil {
@@ -98,9 +110,23 @@ func (m *CertAction) GetValue() isCertAction_Value {
 	return nil
 }
 
-func (m *CertAction) GetNput() *CertPut {
-	if x, ok := m.GetValue().(*CertAction_Nput); ok {
-		return x.Nput
+func (m *CertAction) GetNew() *CertNew {
+	if x, ok := m.GetValue().(*CertAction_New); ok {
+		return x.New
+	}
+	return nil
+}
+
+func (m *CertAction) GetUpdate() *CertUpdate {
+	if x, ok := m.GetValue().(*CertAction_Update); ok {
+		return x.Update
+	}
+	return nil
+}
+
+func (m *CertAction) GetNormal() *CertNormal {
+	if x, ok := m.GetValue().(*CertAction_Normal); ok {
+		return x.Normal
 	}
 	return nil
 }
@@ -115,7 +141,9 @@ func (m *CertAction) GetTy() int32 {
 // XXX_OneofFuncs is for the internal use of the proto package.
 func (*CertAction) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
 	return _CertAction_OneofMarshaler, _CertAction_OneofUnmarshaler, _CertAction_OneofSizer, []interface{}{
-		(*CertAction_Nput)(nil),
+		(*CertAction_New)(nil),
+		(*CertAction_Update)(nil),
+		(*CertAction_Normal)(nil),
 	}
 }
 
@@ -123,9 +151,19 @@ func _CertAction_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
 	m := msg.(*CertAction)
 	// value
 	switch x := m.Value.(type) {
-	case *CertAction_Nput:
+	case *CertAction_New:
 		b.EncodeVarint(1<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Nput); err != nil {
+		if err := b.EncodeMessage(x.New); err != nil {
+			return err
+		}
+	case *CertAction_Update:
+		b.EncodeVarint(2<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.Update); err != nil {
+			return err
+		}
+	case *CertAction_Normal:
+		b.EncodeVarint(3<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.Normal); err != nil {
 			return err
 		}
 	case nil:
@@ -138,13 +176,29 @@ func _CertAction_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
 func _CertAction_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
 	m := msg.(*CertAction)
 	switch tag {
-	case 1: // value.nput
+	case 1: // value.new
 		if wire != proto.WireBytes {
 			return true, proto.ErrInternalBadWireType
 		}
-		msg := new(CertPut)
+		msg := new(CertNew)
 		err := b.DecodeMessage(msg)
-		m.Value = &CertAction_Nput{msg}
+		m.Value = &CertAction_New{msg}
+		return true, err
+	case 2: // value.update
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(CertUpdate)
+		err := b.DecodeMessage(msg)
+		m.Value = &CertAction_Update{msg}
+		return true, err
+	case 3: // value.normal
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(CertNormal)
+		err := b.DecodeMessage(msg)
+		m.Value = &CertAction_Normal{msg}
 		return true, err
 	default:
 		return false, nil
@@ -155,9 +209,19 @@ func _CertAction_OneofSizer(msg proto.Message) (n int) {
 	m := msg.(*CertAction)
 	// value
 	switch x := m.Value.(type) {
-	case *CertAction_Nput:
-		s := proto.Size(x.Nput)
+	case *CertAction_New:
+		s := proto.Size(x.New)
 		n += proto.SizeVarint(1<<3 | proto.WireBytes)
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *CertAction_Update:
+		s := proto.Size(x.Update)
+		n += proto.SizeVarint(2<<3 | proto.WireBytes)
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case *CertAction_Normal:
+		s := proto.Size(x.Normal)
+		n += proto.SizeVarint(3<<3 | proto.WireBytes)
 		n += proto.SizeVarint(uint64(s))
 		n += s
 	case nil:
@@ -167,24 +231,72 @@ func _CertAction_OneofSizer(msg proto.Message) (n int) {
 	return n
 }
 
-type CertPut struct {
+type CertNew struct {
 	Key   string `protobuf:"bytes,1,opt,name=key" json:"key,omitempty"`
 	Value []byte `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
 }
 
-func (m *CertPut) Reset()                    { *m = CertPut{} }
-func (m *CertPut) String() string            { return proto.CompactTextString(m) }
-func (*CertPut) ProtoMessage()               {}
-func (*CertPut) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{2} }
+func (m *CertNew) Reset()                    { *m = CertNew{} }
+func (m *CertNew) String() string            { return proto.CompactTextString(m) }
+func (*CertNew) ProtoMessage()               {}
+func (*CertNew) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{2} }
 
-func (m *CertPut) GetKey() string {
+func (m *CertNew) GetKey() string {
 	if m != nil {
 		return m.Key
 	}
 	return ""
 }
 
-func (m *CertPut) GetValue() []byte {
+func (m *CertNew) GetValue() []byte {
+	if m != nil {
+		return m.Value
+	}
+	return nil
+}
+
+type CertUpdate struct {
+	Key   string `protobuf:"bytes,1,opt,name=key" json:"key,omitempty"`
+	Value []byte `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+}
+
+func (m *CertUpdate) Reset()                    { *m = CertUpdate{} }
+func (m *CertUpdate) String() string            { return proto.CompactTextString(m) }
+func (*CertUpdate) ProtoMessage()               {}
+func (*CertUpdate) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{3} }
+
+func (m *CertUpdate) GetKey() string {
+	if m != nil {
+		return m.Key
+	}
+	return ""
+}
+
+func (m *CertUpdate) GetValue() []byte {
+	if m != nil {
+		return m.Value
+	}
+	return nil
+}
+
+type CertNormal struct {
+	Key   string `protobuf:"bytes,1,opt,name=key" json:"key,omitempty"`
+	Value []byte `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+}
+
+func (m *CertNormal) Reset()                    { *m = CertNormal{} }
+func (m *CertNormal) String() string            { return proto.CompactTextString(m) }
+func (*CertNormal) ProtoMessage()               {}
+func (*CertNormal) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{4} }
+
+func (m *CertNormal) GetKey() string {
+	if m != nil {
+		return m.Key
+	}
+	return ""
+}
+
+func (m *CertNormal) GetValue() []byte {
 	if m != nil {
 		return m.Value
 	}
@@ -194,24 +306,29 @@ func (m *CertPut) GetValue() []byte {
 func init() {
 	proto.RegisterType((*Cert)(nil), "types.Cert")
 	proto.RegisterType((*CertAction)(nil), "types.CertAction")
-	proto.RegisterType((*CertPut)(nil), "types.CertPut")
+	proto.RegisterType((*CertNew)(nil), "types.CertNew")
+	proto.RegisterType((*CertUpdate)(nil), "types.CertUpdate")
+	proto.RegisterType((*CertNormal)(nil), "types.CertNormal")
 }
 
 func init() { proto.RegisterFile("cert.proto", fileDescriptor0) }
 
 var fileDescriptor0 = []byte{
-	// 201 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0xe2, 0x4a, 0x4e, 0x2d, 0x2a,
-	0xd1, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0x62, 0x2d, 0xa9, 0x2c, 0x48, 0x2d, 0x56, 0x4a, 0xe3,
-	0x62, 0x71, 0x4e, 0x2d, 0x2a, 0x11, 0x12, 0xe3, 0x62, 0x03, 0x49, 0x7a, 0xa6, 0x48, 0x30, 0x2a,
-	0x30, 0x6a, 0xf0, 0x04, 0x41, 0x79, 0x42, 0x72, 0x5c, 0x5c, 0xc9, 0x45, 0xa9, 0x89, 0x25, 0xa9,
-	0x21, 0x99, 0xb9, 0xa9, 0x12, 0x4c, 0x0a, 0x8c, 0x1a, 0xcc, 0x41, 0x48, 0x22, 0x42, 0x02, 0x5c,
-	0xcc, 0xd9, 0xa9, 0x95, 0x12, 0xcc, 0x0a, 0x8c, 0x1a, 0x9c, 0x41, 0x20, 0xa6, 0x90, 0x08, 0x17,
-	0x6b, 0x59, 0x62, 0x4e, 0x69, 0xaa, 0x04, 0x0b, 0xd8, 0x20, 0x08, 0x47, 0xc9, 0x9b, 0x8b, 0x0b,
-	0x64, 0x8f, 0x63, 0x72, 0x49, 0x66, 0x7e, 0x9e, 0x90, 0x0a, 0x17, 0x4b, 0x5e, 0x41, 0x69, 0x09,
-	0xd8, 0x2e, 0x6e, 0x23, 0x3e, 0x3d, 0xb0, 0x5b, 0xf4, 0x40, 0x0a, 0x02, 0x4a, 0x4b, 0x3c, 0x18,
-	0x82, 0xc0, 0xb2, 0x42, 0x7c, 0x5c, 0x4c, 0x25, 0x95, 0x12, 0xac, 0x0a, 0x8c, 0x1a, 0xac, 0x41,
-	0x4c, 0x25, 0x95, 0x4e, 0xec, 0x50, 0x93, 0x95, 0x0c, 0xb9, 0xd8, 0xa1, 0x6a, 0x61, 0xf6, 0x33,
-	0x62, 0xb1, 0x9f, 0x09, 0xc9, 0xfe, 0x24, 0x36, 0xb0, 0xaf, 0x8d, 0x01, 0x01, 0x00, 0x00, 0xff,
-	0xff, 0x6f, 0x0a, 0x9f, 0x77, 0x03, 0x01, 0x00, 0x00,
+	// 253 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x91, 0xc1, 0x4a, 0xc3, 0x40,
+	0x10, 0x86, 0xbb, 0x49, 0x93, 0xe2, 0x54, 0x8a, 0x0e, 0x22, 0x39, 0x49, 0xc8, 0x29, 0x20, 0x04,
+	0xac, 0xbe, 0x80, 0x7a, 0xa9, 0x97, 0x1e, 0x16, 0x7d, 0x80, 0x98, 0x8e, 0x50, 0x6c, 0x93, 0xb0,
+	0x4e, 0x0d, 0xfb, 0x3c, 0xbe, 0xa8, 0xec, 0xec, 0x0a, 0x11, 0x3c, 0xd8, 0xdb, 0xce, 0xfe, 0xff,
+	0xec, 0xff, 0xfd, 0x2c, 0x40, 0x43, 0x86, 0xab, 0xde, 0x74, 0xdc, 0x61, 0xc2, 0xb6, 0xa7, 0x8f,
+	0xe2, 0x0d, 0xa6, 0x8f, 0x64, 0x18, 0x2f, 0x21, 0x75, 0xe2, 0xd3, 0x26, 0x53, 0xb9, 0x2a, 0x4f,
+	0x75, 0x98, 0xf0, 0x0a, 0xa0, 0x31, 0x54, 0x33, 0x3d, 0x6f, 0xf7, 0x94, 0x45, 0xb9, 0x2a, 0x63,
+	0x3d, 0xba, 0xc1, 0x33, 0x88, 0xdf, 0xc9, 0x66, 0x71, 0xae, 0xca, 0x13, 0xed, 0x8e, 0x78, 0x01,
+	0xc9, 0x67, 0xbd, 0x3b, 0x50, 0x36, 0x95, 0x87, 0xfc, 0x50, 0x7c, 0x29, 0x00, 0x17, 0x74, 0xdf,
+	0xf0, 0xb6, 0x6b, 0xb1, 0x80, 0xb8, 0xa5, 0x41, 0xb2, 0xe6, 0xcb, 0x45, 0x25, 0x2c, 0x95, 0xd3,
+	0xd7, 0x34, 0xac, 0x26, 0xda, 0x89, 0x78, 0x0d, 0xe9, 0xa1, 0xdf, 0xd4, 0xec, 0x63, 0xe7, 0xcb,
+	0xf3, 0x91, 0xed, 0x45, 0x84, 0xd5, 0x44, 0x07, 0x8b, 0x33, 0xb7, 0x9d, 0xd9, 0xd7, 0x3b, 0x41,
+	0xf9, 0x6d, 0x5e, 0x8b, 0xe0, 0xcc, 0xde, 0x82, 0x0b, 0x88, 0xd8, 0x0a, 0x5f, 0xa2, 0x23, 0xb6,
+	0x0f, 0xb3, 0x80, 0x5c, 0xdc, 0xc0, 0x2c, 0x40, 0xfc, 0x14, 0x53, 0x7f, 0x14, 0x8b, 0xc6, 0xc5,
+	0xee, 0x7c, 0x2f, 0x0f, 0x74, 0xec, 0x96, 0x27, 0xfb, 0xef, 0xd6, 0x6b, 0x2a, 0x5f, 0x77, 0xfb,
+	0x1d, 0x00, 0x00, 0xff, 0xff, 0x37, 0xca, 0x0a, 0x23, 0xc8, 0x01, 0x00, 0x00,
 }

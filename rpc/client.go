@@ -18,7 +18,6 @@ import (
 	hashlocktype "gitlab.33.cn/chain33/chain33/plugin/dapp/hashlock/types"
 	lotterytype "gitlab.33.cn/chain33/chain33/plugin/dapp/lottery/types"
 	evmtype "gitlab.33.cn/chain33/chain33/types/executor/evm"
-	retrievetype "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
 	tokentype "gitlab.33.cn/chain33/chain33/types/executor/token"
 	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
 )
@@ -398,22 +397,6 @@ func (c *channelClient) CreateRawTradeSellMarketTx(parm *tradetype.TradeSellMark
 
 func (c *channelClient) CreateRawTradeRevokeBuyTx(parm *tradetype.TradeRevokeBuyTx) ([]byte, error) {
 	return callExecNewTx(types.ExecName(types.TradeX), "TradeRevokeBuy", parm)
-}
-
-func (c *channelClient) CreateRawRetrieveBackupTx(parm *retrievetype.RetrieveBackupTx) ([]byte, error) {
-	return callExecNewTx(types.ExecName(types.RetrieveX), "RetrieveBackup", parm)
-}
-
-func (c *channelClient) CreateRawRetrievePrepareTx(parm *retrievetype.RetrievePrepareTx) ([]byte, error) {
-	return callExecNewTx(types.ExecName(types.RetrieveX), "RetrievePrepare", parm)
-}
-
-func (c *channelClient) CreateRawRetrievePerformTx(parm *retrievetype.RetrievePerformTx) ([]byte, error) {
-	return callExecNewTx(types.ExecName(types.RetrieveX), "RetrievePerform", parm)
-}
-
-func (c *channelClient) CreateRawRetrieveCancelTx(parm *retrievetype.RetrieveCancelTx) ([]byte, error) {
-	return callExecNewTx(types.ExecName(types.RetrieveX), "RetrieveCancel", parm)
 }
 
 func (c *channelClient) CreateRawHashlockLockTx(parm *hashlocktype.HashlockLockTx) ([]byte, error) {
