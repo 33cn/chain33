@@ -178,7 +178,7 @@ func testCreateRawTransactionCoinWithdraw(t *testing.T) {
 
 func testCreateRawTransactionTokenTransfer(t *testing.T) {
 	ctx := types.CreateTx{
-		ExecName:   types.ExecName(types.TokenX),
+		ExecName:   "",
 		Amount:     10,
 		IsToken:    true,
 		IsWithdraw: false,
