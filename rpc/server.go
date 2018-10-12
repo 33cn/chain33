@@ -139,7 +139,6 @@ type RPC struct {
 	cfg  *types.Rpc
 	gapi *Grpcserver
 	japi *JSONRPCServer
-	name string
 	c    queue.Client
 }
 
