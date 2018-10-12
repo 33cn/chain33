@@ -18,8 +18,8 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/crypto/sha3"
 	common2 "gitlab.33.cn/chain33/chain33/plugin/dapp/evm/executor/vm/common"
 	evmtypes "gitlab.33.cn/chain33/chain33/plugin/dapp/evm/types"
-	"gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
+	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -151,7 +151,7 @@ func evmBalance(cmd *cobra.Command, args []string) {
 		Execer:    execer,
 		StateHash: "",
 	}
-	var res []*rpc.Account
+	var res []*rpctypes.Account
 	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.GetBalance", params, &res)
 	ctx.SetResultCb(parseGetBalanceRes)
 	ctx.Run()
@@ -165,7 +165,7 @@ type AccountResult struct {
 }
 
 func parseGetBalanceRes(arg interface{}) (interface{}, error) {
-	res := *arg.(*[]*rpc.Account)
+	res := *arg.(*[]*rpctypes.Account)
 	balanceResult := strconv.FormatFloat(float64(res[0].Balance)/float64(types.Coin), 'f', 4, 64)
 	frozenResult := strconv.FormatFloat(float64(res[0].Frozen)/float64(types.Coin), 'f', 4, 64)
 	result := &AccountResult{
@@ -220,7 +220,7 @@ func createContract(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	params := rpc.RawParm{
+	params := rpctypes.RawParm{
 		Data: data,
 	}
 
@@ -355,7 +355,7 @@ func callContract(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	params := rpc.RawParm{
+	params := rpctypes.RawParm{
 		Data: data,
 	}
 
@@ -580,7 +580,7 @@ func evmTransfer(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	params := rpc.RawParm{
+	params := rpctypes.RawParm{
 		Data: data,
 	}
 
@@ -628,7 +628,7 @@ func evmWithdraw(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	params := rpc.RawParm{
+	params := rpctypes.RawParm{
 		Data: data,
 	}
 
@@ -643,13 +643,13 @@ func sendQuery(rpcAddr, funcName string, request, result interface{}) bool {
 		Payload:  request,
 	}
 
-	rpc, err := jsonclient.NewJSONClient(rpcAddr)
+	jsonrpc, err := jsonclient.NewJSONClient(rpcAddr)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return false
 	}
 
-	err = rpc.Call("Chain33.Query", params, &result)
+	err = jsonrpc.Call("Chain33.Query", params, &result)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return false

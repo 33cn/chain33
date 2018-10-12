@@ -16,14 +16,14 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	bwty "gitlab.33.cn/chain33/chain33/plugin/dapp/blackwhite/types"
 	pt "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/types"
-	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
+	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
 	// TODO: 暂时将插件中的类型引用起来，后续需要修改
 	hlt "gitlab.33.cn/chain33/chain33/plugin/dapp/hashlock/types"
 )
 
-func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
+func decodeTransaction(tx *rpctypes.Transaction) *TxResult {
 	feeResult := strconv.FormatFloat(float64(tx.Fee)/float64(types.Coin), 'f', 4, 64)
 	result := &TxResult{
 		Execer:     tx.Execer,
@@ -254,7 +254,7 @@ func decodeAccount(acc *types.Account, precision int64) *AccountResult {
 	return accResult
 }
 
-func constructAccFromLog(l *jsonrpc.ReceiptLogResult, key string) *types.Account {
+func constructAccFromLog(l *rpctypes.ReceiptLogResult, key string) *types.Account {
 	var cur int32
 	if tmp, ok := l.Log.(map[string]interface{})[key].(map[string]interface{})["currency"]; ok {
 		cur = int32(tmp.(float32))
@@ -280,7 +280,7 @@ func constructAccFromLog(l *jsonrpc.ReceiptLogResult, key string) *types.Account
 }
 
 //这里需要重构
-func decodeLog(rlog jsonrpc.ReceiptDataResult) *ReceiptData {
+func decodeLog(rlog rpctypes.ReceiptDataResult) *ReceiptData {
 	rd := &ReceiptData{Ty: rlog.Ty, TyName: rlog.TyName}
 
 	for _, l := range rlog.Logs {
@@ -342,7 +342,7 @@ func decodeLog(rlog jsonrpc.ReceiptDataResult) *ReceiptData {
 	return rd
 }
 
-func buildPrivacyInputResult(l *jsonrpc.ReceiptLogResult) interface{} {
+func buildPrivacyInputResult(l *rpctypes.ReceiptLogResult) interface{} {
 	data, _ := common.FromHex(l.RawLog)
 	srcInput := &types.PrivacyInput{}
 	dstInput := &PrivacyInput{}
@@ -367,7 +367,7 @@ func buildPrivacyInputResult(l *jsonrpc.ReceiptLogResult) interface{} {
 	return dstInput
 }
 
-func buildPrivacyOutputResult(l *jsonrpc.ReceiptLogResult) interface{} {
+func buildPrivacyOutputResult(l *rpctypes.ReceiptLogResult) interface{} {
 	data, _ := common.FromHex(l.RawLog)
 	srcOutput := &types.ReceiptPrivacyOutput{}
 	dstOutput := &ReceiptPrivacyOutput{}
@@ -398,7 +398,7 @@ func SendToAddress(rpcAddr string, from string, to string, amount int64, note st
 		params.TokenSymbol = tokenSymbol
 	}
 
-	var res jsonrpc.ReplyHash
+	var res rpctypes.ReplyHash
 	ctx := NewRpcCtx(rpcAddr, "Chain33.SendToAddress", params, &res)
 	ctx.Run()
 }
