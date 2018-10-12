@@ -26,7 +26,6 @@ import (
 var (
 	isMainNetTest bool = false
 	isParaNetTest bool = false
-	isManageTest  bool = false
 )
 
 var (
@@ -58,7 +57,6 @@ var (
 	tokenPrice  int64 = 0
 	tokenAmount int64 = 1000 * 1e4 * 1e4
 	execName          = "user.p.guodun.token"
-	execNameMa        = "user.p.guodun.manage"
 	feeForToken int64 = 1e6
 	transToAddr       = "1NYxhca2zVMzxFqMRJdMcZfrSFnqbqotKe"
 	transAmount int64 = 100 * 1e4 * 1e4
@@ -143,89 +141,6 @@ func TestInitAccount(t *testing.T) {
 
 		time.Sleep(5 * time.Second)
 	*/
-}
-
-func TestManageForTokenBlackList(t *testing.T) {
-	if !isManageTest {
-		return
-	}
-	fmt.Println("TestManageForTokenBlackList start")
-	defer fmt.Println("TestManageForTokenBlackList end")
-
-	v := &types.ModifyConfig{Key: "token-blacklist", Op: "add", Value: "GDT", Addr: ""}
-	modify := &types.ManageAction{
-		Ty:    types.ManageActionModifyConfig,
-		Value: &types.ManageAction_Modify{Modify: v},
-	}
-	tx := &types.Transaction{
-		Execer:  []byte(execNameMa),
-		Payload: types.Encode(modify),
-		Fee:     feeForToken,
-		Nonce:   r.Int63(),
-		To:      address.ExecAddress(execNameMa),
-	}
-
-	tx.Sign(types.SECP256K1, privkeySuper)
-
-	reply, err := mainClient.SendTransaction(context.Background(), tx)
-	if err != nil {
-		fmt.Println("err", err)
-		t.Error(err)
-		return
-	}
-	if !reply.IsOk {
-		fmt.Println("err = ", reply.GetMsg())
-		t.Error(ErrTest)
-		return
-	}
-
-	if !waitTx(tx.Hash()) {
-		t.Error(ErrTest)
-		return
-	}
-	time.Sleep(5 * time.Second)
-
-}
-
-func TestManageForTokenFinisher(t *testing.T) {
-	if !isManageTest {
-		return
-	}
-	fmt.Println("TestManageForTokenFinisher start")
-	defer fmt.Println("TestManageForTokenFinisher end")
-
-	v := &types.ModifyConfig{Key: "token-finisher", Op: "add", Value: addr, Addr: ""}
-	modify := &types.ManageAction{
-		Ty:    types.ManageActionModifyConfig,
-		Value: &types.ManageAction_Modify{Modify: v},
-	}
-	tx := &types.Transaction{
-		Execer:  []byte(execNameMa),
-		Payload: types.Encode(modify),
-		Fee:     feeForToken,
-		Nonce:   r.Int63(),
-		To:      address.ExecAddress(execNameMa),
-	}
-
-	tx.Sign(types.SECP256K1, privkeySuper)
-
-	reply, err := mainClient.SendTransaction(context.Background(), tx)
-	if err != nil {
-		fmt.Println("err", err)
-		t.Error(err)
-		return
-	}
-	if !reply.IsOk {
-		fmt.Println("err = ", reply.GetMsg())
-		t.Error(ErrTest)
-		return
-	}
-
-	if !waitTx(tx.Hash()) {
-		t.Error(ErrTest)
-		return
-	}
-	time.Sleep(5 * time.Second)
 }
 
 func TestPrecreate(t *testing.T) {
