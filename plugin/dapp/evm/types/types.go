@@ -1,13 +1,12 @@
 package types
 
-import "gitlab.33.cn/chain33/chain33/types"
+import (
+	"reflect"
+
+	"gitlab.33.cn/chain33/chain33/types"
+)
 
 const (
-	// 本执行器前缀
-	EvmPrefix = types.UserEvmX
-	// 本执行器名称
-	ExecutorName = types.EvmX
-
 	EvmCreateAction = 1
 	EvmCallAction   = 2
 
@@ -30,5 +29,18 @@ const (
 )
 
 var (
-	JRPCName = "evm"
+	// 本执行器前缀
+	EvmPrefix = "user.evm."
+	// 本执行器名称
+	ExecutorName = "evm"
+
+	ExecerEvm  = []byte(ExecutorName)
+	UserPrefix = []byte(EvmPrefix)
+
+	logInfo = map[int64]*types.LogInfo{
+		TyLogCallContract:       {reflect.TypeOf(ReceiptEVMContract{}), "LogCallContract"},
+		TyLogContractData:       {reflect.TypeOf(EVMContractData{}), "LogContractData"},
+		TyLogContractState:      {reflect.TypeOf(EVMContractState{}), "LogContractState"},
+		TyLogEVMStateChangeItem: {reflect.TypeOf(EVMStateChangeItem{}), "LogEVMStateChangeItem"},
+	}
 )
