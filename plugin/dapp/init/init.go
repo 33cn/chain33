@@ -7,7 +7,6 @@ import (
 	_ "gitlab.33.cn/chain33/chain33/plugin/dapp/game"
 	_ "gitlab.33.cn/chain33/chain33/plugin/dapp/hashlock"
 	_ "gitlab.33.cn/chain33/chain33/plugin/dapp/lottery"
-	_ "gitlab.33.cn/chain33/chain33/plugin/dapp/manage"
 	_ "gitlab.33.cn/chain33/chain33/plugin/dapp/norm"
 	_ "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross"
 	_ "gitlab.33.cn/chain33/chain33/plugin/dapp/pokerbull"
