@@ -14,6 +14,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/client/mocks"
 	"gitlab.33.cn/chain33/chain33/common"
 	hashlocktype "gitlab.33.cn/chain33/chain33/plugin/dapp/hashlock/types"
+	tradetype "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/types"
 
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 
