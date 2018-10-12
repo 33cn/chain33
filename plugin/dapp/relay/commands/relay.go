@@ -66,7 +66,7 @@ func showBtcHeadHeightList(cmd *cobra.Command, args []string) {
 	count, _ := cmd.Flags().GetInt32("counts")
 	direct, _ := cmd.Flags().GetInt32("direction")
 
-	var reqList types.ReqRelayBtcHeaderHeightList
+	var reqList rTy.ReqRelayBtcHeaderHeightList
 	reqList.ReqHeight = base
 	reqList.Counts = count
 	reqList.Direction = direct
@@ -82,7 +82,7 @@ func showBtcHeadHeightList(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	var res types.ReplyRelayBtcHeadHeightList
+	var res rTy.ReplyRelayBtcHeadHeightList
 	err = rpc.Call("Chain33.Query", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -111,7 +111,7 @@ func showBtcHeadCurHeight(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	base, _ := cmd.Flags().GetInt64("height_base")
 
-	var reqList types.ReqRelayQryBTCHeadHeight
+	var reqList rTy.ReqRelayQryBTCHeadHeight
 	reqList.BaseHeight = base
 
 	params := types.Query4Cli{
@@ -125,7 +125,7 @@ func showBtcHeadCurHeight(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	var res types.ReplayRelayQryBTCHeadHeight
+	var res rTy.ReplayRelayQryBTCHeadHeight
 	err = rpc.Call("Chain33.Query", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -158,8 +158,8 @@ func showOnesRelayOrders(cmd *cobra.Command, args []string) {
 	creator, _ := cmd.Flags().GetString("creator")
 	coin, _ := cmd.Flags().GetString("coin")
 	coins := strings.Split(coin, " ")
-	var reqAddrCoins types.ReqRelayAddrCoins
-	reqAddrCoins.Status = types.RelayOrderStatus_pending
+	var reqAddrCoins rTy.ReqRelayAddrCoins
+	reqAddrCoins.Status = rTy.RelayOrderStatus_pending
 	reqAddrCoins.Addr = creator
 	if 0 != len(coins) {
 		reqAddrCoins.Coins = append(reqAddrCoins.Coins, coins...)
@@ -175,7 +175,7 @@ func showOnesRelayOrders(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	var res types.ReplyRelayOrders
+	var res rTy.ReplyRelayOrders
 	err = rpc.Call("Chain33.Query", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -207,8 +207,8 @@ func showRelayAcceptOrders(cmd *cobra.Command, args []string) {
 	acceptor, _ := cmd.Flags().GetString("acceptor")
 	coin, _ := cmd.Flags().GetString("coin")
 	coins := strings.Split(coin, " ")
-	var reqAddrCoins types.ReqRelayAddrCoins
-	reqAddrCoins.Status = types.RelayOrderStatus_locking
+	var reqAddrCoins rTy.ReqRelayAddrCoins
+	reqAddrCoins.Status = rTy.RelayOrderStatus_locking
 	reqAddrCoins.Addr = acceptor
 	if 0 != len(coins) {
 		reqAddrCoins.Coins = append(reqAddrCoins.Coins, coins...)
@@ -224,7 +224,7 @@ func showRelayAcceptOrders(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	var res types.ReplyRelayOrders
+	var res rTy.ReplyRelayOrders
 	err = rpc.Call("Chain33.Query", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -262,8 +262,8 @@ func showCoinRelayOrders(cmd *cobra.Command, args []string) {
 		spt := strings.Split(coin, " ")
 		coins = append(coins, spt...)
 	}
-	var reqAddrCoins types.ReqRelayAddrCoins
-	reqAddrCoins.Status = types.RelayOrderStatus(status)
+	var reqAddrCoins rTy.ReqRelayAddrCoins
+	reqAddrCoins.Status = rTy.RelayOrderStatus(status)
 	if 0 != len(coins) {
 		reqAddrCoins.Coins = append(reqAddrCoins.Coins, coins...)
 	}
@@ -278,7 +278,7 @@ func showCoinRelayOrders(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	var res types.ReplyRelayOrders
+	var res rTy.ReplyRelayOrders
 	err = rpc.Call("Chain33.Query", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -288,7 +288,7 @@ func showCoinRelayOrders(cmd *cobra.Command, args []string) {
 	parseRelayOrders(res)
 }
 
-func parseRelayOrders(res types.ReplyRelayOrders) {
+func parseRelayOrders(res rTy.ReplyRelayOrders) {
 	for _, order := range res.Relayorders {
 		var show RelayOrder2Show
 		show.OrderId = order.Id
@@ -317,12 +317,12 @@ func parseRelayOrders(res types.ReplyRelayOrders) {
 	}
 }
 
-func parseRelayBtcHeadHeightList(res types.ReplyRelayBtcHeadHeightList) {
+func parseRelayBtcHeadHeightList(res rTy.ReplyRelayBtcHeadHeightList) {
 	data, _ := json.Marshal(res)
 	fmt.Println(string(data))
 }
 
-func parseRelayBtcCurHeight(res types.ReplayRelayQryBTCHeadHeight) {
+func parseRelayBtcCurHeight(res rTy.ReplayRelayQryBTCHeadHeight) {
 	data, err := json.MarshalIndent(res, "", "    ")
 	if err != nil {
 		fmt.Println(os.Stderr, err)
@@ -391,7 +391,7 @@ func relayOrder(cmd *cobra.Command, args []string) {
 	}
 
 	var res string
-	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "Chain33.CreateRawRelayOrderTx", params, &res)
+	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "Relay.CreateRawRelayOrderTx", params, &res)
 	ctx.RunWithoutMarshal()
 }
 
@@ -435,7 +435,7 @@ func relayAccept(cmd *cobra.Command, args []string) {
 		Fee:      feeInt64 * 1e4,
 	}
 	var res string
-	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "Chain33.CreateRawRelayAcceptTx", params, &res)
+	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "Relay.CreateRawRelayAcceptTx", params, &res)
 	ctx.RunWithoutMarshal()
 }
 
@@ -477,7 +477,7 @@ func relayRevoke(cmd *cobra.Command, args []string) {
 		Fee:     feeInt64 * 1e4,
 	}
 	var res string
-	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "Chain33.CreateRawRelayRevokeTx", params, &res)
+	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "Relay.CreateRawRelayRevokeTx", params, &res)
 	ctx.RunWithoutMarshal()
 }
 
@@ -514,7 +514,7 @@ func relayConfirm(cmd *cobra.Command, args []string) {
 		Fee:     feeInt64 * 1e4,
 	}
 	var res string
-	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "Chain33.CreateRawRelayConfirmTx", params, &res)
+	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "Relay.CreateRawRelayConfirmTx", params, &res)
 	ctx.RunWithoutMarshal()
 }
 
@@ -568,7 +568,7 @@ func relaySaveBtcHead(cmd *cobra.Command, args []string) {
 	}
 
 	var res string
-	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "Chain33.CreateRawRelaySaveBTCHeadTx", params, &res)
+	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "Relay.CreateRawRelaySaveBTCHeadTx", params, &res)
 	ctx.RunWithoutMarshal()
 }
 
@@ -621,6 +621,6 @@ func relayVerifyBTC(cmd *cobra.Command, args []string) {
 	}
 
 	var res string
-	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "Chain33.CreateRawRelayVerifyBTCTx", params, &res)
+	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "Relay.CreateRawRelayVerifyBTCTx", params, &res)
 	ctx.RunWithoutMarshal()
 }

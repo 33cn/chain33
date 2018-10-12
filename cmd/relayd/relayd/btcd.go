@@ -11,16 +11,16 @@ import (
 	"github.com/btcsuite/btcd/rpcclient"
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
-	"gitlab.33.cn/chain33/chain33/types"
+	rTy "gitlab.33.cn/chain33/chain33/plugin/dapp/relay/types"
 )
 
 type BtcClient interface {
 	Start() error
 	Stop() error
 	GetLatestBlock() (*chainhash.Hash, uint64, error)
-	GetBlockHeader(height uint64) (*types.BtcHeader, error)
-	GetSPV(height uint64, txHash string) (*types.BtcSpv, error)
-	GetTransaction(hash string) (*types.BtcTransaction, error)
+	GetBlockHeader(height uint64) (*rTy.BtcHeader, error)
+	GetSPV(height uint64, txHash string) (*rTy.BtcSpv, error)
+	GetTransaction(hash string) (*rTy.BtcTransaction, error)
 	Ping()
 }
 
@@ -283,7 +283,7 @@ func (b *btcdClient) POSTClient() (*rpcclient.Client, error) {
 	return rpcclient.New(&configCopy, nil)
 }
 
-func (b *btcdClient) GetSPV(height uint64, txHash string) (*types.BtcSpv, error) {
+func (b *btcdClient) GetSPV(height uint64, txHash string) (*rTy.BtcSpv, error) {
 	hash, err := chainhash.NewHashFromStr(txHash)
 	if err != nil {
 		return nil, err
@@ -316,7 +316,7 @@ func (b *btcdClient) GetSPV(height uint64, txHash string) (*types.BtcSpv, error)
 		txs = append(txs, hash.CloneBytes())
 	}
 	proof := merkle.GetMerkleBranch(txs, txIndex)
-	spv := &types.BtcSpv{
+	spv := &rTy.BtcSpv{
 		Hash:        txHash,
 		Time:        block.Time,
 		Height:      uint64(block.Height),
@@ -327,7 +327,7 @@ func (b *btcdClient) GetSPV(height uint64, txHash string) (*types.BtcSpv, error)
 	return spv, nil
 }
 
-func (b *btcdClient) GetTransaction(hash string) (*types.BtcTransaction, error) {
+func (b *btcdClient) GetTransaction(hash string) (*rTy.BtcTransaction, error) {
 	txHash, err := chainhash.NewHashFromStr(hash)
 	if err != nil {
 		return nil, err
@@ -347,21 +347,21 @@ func (b *btcdClient) GetTransaction(hash string) (*types.BtcTransaction, error) 
 		return nil, err
 	}
 
-	btxTx := &types.BtcTransaction{}
+	btxTx := &rTy.BtcTransaction{}
 	btxTx.Hash = hash
 	btxTx.Time = tx.Time
 	btxTx.BlockHeight = uint64(header.Height)
-	vin := make([]*types.Vin, len(tx.Vin))
+	vin := make([]*rTy.Vin, len(tx.Vin))
 	for index, in := range tx.Vin {
-		var v types.Vin
+		var v rTy.Vin
 		// v.Address = in.
 		v.Value = uint64(in.Vout) * 1e8
 		vin[index] = &v
 	}
 	btxTx.Vin = vin
-	vout := make([]*types.Vout, len(tx.Vout))
+	vout := make([]*rTy.Vout, len(tx.Vout))
 	for index, in := range tx.Vout {
-		var out types.Vout
+		var out rTy.Vout
 		out.Value = uint64(in.Value) * 1e8
 		out.Address = in.ScriptPubKey.Addresses[0]
 		vout[index] = &out
@@ -370,7 +370,7 @@ func (b *btcdClient) GetTransaction(hash string) (*types.BtcTransaction, error) 
 	return btxTx, nil
 }
 
-func (b *btcdClient) GetBlockHeader(height uint64) (*types.BtcHeader, error) {
+func (b *btcdClient) GetBlockHeader(height uint64) (*rTy.BtcHeader, error) {
 	hash, err := b.rpcClient.GetBlockHash(int64(height))
 	if err != nil {
 		return nil, err
@@ -385,7 +385,7 @@ func (b *btcdClient) GetBlockHeader(height uint64) (*types.BtcHeader, error) {
 		return nil, err
 	}
 
-	h := &types.BtcHeader{
+	h := &rTy.BtcHeader{
 		Hash:          header.Hash,
 		Confirmations: header.Confirmations,
 		Height:        uint64(header.Height),

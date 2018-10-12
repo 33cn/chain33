@@ -14,6 +14,7 @@ import (
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
+	rTy "gitlab.33.cn/chain33/chain33/plugin/dapp/relay/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -205,8 +206,8 @@ out:
 	}
 }
 
-func (r *Relayd) queryChain33WithBtcHeight() (*types.ReplayRelayQryBTCHeadHeight, error) {
-	payLoad := types.Encode(&types.ReqRelayQryBTCHeadHeight{})
+func (r *Relayd) queryChain33WithBtcHeight() (*rTy.ReplayRelayQryBTCHeadHeight, error) {
+	payLoad := types.Encode(&rTy.ReqRelayQryBTCHeadHeight{})
 	query := types.Query{
 		Execer:   types.ExecerRelay,
 		FuncName: "GetBTCHeaderCurHeight",
@@ -219,7 +220,7 @@ func (r *Relayd) queryChain33WithBtcHeight() (*types.ReplayRelayQryBTCHeadHeight
 	if !ret.GetIsOk() {
 		log.Info("GetBTCHeaderCurHeight", "error", ret.GetMsg())
 	}
-	var result types.ReplayRelayQryBTCHeadHeight
+	var result rTy.ReplayRelayQryBTCHeadHeight
 	types.Decode(ret.Msg, &result)
 	return &result, nil
 }
@@ -273,7 +274,7 @@ func (r *Relayd) syncBlockHeaders() {
 			} else {
 				add = r.config.SyncSetup
 			}
-			headers := make([]*types.BtcHeader, 0, add)
+			headers := make([]*rTy.BtcHeader, 0, add)
 			breakHeight := add + initIterHeight
 			for j := initIterHeight; j < breakHeight; j++ {
 				// TODO betach request headers
@@ -289,11 +290,11 @@ func (r *Relayd) syncBlockHeaders() {
 			}
 			initIterHeight = breakHeight
 			log.Info("syncBlockHeaders", "len: ", len(headers))
-			btcHeaders := &types.BtcHeaders{BtcHeader: headers}
-			relayHeaders := &types.RelayAction_BtcHeaders{btcHeaders}
-			action := &types.RelayAction{
+			btcHeaders := &rTy.BtcHeaders{BtcHeader: headers}
+			relayHeaders := &rTy.RelayAction_BtcHeaders{btcHeaders}
+			action := &rTy.RelayAction{
 				Value: relayHeaders,
-				Ty:    types.RelayActionRcvBTCHeaders,
+				Ty:    rTy.RelayActionRcvBTCHeaders,
 			}
 			tx := r.transaction(types.Encode(action))
 			ret, err := r.client33.SendTransaction(r.ctx, tx)
@@ -322,7 +323,7 @@ func (r *Relayd) transaction(payload []byte) *types.Transaction {
 }
 
 func (r *Relayd) dealOrder() {
-	result, err := r.requestRelayOrders(types.RelayOrderStatus_confirming)
+	result, err := r.requestRelayOrders(rTy.RelayOrderStatus_confirming)
 	if err != nil {
 		log.Error("dealOrder", "requestRelayOrders error: ", err)
 	}
@@ -339,17 +340,17 @@ func (r *Relayd) dealOrder() {
 			log.Error("dealOrder", "GetSPV error: ", err)
 			continue
 		}
-		verify := &types.RelayVerify{
+		verify := &rTy.RelayVerify{
 			OrderId: value.Id,
 			Tx:      tx,
 			Spv:     spv,
 		}
-		rr := &types.RelayAction_Verify{
+		rr := &rTy.RelayAction_Verify{
 			verify,
 		}
-		action := &types.RelayAction{
+		action := &rTy.RelayAction{
 			Value: rr,
-			Ty:    types.RelayActionVerifyTx,
+			Ty:    rTy.RelayActionVerifyTx,
 		}
 		t := r.transaction(types.Encode(action))
 		ret, err := r.client33.SendTransaction(r.ctx, t)
@@ -361,8 +362,8 @@ func (r *Relayd) dealOrder() {
 	}
 }
 
-func (r *Relayd) requestRelayOrders(status types.RelayOrderStatus) (*types.QueryRelayOrderResult, error) {
-	payLoad := types.Encode(&types.ReqRelayAddrCoins{
+func (r *Relayd) requestRelayOrders(status rTy.RelayOrderStatus) (*rTy.QueryRelayOrderResult, error) {
+	payLoad := types.Encode(&rTy.ReqRelayAddrCoins{
 		Status: status,
 	})
 	query := types.Query{
@@ -378,7 +379,7 @@ func (r *Relayd) requestRelayOrders(status types.RelayOrderStatus) (*types.Query
 	if !ret.GetIsOk() {
 		log.Info("requestRelayOrders", "error")
 	}
-	var result types.QueryRelayOrderResult
+	var result rTy.QueryRelayOrderResult
 	types.Decode(ret.Msg, &result)
 	return &result, nil
 }
