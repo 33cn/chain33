@@ -31,6 +31,14 @@ func (g *Grpc) CreateRawTransaction(ctx context.Context, in *pb.CreateTx) (*pb.U
 	return &pb.UnsignTx{Data: reply}, nil
 }
 
+func (g *Grpc) CreateTransaction(ctx context.Context, in *pb.CreateTxIn) (*pb.UnsignTx, error) {
+	reply, err := g.cli.CreateTransaction(in)
+	if err != nil {
+		return nil, err
+	}
+	return &pb.UnsignTx{Data: reply}, nil
+}
+
 func (g *Grpc) CreateRawTxGroup(ctx context.Context, in *pb.CreateTransactionGroup) (*pb.UnsignTx, error) {
 	reply, err := g.cli.CreateRawTxGroup(in)
 	if err != nil {

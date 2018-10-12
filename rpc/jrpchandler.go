@@ -10,6 +10,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/version"
 	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	"gitlab.33.cn/chain33/chain33/types"
+
 	// TODO: 最后要把以下类型引用都移动到插件中去
 	hashlocktype "gitlab.33.cn/chain33/chain33/plugin/dapp/hashlock/types"
 	lotterytype "gitlab.33.cn/chain33/chain33/plugin/dapp/lottery/types"
@@ -1560,11 +1561,11 @@ func (c *Chain33) GetBlockByHashes(in ReqHashes, result *interface{}) error {
 	return nil
 }
 
-func (c *Chain33) CreateTransaction(in *TransactionCreate, result *interface{}) error {
+func (c *Chain33) CreateTransaction(in *CreateTxIn, result *interface{}) error {
 	if in == nil {
 		return types.ErrInputPara
 	}
-	exec := types.LoadExecutorType(in.Execer)
+	exec := types.LoadExecutorType(string(in.Execer))
 	if exec == nil {
 		return types.ErrExecNameNotAllow
 	}

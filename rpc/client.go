@@ -14,6 +14,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/types/executor"
+
 	// TODO: 最后要把以下类型引用都移动到插件中去
 	hashlocktype "gitlab.33.cn/chain33/chain33/plugin/dapp/hashlock/types"
 	lotterytype "gitlab.33.cn/chain33/chain33/plugin/dapp/lottery/types"
@@ -67,7 +68,7 @@ func callExecNewTx(execName, action string, param interface{}) ([]byte, error) {
 	return txHex, nil
 }
 
-func callCreateTx(execName, action string, param interface{}) ([]byte, error) {
+func callCreateTx(execName, action string, param types.Message) ([]byte, error) {
 	exec := types.LoadExecutorType(execName)
 	if exec == nil {
 		log.Error("callExecNewTx", "Error", "exec not found")
