@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
+	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -378,7 +378,7 @@ func relayOrder(cmd *cobra.Command, args []string) {
 	btyUInt64 := uint64(btyamount * 1e4)
 	coinUInt64 := uint64(coinamount * 1e4)
 
-	params := &jsonrpc.RelayOrderTx{
+	params := &rpctypes.RelayOrderTx{
 		Operation: oper,
 		Amount:    coinUInt64 * 1e4,
 		Coin:      coin,
@@ -426,7 +426,7 @@ func relayAccept(cmd *cobra.Command, args []string) {
 		coinwait = 1
 	}
 	feeInt64 := int64(fee * 1e4)
-	params := &jsonrpc.RelayAcceptTx{
+	params := &rpctypes.RelayAcceptTx{
 		OrderId:  orderID,
 		CoinAddr: coinaddr,
 		CoinWait: coinwait,
@@ -468,7 +468,7 @@ func relayRevoke(cmd *cobra.Command, args []string) {
 	fee, _ := cmd.Flags().GetFloat64("fee")
 
 	feeInt64 := int64(fee * 1e4)
-	params := &jsonrpc.RelayRevokeTx{
+	params := &rpctypes.RelayRevokeTx{
 		OrderId: orderID,
 		Target:  target,
 		Action:  act,
@@ -506,7 +506,7 @@ func relayConfirm(cmd *cobra.Command, args []string) {
 	fee, _ := cmd.Flags().GetFloat64("fee")
 
 	feeInt64 := int64(fee * 1e4)
-	params := &jsonrpc.RelayConfirmTx{
+	params := &rpctypes.RelayConfirmTx{
 		OrderId: orderId,
 		TxHash:  txHash,
 		Fee:     feeInt64 * 1e4,
@@ -556,7 +556,7 @@ func relaySaveBtcHead(cmd *cobra.Command, args []string) {
 
 	feeInt64 := int64(fee * 1e4)
 
-	params := &jsonrpc.RelaySaveBTCHeadTx{
+	params := &rpctypes.RelaySaveBTCHeadTx{
 		Hash:         blockhash,
 		PreviousHash: prehash,
 		MerkleRoot:   merkleroot,
@@ -609,7 +609,7 @@ func relayVerifyBTC(cmd *cobra.Command, args []string) {
 	fee, _ := cmd.Flags().GetFloat64("fee")
 
 	feeInt64 := int64(fee * 1e4)
-	params := &jsonrpc.RelayVerifyBTCTx{
+	params := &rpctypes.RelayVerifyBTCTx{
 		OrderId:     orderid,
 		RawTx:       rawtx,
 		TxIndex:     txindex,
