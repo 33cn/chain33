@@ -10,6 +10,7 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
+	tokenty "gitlab.33.cn/chain33/chain33/plugin/dapp/token/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -45,7 +46,7 @@ func TestPreCreateToken(t *testing.T) {
 	tokenOwner := "1Lmmwzw6ywVa3UZpA4tHvCB7gR9ZKRwpom"
 	t.Log(tokenOwner)
 
-	v := &types.TokenAction_Tokenprecreate{&types.TokenPreCreate{
+	v := &tokenty.TokenAction_Tokenprecreate{&tokenty.TokenPreCreate{
 		"Yuan chain coin",
 		"GOOD",
 		"An Easy Way to Build Blockchain",
@@ -53,7 +54,7 @@ func TestPreCreateToken(t *testing.T) {
 		1 * 1e8,
 		tokenOwner}}
 
-	tokenPrecreate := &types.TokenAction{v, types.TokenActionPreCreate}
+	tokenPrecreate := &tokenty.TokenAction{v, tokenty.TokenActionPreCreate}
 
 	tx := &types.Transaction{Execer: []byte("token"), Payload: types.Encode(tokenPrecreate), Fee: 1e6}
 	tx.Sign(types.SECP256K1, priv)

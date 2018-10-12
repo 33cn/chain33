@@ -12,17 +12,17 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	bwty "gitlab.33.cn/chain33/chain33/plugin/dapp/blackwhite/types"
 	pt "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/types"
+	tokenty "gitlab.33.cn/chain33/chain33/plugin/dapp/token/types"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
-	tokenty "gitlab.33.cn/chain33/chain33/plugin/dapp/token/types"
 	"gitlab.33.cn/chain33/chain33/types"
 	// TODO: 暂时将插件中的类型引用起来，后续需要修改
 	hlt "gitlab.33.cn/chain33/chain33/plugin/dapp/hashlock/types"
 
+	"encoding/hex"
 	"math"
 	"math/rand"
 	"time"
-	"encoding/hex"
 )
 
 func decodeTransaction(tx *jsonrpc.Transaction) *TxResult {
@@ -468,28 +468,28 @@ func CreateRawTx(cmd *cobra.Command, to string, amount float64, note string, isW
 		return "", types.ErrExecNameNotMatch
 	}
 	var tx *types.Transaction
-		transfer := &cty.CoinsAction{}
-		if !isWithdraw {
-			if initExecName != "" {
-				v := &cty.CoinsAction_TransferToExec{TransferToExec: &types.AssetsTransferToExec{Amount: amountInt64, Note: note, ExecName: execName}}
-				transfer.Value = v
-				transfer.Ty = cty.CoinsActionTransferToExec
-			} else {
-				v := &cty.CoinsAction_Transfer{Transfer: &types.AssetsTransfer{Amount: amountInt64, Note: note, To: to}}
-				transfer.Value = v
-				transfer.Ty = cty.CoinsActionTransfer
-			}
-		} else {
-			v := &cty.CoinsAction_Withdraw{Withdraw: &types.AssetsWithdraw{Amount: amountInt64, Note: note, ExecName: execName}}
+	transfer := &cty.CoinsAction{}
+	if !isWithdraw {
+		if initExecName != "" {
+			v := &cty.CoinsAction_TransferToExec{TransferToExec: &types.AssetsTransferToExec{Amount: amountInt64, Note: note, ExecName: execName}}
 			transfer.Value = v
-			transfer.Ty = cty.CoinsActionWithdraw
-		}
-		execer := []byte(getRealExecName(paraName, "coins"))
-		if paraName == "" {
-			tx = &types.Transaction{Execer: execer, Payload: types.Encode(transfer), To: to}
+			transfer.Ty = cty.CoinsActionTransferToExec
 		} else {
-			tx = &types.Transaction{Execer: execer, Payload: types.Encode(transfer), To: address.ExecAddress(string(execer))}
+			v := &cty.CoinsAction_Transfer{Transfer: &types.AssetsTransfer{Amount: amountInt64, Note: note, To: to}}
+			transfer.Value = v
+			transfer.Ty = cty.CoinsActionTransfer
 		}
+	} else {
+		v := &cty.CoinsAction_Withdraw{Withdraw: &types.AssetsWithdraw{Amount: amountInt64, Note: note, ExecName: execName}}
+		transfer.Value = v
+		transfer.Ty = cty.CoinsActionWithdraw
+	}
+	execer := []byte(getRealExecName(paraName, "coins"))
+	if paraName == "" {
+		tx = &types.Transaction{Execer: execer, Payload: types.Encode(transfer), To: to}
+	} else {
+		tx = &types.Transaction{Execer: execer, Payload: types.Encode(transfer), To: address.ExecAddress(string(execer))}
+	}
 
 	var err error
 	tx.Fee, err = tx.GetRealFee(types.MinFee)

@@ -12,19 +12,18 @@ import (
 )
 
 var (
-	nameX string
-	tlog = log.New("module", types.TokenX)
+	nameX      string
+	tlog       = log.New("module", types.TokenX)
 	actionName = map[string]int32{
-		"Transfer":       ActionTransfer,
-		"Genesis":        ActionGenesis,
-		"Withdraw":       ActionWithdraw,
-		"Tokenprecreate":      TokenActionPreCreate,
-		"Tokenfinishcreate":   TokenActionFinishCreate,
-		"Tokenrevokecreate":   TokenActionRevokeCreate,
-		"TransferToExec": TokenActionTransferToExec,
+		"Transfer":          ActionTransfer,
+		"Genesis":           ActionGenesis,
+		"Withdraw":          ActionWithdraw,
+		"Tokenprecreate":    TokenActionPreCreate,
+		"Tokenfinishcreate": TokenActionFinishCreate,
+		"Tokenrevokecreate": TokenActionRevokeCreate,
+		"TransferToExec":    TokenActionTransferToExec,
 	}
 )
-
 
 //getRealExecName
 //如果paraName == "", 那么自动用 types.types.ExecName("token")

@@ -13,9 +13,9 @@ import (
 	// TODO: 最后要把以下类型引用都移动到插件中去
 	hashlocktype "gitlab.33.cn/chain33/chain33/plugin/dapp/hashlock/types"
 	lotterytype "gitlab.33.cn/chain33/chain33/plugin/dapp/lottery/types"
+	tokenty "gitlab.33.cn/chain33/chain33/plugin/dapp/token/types"
 	evmtype "gitlab.33.cn/chain33/chain33/types/executor/evm"
 	retrievetype "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
-	tokenty "gitlab.33.cn/chain33/chain33/plugin/dapp/token/types"
 	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
 	// TODO: 需要将插件管理器移动到封闭统一的地方进行管理
 )

@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 
 	"github.com/golang/protobuf/proto"
-	"gitlab.33.cn/chain33/chain33/types"
 	tokenty "gitlab.33.cn/chain33/chain33/plugin/dapp/token/types"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 func tokenPayloadType(funcname string) (proto.Message, error) {

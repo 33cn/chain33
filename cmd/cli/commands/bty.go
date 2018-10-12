@@ -78,7 +78,7 @@ func createTransfer(cmd *cobra.Command, args []string) {
 	toAddr, _ := cmd.Flags().GetString("to")
 	amount, _ := cmd.Flags().GetFloat64("amount")
 	note, _ := cmd.Flags().GetString("note")
-	txHex, err := CreateRawTx(cmd, toAddr, amount, note, false,  "", "")
+	txHex, err := CreateRawTx(cmd, toAddr, amount, note, false, "", "")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
@@ -154,7 +154,7 @@ func sendToExec(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	txHex, err := CreateRawTx(cmd, execAddr, amount, note, false,  "", exec)
+	txHex, err := CreateRawTx(cmd, execAddr, amount, note, false, "", exec)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return

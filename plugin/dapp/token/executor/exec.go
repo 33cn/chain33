@@ -1,9 +1,9 @@
 package executor
 
 import (
+	"gitlab.33.cn/chain33/chain33/account"
 	tokenty "gitlab.33.cn/chain33/chain33/plugin/dapp/token/types"
 	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/account"
 )
 
 func (t *token) Exec_Transfer(payload *types.AssetsTransfer, tx *types.Transaction, index int) (*types.Receipt, error) {
@@ -12,7 +12,7 @@ func (t *token) Exec_Transfer(payload *types.AssetsTransfer, tx *types.Transacti
 	if err != nil {
 		return nil, err
 	}
-	tokenAction := tokenty.TokenAction {
+	tokenAction := tokenty.TokenAction{
 		Ty: tokenty.ActionTransfer,
 		Value: &tokenty.TokenAction_Transfer{
 			payload,
@@ -27,7 +27,7 @@ func (t *token) Exec_Withdraw(payload *types.AssetsWithdraw, tx *types.Transacti
 	if err != nil {
 		return nil, err
 	}
-	tokenAction := tokenty.TokenAction {
+	tokenAction := tokenty.TokenAction{
 		Ty: tokenty.ActionWithdraw,
 		Value: &tokenty.TokenAction_Withdraw{
 			payload,
@@ -57,7 +57,7 @@ func (t *token) Exec_TransferToExec(payload *types.AssetsTransferToExec, tx *typ
 	if err != nil {
 		return nil, err
 	}
-	tokenAction := tokenty.TokenAction {
+	tokenAction := tokenty.TokenAction{
 		Ty: tokenty.TokenActionTransferToExec,
 		Value: &tokenty.TokenAction_TransferToExec{
 			payload,
