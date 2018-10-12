@@ -22,7 +22,7 @@ var (
 		0,                            //Stoptime          int64  `protobuf:"varint,9,opt,name=stoptime" json:"stoptime,omitempty"`
 		false,                        //Crowdfund         bool   `protobuf:"varint,10,opt,name=crowdfund" json:"crowdfund,omitempty"`
 		"IAMSELLID",                  // Sellid            string `protobuf:"bytes,11,opt,name=sellid" json:"sellid,omitempty"`
-		types.TradeOrderStatusOnSale, //Status            int32  `protobuf:"varint,12,opt,name=status" json:"status,omitempty"`
+		pty.TradeOrderStatusOnSale, //Status            int32  `protobuf:"varint,12,opt,name=status" json:"status,omitempty"`
 		100, //Height            int64  `protobuf:"varint,13,opt,name=height" json:"height,omitempty"`
 	}
 
@@ -38,7 +38,7 @@ var (
 		0,                             //Stoptime          int64  `protobuf:"varint,9,opt,name=stoptime" json:"stoptime,omitempty"`
 		false,                         //Crowdfund         bool   `protobuf:"varint,10,opt,name=crowdfund" json:"crowdfund,omitempty"`
 		"IAMSELLID",                   // Sellid            string `protobuf:"bytes,11,opt,name=sellid" json:"sellid,omitempty"`
-		types.TradeOrderStatusSoldOut, //Status            int32  `protobuf:"varint,12,opt,name=status" json:"status,omitempty"`
+		pty.TradeOrderStatusSoldOut, //Status            int32  `protobuf:"varint,12,opt,name=status" json:"status,omitempty"`
 		100, //Height            int64  `protobuf:"varint,13,opt,name=height" json:"height,omitempty"`
 	}
 
@@ -54,7 +54,7 @@ var (
 		0,                             //Stoptime          int64  `protobuf:"varint,9,opt,name=stoptime" json:"stoptime,omitempty"`
 		false,                         //Crowdfund         bool   `protobuf:"varint,10,opt,name=crowdfund" json:"crowdfund,omitempty"`
 		"IAMSELLID",                   // Sellid            string `protobuf:"bytes,11,opt,name=sellid" json:"sellid,omitempty"`
-		types.TradeOrderStatusRevoked, //Status            int32  `protobuf:"varint,12,opt,name=status" json:"status,omitempty"`
+		pty.TradeOrderStatusRevoked, //Status            int32  `protobuf:"varint,12,opt,name=status" json:"status,omitempty"`
 		100, //Height            int64  `protobuf:"varint,13,opt,name=height" json:"height,omitempty"`
 	}
 )
