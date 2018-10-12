@@ -57,7 +57,6 @@ func init() {
 		commands.MempoolCmd(),
 		commands.NetCmd(),
 		commands.RelayCmd(),
-		commands.RetrieveCmd(),
 		commands.SeedCmd(),
 		commands.StatCmd(),
 		commands.TicketCmd(),

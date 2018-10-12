@@ -11,12 +11,24 @@ message Cert {
 
 message CertAction {
     oneof value {
-        CertPut nput = 1;
+        CertNew    new = 1;
+        CertUpdate update = 2;
+        CertNormal normal = 3;
     }
-    int32 ty = 5;
+    int32 ty = 4;
 }
 
-message CertPut {
+message CertNew {
+    string key   = 1;
+    bytes  value = 2;
+}
+
+message CertUpdate {
+    string key   = 1;
+    bytes  value = 2;
+}
+
+message CertNormal {
     string key   = 1;
     bytes  value = 2;
 }

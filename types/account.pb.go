@@ -133,15 +133,6 @@ It has these top-level messages:
 	Norm
 	NormAction
 	NormPut
-	RetrievePara
-	Retrieve
-	RetrieveAction
-	BackupRetrieve
-	PreRetrieve
-	PerformRetrieve
-	CancelRetrieve
-	ReqRetrieveInfo
-	RetrieveQuery
 	TokenAction
 	TokenPreCreate
 	TokenFinishCreate

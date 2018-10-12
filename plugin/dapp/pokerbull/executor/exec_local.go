@@ -54,6 +54,6 @@ func (c *PokerBull) ExecLocal_Continue(payload *pkt.PBGameContinue, tx *types.Tr
 	return c.execLocal(receiptData)
 }
 
-func (c *PokerBull) ExecLocal_Show(payload *pkt.PBGameQuit, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+func (c *PokerBull) ExecLocal_Quit(payload *pkt.PBGameQuit, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	return c.execLocal(receiptData)
 }
