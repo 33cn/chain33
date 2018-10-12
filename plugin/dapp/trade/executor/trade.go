@@ -76,9 +76,9 @@ func genSaveSellKv(sellorder *pty.SellOrder) []*types.KeyValue {
 	status := sellorder.Status
 	var kv []*types.KeyValue
 	kv = saveSellOrderKeyValue(kv, sellorder, status)
-	if types.TradeOrderStatusSoldOut == status || types.TradeOrderStatusRevoked == status {
+	if pty.TradeOrderStatusSoldOut == status || pty.TradeOrderStatusRevoked == status {
 		tradelog.Debug("trade saveSell ", "remove old status onsale to soldout or revoked with sellid", sellorder.SellID)
-		kv = deleteSellOrderKeyValue(kv, sellorder, types.TradeOrderStatusOnSale)
+		kv = deleteSellOrderKeyValue(kv, sellorder, pty.TradeOrderStatusOnSale)
 	}
 	return kv
 }
@@ -101,9 +101,9 @@ func genDeleteSellKv(sellorder *pty.SellOrder) []*types.KeyValue {
 	status := sellorder.Status
 	var kv []*types.KeyValue
 	kv = deleteSellOrderKeyValue(kv, sellorder, status)
-	if types.TradeOrderStatusSoldOut == status || types.TradeOrderStatusRevoked == status {
+	if pty.TradeOrderStatusSoldOut == status || pty.TradeOrderStatusRevoked == status {
 		tradelog.Debug("trade saveSell ", "remove old status onsale to soldout or revoked with sellID", sellorder.SellID)
-		kv = saveSellOrderKeyValue(kv, sellorder, types.TradeOrderStatusOnSale)
+		kv = saveSellOrderKeyValue(kv, sellorder, pty.TradeOrderStatusOnSale)
 	}
 	return kv
 }
@@ -117,12 +117,12 @@ func (t *trade) saveBuy(receiptTradeBuy *pty.ReceiptBuyBase) []*types.KeyValue {
 	//tradelog.Info("save", "buy", receiptTradeBuy)
 
 	var kv []*types.KeyValue
-	return saveBuyMarketOrderKeyValue(kv, receiptTradeBuy, types.TradeOrderStatusBoughtOut, t.GetHeight())
+	return saveBuyMarketOrderKeyValue(kv, receiptTradeBuy, pty.TradeOrderStatusBoughtOut, t.GetHeight())
 }
 
 func (t *trade) deleteBuy(receiptTradeBuy *pty.ReceiptBuyBase) []*types.KeyValue {
 	var kv []*types.KeyValue
-	return deleteBuyMarketOrderKeyValue(kv, receiptTradeBuy, types.TradeOrderStatusBoughtOut, t.GetHeight())
+	return deleteBuyMarketOrderKeyValue(kv, receiptTradeBuy, pty.TradeOrderStatusBoughtOut, t.GetHeight())
 }
 
 // BuyLimit Local
@@ -140,9 +140,9 @@ func genSaveBuyLimitKv(buyOrder *pty.BuyLimitOrder) []*types.KeyValue {
 	status := buyOrder.Status
 	var kv []*types.KeyValue
 	kv = saveBuyLimitOrderKeyValue(kv, buyOrder, status)
-	if types.TradeOrderStatusBoughtOut == status || types.TradeOrderStatusBuyRevoked == status {
+	if pty.TradeOrderStatusBoughtOut == status || pty.TradeOrderStatusBuyRevoked == status {
 		tradelog.Debug("trade saveBuyLimit ", "remove old status with Buyid", buyOrder.BuyID)
-		kv = deleteBuyLimitKeyValue(kv, buyOrder, types.TradeOrderStatusOnSale)
+		kv = deleteBuyLimitKeyValue(kv, buyOrder, pty.TradeOrderStatusOnSale)
 	}
 	return kv
 }
@@ -165,9 +165,9 @@ func genDeleteBuyLimitKv(buyOrder *pty.BuyLimitOrder) []*types.KeyValue {
 	status := buyOrder.Status
 	var kv []*types.KeyValue
 	kv = deleteBuyLimitKeyValue(kv, buyOrder, status)
-	if types.TradeOrderStatusBoughtOut == status || types.TradeOrderStatusBuyRevoked == status {
+	if pty.TradeOrderStatusBoughtOut == status || pty.TradeOrderStatusBuyRevoked == status {
 		tradelog.Debug("trade saveSell ", "remove old status onsale to soldout or revoked with sellid", buyOrder.BuyID)
-		kv = saveBuyLimitOrderKeyValue(kv, buyOrder, types.TradeOrderStatusOnBuy)
+		kv = saveBuyLimitOrderKeyValue(kv, buyOrder, pty.TradeOrderStatusOnBuy)
 	}
 	return kv
 }
@@ -179,12 +179,12 @@ func (t *trade) deleteBuyLimit(buyID []byte, ty int32) []*types.KeyValue {
 
 func (t *trade) saveSellMarket(receiptTradeBuy *pty.ReceiptSellBase) []*types.KeyValue {
 	var kv []*types.KeyValue
-	return saveSellMarketOrderKeyValue(kv, receiptTradeBuy, types.TradeOrderStatusSoldOut, t.GetHeight())
+	return saveSellMarketOrderKeyValue(kv, receiptTradeBuy, pty.TradeOrderStatusSoldOut, t.GetHeight())
 }
 
 func (t *trade) deleteSellMarket(receiptTradeBuy *pty.ReceiptSellBase) []*types.KeyValue {
 	var kv []*types.KeyValue
-	return deleteSellMarketOrderKeyValue(kv, receiptTradeBuy, types.TradeOrderStatusSoldOut, t.GetHeight())
+	return deleteSellMarketOrderKeyValue(kv, receiptTradeBuy, pty.TradeOrderStatusSoldOut, t.GetHeight())
 }
 
 func saveSellMarketOrderKeyValue(kv []*types.KeyValue, receipt *pty.ReceiptSellBase, status int32, height int64) []*types.KeyValue {
