@@ -8,6 +8,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/cmd/cli/commands"
 	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/log"
+	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 
 	"gitlab.33.cn/chain33/chain33/pluginmgr"
@@ -35,7 +36,7 @@ var closeCmd = &cobra.Command{
 		//		rpc, _ := jsonrpc.NewJSONClient(rpcLaddr)
 		//		rpc.Call("Chain33.CloseQueue", nil, nil)
 		var res rpctypes.Reply
-		ctx := commands.NewRpcCtx(rpcLaddr, "Chain33.CloseQueue", nil, &res)
+		ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.CloseQueue", nil, &res)
 		ctx.Run()
 	},
 }

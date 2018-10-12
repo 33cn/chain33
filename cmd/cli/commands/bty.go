@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -366,7 +367,7 @@ func createPub2PrivTx(cmd *cobra.Command, args []string) {
 		Pubkeypair: pubkeypair,
 		Expire:     expire,
 	}
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateTrasaction", params, nil)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.CreateTrasaction", params, nil)
 	ctx.RunWithoutMarshal()
 }
 
@@ -427,7 +428,7 @@ func createPriv2PrivTx(cmd *cobra.Command, args []string) {
 		Mixcount:   defaultPrivacyMixCount,
 		Expire:     expire,
 	}
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateTrasaction", params, nil)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.CreateTrasaction", params, nil)
 	ctx.RunWithoutMarshal()
 }
 
@@ -488,6 +489,6 @@ func createPriv2PubTx(cmd *cobra.Command, args []string) {
 		Mixcount:  defaultPrivacyMixCount,
 		Expire:    expire,
 	}
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateTrasaction", params, nil)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.CreateTrasaction", params, nil)
 	ctx.RunWithoutMarshal()
 }

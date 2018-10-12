@@ -13,7 +13,6 @@ import (
 
 	hashlocktype "gitlab.33.cn/chain33/chain33/plugin/dapp/hashlock/types"
 	lotterytype "gitlab.33.cn/chain33/chain33/plugin/dapp/lottery/types"
-	tokenty "gitlab.33.cn/chain33/chain33/plugin/dapp/token/types"
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 	retrievetype "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
 	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
@@ -827,23 +826,6 @@ func (c *Chain33) GetAllExecBalance(in types.ReqAddr, result *interface{}) error
 	return nil
 }
 
-func (c *Chain33) GetTokenBalance(in tokenty.ReqTokenBalance, result *interface{}) error {
-
-	balances, err := c.cli.GetTokenBalance(&in)
-	if err != nil {
-		return err
-	}
-	var accounts []*rpctypes.Account
-	for _, balance := range balances {
-		accounts = append(accounts, &rpctypes.Account{Addr: balance.GetAddr(),
-			Balance:  balance.GetBalance(),
-			Currency: balance.GetCurrency(),
-			Frozen:   balance.GetFrozen()})
-	}
-	*result = accounts
-	return nil
-}
-
 func (c *Chain33) QueryOld(in rpctypes.Query4Jrpc, result *interface{}) error {
 	decodePayload, err := protoPayload(in.Execer, in.FuncName, &in.Payload)
 	if err != nil {
@@ -1059,35 +1041,6 @@ func (c *Chain33) QueryTotalFee(in *types.LocalDBGet, result *interface{}) error
 		return err
 	}
 	*result = fee
-	return nil
-}
-
-func (c *Chain33) CreateRawTokenPreCreateTx(in *tokenty.TokenPreCreateTx, result *interface{}) error {
-	reply, err := c.cli.CreateRawTokenPreCreateTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
-	return nil
-}
-
-func (c *Chain33) CreateRawTokenFinishTx(in *tokenty.TokenFinishTx, result *interface{}) error {
-	reply, err := c.cli.CreateRawTokenFinishTx(in)
-	if err != nil {
-		return err
-	}
-	*result = hex.EncodeToString(reply)
-	return nil
-}
-
-func (c *Chain33) CreateRawTokenRevokeTx(in *tokenty.TokenRevokeTx, result *interface{}) error {
-	reply, err := c.cli.CreateRawTokenRevokeTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
 	return nil
 }
 

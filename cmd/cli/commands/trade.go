@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	"gitlab.33.cn/chain33/chain33/types"
 	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
 )
@@ -71,7 +72,7 @@ func showOnesSellOrders(cmd *cobra.Command, args []string) {
 		Payload:  reqAddrtokens,
 	}
 	var res tradetype.RpcReplySellOrders
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
 	ctx.SetResultCb(parseSellOrders)
 	ctx.Run()
 }
@@ -112,7 +113,7 @@ func showOnesSellOrdersStatus(cmd *cobra.Command, args []string) {
 	params.FuncName = "GetOnesSellOrderWithStatus"
 	params.Payload = reqAddrtokens
 	var res tradetype.RpcReplySellOrders
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
 	ctx.SetResultCb(parseSellOrders)
 	ctx.Run()
 }
@@ -165,7 +166,7 @@ func showTokenSellOrdersStatus(cmd *cobra.Command, args []string) {
 	params.FuncName = "GetTokenSellOrderByStatus"
 	params.Payload = req
 	var res tradetype.RpcReplySellOrders
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
 	ctx.SetResultCb(parseSellOrders)
 	ctx.Run()
 }
@@ -228,7 +229,7 @@ func showOnesBuyOrders(cmd *cobra.Command, args []string) {
 	params.FuncName = "GetOnesBuyOrder"
 	params.Payload = reqAddrtokens
 	var res tradetype.RpcReplyBuyOrders
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
 	ctx.SetResultCb(parseBuyOrders)
 	ctx.Run()
 }
@@ -268,7 +269,7 @@ func showOnesBuyOrdersStatus(cmd *cobra.Command, args []string) {
 	params.FuncName = "GetOnesBuyOrderWithStatus"
 	params.Payload = reqAddrtokens
 	var res tradetype.RpcReplyBuyOrders
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
 	ctx.SetResultCb(parseBuyOrders)
 	ctx.Run()
 }
@@ -321,7 +322,7 @@ func showTokenBuyOrdersStatus(cmd *cobra.Command, args []string) {
 	params.FuncName = "GetTokenBuyOrderByStatus"
 	params.Payload = req
 	var res tradetype.RpcReplyBuyOrders
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
 	ctx.SetResultCb(parseBuyOrders)
 	ctx.Run()
 }
@@ -395,7 +396,7 @@ func showOnesOrdersStatus(cmd *cobra.Command, args []string) {
 	params.FuncName = "GetOnesOrderWithStatus"
 	params.Payload = reqAddrtokens
 	var res types.ReplyTradeOrders
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
 	ctx.SetResultCb(parseTradeOrders)
 	ctx.Run()
 }
@@ -475,7 +476,7 @@ func tokenSell(cmd *cobra.Command, args []string) {
 		Fee:               feeInt64 * 1e4,
 	}
 
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawTradeSellTx", params, nil)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.CreateRawTradeSellTx", params, nil)
 	ctx.RunWithoutMarshal()
 }
 
@@ -511,7 +512,7 @@ func tokenBuy(cmd *cobra.Command, args []string) {
 		Fee:         feeInt64 * 1e4,
 	}
 
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawTradeBuyTx", params, nil)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.CreateRawTradeBuyTx", params, nil)
 	ctx.RunWithoutMarshal()
 }
 
@@ -544,6 +545,6 @@ func tokenSellRevoke(cmd *cobra.Command, args []string) {
 		Fee:    feeInt64 * 1e4,
 	}
 
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawTradeRevokeTx", params, nil)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.CreateRawTradeRevokeTx", params, nil)
 	ctx.RunWithoutMarshal()
 }
