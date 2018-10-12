@@ -8,6 +8,7 @@ import (
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
+	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/token/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -547,7 +548,7 @@ type TokenGetAddrReceiverforTokens struct {
 }
 
 func (t *TokenGetAddrReceiverforTokens) JsonToProto(message json.RawMessage) ([]byte, error) {
-	var req types.ReqAddrTokens
+	var req pty.ReqAddrTokens
 	err := json.Unmarshal(message, &req)
 	if err != nil {
 		return nil, err
