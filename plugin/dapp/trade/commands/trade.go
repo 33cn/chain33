@@ -99,7 +99,7 @@ func showOnesSellOrdersStatus(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	addr, _ := cmd.Flags().GetString("address")
 	status, _ := cmd.Flags().GetString("status")
-	statusInt, ok := types.MapSellOrderStatusStr2Int[status]
+	statusInt, ok := pty.MapSellOrderStatusStr2Int[status]
 	if !ok {
 		fmt.Fprintln(os.Stderr, types.ErrInvalidParam)
 		return
@@ -146,7 +146,7 @@ func showTokenSellOrdersStatus(cmd *cobra.Command, args []string) {
 	dir, _ := cmd.Flags().GetInt32("direction")
 	from, _ := cmd.Flags().GetString("from")
 	status, _ := cmd.Flags().GetString("status")
-	statusInt, ok := types.MapSellOrderStatusStr2Int[status]
+	statusInt, ok := pty.MapSellOrderStatusStr2Int[status]
 	if !ok {
 		fmt.Fprintln(os.Stderr, types.ErrInvalidParam)
 		return
@@ -256,7 +256,7 @@ func showOnesBuyOrdersStatus(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	buyer, _ := cmd.Flags().GetString("buyer")
 	status, _ := cmd.Flags().GetString("status")
-	statusInt, ok := types.MapBuyOrderStatusStr2Int[status]
+	statusInt, ok := pty.MapBuyOrderStatusStr2Int[status]
 	if !ok {
 		fmt.Fprintln(os.Stderr, types.ErrInvalidParam)
 		return
@@ -302,7 +302,7 @@ func showTokenBuyOrdersStatus(cmd *cobra.Command, args []string) {
 	dir, _ := cmd.Flags().GetInt32("direction")
 	from, _ := cmd.Flags().GetString("from")
 	status, _ := cmd.Flags().GetString("status")
-	statusInt, ok := types.MapBuyOrderStatusStr2Int[status]
+	statusInt, ok := pty.MapBuyOrderStatusStr2Int[status]
 	if !ok {
 		fmt.Fprintln(os.Stderr, types.ErrInvalidParam)
 		return

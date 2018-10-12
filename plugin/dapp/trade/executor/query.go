@@ -28,7 +28,7 @@ func (t *trade) Query_GetTokenSellOrderByStatus(req *pty.ReqTokenSellOrder) (typ
 // 根据token 分页显示未完成成交买单
 func (t *trade) Query_GetTokenBuyOrderByStatus(req *pty.ReqTokenBuyOrder) (types.Message, error) {
 	if req.Status == 0 {
-		req.Status = types.TradeOrderStatusOnBuy
+		req.Status = pty.TradeOrderStatusOnBuy
 	}
 	return t.GetTokenBuyOrderByStatus(req, req.Status)
 }
@@ -330,7 +330,7 @@ func txResult2sellOrderReply(txResult *types.TxResult) *pty.ReplySellOrder {
 				receipt.Base.TotalBoardlot,
 				receipt.Base.SoldBoardlot,
 				receipt.Base.BuyID,
-				types.SellOrderStatus2Int[receipt.Base.Status],
+				pty.SellOrderStatus2Int[receipt.Base.Status],
 				"",
 				txhash,
 				receipt.Base.Height,
@@ -394,7 +394,7 @@ func txResult2buyOrderReply(txResult *types.TxResult) *pty.ReplyBuyOrder {
 				receipt.Base.TotalBoardlot,
 				receipt.Base.BoughtBoardlot,
 				"",
-				types.SellOrderStatus2Int[receipt.Base.Status],
+				pty.SellOrderStatus2Int[receipt.Base.Status],
 				receipt.Base.SellID,
 				txhash,
 				receipt.Base.Height,
@@ -422,17 +422,17 @@ const (
 
 func fromStatus(status int32) (st, ty int32) {
 	switch status {
-	case types.TradeOrderStatusOnSale:
+	case pty.TradeOrderStatusOnSale:
 		return orderStatusOn, orderTypeSell
-	case types.TradeOrderStatusSoldOut:
+	case pty.TradeOrderStatusSoldOut:
 		return orderStatusDone, orderTypeSell
-	case types.TradeOrderStatusRevoked:
+	case pty.TradeOrderStatusRevoked:
 		return orderStatusRevoke, orderTypeSell
-	case types.TradeOrderStatusOnBuy:
+	case pty.TradeOrderStatusOnBuy:
 		return orderStatusOn, orderTypeBuy
-	case types.TradeOrderStatusBoughtOut:
+	case pty.TradeOrderStatusBoughtOut:
 		return orderStatusDone, orderTypeBuy
-	case types.TradeOrderStatusBuyRevoked:
+	case pty.TradeOrderStatusBuyRevoked:
 		return orderStatusRevoke, orderTypeBuy
 	}
 	return orderStatusInvalid, orderTypeInvalid
@@ -466,7 +466,7 @@ func buyBase2Order(base *pty.ReceiptBuyBase, txHash string, blockTime int64) *pt
 		base.TotalBoardlot,
 		base.BoughtBoardlot,
 		base.BuyID,
-		types.SellOrderStatus2Int[base.Status],
+		pty.SellOrderStatus2Int[base.Status],
 		base.SellID,
 		txHash,
 		base.Height,
@@ -503,7 +503,7 @@ func sellBase2Order(base *pty.ReceiptSellBase, txHash string, blockTime int64) *
 		base.TotalBoardlot,
 		base.SoldBoardlot,
 		base.BuyID,
-		types.SellOrderStatus2Int[base.Status],
+		pty.SellOrderStatus2Int[base.Status],
 		base.SellID,
 		txHash,
 		base.Height,
