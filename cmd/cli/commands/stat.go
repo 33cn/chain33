@@ -15,7 +15,7 @@ import (
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/difficulty"
-	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
+	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -66,7 +66,7 @@ func totalCoins(cmd *cobra.Command, args []string) {
 			fmt.Fprintln(os.Stderr, err)
 			return
 		}
-		var res jsonrpc.Header
+		var res rpctypes.Header
 		err = rpc.Call("Chain33.GetLastHeader", nil, &res)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
@@ -76,7 +76,7 @@ func totalCoins(cmd *cobra.Command, args []string) {
 	}
 
 	// 获取高度statehash
-	params := jsonrpc.BlockParam{
+	params := rpctypes.BlockParam{
 		Start:    height,
 		End:      height,
 		Isdetail: false,
@@ -88,7 +88,7 @@ func totalCoins(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	var res jsonrpc.BlockDetails
+	var res rpctypes.BlockDetails
 	err = rpc.Call("Chain33.GetBlocks", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -108,7 +108,7 @@ func totalCoins(cmd *cobra.Command, args []string) {
 	if symbol == "bty" {
 		//查询高度blockhash
 		params := types.ReqInt{height}
-		var res1 jsonrpc.ReplyHash
+		var res1 rpctypes.ReplyHash
 		err = rpc.Call("Chain33.GetBlockHash", params, &res1)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
@@ -457,7 +457,7 @@ func minerStat(cmd *cobra.Command, args []string) {
 	}
 
 	// 获取最新高度
-	var lastheader jsonrpc.Header
+	var lastheader rpctypes.Header
 	err = rpc.Call("Chain33.GetLastHeader", nil, &lastheader)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -481,7 +481,7 @@ diffListLoop:
 			End:      endH,
 			IsDetail: false,
 		}
-		var respHeaders jsonrpc.Headers
+		var respHeaders rpctypes.Headers
 		err = rpc.Call("Chain33.GetHeaders", params, &respHeaders)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)

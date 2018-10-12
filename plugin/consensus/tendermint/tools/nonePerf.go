@@ -16,7 +16,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
-	"gitlab.33.cn/chain33/chain33/rpc"
+	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -205,9 +205,9 @@ func setTxHeight(ip string) {
 }
 
 type RespMsg struct {
-	Id     int64      `json:"id"`
-	Result rpc.Header `json:"result"`
-	Err    string     `json:"error"`
+	Id     int64           `json:"id"`
+	Result rpctypes.Header `json:"result"`
+	Err    string          `json:"error"`
 }
 
 func getprivkey(key string) crypto.PrivKey {
