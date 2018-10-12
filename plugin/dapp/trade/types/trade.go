@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	nameX = types.ExecName(types.TradeX)
+	nameX string
 	tlog  = log.New("module", types.TradeX)
 
 	actionName = map[string]int32{
