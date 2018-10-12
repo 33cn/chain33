@@ -52,14 +52,6 @@ func init() {
 	// init executor type
 	types.RegistorExecutor(types.TradeX, NewType())
 
-	// init log
-	types.RegistorLog(types.TyLogTradeSellLimit, &TradeSellLimitLog{})
-	types.RegistorLog(types.TyLogTradeBuyMarket, &TradeBuyMarketLog{})
-	types.RegistorLog(types.TyLogTradeSellRevoke, &TradeSellRevokeLog{})
-	types.RegistorLog(types.TyLogTradeBuyLimit, &TradeBuyLimitLog{})
-	types.RegistorLog(types.TyLogTradeSellMarket, &TradeSellMarketLog{})
-	types.RegistorLog(types.TyLogTradeBuyRevoke, &TradeBuyRevokeLog{})
-
 	// init query rpc
 	types.RegisterRPCQueryHandle("GetTokenSellOrderByStatus", &TradeQueryTokenSellOrder{})
 	types.RegisterRPCQueryHandle("GetOnesSellOrderWithStatus", &TradeQueryOnesSellOrder{})
