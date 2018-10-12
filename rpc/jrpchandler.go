@@ -13,6 +13,7 @@ import (
 
 	hashlocktype "gitlab.33.cn/chain33/chain33/plugin/dapp/hashlock/types"
 	lotterytype "gitlab.33.cn/chain33/chain33/plugin/dapp/lottery/types"
+	tokenty "gitlab.33.cn/chain33/chain33/plugin/dapp/token/types"
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 	retrievetype "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
 	tradetype "gitlab.33.cn/chain33/chain33/types/executor/trade"
@@ -862,12 +863,6 @@ func (c *Chain33) QueryOld(in rpctypes.Query4Jrpc, result *interface{}) error {
 func (c *Chain33) Query(in rpctypes.Query4Jrpc, result *interface{}) error {
 	trans := types.LoadQueryType(in.FuncName)
 	if trans == nil {
-		// 不是所有的合约都需要做类型转化， 没有修改的合约走老的接口
-		// 另外给部分合约的代码修改的时间
-		//log.Info("EventQuery", "Old Query called", in.FuncName)
-		// return c.QueryOld(in, result)
-
-		// now old code all move to type/executor, test and then remove old code
 		log.Error("Query", "funcname", in.FuncName, "err", types.ErrNotSupport)
 		return types.ErrNotSupport
 	}
