@@ -13,15 +13,15 @@ var (
 	sellorderOnsale = pty.SellOrder{
 		"Tokensymbol",
 		"Address",
-		20 * 1e8,                     // Amountperboardlot int64  `protobuf:"varint,3,opt,name=amountperboardlot" json:"amountperboardlot,omitempty"`
-		2,                            // Minboardlot       int64  `protobuf:"varint,4,opt,name=minboardlot" json:"minboardlot,omitempty"`
-		1 * 1e8,                      //Priceperboardlot  int64  `protobuf:"varint,5,opt,name=priceperboardlot" json:"priceperboardlot,omitempty"`
-		60,                           // Totalboardlot     int64  `protobuf:"varint,6,opt,name=totalboardlot" json:"totalboardlot,omitempty"`
-		2,                            // Soldboardlot      int64  `protobuf:"varint,7,opt,name=soldboardlot" json:"soldboardlot,omitempty"`
-		0,                            //Starttime         int64  `protobuf:"varint,8,opt,name=starttime" json:"starttime,omitempty"`
-		0,                            //Stoptime          int64  `protobuf:"varint,9,opt,name=stoptime" json:"stoptime,omitempty"`
-		false,                        //Crowdfund         bool   `protobuf:"varint,10,opt,name=crowdfund" json:"crowdfund,omitempty"`
-		"IAMSELLID",                  // Sellid            string `protobuf:"bytes,11,opt,name=sellid" json:"sellid,omitempty"`
+		20 * 1e8,                   // Amountperboardlot int64  `protobuf:"varint,3,opt,name=amountperboardlot" json:"amountperboardlot,omitempty"`
+		2,                          // Minboardlot       int64  `protobuf:"varint,4,opt,name=minboardlot" json:"minboardlot,omitempty"`
+		1 * 1e8,                    //Priceperboardlot  int64  `protobuf:"varint,5,opt,name=priceperboardlot" json:"priceperboardlot,omitempty"`
+		60,                         // Totalboardlot     int64  `protobuf:"varint,6,opt,name=totalboardlot" json:"totalboardlot,omitempty"`
+		2,                          // Soldboardlot      int64  `protobuf:"varint,7,opt,name=soldboardlot" json:"soldboardlot,omitempty"`
+		0,                          //Starttime         int64  `protobuf:"varint,8,opt,name=starttime" json:"starttime,omitempty"`
+		0,                          //Stoptime          int64  `protobuf:"varint,9,opt,name=stoptime" json:"stoptime,omitempty"`
+		false,                      //Crowdfund         bool   `protobuf:"varint,10,opt,name=crowdfund" json:"crowdfund,omitempty"`
+		"IAMSELLID",                // Sellid            string `protobuf:"bytes,11,opt,name=sellid" json:"sellid,omitempty"`
 		pty.TradeOrderStatusOnSale, //Status            int32  `protobuf:"varint,12,opt,name=status" json:"status,omitempty"`
 		100, //Height            int64  `protobuf:"varint,13,opt,name=height" json:"height,omitempty"`
 	}
@@ -29,15 +29,15 @@ var (
 	sellorderSoldOut = pty.SellOrder{
 		"Tokensymbol",
 		"Address",
-		20 * 1e8,                      // Amountperboardlot int64  `protobuf:"varint,3,opt,name=amountperboardlot" json:"amountperboardlot,omitempty"`
-		2,                             // Minboardlot       int64  `protobuf:"varint,4,opt,name=minboardlot" json:"minboardlot,omitempty"`
-		1 * 1e8,                       //Priceperboardlot  int64  `protobuf:"varint,5,opt,name=priceperboardlot" json:"priceperboardlot,omitempty"`
-		60,                            // Totalboardlot     int64  `protobuf:"varint,6,opt,name=totalboardlot" json:"totalboardlot,omitempty"`
-		2,                             // Soldboardlot      int64  `protobuf:"varint,7,opt,name=soldboardlot" json:"soldboardlot,omitempty"`
-		0,                             //Starttime         int64  `protobuf:"varint,8,opt,name=starttime" json:"starttime,omitempty"`
-		0,                             //Stoptime          int64  `protobuf:"varint,9,opt,name=stoptime" json:"stoptime,omitempty"`
-		false,                         //Crowdfund         bool   `protobuf:"varint,10,opt,name=crowdfund" json:"crowdfund,omitempty"`
-		"IAMSELLID",                   // Sellid            string `protobuf:"bytes,11,opt,name=sellid" json:"sellid,omitempty"`
+		20 * 1e8,                    // Amountperboardlot int64  `protobuf:"varint,3,opt,name=amountperboardlot" json:"amountperboardlot,omitempty"`
+		2,                           // Minboardlot       int64  `protobuf:"varint,4,opt,name=minboardlot" json:"minboardlot,omitempty"`
+		1 * 1e8,                     //Priceperboardlot  int64  `protobuf:"varint,5,opt,name=priceperboardlot" json:"priceperboardlot,omitempty"`
+		60,                          // Totalboardlot     int64  `protobuf:"varint,6,opt,name=totalboardlot" json:"totalboardlot,omitempty"`
+		2,                           // Soldboardlot      int64  `protobuf:"varint,7,opt,name=soldboardlot" json:"soldboardlot,omitempty"`
+		0,                           //Starttime         int64  `protobuf:"varint,8,opt,name=starttime" json:"starttime,omitempty"`
+		0,                           //Stoptime          int64  `protobuf:"varint,9,opt,name=stoptime" json:"stoptime,omitempty"`
+		false,                       //Crowdfund         bool   `protobuf:"varint,10,opt,name=crowdfund" json:"crowdfund,omitempty"`
+		"IAMSELLID",                 // Sellid            string `protobuf:"bytes,11,opt,name=sellid" json:"sellid,omitempty"`
 		pty.TradeOrderStatusSoldOut, //Status            int32  `protobuf:"varint,12,opt,name=status" json:"status,omitempty"`
 		100, //Height            int64  `protobuf:"varint,13,opt,name=height" json:"height,omitempty"`
 	}
@@ -45,15 +45,15 @@ var (
 	sellorderRevoked = pty.SellOrder{
 		"Tokensymbol",
 		"Address",
-		20 * 1e8,                      // Amountperboardlot int64  `protobuf:"varint,3,opt,name=amountperboardlot" json:"amountperboardlot,omitempty"`
-		2,                             // Minboardlot       int64  `protobuf:"varint,4,opt,name=minboardlot" json:"minboardlot,omitempty"`
-		1 * 1e8,                       //Priceperboardlot  int64  `protobuf:"varint,5,opt,name=priceperboardlot" json:"priceperboardlot,omitempty"`
-		60,                            // Totalboardlot     int64  `protobuf:"varint,6,opt,name=totalboardlot" json:"totalboardlot,omitempty"`
-		2,                             // Soldboardlot      int64  `protobuf:"varint,7,opt,name=soldboardlot" json:"soldboardlot,omitempty"`
-		0,                             //Starttime         int64  `protobuf:"varint,8,opt,name=starttime" json:"starttime,omitempty"`
-		0,                             //Stoptime          int64  `protobuf:"varint,9,opt,name=stoptime" json:"stoptime,omitempty"`
-		false,                         //Crowdfund         bool   `protobuf:"varint,10,opt,name=crowdfund" json:"crowdfund,omitempty"`
-		"IAMSELLID",                   // Sellid            string `protobuf:"bytes,11,opt,name=sellid" json:"sellid,omitempty"`
+		20 * 1e8,                    // Amountperboardlot int64  `protobuf:"varint,3,opt,name=amountperboardlot" json:"amountperboardlot,omitempty"`
+		2,                           // Minboardlot       int64  `protobuf:"varint,4,opt,name=minboardlot" json:"minboardlot,omitempty"`
+		1 * 1e8,                     //Priceperboardlot  int64  `protobuf:"varint,5,opt,name=priceperboardlot" json:"priceperboardlot,omitempty"`
+		60,                          // Totalboardlot     int64  `protobuf:"varint,6,opt,name=totalboardlot" json:"totalboardlot,omitempty"`
+		2,                           // Soldboardlot      int64  `protobuf:"varint,7,opt,name=soldboardlot" json:"soldboardlot,omitempty"`
+		0,                           //Starttime         int64  `protobuf:"varint,8,opt,name=starttime" json:"starttime,omitempty"`
+		0,                           //Stoptime          int64  `protobuf:"varint,9,opt,name=stoptime" json:"stoptime,omitempty"`
+		false,                       //Crowdfund         bool   `protobuf:"varint,10,opt,name=crowdfund" json:"crowdfund,omitempty"`
+		"IAMSELLID",                 // Sellid            string `protobuf:"bytes,11,opt,name=sellid" json:"sellid,omitempty"`
 		pty.TradeOrderStatusRevoked, //Status            int32  `protobuf:"varint,12,opt,name=status" json:"status,omitempty"`
 		100, //Height            int64  `protobuf:"varint,13,opt,name=height" json:"height,omitempty"`
 	}
