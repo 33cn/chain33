@@ -77,8 +77,11 @@ func (c *Jrpc) GetTokenBalance(in tokenty.ReqTokenBalance, result *interface{}) 
 	return nil
 }
 
-func (c *Jrpc) CreateRawTokenPreCreateTx(in *tokenty.TokenPreCreate, result *interface{}) error {
-	data, err := types.CallCreateTx(types.ExecName(tokenty.Name), "Tokenprecreate", in)
+func (c *Jrpc) CreateRawTokenPreCreateTx(param *tokenty.TokenPreCreate, result *interface{}) error {
+	if param == nil {
+		return types.ErrInvalidParam
+	}
+	data, err := types.CallCreateTx(types.ExecName(tokenty.Name), "Tokenprecreate", param)
 	if err != nil {
 		return err
 	}
@@ -86,8 +89,11 @@ func (c *Jrpc) CreateRawTokenPreCreateTx(in *tokenty.TokenPreCreate, result *int
 	return nil
 }
 
-func (c *Jrpc) CreateRawTokenFinishTx(in *tokenty.TokenFinishCreate, result *interface{}) error {
-	data, err := types.CallCreateTx(types.ExecName(tokenty.Name), "Tokenfinishcreate", in)
+func (c *Jrpc) CreateRawTokenFinishTx(param *tokenty.TokenFinishCreate, result *interface{}) error {
+	if param == nil {
+		return types.ErrInvalidParam
+	}
+	data, err := types.CallCreateTx(types.ExecName(tokenty.Name), "Tokenfinishcreate", param)
 	if err != nil {
 		return err
 	}
@@ -95,8 +101,11 @@ func (c *Jrpc) CreateRawTokenFinishTx(in *tokenty.TokenFinishCreate, result *int
 	return nil
 }
 
-func (c *Jrpc) CreateRawTokenRevokeTx(in *tokenty.TokenRevokeCreate, result *interface{}) error {
-	data, err := types.CallCreateTx(types.ExecName(tokenty.Name), "Tokenrevokecreate", in)
+func (c *Jrpc) CreateRawTokenRevokeTx(param *tokenty.TokenRevokeCreate, result *interface{}) error {
+	if param == nil {
+		return types.ErrInvalidParam
+	}
+	data, err := types.CallCreateTx(types.ExecName(tokenty.Name), "Tokenrevokecreate", param)
 	if err != nil {
 		return err
 	}
