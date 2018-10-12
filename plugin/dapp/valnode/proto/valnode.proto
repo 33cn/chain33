@@ -21,9 +21,9 @@ message ValNodeAction {
 }
 
 message ReqNodeInfo {
-	int64 height = 1;
+    int64 height = 1;
 }
 
 message ReqBlockInfo {
-	int64 height = 1;
+    int64 height = 1;
 }
