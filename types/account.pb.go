@@ -11,7 +11,6 @@ It is generated from these files:
 	common.proto
 	config.proto
 	db.proto
-	evmcontract.proto
 	executor.proto
 	executorTrade.proto
 	p2p.proto
@@ -96,21 +95,6 @@ It has these top-level messages:
 	StoreSetWithSync
 	StoreGet
 	StoreReplyValue
-	EVMContractObject
-	EVMContractData
-	EVMContractState
-	EVMContractAction
-	ReceiptEVMContract
-	EVMStateChangeItem
-	EVMContractDataCmd
-	EVMContractStateCmd
-	ReceiptEVMContractCmd
-	CheckEVMAddrReq
-	CheckEVMAddrResp
-	EstimateEVMGasReq
-	EstimateEVMGasResp
-	EvmDebugReq
-	EvmDebugResp
 	Genesis
 	Ticket
 	TicketAction

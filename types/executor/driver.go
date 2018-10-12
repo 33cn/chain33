@@ -4,7 +4,6 @@ import (
 	"sync"
 
 	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/types/executor/evm"
 	"gitlab.33.cn/chain33/chain33/types/executor/relay"
 	"gitlab.33.cn/chain33/chain33/types/executor/retrieve"
 	"gitlab.33.cn/chain33/chain33/types/executor/ticket"
@@ -41,7 +40,6 @@ func initExec() {
 	// init query rpc type
 
 	//avoid init for ExecPrifex
-	evm.Init()
 	relay.Init()
 	retrieve.Init()
 	ticket.Init()

@@ -40,7 +40,7 @@ type WalletTxDetail struct {
 func (m *WalletTxDetail) Reset()                    { *m = WalletTxDetail{} }
 func (m *WalletTxDetail) String() string            { return proto.CompactTextString(m) }
 func (*WalletTxDetail) ProtoMessage()               {}
-func (*WalletTxDetail) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{0} }
+func (*WalletTxDetail) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{0} }
 
 func (m *WalletTxDetail) GetTx() *Transaction {
 	if m != nil {
@@ -119,7 +119,7 @@ type WalletTxDetails struct {
 func (m *WalletTxDetails) Reset()                    { *m = WalletTxDetails{} }
 func (m *WalletTxDetails) String() string            { return proto.CompactTextString(m) }
 func (*WalletTxDetails) ProtoMessage()               {}
-func (*WalletTxDetails) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{1} }
+func (*WalletTxDetails) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{1} }
 
 func (m *WalletTxDetails) GetTxDetails() []*WalletTxDetail {
 	if m != nil {
@@ -143,7 +143,7 @@ type WalletAccountStore struct {
 func (m *WalletAccountStore) Reset()                    { *m = WalletAccountStore{} }
 func (m *WalletAccountStore) String() string            { return proto.CompactTextString(m) }
 func (*WalletAccountStore) ProtoMessage()               {}
-func (*WalletAccountStore) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{2} }
+func (*WalletAccountStore) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{2} }
 
 func (m *WalletAccountStore) GetPrivkey() string {
 	if m != nil {
@@ -183,7 +183,7 @@ type WalletAccountPrivacy struct {
 func (m *WalletAccountPrivacy) Reset()                    { *m = WalletAccountPrivacy{} }
 func (m *WalletAccountPrivacy) String() string            { return proto.CompactTextString(m) }
 func (*WalletAccountPrivacy) ProtoMessage()               {}
-func (*WalletAccountPrivacy) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{3} }
+func (*WalletAccountPrivacy) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{3} }
 
 func (m *WalletAccountPrivacy) GetViewPubkey() []byte {
 	if m != nil {
@@ -224,7 +224,7 @@ type WalletPwHash struct {
 func (m *WalletPwHash) Reset()                    { *m = WalletPwHash{} }
 func (m *WalletPwHash) String() string            { return proto.CompactTextString(m) }
 func (*WalletPwHash) ProtoMessage()               {}
-func (*WalletPwHash) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{4} }
+func (*WalletPwHash) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{4} }
 
 func (m *WalletPwHash) GetPwHash() []byte {
 	if m != nil {
@@ -255,7 +255,7 @@ type WalletStatus struct {
 func (m *WalletStatus) Reset()                    { *m = WalletStatus{} }
 func (m *WalletStatus) String() string            { return proto.CompactTextString(m) }
 func (*WalletStatus) ProtoMessage()               {}
-func (*WalletStatus) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{5} }
+func (*WalletStatus) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{5} }
 
 func (m *WalletStatus) GetIsWalletLock() bool {
 	if m != nil {
@@ -292,7 +292,7 @@ type WalletAccounts struct {
 func (m *WalletAccounts) Reset()                    { *m = WalletAccounts{} }
 func (m *WalletAccounts) String() string            { return proto.CompactTextString(m) }
 func (*WalletAccounts) ProtoMessage()               {}
-func (*WalletAccounts) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{6} }
+func (*WalletAccounts) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{6} }
 
 func (m *WalletAccounts) GetWallets() []*WalletAccount {
 	if m != nil {
@@ -309,7 +309,7 @@ type WalletAccount struct {
 func (m *WalletAccount) Reset()                    { *m = WalletAccount{} }
 func (m *WalletAccount) String() string            { return proto.CompactTextString(m) }
 func (*WalletAccount) ProtoMessage()               {}
-func (*WalletAccount) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{7} }
+func (*WalletAccount) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{7} }
 
 func (m *WalletAccount) GetAcc() *Account {
 	if m != nil {
@@ -338,7 +338,7 @@ type WalletUnLock struct {
 func (m *WalletUnLock) Reset()                    { *m = WalletUnLock{} }
 func (m *WalletUnLock) String() string            { return proto.CompactTextString(m) }
 func (*WalletUnLock) ProtoMessage()               {}
-func (*WalletUnLock) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{8} }
+func (*WalletUnLock) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{8} }
 
 func (m *WalletUnLock) GetPasswd() string {
 	if m != nil {
@@ -368,7 +368,7 @@ type GenSeedLang struct {
 func (m *GenSeedLang) Reset()                    { *m = GenSeedLang{} }
 func (m *GenSeedLang) String() string            { return proto.CompactTextString(m) }
 func (*GenSeedLang) ProtoMessage()               {}
-func (*GenSeedLang) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{9} }
+func (*GenSeedLang) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{9} }
 
 func (m *GenSeedLang) GetLang() int32 {
 	if m != nil {
@@ -384,7 +384,7 @@ type GetSeedByPw struct {
 func (m *GetSeedByPw) Reset()                    { *m = GetSeedByPw{} }
 func (m *GetSeedByPw) String() string            { return proto.CompactTextString(m) }
 func (*GetSeedByPw) ProtoMessage()               {}
-func (*GetSeedByPw) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{10} }
+func (*GetSeedByPw) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{10} }
 
 func (m *GetSeedByPw) GetPasswd() string {
 	if m != nil {
@@ -404,7 +404,7 @@ type SaveSeedByPw struct {
 func (m *SaveSeedByPw) Reset()                    { *m = SaveSeedByPw{} }
 func (m *SaveSeedByPw) String() string            { return proto.CompactTextString(m) }
 func (*SaveSeedByPw) ProtoMessage()               {}
-func (*SaveSeedByPw) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{11} }
+func (*SaveSeedByPw) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{11} }
 
 func (m *SaveSeedByPw) GetSeed() string {
 	if m != nil {
@@ -427,7 +427,7 @@ type ReplySeed struct {
 func (m *ReplySeed) Reset()                    { *m = ReplySeed{} }
 func (m *ReplySeed) String() string            { return proto.CompactTextString(m) }
 func (*ReplySeed) ProtoMessage()               {}
-func (*ReplySeed) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{12} }
+func (*ReplySeed) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{12} }
 
 func (m *ReplySeed) GetSeed() string {
 	if m != nil {
@@ -444,7 +444,7 @@ type ReqWalletSetPasswd struct {
 func (m *ReqWalletSetPasswd) Reset()                    { *m = ReqWalletSetPasswd{} }
 func (m *ReqWalletSetPasswd) String() string            { return proto.CompactTextString(m) }
 func (*ReqWalletSetPasswd) ProtoMessage()               {}
-func (*ReqWalletSetPasswd) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{13} }
+func (*ReqWalletSetPasswd) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{13} }
 
 func (m *ReqWalletSetPasswd) GetOldPass() string {
 	if m != nil {
@@ -467,7 +467,7 @@ type ReqNewAccount struct {
 func (m *ReqNewAccount) Reset()                    { *m = ReqNewAccount{} }
 func (m *ReqNewAccount) String() string            { return proto.CompactTextString(m) }
 func (*ReqNewAccount) ProtoMessage()               {}
-func (*ReqNewAccount) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{14} }
+func (*ReqNewAccount) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{14} }
 
 func (m *ReqNewAccount) GetLabel() string {
 	if m != nil {
@@ -484,7 +484,7 @@ type MinerFlag struct {
 func (m *MinerFlag) Reset()                    { *m = MinerFlag{} }
 func (m *MinerFlag) String() string            { return proto.CompactTextString(m) }
 func (*MinerFlag) ProtoMessage()               {}
-func (*MinerFlag) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{15} }
+func (*MinerFlag) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{15} }
 
 func (m *MinerFlag) GetFlag() int32 {
 	if m != nil {
@@ -515,7 +515,7 @@ type ReqWalletTransactionList struct {
 func (m *ReqWalletTransactionList) Reset()                    { *m = ReqWalletTransactionList{} }
 func (m *ReqWalletTransactionList) String() string            { return proto.CompactTextString(m) }
 func (*ReqWalletTransactionList) ProtoMessage()               {}
-func (*ReqWalletTransactionList) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{16} }
+func (*ReqWalletTransactionList) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{16} }
 
 func (m *ReqWalletTransactionList) GetFromTx() []byte {
 	if m != nil {
@@ -547,7 +547,7 @@ type ReqWalletImportPrivKey struct {
 func (m *ReqWalletImportPrivKey) Reset()                    { *m = ReqWalletImportPrivKey{} }
 func (m *ReqWalletImportPrivKey) String() string            { return proto.CompactTextString(m) }
 func (*ReqWalletImportPrivKey) ProtoMessage()               {}
-func (*ReqWalletImportPrivKey) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{17} }
+func (*ReqWalletImportPrivKey) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{17} }
 
 func (m *ReqWalletImportPrivKey) GetPrivkey() string {
 	if m != nil {
@@ -580,7 +580,7 @@ type ReqWalletSendToAddress struct {
 func (m *ReqWalletSendToAddress) Reset()                    { *m = ReqWalletSendToAddress{} }
 func (m *ReqWalletSendToAddress) String() string            { return proto.CompactTextString(m) }
 func (*ReqWalletSendToAddress) ProtoMessage()               {}
-func (*ReqWalletSendToAddress) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{18} }
+func (*ReqWalletSendToAddress) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{18} }
 
 func (m *ReqWalletSendToAddress) GetFrom() string {
 	if m != nil {
@@ -631,7 +631,7 @@ type ReqWalletSetFee struct {
 func (m *ReqWalletSetFee) Reset()                    { *m = ReqWalletSetFee{} }
 func (m *ReqWalletSetFee) String() string            { return proto.CompactTextString(m) }
 func (*ReqWalletSetFee) ProtoMessage()               {}
-func (*ReqWalletSetFee) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{19} }
+func (*ReqWalletSetFee) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{19} }
 
 func (m *ReqWalletSetFee) GetAmount() int64 {
 	if m != nil {
@@ -648,7 +648,7 @@ type ReqWalletSetLabel struct {
 func (m *ReqWalletSetLabel) Reset()                    { *m = ReqWalletSetLabel{} }
 func (m *ReqWalletSetLabel) String() string            { return proto.CompactTextString(m) }
 func (*ReqWalletSetLabel) ProtoMessage()               {}
-func (*ReqWalletSetLabel) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{20} }
+func (*ReqWalletSetLabel) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{20} }
 
 func (m *ReqWalletSetLabel) GetAddr() string {
 	if m != nil {
@@ -671,7 +671,7 @@ type ReqWalletMergeBalance struct {
 func (m *ReqWalletMergeBalance) Reset()                    { *m = ReqWalletMergeBalance{} }
 func (m *ReqWalletMergeBalance) String() string            { return proto.CompactTextString(m) }
 func (*ReqWalletMergeBalance) ProtoMessage()               {}
-func (*ReqWalletMergeBalance) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{21} }
+func (*ReqWalletMergeBalance) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{21} }
 
 func (m *ReqWalletMergeBalance) GetTo() string {
 	if m != nil {
@@ -687,7 +687,7 @@ type ReqStr struct {
 func (m *ReqStr) Reset()                    { *m = ReqStr{} }
 func (m *ReqStr) String() string            { return proto.CompactTextString(m) }
 func (*ReqStr) ProtoMessage()               {}
-func (*ReqStr) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{22} }
+func (*ReqStr) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{22} }
 
 func (m *ReqStr) GetReqStr() string {
 	if m != nil {
@@ -703,7 +703,7 @@ type ReplyStr struct {
 func (m *ReplyStr) Reset()                    { *m = ReplyStr{} }
 func (m *ReplyStr) String() string            { return proto.CompactTextString(m) }
 func (*ReplyStr) ProtoMessage()               {}
-func (*ReplyStr) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{23} }
+func (*ReplyStr) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{23} }
 
 func (m *ReplyStr) GetReplystr() string {
 	if m != nil {
@@ -725,7 +725,7 @@ type ReqTokenPreCreate struct {
 func (m *ReqTokenPreCreate) Reset()                    { *m = ReqTokenPreCreate{} }
 func (m *ReqTokenPreCreate) String() string            { return proto.CompactTextString(m) }
 func (*ReqTokenPreCreate) ProtoMessage()               {}
-func (*ReqTokenPreCreate) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{24} }
+func (*ReqTokenPreCreate) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{24} }
 
 func (m *ReqTokenPreCreate) GetCreatorAddr() string {
 	if m != nil {
@@ -785,7 +785,7 @@ type ReqTokenFinishCreate struct {
 func (m *ReqTokenFinishCreate) Reset()                    { *m = ReqTokenFinishCreate{} }
 func (m *ReqTokenFinishCreate) String() string            { return proto.CompactTextString(m) }
 func (*ReqTokenFinishCreate) ProtoMessage()               {}
-func (*ReqTokenFinishCreate) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{25} }
+func (*ReqTokenFinishCreate) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{25} }
 
 func (m *ReqTokenFinishCreate) GetFinisherAddr() string {
 	if m != nil {
@@ -817,7 +817,7 @@ type ReqTokenRevokeCreate struct {
 func (m *ReqTokenRevokeCreate) Reset()                    { *m = ReqTokenRevokeCreate{} }
 func (m *ReqTokenRevokeCreate) String() string            { return proto.CompactTextString(m) }
 func (*ReqTokenRevokeCreate) ProtoMessage()               {}
-func (*ReqTokenRevokeCreate) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{26} }
+func (*ReqTokenRevokeCreate) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{26} }
 
 func (m *ReqTokenRevokeCreate) GetRevokerAddr() string {
 	if m != nil {
@@ -848,7 +848,7 @@ type ReqSellToken struct {
 func (m *ReqSellToken) Reset()                    { *m = ReqSellToken{} }
 func (m *ReqSellToken) String() string            { return proto.CompactTextString(m) }
 func (*ReqSellToken) ProtoMessage()               {}
-func (*ReqSellToken) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{27} }
+func (*ReqSellToken) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{27} }
 
 func (m *ReqSellToken) GetSell() *TradeForSell {
 	if m != nil {
@@ -872,7 +872,7 @@ type ReqBuyToken struct {
 func (m *ReqBuyToken) Reset()                    { *m = ReqBuyToken{} }
 func (m *ReqBuyToken) String() string            { return proto.CompactTextString(m) }
 func (*ReqBuyToken) ProtoMessage()               {}
-func (*ReqBuyToken) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{28} }
+func (*ReqBuyToken) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{28} }
 
 func (m *ReqBuyToken) GetBuy() *TradeForBuy {
 	if m != nil {
@@ -896,7 +896,7 @@ type ReqRevokeSell struct {
 func (m *ReqRevokeSell) Reset()                    { *m = ReqRevokeSell{} }
 func (m *ReqRevokeSell) String() string            { return proto.CompactTextString(m) }
 func (*ReqRevokeSell) ProtoMessage()               {}
-func (*ReqRevokeSell) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{29} }
+func (*ReqRevokeSell) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{29} }
 
 func (m *ReqRevokeSell) GetRevoke() *TradeForRevokeSell {
 	if m != nil {
@@ -922,7 +922,7 @@ type ReqModifyConfig struct {
 func (m *ReqModifyConfig) Reset()                    { *m = ReqModifyConfig{} }
 func (m *ReqModifyConfig) String() string            { return proto.CompactTextString(m) }
 func (*ReqModifyConfig) ProtoMessage()               {}
-func (*ReqModifyConfig) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{30} }
+func (*ReqModifyConfig) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{30} }
 
 func (m *ReqModifyConfig) GetKey() string {
 	if m != nil {
@@ -968,7 +968,7 @@ type ReqSignRawTx struct {
 func (m *ReqSignRawTx) Reset()                    { *m = ReqSignRawTx{} }
 func (m *ReqSignRawTx) String() string            { return proto.CompactTextString(m) }
 func (*ReqSignRawTx) ProtoMessage()               {}
-func (*ReqSignRawTx) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{31} }
+func (*ReqSignRawTx) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{31} }
 
 func (m *ReqSignRawTx) GetAddr() string {
 	if m != nil {
@@ -1019,7 +1019,7 @@ type ReplySignRawTx struct {
 func (m *ReplySignRawTx) Reset()                    { *m = ReplySignRawTx{} }
 func (m *ReplySignRawTx) String() string            { return proto.CompactTextString(m) }
 func (*ReplySignRawTx) ProtoMessage()               {}
-func (*ReplySignRawTx) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{32} }
+func (*ReplySignRawTx) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{32} }
 
 func (m *ReplySignRawTx) GetTxHex() string {
 	if m != nil {
@@ -1037,7 +1037,7 @@ type ReportErrEvent struct {
 func (m *ReportErrEvent) Reset()                    { *m = ReportErrEvent{} }
 func (m *ReportErrEvent) String() string            { return proto.CompactTextString(m) }
 func (*ReportErrEvent) ProtoMessage()               {}
-func (*ReportErrEvent) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{33} }
+func (*ReportErrEvent) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{33} }
 
 func (m *ReportErrEvent) GetFrommodule() string {
 	if m != nil {
@@ -1067,7 +1067,7 @@ type Int32 struct {
 func (m *Int32) Reset()                    { *m = Int32{} }
 func (m *Int32) String() string            { return proto.CompactTextString(m) }
 func (*Int32) ProtoMessage()               {}
-func (*Int32) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{34} }
+func (*Int32) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{34} }
 
 func (m *Int32) GetData() int32 {
 	if m != nil {
@@ -1094,7 +1094,7 @@ type ReqPub2Pri struct {
 func (m *ReqPub2Pri) Reset()                    { *m = ReqPub2Pri{} }
 func (m *ReqPub2Pri) String() string            { return proto.CompactTextString(m) }
 func (*ReqPub2Pri) ProtoMessage()               {}
-func (*ReqPub2Pri) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{35} }
+func (*ReqPub2Pri) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{35} }
 
 func (m *ReqPub2Pri) GetTokenname() string {
 	if m != nil {
@@ -1164,7 +1164,7 @@ type ReqPri2Pri struct {
 func (m *ReqPri2Pri) Reset()                    { *m = ReqPri2Pri{} }
 func (m *ReqPri2Pri) String() string            { return proto.CompactTextString(m) }
 func (*ReqPri2Pri) ProtoMessage()               {}
-func (*ReqPri2Pri) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{36} }
+func (*ReqPri2Pri) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{36} }
 
 func (m *ReqPri2Pri) GetTokenname() string {
 	if m != nil {
@@ -1230,7 +1230,7 @@ type ReqPri2Pub struct {
 func (m *ReqPri2Pub) Reset()                    { *m = ReqPri2Pub{} }
 func (m *ReqPri2Pub) String() string            { return proto.CompactTextString(m) }
 func (*ReqPri2Pub) ProtoMessage()               {}
-func (*ReqPri2Pub) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{37} }
+func (*ReqPri2Pub) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{37} }
 
 func (m *ReqPri2Pub) GetReceiver() string {
 	if m != nil {
@@ -1296,7 +1296,7 @@ type ReqCreateUTXOs struct {
 func (m *ReqCreateUTXOs) Reset()                    { *m = ReqCreateUTXOs{} }
 func (m *ReqCreateUTXOs) String() string            { return proto.CompactTextString(m) }
 func (*ReqCreateUTXOs) ProtoMessage()               {}
-func (*ReqCreateUTXOs) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{38} }
+func (*ReqCreateUTXOs) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{38} }
 
 func (m *ReqCreateUTXOs) GetTokenname() string {
 	if m != nil {
@@ -1357,7 +1357,7 @@ type ReplyPrivacyPkPair struct {
 func (m *ReplyPrivacyPkPair) Reset()                    { *m = ReplyPrivacyPkPair{} }
 func (m *ReplyPrivacyPkPair) String() string            { return proto.CompactTextString(m) }
 func (*ReplyPrivacyPkPair) ProtoMessage()               {}
-func (*ReplyPrivacyPkPair) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{39} }
+func (*ReplyPrivacyPkPair) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{39} }
 
 func (m *ReplyPrivacyPkPair) GetShowSuccessful() bool {
 	if m != nil {
@@ -1381,7 +1381,7 @@ type ReqPrivBal4AddrToken struct {
 func (m *ReqPrivBal4AddrToken) Reset()                    { *m = ReqPrivBal4AddrToken{} }
 func (m *ReqPrivBal4AddrToken) String() string            { return proto.CompactTextString(m) }
 func (*ReqPrivBal4AddrToken) ProtoMessage()               {}
-func (*ReqPrivBal4AddrToken) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{40} }
+func (*ReqPrivBal4AddrToken) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{40} }
 
 func (m *ReqPrivBal4AddrToken) GetAddr() string {
 	if m != nil {
@@ -1405,7 +1405,7 @@ type ReplyPrivacyBalance struct {
 func (m *ReplyPrivacyBalance) Reset()                    { *m = ReplyPrivacyBalance{} }
 func (m *ReplyPrivacyBalance) String() string            { return proto.CompactTextString(m) }
 func (*ReplyPrivacyBalance) ProtoMessage()               {}
-func (*ReplyPrivacyBalance) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{41} }
+func (*ReplyPrivacyBalance) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{41} }
 
 func (m *ReplyPrivacyBalance) GetOnetimeaddr() string {
 	if m != nil {
@@ -1437,7 +1437,7 @@ type PrivacyDBStore struct {
 func (m *PrivacyDBStore) Reset()                    { *m = PrivacyDBStore{} }
 func (m *PrivacyDBStore) String() string            { return proto.CompactTextString(m) }
 func (*PrivacyDBStore) ProtoMessage()               {}
-func (*PrivacyDBStore) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{42} }
+func (*PrivacyDBStore) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{42} }
 
 func (m *PrivacyDBStore) GetTxhash() []byte {
 	if m != nil {
@@ -1517,7 +1517,7 @@ type UTXO struct {
 func (m *UTXO) Reset()                    { *m = UTXO{} }
 func (m *UTXO) String() string            { return proto.CompactTextString(m) }
 func (*UTXO) ProtoMessage()               {}
-func (*UTXO) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{43} }
+func (*UTXO) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{43} }
 
 func (m *UTXO) GetAmount() int64 {
 	if m != nil {
@@ -1542,7 +1542,7 @@ type UTXOHaveTxHash struct {
 func (m *UTXOHaveTxHash) Reset()                    { *m = UTXOHaveTxHash{} }
 func (m *UTXOHaveTxHash) String() string            { return proto.CompactTextString(m) }
 func (*UTXOHaveTxHash) ProtoMessage()               {}
-func (*UTXOHaveTxHash) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{44} }
+func (*UTXOHaveTxHash) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{44} }
 
 func (m *UTXOHaveTxHash) GetAmount() int64 {
 	if m != nil {
@@ -1572,7 +1572,7 @@ type UTXOs struct {
 func (m *UTXOs) Reset()                    { *m = UTXOs{} }
 func (m *UTXOs) String() string            { return proto.CompactTextString(m) }
 func (*UTXOs) ProtoMessage()               {}
-func (*UTXOs) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{45} }
+func (*UTXOs) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{45} }
 
 func (m *UTXOs) GetUtxos() []*UTXO {
 	if m != nil {
@@ -1588,7 +1588,7 @@ type UTXOHaveTxHashs struct {
 func (m *UTXOHaveTxHashs) Reset()                    { *m = UTXOHaveTxHashs{} }
 func (m *UTXOHaveTxHashs) String() string            { return proto.CompactTextString(m) }
 func (*UTXOHaveTxHashs) ProtoMessage()               {}
-func (*UTXOHaveTxHashs) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{46} }
+func (*UTXOHaveTxHashs) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{46} }
 
 func (m *UTXOHaveTxHashs) GetUtxoHaveTxHashs() []*UTXOHaveTxHash {
 	if m != nil {
@@ -1606,7 +1606,7 @@ type ReqUTXOGlobalIndex struct {
 func (m *ReqUTXOGlobalIndex) Reset()                    { *m = ReqUTXOGlobalIndex{} }
 func (m *ReqUTXOGlobalIndex) String() string            { return proto.CompactTextString(m) }
 func (*ReqUTXOGlobalIndex) ProtoMessage()               {}
-func (*ReqUTXOGlobalIndex) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{47} }
+func (*ReqUTXOGlobalIndex) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{47} }
 
 func (m *ReqUTXOGlobalIndex) GetTokenname() string {
 	if m != nil {
@@ -1637,7 +1637,7 @@ type UTXOBasic struct {
 func (m *UTXOBasic) Reset()                    { *m = UTXOBasic{} }
 func (m *UTXOBasic) String() string            { return proto.CompactTextString(m) }
 func (*UTXOBasic) ProtoMessage()               {}
-func (*UTXOBasic) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{48} }
+func (*UTXOBasic) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{48} }
 
 func (m *UTXOBasic) GetUtxoGlobalIndex() *UTXOGlobalIndex {
 	if m != nil {
@@ -1661,7 +1661,7 @@ type UTXOIndex4Amount struct {
 func (m *UTXOIndex4Amount) Reset()                    { *m = UTXOIndex4Amount{} }
 func (m *UTXOIndex4Amount) String() string            { return proto.CompactTextString(m) }
 func (*UTXOIndex4Amount) ProtoMessage()               {}
-func (*UTXOIndex4Amount) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{49} }
+func (*UTXOIndex4Amount) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{49} }
 
 func (m *UTXOIndex4Amount) GetAmount() int64 {
 	if m != nil {
@@ -1686,7 +1686,7 @@ type ResUTXOGlobalIndex struct {
 func (m *ResUTXOGlobalIndex) Reset()                    { *m = ResUTXOGlobalIndex{} }
 func (m *ResUTXOGlobalIndex) String() string            { return proto.CompactTextString(m) }
 func (*ResUTXOGlobalIndex) ProtoMessage()               {}
-func (*ResUTXOGlobalIndex) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{50} }
+func (*ResUTXOGlobalIndex) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{50} }
 
 func (m *ResUTXOGlobalIndex) GetTokenname() string {
 	if m != nil {
@@ -1721,7 +1721,7 @@ type FTXOsSTXOsInOneTx struct {
 func (m *FTXOsSTXOsInOneTx) Reset()                    { *m = FTXOsSTXOsInOneTx{} }
 func (m *FTXOsSTXOsInOneTx) String() string            { return proto.CompactTextString(m) }
 func (*FTXOsSTXOsInOneTx) ProtoMessage()               {}
-func (*FTXOsSTXOsInOneTx) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{51} }
+func (*FTXOsSTXOsInOneTx) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{51} }
 
 func (m *FTXOsSTXOsInOneTx) GetTokenname() string {
 	if m != nil {
@@ -1782,7 +1782,7 @@ type ReqCreateTransaction struct {
 func (m *ReqCreateTransaction) Reset()                    { *m = ReqCreateTransaction{} }
 func (m *ReqCreateTransaction) String() string            { return proto.CompactTextString(m) }
 func (*ReqCreateTransaction) ProtoMessage()               {}
-func (*ReqCreateTransaction) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{52} }
+func (*ReqCreateTransaction) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{52} }
 
 func (m *ReqCreateTransaction) GetTokenname() string {
 	if m != nil {
@@ -1855,7 +1855,7 @@ type RealKeyInput struct {
 func (m *RealKeyInput) Reset()                    { *m = RealKeyInput{} }
 func (m *RealKeyInput) String() string            { return proto.CompactTextString(m) }
 func (*RealKeyInput) ProtoMessage()               {}
-func (*RealKeyInput) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{53} }
+func (*RealKeyInput) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{53} }
 
 func (m *RealKeyInput) GetRealinputkey() int32 {
 	if m != nil {
@@ -1878,7 +1878,7 @@ type UTXOBasics struct {
 func (m *UTXOBasics) Reset()                    { *m = UTXOBasics{} }
 func (m *UTXOBasics) String() string            { return proto.CompactTextString(m) }
 func (*UTXOBasics) ProtoMessage()               {}
-func (*UTXOBasics) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{54} }
+func (*UTXOBasics) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{54} }
 
 func (m *UTXOBasics) GetUtxos() []*UTXOBasic {
 	if m != nil {
@@ -1908,7 +1908,7 @@ type CreateTransactionCache struct {
 func (m *CreateTransactionCache) Reset()                    { *m = CreateTransactionCache{} }
 func (m *CreateTransactionCache) String() string            { return proto.CompactTextString(m) }
 func (*CreateTransactionCache) ProtoMessage()               {}
-func (*CreateTransactionCache) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{55} }
+func (*CreateTransactionCache) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{55} }
 
 func (m *CreateTransactionCache) GetKey() []byte {
 	if m != nil {
@@ -1981,7 +1981,7 @@ type ReqCacheTxList struct {
 func (m *ReqCacheTxList) Reset()                    { *m = ReqCacheTxList{} }
 func (m *ReqCacheTxList) String() string            { return proto.CompactTextString(m) }
 func (*ReqCacheTxList) ProtoMessage()               {}
-func (*ReqCacheTxList) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{56} }
+func (*ReqCacheTxList) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{56} }
 
 func (m *ReqCacheTxList) GetAddr() string {
 	if m != nil {
@@ -2004,7 +2004,7 @@ type ReplyCacheTxList struct {
 func (m *ReplyCacheTxList) Reset()                    { *m = ReplyCacheTxList{} }
 func (m *ReplyCacheTxList) String() string            { return proto.CompactTextString(m) }
 func (*ReplyCacheTxList) ProtoMessage()               {}
-func (*ReplyCacheTxList) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{57} }
+func (*ReplyCacheTxList) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{57} }
 
 func (m *ReplyCacheTxList) GetTxs() []*Transaction {
 	if m != nil {
@@ -2021,7 +2021,7 @@ type ReqPrivacyAccount struct {
 func (m *ReqPrivacyAccount) Reset()                    { *m = ReqPrivacyAccount{} }
 func (m *ReqPrivacyAccount) String() string            { return proto.CompactTextString(m) }
 func (*ReqPrivacyAccount) ProtoMessage()               {}
-func (*ReqPrivacyAccount) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{58} }
+func (*ReqPrivacyAccount) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{58} }
 
 func (m *ReqPrivacyAccount) GetTokenname() string {
 	if m != nil {
@@ -2051,7 +2051,7 @@ type ReqPPrivacyAccount struct {
 func (m *ReqPPrivacyAccount) Reset()                    { *m = ReqPPrivacyAccount{} }
 func (m *ReqPPrivacyAccount) String() string            { return proto.CompactTextString(m) }
 func (*ReqPPrivacyAccount) ProtoMessage()               {}
-func (*ReqPPrivacyAccount) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{59} }
+func (*ReqPPrivacyAccount) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{59} }
 
 func (m *ReqPPrivacyAccount) GetAddr() string {
 	if m != nil {
@@ -2086,7 +2086,7 @@ type ReplyPrivacyAccount struct {
 func (m *ReplyPrivacyAccount) Reset()                    { *m = ReplyPrivacyAccount{} }
 func (m *ReplyPrivacyAccount) String() string            { return proto.CompactTextString(m) }
 func (*ReplyPrivacyAccount) ProtoMessage()               {}
-func (*ReplyPrivacyAccount) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{60} }
+func (*ReplyPrivacyAccount) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{60} }
 
 func (m *ReplyPrivacyAccount) GetUtxos() *UTXOs {
 	if m != nil {
@@ -2117,7 +2117,7 @@ type ReqCreateCacheTxKey struct {
 func (m *ReqCreateCacheTxKey) Reset()                    { *m = ReqCreateCacheTxKey{} }
 func (m *ReqCreateCacheTxKey) String() string            { return proto.CompactTextString(m) }
 func (*ReqCreateCacheTxKey) ProtoMessage()               {}
-func (*ReqCreateCacheTxKey) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{61} }
+func (*ReqCreateCacheTxKey) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{61} }
 
 func (m *ReqCreateCacheTxKey) GetTokenname() string {
 	if m != nil {
@@ -2143,7 +2143,7 @@ type ReqBindMiner struct {
 func (m *ReqBindMiner) Reset()                    { *m = ReqBindMiner{} }
 func (m *ReqBindMiner) String() string            { return proto.CompactTextString(m) }
 func (*ReqBindMiner) ProtoMessage()               {}
-func (*ReqBindMiner) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{62} }
+func (*ReqBindMiner) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{62} }
 
 func (m *ReqBindMiner) GetBindAddr() string {
 	if m != nil {
@@ -2180,7 +2180,7 @@ type ReplyBindMiner struct {
 func (m *ReplyBindMiner) Reset()                    { *m = ReplyBindMiner{} }
 func (m *ReplyBindMiner) String() string            { return proto.CompactTextString(m) }
 func (*ReplyBindMiner) ProtoMessage()               {}
-func (*ReplyBindMiner) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{63} }
+func (*ReplyBindMiner) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{63} }
 
 func (m *ReplyBindMiner) GetTxHex() string {
 	if m != nil {
@@ -2205,7 +2205,7 @@ type ReqPrivacyTransactionList struct {
 func (m *ReqPrivacyTransactionList) Reset()                    { *m = ReqPrivacyTransactionList{} }
 func (m *ReqPrivacyTransactionList) String() string            { return proto.CompactTextString(m) }
 func (*ReqPrivacyTransactionList) ProtoMessage()               {}
-func (*ReqPrivacyTransactionList) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{64} }
+func (*ReqPrivacyTransactionList) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{64} }
 
 func (m *ReqPrivacyTransactionList) GetTokenname() string {
 	if m != nil {
@@ -2264,7 +2264,7 @@ type ReqRescanUtxos struct {
 func (m *ReqRescanUtxos) Reset()                    { *m = ReqRescanUtxos{} }
 func (m *ReqRescanUtxos) String() string            { return proto.CompactTextString(m) }
 func (*ReqRescanUtxos) ProtoMessage()               {}
-func (*ReqRescanUtxos) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{65} }
+func (*ReqRescanUtxos) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{65} }
 
 func (m *ReqRescanUtxos) GetAddrs() []string {
 	if m != nil {
@@ -2288,7 +2288,7 @@ type RepRescanResult struct {
 func (m *RepRescanResult) Reset()                    { *m = RepRescanResult{} }
 func (m *RepRescanResult) String() string            { return proto.CompactTextString(m) }
 func (*RepRescanResult) ProtoMessage()               {}
-func (*RepRescanResult) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{66} }
+func (*RepRescanResult) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{66} }
 
 func (m *RepRescanResult) GetAddr() string {
 	if m != nil {
@@ -2312,7 +2312,7 @@ type RepRescanUtxos struct {
 func (m *RepRescanUtxos) Reset()                    { *m = RepRescanUtxos{} }
 func (m *RepRescanUtxos) String() string            { return proto.CompactTextString(m) }
 func (*RepRescanUtxos) ProtoMessage()               {}
-func (*RepRescanUtxos) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{67} }
+func (*RepRescanUtxos) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{67} }
 
 func (m *RepRescanUtxos) GetFlag() int32 {
 	if m != nil {
@@ -2335,7 +2335,7 @@ type ReqEnablePrivacy struct {
 func (m *ReqEnablePrivacy) Reset()                    { *m = ReqEnablePrivacy{} }
 func (m *ReqEnablePrivacy) String() string            { return proto.CompactTextString(m) }
 func (*ReqEnablePrivacy) ProtoMessage()               {}
-func (*ReqEnablePrivacy) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{68} }
+func (*ReqEnablePrivacy) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{68} }
 
 func (m *ReqEnablePrivacy) GetAddrs() []string {
 	if m != nil {
@@ -2353,7 +2353,7 @@ type PriAddrResult struct {
 func (m *PriAddrResult) Reset()                    { *m = PriAddrResult{} }
 func (m *PriAddrResult) String() string            { return proto.CompactTextString(m) }
 func (*PriAddrResult) ProtoMessage()               {}
-func (*PriAddrResult) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{69} }
+func (*PriAddrResult) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{69} }
 
 func (m *PriAddrResult) GetAddr() string {
 	if m != nil {
@@ -2383,7 +2383,7 @@ type RepEnablePrivacy struct {
 func (m *RepEnablePrivacy) Reset()                    { *m = RepEnablePrivacy{} }
 func (m *RepEnablePrivacy) String() string            { return proto.CompactTextString(m) }
 func (*RepEnablePrivacy) ProtoMessage()               {}
-func (*RepEnablePrivacy) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{70} }
+func (*RepEnablePrivacy) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{70} }
 
 func (m *RepEnablePrivacy) GetResults() []*PriAddrResult {
 	if m != nil {
@@ -2402,7 +2402,7 @@ type PrivacySignatureParam struct {
 func (m *PrivacySignatureParam) Reset()                    { *m = PrivacySignatureParam{} }
 func (m *PrivacySignatureParam) String() string            { return proto.CompactTextString(m) }
 func (*PrivacySignatureParam) ProtoMessage()               {}
-func (*PrivacySignatureParam) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{71} }
+func (*PrivacySignatureParam) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{71} }
 
 func (m *PrivacySignatureParam) GetActionType() int32 {
 	if m != nil {
@@ -2432,7 +2432,7 @@ type ReqAccountList struct {
 func (m *ReqAccountList) Reset()                    { *m = ReqAccountList{} }
 func (m *ReqAccountList) String() string            { return proto.CompactTextString(m) }
 func (*ReqAccountList) ProtoMessage()               {}
-func (*ReqAccountList) Descriptor() ([]byte, []int) { return fileDescriptor15, []int{72} }
+func (*ReqAccountList) Descriptor() ([]byte, []int) { return fileDescriptor14, []int{72} }
 
 func (m *ReqAccountList) GetWithoutBalance() bool {
 	if m != nil {
@@ -2517,9 +2517,9 @@ func init() {
 	proto.RegisterType((*ReqAccountList)(nil), "types.ReqAccountList")
 }
 
-func init() { proto.RegisterFile("wallet.proto", fileDescriptor15) }
+func init() { proto.RegisterFile("wallet.proto", fileDescriptor14) }
 
-var fileDescriptor15 = []byte{
+var fileDescriptor14 = []byte{
 	// 2644 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x09, 0x6e, 0x88, 0x02, 0xff, 0xd4, 0x59, 0x51, 0x6f, 0x1b, 0xc7,
 	0xf1, 0xc7, 0x91, 0xa2, 0x24, 0x8e, 0x28, 0x59, 0x3e, 0x3b, 0xfe, 0x33, 0xfe, 0xb7, 0xa9, 0xb2,
