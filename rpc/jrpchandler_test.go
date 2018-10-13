@@ -21,7 +21,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 	_ "gitlab.33.cn/chain33/chain33/types/executor"
 	retrievetype "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
-	tokentype "gitlab.33.cn/chain33/chain33/types/executor/token"
 )
 
 func TestDecodeUserWrite(t *testing.T) {
@@ -488,78 +487,6 @@ func TestDecodeLogTicketBind(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, result)
 	assert.Equal(t, "LogTicketBind", result.Logs[0].TyName)
-}
-
-func TestDecodeLogPreCreateToken(t *testing.T) {
-	var logTmp = &tokenty.ReceiptToken{}
-
-	dec := types.Encode(logTmp)
-
-	strdec := hex.EncodeToString(dec)
-	rlog := &rpctypes.ReceiptLog{
-		Ty:  types.TyLogPreCreateToken,
-		Log: "0x" + strdec,
-	}
-
-	logs := []*rpctypes.ReceiptLog{}
-	logs = append(logs, rlog)
-
-	var data = &rpctypes.ReceiptData{
-		Ty:   5,
-		Logs: logs,
-	}
-	result, err := DecodeLog([]byte("token"), data)
-	assert.Nil(t, err)
-	assert.NotNil(t, result)
-	assert.Equal(t, "LogPreCreateToken", result.Logs[0].TyName)
-}
-
-func TestDecodeLogFinishCreateToken(t *testing.T) {
-	var logTmp = &tokenty.ReceiptToken{}
-
-	dec := types.Encode(logTmp)
-
-	strdec := hex.EncodeToString(dec)
-	rlog := &rpctypes.ReceiptLog{
-		Ty:  types.TyLogFinishCreateToken,
-		Log: "0x" + strdec,
-	}
-
-	logs := []*rpctypes.ReceiptLog{}
-	logs = append(logs, rlog)
-
-	var data = &rpctypes.ReceiptData{
-		Ty:   5,
-		Logs: logs,
-	}
-	result, err := DecodeLog([]byte("token"), data)
-	assert.Nil(t, err)
-	assert.NotNil(t, result)
-	assert.Equal(t, "LogFinishCreateToken", result.Logs[0].TyName)
-}
-
-func TestDecodeLogRevokeCreateToken(t *testing.T) {
-	var logTmp = &tokenty.ReceiptToken{}
-
-	dec := types.Encode(logTmp)
-
-	strdec := hex.EncodeToString(dec)
-	rlog := &rpctypes.ReceiptLog{
-		Ty:  types.TyLogRevokeCreateToken,
-		Log: "0x" + strdec,
-	}
-
-	logs := []*rpctypes.ReceiptLog{}
-	logs = append(logs, rlog)
-
-	var data = &rpctypes.ReceiptData{
-		Ty:   5,
-		Logs: logs,
-	}
-	result, err := DecodeLog([]byte("token"), data)
-	assert.Nil(t, err)
-	assert.NotNil(t, result)
-	assert.Equal(t, "LogRevokeCreateToken", result.Logs[0].TyName)
 }
 
 func TestDecodeLogTradeSellLimit(t *testing.T) {
@@ -1175,67 +1102,6 @@ func TestChain33_QueryTransactionOk(t *testing.T) {
 	mock.AssertExpectationsForObjects(t, api)
 }
 
-func TestChain33_GetTxByHashesOk(t *testing.T) {
-	var act = &tokenty.TokenAction{
-		Ty: 1,
-	}
-	payload := types.Encode(act)
-	var tx = &types.Transaction{
-		Execer:  []byte(types.ExecName(types.TokenX)),
-		Payload: payload,
-	}
-
-	var logTmp = &types.ReceiptAccountTransfer{}
-
-	dec := types.Encode(logTmp)
-
-	strdec := hex.EncodeToString(dec)
-	strdec = "0x" + strdec
-
-	rlog := &types.ReceiptLog{
-		Ty:  types.TyLogTransfer,
-		Log: []byte(strdec),
-	}
-
-	logs := []*types.ReceiptLog{}
-	logs = append(logs, rlog)
-
-	var rdata = &types.ReceiptData{
-		Ty:   5,
-		Logs: logs,
-	}
-	detail := &types.TransactionDetail{
-		Tx:      tx,
-		Receipt: rdata,
-		Height:  10,
-	}
-
-	reply := &types.TransactionDetails{}
-	reply.Txs = append(reply.Txs, detail)
-
-	api := new(mocks.QueueProtocolAPI)
-	testChain33 := newTestChain33(api)
-
-	var parm types.ReqHashes
-	parm.Hashes = make([][]byte, 0)
-	hashs := make([]string, 0)
-	hashs = append(hashs, "")
-	data := rpctypes.ReqHashes{Hashes: hashs}
-	hb, _ := common.FromHex(data.Hashes[0])
-	parm.Hashes = append(parm.Hashes, hb)
-
-	api.On("GetTransactionByHash", &parm).Return(reply, nil)
-	var testResult interface{}
-
-	err := testChain33.GetTxByHashes(data, &testResult)
-	t.Log(err)
-	assert.Nil(t, err)
-	assert.Equal(t, testResult.(*rpctypes.TransactionDetails).Txs[0].Height, reply.Txs[0].Height)
-	assert.Equal(t, testResult.(*rpctypes.TransactionDetails).Txs[0].Tx.Execer, string(tx.Execer))
-
-	mock.AssertExpectationsForObjects(t, api)
-}
-
 func TestChain33_GetBlocks(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 	api.On("GetBlocks", &types.ReqBlocks{Pid: []string{""}}).Return(nil, errors.New("error value"))
@@ -1246,57 +1112,6 @@ func TestChain33_GetBlocks(t *testing.T) {
 	t.Log(err)
 	assert.Equal(t, nil, testResult)
 	assert.NotNil(t, err)
-
-	mock.AssertExpectationsForObjects(t, api)
-}
-
-func TestChain33_GetBlocksOk(t *testing.T) {
-	var act = &tokenty.TokenAction{
-		Ty: 1,
-	}
-	payload := types.Encode(act)
-	var tx = &types.Transaction{
-		Execer:  []byte(types.ExecName(types.TokenX)),
-		Payload: payload,
-	}
-
-	var logTmp = &types.ReceiptAccountTransfer{}
-	dec := types.Encode(logTmp)
-	strdec := hex.EncodeToString(dec)
-	strdec = "0x" + strdec
-	rlog := &types.ReceiptLog{
-		Ty:  types.TyLogTransfer,
-		Log: []byte(strdec),
-	}
-	logs := []*types.ReceiptLog{}
-	logs = append(logs, rlog)
-
-	var rdata = &types.ReceiptData{
-		Ty:   5,
-		Logs: logs,
-	}
-
-	var block = &types.Block{
-		TxHash: []byte(""),
-		Txs:    []*types.Transaction{tx},
-	}
-	var blockdetail = &types.BlockDetail{
-		Block:    block,
-		Receipts: []*types.ReceiptData{rdata},
-	}
-	var blockdetails = &types.BlockDetails{
-		Items: []*types.BlockDetail{blockdetail},
-	}
-
-	api := new(mocks.QueueProtocolAPI)
-	api.On("GetBlocks", &types.ReqBlocks{Pid: []string{""}}).Return(blockdetails, nil)
-	testChain33 := newTestChain33(api)
-	var testResult interface{}
-	data := rpctypes.BlockParam{}
-	err := testChain33.GetBlocks(data, &testResult)
-	t.Log(err)
-	assert.Nil(t, err)
-	assert.Equal(t, testResult.(*rpctypes.BlockDetails).Items[0].Block.Txs[0].Execer, string(tx.Execer))
 
 	mock.AssertExpectationsForObjects(t, api)
 }

@@ -18,8 +18,6 @@ import (
 
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 	retrievetype "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
-	tokentype "gitlab.33.cn/chain33/chain33/types/executor/token"
-	// TODO: 需要将插件管理器移动到封闭统一的地方进行管理
 )
 
 func (c *Chain33) CreateRawTransaction(in *types.CreateTx, result *interface{}) error {

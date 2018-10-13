@@ -19,7 +19,7 @@ func (t *token) Query_GetTokenInfo(in *types.ReqString) (types.Message, error) {
 	return t.GetTokenInfo(in.GetData())
 }
 
-func (t *token) Query_GetAddrReceiverforTokens(in *tokenty.ReqAddressToken) (types.Message, error) {
+func (t *token) Query_GetAddrReceiverforTokens(in *tokenty.ReqAddrTokens) (types.Message, error) {
 	if in == nil {
 		return nil, types.ErrInvalidParam
 	}
