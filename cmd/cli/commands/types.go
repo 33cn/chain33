@@ -53,10 +53,10 @@ type ReceiptData struct {
 }
 
 type ReceiptLog struct {
-	Ty     int32       `json:"ty"`
-	TyName string      `json:"tyname"`
-	Log    interface{} `json:"log"`
-	RawLog string      `json:"rawlog"`
+	Ty     int32  `json:"ty"`
+	TyName string `json:"tyname"`
+	Log    string `json:"log"`
+	RawLog string `json:"rawlog"`
 }
 
 type ReceiptAccountTransfer struct {
