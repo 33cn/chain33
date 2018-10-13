@@ -38,10 +38,6 @@ func init() {
 	nameX = types.ExecName("privacy")
 	// init executor type
 	types.RegistorExecutor(types.PrivacyX, NewType())
-
-	// init query rpc
-	types.RegisterRPCQueryHandle("ShowAmountsOfUTXO", &PrivacyShowAmountsOfUTXO{})
-	types.RegisterRPCQueryHandle("ShowUTXOs4SpecifiedAmount", &PrivacyShowUTXOs4SpecifiedAmount{})
 }
 
 type PrivacyType struct {
@@ -111,37 +107,4 @@ func (t PrivacyType) CreateTx(action string, message json.RawMessage) (*types.Tr
 }
 
 type PrivacyFeeLog struct {
-}
-
-// query
-type PrivacyShowAmountsOfUTXO struct {
-}
-
-func (t *PrivacyShowAmountsOfUTXO) JsonToProto(message json.RawMessage) ([]byte, error) {
-	var req types.ReqPrivacyToken
-	err := json.Unmarshal(message, &req)
-	if err != nil {
-		return nil, err
-	}
-	return types.Encode(&req), nil
-}
-
-func (t *PrivacyShowAmountsOfUTXO) ProtoToJson(reply *types.Message) (interface{}, error) {
-	return reply, nil
-}
-
-type PrivacyShowUTXOs4SpecifiedAmount struct {
-}
-
-func (t *PrivacyShowUTXOs4SpecifiedAmount) JsonToProto(message json.RawMessage) ([]byte, error) {
-	var req types.ReqPrivacyToken
-	err := json.Unmarshal(message, &req)
-	if err != nil {
-		return nil, err
-	}
-	return types.Encode(&req), nil
-}
-
-func (t *PrivacyShowUTXOs4SpecifiedAmount) ProtoToJson(reply *types.Message) (interface{}, error) {
-	return reply, nil
 }
