@@ -119,7 +119,7 @@ func (t *token) GetAccountTokenAssets(req *tokenty.ReqAccountTokenAssets) (types
 	return reply, nil
 }
 
-func (t *token) GetAddrReceiverforTokens(addrTokens *tokenty.ReqAddressToken) (types.Message, error) {
+func (t *token) GetAddrReceiverforTokens(addrTokens *tokenty.ReqAddrTokens) (types.Message, error) {
 	var reply = &tokenty.ReplyAddrRecvForTokens{}
 	db := t.GetLocalDB()
 	reciver := types.Int64{}
