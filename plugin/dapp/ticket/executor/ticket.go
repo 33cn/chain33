@@ -14,26 +14,18 @@ EventTransfer -> 转移资产
 
 import (
 	"fmt"
-	"reflect"
 
 	log "github.com/inconshreveable/log15"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
-	pty "gitlab.33.cn/chain33/chain33/types/executor/ticket"
 )
 
 var clog = log.New("module", "execs.ticket")
-
-//初始化过程比较重量级，有很多reflact, 所以弄成全局的
-var executorFunList = make(map[string]reflect.Method)
-var executorType = pty.NewType()
+var driverName = "ticket"
 
 func init() {
-	actionFunList := executorType.GetFuncMap()
-	executorFunList = types.ListMethod(&Ticket{})
-	for k, v := range actionFunList {
-		executorFunList[k] = v
-	}
+	ety := types.LoadExecutorType(driverName)
+	ety.InitFuncList(types.ListMethod(&Ticket{}))
 }
 
 func Init(name string) {
@@ -51,12 +43,12 @@ type Ticket struct {
 func newTicket() drivers.Driver {
 	t := &Ticket{}
 	t.SetChild(t)
-	t.SetExecutorType(executorType)
+	t.SetExecutorType(types.LoadExecutorType(driverName))
 	return t
 }
 
 func (t *Ticket) GetDriverName() string {
-	return "ticket"
+	return driverName
 }
 
 func (t *Ticket) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
@@ -316,10 +308,6 @@ func (t *Ticket) IsFriend(myexec, writekey []byte, tx *types.Transaction) bool {
 	clog.Error("ticket  IsFriend", "myex", string(myexec), "writekey", string(writekey))
 	//不允许平行链
 	return false
-}
-
-func (t *Ticket) GetFuncMap() map[string]reflect.Method {
-	return executorFunList
 }
 
 func (t *Ticket) GetPayloadValue() types.Message {

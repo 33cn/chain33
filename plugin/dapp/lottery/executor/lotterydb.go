@@ -90,7 +90,7 @@ func (lott *LotteryDB) Save(db dbm.KV) {
 }
 
 func Key(id string) (key []byte) {
-	key = append(key, []byte("mavl-"+types.LotteryX+"-")...)
+	key = append(key, []byte("mavl-"+pty.LotteryX+"-")...)
 	key = append(key, []byte(id)...)
 	return key
 }
