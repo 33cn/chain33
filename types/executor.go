@@ -287,7 +287,7 @@ func (base *ExecTypeBase) SetChild(child ExecutorType) {
 }
 
 func (base *ExecTypeBase) buildQuery(funcmap map[string]reflect.Method) {
-	for funcname, _ := range funcmap {
+	for funcname := range funcmap {
 		if !strings.HasPrefix(funcname, "Query_") {
 			continue
 		}
