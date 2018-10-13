@@ -9,7 +9,7 @@ func (t *token) execDelLocal(receiptData *types.ReceiptData) ([]*types.KeyValue,
 	var set []*types.KeyValue
 	for i := 0; i < len(receiptData.Logs); i++ {
 		item := receiptData.Logs[i]
-		if item.Ty == types.TyLogPreCreateToken || item.Ty == types.TyLogFinishCreateToken || item.Ty == types.TyLogRevokeCreateToken {
+		if item.Ty == tokenty.TyLogPreCreateToken || item.Ty == tokenty.TyLogFinishCreateToken || item.Ty == tokenty.TyLogRevokeCreateToken {
 			var receipt tokenty.ReceiptToken
 			err := types.Decode(item.Log, &receipt)
 			if err != nil {

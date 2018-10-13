@@ -193,7 +193,7 @@ func parseWalletTxListRes(arg interface{}) (interface{}, error) {
 		amountResult := strconv.FormatFloat(float64(v.Amount)/float64(types.Coin), 'f', 4, 64)
 		wtxd := &WalletTxDetailResult{
 			Tx:         decodeTransaction(v.Tx),
-			Receipt:    decodeLog(*(v.Receipt)),
+			Receipt:    decodeLog([]byte(v.Tx.Execer), *(v.Receipt)),
 			Height:     v.Height,
 			Index:      v.Index,
 			Blocktime:  v.BlockTime,

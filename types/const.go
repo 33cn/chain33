@@ -188,25 +188,11 @@ const (
 	TyLogMinerTicket = 113
 	TyLogTicketBind  = 114
 
-	//log for token create
-	TyLogPreCreateToken    = 211
-	TyLogFinishCreateToken = 212
-	TyLogRevokeCreateToken = 213
-
 	//log for trade
-	TyLogTradeSellLimit         = 310
-	TyLogTradeBuyMarket         = 311
-	TyLogTradeSellRevoke        = 312
-	TyLogTokenTransfer          = 313
-	TyLogTokenGenesis           = 314
-	TyLogTokenDeposit           = 315
-	TyLogTokenExecTransfer      = 316
-	TyLogTokenExecWithdraw      = 317
-	TyLogTokenExecDeposit       = 318
-	TyLogTokenExecFrozen        = 319
-	TyLogTokenExecActive        = 320
-	TyLogTokenGenesisTransfer   = 321
-	TyLogTokenGenesisDeposit    = 322
+	TyLogTradeSellLimit  = 310
+	TyLogTradeBuyMarket  = 311
+	TyLogTradeSellRevoke = 312
+
 	TyLogTradeSellMarket        = 330
 	TyLogTradeBuyLimit          = 331
 	TyLogTradeBuyRevoke         = 332

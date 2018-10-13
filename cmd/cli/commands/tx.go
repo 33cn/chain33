@@ -115,7 +115,7 @@ func parseQueryTxRes(arg interface{}) (interface{}, error) {
 	amountResult := strconv.FormatFloat(float64(res.Amount)/float64(types.Coin), 'f', 4, 64)
 	result := TxDetailResult{
 		Tx:         decodeTransaction(res.Tx),
-		Receipt:    decodeLog(*(res.Receipt)),
+		Receipt:    decodeLog([]byte(res.Tx.Execer), *(res.Receipt)),
 		Proofs:     res.Proofs,
 		Height:     res.Height,
 		Index:      res.Index,
@@ -167,7 +167,7 @@ func parseQueryTxsByHashesRes(arg interface{}) (interface{}, error) {
 		amountResult := strconv.FormatFloat(float64(v.Amount)/float64(types.Coin), 'f', 4, 64)
 		td := TxDetailResult{
 			Tx:         decodeTransaction(v.Tx),
-			Receipt:    decodeLog(*(v.Receipt)),
+			Receipt:    decodeLog([]byte(v.Tx.Execer), *(v.Receipt)),
 			Proofs:     v.Proofs,
 			Height:     v.Height,
 			Index:      v.Index,
