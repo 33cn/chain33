@@ -839,7 +839,8 @@ func (c *Chain33) Query(in rpctypes.Query4Jrpc, result *interface{}) error {
 		log.Error("EventQuery", "err", err.Error())
 		return err
 	}
-	resp, err := c.cli.Query(&types.Query{Execer: []byte(types.ExecName(in.Execer)), FuncName: in.FuncName, Payload: decodePayload})
+	payloadData := types.Encode(decodePayload)
+	resp, err := c.cli.Query(&types.Query{Execer: []byte(types.ExecName(in.Execer)), FuncName: in.FuncName, Payload: payloadData})
 	if err != nil {
 		log.Error("EventQuery", "err", err.Error())
 		return err

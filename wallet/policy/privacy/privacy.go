@@ -874,7 +874,7 @@ func (policy *privacyPolicy) reqUtxosByAddr(addrs []string) {
 			bizlog.Error("reqUtxosByAddr", "GetTxsByAddr error", err, "addr", reqAddr)
 			break
 		}
-		ReplyTxInfos := (*msg).(*types.ReplyTxInfos)
+		ReplyTxInfos := msg.(*types.ReplyTxInfos)
 		if ReplyTxInfos == nil {
 			bizlog.Info("privacy ReqTxInfosByAddr ReplyTxInfos is nil")
 			break

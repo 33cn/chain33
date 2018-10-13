@@ -209,7 +209,7 @@ func (g *Grpc) QueryChain(ctx context.Context, in *pb.Query) (*pb.Reply, error) 
 	}
 	var reply pb.Reply
 	reply.IsOk = true
-	reply.Msg = pb.Encode(*msg)
+	reply.Msg = pb.Encode(msg)
 	return &reply, nil
 }
 
