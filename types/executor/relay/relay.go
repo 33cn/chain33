@@ -24,15 +24,6 @@ func Init() {
 	types.RegistorLog(types.TyLogRelayConfirmTx, &RelayConfirmTxLog{})
 	types.RegistorLog(types.TyLogRelayFinishTx, &RelayFinishTxLog{})
 	types.RegistorLog(types.TyLogRelayRcvBTCHead, &RelayRcvBTCHeadLog{})
-
-	// init query rpc
-	types.RegisterRPCQueryHandle("GetRelayOrderByStatus", &RelayGetRelayOrderByStatus{})
-	types.RegisterRPCQueryHandle("GetSellRelayOrder", &RelayGetSellRelayOrder{})
-	types.RegisterRPCQueryHandle("GetBuyRelayOrder", &RelayGetBuyRelayOrder{})
-	types.RegisterRPCQueryHandle("GetBTCHeaderList", &RelayGetBTCHeaderList{})
-	types.RegisterRPCQueryHandle("GetBTCHeaderMissList", &RelayGetBTCHeaderMissList{})
-	types.RegisterRPCQueryHandle("GetBTCHeaderCurHeight", &RelayGetBTCHeaderCurHeight{})
-
 }
 
 func NewType() *RelayType {
@@ -213,100 +204,4 @@ func (l RelayRcvBTCHeadLog) Decode(msg []byte) (interface{}, error) {
 		return nil, err
 	}
 	return logTmp, err
-}
-
-type RelayGetRelayOrderByStatus struct {
-}
-
-func (t *RelayGetRelayOrderByStatus) JsonToProto(message json.RawMessage) ([]byte, error) {
-	var req types.ReqRelayAddrCoins
-	err := json.Unmarshal(message, &req)
-	if err != nil {
-		return nil, err
-	}
-	return types.Encode(&req), nil
-}
-
-func (t *RelayGetRelayOrderByStatus) ProtoToJson(reply *types.Message) (interface{}, error) {
-	return reply, nil
-}
-
-type RelayGetSellRelayOrder struct {
-}
-
-func (t *RelayGetSellRelayOrder) JsonToProto(message json.RawMessage) ([]byte, error) {
-	var req types.ReqRelayAddrCoins
-	err := json.Unmarshal(message, &req)
-	if err != nil {
-		return nil, err
-	}
-	return types.Encode(&req), nil
-}
-
-func (t *RelayGetSellRelayOrder) ProtoToJson(reply *types.Message) (interface{}, error) {
-	return reply, nil
-}
-
-type RelayGetBuyRelayOrder struct {
-}
-
-func (t *RelayGetBuyRelayOrder) JsonToProto(message json.RawMessage) ([]byte, error) {
-	var req types.ReqRelayAddrCoins
-	err := json.Unmarshal(message, &req)
-	if err != nil {
-		return nil, err
-	}
-	return types.Encode(&req), nil
-}
-
-func (t *RelayGetBuyRelayOrder) ProtoToJson(reply *types.Message) (interface{}, error) {
-	return reply, nil
-}
-
-type RelayGetBTCHeaderList struct {
-}
-
-func (t *RelayGetBTCHeaderList) JsonToProto(message json.RawMessage) ([]byte, error) {
-	var req types.ReqRelayBtcHeaderHeightList
-	err := json.Unmarshal(message, &req)
-	if err != nil {
-		return nil, err
-	}
-	return types.Encode(&req), nil
-}
-
-func (t *RelayGetBTCHeaderList) ProtoToJson(reply *types.Message) (interface{}, error) {
-	return reply, nil
-}
-
-type RelayGetBTCHeaderMissList struct {
-}
-
-func (t *RelayGetBTCHeaderMissList) JsonToProto(message json.RawMessage) ([]byte, error) {
-	var req types.ReqRelayBtcHeaderHeightList
-	err := json.Unmarshal(message, &req)
-	if err != nil {
-		return nil, err
-	}
-	return types.Encode(&req), nil
-}
-
-func (t *RelayGetBTCHeaderMissList) ProtoToJson(reply *types.Message) (interface{}, error) {
-	return reply, nil
-}
-
-type RelayGetBTCHeaderCurHeight struct {
-}
-
-func (t *RelayGetBTCHeaderCurHeight) JsonToProto(message json.RawMessage) ([]byte, error) {
-	var req types.ReqRelayQryBTCHeadHeight
-	err := json.Unmarshal(message, &req)
-	if err != nil {
-		return nil, err
-	}
-	return types.Encode(&req), nil
-}
-
-func (t *RelayGetBTCHeaderCurHeight) ProtoToJson(reply *types.Message) (interface{}, error) {
-	return reply, nil
 }

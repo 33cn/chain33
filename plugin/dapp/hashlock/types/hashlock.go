@@ -27,12 +27,6 @@ func init() {
 	nameX = types.ExecName("hashlock")
 	// init executor type
 	types.RegistorExecutor("hashlock", NewType())
-
-	// init log
-	//types.RegistorLog(types.TyLogDeposit, &CoinsDepositLog{})
-
-	// init query rpc
-	//types.RegisterRPCQueryHandle("q2", &CoinsGetTxsByAddr{})
 }
 
 type HashlockType struct {

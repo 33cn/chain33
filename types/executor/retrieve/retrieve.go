@@ -18,12 +18,6 @@ func Init() {
 	nameX = types.ExecName(types.RetrieveX)
 	// init executor type
 	types.RegistorExecutor(types.RetrieveX, NewType())
-
-	// init log
-	//types.RegistorLog(types.TyLogDeposit, &CoinsDepositLog{})
-
-	// init query rpc
-	types.RegisterRPCQueryHandle("GetRetrieveInfo", &RetrieveGetInfo{})
 }
 
 type RetrieveType struct {
@@ -127,22 +121,6 @@ func (l CoinsDepositLog) Decode(msg []byte) (interface{}, error) {
 		return nil, err
 	}
 	return logTmp, err
-}
-
-type RetrieveGetInfo struct {
-}
-
-func (t *RetrieveGetInfo) JsonToProto(message json.RawMessage) ([]byte, error) {
-	var req types.ReqRetrieveInfo
-	err := json.Unmarshal(message, &req)
-	if err != nil {
-		return nil, err
-	}
-	return types.Encode(&req), nil
-}
-
-func (t *RetrieveGetInfo) ProtoToJson(reply *types.Message) (interface{}, error) {
-	return reply, nil
 }
 
 func CreateRawRetrieveBackupTx(parm *RetrieveBackupTx) (*types.Transaction, error) {
