@@ -29,7 +29,6 @@ const (
 	Normx     = "norm"
 	CertX     = "cert"
 	ParaX     = "paracross"
-	LotteryX  = "lottery"
 	ValNodeX  = "valnode"
 )
 
@@ -48,7 +47,6 @@ var (
 	ExecerConfig   = []byte("config")
 	ExecerCert     = []byte(CertX)
 	ExecerPara     = []byte(ParaX)
-	ExecerLottery  = []byte(LotteryX)
 	UserKey        = []byte(UserKeyX)
 	ParaKey        = []byte(ParaKeyX)
 	ExecerValNode  = []byte(ValNodeX)

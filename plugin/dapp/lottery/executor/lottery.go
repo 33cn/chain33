@@ -1,7 +1,6 @@
 package executor
 
 import (
-	"reflect"
 	"sort"
 
 	log "github.com/inconshreveable/log15"
@@ -11,17 +10,11 @@ import (
 )
 
 var llog = log.New("module", "execs.lottery")
-
-//初始化过程比较重量级，有很多reflact, 所以弄成全局的
-var executorFunList = make(map[string]reflect.Method)
-var executorType = pty.NewType()
+var driverName = pty.LotteryX
 
 func init() {
-	actionFunList := executorType.GetFuncMap()
-	executorFunList = types.ListMethod(&Lottery{})
-	for k, v := range actionFunList {
-		executorFunList[k] = v
-	}
+	ety := types.LoadExecutorType(driverName)
+	ety.InitFuncList(types.ListMethod(&Lottery{}))
 }
 
 func Init(name string) {
@@ -43,12 +36,12 @@ type Lottery struct {
 func newLottery() drivers.Driver {
 	l := &Lottery{}
 	l.SetChild(l)
-	l.SetExecutorType(executorType)
+	l.SetExecutorType(types.LoadExecutorType(driverName))
 	return l
 }
 
 func (l *Lottery) GetDriverName() string {
-	return types.LotteryX
+	return pty.LotteryX
 }
 
 func (lott *Lottery) findLotteryBuyRecord(key []byte) (*pty.LotteryBuyRecords, error) {
@@ -193,10 +186,6 @@ func dellottery(lotteryId string, status int32) *types.KeyValue {
 	kv.Key = calcLotteryKey(lotteryId, status)
 	kv.Value = nil
 	return kv
-}
-
-func (lott *Lottery) GetFuncMap() map[string]reflect.Method {
-	return executorFunList
 }
 
 func (lott *Lottery) GetPayloadValue() types.Message {

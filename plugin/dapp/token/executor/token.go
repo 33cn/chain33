@@ -12,8 +12,6 @@ token执行器支持token的创建，
 import (
 	"strings"
 
-	"reflect"
-
 	log "github.com/inconshreveable/log15"
 	"github.com/pkg/errors"
 	"gitlab.33.cn/chain33/chain33/account"
@@ -32,16 +30,11 @@ const (
 	blacklist         = "token-blacklist"
 )
 
-//初始化过程比较重量级，有很多reflact, 所以弄成全局的
-var executorFunList = make(map[string]reflect.Method)
-var executorType = tokenty.NewType()
+var driverName = "token"
 
 func init() {
-	actionFunList := executorType.GetFuncMap()
-	executorFunList = types.ListMethod(&token{})
-	for k, v := range actionFunList {
-		executorFunList[k] = v
-	}
+	ety := types.LoadExecutorType(driverName)
+	ety.InitFuncList(types.ListMethod(&token{}))
 }
 
 func Init(name string) {
@@ -60,16 +53,12 @@ type token struct {
 func newToken() drivers.Driver {
 	t := &token{}
 	t.SetChild(t)
-	t.SetExecutorType(executorType)
+	t.SetExecutorType(types.LoadExecutorType(driverName))
 	return t
 }
 
 func (t *token) GetDriverName() string {
-	return "token"
-}
-
-func (c *token) GetFuncMap() map[string]reflect.Method {
-	return executorFunList
+	return driverName
 }
 
 func (c *token) CheckTx(tx *types.Transaction, index int) error {
