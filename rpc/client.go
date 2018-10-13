@@ -2,9 +2,7 @@ package rpc
 
 import (
 	"encoding/hex"
-	"encoding/json"
 	"math/rand"
-	"reflect"
 	"time"
 
 	"gitlab.33.cn/chain33/chain33/account"
@@ -19,11 +17,8 @@ import (
 	hashlocktype "gitlab.33.cn/chain33/chain33/plugin/dapp/hashlock/types"
 	lotterytype "gitlab.33.cn/chain33/chain33/plugin/dapp/lottery/types"
 	tradetype "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/types"
-
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
-
 	retrievetype "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
-	tokentype "gitlab.33.cn/chain33/chain33/types/executor/token"
 )
 
 //提供系统rpc接口

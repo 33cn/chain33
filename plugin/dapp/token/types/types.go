@@ -318,7 +318,7 @@ type TokenGetAddrReceiverforTokens struct {
 }
 
 func (t *TokenGetAddrReceiverforTokens) JsonToProto(message json.RawMessage) ([]byte, error) {
-	var req ReqAddressToken
+	var req ReqAddrTokens
 	err := json.Unmarshal(message, &req)
 	if err != nil {
 		return nil, err

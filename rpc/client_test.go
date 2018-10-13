@@ -20,7 +20,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/types/executor"
 	exec "gitlab.33.cn/chain33/chain33/types/executor"
 	retrievetype "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
-	tokentype "gitlab.33.cn/chain33/chain33/types/executor/token"
 )
 
 func init() {
@@ -176,50 +175,6 @@ func testCreateRawTransactionCoinWithdraw(t *testing.T) {
 	}
 }
 
-func testCreateRawTransactionTokenTransfer(t *testing.T) {
-	ctx := types.CreateTx{
-		ExecName:   "",
-		Amount:     10,
-		IsToken:    true,
-		IsWithdraw: false,
-		To:         "to",
-		Note:       "note",
-	}
-
-	client := newTestChannelClient()
-	txHex, err := client.CreateRawTransaction(&ctx)
-	assert.Nil(t, err)
-	var tx types.Transaction
-	types.Decode(txHex, &tx)
-	assert.Equal(t, []byte(types.ExecName(types.TokenX)), tx.Execer)
-
-	var transfer tokenty.TokenAction
-	types.Decode(tx.Payload, &transfer)
-	assert.Equal(t, int32(tokenty.ActionTransfer), transfer.Ty)
-}
-
-func testCreateRawTransactionTokenWithdraw(t *testing.T) {
-	ctx := types.CreateTx{
-		ExecName:   types.ExecName(types.TokenX),
-		Amount:     10,
-		IsToken:    true,
-		IsWithdraw: true,
-		To:         "to",
-		Note:       "note",
-	}
-
-	client := newTestChannelClient()
-	txHex, err := client.CreateRawTransaction(&ctx)
-	assert.Nil(t, err)
-	var tx types.Transaction
-	types.Decode(txHex, &tx)
-	assert.Equal(t, []byte(types.ExecName(types.TokenX)), tx.Execer)
-
-	var transfer tokenty.TokenAction
-	types.Decode(tx.Payload, &transfer)
-	assert.Equal(t, int32(tokenty.ActionWithdraw), transfer.Ty)
-}
-
 func TestChannelClient_CreateRawTransaction(t *testing.T) {
 	testCreateRawTransactionNil(t)
 	testCreateRawTransactionExecNameErr(t)
@@ -228,8 +183,6 @@ func TestChannelClient_CreateRawTransaction(t *testing.T) {
 	testCreateRawTransactionCoinTransfer(t)
 	testCreateRawTransactionCoinTransferExec(t)
 	testCreateRawTransactionCoinWithdraw(t)
-	testCreateRawTransactionTokenTransfer(t)
-	testCreateRawTransactionTokenWithdraw(t)
 }
 
 func testSendRawTransactionNil(t *testing.T) {

@@ -7,28 +7,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-func TestTokenPayloadType(t *testing.T) {
-	msg, err := tokenPayloadType("GetTokens")
-	assert.Equal(t, &types.ReqTokens{}, msg)
-	assert.Nil(t, err)
-
-	msg, err = tokenPayloadType("GetTokenInfo")
-	assert.Equal(t, &types.ReqString{}, msg)
-	assert.Nil(t, err)
-
-	//msg, err = tokenPayloadType("GetAddrReceiverforTokens")
-	//assert.Equal(t, &types.ReqAddrTokens{}, msg)
-	//assert.Nil(t, err)
-
-	msg, err = tokenPayloadType("GetAccountTokenAssets")
-	assert.Equal(t, &types.ReqAccountTokenAssets{}, msg)
-	assert.Nil(t, err)
-
-	msg, err = tokenPayloadType("wzw")
-	assert.Nil(t, msg)
-	assert.Equal(t, err, types.ErrInputPara)
-}
-
 func TestCoinsPayloadType(t *testing.T) {
 	msg, err := coinsPayloadType("GetAddrReciver")
 	assert.Equal(t, &types.ReqAddr{}, msg)
