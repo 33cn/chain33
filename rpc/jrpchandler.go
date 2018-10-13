@@ -157,7 +157,7 @@ func (c *Chain33) QueryTransaction(in rpctypes.QueryParm, result *interface{}) e
 				&rpctypes.ReceiptLog{Ty: log.GetTy(), Log: common.ToHex(log.GetLog())})
 		}
 
-		transDetail.Receipt, err = DecodeLog([]byte(transDetail.Tx.Execer), receiptTmp)
+		transDetail.Receipt, err = rpctypes.DecodeLog([]byte(transDetail.Tx.Execer), receiptTmp)
 		if err != nil {
 			return err
 		}
@@ -214,7 +214,7 @@ func (c *Chain33) GetBlocks(in rpctypes.BlockParam, result *interface{}) error {
 					recp.Logs = append(recp.Logs,
 						&rpctypes.ReceiptLog{Ty: log.Ty, Log: common.ToHex(log.GetLog())})
 				}
-				rd, err := DecodeLog(txs[i].Execer, &recp)
+				rd, err := rpctypes.DecodeLog(txs[i].Execer, &recp)
 				if err != nil {
 					continue
 				}
@@ -322,7 +322,7 @@ func (c *Chain33) GetTxByHashes(in rpctypes.ReqHashes, result *interface{}) erro
 				recp.Logs = append(recp.Logs,
 					&rpctypes.ReceiptLog{Ty: lg.Ty, Log: common.ToHex(lg.GetLog())})
 			}
-			recpResult, err = DecodeLog(tx.Tx.Execer, &recp)
+			recpResult, err = rpctypes.DecodeLog(tx.Tx.Execer, &recp)
 			if err != nil {
 				log.Error("GetTxByHashes", "Failed to DecodeLog for type", err)
 				txdetails.Txs = append(txdetails.Txs, nil)
@@ -982,44 +982,6 @@ func decodeUserWrite(payload []byte) *rpctypes.UserWrite {
 	return &article
 }
 
-func DecodeLog(execer []byte, rlog *rpctypes.ReceiptData) (*rpctypes.ReceiptDataResult, error) {
-	var rTy string
-	switch rlog.Ty {
-	case 0:
-		rTy = "ExecErr"
-	case 1:
-		rTy = "ExecPack"
-	case 2:
-		rTy = "ExecOk"
-	default:
-		rTy = "Unkown"
-	}
-	rd := &rpctypes.ReceiptDataResult{Ty: rlog.Ty, TyName: rTy}
-
-	for _, l := range rlog.Logs {
-		var lTy string
-		var logIns interface{}
-
-		lLog, err := hex.DecodeString(l.Log[2:])
-		if err != nil {
-			return nil, err
-		}
-
-		logType := types.LoadLog(execer, int64(l.Ty))
-		if logType == nil {
-			log.Error("Fail to DecodeLog", "type", l.Ty)
-			lTy = "unkownType"
-			logIns = nil
-		} else {
-			logIns, err = logType.Decode(lLog)
-			lTy = logType.Name()
-		}
-
-		rd.Logs = append(rd.Logs, &rpctypes.ReceiptLogResult{Ty: l.Ty, TyName: lTy, Log: logIns, RawLog: l.Log})
-	}
-	return rd, nil
-}
-
 func (c *Chain33) IsNtpClockSync(in *types.ReqNil, result *interface{}) error {
 	reply, _ := c.cli.IsNtpClockSync()
 	ret := false
@@ -1585,7 +1547,7 @@ func (c *Chain33) convertWalletTxDetailToJson(in *types.WalletTxDetails, out *rp
 			recp.Logs = append(recp.Logs,
 				&rpctypes.ReceiptLog{Ty: lg.Ty, Log: common.ToHex(lg.GetLog())})
 		}
-		rd, err := DecodeLog(tx.Tx.Execer, &recp)
+		rd, err := rpctypes.DecodeLog(tx.Tx.Execer, &recp)
 		if err != nil {
 			continue
 		}
