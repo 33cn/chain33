@@ -11,7 +11,7 @@ var nameX string
 
 var rlog = log.New("module", RetrieveX)
 
-func Init() {
+func init() {
 	nameX = types.ExecName(RetrieveX)
 	// init executor type
 	types.RegistorExecutor(RetrieveX, NewType())

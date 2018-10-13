@@ -8,13 +8,13 @@ import (
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
 	//log "github.com/inconshreveable/log15"
-	"gitlab.33.cn/chain33/chain33/system/dapp"
 	rt "gitlab.33.cn/chain33/chain33/plugin/dapp/retrieve/types"
+	"gitlab.33.cn/chain33/chain33/system/dapp"
 )
 
 const (
-	retrieveBackup    = 1
-	retrievePrepare  = 2
+	retrieveBackup  = 1
+	retrievePrepare = 2
 	retrievePerform = 3
 	retrieveCancel  = 4
 )
