@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"time"
@@ -827,46 +828,27 @@ func (c *Chain33) GetAllExecBalance(in types.ReqAddr, result *interface{}) error
 	return nil
 }
 
-func (c *Chain33) QueryOld(in rpctypes.Query4Jrpc, result *interface{}) error {
-	decodePayload, err := protoPayload(in.Execer, in.FuncName, &in.Payload)
-	if err != nil {
-		return err
-	}
-
-	resp, err := c.cli.Query(&types.Query{Execer: []byte(in.Execer), FuncName: in.FuncName, Payload: decodePayload})
-	if err != nil {
-		log.Error("EventQuery", "err", err.Error())
-		return err
-	}
-
-	*result = resp
-	return nil
-}
-
 func (c *Chain33) Query(in rpctypes.Query4Jrpc, result *interface{}) error {
-	trans := types.LoadQueryType(in.FuncName)
-	if trans == nil {
+	execty := types.LoadExecutorType(in.Execer)
+	if execty == nil {
 		log.Error("Query", "funcname", in.FuncName, "err", types.ErrNotSupport)
 		return types.ErrNotSupport
 	}
-	decodePayload, err := trans.JsonToProto(in.Payload)
+	decodePayload, err := execty.CreateQuery(in.FuncName, in.Payload)
 	if err != nil {
 		log.Error("EventQuery", "err", err.Error())
 		return err
 	}
-
 	resp, err := c.cli.Query(&types.Query{Execer: []byte(types.ExecName(in.Execer)), FuncName: in.FuncName, Payload: decodePayload})
 	if err != nil {
 		log.Error("EventQuery", "err", err.Error())
 		return err
 	}
-
-	*result, err = trans.(types.RPCQueryTypeConvert).ProtoToJson(resp)
+	*result, err = execty.QueryToJson(in.FuncName, resp)
 	if err != nil {
 		log.Error("EventQuery", "err", err.Error())
 		return err
 	}
-
 	return nil
 }
 
@@ -980,6 +962,23 @@ func DecodeTx(tx *types.Transaction) (*rpctypes.Transaction, error) {
 		Next:       common.ToHex(tx.Next),
 	}
 	return result, nil
+}
+
+func decodeUserWrite(payload []byte) *rpctypes.UserWrite {
+	var article rpctypes.UserWrite
+	if len(payload) != 0 {
+		if payload[0] == '#' {
+			data := bytes.SplitN(payload[1:], []byte("#"), 2)
+			if len(data) == 2 {
+				article.Topic = string(data[0])
+				article.Content = string(data[1])
+				return &article
+			}
+		}
+	}
+	article.Topic = ""
+	article.Content = string(payload)
+	return &article
 }
 
 func DecodeLog(execer []byte, rlog *rpctypes.ReceiptData) (*rpctypes.ReceiptDataResult, error) {

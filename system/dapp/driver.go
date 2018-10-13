@@ -84,7 +84,10 @@ func (d *DriverBase) GetTypeMap() map[string]int32 {
 }
 
 func (d *DriverBase) GetFuncMap() map[string]reflect.Method {
-	return nil
+	if d.ety == nil {
+		return nil
+	}
+	return d.ety.GetExecFuncMap()
 }
 
 func (d *DriverBase) SetApi(api client.QueueProtocolAPI) {
