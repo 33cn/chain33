@@ -902,15 +902,15 @@ func (_m *QueueProtocolAPI) Publick2Privacy(param *types.ReqPub2Pri) (*types.Rep
 }
 
 // Query provides a mock function with given fields: param
-func (_m *QueueProtocolAPI) Query(param *types.Query) (*types.Message, error) {
+func (_m *QueueProtocolAPI) Query(param *types.Query) (types.Message, error) {
 	ret := _m.Called(param)
 
-	var r0 *types.Message
-	if rf, ok := ret.Get(0).(func(*types.Query) *types.Message); ok {
+	var r0 types.Message
+	if rf, ok := ret.Get(0).(func(*types.Query) types.Message); ok {
 		r0 = rf(param)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.Message)
+			r0 = ret.Get(0).(types.Message)
 		}
 	}
 
