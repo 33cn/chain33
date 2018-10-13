@@ -16,6 +16,7 @@ var random = rand.New(rand.NewSource(Now().UnixNano()))
 type LogType interface {
 	Name() string
 	Decode([]byte) (interface{}, error)
+	//Json([]byte) (string, error) 重构完成后,加上这个函数
 }
 
 type RPCQueryTypeConvert interface {
@@ -45,6 +46,21 @@ func (l *logInfoType) Name() string {
 
 func (l *logInfoType) Decode(data []byte) (interface{}, error) {
 	return DecodeLog(l.execer, l.ty, data)
+}
+
+func LogToJson(l LogType, data []byte) (string, error) {
+	d, err := l.Decode(data)
+	if err != nil {
+		return "", err
+	}
+	if msg, ok := d.(Message); ok {
+		return PBToJson(msg)
+	}
+	jsdata, err := json.Marshal(d)
+	if err != nil {
+		return "", err
+	}
+	return string(jsdata), nil
 }
 
 var executorMap = map[string]ExecutorType{}

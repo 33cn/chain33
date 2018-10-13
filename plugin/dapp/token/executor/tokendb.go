@@ -157,7 +157,7 @@ func (action *tokenAction) preCreate(token *tokenty.TokenPreCreate) (*types.Rece
 	tokendb.save(action.db, statuskey)
 	tokendb.save(action.db, key)
 
-	logs = append(logs, tokendb.getLogs(types.TyLogPreCreateToken, tokenty.TokenStatusPreCreated)...)
+	logs = append(logs, tokendb.getLogs(tokenty.TyLogPreCreateToken, tokenty.TokenStatusPreCreated)...)
 	kv = append(kv, tokendb.getKVSet(key)...)
 	kv = append(kv, tokendb.getKVSet(statuskey)...)
 	//tokenlog.Info("func token preCreate", "token:", tokendb.token.Symbol, "owner:", tokendb.token.Owner,
@@ -229,7 +229,7 @@ func (action *tokenAction) finishCreate(tokenFinish *tokenty.TokenFinishCreate) 
 	tokendb.save(action.db, key)
 
 	logs = append(logs, receiptForToken.Logs...)
-	logs = append(logs, tokendb.getLogs(types.TyLogFinishCreateToken, tokenty.TokenStatusCreated)...)
+	logs = append(logs, tokendb.getLogs(tokenty.TyLogFinishCreateToken, tokenty.TokenStatusCreated)...)
 	kv = append(kv, receiptForToken.KV...)
 	kv = append(kv, tokendb.getKVSet(key)...)
 
@@ -289,7 +289,7 @@ func (action *tokenAction) revokeCreate(tokenRevoke *tokenty.TokenRevokeCreate) 
 	}
 	tokendb.save(action.db, key)
 
-	logs = append(logs, tokendb.getLogs(types.TyLogRevokeCreateToken, tokenty.TokenStatusCreateRevoked)...)
+	logs = append(logs, tokendb.getLogs(tokenty.TyLogRevokeCreateToken, tokenty.TokenStatusCreateRevoked)...)
 	kv = append(kv, tokendb.getKVSet(key)...)
 
 	receipt := &types.Receipt{types.ExecOk, kv, logs}
