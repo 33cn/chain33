@@ -303,7 +303,7 @@ func (policy *ticketPolicy) getTickets(addr string, status int32) ([]*types.Tick
 		bizlog.Error("getTickets", "Query error", err)
 		return nil, err
 	}
-	reply := (*msg).(*types.ReplyTicketList)
+	reply := msg.(*types.ReplyTicketList)
 	return reply.Tickets, nil
 }
 
@@ -630,7 +630,7 @@ func (policy *ticketPolicy) getMinerColdAddr(addr string) ([]string, error) {
 		bizlog.Error("getMinerColdAddr", "Query error", err)
 		return nil, err
 	}
-	reply := (*msg).(*types.ReplyStrings)
+	reply := msg.(*types.ReplyStrings)
 	return reply.Datas, nil
 }
 
