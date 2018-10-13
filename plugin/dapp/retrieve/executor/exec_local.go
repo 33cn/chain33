@@ -1,11 +1,10 @@
 package executor
 
 import (
-	"gitlab.33.cn/chain33/chain33/types"
-	rt "gitlab.33.cn/chain33/chain33/plugin/dapp/retrieve/types"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
+	rt "gitlab.33.cn/chain33/chain33/plugin/dapp/retrieve/types"
+	"gitlab.33.cn/chain33/chain33/types"
 )
-
 
 func SaveRetrieveInfo(info *rt.RetrieveQuery, Status int64, db dbm.KVDB) (*types.KeyValue, error) {
 	rlog.Debug("Retrieve SaveRetrieveInfo", "backupaddr", info.BackupAddress, "defaddr", info.DefaultAddress)
@@ -58,7 +57,7 @@ func (c *Retrieve) execLocal(receipt *types.ReceiptData) (*types.LocalDBSet, err
 }
 
 func (c *Retrieve) ExecLocal_Backup(backup *rt.BackupRetrieve, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	set,err := c.execLocal(receiptData)
+	set, err := c.execLocal(receiptData)
 
 	info := rt.RetrieveQuery{backup.BackupAddress, backup.DefaultAddress, backup.DelayPeriod, zeroPrepareTime, zeroRemainTime, retrieveBackup}
 	kv, err := SaveRetrieveInfo(&info, retrieveBackup, c.GetLocalDB())
@@ -74,9 +73,9 @@ func (c *Retrieve) ExecLocal_Backup(backup *rt.BackupRetrieve, tx *types.Transac
 }
 
 func (c *Retrieve) ExecLocal_Prepare(pre *rt.PrepareRetrieve, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	set,err := c.execLocal(receiptData)
+	set, err := c.execLocal(receiptData)
 
-	info := rt.RetrieveQuery{pre.BackupAddress, pre.DefaultAddress, zeroDelay, zeroPrepareTime, zeroRemainTime, retrieveBackup}
+	info := rt.RetrieveQuery{pre.BackupAddress, pre.DefaultAddress, zeroDelay, zeroPrepareTime, zeroRemainTime, retrievePrepare}
 	kv, err := SaveRetrieveInfo(&info, retrievePrepare, c.GetLocalDB())
 	if err != nil {
 		return set, nil
@@ -90,7 +89,7 @@ func (c *Retrieve) ExecLocal_Prepare(pre *rt.PrepareRetrieve, tx *types.Transact
 }
 
 func (c *Retrieve) ExecLocal_Perf(perf *rt.PerformRetrieve, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	set,err := c.execLocal(receiptData)
+	set, err := c.execLocal(receiptData)
 
 	info := rt.RetrieveQuery{perf.BackupAddress, perf.DefaultAddress, zeroDelay, zeroPrepareTime, zeroRemainTime, retrievePerform}
 	kv, err := SaveRetrieveInfo(&info, retrievePerform, c.GetLocalDB())
@@ -105,7 +104,7 @@ func (c *Retrieve) ExecLocal_Perf(perf *rt.PerformRetrieve, tx *types.Transactio
 	return set, nil
 }
 
-func (c *Retrieve) ExecLocal_Cancle(cancel *rt.CancelRetrieve, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+func (c *Retrieve) ExecLocal_Cancel(cancel *rt.CancelRetrieve, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	set, err := c.execLocal(receiptData)
 
 	info := rt.RetrieveQuery{cancel.BackupAddress, cancel.DefaultAddress, zeroDelay, zeroPrepareTime, zeroRemainTime, retrieveCancel}
