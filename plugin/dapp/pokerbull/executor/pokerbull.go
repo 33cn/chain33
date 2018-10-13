@@ -15,6 +15,13 @@ func Init(name string) {
 	drivers.Register(newGame().GetName(), newGame, 0)
 }
 
+var driverName = pkt.PokerBullX
+
+func init() {
+	ety := types.LoadExecutorType(driverName)
+	ety.InitFuncList(types.ListMethod(&PokerBull{}))
+}
+
 type PokerBull struct {
 	drivers.DriverBase
 }

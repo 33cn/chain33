@@ -8,3 +8,7 @@ const (
 	LotteryActionDraw
 	LotteryActionClose
 )
+
+const (
+	LotteryX = "lottery"
+)

@@ -20,6 +20,13 @@ var (
 	zeroRemainTime  int64
 )
 
+var driverName = "retrieve"
+
+func init() {
+	ety := types.LoadExecutorType(driverName)
+	ety.InitFuncList(types.ListMethod(&Retrieve{}))
+}
+
 //const maxTimeWeight = 2
 func Init(name string) {
 	drivers.Register(GetName(), newRetrieve, 0)
@@ -74,7 +81,7 @@ func (r *Retrieve) Exec(tx *types.Transaction, index int) (*types.Receipt, error
 }
 
 func (r *Retrieve) GetDriverName() string {
-	return "retrieve"
+	return driverName
 }
 
 func (r *Retrieve) GetActionName(tx *types.Transaction) string {
