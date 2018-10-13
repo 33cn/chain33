@@ -12,16 +12,15 @@ type RpcCtx struct {
 	Method string
 	Params interface{}
 	Res    interface{}
-
-	cb Callback
+	cb     Callback
 }
 
 type Callback func(res interface{}) (interface{}, error)
 
-func NewRpcCtx(laddr, methed string, params, res interface{}) *RpcCtx {
+func NewRpcCtx(laddr, method string, params, res interface{}) *RpcCtx {
 	return &RpcCtx{
 		Addr:   laddr,
-		Method: methed,
+		Method: method,
 		Params: params,
 		Res:    res,
 	}
