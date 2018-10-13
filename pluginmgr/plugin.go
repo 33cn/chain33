@@ -27,7 +27,6 @@ func (c *ChannelClient) Init(name string, s RPCServer, jrpc, grpc interface{}) {
 	c.grpc = grpc
 	c.jrpc = jrpc
 	if jrpc != nil {
-		println(name, jrpc)
 		s.JRPC().RegisterName(name, jrpc)
 	}
 }
