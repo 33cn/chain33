@@ -10,7 +10,7 @@ import (
 
 	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
-	"gitlab.33.cn/chain33/chain33/types"
+	tmtypes "gitlab.33.cn/chain33/chain33/plugin/dapp/valnode/types"
 )
 
 var (
@@ -47,13 +47,13 @@ func SignBytes(chainID string, o Signable) []byte {
 // to be considered valid. It may depend on votes from a previous round,
 // a so-called Proof-of-Lock (POL) round, as noted in the POLRound and POLBlockID.
 type Proposal struct {
-	types.Proposal
+	tmtypes.Proposal
 }
 
 // NewProposal returns a new Proposal.
 // If there is no POLRound, polRound should be -1.
-func NewProposal(height int64, round int, blockhash []byte, polRound int, polBlockID types.BlockID) *Proposal {
-	return &Proposal{types.Proposal{
+func NewProposal(height int64, round int, blockhash []byte, polRound int, polBlockID tmtypes.BlockID) *Proposal {
+	return &Proposal{tmtypes.Proposal{
 		Height:     height,
 		Round:      int32(round),
 		Timestamp:  time.Now().UnixNano(),
@@ -92,7 +92,7 @@ func (p *Proposal) WriteSignBytes(chainID string, w io.Writer, n *int, err *erro
 
 //-------------------heartbeat-------------------------
 type Heartbeat struct {
-	*types.Heartbeat
+	*tmtypes.Heartbeat
 }
 
 // WriteSignBytes writes the Heartbeat for signing.
@@ -129,11 +129,11 @@ func (err *ErrVoteConflictingVotes) Error() string {
 	return fmt.Sprintf("Conflicting votes from validator %v", addr)
 }
 
-func NewConflictingVoteError(val *Validator, voteA, voteB *types.Vote) *ErrVoteConflictingVotes {
+func NewConflictingVoteError(val *Validator, voteA, voteB *tmtypes.Vote) *ErrVoteConflictingVotes {
 	keyString := fmt.Sprintf("%X", val.PubKey)
 	return &ErrVoteConflictingVotes{
 		&DuplicateVoteEvidence{
-			&types.DuplicateVoteEvidence{
+			&tmtypes.DuplicateVoteEvidence{
 				PubKey: keyString,
 				VoteA:  voteA,
 				VoteB:  voteB,
@@ -162,7 +162,7 @@ func IsVoteTypeValid(type_ byte) bool {
 
 // Represents a prevote, precommit, or commit vote from validators for consensus.
 type Vote struct {
-	*types.Vote
+	*tmtypes.Vote
 }
 
 func (vote *Vote) WriteSignBytes(chainID string, w io.Writer, n *int, err *error) {

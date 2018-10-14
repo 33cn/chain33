@@ -199,23 +199,6 @@ const (
 
 	// log for config
 	TyLogModifyConfig = 410
-
-	// log for privacy
-	TyLogPrivacyFee    = 500
-	TyLogPrivacyInput  = 501
-	TyLogPrivacyOutput = 502
-
-	//log for game
-	TyLogCreateGame = 711
-	TyLogMatchGame  = 712
-	TyLogCancleGame = 713
-	TyLogCloseGame  = 714
-
-	//log for lottery
-	TyLogLotteryCreate = 801
-	TyLogLotteryBuy    = 802
-	TyLogLotteryDraw   = 803
-	TyLogLotteryClose  = 804
 )
 
 //exec type
@@ -223,14 +206,6 @@ const (
 	ExecErr  = 0
 	ExecPack = 1
 	ExecOk   = 2
-)
-
-const (
-	InvalidAction = 0
-	//action type for privacy
-	ActionPublic2Privacy = iota + 100
-	ActionPrivacy2Privacy
-	ActionPrivacy2Public
 )
 
 //ticket
