@@ -13,6 +13,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 
 	// "gitlab.33.cn/chain33/chain33/common/log"
+	tickettypes "gitlab.33.cn/chain33/chain33/plugin/dapp/ticket/types"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/store"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -91,7 +92,7 @@ func blockchainModProc(q queue.Queue) {
 				}
 				msg.Reply(client.NewMessage("rpc", types.EventTransactionDetails, &txDetails))
 			} else if msg.Ty == types.EventQuery {
-				msg.Reply(client.NewMessage("", types.EventReplyQuery, &types.ReplyTicketList{Tickets: []*types.Ticket{{TicketId: "ticketID"}}}))
+				msg.Reply(client.NewMessage("", types.EventReplyQuery, &tickettypes.ReplyTicketList{Tickets: []*tickettypes.Ticket{{TicketId: "ticketID"}}}))
 			} else if msg.Ty == types.EventGetBlockHeight {
 				msg.Reply(client.NewMessage("", types.EventReplyBlockHeight, &types.ReplyBlockHeight{Height: 1}))
 			} else if msg.Ty == types.EventIsSync {
@@ -645,8 +646,8 @@ func testProcWalletLock(t *testing.T, wallet *Wallet) {
 // ProcWalletAddBlock
 func testProcWalletAddBlock(t *testing.T, wallet *Wallet) {
 	println("TestProcWalletAddBlock & TestProcWalletDelBlock begin")
-	action := &types.TicketAction{Ty: types.TicketActionMiner}
-	miner := &types.TicketAction_Miner{Miner: &types.TicketMiner{Reward: 18}}
+	action := &tickettypes.TicketAction{Ty: tickettypes.TicketActionMiner}
+	miner := &tickettypes.TicketAction_Miner{Miner: &tickettypes.TicketMiner{Reward: 18}}
 	action.Value = miner
 	tx := &types.Transaction{Execer: []byte("ticket"), Payload: types.Encode(action), Fee: 100, Expire: 0}
 	blk := &types.Block{
