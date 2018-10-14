@@ -4,7 +4,6 @@ import (
 	"encoding/hex"
 	"time"
 
-	"gitlab.33.cn/chain33/chain33/common/address"
 	pb "gitlab.33.cn/chain33/chain33/types"
 	"golang.org/x/net/context"
 )
@@ -310,37 +309,6 @@ func (g *Grpc) RescanUtxos(ctx context.Context, in *pb.ReqRescanUtxos) (*pb.RepR
 // 使能隐私账户
 func (g *Grpc) EnablePrivacy(ctx context.Context, in *pb.ReqEnablePrivacy) (*pb.RepEnablePrivacy, error) {
 	return g.cli.EnablePrivacy(in)
-}
-
-// 创建绑定挖矿
-func (g *Grpc) CreateBindMiner(ctx context.Context, in *pb.ReqBindMiner) (*pb.ReplyBindMiner, error) {
-	if in.Amount%(10000*pb.Coin) != 0 || in.Amount < 0 {
-		return nil, pb.ErrAmount
-	}
-	err := address.CheckAddress(in.BindAddr)
-	if err != nil {
-		return nil, err
-	}
-	err = address.CheckAddress(in.OriginAddr)
-	if err != nil {
-		return nil, err
-	}
-
-	if in.CheckBalance {
-		getBalance := &pb.ReqBalance{Addresses: []string{in.OriginAddr}, Execer: "coins"}
-		balances, err := g.cli.GetBalance(getBalance)
-		if err != nil {
-			return nil, err
-		}
-		if len(balances) == 0 {
-			return nil, pb.ErrInputPara
-		}
-		if balances[0].Balance < in.Amount+2*pb.Coin {
-			return nil, pb.ErrNoBalance
-		}
-	}
-
-	return g.cli.BindMiner(in)
 }
 
 func (g *Grpc) SignRawTx(ctx context.Context, in *pb.ReqSignRawTx) (*pb.ReplySignRawTx, error) {
