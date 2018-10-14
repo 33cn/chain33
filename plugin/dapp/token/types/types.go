@@ -6,18 +6,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var (
-	actionName = map[string]int32{
-		"Transfer":          ActionTransfer,
-		"Genesis":           ActionGenesis,
-		"Withdraw":          ActionWithdraw,
-		"Tokenprecreate":    TokenActionPreCreate,
-		"Tokenfinishcreate": TokenActionFinishCreate,
-		"Tokenrevokecreate": TokenActionRevokeCreate,
-		"TransferToExec":    TokenActionTransferToExec,
-	}
-)
-
 func init() {
 	types.AllowUserExec = append(types.AllowUserExec, []byte(TokenX))
 	types.RegistorExecutor(types.TokenX, NewType())
@@ -39,7 +27,15 @@ func (t *TokenType) GetPayload() types.Message {
 }
 
 func (t *TokenType) GetTypeMap() map[string]int32 {
-	return actionName
+	return map[string]int32{
+		"Transfer":          ActionTransfer,
+		"Genesis":           ActionGenesis,
+		"Withdraw":          ActionWithdraw,
+		"Tokenprecreate":    TokenActionPreCreate,
+		"Tokenfinishcreate": TokenActionFinishCreate,
+		"Tokenrevokecreate": TokenActionRevokeCreate,
+		"TransferToExec":    TokenActionTransferToExec,
+	}
 }
 
 func (t *TokenType) GetLogMap() map[int64]*types.LogInfo {

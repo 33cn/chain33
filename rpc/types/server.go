@@ -23,12 +23,14 @@ type ChannelClient struct {
 }
 
 func (c *ChannelClient) Init(name string, s RPCServer, jrpc, grpc interface{}) {
-	c.QueueProtocolAPI, _ = client.New(s.GetQueueClient(), nil)
-	c.grpc = grpc
-	c.jrpc = jrpc
+	if c.QueueProtocolAPI == nil {
+		c.QueueProtocolAPI, _ = client.New(s.GetQueueClient(), nil)
+	}
 	if jrpc != nil {
 		s.JRPC().RegisterName(name, jrpc)
 	}
+	c.grpc = grpc
+	c.jrpc = jrpc
 	c.accountdb = account.NewCoinsAccount()
 }
 

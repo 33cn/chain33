@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
+	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/privacy/types"
 	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
@@ -57,7 +58,7 @@ func decodeTransaction(tx *rpctypes.Transaction) *TxResult {
 	return result
 }
 
-func decodePrivInput(input *types.PrivacyInput) *PrivacyInput {
+func decodePrivInput(input *pty.PrivacyInput) *PrivacyInput {
 	inputResult := &PrivacyInput{}
 	for _, value := range input.Keyinput {
 		amt := float64(value.Amount) / float64(types.Coin)
@@ -76,7 +77,7 @@ func decodePrivInput(input *types.PrivacyInput) *PrivacyInput {
 	return inputResult
 }
 
-func decodePrivOutput(output *types.PrivacyOutput) *PrivacyOutput {
+func decodePrivOutput(output *pty.PrivacyOutput) *PrivacyOutput {
 	outputResult := &PrivacyOutput{RpubKeytx: common.ToHex(output.RpubKeytx)}
 	for _, value := range output.Keyoutput {
 		amt := float64(value.Amount) / float64(types.Coin)
@@ -139,7 +140,7 @@ func decodeLog(execer []byte, rlog rpctypes.ReceiptDataResult) *ReceiptData {
 		if err != nil {
 			rl.Log = ""
 		}
-		rl.Log, err = types.LogToJson(logty, data)
+		rl.Log, err = logty.Json(data)
 		if err != nil {
 			rl.Log = ""
 		}
@@ -150,7 +151,7 @@ func decodeLog(execer []byte, rlog rpctypes.ReceiptDataResult) *ReceiptData {
 
 func buildPrivacyInputResult(l *rpctypes.ReceiptLogResult) interface{} {
 	data, _ := common.FromHex(l.RawLog)
-	srcInput := &types.PrivacyInput{}
+	srcInput := &pty.PrivacyInput{}
 	dstInput := &PrivacyInput{}
 	if proto.Unmarshal(data, srcInput) != nil {
 		return dstInput
@@ -175,7 +176,7 @@ func buildPrivacyInputResult(l *rpctypes.ReceiptLogResult) interface{} {
 
 func buildPrivacyOutputResult(l *rpctypes.ReceiptLogResult) interface{} {
 	data, _ := common.FromHex(l.RawLog)
-	srcOutput := &types.ReceiptPrivacyOutput{}
+	srcOutput := &pty.ReceiptPrivacyOutput{}
 	dstOutput := &ReceiptPrivacyOutput{}
 	if proto.Unmarshal(data, srcOutput) != nil {
 		return dstOutput

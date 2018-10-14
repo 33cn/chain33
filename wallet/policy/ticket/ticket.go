@@ -546,7 +546,7 @@ func (policy *ticketPolicy) openticket(mineraddr, returnaddr string, priv crypto
 	ta := &ty.TicketAction{}
 	topen := &ty.TicketOpen{MinerAddress: mineraddr, ReturnAddress: returnaddr, Count: count}
 	ta.Value = &ty.TicketAction_Topen{topen}
-	ta.Ty = types.TicketActionOpen
+	ta.Ty = ty.TicketActionOpen
 	return policy.walletOperate.SendTransaction(ta, types.ExecerTicket, priv, "")
 }
 
