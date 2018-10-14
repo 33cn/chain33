@@ -27,7 +27,6 @@ import (
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
-	ety "gitlab.33.cn/chain33/chain33/types/executor"
 	"gitlab.33.cn/chain33/chain33/util"
 
 	"net/http"
@@ -53,7 +52,6 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	ety.Init()
 	pluginmgr.InitExec()
 	random = rand.New(rand.NewSource(types.Now().UnixNano()))
 	genkey = getprivkey("CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944")

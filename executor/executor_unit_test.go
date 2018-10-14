@@ -9,6 +9,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
+	ticketty "gitlab.33.cn/chain33/chain33/plugin/dapp/ticket/types"
 	tokenty "gitlab.33.cn/chain33/chain33/plugin/dapp/token/types"
 	"gitlab.33.cn/chain33/chain33/queue"
 	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
@@ -39,25 +40,25 @@ func createTxEx(priv crypto.PrivKey, to string, amount int64, ty int32, execer s
 		transfer := &cty.CoinsAction{Value: v, Ty: ty}
 		tx = &types.Transaction{Execer: []byte(execer), Payload: types.Encode(transfer), Fee: 1e6, To: to}
 	case "ticket":
-		transfer := &types.TicketAction{}
-		if types.TicketActionGenesis == ty {
-			v := &types.TicketAction_Genesis{&types.TicketGenesis{}}
+		transfer := &ticketty.TicketAction{}
+		if ticketty.TicketActionGenesis == ty {
+			v := &ticketty.TicketAction_Genesis{&ticketty.TicketGenesis{}}
 			transfer.Value = v
 			transfer.Ty = ty
-		} else if types.TicketActionOpen == ty {
-			v := &types.TicketAction_Topen{&types.TicketOpen{}}
+		} else if ticketty.TicketActionOpen == ty {
+			v := &ticketty.TicketAction_Topen{&ticketty.TicketOpen{}}
 			transfer.Value = v
 			transfer.Ty = ty
-		} else if types.TicketActionClose == ty {
-			v := &types.TicketAction_Tclose{&types.TicketClose{}}
+		} else if ticketty.TicketActionClose == ty {
+			v := &ticketty.TicketAction_Tclose{&ticketty.TicketClose{}}
 			transfer.Value = v
 			transfer.Ty = ty
-		} else if types.TicketActionMiner == ty {
-			v := &types.TicketAction_Miner{&types.TicketMiner{}}
+		} else if ticketty.TicketActionMiner == ty {
+			v := &ticketty.TicketAction_Miner{&ticketty.TicketMiner{}}
 			transfer.Value = v
 			transfer.Ty = ty
-		} else if types.TicketActionBind == ty {
-			v := &types.TicketAction_Tbind{&types.TicketBind{}}
+		} else if ticketty.TicketActionBind == ty {
+			v := &ticketty.TicketAction_Tbind{&ticketty.TicketBind{}}
 			transfer.Value = v
 			transfer.Ty = ty
 		} else {
@@ -137,13 +138,13 @@ func constructionBlockDetail(block *types.Block, height int64, txcount int) *typ
 }
 
 func genExecTxListMsg(client queue.Client, block *types.Block) queue.Message {
-	list := &types.ExecTxList{zeroHash[:], block.Txs, block.BlockTime, block.Height, 0}
+	list := &types.ExecTxList{zeroHash[:], block.Txs, block.BlockTime, block.Height, 0, false}
 	msg := client.NewMessage("execs", types.EventExecTxList, list)
 	return msg
 }
 
 func genExecCheckTxMsg(client queue.Client, block *types.Block) queue.Message {
-	list := &types.ExecTxList{zeroHash[:], block.Txs, block.BlockTime, block.Height, 0}
+	list := &types.ExecTxList{zeroHash[:], block.Txs, block.BlockTime, block.Height, 0, false}
 	msg := client.NewMessage("execs", types.EventCheckTx, list)
 	return msg
 }
@@ -261,10 +262,10 @@ func createBlockChainQueryRq(execer string, funcName string) proto.Message {
 	case "ticket":
 		{
 			if funcName == "TicketInfos" {
-				info := &types.TicketInfos{}
+				info := &ticketty.TicketInfos{}
 				return info
 			} else if funcName == "TicketList" {
-				list := &types.TicketList{}
+				list := &ticketty.TicketList{}
 				return list
 			} else if funcName == "MinerAddress" {
 				reqaddr := &types.ReqString{}
@@ -313,11 +314,11 @@ func TestQueueClient(t *testing.T) {
 		{"coins", strconv.Itoa(cty.CoinsActionWithdraw)},
 		{"coins", strconv.Itoa(cty.CoinsActionGenesis)},
 		{"none", strconv.Itoa(cty.CoinsActionTransfer)},
-		{"ticket", strconv.Itoa(types.TicketActionGenesis)},
-		{"ticket", strconv.Itoa(types.TicketActionOpen)},
-		{"ticket", strconv.Itoa(types.TicketActionBind)},
-		{"ticket", strconv.Itoa(types.TicketActionClose)},
-		{"ticket", strconv.Itoa(types.TicketActionMiner)},
+		{"ticket", strconv.Itoa(ticketty.TicketActionGenesis)},
+		{"ticket", strconv.Itoa(ticketty.TicketActionOpen)},
+		{"ticket", strconv.Itoa(ticketty.TicketActionBind)},
+		{"ticket", strconv.Itoa(ticketty.TicketActionClose)},
+		{"ticket", strconv.Itoa(ticketty.TicketActionMiner)},
 		{"token", strconv.Itoa(tokenty.TokenActionPreCreate)},
 		{"token", strconv.Itoa(tokenty.TokenActionFinishCreate)},
 		{"token", strconv.Itoa(tokenty.TokenActionRevokeCreate)},
