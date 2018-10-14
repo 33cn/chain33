@@ -71,7 +71,7 @@ func showOnesSellOrders(cmd *cobra.Command, args []string) {
 		FuncName: "GetOnesSellOrder",
 		Payload:  reqAddrtokens,
 	}
-	var res pty.RpcReplySellOrders
+	var res pty.ReplySellOrders
 	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
 	ctx.SetResultCb(parseSellOrders)
 	ctx.Run()
@@ -112,7 +112,7 @@ func showOnesSellOrdersStatus(cmd *cobra.Command, args []string) {
 	params.Execer = "trade"
 	params.FuncName = "GetOnesSellOrderWithStatus"
 	params.Payload = reqAddrtokens
-	var res pty.RpcReplySellOrders
+	var res pty.ReplySellOrders
 	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
 	ctx.SetResultCb(parseSellOrders)
 	ctx.Run()
@@ -165,16 +165,16 @@ func showTokenSellOrdersStatus(cmd *cobra.Command, args []string) {
 	params.Execer = "trade"
 	params.FuncName = "GetTokenSellOrderByStatus"
 	params.Payload = req
-	var res pty.RpcReplySellOrders
+	var res pty.ReplySellOrders
 	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
 	ctx.SetResultCb(parseSellOrders)
 	ctx.Run()
 }
 
 func parseSellOrders(arg interface{}) (interface{}, error) {
-	res := arg.(*pty.RpcReplySellOrders)
+	res := arg.(*pty.ReplyTradeOrders)
 	var result ReplySellOrdersResult
-	for _, o := range res.SellOrders {
+	for _, o := range res.Orders {
 		order := &TradeOrderResult{
 			TokenSymbol:    o.TokenSymbol,
 			Owner:          o.Owner,
@@ -228,7 +228,7 @@ func showOnesBuyOrders(cmd *cobra.Command, args []string) {
 	params.Execer = "trade"
 	params.FuncName = "GetOnesBuyOrder"
 	params.Payload = reqAddrtokens
-	var res pty.RpcReplyBuyOrders
+	var res pty.ReplyBuyOrders
 	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
 	ctx.SetResultCb(parseBuyOrders)
 	ctx.Run()
@@ -268,7 +268,7 @@ func showOnesBuyOrdersStatus(cmd *cobra.Command, args []string) {
 	params.Execer = "trade"
 	params.FuncName = "GetOnesBuyOrderWithStatus"
 	params.Payload = reqAddrtokens
-	var res pty.RpcReplyBuyOrders
+	var res pty.ReplyBuyOrders
 	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
 	ctx.SetResultCb(parseBuyOrders)
 	ctx.Run()
@@ -321,16 +321,16 @@ func showTokenBuyOrdersStatus(cmd *cobra.Command, args []string) {
 	params.Execer = "trade"
 	params.FuncName = "GetTokenBuyOrderByStatus"
 	params.Payload = req
-	var res pty.RpcReplyBuyOrders
+	var res pty.ReplyBuyOrders
 	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
 	ctx.SetResultCb(parseBuyOrders)
 	ctx.Run()
 }
 
 func parseBuyOrders(arg interface{}) (interface{}, error) {
-	res := arg.(*pty.RpcReplyBuyOrders)
+	res := arg.(*pty.ReplyTradeOrders)
 	var result ReplyBuyOrdersResult
-	for _, o := range res.BuyOrders {
+	for _, o := range res.Orders {
 		order := &TradeOrderResult{
 			TokenSymbol:    o.TokenSymbol,
 			Owner:          o.Owner,

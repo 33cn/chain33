@@ -7,6 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/common/address"
+	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -53,7 +54,7 @@ func dumpKey(cmd *cobra.Command, args []string) {
 		ReqStr: addr,
 	}
 	var res types.ReplyStr
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.DumpPrivkey", params, &res)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.DumpPrivkey", params, &res)
 	ctx.Run()
 }
 
@@ -70,7 +71,7 @@ func GetAccountListCmd() *cobra.Command {
 func listAccount(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	var res rpctypes.WalletAccounts
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetAccounts", nil, &res)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.GetAccounts", nil, &res)
 	ctx.SetResultCb(parseListAccountRes)
 	ctx.Run()
 }
@@ -123,7 +124,7 @@ func balance(cmd *cobra.Command, args []string) {
 	if execer == "" {
 		req := types.ReqAddr{Addr: addr}
 		var res rpctypes.AllExecBalance
-		ctx := NewRpcCtx(rpcLaddr, "Chain33.GetAllExecBalance", req, &res)
+		ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.GetAllExecBalance", req, &res)
 		ctx.SetResultCb(parseGetAllBalanceRes)
 		ctx.Run()
 		return
@@ -140,8 +141,8 @@ func balance(cmd *cobra.Command, args []string) {
 			IsDetail: false,
 		}
 		var res rpctypes.Headers
-		ctx := NewRpcCtx(rpcLaddr, "Chain33.GetHeaders", params, &res)
-		_, err := ctx.run()
+		ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.GetHeaders", params, &res)
+		_, err := ctx.RunResult()
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			return
@@ -158,7 +159,7 @@ func balance(cmd *cobra.Command, args []string) {
 		StateHash: stateHash,
 	}
 	var res []*rpctypes.Account
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetBalance", params, &res)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.GetBalance", params, &res)
 	ctx.SetResultCb(parseGetBalanceRes)
 	ctx.Run()
 }
@@ -221,7 +222,7 @@ func importKey(cmd *cobra.Command, args []string) {
 		Label:   label,
 	}
 	var res types.WalletAccount
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.ImportPrivkey", params, &res)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.ImportPrivkey", params, &res)
 	ctx.SetResultCb(parseImportKeyRes)
 	ctx.Run()
 }
@@ -259,7 +260,7 @@ func createAccount(cmd *cobra.Command, args []string) {
 		Label: label,
 	}
 	var res types.WalletAccount
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.NewAccount", params, &res)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.NewAccount", params, &res)
 	ctx.SetResultCb(parseCreateAccountRes)
 	ctx.Run()
 }
@@ -302,7 +303,7 @@ func setLabel(cmd *cobra.Command, args []string) {
 		Label: label,
 	}
 	var res types.WalletAccount
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.SetLabl", params, &res)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.SetLabl", params, &res)
 	ctx.SetResultCb(parseSetLabelRes)
 	ctx.Run()
 }

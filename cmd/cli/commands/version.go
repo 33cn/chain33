@@ -1,6 +1,9 @@
 package commands
 
-import "github.com/spf13/cobra"
+import (
+	"github.com/spf13/cobra"
+	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
+)
 
 func VersionCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -15,6 +18,6 @@ func VersionCmd() *cobra.Command {
 func version(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.Version", nil, nil)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.Version", nil, nil)
 	ctx.RunWithoutMarshal()
 }

@@ -5,20 +5,10 @@ import (
 
 	context "golang.org/x/net/context"
 
-	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	bw "gitlab.33.cn/chain33/chain33/plugin/dapp/blackwhite/types"
-	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 )
-
-type channelClient struct {
-	client.QueueProtocolAPI
-}
-
-func (c *channelClient) Init(q queue.Client) {
-	c.QueueProtocolAPI, _ = client.New(q, nil)
-}
 
 func (c *channelClient) Create(ctx context.Context, head *bw.BlackwhiteCreate) (*types.UnsignTx, error) {
 	val := &bw.BlackwhiteAction{

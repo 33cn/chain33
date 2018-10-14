@@ -102,7 +102,7 @@ var (
 	AllowDepositExec = [][]byte{ExecerTicket}
 	AllowUserExec    = [][]byte{ExecerTicket, ExecerNorm, ExecerHashlock,
 		ExecerRetrieve, ExecerNone, ExecerToken, ExecerTrade, ExecerManage,
-		ExecerRelay, ExecerPrivacy, ExecerCert /*ExecerBlackwhite,*/, ExecerPara, ExecerLottery, ExecerValNode}
+		ExecerRelay, ExecerPrivacy, ExecerCert /*ExecerBlackwhite,*/, ExecerPara, ExecerValNode}
 
 	GenesisAddr              = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 	GenesisBlockTime   int64 = 1526486816
