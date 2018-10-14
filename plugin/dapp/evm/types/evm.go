@@ -10,7 +10,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/types/convertor"
 )
 
 var (
@@ -24,18 +23,8 @@ var (
 
 func init() {
 	types.AllowUserExec = append(types.AllowUserExec, ExecerEvm)
-
 	// init executor type
 	types.RegistorExecutor(ExecutorName, NewType())
-
-	// init query rpc
-
-	types.RegisterRPCQueryHandle(FuncCheckAddrExists, &convertor.QueryConvertor{ProtoObj: &CheckEVMAddrReq{}})
-	types.RegisterRPCQueryHandle(FuncEstimateGas, &convertor.QueryConvertor{ProtoObj: &EstimateEVMGasReq{}})
-	types.RegisterRPCQueryHandle(FuncEvmDebug, &convertor.QueryConvertor{ProtoObj: &EvmDebugReq{}})
-	//types.RegisterRPCQueryHandle(FuncCheckAddrExists, &EvmCheckAddrExists{})
-	//types.RegisterRPCQueryHandle(FuncEstimateGas, &EvmEstimateGas{})
-	//types.RegisterRPCQueryHandle(FuncEvmDebug, &EvmDebug{})
 }
 
 type EvmType struct {

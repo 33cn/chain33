@@ -17,6 +17,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
+	tokenty "gitlab.33.cn/chain33/chain33/plugin/dapp/token/types"
 	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
 	"google.golang.org/grpc"
@@ -149,7 +150,7 @@ func TestPrecreate(t *testing.T) {
 	fmt.Println("TestPrecreate start")
 	defer fmt.Println("TestPrecreate end")
 
-	v := &types.TokenPreCreate{
+	v := &tokenty.TokenPreCreate{
 		Name:         tokenName,
 		Symbol:       tokenSym,
 		Introduction: tokenIntro,
@@ -157,9 +158,9 @@ func TestPrecreate(t *testing.T) {
 		Price:        tokenPrice,
 		Owner:        addr,
 	}
-	precreate := &types.TokenAction{
-		Ty:    types.TokenActionPreCreate,
-		Value: &types.TokenAction_Tokenprecreate{v},
+	precreate := &tokenty.TokenAction{
+		Ty:    tokenty.TokenActionPreCreate,
+		Value: &tokenty.TokenAction_Tokenprecreate{v},
 	}
 	tx := &types.Transaction{
 		Execer:  []byte(execName),
@@ -197,10 +198,10 @@ func TestFinish(t *testing.T) {
 	fmt.Println("TestFinish start")
 	defer fmt.Println("TestFinish end")
 
-	v := &types.TokenFinishCreate{Symbol: tokenSym, Owner: addr}
-	finish := &types.TokenAction{
-		Ty:    types.TokenActionFinishCreate,
-		Value: &types.TokenAction_Tokenfinishcreate{v},
+	v := &tokenty.TokenFinishCreate{Symbol: tokenSym, Owner: addr}
+	finish := &tokenty.TokenAction{
+		Ty:    tokenty.TokenActionFinishCreate,
+		Value: &tokenty.TokenAction_Tokenfinishcreate{v},
 	}
 	tx := &types.Transaction{
 		Execer:  []byte(execName),
@@ -238,8 +239,8 @@ func TestTransferToken(t *testing.T) {
 	fmt.Println("TestTransferToken start")
 	defer fmt.Println("TestTransferToken end")
 
-	v := &types.TokenAction_Transfer{Transfer: &types.AssetsTransfer{Cointoken: tokenSym, Amount: transAmount, Note: "", To: transToAddr}}
-	transfer := &types.TokenAction{Value: v, Ty: types.ActionTransfer}
+	v := &tokenty.TokenAction_Transfer{Transfer: &types.AssetsTransfer{Cointoken: tokenSym, Amount: transAmount, Note: "", To: transToAddr}}
+	transfer := &tokenty.TokenAction{Value: v, Ty: tokenty.ActionTransfer}
 
 	tx := &types.Transaction{Execer: []byte(execName), Payload: types.Encode(transfer), Fee: fee, To: addrexec}
 	tx.Nonce = r.Int63()
@@ -275,7 +276,7 @@ func TestQueryAsset(t *testing.T) {
 	req.Execer = []byte(execName)
 	req.FuncName = "GetAccountTokenAssets"
 
-	var reqAsset types.ReqAccountTokenAssets
+	var reqAsset tokenty.ReqAccountTokenAssets
 	reqAsset.Address = addr
 	reqAsset.Execer = execName
 
@@ -292,7 +293,7 @@ func TestQueryAsset(t *testing.T) {
 		t.Error(ErrTest)
 		return
 	}
-	var res types.ReplyAccountTokenAssets
+	var res tokenty.ReplyAccountTokenAssets
 	err = types.Decode(reply.Msg, &res)
 	if err != nil {
 		t.Error(err)

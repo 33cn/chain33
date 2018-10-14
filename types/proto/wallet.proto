@@ -344,6 +344,13 @@ message UTXOHaveTxHashs {
     repeated UTXOHaveTxHash utxoHaveTxHashs = 1;
 }
 
+message UTXOGlobalIndex {
+    //	int64 height   = 1;
+    //	int32 txindex  = 2;
+    bytes txhash   = 3;
+    int32 outindex = 4;
+}
+
 message ReqUTXOGlobalIndex {
     string   tokenname    = 1;
     int32    mixCount     = 2;
@@ -461,17 +468,6 @@ message ReplyPrivacyAccount {
 message ReqCreateCacheTxKey {
     string tokenname = 1;
     bytes  hashkey   = 2;
-}
-
-message ReqBindMiner {
-    string bindAddr     = 1;
-    string originAddr   = 2;
-    int64  amount       = 3;
-    bool   checkBalance = 4;
-}
-
-message ReplyBindMiner {
-    string txHex = 1;
 }
 
 // get privacy transaction list in wallet
