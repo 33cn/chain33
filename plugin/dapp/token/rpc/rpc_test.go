@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"gitlab.33.cn/chain33/chain33/client/mocks"
 	tokenty "gitlab.33.cn/chain33/chain33/plugin/dapp/token/types"
-	"gitlab.33.cn/chain33/chain33/pluginmgr"
+	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 	"gitlab.33.cn/chain33/chain33/types"
 	context "golang.org/x/net/context"
 )
@@ -15,7 +15,7 @@ import (
 func newTestChannelClient() *channelClient {
 	api := &mocks.QueueProtocolAPI{}
 	return &channelClient{
-		ChannelClient: pluginmgr.ChannelClient{QueueProtocolAPI: api},
+		ChannelClient: rpctypes.ChannelClient{QueueProtocolAPI: api},
 	}
 }
 
@@ -27,7 +27,7 @@ func testChannelClient_GetTokenBalanceToken(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 
 	client := &channelClient{
-		ChannelClient: pluginmgr.ChannelClient{QueueProtocolAPI: api},
+		ChannelClient: rpctypes.ChannelClient{QueueProtocolAPI: api},
 	}
 
 	head := &types.Header{StateHash: []byte("sdfadasds")}
@@ -56,7 +56,7 @@ func testChannelClient_GetTokenBalanceToken(t *testing.T) {
 func testChannelClient_GetTokenBalanceOther(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 	client := &channelClient{
-		ChannelClient: pluginmgr.ChannelClient{QueueProtocolAPI: api},
+		ChannelClient: rpctypes.ChannelClient{QueueProtocolAPI: api},
 	}
 
 	head := &types.Header{StateHash: []byte("sdfadasds")}
