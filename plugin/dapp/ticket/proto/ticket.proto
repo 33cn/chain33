@@ -104,6 +104,6 @@ message ReplyBindMiner {
 }
 
 service ticket {
-   //创建绑定挖矿
+    //创建绑定挖矿
     rpc CreateBindMiner(ReqBindMiner) returns (ReplyBindMiner) {}
 }
