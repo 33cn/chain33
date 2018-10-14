@@ -320,18 +320,6 @@ func (base *ExecTypeBase) GetExecFuncMap() map[string]reflect.Method {
 	return base.execFuncList
 }
 
-func (base *ExecTypeBase) GetLogMap() map[int64]*LogInfo {
-	return nil
-}
-
-func (base *ExecTypeBase) GetPayload() Message {
-	return nil
-}
-
-func (base *ExecTypeBase) GetTypeMap() map[string]int32 {
-	return nil
-}
-
 func (base *ExecTypeBase) GetName() string {
 	return "typedriverbase"
 }

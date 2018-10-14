@@ -1441,64 +1441,6 @@ func (c *Chain33) CreateTransaction(in *rpctypes.CreateTxIn, result *interface{}
 	return nil
 }
 
-func (c *Chain33) CreateRawRelayOrderTx(in *rpctypes.RelayOrderTx, result *interface{}) error {
-	reply, err := c.cli.CreateRawRelayOrderTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
-	return nil
-}
-
-func (c *Chain33) CreateRawRelayAcceptTx(in *rpctypes.RelayAcceptTx, result *interface{}) error {
-	reply, err := c.cli.CreateRawRelayAcceptTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
-	return nil
-}
-func (c *Chain33) CreateRawRelayRevokeTx(in *rpctypes.RelayRevokeTx, result *interface{}) error {
-	reply, err := c.cli.CreateRawRelayRevokeTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
-	return nil
-}
-func (c *Chain33) CreateRawRelayConfirmTx(in *rpctypes.RelayConfirmTx, result *interface{}) error {
-	reply, err := c.cli.CreateRawRelayConfirmTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
-	return nil
-}
-func (c *Chain33) CreateRawRelayVerifyBTCTx(in *rpctypes.RelayVerifyBTCTx, result *interface{}) error {
-	reply, err := c.cli.CreateRawRelayVerifyBTCTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
-	return nil
-}
-
-func (c *Chain33) CreateRawRelaySaveBTCHeadTx(in *rpctypes.RelaySaveBTCHeadTx, result *interface{}) error {
-	reply, err := c.cli.CreateRawRelaySaveBTCHeadTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
-
-	return nil
-}
-
 func (c *Chain33) convertWalletTxDetailToJson(in *types.WalletTxDetails, out *rpctypes.WalletTxDetails) error {
 	if in == nil || out == nil {
 		return types.ErrInvalidParams

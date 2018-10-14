@@ -9,6 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/common"
+	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/privacy/types"
 	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -358,20 +359,20 @@ func showAmountOfUTXOFlag(cmd *cobra.Command) {
 func showAmountOfUTXO(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 
-	reqPrivacyToken := types.ReqPrivacyToken{Token: types.BTY}
+	reqPrivacyToken := pty.ReqPrivacyToken{Token: types.BTY}
 	var params types.Query4Cli
 	params.Execer = types.PrivacyX
 	params.FuncName = "ShowAmountsOfUTXO"
 	params.Payload = reqPrivacyToken
 
-	var res types.ReplyPrivacyAmounts
+	var res pty.ReplyPrivacyAmounts
 	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
 	ctx.SetResultCb(parseShowAmountOfUTXORes)
 	ctx.Run()
 }
 
 func parseShowAmountOfUTXORes(arg interface{}) (interface{}, error) {
-	res := arg.(*types.ReplyPrivacyAmounts)
+	res := arg.(*pty.ReplyPrivacyAmounts)
 	for _, amount := range res.AmountDetail {
 		amount.Amount = amount.Amount / types.Coin
 	}
@@ -398,7 +399,7 @@ func showUTXOs4SpecifiedAmount(cmd *cobra.Command, args []string) {
 	amount, _ := cmd.Flags().GetFloat64("amount")
 	amountInt64 := int64(amount*types.InputPrecision) * types.Multiple1E4
 
-	reqPrivacyToken := types.ReqPrivacyToken{
+	reqPrivacyToken := pty.ReqPrivacyToken{
 		Token:  types.BTY,
 		Amount: amountInt64,
 	}
@@ -407,14 +408,14 @@ func showUTXOs4SpecifiedAmount(cmd *cobra.Command, args []string) {
 	params.FuncName = "ShowUTXOs4SpecifiedAmount"
 	params.Payload = reqPrivacyToken
 
-	var res types.ReplyUTXOsOfAmount
+	var res pty.ReplyUTXOsOfAmount
 	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
 	ctx.SetResultCb(parseShowUTXOs4SpecifiedAmountRes)
 	ctx.Run()
 }
 
 func parseShowUTXOs4SpecifiedAmountRes(arg interface{}) (interface{}, error) {
-	res := arg.(*types.ReplyUTXOsOfAmount)
+	res := arg.(*pty.ReplyUTXOsOfAmount)
 	ret := make([]*PrivacyAccountResult, 0)
 	for _, item := range res.LocalUTXOItems {
 		result := &PrivacyAccountResult{
