@@ -12,20 +12,17 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	slog "gitlab.33.cn/chain33/chain33/common/log"
 	hashlocktype "gitlab.33.cn/chain33/chain33/plugin/dapp/hashlock/types"
+	retrievetype "gitlab.33.cn/chain33/chain33/plugin/dapp/retrieve/types"
 	tradetype "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/types"
 	"gitlab.33.cn/chain33/chain33/pluginmgr"
 	qmock "gitlab.33.cn/chain33/chain33/queue/mocks"
 	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
-	"gitlab.33.cn/chain33/chain33/types/executor"
-	exec "gitlab.33.cn/chain33/chain33/types/executor"
-	retrievetype "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
 )
 
 func init() {
 	slog.SetLogLevel("error")
 	types.SetTitle("local")
-	executor.Init()
 	pluginmgr.InitExec()
 }
 
@@ -39,7 +36,6 @@ func newTestChannelClient() *channelClient {
 func TestInit(t *testing.T) {
 	client := newTestChannelClient()
 	client.Init(&qmock.Client{})
-	exec.Init()
 }
 
 func testCreateRawTransactionNil(t *testing.T) {

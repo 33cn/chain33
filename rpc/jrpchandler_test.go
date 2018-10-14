@@ -8,19 +8,17 @@ import (
 
 	_ "gitlab.33.cn/chain33/chain33/plugin"
 	_ "gitlab.33.cn/chain33/chain33/system"
+	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"gitlab.33.cn/chain33/chain33/client/mocks"
 	"gitlab.33.cn/chain33/chain33/common"
 	hashlocktype "gitlab.33.cn/chain33/chain33/plugin/dapp/hashlock/types"
+	retrievetype "gitlab.33.cn/chain33/chain33/plugin/dapp/retrieve/types"
 	tradetype "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/types"
-
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
-
 	"gitlab.33.cn/chain33/chain33/types"
-	_ "gitlab.33.cn/chain33/chain33/types/executor"
-	retrievetype "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
 )
 
 func TestDecodeUserWrite(t *testing.T) {
@@ -393,102 +391,6 @@ func TestDecodeLogGenesisDeposit(t *testing.T) {
 	assert.Equal(t, "LogGenesisDeposit", result.Logs[0].TyName)
 }
 
-func TestDecodeLogNewTicket(t *testing.T) {
-	var logTmp = &types.ReceiptTicket{}
-
-	dec := types.Encode(logTmp)
-
-	strdec := hex.EncodeToString(dec)
-	rlog := &rpctypes.ReceiptLog{
-		Ty:  types.TyLogNewTicket,
-		Log: "0x" + strdec,
-	}
-
-	logs := []*rpctypes.ReceiptLog{}
-	logs = append(logs, rlog)
-
-	var data = &rpctypes.ReceiptData{
-		Ty:   5,
-		Logs: logs,
-	}
-	result, err := rpctypes.DecodeLog([]byte("ticket"), data)
-	assert.Nil(t, err)
-	assert.NotNil(t, result)
-	assert.Equal(t, "LogNewTicket", result.Logs[0].TyName)
-}
-
-func TestDecodeLogCloseTicket(t *testing.T) {
-	var logTmp = &types.ReceiptTicket{}
-
-	dec := types.Encode(logTmp)
-
-	strdec := hex.EncodeToString(dec)
-	rlog := &rpctypes.ReceiptLog{
-		Ty:  types.TyLogCloseTicket,
-		Log: "0x" + strdec,
-	}
-
-	logs := []*rpctypes.ReceiptLog{}
-	logs = append(logs, rlog)
-
-	var data = &rpctypes.ReceiptData{
-		Ty:   5,
-		Logs: logs,
-	}
-	result, err := rpctypes.DecodeLog([]byte("ticket"), data)
-	assert.Nil(t, err)
-	assert.NotNil(t, result)
-	assert.Equal(t, "LogCloseTicket", result.Logs[0].TyName)
-}
-
-func TestDecodeLogMinerTicket(t *testing.T) {
-	var logTmp = &types.ReceiptTicket{}
-
-	dec := types.Encode(logTmp)
-
-	strdec := hex.EncodeToString(dec)
-	rlog := &rpctypes.ReceiptLog{
-		Ty:  types.TyLogMinerTicket,
-		Log: "0x" + strdec,
-	}
-
-	logs := []*rpctypes.ReceiptLog{}
-	logs = append(logs, rlog)
-
-	var data = &rpctypes.ReceiptData{
-		Ty:   5,
-		Logs: logs,
-	}
-	result, err := rpctypes.DecodeLog([]byte("ticket"), data)
-	assert.Nil(t, err)
-	assert.NotNil(t, result)
-	assert.Equal(t, "LogMinerTicket", result.Logs[0].TyName)
-}
-
-func TestDecodeLogTicketBind(t *testing.T) {
-	var logTmp = &types.ReceiptTicketBind{}
-
-	dec := types.Encode(logTmp)
-
-	strdec := hex.EncodeToString(dec)
-	rlog := &rpctypes.ReceiptLog{
-		Ty:  types.TyLogTicketBind,
-		Log: "0x" + strdec,
-	}
-
-	logs := []*rpctypes.ReceiptLog{}
-	logs = append(logs, rlog)
-
-	var data = &rpctypes.ReceiptData{
-		Ty:   5,
-		Logs: logs,
-	}
-	result, err := rpctypes.DecodeLog([]byte("ticket"), data)
-	assert.Nil(t, err)
-	assert.NotNil(t, result)
-	assert.Equal(t, "LogTicketBind", result.Logs[0].TyName)
-}
-
 func TestDecodeLogTradeSellLimit(t *testing.T) {
 	var logTmp = &tradetype.ReceiptTradeSellLimit{}
 	dec := types.Encode(logTmp)
@@ -855,8 +757,7 @@ func TestChain33_QueryTransactionOk(t *testing.T) {
 	data := rpctypes.QueryParm{
 		Hash: "",
 	}
-
-	var act = &types.TicketAction{
+	var act = &cty.CoinsAction{
 		Ty: 1,
 	}
 	payload := types.Encode(act)

@@ -458,7 +458,7 @@ func CreateBlockInfoTx(pubkey string, lastCommit *tmtypes.TendermintCommit, seen
 	tendermintlog.Debug("CreateBlockInfoTx", "validators", blockInfo.State.Validators.Validators, "block", block, "block-notxs", blockNoTxs)
 
 	nput := &tmtypes.ValNodeAction_BlockInfo{BlockInfo: blockInfo}
-	action := &tmtypes.ValNodeAction{Value: nput, Ty: types.ValNodeActionBlockInfo}
+	action := &tmtypes.ValNodeAction{Value: nput, Ty: tmtypes.ValNodeActionBlockInfo}
 	tx := &types.Transaction{Execer: []byte("valnode"), Payload: types.Encode(action), Fee: fee}
 	tx.To = address.ExecAddress("valnode")
 	tx.Nonce = r.Int63()

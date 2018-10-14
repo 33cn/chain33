@@ -88,7 +88,7 @@ func (val *ValNode) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData,
 	}
 	clog.Debug("ExecLocal valnode tx", "tx=", action)
 
-	if action.Ty == types.ValNodeActionUpdate && action.GetNode() != nil {
+	if action.Ty == ty.ValNodeActionUpdate && action.GetNode() != nil {
 		if len(action.GetNode().PubKey) == 0 {
 			return nil, errors.New("validator pubkey is empty")
 		}
@@ -97,7 +97,7 @@ func (val *ValNode) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData,
 		}
 		key := CalcValNodeUpdateHeightIndexKey(val.GetHeight(), index)
 		set.KV = append(set.KV, &types.KeyValue{Key: key, Value: types.Encode(action.GetNode())})
-	} else if action.Ty == types.ValNodeActionBlockInfo && action.GetBlockInfo() != nil {
+	} else if action.Ty == ty.ValNodeActionBlockInfo && action.GetBlockInfo() != nil {
 		key := CalcValNodeBlockInfoHeightKey(val.GetHeight())
 		set.KV = append(set.KV, &types.KeyValue{Key: key, Value: types.Encode(action.GetBlockInfo())})
 	}
@@ -119,7 +119,7 @@ func (val *ValNode) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptDa
 	}
 	clog.Debug("ExecDelLocal valnode tx", "tx=", action)
 
-	if action.Ty == types.ValNodeActionUpdate && action.GetNode() != nil {
+	if action.Ty == ty.ValNodeActionUpdate && action.GetNode() != nil {
 		if len(action.GetNode().PubKey) == 0 {
 			return nil, errors.New("validator pubkey is empty")
 		}
@@ -128,7 +128,7 @@ func (val *ValNode) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptDa
 		}
 		key := CalcValNodeUpdateHeightIndexKey(val.GetHeight(), index)
 		set.KV = append(set.KV, &types.KeyValue{Key: key, Value: types.Encode(action.GetNode())})
-	} else if action.Ty == types.ValNodeActionBlockInfo && action.GetBlockInfo() != nil {
+	} else if action.Ty == ty.ValNodeActionBlockInfo && action.GetBlockInfo() != nil {
 		key := CalcValNodeBlockInfoHeightKey(val.GetHeight())
 		set.KV = append(set.KV, &types.KeyValue{Key: key, Value: types.Encode(action.GetBlockInfo())})
 	}
