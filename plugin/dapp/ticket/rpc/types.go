@@ -1,12 +1,9 @@
 package rpc
 
 import (
-	"github.com/inconshreveable/log15"
 	ty "gitlab.33.cn/chain33/chain33/plugin/dapp/ticket/types"
 	"gitlab.33.cn/chain33/chain33/rpc/types"
 )
-
-var log = log15.New("module", "token.rpc")
 
 type Jrpc struct {
 	cli *channelClient
