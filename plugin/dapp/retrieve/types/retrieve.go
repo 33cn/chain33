@@ -1,4 +1,4 @@
-package retrieve
+package types
 
 import (
 	"encoding/json"
@@ -10,13 +10,10 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var nameX string
-
 var rlog = log.New("module", types.RetrieveX)
+var RetrieveX = types.RetrieveX
 
-func Init() {
-	nameX = types.ExecName(types.RetrieveX)
-	// init executor type
+func init() {
 	types.RegistorExecutor(types.RetrieveX, NewType())
 }
 
@@ -34,7 +31,7 @@ func (at *RetrieveType) GetPayload() types.Message {
 	return &types.RetrieveAction{}
 }
 
-func (r RetrieveType) ActionName(tx *types.Transaction) string {
+func (r *RetrieveType) ActionName(tx *types.Transaction) string {
 	var action types.RetrieveAction
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
@@ -52,20 +49,7 @@ func (r RetrieveType) ActionName(tx *types.Transaction) string {
 	return "unknown"
 }
 
-func (retrieve RetrieveType) DecodePayload(tx *types.Transaction) (interface{}, error) {
-	var action types.RetrieveAction
-	err := types.Decode(tx.Payload, &action)
-	if err != nil {
-		return nil, err
-	}
-	return &action, nil
-}
-
-func (r RetrieveType) Amount(tx *types.Transaction) (int64, error) {
-	return 0, nil
-}
-
-func (retrieve RetrieveType) CreateTx(action string, message json.RawMessage) (*types.Transaction, error) {
+func (retrieve *RetrieveType) CreateTx(action string, message json.RawMessage) (*types.Transaction, error) {
 	rlog.Debug("retrieve.CreateTx", "action", action)
 	var tx *types.Transaction
 	if action == "RetrieveBackup" {
@@ -139,11 +123,11 @@ func CreateRawRetrieveBackupTx(parm *RetrieveBackupTx) (*types.Transaction, erro
 		Value: &types.RetrieveAction_Backup{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte(nameX),
+		Execer:  []byte(types.ExecName(RetrieveX)),
 		Payload: types.Encode(backup),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(nameX),
+		To:      address.ExecAddress(types.ExecName(RetrieveX)),
 	}
 
 	err := tx.SetRealFee(types.MinFee)
@@ -169,11 +153,11 @@ func CreateRawRetrievePrepareTx(parm *RetrievePrepareTx) (*types.Transaction, er
 		Value: &types.RetrieveAction_PreRet{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte(nameX),
+		Execer:  []byte(types.ExecName(RetrieveX)),
 		Payload: types.Encode(prepare),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(nameX),
+		To:      address.ExecAddress(types.ExecName(RetrieveX)),
 	}
 
 	err := tx.SetRealFee(types.MinFee)
@@ -199,11 +183,11 @@ func CreateRawRetrievePerformTx(parm *RetrievePerformTx) (*types.Transaction, er
 		Value: &types.RetrieveAction_PerfRet{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte(nameX),
+		Execer:  []byte(types.ExecName(RetrieveX)),
 		Payload: types.Encode(perform),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(nameX),
+		To:      address.ExecAddress(types.ExecName(RetrieveX)),
 	}
 
 	err := tx.SetRealFee(types.MinFee)
@@ -229,17 +213,15 @@ func CreateRawRetrieveCancelTx(parm *RetrieveCancelTx) (*types.Transaction, erro
 		Value: &types.RetrieveAction_Cancel{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte(nameX),
+		Execer:  []byte(types.ExecName(RetrieveX)),
 		Payload: types.Encode(cancel),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(nameX),
+		To:      address.ExecAddress(types.ExecName(RetrieveX)),
 	}
-
 	err := tx.SetRealFee(types.MinFee)
 	if err != nil {
 		return nil, err
 	}
-
 	return tx, nil
 }

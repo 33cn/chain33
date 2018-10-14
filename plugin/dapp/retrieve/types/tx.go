@@ -1,4 +1,4 @@
-package retrieve
+package types
 
 type RetrieveBackupTx struct {
 	BackupAddr  string `json:"backupAddr"`

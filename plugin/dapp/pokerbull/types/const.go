@@ -1,7 +1,5 @@
 package types
 
-import "gitlab.33.cn/chain33/chain33/types"
-
 //game action ty
 const (
 	PBGameActionStart = iota + 1
@@ -33,7 +31,3 @@ const (
 	TyLogPBGameQuit     = 723
 	TyLogPBGameQuery    = 724
 )
-
-func init() {
-	types.AllowUserExec = append(types.AllowUserExec, ExecerPokerBull)
-}
