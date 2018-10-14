@@ -18,3 +18,11 @@ const (
 const (
 	LotteryX = "lottery"
 )
+
+//Lottery status
+const (
+	LotteryCreated = 1 + iota
+	LotteryPurchase
+	LotteryDrawed
+	LotteryClosed
+)

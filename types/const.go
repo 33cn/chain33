@@ -269,16 +269,3 @@ var LowAllowPackHeight int64 = 30
 
 //默认情况下不开启fork
 var EnableTxGroupParaFork = false
-
-//Lottery status
-const (
-	LotteryCreated = 1 + iota
-	LotteryPurchase
-	LotteryDrawed
-	LotteryClosed
-)
-
-const (
-	ValNodeActionUpdate    = 1
-	ValNodeActionBlockInfo = 2
-)
