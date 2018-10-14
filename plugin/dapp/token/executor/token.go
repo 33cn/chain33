@@ -16,7 +16,7 @@ import (
 	"github.com/pkg/errors"
 	"gitlab.33.cn/chain33/chain33/account"
 	"gitlab.33.cn/chain33/chain33/common/address"
-	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/token/types"
+	tokenty "gitlab.33.cn/chain33/chain33/plugin/dapp/token/types"
 	"gitlab.33.cn/chain33/chain33/system/dapp"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -29,6 +29,13 @@ const (
 	tokenAssetsPrefix = "token-assets:"
 	blacklist         = "token-blacklist"
 )
+
+var driverName = "token"
+
+func init() {
+	ety := types.LoadExecutorType(driverName)
+	ety.InitFuncList(types.ListMethod(&token{}))
+}
 
 func Init(name string) {
 	drivers.Register(GetName(), newToken, types.ForkV2AddToken)
@@ -46,242 +53,16 @@ type token struct {
 func newToken() drivers.Driver {
 	t := &token{}
 	t.SetChild(t)
+	t.SetExecutorType(types.LoadExecutorType(driverName))
 	return t
 }
 
 func (t *token) GetDriverName() string {
-	return "token"
+	return driverName
 }
 
 func (c *token) CheckTx(tx *types.Transaction, index int) error {
 	return nil
-}
-
-func (t *token) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
-	var tokenAction types.TokenAction
-	err := types.Decode(tx.Payload, &tokenAction)
-	if err != nil {
-		return nil, err
-	}
-	switch tokenAction.GetTy() {
-	case types.TokenActionPreCreate:
-		action := newTokenAction(t, "", tx)
-		return action.preCreate(tokenAction.GetTokenprecreate())
-
-	case types.TokenActionFinishCreate:
-		action := newTokenAction(t, types.FundKeyAddr, tx)
-		return action.finishCreate(tokenAction.GetTokenfinishcreate())
-
-	case types.TokenActionRevokeCreate:
-		action := newTokenAction(t, "", tx)
-		return action.revokeCreate(tokenAction.GetTokenrevokecreate())
-
-	case types.ActionTransfer:
-		if tokenAction.GetTransfer() == nil {
-			return nil, types.ErrInputPara
-		}
-		token := tokenAction.GetTransfer().GetCointoken()
-		db, err := account.NewAccountDB(t.GetName(), token, t.GetStateDB())
-		if err != nil {
-			return nil, err
-		}
-		return t.ExecTransWithdraw(db, tx, &tokenAction, index)
-
-	case types.ActionWithdraw:
-		if tokenAction.GetWithdraw() == nil {
-			return nil, types.ErrInputPara
-		}
-		token := tokenAction.GetWithdraw().GetCointoken()
-		db, err := account.NewAccountDB(t.GetName(), token, t.GetStateDB())
-		if err != nil {
-			return nil, err
-		}
-		return t.ExecTransWithdraw(db, tx, &tokenAction, index)
-
-	case types.TokenActionTransferToExec:
-		if tokenAction.GetTransferToExec() == nil {
-			return nil, types.ErrInputPara
-		}
-		token := tokenAction.GetTransferToExec().GetCointoken()
-		db, err := account.NewAccountDB(t.GetName(), token, t.GetStateDB())
-		if err != nil {
-			return nil, err
-		}
-		return t.ExecTransWithdraw(db, tx, &tokenAction, index)
-	}
-
-	return nil, types.ErrActionNotSupport
-}
-
-func (t *token) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	var action types.TokenAction
-	err := types.Decode(tx.GetPayload(), &action)
-	if err != nil {
-		panic(err)
-	}
-	var set *types.LocalDBSet
-	if action.Ty == types.ActionTransfer || action.Ty == types.ActionWithdraw {
-		set, err = t.ExecLocalTransWithdraw(tx, receipt, index)
-		if err != nil {
-			return nil, err
-		}
-
-		if action.Ty == types.ActionTransfer && action.GetTransfer() != nil {
-			transfer := action.GetTransfer()
-			// 添加个人资产列表
-			//tokenlog.Info("ExecLocalTransWithdraw", "addr", tx.GetRealToAddr(), "asset", transfer.Cointoken)
-			kv := AddTokenToAssets(tx.GetRealToAddr(), t.GetLocalDB(), transfer.Cointoken)
-			if kv != nil {
-				set.KV = append(set.KV, kv...)
-			}
-		}
-		if action.Ty == types.ActionWithdraw && action.GetWithdraw() != nil {
-			withdraw := action.GetWithdraw()
-			// 添加个人资产列表
-			kv := AddTokenToAssets(tx.From(), t.GetLocalDB(), withdraw.Cointoken)
-			if kv != nil {
-				set.KV = append(set.KV, kv...)
-			}
-		}
-
-		if types.GetSaveTokenTxList() {
-			kvs, err := t.makeTokenTxKvs(tx, &action, receipt, index, false)
-			if err != nil {
-				return nil, err
-			}
-			set.KV = append(set.KV, kvs...)
-		}
-	} else {
-		set, err = t.DriverBase.ExecLocal(tx, receipt, index)
-		if err != nil {
-			return nil, err
-		}
-		if receipt.GetTy() != types.ExecOk {
-			return set, nil
-		}
-
-		for i := 0; i < len(receipt.Logs); i++ {
-			item := receipt.Logs[i]
-			if item.Ty == types.TyLogPreCreateToken || item.Ty == types.TyLogFinishCreateToken || item.Ty == types.TyLogRevokeCreateToken {
-				var receipt types.ReceiptToken
-				err := types.Decode(item.Log, &receipt)
-				if err != nil {
-					panic(err) //数据错误了，已经被修改了
-				}
-
-				receiptKV := t.saveLogs(&receipt)
-				set.KV = append(set.KV, receiptKV...)
-
-				// 添加个人资产列表
-				if item.Ty == types.TyLogFinishCreateToken && action.GetTokenfinishcreate() != nil {
-					kv := AddTokenToAssets(action.GetTokenfinishcreate().Owner, t.GetLocalDB(), action.GetTokenfinishcreate().Symbol)
-					if kv != nil {
-						set.KV = append(set.KV, kv...)
-					}
-				}
-			}
-		}
-	}
-
-	return set, nil
-}
-
-func (t *token) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	var action types.TokenAction
-	err := types.Decode(tx.GetPayload(), &action)
-	if err != nil {
-		panic(err)
-	}
-	var set *types.LocalDBSet
-	if action.Ty == types.ActionTransfer || action.Ty == types.ActionWithdraw {
-		set, err = t.ExecDelLocalLocalTransWithdraw(tx, receipt, index)
-		if err != nil {
-			return nil, err
-		}
-		if types.GetSaveTokenTxList() {
-			kvs, err := t.makeTokenTxKvs(tx, &action, receipt, index, true)
-			if err != nil {
-				return nil, err
-			}
-			set.KV = append(set.KV, kvs...)
-		}
-	} else {
-		set, err = t.DriverBase.ExecDelLocal(tx, receipt, index)
-		if err != nil {
-			return nil, err
-		}
-		if receipt.GetTy() != types.ExecOk {
-			return set, nil
-		}
-
-		for i := 0; i < len(receipt.Logs); i++ {
-			item := receipt.Logs[i]
-			if item.Ty == types.TyLogPreCreateToken || item.Ty == types.TyLogFinishCreateToken || item.Ty == types.TyLogRevokeCreateToken {
-				var receipt types.ReceiptToken
-				err := types.Decode(item.Log, &receipt)
-				if err != nil {
-					tokenlog.Error("Failed to decode ReceiptToken in ExecDelLocal")
-					continue
-				}
-				set.KV = append(set.KV, t.deleteLogs(&receipt)...)
-			}
-		}
-	}
-
-	return set, nil
-}
-
-func (t *token) Query(funcName string, params []byte) (types.Message, error) {
-	switch funcName {
-	//GetTokens,支持所有状态下的单个token，多个token，以及所有token的信息的查询
-	case "GetTokens":
-		var reqtokens types.ReqTokens
-		err := types.Decode(params, &reqtokens)
-		if err != nil {
-			return nil, err
-		}
-		//tokenlog.Info("token Query", "function name", funcName, "query tokens", reqtokens)
-		return t.GetTokens(&reqtokens)
-	case "GetTokenInfo":
-		var symbol types.ReqString
-		err := types.Decode(params, &symbol)
-		if err != nil {
-			return nil, err
-		}
-		return t.GetTokenInfo(symbol.GetData())
-	case "GetAddrReceiverforTokens":
-		var addrTokens pty.ReqAddrTokens
-		err := types.Decode(params, &addrTokens)
-		if err != nil {
-			return nil, err
-		}
-		return t.GetAddrReceiverforTokens(&addrTokens)
-	case "GetAccountTokenAssets":
-		var req types.ReqAccountTokenAssets
-		err := types.Decode(params, &req)
-		if err != nil {
-			return nil, err
-		}
-		return t.GetAccountTokenAssets(&req)
-	case "GetTxByToken":
-		if !types.GetSaveTokenTxList() {
-			return nil, types.ErrActionNotSupport
-		}
-		var req types.ReqTokenTx
-		err := types.Decode(params, &req) // TODO_x to test show err log
-		if err != nil {
-			tokenlog.Error("GetTxByToken decode request failed", "error", err)
-			return nil, err
-		}
-		tokenlog.Debug("query debug", "func", funcName, "req", req)
-		msg, err := t.GetTxByToken(&req)
-		if err != nil {
-			tokenlog.Error("GetTxByToken failed", "error", err)
-			return nil, errors.Cause(err)
-		}
-		return msg, nil
-	}
-	return nil, types.ErrActionNotSupport
 }
 
 func (t *token) QueryTokenAssetsKey(addr string) (*types.ReplyStrings, error) {
@@ -300,8 +81,8 @@ func (t *token) QueryTokenAssetsKey(addr string) (*types.ReplyStrings, error) {
 	return &assets, nil
 }
 
-func (t *token) GetAccountTokenAssets(req *types.ReqAccountTokenAssets) (types.Message, error) {
-	var reply = &types.ReplyAccountTokenAssets{}
+func (t *token) GetAccountTokenAssets(req *tokenty.ReqAccountTokenAssets) (types.Message, error) {
+	var reply = &tokenty.ReplyAccountTokenAssets{}
 	assets, err := t.QueryTokenAssetsKey(req.Address)
 	if err != nil {
 		return nil, err
@@ -321,14 +102,14 @@ func (t *token) GetAccountTokenAssets(req *types.ReqAccountTokenAssets) (types.M
 		if acc1 == nil {
 			continue
 		}
-		tokenAsset := &types.TokenAsset{asset, acc1}
+		tokenAsset := &tokenty.TokenAsset{asset, acc1}
 		reply.TokenAssets = append(reply.TokenAssets, tokenAsset)
 	}
 	return reply, nil
 }
 
-func (t *token) GetAddrReceiverforTokens(addrTokens *pty.ReqAddrTokens) (types.Message, error) {
-	var reply = &types.ReplyAddrRecvForTokens{}
+func (t *token) GetAddrReceiverforTokens(addrTokens *tokenty.ReqAddrTokens) (types.Message, error) {
+	var reply = &tokenty.ReplyAddrRecvForTokens{}
 	db := t.GetLocalDB()
 	reciver := types.Int64{}
 	for _, token := range addrTokens.Token {
@@ -341,7 +122,7 @@ func (t *token) GetAddrReceiverforTokens(addrTokens *pty.ReqAddrTokens) (types.M
 			continue
 		}
 
-		recv := &types.TokenRecv{token, reciver.Data}
+		recv := &tokenty.TokenRecv{token, reciver.Data}
 		reply.TokenRecvs = append(reply.TokenRecvs, recv)
 	}
 
@@ -354,7 +135,7 @@ func (t *token) GetTokenInfo(symbol string) (types.Message, error) {
 	if err != nil {
 		return nil, types.ErrEmpty
 	}
-	var tokenInfo types.Token
+	var tokenInfo tokenty.Token
 	err = types.Decode(token, &tokenInfo)
 	if err != nil {
 		return &tokenInfo, err
@@ -362,8 +143,8 @@ func (t *token) GetTokenInfo(symbol string) (types.Message, error) {
 	return &tokenInfo, nil
 }
 
-func (t *token) GetTokens(reqTokens *types.ReqTokens) (types.Message, error) {
-	replyTokens := &types.ReplyTokens{}
+func (t *token) GetTokens(reqTokens *tokenty.ReqTokens) (types.Message, error) {
+	replyTokens := &tokenty.ReplyTokens{}
 	keys, err := t.listTokenKeys(reqTokens)
 	if err != nil {
 		return nil, err
@@ -376,7 +157,7 @@ func (t *token) GetTokens(reqTokens *types.ReqTokens) (types.Message, error) {
 				continue
 			}
 			symbol := key[idx+1:]
-			token := types.Token{Symbol: string(symbol)}
+			token := tokenty.Token{Symbol: string(symbol)}
 			replyTokens.Tokens = append(replyTokens.Tokens, &token)
 		}
 		return replyTokens, nil
@@ -385,7 +166,7 @@ func (t *token) GetTokens(reqTokens *types.ReqTokens) (types.Message, error) {
 	db := t.GetStateDB()
 	for _, key := range keys {
 		if tokenValue, err := db.Get(key); err == nil {
-			var token types.Token
+			var token tokenty.Token
 			err = types.Decode(tokenValue, &token)
 			if err == nil {
 				replyTokens.Tokens = append(replyTokens.Tokens, &token)
@@ -397,7 +178,7 @@ func (t *token) GetTokens(reqTokens *types.ReqTokens) (types.Message, error) {
 	return replyTokens, nil
 }
 
-func (t *token) listTokenKeys(reqTokens *types.ReqTokens) ([][]byte, error) {
+func (t *token) listTokenKeys(reqTokens *tokenty.ReqTokens) ([][]byte, error) {
 	querydb := t.GetLocalDB()
 	if reqTokens.QueryAll {
 		//list := dbm.NewListHelper(querydb)
@@ -440,7 +221,7 @@ func (t *token) listTokenKeys(reqTokens *types.ReqTokens) ([][]byte, error) {
 }
 
 // value 对应 statedb 的key
-func (t *token) saveLogs(receipt *types.ReceiptToken) []*types.KeyValue {
+func (t *token) saveLogs(receipt *tokenty.ReceiptToken) []*types.KeyValue {
 	var kv []*types.KeyValue
 
 	key := calcTokenStatusNewKey(receipt.Symbol, receipt.Owner, receipt.Status)
@@ -452,21 +233,21 @@ func (t *token) saveLogs(receipt *types.ReceiptToken) []*types.KeyValue {
 	}
 	kv = append(kv, &types.KeyValue{key, value})
 	//如果当前需要被更新的状态不是Status_PreCreated，则认为之前的状态是precreate，且其对应的key需要被删除
-	if receipt.Status != types.TokenStatusPreCreated {
-		key = calcTokenStatusNewKey(receipt.Symbol, receipt.Owner, types.TokenStatusPreCreated)
+	if receipt.Status != tokenty.TokenStatusPreCreated {
+		key = calcTokenStatusNewKey(receipt.Symbol, receipt.Owner, tokenty.TokenStatusPreCreated)
 		kv = append(kv, &types.KeyValue{key, nil})
 	}
 	return kv
 }
 
-func (t *token) deleteLogs(receipt *types.ReceiptToken) []*types.KeyValue {
+func (t *token) deleteLogs(receipt *tokenty.ReceiptToken) []*types.KeyValue {
 	var kv []*types.KeyValue
 
 	key := calcTokenStatusNewKey(receipt.Symbol, receipt.Owner, receipt.Status)
 	kv = append(kv, &types.KeyValue{key, nil})
 	//如果当前需要被更新的状态不是Status_PreCreated，则认为之前的状态是precreate，且其对应的key需要被恢复
-	if receipt.Status != types.TokenStatusPreCreated {
-		key = calcTokenStatusNewKey(receipt.Symbol, receipt.Owner, types.TokenStatusPreCreated)
+	if receipt.Status != tokenty.TokenStatusPreCreated {
+		key = calcTokenStatusNewKey(receipt.Symbol, receipt.Owner, tokenty.TokenStatusPreCreated)
 		var value []byte
 		if t.GetHeight() >= types.ForkV13ExecKey {
 			value = calcTokenAddrNewKey(receipt.Symbol, receipt.Owner)
@@ -478,12 +259,12 @@ func (t *token) deleteLogs(receipt *types.ReceiptToken) []*types.KeyValue {
 	return kv
 }
 
-func (t *token) makeTokenTxKvs(tx *types.Transaction, action *types.TokenAction, receipt *types.ReceiptData, index int, isDel bool) ([]*types.KeyValue, error) {
+func (t *token) makeTokenTxKvs(tx *types.Transaction, action *tokenty.TokenAction, receipt *types.ReceiptData, index int, isDel bool) ([]*types.KeyValue, error) {
 	var kvs []*types.KeyValue
 	var symbol string
-	if action.Ty == types.ActionTransfer {
+	if action.Ty == tokenty.ActionTransfer {
 		symbol = action.GetTransfer().Cointoken
-	} else if action.Ty != types.ActionWithdraw {
+	} else if action.Ty != tokenty.ActionWithdraw {
 		symbol = action.GetWithdraw().Cointoken
 	} else {
 		return kvs, nil
@@ -493,7 +274,7 @@ func (t *token) makeTokenTxKvs(tx *types.Transaction, action *types.TokenAction,
 	return kvs, err
 }
 
-func findTokenTxListUtil(req *types.ReqTokenTx) ([]byte, []byte) {
+func findTokenTxListUtil(req *tokenty.ReqTokenTx) ([]byte, []byte) {
 	var key, prefix []byte
 	if len(req.Addr) > 0 {
 		if req.Flag == 0 {
@@ -513,7 +294,7 @@ func findTokenTxListUtil(req *types.ReqTokenTx) ([]byte, []byte) {
 	return key, prefix
 }
 
-func (t *token) GetTxByToken(req *types.ReqTokenTx) (types.Message, error) {
+func (t *token) GetTxByToken(req *tokenty.ReqTokenTx) (types.Message, error) {
 	if req.Flag != 0 && req.Flag != dapp.TxIndexFrom && req.Flag != dapp.TxIndexTo {
 		err := types.ErrInputPara
 		return nil, errors.Wrap(err, "flag unknown")

@@ -33,9 +33,6 @@ func (acc *DB) GenesisInitExec(addr string, amount int64, execaddr string) (*typ
 		panic(err)
 	}
 	ty := int32(types.TyLogGenesisDeposit)
-	if acc.execer == types.TokenX {
-		ty = int32(types.TyLogTokenGenesisDeposit)
-	}
 	receipt2.Ty = ty
 	receipt = acc.mergeReceipt(receipt, receipt2)
 	return receipt, nil
@@ -43,9 +40,6 @@ func (acc *DB) GenesisInitExec(addr string, amount int64, execaddr string) (*typ
 
 func (acc *DB) genesisReceipt(accTo *types.Account, receiptTo proto.Message) *types.Receipt {
 	ty := int32(types.TyLogGenesisTransfer)
-	if acc.execer == types.TokenX {
-		ty = int32(types.TyLogTokenGenesisTransfer)
-	}
 	log2 := &types.ReceiptLog{
 		Ty:  ty,
 		Log: types.Encode(receiptTo),

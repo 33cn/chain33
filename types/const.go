@@ -29,7 +29,6 @@ const (
 	Normx     = "norm"
 	CertX     = "cert"
 	ParaX     = "paracross"
-	LotteryX  = "lottery"
 	ValNodeX  = "valnode"
 )
 
@@ -48,7 +47,6 @@ var (
 	ExecerConfig   = []byte("config")
 	ExecerCert     = []byte(CertX)
 	ExecerPara     = []byte(ParaX)
-	ExecerLottery  = []byte(LotteryX)
 	UserKey        = []byte(UserKeyX)
 	ParaKey        = []byte(ParaKeyX)
 	ExecerValNode  = []byte(ValNodeX)
@@ -182,65 +180,19 @@ var SystemLog = map[int64]*LogInfo{
 }
 
 const (
-	//log for ticket
-	TyLogNewTicket   = 111
-	TyLogCloseTicket = 112
-	TyLogMinerTicket = 113
-	TyLogTicketBind  = 114
-
-	//log for token create
-	TyLogPreCreateToken    = 211
-	TyLogFinishCreateToken = 212
-	TyLogRevokeCreateToken = 213
-
 	//log for trade
-	TyLogTradeSellLimit         = 310
-	TyLogTradeBuyMarket         = 311
-	TyLogTradeSellRevoke        = 312
-	TyLogTokenTransfer          = 313
-	TyLogTokenGenesis           = 314
-	TyLogTokenDeposit           = 315
-	TyLogTokenExecTransfer      = 316
-	TyLogTokenExecWithdraw      = 317
-	TyLogTokenExecDeposit       = 318
-	TyLogTokenExecFrozen        = 319
-	TyLogTokenExecActive        = 320
-	TyLogTokenGenesisTransfer   = 321
-	TyLogTokenGenesisDeposit    = 322
+	TyLogTradeSellLimit  = 310
+	TyLogTradeBuyMarket  = 311
+	TyLogTradeSellRevoke = 312
+
 	TyLogTradeSellMarket        = 330
 	TyLogTradeBuyLimit          = 331
 	TyLogTradeBuyRevoke         = 332
 	TyLogParaTokenAssetTransfer = 333
 	TyLogParaTokenAssetWithdraw = 334
 
-	//log for relay
-	TyLogRelayCreate       = 350
-	TyLogRelayRevokeCreate = 351
-	TyLogRelayAccept       = 352
-	TyLogRelayRevokeAccept = 353
-	TyLogRelayConfirmTx    = 354
-	TyLogRelayFinishTx     = 355
-	TyLogRelayRcvBTCHead   = 356
-
 	// log for config
 	TyLogModifyConfig = 410
-
-	// log for privacy
-	TyLogPrivacyFee    = 500
-	TyLogPrivacyInput  = 501
-	TyLogPrivacyOutput = 502
-
-	//log for game
-	TyLogCreateGame = 711
-	TyLogMatchGame  = 712
-	TyLogCancleGame = 713
-	TyLogCloseGame  = 714
-
-	//log for lottery
-	TyLogLotteryCreate = 801
-	TyLogLotteryBuy    = 802
-	TyLogLotteryDraw   = 803
-	TyLogLotteryClose  = 804
 )
 
 //exec type
@@ -248,33 +200,6 @@ const (
 	ExecErr  = 0
 	ExecPack = 1
 	ExecOk   = 2
-)
-
-const (
-	InvalidAction = 0
-	//action for token
-	ActionTransfer            = 4
-	ActionGenesis             = 5
-	ActionWithdraw            = 6
-	TokenActionPreCreate      = 7
-	TokenActionFinishCreate   = 8
-	TokenActionRevokeCreate   = 9
-	TokenActionTransferToExec = 11
-	//action type for privacy
-	ActionPublic2Privacy = iota + 100
-	ActionPrivacy2Privacy
-	ActionPrivacy2Public
-)
-
-//ticket
-const (
-	TicketActionGenesis = 11
-	TicketActionOpen    = 12
-	TicketActionClose   = 13
-	TicketActionList    = 14 //读的接口不直接经过transaction
-	TicketActionInfos   = 15 //读的接口不直接经过transaction
-	TicketActionMiner   = 16
-	TicketActionBind    = 17
 )
 
 //norm
@@ -289,21 +214,6 @@ const (
 	CertActionNormal = 3
 )
 
-// retrieve op
-const (
-	RetrievePre    = 1
-	RetrievePerf   = 2
-	RetrieveBackup = 3
-	RetrieveCancel = 4
-)
-
-// token status
-const (
-	TokenStatusPreCreated = iota
-	TokenStatusCreated
-	TokenStatusCreateRevoked
-)
-
 // manager action
 const (
 	ManageActionModifyConfig = iota
@@ -314,38 +224,6 @@ const (
 	ConfigItemArrayConfig = iota
 	ConfigItemIntConfig
 	ConfigItemStringConfig
-)
-
-// relay
-const (
-	RelayRevokeCreate = iota
-	RelayRevokeAccept
-)
-
-const (
-	RelayOrderBuy = iota
-	RelayOrderSell
-)
-
-var RelayOrderOperation = map[uint32]string{
-	RelayOrderBuy:  "buy",
-	RelayOrderSell: "sell",
-}
-
-const (
-	RelayUnlock = iota
-	RelayCancel
-)
-
-//relay action ty
-const (
-	RelayActionCreate = iota
-	RelayActionAccept
-	RelayActionRevoke
-	RelayActionConfirmTx
-	RelayActionVerifyTx
-	RelayActionVerifyCmdTx
-	RelayActionRcvBTCHeaders
 )
 
 // RescanUtxoFlag
@@ -391,21 +269,3 @@ var LowAllowPackHeight int64 = 30
 
 //默认情况下不开启fork
 var EnableTxGroupParaFork = false
-
-const (
-	ParaCrossTransferActionTypeStart = 10000
-	ParaCrossTransferActionTypeEnd   = 10100
-)
-
-//Lottery status
-const (
-	LotteryCreated = 1 + iota
-	LotteryPurchase
-	LotteryDrawed
-	LotteryClosed
-)
-
-const (
-	ValNodeActionUpdate    = 1
-	ValNodeActionBlockInfo = 2
-)

@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -70,7 +71,7 @@ func blockBodyCmd(cmd *cobra.Command, args []string) {
 		Isdetail: detailBool,
 	}
 	var res rpctypes.BlockDetails
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetBlocks", params, &res)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.GetBlocks", params, &res)
 	ctx.SetResultCb(parseBlockDetail)
 	ctx.Run()
 }
@@ -87,12 +88,11 @@ func parseBlockDetail(res interface{}) (interface{}, error) {
 			Height:     vItem.Block.Height,
 			BlockTime:  vItem.Block.BlockTime,
 		}
-		for _, vTx := range vItem.Block.Txs {
-			b.Txs = append(b.Txs, decodeTransaction(vTx))
-		}
 		var rpt []*ReceiptData
-		for _, vR := range vItem.Receipts {
-			rpt = append(rpt, decodeLog(*vR))
+		for i, vTx := range vItem.Block.Txs {
+			b.Txs = append(b.Txs, decodeTransaction(vTx))
+			vR := vItem.Receipts[i]
+			rpt = append(rpt, decodeLog([]byte(vTx.Execer), *vR))
 		}
 		bd := &BlockDetailResult{Block: b, Receipts: rpt}
 		result.Items = append(result.Items, bd)
@@ -124,7 +124,7 @@ func blockHeightHash(cmd *cobra.Command, args []string) {
 		Height: height,
 	}
 	var res rpctypes.ReplyHash
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetBlockHash", params, &res)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.GetBlockHash", params, &res)
 	ctx.Run()
 }
 
@@ -151,7 +151,7 @@ func blockViewByHash(cmd *cobra.Command, args []string) {
 		Hash: blockHash,
 	}
 	var res rpctypes.BlockOverview
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetBlockOverview", params, &res)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.GetBlockOverview", params, &res)
 	ctx.Run()
 }
 
@@ -192,7 +192,7 @@ func blockHeader(cmd *cobra.Command, args []string) {
 		IsDetail: detailBool,
 	}
 	var res rpctypes.Headers
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetHeaders", params, &res)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.GetHeaders", params, &res)
 	ctx.Run()
 }
 
@@ -209,7 +209,7 @@ func GetLastHeaderCmd() *cobra.Command {
 func lastHeader(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	var res rpctypes.Header
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetLastHeader", nil, &res)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.GetLastHeader", nil, &res)
 	ctx.Run()
 }
 
@@ -227,7 +227,7 @@ func GetLastBlockSequenceCmd() *cobra.Command {
 func lastSequence(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	var res int64
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetLastBlockSequence", nil, &res)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.GetLastBlockSequence", nil, &res)
 	ctx.Run()
 }
 
@@ -253,7 +253,7 @@ func getsequences(cmd *cobra.Command, args []string) {
 		Isdetail: false,
 	}
 	var res rpctypes.ReplyBlkSeqs
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetBlockSequences", params, &res)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.GetBlockSequences", params, &res)
 	//ctx.SetResultCb(parseBlockDetail)
 	ctx.Run()
 }
@@ -291,7 +291,7 @@ func getblockbyhashs(cmd *cobra.Command, args []string) {
 	}
 
 	var res types.BlockDetails
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetBlockByHashes", params, &res)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.GetBlockByHashes", params, &res)
 	//ctx.SetResultCb(parseQueryTxsByHashesRes)
 	ctx.Run()
 }

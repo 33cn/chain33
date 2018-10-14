@@ -5,8 +5,9 @@ import (
 	"encoding/json"
 
 	"gitlab.33.cn/chain33/chain33/common"
-	"gitlab.33.cn/chain33/chain33/common/crypto/privacy"
 	"gitlab.33.cn/chain33/chain33/common/db"
+	privacy "gitlab.33.cn/chain33/chain33/plugin/dapp/privacy/crypto"
+	privacytypes "gitlab.33.cn/chain33/chain33/plugin/dapp/privacy/types"
 	"gitlab.33.cn/chain33/chain33/types"
 	wcom "gitlab.33.cn/chain33/chain33/wallet/common"
 
@@ -550,26 +551,26 @@ func (store *privacyStore) selectCurrentWalletPrivacyTx(txDetal *types.Transacti
 
 	txhashInbytes := tx.Hash()
 	txhash := common.Bytes2Hex(txhashInbytes)
-	var privateAction types.PrivacyAction
+	var privateAction privacytypes.PrivacyAction
 	if err := types.Decode(tx.GetPayload(), &privateAction); err != nil {
 		bizlog.Error("selectCurrentWalletPrivacyTx failed to decode payload")
 		return
 	}
 	bizlog.Info("selectCurrentWalletPrivacyTx", "tx hash", txhash)
 	var RpubKey []byte
-	var privacyOutput *types.PrivacyOutput
-	var privacyInput *types.PrivacyInput
+	var privacyOutput *privacytypes.PrivacyOutput
+	var privacyInput *privacytypes.PrivacyInput
 	var tokenname string
-	if types.ActionPublic2Privacy == privateAction.Ty {
+	if privacytypes.ActionPublic2Privacy == privateAction.Ty {
 		RpubKey = privateAction.GetPublic2Privacy().GetOutput().GetRpubKeytx()
 		privacyOutput = privateAction.GetPublic2Privacy().GetOutput()
 		tokenname = privateAction.GetPublic2Privacy().GetTokenname()
-	} else if types.ActionPrivacy2Privacy == privateAction.Ty {
+	} else if privacytypes.ActionPrivacy2Privacy == privateAction.Ty {
 		RpubKey = privateAction.GetPrivacy2Privacy().GetOutput().GetRpubKeytx()
 		privacyOutput = privateAction.GetPrivacy2Privacy().GetOutput()
 		tokenname = privateAction.GetPrivacy2Privacy().GetTokenname()
 		privacyInput = privateAction.GetPrivacy2Privacy().GetInput()
-	} else if types.ActionPrivacy2Public == privateAction.Ty {
+	} else if privacytypes.ActionPrivacy2Public == privateAction.Ty {
 		RpubKey = privateAction.GetPrivacy2Public().GetOutput().GetRpubKeytx()
 		privacyOutput = privateAction.GetPrivacy2Public().GetOutput()
 		tokenname = privateAction.GetPrivacy2Public().GetTokenname()
@@ -647,7 +648,7 @@ func (store *privacyStore) selectCurrentWalletPrivacyTx(txDetal *types.Transacti
 
 	//处理input
 	if nil != privacyInput && len(privacyInput.Keyinput) > 0 {
-		var utxoGlobalIndexs []*types.UTXOGlobalIndex
+		var utxoGlobalIndexs []*privacytypes.UTXOGlobalIndex
 		for _, input := range privacyInput.Keyinput {
 			utxoGlobalIndexs = append(utxoGlobalIndexs, input.UtxoGlobalIndex...)
 		}
@@ -689,7 +690,7 @@ func (store *privacyStore) setUTXO(addr, txhash *string, outindex int, dbStore *
 	return nil
 }
 
-func (store *privacyStore) storeScanPrivacyInputUTXO(utxoGlobalIndexs []*types.UTXOGlobalIndex, newbatch db.Batch) {
+func (store *privacyStore) storeScanPrivacyInputUTXO(utxoGlobalIndexs []*privacytypes.UTXOGlobalIndex, newbatch db.Batch) {
 	for _, utxoGlobalIndex := range utxoGlobalIndexs {
 		key1 := calcScanPrivacyInputUTXOKey(common.Bytes2Hex(utxoGlobalIndex.Txhash), int(utxoGlobalIndex.Outindex))
 		utxoIndex := &types.UTXOGlobalIndex{

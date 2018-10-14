@@ -5,7 +5,6 @@ import (
 	"math/big"
 
 	"os"
-	"reflect"
 
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/plugin/dapp/evm/executor/vm/common"
@@ -23,18 +22,11 @@ var (
 	EvmAddress = address.ExecAddress(types.ExecName(evmtypes.ExecutorName))
 )
 
-var driverName string
-
-//初始化过程比较重量级，有很多reflact, 所以弄成全局的
-var executorFunList = make(map[string]reflect.Method)
-var executorType = evmtypes.NewType()
+var driverName = evmtypes.ExecutorName
 
 func init() {
-	actionFunList := executorType.GetFuncMap()
-	executorFunList = types.ListMethod(&EVMExecutor{})
-	for k, v := range actionFunList {
-		executorFunList[k] = v
-	}
+	ety := types.LoadExecutorType(driverName)
+	ety.InitFuncList(types.ListMethod(&EVMExecutor{}))
 }
 
 func Init(name string) {
@@ -69,12 +61,7 @@ func NewEVMExecutor() *EVMExecutor {
 	exec.vmCfg.Tracer = runtime.NewJSONLogger(os.Stdout)
 
 	exec.SetChild(exec)
-	//exec.SetExecutorType(executorType)
 	return exec
-}
-
-func (evm *EVMExecutor) GetFuncMap() map[string]reflect.Method {
-	return executorFunList
 }
 
 func (evm *EVMExecutor) GetDriverName() string {

@@ -13,7 +13,7 @@ func (l *Lottery) execLocal(tx *types.Transaction, receipt *types.ReceiptData) (
 	}
 	for _, item := range receipt.Logs {
 		switch item.Ty {
-		case types.TyLogLotteryCreate, types.TyLogLotteryBuy, types.TyLogLotteryDraw, types.TyLogLotteryClose:
+		case pty.TyLogLotteryCreate, pty.TyLogLotteryBuy, pty.TyLogLotteryDraw, pty.TyLogLotteryClose:
 			var lotterylog pty.ReceiptLottery
 			err := types.Decode(item.Log, &lotterylog)
 			if err != nil {
@@ -22,10 +22,10 @@ func (l *Lottery) execLocal(tx *types.Transaction, receipt *types.ReceiptData) (
 			kv := l.saveLottery(&lotterylog)
 			set.KV = append(set.KV, kv...)
 
-			if item.Ty == types.TyLogLotteryBuy {
+			if item.Ty == pty.TyLogLotteryBuy {
 				kv := l.saveLotteryBuy(&lotterylog)
 				set.KV = append(set.KV, kv...)
-			} else if item.Ty == types.TyLogLotteryDraw {
+			} else if item.Ty == pty.TyLogLotteryDraw {
 				kv := l.saveLotteryDraw(&lotterylog)
 				set.KV = append(set.KV, kv...)
 				kv = l.updateLotteryBuy(&lotterylog, true)
