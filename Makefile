@@ -173,9 +173,8 @@ clean: ## Remove previous build
 
 protobuf: ## Generate protbuf file of types package
 	@cd types/proto && ./create_protobuf.sh && cd ../..
-	@cd system/dapp/coins/proto && sh create_protobuf.sh && cd ../..
-	@cd plugin/dapp/paracross/proto && sh create_protobuf.sh && cd ../..
-
+	@cd system && sh proto.sh && cd ../..
+	@cd plugin && sh proto.sh && cd ../..
 
 help: ## Display this help screen
 	@printf "Help doc:\nUsage: make [command]\n"
