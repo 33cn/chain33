@@ -7,7 +7,6 @@ import (
 )
 
 var (
-	nameX      string
 	actionName = map[string]int32{
 		"Transfer":          ActionTransfer,
 		"Genesis":           ActionGenesis,
@@ -20,8 +19,7 @@ var (
 )
 
 func init() {
-	nameX = types.ExecName(types.TokenX)
-	// init executor type
+	types.AllowUserExec = append(types.AllowUserExec, []byte(TokenX))
 	types.RegistorExecutor(types.TokenX, NewType())
 }
 
