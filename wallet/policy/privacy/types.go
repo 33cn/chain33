@@ -1,7 +1,7 @@
 package privacy
 
 import (
-	"gitlab.33.cn/chain33/chain33/common/crypto/privacy"
+	privacy "gitlab.33.cn/chain33/chain33/plugin/dapp/privacy/crypto"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 

@@ -251,8 +251,6 @@ It has these top-level messages:
 	ReqPPrivacyAccount
 	ReplyPrivacyAccount
 	ReqCreateCacheTxKey
-	ReqBindMiner
-	ReplyBindMiner
 	ReqPrivacyTransactionList
 	ReqRescanUtxos
 	RepRescanResult

@@ -9,16 +9,17 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
+	ticketty "gitlab.33.cn/chain33/chain33/plugin/dapp/ticket/types"
 	tokenty "gitlab.33.cn/chain33/chain33/plugin/dapp/token/types"
 	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
 func (wallet *Wallet) bindminer(mineraddr, returnaddr string, priv crypto.PrivKey) ([]byte, error) {
-	ta := &types.TicketAction{}
-	tbind := &types.TicketBind{MinerAddress: mineraddr, ReturnAddress: returnaddr}
-	ta.Value = &types.TicketAction_Tbind{tbind}
-	ta.Ty = types.TicketActionBind
+	ta := &ticketty.TicketAction{}
+	tbind := &ticketty.TicketBind{MinerAddress: mineraddr, ReturnAddress: returnaddr}
+	ta.Value = &ticketty.TicketAction_Tbind{tbind}
+	ta.Ty = ticketty.TicketActionBind
 	return wallet.sendTransaction(ta, []byte("ticket"), priv, "")
 }
 

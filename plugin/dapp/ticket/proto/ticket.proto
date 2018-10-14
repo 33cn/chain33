@@ -91,3 +91,19 @@ message ReceiptTicketBind {
     string newMinerAddress = 2;
     string returnAddress   = 3;
 }
+
+message ReqBindMiner {
+    string bindAddr     = 1;
+    string originAddr   = 2;
+    int64  amount       = 3;
+    bool   checkBalance = 4;
+}
+
+message ReplyBindMiner {
+    string txHex = 1;
+}
+
+service ticket {
+   //创建绑定挖矿
+    rpc CreateBindMiner(ReqBindMiner) returns (ReplyBindMiner) {}
+}

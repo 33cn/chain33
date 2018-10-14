@@ -1286,42 +1286,6 @@ func (c *Chain33) MakeTxPublic2privacy(in types.ReqPub2Pri, result *interface{})
 	return nil
 }
 
-func (c *Chain33) CreateBindMiner(in *types.ReqBindMiner, result *interface{}) error {
-	if in.Amount%(10000*types.Coin) != 0 || in.Amount < 0 {
-		return types.ErrAmount
-	}
-	err := address.CheckAddress(in.BindAddr)
-	if err != nil {
-		return types.ErrInvalidAddress
-	}
-	err = address.CheckAddress(in.OriginAddr)
-	if err != nil {
-		return types.ErrInvalidAddress
-	}
-
-	if in.CheckBalance {
-		getBalance := &types.ReqBalance{Addresses: []string{in.OriginAddr}, Execer: "coins"}
-		balances, err := c.cli.GetBalance(getBalance)
-		if err != nil {
-			return err
-		}
-		if len(balances) == 0 {
-			return types.ErrInputPara
-		}
-		if balances[0].Balance < in.Amount+2*types.Coin {
-			return types.ErrNoBalance
-		}
-	}
-
-	reply, err := c.cli.BindMiner(in)
-	if err != nil {
-		return err
-	}
-
-	*result = reply
-	return nil
-}
-
 func (c *Chain33) DecodeRawTransaction(in *types.ReqDecodeRawTransaction, result *interface{}) error {
 	reply, err := c.cli.DecodeRawTransaction(in)
 	if err != nil {

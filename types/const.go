@@ -180,12 +180,6 @@ var SystemLog = map[int64]*LogInfo{
 }
 
 const (
-	//log for ticket
-	TyLogNewTicket   = 111
-	TyLogCloseTicket = 112
-	TyLogMinerTicket = 113
-	TyLogTicketBind  = 114
-
 	//log for trade
 	TyLogTradeSellLimit  = 310
 	TyLogTradeBuyMarket  = 311
@@ -208,17 +202,6 @@ const (
 	ExecOk   = 2
 )
 
-//ticket
-const (
-	TicketActionGenesis = 11
-	TicketActionOpen    = 12
-	TicketActionClose   = 13
-	TicketActionList    = 14 //读的接口不直接经过transaction
-	TicketActionInfos   = 15 //读的接口不直接经过transaction
-	TicketActionMiner   = 16
-	TicketActionBind    = 17
-)
-
 //norm
 const (
 	NormActionPut = 1
@@ -229,14 +212,6 @@ const (
 	CertActionNew    = 1
 	CertActionUpdate = 2
 	CertActionNormal = 3
-)
-
-// retrieve op
-const (
-	RetrievePre    = 1
-	RetrievePerf   = 2
-	RetrieveBackup = 3
-	RetrieveCancel = 4
 )
 
 // manager action
