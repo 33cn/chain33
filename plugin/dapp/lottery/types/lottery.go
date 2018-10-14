@@ -12,15 +12,7 @@ import (
 )
 
 var (
-	nameX string
-	llog  = log.New("module", "exectype."+LotteryX)
-
-	actionTypeMap = map[string]int32{
-		"Create": LotteryActionCreate,
-		"Buy":    LotteryActionBuy,
-		"Draw":   LotteryActionDraw,
-		"Close":  LotteryActionClose,
-	}
+	llog = log.New("module", "exectype."+LotteryX)
 )
 
 func init() {
@@ -49,37 +41,6 @@ func (at *LotteryType) GetLogMap() map[int64]*types.LogInfo {
 
 func (at *LotteryType) GetPayload() types.Message {
 	return &LotteryAction{}
-}
-
-func (lottery LotteryType) ActionName(tx *types.Transaction) string {
-	var action LotteryAction
-	err := types.Decode(tx.Payload, &action)
-	if err != nil {
-		return "unknow-err"
-	}
-	if action.Ty == LotteryActionCreate && action.GetCreate() != nil {
-		return "create"
-	} else if action.Ty == LotteryActionBuy && action.GetBuy() != nil {
-		return "buy"
-	} else if action.Ty == LotteryActionDraw && action.GetDraw() != nil {
-		return "draw"
-	} else if action.Ty == LotteryActionClose && action.GetClose() != nil {
-		return "close"
-	}
-	return "unknow"
-}
-
-func (lottery LotteryType) DecodePayload(tx *types.Transaction) (interface{}, error) {
-	var action LotteryAction
-	err := types.Decode(tx.Payload, &action)
-	if err != nil {
-		return nil, err
-	}
-	return &action, nil
-}
-
-func (lottery LotteryType) Amount(tx *types.Transaction) (int64, error) {
-	return 0, nil
 }
 
 func (lottery LotteryType) CreateTx(action string, message json.RawMessage) (*types.Transaction, error) {
@@ -125,7 +86,12 @@ func (lottery LotteryType) CreateTx(action string, message json.RawMessage) (*ty
 }
 
 func (lott LotteryType) GetTypeMap() map[string]int32 {
-	return actionTypeMap
+	return map[string]int32{
+		"Create": LotteryActionCreate,
+		"Buy":    LotteryActionBuy,
+		"Draw":   LotteryActionDraw,
+		"Close":  LotteryActionClose,
+	}
 }
 
 func CreateRawLotteryCreateTx(parm *LotteryCreateTx) (*types.Transaction, error) {
