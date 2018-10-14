@@ -210,3 +210,18 @@ func (t *Ticket) IsFriend(myexec, writekey []byte, tx *types.Transaction) bool {
 	//不允许平行链
 	return false
 }
+
+func (t *Ticket) CheckTx(tx *types.Transaction, index int) error {
+	//index == -1 only when check in mempool
+	if index == -1 {
+		var action ty.TicketAction
+		err := types.Decode(tx.Payload, &action)
+		if err != nil {
+			return err
+		}
+		if action.Ty == ty.TicketActionMiner && action.GetMiner() != nil {
+			return types.ErrMinerTx
+		}
+	}
+	return nil
+}

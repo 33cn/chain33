@@ -29,7 +29,6 @@ func newCert() drivers.Driver {
 	c := &Cert{}
 	c.SetChild(c)
 	c.SetIsFree(true)
-
 	return c
 }
 

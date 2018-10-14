@@ -7,7 +7,9 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
+
 	//log "github.com/inconshreveable/log15"
+	ty "gitlab.33.cn/chain33/chain33/plugin/dapp/retrieve/types"
 	"gitlab.33.cn/chain33/chain33/system/dapp"
 )
 
@@ -21,7 +23,7 @@ const (
 const MaxRelation = 10
 
 type DB struct {
-	types.Retrieve
+	ty.Retrieve
 }
 
 func NewDB(backupaddress string) *DB {
@@ -36,7 +38,7 @@ func (r *DB) RelateDB(defaultAddress string, createTime int64, delayPeriod int64
 		return false
 	}
 	rlog.Debug("RetrieveBackup", "RelateDB", defaultAddress)
-	para := &types.RetrievePara{defaultAddress, retrieveBackup, createTime, 0, delayPeriod}
+	para := &ty.RetrievePara{defaultAddress, retrieveBackup, createTime, 0, delayPeriod}
 	r.RetPara = append(r.RetPara, para)
 
 	return true
@@ -93,7 +95,7 @@ func NewRetrieveAcction(r *Retrieve, tx *types.Transaction) *Action {
 }
 
 //wait for valuable comment
-func (action *Action) RetrieveBackup(backupRet *types.BackupRetrieve) (*types.Receipt, error) {
+func (action *Action) RetrieveBackup(backupRet *ty.BackupRetrieve) (*types.Receipt, error) {
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
 	var receipt *types.Receipt
@@ -147,7 +149,7 @@ func (action *Action) RetrieveBackup(backupRet *types.BackupRetrieve) (*types.Re
 	return receipt, nil
 }
 
-func (action *Action) RetrievePrepare(preRet *types.PreRetrieve) (*types.Receipt, error) {
+func (action *Action) RetrievePrepare(preRet *ty.PreRetrieve) (*types.Receipt, error) {
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
 	var receipt *types.Receipt
@@ -185,7 +187,7 @@ func (action *Action) RetrievePrepare(preRet *types.PreRetrieve) (*types.Receipt
 	return receipt, nil
 }
 
-func (action *Action) RetrievePerform(perfRet *types.PerformRetrieve) (*types.Receipt, error) {
+func (action *Action) RetrievePerform(perfRet *ty.PerformRetrieve) (*types.Receipt, error) {
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
 	var receipt *types.Receipt
@@ -244,7 +246,7 @@ func (action *Action) RetrievePerform(perfRet *types.PerformRetrieve) (*types.Re
 	return receipt, nil
 }
 
-func (action *Action) RetrieveCancel(cancel *types.CancelRetrieve) (*types.Receipt, error) {
+func (action *Action) RetrieveCancel(cancel *ty.CancelRetrieve) (*types.Receipt, error) {
 	var logs []*types.ReceiptLog
 	var kv []*types.KeyValue
 	var receipt *types.Receipt
@@ -283,13 +285,13 @@ func (action *Action) RetrieveCancel(cancel *types.CancelRetrieve) (*types.Recei
 	return receipt, nil
 }
 
-func readRetrieve(db dbm.KV, address string) (*types.Retrieve, error) {
+func readRetrieve(db dbm.KV, address string) (*ty.Retrieve, error) {
 	data, err := db.Get(Key(address))
 	if err != nil {
 		rlog.Debug("readRetrieve", "get", err)
 		return nil, err
 	}
-	var retrieve types.Retrieve
+	var retrieve ty.Retrieve
 	//decode
 	err = types.Decode(data, &retrieve)
 	if err != nil {

@@ -13,7 +13,7 @@ func bindMiner(param *ty.ReqBindMiner) (*ty.ReplyBindMiner, error) {
 		MinerAddress:  param.BindAddr,
 		ReturnAddress: param.OriginAddr,
 	}
-	data, err := types.CallCreateTx(types.ExecName(ty.TicketX), "TBind", tBind)
+	data, err := types.CallCreateTx(types.ExecName(ty.TicketX), "Tbind", tBind)
 	if err != nil {
 		return nil, err
 	}

@@ -136,7 +136,7 @@ func (action *Action) GetReceiptLog(lottery *pty.Lottery, preStatus int32, logTy
 	l.LotteryId = lottery.LotteryId
 	l.Status = lottery.Status
 	l.PrevStatus = preStatus
-	if logTy == types.TyLogLotteryBuy {
+	if logTy == pty.TyLogLotteryBuy {
 		l.Round = round
 		l.Number = buyNumber
 		l.Amount = amount
@@ -144,7 +144,7 @@ func (action *Action) GetReceiptLog(lottery *pty.Lottery, preStatus int32, logTy
 		l.Way = way
 		l.Index = action.GetIndex()
 	}
-	if logTy == types.TyLogLotteryDraw {
+	if logTy == pty.TyLogLotteryDraw {
 		l.Round = round
 		l.LuckyNumber = luckyNum
 		l.Time = action.blocktime
@@ -209,7 +209,7 @@ func (action *Action) LotteryCreate(create *pty.LotteryCreate) (*types.Receipt, 
 	lott.Save(action.db)
 	kv = append(kv, lott.GetKVSet()...)
 
-	receiptLog := action.GetReceiptLog(&lott.Lottery, 0, types.TyLogLotteryCreate, 0, 0, 0, 0, 0, nil)
+	receiptLog := action.GetReceiptLog(&lott.Lottery, 0, pty.TyLogLotteryCreate, 0, 0, 0, 0, 0, nil)
 	logs = append(logs, receiptLog)
 
 	receipt = &types.Receipt{types.ExecOk, kv, logs}
@@ -338,7 +338,7 @@ func (action *Action) LotteryBuy(buy *pty.LotteryBuy) (*types.Receipt, error) {
 	lott.Save(action.db)
 	kv = append(kv, lott.GetKVSet()...)
 
-	receiptLog := action.GetReceiptLog(&lott.Lottery, preStatus, types.TyLogLotteryBuy, lott.Round, buy.GetNumber(), buy.GetAmount(), buy.GetWay(), 0, nil)
+	receiptLog := action.GetReceiptLog(&lott.Lottery, preStatus, pty.TyLogLotteryBuy, lott.Round, buy.GetNumber(), buy.GetAmount(), buy.GetWay(), 0, nil)
 	logs = append(logs, receiptLog)
 
 	receipt = &types.Receipt{types.ExecOk, kv, logs}
@@ -401,7 +401,7 @@ func (action *Action) LotteryDraw(draw *pty.LotteryDraw) (*types.Receipt, error)
 	lott.Save(action.db)
 	kv = append(kv, lott.GetKVSet()...)
 
-	receiptLog := action.GetReceiptLog(&lott.Lottery, preStatus, types.TyLogLotteryDraw, lott.Round, 0, 0, 0, lott.LuckyNumber, updateInfo)
+	receiptLog := action.GetReceiptLog(&lott.Lottery, preStatus, pty.TyLogLotteryDraw, lott.Round, 0, 0, 0, lott.LuckyNumber, updateInfo)
 	logs = append(logs, receiptLog)
 
 	receipt = &types.Receipt{types.ExecOk, kv, logs}
@@ -478,7 +478,7 @@ func (action *Action) LotteryClose(draw *pty.LotteryClose) (*types.Receipt, erro
 	lott.Save(action.db)
 	kv = append(kv, lott.GetKVSet()...)
 
-	receiptLog := action.GetReceiptLog(&lott.Lottery, preStatus, types.TyLogLotteryClose, 0, 0, 0, 0, 0, nil)
+	receiptLog := action.GetReceiptLog(&lott.Lottery, preStatus, pty.TyLogLotteryClose, 0, 0, 0, 0, 0, nil)
 	logs = append(logs, receiptLog)
 
 	return &types.Receipt{types.ExecOk, kv, logs}, nil

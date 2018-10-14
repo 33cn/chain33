@@ -39,6 +39,19 @@ func (at *RetrieveType) GetPayload() types.Message {
 	return &RetrieveAction{}
 }
 
+func (at *RetrieveType) GetLogMap() map[int64]*types.LogInfo {
+	return map[int64]*types.LogInfo{}
+}
+
+func (at *RetrieveType) GetTypeMap() map[string]int32 {
+	return map[string]int32{
+		"PreRet":  RetrievePre,
+		"PerfRet": RetrievePerf,
+		"Backup":  RetrieveBackup,
+		"Cancel":  RetrieveCancel,
+	}
+}
+
 func (r *RetrieveType) ActionName(tx *types.Transaction) string {
 	var action RetrieveAction
 	err := types.Decode(tx.Payload, &action)
