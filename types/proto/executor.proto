@@ -9,14 +9,13 @@ message Genesis {
     bool isrun = 1;
 }
 
-
 message ExecTxList {
     bytes    stateHash              = 1;
     repeated Transaction txs        = 2;
-    int64    blockTime  = 3;
-    int64    height     = 4;
-    uint64   difficulty = 5;
-    bool isMempool = 6;
+    int64                blockTime  = 3;
+    int64                height     = 4;
+    uint64               difficulty = 5;
+    bool                 isMempool  = 6;
 }
 
 message Query {
