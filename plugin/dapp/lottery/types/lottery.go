@@ -3,6 +3,7 @@ package types
 import (
 	"encoding/json"
 	"math/rand"
+	"reflect"
 	"time"
 
 	log "github.com/inconshreveable/log15"
@@ -25,11 +26,6 @@ var (
 func init() {
 	types.AllowUserExec = append(types.AllowUserExec, []byte(LotteryX))
 	types.RegistorExecutor(LotteryX, NewType())
-	// init log
-	types.RegistorLog(types.TyLogLotteryCreate, &LotteryCreateLog{})
-	types.RegistorLog(types.TyLogLotteryBuy, &LotteryBuyLog{})
-	types.RegistorLog(types.TyLogLotteryDraw, &LotteryDrawLog{})
-	types.RegistorLog(types.TyLogLotteryClose, &LotteryCloseLog{})
 }
 
 type LotteryType struct {
@@ -40,6 +36,15 @@ func NewType() *LotteryType {
 	c := &LotteryType{}
 	c.SetChild(c)
 	return c
+}
+
+func (at *LotteryType) GetLogMap() map[int64]*types.LogInfo {
+	return map[int64]*types.LogInfo{
+		TyLogLotteryCreate: {reflect.TypeOf(ReceiptLottery{}), "LogLotteryCreate"},
+		TyLogLotteryBuy:    {reflect.TypeOf(ReceiptLottery{}), "LogLotteryBuy"},
+		TyLogLotteryDraw:   {reflect.TypeOf(ReceiptLottery{}), "LogLotteryDraw"},
+		TyLogLotteryClose:  {reflect.TypeOf(ReceiptLottery{}), "LogLotteryClose"},
+	}
 }
 
 func (at *LotteryType) GetPayload() types.Message {
