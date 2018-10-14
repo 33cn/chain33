@@ -17,8 +17,8 @@ import (
 
 	tradetype "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/types"
 
+	retrievetype "gitlab.33.cn/chain33/chain33/plugin/dapp/retrieve/types"
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
-	retrievetype "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
 )
 
 func (c *Chain33) CreateRawTransaction(in *types.CreateTx, result *interface{}) error {
