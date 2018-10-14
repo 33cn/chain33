@@ -9,6 +9,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
+	ty "gitlab.33.cn/chain33/chain33/plugin/dapp/ticket/types"
 	"gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -19,7 +20,7 @@ var tlog = log.New("module", "ticket.db")
 //var addrSeed = []byte("address seed bytes for public key")
 
 type DB struct {
-	types.Ticket
+	ty.Ticket
 	prevstatus int32
 }
 
@@ -46,13 +47,13 @@ func NewDB(id, minerAddress, returnWallet string, blocktime int64, isGenesis boo
 func (t *DB) GetReceiptLog() *types.ReceiptLog {
 	log := &types.ReceiptLog{}
 	if t.Status == 1 {
-		log.Ty = types.TyLogNewTicket
+		log.Ty = ty.TyLogNewTicket
 	} else if t.Status == 2 {
-		log.Ty = types.TyLogMinerTicket
+		log.Ty = ty.TyLogMinerTicket
 	} else if t.Status == 3 {
-		log.Ty = types.TyLogCloseTicket
+		log.Ty = ty.TyLogCloseTicket
 	}
-	r := &types.ReceiptTicket{}
+	r := &ty.ReceiptTicket{}
 	r.TicketId = t.TicketId
 	r.Status = t.Status
 	r.PrevStatus = t.prevstatus
@@ -104,7 +105,7 @@ func NewAction(t *Ticket, tx *types.Transaction) *Action {
 		t.GetBlockTime(), t.GetHeight(), dapp.ExecAddress(string(tx.Execer))}
 }
 
-func (action *Action) GenesisInit(genesis *types.TicketGenesis) (*types.Receipt, error) {
+func (action *Action) GenesisInit(genesis *ty.TicketGenesis) (*types.Receipt, error) {
 	prefix := common.ToHex(action.txhash)
 	prefix = genesis.MinerAddress + ":" + prefix + ":"
 	var logs []*types.ReceiptLog
@@ -129,23 +130,23 @@ func (action *Action) GenesisInit(genesis *types.TicketGenesis) (*types.Receipt,
 	return receipt, nil
 }
 
-func saveBind(db dbm.KV, tbind *types.TicketBind) {
+func saveBind(db dbm.KV, tbind *ty.TicketBind) {
 	set := getBindKV(tbind)
 	for i := 0; i < len(set); i++ {
 		db.Set(set[i].GetKey(), set[i].Value)
 	}
 }
 
-func getBindKV(tbind *types.TicketBind) (kvset []*types.KeyValue) {
+func getBindKV(tbind *ty.TicketBind) (kvset []*types.KeyValue) {
 	value := types.Encode(tbind)
 	kvset = append(kvset, &types.KeyValue{BindKey(tbind.ReturnAddress), value})
 	return kvset
 }
 
-func getBindLog(tbind *types.TicketBind, old string) *types.ReceiptLog {
+func getBindLog(tbind *ty.TicketBind, old string) *types.ReceiptLog {
 	log := &types.ReceiptLog{}
-	log.Ty = types.TyLogTicketBind
-	r := &types.ReceiptTicketBind{}
+	log.Ty = ty.TyLogTicketBind
+	r := &ty.ReceiptTicketBind{}
 	r.ReturnAddress = tbind.ReturnAddress
 	r.OldMinerAddress = old
 	r.NewMinerAddress = tbind.MinerAddress
@@ -158,7 +159,7 @@ func (action *Action) getBind(addr string) string {
 	if err != nil || value == nil {
 		return ""
 	}
-	var bind types.TicketBind
+	var bind ty.TicketBind
 	err = types.Decode(value, &bind)
 	if err != nil {
 		panic(err)
@@ -168,7 +169,7 @@ func (action *Action) getBind(addr string) string {
 
 //授权某个地址进行挖矿
 //todo: query address is a minered address
-func (action *Action) TicketBind(tbind *types.TicketBind) (*types.Receipt, error) {
+func (action *Action) TicketBind(tbind *ty.TicketBind) (*types.Receipt, error) {
 	if action.fromaddr != tbind.ReturnAddress {
 		return nil, types.ErrFromAddr
 	}
@@ -190,7 +191,7 @@ func (action *Action) TicketBind(tbind *types.TicketBind) (*types.Receipt, error
 	return receipt, nil
 }
 
-func (action *Action) TicketOpen(topen *types.TicketOpen) (*types.Receipt, error) {
+func (action *Action) TicketOpen(topen *ty.TicketOpen) (*types.Receipt, error) {
 	prefix := common.ToHex(action.txhash)
 	prefix = topen.MinerAddress + ":" + prefix + ":"
 	var logs []*types.ReceiptLog
@@ -227,12 +228,12 @@ func (action *Action) TicketOpen(topen *types.TicketOpen) (*types.Receipt, error
 	return receipt, nil
 }
 
-func readTicket(db dbm.KV, id string) (*types.Ticket, error) {
+func readTicket(db dbm.KV, id string) (*ty.Ticket, error) {
 	data, err := db.Get(Key(id))
 	if err != nil {
 		return nil, err
 	}
-	var ticket types.Ticket
+	var ticket ty.Ticket
 	//decode
 	err = types.Decode(data, &ticket)
 	if err != nil {
@@ -241,7 +242,7 @@ func readTicket(db dbm.KV, id string) (*types.Ticket, error) {
 	return &ticket, nil
 }
 
-func (action *Action) TicketMiner(miner *types.TicketMiner, index int) (*types.Receipt, error) {
+func (action *Action) TicketMiner(miner *ty.TicketMiner, index int) (*types.Receipt, error) {
 	if index != 0 {
 		return nil, types.ErrCoinBaseIndex
 	}
@@ -294,7 +295,7 @@ func (action *Action) TicketMiner(miner *types.TicketMiner, index int) (*types.R
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
 }
 
-func (action *Action) TicketClose(tclose *types.TicketClose) (*types.Receipt, error) {
+func (action *Action) TicketClose(tclose *ty.TicketClose) (*types.Receipt, error) {
 	tickets := make([]*DB, len(tclose.TicketId))
 	cfg := types.GetP(action.height)
 	for i := 0; i < len(tclose.TicketId); i++ {
@@ -361,23 +362,23 @@ func (action *Action) TicketClose(tclose *types.TicketClose) (*types.Receipt, er
 	return receipt, nil
 }
 
-func List(db dbm.Lister, db2 dbm.KV, tlist *types.TicketList) (types.Message, error) {
+func List(db dbm.Lister, db2 dbm.KV, tlist *ty.TicketList) (types.Message, error) {
 	values, err := db.List(calcTicketPrefix(tlist.Addr, tlist.Status), nil, 0, 0)
 	if err != nil {
 		return nil, err
 	}
 	if len(values) == 0 {
-		return &types.ReplyTicketList{}, nil
+		return &ty.ReplyTicketList{}, nil
 	}
-	var ids types.TicketInfos
+	var ids ty.TicketInfos
 	for i := 0; i < len(values); i++ {
 		ids.TicketIds = append(ids.TicketIds, string(values[i]))
 	}
 	return Infos(db2, &ids)
 }
 
-func Infos(db dbm.KV, tinfos *types.TicketInfos) (types.Message, error) {
-	var tickets []*types.Ticket
+func Infos(db dbm.KV, tinfos *ty.TicketInfos) (types.Message, error) {
+	var tickets []*ty.Ticket
 	for i := 0; i < len(tinfos.TicketIds); i++ {
 		id := tinfos.TicketIds[i]
 		ticket, err := readTicket(db, id)
@@ -386,5 +387,5 @@ func Infos(db dbm.KV, tinfos *types.TicketInfos) (types.Message, error) {
 		}
 		tickets = append(tickets, ticket)
 	}
-	return &types.ReplyTicketList{tickets}, nil
+	return &ty.ReplyTicketList{tickets}, nil
 }

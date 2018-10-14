@@ -13,6 +13,14 @@ import (
 var rlog = log.New("module", types.RetrieveX)
 var RetrieveX = types.RetrieveX
 
+// retrieve op
+const (
+	RetrievePre    = 1
+	RetrievePerf   = 2
+	RetrieveBackup = 3
+	RetrieveCancel = 4
+)
+
 func init() {
 	types.RegistorExecutor(types.RetrieveX, NewType())
 }
@@ -28,22 +36,22 @@ func NewType() *RetrieveType {
 }
 
 func (at *RetrieveType) GetPayload() types.Message {
-	return &types.RetrieveAction{}
+	return &RetrieveAction{}
 }
 
 func (r *RetrieveType) ActionName(tx *types.Transaction) string {
-	var action types.RetrieveAction
+	var action RetrieveAction
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
 		return "unknown-err"
 	}
-	if action.Ty == types.RetrievePre && action.GetPreRet() != nil {
+	if action.Ty == RetrievePre && action.GetPreRet() != nil {
 		return "prepare"
-	} else if action.Ty == types.RetrievePerf && action.GetPerfRet() != nil {
+	} else if action.Ty == RetrievePerf && action.GetPerfRet() != nil {
 		return "perform"
-	} else if action.Ty == types.RetrieveBackup && action.GetBackup() != nil {
+	} else if action.Ty == RetrieveBackup && action.GetBackup() != nil {
 		return "backup"
-	} else if action.Ty == types.RetrieveCancel && action.GetCancel() != nil {
+	} else if action.Ty == RetrieveCancel && action.GetCancel() != nil {
 		return "cancel"
 	}
 	return "unknown"
@@ -113,14 +121,14 @@ func CreateRawRetrieveBackupTx(parm *RetrieveBackupTx) (*types.Transaction, erro
 		return nil, types.ErrInvalidParam
 	}
 
-	v := &types.BackupRetrieve{
+	v := &BackupRetrieve{
 		BackupAddress:  parm.BackupAddr,
 		DefaultAddress: parm.DefaultAddr,
 		DelayPeriod:    parm.DelayPeriod,
 	}
-	backup := &types.RetrieveAction{
-		Ty:    types.RetrieveBackup,
-		Value: &types.RetrieveAction_Backup{v},
+	backup := &RetrieveAction{
+		Ty:    RetrieveBackup,
+		Value: &RetrieveAction_Backup{v},
 	}
 	tx := &types.Transaction{
 		Execer:  []byte(types.ExecName(RetrieveX)),
@@ -144,13 +152,13 @@ func CreateRawRetrievePrepareTx(parm *RetrievePrepareTx) (*types.Transaction, er
 		return nil, types.ErrInvalidParam
 	}
 
-	v := &types.PreRetrieve{
+	v := &PreRetrieve{
 		BackupAddress:  parm.BackupAddr,
 		DefaultAddress: parm.DefaultAddr,
 	}
-	prepare := &types.RetrieveAction{
-		Ty:    types.RetrievePre,
-		Value: &types.RetrieveAction_PreRet{v},
+	prepare := &RetrieveAction{
+		Ty:    RetrievePre,
+		Value: &RetrieveAction_PreRet{v},
 	}
 	tx := &types.Transaction{
 		Execer:  []byte(types.ExecName(RetrieveX)),
@@ -174,13 +182,13 @@ func CreateRawRetrievePerformTx(parm *RetrievePerformTx) (*types.Transaction, er
 		return nil, types.ErrInvalidParam
 	}
 
-	v := &types.PerformRetrieve{
+	v := &PerformRetrieve{
 		BackupAddress:  parm.BackupAddr,
 		DefaultAddress: parm.DefaultAddr,
 	}
-	perform := &types.RetrieveAction{
-		Ty:    types.RetrievePerf,
-		Value: &types.RetrieveAction_PerfRet{v},
+	perform := &RetrieveAction{
+		Ty:    RetrievePerf,
+		Value: &RetrieveAction_PerfRet{v},
 	}
 	tx := &types.Transaction{
 		Execer:  []byte(types.ExecName(RetrieveX)),
@@ -204,13 +212,13 @@ func CreateRawRetrieveCancelTx(parm *RetrieveCancelTx) (*types.Transaction, erro
 		return nil, types.ErrInvalidParam
 	}
 
-	v := &types.CancelRetrieve{
+	v := &CancelRetrieve{
 		BackupAddress:  parm.BackupAddr,
 		DefaultAddress: parm.DefaultAddr,
 	}
-	cancel := &types.RetrieveAction{
-		Ty:    types.RetrieveCancel,
-		Value: &types.RetrieveAction_Cancel{v},
+	cancel := &RetrieveAction{
+		Ty:    RetrieveCancel,
+		Value: &RetrieveAction_Cancel{v},
 	}
 	tx := &types.Transaction{
 		Execer:  []byte(types.ExecName(RetrieveX)),

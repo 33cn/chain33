@@ -13,7 +13,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 
 	"github.com/inconshreveable/log15"
-	"gitlab.33.cn/chain33/chain33/plugin/dapp/evm/executor"
 	hashlocktype "gitlab.33.cn/chain33/chain33/plugin/dapp/hashlock/types"
 	lotterytype "gitlab.33.cn/chain33/chain33/plugin/dapp/lottery/types"
 	retrievetype "gitlab.33.cn/chain33/chain33/plugin/dapp/retrieve/types"
@@ -33,7 +32,6 @@ type channelClient struct {
 func (c *channelClient) Init(q queue.Client) {
 	c.QueueProtocolAPI, _ = client.New(q, nil)
 	c.accountdb = account.NewCoinsAccount()
-	executor.Init()
 }
 
 func (c *channelClient) CreateRawTransaction(param *types.CreateTx) ([]byte, error) {
@@ -163,60 +161,7 @@ func (c *channelClient) GetAddrOverview(parm *types.ReqAddr) (*types.AddrOvervie
 }
 
 func (c *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account, error) {
-
-	switch in.GetExecer() {
-	case types.ExecName(types.CoinsX):
-		addrs := in.GetAddresses()
-		var exaddrs []string
-		for _, addr := range addrs {
-			if err := address.CheckAddress(addr); err != nil {
-				addr = address.ExecAddress(addr)
-
-			}
-			exaddrs = append(exaddrs, addr)
-		}
-		var accounts []*types.Account
-		var err error
-		if len(in.StateHash) == 0 {
-			accounts, err = c.accountdb.LoadAccounts(c.QueueProtocolAPI, exaddrs)
-		} else {
-			hash, err := common.FromHex(in.StateHash)
-			if err != nil {
-				return nil, err
-			}
-			accounts, err = c.accountdb.LoadAccountsHistory(c.QueueProtocolAPI, exaddrs, hash)
-		}
-		if err != nil {
-			log.Error("GetBalance", "err", err.Error())
-			return nil, err
-		}
-		return accounts, nil
-	default:
-		execaddress := address.ExecAddress(in.GetExecer())
-		addrs := in.GetAddresses()
-		var accounts []*types.Account
-		for _, addr := range addrs {
-
-			var acc *types.Account
-			var err error
-			if len(in.StateHash) == 0 {
-				acc, err = c.accountdb.LoadExecAccountQueue(c.QueueProtocolAPI, addr, execaddress)
-			} else {
-				hash, err := common.FromHex(in.StateHash)
-				if err != nil {
-					return nil, err
-				}
-				acc, err = c.accountdb.LoadExecAccountHistoryQueue(c.QueueProtocolAPI, addr, execaddress, hash)
-			}
-			if err != nil {
-				log.Error("GetBalance", "err", err.Error())
-				continue
-			}
-			accounts = append(accounts, acc)
-		}
-
-		return accounts, nil
-	}
+	return c.accountdb.GetBalance(c.QueueProtocolAPI, in)
 }
 
 func (c *channelClient) GetAllExecBalance(in *types.ReqAddr) (*types.AllExecBalance, error) {
@@ -326,30 +271,6 @@ func (c *channelClient) CreateRawLotteryDrawTx(parm *lotterytype.LotteryDrawTx) 
 
 func (c *channelClient) CreateRawLotteryCloseTx(parm *lotterytype.LotteryCloseTx) ([]byte, error) {
 	return types.CallExecNewTx(types.ExecName(lotterytype.LotteryX), "LotteryClose", parm)
-}
-
-func (c *channelClient) BindMiner(param *types.ReqBindMiner) (*types.ReplyBindMiner, error) {
-	ta := &types.TicketAction{}
-	tBind := &types.TicketBind{
-		MinerAddress:  param.BindAddr,
-		ReturnAddress: param.OriginAddr,
-	}
-	ta.Value = &types.TicketAction_Tbind{Tbind: tBind}
-	ta.Ty = types.TicketActionBind
-	execer := []byte(types.ExecName(types.TicketX))
-	to := address.ExecAddress(string(execer))
-	txBind := &types.Transaction{Execer: execer, Payload: types.Encode(ta), To: to}
-	txBind.Nonce = random.Int63()
-	var err error
-	txBind.Fee, err = txBind.GetRealFee(types.MinFee)
-	if err != nil {
-		return nil, err
-	}
-	txBind.Fee += types.MinFee
-	txBindHex := types.Encode(txBind)
-	txHexStr := hex.EncodeToString(txBindHex)
-
-	return &types.ReplyBindMiner{TxHex: txHexStr}, nil
 }
 
 func (c *channelClient) DecodeRawTransaction(param *types.ReqDecodeRawTransaction) (*types.Transaction, error) {

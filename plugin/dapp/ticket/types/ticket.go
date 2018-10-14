@@ -1,36 +1,36 @@
-package ticket
+package types
 
 import (
 	"encoding/json"
+	"reflect"
 
 	//log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var nameX string
-
-var (
-	actionName = map[string]int32{
-		"Genesis": types.TicketActionGenesis,
-		"Topen":   types.TicketActionOpen,
-		"Tbind":   types.TicketActionBind,
-		"Tclose":  types.TicketActionClose,
-		"Miner":   types.TicketActionMiner,
-	}
+const (
+	//log for ticket
+	TyLogNewTicket   = 111
+	TyLogCloseTicket = 112
+	TyLogMinerTicket = 113
+	TyLogTicketBind  = 114
 )
 
-//var tlog = log.New("module", name)
+//ticket
+const (
+	TicketActionGenesis = 11
+	TicketActionOpen    = 12
+	TicketActionClose   = 13
+	TicketActionList    = 14 //读的接口不直接经过transaction
+	TicketActionInfos   = 15 //读的接口不直接经过transaction
+	TicketActionMiner   = 16
+	TicketActionBind    = 17
+)
 
-func Init() {
-	nameX = types.ExecName("ticket")
-	// init executor type
-	types.RegistorExecutor("ticket", NewType())
+var TicketX = types.TicketX
 
-	// init log
-	types.RegistorLog(types.TyLogNewTicket, &TicketNewLog{})
-	types.RegistorLog(types.TyLogCloseTicket, &TicketCloseLog{})
-	types.RegistorLog(types.TyLogMinerTicket, &TicketMinerLog{})
-	types.RegistorLog(types.TyLogTicketBind, &TicketBindLog{})
+func init() {
+	types.RegistorExecutor(TicketX, NewType())
 }
 
 type TicketType struct {
@@ -44,45 +44,25 @@ func NewType() *TicketType {
 }
 
 func (at *TicketType) GetPayload() types.Message {
-	return &types.TicketAction{}
+	return &TicketAction{}
 }
 
-func (ticket TicketType) ActionName(tx *types.Transaction) string {
-	var action types.TicketAction
-	err := types.Decode(tx.Payload, &action)
-	if err != nil {
-		return "unknown-err"
+func (t *TicketType) GetLogMap() map[int64]*types.LogInfo {
+	return map[int64]*types.LogInfo{
+		TyLogNewTicket:   {reflect.TypeOf(ReceiptTicket{}), "TyLogNewTicket"},
+		TyLogCloseTicket: {reflect.TypeOf(ReceiptTicket{}), "TyLogCloseTicket"},
+		TyLogMinerTicket: {reflect.TypeOf(ReceiptTicket{}), "TyLogMinerTicket"},
+		TyLogTicketBind:  {reflect.TypeOf(ReceiptTicketBind{}), "TyLogTicketBind"},
 	}
-	if action.Ty == types.TicketActionGenesis && action.GetGenesis() != nil {
-		return "genesis"
-	} else if action.Ty == types.TicketActionOpen && action.GetTopen() != nil {
-		return "open"
-	} else if action.Ty == types.TicketActionClose && action.GetTclose() != nil {
-		return "close"
-	} else if action.Ty == types.TicketActionMiner && action.GetMiner() != nil {
-		return types.MinerAction
-	} else if action.Ty == types.TicketActionBind && action.GetTbind() != nil {
-		return "bindminer"
-	}
-	return "unknown"
-}
-
-func (ticket TicketType) DecodePayload(tx *types.Transaction) (interface{}, error) {
-	var action types.TicketAction
-	err := types.Decode(tx.Payload, &action)
-	if err != nil {
-		return nil, err
-	}
-	return &action, nil
 }
 
 func (ticket TicketType) Amount(tx *types.Transaction) (int64, error) {
-	var action types.TicketAction
+	var action TicketAction
 	err := types.Decode(tx.GetPayload(), &action)
 	if err != nil {
 		return 0, types.ErrDecode
 	}
-	if action.Ty == types.TicketActionMiner && action.GetMiner() != nil {
+	if action.Ty == TicketActionMiner && action.GetMiner() != nil {
 		ticketMiner := action.GetMiner()
 		return ticketMiner.Reward, nil
 	}
@@ -90,83 +70,21 @@ func (ticket TicketType) Amount(tx *types.Transaction) (int64, error) {
 }
 
 // TODO 暂时不修改实现， 先完成结构的重构
-func (ticket TicketType) CreateTx(action string, message json.RawMessage) (*types.Transaction, error) {
+func (ticket *TicketType) CreateTx(action string, message json.RawMessage) (*types.Transaction, error) {
 	var tx *types.Transaction
 	return tx, nil
 }
 
-func (ticket TicketType) GetName() string {
-	return "ticket"
-}
-
-func (ticket *TicketType) GetLogMap() map[int64]*types.LogInfo {
-	return nil
+func (ticket *TicketType) GetName() string {
+	return TicketX
 }
 
 func (ticket *TicketType) GetTypeMap() map[string]int32 {
-	return actionName
-}
-
-type TicketNewLog struct {
-}
-
-func (l TicketNewLog) Name() string {
-	return "LogNewTicket"
-}
-
-func (l TicketNewLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp types.ReceiptTicket
-	err := types.Decode(msg, &logTmp)
-	if err != nil {
-		return nil, err
+	return map[string]int32{
+		"Genesis": TicketActionGenesis,
+		"Topen":   TicketActionOpen,
+		"Tbind":   TicketActionBind,
+		"Tclose":  TicketActionClose,
+		"Miner":   TicketActionMiner,
 	}
-	return logTmp, err
-}
-
-type TicketCloseLog struct {
-}
-
-func (l TicketCloseLog) Name() string {
-	return "LogCloseTicket"
-}
-
-func (l TicketCloseLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp types.ReceiptTicket
-	err := types.Decode(msg, &logTmp)
-	if err != nil {
-		return nil, err
-	}
-	return logTmp, err
-}
-
-type TicketMinerLog struct {
-}
-
-func (l TicketMinerLog) Name() string {
-	return "LogMinerTicket"
-}
-
-func (l TicketMinerLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp types.ReceiptTicket
-	err := types.Decode(msg, &logTmp)
-	if err != nil {
-		return nil, err
-	}
-	return logTmp, err
-}
-
-type TicketBindLog struct {
-}
-
-func (l TicketBindLog) Name() string {
-	return "LogTicketBind"
-}
-
-func (l TicketBindLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp types.ReceiptTicketBind
-	err := types.Decode(msg, &logTmp)
-	if err != nil {
-		return nil, err
-	}
-	return logTmp, err
 }
