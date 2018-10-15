@@ -11,6 +11,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
+	tickettypes "gitlab.33.cn/chain33/chain33/plugin/dapp/ticket/types"
 	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
 	"google.golang.org/grpc"
@@ -139,19 +140,19 @@ func TestAutoClose(t *testing.T) {
 */
 
 func openticket(mineraddr, returnaddr string, priv crypto.PrivKey) error {
-	ta := &types.TicketAction{}
-	topen := &types.TicketOpen{MinerAddress: mineraddr, ReturnAddress: returnaddr, Count: 1}
-	ta.Value = &types.TicketAction_Topen{topen}
-	ta.Ty = types.TicketActionOpen
+	ta := &tickettypes.TicketAction{}
+	topen := &tickettypes.TicketOpen{MinerAddress: mineraddr, ReturnAddress: returnaddr, Count: 1}
+	ta.Value = &tickettypes.TicketAction_Topen{topen}
+	ta.Ty = tickettypes.TicketActionOpen
 	err := sendTransactionWait(ta, []byte("ticket"), priv, "")
 	return err
 }
 
 func bindminer(mineraddr, returnaddr string, priv crypto.PrivKey) error {
-	ta := &types.TicketAction{}
-	tbind := &types.TicketBind{MinerAddress: mineraddr, ReturnAddress: returnaddr}
-	ta.Value = &types.TicketAction_Tbind{tbind}
-	ta.Ty = types.TicketActionBind
+	ta := &tickettypes.TicketAction{}
+	tbind := &tickettypes.TicketBind{MinerAddress: mineraddr, ReturnAddress: returnaddr}
+	ta.Value = &tickettypes.TicketAction_Tbind{tbind}
+	ta.Ty = tickettypes.TicketActionBind
 	err := sendTransactionWait(ta, []byte("ticket"), priv, "")
 	return err
 }
@@ -163,10 +164,10 @@ func closeTickets(priv crypto.PrivKey, ids []string) error {
 		if end > len(ids) {
 			end = len(ids)
 		}
-		ta := &types.TicketAction{}
-		tclose := &types.TicketClose{ids[i:end]}
-		ta.Value = &types.TicketAction_Tclose{tclose}
-		ta.Ty = types.TicketActionClose
+		ta := &tickettypes.TicketAction{}
+		tclose := &tickettypes.TicketClose{ids[i:end]}
+		ta.Value = &tickettypes.TicketAction_Tclose{tclose}
+		ta.Ty = tickettypes.TicketActionClose
 		_, err := sendTransaction(ta, []byte("ticket"), priv, "")
 		if err != nil {
 			return err
@@ -176,8 +177,8 @@ func closeTickets(priv crypto.PrivKey, ids []string) error {
 }
 
 //通rpc 进行query
-func getMineredTicketList(addr string, status int32) ([]*types.Ticket, error) {
-	reqaddr := &types.TicketList{addr, status}
+func getMineredTicketList(addr string, status int32) ([]*tickettypes.Ticket, error) {
+	reqaddr := &tickettypes.TicketList{addr, status}
 	var req types.Query
 	req.Execer = []byte("ticket")
 	req.FuncName = "TicketList"
@@ -191,7 +192,7 @@ func getMineredTicketList(addr string, status int32) ([]*types.Ticket, error) {
 		return nil, errors.New(string(reply.GetMsg()))
 	}
 	//decode
-	var list types.ReplyTicketList
+	var list tickettypes.ReplyTicketList
 	err = types.Decode(reply.GetMsg(), &list)
 	if err != nil {
 		return nil, err

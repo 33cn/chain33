@@ -12,9 +12,9 @@ import (
 	evm "gitlab.33.cn/chain33/chain33/plugin/dapp/evm/executor"
 	"gitlab.33.cn/chain33/chain33/plugin/dapp/evm/executor/vm/common"
 	crypto2 "gitlab.33.cn/chain33/chain33/plugin/dapp/evm/executor/vm/common/crypto"
-	"gitlab.33.cn/chain33/chain33/plugin/dapp/evm/executor/vm/model"
 	"gitlab.33.cn/chain33/chain33/plugin/dapp/evm/executor/vm/runtime"
 	"gitlab.33.cn/chain33/chain33/plugin/dapp/evm/executor/vm/state"
+	evmtypes "gitlab.33.cn/chain33/chain33/plugin/dapp/evm/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -191,7 +191,7 @@ func getAddr(privKey crypto.PrivKey) *address.Address {
 
 func createTx(privKey crypto.PrivKey, code []byte, fee uint64, amount uint64) types.Transaction {
 
-	action := types.EVMContractAction{Amount: amount, Code: code}
+	action := evmtypes.EVMContractAction{Amount: amount, Code: code}
 	tx := types.Transaction{Execer: []byte("evm"), Payload: types.Encode(&action), Fee: int64(fee), To: address.ExecAddress("evm")}
 	tx.Sign(types.SECP256K1, privKey)
 	return tx
@@ -267,7 +267,7 @@ func createContract(mdb *db.GoMemDB, tx types.Transaction, maxCodeSize int) (ret
 	}
 
 	addr := *crypto2.RandomContractAddress()
-	ret, _, leftGas, err := env.Create(runtime.AccountRef(msg.From()), addr, msg.Data(), msg.GasLimit(), fmt.Sprintf("%s%s", model.EvmPrefix, common.BytesToHash(tx.Hash()).Hex()), "")
+	ret, _, leftGas, err := env.Create(runtime.AccountRef(msg.From()), addr, msg.Data(), msg.GasLimit(), fmt.Sprintf("%s%s", evmtypes.EvmPrefix, common.BytesToHash(tx.Hash()).Hex()), "")
 
 	return ret, addr, leftGas, err, statedb
 }

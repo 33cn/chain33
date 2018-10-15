@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
-	"gitlab.33.cn/chain33/chain33/types"
+	tmtypes "gitlab.33.cn/chain33/chain33/plugin/dapp/valnode/types"
 )
 
 /*
@@ -52,11 +52,11 @@ type VoteSet struct {
 	mtx           sync.Mutex
 	valSet        *ValidatorSet
 	votesBitArray *BitArray
-	votes         []*Vote                   // Primary votes to share
-	sum           int64                     // Sum of voting power for seen votes, discounting conflicts
-	maj23         *types.BlockID            // First 2/3 majority seen
-	votesByBlock  map[string]*blockVotes    // string(blockHash|blockParts) -> blockVotes
-	peerMaj23s    map[string]*types.BlockID // Maj23 for each peer
+	votes         []*Vote                     // Primary votes to share
+	sum           int64                       // Sum of voting power for seen votes, discounting conflicts
+	maj23         *tmtypes.BlockID            // First 2/3 majority seen
+	votesByBlock  map[string]*blockVotes      // string(blockHash|blockParts) -> blockVotes
+	peerMaj23s    map[string]*tmtypes.BlockID // Maj23 for each peer
 }
 
 // Constructs a new VoteSet struct used to accumulate votes for given height/round.
@@ -75,7 +75,7 @@ func NewVoteSet(chainID string, height int64, round int, type_ byte, valSet *Val
 		sum:           0,
 		maj23:         nil,
 		votesByBlock:  make(map[string]*blockVotes, valSet.Size()),
-		peerMaj23s:    make(map[string]*types.BlockID),
+		peerMaj23s:    make(map[string]*tmtypes.BlockID),
 	}
 }
 
@@ -293,7 +293,7 @@ func (voteSet *VoteSet) addVerifiedVote(vote *Vote, blockKey string, votingPower
 // this can cause memory issues.
 // TODO: implement ability to remove peers too
 // NOTE: VoteSet must not be nil
-func (voteSet *VoteSet) SetPeerMaj23(peerID string, blockID *types.BlockID) {
+func (voteSet *VoteSet) SetPeerMaj23(peerID string, blockID *tmtypes.BlockID) {
 	if voteSet == nil {
 		PanicSanity("SetPeerMaj23() on nil VoteSet")
 	}
@@ -337,7 +337,7 @@ func (voteSet *VoteSet) BitArray() *BitArray {
 	return voteSet.votesBitArray.Copy()
 }
 
-func (voteSet *VoteSet) BitArrayByBlockID(blockID *types.BlockID) *BitArray {
+func (voteSet *VoteSet) BitArrayByBlockID(blockID *tmtypes.BlockID) *BitArray {
 	if voteSet == nil {
 		return nil
 	}
@@ -409,16 +409,16 @@ func (voteSet *VoteSet) HasAll() bool {
 
 // Returns either a blockhash (or nil) that received +2/3 majority.
 // If there exists no such majority, returns (nil, PartSetHeader{}, false).
-func (voteSet *VoteSet) TwoThirdsMajority() (blockID types.BlockID, ok bool) {
+func (voteSet *VoteSet) TwoThirdsMajority() (blockID tmtypes.BlockID, ok bool) {
 	if voteSet == nil {
-		return types.BlockID{}, false
+		return tmtypes.BlockID{}, false
 	}
 	voteSet.mtx.Lock()
 	defer voteSet.mtx.Unlock()
 	if voteSet.maj23 != nil {
 		return *voteSet.maj23, true
 	} else {
-		return types.BlockID{}, false
+		return tmtypes.BlockID{}, false
 	}
 }
 
@@ -464,7 +464,7 @@ func (voteSet *VoteSet) StringShort() string {
 //--------------------------------------------------------------------------------
 // Commit
 
-func (voteSet *VoteSet) MakeCommit() *types.TendermintCommit {
+func (voteSet *VoteSet) MakeCommit() *tmtypes.TendermintCommit {
 	if voteSet.type_ != VoteTypePrecommit {
 		PanicSanity("Cannot MakeCommit() unless VoteSet.Type is VoteTypePrecommit")
 	}
@@ -477,16 +477,16 @@ func (voteSet *VoteSet) MakeCommit() *types.TendermintCommit {
 	}
 
 	// For every validator, get the precommit
-	votesCopy := make([]*types.Vote, len(voteSet.votes))
+	votesCopy := make([]*tmtypes.Vote, len(voteSet.votes))
 	for i, item := range voteSet.votes {
 		if item != nil {
 			votesCopy[i] = item.Vote
 		} else {
-			votesCopy[i] = &types.Vote{}
+			votesCopy[i] = &tmtypes.Vote{}
 		}
 	}
 	//copy(votesCopy, voteSet.votes)
-	return &types.TendermintCommit{
+	return &tmtypes.TendermintCommit{
 		BlockID:    voteSet.maj23,
 		Precommits: votesCopy,
 	}

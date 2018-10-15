@@ -104,9 +104,6 @@ func (acc *DB) ExecFrozen(addr, execaddr string, amount int64) (*types.Receipt, 
 	}
 	acc.SaveExecAccount(execaddr, acc1)
 	ty := int32(types.TyLogExecFrozen)
-	if acc.execer == types.TokenX {
-		ty = int32(types.TyLogTokenExecFrozen)
-	}
 	return acc.execReceipt(ty, acc1, receiptBalance), nil
 }
 
@@ -131,9 +128,6 @@ func (acc *DB) ExecActive(addr, execaddr string, amount int64) (*types.Receipt, 
 	}
 	acc.SaveExecAccount(execaddr, acc1)
 	ty := int32(types.TyLogExecActive)
-	if acc.execer == types.TokenX {
-		ty = int32(types.TyLogTokenExecActive)
-	}
 	return acc.execReceipt(ty, acc1, receiptBalance), nil
 }
 
@@ -256,9 +250,6 @@ func (acc *DB) execDepositFrozen(addr, execaddr string, amount int64) (*types.Re
 	}
 	acc.SaveExecAccount(execaddr, acc1)
 	ty := int32(types.TyLogExecDeposit)
-	if acc.execer == types.TokenX {
-		ty = int32(types.TyLogTokenExecDeposit)
-	}
 	return acc.execReceipt(ty, acc1, receiptBalance), nil
 }
 
@@ -280,9 +271,6 @@ func (acc *DB) ExecDeposit(addr, execaddr string, amount int64) (*types.Receipt,
 	//alog.Debug("execDeposit", "addr", addr, "execaddr", execaddr, "account", acc)
 	acc.SaveExecAccount(execaddr, acc1)
 	ty := int32(types.TyLogExecDeposit)
-	if acc.execer == types.TokenX {
-		ty = int32(types.TyLogTokenExecDeposit)
-	}
 	return acc.execReceipt(ty, acc1, receiptBalance), nil
 }
 
@@ -306,9 +294,6 @@ func (acc *DB) ExecWithdraw(execaddr, addr string, amount int64) (*types.Receipt
 	}
 	acc.SaveExecAccount(execaddr, acc1)
 	ty := int32(types.TyLogExecWithdraw)
-	if acc.execer == types.TokenX {
-		ty = int32(types.TyLogTokenExecWithdraw)
-	}
 	return acc.execReceipt(ty, acc1, receiptBalance), nil
 }
 
@@ -327,9 +312,6 @@ func (acc *DB) execReceipt(ty int32, acc1 *types.Account, r *types.ReceiptExecAc
 
 func (acc *DB) execReceipt2(acc1, acc2 *types.Account, r1, r2 *types.ReceiptExecAccountTransfer) *types.Receipt {
 	ty := int32(types.TyLogExecTransfer)
-	if acc.execer == types.TokenX {
-		ty = int32(types.TyLogTokenExecTransfer)
-	}
 	log1 := &types.ReceiptLog{
 		Ty:  ty,
 		Log: types.Encode(r1),

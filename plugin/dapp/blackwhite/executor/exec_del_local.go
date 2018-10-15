@@ -56,7 +56,7 @@ func (c *Blackwhite) execDelLocal(receiptData *types.ReceiptData) ([]*types.KeyV
 }
 
 func (c *Blackwhite) ExecDelLocal_Create(payload *gt.BlackwhiteCreate, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	kv, err := c.execLocal(receiptData)
+	kv, err := c.execDelLocal(receiptData)
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +64,7 @@ func (c *Blackwhite) ExecDelLocal_Create(payload *gt.BlackwhiteCreate, tx *types
 }
 
 func (c *Blackwhite) ExecDelLocal_Play(payload *gt.BlackwhitePlay, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	kv, err := c.execLocal(receiptData)
+	kv, err := c.execDelLocal(receiptData)
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +72,7 @@ func (c *Blackwhite) ExecDelLocal_Play(payload *gt.BlackwhitePlay, tx *types.Tra
 }
 
 func (c *Blackwhite) ExecDelLocal_Show(payload *gt.BlackwhiteShow, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	kv, err := c.execLocal(receiptData)
+	kv, err := c.execDelLocal(receiptData)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +80,7 @@ func (c *Blackwhite) ExecDelLocal_Show(payload *gt.BlackwhiteShow, tx *types.Tra
 }
 
 func (c *Blackwhite) ExecDelLocal_TimeoutDone(payload *gt.BlackwhiteTimeoutDone, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	kv, err := c.execLocal(receiptData)
+	kv, err := c.execDelLocal(receiptData)
 	if err != nil {
 		return nil, err
 	}

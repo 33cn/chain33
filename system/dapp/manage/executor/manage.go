@@ -8,28 +8,19 @@ manage 负责管理配置
 */
 
 import (
-	"reflect"
-
 	log "github.com/inconshreveable/log15"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
-	pty "gitlab.33.cn/chain33/chain33/system/dapp/manage/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var (
-	clog = log.New("module", "execs.manage")
-
-	//初始化过程比较重量级，有很多reflact, 所以弄成全局的
-	executorFunList = make(map[string]reflect.Method)
-	executorType    = pty.NewType()
+	clog       = log.New("module", "execs.manage")
+	driverName = "manage"
 )
 
 func init() {
-	actionFunList := executorType.GetFuncMap()
-	executorFunList = types.ListMethod(&Manage{})
-	for k, v := range actionFunList {
-		executorFunList[k] = v
-	}
+	ety := types.LoadExecutorType(driverName)
+	ety.InitFuncList(types.ListMethod(&Manage{}))
 }
 
 func Init(name string) {
@@ -47,20 +38,16 @@ type Manage struct {
 func newManage() drivers.Driver {
 	c := &Manage{}
 	c.SetChild(c)
-	c.SetExecutorType(executorType)
+	c.SetExecutorType(types.LoadExecutorType(driverName))
 	return c
 }
 
 func (c *Manage) GetDriverName() string {
-	return "manage"
+	return driverName
 }
 
 func (c *Manage) CheckTx(tx *types.Transaction, index int) error {
 	return nil
-}
-
-func (c *Manage) GetFuncMap() map[string]reflect.Method {
-	return executorFunList
 }
 
 func IsSuperManager(addr string) bool {
