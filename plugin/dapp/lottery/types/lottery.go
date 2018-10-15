@@ -3,6 +3,7 @@ package types
 import (
 	"encoding/json"
 	"math/rand"
+	"reflect"
 	"time"
 
 	log "github.com/inconshreveable/log15"
@@ -11,36 +12,12 @@ import (
 )
 
 var (
-	nameX string
-	llog  = log.New("module", "exectype."+types.LotteryX)
-
-	actionTypeMap = map[string]int32{
-		"Create": LotteryActionCreate,
-		"Buy":    LotteryActionBuy,
-		"Draw":   LotteryActionDraw,
-		"Close":  LotteryActionClose,
-	}
+	llog = log.New("module", "exectype."+LotteryX)
 )
 
 func init() {
-	nameX = types.ExecName(types.LotteryX)
-	// init executor type
-	types.RegistorExecutor(types.LotteryX, NewType())
-
-	// init log
-	types.RegistorLog(types.TyLogLotteryCreate, &LotteryCreateLog{})
-	types.RegistorLog(types.TyLogLotteryBuy, &LotteryBuyLog{})
-	types.RegistorLog(types.TyLogLotteryDraw, &LotteryDrawLog{})
-	types.RegistorLog(types.TyLogLotteryClose, &LotteryCloseLog{})
-
-	// init query rpc
-	types.RegisterRPCQueryHandle("GetLotteryNormalInfo", &LotteryGetInfo{})
-	types.RegisterRPCQueryHandle("GetLotteryCurrentInfo", &LotteryGetInfo{})
-	types.RegisterRPCQueryHandle("GetLotteryHistoryLuckyNumber", &LotteryGetInfo{})
-	types.RegisterRPCQueryHandle("GetLotteryRoundLuckyNumber", &LotteryLuckyRoundInfo{})
-	types.RegisterRPCQueryHandle("GetLotteryHistoryBuyInfo", &LotteryBuyInfo{})
-	types.RegisterRPCQueryHandle("GetLotteryBuyRoundInfo", &LotteryBuyRoundInfo{})
-
+	types.AllowUserExec = append(types.AllowUserExec, []byte(LotteryX))
+	types.RegistorExecutor(LotteryX, NewType())
 }
 
 type LotteryType struct {
@@ -53,39 +30,17 @@ func NewType() *LotteryType {
 	return c
 }
 
+func (at *LotteryType) GetLogMap() map[int64]*types.LogInfo {
+	return map[int64]*types.LogInfo{
+		TyLogLotteryCreate: {reflect.TypeOf(ReceiptLottery{}), "LogLotteryCreate"},
+		TyLogLotteryBuy:    {reflect.TypeOf(ReceiptLottery{}), "LogLotteryBuy"},
+		TyLogLotteryDraw:   {reflect.TypeOf(ReceiptLottery{}), "LogLotteryDraw"},
+		TyLogLotteryClose:  {reflect.TypeOf(ReceiptLottery{}), "LogLotteryClose"},
+	}
+}
+
 func (at *LotteryType) GetPayload() types.Message {
 	return &LotteryAction{}
-}
-
-func (lottery LotteryType) ActionName(tx *types.Transaction) string {
-	var action LotteryAction
-	err := types.Decode(tx.Payload, &action)
-	if err != nil {
-		return "unknow-err"
-	}
-	if action.Ty == LotteryActionCreate && action.GetCreate() != nil {
-		return "create"
-	} else if action.Ty == LotteryActionBuy && action.GetBuy() != nil {
-		return "buy"
-	} else if action.Ty == LotteryActionDraw && action.GetDraw() != nil {
-		return "draw"
-	} else if action.Ty == LotteryActionClose && action.GetClose() != nil {
-		return "close"
-	}
-	return "unknow"
-}
-
-func (lottery LotteryType) DecodePayload(tx *types.Transaction) (interface{}, error) {
-	var action LotteryAction
-	err := types.Decode(tx.Payload, &action)
-	if err != nil {
-		return nil, err
-	}
-	return &action, nil
-}
-
-func (lottery LotteryType) Amount(tx *types.Transaction) (int64, error) {
-	return 0, nil
 }
 
 func (lottery LotteryType) CreateTx(action string, message json.RawMessage) (*types.Transaction, error) {
@@ -131,7 +86,12 @@ func (lottery LotteryType) CreateTx(action string, message json.RawMessage) (*ty
 }
 
 func (lott LotteryType) GetTypeMap() map[string]int32 {
-	return actionTypeMap
+	return map[string]int32{
+		"Create": LotteryActionCreate,
+		"Buy":    LotteryActionBuy,
+		"Draw":   LotteryActionDraw,
+		"Close":  LotteryActionClose,
+	}
 }
 
 func CreateRawLotteryCreateTx(parm *LotteryCreateTx) (*types.Transaction, error) {
@@ -149,11 +109,11 @@ func CreateRawLotteryCreateTx(parm *LotteryCreateTx) (*types.Transaction, error)
 		Value: &LotteryAction_Create{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte(nameX),
+		Execer:  []byte(types.ExecName(LotteryX)),
 		Payload: types.Encode(create),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(nameX),
+		To:      address.ExecAddress(types.ExecName(LotteryX)),
 	}
 
 	err := tx.SetRealFee(types.MinFee)
@@ -174,17 +134,18 @@ func CreateRawLotteryBuyTx(parm *LotteryBuyTx) (*types.Transaction, error) {
 		LotteryId: parm.LotteryId,
 		Amount:    parm.Amount,
 		Number:    parm.Number,
+		Way:       parm.Way,
 	}
 	buy := &LotteryAction{
 		Ty:    LotteryActionBuy,
 		Value: &LotteryAction_Buy{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte(nameX),
+		Execer:  []byte(types.ExecName(LotteryX)),
 		Payload: types.Encode(buy),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(nameX),
+		To:      address.ExecAddress(types.ExecName(LotteryX)),
 	}
 
 	err := tx.SetRealFee(types.MinFee)
@@ -209,11 +170,11 @@ func CreateRawLotteryDrawTx(parm *LotteryDrawTx) (*types.Transaction, error) {
 		Value: &LotteryAction_Draw{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte(nameX),
+		Execer:  []byte(types.ExecName(LotteryX)),
 		Payload: types.Encode(draw),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(nameX),
+		To:      address.ExecAddress(types.ExecName(LotteryX)),
 	}
 
 	err := tx.SetRealFee(types.MinFee)
@@ -238,11 +199,11 @@ func CreateRawLotteryCloseTx(parm *LotteryCloseTx) (*types.Transaction, error) {
 		Value: &LotteryAction_Close{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte(nameX),
+		Execer:  []byte(types.ExecName(LotteryX)),
 		Payload: types.Encode(close),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(nameX),
+		To:      address.ExecAddress(types.ExecName(LotteryX)),
 	}
 
 	err := tx.SetRealFee(types.MinFee)

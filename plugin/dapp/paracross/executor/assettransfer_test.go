@@ -43,7 +43,7 @@ func TestAssetTransfer(t *testing.T) {
 }
 
 func init() {
-	rpc.Init(nil)
+	rpc.Init("paracross", nil)
 }
 
 func (suite *AssetTransferTestSuite) SetupTest() {

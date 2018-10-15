@@ -20,11 +20,11 @@ import (
 	"gitlab.33.cn/chain33/chain33/mempool"
 	"gitlab.33.cn/chain33/chain33/p2p"
 	_ "gitlab.33.cn/chain33/chain33/plugin"
+	tickettypes "gitlab.33.cn/chain33/chain33/plugin/dapp/ticket/types"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/store"
 	_ "gitlab.33.cn/chain33/chain33/system"
 	"gitlab.33.cn/chain33/chain33/types"
-	executorty "gitlab.33.cn/chain33/chain33/types/executor"
 	wcom "gitlab.33.cn/chain33/chain33/wallet/common"
 )
 
@@ -35,7 +35,6 @@ var (
 
 func init() {
 	log.SetLogLevel("info")
-	executorty.Init()
 	strPrivKeys = append(strPrivKeys,
 		"4257D8692EF7FE13C68B65D6A52F03933DB2FA5CE8FAF210B5B8B80C721CED01",
 		"CC38546E9E659D15E6B4893F0AB32A06D103931A8230B0BDE71459D2B27D6944",
@@ -122,14 +121,14 @@ func (mock *walletMock) onGetWalletStatus(msg *queue.Message) (string, int64, in
 	}, nil
 }
 
-func (mock *walletMock) getTicketList() *types.ReplyTicketList {
-	reqaddr := &types.TicketList{"12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv", 1}
+func (mock *walletMock) getTicketList() *tickettypes.ReplyTicketList {
+	reqaddr := &tickettypes.TicketList{"12qyocayNF7Lv6C9qW4avxs2E7U41fKSfv", 1}
 	var req types.Query
 	req.Execer = []byte("ticket")
 	req.FuncName = "TicketList"
 	req.Payload = types.Encode(reqaddr)
 	msg, _ := mock.api.Query(&req)
-	return (*msg).(*types.ReplyTicketList)
+	return msg.(*tickettypes.ReplyTicketList)
 }
 
 func (mock *walletMock) onWalletGetTickets(msg *queue.Message) (string, int64, interface{}, error) {
@@ -141,7 +140,7 @@ func (mock *walletMock) onWalletGetTickets(msg *queue.Message) (string, int64, i
 	}
 	ticklist := mock.getTicketList()
 	ticklist.Tickets = ticklist.Tickets[0:5000]
-	tks := &types.ReplyWalletTickets{ticklist.Tickets, privKeysdata}
+	tks := &tickettypes.ReplyWalletTickets{ticklist.Tickets, privKeysdata}
 	return topic, retty, tks, nil
 }
 
@@ -360,14 +359,14 @@ func (mock *chain33Mock) waitHeight(height int64, t *testing.T) {
 	}
 }
 
-func (mock *chain33Mock) getTicketList(addr string, t *testing.T) *types.ReplyTicketList {
+func (mock *chain33Mock) getTicketList(addr string, t *testing.T) *tickettypes.ReplyTicketList {
 	var req types.Query
 	req.Execer = types.ExecerTicket
 	req.FuncName = "TicketList"
-	req.Payload = types.Encode(&types.TicketList{addr, 1})
+	req.Payload = types.Encode(&tickettypes.TicketList{addr, 1})
 	msg, err := mock.api.Query(&req)
 	require.Equal(t, err, nil)
-	return (*msg).(*types.ReplyTicketList)
+	return msg.(*tickettypes.ReplyTicketList)
 }
 
 func Test_WalletTicket(t *testing.T) {

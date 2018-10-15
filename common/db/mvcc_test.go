@@ -48,7 +48,7 @@ func closeMVCC(m *MVCCHelper) {
 
 func TestSetVersion(t *testing.T) {
 	m := getMVCC()
-	defer closeMVCC(m)
+	defer m.db.Close()
 	hash := common.Sha256([]byte("1"))
 	err := m.SetVersion(hash, int64(1))
 	assert.Nil(t, err)
@@ -165,10 +165,11 @@ func hashN(n int) []byte {
 
 func genkv(n int) (kvlist []*types.KeyValue) {
 	for i := 0; i < n; i++ {
-		kvlist = append(kvlist, &types.KeyValue{Key: randBytes(), Value: randBytes()})
+		kvlist = append(kvlist, &types.KeyValue{Key: []byte(common.GetRandPrintString(10, 10)), Value: []byte(common.GetRandPrintString(10, 10))})
 	}
 	return kvlist
 }
+
 func TestAddDelMVCC(t *testing.T) {
 	m := getMVCC()
 	defer closeMVCC(m)
