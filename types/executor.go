@@ -2,7 +2,6 @@ package types
 
 import (
 	"encoding/json"
-	"fmt"
 	"math/rand"
 	"reflect"
 	"strings"
@@ -17,7 +16,7 @@ var random = rand.New(rand.NewSource(Now().UnixNano()))
 type LogType interface {
 	Name() string
 	Decode([]byte) (interface{}, error)
-	//Json([]byte) (string, error) 重构完成后,加上这个函数
+	Json([]byte) (string, error)
 }
 
 type logInfoType struct {
@@ -37,7 +36,7 @@ func (l *logInfoType) Decode(data []byte) (interface{}, error) {
 	return DecodeLog(l.execer, l.ty, data)
 }
 
-func LogToJson(l LogType, data []byte) (string, error) {
+func (l *logInfoType) Json(data []byte) (string, error) {
 	d, err := l.Decode(data)
 	if err != nil {
 		return "", err
@@ -53,7 +52,6 @@ func LogToJson(l LogType, data []byte) (string, error) {
 }
 
 var executorMap = map[string]ExecutorType{}
-var receiptLogMap = map[int64]LogType{}
 
 func RegistorExecutor(exec string, util ExecutorType) {
 	//tlog.Debug("rpc", "t", funcName, "t", util)
@@ -135,20 +133,7 @@ func formatTx(execName string, tx *Transaction) ([]byte, error) {
 	return txbyte, nil
 }
 
-func RegistorLog(logTy int64, util LogType) {
-	//tlog.Debug("rpc", "t", funcName, "t", util)
-	if _, exist := receiptLogMap[logTy]; exist {
-		errMsg := fmt.Sprintf("DupLogType RegistorLog type existed", "logTy", logTy)
-		panic(errMsg)
-	} else {
-		receiptLogMap[logTy] = util
-	}
-}
-
 func LoadLog(execer []byte, ty int64) LogType {
-	if log, exist := receiptLogMap[ty]; exist {
-		return log
-	}
 	loginfo := getLogType(execer, ty)
 	if loginfo.Name == "LogReserved" {
 		return nil

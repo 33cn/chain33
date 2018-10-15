@@ -7,35 +7,22 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var nameX string
+var PrivacyX = types.PrivacyX
 
-//var tlog = log.New("module", name)
-
-// log for privacy
 const (
+	InvalidAction = 0
+	//action type for privacy
+	ActionPublic2Privacy = iota + 100
+	ActionPrivacy2Privacy
+	ActionPrivacy2Public
 
-//TyLogPrivacyFee    = 500
-//TyLogPrivacyInput  = 501
-//TyLogPrivacyOutput = 502
-
-)
-
-var (
-	actionName = map[string]int32{
-		"Public2Privacy":  types.ActionPublic2Privacy,
-		"Privacy2Privacy": types.ActionPrivacy2Privacy,
-		"Privacy2Public":  types.ActionPrivacy2Public,
-	}
-
-	logInfo = map[int64]*types.LogInfo{
-		types.TyLogPrivacyFee:    {reflect.TypeOf(types.ReceiptExecAccountTransfer{}), "LogPrivacyFee"},
-		types.TyLogPrivacyInput:  {reflect.TypeOf(types.PrivacyInput{}), "LogPrivacyInput"},
-		types.TyLogPrivacyOutput: {reflect.TypeOf(types.PrivacyOutput{}), "LogPrivacyOutput"},
-	}
+	// log for privacy
+	TyLogPrivacyFee    = 500
+	TyLogPrivacyInput  = 501
+	TyLogPrivacyOutput = 502
 )
 
 func init() {
-	nameX = types.ExecName("privacy")
 	// init executor type
 	types.RegistorExecutor(types.PrivacyX, NewType())
 }
@@ -51,23 +38,31 @@ func NewType() *PrivacyType {
 }
 
 func (at *PrivacyType) GetPayload() types.Message {
-	return &types.PrivacyAction{}
+	return &PrivacyAction{}
 }
 
 func (at *PrivacyType) GetName() string {
-	return "privacy"
+	return PrivacyX
 }
 
 func (at *PrivacyType) GetLogMap() map[int64]*types.LogInfo {
-	return logInfo
+	return map[int64]*types.LogInfo{
+		TyLogPrivacyFee:    {reflect.TypeOf(types.ReceiptExecAccountTransfer{}), "LogPrivacyFee"},
+		TyLogPrivacyInput:  {reflect.TypeOf(PrivacyInput{}), "LogPrivacyInput"},
+		TyLogPrivacyOutput: {reflect.TypeOf(PrivacyOutput{}), "LogPrivacyOutput"},
+	}
 }
 
 func (c *PrivacyType) GetTypeMap() map[string]int32 {
-	return actionName
+	return map[string]int32{
+		"Public2Privacy":  ActionPublic2Privacy,
+		"Privacy2Privacy": ActionPrivacy2Privacy,
+		"Privacy2Public":  ActionPrivacy2Public,
+	}
 }
 
 func (coins PrivacyType) ActionName(tx *types.Transaction) string {
-	var action types.PrivacyAction
+	var action PrivacyAction
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
 		return "unknow-privacy-err"
@@ -76,7 +71,7 @@ func (coins PrivacyType) ActionName(tx *types.Transaction) string {
 }
 
 func (privacy PrivacyType) DecodePayload(tx *types.Transaction) (interface{}, error) {
-	action := &types.PrivacyAction{}
+	action := &PrivacyAction{}
 	err := types.Decode(tx.Payload, action)
 	if err != nil {
 		return nil, err
@@ -85,16 +80,16 @@ func (privacy PrivacyType) DecodePayload(tx *types.Transaction) (interface{}, er
 }
 
 func (t PrivacyType) Amount(tx *types.Transaction) (int64, error) {
-	var action types.PrivacyAction
+	var action PrivacyAction
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
 		return 0, types.ErrDecode
 	}
-	if action.Ty == types.ActionPublic2Privacy && action.GetPublic2Privacy() != nil {
+	if action.Ty == ActionPublic2Privacy && action.GetPublic2Privacy() != nil {
 		return action.GetPublic2Privacy().GetAmount(), nil
-	} else if action.Ty == types.ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
+	} else if action.Ty == ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
 		return action.GetPrivacy2Privacy().GetAmount(), nil
-	} else if action.Ty == types.ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
+	} else if action.Ty == ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
 		return action.GetPrivacy2Public().GetAmount(), nil
 	}
 	return 0, nil
@@ -106,5 +101,45 @@ func (t PrivacyType) CreateTx(action string, message json.RawMessage) (*types.Tr
 	return tx, nil
 }
 
-type PrivacyFeeLog struct {
+func (action *PrivacyAction) GetInput() *PrivacyInput {
+	if action.GetTy() == ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
+		return action.GetPrivacy2Privacy().GetInput()
+
+	} else if action.GetTy() == ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
+		return action.GetPrivacy2Public().GetInput()
+	}
+	return nil
+}
+
+func (action *PrivacyAction) GetOutput() *PrivacyOutput {
+	if action.GetTy() == ActionPublic2Privacy && action.GetPublic2Privacy() != nil {
+		return action.GetPublic2Privacy().GetOutput()
+	} else if action.GetTy() == ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
+		return action.GetPrivacy2Privacy().GetOutput()
+	} else if action.GetTy() == ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
+		return action.GetPrivacy2Public().GetOutput()
+	}
+	return nil
+}
+
+func (action *PrivacyAction) GetActionName() string {
+	if action.Ty == ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
+		return "Privacy2Privacy"
+	} else if action.Ty == ActionPublic2Privacy && action.GetPublic2Privacy() != nil {
+		return "Public2Privacy"
+	} else if action.Ty == ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
+		return "Privacy2Public"
+	}
+	return "unknow-privacy"
+}
+
+func (action *PrivacyAction) GetTokenName() string {
+	if action.GetTy() == ActionPublic2Privacy && action.GetPublic2Privacy() != nil {
+		return action.GetPublic2Privacy().GetTokenname()
+	} else if action.GetTy() == ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
+		return action.GetPrivacy2Privacy().GetTokenname()
+	} else if action.GetTy() == ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
+		return action.GetPrivacy2Public().GetTokenname()
+	}
+	return ""
 }

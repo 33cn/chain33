@@ -3,6 +3,7 @@ package types
 import (
 	"encoding/json"
 	"math/rand"
+	"reflect"
 	"time"
 
 	log "github.com/inconshreveable/log15"
@@ -18,12 +19,6 @@ func init() {
 	name = GameX
 	// init executor type
 	types.RegistorExecutor(name, &GameType{})
-
-	// init log
-	types.RegistorLog(types.TyLogCreateGame, &CreateGameLog{})
-	types.RegistorLog(types.TyLogCancleGame, &CancelGameLog{})
-	types.RegistorLog(types.TyLogMatchGame, &MatchGameLog{})
-	types.RegistorLog(types.TyLogCloseGame, &CloseGameLog{})
 }
 
 //getRealExecName
@@ -43,6 +38,15 @@ func NewType() *GameType {
 // exec
 type GameType struct {
 	types.ExecTypeBase
+}
+
+func (at *GameType) GetLogMap() map[int64]*types.LogInfo {
+	return map[int64]*types.LogInfo{
+		TyLogCreateGame: {reflect.TypeOf(ReceiptGame{}), "LogLotteryCreate"},
+		TyLogCancleGame: {reflect.TypeOf(ReceiptGame{}), "LogCancleGame"},
+		TyLogMatchGame:  {reflect.TypeOf(ReceiptGame{}), "LogMatchGame"},
+		TyLogCloseGame:  {reflect.TypeOf(ReceiptGame{}), "LogCloseGame"},
+	}
 }
 
 func (game GameType) GetRealToAddr(tx *types.Transaction) string {
@@ -237,69 +241,4 @@ func CreateRawGamePreCloseTx(parm *GamePreCloseTx) (*types.Transaction, error) {
 	tx.SetRealFee(types.MinFee)
 
 	return tx, nil
-}
-
-//log
-type CreateGameLog struct {
-}
-
-func (l CreateGameLog) Name() string {
-	return "LogGameCreate"
-}
-
-func (l CreateGameLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp ReceiptGame
-	err := types.Decode(msg, &logTmp)
-	if err != nil {
-		return nil, err
-	}
-	return logTmp, err
-}
-
-type MatchGameLog struct {
-}
-
-func (l MatchGameLog) Name() string {
-	return "LogMatchGame"
-}
-
-func (l MatchGameLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp ReceiptGame
-	err := types.Decode(msg, &logTmp)
-	if err != nil {
-		return nil, err
-	}
-	return logTmp, err
-}
-
-type CancelGameLog struct {
-}
-
-func (l CancelGameLog) Name() string {
-	return "LogCancelGame"
-}
-
-func (l CancelGameLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp ReceiptGame
-	err := types.Decode(msg, &logTmp)
-	if err != nil {
-		return nil, err
-	}
-	return logTmp, err
-}
-
-type CloseGameLog struct {
-}
-
-func (l CloseGameLog) Name() string {
-	return "LogCloseGame"
-}
-
-func (l CloseGameLog) Decode(msg []byte) (interface{}, error) {
-	var logTmp ReceiptGame
-	err := types.Decode(msg, &logTmp)
-	if err != nil {
-		return nil, err
-	}
-	return logTmp, err
 }
