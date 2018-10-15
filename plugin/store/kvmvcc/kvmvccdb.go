@@ -9,7 +9,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/queue"
 	drivers "gitlab.33.cn/chain33/chain33/system/store"
 	"gitlab.33.cn/chain33/chain33/types"
-	)
+)
 
 var klog = log.New("module", "kvmvccdb")
 var maxRollbackNum = 200
