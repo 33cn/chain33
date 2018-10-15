@@ -1,14 +1,10 @@
-package rpc
+package types
 
 import (
 	"encoding/json"
-
-	l "github.com/inconshreveable/log15"
 )
 
-var log = l.New("module", "rpc")
-
-type userWrite struct {
+type UserWrite struct {
 	Topic   string `json:"topic"`
 	Content string `json:"content"`
 }
