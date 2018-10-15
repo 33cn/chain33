@@ -9,16 +9,18 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
+	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/privacy/types"
+	ticketty "gitlab.33.cn/chain33/chain33/plugin/dapp/ticket/types"
 	tokenty "gitlab.33.cn/chain33/chain33/plugin/dapp/token/types"
 	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
 func (wallet *Wallet) bindminer(mineraddr, returnaddr string, priv crypto.PrivKey) ([]byte, error) {
-	ta := &types.TicketAction{}
-	tbind := &types.TicketBind{MinerAddress: mineraddr, ReturnAddress: returnaddr}
-	ta.Value = &types.TicketAction_Tbind{tbind}
-	ta.Ty = types.TicketActionBind
+	ta := &ticketty.TicketAction{}
+	tbind := &ticketty.TicketBind{MinerAddress: mineraddr, ReturnAddress: returnaddr}
+	ta.Value = &ticketty.TicketAction_Tbind{tbind}
+	ta.Ty = ticketty.TicketActionBind
 	return wallet.sendTransaction(ta, []byte("ticket"), priv, "")
 }
 
@@ -329,15 +331,15 @@ func (wallet *Wallet) GetRofPrivateTx(txhashptr *string) (R_txpubkey []byte, err
 		return nil, errors.New("ErrPrivacyExecer")
 	}
 
-	var privateAction types.PrivacyAction
+	var privateAction pty.PrivacyAction
 	if err := types.Decode(TxDetails.Txs[0].Tx.Payload, &privateAction); err != nil {
 		walletlog.Error("GetRofPrivateTx failed to decode payload")
 		return nil, errors.New("ErrPrivacyPayload")
 	}
 
-	if types.ActionPublic2Privacy == privateAction.Ty {
+	if pty.ActionPublic2Privacy == privateAction.Ty {
 		return privateAction.GetPublic2Privacy().GetOutput().GetRpubKeytx(), nil
-	} else if types.ActionPrivacy2Privacy == privateAction.Ty {
+	} else if pty.ActionPrivacy2Privacy == privateAction.Ty {
 		return privateAction.GetPrivacy2Privacy().GetOutput().GetRpubKeytx(), nil
 	} else {
 		walletlog.Info("GetPrivateTxByHashes failed to get value required", "privacy type is", privateAction.Ty)

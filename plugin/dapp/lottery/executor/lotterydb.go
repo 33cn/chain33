@@ -64,7 +64,7 @@ func NewLotteryDB(lotteryId string, purBlock int64, drawBlock int64,
 	lott.DrawBlockNum = drawBlock
 	lott.CreateHeight = blockHeight
 	lott.Fund = 0
-	lott.Status = types.LotteryCreated
+	lott.Status = pty.LotteryCreated
 	lott.TotalPurchasedTxNum = 0
 	lott.CreateAddr = addr
 	lott.Round = 0
@@ -136,7 +136,7 @@ func (action *Action) GetReceiptLog(lottery *pty.Lottery, preStatus int32, logTy
 	l.LotteryId = lottery.LotteryId
 	l.Status = lottery.Status
 	l.PrevStatus = preStatus
-	if logTy == types.TyLogLotteryBuy {
+	if logTy == pty.TyLogLotteryBuy {
 		l.Round = round
 		l.Number = buyNumber
 		l.Amount = amount
@@ -144,7 +144,7 @@ func (action *Action) GetReceiptLog(lottery *pty.Lottery, preStatus int32, logTy
 		l.Way = way
 		l.Index = action.GetIndex()
 	}
-	if logTy == types.TyLogLotteryDraw {
+	if logTy == pty.TyLogLotteryDraw {
 		l.Round = round
 		l.LuckyNumber = luckyNum
 		l.Time = action.blocktime
@@ -209,7 +209,7 @@ func (action *Action) LotteryCreate(create *pty.LotteryCreate) (*types.Receipt, 
 	lott.Save(action.db)
 	kv = append(kv, lott.GetKVSet()...)
 
-	receiptLog := action.GetReceiptLog(&lott.Lottery, 0, types.TyLogLotteryCreate, 0, 0, 0, 0, 0, nil)
+	receiptLog := action.GetReceiptLog(&lott.Lottery, 0, pty.TyLogLotteryCreate, 0, 0, 0, 0, 0, nil)
 	logs = append(logs, receiptLog)
 
 	receipt = &types.Receipt{types.ExecOk, kv, logs}
@@ -231,12 +231,12 @@ func (action *Action) LotteryBuy(buy *pty.LotteryBuy) (*types.Receipt, error) {
 	lott := &LotteryDB{*lottery}
 	preStatus := lott.Status
 
-	if lott.Status == types.LotteryClosed {
+	if lott.Status == pty.LotteryClosed {
 		llog.Error("LotteryBuy", "status", lott.Status)
 		return nil, types.ErrLotteryStatus
 	}
 
-	if lott.Status == types.LotteryDrawed {
+	if lott.Status == pty.LotteryDrawed {
 		//no problem both on main and para
 		if action.height <= lott.LastTransToDrawState {
 			llog.Error("LotteryBuy", "action.heigt", action.height, "lastTransToDrawState", lott.LastTransToDrawState)
@@ -244,10 +244,10 @@ func (action *Action) LotteryBuy(buy *pty.LotteryBuy) (*types.Receipt, error) {
 		}
 	}
 
-	if lott.Status == types.LotteryCreated || lott.Status == types.LotteryDrawed {
+	if lott.Status == pty.LotteryCreated || lott.Status == pty.LotteryDrawed {
 		llog.Debug("LotteryBuy switch to purchasestate")
 		lott.LastTransToPurState = action.height
-		lott.Status = types.LotteryPurchase
+		lott.Status = pty.LotteryPurchase
 		lott.Round += 1
 		if types.IsPara() {
 			mainHeight := action.GetMainHeightByTxHash(action.txhash)
@@ -259,7 +259,7 @@ func (action *Action) LotteryBuy(buy *pty.LotteryBuy) (*types.Receipt, error) {
 		}
 	}
 
-	if lott.Status == types.LotteryPurchase {
+	if lott.Status == pty.LotteryPurchase {
 		if types.IsPara() {
 			mainHeight := action.GetMainHeightByTxHash(action.txhash)
 			if mainHeight < 0 {
@@ -338,7 +338,7 @@ func (action *Action) LotteryBuy(buy *pty.LotteryBuy) (*types.Receipt, error) {
 	lott.Save(action.db)
 	kv = append(kv, lott.GetKVSet()...)
 
-	receiptLog := action.GetReceiptLog(&lott.Lottery, preStatus, types.TyLogLotteryBuy, lott.Round, buy.GetNumber(), buy.GetAmount(), buy.GetWay(), 0, nil)
+	receiptLog := action.GetReceiptLog(&lott.Lottery, preStatus, pty.TyLogLotteryBuy, lott.Round, buy.GetNumber(), buy.GetAmount(), buy.GetWay(), 0, nil)
 	logs = append(logs, receiptLog)
 
 	receipt = &types.Receipt{types.ExecOk, kv, logs}
@@ -362,7 +362,7 @@ func (action *Action) LotteryDraw(draw *pty.LotteryDraw) (*types.Receipt, error)
 
 	preStatus := lott.Status
 
-	if lott.Status != types.LotteryPurchase {
+	if lott.Status != pty.LotteryPurchase {
 		llog.Error("LotteryDraw", "lott.Status", lott.Status)
 		return nil, types.ErrLotteryStatus
 	}
@@ -401,7 +401,7 @@ func (action *Action) LotteryDraw(draw *pty.LotteryDraw) (*types.Receipt, error)
 	lott.Save(action.db)
 	kv = append(kv, lott.GetKVSet()...)
 
-	receiptLog := action.GetReceiptLog(&lott.Lottery, preStatus, types.TyLogLotteryDraw, lott.Round, 0, 0, 0, lott.LuckyNumber, updateInfo)
+	receiptLog := action.GetReceiptLog(&lott.Lottery, preStatus, pty.TyLogLotteryDraw, lott.Round, 0, 0, 0, lott.LuckyNumber, updateInfo)
 	logs = append(logs, receiptLog)
 
 	receipt = &types.Receipt{types.ExecOk, kv, logs}
@@ -430,7 +430,7 @@ func (action *Action) LotteryClose(draw *pty.LotteryClose) (*types.Receipt, erro
 		return nil, types.ErrLotteryErrCloser
 	}
 
-	if lott.Status == types.LotteryClosed {
+	if lott.Status == pty.LotteryClosed {
 		return nil, types.ErrLotteryStatus
 	}
 
@@ -473,12 +473,12 @@ func (action *Action) LotteryClose(draw *pty.LotteryClose) (*types.Receipt, erro
 
 	lott.TotalPurchasedTxNum = 0
 	llog.Debug("LotteryClose switch to closestate")
-	lott.Status = types.LotteryClosed
+	lott.Status = pty.LotteryClosed
 
 	lott.Save(action.db)
 	kv = append(kv, lott.GetKVSet()...)
 
-	receiptLog := action.GetReceiptLog(&lott.Lottery, preStatus, types.TyLogLotteryClose, 0, 0, 0, 0, 0, nil)
+	receiptLog := action.GetReceiptLog(&lott.Lottery, preStatus, pty.TyLogLotteryClose, 0, 0, 0, 0, 0, nil)
 	logs = append(logs, receiptLog)
 
 	return &types.Receipt{types.ExecOk, kv, logs}, nil
@@ -657,7 +657,7 @@ func (action *Action) checkDraw(lott *LotteryDB) (*types.Receipt, *pty.LotteryUp
 
 	llog.Debug("checkDraw lottery switch to drawed")
 	lott.LastTransToDrawState = action.height
-	lott.Status = types.LotteryDrawed
+	lott.Status = pty.LotteryDrawed
 	lott.TotalPurchasedTxNum = 0
 	lott.LuckyNumber = luckynum
 	action.recordMissing(lott)

@@ -13,12 +13,10 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 
 	"github.com/inconshreveable/log15"
-	"gitlab.33.cn/chain33/chain33/plugin/dapp/evm/executor"
 	hashlocktype "gitlab.33.cn/chain33/chain33/plugin/dapp/hashlock/types"
 	lotterytype "gitlab.33.cn/chain33/chain33/plugin/dapp/lottery/types"
 	retrievetype "gitlab.33.cn/chain33/chain33/plugin/dapp/retrieve/types"
 	tradetype "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/types"
-	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 )
 
 //提供系统rpc接口
@@ -33,7 +31,6 @@ type channelClient struct {
 func (c *channelClient) Init(q queue.Client) {
 	c.QueueProtocolAPI, _ = client.New(q, nil)
 	c.accountdb = account.NewCoinsAccount()
-	executor.Init()
 }
 
 func (c *channelClient) CreateRawTransaction(param *types.CreateTx) ([]byte, error) {
@@ -163,60 +160,7 @@ func (c *channelClient) GetAddrOverview(parm *types.ReqAddr) (*types.AddrOvervie
 }
 
 func (c *channelClient) GetBalance(in *types.ReqBalance) ([]*types.Account, error) {
-
-	switch in.GetExecer() {
-	case types.ExecName(types.CoinsX):
-		addrs := in.GetAddresses()
-		var exaddrs []string
-		for _, addr := range addrs {
-			if err := address.CheckAddress(addr); err != nil {
-				addr = address.ExecAddress(addr)
-
-			}
-			exaddrs = append(exaddrs, addr)
-		}
-		var accounts []*types.Account
-		var err error
-		if len(in.StateHash) == 0 {
-			accounts, err = c.accountdb.LoadAccounts(c.QueueProtocolAPI, exaddrs)
-		} else {
-			hash, err := common.FromHex(in.StateHash)
-			if err != nil {
-				return nil, err
-			}
-			accounts, err = c.accountdb.LoadAccountsHistory(c.QueueProtocolAPI, exaddrs, hash)
-		}
-		if err != nil {
-			log.Error("GetBalance", "err", err.Error())
-			return nil, err
-		}
-		return accounts, nil
-	default:
-		execaddress := address.ExecAddress(in.GetExecer())
-		addrs := in.GetAddresses()
-		var accounts []*types.Account
-		for _, addr := range addrs {
-
-			var acc *types.Account
-			var err error
-			if len(in.StateHash) == 0 {
-				acc, err = c.accountdb.LoadExecAccountQueue(c.QueueProtocolAPI, addr, execaddress)
-			} else {
-				hash, err := common.FromHex(in.StateHash)
-				if err != nil {
-					return nil, err
-				}
-				acc, err = c.accountdb.LoadExecAccountHistoryQueue(c.QueueProtocolAPI, addr, execaddress, hash)
-			}
-			if err != nil {
-				log.Error("GetBalance", "err", err.Error())
-				continue
-			}
-			accounts = append(accounts, acc)
-		}
-
-		return accounts, nil
-	}
+	return c.accountdb.GetBalance(c.QueueProtocolAPI, in)
 }
 
 func (c *channelClient) GetAllExecBalance(in *types.ReqAddr) (*types.AllExecBalance, error) {
@@ -312,30 +256,6 @@ func (c *channelClient) CreateRawLotteryCloseTx(parm *lotterytype.LotteryCloseTx
 	return types.CallExecNewTx(types.ExecName(lotterytype.LotteryX), "LotteryClose", parm)
 }
 
-func (c *channelClient) BindMiner(param *types.ReqBindMiner) (*types.ReplyBindMiner, error) {
-	ta := &types.TicketAction{}
-	tBind := &types.TicketBind{
-		MinerAddress:  param.BindAddr,
-		ReturnAddress: param.OriginAddr,
-	}
-	ta.Value = &types.TicketAction_Tbind{Tbind: tBind}
-	ta.Ty = types.TicketActionBind
-	execer := []byte(types.ExecName(types.TicketX))
-	to := address.ExecAddress(string(execer))
-	txBind := &types.Transaction{Execer: execer, Payload: types.Encode(ta), To: to}
-	txBind.Nonce = random.Int63()
-	var err error
-	txBind.Fee, err = txBind.GetRealFee(types.MinFee)
-	if err != nil {
-		return nil, err
-	}
-	txBind.Fee += types.MinFee
-	txBindHex := types.Encode(txBind)
-	txHexStr := hex.EncodeToString(txBindHex)
-
-	return &types.ReplyBindMiner{TxHex: txHexStr}, nil
-}
-
 func (c *channelClient) DecodeRawTransaction(param *types.ReqDecodeRawTransaction) (*types.Transaction, error) {
 	var tx types.Transaction
 	bytes, err := common.FromHex(param.TxHex)
@@ -357,165 +277,4 @@ func (c *channelClient) GetTimeStatus() (*types.TimeStatus, error) {
 	}
 	diff := local.Sub(ntpTime) / time.Second
 	return &types.TimeStatus{NtpTime: ntpTime.Format("2006-01-02 15:04:05"), LocalTime: local.Format("2006-01-02 15:04:05"), Diff: int64(diff)}, nil
-}
-
-func (c *channelClient) CreateRawRelayOrderTx(parm *rpctypes.RelayOrderTx) ([]byte, error) {
-	if parm == nil {
-		return nil, types.ErrInvalidParam
-	}
-	v := &types.RelayCreate{
-		Operation: parm.Operation,
-		Coin:      parm.Coin,
-		Amount:    parm.Amount,
-		Addr:      parm.Addr,
-		CoinWaits: parm.CoinWait,
-		BtyAmount: parm.BtyAmount,
-	}
-	sell := &types.RelayAction{
-		Ty:    types.RelayActionCreate,
-		Value: &types.RelayAction_Create{v},
-	}
-	tx := &types.Transaction{
-		Execer:  types.ExecerRelay,
-		Payload: types.Encode(sell),
-		Fee:     parm.Fee,
-		Nonce:   random.Int63(),
-		To:      address.ExecAddress(string(types.ExecerRelay)),
-	}
-
-	tx.SetRealFee(types.MinFee)
-
-	data := types.Encode(tx)
-	return data, nil
-}
-
-func (c *channelClient) CreateRawRelayAcceptTx(parm *rpctypes.RelayAcceptTx) ([]byte, error) {
-	if parm == nil {
-		return nil, types.ErrInvalidParam
-	}
-	v := &types.RelayAccept{OrderId: parm.OrderId, CoinAddr: parm.CoinAddr, CoinWaits: parm.CoinWait}
-	val := &types.RelayAction{
-		Ty:    types.RelayActionAccept,
-		Value: &types.RelayAction_Accept{v},
-	}
-	tx := &types.Transaction{
-		Execer:  types.ExecerRelay,
-		Payload: types.Encode(val),
-		Fee:     parm.Fee,
-		Nonce:   random.Int63(),
-		To:      address.ExecAddress(string(types.ExecerRelay)),
-	}
-
-	tx.SetRealFee(types.MinFee)
-
-	data := types.Encode(tx)
-	return data, nil
-}
-
-func (c *channelClient) CreateRawRelayRevokeTx(parm *rpctypes.RelayRevokeTx) ([]byte, error) {
-	if parm == nil {
-		return nil, types.ErrInvalidParam
-	}
-	v := &types.RelayRevoke{OrderId: parm.OrderId, Target: parm.Target, Action: parm.Action}
-	val := &types.RelayAction{
-		Ty:    types.RelayActionRevoke,
-		Value: &types.RelayAction_Revoke{v},
-	}
-	tx := &types.Transaction{
-		Execer:  types.ExecerRelay,
-		Payload: types.Encode(val),
-		Fee:     parm.Fee,
-		Nonce:   random.Int63(),
-		To:      address.ExecAddress(string(types.ExecerRelay)),
-	}
-
-	tx.SetRealFee(types.MinFee)
-
-	data := types.Encode(tx)
-	return data, nil
-}
-
-func (c *channelClient) CreateRawRelayConfirmTx(parm *rpctypes.RelayConfirmTx) ([]byte, error) {
-	if parm == nil {
-		return nil, types.ErrInvalidParam
-	}
-	v := &types.RelayConfirmTx{OrderId: parm.OrderId, TxHash: parm.TxHash}
-	val := &types.RelayAction{
-		Ty:    types.RelayActionConfirmTx,
-		Value: &types.RelayAction_ConfirmTx{v},
-	}
-	tx := &types.Transaction{
-		Execer:  types.ExecerRelay,
-		Payload: types.Encode(val),
-		Fee:     parm.Fee,
-		Nonce:   random.Int63(),
-		To:      address.ExecAddress(string(types.ExecerRelay)),
-	}
-
-	tx.SetRealFee(types.MinFee)
-
-	data := types.Encode(tx)
-	return data, nil
-}
-
-func (c *channelClient) CreateRawRelayVerifyBTCTx(parm *rpctypes.RelayVerifyBTCTx) ([]byte, error) {
-	if parm == nil {
-		return nil, types.ErrInvalidParam
-	}
-	v := &types.RelayVerifyCli{
-		OrderId:    parm.OrderId,
-		RawTx:      parm.RawTx,
-		TxIndex:    parm.TxIndex,
-		MerkBranch: parm.MerklBranch,
-		BlockHash:  parm.BlockHash}
-	val := &types.RelayAction{
-		Ty:    types.RelayActionVerifyCmdTx,
-		Value: &types.RelayAction_VerifyCli{v},
-	}
-	tx := &types.Transaction{
-		Execer:  types.ExecerRelay,
-		Payload: types.Encode(val),
-		Fee:     parm.Fee,
-		Nonce:   random.Int63(),
-		To:      address.ExecAddress(string(types.ExecerRelay)),
-	}
-
-	tx.SetRealFee(types.MinFee)
-
-	data := types.Encode(tx)
-	return data, nil
-}
-
-func (c *channelClient) CreateRawRelaySaveBTCHeadTx(parm *rpctypes.RelaySaveBTCHeadTx) ([]byte, error) {
-	if parm == nil {
-		return nil, types.ErrInvalidParam
-	}
-
-	head := &types.BtcHeader{
-		Hash:         parm.Hash,
-		PreviousHash: parm.PreviousHash,
-		MerkleRoot:   parm.MerkleRoot,
-		Height:       parm.Height,
-		IsReset:      parm.IsReset,
-	}
-
-	v := &types.BtcHeaders{}
-	v.BtcHeader = append(v.BtcHeader, head)
-
-	val := &types.RelayAction{
-		Ty:    types.RelayActionRcvBTCHeaders,
-		Value: &types.RelayAction_BtcHeaders{v},
-	}
-	tx := &types.Transaction{
-		Execer:  types.ExecerRelay,
-		Payload: types.Encode(val),
-		Fee:     parm.Fee,
-		Nonce:   random.Int63(),
-		To:      address.ExecAddress(string(types.ExecerRelay)),
-	}
-
-	tx.SetRealFee(types.MinFee)
-
-	data := types.Encode(tx)
-	return data, nil
 }

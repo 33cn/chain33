@@ -7,6 +7,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/db"
+	privacytypes "gitlab.33.cn/chain33/chain33/plugin/dapp/privacy/types"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 	wcom "gitlab.33.cn/chain33/chain33/wallet/common"
@@ -125,7 +126,7 @@ func (policy *privacyPolicy) SignTransaction(key crypto.PrivKey, req *types.ReqS
 		bizlog.Error("SignTransaction", "Decode PrivacySignatureParam error", err)
 		return
 	}
-	action := new(types.PrivacyAction)
+	action := new(privacytypes.PrivacyAction)
 	if err = types.Decode(tx.Payload, action); err != nil {
 		bizlog.Error("SignTransaction", "Decode PrivacyAction error", err)
 		return
@@ -135,11 +136,11 @@ func (policy *privacyPolicy) SignTransaction(key crypto.PrivKey, req *types.ReqS
 		return
 	}
 	switch action.Ty {
-	case types.ActionPublic2Privacy:
+	case privacytypes.ActionPublic2Privacy:
 		// 隐私交易的公对私动作，不存在交易组的操作
 		tx.Sign(int32(policy.getWalletOperate().GetSignType()), key)
 
-	case types.ActionPrivacy2Privacy, types.ActionPrivacy2Public:
+	case privacytypes.ActionPrivacy2Privacy, privacytypes.ActionPrivacy2Public:
 		// 隐私交易的私对私、私对公需要进行特殊签名
 		if err = policy.signatureTx(tx, action.GetInput(), signParam.GetUtxobasics(), signParam.GetRealKeyInputs()); err != nil {
 			return

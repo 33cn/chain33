@@ -7,6 +7,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
+
 	//log "github.com/inconshreveable/log15"
 	rt "gitlab.33.cn/chain33/chain33/plugin/dapp/retrieve/types"
 	"gitlab.33.cn/chain33/chain33/system/dapp"

@@ -6,6 +6,7 @@ import (
 
 	log "github.com/inconshreveable/log15"
 	"github.com/pkg/errors"
+	ty "gitlab.33.cn/chain33/chain33/plugin/dapp/valnode/types"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -53,13 +54,12 @@ func (val *ValNode) GetDriverName() string {
 	return driverName
 }
 
-func (val *ValNode) GetActionValue(tx *types.Transaction) (*types.ValNodeAction, error) {
-	action := &types.ValNodeAction{}
+func (val *ValNode) GetActionValue(tx *types.Transaction) (*ty.ValNodeAction, error) {
+	action := &ty.ValNodeAction{}
 	err := types.Decode(tx.Payload, action)
 	if err != nil {
 		return nil, err
 	}
-
 	return action, nil
 }
 
@@ -68,23 +68,8 @@ func (val *ValNode) Exec(tx *types.Transaction, index int) (*types.Receipt, erro
 	if err != nil {
 		return nil, err
 	}
-
 	receipt := &types.Receipt{types.ExecOk, nil, nil}
 	return receipt, nil
-}
-
-func (val *ValNode) GetActionName(tx *types.Transaction) string {
-	action, err := val.GetActionValue(tx)
-	if err != nil {
-		return "unknow"
-	}
-	if action.Ty == types.ValNodeActionUpdate && action.GetNode() != nil {
-		return "upadate"
-	}
-	if action.Ty == types.ValNodeActionBlockInfo && action.GetBlockInfo() != nil {
-		return "blockInfo"
-	}
-	return "unknow"
 }
 
 func (val *ValNode) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
@@ -103,7 +88,7 @@ func (val *ValNode) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData,
 	}
 	clog.Debug("ExecLocal valnode tx", "tx=", action)
 
-	if action.Ty == types.ValNodeActionUpdate && action.GetNode() != nil {
+	if action.Ty == ty.ValNodeActionUpdate && action.GetNode() != nil {
 		if len(action.GetNode().PubKey) == 0 {
 			return nil, errors.New("validator pubkey is empty")
 		}
@@ -112,7 +97,7 @@ func (val *ValNode) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData,
 		}
 		key := CalcValNodeUpdateHeightIndexKey(val.GetHeight(), index)
 		set.KV = append(set.KV, &types.KeyValue{Key: key, Value: types.Encode(action.GetNode())})
-	} else if action.Ty == types.ValNodeActionBlockInfo && action.GetBlockInfo() != nil {
+	} else if action.Ty == ty.ValNodeActionBlockInfo && action.GetBlockInfo() != nil {
 		key := CalcValNodeBlockInfoHeightKey(val.GetHeight())
 		set.KV = append(set.KV, &types.KeyValue{Key: key, Value: types.Encode(action.GetBlockInfo())})
 	}
@@ -134,7 +119,7 @@ func (val *ValNode) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptDa
 	}
 	clog.Debug("ExecDelLocal valnode tx", "tx=", action)
 
-	if action.Ty == types.ValNodeActionUpdate && action.GetNode() != nil {
+	if action.Ty == ty.ValNodeActionUpdate && action.GetNode() != nil {
 		if len(action.GetNode().PubKey) == 0 {
 			return nil, errors.New("validator pubkey is empty")
 		}
@@ -143,7 +128,7 @@ func (val *ValNode) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptDa
 		}
 		key := CalcValNodeUpdateHeightIndexKey(val.GetHeight(), index)
 		set.KV = append(set.KV, &types.KeyValue{Key: key, Value: types.Encode(action.GetNode())})
-	} else if action.Ty == types.ValNodeActionBlockInfo && action.GetBlockInfo() != nil {
+	} else if action.Ty == ty.ValNodeActionBlockInfo && action.GetBlockInfo() != nil {
 		key := CalcValNodeBlockInfoHeightKey(val.GetHeight())
 		set.KV = append(set.KV, &types.KeyValue{Key: key, Value: types.Encode(action.GetBlockInfo())})
 	}
@@ -164,9 +149,9 @@ func (val *ValNode) Query(funcName string, params []byte) (types.Message, error)
 		if len(values) == 0 {
 			return nil, types.ErrNotFound
 		}
-		reply := &types.ValNodes{}
+		reply := &ty.ValNodes{}
 		for _, valnodeByte := range values {
-			var valnode types.ValNode
+			var valnode ty.ValNode
 			err := types.Decode(valnodeByte, &valnode)
 			if err != nil {
 				clog.Error("GetValNodeByHeight proto.Unmarshal!", "err:", err)
@@ -189,7 +174,7 @@ func (val *ValNode) Query(funcName string, params []byte) (types.Message, error)
 		if len(value) == 0 {
 			return nil, types.ErrNotFound
 		}
-		reply := &types.TendermintBlockInfo{}
+		reply := &ty.TendermintBlockInfo{}
 		err = types.Decode(value, reply)
 		if err != nil {
 			clog.Error("GetBlockInfoByHeight proto.Unmarshal!", "err:", err)

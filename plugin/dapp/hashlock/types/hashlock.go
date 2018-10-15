@@ -13,12 +13,6 @@ import (
 
 var (
 	hlog = log.New("module", "exectype.hashlock")
-
-	actionName = map[string]int32{
-		"Hlock":   HashlockActionLock,
-		"Hsend":   HashlockActionSend,
-		"Hunlock": HashlockActionUnlock,
-	}
 )
 
 func init() {
@@ -38,22 +32,6 @@ func NewType() *HashlockType {
 
 func (hashlock *HashlockType) GetPayload() types.Message {
 	return &HashlockAction{}
-}
-
-func (hashlock *HashlockType) ActionName(tx *types.Transaction) string {
-	var action HashlockAction
-	err := types.Decode(tx.Payload, &action)
-	if err != nil {
-		return "unknown-err"
-	}
-	if action.Ty == HashlockActionLock && action.GetHlock() != nil {
-		return "lock"
-	} else if action.Ty == HashlockActionUnlock && action.GetHunlock() != nil {
-		return "unlock"
-	} else if action.Ty == HashlockActionSend && action.GetHsend() != nil {
-		return "send"
-	}
-	return "unknown"
 }
 
 // TODO 暂时不修改实现， 先完成结构的重构
@@ -91,7 +69,15 @@ func (hashlock *HashlockType) CreateTx(action string, message json.RawMessage) (
 }
 
 func (hashlock *HashlockType) GetTypeMap() map[string]int32 {
-	return actionName
+	return map[string]int32{
+		"Hlock":   HashlockActionLock,
+		"Hsend":   HashlockActionSend,
+		"Hunlock": HashlockActionUnlock,
+	}
+}
+
+func (at *HashlockType) GetLogMap() map[int64]*types.LogInfo {
+	return map[int64]*types.LogInfo{}
 }
 
 type CoinsDepositLog struct {

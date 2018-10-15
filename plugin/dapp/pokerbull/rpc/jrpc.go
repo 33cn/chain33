@@ -8,14 +8,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-type Jrpc struct {
-	cli channelClient
-}
-
-type Grpc struct {
-	channelClient
-}
-
 func (c *Jrpc) PokerBullStartTx(parm *pb.PBStartTxReq, result *interface{}) error {
 	if parm == nil {
 		return types.ErrInvalidParam

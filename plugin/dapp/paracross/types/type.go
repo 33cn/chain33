@@ -41,6 +41,15 @@ func (at *ParacrossType) GetLogMap() map[int64]*types.LogInfo {
 	}
 }
 
+func (t *ParacrossType) GetTypeMap() map[string]int32 {
+	return map[string]int32{
+		"Commit":        ParacrossActionCommit,
+		"Miner":         ParacrossActionMiner,
+		"AssetTransfer": ParacrossActionTransfer,
+		"AssetWithdraw": ParacrossActionWithdraw,
+	}
+}
+
 func (b *ParacrossType) GetPayload() types.Message {
 	return &ParacrossAction{}
 }
