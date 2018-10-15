@@ -101,7 +101,7 @@ func GetP(height int64) *ChainParam {
 var (
 	AllowDepositExec = [][]byte{ExecerTicket}
 	AllowUserExec    = [][]byte{ExecerTicket, ExecerNorm, ExecerHashlock, ExecerNone, ExecerToken, ExecerTrade, ExecerManage,
-		ExecerEvm, ExecerRelay, ExecerPrivacy/*ExecerBlackwhite,*/, ExecerPara, ExecerLottery, ExecerValNode}
+		ExecerRelay, ExecerPrivacy/*ExecerBlackwhite,*/, ExecerPara, ExecerLottery, ExecerValNode}
 
 	GenesisAddr              = "14KEKbYtKKQm4wMthSK9J4La4nAiidGozt"
 	GenesisBlockTime   int64 = 1526486816

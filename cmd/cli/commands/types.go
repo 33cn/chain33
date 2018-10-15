@@ -1,6 +1,6 @@
 package commands
 
-import jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
+import rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 
 type AccountsResult struct {
 	Wallets []*WalletResult `json:"wallets"`
@@ -31,19 +31,19 @@ type TxListResult struct {
 }
 
 type TxResult struct {
-	Execer     string             `json:"execer"`
-	Payload    interface{}        `json:"payload"`
-	RawPayload string             `json:"rawpayload"`
-	Signature  *jsonrpc.Signature `json:"signature"`
-	Fee        string             `json:"fee"`
-	Expire     int64              `json:"expire"`
-	Nonce      int64              `json:"nonce"`
-	To         string             `json:"to"`
-	Amount     string             `json:"amount,omitempty"`
-	From       string             `json:"from,omitempty"`
-	GroupCount int32              `json:"groupCount,omitempty"`
-	Header     string             `json:"header,omitempty"`
-	Next       string             `json:"next,omitempty"`
+	Execer     string              `json:"execer"`
+	Payload    interface{}         `json:"payload"`
+	RawPayload string              `json:"rawpayload"`
+	Signature  *rpctypes.Signature `json:"signature"`
+	Fee        string              `json:"fee"`
+	Expire     int64               `json:"expire"`
+	Nonce      int64               `json:"nonce"`
+	To         string              `json:"to"`
+	Amount     string              `json:"amount,omitempty"`
+	From       string              `json:"from,omitempty"`
+	GroupCount int32               `json:"groupCount,omitempty"`
+	Header     string              `json:"header,omitempty"`
+	Next       string              `json:"next,omitempty"`
 }
 
 type ReceiptData struct {
@@ -248,36 +248,6 @@ type ShowPriAddrResult struct {
 
 type ShowEnablePrivacy struct {
 	Results []*ShowPriAddrResult `json:"results"`
-}
-
-type TradeOrderResult struct {
-	TokenSymbol       string `json:"tokenSymbol"`
-	Owner             string `json:"owner"`
-	AmountPerBoardlot string `json:"amountPerBoardlot"`
-	MinBoardlot       int64  `json:"minBoardlot"`
-	PricePerBoardlot  string `json:"pricePerBoardlot"`
-	TotalBoardlot     int64  `json:"totalBoardlot"`
-	TradedBoardlot    int64  `json:"tradedBoardlot"`
-	BuyID             string `json:"buyID"`
-	Status            int32  `json:"status"`
-	SellID            string `json:"sellID"`
-	TxHash            string `json:"txHash"`
-	Height            int64  `json:"height"`
-	Key               string `json:"key"`
-	BlockTime         int64  `json:"blockTime"`
-	IsSellOrder       bool   `json:"isSellOrder"`
-}
-
-type ReplySellOrdersResult struct {
-	SellOrders []*TradeOrderResult `json:"sellOrders"`
-}
-
-type ReplyBuyOrdersResult struct {
-	BuyOrders []*TradeOrderResult `json:"buyOrders"`
-}
-
-type ReplyTradeOrdersResult struct {
-	Orders []*TradeOrderResult `json:"orders"`
 }
 
 // decodetx

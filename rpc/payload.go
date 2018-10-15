@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 
 	"github.com/golang/protobuf/proto"
+	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -15,8 +16,8 @@ func tokenPayloadType(funcname string) (proto.Message, error) {
 		req = &types.ReqTokens{}
 	case "GetTokenInfo":
 		req = &types.ReqString{}
-	case "GetAddrReceiverforTokens":
-		req = &types.ReqAddrTokens{}
+	//case "GetAddrReceiverforTokens":
+	//	req = &types.ReqAddrTokens{}
 	case "GetAccountTokenAssets":
 		req = &types.ReqAccountTokenAssets{}
 	default:
@@ -56,36 +57,6 @@ func ticketPayloadType(funcname string) (proto.Message, error) {
 		req = &types.TicketList{}
 	case "MinerAddress", "MinerSourceList":
 		req = &types.ReqString{}
-	default:
-		return nil, types.ErrInputPara
-	}
-	return req, nil
-}
-
-func evmPayloadType(funcname string) (proto.Message, error) {
-	var req proto.Message
-	switch funcname {
-	case "CheckAddrExists":
-		req = &types.CheckEVMAddrReq{}
-	case "EstimateGas":
-		req = &types.EstimateEVMGasReq{}
-	case "EvmDebug":
-		req = &types.EvmDebugReq{}
-	default:
-		return nil, types.ErrInputPara
-	}
-	return req, nil
-}
-
-func tradePayloadType(funcname string) (proto.Message, error) {
-	var req proto.Message
-	switch funcname {
-	case "GetOnesSellOrder", "GetOnesBuyOrder", "GetOnesSellOrderWithStatus", "GetOnesBuyOrderWithStatus":
-		req = &types.ReqAddrTokens{}
-	case "GetTokenSellOrderByStatus":
-		req = &types.ReqTokenSellOrder{}
-	case "GetTokenBuyOrderByStatus":
-		req = &types.ReqTokenBuyOrder{}
 	default:
 		return nil, types.ErrInputPara
 	}
@@ -157,10 +128,6 @@ func payloadType(execer, funcname string) (proto.Message, error) {
 		return managePayloadType(funcname)
 	case types.ExecName(types.TicketX): // D
 		return ticketPayloadType(funcname)
-	case types.ExecName(types.TradeX): // D
-		return tradePayloadType(funcname)
-	case types.ExecName(types.EvmX):
-		return evmPayloadType(funcname)
 	case types.ExecName(types.PrivacyX):
 		return privacyPayloadType(funcname)
 	case types.ExecName(types.RelayX):
@@ -187,8 +154,8 @@ func protoPayload(execer, funcname string, payload *json.RawMessage) ([]byte, er
 	return types.Encode(req), nil
 }
 
-func decodeUserWrite(payload []byte) *userWrite {
-	var article userWrite
+func decodeUserWrite(payload []byte) *rpctypes.UserWrite {
+	var article rpctypes.UserWrite
 	if len(payload) != 0 {
 		if payload[0] == '#' {
 			data := bytes.SplitN(payload[1:], []byte("#"), 2)

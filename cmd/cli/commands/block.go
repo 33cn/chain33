@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
+	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -64,12 +64,12 @@ func blockBodyCmd(cmd *cobra.Command, args []string) {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-	params := jsonrpc.BlockParam{
+	params := rpctypes.BlockParam{
 		Start:    startH,
 		End:      endH,
 		Isdetail: detailBool,
 	}
-	var res jsonrpc.BlockDetails
+	var res rpctypes.BlockDetails
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetBlocks", params, &res)
 	ctx.SetResultCb(parseBlockDetail)
 	ctx.Run()
@@ -78,7 +78,7 @@ func blockBodyCmd(cmd *cobra.Command, args []string) {
 func parseBlockDetail(res interface{}) (interface{}, error) {
 	var result BlockDetailsResult
 
-	for _, vItem := range res.(*jsonrpc.BlockDetails).Items {
+	for _, vItem := range res.(*rpctypes.BlockDetails).Items {
 		b := &BlockResult{
 			Version:    vItem.Block.Version,
 			ParentHash: vItem.Block.ParentHash,
@@ -123,7 +123,7 @@ func blockHeightHash(cmd *cobra.Command, args []string) {
 	params := types.ReqInt{
 		Height: height,
 	}
-	var res jsonrpc.ReplyHash
+	var res rpctypes.ReplyHash
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetBlockHash", params, &res)
 	ctx.Run()
 }
@@ -147,10 +147,10 @@ func addBlockViewFlags(cmd *cobra.Command) {
 func blockViewByHash(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	blockHash, _ := cmd.Flags().GetString("hash")
-	params := jsonrpc.QueryParm{
+	params := rpctypes.QueryParm{
 		Hash: blockHash,
 	}
-	var res jsonrpc.BlockOverview
+	var res rpctypes.BlockOverview
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetBlockOverview", params, &res)
 	ctx.Run()
 }
@@ -191,7 +191,7 @@ func blockHeader(cmd *cobra.Command, args []string) {
 		End:      endH,
 		IsDetail: detailBool,
 	}
-	var res jsonrpc.Headers
+	var res rpctypes.Headers
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetHeaders", params, &res)
 	ctx.Run()
 }
@@ -208,7 +208,7 @@ func GetLastHeaderCmd() *cobra.Command {
 
 func lastHeader(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	var res jsonrpc.Header
+	var res rpctypes.Header
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetLastHeader", nil, &res)
 	ctx.Run()
 }
@@ -247,12 +247,12 @@ func getsequences(cmd *cobra.Command, args []string) {
 	startH, _ := cmd.Flags().GetInt64("start")
 	endH, _ := cmd.Flags().GetInt64("end")
 
-	params := jsonrpc.BlockParam{
+	params := rpctypes.BlockParam{
 		Start:    startH,
 		End:      endH,
 		Isdetail: false,
 	}
-	var res jsonrpc.ReplyBlkSeqs
+	var res rpctypes.ReplyBlkSeqs
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetBlockSequences", params, &res)
 	//ctx.SetResultCb(parseBlockDetail)
 	ctx.Run()
@@ -286,7 +286,7 @@ func getblockbyhashs(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	hashes, _ := cmd.Flags().GetString("hashes")
 	hashesArr := strings.Split(hashes, " ")
-	params := jsonrpc.ReqHashes{
+	params := rpctypes.ReqHashes{
 		Hashes: hashesArr,
 	}
 

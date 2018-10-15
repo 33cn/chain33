@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/queue"
-	lt "gitlab.33.cn/chain33/chain33/rpc"
+	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/types/executor"
 )
@@ -637,7 +637,7 @@ func TestJsonRPC(t *testing.T) {
 }
 
 func testGetAccountsJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
-	var res lt.WalletAccounts
+	var res rpctypes.WalletAccounts
 	err := rpc.newRpcCtx("Chain33.GetAccounts", &types.ReqNil{}, &res)
 	if err != nil {
 		t.Error("testGetAccountsJsonRPC Failed.", err)
@@ -653,7 +653,7 @@ func testDumpPrivkeyJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
 }
 
 func testGetWalletStatusJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
-	var res lt.WalletStatus
+	var res rpctypes.WalletStatus
 	err := rpc.newRpcCtx("Chain33.GetWalletStatus", &types.ReqNil{}, &res)
 	if err != nil {
 		t.Error("testGetWalletStatusJsonRPC Failed.", err)
@@ -666,7 +666,7 @@ func testGetWalletStatusJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
 }
 
 func testGetNetInfoJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
-	var res lt.NodeNetinfo
+	var res rpctypes.NodeNetinfo
 	err := rpc.newRpcCtx("Chain33.GetNetInfo",
 		nil, &res)
 	if err != nil {
@@ -714,7 +714,7 @@ func testGenSeedsonRPC(t *testing.T, rpc *mockJRPCSystem) {
 }
 
 func testGetLastMemPoolJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
-	var res lt.ReplyTxList
+	var res rpctypes.ReplyTxList
 	err := rpc.newRpcCtx("Chain33.GetLastMemPool",
 		nil, &res)
 	if err != nil {
@@ -723,7 +723,7 @@ func testGetLastMemPoolJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
 }
 
 func testGetMempoolJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
-	var res lt.ReplyTxList
+	var res rpctypes.ReplyTxList
 	err := rpc.newRpcCtx("Chain33.GetMempool",
 		nil, &res)
 	if err != nil {
@@ -732,7 +732,7 @@ func testGetMempoolJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
 }
 
 func testGetLastHeaderJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
-	var res lt.Header
+	var res rpctypes.Header
 	err := rpc.newRpcCtx("Chain33.GetLastHeader",
 		nil, &res)
 	if err != nil {
@@ -747,7 +747,7 @@ func testGetHeadersCmdJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
 		IsDetail: true,
 	}
 
-	var res lt.Headers
+	var res rpctypes.Headers
 	err := rpc.newRpcCtx("Chain33.GetHeaders",
 		params, &res)
 	if err != nil {
@@ -756,11 +756,11 @@ func testGetHeadersCmdJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
 }
 
 func testGetBlockOverviewJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
-	params := lt.QueryParm{
+	params := rpctypes.QueryParm{
 		Hash: "0x67c58d6ba9175313f0468ae4e0ddec946549af7748037c2fdd5d54298afd20b6",
 	}
 
-	var res lt.BlockOverview
+	var res rpctypes.BlockOverview
 	err := rpc.newRpcCtx("Chain33.GetBlockOverview",
 		params, &res)
 	if err != nil {
@@ -769,13 +769,13 @@ func testGetBlockOverviewJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
 }
 
 func testGetBlocksJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
-	params := lt.BlockParam{
+	params := rpctypes.BlockParam{
 		Start:    100,
 		End:      1000,
 		Isdetail: true,
 	}
 
-	var res lt.BlockDetails
+	var res rpctypes.BlockDetails
 	err := rpc.newRpcCtx("Chain33.GetBlocks",
 		params, &res)
 	if err != nil {
@@ -787,7 +787,7 @@ func testGetBlockHashJsonRPC(t *testing.T, rpc *mockJRPCSystem) {
 	params := types.ReqInt{
 		Height: 100,
 	}
-	var res lt.ReplyHash
+	var res rpctypes.ReplyHash
 	err := rpc.newRpcCtx("Chain33.GetBlockHash",
 		params, &res)
 	if err != nil {

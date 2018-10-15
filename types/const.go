@@ -14,24 +14,21 @@ type LogInfo struct {
 }
 
 const (
-	CoinsX          = "coins"
-	UserKeyX        = "user."
-	ParaKeyX        = "user.p."
-	TicketX         = "ticket"
-	HashlockX       = "hashlock"
-	NoneX           = "none"
-	TokenX          = "token"
-	TradeX          = "trade"
-	ManageX         = "manage"
-	PrivacyX        = "privacy"
-	ExecerEvmString = "evm"
-	EvmX            = "evm"
-	RelayX          = "relay"
-	Normx           = "norm"
-	UserEvmX        = "user.evm."
-	ParaX           = "paracross"
-	LotteryX        = "lottery"
-	ValNodeX        = "valnode"
+	CoinsX    = "coins"
+	UserKeyX  = "user."
+	ParaKeyX  = "user.p."
+	TicketX   = "ticket"
+	HashlockX = "hashlock"
+	NoneX     = "none"
+	TokenX    = "token"
+	TradeX    = "trade"
+	ManageX   = "manage"
+	PrivacyX  = "privacy"
+	RelayX    = "relay"
+	Normx     = "norm"
+	ParaX     = "paracross"
+	LotteryX  = "lottery"
+	ValNodeX  = "valnode"
 )
 
 var (
@@ -39,7 +36,6 @@ var (
 	ExecerTicket   = []byte(TicketX)
 	ExecerManage   = []byte(ManageX)
 	ExecerToken    = []byte(TokenX)
-	ExecerEvm      = []byte(EvmX)
 	ExecerPrivacy  = []byte(PrivacyX)
 	ExecerRelay    = []byte(RelayX)
 	ExecerHashlock = []byte(HashlockX)
@@ -47,7 +43,6 @@ var (
 	ExecerTrade    = []byte(TradeX)
 	ExecerNorm     = []byte(Normx)
 	ExecerConfig   = []byte("config")
-	UserEvm        = []byte(UserEvmX)
 	ExecerPara     = []byte(ParaX)
 	ExecerLottery  = []byte(LotteryX)
 	UserKey        = []byte(UserKeyX)
@@ -231,16 +226,6 @@ const (
 	TyLogPrivacyInput  = 501
 	TyLogPrivacyOutput = 502
 
-	// log for evm
-	// 合约代码变更日志
-	TyLogContractData = 601
-	// 合约状态数据变更日志
-	TyLogContractState = 602
-	// 合约状态数据变更日志
-	TyLogCallContract = 603
-	// 合约状态数据变更项日志
-	TyLogEVMStateChangeItem = 604
-
 	//log for game
 	TyLogCreateGame = 711
 	TyLogMatchGame  = 712
@@ -300,49 +285,10 @@ const (
 	TokenStatusCreateRevoked
 )
 
-// trade op
+// manager action
 const (
-	TradeSellLimit = iota
-	TradeBuyMarket
-	TradeRevokeSell
-	TradeSellMarket
-	TradeBuyLimit
-	TradeRevokeBuy
+	ManageActionModifyConfig = iota
 )
-
-// 0->not start, 1->on sale, 2->sold out, 3->revoke, 4->expired
-const (
-	TradeOrderStatusNotStart = iota
-	TradeOrderStatusOnSale
-	TradeOrderStatusSoldOut
-	TradeOrderStatusRevoked
-	TradeOrderStatusExpired
-	TradeOrderStatusOnBuy
-	TradeOrderStatusBoughtOut
-	TradeOrderStatusBuyRevoked
-)
-
-var SellOrderStatus = map[int32]string{
-	TradeOrderStatusNotStart:   "NotStart",
-	TradeOrderStatusOnSale:     "OnSale",
-	TradeOrderStatusSoldOut:    "SoldOut",
-	TradeOrderStatusRevoked:    "Revoked",
-	TradeOrderStatusExpired:    "Expired",
-	TradeOrderStatusOnBuy:      "OnBuy",
-	TradeOrderStatusBoughtOut:  "BoughtOut",
-	TradeOrderStatusBuyRevoked: "BuyRevoked",
-}
-
-var SellOrderStatus2Int = map[string]int32{
-	"NotStart":   TradeOrderStatusNotStart,
-	"OnSale":     TradeOrderStatusOnSale,
-	"SoldOut":    TradeOrderStatusSoldOut,
-	"Revoked":    TradeOrderStatusRevoked,
-	"Expired":    TradeOrderStatusExpired,
-	"OnBuy":      TradeOrderStatusOnBuy,
-	"BoughtOut":  TradeOrderStatusBoughtOut,
-	"BuyRevoked": TradeOrderStatusBuyRevoked,
-}
 
 // config items
 const (
@@ -350,18 +296,6 @@ const (
 	ConfigItemIntConfig
 	ConfigItemStringConfig
 )
-
-var MapSellOrderStatusStr2Int = map[string]int32{
-	"onsale":  TradeOrderStatusOnSale,
-	"soldout": TradeOrderStatusSoldOut,
-	"revoked": TradeOrderStatusRevoked,
-}
-
-var MapBuyOrderStatusStr2Int = map[string]int32{
-	"onbuy":      TradeOrderStatusOnBuy,
-	"boughtout":  TradeOrderStatusBoughtOut,
-	"buyrevoked": TradeOrderStatusBuyRevoked,
-}
 
 // relay
 const (
