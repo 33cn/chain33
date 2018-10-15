@@ -254,13 +254,13 @@ func (action *tradeAction) tradeSell(sell *pty.TradeForSell) (*types.Receipt, er
 		return nil, types.ErrInputPara
 	}
 
-	tokenAccDB, err := account.NewAccountDB("token", sell.TokenSymbol, action.db)
+	accDB, err := createAccountDB(action.height, action.db, sell.AssetExec, sell.TokenSymbol)
 	if err != nil {
 		return nil, err
 	}
 	//确认发起此次出售或者众筹的余额是否足够
 	totalAmount := sell.GetTotalBoardlot() * sell.GetAmountPerBoardlot()
-	receipt, err := tokenAccDB.ExecFrozen(action.fromaddr, action.execaddr, totalAmount)
+	receipt, err := accDB.ExecFrozen(action.fromaddr, action.execaddr, totalAmount)
 	if err != nil {
 		tradelog.Error("trade sell ", "addr", action.fromaddr, "execaddr", action.execaddr, "amount", totalAmount)
 		return nil, err
