@@ -16,8 +16,6 @@ import (
 	tradetype "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/types"
 
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
-	tokentype "gitlab.33.cn/chain33/chain33/types/executor/token"
-	// TODO: 需要将插件管理器移动到封闭统一的地方进行管理
 )
 
 func (c *Chain33) CreateRawTransaction(in *types.CreateTx, result *interface{}) error {
@@ -827,23 +825,6 @@ func (c *Chain33) GetAllExecBalance(in types.ReqAddr, result *interface{}) error
 	return nil
 }
 
-func (c *Chain33) GetTokenBalance(in types.ReqTokenBalance, result *interface{}) error {
-
-	balances, err := c.cli.GetTokenBalance(&in)
-	if err != nil {
-		return err
-	}
-	var accounts []*rpctypes.Account
-	for _, balance := range balances {
-		accounts = append(accounts, &rpctypes.Account{Addr: balance.GetAddr(),
-			Balance:  balance.GetBalance(),
-			Currency: balance.GetCurrency(),
-			Frozen:   balance.GetFrozen()})
-	}
-	*result = accounts
-	return nil
-}
-
 func (c *Chain33) QueryOld(in rpctypes.Query4Jrpc, result *interface{}) error {
 	decodePayload, err := protoPayload(in.Execer, in.FuncName, &in.Payload)
 	if err != nil {
@@ -863,12 +844,6 @@ func (c *Chain33) QueryOld(in rpctypes.Query4Jrpc, result *interface{}) error {
 func (c *Chain33) Query(in rpctypes.Query4Jrpc, result *interface{}) error {
 	trans := types.LoadQueryType(in.FuncName)
 	if trans == nil {
-		// 不是所有的合约都需要做类型转化， 没有修改的合约走老的接口
-		// 另外给部分合约的代码修改的时间
-		//log.Info("EventQuery", "Old Query called", in.FuncName)
-		// return c.QueryOld(in, result)
-
-		// now old code all move to type/executor, test and then remove old code
 		log.Error("Query", "funcname", in.FuncName, "err", types.ErrNotSupport)
 		return types.ErrNotSupport
 	}
@@ -1065,35 +1040,6 @@ func (c *Chain33) QueryTotalFee(in *types.LocalDBGet, result *interface{}) error
 		return err
 	}
 	*result = fee
-	return nil
-}
-
-func (c *Chain33) CreateRawTokenPreCreateTx(in *tokentype.TokenPreCreateTx, result *interface{}) error {
-	reply, err := c.cli.CreateRawTokenPreCreateTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
-	return nil
-}
-
-func (c *Chain33) CreateRawTokenFinishTx(in *tokentype.TokenFinishTx, result *interface{}) error {
-	reply, err := c.cli.CreateRawTokenFinishTx(in)
-	if err != nil {
-		return err
-	}
-	*result = hex.EncodeToString(reply)
-	return nil
-}
-
-func (c *Chain33) CreateRawTokenRevokeTx(in *tokentype.TokenRevokeTx, result *interface{}) error {
-	reply, err := c.cli.CreateRawTokenRevokeTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
 	return nil
 }
 
@@ -1510,7 +1456,7 @@ func (c *Chain33) GetBlockByHashes(in rpctypes.ReqHashes, result *interface{}) e
 	return nil
 }
 
-func (c *Chain33) CreateTransaction(in *rpctypes.TransactionCreate, result *interface{}) error {
+func (c *Chain33) CreateTransaction(in *rpctypes.CreateTxIn, result *interface{}) error {
 	if in == nil {
 		return types.ErrInputPara
 	}

@@ -7,15 +7,16 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/account"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
+	tokenty "gitlab.33.cn/chain33/chain33/plugin/dapp/token/types"
 	"gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
 type tokenDB struct {
-	token types.Token
+	token tokenty.Token
 }
 
-func newTokenDB(preCreate *types.TokenPreCreate, creator string) *tokenDB {
+func newTokenDB(preCreate *tokenty.TokenPreCreate, creator string) *tokenDB {
 	t := &tokenDB{}
 	t.token.Name = preCreate.GetName()
 	t.token.Symbol = preCreate.GetSymbol()
@@ -25,7 +26,7 @@ func newTokenDB(preCreate *types.TokenPreCreate, creator string) *tokenDB {
 	//token可以由自己进行创建，也可以通过委托给其他地址进行创建
 	t.token.Owner = preCreate.GetOwner()
 	t.token.Creator = creator
-	t.token.Status = types.TokenStatusPreCreated
+	t.token.Status = tokenty.TokenStatusPreCreated
 	return t
 }
 
@@ -38,7 +39,7 @@ func (t *tokenDB) save(db dbm.KV, key []byte) {
 
 func (t *tokenDB) getLogs(ty int32, status int32) []*types.ReceiptLog {
 	var log []*types.ReceiptLog
-	value := types.Encode(&types.ReceiptToken{t.token.Symbol, t.token.Owner, t.token.Status})
+	value := types.Encode(&tokenty.ReceiptToken{t.token.Symbol, t.token.Owner, t.token.Status})
 	log = append(log, &types.ReceiptLog{ty, value})
 
 	return log
@@ -51,7 +52,7 @@ func (t *tokenDB) getKVSet(key []byte) (kvset []*types.KeyValue) {
 	return kvset
 }
 
-func getTokenFromDB(db dbm.KV, symbol string, owner string) (*types.Token, error) {
+func getTokenFromDB(db dbm.KV, symbol string, owner string) (*tokenty.Token, error) {
 	key := calcTokenAddrKey(symbol, owner)
 	value, err := db.Get(key)
 	if err != nil {
@@ -63,7 +64,7 @@ func getTokenFromDB(db dbm.KV, symbol string, owner string) (*types.Token, error
 		}
 	}
 
-	var token types.Token
+	var token tokenty.Token
 	if err = types.Decode(value, &token); err != nil {
 		tokenlog.Error("getTokenFromDB", "Fail to decode types.token for key", string(key), "err info is", err)
 		return nil, err
@@ -89,7 +90,7 @@ func newTokenAction(t *token, toaddr string, tx *types.Transaction) *tokenAction
 		t.GetBlockTime(), t.GetHeight(), dapp.ExecAddress(string(tx.Execer))}
 }
 
-func (action *tokenAction) preCreate(token *types.TokenPreCreate) (*types.Receipt, error) {
+func (action *tokenAction) preCreate(token *tokenty.TokenPreCreate) (*types.Receipt, error) {
 	tokenlog.Debug("preCreate")
 	if token == nil {
 		return nil, types.ErrInputPara
@@ -113,7 +114,7 @@ func (action *tokenAction) preCreate(token *types.TokenPreCreate) (*types.Receip
 		return nil, types.ErrTokenExist
 	}
 
-	if checkTokenHasPrecreate(token.GetSymbol(), token.GetOwner(), types.TokenStatusPreCreated, action.db) {
+	if checkTokenHasPrecreate(token.GetSymbol(), token.GetOwner(), tokenty.TokenStatusPreCreated, action.db) {
 		return nil, types.ErrTokenHavePrecreated
 	}
 
@@ -146,17 +147,17 @@ func (action *tokenAction) preCreate(token *types.TokenPreCreate) (*types.Receip
 	var statuskey []byte
 	var key []byte
 	if action.height >= types.ForkV13ExecKey {
-		statuskey = calcTokenStatusNewKey(tokendb.token.Symbol, tokendb.token.Owner, types.TokenStatusPreCreated)
+		statuskey = calcTokenStatusNewKey(tokendb.token.Symbol, tokendb.token.Owner, tokenty.TokenStatusPreCreated)
 		key = calcTokenAddrNewKey(tokendb.token.Symbol, tokendb.token.Owner)
 	} else {
-		statuskey = calcTokenStatusKey(tokendb.token.Symbol, tokendb.token.Owner, types.TokenStatusPreCreated)
+		statuskey = calcTokenStatusKey(tokendb.token.Symbol, tokendb.token.Owner, tokenty.TokenStatusPreCreated)
 		key = calcTokenAddrKey(tokendb.token.Symbol, tokendb.token.Owner)
 	}
 
 	tokendb.save(action.db, statuskey)
 	tokendb.save(action.db, key)
 
-	logs = append(logs, tokendb.getLogs(types.TyLogPreCreateToken, types.TokenStatusPreCreated)...)
+	logs = append(logs, tokendb.getLogs(types.TyLogPreCreateToken, tokenty.TokenStatusPreCreated)...)
 	kv = append(kv, tokendb.getKVSet(key)...)
 	kv = append(kv, tokendb.getKVSet(statuskey)...)
 	//tokenlog.Info("func token preCreate", "token:", tokendb.token.Symbol, "owner:", tokendb.token.Owner,
@@ -166,13 +167,13 @@ func (action *tokenAction) preCreate(token *types.TokenPreCreate) (*types.Receip
 	return receipt, nil
 }
 
-func (action *tokenAction) finishCreate(tokenFinish *types.TokenFinishCreate) (*types.Receipt, error) {
+func (action *tokenAction) finishCreate(tokenFinish *tokenty.TokenFinishCreate) (*types.Receipt, error) {
 	tokenlog.Debug("finishCreate")
 	if tokenFinish == nil {
 		return nil, types.ErrInputPara
 	}
 	token, err := getTokenFromDB(action.db, tokenFinish.GetSymbol(), tokenFinish.GetOwner())
-	if err != nil || token.Status != types.TokenStatusPreCreated {
+	if err != nil || token.Status != tokenty.TokenStatusPreCreated {
 		return nil, types.ErrTokenNotPrecreated
 	}
 
@@ -217,7 +218,7 @@ func (action *tokenAction) finishCreate(tokenFinish *types.TokenFinishCreate) (*
 		return nil, err
 	}
 	//更新token的状态为已经创建
-	token.Status = types.TokenStatusCreated
+	token.Status = tokenty.TokenStatusCreated
 	tokendb := &tokenDB{*token}
 	var key []byte
 	if action.height >= types.ForkV13ExecKey {
@@ -228,7 +229,7 @@ func (action *tokenAction) finishCreate(tokenFinish *types.TokenFinishCreate) (*
 	tokendb.save(action.db, key)
 
 	logs = append(logs, receiptForToken.Logs...)
-	logs = append(logs, tokendb.getLogs(types.TyLogFinishCreateToken, types.TokenStatusCreated)...)
+	logs = append(logs, tokendb.getLogs(types.TyLogFinishCreateToken, tokenty.TokenStatusCreated)...)
 	kv = append(kv, receiptForToken.KV...)
 	kv = append(kv, tokendb.getKVSet(key)...)
 
@@ -240,7 +241,7 @@ func (action *tokenAction) finishCreate(tokenFinish *types.TokenFinishCreate) (*
 	return receipt, nil
 }
 
-func (action *tokenAction) revokeCreate(tokenRevoke *types.TokenRevokeCreate) (*types.Receipt, error) {
+func (action *tokenAction) revokeCreate(tokenRevoke *tokenty.TokenRevokeCreate) (*types.Receipt, error) {
 	if tokenRevoke == nil {
 		return nil, types.ErrInputPara
 	}
@@ -250,7 +251,7 @@ func (action *tokenAction) revokeCreate(tokenRevoke *types.TokenRevokeCreate) (*
 		return nil, types.ErrTokenNotPrecreated
 	}
 
-	if token.Status != types.TokenStatusPreCreated {
+	if token.Status != tokenty.TokenStatusPreCreated {
 		tokenlog.Error("token revokeCreate ", "token's status should be precreated to be revoked for token", tokenRevoke.GetSymbol())
 		return nil, types.ErrTokenCanotRevoked
 	}
@@ -278,7 +279,7 @@ func (action *tokenAction) revokeCreate(tokenRevoke *types.TokenRevokeCreate) (*
 		kv = append(kv, receipt.KV...)
 	}
 
-	token.Status = types.TokenStatusCreateRevoked
+	token.Status = tokenty.TokenStatusCreateRevoked
 	tokendb := &tokenDB{*token}
 	var key []byte
 	if action.height >= types.ForkV13ExecKey {
@@ -288,7 +289,7 @@ func (action *tokenAction) revokeCreate(tokenRevoke *types.TokenRevokeCreate) (*
 	}
 	tokendb.save(action.db, key)
 
-	logs = append(logs, tokendb.getLogs(types.TyLogRevokeCreateToken, types.TokenStatusCreateRevoked)...)
+	logs = append(logs, tokendb.getLogs(types.TyLogRevokeCreateToken, tokenty.TokenStatusCreateRevoked)...)
 	kv = append(kv, tokendb.getKVSet(key)...)
 
 	receipt := &types.Receipt{types.ExecOk, kv, logs}
