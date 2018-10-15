@@ -9,7 +9,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/queue"
 	drivers "gitlab.33.cn/chain33/chain33/system/store"
 	"gitlab.33.cn/chain33/chain33/types"
-)
+	)
 
 var klog = log.New("module", "kvmvccdb")
 var maxRollbackNum = 200
@@ -143,7 +143,7 @@ func (mvccs *KVMVCCStore) IterateRangeByStateHash(statehash []byte, start []byte
 
 		//klog.Info("KVMVCCStore do the IterateRangeByStateHash")
 		listhelper := dbm.NewListHelper(mvccs.BaseStore.GetDB())
-		listhelper.ListExceptAndExcute(dbm.GetLastKey(start), dbm.GetLastKey(end), 0, 1, fn)
+		listhelper.ListExcute(dbm.GetLastKey(start), dbm.GetLastKey(end), 0, 1, fn)
 	} else {
 		//klog.Warn("KVMVCCStore does not support IterateRangeByStateHash when disable MVCCIter")
 	}
