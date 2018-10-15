@@ -1,6 +1,9 @@
 package executor
 
-import "gitlab.33.cn/chain33/chain33/types"
+import (
+	pt "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/types"
+	"gitlab.33.cn/chain33/chain33/types"
+)
 
 /*
    在以前版本中只有token 合约发行的币在trade 里面交易， 订单中 symbol 为 token 的symbol，
@@ -17,8 +20,9 @@ import "gitlab.33.cn/chain33/chain33/types"
 
   */
 
-func getExecSymbol(order *types.SellOrder) (string, string) {
-	if order.TokenSymbol == "" {
+// return exec, symbol
+func getExecSymbol(order *pt.SellOrder) (string, string) {
+	if order.AssetExec == "" {
 		return types.TokenX, types.TokenX + "." + order.TokenSymbol
 	}
 	return order.AssetExec, order.TokenSymbol
