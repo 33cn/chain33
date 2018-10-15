@@ -344,6 +344,13 @@ message UTXOHaveTxHashs {
     repeated UTXOHaveTxHash utxoHaveTxHashs = 1;
 }
 
+message UTXOGlobalIndex {
+    //	int64 height   = 1;
+    //	int32 txindex  = 2;
+    bytes txhash   = 3;
+    int32 outindex = 4;
+}
+
 message ReqUTXOGlobalIndex {
     string   tokenname    = 1;
     int32    mixCount     = 2;

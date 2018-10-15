@@ -5,7 +5,7 @@ import (
 
 	"reflect"
 
-	"gitlab.33.cn/chain33/chain33/types"
+	tmtypes "gitlab.33.cn/chain33/chain33/plugin/dapp/valnode/types"
 )
 
 //-----------------------------------------------------------------------------
@@ -48,17 +48,17 @@ const (
 
 func InitMessageMap() {
 	MsgMap = map[byte]reflect.Type{
-		EvidenceListID:      reflect.TypeOf(types.EvidenceData{}),
-		NewRoundStepID:      reflect.TypeOf(types.NewRoundStepMsg{}),
-		CommitStepID:        reflect.TypeOf(types.CommitStepMsg{}),
-		ProposalID:          reflect.TypeOf(types.Proposal{}),
-		ProposalPOLID:       reflect.TypeOf(types.ProposalPOLMsg{}),
-		VoteID:              reflect.TypeOf(types.Vote{}),
-		HasVoteID:           reflect.TypeOf(types.HasVoteMsg{}),
-		VoteSetMaj23ID:      reflect.TypeOf(types.VoteSetMaj23Msg{}),
-		VoteSetBitsID:       reflect.TypeOf(types.VoteSetBitsMsg{}),
-		ProposalHeartbeatID: reflect.TypeOf(types.Heartbeat{}),
-		ProposalBlockID:     reflect.TypeOf(types.TendermintBlock{}),
+		EvidenceListID:      reflect.TypeOf(tmtypes.EvidenceData{}),
+		NewRoundStepID:      reflect.TypeOf(tmtypes.NewRoundStepMsg{}),
+		CommitStepID:        reflect.TypeOf(tmtypes.CommitStepMsg{}),
+		ProposalID:          reflect.TypeOf(tmtypes.Proposal{}),
+		ProposalPOLID:       reflect.TypeOf(tmtypes.ProposalPOLMsg{}),
+		VoteID:              reflect.TypeOf(tmtypes.Vote{}),
+		HasVoteID:           reflect.TypeOf(tmtypes.HasVoteMsg{}),
+		VoteSetMaj23ID:      reflect.TypeOf(tmtypes.VoteSetMaj23Msg{}),
+		VoteSetBitsID:       reflect.TypeOf(tmtypes.VoteSetBitsMsg{}),
+		ProposalHeartbeatID: reflect.TypeOf(tmtypes.Heartbeat{}),
+		ProposalBlockID:     reflect.TypeOf(tmtypes.TendermintBlock{}),
 	}
 }
 
@@ -101,7 +101,7 @@ type RoundState struct {
 	StartTime      time.Time
 	CommitTime     time.Time // Subjective time when +2/3 precommits for Block at Round were found
 	Validators     *ValidatorSet
-	Proposal       *types.Proposal
+	Proposal       *tmtypes.Proposal
 	ProposalBlock  *TendermintBlock
 	LockedRound    int
 	LockedBlock    *TendermintBlock
@@ -111,8 +111,8 @@ type RoundState struct {
 	LastValidators *ValidatorSet
 }
 
-func (rs *RoundState) RoundStateMessage() *types.NewRoundStepMsg {
-	return &types.NewRoundStepMsg{
+func (rs *RoundState) RoundStateMessage() *tmtypes.NewRoundStepMsg {
+	return &tmtypes.NewRoundStepMsg{
 		Height: rs.Height,
 		Round:  int32(rs.Round),
 		Step:   int32(rs.Step),

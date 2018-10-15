@@ -13,10 +13,8 @@ It is generated from these files:
 	executor.proto
 	p2p.proto
 	pbft.proto
-	relay.proto
 	rpc.proto
 	statistic.proto
-	tendermint.proto
 	transaction.proto
 	wallet.proto
 
@@ -94,19 +92,6 @@ It has these top-level messages:
 	StoreGet
 	StoreReplyValue
 	Genesis
-	Ticket
-	TicketAction
-	TicketMiner
-	TicketBind
-	TicketOpen
-	TicketGenesis
-	TicketClose
-	TicketList
-	TicketInfos
-	ReplyTicketList
-	ReplyWalletTickets
-	ReceiptTicket
-	ReceiptTicketBind
 	ExecTxList
 	Query
 	CreateTxIn
@@ -121,40 +106,6 @@ It has these top-level messages:
 	ReceiptConfig
 	ReplyConfig
 	HistoryCertStore
-	PrivacyAction
-	Public2Privacy
-	Privacy2Privacy
-	Privacy2Public
-	UTXOGlobalIndex
-	KeyInput
-	PrivacyInput
-	KeyOutput
-	PrivacyOutput
-	GroupUTXOGlobalIndex
-	LocalUTXOItem
-	ReqUTXOPubKeys
-	PublicKeyData
-	GroupUTXOPubKey
-	ResUTXOPubKeys
-	ReqPrivacyToken
-	AmountDetail
-	ReplyPrivacyAmounts
-	ReplyUTXOsOfAmount
-	ReceiptPrivacyOutput
-	AmountsOfUTXO
-	TokenNamesOfUTXO
-	UTXOGlobalIndex4Print
-	KeyInput4Print
-	KeyOutput4Print
-	PrivacyInput4Print
-	PrivacyOutput4Print
-	Public2Privacy4Print
-	Privacy2Privacy4Print
-	Privacy2Public4Print
-	PrivacyAction4Print
-	ValNode
-	ValNodes
-	ValNodeAction
 	P2PGetPeerInfo
 	P2PPeerInfo
 	P2PVersion
@@ -199,63 +150,12 @@ It has these top-level messages:
 	RequestAck
 	RequestNewView
 	ClientReply
-	RelayAction
-	RelayCreate
-	RelayOrder
-	RelayAccept
-	RelayRevoke
-	RelayConfirmTx
-	RelayVerify
-	RelayVerifyCli
-	BtcHeader
-	BtcHeaders
-	BtcTransaction
-	Vin
-	Vout
-	BtcSpv
-	RelayLastRcvBtcHeader
-	ReceiptRelayRcvBTCHeaders
-	ReceiptRelayLog
-	ReqRelayAddrCoins
-	ReplyRelayOrders
-	QueryRelayOrderParam
-	QueryRelayOrderResult
-	ReqRelayBtcHeaderHeightList
-	ReplyRelayBtcHeadHeightList
-	ReqRelayQryBTCHeadHeight
-	ReplayRelayQryBTCHeadHeight
 	TotalFee
 	ReqGetTotalCoins
 	ReplyGetTotalCoins
 	IterateRangeByStateHash
 	TicketStatistic
 	TicketMinerInfo
-	BlockID
-	TendermintBitArray
-	Vote
-	TendermintCommit
-	TendermintBlockInfo
-	BlockSize
-	TxSize
-	BlockGossip
-	EvidenceParams
-	ConsensusParams
-	Validator
-	ValidatorSet
-	State
-	DuplicateVoteEvidence
-	EvidenceEnvelope
-	EvidenceData
-	TendermintBlockHeader
-	TendermintBlock
-	Proposal
-	NewRoundStepMsg
-	CommitStepMsg
-	ProposalPOLMsg
-	HasVoteMsg
-	VoteSetMaj23Msg
-	VoteSetBitsMsg
-	Heartbeat
 	AssetsGenesis
 	AssetsTransferToExec
 	AssetsWithdraw
@@ -331,6 +231,7 @@ It has these top-level messages:
 	UTXOHaveTxHash
 	UTXOs
 	UTXOHaveTxHashs
+	UTXOGlobalIndex
 	ReqUTXOGlobalIndex
 	UTXOBasic
 	UTXOIndex4Amount
