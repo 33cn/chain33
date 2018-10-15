@@ -21,21 +21,18 @@ import (
 	"gitlab.33.cn/chain33/chain33/store"
 	_ "gitlab.33.cn/chain33/chain33/system"
 	"gitlab.33.cn/chain33/chain33/types"
-	executorty "gitlab.33.cn/chain33/chain33/types/executor"
 	typesmocks "gitlab.33.cn/chain33/chain33/types/mocks"
 )
 
 var random *rand.Rand
 
 func init() {
-	executorty.Init()
 	types.SetTitle("user.p.para.")
 	rpc.Init("paracross", nil)
 	pp.Init("paracross")
 	random = rand.New(rand.NewSource(types.Now().UnixNano()))
 	consensusInterval = 2
 	log.SetLogLevel("debug")
-
 }
 
 type suiteParaCommitMsg struct {
