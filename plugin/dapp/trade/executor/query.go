@@ -293,6 +293,7 @@ func sellOrder2reply(sellOrder *pty.SellOrder) *pty.ReplySellOrder {
 		strings.Replace(sellOrder.SellID, sellIDPrefix, "0x", 1),
 		sellOrder.Height,
 		sellOrder.SellID,
+		sellOrder.AssetExec,
 	}
 	return reply
 }
@@ -335,6 +336,7 @@ func txResult2sellOrderReply(txResult *types.TxResult) *pty.ReplySellOrder {
 				txhash,
 				receipt.Base.Height,
 				txhash,
+				receipt.Base.AssetExec,
 			}
 			tradelog.Debug("txResult2sellOrderReply", "show reply", reply)
 			return reply
@@ -358,6 +360,7 @@ func buyOrder2reply(buyOrder *pty.BuyLimitOrder) *pty.ReplyBuyOrder {
 		strings.Replace(buyOrder.BuyID, buyIDPrefix, "0x", 1),
 		buyOrder.Height,
 		buyOrder.BuyID,
+		buyOrder.AssetExec,
 	}
 	return reply
 }
@@ -399,6 +402,7 @@ func txResult2buyOrderReply(txResult *types.TxResult) *pty.ReplyBuyOrder {
 				txhash,
 				receipt.Base.Height,
 				txhash,
+				receipt.Base.AssetExec,
 			}
 			tradelog.Debug("txResult2sellOrderReply", "show reply", reply)
 			return reply
@@ -473,6 +477,7 @@ func buyBase2Order(base *pty.ReceiptBuyBase, txHash string, blockTime int64) *pt
 		key,
 		blockTime,
 		false,
+		base.AssetExec,
 	}
 	tradelog.Debug("txResult2sellOrderReply", "show reply", reply)
 	return reply
@@ -510,6 +515,7 @@ func sellBase2Order(base *pty.ReceiptSellBase, txHash string, blockTime int64) *
 		key,
 		blockTime,
 		true,
+		base.AssetExec,
 	}
 	tradelog.Debug("txResult2sellOrderReply", "show reply", reply)
 	return reply
