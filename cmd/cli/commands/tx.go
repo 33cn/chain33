@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/common"
 	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
+	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -73,7 +74,7 @@ func queryTxByAddr(cmd *cobra.Command, args []string) {
 		Index:     index,
 	}
 	var res rpctypes.ReplyTxInfos
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetTxByAddr", params, &res)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.GetTxByAddr", params, &res)
 	ctx.Run()
 }
 
@@ -104,7 +105,7 @@ func queryTx(cmd *cobra.Command, args []string) {
 		Hash: hash,
 	}
 	var res rpctypes.TransactionDetail
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.QueryTransaction", params, &res)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.QueryTransaction", params, &res)
 	ctx.SetResultCb(parseQueryTxRes)
 	ctx.Run()
 }
@@ -151,7 +152,7 @@ func getTxsByHashes(cmd *cobra.Command, args []string) {
 	}
 
 	var res rpctypes.TransactionDetails
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetTxByHashes", params, &res)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.GetTxByHashes", params, &res)
 	ctx.SetResultCb(parseQueryTxsByHashesRes)
 	ctx.Run()
 }
@@ -203,7 +204,7 @@ func getTxHexByHash(cmd *cobra.Command, args []string) {
 		Hash: txHash,
 	}
 
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetHexTxByHash", params, nil)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.GetHexTxByHash", params, nil)
 	ctx.RunWithoutMarshal()
 }
 
@@ -279,7 +280,7 @@ func viewAddress(cmd *cobra.Command, args []string) {
 	}
 
 	var res types.AddrOverview
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetAddrOverview", params, &res)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.GetAddrOverview", params, &res)
 	ctx.SetResultCb(parseAddrOverview)
 	ctx.Run()
 }

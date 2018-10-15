@@ -6,7 +6,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 	"gitlab.33.cn/chain33/chain33/types/executor/relay"
 	"gitlab.33.cn/chain33/chain33/types/executor/ticket"
-	"gitlab.33.cn/chain33/chain33/types/executor/token"
 )
 
 // 进度：
@@ -21,7 +20,6 @@ import (
 // none: 		actionName
 // retrieve: 	actionName					query
 // ticket:		actionName			log		query		Amount
-// token:		actionName	CreateTx	log		query	Amount
 // trade:		actionName	CreateTx	log		query	Amount
 
 var once sync.Once
@@ -41,7 +39,6 @@ func initExec() {
 	//avoid init for ExecPrifex
 	relay.Init()
 	ticket.Init()
-	token.Init()
 }
 
 type ErrLog struct {

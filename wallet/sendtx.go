@@ -9,6 +9,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
+	tokenty "gitlab.33.cn/chain33/chain33/plugin/dapp/token/types"
 	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -197,15 +198,15 @@ func (wallet *Wallet) sendToAddress(priv crypto.PrivKey, addrto string, amount i
 		}
 		tx = &types.Transaction{Execer: []byte("coins"), Payload: types.Encode(transfer), To: addrto, Nonce: wallet.random.Int63()}
 	} else {
-		transfer := &types.TokenAction{}
+		transfer := &tokenty.TokenAction{}
 		if amount > 0 {
-			v := &types.TokenAction_Transfer{&types.AssetsTransfer{Cointoken: tokenSymbol, Amount: amount, Note: note}}
+			v := &tokenty.TokenAction_Transfer{&types.AssetsTransfer{Cointoken: tokenSymbol, Amount: amount, Note: note}}
 			transfer.Value = v
-			transfer.Ty = types.ActionTransfer
+			transfer.Ty = tokenty.ActionTransfer
 		} else {
-			v := &types.TokenAction_Withdraw{&types.AssetsWithdraw{Cointoken: tokenSymbol, Amount: -amount, Note: note}}
+			v := &tokenty.TokenAction_Withdraw{&types.AssetsWithdraw{Cointoken: tokenSymbol, Amount: -amount, Note: note}}
 			transfer.Value = v
-			transfer.Ty = types.ActionWithdraw
+			transfer.Ty = tokenty.ActionWithdraw
 		}
 		tx = &types.Transaction{Execer: []byte("token"), Payload: types.Encode(transfer), To: addrto, Nonce: wallet.random.Int63()}
 	}
