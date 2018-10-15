@@ -79,7 +79,8 @@ func TestAddDelMVCCIter(t *testing.T) {
 }
 
 var match_values [][]byte
-func fn(key, value []byte) bool{
+
+func fn(key, value []byte) bool {
 	match_values = append(match_values, value)
 	return false
 }
