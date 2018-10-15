@@ -1348,8 +1348,8 @@ func (c *Chain33) CreateUTXOs(in types.ReqCreateUTXOs, result *interface{}) erro
 	return nil
 }
 
-func (c *Chain33) CreateTrasaction(in types.ReqCreateTransaction, result *interface{}) error {
-	reply, err := c.cli.CreateTrasaction(&in)
+func (c *Chain33) WalletCreateTx(in types.ReqCreateTransaction, result *interface{}) error {
+	reply, err := c.cli.WalletCreateTx(&in)
 	if err != nil {
 		return err
 	}
@@ -1437,7 +1437,7 @@ func (c *Chain33) CreateTransaction(in *rpctypes.CreateTxIn, result *interface{}
 		log.Error("CreateTransaction", "err", err.Error())
 		return err
 	}
-	*result = tx
+	*result = hex.EncodeToString(tx)
 	return nil
 }
 
