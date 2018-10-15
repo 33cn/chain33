@@ -1,26 +1,17 @@
 package executor
 
 import (
-	"reflect"
-
 	log "github.com/inconshreveable/log15"
-	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/norm/types"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var clog = log.New("module", "execs.norm")
-
-//初始化过程比较重量级，有很多reflact, 所以弄成全局的
-var executorFunList = make(map[string]reflect.Method)
-var executorType = pty.NewType()
+var driverName = "norm"
 
 func init() {
-	actionFunList := executorType.GetFuncMap()
-	executorFunList = types.ListMethod(&Norm{})
-	for k, v := range actionFunList {
-		executorFunList[k] = v
-	}
+	ety := types.LoadExecutorType(driverName)
+	ety.InitFuncList(types.ListMethod(&Norm{}))
 }
 
 func Init(name string) {
@@ -40,21 +31,12 @@ func newNorm() drivers.Driver {
 	n := &Norm{}
 	n.SetChild(n)
 	n.SetIsFree(true)
-	n.SetExecutorType(executorType)
+	n.SetExecutorType(types.LoadExecutorType(driverName))
 	return n
 }
 
 func (n *Norm) GetDriverName() string {
-	return "norm"
-}
-
-//获取运行状态名
-func (n *Norm) GetActionName(tx *types.Transaction) string {
-	return tx.ActionName()
-}
-
-func (n *Norm) GetFuncMap() map[string]reflect.Method {
-	return executorFunList
+	return driverName
 }
 
 func (n *Norm) CheckTx(tx *types.Transaction, index int) error {

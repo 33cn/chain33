@@ -25,7 +25,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/queue"
 	pty "gitlab.33.cn/chain33/chain33/system/dapp/manage/types"
 	"gitlab.33.cn/chain33/chain33/types"
-	ety "gitlab.33.cn/chain33/chain33/types/executor"
 )
 
 var (
@@ -60,9 +59,7 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	ety.Init()
 	Init("manage")
-
 	conn, err := grpc.Dial(mainNetgrpcAddr, grpc.WithInsecure())
 	if err != nil {
 		panic(err)
@@ -170,13 +167,13 @@ func constructionBlockDetail(block *types.Block, height int64, txcount int) *typ
 }
 
 func genExecTxListMsg(client queue.Client, block *types.Block) queue.Message {
-	list := &types.ExecTxList{zeroHash[:], block.Txs, block.BlockTime, block.Height, 0}
+	list := &types.ExecTxList{zeroHash[:], block.Txs, block.BlockTime, block.Height, 0, false}
 	msg := client.NewMessage("execs", types.EventExecTxList, list)
 	return msg
 }
 
 func genExecCheckTxMsg(client queue.Client, block *types.Block) queue.Message {
-	list := &types.ExecTxList{zeroHash[:], block.Txs, block.BlockTime, block.Height, 0}
+	list := &types.ExecTxList{zeroHash[:], block.Txs, block.BlockTime, block.Height, 0, false}
 	msg := client.NewMessage("execs", types.EventCheckTx, list)
 	return msg
 }

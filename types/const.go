@@ -14,26 +14,22 @@ type LogInfo struct {
 }
 
 const (
-	CoinsX          = "coins"
-	UserKeyX        = "user."
-	ParaKeyX        = "user.p."
-	TicketX         = "ticket"
-	HashlockX       = "hashlock"
-	RetrieveX       = "retrieve"
-	NoneX           = "none"
-	TokenX          = "token"
-	TradeX          = "trade"
-	ManageX         = "manage"
-	PrivacyX        = "privacy"
-	ExecerEvmString = "evm"
-	EvmX            = "evm"
-	RelayX          = "relay"
-	Normx           = "norm"
-	UserEvmX        = "user.evm."
-	CertX           = "cert"
-	ParaX           = "paracross"
-	LotteryX        = "lottery"
-	ValNodeX        = "valnode"
+	CoinsX    = "coins"
+	UserKeyX  = "user."
+	ParaKeyX  = "user.p."
+	TicketX   = "ticket"
+	HashlockX = "hashlock"
+	RetrieveX = "retrieve"
+	NoneX     = "none"
+	TokenX    = "token"
+	TradeX    = "trade"
+	ManageX   = "manage"
+	PrivacyX  = "privacy"
+	RelayX    = "relay"
+	Normx     = "norm"
+	CertX     = "cert"
+	ParaX     = "paracross"
+	ValNodeX  = "valnode"
 )
 
 var (
@@ -41,7 +37,6 @@ var (
 	ExecerTicket   = []byte(TicketX)
 	ExecerManage   = []byte(ManageX)
 	ExecerToken    = []byte(TokenX)
-	ExecerEvm      = []byte(EvmX)
 	ExecerPrivacy  = []byte(PrivacyX)
 	ExecerRelay    = []byte(RelayX)
 	ExecerHashlock = []byte(HashlockX)
@@ -51,9 +46,7 @@ var (
 	ExecerNorm     = []byte(Normx)
 	ExecerConfig   = []byte("config")
 	ExecerCert     = []byte(CertX)
-	UserEvm        = []byte(UserEvmX)
 	ExecerPara     = []byte(ParaX)
-	ExecerLottery  = []byte(LotteryX)
 	UserKey        = []byte(UserKeyX)
 	ParaKey        = []byte(ParaKeyX)
 	ExecerValNode  = []byte(ValNodeX)
@@ -187,75 +180,19 @@ var SystemLog = map[int64]*LogInfo{
 }
 
 const (
-	//log for ticket
-	TyLogNewTicket   = 111
-	TyLogCloseTicket = 112
-	TyLogMinerTicket = 113
-	TyLogTicketBind  = 114
-
-	//log for token create
-	TyLogPreCreateToken    = 211
-	TyLogFinishCreateToken = 212
-	TyLogRevokeCreateToken = 213
-
 	//log for trade
-	TyLogTradeSellLimit         = 310
-	TyLogTradeBuyMarket         = 311
-	TyLogTradeSellRevoke        = 312
-	TyLogTokenTransfer          = 313
-	TyLogTokenGenesis           = 314
-	TyLogTokenDeposit           = 315
-	TyLogTokenExecTransfer      = 316
-	TyLogTokenExecWithdraw      = 317
-	TyLogTokenExecDeposit       = 318
-	TyLogTokenExecFrozen        = 319
-	TyLogTokenExecActive        = 320
-	TyLogTokenGenesisTransfer   = 321
-	TyLogTokenGenesisDeposit    = 322
+	TyLogTradeSellLimit  = 310
+	TyLogTradeBuyMarket  = 311
+	TyLogTradeSellRevoke = 312
+
 	TyLogTradeSellMarket        = 330
 	TyLogTradeBuyLimit          = 331
 	TyLogTradeBuyRevoke         = 332
 	TyLogParaTokenAssetTransfer = 333
 	TyLogParaTokenAssetWithdraw = 334
 
-	//log for relay
-	TyLogRelayCreate       = 350
-	TyLogRelayRevokeCreate = 351
-	TyLogRelayAccept       = 352
-	TyLogRelayRevokeAccept = 353
-	TyLogRelayConfirmTx    = 354
-	TyLogRelayFinishTx     = 355
-	TyLogRelayRcvBTCHead   = 356
-
 	// log for config
 	TyLogModifyConfig = 410
-
-	// log for privacy
-	TyLogPrivacyFee    = 500
-	TyLogPrivacyInput  = 501
-	TyLogPrivacyOutput = 502
-
-	// log for evm
-	// 合约代码变更日志
-	TyLogContractData = 601
-	// 合约状态数据变更日志
-	TyLogContractState = 602
-	// 合约状态数据变更日志
-	TyLogCallContract = 603
-	// 合约状态数据变更项日志
-	TyLogEVMStateChangeItem = 604
-
-	//log for game
-	TyLogCreateGame = 711
-	TyLogMatchGame  = 712
-	TyLogCancleGame = 713
-	TyLogCloseGame  = 714
-
-	//log for lottery
-	TyLogLotteryCreate = 801
-	TyLogLotteryBuy    = 802
-	TyLogLotteryDraw   = 803
-	TyLogLotteryClose  = 804
 )
 
 //exec type
@@ -265,33 +202,6 @@ const (
 	ExecOk   = 2
 )
 
-const (
-	InvalidAction = 0
-	//action for token
-	ActionTransfer            = 4
-	ActionGenesis             = 5
-	ActionWithdraw            = 6
-	TokenActionPreCreate      = 7
-	TokenActionFinishCreate   = 8
-	TokenActionRevokeCreate   = 9
-	TokenActionTransferToExec = 11
-	//action type for privacy
-	ActionPublic2Privacy = iota + 100
-	ActionPrivacy2Privacy
-	ActionPrivacy2Public
-)
-
-//ticket
-const (
-	TicketActionGenesis = 11
-	TicketActionOpen    = 12
-	TicketActionClose   = 13
-	TicketActionList    = 14 //读的接口不直接经过transaction
-	TicketActionInfos   = 15 //读的接口不直接经过transaction
-	TicketActionMiner   = 16
-	TicketActionBind    = 17
-)
-
 //cert
 const (
 	CertActionNew    = 1
@@ -299,114 +209,16 @@ const (
 	CertActionNormal = 3
 )
 
-// retrieve op
+// manager action
 const (
-	RetrievePre    = 1
-	RetrievePerf   = 2
-	RetrieveBackup = 3
-	RetrieveCancel = 4
+	ManageActionModifyConfig = iota
 )
-
-// token status
-const (
-	TokenStatusPreCreated = iota
-	TokenStatusCreated
-	TokenStatusCreateRevoked
-)
-
-// trade op
-const (
-	TradeSellLimit = iota
-	TradeBuyMarket
-	TradeRevokeSell
-	TradeSellMarket
-	TradeBuyLimit
-	TradeRevokeBuy
-)
-
-// 0->not start, 1->on sale, 2->sold out, 3->revoke, 4->expired
-const (
-	TradeOrderStatusNotStart = iota
-	TradeOrderStatusOnSale
-	TradeOrderStatusSoldOut
-	TradeOrderStatusRevoked
-	TradeOrderStatusExpired
-	TradeOrderStatusOnBuy
-	TradeOrderStatusBoughtOut
-	TradeOrderStatusBuyRevoked
-)
-
-var SellOrderStatus = map[int32]string{
-	TradeOrderStatusNotStart:   "NotStart",
-	TradeOrderStatusOnSale:     "OnSale",
-	TradeOrderStatusSoldOut:    "SoldOut",
-	TradeOrderStatusRevoked:    "Revoked",
-	TradeOrderStatusExpired:    "Expired",
-	TradeOrderStatusOnBuy:      "OnBuy",
-	TradeOrderStatusBoughtOut:  "BoughtOut",
-	TradeOrderStatusBuyRevoked: "BuyRevoked",
-}
-
-var SellOrderStatus2Int = map[string]int32{
-	"NotStart":   TradeOrderStatusNotStart,
-	"OnSale":     TradeOrderStatusOnSale,
-	"SoldOut":    TradeOrderStatusSoldOut,
-	"Revoked":    TradeOrderStatusRevoked,
-	"Expired":    TradeOrderStatusExpired,
-	"OnBuy":      TradeOrderStatusOnBuy,
-	"BoughtOut":  TradeOrderStatusBoughtOut,
-	"BuyRevoked": TradeOrderStatusBuyRevoked,
-}
 
 // config items
 const (
 	ConfigItemArrayConfig = iota
 	ConfigItemIntConfig
 	ConfigItemStringConfig
-)
-
-var MapSellOrderStatusStr2Int = map[string]int32{
-	"onsale":  TradeOrderStatusOnSale,
-	"soldout": TradeOrderStatusSoldOut,
-	"revoked": TradeOrderStatusRevoked,
-}
-
-var MapBuyOrderStatusStr2Int = map[string]int32{
-	"onbuy":      TradeOrderStatusOnBuy,
-	"boughtout":  TradeOrderStatusBoughtOut,
-	"buyrevoked": TradeOrderStatusBuyRevoked,
-}
-
-// relay
-const (
-	RelayRevokeCreate = iota
-	RelayRevokeAccept
-)
-
-const (
-	RelayOrderBuy = iota
-	RelayOrderSell
-)
-
-var RelayOrderOperation = map[uint32]string{
-	RelayOrderBuy:  "buy",
-	RelayOrderSell: "sell",
-}
-
-const (
-	RelayUnlock = iota
-	RelayCancel
-)
-
-//relay action ty
-const (
-	RelayActionCreate = iota
-	RelayActionAccept
-	RelayActionRevoke
-	RelayActionConfirmTx
-	RelayActionVerifyTx
-	RelayActionVerifyCmdTx
-	RelayActionRcvBTCHeaders
 )
 
 // RescanUtxoFlag
@@ -452,16 +264,3 @@ var LowAllowPackHeight int64 = 30
 
 //默认情况下不开启fork
 var EnableTxGroupParaFork = false
-
-const (
-	ParaCrossTransferActionTypeStart = 10000
-	ParaCrossTransferActionTypeEnd   = 10100
-)
-
-//Lottery status
-const (
-	LotteryCreated = 1 + iota
-	LotteryPurchase
-	LotteryDrawed
-	LotteryClosed
-)

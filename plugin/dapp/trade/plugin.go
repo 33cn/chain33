@@ -1,6 +1,7 @@
 package trade
 
 import (
+	"gitlab.33.cn/chain33/chain33/plugin/dapp/trade/commands"
 	"gitlab.33.cn/chain33/chain33/plugin/dapp/trade/executor"
 	"gitlab.33.cn/chain33/chain33/pluginmgr"
 )
@@ -10,7 +11,7 @@ func init() {
 		Name:     "trade",
 		ExecName: executor.GetName(),
 		Exec:     executor.Init,
-		Cmd:      nil,
+		Cmd:      commands.TradeCmd,
 		RPC:      nil,
 	})
 }

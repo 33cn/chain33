@@ -35,12 +35,11 @@ var privacylog = log.New("module", "execs.privacy")
 var executorFunList = make(map[string]reflect.Method)
 var executorType = pty.NewType()
 
+var driverName = "privacy"
+
 func init() {
-	actionFunList := executorType.GetFuncMap()
-	executorFunList = types.ListMethod(&privacy{})
-	for k, v := range actionFunList {
-		executorFunList[k] = v
-	}
+	ety := types.LoadExecutorType(driverName)
+	ety.InitFuncList(types.ListMethod(&privacy{}))
 }
 
 func Init(name string) {
@@ -65,7 +64,7 @@ func newPrivacy() drivers.Driver {
 }
 
 func (p *privacy) GetDriverName() string {
-	return "privacy"
+	return driverName
 }
 
 /*
@@ -407,7 +406,7 @@ func (p *privacy) Query(funcName string, params []byte) (types.Message, error) {
 	privacylog.Info("privacy Query", "name", funcName)
 	switch funcName {
 	case "ShowAmountsOfUTXO":
-		var reqtoken types.ReqPrivacyToken
+		var reqtoken pty.ReqPrivacyToken
 		err := types.Decode(params, &reqtoken)
 		if err != nil {
 			return nil, err
@@ -416,7 +415,7 @@ func (p *privacy) Query(funcName string, params []byte) (types.Message, error) {
 
 		return p.ShowAmountsOfUTXO(&reqtoken)
 	case "ShowUTXOs4SpecifiedAmount":
-		var reqtoken types.ReqPrivacyToken
+		var reqtoken pty.ReqPrivacyToken
 		err := types.Decode(params, &reqtoken)
 		if err != nil {
 			return nil, err
@@ -445,9 +444,9 @@ func (p *privacy) Query(funcName string, params []byte) (types.Message, error) {
 	return nil, types.ErrActionNotSupport
 }
 
-func (p *privacy) getUtxosByTokenAndAmount(tokenName string, amount int64, count int32) ([]*types.LocalUTXOItem, error) {
+func (p *privacy) getUtxosByTokenAndAmount(tokenName string, amount int64, count int32) ([]*pty.LocalUTXOItem, error) {
 	localDB := p.GetLocalDB()
-	var utxos []*types.LocalUTXOItem
+	var utxos []*pty.LocalUTXOItem
 	prefix := CalcPrivacyUTXOkeyHeightPrefix(tokenName, amount)
 	values, err := localDB.List(prefix, nil, count, 0)
 	if err != nil {
@@ -455,7 +454,7 @@ func (p *privacy) getUtxosByTokenAndAmount(tokenName string, amount int64, count
 	}
 
 	for _, value := range values {
-		var utxo types.LocalUTXOItem
+		var utxo pty.LocalUTXOItem
 		err := types.Decode(value, &utxo)
 		if err != nil {
 			privacylog.Info("getUtxosByTokenAndAmount", "decode to LocalUTXOItem failed because of", err)
@@ -524,21 +523,21 @@ func (p *privacy) getGlobalUtxoIndex(getUtxoIndexReq *types.ReqUTXOGlobalIndex) 
 //获取指定amount下的所有utxo，这样就可以查询当前系统不同amout下存在的UTXO,可以帮助查询用于混淆用的资源
 //也可以确认币种的碎片化问题
 //显示存在的各种不同的额度的UTXO,如1,3,5,10,20,30,100...
-func (p *privacy) ShowAmountsOfUTXO(reqtoken *types.ReqPrivacyToken) (types.Message, error) {
+func (p *privacy) ShowAmountsOfUTXO(reqtoken *pty.ReqPrivacyToken) (types.Message, error) {
 	querydb := p.GetLocalDB()
 
 	key := CalcprivacyKeyTokenAmountType(reqtoken.Token)
-	replyAmounts := &types.ReplyPrivacyAmounts{}
+	replyAmounts := &pty.ReplyPrivacyAmounts{}
 	value, err := querydb.Get(key)
 	if err != nil {
 		return replyAmounts, err
 	}
 	if value != nil {
-		var amountTypes types.AmountsOfUTXO
+		var amountTypes pty.AmountsOfUTXO
 		err := types.Decode(value, &amountTypes)
 		if err == nil {
 			for amount, count := range amountTypes.AmountMap {
-				amountDetail := &types.AmountDetail{
+				amountDetail := &pty.AmountDetail{
 					Amount: amount,
 					Count:  count,
 				}
@@ -551,17 +550,17 @@ func (p *privacy) ShowAmountsOfUTXO(reqtoken *types.ReqPrivacyToken) (types.Mess
 }
 
 //显示在指定额度下的UTXO的具体信息，如区块高度，交易hash，输出索引等具体信息
-func (p *privacy) ShowUTXOs4SpecifiedAmount(reqtoken *types.ReqPrivacyToken) (types.Message, error) {
+func (p *privacy) ShowUTXOs4SpecifiedAmount(reqtoken *pty.ReqPrivacyToken) (types.Message, error) {
 	querydb := p.GetLocalDB()
 
-	var replyUTXOsOfAmount types.ReplyUTXOsOfAmount
+	var replyUTXOsOfAmount pty.ReplyUTXOsOfAmount
 	values, err := querydb.List(CalcPrivacyUTXOkeyHeightPrefix(reqtoken.Token, reqtoken.Amount), nil, 0, 0)
 	if err != nil {
 		return &replyUTXOsOfAmount, err
 	}
 	if len(values) != 0 {
 		for _, value := range values {
-			var localUTXOItem types.LocalUTXOItem
+			var localUTXOItem pty.LocalUTXOItem
 			err := types.Decode(value, &localUTXOItem)
 			if err == nil {
 				replyUTXOsOfAmount.LocalUTXOItems = append(replyUTXOsOfAmount.LocalUTXOItems, &localUTXOItem)
@@ -574,14 +573,14 @@ func (p *privacy) ShowUTXOs4SpecifiedAmount(reqtoken *types.ReqPrivacyToken) (ty
 
 func (p *privacy) CheckTx(tx *types.Transaction, index int) error {
 	txhashstr := common.Bytes2Hex(tx.Hash())
-	var action types.PrivacyAction
+	var action pty.PrivacyAction
 	err := types.Decode(tx.Payload, &action)
 	if err != nil {
 		privacylog.Error("PrivacyTrading CheckTx", "txhash", txhashstr, "Decode tx.Payload error", err)
 		return err
 	}
 	privacylog.Debug("PrivacyTrading CheckTx", "txhash", txhashstr, "action type ", action.Ty)
-	if types.ActionPublic2Privacy == action.Ty {
+	if pty.ActionPublic2Privacy == action.Ty {
 		return nil
 	}
 	input := action.GetInput()
@@ -595,7 +594,7 @@ func (p *privacy) CheckTx(tx *types.Transaction, index int) error {
 	keyinput := input.Keyinput
 	keyOutput := output.Keyoutput
 	token := action.GetTokenName()
-	if action.Ty == types.ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
+	if action.Ty == pty.ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
 		amount = action.GetPrivacy2Public().Amount
 	}
 
@@ -648,7 +647,7 @@ func (p *privacy) CheckTx(tx *types.Transaction, index int) error {
 	}
 
 	feeAmount := int64(0)
-	if action.Ty == types.ActionPrivacy2Privacy {
+	if action.Ty == pty.ActionPrivacy2Privacy {
 		feeAmount = totalInput - totalOutput
 	} else {
 		feeAmount = totalInput - totalOutput - amount
@@ -696,7 +695,7 @@ func (p *privacy) checkPubKeyValid(keys [][]byte, pubkeys [][]byte) (bool, int32
 	}
 
 	for i, value := range values {
-		var keyoutput types.KeyOutput
+		var keyoutput pty.KeyOutput
 		types.Decode(value, &keyoutput)
 		if !bytes.Equal(keyoutput.Onetimepubkey, pubkeys[i]) {
 			privacylog.Error("exec module", "Invalid pubkey for tx with hash", string(keys[i]))
@@ -712,13 +711,5 @@ func (c *privacy) GetFuncMap() map[string]reflect.Method {
 }
 
 func (c *privacy) GetPayloadValue() types.Message {
-	return &types.PrivacyAction{}
-}
-
-func (c *privacy) GetTypeMap() map[string]int32 {
-	return map[string]int32{
-		"Public2Privacy":  types.ActionPublic2Privacy,
-		"Privacy2Privacy": types.ActionPrivacy2Privacy,
-		"Privacy2Public":  types.ActionPrivacy2Public,
-	}
+	return &pty.PrivacyAction{}
 }

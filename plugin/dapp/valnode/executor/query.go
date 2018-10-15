@@ -47,7 +47,7 @@ func (val *ValNode) Query_GetBlockInfoByHeight(in *pty.ReqBlockInfo) (types.Mess
 		return nil, types.ErrNotFound
 	}
 
-	reply := &types.TendermintBlockInfo{}
+	reply := &pty.TendermintBlockInfo{}
 	err = types.Decode(value, reply)
 	if err != nil {
 		return nil, err

@@ -4,7 +4,6 @@ import (
 	"encoding/hex"
 	"time"
 
-	"gitlab.33.cn/chain33/chain33/common/address"
 	pb "gitlab.33.cn/chain33/chain33/types"
 	"golang.org/x/net/context"
 )
@@ -24,6 +23,23 @@ func (g *Grpc) CreateNoBalanceTransaction(ctx context.Context, in *pb.NoBalanceT
 
 func (g *Grpc) CreateRawTransaction(ctx context.Context, in *pb.CreateTx) (*pb.UnsignTx, error) {
 	reply, err := g.cli.CreateRawTransaction(in)
+	if err != nil {
+		return nil, err
+	}
+	return &pb.UnsignTx{Data: reply}, nil
+}
+
+func (g *Grpc) CreateTransaction(ctx context.Context, in *pb.CreateTxIn) (*pb.UnsignTx, error) {
+	exec := pb.LoadExecutorType(string(in.Execer))
+	if exec == nil {
+		log.Error("callExecNewTx", "Error", "exec not found")
+		return nil, pb.ErrNotSupport
+	}
+	msg, err := exec.GetAction(in.ActionName)
+	if err != nil {
+		return nil, err
+	}
+	reply, err := pb.CallCreateTx(string(in.Execer), in.ActionName, msg)
 	if err != nil {
 		return nil, err
 	}
@@ -185,14 +201,6 @@ func (g *Grpc) GetAllExecBalance(ctx context.Context, in *pb.ReqAddr) (*pb.AllEx
 	return g.cli.GetAllExecBalance(in)
 }
 
-func (g *Grpc) GetTokenBalance(ctx context.Context, in *pb.ReqTokenBalance) (*pb.Accounts, error) {
-	reply, err := g.cli.GetTokenBalance(in)
-	if err != nil {
-		return nil, err
-	}
-	return &pb.Accounts{Acc: reply}, nil
-}
-
 func (g *Grpc) QueryChain(ctx context.Context, in *pb.Query) (*pb.Reply, error) {
 	msg, err := g.cli.Query(in)
 	if err != nil {
@@ -200,7 +208,7 @@ func (g *Grpc) QueryChain(ctx context.Context, in *pb.Query) (*pb.Reply, error) 
 	}
 	var reply pb.Reply
 	reply.IsOk = true
-	reply.Msg = pb.Encode(*msg)
+	reply.Msg = pb.Encode(msg)
 	return &reply, nil
 }
 
@@ -301,37 +309,6 @@ func (g *Grpc) RescanUtxos(ctx context.Context, in *pb.ReqRescanUtxos) (*pb.RepR
 // 使能隐私账户
 func (g *Grpc) EnablePrivacy(ctx context.Context, in *pb.ReqEnablePrivacy) (*pb.RepEnablePrivacy, error) {
 	return g.cli.EnablePrivacy(in)
-}
-
-// 创建绑定挖矿
-func (g *Grpc) CreateBindMiner(ctx context.Context, in *pb.ReqBindMiner) (*pb.ReplyBindMiner, error) {
-	if in.Amount%(10000*pb.Coin) != 0 || in.Amount < 0 {
-		return nil, pb.ErrAmount
-	}
-	err := address.CheckAddress(in.BindAddr)
-	if err != nil {
-		return nil, err
-	}
-	err = address.CheckAddress(in.OriginAddr)
-	if err != nil {
-		return nil, err
-	}
-
-	if in.CheckBalance {
-		getBalance := &pb.ReqBalance{Addresses: []string{in.OriginAddr}, Execer: "coins"}
-		balances, err := g.cli.GetBalance(getBalance)
-		if err != nil {
-			return nil, err
-		}
-		if len(balances) == 0 {
-			return nil, pb.ErrInputPara
-		}
-		if balances[0].Balance < in.Amount+2*pb.Coin {
-			return nil, pb.ErrNoBalance
-		}
-	}
-
-	return g.cli.BindMiner(in)
 }
 
 func (g *Grpc) SignRawTx(ctx context.Context, in *pb.ReqSignRawTx) (*pb.ReplySignRawTx, error) {

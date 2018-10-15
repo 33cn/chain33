@@ -14,7 +14,7 @@ import (
 	"syscall"
 	"time"
 
-	"gitlab.33.cn/chain33/chain33/types"
+	tmtypes "gitlab.33.cn/chain33/chain33/plugin/dapp/valnode/types"
 )
 
 const (
@@ -184,7 +184,7 @@ func PanicQ(v interface{}) {
 
 //--------------------BitArray------------------------
 type BitArray struct {
-	*types.TendermintBitArray
+	*tmtypes.TendermintBitArray
 	mtx sync.Mutex `json:"-"`
 }
 
@@ -194,7 +194,7 @@ func NewBitArray(bits int) *BitArray {
 		return nil
 	}
 
-	return &BitArray{TendermintBitArray: &types.TendermintBitArray{
+	return &BitArray{TendermintBitArray: &tmtypes.TendermintBitArray{
 		Bits:  int32(bits),
 		Elems: make([]uint64, (bits+63)/64),
 	},
@@ -259,7 +259,7 @@ func (bA *BitArray) Copy() *BitArray {
 func (bA *BitArray) copy() *BitArray {
 	c := make([]uint64, len(bA.Elems))
 	copy(c, bA.Elems)
-	return &BitArray{TendermintBitArray: &types.TendermintBitArray{
+	return &BitArray{TendermintBitArray: &tmtypes.TendermintBitArray{
 		Bits:  bA.Bits,
 		Elems: c,
 	},
@@ -269,7 +269,7 @@ func (bA *BitArray) copy() *BitArray {
 func (bA *BitArray) copyBits(bits int) *BitArray {
 	c := make([]uint64, (bits+63)/64)
 	copy(c, bA.Elems)
-	return &BitArray{TendermintBitArray: &types.TendermintBitArray{
+	return &BitArray{TendermintBitArray: &tmtypes.TendermintBitArray{
 		Bits:  int32(bits),
 		Elems: c,
 	},
