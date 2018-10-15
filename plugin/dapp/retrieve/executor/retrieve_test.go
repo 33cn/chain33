@@ -13,6 +13,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
+	ty "gitlab.33.cn/chain33/chain33/plugin/dapp/retrieve/types"
 	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
 	"google.golang.org/grpc"
@@ -462,7 +463,6 @@ func backup(backupaddrindex int, defaultaddrindex int, privkeyindex int, delaype
 }
 
 func prepare(backupaddrindex int, defaultaddrindex int, privkeyindex int) ([]byte, error) {
-
 	vprepare := &rt.RetrieveAction_Prepare{&rt.PrepareRetrieve{BackupAddress: addr[backupaddrindex], DefaultAddress: addr[defaultaddrindex]}}
 	transfer := &rt.RetrieveAction{Value: vprepare, Ty: rt.RetrievePreapre}
 	tx := &types.Transaction{Execer: []byte("retrieve"), Payload: types.Encode(transfer), Fee: fee, To: addr[backupaddrindex]}
@@ -480,7 +480,6 @@ func prepare(backupaddrindex int, defaultaddrindex int, privkeyindex int) ([]byt
 }
 
 func perform(backupaddrindex int, defaultaddrindex int, privkeyindex int) ([]byte, error) {
-
 	vperform := &rt.RetrieveAction_Perform{&rt.PerformRetrieve{BackupAddress: addr[backupaddrindex], DefaultAddress: addr[defaultaddrindex]}}
 	transfer := &rt.RetrieveAction{Value: vperform, Ty: rt.RetrievePerform}
 	tx := &types.Transaction{Execer: []byte("retrieve"), Payload: types.Encode(transfer), Fee: fee, To: addr[backupaddrindex]}
