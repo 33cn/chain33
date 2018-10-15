@@ -12,7 +12,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	slog "gitlab.33.cn/chain33/chain33/common/log"
 	hashlocktype "gitlab.33.cn/chain33/chain33/plugin/dapp/hashlock/types"
-	retrievetype "gitlab.33.cn/chain33/chain33/plugin/dapp/retrieve/types"
 	tradetype "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/types"
 	"gitlab.33.cn/chain33/chain33/pluginmgr"
 	qmock "gitlab.33.cn/chain33/chain33/queue/mocks"

@@ -6,14 +6,6 @@ import (
 	"context"
 )
 
-type Jrpc struct {
-	cli channelClient
-}
-
-type Grpc struct {
-	channelClient
-}
-
 func (c *Jrpc) CreateRawRetrieveBackupTx(in *RetrieveBackupTx, result *interface{}) error {
 	head := &types.BackupRetrieve{
 		BackupAddress:in.BackupAddr,
