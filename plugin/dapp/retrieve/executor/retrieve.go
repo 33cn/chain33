@@ -5,9 +5,9 @@ import (
 
 	log "github.com/inconshreveable/log15"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
+	rt "gitlab.33.cn/chain33/chain33/plugin/dapp/retrieve/types"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
-	rt "gitlab.33.cn/chain33/chain33/plugin/dapp/retrieve/types"
 )
 
 var (

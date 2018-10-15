@@ -1,10 +1,11 @@
 package executor
 
 import (
-	"gitlab.33.cn/chain33/chain33/types"
-	ct "gitlab.33.cn/chain33/chain33/plugin/dapp/cert/types"
-	"gitlab.33.cn/chain33/chain33/authority"
 	"fmt"
+
+	"gitlab.33.cn/chain33/chain33/authority"
+	ct "gitlab.33.cn/chain33/chain33/plugin/dapp/cert/types"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 func (c *Cert) execLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {

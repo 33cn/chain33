@@ -5,9 +5,9 @@ import (
 
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/authority"
+	ct "gitlab.33.cn/chain33/chain33/plugin/dapp/cert/types"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
-	ct "gitlab.33.cn/chain33/chain33/plugin/dapp/cert/types"
 )
 
 var clog = log.New("module", "execs.cert")

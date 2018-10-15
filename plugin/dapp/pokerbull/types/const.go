@@ -27,7 +27,7 @@ var (
 	JRPCName        = "PokerBull"
 	PokerBullX      = "pokerbull"
 	ExecerPokerBull = []byte(PokerBullX)
-    logger = log15.New("module", "execs.pokerbull")
+	logger          = log15.New("module", "execs.pokerbull")
 )
 
 const (

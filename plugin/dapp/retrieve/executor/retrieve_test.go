@@ -13,11 +13,10 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
-	ty "gitlab.33.cn/chain33/chain33/plugin/dapp/retrieve/types"
+	rt "gitlab.33.cn/chain33/chain33/plugin/dapp/retrieve/types"
 	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
 	"google.golang.org/grpc"
-	rt "gitlab.33.cn/chain33/chain33/plugin/dapp/retrieve/types"
 )
 
 var (

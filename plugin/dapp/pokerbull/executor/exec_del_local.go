@@ -1,8 +1,8 @@
 package executor
 
 import (
-	"gitlab.33.cn/chain33/chain33/types"
 	pkt "gitlab.33.cn/chain33/chain33/plugin/dapp/pokerbull/types"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 func (g *PokerBull) rollbackIndex(log *pkt.ReceiptPBGame) (kvs []*types.KeyValue) {

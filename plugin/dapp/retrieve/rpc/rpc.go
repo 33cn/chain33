@@ -1,12 +1,13 @@
 package rpc
 
 import (
-	rt "gitlab.33.cn/chain33/chain33/plugin/dapp/retrieve/types"
-	"time"
-	"gitlab.33.cn/chain33/chain33/common/address"
-	"gitlab.33.cn/chain33/chain33/types"
-	"math/rand"
 	"context"
+	"math/rand"
+	"time"
+
+	"gitlab.33.cn/chain33/chain33/common/address"
+	rt "gitlab.33.cn/chain33/chain33/plugin/dapp/retrieve/types"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 func (c *channelClient) Backup(ctx context.Context, v *rt.BackupRetrieve) (*types.UnsignTx, error) {
