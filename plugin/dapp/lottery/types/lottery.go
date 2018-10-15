@@ -12,7 +12,7 @@ import (
 
 var (
 	nameX string
-	llog  = log.New("module", "exectype."+types.LotteryX)
+	llog  = log.New("module", "exectype."+LotteryX)
 
 	actionTypeMap = map[string]int32{
 		"Create": LotteryActionCreate,
@@ -23,11 +23,8 @@ var (
 )
 
 func init() {
-	nameX = types.ExecName(types.LotteryX)
-
-	// init executor type
-	types.RegistorExecutor(types.LotteryX, NewType())
-
+	types.AllowUserExec = append(types.AllowUserExec, []byte(LotteryX))
+	types.RegistorExecutor(LotteryX, NewType())
 	// init log
 	types.RegistorLog(types.TyLogLotteryCreate, &LotteryCreateLog{})
 	types.RegistorLog(types.TyLogLotteryBuy, &LotteryBuyLog{})
@@ -141,11 +138,11 @@ func CreateRawLotteryCreateTx(parm *LotteryCreateTx) (*types.Transaction, error)
 		Value: &LotteryAction_Create{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte(types.ExecName(types.LotteryX)),
+		Execer:  []byte(types.ExecName(LotteryX)),
 		Payload: types.Encode(create),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(types.ExecName(types.LotteryX)),
+		To:      address.ExecAddress(types.ExecName(LotteryX)),
 	}
 
 	err := tx.SetRealFee(types.MinFee)
@@ -173,11 +170,11 @@ func CreateRawLotteryBuyTx(parm *LotteryBuyTx) (*types.Transaction, error) {
 		Value: &LotteryAction_Buy{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte(types.ExecName(types.LotteryX)),
+		Execer:  []byte(types.ExecName(LotteryX)),
 		Payload: types.Encode(buy),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(types.ExecName(types.LotteryX)),
+		To:      address.ExecAddress(types.ExecName(LotteryX)),
 	}
 
 	err := tx.SetRealFee(types.MinFee)
@@ -202,11 +199,11 @@ func CreateRawLotteryDrawTx(parm *LotteryDrawTx) (*types.Transaction, error) {
 		Value: &LotteryAction_Draw{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte(types.ExecName(types.LotteryX)),
+		Execer:  []byte(types.ExecName(LotteryX)),
 		Payload: types.Encode(draw),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(types.ExecName(types.LotteryX)),
+		To:      address.ExecAddress(types.ExecName(LotteryX)),
 	}
 
 	err := tx.SetRealFee(types.MinFee)
@@ -231,11 +228,11 @@ func CreateRawLotteryCloseTx(parm *LotteryCloseTx) (*types.Transaction, error) {
 		Value: &LotteryAction_Close{v},
 	}
 	tx := &types.Transaction{
-		Execer:  []byte(types.ExecName(types.LotteryX)),
+		Execer:  []byte(types.ExecName(LotteryX)),
 		Payload: types.Encode(close),
 		Fee:     parm.Fee,
 		Nonce:   rand.New(rand.NewSource(time.Now().UnixNano())).Int63(),
-		To:      address.ExecAddress(types.ExecName(types.LotteryX)),
+		To:      address.ExecAddress(types.ExecName(LotteryX)),
 	}
 
 	err := tx.SetRealFee(types.MinFee)

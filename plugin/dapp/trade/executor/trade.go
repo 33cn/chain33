@@ -15,28 +15,17 @@ trade执行器支持trade的创建和交易，
 import (
 	log "github.com/inconshreveable/log15"
 
-	"reflect"
-
 	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/types"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var tradelog = log.New("module", "execs.trade")
-
-var executorFunList = make(map[string]reflect.Method)
-var executorType = pty.NewType()
+var driverName = "trade"
 
 func init() {
-	actionFunList := executorType.GetFuncMap()
-	executorFunList = types.ListMethod(&trade{})
-	for k, v := range actionFunList {
-		executorFunList[k] = v
-	}
-}
-
-func (t *trade) GetFuncMap() map[string]reflect.Method {
-	return executorFunList
+	ety := types.LoadExecutorType(driverName)
+	ety.InitFuncList(types.ListMethod(&trade{}))
 }
 
 func Init(name string) {
@@ -54,12 +43,12 @@ type trade struct {
 func newTrade() drivers.Driver {
 	t := &trade{}
 	t.SetChild(t)
-	t.SetExecutorType(executorType)
+	t.SetExecutorType(types.LoadExecutorType(driverName))
 	return t
 }
 
 func (t *trade) GetDriverName() string {
-	return "trade"
+	return driverName
 }
 
 func (t *trade) getSellOrderFromDb(sellID []byte) *pty.SellOrder {

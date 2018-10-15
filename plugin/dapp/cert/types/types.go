@@ -9,7 +9,7 @@ const (
 	CertActionNormal = 3
 )
 
-func Init() {
+func init() {
 	types.AllowUserExec = append(types.AllowUserExec, ExecerCert)
 
 	// init executor type

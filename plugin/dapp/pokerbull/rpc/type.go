@@ -23,10 +23,6 @@ func InitRPC(name string, s pluginmgr.RPCServer) {
 }
 
 func Init(name string, s pluginmgr.RPCServer) {
-	name = pb.PokerBullX
-	// init executor type
-	types.RegistorExecutor(name, &pb.PokerBullType{})
-
 	InitRPC(name, s)
 }
 

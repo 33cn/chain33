@@ -35,12 +35,11 @@ var privacylog = log.New("module", "execs.privacy")
 var executorFunList = make(map[string]reflect.Method)
 var executorType = pty.NewType()
 
+var driverName = "privacy"
+
 func init() {
-	actionFunList := executorType.GetFuncMap()
-	executorFunList = types.ListMethod(&privacy{})
-	for k, v := range actionFunList {
-		executorFunList[k] = v
-	}
+	ety := types.LoadExecutorType(driverName)
+	ety.InitFuncList(types.ListMethod(&privacy{}))
 }
 
 func Init(name string) {
@@ -65,7 +64,7 @@ func newPrivacy() drivers.Driver {
 }
 
 func (p *privacy) GetDriverName() string {
-	return "privacy"
+	return driverName
 }
 
 /*
