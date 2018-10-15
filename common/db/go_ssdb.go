@@ -263,6 +263,10 @@ func newSSDBIt(begin, end string, prefix []byte, keys []string, reverse bool, db
 	return &ssDBIt{index: -1, keys: keys, reverse: reverse, db: db, begin: begin, end: end, prefix: prefix}
 }
 
+func (dbit *ssDBIt) Prefix() []byte {
+	return nil
+}
+
 func (dbit *ssDBIt) Close() {
 	dbit.keys = []string{}
 }

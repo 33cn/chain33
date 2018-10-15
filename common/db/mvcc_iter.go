@@ -1,6 +1,10 @@
 package db
 
-import "gitlab.33.cn/chain33/chain33/types"
+import (
+	"bytes"
+
+	"gitlab.33.cn/chain33/chain33/types"
+)
 
 //mvcc 迭代器版本
 //支持db 原生迭代器接口
@@ -55,5 +59,28 @@ func (m *MVCCIter) DelMVCC(hash []byte, version int64, strict bool) ([]*types.Ke
 
 func (m *MVCCIter) Iterator(prefix []byte, reserver bool) Iterator {
 	prefix = getLastKey(prefix)
-	return m.db.Iterator(prefix, reserver)
+	return &mvccIt{m.db.Iterator(prefix, reserver)}
+}
+
+type mvccIt struct {
+	Iterator
+}
+
+func (dbit *mvccIt) Prefix() []byte {
+	return mvccLast
+}
+
+func (dbit *mvccIt) Key() []byte {
+	key := dbit.Iterator.Key()
+	if bytes.HasPrefix(key, dbit.Prefix()) {
+		return key[len(dbit.Prefix()):]
+	}
+	return nil
+}
+
+func (dbit *mvccIt) Valid() bool {
+	if !dbit.Iterator.Valid() {
+		return false
+	}
+	return dbit.Key() != nil
 }
