@@ -10,9 +10,7 @@ It is generated from these files:
 	common.proto
 	config.proto
 	db.proto
-	evmcontract.proto
 	executor.proto
-	executorTrade.proto
 	p2p.proto
 	pbft.proto
 	relay.proto
@@ -99,21 +97,6 @@ It has these top-level messages:
 	StoreSetWithSync
 	StoreGet
 	StoreReplyValue
-	EVMContractObject
-	EVMContractData
-	EVMContractState
-	EVMContractAction
-	ReceiptEVMContract
-	EVMStateChangeItem
-	EVMContractDataCmd
-	EVMContractStateCmd
-	ReceiptEVMContractCmd
-	CheckEVMAddrReq
-	CheckEVMAddrResp
-	EstimateEVMGasReq
-	EstimateEVMGasResp
-	EvmDebugReq
-	EvmDebugResp
 	Genesis
 	Ticket
 	TicketAction
@@ -185,32 +168,6 @@ It has these top-level messages:
 	ValNode
 	ValNodes
 	ValNodeAction
-	Trade
-	TradeForSell
-	TradeForBuy
-	TradeForRevokeSell
-	TradeForBuyLimit
-	TradeForSellMarket
-	TradeForRevokeBuy
-	SellOrder
-	BuyLimitOrder
-	ReceiptBuyBase
-	ReceiptSellBase
-	ReceiptTradeBuyMarket
-	ReceiptTradeBuyLimit
-	ReceiptTradeBuyRevoke
-	ReceiptTradeSell
-	ReceiptSellMarket
-	ReceiptTradeRevoke
-	ReqAddrTokens
-	ReqTokenSellOrder
-	ReqTokenBuyOrder
-	ReplyBuyOrder
-	ReplySellOrder
-	ReplySellOrders
-	ReplyBuyOrders
-	ReplyTradeOrder
-	ReplyTradeOrders
 	P2PGetPeerInfo
 	P2PPeerInfo
 	P2PVersion
@@ -371,9 +328,6 @@ It has these top-level messages:
 	ReqTokenPreCreate
 	ReqTokenFinishCreate
 	ReqTokenRevokeCreate
-	ReqSellToken
-	ReqBuyToken
-	ReqRevokeSell
 	ReqModifyConfig
 	ReqSignRawTx
 	ReplySignRawTx

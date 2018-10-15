@@ -7,7 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/common/address"
-	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
+	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -69,14 +69,14 @@ func GetAccountListCmd() *cobra.Command {
 
 func listAccount(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
-	var res jsonrpc.WalletAccounts
+	var res rpctypes.WalletAccounts
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetAccounts", nil, &res)
 	ctx.SetResultCb(parseListAccountRes)
 	ctx.Run()
 }
 
 func parseListAccountRes(arg interface{}) (interface{}, error) {
-	res := arg.(*jsonrpc.WalletAccounts)
+	res := arg.(*rpctypes.WalletAccounts)
 	var result AccountsResult
 	for _, r := range res.Wallets {
 		balanceResult := strconv.FormatFloat(float64(r.Acc.Balance)/float64(types.Coin), 'f', 4, 64)
@@ -122,7 +122,7 @@ func balance(cmd *cobra.Command, args []string) {
 	}
 	if execer == "" {
 		req := types.ReqAddr{Addr: addr}
-		var res jsonrpc.AllExecBalance
+		var res rpctypes.AllExecBalance
 		ctx := NewRpcCtx(rpcLaddr, "Chain33.GetAllExecBalance", req, &res)
 		ctx.SetResultCb(parseGetAllBalanceRes)
 		ctx.Run()
@@ -139,7 +139,7 @@ func balance(cmd *cobra.Command, args []string) {
 			End:      int64(height),
 			IsDetail: false,
 		}
-		var res jsonrpc.Headers
+		var res rpctypes.Headers
 		ctx := NewRpcCtx(rpcLaddr, "Chain33.GetHeaders", params, &res)
 		_, err := ctx.run()
 		if err != nil {
@@ -157,14 +157,14 @@ func balance(cmd *cobra.Command, args []string) {
 		Execer:    execer,
 		StateHash: stateHash,
 	}
-	var res []*jsonrpc.Account
+	var res []*rpctypes.Account
 	ctx := NewRpcCtx(rpcLaddr, "Chain33.GetBalance", params, &res)
 	ctx.SetResultCb(parseGetBalanceRes)
 	ctx.Run()
 }
 
 func parseGetBalanceRes(arg interface{}) (interface{}, error) {
-	res := *arg.(*[]*jsonrpc.Account)
+	res := *arg.(*[]*rpctypes.Account)
 	balanceResult := strconv.FormatFloat(float64(res[0].Balance)/float64(types.Coin), 'f', 4, 64)
 	frozenResult := strconv.FormatFloat(float64(res[0].Frozen)/float64(types.Coin), 'f', 4, 64)
 	result := &AccountResult{
@@ -177,7 +177,7 @@ func parseGetBalanceRes(arg interface{}) (interface{}, error) {
 }
 
 func parseGetAllBalanceRes(arg interface{}) (interface{}, error) {
-	res := *arg.(*jsonrpc.AllExecBalance)
+	res := *arg.(*rpctypes.AllExecBalance)
 	accs := res.ExecAccount
 	result := AllExecBalance{Addr: res.Addr}
 	for _, acc := range accs {

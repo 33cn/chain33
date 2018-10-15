@@ -10,8 +10,8 @@ import (
 
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/common/address"
-	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
+	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -117,7 +117,7 @@ func closeTicket(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	isAutoMining := status.(jsonrpc.WalletStatus).IsAutoMining
+	isAutoMining := status.(rpctypes.WalletStatus).IsAutoMining
 	if isAutoMining {
 		fmt.Fprintln(os.Stderr, types.ErrMinerNotClosed)
 		return
@@ -154,7 +154,7 @@ func getWalletStatus(rpcAddr string) (interface{}, error) {
 		fmt.Fprintln(os.Stderr, err)
 		return nil, err
 	}
-	var res jsonrpc.WalletStatus
+	var res rpctypes.WalletStatus
 	err = rpc.Call("Chain33.GetWalletStatus", nil, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
