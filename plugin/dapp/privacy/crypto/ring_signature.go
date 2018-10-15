@@ -5,6 +5,7 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/ed25519/edwards25519"
+	privacytypes "gitlab.33.cn/chain33/chain33/plugin/dapp/privacy/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -156,7 +157,7 @@ func checkRingSignature(prefix_hash []byte, image *KeyImage, pubs []*PubKeyPriva
 	return edwards25519.ScIsNonZero(&h) == 0
 }
 
-func GenerateRingSignature(datahash []byte, utxos []*types.UTXOBasic, privKey []byte, realUtxoIndex int, keyImage []byte) (*types.RingSignatureItem, error) {
+func GenerateRingSignature(datahash []byte, utxos []*privacytypes.UTXOBasic, privKey []byte, realUtxoIndex int, keyImage []byte) (*types.RingSignatureItem, error) {
 	count := len(utxos)
 	signs := make([]*Sign, count)
 	pubs := make([]*PubKeyPrivacy, count)

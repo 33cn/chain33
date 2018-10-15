@@ -1,4 +1,4 @@
-package ticket
+package wallet
 
 import (
 	"fmt"
