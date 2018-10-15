@@ -22,6 +22,14 @@ var (
 		TyLogParacrossMiner:  {reflect.TypeOf(ReceiptParacrossMiner{}), "LogParacrossMiner"},
 		TyLogParaAssetDeposit: {reflect.TypeOf(types.ReceiptAccountTransfer{}), "LogParacrossAssetDeposit"},
 	}*/
+
+	// init query rpc
+	/* TODO-TODO
+	types.RegisterRPCQueryHandle("ParacrossGetTitle", &ParacrossGetTitle{})
+	types.RegisterRPCQueryHandle("ParacrossListTitles", &ParacrossListTitles{})
+	types.RegisterRPCQueryHandle("ParacrossGetTitleHeight", &ParacrossGetTitleHeight{})
+	types.RegisterRPCQueryHandle("ParacrossGetAssetTxResult", &ParacrossGetAssetTxResult{})
+	*/
 )
 
 
@@ -226,3 +234,64 @@ func (l ParacrossAssetDepositLog) Decode(msg []byte) (interface{}, error) {
 	}
 	return logTmp, nil
 }
+
+type ParacrossGetTitle struct {
+}
+
+func (t *ParacrossGetTitle) JsonToProto(message json.RawMessage) ([]byte, error) {
+	var req types.ReqStr
+	err := json.Unmarshal(message, &req)
+	if err != nil {
+		return nil, err
+	}
+	return types.Encode(&req), nil
+}
+
+func (t *ParacrossGetTitle) ProtoToJson(reply *types.Message) (interface{}, error) {
+	return reply, nil
+}
+
+type ParacrossListTitles struct {
+}
+
+func (t *ParacrossListTitles) JsonToProto(message json.RawMessage) ([]byte, error) {
+	var req types.ReqNil
+	return types.Encode(&req), nil
+}
+
+func (t *ParacrossListTitles) ProtoToJson(reply *types.Message) (interface{}, error) {
+	return reply, nil
+}
+
+type ParacrossGetTitleHeight struct {
+}
+
+func (t *ParacrossGetTitleHeight) JsonToProto(message json.RawMessage) ([]byte, error) {
+	var req ReqParacrossTitleHeight
+	err := json.Unmarshal(message, &req)
+	if err != nil {
+		return nil, err
+	}
+	return types.Encode(&req), nil
+}
+
+func (t *ParacrossGetTitleHeight) ProtoToJson(reply *types.Message) (interface{}, error) {
+	return reply, nil
+}
+
+type ParacrossGetAssetTxResult struct {
+}
+
+func (t *ParacrossGetAssetTxResult) JsonToProto(message json.RawMessage) ([]byte, error) {
+	var req types.ReqHash
+	err := json.Unmarshal(message, &req)
+	if err != nil {
+		return nil, err
+	}
+	return types.Encode(&req), nil
+}
+
+func (t *ParacrossGetAssetTxResult) ProtoToJson(reply *types.Message) (interface{}, error) {
+	return reply, nil
+}
+
