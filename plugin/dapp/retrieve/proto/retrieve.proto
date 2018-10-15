@@ -21,10 +21,10 @@ message Retrieve {
 
 message RetrieveAction {
     oneof value {
-        PrepareRetrieve   prepare = 1;
-        PerformRetrieve   perform = 2;
-        BackupRetrieve    backup  = 3;
-        CancelRetrieve    cancel  = 4;
+        PrepareRetrieve prepare = 1;
+        PerformRetrieve perform = 2;
+        BackupRetrieve  backup  = 3;
+        CancelRetrieve  cancel  = 4;
     }
     int32 ty = 5;
 }

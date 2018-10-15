@@ -1,9 +1,8 @@
 package executor
 
-import
-(
-	"gitlab.33.cn/chain33/chain33/types"
+import (
 	pkt "gitlab.33.cn/chain33/chain33/plugin/dapp/pokerbull/types"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 func (c *PokerBull) Exec_Start(payload *pkt.PBGameStart, tx *types.Transaction, index int) (*types.Receipt, error) {

@@ -11,7 +11,7 @@ message Cert {
 
 message CertAction {
     oneof value {
-        CertNew    new = 1;
+        CertNew new       = 1;
         CertUpdate update = 2;
         CertNormal normal = 3;
     }

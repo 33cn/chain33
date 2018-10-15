@@ -9,9 +9,9 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/config"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
+	ct "gitlab.33.cn/chain33/chain33/plugin/dapp/cert/types"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
-	ct "gitlab.33.cn/chain33/chain33/plugin/dapp/cert/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 

@@ -458,7 +458,6 @@ func TestChannelClient_CreateRawTradeRevokeBuyTx(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-
 func TestChannelClient_CreateRawHashlockLockTx(t *testing.T) {
 	client := newTestChannelClient()
 	data, err := client.CreateRawHashlockLockTx(nil)
