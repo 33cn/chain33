@@ -1,11 +1,8 @@
 package rpc
 
 import (
-	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/rpc/types"
 )
-
-var log = log15.New("module", "pokerbull.rpc")
 
 type Jrpc struct {
 	cli *channelClient

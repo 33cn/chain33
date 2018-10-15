@@ -6,11 +6,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gogo/protobuf/proto"
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
-	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/privacy/types"
 	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
@@ -58,39 +56,6 @@ func decodeTransaction(tx *rpctypes.Transaction) *TxResult {
 	return result
 }
 
-func decodePrivInput(input *pty.PrivacyInput) *PrivacyInput {
-	inputResult := &PrivacyInput{}
-	for _, value := range input.Keyinput {
-		amt := float64(value.Amount) / float64(types.Coin)
-		amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
-		var ugis []*UTXOGlobalIndex
-		for _, u := range value.UtxoGlobalIndex {
-			ugis = append(ugis, &UTXOGlobalIndex{Outindex: u.Outindex, Txhash: common.ToHex(u.Txhash)})
-		}
-		kin := &KeyInput{
-			Amount:          amtResult,
-			KeyImage:        common.ToHex(value.KeyImage),
-			UtxoGlobalIndex: ugis,
-		}
-		inputResult.Keyinput = append(inputResult.Keyinput, kin)
-	}
-	return inputResult
-}
-
-func decodePrivOutput(output *pty.PrivacyOutput) *PrivacyOutput {
-	outputResult := &PrivacyOutput{RpubKeytx: common.ToHex(output.RpubKeytx)}
-	for _, value := range output.Keyoutput {
-		amt := float64(value.Amount) / float64(types.Coin)
-		amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
-		kout := &KeyOutput{
-			Amount:        amtResult,
-			Onetimepubkey: common.ToHex(value.Onetimepubkey),
-		}
-		outputResult.Keyoutput = append(outputResult.Keyoutput, kout)
-	}
-	return outputResult
-}
-
 func decodeAccount(acc *types.Account, precision int64) *AccountResult {
 	balanceResult := strconv.FormatFloat(float64(acc.GetBalance())/float64(precision), 'f', 4, 64)
 	frozenResult := strconv.FormatFloat(float64(acc.GetFrozen())/float64(precision), 'f', 4, 64)
@@ -101,31 +66,6 @@ func decodeAccount(acc *types.Account, precision int64) *AccountResult {
 		Frozen:   frozenResult,
 	}
 	return accResult
-}
-
-func constructAccFromLog(l *rpctypes.ReceiptLogResult, key string) *types.Account {
-	var cur int32
-	if tmp, ok := l.Log.(map[string]interface{})[key].(map[string]interface{})["currency"]; ok {
-		cur = int32(tmp.(float32))
-	}
-	var bal int64
-	if tmp, ok := l.Log.(map[string]interface{})[key].(map[string]interface{})["balance"]; ok {
-		bal = int64(tmp.(float64))
-	}
-	var fro int64
-	if tmp, ok := l.Log.(map[string]interface{})[key].(map[string]interface{})["frozen"]; ok {
-		fro = int64(tmp.(float64))
-	}
-	var ad string
-	if tmp, ok := l.Log.(map[string]interface{})[key].(map[string]interface{})["addr"]; ok {
-		ad = tmp.(string)
-	}
-	return &types.Account{
-		Currency: cur,
-		Balance:  bal,
-		Frozen:   fro,
-		Addr:     ad,
-	}
 }
 
 func decodeLog(execer []byte, rlog rpctypes.ReceiptDataResult) *ReceiptData {
@@ -147,49 +87,6 @@ func decodeLog(execer []byte, rlog rpctypes.ReceiptDataResult) *ReceiptData {
 		rd.Logs = append(rd.Logs, rl)
 	}
 	return rd
-}
-
-func buildPrivacyInputResult(l *rpctypes.ReceiptLogResult) interface{} {
-	data, _ := common.FromHex(l.RawLog)
-	srcInput := &pty.PrivacyInput{}
-	dstInput := &PrivacyInput{}
-	if proto.Unmarshal(data, srcInput) != nil {
-		return dstInput
-	}
-	for _, srcKeyInput := range srcInput.Keyinput {
-		var dstUtxoGlobalIndex []*UTXOGlobalIndex
-		for _, srcUTXOGlobalIndex := range srcKeyInput.UtxoGlobalIndex {
-			dstUtxoGlobalIndex = append(dstUtxoGlobalIndex, &UTXOGlobalIndex{
-				Outindex: srcUTXOGlobalIndex.GetOutindex(),
-				Txhash:   common.ToHex(srcUTXOGlobalIndex.GetTxhash()),
-			})
-		}
-		dstKeyInput := &KeyInput{
-			Amount:          strconv.FormatFloat(float64(srcKeyInput.GetAmount())/float64(types.Coin), 'f', 4, 64),
-			UtxoGlobalIndex: dstUtxoGlobalIndex,
-			KeyImage:        common.ToHex(srcKeyInput.GetKeyImage()),
-		}
-		dstInput.Keyinput = append(dstInput.Keyinput, dstKeyInput)
-	}
-	return dstInput
-}
-
-func buildPrivacyOutputResult(l *rpctypes.ReceiptLogResult) interface{} {
-	data, _ := common.FromHex(l.RawLog)
-	srcOutput := &pty.ReceiptPrivacyOutput{}
-	dstOutput := &ReceiptPrivacyOutput{}
-	if proto.Unmarshal(data, srcOutput) != nil {
-		return dstOutput
-	}
-	dstOutput.Token = srcOutput.Token
-	for _, srcKeyoutput := range srcOutput.Keyoutput {
-		dstKeyoutput := &KeyOutput{
-			Amount:        strconv.FormatFloat(float64(srcKeyoutput.GetAmount())/float64(types.Coin), 'f', 4, 64),
-			Onetimepubkey: common.ToHex(srcKeyoutput.Onetimepubkey),
-		}
-		dstOutput.Keyoutput = append(dstOutput.Keyoutput, dstKeyoutput)
-	}
-	return dstOutput
 }
 
 func SendToAddress(rpcAddr string, from string, to string, amount int64, note string, isToken bool, tokenSymbol string, isWithdraw bool) {
