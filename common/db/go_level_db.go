@@ -199,6 +199,10 @@ func (dbit *goLevelDBIt) ValueCopy() []byte {
 	return cloneByte(v)
 }
 
+func (it *goLevelDBIt) Prefix() []byte {
+	return nil
+}
+
 func (dbit *goLevelDBIt) Valid() bool {
 	return dbit.Iterator.Valid() && bytes.HasPrefix(dbit.Key(), dbit.prefix)
 }

@@ -87,6 +87,7 @@ type Iterator interface {
 	Value() []byte
 	ValueCopy() []byte
 	Error() error
+	Prefix() []byte
 	Close()
 }
 

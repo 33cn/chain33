@@ -155,57 +155,32 @@ func (db *ListHelper) PrefixCount(prefix []byte) (count int64) {
 	return
 }
 
-func (db *ListHelper) ListExcute(prefix []byte, end []byte, count int32, direction int32, fn func(key, value []byte) bool) {
-	var reserse = false
-	if direction == 0 {
-		reserse = true
-	}
-
-	//针对prefix为".-mvcc-.l.mavl-coins-bty-06htvcBNSEA7fZhAdLJphDwQRQJaHpy001"的情况，需要做特殊处理:
-	//先截取最后一个'-'及之前的部分作为前缀扫描，再判断每一个元素的key值是否大于等于expectPrefix，如果是，则进行处理；否则，记录是之前已经处理过的，直接跳过。
-	var it Iterator
-	startKeyFlag := false
-	//找最后一个“-”的位置
-	lastIndexOfDelimiter := bytes.LastIndex(prefix, []byte("-"))
-
-	//如果最后一个“-”后面还有信息，则说明prefix为startKey模式(携带了上次查询的具体的key-除了前缀还包含具体的地址)，而不是前缀模式(不包含具体的地址)
-	if lastIndexOfDelimiter+1 < len(prefix) {
-		it = db.db.Iterator(prefix[0:(lastIndexOfDelimiter+1)], reserse)
-		startKeyFlag = true
-	} else {
-		//针对prefix为".-mvcc-.l.mavl-coins-bty-"的情况，属于正常的前缀查询。
-		it = db.db.Iterator(prefix, reserse)
-	}
-
+func (db *ListHelper) IteratorCallback(start []byte, end []byte, count int32, direction int32, fn func(key, value []byte) bool) {
+	reserse := direction == 0
+	it := db.db.Iterator(start, reserse)
 	defer it.Close()
-
 	var i int32
-
 	for it.Rewind(); it.Valid(); it.Next() {
-		value := it.ValueCopy()
+		value := it.Value()
 		if it.Error() != nil {
 			listlog.Error("PrefixScan it.Value()", "error", it.Error())
 			return
 		}
-
-		if bytes.Compare(it.Key(), end) >= 0 {
-			//fmt.Println(string(it.Key()), "bigger than ", string(exceptPrefix), " ,so exclude it.")
-			continue
-		} else {
-			//fmt.Println(string(it.Key()), "less than ", string(exceptPrefix))
+		key := it.Key()
+		//判断key 和 end 的关系
+		if end != nil {
+			cmp := bytes.Compare(key, end)
+			if !reserse && cmp > 0 {
+				break
+			}
+			if reserse && cmp < 0 {
+				break
+			}
 		}
-
-		if startKeyFlag && bytes.Compare(it.Key(), prefix) < 0 {
-			//fmt.Println(string(it.Key()), "less than ", string(expectPrefix), " ,so exclude it.")
-			continue
-		} else {
-			//fmt.Println(string(it.Key()), "not less than ", string(expectPrefix))
-		}
-		key := make([]byte, len(it.Key()))
-		copy(key, it.Key())
-		if fn(key, value) {
+		if fn(cloneByte(key), cloneByte(value)) {
 			break
 		}
+		//count 到数目了
 		i++
 		if i == count {
 			break
