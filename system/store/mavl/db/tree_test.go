@@ -190,13 +190,97 @@ func TestTreeHeightAndSize(t *testing.T) {
 	db.Close()
 }
 
+//获取共享的老数据
+func TestSetAndGetOld(t *testing.T) {
+	dir, err := ioutil.TempDir("", "datastore")
+	require.NoError(t, err)
+	t.Log(dir)
+	dbm := db.NewDB("mavltree", "leveldb", dir, 100)
+	t1 := NewTree(dbm, true)
+	t1.Set([]byte("1"), []byte("1"))
+	t1.Set([]byte("2"), []byte("2"))
+
+	hash := t1.Hash()
+	t1.Save()
+
+	//t2 在t1的基础上再做修改
+	t2 := NewTree(dbm, true)
+	t2.Load(hash)
+	t2.Set([]byte("2"), []byte("22"))
+	hash = t2.Hash()
+	t2.Save()
+
+	t3 := NewTree(dbm, true)
+	t3.Load(hash)
+	_, v, _ := t3.Get([]byte("1"))
+	assert.Equal(t, []byte("1"), v)
+
+	_, v, _ = t3.Get([]byte("2"))
+	assert.Equal(t, []byte("22"), v)
+}
+
+//开启mvcc 和 prefix 要保证 hash 不变
+func TestHashSame(t *testing.T) {
+	dir, err := ioutil.TempDir("", "datastore")
+	require.NoError(t, err)
+	t.Log(dir)
+	dbm := db.NewDB("mavltree", "leveldb", dir, 100)
+
+	t1 := NewTree(dbm, true)
+	t1.Set([]byte("1"), []byte("1"))
+	t1.Set([]byte("2"), []byte("2"))
+
+	hash1 := t1.Hash()
+
+	EnableMVCC(true)
+	EnableMavlPrefix(true)
+	//t2 在t1的基础上再做修改
+	t2 := NewTree(dbm, true)
+	t2.Set([]byte("1"), []byte("1"))
+	t2.Set([]byte("2"), []byte("2"))
+	hash2 := t2.Hash()
+	assert.Equal(t, hash1, hash2)
+}
+
+func TestHashSame2(t *testing.T) {
+	dir, err := ioutil.TempDir("", "datastore")
+	require.NoError(t, err)
+	t.Log(dir)
+
+	db1 := db.NewDB("test1", "leveldb", dir, 100)
+	prevHash := make([]byte, 32)
+	strs1 := make(map[string]bool)
+	for i := 0; i < 5; i++ {
+		prevHash, err = saveBlock(db1, int64(i), prevHash, 1000, false)
+		assert.Nil(t, err)
+		str := Bytes2Hex(prevHash)
+		fmt.Println("unable", str)
+		strs1[str] = true
+	}
+
+	db2 := db.NewDB("test2", "leveldb", dir, 100)
+	prevHash = prevHash[:0]
+	EnableMVCC(true)
+	EnableMavlPrefix(true)
+	for i := 0; i < 5; i++ {
+		prevHash, err = saveBlock(db2, int64(i), prevHash, 1000, false)
+		assert.Nil(t, err)
+		str := Bytes2Hex(prevHash)
+		fmt.Println("enable", str)
+		if ok := strs1[str]; !ok {
+			t.Error("enable Prefix have a different hash")
+		}
+	}
+
+}
+
 //测试hash，save,load以及节点value值的更新功能
 func TestPersistence(t *testing.T) {
 	dir, err := ioutil.TempDir("", "datastore")
 	require.NoError(t, err)
 	t.Log(dir)
 
-	db := db.NewDB("mavltree", "leveldb", dir, 100)
+	dbm := db.NewDB("mavltree", "leveldb", dir, 100)
 
 	records := make(map[string]string)
 
@@ -206,10 +290,13 @@ func TestPersistence(t *testing.T) {
 		records[randstr(20)] = randstr(20)
 	}
 
-	t1 := NewTree(db, true)
+	mvccdb := db.NewMVCC(dbm)
+
+	t1 := NewTree(dbm, true)
 
 	for key, value := range records {
-		t1.Set([]byte(key), []byte(value))
+		//t1.Set([]byte(key), []byte(value))
+		kindsSet(t1, mvccdb, []byte(key), []byte(value), 0, enableMvcc)
 		//t.Log("TestPersistence tree1 set", "key", key, "value", value)
 		recordbaks[key] = randstr(20)
 	}
@@ -220,11 +307,12 @@ func TestPersistence(t *testing.T) {
 	t.Log("TestPersistence", "roothash1", hash)
 
 	// Load a tree
-	t2 := NewTree(db, true)
+	t2 := NewTree(dbm, true)
 	t2.Load(hash)
 
 	for key, value := range records {
-		_, t2value, _ := t2.Get([]byte(key))
+		//_, t2value, _ := t2.Get([]byte(key))
+		_, t2value, _ := kindsGet(t2, mvccdb, []byte(key), 0, enableMvcc)
 		if string(t2value) != value {
 			t.Fatalf("Invalid value. Expected %v, got %v", value, t2value)
 		}
@@ -237,8 +325,10 @@ func TestPersistence(t *testing.T) {
 		if count > 5 {
 			break
 		}
-		t2.Set([]byte(key), []byte(value))
+		//t2.Set([]byte(key), []byte(value))
+		kindsSet(t2, mvccdb, []byte(key), []byte(value), 1, enableMvcc)
 		//t.Log("TestPersistence insert new node treee2", "key", string(key), "value", string(value))
+
 	}
 
 	hash2 := t2.Hash()
@@ -247,24 +337,26 @@ func TestPersistence(t *testing.T) {
 
 	// 重新加载hash
 
-	t11 := NewTree(db, true)
+	t11 := NewTree(dbm, true)
 	t11.Load(hash)
 
 	t.Log("------tree11------TestPersistence---------")
 	for key, value := range records {
-		_, t2value, _ := t11.Get([]byte(key))
+		//_, t2value, _ := t11.Get([]byte(key))
+		_, t2value, _ := kindsGet(t11, mvccdb, []byte(key), 0, enableMvcc)
 		if string(t2value) != value {
 			t.Fatalf("tree11 Invalid value. Expected %v, got %v", value, t2value)
 		}
 	}
 	//重新加载hash2
-	t22 := NewTree(db, true)
+	t22 := NewTree(dbm, true)
 	t22.Load(hash2)
 	t.Log("------tree22------TestPersistence---------")
 
 	//有5个key对应的value值有变化
 	for key, value := range records {
-		_, t2value, _ := t22.Get([]byte(key))
+		//_, t2value, _ := t22.Get([]byte(key))
+		_, t2value, _ := kindsGet(t22, mvccdb, []byte(key), 0, enableMvcc)
 		if string(t2value) != value {
 			t.Log("tree22 value update.", "oldvalue", string(value), "newvalue", string(t2value), "key", string(key))
 		}
@@ -275,12 +367,42 @@ func TestPersistence(t *testing.T) {
 		if count > 5 {
 			break
 		}
-		_, t2value, _ := t22.Get([]byte(key))
+		//_, t2value, _ := t22.Get([]byte(key))
+		_, t2value, _ := kindsGet(t22, mvccdb, []byte(key), 1, enableMvcc)
 		if string(t2value) != value {
 			t.Logf("tree2222 Invalid value. Expected %v, got %v,key %v", string(value), string(t2value), string(key))
 		}
 	}
-	db.Close()
+	dbm.Close()
+}
+
+func kindsGet(t *Tree, mvccdb *db.MVCCHelper, key []byte, version int64, enableMvcc bool) (index int32, value []byte, exists bool) {
+	if enableMvcc {
+		if mvccdb != nil {
+			value, err := mvccdb.GetV(key, version)
+			if err != nil {
+				return 0, nil, false
+			}
+			return 0, value, true
+		}
+	} else {
+		if t != nil {
+			return t.Get(key)
+		}
+	}
+	return 0, nil, false
+}
+
+func kindsSet(t *Tree, mvccdb *db.MVCCHelper, key []byte, value []byte, version int64, enableMvcc bool) (updated bool) {
+	if enableMvcc {
+		if mvccdb != nil {
+			err := mvccdb.SetV(key, value, version)
+			if err != nil {
+				panic(fmt.Errorf("mvccdb cant setv", err))
+			}
+		}
+	}
+	return t.Set(key, value)
 }
 
 //测试key:value对的proof证明功能
@@ -679,6 +801,11 @@ func BenchmarkDBSetMVCC(b *testing.B) {
 }
 
 func BenchmarkDBGet(b *testing.B) {
+	//开启MVCC情况下不做测试；BenchmarkDBGetMVCC进行测试
+	if enableMvcc {
+		b.Skip()
+		return
+	}
 	dir, err := ioutil.TempDir("", "datastore")
 	require.NoError(b, err)
 	b.Log(dir)
@@ -687,6 +814,9 @@ func BenchmarkDBGet(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		prevHash, err = saveBlock(db, int64(i), prevHash, 1000, false)
 		assert.Nil(b, err)
+		if i%10 == 0 {
+			fmt.Println(prevHash)
+		}
 	}
 	b.ResetTimer()
 	t := NewTree(db, true)
@@ -706,9 +836,13 @@ func BenchmarkDBGetMVCC(b *testing.B) {
 	b.Log(dir)
 	ldb := db.NewDB("test", "leveldb", dir, 100)
 	prevHash := make([]byte, 32)
+	EnableMavlPrefix(true)
 	for i := 0; i < b.N; i++ {
 		prevHash, err = saveBlock(ldb, int64(i), prevHash, 1000, true)
 		assert.Nil(b, err)
+		if i%10 == 0 {
+			fmt.Println(prevHash)
+		}
 	}
 	b.ResetTimer()
 	mvccdb := db.NewMVCC(ldb)
@@ -733,7 +867,7 @@ func genKVShort(height int64, txN int64) (kvs []*types.KeyValue) {
 
 func genKV(height int64, txN int64) (kvs []*types.KeyValue) {
 	for i := int64(0); i < txN; i++ {
-		n := height*1000 + i
+		n := height*txN + i
 		key := i2b(int32(n))
 		value := Sha256(key)
 		kvs = append(kvs, &types.KeyValue{Key: key, Value: value})

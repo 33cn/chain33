@@ -40,7 +40,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/store"
 	"gitlab.33.cn/chain33/chain33/types"
-	ety "gitlab.33.cn/chain33/chain33/types/executor"
 	"gitlab.33.cn/chain33/chain33/wallet"
 	"golang.org/x/net/trace"
 	"google.golang.org/grpc"
@@ -132,7 +131,6 @@ func main() {
 			panic("store type is kvmvcc, configure item enableMVCC should be false.please check it.")
 		}
 	}
-	ety.Init()
 	//开始区块链模块加载
 	//channel, rabitmq 等
 	log.Info(cfg.Title + " " + version.GetVersion())
@@ -152,6 +150,10 @@ func main() {
 	exec.SetQueueClient(q.Client())
 
 	log.Info("loading store module")
+	//是否开启MVCC不一样的话以执行器开启为准
+	if cfg.Exec.EnableMVCC != cfg.Store.EnableMVCC {
+		cfg.Store.EnableMVCC = cfg.Exec.EnableMVCC
+	}
 	s := store.New(cfg.Store)
 	s.SetQueueClient(q.Client())
 

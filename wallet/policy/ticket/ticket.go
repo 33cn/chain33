@@ -11,6 +11,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/db"
+	ty "gitlab.33.cn/chain33/chain33/plugin/dapp/ticket/types"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 	wcom "gitlab.33.cn/chain33/chain33/wallet/common"
@@ -291,8 +292,8 @@ func (policy *ticketPolicy) forceCloseAllTicket(height int64) (*types.ReplyHashe
 	return &hashes, nil
 }
 
-func (policy *ticketPolicy) getTickets(addr string, status int32) ([]*types.Ticket, error) {
-	reqaddr := &types.TicketList{addr, status}
+func (policy *ticketPolicy) getTickets(addr string, status int32) ([]*ty.Ticket, error) {
+	reqaddr := &ty.TicketList{addr, status}
 	var req types.Query
 	req.Execer = types.ExecerTicket
 	req.FuncName = "TicketList"
@@ -303,7 +304,7 @@ func (policy *ticketPolicy) getTickets(addr string, status int32) ([]*types.Tick
 		bizlog.Error("getTickets", "Query error", err)
 		return nil, err
 	}
-	reply := (*msg).(*types.ReplyTicketList)
+	reply := msg.(*ty.ReplyTicketList)
 	return reply.Tickets, nil
 }
 
@@ -319,7 +320,7 @@ func (policy *ticketPolicy) forceCloseTicketsByAddr(height int64, priv crypto.Pr
 	}
 	tlist := append(tlist1, tlist2...)
 	var ids []string
-	var tl []*types.Ticket
+	var tl []*ty.Ticket
 	now := types.Now().Unix()
 	for _, t := range tlist {
 		if !t.IsGenesis {
@@ -352,14 +353,14 @@ func (policy *ticketPolicy) closeTickets(priv crypto.PrivKey, ids []string) ([]b
 		end = len(ids)
 	}
 	bizlog.Info("closeTickets", "ids", ids[0:end])
-	ta := &types.TicketAction{}
-	tclose := &types.TicketClose{ids[0:end]}
-	ta.Value = &types.TicketAction_Tclose{tclose}
-	ta.Ty = types.TicketActionClose
-	return policy.getWalletOperate().SendTransaction(ta, types.ExecerTicket, priv, "")
+	ta := &ty.TicketAction{}
+	tclose := &ty.TicketClose{ids[0:end]}
+	ta.Value = &ty.TicketAction_Tclose{tclose}
+	ta.Ty = ty.TicketActionClose
+	return policy.getWalletOperate().SendTransaction(ta, []byte(ty.TicketX), priv, "")
 }
 
-func (policy *ticketPolicy) getTicketsByStatus(status int32) ([]*types.Ticket, [][]byte, error) {
+func (policy *ticketPolicy) getTicketsByStatus(status int32) ([]*ty.Ticket, [][]byte, error) {
 	operater := policy.getWalletOperate()
 	accounts, err := operater.GetWalletAccounts()
 	if err != nil {
@@ -372,7 +373,7 @@ func (policy *ticketPolicy) getTicketsByStatus(status int32) ([]*types.Ticket, [
 		return nil, nil, err
 	}
 	//循环遍历所有的账户-->保证钱包已经解锁
-	var tickets []*types.Ticket
+	var tickets []*ty.Ticket
 	var privs [][]byte
 	for _, acc := range accounts {
 		t, err := policy.getTickets(acc.Addr, status)
@@ -402,7 +403,7 @@ func (policy *ticketPolicy) onWalletGetTickets(msg *queue.Message) (string, int6
 	retty := int64(types.EventWalletTickets)
 
 	tickets, privs, err := policy.getTicketsByStatus(1)
-	tks := &types.ReplyWalletTickets{tickets, privs}
+	tks := &ty.ReplyWalletTickets{tickets, privs}
 	return topic, retty, tks, err
 }
 
@@ -435,7 +436,7 @@ func (policy *ticketPolicy) closeTicketsByAddr(height int64, priv crypto.PrivKey
 		return nil, err
 	}
 	var ids []string
-	var tl []*types.Ticket
+	var tl []*ty.Ticket
 	now := types.Now().Unix()
 	for _, t := range tlist {
 		if !t.IsGenesis {
@@ -542,10 +543,10 @@ func (policy *ticketPolicy) withdrawFromTicketOne(priv crypto.PrivKey) ([]byte, 
 
 func (policy *ticketPolicy) openticket(mineraddr, returnaddr string, priv crypto.PrivKey, count int32) ([]byte, error) {
 	bizlog.Info("openticket", "mineraddr", mineraddr, "returnaddr", returnaddr, "count", count)
-	ta := &types.TicketAction{}
-	topen := &types.TicketOpen{MinerAddress: mineraddr, ReturnAddress: returnaddr, Count: count}
-	ta.Value = &types.TicketAction_Topen{topen}
-	ta.Ty = types.TicketActionOpen
+	ta := &ty.TicketAction{}
+	topen := &ty.TicketOpen{MinerAddress: mineraddr, ReturnAddress: returnaddr, Count: count}
+	ta.Value = &ty.TicketAction_Topen{topen}
+	ta.Ty = ty.TicketActionOpen
 	return policy.walletOperate.SendTransaction(ta, types.ExecerTicket, priv, "")
 }
 
@@ -630,7 +631,7 @@ func (policy *ticketPolicy) getMinerColdAddr(addr string) ([]string, error) {
 		bizlog.Error("getMinerColdAddr", "Query error", err)
 		return nil, err
 	}
-	reply := (*msg).(*types.ReplyStrings)
+	reply := msg.(*types.ReplyStrings)
 	return reply.Datas, nil
 }
 

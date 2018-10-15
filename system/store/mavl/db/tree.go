@@ -7,35 +7,57 @@ import (
 	"sync"
 
 	"github.com/golang/protobuf/proto"
-	lru "github.com/hashicorp/golang-lru"
+	"github.com/hashicorp/golang-lru"
 	log "github.com/inconshreveable/log15"
+	"gitlab.33.cn/chain33/chain33/common"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var (
-	ErrNodeNotExist = errors.New("ErrNodeNotExist")
-	treelog         = log.New("module", "mavl")
-	emptyRoot       [32]byte
+const (
+	hashNodePrefix = "_mh_"
+	leafNodePrefix = "_mb_"
+	// 是否开启添加hash节点前缀
 )
+
+var (
+	ErrNodeNotExist  = errors.New("ErrNodeNotExist")
+	treelog          = log.New("module", "mavl")
+	emptyRoot        [32]byte
+	enableMavlPrefix bool
+	// 是否开启MVCC
+	enableMvcc bool
+)
+
+func EnableMavlPrefix(enable bool) {
+	enableMavlPrefix = enable
+}
+
+func EnableMVCC(enable bool) {
+	enableMvcc = enable
+}
 
 //merkle avl tree
 type Tree struct {
 	root *Node
 	ndb  *nodeDB
 	//batch *nodeBatch
+	randomstr string
 }
 
 // 新建一个merkle avl 树
 func NewTree(db dbm.DB, sync bool) *Tree {
 	if db == nil {
 		// In-memory IAVLTree
-		return &Tree{}
+		return &Tree{
+			randomstr: common.GetRandString(5),
+		}
 	} else {
 		// Persistent IAVLTree
 		ndb := newNodeDB(db, sync)
 		return &Tree{
-			ndb: ndb,
+			ndb:       ndb,
+			randomstr: common.GetRandString(5),
 		}
 	}
 }
@@ -300,7 +322,6 @@ func (ndb *nodeDB) SaveNode(t *Tree, node *Node) {
 	ndb.cacheNode(node)
 	delete(ndb.orphans, string(node.hash))
 	//treelog.Debug("SaveNode", "hash", node.hash, "height", node.height, "value", node.value)
-
 }
 
 //cache缓存节点
@@ -444,4 +465,14 @@ func IterateRangeByStateHash(db dbm.DB, statehash, start, end []byte, ascending 
 	//treelog.Debug("IterateRangeByStateHash", "statehash", hex.EncodeToString(statehash), "start", string(start), "end", string(end))
 
 	tree.IterateRange(start, end, ascending, fn)
+}
+
+func genPrefixHashKey(node *Node, str string) (key []byte) {
+	//leafnode
+	if node.height == 0 {
+		key = []byte(fmt.Sprintf("%s-%s-", leafNodePrefix, str))
+	} else {
+		key = []byte(fmt.Sprintf("%s-%s-", hashNodePrefix, str))
+	}
+	return key
 }

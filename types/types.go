@@ -180,10 +180,21 @@ func (leafnode *LeafNode) Hash() []byte {
 }
 
 func (innernode *InnerNode) Hash() []byte {
+	rightHash := innernode.RightHash
+	leftHash := innernode.LeftHash
+	hashLen := len(common.Hash{})
+	if len(innernode.RightHash) > hashLen {
+		innernode.RightHash = innernode.RightHash[len(innernode.RightHash)-hashLen:]
+	}
+	if len(innernode.LeftHash) > hashLen {
+		innernode.LeftHash = innernode.LeftHash[len(innernode.LeftHash)-hashLen:]
+	}
 	data, err := proto.Marshal(innernode)
 	if err != nil {
 		panic(err)
 	}
+	innernode.RightHash = rightHash
+	innernode.LeftHash = leftHash
 	return common.Sha256(data)
 }
 
@@ -313,49 +324,6 @@ func (t *ReplyGetTotalCoins) IterateRangeByStateHash(key, value []byte) bool {
 	t.Num++
 	t.Amount += acc.Balance
 	return false
-}
-
-func (action *PrivacyAction) GetInput() *PrivacyInput {
-	if action.GetTy() == ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
-		return action.GetPrivacy2Privacy().GetInput()
-
-	} else if action.GetTy() == ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
-		return action.GetPrivacy2Public().GetInput()
-	}
-	return nil
-}
-
-func (action *PrivacyAction) GetOutput() *PrivacyOutput {
-	if action.GetTy() == ActionPublic2Privacy && action.GetPublic2Privacy() != nil {
-		return action.GetPublic2Privacy().GetOutput()
-	} else if action.GetTy() == ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
-		return action.GetPrivacy2Privacy().GetOutput()
-	} else if action.GetTy() == ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
-		return action.GetPrivacy2Public().GetOutput()
-	}
-	return nil
-}
-
-func (action *PrivacyAction) GetActionName() string {
-	if action.Ty == ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
-		return "Privacy2Privacy"
-	} else if action.Ty == ActionPublic2Privacy && action.GetPublic2Privacy() != nil {
-		return "Public2Privacy"
-	} else if action.Ty == ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
-		return "Privacy2Public"
-	}
-	return "unknow-privacy"
-}
-
-func (action *PrivacyAction) GetTokenName() string {
-	if action.GetTy() == ActionPublic2Privacy && action.GetPublic2Privacy() != nil {
-		return action.GetPublic2Privacy().GetTokenname()
-	} else if action.GetTy() == ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
-		return action.GetPrivacy2Privacy().GetTokenname()
-	} else if action.GetTy() == ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
-		return action.GetPrivacy2Public().GetTokenname()
-	}
-	return ""
 }
 
 // GetTxTimeInterval 获取交易有效期

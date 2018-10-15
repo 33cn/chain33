@@ -5,6 +5,8 @@ package types;
 message PurchaseRecord {
     int64 amount = 1;
     int64 number = 2;
+    int64 index  = 3;
+    int64 way    = 4;
 }
 
 message PurchaseRecords {
@@ -30,9 +32,13 @@ message Lottery {
     int64                        createOnMain               = 14;
     int64                        lastTransToPurStateOnMain  = 15;
     int64                        lastTransToDrawStateOnMain = 16;
+    repeated MissingRecord missingRecords                   = 17;
 }
 
-// message for execs.game
+message MissingRecord {
+    repeated int32 times = 1;
+}
+
 message LotteryAction {
     oneof value {
         LotteryCreate create = 1;
@@ -52,6 +58,7 @@ message LotteryBuy {
     string lotteryId = 1;
     int64  amount    = 2;
     int64  number    = 3;
+    int64  way       = 4;
 }
 
 message LotteryDraw {
@@ -63,14 +70,19 @@ message LotteryClose {
 }
 
 message ReceiptLottery {
-    string lotteryId   = 1;
-    int32  status      = 2;
-    int32  prevStatus  = 3;
-    string addr        = 4;
-    int64  round       = 5;
-    int64  number      = 6;
-    int64  amount      = 7;
-    int64  luckyNumber = 8;
+    string               lotteryId   = 1;
+    int32                status      = 2;
+    int32                prevStatus  = 3;
+    string               addr        = 4;
+    int64                round       = 5;
+    int64                number      = 6;
+    int64                amount      = 7;
+    int64                luckyNumber = 8;
+    int64                time        = 9;
+    string               txHash      = 10;
+    LotteryUpdateBuyInfo updateInfo  = 11;
+    int64                way         = 12;
+    int64                index       = 13;
 }
 
 message ReqLotteryInfo {
@@ -89,11 +101,12 @@ message ReqLotteryBuyHistory {
     int64  round     = 3;
     int32  count     = 4;
     int32  direction = 5;
+    int64  index     = 6;
 }
 
 message ReqLotteryLuckyInfo {
-    string lotteryId = 1;
-    int64  round     = 2;
+    string   lotteryId   = 1;
+    repeated int64 round = 2;
 }
 
 message ReqLotteryLuckyHistory {
@@ -111,15 +124,18 @@ message ReplyLotteryNormalInfo {
 }
 
 message ReplyLotteryCurrentInfo {
-    int32 status                     = 1;
-    int64 fund                       = 2;
-    int64 lastTransToPurState        = 3;
-    int64 lastTransToDrawState       = 4;
-    int64 totalPurchasedTxNum        = 5;
-    int64 round                      = 6;
-    int64 luckyNumber                = 7;
-    int64 lastTransToPurStateOnMain  = 8;
-    int64 lastTransToDrawStateOnMain = 9;
+    int32    status                       = 1;
+    int64    fund                         = 2;
+    int64    lastTransToPurState          = 3;
+    int64    lastTransToDrawState         = 4;
+    int64    totalPurchasedTxNum          = 5;
+    int64    round                        = 6;
+    int64    luckyNumber                  = 7;
+    int64    lastTransToPurStateOnMain    = 8;
+    int64    lastTransToDrawStateOnMain   = 9;
+    int64    purBlockNum                  = 10;
+    int64    drawBlockNum                 = 11;
+    repeated MissingRecord missingRecords = 12;
 }
 
 message ReplyLotteryHistoryLuckyNumber {
@@ -140,6 +156,9 @@ message LotteryBuyRecord {
     int64 number = 1;
     int64 amount = 2;
     int64 round  = 3;
+    int64 type   = 4;
+    int64 way    = 5;
+    int64 index  = 6;
 }
 
 message LotteryBuyRecords {
@@ -147,10 +166,28 @@ message LotteryBuyRecords {
 }
 
 message LotteryDrawRecord {
-    int64 number = 1;
-    int64 round  = 2;
+    int64  number = 1;
+    int64  round  = 2;
+    int64  time   = 3;
+    string txHash = 4;
 }
 
 message LotteryDrawRecords {
     repeated LotteryDrawRecord records = 1;
+}
+
+message LotteryUpdateRec {
+    int64 index  = 1;
+    int64 number = 2;
+    int64 amount = 3;
+    int64 type   = 4;
+    int64 way    = 5;
+}
+
+message LotteryUpdateRecs {
+    repeated LotteryUpdateRec records = 1;
+}
+
+message LotteryUpdateBuyInfo {
+    map<string, LotteryUpdateRecs> buyInfo = 1;
 }

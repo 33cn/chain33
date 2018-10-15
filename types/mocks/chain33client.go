@@ -41,36 +41,6 @@ func (_m *Chain33Client) CloseQueue(ctx context.Context, in *types.ReqNil, opts 
 	return r0, r1
 }
 
-// CreateBindMiner provides a mock function with given fields: ctx, in, opts
-func (_m *Chain33Client) CreateBindMiner(ctx context.Context, in *types.ReqBindMiner, opts ...grpc.CallOption) (*types.ReplyBindMiner, error) {
-	_va := make([]interface{}, len(opts))
-	for _i := range opts {
-		_va[_i] = opts[_i]
-	}
-	var _ca []interface{}
-	_ca = append(_ca, ctx, in)
-	_ca = append(_ca, _va...)
-	ret := _m.Called(_ca...)
-
-	var r0 *types.ReplyBindMiner
-	if rf, ok := ret.Get(0).(func(context.Context, *types.ReqBindMiner, ...grpc.CallOption) *types.ReplyBindMiner); ok {
-		r0 = rf(ctx, in, opts...)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.ReplyBindMiner)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, *types.ReqBindMiner, ...grpc.CallOption) error); ok {
-		r1 = rf(ctx, in, opts...)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // CreateNoBalanceTransaction provides a mock function with given fields: ctx, in, opts
 func (_m *Chain33Client) CreateNoBalanceTransaction(ctx context.Context, in *types.NoBalanceTx, opts ...grpc.CallOption) (*types.ReplySignRawTx, error) {
 	_va := make([]interface{}, len(opts))
@@ -153,6 +123,36 @@ func (_m *Chain33Client) CreateRawTxGroup(ctx context.Context, in *types.CreateT
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(context.Context, *types.CreateTransactionGroup, ...grpc.CallOption) error); ok {
+		r1 = rf(ctx, in, opts...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// CreateTransaction provides a mock function with given fields: ctx, in, opts
+func (_m *Chain33Client) CreateTransaction(ctx context.Context, in *types.CreateTxIn, opts ...grpc.CallOption) (*types.UnsignTx, error) {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, in)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 *types.UnsignTx
+	if rf, ok := ret.Get(0).(func(context.Context, *types.CreateTxIn, ...grpc.CallOption) *types.UnsignTx); ok {
+		r0 = rf(ctx, in, opts...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.UnsignTx)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, *types.CreateTxIn, ...grpc.CallOption) error); ok {
 		r1 = rf(ctx, in, opts...)
 	} else {
 		r1 = ret.Error(1)
