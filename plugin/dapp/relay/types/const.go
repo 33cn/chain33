@@ -59,7 +59,7 @@ var (
 		"Revoke":     RelayActionRevoke,
 		"ConfirmTx":  RelayActionConfirmTx,
 		"Verify":     RelayActionVerifyTx,
-		"verifyCli":  RelayActionVerifyCmdTx,
+		"VerifyCli":  RelayActionVerifyCmdTx,
 		"BtcHeaders": RelayActionRcvBTCHeaders,
 	}
 	logInfo = map[int64]*types.LogInfo{

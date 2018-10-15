@@ -151,10 +151,12 @@ func (c *Chain33) QueryTransaction(in QueryParm, result *interface{}) error {
 
 		receiptTmp := &ReceiptData{Ty: reply.GetReceipt().GetTy()}
 		logs := reply.GetReceipt().GetLogs()
-		for _, log := range logs {
+		for _, xlog := range logs {
 			receiptTmp.Logs = append(receiptTmp.Logs,
-				&ReceiptLog{Ty: log.GetTy(), Log: common.ToHex(log.GetLog())})
+				&ReceiptLog{Ty: xlog.GetTy(), Log: common.ToHex(xlog.GetLog())})
+			log.Error("QueryTransaction------------","ty",xlog.GetTy(),"log",common.ToHex(xlog.GetLog()))
 		}
+		log.Error("QueryTransaction---------------","exec",transDetail.Tx.Execer)
 
 		transDetail.Receipt, err = DecodeLog([]byte(transDetail.Tx.Execer), receiptTmp)
 		if err != nil {
@@ -172,6 +174,18 @@ func (c *Chain33) QueryTransaction(in QueryParm, result *interface{}) error {
 		transDetail.ActionName = reply.GetActionName()
 
 		*result = &transDetail
+		for _, l := range transDetail.Receipt.Logs {
+			//rl := &ReceiptLog{Ty: l.Ty, TyName: l.TyName, RawLog: l.RawLog}
+			log.Error("QueryTransaction--------------","ty",l.Ty,"name",l.TyName)
+			if l.Ty == 6 || l.Ty == 10{
+				var execaddr string
+				if tmp, ok := l.Log.(map[string]interface{})["execaddr"].(string); ok {
+					execaddr = tmp
+					log.Error("QueryTransaction--------------","execaddr",execaddr)
+				}
+			}
+
+		}
 	}
 	return nil
 }
@@ -1029,6 +1043,7 @@ func DecodeLog(execer []byte, rlog *ReceiptData) (*ReceiptDataResult, error) {
 		}
 
 		logType := types.LoadLog(execer, int64(l.Ty))
+		log.Error("to DecodeLog---------", "exec", string(execer),"ty",l.Ty)
 		if logType == nil {
 			log.Error("Fail to DecodeLog", "type", l.Ty)
 			lTy = "unkownType"
@@ -1037,7 +1052,7 @@ func DecodeLog(execer []byte, rlog *ReceiptData) (*ReceiptDataResult, error) {
 			logIns, err = logType.Decode(lLog)
 			lTy = logType.Name()
 		}
-
+		log.Error("DecodeLog--------------", "type", l.Ty,"name",lTy)
 		rd.Logs = append(rd.Logs, &ReceiptLogResult{Ty: l.Ty, TyName: lTy, Log: logIns, RawLog: l.Log})
 	}
 	return rd, nil

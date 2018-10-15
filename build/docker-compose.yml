@@ -24,10 +24,3 @@ services:
   chain28:
     build:
       context: .
-  relayd:
-    build:
-      context: .
-      dockerfile: Dockerfile-relayd
-
-  btcd:
-    image: suyanlong/btcd-run:latest
