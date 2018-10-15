@@ -6,9 +6,23 @@ import (
 	rTy "gitlab.33.cn/chain33/chain33/plugin/dapp/relay/types"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
+	"reflect"
 )
 
 var relaylog = log.New("module", "execs.relay")
+
+//初始化过程比较重量级，有很多reflact, 所以弄成全局的
+var executorFunList = make(map[string]reflect.Method)
+var executorType = rTy.NewType()
+
+func init() {
+	actionFunList := executorType.GetFuncMap()
+	executorFunList = types.ListMethod(&relay{})
+	for k, v := range actionFunList {
+		executorFunList[k] = v
+	}
+}
+
 
 func Init(name string) {
 	drivers.Register(GetName(), newRelay, types.ForkV18Relay) //TODO: ForkV18Relay
@@ -25,7 +39,7 @@ type relay struct {
 func newRelay() drivers.Driver {
 	r := &relay{}
 	r.SetChild(r)
-
+	r.SetExecutorType(executorType)
 	return r
 }
 
