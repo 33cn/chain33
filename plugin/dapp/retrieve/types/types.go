@@ -11,18 +11,6 @@ var nameX string
 
 var rlog = log.New("module", RetrieveX)
 
-func init() {
-	nameX = types.ExecName(RetrieveX)
-	// init executor type
-	types.RegistorExecutor(RetrieveX, NewType())
-
-	// init log
-	//types.RegistorLog(types.TyLogDeposit, &CoinsDepositLog{})
-
-	// init query rpc
-	types.RegisterRPCQueryHandle("GetRetrieveInfo", &RetrieveGetInfo{})
-}
-
 type RetrieveType struct {
 	types.ExecTypeBase
 }
