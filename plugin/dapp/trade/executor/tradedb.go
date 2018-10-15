@@ -250,10 +250,8 @@ func (action *tradeAction) tradeSell(sell *pty.TradeForSell) (*types.Receipt, er
 	if sell.TotalBoardlot < 0 || sell.PricePerBoardlot < 0 || sell.MinBoardlot < 0 || sell.AmountPerBoardlot < 0 {
 		return nil, types.ErrInputPara
 	}
-	if types.IsMatchFork(0, ForkSupportMorkAsset) {
-		if sell.AssetExec == "" || sell.TokenSymbol == "" {
-			return nil, types.ErrInputPara
-		}
+	if !checkAsset(action.height, sell.AssetExec, sell.TokenSymbol) {
+		return nil, types.ErrInputPara
 	}
 
 	tokenAccDB, err := account.NewAccountDB("token", sell.TokenSymbol, action.db)
