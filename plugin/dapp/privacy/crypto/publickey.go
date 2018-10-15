@@ -6,6 +6,7 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/common"
 	. "gitlab.33.cn/chain33/chain33/common/crypto"
+	privacytypes "gitlab.33.cn/chain33/chain33/plugin/dapp/privacy/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -29,14 +30,14 @@ func (pubKey PubKeyPrivacy) VerifyBytes(msg []byte, sig_ Signature) bool {
 	if types.PrivacyX != string(tx.Execer) {
 		return false
 	}
-	var action types.PrivacyAction
+	var action privacytypes.PrivacyAction
 	if err := types.Decode(tx.Payload, &action); err != nil {
 		return false
 	}
-	var privacyInput *types.PrivacyInput
-	if action.Ty == types.ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
+	var privacyInput *privacytypes.PrivacyInput
+	if action.Ty == privacytypes.ActionPrivacy2Privacy && action.GetPrivacy2Privacy() != nil {
 		privacyInput = action.GetPrivacy2Privacy().Input
-	} else if action.Ty == types.ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
+	} else if action.Ty == privacytypes.ActionPrivacy2Public && action.GetPrivacy2Public() != nil {
 		privacyInput = action.GetPrivacy2Public().Input
 	} else {
 		return false

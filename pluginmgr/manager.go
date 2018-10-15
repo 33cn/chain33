@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/spf13/cobra"
+	"gitlab.33.cn/chain33/chain33/rpc/types"
 )
 
 var pluginItems = make(map[string]Plugin)
@@ -47,7 +48,7 @@ func AddCmd(rootCmd *cobra.Command) {
 	}
 }
 
-func AddRPC(s RPCServer) {
+func AddRPC(s types.RPCServer) {
 	for _, item := range pluginItems {
 		item.AddRPC(s)
 	}

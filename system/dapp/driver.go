@@ -50,8 +50,8 @@ type Driver interface {
 	GetTxs() []*types.Transaction
 	GetTxGroup(index int) ([]*types.Transaction, error)
 	GetPayloadValue() types.Message
-	GetTypeMap() map[string]int32
 	GetFuncMap() map[string]reflect.Method
+	GetExecutorType() types.ExecutorType
 }
 
 type DriverBase struct {
@@ -79,8 +79,8 @@ func (d *DriverBase) GetPayloadValue() types.Message {
 	return d.ety.GetPayload()
 }
 
-func (d *DriverBase) GetTypeMap() map[string]int32 {
-	return nil
+func (d *DriverBase) GetExecutorType() types.ExecutorType {
+	return d.ety
 }
 
 func (d *DriverBase) GetFuncMap() map[string]reflect.Method {
