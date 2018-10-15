@@ -155,56 +155,26 @@ func (db *ListHelper) PrefixCount(prefix []byte) (count int64) {
 	return
 }
 
-//for test
-func (db *ListHelper) ListExcept(expectPrefix []byte, exceptPrefix []byte, count int32, direction int32) (values [][]byte) {
-	var reserse = false
-	if direction == 0 {
-		reserse = true
-	}
-	it := db.db.Iterator(expectPrefix, reserse)
-	defer it.Close()
-
-	var i int32
-	for it.Rewind(); it.Valid(); it.Next() {
-		value := it.ValueCopy()
-		if it.Error() != nil {
-			listlog.Error("PrefixScan it.Value()", "error", it.Error())
-			values = nil
-			return
-		}
-
-		if bytes.Compare(it.Key(), exceptPrefix) >= 0 {
-			//fmt.Println(string(it.Key()), "bigger than ", string(exceptPrefix))
-			continue
-		} else {
-			//fmt.Println(string(it.Key()), "less than ", string(exceptPrefix))
-		}
-		// blog.Debug("PrefixScan", "key", string(item.Key()), "value", value)
-		values = append(values, value)
-		i++
-		if i == count {
-			break
-		}
-	}
-	return
-}
-
-func (db *ListHelper) ListExceptAndExcute(expectPrefix []byte, exceptPrefix []byte, count int32, direction int32, fn func(key, value []byte) bool) {
+func (db *ListHelper) ListExcute(prefix []byte, end []byte, count int32, direction int32, fn func(key, value []byte) bool) {
 	var reserse = false
 	if direction == 0 {
 		reserse = true
 	}
 
-	//针对expectPrefix为".-mvcc-.l.mavl-coins-bty-06htvcBNSEA7fZhAdLJphDwQRQJaHpy001"的情况，需要做特殊处理:
+	//针对prefix为".-mvcc-.l.mavl-coins-bty-06htvcBNSEA7fZhAdLJphDwQRQJaHpy001"的情况，需要做特殊处理:
 	//先截取最后一个'-'及之前的部分作为前缀扫描，再判断每一个元素的key值是否大于等于expectPrefix，如果是，则进行处理；否则，记录是之前已经处理过的，直接跳过。
 	var it Iterator
 	startKeyFlag := false
-	lastIndexOfDelimiter := bytes.LastIndex(expectPrefix, []byte("-"))
-	if lastIndexOfDelimiter+1 < len(expectPrefix) {
-		it = db.db.Iterator(expectPrefix[0:lastIndexOfDelimiter+1], reserse)
+	//找最后一个“-”的位置
+	lastIndexOfDelimiter := bytes.LastIndex(prefix, []byte("-"))
+
+	//如果最后一个“-”后面还有信息，则说明prefix为startKey模式(携带了上次查询的具体的key-除了前缀还包含具体的地址)，而不是前缀模式(不包含具体的地址)
+	if lastIndexOfDelimiter+1 < len(prefix) {
+		it = db.db.Iterator(prefix[0:(lastIndexOfDelimiter+1)], reserse)
 		startKeyFlag = true
 	} else {
-		it = db.db.Iterator(expectPrefix, reserse)
+		//针对prefix为".-mvcc-.l.mavl-coins-bty-"的情况，属于正常的前缀查询。
+		it = db.db.Iterator(prefix, reserse)
 	}
 
 	defer it.Close()
@@ -218,14 +188,14 @@ func (db *ListHelper) ListExceptAndExcute(expectPrefix []byte, exceptPrefix []by
 			return
 		}
 
-		if bytes.Compare(it.Key(), exceptPrefix) >= 0 {
+		if bytes.Compare(it.Key(), end) >= 0 {
 			//fmt.Println(string(it.Key()), "bigger than ", string(exceptPrefix), " ,so exclude it.")
 			continue
 		} else {
 			//fmt.Println(string(it.Key()), "less than ", string(exceptPrefix))
 		}
 
-		if startKeyFlag && bytes.Compare(it.Key(), expectPrefix) < 0 {
+		if startKeyFlag && bytes.Compare(it.Key(), prefix) < 0 {
 			//fmt.Println(string(it.Key()), "less than ", string(expectPrefix), " ,so exclude it.")
 			continue
 		} else {
