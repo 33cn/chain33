@@ -144,10 +144,7 @@ func (exec *Executor) procExecQuery(msg queue.Message) {
 
 	//查询的情况下下，执行器不做严格校验，allow，尽可能的加载执行器，并且做查询
 
-	ret, err := types.ProcessRPCQuery(data.FuncName, data.Param)
-	if err != nil {
-		ret, err = driver.Query(data.FuncName, data.Param)
-	}
+	ret, err := driver.Query(data.FuncName, data.Param)
 	if err != nil {
 		msg.Reply(exec.client.NewMessage("", types.EventBlockChainQuery, err))
 		return

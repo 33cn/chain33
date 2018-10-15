@@ -88,12 +88,11 @@ func parseBlockDetail(res interface{}) (interface{}, error) {
 			Height:     vItem.Block.Height,
 			BlockTime:  vItem.Block.BlockTime,
 		}
-		for _, vTx := range vItem.Block.Txs {
-			b.Txs = append(b.Txs, decodeTransaction(vTx))
-		}
 		var rpt []*ReceiptData
-		for _, vR := range vItem.Receipts {
-			rpt = append(rpt, decodeLog(*vR))
+		for i, vTx := range vItem.Block.Txs {
+			b.Txs = append(b.Txs, decodeTransaction(vTx))
+			vR := vItem.Receipts[i]
+			rpt = append(rpt, decodeLog([]byte(vTx.Execer), *vR))
 		}
 		bd := &BlockDetailResult{Block: b, Receipts: rpt}
 		result.Items = append(result.Items, bd)

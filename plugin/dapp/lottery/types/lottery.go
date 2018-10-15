@@ -33,15 +33,6 @@ func init() {
 	types.RegistorLog(types.TyLogLotteryBuy, &LotteryBuyLog{})
 	types.RegistorLog(types.TyLogLotteryDraw, &LotteryDrawLog{})
 	types.RegistorLog(types.TyLogLotteryClose, &LotteryCloseLog{})
-
-	// init query rpc
-	types.RegisterRPCQueryHandle("GetLotteryNormalInfo", &LotteryGetInfo{})
-	types.RegisterRPCQueryHandle("GetLotteryCurrentInfo", &LotteryGetInfo{})
-	types.RegisterRPCQueryHandle("GetLotteryHistoryLuckyNumber", &LotteryGetInfo{})
-	types.RegisterRPCQueryHandle("GetLotteryRoundLuckyNumber", &LotteryLuckyRoundInfo{})
-	types.RegisterRPCQueryHandle("GetLotteryHistoryBuyInfo", &LotteryBuyInfo{})
-	types.RegisterRPCQueryHandle("GetLotteryBuyRoundInfo", &LotteryBuyRoundInfo{})
-
 }
 
 type LotteryType struct {

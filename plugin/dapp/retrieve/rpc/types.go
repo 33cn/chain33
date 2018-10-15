@@ -23,6 +23,5 @@ func Init(name string, s pluginmgr.RPCServer) {
 	// init executor type
 	types.RegistorExecutor(name, rt.NewType())
 
-	types.RegisterRPCQueryHandle("GetRetrieveInfo", &rt.RetrieveGetInfo{})
 	InitRPC(s)
 }

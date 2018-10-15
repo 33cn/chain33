@@ -10,16 +10,12 @@ import (
 	"github.com/spf13/cobra"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
-	bwty "gitlab.33.cn/chain33/chain33/plugin/dapp/blackwhite/types"
-	pt "gitlab.33.cn/chain33/chain33/plugin/dapp/paracross/types"
-	tokenty "gitlab.33.cn/chain33/chain33/plugin/dapp/token/types"
 	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
 	"gitlab.33.cn/chain33/chain33/types"
 
 	// TODO: 暂时将插件中的类型引用起来，后续需要修改
-	hlt "gitlab.33.cn/chain33/chain33/plugin/dapp/hashlock/types"
 
 	"encoding/hex"
 	"math"
@@ -50,165 +46,13 @@ func decodeTransaction(tx *rpctypes.Transaction) *TxResult {
 	if tx.From != "" {
 		result.From = tx.From
 	}
-
-	switch tx.Execer {
-	case cty.CoinsX:
-		var action cty.CoinsAction
-		bt, _ := common.FromHex(tx.RawPayload)
-		types.Decode(bt, &action)
-		if pl, ok := action.Value.(*cty.CoinsAction_Transfer); ok {
-			amt := float64(pl.Transfer.Amount) / float64(types.Coin)
-			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
-			result.Payload = &CoinsTransferCLI{
-				Cointoken: pl.Transfer.Cointoken,
-				Amount:    amtResult,
-				Note:      pl.Transfer.Note,
-				To:        pl.Transfer.To,
-			}
-		} else if pl, ok := action.Value.(*cty.CoinsAction_Withdraw); ok {
-			amt := float64(pl.Withdraw.Amount) / float64(types.Coin)
-			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
-			result.Payload = &CoinsWithdrawCLI{
-				Cointoken: pl.Withdraw.Cointoken,
-				Amount:    amtResult,
-				Note:      pl.Withdraw.Note,
-				ExecName:  pl.Withdraw.ExecName,
-				To:        pl.Withdraw.To,
-			}
-		} else if pl, ok := action.Value.(*cty.CoinsAction_Genesis); ok {
-			amt := float64(pl.Genesis.Amount) / float64(types.Coin)
-			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
-			result.Payload = &CoinsGenesisCLI{
-				Amount:        amtResult,
-				ReturnAddress: pl.Genesis.ReturnAddress,
-			}
-		} else if pl, ok := action.Value.(*cty.CoinsAction_TransferToExec); ok {
-			amt := float64(pl.TransferToExec.Amount) / float64(types.Coin)
-			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
-			result.Payload = &CoinsTransferToExecCLI{
-				Cointoken: pl.TransferToExec.Cointoken,
-				Amount:    amtResult,
-				Note:      pl.TransferToExec.Note,
-				ExecName:  pl.TransferToExec.ExecName,
-				To:        pl.TransferToExec.To,
-			}
-		}
-	case types.HashlockX:
-		var action hlt.HashlockAction
-		bt, _ := common.FromHex(tx.RawPayload)
-		types.Decode(bt, &action)
-		if pl, ok := action.Value.(*hlt.HashlockAction_Hlock); ok {
-			amt := float64(pl.Hlock.Amount) / float64(types.Coin)
-			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
-			result.Payload = &HashlockLockCLI{
-				Amount:        amtResult,
-				Time:          pl.Hlock.Time,
-				Hash:          pl.Hlock.Hash,
-				ToAddress:     pl.Hlock.ToAddress,
-				ReturnAddress: pl.Hlock.ReturnAddress,
-			}
-		}
-	case types.TicketX:
-		var action types.TicketAction
-		bt, _ := common.FromHex(tx.RawPayload)
-		types.Decode(bt, &action)
-		if pl, ok := action.Value.(*types.TicketAction_Miner); ok {
-			amt := float64(pl.Miner.Reward) / float64(types.Coin)
-			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
-			result.Payload = &TicketMinerCLI{
-				Bits:     pl.Miner.Bits,
-				Reward:   amtResult,
-				TicketId: pl.Miner.TicketId,
-				Modify:   pl.Miner.Modify,
-			}
-		}
-	case types.TokenX:
-		var action tokenty.TokenAction
-		bt, _ := common.FromHex(tx.RawPayload)
-		types.Decode(bt, &action)
-		if pl, ok := action.Value.(*tokenty.TokenAction_Tokenprecreate); ok {
-			amt := float64(pl.Tokenprecreate.Price) / float64(types.Coin)
-			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
-			result.Payload = &TokenPreCreateCLI{
-				Name:         pl.Tokenprecreate.Name,
-				Symbol:       pl.Tokenprecreate.Symbol,
-				Introduction: pl.Tokenprecreate.Introduction,
-				Total:        pl.Tokenprecreate.Total,
-				Price:        amtResult,
-				Owner:        pl.Tokenprecreate.Owner,
-			}
-		} else if pl, ok := action.Value.(*tokenty.TokenAction_Transfer); ok {
-			amt := float64(pl.Transfer.Amount) / float64(types.Coin)
-			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
-			result.Payload = &CoinsTransferCLI{
-				Cointoken: pl.Transfer.Cointoken,
-				Amount:    amtResult,
-				Note:      pl.Transfer.Note,
-				To:        pl.Transfer.To,
-			}
-		} else if pl, ok := action.Value.(*tokenty.TokenAction_Withdraw); ok {
-			amt := float64(pl.Withdraw.Amount) / float64(types.Coin)
-			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
-			result.Payload = &CoinsWithdrawCLI{
-				Cointoken: pl.Withdraw.Cointoken,
-				Amount:    amtResult,
-				Note:      pl.Withdraw.Note,
-				ExecName:  pl.Withdraw.ExecName,
-				To:        pl.Withdraw.To,
-			}
-		} else if pl, ok := action.Value.(*tokenty.TokenAction_Genesis); ok {
-			amt := float64(pl.Genesis.Amount) / float64(types.Coin)
-			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
-			result.Payload = &CoinsGenesisCLI{
-				Amount:        amtResult,
-				ReturnAddress: pl.Genesis.ReturnAddress,
-			}
-		} else if pl, ok := action.Value.(*tokenty.TokenAction_TransferToExec); ok {
-			amt := float64(pl.TransferToExec.Amount) / float64(types.Coin)
-			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
-			result.Payload = &CoinsTransferToExecCLI{
-				Cointoken: pl.TransferToExec.Cointoken,
-				Amount:    amtResult,
-				Note:      pl.TransferToExec.Note,
-				ExecName:  pl.TransferToExec.ExecName,
-				To:        pl.TransferToExec.To,
-			}
-		}
-	case types.PrivacyX:
-		var action types.PrivacyAction
-		bt, _ := common.FromHex(tx.RawPayload)
-		types.Decode(bt, &action)
-		if pl, ok := action.Value.(*types.PrivacyAction_Public2Privacy); ok {
-			amt := float64(pl.Public2Privacy.Amount) / float64(types.Coin)
-			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
-			result.Payload = &Public2PrivacyCLI{
-				Tokenname: pl.Public2Privacy.Tokenname,
-				Amount:    amtResult,
-				Note:      pl.Public2Privacy.Note,
-				Output:    decodePrivOutput(pl.Public2Privacy.Output),
-			}
-		} else if pl, ok := action.Value.(*types.PrivacyAction_Privacy2Privacy); ok {
-			amt := float64(pl.Privacy2Privacy.Amount) / float64(types.Coin)
-			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
-			result.Payload = &Privacy2PrivacyCLI{
-				Tokenname: pl.Privacy2Privacy.Tokenname,
-				Amount:    amtResult,
-				Note:      pl.Privacy2Privacy.Note,
-				Input:     decodePrivInput(pl.Privacy2Privacy.Input),
-				Output:    decodePrivOutput(pl.Privacy2Privacy.Output),
-			}
-		} else if pl, ok := action.Value.(*types.PrivacyAction_Privacy2Public); ok {
-			amt := float64(pl.Privacy2Public.Amount) / float64(types.Coin)
-			amtResult := strconv.FormatFloat(amt, 'f', 4, 64)
-			result.Payload = &Privacy2PublicCLI{
-				Tokenname: pl.Privacy2Public.Tokenname,
-				Amount:    amtResult,
-				Note:      pl.Privacy2Public.Note,
-				Input:     decodePrivInput(pl.Privacy2Public.Input),
-				Output:    decodePrivOutput(pl.Privacy2Public.Output),
-			}
-		}
-	default:
+	payload, err := common.FromHex(tx.RawPayload)
+	if err != nil {
+		return result
+	}
+	exec := types.LoadExecutorType(tx.Execer)
+	if exec != nil {
+		tx.Payload, _ = exec.DecodePayload(&types.Transaction{Payload: payload})
 	}
 	return result
 }
@@ -283,63 +127,21 @@ func constructAccFromLog(l *rpctypes.ReceiptLogResult, key string) *types.Accoun
 	}
 }
 
-//这里需要重构
-func decodeLog(rlog rpctypes.ReceiptDataResult) *ReceiptData {
+func decodeLog(execer []byte, rlog rpctypes.ReceiptDataResult) *ReceiptData {
 	rd := &ReceiptData{Ty: rlog.Ty, TyName: rlog.TyName}
-
 	for _, l := range rlog.Logs {
 		rl := &ReceiptLog{Ty: l.Ty, TyName: l.TyName, RawLog: l.RawLog}
-		switch l.Ty {
-		//case 1, 4, 111, 112, 113, 114:
-		case types.TyLogErr, types.TyLogGenesis, types.TyLogNewTicket, types.TyLogCloseTicket, types.TyLogMinerTicket,
-			types.TyLogTicketBind, types.TyLogPreCreateToken, types.TyLogFinishCreateToken, types.TyLogRevokeCreateToken,
-			types.TyLogTradeSellLimit, types.TyLogTradeBuyMarket, types.TyLogTradeSellRevoke,
-			types.TyLogTradeBuyLimit, types.TyLogTradeSellMarket, types.TyLogTradeBuyRevoke,
-			types.TyLogRelayCreate, types.TyLogRelayRevokeCreate, types.TyLogRelayAccept, types.TyLogRelayRevokeAccept,
-			types.TyLogRelayRcvBTCHead, types.TyLogRelayConfirmTx, types.TyLogRelayFinishTx,
-			bwty.TyLogBlackwhiteCreate, bwty.TyLogBlackwhiteShow, bwty.TyLogBlackwhitePlay,
-			bwty.TyLogBlackwhiteTimeout, bwty.TyLogBlackwhiteDone, bwty.TyLogBlackwhiteLoopInfo,
-			types.TyLogLotteryCreate, types.TyLogLotteryBuy, types.TyLogLotteryDraw, types.TyLogLotteryClose,
-			pt.TyLogParacrossMiner, pt.TyLogParaAssetTransfer, pt.TyLogParaAssetWithdraw, pt.TyLogParacrossCommit:
-
-			rl.Log = l.Log
-		//case 2, 3, 5, 11:
-		case types.TyLogFee, types.TyLogTransfer, types.TyLogDeposit, types.TyLogGenesisTransfer,
-			types.TyLogTokenTransfer, types.TyLogTokenDeposit:
-			rl.Log = &ReceiptAccountTransfer{
-				Prev:    decodeAccount(constructAccFromLog(l, "prev"), types.Coin),
-				Current: decodeAccount(constructAccFromLog(l, "current"), types.Coin),
-			}
-		//case 6, 7, 8, 9, 10, 12:
-		case types.TyLogExecTransfer, types.TyLogExecWithdraw, types.TyLogExecDeposit, types.TyLogExecFrozen, types.TyLogExecActive, types.TyLogGenesisDeposit:
-			var execaddr string
-			if tmp, ok := l.Log.(map[string]interface{})["execaddr"].(string); ok {
-				execaddr = tmp
-			}
-			rl.Log = &ReceiptExecAccountTransfer{
-				ExecAddr: execaddr,
-				Prev:     decodeAccount(constructAccFromLog(l, "prev"), types.Coin),
-				Current:  decodeAccount(constructAccFromLog(l, "current"), types.Coin),
-			}
-		case types.TyLogTokenExecTransfer, types.TyLogTokenExecWithdraw, types.TyLogTokenExecDeposit, types.TyLogTokenExecFrozen, types.TyLogTokenExecActive,
-			types.TyLogTokenGenesisTransfer, types.TyLogTokenGenesisDeposit:
-			var execaddr string
-			if tmp, ok := l.Log.(map[string]interface{})["execaddr"].(string); ok {
-				execaddr = tmp
-			}
-			rl.Log = &ReceiptExecAccountTransfer{
-				ExecAddr: execaddr,
-				Prev:     decodeAccount(constructAccFromLog(l, "prev"), types.TokenPrecision),
-				Current:  decodeAccount(constructAccFromLog(l, "current"), types.TokenPrecision),
-			}
-			// 隐私交易
-		case types.TyLogPrivacyInput:
-			rl.Log = buildPrivacyInputResult(l)
-		case types.TyLogPrivacyOutput:
-			rl.Log = buildPrivacyOutputResult(l)
-		default:
-			fmt.Printf("---The log with vlaue:%d is not decoded --------------------\n", l.Ty)
-			return nil
+		logty := types.LoadLog(execer, int64(l.Ty))
+		if logty == nil {
+			rl.Log = ""
+		}
+		data, err := common.FromHex(l.RawLog)
+		if err != nil {
+			rl.Log = ""
+		}
+		rl.Log, err = types.LogToJson(logty, data)
+		if err != nil {
+			rl.Log = ""
 		}
 		rd.Logs = append(rd.Logs, rl)
 	}

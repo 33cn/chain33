@@ -694,7 +694,7 @@ func (q *QueueProtocol) GetLastHeader() (*types.Header, error) {
 	return nil, err
 }
 
-func (q *QueueProtocol) Query(param *types.Query) (*types.Message, error) {
+func (q *QueueProtocol) Query(param *types.Query) (types.Message, error) {
 	if param == nil {
 		err := types.ErrInvalidParam
 		log.Error("Query", "Error", err)
@@ -707,7 +707,7 @@ func (q *QueueProtocol) Query(param *types.Query) (*types.Message, error) {
 		return nil, err
 	}
 	ret := msg.GetData().(types.Message)
-	return &ret, err
+	return ret, err
 }
 
 func (q *QueueProtocol) Version() (*types.Reply, error) {
