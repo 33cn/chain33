@@ -27,3 +27,13 @@ func getExecSymbol(order *pt.SellOrder) (string, string) {
 	}
 	return order.AssetExec, order.TokenSymbol
 }
+
+
+func checkAsset(height int64, exec, symbol string) bool {
+	if types.IsMatchFork(height, ForkSupportMorkAsset) {
+		if exec == "" || symbol == "" {
+			return false
+		}
+	}
+	return true
+}
