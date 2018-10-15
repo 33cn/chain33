@@ -296,19 +296,19 @@ func (c *channelClient) CreateRawHashlockSendTx(parm *hashlocktype.HashlockSendT
 }
 
 func (c *channelClient) CreateRawLotteryCreateTx(parm *lotterytype.LotteryCreateTx) ([]byte, error) {
-	return types.CallExecNewTx(types.ExecName(types.LotteryX), "LotteryCreate", parm)
+	return types.CallExecNewTx(types.ExecName(lotterytype.LotteryX), "LotteryCreate", parm)
 }
 
 func (c *channelClient) CreateRawLotteryBuyTx(parm *lotterytype.LotteryBuyTx) ([]byte, error) {
-	return types.CallExecNewTx(types.ExecName(types.LotteryX), "LotteryBuy", parm)
+	return types.CallExecNewTx(types.ExecName(lotterytype.LotteryX), "LotteryBuy", parm)
 }
 
 func (c *channelClient) CreateRawLotteryDrawTx(parm *lotterytype.LotteryDrawTx) ([]byte, error) {
-	return types.CallExecNewTx(types.ExecName(types.LotteryX), "LotteryDraw", parm)
+	return types.CallExecNewTx(types.ExecName(lotterytype.LotteryX), "LotteryDraw", parm)
 }
 
 func (c *channelClient) CreateRawLotteryCloseTx(parm *lotterytype.LotteryCloseTx) ([]byte, error) {
-	return types.CallExecNewTx(types.ExecName(types.LotteryX), "LotteryClose", parm)
+	return types.CallExecNewTx(types.ExecName(lotterytype.LotteryX), "LotteryClose", parm)
 }
 
 func (c *channelClient) BindMiner(param *types.ReqBindMiner) (*types.ReplyBindMiner, error) {

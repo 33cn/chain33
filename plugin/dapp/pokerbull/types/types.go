@@ -8,6 +8,12 @@ import (
 
 var pblog = log.New("module", PokerBullX)
 
+func init() {
+	name := PokerBullX
+	// init executor type
+	types.RegistorExecutor(name, &PokerBullType{})
+}
+
 type PokerBullType struct {
 	types.ExecTypeBase
 }

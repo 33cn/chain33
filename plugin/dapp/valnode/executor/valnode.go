@@ -11,6 +11,12 @@ import (
 )
 
 var clog = log.New("module", "execs.valnode")
+var driverName = "valnode"
+
+func init() {
+	ety := types.LoadExecutorType(driverName)
+	ety.InitFuncList(types.ListMethod(&ValNode{}))
+}
 
 func CalcValNodeUpdateHeightIndexKey(height int64, index int) []byte {
 	return []byte(fmt.Sprintf("ValNodeUpdate:%18d:%18d", height, int64(index)))
@@ -44,7 +50,7 @@ func newValNode() drivers.Driver {
 }
 
 func (val *ValNode) GetDriverName() string {
-	return "valnode"
+	return driverName
 }
 
 func (val *ValNode) GetActionValue(tx *types.Transaction) (*types.ValNodeAction, error) {

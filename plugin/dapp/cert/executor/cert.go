@@ -6,24 +6,16 @@ import (
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/authority"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
-	ct "gitlab.33.cn/chain33/chain33/plugin/dapp/cert/types"
 	"gitlab.33.cn/chain33/chain33/types"
-	"reflect"
+	ct "gitlab.33.cn/chain33/chain33/plugin/dapp/cert/types"
 )
 
 var clog = log.New("module", "execs.cert")
-var driverName = "cert"
-
-//初始化过程比较重量级，有很多reflact, 所以弄成全局的
-var executorFunList = make(map[string]reflect.Method)
-var executorType = ct.NewType()
+var driverName = ct.CertX
 
 func init() {
-	actionFunList := executorType.GetFuncMap()
-	executorFunList = types.ListMethod(&Cert{})
-	for k, v := range actionFunList {
-		executorFunList[k] = v
-	}
+	ety := types.LoadExecutorType(driverName)
+	ety.InitFuncList(types.ListMethod(&Cert{}))
 }
 
 func Init(name string) {
@@ -43,7 +35,7 @@ func newCert() drivers.Driver {
 	c := &Cert{}
 	c.SetChild(c)
 	c.SetIsFree(true)
-	c.SetExecutorType(executorType)
+	c.SetExecutorType(types.LoadExecutorType(driverName))
 
 	return c
 }
@@ -133,8 +125,4 @@ func (c *Cert) loadHistoryByHeight() error {
 	}
 
 	return types.ErrGetHistoryCertData
-}
-
-func (c *Cert) GetFuncMap() map[string]reflect.Method {
-	return executorFunList
 }
