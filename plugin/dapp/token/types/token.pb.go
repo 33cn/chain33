@@ -738,7 +738,6 @@ func (m *ReplyAccountTokenAssets) GetTokenAssets() []*TokenAsset {
 	return nil
 }
 
-// 查询部分
 type ReqAddrTokens struct {
 	Addr      string   `protobuf:"bytes,1,opt,name=addr" json:"addr,omitempty"`
 	Status    int32    `protobuf:"varint,2,opt,name=status" json:"status,omitempty"`

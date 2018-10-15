@@ -1,9 +1,7 @@
 package types
 
 import (
-	"gitlab.33.cn/chain33/chain33/types"
 	"github.com/inconshreveable/log15"
-	"reflect"
 )
 
 //game action ty
@@ -30,19 +28,6 @@ var (
 	PokerBullX      = "pokerbull"
 	ExecerPokerBull = []byte(PokerBullX)
     logger = log15.New("module", "execs.pokerbull")
-
-	actionName       = map[string]int32{
-		"Start":      PBGameActionStart,
-		"Continue":   PBGameActionContinue,
-		"Quit":       PBGameActionQuit,
-		"Query":      PBGameActionQuery,
-	}
-	logInfo = map[int64]*types.LogInfo{
-		TyLogPBGameStart:    {reflect.TypeOf(ReceiptPBGame{}), "LogPokerBullStart"},
-		TyLogPBGameContinue: {reflect.TypeOf(ReceiptPBGame{}), "LogPokerBullContinue"},
-		TyLogPBGameQuit:     {reflect.TypeOf(ReceiptPBGame{}), "LogPokerBullQuit"},
-		TyLogPBGameQuery:    {reflect.TypeOf(ReceiptPBGame{}), "LogPokerBullQuery"},
-	}
 )
 
 const (
@@ -50,7 +35,3 @@ const (
 	FuncName_QueryGameListByIds = "QueryGameListByIds"
 	FuncName_QueryGameById      = "QueryGameById"
 )
-
-func init() {
-	types.AllowUserExec = append(types.AllowUserExec, ExecerPokerBull)
-}

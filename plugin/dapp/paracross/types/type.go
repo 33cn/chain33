@@ -2,6 +2,7 @@ package types
 
 import (
 	"encoding/json"
+	"reflect"
 
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/types"
@@ -12,14 +13,6 @@ var glog = log.New("module", types.ParaX)
 func init() {
 	// init executor type
 	types.RegistorExecutor(types.ParaX, NewType())
-	// init log
-	types.RegistorLog(TyLogParacrossCommit, &ParacrossCommitLog{})
-	types.RegistorLog(TyLogParacrossCommitDone, &ParacrossDoneLog{})
-	types.RegistorLog(TyLogParacrossCommitRecord, &ParacrossCommitRecordLog{})
-	types.RegistorLog(TyLogParaAssetWithdraw, &ParacrossAssetWithdrawLog{})
-	types.RegistorLog(TyLogParaAssetTransfer, &ParacrossAssetTransferLog{})
-	types.RegistorLog(TyLogParaAssetDeposit, &ParacrossAssetDepositLog{})
-	types.RegistorLog(TyLogParacrossMiner, &ParacrossMinerLog{})
 }
 
 func GetExecName() string {
@@ -34,6 +27,18 @@ func NewType() *ParacrossType {
 	c := &ParacrossType{}
 	c.SetChild(c)
 	return c
+}
+
+func (at *ParacrossType) GetLogMap() map[int64]*types.LogInfo {
+	return map[int64]*types.LogInfo{
+		TyLogParacrossCommit:       {reflect.TypeOf(ReceiptParacrossCommit{}), "LogParacrossCommit"},
+		TyLogParacrossCommitDone:   {reflect.TypeOf(ReceiptParacrossDone{}), "LogParacrossCommitDone"},
+		TyLogParacrossCommitRecord: {reflect.TypeOf(ReceiptParacrossRecord{}), "LogParacrossCommitRecord"},
+		TyLogParaAssetWithdraw:     {reflect.TypeOf(types.ReceiptAccountTransfer{}), "LogParaAssetWithdraw"},
+		TyLogParaAssetTransfer:     {reflect.TypeOf(types.ReceiptAccountTransfer{}), "LogParaAssetTransfer"},
+		TyLogParaAssetDeposit:      {reflect.TypeOf(types.ReceiptAccountTransfer{}), "LogParaAssetDeposit"},
+		TyLogParacrossMiner:        {reflect.TypeOf(ReceiptParacrossMiner{}), "LogParacrossMiner"},
+	}
 }
 
 func (b *ParacrossType) GetPayload() types.Message {

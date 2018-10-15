@@ -193,34 +193,8 @@ const (
 	TyLogParaTokenAssetTransfer = 333
 	TyLogParaTokenAssetWithdraw = 334
 
-	//log for relay
-	TyLogRelayCreate       = 350
-	TyLogRelayRevokeCreate = 351
-	TyLogRelayAccept       = 352
-	TyLogRelayRevokeAccept = 353
-	TyLogRelayConfirmTx    = 354
-	TyLogRelayFinishTx     = 355
-	TyLogRelayRcvBTCHead   = 356
-
 	// log for config
 	TyLogModifyConfig = 410
-
-	// log for privacy
-	TyLogPrivacyFee    = 500
-	TyLogPrivacyInput  = 501
-	TyLogPrivacyOutput = 502
-
-	//log for game
-	TyLogCreateGame = 711
-	TyLogMatchGame  = 712
-	TyLogCancleGame = 713
-	TyLogCloseGame  = 714
-
-	//log for lottery
-	TyLogLotteryCreate = 801
-	TyLogLotteryBuy    = 802
-	TyLogLotteryDraw   = 803
-	TyLogLotteryClose  = 804
 )
 
 //exec type
@@ -228,14 +202,6 @@ const (
 	ExecErr  = 0
 	ExecPack = 1
 	ExecOk   = 2
-)
-
-const (
-	InvalidAction = 0
-	//action type for privacy
-	ActionPublic2Privacy = iota + 100
-	ActionPrivacy2Privacy
-	ActionPrivacy2Public
 )
 
 //ticket
@@ -264,38 +230,6 @@ const (
 	ConfigItemArrayConfig = iota
 	ConfigItemIntConfig
 	ConfigItemStringConfig
-)
-
-// relay
-const (
-	RelayRevokeCreate = iota
-	RelayRevokeAccept
-)
-
-const (
-	RelayOrderBuy = iota
-	RelayOrderSell
-)
-
-var RelayOrderOperation = map[uint32]string{
-	RelayOrderBuy:  "buy",
-	RelayOrderSell: "sell",
-}
-
-const (
-	RelayUnlock = iota
-	RelayCancel
-)
-
-//relay action ty
-const (
-	RelayActionCreate = iota
-	RelayActionAccept
-	RelayActionRevoke
-	RelayActionConfirmTx
-	RelayActionVerifyTx
-	RelayActionVerifyCmdTx
-	RelayActionRcvBTCHeaders
 )
 
 // RescanUtxoFlag

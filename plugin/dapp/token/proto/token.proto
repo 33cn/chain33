@@ -97,17 +97,6 @@ message ReplyAccountTokenAssets {
     repeated TokenAsset tokenAssets = 1;
 }
 
-message ReqTokenTx {
-    string symbol = 1;
-    //表示取所有/from/to/其他的hash列表
-    int32  flag      = 2;
-    int32  count     = 3;
-    int32  direction = 4;
-    int64  height    = 5;
-    int64  index     = 6;
-    string addr      = 7;
-}
-
 message ReqAddrTokens {
     string   addr             = 1;
     int32    status           = 2;

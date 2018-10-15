@@ -6,6 +6,12 @@ const (
 	GameActionMatch
 	GameActionCancel
 	GameActionClose
+
+	//log for game
+	TyLogCreateGame = 711
+	TyLogMatchGame  = 712
+	TyLogCancleGame = 713
+	TyLogCloseGame  = 714
 )
 
 //包的名字可以通过配置文件来配置

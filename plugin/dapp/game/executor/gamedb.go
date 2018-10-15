@@ -81,16 +81,16 @@ func (action *Action) GetReceiptLog(game *gt.Game) *types.ReceiptLog {
 	r.Addr = action.fromaddr
 	if game.Status == gt.GameActionCreate {
 		// TODO: 这里需要将游戏相关的类型从系统核心代码中移除
-		log.Ty = types.TyLogCreateGame
+		log.Ty = gt.TyLogCreateGame
 		r.PrevStatus = -1
 	} else if game.Status == gt.GameActionCancel {
-		log.Ty = types.TyLogCancleGame
+		log.Ty = gt.TyLogCancleGame
 		r.PrevStatus = gt.GameActionCreate
 	} else if game.Status == gt.GameActionMatch {
-		log.Ty = types.TyLogMatchGame
+		log.Ty = gt.TyLogMatchGame
 		r.PrevStatus = gt.GameActionCreate
 	} else if game.Status == gt.GameActionClose {
-		log.Ty = types.TyLogCloseGame
+		log.Ty = gt.TyLogCloseGame
 		r.PrevStatus = gt.GameActionMatch
 		r.Addr = game.GetCreateAddress()
 	}
