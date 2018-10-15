@@ -11,6 +11,12 @@ var nameX string
 
 var rlog = log.New("module", RetrieveX)
 
+func init() {
+	name := RetrieveX
+	// init executor type
+	types.RegistorExecutor(name, NewType())
+}
+
 type RetrieveType struct {
 	types.ExecTypeBase
 }

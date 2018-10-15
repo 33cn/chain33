@@ -27,7 +27,6 @@ const (
 	RelayX    = "relay"
 	Normx     = "norm"
 	ParaX     = "paracross"
-	LotteryX  = "lottery"
 	ValNodeX  = "valnode"
 )
 
@@ -44,7 +43,6 @@ var (
 	ExecerNorm     = []byte(Normx)
 	ExecerConfig   = []byte("config")
 	ExecerPara     = []byte(ParaX)
-	ExecerLottery  = []byte(LotteryX)
 	UserKey        = []byte(UserKeyX)
 	ParaKey        = []byte(ParaKeyX)
 	ExecerValNode  = []byte(ValNodeX)

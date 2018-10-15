@@ -3,7 +3,6 @@ package executor
 import (
 	"fmt"
 	"math/rand"
-	"reflect"
 
 	log "github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common/address"
@@ -18,16 +17,9 @@ var blackwhiteAddr = address.ExecAddress(gt.BlackwhiteX)
 
 var driverName = gt.BlackwhiteX
 
-//初始化过程比较重量级，有很多reflact, 所以弄成全局的
-var executorFunList = make(map[string]reflect.Method)
-var executorType = gt.NewType()
-
 func init() {
-	actionFunList := executorType.GetFuncMap()
-	executorFunList = types.ListMethod(&Blackwhite{})
-	for k, v := range actionFunList {
-		executorFunList[k] = v
-	}
+	ety := types.LoadExecutorType(driverName)
+	ety.InitFuncList(types.ListMethod(&Blackwhite{}))
 }
 
 //黑白配可以被重命名执行器名称
@@ -45,7 +37,7 @@ type Blackwhite struct {
 func newBlackwhite() drivers.Driver {
 	c := &Blackwhite{}
 	c.SetChild(c)
-	c.SetExecutorType(executorType)
+	c.SetExecutorType(types.LoadExecutorType(driverName))
 	return c
 }
 
@@ -384,10 +376,6 @@ func genHeightIndexStr(index int64) string {
 
 func heightIndexToIndex(height int64, index int32) int64 {
 	return height*types.MaxTxsPerBlock + int64(index)
-}
-
-func (c *Blackwhite) GetFuncMap() map[string]reflect.Method {
-	return executorFunList
 }
 
 func (c *Blackwhite) GetPayloadValue() types.Message {
