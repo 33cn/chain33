@@ -1,8 +1,9 @@
 package types
 
 import (
-	"gitlab.33.cn/chain33/chain33/types"
 	"reflect"
+
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 func init() {

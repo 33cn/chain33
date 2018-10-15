@@ -1,8 +1,8 @@
 package executor
 
 import (
-	"gitlab.33.cn/chain33/chain33/types"
 	pkt "gitlab.33.cn/chain33/chain33/plugin/dapp/pokerbull/types"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 func (c *PokerBull) updateIndex(log *pkt.ReceiptPBGame) (kvs []*types.KeyValue) {
@@ -43,7 +43,7 @@ func (c *PokerBull) execLocal(receipt *types.ReceiptData) (*types.LocalDBSet, er
 			dbSet.KV = append(dbSet.KV, kv...)
 		}
 	}
-		return dbSet, nil
+	return dbSet, nil
 }
 
 func (c *PokerBull) ExecLocal_Start(payload *pkt.PBGameStart, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
