@@ -1,22 +1,23 @@
 package rpc
 
 import (
-	"gitlab.33.cn/chain33/chain33/pluginmgr"
-	rt "gitlab.33.cn/chain33/chain33/plugin/dapp/retrieve/types"
+	"gitlab.33.cn/chain33/chain33/rpc/types"
 )
 
-var jrpc = &Jrpc{}
-var grpc = &Grpc{}
-
-func InitRPC(s pluginmgr.RPCServer) {
-	cli := channelClient{}
-	cli.Init(s.GetQueueClient())
-	jrpc.cli = cli
-	grpc.channelClient = cli
-	s.JRPC().RegisterName(rt.JRPCName, jrpc)
-	rt.RegisterRetrieveServer(s.GRPC(), grpc)
+type Jrpc struct {
+	cli *channelClient
 }
 
-func Init(name string, s pluginmgr.RPCServer) {
-	InitRPC(s)
+type Grpc struct {
+	*channelClient
+}
+
+type channelClient struct {
+	types.ChannelClient
+}
+
+func Init(name string, s types.RPCServer) {
+	cli := &channelClient{}
+	grpc := &Grpc{channelClient: cli}
+	cli.Init(name, s, &Jrpc{cli: cli}, grpc)
 }
