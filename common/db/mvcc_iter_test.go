@@ -78,12 +78,6 @@ func TestAddDelMVCCIter(t *testing.T) {
 	//m.PrintAll()
 }
 
-var match_values [][]byte
-func fn(key, value []byte) bool{
-	match_values = append(match_values, value)
-	return false
-}
-
 func TestGetAllCoinsMVCCIter(t *testing.T) {
 	dir, err := ioutil.TempDir("", "goleveldb")
 	assert.Nil(t, err)
@@ -119,15 +113,17 @@ func TestGetAllCoinsMVCCIter(t *testing.T) {
 	}
 
 	fmt.Println("---case 1-2----")
-	b := append([]byte{}, mvccLast...)
-	b = append(b, []byte("mavl-coins-bty-exec")...)
-	listhelper.ListExcute(([]byte("mavl-coins-bty-")), GetLastKey([]byte("mavl-coins-bty-exec")), 0, 1, fn)
+	var match_values [][]byte
+	listhelper.IteratorCallback([]byte("mavl-coins-bty-"), nil, 0, 1, func(key, value []byte) bool {
+		match_values = append(match_values, value)
+		return false
+	})
 	values = match_values
 	assert.Equal(t, "3", string(values[0]))
 	assert.Equal(t, "2", string(values[1]))
 	assert.Equal(t, "4", string(values[2]))
 	assert.Equal(t, "6", string(values[3]))
-	//assert.Equal(t, "5", string(values[4]))
+	assert.Equal(t, "5", string(values[4]))
 
 	for i := 0; i < len(values); i++ {
 		fmt.Println(string(values[i]))
@@ -150,9 +146,11 @@ func TestGetAllCoinsMVCCIter(t *testing.T) {
 	}
 	//m.PrintAll()
 	fmt.Println("---case 2-2----")
-	//values = listhelper.ListExcept(([]byte("mavl-coins-bty-")), b, 0, 1)
 	match_values = nil
-	listhelper.ListExcute(([]byte("mavl-coins-bty-")), b, 0, 1, fn)
+	listhelper.IteratorCallback(([]byte("mavl-coins-bty-")), []byte("mavl-coins-bty-exec-"), 0, 1, func(key, value []byte) bool {
+		match_values = append(match_values, value)
+		return false
+	})
 	values = match_values
 
 	for i := 0; i < len(values); i++ {

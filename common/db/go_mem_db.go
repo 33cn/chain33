@@ -141,6 +141,10 @@ type goMemDBIt struct {
 	prefix  []byte
 }
 
+func (it *goMemDBIt) Prefix() []byte {
+	return nil
+}
+
 func (dbit *goMemDBIt) Seek(key []byte) bool { //指向当前的index值
 
 	for i, k := range dbit.keys {

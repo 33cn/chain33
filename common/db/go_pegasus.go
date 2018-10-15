@@ -256,6 +256,10 @@ type PegasusIt struct {
 	pageNo int
 }
 
+func (dbit *PegasusIt) Prefix() []byte {
+	return nil
+}
+
 func (dbit *PegasusIt) Close() {
 	dbit.index = -1
 }

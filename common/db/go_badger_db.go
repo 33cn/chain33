@@ -192,6 +192,10 @@ type goBadgerDBIt struct {
 	reserse bool
 }
 
+func (it *goBadgerDBIt) Prefix() []byte {
+	return nil
+}
+
 func (it *goBadgerDBIt) Next() bool {
 	it.Iterator.Next()
 	return it.Valid()
