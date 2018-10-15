@@ -585,7 +585,7 @@ func (q *QueueProtocol) GetTicketCount() (*types.Int64, error) {
 	return nil, types.ErrTypeAsset
 }
 
-func (q *QueueProtocol) DumpPrivkey(param *types.ReqStr) (*types.ReplyStr, error) {
+func (q *QueueProtocol) DumpPrivkey(param *types.ReqString) (*types.ReplyString, error) {
 	if param == nil {
 		err := types.ErrInvalidParam
 		log.Error("DumpPrivkey", "Error", err)
@@ -596,7 +596,7 @@ func (q *QueueProtocol) DumpPrivkey(param *types.ReqStr) (*types.ReplyStr, error
 		log.Error("DumpPrivkey", "Error", err.Error())
 		return nil, err
 	}
-	if reply, ok := msg.GetData().(*types.ReplyStr); ok {
+	if reply, ok := msg.GetData().(*types.ReplyString); ok {
 		return reply, nil
 	}
 	return nil, types.ErrTypeAsset
@@ -694,22 +694,6 @@ func (q *QueueProtocol) GetLastHeader() (*types.Header, error) {
 	return nil, err
 }
 
-func (q *QueueProtocol) Query(param *types.Query) (types.Message, error) {
-	if param == nil {
-		err := types.ErrInvalidParam
-		log.Error("Query", "Error", err)
-		return nil, err
-	}
-
-	msg, err := q.query(blockchainKey, types.EventQuery, param)
-	if err != nil {
-		log.Error("Query", "Error", err.Error())
-		return nil, err
-	}
-	ret := msg.GetData().(types.Message)
-	return ret, err
-}
-
 func (q *QueueProtocol) Version() (*types.Reply, error) {
 	return &types.Reply{IsOk: true, Msg: []byte(version.GetVersion())}, nil
 }
@@ -799,18 +783,6 @@ func (q *QueueProtocol) GetFatalFailure() (*types.Int32, error) {
 	return nil, types.ErrTypeAsset
 }
 
-func (q *QueueProtocol) ShowPrivacyAccountSpend(param *types.ReqPrivBal4AddrToken) (*types.UTXOHaveTxHashs, error) {
-	msg, err := q.query(walletKey, types.EventShowPrivacyAccountSpend, param)
-	if err != nil {
-		log.Error("EventShowPrivacyAccountSpend", "Error", err.Error())
-		return nil, err
-	}
-	if reply, ok := msg.GetData().(*types.UTXOHaveTxHashs); ok {
-		return reply, nil
-	}
-	return nil, types.ErrTypeAsset
-}
-
 func (q *QueueProtocol) CloseQueue() (*types.Reply, error) {
 	return q.client.CloseQueue()
 }
@@ -828,109 +800,13 @@ func (q *QueueProtocol) GetLastBlockSequence() (*types.Int64, error) {
 	return nil, types.ErrTypeAsset
 }
 
-func (q *QueueProtocol) ShowPrivacyKey(param *types.ReqStr) (*types.ReplyPrivacyPkPair, error) {
-	msg, err := q.query(walletKey, types.EventShowPrivacyPK, param)
-	if err != nil {
-		log.Error("ShowPrivacyKey", "Error", err.Error())
-		return nil, err
-	}
-	if reply, ok := msg.GetData().(*types.ReplyPrivacyPkPair); ok {
-		return reply, nil
-	}
-	return nil, types.ErrTypeAsset
-}
-
-func (q *QueueProtocol) Publick2Privacy(param *types.ReqPub2Pri) (*types.Reply, error) {
-	msg, err := q.query(walletKey, types.EventPublic2privacy, param)
-	if err != nil {
-		log.Error("Publick2Privacy", "Error", err.Error())
-		return nil, err
-	}
-	if reply, ok := msg.GetData().(*types.Reply); ok {
-		return reply, nil
-	}
-	return nil, types.ErrTypeAsset
-}
-
-func (q *QueueProtocol) Privacy2Privacy(param *types.ReqPri2Pri) (*types.Reply, error) {
-	msg, err := q.query(walletKey, types.EventPrivacy2privacy, param)
-	if err != nil {
-		log.Error("Privacy2Privacy", "Error", err.Error())
-		return nil, err
-	}
-	if reply, ok := msg.GetData().(*types.Reply); ok {
-		return reply, nil
-	}
-	return nil, types.ErrTypeAsset
-}
-
-func (q *QueueProtocol) Privacy2Public(param *types.ReqPri2Pub) (*types.Reply, error) {
-	msg, err := q.query(walletKey, types.EventPrivacy2public, param)
-	if err != nil {
-		log.Error("Privacy2Public", "Error", err.Error())
-		return nil, err
-	}
-	if reply, ok := msg.GetData().(*types.Reply); ok {
-		return reply, nil
-	}
-	return nil, types.ErrTypeAsset
-}
-
-func (q *QueueProtocol) CreateUTXOs(param *types.ReqCreateUTXOs) (*types.Reply, error) {
-	msg, err := q.query(walletKey, types.EventCreateUTXOs, param)
-	if err != nil {
-		log.Error("CreateUTXOs", "Error", err.Error())
-		return nil, err
-	}
-	if reply, ok := msg.GetData().(*types.Reply); ok {
-		return reply, nil
-	}
-	return nil, types.ErrTypeAsset
-}
-
-func (q *QueueProtocol) CreateTrasaction(param *types.ReqCreateTransaction) (*types.Transaction, error) {
-	msg, err := q.query(walletKey, types.EventCreateTransaction, param)
+func (q *QueueProtocol) WalletCreateTx(param *types.ReqCreateTransaction) (*types.Transaction, error) {
+	msg, err := q.query(walletKey, types.EventWalletCreateTx, param)
 	if err != nil {
 		log.Error("CreateTrasaction", "Error", err.Error())
 		return nil, err
 	}
 	if reply, ok := msg.GetData().(*types.Transaction); ok {
-		return reply, nil
-	}
-	return nil, types.ErrTypeAsset
-}
-
-func (q *QueueProtocol) ShowPrivacyAccountInfo(param *types.ReqPPrivacyAccount) (*types.ReplyPrivacyAccount, error) {
-	msg, err := q.query(walletKey, types.EventPrivacyAccountInfo, param)
-	if err != nil {
-		log.Error("ShowPrivacyAccountInfo", "Error", err.Error())
-		return nil, err
-	}
-	if reply, ok := msg.GetData().(*types.ReplyPrivacyAccount); ok {
-		return reply, nil
-	}
-	return nil, types.ErrTypeAsset
-}
-
-func (q *QueueProtocol) RescanUtxos(param *types.ReqRescanUtxos) (*types.RepRescanUtxos, error) {
-	msg, err := q.query(walletKey, types.EventRescanUtxos, param)
-	if err != nil {
-		log.Error("EventRescanUtxos", "Error", err.Error())
-		return nil, err
-	}
-	if reply, ok := msg.GetData().(*types.RepRescanUtxos); ok {
-		return reply, nil
-	}
-	return nil, types.ErrTypeAsset
-}
-
-func (q *QueueProtocol) EnablePrivacy(param *types.ReqEnablePrivacy) (*types.RepEnablePrivacy, error) {
-	msg, err := q.query(walletKey, types.EventEnablePrivacy, param)
-	if err != nil {
-		log.Error("EventEnablePrivacy", "Error", err.Error())
-		return nil, err
-	}
-	if reply, ok := msg.GetData().(*types.RepEnablePrivacy); ok {
 		return reply, nil
 	}
 	return nil, types.ErrTypeAsset
@@ -974,24 +850,7 @@ func (q *QueueProtocol) GetBlockSequences(param *types.ReqBlocks) (*types.BlockS
 	return nil, err
 }
 
-func (q *QueueProtocol) PrivacyTransactionList(param *types.ReqPrivacyTransactionList) (*types.WalletTxDetails, error) {
-	if param == nil {
-		err := types.ErrInvalidParam
-		log.Error("PrivacyTransactionList", "Error", err)
-		return nil, err
-	}
-	msg, err := q.query(walletKey, types.EventPrivacyTransactionList, param)
-	if err != nil {
-		log.Error("PrivacyTransactionList", "Error", err.Error())
-		return nil, err
-	}
-	if reply, ok := msg.GetData().(*types.WalletTxDetails); ok {
-		return reply, nil
-	}
-	return nil, types.ErrTypeAsset
-}
-
-func (q *QueueProtocol) BlockChainQuery(param *types.BlockChainQuery) (*types.ResUTXOGlobalIndex, error) {
+func (q *QueueProtocol) BlockChainQuery(param *types.BlockChainQuery) (types.Message, error) {
 	if param == nil {
 		err := types.ErrInvalidParams
 		log.Error("BlockChainQuery", "Error", err)
@@ -1002,7 +861,7 @@ func (q *QueueProtocol) BlockChainQuery(param *types.BlockChainQuery) (*types.Re
 		log.Error("BlockChainQuery", "Error", err.Error())
 		return nil, err
 	}
-	if reply, ok := msg.GetData().(*types.ResUTXOGlobalIndex); ok {
+	if reply, ok := msg.GetData().(types.Message); ok {
 		return reply, nil
 	}
 	err = types.ErrTypeAsset

@@ -40,12 +40,53 @@ It has these top-level messages:
 	Privacy2Privacy4Print
 	Privacy2Public4Print
 	PrivacyAction4Print
+	ReqPub2Pri
+	ReqPri2Pri
+	ReqPri2Pub
+	ReqCreateUTXOs
+	ReplyPrivacyPkPair
+	ReqPrivBal4AddrToken
+	ReplyPrivacyBalance
+	PrivacyDBStore
+	UTXO
+	UTXOHaveTxHash
+	UTXOs
+	UTXOHaveTxHashs
+	ReqUTXOGlobalIndex
+	UTXOBasic
+	UTXOIndex4Amount
+	ResUTXOGlobalIndex
+	FTXOsSTXOsInOneTx
+	RealKeyInput
+	UTXOBasics
+	CreateTransactionCache
+	ReqCacheTxList
+	ReplyCacheTxList
+	ReqPrivacyAccount
+	ReqPPrivacyAccount
+	ReplyPrivacyAccount
+	ReqCreateCacheTxKey
+	ReqPrivacyTransactionList
+	ReqRescanUtxos
+	RepRescanResult
+	RepRescanUtxos
+	ReqEnablePrivacy
+	PriAddrResult
+	RepEnablePrivacy
+	PrivacySignatureParam
 */
 package types
 
 import proto "github.com/golang/protobuf/proto"
 import fmt "fmt"
 import math "math"
+import types1 "gitlab.33.cn/chain33/chain33/types"
+import types2 "gitlab.33.cn/chain33/chain33/types"
+
+import (
+	context "golang.org/x/net/context"
+	grpc "google.golang.org/grpc"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -1189,6 +1230,1210 @@ func _PrivacyAction4Print_OneofSizer(msg proto.Message) (n int) {
 	return n
 }
 
+type ReqPub2Pri struct {
+	// 接收人可见公钥A
+	// string viewPublic  = 1;
+	// 接收人花费公钥B
+	// string spendPublic = 2;
+	Tokenname string `protobuf:"bytes,3,opt,name=tokenname" json:"tokenname,omitempty"`
+	Amount    int64  `protobuf:"varint,4,opt,name=amount" json:"amount,omitempty"`
+	Note      string `protobuf:"bytes,5,opt,name=note" json:"note,omitempty"`
+	// 发送人地址
+	Sender     string `protobuf:"bytes,6,opt,name=sender" json:"sender,omitempty"`
+	Mixin      int32  `protobuf:"varint,7,opt,name=mixin" json:"mixin,omitempty"`
+	Pubkeypair string `protobuf:"bytes,8,opt,name=pubkeypair" json:"pubkeypair,omitempty"`
+	Expire     int64  `protobuf:"varint,9,opt,name=expire" json:"expire,omitempty"`
+}
+
+func (m *ReqPub2Pri) Reset()                    { *m = ReqPub2Pri{} }
+func (m *ReqPub2Pri) String() string            { return proto.CompactTextString(m) }
+func (*ReqPub2Pri) ProtoMessage()               {}
+func (*ReqPub2Pri) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{31} }
+
+func (m *ReqPub2Pri) GetTokenname() string {
+	if m != nil {
+		return m.Tokenname
+	}
+	return ""
+}
+
+func (m *ReqPub2Pri) GetAmount() int64 {
+	if m != nil {
+		return m.Amount
+	}
+	return 0
+}
+
+func (m *ReqPub2Pri) GetNote() string {
+	if m != nil {
+		return m.Note
+	}
+	return ""
+}
+
+func (m *ReqPub2Pri) GetSender() string {
+	if m != nil {
+		return m.Sender
+	}
+	return ""
+}
+
+func (m *ReqPub2Pri) GetMixin() int32 {
+	if m != nil {
+		return m.Mixin
+	}
+	return 0
+}
+
+func (m *ReqPub2Pri) GetPubkeypair() string {
+	if m != nil {
+		return m.Pubkeypair
+	}
+	return ""
+}
+
+func (m *ReqPub2Pri) GetExpire() int64 {
+	if m != nil {
+		return m.Expire
+	}
+	return 0
+}
+
+type ReqPri2Pri struct {
+	// 接收人可见公钥A
+	// string viewPublic  = 1; //A
+	// 接收人花费公钥B
+	// string spendPublic = 2; //B
+	Tokenname string `protobuf:"bytes,3,opt,name=tokenname" json:"tokenname,omitempty"`
+	Amount    int64  `protobuf:"varint,4,opt,name=amount" json:"amount,omitempty"`
+	Note      string `protobuf:"bytes,5,opt,name=note" json:"note,omitempty"`
+	// 隐私交易发起人地址
+	Sender string `protobuf:"bytes,6,opt,name=sender" json:"sender,omitempty"`
+	Mixin  int32  `protobuf:"varint,7,opt,name=mixin" json:"mixin,omitempty"`
+	// 	string txhash      = 7;
+	Pubkeypair string `protobuf:"bytes,8,opt,name=pubkeypair" json:"pubkeypair,omitempty"`
+	Expire     int64  `protobuf:"varint,9,opt,name=expire" json:"expire,omitempty"`
+}
+
+func (m *ReqPri2Pri) Reset()                    { *m = ReqPri2Pri{} }
+func (m *ReqPri2Pri) String() string            { return proto.CompactTextString(m) }
+func (*ReqPri2Pri) ProtoMessage()               {}
+func (*ReqPri2Pri) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{32} }
+
+func (m *ReqPri2Pri) GetTokenname() string {
+	if m != nil {
+		return m.Tokenname
+	}
+	return ""
+}
+
+func (m *ReqPri2Pri) GetAmount() int64 {
+	if m != nil {
+		return m.Amount
+	}
+	return 0
+}
+
+func (m *ReqPri2Pri) GetNote() string {
+	if m != nil {
+		return m.Note
+	}
+	return ""
+}
+
+func (m *ReqPri2Pri) GetSender() string {
+	if m != nil {
+		return m.Sender
+	}
+	return ""
+}
+
+func (m *ReqPri2Pri) GetMixin() int32 {
+	if m != nil {
+		return m.Mixin
+	}
+	return 0
+}
+
+func (m *ReqPri2Pri) GetPubkeypair() string {
+	if m != nil {
+		return m.Pubkeypair
+	}
+	return ""
+}
+
+func (m *ReqPri2Pri) GetExpire() int64 {
+	if m != nil {
+		return m.Expire
+	}
+	return 0
+}
+
+type ReqPri2Pub struct {
+	Receiver  string `protobuf:"bytes,1,opt,name=receiver" json:"receiver,omitempty"`
+	Tokenname string `protobuf:"bytes,2,opt,name=tokenname" json:"tokenname,omitempty"`
+	Amount    int64  `protobuf:"varint,3,opt,name=amount" json:"amount,omitempty"`
+	Note      string `protobuf:"bytes,4,opt,name=note" json:"note,omitempty"`
+	// 隐私交易发起人地址
+	Sender string `protobuf:"bytes,5,opt,name=sender" json:"sender,omitempty"`
+	Mixin  int32  `protobuf:"varint,6,opt,name=mixin" json:"mixin,omitempty"`
+	// 	string txhash     = 6;
+	Expire int64 `protobuf:"varint,7,opt,name=expire" json:"expire,omitempty"`
+}
+
+func (m *ReqPri2Pub) Reset()                    { *m = ReqPri2Pub{} }
+func (m *ReqPri2Pub) String() string            { return proto.CompactTextString(m) }
+func (*ReqPri2Pub) ProtoMessage()               {}
+func (*ReqPri2Pub) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{33} }
+
+func (m *ReqPri2Pub) GetReceiver() string {
+	if m != nil {
+		return m.Receiver
+	}
+	return ""
+}
+
+func (m *ReqPri2Pub) GetTokenname() string {
+	if m != nil {
+		return m.Tokenname
+	}
+	return ""
+}
+
+func (m *ReqPri2Pub) GetAmount() int64 {
+	if m != nil {
+		return m.Amount
+	}
+	return 0
+}
+
+func (m *ReqPri2Pub) GetNote() string {
+	if m != nil {
+		return m.Note
+	}
+	return ""
+}
+
+func (m *ReqPri2Pub) GetSender() string {
+	if m != nil {
+		return m.Sender
+	}
+	return ""
+}
+
+func (m *ReqPri2Pub) GetMixin() int32 {
+	if m != nil {
+		return m.Mixin
+	}
+	return 0
+}
+
+func (m *ReqPri2Pub) GetExpire() int64 {
+	if m != nil {
+		return m.Expire
+	}
+	return 0
+}
+
+type ReqCreateUTXOs struct {
+	// string viewPublic  = 1; //接收人可见公钥A
+	// string spendPublic = 2; //接收人花费公钥B
+	Tokenname  string `protobuf:"bytes,3,opt,name=tokenname" json:"tokenname,omitempty"`
+	Amount     int64  `protobuf:"varint,4,opt,name=amount" json:"amount,omitempty"`
+	Note       string `protobuf:"bytes,5,opt,name=note" json:"note,omitempty"`
+	Sender     string `protobuf:"bytes,6,opt,name=sender" json:"sender,omitempty"`
+	Count      int32  `protobuf:"varint,7,opt,name=count" json:"count,omitempty"`
+	Pubkeypair string `protobuf:"bytes,8,opt,name=pubkeypair" json:"pubkeypair,omitempty"`
+	Expire     int64  `protobuf:"varint,9,opt,name=expire" json:"expire,omitempty"`
+}
+
+func (m *ReqCreateUTXOs) Reset()                    { *m = ReqCreateUTXOs{} }
+func (m *ReqCreateUTXOs) String() string            { return proto.CompactTextString(m) }
+func (*ReqCreateUTXOs) ProtoMessage()               {}
+func (*ReqCreateUTXOs) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{34} }
+
+func (m *ReqCreateUTXOs) GetTokenname() string {
+	if m != nil {
+		return m.Tokenname
+	}
+	return ""
+}
+
+func (m *ReqCreateUTXOs) GetAmount() int64 {
+	if m != nil {
+		return m.Amount
+	}
+	return 0
+}
+
+func (m *ReqCreateUTXOs) GetNote() string {
+	if m != nil {
+		return m.Note
+	}
+	return ""
+}
+
+func (m *ReqCreateUTXOs) GetSender() string {
+	if m != nil {
+		return m.Sender
+	}
+	return ""
+}
+
+func (m *ReqCreateUTXOs) GetCount() int32 {
+	if m != nil {
+		return m.Count
+	}
+	return 0
+}
+
+func (m *ReqCreateUTXOs) GetPubkeypair() string {
+	if m != nil {
+		return m.Pubkeypair
+	}
+	return ""
+}
+
+func (m *ReqCreateUTXOs) GetExpire() int64 {
+	if m != nil {
+		return m.Expire
+	}
+	return 0
+}
+
+type ReplyPrivacyPkPair struct {
+	ShowSuccessful bool `protobuf:"varint,1,opt,name=showSuccessful" json:"showSuccessful,omitempty"`
+	// string viewPub       = 2;
+	// string spendPub      = 3;
+	Pubkeypair string `protobuf:"bytes,4,opt,name=pubkeypair" json:"pubkeypair,omitempty"`
+}
+
+func (m *ReplyPrivacyPkPair) Reset()                    { *m = ReplyPrivacyPkPair{} }
+func (m *ReplyPrivacyPkPair) String() string            { return proto.CompactTextString(m) }
+func (*ReplyPrivacyPkPair) ProtoMessage()               {}
+func (*ReplyPrivacyPkPair) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{35} }
+
+func (m *ReplyPrivacyPkPair) GetShowSuccessful() bool {
+	if m != nil {
+		return m.ShowSuccessful
+	}
+	return false
+}
+
+func (m *ReplyPrivacyPkPair) GetPubkeypair() string {
+	if m != nil {
+		return m.Pubkeypair
+	}
+	return ""
+}
+
+type ReqPrivBal4AddrToken struct {
+	Addr  string `protobuf:"bytes,1,opt,name=addr" json:"addr,omitempty"`
+	Token string `protobuf:"bytes,2,opt,name=token" json:"token,omitempty"`
+}
+
+func (m *ReqPrivBal4AddrToken) Reset()                    { *m = ReqPrivBal4AddrToken{} }
+func (m *ReqPrivBal4AddrToken) String() string            { return proto.CompactTextString(m) }
+func (*ReqPrivBal4AddrToken) ProtoMessage()               {}
+func (*ReqPrivBal4AddrToken) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{36} }
+
+func (m *ReqPrivBal4AddrToken) GetAddr() string {
+	if m != nil {
+		return m.Addr
+	}
+	return ""
+}
+
+func (m *ReqPrivBal4AddrToken) GetToken() string {
+	if m != nil {
+		return m.Token
+	}
+	return ""
+}
+
+type ReplyPrivacyBalance struct {
+	Onetimeaddr string `protobuf:"bytes,1,opt,name=onetimeaddr" json:"onetimeaddr,omitempty"`
+	Balance     int64  `protobuf:"varint,2,opt,name=balance" json:"balance,omitempty"`
+}
+
+func (m *ReplyPrivacyBalance) Reset()                    { *m = ReplyPrivacyBalance{} }
+func (m *ReplyPrivacyBalance) String() string            { return proto.CompactTextString(m) }
+func (*ReplyPrivacyBalance) ProtoMessage()               {}
+func (*ReplyPrivacyBalance) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{37} }
+
+func (m *ReplyPrivacyBalance) GetOnetimeaddr() string {
+	if m != nil {
+		return m.Onetimeaddr
+	}
+	return ""
+}
+
+func (m *ReplyPrivacyBalance) GetBalance() int64 {
+	if m != nil {
+		return m.Balance
+	}
+	return 0
+}
+
+type PrivacyDBStore struct {
+	Txhash           []byte `protobuf:"bytes,1,opt,name=txhash,proto3" json:"txhash,omitempty"`
+	Tokenname        string `protobuf:"bytes,2,opt,name=tokenname" json:"tokenname,omitempty"`
+	Amount           int64  `protobuf:"varint,3,opt,name=amount" json:"amount,omitempty"`
+	OutIndex         int32  `protobuf:"varint,4,opt,name=outIndex" json:"outIndex,omitempty"`
+	TxPublicKeyR     []byte `protobuf:"bytes,5,opt,name=txPublicKeyR,proto3" json:"txPublicKeyR,omitempty"`
+	OnetimePublicKey []byte `protobuf:"bytes,6,opt,name=onetimePublicKey,proto3" json:"onetimePublicKey,omitempty"`
+	Owner            string `protobuf:"bytes,7,opt,name=owner" json:"owner,omitempty"`
+	Height           int64  `protobuf:"varint,8,opt,name=height" json:"height,omitempty"`
+	Txindex          int32  `protobuf:"varint,9,opt,name=txindex" json:"txindex,omitempty"`
+	Blockhash        []byte `protobuf:"bytes,10,opt,name=blockhash,proto3" json:"blockhash,omitempty"`
+}
+
+func (m *PrivacyDBStore) Reset()                    { *m = PrivacyDBStore{} }
+func (m *PrivacyDBStore) String() string            { return proto.CompactTextString(m) }
+func (*PrivacyDBStore) ProtoMessage()               {}
+func (*PrivacyDBStore) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{38} }
+
+func (m *PrivacyDBStore) GetTxhash() []byte {
+	if m != nil {
+		return m.Txhash
+	}
+	return nil
+}
+
+func (m *PrivacyDBStore) GetTokenname() string {
+	if m != nil {
+		return m.Tokenname
+	}
+	return ""
+}
+
+func (m *PrivacyDBStore) GetAmount() int64 {
+	if m != nil {
+		return m.Amount
+	}
+	return 0
+}
+
+func (m *PrivacyDBStore) GetOutIndex() int32 {
+	if m != nil {
+		return m.OutIndex
+	}
+	return 0
+}
+
+func (m *PrivacyDBStore) GetTxPublicKeyR() []byte {
+	if m != nil {
+		return m.TxPublicKeyR
+	}
+	return nil
+}
+
+func (m *PrivacyDBStore) GetOnetimePublicKey() []byte {
+	if m != nil {
+		return m.OnetimePublicKey
+	}
+	return nil
+}
+
+func (m *PrivacyDBStore) GetOwner() string {
+	if m != nil {
+		return m.Owner
+	}
+	return ""
+}
+
+func (m *PrivacyDBStore) GetHeight() int64 {
+	if m != nil {
+		return m.Height
+	}
+	return 0
+}
+
+func (m *PrivacyDBStore) GetTxindex() int32 {
+	if m != nil {
+		return m.Txindex
+	}
+	return 0
+}
+
+func (m *PrivacyDBStore) GetBlockhash() []byte {
+	if m != nil {
+		return m.Blockhash
+	}
+	return nil
+}
+
+type UTXO struct {
+	Amount    int64      `protobuf:"varint,1,opt,name=amount" json:"amount,omitempty"`
+	UtxoBasic *UTXOBasic `protobuf:"bytes,2,opt,name=utxoBasic" json:"utxoBasic,omitempty"`
+}
+
+func (m *UTXO) Reset()                    { *m = UTXO{} }
+func (m *UTXO) String() string            { return proto.CompactTextString(m) }
+func (*UTXO) ProtoMessage()               {}
+func (*UTXO) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{39} }
+
+func (m *UTXO) GetAmount() int64 {
+	if m != nil {
+		return m.Amount
+	}
+	return 0
+}
+
+func (m *UTXO) GetUtxoBasic() *UTXOBasic {
+	if m != nil {
+		return m.UtxoBasic
+	}
+	return nil
+}
+
+type UTXOHaveTxHash struct {
+	Amount    int64      `protobuf:"varint,1,opt,name=amount" json:"amount,omitempty"`
+	TxHash    string     `protobuf:"bytes,2,opt,name=txHash" json:"txHash,omitempty"`
+	UtxoBasic *UTXOBasic `protobuf:"bytes,3,opt,name=utxoBasic" json:"utxoBasic,omitempty"`
+}
+
+func (m *UTXOHaveTxHash) Reset()                    { *m = UTXOHaveTxHash{} }
+func (m *UTXOHaveTxHash) String() string            { return proto.CompactTextString(m) }
+func (*UTXOHaveTxHash) ProtoMessage()               {}
+func (*UTXOHaveTxHash) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{40} }
+
+func (m *UTXOHaveTxHash) GetAmount() int64 {
+	if m != nil {
+		return m.Amount
+	}
+	return 0
+}
+
+func (m *UTXOHaveTxHash) GetTxHash() string {
+	if m != nil {
+		return m.TxHash
+	}
+	return ""
+}
+
+func (m *UTXOHaveTxHash) GetUtxoBasic() *UTXOBasic {
+	if m != nil {
+		return m.UtxoBasic
+	}
+	return nil
+}
+
+type UTXOs struct {
+	Utxos []*UTXO `protobuf:"bytes,1,rep,name=utxos" json:"utxos,omitempty"`
+}
+
+func (m *UTXOs) Reset()                    { *m = UTXOs{} }
+func (m *UTXOs) String() string            { return proto.CompactTextString(m) }
+func (*UTXOs) ProtoMessage()               {}
+func (*UTXOs) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{41} }
+
+func (m *UTXOs) GetUtxos() []*UTXO {
+	if m != nil {
+		return m.Utxos
+	}
+	return nil
+}
+
+type UTXOHaveTxHashs struct {
+	UtxoHaveTxHashs []*UTXOHaveTxHash `protobuf:"bytes,1,rep,name=utxoHaveTxHashs" json:"utxoHaveTxHashs,omitempty"`
+}
+
+func (m *UTXOHaveTxHashs) Reset()                    { *m = UTXOHaveTxHashs{} }
+func (m *UTXOHaveTxHashs) String() string            { return proto.CompactTextString(m) }
+func (*UTXOHaveTxHashs) ProtoMessage()               {}
+func (*UTXOHaveTxHashs) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{42} }
+
+func (m *UTXOHaveTxHashs) GetUtxoHaveTxHashs() []*UTXOHaveTxHash {
+	if m != nil {
+		return m.UtxoHaveTxHashs
+	}
+	return nil
+}
+
+type ReqUTXOGlobalIndex struct {
+	Tokenname string  `protobuf:"bytes,1,opt,name=tokenname" json:"tokenname,omitempty"`
+	MixCount  int32   `protobuf:"varint,2,opt,name=mixCount" json:"mixCount,omitempty"`
+	Amount    []int64 `protobuf:"varint,3,rep,packed,name=amount" json:"amount,omitempty"`
+}
+
+func (m *ReqUTXOGlobalIndex) Reset()                    { *m = ReqUTXOGlobalIndex{} }
+func (m *ReqUTXOGlobalIndex) String() string            { return proto.CompactTextString(m) }
+func (*ReqUTXOGlobalIndex) ProtoMessage()               {}
+func (*ReqUTXOGlobalIndex) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{43} }
+
+func (m *ReqUTXOGlobalIndex) GetTokenname() string {
+	if m != nil {
+		return m.Tokenname
+	}
+	return ""
+}
+
+func (m *ReqUTXOGlobalIndex) GetMixCount() int32 {
+	if m != nil {
+		return m.MixCount
+	}
+	return 0
+}
+
+func (m *ReqUTXOGlobalIndex) GetAmount() []int64 {
+	if m != nil {
+		return m.Amount
+	}
+	return nil
+}
+
+type UTXOBasic struct {
+	UtxoGlobalIndex *UTXOGlobalIndex `protobuf:"bytes,1,opt,name=utxoGlobalIndex" json:"utxoGlobalIndex,omitempty"`
+	OnetimePubkey   []byte           `protobuf:"bytes,2,opt,name=onetimePubkey,proto3" json:"onetimePubkey,omitempty"`
+}
+
+func (m *UTXOBasic) Reset()                    { *m = UTXOBasic{} }
+func (m *UTXOBasic) String() string            { return proto.CompactTextString(m) }
+func (*UTXOBasic) ProtoMessage()               {}
+func (*UTXOBasic) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{44} }
+
+func (m *UTXOBasic) GetUtxoGlobalIndex() *UTXOGlobalIndex {
+	if m != nil {
+		return m.UtxoGlobalIndex
+	}
+	return nil
+}
+
+func (m *UTXOBasic) GetOnetimePubkey() []byte {
+	if m != nil {
+		return m.OnetimePubkey
+	}
+	return nil
+}
+
+type UTXOIndex4Amount struct {
+	Amount int64        `protobuf:"varint,1,opt,name=amount" json:"amount,omitempty"`
+	Utxos  []*UTXOBasic `protobuf:"bytes,2,rep,name=utxos" json:"utxos,omitempty"`
+}
+
+func (m *UTXOIndex4Amount) Reset()                    { *m = UTXOIndex4Amount{} }
+func (m *UTXOIndex4Amount) String() string            { return proto.CompactTextString(m) }
+func (*UTXOIndex4Amount) ProtoMessage()               {}
+func (*UTXOIndex4Amount) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{45} }
+
+func (m *UTXOIndex4Amount) GetAmount() int64 {
+	if m != nil {
+		return m.Amount
+	}
+	return 0
+}
+
+func (m *UTXOIndex4Amount) GetUtxos() []*UTXOBasic {
+	if m != nil {
+		return m.Utxos
+	}
+	return nil
+}
+
+type ResUTXOGlobalIndex struct {
+	Tokenname        string              `protobuf:"bytes,1,opt,name=tokenname" json:"tokenname,omitempty"`
+	MixCount         int32               `protobuf:"varint,2,opt,name=mixCount" json:"mixCount,omitempty"`
+	UtxoIndex4Amount []*UTXOIndex4Amount `protobuf:"bytes,3,rep,name=utxoIndex4Amount" json:"utxoIndex4Amount,omitempty"`
+}
+
+func (m *ResUTXOGlobalIndex) Reset()                    { *m = ResUTXOGlobalIndex{} }
+func (m *ResUTXOGlobalIndex) String() string            { return proto.CompactTextString(m) }
+func (*ResUTXOGlobalIndex) ProtoMessage()               {}
+func (*ResUTXOGlobalIndex) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{46} }
+
+func (m *ResUTXOGlobalIndex) GetTokenname() string {
+	if m != nil {
+		return m.Tokenname
+	}
+	return ""
+}
+
+func (m *ResUTXOGlobalIndex) GetMixCount() int32 {
+	if m != nil {
+		return m.MixCount
+	}
+	return 0
+}
+
+func (m *ResUTXOGlobalIndex) GetUtxoIndex4Amount() []*UTXOIndex4Amount {
+	if m != nil {
+		return m.UtxoIndex4Amount
+	}
+	return nil
+}
+
+type FTXOsSTXOsInOneTx struct {
+	Tokenname string `protobuf:"bytes,1,opt,name=tokenname" json:"tokenname,omitempty"`
+	Sender    string `protobuf:"bytes,2,opt,name=sender" json:"sender,omitempty"`
+	// FTXO的超期，设定原则与Transaction.expire一致
+	Expire int64   `protobuf:"varint,3,opt,name=expire" json:"expire,omitempty"`
+	Txhash string  `protobuf:"bytes,4,opt,name=txhash" json:"txhash,omitempty"`
+	Utxos  []*UTXO `protobuf:"bytes,5,rep,name=utxos" json:"utxos,omitempty"`
+}
+
+func (m *FTXOsSTXOsInOneTx) Reset()                    { *m = FTXOsSTXOsInOneTx{} }
+func (m *FTXOsSTXOsInOneTx) String() string            { return proto.CompactTextString(m) }
+func (*FTXOsSTXOsInOneTx) ProtoMessage()               {}
+func (*FTXOsSTXOsInOneTx) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{47} }
+
+func (m *FTXOsSTXOsInOneTx) GetTokenname() string {
+	if m != nil {
+		return m.Tokenname
+	}
+	return ""
+}
+
+func (m *FTXOsSTXOsInOneTx) GetSender() string {
+	if m != nil {
+		return m.Sender
+	}
+	return ""
+}
+
+func (m *FTXOsSTXOsInOneTx) GetExpire() int64 {
+	if m != nil {
+		return m.Expire
+	}
+	return 0
+}
+
+func (m *FTXOsSTXOsInOneTx) GetTxhash() string {
+	if m != nil {
+		return m.Txhash
+	}
+	return ""
+}
+
+func (m *FTXOsSTXOsInOneTx) GetUtxos() []*UTXO {
+	if m != nil {
+		return m.Utxos
+	}
+	return nil
+}
+
+type RealKeyInput struct {
+	Realinputkey   int32  `protobuf:"varint,1,opt,name=realinputkey" json:"realinputkey,omitempty"`
+	Onetimeprivkey []byte `protobuf:"bytes,2,opt,name=onetimeprivkey,proto3" json:"onetimeprivkey,omitempty"`
+}
+
+func (m *RealKeyInput) Reset()                    { *m = RealKeyInput{} }
+func (m *RealKeyInput) String() string            { return proto.CompactTextString(m) }
+func (*RealKeyInput) ProtoMessage()               {}
+func (*RealKeyInput) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{48} }
+
+func (m *RealKeyInput) GetRealinputkey() int32 {
+	if m != nil {
+		return m.Realinputkey
+	}
+	return 0
+}
+
+func (m *RealKeyInput) GetOnetimeprivkey() []byte {
+	if m != nil {
+		return m.Onetimeprivkey
+	}
+	return nil
+}
+
+type UTXOBasics struct {
+	Utxos []*UTXOBasic `protobuf:"bytes,1,rep,name=utxos" json:"utxos,omitempty"`
+}
+
+func (m *UTXOBasics) Reset()                    { *m = UTXOBasics{} }
+func (m *UTXOBasics) String() string            { return proto.CompactTextString(m) }
+func (*UTXOBasics) ProtoMessage()               {}
+func (*UTXOBasics) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{49} }
+
+func (m *UTXOBasics) GetUtxos() []*UTXOBasic {
+	if m != nil {
+		return m.Utxos
+	}
+	return nil
+}
+
+type CreateTransactionCache struct {
+	Key []byte `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	// 记录创建时间，用以处理过期的交易
+	Createtime int64 `protobuf:"varint,2,opt,name=createtime" json:"createtime,omitempty"`
+	// 记录签名成功的时间，用以处理过期交易
+	Signtime int64 `protobuf:"varint,3,opt,name=signtime" json:"signtime,omitempty"`
+	// 缓存状态
+	// 0 - 创建状态
+	// 1 - 已经签名状态
+	Status int32 `protobuf:"varint,4,opt,name=status" json:"status,omitempty"`
+	//
+	Transaction  *types2.Transaction `protobuf:"bytes,5,opt,name=transaction" json:"transaction,omitempty"`
+	Sender       string              `protobuf:"bytes,6,opt,name=sender" json:"sender,omitempty"`
+	Realkeyinput []*RealKeyInput     `protobuf:"bytes,7,rep,name=realkeyinput" json:"realkeyinput,omitempty"`
+	Utxos        []*UTXOBasics       `protobuf:"bytes,8,rep,name=utxos" json:"utxos,omitempty"`
+	Tokenname    string              `protobuf:"bytes,9,opt,name=tokenname" json:"tokenname,omitempty"`
+}
+
+func (m *CreateTransactionCache) Reset()                    { *m = CreateTransactionCache{} }
+func (m *CreateTransactionCache) String() string            { return proto.CompactTextString(m) }
+func (*CreateTransactionCache) ProtoMessage()               {}
+func (*CreateTransactionCache) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{50} }
+
+func (m *CreateTransactionCache) GetKey() []byte {
+	if m != nil {
+		return m.Key
+	}
+	return nil
+}
+
+func (m *CreateTransactionCache) GetCreatetime() int64 {
+	if m != nil {
+		return m.Createtime
+	}
+	return 0
+}
+
+func (m *CreateTransactionCache) GetSigntime() int64 {
+	if m != nil {
+		return m.Signtime
+	}
+	return 0
+}
+
+func (m *CreateTransactionCache) GetStatus() int32 {
+	if m != nil {
+		return m.Status
+	}
+	return 0
+}
+
+func (m *CreateTransactionCache) GetTransaction() *types2.Transaction {
+	if m != nil {
+		return m.Transaction
+	}
+	return nil
+}
+
+func (m *CreateTransactionCache) GetSender() string {
+	if m != nil {
+		return m.Sender
+	}
+	return ""
+}
+
+func (m *CreateTransactionCache) GetRealkeyinput() []*RealKeyInput {
+	if m != nil {
+		return m.Realkeyinput
+	}
+	return nil
+}
+
+func (m *CreateTransactionCache) GetUtxos() []*UTXOBasics {
+	if m != nil {
+		return m.Utxos
+	}
+	return nil
+}
+
+func (m *CreateTransactionCache) GetTokenname() string {
+	if m != nil {
+		return m.Tokenname
+	}
+	return ""
+}
+
+type ReqCacheTxList struct {
+	Addr      string `protobuf:"bytes,1,opt,name=addr" json:"addr,omitempty"`
+	Tokenname string `protobuf:"bytes,2,opt,name=tokenname" json:"tokenname,omitempty"`
+}
+
+func (m *ReqCacheTxList) Reset()                    { *m = ReqCacheTxList{} }
+func (m *ReqCacheTxList) String() string            { return proto.CompactTextString(m) }
+func (*ReqCacheTxList) ProtoMessage()               {}
+func (*ReqCacheTxList) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{51} }
+
+func (m *ReqCacheTxList) GetAddr() string {
+	if m != nil {
+		return m.Addr
+	}
+	return ""
+}
+
+func (m *ReqCacheTxList) GetTokenname() string {
+	if m != nil {
+		return m.Tokenname
+	}
+	return ""
+}
+
+type ReplyCacheTxList struct {
+	Txs []*types2.Transaction `protobuf:"bytes,1,rep,name=txs" json:"txs,omitempty"`
+}
+
+func (m *ReplyCacheTxList) Reset()                    { *m = ReplyCacheTxList{} }
+func (m *ReplyCacheTxList) String() string            { return proto.CompactTextString(m) }
+func (*ReplyCacheTxList) ProtoMessage()               {}
+func (*ReplyCacheTxList) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{52} }
+
+func (m *ReplyCacheTxList) GetTxs() []*types2.Transaction {
+	if m != nil {
+		return m.Txs
+	}
+	return nil
+}
+
+type ReqPrivacyAccount struct {
+	Tokenname string `protobuf:"bytes,1,opt,name=tokenname" json:"tokenname,omitempty"`
+	Addr      string `protobuf:"bytes,2,opt,name=addr" json:"addr,omitempty"`
+}
+
+func (m *ReqPrivacyAccount) Reset()                    { *m = ReqPrivacyAccount{} }
+func (m *ReqPrivacyAccount) String() string            { return proto.CompactTextString(m) }
+func (*ReqPrivacyAccount) ProtoMessage()               {}
+func (*ReqPrivacyAccount) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{53} }
+
+func (m *ReqPrivacyAccount) GetTokenname() string {
+	if m != nil {
+		return m.Tokenname
+	}
+	return ""
+}
+
+func (m *ReqPrivacyAccount) GetAddr() string {
+	if m != nil {
+		return m.Addr
+	}
+	return ""
+}
+
+type ReqPPrivacyAccount struct {
+	Addr  string `protobuf:"bytes,1,opt,name=addr" json:"addr,omitempty"`
+	Token string `protobuf:"bytes,2,opt,name=token" json:"token,omitempty"`
+	// 设定显示的数据类型信息
+	// 0： 只显示账户的数值信息
+	// 1： 显示UTXO明细
+	// 2： 显示FTXO明细
+	// 3： 全部显示
+	Displaymode int32 `protobuf:"varint,3,opt,name=displaymode" json:"displaymode,omitempty"`
+}
+
+func (m *ReqPPrivacyAccount) Reset()                    { *m = ReqPPrivacyAccount{} }
+func (m *ReqPPrivacyAccount) String() string            { return proto.CompactTextString(m) }
+func (*ReqPPrivacyAccount) ProtoMessage()               {}
+func (*ReqPPrivacyAccount) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{54} }
+
+func (m *ReqPPrivacyAccount) GetAddr() string {
+	if m != nil {
+		return m.Addr
+	}
+	return ""
+}
+
+func (m *ReqPPrivacyAccount) GetToken() string {
+	if m != nil {
+		return m.Token
+	}
+	return ""
+}
+
+func (m *ReqPPrivacyAccount) GetDisplaymode() int32 {
+	if m != nil {
+		return m.Displaymode
+	}
+	return 0
+}
+
+// 请求隐私账户信息的应答
+type ReplyPrivacyAccount struct {
+	// 未花费的UTXO
+	Utxos *UTXOs `protobuf:"bytes,1,opt,name=utxos" json:"utxos,omitempty"`
+	// 冻结的UTXO
+	Ftxos       *UTXOs `protobuf:"bytes,2,opt,name=ftxos" json:"ftxos,omitempty"`
+	Displaymode int32  `protobuf:"varint,3,opt,name=displaymode" json:"displaymode,omitempty"`
+}
+
+func (m *ReplyPrivacyAccount) Reset()                    { *m = ReplyPrivacyAccount{} }
+func (m *ReplyPrivacyAccount) String() string            { return proto.CompactTextString(m) }
+func (*ReplyPrivacyAccount) ProtoMessage()               {}
+func (*ReplyPrivacyAccount) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{55} }
+
+func (m *ReplyPrivacyAccount) GetUtxos() *UTXOs {
+	if m != nil {
+		return m.Utxos
+	}
+	return nil
+}
+
+func (m *ReplyPrivacyAccount) GetFtxos() *UTXOs {
+	if m != nil {
+		return m.Ftxos
+	}
+	return nil
+}
+
+func (m *ReplyPrivacyAccount) GetDisplaymode() int32 {
+	if m != nil {
+		return m.Displaymode
+	}
+	return 0
+}
+
+type ReqCreateCacheTxKey struct {
+	Tokenname string `protobuf:"bytes,1,opt,name=tokenname" json:"tokenname,omitempty"`
+	Hashkey   []byte `protobuf:"bytes,2,opt,name=hashkey,proto3" json:"hashkey,omitempty"`
+}
+
+func (m *ReqCreateCacheTxKey) Reset()                    { *m = ReqCreateCacheTxKey{} }
+func (m *ReqCreateCacheTxKey) String() string            { return proto.CompactTextString(m) }
+func (*ReqCreateCacheTxKey) ProtoMessage()               {}
+func (*ReqCreateCacheTxKey) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{56} }
+
+func (m *ReqCreateCacheTxKey) GetTokenname() string {
+	if m != nil {
+		return m.Tokenname
+	}
+	return ""
+}
+
+func (m *ReqCreateCacheTxKey) GetHashkey() []byte {
+	if m != nil {
+		return m.Hashkey
+	}
+	return nil
+}
+
+// get privacy transaction list in wallet
+type ReqPrivacyTransactionList struct {
+	// support BTY
+	Tokenname string `protobuf:"bytes,1,opt,name=tokenname" json:"tokenname,omitempty"`
+	// 1:sendtx  2:recvtx
+	SendRecvFlag int32  `protobuf:"varint,2,opt,name=sendRecvFlag" json:"sendRecvFlag,omitempty"`
+	Direction    int32  `protobuf:"varint,3,opt,name=direction" json:"direction,omitempty"`
+	Count        int32  `protobuf:"varint,4,opt,name=count" json:"count,omitempty"`
+	From         string `protobuf:"bytes,5,opt,name=from" json:"from,omitempty"`
+	Address      string `protobuf:"bytes,6,opt,name=address" json:"address,omitempty"`
+	Seedtxhash   []byte `protobuf:"bytes,7,opt,name=seedtxhash,proto3" json:"seedtxhash,omitempty"`
+}
+
+func (m *ReqPrivacyTransactionList) Reset()                    { *m = ReqPrivacyTransactionList{} }
+func (m *ReqPrivacyTransactionList) String() string            { return proto.CompactTextString(m) }
+func (*ReqPrivacyTransactionList) ProtoMessage()               {}
+func (*ReqPrivacyTransactionList) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{57} }
+
+func (m *ReqPrivacyTransactionList) GetTokenname() string {
+	if m != nil {
+		return m.Tokenname
+	}
+	return ""
+}
+
+func (m *ReqPrivacyTransactionList) GetSendRecvFlag() int32 {
+	if m != nil {
+		return m.SendRecvFlag
+	}
+	return 0
+}
+
+func (m *ReqPrivacyTransactionList) GetDirection() int32 {
+	if m != nil {
+		return m.Direction
+	}
+	return 0
+}
+
+func (m *ReqPrivacyTransactionList) GetCount() int32 {
+	if m != nil {
+		return m.Count
+	}
+	return 0
+}
+
+func (m *ReqPrivacyTransactionList) GetFrom() string {
+	if m != nil {
+		return m.From
+	}
+	return ""
+}
+
+func (m *ReqPrivacyTransactionList) GetAddress() string {
+	if m != nil {
+		return m.Address
+	}
+	return ""
+}
+
+func (m *ReqPrivacyTransactionList) GetSeedtxhash() []byte {
+	if m != nil {
+		return m.Seedtxhash
+	}
+	return nil
+}
+
+type ReqRescanUtxos struct {
+	Addrs []string `protobuf:"bytes,1,rep,name=addrs" json:"addrs,omitempty"`
+	Flag  int32    `protobuf:"varint,2,opt,name=flag" json:"flag,omitempty"`
+}
+
+func (m *ReqRescanUtxos) Reset()                    { *m = ReqRescanUtxos{} }
+func (m *ReqRescanUtxos) String() string            { return proto.CompactTextString(m) }
+func (*ReqRescanUtxos) ProtoMessage()               {}
+func (*ReqRescanUtxos) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{58} }
+
+func (m *ReqRescanUtxos) GetAddrs() []string {
+	if m != nil {
+		return m.Addrs
+	}
+	return nil
+}
+
+func (m *ReqRescanUtxos) GetFlag() int32 {
+	if m != nil {
+		return m.Flag
+	}
+	return 0
+}
+
+type RepRescanResult struct {
+	Addr string `protobuf:"bytes,1,opt,name=addr" json:"addr,omitempty"`
+	Flag int32  `protobuf:"varint,2,opt,name=flag" json:"flag,omitempty"`
+}
+
+func (m *RepRescanResult) Reset()                    { *m = RepRescanResult{} }
+func (m *RepRescanResult) String() string            { return proto.CompactTextString(m) }
+func (*RepRescanResult) ProtoMessage()               {}
+func (*RepRescanResult) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{59} }
+
+func (m *RepRescanResult) GetAddr() string {
+	if m != nil {
+		return m.Addr
+	}
+	return ""
+}
+
+func (m *RepRescanResult) GetFlag() int32 {
+	if m != nil {
+		return m.Flag
+	}
+	return 0
+}
+
+type RepRescanUtxos struct {
+	Flag             int32              `protobuf:"varint,1,opt,name=flag" json:"flag,omitempty"`
+	RepRescanResults []*RepRescanResult `protobuf:"bytes,2,rep,name=repRescanResults" json:"repRescanResults,omitempty"`
+}
+
+func (m *RepRescanUtxos) Reset()                    { *m = RepRescanUtxos{} }
+func (m *RepRescanUtxos) String() string            { return proto.CompactTextString(m) }
+func (*RepRescanUtxos) ProtoMessage()               {}
+func (*RepRescanUtxos) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{60} }
+
+func (m *RepRescanUtxos) GetFlag() int32 {
+	if m != nil {
+		return m.Flag
+	}
+	return 0
+}
+
+func (m *RepRescanUtxos) GetRepRescanResults() []*RepRescanResult {
+	if m != nil {
+		return m.RepRescanResults
+	}
+	return nil
+}
+
+type ReqEnablePrivacy struct {
+	Addrs []string `protobuf:"bytes,2,rep,name=addrs" json:"addrs,omitempty"`
+}
+
+func (m *ReqEnablePrivacy) Reset()                    { *m = ReqEnablePrivacy{} }
+func (m *ReqEnablePrivacy) String() string            { return proto.CompactTextString(m) }
+func (*ReqEnablePrivacy) ProtoMessage()               {}
+func (*ReqEnablePrivacy) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{61} }
+
+func (m *ReqEnablePrivacy) GetAddrs() []string {
+	if m != nil {
+		return m.Addrs
+	}
+	return nil
+}
+
+type PriAddrResult struct {
+	Addr string `protobuf:"bytes,1,opt,name=addr" json:"addr,omitempty"`
+	IsOK bool   `protobuf:"varint,2,opt,name=IsOK" json:"IsOK,omitempty"`
+	Msg  string `protobuf:"bytes,3,opt,name=msg" json:"msg,omitempty"`
+}
+
+func (m *PriAddrResult) Reset()                    { *m = PriAddrResult{} }
+func (m *PriAddrResult) String() string            { return proto.CompactTextString(m) }
+func (*PriAddrResult) ProtoMessage()               {}
+func (*PriAddrResult) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{62} }
+
+func (m *PriAddrResult) GetAddr() string {
+	if m != nil {
+		return m.Addr
+	}
+	return ""
+}
+
+func (m *PriAddrResult) GetIsOK() bool {
+	if m != nil {
+		return m.IsOK
+	}
+	return false
+}
+
+func (m *PriAddrResult) GetMsg() string {
+	if m != nil {
+		return m.Msg
+	}
+	return ""
+}
+
+type RepEnablePrivacy struct {
+	Results []*PriAddrResult `protobuf:"bytes,1,rep,name=results" json:"results,omitempty"`
+}
+
+func (m *RepEnablePrivacy) Reset()                    { *m = RepEnablePrivacy{} }
+func (m *RepEnablePrivacy) String() string            { return proto.CompactTextString(m) }
+func (*RepEnablePrivacy) ProtoMessage()               {}
+func (*RepEnablePrivacy) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{63} }
+
+func (m *RepEnablePrivacy) GetResults() []*PriAddrResult {
+	if m != nil {
+		return m.Results
+	}
+	return nil
+}
+
+// 隐私交易三步发送时，临时存储签名需要的数据信息结构
+type PrivacySignatureParam struct {
+	ActionType    int32           `protobuf:"varint,1,opt,name=actionType" json:"actionType,omitempty"`
+	Utxobasics    []*UTXOBasics   `protobuf:"bytes,2,rep,name=utxobasics" json:"utxobasics,omitempty"`
+	RealKeyInputs []*RealKeyInput `protobuf:"bytes,3,rep,name=realKeyInputs" json:"realKeyInputs,omitempty"`
+}
+
+func (m *PrivacySignatureParam) Reset()                    { *m = PrivacySignatureParam{} }
+func (m *PrivacySignatureParam) String() string            { return proto.CompactTextString(m) }
+func (*PrivacySignatureParam) ProtoMessage()               {}
+func (*PrivacySignatureParam) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{64} }
+
+func (m *PrivacySignatureParam) GetActionType() int32 {
+	if m != nil {
+		return m.ActionType
+	}
+	return 0
+}
+
+func (m *PrivacySignatureParam) GetUtxobasics() []*UTXOBasics {
+	if m != nil {
+		return m.Utxobasics
+	}
+	return nil
+}
+
+func (m *PrivacySignatureParam) GetRealKeyInputs() []*RealKeyInput {
+	if m != nil {
+		return m.RealKeyInputs
+	}
+	return nil
+}
+
 func init() {
 	proto.RegisterType((*PrivacyAction)(nil), "types.PrivacyAction")
 	proto.RegisterType((*Public2Privacy)(nil), "types.Public2Privacy")
@@ -1221,77 +2466,475 @@ func init() {
 	proto.RegisterType((*Privacy2Privacy4Print)(nil), "types.Privacy2Privacy4Print")
 	proto.RegisterType((*Privacy2Public4Print)(nil), "types.Privacy2Public4Print")
 	proto.RegisterType((*PrivacyAction4Print)(nil), "types.PrivacyAction4Print")
+	proto.RegisterType((*ReqPub2Pri)(nil), "types.ReqPub2Pri")
+	proto.RegisterType((*ReqPri2Pri)(nil), "types.ReqPri2Pri")
+	proto.RegisterType((*ReqPri2Pub)(nil), "types.ReqPri2Pub")
+	proto.RegisterType((*ReqCreateUTXOs)(nil), "types.ReqCreateUTXOs")
+	proto.RegisterType((*ReplyPrivacyPkPair)(nil), "types.ReplyPrivacyPkPair")
+	proto.RegisterType((*ReqPrivBal4AddrToken)(nil), "types.ReqPrivBal4AddrToken")
+	proto.RegisterType((*ReplyPrivacyBalance)(nil), "types.ReplyPrivacyBalance")
+	proto.RegisterType((*PrivacyDBStore)(nil), "types.PrivacyDBStore")
+	proto.RegisterType((*UTXO)(nil), "types.UTXO")
+	proto.RegisterType((*UTXOHaveTxHash)(nil), "types.UTXOHaveTxHash")
+	proto.RegisterType((*UTXOs)(nil), "types.UTXOs")
+	proto.RegisterType((*UTXOHaveTxHashs)(nil), "types.UTXOHaveTxHashs")
+	proto.RegisterType((*ReqUTXOGlobalIndex)(nil), "types.ReqUTXOGlobalIndex")
+	proto.RegisterType((*UTXOBasic)(nil), "types.UTXOBasic")
+	proto.RegisterType((*UTXOIndex4Amount)(nil), "types.UTXOIndex4Amount")
+	proto.RegisterType((*ResUTXOGlobalIndex)(nil), "types.ResUTXOGlobalIndex")
+	proto.RegisterType((*FTXOsSTXOsInOneTx)(nil), "types.FTXOsSTXOsInOneTx")
+	proto.RegisterType((*RealKeyInput)(nil), "types.RealKeyInput")
+	proto.RegisterType((*UTXOBasics)(nil), "types.UTXOBasics")
+	proto.RegisterType((*CreateTransactionCache)(nil), "types.CreateTransactionCache")
+	proto.RegisterType((*ReqCacheTxList)(nil), "types.ReqCacheTxList")
+	proto.RegisterType((*ReplyCacheTxList)(nil), "types.ReplyCacheTxList")
+	proto.RegisterType((*ReqPrivacyAccount)(nil), "types.ReqPrivacyAccount")
+	proto.RegisterType((*ReqPPrivacyAccount)(nil), "types.ReqPPrivacyAccount")
+	proto.RegisterType((*ReplyPrivacyAccount)(nil), "types.ReplyPrivacyAccount")
+	proto.RegisterType((*ReqCreateCacheTxKey)(nil), "types.ReqCreateCacheTxKey")
+	proto.RegisterType((*ReqPrivacyTransactionList)(nil), "types.ReqPrivacyTransactionList")
+	proto.RegisterType((*ReqRescanUtxos)(nil), "types.ReqRescanUtxos")
+	proto.RegisterType((*RepRescanResult)(nil), "types.RepRescanResult")
+	proto.RegisterType((*RepRescanUtxos)(nil), "types.RepRescanUtxos")
+	proto.RegisterType((*ReqEnablePrivacy)(nil), "types.ReqEnablePrivacy")
+	proto.RegisterType((*PriAddrResult)(nil), "types.PriAddrResult")
+	proto.RegisterType((*RepEnablePrivacy)(nil), "types.RepEnablePrivacy")
+	proto.RegisterType((*PrivacySignatureParam)(nil), "types.PrivacySignatureParam")
+}
+
+// Reference imports to suppress errors if they are not otherwise used.
+var _ context.Context
+var _ grpc.ClientConn
+
+// This is a compile-time assertion to ensure that this generated file
+// is compatible with the grpc package it is being compiled against.
+const _ = grpc.SupportPackageIsVersion4
+
+// Client API for Privacy service
+
+type PrivacyClient interface {
+	// Privacy Trading
+	// 显示指定地址的公钥对信息，可以作为后续交易参数
+	ShowPrivacyKey(ctx context.Context, in *types1.ReqString, opts ...grpc.CallOption) (*ReplyPrivacyPkPair, error)
+	// 创建一系列UTXO
+	CreateUTXOs(ctx context.Context, in *ReqCreateUTXOs, opts ...grpc.CallOption) (*types1.Reply, error)
+	// 将资金从公开到隐私转移
+	MakeTxPublic2Privacy(ctx context.Context, in *ReqPub2Pri, opts ...grpc.CallOption) (*types1.Reply, error)
+	// 将资产从隐私到隐私进行转移
+	MakeTxPrivacy2Privacy(ctx context.Context, in *ReqPri2Pri, opts ...grpc.CallOption) (*types1.Reply, error)
+	// 将资产从隐私到公开进行转移
+	MakeTxPrivacy2Public(ctx context.Context, in *ReqPri2Pub, opts ...grpc.CallOption) (*types1.Reply, error)
+	// 扫描UTXO以及获取扫描UTXO后的状态
+	RescanUtxos(ctx context.Context, in *ReqRescanUtxos, opts ...grpc.CallOption) (*RepRescanUtxos, error)
+	// 使能隐私账户
+	EnablePrivacy(ctx context.Context, in *ReqEnablePrivacy, opts ...grpc.CallOption) (*RepEnablePrivacy, error)
+}
+
+type privacyClient struct {
+	cc *grpc.ClientConn
+}
+
+func NewPrivacyClient(cc *grpc.ClientConn) PrivacyClient {
+	return &privacyClient{cc}
+}
+
+func (c *privacyClient) ShowPrivacyKey(ctx context.Context, in *types1.ReqString, opts ...grpc.CallOption) (*ReplyPrivacyPkPair, error) {
+	out := new(ReplyPrivacyPkPair)
+	err := grpc.Invoke(ctx, "/types.privacy/ShowPrivacyKey", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *privacyClient) CreateUTXOs(ctx context.Context, in *ReqCreateUTXOs, opts ...grpc.CallOption) (*types1.Reply, error) {
+	out := new(types1.Reply)
+	err := grpc.Invoke(ctx, "/types.privacy/CreateUTXOs", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *privacyClient) MakeTxPublic2Privacy(ctx context.Context, in *ReqPub2Pri, opts ...grpc.CallOption) (*types1.Reply, error) {
+	out := new(types1.Reply)
+	err := grpc.Invoke(ctx, "/types.privacy/MakeTxPublic2Privacy", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *privacyClient) MakeTxPrivacy2Privacy(ctx context.Context, in *ReqPri2Pri, opts ...grpc.CallOption) (*types1.Reply, error) {
+	out := new(types1.Reply)
+	err := grpc.Invoke(ctx, "/types.privacy/MakeTxPrivacy2Privacy", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *privacyClient) MakeTxPrivacy2Public(ctx context.Context, in *ReqPri2Pub, opts ...grpc.CallOption) (*types1.Reply, error) {
+	out := new(types1.Reply)
+	err := grpc.Invoke(ctx, "/types.privacy/MakeTxPrivacy2Public", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *privacyClient) RescanUtxos(ctx context.Context, in *ReqRescanUtxos, opts ...grpc.CallOption) (*RepRescanUtxos, error) {
+	out := new(RepRescanUtxos)
+	err := grpc.Invoke(ctx, "/types.privacy/RescanUtxos", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *privacyClient) EnablePrivacy(ctx context.Context, in *ReqEnablePrivacy, opts ...grpc.CallOption) (*RepEnablePrivacy, error) {
+	out := new(RepEnablePrivacy)
+	err := grpc.Invoke(ctx, "/types.privacy/EnablePrivacy", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// Server API for Privacy service
+
+type PrivacyServer interface {
+	// Privacy Trading
+	// 显示指定地址的公钥对信息，可以作为后续交易参数
+	ShowPrivacyKey(context.Context, *types1.ReqString) (*ReplyPrivacyPkPair, error)
+	// 创建一系列UTXO
+	CreateUTXOs(context.Context, *ReqCreateUTXOs) (*types1.Reply, error)
+	// 将资金从公开到隐私转移
+	MakeTxPublic2Privacy(context.Context, *ReqPub2Pri) (*types1.Reply, error)
+	// 将资产从隐私到隐私进行转移
+	MakeTxPrivacy2Privacy(context.Context, *ReqPri2Pri) (*types1.Reply, error)
+	// 将资产从隐私到公开进行转移
+	MakeTxPrivacy2Public(context.Context, *ReqPri2Pub) (*types1.Reply, error)
+	// 扫描UTXO以及获取扫描UTXO后的状态
+	RescanUtxos(context.Context, *ReqRescanUtxos) (*RepRescanUtxos, error)
+	// 使能隐私账户
+	EnablePrivacy(context.Context, *ReqEnablePrivacy) (*RepEnablePrivacy, error)
+}
+
+func RegisterPrivacyServer(s *grpc.Server, srv PrivacyServer) {
+	s.RegisterService(&_Privacy_serviceDesc, srv)
+}
+
+func _Privacy_ShowPrivacyKey_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(types1.ReqString)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PrivacyServer).ShowPrivacyKey(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/types.privacy/ShowPrivacyKey",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PrivacyServer).ShowPrivacyKey(ctx, req.(*types1.ReqString))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Privacy_CreateUTXOs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReqCreateUTXOs)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PrivacyServer).CreateUTXOs(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/types.privacy/CreateUTXOs",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PrivacyServer).CreateUTXOs(ctx, req.(*ReqCreateUTXOs))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Privacy_MakeTxPublic2Privacy_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReqPub2Pri)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PrivacyServer).MakeTxPublic2Privacy(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/types.privacy/MakeTxPublic2Privacy",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PrivacyServer).MakeTxPublic2Privacy(ctx, req.(*ReqPub2Pri))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Privacy_MakeTxPrivacy2Privacy_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReqPri2Pri)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PrivacyServer).MakeTxPrivacy2Privacy(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/types.privacy/MakeTxPrivacy2Privacy",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PrivacyServer).MakeTxPrivacy2Privacy(ctx, req.(*ReqPri2Pri))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Privacy_MakeTxPrivacy2Public_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReqPri2Pub)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PrivacyServer).MakeTxPrivacy2Public(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/types.privacy/MakeTxPrivacy2Public",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PrivacyServer).MakeTxPrivacy2Public(ctx, req.(*ReqPri2Pub))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Privacy_RescanUtxos_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReqRescanUtxos)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PrivacyServer).RescanUtxos(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/types.privacy/RescanUtxos",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PrivacyServer).RescanUtxos(ctx, req.(*ReqRescanUtxos))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Privacy_EnablePrivacy_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReqEnablePrivacy)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PrivacyServer).EnablePrivacy(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/types.privacy/EnablePrivacy",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PrivacyServer).EnablePrivacy(ctx, req.(*ReqEnablePrivacy))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+var _Privacy_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "types.privacy",
+	HandlerType: (*PrivacyServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "ShowPrivacyKey",
+			Handler:    _Privacy_ShowPrivacyKey_Handler,
+		},
+		{
+			MethodName: "CreateUTXOs",
+			Handler:    _Privacy_CreateUTXOs_Handler,
+		},
+		{
+			MethodName: "MakeTxPublic2Privacy",
+			Handler:    _Privacy_MakeTxPublic2Privacy_Handler,
+		},
+		{
+			MethodName: "MakeTxPrivacy2Privacy",
+			Handler:    _Privacy_MakeTxPrivacy2Privacy_Handler,
+		},
+		{
+			MethodName: "MakeTxPrivacy2Public",
+			Handler:    _Privacy_MakeTxPrivacy2Public_Handler,
+		},
+		{
+			MethodName: "RescanUtxos",
+			Handler:    _Privacy_RescanUtxos_Handler,
+		},
+		{
+			MethodName: "EnablePrivacy",
+			Handler:    _Privacy_EnablePrivacy_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "privacy.proto",
 }
 
 func init() { proto.RegisterFile("privacy.proto", fileDescriptor0) }
 
 var fileDescriptor0 = []byte{
-	// 1066 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x09, 0x6e, 0x88, 0x02, 0xff, 0xb4, 0x57, 0xcd, 0x6e, 0x23, 0x45,
-	0x10, 0x66, 0x6c, 0x8f, 0xb3, 0x53, 0xf8, 0x27, 0xea, 0x38, 0x96, 0x49, 0x72, 0x88, 0x7a, 0x11,
-	0x5a, 0x04, 0x0a, 0x22, 0xac, 0x04, 0x82, 0x48, 0x4b, 0xa2, 0x84, 0xac, 0x15, 0x76, 0x1d, 0xb5,
-	0x82, 0xc4, 0x01, 0x0e, 0x63, 0x6f, 0x6f, 0x32, 0x8a, 0xed, 0x99, 0xb5, 0x7b, 0x56, 0x9e, 0x13,
-	0x9c, 0x10, 0x07, 0x0e, 0x1c, 0x10, 0x17, 0x1e, 0x03, 0x5e, 0x01, 0x1e, 0x87, 0x67, 0x40, 0xdd,
-	0x5d, 0xf3, 0xd3, 0xe3, 0xb6, 0x92, 0x40, 0xb8, 0x4d, 0x75, 0x57, 0x57, 0x7d, 0xf5, 0x4d, 0x55,
-	0x57, 0x17, 0x34, 0xa3, 0x59, 0xf0, 0xda, 0x1f, 0x25, 0x7b, 0xd1, 0x2c, 0x14, 0x21, 0x71, 0x45,
-	0x12, 0xf1, 0x39, 0xfd, 0xdb, 0x81, 0xe6, 0xb9, 0xde, 0x38, 0x1c, 0x89, 0x20, 0x9c, 0x92, 0x27,
-	0xd0, 0x8a, 0xe2, 0xe1, 0x38, 0x18, 0xed, 0xe3, 0x81, 0x9e, 0xb3, 0xeb, 0x3c, 0x7a, 0x73, 0x7f,
-	0x73, 0x4f, 0x9d, 0xd8, 0x3b, 0xd7, 0x9b, 0x78, 0xe8, 0xe9, 0x1b, 0xac, 0xa4, 0x4e, 0x8e, 0xa0,
-	0x8d, 0x9f, 0x99, 0x85, 0x8a, 0xb2, 0xd0, 0x4d, 0x2d, 0xe0, 0x6e, 0x6e, 0xa2, 0x7c, 0x40, 0x81,
-	0x48, 0x97, 0x94, 0xf5, 0x5e, 0xd5, 0x04, 0x91, 0x9a, 0x50, 0x9b, 0x0a, 0x84, 0xa1, 0x4e, 0x5a,
-	0x50, 0x11, 0x49, 0xaf, 0xb6, 0xeb, 0x3c, 0x72, 0x59, 0x45, 0x24, 0x47, 0x6b, 0xe0, 0xbe, 0xf6,
-	0xc7, 0x31, 0xa7, 0x3f, 0x3a, 0xd0, 0x32, 0x43, 0x20, 0x3b, 0xe0, 0x89, 0xf0, 0x9a, 0x4f, 0xa7,
-	0xfe, 0x84, 0xab, 0x60, 0x3d, 0x96, 0x2f, 0x90, 0x2e, 0xd4, 0xfd, 0x49, 0x18, 0x4f, 0x85, 0x8a,
-	0xa2, 0xca, 0x50, 0x22, 0x04, 0x6a, 0xd3, 0x50, 0xf0, 0x9e, 0xab, 0x0e, 0xa8, 0x6f, 0xf2, 0x3e,
-	0xd4, 0xc3, 0x58, 0x44, 0xb1, 0xe8, 0xad, 0x29, 0xb8, 0x1d, 0x13, 0xee, 0x40, 0xed, 0x31, 0xd4,
-	0xa1, 0x7f, 0x38, 0xd0, 0x2e, 0x71, 0x71, 0x8f, 0x58, 0xde, 0x05, 0x37, 0x98, 0x4a, 0x28, 0x75,
-	0x05, 0x65, 0xc3, 0x84, 0xd2, 0x97, 0x5b, 0x4c, 0x6b, 0xdc, 0x11, 0xf6, 0xef, 0x92, 0x41, 0x83,
-	0xff, 0xff, 0x88, 0xba, 0x6a, 0x43, 0x5d, 0xbb, 0x03, 0x6a, 0xf7, 0x16, 0xa8, 0x4f, 0xa0, 0xfd,
-	0xd5, 0xc5, 0xd7, 0x83, 0xd3, 0x71, 0x38, 0xf4, 0xc7, 0xfd, 0xe9, 0x0b, 0xbe, 0x90, 0xb8, 0xc4,
-	0xe2, 0xca, 0x9f, 0x5f, 0x29, 0x04, 0x0d, 0x86, 0x12, 0xd9, 0x82, 0x07, 0x61, 0x2c, 0x02, 0xa9,
-	0x83, 0x19, 0x94, 0xc9, 0xf4, 0x7b, 0x07, 0x1e, 0x9c, 0x71, 0x0d, 0xa4, 0x10, 0x98, 0x63, 0x04,
-	0xf6, 0x39, 0xb4, 0x63, 0xb1, 0x08, 0x0b, 0xbe, 0x7a, 0x95, 0xdd, 0x6a, 0xa1, 0x02, 0x4a, 0x48,
-	0x58, 0x59, 0x5d, 0x42, 0xb8, 0xe6, 0x49, 0x7f, 0xe2, 0x5f, 0x72, 0x04, 0x97, 0xc9, 0xf4, 0x33,
-	0x68, 0x14, 0xe9, 0x20, 0xef, 0x29, 0x5d, 0xcd, 0x9a, 0xa3, 0xdc, 0xb4, 0xd1, 0x4d, 0x0a, 0x94,
-	0x65, 0x0a, 0xb4, 0x0f, 0xde, 0x35, 0x47, 0x6e, 0x56, 0xe2, 0x7f, 0x1b, 0x9a, 0xe1, 0x94, 0x8b,
-	0x60, 0xc2, 0xa3, 0x78, 0x78, 0xcd, 0x75, 0xfd, 0x36, 0x98, 0xb9, 0x48, 0xbf, 0xcd, 0x6e, 0x0e,
-	0x34, 0xb7, 0x03, 0x1e, 0x8b, 0xe2, 0xe1, 0x19, 0x4f, 0xc4, 0x42, 0x59, 0x6c, 0xb0, 0x7c, 0x81,
-	0xec, 0x29, 0xcf, 0xf8, 0xc7, 0x34, 0x1d, 0xeb, 0x88, 0x33, 0x43, 0xc4, 0x72, 0x15, 0x1a, 0x41,
-	0xe7, 0x74, 0x16, 0xc6, 0x91, 0xe5, 0xaf, 0xfd, 0x3f, 0xa4, 0xd3, 0xdf, 0x1c, 0x68, 0x7e, 0x19,
-	0x8e, 0xfc, 0xb1, 0xd4, 0xec, 0x0b, 0x3e, 0x91, 0xbe, 0xae, 0x78, 0x70, 0x79, 0x95, 0xf9, 0xd2,
-	0x12, 0xe9, 0xc1, 0x9a, 0x58, 0x04, 0xe8, 0x43, 0x26, 0x48, 0x2a, 0x1a, 0xb9, 0x53, 0x35, 0x73,
-	0xa7, 0x90, 0x6f, 0x35, 0x23, 0xdf, 0x96, 0xe8, 0x76, 0x6d, 0x74, 0x7f, 0x07, 0x2d, 0xc6, 0x5f,
-	0x49, 0x68, 0xe7, 0x8a, 0xd2, 0x79, 0x56, 0x75, 0xcf, 0xcb, 0x55, 0x27, 0x17, 0xc8, 0x00, 0x3a,
-	0x97, 0x16, 0xfe, 0x90, 0x94, 0x6d, 0x24, 0xc5, 0x46, 0x31, 0xb3, 0x1e, 0xa4, 0x0f, 0xa1, 0xa9,
-	0xcb, 0xfd, 0x8c, 0x27, 0xc7, 0xbe, 0xf0, 0x65, 0xfd, 0xbe, 0xf0, 0x85, 0xaf, 0x92, 0xae, 0xc1,
-	0xd4, 0x37, 0x3d, 0x84, 0x76, 0x66, 0x52, 0xe3, 0x5c, 0xf9, 0xc3, 0xba, 0x50, 0xcf, 0xd2, 0x4b,
-	0x1a, 0x40, 0x89, 0x5e, 0xc8, 0x40, 0xe7, 0xc5, 0x40, 0x8f, 0x60, 0xfd, 0xd2, 0x34, 0x3a, 0xc7,
-	0x4c, 0xef, 0x96, 0xc3, 0xd0, 0xdb, 0x6c, 0x49, 0x9f, 0x3e, 0x81, 0x36, 0xe3, 0xaf, 0x30, 0x61,
-	0x2f, 0x24, 0x4b, 0xa4, 0x03, 0xae, 0xa2, 0x0b, 0xb9, 0xd3, 0xc2, 0xaa, 0xdb, 0x8a, 0x1e, 0x40,
-	0xe3, 0x50, 0x7d, 0x1d, 0x73, 0xe1, 0x07, 0xe3, 0x95, 0x61, 0x75, 0xc0, 0x1d, 0x15, 0x8e, 0x6b,
-	0x81, 0x3e, 0x87, 0x0d, 0xc6, 0xa3, 0x71, 0x92, 0xf6, 0x5a, 0xa5, 0x3b, 0x27, 0x1f, 0x43, 0xc3,
-	0x2f, 0x18, 0xc5, 0xa8, 0xd2, 0x5b, 0xaf, 0xe8, 0x8f, 0x19, 0x8a, 0x94, 0x01, 0x99, 0x49, 0x7b,
-	0x32, 0xc4, 0xf9, 0xe0, 0xa5, 0xd6, 0x24, 0x07, 0xd0, 0x1a, 0x17, 0x13, 0x38, 0xa5, 0x29, 0xbd,
-	0x1a, 0x8d, 0xec, 0x66, 0x25, 0x5d, 0xfa, 0x0d, 0x74, 0x18, 0x1f, 0xf1, 0x20, 0x12, 0x66, 0x5d,
-	0xdb, 0x79, 0xba, 0x6b, 0x3d, 0xff, 0xec, 0x40, 0x13, 0xc3, 0x1e, 0xbc, 0x94, 0x4e, 0xc9, 0x21,
-	0x78, 0x3a, 0xa6, 0x67, 0x7e, 0x84, 0x40, 0x1f, 0x1a, 0x91, 0xa3, 0x22, 0x4a, 0xcf, 0xfc, 0xe8,
-	0x64, 0x2a, 0x66, 0x09, 0xcb, 0x4f, 0x6d, 0x1d, 0x40, 0xcb, 0xdc, 0x24, 0xeb, 0x50, 0x95, 0x29,
-	0xa5, 0xff, 0x89, 0xfc, 0x94, 0xf0, 0x55, 0xeb, 0x4f, 0x7f, 0x88, 0x12, 0x3e, 0xad, 0x7c, 0xe2,
-	0xd0, 0x5f, 0x1d, 0x58, 0xbf, 0x48, 0x0b, 0x26, 0x45, 0x75, 0x8c, 0x55, 0x35, 0xcf, 0x51, 0xbd,
-	0x83, 0xa8, 0xca, 0xba, 0x7a, 0x61, 0x9e, 0x03, 0xcb, 0x0e, 0x4a, 0x60, 0xe6, 0x66, 0x11, 0x98,
-	0x67, 0x01, 0xe6, 0x15, 0x81, 0x9d, 0xc1, 0x66, 0xa9, 0xfa, 0x1e, 0x9f, 0xcf, 0x02, 0x5d, 0x33,
-	0x78, 0x85, 0x68, 0x3b, 0xb6, 0x96, 0x55, 0x29, 0xb5, 0xac, 0x9f, 0x1c, 0x68, 0xa5, 0x9d, 0x20,
-	0x37, 0x63, 0xcd, 0xdd, 0x2f, 0x56, 0xdd, 0xa1, 0x3b, 0xf6, 0x3b, 0x54, 0x9b, 0xbb, 0xb9, 0x7d,
-	0x79, 0x85, 0xf6, 0x35, 0x80, 0x76, 0x96, 0x1f, 0x37, 0xc0, 0xb1, 0xf6, 0x21, 0xaf, 0x7c, 0x31,
-	0x9e, 0x02, 0x29, 0xf6, 0x43, 0xb4, 0xf9, 0xe1, 0x52, 0x57, 0xdc, 0x2c, 0x75, 0x45, 0x04, 0x9f,
-	0xf7, 0xc6, 0x00, 0x36, 0x8c, 0xc4, 0x47, 0x4b, 0x4b, 0x6d, 0xcd, 0x2b, 0xb6, 0xb5, 0xc7, 0xcb,
-	0x65, 0xd0, 0x2d, 0x97, 0x01, 0x7a, 0x2a, 0x14, 0xc3, 0x2f, 0x0e, 0x74, 0xcc, 0x57, 0x68, 0xee,
-	0xec, 0x9e, 0xde, 0x7f, 0xfb, 0xa5, 0x47, 0xdd, 0x96, 0xed, 0x79, 0x84, 0xc8, 0xd2, 0x47, 0xd2,
-	0x5f, 0x0e, 0x6c, 0x96, 0x5e, 0xa4, 0xf7, 0x8e, 0xeb, 0x03, 0xf3, 0x5d, 0xfa, 0x96, 0xe5, 0x85,
-	0x87, 0xa8, 0xf0, 0x9d, 0xf7, 0x6f, 0x02, 0xf9, 0x53, 0xf2, 0x6b, 0xbc, 0x51, 0xef, 0x25, 0x8e,
-	0xaa, 0x2d, 0x8e, 0xda, 0x9d, 0xe3, 0x70, 0x6f, 0x1d, 0xc7, 0x0f, 0x95, 0x2c, 0x27, 0xf5, 0x78,
-	0x86, 0x61, 0x9c, 0xac, 0x18, 0xd2, 0xb6, 0xad, 0x43, 0x9a, 0x3e, 0x64, 0x19, 0xd5, 0x9e, 0xae,
-	0x1a, 0xd5, 0x76, 0xec, 0xa3, 0x5a, 0x66, 0x68, 0x69, 0x60, 0x3b, 0x59, 0x31, 0xb0, 0x6d, 0x5b,
-	0x07, 0xb6, 0x02, 0xa0, 0xdb, 0x8d, 0x6d, 0xc3, 0xba, 0x9a, 0x5a, 0x3f, 0xfa, 0x27, 0x00, 0x00,
-	0xff, 0xff, 0x65, 0x27, 0x13, 0x7c, 0xc6, 0x0e, 0x00, 0x00,
+	// 2306 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x09, 0x6e, 0x88, 0x02, 0xff, 0xd4, 0x5a, 0x4f, 0x6f, 0x1c, 0x49,
+	0x15, 0x77, 0xcf, 0x1f, 0xdb, 0xfd, 0x3c, 0xb6, 0xc7, 0x1d, 0xdb, 0x3b, 0x99, 0x58, 0xab, 0x50,
+	0xbb, 0x0a, 0x61, 0x41, 0x46, 0x6b, 0x2c, 0xed, 0x26, 0x04, 0x65, 0x3d, 0x8e, 0x93, 0x58, 0xde,
+	0xc4, 0xa6, 0x3c, 0x2b, 0x21, 0xb4, 0x48, 0xd4, 0xcc, 0x94, 0xed, 0x96, 0x67, 0xba, 0xdb, 0xdd,
+	0x3d, 0xce, 0xcc, 0x69, 0x39, 0x21, 0x0e, 0x1c, 0x90, 0x40, 0x5c, 0xe0, 0xca, 0x1d, 0x09, 0x84,
+	0x38, 0x70, 0xe0, 0x02, 0x27, 0xbe, 0x03, 0xdf, 0x80, 0xcf, 0x80, 0xea, 0x4f, 0x77, 0xfd, 0x99,
+	0x1e, 0xdb, 0x09, 0x06, 0x89, 0x8b, 0xd5, 0xf5, 0xea, 0xd5, 0xab, 0xdf, 0x7b, 0xf5, 0xde, 0xab,
+	0xf7, 0x6a, 0x0c, 0x8b, 0x51, 0xec, 0x5f, 0x92, 0xee, 0x78, 0x33, 0x8a, 0xc3, 0x34, 0xf4, 0xaa,
+	0xe9, 0x38, 0xa2, 0x49, 0xb3, 0xd6, 0x0d, 0x07, 0x83, 0x30, 0x10, 0xc4, 0xe6, 0x4a, 0x1a, 0x93,
+	0x20, 0x21, 0xdd, 0xd4, 0xcf, 0x48, 0xe8, 0x5f, 0x0e, 0x2c, 0x1e, 0x89, 0x95, 0x3b, 0x9c, 0xee,
+	0x3d, 0x85, 0xa5, 0x68, 0xd8, 0xe9, 0xfb, 0xdd, 0x2d, 0x29, 0xb1, 0xe1, 0xdc, 0x77, 0x1e, 0x2e,
+	0x6c, 0xad, 0x6d, 0x72, 0x91, 0x9b, 0x47, 0x62, 0x52, 0x2e, 0x7a, 0x39, 0x83, 0x2d, 0x76, 0xaf,
+	0x05, 0xcb, 0xf2, 0x33, 0x97, 0x50, 0xe2, 0x12, 0xd6, 0x33, 0x09, 0x72, 0x56, 0x89, 0xb0, 0x17,
+	0x70, 0x10, 0x19, 0x89, 0x4b, 0x6f, 0x94, 0x4d, 0x10, 0x99, 0x08, 0x3e, 0xc9, 0x41, 0x18, 0xec,
+	0xde, 0x12, 0x94, 0xd2, 0x71, 0xa3, 0x72, 0xdf, 0x79, 0x58, 0xc5, 0xa5, 0x74, 0xdc, 0x9a, 0x83,
+	0xea, 0x25, 0xe9, 0x0f, 0x29, 0xfa, 0x99, 0x03, 0x4b, 0xa6, 0x0a, 0xde, 0x06, 0xb8, 0x69, 0x78,
+	0x4e, 0x83, 0x80, 0x0c, 0x28, 0x57, 0xd6, 0xc5, 0x8a, 0xe0, 0xad, 0xc3, 0x2c, 0x19, 0x84, 0xc3,
+	0x20, 0xe5, 0x5a, 0x94, 0xb1, 0x1c, 0x79, 0x1e, 0x54, 0x82, 0x30, 0xa5, 0x8d, 0x2a, 0x5f, 0xc0,
+	0xbf, 0xbd, 0x6f, 0xc1, 0x6c, 0x38, 0x4c, 0xa3, 0x61, 0xda, 0x98, 0xe3, 0x70, 0x57, 0x4d, 0xb8,
+	0x87, 0x7c, 0x0e, 0x4b, 0x1e, 0xf4, 0x47, 0x07, 0x96, 0x2d, 0x5b, 0xdc, 0x22, 0x96, 0x6f, 0x40,
+	0xd5, 0x0f, 0x18, 0x94, 0x59, 0x0e, 0xe5, 0x8e, 0x09, 0x65, 0x9f, 0x4d, 0x61, 0xc1, 0xf1, 0x96,
+	0xb0, 0xff, 0xc0, 0x2c, 0x68, 0xd8, 0xff, 0x3f, 0x44, 0x5d, 0x2e, 0x42, 0x5d, 0x79, 0x0b, 0xd4,
+	0xd5, 0x1b, 0xa0, 0xde, 0x83, 0xe5, 0x2f, 0xda, 0x3f, 0x38, 0x7c, 0xd1, 0x0f, 0x3b, 0xa4, 0xbf,
+	0x1f, 0xf4, 0xe8, 0x88, 0xe1, 0x4a, 0x47, 0x67, 0x24, 0x39, 0xe3, 0x08, 0x6a, 0x58, 0x8e, 0xbc,
+	0x26, 0xcc, 0x87, 0xc3, 0xd4, 0x67, 0x3c, 0xd2, 0x83, 0xf2, 0x31, 0xfa, 0x89, 0x03, 0xf3, 0x07,
+	0x54, 0x00, 0xd1, 0x14, 0x73, 0x0c, 0xc5, 0x3e, 0x83, 0xe5, 0x61, 0x3a, 0x0a, 0xb5, 0xbd, 0x1a,
+	0xa5, 0xfb, 0x65, 0x2d, 0x02, 0x2c, 0x24, 0xd8, 0x66, 0x67, 0x10, 0xce, 0xe9, 0x78, 0x7f, 0x40,
+	0x4e, 0xa9, 0x04, 0x97, 0x8f, 0xd1, 0x77, 0xa1, 0xa6, 0x9b, 0xc3, 0xfb, 0x26, 0xe7, 0x15, 0x56,
+	0x73, 0xf8, 0x36, 0xcb, 0x72, 0x9b, 0x0c, 0x28, 0xce, 0x19, 0xd0, 0x3e, 0xb8, 0xe7, 0x54, 0xda,
+	0x66, 0x2a, 0xfe, 0x0f, 0x61, 0x31, 0x0c, 0x68, 0xea, 0x0f, 0x68, 0x34, 0xec, 0x9c, 0x53, 0x11,
+	0xbf, 0x35, 0x6c, 0x12, 0xd1, 0x8f, 0xf2, 0xcc, 0x21, 0xc5, 0x6d, 0x80, 0x8b, 0xa3, 0x61, 0xe7,
+	0x80, 0x8e, 0xd3, 0x11, 0x97, 0x58, 0xc3, 0x8a, 0xe0, 0x6d, 0xf2, 0x9d, 0xe5, 0x89, 0x09, 0x73,
+	0xd4, 0x25, 0xce, 0x1c, 0x11, 0x56, 0x2c, 0x28, 0x82, 0xd5, 0x17, 0x71, 0x38, 0x8c, 0x0a, 0x4e,
+	0xed, 0xbf, 0x63, 0x74, 0xf4, 0x1b, 0x07, 0x16, 0x3f, 0x0f, 0xbb, 0xa4, 0xcf, 0x38, 0xf7, 0x53,
+	0x3a, 0x60, 0x7b, 0x9d, 0x51, 0xff, 0xf4, 0x2c, 0xdf, 0x4b, 0x8c, 0xbc, 0x06, 0xcc, 0xa5, 0x23,
+	0x5f, 0xee, 0xc1, 0x1c, 0x24, 0x1b, 0x1a, 0xbe, 0x53, 0x36, 0x7d, 0x47, 0xf3, 0xb7, 0x8a, 0xe1,
+	0x6f, 0x13, 0xe6, 0xae, 0x16, 0x99, 0xfb, 0x2b, 0x58, 0xc2, 0xf4, 0x82, 0x41, 0x3b, 0xe2, 0x26,
+	0x4d, 0xf2, 0xa8, 0x7b, 0x6d, 0x47, 0x1d, 0x23, 0x78, 0x87, 0xb0, 0x7a, 0x5a, 0x60, 0x3f, 0x69,
+	0x94, 0x7b, 0xd2, 0x28, 0x45, 0x26, 0xc6, 0x85, 0x0b, 0xd1, 0x07, 0xb0, 0x28, 0xc2, 0xfd, 0x80,
+	0x8e, 0x9f, 0x91, 0x94, 0xb0, 0xf8, 0xed, 0x91, 0x94, 0x70, 0xa7, 0xab, 0x61, 0xfe, 0x8d, 0x76,
+	0x60, 0x39, 0x17, 0x29, 0x70, 0x4e, 0x3d, 0xb0, 0x75, 0x98, 0xcd, 0xdd, 0x8b, 0x09, 0x90, 0x23,
+	0xd4, 0x66, 0x8a, 0x26, 0xba, 0xa2, 0x2d, 0xa8, 0x9f, 0x9a, 0x42, 0x13, 0xe9, 0xe9, 0xeb, 0xb6,
+	0x1a, 0x62, 0x1a, 0x4f, 0xf0, 0xa3, 0xa7, 0xb0, 0x8c, 0xe9, 0x85, 0x74, 0xd8, 0x36, 0xb3, 0x92,
+	0xb7, 0x0a, 0x55, 0x6e, 0x2e, 0x69, 0x3b, 0x31, 0x98, 0x96, 0xad, 0xd0, 0x13, 0xa8, 0xed, 0xf0,
+	0xaf, 0x67, 0x34, 0x25, 0x7e, 0x7f, 0xaa, 0x5a, 0xab, 0x50, 0xed, 0x6a, 0xcb, 0xc5, 0x00, 0xbd,
+	0x86, 0x3b, 0x98, 0x46, 0xfd, 0x71, 0x76, 0xd7, 0x72, 0xde, 0xc4, 0xfb, 0x04, 0x6a, 0x44, 0x13,
+	0x2a, 0xb5, 0xca, 0xb2, 0x9e, 0xbe, 0x1f, 0x36, 0x18, 0x11, 0x06, 0x2f, 0x66, 0xf2, 0x98, 0x8a,
+	0xc9, 0xe1, 0x89, 0xe0, 0xf4, 0x9e, 0xc0, 0x52, 0x5f, 0x77, 0xe0, 0xcc, 0x4c, 0x59, 0x6a, 0x34,
+	0xbc, 0x1b, 0x5b, 0xbc, 0xe8, 0x4b, 0x58, 0xc5, 0xb4, 0x4b, 0xfd, 0x28, 0x35, 0xe3, 0xba, 0xd8,
+	0x4e, 0x6f, 0x1b, 0xcf, 0xbf, 0x70, 0x60, 0x51, 0xaa, 0x7d, 0x78, 0xc2, 0x36, 0xf5, 0x76, 0xc0,
+	0x15, 0x3a, 0xbd, 0x22, 0x91, 0x04, 0xfa, 0x81, 0xa1, 0xb9, 0x64, 0x94, 0xa3, 0x57, 0x24, 0xda,
+	0x0b, 0xd2, 0x78, 0x8c, 0xd5, 0xaa, 0xe6, 0x13, 0x58, 0x32, 0x27, 0xbd, 0x3a, 0x94, 0x99, 0x4b,
+	0x89, 0x33, 0x61, 0x9f, 0x0c, 0x3e, 0xbf, 0xfa, 0xb3, 0x03, 0xe1, 0x83, 0xc7, 0xa5, 0x4f, 0x1d,
+	0xf4, 0x6b, 0x07, 0xea, 0xed, 0x2c, 0x60, 0x32, 0x54, 0xcf, 0x64, 0x54, 0x25, 0x0a, 0xd5, 0x03,
+	0x89, 0xca, 0xe6, 0x15, 0x84, 0x44, 0x01, 0xcb, 0x17, 0x32, 0x60, 0xe6, 0xa4, 0x0e, 0xcc, 0x2d,
+	0x00, 0xe6, 0xea, 0xc0, 0x0e, 0x60, 0xcd, 0x8a, 0xbe, 0xed, 0xa3, 0xd8, 0x17, 0x31, 0x23, 0x53,
+	0x88, 0x90, 0x53, 0x74, 0x65, 0x95, 0xac, 0x2b, 0xeb, 0xe7, 0x0e, 0x2c, 0x65, 0x37, 0x81, 0x12,
+	0x53, 0xe8, 0xbb, 0xcf, 0xa7, 0xe5, 0xd0, 0x8d, 0xe2, 0x1c, 0x2a, 0xc4, 0x5d, 0x7f, 0x7d, 0xb9,
+	0xda, 0xf5, 0x75, 0x08, 0xcb, 0xb9, 0x7f, 0x5c, 0x03, 0xa7, 0xf0, 0x1e, 0x72, 0xed, 0xc4, 0xf8,
+	0x02, 0x3c, 0xfd, 0x3e, 0x94, 0x32, 0x3f, 0x9e, 0xb8, 0x15, 0xd7, 0xac, 0x5b, 0x51, 0x82, 0x57,
+	0x77, 0xa3, 0x0f, 0x77, 0x0c, 0xc7, 0x97, 0x92, 0x26, 0xae, 0x35, 0x57, 0xbf, 0xd6, 0xb6, 0x27,
+	0xc3, 0x60, 0xdd, 0x0e, 0x03, 0xb9, 0x93, 0x16, 0x0c, 0xbf, 0x72, 0x60, 0xd5, 0xac, 0x42, 0xd5,
+	0x66, 0xb7, 0x54, 0xff, 0x6d, 0x59, 0x45, 0x5d, 0xb3, 0xa8, 0x3c, 0x92, 0xc8, 0xb2, 0x22, 0xe9,
+	0xef, 0x0e, 0xac, 0x59, 0x15, 0xe9, 0xad, 0xe3, 0xfa, 0xb6, 0x59, 0x97, 0xde, 0x2d, 0xa8, 0xf0,
+	0x24, 0x2a, 0x59, 0xe7, 0xbd, 0x8b, 0x22, 0x7f, 0x63, 0xf6, 0x35, 0x6a, 0xd4, 0x5b, 0xd1, 0xa3,
+	0x5c, 0xa4, 0x47, 0xe5, 0xad, 0xf5, 0xa8, 0xde, 0x58, 0x8f, 0x9f, 0x96, 0x72, 0x9f, 0x14, 0xed,
+	0x99, 0x54, 0x63, 0x6f, 0x4a, 0x93, 0x76, 0xaf, 0xb0, 0x49, 0x13, 0x8b, 0x0a, 0x5a, 0xb5, 0x97,
+	0xd3, 0x5a, 0xb5, 0x8d, 0xe2, 0x56, 0x2d, 0x17, 0x34, 0xd1, 0xb0, 0xed, 0x4d, 0x69, 0xd8, 0xee,
+	0x15, 0x36, 0x6c, 0x1a, 0xa0, 0x1b, 0xb6, 0x6d, 0x7f, 0x71, 0x00, 0xd8, 0xfd, 0x3d, 0xec, 0x30,
+	0x2c, 0xe6, 0x31, 0x96, 0xa7, 0x1f, 0x63, 0xe5, 0x5a, 0x77, 0x5c, 0x87, 0xd9, 0x84, 0x06, 0x3d,
+	0x1a, 0x73, 0x7f, 0x74, 0xb1, 0x1c, 0xb1, 0xe4, 0x3c, 0xf0, 0x47, 0x7e, 0xc0, 0x9d, 0xae, 0x8a,
+	0xc5, 0xc0, 0x7b, 0x1f, 0x40, 0x64, 0x9d, 0x88, 0xf8, 0x71, 0x63, 0x9e, 0xaf, 0xd0, 0x28, 0x4c,
+	0x1a, 0x1d, 0x45, 0x7e, 0x4c, 0x1b, 0xae, 0xd8, 0x59, 0x8c, 0x72, 0xf8, 0xb1, 0xff, 0x7f, 0x09,
+	0xff, 0xcf, 0x1a, 0xfc, 0x61, 0x87, 0xa5, 0xf7, 0x98, 0x15, 0x0a, 0x97, 0x34, 0x96, 0x31, 0x94,
+	0x8f, 0x4d, 0xd5, 0x4a, 0xd3, 0x55, 0x2b, 0x17, 0xaa, 0x56, 0x29, 0x54, 0xad, 0x5a, 0xac, 0xda,
+	0xac, 0xae, 0x9a, 0x82, 0x3e, 0x67, 0x40, 0xff, 0xab, 0xc3, 0xeb, 0xe6, 0xdd, 0x98, 0x92, 0x94,
+	0xf2, 0x6a, 0xe9, 0x7f, 0x63, 0x7d, 0x51, 0x03, 0x4a, 0xeb, 0xf3, 0xc1, 0x3b, 0x5b, 0xff, 0x4b,
+	0xf0, 0xf4, 0xda, 0xf1, 0xe8, 0xfc, 0x88, 0x71, 0x3f, 0x80, 0xa5, 0xe4, 0x2c, 0x7c, 0x73, 0x3c,
+	0xec, 0x76, 0x69, 0x92, 0x9c, 0x0c, 0xfb, 0xfc, 0x28, 0xe6, 0xb1, 0x45, 0xb5, 0x76, 0xad, 0xd8,
+	0xbb, 0xa2, 0xcf, 0x58, 0xd5, 0xc7, 0x0b, 0xe3, 0x16, 0xe9, 0x6f, 0xef, 0xf4, 0x7a, 0xb1, 0xa8,
+	0x8e, 0x3d, 0xa8, 0x90, 0x5e, 0x2f, 0x3b, 0x60, 0xfe, 0xad, 0x2a, 0xc1, 0x92, 0x56, 0x09, 0xa2,
+	0xef, 0x9b, 0xb5, 0x6d, 0x8b, 0xf4, 0x49, 0xd0, 0xa5, 0xde, 0x7d, 0x58, 0x90, 0x17, 0xb5, 0x26,
+	0x47, 0x27, 0xb1, 0x36, 0xaa, 0x23, 0x98, 0x65, 0xbe, 0xcd, 0x86, 0xe8, 0xf7, 0xa5, 0xfc, 0x8d,
+	0xe1, 0x59, 0xeb, 0x38, 0x0d, 0x63, 0x6a, 0x95, 0x3e, 0xaa, 0x7b, 0x7a, 0x37, 0x87, 0x13, 0x05,
+	0xd3, 0xbe, 0xd5, 0xe3, 0x8b, 0xea, 0x05, 0x41, 0x2d, 0x1d, 0xe5, 0xad, 0x0e, 0x96, 0xed, 0x98,
+	0x41, 0xf3, 0x3e, 0x82, 0xba, 0xd4, 0x24, 0x27, 0x72, 0x1f, 0xa8, 0xe1, 0x09, 0x3a, 0xb3, 0x5a,
+	0xf8, 0x26, 0xa0, 0x31, 0xf7, 0x06, 0x17, 0x8b, 0x81, 0xd6, 0x5b, 0xce, 0x4f, 0xeb, 0x2d, 0x5d,
+	0xb3, 0xb7, 0xdc, 0x00, 0xb7, 0xd3, 0x0f, 0xbb, 0xe7, 0xdc, 0x08, 0x20, 0xfa, 0xeb, 0x9c, 0x80,
+	0x5e, 0x43, 0x85, 0xd7, 0xaf, 0xd3, 0x8a, 0xa9, 0x4d, 0x70, 0x59, 0x99, 0xd6, 0x22, 0x89, 0xdf,
+	0x95, 0x59, 0xbe, 0xae, 0x55, 0x75, 0x9c, 0x8e, 0x15, 0x0b, 0x8a, 0x60, 0x89, 0xd1, 0x5f, 0x92,
+	0x4b, 0xda, 0x1e, 0xbd, 0x64, 0x96, 0xbe, 0xa2, 0x91, 0x4b, 0x39, 0x87, 0x34, 0xbf, 0x1c, 0x99,
+	0x3b, 0x96, 0xaf, 0xdf, 0xf1, 0x23, 0xa8, 0x8a, 0x00, 0xfd, 0x1a, 0x54, 0x19, 0x35, 0xeb, 0x5e,
+	0x16, 0xb4, 0x45, 0x58, 0xcc, 0x20, 0x2c, 0x9e, 0x73, 0x14, 0xba, 0xc4, 0x7b, 0x2a, 0x8a, 0x57,
+	0x8d, 0x64, 0x15, 0x7e, 0xe6, 0x02, 0x6c, 0x73, 0xa3, 0x13, 0x16, 0x67, 0x17, 0xf6, 0x7b, 0xc3,
+	0xd5, 0x15, 0x43, 0x13, 0xe6, 0x07, 0xfe, 0x68, 0x37, 0xaf, 0x19, 0xaa, 0x38, 0x1f, 0x1b, 0xbe,
+	0x57, 0xd6, 0x3a, 0xc9, 0x04, 0xdc, 0x5c, 0xff, 0xa2, 0x67, 0x0b, 0xc7, 0x78, 0x2d, 0xbd, 0xf6,
+	0xad, 0x48, 0x55, 0xc9, 0x47, 0x45, 0xaf, 0x35, 0x82, 0x88, 0x30, 0xd4, 0x79, 0xa7, 0xc7, 0xcb,
+	0xf6, 0x9d, 0x81, 0x05, 0xd0, 0x3c, 0xd0, 0x07, 0x99, 0xfd, 0xcd, 0xb6, 0x4e, 0x1d, 0x9a, 0x3c,
+	0x84, 0x5f, 0x3a, 0xcc, 0x62, 0xc9, 0xed, 0x59, 0x6c, 0x17, 0xea, 0x4c, 0xb2, 0x0e, 0x92, 0xdb,
+	0x6e, 0x61, 0xeb, 0x3d, 0x0d, 0x83, 0x3e, 0x8d, 0x27, 0x16, 0xa0, 0xdf, 0x3a, 0xb0, 0xf2, 0x9c,
+	0xf9, 0xd1, 0x31, 0xfb, 0xb3, 0x1f, 0x1c, 0x06, 0xb4, 0x3d, 0xba, 0xbe, 0xf0, 0x93, 0x89, 0xbc,
+	0x64, 0x24, 0x72, 0x95, 0x92, 0xcb, 0x7a, 0x4a, 0xb6, 0x9e, 0x72, 0x54, 0x1f, 0x96, 0x7b, 0x6e,
+	0x75, 0xaa, 0xe7, 0xfe, 0x10, 0x6a, 0x98, 0x92, 0x7e, 0xfe, 0x88, 0x88, 0xa0, 0x16, 0x53, 0xd2,
+	0xe7, 0x35, 0x62, 0xd6, 0x20, 0x56, 0xb1, 0x41, 0x63, 0xb9, 0x3e, 0xeb, 0x79, 0x62, 0xff, 0x52,
+	0x9d, 0xb1, 0x45, 0x45, 0xdb, 0x00, 0xf9, 0x21, 0x25, 0xea, 0x18, 0x9d, 0xab, 0x8f, 0xf1, 0x1f,
+	0x25, 0x58, 0x17, 0xf7, 0x63, 0x5b, 0xfd, 0x3e, 0xb0, 0x4b, 0xba, 0x67, 0x54, 0x6f, 0x5a, 0x6b,
+	0xa2, 0x69, 0x7d, 0x1f, 0xa0, 0xcb, 0x79, 0xd9, 0xbe, 0x32, 0x6d, 0x6b, 0x14, 0x76, 0xbc, 0x89,
+	0x7f, 0x1a, 0xf0, 0x59, 0x61, 0xb3, 0x7c, 0xcc, 0xad, 0x9c, 0x92, 0x74, 0x98, 0xc8, 0x94, 0x2b,
+	0x47, 0xde, 0x36, 0x2c, 0x68, 0xbf, 0x4c, 0xc8, 0xf2, 0xd8, 0xcb, 0x9a, 0x6e, 0x35, 0x83, 0x75,
+	0xb6, 0xa9, 0x97, 0xef, 0x27, 0xc2, 0xa0, 0x79, 0xf7, 0x37, 0x67, 0xbc, 0xa9, 0xe8, 0xb6, 0xc7,
+	0x06, 0xa3, 0xf7, 0xf5, 0xcc, 0x5e, 0xf3, 0x7c, 0xc5, 0x8a, 0x6d, 0xaf, 0x44, 0x1a, 0xcc, 0xf4,
+	0x25, 0xd7, 0xf2, 0x25, 0xd4, 0x12, 0x05, 0x07, 0xb3, 0x5f, 0x7b, 0xf4, 0xb9, 0x9f, 0xa4, 0x85,
+	0x57, 0xe9, 0x95, 0xd7, 0x16, 0xfa, 0x14, 0xea, 0xfc, 0x4a, 0xd5, 0xa5, 0x7c, 0x08, 0xe5, 0x74,
+	0x94, 0x1d, 0x66, 0x91, 0x75, 0xd8, 0x34, 0xda, 0x83, 0x15, 0xf5, 0xce, 0xb5, 0xd3, 0x15, 0x95,
+	0xc7, 0xd5, 0xce, 0x9f, 0xc1, 0x2b, 0x29, 0x78, 0xe8, 0xc7, 0x3c, 0x17, 0x1e, 0x59, 0x72, 0x6e,
+	0x5c, 0x13, 0xb0, 0xcb, 0xbf, 0xe7, 0x27, 0x51, 0x9f, 0x8c, 0x07, 0x61, 0x8f, 0xca, 0xa7, 0x50,
+	0x9d, 0x84, 0xbe, 0xb2, 0x5e, 0xc4, 0xe4, 0x16, 0x48, 0x39, 0x2d, 0xf3, 0x82, 0x9a, 0x76, 0x08,
+	0xb9, 0xfd, 0x11, 0x54, 0x4f, 0x64, 0x7e, 0x2a, 0xe0, 0xe1, 0x53, 0x37, 0x00, 0xf0, 0x8a, 0x01,
+	0x90, 0x85, 0xa1, 0xb4, 0x33, 0xbb, 0xad, 0xaf, 0xb6, 0x55, 0x03, 0xe6, 0x58, 0xa0, 0xab, 0x10,
+	0xcc, 0x86, 0xe8, 0x9f, 0x0e, 0xdc, 0xd5, 0x5e, 0x18, 0xd5, 0xb9, 0xf0, 0xc3, 0xbb, 0x5a, 0x2a,
+	0x82, 0x1a, 0x73, 0x5e, 0x4c, 0xbb, 0x97, 0xcf, 0xfb, 0xe4, 0x54, 0xe6, 0x45, 0x83, 0xc6, 0x24,
+	0xf4, 0xfc, 0x98, 0x8a, 0x10, 0x11, 0xea, 0x28, 0x82, 0xaa, 0x38, 0x2b, 0x7a, 0xc5, 0xe9, 0x41,
+	0xe5, 0x24, 0x0e, 0x07, 0x59, 0xcd, 0xca, 0xbe, 0x99, 0x06, 0xec, 0xdc, 0x68, 0x92, 0xc8, 0xb8,
+	0xc9, 0x86, 0x2c, 0xb4, 0x13, 0x4a, 0x7b, 0x32, 0xb1, 0xcd, 0x71, 0xf5, 0x34, 0x0a, 0x7a, 0xcc,
+	0x1d, 0x1b, 0xd3, 0xa4, 0x4b, 0x82, 0x2f, 0xb8, 0x91, 0x57, 0xa1, 0xca, 0x16, 0x0b, 0xa7, 0x74,
+	0xb1, 0x18, 0xf0, 0x5d, 0x95, 0x16, 0xfc, 0x1b, 0x3d, 0x82, 0x65, 0x4c, 0x23, 0xb1, 0x16, 0xd3,
+	0x64, 0xd8, 0x2f, 0x76, 0xa6, 0xa2, 0xa5, 0x67, 0x6c, 0xdb, 0x48, 0xdf, 0x36, 0xe3, 0x72, 0x14,
+	0x97, 0xd7, 0x82, 0x7a, 0x6c, 0x6e, 0x90, 0x58, 0xcf, 0x31, 0xd6, 0xfe, 0x78, 0x82, 0x1f, 0x3d,
+	0x64, 0x51, 0x77, 0xb1, 0x17, 0x90, 0x4e, 0x9f, 0x66, 0x3f, 0xc8, 0xe5, 0x2a, 0x96, 0x34, 0x15,
+	0xd1, 0x3e, 0xff, 0xed, 0x83, 0x15, 0xcb, 0x57, 0x2b, 0xb3, 0x9f, 0x1c, 0x1e, 0x70, 0x65, 0xe6,
+	0x31, 0xff, 0x66, 0x09, 0x75, 0x90, 0x9c, 0xca, 0xae, 0x83, 0x7d, 0xa2, 0x16, 0x0f, 0x75, 0x73,
+	0xd3, 0x4d, 0x98, 0x8b, 0xa5, 0x0e, 0xe6, 0x03, 0xae, 0xb1, 0x29, 0xce, 0x98, 0xd0, 0xef, 0xd4,
+	0xbb, 0xcd, 0xb1, 0x7f, 0x1a, 0x90, 0x74, 0x18, 0xd3, 0x23, 0x12, 0x93, 0x01, 0x3b, 0x53, 0xe1,
+	0x85, 0xed, 0x71, 0x44, 0xa5, 0xc1, 0x34, 0x8a, 0xf7, 0x31, 0x00, 0x8b, 0xa9, 0x0e, 0xcf, 0x6f,
+	0xd2, 0x60, 0x05, 0x89, 0x4f, 0x63, 0xf2, 0x1e, 0xc1, 0x62, 0xac, 0x25, 0xd1, 0x44, 0xde, 0xd0,
+	0x85, 0x09, 0xd6, 0xe4, 0xdc, 0xfa, 0x53, 0x19, 0xe6, 0xb4, 0x9f, 0x78, 0x8f, 0xcf, 0xc2, 0x37,
+	0x12, 0x36, 0x8b, 0xbc, 0x7a, 0x2e, 0xe1, 0xe2, 0x38, 0x8d, 0xfd, 0xe0, 0xb4, 0x79, 0x57, 0x1d,
+	0x9d, 0xd5, 0xfe, 0xa0, 0x19, 0x76, 0x6b, 0xe8, 0x5d, 0xdd, 0x9a, 0x5a, 0xad, 0x91, 0x9b, 0x35,
+	0x5d, 0x04, 0x9a, 0xf1, 0x1e, 0xc1, 0xea, 0x2b, 0x72, 0x4e, 0xdb, 0x23, 0xeb, 0x47, 0xe0, 0x15,
+	0xb5, 0x5c, 0x3e, 0x32, 0x4c, 0x2c, 0x7d, 0x0c, 0x6b, 0x72, 0xa9, 0xf5, 0xa3, 0xad, 0xbe, 0x56,
+	0x74, 0xf8, 0x57, 0x6c, 0x6b, 0xfe, 0x72, 0x6a, 0x2f, 0x1d, 0x76, 0x26, 0x96, 0x7e, 0x0f, 0x16,
+	0x74, 0xe7, 0xd7, 0xf4, 0xd4, 0xc8, 0xcd, 0x35, 0xdb, 0xcb, 0x39, 0x19, 0xcd, 0x78, 0xbb, 0xb0,
+	0x68, 0x3a, 0xd7, 0x7b, 0x4a, 0x80, 0x31, 0xd1, 0x54, 0x13, 0xa6, 0x3b, 0xa2, 0x99, 0xce, 0x2c,
+	0xff, 0x6f, 0x81, 0xef, 0xfc, 0x3b, 0x00, 0x00, 0xff, 0xff, 0x95, 0xbe, 0xe2, 0xbf, 0x66, 0x20,
+	0x00, 0x00,
 }

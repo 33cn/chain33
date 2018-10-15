@@ -42,8 +42,6 @@ type BlockChain struct {
 	task     *Task
 	forktask *Task
 
-	query *Query
-
 	//记录收到的最新广播的block高度,用于节点追赶active链
 	rcvLastBlockHeight int64
 
@@ -182,8 +180,6 @@ func (chain *BlockChain) SetQueueClient(client queue.Client) {
 	blockStore := NewBlockStore(blockStoreDB, client)
 	chain.blockStore = blockStore
 	stateHash := chain.getStateHash()
-	chain.query = NewQuery(blockStoreDB, chain.client, stateHash)
-
 	//startTime
 	chain.startTime = types.Now()
 

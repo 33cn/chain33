@@ -1,4 +1,4 @@
-package privacy_test
+package wallet_test
 
 import (
 	"fmt"

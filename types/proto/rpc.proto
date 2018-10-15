@@ -94,7 +94,9 @@ service chain33 {
     // Balance Query
     //获取余额
     rpc GetBalance(ReqBalance) returns (Accounts) {}
-    rpc QueryChain(Query) returns (Reply) {}
+    rpc QueryChain(BlockChainQuery) returns (Reply) {}
+    rpc ExecWallet(WalletExecutor) returns (Reply) {}
+
     rpc CreateTransaction(CreateTxIn) returns (UnsignTx) {}
     // Miner
     //设置自动挖矿
@@ -106,7 +108,7 @@ service chain33 {
     rpc GetTicketCount(types.ReqNil) returns (Int64) {}
 
     // 导出私钥
-    rpc DumpPrivkey(ReqStr) returns (ReplyStr) {}
+    rpc DumpPrivkey(ReqString) returns (ReplyString) {}
 
     //获取程序版本
     rpc Version(ReqNil) returns (Reply) {}
@@ -122,23 +124,6 @@ service chain33 {
 
     //获取系统致命故障信息
     rpc GetFatalFailure(types.ReqNil) returns (Int32) {}
-
-    // Privacy Trading
-    // 显示指定地址的公钥对信息，可以作为后续交易参数
-    rpc ShowPrivacyKey(ReqStr) returns (ReplyPrivacyPkPair) {}
-    // 创建一系列UTXO
-    rpc CreateUTXOs(ReqCreateUTXOs) returns (Reply) {}
-    // 将资金从公开到隐私转移
-    rpc MakeTxPublic2Privacy(ReqPub2Pri) returns (Reply) {}
-    // 将资产从隐私到隐私进行转移
-    rpc MakeTxPrivacy2Privacy(ReqPri2Pri) returns (Reply) {}
-    // 将资产从隐私到公开进行转移
-    rpc MakeTxPrivacy2Public(ReqPri2Pub) returns (Reply) {}
-    // 扫描UTXO以及获取扫描UTXO后的状态
-    rpc RescanUtxos(ReqRescanUtxos) returns (RepRescanUtxos) {}
-    // 使能隐私账户
-    rpc EnablePrivacy(ReqEnablePrivacy) returns (RepEnablePrivacy) {}
-    //获取最新的block执行序列
     rpc GetLastBlockSequence(ReqNil) returns (Int64) {}
 
     //获取指定区间的block加载序列号信息

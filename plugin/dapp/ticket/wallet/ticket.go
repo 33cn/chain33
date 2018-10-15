@@ -1,4 +1,4 @@
-package ticket
+package wallet
 
 import (
 	"sync"
@@ -12,15 +12,13 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/db"
 	ty "gitlab.33.cn/chain33/chain33/plugin/dapp/ticket/types"
-	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 	wcom "gitlab.33.cn/chain33/chain33/wallet/common"
 )
 
 var (
 	minerAddrWhiteList = make(map[string]bool)
-
-	bizlog = log15.New("module", "wallet.ticket")
+	bizlog             = log15.New("module", "wallet.ticket")
 )
 
 func init() {
@@ -250,24 +248,6 @@ func (policy *ticketPolicy) checkNeedFlushTicket(tx *types.Transaction, receipt 
 	return policy.needFlushTicket(tx, receipt)
 }
 
-func (policy *ticketPolicy) onCloseTickets(msg *queue.Message) (string, int64, interface{}, error) {
-	topic := "rpc"
-	retty := int64(types.EventReplyHashes)
-	operater := policy.getWalletOperate()
-	reply, err := policy.forceCloseTicket(operater.GetBlockHeight() + 1)
-	if err != nil {
-		bizlog.Error("onCloseTickets", "forceCloseTicket error", err.Error())
-	} else {
-		go func() {
-			if len(reply.Hashes) > 0 {
-				operater.WaitTxs(reply.Hashes)
-				policy.flushTicket()
-			}
-		}()
-	}
-	return topic, retty, reply, err
-}
-
 func (policy *ticketPolicy) forceCloseTicket(height int64) (*types.ReplyHashes, error) {
 	return policy.forceCloseAllTicket(height)
 }
@@ -396,29 +376,6 @@ func (policy *ticketPolicy) getTicketsByStatus(status int32) ([]*ty.Ticket, [][]
 		return nil, nil, types.ErrNoTicket
 	}
 	return tickets, privs, nil
-}
-
-func (policy *ticketPolicy) onWalletGetTickets(msg *queue.Message) (string, int64, interface{}, error) {
-	topic := "rpc"
-	retty := int64(types.EventWalletTickets)
-
-	tickets, privs, err := policy.getTicketsByStatus(1)
-	tks := &ty.ReplyWalletTickets{tickets, privs}
-	return topic, retty, tks, err
-}
-
-func (policy *ticketPolicy) onWalletAutoMiner(msg *queue.Message) (string, int64, interface{}, error) {
-	topic := "rpc"
-	retty := int64(types.EventWalletAutoMiner)
-	req, ok := msg.Data.(*types.MinerFlag)
-	if !ok {
-		bizlog.Error("onWalletAutoMiner", "Invalid data type.", ok)
-		return topic, retty, nil, types.ErrInvalidParam
-	}
-	policy.store.SetAutoMinerFlag(req.Flag)
-	policy.setAutoMining(req.Flag)
-	policy.flushTicket()
-	return topic, retty, &types.Reply{IsOk: true}, nil
 }
 
 func (policy *ticketPolicy) setAutoMining(flag int32) {

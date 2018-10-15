@@ -1,4 +1,4 @@
-package privacy
+package wallet
 
 import (
 	privacy "gitlab.33.cn/chain33/chain33/plugin/dapp/privacy/crypto"
