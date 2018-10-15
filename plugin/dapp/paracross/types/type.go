@@ -8,10 +8,26 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var glog = log.New("module", types.ParaX)
+var (
+	nameX string
+	glog  = log.New("module", types.ParaX)
+
+	/*
+	logInfo = map[int64]*types.LogInfo{
+		TyLogParacrossCommit:  {reflect.TypeOf(ReceiptParacrossCommit{}), "LogParacrossCommit"},
+		TyLogParacrossCommitDone:  {reflect.TypeOf(ReceiptParacrossDone{}), "LogParacrossDone"},
+		TyLogParacrossCommitRecord: {reflect.TypeOf(ReceiptParacrossRecord{}), "LogParacrossCommitRecord"},
+		TyLogParaAssetTransfer: {reflect.TypeOf(types.ReceiptAccountTransfer{}), "LogParacrossAssetTransfer"},
+		TyLogParaAssetWithdraw:   {reflect.TypeOf(types.ReceiptAccountTransfer{}), "LogParacrossAssetWithdraw"},
+		TyLogParacrossMiner:  {reflect.TypeOf(ReceiptParacrossMiner{}), "LogParacrossMiner"},
+		TyLogParaAssetDeposit: {reflect.TypeOf(types.ReceiptAccountTransfer{}), "LogParacrossAssetDeposit"},
+	}*/
+)
+
 
 func init() {
 	// init executor type
+	nameX = types.ExecName(types.ParaX)
 	types.RegistorExecutor(types.ParaX, NewType())
 }
 
@@ -45,8 +61,11 @@ func (t *ParacrossType) GetTypeMap() map[string]int32 {
 	return map[string]int32{
 		"Commit":        ParacrossActionCommit,
 		"Miner":         ParacrossActionMiner,
-		"AssetTransfer": ParacrossActionTransfer,
-		"AssetWithdraw": ParacrossActionWithdraw,
+		"AssetTransfer": ParacrossActionAssetTransfer,
+		"AssetWithdraw": ParacrossActionAssetWithdraw,
+		"Transfer": ParacrossActionTransfer,
+		"Withdraw" : ParacrossActionWithdraw,
+		"TransferToExec" : ParacrossActionTransferToExec,
 	}
 }
 
@@ -73,7 +92,16 @@ func (m ParacrossType) CreateTx(action string, message json.RawMessage) (*types.
 		}
 
 		return CreateRawParacrossCommitTx(&param)
-	} else if action == "ParacrossTransfer" || action == "ParacrossWithdraw" {
+	} else if action == "ParacrossAssetTransfer" || action == "ParacrossAssetWithdraw" {
+		var param types.CreateTx
+		err := json.Unmarshal(message, &param)
+		if err != nil {
+			glog.Error("CreateTx", "Error", err)
+			return nil, types.ErrInputPara
+		}
+		return CreateRawAssetTransferTx(&param)
+
+	} else if action == "ParacrossTransfer" || action == "ParacrossWithdraw" || action == "ParacrossTransferToExec" {
 		var param types.CreateTx
 		err := json.Unmarshal(message, &param)
 		if err != nil {
