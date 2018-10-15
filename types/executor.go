@@ -3,10 +3,15 @@ package types
 import (
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"reflect"
 	"strings"
 	"unicode"
+
+	"gitlab.33.cn/chain33/chain33/common/address"
 )
+
+var random = rand.New(rand.NewSource(Now().UnixNano()))
 
 type LogType interface {
 	Name() string
@@ -63,6 +68,67 @@ func LoadExecutorType(exec string) ExecutorType {
 		return exec
 	}
 	return nil
+}
+
+// 重构完成后删除
+func CallExecNewTx(execName, action string, param interface{}) ([]byte, error) {
+	exec := LoadExecutorType(execName)
+	if exec == nil {
+		tlog.Error("callExecNewTx", "Error", "exec not found")
+		return nil, ErrNotSupport
+	}
+	// param is interface{type, var-nil}, check with nil always fail
+	if reflect.ValueOf(param).IsNil() {
+		tlog.Error("callExecNewTx", "Error", "param in nil")
+		return nil, ErrInvalidParam
+	}
+	jsonStr, err := json.Marshal(param)
+	if err != nil {
+		tlog.Error("callExecNewTx", "Error", err)
+		return nil, err
+	}
+	tx, err := exec.CreateTx(action, json.RawMessage(jsonStr))
+	if err != nil {
+		tlog.Error("callExecNewTx", "Error", err)
+		return nil, err
+	}
+	return formatTx(execName, tx)
+}
+
+func CallCreateTx(execName, action string, param Message) ([]byte, error) {
+	exec := LoadExecutorType(execName)
+	if exec == nil {
+		tlog.Error("callExecNewTx", "Error", "exec not found")
+		return nil, ErrNotSupport
+	}
+	// param is interface{type, var-nil}, check with nil always fail
+	if param == nil {
+		tlog.Error("callExecNewTx", "Error", "param in nil")
+		return nil, ErrInvalidParam
+	}
+	tx, err := exec.Create(action, param)
+	if err != nil {
+		tlog.Error("callExecNewTx", "Error", err)
+		return nil, err
+	}
+	return formatTx(execName, tx)
+}
+
+func formatTx(execName string, tx *Transaction) ([]byte, error) {
+	//填写nonce,execer,to, fee 等信息, 后面会增加一个修改transaction的函数，会加上execer fee 等的修改
+	tx.Nonce = random.Int63()
+	tx.Execer = []byte(execName)
+	//平行链，所有的to地址都是合约地址
+	if IsPara() || tx.To == "" {
+		tx.To = address.ExecAddress(string(tx.Execer))
+	}
+	var err error
+	tx.Fee, err = tx.GetRealFee(MinFee)
+	if err != nil {
+		return nil, err
+	}
+	txbyte := Encode(tx)
+	return txbyte, nil
 }
 
 func RegistorLog(logTy int64, util LogType) {
@@ -170,7 +236,8 @@ type ExecutorType interface {
 	GetViewFromToAddr(tx *Transaction) (string, string)
 	ActionName(tx *Transaction) string
 	//新版本使用create接口，createTx 重构以后就废弃
-	Create(action string, message interface{}) (*Transaction, error)
+	GetAction(action string) (Message, error)
+	Create(action string, message Message) (*Transaction, error)
 	CreateTx(action string, message json.RawMessage) (*Transaction, error)
 	Amount(tx *Transaction) (int64, error)
 	DecodePayload(tx *Transaction) (interface{}, error)
@@ -440,7 +507,7 @@ func (base *ExecTypeBase) AssertCreate(c *CreateTx) (*Transaction, error) {
 	return base.child.CreateTransaction("Transfer", v)
 }
 
-func (base *ExecTypeBase) Create(action string, msg interface{}) (*Transaction, error) {
+func (base *ExecTypeBase) Create(action string, msg Message) (*Transaction, error) {
 	//先判断 FuncList 中有没有符合要求的函数 RPC_{action}
 	if msg == nil {
 		return nil, ErrInvalidParam
@@ -468,16 +535,7 @@ func (base *ExecTypeBase) Create(action string, msg interface{}) (*Transaction, 
 	return nil, ErrActionNotSupport
 }
 
-//重构完成后删除
-func (base *ExecTypeBase) CreateTx(action string, msg json.RawMessage) (*Transaction, error) {
-	//先判断 FuncList 中有没有符合要求的函数 RPC_{action}
-	if action == "" {
-		action = "Default_Process"
-	}
-	funclist := base.GetRPCFuncMap()
-	if method, ok := funclist["RPC_"+action]; ok {
-		return base.callRPC(method, action, msg)
-	}
+func (base *ExecTypeBase) GetAction(action string) (Message, error) {
 	typemap := base.child.GetTypeMap()
 	if _, ok := typemap[action]; ok {
 		tyvalue := reflect.New(base.actionListValueType[action])
@@ -490,20 +548,29 @@ func (base *ExecTypeBase) CreateTx(action string, msg json.RawMessage) (*Transac
 			tlog.Error(action + " tyvalue is not Message")
 			return nil, ErrActionNotSupport
 		}
-		b, err := msg.MarshalJSON()
-		if err != nil {
-			tlog.Error(action + " MarshalJSON  error")
-			return nil, err
-		}
-		err = JsonToPB(b, data)
-		if err != nil {
-			tlog.Error(action + " jsontopb  error")
-			return nil, err
-		}
-		return base.CreateTransaction(action, data)
+		return data, nil
 	}
 	tlog.Error(action + " ErrActionNotSupport")
 	return nil, ErrActionNotSupport
+}
+
+//重构完成后删除
+func (base *ExecTypeBase) CreateTx(action string, msg json.RawMessage) (*Transaction, error) {
+	data, err := base.GetAction(action)
+	if err != nil {
+		return nil, err
+	}
+	b, err := msg.MarshalJSON()
+	if err != nil {
+		tlog.Error(action + " MarshalJSON  error")
+		return nil, err
+	}
+	err = JsonToPB(b, data)
+	if err != nil {
+		tlog.Error(action + " jsontopb  error")
+		return nil, err
+	}
+	return base.CreateTransaction(action, data)
 }
 
 func (base *ExecTypeBase) CreateTransaction(action string, data Message) (tx *Transaction, err error) {

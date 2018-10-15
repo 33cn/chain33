@@ -279,7 +279,7 @@ type ReplyBlkSeq struct {
 	Type int64  `json:"type"`
 }
 
-type TransactionCreate struct {
+type CreateTxIn struct {
 	Execer     string          `json:"execer"`
 	ActionName string          `json:"actionName"`
 	Payload    json.RawMessage `json:"payload"`

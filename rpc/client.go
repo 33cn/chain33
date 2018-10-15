@@ -2,9 +2,7 @@ package rpc
 
 import (
 	"encoding/hex"
-	"encoding/json"
 	"math/rand"
-	"reflect"
 	"time"
 
 	"gitlab.33.cn/chain33/chain33/account"
@@ -20,7 +18,6 @@ import (
 	lotterytype "gitlab.33.cn/chain33/chain33/plugin/dapp/lottery/types"
 	tradetype "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/types"
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
-	tokentype "gitlab.33.cn/chain33/chain33/types/executor/token"
 )
 
 //提供系统rpc接口
@@ -38,79 +35,18 @@ func (c *channelClient) Init(q queue.Client) {
 	executor.Init()
 }
 
-// 重构完成后删除
-func callExecNewTx(execName, action string, param interface{}) ([]byte, error) {
-	exec := types.LoadExecutorType(execName)
-	if exec == nil {
-		log.Error("callExecNewTx", "Error", "exec not found")
-		return nil, types.ErrNotSupport
-	}
-
-	// param is interface{type, var-nil}, check with nil always fail
-	if reflect.ValueOf(param).IsNil() {
-		log.Error("callExecNewTx", "Error", "param in nil")
-		return nil, types.ErrInvalidParam
-	}
-
-	jsonStr, err := json.Marshal(param)
-	if err != nil {
-		log.Error("callExecNewTx", "Error", err)
-		return nil, err
-	}
-
-	tx, err := exec.CreateTx(action, json.RawMessage(jsonStr))
-	if err != nil {
-		log.Error("callExecNewTx", "Error", err)
-		return nil, err
-	}
-
-	txHex := types.Encode(tx)
-	return txHex, nil
-}
-
-func callCreateTx(execName, action string, param interface{}) ([]byte, error) {
-	exec := types.LoadExecutorType(execName)
-	if exec == nil {
-		log.Error("callExecNewTx", "Error", "exec not found")
-		return nil, types.ErrNotSupport
-	}
-
-	// param is interface{type, var-nil}, check with nil always fail
-	if param == nil {
-		log.Error("callExecNewTx", "Error", "param in nil")
-		return nil, types.ErrInvalidParam
-	}
-	tx, err := exec.Create(action, param)
-	if err != nil {
-		log.Error("callExecNewTx", "Error", err)
-		return nil, err
-	}
-	//填写nonce,execer,to, fee 等信息, 后面会增加一个修改transaction的函数，会加上execer fee 等的修改
-	tx.Nonce = random.Int63()
-	tx.Execer = []byte(execName)
-	//平行链，所有的to地址都是合约地址
-	if types.IsPara() || tx.To == "" {
-		tx.To = address.ExecAddress(string(tx.Execer))
-	}
-	tx.Fee, err = tx.GetRealFee(types.MinFee)
-	if err != nil {
-		return nil, err
-	}
-	txHex := types.Encode(tx)
-	return txHex, nil
-}
-
 func (c *channelClient) CreateRawTransaction(param *types.CreateTx) ([]byte, error) {
 	if param == nil {
 		log.Error("CreateRawTransaction", "Error", types.ErrInvalidParam)
 		return nil, types.ErrInvalidParam
 	}
-
+	//因为历史原因，这里还是有部分token 的字段，但是没有依赖token dapp
+	//未来这个调用可能会被废弃
+	execer := types.ExecName(types.CoinsX)
 	if param.IsToken {
-		return callExecNewTx(types.ExecName(types.TokenX), "", param)
-	} else {
-		return callCreateTx(types.ExecName(types.CoinsX), "", param)
+		execer = types.ExecName(types.TokenX)
 	}
+	return types.CallCreateTx(execer, "", param)
 }
 
 func (c *channelClient) CreateRawTxGroup(param *types.CreateTransactionGroup) ([]byte, error) {
@@ -314,48 +250,6 @@ func (c *channelClient) GetAllExecBalance(in *types.ReqAddr) (*types.AllExecBala
 	return allBalance, nil
 }
 
-//TODO:和GetBalance进行泛化处理，同时LoadAccounts和LoadExecAccountQueue也需要进行泛化处理, added by hzj
-func (c *channelClient) GetTokenBalance(in *types.ReqTokenBalance) ([]*types.Account, error) {
-	accountTokendb, err := account.NewAccountDB(types.TokenX, in.GetTokenSymbol(), nil)
-	if err != nil {
-		return nil, err
-	}
-	switch in.GetExecer() {
-	case types.ExecName(types.TokenX):
-		addrs := in.GetAddresses()
-		var queryAddrs []string
-		for _, addr := range addrs {
-			if err := address.CheckAddress(addr); err != nil {
-				addr = string(accountTokendb.AccountKey(addr))
-			}
-			queryAddrs = append(queryAddrs, addr)
-		}
-
-		accounts, err := accountTokendb.LoadAccounts(c.QueueProtocolAPI, queryAddrs)
-		if err != nil {
-			log.Error("GetTokenBalance", "err", err.Error(), "token symbol", in.GetTokenSymbol(), "address", queryAddrs)
-			return nil, err
-		}
-		return accounts, nil
-
-	default: //trade
-		execaddress := address.ExecAddress(in.GetExecer())
-		addrs := in.GetAddresses()
-		var accounts []*types.Account
-		for _, addr := range addrs {
-			acc, err := accountTokendb.LoadExecAccountQueue(c.QueueProtocolAPI, addr, execaddress)
-			if err != nil {
-				log.Error("GetTokenBalance for exector", "err", err.Error(), "token symbol", in.GetTokenSymbol(),
-					"address", addr)
-				continue
-			}
-			accounts = append(accounts, acc)
-		}
-
-		return accounts, nil
-	}
-}
-
 func (c *channelClient) GetTotalCoins(in *types.ReqGetTotalCoins) (*types.ReplyGetTotalCoins, error) {
 	//获取地址账户的余额通过account模块
 	resp, err := c.accountdb.GetTotalCoins(c.QueueProtocolAPI, in)
@@ -365,68 +259,56 @@ func (c *channelClient) GetTotalCoins(in *types.ReqGetTotalCoins) (*types.ReplyG
 	return resp, nil
 }
 
-func (c *channelClient) CreateRawTokenPreCreateTx(parm *tokentype.TokenPreCreateTx) ([]byte, error) {
-	return callExecNewTx(types.ExecName(types.TokenX), "TokenPreCreate", parm)
-}
-
-func (c *channelClient) CreateRawTokenFinishTx(parm *tokentype.TokenFinishTx) ([]byte, error) {
-	return callExecNewTx(types.ExecName(types.TokenX), "TokenFinish", parm)
-}
-
-func (c *channelClient) CreateRawTokenRevokeTx(parm *tokentype.TokenRevokeTx) ([]byte, error) {
-	return callExecNewTx(types.ExecName(types.TokenX), "TokenRevoke", parm)
-}
-
 func (c *channelClient) CreateRawTradeSellTx(parm *tradetype.TradeSellTx) ([]byte, error) {
-	return callExecNewTx(types.ExecName(types.TradeX), "TradeSellLimit", parm)
+	return types.CallExecNewTx(types.ExecName(types.TradeX), "TradeSellLimit", parm)
 }
 
 func (c *channelClient) CreateRawTradeBuyTx(parm *tradetype.TradeBuyTx) ([]byte, error) {
-	return callExecNewTx(types.ExecName(types.TradeX), "TradeBuyMarket", parm)
+	return types.CallExecNewTx(types.ExecName(types.TradeX), "TradeBuyMarket", parm)
 }
 
 func (c *channelClient) CreateRawTradeRevokeTx(parm *tradetype.TradeRevokeTx) ([]byte, error) {
-	return callExecNewTx(types.ExecName(types.TradeX), "TradeSellRevoke", parm)
+	return types.CallExecNewTx(types.ExecName(types.TradeX), "TradeSellRevoke", parm)
 }
 
 func (c *channelClient) CreateRawTradeBuyLimitTx(parm *tradetype.TradeBuyLimitTx) ([]byte, error) {
-	return callExecNewTx(types.ExecName(types.TradeX), "TradeBuyLimit", parm)
+	return types.CallExecNewTx(types.ExecName(types.TradeX), "TradeBuyLimit", parm)
 }
 
 func (c *channelClient) CreateRawTradeSellMarketTx(parm *tradetype.TradeSellMarketTx) ([]byte, error) {
-	return callExecNewTx(types.ExecName(types.TradeX), "TradeSellMarket", parm)
+	return types.CallExecNewTx(types.ExecName(types.TradeX), "TradeSellMarket", parm)
 }
 
 func (c *channelClient) CreateRawTradeRevokeBuyTx(parm *tradetype.TradeRevokeBuyTx) ([]byte, error) {
-	return callExecNewTx(types.ExecName(types.TradeX), "TradeRevokeBuy", parm)
+	return types.CallExecNewTx(types.ExecName(types.TradeX), "TradeRevokeBuy", parm)
 }
 
 func (c *channelClient) CreateRawHashlockLockTx(parm *hashlocktype.HashlockLockTx) ([]byte, error) {
-	return callExecNewTx(types.ExecName(types.HashlockX), "HashlockLock", parm)
+	return types.CallExecNewTx(types.ExecName(types.HashlockX), "HashlockLock", parm)
 }
 
 func (c *channelClient) CreateRawHashlockUnlockTx(parm *hashlocktype.HashlockUnlockTx) ([]byte, error) {
-	return callExecNewTx(types.ExecName(types.HashlockX), "HashlockUnlock", parm)
+	return types.CallExecNewTx(types.ExecName(types.HashlockX), "HashlockUnlock", parm)
 }
 
 func (c *channelClient) CreateRawHashlockSendTx(parm *hashlocktype.HashlockSendTx) ([]byte, error) {
-	return callExecNewTx(types.ExecName(types.HashlockX), "HashlockSend", parm)
+	return types.CallExecNewTx(types.ExecName(types.HashlockX), "HashlockSend", parm)
 }
 
 func (c *channelClient) CreateRawLotteryCreateTx(parm *lotterytype.LotteryCreateTx) ([]byte, error) {
-	return callExecNewTx(types.ExecName(types.LotteryX), "LotteryCreate", parm)
+	return types.CallExecNewTx(types.ExecName(types.LotteryX), "LotteryCreate", parm)
 }
 
 func (c *channelClient) CreateRawLotteryBuyTx(parm *lotterytype.LotteryBuyTx) ([]byte, error) {
-	return callExecNewTx(types.ExecName(types.LotteryX), "LotteryBuy", parm)
+	return types.CallExecNewTx(types.ExecName(types.LotteryX), "LotteryBuy", parm)
 }
 
 func (c *channelClient) CreateRawLotteryDrawTx(parm *lotterytype.LotteryDrawTx) ([]byte, error) {
-	return callExecNewTx(types.ExecName(types.LotteryX), "LotteryDraw", parm)
+	return types.CallExecNewTx(types.ExecName(types.LotteryX), "LotteryDraw", parm)
 }
 
 func (c *channelClient) CreateRawLotteryCloseTx(parm *lotterytype.LotteryCloseTx) ([]byte, error) {
-	return callExecNewTx(types.ExecName(types.LotteryX), "LotteryClose", parm)
+	return types.CallExecNewTx(types.ExecName(types.LotteryX), "LotteryClose", parm)
 }
 
 func (c *channelClient) BindMiner(param *types.ReqBindMiner) (*types.ReplyBindMiner, error) {

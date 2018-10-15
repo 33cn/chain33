@@ -9,23 +9,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-func tokenPayloadType(funcname string) (proto.Message, error) {
-	var req proto.Message
-	switch funcname {
-	case "GetTokens":
-		req = &types.ReqTokens{}
-	case "GetTokenInfo":
-		req = &types.ReqString{}
-	//case "GetAddrReceiverforTokens":
-	//	req = &types.ReqAddrTokens{}
-	case "GetAccountTokenAssets":
-		req = &types.ReqAccountTokenAssets{}
-	default:
-		return nil, types.ErrInputPara
-	}
-	return req, nil
-}
-
 func coinsPayloadType(funcname string) (proto.Message, error) {
 	var req proto.Message
 	switch funcname {
@@ -97,31 +80,8 @@ func relayPayloadType(funcname string) (proto.Message, error) {
 	return req, nil
 }
 
-//func lotteryPayloadType(funcname string) (proto.Message, error) {
-//	var req proto.Message
-//	switch funcname {
-//	case "GetLotteryNormalInfo":
-//		req = &types.ReqLotteryInfo{}
-//	case "GetLotteryCurrentInfo":
-//		req = &types.ReqLotteryInfo{}
-//	case "GetLotteryHistoryLuckyNumber":
-//		req = &types.ReqLotteryInfo{}
-//	case "GetLotteryRoundLuckyNumber":
-//		req = &types.ReqLotteryLuckyInfo{}
-//	case "GetLotteryHistoryBuyInfo":
-//		req = &types.ReqLotteryBuyHistory{}
-//	case "GetLotteryBuyRoundInfo":
-//		req = &types.ReqLotteryBuyInfo{}
-//	default:
-//		return nil, types.ErrInputPara
-//	}
-//	return req, nil
-//}
-
 func payloadType(execer, funcname string) (proto.Message, error) {
 	switch execer {
-	case types.ExecName(types.TokenX): // D
-		return tokenPayloadType(funcname)
 	case types.ExecName(types.CoinsX): // D
 		return coinsPayloadType(funcname)
 	case types.ExecName(types.ManageX): // D

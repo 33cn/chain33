@@ -1,34 +1,11 @@
 package rpc
 
 import (
-	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"gitlab.33.cn/chain33/chain33/types"
 )
-
-func TestTokenPayloadType(t *testing.T) {
-	msg, err := tokenPayloadType("GetTokens")
-	assert.Equal(t, &types.ReqTokens{}, msg)
-	assert.Nil(t, err)
-
-	msg, err = tokenPayloadType("GetTokenInfo")
-	assert.Equal(t, &types.ReqString{}, msg)
-	assert.Nil(t, err)
-
-	//msg, err = tokenPayloadType("GetAddrReceiverforTokens")
-	//assert.Equal(t, &types.ReqAddrTokens{}, msg)
-	//assert.Nil(t, err)
-
-	msg, err = tokenPayloadType("GetAccountTokenAssets")
-	assert.Equal(t, &types.ReqAccountTokenAssets{}, msg)
-	assert.Nil(t, err)
-
-	msg, err = tokenPayloadType("wzw")
-	assert.Nil(t, msg)
-	assert.Equal(t, err, types.ErrInputPara)
-}
 
 func TestCoinsPayloadType(t *testing.T) {
 	msg, err := coinsPayloadType("GetAddrReciver")
@@ -107,11 +84,7 @@ func TestTicketPayloadType(t *testing.T) {
 //}
 
 func TestPayloadType(t *testing.T) {
-	msg, err := payloadType(types.ExecName(types.TokenX), "GetTokens")
-	assert.Equal(t, &types.ReqTokens{}, msg)
-	assert.Nil(t, err)
-
-	msg, err = payloadType(types.ExecName(types.CoinsX), "GetAddrReciver")
+	msg, err := payloadType(types.ExecName(types.CoinsX), "GetAddrReciver")
 	assert.Equal(t, &types.ReqAddr{}, msg)
 	assert.Nil(t, err)
 
@@ -130,32 +103,4 @@ func TestPayloadType(t *testing.T) {
 	msg, err = payloadType(types.ExecName("wzw"), "wzw")
 	assert.Nil(t, msg)
 	assert.Equal(t, err, types.ErrInputPara)
-}
-
-func TestProtoPayload(t *testing.T) {
-	msg, err := protoPayload(types.ExecName(types.TokenX), "GetTokens", nil)
-	assert.Equal(t, types.ErrInputPara, err)
-	assert.Nil(t, msg)
-
-	var tokens = make([]string, 1)
-	tokens[0] = "CNY"
-	var token = &types.ReqTokens{
-		QueryAll: true,
-		Status:   1,
-		Tokens:   tokens,
-	}
-
-	data, err := json.Marshal(token)
-	assert.Nil(t, err)
-	assert.NotNil(t, data)
-
-	d := json.RawMessage(data)
-	msg, err = protoPayload(types.ExecName(types.TokenX), "GetTokens", &d)
-	assert.NotNil(t, data)
-	assert.Nil(t, err)
-
-	msg, err = protoPayload("wzw", "wzw", nil)
-	assert.Equal(t, types.ErrInputPara, err)
-	assert.Nil(t, msg)
-
 }

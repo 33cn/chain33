@@ -393,12 +393,3 @@ func (c *Blackwhite) GetFuncMap() map[string]reflect.Method {
 func (c *Blackwhite) GetPayloadValue() types.Message {
 	return &gt.BlackwhiteAction{}
 }
-
-func (c *Blackwhite) GetTypeMap() map[string]int32 {
-	return map[string]int32{
-		"Create":      gt.BlackwhiteActionCreate,
-		"Play":        gt.BlackwhiteActionPlay,
-		"Show":        gt.BlackwhiteActionShow,
-		"TimeoutDone": gt.BlackwhiteActionTimeoutDone,
-	}
-}

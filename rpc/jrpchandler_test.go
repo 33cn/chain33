@@ -20,7 +20,6 @@ import (
 
 	"gitlab.33.cn/chain33/chain33/types"
 	_ "gitlab.33.cn/chain33/chain33/types/executor"
-	tokentype "gitlab.33.cn/chain33/chain33/types/executor/token"
 )
 
 func TestDecodeUserWrite(t *testing.T) {
@@ -487,78 +486,6 @@ func TestDecodeLogTicketBind(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, result)
 	assert.Equal(t, "LogTicketBind", result.Logs[0].TyName)
-}
-
-func TestDecodeLogPreCreateToken(t *testing.T) {
-	var logTmp = &types.ReceiptToken{}
-
-	dec := types.Encode(logTmp)
-
-	strdec := hex.EncodeToString(dec)
-	rlog := &rpctypes.ReceiptLog{
-		Ty:  types.TyLogPreCreateToken,
-		Log: "0x" + strdec,
-	}
-
-	logs := []*rpctypes.ReceiptLog{}
-	logs = append(logs, rlog)
-
-	var data = &rpctypes.ReceiptData{
-		Ty:   5,
-		Logs: logs,
-	}
-	result, err := DecodeLog([]byte("token"), data)
-	assert.Nil(t, err)
-	assert.NotNil(t, result)
-	assert.Equal(t, "LogPreCreateToken", result.Logs[0].TyName)
-}
-
-func TestDecodeLogFinishCreateToken(t *testing.T) {
-	var logTmp = &types.ReceiptToken{}
-
-	dec := types.Encode(logTmp)
-
-	strdec := hex.EncodeToString(dec)
-	rlog := &rpctypes.ReceiptLog{
-		Ty:  types.TyLogFinishCreateToken,
-		Log: "0x" + strdec,
-	}
-
-	logs := []*rpctypes.ReceiptLog{}
-	logs = append(logs, rlog)
-
-	var data = &rpctypes.ReceiptData{
-		Ty:   5,
-		Logs: logs,
-	}
-	result, err := DecodeLog([]byte("token"), data)
-	assert.Nil(t, err)
-	assert.NotNil(t, result)
-	assert.Equal(t, "LogFinishCreateToken", result.Logs[0].TyName)
-}
-
-func TestDecodeLogRevokeCreateToken(t *testing.T) {
-	var logTmp = &types.ReceiptToken{}
-
-	dec := types.Encode(logTmp)
-
-	strdec := hex.EncodeToString(dec)
-	rlog := &rpctypes.ReceiptLog{
-		Ty:  types.TyLogRevokeCreateToken,
-		Log: "0x" + strdec,
-	}
-
-	logs := []*rpctypes.ReceiptLog{}
-	logs = append(logs, rlog)
-
-	var data = &rpctypes.ReceiptData{
-		Ty:   5,
-		Logs: logs,
-	}
-	result, err := DecodeLog([]byte("token"), data)
-	assert.Nil(t, err)
-	assert.NotNil(t, result)
-	assert.Equal(t, "LogRevokeCreateToken", result.Logs[0].TyName)
 }
 
 func TestDecodeLogTradeSellLimit(t *testing.T) {
@@ -1174,67 +1101,6 @@ func TestChain33_QueryTransactionOk(t *testing.T) {
 	mock.AssertExpectationsForObjects(t, api)
 }
 
-func TestChain33_GetTxByHashesOk(t *testing.T) {
-	var act = &types.TokenAction{
-		Ty: 1,
-	}
-	payload := types.Encode(act)
-	var tx = &types.Transaction{
-		Execer:  []byte(types.ExecName(types.TokenX)),
-		Payload: payload,
-	}
-
-	var logTmp = &types.ReceiptAccountTransfer{}
-
-	dec := types.Encode(logTmp)
-
-	strdec := hex.EncodeToString(dec)
-	strdec = "0x" + strdec
-
-	rlog := &types.ReceiptLog{
-		Ty:  types.TyLogTransfer,
-		Log: []byte(strdec),
-	}
-
-	logs := []*types.ReceiptLog{}
-	logs = append(logs, rlog)
-
-	var rdata = &types.ReceiptData{
-		Ty:   5,
-		Logs: logs,
-	}
-	detail := &types.TransactionDetail{
-		Tx:      tx,
-		Receipt: rdata,
-		Height:  10,
-	}
-
-	reply := &types.TransactionDetails{}
-	reply.Txs = append(reply.Txs, detail)
-
-	api := new(mocks.QueueProtocolAPI)
-	testChain33 := newTestChain33(api)
-
-	var parm types.ReqHashes
-	parm.Hashes = make([][]byte, 0)
-	hashs := make([]string, 0)
-	hashs = append(hashs, "")
-	data := rpctypes.ReqHashes{Hashes: hashs}
-	hb, _ := common.FromHex(data.Hashes[0])
-	parm.Hashes = append(parm.Hashes, hb)
-
-	api.On("GetTransactionByHash", &parm).Return(reply, nil)
-	var testResult interface{}
-
-	err := testChain33.GetTxByHashes(data, &testResult)
-	t.Log(err)
-	assert.Nil(t, err)
-	assert.Equal(t, testResult.(*rpctypes.TransactionDetails).Txs[0].Height, reply.Txs[0].Height)
-	assert.Equal(t, testResult.(*rpctypes.TransactionDetails).Txs[0].Tx.Execer, string(tx.Execer))
-
-	mock.AssertExpectationsForObjects(t, api)
-}
-
 func TestChain33_GetBlocks(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 	api.On("GetBlocks", &types.ReqBlocks{Pid: []string{""}}).Return(nil, errors.New("error value"))
@@ -1245,57 +1111,6 @@ func TestChain33_GetBlocks(t *testing.T) {
 	t.Log(err)
 	assert.Equal(t, nil, testResult)
 	assert.NotNil(t, err)
-
-	mock.AssertExpectationsForObjects(t, api)
-}
-
-func TestChain33_GetBlocksOk(t *testing.T) {
-	var act = &types.TokenAction{
-		Ty: 1,
-	}
-	payload := types.Encode(act)
-	var tx = &types.Transaction{
-		Execer:  []byte(types.ExecName(types.TokenX)),
-		Payload: payload,
-	}
-
-	var logTmp = &types.ReceiptAccountTransfer{}
-	dec := types.Encode(logTmp)
-	strdec := hex.EncodeToString(dec)
-	strdec = "0x" + strdec
-	rlog := &types.ReceiptLog{
-		Ty:  types.TyLogTransfer,
-		Log: []byte(strdec),
-	}
-	logs := []*types.ReceiptLog{}
-	logs = append(logs, rlog)
-
-	var rdata = &types.ReceiptData{
-		Ty:   5,
-		Logs: logs,
-	}
-
-	var block = &types.Block{
-		TxHash: []byte(""),
-		Txs:    []*types.Transaction{tx},
-	}
-	var blockdetail = &types.BlockDetail{
-		Block:    block,
-		Receipts: []*types.ReceiptData{rdata},
-	}
-	var blockdetails = &types.BlockDetails{
-		Items: []*types.BlockDetail{blockdetail},
-	}
-
-	api := new(mocks.QueueProtocolAPI)
-	api.On("GetBlocks", &types.ReqBlocks{Pid: []string{""}}).Return(blockdetails, nil)
-	testChain33 := newTestChain33(api)
-	var testResult interface{}
-	data := rpctypes.BlockParam{}
-	err := testChain33.GetBlocks(data, &testResult)
-	t.Log(err)
-	assert.Nil(t, err)
-	assert.Equal(t, testResult.(*rpctypes.BlockDetails).Items[0].Block.Txs[0].Execer, string(tx.Execer))
 
 	mock.AssertExpectationsForObjects(t, api)
 }
@@ -1836,57 +1651,6 @@ func TestChain33_Version(t *testing.T) {
 	assert.NotNil(t, testResult)
 }
 
-func TestChain33_CreateRawTokenPreCreateTx(t *testing.T) {
-	client := newTestChain33(nil)
-	var testResult interface{}
-	err := client.CreateRawTokenPreCreateTx(nil, &testResult)
-	assert.NotNil(t, err)
-	assert.Nil(t, testResult)
-
-	token := &tokentype.TokenPreCreateTx{
-		OwnerAddr: "asdf134",
-		Symbol:    "CNY",
-		Fee:       123,
-	}
-	err = client.CreateRawTokenPreCreateTx(token, &testResult)
-	assert.NotNil(t, testResult)
-	assert.Nil(t, err)
-}
-
-func TestChain33_CreateRawTokenRevokeTx(t *testing.T) {
-	client := newTestChain33(nil)
-	var testResult interface{}
-	err := client.CreateRawTokenRevokeTx(nil, &testResult)
-	assert.NotNil(t, err)
-	assert.Nil(t, testResult)
-
-	token := &tokentype.TokenRevokeTx{
-		OwnerAddr: "asdf134",
-		Symbol:    "CNY",
-		Fee:       123,
-	}
-	err = client.CreateRawTokenRevokeTx(token, &testResult)
-	assert.NotNil(t, testResult)
-	assert.Nil(t, err)
-}
-
-func TestChain33_CreateRawTokenFinishTx(t *testing.T) {
-	client := newTestChain33(nil)
-	var testResult interface{}
-	err := client.CreateRawTokenFinishTx(nil, &testResult)
-	assert.NotNil(t, err)
-	assert.Nil(t, testResult)
-
-	token := &tokentype.TokenFinishTx{
-		OwnerAddr: "asdf134",
-		Symbol:    "CNY",
-		Fee:       123,
-	}
-	err = client.CreateRawTokenFinishTx(token, &testResult)
-	assert.NotNil(t, testResult)
-	assert.Nil(t, err)
-}
-
 func TestChain33_CreateRawTradeSellTx(t *testing.T) {
 	client := newTestChain33(nil)
 	var testResult interface{}
@@ -2128,18 +1892,18 @@ func TestChain33_CreateTransaction(t *testing.T) {
 	err := client.CreateTransaction(nil, &result)
 	assert.NotNil(t, err)
 
-	in := &rpctypes.TransactionCreate{Execer: "notExist", ActionName: "x", Payload: []byte("x")}
+	in := &rpctypes.CreateTxIn{Execer: "notExist", ActionName: "x", Payload: []byte("x")}
 	err = client.CreateTransaction(in, &result)
 	assert.Equal(t, types.ErrExecNameNotAllow, err)
 
-	in = &rpctypes.TransactionCreate{Execer: types.ExecName(types.TokenX), ActionName: "notExist", Payload: []byte("x")}
+	in = &rpctypes.CreateTxIn{Execer: types.ExecName(types.TokenX), ActionName: "notExist", Payload: []byte("x")}
 	err = client.CreateTransaction(in, &result)
-	assert.Equal(t, types.ErrNotSupport, err)
+	assert.Equal(t, types.ErrActionNotSupport, err)
 
-	in = &rpctypes.TransactionCreate{
+	in = &rpctypes.CreateTxIn{
 		Execer:     types.ExecName(types.TokenX),
-		ActionName: "TokenFinish",
-		Payload:    []byte("{\"fee\" : 10000, \"symbol\": \"TOKEN\", \"ownerAddr\":\"string\"}"),
+		ActionName: "Tokenfinishcreate",
+		Payload:    []byte("{\"symbol\": \"TOKEN\", \"owner\":\"string\"}"),
 	}
 	err = client.CreateTransaction(in, &result)
 	assert.Nil(t, err)

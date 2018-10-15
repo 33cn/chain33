@@ -95,6 +95,7 @@ service chain33 {
     //获取余额
     rpc GetBalance(ReqBalance) returns (Accounts) {}
     rpc QueryChain(Query) returns (Reply) {}
+    rpc CreateTransaction(CreateTxIn) returns (UnsignTx) {}
     // Miner
     //设置自动挖矿
     rpc SetAutoMining(MinerFlag) returns (Reply) {}
