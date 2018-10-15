@@ -3,6 +3,7 @@ package rpc
 import (
 	"gitlab.33.cn/chain33/chain33/pluginmgr"
 	rt "gitlab.33.cn/chain33/chain33/plugin/dapp/retrieve/types"
+	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var jrpc = &Jrpc{}
@@ -17,6 +18,11 @@ func InitRPC(s pluginmgr.RPCServer) {
 	rt.RegisterRetrieveServer(s.GRPC(), grpc)
 }
 
-func Init(s pluginmgr.RPCServer) {
+func Init(name string, s pluginmgr.RPCServer) {
+	name = rt.RetrieveX
+	// init executor type
+	types.RegistorExecutor(name, rt.NewType())
+
+	types.RegisterRPCQueryHandle("GetRetrieveInfo", &rt.RetrieveGetInfo{})
 	InitRPC(s)
 }
