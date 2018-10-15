@@ -21,3 +21,19 @@ const (
 var (
 	Name = "token"
 )
+
+const (
+	TyLogPreCreateToken       = 211
+	TyLogFinishCreateToken    = 212
+	TyLogRevokeCreateToken    = 213
+	TyLogTokenTransfer        = 313
+	TyLogTokenGenesis         = 314
+	TyLogTokenDeposit         = 315
+	TyLogTokenExecTransfer    = 316
+	TyLogTokenExecWithdraw    = 317
+	TyLogTokenExecDeposit     = 318
+	TyLogTokenExecFrozen      = 319
+	TyLogTokenExecActive      = 320
+	TyLogTokenGenesisTransfer = 321
+	TyLogTokenGenesisDeposit  = 322
+)

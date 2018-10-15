@@ -137,10 +137,6 @@ func (acc *DB) depositBalance(execaddr string, amount int64) (*types.Receipt, er
 	acc.SaveAccount(acc1)
 	ty := int32(types.TyLogDeposit)
 	ty = types.TyLogDeposit
-	//token的log做了特殊处理，其他执行器不必如此
-	if acc.execer == types.TokenX {
-		ty = types.TyLogTokenDeposit
-	}
 	log1 := &types.ReceiptLog{
 		Ty:  ty,
 		Log: types.Encode(receiptBalance),
@@ -155,10 +151,6 @@ func (acc *DB) depositBalance(execaddr string, amount int64) (*types.Receipt, er
 
 func (acc *DB) transferReceipt(accFrom, accTo *types.Account, receiptFrom, receiptTo proto.Message) *types.Receipt {
 	ty := int32(types.TyLogTransfer)
-	//token的log做了特殊处理，其他执行器不必如此
-	if acc.execer == types.TokenX {
-		ty = types.TyLogTokenTransfer
-	}
 	log1 := &types.ReceiptLog{
 		Ty:  ty,
 		Log: types.Encode(receiptFrom),
