@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 
 	bw "gitlab.33.cn/chain33/chain33/plugin/dapp/blackwhite/types"
-	"gitlab.33.cn/chain33/chain33/pluginmgr"
+	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -18,10 +18,10 @@ type Grpc struct {
 }
 
 type channelClient struct {
-	pluginmgr.ChannelClient
+	rpctypes.ChannelClient
 }
 
-func Init(name string, s pluginmgr.RPCServer) {
+func Init(name string, s rpctypes.RPCServer) {
 	cli := &channelClient{}
 	grpc := &Grpc{channelClient: cli}
 	cli.Init(name, s, &Jrpc{cli: cli}, grpc)

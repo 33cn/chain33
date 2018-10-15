@@ -11,6 +11,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/ed25519/edwards25519"
+	privacytypes "gitlab.33.cn/chain33/chain33/plugin/dapp/privacy/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -62,11 +63,11 @@ func (privkey *RingSignPrivateKey) Sign(msg []byte) crypto.Signature {
 		// 目前只有隐私交易用到了环签名
 		return emptySign
 	}
-	action := new(types.PrivacyAction)
+	action := new(privacytypes.PrivacyAction)
 	if err := types.Decode(tx.Payload, action); err != nil {
 		return emptySign
 	}
-	if action.Ty != types.ActionPrivacy2Privacy && action.Ty != types.ActionPrivacy2Public {
+	if action.Ty != privacytypes.ActionPrivacy2Privacy && action.Ty != privacytypes.ActionPrivacy2Public {
 		// 隐私交易中，隐私到隐私，隐私到公开才用到环签名
 		return emptySign
 	}
@@ -84,7 +85,7 @@ func (privkey *RingSignPrivateKey) Sign(msg []byte) crypto.Signature {
 		for _, item := range retSign.Items {
 			utxo := new(types.UTXOBasic)
 			utxo.OnetimePubkey = item.Pubkey[i]
-			utxo.UtxoGlobalIndex = keyinput.UtxoGlobalIndex[i]
+			utxo.UtxoGlobalIndex = (*types.UTXOGlobalIndex)(keyinput.UtxoGlobalIndex[i])
 			utxos.Utxos = append(utxos.Utxos, utxo)
 		}
 		//
@@ -144,11 +145,11 @@ func (pubkey *RingSignPublicKey) VerifyBytes(msg []byte, sign crypto.Signature) 
 		// 目前只有隐私交易用到了环签名
 		return false
 	}
-	action := new(types.PrivacyAction)
+	action := new(privacytypes.PrivacyAction)
 	if err := types.Decode(tx.Payload, action); err != nil {
 		return false
 	}
-	if action.Ty != types.ActionPrivacy2Privacy && action.Ty != types.ActionPrivacy2Public {
+	if action.Ty != privacytypes.ActionPrivacy2Privacy && action.Ty != privacytypes.ActionPrivacy2Public {
 		// 隐私交易中，隐私到隐私，隐私到公开才用到环签名
 		return false
 	}

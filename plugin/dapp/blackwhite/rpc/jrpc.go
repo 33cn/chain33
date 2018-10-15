@@ -30,17 +30,14 @@ func (c *Jrpc) BlackwhiteShowTx(parm *BlackwhiteShowTx, result *interface{}) err
 	if parm == nil {
 		return types.ErrInvalidParam
 	}
-
 	head := &bw.BlackwhiteShow{
 		GameID: parm.GameID,
 		Secret: parm.Secret,
 	}
-
 	reply, err := c.cli.Show(context.Background(), head)
 	if err != nil {
 		return err
 	}
-
 	*result = hex.EncodeToString(reply.Data)
 	return nil
 }

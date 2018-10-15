@@ -49,48 +49,17 @@ func (at *GameType) GetLogMap() map[int64]*types.LogInfo {
 	}
 }
 
-func (game GameType) GetRealToAddr(tx *types.Transaction) string {
-	if string(tx.Execer) == GameX {
-		return tx.To
-	}
-	var action GameAction
-	err := types.Decode(tx.Payload, &action)
-	if err != nil {
-		return tx.To
-	}
-	return tx.To
+func (g *GameType) GetPayload() types.Message {
+	return &GameAction{}
 }
 
-func (game GameType) ActionName(tx *types.Transaction) string {
-	var action GameAction
-	err := types.Decode(tx.Payload, &action)
-	if err != nil {
-		return "unknown-err"
+func (g *GameType) GetTypeMap() map[string]int32 {
+	return map[string]int32{
+		"Create": GameActionCreate,
+		"Cancel": GameActionCancel,
+		"Close":  GameActionClose,
+		"Match":  GameActionMatch,
 	}
-
-	if action.Ty == GameActionCreate && action.GetCreate() != nil {
-		return Action_CreateGame
-	} else if action.Ty == GameActionMatch && action.GetMatch() != nil {
-		return Action_MatchGame
-	} else if action.Ty == GameActionCancel && action.GetCancel() != nil {
-		return Action_CancelGame
-	} else if action.Ty == GameActionClose && action.GetClose() != nil {
-		return Action_CloseGame
-	}
-	return "unknown"
-}
-
-func (game GameType) DecodePayload(tx *types.Transaction) (interface{}, error) {
-	var action GameAction
-	err := types.Decode(tx.Payload, &action)
-	if err != nil {
-		return nil, err
-	}
-	return &action, nil
-}
-
-func (game GameType) Amount(tx *types.Transaction) (int64, error) {
-	return 0, nil
 }
 
 // TODO createTx接口暂时没法用，作为一个预留接口

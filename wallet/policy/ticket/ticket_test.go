@@ -24,7 +24,6 @@ import (
 	"gitlab.33.cn/chain33/chain33/store"
 	_ "gitlab.33.cn/chain33/chain33/system"
 	"gitlab.33.cn/chain33/chain33/types"
-	executorty "gitlab.33.cn/chain33/chain33/types/executor"
 	wcom "gitlab.33.cn/chain33/chain33/wallet/common"
 )
 

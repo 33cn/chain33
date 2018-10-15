@@ -5,26 +5,12 @@ import (
 	"encoding/json"
 
 	pb "gitlab.33.cn/chain33/chain33/plugin/dapp/pokerbull/types"
-	"gitlab.33.cn/chain33/chain33/pluginmgr"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var name string
 var jrpc = &Jrpc{}
 var grpc = &Grpc{}
-
-func InitRPC(name string, s pluginmgr.RPCServer) {
-	cli := channelClient{}
-	cli.Init(s.GetQueueClient())
-	jrpc.cli = cli
-	grpc.channelClient = cli
-	s.JRPC().RegisterName(name, jrpc)
-	pb.RegisterPokerbullServer(s.GRPC(), grpc)
-}
-
-func Init(name string, s pluginmgr.RPCServer) {
-	InitRPC(name, s)
-}
 
 type PokerBullStartTxRPC struct{}
 

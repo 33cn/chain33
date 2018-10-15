@@ -161,7 +161,11 @@ func (exec *Executor) procExecCheckTx(msg queue.Message) {
 	result := &types.ReceiptCheckTxList{}
 	for i := 0; i < len(datas.Txs); i++ {
 		tx := datas.Txs[i]
-		err := execute.execCheckTx(tx, i)
+		index := i
+		if datas.IsMempool {
+			index = -1
+		}
+		err := execute.execCheckTx(tx, index)
 		if err != nil {
 			result.Errs = append(result.Errs, err.Error())
 		} else {

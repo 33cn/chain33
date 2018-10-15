@@ -176,12 +176,6 @@ var SystemLog = map[int64]*LogInfo{
 }
 
 const (
-	//log for ticket
-	TyLogNewTicket   = 111
-	TyLogCloseTicket = 112
-	TyLogMinerTicket = 113
-	TyLogTicketBind  = 114
-
 	//log for trade
 	TyLogTradeSellLimit  = 310
 	TyLogTradeBuyMarket  = 311
@@ -202,17 +196,6 @@ const (
 	ExecErr  = 0
 	ExecPack = 1
 	ExecOk   = 2
-)
-
-//ticket
-const (
-	TicketActionGenesis = 11
-	TicketActionOpen    = 12
-	TicketActionClose   = 13
-	TicketActionList    = 14 //读的接口不直接经过transaction
-	TicketActionInfos   = 15 //读的接口不直接经过transaction
-	TicketActionMiner   = 16
-	TicketActionBind    = 17
 )
 
 //norm
@@ -275,21 +258,3 @@ var LowAllowPackHeight int64 = 30
 
 //默认情况下不开启fork
 var EnableTxGroupParaFork = false
-
-const (
-	ParaCrossTransferActionTypeStart = 10000
-	ParaCrossTransferActionTypeEnd   = 10100
-)
-
-//Lottery status
-const (
-	LotteryCreated = 1 + iota
-	LotteryPurchase
-	LotteryDrawed
-	LotteryClosed
-)
-
-const (
-	ValNodeActionUpdate    = 1
-	ValNodeActionBlockInfo = 2
-)

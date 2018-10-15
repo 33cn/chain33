@@ -41,10 +41,6 @@ func (g *PokerBull) GetDriverName() string {
 	return pkt.PokerBullX
 }
 
-func (g *PokerBull) CheckTx(tx *types.Transaction, index int) error {
-	return nil
-}
-
 func calcPBGameStatusKey(status int32, player int32, index int64) []byte {
 	key := fmt.Sprintf("PBgame-status:%d:%d:%d", status, player, index)
 	return []byte(key)

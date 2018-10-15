@@ -1245,42 +1245,6 @@ func (c *Chain33) MakeTxPublic2privacy(in types.ReqPub2Pri, result *interface{})
 	return nil
 }
 
-func (c *Chain33) CreateBindMiner(in *types.ReqBindMiner, result *interface{}) error {
-	if in.Amount%(10000*types.Coin) != 0 || in.Amount < 0 {
-		return types.ErrAmount
-	}
-	err := address.CheckAddress(in.BindAddr)
-	if err != nil {
-		return types.ErrInvalidAddress
-	}
-	err = address.CheckAddress(in.OriginAddr)
-	if err != nil {
-		return types.ErrInvalidAddress
-	}
-
-	if in.CheckBalance {
-		getBalance := &types.ReqBalance{Addresses: []string{in.OriginAddr}, Execer: "coins"}
-		balances, err := c.cli.GetBalance(getBalance)
-		if err != nil {
-			return err
-		}
-		if len(balances) == 0 {
-			return types.ErrInputPara
-		}
-		if balances[0].Balance < in.Amount+2*types.Coin {
-			return types.ErrNoBalance
-		}
-	}
-
-	reply, err := c.cli.BindMiner(in)
-	if err != nil {
-		return err
-	}
-
-	*result = reply
-	return nil
-}
-
 func (c *Chain33) DecodeRawTransaction(in *types.ReqDecodeRawTransaction, result *interface{}) error {
 	reply, err := c.cli.DecodeRawTransaction(in)
 	if err != nil {
@@ -1433,64 +1397,6 @@ func (c *Chain33) CreateTransaction(in *rpctypes.CreateTxIn, result *interface{}
 		return err
 	}
 	*result = tx
-	return nil
-}
-
-func (c *Chain33) CreateRawRelayOrderTx(in *rpctypes.RelayOrderTx, result *interface{}) error {
-	reply, err := c.cli.CreateRawRelayOrderTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
-	return nil
-}
-
-func (c *Chain33) CreateRawRelayAcceptTx(in *rpctypes.RelayAcceptTx, result *interface{}) error {
-	reply, err := c.cli.CreateRawRelayAcceptTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
-	return nil
-}
-func (c *Chain33) CreateRawRelayRevokeTx(in *rpctypes.RelayRevokeTx, result *interface{}) error {
-	reply, err := c.cli.CreateRawRelayRevokeTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
-	return nil
-}
-func (c *Chain33) CreateRawRelayConfirmTx(in *rpctypes.RelayConfirmTx, result *interface{}) error {
-	reply, err := c.cli.CreateRawRelayConfirmTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
-	return nil
-}
-func (c *Chain33) CreateRawRelayVerifyBTCTx(in *rpctypes.RelayVerifyBTCTx, result *interface{}) error {
-	reply, err := c.cli.CreateRawRelayVerifyBTCTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
-	return nil
-}
-
-func (c *Chain33) CreateRawRelaySaveBTCHeadTx(in *rpctypes.RelaySaveBTCHeadTx, result *interface{}) error {
-	reply, err := c.cli.CreateRawRelaySaveBTCHeadTx(in)
-	if err != nil {
-		return err
-	}
-
-	*result = hex.EncodeToString(reply)
-
 	return nil
 }
 

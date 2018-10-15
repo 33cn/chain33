@@ -36,8 +36,14 @@ const (
 	ParacrossActionCommit = iota
 	ParacrossActionMiner
 )
+
 const (
-	ParacrossActionTransfer = iota + types.ParaCrossTransferActionTypeStart
+	ParaCrossTransferActionTypeStart = 10000
+	ParaCrossTransferActionTypeEnd   = 10100
+)
+
+const (
+	ParacrossActionTransfer = iota + ParaCrossTransferActionTypeStart
 	ParacrossActionWithdraw
 )
 
