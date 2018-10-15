@@ -15,22 +15,14 @@ var glog = log.New("module", types.ParaX)
 func InitType() {
 	nameX = types.ExecName(types.ParaX)
 	// init executor type
-	types.RegistorExecutor(types.ParaX, NewType())
-
-	// init log
-	types.RegistorLog(pt.TyLogParacrossCommit, &ParacrossCommitLog{})
-	types.RegistorLog(pt.TyLogParacrossCommitDone, &ParacrossDoneLog{})
-	types.RegistorLog(pt.TyLogParacrossCommitRecord, &ParacrossCommitRecordLog{})
-	types.RegistorLog(pt.TyLogParaAssetWithdraw, &ParacrossAssetWithdrawLog{})
-	types.RegistorLog(pt.TyLogParaAssetTransfer, &ParacrossAssetTransferLog{})
-	types.RegistorLog(pt.TyLogParaAssetDeposit, &ParacrossAssetDepositLog{})
-	types.RegistorLog(pt.TyLogParacrossMiner, &ParacrossMinerLog{})
 
 	// init query rpc
+	/* TODO-TODO
 	types.RegisterRPCQueryHandle("ParacrossGetTitle", &ParacrossGetTitle{})
 	types.RegisterRPCQueryHandle("ParacrossListTitles", &ParacrossListTitles{})
 	types.RegisterRPCQueryHandle("ParacrossGetTitleHeight", &ParacrossGetTitleHeight{})
 	types.RegisterRPCQueryHandle("ParacrossGetAssetTxResult", &ParacrossGetAssetTxResult{})
+	*/
 }
 
 func GetExecName() string {
@@ -41,12 +33,13 @@ type ParacrossType struct {
 	types.ExecTypeBase
 }
 
+/* TODO-TODO dup-code exec/type type/type
 func NewType() *ParacrossType {
 	c := &ParacrossType{}
 	c.SetChild(c)
 	return c
 }
-
+*/
 func (b *ParacrossType) GetPayload() types.Message {
 	return &pt.ParacrossAction{}
 }
