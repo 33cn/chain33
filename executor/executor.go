@@ -144,10 +144,7 @@ func (exec *Executor) procExecQuery(msg queue.Message) {
 
 	//查询的情况下下，执行器不做严格校验，allow，尽可能的加载执行器，并且做查询
 
-	ret, err := types.ProcessRPCQuery(data.FuncName, data.Param)
-	if err != nil {
-		ret, err = driver.Query(data.FuncName, data.Param)
-	}
+	ret, err := driver.Query(data.FuncName, data.Param)
 	if err != nil {
 		msg.Reply(exec.client.NewMessage("", types.EventBlockChainQuery, err))
 		return
@@ -164,7 +161,11 @@ func (exec *Executor) procExecCheckTx(msg queue.Message) {
 	result := &types.ReceiptCheckTxList{}
 	for i := 0; i < len(datas.Txs); i++ {
 		tx := datas.Txs[i]
-		err := execute.execCheckTx(tx, i)
+		index := i
+		if datas.IsMempool {
+			index = -1
+		}
+		err := execute.execCheckTx(tx, index)
 		if err != nil {
 			result.Errs = append(result.Errs, err.Error())
 		} else {
@@ -267,7 +268,6 @@ func isAllowExec(key, realExecer []byte, tx *types.Transaction, height int64) bo
 	// manage 的key 是 config
 	// token 的部分key 是 mavl-create-token-
 	if !types.IsMatchFork(height, types.ForkV13ExecKey) {
-		elog.Info("mavl key", "execer", string(keyExecer), "keyExecer", string(keyExecer))
 		if bytes.Equal(realExecer, types.ExecerManage) && bytes.Equal(keyExecer, types.ExecerConfig) {
 			return true
 		}
@@ -639,6 +639,14 @@ func (e *executor) execCheckTx(tx *types.Transaction, index int) error {
 
 func (e *executor) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
 	exec := e.loadDriver(tx, index)
+	//to 必须是一个地址
+	if err := drivers.CheckAddress(tx.GetRealToAddr(), e.height); err != nil {
+		return nil, err
+	}
+	//第一步先检查 CheckTx
+	if err := exec.CheckTx(tx, index); err != nil {
+		return nil, err
+	}
 	return exec.Exec(tx, index)
 }
 

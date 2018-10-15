@@ -4,8 +4,9 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+	retrievetype "gitlab.33.cn/chain33/chain33/plugin/dapp/retrieve/types"
+	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	"gitlab.33.cn/chain33/chain33/types"
-	retrievetype "gitlab.33.cn/chain33/chain33/types/executor/retrieve"
 )
 
 func RetrieveCmd() *cobra.Command {
@@ -67,7 +68,7 @@ func backupCmd(cmd *cobra.Command, args []string) {
 		DelayPeriod: delay,
 		Fee:         feeInt64,
 	}
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawRetrieveBackupTx", params, nil)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.CreateRawRetrieveBackupTx", params, nil)
 	ctx.RunWithoutMarshal()
 }
 
@@ -104,7 +105,7 @@ func prepareCmd(cmd *cobra.Command, args []string) {
 		DefaultAddr: defaultAddr,
 		Fee:         feeInt64,
 	}
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawRetrievePrepareTx", params, nil)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.CreateRawRetrievePrepareTx", params, nil)
 	ctx.RunWithoutMarshal()
 }
 
@@ -131,7 +132,7 @@ func performCmd(cmd *cobra.Command, args []string) {
 		DefaultAddr: defaultAddr,
 		Fee:         feeInt64,
 	}
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawRetrievePerformTx", params, nil)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.CreateRawRetrievePerformTx", params, nil)
 	ctx.RunWithoutMarshal()
 }
 
@@ -158,7 +159,7 @@ func cancelCmd(cmd *cobra.Command, args []string) {
 		DefaultAddr: defaultAddr,
 		Fee:         feeInt64,
 	}
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.CreateRawRetrieveCancelTx", params, nil)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.CreateRawRetrieveCancelTx", params, nil)
 	ctx.RunWithoutMarshal()
 }
 
@@ -181,7 +182,7 @@ func addQueryRetrieveCmdFlags(cmd *cobra.Command) {
 }
 
 func parseRerieveDetail(arg interface{}) (interface{}, error) {
-	res := arg.(*types.RetrieveQuery)
+	res := arg.(*retrievetype.RetrieveQuery)
 
 	result := RetrieveResult{
 		DelayPeriod: res.DelayPeriod,
@@ -207,7 +208,7 @@ func queryRetrieveCmd(cmd *cobra.Command, args []string) {
 	backup, _ := cmd.Flags().GetString("backup")
 	defaultAddr, _ := cmd.Flags().GetString("default")
 
-	req := &types.ReqRetrieveInfo{
+	req := &retrievetype.ReqRetrieveInfo{
 		BackupAddress:  backup,
 		DefaultAddress: defaultAddr,
 	}
@@ -217,8 +218,8 @@ func queryRetrieveCmd(cmd *cobra.Command, args []string) {
 	params.FuncName = "GetRetrieveInfo"
 	params.Payload = req
 
-	var res types.RetrieveQuery
-	ctx := NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
+	var res retrievetype.RetrieveQuery
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.Query", params, &res)
 	ctx.SetResultCb(parseRerieveDetail)
 	ctx.Run()
 }

@@ -15,8 +15,8 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/log"
-	jsonrpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
+	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -112,13 +112,13 @@ func scanWrite() {
 			paramsReqAddr.Index = currentIndex
 		}
 
-		var replyTxInfos jsonrpc.ReplyTxInfos
+		var replyTxInfos rpctypes.ReplyTxInfos
 		err = rpc.Call("Chain33.GetTxByAddr", paramsReqAddr, &replyTxInfos)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			continue
 		}
-		last := &jsonrpc.ReplyTxInfo{
+		last := &rpctypes.ReplyTxInfo{
 			Height: currentHeight,
 			Index:  currentIndex,
 		}
@@ -130,8 +130,8 @@ func scanWrite() {
 		currentHeight = last.Height
 		currentIndex = last.Index
 		for _, hash := range txHashes {
-			paramsQuery := jsonrpc.QueryParm{Hash: hash}
-			var transactionDetail jsonrpc.TransactionDetail
+			paramsQuery := rpctypes.QueryParm{Hash: hash}
+			var transactionDetail rpctypes.TransactionDetail
 			err = rpc.Call("Chain33.QueryTransaction", paramsQuery, &transactionDetail)
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err)
@@ -191,7 +191,7 @@ func scanWrite() {
 			}
 			var signed string
 			err = rpc.Call("Chain33.SignRawTx", paramsReqSignRawTx, &signed)
-			paramsRaw := jsonrpc.RawParm{
+			paramsRaw := rpctypes.RawParm{
 				Data: signed,
 			}
 			var sent string

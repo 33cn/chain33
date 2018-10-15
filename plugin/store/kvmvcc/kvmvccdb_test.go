@@ -1,8 +1,10 @@
 package kvmvccdb
 
 import (
+	"io/ioutil"
 	"os"
 	"testing"
+	"time"
 
 	"fmt"
 
@@ -12,24 +14,36 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var store_cfg0 = &types.Store{"kvmvcc", "leveldb", "/tmp/kvdb_test0", 100}
-var store_cfg1 = &types.Store{"kvmvcc", "leveldb", "/tmp/kvdb_test1", 100}
-var store_cfg2 = &types.Store{"kvmvcc", "leveldb", "/tmp/kvdb_test2", 100}
-var store_cfg3 = &types.Store{"kvmvcc", "leveldb", "/tmp/kvdb_test3", 100}
-var store_cfg4 = &types.Store{"kvmvcc", "leveldb", "/tmp/kvdb_test4", 100}
+const MaxKeylenth int = 64
+
+func newStoreCfg(dir string) *types.Store {
+	return &types.Store{Name: "kvmvcc_test", Driver: "leveldb", DbPath: dir, DbCache: 100}
+	//return newStoreCfgIter(dir)
+}
+
+func newStoreCfgIter(dir string) *types.Store {
+	return &types.Store{Name: "kvmvcc_test", Driver: "leveldb", DbPath: dir, DbCache: 100, EnableMVCCIter: true}
+}
 
 func TestKvmvccdbNewClose(t *testing.T) {
-	os.RemoveAll(store_cfg0.DbPath)
-	store := New(store_cfg0)
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(t, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+	var store_cfg = newStoreCfg(dir)
+	store := New(store_cfg).(*KVMVCCStore)
 	assert.NotNil(t, store)
 
 	store.Close()
-	os.RemoveAll(store_cfg0.DbPath)
 }
 
 func TestKvmvccdbSetGet(t *testing.T) {
-	os.RemoveAll(store_cfg1.DbPath)
-	store := New(store_cfg1).(*KVMVCCStore)
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(t, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+	var store_cfg = newStoreCfg(dir)
+	store := New(store_cfg).(*KVMVCCStore)
 	assert.NotNil(t, store)
 
 	keys0 := [][]byte{[]byte("mk1"), []byte("mk2")}
@@ -67,13 +81,15 @@ func TestKvmvccdbSetGet(t *testing.T) {
 	get3 := &types.StoreGet{drivers.EmptyRoot[:], keys}
 	values3 := store.Get(get3)
 	assert.Len(t, values3, 1)
-
-	os.RemoveAll(store_cfg1.DbPath)
 }
 
 func TestKvmvccdbMemSet(t *testing.T) {
-	os.RemoveAll(store_cfg2.DbPath)
-	store := New(store_cfg2).(*KVMVCCStore)
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(t, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+	var store_cfg = newStoreCfg(dir)
+	store := New(store_cfg).(*KVMVCCStore)
 	assert.NotNil(t, store)
 
 	var kv []*types.KeyValue
@@ -103,13 +119,15 @@ func TestKvmvccdbMemSet(t *testing.T) {
 	assert.Len(t, values, 2)
 	assert.Equal(t, values[0], kv[0].Value)
 	assert.Equal(t, values[1], kv[1].Value)
-
-	os.RemoveAll(store_cfg2.DbPath)
 }
 
 func TestKvmvccdbRollback(t *testing.T) {
-	os.RemoveAll(store_cfg3.DbPath)
-	store := New(store_cfg3).(*KVMVCCStore)
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(t, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+	var store_cfg = newStoreCfg(dir)
+	store := New(store_cfg).(*KVMVCCStore)
 	assert.NotNil(t, store)
 
 	var kv []*types.KeyValue
@@ -134,13 +152,15 @@ func TestKvmvccdbRollback(t *testing.T) {
 	notExistHash, err := store.Rollback(&types.ReqHash{drivers.EmptyRoot[:]})
 	assert.Nil(t, notExistHash)
 	assert.Equal(t, types.ErrHashNotFound.Error(), err.Error())
-
-	os.RemoveAll(store_cfg3.DbPath)
 }
 
 func TestKvmvccdbRollbackBatch(t *testing.T) {
-	os.RemoveAll(store_cfg4.DbPath)
-	store := New(store_cfg4).(*KVMVCCStore)
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(t, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+	var store_cfg = newStoreCfg(dir)
+	store := New(store_cfg).(*KVMVCCStore)
 	assert.NotNil(t, store)
 
 	var kv []*types.KeyValue
@@ -222,35 +242,378 @@ func TestKvmvccdbRollbackBatch(t *testing.T) {
 	maxVersion, err = store.mvcc.GetMaxVersion()
 	assert.Equal(t, nil, err)
 	assert.Equal(t, int64(2), maxVersion)
-
-	os.RemoveAll(store_cfg4.DbPath)
 }
 
-/*
-func TestDBClose(t *testing.T) {
-	err := os.RemoveAll(store_cfg0.DbPath)
-	if err != nil {
-		klog.Error("remove dbpath failed. ", "path", store_cfg0.DbPath, "err", err)
+func GetRandomString(length int) string {
+	return common.GetRandPrintString(20, length)
+}
+
+func BenchmarkGet(b *testing.B) {
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(b, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+
+	var store_cfg = newStoreCfg(dir)
+	store := New(store_cfg).(*KVMVCCStore)
+	assert.NotNil(b, store)
+
+	var kv []*types.KeyValue
+	var keys [][]byte
+	var hash = drivers.EmptyRoot[:]
+	for i := 0; i < b.N; i++ {
+		key := GetRandomString(MaxKeylenth)
+		value := fmt.Sprintf("%s%d", key, i)
+		keys = append(keys, []byte(string(key)))
+		kv = append(kv, &types.KeyValue{[]byte(string(key)), []byte(string(value))})
+		if i%10000 == 0 {
+			datas := &types.StoreSet{hash, kv, 0}
+			hash, err = store.Set(datas, true)
+			assert.Nil(b, err)
+			kv = nil
+		}
 	}
-	err = os.RemoveAll(store_cfg1.DbPath)
-	if err != nil {
-		klog.Error("remove dbpath failed. ", "path", store_cfg0.DbPath, "err", err)
+	if kv != nil {
+		datas := &types.StoreSet{hash, kv, 0}
+		hash, err = store.Set(datas, true)
+		assert.Nil(b, err)
+		kv = nil
 	}
-	err = os.RemoveAll(store_cfg2.DbPath)
-	if err != nil {
-		klog.Error("remove dbpath failed. ", "path", store_cfg0.DbPath, "err", err)
+	assert.Nil(b, err)
+	start := time.Now()
+	b.ResetTimer()
+	for _, key := range keys {
+		getData := &types.StoreGet{
+			hash,
+			[][]byte{key}}
+		store.Get(getData)
 	}
-	err = os.RemoveAll(store_cfg3.DbPath)
-	if err != nil {
-		klog.Error("remove dbpath failed. ", "path", store_cfg0.DbPath, "err", err)
+	end := time.Now()
+	fmt.Println("kvmvcc BenchmarkGet cost time is", end.Sub(start), "num is", b.N)
+}
+
+func BenchmarkStoreGetKvs4N(b *testing.B) {
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(b, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+
+	var store_cfg = newStoreCfg(dir)
+	store := New(store_cfg).(*KVMVCCStore)
+	assert.NotNil(b, store)
+
+	var kv []*types.KeyValue
+	var key string
+	var value string
+	var keys [][]byte
+
+	kvnum := 30
+	for i := 0; i < kvnum; i++ {
+		key = GetRandomString(MaxKeylenth)
+		value = fmt.Sprintf("v%d", i)
+		keys = append(keys, []byte(string(key)))
+		kv = append(kv, &types.KeyValue{[]byte(string(key)), []byte(string(value))})
+	}
+	datas := &types.StoreSet{
+		drivers.EmptyRoot[:],
+		kv,
+		0}
+	hash, err := store.Set(datas, true)
+	assert.Nil(b, err)
+	getData := &types.StoreGet{
+		hash,
+		keys}
+
+	start := time.Now()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		values := store.Get(getData)
+		assert.Len(b, values, kvnum)
 	}
 
-	assert.Equal(t, isDirExists(store_cfg0.DbPath), false)
-	assert.Equal(t, isDirExists(store_cfg1.DbPath), false)
-	assert.Equal(t, isDirExists(store_cfg2.DbPath), false)
-	assert.Equal(t, isDirExists(store_cfg3.DbPath), false)
+	end := time.Now()
+	fmt.Println("kvmvcc BenchmarkStoreGetKvs4N cost time is", end.Sub(start), "num is", b.N)
+
+	b.StopTimer()
 }
-*/
+
+func BenchmarkStoreGetKvsForNN(b *testing.B) {
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(b, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+
+	var store_cfg = newStoreCfg(dir)
+	store := New(store_cfg).(*KVMVCCStore)
+	assert.NotNil(b, store)
+
+	var kv []*types.KeyValue
+	var key string
+	var value string
+	var keys [][]byte
+
+	for i := 0; i < 30; i++ {
+		key = GetRandomString(MaxKeylenth)
+		value = fmt.Sprintf("v%d", i)
+		keys = append(keys, []byte(string(key)))
+		kv = append(kv, &types.KeyValue{[]byte(string(key)), []byte(string(value))})
+	}
+	datas := &types.StoreSet{
+		drivers.EmptyRoot[:],
+		kv,
+		0}
+
+	var hashes [][]byte
+	for i := 0; i < b.N; i++ {
+		datas.Height = int64(i)
+		value = fmt.Sprintf("vv%d", i)
+		for j := 0; j < 30; j++ {
+			datas.KV[j].Value = []byte(value)
+		}
+		hash, err := store.MemSet(datas, true)
+		assert.Nil(b, err)
+		req := &types.ReqHash{
+			Hash: hash,
+		}
+		_, err = store.Commit(req)
+		assert.NoError(b, err, "NoError")
+		datas.StateHash = hash
+		hashes = append(hashes, hash)
+	}
+
+	start := time.Now()
+	b.ResetTimer()
+
+	getData := &types.StoreGet{
+		hashes[0],
+		keys}
+
+	for i := 0; i < b.N; i++ {
+		getData.StateHash = hashes[i]
+		store.Get(getData)
+	}
+	end := time.Now()
+	fmt.Println("kvmvcc BenchmarkStoreGetKvsForNN cost time is", end.Sub(start), "num is", b.N)
+	b.StopTimer()
+}
+
+func BenchmarkStoreGetKvsFor10000(b *testing.B) {
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(b, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+
+	var store_cfg = newStoreCfg(dir)
+	store := New(store_cfg).(*KVMVCCStore)
+	assert.NotNil(b, store)
+
+	var kv []*types.KeyValue
+	var key string
+	var value string
+	var keys [][]byte
+
+	for i := 0; i < 30; i++ {
+		key = GetRandomString(MaxKeylenth)
+		value = fmt.Sprintf("v%d", i)
+		keys = append(keys, []byte(string(key)))
+		kv = append(kv, &types.KeyValue{[]byte(string(key)), []byte(string(value))})
+	}
+	datas := &types.StoreSet{
+		drivers.EmptyRoot[:],
+		kv,
+		0}
+
+	var hashes [][]byte
+	blocks := 10000
+	times := 10000
+	start1 := time.Now()
+	for i := 0; i < blocks; i++ {
+		datas.Height = int64(i)
+		value = fmt.Sprintf("vv%d", i)
+		for j := 0; j < 30; j++ {
+			datas.KV[j].Value = []byte(value)
+		}
+		hash, err := store.MemSet(datas, true)
+		assert.Nil(b, err)
+		req := &types.ReqHash{
+			Hash: hash,
+		}
+		_, err = store.Commit(req)
+		assert.NoError(b, err, "NoError")
+		datas.StateHash = hash
+		hashes = append(hashes, hash)
+	}
+	end1 := time.Now()
+
+	start := time.Now()
+	b.ResetTimer()
+
+	getData := &types.StoreGet{
+		hashes[0],
+		keys}
+
+	for i := 0; i < times; i++ {
+		getData.StateHash = hashes[i]
+		store.Get(getData)
+	}
+	end := time.Now()
+	fmt.Println("kvmvcc BenchmarkStoreGetKvsFor10000 MemSet&Commit cost time is ", end1.Sub(start1), "blocks is", blocks)
+	fmt.Println("kvmvcc BenchmarkStoreGetKvsFor10000 Get cost time is", end.Sub(start), "num is ", times, ",blocks is ", blocks)
+	b.StopTimer()
+}
+
+func BenchmarkGetIter(b *testing.B) {
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(b, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+
+	var store_cfg = newStoreCfgIter(dir)
+	store := New(store_cfg).(*KVMVCCStore)
+	assert.NotNil(b, store)
+
+	var kv []*types.KeyValue
+	var keys [][]byte
+	var hash = drivers.EmptyRoot[:]
+	for i := 0; i < b.N; i++ {
+		key := GetRandomString(MaxKeylenth)
+		value := fmt.Sprintf("%s%d", key, i)
+		keys = append(keys, []byte(string(key)))
+		kv = append(kv, &types.KeyValue{[]byte(string(key)), []byte(string(value))})
+		if i%10000 == 0 {
+			datas := &types.StoreSet{hash, kv, 0}
+			hash, err = store.Set(datas, true)
+			assert.Nil(b, err)
+			kv = nil
+		}
+	}
+	if kv != nil {
+		datas := &types.StoreSet{hash, kv, 0}
+		hash, err = store.Set(datas, true)
+		assert.Nil(b, err)
+		kv = nil
+	}
+	assert.Nil(b, err)
+	start := time.Now()
+	b.ResetTimer()
+	for _, key := range keys {
+		getData := &types.StoreGet{
+			hash,
+			[][]byte{key}}
+		store.Get(getData)
+	}
+	end := time.Now()
+	fmt.Println("kvmvcc BenchmarkGet cost time is", end.Sub(start), "num is", b.N)
+}
+
+func BenchmarkSet(b *testing.B) {
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(b, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+	var store_cfg = newStoreCfg(dir)
+	store := New(store_cfg).(*KVMVCCStore)
+	assert.NotNil(b, store)
+	b.Log(dir)
+
+	var kv []*types.KeyValue
+	var keys [][]byte
+	var hash = drivers.EmptyRoot[:]
+	start := time.Now()
+	for i := 0; i < b.N; i++ {
+		key := GetRandomString(MaxKeylenth)
+		value := fmt.Sprintf("%s%d", key, i)
+		keys = append(keys, []byte(string(key)))
+		kv = append(kv, &types.KeyValue{[]byte(string(key)), []byte(string(value))})
+		if i%10000 == 0 {
+			datas := &types.StoreSet{hash, kv, 0}
+			hash, err = store.Set(datas, true)
+			assert.Nil(b, err)
+			kv = nil
+		}
+	}
+	if kv != nil {
+		datas := &types.StoreSet{hash, kv, 0}
+		hash, err = store.Set(datas, true)
+		assert.Nil(b, err)
+		kv = nil
+	}
+	end := time.Now()
+	fmt.Println("mpt BenchmarkSet cost time is", end.Sub(start), "num is", b.N)
+}
+
+//上一个用例，一次性插入多对kv；本用例每次插入30对kv，分多次插入，测试性能表现。
+func BenchmarkStoreSet(b *testing.B) {
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(b, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+	var store_cfg = newStoreCfg(dir)
+	store := New(store_cfg).(*KVMVCCStore)
+	assert.NotNil(b, store)
+
+	var kv []*types.KeyValue
+	var key string
+	var value string
+	var keys [][]byte
+
+	for i := 0; i < 30; i++ {
+		key = GetRandomString(MaxKeylenth)
+		value = fmt.Sprintf("v%d", i)
+		keys = append(keys, []byte(string(key)))
+		kv = append(kv, &types.KeyValue{[]byte(string(key)), []byte(string(value))})
+	}
+	datas := &types.StoreSet{
+		drivers.EmptyRoot[:],
+		kv,
+		0}
+	start := time.Now()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		hash, err := store.Set(datas, true)
+		assert.Nil(b, err)
+		assert.NotNil(b, hash)
+	}
+	end := time.Now()
+	fmt.Println("kvmvcc BenchmarkSet cost time is", end.Sub(start), "num is", b.N)
+}
+
+func BenchmarkSetIter(b *testing.B) {
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(b, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+	var store_cfg = newStoreCfgIter(dir)
+	store := New(store_cfg).(*KVMVCCStore)
+	assert.NotNil(b, store)
+	b.Log(dir)
+
+	var kv []*types.KeyValue
+	var keys [][]byte
+	var hash = drivers.EmptyRoot[:]
+	start := time.Now()
+	for i := 0; i < b.N; i++ {
+		key := GetRandomString(MaxKeylenth)
+		value := fmt.Sprintf("%s%d", key, i)
+		keys = append(keys, []byte(string(key)))
+		kv = append(kv, &types.KeyValue{[]byte(string(key)), []byte(string(value))})
+		if i%10000 == 0 {
+			datas := &types.StoreSet{hash, kv, 0}
+			hash, err = store.Set(datas, true)
+			assert.Nil(b, err)
+			kv = nil
+		}
+	}
+	if kv != nil {
+		datas := &types.StoreSet{hash, kv, 0}
+		hash, err = store.Set(datas, true)
+		assert.Nil(b, err)
+		kv = nil
+	}
+	end := time.Now()
+	fmt.Println("kvmvcc BenchmarkSet cost time is", end.Sub(start), "num is", b.N)
+}
+
 func isDirExists(path string) bool {
 	fi, err := os.Stat(path)
 
@@ -261,4 +624,236 @@ func isDirExists(path string) bool {
 	}
 
 	panic("not reached")
+}
+
+//一次设定多对kv，测试一次的时间/多少对kv，来算平均一对kv的耗时。
+func BenchmarkMemSet(b *testing.B) {
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(b, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+	var store_cfg = newStoreCfg(dir)
+	store := New(store_cfg).(*KVMVCCStore)
+	assert.NotNil(b, store)
+
+	var kv []*types.KeyValue
+	var key string
+	var value string
+	var keys [][]byte
+
+	for i := 0; i < b.N; i++ {
+		key = GetRandomString(MaxKeylenth)
+		value = fmt.Sprintf("v%d", i)
+		keys = append(keys, []byte(string(key)))
+		kv = append(kv, &types.KeyValue{[]byte(string(key)), []byte(string(value))})
+	}
+	datas := &types.StoreSet{
+		drivers.EmptyRoot[:],
+		kv,
+		0}
+	start := time.Now()
+	b.ResetTimer()
+	hash, err := store.MemSet(datas, true)
+	assert.Nil(b, err)
+	assert.NotNil(b, hash)
+	end := time.Now()
+	fmt.Println("kvmvcc BenchmarkMemSet cost time is", end.Sub(start), "num is", b.N)
+}
+
+//一次设定30对kv，设定N次，计算每次设定30对kv的耗时。
+func BenchmarkStoreMemSet(b *testing.B) {
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(b, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+	var store_cfg = newStoreCfg(dir)
+	store := New(store_cfg).(*KVMVCCStore)
+	assert.NotNil(b, store)
+
+	var kv []*types.KeyValue
+	var key string
+	var value string
+	var keys [][]byte
+
+	for i := 0; i < 30; i++ {
+		key = GetRandomString(MaxKeylenth)
+		value = fmt.Sprintf("v%d", i)
+		keys = append(keys, []byte(string(key)))
+		kv = append(kv, &types.KeyValue{[]byte(string(key)), []byte(string(value))})
+	}
+	datas := &types.StoreSet{
+		drivers.EmptyRoot[:],
+		kv,
+		0}
+	start := time.Now()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		hash, err := store.MemSet(datas, true)
+		assert.Nil(b, err)
+		assert.NotNil(b, hash)
+		req := &types.ReqHash{
+			hash}
+		store.Rollback(req)
+	}
+	end := time.Now()
+	fmt.Println("kvmvcc BenchmarkStoreMemSet cost time is", end.Sub(start), "num is", b.N)
+}
+
+func BenchmarkCommit(b *testing.B) {
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(b, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+	var store_cfg = newStoreCfg(dir)
+	store := New(store_cfg).(*KVMVCCStore)
+	assert.NotNil(b, store)
+
+	var kv []*types.KeyValue
+	var key string
+	var value string
+	var keys [][]byte
+
+	for i := 0; i < b.N; i++ {
+		key = GetRandomString(MaxKeylenth)
+		value = fmt.Sprintf("v%d", i)
+		keys = append(keys, []byte(string(key)))
+		kv = append(kv, &types.KeyValue{[]byte(string(key)), []byte(string(value))})
+	}
+	datas := &types.StoreSet{
+		drivers.EmptyRoot[:],
+		kv,
+		0}
+
+	start := time.Now()
+	b.ResetTimer()
+
+	hash, err := store.MemSet(datas, true)
+	assert.Nil(b, err)
+	req := &types.ReqHash{
+		Hash: hash,
+	}
+	_, err = store.Commit(req)
+	assert.NoError(b, err, "NoError")
+
+	end := time.Now()
+	fmt.Println("kvmvcc BenchmarkCommit cost time is", end.Sub(start), "num is", b.N)
+	b.StopTimer()
+}
+
+func BenchmarkStoreCommit(b *testing.B) {
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(b, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+	var store_cfg = newStoreCfg(dir)
+	store := New(store_cfg).(*KVMVCCStore)
+	assert.NotNil(b, store)
+
+	var kv []*types.KeyValue
+	var key string
+	var value string
+	var keys [][]byte
+
+	for i := 0; i < 30; i++ {
+		key = GetRandomString(MaxKeylenth)
+		value = fmt.Sprintf("v%d", i)
+		keys = append(keys, []byte(string(key)))
+		kv = append(kv, &types.KeyValue{[]byte(string(key)), []byte(string(value))})
+	}
+	datas := &types.StoreSet{
+		drivers.EmptyRoot[:],
+		kv,
+		0}
+
+	start := time.Now()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		datas.Height = int64(i)
+		hash, err := store.MemSet(datas, true)
+		assert.Nil(b, err)
+		req := &types.ReqHash{
+			Hash: hash,
+		}
+		_, err = store.Commit(req)
+		assert.NoError(b, err, "NoError")
+		datas.StateHash = hash
+	}
+	end := time.Now()
+	fmt.Println("kvmvcc BenchmarkStoreCommit cost time is", end.Sub(start), "num is", b.N)
+	b.StopTimer()
+}
+
+//一次设定多对kv，测试一次的时间/多少对kv，来算平均一对kv的耗时。
+func BenchmarkIterMemSet(b *testing.B) {
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(b, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+	var store_cfg = newStoreCfgIter(dir)
+	store := New(store_cfg).(*KVMVCCStore)
+	assert.NotNil(b, store)
+
+	var kv []*types.KeyValue
+	var key string
+	var value string
+	var keys [][]byte
+
+	for i := 0; i < b.N; i++ {
+		key = GetRandomString(MaxKeylenth)
+		value = fmt.Sprintf("v%d", i)
+		keys = append(keys, []byte(string(key)))
+		kv = append(kv, &types.KeyValue{[]byte(string(key)), []byte(string(value))})
+	}
+	datas := &types.StoreSet{
+		drivers.EmptyRoot[:],
+		kv,
+		0}
+	start := time.Now()
+	b.ResetTimer()
+	hash, err := store.MemSet(datas, true)
+	assert.Nil(b, err)
+	assert.NotNil(b, hash)
+	end := time.Now()
+	fmt.Println("kvmvcc BenchmarkMemSet cost time is", end.Sub(start), "num is", b.N)
+}
+
+func BenchmarkIterCommit(b *testing.B) {
+	dir, err := ioutil.TempDir("", "example")
+	assert.Nil(b, err)
+	defer os.RemoveAll(dir) // clean up
+	os.RemoveAll(dir)       //删除已存在目录
+	var store_cfg = newStoreCfgIter(dir)
+	store := New(store_cfg).(*KVMVCCStore)
+	assert.NotNil(b, store)
+
+	var kv []*types.KeyValue
+	var key string
+	var value string
+	var keys [][]byte
+
+	for i := 0; i < b.N; i++ {
+		key = GetRandomString(MaxKeylenth)
+		value = fmt.Sprintf("v%d", i)
+		keys = append(keys, []byte(string(key)))
+		kv = append(kv, &types.KeyValue{[]byte(string(key)), []byte(string(value))})
+	}
+	datas := &types.StoreSet{
+		drivers.EmptyRoot[:],
+		kv,
+		0}
+
+	start := time.Now()
+	b.ResetTimer()
+
+	hash, err := store.MemSet(datas, true)
+	assert.Nil(b, err)
+	req := &types.ReqHash{
+		Hash: hash,
+	}
+	_, err = store.Commit(req)
+	assert.NoError(b, err, "NoError")
+
+	end := time.Now()
+	fmt.Println("kvmvcc BenchmarkCommit cost time is", end.Sub(start), "num is", b.N)
+	b.StopTimer()
 }

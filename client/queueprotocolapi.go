@@ -21,7 +21,7 @@ type QueueProtocolAPI interface {
 	// types.EventGetLastMempool
 	GetLastMempool() (*types.ReplyTxList, error)
 	// types.EventQuery
-	Query(param *types.Query) (*types.Message, error)
+	Query(param *types.Query) (types.Message, error)
 	// --------------- mempool interfaces end
 
 	// +++++++++++++++ execs interfaces begin

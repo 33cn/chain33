@@ -24,7 +24,6 @@ type Paracross struct {
 func Init(name string) {
 	drivers.Register(GetName(), newParacross, 0)
 	setPrefix()
-	InitType()
 }
 
 func GetName() string {
