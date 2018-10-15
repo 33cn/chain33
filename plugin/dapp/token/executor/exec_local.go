@@ -9,7 +9,7 @@ func (t *token) execLocal(receiptData *types.ReceiptData, addr, symbol string) (
 	var set []*types.KeyValue
 	for i := 0; i < len(receiptData.Logs); i++ {
 		item := receiptData.Logs[i]
-		if item.Ty == types.TyLogPreCreateToken || item.Ty == types.TyLogFinishCreateToken || item.Ty == types.TyLogRevokeCreateToken {
+		if item.Ty == tokenty.TyLogPreCreateToken || item.Ty == tokenty.TyLogFinishCreateToken || item.Ty == tokenty.TyLogRevokeCreateToken {
 			var receipt tokenty.ReceiptToken
 			err := types.Decode(item.Log, &receipt)
 			if err != nil {
@@ -20,7 +20,7 @@ func (t *token) execLocal(receiptData *types.ReceiptData, addr, symbol string) (
 			set = append(set, receiptKV...)
 
 			// 添加个人资产列表
-			if item.Ty == types.TyLogFinishCreateToken {
+			if item.Ty == tokenty.TyLogFinishCreateToken {
 				kv := AddTokenToAssets(addr, t.GetLocalDB(), symbol)
 				if kv != nil {
 					set = append(set, kv...)
