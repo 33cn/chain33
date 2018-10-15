@@ -1,8 +1,6 @@
 package rpc
 
 import (
-	"gitlab.33.cn/chain33/chain33/client"
-	"gitlab.33.cn/chain33/chain33/queue"
 	rt "gitlab.33.cn/chain33/chain33/plugin/dapp/retrieve/types"
 	"time"
 	"gitlab.33.cn/chain33/chain33/common/address"
@@ -10,14 +8,6 @@ import (
 	"math/rand"
 	"context"
 )
-
-type channelClient struct {
-	client.QueueProtocolAPI
-}
-
-func (c *channelClient) Init(q queue.Client) {
-	c.QueueProtocolAPI, _ = client.New(q, nil)
-}
 
 func (c *channelClient) Backup(ctx context.Context, v *rt.BackupRetrieve) (*types.UnsignTx, error) {
 	backup := &rt.RetrieveAction{
