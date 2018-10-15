@@ -3,6 +3,8 @@ package executor
 import (
 	pt "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/types"
 	"gitlab.33.cn/chain33/chain33/types"
+	"gitlab.33.cn/chain33/chain33/account"
+	"gitlab.33.cn/chain33/chain33/common/db"
 )
 
 /*
@@ -34,6 +36,18 @@ func checkAsset(height int64, exec, symbol string) bool {
 		if exec == "" || symbol == "" {
 			return false
 		}
+	} else {
+		if exec != "" {
+			return false
+		}
 	}
 	return true
+}
+
+func createAccountDB(height int64, db db.KV, exec, symbol string) (*account.DB, error) {
+	if types.IsMatchFork(height, ForkSupportMorkAsset) {
+		return account.NewAccountDB(exec, symbol, db)
+	} else {
+		return account.NewAccountDB(defaultAssetExec, symbol, db)
+	}
 }
