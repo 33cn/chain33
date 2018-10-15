@@ -4,17 +4,10 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var nameX string
-
-var (
-	actionName = map[string]int32{
-		"Nput": NormActionPut,
-	}
-)
+var NormX = "norm"
 
 func init() {
-	nameX = types.ExecName("norm")
-	// init executor type
+	types.AllowUserExec = append(types.AllowUserExec, []byte(NormX))
 	types.RegistorExecutor("norm", NewType())
 }
 
@@ -32,18 +25,12 @@ func (norm *NormType) GetPayload() types.Message {
 	return &NormAction{}
 }
 
-func (norm *NormType) ActionName(tx *types.Transaction) string {
-	var action NormAction
-	err := types.Decode(tx.Payload, &action)
-	if err != nil {
-		return "unknow"
+func (norm *NormType) GetTypeMap() map[string]int32 {
+	return map[string]int32{
+		"Nput": NormActionPut,
 	}
-	if action.Ty == NormActionPut && action.GetNput() != nil {
-		return "put"
-	}
-	return "unknow"
 }
 
-func (norm *NormType) GetTypeMap() map[string]int32 {
-	return actionName
+func (at *NormType) GetLogMap() map[int64]*types.LogInfo {
+	return map[int64]*types.LogInfo{}
 }

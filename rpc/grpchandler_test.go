@@ -232,14 +232,13 @@ func testQueryChainOK(t *testing.T) {
 	var req types.ReqString
 	req.Data = "msg"
 	msg = &req
-	qapi.On("Query", in).Return(&msg, nil).Once()
+	qapi.On("Query", in).Return(msg, nil).Once()
 	data, err := g.QueryChain(getOkCtx(), nil)
 	assert.Nil(t, err, "the error should be nil")
 	assert.Equal(t, true, data.IsOk, "reply should be ok")
 	var decodemsg types.ReqString
 	pb.Decode(data.Msg, &decodemsg)
 	assert.Equal(t, msg, &decodemsg)
-
 }
 
 func TestQueryChain(t *testing.T) {

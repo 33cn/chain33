@@ -10,7 +10,7 @@ import (
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
 	ttypes "gitlab.33.cn/chain33/chain33/plugin/consensus/tendermint/types"
-	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/valnode/types"
+	tmtypes "gitlab.33.cn/chain33/chain33/plugin/dapp/valnode/types"
 	"gitlab.33.cn/chain33/chain33/queue"
 	drivers "gitlab.33.cn/chain33/chain33/system/consensus"
 	cty "gitlab.33.cn/chain33/chain33/system/dapp/coins/types"
@@ -191,7 +191,7 @@ OuterLoop:
 		state = LoadState(csState)
 		if seenCommit := blockInfo.SeenCommit; seenCommit != nil {
 			state.LastBlockID = ttypes.BlockID{
-				BlockID: types.BlockID{
+				BlockID: tmtypes.BlockID{
 					Hash: seenCommit.BlockID.GetHash(),
 				},
 			}
@@ -383,11 +383,11 @@ func (client *TendermintClient) CheckCommit(height int64) bool {
 	}
 }
 
-func (client *TendermintClient) QueryValidatorsByHeight(height int64) (*pty.ValNodes, error) {
+func (client *TendermintClient) QueryValidatorsByHeight(height int64) (*tmtypes.ValNodes, error) {
 	if height <= 0 {
 		return nil, types.ErrInvalidParam
 	}
-	req := &pty.ReqNodeInfo{Height: height}
+	req := &tmtypes.ReqNodeInfo{Height: height}
 	param, err := proto.Marshal(req)
 	if err != nil {
 		tendermintlog.Error("QueryValidatorsByHeight", "err", err)
@@ -399,14 +399,14 @@ func (client *TendermintClient) QueryValidatorsByHeight(height int64) (*pty.ValN
 	if err != nil {
 		return nil, err
 	}
-	return msg.GetData().(types.Message).(*pty.ValNodes), nil
+	return msg.GetData().(types.Message).(*tmtypes.ValNodes), nil
 }
 
-func (client *TendermintClient) QueryBlockInfoByHeight(height int64) (*types.TendermintBlockInfo, error) {
+func (client *TendermintClient) QueryBlockInfoByHeight(height int64) (*tmtypes.TendermintBlockInfo, error) {
 	if height <= 0 {
 		return nil, types.ErrInvalidParam
 	}
-	req := &pty.ReqBlockInfo{Height: height}
+	req := &tmtypes.ReqBlockInfo{Height: height}
 	param, err := proto.Marshal(req)
 	if err != nil {
 		tendermintlog.Error("QueryBlockInfoByHeight", "err", err)
@@ -418,10 +418,10 @@ func (client *TendermintClient) QueryBlockInfoByHeight(height int64) (*types.Ten
 	if err != nil {
 		return nil, err
 	}
-	return msg.GetData().(types.Message).(*types.TendermintBlockInfo), nil
+	return msg.GetData().(types.Message).(*tmtypes.TendermintBlockInfo), nil
 }
 
-func (client *TendermintClient) LoadSeenCommit(height int64) *types.TendermintCommit {
+func (client *TendermintClient) LoadSeenCommit(height int64) *tmtypes.TendermintCommit {
 	blockInfo, err := client.QueryBlockInfoByHeight(height)
 	if err != nil {
 		panic(fmt.Sprintf("LoadSeenCommit GetBlockInfo failed:%v", err))
@@ -433,7 +433,7 @@ func (client *TendermintClient) LoadSeenCommit(height int64) *types.TendermintCo
 	return blockInfo.GetSeenCommit()
 }
 
-func (client *TendermintClient) LoadBlockCommit(height int64) *types.TendermintCommit {
+func (client *TendermintClient) LoadBlockCommit(height int64) *tmtypes.TendermintCommit {
 	blockInfo, err := client.QueryBlockInfoByHeight(height)
 	if err != nil {
 		panic(fmt.Sprintf("LoadBlockCommit GetBlockInfo failed:%v", err))
@@ -445,7 +445,7 @@ func (client *TendermintClient) LoadBlockCommit(height int64) *types.TendermintC
 	return blockInfo.GetLastCommit()
 }
 
-func (client *TendermintClient) LoadProposalBlock(height int64) *types.TendermintBlock {
+func (client *TendermintClient) LoadProposalBlock(height int64) *tmtypes.TendermintBlock {
 	block, err := client.RequestBlock(height)
 	if err != nil {
 		tendermintlog.Error("LoadProposal by height failed", "curHeight", client.GetCurrentHeight(), "requestHeight", height, "error", err)

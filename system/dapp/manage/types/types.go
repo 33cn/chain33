@@ -26,12 +26,6 @@ func init() {
 	nameX = types.ExecName(types.ManageX)
 	// init executor type
 	types.RegistorExecutor(types.ManageX, NewType())
-
-	// init log
-	//types.RegistorLog(types.TyLogModifyConfig, &ModifyConfigLog{})
-
-	// init query rpc
-	types.RegisterRPCQueryHandle("GetConfigItem", &MagageGetConfigItem{})
 }
 
 type ManageType struct {
@@ -102,20 +96,4 @@ func (l ModifyConfigLog) Decode(msg []byte) (interface{}, error) {
 		return nil, err
 	}
 	return logTmp, err
-}
-
-type MagageGetConfigItem struct {
-}
-
-func (t *MagageGetConfigItem) JsonToProto(message json.RawMessage) ([]byte, error) {
-	var req types.ReqString
-	err := json.Unmarshal(message, &req)
-	if err != nil {
-		return nil, err
-	}
-	return types.Encode(&req), nil
-}
-
-func (t *MagageGetConfigItem) ProtoToJson(reply *types.Message) (interface{}, error) {
-	return reply, nil
 }

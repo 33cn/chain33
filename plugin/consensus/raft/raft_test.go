@@ -26,7 +26,6 @@ import (
 	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/norm/types"
 	_ "gitlab.33.cn/chain33/chain33/plugin/store/init"
 	_ "gitlab.33.cn/chain33/chain33/system"
-	executorty "gitlab.33.cn/chain33/chain33/types/executor"
 )
 
 var (
@@ -36,7 +35,6 @@ var (
 )
 
 func init() {
-	executorty.Init()
 	err := limits.SetLimits()
 	if err != nil {
 		panic(err)

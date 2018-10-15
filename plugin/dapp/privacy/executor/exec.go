@@ -3,10 +3,11 @@ package executor
 import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
+	ty "gitlab.33.cn/chain33/chain33/plugin/dapp/privacy/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-func (p *privacy) Exec_Public2Privacy(payload *types.Public2Privacy, tx *types.Transaction, index int) (*types.Receipt, error) {
+func (p *privacy) Exec_Public2Privacy(payload *ty.Public2Privacy, tx *types.Transaction, index int) (*types.Receipt, error) {
 	if payload.Tokenname != types.BTY {
 		return nil, types.ErrNotSupport
 	}
@@ -31,11 +32,11 @@ func (p *privacy) Exec_Public2Privacy(payload *types.Public2Privacy, tx *types.T
 		receipt.KV = append(receipt.KV, &types.KeyValue{key, value})
 	}
 
-	receiptPrivacyOutput := &types.ReceiptPrivacyOutput{
+	receiptPrivacyOutput := &ty.ReceiptPrivacyOutput{
 		Token:     payload.Tokenname,
 		Keyoutput: payload.GetOutput().Keyoutput,
 	}
-	execlog := &types.ReceiptLog{types.TyLogPrivacyOutput, types.Encode(receiptPrivacyOutput)}
+	execlog := &types.ReceiptLog{ty.TyLogPrivacyOutput, types.Encode(receiptPrivacyOutput)}
 	receipt.Logs = append(receipt.Logs, execlog)
 
 	//////////////////debug code begin///////////////
@@ -45,7 +46,7 @@ func (p *privacy) Exec_Public2Privacy(payload *types.Public2Privacy, tx *types.T
 	return receipt, nil
 }
 
-func (p *privacy) Exec_Privacy2Privacy(payload *types.Privacy2Privacy, tx *types.Transaction, index int) (*types.Receipt, error) {
+func (p *privacy) Exec_Privacy2Privacy(payload *ty.Privacy2Privacy, tx *types.Transaction, index int) (*types.Receipt, error) {
 	if payload.Tokenname != types.BTY {
 		return nil, types.ErrNotSupport
 	}
@@ -60,7 +61,7 @@ func (p *privacy) Exec_Privacy2Privacy(payload *types.Privacy2Privacy, tx *types
 		receipt.KV = append(receipt.KV, &types.KeyValue{key, value})
 	}
 
-	execlog := &types.ReceiptLog{types.TyLogPrivacyInput, types.Encode(payload.GetInput())}
+	execlog := &types.ReceiptLog{ty.TyLogPrivacyInput, types.Encode(payload.GetInput())}
 	receipt.Logs = append(receipt.Logs, execlog)
 
 	txhash := common.ToHex(tx.Hash())
@@ -71,11 +72,11 @@ func (p *privacy) Exec_Privacy2Privacy(payload *types.Privacy2Privacy, tx *types
 		receipt.KV = append(receipt.KV, &types.KeyValue{key, value})
 	}
 
-	receiptPrivacyOutput := &types.ReceiptPrivacyOutput{
+	receiptPrivacyOutput := &ty.ReceiptPrivacyOutput{
 		Token:     payload.Tokenname,
 		Keyoutput: payload.GetOutput().Keyoutput,
 	}
-	execlog = &types.ReceiptLog{types.TyLogPrivacyOutput, types.Encode(receiptPrivacyOutput)}
+	execlog = &types.ReceiptLog{ty.TyLogPrivacyOutput, types.Encode(receiptPrivacyOutput)}
 	receipt.Logs = append(receipt.Logs, execlog)
 
 	receipt.Ty = types.ExecOk
@@ -86,7 +87,7 @@ func (p *privacy) Exec_Privacy2Privacy(payload *types.Privacy2Privacy, tx *types
 	return receipt, nil
 }
 
-func (p *privacy) Exec_Privacy2Public(payload *types.Privacy2Public, tx *types.Transaction, index int) (*types.Receipt, error) {
+func (p *privacy) Exec_Privacy2Public(payload *ty.Privacy2Public, tx *types.Transaction, index int) (*types.Receipt, error) {
 	if payload.Tokenname != types.BTY {
 		return nil, types.ErrNotSupport
 	}
@@ -106,7 +107,7 @@ func (p *privacy) Exec_Privacy2Public(payload *types.Privacy2Public, tx *types.T
 		receipt.KV = append(receipt.KV, &types.KeyValue{key, value})
 	}
 
-	execlog := &types.ReceiptLog{types.TyLogPrivacyInput, types.Encode(payload.GetInput())}
+	execlog := &types.ReceiptLog{ty.TyLogPrivacyInput, types.Encode(payload.GetInput())}
 	receipt.Logs = append(receipt.Logs, execlog)
 
 	txhash := common.ToHex(tx.Hash())
@@ -117,11 +118,11 @@ func (p *privacy) Exec_Privacy2Public(payload *types.Privacy2Public, tx *types.T
 		receipt.KV = append(receipt.KV, &types.KeyValue{key, value})
 	}
 
-	receiptPrivacyOutput := &types.ReceiptPrivacyOutput{
+	receiptPrivacyOutput := &ty.ReceiptPrivacyOutput{
 		Token:     payload.Tokenname,
 		Keyoutput: payload.GetOutput().Keyoutput,
 	}
-	execlog = &types.ReceiptLog{types.TyLogPrivacyOutput, types.Encode(receiptPrivacyOutput)}
+	execlog = &types.ReceiptLog{ty.TyLogPrivacyOutput, types.Encode(receiptPrivacyOutput)}
 	receipt.Logs = append(receipt.Logs, execlog)
 
 	receipt.Ty = types.ExecOk

@@ -4,21 +4,14 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var nameX string
-
-var (
-	actionName = map[string]int32{
-		"Node":      ValNodeActionUpdate,
-		"BlockInfo": ValNodeActionBlockInfo,
-	}
-)
+var ValNodeX = "valnode"
 
 func init() {
-	nameX = types.ExecName("valnode")
-	// init executor type
-	types.RegistorExecutor("valnode", NewType())
+	types.AllowUserExec = append(types.AllowUserExec, []byte(ValNodeX))
+	types.RegistorExecutor(ValNodeX, NewType())
 }
 
+// exec
 type ValNodeType struct {
 	types.ExecTypeBase
 }
@@ -29,25 +22,17 @@ func NewType() *ValNodeType {
 	return c
 }
 
-func (valType *ValNodeType) GetPayload() types.Message {
+func (t *ValNodeType) GetPayload() types.Message {
 	return &ValNodeAction{}
 }
 
-func (valType *ValNodeType) ActionName(tx *types.Transaction) string {
-	var action ValNodeAction
-	err := types.Decode(tx.Payload, &action)
-	if err != nil {
-		return "unknow"
+func (t *ValNodeType) GetTypeMap() map[string]int32 {
+	return map[string]int32{
+		"Node":      ValNodeActionUpdate,
+		"BlockInfo": ValNodeActionBlockInfo,
 	}
-	if action.Ty == ValNodeActionUpdate && action.GetNode() != nil {
-		return "update"
-	}
-	if action.Ty == ValNodeActionBlockInfo && action.GetBlockInfo() != nil {
-		return "blockInfo"
-	}
-	return "unknow"
 }
 
-func (valType *ValNodeType) GetTypeMap() map[string]int32 {
-	return actionName
+func (t *ValNodeType) GetLogMap() map[int64]*types.LogInfo {
+	return map[int64]*types.LogInfo{}
 }
