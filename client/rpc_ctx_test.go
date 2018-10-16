@@ -270,7 +270,7 @@ func (c *GrpcCtx) Run() (err error) {
 		}
 		errRet = err
 	case "QueryChain":
-		reply, err := rpc.QueryChain(context.Background(), c.Params.(*types.Query))
+		reply, err := rpc.QueryChain(context.Background(), c.Params.(*types.BlockChainQuery))
 		if err == nil {
 			*c.Res.(*types.Reply) = *reply
 		}
@@ -294,9 +294,9 @@ func (c *GrpcCtx) Run() (err error) {
 		}
 		errRet = err
 	case "DumpPrivkey":
-		reply, err := rpc.DumpPrivkey(context.Background(), c.Params.(*types.ReqStr))
+		reply, err := rpc.DumpPrivkey(context.Background(), c.Params.(*types.ReqString))
 		if err == nil {
-			*c.Res.(*types.ReplyStr) = *reply
+			*c.Res.(*types.ReplyString) = *reply
 		}
 		errRet = err
 	case "Version":
@@ -321,48 +321,6 @@ func (c *GrpcCtx) Run() (err error) {
 		reply, err := rpc.NetInfo(context.Background(), c.Params.(*types.ReqNil))
 		if err == nil {
 			*c.Res.(*types.NodeNetInfo) = *reply
-		}
-		errRet = err
-	case "ShowPrivacyKey":
-		reply, err := rpc.ShowPrivacyKey(context.Background(), c.Params.(*types.ReqStr))
-		if err == nil {
-			*c.Res.(*types.ReplyPrivacyPkPair) = *reply
-		}
-		errRet = err
-	case "CreateUTXOs":
-		reply, err := rpc.CreateUTXOs(context.Background(), c.Params.(*types.ReqCreateUTXOs))
-		if err == nil {
-			*c.Res.(*types.Reply) = *reply
-		}
-		errRet = err
-	case "MakeTxPublic2Privacy":
-		reply, err := rpc.MakeTxPublic2Privacy(context.Background(), c.Params.(*types.ReqPub2Pri))
-		if err == nil {
-			*c.Res.(*types.Reply) = *reply
-		}
-		errRet = err
-	case "MakeTxPrivacy2Privacy":
-		reply, err := rpc.MakeTxPrivacy2Privacy(context.Background(), c.Params.(*types.ReqPri2Pri))
-		if err == nil {
-			*c.Res.(*types.Reply) = *reply
-		}
-		errRet = err
-	case "MakeTxPrivacy2Public":
-		reply, err := rpc.MakeTxPrivacy2Public(context.Background(), c.Params.(*types.ReqPri2Pub))
-		if err == nil {
-			*c.Res.(*types.Reply) = *reply
-		}
-		errRet = err
-	case "RescanUtxos":
-		reply, err := rpc.RescanUtxos(context.Background(), c.Params.(*types.ReqRescanUtxos))
-		if err == nil {
-			*c.Res.(*types.RepRescanUtxos) = *reply
-		}
-		errRet = err
-	case "EnablePrivacy":
-		reply, err := rpc.EnablePrivacy(context.Background(), c.Params.(*types.ReqEnablePrivacy))
-		if err == nil {
-			*c.Res.(*types.RepEnablePrivacy) = *reply
 		}
 		errRet = err
 	default:
