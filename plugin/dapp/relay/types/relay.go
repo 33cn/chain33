@@ -62,6 +62,10 @@ type RelayType struct {
 	types.ExecTypeBase
 }
 
+func (b *RelayType) GetName() string {
+	return RelayX
+}
+
 func (t *RelayType) GetLogMap() map[int64]*types.LogInfo {
 	return map[int64]*types.LogInfo{
 		TyLogRelayCreate:       {reflect.TypeOf(ReceiptRelayLog{}), "LogRelayCreate"},
@@ -96,6 +100,43 @@ func (t *RelayType) GetTypeMap() map[string]int32 {
 	}
 }
 
+
+func (r RelayType) ActionName(tx *types.Transaction) string {
+	var relay RelayAction
+	err := types.Decode(tx.Payload, &relay)
+	if err != nil {
+		return "unknown-relay-action-err"
+	}
+	if relay.Ty == RelayActionCreate && relay.GetCreate() != nil {
+		return "relayCreateTx"
+	}
+	if relay.Ty == RelayActionRevoke && relay.GetRevoke() != nil {
+		return "relayRevokeTx"
+	}
+	if relay.Ty == RelayActionAccept && relay.GetAccept() != nil {
+		return "relayAcceptTx"
+	}
+	if relay.Ty == RelayActionConfirmTx && relay.GetConfirmTx() != nil {
+		return "relayConfirmTx"
+	}
+	if relay.Ty == RelayActionVerifyTx && relay.GetVerify() != nil {
+		return "relayVerifyTx"
+	}
+	if relay.Ty == RelayActionRcvBTCHeaders && relay.GetBtcHeaders() != nil {
+		return "relay-receive-btc-heads"
+	}
+	return "unknown"
+}
+
+func (r RelayType) DecodePayload(tx *types.Transaction) (interface{}, error) {
+	var action RelayAction
+	err := types.Decode(tx.Payload, &action)
+	if err != nil {
+		return nil, err
+	}
+	return &action, nil
+}
+
 func (r *RelayType) Amount(tx *types.Transaction) (int64, error) {
 	data, err := r.DecodePayload(tx)
 	if err != nil {
@@ -112,4 +153,117 @@ func (r *RelayType) Amount(tx *types.Transaction) (int64, error) {
 func (r *RelayType) CreateTx(action string, message json.RawMessage) (*types.Transaction, error) {
 	var tx *types.Transaction
 	return tx, nil
+}
+
+
+type RelayCreateLog struct {
+}
+
+func (l RelayCreateLog) Name() string {
+	return "LogRelayCreate"
+}
+
+func (l RelayCreateLog) Decode(msg []byte) (interface{}, error) {
+	var logTmp ReceiptRelayLog
+	err := types.Decode(msg, &logTmp)
+	if err != nil {
+		return nil, err
+	}
+	return logTmp, err
+}
+
+type RelayRevokeCreateLog struct {
+}
+
+func (l RelayRevokeCreateLog) Name() string {
+	return "LogRelayRevokeCreate"
+}
+
+func (l RelayRevokeCreateLog) Decode(msg []byte) (interface{}, error) {
+	var logTmp ReceiptRelayLog
+	err := types.Decode(msg, &logTmp)
+	if err != nil {
+		return nil, err
+	}
+	return logTmp, err
+}
+
+type RelayAcceptLog struct {
+}
+
+func (l RelayAcceptLog) Name() string {
+	return "LogRelayAccept"
+}
+
+func (l RelayAcceptLog) Decode(msg []byte) (interface{}, error) {
+	var logTmp ReceiptRelayLog
+	err := types.Decode(msg, &logTmp)
+	if err != nil {
+		return nil, err
+	}
+	return logTmp, err
+}
+
+type RelayRevokeAcceptLog struct {
+}
+
+func (l RelayRevokeAcceptLog) Name() string {
+	return "LogRelayRevokeAccept"
+}
+
+func (l RelayRevokeAcceptLog) Decode(msg []byte) (interface{}, error) {
+	var logTmp ReceiptRelayLog
+	err := types.Decode(msg, &logTmp)
+	if err != nil {
+		return nil, err
+	}
+	return logTmp, err
+}
+
+type RelayConfirmTxLog struct {
+}
+
+func (l RelayConfirmTxLog) Name() string {
+	return "LogRelayConfirmTx"
+}
+
+func (l RelayConfirmTxLog) Decode(msg []byte) (interface{}, error) {
+	var logTmp ReceiptRelayLog
+	err := types.Decode(msg, &logTmp)
+	if err != nil {
+		return nil, err
+	}
+	return logTmp, err
+}
+
+type RelayFinishTxLog struct {
+}
+
+func (l RelayFinishTxLog) Name() string {
+	return "LogRelayFinishTx"
+}
+
+func (l RelayFinishTxLog) Decode(msg []byte) (interface{}, error) {
+	var logTmp ReceiptRelayLog
+	err := types.Decode(msg, &logTmp)
+	if err != nil {
+		return nil, err
+	}
+	return logTmp, err
+}
+
+type RelayRcvBTCHeadLog struct {
+}
+
+func (l RelayRcvBTCHeadLog) Name() string {
+	return "LogRelayRcvBTCHead"
+}
+
+func (l RelayRcvBTCHeadLog) Decode(msg []byte) (interface{}, error) {
+	var logTmp ReceiptRelayRcvBTCHeaders
+	err := types.Decode(msg, &logTmp)
+	if err != nil {
+		return nil, err
+	}
+	return logTmp, err
 }
