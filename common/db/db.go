@@ -99,7 +99,16 @@ type itBase struct {
 
 func (it *itBase) checkKey(key []byte) bool {
 	//key must in start and end
-	return bytes.Compare(key, it.start) >= 0 && bytes.Compare(key, it.end) <= 0
+	var startok = true
+	var endok = true
+	if it.start != nil {
+		startok = bytes.Compare(key, it.start) >= 0
+	}
+	if it.end != nil {
+		endok = bytes.Compare(key, it.end) <= 0
+	}
+	ok := startok && endok
+	return ok
 }
 
 func (it *itBase) Prefix() []byte {
