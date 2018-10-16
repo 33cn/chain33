@@ -4,9 +4,9 @@ import "gitlab.33.cn/chain33/chain33/types"
 
 //retrieve
 const (
-	RetrieveBackup = iota + 1
-	RetrievePreapre
+	RetrievePreapre = iota + 1
 	RetrievePerform
+	RetrieveBackup
 	RetrieveCancel
 )
 
