@@ -557,16 +557,31 @@ func (q *QueueProtocol) GetWalletStatus() (*types.WalletStatus, error) {
 }
 
 func (q *QueueProtocol) Query(driver, funcname string, param types.Message) (types.Message, error) {
+	if types.IsNilP(param) {
+		err := types.ErrInvalidParams
+		log.Error("Query", "Error", err)
+		return nil, err
+	}
 	query := &types.BlockChainQuery{Driver: driver, FuncName: funcname, Param: types.Encode(param)}
 	return q.QueryChain(query)
 }
 
 func (q *QueueProtocol) ExecWalletFunc(driver string, funcname string, param types.Message) (types.Message, error) {
+	if types.IsNilP(param) {
+		err := types.ErrInvalidParams
+		log.Error("ExecWalletFunc", "Error", err)
+		return nil, err
+	}
 	query := &types.WalletExecutor{Driver: driver, FuncName: funcname, Param: types.Encode(param)}
 	return q.ExecWallet(query)
 }
 
 func (q *QueueProtocol) ExecWallet(param *types.WalletExecutor) (types.Message, error) {
+	if param == nil {
+		err := types.ErrInvalidParams
+		log.Error("ExecWallet", "Error", err)
+		return nil, err
+	}
 	msg, err := q.query(walletKey, types.EventWalletExecutor, param)
 	if err != nil {
 		log.Error("ExecWallet", "Error", err.Error())
