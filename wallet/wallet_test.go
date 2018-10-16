@@ -99,6 +99,16 @@ func blockchainModProc(q queue.Queue) {
 			}
 		}
 	}()
+	go func() {
+		client := q.Client()
+		client.Sub("execs")
+		for msg := range client.Recv() {
+			walletlog.Error("execs", "msg.Ty", msg.Ty)
+			if msg.Ty == types.EventBlockChainQuery {
+				msg.Reply(client.NewMessage("", types.EventReplyQuery, &tickettypes.ReplyTicketList{Tickets: []*tickettypes.Ticket{{TicketId: "ticketID"}}}))
+			}
+		}
+	}()
 }
 
 func mempoolModProc(q queue.Queue) {
@@ -496,9 +506,8 @@ func testProcWalletSetLabel(t *testing.T, wallet *Wallet) {
 	setLabel.Label = "account:000"
 	msg = wallet.client.NewMessage("wallet", types.EventWalletSetLabel, setLabel)
 	wallet.client.Send(msg, true)
-	resp, err = wallet.client.Wait(msg)
-	assert.Nil(t, err)
-	assert.Equal(t, resp.Err().Error(), types.ErrLabelHasUsed.Error())
+	_, err = wallet.client.Wait(msg)
+	assert.Equal(t, err.Error(), types.ErrLabelHasUsed.Error())
 
 	setLabel.Label = "account:001"
 	msg = wallet.client.NewMessage("wallet", types.EventWalletSetLabel, setLabel)
@@ -668,15 +677,19 @@ func testProcWalletAddBlock(t *testing.T, wallet *Wallet) {
 // Automining
 func testAutoMining(t *testing.T, wallet *Wallet) {
 	println("TestAutoMining begin")
-	msg := wallet.client.NewMessage("wallet", types.EventWalletAutoMiner, &types.MinerFlag{Flag: 1})
-	wallet.client.Send(msg, true)
-	_, err := wallet.client.Wait(msg)
+	_, err := wallet.execWallet(&types.WalletExecutor{
+		Driver:   "ticket",
+		FuncName: "WalletAutoMiner",
+		Param:    types.Encode(&types.MinerFlag{Flag: 1}),
+	})
 	require.NoError(t, err)
-	println("Sleep 130 second for mining")
-	time.Sleep(time.Second * 130)
-	msg = wallet.client.NewMessage("wallet", types.EventWalletAutoMiner, &types.MinerFlag{Flag: 0})
-	wallet.client.Send(msg, true)
-	_, err = wallet.client.Wait(msg)
+	println("Sleep 10 second for mining")
+	time.Sleep(time.Second * 10)
+	_, err = wallet.execWallet(&types.WalletExecutor{
+		Driver:   "ticket",
+		FuncName: "WalletAutoMiner",
+		Param:    types.Encode(&types.MinerFlag{Flag: 0}),
+	})
 	require.NoError(t, err)
 	println("TestAutoMining end")
 	println("--------------------------")
@@ -685,9 +698,11 @@ func testAutoMining(t *testing.T, wallet *Wallet) {
 // GetTickets
 func testGetTickets(t *testing.T, wallet *Wallet) {
 	println("TestGetTickets begin")
-	msg := wallet.client.NewMessage("wallet", types.EventWalletGetTickets, nil)
-	wallet.client.Send(msg, true)
-	_, err := wallet.client.Wait(msg)
+	_, err := wallet.execWallet(&types.WalletExecutor{
+		Driver:   "ticket",
+		FuncName: "WalletGetTickets",
+		Param:    nil,
+	})
 	require.NoError(t, err)
 	println("TestGetTickets end")
 	println("--------------------------")
@@ -696,9 +711,11 @@ func testGetTickets(t *testing.T, wallet *Wallet) {
 // CloseTickets
 func testCloseTickets(t *testing.T, wallet *Wallet) {
 	println("TestCloseTickets begin")
-	msg := wallet.client.NewMessage("wallet", types.EventCloseTickets, nil)
-	wallet.client.Send(msg, true)
-	_, err := wallet.client.Wait(msg)
+	_, err := wallet.execWallet(&types.WalletExecutor{
+		Driver:   "ticket",
+		FuncName: "CloseTickets",
+		Param:    nil,
+	})
 	require.NoError(t, err)
 	println("TestCloseTickets end")
 	println("--------------------------")

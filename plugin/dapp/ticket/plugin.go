@@ -2,6 +2,7 @@ package ticket
 
 import (
 	"gitlab.33.cn/chain33/chain33/plugin/dapp/ticket/executor"
+	_ "gitlab.33.cn/chain33/chain33/plugin/dapp/ticket/wallet"
 	"gitlab.33.cn/chain33/chain33/pluginmgr"
 )
 

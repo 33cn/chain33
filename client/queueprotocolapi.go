@@ -75,8 +75,6 @@ type QueueProtocolAPI interface {
 	GetSeed(param *types.GetSeedByPw) (*types.ReplySeed, error)
 	// types.EventGetWalletStatus
 	GetWalletStatus() (*types.WalletStatus, error)
-	// types.EventWalletAutoMiner
-	WalletAutoMiner(param *types.MinerFlag) (*types.Reply, error)
 	// types.EventDumpPrivkey
 	DumpPrivkey(param *types.ReqString) (*types.ReplyString, error)
 	// types.EventCloseTickets
