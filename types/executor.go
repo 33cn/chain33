@@ -292,13 +292,14 @@ func (base *ExecTypeBase) buildQuery(funcmap map[string]reflect.Method) {
 		if ty.NumOut() != 2 {
 			continue
 		}
-		if !ty.Out(1).AssignableTo(reflect.TypeOf((*proto.Message)(nil)).Elem()) {
+		if !ty.Out(0).AssignableTo(reflect.TypeOf((*proto.Message)(nil)).Elem()) {
 			continue
 		}
-		if !ty.Out(2).AssignableTo(reflect.TypeOf((*error)(nil)).Elem()) {
+		if !ty.Out(1).AssignableTo(reflect.TypeOf((*error)(nil)).Elem()) {
 			continue
 		}
-		base.queryMap[funcname[len("Query_"):]] = ty.In(1)
+		base.queryMap = make(map[string]reflect.Type)
+		base.queryMap[funcname[len("Query_"):]] = ty
 	}
 }
 
