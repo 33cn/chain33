@@ -970,29 +970,6 @@ func (_m *QueueProtocolAPI) Version() (*types.Reply, error) {
 	return r0, r1
 }
 
-// WalletAutoMiner provides a mock function with given fields: param
-func (_m *QueueProtocolAPI) WalletAutoMiner(param *types.MinerFlag) (*types.Reply, error) {
-	ret := _m.Called(param)
-
-	var r0 *types.Reply
-	if rf, ok := ret.Get(0).(func(*types.MinerFlag) *types.Reply); ok {
-		r0 = rf(param)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.Reply)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(*types.MinerFlag) error); ok {
-		r1 = rf(param)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // WalletCreateTx provides a mock function with given fields: param
 func (_m *QueueProtocolAPI) WalletCreateTx(param *types.ReqCreateTransaction) (*types.Transaction, error) {
 	ret := _m.Called(param)
