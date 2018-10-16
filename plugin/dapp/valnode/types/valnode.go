@@ -6,11 +6,6 @@ import (
 
 var ValNodeX = "valnode"
 
-const (
-	ValNodeActionUpdate    = 1
-	ValNodeActionBlockInfo = 2
-)
-
 func init() {
 	types.AllowUserExec = append(types.AllowUserExec, []byte(ValNodeX))
 	types.RegistorExecutor(ValNodeX, NewType())
