@@ -8,10 +8,8 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"gitlab.33.cn/chain33/chain33/plugin/dapp/relay/rpc"
-	rTy "gitlab.33.cn/chain33/chain33/plugin/dapp/relay/types"
+	ty "gitlab.33.cn/chain33/chain33/plugin/dapp/relay/types"
 	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
-	jsonrpc "gitlab.33.cn/chain33/chain33/rpc/jsonclient"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -66,7 +64,7 @@ func showBtcHeadHeightList(cmd *cobra.Command, args []string) {
 	count, _ := cmd.Flags().GetInt32("counts")
 	direct, _ := cmd.Flags().GetInt32("direction")
 
-	var reqList rTy.ReqRelayBtcHeaderHeightList
+	var reqList ty.ReqRelayBtcHeaderHeightList
 	reqList.ReqHeight = base
 	reqList.Counts = count
 	reqList.Direction = direct
@@ -82,7 +80,7 @@ func showBtcHeadHeightList(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	var res rTy.ReplyRelayBtcHeadHeightList
+	var res ty.ReplyRelayBtcHeadHeightList
 	err = rpc.Call("Chain33.Query", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -111,7 +109,7 @@ func showBtcHeadCurHeight(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	base, _ := cmd.Flags().GetInt64("height_base")
 
-	var reqList rTy.ReqRelayQryBTCHeadHeight
+	var reqList ty.ReqRelayQryBTCHeadHeight
 	reqList.BaseHeight = base
 
 	params := types.Query4Cli{
@@ -125,7 +123,7 @@ func showBtcHeadCurHeight(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	var res rTy.ReplayRelayQryBTCHeadHeight
+	var res ty.ReplayRelayQryBTCHeadHeight
 	err = rpc.Call("Chain33.Query", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -158,8 +156,8 @@ func showOnesRelayOrders(cmd *cobra.Command, args []string) {
 	creator, _ := cmd.Flags().GetString("creator")
 	coin, _ := cmd.Flags().GetString("coin")
 	coins := strings.Split(coin, " ")
-	var reqAddrCoins rTy.ReqRelayAddrCoins
-	reqAddrCoins.Status = rTy.RelayOrderStatus_pending
+	var reqAddrCoins ty.ReqRelayAddrCoins
+	reqAddrCoins.Status = ty.RelayOrderStatus_pending
 	reqAddrCoins.Addr = creator
 	if 0 != len(coins) {
 		reqAddrCoins.Coins = append(reqAddrCoins.Coins, coins...)
@@ -175,7 +173,7 @@ func showOnesRelayOrders(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	var res rTy.ReplyRelayOrders
+	var res ty.ReplyRelayOrders
 	err = rpc.Call("Chain33.Query", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -207,8 +205,8 @@ func showRelayAcceptOrders(cmd *cobra.Command, args []string) {
 	acceptor, _ := cmd.Flags().GetString("acceptor")
 	coin, _ := cmd.Flags().GetString("coin")
 	coins := strings.Split(coin, " ")
-	var reqAddrCoins rTy.ReqRelayAddrCoins
-	reqAddrCoins.Status = rTy.RelayOrderStatus_locking
+	var reqAddrCoins ty.ReqRelayAddrCoins
+	reqAddrCoins.Status = ty.RelayOrderStatus_locking
 	reqAddrCoins.Addr = acceptor
 	if 0 != len(coins) {
 		reqAddrCoins.Coins = append(reqAddrCoins.Coins, coins...)
@@ -224,7 +222,7 @@ func showRelayAcceptOrders(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	var res rTy.ReplyRelayOrders
+	var res ty.ReplyRelayOrders
 	err = rpc.Call("Chain33.Query", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -262,8 +260,8 @@ func showCoinRelayOrders(cmd *cobra.Command, args []string) {
 		spt := strings.Split(coin, " ")
 		coins = append(coins, spt...)
 	}
-	var reqAddrCoins rTy.ReqRelayAddrCoins
-	reqAddrCoins.Status = rTy.RelayOrderStatus(status)
+	var reqAddrCoins ty.ReqRelayAddrCoins
+	reqAddrCoins.Status = ty.RelayOrderStatus(status)
 	if 0 != len(coins) {
 		reqAddrCoins.Coins = append(reqAddrCoins.Coins, coins...)
 	}
@@ -278,7 +276,7 @@ func showCoinRelayOrders(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	var res rTy.ReplyRelayOrders
+	var res ty.ReplyRelayOrders
 	err = rpc.Call("Chain33.Query", params, &res)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -288,13 +286,13 @@ func showCoinRelayOrders(cmd *cobra.Command, args []string) {
 	parseRelayOrders(res)
 }
 
-func parseRelayOrders(res rTy.ReplyRelayOrders) {
+func parseRelayOrders(res ty.ReplyRelayOrders) {
 	for _, order := range res.Relayorders {
 		var show RelayOrder2Show
 		show.OrderId = order.Id
 		show.Status = order.Status.String()
 		show.Creator = order.CreaterAddr
-		show.CoinOperation = rTy.RelayOrderOperation[order.CoinOperation]
+		show.CoinOperation = ty.RelayOrderOperation[order.CoinOperation]
 		show.Amount = strconv.FormatFloat(float64(order.Amount)/float64(types.Coin), 'f', 4, 64)
 		show.Coin = order.Coin
 		show.CoinAddr = order.CoinAddr
@@ -317,12 +315,12 @@ func parseRelayOrders(res rTy.ReplyRelayOrders) {
 	}
 }
 
-func parseRelayBtcHeadHeightList(res rTy.ReplyRelayBtcHeadHeightList) {
+func parseRelayBtcHeadHeightList(res ty.ReplyRelayBtcHeadHeightList) {
 	data, _ := json.Marshal(res)
 	fmt.Println(string(data))
 }
 
-func parseRelayBtcCurHeight(res rTy.ReplayRelayQryBTCHeadHeight) {
+func parseRelayBtcCurHeight(res ty.ReplayRelayQryBTCHeadHeight) {
 	data, err := json.MarshalIndent(res, "", "    ")
 	if err != nil {
 		fmt.Println(os.Stderr, err)
@@ -371,27 +369,25 @@ func relayOrder(cmd *cobra.Command, args []string) {
 	coinaddr, _ := cmd.Flags().GetString("coin_addr")
 	coinwait, _ := cmd.Flags().GetUint32("coin_wait")
 	btyamount, _ := cmd.Flags().GetFloat64("bty_amount")
-	fee, _ := cmd.Flags().GetFloat64("fee")
 
 	if coinwait == 0 {
 		coinwait = 1
 	}
-	feeInt64 := int64(fee * 1e4)
+
 	btyUInt64 := uint64(btyamount * 1e4)
 	coinUInt64 := uint64(coinamount * 1e4)
 
-	params := &rpc.RelayOrderTx{
+	params := &ty.RelayOrderTx{
 		Operation: oper,
 		Amount:    coinUInt64 * 1e4,
 		Coin:      coin,
 		Addr:      coinaddr,
 		CoinWait:  coinwait,
 		BtyAmount: btyUInt64 * 1e4,
-		Fee:       feeInt64 * 1e4,
 	}
 
 	var res string
-	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "Relay.CreateRawRelayOrderTx", params, &res)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Relay.CreateRawRelayOrderTx", params, &res)
 	ctx.RunWithoutMarshal()
 }
 
@@ -422,20 +418,18 @@ func relayAccept(cmd *cobra.Command, args []string) {
 	orderID, _ := cmd.Flags().GetString("order_id")
 	coinaddr, _ := cmd.Flags().GetString("coin_addr")
 	coinwait, _ := cmd.Flags().GetUint32("coin_wait")
-	fee, _ := cmd.Flags().GetFloat64("fee")
 
 	if coinwait == 0 {
 		coinwait = 1
 	}
-	feeInt64 := int64(fee * 1e4)
-	params := &rpc.RelayAcceptTx{
+
+	params := &ty.RelayAcceptTx{
 		OrderId:  orderID,
 		CoinAddr: coinaddr,
 		CoinWait: coinwait,
-		Fee:      feeInt64 * 1e4,
 	}
 	var res string
-	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "Relay.CreateRawRelayAcceptTx", params, &res)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Relay.CreateRawRelayAcceptTx", params, &res)
 	ctx.RunWithoutMarshal()
 }
 
@@ -467,17 +461,14 @@ func relayRevoke(cmd *cobra.Command, args []string) {
 	orderID, _ := cmd.Flags().GetString("order_id")
 	target, _ := cmd.Flags().GetUint32("target")
 	act, _ := cmd.Flags().GetUint32("action")
-	fee, _ := cmd.Flags().GetFloat64("fee")
 
-	feeInt64 := int64(fee * 1e4)
-	params := &rpc.RelayRevokeTx{
+	params := &ty.RelayRevokeTx{
 		OrderId: orderID,
 		Target:  target,
 		Action:  act,
-		Fee:     feeInt64 * 1e4,
 	}
 	var res string
-	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "Relay.CreateRawRelayRevokeTx", params, &res)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Relay.CreateRawRelayRevokeTx", params, &res)
 	ctx.RunWithoutMarshal()
 }
 
@@ -505,16 +496,13 @@ func relayConfirm(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	orderId, _ := cmd.Flags().GetString("order_id")
 	txHash, _ := cmd.Flags().GetString("tx_hash")
-	fee, _ := cmd.Flags().GetFloat64("fee")
 
-	feeInt64 := int64(fee * 1e4)
-	params := &rpc.RelayConfirmTx{
+	params := &ty.RelayConfirmTx{
 		OrderId: orderId,
 		TxHash:  txHash,
-		Fee:     feeInt64 * 1e4,
 	}
 	var res string
-	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "Relay.CreateRawRelayConfirmTx", params, &res)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Relay.CreateRawRelayConfirmTx", params, &res)
 	ctx.RunWithoutMarshal()
 }
 
@@ -554,21 +542,16 @@ func relaySaveBtcHead(cmd *cobra.Command, args []string) {
 	height, _ := cmd.Flags().GetUint64("height")
 	flag, _ := cmd.Flags().GetInt32("flag")
 
-	fee, _ := cmd.Flags().GetFloat64("fee")
-
-	feeInt64 := int64(fee * 1e4)
-
-	params := &rpc.RelaySaveBTCHeadTx{
+	params := &ty.RelaySaveBTCHeadTx{
 		Hash:         blockhash,
 		PreviousHash: prehash,
 		MerkleRoot:   merkleroot,
 		Height:       height,
 		IsReset:      flag == 1,
-		Fee:          feeInt64 * 1e4,
 	}
 
 	var res string
-	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "Relay.CreateRawRelaySaveBTCHeadTx", params, &res)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Relay.CreateRawRelaySaveBTCHeadTx", params, &res)
 	ctx.RunWithoutMarshal()
 }
 
@@ -608,19 +591,16 @@ func relayVerifyBTC(cmd *cobra.Command, args []string) {
 	txindex, _ := cmd.Flags().GetUint32("tx_index")
 	merkbranch, _ := cmd.Flags().GetString("merk_branch")
 	blockhash, _ := cmd.Flags().GetString("block_hash")
-	fee, _ := cmd.Flags().GetFloat64("fee")
 
-	feeInt64 := int64(fee * 1e4)
-	params := &rpc.RelayVerifyBTCTx{
+	params := &ty.RelayVerifyBTCTx{
 		OrderId:     orderid,
 		RawTx:       rawtx,
 		TxIndex:     txindex,
 		MerklBranch: merkbranch,
 		BlockHash:   blockhash,
-		Fee:         feeInt64 * 1e4,
 	}
 
 	var res string
-	ctx := jsonrpc.NewRpcCtx(rpcLaddr, "Relay.CreateRawRelayVerifyBTCTx", params, &res)
+	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Relay.CreateRawRelayVerifyBTCTx", params, &res)
 	ctx.RunWithoutMarshal()
 }

@@ -12,7 +12,7 @@ func (g *Game) execDelLocal(receiptData *types.ReceiptData) (*types.LocalDBSet, 
 	}
 	for _, log := range receiptData.Logs {
 		switch log.GetTy() {
-		case types.TyLogCreateGame, types.TyLogMatchGame, types.TyLogCloseGame, types.TyLogCancleGame:
+		case gt.TyLogCreateGame, gt.TyLogMatchGame, gt.TyLogCloseGame, gt.TyLogCancleGame:
 			receiptGame := &gt.ReceiptGame{}
 			if err := types.Decode(log.Log, receiptGame); err != nil {
 				return nil, err

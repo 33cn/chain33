@@ -5,23 +5,23 @@ import (
 	"os"
 	"time"
 
-	chain33rpc "gitlab.33.cn/chain33/chain33/rpc"
 	"gitlab.33.cn/chain33/chain33/rpc/jsonclient"
+	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
 // ts/height -> blockHeader
 type chain33 struct {
-	lastHeader *chain33rpc.Header
+	lastHeader *rpctypes.Header
 	// height -> ts -> header
-	Headers   map[int64]*chain33rpc.Header
+	Headers   map[int64]*rpctypes.Header
 	Height2Ts map[int64]int64
 	// new only cache ticket for miner
 	accountCache map[int64]*types.Accounts
 	Host         string
 }
 
-func (b chain33) findBlock(ts int64) (int64, *chain33rpc.Header) {
+func (b chain33) findBlock(ts int64) (int64, *rpctypes.Header) {
 	log.Info("show", "utc", ts, "lastBlockTime", b.lastHeader.BlockTime)
 	if ts > b.lastHeader.BlockTime {
 		ts = b.lastHeader.BlockTime
@@ -39,7 +39,7 @@ func (b chain33) findBlock(ts int64) (int64, *chain33rpc.Header) {
 
 	return 0, nil
 }
-func (b chain33) getBalance(addrs []string, exec string, timeNear int64) (*chain33rpc.Header, []*chain33rpc.Account, error) {
+func (b chain33) getBalance(addrs []string, exec string, timeNear int64) (*rpctypes.Header, []*rpctypes.Account, error) {
 	rpcCli, err := jsonclient.NewJSONClient(b.Host)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -55,7 +55,7 @@ func (b chain33) getBalance(addrs []string, exec string, timeNear int64) (*chain
 	return header, acc, err
 }
 
-func (b chain33) addBlock(h *chain33rpc.Header) error {
+func (b chain33) addBlock(h *rpctypes.Header) error {
 	b.Headers[h.BlockTime] = h
 	b.Height2Ts[h.Height] = h.BlockTime
 	if h.Height > b.lastHeader.Height {
@@ -66,31 +66,31 @@ func (b chain33) addBlock(h *chain33rpc.Header) error {
 }
 
 var cache = chain33{
-	lastHeader:   &chain33rpc.Header{Height: 0},
-	Headers:      map[int64]*chain33rpc.Header{},
+	lastHeader:   &rpctypes.Header{Height: 0},
+	Headers:      map[int64]*rpctypes.Header{},
 	Height2Ts:    map[int64]int64{},
 	accountCache: map[int64]*types.Accounts{},
 }
 
-func getLastHeader(cli *jsonclient.JSONClient) (*chain33rpc.Header, error) {
+func getLastHeader(cli *jsonclient.JSONClient) (*rpctypes.Header, error) {
 	method := "Chain33.GetLastHeader"
-	var res chain33rpc.Header
+	var res rpctypes.Header
 	err := cli.Call(method, nil, &res)
 	return &res, err
 }
 
-func getHeaders(cli *jsonclient.JSONClient, start, end int64) (*chain33rpc.Headers, error) {
+func getHeaders(cli *jsonclient.JSONClient, start, end int64) (*rpctypes.Headers, error) {
 	method := "Chain33.GetHeaders"
 	params := &types.ReqBlocks{Start: start, End: end, IsDetail: false}
-	var res chain33rpc.Headers
+	var res rpctypes.Headers
 	err := cli.Call(method, params, &res)
 	return &res, err
 }
 
-func getBalanceAt(cli *jsonclient.JSONClient, addrs []string, exec, stateHash string) ([]*chain33rpc.Account, error) {
+func getBalanceAt(cli *jsonclient.JSONClient, addrs []string, exec, stateHash string) ([]*rpctypes.Account, error) {
 	method := "Chain33.GetBalance"
 	params := &types.ReqBalance{Addresses: addrs, Execer: exec, StateHash: stateHash}
-	var res []*chain33rpc.Account
+	var res []*rpctypes.Account
 	err := cli.Call(method, params, &res)
 	return res, err
 }

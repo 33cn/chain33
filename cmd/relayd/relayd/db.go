@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"gitlab.33.cn/chain33/chain33/common/db"
-	rTy "gitlab.33.cn/chain33/chain33/plugin/dapp/relay/types"
+	ty "gitlab.33.cn/chain33/chain33/plugin/dapp/relay/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -52,7 +52,7 @@ func (r *relaydDB) queryOrderByStatus(status uint64) [][]byte {
 	return orders
 }
 
-func (r *relaydDB) BlockHeader(value interface{}) (*rTy.BtcHeader, error) {
+func (r *relaydDB) BlockHeader(value interface{}) (*ty.BtcHeader, error) {
 	var key []byte
 	switch val := value.(type) {
 	case uint64:
@@ -62,7 +62,7 @@ func (r *relaydDB) BlockHeader(value interface{}) (*rTy.BtcHeader, error) {
 	default:
 		panic(val)
 	}
-	var ret rTy.BtcHeader
+	var ret ty.BtcHeader
 	data, err := r.Get(key)
 	if err != nil {
 		return nil, err

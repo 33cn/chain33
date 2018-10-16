@@ -171,11 +171,12 @@ clean: ## Remove previous build
 	@rm -rf build/tools/autotest/autotest
 	@go clean
 
+proto:protobuf
+
 protobuf: ## Generate protbuf file of types package
 	@cd types/proto && ./create_protobuf.sh && cd ../..
-	@cd system/dapp/coins/proto && sh create_protobuf.sh && cd ../..
-	@cd plugin/dapp/paracross/proto && sh create_protobuf.sh && cd ../..
-
+	@find ./system/dapp -maxdepth 1 -type d  -exec sh proto {} \;
+	@find ./plugin/dapp -maxdepth 1 -type d  -exec sh proto {} \;
 
 help: ## Display this help screen
 	@printf "Help doc:\nUsage: make [command]\n"
