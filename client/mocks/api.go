@@ -107,13 +107,13 @@ func (_m *QueueProtocolAPI) ExecWallet(param *types.WalletExecutor) (types.Messa
 	return r0, r1
 }
 
-// ExecWalletEvent provides a mock function with given fields: driver, funcname, eventId
-func (_m *QueueProtocolAPI) ExecWalletEvent(driver string, funcname string, eventId int) (types.Message, error) {
-	ret := _m.Called(driver, funcname, eventId)
+// ExecWalletFunc provides a mock function with given fields: driver, funcname, param
+func (_m *QueueProtocolAPI) ExecWalletFunc(driver string, funcname string, param types.Message) (types.Message, error) {
+	ret := _m.Called(driver, funcname, param)
 
 	var r0 types.Message
-	if rf, ok := ret.Get(0).(func(string, string, int) types.Message); ok {
-		r0 = rf(driver, funcname, eventId)
+	if rf, ok := ret.Get(0).(func(string, string, types.Message) types.Message); ok {
+		r0 = rf(driver, funcname, param)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(types.Message)
@@ -121,8 +121,8 @@ func (_m *QueueProtocolAPI) ExecWalletEvent(driver string, funcname string, even
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(string, string, int) error); ok {
-		r1 = rf(driver, funcname, eventId)
+	if rf, ok := ret.Get(1).(func(string, string, types.Message) error); ok {
+		r1 = rf(driver, funcname, param)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -764,11 +764,11 @@ func (_m *QueueProtocolAPI) PeerInfo() (*types.PeerList, error) {
 }
 
 // Query provides a mock function with given fields: driver, funcname, param
-func (_m *QueueProtocolAPI) Query(driver string, funcname string, param []byte) (types.Message, error) {
+func (_m *QueueProtocolAPI) Query(driver string, funcname string, param types.Message) (types.Message, error) {
 	ret := _m.Called(driver, funcname, param)
 
 	var r0 types.Message
-	if rf, ok := ret.Get(0).(func(string, string, []byte) types.Message); ok {
+	if rf, ok := ret.Get(0).(func(string, string, types.Message) types.Message); ok {
 		r0 = rf(driver, funcname, param)
 	} else {
 		if ret.Get(0) != nil {
@@ -777,7 +777,7 @@ func (_m *QueueProtocolAPI) Query(driver string, funcname string, param []byte) 
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(string, string, []byte) error); ok {
+	if rf, ok := ret.Get(1).(func(string, string, types.Message) error); ok {
 		r1 = rf(driver, funcname, param)
 	} else {
 		r1 = ret.Error(1)
