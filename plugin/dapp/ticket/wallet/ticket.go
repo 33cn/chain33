@@ -107,7 +107,7 @@ func (policy *ticketPolicy) OnAddBlockTx(block *types.BlockDetail, tx *types.Tra
 		Blocktime:  block.Block.BlockTime,
 		ActionName: tx.ActionName(),
 		Amount:     amount,
-		Spendrecv:  nil,
+		Payload:    nil,
 	}
 	if len(wtxdetail.Fromaddr) <= 0 {
 		pubkey := tx.Signature.GetPubkey()
@@ -142,7 +142,7 @@ func (policy *ticketPolicy) OnDeleteBlockTx(block *types.BlockDetail, tx *types.
 		Blocktime:  block.Block.BlockTime,
 		ActionName: tx.ActionName(),
 		Amount:     amount,
-		Spendrecv:  nil,
+		Payload:    nil,
 	}
 	if len(wtxdetail.Fromaddr) <= 0 {
 		pubkey := tx.Signature.GetPubkey()
@@ -265,12 +265,8 @@ func (policy *ticketPolicy) forceCloseAllTicket(height int64) (*types.ReplyHashe
 
 func (policy *ticketPolicy) getTickets(addr string, status int32) ([]*ty.Ticket, error) {
 	reqaddr := &ty.TicketList{addr, status}
-	var req types.Query
-	req.Execer = types.ExecerTicket
-	req.FuncName = "TicketList"
-	req.Payload = types.Encode(reqaddr)
 	api := policy.getAPI()
-	msg, err := api.Query(&req)
+	msg, err := api.Query(types.TicketX, "TicketList", reqaddr)
 	if err != nil {
 		bizlog.Error("getTickets", "Query error", err)
 		return nil, err
@@ -569,12 +565,8 @@ func (policy *ticketPolicy) buyTicket(height int64) ([][]byte, int, error) {
 
 func (policy *ticketPolicy) getMinerColdAddr(addr string) ([]string, error) {
 	reqaddr := &types.ReqString{addr}
-	var req types.Query
-	req.Execer = types.ExecerTicket
-	req.FuncName = "MinerSourceList"
-	req.Payload = types.Encode(reqaddr)
 	api := policy.walletOperate.GetAPI()
-	msg, err := api.Query(&req)
+	msg, err := api.Query(types.TicketX, "MinerSourceList", reqaddr)
 	if err != nil {
 		bizlog.Error("getMinerColdAddr", "Query error", err)
 		return nil, err

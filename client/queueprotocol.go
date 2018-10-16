@@ -578,23 +578,6 @@ func (q *QueueProtocol) ExecWallet(param *types.WalletExecutor) (types.Message, 
 	return nil, types.ErrTypeAsset
 }
 
-func (q *QueueProtocol) WalletAutoMiner(param *types.MinerFlag) (*types.Reply, error) {
-	if param == nil {
-		err := types.ErrInvalidParam
-		log.Error("WalletAutoMiner", "Error", err)
-		return nil, err
-	}
-	msg, err := q.query(walletKey, types.EventWalletAutoMiner, param)
-	if err != nil {
-		log.Error("WalletAutoMiner", "Error", err.Error())
-		return nil, err
-	}
-	if reply, ok := msg.GetData().(*types.Reply); ok {
-		return reply, nil
-	}
-	return nil, types.ErrTypeAsset
-}
-
 func (q *QueueProtocol) GetTicketCount() (*types.Int64, error) {
 	msg, err := q.query(consensusKey, types.EventGetTicketCount, &types.ReqNil{})
 	if err != nil {
