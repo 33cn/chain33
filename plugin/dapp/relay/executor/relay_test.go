@@ -64,6 +64,7 @@ func (s *suiteRelay) SetupSuite() {
 	relay.SetIsFree(false)
 	relay.SetApi(nil)
 	relay.SetChild(relay)
+	relay.SetExecutorType(executorType)
 	s.relay = relay
 
 	s.Equal("relay", s.relay.GetName())
@@ -171,7 +172,8 @@ func (s *suiteRelay) TestExec_2() {
 	heightBytes := types.Encode(&types.Int64{int64(20)})
 	s.kvdb.On("Get", mock.Anything).Return(heightBytes, nil).Once()
 	receipt, err := s.relay.Exec(tx, 0)
-	s.Nil(err)
+	//s.Nil(err)
+	s.Assert().Nil(err)
 
 	acc := s.relay.GetCoinsAccount()
 	account := acc.LoadExecAccount(addrTo, s.addrRelay)
@@ -400,6 +402,7 @@ func (s *suiteBtcHeader) SetupSuite() {
 	relay.SetIsFree(false)
 	relay.SetApi(nil)
 	relay.SetChild(relay)
+	relay.SetExecutorType(executorType)
 	s.relay = relay
 
 	s.Equal("relay", s.relay.GetName())
