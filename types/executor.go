@@ -490,7 +490,7 @@ func (base *ExecTypeBase) callRPC(method reflect.Method, action string, msg inte
 	if !valueret[0].CanInterface() {
 		return nil, ErrMethodNotFound
 	}
-	if !valueret[2].CanInterface() {
+	if !valueret[1].CanInterface() {
 		return nil, ErrMethodNotFound
 	}
 	r1 := valueret[0].Interface()
