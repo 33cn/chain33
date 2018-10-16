@@ -7,5 +7,6 @@ type CreateBuildAppSourceTask struct {
 }
 
 func (this *CreateBuildAppSourceTask) Execute() error {
+	mlog.Info("Execute create build app source task.")
 	return nil
 }

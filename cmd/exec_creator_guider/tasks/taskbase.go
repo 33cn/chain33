@@ -1,5 +1,11 @@
 package tasks
 
+import "github.com/inconshreveable/log15"
+
+var (
+	mlog = log15.New("module", "task")
+)
+
 type TaskBase struct {
 	NextTask Task
 }
