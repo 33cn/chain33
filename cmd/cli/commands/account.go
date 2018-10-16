@@ -50,10 +50,10 @@ func addDumpKeyFlags(cmd *cobra.Command) {
 func dumpKey(cmd *cobra.Command, args []string) {
 	rpcLaddr, _ := cmd.Flags().GetString("rpc_laddr")
 	addr, _ := cmd.Flags().GetString("addr")
-	params := types.ReqStr{
-		ReqStr: addr,
+	params := types.ReqString{
+		Data: addr,
 	}
-	var res types.ReplyStr
+	var res types.ReplyString
 	ctx := jsonclient.NewRpcCtx(rpcLaddr, "Chain33.DumpPrivkey", params, &res)
 	ctx.Run()
 }

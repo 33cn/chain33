@@ -2,35 +2,147 @@ package common
 
 import (
 	"math/rand"
+	"reflect"
+	"strings"
 	"sync"
 
-	"github.com/pkg/errors"
+	"github.com/gogo/protobuf/proto"
 	"gitlab.33.cn/chain33/chain33/client"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	"gitlab.33.cn/chain33/chain33/common/db"
-	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
 var (
-	funcMap         = queue.NewFuncMap()
-	PolicyContainer = map[string]WalletBizPolicy{}
+	funcMap         = make(map[string]map[string]reflect.Method)
+	typeMap         = make(map[string]map[string]reflect.Type)
+	valueMap        = make(map[string]reflect.Value)
+	PolicyContainer = make(map[string]WalletBizPolicy)
 )
 
-func RegisterPolicy(key string, policy WalletBizPolicy) error {
+func RegisterPolicy(key string, policy WalletBizPolicy) {
 	if _, existed := PolicyContainer[key]; existed {
-		return errors.New("PolicyTypeExisted")
+		panic("RegisterPolicy dup")
 	}
 	PolicyContainer[key] = policy
-	return nil
+	RegisterEventCB(key, policy)
 }
 
-func RegisterMsgFunc(msgid int, fn queue.FN_MsgCallback) {
-	funcMap.Register(msgid, fn)
+func RegisterEventCB(key string, obj interface{}) {
+	if _, existed := funcMap[key]; existed {
+		panic("RegisterEventCB dup")
+	}
+	funcMap[key], typeMap[key] = buildType(types.ListMethod(obj))
+	valueMap[key] = reflect.ValueOf(obj)
 }
 
-func ProcessFuncMap(msg *queue.Message) (bool, string, int64, interface{}, error) {
-	return funcMap.Process(msg)
+func GetFunc(driver, name string) (reflect.Method, error) {
+	funclist, ok := funcMap[driver]
+	if !ok {
+		return reflect.Method{}, types.ErrActionNotSupport
+	}
+	if f, ok := funclist[name]; ok {
+		return f, nil
+	}
+	return reflect.Method{}, types.ErrActionNotSupport
+}
+
+func GetType(driver, name string) (reflect.Type, error) {
+	typelist, ok := typeMap[driver]
+	if !ok {
+		return nil, types.ErrActionNotSupport
+	}
+	if t, ok := typelist[name]; ok {
+		return t, nil
+	}
+	return nil, types.ErrActionNotSupport
+}
+
+func DecodeParam(driver, name string, in []byte) (reply types.Message, err error) {
+	ty, err := GetType(driver, name)
+	if err != nil {
+		return nil, err
+	}
+	p := reflect.New(ty.In(1).Elem())
+	queryin := p.Interface()
+	if paramIn, ok := queryin.(proto.Message); ok {
+		err = types.Decode(in, paramIn)
+		return paramIn, err
+	}
+	return nil, types.ErrActionNotSupport
+}
+
+func CallFunc(driver, name string, in types.Message) (reply types.Message, err error) {
+	f, err := GetFunc(driver, name)
+	if err != nil {
+		return nil, err
+	}
+	valueret := f.Func.Call([]reflect.Value{valueMap[driver], reflect.ValueOf(in)})
+	if len(valueret) != 2 {
+		return nil, types.ErrMethodNotFound
+	}
+	if !valueret[0].CanInterface() {
+		return nil, types.ErrMethodNotFound
+	}
+	if !valueret[2].CanInterface() {
+		return nil, types.ErrMethodNotFound
+	}
+	r1 := valueret[0].Interface()
+	if r1 != nil {
+		if r, ok := r1.(types.Message); ok {
+			reply = r
+		} else {
+			return nil, types.ErrMethodReturnType
+		}
+	}
+	//参数2
+	r2 := valueret[1].Interface()
+	if r2 != nil {
+		if r, ok := r2.(error); ok {
+			err = r
+		} else {
+			return nil, types.ErrMethodReturnType
+		}
+	}
+	if reply == nil && err == nil {
+		return nil, types.ErrActionNotSupport
+	}
+	return reply, err
+}
+
+func buildType(methods map[string]reflect.Method) (map[string]reflect.Method, map[string]reflect.Type) {
+	tys := make(map[string]reflect.Type)
+	ms := make(map[string]reflect.Method)
+	for name, method := range methods {
+		if !strings.HasPrefix(name, "On_") {
+			continue
+		}
+		ty := method.Type
+		if ty.NumIn() != 2 {
+			continue
+		}
+		paramIn := ty.In(1)
+		if paramIn.Kind() != reflect.Ptr {
+			continue
+		}
+		p := reflect.New(ty.In(1).Elem())
+		queryin := p.Interface()
+		if _, ok := queryin.(proto.Message); !ok {
+			continue
+		}
+		if ty.NumOut() != 2 {
+			continue
+		}
+		if !ty.Out(0).AssignableTo(reflect.TypeOf((*proto.Message)(nil)).Elem()) {
+			continue
+		}
+		if !ty.Out(1).AssignableTo(reflect.TypeOf((*error)(nil)).Elem()) {
+			continue
+		}
+		tys[name] = ty
+		ms[name] = method
+	}
+	return ms, tys
 }
 
 // WalletOperate 钱包对业务插件提供服务的操作接口

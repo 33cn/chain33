@@ -208,10 +208,10 @@ out:
 
 func (r *Relayd) queryChain33WithBtcHeight() (*ty.ReplayRelayQryBTCHeadHeight, error) {
 	payLoad := types.Encode(&ty.ReqRelayQryBTCHeadHeight{})
-	query := types.Query{
-		Execer:   types.ExecerRelay,
+	query := types.BlockChainQuery{
+		Driver:   types.RelayX,
 		FuncName: "GetBTCHeaderCurHeight",
-		Payload:  payLoad,
+		Param:    payLoad,
 	}
 	ret, err := r.client33.QueryChain(r.ctx, &query)
 	if err != nil {
@@ -366,15 +366,14 @@ func (r *Relayd) requestRelayOrders(status ty.RelayOrderStatus) (*ty.QueryRelayO
 	payLoad := types.Encode(&ty.ReqRelayAddrCoins{
 		Status: status,
 	})
-	query := types.Query{
-		Execer:   types.ExecerRelay,
+	query := types.BlockChainQuery{
+		Driver:   types.RelayX,
 		FuncName: "GetRelayOrderByStatus",
-		Payload:  payLoad,
+		Param:    payLoad,
 	}
 	ret, err := r.client33.QueryChain(r.ctx, &query)
 	if err != nil {
 		return nil, err
-
 	}
 	if !ret.GetIsOk() {
 		log.Info("requestRelayOrders", "error")

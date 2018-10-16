@@ -4,7 +4,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-func (policy *privacyPolicy) On_ShowPrivacyAccountSpend(req *types.ReqPrivBal4AddrToken) (interface{}, error) {
+func (policy *privacyPolicy) On_ShowPrivacyAccountSpend(req *types.ReqPrivBal4AddrToken) (types.Message, error) {
 	policy.getWalletOperate().GetMutex().Lock()
 	defer policy.getWalletOperate().GetMutex().Unlock()
 	reply, err := policy.showPrivacyAccountsSpend(req)
@@ -14,7 +14,7 @@ func (policy *privacyPolicy) On_ShowPrivacyAccountSpend(req *types.ReqPrivBal4Ad
 	return reply, err
 }
 
-func (policy *privacyPolicy) On_ShowPrivacyPK(req *types.ReqString) (interface{}, error) {
+func (policy *privacyPolicy) On_ShowPrivacyPK(req *types.ReqString) (types.Message, error) {
 	policy.getWalletOperate().GetMutex().Lock()
 	defer policy.getWalletOperate().GetMutex().Unlock()
 	reply, err := policy.showPrivacyKeyPair(req)
@@ -24,7 +24,7 @@ func (policy *privacyPolicy) On_ShowPrivacyPK(req *types.ReqString) (interface{}
 	return reply, err
 }
 
-func (policy *privacyPolicy) On_Public2Privacy(req *types.ReqPub2Pri) (interface{}, error) {
+func (policy *privacyPolicy) On_Public2Privacy(req *types.ReqPub2Pri) (types.Message, error) {
 	policy.getWalletOperate().GetMutex().Lock()
 	defer policy.getWalletOperate().GetMutex().Unlock()
 	reply, err := policy.sendPublic2PrivacyTransaction(req)
@@ -34,7 +34,7 @@ func (policy *privacyPolicy) On_Public2Privacy(req *types.ReqPub2Pri) (interface
 	return reply, err
 }
 
-func (policy *privacyPolicy) On_Privacy2Privacy(req *types.ReqPri2Pri) (interface{}, error) {
+func (policy *privacyPolicy) On_Privacy2Privacy(req *types.ReqPri2Pri) (types.Message, error) {
 	policy.getWalletOperate().GetMutex().Lock()
 	defer policy.getWalletOperate().GetMutex().Unlock()
 	reply, err := policy.sendPrivacy2PrivacyTransaction(req)
@@ -44,7 +44,7 @@ func (policy *privacyPolicy) On_Privacy2Privacy(req *types.ReqPri2Pri) (interfac
 	return reply, err
 }
 
-func (policy *privacyPolicy) On_Privacy2Public(req *types.ReqPri2Pub) (interface{}, error) {
+func (policy *privacyPolicy) On_Privacy2Public(req *types.ReqPri2Pub) (types.Message, error) {
 	policy.getWalletOperate().GetMutex().Lock()
 	defer policy.getWalletOperate().GetMutex().Unlock()
 	reply, err := policy.sendPrivacy2PublicTransaction(req)
@@ -54,7 +54,7 @@ func (policy *privacyPolicy) On_Privacy2Public(req *types.ReqPri2Pub) (interface
 	return reply, err
 }
 
-func (policy *privacyPolicy) On_CreateUTXOs(req *types.ReqCreateUTXOs) (interface{}, error) {
+func (policy *privacyPolicy) On_CreateUTXOs(req *types.ReqCreateUTXOs) (types.Message, error) {
 	policy.getWalletOperate().GetMutex().Lock()
 	defer policy.getWalletOperate().GetMutex().Unlock()
 	reply, err := policy.createUTXOs(req)
@@ -64,7 +64,7 @@ func (policy *privacyPolicy) On_CreateUTXOs(req *types.ReqCreateUTXOs) (interfac
 	return reply, err
 }
 
-func (policy *privacyPolicy) On_CreateTransaction(req *types.ReqCreateTransaction) (interface{}, error) {
+func (policy *privacyPolicy) On_CreateTransaction(req *types.ReqCreateTransaction) (types.Message, error) {
 	ok, err := policy.getWalletOperate().CheckWalletStatus()
 	if !ok {
 		bizlog.Error("createTransaction", "CheckWalletStatus cause error.", err)
@@ -89,7 +89,7 @@ func (policy *privacyPolicy) On_CreateTransaction(req *types.ReqCreateTransactio
 	return reply, err
 }
 
-func (policy *privacyPolicy) On_PrivacyAccountInfo(req *types.ReqPPrivacyAccount) (interface{}, error) {
+func (policy *privacyPolicy) On_PrivacyAccountInfo(req *types.ReqPPrivacyAccount) (types.Message, error) {
 	policy.getWalletOperate().GetMutex().Lock()
 	defer policy.getWalletOperate().GetMutex().Unlock()
 
@@ -100,7 +100,7 @@ func (policy *privacyPolicy) On_PrivacyAccountInfo(req *types.ReqPPrivacyAccount
 	return reply, err
 }
 
-func (policy *privacyPolicy) On_PrivacyTransactionList(req *types.ReqPrivacyTransactionList) (interface{}, error) {
+func (policy *privacyPolicy) On_PrivacyTransactionList(req *types.ReqPrivacyTransactionList) (types.Message, error) {
 	if req.Direction != 0 && req.Direction != 1 {
 		bizlog.Error("getPrivacyTransactionList", "invalid direction ", req.Direction)
 		return nil, types.ErrInvalidParam
@@ -123,7 +123,7 @@ func (policy *privacyPolicy) On_PrivacyTransactionList(req *types.ReqPrivacyTran
 	return reply, err
 }
 
-func (policy *privacyPolicy) On_RescanUtxos(req *types.ReqRescanUtxos) (interface{}, error) {
+func (policy *privacyPolicy) On_RescanUtxos(req *types.ReqRescanUtxos) (types.Message, error) {
 	policy.getWalletOperate().GetMutex().Lock()
 	defer policy.getWalletOperate().GetMutex().Unlock()
 	reply, err := policy.rescanUTXOs(req)
@@ -133,7 +133,7 @@ func (policy *privacyPolicy) On_RescanUtxos(req *types.ReqRescanUtxos) (interfac
 	return reply, err
 }
 
-func (policy *privacyPolicy) On_EnablePrivacy(req *types.ReqEnablePrivacy) (interface{}, error) {
+func (policy *privacyPolicy) On_EnablePrivacy(req *types.ReqEnablePrivacy) (types.Message, error) {
 	operater := policy.getWalletOperate()
 	operater.GetMutex().Lock()
 	defer operater.GetMutex().Unlock()

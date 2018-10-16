@@ -556,6 +556,28 @@ func (q *QueueProtocol) GetWalletStatus() (*types.WalletStatus, error) {
 	return nil, types.ErrTypeAsset
 }
 
+func (q *QueueProtocol) Query(driver, funcname string, param []byte) (types.Message, error) {
+	query := &types.BlockChainQuery{Driver: driver, FuncName: funcname, Param: param}
+	return q.QueryChain(query)
+}
+
+func (q *QueueProtocol) ExecWalletEvent(driver, funcname string, eventId int) (types.Message, error) {
+	query := &types.WalletExecutor{Driver: driver, FuncName: funcname, EventId: int64(eventId)}
+	return q.ExecWallet(query)
+}
+
+func (q *QueueProtocol) ExecWallet(param *types.WalletExecutor) (types.Message, error) {
+	msg, err := q.query(walletKey, types.EventWalletExecutor, param)
+	if err != nil {
+		log.Error("ExecWallet", "Error", err.Error())
+		return nil, err
+	}
+	if reply, ok := msg.GetData().(types.Message); ok {
+		return reply, nil
+	}
+	return nil, types.ErrTypeAsset
+}
+
 func (q *QueueProtocol) WalletAutoMiner(param *types.MinerFlag) (*types.Reply, error) {
 	if param == nil {
 		err := types.ErrInvalidParam
@@ -850,7 +872,7 @@ func (q *QueueProtocol) GetBlockSequences(param *types.ReqBlocks) (*types.BlockS
 	return nil, err
 }
 
-func (q *QueueProtocol) BlockChainQuery(param *types.BlockChainQuery) (types.Message, error) {
+func (q *QueueProtocol) QueryChain(param *types.BlockChainQuery) (types.Message, error) {
 	if param == nil {
 		err := types.ErrInvalidParams
 		log.Error("BlockChainQuery", "Error", err)

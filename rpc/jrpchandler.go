@@ -840,7 +840,7 @@ func (c *Chain33) Query(in rpctypes.Query4Jrpc, result *interface{}) error {
 		return err
 	}
 	payloadData := types.Encode(decodePayload)
-	resp, err := c.cli.Query(&types.Query{Execer: []byte(types.ExecName(in.Execer)), FuncName: in.FuncName, Payload: payloadData})
+	resp, err := c.cli.Query(types.ExecName(in.Execer), in.FuncName, payloadData)
 	if err != nil {
 		log.Error("EventQuery", "err", err.Error())
 		return err
@@ -876,7 +876,7 @@ func (c *Chain33) GetTicketCount(in *types.ReqNil, result *interface{}) error {
 
 }
 
-func (c *Chain33) DumpPrivkey(in types.ReqStr, result *interface{}) error {
+func (c *Chain33) DumpPrivkey(in types.ReqString, result *interface{}) error {
 	reply, err := c.cli.DumpPrivkey(&in)
 	if err != nil {
 		return err
@@ -1255,37 +1255,6 @@ func (c *Chain33) QueryTicketInfoList(in *types.LocalDBList, result *interface{}
 	return nil
 }
 
-/////////////////privacy///////////////
-func (c *Chain33) ShowPrivacyAccountSpend(in types.ReqPrivBal4AddrToken, result *interface{}) error {
-	account, err := c.cli.ShowPrivacyAccountSpend(&in)
-	if err != nil {
-		log.Info("ShowPrivacyAccountSpend", "return err info", err)
-		return err
-	}
-	*result = account
-	return nil
-}
-
-func (c *Chain33) ShowPrivacykey(in types.ReqStr, result *interface{}) error {
-	reply, err := c.cli.ShowPrivacyKey(&in)
-	if err != nil {
-		return err
-	}
-	*result = reply
-	return nil
-}
-
-func (c *Chain33) MakeTxPublic2privacy(in types.ReqPub2Pri, result *interface{}) error {
-	reply, err := c.cli.Publick2Privacy(&in)
-	if err != nil {
-		return err
-	}
-
-	*result = rpctypes.ReplyHash{Hash: common.ToHex(reply.GetMsg())}
-
-	return nil
-}
-
 func (c *Chain33) DecodeRawTransaction(in *types.ReqDecodeRawTransaction, result *interface{}) error {
 	reply, err := c.cli.DecodeRawTransaction(in)
 	if err != nil {
@@ -1316,38 +1285,6 @@ func (c *Chain33) GetTimeStatus(in *types.ReqNil, result *interface{}) error {
 	return nil
 }
 
-func (c *Chain33) MakeTxPrivacy2privacy(in types.ReqPri2Pri, result *interface{}) error {
-	reply, err := c.cli.Privacy2Privacy(&in)
-	if err != nil {
-		return err
-	}
-
-	*result = rpctypes.ReplyHash{Hash: common.ToHex(reply.GetMsg())}
-
-	return nil
-}
-
-func (c *Chain33) MakeTxPrivacy2public(in types.ReqPri2Pub, result *interface{}) error {
-	reply, err := c.cli.Privacy2Public(&in)
-	if err != nil {
-		return err
-	}
-	*result = rpctypes.ReplyHash{Hash: common.ToHex(reply.GetMsg())}
-
-	return nil
-}
-
-func (c *Chain33) CreateUTXOs(in types.ReqCreateUTXOs, result *interface{}) error {
-
-	reply, err := c.cli.CreateUTXOs(&in)
-	if err != nil {
-		return err
-	}
-	*result = rpctypes.ReplyHash{Hash: common.ToHex(reply.GetMsg())}
-
-	return nil
-}
-
 func (c *Chain33) WalletCreateTx(in types.ReqCreateTransaction, result *interface{}) error {
 	reply, err := c.cli.WalletCreateTx(&in)
 	if err != nil {
@@ -1355,15 +1292,6 @@ func (c *Chain33) WalletCreateTx(in types.ReqCreateTransaction, result *interfac
 	}
 	txHex := types.Encode(reply)
 	*result = hex.EncodeToString(txHex)
-	return nil
-}
-
-func (c *Chain33) ShowPrivacyAccountInfo(in types.ReqPPrivacyAccount, result *interface{}) error {
-	reply, err := c.cli.ShowPrivacyAccountInfo(&in)
-	if err != nil {
-		return err
-	}
-	*result = reply
 	return nil
 }
 
@@ -1437,7 +1365,7 @@ func (c *Chain33) CreateTransaction(in *rpctypes.CreateTxIn, result *interface{}
 		log.Error("CreateTransaction", "err", err.Error())
 		return err
 	}
-	*result = hex.EncodeToString(tx)
+	*result = hex.EncodeToString(types.Encode(tx))
 	return nil
 }
 
@@ -1473,38 +1401,6 @@ func (c *Chain33) convertWalletTxDetailToJson(in *types.WalletTxDetails, out *rp
 			ActionName: tx.GetActionName(),
 		})
 	}
-	return nil
-}
-
-// PrivacyTxList get all privacy transaction list by param
-func (c *Chain33) PrivacyTxList(in *types.ReqPrivacyTransactionList, result *interface{}) error {
-	reply, err := c.cli.PrivacyTransactionList(in)
-	if err != nil {
-		return err
-	}
-	{
-		var txdetails rpctypes.WalletTxDetails
-		c.convertWalletTxDetailToJson(reply, &txdetails)
-		*result = &txdetails
-	}
-	return nil
-}
-
-func (c *Chain33) RescanUtxos(in types.ReqRescanUtxos, result *interface{}) error {
-	reply, err := c.cli.RescanUtxos(&in)
-	if err != nil {
-		return err
-	}
-	*result = reply
-	return nil
-}
-
-func (c *Chain33) EnablePrivacy(in types.ReqEnablePrivacy, result *interface{}) error {
-	reply, err := c.cli.EnablePrivacy(&in)
-	if err != nil {
-		return err
-	}
-	*result = reply
 	return nil
 }
 
