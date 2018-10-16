@@ -100,7 +100,6 @@ func (t *RelayType) GetTypeMap() map[string]int32 {
 	}
 }
 
-
 func (r RelayType) ActionName(tx *types.Transaction) string {
 	var relay RelayAction
 	err := types.Decode(tx.Payload, &relay)
@@ -154,7 +153,6 @@ func (r *RelayType) CreateTx(action string, message json.RawMessage) (*types.Tra
 	var tx *types.Transaction
 	return tx, nil
 }
-
 
 type RelayCreateLog struct {
 }
