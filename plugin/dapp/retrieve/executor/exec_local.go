@@ -44,7 +44,6 @@ func SaveRetrieveInfo(info *rt.RetrieveQuery, Status int64, db dbm.KVDB) (*types
 	default:
 		return nil, nil
 	}
-
 }
 
 func (c *Retrieve) execLocal(receipt *types.ReceiptData) (*types.LocalDBSet, error) {
