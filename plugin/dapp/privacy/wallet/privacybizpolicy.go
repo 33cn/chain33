@@ -100,7 +100,7 @@ func (policy *privacyPolicy) SignTransaction(key crypto.PrivKey, req *types.ReqS
 		bizlog.Error("SignTransaction", "Decode Transaction error", err)
 		return
 	}
-	signParam := &types.PrivacySignatureParam{}
+	signParam := &privacytypes.PrivacySignatureParam{}
 	if err = types.Decode(tx.Signature.Signature, signParam); err != nil {
 		bizlog.Error("SignTransaction", "Decode PrivacySignatureParam error", err)
 		return
@@ -142,7 +142,7 @@ type buildStoreWalletTxDetailParam struct {
 	isprivacy    bool
 	addDelType   int32
 	sendRecvFlag int32
-	utxos        []*types.UTXO
+	utxos        []*privacytypes.UTXO
 }
 
 func (policy *privacyPolicy) OnAddBlockTx(block *types.BlockDetail, tx *types.Transaction, index int32, dbbatch db.Batch) *types.WalletTxDetail {

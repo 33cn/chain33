@@ -1,7 +1,6 @@
 package rpc
 
 import (
-	"bytes"
 	"encoding/hex"
 	"fmt"
 	"time"
@@ -142,7 +141,7 @@ func (c *Chain33) QueryTransaction(in rpctypes.QueryParm, result *interface{}) e
 	{ //重新格式化数据
 
 		var transDetail rpctypes.TransactionDetail
-		transDetail.Tx, err = DecodeTx(reply.GetTx())
+		transDetail.Tx, err = rpctypes.DecodeTx(reply.GetTx())
 		if err != nil {
 			return err
 		}
@@ -196,7 +195,7 @@ func (c *Chain33) GetBlocks(in rpctypes.BlockParam, result *interface{}) error {
 				return types.ErrDecode
 			}
 			for _, tx := range txs {
-				tran, err := DecodeTx(tx)
+				tran, err := rpctypes.DecodeTx(tx)
 				if err != nil {
 					continue
 				}
@@ -329,7 +328,7 @@ func (c *Chain33) GetTxByHashes(in rpctypes.ReqHashes, result *interface{}) erro
 			for _, proof := range txProofs {
 				proofs = append(proofs, common.ToHex(proof))
 			}
-			tran, err := DecodeTx(tx.GetTx())
+			tran, err := rpctypes.DecodeTx(tx.GetTx())
 			if err != nil {
 				log.Info("GetTxByHashes", "Failed to DecodeTx due to", err)
 				txdetails.Txs = append(txdetails.Txs, nil)
@@ -367,7 +366,7 @@ func (c *Chain33) GetMempool(in *types.ReqNil, result *interface{}) error {
 			if err != nil {
 				amount = 0
 			}
-			tran, err := DecodeTx(tx)
+			tran, err := rpctypes.DecodeTx(tx)
 			if err != nil {
 				continue
 			}
@@ -429,10 +428,9 @@ func (c *Chain33) WalletTxList(in rpctypes.ReqWalletTransactionList, result *int
 	}
 	{
 		var txdetails rpctypes.WalletTxDetails
-		c.convertWalletTxDetailToJson(reply, &txdetails)
+		rpctypes.ConvertWalletTxDetailToJson(reply, &txdetails)
 		*result = &txdetails
 	}
-
 	return nil
 }
 
@@ -663,7 +661,7 @@ func (c *Chain33) GetLastMemPool(in types.ReqNil, result *interface{}) error {
 		var txlist rpctypes.ReplyTxList
 		txs := reply.GetTxs()
 		for _, tx := range txs {
-			tran, err := DecodeTx(tx)
+			tran, err := rpctypes.DecodeTx(tx)
 			if err != nil {
 				continue
 			}
@@ -837,9 +835,7 @@ func (c *Chain33) Query(in rpctypes.Query4Jrpc, result *interface{}) error {
 		log.Error("EventQuery", "err", err.Error())
 		return err
 	}
-
-	payloadData := types.Encode(decodePayload)
-	resp, err := c.cli.Query(types.ExecName(in.Execer), in.FuncName, payloadData)
+	resp, err := c.cli.Query(types.ExecName(in.Execer), in.FuncName, decodePayload)
 	if err != nil {
 		log.Error("EventQuery", "err", err.Error())
 		return err
@@ -920,65 +916,6 @@ func (c *Chain33) IsSync(in *types.ReqNil, result *interface{}) error {
 	}
 	*result = ret
 	return nil
-}
-
-func DecodeTx(tx *types.Transaction) (*rpctypes.Transaction, error) {
-	if tx == nil {
-		return nil, types.ErrEmpty
-	}
-	execStr := string(tx.Execer)
-	var pl interface{}
-	plType := types.LoadExecutorType(execStr)
-	if plType != nil {
-		var err error
-		pl, err = plType.DecodePayload(tx)
-		if err != nil {
-			log.Info("decode payload err", err)
-			pl = map[string]interface{}{"unkownpayload": string(tx.Payload)}
-		}
-	}
-	if string(tx.Execer) == "user.write" {
-		pl = decodeUserWrite(tx.GetPayload())
-	}
-	if pl == nil {
-		pl = map[string]interface{}{"rawlog": common.ToHex(tx.GetPayload())}
-	}
-	result := &rpctypes.Transaction{
-		Execer:     string(tx.Execer),
-		Payload:    pl,
-		RawPayload: common.ToHex(tx.GetPayload()),
-		Signature: &rpctypes.Signature{
-			Ty:        tx.GetSignature().GetTy(),
-			Pubkey:    common.ToHex(tx.GetSignature().GetPubkey()),
-			Signature: common.ToHex(tx.GetSignature().GetSignature()),
-		},
-		Fee:        tx.Fee,
-		Expire:     tx.Expire,
-		Nonce:      tx.Nonce,
-		To:         tx.GetRealToAddr(),
-		From:       tx.From(),
-		GroupCount: tx.GroupCount,
-		Header:     common.ToHex(tx.Header),
-		Next:       common.ToHex(tx.Next),
-	}
-	return result, nil
-}
-
-func decodeUserWrite(payload []byte) *rpctypes.UserWrite {
-	var article rpctypes.UserWrite
-	if len(payload) != 0 {
-		if payload[0] == '#' {
-			data := bytes.SplitN(payload[1:], []byte("#"), 2)
-			if len(data) == 2 {
-				article.Topic = string(data[0])
-				article.Content = string(data[1])
-				return &article
-			}
-		}
-	}
-	article.Topic = ""
-	article.Content = string(payload)
-	return &article
 }
 
 func (c *Chain33) IsNtpClockSync(in *types.ReqNil, result *interface{}) error {
@@ -1189,7 +1126,7 @@ func (c *Chain33) DecodeRawTransaction(in *types.ReqDecodeRawTransaction, result
 	if err != nil {
 		return err
 	}
-	res, err := DecodeTx(reply)
+	res, err := rpctypes.DecodeTx(reply)
 	if err != nil {
 		return err
 	}
@@ -1295,41 +1232,6 @@ func (c *Chain33) CreateTransaction(in *rpctypes.CreateTxIn, result *interface{}
 		return err
 	}
 	*result = hex.EncodeToString(types.Encode(tx))
-	return nil
-}
-
-func (c *Chain33) convertWalletTxDetailToJson(in *types.WalletTxDetails, out *rpctypes.WalletTxDetails) error {
-	if in == nil || out == nil {
-		return types.ErrInvalidParams
-	}
-	for _, tx := range in.TxDetails {
-		var recp rpctypes.ReceiptData
-		logs := tx.GetReceipt().GetLogs()
-		recp.Ty = tx.GetReceipt().GetTy()
-		for _, lg := range logs {
-			recp.Logs = append(recp.Logs,
-				&rpctypes.ReceiptLog{Ty: lg.Ty, Log: common.ToHex(lg.GetLog())})
-		}
-		rd, err := rpctypes.DecodeLog(tx.Tx.Execer, &recp)
-		if err != nil {
-			continue
-		}
-		tran, err := DecodeTx(tx.GetTx())
-		if err != nil {
-			continue
-		}
-		out.TxDetails = append(out.TxDetails, &rpctypes.WalletTxDetail{
-			Tx:         tran,
-			Receipt:    rd,
-			Height:     tx.GetHeight(),
-			Index:      tx.GetIndex(),
-			BlockTime:  tx.GetBlocktime(),
-			Amount:     tx.GetAmount(),
-			FromAddr:   tx.GetFromaddr(),
-			TxHash:     common.ToHex(tx.GetTxhash()),
-			ActionName: tx.GetActionName(),
-		})
-	}
 	return nil
 }
 

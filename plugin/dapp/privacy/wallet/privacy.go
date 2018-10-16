@@ -96,13 +96,13 @@ func (policy *privacyPolicy) reqTxDetailByAddr(addr string) {
 }
 
 func (policy *privacyPolicy) isRescanUtxosFlagScaning() (bool, error) {
-	if types.UtxoFlagScaning == policy.getWalletOperate().GetRescanFlag() {
+	if privacytypes.UtxoFlagScaning == policy.getWalletOperate().GetRescanFlag() {
 		return true, types.ErrRescanFlagScaning
 	}
 	return false, nil
 }
 
-func (policy *privacyPolicy) createUTXOs(createUTXOs *types.ReqCreateUTXOs) (*types.Reply, error) {
+func (policy *privacyPolicy) createUTXOs(createUTXOs *privacytypes.ReqCreateUTXOs) (*types.Reply, error) {
 	ok, err := policy.getWalletOperate().CheckWalletStatus()
 	if !ok {
 		return nil, err
@@ -140,7 +140,7 @@ func (policy *privacyPolicy) parseViewSpendPubKeyPair(in string) (viewPubKey, sp
 }
 
 //批量创建通过public2Privacy实现
-func (policy *privacyPolicy) createUTXOsByPub2Priv(priv crypto.PrivKey, reqCreateUTXOs *types.ReqCreateUTXOs) (*types.Reply, error) {
+func (policy *privacyPolicy) createUTXOsByPub2Priv(priv crypto.PrivKey, reqCreateUTXOs *privacytypes.ReqCreateUTXOs) (*types.Reply, error) {
 	viewPubSlice, spendPubSlice, err := parseViewSpendPubKeyPair(reqCreateUTXOs.GetPubkeypair())
 	if err != nil {
 		bizlog.Error("createUTXOsByPub2Priv", "parseViewSpendPubKeyPair error.", err)
@@ -252,7 +252,7 @@ func (policy *privacyPolicy) savePrivacykeyPair(addr string) (*privacy.Privacy, 
 	password := []byte(policy.getWalletOperate().GetPassword())
 	encrypteredView := wcom.CBCEncrypterPrivkey(password, newPrivacy.ViewPrivKey.Bytes())
 	encrypteredSpend := wcom.CBCEncrypterPrivkey(password, newPrivacy.SpendPrivKey.Bytes())
-	walletPrivacy := &types.WalletAccountPrivacy{
+	walletPrivacy := &privacytypes.WalletAccountPrivacy{
 		ViewPubkey:   newPrivacy.ViewPubkey[:],
 		ViewPrivKey:  encrypteredView,
 		SpendPubkey:  newPrivacy.SpendPubkey[:],
@@ -263,7 +263,7 @@ func (policy *privacyPolicy) savePrivacykeyPair(addr string) (*privacy.Privacy, 
 	return newPrivacy, nil
 }
 
-func (policy *privacyPolicy) enablePrivacy(req *types.ReqEnablePrivacy) (*types.RepEnablePrivacy, error) {
+func (policy *privacyPolicy) enablePrivacy(req *privacytypes.ReqEnablePrivacy) (*privacytypes.RepEnablePrivacy, error) {
 	var addrs []string
 	if 0 == len(req.Addrs) {
 		WalletAccStores, err := policy.store.getAccountByPrefix("Account")
@@ -278,7 +278,7 @@ func (policy *privacyPolicy) enablePrivacy(req *types.ReqEnablePrivacy) (*types.
 		addrs = append(addrs, req.Addrs...)
 	}
 
-	var rep types.RepEnablePrivacy
+	var rep privacytypes.RepEnablePrivacy
 	for _, addr := range addrs {
 		str := ""
 		isOK := true
@@ -291,7 +291,7 @@ func (policy *privacyPolicy) enablePrivacy(req *types.ReqEnablePrivacy) (*types.
 			}
 		}
 
-		priAddrResult := &types.PriAddrResult{
+		priAddrResult := &privacytypes.PriAddrResult{
 			Addr: addr,
 			IsOK: isOK,
 			Msg:  str,
@@ -302,8 +302,8 @@ func (policy *privacyPolicy) enablePrivacy(req *types.ReqEnablePrivacy) (*types.
 	return &rep, nil
 }
 
-func (policy *privacyPolicy) showPrivacyKeyPair(reqAddr *types.ReqStr) (*types.ReplyPrivacyPkPair, error) {
-	privacyInfo, err := policy.getPrivacykeyPair(reqAddr.GetReqStr())
+func (policy *privacyPolicy) showPrivacyKeyPair(reqAddr *types.ReqString) (*privacytypes.ReplyPrivacyPkPair, error) {
+	privacyInfo, err := policy.getPrivacykeyPair(reqAddr.GetData())
 	if err != nil {
 		bizlog.Error("showPrivacyKeyPair", "getPrivacykeyPair error ", err)
 		return nil, err
@@ -312,39 +312,39 @@ func (policy *privacyPolicy) showPrivacyKeyPair(reqAddr *types.ReqStr) (*types.R
 	pair := privacyInfo.ViewPubkey[:]
 	pair = append(pair, privacyInfo.SpendPubkey[:]...)
 
-	replyPrivacyPkPair := &types.ReplyPrivacyPkPair{
+	replyPrivacyPkPair := &privacytypes.ReplyPrivacyPkPair{
 		ShowSuccessful: true,
 		Pubkeypair:     makeViewSpendPubKeyPairToString(privacyInfo.ViewPubkey[:], privacyInfo.SpendPubkey[:]),
 	}
 	return replyPrivacyPkPair, nil
 }
 
-func (policy *privacyPolicy) getPrivacyAccountInfo(req *types.ReqPPrivacyAccount) (*types.ReplyPrivacyAccount, error) {
+func (policy *privacyPolicy) getPrivacyAccountInfo(req *privacytypes.ReqPPrivacyAccount) (*privacytypes.ReplyPrivacyAccount, error) {
 	addr := req.GetAddr()
 	token := req.GetToken()
-	reply := &types.ReplyPrivacyAccount{}
+	reply := &privacytypes.ReplyPrivacyAccount{}
 	reply.Displaymode = req.Displaymode
 	// 搜索可用余额
 	privacyDBStore, err := policy.store.listAvailableUTXOs(token, addr)
-	utxos := make([]*types.UTXO, 0)
+	utxos := make([]*privacytypes.UTXO, 0)
 	for _, ele := range privacyDBStore {
-		utxoBasic := &types.UTXOBasic{
-			UtxoGlobalIndex: &types.UTXOGlobalIndex{
+		utxoBasic := &privacytypes.UTXOBasic{
+			UtxoGlobalIndex: &privacytypes.UTXOGlobalIndex{
 				Outindex: ele.OutIndex,
 				Txhash:   ele.Txhash,
 			},
 			OnetimePubkey: ele.OnetimePublicKey,
 		}
-		utxo := &types.UTXO{
+		utxo := &privacytypes.UTXO{
 			Amount:    ele.Amount,
 			UtxoBasic: utxoBasic,
 		}
 		utxos = append(utxos, utxo)
 	}
-	reply.Utxos = &types.UTXOs{Utxos: utxos}
+	reply.Utxos = &privacytypes.UTXOs{Utxos: utxos}
 
 	// 搜索冻结余额
-	utxos = make([]*types.UTXO, 0)
+	utxos = make([]*privacytypes.UTXO, 0)
 	ftxoslice, err := policy.store.listFrozenUTXOs(token, addr)
 	if err == nil && ftxoslice != nil {
 		for _, ele := range ftxoslice {
@@ -352,7 +352,7 @@ func (policy *privacyPolicy) getPrivacyAccountInfo(req *types.ReqPPrivacyAccount
 		}
 	}
 
-	reply.Ftxos = &types.UTXOs{Utxos: utxos}
+	reply.Ftxos = &privacytypes.UTXOs{Utxos: utxos}
 
 	return reply, nil
 }
@@ -420,7 +420,7 @@ buildInput 构建隐私交易的输入信息
 	2.如果需要混淆(mixcout>0)，则根据UTXO的金额从数据库中获取足够数量的UTXO，与当前UTXO进行混淆
 	3.通过公式 x=Hs(aR)+b，计算出一个整数，因为 xG = Hs(ar)G+bG = Hs(aR)G+B，所以可以继续使用这笔交易
 */
-func (policy *privacyPolicy) buildInput(privacykeyParirs *privacy.Privacy, buildInfo *buildInputInfo) (*privacytypes.PrivacyInput, []*types.UTXOBasics, []*types.RealKeyInput, []*txOutputInfo, error) {
+func (policy *privacyPolicy) buildInput(privacykeyParirs *privacy.Privacy, buildInfo *buildInputInfo) (*privacytypes.PrivacyInput, []*privacytypes.UTXOBasics, []*privacytypes.RealKeyInput, []*txOutputInfo, error) {
 	operater := policy.getWalletOperate()
 	//挑选满足额度的utxo
 	selectedUtxo, err := policy.selectUTXO(buildInfo.tokenname, buildInfo.sender, buildInfo.amount)
@@ -433,7 +433,7 @@ func (policy *privacyPolicy) buildInput(privacykeyParirs *privacy.Privacy, build
 		return selectedUtxo[i].amount <= selectedUtxo[j].amount
 	})
 
-	reqGetGlobalIndex := types.ReqUTXOGlobalIndex{
+	reqGetGlobalIndex := privacytypes.ReqUTXOGlobalIndex{
 		Tokenname: buildInfo.tokenname,
 		MixCount:  0,
 	}
@@ -445,7 +445,7 @@ func (policy *privacyPolicy) buildInput(privacykeyParirs *privacy.Privacy, build
 		reqGetGlobalIndex.Amount = append(reqGetGlobalIndex.Amount, out.amount)
 	}
 	// 混淆数大于0时候才向blockchain请求
-	var resUTXOGlobalIndex *types.ResUTXOGlobalIndex
+	var resUTXOGlobalIndex *privacytypes.ResUTXOGlobalIndex
 	if buildInfo.mixcount > 0 {
 		query := &types.BlockChainQuery{
 			Driver:   "privacy",
@@ -453,11 +453,12 @@ func (policy *privacyPolicy) buildInput(privacykeyParirs *privacy.Privacy, build
 			Param:    types.Encode(&reqGetGlobalIndex),
 		}
 		//向blockchain请求相同额度的不同utxo用于相同额度的混淆作用
-		resUTXOGlobalIndex, err = operater.GetAPI().BlockChainQuery(query)
+		data, err := operater.GetAPI().QueryChain(query)
 		if err != nil {
 			bizlog.Error("buildInput BlockChainQuery", "err", err)
 			return nil, nil, nil, nil, err
 		}
+		resUTXOGlobalIndex = data.(*privacytypes.ResUTXOGlobalIndex)
 		if resUTXOGlobalIndex == nil {
 			bizlog.Info("buildInput EventBlockChainQuery is nil")
 			return nil, nil, nil, nil, err
@@ -476,10 +477,10 @@ func (policy *privacyPolicy) buildInput(privacykeyParirs *privacy.Privacy, build
 
 	//构造输入PrivacyInput
 	privacyInput := &privacytypes.PrivacyInput{}
-	utxosInKeyInput := make([]*types.UTXOBasics, len(selectedUtxo))
-	realkeyInputSlice := make([]*types.RealKeyInput, len(selectedUtxo))
+	utxosInKeyInput := make([]*privacytypes.UTXOBasics, len(selectedUtxo))
+	realkeyInputSlice := make([]*privacytypes.RealKeyInput, len(selectedUtxo))
 	for i, utxo2pay := range selectedUtxo {
-		var utxoIndex4Amount *types.UTXOIndex4Amount
+		var utxoIndex4Amount *privacytypes.UTXOIndex4Amount
 		if nil != resUTXOGlobalIndex && i < len(resUTXOGlobalIndex.UtxoIndex4Amount) && utxo2pay.amount == resUTXOGlobalIndex.UtxoIndex4Amount[i].Amount {
 			utxoIndex4Amount = resUTXOGlobalIndex.UtxoIndex4Amount[i]
 			for j, utxo := range utxoIndex4Amount.Utxos {
@@ -492,28 +493,28 @@ func (policy *privacyPolicy) buildInput(privacykeyParirs *privacy.Privacy, build
 		}
 
 		if utxoIndex4Amount == nil {
-			utxoIndex4Amount = &types.UTXOIndex4Amount{}
+			utxoIndex4Amount = &privacytypes.UTXOIndex4Amount{}
 		}
 		if utxoIndex4Amount.Utxos == nil {
-			utxoIndex4Amount.Utxos = make([]*types.UTXOBasic, 0)
+			utxoIndex4Amount.Utxos = make([]*privacytypes.UTXOBasic, 0)
 		}
 		//如果请求返回的用于混淆的utxo不包含自身且达到mix的上限，则将最后一条utxo删除，保证最后的混淆度不大于设置
 		if len(utxoIndex4Amount.Utxos) > int(buildInfo.mixcount) {
 			utxoIndex4Amount.Utxos = utxoIndex4Amount.Utxos[:len(utxoIndex4Amount.Utxos)-1]
 		}
 
-		utxo := &types.UTXOBasic{
+		utxo := &privacytypes.UTXOBasic{
 			UtxoGlobalIndex: utxo2pay.utxoGlobalIndex,
 			OnetimePubkey:   utxo2pay.onetimePublicKey,
 		}
 		//将真实的utxo添加到最后一个
 		utxoIndex4Amount.Utxos = append(utxoIndex4Amount.Utxos, utxo)
 		positions := operater.GetRandom().Perm(len(utxoIndex4Amount.Utxos))
-		utxos := make([]*types.UTXOBasic, len(utxoIndex4Amount.Utxos))
+		utxos := make([]*privacytypes.UTXOBasic, len(utxoIndex4Amount.Utxos))
 		for k, position := range positions {
 			utxos[position] = utxoIndex4Amount.Utxos[k]
 		}
-		utxosInKeyInput[i] = &types.UTXOBasics{Utxos: utxos}
+		utxosInKeyInput[i] = &privacytypes.UTXOBasics{Utxos: utxos}
 
 		//x = Hs(aR) + b
 		onetimePriv, err := privacy.RecoverOnetimePriKey(utxo2pay.txPublicKeyR, privacykeyParirs.ViewPrivKey, privacykeyParirs.SpendPrivKey, int64(utxo2pay.utxoGlobalIndex.Outindex))
@@ -522,7 +523,7 @@ func (policy *privacyPolicy) buildInput(privacykeyParirs *privacy.Privacy, build
 			return nil, nil, nil, nil, err
 		}
 
-		realkeyInput := &types.RealKeyInput{
+		realkeyInput := &privacytypes.RealKeyInput{
 			Realinputkey:   int32(positions[len(positions)-1]),
 			Onetimeprivkey: onetimePriv.Bytes(),
 		}
@@ -596,7 +597,7 @@ func (policy *privacyPolicy) createPublic2PrivacyTx(req *types.ReqCreateTransact
 		To:      address.ExecAddress(types.PrivacyX),
 	}
 	tx.Signature = &types.Signature{
-		Signature: types.Encode(&types.PrivacySignatureParam{
+		Signature: types.Encode(&privacytypes.PrivacySignatureParam{
 			ActionType: action.Ty,
 		}),
 	}
@@ -672,7 +673,7 @@ func (policy *privacyPolicy) createPrivacy2PrivacyTx(req *types.ReqCreateTransac
 	// 创建交易成功，将已经使用掉的UTXO冻结
 	policy.saveFTXOInfo(tx, req.GetTokenname(), req.GetFrom(), common.Bytes2Hex(tx.Hash()), selectedUtxo)
 	tx.Signature = &types.Signature{
-		Signature: types.Encode(&types.PrivacySignatureParam{
+		Signature: types.Encode(&privacytypes.PrivacySignatureParam{
 			ActionType:    action.Ty,
 			Utxobasics:    utxosInKeyInput,
 			RealKeyInputs: realkeyInputSlice,
@@ -741,7 +742,7 @@ func (policy *privacyPolicy) createPrivacy2PublicTx(req *types.ReqCreateTransact
 	// 创建交易成功，将已经使用掉的UTXO冻结
 	policy.saveFTXOInfo(tx, req.GetTokenname(), req.GetFrom(), common.Bytes2Hex(tx.Hash()), selectedUtxo)
 	tx.Signature = &types.Signature{
-		Signature: types.Encode(&types.PrivacySignatureParam{
+		Signature: types.Encode(&privacytypes.PrivacySignatureParam{
 			ActionType:    action.Ty,
 			Utxobasics:    utxosInKeyInput,
 			RealKeyInputs: realkeyInputSlice,
@@ -785,12 +786,12 @@ func (policy *privacyPolicy) getPrivacyKeyPairs() ([]addrAndprivacy, error) {
 
 }
 
-func (policy *privacyPolicy) rescanUTXOs(req *types.ReqRescanUtxos) (*types.RepRescanUtxos, error) {
+func (policy *privacyPolicy) rescanUTXOs(req *privacytypes.ReqRescanUtxos) (*privacytypes.RepRescanUtxos, error) {
 	if req.Flag != 0 {
 		return policy.store.getRescanUtxosFlag4Addr(req)
 	}
 	// Rescan请求
-	var repRescanUtxos types.RepRescanUtxos
+	var repRescanUtxos privacytypes.RepRescanUtxos
 	repRescanUtxos.Flag = req.Flag
 
 	operater := policy.getWalletOperate()
@@ -804,7 +805,7 @@ func (policy *privacyPolicy) rescanUTXOs(req *types.ReqRescanUtxos) (*types.RepR
 	if err != nil {
 		return nil, err
 	}
-	operater.SetRescanFlag(types.UtxoFlagScaning)
+	operater.SetRescanFlag(privacytypes.UtxoFlagScaning)
 	operater.GetWaitGroup().Add(1)
 	go policy.rescanReqUtxosByAddr(req.Addrs)
 	return &repRescanUtxos, nil
@@ -864,13 +865,8 @@ func (policy *privacyPolicy) reqUtxosByAddr(addrs []string) {
 			}
 		}
 		i++
-
 		//请求交易信息
-		msg, err := operater.GetAPI().Query(&types.Query{
-			Execer:   types.ExecerPrivacy,
-			FuncName: "GetTxsByAddr",
-			Payload:  types.Encode(&ReqAddr),
-		})
+		msg, err := operater.GetAPI().Query(types.PrivacyX, "GetTxsByAddr", &ReqAddr)
 		if err != nil {
 			bizlog.Error("reqUtxosByAddr", "GetTxsByAddr error", err, "addr", reqAddr)
 			break
@@ -900,7 +896,7 @@ func (policy *privacyPolicy) reqUtxosByAddr(addrs []string) {
 		}
 	}
 	// 扫描完毕
-	operater.SetRescanFlag(types.UtxoFlagNoScan)
+	operater.SetRescanFlag(privacytypes.UtxoFlagNoScan)
 	// 删除privacyInput
 	policy.deleteScanPrivacyInputUtxo()
 	policy.store.saveREscanUTXOsAddresses(storeAddrs)
@@ -942,7 +938,7 @@ func (policy *privacyPolicy) getPrivacyTxDetailByHashs(ReqHashes *types.ReqHashe
 	policy.store.selectPrivacyTransactionToWallet(TxDetails, privacyInfo)
 }
 
-func (policy *privacyPolicy) showPrivacyAccountsSpend(req *types.ReqPrivBal4AddrToken) (*types.UTXOHaveTxHashs, error) {
+func (policy *privacyPolicy) showPrivacyAccountsSpend(req *privacytypes.ReqPrivBal4AddrToken) (*privacytypes.UTXOHaveTxHashs, error) {
 	if ok, err := policy.isRescanUtxosFlagScaning(); ok {
 		return nil, err
 	}
@@ -956,7 +952,7 @@ func (policy *privacyPolicy) showPrivacyAccountsSpend(req *types.ReqPrivBal4Addr
 	return utxoHaveTxHashs, nil
 }
 
-func (policy *privacyPolicy) sendPublic2PrivacyTransaction(public2private *types.ReqPub2Pri) (*types.Reply, error) {
+func (policy *privacyPolicy) sendPublic2PrivacyTransaction(public2private *privacytypes.ReqPub2Pri) (*types.Reply, error) {
 	if ok, err := policy.getWalletOperate().CheckWalletStatus(); !ok {
 		bizlog.Error("sendPublic2PrivacyTransaction", "CheckWalletStatus error", err)
 		return nil, err
@@ -988,7 +984,7 @@ func (policy *privacyPolicy) sendPublic2PrivacyTransaction(public2private *types
 }
 
 //公开向隐私账户转账
-func (policy *privacyPolicy) transPub2PriV2(priv crypto.PrivKey, reqPub2Pri *types.ReqPub2Pri) (*types.Reply, error) {
+func (policy *privacyPolicy) transPub2PriV2(priv crypto.PrivKey, reqPub2Pri *privacytypes.ReqPub2Pri) (*types.Reply, error) {
 	viewPubSlice, spendPubSlice, err := parseViewSpendPubKeyPair(reqPub2Pri.Pubkeypair)
 	if err != nil {
 		bizlog.Error("transPub2Pri", "parseViewSpendPubKeyPair error", err)
@@ -1036,7 +1032,7 @@ func (policy *privacyPolicy) transPub2PriV2(priv crypto.PrivKey, reqPub2Pri *typ
 	return reply, err
 }
 
-func (policy *privacyPolicy) sendPrivacy2PrivacyTransaction(privacy2privacy *types.ReqPri2Pri) (*types.Reply, error) {
+func (policy *privacyPolicy) sendPrivacy2PrivacyTransaction(privacy2privacy *privacytypes.ReqPri2Pri) (*types.Reply, error) {
 	if ok, err := policy.getWalletOperate().CheckWalletStatus(); !ok {
 		bizlog.Error("sendPrivacy2PrivacyTransaction", "CheckWalletStatus error", err)
 		return nil, err
@@ -1062,7 +1058,7 @@ func (policy *privacyPolicy) sendPrivacy2PrivacyTransaction(privacy2privacy *typ
 
 	return policy.transPri2PriV2(privacyInfo, privacy2privacy)
 }
-func (policy *privacyPolicy) transPri2PriV2(privacykeyParirs *privacy.Privacy, reqPri2Pri *types.ReqPri2Pri) (*types.Reply, error) {
+func (policy *privacyPolicy) transPri2PriV2(privacykeyParirs *privacy.Privacy, reqPri2Pri *privacytypes.ReqPri2Pri) (*types.Reply, error) {
 	buildInfo := &buildInputInfo{
 		tokenname: reqPri2Pri.Tokenname,
 		sender:    reqPri2Pri.Sender,
@@ -1138,7 +1134,7 @@ func (policy *privacyPolicy) transPri2PriV2(privacykeyParirs *privacy.Privacy, r
 	return reply, nil
 }
 
-func (policy *privacyPolicy) signatureTx(tx *types.Transaction, privacyInput *privacytypes.PrivacyInput, utxosInKeyInput []*types.UTXOBasics, realkeyInputSlice []*types.RealKeyInput) (err error) {
+func (policy *privacyPolicy) signatureTx(tx *types.Transaction, privacyInput *privacytypes.PrivacyInput, utxosInKeyInput []*privacytypes.UTXOBasics, realkeyInputSlice []*privacytypes.RealKeyInput) (err error) {
 	tx.Signature = nil
 	data := types.Encode(tx)
 	ringSign := &types.RingSignature{}
@@ -1167,7 +1163,7 @@ func (policy *privacyPolicy) signatureTx(tx *types.Transaction, privacyInput *pr
 	return nil
 }
 
-func (policy *privacyPolicy) sendPrivacy2PublicTransaction(privacy2Pub *types.ReqPri2Pub) (*types.Reply, error) {
+func (policy *privacyPolicy) sendPrivacy2PublicTransaction(privacy2Pub *privacytypes.ReqPri2Pub) (*types.Reply, error) {
 	if ok, err := policy.getWalletOperate().CheckWalletStatus(); !ok {
 		bizlog.Error("sendPrivacy2PublicTransaction", "CheckWalletStatus error", err)
 		return nil, err
@@ -1193,7 +1189,7 @@ func (policy *privacyPolicy) sendPrivacy2PublicTransaction(privacy2Pub *types.Re
 	return policy.transPri2PubV2(privacyInfo, privacy2Pub)
 }
 
-func (policy *privacyPolicy) transPri2PubV2(privacykeyParirs *privacy.Privacy, reqPri2Pub *types.ReqPri2Pub) (*types.Reply, error) {
+func (policy *privacyPolicy) transPri2PubV2(privacykeyParirs *privacy.Privacy, reqPri2Pub *privacytypes.ReqPri2Pub) (*types.Reply, error) {
 	buildInfo := &buildInputInfo{
 		tokenname: reqPri2Pub.Tokenname,
 		sender:    reqPri2Pub.Sender,
@@ -1282,7 +1278,7 @@ func (policy *privacyPolicy) buildAndStoreWalletTxDetail(param *buildStoreWallet
 		txdetail.ActionName = txdetail.Tx.ActionName()
 		txdetail.Amount, _ = param.tx.Amount()
 		txdetail.Fromaddr = param.senderRecver
-		txdetail.Spendrecv = param.utxos
+		//txdetail.Spendrecv = param.utxos
 
 		txdetailbyte, err := proto.Marshal(&txdetail)
 		if err != nil {
@@ -1380,7 +1376,7 @@ func (policy *privacyPolicy) addDelPrivacyTxsFromBlock(tx *types.Transaction, in
 		for _, info := range privacyInfo {
 			privacykeyParirs := info.PrivacyKeyPair
 			matched4addr := false
-			var utxos []*types.UTXO
+			var utxos []*privacytypes.UTXO
 			for indexoutput, output := range privacyOutput.Keyoutput {
 				if utxoProcessed[indexoutput] {
 					continue
@@ -1399,7 +1395,7 @@ func (policy *privacyPolicy) addDelPrivacyTxsFromBlock(tx *types.Transaction, in
 						//只有当该交易执行成功才进行相应的UTXO的处理
 						if types.ExecOk == txExecRes {
 							if AddTx == addDelType {
-								info2store := &types.PrivacyDBStore{
+								info2store := &privacytypes.PrivacyDBStore{
 									Txhash:           txhash,
 									Tokenname:        tokenname,
 									Amount:           output.Amount,
@@ -1412,14 +1408,14 @@ func (policy *privacyPolicy) addDelPrivacyTxsFromBlock(tx *types.Transaction, in
 									Blockhash:        block.Block.Hash(),
 								}
 
-								utxoGlobalIndex := &types.UTXOGlobalIndex{
+								utxoGlobalIndex := &privacytypes.UTXOGlobalIndex{
 									Outindex: int32(indexoutput),
 									Txhash:   txhash,
 								}
 
-								utxoCreated := &types.UTXO{
+								utxoCreated := &privacytypes.UTXO{
 									Amount: output.Amount,
-									UtxoBasic: &types.UTXOBasic{
+									UtxoBasic: &privacytypes.UTXOBasic{
 										UtxoGlobalIndex: utxoGlobalIndex,
 										OnetimePubkey:   output.Onetimepubkey,
 									},
