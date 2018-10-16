@@ -550,35 +550,6 @@ func (c *Paracross) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptDa
 	return set, nil
 }
 
-func (c *Paracross) Query(funcName string, params []byte) (types.Message, error) {
-	if funcName == "ParacrossGetTitle" {
-		var in types.ReqStr
-		err := types.Decode(params, &in)
-		if err != nil {
-			return nil, err
-		}
-		return c.ParacrossGetHeight(in.ReqStr)
-	} else if funcName == "ParacrossListTitles" {
-		return c.ParacrossListTitles()
-	} else if funcName == "ParacrossGetTitleHeight" {
-		var in pt.ReqParacrossTitleHeight
-		err := types.Decode(params, &in)
-		if err != nil {
-			return nil, err
-		}
-		return c.ParacrossGetTitleHeight(in.Title, in.Height)
-	} else if funcName == "ParacrossGetAssetTxResult" {
-		var in types.ReqHash
-		err := types.Decode(params, &in)
-		if err != nil {
-			return nil, err
-		}
-		return c.ParacrossGetAssetTxResult(in.Hash)
-	}
-
-	return nil, types.ErrActionNotSupport
-}
-
 func (c *Paracross) IsFriend(myexec, writekey []byte, tx *types.Transaction) bool {
 	//不允许平行链
 	if types.IsPara() {
