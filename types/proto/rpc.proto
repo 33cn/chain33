@@ -47,7 +47,7 @@ service chain33 {
     rpc WalletTransactionList(ReqWalletTransactionList) returns (WalletTxDetails) {}
 
     //导入钱包私钥
-    rpc ImportPrivKey(ReqWalletImportPrivKey) returns (WalletAccount) {}
+    rpc ImportPrivKey(ReqWalletImportPrivkey) returns (WalletAccount) {}
 
     // 发送交易
     rpc SendToAddress(ReqWalletSendToAddress) returns (ReplyHash) {}

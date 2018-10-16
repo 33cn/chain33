@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
@@ -91,8 +92,6 @@ func blockchainModProc(q queue.Queue) {
 					txDetails.Txs[index] = &txDetail
 				}
 				msg.Reply(client.NewMessage("rpc", types.EventTransactionDetails, &txDetails))
-			} else if msg.Ty == types.EventQuery {
-				msg.Reply(client.NewMessage("", types.EventReplyQuery, &tickettypes.ReplyTicketList{Tickets: []*tickettypes.Ticket{{TicketId: "ticketID"}}}))
 			} else if msg.Ty == types.EventGetBlockHeight {
 				msg.Reply(client.NewMessage("", types.EventReplyBlockHeight, &types.ReplyBlockHeight{Height: 1}))
 			} else if msg.Ty == types.EventIsSync {
@@ -297,10 +296,10 @@ func testProcCreateNewAccount(t *testing.T, wallet *Wallet) {
 	SaveAccountTomavl(wallet.client, nil, accs)
 
 	//测试ProcGetAccountList函数
-	msgGetAccList := wallet.client.NewMessage("wallet", types.EventWalletGetAccountList, nil)
+	msgGetAccList := wallet.client.NewMessage("wallet", types.EventWalletGetAccountList, &types.ReqAccountList{})
 	wallet.client.Send(msgGetAccList, true)
-	resp, _ := wallet.client.Wait(msgGetAccList)
-
+	resp, err := wallet.client.Wait(msgGetAccList)
+	assert.Nil(t, err)
 	accountlist := resp.GetData().(*types.WalletAccounts)
 	for _, acc1 := range accountlist.Wallets {
 		exist := false
@@ -331,22 +330,18 @@ func testProcImportPrivKey(t *testing.T, wallet *Wallet) {
 
 	AddrPrivKey = common.ToHex(priv.Bytes())
 
-	privKey := &types.ReqWalletImportPrivKey{Privkey: AddrPrivKey}
+	privKey := &types.ReqWalletImportPrivkey{Privkey: AddrPrivKey}
 	privKey.Label = "account:0"
 
-	msgImport := wallet.client.NewMessage("wallet", types.EventWalletImportprivkey, privKey)
+	msgImport := wallet.client.NewMessage("wallet", types.EventWalletImportPrivkey, privKey)
 	wallet.client.Send(msgImport, true)
-	resp, err := wallet.client.Wait(msgImport)
-
-	if resp.Err().Error() != types.ErrLabelHasUsed.Error() {
-		t.Error("test used label failed")
-		return
-	}
+	_, err = wallet.client.Wait(msgImport)
+	assert.Equal(t, err.Error(), types.ErrLabelHasUsed.Error())
 
 	privKey.Label = "ImportPrivKey-Label"
-	msgImport = wallet.client.NewMessage("wallet", types.EventWalletImportprivkey, privKey)
+	msgImport = wallet.client.NewMessage("wallet", types.EventWalletImportPrivkey, privKey)
 	wallet.client.Send(msgImport, true)
-	resp, _ = wallet.client.Wait(msgImport)
+	resp, _ := wallet.client.Wait(msgImport)
 	importedAcc := resp.GetData().(*types.WalletAccount)
 	if importedAcc.Label != "ImportPrivKey-Label" || importedAcc.Acc.Addr != address.PubKeyToAddress(priv.PubKey().Bytes()).String() {
 		t.Error("testProcImportPrivKey failed")
@@ -358,21 +353,19 @@ func testProcImportPrivKey(t *testing.T, wallet *Wallet) {
 	privKey.Label = "ImportPrivKey-Label-hyb"
 	walletlog.Info("TestProcImportPrivKey", "Privkey", privKey.Privkey, "Label", privKey.Label)
 
-	msgImport = wallet.client.NewMessage("wallet", types.EventWalletImportprivkey, privKey)
+	msgImport = wallet.client.NewMessage("wallet", types.EventWalletImportPrivkey, privKey)
 	wallet.client.Send(msgImport, true)
 	wallet.client.Wait(msgImport)
 
-	addr := &types.ReqStr{ReqStr: address.PubKeyToAddress(priv.PubKey().Bytes()).String()}
-	msgDump := wallet.client.NewMessage("wallet", types.EventDumpPrivkey, &types.ReqStr{ReqStr: "wrongaddr"})
+	addr := &types.ReqString{Data: address.PubKeyToAddress(priv.PubKey().Bytes()).String()}
+	msgDump := wallet.client.NewMessage("wallet", types.EventDumpPrivkey, &types.ReqString{Data: "wrongaddr"})
 	wallet.client.Send(msgDump, true)
-	resp, _ = wallet.client.Wait(msgDump)
-	if resp.Err().Error() != types.ErrAddrNotExist.Error() {
-		t.Error("test input wrong addr failed")
-	}
+	_, err = wallet.client.Wait(msgDump)
+	assert.Equal(t, err.Error(), types.ErrAddrNotExist.Error())
 	msgDump = wallet.client.NewMessage("wallet", types.EventDumpPrivkey, addr)
 	wallet.client.Send(msgDump, true)
 	resp, _ = wallet.client.Wait(msgDump)
-	if resp.GetData().(*types.ReplyStr).Replystr != common.ToHex(priv.Bytes()) {
+	if resp.GetData().(*types.ReplyString).Data != common.ToHex(priv.Bytes()) {
 		t.Error("testDumpPrivKey failed")
 	}
 
@@ -503,10 +496,9 @@ func testProcWalletSetLabel(t *testing.T, wallet *Wallet) {
 	setLabel.Label = "account:000"
 	msg = wallet.client.NewMessage("wallet", types.EventWalletSetLabel, setLabel)
 	wallet.client.Send(msg, true)
-	resp, _ = wallet.client.Wait(msg)
-	if resp.Err().Error() != types.ErrLabelHasUsed.Error() {
-		t.Error("test used label failed")
-	}
+	resp, err = wallet.client.Wait(msg)
+	assert.Nil(t, err)
+	assert.Equal(t, resp.Err().Error(), types.ErrLabelHasUsed.Error())
 
 	setLabel.Label = "account:001"
 	msg = wallet.client.NewMessage("wallet", types.EventWalletSetLabel, setLabel)

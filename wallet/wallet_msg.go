@@ -15,6 +15,10 @@ func (wallet *Wallet) ProcRecvMsg() {
 		beg := types.Now()
 		reply, err := wallet.ExecWallet(&msg)
 		if err != nil {
+			//only for test ,del when test end
+			if err == types.ErrActionNotSupport {
+				panic(err)
+			}
 			msg.Reply(wallet.api.NewMessage("", 0, err))
 		} else {
 			msg.Reply(wallet.api.NewMessage("", 0, reply))
@@ -47,7 +51,7 @@ func (wallet *Wallet) On_WalletTransactionList(req *types.ReqWalletTransactionLi
 	return reply, err
 }
 
-func (wallet *Wallet) On_WalletImportprivkey(req *types.ReqWalletImportPrivKey) (types.Message, error) {
+func (wallet *Wallet) On_WalletImportPrivkey(req *types.ReqWalletImportPrivkey) (types.Message, error) {
 	reply, err := wallet.ProcImportPrivKey(req)
 	if err != nil {
 		walletlog.Error("ProcImportPrivKey", "err", err.Error())
@@ -180,7 +184,7 @@ func (wallet *Wallet) On_GetWalletStatus(req *types.ReqNil) (types.Message, erro
 	return reply, nil
 }
 
-func (wallet *Wallet) On_DumpPrivKey(req *types.ReqString) (types.Message, error) {
+func (wallet *Wallet) On_DumpPrivkey(req *types.ReqString) (types.Message, error) {
 	reply := &types.ReplyString{}
 	privkey, err := wallet.ProcDumpPrivkey(req.Data)
 	if err != nil {
