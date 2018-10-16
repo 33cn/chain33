@@ -15,6 +15,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	clog "gitlab.33.cn/chain33/chain33/common/log"
+	pty "gitlab.33.cn/chain33/chain33/plugin/dapp/privacy/types"
 	"gitlab.33.cn/chain33/chain33/queue"
 	"gitlab.33.cn/chain33/chain33/types"
 	wcom "gitlab.33.cn/chain33/chain33/wallet/common"
@@ -95,7 +96,7 @@ func New(cfg *types.Wallet) *Wallet {
 		done:             make(chan struct{}),
 		cfg:              cfg,
 		rescanwg:         &sync.WaitGroup{},
-		rescanUTXOflag:   types.UtxoFlagNoScan,
+		rescanUTXOflag:   pty.UtxoFlagNoScan,
 	}
 	wallet.random = rand.New(rand.NewSource(types.Now().UnixNano()))
 	return wallet
@@ -187,7 +188,7 @@ func (ws *Wallet) GetAccountByLabel(label string) (*types.WalletAccountStore, er
 }
 
 func (wallet *Wallet) IsRescanUtxosFlagScaning() (bool, error) {
-	if types.UtxoFlagScaning == atomic.LoadInt32(&wallet.rescanUTXOflag) {
+	if pty.UtxoFlagScaning == atomic.LoadInt32(&wallet.rescanUTXOflag) {
 		return true, types.ErrRescanFlagScaning
 	}
 	return false, nil

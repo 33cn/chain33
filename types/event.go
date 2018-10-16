@@ -45,7 +45,7 @@ const (
 	EventWalletAccount         = 40
 	EventWalletTransactionList = 41
 	EventWalletExecutor        = 42
-	EventWalletImportprivkey   = 43
+	EventWalletImportPrivkey   = 43
 	EventWalletSendToAddress   = 44
 	EventWalletSetFee          = 45
 	EventWalletSetLabel        = 46
@@ -181,7 +181,7 @@ var eventName = map[int]string{
 	40:  "EventWalletAccount",
 	41:  "EventWalletTransactionList",
 	42:  "EventWalletExecutor",
-	43:  "EventWalletImportPrivKey",
+	43:  "EventWalletImportPrivkey",
 	44:  "EventWalletSendToAddress",
 	45:  "EventWalletSetFee",
 	46:  "EventWalletSetLabel",

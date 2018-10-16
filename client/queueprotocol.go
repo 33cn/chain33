@@ -270,13 +270,13 @@ func (q *QueueProtocol) WalletTransactionList(param *types.ReqWalletTransactionL
 	return nil, types.ErrTypeAsset
 }
 
-func (q *QueueProtocol) WalletImportprivkey(param *types.ReqWalletImportPrivKey) (*types.WalletAccount, error) {
+func (q *QueueProtocol) WalletImportprivkey(param *types.ReqWalletImportPrivkey) (*types.WalletAccount, error) {
 	if param == nil {
 		err := types.ErrInvalidParam
 		log.Error("WalletImportprivkey", "Error", err)
 		return nil, err
 	}
-	msg, err := q.query(walletKey, types.EventWalletImportprivkey, param)
+	msg, err := q.query(walletKey, types.EventWalletImportPrivkey, param)
 	if err != nil {
 		log.Error("WalletImportprivkey", "Error", err.Error())
 		return nil, err
