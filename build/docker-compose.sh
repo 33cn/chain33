@@ -81,7 +81,6 @@ function init() {
 
 }
 
-
 # shellcheck disable=SC2086
 function start() {
 
@@ -107,8 +106,6 @@ function start() {
     sleep ${SLEEP}
 
     docker-compose ${COMPOSE_FILE} ps
-
-
 
     # query node run status
     ${CLI} block last_header
@@ -195,7 +192,6 @@ function start() {
     ${CLI} mempool list
 }
 
-
 function block_wait() {
     if [ "$#" -lt 2 ]; then
         echo "wrong block_wait params"
@@ -226,8 +222,6 @@ function check_docker_container() {
         fi
     done
 }
-
-
 
 function sync_status() {
     echo "=========== query sync status========== "

@@ -18,8 +18,7 @@ function ping_btcd() {
     ${BTC_CTL} --rpcuser=root --rpcpass=1314 --simnet --wallet listaccounts
 }
 
-
-function relay_config(){
+function relay_config() {
     if [ -n "${OPEN_RELAY}" ]; then
         wait_btcd_up "${1}"
         run_relayd_with_btcd
@@ -38,8 +37,8 @@ function wait_btcd_up() {
             break
         fi
         docker-compose $@ logs btcd
-        docker-compose $@  restart btcd
-        docker-compose $@  ps
+        docker-compose $@ restart btcd
+        docker-compose $@ ps
         echo "==============btcd fail $count  ================="
         ((count--))
         if [ $count == 0 ]; then
@@ -282,7 +281,7 @@ function relay() {
 
     block_wait "${1}" 1
     echo "${revoke_hash}"
-    ${1} tx query -s ${revoke_hash}
+    ${1} tx query -s "${revoke_hash}"
 
     id=$(${1} relay status -s 1 | jq -sr '.[] | select(.coinoperation=="buy")|.orderid')
     if [ "${id}" != "${buy_id}" ]; then
@@ -323,7 +322,7 @@ function relay() {
 
     block_wait "${1}" 1
     echo "${revoke_hash}"
-    ${1} tx query -s ${revoke_hash}
+    ${1} tx query -s "${revoke_hash}"
 
     cancel_id=$(${1} tx query -s "${cancel_hash}" | jq -r ".receipt.logs[2].log.orderId")
     if [ -z "${cancel_id}" ]; then
@@ -366,7 +365,7 @@ function relay() {
     echo "${hash}"
     block_wait "${1}" 1
     echo "${hash}"
-    ${1} tx query -s ${hash}
+    ${1} tx query -s "${hash}"
 
     status=$(${1} relay status -s 5 | jq -r ".status")
     if [ "${status}" != "canceled" ]; then
