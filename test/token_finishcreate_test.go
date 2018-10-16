@@ -10,6 +10,7 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
+	tokenty "gitlab.33.cn/chain33/chain33/plugin/dapp/token/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -46,11 +47,11 @@ func TestFinishCreateToken(t *testing.T) {
 	addrfrom := address.PubKeyToAddress(priv.PubKey().Bytes())
 	t.Log(addrfrom)
 
-	v := &types.TokenAction_Tokenfinishcreate{&types.TokenFinishCreate{
+	v := &tokenty.TokenAction_Tokenfinishcreate{&tokenty.TokenFinishCreate{
 		"GOOD",
 		"1Lmmwzw6ywVa3UZpA4tHvCB7gR9ZKRwpom"}}
 
-	tokenFinishcreate := &types.TokenAction{v, types.TokenActionFinishCreate}
+	tokenFinishcreate := &tokenty.TokenAction{v, tokenty.TokenActionFinishCreate}
 
 	tx := &types.Transaction{Execer: []byte("token"), Payload: types.Encode(tokenFinishcreate), Fee: 1e6}
 	tx.Sign(types.SECP256K1, priv)

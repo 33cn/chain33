@@ -14,8 +14,9 @@ import (
 	"gitlab.33.cn/chain33/chain33/common"
 	"gitlab.33.cn/chain33/chain33/common/address"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
-	"gitlab.33.cn/chain33/chain33/common/crypto/privacy"
 	"gitlab.33.cn/chain33/chain33/common/db"
+	privacy "gitlab.33.cn/chain33/chain33/plugin/dapp/privacy/crypto"
+	privacytypes "gitlab.33.cn/chain33/chain33/plugin/dapp/privacy/types"
 	"gitlab.33.cn/chain33/chain33/types"
 	wcom "gitlab.33.cn/chain33/chain33/wallet/common"
 )
@@ -155,15 +156,15 @@ func (policy *privacyPolicy) createUTXOsByPub2Priv(priv crypto.PrivKey, reqCreat
 		return nil, err
 	}
 
-	value := &types.Public2Privacy{
+	value := &privacytypes.Public2Privacy{
 		Tokenname: reqCreateUTXOs.Tokenname,
 		Amount:    reqCreateUTXOs.Amount * int64(reqCreateUTXOs.Count),
 		Note:      reqCreateUTXOs.Note,
 		Output:    privacyOutput,
 	}
-	action := &types.PrivacyAction{
-		Ty:    types.ActionPublic2Privacy,
-		Value: &types.PrivacyAction_Public2Privacy{value},
+	action := &privacytypes.PrivacyAction{
+		Ty:    privacytypes.ActionPublic2Privacy,
+		Value: &privacytypes.PrivacyAction_Public2Privacy{value},
 	}
 
 	tx := &types.Transaction{
@@ -419,7 +420,7 @@ buildInput 构建隐私交易的输入信息
 	2.如果需要混淆(mixcout>0)，则根据UTXO的金额从数据库中获取足够数量的UTXO，与当前UTXO进行混淆
 	3.通过公式 x=Hs(aR)+b，计算出一个整数，因为 xG = Hs(ar)G+bG = Hs(aR)G+B，所以可以继续使用这笔交易
 */
-func (policy *privacyPolicy) buildInput(privacykeyParirs *privacy.Privacy, buildInfo *buildInputInfo) (*types.PrivacyInput, []*types.UTXOBasics, []*types.RealKeyInput, []*txOutputInfo, error) {
+func (policy *privacyPolicy) buildInput(privacykeyParirs *privacy.Privacy, buildInfo *buildInputInfo) (*privacytypes.PrivacyInput, []*types.UTXOBasics, []*types.RealKeyInput, []*txOutputInfo, error) {
 	operater := policy.getWalletOperate()
 	//挑选满足额度的utxo
 	selectedUtxo, err := policy.selectUTXO(buildInfo.tokenname, buildInfo.sender, buildInfo.amount)
@@ -474,7 +475,7 @@ func (policy *privacyPolicy) buildInput(privacykeyParirs *privacy.Privacy, build
 	}
 
 	//构造输入PrivacyInput
-	privacyInput := &types.PrivacyInput{}
+	privacyInput := &privacytypes.PrivacyInput{}
 	utxosInKeyInput := make([]*types.UTXOBasics, len(selectedUtxo))
 	realkeyInputSlice := make([]*types.RealKeyInput, len(selectedUtxo))
 	for i, utxo2pay := range selectedUtxo {
@@ -532,13 +533,13 @@ func (policy *privacyPolicy) buildInput(privacykeyParirs *privacy.Privacy, build
 			return nil, nil, nil, nil, err
 		}
 
-		keyInput := &types.KeyInput{
+		keyInput := &privacytypes.KeyInput{
 			Amount:   utxo2pay.amount,
 			KeyImage: keyImage[:],
 		}
 
 		for _, utxo := range utxos {
-			keyInput.UtxoGlobalIndex = append(keyInput.UtxoGlobalIndex, utxo.UtxoGlobalIndex)
+			keyInput.UtxoGlobalIndex = append(keyInput.UtxoGlobalIndex, (*privacytypes.UTXOGlobalIndex)(utxo.UtxoGlobalIndex))
 		}
 		//完成一个input的构造，包括基于其环签名的生成，keyImage的生成，
 		//必须要注意的是，此处要添加用于混淆的其他utxo添加到最终keyinput的顺序必须和生成环签名时提供pubkey的顺序一致
@@ -576,16 +577,16 @@ func (policy *privacyPolicy) createPublic2PrivacyTx(req *types.ReqCreateTransact
 		return nil, err
 	}
 
-	value := &types.Public2Privacy{
+	value := &privacytypes.Public2Privacy{
 		Tokenname: req.Tokenname,
 		Amount:    amount,
 		Note:      req.GetNote(),
 		Output:    privacyOutput,
 	}
 
-	action := &types.PrivacyAction{
-		Ty:    types.ActionPublic2Privacy,
-		Value: &types.PrivacyAction_Public2Privacy{Public2Privacy: value},
+	action := &privacytypes.PrivacyAction{
+		Ty:    privacytypes.ActionPublic2Privacy,
+		Value: &privacytypes.PrivacyAction_Public2Privacy{Public2Privacy: value},
 	}
 
 	tx := &types.Transaction{
@@ -649,16 +650,16 @@ func (policy *privacyPolicy) createPrivacy2PrivacyTx(req *types.ReqCreateTransac
 		return nil, err
 	}
 
-	value := &types.Privacy2Privacy{
+	value := &privacytypes.Privacy2Privacy{
 		Tokenname: req.GetTokenname(),
 		Amount:    req.GetAmount(),
 		Note:      req.GetNote(),
 		Input:     privacyInput,
 		Output:    privacyOutput,
 	}
-	action := &types.PrivacyAction{
-		Ty:    types.ActionPrivacy2Privacy,
-		Value: &types.PrivacyAction_Privacy2Privacy{Privacy2Privacy: value},
+	action := &privacytypes.PrivacyAction{
+		Ty:    privacytypes.ActionPrivacy2Privacy,
+		Value: &privacytypes.PrivacyAction_Privacy2Privacy{Privacy2Privacy: value},
 	}
 
 	tx := &types.Transaction{
@@ -718,16 +719,16 @@ func (policy *privacyPolicy) createPrivacy2PublicTx(req *types.ReqCreateTransact
 		return nil, err
 	}
 
-	value := &types.Privacy2Public{
+	value := &privacytypes.Privacy2Public{
 		Tokenname: req.GetTokenname(),
 		Amount:    req.GetAmount(),
 		Note:      req.GetNote(),
 		Input:     privacyInput,
 		Output:    privacyOutput,
 	}
-	action := &types.PrivacyAction{
-		Ty:    types.ActionPrivacy2Public,
-		Value: &types.PrivacyAction_Privacy2Public{Privacy2Public: value},
+	action := &privacytypes.PrivacyAction{
+		Ty:    privacytypes.ActionPrivacy2Public,
+		Value: &privacytypes.PrivacyAction_Privacy2Public{Privacy2Public: value},
 	}
 
 	tx := &types.Transaction{
@@ -874,7 +875,7 @@ func (policy *privacyPolicy) reqUtxosByAddr(addrs []string) {
 			bizlog.Error("reqUtxosByAddr", "GetTxsByAddr error", err, "addr", reqAddr)
 			break
 		}
-		ReplyTxInfos := (*msg).(*types.ReplyTxInfos)
+		ReplyTxInfos := msg.(*types.ReplyTxInfos)
 		if ReplyTxInfos == nil {
 			bizlog.Info("privacy ReqTxInfosByAddr ReplyTxInfos is nil")
 			break
@@ -1004,15 +1005,15 @@ func (policy *privacyPolicy) transPub2PriV2(priv crypto.PrivKey, reqPub2Pri *typ
 	}
 
 	operater := policy.getWalletOperate()
-	value := &types.Public2Privacy{
+	value := &privacytypes.Public2Privacy{
 		Tokenname: reqPub2Pri.Tokenname,
 		Amount:    reqPub2Pri.Amount,
 		Note:      reqPub2Pri.Note,
 		Output:    privacyOutput,
 	}
-	action := &types.PrivacyAction{
-		Ty:    types.ActionPublic2Privacy,
-		Value: &types.PrivacyAction_Public2Privacy{value},
+	action := &privacytypes.PrivacyAction{
+		Ty:    privacytypes.ActionPublic2Privacy,
+		Value: &privacytypes.PrivacyAction_Public2Privacy{value},
 	}
 	tx := &types.Transaction{
 		Execer:  []byte("privacy"),
@@ -1101,16 +1102,16 @@ func (policy *privacyPolicy) transPri2PriV2(privacykeyParirs *privacy.Privacy, r
 	}
 
 	operater := policy.getWalletOperate()
-	value := &types.Privacy2Privacy{
+	value := &privacytypes.Privacy2Privacy{
 		Tokenname: reqPri2Pri.Tokenname,
 		Amount:    reqPri2Pri.Amount,
 		Note:      reqPri2Pri.Note,
 		Input:     privacyInput,
 		Output:    privacyOutput,
 	}
-	action := &types.PrivacyAction{
-		Ty:    types.ActionPrivacy2Privacy,
-		Value: &types.PrivacyAction_Privacy2Privacy{value},
+	action := &privacytypes.PrivacyAction{
+		Ty:    privacytypes.ActionPrivacy2Privacy,
+		Value: &privacytypes.PrivacyAction_Privacy2Privacy{value},
 	}
 
 	tx := &types.Transaction{
@@ -1137,7 +1138,7 @@ func (policy *privacyPolicy) transPri2PriV2(privacykeyParirs *privacy.Privacy, r
 	return reply, nil
 }
 
-func (policy *privacyPolicy) signatureTx(tx *types.Transaction, privacyInput *types.PrivacyInput, utxosInKeyInput []*types.UTXOBasics, realkeyInputSlice []*types.RealKeyInput) (err error) {
+func (policy *privacyPolicy) signatureTx(tx *types.Transaction, privacyInput *privacytypes.PrivacyInput, utxosInKeyInput []*types.UTXOBasics, realkeyInputSlice []*types.RealKeyInput) (err error) {
 	tx.Signature = nil
 	data := types.Encode(tx)
 	ringSign := &types.RingSignature{}
@@ -1227,16 +1228,16 @@ func (policy *privacyPolicy) transPri2PubV2(privacykeyParirs *privacy.Privacy, r
 	}
 
 	operater := policy.getWalletOperate()
-	value := &types.Privacy2Public{
+	value := &privacytypes.Privacy2Public{
 		Tokenname: reqPri2Pub.Tokenname,
 		Amount:    reqPri2Pub.Amount,
 		Note:      reqPri2Pub.Note,
 		Input:     privacyInput,
 		Output:    privacyOutput,
 	}
-	action := &types.PrivacyAction{
-		Ty:    types.ActionPrivacy2Public,
-		Value: &types.PrivacyAction_Privacy2Public{value},
+	action := &privacytypes.PrivacyAction{
+		Ty:    privacytypes.ActionPrivacy2Public,
+		Value: &privacytypes.PrivacyAction_Privacy2Public{value},
 	}
 
 	tx := &types.Transaction{
@@ -1356,7 +1357,7 @@ func (policy *privacyPolicy) addDelPrivacyTxsFromBlock(tx *types.Transaction, in
 	}
 
 	txExecRes := block.Receipts[index].Ty
-	var privateAction types.PrivacyAction
+	var privateAction privacytypes.PrivacyAction
 	if err := types.Decode(tx.GetPayload(), &privateAction); err != nil {
 		bizlog.Error("addDelPrivacyTxsFromBlock", "txhash", txhashstr, "addDelType", addDelType, "index", index, "Decode tx.GetPayload() error", err)
 		return
@@ -1475,10 +1476,10 @@ func (policy *privacyPolicy) addDelPrivacyTxsFromBlock(tx *types.Transaction, in
 			if ftxo.Txhash != txhashstr {
 				continue
 			}
-			if types.ExecOk == txExecRes && types.ActionPublic2Privacy != privateAction.Ty {
+			if types.ExecOk == txExecRes && privacytypes.ActionPublic2Privacy != privateAction.Ty {
 				bizlog.Info("addDelPrivacyTxsFromBlock", "txhash", txhashstr, "addDelType", addDelType, "moveFTXO2STXO, key", string(keys[i]), "txExecRes", txExecRes)
 				policy.store.moveFTXO2STXO(keys[i], txhashstr, newbatch)
-			} else if types.ExecOk != txExecRes && types.ActionPublic2Privacy != privateAction.Ty {
+			} else if types.ExecOk != txExecRes && privacytypes.ActionPublic2Privacy != privateAction.Ty {
 				//如果执行失败
 				bizlog.Info("PrivacyTrading AddDelPrivacyTxsFromBlock", "txhash", txhashstr, "addDelType", addDelType, "moveFTXO2UTXO, key", string(keys[i]), "txExecRes", txExecRes)
 				policy.store.moveFTXO2UTXO(keys[i], newbatch)
@@ -1516,11 +1517,11 @@ func (policy *privacyPolicy) addDelPrivacyTxsFromBlock(tx *types.Transaction, in
 					utxos:        nil,
 				}
 
-				if types.ExecOk == txExecRes && types.ActionPublic2Privacy != privateAction.Ty {
+				if types.ExecOk == txExecRes && privacytypes.ActionPublic2Privacy != privateAction.Ty {
 					bizlog.Info("addDelPrivacyTxsFromBlock", "txhash", txhashstr, "addDelType", addDelType, "moveSTXO2FTXO txExecRes", txExecRes)
 					policy.store.moveSTXO2FTXO(tx, txhashstr, newbatch)
 					policy.buildAndStoreWalletTxDetail(param)
-				} else if types.ExecOk != txExecRes && types.ActionPublic2Privacy != privateAction.Ty {
+				} else if types.ExecOk != txExecRes && privacytypes.ActionPublic2Privacy != privateAction.Ty {
 					bizlog.Info("addDelPrivacyTxsFromBlock", "txhash", txhashstr, "addDelType", addDelType)
 					policy.buildAndStoreWalletTxDetail(param)
 				}

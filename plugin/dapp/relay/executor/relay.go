@@ -1,11 +1,10 @@
 package executor
 
 import (
+	"reflect"
 	log "github.com/inconshreveable/log15"
 
-	"reflect"
-
-	rTy "gitlab.33.cn/chain33/chain33/plugin/dapp/relay/types"
+	ty "gitlab.33.cn/chain33/chain33/plugin/dapp/relay/types"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
 )
@@ -91,7 +90,7 @@ func (r *relay) GetSellOrderByStatus(addrCoins *rTy.ReqRelayAddrCoins) (types.Me
 
 }
 
-func (r *relay) GetSellRelayOrder(addrCoins *rTy.ReqRelayAddrCoins) (types.Message, error) {
+func (r *relay) GetSellRelayOrder(addrCoins *ty.ReqRelayAddrCoins) (types.Message, error) {
 	var prefixs [][]byte
 	if 0 == len(addrCoins.Coins) {
 		val := calcOrderPrefixAddr(addrCoins.Addr)
@@ -107,7 +106,7 @@ func (r *relay) GetSellRelayOrder(addrCoins *rTy.ReqRelayAddrCoins) (types.Messa
 
 }
 
-func (r *relay) GetBuyRelayOrder(addrCoins *rTy.ReqRelayAddrCoins) (types.Message, error) {
+func (r *relay) GetBuyRelayOrder(addrCoins *ty.ReqRelayAddrCoins) (types.Message, error) {
 	var prefixs [][]byte
 	if 0 == len(addrCoins.Coins) {
 		val := calcAcceptPrefixAddr(addrCoins.Addr)
@@ -144,7 +143,7 @@ func (r *relay) GetSellOrder(prefixs [][]byte) (types.Message, error) {
 func (r *relay) getRelayOrderReply(OrderIds [][]byte) (types.Message, error) {
 	OrderIdGot := make(map[string]bool)
 
-	var reply rTy.ReplyRelayOrders
+	var reply ty.ReplyRelayOrders
 	for _, OrderId := range OrderIds {
 		if !OrderIdGot[string(OrderId)] {
 			if order, err := r.getSellOrderFromDb(OrderId); err == nil {
@@ -156,7 +155,7 @@ func (r *relay) getRelayOrderReply(OrderIds [][]byte) (types.Message, error) {
 	return &reply, nil
 }
 
-func insertOrderDescending(toBeInserted *rTy.RelayOrder, orders []*rTy.RelayOrder) []*rTy.RelayOrder {
+func insertOrderDescending(toBeInserted *ty.RelayOrder, orders []*ty.RelayOrder) []*ty.RelayOrder {
 	if 0 == len(orders) {
 		orders = append(orders, toBeInserted)
 	} else {
@@ -171,7 +170,7 @@ func insertOrderDescending(toBeInserted *rTy.RelayOrder, orders []*rTy.RelayOrde
 		if len(orders) == index {
 			orders = append(orders, toBeInserted)
 		} else {
-			rear := append([]*rTy.RelayOrder{}, orders[index:]...)
+			rear := append([]*ty.RelayOrder{}, orders[index:]...)
 			orders = append(orders[0:index], toBeInserted)
 			orders = append(orders, rear...)
 		}
@@ -179,22 +178,22 @@ func insertOrderDescending(toBeInserted *rTy.RelayOrder, orders []*rTy.RelayOrde
 	return orders
 }
 
-func (r *relay) getSellOrderFromDb(OrderId []byte) (*rTy.RelayOrder, error) {
+func (r *relay) getSellOrderFromDb(OrderId []byte) (*ty.RelayOrder, error) {
 	value, err := r.GetStateDB().Get(OrderId)
 	if err != nil {
 		return nil, err
 	}
-	var order rTy.RelayOrder
+	var order ty.RelayOrder
 	types.Decode(value, &order)
 	return &order, nil
 }
 
-func (r *relay) getBTCHeaderFromDb(hash []byte) (*rTy.BtcHeader, error) {
+func (r *relay) getBTCHeaderFromDb(hash []byte) (*ty.BtcHeader, error) {
 	value, err := r.GetStateDB().Get(hash)
 	if err != nil {
 		return nil, err
 	}
-	var header rTy.BtcHeader
+	var header ty.BtcHeader
 	types.Decode(value, &header)
 	return &header, nil
 }
@@ -218,7 +217,7 @@ func (r *relay) getDeleteOrderKv(OrderId []byte, ty int32) []*types.KeyValue {
 	return kv
 }
 
-func getCreateOrderKeyValue(kv []*types.KeyValue, order *rTy.RelayOrder, status int32) []*types.KeyValue {
+func getCreateOrderKeyValue(kv []*types.KeyValue, order *ty.RelayOrder, status int32) []*types.KeyValue {
 	OrderId := []byte(order.Id)
 
 	key := calcOrderKeyStatus(order, status)
@@ -242,7 +241,7 @@ func getCreateOrderKeyValue(kv []*types.KeyValue, order *rTy.RelayOrder, status 
 
 }
 
-func deleteCreateOrderKeyValue(kv []*types.KeyValue, order *rTy.RelayOrder, status int32) []*types.KeyValue {
+func deleteCreateOrderKeyValue(kv []*types.KeyValue, order *ty.RelayOrder, status int32) []*types.KeyValue {
 
 	key := calcOrderKeyStatus(order, status)
 	kv = append(kv, &types.KeyValue{key, nil})

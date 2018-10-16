@@ -4,7 +4,8 @@ import (
 	"unsafe"
 
 	"gitlab.33.cn/chain33/chain33/common"
-	"gitlab.33.cn/chain33/chain33/common/crypto/privacy"
+	privacy "gitlab.33.cn/chain33/chain33/plugin/dapp/privacy/crypto"
+	privacytypes "gitlab.33.cn/chain33/chain33/plugin/dapp/privacy/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -118,7 +119,7 @@ func parseViewSpendPubKeyPair(in string) (viewPubKey, spendPubKey []byte, err er
 
 // genCustomOuts 构建一个交易的输出
 // 构建方式是，P=Hs(rA)G+B
-func genCustomOuts(viewpubTo, spendpubto *[32]byte, transAmount int64, count int32) (*types.PrivacyOutput, error) {
+func genCustomOuts(viewpubTo, spendpubto *[32]byte, transAmount int64, count int32) (*privacytypes.PrivacyOutput, error) {
 	decomDigit := make([]int64, count)
 	for i := range decomDigit {
 		decomDigit[i] = transAmount
@@ -130,9 +131,9 @@ func genCustomOuts(viewpubTo, spendpubto *[32]byte, transAmount int64, count int
 	RtxPublicKey := pk.Bytes()
 
 	sktx := (*[32]byte)(unsafe.Pointer(&sk[0]))
-	var privacyOutput types.PrivacyOutput
+	var privacyOutput privacytypes.PrivacyOutput
 	privacyOutput.RpubKeytx = RtxPublicKey
-	privacyOutput.Keyoutput = make([]*types.KeyOutput, len(decomDigit))
+	privacyOutput.Keyoutput = make([]*privacytypes.KeyOutput, len(decomDigit))
 
 	//添加本次转账的目的接收信息（UTXO），包括一次性公钥和额度
 	for index, digit := range decomDigit {
@@ -141,7 +142,7 @@ func genCustomOuts(viewpubTo, spendpubto *[32]byte, transAmount int64, count int
 			bizlog.Error("genCustomOuts", "Fail to GenerateOneTimeAddr due to cause", err)
 			return nil, err
 		}
-		keyOutput := &types.KeyOutput{
+		keyOutput := &privacytypes.KeyOutput{
 			Amount:        digit,
 			Onetimepubkey: pubkeyOnetime[:],
 		}
@@ -154,7 +155,7 @@ func genCustomOuts(viewpubTo, spendpubto *[32]byte, transAmount int64, count int
 //最后构造完成的utxo依次是2种类型，不构造交易费utxo，使其直接燃烧消失
 //1.进行实际转账utxo
 //2.进行找零转账utxo
-func generateOuts(viewpubTo, spendpubto, viewpubChangeto, spendpubChangeto *[32]byte, transAmount, selectedAmount, fee int64) (*types.PrivacyOutput, error) {
+func generateOuts(viewpubTo, spendpubto, viewpubChangeto, spendpubChangeto *[32]byte, transAmount, selectedAmount, fee int64) (*privacytypes.PrivacyOutput, error) {
 	decomDigit := decomposeAmount2digits(transAmount, types.BTYDustThreshold)
 	//计算找零
 	changeAmount := selectedAmount - transAmount - fee
@@ -170,9 +171,9 @@ func generateOuts(viewpubTo, spendpubto, viewpubChangeto, spendpubChangeto *[32]
 	RtxPublicKey := pk.Bytes()
 
 	sktx := (*[32]byte)(unsafe.Pointer(&sk[0]))
-	var privacyOutput types.PrivacyOutput
+	var privacyOutput privacytypes.PrivacyOutput
 	privacyOutput.RpubKeytx = RtxPublicKey
-	privacyOutput.Keyoutput = make([]*types.KeyOutput, len(decomDigit)+len(decomChange))
+	privacyOutput.Keyoutput = make([]*privacytypes.KeyOutput, len(decomDigit)+len(decomChange))
 
 	//添加本次转账的目的接收信息（UTXO），包括一次性公钥和额度
 	for index, digit := range decomDigit {
@@ -181,7 +182,7 @@ func generateOuts(viewpubTo, spendpubto, viewpubChangeto, spendpubChangeto *[32]
 			bizlog.Error("generateOuts", "Fail to GenerateOneTimeAddr due to cause", err)
 			return nil, err
 		}
-		keyOutput := &types.KeyOutput{
+		keyOutput := &privacytypes.KeyOutput{
 			Amount:        digit,
 			Onetimepubkey: pubkeyOnetime[:],
 		}
@@ -194,7 +195,7 @@ func generateOuts(viewpubTo, spendpubto, viewpubChangeto, spendpubChangeto *[32]
 			bizlog.Error("generateOuts", "Fail to GenerateOneTimeAddr for change due to cause", err)
 			return nil, err
 		}
-		keyOutput := &types.KeyOutput{
+		keyOutput := &privacytypes.KeyOutput{
 			Amount:        digit,
 			Onetimepubkey: pubkeyOnetime[:],
 		}

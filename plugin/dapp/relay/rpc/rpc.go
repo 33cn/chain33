@@ -1,30 +1,17 @@
 package rpc
 
 import (
-	"math/rand"
+	"encoding/hex"
 
-	"gitlab.33.cn/chain33/chain33/client"
-	"gitlab.33.cn/chain33/chain33/common/address"
-	rTy "gitlab.33.cn/chain33/chain33/plugin/dapp/relay/types"
-	"gitlab.33.cn/chain33/chain33/queue"
+	ty "gitlab.33.cn/chain33/chain33/plugin/dapp/relay/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
-var random = rand.New(rand.NewSource(types.Now().UnixNano()))
-
-type channelClient struct {
-	client.QueueProtocolAPI
-}
-
-func (c *channelClient) Init(q queue.Client) {
-	c.QueueProtocolAPI, _ = client.New(q, nil)
-}
-
-func (c *channelClient) CreateRawRelayOrderTx(parm *RelayOrderTx) ([]byte, error) {
+func CreateRawRelayOrderTx(parm *ty.RelayOrderTx) ([]byte, error) {
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}
-	v := &rTy.RelayCreate{
+	v := &ty.RelayCreate{
 		Operation: parm.Operation,
 		Coin:      parm.Coin,
 		Amount:    parm.Amount,
@@ -32,128 +19,52 @@ func (c *channelClient) CreateRawRelayOrderTx(parm *RelayOrderTx) ([]byte, error
 		CoinWaits: parm.CoinWait,
 		BtyAmount: parm.BtyAmount,
 	}
-
-	sell := &rTy.RelayAction{
-		Ty:    rTy.RelayActionCreate,
-		Value: &rTy.RelayAction_Create{v},
-	}
-	tx := &types.Transaction{
-		Execer:  types.ExecerRelay,
-		Payload: types.Encode(sell),
-		Fee:     parm.Fee,
-		Nonce:   random.Int63(),
-		To:      address.ExecAddress(string(types.ExecerRelay)),
-	}
-
-	tx.SetRealFee(types.MinFee)
-
-	data := types.Encode(tx)
-	return data, nil
+	return types.CallCreateTx(types.ExecName(ty.RelayX), "Create", v)
 }
 
-func (c *channelClient) CreateRawRelayAcceptTx(parm *RelayAcceptTx) ([]byte, error) {
+func CreateRawRelayAcceptTx(parm *ty.RelayAcceptTx) ([]byte, error) {
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}
-	v := &rTy.RelayAccept{OrderId: parm.OrderId, CoinAddr: parm.CoinAddr, CoinWaits: parm.CoinWait}
-	val := &rTy.RelayAction{
-		Ty:    rTy.RelayActionAccept,
-		Value: &rTy.RelayAction_Accept{v},
-	}
-	tx := &types.Transaction{
-		Execer:  types.ExecerRelay,
-		Payload: types.Encode(val),
-		Fee:     parm.Fee,
-		Nonce:   random.Int63(),
-		To:      address.ExecAddress(string(types.ExecerRelay)),
-	}
-
-	tx.SetRealFee(types.MinFee)
-
-	data := types.Encode(tx)
-	return data, nil
+	v := &ty.RelayAccept{OrderId: parm.OrderId, CoinAddr: parm.CoinAddr, CoinWaits: parm.CoinWait}
+	return types.CallCreateTx(types.ExecName(ty.RelayX), "Accept", v)
 }
 
-func (c *channelClient) CreateRawRelayRevokeTx(parm *RelayRevokeTx) ([]byte, error) {
+func CreateRawRelayRevokeTx(parm *ty.RelayRevokeTx) ([]byte, error) {
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}
-	v := &rTy.RelayRevoke{OrderId: parm.OrderId, Target: parm.Target, Action: parm.Action}
-	val := &rTy.RelayAction{
-		Ty:    rTy.RelayActionRevoke,
-		Value: &rTy.RelayAction_Revoke{v},
-	}
-	tx := &types.Transaction{
-		Execer:  types.ExecerRelay,
-		Payload: types.Encode(val),
-		Fee:     parm.Fee,
-		Nonce:   random.Int63(),
-		To:      address.ExecAddress(string(types.ExecerRelay)),
-	}
-
-	tx.SetRealFee(types.MinFee)
-
-	data := types.Encode(tx)
-	return data, nil
+	v := &ty.RelayRevoke{OrderId: parm.OrderId, Target: parm.Target, Action: parm.Action}
+	return types.CallCreateTx(types.ExecName(ty.RelayX), "Revoke", v)
 }
 
-func (c *channelClient) CreateRawRelayConfirmTx(parm *RelayConfirmTx) ([]byte, error) {
+func CreateRawRelayConfirmTx(parm *ty.RelayConfirmTx) ([]byte, error) {
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}
-	v := &rTy.RelayConfirmTx{OrderId: parm.OrderId, TxHash: parm.TxHash}
-	val := &rTy.RelayAction{
-		Ty:    rTy.RelayActionConfirmTx,
-		Value: &rTy.RelayAction_ConfirmTx{v},
-	}
-	tx := &types.Transaction{
-		Execer:  types.ExecerRelay,
-		Payload: types.Encode(val),
-		Fee:     parm.Fee,
-		Nonce:   random.Int63(),
-		To:      address.ExecAddress(string(types.ExecerRelay)),
-	}
-
-	tx.SetRealFee(types.MinFee)
-
-	data := types.Encode(tx)
-	return data, nil
+	v := &ty.RelayConfirmTx{OrderId: parm.OrderId, TxHash: parm.TxHash}
+	return types.CallCreateTx(types.ExecName(ty.RelayX), "ConfirmTx", v)
 }
 
-func (c *channelClient) CreateRawRelayVerifyBTCTx(parm *RelayVerifyBTCTx) ([]byte, error) {
+func CreateRawRelayVerifyBTCTx(parm *ty.RelayVerifyBTCTx) ([]byte, error) {
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}
-	v := &rTy.RelayVerifyCli{
+	v := &ty.RelayVerifyCli{
 		OrderId:    parm.OrderId,
 		RawTx:      parm.RawTx,
 		TxIndex:    parm.TxIndex,
 		MerkBranch: parm.MerklBranch,
-		BlockHash:  parm.BlockHash}
-	val := &rTy.RelayAction{
-		Ty:    rTy.RelayActionVerifyCmdTx,
-		Value: &rTy.RelayAction_VerifyCli{v},
+		BlockHash:  parm.BlockHash,
 	}
-	tx := &types.Transaction{
-		Execer:  types.ExecerRelay,
-		Payload: types.Encode(val),
-		Fee:     parm.Fee,
-		Nonce:   random.Int63(),
-		To:      address.ExecAddress(string(types.ExecerRelay)),
-	}
-
-	tx.SetRealFee(types.MinFee)
-
-	data := types.Encode(tx)
-	return data, nil
+	return types.CallCreateTx(types.ExecName(ty.RelayX), "VerifyCli", v)
 }
 
-func (c *channelClient) CreateRawRelaySaveBTCHeadTx(parm *RelaySaveBTCHeadTx) ([]byte, error) {
+func CreateRawRelaySaveBTCHeadTx(parm *ty.RelaySaveBTCHeadTx) ([]byte, error) {
 	if parm == nil {
 		return nil, types.ErrInvalidParam
 	}
-
-	head := &rTy.BtcHeader{
+	head := &ty.BtcHeader{
 		Hash:         parm.Hash,
 		PreviousHash: parm.PreviousHash,
 		MerkleRoot:   parm.MerkleRoot,
@@ -161,23 +72,64 @@ func (c *channelClient) CreateRawRelaySaveBTCHeadTx(parm *RelaySaveBTCHeadTx) ([
 		IsReset:      parm.IsReset,
 	}
 
-	v := &rTy.BtcHeaders{}
+	v := &ty.BtcHeaders{}
 	v.BtcHeader = append(v.BtcHeader, head)
+	return types.CallCreateTx(types.ExecName(ty.RelayX), "SaveBTCHeadTx", v)
+}
 
-	val := &rTy.RelayAction{
-		Ty:    rTy.RelayActionRcvBTCHeaders,
-		Value: &rTy.RelayAction_BtcHeaders{v},
+func (c *Jrpc) CreateRawRelayOrderTx(in *ty.RelayOrderTx, result *interface{}) error {
+	reply, err := CreateRawRelayOrderTx(in)
+	if err != nil {
+		return err
 	}
-	tx := &types.Transaction{
-		Execer:  types.ExecerRelay,
-		Payload: types.Encode(val),
-		Fee:     parm.Fee,
-		Nonce:   random.Int63(),
-		To:      address.ExecAddress(string(types.ExecerRelay)),
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Jrpc) CreateRawRelayAcceptTx(in *ty.RelayAcceptTx, result *interface{}) error {
+	reply, err := CreateRawRelayAcceptTx(in)
+	if err != nil {
+		return err
 	}
 
-	tx.SetRealFee(types.MinFee)
+	*result = hex.EncodeToString(reply)
+	return nil
+}
 
-	data := types.Encode(tx)
-	return data, nil
+func (c *Jrpc) CreateRawRelayRevokeTx(in *ty.RelayRevokeTx, result *interface{}) error {
+	reply, err := CreateRawRelayRevokeTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Jrpc) CreateRawRelayConfirmTx(in *ty.RelayConfirmTx, result *interface{}) error {
+	reply, err := CreateRawRelayConfirmTx(in)
+	if err != nil {
+		return err
+	}
+
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Jrpc) CreateRawRelayVerifyBTCTx(in *ty.RelayVerifyBTCTx, result *interface{}) error {
+	reply, err := CreateRawRelayVerifyBTCTx(in)
+	if err != nil {
+		return err
+	}
+	*result = hex.EncodeToString(reply)
+	return nil
+}
+
+func (c *Jrpc) CreateRawRelaySaveBTCHeadTx(in *ty.RelaySaveBTCHeadTx, result *interface{}) error {
+	reply, err := CreateRawRelaySaveBTCHeadTx(in)
+	if err != nil {
+		return err
+	}
+	*result = hex.EncodeToString(reply)
+	return nil
 }

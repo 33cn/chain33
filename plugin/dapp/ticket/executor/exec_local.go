@@ -1,6 +1,9 @@
 package executor
 
-import "gitlab.33.cn/chain33/chain33/types"
+import (
+	ty "gitlab.33.cn/chain33/chain33/plugin/dapp/ticket/types"
+	"gitlab.33.cn/chain33/chain33/types"
+)
 
 func (t *Ticket) execLocal(receiptData *types.ReceiptData) (*types.LocalDBSet, error) {
 	dbSet := &types.LocalDBSet{}
@@ -9,16 +12,16 @@ func (t *Ticket) execLocal(receiptData *types.ReceiptData) (*types.LocalDBSet, e
 	}
 	for _, item := range receiptData.Logs {
 		//这三个是ticket 的log
-		if item.Ty == types.TyLogNewTicket || item.Ty == types.TyLogMinerTicket || item.Ty == types.TyLogCloseTicket {
-			var ticketlog types.ReceiptTicket
+		if item.Ty == ty.TyLogNewTicket || item.Ty == ty.TyLogMinerTicket || item.Ty == ty.TyLogCloseTicket {
+			var ticketlog ty.ReceiptTicket
 			err := types.Decode(item.Log, &ticketlog)
 			if err != nil {
 				panic(err) //数据错误了，已经被修改了
 			}
 			kv := t.saveTicket(&ticketlog)
 			dbSet.KV = append(dbSet.KV, kv...)
-		} else if item.Ty == types.TyLogTicketBind {
-			var ticketlog types.ReceiptTicketBind
+		} else if item.Ty == ty.TyLogTicketBind {
+			var ticketlog ty.ReceiptTicketBind
 			err := types.Decode(item.Log, &ticketlog)
 			if err != nil {
 				panic(err) //数据错误了，已经被修改了
@@ -30,22 +33,22 @@ func (t *Ticket) execLocal(receiptData *types.ReceiptData) (*types.LocalDBSet, e
 	return dbSet, nil
 }
 
-func (t *Ticket) ExecLocal_Genesis(payload *types.TicketGenesis, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+func (t *Ticket) ExecLocal_Genesis(payload *ty.TicketGenesis, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	return t.execLocal(receiptData)
 }
 
-func (t *Ticket) ExecLocal_Open(payload *types.TicketOpen, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+func (t *Ticket) ExecLocal_Open(payload *ty.TicketOpen, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	return t.execLocal(receiptData)
 }
 
-func (t *Ticket) ExecLocal_Bind(payload *types.TicketBind, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+func (t *Ticket) ExecLocal_Bind(payload *ty.TicketBind, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	return t.execLocal(receiptData)
 }
 
-func (t *Ticket) ExecLocal_Close(payload *types.TicketClose, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+func (t *Ticket) ExecLocal_Close(payload *ty.TicketClose, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	return t.execLocal(receiptData)
 }
 
-func (t *Ticket) ExecLocal_Miner(payload *types.TicketMiner, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
+func (t *Ticket) ExecLocal_Miner(payload *ty.TicketMiner, tx *types.Transaction, receiptData *types.ReceiptData, index int) (*types.LocalDBSet, error) {
 	return t.execLocal(receiptData)
 }

@@ -15,7 +15,7 @@ import (
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
 	"gitlab.33.cn/chain33/chain33/common/difficulty"
 	"gitlab.33.cn/chain33/chain33/common/merkle"
-	rTy "gitlab.33.cn/chain33/chain33/plugin/dapp/relay/types"
+	ty "gitlab.33.cn/chain33/chain33/plugin/dapp/relay/types"
 	"gitlab.33.cn/chain33/chain33/types"
 )
 
@@ -46,8 +46,8 @@ func (b *btcStore) getLastBtcHeadHeight() (int64, error) {
 	return b.getBtcHeadHeightFromDb(key)
 }
 
-func (b *btcStore) getBtcHeadByHeight(height int64) (*rTy.BtcHeader, error) {
-	var head rTy.BtcHeader
+func (b *btcStore) getBtcHeadByHeight(height int64) (*ty.BtcHeader, error) {
+	var head ty.BtcHeader
 	key := calcBtcHeaderKeyHeight(height)
 	val, err := b.db.Get(key)
 	if err != nil {
@@ -61,7 +61,7 @@ func (b *btcStore) getBtcHeadByHeight(height int64) (*rTy.BtcHeader, error) {
 	return &head, nil
 }
 
-func (b *btcStore) getLastBtcHead() (*rTy.BtcHeader, error) {
+func (b *btcStore) getLastBtcHead() (*ty.BtcHeader, error) {
 	height, err := b.getLastBtcHeadHeight()
 	if err != nil {
 		return nil, err
@@ -75,7 +75,7 @@ func (b *btcStore) getLastBtcHead() (*rTy.BtcHeader, error) {
 	return head, nil
 }
 
-func (b *btcStore) saveBlockHead(head *rTy.BtcHeader) ([]*types.KeyValue, error) {
+func (b *btcStore) saveBlockHead(head *ty.BtcHeader) ([]*types.KeyValue, error) {
 	var kv []*types.KeyValue
 	var key []byte
 
@@ -101,7 +101,7 @@ func (b *btcStore) saveBlockHead(head *rTy.BtcHeader) ([]*types.KeyValue, error)
 	return kv, nil
 }
 
-func (b *btcStore) saveBlockLastHead(head *rTy.ReceiptRelayRcvBTCHeaders) ([]*types.KeyValue, error) {
+func (b *btcStore) saveBlockLastHead(head *ty.ReceiptRelayRcvBTCHeaders) ([]*types.KeyValue, error) {
 	var kv []*types.KeyValue
 
 	heightBytes := types.Encode(&types.Int64{int64(head.NewHeight)})
@@ -115,7 +115,7 @@ func (b *btcStore) saveBlockLastHead(head *rTy.ReceiptRelayRcvBTCHeaders) ([]*ty
 	return kv, nil
 }
 
-func (b *btcStore) delBlockHead(head *rTy.BtcHeader) ([]*types.KeyValue, error) {
+func (b *btcStore) delBlockHead(head *ty.BtcHeader) ([]*types.KeyValue, error) {
 	var kv []*types.KeyValue
 
 	key := calcBtcHeaderKeyHash(head.Hash)
@@ -131,7 +131,7 @@ func (b *btcStore) delBlockHead(head *rTy.BtcHeader) ([]*types.KeyValue, error) 
 	return kv, nil
 }
 
-func (b *btcStore) delBlockLastHead(head *rTy.ReceiptRelayRcvBTCHeaders) ([]*types.KeyValue, error) {
+func (b *btcStore) delBlockLastHead(head *ty.ReceiptRelayRcvBTCHeaders) ([]*types.KeyValue, error) {
 	var kv []*types.KeyValue
 	var key []byte
 
@@ -155,7 +155,7 @@ func decodeHeight(heightBytes []byte) (int64, error) {
 	return height.Data, nil
 }
 
-func (b *btcStore) getBtcCurHeight(req *rTy.ReqRelayQryBTCHeadHeight) (types.Message, error) {
+func (b *btcStore) getBtcCurHeight(req *ty.ReqRelayQryBTCHeadHeight) (types.Message, error) {
 
 	height, err := b.getLastBtcHeadHeight()
 	if err == types.ErrNotFound {
@@ -171,7 +171,7 @@ func (b *btcStore) getBtcCurHeight(req *rTy.ReqRelayQryBTCHeadHeight) (types.Mes
 	} else if err != nil {
 		return nil, err
 	}
-	var replay rTy.ReplayRelayQryBTCHeadHeight
+	var replay ty.ReplayRelayQryBTCHeadHeight
 	replay.CurHeight = height
 	replay.BaseHeight = baseHeight
 
@@ -184,7 +184,7 @@ func (b *btcStore) getMerkleRootFromHeader(blockhash string) (string, error) {
 		return "", err
 	}
 
-	var header rTy.BtcHeader
+	var header ty.BtcHeader
 	if err = types.Decode(value, &header); err != nil {
 		return "", err
 	}
@@ -193,7 +193,7 @@ func (b *btcStore) getMerkleRootFromHeader(blockhash string) (string, error) {
 
 }
 
-func (b *btcStore) verifyBtcTx(verify *rTy.RelayVerify, order *rTy.RelayOrder) error {
+func (b *btcStore) verifyBtcTx(verify *ty.RelayVerify, order *ty.RelayOrder) error {
 	var foundtx bool
 	for _, outtx := range verify.GetTx().GetVout() {
 		if outtx.Address == order.CoinAddr && outtx.Value >= order.CoinAmount {
@@ -248,7 +248,7 @@ func (b *btcStore) verifyBtcTx(verify *rTy.RelayVerify, order *rTy.RelayOrder) e
 
 }
 
-func (b *btcStore) verifyCmdBtcTx(verify *rTy.RelayVerifyCli) error {
+func (b *btcStore) verifyCmdBtcTx(verify *ty.RelayVerifyCli) error {
 	rawhash, err := getRawTxHash(verify.RawTx)
 	if err != nil {
 		return err
@@ -309,7 +309,7 @@ func btcHashStrRevers(str string) ([]byte, error) {
 	return merkle, nil
 }
 
-func (b *btcStore) getHeadHeightList(req *rTy.ReqRelayBtcHeaderHeightList) (types.Message, error) {
+func (b *btcStore) getHeadHeightList(req *ty.ReqRelayBtcHeaderHeightList) (types.Message, error) {
 	prefix := []byte(relayBTCHeaderHeightList)
 	key := calcBtcHeaderKeyHeightList(req.ReqHeight)
 
@@ -321,7 +321,7 @@ func (b *btcStore) getHeadHeightList(req *rTy.ReqRelayBtcHeaderHeightList) (type
 		}
 	}
 
-	var replay rTy.ReplyRelayBtcHeadHeightList
+	var replay ty.ReplyRelayBtcHeadHeightList
 	heightGot := make(map[int64]bool)
 	for _, heightByte := range values {
 		height, _ := decodeHeight(heightByte)
@@ -335,7 +335,7 @@ func (b *btcStore) getHeadHeightList(req *rTy.ReqRelayBtcHeaderHeightList) (type
 
 }
 
-func btcWireHeader(head *rTy.BtcHeader) (*wire.BlockHeader, error) {
+func btcWireHeader(head *ty.BtcHeader) (*wire.BlockHeader, error) {
 	preHash, err := chainhash.NewHashFromStr(head.PreviousHash)
 	if err != nil {
 		return nil, err
@@ -356,7 +356,7 @@ func btcWireHeader(head *rTy.BtcHeader) (*wire.BlockHeader, error) {
 	return h, nil
 }
 
-func verifyBlockHeader(head *rTy.BtcHeader, preHead *rTy.RelayLastRcvBtcHeader, localDb dbm.KVDB) error {
+func verifyBlockHeader(head *ty.BtcHeader, preHead *ty.RelayLastRcvBtcHeader, localDb dbm.KVDB) error {
 	if head == nil {
 		return types.ErrInputPara
 	}
@@ -402,7 +402,7 @@ func verifyBlockHeader(head *rTy.BtcHeader, preHead *rTy.RelayLastRcvBtcHeader, 
 // refer to btcd's blockchain's calcNextRequiredDifficulty() function
 // calcNextRequiredDifficulty calculates the required difficulty for the block
 // after the passed previous block node based on the difficulty retarget rules.
-func calcNextRequiredDifficulty(preHead *rTy.BtcHeader, localDb dbm.KVDB) (int64, error) {
+func calcNextRequiredDifficulty(preHead *ty.BtcHeader, localDb dbm.KVDB) (int64, error) {
 	if preHead == nil {
 		return 0, nil
 	}
