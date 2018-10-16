@@ -623,7 +623,7 @@ func (chain *BlockChain) ProcGetTransactionByAddr(addr *types.ReqAddr) (*types.R
 	//查询的drivers--> main 驱动的名称
 	//查询的方法：  --> GetTxsByAddr
 	//查询的参数：  --> interface{} 类型
-	txinfos, err := chain.query.Query(types.ExecName("coins"), "GetTxsByAddr", types.Encode(addr))
+	txinfos, err := chain.query.Query(types.ExecName("coins"), "GetTxsByAddr", addr)
 	if err != nil {
 		chainlog.Info("ProcGetTransactionByAddr does not exist tx!", "addr", addr, "err", err)
 		return nil, err
@@ -736,7 +736,7 @@ func (chain *BlockChain) ProcGetAddrOverview(addr *types.ReqAddr) (*types.AddrOv
 	var addrOverview types.AddrOverview
 
 	//获取地址的reciver
-	amount, err := chain.query.Query(types.ExecName("coins"), "GetAddrReciver", types.Encode(addr))
+	amount, err := chain.query.Query(types.ExecName("coins"), "GetAddrReciver", addr)
 	if err != nil {
 		chainlog.Error("ProcGetAddrOverview", "GetAddrReciver err", err)
 		addrOverview.Reciver = 0
@@ -753,7 +753,7 @@ func (chain *BlockChain) ProcGetAddrOverview(addr *types.ReqAddr) (*types.AddrOv
 		//旧的数据库获取地址对应的交易count，使用前缀查找的方式获取
 		//前缀和util.go 文件中的CalcTxAddrHashKey保持一致
 		reqkey.Key = []byte(fmt.Sprintf("TxAddrHash:%s:%s", addr.Addr, ""))
-		count, err := chain.query.Query(types.ExecName("coins"), "GetPrefixCount", types.Encode(&reqkey))
+		count, err := chain.query.Query(types.ExecName("coins"), "GetPrefixCount", &reqkey)
 		if err != nil {
 			chainlog.Error("ProcGetAddrOverview", "GetPrefixCount err", err)
 			addrOverview.TxCount = 0
@@ -765,7 +765,7 @@ func (chain *BlockChain) ProcGetAddrOverview(addr *types.ReqAddr) (*types.AddrOv
 		//新的数据库直接使用key值查找就可以
 		//前缀和util.go 文件中的calcAddrTxsCountKey保持一致
 		reqkey.Key = []byte(fmt.Sprintf("AddrTxsCount:%s", addr.Addr))
-		count, err := chain.query.Query(types.ExecName("coins"), "GetAddrTxsCount", types.Encode(&reqkey))
+		count, err := chain.query.Query(types.ExecName("coins"), "GetAddrTxsCount", &reqkey)
 		if err != nil {
 			chainlog.Error("ProcGetAddrOverview", "GetAddrTxsCount err", err)
 			addrOverview.TxCount = 0

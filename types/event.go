@@ -87,7 +87,6 @@ const (
 	EventGetWalletStatus     = 80
 	EventCheckTx             = 81
 	EventReceiptCheckTx      = 82
-	EventQuery               = 83
 	EventReplyQuery          = 84
 	EventFlushTicket         = 85
 	EventFetchBlockHeaders   = 86
@@ -222,7 +221,6 @@ var eventName = map[int]string{
 	80:  "EventGetWalletStatus",
 	81:  "EventCheckTx",
 	82:  "EventReceiptCheckTx",
-	83:  "EventQuery",
 	84:  "EventReplyQuery",
 	85:  "EventFlushTicket",
 	86:  "EventFetchBlockHeaders",

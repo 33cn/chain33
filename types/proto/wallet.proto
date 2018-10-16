@@ -48,13 +48,6 @@ message WalletAccountStore {
     string timeStamp = 4;
 }
 
-message WalletAccountPrivacy {
-    bytes viewPubkey   = 1;
-    bytes viewPrivKey  = 2;
-    bytes spendPubkey  = 3;
-    bytes spendPrivKey = 4;
-}
-
 //钱包模块通过一个随机值对钱包密码加密
 // 	 pwHash : 对钱包密码和一个随机值组合进行哈希计算
 //	 randstr :对钱包密码加密的一个随机值

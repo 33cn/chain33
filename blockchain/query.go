@@ -23,11 +23,11 @@ func NewQuery(db dbm.DB, qclient queue.Client, stateHash []byte) *Query {
 	return query
 }
 
-func (q *Query) Query(driver string, funcname string, param []byte) (types.Message, error) {
+func (q *Query) Query(driver string, funcname string, param types.Message) (types.Message, error) {
 	query := &types.BlockChainQuery{
 		Driver:    driver,
 		FuncName:  funcname,
-		Param:     param,
+		Param:     types.Encode(param),
 		StateHash: q.getStateHash(),
 	}
 	return q.api.QueryChain(query)

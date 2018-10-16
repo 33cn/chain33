@@ -22,9 +22,9 @@ type QueueProtocolAPI interface {
 	GetLastMempool() (*types.ReplyTxList, error)
 	// +++++++++++++++ execs interfaces begin
 	// types.EventBlockChainQuery
-	Query(driver, funcname string, param []byte) (types.Message, error)
+	Query(driver, funcname string, param types.Message) (types.Message, error)
 	QueryChain(param *types.BlockChainQuery) (types.Message, error)
-	ExecWalletEvent(driver, funcname string, eventId int) (types.Message, error)
+	ExecWalletFunc(driver string, funcname string, param types.Message) (types.Message, error)
 	ExecWallet(param *types.WalletExecutor) (types.Message, error)
 	// --------------- execs interfaces end
 
