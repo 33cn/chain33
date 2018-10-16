@@ -122,31 +122,30 @@ func (mvccs *KVMVCCStore) Rollback(req *types.ReqHash) ([]byte, error) {
 }
 
 func (mvccs *KVMVCCStore) IterateRangeByStateHash(statehash []byte, start []byte, end []byte, ascending bool, fn func(key, value []byte) bool) {
-	if mvccs.enableMVCCIter {
-		//按照kv最新值来进行遍历处理，要求statehash必须是最新区块的statehash，否则不支持该接口
-		maxVersion, err := mvccs.mvcc.GetMaxVersion()
-		if err != nil {
-			klog.Error("KVMVCCStore IterateRangeByStateHash can't get max version, ignore the call.", "err", err)
-			return
-		}
-
-		version, err := mvccs.mvcc.GetVersion(statehash)
-		if err != nil {
-			klog.Error("KVMVCCStore IterateRangeByStateHash can't get version, ignore the call.", "stateHash", common.ToHex(statehash), "err", err)
-			return
-		}
-
-		if version != maxVersion {
-			klog.Error("KVMVCCStore IterateRangeByStateHash call failed for maxVersion does not match version.", "maxVersion", maxVersion, "version", version, "stateHash", common.ToHex(statehash))
-			return
-		}
-
-		//klog.Info("KVMVCCStore do the IterateRangeByStateHash")
-		listhelper := dbm.NewListHelper(mvccs.BaseStore.GetDB())
-		listhelper.ListExcute(dbm.GetLastKey(start), dbm.GetLastKey(end), 0, 1, fn)
-	} else {
-		//klog.Warn("KVMVCCStore does not support IterateRangeByStateHash when disable MVCCIter")
+	if !mvccs.enableMVCCIter {
+		panic("call IterateRangeByStateHash when disable mvcc iter")
 	}
+	//按照kv最新值来进行遍历处理，要求statehash必须是最新区块的statehash，否则不支持该接口
+	maxVersion, err := mvccs.mvcc.GetMaxVersion()
+	if err != nil {
+		klog.Error("KVMVCCStore IterateRangeByStateHash can't get max version, ignore the call.", "err", err)
+		return
+	}
+
+	version, err := mvccs.mvcc.GetVersion(statehash)
+	if err != nil {
+		klog.Error("KVMVCCStore IterateRangeByStateHash can't get version, ignore the call.", "stateHash", common.ToHex(statehash), "err", err)
+		return
+	}
+
+	if version != maxVersion {
+		klog.Error("KVMVCCStore IterateRangeByStateHash call failed for maxVersion does not match version.", "maxVersion", maxVersion, "version", version, "stateHash", common.ToHex(statehash))
+		return
+	}
+
+	//klog.Info("KVMVCCStore do the IterateRangeByStateHash")
+	listhelper := dbm.NewListHelper(mvccs.mvcc.(*dbm.MVCCIter))
+	listhelper.IteratorCallback(start, end, 0, 1, fn)
 }
 
 func (mvccs *KVMVCCStore) ProcEvent(msg queue.Message) {

@@ -1,7 +1,6 @@
 package db
 
 import (
-	"bytes"
 	"path"
 
 	log "github.com/inconshreveable/log15"
@@ -149,10 +148,13 @@ func (db *GoLevelDB) Stats() map[string]string {
 	return stats
 }
 
-func (db *GoLevelDB) Iterator(prefix []byte, reserve bool) Iterator {
-	r := &util.Range{prefix, bytesPrefix(prefix)}
+func (db *GoLevelDB) Iterator(start []byte, end []byte, reverse bool) Iterator {
+	if end == nil {
+		end = bytesPrefix(start)
+	}
+	r := &util.Range{start, end}
 	it := db.db.NewIterator(r, nil)
-	return &goLevelDBIt{it, reserve, prefix}
+	return &goLevelDBIt{it, itBase{start, end, reverse}}
 }
 
 func (db *GoLevelDB) BatchGet(keys [][]byte) (value [][]byte, err error) {
@@ -162,8 +164,7 @@ func (db *GoLevelDB) BatchGet(keys [][]byte) (value [][]byte, err error) {
 
 type goLevelDBIt struct {
 	iterator.Iterator
-	reserve bool
-	prefix  []byte
+	itBase
 }
 
 func (dbit *goLevelDBIt) Close() {
@@ -171,14 +172,14 @@ func (dbit *goLevelDBIt) Close() {
 }
 
 func (dbit *goLevelDBIt) Next() bool {
-	if dbit.reserve {
+	if dbit.reverse {
 		return dbit.Iterator.Prev() && dbit.Valid()
 	}
 	return dbit.Iterator.Next() && dbit.Valid()
 }
 
 func (dbit *goLevelDBIt) Rewind() bool {
-	if dbit.reserve {
+	if dbit.reverse {
 		return dbit.Iterator.Last() && dbit.Valid()
 	}
 	return dbit.Iterator.First() && dbit.Valid()
@@ -199,12 +200,8 @@ func (dbit *goLevelDBIt) ValueCopy() []byte {
 	return cloneByte(v)
 }
 
-func (it *goLevelDBIt) Prefix() []byte {
-	return nil
-}
-
 func (dbit *goLevelDBIt) Valid() bool {
-	return dbit.Iterator.Valid() && bytes.HasPrefix(dbit.Key(), dbit.prefix)
+	return dbit.Iterator.Valid() && dbit.checkKey(dbit.Key())
 }
 
 type goLevelDBBatch struct {
