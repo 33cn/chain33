@@ -18,7 +18,7 @@ func NewListHelper(db IteratorDB) *ListHelper {
 }
 
 func (db *ListHelper) PrefixScan(prefix []byte) (values [][]byte) {
-	it := db.db.Iterator(prefix, false)
+	it := db.db.Iterator(prefix, nil, false)
 	defer it.Close()
 
 	for it.Rewind(); it.Valid(); it.Next() {
@@ -49,7 +49,7 @@ func (db *ListHelper) List(prefix, key []byte, count, direction int32) (values [
 		}
 	}
 	if count == 1 && direction == ListSeek {
-		it := db.db.Iterator(prefix, true)
+		it := db.db.Iterator(prefix, nil, true)
 		defer it.Close()
 		it.Seek(key)
 		//判断是否相等
@@ -69,7 +69,7 @@ func (db *ListHelper) IteratorScan(prefix []byte, key []byte, count int32, direc
 	if direction == 0 {
 		reserse = true
 	}
-	it := db.db.Iterator(prefix, reserse)
+	it := db.db.Iterator(prefix, nil, reserse)
 	defer it.Close()
 
 	var i int32
@@ -97,9 +97,8 @@ func (db *ListHelper) IteratorScan(prefix []byte, key []byte, count int32, direc
 }
 
 func (db *ListHelper) IteratorScanFromFirst(prefix []byte, count int32) (values [][]byte) {
-	it := db.db.Iterator(prefix, false)
+	it := db.db.Iterator(prefix, nil, false)
 	defer it.Close()
-
 	var i int32
 	for it.Rewind(); it.Valid(); it.Next() {
 		value := it.ValueCopy()
@@ -119,7 +118,7 @@ func (db *ListHelper) IteratorScanFromFirst(prefix []byte, count int32) (values 
 }
 
 func (db *ListHelper) IteratorScanFromLast(prefix []byte, count int32) (values [][]byte) {
-	it := db.db.Iterator(prefix, true)
+	it := db.db.Iterator(prefix, nil, true)
 	defer it.Close()
 
 	var i int32
@@ -141,7 +140,7 @@ func (db *ListHelper) IteratorScanFromLast(prefix []byte, count int32) (values [
 }
 
 func (db *ListHelper) PrefixCount(prefix []byte) (count int64) {
-	it := db.db.Iterator(prefix, true)
+	it := db.db.Iterator(prefix, nil, true)
 	defer it.Close()
 	for it.Rewind(); it.Valid(); it.Next() {
 		if it.Error() != nil {
@@ -156,7 +155,7 @@ func (db *ListHelper) PrefixCount(prefix []byte) (count int64) {
 
 func (db *ListHelper) IteratorCallback(start []byte, end []byte, count int32, direction int32, fn func(key, value []byte) bool) {
 	reserse := direction == 0
-	it := db.db.Iterator(start, reserse)
+	it := db.db.Iterator(start, end, reserse)
 	defer it.Close()
 	var i int32
 	for it.Rewind(); it.Valid(); it.Next() {
