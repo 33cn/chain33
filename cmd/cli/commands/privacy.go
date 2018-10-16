@@ -657,7 +657,7 @@ func parseRescanUtxosOpt(arg interface{}) (interface{}, error) {
 		return str, nil
 	} else {
 		for _, v := range res.RepRescanResults {
-			str, ok := types.RescanFlagMapint2string[v.Flag]
+			str, ok := pty.RescanFlagMapint2string[v.Flag]
 			if ok {
 				showRescanResult := &ShowRescanResult{
 					Addr:       v.Addr,

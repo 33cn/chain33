@@ -52,7 +52,7 @@ type QueueProtocolAPI interface {
 	// types.EventWalletTransactionList
 	WalletTransactionList(param *types.ReqWalletTransactionList) (*types.WalletTxDetails, error)
 	// types.EventWalletImportprivkey
-	WalletImportprivkey(param *types.ReqWalletImportPrivKey) (*types.WalletAccount, error)
+	WalletImportprivkey(param *types.ReqWalletImportPrivkey) (*types.WalletAccount, error)
 	// types.EventWalletSendToAddress
 	WalletSendToAddress(param *types.ReqWalletSendToAddress) (*types.ReplyHash, error)
 	// types.EventWalletSetFee
