@@ -2,6 +2,7 @@ package db
 
 import (
 	"bytes"
+	"fmt"
 
 	log "github.com/inconshreveable/log15"
 )
@@ -142,14 +143,12 @@ func (db *ListHelper) IteratorScanFromLast(prefix []byte, count int32) (values [
 func (db *ListHelper) PrefixCount(prefix []byte) (count int64) {
 	it := db.db.Iterator(prefix, true)
 	defer it.Close()
-
 	for it.Rewind(); it.Valid(); it.Next() {
 		if it.Error() != nil {
 			listlog.Error("PrefixCount it.Value()", "error", it.Error())
 			count = 0
 			return
 		}
-
 		count++
 	}
 	return
@@ -171,18 +170,22 @@ func (db *ListHelper) IteratorCallback(start []byte, end []byte, count int32, di
 		if end != nil {
 			cmp := bytes.Compare(key, end)
 			if !reserse && cmp > 0 {
+				fmt.Println("break1")
 				break
 			}
 			if reserse && cmp < 0 {
+				fmt.Println("break2")
 				break
 			}
 		}
 		if fn(cloneByte(key), cloneByte(value)) {
+			fmt.Println("break3")
 			break
 		}
 		//count 到数目了
 		i++
 		if i == count {
+			fmt.Println("break4")
 			break
 		}
 	}
