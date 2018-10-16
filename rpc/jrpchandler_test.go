@@ -1543,61 +1543,6 @@ func TestChain33_CreateRawRetrieveCancelTx(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestChain33_CreateRawHashlockLockTx(t *testing.T) {
-	client := newTestChain33(nil)
-	var testResult interface{}
-	err := client.CreateRawHashlockLockTx(nil, &testResult)
-	assert.NotNil(t, err)
-	assert.Nil(t, testResult)
-
-	lock := &hashlocktype.HashlockLockTx{
-		Secret:     "12asdfa",
-		Amount:     100,
-		Time:       100,
-		ToAddr:     "12asdfa",
-		ReturnAddr: "0x3456",
-		Fee:        1,
-	}
-
-	err = client.CreateRawHashlockLockTx(lock, &testResult)
-	assert.NotNil(t, testResult)
-	assert.Nil(t, err)
-}
-
-func TestChain33_CreateRawHashlockUnlockTx(t *testing.T) {
-	client := newTestChain33(nil)
-	var testResult interface{}
-	err := client.CreateRawHashlockUnlockTx(nil, &testResult)
-	assert.NotNil(t, err)
-	assert.Nil(t, testResult)
-
-	unlock := &hashlocktype.HashlockUnlockTx{
-		Secret: "12asdfa",
-		Fee:    1,
-	}
-
-	err = client.CreateRawHashlockUnlockTx(unlock, &testResult)
-	assert.NotNil(t, testResult)
-	assert.Nil(t, err)
-}
-
-func TestChain33_CreateRawHashlockSendTx(t *testing.T) {
-	client := newTestChain33(nil)
-	var testResult interface{}
-	err := client.CreateRawHashlockSendTx(nil, &testResult)
-	assert.NotNil(t, err)
-	assert.Nil(t, testResult)
-
-	send := &hashlocktype.HashlockSendTx{
-		Secret: "12asdfa",
-		Fee:    1,
-	}
-
-	err = client.CreateRawHashlockSendTx(send, &testResult)
-	assert.NotNil(t, testResult)
-	assert.Nil(t, err)
-}
-
 func TestChain33_GetTimeStatus(t *testing.T) {
 	api := new(mocks.QueueProtocolAPI)
 	client := newTestChain33(api)
