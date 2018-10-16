@@ -14,7 +14,6 @@ import (
 	"github.com/stretchr/testify/mock"
 	"gitlab.33.cn/chain33/chain33/client/mocks"
 	"gitlab.33.cn/chain33/chain33/common"
-	hashlocktype "gitlab.33.cn/chain33/chain33/plugin/dapp/hashlock/types"
 	retrievetype "gitlab.33.cn/chain33/chain33/plugin/dapp/retrieve/types"
 	tradetype "gitlab.33.cn/chain33/chain33/plugin/dapp/trade/types"
 	rpctypes "gitlab.33.cn/chain33/chain33/rpc/types"
