@@ -2,6 +2,7 @@ package rpc
 
 import (
 	"gitlab.33.cn/chain33/chain33/common"
+	"gitlab.33.cn/chain33/chain33/rpc/types"
 	context "golang.org/x/net/context"
 )
 
