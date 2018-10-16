@@ -3,10 +3,11 @@ package executor
 import (
 	log "github.com/inconshreveable/log15"
 
+	"reflect"
+
 	rTy "gitlab.33.cn/chain33/chain33/plugin/dapp/relay/types"
 	drivers "gitlab.33.cn/chain33/chain33/system/dapp"
 	"gitlab.33.cn/chain33/chain33/types"
-	"reflect"
 )
 
 var relaylog = log.New("module", "execs.relay")
@@ -22,7 +23,6 @@ func init() {
 		executorFunList[k] = v
 	}
 }
-
 
 func Init(name string) {
 	drivers.Register(GetName(), newRelay, types.ForkV18Relay) //TODO: ForkV18Relay
@@ -47,60 +47,23 @@ func (r *relay) GetDriverName() string {
 	return "relay"
 }
 
-func (r *relay) Exec(tx *types.Transaction, index int) (*types.Receipt, error) {
-	var action rTy.RelayAction
-	err := types.Decode(tx.Payload, &action)
-	if err != nil {
-		return nil, err
-	}
+func (c *relay) GetFuncMap() map[string]reflect.Method {
+	return executorFunList
+}
 
-	actiondb := newRelayDB(r, tx)
-	switch action.GetTy() {
-	case rTy.RelayActionCreate:
-		if action.GetCreate() == nil {
-			return nil, types.ErrInputPara
-		}
-		return actiondb.relayCreate(action.GetCreate())
+func (c *relay) GetPayloadValue() types.Message {
+	return &rTy.RelayAction{}
+}
 
-	case rTy.RelayActionAccept:
-		if action.GetAccept() == nil {
-			return nil, types.ErrInputPara
-		}
-		return actiondb.accept(action.GetAccept())
-
-	case rTy.RelayActionRevoke:
-		if action.GetRevoke() == nil {
-			return nil, types.ErrInputPara
-		}
-		return actiondb.relayRevoke(action.GetRevoke())
-
-	case rTy.RelayActionConfirmTx:
-		if action.GetConfirmTx() == nil {
-			return nil, types.ErrInputPara
-		}
-		return actiondb.confirmTx(action.GetConfirmTx())
-
-	case rTy.RelayActionVerifyTx:
-		if action.GetVerify() == nil {
-			return nil, types.ErrInputPara
-		}
-		return actiondb.verifyTx(action.GetVerify())
-
-	// OrderId, rawTx, index sibling, blockhash
-	case rTy.RelayActionVerifyCmdTx:
-		if action.GetVerifyCli() == nil {
-			return nil, types.ErrInputPara
-		}
-		return actiondb.verifyCmdTx(action.GetVerifyCli())
-
-	case rTy.RelayActionRcvBTCHeaders:
-		if action.GetBtcHeaders() == nil {
-			return nil, types.ErrInputPara
-		}
-		return actiondb.saveBtcHeader(action.GetBtcHeaders(), r.GetLocalDB())
-
-	default:
-		return nil, types.ErrActionNotSupport
+func (c *relay) GetTypeMap() map[string]int32 {
+	return map[string]int32{
+		"Create":     rTy.RelayActionCreate,
+		"Accept":     rTy.RelayActionAccept,
+		"Revoke":     rTy.RelayActionRevoke,
+		"ConfirmTx":  rTy.RelayActionConfirmTx,
+		"Verify":     rTy.RelayActionVerifyTx,
+		"VerifyCli":  rTy.RelayActionVerifyCmdTx,
+		"BtcHeaders": rTy.RelayActionRcvBTCHeaders,
 	}
 }
 
@@ -108,164 +71,8 @@ func (r *relay) GetActionName(tx *types.Transaction) string {
 	return tx.ActionName()
 }
 
-func (r *relay) ExecLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	set, err := r.DriverBase.ExecLocal(tx, receipt, index)
-	if err != nil {
-		return nil, err
-	}
-
-	if receipt.GetTy() != types.ExecOk {
-		return set, nil
-	}
-
-	for i := 0; i < len(receipt.Logs); i++ {
-		item := receipt.Logs[i]
-		switch item.Ty {
-		case rTy.TyLogRelayCreate,
-			rTy.TyLogRelayRevokeCreate,
-			rTy.TyLogRelayAccept,
-			rTy.TyLogRelayRevokeAccept,
-			rTy.TyLogRelayConfirmTx,
-			rTy.TyLogRelayFinishTx:
-			var receipt rTy.ReceiptRelayLog
-			err := types.Decode(item.Log, &receipt)
-			if err != nil {
-				return nil, err
-			}
-			kv := r.getOrderKv([]byte(receipt.OrderId), item.Ty)
-			set.KV = append(set.KV, kv...)
-		case rTy.TyLogRelayRcvBTCHead:
-			var receipt = &rTy.ReceiptRelayRcvBTCHeaders{}
-			err := types.Decode(item.Log, receipt)
-			if err != nil {
-				return nil, err
-			}
-
-			btc := newBtcStore(r.GetLocalDB())
-			for _, head := range receipt.Headers {
-				kv, err := btc.saveBlockHead(head)
-				if err != nil {
-					return nil, err
-				}
-				set.KV = append(set.KV, kv...)
-			}
-
-			kv, err := btc.saveBlockLastHead(receipt)
-			if err != nil {
-				return nil, err
-			}
-			set.KV = append(set.KV, kv...)
-
-		default:
-
-		}
-	}
-
-	return set, nil
-}
-
-func (r *relay) ExecDelLocal(tx *types.Transaction, receipt *types.ReceiptData, index int) (*types.LocalDBSet, error) {
-	set, err := r.DriverBase.ExecDelLocal(tx, receipt, index)
-	if err != nil {
-		return nil, err
-	}
-
-	if receipt.GetTy() != types.ExecOk {
-		return set, nil
-	}
-
-	for i := 0; i < len(receipt.Logs); i++ {
-		item := receipt.Logs[i]
-		switch item.Ty {
-		case rTy.TyLogRelayCreate,
-			rTy.TyLogRelayRevokeCreate,
-			rTy.TyLogRelayAccept,
-			rTy.TyLogRelayRevokeAccept,
-			rTy.TyLogRelayConfirmTx,
-			rTy.TyLogRelayFinishTx:
-			var receipt rTy.ReceiptRelayLog
-			err := types.Decode(item.Log, &receipt)
-			if err != nil {
-				return nil, err
-			}
-			kv := r.getDeleteOrderKv([]byte(receipt.OrderId), item.Ty)
-			set.KV = append(set.KV, kv...)
-		case rTy.TyLogRelayRcvBTCHead:
-			var receipt = &rTy.ReceiptRelayRcvBTCHeaders{}
-			err := types.Decode(item.Log, receipt)
-			if err != nil {
-				return nil, err
-			}
-
-			btc := newBtcStore(r.GetLocalDB())
-			for _, head := range receipt.Headers {
-				kv, err := btc.delBlockHead(head)
-				if err != nil {
-					return nil, err
-				}
-				set.KV = append(set.KV, kv...)
-			}
-
-			kv, err := btc.delBlockLastHead(receipt)
-			if err != nil {
-				return nil, err
-			}
-			set.KV = append(set.KV, kv...)
-		default:
-
-		}
-	}
-
-	return set, nil
-
-}
-
-func (r *relay) Query(funcName string, params []byte) (types.Message, error) {
-	switch funcName {
-	case "GetRelayOrderByStatus":
-		var addrCoins rTy.ReqRelayAddrCoins
-
-		err := types.Decode(params, &addrCoins)
-		if err != nil {
-			return nil, err
-		}
-		return r.GetSellOrderByStatus(&addrCoins)
-	case "GetSellRelayOrder":
-		var addrCoins rTy.ReqRelayAddrCoins
-		err := types.Decode(params, &addrCoins)
-		if err != nil {
-			return nil, err
-		}
-		return r.GetSellRelayOrder(&addrCoins)
-	case "GetBuyRelayOrder":
-		var addrCoins rTy.ReqRelayAddrCoins
-		err := types.Decode(params, &addrCoins)
-		if err != nil {
-			return nil, err
-		}
-		return r.GetBuyRelayOrder(&addrCoins)
-
-	case "GetBTCHeaderList":
-		var req rTy.ReqRelayBtcHeaderHeightList
-		err := types.Decode(params, &req)
-		if err != nil {
-			return nil, err
-		}
-		db := newBtcStore(r.GetLocalDB())
-		return db.getHeadHeightList(&req)
-
-	case "GetBTCHeaderCurHeight":
-		var req rTy.ReqRelayQryBTCHeadHeight
-		err := types.Decode(params, &req)
-		if err != nil {
-			return nil, err
-		}
-		db := newBtcStore(r.GetLocalDB())
-		return db.getBtcCurHeight(&req)
-	default:
-	}
-	relaylog.Error("relay Query", "Query type not supprt with func name", funcName)
-	return nil, types.ErrQueryNotSupport
+func (r *relay) CheckTx(tx *types.Transaction, index int) error {
+	return nil
 }
 
 func (r *relay) GetSellOrderByStatus(addrCoins *rTy.ReqRelayAddrCoins) (types.Message, error) {

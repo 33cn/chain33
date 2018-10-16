@@ -174,7 +174,7 @@ func (s *suiteRelayDB) TestRelayCreate_1() {
 	s.relayDb = newRelayDB(s.relay, tx)
 	heightBytes := types.Encode(&types.Int64{int64(10)})
 	s.kvdb.On("Get", mock.Anything).Return(heightBytes, nil).Once()
-	receipt, err := s.relayDb.relayCreate(order)
+	receipt, err := s.relayDb.create(order)
 	s.Nil(err)
 
 	acc := s.relay.GetCoinsAccount()
@@ -307,7 +307,7 @@ func (s *suiteAccept) setupRelayCreate() {
 	s.relayDb = newRelayDB(s.relay, tx)
 	heightBytes := types.Encode(&types.Int64{int64(10)})
 	s.kvdb.On("Get", mock.Anything).Return(heightBytes, nil).Once()
-	receipt, err := s.relayDb.relayCreate(order)
+	receipt, err := s.relayDb.create(order)
 	s.Nil(err)
 
 	acc := s.relay.GetCoinsAccount()
@@ -505,7 +505,7 @@ func (s *suiteConfirm) setupRelayCreate() {
 	s.relayDb = newRelayDB(s.relay, tx)
 	heightBytes := types.Encode(&types.Int64{int64(10)})
 	s.kvdb.On("Get", mock.Anything).Return(heightBytes, nil).Once()
-	receipt, err := s.relayDb.relayCreate(order)
+	receipt, err := s.relayDb.create(order)
 	s.Nil(err)
 
 	acc := s.relay.GetCoinsAccount()
@@ -732,7 +732,7 @@ func (s *suiteVerify) setupRelayCreate() {
 	s.relayDb = newRelayDB(s.relay, tx)
 	heightBytes := types.Encode(&types.Int64{int64(10)})
 	s.kvdb.On("Get", mock.Anything).Return(heightBytes, nil).Once()
-	receipt, err := s.relayDb.relayCreate(order)
+	receipt, err := s.relayDb.create(order)
 	s.Nil(err)
 
 	acc := s.relay.GetCoinsAccount()
@@ -963,7 +963,7 @@ func (s *suiteVerifyCli) setupRelayCreate() {
 	s.relayDb = newRelayDB(s.relay, tx)
 	heightBytes := types.Encode(&types.Int64{int64(10)})
 	s.kvdb.On("Get", mock.Anything).Return(heightBytes, nil).Once()
-	receipt, err := s.relayDb.relayCreate(order)
+	receipt, err := s.relayDb.create(order)
 	s.Nil(err)
 
 	acc := s.relay.GetCoinsAccount()
