@@ -1,10 +1,10 @@
 package tendermint
 
 import (
-	"encoding/binary"
 	"fmt"
 	"time"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/inconshreveable/log15"
 	"gitlab.33.cn/chain33/chain33/common/crypto"
 	dbm "gitlab.33.cn/chain33/chain33/common/db"
@@ -387,11 +387,15 @@ func (client *TendermintClient) QueryValidatorsByHeight(height int64) (*tmtypes.
 	if height <= 0 {
 		return nil, types.ErrInvalidParam
 	}
-	var param [10]byte
-	n := binary.PutVarint(param[:], height)
-	msg := client.GetQueueClient().NewMessage("execs", types.EventBlockChainQuery, &types.BlockChainQuery{"valnode", "GetValNodeByHeight", zeroHash[:], param[0:n]})
+	req := &tmtypes.ReqNodeInfo{Height: height}
+	param, err := proto.Marshal(req)
+	if err != nil {
+		tendermintlog.Error("QueryValidatorsByHeight", "err", err)
+		return nil, types.ErrInvalidParam
+	}
+	msg := client.GetQueueClient().NewMessage("execs", types.EventBlockChainQuery, &types.BlockChainQuery{"valnode", "GetValNodeByHeight", zeroHash[:], param})
 	client.GetQueueClient().Send(msg, true)
-	msg, err := client.GetQueueClient().Wait(msg)
+	msg, err = client.GetQueueClient().Wait(msg)
 	if err != nil {
 		return nil, err
 	}
@@ -402,11 +406,15 @@ func (client *TendermintClient) QueryBlockInfoByHeight(height int64) (*tmtypes.T
 	if height <= 0 {
 		return nil, types.ErrInvalidParam
 	}
-	var param [10]byte
-	n := binary.PutVarint(param[:], height)
-	msg := client.GetQueueClient().NewMessage("execs", types.EventBlockChainQuery, &types.BlockChainQuery{"valnode", "GetBlockInfoByHeight", zeroHash[:], param[0:n]})
+	req := &tmtypes.ReqBlockInfo{Height: height}
+	param, err := proto.Marshal(req)
+	if err != nil {
+		tendermintlog.Error("QueryBlockInfoByHeight", "err", err)
+		return nil, types.ErrInvalidParam
+	}
+	msg := client.GetQueueClient().NewMessage("execs", types.EventBlockChainQuery, &types.BlockChainQuery{"valnode", "GetBlockInfoByHeight", zeroHash[:], param})
 	client.GetQueueClient().Send(msg, true)
-	msg, err := client.GetQueueClient().Wait(msg)
+	msg, err = client.GetQueueClient().Wait(msg)
 	if err != nil {
 		return nil, err
 	}
