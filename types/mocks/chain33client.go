@@ -882,7 +882,7 @@ func (_m *Chain33Client) GetWalletStatus(ctx context.Context, in *types.ReqNil, 
 }
 
 // ImportPrivKey provides a mock function with given fields: ctx, in, opts
-func (_m *Chain33Client) ImportPrivKey(ctx context.Context, in *types.ReqWalletImportPrivKey, opts ...grpc.CallOption) (*types.WalletAccount, error) {
+func (_m *Chain33Client) ImportPrivKey(ctx context.Context, in *types.ReqWalletImportPrivkey, opts ...grpc.CallOption) (*types.WalletAccount, error) {
 	_va := make([]interface{}, len(opts))
 	for _i := range opts {
 		_va[_i] = opts[_i]
@@ -893,7 +893,7 @@ func (_m *Chain33Client) ImportPrivKey(ctx context.Context, in *types.ReqWalletI
 	ret := _m.Called(_ca...)
 
 	var r0 *types.WalletAccount
-	if rf, ok := ret.Get(0).(func(context.Context, *types.ReqWalletImportPrivKey, ...grpc.CallOption) *types.WalletAccount); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *types.ReqWalletImportPrivkey, ...grpc.CallOption) *types.WalletAccount); ok {
 		r0 = rf(ctx, in, opts...)
 	} else {
 		if ret.Get(0) != nil {
@@ -902,7 +902,7 @@ func (_m *Chain33Client) ImportPrivKey(ctx context.Context, in *types.ReqWalletI
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(context.Context, *types.ReqWalletImportPrivKey, ...grpc.CallOption) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, *types.ReqWalletImportPrivkey, ...grpc.CallOption) error); ok {
 		r1 = rf(ctx, in, opts...)
 	} else {
 		r1 = ret.Error(1)
