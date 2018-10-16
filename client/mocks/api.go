@@ -1040,11 +1040,11 @@ func (_m *QueueProtocolAPI) WalletGetAccountList(req *types.ReqAccountList) (*ty
 }
 
 // WalletImportprivkey provides a mock function with given fields: param
-func (_m *QueueProtocolAPI) WalletImportprivkey(param *types.ReqWalletImportPrivKey) (*types.WalletAccount, error) {
+func (_m *QueueProtocolAPI) WalletImportprivkey(param *types.ReqWalletImportPrivkey) (*types.WalletAccount, error) {
 	ret := _m.Called(param)
 
 	var r0 *types.WalletAccount
-	if rf, ok := ret.Get(0).(func(*types.ReqWalletImportPrivKey) *types.WalletAccount); ok {
+	if rf, ok := ret.Get(0).(func(*types.ReqWalletImportPrivkey) *types.WalletAccount); ok {
 		r0 = rf(param)
 	} else {
 		if ret.Get(0) != nil {
@@ -1053,7 +1053,7 @@ func (_m *QueueProtocolAPI) WalletImportprivkey(param *types.ReqWalletImportPriv
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(*types.ReqWalletImportPrivKey) error); ok {
+	if rf, ok := ret.Get(1).(func(*types.ReqWalletImportPrivkey) error); ok {
 		r1 = rf(param)
 	} else {
 		r1 = ret.Error(1)
